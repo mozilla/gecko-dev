@@ -42,7 +42,7 @@ namespace mozilla {
 
 FilterDescription FilterInstance::GetFilterDescription(
     nsIContent* aFilteredElement, Span<const StyleFilter> aFilterChain,
-    nsISupports* aFiltersObserverList, bool aFilterInputIsTainted,
+    ISVGFilterObserverList* aFiltersObserverList, bool aFilterInputIsTainted,
     const UserSpaceMetrics& aMetrics, const gfxRect& aBBox,
     nsTArray<RefPtr<SourceSurface>>& aOutAdditionalImages) {
   gfxMatrix identity;

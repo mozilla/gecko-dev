@@ -29,6 +29,7 @@ class nsIURI;
 namespace mozilla {
 class SVGClipPathFrame;
 class SVGFilterFrame;
+class SVGFilterObserver;
 class SVGMarkerFrame;
 class SVGMaskFrame;
 class SVGPaintServerFrame;
@@ -41,7 +42,30 @@ class SVGMPathElement;
 }  // namespace dom
 }  // namespace mozilla
 
+#define MOZILLA_ICANVASFILTEROBSERVER_IID            \
+  {                                                  \
+    0xd1c85f93, 0xd1ed, 0x4ea9, {                    \
+      0xa0, 0x39, 0x71, 0x62, 0xe4, 0x41, 0xf1, 0xa1 \
+    }                                                \
+  }
+
 namespace mozilla {
+
+class ISVGFilterObserverList : public nsISupports {
+ public:
+  NS_DECLARE_STATIC_IID_ACCESSOR(MOZILLA_ICANVASFILTEROBSERVER_IID)
+  NS_DECL_CYCLE_COLLECTING_ISUPPORTS
+  NS_DECL_CYCLE_COLLECTION_CLASS(ISVGFilterObserverList)
+
+  virtual const nsTArray<RefPtr<SVGFilterObserver>>& GetObservers() const = 0;
+  virtual void Detach() {}
+
+ protected:
+  virtual ~ISVGFilterObserverList() = default;
+};
+
+NS_DEFINE_STATIC_IID_ACCESSOR(ISVGFilterObserverList,
+                              MOZILLA_ICANVASFILTEROBSERVER_IID)
 
 /*
  * This class contains URL and referrer information (referrer and referrer
@@ -296,7 +320,8 @@ class SVGObserverUtils {
    * parameter.
    */
   static ReferenceState GetAndObserveFilters(
-      nsISupports* aObserverList, nsTArray<SVGFilterFrame*>* aFilterFrames);
+      ISVGFilterObserverList* aObserverList,
+      nsTArray<SVGFilterFrame*>* aFilterFrames);
 
   /**
    * If the given frame is already observing SVG filters, this function gets
@@ -319,22 +344,10 @@ class SVGObserverUtils {
    * objects separately.  It would be better to refactor things so that we only
    * do that work once.
    */
-  static already_AddRefed<nsISupports> ObserveFiltersForCanvasContext(
-      CanvasRenderingContext2D* aContext, Element* aCanvasElement,
-      Span<const StyleFilter> aFilters);
-
-  /**
-   * Called when cycle collecting CanvasRenderingContext2D, and requires the
-   * RAII object returned from ObserveFiltersForCanvasContext to be passed in.
-   *
-   * XXXjwatt: I don't think this is doing anything useful.  All we do under
-   * this function is clear a raw C-style (i.e. not strong) pointer.  That's
-   * clearly not helping in breaking any cycles.  The fact that we MOZ_CRASH
-   * in OnRenderingChange if that pointer is null indicates that this isn't
-   * even doing anything useful in terms of preventing further invalidation
-   * from any observed filters.
-   */
-  static void DetachFromCanvasContext(nsISupports* aAutoObserver);
+  static already_AddRefed<ISVGFilterObserverList>
+  ObserveFiltersForCanvasContext(CanvasRenderingContext2D* aContext,
+                                 Element* aCanvasElement,
+                                 Span<const StyleFilter> aFilters);
 
   /**
    * Get the frame of the SVG clipPath applied to aClippedFrame, if any, and

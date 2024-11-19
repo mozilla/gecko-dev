@@ -892,12 +892,17 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(CanvasRenderingContext2D)
     ImplCycleCollectionUnlink(
         tmp->mStyleStack[i].gradientStyles[Style::STROKE]);
     ImplCycleCollectionUnlink(tmp->mStyleStack[i].gradientStyles[Style::FILL]);
-    auto autoSVGFiltersObserver =
-        tmp->mStyleStack[i].autoSVGFiltersObserver.get();
-    if (autoSVGFiltersObserver) {
-      // XXXjwatt: I don't think this call achieves anything.  See the comment
-      // that documents this function.
-      SVGObserverUtils::DetachFromCanvasContext(autoSVGFiltersObserver);
+    if (auto* autoSVGFiltersObserver =
+            tmp->mStyleStack[i].autoSVGFiltersObserver.get()) {
+      /*
+       * XXXjwatt: I don't think this is doing anything useful.  All we do under
+       * this function is clear a raw C-style (i.e. not strong) pointer.  That's
+       * clearly not helping in breaking any cycles.  The fact that we MOZ_CRASH
+       * in OnRenderingChange if that pointer is null indicates that this isn't
+       * even doing anything useful in terms of preventing further invalidation
+       * from any observed filters.
+       */
+      autoSVGFiltersObserver->Detach();
     }
     ImplCycleCollectionUnlink(tmp->mStyleStack[i].autoSVGFiltersObserver);
   }

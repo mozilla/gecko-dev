@@ -28,6 +28,7 @@ class nsIFrame;
 struct WrFiltersHolder;
 
 namespace mozilla {
+class ISVGFilterObserverList;
 class SVGFilterFrame;
 
 namespace dom {
@@ -80,7 +81,7 @@ class FilterInstance {
    */
   static FilterDescription GetFilterDescription(
       nsIContent* aFilteredElement, Span<const StyleFilter> aFilterChain,
-      nsISupports* aFiltersObserverList, bool aFilterInputIsTainted,
+      ISVGFilterObserverList* aFiltersObserverList, bool aFilterInputIsTainted,
       const UserSpaceMetrics& aMetrics, const gfxRect& aBBox,
       nsTArray<RefPtr<SourceSurface>>& aOutAdditionalImages);
 
