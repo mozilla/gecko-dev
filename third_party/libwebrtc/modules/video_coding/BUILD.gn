@@ -236,6 +236,8 @@ rtc_library("video_coding") {
     "../../api/video:video_rtp_headers",
     "../../api/video_codecs:video_codecs_api",
     "../../common_video",
+    "../../rtc_base:buffer",
+    "../../rtc_base:byte_buffer",
     "../../rtc_base:checks",
     "../../rtc_base:copy_on_write_buffer",
     "../../rtc_base:event_tracer",
