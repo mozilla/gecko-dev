@@ -4708,7 +4708,6 @@ var SessionStoreInternal = {
       winData.sidebar = Object.assign(winData.sidebar || {}, {
         expanded: aWindow.SidebarController.sidebarMain.expanded,
         hidden: aWindow.SidebarController.sidebarContainer.hidden,
-        launcherWidth: aWindow.SidebarController.launcherWidth,
       });
     }
 

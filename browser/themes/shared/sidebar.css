@@ -37,7 +37,6 @@
 #sidebar-main,
 #sidebar-box {
   text-shadow: none;
-  max-width: 75vw;
 
   &:not(.browser-toolbox-background) {
     background-color: var(--sidebar-background-color);
@@ -115,7 +114,7 @@
 
   /* stylelint-disable-next-line media-query-no-invalid */
   @media (-moz-bool-pref: "sidebar.revamp") {
-    --splitter-width: 4px;
+    --splitter-width: 6px;
     transition: background-color 0.5s ease-in-out;
     border-style: none;
 
