@@ -484,16 +484,17 @@ void RTPSenderVideo::AddRtpHeaderExtensions(const RTPVideoHeader& video_header,
 
   if (last_packet && video_header.frame_instrumentation_data) {
     std::optional<CorruptionDetectionMessage> message;
-    if (absl::holds_alternative<FrameInstrumentationData>(
-            *video_header.frame_instrumentation_data)) {
-      message = ConvertFrameInstrumentationDataToCorruptionDetectionMessage(
-          absl::get<FrameInstrumentationData>(
-              *video_header.frame_instrumentation_data));
-    } else if (absl::holds_alternative<FrameInstrumentationSyncData>(
-                   *video_header.frame_instrumentation_data)) {
+    if (const auto* data = absl::get_if<FrameInstrumentationData>(
+            &(*video_header.frame_instrumentation_data))) {
+      message =
+          ConvertFrameInstrumentationDataToCorruptionDetectionMessage(*data);
+    } else if (const auto* sync_data =
+                   absl::get_if<FrameInstrumentationSyncData>(
+                       &(*video_header.frame_instrumentation_data))) {
       message = ConvertFrameInstrumentationSyncDataToCorruptionDetectionMessage(
-          absl::get<FrameInstrumentationSyncData>(
-              *video_header.frame_instrumentation_data));
+          *sync_data);
+    } else {
+      RTC_DCHECK_NOTREACHED();
     }
 
     if (message.has_value()) {
