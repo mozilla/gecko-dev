@@ -11,16 +11,19 @@
 #ifndef MODULES_AUDIO_CODING_NETEQ_DECISION_LOGIC_H_
 #define MODULES_AUDIO_CODING_NETEQ_DECISION_LOGIC_H_
 
+#include <cstddef>
+#include <cstdint>
 #include <memory>
+#include <optional>
 
 #include "api/environment/environment.h"
 #include "api/neteq/neteq.h"
 #include "api/neteq/neteq_controller.h"
 #include "api/neteq/tick_timer.h"
 #include "modules/audio_coding/neteq/buffer_level_filter.h"
+#include "modules/audio_coding/neteq/delay_constraints.h"
 #include "modules/audio_coding/neteq/delay_manager.h"
 #include "modules/audio_coding/neteq/packet_arrival_history.h"
-#include "rtc_base/experiments/field_trial_parser.h"
 
 namespace webrtc {
 
@@ -77,16 +80,16 @@ class DecisionLogic : public NetEqController {
   void RegisterEmptyPacket() override {}
 
   bool SetMaximumDelay(int delay_ms) override {
-    return delay_manager_->SetMaximumDelay(delay_ms);
+    return delay_constraints_.SetMaximumDelay(delay_ms);
   }
   bool SetMinimumDelay(int delay_ms) override {
-    return delay_manager_->SetMinimumDelay(delay_ms);
+    return delay_constraints_.SetMinimumDelay(delay_ms);
   }
   bool SetBaseMinimumDelay(int delay_ms) override {
-    return delay_manager_->SetBaseMinimumDelay(delay_ms);
+    return delay_constraints_.SetBaseMinimumDelay(delay_ms);
   }
   int GetBaseMinimumDelay() const override {
-    return delay_manager_->GetBaseMinimumDelay();
+    return delay_constraints_.GetBaseMinimumDelay();
   }
   bool PeakFound() const override { return false; }
 
@@ -148,6 +151,7 @@ class DecisionLogic : public NetEqController {
   int GetPlayoutDelayMs(NetEqController::NetEqStatus status) const;
 
   std::unique_ptr<DelayManager> delay_manager_;
+  DelayConstraints delay_constraints_;
   std::unique_ptr<BufferLevelFilter> buffer_level_filter_;
   std::unique_ptr<PacketArrivalHistory> packet_arrival_history_;
   const TickTimer* tick_timer_;

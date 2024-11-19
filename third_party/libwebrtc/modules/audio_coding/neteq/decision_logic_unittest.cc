@@ -61,6 +61,8 @@ class DecisionLogicTest : public ::testing::Test {
     NetEqController::Config config;
     config.tick_timer = &tick_timer_;
     config.allow_time_stretching = true;
+    config.max_packets_in_buffer = 200;
+    config.base_min_delay_ms = 0;
     auto delay_manager = std::make_unique<MockDelayManager>(
         DelayManager::Config(ExplicitKeyValueConfig("")), config.tick_timer);
     mock_delay_manager_ = delay_manager.get();
