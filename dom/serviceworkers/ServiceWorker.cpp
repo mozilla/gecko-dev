@@ -228,18 +228,15 @@ void ServiceWorker::PostMessage(JSContext* aCx, JS::Handle<JS::Value> aMessage,
     return;
   }
 
-  // The value of CloneScope() is set while StructuredCloneData::Write(). If the
-  // aValue contains a shared memory object, then the scope will be restricted
-  // and thus return SameProcess. If not, it will return DifferentProcess.
-  //
-  // We know that an attempt to postMessage a shared memory object will result
-  // in an error if the source and target aren't in the same agent cluster and
-  // ServiceWorkers are inherently in a different agent cluster from windows,
-  // so convert to an error if this binding is attached to a window (which must
-  // be the case if this is the main thread).
+  // If StructuredCloneData::Write() ended up deciding on a scope of SameProcess
+  // then we must convert this to an error on deserialization.  This is because
+  // such payloads fundamentally can't be sent cross-process (they involve
+  // pointers / local resources).  However, this will also correlate with the
+  // spec for situations like SharedArrayBuffer which are limited to being sent
+  // within the same agent cluster and where ServiceWorkers are always spawned
+  // in their own agent cluster.
   if (data->CloneScope() ==
-          StructuredCloneHolder::StructuredCloneScope::SameProcess &&
-      NS_IsMainThread()) {
+      StructuredCloneHolder::StructuredCloneScope::SameProcess) {
     data->SetAsErrorMessageData();
   }
 
