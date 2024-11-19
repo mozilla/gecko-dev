@@ -55,8 +55,7 @@ private:
         Offscreen(SkColor foregroundColor);
 
         CGRGBPixel* getCG(const SkScalerContext_Mac& context, const SkGlyph& glyph,
-                          CGGlyph glyphID, size_t* rowBytesPtr, bool generateA8FromLCD,
-                          bool lightOnDark);
+                          CGGlyph glyphID, size_t* rowBytesPtr, bool generateA8FromLCD);
 
     private:
         enum {
