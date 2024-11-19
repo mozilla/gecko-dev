@@ -99,7 +99,8 @@ class VideoReceiver2Test : public ::testing::Test {
   SimulatedClock clock_{Timestamp::Millis(1337)};
   VCMTiming timing_{&clock_, field_trials_};
   NiceMock<MockVCMReceiveCallback> receive_callback_;
-  VideoReceiver2 receiver_{&clock_, &timing_, field_trials_};
+  VideoReceiver2 receiver_{&clock_, &timing_, field_trials_,
+                           /*corruption_score_calculator=*/nullptr};
 };
 
 TEST_F(VideoReceiver2Test, RegisterExternalDecoder) {

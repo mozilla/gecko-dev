@@ -19,8 +19,11 @@
 #include <utility>
 
 #include "absl/algorithm/container.h"
+#include "absl/types/variant.h"
 #include "api/video/video_timing.h"
 #include "api/video_codecs/video_decoder.h"
+#include "common_video/frame_instrumentation_data.h"
+#include "common_video/include/corruption_score_calculator.h"
 #include "modules/include/module_common_types_public.h"
 #include "modules/video_coding/include/video_error_codes.h"
 #include "rtc_base/checks.h"
@@ -41,8 +44,11 @@ constexpr size_t kDecoderFrameMemoryLength = 10;
 VCMDecodedFrameCallback::VCMDecodedFrameCallback(
     VCMTiming* timing,
     Clock* clock,
-    const FieldTrialsView& field_trials)
-    : _clock(clock), _timing(timing) {
+    const FieldTrialsView& field_trials,
+    CorruptionScoreCalculator* corruption_score_calculator)
+    : _clock(clock),
+      _timing(timing),
+      corruption_score_calculator_(corruption_score_calculator) {
   ntp_offset_ =
       _clock->CurrentNtpInMilliseconds() - _clock->TimeInMilliseconds();
 }
@@ -126,6 +132,18 @@ void VCMDecodedFrameCallback::Decoded(VideoFrame& decodedImage,
                            "frame with timestamp "
                         << decodedImage.rtp_timestamp();
     return;
+  }
+
+  // TODO: bugs.webrtc.org/358039777 - Use the score.
+  std::optional<double> score;
+  if (corruption_score_calculator_ &&
+      frame_info->frame_instrumentation_data.has_value()) {
+    if (const FrameInstrumentationData* data =
+            absl::get_if<FrameInstrumentationData>(
+                &*frame_info->frame_instrumentation_data)) {
+      score = corruption_score_calculator_->CalculateCorruptionScore(
+          decodedImage, *data);
+    }
   }
 
   decodedImage.set_ntp_time_ms(frame_info->ntp_time_ms);
@@ -285,16 +303,22 @@ bool VCMGenericDecoder::Configure(const VideoDecoder::Settings& settings) {
 }
 
 int32_t VCMGenericDecoder::Decode(const EncodedFrame& frame, Timestamp now) {
-  return Decode(frame, now, frame.RenderTimeMs());
+  return Decode(frame, now, frame.RenderTimeMs(),
+                frame.CodecSpecific()->frame_instrumentation_data);
 }
 
 int32_t VCMGenericDecoder::Decode(const VCMEncodedFrame& frame, Timestamp now) {
-  return Decode(frame, now, frame.RenderTimeMs());
+  return Decode(frame, now, frame.RenderTimeMs(),
+                frame.CodecSpecific()->frame_instrumentation_data);
 }
 
-int32_t VCMGenericDecoder::Decode(const EncodedImage& frame,
-                                  Timestamp now,
-                                  int64_t render_time_ms) {
+int32_t VCMGenericDecoder::Decode(
+    const EncodedImage& frame,
+    Timestamp now,
+    int64_t render_time_ms,
+    const std::optional<
+        absl::variant<FrameInstrumentationSyncData, FrameInstrumentationData>>&
+        frame_instrumentation_data) {
   TRACE_EVENT1("webrtc", "VCMGenericDecoder::Decode", "timestamp",
                frame.RtpTimestamp());
   FrameInfo frame_info;
@@ -308,6 +332,7 @@ int32_t VCMGenericDecoder::Decode(const EncodedImage& frame,
   frame_info.timing = frame.video_timing();
   frame_info.ntp_time_ms = frame.ntp_time_ms_;
   frame_info.packet_infos = frame.PacketInfos();
+  frame_info.frame_instrumentation_data = frame_instrumentation_data;
 
   // Set correctly only for key frames. Thus, use latest key frame
   // content type. If the corresponding key frame was lost, decode will fail

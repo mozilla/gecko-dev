@@ -31,11 +31,13 @@
 #include "api/units/time_delta.h"
 #include "api/units/timestamp.h"
 #include "api/video/encoded_image.h"
+#include "api/video/video_frame.h"
 #include "api/video_codecs/sdp_video_format.h"
 #include "api/video_codecs/video_codec.h"
 #include "api/video_codecs/video_decoder_factory.h"
 #include "call/rtp_stream_receiver_controller_interface.h"
 #include "call/rtx_receive_stream.h"
+#include "common_video/frame_instrumentation_data.h"
 #include "modules/video_coding/include/video_codec_interface.h"
 #include "modules/video_coding/include/video_coding_defines.h"
 #include "modules/video_coding/include/video_error_codes.h"
@@ -51,6 +53,7 @@
 #include "rtc_base/trace_event.h"
 #include "system_wrappers/include/clock.h"
 #include "video/call_stats2.h"
+#include "video/corruption_detection/frame_instrumentation_evaluation.h"
 #include "video/frame_dumping_decoder.h"
 #include "video/receive_statistics_proxy.h"
 #include "video/render/incoming_video_stream.h"
@@ -198,7 +201,7 @@ VideoReceiveStream2::VideoReceiveStream2(
       stats_proxy_(remote_ssrc(), &env_.clock(), call->worker_thread()),
       rtp_receive_statistics_(ReceiveStatistics::Create(&env_.clock())),
       timing_(std::move(timing)),
-      video_receiver_(&env_.clock(), timing_.get(), env_.field_trials()),
+      video_receiver_(&env_.clock(), timing_.get(), env_.field_trials(), this),
       rtp_video_stream_receiver_(env_,
                                  call->worker_thread(),
                                  &transport_adapter_,
@@ -612,6 +615,12 @@ void VideoReceiveStream2::UpdateHistograms() {
     }
   }
   stats_proxy_.UpdateHistograms(fraction_lost, rtp_stats, nullptr);
+}
+
+std::optional<double> VideoReceiveStream2::CalculateCorruptionScore(
+    const VideoFrame& frame,
+    const FrameInstrumentationData& frame_instrumentation_data) {
+  return GetCorruptionScore(frame_instrumentation_data, frame);
 }
 
 bool VideoReceiveStream2::SetBaseMinimumPlayoutDelayMs(int delay_ms) {

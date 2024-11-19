@@ -24,10 +24,13 @@
 #include "api/units/time_delta.h"
 #include "api/units/timestamp.h"
 #include "api/video/recordable_encoded_frame.h"
+#include "api/video/video_frame.h"
 #include "call/call.h"
 #include "call/rtp_packet_sink_interface.h"
 #include "call/syncable.h"
 #include "call/video_receive_stream.h"
+#include "common_video/frame_instrumentation_data.h"
+#include "common_video/include/corruption_score_calculator.h"
 #include "modules/rtp_rtcp/source/source_tracker.h"
 #include "modules/video_coding/nack_requester.h"
 #include "modules/video_coding/video_receiver2.h"
@@ -87,7 +90,8 @@ class VideoReceiveStream2
       public RtpVideoStreamReceiver2::OnCompleteFrameCallback,
       public Syncable,
       public CallStatsObserver,
-      public FrameSchedulingReceiver {
+      public FrameSchedulingReceiver,
+      public CorruptionScoreCalculator {
  public:
   // The maximum number of buffered encoded frames when encoded output is
   // configured.
@@ -239,6 +243,9 @@ class VideoReceiveStream2
       RTC_RUN_ON(decode_sequence_checker_);
 
   void UpdateHistograms();
+  std::optional<double> CalculateCorruptionScore(
+      const VideoFrame& frame,
+      const FrameInstrumentationData& frame_instrumentation_data) override;
 
   const Environment env_;
 

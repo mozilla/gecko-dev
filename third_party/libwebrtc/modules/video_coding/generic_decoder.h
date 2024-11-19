@@ -13,13 +13,17 @@
 
 #include <cstdint>
 #include <deque>
+#include <optional>
 #include <string>
 #include <utility>
 
+#include "absl/types/variant.h"
 #include "api/field_trials_view.h"
 #include "api/sequence_checker.h"
 #include "api/video/encoded_frame.h"
 #include "api/video_codecs/video_decoder.h"
+#include "common_video/frame_instrumentation_data.h"
+#include "common_video/include/corruption_score_calculator.h"
 #include "modules/video_coding/encoded_frame.h"
 #include "modules/video_coding/timing/timing.h"
 #include "rtc_base/synchronization/mutex.h"
@@ -48,13 +52,18 @@ struct FrameInfo {
   RtpPacketInfos packet_infos;
   // ColorSpace is not stored here, as it might be modified by decoders.
   VideoFrameType frame_type;
+  std::optional<
+      absl::variant<FrameInstrumentationSyncData, FrameInstrumentationData>>
+      frame_instrumentation_data;
 };
 
 class VCMDecodedFrameCallback : public DecodedImageCallback {
  public:
-  VCMDecodedFrameCallback(VCMTiming* timing,
-                          Clock* clock,
-                          const FieldTrialsView& field_trials);
+  VCMDecodedFrameCallback(
+      VCMTiming* timing,
+      Clock* clock,
+      const FieldTrialsView& field_trials,
+      CorruptionScoreCalculator* corruption_score_calculator);
   ~VCMDecodedFrameCallback() override;
   void SetUserReceiveCallback(VCMReceiveCallback* receiveCallback);
   VCMReceiveCallback* UserReceiveCallback();
@@ -86,6 +95,7 @@ class VCMDecodedFrameCallback : public DecodedImageCallback {
   Mutex lock_;
   std::deque<FrameInfo> frame_infos_ RTC_GUARDED_BY(lock_);
   int64_t ntp_offset_;
+  CorruptionScoreCalculator* const corruption_score_calculator_;
 };
 
 class VCMGenericDecoder {
@@ -120,7 +130,10 @@ class VCMGenericDecoder {
  private:
   int32_t Decode(const EncodedImage& frame,
                  Timestamp now,
-                 int64_t render_time_ms);
+                 int64_t render_time_ms,
+                 const std::optional<absl::variant<FrameInstrumentationSyncData,
+                                                   FrameInstrumentationData>>&
+                     frame_instrumentation_data);
   VCMDecodedFrameCallback* _callback = nullptr;
   VideoDecoder* const decoder_;
   VideoContentType _last_keyframe_content_type;

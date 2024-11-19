@@ -32,6 +32,14 @@ rtc_library("frame_instrumentation_data") {
   sources = [ "frame_instrumentation_data.h" ]
 }
 
+rtc_library("corruption_score_calculator") {
+  sources = [ "include/corruption_score_calculator.h" ]
+  deps = [
+    ":frame_instrumentation_data",
+    "../api/video:video_frame",
+  ]
+}
+
 rtc_library("common_video") {
   visibility = [ "*" ]
 

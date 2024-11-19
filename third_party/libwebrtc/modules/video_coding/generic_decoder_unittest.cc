@@ -13,15 +13,21 @@
 #include <cstdint>
 #include <memory>
 #include <optional>
+#include <utility>
 #include <vector>
 
 #include "api/array_view.h"
 #include "api/rtp_packet_infos.h"
+#include "api/scoped_refptr.h"
 #include "api/units/time_delta.h"
+#include "api/units/timestamp.h"
+#include "api/video/i420_buffer.h"
 #include "api/video/video_content_type.h"
 #include "api/video/video_frame.h"
 #include "api/video/video_frame_type.h"
 #include "api/video_codecs/video_decoder.h"
+#include "common_video/frame_instrumentation_data.h"
+#include "common_video/include/corruption_score_calculator.h"
 #include "common_video/test/utilities.h"
 #include "modules/video_coding/timing/timing.h"
 #include "system_wrappers/include/clock.h"
@@ -33,6 +39,15 @@
 
 namespace webrtc {
 namespace video_coding {
+
+class MockCorruptionScoreCalculator : public CorruptionScoreCalculator {
+ public:
+  MOCK_METHOD(std::optional<double>,
+              CalculateCorruptionScore,
+              (const VideoFrame& frame,
+               const FrameInstrumentationData& frame_instrumentation_data),
+              (override));
+};
 
 class ReceiveCallback : public VCMReceiveCallback {
  public:
@@ -81,7 +96,10 @@ class GenericDecoderTest : public ::testing::Test {
         clock_(time_controller_.GetClock()),
         timing_(time_controller_.GetClock(), field_trials_),
         decoder_(time_controller_.GetTaskQueueFactory()),
-        vcm_callback_(&timing_, time_controller_.GetClock(), field_trials_),
+        vcm_callback_(&timing_,
+                      time_controller_.GetClock(),
+                      field_trials_,
+                      &corruption_score_calculator_),
         generic_decoder_(&decoder_) {}
 
   void SetUp() override {
@@ -102,6 +120,7 @@ class GenericDecoderTest : public ::testing::Test {
   VCMDecodedFrameCallback vcm_callback_;
   VCMGenericDecoder generic_decoder_;
   ReceiveCallback user_callback_;
+  MockCorruptionScoreCalculator corruption_score_calculator_;
 };
 
 TEST_F(GenericDecoderTest, PassesPacketInfos) {
@@ -198,6 +217,25 @@ TEST_F(GenericDecoderTest, IsLowLatencyStreamActivatedByPlayoutDelay) {
   std::optional<VideoFrame> decoded_frame = user_callback_.PopLastFrame();
   ASSERT_TRUE(decoded_frame.has_value());
   EXPECT_TRUE(decoded_frame->render_parameters().use_low_latency_rendering);
+}
+
+TEST_F(GenericDecoderTest, CallCalculateCorruptionScoreInDecoded) {
+  EXPECT_CALL(corruption_score_calculator_, CalculateCorruptionScore);
+
+  uint32_t rtp_timestamp = 1;
+  FrameInfo frame_info;
+  frame_info.frame_instrumentation_data = FrameInstrumentationData{};
+  frame_info.rtp_timestamp = rtp_timestamp;
+  frame_info.decode_start = Timestamp::Zero();
+  frame_info.content_type = VideoContentType::UNSPECIFIED;
+  frame_info.frame_type = VideoFrameType::kVideoFrameDelta;
+  VideoFrame video_frame = VideoFrame::Builder()
+                               .set_video_frame_buffer(I420Buffer::Create(5, 5))
+                               .set_rtp_timestamp(rtp_timestamp)
+                               .build();
+  vcm_callback_.Map(std::move(frame_info));
+
+  vcm_callback_.Decoded(video_frame);
 }
 
 }  // namespace video_coding
