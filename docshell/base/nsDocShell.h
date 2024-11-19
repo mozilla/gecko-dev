@@ -219,7 +219,6 @@ class nsDocShell final : public nsDocLoader,
    * file
    * @param aPostDataStream the POST data to send
    * @param aHeadersDataStream ??? (only used for plugins)
-   * @param aIsTrusted false if the triggerer is an untrusted DOM event.
    * @param aTriggeringPrincipal, if not passed explicitly we fall back to
    *        the document's principal.
    * @param aCsp, the CSP to be used for the load, that is the CSP of the
@@ -232,7 +231,7 @@ class nsDocShell final : public nsDocLoader,
                        const nsAString& aTargetSpec, const nsAString& aFileName,
                        nsIInputStream* aPostDataStream,
                        nsIInputStream* aHeadersDataStream,
-                       bool aIsUserTriggered, bool aIsTrusted,
+                       bool aIsUserTriggered,
                        nsIPrincipal* aTriggeringPrincipal,
                        nsIContentSecurityPolicy* aCsp);
   /**

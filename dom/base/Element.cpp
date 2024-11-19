@@ -3274,7 +3274,7 @@ void Element::GetEventTargetParentForLinks(EventChainPreVisitor& aVisitor) {
         nsAutoString target;
         GetLinkTarget(target);
         nsContentUtils::TriggerLink(this, absURI, target,
-                                    /* click */ false, /* isTrusted */ true);
+                                    /* click */ false);
         // Make sure any ancestor links don't also TriggerLink
         aVisitor.mEvent->mFlags.mMultipleActionsPrevented = true;
       }
@@ -3433,8 +3433,7 @@ nsresult Element::PostHandleEventForLinks(EventChainPostVisitor& aVisitor) {
               nsAutoString target;
               GetLinkTarget(target);
               nsContentUtils::TriggerLink(this, absURI, target,
-                                          /* click */ true,
-                                          mouseEvent->IsTrusted());
+                                          /* click */ true);
             }
             // Since we didn't dispatch DOMActivate because there were no
             // listeners, do still set mEventStatus as if it was dispatched
@@ -3458,10 +3457,7 @@ nsresult Element::PostHandleEventForLinks(EventChainPostVisitor& aVisitor) {
         if (nsCOMPtr<nsIURI> absURI = GetHrefURI()) {
           nsAutoString target;
           GetLinkTarget(target);
-          const InternalUIEvent* activeEvent = aVisitor.mEvent->AsUIEvent();
-          MOZ_ASSERT(activeEvent);
-          nsContentUtils::TriggerLink(this, absURI, target, /* click */ true,
-                                      activeEvent->IsTrustable());
+          nsContentUtils::TriggerLink(this, absURI, target, /* click */ true);
           aVisitor.mEventStatus = nsEventStatus_eConsumeNoDefault;
         }
       }

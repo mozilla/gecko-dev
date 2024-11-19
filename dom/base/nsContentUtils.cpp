@@ -6044,8 +6044,7 @@ bool nsContentUtils::CombineResourcePrincipals(
 
 /* static */
 void nsContentUtils::TriggerLink(nsIContent* aContent, nsIURI* aLinkURI,
-                                 const nsString& aTargetSpec, bool aClick,
-                                 bool aIsTrusted) {
+                                 const nsString& aTargetSpec, bool aClick) {
   MOZ_ASSERT(aLinkURI, "No link URI");
 
   if (aContent->IsEditable() || !aContent->OwnerDoc()->LinkHandlingEnabled()) {
@@ -6099,7 +6098,7 @@ void nsContentUtils::TriggerLink(nsIContent* aContent, nsIURI* aLinkURI,
     }
     nsDocShell::Cast(docShell)->OnLinkClick(
         aContent, aLinkURI, fileName.IsVoid() ? aTargetSpec : u""_ns, fileName,
-        nullptr, nullptr, UserActivation::IsHandlingUserInput(), aIsTrusted,
+        nullptr, nullptr, UserActivation::IsHandlingUserInput(),
         triggeringPrincipal, csp);
   }
 }

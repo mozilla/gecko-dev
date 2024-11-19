@@ -100,11 +100,7 @@ async function runTests(browser, elm) {
 add_task(async _ => {
   await SpecialPowers.flushPrefEnv();
   await SpecialPowers.pushPrefEnv({
-    set: [
-      // Enable popup blocker
-      ["dom.disable_open_during_load", true],
-      ["dom.targetBlankNoOpener.enabled", true],
-    ],
+    set: [["dom.targetBlankNoOpener.enabled", true]],
   });
 
   let tab = BrowserTestUtils.addTab(gBrowser, TEST_URL);
