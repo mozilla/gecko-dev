@@ -98,13 +98,11 @@ bool IsCapabilityPresent(const webrtc::RtpHeaderExtensionCapability& capability,
 
 cricket::RtpHeaderExtensions UnstoppedOrPresentRtpHeaderExtensions(
     const std::vector<webrtc::RtpHeaderExtensionCapability>& capabilities,
-    const cricket::RtpHeaderExtensions& unencrypted,
-    const cricket::RtpHeaderExtensions& encrypted) {
+    const cricket::RtpHeaderExtensions& all_encountered_extensions) {
   cricket::RtpHeaderExtensions extensions;
   for (const auto& capability : capabilities) {
     if (capability.direction != RtpTransceiverDirection::kStopped ||
-        IsCapabilityPresent(capability, unencrypted) ||
-        IsCapabilityPresent(capability, encrypted)) {
+        IsCapabilityPresent(capability, all_encountered_extensions)) {
       extensions.push_back(RtpExtensionFromCapability(capability));
     }
   }
@@ -859,50 +857,38 @@ std::vector<Codec> ComputeCodecsUnion(const std::vector<Codec>& codecs1,
 }
 
 // Adds all extensions from `reference_extensions` to `offered_extensions` that
-// don't already exist in `offered_extensions` and ensure the IDs don't
-// collide. If an extension is added, it's also added to `regular_extensions` or
-// `encrypted_extensions`, and if the extension is in `regular_extensions` or
-// `encrypted_extensions`, its ID is marked as used in `used_ids`.
-// `offered_extensions` is for either audio or video while `regular_extensions`
-// and `encrypted_extensions` are used for both audio and video. There could be
+// don't already exist in `offered_extensions` and ensures the IDs don't
+// collide. If an extension is added, it's also added to
+// `all_encountered_extensions`. Also when doing the addition a new ID is set
+// for that extension. `offered_extensions` is for either audio or video while
+// `all_encountered_extensions` is used for both audio and video. There could be
 // overlap between audio extensions and video extensions.
 void MergeRtpHdrExts(const RtpHeaderExtensions& reference_extensions,
                      bool enable_encrypted_rtp_header_extensions,
                      RtpHeaderExtensions* offered_extensions,
-                     RtpHeaderExtensions* regular_extensions,
-                     RtpHeaderExtensions* encrypted_extensions,
+                     RtpHeaderExtensions* all_encountered_extensions,
                      UsedRtpHeaderExtensionIds* used_ids) {
   for (auto reference_extension : reference_extensions) {
     if (!webrtc::RtpExtension::FindHeaderExtensionByUriAndEncryption(
             *offered_extensions, reference_extension.uri,
             reference_extension.encrypt)) {
-      if (reference_extension.encrypt) {
-        if (!enable_encrypted_rtp_header_extensions) {
-          continue;
-        }
-        const webrtc::RtpExtension* existing =
-            webrtc::RtpExtension::FindHeaderExtensionByUriAndEncryption(
-                *encrypted_extensions, reference_extension.uri,
-                reference_extension.encrypt);
-        if (existing) {
-          offered_extensions->push_back(*existing);
-        } else {
-          used_ids->FindAndSetIdUsed(&reference_extension);
-          encrypted_extensions->push_back(reference_extension);
-          offered_extensions->push_back(reference_extension);
-        }
+      if (reference_extension.encrypt &&
+          !enable_encrypted_rtp_header_extensions) {
+        // Negotiating of encrypted headers is deactivated.
+        continue;
+      }
+      const webrtc::RtpExtension* existing =
+          webrtc::RtpExtension::FindHeaderExtensionByUriAndEncryption(
+              *all_encountered_extensions, reference_extension.uri,
+              reference_extension.encrypt);
+      if (existing) {
+        // E.g. in the case where the same RTP header extension is used for
+        // audio and video.
+        offered_extensions->push_back(*existing);
       } else {
-        const webrtc::RtpExtension* existing =
-            webrtc::RtpExtension::FindHeaderExtensionByUriAndEncryption(
-                *regular_extensions, reference_extension.uri,
-                reference_extension.encrypt);
-        if (existing) {
-          offered_extensions->push_back(*existing);
-        } else {
-          used_ids->FindAndSetIdUsed(&reference_extension);
-          regular_extensions->push_back(reference_extension);
-          offered_extensions->push_back(reference_extension);
-        }
+        used_ids->FindAndSetIdUsed(&reference_extension);
+        all_encountered_extensions->push_back(reference_extension);
+        offered_extensions->push_back(reference_extension);
       }
     }
   }
@@ -1884,8 +1870,7 @@ MediaSessionDescriptionFactory::GetOfferedRtpHeaderExtensionsWithIds(
       extmap_allow_mixed ? UsedRtpHeaderExtensionIds::IdDomain::kTwoByteAllowed
                          : UsedRtpHeaderExtensionIds::IdDomain::kOneByteOnly);
 
-  RtpHeaderExtensions all_regular_extensions;
-  RtpHeaderExtensions all_encrypted_extensions;
+  RtpHeaderExtensions all_encountered_extensions;
 
   AudioVideoRtpHeaderExtensions offered_extensions;
   // First - get all extensions from the current description if the media type
@@ -1896,13 +1881,13 @@ MediaSessionDescriptionFactory::GetOfferedRtpHeaderExtensionsWithIds(
     if (IsMediaContentOfType(content, MEDIA_TYPE_AUDIO)) {
       MergeRtpHdrExts(content->media_description()->rtp_header_extensions(),
                       enable_encrypted_rtp_header_extensions_,
-                      &offered_extensions.audio, &all_regular_extensions,
-                      &all_encrypted_extensions, &used_ids);
+                      &offered_extensions.audio, &all_encountered_extensions,
+                      &used_ids);
     } else if (IsMediaContentOfType(content, MEDIA_TYPE_VIDEO)) {
       MergeRtpHdrExts(content->media_description()->rtp_header_extensions(),
                       enable_encrypted_rtp_header_extensions_,
-                      &offered_extensions.video, &all_regular_extensions,
-                      &all_encrypted_extensions, &used_ids);
+                      &offered_extensions.video, &all_encountered_extensions,
+                      &used_ids);
     }
   }
 
@@ -1912,18 +1897,15 @@ MediaSessionDescriptionFactory::GetOfferedRtpHeaderExtensionsWithIds(
   for (const auto& entry : media_description_options) {
     RtpHeaderExtensions filtered_extensions =
         filtered_rtp_header_extensions(UnstoppedOrPresentRtpHeaderExtensions(
-            entry.header_extensions, all_regular_extensions,
-            all_encrypted_extensions));
+            entry.header_extensions, all_encountered_extensions));
     if (entry.type == MEDIA_TYPE_AUDIO)
-      MergeRtpHdrExts(filtered_extensions,
-                      enable_encrypted_rtp_header_extensions_,
-                      &offered_extensions.audio, &all_regular_extensions,
-                      &all_encrypted_extensions, &used_ids);
+      MergeRtpHdrExts(
+          filtered_extensions, enable_encrypted_rtp_header_extensions_,
+          &offered_extensions.audio, &all_encountered_extensions, &used_ids);
     else if (entry.type == MEDIA_TYPE_VIDEO)
-      MergeRtpHdrExts(filtered_extensions,
-                      enable_encrypted_rtp_header_extensions_,
-                      &offered_extensions.video, &all_regular_extensions,
-                      &all_encrypted_extensions, &used_ids);
+      MergeRtpHdrExts(
+          filtered_extensions, enable_encrypted_rtp_header_extensions_,
+          &offered_extensions.video, &all_encountered_extensions, &used_ids);
   }
   return offered_extensions;
 }
