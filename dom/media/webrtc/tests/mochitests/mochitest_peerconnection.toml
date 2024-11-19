@@ -398,9 +398,6 @@ skip-if = [
 ["test_peerConnection_simulcastOffer_oldSetParameters.html"]
 skip-if = ["os == 'android'"] # no simulcast support on android
 
-["test_peerConnection_simulcastOffer_screenshare.html"]
-skip-if = ["os == 'android'"] # no simulcast support on android
-
 ["test_peerConnection_stats.html"]
 
 ["test_peerConnection_stats_jitter.html"]

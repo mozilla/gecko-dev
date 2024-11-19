@@ -219,8 +219,6 @@ function createPlaybackElement(track) {
   elem.autoplay = true;
   elem.srcObject = new MediaStream([track]);
   elem.id = track.id;
-  elem.width = 240;
-  elem.height = 180;
   document.body.appendChild(elem);
   return elem;
 }

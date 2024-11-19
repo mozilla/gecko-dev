@@ -26,7 +26,6 @@ promise_test(async t => {
   const pc2 = new RTCPeerConnection();
   t.add_cleanup(() => pc2.close());
 
-  await negotiateSimulcastAndWaitForVideo(t, await getCameraStream(t), rids, pc1, pc2,
-                                          {mimeType: 'video/H264'});
+  return negotiateSimulcastAndWaitForVideo(t, rids, pc1, pc2, {mimeType: 'video/H264'});
 }, 'H264 simulcast setup with two streams');
 </script>

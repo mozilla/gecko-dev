@@ -198,7 +198,11 @@ void VideoStreamFactory::SelectMaxFramerate(
 std::vector<webrtc::VideoStream> VideoStreamFactory::CreateEncoderStreams(
     const webrtc::FieldTrialsView& field_trials, int aWidth, int aHeight,
     const webrtc::VideoEncoderConfig& aConfig) {
-  const size_t streamCount = aConfig.number_of_streams;
+  // We only allow one layer when screensharing
+  const size_t streamCount =
+      mCodecMode == webrtc::VideoCodecMode::kScreensharing
+          ? 1
+          : aConfig.number_of_streams;
 
   MOZ_RELEASE_ASSERT(streamCount >= 1, "Should request at least one stream");
   MOZ_RELEASE_ASSERT(streamCount <= aConfig.simulcast_layers.size());
@@ -237,7 +241,11 @@ std::vector<webrtc::VideoStream> VideoStreamFactory::CreateEncoderStreams(
     video_stream.max_qp = kQpMax;
 
     if (streamCount > 1) {
-      video_stream.num_temporal_layers = 2;
+      if (mCodecMode == webrtc::VideoCodecMode::kScreensharing) {
+        video_stream.num_temporal_layers = 1;
+      } else {
+        video_stream.num_temporal_layers = 2;
+      }
       // XXX Bug 1390215 investigate using more of
       // simulcast.cc:GetSimulcastConfig() or our own algorithm to replace it
     }
@@ -379,7 +387,10 @@ unsigned int VideoStreamFactory::SelectFrameRate(
 bool VideoStreamFactory::ShouldDropFrame(const webrtc::VideoFrame& aFrame) {
   bool hasNonZeroLayer = false;
   {
-    const size_t streamCount = mCodecConfig.mEncodings.size();
+    const size_t streamCount =
+        mCodecMode == webrtc::VideoCodecMode::kScreensharing
+            ? 1
+            : mCodecConfig.mEncodings.size();
     for (int idx = streamCount - 1; idx >= 0; --idx) {
       const auto& encoding = mCodecConfig.mEncodings[idx];
       if (aFrame.width() / encoding.constraints.scaleDownBy >= 1.0 &&

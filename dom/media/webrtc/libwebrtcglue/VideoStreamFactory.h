@@ -58,7 +58,8 @@ class VideoStreamFactory
   // This gets called off-main thread and may hold internal webrtc.org
   // locks. May *NOT* lock the conduit's mutex, to avoid deadlocks.
   std::vector<webrtc::VideoStream> CreateEncoderStreams(
-      const webrtc::FieldTrialsView& field_trials, int aWidth, int aHeight,
+      const webrtc::FieldTrialsView& field_trials,
+      int aWidth, int aHeight,
       const webrtc::VideoEncoderConfig& aConfig) override;
 
   /**
