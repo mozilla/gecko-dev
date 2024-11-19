@@ -731,12 +731,6 @@ rtc_library("neteq") {
   ]
 }
 
-rtc_source_set("default_neteq_factory") {
-  visibility += webrtc_default_visibility
-  sources = [ "neteq/default_neteq_factory.h" ]
-  deps = [ "../../api/neteq:default_neteq_factory" ]
-}
-
 # Although providing only test support, this target must be outside of the
 # rtc_include_tests conditional. The reason is that it supports fuzzer tests
 # that ultimately are built and run as a part of the Chromium ecosystem, which
