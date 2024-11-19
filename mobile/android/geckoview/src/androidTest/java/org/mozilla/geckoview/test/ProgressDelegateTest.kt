@@ -10,7 +10,6 @@ import androidx.test.filters.MediumTest
 import junit.framework.TestCase.assertTrue
 import org.hamcrest.Matchers.* // ktlint-disable no-wildcard-imports
 import org.junit.Assume.assumeThat
-import org.junit.Ignore
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mozilla.geckoview.GeckoSession
@@ -112,7 +111,6 @@ class ProgressDelegateTest : BaseSessionTest() {
         })
     }
 
-    @Ignore
     @Test
     fun multipleLoads() {
         mainSession.loadUri(UNKNOWN_HOST_URI)
