@@ -1660,7 +1660,6 @@ if (!build_with_mozilla) {
     "../system_wrappers:field_trial",
     "system:rtc_export",
     "task_utils:repeating_task",
-    "third_party/sigslot",
     "//third_party/abseil-cpp/absl/functional:any_invocable",
     "//third_party/abseil-cpp/absl/memory",
     "//third_party/abseil-cpp/absl/strings",

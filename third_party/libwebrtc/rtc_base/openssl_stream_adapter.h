@@ -25,7 +25,8 @@
 #include "api/array_view.h"
 #include "rtc_base/buffer.h"
 #ifdef OPENSSL_IS_BORINGSSL
-#include "openssl/base.h"
+#include <openssl/base.h>
+
 #include "rtc_base/boringssl_identity.h"
 #else
 #include "rtc_base/openssl_identity.h"
@@ -35,7 +36,6 @@
 #include "rtc_base/ssl_stream_adapter.h"
 #include "rtc_base/stream.h"
 #include "rtc_base/task_utils/repeating_task.h"
-#include "rtc_base/third_party/sigslot/sigslot.h"
 #include "rtc_base/thread.h"
 
 namespace rtc {
@@ -62,14 +62,11 @@ namespace rtc {
 // and it has an explicit SSL_CLOSED state. It should not be possible to send
 // any data in clear after one of the StartSSL methods has been called.
 
-// Look in sslstreamadapter.h for documentation of the methods.
-
-class SSLCertChain;
+// Look in ssl_stream_adapter.h for documentation of the methods.
 
 ///////////////////////////////////////////////////////////////////////////////
 
-class OpenSSLStreamAdapter final : public SSLStreamAdapter,
-                                   public sigslot::has_slots<> {
+class OpenSSLStreamAdapter final : public SSLStreamAdapter {
  public:
   OpenSSLStreamAdapter(
       std::unique_ptr<StreamInterface> stream,
