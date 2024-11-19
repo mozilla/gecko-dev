@@ -60,6 +60,7 @@ class RTCStatsCollector : public RefCountInterface {
  public:
   static rtc::scoped_refptr<RTCStatsCollector> Create(
       PeerConnectionInternal* pc,
+      const Environment& env,
       int64_t cache_lifetime_us = 50 * rtc::kNumMicrosecsPerMillisec);
 
   // Gets a recent stats report. If there is a report cached that is still fresh
@@ -95,7 +96,9 @@ class RTCStatsCollector : public RefCountInterface {
                                      DataChannelInterface::DataState state);
 
  protected:
-  RTCStatsCollector(PeerConnectionInternal* pc, int64_t cache_lifetime_us);
+  RTCStatsCollector(PeerConnectionInternal* pc,
+                    const Environment& env,
+                    int64_t cache_lifetime_us);
   ~RTCStatsCollector();
 
   struct CertificateStatsPair {
@@ -252,6 +255,8 @@ class RTCStatsCollector : public RefCountInterface {
       rtc::scoped_refptr<RtpReceiverInternal> receiver_selector);
 
   PeerConnectionInternal* const pc_;
+  const Environment env_;
+  const bool stats_timestamp_with_environment_clock_;
   rtc::Thread* const signaling_thread_;
   rtc::Thread* const worker_thread_;
   rtc::Thread* const network_thread_;

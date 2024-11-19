@@ -6035,7 +6035,8 @@ TEST_F(WebRtcVideoChannelTest, GetAggregatedStatsReportForSubStreams) {
   report_block.SetCumulativeLost(17);
   report_block.SetFractionLost(18);
   webrtc::ReportBlockData report_block_data;
-  report_block_data.SetReportBlock(0, report_block, webrtc::Timestamp::Zero());
+  report_block_data.SetReportBlock(0, report_block, webrtc::Timestamp::Zero(),
+                                   webrtc::Timestamp::Zero());
   report_block_data.AddRoundTripTimeSample(webrtc::TimeDelta::Millis(19));
   substream.report_block_data = report_block_data;
   substream.encode_frame_rate = 20.0;
@@ -6159,7 +6160,8 @@ TEST_F(WebRtcVideoChannelTest, GetPerLayerStatsReportForSubStreams) {
   report_block.SetCumulativeLost(17);
   report_block.SetFractionLost(18);
   webrtc::ReportBlockData report_block_data;
-  report_block_data.SetReportBlock(0, report_block, webrtc::Timestamp::Zero());
+  report_block_data.SetReportBlock(0, report_block, webrtc::Timestamp::Zero(),
+                                   webrtc::Timestamp::Zero());
   report_block_data.AddRoundTripTimeSample(webrtc::TimeDelta::Millis(19));
   substream.report_block_data = report_block_data;
   substream.encode_frame_rate = 20.0;

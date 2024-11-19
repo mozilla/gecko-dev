@@ -375,7 +375,7 @@ void RtcpTransceiverImpl::HandleReportBlocks(
     auto sender_it = local_senders_by_ssrc_.find(block.source_ssrc());
     if (sender_it != local_senders_by_ssrc_.end()) {
       LocalSenderState& state = *sender_it->second;
-      state.report_block.SetReportBlock(sender_ssrc, block, now_utc);
+      state.report_block.SetReportBlock(sender_ssrc, block, now_utc, now);
       if (rtt.has_value()) {
         state.report_block.AddRoundTripTimeSample(*rtt);
       }
@@ -385,7 +385,7 @@ void RtcpTransceiverImpl::HandleReportBlocks(
       // No registered sender for this report block, still report it to the
       // network link.
       ReportBlockData report_block;
-      report_block.SetReportBlock(sender_ssrc, block, now_utc);
+      report_block.SetReportBlock(sender_ssrc, block, now_utc, now);
       if (rtt.has_value()) {
         report_block.AddRoundTripTimeSample(*rtt);
       }

@@ -637,7 +637,7 @@ void RTCPReceiver::HandleReportBlock(const ReportBlock& report_block,
   // https://tools.ietf.org/html/rfc868).
   report_block_data->SetReportBlock(
       remote_ssrc, report_block,
-      Timestamp::Millis(now_ntp.ToMs() - rtc::kNtpJan1970Millisecs));
+      Timestamp::Millis(now_ntp.ToMs() - rtc::kNtpJan1970Millisecs), now);
 
   uint32_t send_time_ntp = report_block.last_sr();
   // RFC3550, section 6.4.1, LSR field discription states:

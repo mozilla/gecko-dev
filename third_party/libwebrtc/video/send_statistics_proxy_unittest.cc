@@ -199,7 +199,8 @@ TEST_F(SendStatisticsProxyTest, ReportBlockDataObserver) {
     report_block.SetFractionLost(offset + 2);
     report_block.SetJitter(offset + 3);
     ReportBlockData data;
-    data.SetReportBlock(/*sender_ssrc=*/0, report_block, Timestamp::Zero());
+    data.SetReportBlock(/*sender_ssrc=*/0, report_block, Timestamp::Zero(),
+                        Timestamp::Zero());
     expected_.substreams[ssrc].report_block_data = data;
 
     callback->OnReportBlockDataUpdated(data);
@@ -214,7 +215,8 @@ TEST_F(SendStatisticsProxyTest, ReportBlockDataObserver) {
     report_block.SetFractionLost(offset + 2);
     report_block.SetJitter(offset + 3);
     ReportBlockData data;
-    data.SetReportBlock(/*sender_ssrc=*/0, report_block, Timestamp::Zero());
+    data.SetReportBlock(/*sender_ssrc=*/0, report_block, Timestamp::Zero(),
+                        Timestamp::Zero());
     expected_.substreams[ssrc].report_block_data = data;
 
     callback->OnReportBlockDataUpdated(data);
@@ -2319,7 +2321,7 @@ TEST_F(SendStatisticsProxyTest, NoSubstreams) {
   rtcp::ReportBlock report_block;
   report_block.SetMediaSsrc(excluded_ssrc);
   ReportBlockData data;
-  data.SetReportBlock(0, report_block, Timestamp::Zero());
+  data.SetReportBlock(0, report_block, Timestamp::Zero(), Timestamp::Zero());
   rtcp_callback->OnReportBlockDataUpdated(data);
 
   // From BitrateStatisticsObserver.
@@ -2372,7 +2374,7 @@ TEST_F(SendStatisticsProxyTest, EncodedResolutionTimesOut) {
   rtcp::ReportBlock report_block;
   report_block.SetMediaSsrc(config_.rtp.ssrcs[0]);
   ReportBlockData data;
-  data.SetReportBlock(0, report_block, Timestamp::Zero());
+  data.SetReportBlock(0, report_block, Timestamp::Zero(), Timestamp::Zero());
   rtcp_callback->OnReportBlockDataUpdated(data);
 
   // Report stats for second SSRC to make sure it's not outdated along with the
