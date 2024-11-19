@@ -187,6 +187,19 @@ class RTC_EXPORT SessionDescriptionInterface {
 
   // Serializes the description to SDP.
   virtual bool ToString(std::string* out) const = 0;
+  template <typename Sink>
+  friend void AbslStringify(Sink& sink, const SessionDescriptionInterface& p) {
+    sink.Append("\n--- BEGIN SDP ");
+    sink.Append(SdpTypeToString(p.GetType()));
+    sink.Append(" ---\n");
+    std::string temp;
+    if (p.ToString(&temp)) {
+      sink.Append(temp);
+    } else {
+      sink.Append("Error in ToString\n");
+    }
+    sink.Append("--- END SDP ---\n");
+  }
 };
 
 // Creates a SessionDescriptionInterface based on the SDP string and the type.
