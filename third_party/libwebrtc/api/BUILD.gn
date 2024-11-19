@@ -493,6 +493,7 @@ rtc_source_set("ref_count") {
 rtc_source_set("scoped_refptr") {
   visibility = [ "*" ]
   sources = [ "scoped_refptr.h" ]
+  deps = [ "//third_party/abseil-cpp/absl/base:nullability" ]
 }
 
 rtc_source_set("make_ref_counted") {
@@ -502,6 +503,7 @@ rtc_source_set("make_ref_counted") {
     ":ref_count",
     ":scoped_refptr",
     "../rtc_base:refcount",
+    "//third_party/abseil-cpp/absl/base:nullability",
   ]
 }
 
