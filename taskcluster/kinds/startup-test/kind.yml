@@ -141,6 +141,6 @@ tasks:
         worker-type: win11-a64-24h2
         shipping-product: firefox
         attributes:
-            build_platform: win64-shippable
+            build_platform: win64-aarch64-shippable
         treeherder:
             platform: windows2012-aarch64-shippable/opt
