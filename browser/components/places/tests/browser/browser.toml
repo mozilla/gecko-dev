@@ -43,6 +43,9 @@ run-if = ["os == 'mac'"] # Mac-only functionality
 ["browser_bookmarkProperties_readOnlyRoot.js"]
 
 ["browser_bookmarkProperties_remember_folders.js"]
+skip-if = [
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64' && debug", # Bug 1869782
+]
 
 ["browser_bookmarkProperties_speculativeConnection.js"]
 
@@ -86,6 +89,8 @@ support-files = ["bookmarklet_windowOpen_dummy.html"]
 
 ["browser_bookmarks_change_url.js"]
 
+["browser_bookmarks_checkDefaultBookmarks.js"]
+
 ["browser_bookmarks_sidebar_search.js"]
 support-files = ["pageopeningwindow.html"]
 
@@ -94,8 +99,6 @@ support-files = ["pageopeningwindow.html"]
 ["browser_bookmarks_toolbar_drag_with_chevron.js"]
 
 ["browser_bookmarks_toolbar_telemetry.js"]
-
-["browser_bookmarks_checkDefaultBookmarks.js"]
 
 ["browser_bug427633_no_newfolder_if_noip.js"]
 

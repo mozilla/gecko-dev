@@ -13,6 +13,9 @@ support-files = [
   "test_offsets.css",
   "test_offsets.js",
 ]
-skip-if = ["os == 'mac' && debug"] #leaks Bug 1571583
+skip-if = [
+  "os == 'mac' && debug", # leaks Bug 1571583
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64' && opt", # Bug 1929456
+]
 
 ["test_spacetopagedown.html"]

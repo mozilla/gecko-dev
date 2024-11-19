@@ -60,6 +60,7 @@ skip-if = [
   "os == 'win' && verify",
   "win10_2009", # Bug 1727507
   "win11_2009", # Bug 1797751
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'", # Bug 1929437
 ]
 
 ["test_autocomplete2.xhtml"]
@@ -79,12 +80,11 @@ run-if = ["os == 'mac'"]
 
 ["test_autocomplete_with_composition_on_input.html"]
 skip-if = [
-  "apple_catalina" # Bug 1784825
+  "apple_catalina", # Bug 1784825
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'", # Bug 1929437
 ]
-["test_browser_drop.xhtml"]
 
-["test_bug1048178.xhtml"]
-skip-if = ["apple_catalina"]
+["test_browser_drop.xhtml"]
 
 ["test_bug263683.xhtml"]
 skip-if = [
@@ -135,6 +135,12 @@ fail-if = ["os == 'linux' && os_version == '18.04'"]  # Bug 1600194
 
 ["test_bug792324.xhtml"]
 
+["test_bug1048178.xhtml"]
+skip-if = [
+  "apple_catalina",
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'", # Bug 1929437
+]
+
 ["test_button.xhtml"]
 
 ["test_chromemargin.xhtml"]
@@ -172,7 +178,10 @@ support-files = [
 ["test_editor_for_input_with_autocomplete.html"]
 
 ["test_findbar.xhtml"]
-skip-if = ["apple_catalina"] # macosx1014/15 due to 1550078
+skip-if = [
+  "apple_catalina", # macosx1014/15 due to 1550078
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'", # Bug 1929437
+]
 
 ["test_findbar_entireword.xhtml"]
 
@@ -220,6 +229,9 @@ support-files = [
 ["test_menuitem_commands.xhtml"]
 
 ["test_menulist.xhtml"]
+skip-if = [
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'", # Bug 1929437
+]
 
 ["test_menulist_in_popup.xhtml"]
 
@@ -251,12 +263,16 @@ skip-if = [
 ]
 
 ["test_panel.xhtml"]
-skip-if = ["apple_catalina"] # macosx1014 due to 1550078
+skip-if = [
+  "apple_catalina", # macosx1014 due to 1550078
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'", # Bug 1929437
+]
 
 ["test_panel_anchoradjust.xhtml"]
 
 # test_panel_focus.xhtml won't work if the Full Keyboard Access preference is set to
 # textboxes and lists only, so skip this test on Mac
+
 ["test_panel_focus.xhtml"]
 support-files = "window_panel_focus.xhtml"
 skip-if = ["apple_catalina"]
@@ -326,6 +342,9 @@ support-files = ["window_preferences_onsyncfrompreference.xhtml"]
 ["test_screenPersistence.xhtml"]
 
 ["test_scrollbar.xhtml"]
+skip-if = [
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'", # Bug 1929437
+]
 
 ["test_showcaret.xhtml"]
 
@@ -341,6 +360,7 @@ support-files = ["window_preferences_onsyncfrompreference.xhtml"]
 skip-if = [
   "apple_catalina", # Bug 1141245, frequent timeouts on OSX 10.14, Windows
   "os == 'win'", # Bug 1141245, frequent timeouts on OSX 10.14, Windows
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'", # Bug 1929437
 ]
 
 ["test_tooltip_noautohide.xhtml"]

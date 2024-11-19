@@ -171,6 +171,7 @@ skip-if = [
   "os == 'mac' && os_version == '11.20' && arch == 'aarch64'", # Disabled due to bleedover with other tests when run in regular suites; passes in "failures" jobs
   "os == 'win' && os_version == '11.2009' && processor == 'x86' && opt", # Bug 1775605
   "os == 'win' && os_version == '11.2009' && processor == 'x86_64' && opt", # Bug 1775605
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64' && opt && socketprocess_networking", # Bug 1868915
 ]
 
 ["browser_movePendingTabToNewWindow.js"]

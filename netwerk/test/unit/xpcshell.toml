@@ -705,11 +705,12 @@ skip-if = [
 run-sequentially = "http3server"
 
 ["test_http3_error_before_connect.js"]
+run-sequentially = "node server exceptions dont replay well"
 skip-if = [
   "os == 'android'",
   "os == 'win' && msix", # https://bugzilla.mozilla.org/show_bug.cgi?id=1807931
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64' && debug", # Bug 1929450
 ]
-run-sequentially = "node server exceptions dont replay well"
 
 ["test_http3_fast_fallback.js"]
 skip-if = [
@@ -783,12 +784,13 @@ skip-if = [
 run-sequentially = "node server exceptions dont replay well"
 
 ["test_http3_with_third_party_roots.js"]
+run-sequentially = "node server exceptions dont replay well"
 skip-if = [
   "os == 'win'",
   "os == 'android'",
   "socketprocess_networking",
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64' && debug", # Bug 1929450
 ]
-run-sequentially = "node server exceptions dont replay well"
 
 ["test_httpResponseTimeout.js"]
 skip-if = ["os == 'win' && socketprocess_networking"]

@@ -701,11 +701,13 @@ skip-if = ["os == 'android'"] # bug 1149374
 scheme = "https"
 
 ["test_eme_canvas_blocked.html"]
+scheme = "https"
 skip-if = [
   "os == 'android'", # bug 1149374
   "apple_silicon", # bug 1707737
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64' && debug", # Bug 1929444
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64' && opt && socketprocess_e10s", # Bug 1929444
 ]
-scheme = "https"
 
 ["test_eme_detach_reattach_same_mediakeys_during_playback.html"]
 skip-if = ["os == 'android'"] # bug 1149374
@@ -727,15 +729,25 @@ scheme = "https"
 skip-if = [
   "os == 'android'", # bug 1149374
   "apple_silicon", # bug 1707737
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64' && debug", # Bug 1929444
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64' && opt && socketprocess_e10s", # Bug 1929444
 ]
 
 ["test_eme_protection_query.html"]
-skip-if = ["os == 'android'"] # bug 1149374
 scheme = "https"
+skip-if = [
+  "os == 'android'", # bug 1149374
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64' && debug", # Bug 1929444
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64' && opt && socketprocess_e10s", # Bug 1929444
+]
 
 ["test_eme_pssh_in_moof.html"]
-skip-if = ["os == 'android'"] # bug 1149374
 scheme = "https"
+skip-if = [
+  "os == 'android'", # bug 1149374
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64' && debug", # Bug 1929444
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64' && opt && socketprocess_e10s", # Bug 1929444
+]
 
 ["test_eme_sample_groups_playback.html"]
 skip-if = ["os == 'android'"] # bug 1149374
@@ -752,35 +764,43 @@ scheme = "https"
 
 ["test_eme_stream_capture_blocked_case2.html"]
 tags = "mtg capturestream"
+scheme = "https"
 skip-if = [
   "os == 'android'", # bug 1149374
   "apple_silicon", # bug 1707737
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64' && debug", # Bug 1929444
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64' && opt && socketprocess_e10s", # Bug 1929444
 ]
-scheme = "https"
 
 ["test_eme_stream_capture_blocked_case3.html"]
 tags = "mtg capturestream"
+scheme = "https"
 skip-if = [
   "os == 'android'", # bug 1149374
   "apple_silicon", # bug 1707737
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64' && debug", # Bug 1929444
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64' && opt && socketprocess_e10s", # Bug 1929444
 ]
-scheme = "https"
 
 ["test_eme_unsetMediaKeys_then_capture.html"]
+scheme = "https"
 skip-if = [
   "xorigin",
   "os == 'android'", # bug 1149374
   "apple_silicon", # bug 1707737
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64' && debug", # Bug 1929444
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64' && opt && socketprocess_e10s", # Bug 1929444
 ]
-scheme = "https"
 
 ["test_eme_waitingforkey.html"]
+scheme = "https"
 skip-if = [
   "xorigin",
   "os == 'android'", # bug 1149374
   "apple_silicon", # bug 1707737
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64' && debug", # Bug 1929444
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64' && opt && socketprocess_e10s", # Bug 1929444
 ]
-scheme = "https"
 
 ["test_eme_wv_privacy.html"]
 scheme = "https"

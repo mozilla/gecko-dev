@@ -46,6 +46,9 @@ support-files = ["file_double_submit.html"]
 ["test_input_attributes_reflection.html"]
 
 ["test_input_color_input_change_events.html"]
+skip-if = [
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'", # Bug 1929441
+]
 
 ["test_input_color_picker_datalist.html"]
 
@@ -204,10 +207,16 @@ support-files = ["save_restore_custom_elements_sample.html"]
 ["test_save_restore_radio_groups.html"]
 
 ["test_select_change_event.html"]
-skip-if = ["os == 'mac' && os_version == '10.15' && processor == 'x86_64'"]
+skip-if = [
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'", # Bug 1929441
+]
 
 ["test_select_input_change_event.html"]
-skip-if = ["os == 'mac' && os_version == '10.15' && processor == 'x86_64'"]
+skip-if = [
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'", # Bug 1929441
+]
 
 ["test_select_selectedOptions.html"]
 

@@ -60,13 +60,14 @@ support-files = [
 ]
 
 ["browser_readerMode_refresh.js"]
-skip-if = [
-   "os == 'mac' && os_version == '10.15' && processor == 'x86_64'", # Bug 1776032
-]
 
 support-files = [
   "readerModeArticleShort.html",
   "readerModeArticleTextPlain.txt",
+]
+skip-if = [
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'", # Bug 1776032
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64' && debug", # Bug 1929439
 ]
 
 ["browser_readerMode_remoteType.js"]

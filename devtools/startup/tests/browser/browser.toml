@@ -7,5 +7,8 @@ support-files = [
 ]
 
 ["browser_command_line_urls.js"]
+skip-if = [
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'", # Bug 1929427
+]
 
 ["browser_shim_disable_devtools.js"]

@@ -609,6 +609,7 @@ skip-if = [
   "os == 'linux' && os_version == '18.04'", # Bug 1651261
   "win11_2009 && asan", # Bug 1797751
   "win11_2009 && debug", # Bug 1797751
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'", # Bug 1869793
 ]
 
 ["browser_ext_user_events.js"]
@@ -641,6 +642,7 @@ https_first_disabled = true
 skip-if = [
   "os == 'mac' && os_version == '10.15' && processor == 'x86_64'", # Bug 1565738
   "os == 'mac' && os_version == '11.20' && arch == 'aarch64'", # Bug 1565738
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'", # Bug 1565738
 ]
 
 ["browser_ext_windows.js"]
@@ -675,16 +677,18 @@ https_first_disabled = true
 skip-if = [
   "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
   "os == 'mac' && os_version == '11.20' && arch == 'aarch64'",
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'", # Bug 1869793
 ]
 
 ["browser_ext_windows_update.js"]
+tags = "fullscreen"
 skip-if = [
   "os == 'mac' && os_version == '10.15' && processor == 'x86_64' && verify",
   "os == 'mac' && os_version == '11.20' && arch == 'aarch64' && verify",
   "os == 'mac' && os_version == '10.15' && debug", # Bug 1780998
   "os == 'linux' && os_version == '18.04'", # Bug 1533982 for linux1804
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'", # Bug 1869793
 ]
-tags = "fullscreen"
 
 ["browser_toolbar_prefers_color_scheme.js"]
 

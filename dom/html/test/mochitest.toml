@@ -603,8 +603,9 @@ fail-if = ["xorigin"]
 ["test_bug615833.html"]
 skip-if = [
   "os == 'android'",
-  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'", #TIMED_OUT # form control not selected/checked with synthesizeMouse, osx(bug 1275664)
-  "os == 'mac' && os_version == '11.20' && arch == 'aarch64'", #TIMED_OUT # form control not selected/checked with synthesizeMouse, osx(bug 1275664)
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'", # TIMED_OUT # form control not selected/checked with synthesizeMouse, osx(bug 1275664)
+  "os == 'mac' && os_version == '11.20' && arch == 'aarch64'", # TIMED_OUT # form control not selected/checked with synthesizeMouse, osx(bug 1275664)
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'", # Bug 1929434
 ]
 
 ["test_bug618948.html"]

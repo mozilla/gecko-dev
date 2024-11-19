@@ -1415,6 +1415,7 @@ skip-if = [
   "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
   "os == 'linux'",
   "headless",
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'", # Bug 1929448
 ]
 
 ["test_meta_refresh_referrer.html"]
@@ -1704,9 +1705,9 @@ skip-if = [
   "os == 'android'", # The test needs to run reasonably fast.
 ]
 
-["test_text_wholeText.html"]
-
 ["test_text-fragments-get-text-directive-ranges.html"]
+
+["test_text_wholeText.html"]
 
 ["test_textnode_normalize_in_selection.html"]
 

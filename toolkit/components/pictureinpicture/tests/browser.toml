@@ -83,6 +83,7 @@ run-if = ["os == 'mac'"]
 skip-if = [
   "os == 'mac' && os_version == '11.20' && arch == 'aarch64'", # Bug 1840716
   "os == 'mac' && os_version == '10.15' && processor == 'x86_64'", # Bug 1840716
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'", # Bug 1869710
 ]
 
 ["browser_durationChange.js"]
@@ -192,6 +193,9 @@ skip-if = ["true"] # Bug 1546455
 skip-if = ["true"] # Bug 1664920, Bug 1628777
 
 ["browser_togglePolicies.js"]
+skip-if = [
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'", # Bug 1869710
+]
 
 ["browser_togglePositionChange.js"]
 

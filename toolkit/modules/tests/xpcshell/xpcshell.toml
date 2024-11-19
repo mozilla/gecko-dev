@@ -39,6 +39,7 @@ skip-if = [
   "os == 'android'",
   "os == 'mac' && os_version == '10.15' && processor == 'x86_64'", # osx: Bug 1550141
   "os == 'mac' && os_version == '11.20' && arch == 'aarch64'", # osx: Bug 1550141
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'", # Bug 1929423
 ]
 
 ["test_E10SUtils_getRemoteTypeForURIObject.js"]

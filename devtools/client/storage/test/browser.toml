@@ -138,7 +138,10 @@ skip-if = [
 ]
 
 ["browser_storage_indexeddb_hide_internal_dbs.js"]
-skip-if = ["asan"] # Bug 1591064
+skip-if = [
+  "asan", # Bug 1591064
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'", # Bug 1929421
+]
 
 ["browser_storage_indexeddb_navigation.js"]
 skip-if = [

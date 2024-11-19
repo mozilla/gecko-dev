@@ -843,6 +843,7 @@ skip-if = [
   "os == 'mac' && os_version == '11.20' && arch == 'aarch64'", # Bug 1110922
   "os == 'win'", # Bug 1110922
   "os == 'android' && processor == 'aarch64'", # Bug 1110922
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64' && debug && mda_gpu", # Bug 1929426
 ]
 
 ["test_replay_metadata.html"]

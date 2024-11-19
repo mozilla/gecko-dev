@@ -73,6 +73,7 @@ skip-if = [
   "os == 'win'", # Bug 1692963
   "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && opt && socketprocess_networking", # Bug 1775696
   "os == 'mac' && os_version == '10.15' && processor == 'x86_64' && opt", # Bug 1775696
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64' && debug", # Bug 1929448
 ]
 
 ["browser_bug1703472.js"]

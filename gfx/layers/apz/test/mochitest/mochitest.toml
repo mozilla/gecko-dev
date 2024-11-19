@@ -46,11 +46,17 @@ run-if = [ # FIXME: enable on more desktop platforms (see bug 1608506 comment 4)
   "os == 'android'",
   "os == 'mac'",
 ]
+skip-if = [
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'", # Bug 1929429
+]
 
 ["test_group_double_tap_zoom.html"]
 run-if = [ # FIXME: enable on more desktop platforms (see bug 1608506 comment 4)
   "os == 'android'",
   "os == 'mac'",
+]
+skip-if = [
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'", # Bug 1929429
 ]
 
 ["test_group_fission.html"]
@@ -63,13 +69,14 @@ skip-if = ["os == 'android'"]  # mouse events not supported on mobile
 
 ["test_group_hittest-2.html"]
 skip-if = [
-  "os == 'android'",  # mouse events not supported on mobile
+  "os == 'android'", #  mouse events not supported on mobile
   "win11_2009 && bits == 32",
   "win11_2009 && asan",
-  "os == 'linux' && asan",  # stack is not large enough for the test
-  "display == 'wayland' && os_version == '22.04'",  # Bug 1857059
+  "os == 'linux' && asan", #  stack is not large enough for the test
+  "display == 'wayland' && os_version == '22.04'", #  Bug 1857059
   "http3",
   "http2",
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'", # Bug 1929429
 ]
 
 ["test_group_hittest-3.html"]
@@ -95,8 +102,9 @@ run-if = ["os == 'android'"]
 
 ["test_group_mouseevents.html"]
 skip-if = [
-  "os == 'android'",  # mouse events not supported on mobile
-  "display == 'wayland' && os_version == '22.04'",  # Bug 1857059
+  "os == 'android'", #  mouse events not supported on mobile
+  "display == 'wayland' && os_version == '22.04'", #  Bug 1857059
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'", # Bug 1929429
 ]
 
 ["test_group_overrides.html"]
@@ -132,6 +140,7 @@ skip-if = [
   "os == 'android'", # wheel events not supported on mobile
   "http3",
   "http2",
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'", # Bug 1929429
 ]
 
 ["test_group_scroll_snap.html"]
@@ -164,12 +173,16 @@ skip-if = ["display == 'wayland' && os_version == '22.04'"]  # Bug 1857059
 
 ["test_group_wheelevents.html"]
 skip-if = [
-  "os == 'android'",  # wheel events not supported on mobile
-  "display == 'wayland' && os_version == '22.04'",  # Bug 1857059
+  "os == 'android'", #  wheel events not supported on mobile
+  "display == 'wayland' && os_version == '22.04'", #  Bug 1857059
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'", # Bug 1929429
 ]
 
 ["test_group_zoom-2.html"]
-skip-if = ["os == 'win'"] # see bug 1495580 for Windows
+skip-if = [
+  "os == 'win'", # see bug 1495580 for Windows
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'", # Bug 1929429
+]
 
 ["test_group_zoom.html"]
 skip-if = ["os == 'win'"] # see bug 1495580 for Windows

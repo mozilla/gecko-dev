@@ -26,6 +26,9 @@ support-files = [
 ["test_bug477754.xhtml"]
 
 ["test_bug703150.xhtml"]
+skip-if = [
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'", # Bug 1929451
+]
 
 ["test_bug987230.xhtml"]
 skip-if = ["os == 'linux'"] # No native mousedown event on Linux

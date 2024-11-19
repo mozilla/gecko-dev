@@ -89,8 +89,10 @@ skip-if = [
 
 ["test_getUserMedia_basicScreenshare.html"]
 skip-if = [
-  "os == 'android'",     # no screenshare on android
-  "apple_silicon",            # bug 1707742
+  "os == 'android'", #     no screenshare on android
+  "apple_silicon", #            bug 1707742
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64' && debug", # Bug 1929425
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64' && opt && socketprocess_e10s", # Bug 1929425
 ]
 
 ["test_getUserMedia_basicTabshare.html"]
@@ -103,7 +105,11 @@ skip-if = ["os == 'android'"] # no windowshare on android
 ["test_getUserMedia_basicVideo_playAfterLoadedmetadata.html"]
 
 ["test_getUserMedia_basicWindowshare.html"]
-skip-if = ["os == 'android'"] # no windowshare on android
+skip-if = [
+  "os == 'android'", # no windowshare on android
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64' && debug", # Bug 1929425
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64' && opt && socketprocess_e10s", # Bug 1929425
+]
 
 ["test_getUserMedia_bug1223696.html"]
 

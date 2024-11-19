@@ -1,3 +1,6 @@
 [DEFAULT]
 
 ["test_bug1697769.xhtml"]
+skip-if = [
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'", # Bug 1929436
+]

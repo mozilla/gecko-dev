@@ -27,4 +27,7 @@ run-if = ["os != 'win'"] # Test not relevant on 1903+
 
 ["browser_webauthn_prompts.js"]
 run-if = ["os != 'win'"] # Test not relevant on 1903+
-skip-if = ["os == 'linux' && os_version == '18.04' && processor == 'x86_64'"] # bug 1855383
+skip-if = [
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64'", # bug 1855383
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64' && opt", # Bug 1929455
+]

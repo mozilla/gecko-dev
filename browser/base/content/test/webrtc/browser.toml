@@ -22,8 +22,9 @@ prefs = [
 ["browser_device_controls_menus.js"]
 skip-if = [
   "debug", # bug 1369731
-  "os == 'mac' && os_version == '11.20' && arch == 'aarch64'",   # bug 1707735
-  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",  # platform migration
+  "os == 'mac' && os_version == '11.20' && arch == 'aarch64'", #   bug 1707735
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'", #  platform migration
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'", # Bug 1869787
 ]
 
 ["browser_devices_get_user_media.js"]
@@ -51,8 +52,9 @@ skip-if = [
 https_first_disabled = true
 skip-if = [
   "debug", # bug 1369731
-  "os == 'mac' && os_version == '11.20' && arch == 'aarch64'",   # bug 1707735
-  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",  # platform migration
+  "os == 'mac' && os_version == '11.20' && arch == 'aarch64'", #   bug 1707735
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'", #  platform migration
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'", # Bug 1869787
 ]
 
 ["browser_devices_get_user_media_in_xorigin_frame_chain.js"]
@@ -62,8 +64,9 @@ https_first_disabled = true
 https_first_disabled = true
 skip-if = [
   "debug && os == 'win'", # bug 1393761
-  "os == 'mac' && os_version == '11.20' && arch == 'aarch64'",   # bug 1707735
-  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",  # platform migration
+  "os == 'mac' && os_version == '11.20' && arch == 'aarch64'", #   bug 1707735
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'", #  platform migration
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'", # Bug 1869787
 ]
 
 ["browser_devices_get_user_media_paused.js"]
@@ -71,8 +74,9 @@ https_first_disabled = true
 skip-if = [
   "os == 'win' && !debug", # Bug 1440900
   "os =='linux' && !debug && bits == 64", # Bug 1440900
-  "os == 'mac' && os_version == '11.20' && arch == 'aarch64'",  # bug 1707735
+  "os == 'mac' && os_version == '11.20' && arch == 'aarch64'", #  bug 1707735
   "os == 'mac' && os_version == '10.15' && processor == 'x86_64'", # platform migration
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'", # Bug 1869787
 ]
 
 ["browser_devices_get_user_media_queue_request.js"]
@@ -86,15 +90,17 @@ skip-if = [
 https_first_disabled = true
 skip-if = [
   "os == 'linux'", # Bug 1503991
-  "os == 'mac' && os_version == '11.20' && arch == 'aarch64'",   # bug 1707735
-  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",  # platform migration
+  "os == 'mac' && os_version == '11.20' && arch == 'aarch64'", #   bug 1707735
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'", #  platform migration
   "os == 'win'", # high frequency intermittent, bug 1739107
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'", # Bug 1869787
 ]
 
 ["browser_devices_get_user_media_screen_tab_close.js"]
 skip-if = [
-  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",  # platform migration
-  "os == 'mac' && os_version == '11.20' && arch == 'aarch64'",   # bug 1707735
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'", #  platform migration
+  "os == 'mac' && os_version == '11.20' && arch == 'aarch64'", #   bug 1707735
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'", # Bug 1869787
 ]
 
 ["browser_devices_get_user_media_tear_off_tab.js"]
@@ -126,32 +132,42 @@ skip-if = ["os == 'win' && bits == 64"] # win8: bug 1334752
 
 ["browser_indicator_popuphiding.js"]
 skip-if = [
-  "os == 'mac' && os_version == '11.20' && arch == 'aarch64'",   # bug 1707735
-  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",  # platform migration
+  "os == 'mac' && os_version == '11.20' && arch == 'aarch64'", #   bug 1707735
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'", #  platform migration
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'", # Bug 1869787
 ]
 
 ["browser_macos_indicator_hiding.js"]
 run-if = ["os == 'mac' && os_version >= '14.0'"]
+skip-if = [
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
+]
 
 ["browser_notification_silencing.js"]
 skip-if = [
-  "os == 'mac' && os_version == '11.20' && arch == 'aarch64'",   # bug 1707735
-  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",  # platform migration
+  "os == 'mac' && os_version == '11.20' && arch == 'aarch64'", #   bug 1707735
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'", #  platform migration
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'", # Bug 1869787
 ]
 
 ["browser_stop_sharing_button.js"]
 skip-if = [
-  "os == 'mac' && os_version == '11.20' && arch == 'aarch64'",   # bug 1707735
-  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",  # platform migration
+  "os == 'mac' && os_version == '11.20' && arch == 'aarch64'", #   bug 1707735
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'", #  platform migration
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'", # Bug 1869787
 ]
 
 ["browser_stop_streams_on_indicator_close.js"]
 skip-if = [
-  "os == 'mac' && os_version == '11.20' && arch == 'aarch64'",   # bug 1707735
-  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",  # platform migration
+  "os == 'mac' && os_version == '11.20' && arch == 'aarch64'", #   bug 1707735
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'", #  platform migration
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'", # Bug 1869787
 ]
 
 ["browser_tab_switch_warning.js"]
 skip-if = ["os == 'mac' && os_version == '10.15' && processor == 'x86_64'"]  # platform migration
 
 ["browser_webrtc_hooks.js"]
+skip-if = [
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'", # Bug 1869787
+]

@@ -27,6 +27,7 @@ skip-if = ["os == 'android'"] # Sync with test_abs_positioner_positioning_elemen
 skip-if = [
   "os == 'android'", # Bug 1525959
   "xorigin", # Inconsistent pass/fail in opt and debug
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64' && debug", # Bug 1929435
 ]
 
 ["test_backspace_vs.html"]

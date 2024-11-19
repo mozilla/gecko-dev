@@ -49,16 +49,18 @@ allow_xul_xbl = true  # XUL is used in file_fullscreen-api.html
 skip-if = [
   "os == 'android'",
   "os == 'mac' && os_version == '10.15' && processor == 'x86_64'", # Bug 1579623, 1776996
-  "display == 'wayland' && os_version == '22.04'",  # Bug 1857240
+  "display == 'wayland' && os_version == '22.04'", #  Bug 1857240
   "http3",
   "http2",
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'", # Bug 1929452
 ]
 
 ["test_fullscreen_meta_viewport.html"]
 
 ["test_fullscreen_modal.html"]
 skip-if = [
-  "display == 'wayland' && os_version == '22.04'",  # Bug 1857240
+  "display == 'wayland' && os_version == '22.04'", #  Bug 1857240
   "http3",
   "http2",
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'", # Bug 1929452
 ]

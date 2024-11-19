@@ -233,11 +233,12 @@ support-files = [
 https_first_disabled = true
 
 ["browser_new_tab_bookmarks_toolbar_height.js"]
+support-files = ["file_observe_height_changes.html"]
 skip-if = [
   "os == 'mac' && os_version == '10.15' && processor == 'x86_64'", # Bug 1872477
   "os == 'mac' && os_version == '11.20' && arch == 'aarch64'", # Bug 1872477
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'", # Bug 1929417
 ]
-support-files = ["file_observe_height_changes.html"]
 
 ["browser_new_tab_in_privilegedabout_process_pref.js"]
 https_first_disabled = true

@@ -108,8 +108,9 @@ skip-if = [
 
 ["browser_toolbox_console_new_process.js"]
 skip-if = [
-  "asan",  # Bug 1591590
+  "asan", #  Bug 1591590
   "debug", # Bug 1591590
-  "ccov",  # Bug 1591590
+  "ccov", #  Bug 1591590
   "os == 'win' && bits == 64 && opt", # Bug 1591590
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64' && opt", # Bug 1929454
 ]

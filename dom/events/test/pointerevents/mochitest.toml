@@ -89,7 +89,10 @@ skip-if = [
 ]
 
 ["test_pointermove_drag_scrollbar.html"]
-skip-if = ["os == 'android'"]  # scrollbar not showed on mobile
+skip-if = [
+  "os == 'android'", # scrollbar not showed on mobile
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'", # Bug 1929433
+]
 
 ["test_pointermove_isPrimary_subsequent_pens.html"]
 

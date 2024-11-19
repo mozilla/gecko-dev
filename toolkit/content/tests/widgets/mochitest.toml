@@ -46,6 +46,9 @@ skip-if = ["os == 'mac'"]
 ["test_image_recognition_zh.html"]
 run-if = ["os == 'mac' && os_version != '10.15'"] # Mac only feature, requires > 10.15 to support multilingual results.
 tags = "os_integration"
+skip-if = [
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64' && xorigin", # Bug 1929419
+]
 
 ["test_mousecapture_area.html"]
 tags = "os_integration"

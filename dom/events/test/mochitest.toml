@@ -347,8 +347,11 @@ run-if = ["os == 'win'"] # Only Windows 1809+ supports pen input synthesis
 support-files = ["!/gfx/layers/apz/test/mochitest/apz_test_native_event_utils.js"]
 
 ["test_click_hold_context_menus.html"]
-skip-if = ["os == 'mac' && os_version == '10.15' && processor == 'x86_64'"]
 tags = "os_integration"
+skip-if = [
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'", # Bug 1929440
+]
 
 ["test_click_on_reframed_generated_text.html"]
 
@@ -496,7 +499,10 @@ skip-if = [
 ]
 
 ["test_mouse_events_after_touchend.html"]
-skip-if = ["os == 'mac' && os_version == '10.15' && processor == 'x86_64'"] # Bug 1881864
+skip-if = [
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'", # Bug 1881864
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'", # Bug 1929440
+]
 
 ["test_mouse_over_at_removing_down_target.html"]
 

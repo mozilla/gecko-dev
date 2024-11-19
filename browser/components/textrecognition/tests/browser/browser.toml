@@ -7,6 +7,9 @@ support-files = [
 
 ["browser_textrecognition.js"]
 run-if = ["os == 'mac'"] # Mac only feature.
+skip-if = [
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'", # Bug 1929453
+]
 
 ["browser_textrecognition_no_result.js"]
 run-if = ["os == 'mac'"] # Mac only feature.

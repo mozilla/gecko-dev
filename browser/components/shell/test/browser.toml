@@ -3,8 +3,11 @@
 ["browser_1119088.js"]
 support-files = ["mac_desktop_image.py"]
 run-if = ["os == 'mac'"]
-skip-if = ["verify"]
 tags = "os_integration"
+skip-if = [
+  "verify",
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'", # Bug 1869703
+]
 
 ["browser_420786.js"]
 run-if = ["os == 'linux'"]
