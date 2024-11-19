@@ -74,6 +74,7 @@
 #include "rtc_base/platform_thread_types.h"
 #include "rtc_base/strings/string_builder.h"
 #include "rtc_base/system/inline.h"
+#include "rtc_base/type_traits.h"
 
 #if !defined(NDEBUG) || defined(DLOG_ALWAYS_ON)
 #define RTC_DLOG_IS_ON 1
@@ -338,21 +339,14 @@ inline Val<LogArgType::kLogMetadataTag, LogMetadataTag> MakeVal(
 }
 #endif
 
-template <typename T, class = void>
-struct has_to_log_string : std::false_type {};
-template <typename T>
-struct has_to_log_string<T,
-                         absl::enable_if_t<std::is_convertible<
-                             decltype(ToLogString(std::declval<T>())),
-                             std::string>::value>> : std::true_type {};
-
 template <typename T, absl::enable_if_t<has_to_log_string<T>::value>* = nullptr>
 ToStringVal MakeVal(const T& x) {
   return {ToLogString(x)};
 }
 
 template <typename T,
-          std::enable_if_t<absl::HasAbslStringify<T>::value>* = nullptr>
+          std::enable_if_t<absl::HasAbslStringify<T>::value &&
+                           !has_to_log_string<T>::value>* = nullptr>
 ToStringVal MakeVal(const T& x) {
   return {absl::StrCat(x)};
 }

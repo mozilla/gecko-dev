@@ -17,6 +17,7 @@
 
 #include "api/units/time_delta.h"
 #include "rtc_base/checks.h"
+#include "rtc_base/system/rtc_export.h"
 #include "rtc_base/units/unit_base.h"  // IWYU pragma: export
 
 namespace webrtc {
@@ -43,6 +44,9 @@ class Timestamp final : public rtc_units_impl::UnitBase<Timestamp> {
   }
 
   Timestamp() = delete;
+
+  template <typename Sink>
+  friend void AbslStringify(Sink& sink, Timestamp value);
 
   template <typename T = int64_t>
   constexpr T seconds() const {
@@ -118,9 +122,14 @@ class Timestamp final : public rtc_units_impl::UnitBase<Timestamp> {
   static constexpr bool one_sided = true;
 };
 
-std::string ToString(Timestamp value);
+RTC_EXPORT std::string ToString(Timestamp value);
 inline std::string ToLogString(Timestamp value) {
   return ToString(value);
+}
+
+template <typename Sink>
+void AbslStringify(Sink& sink, Timestamp value) {
+  sink.Append(ToString(value));
 }
 
 }  // namespace webrtc

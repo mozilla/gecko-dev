@@ -12,6 +12,7 @@
 #define RTC_BASE_TYPE_TRAITS_H_
 
 #include <cstddef>
+#include <string>
 #include <type_traits>
 
 namespace rtc {
@@ -35,6 +36,16 @@ class HasDataAndSize {
  public:
   static constexpr bool value = std::is_same<decltype(Test<DS>(0)), int>::value;
 };
+
+template <typename T, typename = void>
+struct has_to_log_string : std::false_type {};
+template <typename T>
+struct has_to_log_string<T,
+                         std::enable_if_t<std::is_convertible_v<
+                             decltype(ToLogString(std::declval<T>())),
+                             std::string>>> : std::true_type {};
+template <typename T>
+constexpr bool has_to_log_string_v = has_to_log_string<T>::value;
 
 namespace test_has_data_and_size {
 

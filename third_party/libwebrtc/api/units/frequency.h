@@ -18,6 +18,7 @@
 
 #include "api/units/time_delta.h"
 #include "rtc_base/checks.h"
+#include "rtc_base/system/rtc_export.h"
 #include "rtc_base/units/unit_base.h"  // IWYU pragma: export
 
 namespace webrtc {
@@ -41,6 +42,9 @@ class Frequency final : public rtc_units_impl::RelativeUnit<Frequency> {
   }
 
   Frequency() = delete;
+
+  template <typename Sink>
+  friend void AbslStringify(Sink& sink, Frequency value);
 
   template <typename T = int64_t>
   constexpr T hertz() const {
@@ -82,9 +86,14 @@ inline constexpr double operator*(TimeDelta time_delta, Frequency frequency) {
   return frequency * time_delta;
 }
 
-std::string ToString(Frequency value);
+RTC_EXPORT std::string ToString(Frequency value);
 inline std::string ToLogString(Frequency value) {
   return ToString(value);
+}
+
+template <typename Sink>
+void AbslStringify(Sink& sink, Frequency value) {
+  sink.Append(ToString(value));
 }
 
 }  // namespace webrtc

@@ -582,9 +582,8 @@ bool TransportFeedback::IsConsistent() const {
     return false;
   }
   if (timestamp != last_timestamp_) {
-    RTC_LOG(LS_ERROR) << "Last timestamp mismatch. Calculated: "
-                      << ToLogString(timestamp)
-                      << ". Saved: " << ToLogString(last_timestamp_);
+    RTC_LOG(LS_ERROR) << "Last timestamp mismatch. Calculated: " << timestamp
+                      << ". Saved: " << last_timestamp_;
     return false;
   }
   if (size_bytes_ != packet_size) {
