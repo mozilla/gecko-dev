@@ -3253,6 +3253,10 @@ QuotaManager::GetOrCreateTemporaryOriginDirectory(
   MOZ_ASSERT(IsTemporaryGroupInitializedInternal(aOriginMetadata));
   MOZ_ASSERT(IsTemporaryOriginInitializedInternal(aOriginMetadata));
 
+  ScopedLogExtraInfo scope{
+      ScopedLogExtraInfo::kTagContextTainted,
+      "dom::quota::QuotaManager::GetOrCreateTemporaryOriginDirectory"_ns};
+
   // XXX Temporary band-aid fix until the root cause of uninitialized origins
   // after obtaining a client directory lock via OpenClientDirectory is
   // identified.
