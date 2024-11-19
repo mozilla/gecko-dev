@@ -46,10 +46,13 @@ export var makeFakeAppDir = function () {
   pendingD.append("pending");
   let submittedD = reportsD.clone();
   submittedD.append("submitted");
+  let eventsD = reportsD.clone();
+  eventsD.append("events");
 
   makeDir(reportsD);
   makeDir(pendingD);
   makeDir(submittedD);
+  makeDir(eventsD);
 
   let provider = {
     getFile(prop, persistent) {
@@ -58,7 +61,10 @@ export var makeFakeAppDir = function () {
         return appD.clone();
       }
 
-      throw Components.Exception("", Cr.NS_ERROR_FAILURE);
+      throw Components.Exception(
+        "failed to get file: " + prop,
+        Cr.NS_ERROR_FAILURE
+      );
     },
 
     QueryInterace(iid) {

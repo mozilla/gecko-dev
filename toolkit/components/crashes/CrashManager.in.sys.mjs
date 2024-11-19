@@ -784,7 +784,7 @@ CrashManager.prototype = Object.freeze({
    * Submit a Glean crash ping with the given parameters.
    *
    * @param {string} reason - the reason for the crash ping, one of: "crash", "event_found"
-   * @param {string} type - the process type (from {@link processTypes})
+   * @param {string} process_type - the process type (from {@link processTypes})
    * @param {DateTime} date - the time of the crash (or the closest time after it)
    * @param {string} minidumpHash - the hash of the minidump file, if any
    * @param {object} stackTraces - the object containing stack trace information
@@ -792,7 +792,7 @@ CrashManager.prototype = Object.freeze({
    */
   _submitGleanCrashPing(
     reason,
-    type,
+    process_type,
     date,
     minidumpHash,
     stackTraces,
@@ -810,7 +810,7 @@ CrashManager.prototype = Object.freeze({
       }
     }
 
-    Glean.crash.processType.set(type);
+    Glean.crash.processType.set(process_type);
     Glean.crash.time.set(date.getTime() * 1000);
     Glean.crash.minidumpSha256Hash.set(minidumpHash);
 
@@ -1098,30 +1098,36 @@ CrashManager.prototype = Object.freeze({
    */
   _getDirectoryEntries(path, re) {
     return (async function () {
-      let children = await IOUtils.getChildren(path);
       let entries = [];
 
-      for (const entry of children) {
-        let stat = await IOUtils.stat(entry);
-        if (stat.type == "directory") {
-          continue;
+      try {
+        let children = await IOUtils.getChildren(path);
+
+        for (const entry of children) {
+          let stat = await IOUtils.stat(entry);
+          if (stat.type == "directory") {
+            continue;
+          }
+
+          let filename = PathUtils.filename(entry);
+          let match = re.exec(filename);
+          if (!match) {
+            continue;
+          }
+          entries.push({
+            path: entry,
+            id: match[1],
+            date: stat.lastModified,
+          });
         }
 
-        let filename = PathUtils.filename(entry);
-        let match = re.exec(filename);
-        if (!match) {
-          continue;
-        }
-        entries.push({
-          path: entry,
-          id: match[1],
-          date: stat.lastModified,
+        entries.sort((a, b) => {
+          return a.date - b.date;
         });
+      } catch (ex) {
+        // Missing events folders are allowed
+        console.error(ex);
       }
-
-      entries.sort((a, b) => {
-        return a.date - b.date;
-      });
 
       return entries;
     })();
@@ -1429,12 +1435,17 @@ CrashStore.prototype = Object.freeze({
 
       let encoder = new TextEncoder();
       let data = encoder.encode(JSON.stringify(normalized));
-      let size = await IOUtils.write(this._storePath, data, {
-        tmpPath: this._storePath + ".tmp",
-        compress: true,
-      });
-      if (this._telemetrySizeKey) {
-        Services.telemetry.getHistogramById(this._telemetrySizeKey).add(size);
+      try {
+        let size = await IOUtils.write(this._storePath, data, {
+          tmpPath: this._storePath + ".tmp",
+          compress: true,
+        });
+        if (this._telemetrySizeKey) {
+          Services.telemetry.getHistogramById(this._telemetrySizeKey).add(size);
+        }
+      } catch (ex) {
+        // This operation might fail during shutdown, tough luck.
+        console.error(ex);
       }
     })();
   },
