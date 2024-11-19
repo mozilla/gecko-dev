@@ -22,8 +22,6 @@ rtc_source_set("audio_coding_module_typedefs") {
 rtc_library("audio_coding") {
   visibility += [ "*" ]
   sources = [
-    "acm2/acm_receiver.cc",
-    "acm2/acm_receiver.h",
     "acm2/acm_remixing.cc",
     "acm2/acm_remixing.h",
     "acm2/acm_resampler.cc",
@@ -1571,7 +1569,6 @@ if (rtc_include_tests) {
       visibility += webrtc_default_visibility
 
       sources = [
-        "acm2/acm_receiver_unittest.cc",
         "acm2/acm_remixing_unittest.cc",
         "acm2/audio_coding_module_unittest.cc",
         "acm2/call_statistics_unittest.cc",

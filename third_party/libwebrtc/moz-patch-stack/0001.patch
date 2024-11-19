@@ -312,7 +312,6 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/fc01107426c3adebb
  api/rtp_parameters.cc                         |   3 +-
  call/BUILD.gn                                 |   4 +-
  call/video_receive_stream.h                   |   2 +
- modules/audio_coding/acm2/acm_receiver.h      |   1 +
  modules/audio_coding/neteq/dtmf_buffer.cc     |   6 +-
  modules/desktop_capture/desktop_capturer.h    |   1 +
  .../desktop_capture/fake_desktop_capturer.cc  |   4 +-
@@ -346,7 +345,7 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/fc01107426c3adebb
  test/fuzzers/rtp_packet_fuzzer.cc             |   4 +
  test/vcm_capturer.cc                          |   2 +-
  webrtc.gni                                    |   2 +-
- 39 files changed, 565 insertions(+), 81 deletions(-)
+ 38 files changed, 564 insertions(+), 81 deletions(-)
 
 diff --git a/api/rtp_headers.cc b/api/rtp_headers.cc
 index c272ccae06..0271714c44 100644
@@ -450,18 +449,6 @@ index 08ac664edc..3b09c2d78c 100644
        // See LntfConfig for description.
        LntfConfig lntf;
  
-diff --git a/modules/audio_coding/acm2/acm_receiver.h b/modules/audio_coding/acm2/acm_receiver.h
-index 47de3bc9fd..26d09c23ee 100644
---- a/modules/audio_coding/acm2/acm_receiver.h
-+++ b/modules/audio_coding/acm2/acm_receiver.h
-@@ -20,6 +20,7 @@
- #include <string>
- #include <utility>
- #include <vector>
-+#include <atomic>
- 
- #include "api/array_view.h"
- #include "api/audio/audio_frame.h"
 diff --git a/modules/audio_coding/neteq/dtmf_buffer.cc b/modules/audio_coding/neteq/dtmf_buffer.cc
 index 9f78aca6e2..115bfcf97b 100644
 --- a/modules/audio_coding/neteq/dtmf_buffer.cc
