@@ -82,10 +82,12 @@
     <!-- Performance: checks that we're unsure of the value of that we might want to investigate. -->
     <issue id="UnpackedNativeCode" severity="informational" />
     <issue id="LogConditional" severity="informational" />
-    <issue id="VectorPath" severity="informational" />
     <issue id="UseSparseArrays" severity="informational" /> <!-- hurts developer convenience of kotlin Map... -->
     <issue id="TooDeepLayout" severity="warning" /> <!-- depth can be customized -->
     <issue id="TooManyViews" severity="warning" /> <!-- view count can be customized -->
+
+    <!-- Ignore due to baseline bloat and lack of actionability -->
+    <issue id="VectorPath" severity="ignore" />
 
     <!-- Correctness: checks with increased severity -->
     <issue id="PrivateResource" severity="error" />

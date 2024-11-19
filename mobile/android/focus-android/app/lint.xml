@@ -36,6 +36,9 @@
         <ignore path="**/appcompat-v7/**/res/layout/notification_template_custom_big.xml"/>
     </issue>
 
+    <!-- Ignore due to baseline bloat and lack of actionability -->
+    <issue id="VectorPath" severity="ignore" />
+
     <issue id="InvalidPackage">
         <!-- Sentry: it uses one SDK for desktop apps and Android apps so I assume it's
         calling functions from desktop apps and silently ignoring those calls when
