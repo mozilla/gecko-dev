@@ -1080,12 +1080,6 @@ export class PictureInPictureToggleChild extends JSWindowActorChild {
   }
 
   startPictureInPicture(event, video) {
-    Services.telemetry.keyedScalarAdd(
-      "pictureinpicture.opened_method",
-      "toggle",
-      1
-    );
-
     let pipEvent = new this.contentWindow.CustomEvent(
       "MozTogglePictureInPicture",
       {
