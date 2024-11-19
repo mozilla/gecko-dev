@@ -455,17 +455,6 @@ class CycleCollectWithLogsChild final : public PCycleCollectWithLogsChild {
 
 NS_IMPL_ISUPPORTS(CycleCollectWithLogsChild::Sink, nsICycleCollectorLogSink);
 
-class AlertObserver {
- public:
-  AlertObserver(nsIObserver* aObserver, const nsString& aData)
-      : mObserver(aObserver), mData(aData) {}
-
-  ~AlertObserver() = default;
-
-  nsCOMPtr<nsIObserver> mObserver;
-  nsString mData;
-};
-
 class ConsoleListener final : public nsIConsoleListener {
  public:
   explicit ConsoleListener(ContentChild* aChild) : mChild(aChild) {}
@@ -2231,8 +2220,6 @@ void ContentChild::ActorDestroy(ActorDestroyReason why) {
 
   mSharedData = nullptr;
 
-  mAlertObservers.Clear();
-
   mIdleObservers.Clear();
 
   if (mConsoleListener) {
@@ -2275,13 +2262,6 @@ void ContentChild::ProcessingError(Result aCode, const char* aReason) {
   MOZ_CRASH("Content child abort due to IPC error");
 }
 
-nsresult ContentChild::AddRemoteAlertObserver(const nsString& aData,
-                                              nsIObserver* aObserver) {
-  NS_ASSERTION(aObserver, "Adding a null observer?");
-  mAlertObservers.AppendElement(new AlertObserver(aObserver, aData));
-  return NS_OK;
-}
-
 mozilla::ipc::IPCResult ContentChild::RecvPreferenceUpdate(const Pref& aPref) {
   Preferences::SetPreference(aPref);
   return IPC_OK();
@@ -2309,28 +2289,6 @@ mozilla::ipc::IPCResult ContentChild::RecvCollectScrollingMetrics(
   auto metrics = ScrollingMetrics::CollectLocalScrollingMetrics();
   using ResolverArgs = std::tuple<const uint32_t&, const uint32_t&>;
   aResolver(ResolverArgs(std::get<0>(metrics), std::get<1>(metrics)));
-  return IPC_OK();
-}
-
-mozilla::ipc::IPCResult ContentChild::RecvNotifyAlertsObserver(
-    const nsCString& aType, const nsString& aData) {
-  nsTArray<nsCOMPtr<nsIObserver>> observersToNotify;
-
-  mAlertObservers.RemoveElementsBy([&](UniquePtr<AlertObserver>& observer) {
-    if (!observer->mData.Equals(aData)) {
-      return false;
-    }
-
-    // aType == alertfinished, this alert is done and we can remove the
-    // observer.
-    observersToNotify.AppendElement(observer->mObserver);
-    return aType.EqualsLiteral("alertfinished");
-  });
-
-  for (auto& observer : observersToNotify) {
-    observer->Observe(nullptr, aType.get(), aData.get());
-  }
-
   return IPC_OK();
 }
 

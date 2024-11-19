@@ -679,8 +679,6 @@ child:
 
     async CollectScrollingMetrics() returns (uint32_t pixelsScrolled, uint32_t scrollDurationMS);
 
-    async NotifyAlertsObserver(nsCString topic, nsString data);
-
     async GeolocationUpdate(nullable nsIDOMGeoPosition aPosition);
 
     async GeolocationError(uint16_t errorCode);
@@ -1138,10 +1136,6 @@ parent:
 
     sync SyncMessage(nsString aMessage, ClonedMessageData aData)
       returns (StructuredCloneData[] retval);
-
-    async ShowAlert(nullable nsIAlertNotification alert);
-
-    async CloseAlert(nsString name, bool contextClosed);
 
     async AddSecurityState(MaybeDiscardedWindowContext aContext, uint32_t aStateFlags);
 

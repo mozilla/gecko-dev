@@ -68,7 +68,6 @@ namespace ipc {
 class SharedMap;
 }
 
-class AlertObserver;
 class ConsoleListener;
 class ClonedMessageData;
 class BrowserChild;
@@ -283,10 +282,6 @@ class ContentChild final : public PContentChild,
   mozilla::ipc::IPCResult RecvThemeChanged(FullLookAndFeel&&,
                                            widget::ThemeChangeKind);
 
-  // auto remove when alertfinished is received.
-  nsresult AddRemoteAlertObserver(const nsString& aData,
-                                  nsIObserver* aObserver);
-
   mozilla::ipc::IPCResult RecvPreferenceUpdate(const Pref& aPref);
   mozilla::ipc::IPCResult RecvVarUpdate(const GfxVarUpdate& pref);
 
@@ -298,9 +293,6 @@ class ContentChild final : public PContentChild,
 
   mozilla::ipc::IPCResult RecvCollectScrollingMetrics(
       CollectScrollingMetricsResolver&& aResolver);
-
-  mozilla::ipc::IPCResult RecvNotifyAlertsObserver(const nsCString& aType,
-                                                   const nsString& aData);
 
   mozilla::ipc::IPCResult RecvLoadProcessScript(const nsString& aURL);
 
@@ -820,7 +812,6 @@ class ContentChild final : public PContentChild,
 
   void ConfigureThreadPerformanceHints(const hal::ProcessPriority& aPriority);
 
-  nsTArray<mozilla::UniquePtr<AlertObserver>> mAlertObservers;
   RefPtr<ConsoleListener> mConsoleListener;
 
   nsTHashSet<nsIObserver*> mIdleObservers;

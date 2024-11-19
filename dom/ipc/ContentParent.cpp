@@ -191,7 +191,6 @@
 #include "nsGlobalWindowOuter.h"
 #include "nsHashPropertyBag.h"
 #include "nsHyphenationManager.h"
-#include "nsIAlertsService.h"
 #include "nsIAppShell.h"
 #include "nsIAppWindow.h"
 #include "nsIAsyncInputStream.h"
@@ -3836,17 +3835,6 @@ ContentParent::Observe(nsISupports* aSubject, const char* aTopic,
     if (!SendSetCaptivePortalState(state)) {
       return NS_ERROR_NOT_AVAILABLE;
     }
-  }
-  // listening for alert notifications
-  else if (!strcmp(aTopic, "alertfinished") ||
-           !strcmp(aTopic, "alertclickcallback") ||
-           !strcmp(aTopic, "alertshow") ||
-           !strcmp(aTopic, "alertdisablecallback") ||
-           !strcmp(aTopic, "alertsettingscallback")) {
-    if (!SendNotifyAlertsObserver(nsDependentCString(aTopic),
-                                  nsDependentString(aData))) {
-      return NS_ERROR_NOT_AVAILABLE;
-    }
   } else if (!strcmp(aTopic, "child-gc-request")) {
     Unused << SendGarbageCollect();
   } else if (!strcmp(aTopic, "child-cc-request")) {
@@ -4697,28 +4685,6 @@ mozilla::ipc::IPCResult ContentParent::RecvExtProtocolChannelConnectParent(
   // Yes, this is a bit of a hack, but I don't think it's necessary to invent
   // a new interface just to set this flag on the channel.
   parent->SetParentListener(nullptr);
-
-  return IPC_OK();
-}
-
-mozilla::ipc::IPCResult ContentParent::RecvShowAlert(
-    nsIAlertNotification* aAlert) {
-  if (!aAlert) {
-    return IPC_FAIL(this, "aAlert must not be null.");
-  }
-  nsCOMPtr<nsIAlertsService> sysAlerts(components::Alerts::Service());
-  if (sysAlerts) {
-    sysAlerts->ShowAlert(aAlert, this);
-  }
-  return IPC_OK();
-}
-
-mozilla::ipc::IPCResult ContentParent::RecvCloseAlert(const nsAString& aName,
-                                                      bool aContextClosed) {
-  nsCOMPtr<nsIAlertsService> sysAlerts(components::Alerts::Service());
-  if (sysAlerts) {
-    sysAlerts->CloseAlert(aName, aContextClosed);
-  }
 
   return IPC_OK();
 }

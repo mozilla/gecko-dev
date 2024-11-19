@@ -1001,11 +1001,6 @@ class ContentParent final : public PContentParent,
 
   mozilla::ipc::IPCResult RecvSetURITitle(nsIURI* uri, const nsAString& title);
 
-  mozilla::ipc::IPCResult RecvShowAlert(nsIAlertNotification* aAlert);
-
-  mozilla::ipc::IPCResult RecvCloseAlert(const nsAString& aName,
-                                         bool aContextClosed);
-
   mozilla::ipc::IPCResult RecvLoadURIExternal(
       nsIURI* uri, nsIPrincipal* triggeringPrincipal,
       nsIPrincipal* redirectPrincipal,

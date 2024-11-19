@@ -3,7 +3,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#include "mozilla/dom/ContentChild.h"
+#include "xpcpublic.h"
 #include "mozilla/dom/PermissionMessageUtils.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/StaticPrefs_alerts.h"
@@ -25,8 +25,6 @@
 #endif
 
 using namespace mozilla;
-
-using mozilla::dom::ContentChild;
 
 namespace {
 
@@ -209,15 +207,6 @@ NS_IMETHODIMP nsAlertsService::ShowAlert(nsIAlertNotification* aAlert,
   nsresult rv = aAlert->GetCookie(cookie);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  if (XRE_IsContentProcess()) {
-    ContentChild* cpc = ContentChild::GetSingleton();
-
-    if (aAlertListener) cpc->AddRemoteAlertObserver(cookie, aAlertListener);
-
-    cpc->SendShowAlert(aAlert);
-    return NS_OK;
-  }
-
   // Check if there is an optional service that handles system-level
   // notifications
   if (ShouldUseSystemBackend()) {
@@ -245,12 +234,6 @@ NS_IMETHODIMP nsAlertsService::ShowAlert(nsIAlertNotification* aAlert,
 
 NS_IMETHODIMP nsAlertsService::CloseAlert(const nsAString& aAlertName,
                                           bool aContextClosed) {
-  if (XRE_IsContentProcess()) {
-    ContentChild* cpc = ContentChild::GetSingleton();
-    cpc->SendCloseAlert(nsAutoString(aAlertName), aContextClosed);
-    return NS_OK;
-  }
-
   nsresult rv;
   // Try the system notification service.
   if (ShouldUseSystemBackend()) {
