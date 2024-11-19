@@ -58,6 +58,7 @@ rtc_source_set("scalability_structures") {
     "../../../common_video/generic_frame_descriptor",
     "../../../rtc_base:checks",
     "../../../rtc_base:logging",
+    "../../../rtc_base/system:rtc_export",
     "//third_party/abseil-cpp/absl/base:core_headers",
     "//third_party/abseil-cpp/absl/strings:string_view",
   ]
