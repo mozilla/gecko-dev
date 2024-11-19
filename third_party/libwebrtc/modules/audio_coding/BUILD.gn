@@ -38,7 +38,6 @@ rtc_library("audio_coding") {
 
   deps = [
     ":audio_coding_module_typedefs",
-    ":default_neteq_factory",
     ":neteq",
     "..:module_api",
     "..:module_api_public",
@@ -47,6 +46,7 @@ rtc_library("audio_coding") {
     "../../api/audio:audio_frame_api",
     "../../api/audio_codecs:audio_codecs_api",
     "../../api/environment",
+    "../../api/neteq:default_neteq_factory",
     "../../api/neteq:neteq_api",
     "../../api/units:timestamp",
     "../../common_audio",
@@ -733,18 +733,8 @@ rtc_library("neteq") {
 
 rtc_source_set("default_neteq_factory") {
   visibility += webrtc_default_visibility
-  sources = [
-    "neteq/default_neteq_factory.cc",
-    "neteq/default_neteq_factory.h",
-  ]
-  deps = [
-    ":neteq",
-    "../../api:scoped_refptr",
-    "../../api/audio_codecs:audio_codecs_api",
-    "../../api/environment",
-    "../../api/neteq:default_neteq_controller_factory",
-    "../../api/neteq:neteq_api",
-  ]
+  sources = [ "neteq/default_neteq_factory.h" ]
+  deps = [ "../../api/neteq:default_neteq_factory" ]
 }
 
 # Although providing only test support, this target must be outside of the
@@ -769,7 +759,6 @@ rtc_library("neteq_tools_minimal") {
   ]
 
   deps = [
-    ":default_neteq_factory",
     ":neteq",
     "../../api:array_view",
     "../../api:field_trials",
@@ -781,6 +770,7 @@ rtc_library("neteq_tools_minimal") {
     "../../api/environment:environment_factory",
     "../../api/neteq:custom_neteq_factory",
     "../../api/neteq:default_neteq_controller_factory",
+    "../../api/neteq:default_neteq_factory",
     "../../api/neteq:neteq_api",
     "../../api/units:timestamp",
     "../../rtc_base:buffer",
@@ -925,7 +915,6 @@ rtc_library("audio_coding_modules_tests_shared") {
   deps = [
     ":audio_coding",
     ":audio_coding_module_typedefs",
-    ":default_neteq_factory",
     ":neteq_test_tools",
     ":neteq_tools_minimal",
     ":webrtc_opus_wrapper",
@@ -936,6 +925,7 @@ rtc_library("audio_coding_modules_tests_shared") {
     "../../api/audio_codecs:builtin_audio_encoder_factory",
     "../../api/environment",
     "../../api/environment:environment_factory",
+    "../../api/neteq:default_neteq_factory",
     "../../api/neteq:neteq_api",
     "../../api/units:timestamp",
     "../../rtc_base:checks",
@@ -1068,10 +1058,10 @@ if (rtc_include_tests) {
       "../../api/audio_codecs/opus:audio_encoder_opus",
       "../../api/environment",
       "../../api/environment:environment_factory",
+      "../../api/neteq:default_neteq_factory",
       "../../api/neteq:neteq_api",
       "../../api/units:timestamp",
       "../../common_audio",
-      "../../modules/audio_coding:default_neteq_factory",
       "../../rtc_base:checks",
       "../../rtc_base:logging",
       "../../rtc_base:macromagic",
@@ -1129,8 +1119,8 @@ if (rtc_include_tests) {
       "../../api/audio_codecs:audio_codecs_api",
       "../../api/audio_codecs:builtin_audio_decoder_factory",
       "../../api/environment:environment_factory",
+      "../../api/neteq:default_neteq_factory",
       "../../api/neteq:neteq_api",
-      "../../modules/audio_coding:default_neteq_factory",
       "../../test:test_support",
       "//testing/gtest",
     ]
@@ -1334,7 +1324,6 @@ if (rtc_include_tests) {
     ]
 
     deps = [
-      ":default_neteq_factory",
       ":neteq",
       ":neteq_test_tools",
       ":pcm16b",
@@ -1343,6 +1332,7 @@ if (rtc_include_tests) {
       "../../api/audio_codecs:builtin_audio_decoder_factory",
       "../../api/environment",
       "../../api/environment:environment_factory",
+      "../../api/neteq:default_neteq_factory",
       "../../api/neteq:neteq_api",
       "../../rtc_base:checks",
       "../../system_wrappers",
@@ -1361,13 +1351,13 @@ if (rtc_include_tests) {
       ]
 
       deps = [
-        ":default_neteq_factory",
         ":neteq",
         ":neteq_input_audio_tools",
         ":neteq_test_tools",
         ":neteq_tools_minimal",
         "../../api/audio_codecs:builtin_audio_decoder_factory",
         "../../api/environment:environment_factory",
+        "../../api/neteq:default_neteq_factory",
         "../../api/neteq:neteq_api",
         "../../api/units:timestamp",
         "../../rtc_base:checks",
@@ -1669,7 +1659,6 @@ if (rtc_include_tests) {
         ":audio_coding_opus_common",
         ":audio_encoder_cng",
         ":audio_network_adaptor",
-        ":default_neteq_factory",
         ":g711",
         ":ilbc",
         ":legacy_encoded_audio_frame",
@@ -1698,6 +1687,7 @@ if (rtc_include_tests) {
         "../../api/environment",
         "../../api/environment:environment_factory",
         "../../api/neteq:default_neteq_controller_factory",
+        "../../api/neteq:default_neteq_factory",
         "../../api/neteq:neteq_api",
         "../../api/neteq:neteq_controller_api",
         "../../api/neteq:tick_timer",

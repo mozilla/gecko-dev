@@ -11,31 +11,6 @@
 #ifndef MODULES_AUDIO_CODING_NETEQ_DEFAULT_NETEQ_FACTORY_H_
 #define MODULES_AUDIO_CODING_NETEQ_DEFAULT_NETEQ_FACTORY_H_
 
-#include <memory>
+#include "api/neteq/default_neteq_factory.h"
 
-#include "api/audio_codecs/audio_decoder_factory.h"
-#include "api/environment/environment.h"
-#include "api/neteq/default_neteq_controller_factory.h"
-#include "api/neteq/neteq_factory.h"
-#include "api/scoped_refptr.h"
-
-namespace webrtc {
-
-class DefaultNetEqFactory : public NetEqFactory {
- public:
-  DefaultNetEqFactory();
-  ~DefaultNetEqFactory() override;
-  DefaultNetEqFactory(const DefaultNetEqFactory&) = delete;
-  DefaultNetEqFactory& operator=(const DefaultNetEqFactory&) = delete;
-
-  std::unique_ptr<NetEq> Create(
-      const Environment& env,
-      const NetEq::Config& config,
-      scoped_refptr<AudioDecoderFactory> decoder_factory) const override;
-
- private:
-  const DefaultNetEqControllerFactory controller_factory_;
-};
-
-}  // namespace webrtc
 #endif  // MODULES_AUDIO_CODING_NETEQ_DEFAULT_NETEQ_FACTORY_H_

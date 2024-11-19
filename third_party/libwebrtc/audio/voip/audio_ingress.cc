@@ -16,9 +16,9 @@
 #include <vector>
 
 #include "api/audio_codecs/audio_format.h"
+#include "api/neteq/default_neteq_factory.h"
 #include "audio/utility/audio_frame_operations.h"
 #include "modules/audio_coding/include/audio_coding_module.h"
-#include "modules/audio_coding/neteq/default_neteq_factory.h"
 #include "modules/rtp_rtcp/source/byte_io.h"
 #include "modules/rtp_rtcp/source/rtcp_packet/common_header.h"
 #include "modules/rtp_rtcp/source/rtcp_packet/receiver_report.h"
