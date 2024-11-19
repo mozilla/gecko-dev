@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Test for triggering the popup blocker by submitting a target=_blank form</title>
+<script src="/tests/SimpleTest/SimpleTest.js"></script>
+<script src="/tests/SimpleTest/EventUtils.js"></script>
+<link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css"/>
+</head>
+<body>
+<form action="file_self_close.html" target="_blank"><button>Submit</button></form>
+<script>
+
+let { ContentTaskUtils } = SpecialPowers.ChromeUtils.importESModule(
+  "resource://testing-common/ContentTaskUtils.sys.mjs"
+);
+
+function testTargetBlankForm(aSubmitFun, aMsg) {
+  add_task(async () => {
+    info(aMsg);
+    let popupBlockedPromise = ContentTaskUtils.waitForEvent(document, "DOMPopupBlocked", false, () => {
+      ok(true, "received DOMPopupBlocked event");
+      return true;
+    });
+    let form = document.querySelector("form");
+    form.addEventListener("submit", () => {
+      // Consume the user activation to ensure the popup is blocked.
+      SpecialPowers.wrap(document).clearUserGestureActivation();
+    });
+    aSubmitFun();
+    await popupBlockedPromise;
+  });
+}
+
+add_setup(async function() {
+  await SpecialPowers.pushPrefEnv({"set": [
+    // Enbale popup blocker
+    ["dom.disable_open_during_load", true],
+  ]});
+});
+
+testTargetBlankForm(() => {
+  synthesizeMouseAtCenter(document.querySelector("button"), {});
+}, "Submit form by clicking submit button");
+
+testTargetBlankForm(() => {
+  // Bug 1930678, form.submit() throws an error when the popup is blocked.
+  try {
+    document.querySelector("form").submit();
+  } catch(e) {}
+}, "Submit form by submit()");
+
+testTargetBlankForm(() => {
+  document.querySelector("form").requestSubmit();
+}, "Submit form by requestSubmit()");
+
+</script>
+</body>
+</html>
