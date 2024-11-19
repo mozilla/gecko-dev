@@ -11,6 +11,7 @@
 
     async function test() {
       let iframeElement = document.getElementById("testframe");
+      await setupCrossOriginIFrame(iframeElement, "helper_fission_plain.html");
 
       const scale = 2.0;
 
