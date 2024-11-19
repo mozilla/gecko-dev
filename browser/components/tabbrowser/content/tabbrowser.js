@@ -5659,14 +5659,10 @@
 
       this._handleTabMove(aTab, () => {
         let neighbor = this.tabs[aIndex];
-        if (aIndex < aTab._tPos) {
-          neighbor.before(aTab);
-        } else if (!neighbor) {
-          // Put the tab after the neighbor, as once we remove the tab from its current position,
-          // the indexing of the tabs will shift.
-          aTab.parentElement.append(aTab);
-        } else {
+        if (neighbor && aIndex >= aTab._tPos) {
           neighbor.after(aTab);
+        } else {
+          this.tabContainer.insertBefore(aTab, neighbor);
         }
       });
     }

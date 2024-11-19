@@ -14,6 +14,9 @@
   const DIRECTION_BACKWARD = -1;
   const DIRECTION_FORWARD = 1;
 
+  const GROUP_DROP_ACTION_CREATE = 0x1;
+  const GROUP_DROP_ACTION_APPEND = 0x2;
+
   /**
    * @param {MozTabbrowserTab|MozTabbrowserTabGroup} element
    * @returns {boolean}
@@ -1005,8 +1008,10 @@
           incrementDropIndex = false;
         }
 
+        const { groupDropAction, groupDropIndex } = draggedTab._dragData;
+
         let shouldTranslate =
-          !gReduceMotion && !("groupDropIndex" in draggedTab._dragData);
+          !gReduceMotion && groupDropAction != GROUP_DROP_ACTION_CREATE;
         if (this.#isContainerVerticalPinnedExpanded(draggedTab)) {
           shouldTranslate &&=
             (oldTranslateX && oldTranslateX != newTranslateX) ||
@@ -1017,47 +1022,60 @@
           shouldTranslate &&= oldTranslateX && oldTranslateX != newTranslateX;
         }
 
+        if (
+          this.hasAttribute("movingtab-ungroup") &&
+          dropIndex == this.allTabs.length - 1
+        ) {
+          // Allow a tab to ungroup if the last item in the tab strip
+          // is a grouped tab.
+          dropIndex++;
+        }
+
         if (shouldTranslate) {
-          for (let tab of movingTabs) {
-            tab.toggleAttribute("tabdrop-samewindow", true);
-            tab.style.transform = `translate(${newTranslateX}px, ${newTranslateY}px)`;
-            let postTransitionCleanup = () => {
-              tab.removeAttribute("tabdrop-samewindow");
+          if (groupDropAction == GROUP_DROP_ACTION_APPEND) {
+            let groupTab = this.allTabs[groupDropIndex];
+            groupTab.group.addTabs(movingTabs);
+          } else {
+            for (let tab of movingTabs) {
+              tab.toggleAttribute("tabdrop-samewindow", true);
+              tab.style.transform = `translate(${newTranslateX}px, ${newTranslateY}px)`;
+              let postTransitionCleanup = () => {
+                tab.removeAttribute("tabdrop-samewindow");
 
-              this._finishAnimateTabMove();
-              if (dropIndex !== false) {
-                gBrowser.moveTabTo(tab, dropIndex);
-                if (incrementDropIndex) {
-                  dropIndex++;
+                this._finishAnimateTabMove();
+                if (dropIndex !== false) {
+                  gBrowser.moveTabTo(tab, dropIndex);
+                  if (incrementDropIndex) {
+                    dropIndex++;
+                  }
                 }
-              }
 
-              gBrowser.syncThrobberAnimations(tab);
-            };
-            if (gReduceMotion) {
-              postTransitionCleanup();
-            } else {
-              let onTransitionEnd = transitionendEvent => {
-                if (
-                  transitionendEvent.propertyName != "transform" ||
-                  transitionendEvent.originalTarget != tab
-                ) {
-                  return;
-                }
-                tab.removeEventListener("transitionend", onTransitionEnd);
-
-                postTransitionCleanup();
+                gBrowser.syncThrobberAnimations(tab);
               };
-              tab.addEventListener("transitionend", onTransitionEnd);
+              if (gReduceMotion) {
+                postTransitionCleanup();
+              } else {
+                let onTransitionEnd = transitionendEvent => {
+                  if (
+                    transitionendEvent.propertyName != "transform" ||
+                    transitionendEvent.originalTarget != tab
+                  ) {
+                    return;
+                  }
+                  tab.removeEventListener("transitionend", onTransitionEnd);
+
+                  postTransitionCleanup();
+                };
+                tab.addEventListener("transitionend", onTransitionEnd);
+              }
             }
           }
         } else {
-          let groupTab =
-            "groupDropIndex" in draggedTab._dragData
-              ? this.allTabs[draggedTab._dragData.groupDropIndex]
-              : null;
           this._finishAnimateTabMove();
-          if (dropIndex !== false) {
+          if (groupDropAction == GROUP_DROP_ACTION_APPEND) {
+            let groupTab = this.allTabs[groupDropIndex];
+            groupTab.group.addTabs(movingTabs);
+          } else if (dropIndex !== false) {
             for (let tab of movingTabs) {
               gBrowser.moveTabTo(tab, dropIndex);
               if (incrementDropIndex) {
@@ -1065,7 +1083,8 @@
               }
             }
           }
-          if (groupTab) {
+          if (groupDropAction == GROUP_DROP_ACTION_CREATE) {
+            let groupTab = this.allTabs[groupDropIndex];
             gBrowser.addTabGroup([groupTab, ...movingTabs], {
               insertBefore: draggedTab,
               showCreateUI: true,
@@ -2304,6 +2323,7 @@
             "dragover-createGroup"
           );
           delete dragData.groupDropIndex;
+          delete dragData.groupDropAction;
         }
         // If dragging over an ungrouped tab, present the UI for creating a
         // new tab group on drop.
@@ -2318,6 +2338,20 @@
           );
         } else {
           this.removeAttribute("movingtab-createGroup");
+        }
+
+        // If dragging over the last tab in a group, differentiate between
+        // dropping into the group vs. after the group.
+        if (
+          groupDropIndex in this.allTabs &&
+          this.allTabs[groupDropIndex] ==
+            this.allTabs[groupDropIndex].group?.tabs.at(-1)
+        ) {
+          dragData.groupDropIndex = groupDropIndex;
+          dragData.groupDropAction = GROUP_DROP_ACTION_APPEND;
+          let colorCode = this.allTabs[groupDropIndex].group.color;
+          this.#setDragOverGroupColor(colorCode);
+          this.removeAttribute("movingtab-ungroup");
         }
       }
 
@@ -2355,6 +2389,7 @@
       this.#clearDragOverCreateGroupTimer();
 
       dragData.groupDropIndex = groupDropIndex;
+      dragData.groupDropAction = GROUP_DROP_ACTION_CREATE;
       this.toggleAttribute("movingtab-createGroup", true);
       this.removeAttribute("movingtab-ungroup");
       this.allTabs[groupDropIndex].toggleAttribute(
