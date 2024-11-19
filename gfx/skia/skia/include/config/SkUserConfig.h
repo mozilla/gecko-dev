@@ -141,6 +141,8 @@
 
 #define SK_USE_FREETYPE_EMBOLDEN
 
+#define SK_IGNORE_MAC_BLENDING_MATCH_FIX
+
 #ifndef MOZ_IMPLICIT
 #  ifdef MOZ_CLANG_PLUGIN
 #    define MOZ_IMPLICIT __attribute__((annotate("moz_implicit")))

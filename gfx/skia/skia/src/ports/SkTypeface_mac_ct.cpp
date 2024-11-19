@@ -980,6 +980,21 @@ void SkTypeface_Mac::onFilterRec(SkScalerContextRec* rec) const {
         rec->fMaskFormat = SkMask::kARGB32_Format;
     }
 
+    // Smoothing will be used if the format is either LCD or if there is hinting.
+    // In those cases, we need to choose the proper dilation mask based on the color.
+    if (rec->fMaskFormat == SkMask::kLCD16_Format ||
+        (rec->fMaskFormat == SkMask::kA8_Format && rec->getHinting() != SkFontHinting::kNone)) {
+        SkColor color = rec->getLuminanceColor();
+        int r = SkColorGetR(color);
+        int g = SkColorGetG(color);
+        int b = SkColorGetB(color);
+        // Choose whether to draw using a light-on-dark mask based on observed
+        // color/luminance thresholds that CoreText uses.
+        if (r >= 85 && g >= 85 && b >= 85 && r + g + b >= 2 * 255) {
+            rec->fFlags |= SkScalerContext::kLightOnDark_Flag;
+        }
+    }
+
     // Unhinted A8 masks (those not derived from LCD masks) must respect SK_GAMMA_APPLY_TO_A8.
     // All other masks can use regular gamma.
     if (SkMask::kA8_Format == rec->fMaskFormat && SkFontHinting::kNone == rec->getHinting()) {
@@ -988,6 +1003,7 @@ void SkTypeface_Mac::onFilterRec(SkScalerContextRec* rec) const {
         rec->ignorePreBlend();
 #endif
     } else {
+#ifndef SK_IGNORE_MAC_BLENDING_MATCH_FIX
         SkColor color = rec->getLuminanceColor();
         if (smoothBehavior == SkCTFontSmoothBehavior::some) {
             // CoreGraphics smoothed text without subpixel coverage blitting goes from a gamma of
@@ -1005,6 +1021,7 @@ void SkTypeface_Mac::onFilterRec(SkScalerContextRec* rec) const {
                                   SkColorGetB(color) * 3/4);
         }
         rec->setLuminanceColor(color);
+#endif
 
         // CoreGraphics dialates smoothed text to provide contrast.
         rec->setContrast(0);

@@ -127,6 +127,12 @@ lazy_static! {
     static ref FONT_SMOOTHING_MODE: Option<FontRenderMode> = determine_font_smoothing_mode();
 }
 
+fn should_use_white_on_black(color: ColorU) -> bool {
+    let (r, g, b) = (color.r as u32, color.g as u32, color.b as u32);
+    // These thresholds were determined on 10.12 by observing what CG does.
+    r >= 85 && g >= 85 && b >= 85 && r + g + b >= 2 * 255
+}
+
 fn get_glyph_metrics(
     ct_font: &CTFont,
     transform: Option<&CGAffineTransform>,
@@ -444,22 +450,13 @@ impl FontContext {
         render_mode: FontRenderMode,
         color: ColorU,
     ) {
-        let ColorU {r, g, b, a} = color;
-        let smooth_color = match *FONT_SMOOTHING_MODE {
-            // Use Skia's gamma approximation for subpixel smoothing of 3/4.
-            Some(FontRenderMode::Subpixel) => ColorU::new(r - r / 4, g - g / 4, b - b / 4, a),
-            // Use Skia's gamma approximation for grayscale smoothing of 1/2.
-            Some(FontRenderMode::Alpha) => ColorU::new(r / 2, g / 2, b / 2, a),
-            _ => color,
-        };
-
         // Then convert back to gamma corrected values.
         match render_mode {
             FontRenderMode::Alpha => {
-                self.gamma_lut.preblend_grayscale(pixels, smooth_color);
+                self.gamma_lut.preblend_grayscale(pixels, color);
             }
             FontRenderMode::Subpixel => {
-                self.gamma_lut.preblend(pixels, smooth_color);
+                self.gamma_lut.preblend(pixels, color);
             }
             _ => {} // Again, give mono untouched since only the alpha matters.
         }
@@ -515,13 +512,23 @@ impl FontContext {
             }
             FontRenderMode::Alpha => {
                 font.color = if font.flags.contains(FontInstanceFlags::FONT_SMOOTHING) {
-                    font.color.luminance_color().quantize()
+                    // Only the G channel is used to index grayscale tables,
+                    // so use R and B to preserve light/dark determination.
+                    let ColorU { g, a, .. } = font.color.luminance_color().quantized_ceil();
+                    let rb = if should_use_white_on_black(font.color) { 255 } else { 0 };
+                    ColorU::new(rb, g, rb, a)
                 } else {
                     ColorU::new(255, 255, 255, 255)
                 };
             }
             FontRenderMode::Subpixel => {
-                font.color = font.color.quantize();
+                // Quantization may change the light/dark determination, so quantize in the
+                // direction necessary to respect the threshold.
+                font.color = if should_use_white_on_black(font.color) {
+                    font.color.quantized_ceil()
+                } else {
+                    font.color.quantized_floor()
+                };
             }
         }
     }
@@ -634,15 +641,20 @@ impl FontContext {
         // table data, require the current font color to determine the output
         // color. For such fonts we must thus supply the current font color just
         // in case it is necessary.
+        let use_white_on_black = should_use_white_on_black(font.color);
         let use_font_smoothing = font.flags.contains(FontInstanceFlags::FONT_SMOOTHING);
-        let (antialias, smooth, text_color, bg_color) = match glyph_type {
-            GlyphType::Bitmap => (true, false, ColorF::from(font.color), ColorF::TRANSPARENT),
+        let (antialias, smooth, text_color, bg_color, invert) = match glyph_type {
+            GlyphType::Bitmap => (true, false, ColorF::from(font.color), ColorF::TRANSPARENT, false),
             GlyphType::Vector => {
                 match (font.render_mode, use_font_smoothing) {
                     (FontRenderMode::Subpixel, _) |
-                    (FontRenderMode::Alpha, true) => (true, true, ColorF::BLACK, ColorF::WHITE),
-                    (FontRenderMode::Alpha, false) => (true, false, ColorF::BLACK, ColorF::WHITE),
-                    (FontRenderMode::Mono, _) => (false, false, ColorF::BLACK, ColorF::WHITE),
+                    (FontRenderMode::Alpha, true) => if use_white_on_black {
+                        (true, true, ColorF::WHITE, ColorF::BLACK, false)
+                    } else {
+                        (true, true, ColorF::BLACK, ColorF::WHITE, true)
+                    },
+                    (FontRenderMode::Alpha, false) => (true, false, ColorF::BLACK, ColorF::WHITE, true),
+                    (FontRenderMode::Mono, _) => (false, false, ColorF::BLACK, ColorF::WHITE, true),
                 }
             }
         };
@@ -745,9 +757,11 @@ impl FontContext {
             }
 
             for pixel in rasterized_pixels.chunks_mut(4) {
-                pixel[0] = 255 - pixel[0];
-                pixel[1] = 255 - pixel[1];
-                pixel[2] = 255 - pixel[2];
+                if invert {
+                    pixel[0] = 255 - pixel[0];
+                    pixel[1] = 255 - pixel[1];
+                    pixel[2] = 255 - pixel[2];
+                }
 
                 // Set alpha to the value of the green channel. For grayscale
                 // text, all three channels have the same value anyway.
