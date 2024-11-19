@@ -116,11 +116,6 @@ class MockMediaStream : public MediaStreamInterface {
               RemoveTrack,
               (rtc::scoped_refptr<VideoTrackInterface> track),
               (override));
-  // Old AddTrack/RemoveTrack methods - slated for removal
-  MOCK_METHOD(bool, AddTrack, (AudioTrackInterface * track), (override));
-  MOCK_METHOD(bool, AddTrack, (VideoTrackInterface * track), (override));
-  MOCK_METHOD(bool, RemoveTrack, (AudioTrackInterface * track), (override));
-  MOCK_METHOD(bool, RemoveTrack, (VideoTrackInterface * track), (override));
   MOCK_METHOD(void,
               RegisterObserver,
               (ObserverInterface * observer),
