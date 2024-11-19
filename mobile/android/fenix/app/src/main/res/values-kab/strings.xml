@@ -521,6 +521,8 @@ Tiktiwin tigejdanin yuzzlen ur nṣeḥḥi ara
     <!-- Onboarding header for the add-ons card used by Nimbus experiments. Nimbus experiments do not support string placeholders.
     Note: The word "Firefox" should NOT be translated -->
     <string name="onboarding_add_on_header" tools:ignore="BrandUsage,UnusedResources">Mudd udem i Firefox s yiseɣẓanen</string>
+    <!-- Onboarding sub header for the add-ons card, used by Nimbus experiments. -->
+    <string name="onboarding_add_on_sub_header" tools:ignore="UnusedResources">Rnu isiɣzaf n wis kraḍ i wakken ad tesnerniḍ taɣellist-ik, afares akked wugar n wayen niḍen.</string>
     <!-- Onboarding add-ons card, for checking more add-ons on, used by Nimbus experiments. -->
     <string name="onboarding_add_on_explore_more_extensions" tools:ignore="UnusedResources" moz:removedIn="133">Snirem ugar n yisiɣzaf.</string>
     <!-- Onboarding add-ons card, button for start browsing, used by Nimbus experiments. -->
