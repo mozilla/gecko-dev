@@ -3570,8 +3570,6 @@ class Document : public nsINode,
   }
   void SetDevToolsWatchingDOMMutations(bool aValue);
 
-  void MaybeWarnAboutZoom();
-
   // https://drafts.csswg.org/cssom-view/#evaluate-media-queries-and-report-changes
   void EvaluateMediaQueriesAndReportChanges(bool aRecurse);
 
@@ -4901,12 +4899,6 @@ class Document : public nsINode,
   // mHasBeenEditable is set to true when mEditingState is firstly set to
   // eDesignMode or eContentEditable.
   bool mHasBeenEditable : 1;
-
-  // Whether we've warned about the CSS zoom property.
-  //
-  // We don't use the general deprecated operation mechanism for this because we
-  // also record this as a `CountedUnknownProperty`.
-  bool mHasWarnedAboutZoom : 1;
 
   // While we're handling an execCommand call by web app, set
   // to true.

@@ -1395,7 +1395,6 @@ Document::Document(const char* aContentType)
       mTooDeepWriteRecursion(false),
       mPendingMaybeEditingStateChanged(false),
       mHasBeenEditable(false),
-      mHasWarnedAboutZoom(false),
       mIsRunningExecCommandByContent(false),
       mIsRunningExecCommandByChromeOrAddon(false),
       mSetCompleteAfterDOMContentLoaded(false),
@@ -14574,22 +14573,6 @@ void Document::EvaluateMediaQueriesAndReportChanges(bool aRecurse) {
   for (auto& mql : mqls) {
     mql->FireChangeEvent();
   }
-}
-
-void Document::MaybeWarnAboutZoom() {
-  if (mHasWarnedAboutZoom) {
-    return;
-  }
-  const bool usedZoom = Servo_IsPropertyIdRecordedInUseCounter(
-      mStyleUseCounters.get(), eCSSProperty_zoom);
-  if (!usedZoom) {
-    return;
-  }
-
-  mHasWarnedAboutZoom = true;
-  nsContentUtils::ReportToConsole(nsIScriptError::warningFlag, "Layout"_ns,
-                                  this, nsContentUtils::eLAYOUT_PROPERTIES,
-                                  "ZoomPropertyWarning");
 }
 
 nsIHTMLCollection* Document::Children() {
