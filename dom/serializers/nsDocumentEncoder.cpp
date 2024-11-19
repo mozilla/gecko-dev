@@ -31,6 +31,7 @@
 #include "mozilla/dom/Selection.h"
 #include "nsContentUtils.h"
 #include "nsElementTable.h"
+#include "nsMimeTypes.h"
 #include "nsUnicharUtils.h"
 #include "nsReadableUtils.h"
 #include "nsTArray.h"
@@ -1534,12 +1535,12 @@ nsDocumentEncoder::SetNodeFixup(nsIDocumentEncoderNodeFixup* aFixup) {
 }
 
 bool do_getDocumentTypeSupportedForEncoding(const char* aContentType) {
-  if (!nsCRT::strcmp(aContentType, "text/xml") ||
-      !nsCRT::strcmp(aContentType, "application/xml") ||
-      !nsCRT::strcmp(aContentType, "application/xhtml+xml") ||
-      !nsCRT::strcmp(aContentType, "image/svg+xml") ||
-      !nsCRT::strcmp(aContentType, "text/html") ||
-      !nsCRT::strcmp(aContentType, "text/plain")) {
+  if (!nsCRT::strcmp(aContentType, TEXT_XML) ||
+      !nsCRT::strcmp(aContentType, APPLICATION_XML) ||
+      !nsCRT::strcmp(aContentType, APPLICATION_XHTML_XML) ||
+      !nsCRT::strcmp(aContentType, IMAGE_SVG_XML) ||
+      !nsCRT::strcmp(aContentType, TEXT_HTML) ||
+      !nsCRT::strcmp(aContentType, TEXT_PLAIN)) {
     return true;
   }
   return false;

@@ -129,7 +129,7 @@ gfxSVGGlyphsDocument* gfxSVGGlyphs::FindOrCreateGlyphsDocument(
 
 nsresult gfxSVGGlyphsDocument::SetupPresentation() {
   nsCOMPtr<nsIDocumentLoaderFactory> docLoaderFactory =
-      nsContentUtils::FindInternalDocumentViewer("image/svg+xml"_ns);
+      nsContentUtils::FindInternalDocumentViewer(SVG_CONTENT_TYPE);
   NS_ASSERTION(docLoaderFactory, "Couldn't get DocumentLoaderFactory");
 
   nsCOMPtr<nsIDocumentViewer> viewer;

@@ -31,6 +31,7 @@ interface nsIReferrerInfo;
 #define kJPEGImageMime              "image/jpeg"
 #define kJPGImageMime               "image/jpg"
 #define kGIFImageMime               "image/gif"
+#define kSVGImageMime               "image/svg+xml"
 #define kFileMime                   "application/x-moz-file"
 
 #define kURLMime                    "text/x-moz-url"        // data contains url\ntitle
