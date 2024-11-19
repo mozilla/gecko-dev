@@ -9,6 +9,7 @@
 #include "WindowGlobalChild.h"
 #include "mozilla/dom/Event.h"
 #include "mozilla/dom/Notification.h"
+#include "mozilla/dom/WorkerRunnable.h"
 #include "nsFocusManager.h"
 
 namespace mozilla::dom::notification {
@@ -25,6 +26,24 @@ NotificationChild::NotificationChild(Notification* aNonPersistentNotification,
     return;
   }
 }
+
+class FocusWindowRunnable : public WorkerMainThreadRunnable {
+ public:
+  explicit FocusWindowRunnable(WorkerPrivate* aWorkerPrivate)
+      : WorkerMainThreadRunnable(aWorkerPrivate,
+                                 "Notification :: FocusWindowRunnable"_ns) {}
+
+ protected:
+  // Runnables don't support MOZ_CAN_RUN_SCRIPT, bug 1535398
+  MOZ_CAN_RUN_SCRIPT_BOUNDARY bool MainThreadRun() override {
+    RefPtr<nsPIDOMWindowInner> inner = mWorkerRef->Private()->GetWindow();
+    if (inner->IsCurrentInnerWindow()) {
+      nsCOMPtr<nsPIDOMWindowOuter> outer = inner->GetOuterWindow();
+      nsFocusManager::FocusWindow(outer, CallerType::System);
+    }
+    return true;
+  }
+};
 
 // Step 2 of https://notifications.spec.whatwg.org/#activating-a-notification
 // MOZ_CAN_RUN_SCRIPT_BOUNDARY because of DispatchEvent (boundary for now, bug
@@ -61,6 +80,15 @@ MOZ_CAN_RUN_SCRIPT_BOUNDARY IPCResult NotificationChild::RecvNotifyClick() {
         nsFocusManager::FocusWindow(outer, CallerType::System);
       }
     }
+  } else if (WorkerPrivate* wp = GetCurrentThreadWorkerPrivate()) {
+    if (!wp->IsDedicatedWorker()) {
+      // Only dedicated worker has a window to focus.
+      return IPC_OK();
+    }
+
+    RefPtr<FocusWindowRunnable> runnable =
+        new FocusWindowRunnable(wp->GetTopLevelWorker());
+    runnable->Dispatch(wp, Canceling, IgnoreErrors());
   }
   return IPC_OK();
 }
