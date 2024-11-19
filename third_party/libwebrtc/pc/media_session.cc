@@ -548,6 +548,14 @@ std::optional<Codec> FindMatchingCodec(const std::vector<Codec>& codecs1,
         bool has_parameters_1 = red_parameters_1 != codec_to_match.params.end();
         bool has_parameters_2 =
             red_parameters_2 != potential_match.params.end();
+        // If codec_to_match has unassigned PT and no parameter,
+        // we assume that it'll be assigned later and return a match.
+        if (potential_match.id == Codec::kIdNotSet && !has_parameters_2) {
+          return potential_match;
+        }
+        if (codec_to_match.id == Codec::kIdNotSet && !has_parameters_1) {
+          return potential_match;
+        }
         if (has_parameters_1 && has_parameters_2) {
           // Mixed reference codecs (i.e. 111/112) are not supported.
           // Different levels of redundancy between offer and answer are
