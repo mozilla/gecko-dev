@@ -80,11 +80,23 @@ let releasedFeatures = [
     wasmMemory64Enabled(),
     `(module (memory i64 0))`,
   ],
+  [
+    'js-string-builtins',
+    wasmJSStringBuiltinsEnabled(),
+    `(module
+      (import "wasm:js-string" "concat"
+        (func
+          (param externref externref)
+          (result (ref extern)))
+      )
+    )`,
+    {builtins: ['js-string']}
+  ]
 ];
 
-for (let [name, enabled, test] of releasedFeatures) {
+for (let [name, enabled, test, options] of releasedFeatures) {
   if (release_or_beta) {
     assertEq(enabled, true, `${name} must be enabled on release and beta`);
-    wasmEvalText(test);
+    wasmEvalText(test, {}, options);
   }
 }

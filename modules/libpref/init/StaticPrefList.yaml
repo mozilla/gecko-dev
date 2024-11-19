@@ -8478,7 +8478,7 @@
 
 -   name: javascript.options.wasm_js_string_builtins
     type: bool
-    value: false
+    value: true
     mirror: always
     set_spidermonkey_pref: always
 
