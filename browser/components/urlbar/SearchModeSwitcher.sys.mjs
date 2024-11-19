@@ -160,15 +160,15 @@ export class SearchModeSwitcher {
   }
 
   handleEvent(event) {
-    if (
-      event.keyCode == KeyEvent.DOM_VK_TAB &&
-      event.shiftKey &&
-      this.#input.view.isOpen
-    ) {
-      // In this case, switcher button got focus by shift+tab from urlbar.
-      // So, move the focus on the last element of urlbar view to make cyclable.
+    if (event.keyCode == KeyEvent.DOM_VK_TAB && this.#input.view.isOpen) {
+      // The urlbar view is opening, which means the unified search button got
+      // focus by tab key from urlbar. So, move the focus to urlbar view to make
+      // cyclable.
       this.#input.focus();
-      this.#input.view.selectBy(1, { reverse: true, userPressedTab: true });
+      this.#input.view.selectBy(1, {
+        reverse: event.shiftKey,
+        userPressedTab: true,
+      });
       event.preventDefault();
       return;
     }

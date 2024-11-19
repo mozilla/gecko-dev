@@ -356,31 +356,20 @@ export class UrlbarController {
         // Change the tab behavior when urlbar view is open.
         if (
           lazy.UrlbarPrefs.get("scotchBonnet.enableOverride") &&
-          this.view.isOpen
-        ) {
-          if (
-            (event.shiftKey && !this.view.selectedElement) ||
+          this.view.isOpen &&
+          ((event.shiftKey &&
+            this.view.selectedElement ==
+              this.view.getFirstSelectableElement()) ||
             (!event.shiftKey &&
-              this.view.selectedElement == this.view.getLastSelectableElement())
-          ) {
-            // If type tab + shift when no selected element or when the last
-            // element has been selecting, move the focus on Dedicated Search
-            // button.
-            event.preventDefault();
-            this.view.selectedRowIndex = -1;
-            this.#focusOnDedicatedSearchButton();
-            break;
-          } else if (
-            event.shiftKey &&
-            this.view.selectedElement == this.view.getFirstSelectableElement()
-          ) {
-            // Else, if type tab when the first element has been selecting, move
-            // the focus on the input field of urlbar.
-            event.preventDefault();
-            this.view.selectedRowIndex = -1;
-            this.input.focus();
-            break;
-          }
+              this.view.selectedElement ==
+                this.view.getLastSelectableElement()))
+        ) {
+          // If pressing tab + shift when the first or last element has been
+          // selected, move the focus to the Unified Search Button.
+          event.preventDefault();
+          this.view.selectedRowIndex = -1;
+          this.#focusOnDedicatedSearchButton();
+          break;
         }
 
         // It's always possible to tab through results when the urlbar was
