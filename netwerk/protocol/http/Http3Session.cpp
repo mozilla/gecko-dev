@@ -289,6 +289,9 @@ void Http3Session::Shutdown() {
       !isNSSError && !isEchRetry && !mConnInfo->GetWebTransport() &&
       !allowToRetryWithDifferentIPFamily && !mDontExclude) {
     gHttpHandler->ExcludeHttp3(mConnInfo);
+    if (mFirstHttpTransaction) {
+      mFirstHttpTransaction->DisableHttp3(false);
+    }
   }
 
   for (const auto& stream : mStreamTransactionHash.Values()) {
