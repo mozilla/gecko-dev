@@ -32,56 +32,21 @@ enum class PermissionCheckPurpose : uint8_t;
 }
 
 /*
- * Notifications on workers introduce some lifetime issues. The property we
- * are trying to satisfy is:
- *   Whenever a task is dispatched to the main thread to operate on
- *   a Notification, the Notification should be addrefed on the worker thread
- *   and a feature should be added to observe the worker lifetime. This main
- *   thread owner should ensure it properly releases the reference to the
- *   Notification, additionally removing the feature if necessary.
+ * A Notification gets a corresponding IPC actor after successful construction.
+ * The notification object and the actor do not own each other and their
+ * lifetimes are controlled semi-independently.
  *
- * To enforce the correct addref and release, along with managing the feature,
- * we introduce a NotificationRef. Only one object may ever own
- * a NotificationRef, so UniquePtr<> is used throughout.  The NotificationRef
- * constructor calls AddRefObject(). When it is destroyed (on any thread) it
- * releases the Notification on the correct thread.
+ * The Notification object can be cycle collected when either:
+ * - no one is listening for the events, or
+ * - the backend notification is closed.
  *
- * Code should only access the underlying Notification object when it can
- * guarantee that it retains ownership of the NotificationRef while doing so.
+ * The actor goes away when either:
+ * - the backend notification is closed, or
+ * - the tab is closed or bfcached.
  *
- * The one kink in this mechanism is that the worker feature may be Notify()ed
- * if the worker stops running script, even if the Notification's corresponding
- * UI is still visible to the user. We handle this case with the following
- * steps:
- *   a) Close the notification. This is done by blocking the worker on the main
- *   thread. This ensures that there are no main thread holders when the worker
- *   resumes. This also deals with the case where Notify() runs on the worker
- *   before the observer has been created on the main thread. Even in such
- *   a situation, the CloseNotificationRunnable() will only run after the
- *   Show task that was previously queued. Since the show task is only queued
- *   once when the Notification is created, we can be sure that no new tasks
- *   will follow the Notify().
- *
- *   b) Ask the observer to let go of its NotificationRef's underlying
- *   Notification without proper cleanup since the feature will handle the
- *   release. This is only OK because every notification has only one
- *   associated observer. The NotificationRef itself is still owned by the
- *   observer and deleted by the UniquePtr, but it doesn't do anything since
- *   the underlying Notification is null.
- *
- * To unify code-paths, we use the same NotificationRef in the main
- * thread implementation too.
- *
- * Note that the Notification's JS wrapper does it's standard
- * AddRef()/Release() and is not affected by any of this.
- *
- * Since the worker event queue can have runnables that will dispatch events on
- * the Notification, the NotificationRef destructor will first try to release
- * the Notification by dispatching a normal runnable to the worker so that it is
- * queued after any event runnables. If that dispatch fails, it means the worker
- * is no longer running and queued WorkerRunnables will be canceled, so we
- * dispatch a control runnable instead.
- *
+ * (It cannot just go away on cycle collection because nsIAlertsService wants to
+ * know whether the triggered page is still open to decide whether to open a new
+ * tab or focus on the existing tab.)
  */
 class Notification : public DOMEventTargetHelper, public SupportsWeakPtr {
   friend class CloseNotificationRunnable;
