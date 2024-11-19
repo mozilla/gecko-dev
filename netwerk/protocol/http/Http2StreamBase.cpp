@@ -23,7 +23,6 @@
 #include "mozilla/BasePrincipal.h"
 #include "mozilla/StaticPrefs_network.h"
 #include "mozilla/Telemetry.h"
-#include "nsAlgorithm.h"
 #include "nsHttp.h"
 #include "nsHttpHandler.h"
 #include "nsHttpRequestHead.h"
