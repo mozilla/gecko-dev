@@ -844,9 +844,9 @@ class RTCStatsCollectorTest : public ::testing::Test {
     // remote-outbound-rtp
     if (add_remote_outbound_stats) {
       graph.remote_outbound_rtp_id = "ROA4";
-      media_info.receivers[0].last_sender_report_timestamp_ms =
+      media_info.receivers[0].last_sender_report_utc_timestamp_ms =
           kRemoteOutboundStatsTimestampMs;
-      media_info.receivers[0].last_sender_report_remote_timestamp_ms =
+      media_info.receivers[0].last_sender_report_remote_utc_timestamp_ms =
           kRemoteOutboundStatsRemoteTimestampMs;
       media_info.receivers[0].sender_reports_packets_sent =
           kRemoteOutboundStatsPacketsSent;

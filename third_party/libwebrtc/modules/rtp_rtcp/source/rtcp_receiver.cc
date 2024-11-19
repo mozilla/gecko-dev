@@ -255,7 +255,7 @@ int64_t RTCPReceiver::LastReceivedReportBlockMs() const {
 void RTCPReceiver::SetRemoteSSRC(uint32_t ssrc) {
   MutexLock lock(&rtcp_receiver_lock_);
   // New SSRC reset old reports.
-  remote_sender_.last_arrival_timestamp.Reset();
+  remote_sender_.last_arrival_ntp_timestamp.Reset();
   remote_ssrc_ = ssrc;
 }
 
@@ -358,7 +358,7 @@ std::optional<TimeDelta> RTCPReceiver::OnPeriodicRttUpdate(Timestamp newer_than,
 std::optional<RtpRtcpInterface::SenderReportStats>
 RTCPReceiver::GetSenderReportStats() const {
   MutexLock lock(&rtcp_receiver_lock_);
-  if (!remote_sender_.last_arrival_timestamp.Valid()) {
+  if (!remote_sender_.last_arrival_ntp_timestamp.Valid()) {
     return std::nullopt;
   }
 
@@ -562,9 +562,9 @@ bool RTCPReceiver::HandleSenderReport(const CommonHeader& rtcp_block,
     // Only signal that we have received a SR when we accept one.
     packet_information->packet_type_flags |= kRtcpSr;
 
-    remote_sender_.last_remote_timestamp = sender_report.ntp();
+    remote_sender_.last_remote_ntp_timestamp = sender_report.ntp();
     remote_sender_.last_remote_rtp_timestamp = sender_report.rtp_timestamp();
-    remote_sender_.last_arrival_timestamp = env_.clock().CurrentNtpTime();
+    remote_sender_.last_arrival_ntp_timestamp = env_.clock().CurrentNtpTime();
     remote_sender_.packets_sent = sender_report.sender_packet_count();
     remote_sender_.bytes_sent = sender_report.sender_octet_count();
     remote_sender_.reports_count++;

@@ -16,7 +16,7 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/c186df8a088e46285
  1 file changed, 1 deletion(-)
 
 diff --git a/audio/audio_receive_stream.cc b/audio/audio_receive_stream.cc
-index 319b56a08d..db64445699 100644
+index b14067b74a..d1d7359884 100644
 --- a/audio/audio_receive_stream.cc
 +++ b/audio/audio_receive_stream.cc
 @@ -369,7 +369,6 @@ int AudioReceiveStreamImpl::GetBaseMinimumPlayoutDelayMs() const {

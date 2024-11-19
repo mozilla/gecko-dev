@@ -3844,9 +3844,10 @@ WebRtcVideoReceiveChannel::WebRtcVideoReceiveStream::GetVideoReceiverInfo(
   }
 
   // remote-outbound-rtp stats.
-  info.last_sender_report_timestamp_ms = stats.last_sender_report_timestamp_ms;
-  info.last_sender_report_remote_timestamp_ms =
-      stats.last_sender_report_remote_timestamp_ms;
+  info.last_sender_report_utc_timestamp_ms =
+      stats.last_sender_report_utc_timestamp_ms;
+  info.last_sender_report_remote_utc_timestamp_ms =
+      stats.last_sender_report_remote_utc_timestamp_ms;
   info.sender_reports_packets_sent = stats.sender_reports_packets_sent;
   info.sender_reports_bytes_sent = stats.sender_reports_bytes_sent;
   info.sender_reports_reports_count = stats.sender_reports_reports_count;

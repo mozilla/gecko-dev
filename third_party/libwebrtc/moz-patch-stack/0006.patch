@@ -16,7 +16,7 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/b55b0368d9f21849f
  8 files changed, 34 insertions(+)
 
 diff --git a/call/video_receive_stream.h b/call/video_receive_stream.h
-index 3b09c2d78c..8b8caba840 100644
+index bc3c18fd86..2f12a04bcf 100644
 --- a/call/video_receive_stream.h
 +++ b/call/video_receive_stream.h
 @@ -169,6 +169,9 @@ class VideoReceiveStreamInterface : public MediaReceiveStreamInterface {
@@ -30,7 +30,7 @@ index 3b09c2d78c..8b8caba840 100644
      // single 'timing frame'.
      std::optional<webrtc::TimingFrameInfo> timing_frame_info;
 diff --git a/modules/rtp_rtcp/source/rtcp_receiver.cc b/modules/rtp_rtcp/source/rtcp_receiver.cc
-index a4ea1b0b44..508bdbcc44 100644
+index 4014990ecb..bc5a3530cd 100644
 --- a/modules/rtp_rtcp/source/rtcp_receiver.cc
 +++ b/modules/rtp_rtcp/source/rtcp_receiver.cc
 @@ -385,6 +385,13 @@ RTCPReceiver::ConsumeReceivedXrReferenceTimeInfo() {
@@ -63,7 +63,7 @@ index 766a808044..2551534b9f 100644
    std::optional<TimeDelta> LastRtt() const;
  
 diff --git a/modules/rtp_rtcp/source/rtp_rtcp_impl.cc b/modules/rtp_rtcp/source/rtp_rtcp_impl.cc
-index 568b1e22d2..eb39112671 100644
+index 70f8944144..fba976d8d0 100644
 --- a/modules/rtp_rtcp/source/rtp_rtcp_impl.cc
 +++ b/modules/rtp_rtcp/source/rtp_rtcp_impl.cc
 @@ -515,6 +515,11 @@ void ModuleRtpRtcpImpl::GetSendStreamDataCounters(
@@ -93,7 +93,7 @@ index 94035ddb02..446882ea67 100644
    // interest to statistics. Used to implement RTCRemoteInboundRtpStreamStats.
    // Within this list, the `ReportBlockData::source_ssrc()`, which is the SSRC
 diff --git a/modules/rtp_rtcp/source/rtp_rtcp_impl2.cc b/modules/rtp_rtcp/source/rtp_rtcp_impl2.cc
-index fe21008cf1..dbf523dee7 100644
+index d994075e0a..4b9253f94f 100644
 --- a/modules/rtp_rtcp/source/rtp_rtcp_impl2.cc
 +++ b/modules/rtp_rtcp/source/rtp_rtcp_impl2.cc
 @@ -526,6 +526,11 @@ void ModuleRtpRtcpImpl2::GetSendStreamDataCounters(
@@ -123,7 +123,7 @@ index 57139e2242..1b2afac61f 100644
    // interest to statistics. Used to implement RTCRemoteInboundRtpStreamStats.
    // Within this list, the `ReportBlockData::source_ssrc()`, which is the SSRC
 diff --git a/modules/rtp_rtcp/source/rtp_rtcp_interface.h b/modules/rtp_rtcp/source/rtp_rtcp_interface.h
-index dd34cf7e3e..377f1c27d7 100644
+index a6bf2df51b..060f3120b0 100644
 --- a/modules/rtp_rtcp/source/rtp_rtcp_interface.h
 +++ b/modules/rtp_rtcp/source/rtp_rtcp_interface.h
 @@ -399,6 +399,10 @@ class RtpRtcpInterface : public RtcpFeedbackSenderInterface {

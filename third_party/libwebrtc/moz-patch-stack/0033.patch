@@ -11,7 +11,7 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/7330681cf4de6d8dd
  2 files changed, 4 insertions(+), 1 deletion(-)
 
 diff --git a/call/video_receive_stream.h b/call/video_receive_stream.h
-index f69b03a166..f68368567c 100644
+index b39f564530..7a5f4ef5bf 100644
 --- a/call/video_receive_stream.h
 +++ b/call/video_receive_stream.h
 @@ -236,6 +236,9 @@ class VideoReceiveStreamInterface : public MediaReceiveStreamInterface {
@@ -25,7 +25,7 @@ index f69b03a166..f68368567c 100644
  
        // See LntfConfig for description.
 diff --git a/video/rtp_video_stream_receiver2.cc b/video/rtp_video_stream_receiver2.cc
-index 4604180304..a2f37fae14 100644
+index ef1dd75ddd..1737e25f1b 100644
 --- a/video/rtp_video_stream_receiver2.cc
 +++ b/video/rtp_video_stream_receiver2.cc
 @@ -1277,7 +1277,7 @@ void RtpVideoStreamReceiver2::StartReceive() {

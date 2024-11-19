@@ -150,9 +150,9 @@ class RtpRtcpInterface : public RtcpFeedbackSenderInterface {
   // Refer to https://tools.ietf.org/html/rfc3550#section-6.4.1.
   struct SenderReportStats {
     // Arrival NTP timestamp for the last received RTCP SR.
-    NtpTime last_arrival_timestamp;
+    NtpTime last_arrival_ntp_timestamp;
     // Received (a.k.a., remote) NTP timestamp for the last received RTCP SR.
-    NtpTime last_remote_timestamp;
+    NtpTime last_remote_ntp_timestamp;
     // Received (a.k.a., remote) RTP timestamp from the last received RTCP SR.
     uint32_t last_remote_rtp_timestamp = 0;
     // Total number of RTP data packets transmitted by the sender since starting

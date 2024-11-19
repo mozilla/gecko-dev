@@ -68,8 +68,8 @@ struct CallReceiveStatistics {
   // Note that the timestamps below correspond to the time elapsed since the
   // Unix epoch.
   // https://w3c.github.io/webrtc-stats/#remoteoutboundrtpstats-dict*
-  std::optional<int64_t> last_sender_report_timestamp_ms;
-  std::optional<int64_t> last_sender_report_remote_timestamp_ms;
+  std::optional<int64_t> last_sender_report_utc_timestamp_ms;
+  std::optional<int64_t> last_sender_report_remote_utc_timestamp_ms;
   uint64_t sender_reports_packets_sent = 0;
   uint64_t sender_reports_bytes_sent = 0;
   uint64_t sender_reports_reports_count = 0;

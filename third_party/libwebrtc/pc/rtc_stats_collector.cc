@@ -522,7 +522,7 @@ CreateRemoteOutboundMediaStreamStats(
     cricket::MediaType media_type,
     const RTCInboundRtpStreamStats& inbound_audio_stats,
     const std::string& transport_id) {
-  if (!media_receiver_info.last_sender_report_timestamp_ms.has_value()) {
+  if (!media_receiver_info.last_sender_report_utc_timestamp_ms.has_value()) {
     // Cannot create `RTCRemoteOutboundRtpStreamStats` when the RTCP SR arrival
     // timestamp is not available - i.e., until the first sender report is
     // received.
@@ -534,7 +534,8 @@ CreateRemoteOutboundMediaStreamStats(
   auto stats = std::make_unique<RTCRemoteOutboundRtpStreamStats>(
       /*id=*/RTCRemoteOutboundRTPStreamStatsIDFromSSRC(
           media_type, media_receiver_info.ssrc()),
-      Timestamp::Millis(*media_receiver_info.last_sender_report_timestamp_ms));
+      Timestamp::Millis(
+          *media_receiver_info.last_sender_report_utc_timestamp_ms));
 
   // Populate.
   // - RTCRtpStreamStats.
@@ -549,12 +550,12 @@ CreateRemoteOutboundMediaStreamStats(
   stats->bytes_sent = media_receiver_info.sender_reports_bytes_sent;
   // - RTCRemoteOutboundRtpStreamStats.
   stats->local_id = inbound_audio_stats.id();
-  // last_sender_report_remote_timestamp_ms is set together with
-  // last_sender_report_timestamp_ms.
-  RTC_DCHECK(
-      media_receiver_info.last_sender_report_remote_timestamp_ms.has_value());
+  // last_sender_report_remote_utc_timestamp_ms is set together with
+  // last_sender_report_utc_timestamp_ms.
+  RTC_DCHECK(media_receiver_info.last_sender_report_remote_utc_timestamp_ms
+                 .has_value());
   stats->remote_timestamp = static_cast<double>(
-      *media_receiver_info.last_sender_report_remote_timestamp_ms);
+      *media_receiver_info.last_sender_report_remote_utc_timestamp_ms);
   stats->reports_sent = media_receiver_info.sender_reports_reports_count;
   if (media_receiver_info.round_trip_time.has_value()) {
     stats->round_trip_time =

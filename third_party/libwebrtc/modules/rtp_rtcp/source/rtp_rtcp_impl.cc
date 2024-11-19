@@ -301,8 +301,8 @@ RTCPSender::FeedbackState ModuleRtpRtcpImpl::GetFeedbackState() {
   if (std::optional<RtpRtcpInterface::SenderReportStats> last_sr =
           rtcp_receiver_.GetSenderReportStats();
       last_sr.has_value()) {
-    state.remote_sr = CompactNtp(last_sr->last_remote_timestamp);
-    state.last_rr = last_sr->last_arrival_timestamp;
+    state.remote_sr = CompactNtp(last_sr->last_remote_ntp_timestamp);
+    state.last_rr = last_sr->last_arrival_ntp_timestamp;
   }
 
   state.last_xr_rtis = rtcp_receiver_.ConsumeReceivedXrReferenceTimeInfo();

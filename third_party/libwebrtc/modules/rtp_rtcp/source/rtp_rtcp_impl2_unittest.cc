@@ -811,11 +811,11 @@ TEST_F(RtpRtcpImpl2Test, SenderReportStatsCheckStatsFromLastReport) {
   auto raw_packet = sr.Build();
   receiver_.impl_->IncomingRtcpPacket(raw_packet);
 
-  EXPECT_THAT(
-      receiver_.impl_->GetSenderReportStats(),
-      Optional(AllOf(Field(&SenderReportStats::last_remote_timestamp, Eq(ntp)),
-                     Field(&SenderReportStats::packets_sent, Eq(kPacketCount)),
-                     Field(&SenderReportStats::bytes_sent, Eq(kOctetCount)))));
+  EXPECT_THAT(receiver_.impl_->GetSenderReportStats(),
+              Optional(AllOf(
+                  Field(&SenderReportStats::last_remote_ntp_timestamp, Eq(ntp)),
+                  Field(&SenderReportStats::packets_sent, Eq(kPacketCount)),
+                  Field(&SenderReportStats::bytes_sent, Eq(kOctetCount)))));
 }
 
 // Checks that the sender report stats count equals the number of sent RTCP SRs.
@@ -845,7 +845,7 @@ TEST_F(RtpRtcpImpl2Test, SenderReportStatsArrivalTimestampSet) {
   AdvanceTime(kOneWayNetworkDelay);
   auto stats = receiver_.impl_->GetSenderReportStats();
   ASSERT_THAT(stats, Not(Eq(std::nullopt)));
-  EXPECT_TRUE(stats->last_arrival_timestamp.Valid());
+  EXPECT_TRUE(stats->last_arrival_ntp_timestamp.Valid());
 }
 
 // Checks that the packet and byte counters from an RTCP SR are not zero once
