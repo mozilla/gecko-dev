@@ -1308,10 +1308,14 @@ TEST_P(VideoAdapterTest, RequestedResolutionMaintainsAspectRatio) {
                      /* any_active_without_requested_resolution= */ false));
 
   // A 1280x720 frame restricted to 720x720 produces 720x405.
-  EXPECT_THAT(
-      AdaptFrameResolution(/* input frame */ {.width = 1280, .height = 720})
-          .first,
-      Eq(Resolution{.width = 720, .height = 405}));
+  EXPECT_TRUE(adapter_.AdaptFrameResolution(1280, 720, /*in_timestamp_ns=*/0,
+                                            &cropped_width_, &cropped_height_,
+                                            &out_width_, &out_height_));
+  EXPECT_EQ(out_width_, 720);
+  EXPECT_EQ(out_height_, 405);
+  // No cropping needed (coverage for https://crbug.com/webrtc/369865055).
+  EXPECT_EQ(cropped_width_, 1280);
+  EXPECT_EQ(cropped_height_, 720);
 }
 
 class VideoAdapterWithSourceAlignmentTest : public VideoAdapterTest {
@@ -1359,6 +1363,25 @@ TEST_P(VideoAdapterWithSourceAlignmentTest, AdaptResolutionWithSinkAlignment) {
   EXPECT_EQ(out_height_ % kSourceResolutionAlignment, 0);
   EXPECT_EQ(out_width_ % kSinkResolutionAlignment, 0);
   EXPECT_EQ(out_height_ % kSinkResolutionAlignment, 0);
+}
+
+TEST_P(VideoAdapterWithSourceAlignmentTest,
+       RequestedResolutionMaintainsAspectRatioWithAlignment) {
+  // Request 720x720.
+  adapter_.OnSinkWants(
+      BuildSinkWants(Resolution{.width = 720, .height = 720},
+                     /* any_active_without_requested_resolution= */ false));
+
+  // A 1280x720 frame restricted to 720x720 produces 720x405 but this is not a
+  // multiple of `kSourceResolutionAlignment` (= 7), the rounded up multiple of
+  // this value that is less than the restrictions (720) is 714x406.
+  EXPECT_TRUE(adapter_.AdaptFrameResolution(1280, 720, /*in_timestamp_ns=*/0,
+                                            &cropped_width_, &cropped_height_,
+                                            &out_width_, &out_height_));
+  EXPECT_EQ(out_width_, 714);
+  EXPECT_EQ(out_height_, 406);
+  EXPECT_EQ(out_width_ % kSourceResolutionAlignment, 0);
+  EXPECT_EQ(out_height_ % kSourceResolutionAlignment, 0);
 }
 
 INSTANTIATE_TEST_SUITE_P(OnOutputFormatRequests,

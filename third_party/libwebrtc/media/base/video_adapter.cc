@@ -211,28 +211,6 @@ bool VideoAdapter::AdaptFrameResolution(int in_width,
     return false;
   }
 
-  // Adjust input width and height without modifying aspect ratio as to be less
-  // than or equal to the `requested_resolution_`.
-  if (requested_resolution_.has_value()) {
-    // Make frame and requested resolution have matching orientation.
-    webrtc::Resolution requested_resolution = requested_resolution_.value();
-    if ((in_width < in_height) !=
-        (requested_resolution_->width < requested_resolution_->height)) {
-      requested_resolution = {.width = requested_resolution_->height,
-                              .height = requested_resolution_->width};
-    }
-    // Downscale by smallest scaling factor, if necessary.
-    if (in_width > 0 && in_height > 0 &&
-        (requested_resolution.width < in_width ||
-         requested_resolution.height < in_height)) {
-      double scale_factor = std::min(
-          requested_resolution.width / static_cast<double>(in_width),
-          requested_resolution.height / static_cast<double>(in_height));
-      in_width = std::round(in_width * scale_factor);
-      in_height = std::round(in_height * scale_factor);
-    }
-  }
-
   // Calculate how the input should be cropped.
   if (!target_aspect_ratio || target_aspect_ratio->first <= 0 ||
       target_aspect_ratio->second <= 0) {
@@ -259,11 +237,38 @@ bool VideoAdapter::AdaptFrameResolution(int in_width,
   RTC_DCHECK_EQ(0, *cropped_width % scale.denominator);
   RTC_DCHECK_EQ(0, *cropped_height % scale.denominator);
 
-  // Calculate final output size.
+  // Calculate output size.
   *out_width = *cropped_width / scale.denominator * scale.numerator;
   *out_height = *cropped_height / scale.denominator * scale.numerator;
   RTC_DCHECK_EQ(0, *out_width % resolution_alignment_);
   RTC_DCHECK_EQ(0, *out_height % resolution_alignment_);
+
+  // Lastly, make the output size fit within the resolution restrictions as
+  // specified by `requested_resolution_`. This does not modify aspect ratio or
+  // cropping, only `out_width` and `out_height`.
+  if (requested_resolution_.has_value()) {
+    // Make frame and requested resolution have matching orientation.
+    webrtc::Resolution requested_resolution = requested_resolution_.value();
+    if ((*out_width < *out_height) !=
+        (requested_resolution_->width < requested_resolution_->height)) {
+      requested_resolution = {.width = requested_resolution_->height,
+                              .height = requested_resolution_->width};
+    }
+    // Downscale by smallest scaling factor, if necessary.
+    if (*out_width > 0 && *out_height > 0 &&
+        (requested_resolution.width < *out_width ||
+         requested_resolution.height < *out_height)) {
+      double scale_factor = std::min(
+          requested_resolution.width / static_cast<double>(*out_width),
+          requested_resolution.height / static_cast<double>(*out_height));
+      *out_width = roundUp(std::round(*out_width * scale_factor),
+                           resolution_alignment_, requested_resolution.width);
+      *out_height = roundUp(std::round(*out_height * scale_factor),
+                            resolution_alignment_, requested_resolution.height);
+      RTC_DCHECK_EQ(0, *out_width % resolution_alignment_);
+      RTC_DCHECK_EQ(0, *out_height % resolution_alignment_);
+    }
+  }
 
   ++frames_out_;
   if (scale.numerator != scale.denominator)
