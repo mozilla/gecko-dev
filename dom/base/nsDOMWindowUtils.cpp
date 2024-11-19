@@ -116,6 +116,7 @@
 #include "mozilla/layers/IAPZCTreeManager.h"  // for layers::ZoomToRectBehavior
 #include "mozilla/dom/Document.h"
 #include "mozilla/dom/Promise.h"
+#include "mozilla/RDDProcessManager.h"
 #include "mozilla/ServoBindings.h"
 #include "mozilla/StyleSheetInlines.h"
 #include "mozilla/gfx/gfxVars.h"
@@ -4373,6 +4374,18 @@ nsDOMWindowUtils::GetGpuProcessPid(int32_t* aPid) {
   GPUProcessManager* pm = GPUProcessManager::Get();
   if (pm) {
     *aPid = pm->GPUProcessPid();
+  } else {
+    *aPid = -1;
+  }
+
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsDOMWindowUtils::GetRddProcessPid(int32_t* aPid) {
+  RDDProcessManager* pm = RDDProcessManager::Get();
+  if (pm) {
+    *aPid = pm->RDDProcessPid();
   } else {
     *aPid = -1;
   }

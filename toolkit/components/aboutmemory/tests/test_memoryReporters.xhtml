@@ -237,7 +237,11 @@
     if (SpecialPowers.Services.io.socketProcessLaunched) {
       socketProcessRunning = 1;
     }
-    is(aAmounts.length, 1 + socketProcessRunning,
+    let rddProcessRunning = 0;
+    if (window.windowUtils.rddProcessPid != -1) {
+      rddProcessRunning = 1;
+    }
+    is(aAmounts.length, 1 + socketProcessRunning + rddProcessRunning,
        aName + " has " + aAmounts.length + " report");
     let n = aAmounts[0];
     if (!aCanBeUnreasonable) {

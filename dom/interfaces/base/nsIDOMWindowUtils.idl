@@ -2130,6 +2130,11 @@ interface nsIDOMWindowUtils : nsISupports {
   readonly attribute int32_t gpuProcessPid;
 
   /**
+    * Returns the RDD process pid, or -1 if there is no RDD process.
+    */
+  readonly attribute int32_t rddProcessPid;
+
+  /**
    * Returns usage data for a given storage object.
    *
    * @param aStorage

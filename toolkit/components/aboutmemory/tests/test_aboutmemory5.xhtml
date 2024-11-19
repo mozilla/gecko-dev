@@ -132,7 +132,12 @@
             socketProcessRunning = 1;
           }
 
-          let m2 = (vsizes.length == (4 + socketProcessRunning + ChromeUtils.aliveUtilityProcesses) &&
+          let rddProcessRunning = 0;
+          if (window.windowUtils.rddProcessPid != -1) {
+            rddProcessRunning = 1;
+          }
+
+          let m2 = (vsizes.length == (4 + socketProcessRunning + rddProcessRunning + ChromeUtils.aliveUtilityProcesses) &&
                     endOfBrowsers.length == 3);
           ok(m2, "three content processes present in loaded data");
           good = good && !!m2;

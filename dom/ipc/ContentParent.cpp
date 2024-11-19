@@ -68,6 +68,7 @@
 #include "mozilla/ProfilerLabels.h"
 #include "mozilla/ProfilerMarkers.h"
 #include "mozilla/RecursiveMutex.h"
+#include "mozilla/RDDProcessManager.h"
 #include "mozilla/ScopeExit.h"
 #include "mozilla/ScriptPreloader.h"
 #include "mozilla/Components.h"
@@ -2963,6 +2964,12 @@ bool ContentParent::InitInternal(ProcessPriority aInitialPriority) {
                               namespaces);
 
   gpm->AddListener(this);
+
+  if (StaticPrefs::media_rdd_process_enabled()) {
+    // Ensure the RDD process has been started.
+    RDDProcessManager* rdd = RDDProcessManager::Get();
+    rdd->LaunchRDDProcess();
+  }
 
   nsStyleSheetService* sheetService = nsStyleSheetService::GetInstance();
   if (sheetService) {
