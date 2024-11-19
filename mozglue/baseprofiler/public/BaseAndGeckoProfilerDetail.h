@@ -24,7 +24,7 @@ namespace mozilla {
 class ProfileBufferChunkManagerWithLocalLimit;
 
 // Centrally defines the version of the gecko profiler JSON format.
-const int GECKO_PROFILER_FORMAT_VERSION = 30;
+const int GECKO_PROFILER_FORMAT_VERSION = 31;
 
 namespace baseprofiler::detail {
 
