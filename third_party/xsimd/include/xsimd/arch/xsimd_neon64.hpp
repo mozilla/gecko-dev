@@ -949,6 +949,37 @@ namespace xsimd
         {
             return select(batch_bool<double, A> { b... }, true_br, false_br, neon64 {});
         }
+
+        template <class A>
+        XSIMD_INLINE void transpose(batch<double, A>* matrix_begin, batch<double, A>* matrix_end, requires_arch<neon64>) noexcept
+        {
+            assert((matrix_end - matrix_begin == batch<double, A>::size) && "correctly sized matrix");
+            (void)matrix_end;
+            auto r0 = matrix_begin[0], r1 = matrix_begin[1];
+            matrix_begin[0] = vzip1q_f64(r0, r1);
+            matrix_begin[1] = vzip2q_f64(r0, r1);
+        }
+
+        template <class A, class T, detail::enable_sized_unsigned_t<T, 8> = 0>
+        XSIMD_INLINE void transpose(batch<T, A>* matrix_begin, batch<T, A>* matrix_end, requires_arch<neon64>) noexcept
+        {
+            assert((matrix_end - matrix_begin == batch<T, A>::size) && "correctly sized matrix");
+            (void)matrix_end;
+            auto r0 = matrix_begin[0], r1 = matrix_begin[1];
+            matrix_begin[0] = vzip1q_u64(r0, r1);
+            matrix_begin[1] = vzip2q_u64(r0, r1);
+        }
+
+        template <class A, class T, detail::enable_sized_signed_t<T, 8> = 0>
+        XSIMD_INLINE void transpose(batch<T, A>* matrix_begin, batch<T, A>* matrix_end, requires_arch<neon64>) noexcept
+        {
+            assert((matrix_end - matrix_begin == batch<T, A>::size) && "correctly sized matrix");
+            (void)matrix_end;
+            auto r0 = matrix_begin[0], r1 = matrix_begin[1];
+            matrix_begin[0] = vzip1q_s64(r0, r1);
+            matrix_begin[1] = vzip2q_s64(r0, r1);
+        }
+
         /**********
          * zip_lo *
          **********/

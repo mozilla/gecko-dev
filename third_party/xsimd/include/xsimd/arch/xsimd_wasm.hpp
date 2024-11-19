@@ -39,6 +39,8 @@ namespace xsimd
         XSIMD_INLINE batch<T, A> shuffle(batch<T, A> const& x, batch<T, A> const& y, batch_constant<ITy, A, Indices...>, requires_arch<generic>) noexcept;
         template <class A, class T>
         XSIMD_INLINE batch<T, A> avg(batch<T, A> const&, batch<T, A> const&, requires_arch<generic>) noexcept;
+        template <class A, class T>
+        XSIMD_INLINE void transpose(batch<T, A>* matrix_begin, batch<T, A>* matrix_end, requires_arch<generic>) noexcept;
 
         // abs
         template <class A, class T, typename std::enable_if<std::is_integral<T>::value && std::is_signed<T>::value, void>::type>
@@ -1574,6 +1576,40 @@ namespace xsimd
         XSIMD_INLINE batch<int8_t, A> swizzle(batch<int8_t, A> const& self, batch_constant<uint8_t, A, V0, V1, V2, V3, V4, V5, V6, V7, V8, V9, V10, V11, V12, V13, V14, V15> mask, requires_arch<wasm>) noexcept
         {
             return bitwise_cast<int8_t>(swizzle(bitwise_cast<uint8_t>(self), mask, wasm {}));
+        }
+
+        // transpose
+        template <class A, class T>
+        XSIMD_INLINE void transpose(batch<T, A>* matrix_begin, batch<T, A>* matrix_end, requires_arch<wasm>) noexcept
+        {
+            assert((matrix_end - matrix_begin == batch<T, A>::size) && "correctly sized matrix");
+            (void)matrix_end;
+            XSIMD_IF_CONSTEXPR(sizeof(T) == 4)
+            {
+                auto r0 = matrix_begin[0], r1 = matrix_begin[1], r2 = matrix_begin[2], r3 = matrix_begin[3];
+
+                auto t0 = wasm_i32x4_shuffle(r0, r1, 0, 4, 1, 5); // r0[0] r1[0] r0[1] r1[1]
+                auto t1 = wasm_i32x4_shuffle(r0, r1, 2, 6, 3, 7); // r0[2] r1[2] r0[3] r1[3]
+
+                auto t2 = wasm_i32x4_shuffle(r2, r3, 0, 4, 1, 5); // r2[0] r3[0] r2[1] r3[1]
+                auto t3 = wasm_i32x4_shuffle(r2, r3, 2, 6, 3, 7); // r2[2] r3[2] r2[3] r3[3]
+
+                matrix_begin[0] = wasm_i32x4_shuffle(t0, t2, 0, 1, 4, 5); // r0[0] r1[0] r2[0] r3[0]
+                matrix_begin[1] = wasm_i32x4_shuffle(t0, t2, 2, 3, 6, 7); // r0[1] r1[1] r2[1] r3[1]
+                matrix_begin[2] = wasm_i32x4_shuffle(t1, t3, 0, 1, 4, 5); // r0[2] r1[2] r2[2] r3[2]
+                matrix_begin[3] = wasm_i32x4_shuffle(t1, t3, 2, 3, 6, 7); // r0[3] r1[3] r2[3] r3[3]
+            }
+            else XSIMD_IF_CONSTEXPR(sizeof(T) == 8)
+            {
+                auto r0 = matrix_begin[0], r1 = matrix_begin[1];
+
+                matrix_begin[0] = wasm_i64x2_shuffle(r0, r1, 0, 2);
+                matrix_begin[1] = wasm_i64x2_shuffle(r0, r1, 1, 3);
+            }
+            else
+            {
+                transpose(matrix_begin, matrix_end, generic {});
+            }
         }
 
         // trunc

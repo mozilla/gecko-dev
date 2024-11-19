@@ -639,6 +639,32 @@ namespace xsimd
             hi.store_unaligned(buffer + real_batch::size);
         }
 
+        // transpose
+        template <class A, class T>
+        XSIMD_INLINE void transpose(batch<T, A>* matrix_begin, batch<T, A>* matrix_end, requires_arch<generic>) noexcept
+        {
+            assert((matrix_end - matrix_begin == batch<T, A>::size) && "correctly sized matrix");
+            (void)matrix_end;
+            alignas(A::alignment()) T scratch_buffer[batch<T, A>::size * batch<T, A>::size];
+            for (size_t i = 0; i < batch<T, A>::size; ++i)
+            {
+                matrix_begin[i].store_aligned(&scratch_buffer[i * batch<T, A>::size]);
+            }
+            // FIXME: this is super naive we can probably do better.
+            for (size_t i = 0; i < batch<T, A>::size; ++i)
+            {
+                for (size_t j = 0; j < i; ++j)
+                {
+                    std::swap(scratch_buffer[i * batch<T, A>::size + j],
+                              scratch_buffer[j * batch<T, A>::size + i]);
+                }
+            }
+            for (size_t i = 0; i < batch<T, A>::size; ++i)
+            {
+                matrix_begin[i] = batch<T, A>::load_aligned(&scratch_buffer[i * batch<T, A>::size]);
+            }
+        }
+
     }
 
 }
