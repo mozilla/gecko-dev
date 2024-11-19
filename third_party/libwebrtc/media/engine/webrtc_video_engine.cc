@@ -1495,7 +1495,8 @@ bool WebRtcVideoSendChannel::AddSendStream(const StreamParams& sp) {
       bitrate_allocator_factory_;
   config.encoder_settings.encoder_switch_request_callback = this;
 
-  // TODO: b/358039777 - Add test when this effectively does something.
+  // TODO: bugs.webrtc.org/358039777 - Add test when this effectively does
+  // something.
   if (webrtc::RtpExtension::FindHeaderExtensionByUri(
           config.rtp.extensions, webrtc::RtpExtension::kCorruptionDetectionUri,
           webrtc::RtpExtension::kRequireEncryptedExtension)) {

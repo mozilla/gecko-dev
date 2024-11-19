@@ -40,7 +40,8 @@ std::optional<FilterSettings> GetCorruptionFilterSettings(
     const EncodedImage& encoded_image,
     VideoCodecType video_codec_type,
     int layer_id) {
-  /* TODO: b/358039777 - Uncomment when parameters are available in EncodedImage
+  /* TODO: bugs.webrtc.org/358039777 - Uncomment when parameters are available
+     in EncodedImage.
   if (encoded_image.CorruptionDetectionParameters()) {
     return FilterSettings{
         .std_dev = encoded_image.CorruptionDetectionParameters()->std_dev,
@@ -136,7 +137,7 @@ FrameInstrumentationGenerator::OnEncodedImage(
     contexts_[layer_id].frame_sampler.SetCurrentIndex(sequence_index);
   }
 
-  // TODO: b/358039777 - Maybe allow other sample sizes as well
+  // TODO: bugs.webrtc.org/358039777 - Maybe allow other sample sizes as well
   std::vector<HaltonFrameSampler::Coordinates> sample_coordinates =
       contexts_[layer_id]
           .frame_sampler.GetSampleCoordinatesForFrameIfFrameShouldBeSampled(
