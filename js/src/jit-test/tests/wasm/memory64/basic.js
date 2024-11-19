@@ -1772,16 +1772,18 @@ if (getBuildConfiguration("pointer-byte-size") == 8) {
 // get / set
 const table64Tests = [
   {
-    elem: "funcref",
-    jsval: new WebAssembly.Function({ parameters: ["i32"], results: [] }, () => {}),
-    wasmval: `(ref.func 0)`,
-  },
-  {
     elem: "anyref",
     jsval: "haha you cannot represent me",
     wasmval: `(struct.new_default $s)`,
   },
 ];
+if (WebAssembly.Function) {
+  table64Tests.push({
+    elem: "funcref",
+    jsval: new WebAssembly.Function({ parameters: ["i32"], results: [] }, () => {}),
+    wasmval: `(ref.func 0)`,
+  });
+}
 for (const test of table64Tests) {
   const externalTable = new WebAssembly.Table({ address: "i64", element: test.elem, initial: 2n });
   externalTable.set(0n, test.jsval);
