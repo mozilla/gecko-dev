@@ -1704,7 +1704,7 @@
       "pbone@mozilla.com"
     ],
     "bug_numbers": [1829127, 1892149],
-    "expires_in_version": "135",
+    "expires_in_version": "142",
     "kind": "exponential",
     "low": 4096,
     "high": 8388608,
@@ -1720,7 +1720,7 @@
       "pbone@mozilla.com"
     ],
     "bug_numbers": [1829127, 1892149],
-    "expires_in_version": "135",
+    "expires_in_version": "142",
     "kind": "exponential",
     "high": 16384,
     "n_buckets": 64,
@@ -1735,7 +1735,7 @@
       "pbone@mozilla.com"
     ],
     "bug_numbers": [1829127, 1892149],
-    "expires_in_version": "135",
+    "expires_in_version": "142",
     "kind": "exponential",
     "high": 16384,
     "n_buckets": 64,
@@ -1747,7 +1747,7 @@
     "products": ["firefox"],
     "alert_emails": ["pbone@mozilla.com"],
     "bug_numbers": [1897060],
-    "expires_in_version": "135",
+    "expires_in_version": "142",
     "kind": "exponential",
     "low": 15,
     "high": 86400,
