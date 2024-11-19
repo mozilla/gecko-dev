@@ -12,7 +12,7 @@ namespace mozilla::dom::quota {
 
 NormalOriginOperationBase::NormalOriginOperationBase(
     MovingNotNull<RefPtr<QuotaManager>> aQuotaManager, const char* aName)
-    : OriginOperationBase(std::move(aQuotaManager), aName) {
+    : OriginOperationBase(std::move(aQuotaManager), aName), mCanceled(false) {
   AssertIsOnOwningThread();
 }
 
