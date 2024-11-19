@@ -405,19 +405,19 @@ const ProxyMessenger = {
       // the openNative method).
       return this.ports.get(sender.portId)?.onPortMessage(holder);
     }
-    // NOTE: the following await make sure we await for promised ports
-    // (ports that were not yet open when added to the Map,
-    // see recvPortConnect).
+    // Wait for onConnect dispatch to complete to avoid missing onMessage.
     await this.portPromises.get(sender.portId);
     this.sendPortMessage(sender.portId, holder, !sender.source);
   },
 
-  recvConduitClosed(sender) {
+  async recvConduitClosed(sender) {
     let app = this.ports.get(sender.portId);
     if (this.ports.delete(sender.portId) && sender.native) {
       this.untrackNativeAppPort(app);
       return app.onPortDisconnect();
     }
+    // Wait for onConnect dispatch to complete to avoid missing onDisconnect.
+    await this.portPromises.get(sender.portId);
     this.sendPortDisconnect(sender.portId, null, !sender.source);
   },
 
@@ -428,8 +428,13 @@ const ProxyMessenger = {
   sendPortDisconnect(portId, error, source = true) {
     let port = this.ports.get(portId);
     this.untrackNativeAppPort(port);
-    this.conduit.castPortDisconnect("port", { portId, source, error });
     this.ports.delete(portId);
+    try {
+      // This may throw: https://bugzilla.mozilla.org/show_bug.cgi?id=1931902#c3
+      this.conduit.castPortDisconnect("port", { portId, source, error });
+    } catch (e) {
+      Cu.reportError(e);
+    }
   },
 
   trackNativeAppPort(port) {
