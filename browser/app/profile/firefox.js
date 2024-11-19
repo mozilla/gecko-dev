@@ -1902,15 +1902,9 @@ pref("browser.newtabpage.activity-stream.discoverystream.region-stories-config",
 pref("browser.newtabpage.activity-stream.discoverystream.region-bff-config", "US,DE,CA,GB,IE,CH,AT,BE,IN,FR,IT,ES");
 pref("browser.newtabpage.activity-stream.discoverystream.merino-provider.enabled", true);
 
-// Merino & topic selection related prefs in nightly only
-#if defined(EARLY_BETA_OR_EARLIER)
-  // List of regions that get topics selection by default.
-  pref("browser.newtabpage.activity-stream.discoverystream.topicSelection.region-topics-config", "US, CA");
-  pref("browser.newtabpage.activity-stream.discoverystream.topicSelection.onboarding.enabled", true);
-#else
-  pref("browser.newtabpage.activity-stream.discoverystream.topicSelection.region-topics-config", "");
-  pref("browser.newtabpage.activity-stream.discoverystream.topicSelection.onboarding.enabled", false);
-#endif
+// List of regions that get topics selection by default.
+pref("browser.newtabpage.activity-stream.discoverystream.topicSelection.region-topics-config", "");
+pref("browser.newtabpage.activity-stream.discoverystream.topicSelection.onboarding.enabled", false);
 
 // List of locales that get topics selection by default.
 pref("browser.newtabpage.activity-stream.discoverystream.topicLabels.region-topic-label-config", "US, CA");
