@@ -1115,7 +1115,41 @@ bool WebRtcVideoSendChannel::GetChangedSenderParameters(
     } else if (send_codec() != negotiated_codecs.front()) {
       changed_params->send_codec = negotiated_codecs.front();
     }
-    changed_params->negotiated_codecs = std::move(negotiated_codecs);
+    changed_params->negotiated_codecs = negotiated_codecs;
+  }
+
+  // For mixed-codec simulcast
+  std::vector<VideoCodecSettings> send_codecs;
+  if (!send_streams_.empty() && !negotiated_codecs.empty()) {
+    bool needs_update = false;
+    auto rtp_parameters = send_streams_.begin()->second->GetRtpParameters();
+    for (auto& encoding : rtp_parameters.encodings) {
+      if (encoding.codec) {
+        auto matched_codec =
+            absl::c_find_if(negotiated_codecs, [&](auto negotiated_codec) {
+              return negotiated_codec.codec.MatchesRtpCodec(*encoding.codec);
+            });
+        if (matched_codec != negotiated_codecs.end()) {
+          send_codecs.push_back(*matched_codec);
+        } else {
+          // The requested codec has been negotiated away, we clear it from the
+          // parameters.
+          encoding.codec.reset();
+          needs_update = true;
+          send_codecs.push_back(negotiated_codecs.front());
+        }
+      } else {
+        send_codecs.push_back(negotiated_codecs.front());
+      }
+    }
+
+    if (needs_update) {
+      send_streams_.begin()->second->SetRtpParameters(rtp_parameters, nullptr);
+    }
+  }
+
+  if (send_codecs_ != send_codecs) {
+    changed_params->send_codecs = send_codecs;
   }
 
   // Handle RTP header extensions.
@@ -1248,6 +1282,9 @@ bool WebRtcVideoSendChannel::ApplyChangedParams(
 
   if (changed_params.send_codec)
     send_codec() = changed_params.send_codec;
+
+  if (changed_params.send_codecs)
+    send_codecs_ = *changed_params.send_codecs;
 
   if (changed_params.extmap_allow_mixed) {
     SetExtmapAllowMixed(*changed_params.extmap_allow_mixed);
@@ -1511,7 +1548,7 @@ bool WebRtcVideoSendChannel::AddSendStream(const StreamParams& sp) {
   WebRtcVideoSendStream* stream = new WebRtcVideoSendStream(
       call_, sp, std::move(config), default_send_options_,
       video_config_.enable_cpu_adaptation, bitrate_config_.max_bitrate_bps,
-      send_codec(), send_rtp_extensions_, send_params_);
+      send_codec(), send_codecs_, send_rtp_extensions_, send_params_);
 
   uint32_t ssrc = sp.first_ssrc();
   RTC_DCHECK(ssrc != 0);
@@ -1716,12 +1753,14 @@ WebRtcVideoSendChannel::WebRtcVideoSendStream::VideoSendStreamParameters::
         webrtc::VideoSendStream::Config config,
         const VideoOptions& options,
         int max_bitrate_bps,
-        const std::optional<VideoCodecSettings>& codec_settings)
+        const std::optional<VideoCodecSettings>& codec_settings,
+        const std::vector<VideoCodecSettings>& codec_settings_list)
     : config(std::move(config)),
       options(options),
       max_bitrate_bps(max_bitrate_bps),
       conference_mode(false),
-      codec_settings(codec_settings) {}
+      codec_settings(codec_settings),
+      codec_settings_list(codec_settings_list) {}
 
 WebRtcVideoSendChannel::WebRtcVideoSendStream::WebRtcVideoSendStream(
     webrtc::Call* call,
@@ -1731,6 +1770,7 @@ WebRtcVideoSendChannel::WebRtcVideoSendStream::WebRtcVideoSendStream(
     bool enable_cpu_overuse_detection,
     int max_bitrate_bps,
     const std::optional<VideoCodecSettings>& codec_settings,
+    const std::vector<VideoCodecSettings>& codec_settings_list,
     const std::optional<std::vector<webrtc::RtpExtension>>& rtp_extensions,
     // TODO(deadbeef): Don't duplicate information between send_params,
     // rtp_extensions, options, etc.
@@ -1742,7 +1782,11 @@ WebRtcVideoSendChannel::WebRtcVideoSendStream::WebRtcVideoSendStream(
       enable_cpu_overuse_detection_(enable_cpu_overuse_detection),
       source_(nullptr),
       stream_(nullptr),
-      parameters_(std::move(config), options, max_bitrate_bps, codec_settings),
+      parameters_(std::move(config),
+                  options,
+                  max_bitrate_bps,
+                  codec_settings,
+                  codec_settings_list),
       rtp_parameters_(CreateRtpParametersWithEncodings(sp)),
       sending_(false),
       disable_automatic_resize_(
@@ -1801,7 +1845,7 @@ WebRtcVideoSendChannel::WebRtcVideoSendStream::WebRtcVideoSendStream(
   rtp_parameters_.rtcp.reduced_size = send_params.rtcp.reduced_size;
 
   if (codec_settings) {
-    SetCodec(*codec_settings);
+    SetCodec(*codec_settings, codec_settings_list);
   }
 }
 
@@ -1827,7 +1871,7 @@ bool WebRtcVideoSendChannel::WebRtcVideoSendStream::SetVideoSend(
       // If screen content settings change, we may need to recreate the codec
       // instance so that the correct type is used.
 
-      SetCodec(*parameters_.codec_settings);
+      SetCodec(*parameters_.codec_settings, parameters_.codec_settings_list);
       // Mark screenshare parameter as being updated, then test for any other
       // changes that may require codec reconfiguration.
       old_options.is_screencast = options->is_screencast;
@@ -1902,7 +1946,8 @@ WebRtcVideoSendChannel::WebRtcVideoSendStream::GetSsrcs() const {
 }
 
 void WebRtcVideoSendChannel::WebRtcVideoSendStream::SetCodec(
-    const VideoCodecSettings& codec_settings) {
+    const VideoCodecSettings& codec_settings,
+    const std::vector<VideoCodecSettings>& codec_settings_list) {
   RTC_DCHECK_RUN_ON(&thread_checker_);
   FallbackToDefaultScalabilityModeIfNotSupported(
       codec_settings.codec, parameters_.config, rtp_parameters_.encodings);
@@ -1938,6 +1983,32 @@ void WebRtcVideoSendChannel::WebRtcVideoSendStream::SetCodec(
       HasNack(codec_settings.codec) ? kNackHistoryMs : 0;
 
   parameters_.codec_settings = codec_settings;
+
+  // Settings for mixed-codec simulcast
+  if (!codec_settings_list.empty()) {
+    RTC_DCHECK_EQ(parameters_.config.rtp.ssrcs.size(),
+                  codec_settings_list.size());
+    parameters_.config.rtp.stream_configs.resize(
+        parameters_.config.rtp.ssrcs.size());
+    for (size_t i = 0; i < codec_settings_list.size(); i++) {
+      auto& stream_config = parameters_.config.rtp.stream_configs[i];
+      const auto& cs = codec_settings_list[i];
+      stream_config.ssrc = parameters_.config.rtp.ssrcs[i];
+      if (i < parameters_.config.rtp.rids.size()) {
+        stream_config.rid = parameters_.config.rtp.rids[i];
+      }
+      stream_config.payload_name = cs.codec.name;
+      stream_config.payload_type = cs.codec.id;
+      stream_config.raw_payload =
+          cs.codec.packetization == kPacketizationParamRaw;
+      if (i < parameters_.config.rtp.rtx.ssrcs.size()) {
+        auto& rtx = stream_config.rtx.emplace();
+        rtx.ssrc = parameters_.config.rtp.rtx.ssrcs[i];
+        rtx.payload_type = cs.rtx_payload_type;
+      }
+    }
+  }
+  parameters_.codec_settings_list = codec_settings_list;
 
   // TODO(bugs.webrtc.org/8830): Avoid recreation, it should be enough to call
   // ReconfigureEncoder.
@@ -1980,10 +2051,11 @@ void WebRtcVideoSendChannel::WebRtcVideoSendStream::SetSenderParameters(
 
   // Set codecs and options.
   if (params.send_codec) {
-    SetCodec(*params.send_codec);
+    SetCodec(*params.send_codec,
+             params.send_codecs.value_or(parameters_.codec_settings_list));
     recreate_stream = false;  // SetCodec has already recreated the stream.
   } else if (params.conference_mode && parameters_.codec_settings) {
-    SetCodec(*parameters_.codec_settings);
+    SetCodec(*parameters_.codec_settings, parameters_.codec_settings_list);
     recreate_stream = false;  // SetCodec has already recreated the stream.
   }
   if (recreate_stream) {
@@ -2023,7 +2095,9 @@ WebRtcVideoSendChannel::WebRtcVideoSendStream::SetRtpParameters(
         (new_parameters.encodings[i].requested_resolution !=
          rtp_parameters_.encodings[i].requested_resolution) ||
         (new_parameters.encodings[i].scalability_mode !=
-         rtp_parameters_.encodings[i].scalability_mode)) {
+         rtp_parameters_.encodings[i].scalability_mode) ||
+        (new_parameters.encodings[i].codec !=
+         rtp_parameters_.encodings[i].codec)) {
       new_param = true;
       break;
     }
