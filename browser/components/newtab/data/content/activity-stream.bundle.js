@@ -10180,6 +10180,7 @@ class _WallpaperCategories extends (external_React_default()).PureComponent {
       }, /*#__PURE__*/external_React_default().createElement("input", {
         id: category,
         style: style,
+        type: "radio",
         onClick: this.handleCategory,
         className: "wallpaper-input"
       }), /*#__PURE__*/external_React_default().createElement("label", {

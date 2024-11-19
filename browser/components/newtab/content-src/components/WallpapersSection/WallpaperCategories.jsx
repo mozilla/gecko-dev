@@ -138,6 +138,7 @@ export class _WallpaperCategories extends React.PureComponent {
                 <input
                   id={category}
                   style={style}
+                  type="radio"
                   onClick={this.handleCategory}
                   className="wallpaper-input"
                 />
