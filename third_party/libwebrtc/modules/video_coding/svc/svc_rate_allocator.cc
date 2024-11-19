@@ -19,7 +19,6 @@
 
 #include "absl/container/inlined_vector.h"
 #include "api/field_trials_view.h"
-#include "api/transport/field_trial_based_config.h"
 #include "api/units/data_rate.h"
 #include "api/video/video_bitrate_allocation.h"
 #include "api/video/video_bitrate_allocator.h"
@@ -245,9 +244,6 @@ SvcRateAllocator::NumLayers SvcRateAllocator::GetNumLayers(
   layers.temporal = 1;
   return layers;
 }
-
-SvcRateAllocator::SvcRateAllocator(const VideoCodec& codec)
-    : SvcRateAllocator(codec, FieldTrialBasedConfig()) {}
 
 SvcRateAllocator::SvcRateAllocator(const VideoCodec& codec,
                                    const FieldTrialsView& field_trials)

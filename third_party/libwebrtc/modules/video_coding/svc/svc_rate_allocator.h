@@ -28,7 +28,6 @@ namespace webrtc {
 
 class SvcRateAllocator : public VideoBitrateAllocator {
  public:
-  [[deprecated]] explicit SvcRateAllocator(const VideoCodec& codec);
   SvcRateAllocator(const VideoCodec& codec,
                    const FieldTrialsView& field_trials);
 
