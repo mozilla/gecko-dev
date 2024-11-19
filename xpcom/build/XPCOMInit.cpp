@@ -88,7 +88,7 @@
 #include "base/command_line.h"
 #include "base/message_loop.h"
 
-#include "mozilla/ipc/BrowserProcessSubThread.h"
+#include "mozilla/ipc/IOThread.h"
 #include "mozilla/AvailableMemoryTracker.h"
 #include "mozilla/ClearOnShutdown.h"
 #include "mozilla/CountingAllocatorBase.h"
@@ -114,7 +114,7 @@
 #include "gfxPlatform.h"
 
 using base::AtExitManager;
-using mozilla::ipc::BrowserProcessSubThread;
+using mozilla::ipc::IOThreadParent;
 
 // From toolkit/library/rust/lib.rs
 extern "C" void GkRust_Init();
@@ -125,7 +125,7 @@ namespace {
 static AtExitManager* sExitManager;
 static MessageLoop* sMessageLoop;
 static bool sCommandLineWasInitialized;
-static BrowserProcessSubThread* sIOThread;
+static IOThreadParent* sIOThread;
 static mozilla::BackgroundHangMonitor* sMainHangMonitor;
 
 } /* anonymous namespace */
@@ -313,20 +313,12 @@ NS_InitXPCOM(nsIServiceManager** aResult, nsIFile* aBinDirectory,
     messageLoop->set_hang_timeouts(128, 8192);
   }
 
-  if (XRE_IsParentProcess() &&
-      !BrowserProcessSubThread::GetMessageLoop(BrowserProcessSubThread::IO)) {
-    mozilla::UniquePtr<BrowserProcessSubThread> ioThread =
-        mozilla::MakeUnique<BrowserProcessSubThread>(
-            BrowserProcessSubThread::IO);
-
-    base::Thread::Options options;
-    options.message_loop_type = MessageLoop::TYPE_IO;
-    if (NS_WARN_IF(!ioThread->StartWithOptions(options))) {
-      XPCOM_INIT_FATAL("StartWithOptions()", NS_ERROR_FAILURE)
-    }
-
-    sIOThread = ioThread.release();
+  // Start the IPC I/O thread in the parent process. We'll have already started
+  // the IPC I/O thread if we're in a content process.
+  if (XRE_IsParentProcess()) {
+    sIOThread = new IOThreadParent();
   }
+  MOZ_ASSERT(mozilla::ipc::IOThread::Get(), "An IOThread has been started");
 
   // Establish the main thread here.
   rv = nsThreadManager::get().Init();

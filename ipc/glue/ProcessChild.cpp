@@ -21,7 +21,8 @@
 
 #include "nsAppRunner.h"
 #include "mozilla/AppShutdown.h"
-#include "mozilla/ipc/IOThreadChild.h"
+#include "mozilla/ipc/IOThread.h"
+#include "mozilla/ipc/ProcessUtils.h"
 #include "mozilla/GeckoArgs.h"
 
 namespace mozilla {
@@ -35,10 +36,11 @@ static Atomic<bool> sExpectingShutdown(false);
 
 ProcessChild::ProcessChild(IPC::Channel::ChannelHandle aClientChannel,
                            ProcessId aParentPid, const nsID& aMessageChannelId)
-    : ChildProcess(new IOThreadChild(std::move(aClientChannel), aParentPid)),
-      mUILoop(MessageLoop::current()),
+    : mUILoop(MessageLoop::current()),
       mParentPid(aParentPid),
-      mMessageChannelId(aMessageChannelId) {
+      mMessageChannelId(aMessageChannelId),
+      mChildThread(
+          MakeUnique<IOThreadChild>(std::move(aClientChannel), aParentPid)) {
   MOZ_ASSERT(mUILoop, "UILoop should be created by now");
   MOZ_ASSERT(!gProcessChild, "should only be one ProcessChild");
   CrashReporter::RegisterAnnotationNSCString(
@@ -129,7 +131,7 @@ void ProcessChild::QuickExit() {
 
 UntypedEndpoint ProcessChild::TakeInitialEndpoint() {
   return UntypedEndpoint{PrivateIPDLInterface{},
-                         child_thread()->TakeInitialPort(), mMessageChannelId,
+                         mChildThread->TakeInitialPort(), mMessageChannelId,
                          EndpointProcInfo::Current(),
                          EndpointProcInfo{.mPid = mParentPid, .mChildID = 0}};
 }
