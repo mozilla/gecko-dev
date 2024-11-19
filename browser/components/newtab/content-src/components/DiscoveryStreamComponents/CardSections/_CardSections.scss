@@ -1,73 +1,7 @@
 @mixin section-card-small {
+  // styles
   grid-row: span 1;
   grid-column: span 1;
-  flex-direction: row;
-  height: 160px;
-  position: relative;
-  align-items: center;
-  gap: var(--space-medium);
-  padding: var(--space-large);
-
-  .img-wrapper {
-    width: 127px;
-    flex-shrink: 0;
-    flex-grow: 0;
-    aspect-ratio: 1/1;
-
-    .ds-image.img {
-      width: 100%;
-      height: 100%;
-      padding-top: 0;
-      min-width: 100%;
-    }
-
-    .ds-image.img img {
-      width: 100%;
-      height: 100%;
-      border-radius: var(--border-radius-medium) var(--border-radius-medium);
-      object-fit: cover;
-    }
-  }
-
-  &:not(.placeholder) {
-    .img-wrapper>.ds-image.img>img {
-      width: 100%;
-      border-radius: var(--border-radius-medium) var(--border-radius-medium);
-    }
-  }
-
-  .ds-card-link {
-    right: 0;
-  }
-
-  .meta {
-    padding: var(--space-xsmall) 0;
-
-    .info-wrap .title {
-      font-size: var(--font-size-small);
-      margin-bottom: 0;
-    }
-
-    .info-wrap .excerpt {
-      display: none;
-    }
-
-    .sections-card-footer {
-      padding-top: var(--space-small);
-    }
-  }
-
-  .card-stp-button-hover-background {
-    padding-block-start: unset;
-  }
-
-  .card-stp-button-position-wrapper {
-    inset-inline-end: 28px;
-
-    .card-stp-button {
-      display: none;
-    }
-  }
 }
 
 @mixin section-card-medium {

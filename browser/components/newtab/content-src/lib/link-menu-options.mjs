@@ -247,7 +247,6 @@ export const LinkMenuOptions = {
   SaveToPocket: (site, index, eventSource = "CARDGRID") => ({
     id: "newtab-menu-save-to-pocket",
     icon: "pocket-save",
-    className: "stp-context-menu",
     action: ac.AlsoToMain({
       type: at.SAVE_TO_POCKET,
       data: {
