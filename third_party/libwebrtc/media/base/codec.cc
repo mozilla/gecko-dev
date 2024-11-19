@@ -233,6 +233,7 @@ bool Codec::Matches(const Codec& codec) const {
   // We support the ranges [96, 127] and more recently [35, 65].
   // https://www.iana.org/assignments/rtp-parameters/rtp-parameters.xhtml#rtp-parameters-1
   // Within those ranges we match by codec name, outside by codec id.
+  // We also match by name if either ID is unassigned.
   // Since no codecs are assigned an id in the range [66, 95] by us, these will
   // never match.
   const int kLowerDynamicRangeMin = 35;
@@ -246,9 +247,13 @@ bool Codec::Matches(const Codec& codec) const {
       (codec.id >= kLowerDynamicRangeMin &&
        codec.id <= kLowerDynamicRangeMax) ||
       (codec.id >= kUpperDynamicRangeMin && codec.id <= kUpperDynamicRangeMax);
-  bool matches_id = is_id_in_dynamic_range && is_codec_id_in_dynamic_range
-                        ? (absl::EqualsIgnoreCase(name, codec.name))
-                        : (id == codec.id);
+  bool matches_id;
+  if ((is_id_in_dynamic_range && is_codec_id_in_dynamic_range) ||
+      id == kIdNotSet || codec.id == kIdNotSet) {
+    matches_id = absl::EqualsIgnoreCase(name, codec.name);
+  } else {
+    matches_id = (id == codec.id);
+  }
 
   auto matches_type_specific = [&]() {
     switch (type) {

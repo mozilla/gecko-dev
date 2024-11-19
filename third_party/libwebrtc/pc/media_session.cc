@@ -50,6 +50,7 @@
 #include "rtc_base/checks.h"
 #include "rtc_base/logging.h"
 #include "rtc_base/string_encode.h"
+#include "rtc_base/strings/string_builder.h"
 #include "rtc_base/unique_id_generator.h"
 
 namespace {
@@ -464,6 +465,51 @@ void NegotiateTxMode(const Codec& local_codec,
                                   : std::nullopt;
 }
 #endif
+
+// Update the ID fields of the codec vector.
+// If any codec has an ID with value "kIdNotSet", use the payload type suggester
+// to assign and record a payload type for it.
+// If there is a RED codec without its fmtp parameter, give it the ID of the
+// first OPUS codec in the codec list.
+webrtc::RTCError AssignCodecIdsAndLinkRed(
+    webrtc::PayloadTypeSuggester* pt_suggester,
+    const std::string& mid,
+    std::vector<Codec>& codecs) {
+  int opus_codec = Codec::kIdNotSet;
+  for (cricket::Codec& codec : codecs) {
+    if (codec.id == Codec::kIdNotSet) {
+      // Add payload types to codecs, if needed
+      // This should only happen if WebRTC-PayloadTypesInTransport field trial
+      // is enabled.
+      RTC_CHECK(pt_suggester);
+      auto result = pt_suggester->SuggestPayloadType(mid, codec);
+      if (!result.ok()) {
+        return result.error();
+      }
+      codec.id = result.value();
+    }
+    // record first Opus codec id
+    if (absl::EqualsIgnoreCase(codec.name, kOpusCodecName) &&
+        opus_codec == Codec::kIdNotSet) {
+      opus_codec = codec.id;
+    }
+  }
+  if (opus_codec != Codec::kIdNotSet) {
+    for (cricket::Codec& codec : codecs) {
+      if (codec.type == Codec::Type::kAudio &&
+          absl::EqualsIgnoreCase(codec.name, kRedCodecName)) {
+        if (codec.params.size() == 0) {
+          char buffer[100];
+          rtc::SimpleStringBuilder param(buffer);
+          param << opus_codec << "/" << opus_codec;
+          RTC_LOG(LS_ERROR) << "DEBUG: Setting RED param to " << param.str();
+          codec.SetParam(kCodecParamNotInNameValueFormat, param.str());
+        }
+      }
+    }
+  }
+  return webrtc::RTCError::OK();
+}
 
 // Finds a codec in `codecs2` that matches `codec_to_match`, which is
 // a member of `codecs1`. If `codec_to_match` is an RED or RTX codec, both
@@ -1215,7 +1261,7 @@ webrtc::RTCErrorOr<Codecs> GetNegotiatedCodecsForAnswer(
         }
       }
     }
-    // Add other supported video codecs.
+    // Add other supported codecs.
     std::vector<Codec> other_codecs;
     for (const Codec& codec : supported_codecs) {
       if (FindMatchingCodec(supported_codecs, codecs, codec) &&
@@ -1300,7 +1346,10 @@ MediaSessionDescriptionFactory::MediaSessionDescriptionFactory(
     webrtc::PayloadTypeSuggester* pt_suggester)
     : ssrc_generator_(ssrc_generator),
       transport_desc_factory_(transport_desc_factory),
-      pt_suggester_(pt_suggester) {
+      pt_suggester_(pt_suggester),
+      payload_types_in_transport_trial_enabled_(
+          transport_desc_factory_->trials().IsEnabled(
+              "WebRTC-PayloadTypesInTransport")) {
   RTC_CHECK(transport_desc_factory_);
   if (media_engine) {
     audio_send_codecs_ = media_engine->voice().send_codecs();
@@ -1396,6 +1445,7 @@ MediaSessionDescriptionFactory::CreateOfferOrError(
   Codecs offer_video_codecs;
   GetCodecsForOffer(current_active_contents, &offer_audio_codecs,
                     &offer_video_codecs);
+
   AudioVideoRtpHeaderExtensions extensions_with_ids =
       GetOfferedRtpHeaderExtensionsWithIds(
           current_active_contents, session_options.offer_extmap_allow_mixed,
@@ -2001,22 +2051,8 @@ RTCError MediaSessionDescriptionFactory::AddRtpContentForOffer(
     // Ignore both the codecs argument and the Get*CodecsForOffer results.
     codecs_to_include = media_description_options.codecs_to_include;
   }
-  for (cricket::Codec& codec : codecs_to_include) {
-    if (codec.id == Codec::kIdNotSet) {
-      // Add payload types to codecs, if needed
-      // This should only happen if WebRTC-PayloadTypesInTransport field trial
-      // is enabled.
-      RTC_CHECK(pt_suggester_);
-      RTC_CHECK(transport_desc_factory_->trials().IsEnabled(
-          "WebRTC-PayloadTypesInTransport"));
-      auto result = pt_suggester_->SuggestPayloadType(
-          media_description_options.mid, codec);
-      if (!result.ok()) {
-        return result.error();
-      }
-      codec.id = result.value();
-    }
-  }
+  AssignCodecIdsAndLinkRed(pt_suggester_, media_description_options.mid,
+                           codecs_to_include);
   std::unique_ptr<MediaContentDescription> content_description;
   if (media_description_options.type == MEDIA_TYPE_AUDIO) {
     content_description = std::make_unique<AudioContentDescription>();
@@ -2204,20 +2240,8 @@ RTCError MediaSessionDescriptionFactory::AddRtpContentForAnswer(
                     media_description_options.codec_preferences.empty());
     codecs_to_include = negotiated_codecs;
   }
-  for (cricket::Codec& codec : codecs_to_include) {
-    if (codec.id == Codec::kIdNotSet) {
-      // Add payload types to codecs, if needed
-      RTC_CHECK(pt_suggester_);
-      RTC_CHECK(transport_desc_factory_->trials().IsEnabled(
-          "WebRTC-PayloadTypesInTransport"));
-      auto result = pt_suggester_->SuggestPayloadType(
-          media_description_options.mid, codec);
-      if (!result.ok()) {
-        return result.error();
-      }
-      codec.id = result.value();
-    }
-  }
+  AssignCodecIdsAndLinkRed(pt_suggester_, media_description_options.mid,
+                           codecs_to_include);
 
   if (!SetCodecsInAnswer(offer_content_description, codecs_to_include,
                          media_description_options, session_options,

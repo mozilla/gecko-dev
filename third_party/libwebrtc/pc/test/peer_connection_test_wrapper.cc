@@ -343,15 +343,23 @@ void PeerConnectionTestWrapper::AddIceCandidate(const std::string& sdp_mid,
   EXPECT_TRUE(peer_connection_->AddIceCandidate(owned_candidate.get()));
 }
 
-void PeerConnectionTestWrapper::WaitForCallEstablished() {
-  WaitForConnection();
-  WaitForAudio();
-  WaitForVideo();
+bool PeerConnectionTestWrapper::WaitForCallEstablished() {
+  if (!WaitForConnection())
+    return false;
+  if (!WaitForAudio())
+    return false;
+  if (!WaitForVideo())
+    return false;
+  return true;
 }
 
-void PeerConnectionTestWrapper::WaitForConnection() {
+bool PeerConnectionTestWrapper::WaitForConnection() {
   EXPECT_TRUE_WAIT(CheckForConnection(), kMaxWait);
+  if (testing::Test::HasFailure()) {
+    return false;
+  }
   RTC_LOG(LS_INFO) << "PeerConnectionTestWrapper " << name_ << ": Connected.";
+  return true;
 }
 
 bool PeerConnectionTestWrapper::CheckForConnection() {
@@ -361,10 +369,14 @@ bool PeerConnectionTestWrapper::CheckForConnection() {
           PeerConnectionInterface::kIceConnectionCompleted);
 }
 
-void PeerConnectionTestWrapper::WaitForAudio() {
+bool PeerConnectionTestWrapper::WaitForAudio() {
   EXPECT_TRUE_WAIT(CheckForAudio(), kMaxWait);
+  if (testing::Test::HasFailure()) {
+    return false;
+  }
   RTC_LOG(LS_INFO) << "PeerConnectionTestWrapper " << name_
                    << ": Got enough audio frames.";
+  return true;
 }
 
 bool PeerConnectionTestWrapper::CheckForAudio() {
@@ -372,10 +384,14 @@ bool PeerConnectionTestWrapper::CheckForAudio() {
           kTestAudioFrameCount);
 }
 
-void PeerConnectionTestWrapper::WaitForVideo() {
+bool PeerConnectionTestWrapper::WaitForVideo() {
   EXPECT_TRUE_WAIT(CheckForVideo(), kMaxWait);
+  if (testing::Test::HasFailure()) {
+    return false;
+  }
   RTC_LOG(LS_INFO) << "PeerConnectionTestWrapper " << name_
                    << ": Got enough video frames.";
+  return true;
 }
 
 bool PeerConnectionTestWrapper::CheckForVideo() {

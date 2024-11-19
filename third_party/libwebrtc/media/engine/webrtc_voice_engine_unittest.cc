@@ -180,6 +180,30 @@ void AdmSetupExpectations(webrtc::test::MockAudioDeviceModule* adm) {
   EXPECT_CALL(*adm, RegisterAudioCallback(nullptr)).WillOnce(Return(0));
   EXPECT_CALL(*adm, Terminate()).WillOnce(Return(0));
 }
+
+std::vector<cricket::Codec> AddIdToCodecs(
+    webrtc::PayloadTypePicker& pt_mapper,
+    std::vector<cricket::Codec>&& codecs_in) {
+  std::vector<cricket::Codec> codecs = std::move(codecs_in);
+  for (cricket::Codec& codec : codecs) {
+    if (codec.id == cricket::Codec::kIdNotSet) {
+      auto id_or_error = pt_mapper.SuggestMapping(codec, nullptr);
+      EXPECT_TRUE(id_or_error.ok());
+      if (id_or_error.ok()) {
+        codec.id = id_or_error.value();
+      }
+    }
+  }
+  return codecs;
+}
+
+std::vector<cricket::Codec> ReceiveCodecsWithId(
+    cricket::WebRtcVoiceEngine& engine) {
+  webrtc::PayloadTypePicker pt_mapper;
+  std::vector<cricket::Codec> codecs = engine.recv_codecs();
+  return AddIdToCodecs(pt_mapper, std::move(codecs));
+}
+
 }  // namespace
 
 // Tests that our stub library "works".
@@ -501,7 +525,11 @@ class WebRtcVoiceEngineTestFake : public ::testing::TestWithParam<bool> {
   }
 
   std::optional<int> GetCodecBitrate(int32_t ssrc) {
-    return GetSendStreamConfig(ssrc).send_codec_spec->target_bitrate_bps;
+    auto spec = GetSendStreamConfig(ssrc).send_codec_spec;
+    if (!spec.has_value()) {
+      return std::nullopt;
+    }
+    return spec->target_bitrate_bps;
   }
 
   int GetMaxBitrate(int32_t ssrc) {
@@ -872,6 +900,10 @@ class WebRtcVoiceEngineTestFake : public ::testing::TestWithParam<bool> {
     return static_cast<cricket::WebRtcVoiceReceiveChannel*>(
         receive_channel_.get());
   }
+  std::vector<cricket::Codec> SendCodecsWithId() {
+    std::vector<cricket::Codec> codecs = engine_->send_codecs();
+    return AddIdToCodecs(pt_mapper_, std::move(codecs));
+  }
 
  protected:
   rtc::AutoThread main_thread_;
@@ -888,6 +920,7 @@ class WebRtcVoiceEngineTestFake : public ::testing::TestWithParam<bool> {
   cricket::AudioSenderParameter send_parameters_;
   cricket::AudioReceiverParameters recv_parameters_;
   webrtc::AudioProcessing::Config apm_config_;
+  webrtc::PayloadTypePicker pt_mapper_;
 };
 
 INSTANTIATE_TEST_SUITE_P(TestBothWithAndWithoutNullApm,
@@ -1152,7 +1185,7 @@ TEST_P(WebRtcVoiceEngineTestFake, SetMaxSendBandwidthMultiRateAsCallee) {
   EXPECT_TRUE(SetupChannel());
   const int kDesiredBitrate = 128000;
   cricket::AudioSenderParameter parameters;
-  parameters.codecs = engine_->send_codecs();
+  parameters.codecs = SendCodecsWithId();
   parameters.max_bandwidth_bps = kDesiredBitrate;
   SetSenderParameters(parameters);
 
@@ -3889,7 +3922,7 @@ TEST(WebRtcVoiceEngineTest, SetRecvCodecs) {
         webrtc::CryptoOptions(), call.get(),
         webrtc::AudioCodecPairId::Create());
     cricket::AudioReceiverParameters parameters;
-    parameters.codecs = engine.recv_codecs();
+    parameters.codecs = ReceiveCodecsWithId(engine);
     EXPECT_TRUE(channel.SetReceiverParameters(parameters));
   }
 }

@@ -224,6 +224,7 @@ class PeerConnectionEncodingsIntegrationTest : public ::testing::Test {
     // Create and set answer for `remote_pc_wrapper`.
     std::unique_ptr<SessionDescriptionInterface> answer =
         CreateAnswer(remote_pc_wrapper);
+    EXPECT_TRUE(answer);
     p1 = SetLocalDescription(remote_pc_wrapper, answer.get());
     // Modify the answer before handoff because `local_pc_wrapper` should still
     // send simulcast.
@@ -1325,8 +1326,8 @@ TEST_F(PeerConnectionEncodingsIntegrationTest,
   EXPECT_EQ(*parameters.encodings[0].codec, *pcmu);
 
   NegotiateWithSimulcastTweaks(local_pc_wrapper, remote_pc_wrapper);
-  local_pc_wrapper->WaitForConnection();
-  remote_pc_wrapper->WaitForConnection();
+  ASSERT_TRUE(local_pc_wrapper->WaitForConnection());
+  ASSERT_TRUE(remote_pc_wrapper->WaitForConnection());
 
   rtc::scoped_refptr<const RTCStatsReport> report = GetStats(local_pc_wrapper);
   std::vector<const RTCOutboundRtpStreamStats*> outbound_rtps =
@@ -1945,7 +1946,6 @@ TEST_F(PeerConnectionEncodingsIntegrationTest,
 
   RtpParameters parameters = audio_transceiver->sender()->GetParameters();
   EXPECT_EQ(parameters.encodings[0].codec, opus);
-  EXPECT_EQ(parameters.codecs[0].payload_type, red->preferred_payload_type);
   EXPECT_EQ(parameters.codecs[0].name, red->name);
 
   // Check that it's possible to switch back to Opus without RED.
@@ -1957,7 +1957,6 @@ TEST_F(PeerConnectionEncodingsIntegrationTest,
 
   parameters = audio_transceiver->sender()->GetParameters();
   EXPECT_EQ(parameters.encodings[0].codec, opus);
-  EXPECT_EQ(parameters.codecs[0].payload_type, opus->preferred_payload_type);
   EXPECT_EQ(parameters.codecs[0].name, opus->name);
 }
 

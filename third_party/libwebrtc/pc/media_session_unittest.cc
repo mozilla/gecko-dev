@@ -92,7 +92,6 @@ const Codec kAudioCodecs1[] = {CreateAudioCodec(111, "opus", 48000, 2),
                                CreateAudioCodec(102, "iLBC", 8000, 1),
                                CreateAudioCodec(0, "PCMU", 8000, 1),
                                CreateAudioCodec(8, "PCMA", 8000, 1),
-                               CreateAudioCodec(117, "red", 8000, 1),
                                CreateAudioCodec(107, "CN", 48000, 1)};
 
 const Codec kAudioCodecs2[] = {
@@ -240,6 +239,24 @@ const char* kMediaProtocolsDtls[] = {"TCP/TLS/RTP/SAVPF", "TCP/TLS/RTP/SAVP",
 constexpr bool kStopped = true;
 constexpr bool kActive = false;
 
+// Helper used for debugging. It reports the media type and the parameters.
+std::string FullMimeType(Codec codec) {
+  rtc::StringBuilder sb;
+  switch (codec.type) {
+    case Codec::Type::kAudio:
+      sb << "audio/";
+      break;
+    case Codec::Type::kVideo:
+      sb << "video/";
+      break;
+  }
+  sb << codec.name;
+  for (auto& param : codec.params) {
+    sb << ";" << param.first << "=" << param.second;
+  }
+  return sb.Release();
+}
+
 bool IsMediaContentOfType(const ContentInfo* content, MediaType media_type) {
   RTC_DCHECK(content);
   return content->media_description()->type() == media_type;
@@ -251,6 +268,7 @@ RtpTransceiverDirection GetMediaDirection(const ContentInfo* content) {
 }
 
 void AddRtxCodec(const Codec& rtx_codec, std::vector<Codec>* codecs) {
+  RTC_LOG(LS_VERBOSE) << "Adding RTX codec " << FullMimeType(rtx_codec);
   ASSERT_FALSE(FindCodecById(*codecs, rtx_codec.id));
   codecs->push_back(rtx_codec);
 }
@@ -636,7 +654,7 @@ TEST_F(MediaSessionDescriptionFactoryTest, TestCreateAudioOffer) {
   EXPECT_EQ(MediaProtocolType::kRtp, ac->type);
   const MediaContentDescription* acd = ac->media_description();
   EXPECT_EQ(MEDIA_TYPE_AUDIO, acd->type());
-  EXPECT_EQ(f1_.audio_sendrecv_codecs(), acd->codecs());
+  EXPECT_THAT(f1_.audio_sendrecv_codecs(), ElementsAreArray(acd->codecs()));
   EXPECT_EQ(0U, acd->first_ssrc());             // no sender is attached.
   EXPECT_EQ(kAutoBandwidth, acd->bandwidth());  // default bandwidth (auto)
   EXPECT_TRUE(acd->rtcp_mux());                 // rtcp-mux defaults on
