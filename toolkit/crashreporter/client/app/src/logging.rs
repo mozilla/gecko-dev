@@ -16,6 +16,7 @@ pub fn init() -> LogTarget {
     let log_target_inner = LogTargetInner::default();
 
     env_logger::builder()
+        .filter_level(log::LevelFilter::Warn)
         .parse_env(
             env_logger::Env::new()
                 .filter(ekey!("LOG"))
