@@ -44,9 +44,7 @@ class StreamStatisticianImplInterface : public StreamStatistician {
 // Thread-compatible implementation of StreamStatisticianImplInterface.
 class StreamStatisticianImpl : public StreamStatisticianImplInterface {
  public:
-  StreamStatisticianImpl(uint32_t ssrc,
-                         Clock* clock,
-                         int max_reordering_threshold);
+  StreamStatisticianImpl(uint32_t ssrc, Clock* clock);
   ~StreamStatisticianImpl() override;
 
   // Implements StreamStatistician
@@ -119,10 +117,7 @@ class StreamStatisticianImpl : public StreamStatisticianImplInterface {
 // Thread-safe implementation of StreamStatisticianImplInterface.
 class StreamStatisticianLocked : public StreamStatisticianImplInterface {
  public:
-  StreamStatisticianLocked(uint32_t ssrc,
-                           Clock* clock,
-                           int max_reordering_threshold)
-      : impl_(ssrc, clock, max_reordering_threshold) {}
+  StreamStatisticianLocked(uint32_t ssrc, Clock* clock) : impl_(ssrc, clock) {}
   ~StreamStatisticianLocked() override = default;
 
   RtpReceiveStats GetStats() const override {
@@ -171,8 +166,7 @@ class ReceiveStatisticsImpl : public ReceiveStatistics {
       Clock* clock,
       std::function<std::unique_ptr<StreamStatisticianImplInterface>(
           uint32_t ssrc,
-          Clock* clock,
-          int max_reordering_threshold)> stream_statistician_factory);
+          Clock* clock)> stream_statistician_factory);
   ~ReceiveStatisticsImpl() override = default;
 
   // Implements ReceiveStatisticsProvider.
@@ -183,7 +177,6 @@ class ReceiveStatisticsImpl : public ReceiveStatistics {
 
   // Implements ReceiveStatistics.
   StreamStatistician* GetStatistician(uint32_t ssrc) const override;
-  void SetMaxReorderingThreshold(int max_reordering_threshold) override;
   void SetMaxReorderingThreshold(uint32_t ssrc,
                                  int max_reordering_threshold) override;
   void EnableRetransmitDetection(uint32_t ssrc, bool enable) override;
@@ -192,15 +185,12 @@ class ReceiveStatisticsImpl : public ReceiveStatistics {
   StreamStatisticianImplInterface* GetOrCreateStatistician(uint32_t ssrc);
 
   Clock* const clock_;
-  std::function<std::unique_ptr<StreamStatisticianImplInterface>(
-      uint32_t ssrc,
-      Clock* clock,
-      int max_reordering_threshold)>
+  std::function<std::unique_ptr<StreamStatisticianImplInterface>(uint32_t ssrc,
+                                                                 Clock* clock)>
       stream_statistician_factory_;
   // The index within `all_ssrcs_` that was last returned.
   size_t last_returned_ssrc_idx_;
   std::vector<uint32_t> all_ssrcs_;
-  int max_reordering_threshold_;
   flat_map<uint32_t /*ssrc*/, std::unique_ptr<StreamStatisticianImplInterface>>
       statisticians_;
 };
@@ -213,8 +203,7 @@ class ReceiveStatisticsLocked : public ReceiveStatistics {
       Clock* clock,
       std::function<std::unique_ptr<StreamStatisticianImplInterface>(
           uint32_t ssrc,
-          Clock* clock,
-          int max_reordering_threshold)> stream_statitician_factory)
+          Clock* clock)> stream_statitician_factory)
       : impl_(clock, std::move(stream_statitician_factory)) {}
   ~ReceiveStatisticsLocked() override = default;
   std::vector<rtcp::ReportBlock> RtcpReportBlocks(size_t max_blocks) override {
@@ -228,10 +217,6 @@ class ReceiveStatisticsLocked : public ReceiveStatistics {
   StreamStatistician* GetStatistician(uint32_t ssrc) const override {
     MutexLock lock(&receive_statistics_lock_);
     return impl_.GetStatistician(ssrc);
-  }
-  void SetMaxReorderingThreshold(int max_reordering_threshold) override {
-    MutexLock lock(&receive_statistics_lock_);
-    return impl_.SetMaxReorderingThreshold(max_reordering_threshold);
   }
   void SetMaxReorderingThreshold(uint32_t ssrc,
                                  int max_reordering_threshold) override {

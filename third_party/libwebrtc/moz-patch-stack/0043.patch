@@ -42,7 +42,7 @@ index bf2da5dd18..cd6ed5fbdd 100644
  }  // namespace
  
 diff --git a/audio/channel_receive.cc b/audio/channel_receive.cc
-index 37bafaf94e..698f03f39f 100644
+index ca5f916ea4..9559683041 100644
 --- a/audio/channel_receive.cc
 +++ b/audio/channel_receive.cc
 @@ -109,7 +109,8 @@ class ChannelReceive : public ChannelReceiveInterface,
@@ -73,7 +73,7 @@ index 37bafaf94e..698f03f39f 100644
  
    if (frame_transformer)
      InitFrameTransformerDelegate(std::move(frame_transformer));
-@@ -1213,13 +1216,14 @@ std::unique_ptr<ChannelReceiveInterface> CreateChannelReceive(
+@@ -1214,13 +1217,14 @@ std::unique_ptr<ChannelReceiveInterface> CreateChannelReceive(
      std::optional<AudioCodecPairId> codec_pair_id,
      rtc::scoped_refptr<FrameDecryptorInterface> frame_decryptor,
      const webrtc::CryptoOptions& crypto_options,

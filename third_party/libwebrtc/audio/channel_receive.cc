@@ -901,11 +901,12 @@ void ChannelReceive::SetNACKStatus(bool enable, int max_packets) {
   RTC_DCHECK_RUN_ON(&worker_thread_checker_);
   // None of these functions can fail.
   if (enable) {
-    rtp_receive_statistics_->SetMaxReorderingThreshold(max_packets);
+    rtp_receive_statistics_->SetMaxReorderingThreshold(remote_ssrc_,
+                                                       max_packets);
     neteq_->EnableNack(max_packets);
   } else {
     rtp_receive_statistics_->SetMaxReorderingThreshold(
-        kDefaultMaxReorderingThreshold);
+        remote_ssrc_, kDefaultMaxReorderingThreshold);
     neteq_->DisableNack();
   }
 }
