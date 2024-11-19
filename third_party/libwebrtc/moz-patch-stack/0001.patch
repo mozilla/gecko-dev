@@ -1593,10 +1593,10 @@ index 61a3c667ba..ad2303735e 100644
  // The list of logging streams currently configured.
  // Note: we explicitly do not clean this up, because of the uncertain ordering
 diff --git a/rtc_base/logging.h b/rtc_base/logging.h
-index d5be6b19ba..2e734f6d7c 100644
+index 199efeb6b7..a94ac96bf4 100644
 --- a/rtc_base/logging.h
 +++ b/rtc_base/logging.h
-@@ -584,6 +584,12 @@ class LogMessage {
+@@ -577,6 +577,12 @@ class LogMessage {
    }
  #endif  // RTC_LOG_ENABLED()
  
@@ -1609,7 +1609,7 @@ index d5be6b19ba..2e734f6d7c 100644
   private:
    friend class LogMessageForTesting;
  
-@@ -639,6 +645,9 @@ class LogMessage {
+@@ -632,6 +638,9 @@ class LogMessage {
  
    // The stringbuilder that buffers the formatted message before output
    rtc::StringBuilder print_stream_;

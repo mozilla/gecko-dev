@@ -389,20 +389,5 @@ TEST(LogTest, UseAbslStringForCustomTypes) {
   LogMessage::RemoveLogToStream(&stream);
 }
 
-struct TestStruct {};
-std::string ToLogString(TestStruct foo) {
-  return "bar";
-}
-
-TEST(LogTest, ToLogStringUsedForUnknownTypes) {
-  std::string str;
-  LogSinkImpl stream(&str);
-  LogMessage::AddLogToStream(&stream, LS_INFO);
-  TestStruct t;
-  RTC_LOG(LS_INFO) << t;
-  EXPECT_THAT(str, ::testing::HasSubstr("bar"));
-  LogMessage::RemoveLogToStream(&stream);
-}
-
 }  // namespace rtc
 #endif  // RTC_LOG_ENABLED()

@@ -218,14 +218,8 @@ inline decltype(MakeVal(std::declval<absl::underlying_type_t<T>>())) MakeVal(
   return {static_cast<absl::underlying_type_t<T>>(x)};
 }
 
-template <typename T, std::enable_if_t<has_to_log_string_v<T>>* = nullptr>
-ToStringVal MakeVal(const T& x) {
-  return {ToLogString(x)};
-}
-
 template <typename T,
-          std::enable_if_t<absl::HasAbslStringify<T>::value &&
-                           !has_to_log_string_v<T>>* = nullptr>
+          std::enable_if_t<absl::HasAbslStringify<T>::value>* = nullptr>
 ToStringVal MakeVal(const T& x) {
   return {absl::StrCat(x)};
 }
