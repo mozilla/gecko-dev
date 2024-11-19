@@ -32,8 +32,9 @@ class SSLCertificate;
 // KT_DEFAULT is used as the default KeyType for KeyParams.
 enum KeyType { KT_RSA, KT_ECDSA, KT_LAST, KT_DEFAULT = KT_ECDSA };
 
-static const int kRsaDefaultModSize = 1024;
+static const int kRsaDefaultModSize = 2048;
 static const int kRsaDefaultExponent = 0x10001;  // = 2^16+1 = 65537
+// TODO(bugs.webrtc.org/364338811): raise the bar to 2048 bits.
 static const int kRsaMinModSize = 1024;
 static const int kRsaMaxModSize = 8192;
 
