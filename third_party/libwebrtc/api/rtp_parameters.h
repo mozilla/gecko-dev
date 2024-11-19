@@ -212,7 +212,6 @@ struct RTC_EXPORT RtpHeaderExtensionCapability {
   std::optional<int> preferred_id;
 
   // If true, it's preferred that the value in the header is encrypted.
-  // TODO(deadbeef): Not implemented.
   bool preferred_encrypt = false;
 
   // The direction of the extension. The kStopped value is only used with
@@ -226,6 +225,10 @@ struct RTC_EXPORT RtpHeaderExtensionCapability {
   RtpHeaderExtensionCapability(absl::string_view uri, int preferred_id);
   RtpHeaderExtensionCapability(absl::string_view uri,
                                int preferred_id,
+                               RtpTransceiverDirection direction);
+  RtpHeaderExtensionCapability(absl::string_view uri,
+                               int preferred_id,
+                               bool preferred_encrypt,
                                RtpTransceiverDirection direction);
   ~RtpHeaderExtensionCapability();
 

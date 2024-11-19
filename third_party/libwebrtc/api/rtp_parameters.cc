@@ -76,6 +76,15 @@ RtpHeaderExtensionCapability::RtpHeaderExtensionCapability(
     int preferred_id,
     RtpTransceiverDirection direction)
     : uri(uri), preferred_id(preferred_id), direction(direction) {}
+RtpHeaderExtensionCapability::RtpHeaderExtensionCapability(
+    absl::string_view uri,
+    int preferred_id,
+    bool preferred_encrypt,
+    RtpTransceiverDirection direction)
+    : uri(uri),
+      preferred_id(preferred_id),
+      preferred_encrypt(preferred_encrypt),
+      direction(direction) {}
 RtpHeaderExtensionCapability::~RtpHeaderExtensionCapability() = default;
 
 RtpExtension::RtpExtension() = default;
