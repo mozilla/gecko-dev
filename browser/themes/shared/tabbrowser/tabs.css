@@ -100,6 +100,8 @@
   --tab-group-color-gray: #5E6A77;
   --tab-group-color-gray-invert: #99A6B4;
   --tab-group-color-gray-pale: #F2F9FF;
+
+  --tab-group-label-text-dark: var(--color-gray-100);
 }
 
 /* stylelint-disable-next-line media-query-no-invalid */
@@ -826,7 +828,7 @@ tab-group {
   min-width: var(--tab-group-label-height);
   max-width: 10em;
   padding-inline: 4px;
-  color: light-dark(var(--tab-group-color-pale), ButtonText);
+  color: light-dark(var(--tab-group-color-pale), var(--tab-group-label-text-dark));
   background-color: light-dark(var(--tab-group-color), var(--tab-group-color-invert));
   margin: auto 0;
 
