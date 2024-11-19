@@ -97,9 +97,8 @@ public class GeckoScreenOrientation {
     mListeners.remove(aListener);
   }
 
-  /*
-   * Update screen orientation.
-   * Retrieve orientation and rotation via GeckoAppShell.
+  /**
+   * Update screen orientation by retrieving orientation and rotation via GeckoAppShell.
    *
    * @return Whether the screen orientation has changed.
    */
@@ -115,37 +114,31 @@ public class GeckoScreenOrientation {
     return update(getScreenOrientation(orientation, getRotation()));
   }
 
-  /*
-   * Update screen orientation.
-   *  Retrieve orientation and rotation via Display.
+  /**
+   * Update screen orientation by retrieving orientation and rotation via Display.
    *
-   * @param aDisplay The Display that has screen orientation information
-   *
+   * @param aDisplay The Display that has screen orientation information.
    * @return Whether the screen orientation has changed.
    */
   public boolean update(final Display aDisplay) {
     return update(getScreenOrientation(aDisplay));
   }
 
-  /*
-   * Update screen orientation given the android orientation.
-   * Retrieve rotation via GeckoAppShell.
+  /**
+   * Update screen orientation given the Android orientation by retrieving rotation via
+   * GeckoAppShell.
    *
-   * @param aAndroidOrientation
-   *        Android screen orientation from Configuration.orientation.
-   *
+   * @param aAndroidOrientation Android screen orientation from Configuration.orientation.
    * @return Whether the screen orientation has changed.
    */
   public boolean update(final int aAndroidOrientation) {
     return update(getScreenOrientation(aAndroidOrientation, getRotation()));
   }
 
-  /*
+  /**
    * Update screen orientation given the screen orientation.
    *
-   * @param aScreenOrientation
-   *        Gecko screen orientation based on android orientation and rotation.
-   *
+   * @param aScreenOrientation Gecko screen orientation based on Android orientation and rotation.
    * @return Whether the screen orientation has changed.
    */
   public synchronized boolean update(final ScreenOrientation aScreenOrientation) {
@@ -191,22 +184,18 @@ public class GeckoScreenOrientation {
     }
   }
 
-  /*
-   * @return The Gecko screen orientation derived from Android orientation and
-   *         rotation.
+  /**
+   * @return The Gecko screen orientation derived from Android orientation and rotation.
    */
   public ScreenOrientation getScreenOrientation() {
     return mScreenOrientation;
   }
 
-  /*
+  /**
    * Combine the Android orientation and rotation to the Gecko orientation.
    *
-   * @param aAndroidOrientation
-   *        Android orientation from Configuration.orientation.
-   * @param aRotation
-   *        Device rotation from Display.getRotation().
-   *
+   * @param aAndroidOrientation Android orientation from Configuration.orientation.
+   * @param aRotation Device rotation from Display.getRotation().
    * @return Gecko screen orientation.
    */
   private ScreenOrientation getScreenOrientation(
@@ -231,11 +220,10 @@ public class GeckoScreenOrientation {
     return ScreenOrientation.NONE;
   }
 
-  /*
+  /**
    * Get the Gecko orientation from Display.
    *
    * @param aDisplay The display that has orientation information.
-   *
    * @return Gecko screen orientation.
    */
   private ScreenOrientation getScreenOrientation(final Display aDisplay) {
@@ -245,7 +233,7 @@ public class GeckoScreenOrientation {
     return getScreenOrientation(orientation, aDisplay.getRotation());
   }
 
-  /*
+  /**
    * @return Device rotation converted to an angle.
    */
   public short getAngle() {
@@ -264,7 +252,7 @@ public class GeckoScreenOrientation {
     }
   }
 
-  /*
+  /**
    * @return Device rotation.
    */
   private int getRotation() {

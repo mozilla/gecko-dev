@@ -418,7 +418,7 @@ public final class GeckoBundle implements Parcelable {
                 : (String[]) value;
   }
 
-  /*
+  /**
    * Returns the value associated with a RectF mapping, or null if the mapping does not exist.
    *
    * @param key Key to look for.

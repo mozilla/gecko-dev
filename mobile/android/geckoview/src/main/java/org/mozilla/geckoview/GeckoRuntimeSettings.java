@@ -1366,14 +1366,14 @@ public final class GeckoRuntimeSettings extends RuntimeSettings {
     return setFontSizeFactorInternal(fontSizeFactor);
   }
 
-  /*
+  /**
    * Enable the Enteprise Roots feature.
    *
-   * When Enabled, GeckoView will fetch the third-party root certificates added to the
-   * Android OS CA store and will use them internally.
+   * <p>When Enabled, GeckoView will fetch the third-party root certificates added to the Android OS
+   * CA store and will use them internally.
    *
-   * @param enabled whether to enable this feature or not
-   * @return This GeckoRuntimeSettings instance
+   * @param enabled Whether to enable this feature or not.
+   * @return This GeckoRuntimeSettings instance.
    */
   public @NonNull GeckoRuntimeSettings setEnterpriseRootsEnabled(final boolean enabled) {
     mEnterpriseRootsEnabled.commit(enabled);
