@@ -33,7 +33,6 @@
   display: flex;
   flex-direction: column;
 
-  --main-pane-width: 664px;
 }
 
 /*
@@ -56,7 +55,7 @@
 .pane-container {
   /* A workaround to keep the container always float on the `top: 0` (Bug 1377009) */
   display: block;
-  width: min(100%, var(--main-pane-width));
+  width: min(100%, var(--page-main-content-width));
   min-width: min-content;
 }
 
@@ -1022,7 +1021,7 @@ dialog > .sync-engines-list + hbox {
 
 .sticky-inner-container {
   flex: 1;
-  max-width: var(--main-pane-width);
+  max-width: var(--page-main-content-width);
 }
 
 .search-tooltip {

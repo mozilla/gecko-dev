@@ -902,6 +902,19 @@
       }
     }
   },
+  "page": {
+    "main": {
+      "content": {
+        "width": {
+          "value": {
+            "brand": {
+              "default": "664px"
+            }
+          }
+        }
+      }
+    }
+  },
   "size": {
     "item": {
       "small": {

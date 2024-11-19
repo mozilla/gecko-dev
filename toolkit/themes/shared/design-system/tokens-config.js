@@ -24,6 +24,7 @@ const TOKEN_SECTIONS = {
   "Input - Space": "input-space",
   Link: "link",
   "Outline Color": "outline-color",
+  Page: "page",
   Size: "size",
   Space: "space",
   Text: "text",

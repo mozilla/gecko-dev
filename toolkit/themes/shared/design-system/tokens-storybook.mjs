@@ -749,6 +749,12 @@ export const storybookTables = {
     },
     { value: "1px", name: "--link-focus-outline-offset" },
   ],
+  "page-main": [
+    {
+      value: { brand: { default: "664px" } },
+      name: "--page-main-content-width",
+    },
+  ],
   space: [
     { value: "calc(0.5 * var(--space-xsmall))", name: "--space-xxsmall" },
     { value: "0.267rem", name: "--space-xsmall" },
@@ -1201,6 +1207,7 @@ export const variableLookupTable = {
     prefersContrast: "var(--border-color)",
     default: "light-dark(var(--color-red-50), var(--color-red-20))",
   },
+  "page-main-content-width": { brand: { default: "664px" } },
   "size-item-small": "16px",
   "size-item-medium": "28px",
   "size-item-large": "32px",

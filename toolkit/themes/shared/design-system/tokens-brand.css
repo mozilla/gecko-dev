@@ -45,6 +45,9 @@
     --link-color-active: var(--color-accent-primary-active);
     --link-color-visited: var(--link-color);
 
+    /** Page **/
+    --page-main-content-width: 664px;
+
     /** Text **/
     --text-color: light-dark(var(--color-gray-100), var(--color-gray-05));
   }
