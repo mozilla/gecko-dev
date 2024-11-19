@@ -302,5 +302,30 @@ TEST(
   EXPECT_EQ(data->sequence_index, 11 + 128);
 }
 
+TEST(CorruptionDetectionMessageToFrameInstrumentationData, ConvertAllFields) {
+  std::vector<double> sample_values = {1.0, 2.0, 3.0, 4.0, 5.0};
+  std::optional<CorruptionDetectionMessage> message =
+      CorruptionDetectionMessage::Builder()
+          .WithSequenceIndex(11)
+          .WithInterpretSequenceIndexAsMostSignificantBits(false)
+          .WithStdDev(1.2)
+          .WithLumaErrorThreshold(10)
+          .WithChromaErrorThreshold(10)
+          .WithSampleValues(sample_values)
+          .Build();
+  ASSERT_TRUE(message.has_value());
+
+  std::optional<FrameInstrumentationData> data =
+      ConvertCorruptionDetectionMessageToFrameInstrumentationData(*message, 0);
+
+  ASSERT_TRUE(data.has_value());
+  EXPECT_EQ(data->sequence_index, 11);
+  EXPECT_FALSE(data->communicate_upper_bits);
+  EXPECT_NEAR(data->std_dev, 1.2, 0.024);  // ~2%
+  EXPECT_EQ(data->luma_error_threshold, 10);
+  EXPECT_EQ(data->chroma_error_threshold, 10);
+  EXPECT_THAT(data->sample_values, ElementsAre(1.0, 2.0, 3.0, 4.0, 5.0));
+}
+
 }  // namespace
 }  // namespace webrtc
