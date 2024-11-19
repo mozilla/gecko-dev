@@ -12,6 +12,7 @@ const METRICS = [
   `${PREFIX}-${PIPELINE_READY_MEMORY}`,
   `${PREFIX}-${INITIALIZATION_MEMORY}`,
   `${PREFIX}-${MODEL_RUN_MEMORY}`,
+  `${PREFIX}-${TOTAL_MEMORY_USAGE}`,
 ];
 const journal = {};
 for (let metric of METRICS) {
@@ -40,6 +41,11 @@ const perfMetadata = {
         { name: "intent-pipeline-ready-memory", unit: "MB", shouldAlert: true },
         { name: "intent-initialization-memory", unit: "MB", shouldAlert: true },
         { name: "intent-model-run-memory", unit: "MB", shouldAlert: true },
+        {
+          name: "intent-total-memory-usage",
+          unit: "MB",
+          shouldAlert: true,
+        },
       ],
       verbose: true,
       manifest: "perftest.toml",

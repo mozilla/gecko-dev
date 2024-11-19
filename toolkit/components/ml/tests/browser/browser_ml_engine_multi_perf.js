@@ -77,6 +77,8 @@ for (let engineKey of Object.keys(ENGINES)) {
     METRICS.push(`${engineKey}-${metric}`);
   }
 }
+METRICS.push(TOTAL_MEMORY_USAGE);
+
 const journal = {};
 for (let metric of METRICS) {
   journal[metric] = [];
@@ -104,6 +106,7 @@ const perfMetadata = {
         { name: `intent-pipeline-ready-memory`, unit: "MB", shouldAlert: true },
         { name: `intent-initialization-memory`, unit: "MB", shouldAlert: true },
         { name: `intent-model-run-memory`, unit: "MB", shouldAlert: true },
+        { name: `intent-total-memory-usage`, unit: "MB", shouldAlert: true },
         {
           name: `suggest-pipeline-ready-latency`,
           unit: "ms",
@@ -126,11 +129,14 @@ const perfMetadata = {
           shouldAlert: true,
         },
         { name: `suggest-model-run-memory`, unit: "MB", shouldAlert: true },
+
+        { name: `suggest-total-memory-usage`, unit: "MB", shouldAlert: true },
         {
           name: `engine3-pipeline-ready-latency`,
           unit: "ms",
           shouldAlert: true,
         },
+
         {
           name: `engine3-initialization-latency`,
           unit: "ms",
@@ -148,6 +154,8 @@ const perfMetadata = {
           shouldAlert: true,
         },
         { name: `engine3-model-run-memory`, unit: "MB", shouldAlert: true },
+
+        { name: `engine3-total-memory-usage`, unit: "MB", shouldAlert: true },
         {
           name: `engine4-pipeline-ready-latency`,
           unit: "ms",
@@ -170,6 +178,7 @@ const perfMetadata = {
           shouldAlert: true,
         },
         { name: `engine4-model-run-memory`, unit: "MB", shouldAlert: true },
+        { name: `engine4-total-memory-usage`, unit: "MB", shouldAlert: true },
       ],
       verbose: true,
       manifest: "perftest.toml",
@@ -237,6 +246,10 @@ add_task(async function test_ml_generic_pipeline_concurrent_separate_phases() {
   }, {});
 
   Assert.ok(true);
+
+  const memUsage = await getTotalMemoryUsage();
+  (combinedJournal["total-memory-usage"] =
+    combinedJournal["total-memory-usage"] || []).push(memUsage);
 
   // Final metrics report
   reportMetrics(combinedJournal);

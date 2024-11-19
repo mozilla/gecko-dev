@@ -56,6 +56,7 @@ const MODEL_RUN_LATENCY = "model-run-latency";
 const PIPELINE_READY_MEMORY = "pipeline-ready-memory";
 const INITIALIZATION_MEMORY = "initialization-memory";
 const MODEL_RUN_MEMORY = "model-run-memory";
+const TOTAL_MEMORY_USAGE = "total-memory-usage";
 
 const WHEN = "when";
 const MEMORY = "memory";
@@ -246,6 +247,7 @@ const runInference = async (pipelineOptions, args) => {
 
   const res = await engine.run(request);
   let metrics = fetchMetrics(res.metrics);
+  metrics[TOTAL_MEMORY_USAGE] = await getTotalMemoryUsage();
   await EngineProcess.destroyMLEngine();
   await cleanup();
   return metrics;
@@ -447,4 +449,33 @@ async function createRemoteClient({
     );
   }
   return client;
+}
+
+async function getTotalMemoryUsage() {
+  let mgr = Cc["@mozilla.org/memory-reporter-manager;1"].getService(
+    Ci.nsIMemoryReporterManager
+  );
+
+  let total = 0;
+
+  const handleReport = (
+    aProcess,
+    aPath,
+    _aKind,
+    _aUnits,
+    aAmount,
+    _aDescription
+  ) => {
+    if (aProcess.startsWith("inference")) {
+      if (aPath.startsWith("explicit")) {
+        total += aAmount;
+      }
+    }
+  };
+
+  await new Promise(r =>
+    mgr.getReports(handleReport, null, r, null, /* anonymized = */ false)
+  );
+
+  return Math.round(total / 1024 / 1024);
 }

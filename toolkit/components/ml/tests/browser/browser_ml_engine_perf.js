@@ -11,6 +11,7 @@ const METRICS = [
   PIPELINE_READY_MEMORY,
   INITIALIZATION_MEMORY,
   MODEL_RUN_MEMORY,
+  TOTAL_MEMORY_USAGE,
 ];
 const journal = {};
 for (let metric of METRICS) {
@@ -31,6 +32,7 @@ const perfMetadata = {
         { name: "pipeline-ready-memory", unit: "MB", shouldAlert: true },
         { name: "initialization-memory", unit: "MB", shouldAlert: true },
         { name: "model-run-memory", unit: "MB", shouldAlert: true },
+        { name: "total-memory-usage", unit: "MB", shouldAlert: true },
       ],
       verbose: true,
       manifest: "perftest.toml",
