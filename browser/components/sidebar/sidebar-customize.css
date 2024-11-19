@@ -77,12 +77,17 @@ moz-fieldset {
 
 moz-radio,
 moz-checkbox {
+  display: flex;
   padding-block: var(--space-medium);
+  box-sizing: border-box;
 
   &:not(:last-of-type) {
     border-bottom: 0.5px solid var(--panel-separator-color);
   }
 
+  &::part(label) {
+    width: 100%;
+  }
 }
 
 #manage-settings {

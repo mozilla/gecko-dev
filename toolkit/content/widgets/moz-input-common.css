@@ -21,11 +21,7 @@
 
   label {
     display: block;
-
-    &:has(+ a[is="moz-support-link"]),
-    :host(:has([slot="support-link"])) & {
-      display: inline;
-    }
+    padding-inline-start: var(--input-space-offset);
   }
 
   #input {
@@ -64,10 +60,5 @@
   .description {
     margin-inline-start: var(--input-space-offset);
     margin-block-start: var(--space-xxsmall);
-  }
-
-  .label-wrapper {
-    display: block;
-    padding-inline-start: var(--input-space-offset);
   }
 }
