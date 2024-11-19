@@ -9,7 +9,8 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:orientation="vertical">
+    android:orientation="vertical"
+    android:id="@+id/add_on_message_bars">
 
     <androidx.cardview.widget.CardView
         android:id="@+id/add_on_messagebar_warning"

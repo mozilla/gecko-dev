@@ -13,7 +13,6 @@ import android.view.View
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
 import androidx.annotation.VisibleForTesting
-import androidx.compose.material.SnackbarDuration
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
@@ -27,7 +26,6 @@ import mozilla.components.feature.addons.Addon
 import mozilla.components.feature.addons.AddonManager
 import mozilla.components.feature.addons.AddonManagerException
 import mozilla.components.feature.addons.ui.AddonsManagerAdapter
-import mozilla.components.feature.addons.ui.AddonsManagerAdapterDelegate
 import org.mozilla.fenix.BrowserDirection
 import org.mozilla.fenix.BuildConfig
 import org.mozilla.fenix.Config
@@ -39,7 +37,6 @@ import org.mozilla.fenix.ext.requireComponents
 import org.mozilla.fenix.ext.runIfFragmentIsAttached
 import org.mozilla.fenix.ext.settings
 import org.mozilla.fenix.ext.showToolbar
-import org.mozilla.fenix.settings.SupportUtils
 import org.mozilla.fenix.settings.SupportUtils.AMO_HOMEPAGE_FOR_ANDROID
 import org.mozilla.fenix.theme.ThemeManager
 
@@ -84,7 +81,14 @@ class AddonsManagementFragment : Fragment(R.layout.fragment_add_ons_management) 
             navController = findNavController(),
             onInstallButtonClicked = ::installAddon,
             onMoreAddonsButtonClicked = ::openAMO,
-            onLearnMoreClicked = ::openLearnMoreLink,
+            onLearnMoreClicked = { link, addon ->
+                openLearnMoreLink(
+                    activity as HomeActivity,
+                    link,
+                    addon,
+                    BrowserDirection.FromAddonsManagementFragment,
+                )
+            },
         )
 
         val recyclerView = binding?.addOnsList
@@ -162,15 +166,6 @@ class AddonsManagementFragment : Fragment(R.layout.fragment_add_ons_management) 
         }
     }
 
-    @VisibleForTesting
-    internal fun showErrorSnackBar(text: String, anchorView: View? = this.view) {
-        runIfFragmentIsAttached {
-            anchorView?.let {
-                showSnackBar(it, text, SnackbarDuration.Long)
-            }
-        }
-    }
-
     private fun createAddonStyle(context: Context): AddonsManagerAdapter.Style {
         val sectionsTypeFace = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             Typeface.create(Typeface.DEFAULT, FONT_WEIGHT_MEDIUM, false)
@@ -190,10 +185,6 @@ class AddonsManagementFragment : Fragment(R.layout.fragment_add_ons_management) 
     @VisibleForTesting
     internal fun provideAddonManger(): AddonManager {
         return requireContext().components.addonManager
-    }
-
-    internal fun provideAccessibilityServicesEnabled(): Boolean {
-        return requireContext().settings().accessibilityServicesEnabled
     }
 
     internal fun installAddon(addon: Addon) {
@@ -244,25 +235,15 @@ class AddonsManagementFragment : Fragment(R.layout.fragment_add_ons_management) 
         }
     }
 
+    private fun provideAccessibilityServicesEnabled(): Boolean {
+        return requireContext().settings().accessibilityServicesEnabled
+    }
+
     private fun openAMO() {
-        openLinkInNewTab(AMO_HOMEPAGE_FOR_ANDROID)
-    }
-
-    private fun openLearnMoreLink(link: AddonsManagerAdapterDelegate.LearnMoreLinks, addon: Addon) {
-        val url = when (link) {
-            AddonsManagerAdapterDelegate.LearnMoreLinks.BLOCKLISTED_ADDON ->
-                "${BuildConfig.AMO_BASE_URL}/android/blocked-addon/${addon.id}/${addon.version}/"
-            AddonsManagerAdapterDelegate.LearnMoreLinks.ADDON_NOT_CORRECTLY_SIGNED ->
-                SupportUtils.getSumoURLForTopic(requireContext(), SupportUtils.SumoTopic.UNSIGNED_ADDONS)
-        }
-        openLinkInNewTab(url)
-    }
-
-    private fun openLinkInNewTab(url: String) {
-        (activity as HomeActivity).openToBrowserAndLoad(
-            searchTermOrURL = url,
-            newTab = true,
-            from = BrowserDirection.FromAddonsManagementFragment,
+        openLinkInNewTab(
+            activity as HomeActivity,
+            AMO_HOMEPAGE_FOR_ANDROID,
+            BrowserDirection.FromAddonsManagementFragment,
         )
     }
 }

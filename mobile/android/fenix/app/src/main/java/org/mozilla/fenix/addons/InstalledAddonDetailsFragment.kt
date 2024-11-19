@@ -24,8 +24,12 @@ import mozilla.components.concept.engine.webextension.EnableSource
 import mozilla.components.feature.addons.Addon
 import mozilla.components.feature.addons.AddonManager
 import mozilla.components.feature.addons.AddonManagerException
+import mozilla.components.feature.addons.ui.AddonsManagerAdapter
 import mozilla.components.feature.addons.ui.translateName
 import mozilla.components.support.base.log.logger.Logger
+import mozilla.components.support.ktx.android.content.appName
+import mozilla.components.support.ktx.android.content.appVersionName
+import org.mozilla.fenix.BrowserDirection
 import org.mozilla.fenix.BuildConfig
 import org.mozilla.fenix.HomeActivity
 import org.mozilla.fenix.R
@@ -158,6 +162,30 @@ class InstalledAddonDetailsFragment : Fragment() {
         bindAllowInPrivateBrowsingSwitch()
         bindRemoveButton()
         bindReportButton()
+        context?.let {
+            val messageBarWarningView =
+                binding.root.findViewById<View>(mozilla.components.feature.addons.R.id.add_on_messagebar_warning)
+            val messageBarErrorView =
+                binding.root.findViewById<View>(mozilla.components.feature.addons.R.id.add_on_messagebar_error)
+
+            AddonsManagerAdapter.bindMessageBars(
+                it,
+                messageBarWarningView,
+                messageBarErrorView,
+                onLearnMoreLinkClicked = { link ->
+                    openLearnMoreLink(
+                        activity as HomeActivity,
+                        link,
+                        addon,
+                        BrowserDirection.FromAddonDetailsFragment,
+                    )
+                },
+                addon,
+                addon.translateName(it),
+                it.appName,
+                it.appVersionName,
+            )
+        }
     }
 
     @VisibleForTesting

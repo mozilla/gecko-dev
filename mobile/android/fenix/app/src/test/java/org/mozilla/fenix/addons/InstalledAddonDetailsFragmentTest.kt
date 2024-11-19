@@ -5,6 +5,9 @@
 package org.mozilla.fenix.addons
 
 import android.view.LayoutInflater
+import android.view.View
+import android.widget.TextView
+import androidx.core.view.isVisible
 import androidx.navigation.NavController
 import androidx.navigation.Navigation
 import com.google.android.material.switchmaterial.SwitchMaterial
@@ -24,14 +27,19 @@ import mozilla.components.feature.tabs.TabsUseCases
 import mozilla.components.support.test.robolectric.testContext
 import mozilla.components.support.test.rule.MainCoroutineRule
 import mozilla.components.support.test.rule.runTestOnMain
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.mozilla.fenix.BrowserDirection
+import org.mozilla.fenix.BuildConfig
 import org.mozilla.fenix.HomeActivity
 import org.mozilla.fenix.databinding.FragmentInstalledAddOnDetailsBinding
 import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.helpers.FenixRobolectricTestRunner
+import org.mozilla.fenix.settings.SupportUtils
 
 @RunWith(FenixRobolectricTestRunner::class)
 class InstalledAddonDetailsFragmentTest {
@@ -304,9 +312,131 @@ class InstalledAddonDetailsFragmentTest {
         verify(exactly = 0) { fragment.showUnableToQueryAddonsMessage() }
     }
 
+    @Test
+    fun `GIVEN a hard blocked add-on WHEN binding THEN an error message is shown`() {
+        val addon = mockAddon()
+        every { addon.isDisabledAsBlocklisted() } returns true
+        every { fragment.addon } returns addon
+        every { fragment.context } returns testContext
+        every {
+            (fragment.activity as HomeActivity).openToBrowserAndLoad(
+                searchTermOrURL = any(),
+                newTab = any(),
+                from = any(),
+            )
+        } returns Unit
+        // We create the `binding` instance and bind the UI here because `onCreateView()` checks a late init variable
+        // and we cannot easily mock it to skip the check.
+        val binding = FragmentInstalledAddOnDetailsBinding.inflate(
+            LayoutInflater.from(testContext),
+            mockk(relaxed = true),
+            false,
+        )
+        fragment.setBindingAndBindUI(binding)
+
+        val warningView =
+            binding.root.findViewById<View>(mozilla.components.feature.addons.R.id.add_on_messagebar_warning)
+        assertFalse(warningView.isVisible)
+        val errorView = binding.root.findViewById<View>(mozilla.components.feature.addons.R.id.add_on_messagebar_error)
+        assertTrue(errorView.isVisible)
+
+        errorView.findViewById<TextView>(mozilla.components.feature.addons.R.id.add_on_messagebar_error_learn_more_link)
+            .performClick()
+
+        verify {
+            (fragment.activity as HomeActivity).openToBrowserAndLoad(
+                searchTermOrURL = "${BuildConfig.AMO_BASE_URL}/android/blocked-addon/some-addon-id/1.2.3/",
+                newTab = true,
+                from = BrowserDirection.FromAddonDetailsFragment,
+            )
+        }
+    }
+
+    @Test
+    fun `GIVEN an add-on not correctly signed WHEN binding THEN an error message is shown`() {
+        val addon = mockAddon()
+        every { addon.isDisabledAsNotCorrectlySigned() } returns true
+        every { fragment.addon } returns addon
+        every { fragment.context } returns testContext
+        every {
+            (fragment.activity as HomeActivity).openToBrowserAndLoad(
+                searchTermOrURL = any(),
+                newTab = any(),
+                from = any(),
+            )
+        } returns Unit
+        every { (fragment.activity as HomeActivity).baseContext } returns testContext
+        // We create the `binding` instance and bind the UI here because `onCreateView()` checks a late init variable
+        // and we cannot easily mock it to skip the check.
+        val binding = FragmentInstalledAddOnDetailsBinding.inflate(
+            LayoutInflater.from(testContext),
+            mockk(relaxed = true),
+            false,
+        )
+        fragment.setBindingAndBindUI(binding)
+
+        val warningView =
+            binding.root.findViewById<View>(mozilla.components.feature.addons.R.id.add_on_messagebar_warning)
+        assertFalse(warningView.isVisible)
+        val errorView = binding.root.findViewById<View>(mozilla.components.feature.addons.R.id.add_on_messagebar_error)
+        assertTrue(errorView.isVisible)
+
+        errorView.findViewById<TextView>(mozilla.components.feature.addons.R.id.add_on_messagebar_error_learn_more_link)
+            .performClick()
+
+        verify {
+            (fragment.activity as HomeActivity).openToBrowserAndLoad(
+                searchTermOrURL = SupportUtils.getSumoURLForTopic(testContext, SupportUtils.SumoTopic.UNSIGNED_ADDONS),
+                newTab = true,
+                from = BrowserDirection.FromAddonDetailsFragment,
+            )
+        }
+    }
+
+    @Test
+    fun `GIVEN a soft-blocked add-on WHEN binding THEN a warning message is shown`() {
+        val addon = mockAddon()
+        every { addon.isSoftBlocked() } returns true
+        every { fragment.addon } returns addon
+        every { fragment.context } returns testContext
+        every {
+            (fragment.activity as HomeActivity).openToBrowserAndLoad(
+                searchTermOrURL = any(),
+                newTab = any(),
+                from = any(),
+            )
+        } returns Unit
+
+        // We create the `binding` instance and bind the UI here because `onCreateView()` checks a late init variable
+        // and we cannot easily mock it to skip the check.
+        val binding = FragmentInstalledAddOnDetailsBinding.inflate(
+            LayoutInflater.from(testContext),
+            mockk(relaxed = true),
+            false,
+        )
+        fragment.setBindingAndBindUI(binding)
+
+        val warningView = binding.root.findViewById<View>(mozilla.components.feature.addons.R.id.add_on_messagebar_warning)
+        assertTrue(warningView.isVisible)
+        val errorView = binding.root.findViewById<View>(mozilla.components.feature.addons.R.id.add_on_messagebar_error)
+        assertFalse(errorView.isVisible)
+
+        warningView.findViewById<TextView>(mozilla.components.feature.addons.R.id.add_on_messagebar_warning_learn_more_link)
+            .performClick()
+
+        verify {
+            (fragment.activity as HomeActivity).openToBrowserAndLoad(
+                searchTermOrURL = "${BuildConfig.AMO_BASE_URL}/android/blocked-addon/some-addon-id/1.2.3/",
+                newTab = true,
+                from = BrowserDirection.FromAddonDetailsFragment,
+            )
+        }
+    }
+
     private fun mockAddon(): Addon {
         val addon: Addon = mockk()
         every { addon.id } returns "some-addon-id"
+        every { addon.version } returns "1.2.3"
         every { addon.incognito } returns Addon.Incognito.SPANNING
         every { addon.isEnabled() } returns true
         every { addon.isDisabledAsBlocklisted() } returns false
@@ -314,6 +444,8 @@ class InstalledAddonDetailsFragmentTest {
         every { addon.isDisabledAsIncompatible() } returns false
         every { addon.installedState } returns null
         every { addon.isAllowedInPrivateBrowsing() } returns false
+        every { addon.translatableName } returns mapOf("en-US" to "some-name")
+        every { addon.defaultLocale } returns "en-US"
         return addon
     }
 }
