@@ -134,6 +134,50 @@ async function testCachedRelation(identifier, relType, relatedIdentifiers) {
   }, "No unexpected targets found.");
 }
 
+/**
+ * Asynchronously set or remove content element's reflected elements attribute
+ * (in content process if e10s is enabled).
+ * @param  {Object}  browser  current "tabbrowser" element
+ * @param  {String}  id       content element id
+ * @param  {String}  attr     attribute name
+ * @param  {String?} value    optional attribute value, if not present, remove
+ *                            attribute
+ * @return {Promise}          promise indicating that attribute is set/removed
+ */
+function invokeSetReflectedElementsAttribute(browser, id, attr, targetIds) {
+  if (targetIds) {
+    Logger.log(
+      `Setting reflected ${attr} attribute to ${targetIds} for node with id: ${id}`
+    );
+  } else {
+    Logger.log(`Removing reflected ${attr} attribute from node with id: ${id}`);
+  }
+
+  return invokeContentTask(
+    browser,
+    [id, attr, targetIds],
+    (contentId, contentAttr, contentTargetIds) => {
+      let elm = content.document.getElementById(contentId);
+      if (contentTargetIds) {
+        elm[contentAttr] = contentTargetIds.map(targetId =>
+          content.document.getElementById(targetId)
+        );
+      } else {
+        elm[contentAttr] = null;
+      }
+    }
+  );
+}
+
+const REFLECTEDATTR_NAME_MAP = {
+  "aria-controls": "ariaControlsElements",
+  "aria-describedby": "ariaDescribedByElements",
+  "aria-details": "ariaDetailsElements",
+  "aria-errormessage": "ariaErrorMessageElements",
+  "aria-flowto": "ariaFlowToElements",
+  "aria-labelledby": "ariaLabelledByElements",
+};
+
 async function testRelated(
   browser,
   accDoc,
@@ -148,13 +192,14 @@ async function testRelated(
   /**
    * Test data has the format of:
    * {
-   *   desc      {String}   description for better logging
-   *   attrs     {?Array}   an optional list of attributes to update
-   *   expected  {Array}    expected relation values for dependant1, dependant2
+   *   desc          {String}   description for better logging
+   *   attrs         {?Array}   an optional list of attributes to update
+   *   reflectedattr {?Array}   an optional list of reflected attributes to update
+   *   expected      {Array}    expected relation values for dependant1, dependant2
    *                        and host respectively.
    * }
    */
-  const tests = [
+  let tests = [
     {
       desc: "No attribute",
       expected: [null, null, null],
@@ -181,12 +226,44 @@ async function testRelated(
     },
   ];
 
-  for (let { desc, attrs, expected } of tests) {
+  let reflectedAttrName = REFLECTEDATTR_NAME_MAP[attr];
+  if (reflectedAttrName) {
+    tests = tests.concat([
+      {
+        desc: "Set reflected attribute",
+        reflectedattr: [{ key: reflectedAttrName, value: ["dependant1"] }],
+        expected: [host, null, dependant1],
+      },
+      {
+        desc: "Change reflected attribute",
+        reflectedattr: [{ key: reflectedAttrName, value: ["dependant2"] }],
+        expected: [null, host, dependant2],
+      },
+      {
+        desc: "Change reflected attribute to multiple targets",
+        reflectedattr: [
+          { key: reflectedAttrName, value: ["dependant2", "dependant1"] },
+        ],
+        expected: [host, host, [dependant1, dependant2]],
+      },
+      {
+        desc: "Remove reflected attribute",
+        reflectedattr: [{ key: reflectedAttrName, value: null }],
+        expected: [null, null, null],
+      },
+    ]);
+  }
+
+  for (let { desc, attrs, reflectedattr, expected } of tests) {
     info(desc);
 
     if (attrs) {
       for (let { key, value } of attrs) {
         await invokeSetAttribute(browser, "host", key, value);
+      }
+    } else if (reflectedattr) {
+      for (let { key, value } of reflectedattr) {
+        await invokeSetReflectedElementsAttribute(browser, "host", key, value);
       }
     }
 

@@ -5,12 +5,15 @@
 #include "AccIterator.h"
 
 #include "AccGroupInfo.h"
+#include "ARIAMap.h"
 #include "DocAccessible-inl.h"
 #include "LocalAccessible-inl.h"
+#include "nsAccUtils.h"
 #include "XULTreeAccessible.h"
 
 #include "mozilla/a11y/DocAccessibleParent.h"
 #include "mozilla/dom/DocumentOrShadowRoot.h"
+#include "mozilla/dom/Element.h"
 #include "mozilla/dom/HTMLLabelElement.h"
 
 using namespace mozilla;
@@ -245,9 +248,14 @@ LocalAccessible* XULDescriptionIterator::Next() {
 
 IDRefsIterator::IDRefsIterator(DocAccessible* aDoc, nsIContent* aContent,
                                nsAtom* aIDRefsAttr)
-    : mContent(aContent), mDoc(aDoc), mCurrIdx(0) {
+    : mContent(aContent), mDoc(aDoc), mCurrIdx(0), mElemIdx(0) {
   if (mContent->IsElement()) {
     mContent->AsElement()->GetAttr(aIDRefsAttr, mIDs);
+    if (mIDs.IsEmpty() &&
+        (aria::AttrCharacteristicsFor(aIDRefsAttr) & ATTR_REFLECT_ELEMENTS)) {
+      nsAccUtils::GetARIAElementsAttr(mContent->AsElement(), aIDRefsAttr,
+                                      mElements);
+    }
   }
 }
 
@@ -273,6 +281,13 @@ nsIContent* IDRefsIterator::NextElem() {
 
     nsIContent* refContent = GetElem(id);
     if (refContent) return refContent;
+  }
+
+  while (nsIContent* element = mElements.SafeElementAt(mElemIdx++)) {
+    if (nsCoreUtils::IsDescendantOfAnyShadowIncludingAncestor(element,
+                                                              mContent)) {
+      return element;
+    }
   }
 
   return nullptr;

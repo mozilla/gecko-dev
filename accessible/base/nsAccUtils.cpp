@@ -568,6 +568,22 @@ const nsAttrValue* nsAccUtils::GetARIAAttr(dom::Element* aElement,
   return defaults->GetAttr(aName, kNameSpaceID_None);
 }
 
+bool nsAccUtils::GetARIAElementsAttr(dom::Element* aElement, nsAtom* aName,
+                                     nsTArray<dom::Element*>& aElements) {
+  if (aElement->HasAttr(aName)) {
+    aElement->GetExplicitlySetAttrElements(aName, aElements);
+    return true;
+  }
+
+  if (auto* element = nsGenericHTMLElement::FromNode(aElement)) {
+    if (auto* internals = element->GetInternals()) {
+      return internals->GetAttrElements(aName, aElements);
+    }
+  }
+
+  return false;
+}
+
 bool nsAccUtils::ARIAAttrValueIs(dom::Element* aElement, const nsAtom* aName,
                                  const nsAString& aValue,
                                  nsCaseTreatment aCaseSensitive) {
