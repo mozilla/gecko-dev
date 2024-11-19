@@ -1370,10 +1370,11 @@ var SessionStoreInternal = {
           Services.obs.notifyObservers(null, NOTIFY_DOMWINDOWCLOSED_HANDLED);
         }
         break;
-      case "quit-application-granted":
+      case "quit-application-granted": {
         let syncShutdown = aData == "syncShutdown";
         this.onQuitApplicationGranted(syncShutdown);
         break;
+      }
       case "browser-lastwindow-close-granted":
         this.onLastWindowCloseGranted();
         break;
@@ -1396,7 +1397,7 @@ var SessionStoreInternal = {
         this.onIdleDaily();
         this._notifyOfClosedObjectsChange();
         break;
-      case "clear-origin-attributes-data":
+      case "clear-origin-attributes-data": {
         let userContextId = 0;
         try {
           userContextId = JSON.parse(aData).userContextId;
@@ -1405,6 +1406,7 @@ var SessionStoreInternal = {
           this._forgetTabsWithUserContextId(userContextId);
         }
         break;
+      }
       case "browsing-context-did-set-embedder":
         if (aSubject === aSubject.top && aSubject.isContent) {
           const permanentKey = aSubject.embedderElement?.permanentKey;
@@ -1413,12 +1415,13 @@ var SessionStoreInternal = {
           }
         }
         break;
-      case "browsing-context-discarded":
+      case "browsing-context-discarded": {
         let permanentKey = aSubject?.embedderElement?.permanentKey;
         if (permanentKey) {
           this._browserSHistoryListener.get(permanentKey)?.unregister();
         }
         break;
+      }
       case "browser-shutdown-tabstate-updated":
         this.onFinalTabStateUpdateComplete(aSubject);
         this._notifyOfClosedObjectsChange();
@@ -3719,6 +3722,14 @@ var SessionStoreInternal = {
     );
     if (!sourceOptions.sourceWindow) {
       sourceOptions.sourceWindow = this._getTopWindow(sourceOptions.private);
+    }
+    /*
+    _getTopWindow may return null on MacOS when the last window has been closed.
+    Since private browsing windows are irrelevant after they have been closed we
+    don't need to check if it was a private browsing window.
+    */
+    if (!sourceOptions.sourceWindow) {
+      sourceOptions.private = false;
     }
     if (!sourceOptions.hasOwnProperty("private")) {
       sourceOptions.private = PrivateBrowsingUtils.isWindowPrivate(
