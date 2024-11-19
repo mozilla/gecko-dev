@@ -125,8 +125,6 @@ def fixture_experiment_data(experiment_url, request):
                 for item in features["value"]["messages"].values():
                     if "USER_EN-US_SPEAKER" in item["trigger-if-all"]:
                         item["trigger-if-all"] = ["ALWAYS"]
-        case _:
-            pass
     logging.debug(f"JSON Data used for this test: {data}")
     return [data]
 

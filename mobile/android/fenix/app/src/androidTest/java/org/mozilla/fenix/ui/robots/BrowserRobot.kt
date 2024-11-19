@@ -72,6 +72,7 @@ import org.mozilla.fenix.helpers.click
 import org.mozilla.fenix.helpers.ext.waitNotNull
 import org.mozilla.fenix.settings.SupportUtils
 import org.mozilla.fenix.tabstray.TabsTrayTestTag
+import java.net.URI
 import java.time.LocalDate
 
 class BrowserRobot {
@@ -88,6 +89,7 @@ class BrowserRobot {
 
     fun verifyUrl(url: String) {
         sessionLoadedIdlingResource = SessionLoadedIdlingResource()
+        var _url = URI(url)
 
         registerAndCleanupIdlingResources(sessionLoadedIdlingResource) {
             // Check if toolbar is displayed
@@ -110,7 +112,7 @@ class BrowserRobot {
             assertUIObjectExists(
                 itemWithResIdContainingText(
                     "$packageName:id/mozac_browser_toolbar_url_view",
-                    url.replace("http://", ""),
+                    _url.host,
                 ),
             )
         }
@@ -1073,6 +1075,12 @@ class BrowserRobot {
         Log.i(TAG, "goForwardFromRedesignedToolbar: Trying to click the \"Forward\" button")
         itemWithDescription(getStringResource(R.string.browser_menu_forward)).click()
         Log.i(TAG, "goForwardFromRedesignedToolbar: Clicked the \"Forward\" button")
+    }
+
+    fun getCurrentUrl(): String {
+        val searchBar = searchBar()
+        waitForPageToLoad()
+        return searchBar.getText()
     }
 
     class Transition {
