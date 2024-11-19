@@ -83,4 +83,23 @@ add_heuristic_tests([
       },
     ],
   },
+  {
+    description:
+      "Update name to cc-name when name is the last field of a credit card section",
+    fixtureData: `
+        <html><body><form>
+          <input id="cc-number" autocomplete="cc-number">
+          <input id="cc-csc" autocomplete="cc-csc">
+          <input id="name" placeholder="name">        
+        </form></body></html>`,
+    expectedResult: [
+      {
+        fields: [
+          { fieldName: "cc-number", reason: "autocomplete" },
+          { fieldName: "cc-csc", reason: "autocomplete" },
+          { fieldName: "cc-name", reason: "update-heuristic" },
+        ],
+      },
+    ],
+  },
 ]);
