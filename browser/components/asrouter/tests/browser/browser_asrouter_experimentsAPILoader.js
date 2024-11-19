@@ -142,31 +142,6 @@ const getCFRExperiment = async () => {
   return getExperiment("cfr");
 };
 
-const getLegacyCFRExperiment = async () => {
-  let recipe = ExperimentFakes.recipe(`test_xman_cfr_${Date.now()}`, {
-    id: "xman_test_message",
-    bucketConfig: {
-      count: 100,
-      start: 0,
-      total: 100,
-      namespace: "mochitest",
-      randomizationUnit: "normandy_id",
-    },
-  });
-
-  delete recipe.branches[0].features;
-  delete recipe.branches[1].features;
-  recipe.branches[0].feature = {
-    featureId: "cfr",
-    value: MESSAGE_CONTENT,
-  };
-  recipe.branches[1].feature = {
-    featureId: "cfr",
-    value: MESSAGE_CONTENT,
-  };
-  return recipe;
-};
-
 const client = RemoteSettings("nimbus-desktop-experiments");
 
 // no `add_task` because we want to run this setup before each test not before
@@ -253,27 +228,6 @@ add_task(async function test_loading_fxms_message_1_feature() {
   await cleanup();
 });
 
-add_task(async function test_loading_experimentsAPI_legacy() {
-  const experiment = await getLegacyCFRExperiment();
-  await setup(experiment);
-  // Fetch the new recipe from RS
-  await RemoteSettingsExperimentLoader.updateRecipes();
-  await BrowserTestUtils.waitForCondition(
-    () => ExperimentAPI.getExperiment({ featureId: "cfr" }),
-    "ExperimentAPI should return an experiment"
-  );
-
-  const telemetryFeedInstance = new TelemetryFeed();
-  Assert.ok(
-    telemetryFeedInstance.isInCFRCohort,
-    "Telemetry should return true"
-  );
-
-  await assertMessageInState("xman_test_message");
-
-  await cleanup();
-});
-
 add_task(async function test_loading_experimentsAPI_rollout() {
   const rollout = await getCFRExperiment();
   rollout.isRollout = true;
@@ -294,43 +248,6 @@ add_task(async function test_exposure_ping() {
   // Reset this check to allow sending multiple exposure pings in tests
   NimbusFeatures.cfr._didSendExposureEvent = false;
   const experiment = await getCFRExperiment();
-  await setup(experiment);
-  Services.telemetry.clearScalars();
-  // Fetch the new recipe from RS
-  await RemoteSettingsExperimentLoader.updateRecipes();
-  await BrowserTestUtils.waitForCondition(
-    () => ExperimentAPI.getExperiment({ featureId: "cfr" }),
-    "ExperimentAPI should return an experiment"
-  );
-
-  await assertMessageInState("xman_test_message");
-
-  const exposureSpy = sinon.spy(ExperimentAPI, "recordExposureEvent");
-
-  await ASRouter.sendTriggerMessage({
-    tabId: 1,
-    browser: gBrowser.selectedBrowser,
-    id: "openURL",
-    param: { host: "messenger.com" },
-  });
-
-  Assert.ok(exposureSpy.callCount === 1, "Should send exposure ping");
-  const scalars = TelemetryTestUtils.getProcessScalars("parent", true, true);
-  TelemetryTestUtils.assertKeyedScalar(
-    scalars,
-    "telemetry.event_counts",
-    "normandy#expose#nimbus_experiment",
-    1
-  );
-
-  exposureSpy.restore();
-  await cleanup();
-});
-
-add_task(async function test_exposure_ping_legacy() {
-  // Reset this check to allow sending multiple exposure pings in tests
-  NimbusFeatures.cfr._didSendExposureEvent = false;
-  const experiment = await getLegacyCFRExperiment();
   await setup(experiment);
   Services.telemetry.clearScalars();
   // Fetch the new recipe from RS

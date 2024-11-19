@@ -215,6 +215,7 @@ add_task(async function test_getLocalizedValue() {
     branches: [
       {
         slug: "control",
+        ratio: 1,
         features: [
           {
             featureId: FEATURE_ID,
@@ -271,6 +272,7 @@ add_task(async function test_getLocalizedValue_unenroll_missingEntry() {
     branches: [
       {
         slug: "control",
+        ratio: 1,
         features: [
           {
             featureId: FEATURE_ID,
@@ -353,6 +355,7 @@ add_task(async function test_getLocalizedValue_unenroll_missingEntry() {
     branches: [
       {
         slug: "control",
+        ratio: 1,
         features: [
           {
             featureId: FEATURE_ID,
@@ -435,6 +438,7 @@ add_task(async function test_getVariables() {
     branches: [
       {
         slug: "control",
+        ratio: 1,
         features: [
           {
             featureId: FEATURE_ID,
@@ -509,6 +513,7 @@ add_task(async function test_getVariables_fallback() {
       branches: [
         {
           slug: "control",
+          ratio: 1,
           features: [
             {
               featureId: FEATURE_ID,
@@ -531,6 +536,7 @@ add_task(async function test_getVariables_fallback() {
       branches: [
         {
           slug: "control",
+          ratio: 1,
           features: [
             {
               featureId: FEATURE_ID,
@@ -742,6 +748,7 @@ add_task(async function test_getVariables_fallback_unenroll() {
       branches: [
         {
           slug: "control",
+          ratio: 1,
           features: [
             {
               featureId: FEATURE_ID,
@@ -760,6 +767,7 @@ add_task(async function test_getVariables_fallback_unenroll() {
       branches: [
         {
           slug: "control",
+          ratio: 1,
           features: [
             {
               featureId: FEATURE_ID,

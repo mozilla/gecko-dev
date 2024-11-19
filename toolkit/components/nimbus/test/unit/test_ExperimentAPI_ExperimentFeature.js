@@ -111,6 +111,7 @@ add_task(async function test_record_exposure_event() {
     ExperimentFakes.experiment("blah", {
       branch: {
         slug: "treatment",
+        ratio: 1,
         features: [
           {
             featureId: "foo",
@@ -167,6 +168,7 @@ add_task(async function test_record_exposure_event_once() {
     ExperimentFakes.experiment("blah", {
       branch: {
         slug: "treatment",
+        ratio: 1,
         features: [
           {
             featureId: "foo",

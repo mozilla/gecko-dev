@@ -321,6 +321,7 @@ export const ExperimentFakes = {
       active: true,
       branch: {
         slug: "treatment",
+        ratio: 1,
         features: [
           {
             featureId: "testFeature",
@@ -348,6 +349,7 @@ export const ExperimentFakes = {
       isRollout: true,
       branch: {
         slug: "treatment",
+        ratio: 1,
         features: [
           {
             featureId: "testFeature",

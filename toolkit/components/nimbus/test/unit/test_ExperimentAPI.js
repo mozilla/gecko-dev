@@ -165,7 +165,8 @@ add_task(async function test_getExperiment_feature() {
   const expected = ExperimentFakes.experiment("foo", {
     branch: {
       slug: "treatment",
-      features: [{ featureId: "cfr", value: null }],
+      ratio: 1,
+      features: [{ featureId: "cfr", value: {} }],
       feature: {
         featureId: "unused-feature-id-for-legacy-support",
         enabled: false,

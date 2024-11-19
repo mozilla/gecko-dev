@@ -395,10 +395,12 @@ add_task(async function test_failure_group_conflict() {
   // These should not be allowed to exist simultaneously.
   const existingBranch = {
     slug: "treatment",
+    ratio: 1,
     features: [{ featureId: "pink", value: {} }],
   };
   const newBranch = {
     slug: "treatment",
+    ratio: 1,
     features: [{ featureId: "pink", value: {} }],
   };
 
@@ -812,8 +814,8 @@ add_task(async function test_forceEnroll() {
     .resolves([experiment1, experiment2, rollout1, rollout2]);
   sinon.stub(loader, "setTimer");
 
-  await loader.init();
   await manager.onStartup();
+  await loader.init();
 
   for (const { enroll, expected } of TEST_CASES) {
     for (const recipe of enroll) {
@@ -1060,10 +1062,12 @@ add_task(async function test_group_enrollment() {
   const clientId2 = "clientid2";
   const branchA = {
     slug: "branchA",
+    ratio: 1,
     features: [{ featureId: "pink", value: {} }],
   };
   const branchB = {
     slug: "branchB",
+    ratio: 1,
     features: [{ featureId: "pink", value: {} }],
   };
   const recipe = {
