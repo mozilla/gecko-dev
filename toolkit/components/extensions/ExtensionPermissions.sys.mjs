@@ -6,6 +6,7 @@
 
 import { XPCOMUtils } from "resource://gre/modules/XPCOMUtils.sys.mjs";
 import { AppConstants } from "resource://gre/modules/AppConstants.sys.mjs";
+import { ExtensionTaskScheduler } from "resource://gre/modules/ExtensionTaskScheduler.sys.mjs";
 import { ExtensionUtils } from "resource://gre/modules/ExtensionUtils.sys.mjs";
 
 /** @type {Lazy} */
@@ -321,8 +322,11 @@ function createStore(useRkv = AppConstants.NIGHTLY_BUILD) {
 
 let store = createStore();
 
-// Map<string, Function[]> @see _synchronizeExtPermAccess.
-const extPermAccessQueues = new Map();
+// The public ExtensionPermissions.add, get, remove, removeAll methods may
+// interact with the same underlying data source. These methods are not
+// designed with concurrent modifications in mind, and therefore we
+// explicitly synchronize each operation, by processing them sequentially.
+const extPermAccessQueues = new ExtensionTaskScheduler();
 
 export var ExtensionPermissions = {
   /**
@@ -332,38 +336,6 @@ export var ExtensionPermissions = {
    * @type {Map<string, Set>}
    */
   tempOrigins: new ExtensionUtils.DefaultMap(() => new Set()),
-
-  // The public ExtensionPermissions.add, get, remove, removeAll methods may
-  // interact with the same underlying data source. These methods are not
-  // designed with concurrent modifications in mind, and therefore we
-  // explicitly synchronize each operation, by processing them sequentially.
-  async _synchronizeExtPermAccess(extensionId, asyncFunctionCallback) {
-    return new Promise((resolve, reject) => {
-      // Here we add the (wrapped) function in the queue. The first queue item
-      // is always the currently executing task. Once it completes, the next
-      // (wrapped) function in the queue will be run.
-      let queue = extPermAccessQueues.get(extensionId) ?? [];
-      queue.push(async () => {
-        try {
-          resolve(await asyncFunctionCallback());
-        } catch (e) {
-          reject(e);
-        }
-        queue.shift();
-        if (queue.length) {
-          queue[0]();
-        } else {
-          extPermAccessQueues.delete(extensionId);
-        }
-      });
-      if (queue.length === 1) {
-        // First item in the queue. Store queue (so that future calls become
-        // aware of the pending call), and call the first function in the queue.
-        extPermAccessQueues.set(extensionId, queue);
-        queue[0]();
-      }
-    });
-  },
 
   async _update(extensionId, perms) {
     await store.put(extensionId, perms);
@@ -391,7 +363,7 @@ export var ExtensionPermissions = {
    *   value should immediately be used and not be modified by callers.
    */
   get(extensionId) {
-    return this._synchronizeExtPermAccess(extensionId, () =>
+    return extPermAccessQueues.runReadTask(extensionId, () =>
       this._getCached(extensionId)
     );
   },
@@ -461,7 +433,7 @@ export var ExtensionPermissions = {
    * @param {EventEmitter} [emitter] optional object implementing emitter interfaces
    */
   async add(extensionId, perms, emitter) {
-    return this._synchronizeExtPermAccess(extensionId, async () => {
+    return extPermAccessQueues.runWriteTask(extensionId, async () => {
       let { permissions, origins } = await this._get(extensionId);
 
       let added = emptyPermissions();
@@ -502,7 +474,7 @@ export var ExtensionPermissions = {
    * @param {EventEmitter} [emitter] optional object implementing emitter interfaces
    */
   async remove(extensionId, perms, emitter) {
-    return this._synchronizeExtPermAccess(extensionId, async () => {
+    return extPermAccessQueues.runWriteTask(extensionId, async () => {
       let { permissions, origins } = await this._get(extensionId);
 
       let removed = emptyPermissions();
@@ -543,7 +515,7 @@ export var ExtensionPermissions = {
   },
 
   async removeAll(extensionId) {
-    return this._synchronizeExtPermAccess(extensionId, async () => {
+    return extPermAccessQueues.runWriteTask(extensionId, async () => {
       this.tempOrigins.delete(extensionId);
       lazy.StartupCache.permissions.delete(extensionId);
 

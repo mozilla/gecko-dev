@@ -7,6 +7,8 @@ prefs = ["browser.download.useDownloadDir=true"]
 
 ["test_ChannelWrapper.js"]
 
+["test_ExtensionTaskScheduler.js"]
+
 ["test_QuarantinedDomains.js"]
 
 ["test_change_backgroundServiceWorker_enabled_pref_false.js"]

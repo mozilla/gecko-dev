@@ -14,6 +14,8 @@ const STARTUP_MODULES = new Set([
   "resource://gre/modules/ExtensionPermissions.sys.mjs",
   "resource://gre/modules/ExtensionProcessScript.sys.mjs",
   "resource://gre/modules/ExtensionUtils.sys.mjs",
+  // ExtensionTaskScheduler imported via ExtensionPermissions.sys.mjs:
+  "resource://gre/modules/ExtensionTaskScheduler.sys.mjs",
   "resource://gre/modules/ExtensionTelemetry.sys.mjs",
 ]);
 

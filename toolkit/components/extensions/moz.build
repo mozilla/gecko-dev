@@ -36,6 +36,7 @@ EXTRA_JS_MODULES += [
     "ExtensionStorageIDB.sys.mjs",
     "ExtensionStorageSync.sys.mjs",
     "ExtensionStorageSyncKinto.sys.mjs",
+    "ExtensionTaskScheduler.sys.mjs",
     "ExtensionTelemetry.sys.mjs",
     "ExtensionUtils.sys.mjs",
     "ExtensionWorkerChild.sys.mjs",
