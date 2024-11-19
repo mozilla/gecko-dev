@@ -292,6 +292,7 @@ inline Val<LogArgType::kULongLong, unsigned long long> MakeVal(
 inline Val<LogArgType::kDouble, double> MakeVal(double x) {
   return {x};
 }
+
 inline Val<LogArgType::kLongDouble, long double> MakeVal(long double x) {
   return {x};
 }
