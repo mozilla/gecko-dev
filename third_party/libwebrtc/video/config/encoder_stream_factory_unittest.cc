@@ -116,6 +116,105 @@ TEST(EncoderStreamFactory, SinglecastRequestedResolutionWithAdaptation) {
                                            }));
 }
 
+TEST(EncoderStreamFactory, SimulcastRequestedResolutionUnrestricted) {
+  ExplicitKeyValueConfig field_trials("");
+  VideoEncoderConfig encoder_config;
+  encoder_config.number_of_streams = 3;
+  encoder_config.simulcast_layers.resize(3);
+  encoder_config.simulcast_layers[0].requested_resolution = {.width = 320,
+                                                             .height = 180};
+  encoder_config.simulcast_layers[1].requested_resolution = {.width = 640,
+                                                             .height = 360};
+  encoder_config.simulcast_layers[2].requested_resolution = {.width = 1280,
+                                                             .height = 720};
+  auto streams = CreateEncoderStreams(
+      field_trials, {.width = 1280, .height = 720}, encoder_config);
+  std::vector<Resolution> stream_resolutions = GetStreamResolutions(streams);
+  ASSERT_THAT(stream_resolutions, SizeIs(3));
+  EXPECT_EQ(stream_resolutions[0], (Resolution{.width = 320, .height = 180}));
+  EXPECT_EQ(stream_resolutions[1], (Resolution{.width = 640, .height = 360}));
+  EXPECT_EQ(stream_resolutions[2], (Resolution{.width = 1280, .height = 720}));
+}
+
+TEST(EncoderStreamFactory, SimulcastRequestedResolutionWith360pRestriction) {
+  ExplicitKeyValueConfig field_trials("");
+  VideoSourceRestrictions restrictions(
+      /* max_pixels_per_frame= */ (640 * 360),
+      /* target_pixels_per_frame= */ std::nullopt,
+      /* max_frame_rate= */ std::nullopt);
+  VideoEncoderConfig encoder_config;
+  encoder_config.number_of_streams = 3;
+  encoder_config.simulcast_layers.resize(3);
+  encoder_config.simulcast_layers[0].requested_resolution = {.width = 320,
+                                                             .height = 180};
+  encoder_config.simulcast_layers[1].requested_resolution = {.width = 640,
+                                                             .height = 360};
+  encoder_config.simulcast_layers[2].requested_resolution = {.width = 1280,
+                                                             .height = 720};
+  auto streams =
+      CreateEncoderStreams(field_trials, {.width = 1280, .height = 720},
+                           encoder_config, restrictions);
+  std::vector<Resolution> stream_resolutions = GetStreamResolutions(streams);
+  // 720p layer is dropped due to 360p restrictions.
+  ASSERT_THAT(stream_resolutions, SizeIs(2));
+  EXPECT_EQ(stream_resolutions[0], (Resolution{.width = 320, .height = 180}));
+  EXPECT_EQ(stream_resolutions[1], (Resolution{.width = 640, .height = 360}));
+}
+
+TEST(EncoderStreamFactory, SimulcastRequestedResolutionWith90pRestriction) {
+  ExplicitKeyValueConfig field_trials("");
+  VideoSourceRestrictions restrictions(
+      /* max_pixels_per_frame= */ (160 * 90),
+      /* target_pixels_per_frame= */ std::nullopt,
+      /* max_frame_rate= */ std::nullopt);
+  VideoEncoderConfig encoder_config;
+  encoder_config.number_of_streams = 3;
+  encoder_config.simulcast_layers.resize(3);
+  encoder_config.simulcast_layers[0].requested_resolution = {.width = 320,
+                                                             .height = 180};
+  encoder_config.simulcast_layers[1].requested_resolution = {.width = 640,
+                                                             .height = 360};
+  encoder_config.simulcast_layers[2].requested_resolution = {.width = 1280,
+                                                             .height = 720};
+  auto streams =
+      CreateEncoderStreams(field_trials, {.width = 1280, .height = 720},
+                           encoder_config, restrictions);
+  std::vector<Resolution> stream_resolutions = GetStreamResolutions(streams);
+  ASSERT_THAT(stream_resolutions, SizeIs(1));
+  // 90p restriction means all but the first layer (180p) is dropped. The one
+  // and only layer is downsized to 90p.
+  EXPECT_EQ(stream_resolutions[0], (Resolution{.width = 160, .height = 90}));
+}
+
+TEST(EncoderStreamFactory, ReverseSimulcastRequestedResolutionWithRestriction) {
+  ExplicitKeyValueConfig field_trials("");
+  VideoSourceRestrictions restrictions(
+      /* max_pixels_per_frame= */ (640 * 360),
+      /* target_pixels_per_frame= */ std::nullopt,
+      /* max_frame_rate= */ std::nullopt);
+  VideoEncoderConfig encoder_config;
+  encoder_config.number_of_streams = 3;
+  encoder_config.simulcast_layers.resize(3);
+  // 720p, 360p, 180p (instead of the usual 180p, 360p, 720p).
+  encoder_config.simulcast_layers[0].requested_resolution = {.width = 1280,
+                                                             .height = 720};
+  encoder_config.simulcast_layers[1].requested_resolution = {.width = 640,
+                                                             .height = 360};
+  encoder_config.simulcast_layers[2].requested_resolution = {.width = 320,
+                                                             .height = 180};
+  auto streams =
+      CreateEncoderStreams(field_trials, {.width = 1280, .height = 720},
+                           encoder_config, restrictions);
+  std::vector<Resolution> stream_resolutions = GetStreamResolutions(streams);
+  // The layer dropping that is performed for lower-to-higher ordered simulcast
+  // streams is not applicable when higher-to-lower order is used. In this case
+  // the 360p restriction is applied to all layers.
+  ASSERT_THAT(stream_resolutions, SizeIs(3));
+  EXPECT_EQ(stream_resolutions[0], (Resolution{.width = 640, .height = 360}));
+  EXPECT_EQ(stream_resolutions[1], (Resolution{.width = 640, .height = 360}));
+  EXPECT_EQ(stream_resolutions[2], (Resolution{.width = 320, .height = 180}));
+}
+
 TEST(EncoderStreamFactory, BitratePriority) {
   constexpr double kBitratePriority = 0.123;
   VideoEncoderConfig encoder_config;

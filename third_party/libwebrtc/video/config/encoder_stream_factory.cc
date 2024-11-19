@@ -535,6 +535,41 @@ std::vector<webrtc::Resolution> EncoderStreamFactory::GetStreamResolutions(
             : encoder_config.number_of_streams;
     RTC_DCHECK_LE(max_num_layers, encoder_config.number_of_streams);
 
+    // When the `requested_resolution` API is used, disable upper layers that
+    // are bigger than what adaptation restrictions allow. For example if
+    // restrictions are 540p, simulcast 180p:360p:720p becomes 180p:360p:- as
+    // opposed to 180p:360p:540p. This makes CPU adaptation consistent with BW
+    // adaptation (bitrate allocator disabling layers rather than downscaling)
+    // and means we don't have to break power of two optimization paths (i.e.
+    // S-modes based simulcast). Note that the lowest layer is never disabled.
+    if (encoder_config.HasRequestedResolution() && restrictions_.has_value() &&
+        restrictions_->max_pixels_per_frame().has_value()) {
+      int max_pixels = rtc::dchecked_cast<int>(
+          restrictions_->max_pixels_per_frame().value());
+      int prev_pixel_count =
+          encoder_config.simulcast_layers[0]
+              .requested_resolution.value_or(webrtc::Resolution())
+              .PixelCount();
+      std::optional<size_t> restricted_num_layers;
+      for (size_t i = 1; i < max_num_layers; ++i) {
+        int pixel_count =
+            encoder_config.simulcast_layers[i]
+                .requested_resolution.value_or(webrtc::Resolution())
+                .PixelCount();
+        if (!restricted_num_layers.has_value() && max_pixels < pixel_count) {
+          // Current layer is the highest layer allowed by restrictions.
+          restricted_num_layers = i;
+        }
+        if (pixel_count < prev_pixel_count) {
+          // Cannot limit layers because config is not lower-to-higher.
+          restricted_num_layers = std::nullopt;
+          break;
+        }
+        prev_pixel_count = pixel_count;
+      }
+      max_num_layers = restricted_num_layers.value_or(max_num_layers);
+    }
+
     const bool has_scale_resolution_down_by = absl::c_any_of(
         encoder_config.simulcast_layers, [](const webrtc::VideoStream& layer) {
           return layer.scale_resolution_down_by != -1.;
