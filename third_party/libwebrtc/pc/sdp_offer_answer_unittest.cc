@@ -673,6 +673,56 @@ TEST_F(SdpOfferAnswerTest, SimulcastOfferWithMixedCodec) {
   EXPECT_EQ(send_rids2[1].payload_types[0], send_codecs2[1].id);
 }
 
+TEST_F(SdpOfferAnswerTest, SimulcastAnswerWithPayloadType) {
+  test::ScopedKeyValueConfig field_trials(
+      field_trials_, "WebRTC-MixedCodecSimulcast/Enabled/");
+
+  auto pc = CreatePeerConnection();
+
+  // A SDP offer with recv simulcast with payload type
+  std::string sdp =
+      "v=0\r\n"
+      "o=- 4131505339648218884 3 IN IP4 127.0.0.1\r\n"
+      "s=-\r\n"
+      "t=0 0\r\n"
+      "a=ice-ufrag:zGWFZ+fVXDeN6UoI/136\r\n"
+      "a=ice-pwd:9AUNgUqRNI5LSIrC1qFD2iTR\r\n"
+      "a=fingerprint:sha-256 "
+      "AD:52:52:E0:B1:37:34:21:0E:15:8E:B7:56:56:7B:B4:39:0E:6D:1C:F5:84:A7:EE:"
+      "B5:27:3E:30:B1:7D:69:42\r\n"
+      "a=setup:passive\r\n"
+      "m=video 9 UDP/TLS/RTP/SAVPF 96 97\r\n"
+      "c=IN IP4 0.0.0.0\r\n"
+      "a=rtcp:9 IN IP4 0.0.0.0\r\n"
+      "a=mid:0\r\n"
+      "a=extmap:9 urn:ietf:params:rtp-hdrext:sdes:mid\r\n"
+      "a=extmap:10 urn:ietf:params:rtp-hdrext:sdes:rtp-stream-id\r\n"
+      "a=recvonly\r\n"
+      "a=rtcp-mux\r\n"
+      "a=rtcp-rsize\r\n"
+      "a=rtpmap:96 VP8/90000\r\n"
+      "a=rtpmap:97 VP9/90000\r\n"
+      "a=rid:1 recv pt=96\r\n"
+      "a=rid:2 recv pt=97\r\n"
+      "a=simulcast:recv 1;2\r\n";
+
+  auto offer = CreateSessionDescription(SdpType::kOffer, sdp);
+  EXPECT_TRUE(pc->SetRemoteDescription(std::move(offer)));
+
+  auto transceiver = pc->pc()->GetTransceivers()[0];
+  EXPECT_TRUE(
+      transceiver->SetDirectionWithError(RtpTransceiverDirection::kSendOnly)
+          .ok());
+
+  // Check the generated SDP.
+  auto answer = pc->CreateAnswer();
+  answer->ToString(&sdp);
+  EXPECT_THAT(sdp, testing::HasSubstr("a=rid:1 send pt=96\r\n"));
+  EXPECT_THAT(sdp, testing::HasSubstr("a=rid:2 send pt=97\r\n"));
+
+  EXPECT_TRUE(pc->SetLocalDescription(std::move(answer)));
+}
+
 TEST_F(SdpOfferAnswerTest, ExpectAllSsrcsSpecifiedInSsrcGroupFid) {
   auto pc = CreatePeerConnection();
   std::string sdp =
