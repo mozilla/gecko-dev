@@ -517,5 +517,30 @@ TEST(VideoRtpDepacketizerH264Test, AudSetsFirstPacketInFrame) {
   EXPECT_TRUE(parsed->video_header.is_first_packet_in_frame);
 }
 
+TEST(VideoRtpDepacketizerH264Test, PpsSetsFirstPacketInFrame) {
+  const uint8_t kPayload[] = {
+      0x08, 0x69, 0xFC, 0x0,  0x0,  0x3, 0x0,
+      0x7,  0xFF, 0xFF, 0xFF, 0xF6, 0x40  // PPS.
+  };
+
+  VideoRtpDepacketizerH264 depacketizer;
+  std::optional<VideoRtpDepacketizer::ParsedRtpPayload> parsed =
+      depacketizer.Parse(rtc::CopyOnWriteBuffer(kPayload));
+  ASSERT_TRUE(parsed);
+  EXPECT_TRUE(parsed->video_header.is_first_packet_in_frame);
+}
+
+TEST(VideoRtpDepacketizerH264Test, SeiSetsFirstPacketInFrame) {
+  const uint8_t kPayload[] = {
+      0x06, 0x05, 0x04, 0xDE, 0xAD, 0xBE, 0xEF, 0x80  // SEI.
+  };
+
+  VideoRtpDepacketizerH264 depacketizer;
+  std::optional<VideoRtpDepacketizer::ParsedRtpPayload> parsed =
+      depacketizer.Parse(rtc::CopyOnWriteBuffer(kPayload));
+  ASSERT_TRUE(parsed);
+  EXPECT_TRUE(parsed->video_header.is_first_packet_in_frame);
+}
+
 }  // namespace
 }  // namespace webrtc

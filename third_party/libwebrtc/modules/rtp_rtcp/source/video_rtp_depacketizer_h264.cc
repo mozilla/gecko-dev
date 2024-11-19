@@ -188,6 +188,7 @@ std::optional<VideoRtpDepacketizer::ParsedRtpPayload> ProcessStapAOrSingleNalu(
               << "Failed to parse PPS id and SPS id from PPS slice.";
           return std::nullopt;
         }
+        parsed_payload->video_header.is_first_packet_in_frame = true;
         break;
       }
       case H264::NaluType::kIdr:
@@ -212,12 +213,13 @@ std::optional<VideoRtpDepacketizer::ParsedRtpPayload> ProcessStapAOrSingleNalu(
       case H264::NaluType::kAud:
         parsed_payload->video_header.is_first_packet_in_frame = true;
         break;
+      case H264::NaluType::kSei:
+        parsed_payload->video_header.is_first_packet_in_frame = true;
+        break;
       // Slices below don't contain SPS or PPS ids.
       case H264::NaluType::kEndOfSequence:
       case H264::NaluType::kEndOfStream:
       case H264::NaluType::kFiller:
-      case H264::NaluType::kSei:
-        break;
       case H264::NaluType::kStapA:
       case H264::NaluType::kFuA:
         RTC_LOG(LS_WARNING) << "Unexpected STAP-A or FU-A received.";
