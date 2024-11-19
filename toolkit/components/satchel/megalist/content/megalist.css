@@ -337,6 +337,7 @@ login-form {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  margin-block-end: var(--space-small);
 }
 
 .selected::part(button) {
