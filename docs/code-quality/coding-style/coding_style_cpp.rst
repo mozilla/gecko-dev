@@ -1152,8 +1152,8 @@ Use the standard-library functions (``std::max``), instead of
 Use ``mozilla::Abs`` instead of ``PR_ABS``. All ``PR_ABS`` calls in C++ code have
 been replaced with ``mozilla::Abs`` calls, in `bug
 847480 <https://bugzilla.mozilla.org/show_bug.cgi?id=847480>`__. All new
-code in ``Firefox/core/toolkit`` needs to use the ``NS_foo`` variants
-instead of ``PR_foo``, or
+code in ``Firefox/core/toolkit`` needs to ``#include "nsAlgorithm.h"`` and
+use the ``NS_foo`` variants instead of ``PR_foo``, or
 ``#include "mozilla/MathAlgorithms.h"`` for ``mozilla::Abs``.
 
 Use of SpiderMonkey rooting typedefs

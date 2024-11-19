@@ -14,6 +14,7 @@
 #include "archivereader.h"
 #include "updatererrors.h"
 #ifdef XP_WIN
+#  include "nsAlgorithm.h"  // Needed by nsVersionComparator.cpp
 #  include "updatehelper.h"
 #endif
 #define XZ_USE_CRC64
