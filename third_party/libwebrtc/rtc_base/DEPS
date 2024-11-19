@@ -38,4 +38,7 @@ specific_include_rules = {
   "openssl_stream_adapter.cc": [
     "+openssl",
   ],
+  "openssl_stream_adapter.h": [
+    "+openssl",
+  ],
 }

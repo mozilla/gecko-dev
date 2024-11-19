@@ -11,10 +11,16 @@
 #ifndef RTC_BASE_MEMORY_FIFO_BUFFER_H_
 #define RTC_BASE_MEMORY_FIFO_BUFFER_H_
 
+#include <cstddef>
+#include <cstdint>
 #include <memory>
 
+#include "api/array_view.h"
+#include "api/sequence_checker.h"
 #include "api/task_queue/pending_task_safety_flag.h"
 #include "rtc_base/stream.h"
+#include "rtc_base/thread.h"
+#include "rtc_base/thread_annotations.h"
 
 namespace rtc {
 

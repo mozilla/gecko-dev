@@ -22,8 +22,10 @@
 
 #include "absl/functional/any_invocable.h"
 #include "absl/strings/string_view.h"
+#include "api/array_view.h"
 #include "rtc_base/buffer.h"
 #ifdef OPENSSL_IS_BORINGSSL
+#include "openssl/base.h"
 #include "rtc_base/boringssl_identity.h"
 #else
 #include "rtc_base/openssl_identity.h"
@@ -32,9 +34,9 @@
 #include "rtc_base/ssl_identity.h"
 #include "rtc_base/ssl_stream_adapter.h"
 #include "rtc_base/stream.h"
-#include "rtc_base/system/rtc_export.h"
 #include "rtc_base/task_utils/repeating_task.h"
 #include "rtc_base/third_party/sigslot/sigslot.h"
+#include "rtc_base/thread.h"
 
 namespace rtc {
 
