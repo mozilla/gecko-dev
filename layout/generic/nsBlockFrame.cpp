@@ -4990,7 +4990,10 @@ void nsBlockFrame::DoReflowInlineFrames(
 
   aLineLayout.BeginLineReflow(
       iStart, aState.mBCoord, availISize, availBSize,
-      aFloatAvailableSpace.HasFloats(), false, /*XXX isTopOfPage*/
+      aFloatAvailableSpace.HasFloats(), false /*XXX isTopOfPage*/,
+      HasOutsideMarker() || Style()->IsAnonBox()
+          ? CollapseEmptyInlineFramesInLine::Preserve
+          : CollapseEmptyInlineFramesInLine::Collapse,
       lineWM, aState.mContainerSize, aState.mInsetForBalance);
 
   aState.mFlags.mIsLineLayoutEmpty = false;
