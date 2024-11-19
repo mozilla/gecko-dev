@@ -387,6 +387,8 @@ support-files = ["file_new_tab_page.html"]
 
 ["browser_tab_manger_synced_tabs.js"]
 
+["browser_tab_move_active_tab.js"]
+
 ["browser_tab_move_to_new_window_reload.js"]
 
 ["browser_tab_play.js"]
