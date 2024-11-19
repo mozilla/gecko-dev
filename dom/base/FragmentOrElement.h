@@ -268,21 +268,10 @@ class FragmentOrElement : public nsIContent {
     RefPtr<nsDOMTokenList> mPart;
 
     /**
-     * Explicitly set attr-element, see
+     * Explicitly set attr-elements, see
      * https://html.spec.whatwg.org/#explicitly-set-attr-element
      */
-    nsTHashMap<RefPtr<nsAtom>, nsWeakPtr> mExplicitlySetAttrElementMap;
-    /**
-     * Explicitly set attr-elements, see
-     * https://html.spec.whatwg.org/#explicitly-set-attr-elements
-     *
-     * The first member of the pair are the explicitly set attr-elements. The
-     * second member is the cached attr-associated elements.
-     */
-
-    nsTHashMap<RefPtr<nsAtom>, std::pair<Maybe<nsTArray<nsWeakPtr>>,
-                                         Maybe<nsTArray<RefPtr<Element>>>>>
-        mAttrElementsMap;
+    nsTHashMap<RefPtr<nsAtom>, nsWeakPtr> mExplicitlySetAttrElements;
   };
 
   class nsDOMSlots : public nsIContent::nsContentSlots {

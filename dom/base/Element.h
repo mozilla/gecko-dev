@@ -266,17 +266,6 @@ class TrustedHTMLOrNullIsEmptyString;
     ExplicitlySetAttrElement(nsGkAtoms::attr, aElement); \
   }
 
-#define REFLECT_NULLABLE_ELEMENTS_ATTR(method, attr)                        \
-  void Get##method(bool* aUseCachedValue,                                   \
-                   Nullable<nsTArray<RefPtr<Element>>>& aElements) {        \
-    GetAttrAssociatedElements(nsGkAtoms::attr, aUseCachedValue, aElements); \
-  }                                                                         \
-                                                                            \
-  void Set##method(                                                         \
-      const Nullable<Sequence<OwningNonNull<Element>>>& aElements) {        \
-    ExplicitlySetAttrElements(nsGkAtoms::attr, aElements);                  \
-  }
-
 // TODO(keithamus): Reference the spec link once merged.
 // https://github.com/whatwg/html/pull/9841/files#diff-41cf6794ba4200b839c53531555f0f3998df4cbb01a4d5cb0b94e3ca5e23947dR86024
 enum class InvokeAction : uint8_t {
@@ -716,28 +705,21 @@ class Element : public FragmentOrElement {
   REFLECT_NULLABLE_DOMSTRING_ATTR(AriaColIndex, aria_colindex)
   REFLECT_NULLABLE_DOMSTRING_ATTR(AriaColIndexText, aria_colindextext)
   REFLECT_NULLABLE_DOMSTRING_ATTR(AriaColSpan, aria_colspan)
-  REFLECT_NULLABLE_ELEMENTS_ATTR(AriaControlsElements, aria_controls)
   REFLECT_NULLABLE_DOMSTRING_ATTR(AriaCurrent, aria_current)
-  REFLECT_NULLABLE_ELEMENTS_ATTR(AriaDescribedByElements, aria_describedby)
   REFLECT_NULLABLE_DOMSTRING_ATTR(AriaDescription, aria_description)
-  REFLECT_NULLABLE_ELEMENTS_ATTR(AriaDetailsElements, aria_details)
   REFLECT_NULLABLE_DOMSTRING_ATTR(AriaDisabled, aria_disabled)
-  REFLECT_NULLABLE_ELEMENTS_ATTR(AriaErrorMessageElements, aria_errormessage)
   REFLECT_NULLABLE_DOMSTRING_ATTR(AriaExpanded, aria_expanded)
-  REFLECT_NULLABLE_ELEMENTS_ATTR(AriaFlowToElements, aria_flowto)
   REFLECT_NULLABLE_DOMSTRING_ATTR(AriaHasPopup, aria_haspopup)
   REFLECT_NULLABLE_DOMSTRING_ATTR(AriaHidden, aria_hidden)
   REFLECT_NULLABLE_DOMSTRING_ATTR(AriaInvalid, aria_invalid)
   REFLECT_NULLABLE_DOMSTRING_ATTR(AriaKeyShortcuts, aria_keyshortcuts)
   REFLECT_NULLABLE_DOMSTRING_ATTR(AriaLabel, aria_label)
-  REFLECT_NULLABLE_ELEMENTS_ATTR(AriaLabelledByElements, aria_labelledby)
   REFLECT_NULLABLE_DOMSTRING_ATTR(AriaLevel, aria_level)
   REFLECT_NULLABLE_DOMSTRING_ATTR(AriaLive, aria_live)
   REFLECT_NULLABLE_DOMSTRING_ATTR(AriaModal, aria_modal)
   REFLECT_NULLABLE_DOMSTRING_ATTR(AriaMultiLine, aria_multiline)
   REFLECT_NULLABLE_DOMSTRING_ATTR(AriaMultiSelectable, aria_multiselectable)
   REFLECT_NULLABLE_DOMSTRING_ATTR(AriaOrientation, aria_orientation)
-  REFLECT_NULLABLE_ELEMENTS_ATTR(AriaOwnsElements, aria_owns)
   REFLECT_NULLABLE_DOMSTRING_ATTR(AriaPlaceholder, aria_placeholder)
   REFLECT_NULLABLE_DOMSTRING_ATTR(AriaPosInSet, aria_posinset)
   REFLECT_NULLABLE_DOMSTRING_ATTR(AriaPressed, aria_pressed)
@@ -1189,10 +1171,6 @@ class Element : public FragmentOrElement {
                                       const MappedAttributeEntry* const aMaps[],
                                       uint32_t aMapCount);
 
-  bool HasSharedRoot(const Element* aElement) const;
-
-  Element* GetElementByIdInDocOrSubtree(nsAtom* aID) const;
-
  protected:
   inline bool GetAttr(const nsAtom* aName, DOMString& aResult) const {
     MOZ_ASSERT(aResult.IsEmpty(), "Should have empty string coming in");
@@ -1313,21 +1291,14 @@ class Element : public FragmentOrElement {
    * https://html.spec.whatwg.org/multipage/common-dom-interfaces.html#attr-associated-element
    */
   Element* GetAttrAssociatedElement(nsAtom* aAttr) const;
-  void GetAttrAssociatedElements(
-      nsAtom* aAttr, bool* aUseCachedValue,
-      Nullable<nsTArray<RefPtr<Element>>>& aElements);
 
   /**
    * Sets an attribute element for the given attribute.
    * https://html.spec.whatwg.org/multipage/common-dom-interfaces.html#explicitly-set-attr-element
    */
   void ExplicitlySetAttrElement(nsAtom* aAttr, Element* aElement);
-  void ExplicitlySetAttrElements(
-      nsAtom* aAttr,
-      const Nullable<Sequence<OwningNonNull<Element>>>& aElements);
 
   void ClearExplicitlySetAttrElement(nsAtom*);
-  void ClearExplicitlySetAttrElements(nsAtom*);
 
   /**
    * Gets the attribute element for the given attribute.
@@ -1338,16 +1309,6 @@ class Element : public FragmentOrElement {
    * attribute.
    */
   Element* GetExplicitlySetAttrElement(nsAtom* aAttr) const;
-
-  /**
-   * Gets the attribute elements for the given attribute. Unlike
-   * GetAttrAssociatedElements, this returns an uncached array of explicitly set
-   * elements without checking if they are a descendant of any of this element's
-   * shadow-including ancestors. It also does not attempt to retrieve elements
-   * using the ids set in the content attribute.
-   */
-  void GetExplicitlySetAttrElements(nsAtom* aAttr,
-                                    nsTArray<Element*>& aElements) const;
 
   PseudoStyleType GetPseudoElementType() const {
     nsresult rv = NS_OK;

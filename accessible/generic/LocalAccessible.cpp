@@ -1417,7 +1417,7 @@ void LocalAccessible::DOMAttributeChanged(int32_t aNameSpaceID,
   if (aAttribute == nsGkAtoms::aria_label) {
     // A valid aria-labelledby would take precedence so an aria-label change
     // won't change the name.
-    AssociatedElementsIterator iter(mDoc, elm, nsGkAtoms::aria_labelledby);
+    IDRefsIterator iter(mDoc, elm, nsGkAtoms::aria_labelledby);
     if (!iter.NextElem()) {
       mDoc->FireDelayedEvent(nsIAccessibleEvent::EVENT_NAME_CHANGE, this);
     }
@@ -1427,7 +1427,7 @@ void LocalAccessible::DOMAttributeChanged(int32_t aNameSpaceID,
   if (aAttribute == nsGkAtoms::aria_description) {
     // A valid aria-describedby would take precedence so an aria-description
     // change won't change the description.
-    AssociatedElementsIterator iter(mDoc, elm, nsGkAtoms::aria_describedby);
+    IDRefsIterator iter(mDoc, elm, nsGkAtoms::aria_describedby);
     if (!iter.NextElem()) {
       mDoc->FireDelayedEvent(nsIAccessibleEvent::EVENT_DESCRIPTION_CHANGE,
                              this);
@@ -1443,7 +1443,7 @@ void LocalAccessible::DOMAttributeChanged(int32_t aNameSpaceID,
       // The subtrees of the new aria-describedby targets might be used to
       // compute the description for this. Therefore, we need to set
       // the eHasDescriptionDependent flag on all Accessibles in these subtrees.
-      AssociatedElementsIterator iter(mDoc, elm, nsGkAtoms::aria_describedby);
+      IDRefsIterator iter(mDoc, elm, nsGkAtoms::aria_describedby);
       while (LocalAccessible* target = iter.Next()) {
         target->ModifySubtreeContextFlags(eHasDescriptionDependent, true);
       }
@@ -1462,7 +1462,7 @@ void LocalAccessible::DOMAttributeChanged(int32_t aNameSpaceID,
       // The subtrees of the new aria-labelledby targets might be used to
       // compute the name for this. Therefore, we need to set
       // the eHasNameDependent flag on all Accessibles in these subtrees.
-      AssociatedElementsIterator iter(mDoc, elm, nsGkAtoms::aria_labelledby);
+      IDRefsIterator iter(mDoc, elm, nsGkAtoms::aria_labelledby);
       while (LocalAccessible* target = iter.Next()) {
         target->ModifySubtreeContextFlags(eHasNameDependent, true);
       }
@@ -2168,8 +2168,8 @@ Relation LocalAccessible::RelationByType(RelationType aType) const {
   // defined on.
   switch (aType) {
     case RelationType::LABELLED_BY: {
-      Relation rel(new AssociatedElementsIterator(mDoc, mContent,
-                                                  nsGkAtoms::aria_labelledby));
+      Relation rel(
+          new IDRefsIterator(mDoc, mContent, nsGkAtoms::aria_labelledby));
       if (mContent->IsHTMLElement()) {
         rel.AppendIter(new HTMLLabelIterator(Document(), this));
       }
@@ -2182,16 +2182,15 @@ Relation LocalAccessible::RelationByType(RelationType aType) const {
       Relation rel(new RelatedAccIterator(Document(), mContent,
                                           nsGkAtoms::aria_labelledby));
       if (mContent->IsXULElement(nsGkAtoms::label)) {
-        rel.AppendIter(
-            new AssociatedElementsIterator(mDoc, mContent, nsGkAtoms::control));
+        rel.AppendIter(new IDRefsIterator(mDoc, mContent, nsGkAtoms::control));
       }
 
       return rel;
     }
 
     case RelationType::DESCRIBED_BY: {
-      Relation rel(new AssociatedElementsIterator(mDoc, mContent,
-                                                  nsGkAtoms::aria_describedby));
+      Relation rel(
+          new IDRefsIterator(mDoc, mContent, nsGkAtoms::aria_describedby));
       if (mContent->IsXULElement()) {
         rel.AppendIter(new XULDescriptionIterator(Document(), mContent));
       }
@@ -2207,8 +2206,7 @@ Relation LocalAccessible::RelationByType(RelationType aType) const {
       // which only affects accessibility, by allowing the description to be
       // tied to a control.
       if (mContent->IsXULElement(nsGkAtoms::description)) {
-        rel.AppendIter(
-            new AssociatedElementsIterator(mDoc, mContent, nsGkAtoms::control));
+        rel.AppendIter(new IDRefsIterator(mDoc, mContent, nsGkAtoms::control));
       }
 
       return rel;
@@ -2287,15 +2285,15 @@ Relation LocalAccessible::RelationByType(RelationType aType) const {
                                              nsGkAtoms::aria_controls));
 
     case RelationType::CONTROLLER_FOR: {
-      Relation rel(new AssociatedElementsIterator(mDoc, mContent,
-                                                  nsGkAtoms::aria_controls));
+      Relation rel(
+          new IDRefsIterator(mDoc, mContent, nsGkAtoms::aria_controls));
       rel.AppendIter(new HTMLOutputIterator(Document(), mContent));
       return rel;
     }
 
     case RelationType::FLOWS_TO:
-      return Relation(new AssociatedElementsIterator(mDoc, mContent,
-                                                     nsGkAtoms::aria_flowto));
+      return Relation(
+          new IDRefsIterator(mDoc, mContent, nsGkAtoms::aria_flowto));
 
     case RelationType::FLOWS_FROM:
       return Relation(
@@ -2445,10 +2443,9 @@ Relation LocalAccessible::RelationByType(RelationType aType) const {
 
     case RelationType::DETAILS: {
       if (mContent->IsElement() &&
-          nsAccUtils::HasARIAAttr(mContent->AsElement(),
-                                  nsGkAtoms::aria_details)) {
-        return Relation(new AssociatedElementsIterator(
-            mDoc, mContent, nsGkAtoms::aria_details));
+          mContent->AsElement()->HasAttr(nsGkAtoms::aria_details)) {
+        return Relation(
+            new IDRefsIterator(mDoc, mContent, nsGkAtoms::aria_details));
       }
       if (LocalAccessible* target = GetPopoverTargetDetailsRelation()) {
         return Relation(target);
@@ -2475,8 +2472,8 @@ Relation LocalAccessible::RelationByType(RelationType aType) const {
     }
 
     case RelationType::ERRORMSG:
-      return Relation(new AssociatedElementsIterator(
-          mDoc, mContent, nsGkAtoms::aria_errormessage));
+      return Relation(
+          new IDRefsIterator(mDoc, mContent, nsGkAtoms::aria_errormessage));
 
     case RelationType::ERRORMSG_FOR:
       return Relation(
@@ -3994,7 +3991,7 @@ already_AddRefed<AccAttributes> LocalAccessible::BundleFieldsForCache(
       }
       if (mContent->AsElement()->HasAttr(nsGkAtoms::headers)) {
         nsTArray<uint64_t> headers;
-        AssociatedElementsIterator iter(mDoc, mContent, nsGkAtoms::headers);
+        IDRefsIterator iter(mDoc, mContent, nsGkAtoms::headers);
         while (LocalAccessible* cell = iter.Next()) {
           if (cell->IsTableCell()) {
             headers.AppendElement(cell->ID());
@@ -4065,12 +4062,11 @@ already_AddRefed<AccAttributes> LocalAccessible::BundleFieldsForCache(
         // relation, so using RelationByType here is fine.
         rel = RelationByType(RelationType::DETAILS);
       } else {
-        // We use an AssociatedElementsIterator here instead of calling
-        // RelationByType directly because we only want to cache explicit
-        // relations. Implicit relations (e.g. LABEL_FOR exposed on the target
-        // of aria-labelledby) will be computed and stored separately in the
-        // parent process.
-        rel.AppendIter(new AssociatedElementsIterator(mDoc, mContent, relAtom));
+        // We use an IDRefsIterator here instead of calling RelationByType
+        // directly because we only want to cache explicit relations. Implicit
+        // relations (e.g. LABEL_FOR exposed on the target of aria-labelledby)
+        // will be computed and stored separately in the parent process.
+        rel.AppendIter(new IDRefsIterator(mDoc, mContent, relAtom));
       }
 
       while (LocalAccessible* acc = rel.LocalNext()) {

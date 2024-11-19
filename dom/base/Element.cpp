@@ -1760,40 +1760,25 @@ already_AddRefed<nsIHTMLCollection> Element::GetElementsByClassName(
   return nsContentUtils::GetElementsByClassName(this, aClassNames);
 }
 
-bool Element::HasSharedRoot(const Element* aElement) const {
-  nsINode* root = SubtreeRoot();
-  nsINode* attrSubtreeRoot = aElement->SubtreeRoot();
-  do {
-    if (root == attrSubtreeRoot) {
-      return true;
-    }
-    auto* shadow = ShadowRoot::FromNode(root);
-    if (!shadow || !shadow->GetHost()) {
-      break;
-    }
-    root = shadow->GetHost()->SubtreeRoot();
-  } while (true);
-  return false;
-}
-
-Element* Element::GetElementByIdInDocOrSubtree(nsAtom* aID) const {
-  if (auto* docOrShadowRoot = GetContainingDocumentOrShadowRoot()) {
-    return docOrShadowRoot->GetElementById(aID);
-  }
-
-  return nsContentUtils::MatchElementId(SubtreeRoot()->AsContent(), aID);
-}
-
 Element* Element::GetAttrAssociatedElement(nsAtom* aAttr) const {
   if (const nsExtendedDOMSlots* slots = GetExistingExtendedDOMSlots()) {
-    nsWeakPtr weakAttrEl = slots->mExplicitlySetAttrElementMap.Get(aAttr);
+    nsWeakPtr weakAttrEl = slots->mExplicitlySetAttrElements.Get(aAttr);
     if (nsCOMPtr<Element> attrEl = do_QueryReferent(weakAttrEl)) {
       // If reflectedTarget's explicitly set attr-element |attrEl| is
       // a descendant of any of element's shadow-including ancestors, then
       // return |atrEl|.
-      if (HasSharedRoot(attrEl)) {
-        return attrEl;
-      }
+      nsINode* root = SubtreeRoot();
+      nsINode* attrSubtreeRoot = attrEl->SubtreeRoot();
+      do {
+        if (root == attrSubtreeRoot) {
+          return attrEl;
+        }
+        auto* shadow = ShadowRoot::FromNode(root);
+        if (!shadow || !shadow->GetHost()) {
+          break;
+        }
+        root = shadow->GetHost()->SubtreeRoot();
+      } while (true);
       return nullptr;
     }
   }
@@ -1806,102 +1791,23 @@ Element* Element::GetAttrAssociatedElement(nsAtom* aAttr) const {
   MOZ_ASSERT(value->Type() == nsAttrValue::eAtom,
              "Attribute used for attr associated element must be parsed");
 
-  return GetElementByIdInDocOrSubtree(value->GetAtomValue());
-}
+  nsAtom* valueAtom = value->GetAtomValue();
+  if (auto* docOrShadowRoot = GetContainingDocumentOrShadowRoot()) {
+    return docOrShadowRoot->GetElementById(valueAtom);
+  }
 
-void Element::GetAttrAssociatedElements(
-    nsAtom* aAttr, bool* aUseCachedValue,
-    Nullable<nsTArray<RefPtr<Element>>>& aElements) {
-  MOZ_ASSERT(aElements.IsNull());
-
-  auto& [explicitlySetAttrElements, cachedAttrElements] =
-      ExtendedDOMSlots()->mAttrElementsMap.LookupOrInsert(aAttr);
-
-  // https://html.spec.whatwg.org/multipage/common-dom-interfaces.html#attr-associated-elements
-  auto getAttrAssociatedElements =
-      [&, &explicitlySetAttrElements =
-              explicitlySetAttrElements]() -> Maybe<nsTArray<RefPtr<Element>>> {
-    nsTArray<RefPtr<Element>> elements;
-
-    if (explicitlySetAttrElements) {
-      // 3. If reflectedTarget's explicitly set attr-elements is not null
-      for (const nsWeakPtr& weakEl : *explicitlySetAttrElements) {
-        // For each attrElement in reflectedTarget's explicitly set
-        // attr-elements:
-        if (nsCOMPtr<Element> attrEl = do_QueryReferent(weakEl)) {
-          // If attrElement is not a descendant of any of element's
-          // shadow-including ancestors, then continue.
-          if (!HasSharedRoot(attrEl)) {
-            continue;
-          }
-          // Append attrElement to elements.
-          elements.AppendElement(attrEl);
-        }
-      }
-    } else {
-      // 4. Otherwise
-      //   1. Let contentAttributeValue be the result of running
-      //   reflectedTarget's get the content attribute.
-      const nsAttrValue* value = GetParsedAttr(aAttr);
-      //   2. If contentAttributeValue is null, then return null.
-      if (!value) {
-        return Nothing();
-      }
-
-      //   3. Let tokens be contentAttributeValue, split on ASCII whitespace.
-      MOZ_ASSERT(value->Type() == nsAttrValue::eAtomArray ||
-                     value->Type() == nsAttrValue::eAtom,
-                 "Attribute used for attr associated elements must be parsed");
-      for (uint32_t i = 0; i < value->GetAtomCount(); i++) {
-        // For each id of tokens:
-        if (auto* candidate = GetElementByIdInDocOrSubtree(
-                value->AtomAt(static_cast<int32_t>(i)))) {
-          // Append candidate to elements.
-          elements.AppendElement(candidate);
-        }
-      }
+  nsINode* root = SubtreeRoot();
+  for (auto* node = root; node; node = node->GetNextNode(root)) {
+    if (node->HasID() && node->AsContent()->GetID() == valueAtom) {
+      return node->AsElement();
     }
-
-    return Some(std::move(elements));
-  };
-
-  // getter steps:
-  // 1. Let elements be the result of running this's get the attr-associated
-  // elements.
-  auto elements = getAttrAssociatedElements();
-
-  if (elements && elements == cachedAttrElements) {
-    // 2. If the contents of elements is equal to the contents of this's cached
-    // attr-associated elements, then return this's cached attr-associated
-    // elements object.
-    MOZ_ASSERT(!*aUseCachedValue);
-    *aUseCachedValue = true;
-    return;
   }
-
-  // 3. Let elementsAsFrozenArray be elements, converted to a FrozenArray<T>?.
-  //    (the binding code takes aElements and returns it as a FrozenArray)
-  // 5. Set this's cached attr-associated elements object to
-  //    elementsAsFrozenArray.
-  //    (the binding code stores the attr-associated elements object in a slot)
-  // 6. Return elementsAsFrozenArray.
-  if (elements) {
-    aElements.SetValue(elements->Clone());
-  }
-
-  // 4. Set this's cached attr-associated elements to elements.
-  cachedAttrElements = std::move(elements);
+  return nullptr;
 }
 
 void Element::ClearExplicitlySetAttrElement(nsAtom* aAttr) {
   if (auto* slots = GetExistingExtendedDOMSlots()) {
-    slots->mExplicitlySetAttrElementMap.Remove(aAttr);
-  }
-}
-
-void Element::ClearExplicitlySetAttrElements(nsAtom* aAttr) {
-  if (auto* slots = GetExistingExtendedDOMSlots()) {
-    slots->mAttrElementsMap.Remove(aAttr);
+    slots->mExplicitlySetAttrElements.Remove(aAttr);
   }
 }
 
@@ -1924,7 +1830,7 @@ void Element::ExplicitlySetAttrElement(nsAtom* aAttr, Element* aElement) {
 #endif
     SetAttr(aAttr, EmptyString(), IgnoreErrors());
     nsExtendedDOMSlots* slots = ExtendedDOMSlots();
-    slots->mExplicitlySetAttrElementMap.InsertOrUpdate(
+    slots->mExplicitlySetAttrElements.InsertOrUpdate(
         aAttr, do_GetWeakReference(aElement));
 #ifdef ACCESSIBILITY
     if (accService) {
@@ -1948,69 +1854,14 @@ void Element::ExplicitlySetAttrElement(nsAtom* aAttr, Element* aElement) {
 #endif
 }
 
-void Element::ExplicitlySetAttrElements(
-    nsAtom* aAttr,
-    const Nullable<Sequence<OwningNonNull<Element>>>& aElements) {
-#ifdef ACCESSIBILITY
-  nsAccessibilityService* accService = GetAccService();
-#endif
-  // Accessibility requires that no other attribute changes occur between
-  // AttrElementWillChange and AttrElementChanged. Scripts could cause
-  // this, so don't let them run here. We do this even if accessibility isn't
-  // running so that the JS behavior is consistent regardless of accessibility.
-  // Otherwise, JS might be able to use this difference to determine whether
-  // accessibility is running, which would be a privacy concern.
-  nsAutoScriptBlocker scriptBlocker;
-
-#ifdef ACCESSIBILITY
-  if (accService) {
-    accService->NotifyAttrElementWillChange(this, aAttr);
-  }
-#endif
-
-  if (aElements.IsNull()) {
-    ClearExplicitlySetAttrElements(aAttr);
-    UnsetAttr(aAttr, IgnoreErrors());
-  } else {
-    SetAttr(aAttr, EmptyString(), IgnoreErrors());
-    auto& entry = ExtendedDOMSlots()->mAttrElementsMap.LookupOrInsert(aAttr);
-    entry.first.emplace(nsTArray<nsWeakPtr>());
-    for (Element* el : aElements.Value()) {
-      entry.first->AppendElement(do_GetWeakReference(el));
-    }
-  }
-
-#ifdef ACCESSIBILITY
-  if (accService) {
-    accService->NotifyAttrElementChanged(this, aAttr);
-  }
-#endif
-}
-
 Element* Element::GetExplicitlySetAttrElement(nsAtom* aAttr) const {
   if (const nsExtendedDOMSlots* slots = GetExistingExtendedDOMSlots()) {
-    nsWeakPtr weakAttrEl = slots->mExplicitlySetAttrElementMap.Get(aAttr);
+    nsWeakPtr weakAttrEl = slots->mExplicitlySetAttrElements.Get(aAttr);
     if (nsCOMPtr<Element> attrEl = do_QueryReferent(weakAttrEl)) {
       return attrEl;
     }
   }
   return nullptr;
-}
-
-void Element::GetExplicitlySetAttrElements(
-    nsAtom* aAttr, nsTArray<Element*>& aElements) const {
-  if (const nsExtendedDOMSlots* slots = GetExistingExtendedDOMSlots()) {
-    if (auto attrElementsMaybeEntry = slots->mAttrElementsMap.Lookup(aAttr)) {
-      auto& [attrElements, cachedAttrElements] = attrElementsMaybeEntry.Data();
-      if (attrElements) {
-        for (const nsWeakPtr& weakEl : *attrElements) {
-          if (nsCOMPtr<Element> attrEl = do_QueryReferent(weakEl)) {
-            aElements.AppendElement(attrEl);
-          }
-        }
-      }
-    }
-  }
 }
 
 void Element::GetElementsWithGrid(nsTArray<RefPtr<Element>>& aElements) {
@@ -2971,14 +2822,7 @@ bool Element::ParseAttribute(int32_t aNamespaceID, nsAtom* aAttribute,
   }
 
   if (aNamespaceID == kNameSpaceID_None) {
-    if (aAttribute == nsGkAtoms::_class || aAttribute == nsGkAtoms::part ||
-        aAttribute == nsGkAtoms::aria_controls ||
-        aAttribute == nsGkAtoms::aria_describedby ||
-        aAttribute == nsGkAtoms::aria_details ||
-        aAttribute == nsGkAtoms::aria_errormessage ||
-        aAttribute == nsGkAtoms::aria_flowto ||
-        aAttribute == nsGkAtoms::aria_labelledby ||
-        aAttribute == nsGkAtoms::aria_owns) {
+    if (aAttribute == nsGkAtoms::_class || aAttribute == nsGkAtoms::part) {
       aResult.ParseAtomArray(aValue);
       return true;
     }
@@ -3050,14 +2894,6 @@ void Element::AfterSetAttr(int32_t aNamespaceID, nsAtom* aName,
       }
     } else if (aName == nsGkAtoms::aria_activedescendant) {
       ClearExplicitlySetAttrElement(aName);
-    } else if (aName == nsGkAtoms::aria_controls ||
-               aName == nsGkAtoms::aria_describedby ||
-               aName == nsGkAtoms::aria_details ||
-               aName == nsGkAtoms::aria_errormessage ||
-               aName == nsGkAtoms::aria_flowto ||
-               aName == nsGkAtoms::aria_labelledby ||
-               aName == nsGkAtoms::aria_owns) {
-      ClearExplicitlySetAttrElements(aName);
     }
   }
 }
@@ -3113,16 +2949,6 @@ void Element::OnAttrSetButNotChanged(int32_t aNamespaceID, nsAtom* aName,
   if (aNamespaceID == kNameSpaceID_None &&
       aName == nsGkAtoms::aria_activedescendant) {
     ClearExplicitlySetAttrElement(aName);
-  }
-
-  if (aNamespaceID == kNameSpaceID_None &&
-      (aName == nsGkAtoms::aria_controls ||
-       aName == nsGkAtoms::aria_describedby ||
-       aName == nsGkAtoms::aria_details ||
-       aName == nsGkAtoms::aria_errormessage ||
-       aName == nsGkAtoms::aria_flowto || aName == nsGkAtoms::aria_labelledby ||
-       aName == nsGkAtoms::aria_owns)) {
-    ClearExplicitlySetAttrElements(aName);
   }
 }
 
