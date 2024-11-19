@@ -298,7 +298,8 @@ export class UserCharacteristicsPageService {
     // Returns true if we need to try again
     const attemptRender = async allowSoftwareRenderer => {
       const diagnostics = {
-        count: 0,
+        winCount: 0,
+        tabCount: 0,
         closed: 0,
         noActor: 0,
         noDebugInfo: 0,
@@ -308,43 +309,50 @@ export class UserCharacteristicsPageService {
       let acceleratedActor = null;
       let fallbackActor = null;
       for (const win of Services.wm.getEnumerator("navigator:browser")) {
-        diagnostics.count++;
+        diagnostics.winCount++;
         if (win.closed) {
           diagnostics.closed++;
           continue;
         }
 
-        const actor =
-          win.gBrowser.selectedBrowser.browsingContext?.currentWindowGlobal.getActor(
-            actorName
-          );
+        for (const tab of win.gBrowser.tabs) {
+          diagnostics.tabCount++;
+          const actor = await promiseTry(() =>
+            tab.linkedBrowser.browsingContext?.currentWindowGlobal.getActor(
+              actorName
+            )
+          ).catch(async e => {
+            lazy.console.error("Error getting actor", e);
+            this.handledErrors.push(await stringifyError(e));
+          });
 
-        if (!actor) {
-          diagnostics.noActor++;
-          continue;
+          if (!actor) {
+            diagnostics.noActor++;
+            continue;
+          }
+
+          // Example data: {"backendType":3,"drawTargetType":0,"isAccelerated":false,"isShared":true}
+          const debugInfo = await timeoutPromise(
+            actor.sendQuery("CanvasRendering:GetDebugInfo"),
+            5000
+          ).catch(async e => {
+            lazy.console.error("Canvas rendering debug info failed", e);
+            this.handledErrors.push(await stringifyError(e));
+          });
+          if (!debugInfo) {
+            diagnostics.noDebugInfo++;
+            continue;
+          }
+
+          lazy.console.debug("Canvas rendering debug info", debugInfo);
+
+          fallbackActor = actor;
+          if (debugInfo.isAccelerated) {
+            acceleratedActor = actor;
+            break;
+          }
+          diagnostics.notHW++;
         }
-
-        // Example data: {"backendType":3,"drawTargetType":0,"isAccelerated":false,"isShared":true}
-        const debugInfo = await timeoutPromise(
-          actor.sendQuery("CanvasRendering:GetDebugInfo"),
-          5000
-        ).catch(async e => {
-          lazy.console.error("Canvas rendering debug info failed", e);
-          this.handledErrors.push(await stringifyError(e));
-        });
-        if (!debugInfo) {
-          diagnostics.noDebugInfo++;
-          continue;
-        }
-
-        lazy.console.debug("Canvas rendering debug info", debugInfo);
-
-        fallbackActor = actor;
-        if (debugInfo.isAccelerated) {
-          acceleratedActor = actor;
-          break;
-        }
-        diagnostics.notHW++;
       }
 
       // If we didn't find a hardware accelerated window, we use the last one
