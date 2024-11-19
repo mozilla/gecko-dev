@@ -184,15 +184,11 @@ inline bool nsINode::IsInDesignMode() const {
     return false;
   }
 
-  if (IsDocument()) {
-    return HasFlag(NODE_IS_EDITABLE);
-  }
-
   // NOTE(emilio): If you change this to be the composed doc you also need to
   // change NotifyEditableStateChange() in Document.cpp.
   // NOTE(masayuki): Perhaps, we should keep this behavior because of
   // web-compat.
-  if (IsInUncomposedDoc() && GetUncomposedDoc()->HasFlag(NODE_IS_EDITABLE)) {
+  if (IsInUncomposedDoc()) {
     return true;
   }
 
