@@ -175,22 +175,23 @@ RtpVideoFrameAssembler::Impl::AssembleFrames(
 
       const video_coding::PacketBuffer::Packet& last_packet = *packet;
       result.push_back(std::make_unique<RtpFrameObject>(
-          first_packet->seq_num(),                //
-          last_packet.seq_num(),                  //
-          last_packet.marker_bit,                 //
-          /*times_nacked=*/0,                     //
-          /*first_packet_received_time=*/0,       //
-          /*last_packet_received_time=*/0,        //
-          first_packet->timestamp,                //
-          /*ntp_time_ms=*/0,                      //
-          /*timing=*/VideoSendTiming(),           //
-          first_packet->payload_type,             //
-          first_packet->codec(),                  //
-          last_packet.video_header.rotation,      //
-          last_packet.video_header.content_type,  //
-          first_packet->video_header,             //
-          last_packet.video_header.color_space,   //
-          /*packet_infos=*/RtpPacketInfos(),      //
+          first_packet->seq_num(),                              //
+          last_packet.seq_num(),                                //
+          last_packet.marker_bit,                               //
+          /*times_nacked=*/0,                                   //
+          /*first_packet_received_time=*/0,                     //
+          /*last_packet_received_time=*/0,                      //
+          first_packet->timestamp,                              //
+          /*ntp_time_ms=*/0,                                    //
+          /*timing=*/VideoSendTiming(),                         //
+          first_packet->payload_type,                           //
+          first_packet->codec(),                                //
+          last_packet.video_header.rotation,                    //
+          last_packet.video_header.content_type,                //
+          first_packet->video_header,                           //
+          last_packet.video_header.color_space,                 //
+          last_packet.video_header.frame_instrumentation_data,  //
+          /*packet_infos=*/RtpPacketInfos(),                    //
           std::move(bitstream)));
     }
   }
