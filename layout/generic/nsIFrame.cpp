@@ -1713,9 +1713,13 @@ bool nsIFrame::IsCSSTransformed() const {
 }
 
 bool nsIFrame::HasAnimationOfTransform() const {
-  return IsPrimaryFrame() &&
-         nsLayoutUtils::HasAnimationOfTransformAndMotionPath(this) &&
-         SupportsCSSTransforms();
+  if (!MayHaveTransformAnimation()) {
+    MOZ_ASSERT(!IsPrimaryFrame() || !SupportsCSSTransforms() ||
+               !nsLayoutUtils::HasAnimationOfTransformAndMotionPath(this));
+    return false;
+  }
+  return IsPrimaryFrame() && SupportsCSSTransforms() &&
+         nsLayoutUtils::HasAnimationOfTransformAndMotionPath(this);
 }
 
 bool nsIFrame::ChildrenHavePerspective(

@@ -224,13 +224,13 @@ static bool HasMatchingAnimations(const nsIFrame* aFrame,
                                   TestType&& aTest) {
   MOZ_ASSERT(aFrame);
 
-  if (aPropertySet.IsSubsetOf(nsCSSPropertyIDSet::OpacityProperties()) &&
-      !aFrame->MayHaveOpacityAnimation()) {
+  if (!aFrame->MayHaveOpacityAnimation() &&
+      aPropertySet.IsSubsetOf(nsCSSPropertyIDSet::OpacityProperties())) {
     return false;
   }
 
-  if (aPropertySet.IsSubsetOf(nsCSSPropertyIDSet::TransformLikeProperties()) &&
-      !aFrame->MayHaveTransformAnimation()) {
+  if (!aFrame->MayHaveTransformAnimation() &&
+      aPropertySet.IsSubsetOf(nsCSSPropertyIDSet::TransformLikeProperties())) {
     return false;
   }
 
@@ -264,13 +264,13 @@ bool nsLayoutUtils::HasAnimationOfPropertySet(
     return nsLayoutUtils::HasAnimationOfPropertySet(aFrame, aPropertySet);
   }
 
-  if (aPropertySet.IsSubsetOf(nsCSSPropertyIDSet::TransformLikeProperties()) &&
-      !aEffectSet->MayHaveTransformAnimation()) {
+  if (!aEffectSet->MayHaveTransformAnimation() &&
+      aPropertySet.IsSubsetOf(nsCSSPropertyIDSet::TransformLikeProperties())) {
     return false;
   }
 
-  if (aPropertySet.IsSubsetOf(nsCSSPropertyIDSet::OpacityProperties()) &&
-      !aEffectSet->MayHaveOpacityAnimation()) {
+  if (!aEffectSet->MayHaveOpacityAnimation() &&
+      aPropertySet.IsSubsetOf(nsCSSPropertyIDSet::OpacityProperties())) {
     return false;
   }
 
@@ -284,14 +284,23 @@ bool nsLayoutUtils::HasAnimationOfPropertySet(
 /* static */
 bool nsLayoutUtils::HasAnimationOfTransformAndMotionPath(
     const nsIFrame* aFrame) {
-  return nsLayoutUtils::HasAnimationOfPropertySet(
-             aFrame,
-             nsCSSPropertyIDSet{eCSSProperty_transform, eCSSProperty_translate,
-                                eCSSProperty_rotate, eCSSProperty_scale,
-                                eCSSProperty_offset_path}) ||
-         (!aFrame->StyleDisplay()->mOffsetPath.IsNone() &&
-          nsLayoutUtils::HasAnimationOfPropertySet(
-              aFrame, nsCSSPropertyIDSet::MotionPathProperties()));
+  auto returnValue = [&]() -> bool {
+    return nsLayoutUtils::HasAnimationOfPropertySet(
+               aFrame,
+               nsCSSPropertyIDSet{eCSSProperty_transform,
+                                  eCSSProperty_translate, eCSSProperty_rotate,
+                                  eCSSProperty_scale,
+                                  eCSSProperty_offset_path}) ||
+           (!aFrame->StyleDisplay()->mOffsetPath.IsNone() &&
+            nsLayoutUtils::HasAnimationOfPropertySet(
+                aFrame, nsCSSPropertyIDSet::MotionPathProperties()));
+  };
+
+  if (!aFrame->MayHaveTransformAnimation()) {
+    MOZ_ASSERT(!returnValue());
+    return false;
+  }
+  return returnValue();
 }
 
 /* static */
