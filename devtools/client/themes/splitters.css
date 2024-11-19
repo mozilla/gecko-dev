@@ -53,6 +53,11 @@ splitter.devtools-horizontal-splitter,
   box-sizing: border-box;
 
   z-index: var(--browser-stack-z-index-devtools-splitter, 1);
+
+  /* opt-out of forced colors because the transparent borders are turned into
+     opaque ones in High Contrast Mode. --devtools-splitter-color has specific value
+     in High Contrast Mode so we should be fine */
+     forced-color-adjust: none;
 }
 
 splitter.devtools-horizontal-splitter {
