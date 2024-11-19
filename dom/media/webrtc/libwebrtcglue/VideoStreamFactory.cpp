@@ -237,11 +237,7 @@ std::vector<webrtc::VideoStream> VideoStreamFactory::CreateEncoderStreams(
     video_stream.max_qp = kQpMax;
 
     if (streamCount > 1) {
-      if (mCodecMode == webrtc::VideoCodecMode::kScreensharing) {
-        video_stream.num_temporal_layers = 1;
-      } else {
-        video_stream.num_temporal_layers = 2;
-      }
+      video_stream.num_temporal_layers = 2;
       // XXX Bug 1390215 investigate using more of
       // simulcast.cc:GetSimulcastConfig() or our own algorithm to replace it
     }
