@@ -10,6 +10,7 @@
 
 #include "modules/rtp_rtcp/source/rtp_sender_video.h"
 
+#include <cstdint>
 #include <memory>
 #include <string>
 #include <utility>
@@ -27,9 +28,13 @@
 #include "api/transport/rtp/dependency_descriptor.h"
 #include "api/units/timestamp.h"
 #include "api/video/video_codec_constants.h"
+#include "api/video/video_frame_type.h"
 #include "api/video/video_timing.h"
+#include "common_video/corruption_detection_message.h"
+#include "common_video/frame_instrumentation_data.h"
 #include "modules/rtp_rtcp/include/rtp_cvo.h"
 #include "modules/rtp_rtcp/include/rtp_header_extension_map.h"
+#include "modules/rtp_rtcp/source/corruption_detection_extension.h"
 #include "modules/rtp_rtcp/source/rtcp_packet/nack.h"
 #include "modules/rtp_rtcp/source/rtcp_packet/receiver_report.h"
 #include "modules/rtp_rtcp/source/rtcp_packet/report_block.h"
@@ -78,6 +83,7 @@ enum : int {  // The first valid value is 1.
   kAbsoluteCaptureTimeExtensionId,
   kPlayoutDelayExtensionId,
   kVideoLayersAllocationExtensionId,
+  kCorruptionDetectionExtensionId,
 };
 
 constexpr int kPayload = 100;
@@ -112,6 +118,8 @@ class LoopbackTransportTest : public webrtc::Transport {
         kPlayoutDelayExtensionId);
     receivers_extensions_.Register<RtpVideoLayersAllocationExtension>(
         kVideoLayersAllocationExtensionId);
+    receivers_extensions_.Register<CorruptionDetectionExtension>(
+        kCorruptionDetectionExtensionId);
   }
 
   bool SendRtp(rtc::ArrayView<const uint8_t> data,
@@ -233,6 +241,78 @@ TEST_F(RtpSenderVideoTest, TimingFrameHasPacketizationTimstampSet) {
   EXPECT_EQ(kPacketizationTimeMs, timing.packetization_finish_delta_ms);
   EXPECT_EQ(kEncodeStartDeltaMs, timing.encode_start_delta_ms);
   EXPECT_EQ(kEncodeFinishDeltaMs, timing.encode_finish_delta_ms);
+}
+
+TEST_F(RtpSenderVideoTest,
+       WriteCorruptionExtensionIfHeaderContainsFrameInstrumentationData) {
+  uint8_t kFrame[kMaxPacketLength];
+  rtp_module_.RegisterRtpHeaderExtension(CorruptionDetectionExtension::Uri(),
+                                         kCorruptionDetectionExtensionId);
+  RTPVideoHeader hdr;
+  hdr.frame_type = VideoFrameType::kVideoFrameKey;
+  hdr.frame_instrumentation_data = FrameInstrumentationData{
+      .sequence_index = 130,  // 128 + 2
+      .communicate_upper_bits = false,
+      .std_dev = 2.0,
+      .luma_error_threshold = 3,
+      .chroma_error_threshold = 2,
+      .sample_values = {12.0, 12.0, 12.0, 12.0, 12.0, 12.0, 12.0, 12.0}};
+  CorruptionDetectionMessage message;
+
+  rtp_sender_video_->SendVideo(
+      kPayload, kType, kTimestamp, fake_clock_.CurrentTime(), kFrame,
+      sizeof(kFrame), hdr, kDefaultExpectedRetransmissionTime, {});
+
+  // Only written on last packet.
+  for (const RtpPacketReceived& packet : transport_.sent_packets()) {
+    if (&packet == &transport_.last_sent_packet()) {
+      EXPECT_TRUE(transport_.last_sent_packet()
+                      .GetExtension<CorruptionDetectionExtension>(&message));
+    } else {
+      EXPECT_FALSE(packet.HasExtension<CorruptionDetectionExtension>());
+    }
+  }
+  EXPECT_EQ(message.sequence_index(), 2);
+  EXPECT_FALSE(message.interpret_sequence_index_as_most_significant_bits());
+  EXPECT_NEAR(message.std_dev(), 2.0392156862745097, 0.041);  // ~2%
+  EXPECT_EQ(message.luma_error_threshold(), 3);
+  EXPECT_EQ(message.chroma_error_threshold(), 2);
+  EXPECT_THAT(message.sample_values(),
+              ElementsAre(12.0, 12.0, 12.0, 12.0, 12.0, 12.0, 12.0, 12.0));
+}
+
+TEST_F(RtpSenderVideoTest,
+       WriteCorruptionExtensionIfHeaderContainsFrameInstrumentationSyncData) {
+  uint8_t kFrame[kMaxPacketLength];
+  rtp_module_.RegisterRtpHeaderExtension(CorruptionDetectionExtension::Uri(),
+                                         kCorruptionDetectionExtensionId);
+  RTPVideoHeader hdr;
+  hdr.frame_type = VideoFrameType::kVideoFrameKey;
+  hdr.frame_instrumentation_data = FrameInstrumentationSyncData{
+      .sequence_index = 130,  // 128 + 2
+      .communicate_upper_bits = true,
+  };
+  CorruptionDetectionMessage message;
+
+  rtp_sender_video_->SendVideo(
+      kPayload, kType, kTimestamp, fake_clock_.CurrentTime(), kFrame,
+      sizeof(kFrame), hdr, kDefaultExpectedRetransmissionTime, {});
+
+  // Only written on last packet.
+  for (const RtpPacketReceived& packet : transport_.sent_packets()) {
+    if (&packet == &transport_.last_sent_packet()) {
+      EXPECT_TRUE(transport_.last_sent_packet()
+                      .GetExtension<CorruptionDetectionExtension>(&message));
+    } else {
+      EXPECT_FALSE(packet.HasExtension<CorruptionDetectionExtension>());
+    }
+  }
+  EXPECT_EQ(message.sequence_index(), 1);
+  EXPECT_TRUE(message.interpret_sequence_index_as_most_significant_bits());
+  EXPECT_DOUBLE_EQ(message.std_dev(), 0.0);
+  EXPECT_EQ(message.luma_error_threshold(), 0);
+  EXPECT_EQ(message.chroma_error_threshold(), 0);
+  EXPECT_THAT(message.sample_values(), IsEmpty());
 }
 
 TEST_F(RtpSenderVideoTest, DeltaFrameHasCVOWhenChanged) {
