@@ -78,6 +78,26 @@ ConvertCorruptionDetectionMessageToFrameInstrumentationData(
       .sample_values = sample_values};
 }
 
+std::optional<FrameInstrumentationSyncData>
+ConvertCorruptionDetectionMessageToFrameInstrumentationSyncData(
+    const CorruptionDetectionMessage& message,
+    int previous_sequence_index) {
+  if (previous_sequence_index < 0) {
+    return std::nullopt;
+  }
+  if (!message.sample_values().empty()) {
+    return std::nullopt;
+  }
+  if (!message.interpret_sequence_index_as_most_significant_bits()) {
+    return std::nullopt;
+  }
+  return FrameInstrumentationSyncData{
+      .sequence_index = GetFullSequenceIndex(
+          previous_sequence_index, message.sequence_index(),
+          /*update_the_most_significant_bits=*/true),
+      .communicate_upper_bits = true};
+}
+
 std::optional<CorruptionDetectionMessage>
 ConvertFrameInstrumentationDataToCorruptionDetectionMessage(
     const FrameInstrumentationData& data) {

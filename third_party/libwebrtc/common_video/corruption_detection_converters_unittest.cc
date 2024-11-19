@@ -327,5 +327,64 @@ TEST(CorruptionDetectionMessageToFrameInstrumentationData, ConvertAllFields) {
   EXPECT_THAT(data->sample_values, ElementsAre(1.0, 2.0, 3.0, 4.0, 5.0));
 }
 
+TEST(CorruptionDetectionMessageToFrameInstrumentationSyncData,
+     FailWhenPreviousSequenceIndexIsNegative) {
+  std::optional<CorruptionDetectionMessage> message =
+      CorruptionDetectionMessage::Builder()
+          .WithInterpretSequenceIndexAsMostSignificantBits(true)
+          .Build();
+  ASSERT_TRUE(message.has_value());
+
+  EXPECT_FALSE(ConvertCorruptionDetectionMessageToFrameInstrumentationSyncData(
+                   *message, -1)
+                   .has_value());
+}
+
+TEST(CorruptionDetectionMessageToFrameInstrumentationSyncData,
+     FailWhenSampleValuesArePresent) {
+  std::vector<double> sample_values = {1.0, 2.0, 3.0, 4.0, 5.0};
+  std::optional<CorruptionDetectionMessage> message =
+      CorruptionDetectionMessage::Builder()
+          .WithInterpretSequenceIndexAsMostSignificantBits(true)
+          .WithSampleValues(sample_values)
+          .Build();
+  ASSERT_TRUE(message.has_value());
+
+  EXPECT_FALSE(ConvertCorruptionDetectionMessageToFrameInstrumentationSyncData(
+                   *message, 0)
+                   .has_value());
+}
+
+TEST(CorruptionDetectionMessageToFrameInstrumentationSyncData,
+     FailWhenSetToUpdateTheLowerBits) {
+  std::optional<CorruptionDetectionMessage> message =
+      CorruptionDetectionMessage::Builder()
+          .WithInterpretSequenceIndexAsMostSignificantBits(false)
+          .Build();
+  ASSERT_TRUE(message.has_value());
+
+  EXPECT_FALSE(ConvertCorruptionDetectionMessageToFrameInstrumentationSyncData(
+                   *message, 0)
+                   .has_value());
+}
+
+TEST(CorruptionDetectionMessageToFrameInstrumentationSyncData,
+     IgnorePreviousSequenceIndex) {
+  std::optional<CorruptionDetectionMessage> message =
+      CorruptionDetectionMessage::Builder()
+          .WithSequenceIndex(11)
+          .WithInterpretSequenceIndexAsMostSignificantBits(true)
+          .Build();
+  ASSERT_TRUE(message.has_value());
+
+  std::optional<FrameInstrumentationSyncData> data =
+      ConvertCorruptionDetectionMessageToFrameInstrumentationSyncData(*message,
+                                                                      12);
+
+  ASSERT_TRUE(data.has_value());
+  EXPECT_EQ(data->sequence_index, 0b0101'1000'0000);
+  EXPECT_TRUE(data->communicate_upper_bits);
+}
+
 }  // namespace
 }  // namespace webrtc

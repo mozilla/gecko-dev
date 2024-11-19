@@ -22,6 +22,10 @@ std::optional<FrameInstrumentationData>
 ConvertCorruptionDetectionMessageToFrameInstrumentationData(
     const CorruptionDetectionMessage& message,
     int previous_sequence_index);
+std::optional<FrameInstrumentationSyncData>
+ConvertCorruptionDetectionMessageToFrameInstrumentationSyncData(
+    const CorruptionDetectionMessage& message,
+    int previous_sequence_index);
 std::optional<CorruptionDetectionMessage>
 ConvertFrameInstrumentationDataToCorruptionDetectionMessage(
     const FrameInstrumentationData& frame_instrumentation_data);
