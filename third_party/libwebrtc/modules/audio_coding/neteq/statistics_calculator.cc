@@ -112,7 +112,7 @@ void StatisticsCalculator::PeriodicUmaAverage::Reset() {
   counter_ = 0;
 }
 
-StatisticsCalculator::StatisticsCalculator()
+StatisticsCalculator::StatisticsCalculator(TickTimer* tick_timer)
     : preemptive_samples_(0),
       accelerate_samples_(0),
       expanded_speech_samples_(0),
@@ -129,7 +129,13 @@ StatisticsCalculator::StatisticsCalculator()
                            1000),
       buffer_full_counter_("WebRTC.Audio.JitterBufferFullPerMinute",
                            60000,  // 60 seconds report interval.
-                           100) {}
+                           100),
+      expand_uma_logger_("WebRTC.Audio.ExpandRatePercent",
+                         10,  // Report once every 10 s.
+                         tick_timer),
+      speech_expand_uma_logger_("WebRTC.Audio.SpeechExpandRatePercent",
+                                10,  // Report once every 10 s.
+                                tick_timer) {}
 
 StatisticsCalculator::~StatisticsCalculator() = default;
 
@@ -260,6 +266,12 @@ void StatisticsCalculator::IncreaseCounter(size_t num_samples, int fs_hz) {
     timestamps_since_last_report_ = 0;
   }
   lifetime_stats_.total_samples_received += num_samples;
+  expand_uma_logger_.UpdateSampleCounter(lifetime_stats_.concealed_samples,
+                                         fs_hz);
+  speech_expand_uma_logger_.UpdateSampleCounter(
+      lifetime_stats_.concealed_samples -
+          lifetime_stats_.silent_concealed_samples,
+      fs_hz);
 }
 
 void StatisticsCalculator::JitterBufferDelay(size_t num_samples,
