@@ -101,7 +101,7 @@ add_task(async function test_connect_bidirectionally_and_postMessage() {
     manifest: {
       content_scripts: [{
         js: ["contentscript.js"],
-        matches: ["http://mochi.test/*/file_sample.html"],
+        matches: ["*://mochi.test/*/file_sample.html"],
       }],
     },
     files: {
@@ -110,6 +110,56 @@ add_task(async function test_connect_bidirectionally_and_postMessage() {
   };
 
   let extension = ExtensionTestUtils.loadExtension(extensionData);
+  await extension.startup();
+  info("extension loaded");
+
+  await extension.awaitMessage("ready");
+
+  let win = window.open("file_sample.html");
+  await extension.awaitFinish("ping pong done");
+  win.close();
+
+  await extension.unload();
+  info("extension unloaded");
+});
+
+// Regression test for https://bugzilla.mozilla.org/show_bug.cgi?id=1931902
+add_task(async function test_disconnect_on_connect() {
+  function background() {
+    browser.runtime.onConnect.addListener(port => {
+      browser.test.assertEq("from_cs", port.name);
+      port.onDisconnect.addListener(() => {
+        browser.test.assertEq(null, port.error, "Disconnect without error");
+
+        // This should trigger onConnect + onDisconnect in contentScript.
+        browser.tabs.connect(port.sender.tab.id, { name: "bye" }).disconnect();
+      });
+    });
+    browser.test.sendMessage("ready");
+  }
+  function contentScript() {
+    browser.runtime.onConnect.addListener(port => {
+      browser.test.assertEq("bye", port.name);
+      port.onDisconnect.addListener(() => {
+        browser.test.assertEq(null, port.error, "Disconnect without error");
+        browser.test.notifyPass("ping pong done");
+      });
+    });
+    // This should trigger onConnect + onDisconnect in background.
+    browser.runtime.connect({ name: "from_cs" }).disconnect();
+  }
+  let extension = ExtensionTestUtils.loadExtension({
+    background,
+    manifest: {
+      content_scripts: [{
+        js: ["contentscript.js"],
+        matches: ["*://mochi.test/*/file_sample.html"],
+      }],
+    },
+    files: {
+      "contentscript.js": contentScript,
+    },
+  });
   await extension.startup();
   info("extension loaded");
 

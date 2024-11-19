@@ -353,10 +353,6 @@ skip-if = [
 ["test_ext_runtime_connect_iframe.html"]
 
 ["test_ext_runtime_connect_twoway.html"]
-skip-if = [
-  "http3",
-  "http2",
-]
 
 ["test_ext_runtime_disconnect.html"]
 skip-if = [
