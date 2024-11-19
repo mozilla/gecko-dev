@@ -17,6 +17,10 @@
 
 #include "api/array_view.h"
 #include "api/rtp_packet_infos.h"
+#include "api/units/time_delta.h"
+#include "api/video/video_content_type.h"
+#include "api/video/video_frame.h"
+#include "api/video/video_frame_type.h"
 #include "api/video_codecs/video_decoder.h"
 #include "common_video/test/utilities.h"
 #include "modules/video_coding/timing/timing.h"
@@ -37,7 +41,15 @@ class ReceiveCallback : public VCMReceiveCallback {
                         TimeDelta decode_time,
                         VideoContentType content_type,
                         VideoFrameType frame_type) override {
-    frames_.push_back(frame);
+    return FrameToRender({.video_frame = frame,
+                          .qp = qp,
+                          .decode_time = decode_time,
+                          .content_type = content_type,
+                          .frame_type = frame_type});
+  }
+
+  int32_t FrameToRender(const struct FrameToRender& arguments) override {
+    frames_.push_back(arguments.video_frame);
     return 0;
   }
 

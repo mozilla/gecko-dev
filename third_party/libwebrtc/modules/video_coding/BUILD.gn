@@ -288,7 +288,9 @@ rtc_library("video_codec_interface") {
   ]
   deps = [
     ":codec_globals_headers",
+    "../../api/units:time_delta",
     "../../api/video:video_frame",
+    "../../api/video:video_frame_type",
     "../../api/video:video_rtp_headers",
     "../../api/video_codecs:scalability_mode",
     "../../api/video_codecs:video_codecs_api",

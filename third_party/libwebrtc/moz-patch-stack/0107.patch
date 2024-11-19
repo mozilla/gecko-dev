@@ -30,7 +30,7 @@ index 4a965e69d5..9f0c1277c5 100644
  if (rtc_use_perfetto) {
    rtc_library("webrtc_libperfetto") {
 diff --git a/modules/video_coding/generic_decoder.cc b/modules/video_coding/generic_decoder.cc
-index 1f2c6004e8..99a8746790 100644
+index 1568c29e7f..08df2c42b9 100644
 --- a/modules/video_coding/generic_decoder.cc
 +++ b/modules/video_coding/generic_decoder.cc
 @@ -103,9 +103,9 @@ void VCMDecodedFrameCallback::Decoded(VideoFrame& decodedImage,
@@ -46,7 +46,7 @@ index 1f2c6004e8..99a8746790 100644
    // TODO(holmer): We should improve this so that we can handle multiple
    // callbacks from one call to Decode().
    std::optional<FrameInfo> frame_info;
-@@ -293,8 +293,8 @@ int32_t VCMGenericDecoder::Decode(const VCMEncodedFrame& frame, Timestamp now) {
+@@ -295,8 +295,8 @@ int32_t VCMGenericDecoder::Decode(const VCMEncodedFrame& frame, Timestamp now) {
  int32_t VCMGenericDecoder::Decode(const EncodedImage& frame,
                                    Timestamp now,
                                    int64_t render_time_ms) {
