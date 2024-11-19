@@ -8,18 +8,14 @@
 #define mozilla_dom_notification_h__
 
 #include "mozilla/DOMEventTargetHelper.h"
-#include "mozilla/GlobalFreezeObserver.h"
-#include "mozilla/UniquePtr.h"
 #include "mozilla/dom/NotificationBinding.h"
 #include "mozilla/dom/notification/NotificationChild.h"
 #include "mozilla/dom/WorkerPrivate.h"
 #include "mozilla/dom/quota/QuotaCommon.h"
 
-#include "nsIObserver.h"
 #include "nsISupports.h"
 
 #include "nsCycleCollectionParticipant.h"
-#include "nsWeakReference.h"
 
 class nsIPrincipal;
 class nsIVariant;
@@ -143,10 +139,6 @@ class Notification : public DOMEventTargetHelper, public SupportsWeakPtr {
 
   void GetIcon(nsAString& aRetval) { aRetval = mIconUrl; }
 
-  void SetStoredState(bool val) { mIsStored = val; }
-
-  bool IsStored() { return mIsStored; }
-
   void MaybeNotifyClose();
 
   static bool RequestPermissionEnabledForScope(JSContext* aCx,
@@ -199,29 +191,6 @@ class Notification : public DOMEventTargetHelper, public SupportsWeakPtr {
 
   Result<Ok, QMResult> InitFromBase64(const nsAString& aData);
 
-  void AssertIsOnTargetThread() const { MOZ_ASSERT(IsTargetThread()); }
-
-  // Initialized on the worker thread, never unset, and always used in
-  // a read-only capacity. Used on any thread.
-  CheckedUnsafePtr<WorkerPrivate> mWorkerPrivate;
-  bool mWorkerUseRegularPrincipal = false;
-
-  // Main thread only.
-  WorkerNotificationObserver* mObserver;
-
-  // The NotificationTask calls ShowInternal()/CloseInternal() on the
-  // Notification. At this point the task has ownership of the Notification. It
-  // passes this on to the Notification itself via mTempRef so that
-  // ShowInternal()/CloseInternal() may pass it along appropriately (or release
-  // it).
-  //
-  // Main thread only.
-  UniquePtr<NotificationRef> mTempRef;
-
-  // Returns true if addref succeeded.
-  bool AddRefObject();
-  void ReleaseObject();
-
   static NotificationPermission GetPermission(
       nsIGlobalObject* aGlobal, notification::PermissionCheckPurpose aPurpose,
       ErrorResult& aRv);
@@ -249,16 +218,6 @@ class Notification : public DOMEventTargetHelper, public SupportsWeakPtr {
       nsPIDOMWindowInner* aWindow,
       notification::PermissionCheckPurpose aPurpose, ErrorResult& rv);
 
-  void GetAlertName(nsAString& aRetval) {
-    AssertIsOnMainThread();
-    if (mAlertName.IsEmpty()) {
-      SetAlertName();
-    }
-    aRetval = mAlertName;
-  }
-
-  void GetScope(nsAString& aScope) { aScope = mScope; }
-
   void SetScope(const nsAString& aScope) {
     MOZ_ASSERT(mScope.IsEmpty());
     mScope = aScope;
@@ -282,19 +241,9 @@ class Notification : public DOMEventTargetHelper, public SupportsWeakPtr {
   // It's null until GetData is first called
   JS::Heap<JS::Value> mData;
 
-  nsString mAlertName;
   nsString mScope;
 
-  // Main thread only.
-  bool mIsClosed;
-
-  // We need to make a distinction between the notification being closed i.e.
-  // removed from any pending or active lists, and the notification being
-  // removed from the database. NotificationDB might fail when trying to remove
-  // the notification.
-  bool mIsStored;
-
-  static uint32_t sCount;
+  bool mIsClosed = false;
 
  private:
   virtual ~Notification();
@@ -314,22 +263,9 @@ class Notification : public DOMEventTargetHelper, public SupportsWeakPtr {
   bool CreateActor();
   bool SendShow(Promise* aPromise);
 
-  nsIPrincipal* GetPrincipal();
-
-  nsresult Persist();
-  void Unpersist();
-
-  void SetAlertName();
-
-  bool IsTargetThread() const { return NS_IsMainThread() == !mWorkerPrivate; }
-
   static nsresult ResolveIconAndSoundURL(nsIGlobalObject* aGlobal,
-                                         nsString& iconUrl, nsString& soundUrl);
-
-  // Only used for Notifications on Workers, worker thread only.
-  RefPtr<StrongWorkerRef> mWorkerRef;
-  // Target thread only.
-  uint32_t mTaskCount;
+                                         nsString& aIconURL,
+                                         nsString& aSoundURL);
 };
 
 }  // namespace mozilla::dom

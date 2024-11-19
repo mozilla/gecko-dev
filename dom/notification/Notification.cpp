@@ -55,8 +55,6 @@
 #include "nsThreadUtils.h"
 #include "nsXULAppAPI.h"
 
-using namespace mozilla::dom::notification;
-
 namespace mozilla::dom {
 
 using namespace notification;
@@ -142,7 +140,6 @@ class NotificationStorageCallback final : public ScopeCheckingGetCallback {
         continue;
       }
       RefPtr<Notification> n = result.unwrap();
-      n->SetStoredState(true);
       notifications.AppendElement(n.forget());
     }
 
@@ -241,21 +238,6 @@ class NotificationPermissionRequest : public ContentPermissionRequestBase,
 };
 
 namespace {
-class ReleaseNotificationControlRunnable final
-    : public MainThreadWorkerControlRunnable {
-  Notification* mNotification;
-
- public:
-  explicit ReleaseNotificationControlRunnable(Notification* aNotification)
-      : MainThreadWorkerControlRunnable("ReleaseNotificationControlRunnable"),
-        mNotification(aNotification) {}
-
-  bool WorkerRun(JSContext* aCx, WorkerPrivate* aWorkerPrivate) override {
-    mNotification->ReleaseObject();
-    return true;
-  }
-};
-
 class GetPermissionRunnable final : public WorkerMainThreadRunnable {
  public:
   explicit GetPermissionRunnable(WorkerPrivate* aWorker,
@@ -284,29 +266,6 @@ class GetPermissionRunnable final : public WorkerMainThreadRunnable {
   NotificationPermission mPermission = NotificationPermission::Denied;
   bool mUseRegularPrincipal;
   PermissionCheckPurpose mPurpose;
-};
-
-class FocusWindowRunnable final : public Runnable {
-  nsMainThreadPtrHandle<nsPIDOMWindowInner> mWindow;
-
- public:
-  explicit FocusWindowRunnable(
-      const nsMainThreadPtrHandle<nsPIDOMWindowInner>& aWindow)
-      : Runnable("FocusWindowRunnable"), mWindow(aWindow) {}
-
-  // MOZ_CAN_RUN_SCRIPT_BOUNDARY until Runnable::Run is MOZ_CAN_RUN_SCRIPT.  See
-  // bug 1535398.
-  MOZ_CAN_RUN_SCRIPT_BOUNDARY NS_IMETHOD Run() override {
-    AssertIsOnMainThread();
-    if (!mWindow->IsCurrentInnerWindow()) {
-      // Window has been closed, this observer is not valid anymore
-      return NS_OK;
-    }
-
-    nsCOMPtr<nsPIDOMWindowOuter> outerWindow = mWindow->GetOuterWindow();
-    nsFocusManager::FocusWindow(outerWindow, CallerType::System);
-    return NS_OK;
-  }
 };
 
 nsresult CheckScope(nsIPrincipal* aPrincipal, const nsACString& aScope,
@@ -349,124 +308,6 @@ class NotificationWorkerRunnable : public MainThreadWorkerRunnable {
   }
 
   virtual void WorkerRunInternal(WorkerPrivate* aWorkerPrivate) = 0;
-};
-
-// Overrides dispatch and run handlers so we can directly dispatch from main
-// thread to child workers.
-class NotificationEventWorkerRunnable final
-    : public NotificationWorkerRunnable {
-  Notification* mNotification;
-  const nsString mEventName;
-
- public:
-  NotificationEventWorkerRunnable(Notification* aNotification,
-                                  const nsString& aEventName)
-      : NotificationWorkerRunnable(aNotification->mWorkerPrivate,
-                                   "NotificationEventWorkerRunnable"),
-        mNotification(aNotification),
-        mEventName(aEventName) {}
-
-  void WorkerRunInternal(WorkerPrivate* aWorkerPrivate) override {
-    mNotification->DispatchTrustedEvent(mEventName);
-  }
-};
-
-class ReleaseNotificationRunnable final : public NotificationWorkerRunnable {
-  Notification* mNotification;
-
- public:
-  explicit ReleaseNotificationRunnable(Notification* aNotification)
-      : NotificationWorkerRunnable(aNotification->mWorkerPrivate,
-                                   "ReleaseNotificationRunnable"),
-        mNotification(aNotification) {}
-
-  bool WorkerRun(JSContext* aCx, WorkerPrivate* aWorkerPrivate) override {
-    aWorkerPrivate->AssertIsOnWorkerThread();
-    // ReleaseNotificationRunnable is only used in StrongWorkerRef's shutdown
-    // callback. At the moment, it is supposed to executing
-    // mNotification->ReleaseObject() safely even though the corresponding
-    // WorkerScope::IsDying() is true. It is unlike other
-    // NotificationWorkerRunnable.
-    WorkerRunInternal(aWorkerPrivate);
-    return true;
-  }
-
-  void WorkerRunInternal(WorkerPrivate* aWorkerPrivate) override {
-    mNotification->ReleaseObject();
-  }
-
-  nsresult Cancel() override {
-    mNotification->ReleaseObject();
-    return NS_OK;
-  }
-};
-
-// Create one whenever you require ownership of the notification. Use with
-// UniquePtr<>. See Notification.h for details.
-class NotificationRef final {
-  friend class WorkerNotificationObserver;
-
- private:
-  Notification* mNotification;
-  bool mInited;
-
-  // Only useful for workers.
-  void Forget() { mNotification = nullptr; }
-
- public:
-  explicit NotificationRef(Notification* aNotification)
-      : mNotification(aNotification) {
-    MOZ_ASSERT(mNotification);
-    if (mNotification->mWorkerPrivate) {
-      mNotification->mWorkerPrivate->AssertIsOnWorkerThread();
-    } else {
-      AssertIsOnMainThread();
-    }
-
-    mInited = mNotification->AddRefObject();
-  }
-
-  // This is only required because Gecko runs script in a worker's onclose
-  // handler (non-standard, Bug 790919) where calls to HoldWorker() will
-  // fail. Due to non-standardness and added complications if we decide to
-  // support this, attempts to create a Notification in onclose just throw
-  // exceptions.
-  bool Initialized() { return mInited; }
-
-  ~NotificationRef() {
-    if (Initialized() && mNotification) {
-      Notification* notification = mNotification;
-      mNotification = nullptr;
-      if (notification->mWorkerPrivate && NS_IsMainThread()) {
-        // Try to pass ownership back to the worker. If the dispatch succeeds we
-        // are guaranteed this runnable will run, and that it will run after
-        // queued event runnables, so event runnables will have a safe pointer
-        // to the Notification.
-        //
-        // If the dispatch fails, the worker isn't running anymore and the event
-        // runnables have already run or been canceled. We can use a control
-        // runnable to release the reference.
-        RefPtr<ReleaseNotificationRunnable> r =
-            new ReleaseNotificationRunnable(notification);
-
-        if (!r->Dispatch(notification->mWorkerPrivate)) {
-          RefPtr<ReleaseNotificationControlRunnable> r =
-              new ReleaseNotificationControlRunnable(notification);
-          MOZ_ALWAYS_TRUE(r->Dispatch(notification->mWorkerPrivate));
-        }
-      } else {
-        notification->AssertIsOnTargetThread();
-        notification->ReleaseObject();
-      }
-    }
-  }
-
-  // XXXnsm, is it worth having some sort of WeakPtr like wrapper instead of
-  // a rawptr that the NotificationRef can invalidate?
-  Notification* GetNotification() {
-    MOZ_ASSERT(Initialized());
-    return mNotification;
-  }
 };
 
 NS_IMPL_CYCLE_COLLECTION_INHERITED(NotificationPermissionRequest,
@@ -580,33 +421,6 @@ nsresult NotificationPermissionRequest::ResolvePromise() {
   return rv;
 }
 
-// Observer that the alert service calls to do common tasks and/or dispatch to
-// the specific observer for the context e.g. main thread, worker, or service
-// worker.
-class NotificationObserver final : public nsIObserver {
- public:
-  nsCOMPtr<nsIObserver> mObserver;
-  nsCOMPtr<nsIPrincipal> mPrincipal;
-  bool mInPrivateBrowsing;
-  NS_DECL_ISUPPORTS
-  NS_DECL_NSIOBSERVER
-
-  NotificationObserver(nsIObserver* aObserver, nsIPrincipal* aPrincipal,
-                       bool aInPrivateBrowsing)
-      : mObserver(aObserver),
-        mPrincipal(aPrincipal),
-        mInPrivateBrowsing(aInPrivateBrowsing) {
-    AssertIsOnMainThread();
-    MOZ_ASSERT(mObserver);
-    MOZ_ASSERT(mPrincipal);
-  }
-
- protected:
-  virtual ~NotificationObserver() { AssertIsOnMainThread(); }
-};
-
-NS_IMPL_ISUPPORTS(NotificationObserver, nsIObserver)
-
 // static
 bool Notification::PrefEnabled(JSContext* aCx, JSObject* aObj) {
   return StaticPrefs::dom_webnotifications_enabled();
@@ -620,8 +434,6 @@ Notification::Notification(nsIGlobalObject* aGlobal, const nsAString& aID,
                            nsTArray<uint32_t>&& aVibrate,
                            const NotificationBehavior& aBehavior)
     : DOMEventTargetHelper(aGlobal),
-      mWorkerPrivate(nullptr),
-      mObserver(nullptr),
       mID(aID),
       mTitle(aTitle),
       mBody(aBody),
@@ -633,24 +445,11 @@ Notification::Notification(nsIGlobalObject* aGlobal, const nsAString& aID,
       mSilent(aSilent),
       mVibrate(std::move(aVibrate)),
       mBehavior(aBehavior),
-      mData(JS::NullValue()),
-      mIsClosed(false),
-      mIsStored(false),
-      mTaskCount(0) {
-  if (!NS_IsMainThread() && mScope.IsEmpty()) {
-    mWorkerPrivate = GetCurrentThreadWorkerPrivate();
-    MOZ_ASSERT(mWorkerPrivate);
-    mWorkerUseRegularPrincipal = mWorkerPrivate->UseRegularPrincipal();
-  }
-}
-
-void Notification::SetAlertName() {
-  AssertIsOnMainThread();
-  if (!mAlertName.IsEmpty()) {
-    return;
-  }
-
-  ComputeAlertName(GetPrincipal(), mTag, mID, mAlertName);
+      mData(JS::NullValue()) {
+  KeepAliveIfHasListenersFor(nsGkAtoms::onclick);
+  KeepAliveIfHasListenersFor(nsGkAtoms::onshow);
+  KeepAliveIfHasListenersFor(nsGkAtoms::onerror);
+  KeepAliveIfHasListenersFor(nsGkAtoms::onclose);
 }
 
 // May be called on any thread.
@@ -738,34 +537,6 @@ void Notification::MaybeNotifyClose() {
   DispatchTrustedEvent(u"close"_ns);
 }
 
-nsresult Notification::Persist() {
-  AssertIsOnMainThread();
-
-  nsString alertName;
-  GetAlertName(alertName);
-
-  IPCNotificationOptions options(mTitle, mDir, mLang, mBody, mTag, mIconUrl,
-                                 mRequireInteraction, mSilent, mVibrate,
-                                 mDataAsBase64, mBehavior);
-
-  nsresult rv =
-      PersistNotification(GetPrincipal(), mID, alertName, options, mScope);
-
-  if (NS_FAILED(rv)) {
-    return rv;
-  }
-
-  SetStoredState(true);
-  return NS_OK;
-}
-
-void Notification::Unpersist() {
-  AssertIsOnMainThread();
-  if (IsStored()) {
-    UnpersistNotification(GetPrincipal(), mID);
-  }
-}
-
 // https://notifications.spec.whatwg.org/#create-a-notification
 already_AddRefed<Notification> Notification::CreateInternal(
     nsIGlobalObject* aGlobal, const nsAString& aID, const nsAString& aTitle,
@@ -832,12 +603,7 @@ already_AddRefed<Notification> Notification::CreateInternal(
   return notification.forget();
 }
 
-Notification::~Notification() {
-  mozilla::DropJSObjects(this);
-  AssertIsOnTargetThread();
-  MOZ_ASSERT(!mWorkerRef);
-  MOZ_ASSERT(!mTempRef);
-}
+Notification::~Notification() { mozilla::DropJSObjects(this); }
 
 NS_IMPL_CYCLE_COLLECTION_CLASS(Notification)
 NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN_INHERITED(Notification,
@@ -860,16 +626,6 @@ NS_IMPL_RELEASE_INHERITED(Notification, DOMEventTargetHelper)
 
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(Notification)
 NS_INTERFACE_MAP_END_INHERITING(DOMEventTargetHelper)
-
-nsIPrincipal* Notification::GetPrincipal() {
-  AssertIsOnMainThread();
-  if (mWorkerPrivate) {
-    return mWorkerPrivate->GetPrincipal();
-  }
-  nsGlobalWindowInner* win = GetOwnerWindow();
-  NS_ENSURE_TRUE(win, nullptr);
-  return win->GetPrincipal();
-}
 
 /* static */
 bool Notification::RequestPermissionEnabledForScope(JSContext* aCx,
@@ -1096,7 +852,6 @@ class WorkerGetResultRunnable final : public NotificationWorkerRunnable {
         continue;
       }
       RefPtr<Notification> n = result.unwrap();
-      n->SetStoredState(true);
       notifications.AppendElement(n.forget());
     }
 
@@ -1228,8 +983,6 @@ JSObject* Notification::WrapObject(JSContext* aCx,
 }
 
 void Notification::Close() {
-  AssertIsOnTargetThread();
-
   if (mIsClosed) {
     return;
   }
@@ -1314,28 +1067,6 @@ Result<Ok, QMResult> Notification::InitFromBase64(const nsAString& aData) {
   QM_TRY(QM_TO_RESULT(container->GetDataAsBase64(mDataAsBase64)));
 
   return Ok();
-}
-
-bool Notification::AddRefObject() {
-  AssertIsOnTargetThread();
-  MOZ_ASSERT_IF(mWorkerPrivate && !mWorkerRef, mTaskCount == 0);
-  MOZ_ASSERT_IF(mWorkerPrivate && mWorkerRef, mTaskCount > 0);
-  AddRef();
-  ++mTaskCount;
-  return true;
-}
-
-void Notification::ReleaseObject() {
-  AssertIsOnTargetThread();
-  MOZ_ASSERT(mTaskCount > 0);
-  MOZ_ASSERT_IF(mWorkerPrivate, mWorkerRef);
-
-  --mTaskCount;
-  if (mWorkerPrivate && mTaskCount == 0) {
-    MOZ_ASSERT(mWorkerRef);
-    mWorkerRef = nullptr;
-  }
-  Release();
 }
 
 /*
@@ -1562,8 +1293,13 @@ bool Notification::SendShow(Promise* aPromise) {
           return;
         }
 
-        promise->MaybeResolveWithUndefined();
+        if (promise) {
+          promise->MaybeResolveWithUndefined();
+        } else {
+          self->DispatchTrustedEvent(u"show"_ns);
+        }
       });
+
   return true;
 }
 
@@ -1581,8 +1317,8 @@ void Notification::Deactivate() {
 
 nsresult Notification::DispatchToMainThread(
     already_AddRefed<nsIRunnable>&& aRunnable) {
-  if (mWorkerPrivate) {
-    return mWorkerPrivate->DispatchToMainThread(std::move(aRunnable));
+  if (WorkerPrivate* workerPrivate = GetCurrentThreadWorkerPrivate()) {
+    return workerPrivate->DispatchToMainThread(std::move(aRunnable));
   }
   AssertIsOnMainThread();
   return NS_DispatchToCurrentThread(std::move(aRunnable));
