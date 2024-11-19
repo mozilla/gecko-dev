@@ -102,7 +102,11 @@ if [ -z $FILE ] || [ ! -f $FILE ]; then
   error "File $FILE is not found"
 fi
 
-OUTPUT=$($CLEANER -p $WORKDIR $INCLUDE_ARGS $COMMAND $FILE)
+# Run the command in $WORKDIR because of this reported issue:
+# https://github.com/llvm/llvm-project/issues/110843
+cd $WORKDIR
+OUTPUT=$(../../$CLEANER $INCLUDE_ARGS $COMMAND ../../$FILE)
+cd -
 
 # include-cleaner does not support custom mappings for certain deps
 # this ensures that the gtest/gmock deps it inserts are replaced
