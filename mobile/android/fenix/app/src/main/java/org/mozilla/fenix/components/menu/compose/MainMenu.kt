@@ -259,18 +259,22 @@ private fun ToolsAndActionsMenuGroup(
             MenuItem(
                 label = stringResource(id = R.string.browser_menu_tools),
                 beforeIconPainter = painterResource(id = R.drawable.mozac_ic_tool_24),
-                description = stringResource(
-                    id = if (isTranslationSupported) {
-                        R.string.browser_menu_tools_description_with_translate_2
-                    } else {
-                        R.string.browser_menu_tools_description_2
-                    },
-                    if (reportSiteIssueLabel != null) {
-                        (" $reportSiteIssueLabel,")
-                    } else {
-                        ""
-                    },
-                ),
+                description = when {
+                    isTranslationSupported && reportSiteIssueLabel != null -> stringResource(
+                        R.string.browser_menu_tools_description_with_translate_with_report_site,
+                        reportSiteIssueLabel,
+                    )
+                    isTranslationSupported -> stringResource(
+                        R.string.browser_menu_tools_description_with_translate_without_report_site,
+                    )
+                    reportSiteIssueLabel != null -> stringResource(
+                        R.string.browser_menu_tools_description_with_report_site,
+                        reportSiteIssueLabel,
+                    )
+                    else -> stringResource(
+                        R.string.browser_menu_tools_description_without_report_site,
+                    )
+                },
                 onClick = onToolsMenuClick,
                 afterIconPainter = painterResource(id = R.drawable.mozac_ic_chevron_right_24),
             )
