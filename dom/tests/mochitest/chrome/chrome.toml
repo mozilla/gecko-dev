@@ -133,6 +133,3 @@ skip-if = ["os != 'win'"]
 ["test_window_getRegionalPrefsLocales.html"]
 
 ["test_xray_event_constructor.xhtml"]
-
-["test_bug1931559.html"]
-prefs = [ "layout.css.at-scope.enabled=true" ]
