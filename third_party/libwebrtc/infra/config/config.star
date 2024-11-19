@@ -406,6 +406,11 @@ luci.notifier(
     ),
 )
 
+# Notify findit about completed builds for code coverage purposes
+luci.buildbucket_notification_topic(
+    name = "projects/findit-for-me/topics/buildbucket_notification",
+)
+
 # Tree closer definitions:
 
 luci.tree_closer(
