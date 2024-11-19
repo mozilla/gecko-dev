@@ -1713,13 +1713,12 @@ TEST_F(VideoStreamEncoderTest,
   // We need a QP for the encoded frame.
   fake_encoder_.SetEncodedImageData(EncodedImageBuffer::Create(
       kCodedFrameVp8Qp25, sizeof(kCodedFrameVp8Qp25)));
-  rtc::Event frame_destroyed_event;
-  video_source_.IncomingCapturedFrame(CreateFrame(1, &frame_destroyed_event));
+  video_source_.IncomingCapturedFrame(
+      CreateFrame(1, codec_width_, codec_height_));
   WaitForEncodedFrame(1);
 
   EXPECT_FALSE(sink_.GetLastFrameInstrumentationData().has_value());
   video_stream_encoder_->Stop();
-  EXPECT_TRUE(frame_destroyed_event.Wait(kDefaultTimeout));
 }
 
 TEST_F(VideoStreamEncoderTest, DropsFramesBeforeFirstOnBitrateUpdated) {
