@@ -70,7 +70,7 @@ std::optional<VideoRtpDepacketizer::ParsedRtpPayload> ProcessStapAOrSingleNalu(
   parsed_payload->video_header.height = 0;
   parsed_payload->video_header.codec = kVideoCodecH264;
   parsed_payload->video_header.simulcastIdx = 0;
-  parsed_payload->video_header.is_first_packet_in_frame = true;
+  parsed_payload->video_header.is_first_packet_in_frame = false;
   auto& h264_header = parsed_payload->video_header.video_type_header
                           .emplace<RTPVideoHeaderH264>();
 
@@ -121,8 +121,7 @@ std::optional<VideoRtpDepacketizer::ParsedRtpPayload> ProcessStapAOrSingleNalu(
     switch (nalu.type) {
       case H264::NaluType::kSps: {
         // Check if VUI is present in SPS and if it needs to be modified to
-        // avoid
-        // excessive decoder latency.
+        // avoid excessive decoder latency.
 
         // Copy any previous data first (likely just the first header).
         rtc::Buffer output_buffer;
@@ -175,6 +174,7 @@ std::optional<VideoRtpDepacketizer::ParsedRtpPayload> ProcessStapAOrSingleNalu(
                 VideoFrameType::kVideoFrameKey;
             break;
         }
+        parsed_payload->video_header.is_first_packet_in_frame = true;
         break;
       }
       case H264::NaluType::kPps: {
@@ -199,8 +199,9 @@ std::optional<VideoRtpDepacketizer::ParsedRtpPayload> ProcessStapAOrSingleNalu(
             PpsParser::ParseSliceHeader(nalu_data);
         if (slice_header) {
           nalu.pps_id = slice_header->pic_parameter_set_id;
-          parsed_payload->video_header.is_first_packet_in_frame &=
-              slice_header->first_mb_in_slice == 0;
+          if (slice_header->first_mb_in_slice == 0) {
+            parsed_payload->video_header.is_first_packet_in_frame = true;
+          }
         } else {
           RTC_LOG(LS_WARNING) << "Failed to parse PPS id from slice of type: "
                               << static_cast<int>(nalu.type);
@@ -208,8 +209,10 @@ std::optional<VideoRtpDepacketizer::ParsedRtpPayload> ProcessStapAOrSingleNalu(
         }
         break;
       }
-      // Slices below don't contain SPS or PPS ids.
       case H264::NaluType::kAud:
+        parsed_payload->video_header.is_first_packet_in_frame = true;
+        break;
+      // Slices below don't contain SPS or PPS ids.
       case H264::NaluType::kEndOfSequence:
       case H264::NaluType::kEndOfStream:
       case H264::NaluType::kFiller:
