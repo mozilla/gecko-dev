@@ -2271,6 +2271,13 @@ nsHttpHandler::Observe(nsISupports* subject, const char* topic,
       if (NS_FAILED(rv)) {
         LOG(("    VerifyTraffic failed (%08x)\n", static_cast<uint32_t>(rv)));
       }
+      // We exclude HTTP/3 for an origin when any error occurs during
+      // connection establishment. A common error is caused by UDP being blocked
+      // by the network. When the network changes, it’s likely that UDP is no
+      // longer blocked, so we should reset the exclusion list to give HTTP/3
+      // another chance.
+      MutexAutoLock lock(mHttpExclusionLock);
+      mExcludedHttp3Origins.Clear();
     }
   } else if (!strcmp(topic, "application-background")) {
     // going to the background on android means we should close
