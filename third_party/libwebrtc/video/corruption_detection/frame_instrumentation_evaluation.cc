@@ -89,9 +89,9 @@ std::optional<double> GetCorruptionScore(const FrameInstrumentationData& data,
   // classifier should we use? What input parameters should it have?
   CorruptionClassifier classifier(2.5);
 
-  return classifier.CalculateCorruptionProbablility(
-      data_samples, samples, data.luma_error_threshold,
-      data.chroma_error_threshold);
+  return classifier.CalculateCorruptionProbability(data_samples, samples,
+                                                   data.luma_error_threshold,
+                                                   data.chroma_error_threshold);
 }
 
 }  // namespace webrtc

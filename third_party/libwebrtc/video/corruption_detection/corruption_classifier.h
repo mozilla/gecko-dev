@@ -47,14 +47,6 @@ class CorruptionClassifier {
       int luma_threshold,
       int chroma_threshold) const;
 
-  // TODO: bugs.webrtc.org/358039777 - Remove this function when Google
-  // downstream projects start using the correctly spelled function.
-  double CalculateCorruptionProbablility(
-      rtc::ArrayView<const FilteredSample> filtered_original_samples,
-      rtc::ArrayView<const FilteredSample> filtered_compressed_samples,
-      int luma_threshold,
-      int chroma_threshold) const;
-
  private:
   struct ScalarConfig {
     float scale_factor;
