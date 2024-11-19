@@ -211,11 +211,6 @@ textarea::-moz-text-control-editing-root {
   overflow: inherit;
 }
 
-input:read-write,
-textarea:read-write {
-  -moz-user-modify: read-write !important;
-}
-
 select {
   margin: 0;
   border-color: ButtonBorder;

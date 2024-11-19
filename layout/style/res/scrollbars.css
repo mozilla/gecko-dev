@@ -75,8 +75,6 @@ scrollbar, scrollbarbutton, scrollcorner, slider, thumb, resizer {
   writing-mode: initial;
 
   -moz-user-focus: ignore;
-  /* Prevent -moz-user-modify declaration from designmode.css having an effect. */
-  -moz-user-modify: initial;
   user-select: none;
 }
 

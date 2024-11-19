@@ -1328,23 +1328,6 @@ static inline void MapLangAttributeInto(MappedDeclarationsBuilder& aBuilder) {
  */
 void nsGenericHTMLElement::MapCommonAttributesIntoExceptHidden(
     MappedDeclarationsBuilder& aBuilder) {
-  if (!aBuilder.PropertyIsSet(eCSSProperty__moz_user_modify)) {
-    const nsAttrValue* value = aBuilder.GetAttr(nsGkAtoms::contenteditable);
-    if (value) {
-      // FIXME: plaintext-only should be mapped to read-write-plaintext-only
-      if (value->Equals(nsGkAtoms::_empty, eCaseMatters) ||
-          value->Equals(nsGkAtoms::_true, eIgnoreCase) ||
-          (StaticPrefs::dom_element_contenteditable_plaintext_only_enabled() &&
-           value->Equals(nsGkAtoms::plaintextOnly, eIgnoreCase))) {
-        aBuilder.SetKeywordValue(eCSSProperty__moz_user_modify,
-                                 StyleUserModify::ReadWrite);
-      } else if (value->Equals(nsGkAtoms::_false, eIgnoreCase)) {
-        aBuilder.SetKeywordValue(eCSSProperty__moz_user_modify,
-                                 StyleUserModify::ReadOnly);
-      }
-    }
-  }
-
   MapLangAttributeInto(aBuilder);
 }
 

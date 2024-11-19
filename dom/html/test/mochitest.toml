@@ -403,8 +403,6 @@ skip-if = ["true"] # Disabled for timeouts.
 
 ["test_bug441930.html"]
 
-["test_bug442801.html"]
-
 ["test_bug445004.html"]
 skip-if = ["true"] # Disabled permanently (bug 559932).
 

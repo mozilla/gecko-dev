@@ -3242,8 +3242,6 @@ nsresult nsFocusManager::SetCaretVisible(PresShell* aPresShell, bool aVisible,
       // SetCaretDOMSelection
       aPresShell->SetCaretEnabled(false);
 
-      // Caret must blink on non-editable elements
-      caret->SetIgnoreUserModify(true);
       // Tell the caret which selection to use
       caret->SetSelection(domSelection);
 

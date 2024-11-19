@@ -398,9 +398,6 @@
   textarea[readonly] {
     color: var(--text-color-deemphasized);
     border-color: var(--in-content-border-color);
-    // Show a text cursor on readonly textareas. Otherwise, they are selectable,
-    // but there's no cursor to show the caret position.
-    -moz-user-modify: read-write;
   }
 
   .monospace {

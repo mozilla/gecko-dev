@@ -398,7 +398,6 @@ cbindgen-types = [
     { gecko = "StyleLineClamp", servo = "crate::values::computed::LineClamp" },
     { gecko = "StyleUserFocus", servo = "crate::values::computed::UserFocus" },
     { gecko = "StyleUserInput", servo = "crate::values::computed::UserInput" },
-    { gecko = "StyleUserModify", servo = "crate::values::computed::UserModify" },
     { gecko = "StyleUserSelect", servo = "crate::values::computed::UserSelect" },
     { gecko = "StyleBreakBetween", servo = "crate::values::computed::BreakBetween" },
     { gecko = "StyleBreakWithin", servo = "crate::values::computed::BreakWithin" },

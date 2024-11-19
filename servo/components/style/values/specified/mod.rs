@@ -113,7 +113,7 @@ pub use self::transform::{TransformBox, TransformOrigin, TransformStyle, Transla
 pub use self::ui::CursorImage;
 pub use self::ui::{
     BoolInteger, Cursor, Inert, MozTheme, PointerEvents, ScrollbarColor, UserFocus, UserInput,
-    UserModify, UserSelect,
+    UserSelect,
 };
 pub use super::generics::grid::GridTemplateComponent as GenericGridTemplateComponent;
 

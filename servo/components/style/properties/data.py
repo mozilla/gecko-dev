@@ -617,7 +617,6 @@ class Longhand(Property):
                 "TransformStyle",
                 "UserFocus",
                 "UserInput",
-                "UserModify",
                 "UserSelect",
                 "VectorEffect",
                 "WordBreak",

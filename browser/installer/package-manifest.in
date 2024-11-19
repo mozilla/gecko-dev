@@ -282,7 +282,6 @@
 ; Style Sheets, Graphics and other Resources used by the layout engine.
 @RESPATH@/res/EditorOverride.css
 @RESPATH@/res/contenteditable.css
-@RESPATH@/res/designmode.css
 @RESPATH@/res/table-add-column-after-active.gif
 @RESPATH@/res/table-add-column-after-hover.gif
 @RESPATH@/res/table-add-column-after.gif

@@ -468,8 +468,7 @@ static void AdjustCaretFrameForLineEnd(nsIFrame** aFrame, uint32_t* aOffset,
     if (aEditableOnly && !r->GetContent()->IsEditable()) {
       return;
     }
-    // We found our frame, but we may not be able to properly paint the caret
-    // if -moz-user-modify differs from our actual frame.
+    // We found our frame.
     MOZ_ASSERT(r->IsTextFrame(), "Expected text frame");
     *aFrame = r;
     *aOffset = (static_cast<nsTextFrame*>(r))->GetContentEnd();

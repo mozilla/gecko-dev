@@ -22,7 +22,6 @@
 
 STYLE_SHEET(ContentEditable, "resource://gre/res/contenteditable.css", true)
 STYLE_SHEET(CounterStyles, "resource://gre-resources/counterstyles.css", true)
-STYLE_SHEET(DesignMode, "resource://gre/res/designmode.css", true)
 STYLE_SHEET(Forms, "resource://gre-resources/forms.css", true)
 STYLE_SHEET(HTML, "resource://gre-resources/html.css", true)
 STYLE_SHEET(MathML, "resource://gre-resources/mathml.css", true)

@@ -53,15 +53,6 @@ class nsCaret final : public nsISelectionListener {
   mozilla::dom::Selection* GetSelection();
 
   /**
-   * Sets whether the caret should only be visible in nodes that are not
-   * user-modify: read-only, or whether it should be visible in all nodes.
-   *
-   * @param aIgnoreUserModify true to have the cursor visible in all nodes,
-   *                          false to have it visible in all nodes except
-   *                          those with user-modify: read-only
-   */
-  void SetIgnoreUserModify(bool aIgnoreUserModify);
-  /**
    * SetVisible will set the visibility of the caret
    *  @param aVisible true to show the caret, false to hide it
    */
@@ -253,11 +244,6 @@ class nsCaret final : public nsISelectionListener {
    * the selection is not collapsed.
    */
   bool mShowDuringSelection = false;
-  /**
-   * mIgnoreUserModify is true when the caret should be shown even when
-   * it's in non-user-modifiable content.
-   */
-  bool mIgnoreUserModify = true;
 
   /**
    * If the caret position is fixed, it's been overridden externally and it

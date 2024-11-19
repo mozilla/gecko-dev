@@ -143,7 +143,6 @@ void nsCaret::SetSelection(Selection* aDOMSel) {
 void nsCaret::SetVisible(bool aVisible) {
   const bool wasVisible = mVisible;
   mVisible = aVisible;
-  mIgnoreUserModify = aVisible;
   if (mVisible != wasVisible) {
     CaretVisibilityMaybeChanged();
   }
@@ -500,9 +499,7 @@ nsIFrame* nsCaret::GetPaintGeometry(nsRect* aCaretRect, nsRect* aHookRect,
   // Where the selection is targeting the <br>. We want to display the caret,
   // since the <br> we're focused at is editable, but we do want to paint it at
   // the adjusted frame offset, so that we can see the collapsed whitespace.
-  const nsStyleUI* ui = unadjustedFrame->StyleUI();
-  if ((!mIgnoreUserModify && ui->UserModify() == StyleUserModify::ReadOnly) ||
-      unadjustedFrame->IsContentDisabled()) {
+  if (unadjustedFrame->IsContentDisabled()) {
     return nullptr;
   }
 
@@ -727,9 +724,4 @@ void nsCaret::CaretBlinkCallback(nsITimer* aTimer, void* aClosure) {
       theCaret->StopBlinking();
     }
   }
-}
-
-void nsCaret::SetIgnoreUserModify(bool aIgnoreUserModify) {
-  mIgnoreUserModify = aIgnoreUserModify;
-  SchedulePaint();
 }

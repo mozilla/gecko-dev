@@ -48,23 +48,6 @@ ${helpers.predefined_type(
     affects="",
 )}
 
-// This property is marked as enabled_in="chrome" because until we fully remove it, we still need
-// the internal uses. It is slightly more convenient to have it as a chrome rather than ua-only
-// property (there are tests that parse UA sheets as chrome stylesheets and so).
-${helpers.predefined_type(
-    "-moz-user-modify",
-    "UserModify",
-    "specified::UserModify::ReadOnly",
-    engines="gecko",
-    gecko_ffi_name="mUserModify",
-    gecko_pref="layout.css.moz-user-modify.enabled",
-    enabled_in="chrome",
-    has_effect_on_gecko_scrollbars=False,
-    animation_type="discrete",
-    spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/-moz-user-modify)",
-    affects="",
-)}
-
 ${helpers.predefined_type(
     "-moz-user-focus",
     "UserFocus",

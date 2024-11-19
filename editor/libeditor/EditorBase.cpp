@@ -5588,14 +5588,6 @@ nsresult EditorBase::InitializeSelection(
   NS_WARNING_ASSERTION(
       NS_SUCCEEDED(rvIgnored),
       "nsISelectionController::SetCaretEnabled() failed, but ignored");
-  // NOTE(emilio): It's important for this call to be after
-  // SetCaretEnabled(true), since that would override mIgnoreUserModify to true.
-  //
-  // Also, make sure to always ignore it for designMode, since that effectively
-  // overrides everything and we allow to edit stuff with
-  // contenteditable="false" subtrees in such a document.
-  caret->SetIgnoreUserModify(aOriginalEventTargetNode.IsInDesignMode());
-
   // Init selection
   rvIgnored =
       selectionController->SetSelectionFlags(nsISelectionDisplay::DISPLAY_ALL);
@@ -5674,7 +5666,6 @@ nsresult EditorBase::FinalizeSelection() {
   }
 
   if (RefPtr<nsCaret> caret = GetCaret()) {
-    caret->SetIgnoreUserModify(true);
     DebugOnly<nsresult> rvIgnored = selectionController->SetCaretEnabled(false);
     NS_WARNING_ASSERTION(
         NS_SUCCEEDED(rvIgnored),

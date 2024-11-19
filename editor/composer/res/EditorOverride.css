@@ -2,10 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-*|* {
-  -moz-user-modify: read-write;
-}
-
 /* Styles to alter look of things in the Editor content window
  *  that should NOT be removed when we display in completely WYSIWYG
  *  "Browser Preview" mode.
