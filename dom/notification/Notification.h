@@ -243,10 +243,6 @@ class Notification : public DOMEventTargetHelper, public SupportsWeakPtr {
       nsIGlobalObject* aGlobal, const nsAString& aID, const nsAString& aTitle,
       const NotificationOptions& aOptions, ErrorResult& aRv);
 
-  bool IsInPrivateBrowsing();
-  void ShowInternal();
-  void CloseInternal(bool aContextClosed = false);
-
   void Deactivate();
 
   static NotificationPermission GetPermissionInternal(
@@ -314,7 +310,6 @@ class Notification : public DOMEventTargetHelper, public SupportsWeakPtr {
       JSContext* aCx, nsIGlobalObject* aGlobal, const nsAString& aTitle,
       const NotificationOptions& aOptions, const nsAString& aScope,
       ErrorResult& aRv);
-  void ShowOnMainThread(ErrorResult& aRv);
 
   bool CreateActor();
   bool SendShow(Promise* aPromise);
@@ -327,8 +322,6 @@ class Notification : public DOMEventTargetHelper, public SupportsWeakPtr {
   void SetAlertName();
 
   bool IsTargetThread() const { return NS_IsMainThread() == !mWorkerPrivate; }
-
-  bool CreateWorkerRef();
 
   static nsresult ResolveIconAndSoundURL(nsIGlobalObject* aGlobal,
                                          nsString& iconUrl, nsString& soundUrl);

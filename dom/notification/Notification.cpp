@@ -469,26 +469,6 @@ class NotificationRef final {
   }
 };
 
-class NotificationTask : public Runnable {
- public:
-  enum NotificationAction { eShow, eClose };
-
-  NotificationTask(const char* aName, UniquePtr<NotificationRef> aRef,
-                   NotificationAction aAction)
-      : Runnable(aName), mNotificationRef(std::move(aRef)), mAction(aAction) {}
-
-  NS_IMETHOD
-  Run() override;
-
- protected:
-  virtual ~NotificationTask() = default;
-
-  UniquePtr<NotificationRef> mNotificationRef;
-  NotificationAction mAction;
-};
-
-uint32_t Notification::sCount = 0;
-
 NS_IMPL_CYCLE_COLLECTION_INHERITED(NotificationPermissionRequest,
                                    ContentPermissionRequestBase, mCallback)
 NS_IMPL_ADDREF_INHERITED(NotificationPermissionRequest,
@@ -627,27 +607,6 @@ class NotificationObserver final : public nsIObserver {
 
 NS_IMPL_ISUPPORTS(NotificationObserver, nsIObserver)
 
-NS_IMETHODIMP
-NotificationTask::Run() {
-  AssertIsOnMainThread();
-
-  // Get a pointer to notification before the notification takes ownership of
-  // the ref (it owns itself temporarily, with ShowInternal() and
-  // CloseInternal() passing on the ownership appropriately.)
-  Notification* notif = mNotificationRef->GetNotification();
-  notif->mTempRef.swap(mNotificationRef);
-  if (mAction == eShow) {
-    notif->ShowInternal();
-  } else if (mAction == eClose) {
-    notif->CloseInternal();
-  } else {
-    MOZ_CRASH("Invalid action");
-  }
-
-  MOZ_ASSERT(!mNotificationRef);
-  return NS_OK;
-}
-
 // static
 bool Notification::PrefEnabled(JSContext* aCx, JSObject* aObj) {
   return StaticPrefs::dom_webnotifications_enabled();
@@ -714,14 +673,6 @@ already_AddRefed<Notification> Notification::Constructor(
       Create(aGlobal.Context(), global, aTitle, aOptions, u""_ns, aRv);
   if (NS_WARN_IF(aRv.Failed())) {
     return nullptr;
-  }
-
-  if (!NS_IsMainThread()) {
-    notification->ShowOnMainThread(aRv);
-    if (NS_WARN_IF(aRv.Failed())) {
-      return nullptr;
-    }
-    return notification.forget();
   }
 
   RefPtr<Promise> promise = Promise::CreateInfallible(global);
@@ -918,299 +869,6 @@ nsIPrincipal* Notification::GetPrincipal() {
   nsGlobalWindowInner* win = GetOwnerWindow();
   NS_ENSURE_TRUE(win, nullptr);
   return win->GetPrincipal();
-}
-
-class WorkerNotificationObserver : public nsIObserver {
- public:
-  UniquePtr<NotificationRef> mNotificationRef;
-  NS_DECL_ISUPPORTS
-  NS_DECL_NSIOBSERVER
-
-  explicit WorkerNotificationObserver(UniquePtr<NotificationRef> aRef)
-      : mNotificationRef(std::move(aRef)) {
-    AssertIsOnMainThread();
-    MOZ_ASSERT(mNotificationRef->GetNotification()->mWorkerPrivate);
-  }
-
-  void ForgetNotification() {
-    AssertIsOnMainThread();
-    mNotificationRef->Forget();
-  }
-
- protected:
-  virtual ~WorkerNotificationObserver() {
-    AssertIsOnMainThread();
-
-    MOZ_ASSERT(mNotificationRef);
-    Notification* notification = mNotificationRef->GetNotification();
-    if (notification) {
-      notification->mObserver = nullptr;
-    }
-  }
-};
-
-NS_IMPL_ISUPPORTS(WorkerNotificationObserver, nsIObserver)
-
-bool Notification::DispatchClickEvent() {
-  AssertIsOnTargetThread();
-  RefPtr<Event> event = NS_NewDOMEvent(this, nullptr, nullptr);
-  event->InitEvent(u"click"_ns, false, true);
-  event->SetTrusted(true);
-  WantsPopupControlCheck popupControlCheck(event);
-  return DispatchEvent(*event, CallerType::System, IgnoreErrors());
-}
-
-// Overrides dispatch and run handlers so we can directly dispatch from main
-// thread to child workers.
-class NotificationClickWorkerRunnable final
-    : public NotificationWorkerRunnable {
-  Notification* mNotification;
-  // Optional window that gets focused if click event is not
-  // preventDefault()ed.
-  nsMainThreadPtrHandle<nsPIDOMWindowInner> mWindow;
-
- public:
-  NotificationClickWorkerRunnable(
-      Notification* aNotification,
-      const nsMainThreadPtrHandle<nsPIDOMWindowInner>& aWindow)
-      : NotificationWorkerRunnable(aNotification->mWorkerPrivate,
-                                   "NotificationClickWorkerRunnable"),
-        mNotification(aNotification),
-        mWindow(aWindow) {
-    MOZ_ASSERT_IF(mNotification->mWorkerPrivate->IsServiceWorker(), !mWindow);
-  }
-
-  void WorkerRunInternal(WorkerPrivate* aWorkerPrivate) override {
-    bool doDefaultAction = mNotification->DispatchClickEvent();
-    MOZ_ASSERT_IF(mNotification->mWorkerPrivate->IsServiceWorker(),
-                  !doDefaultAction);
-    if (doDefaultAction) {
-      RefPtr<FocusWindowRunnable> r = new FocusWindowRunnable(mWindow);
-      mNotification->mWorkerPrivate->DispatchToMainThread(r.forget());
-    }
-  }
-};
-
-NS_IMETHODIMP
-NotificationObserver::Observe(nsISupports* aSubject, const char* aTopic,
-                              const char16_t* aData) {
-  AssertIsOnMainThread();
-
-  if (!strcmp("alertdisablecallback", aTopic)) {
-    if (XRE_IsParentProcess()) {
-      return RemovePermission(mPrincipal);
-    }
-    // Permissions can't be removed from the content process. Send a message
-    // to the parent; `ContentParent::RecvDisableNotifications` will call
-    // `RemovePermission`.
-    ContentChild::GetSingleton()->SendDisableNotifications(mPrincipal);
-    return NS_OK;
-  }
-  if (!strcmp("alertsettingscallback", aTopic)) {
-    if (XRE_IsParentProcess()) {
-      return OpenSettings(mPrincipal);
-    }
-    // `ContentParent::RecvOpenNotificationSettings` notifies observers in the
-    // parent process.
-    ContentChild::GetSingleton()->SendOpenNotificationSettings(mPrincipal);
-    return NS_OK;
-  }
-  if (!strcmp("alertshow", aTopic)) {
-    (void)NS_WARN_IF(NS_FAILED(
-        AdjustPushQuota(mPrincipal, NotificationStatusChange::Shown)));
-  }
-  if (!strcmp("alertfinished", aTopic)) {
-    (void)NS_WARN_IF(NS_FAILED(
-        AdjustPushQuota(mPrincipal, NotificationStatusChange::Closed)));
-  }
-
-  return mObserver->Observe(aSubject, aTopic, aData);
-}
-
-NS_IMETHODIMP
-WorkerNotificationObserver::Observe(nsISupports* aSubject, const char* aTopic,
-                                    const char16_t* aData) {
-  AssertIsOnMainThread();
-  MOZ_ASSERT(mNotificationRef);
-  // For an explanation of why it is OK to pass this rawptr to the event
-  // runnables, see the Notification class comment.
-  Notification* notification = mNotificationRef->GetNotification();
-  // We can't assert notification here since the feature could've unset it.
-  if (NS_WARN_IF(!notification)) {
-    return NS_ERROR_FAILURE;
-  }
-
-  MOZ_ASSERT(notification->mWorkerPrivate);
-
-  RefPtr<WorkerThreadRunnable> r;
-  if (!strcmp("alertclickcallback", aTopic)) {
-    nsPIDOMWindowInner* window = nullptr;
-    if (!notification->mWorkerPrivate->IsServiceWorker()) {
-      window = notification->mWorkerPrivate->GetAncestorWindow();
-      if (NS_WARN_IF(!window || !window->IsCurrentInnerWindow())) {
-        // Window has been closed, this observer is not valid anymore
-        return NS_ERROR_FAILURE;
-      }
-    }
-
-    // Instead of bothering with adding features and other worker lifecycle
-    // management, we simply hold strongrefs to the window and document.
-    nsMainThreadPtrHandle<nsPIDOMWindowInner> windowHandle(
-        new nsMainThreadPtrHolder<nsPIDOMWindowInner>(
-            "WorkerNotificationObserver::Observe::nsPIDOMWindowInner", window));
-
-    r = new NotificationClickWorkerRunnable(notification, windowHandle);
-  } else if (!strcmp("alertfinished", aTopic)) {
-    notification->Unpersist();
-    notification->mIsClosed = true;
-    r = new NotificationEventWorkerRunnable(notification, u"close"_ns);
-  } else if (!strcmp("alertshow", aTopic)) {
-    r = new NotificationEventWorkerRunnable(notification, u"show"_ns);
-  }
-
-  MOZ_ASSERT(r);
-  if (!r->Dispatch(notification->mWorkerPrivate)) {
-    NS_WARNING("Could not dispatch event to worker notification");
-  }
-  return NS_OK;
-}
-
-bool Notification::IsInPrivateBrowsing() {
-  AssertIsOnMainThread();
-
-  Document* doc = nullptr;
-
-  if (mWorkerPrivate) {
-    doc = mWorkerPrivate->GetDocument();
-  } else if (nsGlobalWindowInner* win = GetOwnerWindow()) {
-    doc = win->GetExtantDoc();
-  }
-
-  if (doc) {
-    nsCOMPtr<nsILoadContext> loadContext = doc->GetLoadContext();
-    return loadContext && loadContext->UsePrivateBrowsing();
-  }
-
-  if (mWorkerPrivate) {
-    // Not all workers may have a document, but with Bug 1107516 fixed, they
-    // should all have a loadcontext.
-    nsCOMPtr<nsILoadGroup> loadGroup = mWorkerPrivate->GetLoadGroup();
-    nsCOMPtr<nsILoadContext> loadContext;
-    NS_QueryNotificationCallbacks(nullptr, loadGroup,
-                                  NS_GET_IID(nsILoadContext),
-                                  getter_AddRefs(loadContext));
-    return loadContext && loadContext->UsePrivateBrowsing();
-  }
-
-  // XXXnsm Should this default to true?
-  return false;
-}
-
-// Step 4 of
-// https://notifications.spec.whatwg.org/#dom-notification-notification
-void Notification::ShowInternal() {
-  AssertIsOnMainThread();
-  MOZ_ASSERT(mTempRef,
-             "Notification should take ownership of itself before"
-             "calling ShowInternal!");
-  // A notification can only have one observer and one call to ShowInternal.
-  MOZ_ASSERT(!mObserver);
-
-  // Transfer ownership to local scope so we can either release it at the end
-  // of this function or transfer it to the observer.
-  UniquePtr<NotificationRef> ownership;
-  std::swap(ownership, mTempRef);
-  MOZ_ASSERT(ownership->GetNotification() == this);
-
-  nsCOMPtr<nsIAlertsService> alertService = components::Alerts::Service();
-
-  // Step 4.1: If the result of getting the notifications permission state is
-  // not "granted", then queue a task to fire an event named error on this, and
-  // abort these steps.
-  //
-  // XXX(krosylight): But this function is also triggered by
-  // Notification::ShowPersistentNotification which already does its own
-  // permission check. Can we split this?
-  ErrorResult result;
-  NotificationPermission permission = NotificationPermission::Denied;
-  if (mWorkerPrivate) {
-    nsIPrincipal* principal = mWorkerPrivate->GetPrincipal();
-    nsIPrincipal* effectiveStoragePrincipal =
-        mWorkerUseRegularPrincipal ? principal
-                                   : mWorkerPrivate->GetPartitionedPrincipal();
-    permission = GetNotificationPermission(
-        principal, effectiveStoragePrincipal, mWorkerPrivate->IsSecureContext(),
-        PermissionCheckPurpose::NotificationShow);
-  } else {
-    permission = GetPermissionInternal(
-        GetOwnerWindow(), PermissionCheckPurpose::NotificationShow, result);
-  }
-  // We rely on GetPermissionInternal returning Denied on all failure codepaths.
-  MOZ_ASSERT_IF(result.Failed(), permission == NotificationPermission::Denied);
-  result.SuppressException();
-  if (permission != NotificationPermission::Granted || !alertService) {
-    if (mWorkerPrivate) {
-      RefPtr<NotificationEventWorkerRunnable> r =
-          new NotificationEventWorkerRunnable(this, u"error"_ns);
-      if (!r->Dispatch(mWorkerPrivate)) {
-        NS_WARNING("Could not dispatch event to worker notification");
-      }
-    } else {
-      DispatchTrustedEvent(u"error"_ns);
-    }
-    mIsClosed = true;
-    return;
-  }
-
-  // Step 4.3 the show steps, which are almost all about processing `tag` and
-  // then displaying the notification. Both are handled by
-  // nsIAlertsService::ShowAlert/PersistentNotification. The below is all about
-  // constructing the observer (for show and close events) right and ultimately
-  // call the alerts service function.
-
-  // XXX(krosylight): Non-persistent notifications probably don't need this
-  nsresult rv = Persist();
-  if (NS_FAILED(rv)) {
-    NS_WARNING("Could not persist Notification");
-  }
-
-  nsCOMPtr<nsIObserver> observer;
-  MOZ_ASSERT(mScope.IsEmpty());
-  MOZ_ASSERT(mWorkerPrivate);
-  // Ownership passed to observer.
-  // Scope better be set on ServiceWorker initiated requests.
-  MOZ_ASSERT(!mWorkerPrivate->IsServiceWorker());
-  // Keep a pointer so that the feature can tell the observer not to release
-  // the notification.
-  mObserver = new WorkerNotificationObserver(std::move(ownership));
-  observer = mObserver;
-  MOZ_ASSERT(observer);
-  nsCOMPtr<nsIObserver> alertObserver =
-      new NotificationObserver(observer, GetPrincipal(), IsInPrivateBrowsing());
-
-  // In the case of IPC, the parent process uses the cookie to map to
-  // nsIObserver. Thus the cookie must be unique to differentiate observers.
-  nsString uniqueCookie = u"notification:"_ns;
-  uniqueCookie.AppendInt(sCount++);
-  bool inPrivateBrowsing = IsInPrivateBrowsing();
-
-  bool requireInteraction = mRequireInteraction;
-  if (!StaticPrefs::dom_webnotifications_requireinteraction_enabled()) {
-    requireInteraction = false;
-  }
-
-  nsAutoString alertName;
-  GetAlertName(alertName);
-  nsCOMPtr<nsIAlertNotification> alert =
-      do_CreateInstance(ALERT_NOTIFICATION_CONTRACTID);
-  NS_ENSURE_TRUE_VOID(alert);
-  rv = alert->Init(alertName, mIconUrl, mTitle, mBody, true, uniqueCookie,
-                   NS_ConvertASCIItoUTF16(GetEnumString(mDir)), mLang,
-                   mDataAsBase64, GetPrincipal(), inPrivateBrowsing,
-                   requireInteraction, mSilent, mVibrate);
-  NS_ENSURE_SUCCESS_VOID(rv);
-
-  alertService->ShowAlert(alert, alertObserver);
 }
 
 /* static */
@@ -1572,52 +1230,15 @@ JSObject* Notification::WrapObject(JSContext* aCx,
 void Notification::Close() {
   AssertIsOnTargetThread();
 
-  if (NS_IsMainThread()) {
-    if (mIsClosed) {
-      return;
-    }
-    if (!mActor) {
-      CreateActor();
-    }
-    if (mActor) {
-      (void)mActor->SendClose();
-    }
-    return;
-  }
-
-  auto ref = MakeUnique<NotificationRef>(this);
-  if (!ref->Initialized()) {
-    return;
-  }
-
-  nsCOMPtr<nsIRunnable> closeNotificationTask = new NotificationTask(
-      "Notification::Close", std::move(ref), NotificationTask::eClose);
-  nsresult rv = DispatchToMainThread(closeNotificationTask.forget());
-
-  if (NS_FAILED(rv)) {
-    DispatchTrustedEvent(u"error"_ns);
-    // If dispatch fails, NotificationTask will release the ref when it goes
-    // out of scope at the end of this function.
-  }
-}
-
-void Notification::CloseInternal(bool aContextClosed) {
-  AssertIsOnMainThread();
-  // Transfer ownership (if any) to local scope so we can release it at the end
-  // of this function. This is relevant when the call is from
-  // NotificationTask::Run().
-  UniquePtr<NotificationRef> ownership;
-  std::swap(ownership, mTempRef);
-
   if (mIsClosed) {
     return;
   }
-
-  nsAutoString alertName;
-  GetAlertName(alertName);
-  UnregisterNotification(
-      GetPrincipal(), mID, alertName,
-      aContextClosed ? CloseMode::InactiveGlobal : CloseMode::CloseMethod);
+  if (!mActor) {
+    CreateActor();
+  }
+  if (mActor) {
+    (void)mActor->SendClose();
+  }
 }
 
 bool Notification::RequireInteraction() const { return mRequireInteraction; }
@@ -1699,11 +1320,6 @@ bool Notification::AddRefObject() {
   AssertIsOnTargetThread();
   MOZ_ASSERT_IF(mWorkerPrivate && !mWorkerRef, mTaskCount == 0);
   MOZ_ASSERT_IF(mWorkerPrivate && mWorkerRef, mTaskCount > 0);
-  if (mWorkerPrivate && !mWorkerRef) {
-    if (!CreateWorkerRef()) {
-      return false;
-    }
-  }
   AddRef();
   ++mTaskCount;
   return true;
@@ -1720,88 +1336,6 @@ void Notification::ReleaseObject() {
     mWorkerRef = nullptr;
   }
   Release();
-}
-
-/*
- * Called from the worker, runs on main thread, blocks worker.
- *
- * We can freely access mNotification here because the feature supplied it and
- * the Notification owns the feature.
- */
-class CloseNotificationRunnable final : public WorkerMainThreadRunnable {
-  Notification* mNotification;
-  bool mHadObserver;
-
- public:
-  explicit CloseNotificationRunnable(Notification* aNotification)
-      : WorkerMainThreadRunnable(aNotification->mWorkerPrivate,
-                                 "Notification :: Close Notification"_ns),
-        mNotification(aNotification),
-        mHadObserver(false) {}
-
-  bool MainThreadRun() override {
-    if (mNotification->mObserver) {
-      // The Notify() take's responsibility of releasing the Notification.
-      mNotification->mObserver->ForgetNotification();
-      mNotification->mObserver = nullptr;
-      mHadObserver = true;
-    }
-    mNotification->CloseInternal();
-    return true;
-  }
-
-  bool HadObserver() { return mHadObserver; }
-};
-
-bool Notification::CreateWorkerRef() {
-  MOZ_ASSERT(mWorkerPrivate);
-  mWorkerPrivate->AssertIsOnWorkerThread();
-  MOZ_ASSERT(!mWorkerRef);
-
-  RefPtr<Notification> self = this;
-  mWorkerRef =
-      StrongWorkerRef::Create(mWorkerPrivate, "Notification", [self]() {
-        // CloseNotificationRunnable blocks the worker by pushing a sync event
-        // loop on the stack. Meanwhile, WorkerControlRunnables dispatched to
-        // the worker can still continue running. One of these is
-        // ReleaseNotificationControlRunnable that releases the notification,
-        // invalidating the notification and this feature. We hold this
-        // reference to keep the notification valid until we are done with it.
-        //
-        // An example of when the control runnable could get dispatched to the
-        // worker is if a Notification is created and the worker is immediately
-        // closed, but there is no permission to show it so that the main thread
-        // immediately drops the NotificationRef. In this case, this function
-        // blocks on the main thread, but the main thread dispatches the control
-        // runnable, invalidating mNotification.
-
-        // Dispatched to main thread, blocks on closing the Notification.
-        RefPtr<CloseNotificationRunnable> r =
-            new CloseNotificationRunnable(self);
-        ErrorResult rv;
-        r->Dispatch(self->mWorkerPrivate, Killing, rv);
-        // XXXbz I'm told throwing and returning false from here is pointless
-        // (and also that doing sync stuff from here is really weird), so I
-        // guess we just suppress the exception on rv, if any.
-        rv.SuppressException();
-
-        // Only call ReleaseObject() to match the observer's NotificationRef
-        // ownership (since CloseNotificationRunnable asked the observer to drop
-        // the reference to the notification).
-        if (r->HadObserver()) {
-          self->ReleaseObject();
-        }
-
-        // From this point we cannot touch properties of this feature because
-        // ReleaseObject() may have led to the notification going away and the
-        // notification owns this feature!
-      });
-
-  if (NS_WARN_IF(!mWorkerRef)) {
-    return false;
-  }
-
-  return true;
 }
 
 /*
@@ -1957,24 +1491,6 @@ already_AddRefed<Notification> Notification::Create(
   notification->SetScope(aScope);
 
   return notification.forget();
-}
-
-void Notification::ShowOnMainThread(ErrorResult& aRv) {
-  auto ref = MakeUnique<NotificationRef>(this);
-  if (NS_WARN_IF(!ref->Initialized())) {
-    aRv.Throw(NS_ERROR_DOM_ABORT_ERR);
-    return;
-  }
-
-  // Queue a task to show the notification.
-  nsCOMPtr<nsIRunnable> showNotificationTask = new NotificationTask(
-      "Notification::CreateAndShow", std::move(ref), NotificationTask::eShow);
-
-  nsresult rv = DispatchToMainThread(showNotificationTask.forget());
-
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    DispatchTrustedEvent(u"error"_ns);
-  }
 }
 
 bool Notification::CreateActor() {
