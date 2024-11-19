@@ -2,22 +2,6 @@
 http://creativecommons.org/publicdomain/zero/1.0/ */
 "use strict";
 
-const ITERATIONS = 10;
-
-const METRICS = [
-  PIPELINE_READY_LATENCY,
-  INITIALIZATION_LATENCY,
-  MODEL_RUN_LATENCY,
-  PIPELINE_READY_MEMORY,
-  INITIALIZATION_MEMORY,
-  MODEL_RUN_MEMORY,
-  TOTAL_MEMORY_USAGE,
-];
-const journal = {};
-for (let metric of METRICS) {
-  journal[metric] = [];
-}
-
 const perfMetadata = {
   owner: "GenAI Team",
   name: "ML Test Model",
@@ -48,21 +32,13 @@ requestLongerTimeout(120);
  * Tests remote ml model
  */
 add_task(async function test_ml_generic_pipeline() {
-  const options = new PipelineOptions({
+  const options = {
     taskName: "feature-extraction",
     modelId: "Xenova/all-MiniLM-L6-v2",
     modelHubUrlTemplate: "{model}/{revision}",
     modelRevision: "main",
-  });
+  };
 
   const args = ["The quick brown fox jumps over the lazy dog."];
-
-  for (let i = 0; i < ITERATIONS; i++) {
-    let metrics = await runInference(options, args);
-    for (let [metricName, metricVal] of Object.entries(metrics)) {
-      Assert.ok(metricVal >= 0, "Metric should be non-negative.");
-      journal[metricName].push(metricVal);
-    }
-  }
-  reportMetrics(journal);
+  await perfTest("example", options, args);
 });

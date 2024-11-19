@@ -2,8 +2,6 @@
 http://creativecommons.org/publicdomain/zero/1.0/ */
 "use strict";
 
-const ITERATIONS = 1;
-
 const PREFIX = "inference";
 const METRICS = [
   `${PREFIX}-${PIPELINE_READY_LATENCY}`,

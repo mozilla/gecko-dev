@@ -3,8 +3,6 @@
 
 "use strict";
 
-const ITERATIONS = 10;
-
 const ENGINES = {
   intent: {
     engineId: "intent",
@@ -197,6 +195,29 @@ for (let metric of METRICS) {
 }
 
 requestLongerTimeout(120);
+
+async function runEngineWithMetrics(
+  engineInstance,
+  engineConfig,
+  iterations = 1
+) {
+  const journal = {};
+  const engine = engineInstance.engine;
+  for (let i = 0; i < iterations; i++) {
+    const res = await engine.run(engineConfig.request);
+    let metrics = fetchMetrics(res.metrics);
+
+    // Collect metrics, prefixing each metric name with engineId
+    for (const [metricName, metricVal] of Object.entries(metrics)) {
+      const prefixedMetricName = `${engineConfig.engineId}-${metricName}`;
+      if (!journal[prefixedMetricName]) {
+        journal[prefixedMetricName] = [];
+      }
+      journal[prefixedMetricName].push(metricVal);
+    }
+  }
+  return journal;
+}
 
 /**
  * Runs inference on an initialized engine instance using the specified request configuration
