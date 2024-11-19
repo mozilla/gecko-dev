@@ -380,18 +380,7 @@ class LogStreamer;
 template <>
 class LogStreamer<> final {
  public:
-  template <typename U,
-            typename V = decltype(MakeVal(std::declval<U>())),
-            absl::enable_if_t<std::is_arithmetic<U>::value ||
-                              std::is_enum<U>::value>* = nullptr>
-  RTC_FORCE_INLINE LogStreamer<V> operator<<(U arg) const {
-    return LogStreamer<V>(MakeVal(arg), this);
-  }
-
-  template <typename U,
-            typename V = decltype(MakeVal(std::declval<U>())),
-            absl::enable_if_t<!std::is_arithmetic<U>::value &&
-                              !std::is_enum<U>::value>* = nullptr>
+  template <typename U, typename V = decltype(MakeVal(std::declval<U>()))>
   RTC_FORCE_INLINE LogStreamer<V> operator<<(const U& arg) const {
     return LogStreamer<V>(MakeVal(arg), this);
   }
@@ -411,18 +400,7 @@ class LogStreamer<T, Ts...> final {
   RTC_FORCE_INLINE LogStreamer(T arg, const LogStreamer<Ts...>* prior)
       : arg_(arg), prior_(prior) {}
 
-  template <typename U,
-            typename V = decltype(MakeVal(std::declval<U>())),
-            absl::enable_if_t<std::is_arithmetic<U>::value ||
-                              std::is_enum<U>::value>* = nullptr>
-  RTC_FORCE_INLINE LogStreamer<V, T, Ts...> operator<<(U arg) const {
-    return LogStreamer<V, T, Ts...>(MakeVal(arg), this);
-  }
-
-  template <typename U,
-            typename V = decltype(MakeVal(std::declval<U>())),
-            absl::enable_if_t<!std::is_arithmetic<U>::value &&
-                              !std::is_enum<U>::value>* = nullptr>
+  template <typename U, typename V = decltype(MakeVal(std::declval<U>()))>
   RTC_FORCE_INLINE LogStreamer<V, T, Ts...> operator<<(const U& arg) const {
     return LogStreamer<V, T, Ts...>(MakeVal(arg), this);
   }
