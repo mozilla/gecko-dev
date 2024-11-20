@@ -1113,6 +1113,7 @@ class SdpRtpmapAttributeList : public SdpAttribute {
     kiLBC,
     kiSAC,
     kH264,
+    kAV1,
     kRed,
     kUlpfec,
     kTelephoneEvent,
@@ -1194,6 +1195,9 @@ inline std::ostream& operator<<(std::ostream& os,
     case SdpRtpmapAttributeList::kH264:
       os << "H264";
       break;
+    case SdpRtpmapAttributeList::kAV1:
+      os << "AV1";
+      break;
     case SdpRtpmapAttributeList::kRed:
       os << "red";
       break;
@@ -1259,6 +1263,59 @@ class SdpFmtpAttributeList : public SdpAttribute {
     }
 
     std::vector<uint8_t> encodings;
+  };
+
+  struct Av1Parameters : public Parameters {
+    // https://aomediacodec.github.io/av1-rtp-spec/#722-rid-restrictions-mapping-for-av1
+    Maybe<uint8_t> profile;
+    static constexpr uint8_t kDefaultProfile = 0;
+    Maybe<uint8_t> levelIdx;
+    static constexpr uint8_t kDefaultLevelIdx = 5;
+    Maybe<uint8_t> tier;
+    static constexpr uint8_t kDefaultTier = 0;
+
+    Av1Parameters() : Parameters(SdpRtpmapAttributeList::kAV1) {}
+    Av1Parameters(const Av1Parameters&) = default;
+
+    virtual ~Av1Parameters() = default;
+
+    virtual Parameters* Clone() const override {
+      return new Av1Parameters(*this);
+    }
+
+    // Returns the profile parameter if set, or the spec mandated default of 0.
+    auto profileValue() const -> uint8_t {
+      return profile.valueOr(kDefaultProfile);
+    }
+    // Returns the level-idx parameter if set, or the spec mandated default of
+    // 5.
+    auto levelIdxValue() const -> uint8_t {
+      return levelIdx.valueOr(kDefaultLevelIdx);
+    }
+    // Returns the tier parameter if set, or the spec mandated default of 0.
+    auto tierValue() const -> uint8_t { return tier.valueOr(kDefaultTier); }
+
+    virtual void Serialize(std::ostream& os) const override {
+      bool first = true;
+      profile.apply([&](const auto& profileV) {
+        os << "profile=" << static_cast<int>(profileV);
+        first = false;
+      });
+      levelIdx.apply([&](const auto& levelIdxV) {
+        os << (first ? "" : ";") << "level-idx=" << static_cast<int>(levelIdxV);
+        first = false;
+      });
+      tier.apply([&](const auto& tierV) {
+        os << (first ? "" : ";") << "tier=" << static_cast<int>(tierV);
+      });
+    }
+
+    virtual bool CompareEq(const Parameters& aOther) const override {
+      return aOther.codec_type == codec_type &&
+             static_cast<const Av1Parameters&>(aOther).profile == profile &&
+             static_cast<const Av1Parameters&>(aOther).levelIdx == levelIdx &&
+             static_cast<const Av1Parameters&>(aOther).tier == tier;
+    }
   };
 
   class RtxParameters : public Parameters {
