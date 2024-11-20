@@ -90,7 +90,7 @@ object Versions {
     const val protobuf_plugin = "0.9.4"
     object Google {
         const val accompanist = "0.36.0"
-        const val firebase_messaging = "24.0.3"
+        const val firebase_messaging = "24.1.0"
         const val material = "1.12.0"
         const val osslicenses_plugin = "0.10.6"
         const val play_review = "2.0.1"
