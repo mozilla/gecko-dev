@@ -294,6 +294,11 @@ class RootCompiler {
   MIRGraph mirGraph_;
   MIRGenerator mirGen_;
 
+  // The current loop depth we're generating inside of. This includes all
+  // callee functions when we're generating an inlined function, and so it
+  // lives here on the root compiler.
+  uint32_t loopDepth_;
+
   // Accumulated inlining statistics for this function.
   InliningStats inliningStats_;
   // The remaining inlining budget, in terms of bytecode bytes. This may go
@@ -326,6 +331,7 @@ class RootCompiler {
         mirGraph_(&alloc),
         mirGen_(nullptr, options_, &alloc_, &mirGraph_, &compileInfo_,
                 IonOptimizations.get(OptimizationLevel::Wasm)),
+        loopDepth_(0),
         inliningBudget_(0),
         tryNotes_(tryNotes) {}
 
@@ -336,6 +342,10 @@ class RootCompiler {
   MIRGenerator& mirGen() { return mirGen_; }
   int64_t inliningBudget() const { return inliningBudget_; }
   FeatureUsage observedFeatures() const { return observedFeatures_; }
+
+  uint32_t loopDepth() const { return loopDepth_; }
+  void startLoop() { loopDepth_++; }
+  void closeLoop() { loopDepth_--; }
 
   [[nodiscard]] bool generate();
 
@@ -401,8 +411,17 @@ class FunctionCompiler {
   MBasicBlock* curBlock_;
   uint32_t maxStackArgBytes_;
 
-  uint32_t loopDepth_;
-  uint32_t blockDepth_;
+  // When generating a forward branch we haven't created the basic block that
+  // the branch needs to target. We handle this by accumulating all the branch
+  // instructions that want to target a block we have not yet created into
+  // `pendingBlocks_` and then patching them in `bindBranches`.
+  //
+  // For performance reasons we only grow `pendingBlocks_` as needed, never
+  // shrink it. So the length of the vector has no relation to the current
+  // nesting depth of wasm blocks. We use `pendingBlockDepth_` to track the
+  // current wasm block depth. We assert that all entries beyond the current
+  // block depth are empty.
+  uint32_t pendingBlockDepth_;
   PendingBlockTargetVector pendingBlocks_;
   // Control flow patches for exceptions that are caught without a landing
   // pad they can directly jump to. This happens when either:
@@ -441,8 +460,7 @@ class FunctionCompiler {
         info_(compileInfo),
         curBlock_(nullptr),
         maxStackArgBytes_(0),
-        loopDepth_(0),
-        blockDepth_(0),
+        pendingBlockDepth_(0),
         pendingInlineCatchBlock_(nullptr),
         instancePointer_(nullptr),
         stackResultPointer_(nullptr) {}
@@ -463,8 +481,7 @@ class FunctionCompiler {
         info_(compileInfo),
         curBlock_(nullptr),
         maxStackArgBytes_(0),
-        loopDepth_(callerCompiler_->loopDepth_),
-        blockDepth_(0),
+        pendingBlockDepth_(0),
         pendingInlineCatchBlock_(nullptr),
         instancePointer_(callerCompiler_->instancePointer_),
         stackResultPointer_(nullptr) {}
@@ -597,9 +614,7 @@ class FunctionCompiler {
   void finish() {
     mirGen().accumulateWasmMaxStackArgBytes(maxStackArgBytes_);
 
-    MOZ_ASSERT(callerCompiler_ ? (loopDepth_ == callerCompiler_->loopDepth_)
-                               : (loopDepth_ == 0));
-    MOZ_ASSERT(blockDepth_ == 0);
+    MOZ_ASSERT(pendingBlockDepth_ == 0);
 #ifdef DEBUG
     for (PendingBlockTarget& targets : pendingBlocks_) {
       MOZ_ASSERT(targets.patches.empty());
@@ -3483,37 +3498,37 @@ class FunctionCompiler {
   }
 
   [[nodiscard]] bool startBlock() {
-    MOZ_ASSERT_IF(blockDepth_ < pendingBlocks_.length(),
-                  pendingBlocks_[blockDepth_].patches.empty());
-    blockDepth_++;
+    MOZ_ASSERT_IF(pendingBlockDepth_ < pendingBlocks_.length(),
+                  pendingBlocks_[pendingBlockDepth_].patches.empty());
+    pendingBlockDepth_++;
     return true;
   }
 
   [[nodiscard]] bool finishBlock(DefVector* defs) {
-    MOZ_ASSERT(blockDepth_);
-    uint32_t topLabel = --blockDepth_;
+    MOZ_ASSERT(pendingBlockDepth_);
+    uint32_t topLabel = --pendingBlockDepth_;
     return bindBranches(topLabel, defs);
   }
 
   [[nodiscard]] bool startLoop(MBasicBlock** loopHeader, size_t paramCount) {
     *loopHeader = nullptr;
 
-    blockDepth_++;
-    loopDepth_++;
+    pendingBlockDepth_++;
+    rootCompiler_.startLoop();
 
     if (inDeadCode()) {
       return true;
     }
 
     // Create the loop header.
-    MOZ_ASSERT(curBlock_->loopDepth() == loopDepth_ - 1);
+    MOZ_ASSERT(curBlock_->loopDepth() == rootCompiler_.loopDepth() - 1);
     *loopHeader = MBasicBlock::New(mirGraph(), info(), curBlock_,
                                    MBasicBlock::PENDING_LOOP_HEADER);
     if (!*loopHeader) {
       return false;
     }
 
-    (*loopHeader)->setLoopDepth(loopDepth_);
+    (*loopHeader)->setLoopDepth(rootCompiler_.loopDepth());
     mirGraph().addBlock(*loopHeader);
     curBlock_->end(MGoto::New(alloc(), *loopHeader));
 
@@ -3655,17 +3670,17 @@ class FunctionCompiler {
  public:
   [[nodiscard]] bool closeLoop(MBasicBlock* loopHeader,
                                DefVector* loopResults) {
-    MOZ_ASSERT(blockDepth_ >= 1);
-    MOZ_ASSERT(loopDepth_);
+    MOZ_ASSERT(pendingBlockDepth_ >= 1);
+    MOZ_ASSERT(rootCompiler_.loopDepth());
 
-    uint32_t headerLabel = blockDepth_ - 1;
+    uint32_t headerLabel = pendingBlockDepth_ - 1;
 
     if (!loopHeader) {
       MOZ_ASSERT(inDeadCode());
       MOZ_ASSERT(headerLabel >= pendingBlocks_.length() ||
                  pendingBlocks_[headerLabel].patches.empty());
-      blockDepth_--;
-      loopDepth_--;
+      pendingBlockDepth_--;
+      rootCompiler_.closeLoop();
       return true;
     }
 
@@ -3685,7 +3700,7 @@ class FunctionCompiler {
       return false;
     }
 
-    MOZ_ASSERT(loopHeader->loopDepth() == loopDepth_);
+    MOZ_ASSERT(loopHeader->loopDepth() == rootCompiler_.loopDepth());
 
     if (curBlock_) {
       // We're on the loop backedge block, created by bindBranches.
@@ -3697,7 +3712,7 @@ class FunctionCompiler {
         return false;
       }
 
-      MOZ_ASSERT(curBlock_->loopDepth() == loopDepth_);
+      MOZ_ASSERT(curBlock_->loopDepth() == rootCompiler_.loopDepth());
       curBlock_->end(MGoto::New(alloc(), loopHeader));
       if (!setLoopBackedge(loopHeader, loopBody, curBlock_,
                            backedgeValues.length())) {
@@ -3707,10 +3722,10 @@ class FunctionCompiler {
 
     curBlock_ = loopBody;
 
-    loopDepth_--;
+    rootCompiler_.closeLoop();
 
     // If the loop depth still at the inner loop body, correct it.
-    if (curBlock_ && curBlock_->loopDepth() != loopDepth_) {
+    if (curBlock_ && curBlock_->loopDepth() != rootCompiler_.loopDepth()) {
       MBasicBlock* out;
       if (!goToNewBlock(curBlock_, &out)) {
         return false;
@@ -3718,15 +3733,15 @@ class FunctionCompiler {
       curBlock_ = out;
     }
 
-    blockDepth_ -= 1;
+    pendingBlockDepth_ -= 1;
     return inDeadCode() || popPushedDefs(loopResults);
   }
 
   [[nodiscard]] bool addControlFlowPatch(
       MControlInstruction* ins, uint32_t relative, uint32_t index,
       BranchHint branchHint = BranchHint::Invalid) {
-    MOZ_ASSERT(relative < blockDepth_);
-    uint32_t absolute = blockDepth_ - 1 - relative;
+    MOZ_ASSERT(relative < pendingBlockDepth_);
+    uint32_t absolute = pendingBlockDepth_ - 1 - relative;
 
     if (absolute >= pendingBlocks_.length() &&
         !pendingBlocks_.resize(absolute + 1)) {
@@ -3965,7 +3980,7 @@ class FunctionCompiler {
     // Find where we are delegating the pad patches to.
     ControlInstructionVector* targetPatches;
     if (!inTryBlockFrom(relativeDepth, &targetPatches)) {
-      MOZ_ASSERT(relativeDepth <= blockDepth_ - 1);
+      MOZ_ASSERT(relativeDepth <= pendingBlockDepth_ - 1);
       targetPatches = &bodyRethrowPadPatches_;
     }
 
@@ -5202,7 +5217,7 @@ class FunctionCompiler {
     }
     indexPhi->addInput(index);
     curBlock_->addPhi(indexPhi);
-    curBlock_->setLoopDepth(loopDepth_ + 1);
+    curBlock_->setLoopDepth(rootCompiler_.loopDepth() + 1);
 
     if (!writeGcValueAtBasePlusScaledIndex(
             lineOrBytecode, elemType, arrayObject, AliasSet::WasmArrayDataArea,
@@ -5614,7 +5629,7 @@ class FunctionCompiler {
       return false;
     }
     mirGraph().addBlock(*block);
-    (*block)->setLoopDepth(loopDepth_);
+    (*block)->setLoopDepth(rootCompiler_.loopDepth());
     return true;
   }
 
@@ -10322,6 +10337,8 @@ bool RootCompiler::generate() {
   }
   funcCompiler.finish();
   observedFeatures_ = funcCompiler.featureUsage();
+
+  MOZ_ASSERT(loopDepth_ == 0);
 
   {
     auto guard = codeMeta_.stats.writeLock();
