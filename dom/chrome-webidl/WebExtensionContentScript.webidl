@@ -206,6 +206,13 @@ interface WebExtensionContentScript : MozDocumentMatcher {
   readonly attribute ContentScriptExecutionWorld world;
 
   /**
+   * When world is "USER_SCRIPT", worldId can be used to specify a specific
+   * extension-specific sandbox to execute in, instead of the default one.
+   */
+  [Constant]
+  readonly attribute DOMString? worldId;
+
+  /**
    * A set of paths, relative to the extension root, of CSS sheets to inject
    * into matching pages.
    */
@@ -224,6 +231,8 @@ dictionary WebExtensionContentScriptInit : MozDocumentMatcherInit {
   ContentScriptRunAt runAt = "document_idle";
 
   ContentScriptExecutionWorld world = "ISOLATED";
+
+  DOMString? worldId = null;
 
   sequence<DOMString> cssPaths = [];
 

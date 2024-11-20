@@ -102,12 +102,22 @@ this.userScripts = class extends ExtensionAPI {
       }
     }
 
+    function ensureValidWorldId(worldId) {
+      if (worldId && (worldId.startsWith("_") || worldId.length > 256)) {
+        // worldId "" is the default world.
+        // worldId starting with "_" are reserved.
+        // worldId length is capped. Limit is consistent with Chrome.
+        throw new ExtensionError(`Invalid worldId: ${worldId}`);
+      }
+    }
+
     const usm = extension.userScriptsManager;
 
     return {
       userScripts: {
         register: async scripts => {
           ensureIdsValidAndUnique(scripts.map(s => s.id));
+          scripts.forEach(s => ensureValidWorldId(s.worldId));
 
           return usm.runWriteTask(async () => {
             await usm.registerNewScripts(scripts);
@@ -116,6 +126,7 @@ this.userScripts = class extends ExtensionAPI {
 
         update: async scripts => {
           ensureIdsValidAndUnique(scripts.map(s => s.id));
+          scripts.forEach(s => ensureValidWorldId(s.worldId));
 
           return usm.runWriteTask(async () => {
             await usm.updateScripts(scripts);

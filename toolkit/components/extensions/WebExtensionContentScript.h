@@ -200,6 +200,7 @@ class WebExtensionContentScript final : public MozDocumentMatcher {
 
   RunAtEnum RunAt() const { return mRunAt; }
   ExecutionWorld World() const { return mWorld; }
+  void GetWorldId(nsAString& aWorldId) const;
 
   void GetCssPaths(nsTArray<nsString>& aPaths) const {
     aPaths.AppendElements(mCssPaths);
@@ -226,6 +227,7 @@ class WebExtensionContentScript final : public MozDocumentMatcher {
 
   RunAtEnum mRunAt;
   ExecutionWorld mWorld;
+  Nullable<nsString> mWorldId;
 };
 
 }  // namespace extensions

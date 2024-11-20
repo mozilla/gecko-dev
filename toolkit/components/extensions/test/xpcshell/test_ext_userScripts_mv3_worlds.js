@@ -141,3 +141,201 @@ add_task(async function multiple_scripts_share_same_default_world() {
 
   await extension.unload();
 });
+
+add_task(async function test_worldId_validation() {
+  async function background() {
+    const id = "single user script id";
+    function testRegister(props) {
+      // ^ Not async, so that callers can test the difference between sync vs
+      // async errors from userScripts.register().
+      return browser.userScripts.register([
+        { id, includeGlobs: ["*"], js: [{ code: "// ..." }], ...props },
+      ]);
+    }
+    async function doUnregister() {
+      await browser.userScripts.unregister({ ids: [id] });
+    }
+
+    try {
+      await browser.test.assertRejects(
+        testRegister({ worldId: "_" }),
+        "Invalid worldId: _",
+        "worldId starting with underscore are reserved"
+      );
+      browser.test.log("worldId containing underscore after start is OK");
+      await testRegister({ worldId: "x_" });
+      await doUnregister();
+
+      await browser.test.assertRejects(
+        testRegister({ worldId: "x".repeat(257) }),
+        /^Invalid worldId: x{257}$/,
+        "Too long worldId is rejected"
+      );
+      browser.test.log("worldId length of 256 characters is OK");
+      await testRegister({ worldId: "x".repeat(256) });
+      await doUnregister();
+      browser.test.log("worldId length of 256 double-byte characters is OK");
+      await testRegister({ worldId: "\u{1234}".repeat(256) });
+      await doUnregister();
+      // The above shows that we do not count by the number of bytes, but by
+      // the JS string length. The following assertion shows that we do not
+      // somehow count by the number of Unicode characters.
+      await browser.test.assertRejects(
+        testRegister({ worldId: "\u{1f00d}".repeat(256) }),
+        /^Invalid worldId: \u{1f00d}{256}$/u,
+        "worldId length of 256 multi-code unit characters is rejected."
+      );
+
+      browser.test.assertThrows(
+        () => testRegister({ worldId: 123 }),
+        /worldId: Expected string instead of 123/,
+        "Non-string worldId is rejected."
+      );
+
+      // Now test that worldId cannot be used with world "MAIN".
+      await browser.test.assertRejects(
+        testRegister({ world: "MAIN", worldId: "i" }),
+        "worldId cannot be used with MAIN world.",
+        "Should not support worldId with MAIN world"
+      );
+
+      await browser.test.assertRejects(
+        testRegister({ world: "MAIN", worldId: "i" }),
+        "worldId cannot be used with MAIN world.",
+        "Should not support worldId with MAIN world"
+      );
+
+      // And not even with update().
+      await testRegister({ world: "MAIN" });
+      await browser.test.assertRejects(
+        browser.userScripts.update([{ id, worldId: "y" }]),
+        "worldId cannot be used with MAIN world.",
+        "Should not update worldId to non-default world for world MAIN"
+      );
+      browser.test.log("Updating worldId + world=USER_SCRIPT at once is OK");
+      await browser.userScripts.update([
+        { id, world: "USER_SCRIPT", worldId: "y" },
+      ]);
+      await browser.test.assertRejects(
+        browser.userScripts.update([{ id, world: "MAIN" }]),
+        "worldId cannot be used with MAIN world.",
+        "Should not change world to MAIN when worldId is non-default worldId"
+      );
+      browser.test.log("Update can set world=MAIN and clear worldId at once");
+      await browser.userScripts.update([{ id, world: "MAIN", worldId: "" }]);
+      await doUnregister();
+    } catch (e) {
+      browser.test.fail(`Unexpected error: ${e}`);
+    }
+    browser.test.sendMessage("done");
+  }
+  let extension = ExtensionTestUtils.loadExtension({
+    manifest: {
+      manifest_version: 3,
+      permissions: ["userScripts"],
+    },
+    background,
+  });
+  await extension.startup();
+  await extension.awaitMessage("done");
+  await extension.unload();
+});
+
+add_task(async function test_default_and_many_non_default_worldIds() {
+  let extension = ExtensionTestUtils.loadExtension({
+    useAddonManager: "permanent",
+    manifest: {
+      manifest_version: 3,
+      permissions: ["userScripts"],
+      host_permissions: ["*://example.com/*"],
+    },
+    async background() {
+      const matches = ["*://example.com/dummy"];
+      let scripts = [
+        {
+          id: "define res, so other scripts can push results",
+          matches,
+          js: [{ code: `window.res = [];` }],
+          runAt: "document_start",
+          world: "MAIN",
+          // worldId not specified - not meaningful for world "MAIN".
+        },
+        {
+          id: "default world (worldId not specified)",
+          matches,
+          js: [{ code: `var x = x ?? []; x.push(-3)` }],
+          runAt: "document_start",
+          world: "USER_SCRIPT",
+          // worldId not specified = default world.
+        },
+        {
+          id: "default world (worldId is empty string)",
+          matches,
+          js: [{ code: `var x = x ?? []; x.push(-2)` }],
+          runAt: "document_start",
+          world: "USER_SCRIPT",
+          worldId: "", // worldId "" is the default world.
+        },
+        {
+          id: "default world (worldId is null)",
+          matches,
+          js: [{ code: `var x = x ?? []; x.push(-1)` }],
+          runAt: "document_start",
+          world: "USER_SCRIPT",
+          worldId: null, // worldId null defaults to default world.
+        },
+        {
+          id: "default world (export result from previous scripts)",
+          matches,
+          js: [{ code: `window.wrappedJSObject.res.push(...x)` }],
+          runAt: "document_end", // Runs after document_start in default world.
+          world: "USER_SCRIPT",
+          // worldId not specified = default world.
+        },
+      ];
+      // expected result is [-3, -2, -1] is from default world above.
+      const expectedResults = [-3, -2, -1]; // plus 1...50 from loop below.
+      for (let i = 1; i <= 50; ++i) {
+        expectedResults.push(i);
+        // The first script initializes "x" if not done so before, the second
+        // script exports it to the main world.
+        scripts.push({
+          id: `user script ${i} at document_start`,
+          matches,
+          js: [{ code: `var x = x ?? ${i};` }],
+          runAt: "document_start",
+          world: "USER_SCRIPT",
+          worldId: `worldId ${i}`,
+        });
+        scripts.push({
+          id: `user script ${i} at document_end`,
+          matches,
+          // If worlds were unexpectedly shared, x would be from another script
+          // and false would be added to res instead of the number i.
+          js: [{ code: `window.wrappedJSObject.res.push(x === ${i} && ${i})` }],
+          runAt: "document_end",
+          world: "USER_SCRIPT",
+          worldId: `worldId ${i}`,
+        });
+      }
+      await browser.userScripts.register(scripts);
+      browser.test.sendMessage("registered_and_expected", expectedResults);
+    },
+  });
+
+  await extension.startup();
+  let expectedRes = await extension.awaitMessage("registered_and_expected");
+
+  const actualRes = await spawnPage(() => this.content.wrappedJSObject.res);
+  // Script execution order is not guaranteed yet between different scripts,
+  // so print informative message:
+  info(`Actual result (unsorted): ${actualRes}`);
+
+  Assert.deepEqual(
+    actualRes.toSorted((a, b) => a - b),
+    expectedRes,
+    "Every script should execute in the world specified by worldId"
+  );
+
+  await extension.unload();
+});

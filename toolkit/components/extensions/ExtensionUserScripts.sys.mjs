@@ -427,6 +427,7 @@ class UserScriptsManager {
       ),
       runAt: publicScript.runAt || oldScript?.runAt || "document_idle",
       world: publicScript.world || oldScript?.world || "USER_SCRIPT",
+      worldId: publicScript.worldId ?? oldScript?.worldId ?? "",
     };
   }
 
@@ -472,6 +473,7 @@ class UserScriptsManager {
       excludeGlobs: internalScript.excludeGlobs,
       runAt: internalScript.runAt,
       world: internalScript.world,
+      worldId: internalScript.worldId,
     };
 
     return script;
@@ -507,6 +509,13 @@ class UserScriptsManager {
     if (script.excludeMatches) {
       // This will throw if a match pattern is invalid.
       ExtensionUtils.parseMatchPatterns(script.excludeMatches);
+    }
+
+    if (script.worldId && script.world === "MAIN") {
+      // worldId is only supported with world USER_SCRIPT (default).
+      throw new ExtensionUtils.ExtensionError(
+        "worldId cannot be used with MAIN world."
+      );
     }
   }
 }

@@ -82,6 +82,7 @@ add_task(async function register_and_restart() {
         // as the default world. In the userScripts API, we want to default to
         // "USER_SCRIPT" when the world is not specified.
         world: "USER_SCRIPT",
+        worldId: "",
       };
       browser.runtime.onInstalled.addListener(async ({ reason }) => {
         browser.test.assertEq("install", reason, "onInstalled reason");
@@ -173,6 +174,7 @@ add_task(async function register_and_update_all_values() {
         excludeGlobs: [],
         runAt: "document_idle",
         world: "USER_SCRIPT",
+        worldId: "",
       };
       const scriptDefaultsOut = {
         ...scriptDefaults,
@@ -197,6 +199,10 @@ add_task(async function register_and_update_all_values() {
         excludeGlobs: ["*excludeme*"],
         runAt: "document_end",
         world: "MAIN",
+        // We cannot test a non-default worldId, because worldId can only take
+        // a non-empty string with world USER_SCRIPT. Test coverage for worldId
+        // is in test_ext_userScripts_mv3_worlds.js, test_worldId_validation.
+        worldId: "",
       };
 
       const nullUpdate = Object.fromEntries(
@@ -301,6 +307,7 @@ add_task(async function register_and_update_all_values() {
       // excludeGlobs: ["*excludeme*"],
       runAt: "document_end",
       world: "MAIN",
+      worldId: "",
     };
     const expectedScriptKeys = Object.keys(expectedScriptsInContent);
     Assert.deepEqual(
@@ -539,6 +546,7 @@ add_task(async function no_partial_registrations_on_error() {
           excludeGlobs: null,
           runAt: null, // "document_idle",
           world: null, // "USER_SCRIPT",
+          worldId: null, // ""
         },
       ],
     ],

@@ -161,6 +161,11 @@
             "$ref": "ExecutionWorld",
             "optional": true,
             "description": "The JavaScript script for a script to execute within. Defaults to \"USER_SCRIPT\"."
+          },
+          "worldId": {
+            "type": "string",
+            "optional": true,
+            "description": "If specified, specifies a specific user script world ID to execute in. Only valid if `world` is omitted or is `USER_SCRIPT`. If `worldId` is omitted, the script will execute in the default user script world (\"\"). Values with leading underscores (`_`) are reserved. The maximum length is 256."
           }
         }
       },

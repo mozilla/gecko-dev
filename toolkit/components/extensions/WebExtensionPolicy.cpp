@@ -700,6 +700,14 @@ WebExtensionContentScript::Constructor(GlobalObject& aGlobal,
   return script.forget();
 }
 
+void WebExtensionContentScript::GetWorldId(nsAString& aWorldId) const {
+  if (!mWorldId.IsNull()) {
+    aWorldId = mWorldId.Value();
+  } else {
+    SetDOMStringToNull(aWorldId);
+  }
+}
+
 MozDocumentMatcher::MozDocumentMatcher(GlobalObject& aGlobal,
                                        const dom::MozDocumentMatcherInit& aInit,
                                        bool aRestricted, ErrorResult& aRv)
@@ -762,7 +770,8 @@ WebExtensionContentScript::WebExtensionContentScript(
                          !aExtension.HasPermission(nsGkAtoms::mozillaAddons),
                          aRv),
       mRunAt(aInit.mRunAt),
-      mWorld(aInit.mWorld) {
+      mWorld(aInit.mWorld),
+      mWorldId(aInit.mWorldId) {
   mCssPaths.Assign(aInit.mCssPaths);
   mJsPaths.Assign(aInit.mJsPaths);
   mExtension = &aExtension;

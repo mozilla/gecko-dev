@@ -702,7 +702,7 @@ class Script {
   }
 
   #injectIntoUserScriptWorld(context, scripts, reportExceptions) {
-    let worldId = "";
+    let worldId = this.matcher.worldId;
     let sandbox = lazy.ExtensionUserScriptsContent.sandboxFor(context, worldId);
 
     let result;
