@@ -1609,6 +1609,12 @@ var gUnifiedExtensions = {
     if (quarantinedAttention) {
       msgId = "unified-extensions-button-quarantined";
     }
+    // blocklistAttention state takes precedence over the other ones
+    // because it is dismissible and, once dismissed, the tooltip will
+    // show one of the other messages if appropriate.
+    if (blocklistAttention) {
+      msgId = "unified-extensions-button-blocklisted";
+    }
     this.button.ownerDocument.l10n.setAttributes(this.button, msgId);
   },
 

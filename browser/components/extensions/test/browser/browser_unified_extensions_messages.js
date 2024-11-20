@@ -99,6 +99,15 @@ const verifyBlocklistAttentionMessageBar = (message, expected) => {
   );
 };
 
+const verifyExtensionButtonFluentId = async expectedFluentId => {
+  const unifiedButton = document.querySelector("#unified-extensions-button");
+  Assert.equal(
+    document.l10n.getAttributes(unifiedButton)?.id,
+    expectedFluentId,
+    "Got the expected fluent id on the extensions button"
+  );
+};
+
 const verifyQuarantinedDomainsMessageBar = async message => {
   Assert.equal(
     message.getAttribute("type"),
@@ -151,6 +160,7 @@ add_task(async function test_quarantined_domain_message_disabled() {
   await BrowserTestUtils.withNewTab(
     { gBrowser, url: `https://${quarantinedDomain}/` },
     async () => {
+      verifyExtensionButtonFluentId("unified-extensions-button");
       await openExtensionsPanel();
       Assert.equal(getMessageBars().length, 0, "expected no message");
       await closeExtensionsPanel();
@@ -179,10 +189,12 @@ add_task(async function test_quarantined_domain_message() {
     },
   });
   await extension.startup();
+  verifyExtensionButtonFluentId("unified-extensions-button");
 
   await BrowserTestUtils.withNewTab(
     { gBrowser, url: `https://${quarantinedDomain}/` },
     async () => {
+      verifyExtensionButtonFluentId("unified-extensions-button-quarantined");
       await openExtensionsPanel();
 
       const messages = getMessageBars();
@@ -199,6 +211,7 @@ add_task(async function test_quarantined_domain_message() {
   await BrowserTestUtils.withNewTab(
     { gBrowser, url: `http://mochi.test:8888/` },
     async () => {
+      verifyExtensionButtonFluentId("unified-extensions-button");
       await openExtensionsPanel();
       Assert.equal(getMessageBars().length, 0, "expected no message");
       await closeExtensionsPanel();
@@ -211,6 +224,7 @@ add_task(async function test_quarantined_domain_message() {
   await BrowserTestUtils.withNewTab(
     { gBrowser, url: `https://${quarantinedDomain}/` },
     async () => {
+      verifyExtensionButtonFluentId("unified-extensions-button-quarantined");
       await openExtensionsPanel();
 
       const messages = getMessageBars();
@@ -221,12 +235,27 @@ add_task(async function test_quarantined_domain_message() {
 
       await closeExtensionsPanel();
 
+      const unifiedButton = document.querySelector(
+        "#unified-extensions-button"
+      );
+      const promiseFluentIdChanged = BrowserTestUtils.waitForMutationCondition(
+        unifiedButton,
+        { attributes: true, attributeFilter: ["data-l10n-id"] },
+        () =>
+          document.l10n.getAttributes(unifiedButton)?.id !==
+          "unified-extensions-button-quarantined"
+      );
+
       // Clear the list of quarantined domains.
       Services.prefs.setStringPref("extensions.quarantinedDomains.list", "");
 
       await openExtensionsPanel();
       Assert.equal(getMessageBars().length, 0, "expected no message");
       await closeExtensionsPanel();
+
+      // Wait for the extension button fluent id change.
+      await promiseFluentIdChanged;
+      verifyExtensionButtonFluentId("unified-extensions-button");
     }
   );
 
@@ -332,6 +361,7 @@ async function runBlockedExtensionsTestCase({ testSoftBlocks = false }) {
   );
 
   verifyBlocklistAttentionDot(false);
+  verifyExtensionButtonFluentId("unified-extensions-button");
 
   let promiseBlocklistAttentionUpdated = AddonTestUtils.promiseManagerEvent(
     "onBlocklistAttentionUpdated"
@@ -342,6 +372,7 @@ async function runBlockedExtensionsTestCase({ testSoftBlocks = false }) {
   info("Wait for onBlocklistAttentionUpdated manager listener call");
   await promiseBlocklistAttentionUpdated;
   verifyBlocklistAttentionDot(true);
+  verifyExtensionButtonFluentId("unified-extensions-button-blocklisted");
 
   info("Verify blocklist attention messagebar on a single hard-block");
 
@@ -385,6 +416,8 @@ async function runBlockedExtensionsTestCase({ testSoftBlocks = false }) {
       "Expect only addon1.blocklistAttentionDismissed to be set to true"
     );
     verifyBlocklistAttentionDot(false);
+    verifyExtensionButtonFluentId("unified-extensions-button");
+
     Assert.equal(
       getMessageBars().length,
       0,
@@ -410,6 +443,7 @@ async function runBlockedExtensionsTestCase({ testSoftBlocks = false }) {
   info("Wait for onBlocklistAttentionUpdated manager listener call");
   await promiseBlocklistAttentionUpdated;
   verifyBlocklistAttentionDot(true);
+  verifyExtensionButtonFluentId("unified-extensions-button-blocklisted");
 
   info("Verify blocklist attention messagebar on multiple hard-blocks");
 
@@ -463,6 +497,7 @@ async function runBlockedExtensionsTestCase({ testSoftBlocks = false }) {
       "Expect only addon1.blocklistAttentionDismissed to be set to true"
     );
     verifyBlocklistAttentionDot(false);
+    verifyExtensionButtonFluentId("unified-extensions-button");
     Assert.equal(
       getMessageBars().length,
       0,
@@ -514,6 +549,7 @@ add_task(async function test_blocklist_attention_on_soft_and_hardblocks() {
   );
 
   verifyBlocklistAttentionDot(false);
+  verifyExtensionButtonFluentId("unified-extensions-button");
 
   let promiseBlocklistAttentionUpdated = AddonTestUtils.promiseManagerEvent(
     "onBlocklistAttentionUpdated"
@@ -525,6 +561,7 @@ add_task(async function test_blocklist_attention_on_soft_and_hardblocks() {
   info("Wait for onBlocklistAttentionUpdated manager listener call");
   await promiseBlocklistAttentionUpdated;
   verifyBlocklistAttentionDot(true);
+  verifyExtensionButtonFluentId("unified-extensions-button-blocklisted");
 
   info("Verify blocklist attention messagebar on hard-block and soft-blocks");
 
