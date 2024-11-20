@@ -2466,6 +2466,7 @@ nsresult HttpChannelChild::ContinueAsyncOpen() {
   openArgs.classicScriptHintCharset() = mClassicScriptHintCharset;
 
   openArgs.isUserAgentHeaderModified() = LoadIsUserAgentHeaderModified();
+  openArgs.initiatorType() = mInitiatorType;
 
   RefPtr<Document> doc;
   mLoadInfo->GetLoadingDocument(getter_AddRefs(doc));

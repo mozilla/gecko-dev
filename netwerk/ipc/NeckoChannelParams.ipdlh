@@ -387,6 +387,7 @@ struct HttpChannelOpenArgs
   nsString                    classicScriptHintCharset;
   nsString                    documentCharacterSet;
   bool                        isUserAgentHeaderModified;
+  nsString                    initiatorType;
 };
 
 struct HttpChannelConnectArgs

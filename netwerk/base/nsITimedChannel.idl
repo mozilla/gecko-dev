@@ -71,7 +71,7 @@ interface nsITimedChannel : nsISupports {
   [noscript] attribute TimeStamp redirectEnd;
 
   // The initiator type
-  [noscript] attribute AString initiatorType;
+  attribute AString initiatorType;
 
   // This flag should be set to false only if a cross-domain redirect occurred
   [noscript] attribute boolean allRedirectsSameOrigin;
