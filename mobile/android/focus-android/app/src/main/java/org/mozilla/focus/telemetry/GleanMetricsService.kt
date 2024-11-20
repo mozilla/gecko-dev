@@ -54,7 +54,6 @@ import org.mozilla.focus.utils.Settings
  */
 class GleanMetricsService(context: Context) : MetricsService {
 
-    @Suppress("UnusedPrivateMember")
     private val activationPing = ActivationPing(context)
 
     companion object {
