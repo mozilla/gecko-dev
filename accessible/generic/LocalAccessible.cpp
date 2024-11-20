@@ -2504,21 +2504,35 @@ void LocalAccessible::DispatchClickEvent(uint32_t aActionIndex) const {
   presShell->ScrollContentIntoView(mContent, ScrollAxis(), ScrollAxis(),
                                    ScrollFlags::ScrollOverflowHidden);
 
-  AutoWeakFrame frame = mContent->GetPrimaryFrame();
-  if (!frame) return;
+  AutoWeakFrame frame = GetFrame();
+  if (!frame) {
+    return;
+  }
 
-  // Compute x and y coordinates.
-  nsPoint point;
-  nsCOMPtr<nsIWidget> widget = frame->GetNearestWidget(point);
-  if (!widget) return;
+  // We use RelativeBounds rather than querying the frame directly because of
+  // special cases like image map areas which don't have their own frame.
+  // RelativeBounds overrides handle these special cases.
+  nsIFrame* boundingFrame = nullptr;
+  nsRect rect = RelativeBounds(&boundingFrame);
+  MOZ_ASSERT(boundingFrame);
 
-  nsSize size = frame->GetSize();
+  // Compute x and y coordinates in dev pixels relative to the widget.
+  nsPoint offsetToWidget;
+  nsCOMPtr<nsIWidget> widget = boundingFrame->GetNearestWidget(offsetToWidget);
+  if (!widget) {
+    return;
+  }
 
+  rect += offsetToWidget;
   RefPtr<nsPresContext> presContext = presShell->GetPresContext();
-  int32_t x = presContext->AppUnitsToDevPixels(point.x + size.width / 2);
-  int32_t y = presContext->AppUnitsToDevPixels(point.y + size.height / 2);
+  int32_t x = presContext->AppUnitsToDevPixels(rect.x + rect.width / 2);
+  int32_t y = presContext->AppUnitsToDevPixels(rect.y + rect.height / 2);
 
   // Simulate a touch interaction by dispatching touch events with mouse events.
+  // Even though we calculated x and y using the bounding frame, we must use the
+  // primary frame for the event. In most cases, these two frames will be
+  // different, but they are the same for special cases such as image map areas
+  // which don't have their own frame.
   nsCoreUtils::DispatchTouchEvent(eTouchStart, x, y, mContent, frame, presShell,
                                   widget);
 
