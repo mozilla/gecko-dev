@@ -1,8 +1,5 @@
 "use strict";
 
-// Disabling undef warning because in `run()` we use functions from head.js
-/* eslint-disable no-undef */
-
 /**
  * This test is used to ensure that Glean probe 'first_frame_loaded' can be
  * recorded correctly in different situations.
