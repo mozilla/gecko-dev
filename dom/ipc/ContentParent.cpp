@@ -947,7 +947,7 @@ UniqueContentParentKeepAlive ContentParent::GetNewOrUsedLaunchingBrowserProcess(
   UniqueContentParentKeepAlive contentParent;
   if (aGroup) {
     if (RefPtr<ContentParent> candidate = aGroup->GetHostProcess(aRemoteType)) {
-      Unused << NS_WARN_IF(candidate->IsShuttingDown());
+      MOZ_DIAGNOSTIC_ASSERT(!candidate->IsShuttingDown());
       MOZ_LOG(ContentParent::GetLog(), LogLevel::Debug,
               ("GetNewOrUsedProcess: Existing host process %p (launching %d)",
                candidate.get(), candidate->IsLaunching()));
@@ -964,6 +964,7 @@ UniqueContentParentKeepAlive ContentParent::GetNewOrUsedLaunchingBrowserProcess(
     contentParent =
         GetUsedBrowserProcess(aRemoteType, contentParents, maxContentParents,
                               aPreferUsed, aPriority, aBrowserId);
+    MOZ_DIAGNOSTIC_ASSERT_IF(contentParent, !contentParent->IsShuttingDown());
   }
 
   if (!contentParent) {
