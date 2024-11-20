@@ -47,6 +47,8 @@ DO_MOBILE_EXPERIMENTS=false
 DO_CT_LOGS=false
 
 CLONE_REPO=true
+HGHOST="hg.mozilla.org"
+STAGEHOST="archive.mozilla.org"
 
 USE_MC=false
 USE_TC=true
@@ -134,8 +136,6 @@ TESTS_ARCHIVE="target.common.tests.tar.gz"
 PLATFORM_EXT="tar.bz2"
 UNPACK_CMD="tar jxf"
 COMMIT_AUTHOR='ffxbld <ffxbld@mozilla.com>'
-HGHOST="hg.mozilla.org"
-STAGEHOST="archive.mozilla.org"
 WGET="wget -nv"
 UNTAR="tar -zxf"
 DIFF="$(command -v diff) -u"
