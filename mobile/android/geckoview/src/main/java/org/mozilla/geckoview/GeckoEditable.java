@@ -1822,7 +1822,7 @@ import org.mozilla.geckoview.SessionTextInput.EditableListener.IMEState;
     final String modeHint = mIMEModeHint;
     final String actionHint = mIMEActionHint;
     final String autocapitalize = mIMEAutocapitalize;
-    final boolean autocorrect = mIMEAutocorrect;
+    boolean autocorrect = mIMEAutocorrect;
     final int flags = mIMEFlags;
 
     // Some keyboards require us to fill out outAttrs even if we return null.
@@ -1876,6 +1876,15 @@ import org.mozilla.geckoview.SessionTextInput.EditableListener.IMEState;
         // TYPE_TEXT_FLAG_IME_MULTI_LINE flag makes the fullscreen IME line wrap
         outAttrs.inputType |= InputType.TYPE_TEXT_FLAG_IME_MULTI_LINE;
       }
+    }
+
+    // Even if dom.forms.autocorrect is false, we shouldn't set auto correct flag for email, url and
+    // password.
+    final int validation = outAttrs.inputType & InputType.TYPE_MASK_VARIATION;
+    if (validation == InputType.TYPE_TEXT_VARIATION_PASSWORD
+        || validation == InputType.TYPE_TEXT_VARIATION_URI
+        || validation == InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS) {
+      autocorrect = false;
     }
 
     if (autocorrect
