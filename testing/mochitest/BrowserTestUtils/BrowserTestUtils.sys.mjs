@@ -1907,10 +1907,11 @@ export var BrowserTestUtils = {
 
   /**
    * Create enough tabs to cause a tab overflow in the given window.
-   * @param {Function} registerCleanupFunction
+   * @param {Function|null} registerCleanupFunction
    *    The test framework doesn't keep its cleanup stuff anywhere accessible,
    *    so the first argument is a reference to your cleanup registration
-   *    function, allowing us to clean up after you if necessary.
+   *    function, allowing us to clean up after you if necessary. This can be
+   *    null if you are using a temporary window for the test.
    * @param {Window} win
    *    The window where the tabs need to be overflowed.
    * @param {object} params [optional]
@@ -1948,9 +1949,11 @@ export var BrowserTestUtils = {
     );
     const originalSmoothScroll = arrowScrollbox.smoothScroll;
     arrowScrollbox.smoothScroll = false;
-    registerCleanupFunction(() => {
-      arrowScrollbox.smoothScroll = originalSmoothScroll;
-    });
+    if (registerCleanupFunction) {
+      registerCleanupFunction(() => {
+        arrowScrollbox.smoothScroll = originalSmoothScroll;
+      });
+    }
 
     let size = ele => ele.getBoundingClientRect()[overflowDirection];
     let tabMinSize = gBrowser.tabContainer.verticalMode

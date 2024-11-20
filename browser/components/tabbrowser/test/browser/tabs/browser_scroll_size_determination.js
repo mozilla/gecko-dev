@@ -22,7 +22,7 @@ async function scrolling_works(useVerticalTabs, uiDensity) {
 
   win.gUIDensity.update(win.gUIDensity[uiDensity]);
 
-  await BrowserTestUtils.overflowTabs(registerCleanupFunction, win, {
+  await BrowserTestUtils.overflowTabs(null, win, {
     overflowAtStart: false,
     overflowTabFactor: 3,
   });
