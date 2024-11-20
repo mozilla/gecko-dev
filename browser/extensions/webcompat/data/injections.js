@@ -1157,6 +1157,20 @@ const AVAILABLE_INJECTIONS = [
       ],
     },
   },
+  {
+    id: "1886566",
+    platform: "all",
+    domain: "quezoncity.gov.ph",
+    bug: "1886566",
+    contentScripts: {
+      matches: ["*://qceservices.quezoncity.gov.ph/qcvaxeasy*"],
+      css: [
+        {
+          file: "injections/css/bug1886566-quezoncity.gov.ph-iframe-height.css",
+        },
+      ],
+    },
+  },
 ];
 
 module.exports = AVAILABLE_INJECTIONS;
