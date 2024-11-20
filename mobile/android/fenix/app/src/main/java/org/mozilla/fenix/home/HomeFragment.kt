@@ -817,10 +817,7 @@ class HomeFragment : Fragment() {
             feature = BottomToolbarContainerIntegration(
                 toolbar = bottomToolbarContainerView.toolbarContainerView,
                 store = requireComponents.core.store,
-                appStore = requireComponents.appStore,
-                bottomToolbarContainerView = bottomToolbarContainerView,
                 sessionId = null,
-                findInPageFeature = { null },
             ),
             owner = this,
             view = binding.root,

@@ -1537,10 +1537,7 @@ abstract class BaseBrowserFragment :
             feature = BottomToolbarContainerIntegration(
                 toolbar = bottomToolbarContainerView.toolbarContainerView,
                 store = requireComponents.core.store,
-                appStore = requireComponents.appStore,
-                bottomToolbarContainerView = bottomToolbarContainerView,
                 sessionId = customTabSessionId,
-                findInPageFeature = { findInPageIntegration.get() },
             ),
             owner = this,
             view = view,
@@ -1810,10 +1807,7 @@ abstract class BaseBrowserFragment :
             feature = BottomToolbarContainerIntegration(
                 toolbar = bottomToolbarContainerView.toolbarContainerView,
                 store = requireComponents.core.store,
-                appStore = requireComponents.appStore,
-                bottomToolbarContainerView = bottomToolbarContainerView,
                 sessionId = customTabSessionId,
-                findInPageFeature = { findInPageIntegration.get() },
             ),
             owner = this,
             view = view,
