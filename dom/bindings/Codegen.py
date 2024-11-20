@@ -16378,10 +16378,14 @@ class CGDOMJSProxyHandler_trace(ClassMethod):
 
     def getBody(self):
         iface = getReflectedHTMLAttributesIface(self.descriptor)
-        return "return %s::ReflectedHTMLAttributeSlots::Trace(%s, %s);\n" % (
-            toBindingNamespace(iface.identifier.name),
-            self.args[0].name,
-            self.args[1].name,
+        return fill(
+            """
+            ${reflectedAttributesBase}::ReflectedHTMLAttributeSlots::Trace(${trc}, ${proxy});
+            return Base::trace(${trc}, ${proxy});
+            """,
+            reflectedAttributesBase=toBindingNamespace(iface.identifier.name),
+            trc=self.args[0].name,
+            proxy=self.args[1].name,
         )
 
 
@@ -16808,6 +16812,18 @@ class CGDOMJSProxyHandler(CGClass):
             or descriptor.supportsNamedProperties()
             or descriptor.isMaybeCrossOriginObject()
         )
+
+        if descriptor.interface.getExtendedAttribute("LegacyOverrideBuiltIns"):
+            assert not descriptor.isMaybeCrossOriginObject()
+            parentClass = "ShadowingDOMProxyHandler"
+        elif descriptor.isMaybeCrossOriginObject():
+            parentClass = "MaybeCrossOriginObject<mozilla::dom::DOMProxyHandler>"
+        else:
+            parentClass = "mozilla::dom::DOMProxyHandler"
+
+        typeAliases = [
+            ClassUsingDeclaration("Base", parentClass),
+        ]
         methods = [
             CGDOMJSProxyHandler_getOwnPropDescriptor(descriptor),
             CGDOMJSProxyHandler_defineProperty(descriptor),
@@ -16863,18 +16879,11 @@ class CGDOMJSProxyHandler(CGClass):
                 ]
             )
 
-        if descriptor.interface.getExtendedAttribute("LegacyOverrideBuiltIns"):
-            assert not descriptor.isMaybeCrossOriginObject()
-            parentClass = "ShadowingDOMProxyHandler"
-        elif descriptor.isMaybeCrossOriginObject():
-            parentClass = "MaybeCrossOriginObject<mozilla::dom::DOMProxyHandler>"
-        else:
-            parentClass = "mozilla::dom::DOMProxyHandler"
-
         CGClass.__init__(
             self,
             "DOMProxyHandler",
             bases=[ClassBase(parentClass)],
+            typeAliases=typeAliases,
             constructors=constructors,
             methods=methods,
         )
