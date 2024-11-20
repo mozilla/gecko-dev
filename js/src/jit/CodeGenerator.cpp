@@ -13625,35 +13625,6 @@ JitCode* JitZone::generateStringConcatStub(JSContext* cx) {
   return code;
 }
 
-void JitRuntime::generateFreeStub(MacroAssembler& masm) {
-  AutoCreatedBy acb(masm, "JitRuntime::generateFreeStub");
-
-  const Register regSlots = CallTempReg0;
-
-  freeStubOffset_ = startTrampolineCode(masm);
-
-#ifdef JS_USE_LINK_REGISTER
-  masm.pushReturnAddress();
-#endif
-  AllocatableRegisterSet regs(RegisterSet::Volatile());
-  regs.takeUnchecked(regSlots);
-  LiveRegisterSet save(regs.asLiveSet());
-  masm.PushRegsInMask(save);
-
-  const Register regTemp = regs.takeAnyGeneral();
-  MOZ_ASSERT(regTemp != regSlots);
-
-  using Fn = void (*)(void* p);
-  masm.setupUnalignedABICall(regTemp);
-  masm.passABIArg(regSlots);
-  masm.callWithABI<Fn, js_free>(ABIType::General,
-                                CheckUnsafeCallWithABI::DontCheckOther);
-
-  masm.PopRegsInMask(save);
-
-  masm.ret();
-}
-
 void JitRuntime::generateLazyLinkStub(MacroAssembler& masm) {
   AutoCreatedBy acb(masm, "JitRuntime::generateLazyLinkStub");
 

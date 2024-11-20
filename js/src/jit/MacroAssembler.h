@@ -5669,7 +5669,6 @@ class MacroAssembler : public MacroAssemblerSpecific {
                    const TemplateNativeObject& templateObj);
 
  public:
-  void callFreeStub(Register slots);
   void createGCObject(Register result, Register temp,
                       const TemplateObject& templateObj, gc::Heap initialHeap,
                       Label* fail, bool initContents = true);

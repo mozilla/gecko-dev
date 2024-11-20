@@ -444,16 +444,6 @@ void MacroAssembler::freeListAllocate(Register result, Register temp,
   }
 }
 
-void MacroAssembler::callFreeStub(Register slots) {
-  // This register must match the one in JitRuntime::generateFreeStub.
-  const Register regSlots = CallTempReg0;
-
-  push(regSlots);
-  movePtr(slots, regSlots);
-  call(runtime()->jitRuntime()->freeStub());
-  pop(regSlots);
-}
-
 // Inlined equivalent of gc::AllocateObject, without failure case handling.
 void MacroAssembler::allocateObject(Register result, Register temp,
                                     gc::AllocKind allocKind,

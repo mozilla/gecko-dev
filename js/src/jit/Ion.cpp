@@ -218,10 +218,6 @@ bool JitRuntime::generateTrampolines(JSContext* cx) {
       generatePreBarrier(cx, masm, MIRType::WasmAnyRef);
   rangeRecorder.recordOffset("Trampoline: PreBarrier WasmAnyRef");
 
-  JitSpew(JitSpew_Codegen, "# Emitting free stub");
-  generateFreeStub(masm);
-  rangeRecorder.recordOffset("Trampoline: FreeStub");
-
   JitSpew(JitSpew_Codegen, "# Emitting lazy link stub");
   generateLazyLinkStub(masm);
   rangeRecorder.recordOffset("Trampoline: LazyLinkStub");

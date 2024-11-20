@@ -42,7 +42,6 @@
 #include "js/Conversions.h"  // JS::ToInt32
 // JSJitGetterOp, JSJitSetterOp, JSJitMethodOp
 #include "js/experimental/JitInfo.h"
-#include "js/Utility.h"  // js_free
 
 #include "proxy/Proxy.h"  // js::ProxyGetProperty
 
@@ -114,7 +113,6 @@ namespace jit {
   _(js::EmulatesUndefined)                                            \
   _(js::EmulatesUndefinedCheckFuse)                                   \
   _(js::ExecuteRegExpAtomRaw)                                         \
-  _(js_free)                                                          \
   _(js::hypot3)                                                       \
   _(js::hypot4)                                                       \
   _(js::Interpret)                                                    \
