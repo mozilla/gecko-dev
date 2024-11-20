@@ -1928,6 +1928,8 @@ async function renderMediaCtx(rndr) {
     "media.navigator.video.use_transport_cc",
     "media.navigator.audio.use_fec",
     "media.navigator.video.red_ulpfec_enabled",
+    "media.webrtc.codec.video.av1.enabled",
+    "media.webrtc.codec.video.av1.experimental_preferred",
   ];
 
   const confList = new ConfigurationList(prefs);
@@ -1935,13 +1937,24 @@ async function renderMediaCtx(rndr) {
     `hasH264Hardware: ${ctx.hasH264Hardware}`
   );
   hasH264Hardware.dataset.value = ctx.hasH264Hardware;
+  const hasAv1 = rndr.text_p(`hasAv1: ${ctx.hasAv1}`);
+  hasAv1.dataset.value = ctx.hasAv1;
   const renderFn = async () =>
-    rndr.elems_div({}, [hasH264Hardware, rndr.elem_hr(), confList.view()]);
+    rndr.elems_div({}, [
+      hasH264Hardware,
+      hasAv1,
+      rndr.elem_hr(),
+      confList.view(),
+    ]);
   const updateFn = async () => {
     const newCtx = WGI.getMediaContext();
     if (hasH264Hardware.dataset.value != newCtx.hasH264Hardware) {
       hasH264Hardware.dataset.value = newCtx.hasH264Hardware;
       hasH264Hardware.textContent = `hasH264Hardware: ${newCtx.hasH264Hardware}`;
+    }
+    if (hasAv1.dataset.value != newCtx.hasAv1) {
+      hasAv1.dataset.value = newCtx.hasAv1;
+      hasAv1.textContent = `hasAv1: ${newCtx.hasAv1}`;
     }
     confList.update();
   };
