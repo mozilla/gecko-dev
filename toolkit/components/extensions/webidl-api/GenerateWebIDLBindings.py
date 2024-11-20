@@ -79,6 +79,10 @@ WEBEXT_SCHEMADIRS_MAPPING = glbl["WEBEXT_SCHEMADIRS_MAPPING"]
 # android builds.
 WEBEXT_ANDROID_EXCLUDED = glbl["WEBEXT_ANDROID_EXCLUDED"]
 
+# List of schema files that should be ignored and not loaded. Paths are relative
+# to the root of the topsrcdir and use / separators.
+WEBEXT_IGNORED_SCHEMA_FILES = glbl["WEBEXT_IGNORED_SCHEMA_FILES"]
+
 # Define a custom jsonschema validation class
 WebExtAPIValidator = jsonschema.validators.extend(
     jsonschema.validators.Draft4Validator,
@@ -1403,6 +1407,11 @@ class Schemas:
             if file_name.endswith(".json"):
                 full_path = os.path.join(schema_dir_path, file_name)
                 rel_path = os.path.relpath(full_path, buildconfig.topsrcdir)
+
+                normalized_rel_path = mozpath.normsep(rel_path)
+                if normalized_rel_path in WEBEXT_IGNORED_SCHEMA_FILES:
+                    logging.debug("Ignoring schema file %s", rel_path)
+                    continue
 
                 logging.debug("Loading schema file %s", rel_path)
 
