@@ -9,6 +9,8 @@ import android.content.res.Configuration
 import android.util.AttributeSet
 import android.view.LayoutInflater
 import android.view.View
+import android.view.accessibility.AccessibilityNodeInfo
+import android.widget.Button
 import android.widget.RelativeLayout
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -68,6 +70,13 @@ fun NewTabButton(
                 }
 
                 contentDescription = context.getString(R.string.library_new_tab)
+
+                accessibilityDelegate = object : View.AccessibilityDelegate() {
+                    override fun onInitializeAccessibilityNodeInfo(host: View, info: AccessibilityNodeInfo) {
+                        super.onInitializeAccessibilityNodeInfo(host, info)
+                        info.className = Button::class.java.name
+                    }
+                }
 
                 setBackgroundResource(R.drawable.mozac_material_ripple_minimum_interaction_size)
             }
