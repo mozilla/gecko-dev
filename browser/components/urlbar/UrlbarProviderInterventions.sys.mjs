@@ -16,6 +16,8 @@ ChromeUtils.defineESModuleGetters(lazy, {
   PrivateBrowsingUtils: "resource://gre/modules/PrivateBrowsingUtils.sys.mjs",
   ResetProfile: "resource://gre/modules/ResetProfile.sys.mjs",
   Sanitizer: "resource:///modules/Sanitizer.sys.mjs",
+  UrlbarProviderGlobalActions:
+    "resource:///modules/UrlbarProviderGlobalActions.sys.mjs",
   UrlbarResult: "resource:///modules/UrlbarResult.sys.mjs",
   UrlbarTokenizer: "resource:///modules/UrlbarTokenizer.sys.mjs",
 });
@@ -500,7 +502,8 @@ class ProviderInterventions extends UrlbarProvider {
         queryContext.searchString
       ) ||
       !EN_LOCALE_MATCH.test(Services.locale.appLocaleAsBCP47) ||
-      !Services.policies.isAllowed("urlbarinterventions")
+      !Services.policies.isAllowed("urlbarinterventions") ||
+      lazy.UrlbarProviderGlobalActions.isActive(queryContext)
     ) {
       return false;
     }
