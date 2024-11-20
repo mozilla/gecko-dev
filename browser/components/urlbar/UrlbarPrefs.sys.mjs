@@ -158,6 +158,9 @@ const PREF_URLBAR_DEFAULTS = new Map([
   // future.
   ["groupLabels.enabled", true],
 
+  // Set default intent threshold value of 0.5
+  ["intentThreshold", [0.5, "float"]],
+
   // Whether the results panel should be kept open during IME composition.
   ["keepPanelOpenDuringImeComposition", false],
 

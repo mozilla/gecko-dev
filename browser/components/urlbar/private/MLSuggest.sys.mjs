@@ -65,7 +65,17 @@ class _MLSuggest {
    *   The suggestion result including intent, location, and subject, or null if
    *   an error occurs.
    *   {string} intent
-   *     The predicted intent label of the query.
+   *     The predicted intent label of the query. Possible values include:
+   *       - 'information_intent': For queries seeking general information.
+   *       - 'yelp_intent': For queries related to local businesses or services.
+   *       - 'navigation_intent': For queries with navigation-related actions.
+   *       - 'travel_intent': For queries showing travel-related interests.
+   *       - 'purchase_intent': For queries with purchase or shopping intent.
+   *       - 'weather_intent': For queries asking about weather or forecasts.
+   *       - 'translation_intent': For queries seeking translations.
+   *       - 'unknown': When the intent cannot be classified with confidence.
+   *       - '' (empty string): Returned when model probabilities for all intents
+   *         are below the intent threshold.
    *   - {object|null} location: The detected location from the query, which is
    *     an object with `city` and `state` fields:
    *     - {string|null} city: The detected city, or `null` if no city is found.
@@ -96,8 +106,13 @@ class _MLSuggest {
       lazy.UrlbarPrefs.get("nerThreshold")
     );
 
+    const intentLabel = await this.#applyIntentThreshold(
+      intentRes,
+      lazy.UrlbarPrefs.get("intentThreshold")
+    );
+
     return {
-      intent: intentRes[0].label,
+      intent: intentLabel,
       location: locationResVal,
       subject: this.#findSubjectFromQuery(query, locationResVal),
       metrics: { intent: intentRes.metrics, ner: nerResult.metrics },
@@ -188,6 +203,26 @@ class _MLSuggest {
       this.#initializeModelEngine(this.NER_OPTIONS);
       return null;
     }
+  }
+
+  /**
+   * Applies a confidence threshold to determine the intent label.
+   *
+   * If the highest-scoring intent in the result exceeds the threshold, its label
+   * is returned; otherwise, the label defaults to 'unknown'.
+   *
+   * @param {object[]} intentResult
+   *   The result of the intent classification model, where each item includes
+   *   a `label` and `score`.
+   * @param {number} intentThreshold
+   *   The confidence threshold for accepting the intent label.
+   * @returns {string}
+   *   The determined intent label or 'unknown' if the threshold is not met.
+   */
+  async #applyIntentThreshold(intentResult, intentThreshold) {
+    return intentResult[0]?.score > intentThreshold
+      ? intentResult[0].label
+      : "";
   }
 
   /**

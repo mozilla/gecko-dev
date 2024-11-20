@@ -140,11 +140,16 @@ let nerResultsMap = {
 
 add_setup(async function () {
   await SpecialPowers.pushPrefEnv({
-    set: [["browser.urlbar.nerThreshold", 0.5]],
+    set: [
+      ["browser.urlbar.nerThreshold", 0.5],
+      ["browser.urlbar.intentThreshold", 0.5],
+    ],
   });
   // Stub these out so we don't end up invoking engine calls for now
   // until end-to-end engine calls work
-  sinon.stub(MLSuggest, "_findIntent").returns("yelp_intent");
+  sinon
+    .stub(MLSuggest, "_findIntent")
+    .returns({ label: "yelp_intent", score: 0.9 });
   sinon.stub(MLSuggest, "_findNER").callsFake(query => {
     return nerResultsMap[query] || [];
   });
@@ -286,6 +291,7 @@ class MLEngineThatFails {
     return [
       {
         label: "yelp_intent",
+        score: 0.9,
       },
     ];
   }
@@ -315,6 +321,43 @@ add_task(async function test_MLSuggest_restart_after_failure() {
   Assert.ok(suggestion2, "Suggestion should be good");
   const expected = { intent: "yelp_intent" };
   Assert.deepEqual(suggestion2.intent, expected.intent);
+
+  await MLSuggest.shutdown();
+  await EngineProcess.destroyMLEngine();
+  await cleanup();
+  sinon.restore();
+});
+
+/**
+ * For Mocking MLEngine with low score
+ */
+class MLEngineWithLowScore {
+  // prefix with _query avoids lint error
+  async run(_query) {
+    return [
+      {
+        label: "yelp_intent",
+        score: 0.3,
+      },
+    ];
+  }
+}
+
+add_task(async function test_MLSuggest_low_intent_threshold() {
+  // Restore any previous stubs
+  sinon.restore();
+
+  sinon.stub(MLSuggest, "createEngine").callsFake(() => {
+    return new MLEngineWithLowScore();
+  });
+  const { cleanup } = await setup();
+
+  await MLSuggest.initialize();
+
+  let suggestion = await MLSuggest.makeSuggestions("no yelp");
+  Assert.ok(suggestion, "Suggestion should be good");
+  const expected = { intent: "" };
+  Assert.deepEqual(suggestion.intent, expected.intent);
 
   await MLSuggest.shutdown();
   await EngineProcess.destroyMLEngine();

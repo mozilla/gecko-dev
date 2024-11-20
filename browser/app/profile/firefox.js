@@ -402,6 +402,9 @@ pref("browser.urlbar.autoFill.adaptiveHistory.enabled", false);
 // autofill.
 pref("browser.urlbar.autoFill.adaptiveHistory.minCharsThreshold", 0);
 
+// Set default suggest intent threshold value of 0.5
+pref("browser.urlbar.intentThreshold", "0.5");
+
 // Set default NER threshold value of 0.5
 pref("browser.urlbar.nerThreshold", "0.5");
 
