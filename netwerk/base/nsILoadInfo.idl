@@ -788,6 +788,12 @@ interface nsILoadInfo : nsISupports
   readonly attribute nsContentPolicyType internalContentPolicyType;
 
   /**
+   * Returns the internalContentPolicyType converted to a destination
+   * string matching the fetch specification.
+   */
+  readonly attribute ACString fetchDestination;
+
+  /**
    * Returns true if document or any of the documents ancestors
    * up to the toplevel document make use of the CSP directive
    * 'block-all-mixed-content'.

@@ -415,7 +415,6 @@ class InternalRequest final : public AtomicSafeRefCounted<InternalRequest> {
   // Does not copy mBodyStream.  Use fallible Clone() for complete copy.
   InternalRequest(const InternalRequest& aOther, ConstructorGuard);
 
- private:
   // Map the content policy type to the associated fetch destination, as defined
   // by the spec at https://fetch.spec.whatwg.org/#concept-request-destination.
   // Note that while the HTML spec for the "Link" element and its "as" attribute
@@ -424,6 +423,7 @@ class InternalRequest final : public AtomicSafeRefCounted<InternalRequest> {
   static RequestDestination MapContentPolicyTypeToRequestDestination(
       nsContentPolicyType aContentPolicyType);
 
+ private:
   static bool IsNavigationContentPolicy(nsContentPolicyType aContentPolicyType);
 
   static bool IsWorkerContentPolicy(nsContentPolicyType aContentPolicyType);
