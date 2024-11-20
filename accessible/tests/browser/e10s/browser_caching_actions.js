@@ -24,6 +24,7 @@ const gActionDescrMap = {
 };
 
 async function testActions(browser, docAcc, id, expectedActions, domEvents) {
+  info(`Testing element ${id}`);
   const acc = findAccessibleChildByID(docAcc, id);
   is(acc.actionCount, expectedActions.length, "Correct action count");
 
@@ -54,7 +55,6 @@ async function testActions(browser, docAcc, id, expectedActions, domEvents) {
           const listener = e => {
             if (e.target.id == _id) {
               content.removeEventListener(evtName, listener);
-              content.evtPromise = null;
               resolve(42);
             }
           };
@@ -68,6 +68,7 @@ async function testActions(browser, docAcc, id, expectedActions, domEvents) {
 
   let eventFired = await invokeContentTask(browser, [], async () => {
     await content.evtPromise;
+    content.evtPromise = null;
     return true;
   });
 
