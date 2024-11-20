@@ -231,10 +231,8 @@ class MOZ_STACK_CLASS OrderedHashTableImpl {
   void setRanges(Range* range) {
     obj->setReservedSlot(Slots::RangesSlot, PrivateValue(range));
   }
-  Range** getRangesPtr() const {
-    uintptr_t addr =
-        uintptr_t(obj) + NativeObject::getFixedSlotOffset(Slots::RangesSlot);
-    return reinterpret_cast<Range**>(addr);
+  Range** addressOfRanges() const {
+    return obj->addressOfFixedSlotPrivatePtr<Range>(Slots::RangesSlot);
   }
 
   // List of all live Ranges on this table in the GC nursery. Populated when
@@ -247,10 +245,8 @@ class MOZ_STACK_CLASS OrderedHashTableImpl {
   void setNurseryRanges(Range* range) {
     obj->setReservedSlot(Slots::NurseryRangesSlot, PrivateValue(range));
   }
-  Range** getNurseryRangesPtr() const {
-    uintptr_t addr = uintptr_t(obj) +
-                     NativeObject::getFixedSlotOffset(Slots::NurseryRangesSlot);
-    return reinterpret_cast<Range**>(addr);
+  Range** addressOfNurseryRanges() const {
+    return obj->addressOfFixedSlotPrivatePtr<Range>(Slots::NurseryRangesSlot);
   }
 
   // Scrambler to not reveal pointer hash codes.
@@ -668,8 +664,8 @@ class MOZ_STACK_CLASS OrderedHashTableImpl {
     Range(OrderedHashTableObject* obj, const Range& other, bool inNursery)
         : i(other.i),
           count(other.count),
-          prevp(inNursery ? OrderedHashTableImpl(obj).getNurseryRangesPtr()
-                          : OrderedHashTableImpl(obj).getRangesPtr()),
+          prevp(inNursery ? OrderedHashTableImpl(obj).addressOfNurseryRanges()
+                          : OrderedHashTableImpl(obj).addressOfRanges()),
           next(*prevp) {
       *prevp = this;
       if (next) {
@@ -857,7 +853,7 @@ class MOZ_STACK_CLASS OrderedHashTableImpl {
    * large enough to hold a Range object.
    */
   Range* createRange(void* buffer, bool inNursery) const {
-    Range** listp = inNursery ? getNurseryRangesPtr() : getRangesPtr();
+    Range** listp = inNursery ? addressOfNurseryRanges() : addressOfRanges();
     new (buffer) Range(obj, listp);
     return static_cast<Range*>(buffer);
   }
@@ -871,13 +867,13 @@ class MOZ_STACK_CLASS OrderedHashTableImpl {
 
   void updateRangesAfterMove(OrderedHashTableObject* old) {
     if (Range* range = getRanges()) {
-      MOZ_ASSERT(range->prevp == OrderedHashTableImpl(old).getRangesPtr());
-      range->prevp = getRangesPtr();
+      MOZ_ASSERT(range->prevp == OrderedHashTableImpl(old).addressOfRanges());
+      range->prevp = addressOfRanges();
     }
     if (Range* range = getNurseryRanges()) {
       MOZ_ASSERT(range->prevp ==
-                 OrderedHashTableImpl(old).getNurseryRangesPtr());
-      range->prevp = getNurseryRangesPtr();
+                 OrderedHashTableImpl(old).addressOfNurseryRanges());
+      range->prevp = addressOfNurseryRanges();
     }
   }
 
