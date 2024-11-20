@@ -485,8 +485,7 @@ class HistoryFragment : LibraryPageFragment<History>(), UserInteractionHandler, 
     ) : DialogFragment() {
         override fun onCreateDialog(savedInstanceState: Bundle?): Dialog =
             AlertDialog.Builder(requireContext()).apply {
-                val layout = LayoutInflater.from(context)
-                    .inflate(R.layout.delete_history_time_range_dialog, null)
+                val layout = getLayoutInflater().inflate(R.layout.delete_history_time_range_dialog, null)
                 val radioGroup = layout.findViewById<RadioGroup>(R.id.radio_group)
                 radioGroup.check(R.id.last_hour_button)
                 setView(layout)
