@@ -50,7 +50,7 @@
       </html:div>
       <toolbarseparator class="tab-group-edit-mode-only" />
       <html:div class="tab-group-edit-mode-only panel-body tab-group-delete">
-        <toolbarbutton id="tabGroupEditor_deleteGroup" class="subviewbutton" data-l10n-id="tab-group-editor-action-delete"></toolbarbutton>
+        <toolbarbutton disabled="true" id="tabGroupEditor_deleteGroup" class="subviewbutton" data-l10n-id="tab-group-editor-action-delete"></toolbarbutton>
       </html:div>
     </panel>
        `;
@@ -122,12 +122,6 @@
         .getElementById("tabGroupEditor_ungroupTabs")
         .addEventListener("command", () => {
           this.#handleUngroup();
-        });
-
-      document
-        .getElementById("tabGroupEditor_deleteGroup")
-        .addEventListener("command", () => {
-          this.#handleDelete();
         });
 
       this.panel.addEventListener("popupshown", this);
@@ -275,10 +269,6 @@
 
     #handleUngroup() {
       this.activeGroup?.ungroupTabs();
-    }
-
-    #handleDelete() {
-      gBrowser.removeTabGroup(this.activeGroup);
     }
   }
 

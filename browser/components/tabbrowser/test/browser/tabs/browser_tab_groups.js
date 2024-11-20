@@ -1513,13 +1513,7 @@ add_task(async function test_tabGroupCreatePanel() {
   Assert.equal(tabgroupPanel.state, "closed", "Tabgroup edit panel is closed");
   Assert.equal(group.label, "Shopping");
   Assert.equal(group.color, "red");
-
-  await rightClickGroupLabel();
-  info("Removing group via delete button");
-  panelHidden = BrowserTestUtils.waitForPopupEvent(tabgroupPanel, "hidden");
-  let removePromise = BrowserTestUtils.waitForEvent(group, "TabGroupRemoved");
-  tabgroupPanel.querySelector("#tabGroupEditor_deleteGroup").click();
-  await Promise.all([panelHidden, removePromise]);
+  await removeTabGroup(group);
 });
 
 async function createTabGroupAndOpenEditPanel(tabs = []) {

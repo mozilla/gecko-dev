@@ -926,11 +926,12 @@ tab-group {
   toolbarbutton {
     margin: 0;
   }
+  .tab-group-delete label {
+    color: var(--text-color-error);
+  }
 }
 
-#tabGroupEditor_deleteGroup {
-  color: var(--text-color-error);
-}
+
 
 /* Tab Overflow */
 
