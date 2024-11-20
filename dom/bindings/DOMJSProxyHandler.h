@@ -145,6 +145,7 @@ class DOMProxyHandler : public BaseDOMProxyHandler {
 // Class used by shadowing handlers (the ones that have [OverrideBuiltins].
 // This handles tracing the expando in JS::ExpandoAndGeneration.
 class ShadowingDOMProxyHandler : public DOMProxyHandler {
+ public:
   virtual void trace(JSTracer* trc, JSObject* proxy) const override;
 };
 
