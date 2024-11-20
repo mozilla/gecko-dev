@@ -942,7 +942,7 @@ class nsTSubstring : public mozilla::detail::nsTStringRepr<T> {
    *
    * Append()
    * AppendASCII()
-   * AppendLiteral() (except if the string is empty: bug 1487606)
+   * AppendLiteral()
    * AppendPrintf()
    * AppendInt()
    * AppendFloat()
