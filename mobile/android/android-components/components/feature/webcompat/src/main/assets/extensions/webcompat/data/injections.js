@@ -326,6 +326,7 @@ const AVAILABLE_INJECTIONS = [
     bug: "1774005",
     contentScripts: {
       matches: [
+        "*://*.ambrahealth.com/*", // Bug 1930429
         "*://*.webex.com/*", // Bug 1788934
         "*://ifcinema.institutfrancais.com/*", // Bug 1806423
         "*://islamionline.islamicbank.ps/*", // Bug 1821439
