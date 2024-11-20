@@ -200,6 +200,7 @@ const PROP_JSON_FIELDS = [
   "requestedPermissions",
   "icons",
   "iconURL",
+  "blocklistAttentionDismissed",
   "blocklistState",
   "blocklistURL",
   "startupData",
@@ -321,7 +322,8 @@ export class AddonInternal {
     this.appDisabled = false;
     this.softDisabled = false;
     this.embedderDisabled = false;
-    this.blocklistState = Ci.nsIBlocklistService.STATE_NOT_BLOCKED;
+    this.blocklistAttentionDismissed = false;
+    this.blocklistState = nsIBlocklistService.STATE_NOT_BLOCKED;
     this.blocklistURL = null;
     this.sourceURI = null;
     this.releaseNotesURI = null;
@@ -672,6 +674,15 @@ export class AddonInternal {
     return app;
   }
 
+  updateBlocklistAttentionDismissed(val) {
+    if (!this.inDatabase || this.blocklistAttentionDismissed === val) {
+      return;
+    }
+    this.blocklistAttentionDismissed = val;
+    XPIDatabase.maybeUpdateBlocklistAttentionAddonIdsSet(this);
+    XPIDatabase.saveChanges();
+  }
+
   async findBlocklistEntry() {
     return lazy.Blocklist.getAddonBlocklistEntry(this.wrapper);
   }
@@ -687,6 +698,12 @@ export class AddonInternal {
 
     let entry = await this.findBlocklistEntry();
     let newState = entry ? entry.state : Services.blocklist.STATE_NOT_BLOCKED;
+
+    // Clear the blocklistAttentionDismissed flag if the blocklist state
+    // is changing.
+    if (this.blocklistState !== newState) {
+      this.updateBlocklistAttentionDismissed(false);
+    }
 
     this.blocklistState = newState;
     this.blocklistURL = entry && entry.url;
@@ -1266,6 +1283,16 @@ AddonWrapper = class {
     return null;
   }
 
+  get blocklistAttentionDismissed() {
+    let addon = addonFor(this);
+    return addon.blocklistAttentionDismissed;
+  }
+
+  set blocklistAttentionDismissed(val) {
+    let addon = addonFor(this);
+    addon.updateBlocklistAttentionDismissed(val);
+  }
+
   updateBlocklistState(applySoftBlock = true) {
     return addonFor(this).updateBlocklistState({ applySoftBlock });
   }
@@ -1814,6 +1841,13 @@ export const XPIDatabase = {
   // supported.
   orphanedAddons: [],
 
+  // Set of the add-on ids for all the add-ons of type extension that are appDisabled or softDisabled
+  // through the blocklist, excluding the ones that the user has already explicitly dismissed before
+  // (used for the blocklist attention dot and messagebar to be shown in the extensions button/panel).
+  //
+  // Set<addonId: string>
+  blocklistAttentionAddonIdsSet: new Set(),
+
   _saveTask: null,
 
   // Saved error object if we fail to read an existing database
@@ -1991,6 +2025,8 @@ export const XPIDatabase = {
 
       let forEach = this.syncLoadingDB ? arrayForEach : idleForEach;
 
+      this.clearBlocklistAttentionAddonIdsSet();
+
       // If we got here, we probably have good data
       // Make AddonInternal instances from the loaded data and save them
       let addonDB = new Map();
@@ -2014,6 +2050,7 @@ export const XPIDatabase = {
         let newAddon = new AddonInternal(loadedAddon);
         if (loadedAddon.location) {
           addonDB.set(newAddon._key, newAddon);
+          this.maybeUpdateBlocklistAttentionAddonIdsSet(newAddon);
         } else {
           this.orphanedAddons.push(newAddon);
         }
@@ -2476,6 +2513,95 @@ export const XPIDatabase = {
     );
   },
 
+  shouldShowBlocklistAttention() {
+    return !!this.blocklistAttentionAddonIdsSet.size;
+  },
+
+  shouldShowBlocklistAttentionForAddon(addonInternal) {
+    return (
+      !addonInternal.hidden &&
+      !addonInternal.blocklistAttentionDismissed &&
+      (addonInternal.appDisabled || addonInternal.softDisabled) &&
+      addonInternal.blocklistState > nsIBlocklistService.STATE_NOT_BLOCKED &&
+      // We currently only draw the attention of the users when new add-ons of
+      // type "extension" are being disabled by the blocklist.
+      addonInternal.type === "extension"
+    );
+  },
+
+  clearBlocklistAttentionAddonIdsSet() {
+    this.blocklistAttentionAddonIdsSet.clear();
+  },
+
+  maybeUpdateBlocklistAttentionAddonIdsSet(addonInternal) {
+    const blocklistAttentionSet = this.blocklistAttentionAddonIdsSet;
+    if (!this.shouldShowBlocklistAttentionForAddon(addonInternal)) {
+      blocklistAttentionSet.delete(addonInternal.id);
+      Services.obs.notifyObservers(
+        null,
+        "xpi-provider:blocklist-attention-updated"
+      );
+      return;
+    }
+
+    blocklistAttentionSet.add(addonInternal.id);
+    Services.obs.notifyObservers(
+      null,
+      "xpi-provider:blocklist-attention-updated"
+    );
+  },
+
+  removeFromBlocklistAttentionAddonIdsSet(addonInternal) {
+    this.blocklistAttentionAddonIdsSet.delete(addonInternal.id);
+    Services.obs.notifyObservers(
+      null,
+      "xpi-provider:blocklist-attention-updated"
+    );
+  },
+
+  async getBlocklistAttentionInfo() {
+    const attentionAddonIdsSet = this.blocklistAttentionAddonIdsSet;
+    const addonFilter = addonInternal =>
+      attentionAddonIdsSet.has(addonInternal.id) &&
+      this.shouldShowBlocklistAttentionForAddon(addonInternal);
+    let addons = attentionAddonIdsSet.size
+      ? await this.getAddonList(addonFilter)
+      : [];
+    // Filter the add-ons list once more synchronously in case any change may have happened
+    // while we were retrieving the add-ons list asynchronously and we may not need to include
+    // some in the blocklist attention message anymore (e.g. because they have been already
+    // dismissed, or changed blocklistState or soft-blocked addon being already re-enabled).
+    addons = addons.filter(addonFilter);
+
+    return {
+      get shouldShow() {
+        return addons.some(addonFilter);
+      },
+      get hasSoftBlocked() {
+        return addons.some(
+          addonInternal =>
+            addonInternal.blocklistState ===
+            nsIBlocklistService.STATE_SOFTBLOCKED
+        );
+      },
+      get hasHardBlocked() {
+        return addons.some(
+          addonInternal =>
+            addonInternal.blocklistState === nsIBlocklistService.STATE_BLOCKED
+        );
+      },
+      get extensionsCount() {
+        return addons.length;
+      },
+      get addons() {
+        return addons.map(addonInternal => addonInternal.wrapper);
+      },
+      dismiss() {
+        addons.forEach(addon => addon.updateBlocklistAttentionDismissed(true));
+      },
+    };
+  },
+
   /**
    * Synchronously gets all add-ons in the database.
    * This is only called from the preference observer for the default
@@ -2731,6 +2857,7 @@ export const XPIDatabase = {
   removeAddonMetadata(aAddon) {
     this.addonDB.delete(aAddon._key);
     this.saveChanges();
+    this.removeFromBlocklistAttentionAddonIdsSet(aAddon);
   },
 
   updateXPIStates(addon) {
@@ -3009,6 +3136,7 @@ export const XPIDatabase = {
       }
 
       this.updateAddonActive(aAddon, !isDisabled);
+      this.maybeUpdateBlocklistAttentionAddonIdsSet(aAddon);
 
       let bootstrap = XPIExports.XPIInternal.BootstrapScope.get(aAddon);
       if (isDisabled) {

@@ -1398,6 +1398,22 @@ export var AddonTestUtils = {
     });
   },
 
+  promiseManagerEvent(event, checkFn) {
+    return new Promise(resolve => {
+      let listener = {
+        [event](...args) {
+          if (typeof checkFn == "function" && !checkFn(...args)) {
+            return;
+          }
+          AddonManager.removeManagerListener(listener);
+          resolve(args);
+        },
+      };
+
+      AddonManager.addManagerListener(listener);
+    });
+  },
+
   /**
    * A helper method to install AddonInstall and wait for completion.
    *

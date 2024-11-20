@@ -25,6 +25,8 @@ const MOZ_COMPATIBILITY_NIGHTLY = ![
 ].includes(AppConstants.MOZ_UPDATE_CHANNEL);
 
 const INTL_LOCALES_CHANGED = "intl:app-locales-changed";
+const XPIPROVIDER_BLOCKLIST_ATTENTION_UPDATED =
+  "xpi-provider:blocklist-attention-updated";
 
 const PREF_BLOCKLIST_PINGCOUNTVERSION = "extensions.blocklist.pingCountVersion";
 const PREF_EM_UPDATE_ENABLED = "extensions.update.enabled";
@@ -694,6 +696,9 @@ var AddonManagerInternal = {
       Services.obs.addObserver(this, AMBrowserExtensionsImport.TOPIC_COMPLETE);
       Services.obs.addObserver(this, AMBrowserExtensionsImport.TOPIC_PENDING);
 
+      // Watch for blocklist attention updates.
+      Services.obs.addObserver(this, XPIPROVIDER_BLOCKLIST_ATTENTION_UPDATED);
+
       // Ensure all default providers have had a chance to register themselves.
       const { XPIExports } = ChromeUtils.importESModule(
         "resource://gre/modules/addons/XPIExports.sys.mjs"
@@ -995,6 +1000,7 @@ var AddonManagerInternal = {
     );
     Services.obs.removeObserver(this, AMBrowserExtensionsImport.TOPIC_COMPLETE);
     Services.obs.removeObserver(this, AMBrowserExtensionsImport.TOPIC_PENDING);
+    Services.obs.removeObserver(this, XPIPROVIDER_BLOCKLIST_ATTENTION_UPDATED);
 
     AMRemoteSettings.shutdown();
 
@@ -1064,6 +1070,10 @@ var AddonManagerInternal = {
       case AMBrowserExtensionsImport.TOPIC_COMPLETE:
       case AMBrowserExtensionsImport.TOPIC_PENDING:
         this.callManagerListeners("onBrowserExtensionsImportChanged");
+        return;
+
+      case XPIPROVIDER_BLOCKLIST_ATTENTION_UPDATED:
+        this.callManagerListeners("onBlocklistAttentionUpdated");
         return;
     }
 
@@ -3049,6 +3059,30 @@ var AddonManagerInternal = {
     return this.getAddonsByTypes(null);
   },
 
+  shouldShowBlocklistAttention() {
+    if (!gStarted) {
+      throw Components.Exception(
+        "AddonManager is not initialized",
+        Cr.NS_ERROR_NOT_INITIALIZED
+      );
+    }
+
+    return this._getProviderByName(
+      "XPIProvider"
+    ).shouldShowBlocklistAttention();
+  },
+
+  getBlocklistAttentionInfo() {
+    if (!gStarted) {
+      throw Components.Exception(
+        "AddonManager is not initialized",
+        Cr.NS_ERROR_NOT_INITIALIZED
+      );
+    }
+
+    return this._getProviderByName("XPIProvider").getBlocklistAttentionInfo();
+  },
+
   /**
    * Adds a new AddonManagerListener if the listener is not already registered.
    *
@@ -4298,6 +4332,14 @@ export var AddonManager = {
 
   getAllInstalls() {
     return AddonManagerInternal.getAllInstalls();
+  },
+
+  shouldShowBlocklistAttention() {
+    return AddonManagerInternal.shouldShowBlocklistAttention();
+  },
+
+  getBlocklistAttentionInfo() {
+    return AddonManagerInternal.getBlocklistAttentionInfo();
   },
 
   isInstallEnabled(aType) {

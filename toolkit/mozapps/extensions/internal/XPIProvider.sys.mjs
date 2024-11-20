@@ -119,7 +119,7 @@ const XPI_PERMISSION = "install";
 
 const XPI_SIGNATURE_CHECK_PERIOD = 24 * 60 * 60;
 
-const DB_SCHEMA = 36;
+const DB_SCHEMA = 37;
 
 XPCOMUtils.defineLazyPreferenceGetter(
   lazy,
@@ -3273,6 +3273,14 @@ export var XPIProvider = {
     }
 
     return { addons: result, fullData: false };
+  },
+
+  shouldShowBlocklistAttention() {
+    return XPIExports.XPIDatabase.shouldShowBlocklistAttention();
+  },
+
+  getBlocklistAttentionInfo() {
+    return XPIExports.XPIDatabase.getBlocklistAttentionInfo();
   },
 
   /*
