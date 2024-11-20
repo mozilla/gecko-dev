@@ -79,7 +79,7 @@ class ExtensionAPIRequest : public mozIExtensionAPIRequest {
       case APIRequestType::REMOVE_LISTENER:
         break;
       default:
-        MOZ_DIAGNOSTIC_ASSERT(false, "Unexpected APIRequestType");
+        MOZ_DIAGNOSTIC_CRASH("Unexpected APIRequestType");
     }
 
     return false;

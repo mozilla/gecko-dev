@@ -144,7 +144,7 @@ static FrameChildListID ChildListIDForOutOfFlow(nsFrameState aPlaceholderState,
   if (aPlaceholderState & PLACEHOLDER_FOR_ABSPOS) {
     return FrameChildListID::Absolute;
   }
-  MOZ_DIAGNOSTIC_ASSERT(false, "unknown list");
+  MOZ_DIAGNOSTIC_CRASH("unknown list");
   return FrameChildListID::Float;
 }
 

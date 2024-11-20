@@ -329,7 +329,7 @@ nsresult nsHttpHandler::Init() {
   // xpcshell tests doing this.
   if (MOZ_UNLIKELY(AppShutdown::IsInOrBeyond(ShutdownPhase::AppShutdown) &&
                    !PR_GetEnv("XPCSHELL_TEST_PROFILE_DIR"))) {
-    MOZ_DIAGNOSTIC_ASSERT(false, "Try to init HttpHandler after shutdown");
+    MOZ_DIAGNOSTIC_CRASH("Try to init HttpHandler after shutdown");
     return NS_ERROR_ILLEGAL_DURING_SHUTDOWN;
   }
 

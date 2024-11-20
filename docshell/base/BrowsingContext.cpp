@@ -1563,9 +1563,9 @@ JSObject* BrowsingContext::ReadStructuredClone(JSContext* aCx,
   // Note: Do this check after reading our ID data. Returning null will abort
   // the decode operation anyway, but we should at least be as safe as possible.
   if (NS_WARN_IF(!NS_IsMainThread())) {
-    MOZ_DIAGNOSTIC_ASSERT(false,
-                          "We shouldn't be trying to decode a BrowsingContext "
-                          "on a background thread.");
+    MOZ_DIAGNOSTIC_CRASH(
+        "We shouldn't be trying to decode a BrowsingContext "
+        "on a background thread.");
     return nullptr;
   }
 

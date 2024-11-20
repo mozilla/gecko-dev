@@ -1888,7 +1888,7 @@ ArrayBufferObject::createUninitializedBufferAndData(
     if (!data) {
       if (cx->brittleMode) {
         if (nbytes < INT32_MAX) {
-          MOZ_DIAGNOSTIC_ASSERT(false, "ArrayBuffer allocation OOM < 2GB - 1");
+          MOZ_DIAGNOSTIC_CRASH("ArrayBuffer allocation OOM < 2GB - 1");
         } else {
           MOZ_DIAGNOSTIC_ASSERT(
               false,

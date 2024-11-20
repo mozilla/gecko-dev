@@ -1031,9 +1031,9 @@ CompareNetwork::OnStreamComplete(nsIStreamLoader* aLoader,
 
     // Make non-release and debug builds to crash if this happens and fail
     // explicitly on release builds.
-    MOZ_DIAGNOSTIC_ASSERT(false,
-                          "ServiceWorker imported script redirected to an url "
-                          "with an unexpected scheme");
+    MOZ_DIAGNOSTIC_CRASH(
+        "ServiceWorker imported script redirected to an url "
+        "with an unexpected scheme");
     return NS_ERROR_UNEXPECTED;
   }
 

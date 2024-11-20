@@ -261,7 +261,7 @@ Result<Ok, LaunchError> LaunchApp(const std::wstring& cmdline,
   for (HANDLE h : options.handles_to_inherit) {
     if (SetHandleInformation(h, HANDLE_FLAG_INHERIT, HANDLE_FLAG_INHERIT) ==
         0) {
-      MOZ_DIAGNOSTIC_ASSERT(false, "SetHandleInformation failed");
+      MOZ_DIAGNOSTIC_CRASH("SetHandleInformation failed");
       return Err(
           LaunchError::FromWin32Error("SetHandleInformation", GetLastError()));
     }

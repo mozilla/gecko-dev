@@ -277,8 +277,7 @@ CanvasRenderThread::CreateWorkerTaskQueue() {
 /* static */ void CanvasRenderThread::Dispatch(
     already_AddRefed<nsIRunnable> aRunnable) {
   if (!sCanvasRenderThread) {
-    MOZ_DIAGNOSTIC_ASSERT(false,
-                          "Dispatching after CanvasRenderThread shutdown!");
+    MOZ_DIAGNOSTIC_CRASH("Dispatching after CanvasRenderThread shutdown!");
     return;
   }
   sCanvasRenderThread->mThread->Dispatch(std::move(aRunnable));

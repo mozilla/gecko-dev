@@ -1395,7 +1395,7 @@ void IPCFuzzController::SynchronizeOnMessageExecution(
       MOZ_FUZZING_NYX_PRINT(
           "ERROR: ======== END OF ITERATION (TIMEOUT) ========\n");
       if (!!getenv("MOZ_FUZZ_CRASH_ON_TIMEOUT")) {
-        MOZ_DIAGNOSTIC_ASSERT(false, "IPCFuzzController Timeout");
+        MOZ_DIAGNOSTIC_CRASH("IPCFuzzController Timeout");
       }
       Nyx::instance().release(
           IPCFuzzController::instance().getMessageStopCount());

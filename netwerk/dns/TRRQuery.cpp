@@ -233,7 +233,7 @@ AHostResolver::LookupStatus TRRQuery::CompleteLookup(
     mTRRRequestCounter--;
     pendingRequest = (mTRRRequestCounter != 0);
   } else {
-    MOZ_DIAGNOSTIC_ASSERT(false, "Request counter is messed up");
+    MOZ_DIAGNOSTIC_CRASH("Request counter is messed up");
   }
   if (pendingRequest) {  // There are other outstanding requests
     LOG(("CompleteLookup: waiting for all responses!\n"));

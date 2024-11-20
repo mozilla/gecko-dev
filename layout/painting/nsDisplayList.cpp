@@ -137,7 +137,7 @@ void AssertUniqueItem(nsDisplayItem* aItem) {
       if (i->IsPreProcessedItem() || i->IsPreProcessed()) {
         continue;
       }
-      MOZ_DIAGNOSTIC_ASSERT(false, "Duplicate display item!");
+      MOZ_DIAGNOSTIC_CRASH("Duplicate display item!");
     }
   }
 }

@@ -1238,13 +1238,13 @@ nsresult NetlinkService::Init(NetlinkServiceListener* aListener) {
 
   if (inet_pton(AF_INET, ROUTE_CHECK_IPV4, &mRouteCheckIPv4) != 1) {
     LOG(("Cannot parse address " ROUTE_CHECK_IPV4));
-    MOZ_DIAGNOSTIC_ASSERT(false, "Cannot parse address " ROUTE_CHECK_IPV4);
+    MOZ_DIAGNOSTIC_CRASH("Cannot parse address " ROUTE_CHECK_IPV4);
     return NS_ERROR_UNEXPECTED;
   }
 
   if (inet_pton(AF_INET6, ROUTE_CHECK_IPV6, &mRouteCheckIPv6) != 1) {
     LOG(("Cannot parse address " ROUTE_CHECK_IPV6));
-    MOZ_DIAGNOSTIC_ASSERT(false, "Cannot parse address " ROUTE_CHECK_IPV6);
+    MOZ_DIAGNOSTIC_CRASH("Cannot parse address " ROUTE_CHECK_IPV6);
     return NS_ERROR_UNEXPECTED;
   }
 

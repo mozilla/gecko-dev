@@ -108,7 +108,7 @@ void ContentCache::AssertIfInvalid() const {
           ? "Nothing"
           : nsPrintfCString("%u", mCompositionStart.value()).get());
   CrashReporter::AppendAppNotesToCrashReport(info);
-  MOZ_DIAGNOSTIC_ASSERT(false, "Invalid ContentCache data");
+  MOZ_DIAGNOSTIC_CRASH("Invalid ContentCache data");
 #endif  // #if MOZ_DIAGNOSTIC_ASSERT_ENABLED
 }
 

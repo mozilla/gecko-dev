@@ -538,7 +538,7 @@ bool Channel::ChannelImpl::ProcessOutgoingMessages() {
 
       if (msg->attached_handles_.Length() >
           IPC::Message::MAX_DESCRIPTORS_PER_MESSAGE) {
-        MOZ_DIAGNOSTIC_ASSERT(false, "Too many file descriptors!");
+        MOZ_DIAGNOSTIC_CRASH("Too many file descriptors!");
         CHROMIUM_LOG(FATAL) << "Too many file descriptors!";
         // This should not be reached.
         return false;
@@ -560,7 +560,7 @@ bool Channel::ChannelImpl::ProcessOutgoingMessages() {
     }
 
     if (partial_write_->iter_.Done()) {
-      MOZ_DIAGNOSTIC_ASSERT(false, "partial_write_->iter_ should not be done");
+      MOZ_DIAGNOSTIC_CRASH("partial_write_->iter_ should not be done");
       // report a send error to our caller, which will close the channel.
       return false;
     }

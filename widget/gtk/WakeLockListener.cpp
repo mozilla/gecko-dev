@@ -810,7 +810,7 @@ nsresult WakeLockTopic::ProcessNextRequest() {
         mState = WaitingToUninhibit;
         return SendUninhibit() ? NS_OK : NS_ERROR_FAILURE;
       default:
-        MOZ_DIAGNOSTIC_ASSERT(false, "Wrong state!");
+        MOZ_DIAGNOSTIC_CRASH("Wrong state!");
         return NS_ERROR_FAILURE;
     }
   }

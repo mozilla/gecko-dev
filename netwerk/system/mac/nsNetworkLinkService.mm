@@ -773,7 +773,7 @@ nsresult nsNetworkLinkService::Init(void) {
 
   if (inet_pton(AF_INET, ROUTE_CHECK_IPV4, &mRouteCheckIPv4) != 1) {
     LOG(("Cannot parse address " ROUTE_CHECK_IPV4));
-    MOZ_DIAGNOSTIC_ASSERT(false, "Cannot parse address " ROUTE_CHECK_IPV4);
+    MOZ_DIAGNOSTIC_CRASH("Cannot parse address " ROUTE_CHECK_IPV4);
     return NS_ERROR_UNEXPECTED;
   }
 

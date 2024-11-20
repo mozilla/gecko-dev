@@ -4807,8 +4807,7 @@ bool nsWindow::ProcessMessageInternal(UINT msg, WPARAM& wParam, LPARAM& lParam,
       } else if (lParam & (ENDSESSION_CLOSEAPP | ENDSESSION_CRITICAL)) {
         shutdownReason = AppShutdownReason::OSForceClose;
       } else {
-        MOZ_DIAGNOSTIC_ASSERT(false,
-                              "Received WM_ENDSESSION with unknown flags.");
+        MOZ_DIAGNOSTIC_CRASH("Received WM_ENDSESSION with unknown flags.");
         shutdownReason = AppShutdownReason::OSForceClose;
       }
 

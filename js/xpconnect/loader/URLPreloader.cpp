@@ -338,7 +338,7 @@ Result<Ok, nsresult> URLPreloader::ReadCache(
                               "Entry should be in pendingURLs");
         MOZ_DIAGNOSTIC_ASSERT(key.mPath.Length() > 0,
                               "Path should be non-empty");
-        MOZ_DIAGNOSTIC_ASSERT(false, "Entry should be new and not in any list");
+        MOZ_DIAGNOSTIC_CRASH("Entry should be new and not in any list");
 #endif
         return Err(NS_ERROR_UNEXPECTED);
       }

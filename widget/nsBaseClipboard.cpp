@@ -538,7 +538,7 @@ void nsBaseClipboard::MaybeRetryGetAvailableFlavors(
           return;
         }
 
-        MOZ_DIAGNOSTIC_ASSERT(false, "How can this happen?!?");
+        MOZ_DIAGNOSTIC_CRASH("How can this happen?!?");
         callback->OnError(NS_ERROR_FAILURE);
       });
 }

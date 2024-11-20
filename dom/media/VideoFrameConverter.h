@@ -335,9 +335,9 @@ class VideoFrameConverterImpl {
       rtc::scoped_refptr<webrtc::I420Buffer> buffer =
           mBufferPool.CreateI420Buffer(aFrame.mSize.width, aFrame.mSize.height);
       if (!buffer) {
-        MOZ_DIAGNOSTIC_ASSERT(false,
-                              "Buffers not leaving scope except for "
-                              "reconfig, should never leak");
+        MOZ_DIAGNOSTIC_CRASH(
+            "Buffers not leaving scope except for "
+            "reconfig, should never leak");
         LOG(LogLevel::Warning,
             "VideoFrameConverterImpl %p: Creating a buffer for a black video "
             "frame failed",

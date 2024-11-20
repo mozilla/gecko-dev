@@ -313,16 +313,14 @@ nsIGlobalObject::GetServiceWorkerContainer() {
 
 RefPtr<ServiceWorker> nsIGlobalObject::GetOrCreateServiceWorker(
     const ServiceWorkerDescriptor& aDescriptor) {
-  MOZ_DIAGNOSTIC_ASSERT(false,
-                        "this global should not have any service workers");
+  MOZ_DIAGNOSTIC_CRASH("this global should not have any service workers");
   return nullptr;
 }
 
 RefPtr<ServiceWorkerRegistration> nsIGlobalObject::GetServiceWorkerRegistration(
     const mozilla::dom::ServiceWorkerRegistrationDescriptor& aDescriptor)
     const {
-  MOZ_DIAGNOSTIC_ASSERT(false,
-                        "this global should not have any service workers");
+  MOZ_DIAGNOSTIC_CRASH("this global should not have any service workers");
   return nullptr;
 }
 

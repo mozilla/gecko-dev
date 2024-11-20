@@ -3452,7 +3452,7 @@ mozilla::ipc::IPCResult ContentChild::RecvCrossProcessRedirect(
   nsresult rv = mozilla::ipc::LoadInfoArgsToLoadInfo(
       aArgs.loadInfo(), NOT_REMOTE_TYPE, getter_AddRefs(loadInfo));
   if (NS_FAILED(rv)) {
-    MOZ_DIAGNOSTIC_ASSERT(false, "LoadInfoArgsToLoadInfo failed");
+    MOZ_DIAGNOSTIC_CRASH("LoadInfoArgsToLoadInfo failed");
     return IPC_OK();
   }
 
@@ -4224,7 +4224,7 @@ mozilla::ipc::IPCResult ContentChild::RecvReportFrameTimingData(
   nsresult rv = mozilla::ipc::LoadInfoArgsToLoadInfo(
       loadInfoArgs, NOT_REMOTE_TYPE, getter_AddRefs(loadInfo));
   if (NS_FAILED(rv)) {
-    MOZ_DIAGNOSTIC_ASSERT(false, "LoadInfoArgsToLoadInfo failed");
+    MOZ_DIAGNOSTIC_CRASH("LoadInfoArgsToLoadInfo failed");
     return IPC_OK();
   }
 

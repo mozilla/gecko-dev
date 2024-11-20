@@ -299,7 +299,7 @@ void HLSDecoder::UpdateCurrentPrincipal(nsIURI* aMediaUri) {
     // Principals are disjoint -- no access.
     mContentPrincipal = NullPrincipal::Create(OriginAttributes());
   } else {
-    MOZ_DIAGNOSTIC_ASSERT(false, "non-equal principals should be disjoint");
+    MOZ_DIAGNOSTIC_CRASH("non-equal principals should be disjoint");
     mContentPrincipal = nullptr;
   }
   MediaDecoder::NotifyPrincipalChanged();

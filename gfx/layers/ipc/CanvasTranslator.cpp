@@ -279,7 +279,7 @@ bool CanvasTranslator::AddBuffer(ipc::SharedMemory::Handle&& aBufferHandle,
     gfxCriticalNote << "CanvasTranslator::AddBuffer bad state "
                     << uint32_t(State(mHeader->readerState));
 #ifndef FUZZING_SNAPSHOT
-    MOZ_DIAGNOSTIC_ASSERT(false, "mHeader->readerState == State::Paused");
+    MOZ_DIAGNOSTIC_CRASH("mHeader->readerState == State::Paused");
 #endif
     Deactivate();
     return false;
@@ -343,7 +343,7 @@ bool CanvasTranslator::SetDataSurfaceBuffer(
     gfxCriticalNote << "CanvasTranslator::SetDataSurfaceBuffer bad state "
                     << uint32_t(State(mHeader->readerState));
 #ifndef FUZZING_SNAPSHOT
-    MOZ_DIAGNOSTIC_ASSERT(false, "mHeader->readerState == State::Paused");
+    MOZ_DIAGNOSTIC_CRASH("mHeader->readerState == State::Paused");
 #endif
     Deactivate();
     return false;
@@ -1152,7 +1152,7 @@ already_AddRefed<gfx::DrawTarget> CanvasTranslator::CreateDrawTarget(
     const gfx::IntSize& aSize, gfx::SurfaceFormat aFormat) {
   if (!aTextureOwnerId.IsValid()) {
 #ifndef FUZZING_SNAPSHOT
-    MOZ_DIAGNOSTIC_ASSERT(false, "No texture owner set");
+    MOZ_DIAGNOSTIC_CRASH("No texture owner set");
 #endif
     return nullptr;
   }
@@ -1191,7 +1191,7 @@ already_AddRefed<gfx::DrawTarget> CanvasTranslator::CreateDrawTarget(
     gfx::ReferencePtr aRefPtr, const gfx::IntSize& aSize,
     gfx::SurfaceFormat aFormat) {
 #ifndef FUZZING_SNAPSHOT
-  MOZ_DIAGNOSTIC_ASSERT(false, "Unexpected CreateDrawTarget call!");
+  MOZ_DIAGNOSTIC_CRASH("Unexpected CreateDrawTarget call!");
 #endif
   return nullptr;
 }

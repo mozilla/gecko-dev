@@ -653,7 +653,7 @@ void RespondWithHandler::ResolvedCallback(JSContext* aCx,
   if (NS_WARN_IF((response->Type() == ResponseType::Opaque ||
                   response->Type() == ResponseType::Cors) &&
                  ir->GetUnfilteredURL().IsEmpty())) {
-    MOZ_DIAGNOSTIC_ASSERT(false, "Cors or opaque Response without a URL");
+    MOZ_DIAGNOSTIC_CRASH("Cors or opaque Response without a URL");
     return;
   }
 

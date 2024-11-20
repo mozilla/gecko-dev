@@ -62,7 +62,7 @@ void CompositorManagerChild::InitSameProcess(uint32_t aNamespace,
       aProcessToken, aNamespace, /* aSameProcess */ true);
   child->SetOtherEndpointProcInfo(ipc::EndpointProcInfo::Current());
   if (NS_WARN_IF(!child->Open(parent, CompositorThread(), ipc::ChildSide))) {
-    MOZ_DIAGNOSTIC_ASSERT(false, "Failed to open same process protocol");
+    MOZ_DIAGNOSTIC_CRASH("Failed to open same process protocol");
     return;
   }
   child->mCanSend = true;

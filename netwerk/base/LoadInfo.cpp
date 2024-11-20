@@ -2229,7 +2229,7 @@ void LoadInfo::SetReservedClientInfo(const ClientInfo& aClientInfo) {
     if (mReservedClientInfo.ref() == aClientInfo) {
       return;
     }
-    MOZ_DIAGNOSTIC_ASSERT(false, "mReservedClientInfo already set");
+    MOZ_DIAGNOSTIC_CRASH("mReservedClientInfo already set");
     mReservedClientInfo.reset();
   }
   mReservedClientInfo.emplace(aClientInfo);

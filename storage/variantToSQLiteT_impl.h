@@ -107,7 +107,7 @@ int variantToSQLiteT(T aObj, nsIVariant* aValue) {
         return sqlite3_T_array(aObj, data, count, CARRAY_TEXT);
       }
 
-      MOZ_DIAGNOSTIC_ASSERT(false, "Unsupported type in Storage bound array");
+      MOZ_DIAGNOSTIC_CRASH("Unsupported type in Storage bound array");
       // Technically this could leak with certain data types, but somebody was
       // being incautious passing us this anyway.
       free(data);

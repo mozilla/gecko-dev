@@ -1401,9 +1401,9 @@ void MediaTrackGraphImpl::UpdateGraph(GraphTime aEndBlockingDecisions) {
                MediaTimeToSeconds(track->GetEnd()),
                MediaTimeToSeconds(
                    track->GraphTimeToTrackTime(aEndBlockingDecisions))));
-          MOZ_DIAGNOSTIC_ASSERT(false,
-                                "A non-ended SourceMediaTrack wasn't fed "
-                                "enough data by NotifyPull");
+          MOZ_DIAGNOSTIC_CRASH(
+              "A non-ended SourceMediaTrack wasn't fed "
+              "enough data by NotifyPull");
         }
       }
 #endif /* MOZ_DIAGNOSTIC_ASSERT_ENABLED */

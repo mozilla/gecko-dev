@@ -348,7 +348,7 @@ class MediaDecoderStateMachine::DecodeMetadataState
 
   RefPtr<MediaDecoder::SeekPromise> HandleSeek(
       const SeekTarget& aTarget) override {
-    MOZ_DIAGNOSTIC_ASSERT(false, "Can't seek while decoding metadata.");
+    MOZ_DIAGNOSTIC_CRASH("Can't seek while decoding metadata.");
     return MediaDecoder::SeekPromise::CreateAndReject(true, __func__);
   }
 
@@ -2835,28 +2835,28 @@ class MediaDecoderStateMachine::ShutdownState
   RefPtr<ShutdownPromise> Enter();
 
   void Exit() override {
-    MOZ_DIAGNOSTIC_ASSERT(false, "Shouldn't escape the SHUTDOWN state.");
+    MOZ_DIAGNOSTIC_CRASH("Shouldn't escape the SHUTDOWN state.");
   }
 
   State GetState() const override { return DECODER_STATE_SHUTDOWN; }
 
   RefPtr<MediaDecoder::SeekPromise> HandleSeek(
       const SeekTarget& aTarget) override {
-    MOZ_DIAGNOSTIC_ASSERT(false, "Can't seek in shutdown state.");
+    MOZ_DIAGNOSTIC_CRASH("Can't seek in shutdown state.");
     return MediaDecoder::SeekPromise::CreateAndReject(true, __func__);
   }
 
   RefPtr<ShutdownPromise> HandleShutdown() override {
-    MOZ_DIAGNOSTIC_ASSERT(false, "Already shutting down.");
+    MOZ_DIAGNOSTIC_CRASH("Already shutting down.");
     return nullptr;
   }
 
   void HandleVideoSuspendTimeout() override {
-    MOZ_DIAGNOSTIC_ASSERT(false, "Already shutting down.");
+    MOZ_DIAGNOSTIC_CRASH("Already shutting down.");
   }
 
   void HandleResumeVideoDecoding(const TimeUnit&) override {
-    MOZ_DIAGNOSTIC_ASSERT(false, "Already shutting down.");
+    MOZ_DIAGNOSTIC_CRASH("Already shutting down.");
   }
 };
 

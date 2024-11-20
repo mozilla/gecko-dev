@@ -795,7 +795,7 @@ ipc::IPCResult DocAccessibleParent::AddChildDoc(DocAccessibleParent* aChildDoc,
     // This diagnostic assert and the one down below expect a well-behaved
     // child process. In IPC fuzzing, we directly fuzz parameters of each
     // method over IPDL and the asserts are not valid under these conditions.
-    MOZ_DIAGNOSTIC_ASSERT(false, "Binding to nonexistent proxy!");
+    MOZ_DIAGNOSTIC_CRASH("Binding to nonexistent proxy!");
 #endif
     return IPC_FAIL(this, "binding to nonexistant proxy!");
   }
@@ -809,8 +809,7 @@ ipc::IPCResult DocAccessibleParent::AddChildDoc(DocAccessibleParent* aChildDoc,
   if (!outerDoc->IsOuterDoc() || outerDoc->ChildCount() > 1 ||
       (outerDoc->ChildCount() == 1 && !outerDoc->RemoteChildAt(0)->IsDoc())) {
 #ifndef FUZZING_SNAPSHOT
-    MOZ_DIAGNOSTIC_ASSERT(false,
-                          "Binding to parent that isn't a valid OuterDoc!");
+    MOZ_DIAGNOSTIC_CRASH("Binding to parent that isn't a valid OuterDoc!");
 #endif
     return IPC_FAIL(this, "Binding to parent that isn't a valid OuterDoc!");
   }

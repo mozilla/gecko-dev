@@ -515,7 +515,7 @@ bool RequestWorkerRunnable::HandleAPIRequest(
 
   if (isExtensionError && !okSerializedError) {
     NS_WARNING("Failed to wrap ClonedErrorHolder");
-    MOZ_DIAGNOSTIC_ASSERT(false, "Failed to wrap ClonedErrorHolder");
+    MOZ_DIAGNOSTIC_CRASH("Failed to wrap ClonedErrorHolder");
     return false;
   }
 
@@ -534,7 +534,7 @@ bool RequestWorkerRunnable::HandleAPIRequest(
       return ProcessHandlerResult(aCx, aRetval);
   }
 
-  MOZ_DIAGNOSTIC_ASSERT(false, "Unexpected API request ResultType");
+  MOZ_DIAGNOSTIC_CRASH("Unexpected API request ResultType");
   return false;
 }
 
@@ -590,7 +590,7 @@ bool RequestWorkerRunnable::ProcessHandlerResult(
     }
   }
 
-  MOZ_DIAGNOSTIC_ASSERT(false, "Unexpected API request ResultType");
+  MOZ_DIAGNOSTIC_CRASH("Unexpected API request ResultType");
   return false;
 }
 
@@ -627,7 +627,7 @@ void RequestWorkerRunnable::ReadResult(JSContext* aCx,
       return;
   }
 
-  MOZ_DIAGNOSTIC_ASSERT(false, "Unexpected API request ResultType");
+  MOZ_DIAGNOSTIC_CRASH("Unexpected API request ResultType");
   aRv.Throw(NS_ERROR_UNEXPECTED);
 }
 
