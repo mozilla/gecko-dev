@@ -153,7 +153,7 @@ class CustomTabsIntegration(
         true -> CustomTabsColorsConfig(
             updateStatusBarColor = !isPrivate,
             updateSystemNavigationBarColor = false,
-            updateToolbarsColor = !isPrivate,
+            updateToolbarsColor = false,
         )
 
         false -> CustomTabsColorsConfig(

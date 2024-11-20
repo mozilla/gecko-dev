@@ -134,7 +134,7 @@ class CustomTabsToolbarFeature(
 
         val readableColor = colorSchemeParams.getToolbarContrastColor(
             context = context,
-            shouldUpdateTheme = customTabsColorsConfig.isAnyColorUpdateAllowed(),
+            shouldUpdateTheme = customTabsColorsConfig.updateToolbarsColor,
             fallbackColor = fallbackIconColor,
         ).also {
             iconColor = it
