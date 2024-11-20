@@ -17,10 +17,10 @@
 //! [privacy-policy]: https://www.mozilla.org/privacy/
 //! [docs]: https://firefox-source-docs.mozilla.org/toolkit/components/glean/
 
-use std::cell::UnsafeCell;
 use firefox_on_glean::{ipc, metrics, pings};
 use nserror::{nsresult, NS_ERROR_FAILURE, NS_OK};
 use nsstring::{nsACString, nsCString};
+use std::cell::UnsafeCell;
 use thin_vec::ThinVec;
 
 #[macro_use]

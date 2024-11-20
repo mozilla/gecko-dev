@@ -148,12 +148,15 @@ fn build_configuration(
     };
     log::debug!("Client Info: {:#?}", client_info);
 
-    const SERVER: &str = "https://incoming.telemetry.mozilla.org";
     let localhost_port = static_prefs::pref!("telemetry.fog.test.localhost_port");
     let server = if localhost_port > 0 {
         format!("http://localhost:{}", localhost_port)
     } else {
-        String::from(SERVER)
+        if app_id_override == "thunderbird.desktop" {
+            String::from("https://incoming.thunderbird.net")
+        } else {
+            String::from("https://incoming.telemetry.mozilla.org")
+        }
     };
 
     let application_id = if app_id_override.is_empty() {
