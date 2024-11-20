@@ -1171,6 +1171,20 @@ const AVAILABLE_INJECTIONS = [
       ],
     },
   },
+  {
+    id: "1846742",
+    platform: "desktop",
+    domain: "microsoft.com",
+    bug: "1846742",
+    contentScripts: {
+      matches: ["*://www.microsoft.com/*"],
+      js: [
+        {
+          file: "injections/js/bug1846742-microsoft.com-search-key-fix.js",
+        },
+      ],
+    },
+  },
 ];
 
 module.exports = AVAILABLE_INJECTIONS;

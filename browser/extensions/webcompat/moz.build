@@ -105,6 +105,7 @@ FINAL_TARGET_FILES.features["webcompat@mozilla.org"]["injections"]["js"] += [
     "injections/js/bug1836157-thai-masszazs-niceScroll-disable.js",
     "injections/js/bug1841730-www.korg.com-fix-broken-page-loads.js",
     "injections/js/bug1842437-www.youtube.com-performance-now-precision.js",
+    "injections/js/bug1846742-microsoft.com-search-key-fix.js",
     "injections/js/bug1849058-nicochannel.jp-picture-in-picture-shim.js",
     "injections/js/bug1855014-eksiseyler.com.js",
     "injections/js/bug1859617-installtrigger-removal-shim.js",

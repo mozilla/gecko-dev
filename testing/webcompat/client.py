@@ -489,6 +489,17 @@ class Client:
 
         return asyncio.create_task(task())
 
+    async def promise_navigation_begins(self, url=None, **kwargs):
+        def check(method, data):
+            if url is None:
+                return data
+            if "url" in data and url in data["url"]:
+                return data
+
+        return await self.promise_event_listener(
+            "browsingContext.navigationStarted", check, **kwargs
+        )
+
     async def promise_console_message_listener(self, msg, **kwargs):
         def check(method, data):
             if "text" in data:
