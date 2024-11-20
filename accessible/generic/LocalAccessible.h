@@ -897,18 +897,15 @@ class LocalAccessible : public nsISupports, public Accessible {
    *  invoke action of mozilla accessibles direclty (see bug 277888 for
    * details).
    *
-   * @param  aContent      [in, optional] element to click
    * @param  aActionIndex  [in, optional] index of accessible action
    */
-  void DoCommand(nsIContent* aContent = nullptr,
-                 uint32_t aActionIndex = 0) const;
+  void DoCommand(uint32_t aActionIndex = 0) const;
 
   /**
    * Dispatch click event.
    */
   MOZ_CAN_RUN_SCRIPT
-  virtual void DispatchClickEvent(nsIContent* aContent,
-                                  uint32_t aActionIndex) const;
+  virtual void DispatchClickEvent(uint32_t aActionIndex) const;
 
   //////////////////////////////////////////////////////////////////////////////
   // Helpers

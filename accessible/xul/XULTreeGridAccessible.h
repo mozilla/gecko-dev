@@ -166,8 +166,7 @@ class XULTreeGridCellAccessible : public LeafAccessible,
   virtual LocalAccessible* GetSiblingAtOffset(
       int32_t aOffset, nsresult* aError = nullptr) const override;
   MOZ_CAN_RUN_SCRIPT
-  virtual void DispatchClickEvent(nsIContent* aContent,
-                                  uint32_t aActionIndex) const override;
+  virtual void DispatchClickEvent(uint32_t aActionIndex) const override;
 
   // XULTreeGridCellAccessible
 

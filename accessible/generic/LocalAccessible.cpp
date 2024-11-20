@@ -2486,52 +2486,45 @@ Relation LocalAccessible::RelationByType(RelationType aType) const {
 
 void LocalAccessible::GetNativeInterface(void** aNativeAccessible) {}
 
-void LocalAccessible::DoCommand(nsIContent* aContent,
-                                uint32_t aActionIndex) const {
+void LocalAccessible::DoCommand(uint32_t aActionIndex) const {
   class Runnable final : public mozilla::Runnable {
    public:
-    Runnable(const LocalAccessible* aAcc, nsIContent* aContent, uint32_t aIdx)
-        : mozilla::Runnable("Runnable"),
-          mAcc(aAcc),
-          mContent(aContent),
-          mIdx(aIdx) {}
+    Runnable(const LocalAccessible* aAcc, uint32_t aIdx)
+        : mozilla::Runnable("Runnable"), mAcc(aAcc), mIdx(aIdx) {}
 
     // XXX Cannot mark as MOZ_CAN_RUN_SCRIPT because the base class change
     //     requires too big changes across a lot of modules.
     MOZ_CAN_RUN_SCRIPT_BOUNDARY NS_IMETHOD Run() override {
       if (mAcc) {
-        MOZ_KnownLive(mAcc)->DispatchClickEvent(MOZ_KnownLive(mContent), mIdx);
+        MOZ_KnownLive(mAcc)->DispatchClickEvent(mIdx);
       }
       return NS_OK;
     }
 
     void Revoke() {
       mAcc = nullptr;
-      mContent = nullptr;
     }
 
    private:
     RefPtr<const LocalAccessible> mAcc;
-    nsCOMPtr<nsIContent> mContent;
     uint32_t mIdx;
   };
 
-  nsIContent* content = aContent ? aContent : mContent.get();
-  nsCOMPtr<nsIRunnable> runnable = new Runnable(this, content, aActionIndex);
+  nsCOMPtr<nsIRunnable> runnable = new Runnable(this, aActionIndex);
   NS_DispatchToMainThread(runnable);
 }
 
-void LocalAccessible::DispatchClickEvent(nsIContent* aContent,
-                                         uint32_t aActionIndex) const {
+void LocalAccessible::DispatchClickEvent(uint32_t aActionIndex) const {
   if (IsDefunct()) return;
+  MOZ_ASSERT(mContent);
 
   RefPtr<PresShell> presShell = mDoc->PresShellPtr();
 
   // Scroll into view.
-  presShell->ScrollContentIntoView(aContent, ScrollAxis(), ScrollAxis(),
+  presShell->ScrollContentIntoView(mContent, ScrollAxis(), ScrollAxis(),
                                    ScrollFlags::ScrollOverflowHidden);
 
-  AutoWeakFrame frame = aContent->GetPrimaryFrame();
+  AutoWeakFrame frame = mContent->GetPrimaryFrame();
   if (!frame) return;
 
   // Compute x and y coordinates.
@@ -2546,18 +2539,18 @@ void LocalAccessible::DispatchClickEvent(nsIContent* aContent,
   int32_t y = presContext->AppUnitsToDevPixels(point.y + size.height / 2);
 
   // Simulate a touch interaction by dispatching touch events with mouse events.
-  nsCoreUtils::DispatchTouchEvent(eTouchStart, x, y, aContent, frame, presShell,
+  nsCoreUtils::DispatchTouchEvent(eTouchStart, x, y, mContent, frame, presShell,
                                   widget);
 
   if (StaticPrefs::dom_popup_experimental()) {
     // This isn't needed once bug 1924790 is fixed.
-    aContent->OwnerDoc()->NotifyUserGestureActivation();
+    mContent->OwnerDoc()->NotifyUserGestureActivation();
   }
-  nsCoreUtils::DispatchMouseEvent(eMouseDown, x, y, aContent, frame, presShell,
+  nsCoreUtils::DispatchMouseEvent(eMouseDown, x, y, mContent, frame, presShell,
                                   widget);
-  nsCoreUtils::DispatchTouchEvent(eTouchEnd, x, y, aContent, frame, presShell,
+  nsCoreUtils::DispatchTouchEvent(eTouchEnd, x, y, mContent, frame, presShell,
                                   widget);
-  nsCoreUtils::DispatchMouseEvent(eMouseUp, x, y, aContent, frame, presShell,
+  nsCoreUtils::DispatchMouseEvent(eMouseUp, x, y, mContent, frame, presShell,
                                   widget);
 }
 

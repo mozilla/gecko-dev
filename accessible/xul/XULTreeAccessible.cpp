@@ -716,7 +716,7 @@ bool XULTreeItemAccessibleBase::DoAction(uint8_t aIndex) const {
     return false;
   }
 
-  DoCommand(nullptr, aIndex);
+  DoCommand(aIndex);
   return true;
 }
 
@@ -822,7 +822,7 @@ LocalAccessible* XULTreeItemAccessibleBase::ContainerWidget() const {
 // XULTreeItemAccessibleBase: LocalAccessible protected methods
 
 void XULTreeItemAccessibleBase::DispatchClickEvent(
-    nsIContent* aContent, uint32_t aActionIndex) const {
+    uint32_t aActionIndex) const {
   if (IsDefunct()) return;
 
   RefPtr<nsTreeColumns> columns = mTree->GetColumns();

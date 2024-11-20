@@ -186,8 +186,7 @@ class XULTreeItemAccessibleBase : public AccessibleWrap {
 
   // LocalAccessible
   MOZ_CAN_RUN_SCRIPT
-  virtual void DispatchClickEvent(nsIContent* aContent,
-                                  uint32_t aActionIndex) const override;
+  virtual void DispatchClickEvent(uint32_t aActionIndex) const override;
   virtual LocalAccessible* GetSiblingAtOffset(
       int32_t aOffset, nsresult* aError = nullptr) const override;
 
