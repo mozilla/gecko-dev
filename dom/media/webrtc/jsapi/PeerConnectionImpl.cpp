@@ -637,6 +637,7 @@ class ConfigureCodec {
         mH264Enabled(false),
         mVP9Enabled(true),
         mVP9Preferred(false),
+        mAV1Enabled(StaticPrefs::media_webrtc_codec_video_av1_enabled()),
         mH264Level(13),   // minimum suggested for WebRTC spec
         mH264MaxBr(0),    // Unlimited
         mH264MaxMbps(0),  // Unlimited
@@ -751,6 +752,8 @@ class ConfigureCodec {
           }
           videoCodec.mConstraints.maxFs = mVP8MaxFs;
           videoCodec.mConstraints.maxFps = Some(mVP8MaxFr);
+        } else if (videoCodec.mName == "AV1") {
+          videoCodec.mEnabled = mAV1Enabled;
         }
 
         if (mUseTmmbr) {
@@ -776,6 +779,7 @@ class ConfigureCodec {
   bool mH264Enabled;
   bool mVP9Enabled;
   bool mVP9Preferred;
+  bool mAV1Enabled;
   int32_t mH264Level;
   int32_t mH264MaxBr;
   int32_t mH264MaxMbps;
