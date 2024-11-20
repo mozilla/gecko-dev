@@ -8,7 +8,6 @@ import android.content.Context
 import androidx.annotation.GuardedBy
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancel
-import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import mozilla.appservices.logins.DatabaseLoginsStorage
 import mozilla.components.concept.storage.EncryptedLogin
@@ -26,14 +25,6 @@ const val DB_NAME = "logins2.sqlite"
 
 // Name of our preferences file
 const val PREFS_NAME = "logins"
-
-// SQLCipher migration status.
-//   - 0 / unset: We haven't done the SQLCipher migration
-//   - 1: We performed v1 of the SQLCipher migration
-//
-// We no longer migrate SQLCipher, if the user hasn't
-// successfully migrated - we delete the DB
-const val SQL_CIPHER_MIGRATION = "sql-cipher-migration"
 
 /**
  * The telemetry ping from a successful sync
@@ -91,16 +82,11 @@ class SyncableLoginsStorage(
     private val context: Context,
     private val securePrefs: Lazy<SecureAbove22Preferences>,
 ) : LoginsStorage, SyncableStore, AutoCloseable {
-    private val plaintextPrefs by lazy { context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE) }
     private val logger = Logger("SyncableLoginsStorage")
     private val coroutineContext by lazy { Dispatchers.IO }
     val crypto by lazy { LoginsCrypto(context, securePrefs.value, this) }
 
     internal val conn by lazy {
-        // We do not migrate SQLCipher anymore, we should delete it if it exists
-        runBlocking(coroutineContext) {
-            deleteSQLCipherDBIfNeeded()
-        }
         LoginStorageConnection.init(dbPath = context.getDatabasePath(DB_NAME).absolutePath)
         LoginStorageConnection
     }
@@ -229,27 +215,6 @@ class SyncableLoginsStorage(
     override fun close() {
         coroutineContext.cancel()
         conn.close()
-    }
-
-    /*
-     * We not longer migrate SQLCipher, we delete the DB, key and any
-     * associated prefs
-     */
-    private suspend fun deleteSQLCipherDBIfNeeded() {
-        // Older database that was encrypted using SQLCipher
-        val dbNameSqlCipher = "logins.sqlite"
-        // Prefs key that we stored the old SQLCipher encryption key
-        val encryptionKeySqlCipher = "passwords"
-
-        val version = plaintextPrefs.getInt(SQL_CIPHER_MIGRATION, 0)
-        if (version == 0) {
-            // Older database that was encrypted using SQLCipher, majority of clients won't
-            // have anything to actually delete
-            securePrefs.value.remove(encryptionKeySqlCipher)
-            val file = context.getDatabasePath(dbNameSqlCipher)
-            file.delete()
-        }
-        plaintextPrefs.edit().putInt(SQL_CIPHER_MIGRATION, 1).apply()
     }
 }
 
