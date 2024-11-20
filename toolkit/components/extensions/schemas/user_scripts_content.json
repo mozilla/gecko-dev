@@ -1,12 +1,16 @@
+// Note: although this file is specific to the MV2-only userScripts API, the
+// file also specifies "userScripts" in the permissions key of the userScripts
+// namespace because user_scripts.json also specifies the "permissions" key,
+// and if specified, both keys must have the same value.
 [
   {
     "namespace": "userScripts",
-    "max_manifest_version": 2,
-    "permissions": ["manifest:user_scripts"],
+    "permissions": ["manifest:user_scripts", "userScripts"],
     "allowedContexts": ["content"],
     "events": [
       {
         "name": "onBeforeScript",
+        "max_manifest_version": 2,
         "permissions": ["manifest:user_scripts.api_script"],
         "allowedContexts": ["content", "content_only"],
         "type": "function",

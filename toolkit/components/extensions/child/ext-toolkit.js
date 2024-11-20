@@ -59,7 +59,7 @@ extensions.registerModules({
   userScripts: {
     url: "chrome://extensions/content/child/ext-userScripts.js",
     scopes: ["addon_child"],
-    paths: [["userScripts"]],
+    paths: [["userScripts", "register"]],
   },
   userScriptsContent: {
     url: "chrome://extensions/content/child/ext-userScripts-content.js",

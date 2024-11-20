@@ -58,7 +58,8 @@ class UserScriptChild {
   api() {
     const { context } = this;
 
-    // Returns the RegisteredUserScript API object.
+    // Returns the object with the "unregister" method for the legacy
+    // MV2-only userScripts.register() method.
     return {
       unregister: () => {
         return context.wrapPromise(this.unregister());
@@ -69,6 +70,10 @@ class UserScriptChild {
 
 this.userScripts = class extends ExtensionAPI {
   getAPI(context) {
+    if (context.extension.manifestVersion !== 2) {
+      // MV2 needs special argument processing, MV3 does not.
+      return {};
+    }
     // Cache of the script code already converted into blob urls:
     //   Map<textHash, blobURLs>
     const blobURLsByHash = new Map();

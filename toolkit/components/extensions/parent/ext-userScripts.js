@@ -84,6 +84,27 @@ this.userScripts = class extends ExtensionAPI {
 
   getAPI(context) {
     const { extension } = context;
+    if (extension.manifestVersion == 2) {
+      return this.getLegacyMV2API(context);
+    }
+
+    return {
+      userScripts: {
+        register: async scripts => {
+          // TODO: Add implementation. For now this is a placeholder to get the
+          // test_ext_userScripts_mv3_availability.js test running such that it
+          // can verify that the MV2 vs MV3 split works as desired.
+          if (!Array.isArray(scripts)) {
+            // Should have been enforced by the user_scripts.json schema.
+            throw new ExtensionError("scripts param should be an array!");
+          }
+        },
+      },
+    };
+  }
+
+  getLegacyMV2API(context) {
+    const { extension } = context;
 
     // Set of the scriptIds registered from this context.
     const registeredScriptIds = new Set();

@@ -3,6 +3,15 @@
     "namespace": "manifest",
     "types": [
       {
+        "$extend": "PermissionNoPrompt",
+        "choices": [
+          {
+            "type": "string",
+            "enum": ["userScripts"]
+          }
+        ]
+      },
+      {
         "$extend": "WebExtensionManifest",
         "properties": {
           "user_scripts": {
@@ -23,11 +32,11 @@
   },
   {
     "namespace": "userScripts",
-    "max_manifest_version": 2,
-    "permissions": ["manifest:user_scripts"],
+    "permissions": ["manifest:user_scripts", "userScripts"],
     "types": [
       {
         "id": "UserScriptOptions",
+        "max_manifest_version": 2,
         "type": "object",
         "description": "Details of a user script",
         "properties": {
@@ -101,29 +110,57 @@
       },
       {
         "id": "RegisteredUserScript",
+        "min_manifest_version": 3,
         "type": "object",
         "description": "An object that represents a user script registered programmatically",
-        "functions": [
-          {
-            "name": "unregister",
-            "type": "function",
-            "description": "Unregister a user script registered programmatically",
-            "async": true,
-            "parameters": []
-          }
-        ]
+        "properties": {}
       }
     ],
     "functions": [
       {
         "name": "register",
+        "max_manifest_version": 2,
         "type": "function",
-        "description": "Register a user script programmatically given its $(ref:userScripts.UserScriptOptions), and resolves to a $(ref:userScripts.RegisteredUserScript) instance",
-        "async": true,
+        "description": "Register a user script programmatically given its $(ref:userScripts.UserScriptOptions), and resolves to an object with the unregister() function",
+        "async": "callback",
         "parameters": [
           {
             "name": "userScriptOptions",
             "$ref": "UserScriptOptions"
+          },
+          {
+            "name": "callback",
+            "type": "function",
+            "parameters": [
+              {
+                "name": "legacyRegisteredUserScript",
+                "type": "object",
+                "description": "An object that represents a user script registered programmatically",
+                "properties": {
+                  "unregister": {
+                    "type": "function",
+                    "description": "Unregister a user script registered programmatically",
+                    "async": true,
+                    "parameters": []
+                  }
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "register",
+        "min_manifest_version": 3,
+        "type": "function",
+        "description": "Registers one or more user scripts for this extension.",
+        "async": true,
+        "parameters": [
+          {
+            "name": "scripts",
+            "type": "array",
+            "items": { "$ref": "RegisteredUserScript" },
+            "description": "List of user scripts to be registered."
           }
         ]
       }
