@@ -202,10 +202,8 @@ export class AdmWikipedia extends BaseFeature {
     let isAmpTopPick =
       suggestion.is_sponsored &&
       lazy.UrlbarPrefs.get("quickSuggestAmpTopPickCharThreshold") &&
-      (lazy.UrlbarPrefs.get("quickSuggestAmpTopPickCharThreshold") <=
-        queryContext.trimmedLowerCaseSearchString.length ||
-        suggestion.full_keyword.trim().toLocaleLowerCase() ==
-          queryContext.trimmedLowerCaseSearchString);
+      lazy.UrlbarPrefs.get("quickSuggestAmpTopPickCharThreshold") <=
+        queryContext.trimmedLowerCaseSearchString.length;
 
     payload.qsSuggestion = [
       suggestion.full_keyword,

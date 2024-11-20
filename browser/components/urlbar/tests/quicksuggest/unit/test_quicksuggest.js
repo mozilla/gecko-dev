@@ -1905,8 +1905,9 @@ add_tasks_with_rust(async function keywordLengthThreshold() {
 });
 
 // AMP should be a top pick when `quicksuggest.ampTopPickCharThreshold` is
-// non-zero and a typed keyword's length is over the threshold or a full keyword
-// is typed.
+// non-zero and the query length meets the threshold; otherwise it should not be
+// a top pick. It shouldn't matter whether the query is one of the suggestion's
+// full keywords.
 add_tasks_with_rust(async function ampTopPickCharThreshold() {
   UrlbarPrefs.set("suggest.quicksuggest.sponsored", true);
   UrlbarPrefs.set("suggest.quicksuggest.nonsponsored", true);
@@ -1918,24 +1919,62 @@ add_tasks_with_rust(async function ampTopPickCharThreshold() {
   );
 
   let tests = [
+    // No top pick: Matches an AMP suggestion but the query is shorter than the
+    // threshold.
     { keyword: "amp full key", amp: true, isTopPick: false },
     { keyword: "amp full keyw", amp: true, isTopPick: false },
+    { keyword: "                 amp full key", amp: true, isTopPick: false },
+    { keyword: "                 amp full keyw", amp: true, isTopPick: false },
+
+    // Top pick: Matches an AMP suggestion and the query meets the threshold.
     { keyword: "amp full keywo", amp: true, isTopPick: true },
     { keyword: "amp full keywor", amp: true, isTopPick: true },
     { keyword: "amp full keyword", amp: true, isTopPick: true },
     { keyword: "AmP FuLl KeYwOrD", amp: true, isTopPick: true },
-    // "xyz" is shorter than the threshold, but since it's a full keyword it
-    // should trigger a top pick.
-    { keyword: "xyz", fullKeyword: "xyz", amp: true, isTopPick: true },
-    { keyword: "XyZ", fullKeyword: "xyz", amp: true, isTopPick: true },
+    { keyword: "               amp full keywo", amp: true, isTopPick: true },
+    { keyword: "               amp full keywor", amp: true, isTopPick: true },
+    { keyword: "               amp full keyword", amp: true, isTopPick: true },
+    { keyword: "               AmP FuLl KeYwOrD", amp: true, isTopPick: true },
+
+    // No top pick: Matches an AMP suggestion but the query is shorter than the
+    // threshold. It doesn't matter that the query is equal to the suggestion's
+    // full keyword.
+    { keyword: "xyz", fullKeyword: "xyz", amp: true, isTopPick: false },
+    { keyword: "XyZ", fullKeyword: "xyz", amp: true, isTopPick: false },
+    {
+      keyword: "                            xyz",
+      fullKeyword: "xyz",
+      amp: true,
+      isTopPick: false,
+    },
+    {
+      keyword: "                            XyZ",
+      fullKeyword: "xyz",
+      amp: true,
+      isTopPick: false,
+    },
+
+    // No top pick: Matches a Wikipedia suggestion and some queries meet the
+    // threshold, but Wikipedia should not be top pick.
     { keyword: "wikipedia full key", isTopPick: false },
     { keyword: "wikipedia full keyw", isTopPick: false },
     { keyword: "wikipedia full keywo", isTopPick: false },
     { keyword: "wikipedia full keywor", isTopPick: false },
     { keyword: "wikipedia full keyword", isTopPick: false },
+
+    // No match: These shouldn't match anything at all since they have extra
+    // spaces at the end, but they're included for completeness.
+    { keyword: "                 amp full key   ", noMatch: true },
+    { keyword: "                 amp full keyw   ", noMatch: true },
+    { keyword: "               amp full keywo   ", noMatch: true },
+    { keyword: "               amp full keywor   ", noMatch: true },
+    { keyword: "               amp full keyword   ", noMatch: true },
+    { keyword: "               AmP FuLl KeYwOrD   ", noMatch: true },
+    { keyword: "                            xyz   ", noMatch: true },
+    { keyword: "                            XyZ   ", noMatch: true },
   ];
 
-  for (let { keyword, fullKeyword, amp, isTopPick } of tests) {
+  for (let { keyword, fullKeyword, amp, isTopPick, noMatch } of tests) {
     fullKeyword ??= amp ? "amp full keyword" : "wikipedia full keyword";
     info(
       "Running subtest: " +
@@ -1943,31 +1982,33 @@ add_tasks_with_rust(async function ampTopPickCharThreshold() {
     );
 
     let expectedResult;
-    if (!amp) {
-      expectedResult = QuickSuggestTestUtils.wikipediaResult({
-        keyword,
-        fullKeyword,
-        title: "Wikipedia suggestion with full keyword and prefix keywords",
-        url: "https://example.com/wikipedia-full-keyword",
-      });
-    } else if (isTopPick) {
-      expectedResult = QuickSuggestTestUtils.ampResult({
-        keyword,
-        fullKeyword,
-        title: "AMP suggestion with full keyword and prefix keywords",
-        url: "https://example.com/amp-full-keyword",
-        suggestedIndex: 1,
-        isSuggestedIndexRelativeToGroup: false,
-        isBestMatch: true,
-        descriptionL10n: null,
-      });
-    } else {
-      expectedResult = QuickSuggestTestUtils.ampResult({
-        keyword,
-        fullKeyword,
-        title: "AMP suggestion with full keyword and prefix keywords",
-        url: "https://example.com/amp-full-keyword",
-      });
+    if (!noMatch) {
+      if (!amp) {
+        expectedResult = QuickSuggestTestUtils.wikipediaResult({
+          keyword,
+          fullKeyword,
+          title: "Wikipedia suggestion with full keyword and prefix keywords",
+          url: "https://example.com/wikipedia-full-keyword",
+        });
+      } else if (isTopPick) {
+        expectedResult = QuickSuggestTestUtils.ampResult({
+          keyword,
+          fullKeyword,
+          title: "AMP suggestion with full keyword and prefix keywords",
+          url: "https://example.com/amp-full-keyword",
+          suggestedIndex: 1,
+          isSuggestedIndexRelativeToGroup: false,
+          isBestMatch: true,
+          descriptionL10n: null,
+        });
+      } else {
+        expectedResult = QuickSuggestTestUtils.ampResult({
+          keyword,
+          fullKeyword,
+          title: "AMP suggestion with full keyword and prefix keywords",
+          url: "https://example.com/amp-full-keyword",
+        });
+      }
     }
 
     await check_results({
@@ -1975,7 +2016,7 @@ add_tasks_with_rust(async function ampTopPickCharThreshold() {
         providers: [UrlbarProviderQuickSuggest.name],
         isPrivate: false,
       }),
-      matches: [expectedResult],
+      matches: expectedResult ? [expectedResult] : [],
     });
   }
 
