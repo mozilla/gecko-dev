@@ -3291,7 +3291,7 @@ TEST_F(JsepSessionTest, ValidateOfferedVideoCodecParams) {
   const auto& video_attrs = video_section.GetAttributeList();
   ASSERT_EQ(SdpDirectionAttribute::kSendrecv, video_attrs.GetDirection());
 
-  ASSERT_EQ(15U, video_section.GetFormats().size());
+  ASSERT_EQ(17U, video_section.GetFormats().size());
   ASSERT_EQ("120", video_section.GetFormats()[0]);
   ASSERT_EQ("124", video_section.GetFormats()[1]);
   ASSERT_EQ("121", video_section.GetFormats()[2]);
@@ -3304,9 +3304,11 @@ TEST_F(JsepSessionTest, ValidateOfferedVideoCodecParams) {
   ASSERT_EQ("106", video_section.GetFormats()[9]);
   ASSERT_EQ("103", video_section.GetFormats()[10]);
   ASSERT_EQ("104", video_section.GetFormats()[11]);
-  ASSERT_EQ("123", video_section.GetFormats()[12]);
-  ASSERT_EQ("122", video_section.GetFormats()[13]);
-  ASSERT_EQ("119", video_section.GetFormats()[14]);
+  ASSERT_EQ("99", video_section.GetFormats()[12]);
+  ASSERT_EQ("100", video_section.GetFormats()[13]);
+  ASSERT_EQ("123", video_section.GetFormats()[14]);
+  ASSERT_EQ("122", video_section.GetFormats()[15]);
+  ASSERT_EQ("119", video_section.GetFormats()[16]);
 
   // Validate rtpmap
   ASSERT_TRUE(video_attrs.HasAttribute(SdpAttribute::kRtpmapAttribute));
@@ -3323,6 +3325,8 @@ TEST_F(JsepSessionTest, ValidateOfferedVideoCodecParams) {
   ASSERT_TRUE(rtpmaps.HasEntry("104"));
   ASSERT_TRUE(rtpmaps.HasEntry("97"));
   ASSERT_TRUE(rtpmaps.HasEntry("98"));
+  ASSERT_TRUE(rtpmaps.HasEntry("99"));
+  ASSERT_TRUE(rtpmaps.HasEntry("100"));
   ASSERT_TRUE(rtpmaps.HasEntry("123"));
   ASSERT_TRUE(rtpmaps.HasEntry("122"));
   ASSERT_TRUE(rtpmaps.HasEntry("119"));
@@ -3363,7 +3367,7 @@ TEST_F(JsepSessionTest, ValidateOfferedVideoCodecParams) {
   ASSERT_TRUE(video_attrs.HasAttribute(SdpAttribute::kFmtpAttribute));
   auto& fmtps = video_attrs.GetFmtp().mFmtps;
 
-  ASSERT_EQ(13U, fmtps.size());
+  ASSERT_EQ(14U, fmtps.size());
 
   // VP8
   const SdpFmtpAttributeList::Parameters* vp8_params =
@@ -3514,6 +3518,17 @@ TEST_F(JsepSessionTest, ValidateOfferedVideoCodecParams) {
 
   ASSERT_EQ((uint32_t)103, parsed_h264_baseline_0_rtx_params.apt);
 
+  // AV1 has no default FMTP parameters so there is no FMTP entry for AV1 in the
+  // test.
+  // AV1 RTX
+  const SdpFmtpAttributeList::Parameters* av1_rtx_params =
+      video_section.FindFmtp("100");
+  ASSERT_TRUE(av1_rtx_params);
+  ASSERT_EQ(SdpRtpmapAttributeList::kRtx, av1_rtx_params->codec_type);
+  const auto& parsed_av1_rtx_params =
+      *static_cast<const SdpFmtpAttributeList::RtxParameters*>(av1_rtx_params);
+  ASSERT_EQ((uint32_t)99, parsed_av1_rtx_params.apt);
+
   // red RTX
   const SdpFmtpAttributeList::Parameters* red_rtx_params =
       video_section.FindFmtp("119");
@@ -3643,7 +3658,7 @@ TEST_F(JsepSessionTest, ValidateNoFmtpLineForRedInOfferAndAnswer) {
   auto& video_attrs = video_section.GetAttributeList();
   ASSERT_EQ(SdpDirectionAttribute::kSendrecv, video_attrs.GetDirection());
 
-  ASSERT_EQ(15U, video_section.GetFormats().size());
+  ASSERT_EQ(17U, video_section.GetFormats().size());
   ASSERT_EQ("120", video_section.GetFormats()[0]);
   ASSERT_EQ("124", video_section.GetFormats()[1]);
   ASSERT_EQ("121", video_section.GetFormats()[2]);
@@ -3656,9 +3671,11 @@ TEST_F(JsepSessionTest, ValidateNoFmtpLineForRedInOfferAndAnswer) {
   ASSERT_EQ("106", video_section.GetFormats()[9]);
   ASSERT_EQ("103", video_section.GetFormats()[10]);
   ASSERT_EQ("104", video_section.GetFormats()[11]);
-  ASSERT_EQ("123", video_section.GetFormats()[12]);
-  ASSERT_EQ("122", video_section.GetFormats()[13]);
-  ASSERT_EQ("119", video_section.GetFormats()[14]);
+  ASSERT_EQ("99", video_section.GetFormats()[12]);
+  ASSERT_EQ("100", video_section.GetFormats()[13]);
+  ASSERT_EQ("123", video_section.GetFormats()[14]);
+  ASSERT_EQ("122", video_section.GetFormats()[15]);
+  ASSERT_EQ("119", video_section.GetFormats()[16]);
 
   // Validate rtpmap
   ASSERT_TRUE(video_attrs.HasAttribute(SdpAttribute::kRtpmapAttribute));
@@ -3675,6 +3692,8 @@ TEST_F(JsepSessionTest, ValidateNoFmtpLineForRedInOfferAndAnswer) {
   ASSERT_TRUE(rtpmaps.HasEntry("106"));
   ASSERT_TRUE(rtpmaps.HasEntry("103"));
   ASSERT_TRUE(rtpmaps.HasEntry("104"));
+  ASSERT_TRUE(rtpmaps.HasEntry("99"));
+  ASSERT_TRUE(rtpmaps.HasEntry("100"));
   ASSERT_TRUE(rtpmaps.HasEntry("123"));
   ASSERT_TRUE(rtpmaps.HasEntry("122"));
   ASSERT_TRUE(rtpmaps.HasEntry("119"));
@@ -3683,7 +3702,7 @@ TEST_F(JsepSessionTest, ValidateNoFmtpLineForRedInOfferAndAnswer) {
   ASSERT_TRUE(video_attrs.HasAttribute(SdpAttribute::kFmtpAttribute));
   auto& fmtps = video_attrs.GetFmtp().mFmtps;
 
-  ASSERT_EQ(13U, fmtps.size());
+  ASSERT_EQ(14U, fmtps.size());
   ASSERT_EQ("126", fmtps[0].format);
   ASSERT_EQ("97", fmtps[1].format);
   ASSERT_EQ("105", fmtps[2].format);
@@ -3696,7 +3715,8 @@ TEST_F(JsepSessionTest, ValidateNoFmtpLineForRedInOfferAndAnswer) {
   ASSERT_EQ("98", fmtps[9].format);
   ASSERT_EQ("106", fmtps[10].format);
   ASSERT_EQ("104", fmtps[11].format);
-  ASSERT_EQ("119", fmtps[12].format);
+  ASSERT_EQ("100", fmtps[12].format);
+  ASSERT_EQ("119", fmtps[13].format);
 
   SetLocalAnswer(answer);
   SetRemoteAnswer(answer);
@@ -3707,12 +3727,12 @@ TEST_F(JsepSessionTest, ValidateNoFmtpLineForRedInOfferAndAnswer) {
   ASSERT_FALSE(IsNull(offerTransceivers[1].mRecvTrack));
   ASSERT_TRUE(offerTransceivers[1].mSendTrack.GetNegotiatedDetails());
   ASSERT_TRUE(offerTransceivers[1].mRecvTrack.GetNegotiatedDetails());
-  ASSERT_EQ(8U, offerTransceivers[1]
+  ASSERT_EQ(9U, offerTransceivers[1]
                     .mSendTrack.GetNegotiatedDetails()
                     ->GetEncoding(0)
                     .GetCodecs()
                     .size());
-  ASSERT_EQ(8U, offerTransceivers[1]
+  ASSERT_EQ(9U, offerTransceivers[1]
                     .mRecvTrack.GetNegotiatedDetails()
                     ->GetEncoding(0)
                     .GetCodecs()
@@ -3724,12 +3744,12 @@ TEST_F(JsepSessionTest, ValidateNoFmtpLineForRedInOfferAndAnswer) {
   ASSERT_FALSE(IsNull(answerTransceivers[1].mRecvTrack));
   ASSERT_TRUE(answerTransceivers[1].mSendTrack.GetNegotiatedDetails());
   ASSERT_TRUE(answerTransceivers[1].mRecvTrack.GetNegotiatedDetails());
-  ASSERT_EQ(8U, answerTransceivers[1]
+  ASSERT_EQ(9U, answerTransceivers[1]
                     .mSendTrack.GetNegotiatedDetails()
                     ->GetEncoding(0)
                     .GetCodecs()
                     .size());
-  ASSERT_EQ(8U, answerTransceivers[1]
+  ASSERT_EQ(9U, answerTransceivers[1]
                     .mRecvTrack.GetNegotiatedDetails()
                     ->GetEncoding(0)
                     .GetCodecs()
