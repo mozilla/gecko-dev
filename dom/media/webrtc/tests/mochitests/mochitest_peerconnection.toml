@@ -68,6 +68,9 @@ prefs = [
 
 ["test_peerConnection_audioSynchronizationSourcesUnidirectional.html"]
 
+["test_peerConnection_basicAV1Video.html"]
+skip-if = ["os == 'android' && is_emulator"]  # No AV1 support on android emulator
+
 ["test_peerConnection_basicAudio.html"]
 
 ["test_peerConnection_basicAudioDynamicPtMissingRtpmap.html"]

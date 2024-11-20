@@ -458,15 +458,35 @@ function setupEnvironment() {
 
 // [TODO] remove after bug 1509012 is fixed.
 async function matchPlatformH264CodecPrefs() {
-  const hasHW264Enc =
+  // Has hardware H.264 encoder support
+  const hardware =
     SpecialPowers.getIntPref("media.webrtc.encoder_creation_strategy") == 1 &&
     (navigator.userAgent.includes("Android") ||
       navigator.userAgent.includes("Mac OS X"));
 
   await pushPrefs(
-    ["media.webrtc.encoder_creation_strategy", hasHW264Enc ? 1 : 0],
-    ["media.navigator.mediadatadecoder_h264_enabled", hasHW264Enc]
+    ["media.webrtc.encoder_creation_strategy", hardware ? 1 : 0],
+    ["media.navigator.mediadatadecoder_h264_enabled", hardware]
   );
+
+  const software = !navigator.userAgent.includes("Android");
+  return {
+    hardware,
+    software,
+    any: hardware || software,
+  };
+}
+
+async function matchPlatformAV1CodecPrefs() {
+  // Has hardware AV1 encoder support
+  const hardware = false;
+  const software = !navigator.userAgent.includes("Android");
+  await pushPrefs(["media.webrtc.codec.video.av1.enabled", software]);
+  return {
+    hardware,
+    software,
+    any: hardware || software,
+  };
 }
 
 async function runTestWhenReady(testFunc) {
