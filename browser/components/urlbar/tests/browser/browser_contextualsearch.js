@@ -170,10 +170,7 @@ add_task(async function test_selectContextualSearchResult_not_installed() {
   EventUtils.synthesizeKey("KEY_Enter");
   await onLoad;
 
-  await UrlbarTestUtils.assertSearchMode(window, {
-    engineName: "Foo",
-    entry: "other",
-  });
+  await UrlbarTestUtils.assertSearchMode(window, null);
 
   Assert.equal(
     gBrowser.selectedBrowser.currentURI.spec,

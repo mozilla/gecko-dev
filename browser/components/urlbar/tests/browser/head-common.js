@@ -177,3 +177,11 @@ async function installPersistTestEngines(globalDefault = "Example") {
     persistSandbox.restore();
   };
 }
+
+async function resetApplicationProvidedEngines() {
+  let settingsWritten = SearchTestUtils.promiseSearchNotification(
+    "write-settings-to-disk-complete"
+  );
+  await SearchTestUtils.updateRemoteSettingsConfig();
+  await settingsWritten;
+}

@@ -617,7 +617,7 @@ export class UrlbarInput {
     } else if (dueToTabSwitch && !valid) {
       // If we're switching tabs, restore the tab's search mode.
       this.restoreSearchModeState();
-    } else if (valid && this.#shouldExitSearchMode(uri)) {
+    } else if (valid) {
       // If the URI is valid, exit search mode.  This must happen
       // after setting proxystate above because search mode depends on it.
       this.searchMode = null;
@@ -2514,26 +2514,6 @@ export class UrlbarInput {
     this.inputField.dispatchEvent(event);
 
     return val;
-  }
-
-  #shouldExitSearchMode(uri) {
-    if (
-      !lazy.UrlbarPrefs.getScotchBonnetPref("scotchBonnet.persistSearchMode")
-    ) {
-      return true;
-    }
-
-    if (this.searchMode?.engineName) {
-      let engine = Services.search.getEngineByName(this.searchMode.engineName);
-      // If the host we are navigating to matches the host of the current
-      // searchModes engine host then persist searchMode.
-      try {
-        return uri.host != engine.searchUrlDomain;
-      } catch (e) {
-        // Accessing .host will throw on about pages.
-      }
-    }
-    return true;
   }
 
   /**

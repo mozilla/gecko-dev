@@ -530,13 +530,13 @@ add_task(async function test_suggestions_after_no_search_mode() {
 });
 
 add_task(async function open_engine_page_directly() {
-  await SearchTestUtils.installSearchExtension(
+  let searchExtension = await SearchTestUtils.installSearchExtension(
     {
       name: "MozSearch",
       search_url: "https://example.com/",
       favicon_url: "https://example.com/favicon.ico",
     },
-    { setAsDefault: true }
+    { setAsDefault: true, skipUnload: true }
   );
 
   const TEST_DATA = [
@@ -602,18 +602,13 @@ add_task(async function open_engine_page_directly() {
     await pageLoaded;
     Assert.ok(true, "The popup was hidden and expected page was loaded");
 
-    info("Search mode also be changed");
-    await UrlbarTestUtils.assertSearchMode(newWin, {
-      engineName: "MozSearch",
-      isGeneralPurposeEngine: false,
-      isPreview: true,
-      entry: "searchbutton",
-    });
+    await UrlbarTestUtils.assertSearchMode(newWin, null);
 
     // Cleanup.
     await PlacesUtils.history.clear();
     await BrowserTestUtils.closeWindow(newWin);
   }
+  await searchExtension.unload();
 });
 
 add_task(async function test_enter_searchmode_by_key_if_single_result() {
@@ -1157,4 +1152,30 @@ add_task(async function test_search_mode_switcher_engine_no_icon() {
   await UrlbarTestUtils.assertSearchMode(window, null);
 
   await searchExtension.unload();
+});
+
+add_task(async function test_search_mode_app_provided_engines() {
+  let cleanup = await installPersistTestEngines();
+
+  let popup = await UrlbarTestUtils.openSearchModeSwitcher(window);
+
+  info("Press on the example menu button and enter search mode");
+  let popupHidden = UrlbarTestUtils.searchModeSwitcherPopupClosed(window);
+  popup.querySelector("toolbarbutton[label=Example]").click();
+
+  await popupHidden;
+
+  info("Search mode also be changed");
+  await UrlbarTestUtils.assertSearchMode(window, {
+    engineName: "Example",
+    entry: "searchbutton",
+    source: 3,
+  });
+
+  info("Press the close button and escape search mode");
+  window.document.querySelector("#searchmode-switcher-close").click();
+  await UrlbarTestUtils.assertSearchMode(window, null);
+
+  cleanup();
+  await resetApplicationProvidedEngines();
 });
