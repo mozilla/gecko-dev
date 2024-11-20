@@ -1775,7 +1775,7 @@
      *   Operands: uint8_t kind
      *   Stack: => %BuiltinObject%
      */ \
-    MACRO(BuiltinObject, builtin_object, NULL, 2, 0, 1, JOF_UINT8) \
+    MACRO(BuiltinObject, builtin_object, NULL, 2, 0, 1, JOF_UINT8|JOF_IC) \
     /*
      * Invoke `callee` with `this` and `args`, and push the return value. Throw
      * a TypeError if `callee` isn't a function.

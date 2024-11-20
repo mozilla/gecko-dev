@@ -7762,16 +7762,10 @@ PBIResult PortableBaselineInterpret(
       }
 
       CASE(BuiltinObject) {
-        auto kind = BuiltinObjectKind(GET_UINT8(pc));
-        JSObject* builtin;
-        {
-          PUSH_EXIT_FRAME();
-          builtin = BuiltinObjectOperation(cx, kind);
-          if (!builtin) {
-            GOTO_ERROR();
-          }
-        }
-        VIRTPUSH(StackVal(ObjectValue(*builtin)));
+        IC_ZERO_ARG(0);
+        IC_ZERO_ARG(1);
+        IC_ZERO_ARG(2);
+        INVOKE_IC_AND_PUSH(LazyConstant, false);
         END_OP(BuiltinObject);
       }
 

@@ -6376,30 +6376,15 @@ bool BaselineCodeGen<Handler>::emit_InitHomeObject() {
   return true;
 }
 
-template <>
-bool BaselineCompilerCodeGen::emit_BuiltinObject() {
-  // Built-in objects are constants for a given global.
-  auto kind = BuiltinObjectKind(GET_UINT8(handler.pc()));
-  JSObject* builtin = BuiltinObjectOperation(cx, kind);
-  if (!builtin) {
-    return false;
-  }
-  frame.push(ObjectValue(*builtin));
-  return true;
-}
+template <typename Handler>
+bool BaselineCodeGen<Handler>::emit_BuiltinObject() {
+  frame.syncStack(0);
 
-template <>
-bool BaselineInterpreterCodeGen::emit_BuiltinObject() {
-  prepareVMCall();
-
-  pushUint8BytecodeOperandArg(R0.scratchReg());
-
-  using Fn = JSObject* (*)(JSContext*, BuiltinObjectKind);
-  if (!callVM<Fn, BuiltinObjectOperation>()) {
+  if (!emitNextIC()) {
     return false;
   }
 
-  masm.tagValue(JSVAL_TYPE_OBJECT, ReturnReg, R0);
+  // Mark R0 as pushed stack value.
   frame.push(R0);
   return true;
 }

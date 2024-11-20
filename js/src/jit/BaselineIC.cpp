@@ -333,6 +333,7 @@ class MOZ_STATIC_CLASS OpToFallbackKindTable {
     setKind(JSOp::BindUnqualifiedGName, BaselineICFallbackKind::BindName);
 
     setKind(JSOp::GetIntrinsic, BaselineICFallbackKind::LazyConstant);
+    setKind(JSOp::BuiltinObject, BaselineICFallbackKind::LazyConstant);
 
     setKind(JSOp::Call, BaselineICFallbackKind::Call);
     setKind(JSOp::CallContent, BaselineICFallbackKind::Call);
@@ -1246,13 +1247,22 @@ bool DoLazyConstantFallback(JSContext* cx, BaselineFrame* frame,
 
   RootedScript script(cx, frame->script());
   jsbytecode* pc = StubOffsetToPc(stub, script);
-  mozilla::DebugOnly<JSOp> op = JSOp(*pc);
+  JSOp op = JSOp(*pc);
   FallbackICSpew(cx, stub, "LazyConstant(%s)", CodeName(JSOp(*pc)));
 
-  MOZ_ASSERT(op == JSOp::GetIntrinsic);
+  MOZ_ASSERT(op == JSOp::GetIntrinsic || op == JSOp::BuiltinObject);
 
-  if (!GetIntrinsicOperation(cx, script, pc, res)) {
-    return false;
+  if (op == JSOp::GetIntrinsic) {
+    if (!GetIntrinsicOperation(cx, script, pc, res)) {
+      return false;
+    }
+  } else if (op == JSOp::BuiltinObject) {
+    auto kind = BuiltinObjectKind(GET_UINT8(pc));
+    JSObject* builtinObject = BuiltinObjectOperation(cx, kind);
+    if (!builtinObject) {
+      return false;
+    }
+    res.setObject(*builtinObject);
   }
 
   TryAttachStub<LazyConstantIRGenerator>("LazyConstant", cx, frame, stub, res);
