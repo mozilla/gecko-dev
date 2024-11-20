@@ -52,8 +52,10 @@ export var UpdatePing = {
    *
    * @param {String} aPreviousVersion The browser version we updated from.
    * @param {String} aPreviousBuildId The browser build id we updated from.
+   * @param {String} progress An object to measure the progress of handleUpdateSuccess
+   *                          to provide to the shutdown blocker (Bug 1917651)
    */
-  async handleUpdateSuccess(aPreviousVersion, aPreviousBuildId) {
+  async handleUpdateSuccess(aPreviousVersion, aPreviousBuildId, progress) {
     if (!this._enabled) {
       return;
     }
@@ -74,6 +76,8 @@ export var UpdatePing = {
       ? await updateManager.updateInstalledAtStartup()
       : null;
 
+    progress.updateFetched = true;
+
     const payload = {
       reason: "success",
       previousChannel: update ? update.channel : null,
@@ -84,16 +88,19 @@ export var UpdatePing = {
     const options = {
       addClientId: true,
       addEnvironment: true,
-      usePingSender: false,
+      usePingSender: true,
     };
+
+    progress.payloadCreated = true;
 
     lazy.TelemetryController.submitExternalPing(
       PING_TYPE,
       payload,
       options
-    ).catch(e =>
-      this._log.error("handleUpdateSuccess - failed to submit update ping", e)
-    );
+    ).catch(e => {
+      progress.pingFailed = true;
+      this._log.error("handleUpdateSuccess - failed to submit update ping", e);
+    });
   },
 
   /**

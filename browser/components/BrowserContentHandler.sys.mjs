@@ -8,6 +8,7 @@ import { XPCOMUtils } from "resource://gre/modules/XPCOMUtils.sys.mjs";
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
+  AsyncShutdown: "resource://gre/modules/AsyncShutdown.sys.mjs",
   BrowserWindowTracker: "resource:///modules/BrowserWindowTracker.sys.mjs",
   FirstStartup: "resource://gre/modules/FirstStartup.sys.mjs",
   HeadlessShell: "resource:///modules/HeadlessShell.sys.mjs",
@@ -806,6 +807,13 @@ nsBrowserContentHandler.prototype = {
         "unknown"
       );
       override = needHomepageOverride();
+      // An object to measure the progress of handleUpdateSuccess
+      let progress = {
+        updateFetched: false,
+        payloadCreated: false,
+        pingFailed: false,
+      };
+
       if (override != OVERRIDE_NONE) {
         switch (override) {
           case OVERRIDE_NEW_PROFILE:
@@ -951,26 +959,50 @@ nsBrowserContentHandler.prototype = {
             // Only do this if the update is installed right now.
             // The following code is ran asynchronously, but we won't await on it
             // since the user may be still waiting for the browser to start up at this point.
-            lazy.UpdateManager.updateInstalledAtStartup().then(
-              async updateInstalledAtStartup => {
-                if (updateInstalledAtStartup) {
-                  await lazy.UpdatePing.handleUpdateSuccess(
-                    old_mstone,
-                    old_buildId
-                  );
+            let handleUpdateSuccessTask =
+              lazy.UpdateManager.updateInstalledAtStartup().then(
+                async updateInstalledAtStartup => {
+                  if (updateInstalledAtStartup) {
+                    await lazy.UpdatePing.handleUpdateSuccess(
+                      old_mstone,
+                      old_buildId,
+                      progress
+                    );
+                  }
                 }
-              }
+              );
+
+            // Adding a shutdown blocker to ensure the
+            // update ping will be sent before Firefox exits.
+            lazy.AsyncShutdown.profileBeforeChange.addBlocker(
+              "BrowserContentHandler: running handleUpdateSuccess",
+              handleUpdateSuccessTask,
+              { fetchState: () => ({ progress }) }
             );
 
             overridePage = overridePage.replace("%OLD_VERSION%", old_mstone);
             break;
           }
           case OVERRIDE_NEW_BUILD_ID: {
+            // We must spin the events loop because `getFirstWindowArgs` cannot be
+            // easily made asynchronous, having too many synchronous callers. Additionally
+            // we must know the value of `updateInstalledAtStartup` immediately,
+            // in order to properly enable `lazy.LaterRun`, that will be invoked shortly after this.
             let updateInstalledAtStartup = spinForUpdateInstalledAtStartup();
+
             if (updateInstalledAtStartup) {
-              // Send the update ping to signal that the update was successful.
-              // This is asynchronous, but we are just going to kick it off because we can't easily `await` on it here.
-              lazy.UpdatePing.handleUpdateSuccess(old_mstone, old_buildId);
+              let handleUpdateSuccessTask = lazy.UpdatePing.handleUpdateSuccess(
+                old_mstone,
+                old_buildId,
+                progress
+              );
+
+              lazy.AsyncShutdown.profileBeforeChange.addBlocker(
+                "BrowserContentHandler: running handleUpdateSuccess",
+                handleUpdateSuccessTask,
+                { fetchState: () => ({ progress }) }
+              );
+
               lazy.LaterRun.enable(lazy.LaterRun.ENABLE_REASON_UPDATE_APPLIED);
             }
             break;
