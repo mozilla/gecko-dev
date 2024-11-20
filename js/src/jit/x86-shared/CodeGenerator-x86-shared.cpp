@@ -3065,6 +3065,10 @@ static int ScanConstant(const T* lanes, int v, int i) {
 // Apply a transformation to each lane value.
 template <typename T>
 static void MapLanes(T* result, const T* input, int (*f)(int)) {
+  // Hazard analysis trips on "IndirectCall: f" error.
+  // Suppress the check -- `f` is expected to be trivial here.
+  JS::AutoSuppressGCAnalysis nogc;
+
   int len = int(16 / sizeof(T));
   for (int i = 0; i < len; i++) {
     result[i] = f(input[i]);
