@@ -59,48 +59,8 @@ using UniqueCompileInfoVector = Vector<UniqueCompileInfo, 1, SystemAllocPolicy>;
 
 using BlockVector = Vector<MBasicBlock*, 8, SystemAllocPolicy>;
 using DefVector = Vector<MDefinition*, 8, SystemAllocPolicy>;
-
-// To compile try-catch blocks, we extend the IonCompilePolicy's ControlItem
-// from being just an MBasicBlock* to a Control structure collecting additional
-// information.
 using ControlInstructionVector =
     Vector<MControlInstruction*, 8, SystemAllocPolicy>;
-
-struct TryControl {
-  // Branches to bind to the try's landing pad.
-  ControlInstructionVector landingPadPatches;
-  // For `try_table`, the list of tagged catches and labels to branch to.
-  TryTableCatchVector catches;
-  // The pending exception for the try's landing pad.
-  MDefinition* pendingException;
-  // The pending exception's tag for the try's landing pad.
-  MDefinition* pendingExceptionTag;
-  // Whether this try is in the body and should catch any thrown exception.
-  bool inBody;
-
-  TryControl()
-      : pendingException(nullptr),
-        pendingExceptionTag(nullptr),
-        inBody(false) {}
-
-  // Reset the try control for when it is cached in FunctionCompiler.
-  void reset() {
-    landingPadPatches.clearAndFree();
-    catches.clearAndFree();
-    inBody = false;
-  }
-};
-using UniqueTryControl = UniquePtr<TryControl>;
-using VectorUniqueTryControl = Vector<UniqueTryControl, 2, SystemAllocPolicy>;
-
-struct Control {
-  MBasicBlock* block;
-  UniqueTryControl tryControl;
-
-  Control() : block(nullptr), tryControl(nullptr) {}
-  Control(Control&&) = default;
-  Control(const Control&) = delete;
-};
 
 // [SMDOC] WebAssembly Exception Handling in Ion
 // =======================================================
@@ -193,6 +153,106 @@ struct Control {
 //      the next block to be created in the landing pad sequence. The final
 //      block will either be a rethrow, if there is no catch_all, or else a
 //      jump to a catch_all block.
+
+struct TryControl {
+  // Branches to bind to the try's landing pad.
+  ControlInstructionVector landingPadPatches;
+  // For `try_table`, the list of tagged catches and labels to branch to.
+  TryTableCatchVector catches;
+  // The pending exception for the try's landing pad.
+  MDefinition* pendingException;
+  // The pending exception's tag for the try's landing pad.
+  MDefinition* pendingExceptionTag;
+  // Whether this try is in the body and should catch any thrown exception.
+  bool inBody;
+
+  TryControl()
+      : pendingException(nullptr),
+        pendingExceptionTag(nullptr),
+        inBody(false) {}
+
+  // Reset the try control for when it is cached in FunctionCompiler.
+  void reset() {
+    landingPadPatches.clearAndFree();
+    catches.clearAndFree();
+    inBody = false;
+  }
+};
+using UniqueTryControl = UniquePtr<TryControl>;
+using VectorUniqueTryControl = Vector<UniqueTryControl, 2, SystemAllocPolicy>;
+
+struct ControlFlowPatch {
+  MControlInstruction* ins;
+  uint32_t index;
+  ControlFlowPatch(MControlInstruction* ins, uint32_t index)
+      : ins(ins), index(index) {}
+};
+
+using ControlFlowPatchVector = Vector<ControlFlowPatch, 0, SystemAllocPolicy>;
+
+struct PendingBlockTarget {
+  ControlFlowPatchVector patches;
+  BranchHint hint = BranchHint::Invalid;
+};
+
+using PendingBlockTargetVector =
+    Vector<PendingBlockTarget, 0, SystemAllocPolicy>;
+
+// Inlined functions accumulate all returns to be bound to a caller function
+// after compilation is finished.
+struct PendingInlineReturn {
+  PendingInlineReturn(MGoto* jump, DefVector&& results)
+      : jump(jump), results(std::move(results)) {}
+
+  MGoto* jump;
+  DefVector results;
+};
+
+using PendingInlineReturnVector =
+    Vector<PendingInlineReturn, 1, SystemAllocPolicy>;
+
+// CallCompileState describes a call that is being compiled.
+struct CallCompileState {
+  // A generator object that is passed each argument as it is compiled.
+  WasmABIArgGenerator abi;
+
+  // Accumulates the register arguments while compiling arguments.
+  MWasmCallBase::Args regArgs;
+
+  // Reserved argument for passing Instance* to builtin instance method calls.
+  ABIArg instanceArg;
+
+  // The stack area in which the callee will write stack return values, or
+  // nullptr if no stack results.
+  MWasmStackResultArea* stackResultArea = nullptr;
+
+  // Indicates that the call is a return/tail call.
+  bool returnCall = false;
+
+  // The landing pad patches for the nearest enclosing try-catch. This is
+  // non-null iff the call is catchable.
+  ControlInstructionVector* tryLandingPadPatches = nullptr;
+
+  // The index of the try note for a catchable call.
+  uint32_t tryNoteIndex = UINT32_MAX;
+
+  // The block to take for fallthrough execution for a catchable call.
+  MBasicBlock* fallthroughBlock = nullptr;
+
+  // The block to take for exceptional execution for a catchable call.
+  MBasicBlock* prePadBlock = nullptr;
+
+  bool isCatchable() const { return tryLandingPadPatches != nullptr; }
+};
+
+struct Control {
+  MBasicBlock* block;
+  UniqueTryControl tryControl;
+
+  Control() : block(nullptr), tryControl(nullptr) {}
+  Control(Control&&) = default;
+  Control(const Control&) = delete;
+};
 
 struct IonCompilePolicy {
   // We store SSA definitions in the value stack.
@@ -316,69 +376,6 @@ class RootCompiler {
 
 // Encapsulates the generation of MIR for a single function in a wasm module.
 class FunctionCompiler {
-  struct ControlFlowPatch {
-    MControlInstruction* ins;
-    uint32_t index;
-    ControlFlowPatch(MControlInstruction* ins, uint32_t index)
-        : ins(ins), index(index) {}
-  };
-
-  using ControlFlowPatchVector = Vector<ControlFlowPatch, 0, SystemAllocPolicy>;
-
-  struct PendingBlockTarget {
-    ControlFlowPatchVector patches;
-    BranchHint hint = BranchHint::Invalid;
-  };
-
-  using PendingBlockTargetVector =
-      Vector<PendingBlockTarget, 0, SystemAllocPolicy>;
-
-  // Inlined functions accumulate all returns to be bound to a caller function
-  // after compilation is finished.
-  struct PendingInlineReturn {
-    PendingInlineReturn(MGoto* jump, DefVector&& results)
-        : jump(jump), results(std::move(results)) {}
-
-    MGoto* jump;
-    DefVector results;
-  };
-  using PendingInlineReturnVector =
-      Vector<PendingInlineReturn, 1, SystemAllocPolicy>;
-
-  // CallCompileState describes a call that is being compiled.
-  struct CallCompileState {
-    // A generator object that is passed each argument as it is compiled.
-    WasmABIArgGenerator abi;
-
-    // Accumulates the register arguments while compiling arguments.
-    MWasmCallBase::Args regArgs;
-
-    // Reserved argument for passing Instance* to builtin instance method calls.
-    ABIArg instanceArg;
-
-    // The stack area in which the callee will write stack return values, or
-    // nullptr if no stack results.
-    MWasmStackResultArea* stackResultArea = nullptr;
-
-    // Indicates that the call is a return/tail call.
-    bool returnCall = false;
-
-    // The landing pad patches for the nearest enclosing try-catch. This is
-    // non-null iff the call is catchable.
-    ControlInstructionVector* tryLandingPadPatches = nullptr;
-
-    // The index of the try note for a catchable call.
-    uint32_t tryNoteIndex = UINT32_MAX;
-
-    // The block to take for fallthrough execution for a catchable call.
-    MBasicBlock* fallthroughBlock = nullptr;
-
-    // The block to take for exceptional execution for a catchable call.
-    MBasicBlock* prePadBlock = nullptr;
-
-    bool isCatchable() const { return tryLandingPadPatches != nullptr; }
-  };
-
   // The root function compiler we are being compiled within.
   RootCompiler& rootCompiler_;
 
