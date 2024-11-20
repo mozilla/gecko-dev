@@ -474,7 +474,9 @@ void CCGCScheduler::PokeFullGC() {
           // set that we want a full GC we will get one eventually.
           s->SetNeedsFullGC();
           s->SetWantMajorGC(JS::GCReason::FULL_GC_TIMER);
-          if (!s->mHaveAskedParent) {
+          if (s->mCCRunner) {
+            s->EnsureCCThenGC(CCReason::GC_WAITING);
+          } else if (!s->mHaveAskedParent) {
             s->EnsureGCRunner(0);
           }
         },
