@@ -28,6 +28,8 @@
         <item name="android:windowAnimationStyle">@style/WindowAnimationTransition</item>
         <item name="android:progressBarStyleHorizontal">@style/progressBarStyleHorizontal</item>
         <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">?attr/layer1</item>
+        <item name="android:windowTranslucentNavigation">false</item>
         <item name="android:windowBackground">@color/fx_mobile_layer_color_1</item>
         <item name="android:colorEdgeEffect">@color/accent_normal_theme</item>
         <item name="android:colorAccent">@color/fx_mobile_text_color_primary</item>

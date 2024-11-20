@@ -13,7 +13,6 @@ import androidx.annotation.VisibleForTesting
 import androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM
 import androidx.appcompat.app.AppCompatDelegate.NightMode
 import androidx.appcompat.content.res.AppCompatResources.getDrawable
-import androidx.core.content.ContextCompat
 import androidx.core.graphics.drawable.toDrawable
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.cancel
@@ -209,23 +208,15 @@ class CustomTabsToolbarFeature(
             )
         }
 
-        when (customTabsColorsConfig.updateStatusBarColor) {
-            true -> toolbarColor?.let { window?.setStatusBarTheme(it) }
-            false -> window?.setStatusBarTheme(getDefaultSystemBarsColor())
+        if (customTabsColorsConfig.updateStatusBarColor && toolbarColor != null) {
+            window?.setStatusBarTheme(toolbarColor)
         }
 
-        when (customTabsColorsConfig.updateSystemNavigationBarColor) {
-            true -> {
-                // Update navigation bar colors with custom tabs specified ones or keep the current colors.
-                if (navigationBarColor != null || navigationBarDividerColor != null) {
-                    window?.setNavigationBarTheme(navigationBarColor, navigationBarDividerColor)
-                }
-            }
-            false -> window?.setNavigationBarTheme(getDefaultSystemBarsColor())
+        val areNavigationBarColorsAvailable = navigationBarColor != null || navigationBarDividerColor != null
+        if (customTabsColorsConfig.updateSystemNavigationBarColor && areNavigationBarColorsAvailable) {
+            window?.setNavigationBarTheme(navigationBarColor, navigationBarDividerColor)
         }
     }
-
-    private fun getDefaultSystemBarsColor() = ContextCompat.getColor(context, android.R.color.black)
 
     /**
      * Display a close button at the start of the toolbar.
