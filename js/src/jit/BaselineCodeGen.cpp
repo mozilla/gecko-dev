@@ -143,8 +143,7 @@ bool BaselineCompiler::init() {
   return true;
 }
 
-bool BaselineCompilerHandler::recordCallRetAddr(JSContext* cx,
-                                                RetAddrEntry::Kind kind,
+bool BaselineCompilerHandler::recordCallRetAddr(RetAddrEntry::Kind kind,
                                                 uint32_t retOffset) {
   uint32_t pcOffset = script_->pcToOffset(pc_);
 
@@ -159,15 +158,13 @@ bool BaselineCompilerHandler::recordCallRetAddr(JSContext* cx,
                 retAddrEntries_.back().returnOffset().offset() < retOffset);
 
   if (!retAddrEntries_.emplaceBack(pcOffset, kind, CodeOffset(retOffset))) {
-    ReportOutOfMemory(cx);
     return false;
   }
 
   return true;
 }
 
-bool BaselineInterpreterHandler::recordCallRetAddr(JSContext* cx,
-                                                   RetAddrEntry::Kind kind,
+bool BaselineInterpreterHandler::recordCallRetAddr(RetAddrEntry::Kind kind,
                                                    uint32_t retOffset) {
   switch (kind) {
     case RetAddrEntry::Kind::DebugPrologue:
@@ -193,12 +190,8 @@ bool BaselineInterpreterHandler::recordCallRetAddr(JSContext* cx,
 }
 
 bool BaselineInterpreterHandler::addDebugInstrumentationOffset(
-    JSContext* cx, CodeOffset offset) {
-  if (!debugInstrumentationOffsets_.append(offset.offset())) {
-    ReportOutOfMemory(cx);
-    return false;
-  }
-  return true;
+    CodeOffset offset) {
+  return debugInstrumentationOffsets_.append(offset.offset());
 }
 
 MethodStatus BaselineCompiler::compile() {
@@ -251,22 +244,23 @@ MethodStatus BaselineCompiler::compile() {
 
   perfSpewer_.recordOffset(masm, "Prologue");
   if (!emitPrologue()) {
+    ReportOutOfMemory(cx);
     return Method_Error;
   }
 
   if (!emitBody()) {
+    ReportOutOfMemory(cx);
     return Method_Error;
   }
 
   perfSpewer_.recordOffset(masm, "Epilogue");
   if (!emitEpilogue()) {
+    ReportOutOfMemory(cx);
     return Method_Error;
   }
 
   perfSpewer_.recordOffset(masm, "OOLPostBarrierSlot");
-  if (!emitOutOfLinePostBarrierSlot()) {
-    return Method_Error;
-  }
+  emitOutOfLinePostBarrierSlot();
 
   AutoCreatedBy acb2(masm, "exception_tail");
   Linker linker(masm);
@@ -518,12 +512,12 @@ void BaselineInterpreterCodeGen::emitInitializeLocals() {
 // This calls:
 //    void PostWriteBarrier(JSRuntime* rt, JSObject* obj);
 template <typename Handler>
-bool BaselineCodeGen<Handler>::emitOutOfLinePostBarrierSlot() {
+void BaselineCodeGen<Handler>::emitOutOfLinePostBarrierSlot() {
   AutoCreatedBy acb(masm,
                     "BaselineCodeGen<Handler>::emitOutOfLinePostBarrierSlot");
 
   if (!postBarrierSlot_.used()) {
-    return true;
+    return;
   }
 
   masm.bind(&postBarrierSlot_);
@@ -563,7 +557,6 @@ bool BaselineCodeGen<Handler>::emitOutOfLinePostBarrierSlot() {
 
   masm.bind(&skipBarrier);
   masm.ret();
-  return true;
 }
 
 // Scan the a cache IR stub's fields and create an allocation site for any that
@@ -661,7 +654,6 @@ bool BaselineCompilerCodeGen::emitNextIC() {
 
   RetAddrEntry::Kind kind = RetAddrEntry::Kind::IC;
   if (!handler.retAddrEntries().emplaceBack(pcOffset, kind, returnOffset)) {
-    ReportOutOfMemory(cx);
     return false;
   }
 
@@ -785,7 +777,7 @@ bool BaselineCodeGen<Handler>::callVMInternal(VMFunctionId id,
 
   restoreInterpreterPCReg();
 
-  return handler.recordCallRetAddr(cx, kind, callOffset);
+  return handler.recordCallRetAddr(kind, callOffset);
 }
 
 template <typename Handler>
@@ -861,7 +853,7 @@ bool BaselineInterpreterCodeGen::emitIsDebuggeeCheck() {
     restoreInterpreterPCReg();
   }
   masm.bind(&skipCheck);
-  return handler.addDebugInstrumentationOffset(cx, toggleOffset);
+  return handler.addDebugInstrumentationOffset(toggleOffset);
 }
 
 static void MaybeIncrementCodeCoverageCounter(MacroAssembler& masm,
@@ -1423,7 +1415,6 @@ bool BaselineCompilerCodeGen::emitWarmUpCounterIncrement() {
     uint32_t pcOffset = script->pcToOffset(pc);
     uint32_t nativeOffset = masm.currentOffset();
     if (!handler.osrEntries().emplaceBack(pcOffset, nativeOffset)) {
-      ReportOutOfMemory(cx);
       return false;
     }
   }
@@ -1661,12 +1652,11 @@ bool BaselineCompiler::emitDebugTrap() {
 
   uint32_t pcOffset = script->pcToOffset(handler.pc());
   if (!debugTrapEntries_.emplaceBack(pcOffset, nativeOffset.offset())) {
-    ReportOutOfMemory(cx);
     return false;
   }
 
   // Add a RetAddrEntry for the return offset -> pc mapping.
-  return handler.recordCallRetAddr(cx, RetAddrEntry::Kind::DebugTrap,
+  return handler.recordCallRetAddr(RetAddrEntry::Kind::DebugTrap,
                                    masm.currentOffset());
 }
 
@@ -4707,7 +4697,7 @@ template <typename F1, typename F2>
   Label isNotDebuggee, done;
 
   CodeOffset toggleOffset = masm.toggledJump(&isNotDebuggee);
-  if (!handler.addDebugInstrumentationOffset(cx, toggleOffset)) {
+  if (!handler.addDebugInstrumentationOffset(toggleOffset)) {
     return false;
   }
 
@@ -5862,7 +5852,7 @@ bool BaselineInterpreterCodeGen::emitAfterYieldDebugInstrumentation(
   // If the current Realm is not a debuggee we're done.
   Label done;
   CodeOffset toggleOffset = masm.toggledJump(&done);
-  if (!handler.addDebugInstrumentationOffset(cx, toggleOffset)) {
+  if (!handler.addDebugInstrumentationOffset(toggleOffset)) {
     return false;
   }
   masm.loadPtr(AbsoluteAddress(runtime->addressOfRealm()), scratch);
@@ -6085,7 +6075,7 @@ bool BaselineCodeGen<Handler>::emit_Resume() {
 #endif
 
   // Record the return address so the return offset -> pc mapping works.
-  if (!handler.recordCallRetAddr(cx, RetAddrEntry::Kind::IC,
+  if (!handler.recordCallRetAddr(RetAddrEntry::Kind::IC,
                                  masm.currentOffset())) {
     return false;
   }
@@ -6620,7 +6610,6 @@ bool BaselineCompiler::emitBody() {
       uint32_t pcOffset = script->pcToOffset(handler.pc());
       uint32_t nativeOffset = masm.currentOffset();
       if (!resumeOffsetEntries_.emplaceBack(pcOffset, nativeOffset)) {
-        ReportOutOfMemory(cx);
         return false;
       }
     }
@@ -6666,7 +6655,6 @@ bool BaselineCompiler::emitBody() {
 bool BaselineInterpreterGenerator::emitDebugTrap() {
   CodeOffset offset = masm.nopPatchableToCall();
   if (!debugTrapOffsets_.append(offset.offset())) {
-    ReportOutOfMemory(cx);
     return false;
   }
 
@@ -6870,23 +6858,24 @@ bool BaselineInterpreterGenerator::generate(BaselineInterpreter& interpreter) {
 
   perfSpewer_.recordOffset(masm, "Prologue");
   if (!emitPrologue()) {
+    ReportOutOfMemory(cx);
     return false;
   }
 
   perfSpewer_.recordOffset(masm, "InterpreterLoop");
   if (!emitInterpreterLoop()) {
+    ReportOutOfMemory(cx);
     return false;
   }
 
   perfSpewer_.recordOffset(masm, "Epilogue");
   if (!emitEpilogue()) {
+    ReportOutOfMemory(cx);
     return false;
   }
 
   perfSpewer_.recordOffset(masm, "OOLPostBarrierSlot");
-  if (!emitOutOfLinePostBarrierSlot()) {
-    return false;
-  }
+  emitOutOfLinePostBarrierSlot();
 
   perfSpewer_.recordOffset(masm, "OOLCodeCoverageInstrumentation");
   emitOutOfLineCodeCoverageInstrumentation();

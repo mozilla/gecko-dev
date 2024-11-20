@@ -253,7 +253,6 @@ class BaselineCodeGen {
 
   [[nodiscard]] bool emitPrologue();
   [[nodiscard]] bool emitEpilogue();
-  [[nodiscard]] bool emitOutOfLinePostBarrierSlot();
   [[nodiscard]] bool emitStackCheck();
   [[nodiscard]] bool emitDebugPrologue();
   [[nodiscard]] bool emitDebugEpilogue();
@@ -268,6 +267,8 @@ class BaselineCodeGen {
 
   void emitProfilerEnterFrame();
   void emitProfilerExitFrame();
+
+  void emitOutOfLinePostBarrierSlot();
 };
 
 using RetAddrEntryVector = js::Vector<RetAddrEntry, 16, SystemAllocPolicy>;
@@ -350,7 +351,7 @@ class BaselineCompilerHandler {
   RetAddrEntryVector& retAddrEntries() { return retAddrEntries_; }
   OSREntryVector& osrEntries() { return osrEntries_; }
 
-  [[nodiscard]] bool recordCallRetAddr(JSContext* cx, RetAddrEntry::Kind kind,
+  [[nodiscard]] bool recordCallRetAddr(RetAddrEntry::Kind kind,
                                        uint32_t retOffset);
 
   // If a script has more |nslots| than this the stack check must account
@@ -474,14 +475,13 @@ class BaselineInterpreterHandler {
     return false;
   }
 
-  [[nodiscard]] bool addDebugInstrumentationOffset(JSContext* cx,
-                                                   CodeOffset offset);
+  [[nodiscard]] bool addDebugInstrumentationOffset(CodeOffset offset);
 
   const BaselineInterpreter::CallVMOffsets& callVMOffsets() const {
     return callVMOffsets_;
   }
 
-  [[nodiscard]] bool recordCallRetAddr(JSContext* cx, RetAddrEntry::Kind kind,
+  [[nodiscard]] bool recordCallRetAddr(RetAddrEntry::Kind kind,
                                        uint32_t retOffset);
 
   bool maybeIonCompileable() const { return true; }
