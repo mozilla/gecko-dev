@@ -1993,6 +1993,113 @@ MOZ_RUNINIT const std::vector<std::string> kBasicAudioVideoOfferLines = {
     "a=msid:noappdata",
     "a=bundle-only"};
 
+// SDP from a basic A/V apprtc call FFX/FFX
+MOZ_RUNINIT const std::vector<std::string> kBasicAV1AudioVideoOfferLines = {
+    "v=0",
+    "o=Mozilla-SIPUA-35.0a1 5184 0 IN IP4 0.0.0.0",
+    "s=SIP Call",
+    "c=IN IP4 224.0.0.1/100/12",
+    "t=0 0",
+    "a=dtls-message:client " BASE64_DTLS_HELLO,
+    "a=ice-ufrag:4a799b2e",
+    "a=ice-pwd:e4cc12a910f106a0a744719425510e17",
+    "a=ice-lite",
+    "a=ice-options:trickle foo",
+    "a=msid-semantic:WMS stream streama",
+    "a=msid-semantic:foo stream",
+    "a=fingerprint:sha-256 "
+    "DF:2E:AC:8A:FD:0A:8E:99:BF:5D:E8:3C:E7:FA:FB:08:3B:3C:54:1D:D7:D4:05:77:"
+    "A0:72:9B:14:08:6D:0F:4C",
+    "a=identity:" LONG_IDENTITY,
+    "a=group:BUNDLE first second",
+    "a=group:BUNDLE third",
+    "a=group:LS first third",
+    "m=audio 9 RTP/SAVPF 109 9 0 8 101",
+    "c=IN IP4 0.0.0.0",
+    "a=mid:first",
+    "a=rtpmap:109 opus/48000/2",
+    "a=fmtp:109 maxplaybackrate=32000;stereo=1",
+    "a=ptime:20",
+    "a=maxptime:20",
+    "a=rtpmap:9 G722/8000",
+    "a=rtpmap:0 PCMU/8000",
+    "a=rtpmap:8 PCMA/8000",
+    "a=rtpmap:101 telephone-event/8000",
+    "a=fmtp:101 0-15,66,32-34,67",
+    "a=ice-ufrag:00000000",
+    "a=ice-pwd:0000000000000000000000000000000",
+    "a=sendonly",
+    "a=extmap:1 urn:ietf:params:rtp-hdrext:ssrc-audio-level",
+    "a=setup:actpass",
+    "a=rtcp-mux",
+    "a=msid:stream track",
+    "a=candidate:0 1 UDP 2130379007 10.0.0.36 62453 typ host",
+    "a=candidate:2 1 UDP 1694236671 24.6.134.204 62453 typ srflx raddr "
+    "10.0.0.36 rport 62453",
+    "a=candidate:3 1 UDP 100401151 162.222.183.171 49761 typ relay raddr "
+    "162.222.183.171 rport 49761",
+    "a=candidate:6 1 UDP 16515071 162.222.183.171 51858 typ relay raddr "
+    "162.222.183.171 rport 51858",
+    "a=candidate:3 2 UDP 100401150 162.222.183.171 62454 typ relay raddr "
+    "162.222.183.171 rport 62454",
+    "a=candidate:2 2 UDP 1694236670 24.6.134.204 55428 typ srflx raddr "
+    "10.0.0.36 rport 55428",
+    "a=candidate:6 2 UDP 16515070 162.222.183.171 50340 typ relay raddr "
+    "162.222.183.171 rport 50340",
+    "a=candidate:0 2 UDP 2130379006 10.0.0.36 55428 typ host",
+    "a=rtcp:62454 IN IP4 162.222.183.171",
+    "a=end-of-candidates",
+    "a=ssrc:5150",
+    "m=video 9 RTP/SAVPF 99 122 123",
+    "c=IN IP6 ::1",
+    "a=fingerprint:sha-1 "
+    "DF:FA:FB:08:3B:3C:54:1D:D7:D4:05:77:A0:72:9B:14:08:6D:0F:4C",
+    "a=mid:second",
+    "a=rtpmap:98 AV1/90000",
+    "a=fmtp:98 profile=1;level-idx=1;tier=1;max-fs=3600;max-fr=30",
+    "a=rtpmap:122 red/90000",
+    "a=rtpmap:123 ulpfec/90000",
+    "a=fmtp:122 98/123",
+    "a=recvonly",
+    "a=rtcp-fb:98 nack",
+    "a=rtcp-fb:98 nack pli",
+    "a=rtcp-fb:98 ccm fir",
+    "a=rtcp-fb:121 nack",
+    "a=rtcp-fb:121 nack pli",
+    "a=rtcp-fb:121 ccm fir",
+    "a=setup:active",
+    "a=rtcp-mux",
+    "a=msid:streama tracka",
+    "a=msid:streamb trackb",
+    "a=candidate:0 1 UDP 2130379007 10.0.0.36 59530 typ host",
+    "a=candidate:0 2 UDP 2130379006 10.0.0.36 64378 typ host",
+    "a=candidate:2 2 UDP 1694236670 24.6.134.204 64378 typ srflx raddr "
+    "10.0.0.36 rport 64378",
+    "a=candidate:6 2 UDP 16515070 162.222.183.171 64941 typ relay raddr "
+    "162.222.183.171 rport 64941",
+    "a=candidate:6 1 UDP 16515071 162.222.183.171 64800 typ relay raddr "
+    "162.222.183.171 rport 64800",
+    "a=candidate:2 1 UDP 1694236671 24.6.134.204 59530 typ srflx raddr "
+    "10.0.0.36 rport 59530",
+    "a=candidate:3 1 UDP 100401151 162.222.183.171 62935 typ relay raddr "
+    "162.222.183.171 rport 62935",
+    "a=candidate:3 2 UDP 100401150 162.222.183.171 61026 typ relay raddr "
+    "162.222.183.171 rport 61026",
+    "a=rtcp:61026",
+    "a=end-of-candidates",
+    "a=ssrc:1111 foo",
+    "a=ssrc:1111 foo:bar",
+    "a=ssrc:1111 msid:1d0cdb4e-5934-4f0f-9f88-40392cb60d31 "
+    "315b086a-5cb6-4221-89de-caf0b038c79d",
+    "a=imageattr:120 send * recv *",
+    "a=imageattr:121 send [x=640,y=480] recv [x=640,y=480]",
+    "m=audio 9 RTP/SAVPF 0",
+    "a=mid:third",
+    "a=rtpmap:0 PCMU/8000",
+    "a=ice-options:foo bar",
+    "a=msid:noappdata",
+    "a=bundle-only"};
+
 static std::string joinSdp(const std::vector<std::string>& aSdp,
                            const std::string& aEndl) {
   std::ostringstream result;
@@ -2011,6 +2118,18 @@ MOZ_RUNINIT const std::string kBasicAudioVideoOfferLinefeedOnly =
     joinSdp(kBasicAudioVideoOfferLines, "\n");
 
 TEST_P(NewSdpTest, BasicAudioVideoSdpParse) { ParseSdp(kBasicAudioVideoOffer); }
+
+MOZ_RUNINIT const std::string kAv1AudioVideoOffer =
+    joinSdp(kBasicAudioVideoOfferLines, "\r\n");
+
+MOZ_RUNINIT const std::string kAv1AudioVideoOfferLinefeedOnly =
+    joinSdp(kBasicAudioVideoOfferLines, "\n");
+
+TEST_P(NewSdpTest, Av1AudioVideoSdpParse) { ParseSdp(kAv1AudioVideoOffer); }
+
+TEST_P(NewSdpTest, Av1AudioVideoSdpParseLinefeedOnly) {
+  ParseSdp(kAv1AudioVideoOfferLinefeedOnly);
+}
 
 TEST_P(NewSdpTest, CheckRemoveFmtp) {
   ParseSdp(kBasicAudioVideoOffer);
