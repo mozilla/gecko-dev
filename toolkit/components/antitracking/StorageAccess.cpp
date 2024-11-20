@@ -194,6 +194,8 @@ static StorageAccess InternalStorageAllowedCheck(
   }
 
   // We want to have a partitioned storage only for trackers.
+  // XXX: We should probably remove the check here because this was added for
+  //      partitioned tracker only. This was never shipped.
   if (aRejectedReason ==
           static_cast<uint32_t>(
               nsIWebProgressListener::STATE_COOKIES_BLOCKED_TRACKER) ||
@@ -507,8 +509,9 @@ bool ShouldAllowAccessFor(nsPIDOMWindowInner* aWindow, nsIURI* aURI,
 
   // As a performance optimization, we only perform this check for
   // BEHAVIOR_REJECT_FOREIGN and BEHAVIOR_LIMIT_FOREIGN.  For
-  // BEHAVIOR_REJECT_TRACKER and BEHAVIOR_REJECT_TRACKER_AND_PARTITION_FOREIGN,
-  // third-partiness is implicily checked later below.
+  // BEHAVIOR_REJECT_TRACKER and
+  // BEHAVIOR_REJECT_TRACKER_AND_PARTITION_FOREIGN, third-partiness is
+  // implicily checked later below.
   if (behavior != nsICookieService::BEHAVIOR_REJECT_TRACKER &&
       behavior !=
           nsICookieService::BEHAVIOR_REJECT_TRACKER_AND_PARTITION_FOREIGN) {
@@ -521,10 +524,10 @@ bool ShouldAllowAccessFor(nsPIDOMWindowInner* aWindow, nsIURI* aURI,
 
   if (behavior == nsICookieService::BEHAVIOR_REJECT_FOREIGN ||
       behavior == nsICookieService::BEHAVIOR_LIMIT_FOREIGN) {
-    // XXX For non-cookie forms of storage, we handle BEHAVIOR_LIMIT_FOREIGN by
-    // simply rejecting the request to use the storage. In the future, if we
-    // change the meaning of BEHAVIOR_LIMIT_FOREIGN to be one which makes sense
-    // for non-cookie storage types, this may change.
+    // XXX For non-cookie forms of storage, we handle BEHAVIOR_LIMIT_FOREIGN
+    // by simply rejecting the request to use the storage. In the future, if
+    // we change the meaning of BEHAVIOR_LIMIT_FOREIGN to be one which makes
+    // sense for non-cookie storage types, this may change.
     LOG(("Nothing more to do due to the behavior code %d", int(behavior)));
     *aRejectedReason = nsIWebProgressListener::STATE_COOKIES_BLOCKED_FOREIGN;
     return false;
@@ -563,7 +566,12 @@ bool ShouldAllowAccessFor(nsPIDOMWindowInner* aWindow, nsIURI* aURI,
   } else if (behavior ==
              nsICookieService::BEHAVIOR_REJECT_TRACKER_AND_PARTITION_FOREIGN) {
     if (nsContentUtils::IsThirdPartyTrackingResourceWindow(aWindow)) {
-      // fall through
+      // fall through, but remember that we're partitioned for trackers if
+      // it's instructed by the pref.
+      if (!StaticPrefs::network_cookie_cookieBehavior_trackerCookieBlocking()) {
+        blockedReason =
+            nsIWebProgressListener::STATE_COOKIES_PARTITIONED_FOREIGN;
+      }
     } else if (AntiTrackingUtils::IsThirdPartyWindow(aWindow, aURI)) {
       LOG(("We're in the third-party context, storage should be partitioned"));
       // fall through, but remember that we're partitioning.
@@ -574,7 +582,8 @@ bool ShouldAllowAccessFor(nsPIDOMWindowInner* aWindow, nsIURI* aURI,
     }
   } else {
     MOZ_ASSERT_UNREACHABLE(
-        "This should be an exhaustive list of cookie behaviors possible here.");
+        "This should be an exhaustive list of cookie behaviors possible "
+        "here.");
   }
 
   Document* doc = aWindow->GetExtantDoc();
@@ -705,10 +714,10 @@ bool ShouldAllowAccessFor(nsIChannel* aChannel, nsIURI* aURI,
 
   if (behavior == nsICookieService::BEHAVIOR_REJECT_FOREIGN ||
       behavior == nsICookieService::BEHAVIOR_LIMIT_FOREIGN) {
-    // XXX For non-cookie forms of storage, we handle BEHAVIOR_LIMIT_FOREIGN by
-    // simply rejecting the request to use the storage. In the future, if we
-    // change the meaning of BEHAVIOR_LIMIT_FOREIGN to be one which makes sense
-    // for non-cookie storage types, this may change.
+    // XXX For non-cookie forms of storage, we handle BEHAVIOR_LIMIT_FOREIGN
+    // by simply rejecting the request to use the storage. In the future, if
+    // we change the meaning of BEHAVIOR_LIMIT_FOREIGN to be one which makes
+    // sense for non-cookie storage types, this may change.
     LOG(("Nothing more to do due to the behavior code %d", int(behavior)));
     *aRejectedReason = nsIWebProgressListener::STATE_COOKIES_BLOCKED_FOREIGN;
     return false;
@@ -750,7 +759,12 @@ bool ShouldAllowAccessFor(nsIChannel* aChannel, nsIURI* aURI,
              nsICookieService::BEHAVIOR_REJECT_TRACKER_AND_PARTITION_FOREIGN) {
     if (classifiedChannel &&
         classifiedChannel->IsThirdPartyTrackingResource()) {
-      // fall through
+      // fall through, but remember that we're partitioned for trackers if
+      // it's instructed by the pref.
+      if (!StaticPrefs::network_cookie_cookieBehavior_trackerCookieBlocking()) {
+        blockedReason =
+            nsIWebProgressListener::STATE_COOKIES_PARTITIONED_FOREIGN;
+      }
     } else if (AntiTrackingUtils::IsThirdPartyChannel(aChannel)) {
       LOG(("We're in the third-party context, storage should be partitioned"));
       // fall through but remember that we're partitioning.
@@ -761,7 +775,8 @@ bool ShouldAllowAccessFor(nsIChannel* aChannel, nsIURI* aURI,
     }
   } else {
     MOZ_ASSERT_UNREACHABLE(
-        "This should be an exhaustive list of cookie behaviors possible here.");
+        "This should be an exhaustive list of cookie behaviors possible "
+        "here.");
   }
 
   RefPtr<BrowsingContext> targetBC;
@@ -771,18 +786,18 @@ bool ShouldAllowAccessFor(nsIChannel* aChannel, nsIURI* aURI,
     return false;
   }
 
-  // If we cannot get the target browsing context from the loadInfo, the channel
-  // could be a fetch request from a worker scope. In this case, we get the
-  // target browsing context from the worker associated browsing context
-  // instead.
+  // If we cannot get the target browsing context from the loadInfo, the
+  // channel could be a fetch request from a worker scope. In this case, we
+  // get the target browsing context from the worker associated browsing
+  // context instead.
   if (!targetBC) {
     rv = loadInfo->GetWorkerAssociatedBrowsingContext(getter_AddRefs(targetBC));
   }
 
   // We could have no target BC for the channel if it's for loading the script
-  // for remote workers, i.e. shared workers and service workers. In this case,
-  // we also don't have document, so we can skip the sandbox and the document
-  // check.
+  // for remote workers, i.e. shared workers and service workers. In this
+  // case, we also don't have document, so we can skip the sandbox and the
+  // document check.
   if (!targetBC) {
     LOG(("No browsing context is available for the channel."));
   }
@@ -797,7 +812,8 @@ bool ShouldAllowAccessFor(nsIChannel* aChannel, nsIURI* aURI,
   // Let's see if we have to grant the access for this particular channel.
 
   // UsingStorageAccess only applies to channels that load
-  // documents, for sub-resources loads, just returns the result from loadInfo.
+  // documents, for sub-resources loads, just returns the result from
+  // loadInfo.
   bool isDocument = false;
   aChannel->GetIsDocument(&isDocument);
 

@@ -1100,8 +1100,14 @@ CookieStatus CookieService::CheckPrefs(
   if (aIsForeign && aIsThirdPartyTrackingResource &&
       !aStorageAccessPermissionGranted &&
       aCookieJarSettings->GetRejectThirdPartyContexts()) {
+    // Set the reject reason to partitioned tracker if we are not blocking
+    // tracker cookie.
     uint32_t rejectReason =
-        nsIWebProgressListener::STATE_COOKIES_BLOCKED_TRACKER;
+        aCookieJarSettings->GetPartitionForeign() &&
+                !StaticPrefs::
+                    network_cookie_cookieBehavior_trackerCookieBlocking()
+            ? nsIWebProgressListener::STATE_COOKIES_PARTITIONED_FOREIGN
+            : nsIWebProgressListener::STATE_COOKIES_BLOCKED_TRACKER;
     if (StoragePartitioningEnabled(rejectReason, aCookieJarSettings)) {
       MOZ_ASSERT(!aOriginAttrs.mPartitionKey.IsEmpty(),
                  "We must have a StoragePrincipal here!");
