@@ -37,7 +37,6 @@ class BaselineCodeGen {
  protected:
   Handler handler;
 
-  JSContext* cx;
   CompileRuntime* runtime;
   StackMacroAssembler masm;
 
@@ -395,7 +394,7 @@ class BaselineCompiler final : private BaselineCompilerCodeGen {
                    uint32_t baseWarmUpThreshold);
   [[nodiscard]] bool init();
 
-  MethodStatus compile();
+  MethodStatus compile(JSContext* cx);
 
   bool compileDebugInstrumentation() const {
     return handler.compileDebugInstrumentation();
@@ -525,7 +524,7 @@ class BaselineInterpreterGenerator final : private BaselineInterpreterCodeGen {
  public:
   explicit BaselineInterpreterGenerator(JSContext* cx, TempAllocator& alloc);
 
-  [[nodiscard]] bool generate(BaselineInterpreter& interpreter);
+  [[nodiscard]] bool generate(JSContext* cx, BaselineInterpreter& interpreter);
 
  private:
   [[nodiscard]] bool emitInterpreterLoop();

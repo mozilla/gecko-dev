@@ -93,7 +93,6 @@ template <typename... HandlerArgs>
 BaselineCodeGen<Handler>::BaselineCodeGen(JSContext* cx, TempAllocator& alloc,
                                           HandlerArgs&&... args)
     : handler(masm, std::forward<HandlerArgs>(args)...),
-      cx(cx),
       runtime(CompileRuntime::get(cx->runtime())),
       masm(cx, alloc),
       frame(handler.frame()) {}
@@ -194,7 +193,7 @@ bool BaselineInterpreterHandler::addDebugInstrumentationOffset(
   return debugInstrumentationOffsets_.append(offset.offset());
 }
 
-MethodStatus BaselineCompiler::compile() {
+MethodStatus BaselineCompiler::compile(JSContext* cx) {
   AutoCreatedBy acb(masm, "BaselineCompiler::compile");
 
   Rooted<JSScript*> script(cx, handler.script());
@@ -6847,7 +6846,8 @@ void BaselineInterpreterGenerator::emitOutOfLineCodeCoverageInstrumentation() {
   masm.ret();
 }
 
-bool BaselineInterpreterGenerator::generate(BaselineInterpreter& interpreter) {
+bool BaselineInterpreterGenerator::generate(JSContext* cx,
+                                            BaselineInterpreter& interpreter) {
   AutoCreatedBy acb(masm, "BaselineInterpreterGenerator::generate");
 
   if (!cx->runtime()->jitRuntime()->ensureDebugTrapHandler(

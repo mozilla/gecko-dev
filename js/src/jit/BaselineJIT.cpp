@@ -238,7 +238,7 @@ MethodStatus jit::BaselineCompile(JSContext* cx, JSScript* script,
     compiler.setCompileDebugInstrumentation();
   }
 
-  MethodStatus status = compiler.compile();
+  MethodStatus status = compiler.compile(cx);
 
   MOZ_ASSERT_IF(status == Method_Compiled, script->hasBaselineScript());
   MOZ_ASSERT_IF(status != Method_Compiled, !script->hasBaselineScript());
@@ -1009,7 +1009,7 @@ bool jit::GenerateBaselineInterpreter(JSContext* cx,
   if (IsBaselineInterpreterEnabled()) {
     TempAllocator temp(&cx->tempLifoAlloc());
     BaselineInterpreterGenerator generator(cx, temp);
-    return generator.generate(interpreter);
+    return generator.generate(cx, interpreter);
   }
 
   return true;
