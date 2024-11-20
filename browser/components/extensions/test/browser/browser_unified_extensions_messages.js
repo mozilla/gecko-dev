@@ -3,6 +3,8 @@
 
 "use strict";
 
+requestLongerTimeout(4);
+
 const { AddonTestUtils } = ChromeUtils.importESModule(
   "resource://testing-common/AddonTestUtils.sys.mjs"
 );
@@ -609,4 +611,76 @@ add_task(async function test_blocklist_attention_on_soft_and_hardblocks() {
   await cleanupBlocklist();
   await ext2.unload();
   await ext1.unload();
+});
+
+add_task(async function test_quarantined_and_blocklist_message() {
+  const quarantinedDomain = "example.org";
+  await SpecialPowers.pushPrefEnv({
+    set: [
+      ["extensions.quarantinedDomains.enabled", true],
+      ["extensions.quarantinedDomains.list", quarantinedDomain],
+    ],
+  });
+
+  // Load an extension that will have access to all domains, including the
+  // quarantined domain.
+  const extension = ExtensionTestUtils.loadExtension({
+    manifest: {
+      permissions: ["activeTab"],
+      browser_action: {},
+    },
+  });
+  await extension.startup();
+
+  const { addon: blockedaddon1, extension: blockedext1 } =
+    await installTestExtension("@blocklisted-ext1", "BlocklisteExtName1");
+
+  verifyExtensionButtonFluentId("unified-extensions-button");
+  verifyBlocklistAttentionDot(false);
+
+  await BrowserTestUtils.withNewTab(
+    { gBrowser, url: `https://${quarantinedDomain}/` },
+    async () => {
+      verifyExtensionButtonFluentId("unified-extensions-button-quarantined");
+      verifyBlocklistAttentionDot(true);
+
+      await openExtensionsPanel();
+      let messages = getMessageBars();
+      Assert.equal(messages.length, 1, "expected a message");
+      verifyQuarantinedDomainsMessageBar(messages[0]);
+      await closeExtensionsPanel();
+
+      let promiseBlocklistAttentionUpdated = AddonTestUtils.promiseManagerEvent(
+        "onBlocklistAttentionUpdated"
+      );
+      const cleanupBlocklist = await loadBlocklistRawData({
+        blocked: [blockedaddon1],
+      });
+
+      info("Wait for onBlocklistAttentionUpdated manager listener call");
+      await promiseBlocklistAttentionUpdated;
+      verifyExtensionButtonFluentId("unified-extensions-button-blocklisted");
+      verifyBlocklistAttentionDot(true);
+
+      await openExtensionsPanel();
+      messages = getMessageBars();
+      Assert.equal(messages.length, 2, "expected a message");
+      verifyBlocklistAttentionMessageBar(messages[0], {
+        type: "error",
+        fluentAttributes: {
+          id: "unified-extensions-mb-blocklist-error-single",
+          args: {
+            extensionName: blockedaddon1.name,
+            extensionsCount: 1,
+          },
+        },
+      });
+      verifyQuarantinedDomainsMessageBar(messages[1]);
+      await closeExtensionsPanel();
+      cleanupBlocklist();
+    }
+  );
+
+  await blockedext1.unload();
+  await extension.unload();
 });
