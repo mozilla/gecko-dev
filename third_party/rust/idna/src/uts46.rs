@@ -26,13 +26,7 @@ use crate::punycode::InternalCaller;
 use alloc::borrow::Cow;
 use alloc::string::String;
 use core::fmt::Write;
-use icu_normalizer::properties::CanonicalCombiningClassMap;
-use icu_normalizer::uts46::Uts46Mapper;
-use icu_properties::maps::CodePointMapDataBorrowed;
-use icu_properties::BidiClass;
-use icu_properties::CanonicalCombiningClass;
-use icu_properties::GeneralCategory;
-use icu_properties::JoiningType;
+use idna_adapter::*;
 use smallvec::SmallVec;
 use utf8_iter::Utf8CharsEx;
 
@@ -105,79 +99,6 @@ const fn ldh_mask() -> u128 {
     }
     accu
 }
-
-/// Turns a joining type into a mask for comparing with multiple type at once.
-const fn joining_type_to_mask(jt: JoiningType) -> u32 {
-    1u32 << jt.0
-}
-
-/// Mask for checking for both left and dual joining.
-const LEFT_OR_DUAL_JOINING_MASK: u32 =
-    joining_type_to_mask(JoiningType::LeftJoining) | joining_type_to_mask(JoiningType::DualJoining);
-
-/// Mask for checking for both left and dual joining.
-const RIGHT_OR_DUAL_JOINING_MASK: u32 = joining_type_to_mask(JoiningType::RightJoining)
-    | joining_type_to_mask(JoiningType::DualJoining);
-
-/// Turns a bidi class into a mask for comparing with multiple classes at once.
-const fn bidi_class_to_mask(bc: BidiClass) -> u32 {
-    1u32 << bc.0
-}
-
-/// Mask for checking if the domain is a bidi domain.
-const RTL_MASK: u32 = bidi_class_to_mask(BidiClass::RightToLeft)
-    | bidi_class_to_mask(BidiClass::ArabicLetter)
-    | bidi_class_to_mask(BidiClass::ArabicNumber);
-
-/// Mask for allowable bidi classes in the first character of a label
-/// (either LTR or RTL) in a bidi domain.
-const FIRST_BC_MASK: u32 = bidi_class_to_mask(BidiClass::LeftToRight)
-    | bidi_class_to_mask(BidiClass::RightToLeft)
-    | bidi_class_to_mask(BidiClass::ArabicLetter);
-
-// Mask for allowable bidi classes of the last (non-Non-Spacing Mark)
-// character in an LTR label in a bidi domain.
-const LAST_LTR_MASK: u32 =
-    bidi_class_to_mask(BidiClass::LeftToRight) | bidi_class_to_mask(BidiClass::EuropeanNumber);
-
-// Mask for allowable bidi classes of the last (non-Non-Spacing Mark)
-// character in an RTL label in a bidi domain.
-const LAST_RTL_MASK: u32 = bidi_class_to_mask(BidiClass::RightToLeft)
-    | bidi_class_to_mask(BidiClass::ArabicLetter)
-    | bidi_class_to_mask(BidiClass::EuropeanNumber)
-    | bidi_class_to_mask(BidiClass::ArabicNumber);
-
-// Mask for allowable bidi classes of the middle characters in an LTR label in a bidi domain.
-const MIDDLE_LTR_MASK: u32 = bidi_class_to_mask(BidiClass::LeftToRight)
-    | bidi_class_to_mask(BidiClass::EuropeanNumber)
-    | bidi_class_to_mask(BidiClass::EuropeanSeparator)
-    | bidi_class_to_mask(BidiClass::CommonSeparator)
-    | bidi_class_to_mask(BidiClass::EuropeanTerminator)
-    | bidi_class_to_mask(BidiClass::OtherNeutral)
-    | bidi_class_to_mask(BidiClass::BoundaryNeutral)
-    | bidi_class_to_mask(BidiClass::NonspacingMark);
-
-// Mask for allowable bidi classes of the middle characters in an RTL label in a bidi domain.
-const MIDDLE_RTL_MASK: u32 = bidi_class_to_mask(BidiClass::RightToLeft)
-    | bidi_class_to_mask(BidiClass::ArabicLetter)
-    | bidi_class_to_mask(BidiClass::ArabicNumber)
-    | bidi_class_to_mask(BidiClass::EuropeanNumber)
-    | bidi_class_to_mask(BidiClass::EuropeanSeparator)
-    | bidi_class_to_mask(BidiClass::CommonSeparator)
-    | bidi_class_to_mask(BidiClass::EuropeanTerminator)
-    | bidi_class_to_mask(BidiClass::OtherNeutral)
-    | bidi_class_to_mask(BidiClass::BoundaryNeutral)
-    | bidi_class_to_mask(BidiClass::NonspacingMark);
-
-/// Turns a genecal category into a mask for comparing with multiple categories at once.
-const fn general_category_to_mask(gc: GeneralCategory) -> u32 {
-    1 << (gc as u32)
-}
-
-/// Mask for the disallowed general categories of the first character in a label.
-const MARK_MASK: u32 = general_category_to_mask(GeneralCategory::NonspacingMark)
-    | general_category_to_mask(GeneralCategory::SpacingMark)
-    | general_category_to_mask(GeneralCategory::EnclosingMark);
 
 const PUNYCODE_PREFIX: u32 =
     ((b'-' as u32) << 24) | ((b'-' as u32) << 16) | ((b'N' as u32) << 8) | b'X' as u32;
@@ -566,11 +487,7 @@ pub fn verify_dns_length(domain_name: &str, allow_trailing_dot: bool) -> bool {
 
 /// An implementation of UTS #46.
 pub struct Uts46 {
-    mapper: Uts46Mapper,
-    canonical_combining_class: CanonicalCombiningClassMap,
-    general_category: CodePointMapDataBorrowed<'static, GeneralCategory>,
-    bidi_class: CodePointMapDataBorrowed<'static, BidiClass>,
-    joining_type: CodePointMapDataBorrowed<'static, JoiningType>,
+    data: idna_adapter::Adapter,
 }
 
 #[cfg(feature = "compiled_data")]
@@ -585,11 +502,7 @@ impl Uts46 {
     #[cfg(feature = "compiled_data")]
     pub const fn new() -> Self {
         Self {
-            mapper: Uts46Mapper::new(),
-            canonical_combining_class: CanonicalCombiningClassMap::new(),
-            general_category: icu_properties::maps::general_category(),
-            bidi_class: icu_properties::maps::bidi_class(),
-            joining_type: icu_properties::maps::joining_type(),
+            data: idna_adapter::Adapter::new(),
         }
     }
 
@@ -602,14 +515,14 @@ impl Uts46 {
     /// # Arguments
     ///
     /// * `domain_name` - The input domain name as UTF-8 bytes. (The UTF-8ness is checked by
-    /// this method and input that is not well-formed UTF-8 is treated as an error. If you
-    /// already have a `&str`, call `.as_bytes()` on it.)
+    ///   this method and input that is not well-formed UTF-8 is treated as an error. If you
+    ///   already have a `&str`, call `.as_bytes()` on it.)
     /// * `ascii_deny_list` - What ASCII deny list, if any, to apply. The UTS 46
-    /// _UseSTD3ASCIIRules_ flag or the WHATWG URL Standard forbidden domain code point
-    /// processing is handled via this argument. Most callers are probably the best off
-    /// by using [`AsciiDenyList::URL`] here.
+    ///   _UseSTD3ASCIIRules_ flag or the WHATWG URL Standard forbidden domain code point
+    ///   processing is handled via this argument. Most callers are probably the best off
+    ///   by using [`AsciiDenyList::URL`] here.
     /// * `hyphens` - The UTS 46 _CheckHyphens_ flag. Most callers are probably the best
-    /// off by using [`Hyphens::Allow`] here.
+    ///   off by using [`Hyphens::Allow`] here.
     /// * `dns_length` - The UTS 46 _VerifyDNSLength_ flag.
     pub fn to_ascii<'a>(
         &self,
@@ -668,14 +581,14 @@ impl Uts46 {
     /// # Arguments
     ///
     /// * `domain_name` - The input domain name as UTF-8 bytes. (The UTF-8ness is checked by
-    /// this method and input that is not well-formed UTF-8 is treated as an error. If you
-    /// already have a `&str`, call `.as_bytes()` on it.)
+    ///   this method and input that is not well-formed UTF-8 is treated as an error. If you
+    ///   already have a `&str`, call `.as_bytes()` on it.)
     /// * `ascii_deny_list` - What ASCII deny list, if any, to apply. The UTS 46
-    /// _UseSTD3ASCIIRules_ flag or the WHATWG URL Standard forbidden domain code point
-    /// processing is handled via this argument. Most callers are probably the best off
-    /// by using [`AsciiDenyList::URL`] here.
+    ///   _UseSTD3ASCIIRules_ flag or the WHATWG URL Standard forbidden domain code point
+    ///   processing is handled via this argument. Most callers are probably the best off
+    ///   by using [`AsciiDenyList::URL`] here.
     /// * `hyphens` - The UTS 46 _CheckHyphens_ flag. Most callers are probably the best
-    /// off by using [`Hyphens::Allow`] here.
+    ///   off by using [`Hyphens::Allow`] here.
     pub fn to_unicode<'a>(
         &self,
         domain_name: &'a [u8],
@@ -714,23 +627,23 @@ impl Uts46 {
     /// # Arguments
     ///
     /// * `domain_name` - The input domain name as UTF-8 bytes. (The UTF-8ness is checked by
-    /// this method and input that is not well-formed UTF-8 is treated as an error. If you
-    /// already have a `&str`, call `.as_bytes()` on it.)
+    ///   this method and input that is not well-formed UTF-8 is treated as an error. If you
+    ///   already have a `&str`, call `.as_bytes()` on it.)
     /// * `ascii_deny_list` - What ASCII deny list, if any, to apply. The UTS 46
-    /// _UseSTD3ASCIIRules_ flag or the WHATWG URL Standard forbidden domain code point
-    /// processing is handled via this argument. Most callers are probably the best off
-    /// by using [`AsciiDenyList::URL`] here.
+    ///   _UseSTD3ASCIIRules_ flag or the WHATWG URL Standard forbidden domain code point
+    ///   processing is handled via this argument. Most callers are probably the best off
+    ///   by using [`AsciiDenyList::URL`] here.
     /// * `hyphens` - The UTS 46 _CheckHyphens_ flag. Most callers are probably the best
-    /// off by using [`Hyphens::Allow`] here.
+    ///   off by using [`Hyphens::Allow`] here.
     /// * `output_as_unicode` - A closure for deciding if a label should be output as Unicode
-    /// (as opposed to Punycode). The first argument is the label for which a decision is
-    /// needed (always non-empty slice). The second argument is the TLD (potentially empty).
-    /// The third argument is `true` iff the domain name as a whole is a bidi domain name.
-    /// Only non-erroneous labels that contain at least one non-ASCII character are passed
-    /// to the closure as the first argument. The second and third argument values are
-    /// guaranteed to remain the same during a single call to `process`, and the closure
-    /// may cache computations derived from the second and third argument (hence the
-    /// `FnMut` type).
+    ///   (as opposed to Punycode). The first argument is the label for which a decision is
+    ///   needed (always non-empty slice). The second argument is the TLD (potentially empty).
+    ///   The third argument is `true` iff the domain name as a whole is a bidi domain name.
+    ///   Only non-erroneous labels that contain at least one non-ASCII character are passed
+    ///   to the closure as the first argument. The second and third argument values are
+    ///   guaranteed to remain the same during a single call to `process`, and the closure
+    ///   may cache computations derived from the second and third argument (hence the
+    ///   `FnMut` type).
     pub fn to_user_interface<'a, OutputUnicode: FnMut(&[char], &[char], bool) -> bool>(
         &self,
         domain_name: &'a [u8],
@@ -766,59 +679,59 @@ impl Uts46 {
     /// # Arguments
     ///
     /// * `domain_name` - The input domain name as UTF-8 bytes. (The UTF-8ness is checked by
-    /// this method and input that is not well-formed UTF-8 is treated as an error. If you
-    /// already have a `&str`, call `.as_bytes()` on it.)
+    ///   this method and input that is not well-formed UTF-8 is treated as an error. If you
+    ///   already have a `&str`, call `.as_bytes()` on it.)
     /// * `ascii_deny_list` - What ASCII deny list, if any, to apply. The UTS 46
-    /// _UseSTD3ASCIIRules_ flag or the WHATWG URL Standard forbidden domain code point
-    /// processing is handled via this argument. Most callers are probably the best off
-    /// by using [`AsciiDenyList::URL`] here.
+    ///   _UseSTD3ASCIIRules_ flag or the WHATWG URL Standard forbidden domain code point
+    ///   processing is handled via this argument. Most callers are probably the best off
+    ///   by using [`AsciiDenyList::URL`] here.
     /// * `hyphens` - The UTS 46 _CheckHyphens_ flag. Most callers are probably the best
-    /// off by using [`Hyphens::Allow`] here.
+    ///   off by using [`Hyphens::Allow`] here.
     /// * `error_policy` - Whether to fail fast or to produce output that may be rendered
-    /// for the user to examine in case of errors.
+    ///   for the user to examine in case of errors.
     /// * `output_as_unicode` - A closure for deciding if a label should be output as Unicode
-    /// (as opposed to Punycode). The first argument is the label for which a decision is
-    /// needed (always non-empty slice). The second argument is the TLD (potentially empty).
-    /// The third argument is `true` iff the domain name as a whole is a bidi domain name.
-    /// Only non-erroneous labels that contain at least one non-ASCII character are passed
-    /// to the closure as the first argument. The second and third argument values are
-    /// guaranteed to remain the same during a single call to `process`, and the closure
-    /// may cache computations derived from the second and third argument (hence the
-    /// `FnMut` type). To perform the _ToASCII_ operation, `|_, _, _| false` must be
-    /// passed as the closure. To perform the _ToUnicode_ operation, `|_, _, _| true` must
-    /// be passed as the closure. A more complex closure may be used to prepare a domain
-    /// name for display in a user interface so that labels are converted to the Unicode
-    /// form in general but potentially misleading labels are converted to the Punycode
-    /// form.
-    /// `sink` - The object that receives the output (in the non-passthrough case).
-    /// `ascii_sink` - A second sink that receives the _ToASCII_ form only if there
-    /// were no errors and `sink` received at least one character of non-ASCII output.
-    /// The purpose of this argument is to enable a user interface display form of the
-    /// domain and the _ToASCII_ form of the domain to be computed efficiently together.
-    /// This argument is useless when `output_as_unicode` always returns `false`, in
-    /// which case the _ToASCII_ form ends up in `sink` already. If `ascii_sink` receives
-    /// no output and the return value is `Ok(ProcessingSuccess::WroteToSink)`, use the
-    /// output received by `sink` also as the _ToASCII_ result.
+    ///   (as opposed to Punycode). The first argument is the label for which a decision is
+    ///   needed (always non-empty slice). The second argument is the TLD (potentially empty).
+    ///   The third argument is `true` iff the domain name as a whole is a bidi domain name.
+    ///   Only non-erroneous labels that contain at least one non-ASCII character are passed
+    ///   to the closure as the first argument. The second and third argument values are
+    ///   guaranteed to remain the same during a single call to `process`, and the closure
+    ///   may cache computations derived from the second and third argument (hence the
+    ///   `FnMut` type). To perform the _ToASCII_ operation, `|_, _, _| false` must be
+    ///   passed as the closure. To perform the _ToUnicode_ operation, `|_, _, _| true` must
+    ///   be passed as the closure. A more complex closure may be used to prepare a domain
+    ///   name for display in a user interface so that labels are converted to the Unicode
+    ///   form in general but potentially misleading labels are converted to the Punycode
+    ///   form.
+    /// * `sink` - The object that receives the output (in the non-passthrough case).
+    /// * `ascii_sink` - A second sink that receives the _ToASCII_ form only if there
+    ///   were no errors and `sink` received at least one character of non-ASCII output.
+    ///   The purpose of this argument is to enable a user interface display form of the
+    ///   domain and the _ToASCII_ form of the domain to be computed efficiently together.
+    ///   This argument is useless when `output_as_unicode` always returns `false`, in
+    ///   which case the _ToASCII_ form ends up in `sink` already. If `ascii_sink` receives
+    ///   no output and the return value is `Ok(ProcessingSuccess::WroteToSink)`, use the
+    ///   output received by `sink` also as the _ToASCII_ result.
     ///
     /// # Return value
     ///
     /// * `Ok(ProcessingSuccess::Passthrough)` - The caller must treat
-    /// `unsafe { core::str::from_utf8_unchecked(domain_name) }` as the output. (This
-    /// return value asserts that calling `core::str::from_utf8_unchecked(domain_name)`
-    /// is safe.)
+    ///   `unsafe { core::str::from_utf8_unchecked(domain_name) }` as the output. (This
+    ///   return value asserts that calling `core::str::from_utf8_unchecked(domain_name)`
+    ///   is safe.)
     /// * `Ok(ProcessingSuccess::WroteToSink)` - The caller must treat was was written
-    /// to `sink` as the output. If another sink was passed as `ascii_sink` but it did
-    /// not receive output, the caller must treat what was written to `sink` also as
-    /// the _ToASCII_ output. Otherwise, if `ascii_sink` received output, the caller
-    /// must treat what was written to `ascii_sink` as the _ToASCII_ output.
+    ///   to `sink` as the output. If another sink was passed as `ascii_sink` but it did
+    ///   not receive output, the caller must treat what was written to `sink` also as
+    ///   the _ToASCII_ output. Otherwise, if `ascii_sink` received output, the caller
+    ///   must treat what was written to `ascii_sink` as the _ToASCII_ output.
     /// * `Err(ProcessingError::ValidityError)` - The input was in error and must
-    /// not be used for DNS lookup or otherwise in a network protocol. If `error_policy`
-    /// was `ErrorPolicy::MarkErrors`, the output written to `sink` may be displayed
-    /// to the user as an illustration of where the error was or the errors were.
+    ///   not be used for DNS lookup or otherwise in a network protocol. If `error_policy`
+    ///   was `ErrorPolicy::MarkErrors`, the output written to `sink` may be displayed
+    ///   to the user as an illustration of where the error was or the errors were.
     /// * `Err(ProcessingError::SinkError)` - Either `sink` or `ascii_sink` returned
-    /// [`core::fmt::Error`]. The partial output written to `sink` `ascii_sink` must not
-    /// be used. If `W` never returns [`core::fmt::Error`], this method never returns
-    /// `Err(ProcessingError::SinkError)`.
+    ///   [`core::fmt::Error`]. The partial output written to `sink` `ascii_sink` must not
+    ///   be used. If `W` never returns [`core::fmt::Error`], this method never returns
+    ///   `Err(ProcessingError::SinkError)`.
     ///
     /// # Safety-usable invariant
     ///
@@ -1113,9 +1026,8 @@ impl Uts46 {
         Ok(ProcessingSuccess::WroteToSink)
     }
 
-    /// The part of `process` that doesn't need to be generic over the sink and
-    /// can avoid monomorphizing in the interest of code size.
-    #[inline(never)]
+    /// The part of `process` that doesn't need to be generic over the sink.
+    #[inline(always)]
     fn process_inner<'a>(
         &self,
         domain_name: &'a [u8],
@@ -1129,7 +1041,7 @@ impl Uts46 {
         // performance.
         let mut iter = domain_name.iter();
         let mut most_recent_label_start = iter.clone();
-        let tail = loop {
+        loop {
             if let Some(&b) = iter.next() {
                 if in_inclusive_range8(b, b'a', b'z') {
                     continue;
@@ -1138,13 +1050,38 @@ impl Uts46 {
                     most_recent_label_start = iter.clone();
                     continue;
                 }
-                break most_recent_label_start.as_slice();
+                return self.process_innermost(
+                    domain_name,
+                    ascii_deny_list,
+                    hyphens,
+                    fail_fast,
+                    domain_buffer,
+                    already_punycode,
+                    most_recent_label_start.as_slice(),
+                );
             } else {
                 // Success! The whole input passes through on the fastest path!
                 return (domain_name.len(), false, false);
             }
-        };
+        }
+    }
 
+    /// The part of `process` that doesn't need to be generic over the sink and
+    /// can avoid monomorphizing in the interest of code size.
+    /// Separating this into a different stack frame compared to `process_inner`
+    /// improves performance in the ICU4X case.
+    #[allow(clippy::too_many_arguments)]
+    #[inline(never)]
+    fn process_innermost<'a>(
+        &self,
+        domain_name: &'a [u8],
+        ascii_deny_list: AsciiDenyList,
+        hyphens: Hyphens,
+        fail_fast: bool,
+        domain_buffer: &mut SmallVec<[char; 253]>,
+        already_punycode: &mut SmallVec<[AlreadyAsciiLabel<'a>; 8]>,
+        tail: &'a [u8],
+    ) -> (usize, bool, bool) {
         let deny_list = ascii_deny_list.bits;
         let deny_list_deny_dot = deny_list | DOT_MASK;
 
@@ -1295,7 +1232,7 @@ impl Uts46 {
                 let mut first_needs_combining_mark_check = ascii.is_empty();
                 let mut needs_contextj_check = !non_ascii.is_empty();
                 let mut mapping = self
-                    .mapper
+                    .data
                     .map_normalize(non_ascii.chars())
                     .map(|c| apply_ascii_deny_list_to_lower_cased_unicode(c, deny_list));
                 loop {
@@ -1431,8 +1368,8 @@ impl Uts46 {
         if is_bidi {
             for label in domain_buffer.split_mut(|c| *c == '.') {
                 if let Some((first, tail)) = label.split_first_mut() {
-                    let first_bc = self.bidi_class.get(*first);
-                    if (FIRST_BC_MASK & bidi_class_to_mask(first_bc)) == 0 {
+                    let first_bc = self.data.bidi_class(*first);
+                    if !FIRST_BC_MASK.intersects(first_bc.to_mask()) {
                         // Neither RTL label nor LTR label
                         if fail_fast {
                             return (0, false, true);
@@ -1441,19 +1378,19 @@ impl Uts46 {
                         *first = '\u{FFFD}';
                         continue;
                     }
-                    let is_ltr = first_bc == BidiClass::LeftToRight;
+                    let is_ltr = first_bc.is_ltr();
                     // Trim NSM
                     let mut middle = tail;
                     #[allow(clippy::while_let_loop)]
                     loop {
                         if let Some((last, prior)) = middle.split_last_mut() {
-                            let last_bc = self.bidi_class.get(*last);
-                            if last_bc == BidiClass::NonspacingMark {
+                            let last_bc = self.data.bidi_class(*last);
+                            if last_bc.is_nonspacing_mark() {
                                 middle = prior;
                                 continue;
                             }
                             let last_mask = if is_ltr { LAST_LTR_MASK } else { LAST_RTL_MASK };
-                            if (bidi_class_to_mask(last_bc) & last_mask) == 0 {
+                            if !last_mask.intersects(last_bc.to_mask()) {
                                 if fail_fast {
                                     return (0, false, true);
                                 }
@@ -1462,8 +1399,8 @@ impl Uts46 {
                             }
                             if is_ltr {
                                 for c in prior.iter_mut() {
-                                    let bc = self.bidi_class.get(*c);
-                                    if (bidi_class_to_mask(bc) & MIDDLE_LTR_MASK) == 0 {
+                                    let bc = self.data.bidi_class(*c);
+                                    if !MIDDLE_LTR_MASK.intersects(bc.to_mask()) {
                                         if fail_fast {
                                             return (0, false, true);
                                         }
@@ -1474,8 +1411,8 @@ impl Uts46 {
                             } else {
                                 let mut numeral_state = RtlNumeralState::Undecided;
                                 for c in prior.iter_mut() {
-                                    let bc = self.bidi_class.get(*c);
-                                    if (bidi_class_to_mask(bc) & MIDDLE_RTL_MASK) == 0 {
+                                    let bc = self.data.bidi_class(*c);
+                                    if !MIDDLE_RTL_MASK.intersects(bc.to_mask()) {
                                         if fail_fast {
                                             return (0, false, true);
                                         }
@@ -1484,14 +1421,14 @@ impl Uts46 {
                                     } else {
                                         match numeral_state {
                                             RtlNumeralState::Undecided => {
-                                                if bc == BidiClass::EuropeanNumber {
+                                                if bc.is_european_number() {
                                                     numeral_state = RtlNumeralState::European;
-                                                } else if bc == BidiClass::ArabicNumber {
+                                                } else if bc.is_arabic_number() {
                                                     numeral_state = RtlNumeralState::Arabic;
                                                 }
                                             }
                                             RtlNumeralState::European => {
-                                                if bc == BidiClass::ArabicNumber {
+                                                if bc.is_arabic_number() {
                                                     if fail_fast {
                                                         return (0, false, true);
                                                     }
@@ -1500,7 +1437,7 @@ impl Uts46 {
                                                 }
                                             }
                                             RtlNumeralState::Arabic => {
-                                                if bc == BidiClass::EuropeanNumber {
+                                                if bc.is_european_number() {
                                                     if fail_fast {
                                                         return (0, false, true);
                                                     }
@@ -1512,9 +1449,9 @@ impl Uts46 {
                                     }
                                 }
                                 if (numeral_state == RtlNumeralState::European
-                                    && last_bc == BidiClass::ArabicNumber)
+                                    && last_bc.is_arabic_number())
                                     || (numeral_state == RtlNumeralState::Arabic
-                                        && last_bc == BidiClass::EuropeanNumber)
+                                        && last_bc.is_european_number())
                                 {
                                     if fail_fast {
                                         return (0, false, true);
@@ -1549,7 +1486,7 @@ impl Uts46 {
         had_errors: &mut bool,
     ) -> bool {
         for c in self
-            .mapper
+            .data
             .normalize_validate(label_buffer.iter().copied())
             .map(|c| apply_ascii_deny_list_to_lower_cased_unicode(c, deny_list_deny_dot))
         {
@@ -1606,7 +1543,7 @@ impl Uts46 {
         }
         if first_needs_combining_mark_check {
             if let Some(first) = mut_label.first_mut() {
-                if (general_category_to_mask(self.general_category.get(*first)) & MARK_MASK) != 0 {
+                if self.data.is_mark(*first) {
                     if fail_fast {
                         return true;
                     }
@@ -1626,9 +1563,7 @@ impl Uts46 {
 
                 if let Some((joiner, tail)) = joiner_and_tail.split_first_mut() {
                     if let Some(previous) = head.last() {
-                        if self.canonical_combining_class.get(*previous)
-                            == CanonicalCombiningClass::Virama
-                        {
+                        if self.data.is_virama(*previous) {
                             continue;
                         }
                     } else {
@@ -1686,14 +1621,14 @@ impl Uts46 {
     fn has_appropriately_joining_char<I: Iterator<Item = char>>(
         &self,
         iter: I,
-        required_mask: u32,
+        required_mask: JoiningTypeMask,
     ) -> bool {
         for c in iter {
-            let jt = self.joining_type.get(c);
-            if (joining_type_to_mask(jt) & required_mask) != 0 {
+            let jt = self.data.joining_type(c);
+            if jt.to_mask().intersects(required_mask) {
                 return true;
             }
-            if jt == JoiningType::Transparent {
+            if jt.is_transparent() {
                 continue;
             }
             return false;
@@ -1721,7 +1656,7 @@ impl Uts46 {
             if in_inclusive_range_char(c, '\u{11000}', '\u{1E7FF}') {
                 continue;
             }
-            if (RTL_MASK & bidi_class_to_mask(self.bidi_class.get(c))) != 0 {
+            if RTL_MASK.intersects(self.data.bidi_class(c).to_mask()) {
                 return true;
             }
         }

@@ -74,6 +74,9 @@ impl From<Errors> for Result<(), Errors> {
 #[cfg(feature = "std")]
 impl std::error::Error for Errors {}
 
+#[cfg(not(feature = "std"))]
+impl core::error::Error for Errors {}
+
 impl core::fmt::Display for Errors {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         core::fmt::Debug::fmt(self, f)

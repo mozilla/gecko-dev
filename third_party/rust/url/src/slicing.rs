@@ -6,8 +6,9 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
+use core::ops::{Index, Range, RangeFrom, RangeFull, RangeTo};
+
 use crate::Url;
-use std::ops::{Index, Range, RangeFrom, RangeFull, RangeTo};
 
 impl Index<RangeFull> for Url {
     type Output = str;
