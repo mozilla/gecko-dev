@@ -13,6 +13,7 @@ Performance Testing
   mach-try-perf
   mozperftest
   perf-sheriffing
+  perfcompare
   performance-infrastructure
   perftest-in-a-nutshell
   raptor
@@ -30,6 +31,7 @@ For more detailed information about each test suite and project, see their docum
   * :doc:`mach-try-perf`
   * :doc:`mozperftest`
   * :doc:`perf-sheriffing`
+  * :doc:`perfcompare`
   * :doc:`performance-infrastructure`
   * :doc:`perftest-in-a-nutshell`
   * :doc:`raptor`

@@ -20,7 +20,6 @@ When ``mach try perf`` is run, the exact same interface as seen with ``./mach tr
 
 After selecting some relevant categories, and pressing enter in the interface, two pushes will start. The first push that happens is the **new** try run. It contains any patches that may have been made locally. After that, a **base** try run is produced which uses the mozilla-central those patches are based on. These two are then used to produce a Compare View link in the command console that can be used to quickly see the performance differences between the **base**, and **new** tests. Note that these two pushes can take some time, and there's some work in progress `to reduce this wait time here <https://bugzilla.mozilla.org/show_bug.cgi?id=1845789>`_.
 
-
 CompareView
 -----------
 

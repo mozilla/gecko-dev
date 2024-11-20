@@ -89,7 +89,7 @@ When you click on the "Alerts Summary" hyperlink it will take you to an alert su
 Running Performance Tests
 -------------------------
 
-Performance tests can either be run locally, or in CI using try runs. In general, it's recommended to use try runs to verify the performance changes your patch produces (if any). This is because the hardware that we run tests on may not have the same characteristics as local machines so local testing may not always produce the same performance differences. Using try runs also allows you to use our performance comparison tooling such as `Compare View <https://treeherder.mozilla.org/perfherder/comparechooser>`_, and `PerfCompare <https://perf.compare/>`_. See the `Performance Comparisons`_ section for more information on that.
+Performance tests can either be run locally, or in CI using try runs. In general, it's recommended to use try runs to verify the performance changes your patch produces (if any). This is because the hardware that we run tests on may not have the same characteristics as local machines so local testing may not always produce the same performance differences. Using try runs also allows you to use our performance comparison tooling such as `Compare View <https://treeherder.mozilla.org/perfherder/comparechooser>`_ and `PerfCompare <https://perf.compare/>`_. See the `Performance Comparisons`_ section for more information on that.
 
 It's still possible that a local test can reproduce a change found in CI though, but it's not guaranteed. To run a test locally, you can look at the tests listed in either of the harness documentation test lists such as this one for `Raptor tests <raptor.html#raptor-tests>`_. There are four main ways that you'll find to run these tests:
 
@@ -109,7 +109,14 @@ Performance Comparisons
 
 Comparing performance metrics across multiple try runs is an important step in the performance testing process. It's used to ensure that changes don't regress our metrics, to determine if a performance improvement is produced from a patch, and among other things, used to verify that a fix resolves a performance alert.
 
-We currently use the `Compare View <https://treeherder.mozilla.org/perfherder/comparechooser>`_ for comparing performance numbers. The first interface that's seen in that process is the following which is used to select two pushes (based on the revisions) to compare.
+We currently use PerfCompare for comparing performance numbers. Landing on PerfCompare, two search comparison workflows are available: Compare with a base or Compare over time. Compare with a base allows up to three new revisions to compare against a base revision. Although talos is set at the default, any other testing framework or harness can also be selected before clicking the Compare button. :ref:`You can find more information about using PerfCompare here <PerfCompare>`.
+
+ .. image:: ./perfcomparehomescreen.png
+   :alt: PerfCompare Selection Interface for Revisions/Pushes to Compare
+   :scale: 50%
+   :align: center
+
+Our old tool for comparing perfomance numbers, `Compare View <https://treeherder.mozilla.org/perfherder/comparechooser>`_, will be replaced by PerfCompare early next year. The first interface that's seen in that process is the following which is used to select two pushes (based on the revisions) to compare.
 
  .. image:: ./compare_view_selection.png
    :alt: Selection Interface for Revisions/Pushes to Compare
