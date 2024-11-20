@@ -1243,7 +1243,7 @@ Maybe<nscoord> nsTextControlFrame::GetNaturalBaselineBOffset(
     }
 
     if (aBaselineGroup == BaselineSharingGroup::First) {
-      return Some(std::clamp(mFirstBaseline, 0, BSize(aWM)));
+      return Some(CSSMinMax(mFirstBaseline, 0, BSize(aWM)));
     }
     // This isn't great, but the content of the root NAC isn't guaranteed
     // to be loaded, so the best we can do is the edge of the border-box.

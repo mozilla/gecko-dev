@@ -566,3 +566,4 @@ pref(layout.accessiblecaret.enabled,true) load 1819239.html
 load 1821469.html
 load 1849898-1.html
 load 1929445.html
+asserts(1-3) load 1931933.html
