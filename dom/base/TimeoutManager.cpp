@@ -448,28 +448,33 @@ TimeoutManager::~TimeoutManager() {
 }
 
 int32_t TimeoutManager::GetTimeoutId(Timeout::Reason aReason) {
-  int32_t returnValue;
-  switch (aReason) {
-    case Timeout::Reason::eIdleCallbackTimeout:
-      returnValue = mIdleCallbackTimeoutCounter;
-      if (mIdleCallbackTimeoutCounter == std::numeric_limits<int32_t>::max()) {
-        mIdleCallbackTimeoutCounter = 1;
-      } else {
-        ++mIdleCallbackTimeoutCounter;
-      }
-      return returnValue;
-    case Timeout::Reason::eTimeoutOrInterval:
-      returnValue = mTimeoutIdCounter;
-      if (mTimeoutIdCounter == std::numeric_limits<int32_t>::max()) {
-        mTimeoutIdCounter = 1;
-      } else {
-        ++mTimeoutIdCounter;
-      }
-      return returnValue;
-    case Timeout::Reason::eDelayedWebTaskTimeout:
-    default:
-      return -1;  // no cancellation support
-  }
+  int32_t timeoutId;
+  do {
+    switch (aReason) {
+      case Timeout::Reason::eIdleCallbackTimeout:
+        timeoutId = mIdleCallbackTimeoutCounter;
+        if (mIdleCallbackTimeoutCounter ==
+            std::numeric_limits<int32_t>::max()) {
+          mIdleCallbackTimeoutCounter = 1;
+        } else {
+          ++mIdleCallbackTimeoutCounter;
+        }
+        break;
+      case Timeout::Reason::eTimeoutOrInterval:
+        timeoutId = mTimeoutIdCounter;
+        if (mTimeoutIdCounter == std::numeric_limits<int32_t>::max()) {
+          mTimeoutIdCounter = 1;
+        } else {
+          ++mTimeoutIdCounter;
+        }
+        break;
+      case Timeout::Reason::eDelayedWebTaskTimeout:
+      default:
+        return -1;  // no cancellation support
+    }
+  } while (mTimeouts.GetTimeout(timeoutId, aReason));
+
+  return timeoutId;
 }
 
 bool TimeoutManager::IsRunningTimeout() const { return mRunningTimeout; }
