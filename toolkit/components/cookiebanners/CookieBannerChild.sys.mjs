@@ -74,8 +74,9 @@ export class CookieBannerChild extends JSWindowActorChild {
   // of the actor. Particularly the private browsing check can be expensive.
   #isEnabledCached = null;
   #clickRules;
-  #observerCleanUp;
+  #givenUp = false;
   #observerCleanUpTimer;
+  #hasActiveObserver = false;
   // Indicates whether the page "load" event occurred.
   #didLoad = false;
 
@@ -274,7 +275,7 @@ export class CookieBannerChild extends JSWindowActorChild {
 
     lazy.logConsole.debug("Observed 'load' event", {
       href: this.document?.location.href,
-      hasActiveObserver: !!this.#observerCleanUp,
+      hasActiveObserver: this.#hasActiveObserver,
       observerCleanupTimer: this.#observerCleanUpTimer,
     });
 
@@ -297,9 +298,11 @@ export class CookieBannerChild extends JSWindowActorChild {
         "#startOrResetCleanupTimer: Cancelling existing cleanup timeout",
         {
           didLoad: this.#didLoad,
+          id: this.#observerCleanUpTimer,
         }
       );
       lazy.clearTimeout(this.#observerCleanUpTimer);
+      this.#observerCleanUpTimer = null;
     }
 
     let durationMS = this.#didLoad
@@ -310,7 +313,6 @@ export class CookieBannerChild extends JSWindowActorChild {
       {
         durationMS,
         didLoad: this.#didLoad,
-        hasObserverCleanup: !!this.#observerCleanUp,
       }
     );
 
@@ -320,17 +322,16 @@ export class CookieBannerChild extends JSWindowActorChild {
         {
           durationMS,
           didLoad: this.#didLoad,
-          hasObserverCleanup: !!this.#observerCleanUp,
         }
       );
       this.#observerCleanUpTimer = null;
-      this.#observerCleanUp?.();
+      this.#givenUp = true;
     }, durationMS);
   }
 
   didDestroy() {
-    // Clean up the observer and timer if needed.
-    this.#observerCleanUp?.();
+    // Cause the observer and polling function to be cleaned up.
+    this.#givenUp = true;
   }
 
   /**
@@ -390,12 +391,12 @@ export class CookieBannerChild extends JSWindowActorChild {
    * check function or null if the function times out.
    */
   #promiseObserve(checkFn) {
-    if (this.#observerCleanUp) {
+    if (this.#hasActiveObserver) {
       throw new Error(
         "The promiseObserve is called before previous one resolves."
       );
     }
-    lazy.logConsole.debug("#promiseObserve", { didLoad: this.#didLoad });
+    this.#hasActiveObserver = true;
 
     return new Promise(resolve => {
       let win = this.contentWindow;
@@ -419,6 +420,15 @@ export class CookieBannerChild extends JSWindowActorChild {
 
       // Start polling checkFn.
       let intervalFn = () => {
+        lazy.logConsole.debug(
+          "#promiseObserve interval function",
+          this.document?.location.href
+        );
+
+        if (this.#givenUp) {
+          cleanup(null);
+        }
+
         // Nothing changed since last run, skip running checkFn.
         if (!sawMutation) {
           return;
@@ -440,6 +450,7 @@ export class CookieBannerChild extends JSWindowActorChild {
           observer,
           cleanupTimeoutId: this.#observerCleanUpTimer,
           pollIntervalId,
+          href: this.document?.location.href,
         });
 
         // Unregister the observer.
@@ -454,20 +465,8 @@ export class CookieBannerChild extends JSWindowActorChild {
           pollIntervalId = null;
         }
 
-        // Clear the cleanup timeout. This can happen when the actor gets
-        // destroyed before the cleanup timeout itself fires.
-        if (this.#observerCleanUpTimer) {
-          lazy.clearTimeout(this.#observerCleanUpTimer);
-        }
-
-        this.#observerCleanUp = null;
+        this.#hasActiveObserver = false;
         resolve(result);
-      };
-
-      // The clean up function to clean unfinished observer and timer on timeout
-      // or when the actor destroys.
-      this.#observerCleanUp = () => {
-        cleanup(null);
       };
     });
   }
