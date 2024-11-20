@@ -327,6 +327,7 @@ export class _DiscoveryStreamBase extends React.PureComponent {
             {
               width: 12,
               components: [topSites],
+              sectionType: "topsites",
             },
           ])}
         {sponsoredCollection &&
@@ -376,8 +377,12 @@ export class _DiscoveryStreamBase extends React.PureComponent {
 
   renderLayout(layoutRender) {
     const styles = [];
+    let [data] = layoutRender;
+    // Add helper class for topsites
+    const topsitesClass = data.sectionType ? "ds-layout-topsites" : "";
+
     return (
-      <div className="discovery-stream ds-layout">
+      <div className={`discovery-stream ds-layout ${topsitesClass}`}>
         {layoutRender.map((row, rowIndex) => (
           <div
             key={`row-${rowIndex}`}

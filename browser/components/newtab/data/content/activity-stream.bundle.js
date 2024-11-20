@@ -9872,7 +9872,8 @@ class _DiscoveryStreamBase extends (external_React_default()).PureComponent {
       dispatch: this.props.dispatch
     }), topSites && this.renderLayout([{
       width: 12,
-      components: [topSites]
+      components: [topSites],
+      sectionType: "topsites"
     }]), sponsoredCollection && this.renderLayout([{
       width: 12,
       components: [sponsoredCollection]
@@ -9904,8 +9905,11 @@ class _DiscoveryStreamBase extends (external_React_default()).PureComponent {
   }
   renderLayout(layoutRender) {
     const styles = [];
+    let [data] = layoutRender;
+    // Add helper class for topsites
+    const topsitesClass = data.sectionType ? "ds-layout-topsites" : "";
     return /*#__PURE__*/external_React_default().createElement("div", {
-      className: "discovery-stream ds-layout"
+      className: `discovery-stream ds-layout ${topsitesClass}`
     }, layoutRender.map((row, rowIndex) => /*#__PURE__*/external_React_default().createElement("div", {
       key: `row-${rowIndex}`,
       className: `ds-column ds-column-${row.width}`

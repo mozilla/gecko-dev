@@ -84,6 +84,8 @@ main {
   }
 }
 
+// Bug 1931979: Note that .ds-card-grid has an exception for
+// the card section experiment layout
 .layout-variant-a,
 .layout-variant-b {
   .ds-outer-wrapper-breakpoint-override main {
@@ -93,7 +95,7 @@ main {
       width: 296px;
     }
 
-    .ds-card-grid {
+    .ds-card-grid:not(.ds-section-grid) {
       grid-gap: var(--space-large);
     }
 
@@ -105,7 +107,7 @@ main {
     @media (min-width: $break-point-medium) {
       width: auto;
 
-      .ds-card-grid {
+      .ds-card-grid:not(.ds-section-grid) {
         grid-template-columns: repeat(1, 1fr);
       }
 
@@ -118,7 +120,7 @@ main {
     @media (min-width: $break-point-layout-variant) {
       width: auto;
 
-      .ds-card-grid {
+      .ds-card-grid:not(.ds-section-grid) {
         grid-template-columns: repeat(2, 1fr);
       }
 
@@ -131,7 +133,7 @@ main {
     @media (min-width: $break-point-widest) {
       width: auto;
 
-      .ds-card-grid {
+      .ds-card-grid:not(.ds-section-grid) {
         grid-template-columns: repeat(3, 1fr);
         grid-gap: var(--space-xlarge);
       }
@@ -155,7 +157,7 @@ main {
         min-width: 216px;
       }
 
-      .ds-card-grid {
+      .ds-card-grid:not(.ds-section-grid) {
         grid-template-columns: repeat(4, 1fr);
       }
     }
