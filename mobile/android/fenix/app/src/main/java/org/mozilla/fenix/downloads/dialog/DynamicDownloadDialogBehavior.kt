@@ -4,6 +4,8 @@
 
 package org.mozilla.fenix.downloads.dialog
 
+import android.animation.Animator
+import android.animation.AnimatorListenerAdapter
 import android.animation.ValueAnimator
 import android.view.View
 import android.view.ViewGroup
@@ -179,6 +181,14 @@ class DynamicDownloadDialogBehavior<V : View>(
     internal fun animateSnap(child: View, direction: SnapDirection) = with(snapAnimator) {
         expanded = direction == SnapDirection.UP
         addUpdateListener { child.translationY = it.animatedValue as Float }
+        addListener(
+            object : AnimatorListenerAdapter() {
+                override fun onAnimationEnd(animation: Animator) {
+                    // Ensure the right translationY if the anchor changes during the animation
+                    dynamicDownload.translationY = -anchorHeight.toFloat()
+                }
+            },
+        )
         setFloatValues(
             child.translationY,
             if (direction == SnapDirection.UP) {
