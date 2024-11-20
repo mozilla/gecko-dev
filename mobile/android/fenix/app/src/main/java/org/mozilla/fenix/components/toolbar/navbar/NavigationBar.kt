@@ -5,6 +5,9 @@
 package org.mozilla.fenix.components.toolbar.navbar
 
 import android.content.res.Configuration
+import android.view.View
+import android.view.accessibility.AccessibilityNodeInfo
+import android.widget.Button
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
@@ -416,7 +419,18 @@ private fun MenuButton(
             modifier = Modifier
                 .size(48.dp)
                 .testTag(NavBarTestTags.menuButton),
-            factory = { _ -> menuButton },
+            factory = { _ ->
+                menuButton.apply {
+                    contentDescription = context.getString(R.string.mozac_browser_menu_button)
+
+                    accessibilityDelegate = object : View.AccessibilityDelegate() {
+                        override fun onInitializeAccessibilityNodeInfo(host: View, info: AccessibilityNodeInfo) {
+                            super.onInitializeAccessibilityNodeInfo(host, info)
+                            info.className = Button::class.java.name
+                        }
+                    }
+                }
+            },
         )
     }
 }
