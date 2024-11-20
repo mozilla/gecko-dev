@@ -35,6 +35,10 @@
   justify-content: center;
   align-items: start;
 
+  > moz-button {
+    --button-icon-fill: var(--toolbarbutton-icon-fill);
+  }
+
   > moz-button:not(.tools-overflow) {
     --button-outer-padding-inline: var(--space-medium);
     --button-outer-padding-block: var(--space-xxsmall);
