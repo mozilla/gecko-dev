@@ -75,8 +75,8 @@ add_task(async function testNoSrcChangeFullscreen() {
       pipWin.addEventListener("resize", event => {
         let win = event.target;
         let obj = {
-          width: win.innerWidth,
-          height: win.innerHeight,
+          width: win.outerWidth,
+          height: win.outerHeight,
           left: win.screenLeft,
           top: win.screenTop,
         };
@@ -212,8 +212,8 @@ add_task(async function testChangingSameSizeVideoSrcFullscreen() {
       pipWin.addEventListener("resize", event => {
         let win = event.target;
         let obj = {
-          width: win.innerWidth,
-          height: win.innerHeight,
+          width: win.outerWidth,
+          height: win.outerHeight,
           left: win.screenLeft,
           top: win.screenTop,
         };
@@ -357,8 +357,8 @@ add_task(async function testChangingDifferentSizeVideoSrcFullscreen() {
       pipWin.addEventListener("resize", event => {
         let win = event.target;
         let obj = {
-          width: win.innerWidth,
-          height: win.innerHeight,
+          width: win.outerWidth,
+          height: win.outerHeight,
           left: win.screenLeft,
           top: win.screenTop,
         };

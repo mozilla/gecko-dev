@@ -94,8 +94,8 @@ async function testVideo(browser, videoID, pipWin, { pinX, pinY } = {}) {
 
   Assert.ok(pipWin, "Got PiP window.");
 
-  let initialWidth = pipWin.innerWidth;
-  let initialHeight = pipWin.innerHeight;
+  let initialWidth = pipWin.outerWidth;
+  let initialHeight = pipWin.outerHeight;
   let initialAspectRatio = initialWidth / initialHeight;
   Assert.equal(
     Math.floor(initialAspectRatio * 100),
@@ -104,13 +104,13 @@ async function testVideo(browser, videoID, pipWin, { pinX, pinY } = {}) {
   );
 
   // Store the window position for later.
-  let initialScreenX = pipWin.mozInnerScreenX;
-  let initialScreenY = pipWin.mozInnerScreenY;
+  let initialScreenX = pipWin.screenX;
+  let initialScreenY = pipWin.screenY;
 
   await switchVideoSource("test-video-cropped.mp4");
 
-  let resizedWidth = pipWin.innerWidth;
-  let resizedHeight = pipWin.innerHeight;
+  let resizedWidth = pipWin.outerWidth;
+  let resizedHeight = pipWin.outerHeight;
   let resizedAspectRatio = resizedWidth / resizedHeight;
   Assert.equal(
     Math.floor(resizedAspectRatio * 100),
@@ -124,8 +124,8 @@ async function testVideo(browser, videoID, pipWin, { pinX, pinY } = {}) {
     "Resized video is the same vertically"
   );
 
-  let resizedScreenX = pipWin.mozInnerScreenX;
-  let resizedScreenY = pipWin.mozInnerScreenY;
+  let resizedScreenX = pipWin.screenX;
+  let resizedScreenY = pipWin.screenY;
   checkPosition(
     initialScreenX,
     initialScreenY,
@@ -139,8 +139,8 @@ async function testVideo(browser, videoID, pipWin, { pinX, pinY } = {}) {
 
   await switchVideoSource("test-video-vertical.mp4");
 
-  let verticalWidth = pipWin.innerWidth;
-  let verticalHeight = pipWin.innerHeight;
+  let verticalWidth = pipWin.outerWidth;
+  let verticalHeight = pipWin.outerHeight;
   let verticalAspectRatio = verticalWidth / verticalHeight;
 
   if (verticalWidth == 136) {
@@ -165,8 +165,8 @@ async function testVideo(browser, videoID, pipWin, { pinX, pinY } = {}) {
     "Vertical video height matches previous height"
   );
 
-  let verticalScreenX = pipWin.mozInnerScreenX;
-  let verticalScreenY = pipWin.mozInnerScreenY;
+  let verticalScreenX = pipWin.screenX;
+  let verticalScreenY = pipWin.screenY;
   checkPosition(
     resizedScreenX,
     resizedScreenY,
@@ -180,8 +180,8 @@ async function testVideo(browser, videoID, pipWin, { pinX, pinY } = {}) {
 
   await switchVideoSource("test-video.mp4");
 
-  let restoredWidth = pipWin.innerWidth;
-  let restoredHeight = pipWin.innerHeight;
+  let restoredWidth = pipWin.outerWidth;
+  let restoredHeight = pipWin.outerHeight;
   let restoredAspectRatio = restoredWidth / restoredHeight;
   Assert.equal(
     Math.floor(restoredAspectRatio * 100),
@@ -189,18 +189,18 @@ async function testVideo(browser, videoID, pipWin, { pinX, pinY } = {}) {
     "Restored aspect ratio is still 16:9"
   );
   Assert.less(
-    Math.abs(initialWidth - pipWin.innerWidth),
+    Math.abs(initialWidth - pipWin.outerWidth),
     2,
     "Restored video has its original width"
   );
   Assert.equal(
     initialHeight,
-    pipWin.innerHeight,
+    pipWin.outerHeight,
     "Restored video has its original height"
   );
 
-  let restoredScreenX = pipWin.mozInnerScreenX;
-  let restoredScreenY = pipWin.mozInnerScreenY;
+  let restoredScreenX = pipWin.screenX;
+  let restoredScreenY = pipWin.screenY;
   checkPosition(
     initialScreenX,
     initialScreenY,
@@ -224,8 +224,8 @@ add_setup(async () => {
       // that may be. We record the top-left edge of the screen coordinates into
       // global variables to do later coordinate comparisons after resizes.
       let clearWin = await triggerPictureInPicture(browser, "with-controls");
-      let initialScreenX = clearWin.mozInnerScreenX;
-      let initialScreenY = clearWin.mozInnerScreenY;
+      let initialScreenX = clearWin.screenX;
+      let initialScreenY = clearWin.screenY;
       let PiPScreen = PictureInPicture.getWorkingScreen(
         initialScreenX,
         initialScreenY
