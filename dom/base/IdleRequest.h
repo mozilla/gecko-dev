@@ -32,7 +32,7 @@ class IdleRequest final : public LinkedListElement<RefPtr<IdleRequest>> {
 
   void SetTimeoutHandle(int32_t aHandle);
   bool HasTimeout() const { return mTimeoutHandle.isSome(); }
-  uint32_t GetTimeoutHandle() const;
+  int32_t GetTimeoutHandle() const;
 
   uint32_t Handle() const { return mHandle; }
 
