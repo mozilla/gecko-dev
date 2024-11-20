@@ -467,12 +467,16 @@ void nsSubDocumentFrame::BuildDisplayList(nsDisplayListBuilder* aBuilder,
                                                            visible, dirty);
 
     if (subdocRootFrame) {
-      bool hasDocumentLevelListenersForApzAwareEvents =
-          gfxPlatform::AsyncPanZoomEnabled() &&
-          nsLayoutUtils::HasDocumentLevelListenersForApzAwareEvents(presShell);
+      if (aBuilder->BuildCompositorHitTestInfo()) {
+        bool hasDocumentLevelListenersForApzAwareEvents =
+            gfxPlatform::AsyncPanZoomEnabled() &&
+            nsLayoutUtils::HasDocumentLevelListenersForApzAwareEvents(
+                presShell);
 
-      aBuilder->SetAncestorHasApzAwareEventHandler(
-          hasDocumentLevelListenersForApzAwareEvents);
+        aBuilder->SetAncestorHasApzAwareEventHandler(
+            hasDocumentLevelListenersForApzAwareEvents);
+      }
+
       subdocRootFrame->BuildDisplayListForStackingContext(aBuilder,
                                                           &childItems);
       if (!aBuilder->IsForEventDelivery()) {
