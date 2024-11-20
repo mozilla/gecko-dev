@@ -36,8 +36,6 @@ import mozilla.components.browser.state.action.HistoryMetadataAction
 import mozilla.components.concept.engine.prompt.ShareData
 import mozilla.components.lib.state.ext.consumeFrom
 import mozilla.components.lib.state.ext.flowScoped
-import mozilla.components.service.fxa.SyncEngine
-import mozilla.components.service.fxa.sync.SyncReason
 import mozilla.components.support.base.feature.UserInteractionHandler
 import mozilla.components.support.ktx.kotlin.toShortUrl
 import mozilla.components.ui.widgets.withCenterAlignedButtons
@@ -469,17 +467,6 @@ class HistoryFragment : LibraryPageFragment<History>(), UserInteractionHandler, 
         historyStore.dispatch(HistoryFragmentAction.ExitDeletionMode)
     }
 
-    @Suppress("UnusedPrivateMember")
-    private suspend fun syncHistory() {
-        val accountManager = requireComponents.backgroundServices.accountManager
-        accountManager.syncNow(
-            reason = SyncReason.User,
-            debounce = true,
-            customEngineSubset = listOf(SyncEngine.History),
-        )
-        historyView.historyAdapter.refresh()
-    }
-
     internal class DeleteConfirmationDialogFragment(
         private val store: HistoryFragmentStore,
     ) : DialogFragment() {
@@ -509,7 +496,6 @@ class HistoryFragment : LibraryPageFragment<History>(), UserInteractionHandler, 
             }.create().withCenterAlignedButtons()
     }
 
-    @Suppress("UnusedPrivateMember")
     companion object {
         private const val PAGE_SIZE = 25
     }
