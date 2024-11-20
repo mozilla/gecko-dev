@@ -480,6 +480,12 @@ void JsepTrack::MaybeStoreCodecToLog(const std::string& codec,
 std::vector<UniquePtr<JsepCodecDescription>> JsepTrack::NegotiateCodecs(
     const SdpMediaSection& remote, bool remoteIsOffer,
     Maybe<const SdpMediaSection&> local) {
+  // See Bug 1927371 - :ng
+  // This also effects the ordering of codecs in RTCRTPSender::GetParameters,
+  // but occurs after the initial local description codec ordering is
+  // established in the SDP. We should protect against this in the future by
+  // applying the same ordering logic to the initial local description.
+
   std::vector<UniquePtr<JsepCodecDescription>> negotiatedCodecs;
   std::vector<UniquePtr<JsepCodecDescription>> newPrototypeCodecs;
   // "Pseudo codecs" include things that aren't actually stand-alone codecs (ie;
