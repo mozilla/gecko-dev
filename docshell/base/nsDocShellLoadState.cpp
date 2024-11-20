@@ -65,6 +65,7 @@ nsDocShellLoadState::nsDocShellLoadState(
   mForceAllowDataURI = aLoadState.ForceAllowDataURI();
   mIsExemptFromHTTPSFirstMode = aLoadState.IsExemptFromHTTPSFirstMode();
   mOriginalFrameSrc = aLoadState.OriginalFrameSrc();
+  mShouldCheckForRecursion = aLoadState.ShouldCheckForRecursion();
   mIsFormSubmission = aLoadState.IsFormSubmission();
   mLoadType = aLoadState.LoadType();
   mTarget = aLoadState.Target();
@@ -170,6 +171,7 @@ nsDocShellLoadState::nsDocShellLoadState(const nsDocShellLoadState& aOther)
       mIsExemptFromHTTPSFirstMode(aOther.mIsExemptFromHTTPSFirstMode),
       mHttpsFirstDowngradeData(aOther.GetHttpsFirstDowngradeData()),
       mOriginalFrameSrc(aOther.mOriginalFrameSrc),
+      mShouldCheckForRecursion(aOther.mShouldCheckForRecursion),
       mIsFormSubmission(aOther.mIsFormSubmission),
       mLoadType(aOther.mLoadType),
       mSHEntry(aOther.mSHEntry),
@@ -226,6 +228,7 @@ nsDocShellLoadState::nsDocShellLoadState(nsIURI* aURI, uint64_t aLoadIdentifier)
       mForceAllowDataURI(false),
       mIsExemptFromHTTPSFirstMode(false),
       mOriginalFrameSrc(false),
+      mShouldCheckForRecursion(false),
       mIsFormSubmission(false),
       mLoadType(LOAD_NORMAL),
       mSrcdocData(VoidString()),
@@ -667,6 +670,15 @@ bool nsDocShellLoadState::OriginalFrameSrc() const { return mOriginalFrameSrc; }
 
 void nsDocShellLoadState::SetOriginalFrameSrc(bool aOriginalFrameSrc) {
   mOriginalFrameSrc = aOriginalFrameSrc;
+}
+
+bool nsDocShellLoadState::ShouldCheckForRecursion() const {
+  return mShouldCheckForRecursion;
+}
+
+void nsDocShellLoadState::SetShouldCheckForRecursion(
+    bool aShouldCheckForRecursion) {
+  mShouldCheckForRecursion = aShouldCheckForRecursion;
 }
 
 bool nsDocShellLoadState::IsFormSubmission() const { return mIsFormSubmission; }
@@ -1309,6 +1321,7 @@ DocShellLoadStateInit nsDocShellLoadState::Serialize(
   loadState.ForceAllowDataURI() = mForceAllowDataURI;
   loadState.IsExemptFromHTTPSFirstMode() = mIsExemptFromHTTPSFirstMode;
   loadState.OriginalFrameSrc() = mOriginalFrameSrc;
+  loadState.ShouldCheckForRecursion() = mShouldCheckForRecursion;
   loadState.IsFormSubmission() = mIsFormSubmission;
   loadState.LoadType() = mLoadType;
   loadState.Target() = mTarget;

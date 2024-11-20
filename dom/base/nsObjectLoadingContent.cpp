@@ -1464,6 +1464,8 @@ nsresult nsObjectLoadingContent::OpenChannel() {
     auto referrerInfo = MakeRefPtr<ReferrerInfo>(*doc);
     loadState->SetReferrerInfo(referrerInfo);
 
+    loadState->SetShouldCheckForRecursion(true);
+
     chan =
         DocumentChannel::CreateForObject(loadState, loadInfo, loadFlags, shim);
     MOZ_ASSERT(chan);

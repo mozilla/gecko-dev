@@ -257,7 +257,8 @@ void nsFrameLoaderOwner::ChangeRemoteness(
     if (aOptions.mPendingSwitchID.WasPassed()) {
       mFrameLoader->ResumeLoad(aOptions.mPendingSwitchID.Value());
     } else {
-      mFrameLoader->LoadFrame(false);
+      mFrameLoader->LoadFrame(/* aOriginalSrc */ false,
+                              /* aShouldCheckForRecursion */ false);
     }
   };
 

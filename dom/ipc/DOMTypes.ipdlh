@@ -206,6 +206,7 @@ struct DocShellLoadStateInit
   bool ForceAllowDataURI;
   bool IsExemptFromHTTPSFirstMode;
   bool OriginalFrameSrc;
+  bool ShouldCheckForRecursion;
   bool IsFormSubmission;
   bool FirstParty;
   bool HasValidUserGestureActivation;
