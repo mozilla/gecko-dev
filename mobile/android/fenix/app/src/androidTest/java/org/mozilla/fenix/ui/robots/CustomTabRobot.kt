@@ -240,7 +240,7 @@ private fun findInPageButton() = onView(withText("Find in page"))
 
 private fun openInBrowserButton() = onView(withText("Open in $appName"))
 
-private fun openInBrowserButtonFromRedesignedToolbar() = itemWithDescription("Open in ${R.string.app_name}")
+private fun openInBrowserButtonFromRedesignedToolbar() = itemWithDescription("Open in $appName")
 
 private fun closeButton() = onView(withContentDescription("Return to previous app"))
 
