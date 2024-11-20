@@ -10,6 +10,7 @@
 #include <vector>
 
 #include "common/EncodingConstraints.h"
+#include "jsep/JsepCodecDescription.h"
 
 namespace mozilla {
 
@@ -107,16 +108,17 @@ class VideoCodecConfig {
   std::vector<std::string> mCcmFbTypes;
   // Don't pass mOtherFbTypes from JsepVideoCodecDescription because we'd have
   // to drag SdpRtcpFbAttributeList::Feedback along too.
-  bool mRembFbSet;
-  bool mFECFbSet;
-  bool mTransportCCFbSet;
+  bool mRembFbSet = false;
+  bool mFECFbSet = false;
+  bool mTransportCCFbSet = false;
 
-  int mULPFECPayloadType;
-  int mREDPayloadType;
-  int mREDRTXPayloadType;
-  int mRTXPayloadType;
+  // TODO Bug 1920249 maybe types for these?
+  int mULPFECPayloadType = -1;
+  int mREDPayloadType = -1;
+  int mREDRTXPayloadType = -1;
+  int mRTXPayloadType = -1;
 
-  uint32_t mTias;
+  uint32_t mTias = 0;
   EncodingConstraints mEncodingConstraints;
   struct Encoding {
     std::string rid;
@@ -130,10 +132,13 @@ class VideoCodecConfig {
   };
   std::vector<Encoding> mEncodings;
   std::string mSpropParameterSets;
-  uint8_t mProfile;
-  uint8_t mConstraints;
-  uint8_t mLevel;
-  uint8_t mPacketizationMode;
+  // Bug 1920249 stick these in a struct
+  uint8_t mProfile = 0x42;
+  uint8_t mConstraints = 0xE0;
+  uint8_t mLevel = 0x0C;
+  uint8_t mPacketizationMode = 1;
+  // Bug 1920249 have the codec-specific stuff in a std::variant or something
+  Maybe<JsepVideoCodecDescription::Av1Config> mAv1Config;
   // TODO: add external negotiated SPS/PPS
 
   // TODO(bug 1744116): Use = default here
@@ -153,35 +158,36 @@ class VideoCodecConfig {
            mSpropParameterSets == aRhs.mSpropParameterSets &&
            mProfile == aRhs.mProfile && mConstraints == aRhs.mConstraints &&
            mLevel == aRhs.mLevel &&
-           mPacketizationMode == aRhs.mPacketizationMode;
+           mPacketizationMode == aRhs.mPacketizationMode &&
+           mAv1Config == aRhs.mAv1Config;
+  }
+
+  static VideoCodecConfig CreateAv1Config(
+      int pt, const EncodingConstraints& constraints,
+      const JsepVideoCodecDescription::Av1Config& av1) {
+    VideoCodecConfig config(pt, "AV1", constraints);
+    config.mAv1Config = Some(av1);
+    return config;
+  }
+
+  static auto CreateH264Config(int pt, const EncodingConstraints& constraints,
+                               const VideoCodecConfigH264& h264)
+      -> VideoCodecConfig {
+    VideoCodecConfig config(pt, "H264", constraints);
+    // Bug 1920249 don't store these computed values which are used 1 time.
+    config.mProfile = (h264.profile_level_id & 0x00FF0000) >> 16;
+    config.mConstraints = (h264.profile_level_id & 0x0000FF00) >> 8;
+    config.mLevel = (h264.profile_level_id & 0x000000FF);
+    config.mPacketizationMode = h264.packetization_mode;
+    config.mSpropParameterSets = h264.sprop_parameter_sets;
+    return config;
   }
 
   VideoCodecConfig(int type, std::string name,
-                   const EncodingConstraints& constraints,
-                   const struct VideoCodecConfigH264* h264 = nullptr)
+                   const EncodingConstraints& constraints)
       : mType(type),
-        mName(name),
-        mRembFbSet(false),
-        mFECFbSet(false),
-        mTransportCCFbSet(false),
-        mULPFECPayloadType(-1),
-        mREDPayloadType(-1),
-        mREDRTXPayloadType(-1),
-        mRTXPayloadType(-1),
-        mTias(0),
-        mEncodingConstraints(constraints),
-        mProfile(0x42),
-        mConstraints(0xE0),
-        mLevel(0x0C),
-        mPacketizationMode(1) {
-    if (h264) {
-      mProfile = (h264->profile_level_id & 0x00FF0000) >> 16;
-      mConstraints = (h264->profile_level_id & 0x0000FF00) >> 8;
-      mLevel = (h264->profile_level_id & 0x000000FF);
-      mPacketizationMode = h264->packetization_mode;
-      mSpropParameterSets = h264->sprop_parameter_sets;
-    }
-  }
+        mName(std::move(name)),
+        mEncodingConstraints(constraints) {}
 
   bool ResolutionEquals(const VideoCodecConfig& aConfig) const {
     if (mEncodings.size() != aConfig.mEncodings.size()) {

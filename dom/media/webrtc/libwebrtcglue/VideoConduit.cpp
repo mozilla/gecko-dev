@@ -205,6 +205,20 @@ ConfigureVideoEncoderSettings(const VideoCodecConfig& aConfig,
     codec_default_denoising = !denoising;
   }
 
+  using Av1Config = JsepVideoCodecDescription::Av1Config;
+  aConfig.mAv1Config.apply([&](const Av1Config& config) {
+    MOZ_ASSERT(aConfig.mName == kAv1CodecName);
+    config.mProfile.apply([&](uint8_t value) {
+      aParameters[kAv1FmtpProfile] = std::to_string(value);
+    });
+    config.mLevelIdx.apply([&](uint8_t value) {
+      aParameters[kAv1FmtpLevelIdx] = std::to_string(value);
+    });
+    config.mTier.apply([&](uint8_t value) {
+      aParameters[kAv1FmtpTier] = std::to_string(value);
+    });
+  });
+
   if (aConfig.mName == kH264CodecName) {
     aParameters[kH264FmtpPacketizationMode] =
         std::to_string(aConfig.mPacketizationMode);
