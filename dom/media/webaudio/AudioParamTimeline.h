@@ -64,10 +64,6 @@ class AudioParamTimeline : public AudioEventTimeline {
       mTrack = aEvent.mTrack;
       return;
     }
-    if (aEvent.mType == AudioTimelineEvent::SetValue) {
-      AudioEventTimeline::SetValue(aEvent.NominalValue());
-      return;
-    }
     AudioEventTimeline::InsertEvent<TimeType>(aEvent);
   }
 

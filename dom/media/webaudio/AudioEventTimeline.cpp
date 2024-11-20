@@ -482,7 +482,6 @@ void AudioEventTimeline::GetValuesAtTimeHelperInternal(
       case AudioTimelineEvent::SetTarget:
       case AudioTimelineEvent::SetValueCurve:
         break;
-      case AudioTimelineEvent::SetValue:
       case AudioTimelineEvent::Cancel:
       case AudioTimelineEvent::Track:
         MOZ_ASSERT(false, "Should have been handled earlier.");
@@ -500,7 +499,6 @@ void AudioEventTimeline::GetValuesAtTimeHelperInternal(
       break;
     case AudioTimelineEvent::SetTarget:
       MOZ_FALLTHROUGH_ASSERT("AudioTimelineEvent::SetTarget");
-    case AudioTimelineEvent::SetValue:
     case AudioTimelineEvent::Cancel:
     case AudioTimelineEvent::Track:
       MOZ_ASSERT(false, "Should have been handled earlier.");

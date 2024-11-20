@@ -31,8 +31,8 @@ namespace dom {
 struct AudioTimelineEvent {
   MOZ_DEFINE_ENUM_WITH_BASE_AND_TOSTRING_AT_CLASS_SCOPE(
       Type, uint32_t,
-      (SetValue, SetValueAtTime, LinearRamp, ExponentialRamp, SetTarget,
-       SetValueCurve, Track, Cancel));
+      (SetValueAtTime, LinearRamp, ExponentialRamp, SetTarget, SetValueCurve,
+       Track, Cancel));
 
   class TimeUnion {
    public:
@@ -311,17 +311,6 @@ class AudioEventTimeline {
     // This method should only be called if HasSimpleValue() returns true
     MOZ_ASSERT(HasSimpleValue());
     return mSimpleValue.value();
-  }
-
-  void SetValue(float aValue) {
-    // FIXME: bug 1308435
-    // A spec change means this should instead behave like setValueAtTime().
-
-    // Silently don't change anything if there are any events
-    if (mEvents.IsEmpty()) {
-      mSetTargetStartValue = mDefaultValue = aValue;
-      mSimpleValue = Some(aValue);
-    }
   }
 
   template <typename TimeType>
