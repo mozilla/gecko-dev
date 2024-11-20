@@ -47,9 +47,6 @@ void RemoteWorkerNonLifeCycleOpControllerChild::TransistionStateToCanceled() {
     return;
   }
   Unused << SendTerminated();
-  if (GetIPCChannel()) {
-    GetIPCChannel()->Close();
-  }
 }
 
 void RemoteWorkerNonLifeCycleOpControllerChild::TransistionStateToKilled() {
@@ -99,9 +96,6 @@ IPCResult RemoteWorkerNonLifeCycleOpControllerChild::RecvExecServiceWorkerOp(
 }
 
 IPCResult RemoteWorkerNonLifeCycleOpControllerChild::RecvShutdown() {
-  if (GetIPCChannel()) {
-    GetIPCChannel()->Close();
-  }
   return IPC_OK();
 }
 
