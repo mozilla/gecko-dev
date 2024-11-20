@@ -1980,9 +1980,10 @@ extensions.startupCache:
     bug_numbers:
       - 1767336
       - 1892151
+      - 1928258
     description: >
       The amount of bytes writted into the Extensions StartupCache file.
-    expires: "135"
+    expires: "140"
     kind: uint
     notification_emails:
       - addons-dev-internal@mozilla.com
@@ -1995,10 +1996,11 @@ extensions.startupCache:
     bug_numbers:
       - 1767336
       - 1892151
+      - 1928258
     description: >
       The amount of times an unexpected error has been raised while
       reading the Extensions StartupCache file
-    expires: "135"
+    expires: "140"
     kind: uint
     keyed: true
     notification_emails:
