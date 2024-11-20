@@ -268,21 +268,6 @@ class GetPermissionRunnable final : public WorkerMainThreadRunnable {
   PermissionCheckPurpose mPurpose;
 };
 
-nsresult CheckScope(nsIPrincipal* aPrincipal, const nsACString& aScope,
-                    uint64_t aWindowID) {
-  AssertIsOnMainThread();
-  MOZ_ASSERT(aPrincipal);
-
-  nsCOMPtr<nsIURI> scopeURI;
-  nsresult rv = NS_NewURI(getter_AddRefs(scopeURI), aScope);
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    return rv;
-  }
-
-  return aPrincipal->CheckMayLoadWithReporting(
-      scopeURI,
-      /* allowIfInheritsPrincipal = */ false, aWindowID);
-}
 }  // anonymous namespace
 
 // Subclass that can be directly dispatched to child workers from the main
@@ -1069,50 +1054,7 @@ Result<Ok, QMResult> Notification::InitFromBase64(const nsAString& aData) {
   return Ok();
 }
 
-/*
- * Checks:
- * 1) Is aWorker allowed to show a notification for scope?
- * 2) Is aWorker an active worker?
- *
- * If it is not an active worker, Result() will be NS_ERROR_NOT_AVAILABLE.
- */
-class CheckLoadRunnable final : public WorkerMainThreadRunnable {
-  nsresult mRv;
-  nsCString mScope;
-  ServiceWorkerRegistrationDescriptor mDescriptor;
-
- public:
-  explicit CheckLoadRunnable(
-      WorkerPrivate* aWorker, const nsACString& aScope,
-      const ServiceWorkerRegistrationDescriptor& aDescriptor)
-      : WorkerMainThreadRunnable(aWorker, "Notification :: Check Load"_ns),
-        mRv(NS_ERROR_DOM_SECURITY_ERR),
-        mScope(aScope),
-        mDescriptor(aDescriptor) {}
-
-  bool MainThreadRun() override {
-    MOZ_ASSERT(mWorkerRef);
-    nsIPrincipal* principal = mWorkerRef->Private()->GetPrincipal();
-    mRv = CheckScope(principal, mScope, mWorkerRef->Private()->WindowID());
-
-    if (NS_FAILED(mRv)) {
-      return true;
-    }
-
-    auto activeWorker = mDescriptor.GetActive();
-
-    if (!activeWorker ||
-        activeWorker.ref().Id() != mWorkerRef->Private()->ServiceWorkerID()) {
-      mRv = NS_ERROR_NOT_AVAILABLE;
-    }
-
-    return true;
-  }
-
-  nsresult Result() { return mRv; }
-};
-
-// Step 2, 5, 6 of
+// Steps 2-5 of
 // https://notifications.spec.whatwg.org/#dom-serviceworkerregistration-shownotification
 /* static */
 already_AddRefed<Promise> Notification::ShowPersistentNotification(
@@ -1121,68 +1063,32 @@ already_AddRefed<Promise> Notification::ShowPersistentNotification(
     const ServiceWorkerRegistrationDescriptor& aDescriptor, ErrorResult& aRv) {
   MOZ_ASSERT(aGlobal);
 
-  // Validate scope.
-  // XXXnsm: This may be slow due to blocking the worker and waiting on the main
-  // thread. On calls from content, we can be sure the scope is valid since
-  // ServiceWorkerRegistrations have their scope set correctly. Can this be made
-  // debug only? The problem is that there would be different semantics in
-  // debug and non-debug builds in such a case.
-  if (NS_IsMainThread()) {
-    nsCOMPtr<nsIScriptObjectPrincipal> sop = do_QueryInterface(aGlobal);
-    if (NS_WARN_IF(!sop)) {
-      aRv.Throw(NS_ERROR_UNEXPECTED);
-      return nullptr;
-    }
-
-    nsIPrincipal* principal = sop->GetPrincipal();
-    if (NS_WARN_IF(!principal)) {
-      aRv.Throw(NS_ERROR_UNEXPECTED);
-      return nullptr;
-    }
-
-    uint64_t windowID = 0;
-    nsCOMPtr<nsPIDOMWindowInner> win = do_QueryInterface(aGlobal);
-    if (win) {
-      windowID = win->WindowID();
-    }
-
-    aRv = CheckScope(principal, NS_ConvertUTF16toUTF8(aScope), windowID);
-    if (NS_WARN_IF(aRv.Failed())) {
-      aRv.Throw(NS_ERROR_DOM_SECURITY_ERR);
-      return nullptr;
-    }
-  } else {
-    WorkerPrivate* worker = GetCurrentThreadWorkerPrivate();
-    MOZ_ASSERT(worker);
-    worker->AssertIsOnWorkerThread();
-
-    RefPtr<CheckLoadRunnable> loadChecker = new CheckLoadRunnable(
-        worker, NS_ConvertUTF16toUTF8(aScope), aDescriptor);
-    loadChecker->Dispatch(worker, Canceling, aRv);
-    if (aRv.Failed()) {
-      return nullptr;
-    }
-
-    if (NS_WARN_IF(NS_FAILED(loadChecker->Result()))) {
-      if (loadChecker->Result() == NS_ERROR_NOT_AVAILABLE) {
-        aRv.ThrowTypeError<MSG_NO_ACTIVE_WORKER>(NS_ConvertUTF16toUTF8(aScope));
-      } else {
-        aRv.Throw(NS_ERROR_DOM_SECURITY_ERR);
-      }
-      return nullptr;
-    }
-  }
-
   // Step 2: Let promise be a new promise in this’s relevant Realm.
   RefPtr<Promise> p = Promise::Create(aGlobal, aRv);
   if (NS_WARN_IF(aRv.Failed())) {
     return nullptr;
   }
 
-  // Step 5: Let notification be the result of creating a notification given
-  // title, options, this’s relevant settings object, and
-  // serviceWorkerRegistration. If this threw an exception, then reject promise
-  // with that exception and return promise.
+  // Step 3: If this’s active worker is null, then reject promise with a
+  // TypeError and return promise.
+  if (!aDescriptor.GetActive()) {
+    aRv.ThrowTypeError<MSG_NO_ACTIVE_WORKER>(NS_ConvertUTF16toUTF8(aScope));
+    return nullptr;
+  }
+
+  // Step 4: Let notification be the result of creating a notification with a
+  // settings object given title, options, and this’s relevant settings object.
+  // If this threw an exception, then reject promise with that exception and
+  // return promise.
+  //
+  // Step 5: Set notification’s service worker registration to this.
+  //
+  // Note: We currently use the scope as the unique identifier for the
+  // registration (and there currently is no durable registration identifier,
+  // so this is necessary), which is why we pass in the scope.  See
+  // https://github.com/whatwg/notifications/issues/205 for some scope-related
+  // discussion.
+  //
   // XXX: We create Notification object almost solely to share the parameter
   // normalization steps. It would be nice to export that and skip creating
   // object here.

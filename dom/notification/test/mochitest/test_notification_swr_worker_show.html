@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Test showNotification called within dedicated worker</title>
+<script src="/tests/SimpleTest/SimpleTest.js"></script>
+<script src="NotificationTest.js"></script>
+<script src="GleanTest.js"></script>
+<link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css" />
+<p id="display"></p>
+<div id="content" style="display: none"></div>
+<pre id="test"></pre>
+<script>
+add_task(async function test() {
+  await GleanTest.testResetFOG();
+
+  info("Registering service worker");
+  let swr = await navigator.serviceWorker.register("notification_empty_sw.js");
+  await navigator.serviceWorker.ready;
+
+  SimpleTest.registerCleanupFunction(async () => {
+    await swr.unregister();
+    navigator.serviceWorker.onmessage = null;
+  });
+
+  info("Starting worker that will try and show the notification");
+  let worker = new Worker("notification_show_dedicated.js");
+
+  info("Showing notification");
+  await NotificationTest.allowNotifications();
+  let messagePromise = new Promise(r => worker.addEventListener("message", r, { once: true }));
+  worker.postMessage("show");
+  ok((await messagePromise).data.shown);
+
+  await GleanTest.flush();
+  let permissionCount = await GleanTest.webNotification.showOrigin.first_party.testGetValue();
+  is(permissionCount, 1, "Notification first party show attempt counter should increment once.");
+
+  info("Denying notification");
+  await NotificationTest.denyNotifications();
+  messagePromise = new Promise(r => worker.addEventListener("message", r, { once: true }));
+  worker.postMessage("show");
+  ok(!(await messagePromise).data.shown);
+
+  await GleanTest.flush();
+  permissionCount = await GleanTest.webNotification.showOrigin.first_party.testGetValue();
+  is(permissionCount, 2, "Notification first party show attempt counter should increment once more.");
+});
+</script>
+</pre>
+</body>
+</html>

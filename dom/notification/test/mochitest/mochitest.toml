@@ -75,6 +75,13 @@ support-files = [
   "notification_show_sw.js",
 ]
 
+["test_notification_swr_worker_show.html"]
+skip-if = ["xorigin"] # Bug 1792790
+support-files = [
+  "notification_empty_sw.js",
+  "notification_show_dedicated.js",
+]
+
 ["test_notification_worker_child.html"]
 skip-if = [
   "os == 'android'", # Bug 1816427, Notification.onshow/close are broken on Android
