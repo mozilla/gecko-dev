@@ -1324,7 +1324,7 @@ struct CCIntervalMarker : public mozilla::BaseMarkerType<CCIntervalMarker> {
        "Refcounted Objects Visited", MS::Format::Integer},
       {"mVisitedGCed", MS::InputType::Uint32, "GC Objects Visited",
        MS::Format::Integer},
-      {"mFreedRefCounted", MS::InputType::Uint32, "GC Objects Freed",
+      {"mFreedRefCounted", MS::InputType::Uint32, "Refcounted Objects Freed",
        MS::Format::Integer},
       {"mFreedGCed", MS::InputType::Uint32, "GC Objects Freed",
        MS::Format::Integer},
