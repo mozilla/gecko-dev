@@ -147,3 +147,111 @@ add_task(async function userScript_require_host_permissions() {
 
   await extension.unload();
 });
+
+// Tests that user scripts can run in the USER_SCRIPT world, and only for new
+// document loads (not existing ones).
+add_task(async function userScript_runs_in_USER_SCRIPT_world() {
+  let extension = ExtensionTestUtils.loadExtension({
+    useAddonManager: "permanent",
+    manifest: {
+      manifest_version: 3,
+      permissions: ["userScripts"],
+      host_permissions: ["*://example.com/*"],
+    },
+    files: {
+      "1.file.js": `
+        var resultCollector_push = msg => {
+          // window.wrappedJSObject will be undefined if we unexpectedly run
+          // in the MAIN world instead of the "USER_SCRIPT" world.
+          window.wrappedJSObject.resultCollector.push(msg);
+        };
+        resultCollector_push("1.file");dump("1.file.js ran\\n");
+      `,
+      "3.file.js": "resultCollector_push('3.file');dump('3.file.js ran\\n');",
+    },
+    async background() {
+      async function register() {
+        await browser.userScripts.register([
+          {
+            id: "userScripts ID (for register and update)",
+            matches: ["*://example.com/resultCollector"],
+            js: [
+              { file: "1.file.js" },
+              // 1.file.js defines the "resultCollector_push" function, and that
+              // function should be available to the other scripts since they all
+              // run in the same USER_SCRIPT world.
+              { code: "resultCollector_push('2.code');dump('1.code ran\\n');" },
+              { file: "3.file.js" },
+              { code: "resultCollector_push('4.code');dump('4.code ran\\n');" },
+            ],
+            runAt: "document_end",
+            world: "USER_SCRIPT",
+          },
+        ]);
+      }
+      async function update() {
+        await browser.userScripts.update([
+          {
+            id: "userScripts ID (for register and update)",
+            js: [
+              { file: "1.file.js" },
+              { code: "resultCollector_push('2.updated');" },
+            ],
+          },
+        ]);
+      }
+
+      browser.test.onMessage.addListener(async msg => {
+        browser.test.assertEq("update_userScripts", msg, "Expected msg");
+        await update();
+        browser.test.sendMessage("update_userScripts:done");
+      });
+      await register();
+      browser.test.sendMessage("registered");
+    },
+  });
+
+  let contentPageBeforeExtStarted = await ExtensionTestUtils.loadContentPage(
+    "http://example.com/resultCollector"
+  );
+
+  await extension.startup();
+  await extension.awaitMessage("registered");
+
+  let contentPageAfterRegister = await ExtensionTestUtils.loadContentPage(
+    "http://example.com/resultCollector"
+  );
+  Assert.deepEqual(
+    await collectResults(contentPageAfterRegister),
+    ["1.file", "2.code", "3.file", "4.code"],
+    "All USER_SCRIPT world scripts executed in a new page after registration"
+  );
+  Assert.deepEqual(
+    await collectResults(contentPageBeforeExtStarted),
+    [],
+    "User scripts did not execute in content that existed before registration"
+  );
+
+  // Now call userScripts.update() and check whether it injects.
+  extension.sendMessage("update_userScripts");
+  await extension.awaitMessage("update_userScripts:done");
+
+  // Reload - this is a new load after the userScripts.update() call.
+  await contentPageAfterRegister.loadURL("http://example.com/resultCollector");
+  Assert.deepEqual(
+    await collectResults(contentPageAfterRegister),
+    ["1.file", "2.updated"],
+    "userScripts.update() applies new scripts to new documents"
+  );
+
+  Assert.deepEqual(
+    await collectResults(contentPageBeforeExtStarted),
+    [],
+    "userScripts.update() does not run code in existing documents"
+  );
+
+  await contentPageAfterRegister.close();
+  await contentPageBeforeExtStarted.close();
+
+  await extension.unload();
+});

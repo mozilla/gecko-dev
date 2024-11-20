@@ -70,12 +70,6 @@ add_task(async function register_and_restart() {
         id: "test1",
         matches: ["https://example.com/*"],
         js: [{ file: "file1.js" }, { file: "file2.js" }],
-        // We must set this to MAIN because the USER_SCRIPT world is not yet
-        // supported (bug 1911835), and using USER_SCRIPT would prevent the
-        // extension from initializing in the extension process after a restart
-        // due to the WebExtensionContentScript constructor not recognizing the
-        // USER_SCRIPT world value. TODO: delete this after fixing bug 1911835.
-        world: "MAIN",
       };
       const expectedScriptOut = {
         ...scriptIn,
@@ -84,7 +78,10 @@ add_task(async function register_and_restart() {
         includeGlobs: null,
         excludeGlobs: null,
         runAt: "document_idle",
-        // world: "USER_SCRIPT", // TODO 1911835: uncomment when supported.
+        // Notable call-out: All other content script APIs default to "ISOLATED"
+        // as the default world. In the userScripts API, we want to default to
+        // "USER_SCRIPT" when the world is not specified.
+        world: "USER_SCRIPT",
       };
       browser.runtime.onInstalled.addListener(async ({ reason }) => {
         browser.test.assertEq("install", reason, "onInstalled reason");

@@ -165,12 +165,21 @@ enum ContentScriptExecutionWorld {
    * The name refers to "isolated world", which is a concept from Chromium and
    * WebKit, used to enforce isolation of the JavaScript execution environments
    * of content scripts and web pages.
+   *
+   * Not supported when isUserScript=true.
    */
   "ISOLATED",
   /**
    * The execution environment of the web page.
    */
   "MAIN",
+  /**
+   * The execution environment of a sandbox running scripts registered through
+   * the MV3 userScripts API.
+   *
+   * Only supported when isUserScript=true.
+   */
+  "USER_SCRIPT",
 };
 
 [ChromeOnly, Exposed=Window]

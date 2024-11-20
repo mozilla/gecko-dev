@@ -129,6 +129,11 @@ add_task(async function test_WebExtensionContentScript_isUserScript() {
     localizeCallback() {},
   });
 
+  // WebExtensionContentScript defaults to world "ISOLATED", but for user
+  // scripts only "MAIN" and "USER_SCRIPT" worlds are permitted. "MAIN" is
+  // supported by user scripts and non-userScripts, so use that here.
+  const world = "MAIN";
+
   const matches = new MatchPatternSet(["https://example.com/match/*"]);
   const includeGlobs = [new MatchGlob("*/glob/*")];
   const exampleMatchesURI = newURI("https://example.com/match/");
@@ -137,16 +142,19 @@ add_task(async function test_WebExtensionContentScript_isUserScript() {
   const exampleNoPermissionURI = newURI("https://example.net/glob/");
 
   let defaultScript = new WebExtensionContentScript(policy, {
+    world,
     matches,
     includeGlobs,
   });
   let nonUserScript = new WebExtensionContentScript(policy, {
     isUserScript: false,
+    world,
     matches,
     includeGlobs,
   });
   let userScript = new WebExtensionContentScript(policy, {
     isUserScript: true,
+    world,
     matches,
     includeGlobs,
   });
@@ -193,11 +201,13 @@ add_task(async function test_WebExtensionContentScript_isUserScript() {
   // Now verify that empty matches is permitted.
   let nonUserScriptEmptyMatches = new WebExtensionContentScript(policy, {
     isUserScript: false,
+    world,
     matches: [],
     includeGlobs,
   });
   let userScriptEmptyMatches = new WebExtensionContentScript(policy, {
     isUserScript: true,
+    world,
     matches: [],
     includeGlobs,
   });
@@ -223,6 +233,7 @@ add_task(async function test_WebExtensionContentScript_isUserScript() {
   // we just do a sanity check for isUserScript=true.
   let userScriptNoGlobs = new WebExtensionContentScript(policy, {
     isUserScript: true,
+    world,
     matches,
   });
   ok(
