@@ -67,12 +67,14 @@
 // name for self-hosted builtins is stored.
 #define LAZY_FUNCTION_NAME_SLOT 0
 
+// The iterated object for Array/String/Map/Set iterators.
 #define ITERATOR_SLOT_TARGET 0
-// Used for collection iterators.
-#define ITERATOR_SLOT_RANGE 1
 // Used for list, i.e. Array and String, iterators.
 #define ITERATOR_SLOT_NEXT_INDEX 1
-#define ITERATOR_SLOT_ITEM_KIND 2
+// Item kind for Array iterators.
+#define ARRAY_ITERATOR_SLOT_ITEM_KIND 2
+// Item kind for Map/Set iterators.
+#define MAP_SET_ITERATOR_SLOT_ITEM_KIND 2
 
 #define ITEM_KIND_KEY 0
 #define ITEM_KIND_VALUE 1

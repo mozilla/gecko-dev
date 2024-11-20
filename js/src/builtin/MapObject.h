@@ -249,10 +249,7 @@ class MapIteratorObject : public NativeObject {
   static_assert(
       TargetSlot == ITERATOR_SLOT_TARGET,
       "TargetSlot must match self-hosting define for iterated object slot.");
-  static_assert(
-      RangeSlot == ITERATOR_SLOT_RANGE,
-      "RangeSlot must match self-hosting define for range or index slot.");
-  static_assert(KindSlot == ITERATOR_SLOT_ITEM_KIND,
+  static_assert(KindSlot == MAP_SET_ITERATOR_SLOT_ITEM_KIND,
                 "KindSlot must match self-hosting define for item kind slot.");
 
   static const JSFunctionSpec methods[];
@@ -407,10 +404,7 @@ class SetIteratorObject : public NativeObject {
   static_assert(
       TargetSlot == ITERATOR_SLOT_TARGET,
       "TargetSlot must match self-hosting define for iterated object slot.");
-  static_assert(
-      RangeSlot == ITERATOR_SLOT_RANGE,
-      "RangeSlot must match self-hosting define for range or index slot.");
-  static_assert(KindSlot == ITERATOR_SLOT_ITEM_KIND,
+  static_assert(KindSlot == MAP_SET_ITERATOR_SLOT_ITEM_KIND,
                 "KindSlot must match self-hosting define for item kind slot.");
 
   static const JSFunctionSpec methods[];

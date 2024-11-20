@@ -1464,6 +1464,10 @@ enum {
   ArrayIteratorSlotItemKind,
   ArrayIteratorSlotCount
 };
+// Slot numbers must match constants used in self-hosted code.
+static_assert(ArrayIteratorSlotIteratedObject == ITERATOR_SLOT_TARGET);
+static_assert(ArrayIteratorSlotNextIndex == ITERATOR_SLOT_NEXT_INDEX);
+static_assert(ArrayIteratorSlotItemKind == ARRAY_ITERATOR_SLOT_ITEM_KIND);
 
 const JSClass ArrayIteratorObject::class_ = {
     "Array Iterator",
@@ -1505,6 +1509,9 @@ enum {
   StringIteratorSlotNextIndex,
   StringIteratorSlotCount
 };
+// Slot numbers must match constants used in self-hosted code.
+static_assert(StringIteratorSlotIteratedObject == ITERATOR_SLOT_TARGET);
+static_assert(StringIteratorSlotNextIndex == ITERATOR_SLOT_NEXT_INDEX);
 
 const JSClass StringIteratorObject::class_ = {
     "String Iterator",

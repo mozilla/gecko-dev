@@ -520,7 +520,7 @@ function CreateArrayIterator(obj, kind) {
   var iterator = NewArrayIterator();
   UnsafeSetReservedSlot(iterator, ITERATOR_SLOT_TARGET, iteratedObject);
   UnsafeSetReservedSlot(iterator, ITERATOR_SLOT_NEXT_INDEX, 0);
-  UnsafeSetReservedSlot(iterator, ITERATOR_SLOT_ITEM_KIND, kind);
+  UnsafeSetReservedSlot(iterator, ARRAY_ITERATOR_SLOT_ITEM_KIND, kind);
   return iterator;
 }
 
@@ -552,7 +552,7 @@ function ArrayIteratorNext() {
   var index = UnsafeGetReservedSlot(obj, ITERATOR_SLOT_NEXT_INDEX);
 
   // Step 7.
-  var itemKind = UnsafeGetInt32FromReservedSlot(obj, ITERATOR_SLOT_ITEM_KIND);
+  var itemKind = UnsafeGetInt32FromReservedSlot(obj, ARRAY_ITERATOR_SLOT_ITEM_KIND);
 
   // Step 8-9.
   var len;
