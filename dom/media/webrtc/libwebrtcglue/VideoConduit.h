@@ -69,6 +69,8 @@ class WebrtcVideoConduit
  public:
   // Returns true when both encoder and decoder are HW accelerated.
   static bool HasH264Hardware();
+  // Returns true when AV1 is supported in the build.
+  static bool HasAv1();
 
   Maybe<int> ActiveSendPayloadType() const override;
   Maybe<int> ActiveRecvPayloadType() const override;
