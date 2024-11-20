@@ -9,6 +9,12 @@
 
 "use strict";
 
+add_setup(async function () {
+  await SpecialPowers.pushPrefEnv({
+    set: [["browser.urlbar.scotchBonnet.enableOverride", false]],
+  });
+});
+
 add_task(async function viewUpdateAppendHidden() {
   // We'll use this test provider to test specific results.  We assume that
   // history and bookmarks have been cleared (by init() above).

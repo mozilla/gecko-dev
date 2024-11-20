@@ -12,6 +12,10 @@ add_setup(async function () {
   Services.telemetry.clearEvents();
   Services.telemetry.clearScalars();
   makeProfileResettable();
+
+  await SpecialPowers.pushPrefEnv({
+    set: [["browser.urlbar.scotchBonnet.enableOverride", false]],
+  });
 });
 
 // Tests the refresh tip.

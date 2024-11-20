@@ -14,7 +14,7 @@ add_setup(async function () {
   makeProfileResettable();
 
   await SpecialPowers.pushPrefEnv({
-    set: [["browser.urlbar.quickactions.enabled", false]],
+    set: [["browser.urlbar.scotchBonnet.enableOverride", false]],
   });
 
   registerCleanupFunction(async function () {
