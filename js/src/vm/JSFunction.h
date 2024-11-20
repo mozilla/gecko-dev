@@ -297,8 +297,8 @@ class JSFunction : public js::NativeObject {
     uint32_t flagsAndArgCount = flagsAndArgCountRaw();
     flagsAndArgCount &= ~FlagsMask;
     flagsAndArgCount |= flags;
-    js::HeapSlot& slot = getFixedSlotRef(FlagsAndArgCountSlot);
-    slot.unbarrieredSet(JS::PrivateUint32Value(flagsAndArgCount));
+    setReservedSlotPrivateUint32Unbarriered(FlagsAndArgCountSlot,
+                                            flagsAndArgCount);
   }
 
   // Make the function constructible.
@@ -309,8 +309,8 @@ class JSFunction : public js::NativeObject {
     uint32_t flagsAndArgCount = flagsAndArgCountRaw();
     flagsAndArgCount &= ~ArgCountMask;
     flagsAndArgCount |= nargs << ArgCountShift;
-    js::HeapSlot& slot = getFixedSlotRef(FlagsAndArgCountSlot);
-    slot.unbarrieredSet(JS::PrivateUint32Value(flagsAndArgCount));
+    setReservedSlotPrivateUint32Unbarriered(FlagsAndArgCountSlot,
+                                            flagsAndArgCount);
   }
 
   void setIsSelfHostedBuiltin() { setFlags(flags().setIsSelfHostedBuiltin()); }
@@ -514,8 +514,8 @@ class JSFunction : public js::NativeObject {
   }
   void setNativeJitInfoOrInterpretedScript(void* ptr) {
     // This always stores a PrivateValue and so doesn't require a barrier.
-    js::HeapSlot& slot = getFixedSlotRef(NativeJitInfoOrInterpretedScriptSlot);
-    slot.unbarrieredSet(JS::PrivateValue(ptr));
+    setReservedSlotPrivateUnbarriered(NativeJitInfoOrInterpretedScriptSlot,
+                                      ptr);
   }
 
  public:

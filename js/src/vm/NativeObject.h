@@ -1729,6 +1729,24 @@ class NativeObject : public JSObject {
     }
   }
 
+  // This is equivalent to |setReservedSlot(slot, PrivateValue(v))| but it
+  // avoids GC barriers. Use this only when storing a private value in a
+  // reserved slot that never holds a GC thing.
+  void setReservedSlotPrivateUnbarriered(uint32_t slot, void* v) {
+    MOZ_ASSERT(slot < JSCLASS_RESERVED_SLOTS(getClass()));
+    MOZ_ASSERT(getReservedSlot(slot).isUndefined() ||
+               getReservedSlot(slot).isDouble());
+    getReservedSlotRef(slot).unbarrieredSet(PrivateValue(v));
+  }
+
+  // Like setReservedSlotPrivateUnbarriered but for PrivateUint32Value.
+  void setReservedSlotPrivateUint32Unbarriered(uint32_t slot, uint32_t u) {
+    MOZ_ASSERT(slot < JSCLASS_RESERVED_SLOTS(getClass()));
+    MOZ_ASSERT(getReservedSlot(slot).isUndefined() ||
+               getReservedSlot(slot).isInt32());
+    getReservedSlotRef(slot).unbarrieredSet(PrivateUint32Value(u));
+  }
+
   /* Return the allocKind we would use if we were to tenure this object. */
   inline js::gc::AllocKind allocKindForTenure() const;
 

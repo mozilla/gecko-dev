@@ -85,7 +85,7 @@ void ArrayBufferViewObject::notifyBufferMoved(uint8_t* srcBufStart,
 
   if (srcBufStart != dstBufStart) {
     void* data = dstBufStart + dataPointerOffset();
-    getFixedSlotRef(DATA_SLOT).unbarrieredSet(PrivateValue(data));
+    setReservedSlotPrivateUnbarriered(DATA_SLOT, data);
   }
 }
 

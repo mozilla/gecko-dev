@@ -164,7 +164,7 @@ class TableIteratorObject : public NativeObject {
   }
   void setIndex(uint32_t i) {
     MOZ_ASSERT(isActive());
-    setReservedSlot(IndexSlot, PrivateUint32Value(i));
+    setReservedSlotPrivateUint32Unbarriered(IndexSlot, i);
   }
 
   // The number of nonempty entries in the data array to the left of |index|.
@@ -174,7 +174,7 @@ class TableIteratorObject : public NativeObject {
   }
   void setCount(uint32_t i) {
     MOZ_ASSERT(isActive());
-    setReservedSlot(CountSlot, PrivateUint32Value(i));
+    setReservedSlotPrivateUint32Unbarriered(CountSlot, i);
   }
 
   // Links in the doubly-linked list of active iterator objects on the
@@ -195,7 +195,7 @@ class TableIteratorObject : public NativeObject {
   }
   void setPrevPtr(TableIteratorObject** p) {
     MOZ_ASSERT(isActive());
-    setReservedSlot(PrevPtrSlot, PrivateValue(p));
+    setReservedSlotPrivateUnbarriered(PrevPtrSlot, p);
   }
   TableIteratorObject* getNext() const {
     MOZ_ASSERT(isActive());
@@ -208,20 +208,14 @@ class TableIteratorObject : public NativeObject {
   }
   void setNext(TableIteratorObject* p) {
     MOZ_ASSERT(isActive());
-    setReservedSlot(NextSlot, PrivateValue(p));
+    setReservedSlotPrivateUnbarriered(NextSlot, p);
   }
 
-  template <bool IsInit = false>
   void link(TableIteratorObject** listp) {
     MOZ_ASSERT(isActive());
     TableIteratorObject* next = *listp;
-    if constexpr (IsInit) {
-      initReservedSlot(PrevPtrSlot, PrivateValue(listp));
-      initReservedSlot(NextSlot, PrivateValue(next));
-    } else {
-      setPrevPtr(listp);
-      setNext(next);
-    }
+    setPrevPtr(listp);
+    setNext(next);
     *listp = this;
     if (next) {
       next->setPrevPtr(this->addressOfNext());
@@ -231,10 +225,10 @@ class TableIteratorObject : public NativeObject {
   void init(detail::OrderedHashTableObject* target, Kind kind,
             TableIteratorObject** listp) {
     initReservedSlot(TargetSlot, ObjectValue(*target));
-    initReservedSlot(KindSlot, Int32Value(int32_t(kind)));
-    initReservedSlot(IndexSlot, PrivateUint32Value(0));
-    initReservedSlot(CountSlot, PrivateUint32Value(0));
-    link</* IsInit = */ true>(listp);
+    setReservedSlotPrivateUint32Unbarriered(KindSlot, uint32_t(kind));
+    setReservedSlotPrivateUint32Unbarriered(IndexSlot, 0);
+    setReservedSlotPrivateUint32Unbarriered(CountSlot, 0);
+    link(listp);
   }
 
   void assertActiveIteratorFor(JSObject* target) {
@@ -281,9 +275,9 @@ class TableIteratorObject : public NativeObject {
   }
 
   Kind kind() const {
-    int32_t i = getReservedSlot(KindSlot).toInt32();
-    MOZ_ASSERT(i == int32_t(Kind::Keys) || i == int32_t(Kind::Values) ||
-               i == int32_t(Kind::Entries));
+    uint32_t i = getReservedSlot(KindSlot).toPrivateUint32();
+    MOZ_ASSERT(i == uint32_t(Kind::Keys) || i == uint32_t(Kind::Values) ||
+               i == uint32_t(Kind::Entries));
     return Kind(i);
   }
 
@@ -352,7 +346,7 @@ class MOZ_STACK_CLASS OrderedHashTableImpl {
     return static_cast<Data**>(v.toPrivate());
   }
   void setHashTable(Data** table) {
-    obj->setReservedSlot(Slots::HashTableSlot, PrivateValue(table));
+    obj->setReservedSlotPrivateUnbarriered(Slots::HashTableSlot, table);
   }
 
   // Array of Data objects. Elements data[0:dataLength] are constructed and the
@@ -369,7 +363,7 @@ class MOZ_STACK_CLASS OrderedHashTableImpl {
     return maybeData();
   }
   void setData(Data* data) {
-    obj->setReservedSlot(Slots::DataSlot, PrivateValue(data));
+    obj->setReservedSlotPrivateUnbarriered(Slots::DataSlot, data);
   }
 
   // Number of constructed elements in the data array.
@@ -377,7 +371,7 @@ class MOZ_STACK_CLASS OrderedHashTableImpl {
     return obj->getReservedSlot(Slots::DataLengthSlot).toPrivateUint32();
   }
   void setDataLength(uint32_t length) {
-    obj->setReservedSlot(Slots::DataLengthSlot, PrivateUint32Value(length));
+    obj->setReservedSlotPrivateUint32Unbarriered(Slots::DataLengthSlot, length);
   }
 
   // Size of data array, in elements.
@@ -385,7 +379,8 @@ class MOZ_STACK_CLASS OrderedHashTableImpl {
     return obj->getReservedSlot(Slots::DataCapacitySlot).toPrivateUint32();
   }
   void setDataCapacity(uint32_t capacity) {
-    obj->setReservedSlot(Slots::DataCapacitySlot, PrivateUint32Value(capacity));
+    obj->setReservedSlotPrivateUint32Unbarriered(Slots::DataCapacitySlot,
+                                                 capacity);
   }
 
   // The number of elements in this table. This is different from dataLength
@@ -394,7 +389,8 @@ class MOZ_STACK_CLASS OrderedHashTableImpl {
     return obj->getReservedSlot(Slots::LiveCountSlot).toPrivateUint32();
   }
   void setLiveCount(uint32_t liveCount) {
-    obj->setReservedSlot(Slots::LiveCountSlot, PrivateUint32Value(liveCount));
+    obj->setReservedSlotPrivateUint32Unbarriered(Slots::LiveCountSlot,
+                                                 liveCount);
   }
 
   // Multiplicative hash shift.
@@ -404,7 +400,8 @@ class MOZ_STACK_CLASS OrderedHashTableImpl {
     return obj->getReservedSlot(Slots::HashShiftSlot).toPrivateUint32();
   }
   void setHashShift(uint32_t hashShift) {
-    obj->setReservedSlot(Slots::HashShiftSlot, PrivateUint32Value(hashShift));
+    obj->setReservedSlotPrivateUint32Unbarriered(Slots::HashShiftSlot,
+                                                 hashShift);
   }
 
   // List of all active iterators on this table in the tenured heap. Populated
@@ -414,7 +411,7 @@ class MOZ_STACK_CLASS OrderedHashTableImpl {
     return static_cast<TableIteratorObject*>(v.toPrivate());
   }
   void setTenuredIterators(TableIteratorObject* iter) {
-    obj->setReservedSlot(Slots::TenuredIteratorsSlot, PrivateValue(iter));
+    obj->setReservedSlotPrivateUnbarriered(Slots::TenuredIteratorsSlot, iter);
   }
   TableIteratorObject** addressOfTenuredIterators() const {
     static constexpr size_t slot = Slots::TenuredIteratorsSlot;
@@ -429,7 +426,7 @@ class MOZ_STACK_CLASS OrderedHashTableImpl {
     return static_cast<TableIteratorObject*>(v.toPrivate());
   }
   void setNurseryIterators(TableIteratorObject* iter) {
-    obj->setReservedSlot(Slots::NurseryIteratorsSlot, PrivateValue(iter));
+    obj->setReservedSlotPrivateUnbarriered(Slots::NurseryIteratorsSlot, iter);
   }
   TableIteratorObject** addressOfNurseryIterators() const {
     static constexpr size_t slot = Slots::NurseryIteratorsSlot;
@@ -450,7 +447,7 @@ class MOZ_STACK_CLASS OrderedHashTableImpl {
     return static_cast<const HashCodeScrambler*>(v.toPrivate());
   }
   void setHashCodeScrambler(HashCodeScrambler* hcs) {
-    obj->setReservedSlot(Slots::HashCodeScramblerSlot, PrivateValue(hcs));
+    obj->setReservedSlotPrivateUnbarriered(Slots::HashCodeScramblerSlot, hcs);
   }
 
   // Logarithm base 2 of the number of buckets in the hash table initially.
@@ -609,15 +606,15 @@ class MOZ_STACK_CLASS OrderedHashTableImpl {
 
   void initSlots() {
     MOZ_ASSERT(!hasInitializedSlots(), "init must be called at most once");
-    obj->initReservedSlot(Slots::HashTableSlot, PrivateValue(nullptr));
-    obj->initReservedSlot(Slots::DataSlot, PrivateValue(nullptr));
-    obj->initReservedSlot(Slots::DataLengthSlot, PrivateUint32Value(0));
-    obj->initReservedSlot(Slots::DataCapacitySlot, PrivateUint32Value(0));
-    obj->initReservedSlot(Slots::LiveCountSlot, PrivateUint32Value(0));
-    obj->initReservedSlot(Slots::HashShiftSlot, PrivateUint32Value(0));
-    obj->initReservedSlot(Slots::TenuredIteratorsSlot, PrivateValue(nullptr));
-    obj->initReservedSlot(Slots::NurseryIteratorsSlot, PrivateValue(nullptr));
-    obj->initReservedSlot(Slots::HashCodeScramblerSlot, PrivateValue(nullptr));
+    setHashTable(nullptr);
+    setData(nullptr);
+    setDataLength(0);
+    setDataCapacity(0);
+    setLiveCount(0);
+    setHashShift(0);
+    setTenuredIterators(nullptr);
+    setNurseryIterators(nullptr);
+    setHashCodeScrambler(nullptr);
   }
 
   void destroy(JS::GCContext* gcx) {
