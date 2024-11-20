@@ -12,12 +12,10 @@ import("../webrtc.gni")
 
 group("media") {
   deps = []
-  if (!build_with_mozilla) {
-    deps += [
-      ":rtc_media",
-      ":rtc_media_base",
-    ]
-  }
+  deps += [
+    ":rtc_media",
+    ":rtc_media_base",
+  ]
 }
 
 config("rtc_media_defines_config") {
@@ -269,6 +267,9 @@ rtc_library("media_engine") {
       "base/media_engine.cc",
       "base/media_engine.h",
     ]
+    deps -= [
+      ":media_channel_impl",
+    ]
   }
 }
 
@@ -393,6 +394,7 @@ rtc_library("codec") {
   ]
 }
 
+# MOZILLA Bug 1931241 - how much of this do we need?
 rtc_library("rtp_utils") {
 if (!build_with_mozilla) {
   sources = [
@@ -438,7 +440,6 @@ rtc_library("media_constants") {
 }
 
 rtc_library("turn_utils") {
-if (!build_with_mozilla) {
   sources = [
     "base/turn_utils.cc",
     "base/turn_utils.h",
@@ -449,16 +450,13 @@ if (!build_with_mozilla) {
     "../rtc_base/system:rtc_export",
   ]
 }
-}
 
 rtc_library("rid_description") {
-if (!build_with_mozilla) {
   sources = [
     "base/rid_description.cc",
     "base/rid_description.h",
   ]
   deps = []
-}
 }
 
 rtc_library("rtc_simulcast_encoder_adapter") {
@@ -705,6 +703,12 @@ rtc_library("rtc_audio_video") {
     "engine/webrtc_voice_engine.cc",
     "engine/webrtc_voice_engine.h",
   ]
+  if (build_with_mozilla) {
+    sources -= [
+      "engine/webrtc_video_engine.cc",
+      "engine/webrtc_voice_engine.cc",
+    ]
+  }
 
   public_configs = []
   if (!build_with_chromium) {
