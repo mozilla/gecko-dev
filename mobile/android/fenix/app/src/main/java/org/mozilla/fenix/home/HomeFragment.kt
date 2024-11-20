@@ -119,7 +119,6 @@ import org.mozilla.fenix.components.appstate.AppAction.MessagingAction
 import org.mozilla.fenix.components.appstate.AppAction.MessagingAction.MicrosurveyAction
 import org.mozilla.fenix.components.components
 import org.mozilla.fenix.components.menu.MenuAccessPoint
-import org.mozilla.fenix.components.toolbar.BottomToolbarContainerIntegration
 import org.mozilla.fenix.components.toolbar.BottomToolbarContainerView
 import org.mozilla.fenix.components.toolbar.FenixTabCounterMenu
 import org.mozilla.fenix.components.toolbar.navbar.HomeNavBar
@@ -276,7 +275,6 @@ class HomeFragment : Fragment() {
     private val historyMetadataFeature = ViewBoundFeatureWrapper<RecentVisitsFeature>()
     private val searchSelectorBinding = ViewBoundFeatureWrapper<SearchSelectorBinding>()
     private val searchSelectorMenuBinding = ViewBoundFeatureWrapper<SearchSelectorMenuBinding>()
-    private val bottomToolbarContainerIntegration = ViewBoundFeatureWrapper<BottomToolbarContainerIntegration>()
     private val homeScreenPopupManager = ViewBoundFeatureWrapper<HomeScreenPopupManager>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -811,16 +809,6 @@ class HomeFragment : Fragment() {
                     }
                 }
             },
-        )
-
-        bottomToolbarContainerIntegration.set(
-            feature = BottomToolbarContainerIntegration(
-                toolbar = bottomToolbarContainerView.toolbarContainerView,
-                store = requireComponents.core.store,
-                sessionId = null,
-            ),
-            owner = this,
-            view = binding.root,
         )
     }
 
