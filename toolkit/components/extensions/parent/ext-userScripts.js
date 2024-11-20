@@ -14,6 +14,7 @@ var { ExtensionError } = ExtensionUtils;
 
 /**
  * Represents (in the main browser process) a user script.
+ * (legacy MV2-only userScripts API)
  *
  * @param {UserScriptOptions} details
  *        The options object related to the user script
@@ -88,16 +89,57 @@ this.userScripts = class extends ExtensionAPI {
       return this.getLegacyMV2API(context);
     }
 
+    function ensureIdsValidAndUnique(publicScriptIds) {
+      let seen = new Set();
+      for (let id of publicScriptIds) {
+        if (!id.length || id.startsWith("_")) {
+          throw new ExtensionError("Invalid id for RegisteredUserScript.");
+        }
+        if (seen.has(id)) {
+          throw new ExtensionError(`Duplicate script id: ${id}`);
+        }
+        seen.add(id);
+      }
+    }
+
+    const usm = extension.userScriptsManager;
+
     return {
       userScripts: {
         register: async scripts => {
-          // TODO: Add implementation. For now this is a placeholder to get the
-          // test_ext_userScripts_mv3_availability.js test running such that it
-          // can verify that the MV2 vs MV3 split works as desired.
-          if (!Array.isArray(scripts)) {
-            // Should have been enforced by the user_scripts.json schema.
-            throw new ExtensionError("scripts param should be an array!");
+          ensureIdsValidAndUnique(scripts.map(s => s.id));
+
+          return usm.runWriteTask(async () => {
+            await usm.registerNewScripts(scripts);
+          });
+        },
+
+        update: async scripts => {
+          ensureIdsValidAndUnique(scripts.map(s => s.id));
+
+          return usm.runWriteTask(async () => {
+            await usm.updateScripts(scripts);
+          });
+        },
+
+        unregister: async filter => {
+          let ids = filter?.ids;
+          if (ids) {
+            ensureIdsValidAndUnique(ids);
           }
+          return usm.runWriteTask(async () => {
+            await usm.unregisterScripts(ids);
+          });
+        },
+
+        getScripts: async filter => {
+          let ids = filter?.ids;
+          if (ids) {
+            ensureIdsValidAndUnique(ids);
+          }
+          return usm.runReadTask(async () => {
+            return usm.getScripts(ids);
+          });
         },
       },
     };

@@ -54,6 +54,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
     "resource://gre/modules/ExtensionScriptingStore.sys.mjs",
   ExtensionStorage: "resource://gre/modules/ExtensionStorage.sys.mjs",
   ExtensionStorageIDB: "resource://gre/modules/ExtensionStorageIDB.sys.mjs",
+  ExtensionUserScripts: "resource://gre/modules/ExtensionUserScripts.sys.mjs",
   ExtensionTelemetry: "resource://gre/modules/ExtensionTelemetry.sys.mjs",
   LightweightThemeManager:
     "resource://gre/modules/LightweightThemeManager.sys.mjs",
@@ -609,6 +610,12 @@ var ExtensionAddonObserver = {
     addShutdownBlocker(
       `Clear scripting store for ${addonId}`,
       lazy.ExtensionScriptingStore.clearOnUninstall(addonId)
+    );
+
+    // Clear MV3 userScripts API data, if any.
+    addShutdownBlocker(
+      `Clear user scripts for ${addonId}`,
+      lazy.ExtensionUserScripts.clearOnUninstall(addonId)
     );
 
     // Clear the DNR API's rules data persisted on disk (if any).
@@ -3438,6 +3445,18 @@ export class Extension extends ExtensionData {
     this.updateContentScripts();
   }
 
+  shouldSendSharedData() {
+    return (
+      // If not started or already shutdown, don't bother.
+      !!this.policy?.active &&
+      // If startup() has been called but we have not reached the end of
+      // runManifest() yet, then we have not notified the content process of
+      // via "Extension:Startup", and therefore do not need to notify of
+      // updated sharedData.
+      !pendingExtensions.has(this.id)
+    );
+  }
+
   updateContentScripts() {
     this.setSharedData("contentScripts", this.registeredContentScripts);
   }
@@ -3692,6 +3711,17 @@ export class Extension extends ExtensionData {
           this.state = "Startup: Scripting store initialized";
         } catch (err) {
           this.logError(`Failed to initialize scripting store: ${err}`);
+        }
+      }
+
+      if (this.hasPermission("userScripts")) {
+        this.state = "Startup: Initialize user scripts";
+        // TODO: Parallelize with ExtensionScriptingStore.initExtension?
+        try {
+          await lazy.ExtensionUserScripts.initExtension(this);
+          this.state = "Startup: User scripts initialized";
+        } catch (err) {
+          this.logError(`Failed to initialize user scripts: ${err}`);
         }
       }
 

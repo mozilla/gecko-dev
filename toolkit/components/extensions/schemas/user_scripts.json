@@ -113,7 +113,101 @@
         "min_manifest_version": 3,
         "type": "object",
         "description": "An object that represents a user script registered programmatically",
-        "properties": {}
+        "properties": {
+          "id": {
+            "type": "string",
+            "optional": false,
+            "description": "The ID of the user script specified in the API call. This property must not start with a '_' as it's reserved as a prefix for generated script IDs."
+          },
+          "allFrames": {
+            "type": "boolean",
+            "optional": true,
+            "description": "If allFrames is <code>true</code>, implies that the JavaScript should be injected into all frames of current page. By default, it's <code>false</code> and is only injected into the top frame."
+          },
+          "js": {
+            "type": "array",
+            "optional": false,
+            "description": "The list of ScriptSource objects defining sources of scripts to be injected into matching pages.",
+            "items": { "$ref": "ScriptSource" }
+          },
+          "matches": {
+            "type": "array",
+            "optional": true,
+            "description": "At least one of matches or includeGlobs should be non-empty. The script runs in documents whose URL match either pattern.",
+            "items": { "$ref": "manifest.MatchPattern" }
+          },
+          "excludeMatches": {
+            "type": "array",
+            "optional": true,
+            "items": { "$ref": "manifest.MatchPattern" }
+          },
+          "includeGlobs": {
+            "type": "array",
+            "optional": true,
+            "description": "At least one of matches or includeGlobs should be non-empty. The script runs in documents whose URL match either pattern.",
+            "items": { "type": "string" }
+          },
+          "excludeGlobs": {
+            "type": "array",
+            "optional": true,
+            "items": { "type": "string" }
+          },
+          "runAt": {
+            "$ref": "extensionTypes.RunAt",
+            "optional": true,
+            "description": "The soonest that the JavaScript will be injected into the tab. Defaults to \"document_idle\"."
+          },
+          "world": {
+            "$ref": "ExecutionWorld",
+            "optional": true,
+            "description": "The JavaScript script for a script to execute within. Defaults to \"USER_SCRIPT\"."
+          }
+        }
+      },
+      {
+        "id": "ExecutionWorld",
+        "min_manifest_version": 3,
+        "type": "string",
+        "enum": ["MAIN", "USER_SCRIPT"],
+        "description": "The JavaScript world for a script to execute within. <code>USER_SCRIPT</code> is the default execution environment of user scripts, <code>MAIN</code> is the web page's execution environment."
+      },
+      {
+        "id": "UserScriptFilter",
+        "min_manifest_version": 3,
+        "type": "object",
+        "description": "Optional filter to use with getScripts() and unregister().",
+        "properties": {
+          "ids": {
+            "type": "array",
+            "optional": true,
+            "items": { "type": "string" }
+          }
+        }
+      },
+      {
+        "id": "ScriptSource",
+        "min_manifest_version": 3,
+        "description": "Object with file xor code property. Equivalent to the ExtensionFileOrCode, except the file remains a relative URL.",
+        "choices": [
+          {
+            "type": "object",
+            "properties": {
+              "file": {
+                "type": "string",
+                "description": "The path of the JavaScript file to inject relative to the extension's root directory.",
+                "format": "unresolvedRelativeUrl"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "string"
+              }
+            }
+          }
+        ]
       }
     ],
     "functions": [
@@ -161,6 +255,73 @@
             "type": "array",
             "items": { "$ref": "RegisteredUserScript" },
             "description": "List of user scripts to be registered."
+          }
+        ]
+      },
+      {
+        "name": "update",
+        "min_manifest_version": 3,
+        "type": "function",
+        "description": "Updates one or more user scripts for this extension.",
+        "async": true,
+        "parameters": [
+          {
+            "name": "scripts",
+            "type": "array",
+            "items": {
+              "type": "object",
+              "$import": "RegisteredUserScript",
+              "properties": {
+                "js": {
+                  "type": "array",
+                  "optional": true,
+                  "items": { "$ref": "ScriptSource" }
+                }
+              }
+            },
+            "description": "List of user scripts to be updated."
+          }
+        ]
+      },
+      {
+        "name": "unregister",
+        "min_manifest_version": 3,
+        "type": "function",
+        "description": "Unregisters all dynamically-registered user scripts for this extension.",
+        "async": true,
+        "parameters": [
+          {
+            "name": "filter",
+            "$ref": "UserScriptFilter",
+            "optional": true,
+            "description": "If specified, this method unregisters only the user scripts that match it."
+          }
+        ]
+      },
+      {
+        "name": "getScripts",
+        "min_manifest_version": 3,
+        "type": "function",
+        "description": "Returns all dynamically-registered user scripts for this extension.",
+        "async": "callback",
+        "parameters": [
+          {
+            "name": "filter",
+            "$ref": "UserScriptFilter",
+            "optional": true,
+            "description": "If specified, this method returns only the user scripts that match it."
+          },
+          {
+            "name": "callback",
+            "type": "function",
+            "parameters": [
+              {
+                "name": "scripts",
+                "type": "array",
+                "items": { "$ref": "RegisteredUserScript" },
+                "description": "List of registered user scripts."
+              }
+            ]
           }
         ]
       }
