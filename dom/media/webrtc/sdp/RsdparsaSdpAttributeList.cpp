@@ -4,6 +4,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#include "SdpAttribute.h"
 #include "nsCRT.h"
 
 #include "sdp/RsdparsaSdpAttributeList.h"
@@ -796,6 +797,21 @@ void RsdparsaSdpAttributeList::LoadFmtp(RustAttributeList* attributeList) {
 
       fmtpParameters.reset(
           new SdpFmtpAttributeList::RtxParameters(rtxParameters));
+    } else if (codecName == "AV1") {
+      SdpFmtpAttributeList::Av1Parameters av1Parameters;
+
+      av1Parameters.profile = rustFmtpParameters.av1.has_profile
+                                  ? Some(rustFmtpParameters.av1.profile)
+                                  : Nothing();
+      av1Parameters.levelIdx = rustFmtpParameters.av1.has_level_idx
+                                   ? Some(rustFmtpParameters.av1.level_idx)
+                                   : Nothing();
+      av1Parameters.tier = rustFmtpParameters.av1.has_tier
+                               ? Some(rustFmtpParameters.av1.tier)
+                               : Nothing();
+      fmtpParameters.reset(
+          new SdpFmtpAttributeList::Av1Parameters(av1Parameters));
+
     } else {
       // The parameter set is unknown so skip it
       continue;

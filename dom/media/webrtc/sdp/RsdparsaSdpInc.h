@@ -194,6 +194,15 @@ struct RustSdpAttributeImageAttr {
   RustSdpAttributeImageAttrSetList recv;
 };
 
+struct RustAv1FmtpParameters {
+  uint8_t profile;
+  bool has_profile;
+  uint8_t level_idx;
+  bool has_level_idx;
+  uint8_t tier;
+  bool has_tier;
+};
+
 struct RustRtxFmtpParameters {
   uint8_t apt;
   bool has_rtx_time;
@@ -228,6 +237,9 @@ struct RustSdpAttributeFmtpParameters {
 
   // telephone-event
   StringView dtmf_tones;
+
+  // AV1
+  RustAv1FmtpParameters av1;
 
   // RTX
   RustRtxFmtpParameters rtx;
