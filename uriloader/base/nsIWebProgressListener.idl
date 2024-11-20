@@ -320,6 +320,10 @@ interface nsIWebProgressListener : nsISupports
    *   Rejected because the resource is a tracker from a social origin and
    *   cookie policy doesn't allow its loading.
    *
+   * STATE_COOKIES_PARTITIONED_TRACKER
+   *   Rejected because the resource is a third-party tracker and cookie policy
+   *   forces third-party resources to be partitioned.
+   *
    * STATE_COOKIES_PARTITIONED_FOREIGN
    *   Rejected because the resource is a third-party and cookie policy forces
    *   third-party resources to be partitioned.
@@ -383,6 +387,7 @@ interface nsIWebProgressListener : nsISupports
   const unsigned long STATE_COOKIES_BLOCKED_TRACKER              = 1 << 29;
   const unsigned long STATE_COOKIES_BLOCKED_SOCIALTRACKER        = 1 << 24;
   const unsigned long STATE_COOKIES_BLOCKED_ALL                  = 1 << 30;
+  const unsigned long STATE_COOKIES_PARTITIONED_TRACKER          = 1 << 1;
   const unsigned long STATE_COOKIES_PARTITIONED_FOREIGN          = 1 << 31;
   const unsigned long STATE_COOKIES_BLOCKED_FOREIGN              = 1 << 7;
   const unsigned long STATE_BLOCKED_SOCIALTRACKING_CONTENT       = 1 << 16;
