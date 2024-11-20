@@ -364,6 +364,34 @@
           "additionalProperties": false,
           "required": ["id"],
           "description": "Happens when a search is completed"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "enum": ["elementClicked"]
+            },
+            "params": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "List of IDs of elements that will fire this trigger when clicked"
+            },
+            "context": {
+              "type": "object",
+              "properties": {
+                "elementId": {
+                  "type": "string",
+                  "description": "The ID of the element that was clicked"
+                }
+              }
+            }
+          },
+          "additionalProperties": false,
+          "required": ["id"],
+          "description": "Happens when a browser chrome element is clicked"
         }
       ]
     }

@@ -1436,4 +1436,84 @@ export const ASRouterTriggerListeners = new Map([
       },
     },
   ],
+  [
+    "elementClicked",
+    {
+      id: "elementClicked",
+      _initialized: false,
+      _triggerHandler: null,
+      _elementIds: [],
+
+      init(triggerHandler, elementIds) {
+        elementIds.forEach(elementId => this._elementIds.push(elementId));
+        if (!this._initialized) {
+          this._triggerHandler = triggerHandler;
+          this._initialized = true;
+
+          const eventTypes = ["click", "keypress"];
+
+          lazy.EveryWindow.registerCallback(
+            this.id,
+            win => {
+              eventTypes.forEach(eventType => {
+                win.document.addEventListener(eventType, this, true);
+              });
+            },
+            win => {
+              eventTypes.forEach(eventType => {
+                win.document.removeEventListener(eventType, this, true);
+              });
+            }
+          );
+        }
+      },
+
+      handleEvent(event) {
+        if (event.type === "click" && event.button !== 0) {
+          // exit early if this is a right click
+          return;
+        } else if (
+          event.type === "keypress" &&
+          event.key !== " " &&
+          event.key !== "Enter"
+        ) {
+          // exit early if this is a keypress and the keypress is not with enter or space
+          return;
+        }
+
+        const clickedElement = event.target;
+        const win = event.target.ownerGlobal;
+
+        // only fire if the element ID is in the params of the trigger in one of our messages
+        if (
+          clickedElement?.id &&
+          this._elementIds.includes(clickedElement.id)
+        ) {
+          // don't proceed if the event didn't happen in the active window
+          const isCurrentWindow =
+            win === Services.wm.getMostRecentBrowserWindow();
+          if (isCurrentWindow) {
+            this._triggerHandler(win.gBrowser.selectedBrowser, {
+              id: this.id,
+              context: {
+                elementId: clickedElement.id,
+              },
+              param: {
+                type: clickedElement.id,
+              },
+            });
+          }
+        }
+      },
+
+      uninit() {
+        if (this._initialized) {
+          lazy.EveryWindow.unregisterCallback(this.id);
+          this._initialized = false;
+          this._triggerHandler = null;
+          this._elementIds = [];
+        }
+      },
+    },
+  ],
 ]);

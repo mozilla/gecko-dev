@@ -36,25 +36,29 @@ let patterns: string[];
 
 ## Available trigger actions
 
-* [openArticleURL](#openarticleurl)
-* [openBookmarkedURL](#openbookmarkedurl)
-* [frequentVisits](#frequentvisits)
-* [openURL](#openurl)
-* [newSavedLogin](#newsavedlogin)
-* [formAutofill](#formautofill)
-* [contentBlocking](#contentblocking)
-* [defaultBrowserCheck](#defaultbrowsercheck)
-* [deeplinkedToWindowsSettingsUI](#deeplinkedtowindowssettingsui)
-* [captivePortalLogin](#captiveportallogin)
-* [preferenceObserver](#preferenceobserver)
-* [featureCalloutCheck](#featurecalloutcheck)
-* [nthTabClosed](#nthtabclosed)
-* [activityAfterIdle](#activityafteridle)
-* [cookieBannerDetected](#cookiebannerdetected)
-* [cookieBannerHandled](#cookiebannerhandled)
-* [messagesLoaded](#messagesloaded)
-* [pageActionInUrlbar](#pageactioninurlbar)
-* [onSearch](#onsearch)
+- [`openArticleURL`](#openarticleurl)
+- [`openBookmarkedURL`](#openbookmarkedurl)
+- [`frequentVisits`](#frequentvisits)
+- [`openURL`](#openurl)
+- [`newSavedLogin`](#newsavedlogin)
+- [`formAutofill`](#formautofill)
+- [`contentBlocking`](#contentblocking)
+- [`defaultBrowserCheck`](#defaultbrowsercheck)
+- [`deeplinkedToWindowsSettingsUI`](#deeplinkedtowindowssettingsui)
+- [`captivePortalLogin`](#captiveportallogin)
+- [`preferenceObserver`](#preferenceobserver)
+- [`featureCalloutCheck`](#featurecalloutcheck)
+- [`pdfJsFeatureCalloutCheck`](#pdfjsfeaturecalloutcheck)
+- [`newtabFeatureCalloutCheck`](#newtabfeaturecalloutcheck)
+- [`nthTabClosed`](#nthtabclosed)
+- [`activityAfterIdle`](#activityafteridle)
+- [`cookieBannerDetected`](#cookiebannerdetected)
+- [`cookieBannerHandled`](#cookiebannerhandled)
+- [`messagesLoaded`](#messagesloaded)
+- [`pageActionInUrlbar`](#pageactioninurlbar)
+- [`onSearch`](#onsearch)
+- [`sidebarToolOpened`](#sidebartoolopened)
+- [`elementClicked`](#elementclicked)
 
 ### `openArticleURL`
 
@@ -281,7 +285,7 @@ The `isOneOff` boolean context variable is available in targeting, and will be t
 ```js
 {
   trigger: { id: "onSearch" },
-  targeting: "isSuggestion && searchSource === 'urlbar-handoff' && isOneOff"
+  targeting: "isSuggestion && searchSource == 'urlbar-handoff' && isOneOff"
 }
 ```
 
@@ -297,5 +301,21 @@ The `clickCounts` object context variable is also available in targeting, and in
 {
   trigger: { id: "sidebarToolOpened" },
   targeting: `'sidebar.position_start'|preferenceValue && view != 'viewGenaiChatSidebar' && clickCounts.totalToolsMinusGenai == 5 && !'messaging-system-action.sidebar-tools-microsurvey-complete-or-dismissed'|preferenceValue`
+}
+```
+
+### `elementClicked`
+
+Happens when an element in the browser chrome is clicked. The trigger will only fire if the element that is clicked has an ID that is within the trigger's params array.
+
+The `elementId` string context variable is also available in targeting, and will correspond to the ID of the element that was clicked.
+
+```js
+{
+  trigger: {
+    id: "elementClicked",
+    params: ["element1-id", "element2-id"]
+  },
+  targeting: "elementId == 'element1-id'"
 }
 ```

@@ -505,3 +505,115 @@ add_task(async function test_onSearchTrigger() {
   sandbox.restore();
   BrowserTestUtils.removeTab(tab);
 });
+
+add_task(async function test_elementClicked_trigger() {
+  const handlerStub = sinon.stub();
+  const xulElButtonId = "PanelUI-menu-button";
+
+  const buttonClickTrigger = ASRouterTriggerListeners.get("elementClicked");
+  buttonClickTrigger.uninit();
+  buttonClickTrigger.init(handlerStub, ["testButtonId", xulElButtonId]);
+
+  // Test button click event
+  const button = document.createElement("button");
+  button.id = "testButtonId";
+  // Button text content is required to prevent test failures
+  button.textContent = "Test Button";
+  document.documentElement.appendChild(button);
+
+  await TestUtils.waitForTick();
+  const clickEvent = new PointerEvent("click", {
+    bubbles: true,
+    cancelable: true,
+    button: 0,
+  });
+  button.dispatchEvent(clickEvent);
+
+  Assert.ok(handlerStub.calledOnce, "handler called once for click event");
+  Assert.deepEqual(
+    handlerStub.firstCall.args[1].param,
+    { type: "testButtonId" },
+    "handler called with correct param type for click event"
+  );
+
+  // Test space keypress event
+  handlerStub.resetHistory();
+  const spaceKeypressEvent = new KeyboardEvent("keypress", {
+    bubbles: true,
+    cancelable: true,
+    key: " ",
+    charCode: 32,
+  });
+  button.dispatchEvent(spaceKeypressEvent);
+
+  Assert.ok(
+    handlerStub.calledOnce,
+    "handler called once for space keypress event"
+  );
+  Assert.deepEqual(
+    handlerStub.firstCall.args[1].param,
+    { type: "testButtonId" },
+    "handler called with correct param type for space keypress event"
+  );
+
+  // Test Enter keypress event
+  handlerStub.resetHistory();
+  const enterKeypressEvent = new KeyboardEvent("keypress", {
+    bubbles: true,
+    cancelable: true,
+    key: "Enter",
+    charCode: 13,
+  });
+  button.dispatchEvent(enterKeypressEvent);
+
+  Assert.ok(
+    handlerStub.calledOnce,
+    "handler called once for enter keypress event"
+  );
+  Assert.deepEqual(
+    handlerStub.firstCall.args[1].param,
+    { type: "testButtonId" },
+    "handler called with correct param type for enter keypress event"
+  );
+
+  // Test a non-space && non-enter keypress event
+  handlerStub.resetHistory();
+  const tabKeypressEvent = new KeyboardEvent("keypress", {
+    bubbles: true,
+    cancelable: true,
+    key: "Tab",
+    charCode: 9,
+  });
+  button.dispatchEvent(tabKeypressEvent);
+
+  Assert.ok(handlerStub.notCalled, "handler not called for tab keypress event");
+
+  // Test a space keypress event on a xul element
+  handlerStub.resetHistory();
+  const xulElement = document.getElementById(xulElButtonId);
+  xulElement.dispatchEvent(spaceKeypressEvent);
+
+  Assert.ok(
+    handlerStub.calledOnce,
+    "handler called once for space keypress event"
+  );
+  Assert.deepEqual(
+    handlerStub.firstCall.args[1].param,
+    { type: xulElButtonId },
+    "handler called with correct param type for space keypress event on xul element"
+  );
+
+  // Test a click event on a xul element
+  handlerStub.resetHistory();
+  xulElement.dispatchEvent(clickEvent);
+
+  Assert.ok(handlerStub.calledOnce, "handler called once for click event");
+  Assert.deepEqual(
+    handlerStub.firstCall.args[1].param,
+    { type: xulElButtonId },
+    "handler called with correct param type for click keypress event on xul element"
+  );
+
+  buttonClickTrigger.uninit();
+  document.documentElement.removeChild(button);
+});
