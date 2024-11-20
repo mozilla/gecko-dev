@@ -1199,6 +1199,20 @@ const AVAILABLE_INJECTIONS = [
       ],
     },
   },
+  {
+    id: "1923286",
+    platform: "desktop",
+    domain: "bing.com",
+    bug: "1923286",
+    contentScripts: {
+      matches: ["*://www.bing.com/images/search*"],
+      js: [
+        {
+          file: "injections/js/bug1923286-bing.com-image-click-fix.js",
+        },
+      ],
+    },
+  },
 ];
 
 module.exports = AVAILABLE_INJECTIONS;
