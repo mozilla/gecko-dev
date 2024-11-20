@@ -24,6 +24,7 @@ static const char* logTag = "sdp_access";
 #define SIPSDP_ATTR_ENCNAME_ILBC      "iLBC"
 #define SIPSDP_ATTR_ENCNAME_H263v2    "H263-1998"
 #define SIPSDP_ATTR_ENCNAME_H264      "H264"
+#define SIPSDP_ATTR_ENCNAME_AV1       "AV1"
 #define SIPSDP_ATTR_ENCNAME_VP8       "VP8"
 #define SIPSDP_ATTR_ENCNAME_VP9       "VP9"
 #define SIPSDP_ATTR_ENCNAME_L16_256K  "L16"
@@ -1374,6 +1375,9 @@ rtp_ptype sdp_get_known_payload_type(sdp_t *sdp_p,
               return (RTP_H264_P1);
             }
           }
+        }
+        if (cpr_strcasecmp(encname, SIPSDP_ATTR_ENCNAME_AV1) == 0) {
+          return (RTP_AV1);
         }
         if (cpr_strcasecmp(encname, SIPSDP_ATTR_ENCNAME_VP8) == 0) {
           return (RTP_VP8);

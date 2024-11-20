@@ -421,6 +421,8 @@ typedef enum {
     SDP_MAX_PLAYBACK_RATE,
     SDP_APT,
     SDP_RTX_TIME,
+    SDP_LEVEL_IDX,
+    SDP_TIER,
     SDP_MAX_FMTP_PARAM,
     SDP_FMTP_PARAM_UNKNOWN
 } sdp_fmtp_codec_param_e;
@@ -735,6 +737,14 @@ typedef struct sdp_fmtp {
 
     /* RFC 5109 Section 4.2 for specifying redundant encodings */
     uint8_t              redundant_encodings[SDP_FMTP_MAX_REDUNDANT_ENCODINGS];
+
+    /* av1 */
+    uint8_t              av1_profile;
+    tinybool             av1_has_profile;
+    uint8_t              av1_level_idx;
+    tinybool             av1_has_level_idx;
+    uint8_t              av1_tier;
+    tinybool             av1_has_tier;
 
     /* RFC 2833 Section 3.9 (4733) for specifying support DTMF tones:
        The list of values consists of comma-separated elements, which
