@@ -151,6 +151,8 @@
     "shims/rich-relevance.js",
     "shims/salesforce.js",
     "shims/spotify-embed.js",
+    "shims/tiktok-embed.js",
+    "shims/tiktok.svg",
     "shims/tracking-pixel.png",
     "shims/tsn-ca.js",
     "shims/vast2.xml",

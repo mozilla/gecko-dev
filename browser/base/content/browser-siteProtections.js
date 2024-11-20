@@ -1384,6 +1384,11 @@ var gProtectionsHandler = {
       shimId: "InstagramEmbed",
       displayName: "Instagram",
     },
+    {
+      sites: ["https://www.tiktok.com"],
+      shimId: "TiktokEmbed",
+      displayName: "Tiktok",
+    },
   ],
 
   _protectionsPopup: null,

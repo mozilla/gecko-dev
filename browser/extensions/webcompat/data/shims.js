@@ -911,6 +911,19 @@ const AVAILABLE_SHIMS = [
       "*://platform.instagram.com/*",
     ],
   },
+  {
+    id: "TiktokEmbed",
+    platform: "desktop",
+    name: "Tiktok embed placeholder",
+    bug: "1892172",
+    file: "tiktok-embed.js",
+    matches: ["https://www.tiktok.com/embed.js"],
+    logos: ["tiktok.svg"],
+    needsShimHelpers: ["embedClicked", "smartblockGetFluentString"],
+    isSmartblockEmbedShim: true,
+    onlyIfBlockedByETP: true,
+    unblocksOnOptIn: ["*://www.tiktok.com/*"],
+  },
 ];
 
 module.exports = AVAILABLE_SHIMS;
