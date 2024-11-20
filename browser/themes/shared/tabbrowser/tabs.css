@@ -17,7 +17,7 @@
   --tab-collapsed-background-width: var(--tab-min-height);
   --tab-collapsed-width: calc(var(--tab-collapsed-background-width) + 2 * var(--tab-inner-inline-margin));
   --tab-inner-inline-margin: var(--space-medium);
-  --tab-inline-padding: var(--space-medium);
+  --tab-inline-padding: 8px;
   --tab-pinned-expanded-background-width: 40px;
   --tab-pinned-margin-inline-expanded: var(--space-xsmall);
   --tab-pinned-min-width-expanded: calc(var(--tab-pinned-expanded-background-width) + 2 * var(--tab-pinned-margin-inline-expanded));
@@ -109,6 +109,7 @@
   :root {
     --tab-min-height: max(32px, calc(var(--tab-label-line-height) * 1em));
     --tab-block-margin: 2px;
+    --tab-inline-padding: var(--space-medium);
   }
 }
 
@@ -722,17 +723,10 @@
 }
 
 .tabbrowser-tab[image] > .tab-stack > .tab-content[attention]:not([pinned], [selected]) {
-  background-position-x: left 14px;
+  background-position-x: left calc(var(--tab-inline-padding) + 6px);
 
   &:-moz-locale-dir(rtl) {
-    background-position-x: right 14px;
-  }
-  #tabbrowser-tabs[orient="vertical"] & {
-    background-position-x: left 22.5px;
-
-    &:-moz-locale-dir(rtl) {
-      background-position-x: right 22.5px;
-    }
+    background-position-x: right calc(var(--tab-inline-padding) + 6px);
   }
 }
 
