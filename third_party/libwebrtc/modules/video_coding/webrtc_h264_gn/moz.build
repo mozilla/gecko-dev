@@ -25,13 +25,18 @@ LOCAL_INCLUDES += [
     "!/ipc/ipdl/_ipdlheaders",
     "!/third_party/libwebrtc/gen",
     "/ipc/chromium/src",
+    "/media/libyuv/",
+    "/media/libyuv/libyuv/include/",
     "/third_party/abseil-cpp/",
     "/third_party/libwebrtc/",
     "/tools/profiler/public"
 ]
 
 UNIFIED_SOURCES += [
-    "/third_party/libwebrtc/media/base/rid_description.cc"
+    "/third_party/libwebrtc/modules/video_coding/codecs/h264/h264.cc",
+    "/third_party/libwebrtc/modules/video_coding/codecs/h264/h264_color_space.cc",
+    "/third_party/libwebrtc/modules/video_coding/codecs/h264/h264_decoder_impl.cc",
+    "/third_party/libwebrtc/modules/video_coding/codecs/h264/h264_encoder_impl.cc"
 ]
 
 if not CONFIG["MOZ_DEBUG"]:
@@ -58,6 +63,11 @@ if CONFIG["OS_TARGET"] == "Android":
     DEFINES["__STDC_CONSTANT_MACROS"] = True
     DEFINES["__STDC_FORMAT_MACROS"] = True
 
+    OS_LIBS += [
+        "GLESv2",
+        "log"
+    ]
+
 if CONFIG["OS_TARGET"] == "Darwin":
 
     DEFINES["WEBRTC_MAC"] = True
@@ -82,6 +92,10 @@ if CONFIG["OS_TARGET"] == "Linux":
     DEFINES["_LARGEFILE_SOURCE"] = True
     DEFINES["__STDC_CONSTANT_MACROS"] = True
     DEFINES["__STDC_FORMAT_MACROS"] = True
+
+    OS_LIBS += [
+        "rt"
+    ]
 
 if CONFIG["OS_TARGET"] == "OpenBSD":
 
@@ -123,6 +137,13 @@ if CONFIG["OS_TARGET"] == "WINNT":
     DEFINES["_WIN32_WINNT"] = "0x0A00"
     DEFINES["_WINDOWS"] = True
     DEFINES["__STD_C"] = True
+
+    OS_LIBS += [
+        "crypt32",
+        "iphlpapi",
+        "secur32",
+        "winmm"
+    ]
 
 if CONFIG["TARGET_CPU"] == "aarch64":
 
@@ -213,4 +234,4 @@ if CONFIG["OS_TARGET"] == "Linux" and CONFIG["TARGET_CPU"] == "x86_64":
 
     DEFINES["_GNU_SOURCE"] = True
 
-Library("rid_description_gn")
+Library("webrtc_h264_gn")
