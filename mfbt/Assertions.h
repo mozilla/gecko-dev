@@ -500,7 +500,7 @@ struct AssertionConditionType {
         ("MOZ_ASSERT", __VA_ARGS__))
 #else
 #  define MOZ_ASSERT(...) \
-    do {                  \
+    do { /* nothing */    \
     } while (false)
 #endif /* DEBUG */
 
@@ -511,7 +511,7 @@ struct AssertionConditionType {
         ("MOZ_DIAGNOSTIC_ASSERT", __VA_ARGS__))
 #else
 #  define MOZ_DIAGNOSTIC_ASSERT(...) \
-    do {                             \
+    do { /* nothing */               \
     } while (false)
 #endif
 
@@ -548,7 +548,7 @@ struct AssertionConditionType {
     } while (false)
 #else
 #  define MOZ_ASSERT_IF(cond, expr) \
-    do {                            \
+    do { /* nothing */              \
     } while (false)
 #endif
 
@@ -568,7 +568,7 @@ struct AssertionConditionType {
     } while (false)
 #else
 #  define MOZ_DIAGNOSTIC_ASSERT_IF(cond, expr) \
-    do {                                       \
+    do { /* nothing */                         \
     } while (false)
 #endif
 
@@ -690,10 +690,10 @@ struct AssertionConditionType {
  */
 #ifdef FUZZING
 #  define MOZ_CRASH_UNLESS_FUZZING(...) \
-    do {                                \
+    do { /* nothing */                  \
     } while (0)
 #  define MOZ_ASSERT_UNLESS_FUZZING(...) \
-    do {                                 \
+    do { /* nothing */                   \
     } while (0)
 #else
 #  define MOZ_CRASH_UNLESS_FUZZING(...) MOZ_CRASH(__VA_ARGS__)
