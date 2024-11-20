@@ -615,6 +615,11 @@ class SearchDialogFragment : AppCompatDialogFragment(), UserInteractionHandler {
         super.onDestroyView()
 
         _binding = null
+
+        setFragmentResult(
+            SEARCH_VISIBILITY_RESPONSE_KEY,
+            bundleOf(SEARCH_VISIBILITY_RESPONSE_BUNDLE_KEY to SEARCH_IS_HIDDEN),
+        )
     }
 
     /*
@@ -1034,5 +1039,6 @@ class SearchDialogFragment : AppCompatDialogFragment(), UserInteractionHandler {
         const val SEARCH_VISIBILITY_RESPONSE_KEY = "SEARCH_VISIBILITY_RESPONSE_KEY"
         const val SEARCH_VISIBILITY_RESPONSE_BUNDLE_KEY = "SEARCH_VISIBILITY_RESPONSE_BUNDLE_KEY"
         const val SEARCH_IS_VISIBLE = "SEARCH_IS_VISIBLE"
+        const val SEARCH_IS_HIDDEN = "SEARCH_IS_HIDDEN"
     }
 }
