@@ -13,7 +13,6 @@ import mozilla.components.support.test.whenever
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
-import org.junit.Ignore
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.Mockito.mock
@@ -39,7 +38,6 @@ class CameraManagerTest {
         assertFalse(cameraManager.isLowLightBoostSupported(cameraId))
     }
 
-    @Ignore("To be enabled as part of https://bugzilla.mozilla.org/show_bug.cgi?id=1929237")
     @Test
     fun `isLowLightBoostSupported returns false if availableAeModes is null`() {
         whenever(characteristics.get(CameraCharacteristics.CONTROL_AE_AVAILABLE_MODES)).thenReturn(
@@ -48,7 +46,6 @@ class CameraManagerTest {
         assertFalse(cameraManager.isLowLightBoostSupported(cameraId))
     }
 
-    @Ignore("To be enabled as part of https://bugzilla.mozilla.org/show_bug.cgi?id=1929237")
     @Test
     fun `isLowLightBoostSupported returns false if low light boost mode is not available`() {
         whenever(characteristics.get(CameraCharacteristics.CONTROL_AE_AVAILABLE_MODES)).thenReturn(
@@ -57,7 +54,6 @@ class CameraManagerTest {
         assertFalse(cameraManager.isLowLightBoostSupported(cameraId))
     }
 
-    @Ignore("To be enabled as part of https://bugzilla.mozilla.org/show_bug.cgi?id=1929237")
     @Test
     fun `isLowLightBoostSupported returns true if low light boost mode is available`() {
         whenever(characteristics.get(CameraCharacteristics.CONTROL_AE_AVAILABLE_MODES)).thenReturn(
