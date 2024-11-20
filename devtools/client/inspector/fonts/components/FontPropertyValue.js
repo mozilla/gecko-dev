@@ -96,10 +96,17 @@ class FontPropertyValue extends PureComponent {
    */
   getPropLabel(prop) {
     const label = this.props[`${prop}Label`];
-    // Decimal count used to limit numbers in labels.
-    const decimals = Math.abs(Math.log10(this.props.step));
+    let labelValue;
 
-    return label ? toFixed(this.props[prop], decimals) : null;
+    // If the prop is a number, we round it
+    if (typeof this.props[prop] === "number") {
+      // Decimal count used to limit numbers in labels.
+      const decimals = Math.abs(Math.log10(this.props.step));
+      labelValue = toFixed(this.props[prop], decimals);
+    } else {
+      labelValue = this.props[prop];
+    }
+    return label ? labelValue : null;
   }
 
   /**
@@ -181,6 +188,7 @@ class FontPropertyValue extends PureComponent {
         : /^[0-9]+(.[0-9]+)?$/;
     let string = e.target.value.trim();
 
+    // Check if the input does not match
     if (e.target.validity.badInput) {
       return;
     }
@@ -281,7 +289,7 @@ class FontPropertyValue extends PureComponent {
    */
   updateValue(value) {
     if (this.isValueValid(value)) {
-      this.props.onChange(this.props.name, value, this.props.unit);
+      this.props.onChange(this.props.name, toFixed(value, 3), this.props.unit);
     }
 
     this.setState(prevState => {
