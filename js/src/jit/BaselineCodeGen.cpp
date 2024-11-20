@@ -66,11 +66,9 @@ class PlainObject;
 
 namespace jit {
 
-BaselineCompilerHandler::BaselineCompilerHandler(MacroAssembler& masm,
-                                                 TempAllocator& alloc,
-                                                 JSScript* script,
-                                                 JSObject* globalLexical,
-                                                 JSObject* globalThis)
+BaselineCompilerHandler::BaselineCompilerHandler(
+    MacroAssembler& masm, TempAllocator& alloc, JSScript* script,
+    JSObject* globalLexical, JSObject* globalThis, uint32_t baseWarmUpThreshold)
     : frame_(script, masm),
       alloc_(alloc),
       analysis_(alloc, script),
@@ -82,6 +80,7 @@ BaselineCompilerHandler::BaselineCompilerHandler(MacroAssembler& masm,
       globalLexicalEnvironment_(globalLexical),
       globalThis_(globalThis),
       icEntryIndex_(0),
+      baseWarmUpThreshold_(baseWarmUpThreshold),
       compileDebugInstrumentation_(script->isDebuggee()),
       ionCompileable_(true) {
 }
@@ -101,9 +100,10 @@ BaselineCodeGen<Handler>::BaselineCodeGen(JSContext* cx, TempAllocator& alloc,
 
 BaselineCompiler::BaselineCompiler(JSContext* cx, TempAllocator& alloc,
                                    JSScript* script, JSObject* globalLexical,
-                                   JSObject* globalThis)
+                                   JSObject* globalThis,
+                                   uint32_t baseWarmUpThreshold)
     : BaselineCodeGen(cx, alloc, /* HandlerArgs = */ alloc, script,
-                      globalLexical, globalThis) {
+                      globalLexical, globalThis, baseWarmUpThreshold) {
 #ifdef JS_CODEGEN_NONE
   MOZ_CRASH();
 #endif
@@ -1471,9 +1471,8 @@ bool BaselineCompilerCodeGen::emitWarmUpCounterIncrement() {
 
   Label done;
 
-  const OptimizationInfo* info =
-      IonOptimizations.get(OptimizationLevel::Normal);
-  uint32_t warmUpThreshold = info->compilerWarmUpThreshold(cx, script, pc);
+  uint32_t warmUpThreshold = OptimizationInfo::warmUpThresholdForPC(
+      script, pc, handler.baseWarmUpThreshold());
   masm.branch32(Assembler::LessThan, countReg, Imm32(warmUpThreshold), &done);
 
   // Don't trigger Warp compilations from trial-inlined scripts.

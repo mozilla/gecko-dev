@@ -86,11 +86,6 @@ class OptimizationInfo {
   // Describes which register allocator to use.
   IonRegisterAllocator registerAllocator_;
 
-  uint32_t baseCompilerWarmUpThreshold() const {
-    MOZ_ASSERT(level_ == OptimizationLevel::Normal);
-    return JitOptions.normalIonWarmUpThreshold;
-  }
-
  public:
   constexpr OptimizationInfo()
       : level_(OptimizationLevel::Normal),
@@ -160,11 +155,9 @@ class OptimizationInfo {
     return inlineNative_ && !JitOptions.disableInlining;
   }
 
-  uint32_t compilerWarmUpThreshold(JSContext* cx, JSScript* script,
-                                   jsbytecode* pc = nullptr) const;
-
-  uint32_t recompileWarmUpThreshold(JSContext* cx, JSScript* script,
-                                    jsbytecode* pc) const;
+  static uint32_t baseWarmUpThresholdForScript(JSContext* cx, JSScript* script);
+  static uint32_t warmUpThresholdForPC(JSScript* script, jsbytecode* pc,
+                                       uint32_t baseThreshold);
 
   bool gvnEnabled() const { return gvn_ && !JitOptions.disableGvn; }
 

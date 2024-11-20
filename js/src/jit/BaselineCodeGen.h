@@ -298,6 +298,8 @@ class BaselineCompilerHandler {
   // Index of the current ICEntry in the script's JitScript.
   uint32_t icEntryIndex_;
 
+  uint32_t baseWarmUpThreshold_;
+
   bool compileDebugInstrumentation_;
   bool ionCompileable_;
 
@@ -306,7 +308,7 @@ class BaselineCompilerHandler {
 
   BaselineCompilerHandler(MacroAssembler& masm, TempAllocator& alloc,
                           JSScript* script, JSObject* globalLexical,
-                          JSObject* globalThis);
+                          JSObject* globalThis, uint32_t baseWarmUpThreshold);
 
   [[nodiscard]] bool init();
 
@@ -367,6 +369,8 @@ class BaselineCompilerHandler {
     return globalLexicalEnvironment_;
   }
   JSObject* globalThis() const { return globalThis_; }
+
+  uint32_t baseWarmUpThreshold() const { return baseWarmUpThreshold_; }
 };
 
 using BaselineCompilerCodeGen = BaselineCodeGen<BaselineCompilerHandler>;
@@ -387,7 +391,8 @@ class BaselineCompiler final : private BaselineCompilerCodeGen {
 
  public:
   BaselineCompiler(JSContext* cx, TempAllocator& alloc, JSScript* script,
-                   JSObject* globalLexical, JSObject* globalThis);
+                   JSObject* globalLexical, JSObject* globalThis,
+                   uint32_t baseWarmUpThreshold);
   [[nodiscard]] bool init();
 
   MethodStatus compile();

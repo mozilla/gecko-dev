@@ -20,6 +20,7 @@
 #include "jit/BaselineIC.h"
 #include "jit/CalleeToken.h"
 #include "jit/Ion.h"
+#include "jit/IonOptimizationLevels.h"
 #include "jit/JitCommon.h"
 #include "jit/JitRuntime.h"
 #include "jit/JitSpewer.h"
@@ -219,7 +220,10 @@ MethodStatus jit::BaselineCompile(JSContext* cx, JSScript* script,
   GlobalLexicalEnvironmentObject* globalLexical =
       &cx->global()->lexicalEnvironment();
   JSObject* globalThis = globalLexical->thisObject();
-  BaselineCompiler compiler(cx, temp, script, globalLexical, globalThis);
+  uint32_t baseWarmUpThreshold =
+      OptimizationInfo::baseWarmUpThresholdForScript(cx, script);
+  BaselineCompiler compiler(cx, temp, script, globalLexical, globalThis,
+                            baseWarmUpThreshold);
   if (!compiler.init()) {
     ReportOutOfMemory(cx);
     return Method_Error;
