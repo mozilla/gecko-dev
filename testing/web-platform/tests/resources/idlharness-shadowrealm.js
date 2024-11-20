@@ -1,7 +1,3 @@
-/* global shadowRealmEvalAsync */
-
-// requires /resources/idlharness-shadowrealm-outer.js
-
 // TODO: it would be nice to support `idl_array.add_objects`
 function fetch_text(url) {
     return fetch(url).then(function (r) {
@@ -27,25 +23,38 @@ function fetch_text(url) {
 function idl_test_shadowrealm(srcs, deps) {
     promise_setup(async t => {
         const realm = new ShadowRealm();
+        // https://github.com/web-platform-tests/wpt/issues/31996
+        realm.evaluate("globalThis.self = globalThis; undefined;");
+
+        realm.evaluate(`
+            globalThis.self.GLOBAL = {
+                isWindow: function() { return false; },
+                isWorker: function() { return false; },
+                isShadowRealm: function() { return true; },
+            }; undefined;
+        `);
         const specs = await Promise.all(srcs.concat(deps).map(spec => {
             return fetch_text("/interfaces/" + spec + ".idl");
         }));
         const idls = JSON.stringify(specs);
-        await shadowRealmEvalAsync(realm, `
-            await import("/resources/testharness-shadowrealm-inner.js");
-            await import("/resources/testharness.js");
-            await import("/resources/WebIDLParser.js");
-            await import("/resources/idlharness.js");
-            const idls = ${idls};
-            const idl_array = new IdlArray();
-            for (let i = 0; i < ${srcs.length}; i++) {
-                idl_array.add_idls(idls[i]);
-            }
-            for (let i = ${srcs.length}; i < ${srcs.length + deps.length}; i++) {
-                idl_array.add_dependency_idls(idls[i]);
-            }
-            idl_array.test();
-        `);
+        await new Promise(
+            realm.evaluate(`(resolve,reject) => {
+                (async () => {
+                    await import("/resources/testharness.js");
+                    await import("/resources/WebIDLParser.js");
+                    await import("/resources/idlharness.js");
+                    const idls = ${idls};
+                    const idl_array = new IdlArray();
+                    for (let i = 0; i < ${srcs.length}; i++) {
+                        idl_array.add_idls(idls[i]);
+                    }
+                    for (let i = ${srcs.length}; i < ${srcs.length + deps.length}; i++) {
+                        idl_array.add_dependency_idls(idls[i]);
+                    }
+                    idl_array.test();
+                })().then(resolve, (e) => reject(e.toString()));
+            }`)
+        );
         await fetch_tests_from_shadow_realm(realm);
     });
 }
