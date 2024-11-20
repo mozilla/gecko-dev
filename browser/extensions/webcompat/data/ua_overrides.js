@@ -1624,6 +1624,33 @@ const AVAILABLE_UA_OVERRIDES = [
       },
     },
   },
+  {
+    /*
+     * Bug 1899072 - UA override for passpoint.boingo.com
+     * Webcompat issue #29373 - https://webcompat.com/issues/29373
+     *
+     * The site supports HotSpot 2.0 devices, but only allows MacOSX
+     * Mavericks, iOS 7, or Android Nexus 6 devices without a UA override.
+     */
+    id: "bug1899072",
+    platform: "all",
+    domain: "passpoint.boingo.com",
+    bug: "1899072",
+    config: {
+      matches: ["*://passpoint.boingo.com/*"],
+      uaTransformer: (originalUA, platform) => {
+        if (platform == "android") {
+          return "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) FxQuantum Chrome/130.0.6723.102 Mobile Safari/537.36";
+        } else if (platform == "macos") {
+          return UAHelpers.getDeviceAppropriateChromeUA().replace(
+            / Chrome\/[0-9.]*/,
+            ""
+          );
+        }
+        return "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) FxQuantum Version/18.1 Safari/605.1.15";
+      },
+    },
+  },
 ];
 
 module.exports = AVAILABLE_UA_OVERRIDES;

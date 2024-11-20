@@ -71,7 +71,10 @@ class UAOverrides {
               header.value.includes("X11; Linux x86_64");
 
             if (!isMobileWithDesktopMode) {
-              header.value = uaTransformer(header.value);
+              header.value = uaTransformer(
+                header.value,
+                override.currentPlatform
+              );
             }
           }
         }
