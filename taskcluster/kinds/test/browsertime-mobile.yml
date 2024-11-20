@@ -478,6 +478,26 @@ browsertime-benchmark-motionmark-1-3:
             geckoview: 2
             default: 3
 
+browsertime-benchmark-jetstream2:
+    description: Raptor (browsertime) jetstream 2 benchmark test
+    run-without-variant: false
+    raptor:
+        apps: [fenix, chrome-m, cstm-car-m]
+        subtests:
+            - [jetstream2, js]
+    run-on-projects:
+        by-test-platform:
+            android-hw-a55.*shippable.*:
+                by-app:
+                    fenix: [mozilla-central]
+                    default: []
+            default: []
+    treeherder-symbol: Btime()
+    tier:
+        by-app:
+            fenix: 2
+            default: 3
+
 browsertime-benchmark-unity-webgl-mobile:
     description: Browsertime Unity WebGL on Android
     raptor:

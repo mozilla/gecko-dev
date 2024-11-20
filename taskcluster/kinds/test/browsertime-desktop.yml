@@ -350,11 +350,14 @@ browsertime-benchmark:
                     by-app:
                         safari-tp:
                             - [speedometer3, sp3]
+                            # Bug 1931699, jetstream permafailing
+                            # - [jetstream2, js2]
                         default:
                             - [speedometer, sp]
                             - [speedometer3, sp3]
                             - [motionmark-1-3, mm-1.3]
                             - [motionmark-htmlsuite-1-3, mm-h-1.3]
+                            - [jetstream2, js2]
                 # Bug 1909894, windows 10 + sp3 temporarily
                 windows10-64.*shippable.*-qr.*:
                     by-app:
@@ -442,7 +445,15 @@ browsertime-benchmark:
             default:
                 by-subtest:
                     unity-webgl: 3
+                    jetstream2:
+                        by-test-platform:
+                            macosx1400.*shippable.*:
+                                by-app:
+                                    firefox: 2
+                                    default: 3
+                            default: 2
                     default: 2
+
     run-on-projects:
         by-subtest:
             speedometer3:
