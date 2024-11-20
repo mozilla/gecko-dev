@@ -904,6 +904,7 @@ const AVAILABLE_SHIMS = [
     ],
     logos: ["instagram.svg"],
     needsShimHelpers: ["embedClicked", "smartblockGetFluentString"],
+    isSmartblockEmbedShim: true,
     onlyIfBlockedByETP: true,
     unblocksOnOptIn: [
       "*://www.instagram.com/*",

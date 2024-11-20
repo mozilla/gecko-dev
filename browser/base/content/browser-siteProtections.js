@@ -1652,6 +1652,13 @@ var gProtectionsHandler = {
       false
     );
 
+    XPCOMUtils.defineLazyPreferenceGetter(
+      this,
+      "smartblockEmbedsEnabledPref",
+      "extensions.webcompat.smartblockEmbeds.enabled",
+      false
+    );
+
     for (let blocker of Object.values(this.blockers)) {
       if (blocker.init) {
         blocker.init();
@@ -2199,6 +2206,11 @@ var gProtectionsHandler = {
         this.maybeUpdateEarliestRecordedDateTooltip();
         break;
       case "smartblock:open-protections-panel":
+        if (!this.smartblockEmbedsEnabledPref) {
+          // don't react if smartblock disabled by pref
+          break;
+        }
+
         if (this._protectionsPopup?.state == "open") {
           // don't open the panel if it is already open
           // This is not sufficent since the panel is technically "closed" by the button click
@@ -2355,6 +2367,11 @@ var gProtectionsHandler = {
    * @returns {boolean} true if a smartblock compatible resource is blocked or shimmed, false otherwise
    */
   _addSmartblockEmbedToggles() {
+    if (!this.smartblockEmbedsEnabledPref) {
+      // Do not insert toggles if feature is disabled.
+      return false;
+    }
+
     let contentBlockingLog = gBrowser.selectedBrowser.getContentBlockingLog();
     contentBlockingLog = JSON.parse(contentBlockingLog);
     let smartBlockEmbedToggleAdded = false;

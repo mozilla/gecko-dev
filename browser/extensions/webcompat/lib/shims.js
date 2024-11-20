@@ -62,6 +62,7 @@ class Shim {
     this.requestStorageAccessForRedirect = opts.requestStorageAccessForRedirect;
     this.shouldUseScriptingAPI =
       browser.aboutConfigPrefs.getBoolPrefSync("useScriptingAPI");
+    this.isSmartblockEmbedShim = opts.isSmartblockEmbedShim || false;
     debug(
       `WebCompat Shim ${this.id} will be injected using ${
         this.shouldUseScriptingAPI ? "scripting" : "contentScripts"
@@ -75,6 +76,7 @@ class Shim {
     this._disabledForSession = false;
     this._disabledByPlatform = false;
     this._disabledByReleaseBranch = false;
+    this._disabledBySmartblockEmbedPref = false;
 
     this._activeOnTabs = new Set();
     this._showedOptInOnTabs = new Set();
@@ -177,6 +179,10 @@ class Shim {
       return !this._disabledPrefValue;
     }
 
+    if (this.isSmartblockEmbedShim && this._disabledBySmartblockEmbedPref) {
+      return false;
+    }
+
     return (
       !this._disabledByConfig &&
       !this._disabledByPlatform &&
@@ -200,6 +206,10 @@ class Shim {
       return false;
     }
 
+    if (this.isSmartblockEmbedShim && this._disabledBySmartblockEmbedPref) {
+      return "smartblockEmbedDisabledByPref";
+    }
+
     if (this._disabledByConfig) {
       return "config";
     }
@@ -213,6 +223,15 @@ class Shim {
     }
 
     return false;
+  }
+
+  get disabledBySmartblockEmbedPref() {
+    return this._disabledBySmartblockEmbedPref;
+  }
+
+  set disabledBySmartblockEmbedPref(value) {
+    this._disabledBySmartblockEmbedPref = value;
+    this._onEnabledStateChanged();
   }
 
   onAllShimsEnabled() {
@@ -500,7 +519,16 @@ class Shims {
     browser.aboutConfigPrefs.onPrefChange.addListener(() => {
       this._checkEnabledPref();
     }, this.ENABLED_PREF);
-    this._haveCheckedEnabledPref = this._checkEnabledPref();
+
+    this.SMARTBLOCK_EMBEDS_ENABLED_PREF = `smartblockEmbeds.enabled`;
+    browser.aboutConfigPrefs.onPrefChange.addListener(() => {
+      this._checkSmartblockEmbedsEnabledPref();
+    }, this.SMARTBLOCK_EMBEDS_ENABLED_PREF);
+
+    this._haveCheckedEnabledPrefs = Promise.all([
+      this._checkEnabledPref(),
+      this._checkSmartblockEmbedsEnabledPref(),
+    ]);
 
     // handles unblock message coming in from protections panel
     browser.trackingProtection.onSmartBlockEmbedUnblock.addListener(
@@ -735,6 +763,41 @@ class Shims {
     }
   }
 
+  async _checkSmartblockEmbedsEnabledPref() {
+    await browser.aboutConfigPrefs
+      .getPref(this.SMARTBLOCK_EMBEDS_ENABLED_PREF)
+      .then(value => {
+        if (value === undefined) {
+          browser.aboutConfigPrefs.setPref(
+            this.SMARTBLOCK_EMBEDS_ENABLED_PREF,
+            true
+          );
+        } else if (value === false) {
+          this.smartblockEmbedsEnabled = false;
+        } else {
+          this.smartblockEmbedsEnabled = true;
+        }
+      });
+  }
+
+  get smartblockEmbedsEnabled() {
+    return this._smartblockEmbedsEnabled;
+  }
+
+  set smartblockEmbedsEnabled(value) {
+    if (value === this._smartblockEmbedsEnabled) {
+      return;
+    }
+
+    this._smartblockEmbedsEnabled = value;
+
+    for (const shim of this.shims.values()) {
+      if (shim.isSmartblockEmbedShim) {
+        shim.disabledBySmartblockEmbedPref = !this._smartblockEmbedsEnabled;
+      }
+    }
+  }
+
   async _onRequestStorageAccessRedirect({
     originUrl: srcUrl,
     url: dstUrl,
@@ -885,7 +948,7 @@ class Shims {
   }
 
   async _redirectLogos(details) {
-    await this._haveCheckedEnabledPref;
+    await this._haveCheckedEnabledPrefs;
 
     if (!this.enabled) {
       return { cancel: true };
@@ -921,7 +984,7 @@ class Shims {
   }
 
   async _onHeadersReceived(details) {
-    await this._haveCheckedEnabledPref;
+    await this._haveCheckedEnabledPrefs;
 
     for (const shim of this.shims.values()) {
       await shim.ready;
@@ -955,7 +1018,7 @@ class Shims {
   }
 
   async _onBeforeSendHeaders(details) {
-    await this._haveCheckedEnabledPref;
+    await this._haveCheckedEnabledPrefs;
 
     const { frameId, requestHeaders, tabId } = details;
 
@@ -1011,7 +1074,7 @@ class Shims {
   }
 
   async _ensureShimForRequestOnTab(details) {
-    await this._haveCheckedEnabledPref;
+    await this._haveCheckedEnabledPrefs;
 
     if (!this.enabled) {
       return undefined;

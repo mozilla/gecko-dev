@@ -2417,6 +2417,13 @@ pref("privacy.webrtc.showIndicatorsOnMacos14AndAbove", true);
 // Enable Fingerprinting Protection in private windows..
 pref("privacy.fingerprintingProtection.pbmode", true);
 
+// Enable Smartblock embed placeholders
+#ifdef NIGHTLY_BUILD
+  pref("extensions.webcompat.smartblockEmbeds.enabled", true);
+#else
+  pref("extensions.webcompat.smartblockEmbeds.enabled", false);
+#endif
+
 // Enable including the content in the window title.
 // PBM users might want to disable this to avoid a possible source of disk
 // leaks.
