@@ -333,15 +333,15 @@ class Nursery {
 
   bool enableProfiling() const { return enableProfiling_; }
 
-  bool addMapWithNurseryRanges(MapObject* obj) {
-    MOZ_ASSERT_IF(!mapsWithNurseryRanges_.empty(),
-                  mapsWithNurseryRanges_.back() != obj);
-    return mapsWithNurseryRanges_.append(obj);
+  bool addMapWithNurseryIterators(MapObject* obj) {
+    MOZ_ASSERT_IF(!mapsWithNurseryIterators_.empty(),
+                  mapsWithNurseryIterators_.back() != obj);
+    return mapsWithNurseryIterators_.append(obj);
   }
-  bool addSetWithNurseryRanges(SetObject* obj) {
-    MOZ_ASSERT_IF(!setsWithNurseryRanges_.empty(),
-                  setsWithNurseryRanges_.back() != obj);
-    return setsWithNurseryRanges_.append(obj);
+  bool addSetWithNurseryIterators(SetObject* obj) {
+    MOZ_ASSERT_IF(!setsWithNurseryIterators_.empty(),
+                  setsWithNurseryIterators_.back() != obj);
+    return setsWithNurseryIterators_.append(obj);
   }
 
   void joinDecommitTask();
@@ -521,7 +521,7 @@ class Nursery {
   // the nursery on debug & nightly builds.
   void clear();
 
-  void clearMapAndSetNurseryRanges();
+  void clearMapAndSetNurseryIterators();
   void sweepMapAndSetObjects();
 
   void sweepStringsWithBuffer();
@@ -731,9 +731,9 @@ class Nursery {
   // Lists of map and set objects with iterators allocated in the nursery. Such
   // objects need to be swept after minor GC.
   using MapObjectVector = Vector<MapObject*, 0, SystemAllocPolicy>;
-  MapObjectVector mapsWithNurseryRanges_;
+  MapObjectVector mapsWithNurseryIterators_;
   using SetObjectVector = Vector<SetObject*, 0, SystemAllocPolicy>;
-  SetObjectVector setsWithNurseryRanges_;
+  SetObjectVector setsWithNurseryIterators_;
 
   // List of strings with StringBuffers allocated in the nursery. References
   // to the buffers are dropped after minor GC. The list stores both the JS

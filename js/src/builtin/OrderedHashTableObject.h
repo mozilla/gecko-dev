@@ -26,13 +26,8 @@
  *     methods are effect-free and consistent); the hashing is a pure
  *     performance optimization.
  *
- *   - Range objects over Ordered tables remain valid even when entries are
- *     added or removed or the table is resized. (However in the case of
- *     removing entries, note the warning on class Range below.)
- *
- *   - The API is a little different, so it's not a drop-in replacement.
- *     In particular, the hash policy is a little different.
- *     Also, the Ordered templates lack the Ptr and AddPtr types.
+ *   - Iterator objects remain valid even when entries are added or removed or
+ *     the table is resized.
  *
  * Hash policies
  *
@@ -60,6 +55,7 @@
 #include <tuple>
 #include <utility>
 
+#include "builtin/SelfHostingDefines.h"
 #include "gc/Barrier.h"
 #include "gc/Zone.h"
 #include "js/GCPolicyAPI.h"
@@ -70,6 +66,9 @@
 class JSTracer;
 
 namespace js {
+
+class MapIteratorObject;
+class SetIteratorObject;
 
 namespace detail {
 
@@ -90,8 +89,8 @@ class OrderedHashTableObject : public NativeObject {
     DataCapacitySlot,
     LiveCountSlot,
     HashShiftSlot,
-    RangesSlot,
-    NurseryRangesSlot,
+    TenuredIteratorsSlot,
+    NurseryIteratorsSlot,
     HashCodeScramblerSlot,
     SlotCount
   };
@@ -119,6 +118,195 @@ class OrderedHashTableObject : public NativeObject {
   }
 };
 
+}  // namespace detail
+
+// Base class for MapIteratorObject and SetIteratorObject.
+//
+// Iterators remain valid for the lifetime of the OrderedHashTableObject, even
+// if entries are added or removed or if the table is resized. Hash table
+// objects have a doubly linked list of all active iterator objects and this
+// lets us update the iterators when needed.
+//
+// An "active" iterator object has a target object and must be part of its
+// linked list of iterators. When the iterator is finished, the target slot is
+// cleared and the iterator is removed from the linked list.
+//
+// Note: the iterator list stores pointers to iterators as PrivateValue instead
+// of ObjectValue because we want these links to be weak pointers: an iterator
+// must not keep all other iterators alive.
+class TableIteratorObject : public NativeObject {
+  template <class T, class Ops>
+  friend class detail::OrderedHashTableImpl;
+
+ public:
+  enum Slots {
+    TargetSlot,
+    KindSlot,
+    IndexSlot,
+    CountSlot,
+    PrevPtrSlot,
+    NextSlot,
+    SlotCount
+  };
+  enum class Kind { Keys, Values, Entries };
+
+  // Slot numbers and Kind values must match constants used in self-hosted code.
+  static_assert(TargetSlot == ITERATOR_SLOT_TARGET);
+  static_assert(KindSlot == MAP_SET_ITERATOR_SLOT_ITEM_KIND);
+  static_assert(int32_t(Kind::Keys) == ITEM_KIND_KEY);
+  static_assert(int32_t(Kind::Values) == ITEM_KIND_VALUE);
+  static_assert(int32_t(Kind::Entries) == ITEM_KIND_KEY_AND_VALUE);
+
+ private:
+  // The index of the current entry within the table's data array.
+  uint32_t getIndex() const {
+    return getReservedSlot(IndexSlot).toPrivateUint32();
+  }
+  void setIndex(uint32_t i) {
+    MOZ_ASSERT(isActive());
+    setReservedSlot(IndexSlot, PrivateUint32Value(i));
+  }
+
+  // The number of nonempty entries in the data array to the left of |index|.
+  // This is used when the table is resized or compacted.
+  uint32_t getCount() const {
+    return getReservedSlot(CountSlot).toPrivateUint32();
+  }
+  void setCount(uint32_t i) {
+    MOZ_ASSERT(isActive());
+    setReservedSlot(CountSlot, PrivateUint32Value(i));
+  }
+
+  // Links in the doubly-linked list of active iterator objects on the
+  // OrderedHashTableObject.
+  //
+  // The PrevPtr slot points to either the previous iterator's NextSlot or to
+  // the table's TenuredIteratorsSlot or NurseryIteratorsSlot if this is the
+  // first iterator in the list.
+  //
+  // The Next slot points to the next iterator object, or is nullptr if this is
+  // the last iterator in the list.
+  //
+  // Invariant: *getPrevPtr() == this.
+  TableIteratorObject** getPrevPtr() const {
+    MOZ_ASSERT(isActive());
+    Value v = getReservedSlot(PrevPtrSlot);
+    return static_cast<TableIteratorObject**>(v.toPrivate());
+  }
+  void setPrevPtr(TableIteratorObject** p) {
+    MOZ_ASSERT(isActive());
+    setReservedSlot(PrevPtrSlot, PrivateValue(p));
+  }
+  TableIteratorObject* getNext() const {
+    MOZ_ASSERT(isActive());
+    Value v = getReservedSlot(NextSlot);
+    return static_cast<TableIteratorObject*>(v.toPrivate());
+  }
+  TableIteratorObject** addressOfNext() {
+    MOZ_ASSERT(isActive());
+    return addressOfFixedSlotPrivatePtr<TableIteratorObject>(NextSlot);
+  }
+  void setNext(TableIteratorObject* p) {
+    MOZ_ASSERT(isActive());
+    setReservedSlot(NextSlot, PrivateValue(p));
+  }
+
+  template <bool IsInit = false>
+  void link(TableIteratorObject** listp) {
+    MOZ_ASSERT(isActive());
+    TableIteratorObject* next = *listp;
+    if constexpr (IsInit) {
+      initReservedSlot(PrevPtrSlot, PrivateValue(listp));
+      initReservedSlot(NextSlot, PrivateValue(next));
+    } else {
+      setPrevPtr(listp);
+      setNext(next);
+    }
+    *listp = this;
+    if (next) {
+      next->setPrevPtr(this->addressOfNext());
+    }
+  }
+
+  void init(detail::OrderedHashTableObject* target, Kind kind,
+            TableIteratorObject** listp) {
+    initReservedSlot(TargetSlot, ObjectValue(*target));
+    initReservedSlot(KindSlot, Int32Value(int32_t(kind)));
+    initReservedSlot(IndexSlot, PrivateUint32Value(0));
+    initReservedSlot(CountSlot, PrivateUint32Value(0));
+    link</* IsInit = */ true>(listp);
+  }
+
+  void assertActiveIteratorFor(JSObject* target) {
+    MOZ_ASSERT(&getReservedSlot(TargetSlot).toObject() == target);
+    MOZ_ASSERT(*getPrevPtr() == this);
+    MOZ_ASSERT(getNext() != this);
+  }
+
+ protected:
+  bool isActive() const { return getReservedSlot(TargetSlot).isObject(); }
+
+  void finish() {
+    MOZ_ASSERT(isActive());
+    unlink();
+    // Mark iterator inactive.
+    setReservedSlot(TargetSlot, UndefinedValue());
+  }
+  void unlink() {
+    MOZ_ASSERT(isActive());
+    TableIteratorObject** prevp = getPrevPtr();
+    TableIteratorObject* next = getNext();
+    *prevp = next;
+    if (next) {
+      next->setPrevPtr(prevp);
+    }
+  }
+
+  // Update list pointers after a compacting GC moved this iterator in memory.
+  // Note: this isn't used for nursery iterators because in that case we have to
+  // rebuild the list with clearNurseryIterators and relinkNurseryIterator.
+  void updateListAfterMove(TableIteratorObject* old) {
+    MOZ_ASSERT(!IsInsideNursery(old));
+    MOZ_ASSERT(isActive());
+    MOZ_ASSERT(old != this);
+
+    TableIteratorObject** prevp = getPrevPtr();
+    MOZ_ASSERT(*prevp == old);
+    *prevp = this;
+
+    if (TableIteratorObject* next = getNext()) {
+      MOZ_ASSERT(next->getPrevPtr() == old->addressOfNext());
+      next->setPrevPtr(this->addressOfNext());
+    }
+  }
+
+  Kind kind() const {
+    int32_t i = getReservedSlot(KindSlot).toInt32();
+    MOZ_ASSERT(i == int32_t(Kind::Keys) || i == int32_t(Kind::Values) ||
+               i == int32_t(Kind::Entries));
+    return Kind(i);
+  }
+
+ public:
+  static constexpr size_t offsetOfTarget() {
+    return getFixedSlotOffset(TargetSlot);
+  }
+  static constexpr size_t offsetOfIndex() {
+    return getFixedSlotOffset(IndexSlot);
+  }
+  static constexpr size_t offsetOfCount() {
+    return getFixedSlotOffset(CountSlot);
+  }
+  static constexpr size_t offsetOfPrevPtr() {
+    return getFixedSlotOffset(PrevPtrSlot);
+  }
+  static constexpr size_t offsetOfNext() {
+    return getFixedSlotOffset(NextSlot);
+  }
+};
+
+namespace detail {
+
 /*
  * detail::OrderedHashTableImpl is the underlying code used to implement both
  * OrderedHashMapImpl and OrderedHashSetImpl. Programs should use one of those
@@ -141,9 +329,6 @@ class MOZ_STACK_CLASS OrderedHashTableImpl {
     Data(const T& e, Data* c) : element(e), chain(c) {}
     Data(T&& e, Data* c) : element(std::move(e)), chain(c) {}
   };
-
-  class Range;
-  friend class Range;
 
  private:
   using Slots = OrderedHashTableObject::Slots;
@@ -222,31 +407,40 @@ class MOZ_STACK_CLASS OrderedHashTableImpl {
     obj->setReservedSlot(Slots::HashShiftSlot, PrivateUint32Value(hashShift));
   }
 
-  // List of all live Ranges on this table in malloc memory. Populated when
-  // ranges are created.
-  Range* getRanges() const {
-    Value v = obj->getReservedSlot(Slots::RangesSlot);
-    return static_cast<Range*>(v.toPrivate());
+  // List of all active iterators on this table in the tenured heap. Populated
+  // when iterators are created.
+  TableIteratorObject* getTenuredIterators() const {
+    Value v = obj->getReservedSlot(Slots::TenuredIteratorsSlot);
+    return static_cast<TableIteratorObject*>(v.toPrivate());
   }
-  void setRanges(Range* range) {
-    obj->setReservedSlot(Slots::RangesSlot, PrivateValue(range));
+  void setTenuredIterators(TableIteratorObject* iter) {
+    obj->setReservedSlot(Slots::TenuredIteratorsSlot, PrivateValue(iter));
   }
-  Range** addressOfRanges() const {
-    return obj->addressOfFixedSlotPrivatePtr<Range>(Slots::RangesSlot);
+  TableIteratorObject** addressOfTenuredIterators() const {
+    static constexpr size_t slot = Slots::TenuredIteratorsSlot;
+    return obj->addressOfFixedSlotPrivatePtr<TableIteratorObject>(slot);
   }
 
-  // List of all live Ranges on this table in the GC nursery. Populated when
-  // ranges are created. This is cleared at the start of minor GC and rebuilt
-  // when ranges are moved.
-  Range* getNurseryRanges() const {
-    Value v = obj->getReservedSlot(Slots::NurseryRangesSlot);
-    return static_cast<Range*>(v.toPrivate());
+  // List of all active iterators on this table in the GC nursery.
+  // Populated when iterators are created. This is cleared at the start
+  // of minor GC and rebuilt when iterators are moved.
+  TableIteratorObject* getNurseryIterators() const {
+    Value v = obj->getReservedSlot(Slots::NurseryIteratorsSlot);
+    return static_cast<TableIteratorObject*>(v.toPrivate());
   }
-  void setNurseryRanges(Range* range) {
-    obj->setReservedSlot(Slots::NurseryRangesSlot, PrivateValue(range));
+  void setNurseryIterators(TableIteratorObject* iter) {
+    obj->setReservedSlot(Slots::NurseryIteratorsSlot, PrivateValue(iter));
   }
-  Range** addressOfNurseryRanges() const {
-    return obj->addressOfFixedSlotPrivatePtr<Range>(Slots::NurseryRangesSlot);
+  TableIteratorObject** addressOfNurseryIterators() const {
+    static constexpr size_t slot = Slots::NurseryIteratorsSlot;
+    return obj->addressOfFixedSlotPrivatePtr<TableIteratorObject>(slot);
+  }
+
+  // Returns a pointer to the list of tenured or nursery iterators depending on
+  // where |iter| is allocated.
+  TableIteratorObject** addressOfIterators(TableIteratorObject* iter) {
+    return IsInsideNursery(iter) ? addressOfNurseryIterators()
+                                 : addressOfTenuredIterators();
   }
 
   // Scrambler to not reveal pointer hash codes.
@@ -280,15 +474,15 @@ class MOZ_STACK_CLASS OrderedHashTableImpl {
   static constexpr double MinDataFill = 0.25;
 
   template <typename F>
-  void forEachRange(F&& f) {
-    Range* next;
-    for (Range* r = getRanges(); r; r = next) {
-      next = r->next;
-      f(r);
+  void forEachIterator(F&& f) {
+    TableIteratorObject* next;
+    for (TableIteratorObject* iter = getTenuredIterators(); iter; iter = next) {
+      next = iter->getNext();
+      f(iter);
     }
-    for (Range* r = getNurseryRanges(); r; r = next) {
-      next = r->next;
-      f(r);
+    for (TableIteratorObject* iter = getNurseryIterators(); iter; iter = next) {
+      next = iter->getNext();
+      f(iter);
     }
   }
 
@@ -421,8 +615,8 @@ class MOZ_STACK_CLASS OrderedHashTableImpl {
     obj->initReservedSlot(Slots::DataCapacitySlot, PrivateUint32Value(0));
     obj->initReservedSlot(Slots::LiveCountSlot, PrivateUint32Value(0));
     obj->initReservedSlot(Slots::HashShiftSlot, PrivateUint32Value(0));
-    obj->initReservedSlot(Slots::RangesSlot, PrivateValue(nullptr));
-    obj->initReservedSlot(Slots::NurseryRangesSlot, PrivateValue(nullptr));
+    obj->initReservedSlot(Slots::TenuredIteratorsSlot, PrivateValue(nullptr));
+    obj->initReservedSlot(Slots::NurseryIteratorsSlot, PrivateValue(nullptr));
     obj->initReservedSlot(Slots::HashCodeScramblerSlot, PrivateValue(nullptr));
   }
 
@@ -558,9 +752,10 @@ class MOZ_STACK_CLASS OrderedHashTableImpl {
     setLiveCount(liveCount);
     Ops::makeEmpty(&e->element);
 
-    // Update active Ranges.
+    // Update active iterators.
     uint32_t pos = e - getData();
-    forEachRange([this, pos](Range* range) { range->onRemove(obj, pos); });
+    forEachIterator(
+        [this, pos](auto* iter) { IterOps::onRemove(obj, iter, pos); });
 
     // If many entries have been removed, try to shrink the table. Ignore OOM
     // because shrinking the table is an optimization and it's okay for it to
@@ -578,9 +773,9 @@ class MOZ_STACK_CLASS OrderedHashTableImpl {
   /*
    * Remove all entries.
    *
-   * The effect on live Ranges is the same as removing all entries; in
-   * particular, those Ranges are still live and will see any entries added
-   * after a clear().
+   * The effect on active iterators is the same as removing all entries; in
+   * particular, those iterators are still active and will see any entries
+   * added after a clear().
    */
   void clear(JSContext* cx) {
     if (getDataLength() != 0) {
@@ -591,7 +786,7 @@ class MOZ_STACK_CLASS OrderedHashTableImpl {
       size_t buckets = hashBuckets();
       std::fill_n(getHashTable(), buckets, nullptr);
 
-      forEachRange([](Range* range) { range->onClear(); });
+      forEachIterator([](auto* iter) { IterOps::onClear(iter); });
 
       // Try to shrink the table. Ignore OOM because shrinking the table is an
       // optimization and it's okay for it to fail.
@@ -606,175 +801,79 @@ class MOZ_STACK_CLASS OrderedHashTableImpl {
     MOZ_ASSERT(getLiveCount() == 0);
   }
 
-  /*
-   * Ranges are used to implement the JS Map/Set iterator objects. Each iterator
-   * object has a pointer to a Range. Eventually this Range class could be
-   * folded into the iterator objects.
-   *
-   * Ranges remain valid for the lifetime of the OrderedHashTableObject, even if
-   * entries are added or removed or the table is resized. Don't do anything
-   * to a Range, except destroy it, after the OrderedHashTableObject has been
-   * destroyed. (We support destroying the two objects in either order to
-   * humor the GC, bless its nondeterministic heart.)
-   *
-   * Warning: The behavior when the current front() entry is removed from the
-   * table is subtly different from js::HashTable<>::Enum::removeFront()!
-   * HashTable::Enum doesn't skip any entries when you removeFront() and then
-   * popFront(). OrderedHashTableObject::Range does! (This is useful for using a
-   * Range to implement JS Map.prototype.iterator.)
-   */
-  class Range {
+  class IterOps {
     friend class OrderedHashTableImpl;
 
-    /* The index of front() within the data array. */
-    uint32_t i = 0;
-
-    /*
-     * The number of nonempty entries in the data array to the left of front().
-     * This is used when the table is resized or compacted.
-     */
-    uint32_t count = 0;
-
-    /*
-     * Links in the doubly-linked list of active Ranges on the Map/Set object.
-     *
-     * prevp points to the previous Range's .next field;
-     *   or to the table's RangesSlot or NurseryRangesSlot if this is the first
-     *   Range in the list.
-     * next points to the next Range;
-     *   or nullptr if this is the last Range in the list.
-     *
-     * Invariant: *prevp == this.
-     */
-    Range** prevp;
-    Range* next;
-
-    // Create a Range over all the entries in |obj|.
-    Range(OrderedHashTableObject* obj, Range** listp)
-        : prevp(listp), next(*listp) {
-      *prevp = this;
-      if (next) {
-        next->prevp = &next;
-      }
-      seek(obj);
-      MOZ_ASSERT(valid());
+    static void init(OrderedHashTableObject* table, TableIteratorObject* iter,
+                     TableIteratorObject::Kind kind) {
+      auto** listp = OrderedHashTableImpl(table).addressOfIterators(iter);
+      iter->init(table, kind, listp);
+      seek(table, iter);
     }
 
-   public:
-    Range(OrderedHashTableObject* obj, const Range& other, bool inNursery)
-        : i(other.i),
-          count(other.count),
-          prevp(inNursery ? OrderedHashTableImpl(obj).addressOfNurseryRanges()
-                          : OrderedHashTableImpl(obj).addressOfRanges()),
-          next(*prevp) {
-      *prevp = this;
-      if (next) {
-        next->prevp = &next;
-      }
-      MOZ_ASSERT(valid());
-    }
-
-    ~Range() {
-      if (!prevp) {
-        // Head of removed nursery ranges.
-        return;
-      }
-      *prevp = next;
-      if (next) {
-        next->prevp = prevp;
-      }
-    }
-
-   protected:
-    // Prohibit copy assignment.
-    Range& operator=(const Range& other) = delete;
-
-    void seek(OrderedHashTableObject* obj) {
-      Data* data = OrderedHashTableImpl(obj).maybeData();
-      uint32_t dataLength = OrderedHashTableImpl(obj).getDataLength();
+    static void seek(OrderedHashTableObject* table, TableIteratorObject* iter) {
+      iter->assertActiveIteratorFor(table);
+      const Data* data = OrderedHashTableImpl(table).maybeData();
+      uint32_t dataLength = OrderedHashTableImpl(table).getDataLength();
+      uint32_t i = iter->getIndex();
       while (i < dataLength && Ops::isEmpty(Ops::getKey(data[i].element))) {
         i++;
       }
+      iter->setIndex(i);
     }
 
-    /*
-     * The hash table calls this when an entry is removed.
-     * j is the index of the removed entry.
-     */
-    void onRemove(OrderedHashTableObject* obj, uint32_t j) {
-      MOZ_ASSERT(valid());
+    // The hash table calls this when an entry is removed.
+    // j is the index of the removed entry.
+    static void onRemove(OrderedHashTableObject* table,
+                         TableIteratorObject* iter, uint32_t j) {
+      iter->assertActiveIteratorFor(table);
+      uint32_t i = iter->getIndex();
       if (j < i) {
-        count--;
+        iter->setCount(iter->getCount() - 1);
       }
       if (j == i) {
-        seek(obj);
+        seek(table, iter);
       }
     }
 
-    /*
-     * The hash table calls this when the table is resized or compacted.
-     * Since |count| is the number of nonempty entries to the left of
-     * front(), discarding the empty entries will not affect count, and it
-     * will make i and count equal.
-     */
-    void onCompact() {
-      MOZ_ASSERT(valid());
-      i = count;
+    // The hash table calls this when the table is resized or compacted.
+    // Since |count| is the number of nonempty entries to the left of |index|,
+    // discarding the empty entries will not affect |count|, and it will make
+    // |index| and |count| equal.
+    static void onCompact(TableIteratorObject* iter) {
+      iter->setIndex(iter->getCount());
     }
 
-    /* The hash table calls this when cleared. */
-    void onClear() {
-      MOZ_ASSERT(valid());
-      i = count = 0;
+    // The hash table calls this when cleared.
+    static void onClear(TableIteratorObject* iter) {
+      iter->setIndex(0);
+      iter->setCount(0);
     }
 
-#ifdef DEBUG
-    bool valid() const { return /* *prevp == this && */ next != this; }
-#endif
+    // If the iterator reached the end of the data array, we're done: mark the
+    // iterator inactive, remove it from the linked list, and return |true|.
+    // Else, call |f| for the current entry, advance the iterator to the next
+    // entry, and return |false|.
+    template <typename F>
+    static bool next(OrderedHashTableObject* obj, TableIteratorObject* iter,
+                     F&& f) {
+      iter->assertActiveIteratorFor(obj);
 
-   public:
-    bool empty(OrderedHashTableObject* obj) const {
-      MOZ_ASSERT(valid());
-      return i >= OrderedHashTableImpl(obj).getDataLength();
+      OrderedHashTableImpl table(obj);
+      uint32_t index = iter->getIndex();
+
+      if (index >= table.getDataLength()) {
+        iter->finish();
+        return true;
+      }
+
+      f(iter->kind(), table.getData()[index].element);
+
+      iter->setCount(iter->getCount() + 1);
+      iter->setIndex(index + 1);
+      seek(obj, iter);
+      return false;
     }
-
-    /*
-     * Return the first element in the range. This must not be called if
-     * this->empty().
-     *
-     * Warning: Removing an entry from the table also removes it from any
-     * live Ranges, and a Range can become empty that way, rendering
-     * front() invalid. If in doubt, check empty() before calling front().
-     */
-    const T& front(OrderedHashTableObject* obj) const {
-      MOZ_ASSERT(valid());
-      MOZ_ASSERT(!empty(obj));
-      return OrderedHashTableImpl(obj).getData()[i].element;
-    }
-
-    /*
-     * Remove the first element from this range.
-     * This must not be called if this->empty().
-     *
-     * Warning: Removing an entry from the table also removes it from any
-     * live Ranges, and a Range can become empty that way, rendering
-     * popFront() invalid. If in doubt, check empty() before calling
-     * popFront().
-     */
-    void popFront(OrderedHashTableObject* obj) {
-      MOZ_ASSERT(valid());
-      MOZ_ASSERT(!empty(obj));
-      MOZ_ASSERT(!Ops::isEmpty(
-          Ops::getKey(OrderedHashTableImpl(obj).getData()[i].element)));
-      count++;
-      i++;
-      seek(obj);
-    }
-
-    static size_t offsetOfI() { return offsetof(Range, i); }
-    static size_t offsetOfCount() { return offsetof(Range, count); }
-    static size_t offsetOfPrevP() { return offsetof(Range, prevp); }
-    static size_t offsetOfNext() { return offsetof(Range, next); }
   };
 
   // Calls |f| for each entry in the table. This function must not mutate the
@@ -848,36 +947,40 @@ class MOZ_STACK_CLASS OrderedHashTableImpl {
     JS::GCPolicy<Value>::trace(trc, &value, "OrderedHashMapObject value");
   }
 
-  /*
-   * Allocate a new Range, possibly in nursery memory. The buffer must be
-   * large enough to hold a Range object.
-   */
-  Range* createRange(void* buffer, bool inNursery) const {
-    Range** listp = inNursery ? addressOfNurseryRanges() : addressOfRanges();
-    new (buffer) Range(obj, listp);
-    return static_cast<Range*>(buffer);
+  void initIterator(TableIteratorObject* iter,
+                    TableIteratorObject::Kind kind) const {
+    IterOps::init(obj, iter, kind);
+  }
+  template <typename F>
+  bool iteratorNext(TableIteratorObject* iter, F&& f) const {
+    return IterOps::next(obj, iter, f);
   }
 
-  void destroyNurseryRanges() {
-    if (Range* range = getNurseryRanges()) {
-      range->prevp = nullptr;
+  void clearNurseryIterators() {
+    if (TableIteratorObject* iter = getNurseryIterators()) {
+      iter->setPrevPtr(nullptr);
     }
-    setNurseryRanges(nullptr);
+    setNurseryIterators(nullptr);
+  }
+  void relinkNurseryIterator(TableIteratorObject* iter) {
+    auto** listp = addressOfIterators(iter);
+    iter->link(listp);
   }
 
-  void updateRangesAfterMove(OrderedHashTableObject* old) {
-    if (Range* range = getRanges()) {
-      MOZ_ASSERT(range->prevp == OrderedHashTableImpl(old).addressOfRanges());
-      range->prevp = addressOfRanges();
+  void updateIteratorsAfterMove(OrderedHashTableObject* old) {
+    if (TableIteratorObject* iter = getTenuredIterators()) {
+      MOZ_ASSERT(iter->getPrevPtr() ==
+                 OrderedHashTableImpl(old).addressOfTenuredIterators());
+      iter->setPrevPtr(addressOfTenuredIterators());
     }
-    if (Range* range = getNurseryRanges()) {
-      MOZ_ASSERT(range->prevp ==
-                 OrderedHashTableImpl(old).addressOfNurseryRanges());
-      range->prevp = addressOfNurseryRanges();
+    if (TableIteratorObject* iter = getNurseryIterators()) {
+      MOZ_ASSERT(iter->getPrevPtr() ==
+                 OrderedHashTableImpl(old).addressOfNurseryIterators());
+      iter->setPrevPtr(addressOfNurseryIterators());
     }
   }
 
-  bool hasNurseryRanges() const { return getNurseryRanges(); }
+  bool hasNurseryIterators() const { return getNurseryIterators(); }
 
   /*
    * Change the value of the given key.
@@ -903,8 +1006,8 @@ class MOZ_STACK_CLASS OrderedHashTableImpl {
 
   static constexpr size_t offsetOfDataElement() {
     static_assert(offsetof(Data, element) == 0,
-                  "RangeFront and RangePopFront depend on offsetof(Data, "
-                  "element) being 0");
+                  "TableIteratorLoadEntry and TableIteratorAdvance depend on "
+                  "offsetof(Data, element) being 0");
     return offsetof(Data, element);
   }
   static constexpr size_t offsetOfDataChain() { return offsetof(Data, chain); }
@@ -991,8 +1094,9 @@ class MOZ_STACK_CLASS OrderedHashTableImpl {
   /* This is called after rehashing the table. */
   void compacted() {
     // If we had any empty entries, compacting may have moved live entries
-    // to the left within the data array. Notify all live Ranges of the change.
-    forEachRange([](Range* range) { range->onCompact(); });
+    // to the left within the data array. Notify all active iterators of
+    // the change.
+    forEachIterator([](auto* iter) { IterOps::onCompact(iter); });
   }
 
   /* Compact the entries in the data array and rehash them. */
@@ -1184,7 +1288,6 @@ class MOZ_STACK_CLASS OrderedHashMapImpl {
 
  public:
   using Lookup = typename Impl::Lookup;
-  using Range = typename Impl::Range;
   static constexpr size_t SlotCount = Impl::SlotCount;
 
   explicit OrderedHashMapImpl(OrderedHashMapObject* obj) : impl(obj) {}
@@ -1229,15 +1332,23 @@ class MOZ_STACK_CLASS OrderedHashMapImpl {
     return mozilla::Some(newKey);
   }
 
-  Range* createRange(void* buffer, bool inNursery) const {
-    return impl.createRange(buffer, inNursery);
+  void initIterator(MapIteratorObject* iter,
+                    TableIteratorObject::Kind kind) const {
+    impl.initIterator(iter, kind);
+  }
+  template <typename F>
+  bool iteratorNext(MapIteratorObject* iter, F&& f) const {
+    return impl.iteratorNext(iter, f);
   }
 
-  void destroyNurseryRanges() { impl.destroyNurseryRanges(); }
-  void updateRangesAfterMove(OrderedHashMapObject* old) {
-    impl.updateRangesAfterMove(old);
+  void clearNurseryIterators() { impl.clearNurseryIterators(); }
+  void relinkNurseryIterator(MapIteratorObject* iter) {
+    impl.relinkNurseryIterator(iter);
   }
-  bool hasNurseryRanges() const { return impl.hasNurseryRanges(); }
+  void updateIteratorsAfterMove(OrderedHashMapObject* old) {
+    impl.updateIteratorsAfterMove(old);
+  }
+  bool hasNurseryIterators() const { return impl.hasNurseryIterators(); }
 
   void maybeMoveBufferOnPromotion(Nursery& nursery) {
     return impl.maybeMoveBufferOnPromotion(nursery);
@@ -1280,7 +1391,6 @@ class MOZ_STACK_CLASS OrderedHashSetImpl {
 
  public:
   using Lookup = typename Impl::Lookup;
-  using Range = typename Impl::Range;
   static constexpr size_t SlotCount = Impl::SlotCount;
 
   explicit OrderedHashSetImpl(OrderedHashSetObject* obj) : impl(obj) {}
@@ -1324,15 +1434,23 @@ class MOZ_STACK_CLASS OrderedHashSetImpl {
     return mozilla::Some(newKey);
   }
 
-  Range* createRange(void* buffer, bool inNursery) const {
-    return impl.createRange(buffer, inNursery);
+  void initIterator(SetIteratorObject* iter,
+                    TableIteratorObject::Kind kind) const {
+    impl.initIterator(iter, kind);
+  }
+  template <typename F>
+  bool iteratorNext(SetIteratorObject* iter, F&& f) const {
+    return impl.iteratorNext(iter, f);
   }
 
-  void destroyNurseryRanges() { impl.destroyNurseryRanges(); }
-  void updateRangesAfterMove(OrderedHashSetObject* old) {
-    impl.updateRangesAfterMove(old);
+  void clearNurseryIterators() { impl.clearNurseryIterators(); }
+  void relinkNurseryIterator(SetIteratorObject* iter) {
+    impl.relinkNurseryIterator(iter);
   }
-  bool hasNurseryRanges() const { return impl.hasNurseryRanges(); }
+  void updateIteratorsAfterMove(OrderedHashSetObject* old) {
+    impl.updateIteratorsAfterMove(old);
+  }
+  bool hasNurseryIterators() const { return impl.hasNurseryIterators(); }
 
   void maybeMoveBufferOnPromotion(Nursery& nursery) {
     return impl.maybeMoveBufferOnPromotion(nursery);

@@ -74,7 +74,7 @@
 // Item kind for Array iterators.
 #define ARRAY_ITERATOR_SLOT_ITEM_KIND 2
 // Item kind for Map/Set iterators.
-#define MAP_SET_ITERATOR_SLOT_ITEM_KIND 2
+#define MAP_SET_ITERATOR_SLOT_ITEM_KIND 1
 
 #define ITEM_KIND_KEY 0
 #define ITEM_KIND_VALUE 1

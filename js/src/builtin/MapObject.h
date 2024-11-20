@@ -10,7 +10,6 @@
 #include "mozilla/MemoryReporting.h"
 
 #include "builtin/OrderedHashTableObject.h"
-#include "builtin/SelfHostingDefines.h"
 #include "vm/JSObject.h"
 #include "vm/NativeObject.h"
 #include "vm/PIC.h"
@@ -129,7 +128,7 @@ class MapObject : public OrderedHashMapObject {
 
   enum {
     NurseryKeysSlot = Table::SlotCount,
-    RegisteredNurseryRangesSlot,
+    RegisteredNurseryIteratorsSlot,
     SlotCount
   };
 
@@ -137,17 +136,7 @@ class MapObject : public OrderedHashMapObject {
   // This is asserted in MapObject::create.
   static constexpr gc::AllocKind allocKind = gc::AllocKind::OBJECT12_BACKGROUND;
 
-  enum IteratorKind { Keys, Values, Entries };
-  static_assert(
-      Keys == ITEM_KIND_KEY,
-      "IteratorKind Keys must match self-hosting define for item kind key.");
-  static_assert(Values == ITEM_KIND_VALUE,
-                "IteratorKind Values must match self-hosting define for item "
-                "kind value.");
-  static_assert(
-      Entries == ITEM_KIND_KEY_AND_VALUE,
-      "IteratorKind Entries must match self-hosting define for item kind "
-      "key-and-value.");
+  using IteratorKind = TableIteratorObject::Kind;
 
   static const JSClass class_;
   static const JSClass protoClass_;
@@ -178,7 +167,7 @@ class MapObject : public OrderedHashMapObject {
   [[nodiscard]] static bool iterator(JSContext* cx, IteratorKind kind,
                                      HandleObject obj, MutableHandleValue iter);
 
-  void clearNurseryRangesBeforeMinorGC();
+  void clearNurseryIteratorsBeforeMinorGC();
 
   // Sweeps a map that had nursery memory associated with it after a minor
   // GC. This may finalize the map if it was in the nursery and has died.
@@ -240,44 +229,22 @@ class MapObject : public OrderedHashMapObject {
   [[nodiscard]] static bool clear(JSContext* cx, unsigned argc, Value* vp);
 };
 
-class MapIteratorObject : public NativeObject {
+class MapIteratorObject : public TableIteratorObject {
  public:
   static const JSClass class_;
 
-  enum { TargetSlot, RangeSlot, KindSlot, SlotCount };
-
-  static_assert(
-      TargetSlot == ITERATOR_SLOT_TARGET,
-      "TargetSlot must match self-hosting define for iterated object slot.");
-  static_assert(KindSlot == MAP_SET_ITERATOR_SLOT_ITEM_KIND,
-                "KindSlot must match self-hosting define for item kind slot.");
-
   static const JSFunctionSpec methods[];
   static MapIteratorObject* create(JSContext* cx, HandleObject mapobj,
-                                   MapObject::IteratorKind kind);
+                                   Kind kind);
   static void finalize(JS::GCContext* gcx, JSObject* obj);
   static size_t objectMoved(JSObject* obj, JSObject* old);
-
-  void init(MapObject* mapObj, MapObject::IteratorKind kind) {
-    initFixedSlot(TargetSlot, JS::ObjectValue(*mapObj));
-    initFixedSlot(RangeSlot, JS::PrivateValue(nullptr));
-    initFixedSlot(KindSlot, JS::Int32Value(int32_t(kind)));
-  }
 
   [[nodiscard]] static bool next(MapIteratorObject* mapIterator,
                                  ArrayObject* resultPairObj);
 
   static JSObject* createResultPair(JSContext* cx);
 
-  static constexpr size_t offsetOfRange() {
-    return getFixedSlotOffset(RangeSlot);
-  }
-  static constexpr size_t offsetOfTarget() {
-    return getFixedSlotOffset(TargetSlot);
-  }
-
  private:
-  inline MapObject::IteratorKind kind() const;
   MapObject* target() const;
 };
 
@@ -291,7 +258,7 @@ class SetObject : public OrderedHashSetObject {
 
   enum {
     NurseryKeysSlot = Table::SlotCount,
-    RegisteredNurseryRangesSlot,
+    RegisteredNurseryIteratorsSlot,
     SlotCount
   };
 
@@ -299,18 +266,7 @@ class SetObject : public OrderedHashSetObject {
   // This is asserted in SetObject::create.
   static constexpr gc::AllocKind allocKind = gc::AllocKind::OBJECT12_BACKGROUND;
 
-  enum IteratorKind { Keys, Values, Entries };
-
-  static_assert(
-      Keys == ITEM_KIND_KEY,
-      "IteratorKind Keys must match self-hosting define for item kind key.");
-  static_assert(Values == ITEM_KIND_VALUE,
-                "IteratorKind Values must match self-hosting define for item "
-                "kind value.");
-  static_assert(
-      Entries == ITEM_KIND_KEY_AND_VALUE,
-      "IteratorKind Entries must match self-hosting define for item kind "
-      "key-and-value.");
+  using IteratorKind = TableIteratorObject::Kind;
 
   static const JSClass class_;
   static const JSClass protoClass_;
@@ -341,7 +297,7 @@ class SetObject : public OrderedHashSetObject {
 
   [[nodiscard]] static bool copy(JSContext* cx, unsigned argc, Value* vp);
 
-  void clearNurseryRangesBeforeMinorGC();
+  void clearNurseryIteratorsBeforeMinorGC();
 
   // Sweeps a set that had nursery memory associated with it after a minor
   // GC. This may finalize the set if it was in the nursery and has died.
@@ -395,44 +351,22 @@ class SetObject : public OrderedHashSetObject {
   [[nodiscard]] static bool clear(JSContext* cx, unsigned argc, Value* vp);
 };
 
-class SetIteratorObject : public NativeObject {
+class SetIteratorObject : public TableIteratorObject {
  public:
   static const JSClass class_;
 
-  enum { TargetSlot, RangeSlot, KindSlot, SlotCount };
-
-  static_assert(
-      TargetSlot == ITERATOR_SLOT_TARGET,
-      "TargetSlot must match self-hosting define for iterated object slot.");
-  static_assert(KindSlot == MAP_SET_ITERATOR_SLOT_ITEM_KIND,
-                "KindSlot must match self-hosting define for item kind slot.");
-
   static const JSFunctionSpec methods[];
   static SetIteratorObject* create(JSContext* cx, HandleObject setobj,
-                                   SetObject::IteratorKind kind);
+                                   Kind kind);
   static void finalize(JS::GCContext* gcx, JSObject* obj);
   static size_t objectMoved(JSObject* obj, JSObject* old);
-
-  void init(SetObject* setObj, SetObject::IteratorKind kind) {
-    initFixedSlot(TargetSlot, JS::ObjectValue(*setObj));
-    initFixedSlot(RangeSlot, JS::PrivateValue(nullptr));
-    initFixedSlot(KindSlot, JS::Int32Value(int32_t(kind)));
-  }
 
   [[nodiscard]] static bool next(SetIteratorObject* setIterator,
                                  ArrayObject* resultObj);
 
   static JSObject* createResult(JSContext* cx);
 
-  static constexpr size_t offsetOfRange() {
-    return getFixedSlotOffset(RangeSlot);
-  }
-  static constexpr size_t offsetOfTarget() {
-    return getFixedSlotOffset(TargetSlot);
-  }
-
  private:
-  inline SetObject::IteratorKind kind() const;
   SetObject* target() const;
 };
 

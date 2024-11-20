@@ -9344,11 +9344,12 @@ void CodeGenerator::visitFunctionName(LFunctionName* lir) {
 }
 
 template <class TableObject>
-static void RangeFront(MacroAssembler&, Register, Register, Register);
+static void TableIteratorLoadEntry(MacroAssembler&, Register, Register,
+                                   Register);
 
 template <>
-void RangeFront<MapObject>(MacroAssembler& masm, Register iter, Register i,
-                           Register front) {
+void TableIteratorLoadEntry<MapObject>(MacroAssembler& masm, Register iter,
+                                       Register i, Register front) {
   masm.unboxObject(Address(iter, MapIteratorObject::offsetOfTarget()), front);
   masm.loadPrivate(Address(front, MapObject::offsetOfData()), front);
 
@@ -9361,8 +9362,8 @@ void RangeFront<MapObject>(MacroAssembler& masm, Register iter, Register i,
 }
 
 template <>
-void RangeFront<SetObject>(MacroAssembler& masm, Register iter, Register i,
-                           Register front) {
+void TableIteratorLoadEntry<SetObject>(MacroAssembler& masm, Register iter,
+                                       Register i, Register front) {
   masm.unboxObject(Address(iter, SetIteratorObject::offsetOfTarget()), front);
   masm.loadPrivate(Address(front, SetObject::offsetOfData()), front);
 
@@ -9374,15 +9375,16 @@ void RangeFront<SetObject>(MacroAssembler& masm, Register iter, Register i,
 }
 
 template <class TableObject>
-static void RangePopFront(MacroAssembler& masm, Register range, Register front,
-                          Register dataLength, Register temp) {
-  using Range = typename TableObject::Table::Range;
-
+static void TableIteratorAdvance(MacroAssembler& masm, Register iter,
+                                 Register front, Register dataLength,
+                                 Register temp) {
   Register i = temp;
 
-  masm.add32(Imm32(1), Address(range, Range::offsetOfCount()));
+  // Note: |count| and |index| are stored as PrivateUint32Value. We use add32
+  // and store32 to change the payload.
+  masm.add32(Imm32(1), Address(iter, TableIteratorObject::offsetOfCount()));
 
-  masm.load32(Address(range, Range::offsetOfI()), i);
+  masm.unboxInt32(Address(iter, TableIteratorObject::offsetOfIndex()), i);
 
   Label done, seek;
   masm.bind(&seek);
@@ -9400,36 +9402,29 @@ static void RangePopFront(MacroAssembler& masm, Register range, Register front,
                        JS_HASH_KEY_EMPTY, &seek);
 
   masm.bind(&done);
-  masm.store32(i, Address(range, Range::offsetOfI()));
+  masm.store32(i, Address(iter, TableIteratorObject::offsetOfIndex()));
 }
 
-template <class TableObject>
-static inline void RangeDestruct(MacroAssembler& masm, Register iter,
-                                 Register range, Register temp0,
-                                 Register temp1) {
-  using Range = typename TableObject::Table::Range;
-
+// Corresponds to TableIteratorObject::finish.
+static void TableIteratorFinish(MacroAssembler& masm, Register iter,
+                                Register temp0, Register temp1) {
   Register next = temp0;
   Register prevp = temp1;
-
-  masm.loadPtr(Address(range, Range::offsetOfNext()), next);
-  masm.loadPtr(Address(range, Range::offsetOfPrevP()), prevp);
+  masm.loadPrivate(Address(iter, TableIteratorObject::offsetOfNext()), next);
+  masm.loadPrivate(Address(iter, TableIteratorObject::offsetOfPrevPtr()),
+                   prevp);
   masm.storePtr(next, Address(prevp, 0));
 
   Label hasNoNext;
   masm.branchTestPtr(Assembler::Zero, next, next, &hasNoNext);
-
-  masm.storePtr(prevp, Address(next, Range::offsetOfPrevP()));
-
+  masm.storePrivateValue(prevp,
+                         Address(next, TableIteratorObject::offsetOfPrevPtr()));
   masm.bind(&hasNoNext);
 
-  Label nurseryAllocated;
-  masm.branchPtrInNurseryChunk(Assembler::Equal, iter, temp0,
-                               &nurseryAllocated);
-
-  masm.callFreeStub(range);
-
-  masm.bind(&nurseryAllocated);
+  // Mark iterator inactive.
+  Address targetAddr(iter, TableIteratorObject::offsetOfTarget());
+  masm.guardedCallPreBarrier(targetAddr, MIRType::Value);
+  masm.storeValue(UndefinedValue(), targetAddr);
 }
 
 template <>
@@ -9489,7 +9484,7 @@ void CodeGenerator::emitGetNextEntryForIterator(LGetNextEntryForIterator* lir) {
   Register result = ToRegister(lir->result());
   Register temp = ToRegister(lir->temp0());
   Register dataLength = ToRegister(lir->temp1());
-  Register range = ToRegister(lir->temp2());
+  Register front = ToRegister(lir->temp2());
   Register output = ToRegister(lir->output());
 
 #ifdef DEBUG
@@ -9504,42 +9499,35 @@ void CodeGenerator::emitGetNextEntryForIterator(LGetNextEntryForIterator* lir) {
   masm.bind(&success);
 #endif
 
-  masm.loadPrivate(Address(iter, IteratorObject::offsetOfRange()), range);
-
+  // If the iterator has no target, it's already done.
+  // See TableIteratorObject::isActive.
   Label iterAlreadyDone, iterDone, done;
-  masm.branchTestPtr(Assembler::Zero, range, range, &iterAlreadyDone);
+  masm.branchTestUndefined(Assembler::Equal,
+                           Address(iter, IteratorObject::offsetOfTarget()),
+                           &iterAlreadyDone);
 
-  // Load |range->i| in |temp| and |iter->target->dataLength| in |dataLength|.
-  // The data length is stored as PrivateUint32Value.
-  masm.load32(Address(range, TableObject::Table::Range::offsetOfI()), temp);
+  // Load |iter->index| in |temp| and |iter->target->dataLength| in
+  // |dataLength|. Both values are stored as PrivateUint32Value.
+  masm.unboxInt32(Address(iter, IteratorObject::offsetOfIndex()), temp);
   masm.unboxObject(Address(iter, IteratorObject::offsetOfTarget()), dataLength);
   masm.unboxInt32(Address(dataLength, TableObject::offsetOfDataLength()),
                   dataLength);
   masm.branch32(Assembler::AboveOrEqual, temp, dataLength, &iterDone);
   {
-    masm.Push(iter);
-
-    Register front = iter;
-    RangeFront<TableObject>(masm, iter, temp, front);
+    TableIteratorLoadEntry<TableObject>(masm, iter, temp, front);
 
     emitLoadIteratorValues<TableObject>(result, temp, front);
 
-    RangePopFront<TableObject>(masm, range, front, dataLength, temp);
+    TableIteratorAdvance<TableObject>(masm, iter, front, dataLength, temp);
 
-    masm.Pop(iter);
     masm.move32(Imm32(0), output);
+    masm.jump(&done);
   }
-  masm.jump(&done);
   {
     masm.bind(&iterDone);
-
-    RangeDestruct<TableObject>(masm, iter, range, temp, dataLength);
-
-    masm.storeValue(PrivateValue(nullptr),
-                    Address(iter, IteratorObject::offsetOfRange()));
+    TableIteratorFinish(masm, iter, temp, dataLength);
 
     masm.bind(&iterAlreadyDone);
-
     masm.move32(Imm32(1), output);
   }
   masm.bind(&done);

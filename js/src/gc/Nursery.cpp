@@ -1525,7 +1525,7 @@ js::Nursery::CollectionResult js::Nursery::doCollection(AutoGCSession& session,
     poisonAndInitCurrentChunk();
   }
 
-  clearMapAndSetNurseryRanges();
+  clearMapAndSetNurseryIterators();
 
   // Move objects pointed to by roots from the nursery to the major heap.
   tenuredEverything = shouldTenureEverything(reason);
@@ -2492,27 +2492,27 @@ bool js::Nursery::isSubChunkMode() const {
   return capacity() <= NurseryChunkUsableSize;
 }
 
-void js::Nursery::clearMapAndSetNurseryRanges() {
-  // Clears the lists of nursery ranges used by map and set iterators. These
-  // lists are cleared at the start of minor GC and rebuilt when iterators are
+void js::Nursery::clearMapAndSetNurseryIterators() {
+  // Clears the lists of nursery iterators for all Map/Set objects. These lists
+  // are cleared at the start of minor GC and rebuilt when iterators are
   // promoted during minor GC.
-  for (auto* map : mapsWithNurseryRanges_) {
-    map->clearNurseryRangesBeforeMinorGC();
+  for (auto* map : mapsWithNurseryIterators_) {
+    map->clearNurseryIteratorsBeforeMinorGC();
   }
-  for (auto* set : setsWithNurseryRanges_) {
-    set->clearNurseryRangesBeforeMinorGC();
+  for (auto* set : setsWithNurseryIterators_) {
+    set->clearNurseryIteratorsBeforeMinorGC();
   }
 }
 
 void js::Nursery::sweepMapAndSetObjects() {
   // This processes all Map and Set objects that are known to have associated
-  // nursery ranges (iterator objects that are nursery allocated).
+  // iterator objects that are nursery allocated.
   //
   // These objects may die and be finalized or if not their internal state and
   // memory tracking are updated.
   //
   // Finally the lists themselves are rebuilt so as to remove objects that are
-  // no longer associated with nursery ranges (because all iterators died or
+  // no longer associated with nursery iterators (because all iterators died or
   // were promoted to the tenured heap).
 
   auto* gcx = runtime()->gcContext();
@@ -2520,22 +2520,22 @@ void js::Nursery::sweepMapAndSetObjects() {
   AutoEnterOOMUnsafeRegion oomUnsafe;
 
   MapObjectVector maps;
-  std::swap(mapsWithNurseryRanges_, maps);
+  std::swap(mapsWithNurseryIterators_, maps);
   for (auto* mapobj : maps) {
     mapobj = MapObject::sweepAfterMinorGC(gcx, mapobj);
     if (mapobj) {
-      if (!mapsWithNurseryRanges_.append(mapobj)) {
+      if (!mapsWithNurseryIterators_.append(mapobj)) {
         oomUnsafe.crash("sweepAfterMinorGC");
       }
     }
   }
 
   SetObjectVector sets;
-  std::swap(setsWithNurseryRanges_, sets);
+  std::swap(setsWithNurseryIterators_, sets);
   for (auto* setobj : sets) {
     setobj = SetObject::sweepAfterMinorGC(gcx, setobj);
     if (setobj) {
-      if (!setsWithNurseryRanges_.append(setobj)) {
+      if (!setsWithNurseryIterators_.append(setobj)) {
         oomUnsafe.crash("sweepAfterMinorGC");
       }
     }
