@@ -8,9 +8,16 @@
 /* Splitters */
 
 :root {
-  --devtools-splitter-color: #e0e0e2;
-  &[devtoolstheme="dark"]  {
-    --devtools-splitter-color: #38383d;
+  --devtools-splitter-color: #e0e0e2  /* --grey-25 */;
+  /* Use :where() so we don't get a higher specificity for this rule */
+  &:where([devtoolstheme="dark"]) {
+    --devtools-splitter-color: #38383d /* --grey-70 */;
+  }
+
+  /* We can't use (forced-colors: active) as forced-colors doesn't apply as is,
+     but @media (forced-colors) should be enough to detect HCM */
+  @media (forced-colors) {
+    --devtools-splitter-color: CanvasText;
   }
 
   /* Draggable splitter element size */
