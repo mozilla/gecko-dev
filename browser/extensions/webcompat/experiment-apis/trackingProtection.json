@@ -2,6 +2,52 @@
   {
     "namespace": "trackingProtection",
     "description": "experimental API allow requests through ETP",
+    "events": [
+      {
+        "name": "onSmartBlockEmbedUnblock",
+        "type": "function",
+        "description": "Event used to pass an unblock message to a smartblock shim",
+        "parameters": [
+          {
+            "name": "tabId",
+            "type": "number",
+            "description": "The id of the tab where the shim is running"
+          },
+          {
+            "name": "shimId",
+            "type": "string",
+            "description": "The shim which should be unblocked"
+          },
+          {
+            "name": "hostname",
+            "type": "string",
+            "description": "Hostname of the website"
+          }
+        ]
+      },
+      {
+        "name": "onSmartBlockEmbedReblock",
+        "type": "function",
+        "description": "Event used to pass an reblock message to a smartblock shim",
+        "parameters": [
+          {
+            "name": "tabId",
+            "type": "number",
+            "description": "The id of the tab where the shim is running"
+          },
+          {
+            "name": "shimId",
+            "type": "string",
+            "description": "The shim which should be reblocked"
+          },
+          {
+            "name": "hostname",
+            "type": "string",
+            "description": "Hostname of the website"
+          }
+        ]
+      }
+    ],
     "functions": [
       {
         "name": "isDFPIActive",
@@ -93,6 +139,41 @@
           {
             "name": "requestId",
             "type": "string"
+          }
+        ],
+        "async": true
+      },
+      {
+        "name": "openProtectionsPanel",
+        "type": "function",
+        "description": "Sends an observer message to open the protections panel on the window specified by the tab id",
+        "parameters": [
+          {
+            "name": "tabId",
+            "type": "number",
+            "description": "the webcompat tab id of the calling tab, used to get the correct window"
+          }
+        ]
+      },
+      {
+        "name": "getSmartBlockEmbedFluentString",
+        "type": "function",
+        "description": "Gets the fluent strings used for the smartblock placeholder embed",
+        "parameters": [
+          {
+            "name": "tabId",
+            "type": "number",
+            "description": "the webcompat tab id of the calling tab, used to get the correct window"
+          },
+          {
+            "name": "shimId",
+            "type": "string",
+            "description": "the shimId of the calling shim, used for getting the correct embed name"
+          },
+          {
+            "name": "websiteHost",
+            "type": "string",
+            "description": "the hostname of the website, displayed on the placeholder button"
           }
         ],
         "async": true

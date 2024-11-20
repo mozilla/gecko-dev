@@ -892,6 +892,24 @@ const AVAILABLE_SHIMS = [
       },
     ],
   },
+  {
+    id: "InstagramEmbed",
+    platform: "desktop",
+    name: "Instagram embed placeholder",
+    bug: "1892173",
+    file: "instagram-embed.js",
+    matches: [
+      "https://www.instagram.com/embed.js",
+      "https://platform.instagram.com/*/embeds.js",
+    ],
+    logos: ["instagram.svg"],
+    needsShimHelpers: ["embedClicked", "smartblockGetFluentString"],
+    onlyIfBlockedByETP: true,
+    unblocksOnOptIn: [
+      "*://www.instagram.com/*",
+      "*://platform.instagram.com/*",
+    ],
+  },
 ];
 
 module.exports = AVAILABLE_SHIMS;

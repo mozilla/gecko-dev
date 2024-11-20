@@ -745,3 +745,20 @@
 #protections-popup-cookieBannerView:not([data-state="site-disabled"]) description#cookieBannerView-enable-site-description {
   display: none;
 }
+
+.protections-popup-smartblock-section {
+  background-color: var(--background-color-information);
+  border-radius: var(--border-radius-small);
+  margin-inline: var(--arrowpanel-menuitem-margin-inline);
+  margin-block-start: var(--space-small);
+  padding-block: var(--space-small);
+}
+
+.protections-popup-smartblock-toggle-box {
+  margin-inline: var(--arrowpanel-menuitem-margin-inline);
+  padding-inline: var(--arrowpanel-menuitem-padding-inline);
+}
+
+.protections-popup-smartblock-toggle-box > moz-toggle {
+  padding-block-end: var(--arrowpanel-menuitem-padding-block);
+}

@@ -468,6 +468,21 @@ class Shim {
       })
       .catch(() => {});
   }
+
+  async onUserOptOut(host) {
+    const optIns = await this.getApplicableOptIns();
+    if (optIns.length) {
+      this._hostOptIns.delete(host);
+      await browser.trackingProtection.allow(
+        this.id,
+        optIns,
+        Array.from(this._hostOptIns)
+      );
+    }
+    if (!this._hostOptIns.length) {
+      this.userHasOptedIn = false;
+    }
+  }
 }
 
 class Shims {
@@ -486,6 +501,42 @@ class Shims {
       this._checkEnabledPref();
     }, this.ENABLED_PREF);
     this._haveCheckedEnabledPref = this._checkEnabledPref();
+
+    // handles unblock message coming in from protections panel
+    browser.trackingProtection.onSmartBlockEmbedUnblock.addListener(
+      async (tabId, shimId, hostname) => {
+        const shim = this.shims.get(shimId);
+        if (!shim) {
+          console.warn("Smartblock shim not found", { tabId, shimId });
+          return;
+        }
+        await shim.onUserOptIn(hostname);
+
+        // send request to shim to remove placeholders and replace with original embeds
+        await browser.tabs.sendMessage(tabId, {
+          shimId,
+          topic: "smartblock:unblock-embed",
+          data: hostname,
+        });
+      }
+    );
+
+    // handles reblock message coming in from protections panel
+    browser.trackingProtection.onSmartBlockEmbedReblock.addListener(
+      async (tabId, shimId, hostname) => {
+        const shim = this.shims.get(shimId);
+        if (!shim) {
+          console.warn("Smartblock shim not found", { tabId, shimId });
+          return;
+        }
+
+        await shim.onUserOptOut(hostname);
+
+        // a browser reload is required to reload the shim in the case where the shim gets unloaded
+        // i.e. after user unblocks, then closes and revisits the page while shim is still allowed
+        browser.tabs.reload(tabId);
+      }
+    );
   }
 
   bindAboutCompatBroker(broker) {
@@ -771,7 +822,12 @@ class Shims {
     const { shimId, message } = payload;
 
     // Ignore unknown messages (for instance, from about:compat).
-    if (message !== "getOptions" && message !== "optIn") {
+    if (
+      message !== "getOptions" &&
+      message !== "optIn" &&
+      message !== "embedClicked" &&
+      message !== "smartblockGetFluentString"
+    ) {
       return undefined;
     }
 
@@ -815,6 +871,14 @@ class Shims {
         console.error(err);
         throw new Error("error");
       }
+    } else if (message === "embedClicked") {
+      browser.trackingProtection.openProtectionsPanel(id);
+    } else if (message === "smartblockGetFluentString") {
+      return await browser.trackingProtection.getSmartBlockEmbedFluentString(
+        id,
+        shimId,
+        new URL(url).hostname
+      );
     }
 
     return undefined;

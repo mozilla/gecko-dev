@@ -1372,6 +1372,20 @@ let cookieBannerHandling = new (class {
 var gProtectionsHandler = {
   PREF_CB_CATEGORY: "browser.contentblocking.category",
 
+  /**
+   * Contains an array of smartblock compatible sites and information on the corresponding shim
+   * site is the compatible site
+   * shimId is the id of the shim blocking content from the origin
+   * toggleDisplayName is the name shown for the toggle used for blocking/unblocking the origin
+   */
+  smartblockEmbedInfo: [
+    {
+      sites: ["https://www.instagram.com", "https://platform.instagram.com"],
+      shimId: "InstagramEmbed",
+      displayName: "Instagram",
+    },
+  ],
+
   _protectionsPopup: null,
   _initializePopup() {
     if (!this._protectionsPopup) {
@@ -1457,6 +1471,12 @@ var gProtectionsHandler = {
       "protections-popup-tp-switch"
     ));
   },
+  get _protectionsPopupCategoryList() {
+    delete this._protectionsPopupCategoryList;
+    return (this._protectionsPopupCategoryList = document.getElementById(
+      "protections-popup-category-list"
+    ));
+  },
   get _protectionsPopupBlockingHeader() {
     delete this._protectionsPopupBlockingHeader;
     return (this._protectionsPopupBlockingHeader = document.getElementById(
@@ -1474,6 +1494,22 @@ var gProtectionsHandler = {
     return (this._protectionsPopupNotFoundHeader = document.getElementById(
       "protections-popup-not-found-section-header"
     ));
+  },
+  get _protectionsPopupSmartblockContainer() {
+    delete this._protectionsPopupSmartblockContainer;
+    return (this._protectionsPopupSmartblockContainer = document.getElementById(
+      "protections-popup-smartblock-highlight-container"
+    ));
+  },
+  get _protectionsPopupSmartblockDescription() {
+    delete this._protectionsPopupSmartblockDescription;
+    return (this._protectionsPopupSmartblockDescription =
+      document.getElementById("protections-popup-smartblock-description"));
+  },
+  get _protectionsPopupSmartblockToggleContainer() {
+    delete this._protectionsPopupSmartblockToggleContainer;
+    return (this._protectionsPopupSmartblockToggleContainer =
+      document.getElementById("protections-popup-smartblock-toggle-container"));
   },
   get _protectionsPopupSettingsButton() {
     delete this._protectionsPopupSettingsButton;
@@ -1624,6 +1660,8 @@ var gProtectionsHandler = {
 
     // Add an observer to observe that the history has been cleared.
     Services.obs.addObserver(this, "browser:purge-session-history");
+    // Add an observer to listen to requests to open the protections panel
+    Services.obs.addObserver(this, "smartblock:open-protections-panel");
   },
 
   uninit() {
@@ -1634,6 +1672,7 @@ var gProtectionsHandler = {
     }
 
     Services.obs.removeObserver(this, "browser:purge-session-history");
+    Services.obs.removeObserver(this, "smartblock:open-protections-panel");
   },
 
   getTrackingProtectionLabel() {
@@ -2159,6 +2198,19 @@ var gProtectionsHandler = {
         this._earliestRecordedDate = 0;
         this.maybeUpdateEarliestRecordedDateTooltip();
         break;
+      case "smartblock:open-protections-panel":
+        if (this._protectionsPopup?.state == "open") {
+          // don't open the panel if it is already open
+          // This is not sufficent since the panel is technically "closed" by the button click
+          // outside the panel, see Bug 1926460
+          break;
+        }
+
+        if (gBrowser.selectedBrowser.browserId !== subject.browserId) {
+          break;
+        }
+        this.showProtectionsPopup();
+        break;
     }
   },
 
@@ -2241,6 +2293,7 @@ var gProtectionsHandler = {
     this._protectionsPopupBlockingHeader.hidden = true;
     this._protectionsPopupNotBlockingHeader.hidden = true;
     this._protectionsPopupNotFoundHeader.hidden = true;
+    this._protectionsPopupSmartblockContainer.hidden = true;
 
     for (let { categoryItem } of Object.values(this.blockers)) {
       if (
@@ -2249,7 +2302,7 @@ var gProtectionsHandler = {
       ) {
         // Add the item to the bottom of the list. This will be under
         // the "None Detected" section.
-        categoryItem.parentNode.insertAdjacentElement(
+        this._protectionsPopupCategoryList.insertAdjacentElement(
           "beforeend",
           categoryItem
         );
@@ -2264,11 +2317,11 @@ var gProtectionsHandler = {
       categoryItem.removeAttribute("disabled");
 
       if (categoryItem.classList.contains("blocked") && !this.hasException) {
-        // Add the item just above the "Allowed" section - this will be the
+        // Add the item just above the Smartblock embeds section - this will be the
         // bottom of the "Blocked" section.
         categoryItem.parentNode.insertBefore(
           categoryItem,
-          this._protectionsPopupNotBlockingHeader
+          this._protectionsPopupSmartblockContainer
         );
         // We have a blocking category, show the header.
         this._protectionsPopupBlockingHeader.hidden = false;
@@ -2284,6 +2337,125 @@ var gProtectionsHandler = {
       // We have an allowing category, show the header.
       this._protectionsPopupNotBlockingHeader.hidden = false;
     }
+
+    // add toggles if required to the Smartblock embed section
+    let smartblockEmbedDetected = this._addSmartblockEmbedToggles();
+
+    if (smartblockEmbedDetected) {
+      // We have a compatible smartblock toggle, show the smartblock
+      // embed section
+      this._protectionsPopupSmartblockContainer.hidden = false;
+    }
+  },
+
+  /**
+   * Adds the toggles into the smartblock toggle container. Clears existing toggles first, then
+   * searches through the contentBlockingLog for smartblock-compatible content.
+   *
+   * @returns {boolean} true if a smartblock compatible resource is blocked or shimmed, false otherwise
+   */
+  _addSmartblockEmbedToggles() {
+    let contentBlockingLog = gBrowser.selectedBrowser.getContentBlockingLog();
+    contentBlockingLog = JSON.parse(contentBlockingLog);
+    let smartBlockEmbedToggleAdded = false;
+
+    // remove all old toggles
+    while (this._protectionsPopupSmartblockToggleContainer.lastChild) {
+      this._protectionsPopupSmartblockToggleContainer.lastChild.remove();
+    }
+
+    // check that there is an allowed or replaced flag present
+    let contentBlockingEvents =
+      gBrowser.selectedBrowser.getContentBlockingEvents();
+
+    // In the future, we should add a flag specifically for smartblock embeds so that
+    // these checks do not trigger when a non-embed-related shim is shimming
+    // a smartblock compatible site, see Bug 1926461
+    let somethingAllowedOrReplaced =
+      contentBlockingEvents &
+        Ci.nsIWebProgressListener.STATE_ALLOWED_TRACKING_CONTENT ||
+      contentBlockingEvents &
+        Ci.nsIWebProgressListener.STATE_REPLACED_TRACKING_CONTENT;
+
+    if (!somethingAllowedOrReplaced) {
+      // return early if there is no content that is allowed or replaced
+      return smartBlockEmbedToggleAdded;
+    }
+
+    // search through content log for compatible blocked origins
+    for (let [origin, actions] of Object.entries(contentBlockingLog)) {
+      let shimAllowed = actions.some(
+        ([flag]) =>
+          (flag & Ci.nsIWebProgressListener.STATE_ALLOWED_TRACKING_CONTENT) != 0
+      );
+
+      let shimDetected = actions.some(
+        ([flag]) =>
+          (flag & Ci.nsIWebProgressListener.STATE_REPLACED_TRACKING_CONTENT) !=
+          0
+      );
+
+      if (!shimAllowed && !shimDetected) {
+        // origin is not being shimmed or allowed
+        continue;
+      }
+
+      let shimInfo = this.smartblockEmbedInfo.find(element =>
+        element.sites.includes(origin)
+      );
+      if (!shimInfo) {
+        // origin not relevant to smartblock
+        continue;
+      }
+
+      const { shimId, displayName } = shimInfo;
+      smartBlockEmbedToggleAdded = true;
+
+      // check that a toggle doesn't already exist
+      let existingToggle = document.getElementById(
+        `smartblock-${shimId.toLowerCase()}-toggle`
+      );
+      if (existingToggle) {
+        // make sure toggle state is allowed if ANY of the sites are allowed
+        if (shimAllowed) {
+          existingToggle.setAttribute("pressed", true);
+        }
+        // skip adding a new toggle
+        continue;
+      }
+
+      // create the toggle element
+      let toggle = document.createElement("moz-toggle");
+      toggle.setAttribute("id", `smartblock-${shimId.toLowerCase()}-toggle`);
+      toggle.setAttribute("data-l10n-attrs", "label");
+      document.l10n.setAttributes(
+        toggle,
+        "protections-panel-smartblock-blocking-toggle",
+        {
+          trackername: displayName,
+        }
+      );
+
+      // set toggle to correct position
+      toggle.toggleAttribute("pressed", !!shimAllowed);
+
+      // add functionality to toggle
+      toggle.addEventListener("toggle", event => {
+        let newToggleState = event.target.pressed;
+        if (newToggleState) {
+          this._sendUnblockMessageToSmartblock(shimId);
+        } else {
+          this._sendReblockMessageToSmartblock(shimId);
+        }
+      });
+
+      this._protectionsPopupSmartblockToggleContainer.insertAdjacentElement(
+        "beforeend",
+        toggle
+      );
+    }
+
+    return smartBlockEmbedToggleAdded;
   },
 
   disableForCurrentPage(shouldReload = true) {
@@ -2547,6 +2719,32 @@ var gProtectionsHandler = {
       );
       this._earliestRecordedDate = date;
     }
+  },
+
+  /**
+   * Sends a message to webcompat extension to unblock content and remove placeholders
+   *
+   * @param {String} shimId - the id of the shim blocking the content
+   */
+  _sendUnblockMessageToSmartblock(shimId) {
+    Services.obs.notifyObservers(
+      gBrowser.selectedTab,
+      "smartblock:unblock-embed",
+      shimId
+    );
+  },
+
+  /**
+   * Sends a message to webcompat extension to reblock content
+   *
+   * @param {String} shimId - the id of the shim blocking the content
+   */
+  _sendReblockMessageToSmartblock(shimId) {
+    Services.obs.notifyObservers(
+      gBrowser.selectedTab,
+      "smartblock:reblock-embed",
+      shimId
+    );
   },
 
   /**
