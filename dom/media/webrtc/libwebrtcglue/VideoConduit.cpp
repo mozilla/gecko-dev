@@ -179,6 +179,7 @@ webrtc::VideoCodecType SupportedCodecType(webrtc::VideoCodecType aType) {
     case webrtc::VideoCodecType::kVideoCodecVP8:
     case webrtc::VideoCodecType::kVideoCodecVP9:
     case webrtc::VideoCodecType::kVideoCodecH264:
+    case webrtc::VideoCodecType::kVideoCodecAV1:
       return aType;
     default:
       return webrtc::VideoCodecType::kVideoCodecGeneric;
