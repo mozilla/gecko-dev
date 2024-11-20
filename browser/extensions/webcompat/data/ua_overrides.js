@@ -1669,6 +1669,24 @@ const AVAILABLE_UA_OVERRIDES = [
       },
     },
   },
+  {
+    /*
+     * Bug 1930632 - UA override for support.hp.com
+     *
+     * The site presents Firefox with a version of the page which
+     * does not load properly. A Chrome UA gets a working version.
+     */
+    id: "bug1930632",
+    platform: "desktop",
+    domain: "support.hp.com",
+    bug: "1930632",
+    config: {
+      matches: ["*://support.hp.com/*"],
+      uaTransformer: () => {
+        return UAHelpers.getDeviceAppropriateChromeUA();
+      },
+    },
+  },
 ];
 
 module.exports = AVAILABLE_UA_OVERRIDES;
