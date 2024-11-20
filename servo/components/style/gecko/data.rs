@@ -137,6 +137,7 @@ impl StylesheetInDocument for GeckoStyleSheet {
                 return if result.mConstructed {
                     Some(ImplicitScopeRoot::Constructed)
                 } else {
+                    // Could be genuinely not attached, like user stylesheet.
                     None
                 };
             }

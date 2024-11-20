@@ -1,0 +1,21 @@
+<!DOCTYPE HTML>
+<title>Test for bug 1931559</title>
+<script src="chrome://mochikit/content/tests/SimpleTest/SimpleTest.js"></script>
+<link rel="stylesheet" type="text/css" href="chrome://mochikit/content/tests/SimpleTest/test.css">
+<div id="dut" class="foo"></div>
+<script>
+SimpleTest.waitForExplicitFinish();
+addEventListener("DOMContentLoaded", () => {
+  const sss = Cc["@mozilla.org/content/style-sheet-service;1"]
+    .getService(Ci.nsIStyleSheetService);
+  const utils = window.windowUtils;
+
+  const userUrl = encodeURI("data:text/css,body { @scope { .foo { color: green; } } }");
+  utils.loadSheetUsingURIString(userUrl, sss.USER_SHEET);
+
+  const s = getComputedStyle(dut);
+  is(s.color, "rgb(0, 128, 0)", ".foo has implicitly scoped style applied.");
+
+  SimpleTest.finish();
+});
+</script>
