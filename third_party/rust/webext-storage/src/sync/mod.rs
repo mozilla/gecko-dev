@@ -163,7 +163,8 @@ pub struct SyncedExtensionChange {
 pub fn get_synced_changes(db: &StorageDb) -> Result<Vec<SyncedExtensionChange>> {
     let signal = db.begin_interrupt_scope()?;
     let sql = "SELECT ext_id, changes FROM temp.storage_sync_applied";
-    db.conn().query_rows_and_then(sql, [], |row| -> Result<_> {
+    let conn = db.get_connection()?;
+    conn.query_rows_and_then(sql, [], |row| -> Result<_> {
         signal.err_if_interrupted()?;
         Ok(SyncedExtensionChange {
             ext_id: row.get("ext_id")?,
@@ -181,7 +182,8 @@ pub mod test {
     pub fn new_syncable_mem_db() -> StorageDb {
         let _ = env_logger::try_init();
         let db = new_mem_db();
-        create_empty_sync_temp_tables(&db).expect("should work");
+        let conn = db.get_connection().expect("should retrieve connection");
+        create_empty_sync_temp_tables(conn).expect("should work");
         db
     }
 }
@@ -382,7 +384,8 @@ mod tests {
     #[test]
     fn test_get_synced_changes() -> Result<()> {
         let db = new_syncable_mem_db();
-        db.execute_batch(&format!(
+        let conn = db.get_connection()?;
+        conn.execute_batch(&format!(
             r#"INSERT INTO temp.storage_sync_applied (ext_id, changes)
                 VALUES
                 ('an-extension', '{change1}'),

@@ -8,8 +8,8 @@
 /// used by MaxMind's databases [2]. We use GeoNames to detect city and region
 /// names and to map cities to regions.
 ///
-/// [1] https://www.geonames.org/
-/// [2] https://www.maxmind.com/en/geoip-databases
+/// [1]: https://www.geonames.org/
+/// [2]: https://www.maxmind.com/en/geoip-databases
 use rusqlite::{named_params, Connection};
 use serde::Deserialize;
 use sql_support::ConnExt;
@@ -24,18 +24,20 @@ use crate::{
     Result,
 };
 
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+/// The type of a geoname.
+#[derive(Clone, Debug, Eq, Hash, PartialEq, uniffi::Enum)]
 pub enum GeonameType {
     City,
     Region,
 }
 
-/// This corresponds to a single row in the main "geoname" table described in
-/// the GeoNames documentation [1]. It represents a single place. We exclude
-/// fields we don't need.
+/// A single geographic place.
 ///
-/// [1] https://download.geonames.org/export/dump/readme.txt
-#[derive(Clone, Debug)]
+/// This corresponds to a single row in the main "geoname" table described in
+/// the GeoNames documentation [1]. We exclude fields we don't need.
+///
+/// [1]: https://download.geonames.org/export/dump/readme.txt
+#[derive(Clone, Debug, uniffi::Record)]
 pub struct Geoname {
     /// The `geonameid` straight from the geoname table.
     pub geoname_id: i64,
@@ -82,15 +84,18 @@ impl Hash for Geoname {
     }
 }
 
-/// Value returned by `fetch_geonames()`.
-#[derive(Clone, Debug, Eq, PartialEq)]
+/// A fetched geoname with info on how it was matched.
+#[derive(Clone, Debug, Eq, PartialEq, uniffi::Record)]
 pub struct GeonameMatch {
+    /// The geoname that was matched.
     pub geoname: Geoname,
+    /// The type of name that was matched.
     pub match_type: GeonameMatchType,
+    /// Whether the name was matched by prefix.
     pub prefix: bool,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, uniffi::Enum)]
 pub enum GeonameMatchType {
     /// For U.S. states, abbreviations are the usual two-letter codes ("CA").
     Abbreviation,
@@ -1416,6 +1421,116 @@ pub(crate) mod tests {
 
             Ok(())
         })?;
+
+        Ok(())
+    }
+
+    #[test]
+    fn geonames_store_api() -> anyhow::Result<()> {
+        before_each();
+
+        let store = new_test_store();
+
+        // Ingest weather to also ingest geonames.
+        store.ingest(SuggestIngestionConstraints {
+            providers: Some(vec![SuggestionProvider::Weather]),
+            ..SuggestIngestionConstraints::all_providers()
+        });
+
+        #[derive(Debug)]
+        struct Test {
+            query: &'static str,
+            match_name_prefix: bool,
+            geoname_type: Option<GeonameType>,
+            filter: Option<Vec<Geoname>>,
+            expected: Vec<GeonameMatch>,
+        }
+
+        // This only tests a few different calls to exercise all the fetch
+        // options. Comprehensive fetch cases are in the main `geonames` test.
+        let tests = [
+            // simple fetch with no options
+            Test {
+                query: "ia",
+                match_name_prefix: false,
+                geoname_type: None,
+                filter: None,
+                expected: vec![GeonameMatch {
+                    geoname: ia(),
+                    match_type: GeonameMatchType::Abbreviation,
+                    prefix: false,
+                }],
+            },
+            // filter
+            Test {
+                query: "ia",
+                match_name_prefix: false,
+                geoname_type: None,
+                filter: Some(vec![waterloo_ia(), waterloo_al()]),
+                expected: vec![GeonameMatch {
+                    geoname: ia(),
+                    match_type: GeonameMatchType::Abbreviation,
+                    prefix: false,
+                }],
+            },
+            // geoname type: city
+            Test {
+                query: "ia",
+                match_name_prefix: false,
+                geoname_type: Some(GeonameType::Region),
+                filter: None,
+                expected: vec![GeonameMatch {
+                    geoname: ia(),
+                    match_type: GeonameMatchType::Abbreviation,
+                    prefix: false,
+                }],
+            },
+            // geoname type: region
+            Test {
+                query: "ny",
+                match_name_prefix: false,
+                geoname_type: Some(GeonameType::City),
+                filter: None,
+                expected: vec![GeonameMatch {
+                    geoname: nyc(),
+                    match_type: GeonameMatchType::Abbreviation,
+                    prefix: false,
+                }],
+            },
+            // prefix matching
+            Test {
+                query: "ny",
+                match_name_prefix: true,
+                geoname_type: None,
+                filter: None,
+                expected: vec![
+                    GeonameMatch {
+                        geoname: nyc(),
+                        match_type: GeonameMatchType::Abbreviation,
+                        prefix: false,
+                    },
+                    GeonameMatch {
+                        geoname: ny_state(),
+                        match_type: GeonameMatchType::Abbreviation,
+                        prefix: false,
+                    },
+                ],
+            },
+        ];
+
+        for t in tests {
+            assert_eq!(
+                store.fetch_geonames(
+                    t.query,
+                    t.match_name_prefix,
+                    t.geoname_type.clone(),
+                    t.filter.clone()
+                ),
+                t.expected,
+                "Test: {:?}",
+                t
+            );
+        }
 
         Ok(())
     }

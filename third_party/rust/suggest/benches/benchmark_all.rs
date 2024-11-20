@@ -2,7 +2,13 @@ use criterion::{
     criterion_group, criterion_main, measurement::Measurement, BatchSize, BenchmarkGroup, Criterion,
 };
 use std::sync::Once;
-use suggest::benchmarks::{ingest, query, BenchmarkWithInput};
+use suggest::benchmarks::{geoname, ingest, query, BenchmarkWithInput};
+
+pub fn geoname(c: &mut Criterion) {
+    setup_viaduct();
+    let group = c.benchmark_group("geoname");
+    run_benchmarks(group, geoname::all_benchmarks())
+}
 
 pub fn ingest(c: &mut Criterion) {
     setup_viaduct();
@@ -24,10 +30,11 @@ fn run_benchmarks<B: BenchmarkWithInput, M: Measurement>(
     benchmarks: Vec<(&'static str, B)>,
 ) {
     for (name, benchmark) in benchmarks {
+        let g_input = benchmark.global_input();
         group.bench_function(name.to_string(), |b| {
             b.iter_batched(
-                || benchmark.generate_input(),
-                |input| benchmark.benchmarked_code(input),
+                || benchmark.iteration_input(),
+                |i_input| benchmark.benchmarked_code(&g_input, i_input),
                 // See https://docs.rs/criterion/latest/criterion/enum.BatchSize.html#variants for
                 // a discussion of this.  PerIteration is chosen for these benchmarks because the
                 // input holds a database file handle
@@ -43,5 +50,5 @@ fn setup_viaduct() {
     INIT.call_once(viaduct_reqwest::use_reqwest_backend);
 }
 
-criterion_group!(benches, ingest, query);
+criterion_group!(benches, geoname, ingest, query);
 criterion_main!(benches);

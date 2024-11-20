@@ -143,7 +143,7 @@ mod test {
                         last_modified: 1300,
                         deleted: false,
                         attachment: None,
-                        fields: fields("d")
+                        fields: fields("d"),
                     },
                 ],
             }

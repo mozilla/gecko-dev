@@ -20,6 +20,10 @@
     :members:
     :exclude-members: RemoteSettingsConfig2
 ```
+```{js:autoclass} RustRemoteSettings.sys.RemoteSettingsContext
+    :members:
+    :exclude-members: RemoteSettingsContext
+```
 ```{js:autoclass} RustRemoteSettings.sys.RemoteSettingsRecord
     :members:
     :exclude-members: RemoteSettingsRecord

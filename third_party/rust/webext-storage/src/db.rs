@@ -11,7 +11,7 @@ use rusqlite::Connection;
 use rusqlite::OpenFlags;
 use sql_support::open_database::open_database_with_flags;
 use sql_support::ConnExt;
-use std::ops::{Deref, DerefMut};
+use std::ops::Deref;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use url::Url;
@@ -23,10 +23,16 @@ use url::Url;
 ///
 /// We only support a single writer connection - so that's the only thing we
 /// store. It's still a bit overkill, but there's only so many yaks in a day.
+pub enum WebExtStorageDb {
+    Open(Connection),
+    Closed,
+}
+
 pub struct StorageDb {
-    writer: Connection,
+    pub writer: WebExtStorageDb,
     interrupt_handle: Arc<SqlInterruptHandle>,
 }
+
 impl StorageDb {
     /// Create a new, or fetch an already open, StorageDb backed by a file on disk.
     pub fn new(db_path: impl AsRef<Path>) -> Result<Self> {
@@ -54,7 +60,7 @@ impl StorageDb {
         let conn = open_database_with_flags(db_path, flags, &schema::WebExtMigrationLogin)?;
         Ok(Self {
             interrupt_handle: Arc::new(SqlInterruptHandle::new(&conn)),
-            writer: conn,
+            writer: WebExtStorageDb::Open(conn),
         })
     }
 
@@ -73,29 +79,20 @@ impl StorageDb {
     /// underlying connection so the caller can retry but (a) that's very tricky
     /// in an Arc<Mutex<>> world and (b) we never actually took advantage of
     /// that retry capability.
-    pub fn close(self) -> Result<()> {
-        self.writer.close().map_err(|(writer, err)| {
-            // In rusqlite 0.28.0 and earlier, if we just let `writer` drop,
-            // the close would panic on failure.
-            // Later rusqlite versions will not panic, but this behavior doesn't
-            // hurt there.
-            std::mem::forget(writer);
-            err.into()
-        })
+    pub fn close(&mut self) -> Result<()> {
+        let conn = match std::mem::replace(&mut self.writer, WebExtStorageDb::Closed) {
+            WebExtStorageDb::Open(conn) => conn,
+            WebExtStorageDb::Closed => return Ok(()),
+        };
+        conn.close().map_err(|(_, y)| Error::SqlError(y))
     }
-}
 
-impl Deref for StorageDb {
-    type Target = Connection;
-
-    fn deref(&self) -> &Self::Target {
-        &self.writer
-    }
-}
-
-impl DerefMut for StorageDb {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.writer
+    pub(crate) fn get_connection(&self) -> Result<&Connection> {
+        let db = &self.writer;
+        match db {
+            WebExtStorageDb::Open(y) => Ok(y),
+            WebExtStorageDb::Closed => Err(Error::DatabaseConnectionClosed),
+        }
     }
 }
 
@@ -290,12 +287,13 @@ mod tests {
 
     #[test]
     fn test_meta() -> Result<()> {
-        let writer = new_mem_db();
-        assert_eq!(get_meta::<String>(&writer, "foo")?, None);
-        put_meta(&writer, "foo", &"bar".to_string())?;
-        assert_eq!(get_meta(&writer, "foo")?, Some("bar".to_string()));
-        delete_meta(&writer, "foo")?;
-        assert_eq!(get_meta::<String>(&writer, "foo")?, None);
+        let db = new_mem_db();
+        let conn = &db.get_connection()?;
+        assert_eq!(get_meta::<String>(conn, "foo")?, None);
+        put_meta(conn, "foo", &"bar".to_string())?;
+        assert_eq!(get_meta(conn, "foo")?, Some("bar".to_string()));
+        delete_meta(conn, "foo")?;
+        assert_eq!(get_meta::<String>(conn, "foo")?, None);
         Ok(())
     }
 }

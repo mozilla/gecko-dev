@@ -23,7 +23,7 @@ use sql_support::{
 ///     `clear_database()` by adding their names to `conditional_tables`, unless
 ///     they are cleared via a deletion trigger or there's some other good
 ///     reason not to do so.
-pub const VERSION: u32 = 30;
+pub const VERSION: u32 = 31;
 
 /// The current Suggest database schema.
 pub const SQL: &str = "
@@ -218,6 +218,7 @@ CREATE TABLE geonames_alternates(
     PRIMARY KEY (name, geoname_id),
     FOREIGN KEY(geoname_id) REFERENCES geonames(id) ON DELETE CASCADE
 ) WITHOUT ROWID;
+CREATE INDEX geonames_alternates_geoname_id ON geonames_alternates(geoname_id);
 
 CREATE TABLE geonames_metrics(
     record_id TEXT NOT NULL PRIMARY KEY,
@@ -584,6 +585,16 @@ CREATE TABLE geonames_alternates(
                 // that should have been cleared in previous migrations were
                 // not.
                 clear_database(tx)?;
+                Ok(())
+            }
+            30 => {
+                // Add the `geonames_alternates_geoname_id` index.
+                clear_database(tx)?;
+                tx.execute_batch(
+                    "
+CREATE INDEX geonames_alternates_geoname_id ON geonames_alternates(geoname_id);
+                    ",
+                )?;
                 Ok(())
             }
             _ => Err(open_database::Error::IncompatibleVersion(version)),

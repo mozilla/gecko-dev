@@ -64,7 +64,7 @@ impl RemoteSettingsServer {
     ///
     /// The difference is that it uses `Error` instead of `ApiError`.  This is what we need to use
     /// inside the crate.
-    pub(crate) fn get_url(&self) -> Result<Url> {
+    pub fn get_url(&self) -> Result<Url> {
         Ok(match self {
             Self::Prod => Url::parse("https://firefox.settings.services.mozilla.com/v1")?,
             Self::Stage => Url::parse("https://firefox.settings.services.allizom.org/v1")?,

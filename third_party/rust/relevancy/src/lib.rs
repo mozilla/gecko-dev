@@ -18,6 +18,8 @@ mod rs;
 mod schema;
 pub mod url_hash;
 
+use rand_distr::{Beta, Distribution};
+
 pub use db::RelevancyDb;
 pub use error::{ApiResult, Error, RelevancyApiError, Result};
 pub use interest::{Interest, InterestVector};
@@ -95,6 +97,72 @@ impl RelevancyStore {
     pub fn user_interest_vector(&self) -> ApiResult<InterestVector> {
         self.db.read(|dao| dao.get_frecency_user_interest_vector())
     }
+
+    /// Initializes probability distributions for any uninitialized items (arms) within a bandit model.
+    ///
+    /// This method takes a `bandit` identifier and a list of `arms` (items) and ensures that each arm
+    /// in the list has an initialized probability distribution in the database. For each arm, if the
+    /// probability distribution does not already exist, it will be created, using Beta(1,1) as default,
+    /// which represents uniform distribution.
+    #[handle_error(Error)]
+    pub fn bandit_init(&self, bandit: String, arms: &[String]) -> ApiResult<()> {
+        self.db.read_write(|dao| {
+            for arm in arms {
+                dao.initialize_multi_armed_bandit(&bandit, arm)?;
+            }
+            Ok(())
+        })?;
+
+        Ok(())
+    }
+
+    /// Selects the optimal item (arm) to display to the user based on a multi-armed bandit model.
+    ///
+    /// This method takes in a `bandit` identifier and a list of possible `arms` (items) and uses a
+    /// Thompson sampling approach to select the arm with the highest probability of success.
+    /// For each arm, it retrieves the Beta distribution parameters (alpha and beta) from the
+    /// database, creates a Beta distribution, and samples from it to estimate the arm's probability
+    /// of success. The arm with the highest sampled probability is selected and returned.
+    #[handle_error(Error)]
+    pub fn bandit_select(&self, bandit: String, arms: &[String]) -> ApiResult<String> {
+        // we should cache the distribution so we don't retrieve each time
+
+        let mut best_sample = f64::MIN;
+        let mut selected_arm = String::new();
+
+        for arm in arms {
+            let (alpha, beta) = self
+                .db
+                .read(|dao| dao.retrieve_bandit_arm_beta_distribution(&bandit, arm))?;
+            // this creates a Beta distribution for an alpha & beta pair
+            let beta_dist = Beta::new(alpha as f64, beta as f64)
+                .expect("computing betas dist unexpectedly failed");
+
+            // Sample from the Beta distribution
+            let sampled_prob = beta_dist.sample(&mut rand::thread_rng());
+
+            if sampled_prob > best_sample {
+                best_sample = sampled_prob;
+                selected_arm.clone_from(arm);
+            }
+        }
+
+        return Ok(selected_arm);
+    }
+
+    /// Updates the bandit model's arm data based on user interaction (selection or non-selection).
+    ///
+    /// This method takes in a `bandit` identifier, an `arm` identifier, and a `selected` flag.
+    /// If `selected` is true, it updates the model to reflect a successful selection of the arm,
+    /// reinforcing its positive reward probability. If `selected` is false, it updates the
+    /// beta (failure) distribution of the arm, reflecting a lack of selection and reinforcing
+    /// its likelihood of a negative outcome.
+    #[handle_error(Error)]
+    pub fn bandit_update(&self, bandit: String, arm: String, selected: bool) -> ApiResult<()> {
+        self.db
+            .read_write(|dao| dao.update_bandit_arm_data(&bandit, &arm, selected))?;
+        Ok(())
+    }
 }
 
 impl RelevancyStore {
@@ -147,6 +215,8 @@ mod test {
     use crate::url_hash::hash_url;
 
     use super::*;
+    use rand::Rng;
+    use std::collections::HashMap;
 
     fn make_fixture() -> Vec<(String, Interest)> {
         vec![
@@ -205,6 +275,68 @@ mod test {
         assert_eq!(
             relevancy_store.user_interest_vector().unwrap(),
             expected_interest_vector()
+        );
+    }
+
+    #[test]
+    fn test_thompson_sampling_convergence() {
+        let relevancy_store = setup_store("thompson_sampling_convergence");
+
+        let arms_to_ctr_map: HashMap<String, f64> = [
+            ("wiki".to_string(), 0.1),        // 10% CTR
+            ("geolocation".to_string(), 0.3), // 30% CTR
+            ("weather".to_string(), 0.8),     // 80% CTR
+        ]
+        .into_iter()
+        .collect();
+
+        let arm_names: Vec<String> = arms_to_ctr_map.keys().cloned().collect();
+
+        let bandit = "provider".to_string();
+
+        // initialize bandit
+        relevancy_store
+            .bandit_init(bandit.clone(), &arm_names)
+            .unwrap();
+
+        let mut rng = rand::thread_rng();
+
+        // Create a HashMap to map arm names to their selection counts
+        let mut selection_counts: HashMap<String, usize> =
+            arm_names.iter().map(|name| (name.clone(), 0)).collect();
+
+        // Simulate 1000 rounds of Thompson Sampling
+        for _ in 0..1000 {
+            // Use Thompson Sampling to select an arm
+            let selected_arm_name = relevancy_store
+                .bandit_select(bandit.clone(), &arm_names)
+                .expect("Failed to select arm");
+
+            // increase the selection count for the selected arm
+            *selection_counts.get_mut(&selected_arm_name).unwrap() += 1;
+
+            // get the true CTR for the selected arm
+            let true_ctr = &arms_to_ctr_map[&selected_arm_name];
+
+            // simulate a click or no-click based on the true CTR
+            let clicked = rng.gen_bool(*true_ctr);
+
+            // update beta distribution for arm based on click/no click
+            relevancy_store
+                .bandit_update(bandit.clone(), selected_arm_name, clicked)
+                .expect("Failed to update beta distribution for arm");
+        }
+
+        //retrieve arm with maximum selection count
+        let most_selected_arm_name = selection_counts
+            .iter()
+            .max_by_key(|(_, count)| *count)
+            .unwrap()
+            .0;
+
+        assert_eq!(
+            most_selected_arm_name, "weather",
+            "Thompson Sampling did not favor the best-performing arm"
         );
     }
 }

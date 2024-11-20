@@ -140,8 +140,9 @@ fn make_incoming_tombstone(guid: &Guid) -> IncomingContent<WebextRecord> {
 #[test]
 fn test_simple_outgoing_sync() -> Result<()> {
     // So we are starting with an empty local store and empty server store.
-    let mut db = new_syncable_mem_db();
-    let tx = db.transaction()?;
+    let db = new_syncable_mem_db();
+    let conn = db.get_connection().expect("should retrieve connection");
+    let tx = conn.unchecked_transaction()?;
     let data = json!({"key1": "key1-value", "key2": "key2-value"});
     set(&tx, "ext-id", data.clone())?;
     assert_eq!(do_sync(&tx, &[])?.len(), 1);
@@ -151,8 +152,9 @@ fn test_simple_outgoing_sync() -> Result<()> {
 
 #[test]
 fn test_simple_incoming_sync() -> Result<()> {
-    let mut db = new_syncable_mem_db();
-    let tx = db.transaction()?;
+    let db = new_syncable_mem_db();
+    let conn = db.get_connection().expect("should retrieve connection");
+    let tx = conn.unchecked_transaction()?;
     let data = json!({"key1": "key1-value", "key2": "key2-value"});
     let bridge_record = make_incoming(&Guid::new("guid"), "ext-id", &data);
     assert_eq!(do_sync(&tx, &[bridge_record])?.len(), 0);
@@ -166,8 +168,9 @@ fn test_simple_incoming_sync() -> Result<()> {
 fn test_outgoing_tombstone() -> Result<()> {
     // Tombstones are only kept when the mirror has that record - so first
     // test that, then arrange for the mirror to have the record.
-    let mut db = new_syncable_mem_db();
-    let tx = db.transaction()?;
+    let db = new_syncable_mem_db();
+    let conn = db.get_connection().expect("should retrieve connection");
+    let tx = conn.unchecked_transaction()?;
     let data = json!({"key1": "key1-value", "key2": "key2-value"});
     set(&tx, "ext-id", data.clone())?;
     assert_eq!(
@@ -197,8 +200,9 @@ fn test_outgoing_tombstone() -> Result<()> {
 fn test_incoming_tombstone_exists() -> Result<()> {
     // An incoming tombstone for a record we've previously synced (and thus
     // have data for)
-    let mut db = new_syncable_mem_db();
-    let tx = db.transaction()?;
+    let db = new_syncable_mem_db();
+    let conn = db.get_connection().expect("should retrieve connection");
+    let tx = conn.unchecked_transaction()?;
     let data = json!({"key1": "key1-value", "key2": "key2-value"});
     set(&tx, "ext-id", data.clone())?;
     assert_eq!(
@@ -224,8 +228,9 @@ fn test_incoming_tombstone_exists() -> Result<()> {
 
 #[test]
 fn test_incoming_tombstone_not_exists() -> Result<()> {
-    let mut db = new_syncable_mem_db();
-    let tx = db.transaction()?;
+    let db = new_syncable_mem_db();
+    let conn = db.get_connection().expect("should retrieve connection");
+    let tx = conn.unchecked_transaction()?;
     // An incoming tombstone for something that's not anywhere locally.
     let guid = Guid::new("guid");
     let tombstone = make_incoming_tombstone(&guid);
@@ -242,8 +247,9 @@ fn test_incoming_tombstone_not_exists() -> Result<()> {
 
 #[test]
 fn test_reconciled() -> Result<()> {
-    let mut db = new_syncable_mem_db();
-    let tx = db.transaction()?;
+    let db = new_syncable_mem_db();
+    let conn = db.get_connection().expect("should retrieve connection");
+    let tx = conn.unchecked_transaction()?;
     let data = json!({"key1": "key1-value"});
     set(&tx, "ext-id", data)?;
     // Incoming payload with the same data
@@ -258,8 +264,9 @@ fn test_reconciled() -> Result<()> {
 /// identical to what is in the mirrored table.
 #[test]
 fn test_reconcile_with_null_payload() -> Result<()> {
-    let mut db = new_syncable_mem_db();
-    let tx = db.transaction()?;
+    let db = new_syncable_mem_db();
+    let conn = db.get_connection().expect("should retrieve connection");
+    let tx = conn.unchecked_transaction()?;
     let data = json!({"key1": "key1-value"});
     set(&tx, "ext-id", data.clone())?;
     // We try to push this change on the next sync.
@@ -278,8 +285,9 @@ fn test_reconcile_with_null_payload() -> Result<()> {
 
 #[test]
 fn test_accept_incoming_when_local_is_deleted() -> Result<()> {
-    let mut db = new_syncable_mem_db();
-    let tx = db.transaction()?;
+    let db = new_syncable_mem_db();
+    let conn = db.get_connection().expect("should retrieve connection");
+    let tx = conn.unchecked_transaction()?;
     // We only record an extension as deleted locally if it has been
     // uploaded before being deleted.
     let data = json!({"key1": "key1-value"});
@@ -299,8 +307,9 @@ fn test_accept_incoming_when_local_is_deleted() -> Result<()> {
 
 #[test]
 fn test_accept_incoming_when_local_is_deleted_no_mirror() -> Result<()> {
-    let mut db = new_syncable_mem_db();
-    let tx = db.transaction()?;
+    let db = new_syncable_mem_db();
+    let conn = db.get_connection().expect("should retrieve connection");
+    let tx = conn.unchecked_transaction()?;
     let data = json!({"key1": "key1-value"});
     set(&tx, "ext-id", data)?;
     assert_eq!(do_sync(&tx, &[])?.len(), 1);
@@ -319,8 +328,9 @@ fn test_accept_incoming_when_local_is_deleted_no_mirror() -> Result<()> {
 
 #[test]
 fn test_accept_deleted_key_mirrored() -> Result<()> {
-    let mut db = new_syncable_mem_db();
-    let tx = db.transaction()?;
+    let db = new_syncable_mem_db();
+    let conn = db.get_connection().expect("should retrieve connection");
+    let tx = conn.unchecked_transaction()?;
     let data = json!({"key1": "key1-value", "key2": "key2-value"});
     set(&tx, "ext-id", data)?;
     assert_eq!(do_sync(&tx, &[])?.len(), 1);
@@ -336,8 +346,9 @@ fn test_accept_deleted_key_mirrored() -> Result<()> {
 
 #[test]
 fn test_merged_no_mirror() -> Result<()> {
-    let mut db = new_syncable_mem_db();
-    let tx = db.transaction()?;
+    let db = new_syncable_mem_db();
+    let conn = db.get_connection().expect("should retrieve connection");
+    let tx = conn.unchecked_transaction()?;
     let data = json!({"key1": "key1-value"});
     set(&tx, "ext-id", data)?;
     // Incoming payload without 'key1' and some data for 'key2'.
@@ -355,8 +366,9 @@ fn test_merged_no_mirror() -> Result<()> {
 
 #[test]
 fn test_merged_incoming() -> Result<()> {
-    let mut db = new_syncable_mem_db();
-    let tx = db.transaction()?;
+    let db = new_syncable_mem_db();
+    let conn = db.get_connection().expect("should retrieve connection");
+    let tx = conn.unchecked_transaction()?;
     let old_data = json!({"key1": "key1-value", "key2": "key2-value", "doomed_key": "deletable"});
     set(&tx, "ext-id", old_data)?;
     assert_eq!(do_sync(&tx, &[])?.len(), 1);
@@ -385,8 +397,9 @@ fn test_merged_incoming() -> Result<()> {
 
 #[test]
 fn test_merged_with_null_payload() -> Result<()> {
-    let mut db = new_syncable_mem_db();
-    let tx = db.transaction()?;
+    let db = new_syncable_mem_db();
+    let conn = db.get_connection().expect("should retrieve connection");
+    let tx = conn.unchecked_transaction()?;
     let old_data = json!({"key1": "key1-value"});
     set(&tx, "ext-id", old_data.clone())?;
     // Push this change remotely.
@@ -409,8 +422,9 @@ fn test_merged_with_null_payload() -> Result<()> {
 
 #[test]
 fn test_deleted_mirrored_object_accept() -> Result<()> {
-    let mut db = new_syncable_mem_db();
-    let tx = db.transaction()?;
+    let db = new_syncable_mem_db();
+    let conn = db.get_connection().expect("should retrieve connection");
+    let tx = conn.unchecked_transaction()?;
     let data = json!({"key1": "key1-value", "key2": "key2-value"});
     set(&tx, "ext-id", data)?;
     assert_eq!(do_sync(&tx, &[])?.len(), 1);
@@ -427,8 +441,9 @@ fn test_deleted_mirrored_object_accept() -> Result<()> {
 
 #[test]
 fn test_deleted_mirrored_object_merged() -> Result<()> {
-    let mut db = new_syncable_mem_db();
-    let tx = db.transaction()?;
+    let db = new_syncable_mem_db();
+    let conn = db.get_connection().expect("should retrieve connection");
+    let tx = conn.unchecked_transaction()?;
     set(&tx, "ext-id", json!({"key1": "key1-value"}))?;
     assert_eq!(do_sync(&tx, &[])?.len(), 1);
     let guid = get_mirror_guid(&tx, "ext-id")?;
@@ -450,8 +465,9 @@ fn test_deleted_mirrored_object_merged() -> Result<()> {
 /// Like the above test, but with a mirrored tombstone.
 #[test]
 fn test_deleted_mirrored_tombstone_merged() -> Result<()> {
-    let mut db = new_syncable_mem_db();
-    let tx = db.transaction()?;
+    let db = new_syncable_mem_db();
+    let conn = db.get_connection().expect("should retrieve connection");
+    let tx = conn.unchecked_transaction()?;
     // Sync some data so we can get the guid for this extension.
     set(&tx, "ext-id", json!({"key1": "key1-value"}))?;
     assert_eq!(do_sync(&tx, &[])?.len(), 1);
@@ -473,8 +489,9 @@ fn test_deleted_mirrored_tombstone_merged() -> Result<()> {
 
 #[test]
 fn test_deleted_not_mirrored_object_merged() -> Result<()> {
-    let mut db = new_syncable_mem_db();
-    let tx = db.transaction()?;
+    let db = new_syncable_mem_db();
+    let conn = db.get_connection().expect("should retrieve connection");
+    let tx = conn.unchecked_transaction()?;
     let data = json!({"key1": "key1-value", "key2": "key2-value"});
     set(&tx, "ext-id", data)?;
     // Incoming payload with data deleted.
@@ -493,8 +510,9 @@ fn test_deleted_not_mirrored_object_merged() -> Result<()> {
 
 #[test]
 fn test_conflicting_incoming() -> Result<()> {
-    let mut db = new_syncable_mem_db();
-    let tx = db.transaction()?;
+    let db = new_syncable_mem_db();
+    let conn = db.get_connection().expect("should retrieve connection");
+    let tx = conn.unchecked_transaction()?;
     let data = json!({"key1": "key1-value", "key2": "key2-value"});
     set(&tx, "ext-id", data)?;
     // Incoming payload without 'key1' and conflicting for 'key2'.
@@ -517,8 +535,9 @@ fn test_conflicting_incoming() -> Result<()> {
 
 #[test]
 fn test_invalid_incoming() -> Result<()> {
-    let mut db = new_syncable_mem_db();
-    let tx = db.transaction()?;
+    let db = new_syncable_mem_db();
+    let conn = db.get_connection().expect("should retrieve connection");
+    let tx = conn.unchecked_transaction()?;
     let json = json!({"id": "id", "payload": json!("").to_string()});
     let bso = serde_json::from_value::<IncomingBso>(json).unwrap();
     let record = bso.into_content();

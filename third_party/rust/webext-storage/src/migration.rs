@@ -346,8 +346,9 @@ mod tests {
         init_source_db(path, f);
 
         // now migrate
-        let mut db = new_mem_db();
-        let tx = db.transaction().expect("tx should work");
+        let db = new_mem_db();
+        let conn = db.get_connection().expect("should retrieve connection");
+        let tx = conn.unchecked_transaction().expect("tx should work");
 
         let mi = migrate(&tx, &tmpdir.path().join("source.db")).expect("migrate should work");
         tx.commit().expect("should work");
@@ -384,17 +385,18 @@ mod tests {
     #[test]
     fn test_happy_paths() {
         // some real data.
-        let conn = do_migrate(HAPPY_PATH_MIGRATION_INFO, |c| {
+        let db = do_migrate(HAPPY_PATH_MIGRATION_INFO, |c| {
             c.execute_batch(HAPPY_PATH_SQL).expect("should populate")
         });
+        let conn = db.get_connection().expect("should retrieve connection");
 
         assert_has(
-            &conn,
+            conn,
             "{e7fefcf3-b39c-4f17-5215-ebfe120a7031}",
             json!({"userWelcomed": 1570659224457u64, "isWho": "4ec8109f"}),
         );
         assert_has(
-            &conn,
+            conn,
             "https-everywhere@eff.org",
             json!({"userRules": [], "ruleActiveStates": {}, "migration_version": 2}),
         );

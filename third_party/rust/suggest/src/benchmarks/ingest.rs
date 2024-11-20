@@ -48,9 +48,12 @@ impl IngestBenchmark {
 pub struct InputType(SuggestStoreInner<RemoteSettingsBenchmarkClient>);
 
 impl BenchmarkWithInput for IngestBenchmark {
-    type Input = InputType;
+    type GlobalInput = ();
+    type IterationInput = InputType;
 
-    fn generate_input(&self) -> Self::Input {
+    fn global_input(&self) -> Self::GlobalInput {}
+
+    fn iteration_input(&self) -> Self::IterationInput {
         let data_path = self.temp_dir.path().join(unique_db_filename());
         let store = SuggestStoreInner::new(data_path, vec![], self.client.clone());
         store.ensure_db_initialized();
@@ -61,7 +64,7 @@ impl BenchmarkWithInput for IngestBenchmark {
         InputType(store)
     }
 
-    fn benchmarked_code(&self, input: Self::Input) {
+    fn benchmarked_code(&self, _: &Self::GlobalInput, input: Self::IterationInput) {
         let InputType(store) = input;
         store.ingest_records_by_type(self.record_type);
     }

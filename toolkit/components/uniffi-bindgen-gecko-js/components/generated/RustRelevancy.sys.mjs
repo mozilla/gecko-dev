@@ -302,6 +302,29 @@ export class FfiConverterF64 extends FfiConverter {
 }
 
 // Export the FFIConverter object to make external types work.
+export class FfiConverterBool extends FfiConverter {
+    static computeSize() {
+        return 1;
+    }
+    static lift(value) {
+        return value == 1;
+    }
+    static lower(value) {
+        if (value) {
+            return 1;
+        } else {
+            return 0;
+        }
+    }
+    static write(dataStream, value) {
+        dataStream.writeUint8(this.lower(value))
+    }
+    static read(dataStream) {
+        return this.lift(dataStream.readUint8())
+    }
+}
+
+// Export the FFIConverter object to make external types work.
 export class FfiConverterString extends FfiConverter {
     static checkType(value) {
         super.checkType(value);
@@ -369,11 +392,149 @@ export class RelevancyStore {
                 throw e;
             }
             return UniFFIScaffolding.callSync(
-                8, // relevancy:uniffi_relevancy_fn_constructor_relevancystore_new
+                11, // relevancy:uniffi_relevancy_fn_constructor_relevancystore_new
                 FfiConverterString.lower(dbPath),
             )
         }
         return handleRustResult(functionCall(), liftResult, liftError);}
+
+    /**
+     * Initializes probability distributions for any uninitialized items (arms) within a bandit model.
+     *
+     * This method takes a `bandit` identifier and a list of `arms` (items) and ensures that each arm
+     * in the list has an initialized probability distribution in the database. For each arm, if the
+     * probability distribution does not already exist, it will be created, using Beta(1,1) as default,
+     * which represents uniform distribution.
+     */
+    banditInit(bandit,arms) {
+        const liftResult = (result) => undefined;
+        const liftError = (data) => FfiConverterTypeRelevancyApiError.lift(data);
+        const functionCall = () => {
+            try {
+                FfiConverterString.checkType(bandit)
+            } catch (e) {
+                if (e instanceof UniFFITypeError) {
+                    e.addItemDescriptionPart("bandit");
+                }
+                throw e;
+            }
+            try {
+                FfiConverterSequencestring.checkType(arms)
+            } catch (e) {
+                if (e instanceof UniFFITypeError) {
+                    e.addItemDescriptionPart("arms");
+                }
+                throw e;
+            }
+            return UniFFIScaffolding.callAsyncWrapper(
+                3, // relevancy:uniffi_relevancy_fn_method_relevancystore_bandit_init
+                FfiConverterTypeRelevancyStore.lower(this),
+                FfiConverterString.lower(bandit),
+                FfiConverterSequencestring.lower(arms),
+            )
+        }
+        try {
+            return functionCall().then((result) => handleRustResult(result, liftResult, liftError));
+        }  catch (error) {
+            return Promise.reject(error)
+        }
+    }
+
+    /**
+     * Selects the optimal item (arm) to display to the user based on a multi-armed bandit model.
+     *
+     * This method takes in a `bandit` identifier and a list of possible `arms` (items) and uses a
+     * Thompson sampling approach to select the arm with the highest probability of success.
+     * For each arm, it retrieves the Beta distribution parameters (alpha and beta) from the
+     * database, creates a Beta distribution, and samples from it to estimate the arm's probability
+     * of success. The arm with the highest sampled probability is selected and returned.
+     * @returns {string}
+     */
+    banditSelect(bandit,arms) {
+        const liftResult = (result) => FfiConverterString.lift(result);
+        const liftError = (data) => FfiConverterTypeRelevancyApiError.lift(data);
+        const functionCall = () => {
+            try {
+                FfiConverterString.checkType(bandit)
+            } catch (e) {
+                if (e instanceof UniFFITypeError) {
+                    e.addItemDescriptionPart("bandit");
+                }
+                throw e;
+            }
+            try {
+                FfiConverterSequencestring.checkType(arms)
+            } catch (e) {
+                if (e instanceof UniFFITypeError) {
+                    e.addItemDescriptionPart("arms");
+                }
+                throw e;
+            }
+            return UniFFIScaffolding.callAsyncWrapper(
+                4, // relevancy:uniffi_relevancy_fn_method_relevancystore_bandit_select
+                FfiConverterTypeRelevancyStore.lower(this),
+                FfiConverterString.lower(bandit),
+                FfiConverterSequencestring.lower(arms),
+            )
+        }
+        try {
+            return functionCall().then((result) => handleRustResult(result, liftResult, liftError));
+        }  catch (error) {
+            return Promise.reject(error)
+        }
+    }
+
+    /**
+     * Updates the bandit model's arm data based on user interaction (selection or non-selection).
+     *
+     * This method takes in a `bandit` identifier, an `arm` identifier, and a `selected` flag.
+     * If `selected` is true, it updates the model to reflect a successful selection of the arm,
+     * reinforcing its positive reward probability. If `selected` is false, it updates the
+     * beta (failure) distribution of the arm, reflecting a lack of selection and reinforcing
+     * its likelihood of a negative outcome.
+     */
+    banditUpdate(bandit,arm,selected) {
+        const liftResult = (result) => undefined;
+        const liftError = (data) => FfiConverterTypeRelevancyApiError.lift(data);
+        const functionCall = () => {
+            try {
+                FfiConverterString.checkType(bandit)
+            } catch (e) {
+                if (e instanceof UniFFITypeError) {
+                    e.addItemDescriptionPart("bandit");
+                }
+                throw e;
+            }
+            try {
+                FfiConverterString.checkType(arm)
+            } catch (e) {
+                if (e instanceof UniFFITypeError) {
+                    e.addItemDescriptionPart("arm");
+                }
+                throw e;
+            }
+            try {
+                FfiConverterBool.checkType(selected)
+            } catch (e) {
+                if (e instanceof UniFFITypeError) {
+                    e.addItemDescriptionPart("selected");
+                }
+                throw e;
+            }
+            return UniFFIScaffolding.callAsyncWrapper(
+                5, // relevancy:uniffi_relevancy_fn_method_relevancystore_bandit_update
+                FfiConverterTypeRelevancyStore.lower(this),
+                FfiConverterString.lower(bandit),
+                FfiConverterString.lower(arm),
+                FfiConverterBool.lower(selected),
+            )
+        }
+        try {
+            return functionCall().then((result) => handleRustResult(result, liftResult, liftError));
+        }  catch (error) {
+            return Promise.reject(error)
+        }
+    }
 
     /**
      * Calculate metrics for the validation phase
@@ -387,7 +548,7 @@ export class RelevancyStore {
         const liftError = (data) => FfiConverterTypeRelevancyApiError.lift(data);
         const functionCall = () => {
             return UniFFIScaffolding.callAsyncWrapper(
-                3, // relevancy:uniffi_relevancy_fn_method_relevancystore_calculate_metrics
+                6, // relevancy:uniffi_relevancy_fn_method_relevancystore_calculate_metrics
                 FfiConverterTypeRelevancyStore.lower(this),
             )
         }
@@ -408,7 +569,7 @@ export class RelevancyStore {
         const liftError = null;
         const functionCall = () => {
             return UniFFIScaffolding.callSync(
-                4, // relevancy:uniffi_relevancy_fn_method_relevancystore_close
+                7, // relevancy:uniffi_relevancy_fn_method_relevancystore_close
                 FfiConverterTypeRelevancyStore.lower(this),
             )
         }
@@ -442,7 +603,7 @@ export class RelevancyStore {
                 throw e;
             }
             return UniFFIScaffolding.callAsyncWrapper(
-                5, // relevancy:uniffi_relevancy_fn_method_relevancystore_ingest
+                8, // relevancy:uniffi_relevancy_fn_method_relevancystore_ingest
                 FfiConverterTypeRelevancyStore.lower(this),
                 FfiConverterSequencestring.lower(topUrlsByFrecency),
             )
@@ -462,7 +623,7 @@ export class RelevancyStore {
         const liftError = null;
         const functionCall = () => {
             return UniFFIScaffolding.callSync(
-                6, // relevancy:uniffi_relevancy_fn_method_relevancystore_interrupt
+                9, // relevancy:uniffi_relevancy_fn_method_relevancystore_interrupt
                 FfiConverterTypeRelevancyStore.lower(this),
             )
         }
@@ -481,7 +642,7 @@ export class RelevancyStore {
         const liftError = (data) => FfiConverterTypeRelevancyApiError.lift(data);
         const functionCall = () => {
             return UniFFIScaffolding.callAsyncWrapper(
-                7, // relevancy:uniffi_relevancy_fn_method_relevancystore_user_interest_vector
+                10, // relevancy:uniffi_relevancy_fn_method_relevancystore_user_interest_vector
                 FfiConverterTypeRelevancyStore.lower(this),
             )
         }
@@ -1531,6 +1692,7 @@ export class FfiConverterSequenceTypeInterest extends FfiConverterArrayBuffer {
  * `RelevancyStore::user_interest_vector()`.
  * - `content_categories`: a list of categories (interests) of the give content.
  * Return:
+ * - A score ranges in [0, 1].
  * @returns {number}
  */
 export function score(interestVector,contentCategories) {

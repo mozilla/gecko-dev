@@ -58,26 +58,30 @@ impl sync15::engine::BridgedEngine for BridgedEngine {
     fn last_sync(&self) -> Result<i64> {
         let shared_db = self.thread_safe_storage_db()?;
         let db = shared_db.lock();
-        Ok(get_meta(&db, LAST_SYNC_META_KEY)?.unwrap_or(0))
+        let conn = db.get_connection()?;
+        Ok(get_meta(conn, LAST_SYNC_META_KEY)?.unwrap_or(0))
     }
 
     fn set_last_sync(&self, last_sync_millis: i64) -> Result<()> {
         let shared_db = self.thread_safe_storage_db()?;
         let db = shared_db.lock();
-        put_meta(&db, LAST_SYNC_META_KEY, &last_sync_millis)?;
+        let conn = db.get_connection()?;
+        put_meta(conn, LAST_SYNC_META_KEY, &last_sync_millis)?;
         Ok(())
     }
 
     fn sync_id(&self) -> Result<Option<String>> {
         let shared_db = self.thread_safe_storage_db()?;
         let db = shared_db.lock();
-        Ok(get_meta(&db, SYNC_ID_META_KEY)?)
+        let conn = db.get_connection()?;
+        Ok(get_meta(conn, SYNC_ID_META_KEY)?)
     }
 
     fn reset_sync_id(&self) -> Result<String> {
         let shared_db = self.thread_safe_storage_db()?;
         let db = shared_db.lock();
-        let tx = db.unchecked_transaction()?;
+        let conn = db.get_connection()?;
+        let tx = conn.unchecked_transaction()?;
         let new_id = SyncGuid::random().to_string();
         self.do_reset(&tx)?;
         put_meta(&tx, SYNC_ID_META_KEY, &new_id)?;
@@ -88,11 +92,13 @@ impl sync15::engine::BridgedEngine for BridgedEngine {
     fn ensure_current_sync_id(&self, sync_id: &str) -> Result<String> {
         let shared_db = self.thread_safe_storage_db()?;
         let db = shared_db.lock();
-        let current: Option<String> = get_meta(&db, SYNC_ID_META_KEY)?;
+        let conn = db.get_connection()?;
+        let current: Option<String> = get_meta(conn, SYNC_ID_META_KEY)?;
         Ok(match current {
             Some(current) if current == sync_id => current,
             _ => {
-                let tx = db.unchecked_transaction()?;
+                let conn = db.get_connection()?;
+                let tx = conn.unchecked_transaction()?;
                 self.do_reset(&tx)?;
                 let result = sync_id.to_string();
                 put_meta(&tx, SYNC_ID_META_KEY, &result)?;
@@ -105,7 +111,8 @@ impl sync15::engine::BridgedEngine for BridgedEngine {
     fn sync_started(&self) -> Result<()> {
         let shared_db = self.thread_safe_storage_db()?;
         let db = shared_db.lock();
-        schema::create_empty_sync_temp_tables(&db)?;
+        let conn = db.get_connection()?;
+        schema::create_empty_sync_temp_tables(conn)?;
         Ok(())
     }
 
@@ -113,7 +120,8 @@ impl sync15::engine::BridgedEngine for BridgedEngine {
         let shared_db = self.thread_safe_storage_db()?;
         let db = shared_db.lock();
         let signal = db.begin_interrupt_scope()?;
-        let tx = db.unchecked_transaction()?;
+        let conn = db.get_connection()?;
+        let tx = conn.unchecked_transaction()?;
         let incoming_content: Vec<_> = incoming_bsos
             .into_iter()
             .map(IncomingBso::into_content::<super::WebextRecord>)
@@ -127,8 +135,8 @@ impl sync15::engine::BridgedEngine for BridgedEngine {
         let shared_db = self.thread_safe_storage_db()?;
         let db = shared_db.lock();
         let signal = db.begin_interrupt_scope()?;
-
-        let tx = db.unchecked_transaction()?;
+        let conn = db.get_connection()?;
+        let tx = conn.unchecked_transaction()?;
         let incoming = get_incoming(&tx)?;
         let actions = incoming
             .into_iter()
@@ -138,14 +146,15 @@ impl sync15::engine::BridgedEngine for BridgedEngine {
         stage_outgoing(&tx)?;
         tx.commit()?;
 
-        Ok(get_outgoing(&db, &signal)?.into())
+        Ok(get_outgoing(conn, &signal)?.into())
     }
 
     fn set_uploaded(&self, _server_modified_millis: i64, ids: &[SyncGuid]) -> Result<()> {
         let shared_db = self.thread_safe_storage_db()?;
         let db = shared_db.lock();
+        let conn = db.get_connection()?;
         let signal = db.begin_interrupt_scope()?;
-        let tx = db.unchecked_transaction()?;
+        let tx = conn.unchecked_transaction()?;
         record_uploaded(&tx, ids, &signal)?;
         tx.commit()?;
 
@@ -155,14 +164,16 @@ impl sync15::engine::BridgedEngine for BridgedEngine {
     fn sync_finished(&self) -> Result<()> {
         let shared_db = self.thread_safe_storage_db()?;
         let db = shared_db.lock();
-        schema::create_empty_sync_temp_tables(&db)?;
+        let conn = db.get_connection()?;
+        schema::create_empty_sync_temp_tables(conn)?;
         Ok(())
     }
 
     fn reset(&self) -> Result<()> {
         let shared_db = self.thread_safe_storage_db()?;
         let db = shared_db.lock();
-        let tx = db.unchecked_transaction()?;
+        let conn = db.get_connection()?;
+        let tx = conn.unchecked_transaction()?;
         self.do_reset(&tx)?;
         delete_meta(&tx, SYNC_ID_META_KEY)?;
         tx.commit()?;
@@ -172,7 +183,8 @@ impl sync15::engine::BridgedEngine for BridgedEngine {
     fn wipe(&self) -> Result<()> {
         let shared_db = self.thread_safe_storage_db()?;
         let db = shared_db.lock();
-        let tx = db.unchecked_transaction()?;
+        let conn = db.get_connection()?;
+        let tx = conn.unchecked_transaction()?;
         // We assume the meta table is only used by sync.
         tx.execute_batch(
             "DELETE FROM storage_sync_data; DELETE FROM storage_sync_mirror; DELETE FROM meta;",
@@ -195,7 +207,8 @@ mod tests {
     use crate::db::StorageDb;
     use sync15::engine::BridgedEngine;
 
-    fn query_count(conn: &StorageDb, table: &str) -> u32 {
+    fn query_count(db: &StorageDb, table: &str) -> u32 {
+        let conn = db.get_connection().expect("should retrieve connection");
         conn.query_row_and_then(&format!("SELECT COUNT(*) FROM {};", table), [], |row| {
             row.get::<_, u32>(0)
         })
@@ -207,12 +220,13 @@ mod tests {
         {
             let shared = engine.thread_safe_storage_db()?;
             let db = shared.lock();
-            db.execute(
+            let conn = db.get_connection().expect("should retrieve connection");
+            conn.execute(
                 "INSERT INTO storage_sync_data (ext_id, data, sync_change_counter)
                     VALUES ('ext-a', 'invalid-json', 2)",
                 [],
             )?;
-            db.execute(
+            conn.execute(
                 "INSERT INTO storage_sync_mirror (guid, ext_id, data)
                     VALUES ('guid', 'ext-a', '3')",
                 [],
@@ -234,10 +248,11 @@ mod tests {
         // A reset never wipes data...
         let shared = engine.thread_safe_storage_db()?;
         let db = shared.lock();
+        let conn = db.get_connection().expect("should retrieve connection");
         assert_eq!(query_count(&db, "storage_sync_data"), 1);
 
         // But did reset the change counter.
-        let cc = db.query_row_and_then(
+        let cc = conn.query_row_and_then(
             "SELECT sync_change_counter FROM storage_sync_data WHERE ext_id = 'ext-a';",
             [],
             |row| row.get::<_, u32>(0),
@@ -246,7 +261,7 @@ mod tests {
         // But did wipe the mirror...
         assert_eq!(query_count(&db, "storage_sync_mirror"), 0);
         // And the last_sync should have been wiped.
-        assert!(get_meta::<i64>(&db, LAST_SYNC_META_KEY)?.is_none());
+        assert!(get_meta::<i64>(conn, LAST_SYNC_META_KEY)?.is_none());
         Ok(())
     }
 
@@ -254,8 +269,9 @@ mod tests {
     fn assert_not_reset(engine: &super::BridgedEngine) -> Result<()> {
         let shared = engine.thread_safe_storage_db()?;
         let db = shared.lock();
+        let conn = db.get_connection().expect("should retrieve connection");
         assert_eq!(query_count(&db, "storage_sync_data"), 1);
-        let cc = db.query_row_and_then(
+        let cc = conn.query_row_and_then(
             "SELECT sync_change_counter FROM storage_sync_data WHERE ext_id = 'ext-a';",
             [],
             |row| row.get::<_, u32>(0),
@@ -263,7 +279,7 @@ mod tests {
         assert_eq!(cc, 2);
         assert_eq!(query_count(&db, "storage_sync_mirror"), 1);
         // And the last_sync should remain.
-        assert!(get_meta::<i64>(&db, LAST_SYNC_META_KEY)?.is_some());
+        assert!(get_meta::<i64>(conn, LAST_SYNC_META_KEY)?.is_some());
         Ok(())
     }
 
@@ -287,23 +303,25 @@ mod tests {
 
     #[test]
     fn test_reset() -> Result<()> {
-        let strong = new_mem_thread_safe_storage_db();
-        let engine = super::BridgedEngine::new(&strong);
+        let strong = &new_mem_thread_safe_storage_db();
+        let engine = super::BridgedEngine::new(strong);
 
         setup_mock_data(&engine)?;
-        put_meta(
-            &engine.thread_safe_storage_db()?.lock(),
-            SYNC_ID_META_KEY,
-            &"sync-id".to_string(),
-        )?;
+        {
+            let db = strong.lock();
+            let conn = db.get_connection()?;
+            put_meta(conn, SYNC_ID_META_KEY, &"sync-id".to_string())?;
+        }
 
         engine.reset()?;
         assert_reset(&engine)?;
-        // Only an explicit reset kills the sync-id, so check that here.
-        assert_eq!(
-            get_meta::<String>(&engine.thread_safe_storage_db()?.lock(), SYNC_ID_META_KEY)?,
-            None
-        );
+
+        {
+            let db = strong.lock();
+            let conn = db.get_connection()?;
+            // Only an explicit reset kills the sync-id, so check that here.
+            assert_eq!(get_meta::<String>(conn, SYNC_ID_META_KEY)?, None);
+        }
 
         Ok(())
     }
@@ -330,11 +348,13 @@ mod tests {
 
         setup_mock_data(&engine)?;
 
-        put_meta(
-            &engine.thread_safe_storage_db()?.lock(),
-            SYNC_ID_META_KEY,
-            &"old-id".to_string(),
-        )?;
+        {
+            let storage_db = &engine.thread_safe_storage_db()?;
+            let db = storage_db.lock();
+            let conn = db.get_connection()?;
+            put_meta(conn, SYNC_ID_META_KEY, &"old-id".to_string())?;
+        }
+
         assert_not_reset(&engine)?;
         assert_eq!(engine.sync_id()?, Some("old-id".to_string()));
 
@@ -354,11 +374,12 @@ mod tests {
         setup_mock_data(&engine)?;
         assert_not_reset(&engine)?;
 
-        put_meta(
-            &engine.thread_safe_storage_db()?.lock(),
-            SYNC_ID_META_KEY,
-            &"sync-id".to_string(),
-        )?;
+        {
+            let storage_db = &engine.thread_safe_storage_db()?;
+            let db = storage_db.lock();
+            let conn = db.get_connection()?;
+            put_meta(conn, SYNC_ID_META_KEY, &"sync-id".to_string())?;
+        }
 
         engine.ensure_current_sync_id("sync-id")?;
         // should not have reset.
@@ -372,11 +393,13 @@ mod tests {
         let engine = super::BridgedEngine::new(&strong);
 
         setup_mock_data(&engine)?;
-        put_meta(
-            &engine.thread_safe_storage_db()?.lock(),
-            SYNC_ID_META_KEY,
-            &"sync-id".to_string(),
-        )?;
+
+        {
+            let storage_db = &engine.thread_safe_storage_db()?;
+            let db = storage_db.lock();
+            let conn = db.get_connection()?;
+            put_meta(conn, SYNC_ID_META_KEY, &"sync-id".to_string())?;
+        }
 
         assert_eq!(engine.sync_id()?, Some("sync-id".to_string()));
         let new_id = engine.reset_sync_id()?;

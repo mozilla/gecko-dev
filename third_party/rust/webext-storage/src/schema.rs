@@ -94,22 +94,24 @@ mod tests {
     #[test]
     fn test_create_schema_twice() {
         let db = new_mem_db();
-        db.execute_batch(CREATE_SCHEMA_SQL)
+        let conn = db.get_connection().expect("should retrieve connection");
+        conn.execute_batch(CREATE_SCHEMA_SQL)
             .expect("should allow running twice");
     }
 
     #[test]
     fn test_create_empty_sync_temp_tables_twice() {
         let db = new_mem_db();
-        create_empty_sync_temp_tables(&db).expect("should work first time");
+        let conn = db.get_connection().expect("should retrieve connection");
+        create_empty_sync_temp_tables(conn).expect("should work first time");
         // insert something into our new temp table and check it's there.
-        db.execute_batch(
+        conn.execute_batch(
             "INSERT INTO temp.storage_sync_staging
                             (guid, ext_id) VALUES
                             ('guid', 'ext_id');",
         )
         .expect("should work once");
-        let count = db
+        let count = conn
             .query_row_and_then(
                 "SELECT COUNT(*) FROM temp.storage_sync_staging;",
                 [],
@@ -119,9 +121,9 @@ mod tests {
         assert_eq!(count, 1, "should be one row");
 
         // re-execute
-        create_empty_sync_temp_tables(&db).expect("should second first time");
+        create_empty_sync_temp_tables(conn).expect("should second first time");
         // and it should have deleted existing data.
-        let count = db
+        let count = conn
             .query_row_and_then(
                 "SELECT COUNT(*) FROM temp.storage_sync_staging;",
                 [],

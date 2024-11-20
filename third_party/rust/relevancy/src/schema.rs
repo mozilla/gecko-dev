@@ -13,7 +13,7 @@ use sql_support::open_database::{self, ConnectionInitializer};
 ///  1. Bump this version.
 ///  2. Add a migration from the old version to the new version in
 ///     [`RelevancyConnectionInitializer::upgrade_from`].
-pub const VERSION: u32 = 14;
+pub const VERSION: u32 = 15;
 
 /// The current database schema.
 pub const SQL: &str = "
@@ -29,6 +29,15 @@ pub const SQL: &str = "
         interest_code INTEGER NOT NULL,
         count INTEGER NOT NULL,
         PRIMARY KEY (kind, interest_code)
+    ) WITHOUT ROWID;
+    CREATE TABLE multi_armed_bandit(
+        bandit TEXT NOT NULL,
+        arm TEXT NOT NULL,
+        alpha INTEGER NOT NULL,
+        beta INTEGER NOT NULL,
+        clicks INTEGER NOT NULL,
+        impressions INTEGER NOT NULL,
+        PRIMARY KEY (bandit, arm)
     ) WITHOUT ROWID;
 ";
 
@@ -69,6 +78,21 @@ impl ConnectionInitializer for RelevancyConnectionInitializer {
         PRIMARY KEY (kind, interest_code)
     ) WITHOUT ROWID;
                 ",
+                    (),
+                )?;
+                Ok(())
+            }
+            14 => {
+                tx.execute(
+                    "CREATE TABLE multi_armed_bandit(
+        bandit TEXT NOT NULL,
+        arm TEXT NOT NULL,
+        alpha INTEGER NOT NULL,
+        beta INTEGER NOT NULL,
+        clicks INTEGER NOT NULL,
+        impressions INTEGER NOT NULL,
+        PRIMARY KEY (bandit, arm)
+    ) WITHOUT ROWID;",
                     (),
                 )?;
                 Ok(())

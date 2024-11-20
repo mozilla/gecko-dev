@@ -12,7 +12,8 @@ use parking_lot::Mutex;
 use url::Url;
 
 use crate::{
-    storage::Storage, RemoteSettingsClient, RemoteSettingsConfig2, RemoteSettingsServer, Result,
+    storage::Storage, RemoteSettingsClient, RemoteSettingsConfig2, RemoteSettingsContext,
+    RemoteSettingsServer, Result,
 };
 
 /// Internal Remote settings service API
@@ -55,7 +56,32 @@ impl RemoteSettingsService {
     }
 
     /// Create a new Remote Settings client
-    pub fn make_client(&self, collection_name: String) -> Result<Arc<RemoteSettingsClient>> {
+    #[cfg(feature = "jexl")]
+    pub fn make_client(
+        &self,
+        collection_name: String,
+        context: Option<RemoteSettingsContext>,
+    ) -> Result<Arc<RemoteSettingsClient>> {
+        let mut inner = self.inner.lock();
+        let storage = Storage::new(inner.storage_dir.join(format!("{collection_name}.sql")))?;
+
+        let client = Arc::new(RemoteSettingsClient::new(
+            inner.base_url.clone(),
+            inner.bucket_name.clone(),
+            collection_name.clone(),
+            context,
+            storage,
+        )?);
+        inner.clients.push(Arc::downgrade(&client));
+        Ok(client)
+    }
+
+    #[cfg(not(feature = "jexl"))]
+    pub fn make_client(
+        &self,
+        collection_name: String,
+        #[allow(unused_variables)] context: Option<RemoteSettingsContext>,
+    ) -> Result<Arc<RemoteSettingsClient>> {
         let mut inner = self.inner.lock();
         let storage = Storage::new(inner.storage_dir.join(format!("{collection_name}.sql")))?;
         let client = Arc::new(RemoteSettingsClient::new(

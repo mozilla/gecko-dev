@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+use crate::Error::BanditNotFound;
 use crate::{
     interest::InterestVectorKind,
     schema::RelevancyConnectionInitializer,
@@ -172,11 +173,81 @@ impl<'a> RelevancyDao<'a> {
         }
         Ok(interest_vec)
     }
+
+    /// Initializes a multi-armed bandit record in the database for a specific bandit and arm.
+    ///
+    /// This method inserts a new record into the `multi_armed_bandit` table with default probability
+    /// distribution parameters (`alpha` and `beta` set to 1) and usage counters (`impressions` and
+    /// `clicks` set to 0) for the specified `bandit` and `arm`. If a record for this bandit-arm pair
+    /// already exists, the insertion is ignored, preserving the existing data.
+    pub fn initialize_multi_armed_bandit(&mut self, bandit: &str, arm: &str) -> Result<()> {
+        let mut new_statement = self.conn.prepare(
+            "INSERT OR IGNORE INTO multi_armed_bandit (bandit, arm, alpha, beta, impressions, clicks) VALUES (?, ?, ?, ?, ?, ?)"
+        )?;
+        new_statement.execute((bandit, arm, 1, 1, 0, 0))?;
+
+        Ok(())
+    }
+
+    /// Retrieves the Beta distribution parameters (`alpha` and `beta`) for a specific arm in a bandit model.
+    ///
+    /// If the specified `bandit` and `arm` do not exist in the table, an error is returned indicating
+    /// that the record was not found.
+    pub fn retrieve_bandit_arm_beta_distribution(
+        &self,
+        bandit: &str,
+        arm: &str,
+    ) -> Result<(usize, usize)> {
+        let mut stmt = self
+            .conn
+            .prepare("SELECT alpha, beta FROM multi_armed_bandit WHERE bandit=? AND arm=?")?;
+
+        let mut result = stmt.query((&bandit, &arm))?;
+
+        match result.next()? {
+            Some(row) => Ok((row.get(0)?, row.get(1)?)),
+            None => Err(BanditNotFound {
+                bandit: bandit.to_string(),
+                arm: arm.to_string(),
+            }),
+        }
+    }
+
+    /// Updates the Beta distribution parameters and counters for a specific arm in a bandit model based on user interaction.
+    ///
+    /// This method updates the `alpha` or `beta` parameters in the `multi_armed_bandit` table for the specified
+    /// `bandit` and `arm` based on whether the arm was selected by the user. If `selected` is true, it increments
+    /// both the `alpha` (indicating success) and the `clicks` and `impressions` counters. If `selected` is false,
+    /// it increments `beta` (indicating failure) and only the `impressions` counter. This approach adjusts the
+    /// distribution parameters to reflect the arm's performance over time.
+    pub fn update_bandit_arm_data(&self, bandit: &str, arm: &str, selected: bool) -> Result<()> {
+        let mut stmt = if selected {
+            self
+                .conn
+                .prepare("UPDATE multi_armed_bandit SET alpha=alpha+1, clicks=clicks+1, impressions=impressions+1 WHERE bandit=? AND arm=?")?
+        } else {
+            self
+                .conn
+                .prepare("UPDATE multi_armed_bandit SET beta=beta+1, impressions=impressions+1 WHERE bandit=? AND arm=?")?
+        };
+
+        let result = stmt.execute((&bandit, &arm))?;
+
+        if result == 0 {
+            return Err(BanditNotFound {
+                bandit: bandit.to_string(),
+                arm: arm.to_string(),
+            });
+        }
+
+        Ok(())
+    }
 }
 
 #[cfg(test)]
 mod test {
     use super::*;
+    use rusqlite::params;
 
     #[test]
     fn test_store_frecency_user_interest_vector() {
@@ -228,5 +299,223 @@ mod test {
                 .unwrap(),
             interest_vec2,
         );
+    }
+
+    #[test]
+    fn test_initialize_multi_armed_bandit() -> Result<()> {
+        let db = RelevancyDb::new_for_test();
+
+        let bandit = "provider".to_string();
+        let arm = "weather".to_string();
+
+        db.read_write(|dao| dao.initialize_multi_armed_bandit(&bandit, &arm))?;
+
+        let result = db.read(|dao| {
+            let mut stmt = dao.conn.prepare("SELECT alpha, beta, impressions, clicks FROM multi_armed_bandit WHERE bandit=? AND arm=?")?;
+
+            stmt.query_row(params![&bandit, &arm], |row| {
+                let alpha: usize = row.get(0)?;
+                let beta: usize = row.get(1)?;
+                let impressions: usize = row.get(2)?;
+                let clicks: usize = row.get(3)?;
+
+                Ok((alpha, beta, impressions, clicks))
+            }).map_err(|e| e.into())
+        })?;
+
+        assert_eq!(result.0, 1); // Default alpha
+        assert_eq!(result.1, 1); // Default beta
+        assert_eq!(result.2, 0); // Default impressions
+        assert_eq!(result.3, 0); // Default clicks
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_initialize_multi_armed_bandit_existing_data() -> Result<()> {
+        let db = RelevancyDb::new_for_test();
+
+        let bandit = "provider".to_string();
+        let arm = "weather".to_string();
+
+        db.read_write(|dao| dao.initialize_multi_armed_bandit(&bandit, &arm))?;
+
+        let result = db.read(|dao| {
+            let mut stmt = dao.conn.prepare("SELECT alpha, beta, impressions, clicks FROM multi_armed_bandit WHERE bandit=? AND arm=?")?;
+
+            stmt.query_row(params![&bandit, &arm], |row| {
+                let alpha: usize = row.get(0)?;
+                let beta: usize = row.get(1)?;
+                let impressions: usize = row.get(2)?;
+                let clicks: usize = row.get(3)?;
+
+                Ok((alpha, beta, impressions, clicks))
+            }).map_err(|e| e.into())
+        })?;
+
+        assert_eq!(result.0, 1); // Default alpha
+        assert_eq!(result.1, 1); // Default beta
+        assert_eq!(result.2, 0); // Default impressions
+        assert_eq!(result.3, 0); // Default clicks
+
+        db.read_write(|dao| dao.update_bandit_arm_data(&bandit, &arm, true))?;
+
+        let (alpha, beta) =
+            db.read(|dao| dao.retrieve_bandit_arm_beta_distribution(&bandit, &arm))?;
+
+        assert_eq!(alpha, 2);
+        assert_eq!(beta, 1);
+
+        // this should be a no-op since the same bandit-arm has already been initialized
+        db.read_write(|dao| dao.initialize_multi_armed_bandit(&bandit, &arm))?;
+
+        let (alpha, beta) =
+            db.read(|dao| dao.retrieve_bandit_arm_beta_distribution(&bandit, &arm))?;
+
+        // alpha & beta values for the bandit-arm should remain unchanged
+        assert_eq!(alpha, 2);
+        assert_eq!(beta, 1);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_retrieve_bandit_arm_beta_distribution() -> Result<()> {
+        let db = RelevancyDb::new_for_test();
+        let bandit = "provider".to_string();
+        let arm = "weather".to_string();
+
+        db.read_write(|dao| dao.initialize_multi_armed_bandit(&bandit, &arm))?;
+
+        db.read_write(|dao| dao.update_bandit_arm_data(&bandit, &arm, true))?;
+
+        db.read_write(|dao| dao.update_bandit_arm_data(&bandit, &arm, false))?;
+
+        db.read_write(|dao| dao.update_bandit_arm_data(&bandit, &arm, false))?;
+
+        let (alpha, beta) =
+            db.read(|dao| dao.retrieve_bandit_arm_beta_distribution(&bandit, &arm))?;
+
+        assert_eq!(alpha, 2);
+        assert_eq!(beta, 3);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_retrieve_bandit_arm_beta_distribution_not_found() -> Result<()> {
+        let db = RelevancyDb::new_for_test();
+        let bandit = "provider".to_string();
+        let arm = "weather".to_string();
+
+        let result = db.read(|dao| dao.retrieve_bandit_arm_beta_distribution(&bandit, &arm));
+
+        match result {
+            Ok((alpha, beta)) => panic!(
+                "Expected BanditNotFound error, but got Ok result with alpha: {} and beta: {}",
+                alpha, beta
+            ),
+            Err(BanditNotFound { bandit: b, arm: a }) => {
+                assert_eq!(b, bandit);
+                assert_eq!(a, arm);
+            }
+            _ => {}
+        }
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_update_bandit_arm_data_selected() -> Result<()> {
+        let db = RelevancyDb::new_for_test();
+        let bandit = "provider".to_string();
+        let arm = "weather".to_string();
+
+        db.read_write(|dao| dao.initialize_multi_armed_bandit(&bandit, &arm))?;
+
+        let result = db.read(|dao| {
+            let mut stmt = dao.conn.prepare("SELECT alpha, beta, impressions, clicks FROM multi_armed_bandit WHERE bandit=? AND arm=?")?;
+
+            stmt.query_row(params![&bandit, &arm], |row| {
+                let alpha: usize = row.get(0)?;
+                let beta: usize = row.get(1)?;
+                let impressions: usize = row.get(2)?;
+                let clicks: usize = row.get(3)?;
+
+                Ok((alpha, beta, impressions, clicks))
+            }).map_err(|e| e.into())
+        })?;
+
+        assert_eq!(result.0, 1);
+        assert_eq!(result.1, 1);
+        assert_eq!(result.2, 0);
+        assert_eq!(result.3, 0);
+
+        db.read_write(|dao| dao.update_bandit_arm_data(&bandit, &arm, true))?;
+
+        let (alpha, beta) =
+            db.read(|dao| dao.retrieve_bandit_arm_beta_distribution(&bandit, &arm))?;
+
+        assert_eq!(alpha, 2);
+        assert_eq!(beta, 1);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_update_bandit_arm_data_not_selected() -> Result<()> {
+        let db = RelevancyDb::new_for_test();
+        let bandit = "provider".to_string();
+        let arm = "weather".to_string();
+
+        db.read_write(|dao| dao.initialize_multi_armed_bandit(&bandit, &arm))?;
+
+        let result = db.read(|dao| {
+            let mut stmt = dao.conn.prepare("SELECT alpha, beta, impressions, clicks FROM multi_armed_bandit WHERE bandit=? AND arm=?")?;
+
+            stmt.query_row(params![&bandit, &arm], |row| {
+                let alpha: usize = row.get(0)?;
+                let beta: usize = row.get(1)?;
+                let impressions: usize = row.get(2)?;
+                let clicks: usize = row.get(3)?;
+
+                Ok((alpha, beta, impressions, clicks))
+            }).map_err(|e| e.into())
+        })?;
+
+        assert_eq!(result.0, 1);
+        assert_eq!(result.1, 1);
+        assert_eq!(result.2, 0);
+        assert_eq!(result.3, 0);
+
+        db.read_write(|dao| dao.update_bandit_arm_data(&bandit, &arm, false))?;
+
+        let (alpha, beta) =
+            db.read(|dao| dao.retrieve_bandit_arm_beta_distribution(&bandit, &arm))?;
+
+        assert_eq!(alpha, 1);
+        assert_eq!(beta, 2);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_update_bandit_arm_data_not_found() -> Result<()> {
+        let db = RelevancyDb::new_for_test();
+        let bandit = "provider".to_string();
+        let arm = "weather".to_string();
+
+        let result = db.read(|dao| dao.update_bandit_arm_data(&bandit, &arm, false));
+
+        match result {
+            Ok(()) => panic!("Expected BanditNotFound error, but got Ok result"),
+            Err(BanditNotFound { bandit: b, arm: a }) => {
+                assert_eq!(b, bandit);
+                assert_eq!(a, arm);
+            }
+            _ => {}
+        }
+
+        Ok(())
     }
 }

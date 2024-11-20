@@ -323,6 +323,31 @@ export class FfiConverterU64 extends FfiConverter {
 }
 
 // Export the FFIConverter object to make external types work.
+export class FfiConverterI64 extends FfiConverter {
+    static checkType(value) {
+        super.checkType(value);
+        if (!Number.isSafeInteger(value)) {
+            throw new UniFFITypeError(`${value} exceeds the safe integer bounds`);
+        }
+    }
+    static computeSize() {
+        return 8;
+    }
+    static lift(value) {
+        return value;
+    }
+    static lower(value) {
+        return value;
+    }
+    static write(dataStream, value) {
+        dataStream.writeInt64(value)
+    }
+    static read(dataStream) {
+        return dataStream.readInt64()
+    }
+}
+
+// Export the FFIConverter object to make external types work.
 export class FfiConverterBool extends FfiConverter {
     static computeSize() {
         return 1;
@@ -433,7 +458,7 @@ export class RemoteSettings {
                 throw e;
             }
             return UniFFIScaffolding.callSync(
-                12, // remote_settings:uniffi_remote_settings_fn_constructor_remotesettings_new
+                15, // remote_settings:uniffi_remote_settings_fn_constructor_remotesettings_new
                 FfiConverterTypeRemoteSettingsConfig.lower(remoteSettingsConfig),
             )
         }
@@ -463,7 +488,7 @@ export class RemoteSettings {
                 throw e;
             }
             return UniFFIScaffolding.callAsyncWrapper(
-                9, // remote_settings:uniffi_remote_settings_fn_method_remotesettings_download_attachment_to_path
+                12, // remote_settings:uniffi_remote_settings_fn_method_remotesettings_download_attachment_to_path
                 FfiConverterTypeRemoteSettings.lower(this),
                 FfiConverterString.lower(attachmentId),
                 FfiConverterString.lower(path),
@@ -485,7 +510,7 @@ export class RemoteSettings {
         const liftError = (data) => FfiConverterTypeRemoteSettingsError.lift(data);
         const functionCall = () => {
             return UniFFIScaffolding.callAsyncWrapper(
-                10, // remote_settings:uniffi_remote_settings_fn_method_remotesettings_get_records
+                13, // remote_settings:uniffi_remote_settings_fn_method_remotesettings_get_records
                 FfiConverterTypeRemoteSettings.lower(this),
             )
         }
@@ -514,7 +539,7 @@ export class RemoteSettings {
                 throw e;
             }
             return UniFFIScaffolding.callAsyncWrapper(
-                11, // remote_settings:uniffi_remote_settings_fn_method_remotesettings_get_records_since
+                14, // remote_settings:uniffi_remote_settings_fn_method_remotesettings_get_records_since
                 FfiConverterTypeRemoteSettings.lower(this),
                 FfiConverterU64.lower(timestamp),
             )
@@ -585,7 +610,7 @@ export class RemoteSettingsClient {
         const liftError = null;
         const functionCall = () => {
             return UniFFIScaffolding.callAsyncWrapper(
-                13, // remote_settings:uniffi_remote_settings_fn_method_remotesettingsclient_collection_name
+                16, // remote_settings:uniffi_remote_settings_fn_method_remotesettingsclient_collection_name
                 FfiConverterTypeRemoteSettingsClient.lower(this),
             )
         }
@@ -621,7 +646,7 @@ export class RemoteSettingsClient {
                 throw e;
             }
             return UniFFIScaffolding.callAsyncWrapper(
-                14, // remote_settings:uniffi_remote_settings_fn_method_remotesettingsclient_get_attachment
+                17, // remote_settings:uniffi_remote_settings_fn_method_remotesettingsclient_get_attachment
                 FfiConverterTypeRemoteSettingsClient.lower(this),
                 FfiConverterString.lower(attachmentId),
             )
@@ -667,7 +692,7 @@ export class RemoteSettingsClient {
                 throw e;
             }
             return UniFFIScaffolding.callAsyncWrapper(
-                15, // remote_settings:uniffi_remote_settings_fn_method_remotesettingsclient_get_records
+                18, // remote_settings:uniffi_remote_settings_fn_method_remotesettingsclient_get_records
                 FfiConverterTypeRemoteSettingsClient.lower(this),
                 FfiConverterBool.lower(syncIfEmpty),
             )
@@ -699,7 +724,7 @@ export class RemoteSettingsClient {
                 throw e;
             }
             return UniFFIScaffolding.callAsyncWrapper(
-                16, // remote_settings:uniffi_remote_settings_fn_method_remotesettingsclient_get_records_map
+                19, // remote_settings:uniffi_remote_settings_fn_method_remotesettingsclient_get_records_map
                 FfiConverterTypeRemoteSettingsClient.lower(this),
                 FfiConverterBool.lower(syncIfEmpty),
             )
@@ -788,7 +813,7 @@ export class RemoteSettingsService {
                 throw e;
             }
             return UniFFIScaffolding.callAsyncWrapper(
-                20, // remote_settings:uniffi_remote_settings_fn_constructor_remotesettingsservice_new
+                23, // remote_settings:uniffi_remote_settings_fn_constructor_remotesettingsservice_new
                 FfiConverterString.lower(storageDir),
                 FfiConverterTypeRemoteSettingsConfig2.lower(config),
             )
@@ -803,7 +828,7 @@ export class RemoteSettingsService {
      * Create a new Remote Settings client
      * @returns {RemoteSettingsClient}
      */
-    makeClient(collectionName) {
+    makeClient(collectionName,appContext) {
         const liftResult = (result) => FfiConverterTypeRemoteSettingsClient.lift(result);
         const liftError = (data) => FfiConverterTypeRemoteSettingsError.lift(data);
         const functionCall = () => {
@@ -815,10 +840,19 @@ export class RemoteSettingsService {
                 }
                 throw e;
             }
+            try {
+                FfiConverterOptionalTypeRemoteSettingsContext.checkType(appContext)
+            } catch (e) {
+                if (e instanceof UniFFITypeError) {
+                    e.addItemDescriptionPart("appContext");
+                }
+                throw e;
+            }
             return UniFFIScaffolding.callAsyncWrapper(
-                17, // remote_settings:uniffi_remote_settings_fn_method_remotesettingsservice_make_client
+                20, // remote_settings:uniffi_remote_settings_fn_method_remotesettingsservice_make_client
                 FfiConverterTypeRemoteSettingsService.lower(this),
                 FfiConverterString.lower(collectionName),
+                FfiConverterOptionalTypeRemoteSettingsContext.lower(appContext),
             )
         }
         try {
@@ -837,7 +871,7 @@ export class RemoteSettingsService {
         const liftError = (data) => FfiConverterTypeRemoteSettingsError.lift(data);
         const functionCall = () => {
             return UniFFIScaffolding.callAsyncWrapper(
-                18, // remote_settings:uniffi_remote_settings_fn_method_remotesettingsservice_sync
+                21, // remote_settings:uniffi_remote_settings_fn_method_remotesettingsservice_sync
                 FfiConverterTypeRemoteSettingsService.lower(this),
             )
         }
@@ -870,7 +904,7 @@ export class RemoteSettingsService {
                 throw e;
             }
             return UniFFIScaffolding.callAsyncWrapper(
-                19, // remote_settings:uniffi_remote_settings_fn_method_remotesettingsservice_update_config
+                22, // remote_settings:uniffi_remote_settings_fn_method_remotesettingsservice_update_config
                 FfiConverterTypeRemoteSettingsService.lower(this),
                 FfiConverterTypeRemoteSettingsConfig2.lower(config),
             )
@@ -1288,6 +1322,447 @@ export class FfiConverterTypeRemoteSettingsConfig2 extends FfiConverterArrayBuff
         } catch (e) {
             if (e instanceof UniFFITypeError) {
                 e.addItemDescriptionPart(".bucketName");
+            }
+            throw e;
+        }
+    }
+}
+
+/**
+ * The `RemoteSettingsContext` object represents the parameters and characteristics of the
+ * consuming application. For `remote-settings`, it is used to filter locally stored `records`.
+ *
+ * We always fetch all `records` from the remote-settings storage. Some records could have a `filter_expression`
+ * attached to them, which will be matched against the `RemoteSettingsContext`.
+ *
+ * When set, only records where the expression is true will be returned.
+ */
+export class RemoteSettingsContext {
+    constructor({ appName, appId, channel, appVersion, appBuild, architecture, deviceManufacturer, deviceModel, locale, os, osVersion, androidSdkVersion, debugTag, installationDate, homeDirectory, customTargetingAttributes } = {}) {
+        try {
+            FfiConverterString.checkType(appName)
+        } catch (e) {
+            if (e instanceof UniFFITypeError) {
+                e.addItemDescriptionPart("appName");
+            }
+            throw e;
+        }
+        try {
+            FfiConverterString.checkType(appId)
+        } catch (e) {
+            if (e instanceof UniFFITypeError) {
+                e.addItemDescriptionPart("appId");
+            }
+            throw e;
+        }
+        try {
+            FfiConverterString.checkType(channel)
+        } catch (e) {
+            if (e instanceof UniFFITypeError) {
+                e.addItemDescriptionPart("channel");
+            }
+            throw e;
+        }
+        try {
+            FfiConverterOptionalstring.checkType(appVersion)
+        } catch (e) {
+            if (e instanceof UniFFITypeError) {
+                e.addItemDescriptionPart("appVersion");
+            }
+            throw e;
+        }
+        try {
+            FfiConverterOptionalstring.checkType(appBuild)
+        } catch (e) {
+            if (e instanceof UniFFITypeError) {
+                e.addItemDescriptionPart("appBuild");
+            }
+            throw e;
+        }
+        try {
+            FfiConverterOptionalstring.checkType(architecture)
+        } catch (e) {
+            if (e instanceof UniFFITypeError) {
+                e.addItemDescriptionPart("architecture");
+            }
+            throw e;
+        }
+        try {
+            FfiConverterOptionalstring.checkType(deviceManufacturer)
+        } catch (e) {
+            if (e instanceof UniFFITypeError) {
+                e.addItemDescriptionPart("deviceManufacturer");
+            }
+            throw e;
+        }
+        try {
+            FfiConverterOptionalstring.checkType(deviceModel)
+        } catch (e) {
+            if (e instanceof UniFFITypeError) {
+                e.addItemDescriptionPart("deviceModel");
+            }
+            throw e;
+        }
+        try {
+            FfiConverterOptionalstring.checkType(locale)
+        } catch (e) {
+            if (e instanceof UniFFITypeError) {
+                e.addItemDescriptionPart("locale");
+            }
+            throw e;
+        }
+        try {
+            FfiConverterOptionalstring.checkType(os)
+        } catch (e) {
+            if (e instanceof UniFFITypeError) {
+                e.addItemDescriptionPart("os");
+            }
+            throw e;
+        }
+        try {
+            FfiConverterOptionalstring.checkType(osVersion)
+        } catch (e) {
+            if (e instanceof UniFFITypeError) {
+                e.addItemDescriptionPart("osVersion");
+            }
+            throw e;
+        }
+        try {
+            FfiConverterOptionalstring.checkType(androidSdkVersion)
+        } catch (e) {
+            if (e instanceof UniFFITypeError) {
+                e.addItemDescriptionPart("androidSdkVersion");
+            }
+            throw e;
+        }
+        try {
+            FfiConverterOptionalstring.checkType(debugTag)
+        } catch (e) {
+            if (e instanceof UniFFITypeError) {
+                e.addItemDescriptionPart("debugTag");
+            }
+            throw e;
+        }
+        try {
+            FfiConverterOptionali64.checkType(installationDate)
+        } catch (e) {
+            if (e instanceof UniFFITypeError) {
+                e.addItemDescriptionPart("installationDate");
+            }
+            throw e;
+        }
+        try {
+            FfiConverterOptionalstring.checkType(homeDirectory)
+        } catch (e) {
+            if (e instanceof UniFFITypeError) {
+                e.addItemDescriptionPart("homeDirectory");
+            }
+            throw e;
+        }
+        try {
+            FfiConverterOptionalTypeRsJsonObject.checkType(customTargetingAttributes)
+        } catch (e) {
+            if (e instanceof UniFFITypeError) {
+                e.addItemDescriptionPart("customTargetingAttributes");
+            }
+            throw e;
+        }
+        /**
+         * Name of the application (e.g. "Fenix" or "Firefox iOS")
+         * @type {string}
+         */
+        this.appName = appName;
+        /**
+         * Application identifier, especially for mobile (e.g. "org.mozilla.fenix")
+         * @type {string}
+         */
+        this.appId = appId;
+        /**
+         * The delivery channel of the application (e.g "nightly")
+         * @type {string}
+         */
+        this.channel = channel;
+        /**
+         * User visible version string (e.g. "1.0.3")
+         * @type {?string}
+         */
+        this.appVersion = appVersion;
+        /**
+         * Build identifier generated by the CI system (e.g. "1234/A")
+         * @type {?string}
+         */
+        this.appBuild = appBuild;
+        /**
+         * The architecture of the device, (e.g. "arm", "x86")
+         * @type {?string}
+         */
+        this.architecture = architecture;
+        /**
+         * The manufacturer of the device the application is running on
+         * @type {?string}
+         */
+        this.deviceManufacturer = deviceManufacturer;
+        /**
+         * The model of the device the application is running on
+         * @type {?string}
+         */
+        this.deviceModel = deviceModel;
+        /**
+         * The locale of the application during initialization (e.g. "es-ES")
+         * @type {?string}
+         */
+        this.locale = locale;
+        /**
+         * The name of the operating system (e.g. "Android", "iOS", "Darwin", "Windows")
+         * @type {?string}
+         */
+        this.os = os;
+        /**
+         * The user-visible version of the operating system (e.g. "1.2.3")
+         * @type {?string}
+         */
+        this.osVersion = osVersion;
+        /**
+         * Android specific for targeting specific sdk versions
+         * @type {?string}
+         */
+        this.androidSdkVersion = androidSdkVersion;
+        /**
+         * Used for debug purposes as a way to match only developer builds, etc.
+         * @type {?string}
+         */
+        this.debugTag = debugTag;
+        /**
+         * The date the application installed the app
+         * @type {?number}
+         */
+        this.installationDate = installationDate;
+        /**
+         * The application's home directory
+         * @type {?string}
+         */
+        this.homeDirectory = homeDirectory;
+        /**
+         * Contains attributes specific to the application, derived by the application
+         * @type {?RsJsonObject}
+         */
+        this.customTargetingAttributes = customTargetingAttributes;
+    }
+
+    equals(other) {
+        return (
+            this.appName == other.appName &&
+            this.appId == other.appId &&
+            this.channel == other.channel &&
+            this.appVersion == other.appVersion &&
+            this.appBuild == other.appBuild &&
+            this.architecture == other.architecture &&
+            this.deviceManufacturer == other.deviceManufacturer &&
+            this.deviceModel == other.deviceModel &&
+            this.locale == other.locale &&
+            this.os == other.os &&
+            this.osVersion == other.osVersion &&
+            this.androidSdkVersion == other.androidSdkVersion &&
+            this.debugTag == other.debugTag &&
+            this.installationDate == other.installationDate &&
+            this.homeDirectory == other.homeDirectory &&
+            this.customTargetingAttributes == other.customTargetingAttributes
+        )
+    }
+}
+
+// Export the FFIConverter object to make external types work.
+export class FfiConverterTypeRemoteSettingsContext extends FfiConverterArrayBuffer {
+    static read(dataStream) {
+        return new RemoteSettingsContext({
+            appName: FfiConverterString.read(dataStream),
+            appId: FfiConverterString.read(dataStream),
+            channel: FfiConverterString.read(dataStream),
+            appVersion: FfiConverterOptionalstring.read(dataStream),
+            appBuild: FfiConverterOptionalstring.read(dataStream),
+            architecture: FfiConverterOptionalstring.read(dataStream),
+            deviceManufacturer: FfiConverterOptionalstring.read(dataStream),
+            deviceModel: FfiConverterOptionalstring.read(dataStream),
+            locale: FfiConverterOptionalstring.read(dataStream),
+            os: FfiConverterOptionalstring.read(dataStream),
+            osVersion: FfiConverterOptionalstring.read(dataStream),
+            androidSdkVersion: FfiConverterOptionalstring.read(dataStream),
+            debugTag: FfiConverterOptionalstring.read(dataStream),
+            installationDate: FfiConverterOptionali64.read(dataStream),
+            homeDirectory: FfiConverterOptionalstring.read(dataStream),
+            customTargetingAttributes: FfiConverterOptionalTypeRsJsonObject.read(dataStream),
+        });
+    }
+    static write(dataStream, value) {
+        FfiConverterString.write(dataStream, value.appName);
+        FfiConverterString.write(dataStream, value.appId);
+        FfiConverterString.write(dataStream, value.channel);
+        FfiConverterOptionalstring.write(dataStream, value.appVersion);
+        FfiConverterOptionalstring.write(dataStream, value.appBuild);
+        FfiConverterOptionalstring.write(dataStream, value.architecture);
+        FfiConverterOptionalstring.write(dataStream, value.deviceManufacturer);
+        FfiConverterOptionalstring.write(dataStream, value.deviceModel);
+        FfiConverterOptionalstring.write(dataStream, value.locale);
+        FfiConverterOptionalstring.write(dataStream, value.os);
+        FfiConverterOptionalstring.write(dataStream, value.osVersion);
+        FfiConverterOptionalstring.write(dataStream, value.androidSdkVersion);
+        FfiConverterOptionalstring.write(dataStream, value.debugTag);
+        FfiConverterOptionali64.write(dataStream, value.installationDate);
+        FfiConverterOptionalstring.write(dataStream, value.homeDirectory);
+        FfiConverterOptionalTypeRsJsonObject.write(dataStream, value.customTargetingAttributes);
+    }
+
+    static computeSize(value) {
+        let totalSize = 0;
+        totalSize += FfiConverterString.computeSize(value.appName);
+        totalSize += FfiConverterString.computeSize(value.appId);
+        totalSize += FfiConverterString.computeSize(value.channel);
+        totalSize += FfiConverterOptionalstring.computeSize(value.appVersion);
+        totalSize += FfiConverterOptionalstring.computeSize(value.appBuild);
+        totalSize += FfiConverterOptionalstring.computeSize(value.architecture);
+        totalSize += FfiConverterOptionalstring.computeSize(value.deviceManufacturer);
+        totalSize += FfiConverterOptionalstring.computeSize(value.deviceModel);
+        totalSize += FfiConverterOptionalstring.computeSize(value.locale);
+        totalSize += FfiConverterOptionalstring.computeSize(value.os);
+        totalSize += FfiConverterOptionalstring.computeSize(value.osVersion);
+        totalSize += FfiConverterOptionalstring.computeSize(value.androidSdkVersion);
+        totalSize += FfiConverterOptionalstring.computeSize(value.debugTag);
+        totalSize += FfiConverterOptionali64.computeSize(value.installationDate);
+        totalSize += FfiConverterOptionalstring.computeSize(value.homeDirectory);
+        totalSize += FfiConverterOptionalTypeRsJsonObject.computeSize(value.customTargetingAttributes);
+        return totalSize
+    }
+
+    static checkType(value) {
+        super.checkType(value);
+        if (!(value instanceof RemoteSettingsContext)) {
+            throw new UniFFITypeError(`Expected 'RemoteSettingsContext', found '${typeof value}'`);
+        }
+        try {
+            FfiConverterString.checkType(value.appName);
+        } catch (e) {
+            if (e instanceof UniFFITypeError) {
+                e.addItemDescriptionPart(".appName");
+            }
+            throw e;
+        }
+        try {
+            FfiConverterString.checkType(value.appId);
+        } catch (e) {
+            if (e instanceof UniFFITypeError) {
+                e.addItemDescriptionPart(".appId");
+            }
+            throw e;
+        }
+        try {
+            FfiConverterString.checkType(value.channel);
+        } catch (e) {
+            if (e instanceof UniFFITypeError) {
+                e.addItemDescriptionPart(".channel");
+            }
+            throw e;
+        }
+        try {
+            FfiConverterOptionalstring.checkType(value.appVersion);
+        } catch (e) {
+            if (e instanceof UniFFITypeError) {
+                e.addItemDescriptionPart(".appVersion");
+            }
+            throw e;
+        }
+        try {
+            FfiConverterOptionalstring.checkType(value.appBuild);
+        } catch (e) {
+            if (e instanceof UniFFITypeError) {
+                e.addItemDescriptionPart(".appBuild");
+            }
+            throw e;
+        }
+        try {
+            FfiConverterOptionalstring.checkType(value.architecture);
+        } catch (e) {
+            if (e instanceof UniFFITypeError) {
+                e.addItemDescriptionPart(".architecture");
+            }
+            throw e;
+        }
+        try {
+            FfiConverterOptionalstring.checkType(value.deviceManufacturer);
+        } catch (e) {
+            if (e instanceof UniFFITypeError) {
+                e.addItemDescriptionPart(".deviceManufacturer");
+            }
+            throw e;
+        }
+        try {
+            FfiConverterOptionalstring.checkType(value.deviceModel);
+        } catch (e) {
+            if (e instanceof UniFFITypeError) {
+                e.addItemDescriptionPart(".deviceModel");
+            }
+            throw e;
+        }
+        try {
+            FfiConverterOptionalstring.checkType(value.locale);
+        } catch (e) {
+            if (e instanceof UniFFITypeError) {
+                e.addItemDescriptionPart(".locale");
+            }
+            throw e;
+        }
+        try {
+            FfiConverterOptionalstring.checkType(value.os);
+        } catch (e) {
+            if (e instanceof UniFFITypeError) {
+                e.addItemDescriptionPart(".os");
+            }
+            throw e;
+        }
+        try {
+            FfiConverterOptionalstring.checkType(value.osVersion);
+        } catch (e) {
+            if (e instanceof UniFFITypeError) {
+                e.addItemDescriptionPart(".osVersion");
+            }
+            throw e;
+        }
+        try {
+            FfiConverterOptionalstring.checkType(value.androidSdkVersion);
+        } catch (e) {
+            if (e instanceof UniFFITypeError) {
+                e.addItemDescriptionPart(".androidSdkVersion");
+            }
+            throw e;
+        }
+        try {
+            FfiConverterOptionalstring.checkType(value.debugTag);
+        } catch (e) {
+            if (e instanceof UniFFITypeError) {
+                e.addItemDescriptionPart(".debugTag");
+            }
+            throw e;
+        }
+        try {
+            FfiConverterOptionali64.checkType(value.installationDate);
+        } catch (e) {
+            if (e instanceof UniFFITypeError) {
+                e.addItemDescriptionPart(".installationDate");
+            }
+            throw e;
+        }
+        try {
+            FfiConverterOptionalstring.checkType(value.homeDirectory);
+        } catch (e) {
+            if (e instanceof UniFFITypeError) {
+                e.addItemDescriptionPart(".homeDirectory");
+            }
+            throw e;
+        }
+        try {
+            FfiConverterOptionalTypeRsJsonObject.checkType(value.customTargetingAttributes);
+        } catch (e) {
+            if (e instanceof UniFFITypeError) {
+                e.addItemDescriptionPart(".customTargetingAttributes");
             }
             throw e;
         }
@@ -1771,6 +2246,43 @@ export class FfiConverterTypeRemoteSettingsServer extends FfiConverterArrayBuffe
 
 
 // Export the FFIConverter object to make external types work.
+export class FfiConverterOptionali64 extends FfiConverterArrayBuffer {
+    static checkType(value) {
+        if (value !== undefined && value !== null) {
+            FfiConverterI64.checkType(value)
+        }
+    }
+
+    static read(dataStream) {
+        const code = dataStream.readUint8(0);
+        switch (code) {
+            case 0:
+                return null
+            case 1:
+                return FfiConverterI64.read(dataStream)
+            default:
+                throw UniFFIError(`Unexpected code: ${code}`);
+        }
+    }
+
+    static write(dataStream, value) {
+        if (value === null || value === undefined) {
+            dataStream.writeUint8(0);
+            return;
+        }
+        dataStream.writeUint8(1);
+        FfiConverterI64.write(dataStream, value)
+    }
+
+    static computeSize(value) {
+        if (value === null || value === undefined) {
+            return 1;
+        }
+        return 1 + FfiConverterI64.computeSize(value)
+    }
+}
+
+// Export the FFIConverter object to make external types work.
 export class FfiConverterOptionalstring extends FfiConverterArrayBuffer {
     static checkType(value) {
         if (value !== undefined && value !== null) {
@@ -1841,6 +2353,43 @@ export class FfiConverterOptionalTypeAttachment extends FfiConverterArrayBuffer 
             return 1;
         }
         return 1 + FfiConverterTypeAttachment.computeSize(value)
+    }
+}
+
+// Export the FFIConverter object to make external types work.
+export class FfiConverterOptionalTypeRemoteSettingsContext extends FfiConverterArrayBuffer {
+    static checkType(value) {
+        if (value !== undefined && value !== null) {
+            FfiConverterTypeRemoteSettingsContext.checkType(value)
+        }
+    }
+
+    static read(dataStream) {
+        const code = dataStream.readUint8(0);
+        switch (code) {
+            case 0:
+                return null
+            case 1:
+                return FfiConverterTypeRemoteSettingsContext.read(dataStream)
+            default:
+                throw UniFFIError(`Unexpected code: ${code}`);
+        }
+    }
+
+    static write(dataStream, value) {
+        if (value === null || value === undefined) {
+            dataStream.writeUint8(0);
+            return;
+        }
+        dataStream.writeUint8(1);
+        FfiConverterTypeRemoteSettingsContext.write(dataStream, value)
+    }
+
+    static computeSize(value) {
+        if (value === null || value === undefined) {
+            return 1;
+        }
+        return 1 + FfiConverterTypeRemoteSettingsContext.computeSize(value)
     }
 }
 
@@ -1952,6 +2501,43 @@ export class FfiConverterOptionalMapStringTypeRemoteSettingsRecord extends FfiCo
             return 1;
         }
         return 1 + FfiConverterMapStringTypeRemoteSettingsRecord.computeSize(value)
+    }
+}
+
+// Export the FFIConverter object to make external types work.
+export class FfiConverterOptionalTypeRsJsonObject extends FfiConverterArrayBuffer {
+    static checkType(value) {
+        if (value !== undefined && value !== null) {
+            FfiConverterTypeRsJsonObject.checkType(value)
+        }
+    }
+
+    static read(dataStream) {
+        const code = dataStream.readUint8(0);
+        switch (code) {
+            case 0:
+                return null
+            case 1:
+                return FfiConverterTypeRsJsonObject.read(dataStream)
+            default:
+                throw UniFFIError(`Unexpected code: ${code}`);
+        }
+    }
+
+    static write(dataStream, value) {
+        if (value === null || value === undefined) {
+            dataStream.writeUint8(0);
+            return;
+        }
+        dataStream.writeUint8(1);
+        FfiConverterTypeRsJsonObject.write(dataStream, value)
+    }
+
+    static computeSize(value) {
+        if (value === null || value === undefined) {
+            return 1;
+        }
+        return 1 + FfiConverterTypeRsJsonObject.computeSize(value)
     }
 }
 

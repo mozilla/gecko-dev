@@ -42,6 +42,9 @@ pub enum Error {
 
     #[error("Base64 Decode Error: {0}")]
     Base64DecodeError(String),
+
+    #[error("Error retrieving bandit data for bandit {bandit} and arm {arm}")]
+    BanditNotFound { bandit: String, arm: String },
 }
 
 /// Result enum for the public API

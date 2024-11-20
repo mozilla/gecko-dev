@@ -35,15 +35,24 @@ name = "remote_settings"
 path = "src/lib.rs"
 
 [dependencies]
+anyhow = "1.0"
 camino = "1.0"
 log = "0.4"
 parking_lot = "0.12"
+regex = "1.9"
 serde_json = "1"
 thiserror = "1.0"
 url = "2.1"
 
 [dependencies.error-support]
 path = "../support/error"
+
+[dependencies.firefox-versioning]
+path = "../support/firefox-versioning"
+
+[dependencies.jexl-eval]
+version = "0.3.0"
+optional = true
 
 [dependencies.rusqlite]
 version = "0.31.0"
@@ -74,3 +83,7 @@ path = "../support/viaduct-reqwest"
 [build-dependencies.uniffi]
 version = "0.28.2"
 features = ["build"]
+
+[features]
+default = []
+jexl = ["dep:jexl-eval"]

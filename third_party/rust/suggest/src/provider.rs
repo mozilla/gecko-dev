@@ -105,7 +105,7 @@ impl SuggestionProvider {
             Self::Wikipedia => vec![SuggestRecordType::AmpWikipedia],
             Self::Amo => vec![SuggestRecordType::Amo],
             Self::Pocket => vec![SuggestRecordType::Pocket],
-            Self::Yelp => vec![SuggestRecordType::Yelp],
+            Self::Yelp => vec![SuggestRecordType::Yelp, SuggestRecordType::Geonames],
             Self::Mdn => vec![SuggestRecordType::Mdn],
             Self::Weather => vec![SuggestRecordType::Weather, SuggestRecordType::Geonames],
             Self::AmpMobile => vec![SuggestRecordType::AmpMobile],

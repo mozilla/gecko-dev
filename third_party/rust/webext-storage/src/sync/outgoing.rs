@@ -124,8 +124,9 @@ mod tests {
 
     #[test]
     fn test_simple() -> Result<()> {
-        let mut db = new_syncable_mem_db();
-        let tx = db.transaction()?;
+        let db = new_syncable_mem_db();
+        let conn = db.get_connection()?;
+        let tx = conn.unchecked_transaction()?;
 
         tx.execute_batch(
             r#"

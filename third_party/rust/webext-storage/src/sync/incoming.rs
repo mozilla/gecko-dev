@@ -548,8 +548,9 @@ mod tests {
 
     #[test]
     fn test_incoming_populates_staging() -> Result<()> {
-        let mut db = new_syncable_mem_db();
-        let tx = db.transaction()?;
+        let db = new_syncable_mem_db();
+        let conn = db.get_connection()?;
+        let tx = conn.unchecked_transaction()?;
 
         let incoming = json! {[
             {
@@ -570,8 +571,9 @@ mod tests {
 
     #[test]
     fn test_fetch_incoming_state() -> Result<()> {
-        let mut db = new_syncable_mem_db();
-        let tx = db.transaction()?;
+        let db = new_syncable_mem_db();
+        let conn = db.get_connection()?;
+        let tx = conn.unchecked_transaction()?;
 
         // Start with an item just in staging.
         tx.execute(
@@ -631,8 +633,9 @@ mod tests {
     // Like test_fetch_incoming_state, but check NULLs are handled correctly.
     #[test]
     fn test_fetch_incoming_state_nulls() -> Result<()> {
-        let mut db = new_syncable_mem_db();
-        let tx = db.transaction()?;
+        let db = new_syncable_mem_db();
+        let conn = db.get_connection()?;
+        let tx = conn.unchecked_transaction()?;
 
         // Start with a tombstone just in staging.
         tx.execute(
@@ -735,10 +738,13 @@ mod tests {
 
     #[test]
     fn test_apply_actions() -> Result<()> {
-        let mut db = new_syncable_mem_db();
+        let db = new_syncable_mem_db();
+        let conn = db.get_connection().expect("connection should be retrieved");
 
         // DeleteLocally - row should be entirely removed.
-        let tx = db.transaction().expect("transaction should work");
+        let tx = conn
+            .unchecked_transaction()
+            .expect("transaction should begin");
         api::set(&tx, "ext_id", json!({"foo": "local"}))?;
         assert_eq!(
             api::get(&tx, "ext_id", json!(null))?,
@@ -759,7 +765,9 @@ mod tests {
         tx.rollback()?;
 
         // TakeRemote - replace local data with remote and marked as not dirty.
-        let tx = db.transaction().expect("transaction should work");
+        let tx = conn
+            .unchecked_transaction()
+            .expect("transaction should begin");
         api::set(&tx, "ext_id", json!({"foo": "local"}))?;
         assert_eq!(
             api::get(&tx, "ext_id", json!(null))?,
@@ -794,7 +802,9 @@ mod tests {
         tx.rollback()?;
 
         // Merge - like ::TakeRemote, but data remains dirty.
-        let tx = db.transaction().expect("transaction should work");
+        let tx = conn
+            .unchecked_transaction()
+            .expect("transaction should begin");
         api::set(&tx, "ext_id", json!({"foo": "local"}))?;
         assert_eq!(
             api::get(&tx, "ext_id", json!(null))?,
@@ -828,7 +838,9 @@ mod tests {
         tx.rollback()?;
 
         // Same - data stays the same but is marked not dirty.
-        let tx = db.transaction().expect("transaction should work");
+        let tx = conn
+            .unchecked_transaction()
+            .expect("transaction should begin");
         api::set(&tx, "ext_id", json!({"foo": "local"}))?;
         assert_eq!(
             api::get(&tx, "ext_id", json!(null))?,

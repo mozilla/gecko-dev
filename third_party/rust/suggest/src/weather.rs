@@ -125,11 +125,11 @@ impl SuggestDao<'_> {
                 Ok(all_tokens)
             })?
             .into_iter()
-            // Step 3: Map each token path to a tuple that represents a matched
-            // city, region, and keyword (each optional). Since paths are vecs,
-            // they're ordered, so we may end up with duplicate tuples after
-            // this step. e.g., the paths `[<Waterloo IA>, <IA>]` and `[<IA>,
-            // <Waterloo IA>]` map to the same match.
+            // Step 3: Map each token path to a city-region-keyword tuple (each
+            // optional). Paths are vecs, so they're ordered, so we may end up
+            // with duplicate tuples after this step. e.g., the paths
+            // `[<Waterloo IA>, <IA>]` and `[<IA>, <Waterloo IA>]` map to the
+            // same `(<Waterloo IA>, <IA>, None)` tuple.
             .map(|path| {
                 path.into_iter()
                     .fold((None, None, None), |mut match_tuple, token| {
@@ -147,9 +147,9 @@ impl SuggestDao<'_> {
                         match_tuple
                     })
             })
-            // Step 4: Discard matches that don't have the right combination of
+            // Step 4: Discard tuples that don't have the right combination of
             // tokens or that are otherwise invalid. Along with step 2, this is
-            // the core of the matching logic. In general, allow a match if it
+            // the core of the matching logic. In general, allow a tuple if it
             // has (a) a city name typed in full or (b) a weather keyword at
             // least as long as the config's min keyword length, since that
             // indicates a weather intent.
@@ -168,18 +168,21 @@ impl SuggestDao<'_> {
                     }
                 }
             })
-            // Step 5: Map the match objects to their underlying values.
-            .map(|(city, region, kw)| {
-                (city.map(|c| c.geoname), region.map(|r| r.geoname), kw.map(|k| k.keyword))
+            // Step 5: Map each tuple to a city-region tuple: Convert geoname
+            // matches to their `Geoname` values and discard keywords.
+            // Discarding keywords is important because we'll collect the tuples
+            // in a set in the next step in order to dedupe city-regions.
+            .map(|(city, region, _)| {
+                (city.map(|c| c.geoname), region.map(|r| r.geoname))
             })
-            // Step 6: Dedupe the values by collecting them into a set.
+            // Step 6: Dedupe the city-regions by collecting them in a set.
             .collect::<HashSet<_>>()
             .into_iter()
             .collect::<Vec<_>>();
 
         // Sort the matches so cities with larger populations are first.
         matches.sort_by(
-            |(city1, region1, kw1), (city2, region2, kw2)| match (&city1, &city2) {
+            |(city1, region1), (city2, region2)| match (&city1, &city2) {
                 (Some(_), None) => Ordering::Less,
                 (None, Some(_)) => Ordering::Greater,
                 (Some(c1), Some(c2)) => c2.population.cmp(&c1.population),
@@ -187,7 +190,7 @@ impl SuggestDao<'_> {
                     (Some(_), None) => Ordering::Less,
                     (None, Some(_)) => Ordering::Greater,
                     (Some(r1), Some(r2)) => r2.population.cmp(&r1.population),
-                    (None, None) => kw1.cmp(kw2),
+                    (None, None) => Ordering::Equal,
                 },
             },
         );
@@ -195,7 +198,7 @@ impl SuggestDao<'_> {
         // Finally, map matches to suggestions.
         Ok(matches
             .iter()
-            .map(|(city, _, _)| Suggestion::Weather {
+            .map(|(city, _)| Suggestion::Weather {
                 city: city.as_ref().map(|c| c.name.clone()),
                 region: city.as_ref().map(|c| c.admin1_code.clone()),
                 country: city.as_ref().map(|c| c.country_code.clone()),
@@ -646,7 +649,11 @@ mod tests {
             "weather",
             "weather-1",
             json!({
-                "keywords": ["ab", "xyz", "weather"],
+                // Include a keyword that's a prefix of another keyword --
+                // "weather" and "weather near me" -- so that when a test
+                // matches both we can verify only one suggestion is returned,
+                // not two.
+                "keywords": ["ab", "xyz", "weather", "weather near me"],
                 "min_keyword_length": 5,
                 "max_keyword_length": "weather".len(),
                 "max_keyword_word_count": 1,

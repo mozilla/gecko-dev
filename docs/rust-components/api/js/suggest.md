@@ -8,6 +8,14 @@
     :members:
     :exclude-members: SuggestStoreBuilder
 ```
+```{js:autoclass} RustSuggest.sys.Geoname
+    :members:
+    :exclude-members: Geoname
+```
+```{js:autoclass} RustSuggest.sys.GeonameMatch
+    :members:
+    :exclude-members: GeonameMatch
+```
 ```{js:autoclass} RustSuggest.sys.LabeledTimingSample
     :members:
     :exclude-members: LabeledTimingSample
@@ -31,6 +39,10 @@
 ```{js:autoclass} RustSuggest.sys.SuggestionQuery
     :members:
     :exclude-members: SuggestionQuery
+```
+```{js:autoclass} RustSuggest.sys.GeonameType
+    :members:
+    :exclude-members: GeonameType
 ```
 ```{js:autoclass} RustSuggest.sys.InterruptKind
     :members:

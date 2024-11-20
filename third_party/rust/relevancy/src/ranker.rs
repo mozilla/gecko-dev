@@ -13,7 +13,7 @@ use crate::interest::{Interest, InterestVector};
 ///     `RelevancyStore::user_interest_vector()`.
 ///   - `content_categories`: a list of categories (interests) of the give content.
 /// Return:
-//   - A score ranges in [0, 1].
+///   - A score ranges in [0, 1].
 #[uniffi::export]
 pub fn score(interest_vector: InterestVector, content_categories: Vec<Interest>) -> f64 {
     let n = content_categories
