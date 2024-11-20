@@ -1606,6 +1606,24 @@ const AVAILABLE_UA_OVERRIDES = [
       },
     },
   },
+  {
+    /*
+     * Bug 1899066 - UA override for app.bookcreator.com
+     * Webcompat issue #52462 - https://webcompat.com/issues/52462
+     *
+     * The site says Firefox is unsupported, yet seems to work with a Chrome UA.
+     */
+    id: "bug1899066",
+    platform: "all",
+    domain: "bookcreator.com",
+    bug: "1899066",
+    config: {
+      matches: ["*://app.bookcreator.com/*"],
+      uaTransformer: () => {
+        return UAHelpers.getDeviceAppropriateChromeUA();
+      },
+    },
+  },
 ];
 
 module.exports = AVAILABLE_UA_OVERRIDES;
