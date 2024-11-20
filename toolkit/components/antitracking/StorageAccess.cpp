@@ -163,11 +163,23 @@ static StorageAccess InternalStorageAllowedCheck(
     nsIURI* documentURI = aURI ? aURI : aWindow->GetDocumentURI();
     disabled = !documentURI ||
                !ShouldAllowAccessFor(aWindow, documentURI, &aRejectedReason);
+
+    // If the window is a third-party tracker, we should set the rejected reason
+    // to partitioned tracker.
+    uint32_t rejectedReason = aRejectedReason;
+    if (aRejectedReason ==
+            static_cast<uint32_t>(
+                nsIWebProgressListener::STATE_COOKIES_PARTITIONED_FOREIGN) &&
+        nsContentUtils::IsThirdPartyTrackingResourceWindow(aWindow)) {
+      rejectedReason =
+          nsIWebProgressListener::STATE_COOKIES_PARTITIONED_TRACKER;
+    }
+
     ContentBlockingNotifier::OnDecision(
         aWindow,
         disabled ? ContentBlockingNotifier::BlockingDecision::eBlock
                  : ContentBlockingNotifier::BlockingDecision::eAllow,
-        aRejectedReason);
+        rejectedReason);
   } else if (aChannel) {
     disabled = false;
     nsCOMPtr<nsIURI> uri;
@@ -175,11 +187,27 @@ static StorageAccess InternalStorageAllowedCheck(
     if (!NS_WARN_IF(NS_FAILED(rv))) {
       disabled = !ShouldAllowAccessFor(aChannel, uri, &aRejectedReason);
     }
+
+    // If the channel is a third-party tracker, we should set the rejected
+    // reason to partitioned tracker.
+    uint32_t rejectedReason = aRejectedReason;
+    nsCOMPtr<nsIClassifiedChannel> classifiedChannel =
+        do_QueryInterface(aChannel);
+
+    if (classifiedChannel &&
+        classifiedChannel->IsThirdPartyTrackingResource() &&
+        aRejectedReason ==
+            static_cast<uint32_t>(
+                nsIWebProgressListener::STATE_COOKIES_PARTITIONED_FOREIGN)) {
+      rejectedReason =
+          nsIWebProgressListener::STATE_COOKIES_PARTITIONED_TRACKER;
+    }
+
     ContentBlockingNotifier::OnDecision(
         aChannel,
         disabled ? ContentBlockingNotifier::BlockingDecision::eBlock
                  : ContentBlockingNotifier::BlockingDecision::eAllow,
-        aRejectedReason);
+        rejectedReason);
   } else {
     MOZ_ASSERT(aPrincipal);
     nsCOMPtr<nsICookieJarSettings> cookieJarSettings = aCookieJarSettings;
@@ -265,8 +293,8 @@ StorageAccess StorageAllowedForWindow(nsPIDOMWindowInner* aWindow,
   if (Document* document = aWindow->GetExtantDoc()) {
     nsCOMPtr<nsIPrincipal> principal = document->NodePrincipal();
     // Note that GetChannel() below may return null, but that's OK, since the
-    // callee is able to deal with a null channel argument, and if passed null,
-    // will only fail to notify the UI in case storage gets blocked.
+    // callee is able to deal with a null channel argument, and if passed
+    // null, will only fail to notify the UI in case storage gets blocked.
     nsIChannel* channel = document->GetChannel();
     return InternalStorageAllowedCheckCached(
         principal, aWindow, nullptr, channel, document->CookieJarSettings(),
@@ -302,8 +330,8 @@ StorageAccess CookieAllowedForDocument(const Document* aDoc) {
   if (nsPIDOMWindowInner* inner = aDoc->GetInnerWindow()) {
     nsCOMPtr<nsIPrincipal> principal = aDoc->NodePrincipal();
     // Note that GetChannel() below may return null, but that's OK, since the
-    // callee is able to deal with a null channel argument, and if passed null,
-    // will only fail to notify the UI in case storage gets blocked.
+    // callee is able to deal with a null channel argument, and if passed
+    // null, will only fail to notify the UI in case storage gets blocked.
     nsIChannel* channel = aDoc->GetChannel();
 
     uint32_t rejectedReason = 0;

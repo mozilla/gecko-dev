@@ -305,6 +305,16 @@ void NotifyBlockingDecision(nsIChannel* aTrackingChannel,
     return;
   }
 
+  if (aRejectedReason ==
+      nsIWebProgressListener::STATE_COOKIES_PARTITIONED_TRACKER) {
+    ContentBlockingNotifier::OnEvent(
+        aTrackingChannel, true,
+        nsIWebProgressListener::STATE_COOKIES_PARTITIONED_TRACKER,
+        trackingOrigin);
+    // Stop notifying the tracker cookie loaded events if they are partitioned.
+    return;
+  }
+
   uint32_t classificationFlags =
       classifiedChannel->GetThirdPartyClassificationFlags();
   if (classificationFlags &

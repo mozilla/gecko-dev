@@ -100,6 +100,7 @@ Maybe<uint32_t> ContentBlockingLog::RecordLogParent(
     case nsIWebProgressListener::STATE_LOADED_EMAILTRACKING_LEVEL_1_CONTENT:
     case nsIWebProgressListener::STATE_LOADED_EMAILTRACKING_LEVEL_2_CONTENT:
     case nsIWebProgressListener::STATE_PURGED_BOUNCETRACKER:
+    case nsIWebProgressListener::STATE_COOKIES_PARTITIONED_TRACKER:
       Unused << RecordLogInternal(aOrigin, aType, blockedValue);
       break;
 
