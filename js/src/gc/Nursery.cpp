@@ -766,20 +766,6 @@ void* js::Nursery::allocateBuffer(Zone* zone, Cell* owner, size_t nbytes,
   return buffer;
 }
 
-void* js::Nursery::allocateBufferSameLocation(Cell* owner, size_t nbytes,
-                                              arena_id_t arenaId) {
-  MOZ_ASSERT(owner);
-  MOZ_ASSERT(nbytes > 0);
-  MOZ_ASSERT(nbytes <= MaxNurseryBufferSize);
-
-  if (!IsInsideNursery(owner)) {
-    return owner->asTenured().zone()->pod_arena_malloc<uint8_t>(arenaId,
-                                                                nbytes);
-  }
-
-  return allocate(nbytes);
-}
-
 std::tuple<void*, bool> js::Nursery::allocateZeroedBuffer(Zone* zone,
                                                           size_t nbytes,
                                                           arena_id_t arena) {

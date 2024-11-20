@@ -161,12 +161,6 @@ class Nursery {
   void* allocateBuffer(JS::Zone* zone, gc::Cell* owner, size_t nbytes,
                        arena_id_t arenaId);
 
-  // Allocate a buffer for a given Cell, always using the nursery if |owner| is
-  // in the nursery. The requested size must be less than or equal to
-  // MaxNurseryBufferSize.
-  void* allocateBufferSameLocation(gc::Cell* owner, size_t nbytes,
-                                   arena_id_t arenaId);
-
   // Allocate a zero-initialized buffer for a given zone, using the nursery if
   // possible. If the buffer isn't allocated in the nursery, the given arena is
   // used. Returns <buffer, isMalloced>. Returns false in |isMalloced| if the
