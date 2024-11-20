@@ -7,8 +7,6 @@
 ChromeUtils.defineESModuleGetters(this, {
   ActionsProviderQuickActions:
     "resource:///modules/ActionsProviderQuickActions.sys.mjs",
-  UrlbarProviderInterventions:
-    "resource:///modules/UrlbarProviderInterventions.sys.mjs",
 });
 
 add_setup(async () => {
@@ -80,12 +78,4 @@ add_task(async function minimum_search_string() {
     }
   }
   UrlbarPrefs.clear("quickactions.minimumSearchString");
-});
-
-add_task(async function interventions_disabled() {
-  let context = createContext("test", { isPrivate: false });
-  Assert.ok(
-    !UrlbarProviderInterventions.isActive(context),
-    "Urlbar interventions are disabled when actions are enabled"
-  );
 });
