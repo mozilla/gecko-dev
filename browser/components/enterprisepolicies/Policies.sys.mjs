@@ -1924,6 +1924,8 @@ export var Policies = {
         "security.osclientcerts.autoload",
         "security.OCSP.enabled",
         "security.OCSP.require",
+        "security.pki.certificate_transparency.disable_for_hosts",
+        "security.pki.certificate_transparency.disable_for_spki_hashes",
         "security.pki.certificate_transparency.mode",
         "security.ssl.enable_ocsp_stapling",
         "security.ssl.errorReporting.enabled",

@@ -234,12 +234,25 @@ class CertVerifier {
     Enforce = 2,
   };
 
+  struct CertificateTransparencyConfig {
+    CertificateTransparencyConfig(
+        CertificateTransparencyMode mode, nsCString&& skipForHosts,
+        nsTArray<CopyableTArray<uint8_t>>&& skipForSPKIHashes)
+        : mMode(mode),
+          mSkipForHosts(std::move(skipForHosts)),
+          mSkipForSPKIHashes(std::move(skipForSPKIHashes)) {}
+
+    CertificateTransparencyMode mMode;
+    nsCString mSkipForHosts;
+    nsTArray<CopyableTArray<uint8_t>> mSkipForSPKIHashes;
+  };
+
   CertVerifier(OcspDownloadConfig odc, OcspStrictConfig osc,
                mozilla::TimeDuration ocspTimeoutSoft,
                mozilla::TimeDuration ocspTimeoutHard,
                uint32_t certShortLifetimeInDays,
                NetscapeStepUpPolicy netscapeStepUpPolicy,
-               CertificateTransparencyMode ctMode, CRLiteMode crliteMode,
+               CertificateTransparencyConfig&& ctConfig, CRLiteMode crliteMode,
                const nsTArray<EnterpriseCert>& thirdPartyCerts);
   ~CertVerifier();
 
@@ -252,7 +265,7 @@ class CertVerifier {
   const mozilla::TimeDuration mOCSPTimeoutHard;
   const uint32_t mCertShortLifetimeInDays;
   const NetscapeStepUpPolicy mNetscapeStepUpPolicy;
-  const CertificateTransparencyMode mCTMode;
+  const CertificateTransparencyConfig mCTConfig;
   const CRLiteMode mCRLiteMode;
 
  private:
@@ -284,6 +297,7 @@ class CertVerifier {
       NSSCertDBTrustDomain& trustDomain,
       const nsTArray<nsTArray<uint8_t>>& builtChain,
       mozilla::pkix::Input sctsFromTLS, mozilla::pkix::Time time,
+      const char* hostname,
       /*optional out*/ CertificateTransparencyInfo* ctInfo);
   mozilla::pkix::Result VerifyCertificateTransparencyPolicyInner(
       NSSCertDBTrustDomain& trustDomain,

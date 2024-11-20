@@ -82,6 +82,109 @@ function add_tests_in_mode(mode) {
     mode == CT_MODE_COLLECT_TELEMETRY
   );
 
+  add_ct_test(
+    "no-ct.example.com",
+    Ci.nsITransportSecurityInfo.CERTIFICATE_TRANSPARENCY_POLICY_NOT_ENOUGH_SCTS,
+    mode == CT_MODE_COLLECT_TELEMETRY
+  );
+  add_test(function set_disable_ct_for_hosts_pref() {
+    // Disable CT enforcement for exactly 'ct-unknown-log.example.com' as well
+    // as 'sub.example.com' and all subdomains under 'sub.example.com'.
+    // CT will still be checked, and the security info of the connection will say
+    // the information is insufficient, but the connection will still succeed
+    // (essentially, it behaves like telemetry-only mode).
+    Services.prefs.setCharPref(
+      "security.pki.certificate_transparency.disable_for_hosts",
+      ".ct-unknown-log.example.com,no-ct.example.com"
+    );
+    clearSessionCache();
+    run_next_test();
+  });
+  add_ct_test(
+    "ct-unknown-log.example.com",
+    Ci.nsITransportSecurityInfo.CERTIFICATE_TRANSPARENCY_POLICY_NOT_ENOUGH_SCTS,
+    true
+  );
+  add_ct_test(
+    "sub.ct-unknown-log.example.com",
+    Ci.nsITransportSecurityInfo.CERTIFICATE_TRANSPARENCY_POLICY_NOT_ENOUGH_SCTS,
+    mode == CT_MODE_COLLECT_TELEMETRY
+  );
+  add_ct_test(
+    "no-ct.example.com",
+    Ci.nsITransportSecurityInfo.CERTIFICATE_TRANSPARENCY_POLICY_NOT_ENOUGH_SCTS,
+    true
+  );
+  add_ct_test(
+    "sub.no-ct.example.com",
+    Ci.nsITransportSecurityInfo.CERTIFICATE_TRANSPARENCY_POLICY_NOT_ENOUGH_SCTS,
+    true
+  );
+  add_ct_test(
+    "ct-insufficient-scts.example.com",
+    Ci.nsITransportSecurityInfo.CERTIFICATE_TRANSPARENCY_POLICY_NOT_ENOUGH_SCTS,
+    mode == CT_MODE_COLLECT_TELEMETRY
+  );
+  add_test(function reset_disable_ct_for_hosts_pref() {
+    Services.prefs.clearUserPref(
+      "security.pki.certificate_transparency.disable_for_hosts"
+    );
+    clearSessionCache();
+    run_next_test();
+  });
+
+  add_test(function set_disable_ct_for_spki_hashes_pref_nonexistent_keys() {
+    // Disable CT enforcement for two SPKIs we don't actually have the private
+    // key for.
+    Services.prefs.setCharPref(
+      "security.pki.certificate_transparency.disable_for_spki_hashes",
+      "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=,BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB="
+    );
+    clearSessionCache();
+    run_next_test();
+  });
+  add_ct_test(
+    "ct-insufficient-scts.example.com",
+    Ci.nsITransportSecurityInfo.CERTIFICATE_TRANSPARENCY_POLICY_NOT_ENOUGH_SCTS,
+    mode == CT_MODE_COLLECT_TELEMETRY
+  );
+  add_test(function set_disable_ct_for_spki_hashes_pref() {
+    // Disable CT enforcement for the default test key's SPKI.
+    // Again, the behavior will be that of telemetry-only mode.
+    Services.prefs.setCharPref(
+      "security.pki.certificate_transparency.disable_for_spki_hashes",
+      "CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC=,VCIlmPM9NkgFQtrs4Oa5TeFcDu6MWRTKSNdePEhOgD8="
+    );
+    clearSessionCache();
+    run_next_test();
+  });
+  add_ct_test(
+    "ct-insufficient-scts.example.com",
+    Ci.nsITransportSecurityInfo.CERTIFICATE_TRANSPARENCY_POLICY_NOT_ENOUGH_SCTS,
+    true
+  );
+  add_test(function set_disable_ct_for_spki_hashes_pref_alternate() {
+    // Disable CT enforcement for the alternate test key's SPKI.
+    Services.prefs.setCharPref(
+      "security.pki.certificate_transparency.disable_for_spki_hashes",
+      "MQj2tt1yGAfwFpWETYUCVrZxk2CD2705NKBQUlAaKJI=,DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD="
+    );
+    clearSessionCache();
+    run_next_test();
+  });
+  add_ct_test(
+    "no-ct.example.com",
+    Ci.nsITransportSecurityInfo.CERTIFICATE_TRANSPARENCY_POLICY_NOT_ENOUGH_SCTS,
+    true
+  );
+  add_test(function reset_disable_ct_for_spki_hashes_pref() {
+    Services.prefs.clearUserPref(
+      "security.pki.certificate_transparency.disable_for_spki_hashes"
+    );
+    clearSessionCache();
+    run_next_test();
+  });
+
   // Test that if an end-entity is marked as a trust anchor, CT verification
   // returns a "not enough SCTs" result.
   add_test(function set_up_end_entity_trust_anchor_test() {

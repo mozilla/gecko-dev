@@ -1111,6 +1111,25 @@ void nsNSSComponent::setValidationOptions(
 
   CertVerifier::CertificateTransparencyMode ctMode =
       GetCertificateTransparencyMode();
+  nsCString skipCTForHosts;
+  Preferences::GetCString(
+      "security.pki.certificate_transparency.disable_for_hosts",
+      skipCTForHosts);
+  nsAutoCString skipCTForSPKIHashesBase64;
+  Preferences::GetCString(
+      "security.pki.certificate_transparency.disable_for_spki_hashes",
+      skipCTForSPKIHashesBase64);
+  nsTArray<CopyableTArray<uint8_t>> skipCTForSPKIHashes;
+  for (const auto& spkiHashBase64 : skipCTForSPKIHashesBase64.Split(',')) {
+    nsAutoCString spkiHashString;
+    if (NS_SUCCEEDED(Base64Decode(spkiHashBase64, spkiHashString))) {
+      nsTArray<uint8_t> spkiHash(spkiHashString.Data(),
+                                 spkiHashString.Length());
+      skipCTForSPKIHashes.AppendElement(std::move(spkiHash));
+    }
+  }
+  CertVerifier::CertificateTransparencyConfig ctConfig(
+      ctMode, std::move(skipCTForHosts), std::move(skipCTForSPKIHashes));
 
   // This preference controls whether we do OCSP fetching and does not affect
   // OCSP stapling.
@@ -1164,7 +1183,7 @@ void nsNSSComponent::setValidationOptions(
 
   mDefaultCertVerifier = new SharedCertVerifier(
       odc, osc, softTimeout, hardTimeout, certShortLifetimeInDays,
-      netscapeStepUpPolicy, ctMode, crliteMode, mEnterpriseCerts);
+      netscapeStepUpPolicy, std::move(ctConfig), crliteMode, mEnterpriseCerts);
 }
 
 void nsNSSComponent::UpdateCertVerifierWithEnterpriseRoots() {
@@ -1174,13 +1193,17 @@ void nsNSSComponent::UpdateCertVerifierWithEnterpriseRoots() {
   }
 
   RefPtr<SharedCertVerifier> oldCertVerifier = mDefaultCertVerifier;
+  nsCString skipCTForHosts(oldCertVerifier->mCTConfig.mSkipForHosts);
+  CertVerifier::CertificateTransparencyConfig ctConfig(
+      oldCertVerifier->mCTConfig.mMode, std::move(skipCTForHosts),
+      oldCertVerifier->mCTConfig.mSkipForSPKIHashes.Clone());
   mDefaultCertVerifier = new SharedCertVerifier(
       oldCertVerifier->mOCSPDownloadConfig,
       oldCertVerifier->mOCSPStrict ? CertVerifier::ocspStrict
                                    : CertVerifier::ocspRelaxed,
       oldCertVerifier->mOCSPTimeoutSoft, oldCertVerifier->mOCSPTimeoutHard,
       oldCertVerifier->mCertShortLifetimeInDays,
-      oldCertVerifier->mNetscapeStepUpPolicy, oldCertVerifier->mCTMode,
+      oldCertVerifier->mNetscapeStepUpPolicy, std::move(ctConfig),
       oldCertVerifier->mCRLiteMode, mEnterpriseCerts);
 }
 
@@ -1739,20 +1762,21 @@ nsNSSComponent::Observe(nsISupports* aSubject, const char* aTopic,
 
     if (HandleTLSPrefChange(prefName)) {
       MOZ_LOG(gPIPNSSLog, LogLevel::Debug, ("HandleTLSPrefChange done"));
-    } else if (prefName.EqualsLiteral("security.OCSP.enabled") ||
-               prefName.EqualsLiteral("security.OCSP.require") ||
-               prefName.EqualsLiteral(
-                   "security.pki.cert_short_lifetime_in_days") ||
-               prefName.EqualsLiteral("security.ssl.enable_ocsp_stapling") ||
-               prefName.EqualsLiteral("security.ssl.enable_ocsp_must_staple") ||
-               prefName.EqualsLiteral(
-                   "security.pki.certificate_transparency.mode") ||
-               prefName.EqualsLiteral("security.pki.netscape_step_up_policy") ||
-               prefName.EqualsLiteral(
-                   "security.OCSP.timeoutMilliseconds.soft") ||
-               prefName.EqualsLiteral(
-                   "security.OCSP.timeoutMilliseconds.hard") ||
-               prefName.EqualsLiteral("security.pki.crlite_mode")) {
+    } else if (
+        prefName.EqualsLiteral("security.OCSP.enabled") ||
+        prefName.EqualsLiteral("security.OCSP.require") ||
+        prefName.EqualsLiteral("security.pki.cert_short_lifetime_in_days") ||
+        prefName.EqualsLiteral("security.ssl.enable_ocsp_stapling") ||
+        prefName.EqualsLiteral("security.ssl.enable_ocsp_must_staple") ||
+        prefName.EqualsLiteral("security.pki.certificate_transparency.mode") ||
+        prefName.EqualsLiteral(
+            "security.pki.certificate_transparency.disable_for_hosts") ||
+        prefName.EqualsLiteral(
+            "security.pki.certificate_transparency.disable_for_spki_hashes") ||
+        prefName.EqualsLiteral("security.pki.netscape_step_up_policy") ||
+        prefName.EqualsLiteral("security.OCSP.timeoutMilliseconds.soft") ||
+        prefName.EqualsLiteral("security.OCSP.timeoutMilliseconds.hard") ||
+        prefName.EqualsLiteral("security.pki.crlite_mode")) {
       MutexAutoLock lock(mMutex);
       setValidationOptions(false, lock);
 #ifdef DEBUG
