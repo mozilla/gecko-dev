@@ -850,8 +850,6 @@ Maybe<nscoord> nsInlineFrame::GetNaturalBaselineBOffset(
   if (aBaselineGroup == BaselineSharingGroup::Last) {
     return Nothing{};
   }
-  // TODO(dshin): Some functions seem to rely on this returning
-  // NS_INTRINSIC_ISIZE_UNKNOWN. e.g. /css/css-pseudo/target-text-008.html
   return Some(mBaseline);
 }
 

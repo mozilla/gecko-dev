@@ -222,11 +222,9 @@ void nsFirstLetterFrame::Reflow(nsPresContext* aPresContext,
     ReflowInput rs(aPresContext, aReflowInput, kid, kidAvailSize);
     nsLineLayout ll(aPresContext, nullptr, aReflowInput, nullptr, nullptr);
 
-    // This frame does not get constructed for an empty inline frame, so
-    // `CollapseEmptyInlineFramesInLine` should not matter.
     ll.BeginLineReflow(
         bp.IStart(wm), bp.BStart(wm), availSize.ISize(wm), NS_UNCONSTRAINEDSIZE,
-        false, true, CollapseEmptyInlineFramesInLine::Collapse, kidWritingMode,
+        false, true, kidWritingMode,
         nsSize(aReflowInput.AvailableWidth(), aReflowInput.AvailableHeight()));
     rs.mLineLayout = &ll;
     ll.SetInFirstLetter(true);
