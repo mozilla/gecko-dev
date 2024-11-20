@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<iframe id="static"></iframe>
+<script>
+    const name = "frame_recursive_target";
+    const url = location.href;
+    const iframe = document.querySelector("iframe");
+    let isCrossOrigin = false;
+    try {
+        window.parent.location.hostname;
+    } catch (_) {
+        isCrossOrigin = true;
+    }
+
+    addEventListener("load", async () => {
+        await new Promise(resolve => {
+            iframe.addEventListener("load", resolve);
+            if (!isCrossOrigin) {
+                iframe.name = name;
+            }
+
+            iframe.src = url;
+        });
+
+        if (isCrossOrigin) {
+            const innerWin = iframe.contentWindow.document.querySelector("iframe");
+            await new Promise(resolve => {
+                innerWin.addEventListener("load", resolve);
+                window.open(url, name);
+            });
+        }
+    });
+</script>

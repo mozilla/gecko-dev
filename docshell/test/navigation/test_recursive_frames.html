@@ -107,6 +107,16 @@
         "about:blank"
       ],
     },
+    { // navigating shouldn't be blocked by recursion check
+      frameId: "navigationIsNotRecursive",
+      expectedLocations: [
+        // eslint-disable-next-line @microsoft/sdl/no-insecure-url
+        "http://example.com/tests/docshell/test/navigation/frame_recursive_target.html",
+        "http://example.com/tests/docshell/test/navigation/frame_recursive_target.html",
+        "http://example.com/tests/docshell/test/navigation/frame_recursive_target.html",
+        "about:blank"
+      ],
+    },
   ];
 
   async function checkRecursiveLoad(level) {
@@ -172,6 +182,7 @@
   <object width="400" height="300" id="recursiveObject" data="http://sub2.xn--lt-uia.mochi.test:8888/tests/docshell/test/navigation/object_recursive_load.html"></object>
   <iframe id="nestedSrcdoc" srcdoc="Srcdoc that will embed an iframe &lt;iframe id=&quot;static&quot; src=&quot;http://example.com/tests/docshell/test/navigation/file_nested_srcdoc.html&quot;&gt;&lt;/iframe&gt;"></iframe>
   <iframe style="height: 100vh; width:25%;" id="dynamicrecursive" src="http://example.com/tests/docshell/test/navigation/frame_recursive_dynamic.html"></iframe>
+  <iframe style="height: 100vh; width:25%;" id="navigationIsNotRecursive" src="http://example.com/tests/docshell/test/navigation/frame_recursive_target.html"></iframe>
 </div>
 </body>
 </html>
