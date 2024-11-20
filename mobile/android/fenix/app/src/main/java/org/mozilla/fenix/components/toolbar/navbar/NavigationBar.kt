@@ -454,7 +454,7 @@ private fun OpenInBrowserButton(
     ) {
         Icon(
             painter = painterResource(R.drawable.mozac_ic_open_in),
-            stringResource(R.string.browser_menu_open_in_fenix, R.string.app_name),
+            stringResource(R.string.browser_menu_open_in_fenix, stringResource(R.string.app_name)),
             tint = if (enabled) buttonEnabledTint else buttonDisabledTint,
         )
     }
