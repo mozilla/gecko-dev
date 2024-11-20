@@ -13,7 +13,14 @@ function handleRequest(aRequest, aResponse) {
     aResponse.write("cookie-present");
   } else {
     if (!aRequest.queryString.includes("checkonly")) {
-      aResponse.setHeader("Set-Cookie", "foopy=1");
+      if (aRequest.queryString.includes("partitioned")) {
+        aResponse.setHeader(
+          "Set-Cookie",
+          "foopy=1; SameSite=None; Secure; Partitioned"
+        );
+      } else {
+        aResponse.setHeader("Set-Cookie", "foopy=1");
+      }
     }
     aResponse.write("cookie-not-present");
   }

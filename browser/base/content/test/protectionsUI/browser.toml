@@ -88,5 +88,11 @@ support-files = [
 ["browser_protectionsUI_telemetry.js"]
 https_first_disabled = true
 
+
+["browser_protectionsUI_tracker_cookies_subview.js"]
+support-files = [
+  "trackerCookiePage.html",
+]
+
 ["browser_protectionsUI_trackers_subview.js"]
 https_first_disabled = true

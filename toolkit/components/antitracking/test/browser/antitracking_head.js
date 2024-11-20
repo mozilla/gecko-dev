@@ -601,6 +601,33 @@ this.AntiTracking = {
         consoleWarningPromise = Promise.resolve();
       }
 
+      let { expectedPartitioningNotifications } = options;
+      if (!Array.isArray(expectedPartitioningNotifications)) {
+        expectedPartitioningNotifications = [expectedPartitioningNotifications];
+      }
+
+      let consolePartitioningWarningPromise;
+      if (options.expectedPartitioningNotifications) {
+        consolePartitioningWarningPromise = new Promise(resolve => {
+          let consoleListener = {
+            observe(msg) {
+              if (
+                msg
+                  .QueryInterface(Ci.nsIScriptError)
+                  .category.startsWith("cookiePartitioned")
+              ) {
+                Services.console.unregisterListener(consoleListener);
+                resolve();
+              }
+            },
+          };
+
+          Services.console.registerListener(consoleListener);
+        });
+      } else {
+        consolePartitioningWarningPromise = Promise.resolve();
+      }
+
       info("Creating a new tab");
       let tab = BrowserTestUtils.addTab(win.gBrowser, topPage);
       win.gBrowser.selectedTab = tab;
@@ -815,13 +842,21 @@ this.AntiTracking = {
 
       // Wait until the message appears on the console.
       await consoleWarningPromise;
+      await consolePartitioningWarningPromise;
 
       let allMessages = Services.console.getMessageArray().filter(msg => {
         try {
           // Select all messages that the anti-tracking backend could generate.
-          return msg
-            .QueryInterface(Ci.nsIScriptError)
-            .category.startsWith("cookieBlocked");
+          let category = msg.QueryInterface(Ci.nsIScriptError).category;
+
+          let isBlocking = category.startsWith("cookieBlocked");
+
+          // Only look for partitioning notifications if we expect them.
+          let isPartitioning =
+            options.expectedPartitioningNotifications &&
+            category.startsWith("cookiePartitioned");
+
+          return isBlocking || isPartitioning;
         } catch (e) {
           return false;
         }
@@ -829,7 +864,9 @@ this.AntiTracking = {
       // When changing this list, please make sure to update the corresponding
       // code in ReportBlockingToConsole().
       let expectedCategories = [];
-      let rawExpectedCategories = options.expectedBlockingNotifications;
+      let rawExpectedCategories =
+        options.expectedBlockingNotifications ??
+        options.expectedPartitioningNotifications;
       if (!Array.isArray(rawExpectedCategories)) {
         // if given a single value to match, expect each message to match it
         rawExpectedCategories = Array(allMessages.length).fill(
@@ -849,6 +886,9 @@ this.AntiTracking = {
             break;
           case Ci.nsIWebProgressListener.STATE_COOKIES_BLOCKED_FOREIGN:
             expectedCategories.push("cookieBlockedForeign");
+            break;
+          case Ci.nsIWebProgressListener.STATE_COOKIES_PARTITIONED_TRACKER:
+            expectedCategories.push("cookiePartitionedForeign");
             break;
         }
       }
