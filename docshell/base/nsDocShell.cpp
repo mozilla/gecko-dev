@@ -5186,8 +5186,7 @@ void nsDocShell::SetupRefreshURIFromHeader(Document* aDocument,
   const char16_t* position = aHeader.BeginReading();
   const char16_t* end = aHeader.EndReading();
 
-  // See
-  // https://html.spec.whatwg.org/#pragma-directives:shared-declarative-refresh-steps.
+  // See https://html.spec.whatwg.org/#shared-declarative-refresh-steps.
 
   // 3. Skip ASCII whitespace
   position = SkipASCIIWhitespace(position, end);
@@ -5219,7 +5218,10 @@ void nsDocShell::SetupRefreshURIFromHeader(Document* aDocument,
       // The spec assumes no errors here (since we only pass ASCII digits in),
       // but we can still overflow, so this block should deal with that (and
       // only that).
-      MOZ_ASSERT(!(result & nsContentUtils::eParseHTMLInteger_ErrorOverflow));
+      MOZ_ASSERT(
+          !(result & ~(nsContentUtils::eParseHTMLInteger_DidNotConsumeAllInput |
+                       nsContentUtils::eParseHTMLInteger_Error |
+                       nsContentUtils::eParseHTMLInteger_ErrorOverflow)));
       return;
     }
     MOZ_ASSERT(
