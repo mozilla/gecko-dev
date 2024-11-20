@@ -43,6 +43,10 @@ class BackstagePass final : public nsIGlobalObject,
 
   nsIPrincipal* PartitionedPrincipal() override { return mPrincipal; }
 
+  mozilla::Maybe<nsID> GetAgentClusterId() const override {
+    return mozilla::Some(mAgentClusterId);
+  }
+
   mozilla::OriginTrials Trials() const override { return {}; }
 
   JSObject* GetGlobalJSObject() override;
@@ -76,6 +80,8 @@ class BackstagePass final : public nsIGlobalObject,
     return mozilla::SchedulerGroup::Dispatch(std::move(aRunnable));
   }
 
+  bool IsSharedMemoryAllowed() const override { return true; }
+
   bool ShouldResistFingerprinting(RFPTarget aTarget) const override {
     // BackstagePass is always the System Principal
     MOZ_RELEASE_ASSERT(mPrincipal->IsSystemPrincipal());
@@ -85,6 +91,7 @@ class BackstagePass final : public nsIGlobalObject,
  private:
   virtual ~BackstagePass() = default;
 
+  const nsID mAgentClusterId;
   nsCOMPtr<nsIPrincipal> mPrincipal;
   XPCWrappedNative* mWrapper;
 

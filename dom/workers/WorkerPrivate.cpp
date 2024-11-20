@@ -2728,15 +2728,18 @@ WorkerPrivate::ComputeAgentClusterIdAndCoop(WorkerPrivate* aParent,
     return {agentClusterId, bc->Top()->GetOpenerPolicy()};
   }
 
-  // Allow chrome workers within the "inference" content process access to
-  // SharedArrayBuffer by enabling COOP/COEP for their agent cluster group.
-  // This is useful for accelerating WASM-based inference engines.
-  if (aIsChromeWorker && XRE_IsContentProcess() &&
-      dom::ContentChild::GetSingleton()->GetRemoteType() ==
-          INFERENCE_REMOTE_TYPE) {
-    agentClusterCoop =
-        nsILoadInfo::OPENER_POLICY_SAME_ORIGIN_EMBEDDER_POLICY_REQUIRE_CORP;
+  // Chrome workers share an AgentCluster with the XPC module global. This
+  // allows things like shared memory and WASM modules to be transferred between
+  // chrome workers and system JS.
+  if (aIsChromeWorker) {
+    if (nsIGlobalObject* systemGlobal =
+            xpc::NativeGlobal(xpc::PrivilegedJunkScope())) {
+      nsID agentClusterId = systemGlobal->GetAgentClusterId().valueOrFrom(
+          [] { return nsID::GenerateUUID(); });
+      return {agentClusterId, agentClusterCoop};
+    }
   }
+
   // If the window object was failed to be set into the WorkerLoadInfo, we
   // make the worker into another agent cluster group instead of failures.
   return {nsID::GenerateUUID(), agentClusterCoop};
@@ -6284,7 +6287,8 @@ bool WorkerPrivate::IsSharedMemoryAllowed() const {
     return true;
   }
 
-  if (mIsPrivilegedAddonGlobal) {
+  // Allow privileged addons and chrome workers to access shared memory.
+  if (mIsChromeWorker || mIsPrivilegedAddonGlobal) {
     return true;
   }
 

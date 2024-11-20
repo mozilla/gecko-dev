@@ -23,7 +23,8 @@ NS_IMPL_ISUPPORTS(BackstagePass, nsIXPCScriptable, nsIGlobalObject,
                   nsISupportsWeakReference)
 
 BackstagePass::BackstagePass()
-    : mPrincipal(nsContentUtils::GetSystemPrincipal()),
+    : mAgentClusterId(nsID::GenerateUUID()),
+      mPrincipal(nsContentUtils::GetSystemPrincipal()),
       mWrapper(nullptr){}
 // XXX(nika): It appears we don't have support for mayresolve hooks in
 // nsIXPCScriptable, and I don't really want to add it because I'd rather just
