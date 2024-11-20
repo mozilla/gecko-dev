@@ -2487,31 +2487,11 @@ Relation LocalAccessible::RelationByType(RelationType aType) const {
 void LocalAccessible::GetNativeInterface(void** aNativeAccessible) {}
 
 void LocalAccessible::DoCommand(uint32_t aActionIndex) const {
-  class Runnable final : public mozilla::Runnable {
-   public:
-    Runnable(const LocalAccessible* aAcc, uint32_t aIdx)
-        : mozilla::Runnable("Runnable"), mAcc(aAcc), mIdx(aIdx) {}
-
-    // XXX Cannot mark as MOZ_CAN_RUN_SCRIPT because the base class change
-    //     requires too big changes across a lot of modules.
-    MOZ_CAN_RUN_SCRIPT_BOUNDARY NS_IMETHOD Run() override {
-      if (mAcc) {
-        MOZ_KnownLive(mAcc)->DispatchClickEvent(mIdx);
-      }
-      return NS_OK;
-    }
-
-    void Revoke() {
-      mAcc = nullptr;
-    }
-
-   private:
-    RefPtr<const LocalAccessible> mAcc;
-    uint32_t mIdx;
-  };
-
-  nsCOMPtr<nsIRunnable> runnable = new Runnable(this, aActionIndex);
-  NS_DispatchToMainThread(runnable);
+  NS_DispatchToMainThread(NS_NewRunnableFunction(
+      "LocalAccessible::DispatchClickEvent",
+      [aActionIndex, acc = RefPtr{this}]() MOZ_CAN_RUN_SCRIPT_BOUNDARY {
+        acc->DispatchClickEvent(aActionIndex);
+      }));
 }
 
 void LocalAccessible::DispatchClickEvent(uint32_t aActionIndex) const {
