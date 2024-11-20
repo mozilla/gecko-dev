@@ -101,6 +101,18 @@ add_task(async function userScript_require_host_permissions() {
           runAt: "document_end",
           world: "MAIN",
         },
+        {
+          // For extra coverage use includeGlobs without matches, since most
+          // other tests do use "matches". The underlying userScripts-specific
+          // matches+includeGlobs matching logic is extensively covered by
+          // test_WebExtensionContentScript_isUserScript in
+          // test_WebExtensionContentScript.js.
+          id: "includeGlobs without matches",
+          includeGlobs: ["*resultCollector"],
+          js: [{ code: "resultCollector.push(origin)" }],
+          runAt: "document_end",
+          world: "MAIN",
+        },
       ]);
       browser.test.sendMessage("registered");
     },
@@ -115,7 +127,7 @@ add_task(async function userScript_require_host_permissions() {
     );
     Assert.deepEqual(
       await collectResults(contentPage),
-      ["http://example.net"],
+      ["http://example.net", "http://example.net"],
       "Can execute with host permissions"
     );
     await contentPage.close();

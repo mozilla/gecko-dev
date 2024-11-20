@@ -86,6 +86,14 @@ interface MozDocumentMatcher {
   readonly attribute MatchPatternSet? excludeMatches;
 
   /**
+   * Whether the matcher is used by the MV3 userScripts API.
+   * If true, URLs are matched when they match "matches" OR "includeGlobs",
+   * instead of the usual AND.
+   */
+  [Constant]
+  readonly attribute boolean isUserScript;
+
+  /**
    * The originAttributesPattern for which this script should be enabled for.
    */
   [Constant, Throws]
@@ -118,6 +126,8 @@ dictionary MozDocumentMatcherInit {
   sequence<MatchGlobOrString>? includeGlobs = null;
 
   sequence<MatchGlobOrString>? excludeGlobs = null;
+
+  boolean isUserScript = false;
 
   boolean hasActiveTabPermission = false;
 };

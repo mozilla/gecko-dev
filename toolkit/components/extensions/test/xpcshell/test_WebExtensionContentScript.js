@@ -119,6 +119,122 @@ add_task(function test_WebExtensionContentScript_mv3_specific() {
   });
 });
 
+add_task(async function test_WebExtensionContentScript_isUserScript() {
+  let policy = new WebExtensionPolicy({
+    id: "foo@bar.baz",
+    mozExtensionHostname: "ba159687-9472-4816-a1b2-8b14721d2ea6",
+    baseURL: "file:///foo/",
+    manifestVersion: 3,
+    allowedOrigins: new MatchPatternSet(["https://example.com/*"]),
+    localizeCallback() {},
+  });
+
+  const matches = new MatchPatternSet(["https://example.com/match/*"]);
+  const includeGlobs = [new MatchGlob("*/glob/*")];
+  const exampleMatchesURI = newURI("https://example.com/match/");
+  const exampleGlobURI = newURI("https://example.com/glob/");
+  const exampleNotMatchedURI = newURI("https://example.com/nomatch/");
+  const exampleNoPermissionURI = newURI("https://example.net/glob/");
+
+  let defaultScript = new WebExtensionContentScript(policy, {
+    matches,
+    includeGlobs,
+  });
+  let nonUserScript = new WebExtensionContentScript(policy, {
+    isUserScript: false,
+    matches,
+    includeGlobs,
+  });
+  let userScript = new WebExtensionContentScript(policy, {
+    isUserScript: true,
+    matches,
+    includeGlobs,
+  });
+
+  // Sanity checks: isUserScript flag is accurate.
+  equal(defaultScript.isUserScript, false, "isUserScript defaults to false");
+  equal(nonUserScript.isUserScript, false, "isUserScript set to false");
+  equal(userScript.isUserScript, true, "isUserScript set to true");
+
+  // Default, equivalent to isUserScript=false: matches AND includeGlobs.
+  ok(
+    !defaultScript.matchesURI(exampleMatchesURI),
+    "By default: ignore matches if includeGlobs does not match"
+  );
+  ok(
+    !defaultScript.matchesURI(exampleGlobURI),
+    "By default: ignore includeGlobs if matches does not match"
+  );
+
+  // With isUserScript=false explicitly: matches AND includeGlobs
+  ok(
+    !nonUserScript.matchesURI(exampleMatchesURI),
+    "Non-userScript: ignore matches if includeGlobs does not match"
+  );
+  ok(
+    !nonUserScript.matchesURI(exampleGlobURI),
+    "non-userScript: ignore includeGlobs if includeGlobs does not match"
+  );
+
+  // With isUserScript=true explicitly: matches OR includeGlobs
+  ok(
+    userScript.matchesURI(exampleMatchesURI),
+    "userScript: accept matches even if includeGlobs does not match"
+  );
+  ok(
+    userScript.matchesURI(exampleGlobURI),
+    "userScript: accept includeGlobs even if matches does not match"
+  );
+  ok(
+    !userScript.matchesURI(exampleNoPermissionURI),
+    "userScript: ignore includeGlobs if permission is missing"
+  );
+
+  // Now verify that empty matches is permitted.
+  let nonUserScriptEmptyMatches = new WebExtensionContentScript(policy, {
+    isUserScript: false,
+    matches: [],
+    includeGlobs,
+  });
+  let userScriptEmptyMatches = new WebExtensionContentScript(policy, {
+    isUserScript: true,
+    matches: [],
+    includeGlobs,
+  });
+  ok(
+    !nonUserScriptEmptyMatches.matchesURI(exampleGlobURI),
+    "non-userScript: ignore includeGlobs with empty matches"
+  );
+  ok(
+    userScriptEmptyMatches.matchesURI(exampleGlobURI),
+    "userScript: accept includeGlobs despite empty matches"
+  );
+  ok(
+    !userScriptEmptyMatches.matchesURI(exampleNotMatchedURI),
+    "userScript: ignore when not matched by includeGlobs (and empty matches)"
+  );
+  ok(
+    !userScriptEmptyMatches.matchesURI(exampleNoPermissionURI),
+    "userScript: ignore includeGlobs (and empty matches) without permission"
+  );
+
+  // Now verify that without includeGlobs, that matches works as usual.
+  // The isUserScript=false case is already extensively covered elsewhere, so
+  // we just do a sanity check for isUserScript=true.
+  let userScriptNoGlobs = new WebExtensionContentScript(policy, {
+    isUserScript: true,
+    matches,
+  });
+  ok(
+    userScriptNoGlobs.matchesURI(exampleMatchesURI),
+    "userScript: accept matches when includeGlobs is null"
+  );
+  ok(
+    !userScriptNoGlobs.matchesURI(exampleNotMatchedURI),
+    "userScript: ignore when not matched by matches and includeGlobs is null"
+  );
+});
+
 add_task(function test_WebExtensionContentScript_restricted() {
   let tests = [
     {

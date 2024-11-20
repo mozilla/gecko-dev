@@ -409,8 +409,13 @@ class UserScriptsManager {
       // scripting API, in ExtensionScriptingStore.getInitialScriptIdsMap.
       allFrames: publicScript.allFrames ?? oldScript?.allFrames ?? false,
       jsPaths,
-      // TODO bug 1911834: use nonEmptyOrNull when matches can be omitted.
-      matches: publicScript.matches || oldScript.matches,
+      // WebExtensionContentScript requires matches to be set to an Array.
+      // Although "matches" is optional in the userScripts API (because
+      // includeGlobs can be used instead with OR semantics), it is required
+      // for most other use cases (content scripts and MozDocumentMatcher). For
+      // clarity, WebExtensionContentScript.webidl therefore marks "matches" as
+      // a required array, and we fall back to an empty array if needed.
+      matches: publicScript.matches || oldScript?.matches || [],
       excludeMatches: nonEmptyOrNull(
         publicScript.excludeMatches || oldScript?.excludeMatches
       ),
@@ -459,8 +464,8 @@ class UserScriptsManager {
       id: publicId,
       allFrames: internalScript.allFrames,
       js,
-      // TODO bug 1911834: simplify to internalScript.matches when "matches"
-      // can be omitted.
+      // See #makeInternalUserScript - "matches" is internally required, but if
+      // it is an empty array, it is semantically equivalent to null.
       matches: internalScript.matches.length ? internalScript.matches : null,
       excludeMatches: internalScript.excludeMatches,
       includeGlobs: internalScript.includeGlobs,
@@ -488,7 +493,6 @@ class UserScriptsManager {
     // permits an empty js array. The "js" property is guaranteed to exist
     // because it is a required key in userScripts.register.
 
-    // TODO bug 1911834: require only userScripts matches or includeGlobs.
     if (!script.matches?.length && !script.includeGlobs?.length) {
       throw new ExtensionUtils.ExtensionError(
         "matches or includeGlobs must be specified."

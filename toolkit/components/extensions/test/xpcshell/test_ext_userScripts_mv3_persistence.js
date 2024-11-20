@@ -294,6 +294,7 @@ add_task(async function register_and_update_all_values() {
 
   async function checkScriptsInContentProcess(previousJsPaths = null) {
     const expectedScriptsInContent = {
+      isUserScript: true,
       allFrames: true,
       matches: ["https://example.org/path/*"],
       excludeMatches: ["*://*/excludeme"],

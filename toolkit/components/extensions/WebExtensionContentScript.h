@@ -148,6 +148,8 @@ class MozDocumentMatcher : public nsISupports, public nsWrapperCache {
   MatchPatternSet* GetExcludeMatches() { return mExcludeMatches; }
   const MatchPatternSet* GetExcludeMatches() const { return mExcludeMatches; }
 
+  bool IsUserScript() const { return mIsUserScript; }
+
   Nullable<uint64_t> GetFrameID() const { return mFrameID; }
 
   void GetOriginAttributesPatterns(JSContext* aCx,
@@ -177,6 +179,7 @@ class MozDocumentMatcher : public nsISupports, public nsWrapperCache {
 
   Nullable<MatchGlobSet> mIncludeGlobs;
   Nullable<MatchGlobSet> mExcludeGlobs;
+  bool mIsUserScript;
 
   bool mAllFrames;
   bool mCheckPermissions;
