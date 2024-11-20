@@ -5499,11 +5499,11 @@ var WebAuthnPromptHelper = {
     } else if (data.prompt.type == "uv-invalid") {
       let retriesLeft = data.prompt.retries;
       let dialogText;
-      if (retriesLeft == 0) {
+      if (retriesLeft === 0) {
         // We can skip that because it will either be replaced
         // by uv-blocked or by PIN-prompt
         return;
-      } else if (retriesLeft < 0) {
+      } else if (retriesLeft == null || retriesLeft < 0) {
         dialogText = this._l10n.formatValueSync(
           "webauthn-uv-invalid-short-prompt"
         );
@@ -5539,11 +5539,13 @@ var WebAuthnPromptHelper = {
     let dialogText;
     if (!wasInvalid) {
       dialogText = this._l10n.formatValueSync("webauthn-pin-required-prompt");
-    } else if (retriesLeft < 0 || retriesLeft > 3) {
+    } else if (retriesLeft == null || retriesLeft < 0 || retriesLeft > 3) {
       // The token will need to be power cycled after three incorrect attempts,
       // so we show a short error message that does not include retriesLeft. It
       // would be confusing to display retriesLeft at this point, as the user
       // will feel that they only get three attempts.
+      // We also only show the short prompt in the case the token doesn't
+      // support/send a retries-counter. Then we simply don't know how many are left.
       dialogText = this._l10n.formatValueSync(
         "webauthn-pin-invalid-short-prompt"
       );
