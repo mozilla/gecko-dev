@@ -1214,6 +1214,20 @@ const AVAILABLE_INJECTIONS = [
       ],
     },
   },
+  {
+    id: "1930440",
+    platform: "all",
+    domain: "online.singaporepools.com",
+    bug: "1930440",
+    contentScripts: {
+      matches: ["*://online.singaporepools.com/*"],
+      js: [
+        {
+          file: "injections/js/bug1930440-online.singaporepools.com-prevent-unsupported-alert.js",
+        },
+      ],
+    },
+  },
 ];
 
 module.exports = AVAILABLE_INJECTIONS;

@@ -119,6 +119,7 @@ FINAL_TARGET_FILES.features["webcompat@mozilla.org"]["injections"]["js"] += [
     "injections/js/bug1923286-bing.com-image-click-fix.js",
     "injections/js/bug1924500-www.tiktok.com-fix-captcha-slider.js",
     "injections/js/bug1928216-voice.google.com-permissions.query.js",
+    "injections/js/bug1930440-online.singaporepools.com-prevent-unsupported-alert.js",
 ]
 
 FINAL_TARGET_FILES.features["webcompat@mozilla.org"]["shims"] += [
