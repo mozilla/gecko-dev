@@ -619,6 +619,8 @@ run-sequentially = "very high failure rate in parallel"
 
 ["test_ext_userScripts_mv3_persistence.js"]
 
+["test_ext_userScripts_mv3_worlds.js"]
+
 ["test_ext_userScripts_register.js"]
 skip-if = [
   "os == 'linux' && !fission", # Bug 1763197

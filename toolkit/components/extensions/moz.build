@@ -39,6 +39,7 @@ EXTRA_JS_MODULES += [
     "ExtensionTaskScheduler.sys.mjs",
     "ExtensionTelemetry.sys.mjs",
     "ExtensionUserScripts.sys.mjs",
+    "ExtensionUserScriptsContent.sys.mjs",
     "ExtensionUtils.sys.mjs",
     "ExtensionWorkerChild.sys.mjs",
     "FindContent.sys.mjs",

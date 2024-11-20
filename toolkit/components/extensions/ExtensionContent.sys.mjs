@@ -14,6 +14,8 @@ ChromeUtils.defineESModuleGetters(lazy, {
   ExtensionProcessScript:
     "resource://gre/modules/ExtensionProcessScript.sys.mjs",
   ExtensionTelemetry: "resource://gre/modules/ExtensionTelemetry.sys.mjs",
+  ExtensionUserScriptsContent:
+    "resource://gre/modules/ExtensionUserScriptsContent.sys.mjs",
   LanguageDetector:
     "resource://gre/modules/translation/LanguageDetector.sys.mjs",
   Schemas: "resource://gre/modules/Schemas.sys.mjs",
@@ -660,6 +662,13 @@ class Script {
       if (this.world === "MAIN") {
         return this.#injectIntoMainWorld(context, scripts, reportExceptions);
       }
+      if (this.world === "USER_SCRIPT") {
+        return this.#injectIntoUserScriptWorld(
+          context,
+          scripts,
+          reportExceptions
+        );
+      }
       return this.#injectIntoIsolatedWorld(context, scripts, reportExceptions);
     } finally {
       lazy.ExtensionTelemetry.contentScriptInjection.stopwatchFinish(
@@ -688,6 +697,27 @@ class Script {
         1
       );
     }
+
+    return result;
+  }
+
+  #injectIntoUserScriptWorld(context, scripts, reportExceptions) {
+    let worldId = "";
+    let sandbox = lazy.ExtensionUserScriptsContent.sandboxFor(context, worldId);
+
+    let result;
+    // Note: every script execution can potentially destroy the context or
+    // navigate the window, in which case context.active will be false.
+    for (let script of scripts) {
+      if (!context.active) {
+        // Return instead of throw, to avoid logspam like bug 1403505.
+        return;
+      }
+      result = script.executeInGlobal(sandbox, { reportExceptions });
+    }
+
+    // NOTE: if userScripts.execute() is implemented (bug 1930776), we may have
+    // to account for this.jsCode here (via addJSCode).
 
     return result;
   }
