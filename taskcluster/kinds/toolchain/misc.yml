@@ -143,6 +143,24 @@ linux64-mar-tools:
             - toolkit/mozapps/update/updater/bspatch/
             - tools/update-packaging/
 
+linux64-zucchini-bin:
+    description: "zucchini bin toolchain build"
+    treeherder:
+        symbol: TL(zucchini-bin)
+    fetches:
+        toolchain:
+            - linux64-clang-toolchain
+        fetch:
+            - chromium-depot-tools
+    worker:
+        env:
+            # Note: this revision is for the "chromium/src" trunk
+            # https://chromium.googlesource.com/chromium/src/+/refs/heads/main
+            CHROMIUM_REVISION: 59c5ba8f94f8b0d4de6da2769d2eedddd08da956
+    run:
+        script: build-zucchini.sh
+        toolchain-artifact: public/build/zucchini.tar.xz
+
 linux64-upx:
     description: "UPX build"
     treeherder:

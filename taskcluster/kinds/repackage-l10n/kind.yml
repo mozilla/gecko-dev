@@ -83,5 +83,6 @@ tasks:
         fetches:
             toolchain:
                 - linux64-mar-tools
+                - linux64-zucchini-bin
                 - linux64-upx
         treeherder-group: L10n-Rpk

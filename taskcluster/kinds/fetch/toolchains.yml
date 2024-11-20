@@ -706,3 +706,12 @@ xmlstarlet-1.6.1:
         sha256: d1d7f55f7887d2d1c3283e1b06a68675b5bead2eebf14939f9cdd84b849ced19
         size: 267112
         artifact-name: xmlstarlet.deb
+
+chromium-depot-tools:
+    description: Chromium depot tools for managing Chromium repository
+    fetch:
+        type: git
+        repo: https://chromium.googlesource.com/chromium/tools/depot_tools.git
+        revision: 5304f2bbb31bad413e029a660097d1da1552e6f4
+        artifact-name: chromium-depot-tools.tar.zst
+        include-dot-git: true
