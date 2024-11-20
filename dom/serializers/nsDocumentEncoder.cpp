@@ -1799,9 +1799,16 @@ nsHTMLCopyEncoder::EncodeToStringWithContext(nsAString& aContextString,
 
 bool nsHTMLCopyEncoder::RangeNodeContext::IncludeInContext(
     nsINode& aNode) const {
-  nsCOMPtr<nsIContent> content(nsIContent::FromNodeOrNull(&aNode));
+  const nsIContent* const content = nsIContent::FromNodeOrNull(&aNode);
+  if (!content) {
+    return false;
+  }
 
-  if (!content) return false;
+  // If it's an inline editing host, we should not treat it gives a context to
+  // avoid to duplicate its style.
+  if (content->IsEditingHost()) {
+    return false;
+  }
 
   return content->IsAnyOfHTMLElements(
       nsGkAtoms::b, nsGkAtoms::i, nsGkAtoms::u, nsGkAtoms::a, nsGkAtoms::tt,

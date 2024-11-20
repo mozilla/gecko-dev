@@ -3527,6 +3527,134 @@ async function doTest() {
     document.removeEventListener("drop", onDrop);
   })();
 
+  // -------- Test dragging inline contenteditable to same contenteditable
+  await (async function test_dragging_from_inline_contenteditable_to_itself() {
+    const description = "dragging text in inline contenteditable to same contenteditable";
+    container.innerHTML = `<span contenteditable style="font-size:2em">dragme!!<span>MMMM</span></span>`;
+    const contenteditable = document.querySelector("span[contenteditable]");
+    const span = contenteditable.querySelector("span");
+    selection.setBaseAndExtent(contenteditable.firstChild, 0, contenteditable.firstChild, "dragme".length);
+    beforeinputEvents = [];
+    inputEvents = [];
+    dragEvents = [];
+    const onDrop = aEvent => {
+      dragEvents.push(aEvent);
+      is(aEvent.dataTransfer.getData("text/plain"), "dragme",
+        `${description}: dataTransfer should have selected text as "text/plain"`);
+      is(aEvent.dataTransfer.getData("text/html"), "dragme",
+        `${description}: dataTransfer should have selected text as "text/html"`);
+    };
+    document.addEventListener("drop", onDrop);
+    if (
+      await trySynthesizePlainDragAndDrop(
+        description,
+        {
+          srcSelection: selection,
+          destElement: span,
+        }
+      )
+    ) {
+      const kExpectedOffsets = isAndroidException ? [4,4] : [2,2];
+      if (isAndroidException) {
+        todo_is(contenteditable.innerHTML, "!!<span>MM</span>dragme<span>MM</span>",
+          `${description}: dragged range should be moved in inline contenteditable`);
+        is(contenteditable.innerHTML, "!!<span>MMMM</span>dragme",
+          `${description}: dragged range should be moved in inline contenteditable`);
+      } else {
+        is(contenteditable.innerHTML, "!!<span>MM</span>dragme<span>MM</span>",
+          `${description}: dragged range should be moved in inline contenteditable`);
+      }
+      is(beforeinputEvents.length, 2,
+        `${description}: 2 "beforeinput" events should be fired on inline contenteditable`);
+      checkInputEvent(beforeinputEvents[0], contenteditable, "deleteByDrag", null, null,
+                      [{startContainer: contenteditable.firstChild, startOffset: 0,
+                        endContainer: contenteditable.firstChild, endOffset: "dragme".length}],
+                      description);
+      checkInputEvent(beforeinputEvents[1], contenteditable, "insertFromDrop", null,
+                      [{type: "text/html", data: "dragme"},
+                      {type: "text/plain", data: "dragme"}],
+                      [{startContainer: span.firstChild, startOffset: kExpectedOffsets[0],
+                        endContainer: span.firstChild, endOffset: kExpectedOffsets[1]}],
+                      description);
+      is(inputEvents.length, 2,
+        `${description}: 2 "input" events should be fired on inline contenteditable`);
+      checkInputEvent(inputEvents[0], contenteditable, "deleteByDrag", null, null, [], description);
+      checkInputEvent(inputEvents[1], contenteditable, "insertFromDrop", null,
+                      [{type: "text/html", data: "dragme"},
+                      {type: "text/plain", data: "dragme"}],
+                      [],
+                      description);
+      is(dragEvents.length, 1,
+        `${description}: only one "drop" event should be fired on inline contenteditable`);
+    }
+    document.removeEventListener("drop", onDrop);
+  })();
+
+  // -------- Test dragging inline contenteditable to other inline contenteditable
+  await (async function test_dragging_from_inline_contenteditable_to_other_inline_contenteditable() {
+    const description = "dragging text in inline contenteditable to other inline contenteditable";
+    container.innerHTML = '<span contenteditable style="font-size:2em">dragme!!</span><hr><span contenteditable style="font-size:em">MM</span>';
+    const contenteditable = document.querySelector("div#container > span[contenteditable]");
+    const otherContenteditable = document.querySelector("div#container > span[contenteditable] ~ span[contenteditable]");
+    selection.setBaseAndExtent(contenteditable.firstChild, 0, contenteditable.firstChild, "dragme".length);
+    beforeinputEvents = [];
+    inputEvents = [];
+    dragEvents = [];
+    const onDrop = aEvent => {
+      dragEvents.push(aEvent);
+      is(aEvent.dataTransfer.getData("text/plain"), "dragme",
+        `${description}: dataTransfer should have selected text as "text/plain"`);
+      is(aEvent.dataTransfer.getData("text/html"), "dragme",
+        `${description}: dataTransfer should have selected nodes as "text/html"`);
+    };
+    document.addEventListener("drop", onDrop);
+    if (
+      await trySynthesizePlainDragAndDrop(
+        description,
+        {
+          srcSelection: selection,
+          destElement: otherContenteditable,
+        }
+      )
+    ) {
+      const kExpectedOffsets = isAndroidException ? [2,2] : [1,1];
+      is(contenteditable.innerHTML, "!!",
+        `${description}: dragged range should be removed from inline contenteditable`);
+      if (isAndroidException) {
+        todo_is(otherContenteditable.innerHTML, "MdragmeM",
+          `${description}: dragged content should be inserted into other inline contenteditable`);
+        is(otherContenteditable.innerHTML, "MMdragme",
+          `${description}: dragged content should be inserted into other inline contenteditable`);
+      } else {
+        is(otherContenteditable.innerHTML, "MdragmeM",
+          `${description}: dragged content should be inserted into other inline contenteditable`);
+      }
+      is(beforeinputEvents.length, 2,
+        `${description}: 2 "beforeinput" events should be fired on inline contenteditable`);
+      checkInputEvent(beforeinputEvents[0], contenteditable, "deleteByDrag", null, null,
+                      [{startContainer: contenteditable.firstChild, startOffset: 0,
+                        endContainer: contenteditable.firstChild, endOffset: "dragme".length}],
+                      description);
+      checkInputEvent(beforeinputEvents[1], otherContenteditable, "insertFromDrop", null,
+                      [{type: "text/html", data: "dragme"},
+                      {type: "text/plain", data: "dragme"}],
+                      [{startContainer: otherContenteditable.firstChild, startOffset: kExpectedOffsets[0],
+                        endContainer: otherContenteditable.firstChild, endOffset: kExpectedOffsets[1]}],
+                      description);
+      is(inputEvents.length, 2,
+        `${description}: 2 "input" events should be fired on inline contenteditable`);
+      checkInputEvent(inputEvents[0], contenteditable, "deleteByDrag", null, null, [], description);
+      checkInputEvent(inputEvents[1], otherContenteditable, "insertFromDrop", null,
+                      [{type: "text/html", data: "dragme"},
+                      {type: "text/plain", data: "dragme"}],
+                      [],
+                      description);
+      is(dragEvents.length, 1,
+        `${description}: only one "drop" event should be fired on other inline contenteditable`);
+    }
+    document.removeEventListener("drop", onDrop);
+  })();
+
   // We need to clean up contenteditable=plaintext-only before the pref enabling it is cleared.
   container.innerHTML = "";
 
