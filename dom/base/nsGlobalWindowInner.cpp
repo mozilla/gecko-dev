@@ -2476,12 +2476,6 @@ void nsPIDOMWindowInner::CreatePerformanceObjectIfNeeded() {
   }
   RefPtr<nsDOMNavigationTiming> timing = mDoc->GetNavigationTiming();
   nsCOMPtr<nsITimedChannel> timedChannel(do_QueryInterface(mDoc->GetChannel()));
-  bool timingEnabled = false;
-  if (!timedChannel ||
-      !NS_SUCCEEDED(timedChannel->GetTimingEnabled(&timingEnabled)) ||
-      !timingEnabled) {
-    timedChannel = nullptr;
-  }
   if (timing) {
     mPerformance = Performance::CreateForMainThread(this, mDoc->NodePrincipal(),
                                                     timing, timedChannel);

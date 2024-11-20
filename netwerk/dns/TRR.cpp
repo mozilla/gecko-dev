@@ -440,11 +440,6 @@ nsresult TRR::SetupTRRServiceChannelInternal(nsIHttpChannel* aChannel,
     LOG(("TRR::SetupTRRServiceChannelInternal: couldn't set content-type!\n"));
   }
 
-  nsCOMPtr<nsITimedChannel> timedChan(do_QueryInterface(httpChannel));
-  if (timedChan) {
-    timedChan->SetTimingEnabled(true);
-  }
-
   return NS_OK;
 }
 

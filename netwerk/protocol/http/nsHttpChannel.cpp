@@ -1721,8 +1721,6 @@ nsresult nsHttpChannel::SetupChannelForTransaction() {
   // See bug #466080. Transfer LOAD_ANONYMOUS flag to socket-layer.
   if (mLoadFlags & LOAD_ANONYMOUS) mCaps |= NS_HTTP_LOAD_ANONYMOUS;
 
-  if (LoadTimingEnabled()) mCaps |= NS_HTTP_TIMING_ENABLED;
-
   if (mUpgradeProtocolCallback) {
     rv = mRequestHead.SetHeader(nsHttp::Upgrade, mUpgradeProtocol, false);
     MOZ_ASSERT(NS_SUCCEEDED(rv));
@@ -5263,8 +5261,6 @@ nsresult nsHttpChannel::ReadFromCache(void) {
   rv = mCachePump->AsyncRead(this);
   if (NS_FAILED(rv)) return rv;
 
-  if (LoadTimingEnabled()) mCacheReadStart = TimeStamp::Now();
-
   uint32_t suspendCount = mSuspendCount;
   if (LoadAsyncResumePending()) {
     LOG(
@@ -7179,9 +7175,8 @@ void nsHttpChannel::MaybeStartDNSPrefetch() {
     StoragePrincipalHelper::GetOriginAttributesForNetworkState(
         this, originAttributes);
 
-    mDNSPrefetch =
-        new nsDNSPrefetch(mURI, originAttributes, nsIRequest::GetTRRMode(),
-                          this, LoadTimingEnabled());
+    mDNSPrefetch = new nsDNSPrefetch(mURI, originAttributes,
+                                     nsIRequest::GetTRRMode(), this, true);
     nsIDNSService::DNSFlags dnsFlags = nsIDNSService::RESOLVE_DEFAULT_FLAGS;
     if (mCaps & NS_HTTP_REFRESH_DNS) {
       dnsFlags |= nsIDNSService::RESOLVE_BYPASS_CACHE;
@@ -8318,7 +8313,7 @@ nsHttpChannel::OnStopRequest(nsIRequest* request, nsresult status) {
     gIOService->RecheckCaptivePortal();
   }
 
-  if (LoadTimingEnabled() && request == mCachePump) {
+  if (request == mCachePump) {
     mCacheReadEnd = TimeStamp::Now();
   }
 

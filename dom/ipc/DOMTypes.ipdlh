@@ -234,7 +234,6 @@ struct DocShellLoadStateInit
 
 struct TimedChannelInfo
 {
-  bool timingEnabled;
   int8_t redirectCount;
   int8_t internalRedirectCount;
   TimeStamp asyncOpen;

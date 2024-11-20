@@ -67,7 +67,6 @@ async function do_test_timing(url) {
 
   let chan = makeChan(url);
   let timedChannel = chan.QueryInterface(Ci.nsITimedChannel);
-  timedChannel.timingEnabled = true;
   await channelOpenPromise(chan);
   info(`secureConnectionStartTime=${timedChannel.secureConnectionStartTime}`);
   info(`connectEndTime=${timedChannel.connectEndTime}`);

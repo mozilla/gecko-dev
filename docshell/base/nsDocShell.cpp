@@ -9937,8 +9937,6 @@ nsIPrincipal* nsDocShell::GetInheritedPrincipal(
   }
 
   if (nsCOMPtr<nsITimedChannel> timedChannel = do_QueryInterface(channel)) {
-    timedChannel->SetTimingEnabled(true);
-
     nsString initiatorType;
     switch (aLoadInfo->InternalContentPolicyType()) {
       case nsIContentPolicy::TYPE_INTERNAL_EMBED:

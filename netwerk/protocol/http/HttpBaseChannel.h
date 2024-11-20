@@ -924,8 +924,6 @@ class HttpBaseChannel : public nsHashPropertyBag,
     (uint32_t, UploadStreamHasHeaders, 1),
     (uint32_t, ChannelIsForDownload, 1),
     (uint32_t, TracingEnabled, 1),
-    // True if timing collection is enabled
-    (uint32_t, TimingEnabled, 1),
     (uint32_t, ReportTiming, 1),
     (uint32_t, AllowSpdy, 1),
     (uint32_t, AllowHttp3, 1),

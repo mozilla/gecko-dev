@@ -28,11 +28,6 @@ interface nsIServerTiming : nsISupports {
 // All properties return zero if the value is not available
 [scriptable, builtinclass, uuid(ca63784d-959c-4c3a-9a59-234a2a520de0)]
 interface nsITimedChannel : nsISupports {
-  // Set this attribute to true to enable collection of timing data.
-  // channelCreationTime will be available even with this attribute set to
-  // false.
-  attribute boolean timingEnabled;
-
   // The number of redirects
   attribute uint8_t redirectCount;
   attribute uint8_t internalRedirectCount;

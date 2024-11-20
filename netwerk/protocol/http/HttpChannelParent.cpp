@@ -530,7 +530,6 @@ bool HttpChannelParent::DoAsyncOpen(
   if (httpChannelImpl) {
     httpChannelImpl->SetWarningReporter(this);
   }
-  httpChannel->SetTimingEnabled(true);
   if (mPBOverride != kPBOverride_Unset) {
     httpChannel->SetPrivate(mPBOverride == kPBOverride_Private);
   }

@@ -444,10 +444,6 @@ nsresult TRRServiceChannel::BeginConnect() {
     mConnectionInfo->SetNoSpdy(true);
   }
 
-  // If TimingEnabled flag is not set after OnModifyRequest() then
-  // clear the already recorded AsyncOpen value for consistency.
-  if (!LoadTimingEnabled()) mAsyncOpenTime = TimeStamp();
-
   // if this somehow fails we can go on without it
   Unused << gHttpHandler->AddConnectionHeader(&mRequestHead, mCaps);
 
@@ -651,8 +647,6 @@ nsresult TRRServiceChannel::SetupTransaction() {
   // See bug #466080. Transfer LOAD_ANONYMOUS flag to socket-layer.
   if (mLoadFlags & LOAD_ANONYMOUS) mCaps |= NS_HTTP_LOAD_ANONYMOUS;
 
-  if (LoadTimingEnabled()) mCaps |= NS_HTTP_TIMING_ENABLED;
-
   nsCOMPtr<nsIHttpPushListener> pushListener;
   NS_QueryNotificationCallbacks(mCallbacks, mLoadGroup,
                                 NS_GET_IID(nsIHttpPushListener),
@@ -776,9 +770,8 @@ void TRRServiceChannel::MaybeStartDNSPrefetch() {
        this, mCaps & NS_HTTP_REFRESH_DNS ? ", refresh requested" : ""));
 
   OriginAttributes originAttributes;
-  mDNSPrefetch =
-      new nsDNSPrefetch(mURI, originAttributes, nsIRequest::GetTRRMode(), this,
-                        LoadTimingEnabled());
+  mDNSPrefetch = new nsDNSPrefetch(mURI, originAttributes,
+                                   nsIRequest::GetTRRMode(), this, true);
   nsIDNSService::DNSFlags dnsFlags = nsIDNSService::RESOLVE_DEFAULT_FLAGS;
   if (mCaps & NS_HTTP_REFRESH_DNS) {
     dnsFlags |= nsIDNSService::RESOLVE_BYPASS_CACHE;

@@ -497,18 +497,6 @@ NullHttpChannel::GetIsDocument(bool* aIsDocument) {
 //-----------------------------------------------------------------------------
 
 NS_IMETHODIMP
-NullHttpChannel::GetTimingEnabled(bool* aTimingEnabled) {
-  // We don't want to report timing for null channels.
-  *aTimingEnabled = false;
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-NullHttpChannel::SetTimingEnabled(bool aTimingEnabled) {
-  return NS_ERROR_NOT_IMPLEMENTED;
-}
-
-NS_IMETHODIMP
 NullHttpChannel::GetRedirectCount(uint8_t* aRedirectCount) {
   return NS_ERROR_NOT_IMPLEMENTED;
 }

@@ -415,7 +415,6 @@ nsLoadGroup::SetDefaultLoadRequest(nsIRequest* aRequest) {
     mDefaultLoadIsTimed = timedChannel != nullptr;
     if (mDefaultLoadIsTimed) {
       timedChannel->GetChannelCreation(&mDefaultRequestCreationTime);
-      timedChannel->SetTimingEnabled(true);
     }
   }
   // Else, do not change the group's load flags (see bug 95981)
@@ -469,9 +468,6 @@ nsLoadGroup::AddRequest(nsIRequest* request, nsISupports* ctxt) {
   }
 
   if (mPriority != 0) RescheduleRequest(request, mPriority);
-
-  nsCOMPtr<nsITimedChannel> timedChannel = do_QueryInterface(request);
-  if (timedChannel) timedChannel->SetTimingEnabled(true);
 
   bool foreground = !(flags & nsIRequest::LOAD_BACKGROUND);
   if (foreground) {
@@ -829,9 +825,6 @@ void nsLoadGroup::TelemetryReport() {
 void nsLoadGroup::TelemetryReportChannel(nsITimedChannel* aTimedChannel,
                                          bool aDefaultRequest) {
   nsresult rv;
-  bool timingEnabled;
-  rv = aTimedChannel->GetTimingEnabled(&timingEnabled);
-  if (NS_FAILED(rv) || !timingEnabled) return;
 
   TimeStamp asyncOpen;
   rv = aTimedChannel->GetAsyncOpen(&asyncOpen);

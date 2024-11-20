@@ -125,9 +125,7 @@ void InterceptedHttpChannel::AsyncOpenInternal() {
 
   // We should have pre-set the AsyncOpen time based on the original channel if
   // timings are enabled.
-  if (LoadTimingEnabled()) {
-    MOZ_DIAGNOSTIC_ASSERT(!mAsyncOpenTime.IsNull());
-  }
+  MOZ_DIAGNOSTIC_ASSERT(!mAsyncOpenTime.IsNull());
 
   StoreIsPending(true);
   StoreResponseCouldBeSynthesized(true);

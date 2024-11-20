@@ -223,8 +223,6 @@ class nsHttpTransaction final : public nsAHttpTransaction,
   [[nodiscard]] static nsresult WritePipeSegment(nsIOutputStream*, void*, char*,
                                                  uint32_t, uint32_t, uint32_t*);
 
-  bool TimingEnabled() const { return mCaps & NS_HTTP_TIMING_ENABLED; }
-
   bool ResponseTimeoutEnabled() const final;
 
   void ReuseConnectionOnRestartOK(bool reuseOk) override {

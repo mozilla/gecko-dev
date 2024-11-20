@@ -105,9 +105,6 @@ constexpr nsLiteralCString kHttp3Versions[] = {"h3-29"_ns, "h3-30"_ns,
 // to the server (see bug #466080), but is may also be used for other things
 #define NS_HTTP_LOAD_ANONYMOUS (1 << 4)
 
-// a transaction with this caps flag keeps timing information
-#define NS_HTTP_TIMING_ENABLED (1 << 5)
-
 // a transaction with this flag blocks the initiation of other transactons
 // in the same load group until it is complete
 #define NS_HTTP_LOAD_AS_BLOCKING (1 << 6)
