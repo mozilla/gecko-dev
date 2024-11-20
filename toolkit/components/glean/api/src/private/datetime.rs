@@ -11,13 +11,69 @@ use crate::ipc::need_ipc;
 use chrono::{FixedOffset, TimeZone};
 use glean::traits::Datetime;
 
+#[cfg(feature = "with_gecko")]
+use super::profiler_utils::{
+    glean_to_chrono_datetime, local_now_with_offset, lookup_canonical_metric_name, LookupError,
+};
+
+#[cfg(feature = "with_gecko")]
+use gecko_profiler::gecko_profiler_category;
+
+#[cfg(feature = "with_gecko")]
+#[derive(serde::Serialize, serde::Deserialize, Debug)]
+struct DatetimeMetricMarker {
+    id: MetricId,
+    time: chrono::DateTime<FixedOffset>,
+}
+
+#[cfg(feature = "with_gecko")]
+impl gecko_profiler::ProfilerMarker for DatetimeMetricMarker {
+    fn marker_type_name() -> &'static str {
+        "DatetimeMetric"
+    }
+
+    fn marker_type_display() -> gecko_profiler::MarkerSchema {
+        use gecko_profiler::schema::*;
+        let mut schema = MarkerSchema::new(&[Location::MarkerChart, Location::MarkerTable]);
+        schema.set_tooltip_label("{marker.data.id} {marker.data.time}");
+        schema.set_table_label("{marker.name} - {marker.data.id}: {marker.data.time}");
+        schema.add_key_label_format_searchable(
+            "id",
+            "Metric",
+            Format::UniqueString,
+            Searchable::Searchable,
+        );
+        // Note: there is no native profiler format for timestamps.
+        // Bug 1926644 tracks the work of adding this.
+        schema.add_key_label_format("time", "Time", Format::String);
+        schema
+    }
+
+    fn stream_json_marker_data(&self, json_writer: &mut gecko_profiler::JSONWriter) {
+        json_writer.unique_string_property(
+            "id",
+            lookup_canonical_metric_name(&self.id).unwrap_or_else(LookupError::as_str),
+        );
+        // chrono::DateTime format results in an intermediate struct that we need
+        // to format *again*.
+        let datestring = format!("{}", self.time.format("%+"));
+        json_writer.string_property("time", datestring.as_str());
+    }
+}
+
 /// A datetime metric of a certain resolution.
 ///
 /// Datetimes are used to make record when something happened according to the
 /// client's clock.
 #[derive(Clone)]
 pub enum DatetimeMetric {
-    Parent(glean::private::DatetimeMetric),
+    Parent {
+        /// The metric's ID.
+        ///
+        /// Only useful for emitting markers to the firefox profiler.
+        id: MetricId,
+        inner: glean::private::DatetimeMetric,
+    },
     Child(DatetimeMetricIpc),
 }
 #[derive(Debug, Clone)]
@@ -25,11 +81,14 @@ pub struct DatetimeMetricIpc;
 
 impl DatetimeMetric {
     /// Create a new datetime metric.
-    pub fn new(_id: MetricId, meta: CommonMetricData, time_unit: TimeUnit) -> Self {
+    pub fn new(id: MetricId, meta: CommonMetricData, time_unit: TimeUnit) -> Self {
         if need_ipc() {
             DatetimeMetric::Child(DatetimeMetricIpc)
         } else {
-            DatetimeMetric::Parent(glean::private::DatetimeMetric::new(meta, time_unit))
+            DatetimeMetric::Parent {
+                id: id,
+                inner: glean::private::DatetimeMetric::new(meta, time_unit),
+            }
         }
     }
 
@@ -68,7 +127,8 @@ impl DatetimeMetric {
         offset_seconds: i32,
     ) {
         match self {
-            DatetimeMetric::Parent(p) => {
+            #[allow(unused)]
+            DatetimeMetric::Parent { id, inner } => {
                 let tz = FixedOffset::east_opt(offset_seconds);
                 if tz.is_none() {
                     log::error!(
@@ -83,10 +143,47 @@ impl DatetimeMetric {
                     .ymd_opt(year, month, day)
                     .and_hms_nano_opt(hour, minute, second, nano);
                 match value.single() {
-                    Some(d) => p.set(Some(d.into())),
+                    Some(d) => {
+                        #[cfg(feature = "with_gecko")]
+                        if gecko_profiler::can_accept_markers() {
+                            gecko_profiler::add_marker(
+                                "Datetime::set",
+                                gecko_profiler_category!(Telemetry),
+                                Default::default(),
+                                DatetimeMetricMarker { id: *id, time: d },
+                            );
+                        }
+                        inner.set(Some(d.into()));
+                    }
                     _ => {
-                        log::error!("Unable to construct datetime")
+                        log::error!("Unable to construct datetime");
                         // TODO: Record an error
+                        // Record a simple text marker with this error.
+                        // We expect this to happen exceedingly rarely,
+                        // so use the (slightly) expensive function to get
+                        // the metric's name here.
+                        #[cfg(feature = "with_gecko")]
+                        if gecko_profiler::can_accept_markers() {
+                            let payload = format!(
+                                "Conversion failed for metric {}: {} {} {} {} {} {} {} {}",
+                                lookup_canonical_metric_name(id)
+                                    .unwrap_or_else(LookupError::as_str),
+                                year,
+                                month,
+                                day,
+                                hour,
+                                minute,
+                                second,
+                                nano,
+                                offset_seconds
+                            );
+                            gecko_profiler::add_text_marker(
+                                "Datetime::set",
+                                gecko_profiler_category!(Telemetry),
+                                Default::default(),
+                                payload.as_str(),
+                            );
+                        }
                     }
                 }
             }
@@ -111,8 +208,44 @@ impl Datetime for DatetimeMetric {
     ///             If None we use the current local time.
     pub fn set(&self, value: Option<glean::Datetime>) {
         match self {
-            DatetimeMetric::Parent(p) => {
-                p.set(value);
+            #[allow(unused)]
+            DatetimeMetric::Parent { id, inner } => {
+                // The underlying glean impl will use the time *now* if value
+                // is None, so we re-produce the behaviour here so that the
+                // marker reflects what's actually being recorded.
+                #[cfg(feature = "with_gecko")]
+                if gecko_profiler::can_accept_markers() {
+                    // first, make sure that we actually have a value
+                    match value {
+                        Some(ref d) => {
+                            // If we do, try and turn it into a chrono::DateTime
+                            // Only record a marker if we succeed.
+                            glean_to_chrono_datetime(d)
+                                .and_then(|c| c.single())
+                                .map(|c| {
+                                    gecko_profiler::add_marker(
+                                        "Datetime::set",
+                                        gecko_profiler_category!(Telemetry),
+                                        Default::default(),
+                                        DatetimeMetricMarker { id: *id, time: c },
+                                    );
+                                });
+                        }
+                        None => {
+                            // Otherwise, record the marker with the time now
+                            gecko_profiler::add_marker(
+                                "Datetime::set",
+                                gecko_profiler_category!(Telemetry),
+                                Default::default(),
+                                DatetimeMetricMarker {
+                                    id: *id,
+                                    time: local_now_with_offset(),
+                                },
+                            );
+                        }
+                    };
+                }
+                inner.set(value);
             }
             DatetimeMetric::Child(_) => {
                 log::error!(
@@ -144,7 +277,7 @@ impl Datetime for DatetimeMetric {
     ) -> Option<glean::Datetime> {
         let ping_name = ping_name.into().map(|s| s.to_string());
         match self {
-            DatetimeMetric::Parent(p) => p.test_get_value(ping_name),
+            DatetimeMetric::Parent { inner, .. } => inner.test_get_value(ping_name),
             DatetimeMetric::Child(_) => {
                 panic!("Cannot get test value for DatetimeMetric in non-main process!")
             }
@@ -166,7 +299,7 @@ impl Datetime for DatetimeMetric {
     /// The number of errors reported.
     pub fn test_get_num_recorded_errors(&self, error: glean::ErrorType) -> i32 {
         match self {
-            DatetimeMetric::Parent(p) => p.test_get_num_recorded_errors(error),
+            DatetimeMetric::Parent { inner, .. } => inner.test_get_num_recorded_errors(error),
             DatetimeMetric::Child(_) => panic!(
                 "Cannot get the number of recorded errors for DatetimeMetric in non-main process!"
             ),

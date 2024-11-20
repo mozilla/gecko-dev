@@ -199,6 +199,78 @@ pub(crate) mod profiler_utils {
             json_writer.string_property("value", self.value.as_str());
         }
     }
+
+    // Get the datetime *now*
+    // From https://searchfox.org/mozilla-central/source/third_party/rust/glean-core/src/util.rs#51
+    // This should be removed when Bug 1925313 is fixed.
+    /// Get the current date & time with a fixed-offset timezone.
+    ///
+    /// This converts from the `Local` timezone into its fixed-offset equivalent.
+    /// If a timezone outside of [-24h, +24h] is detected it corrects the timezone offset to UTC (+0).
+    pub(crate) fn local_now_with_offset() -> chrono::DateTime<chrono::FixedOffset> {
+        use chrono::{DateTime, Local};
+        #[cfg(target_os = "windows")]
+        {
+            // `Local::now` takes the user's timezone offset
+            // and panics if it's not within a range of [-24, +24] hours.
+            // This causes crashes in a small number of clients on Windows.
+            //
+            // We can't determine the faulty clients
+            // or the circumstancens under which this happens,
+            // so the best we can do is have a workaround:
+            //
+            // We try getting the time and timezone first,
+            // then manually check that it is a valid timezone offset.
+            // If it is, we proceed and use that time and offset.
+            // If it isn't we fallback to UTC.
+            //
+            // This has the small downside that it will use 2 calls to get the time,
+            // but only on Windows.
+            //
+            // See https://bugzilla.mozilla.org/show_bug.cgi?id=1611770.
+
+            use chrono::{FixedOffset, Utc};
+            use time;
+
+            // Get timespec, including the user's timezone.
+            let tm = time::now();
+            // Same as chrono:
+            // https://docs.rs/chrono/0.4.10/src/chrono/offset/local.rs.html#37
+            let offset = tm.tm_utcoff;
+            if let None = FixedOffset::east_opt(offset) {
+                log::warn!(
+                    "Detected invalid timezone offset: {}. Using UTC fallback.",
+                    offset
+                );
+                let now: DateTime<Utc> = Utc::now();
+                let utc_offset = FixedOffset::east(0);
+                return now.with_timezone(&utc_offset);
+            }
+        }
+
+        let now: DateTime<Local> = Local::now();
+        now.with_timezone(now.offset())
+    }
+
+    /// Try to convert a glean::Datetime into a chrono::DateTime Returns none if
+    /// the glean::Datetime offset is not a valid timezone We would prefer to
+    /// use .into or similar, but we need to wait until this is implemented in
+    /// the Glean SDK. See Bug 1925313 for more details.
+    pub(crate) fn glean_to_chrono_datetime(
+        gdt: &glean::Datetime,
+    ) -> Option<chrono::LocalResult<chrono::DateTime<chrono::FixedOffset>>> {
+        use chrono::{FixedOffset, TimeZone};
+        let tz = FixedOffset::east_opt(gdt.offset_seconds);
+        if tz.is_none() {
+            return None;
+        }
+
+        Some(
+            FixedOffset::east(gdt.offset_seconds)
+                .ymd_opt(gdt.year, gdt.month, gdt.day)
+                .and_hms_nano_opt(gdt.hour, gdt.minute, gdt.second, gdt.nanosecond),
+        )
+    }
 }
 
 // These two methods, and the constant function, "live" within profiler_utils,
