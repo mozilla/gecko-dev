@@ -72,7 +72,6 @@ import org.mozilla.fenix.helpers.click
 import org.mozilla.fenix.helpers.ext.waitNotNull
 import org.mozilla.fenix.settings.SupportUtils
 import org.mozilla.fenix.tabstray.TabsTrayTestTag
-import java.net.URI
 import java.time.LocalDate
 
 class BrowserRobot {
@@ -89,7 +88,6 @@ class BrowserRobot {
 
     fun verifyUrl(url: String) {
         sessionLoadedIdlingResource = SessionLoadedIdlingResource()
-        var _url = URI(url)
 
         registerAndCleanupIdlingResources(sessionLoadedIdlingResource) {
             // Check if toolbar is displayed
@@ -112,7 +110,7 @@ class BrowserRobot {
             assertUIObjectExists(
                 itemWithResIdContainingText(
                     "$packageName:id/mozac_browser_toolbar_url_view",
-                    _url.host,
+                    url.replace("http://", ""),
                 ),
             )
         }
