@@ -5,10 +5,13 @@
 package org.mozilla.fenix.webcompat.store
 
 import androidx.annotation.StringRes
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.res.stringResource
 import mozilla.components.lib.state.Action
 import mozilla.components.lib.state.State
 import mozilla.components.lib.state.UiStore
 import org.mozilla.fenix.R
+import org.mozilla.fenix.compose.MenuItem
 
 /**
  * Value type that represents the state of the WebCompat Reporter.
@@ -48,6 +51,33 @@ data class WebCompatReporterState(
             displayStringId = R.string.webcompat_reporter_reason_other,
         ),
     }
+
+    /**
+     * Helper function used to obtain the list of dropdown menu items derived from [BrokenSiteReason].
+     *
+     * @param onDropdownItemClick Callback invoked when the particular dropdown item is selected.
+     * @return The list of [MenuItem] to display in the dropdown.
+     */
+    @Composable
+    fun toDropdownItems(
+        onDropdownItemClick: (BrokenSiteReason) -> Unit,
+    ): List<MenuItem> {
+        return BrokenSiteReason.entries.map { reason ->
+            MenuItem(
+                title = stringResource(id = reason.displayStringId),
+                isChecked = this.reason == reason,
+                onClick = {
+                    onDropdownItemClick(reason)
+                },
+            )
+        }
+    }
+
+    /**
+     * Whether the URL text field has an error.
+     */
+    val hasUrlTextError: Boolean
+        get() = url.isEmpty()
 }
 
 /**
@@ -97,6 +127,21 @@ sealed class WebCompatReporterAction : Action {
     data object BackPressed : WebCompatReporterAction()
 }
 
+private fun reduce(
+    state: WebCompatReporterState,
+    action: WebCompatReporterAction,
+): WebCompatReporterState = when (action) {
+    is WebCompatReporterAction.BrokenSiteChanged -> state.copy(url = action.newUrl)
+    is WebCompatReporterAction.ProblemDescriptionChanged -> state.copy(
+        problemDescription = action.newProblemDescription,
+    )
+    is WebCompatReporterAction.ReasonChanged -> state.copy(reason = action.newReason)
+    WebCompatReporterAction.SendMoreInfoClicked -> state
+    WebCompatReporterAction.SendReportClicked -> state
+    WebCompatReporterAction.BackPressed -> state
+    WebCompatReporterAction.CancelClicked -> state
+}
+
 /**
  * A [UiStore] that holds the [WebCompatReporterState] for the WebCompat Reporter and reduces
  * [WebCompatReporterAction]s dispatched to the store.
@@ -105,5 +150,5 @@ class WebCompatReporterStore(
     initialState: WebCompatReporterState = WebCompatReporterState(),
 ) : UiStore<WebCompatReporterState, WebCompatReporterAction>(
     initialState,
-    { _, _ -> WebCompatReporterState() },
+    ::reduce,
 )

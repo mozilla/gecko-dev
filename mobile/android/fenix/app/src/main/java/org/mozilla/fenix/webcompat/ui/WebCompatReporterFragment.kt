@@ -4,27 +4,28 @@
 
 package org.mozilla.fenix.webcompat.ui
 
-import android.os.Bundle
-import android.view.LayoutInflater
-import android.view.View
-import android.view.ViewGroup
-import androidx.compose.ui.platform.ComposeView
-import androidx.compose.ui.platform.ViewCompositionStrategy
+import androidx.compose.runtime.Composable
 import androidx.fragment.app.Fragment
+import org.mozilla.fenix.components.lazyStore
+import org.mozilla.fenix.compose.ComposeFragment
 import org.mozilla.fenix.theme.FirefoxTheme
+import org.mozilla.fenix.webcompat.store.WebCompatReporterStore
 
 /**
  * [Fragment] for displaying the WebCompat Reporter.
  */
-class WebCompatReporterFragment : Fragment() {
-    override fun onCreateView(
-        inflater: LayoutInflater,
-        container: ViewGroup?,
-        savedInstanceState: Bundle?,
-    ): View = ComposeView(requireContext()).apply {
-        setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnLifecycleDestroyed(viewLifecycleOwner))
-        setContent {
-            FirefoxTheme {}
+class WebCompatReporterFragment : ComposeFragment() {
+
+    private val webCompatReporterStore by lazyStore {
+        WebCompatReporterStore()
+    }
+
+    @Composable
+    override fun UI() {
+        FirefoxTheme {
+            WebCompatReporter(
+                store = webCompatReporterStore,
+            )
         }
     }
 }
