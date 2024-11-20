@@ -409,34 +409,6 @@ class TextInputDelegateTest : BaseSessionTest() {
         })
     }
 
-    @WithDisplay(width = 100, height = 100)
-    @Test
-    fun showSoftInputOnDesignMode() {
-        // This test is for design mode only
-        assumeThat("in designmode", id, equalTo("#designmode"))
-
-        mainSession.loadTestPath(HELLO_HTML_PATH)
-        mainSession.waitForPageStop()
-
-        mainSession.evaluateJS("document.designMode = 'on'")
-
-        mainSession.synthesizeTap(50, 50)
-
-        mainSession.waitUntilCalled(object : TextInputDelegate {
-            @AssertCalled(count = 1)
-            override fun showSoftInput(session: GeckoSession) {
-            }
-        })
-
-        mainSession.evaluateJS("document.designMode = 'off'")
-
-        mainSession.waitUntilCalled(object : TextInputDelegate {
-            @AssertCalled(count = 1)
-            override fun hideSoftInput(session: GeckoSession) {
-            }
-        })
-    }
-
     private fun getText(ic: InputConnection) =
         ic.getExtractedText(ExtractedTextRequest(), 0).text.toString()
 

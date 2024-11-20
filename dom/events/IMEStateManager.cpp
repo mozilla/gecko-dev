@@ -1029,10 +1029,7 @@ void IMEStateManager::OnClickInEditor(nsPresContext& aPresContext,
            GetBoolName(sTextInputHandlingWidget &&
                        !sTextInputHandlingWidget->Destroyed())));
 
-  if (sFocusedPresContext != &aPresContext ||
-      (sFocusedElement != aElement &&
-       ((sFocusedElement && !sFocusedElement->IsInDesignMode()) ||
-        (aElement && !aElement->IsInDesignMode()))) ||
+  if (sFocusedPresContext != &aPresContext || sFocusedElement != aElement ||
       NS_WARN_IF(!sFocusedPresContext) ||
       NS_WARN_IF(!sTextInputHandlingWidget) ||
       NS_WARN_IF(sTextInputHandlingWidget->Destroyed())) {
