@@ -419,7 +419,7 @@ browser_ml_suggest_intent_perf.js
 ::
 
  --perfherder
- --perfherder-metrics name:intent-pipeline-ready-latency,unit:ms,shouldAlert:True, name:intent-initialization-latency,unit:ms,shouldAlert:True, name:intent-model-run-latency,unit:ms,shouldAlert:True, name:intent-pipeline-ready-memory,unit:MB,shouldAlert:True, name:intent-initialization-memory,unit:MB,shouldAlert:True, name:intent-model-run-memory,unit:MB,shouldAlert:True
+ --perfherder-metrics name:intent-pipeline-ready-latency,unit:ms,shouldAlert:True, name:intent-initialization-latency,unit:ms,shouldAlert:True, name:intent-model-run-latency,unit:ms,shouldAlert:True, name:intent-pipeline-ready-memory,unit:MB,shouldAlert:True, name:intent-initialization-memory,unit:MB,shouldAlert:True, name:intent-model-run-memory,unit:MB,shouldAlert:True, name:intent-total-memory-usage,unit:MB,shouldAlert:True
  --verbose
  --manifest perftest.toml
  --manifest-flavor browser-chrome
@@ -437,7 +437,7 @@ browser_ml_suggest_ner_perf.js
 ::
 
  --perfherder
- --perfherder-metrics name:NER-pipeline-ready-latency,unit:ms,shouldAlert:True, name:NER-initialization-latency,unit:ms,shouldAlert:True, name:NER-model-run-latency,unit:ms,shouldAlert:True, name:NER-pipeline-ready-memory,unit:MB,shouldAlert:True, name:NER-initialization-memory,unit:MB,shouldAlert:True, name:NER-model-run-memory,unit:MB,shouldAlert:True
+ --perfherder-metrics name:NER-pipeline-ready-latency,unit:ms,shouldAlert:True, name:NER-initialization-latency,unit:ms,shouldAlert:True, name:NER-model-run-latency,unit:ms,shouldAlert:True, name:NER-pipeline-ready-memory,unit:MB,shouldAlert:True, name:NER-initialization-memory,unit:MB,shouldAlert:True, name:NER-model-run-memory,unit:MB,shouldAlert:True, name:NER-total-memory-usage,unit:MB,shouldAlert:True
  --verbose
  --manifest perftest.toml
  --manifest-flavor browser-chrome
@@ -455,7 +455,7 @@ browser_ml_engine_perf.js
 ::
 
  --perfherder
- --perfherder-metrics name:pipeline-ready-latency,unit:ms,shouldAlert:True, name:initialization-latency,unit:ms,shouldAlert:True, name:model-run-latency,unit:ms,shouldAlert:True, name:pipeline-ready-memory,unit:MB,shouldAlert:True, name:initialization-memory,unit:MB,shouldAlert:True, name:model-run-memory,unit:MB,shouldAlert:True
+ --perfherder-metrics name:pipeline-ready-latency,unit:ms,shouldAlert:True, name:initialization-latency,unit:ms,shouldAlert:True, name:model-run-latency,unit:ms,shouldAlert:True, name:pipeline-ready-memory,unit:MB,shouldAlert:True, name:initialization-memory,unit:MB,shouldAlert:True, name:model-run-memory,unit:MB,shouldAlert:True, name:total-memory-usage,unit:MB,shouldAlert:True
  --verbose
  --manifest perftest.toml
  --manifest-flavor browser-chrome
@@ -473,7 +473,7 @@ browser_ml_engine_multi_perf.js
 ::
 
  --perfherder
- --perfherder-metrics name:intent-pipeline-ready-latency,unit:ms,shouldAlert:True, name:intent-initialization-latency,unit:ms,shouldAlert:True, name:intent-model-run-latency,unit:ms,shouldAlert:True, name:intent-pipeline-ready-memory,unit:MB,shouldAlert:True, name:intent-initialization-memory,unit:MB,shouldAlert:True, name:intent-model-run-memory,unit:MB,shouldAlert:True, name:suggest-pipeline-ready-latency,unit:ms,shouldAlert:True, name:suggest-initialization-latency,unit:ms,shouldAlert:True, name:suggest-model-run-latency,unit:ms,shouldAlert:True, name:suggest-pipeline-ready-memory,unit:MB,shouldAlert:True, name:suggest-initialization-memory,unit:MB,shouldAlert:True, name:suggest-model-run-memory,unit:MB,shouldAlert:True, name:engine3-pipeline-ready-latency,unit:ms,shouldAlert:True, name:engine3-initialization-latency,unit:ms,shouldAlert:True, name:engine3-model-run-latency,unit:ms,shouldAlert:True, name:engine3-pipeline-ready-memory,unit:MB,shouldAlert:True, name:engine3-initialization-memory,unit:MB,shouldAlert:True, name:engine3-model-run-memory,unit:MB,shouldAlert:True, name:engine4-pipeline-ready-latency,unit:ms,shouldAlert:True, name:engine4-initialization-latency,unit:ms,shouldAlert:True, name:engine4-model-run-latency,unit:ms,shouldAlert:True, name:engine4-pipeline-ready-memory,unit:MB,shouldAlert:True, name:engine4-initialization-memory,unit:MB,shouldAlert:True, name:engine4-model-run-memory,unit:MB,shouldAlert:True
+ --perfherder-metrics name:intent-pipeline-ready-latency,unit:ms,shouldAlert:True, name:intent-initialization-latency,unit:ms,shouldAlert:True, name:intent-model-run-latency,unit:ms,shouldAlert:True, name:intent-pipeline-ready-memory,unit:MB,shouldAlert:True, name:intent-initialization-memory,unit:MB,shouldAlert:True, name:intent-model-run-memory,unit:MB,shouldAlert:True, name:intent-total-memory-usage,unit:MB,shouldAlert:True, name:suggest-pipeline-ready-latency,unit:ms,shouldAlert:True, name:suggest-initialization-latency,unit:ms,shouldAlert:True, name:suggest-model-run-latency,unit:ms,shouldAlert:True, name:suggest-pipeline-ready-memory,unit:MB,shouldAlert:True, name:suggest-initialization-memory,unit:MB,shouldAlert:True, name:suggest-model-run-memory,unit:MB,shouldAlert:True, name:suggest-total-memory-usage,unit:MB,shouldAlert:True, name:engine3-pipeline-ready-latency,unit:ms,shouldAlert:True, name:engine3-initialization-latency,unit:ms,shouldAlert:True, name:engine3-model-run-latency,unit:ms,shouldAlert:True, name:engine3-pipeline-ready-memory,unit:MB,shouldAlert:True, name:engine3-initialization-memory,unit:MB,shouldAlert:True, name:engine3-model-run-memory,unit:MB,shouldAlert:True, name:engine3-total-memory-usage,unit:MB,shouldAlert:True, name:engine4-pipeline-ready-latency,unit:ms,shouldAlert:True, name:engine4-initialization-latency,unit:ms,shouldAlert:True, name:engine4-model-run-latency,unit:ms,shouldAlert:True, name:engine4-pipeline-ready-memory,unit:MB,shouldAlert:True, name:engine4-initialization-memory,unit:MB,shouldAlert:True, name:engine4-model-run-memory,unit:MB,shouldAlert:True, name:engine4-total-memory-usage,unit:MB,shouldAlert:True
  --verbose
  --manifest perftest.toml
  --manifest-flavor browser-chrome
