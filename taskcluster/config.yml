@@ -240,6 +240,7 @@ treeherder:
         'Searchfox': 'Searchfox builds'
         'SM': 'Spidermonkey builds'
         'p': 'Partial generation'
+        'pz': 'Partial-zucchini generation'
         'ps': 'Partials signing'
         'ms': 'Complete MAR signing'
         'ms-stage': 'Autograph-stage MAR signing test'

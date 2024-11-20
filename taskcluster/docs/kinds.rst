@@ -638,6 +638,14 @@ Partials takes the complete.mar files produced in previous tasks and generates p
 updates between previous nightly releases and the new one. Requires a release_history
 in the parameters. See ``mach release-history`` if doing this manually.
 
+partials-zucchini
+-----------------
+Partials-zucchini takes the complete.mar files produced in previous tasks and generates partial
+updates between previous nightly releases and the new one. Requires a release_history
+in the parameters. See ``mach release-history`` if doing this manually.
+The zucchini tool is compiled via toolchain task. The source code can be found at:
+https://chromium.googlesource.com/chromium/src/components/zucchini/
+
 partials-signing
 ----------------
 Partials-signing takes the partial updates produced in Partials and signs them.

@@ -1,0 +1,76 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+---
+loader: taskgraph.loader.transform:loader
+
+transforms:
+    - taskgraph.transforms.from_deps
+    - gecko_taskgraph.transforms.name_sanity
+    - gecko_taskgraph.transforms.partials_zucchini
+    - gecko_taskgraph.transforms.job
+    - gecko_taskgraph.transforms.task
+
+kind-dependencies:
+    - toolchain
+    - repackage
+    - repackage-l10n
+
+only-for-attributes:
+    - nightly
+    - shippable
+
+only-for-build-platforms:
+    - macosx64-shippable/opt
+    - macosx64-devedition/opt
+    - win32-shippable/opt
+    - win32-devedition/opt
+    - win64-shippable/opt
+    - win64-devedition/opt
+    - win64-aarch64-shippable/opt
+    - win64-aarch64-devedition/opt
+    - linux-shippable/opt
+    - linux-devedition/opt
+    - linux64-shippable/opt
+    - linux64-aarch64-shippable/opt
+    - linux64-devedition/opt
+
+tasks:
+    zucchini:
+        from-deps:
+            copy-attributes: true
+            group-by: single-with-filters
+        shipping-phase: promote
+        # Don't run on CI until we switch to zucchini partials
+        run-on-projects: []
+        fetches:
+            toolchain:
+                - linux64-zucchini-bin
+                - linux64-mar-tools
+        # treeherder: set in transform
+        worker-type: b-linux-gcp
+        worker:
+            artifacts:
+                - name: public/build
+                  type: directory
+                  path: /builds/worker/artifacts
+            docker-image:
+                in-tree: "debian12-base"
+            chain-of-trust: true
+            max-run-time: 5400
+            env:
+                # Defined in transform
+                MAR_CHANNEL_ID: TBD
+                FROM_MAR_TASK_ID: {"task-reference": "TBD"}
+        run:
+            using: run-task
+            cwd: "{checkout}"
+            # --from_url, --locale, --target and --arch parameters to be added in transform
+            command: >-
+                mkdir -p /builds/worker/artifacts/public/build &&
+                export PATH=$PATH:$MOZ_FETCHES_DIR &&
+                export PATH=$PATH:$MOZ_FETCHES_DIR/mar-tools &&
+                python3
+                tools/update-packaging/make_incremental_zucchini.py
+                --workdir=/builds/worker/workspace
+                --to_mar=$MOZ_FETCHES_DIR/target.complete.mar
