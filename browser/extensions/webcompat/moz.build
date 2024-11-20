@@ -72,6 +72,7 @@ FINAL_TARGET_FILES.features["webcompat@mozilla.org"]["injections"]["css"] += [
     "injections/css/bug1879879-developers.pinterest.com-list-alignment-fix.css",
     "injections/css/bug1886293-futurePLC-sites-trending_scrollbars.css",
     "injections/css/bug1886566-quezoncity.gov.ph-iframe-height.css",
+    "injections/css/bug1886591-la-vache-noire.com-cookie-banner-fix.css",
     "injections/css/bug1886616-www.six-group.com-select-fix.css",
     "injections/css/bug1895051-www.zhihu.com-broken-button-fix.css",
     "injections/css/bug1895994-softtrans.ro-unlock-scrolling.css",

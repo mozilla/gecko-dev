@@ -1185,6 +1185,20 @@ const AVAILABLE_INJECTIONS = [
       ],
     },
   },
+  {
+    id: "1886591",
+    platform: "all",
+    domain: "la-vache-noire.com",
+    bug: "1886591",
+    contentScripts: {
+      matches: ["*://la-vache-noire.com/*"],
+      css: [
+        {
+          file: "injections/css/bug1886591-la-vache-noire.com-cookie-banner-fix.css",
+        },
+      ],
+    },
+  },
 ];
 
 module.exports = AVAILABLE_INJECTIONS;
