@@ -14,6 +14,7 @@ import androidx.annotation.VisibleForTesting
 import androidx.coordinatorlayout.widget.CoordinatorLayout
 import androidx.core.view.ViewCompat
 import androidx.core.view.children
+import androidx.core.view.isVisible
 import mozilla.components.concept.engine.EngineView
 import mozilla.components.support.ktx.android.view.findViewInHierarchy
 import org.mozilla.fenix.R
@@ -33,10 +34,12 @@ import kotlin.math.min
 
 private const val SNAP_ANIMATION_DURATION = 150L
 private val BOTTOM_TOOLBAR_ANCHOR_IDS = listOf(
+    R.id.findInPageView,
     R.id.toolbar_navbar_container,
     R.id.toolbar,
 )
 private val TOP_TOOLBAR_ANCHOR_IDS = listOf(
+    R.id.findInPageView,
     R.id.toolbar_navbar_container,
 )
 
@@ -207,6 +210,7 @@ class DynamicDownloadDialogBehavior<V : View>(
     }
 
     private fun findAnchorInParent(root: ViewGroup) =
-        possibleAnchors.intersect(root.children.map { it.id }.toSet()).firstOrNull()
+        possibleAnchors
+            .intersect(root.children.filter { it.isVisible && it.height > 0 }.map { it.id }.toSet()).firstOrNull()
             ?.let { root.findViewById<View>(it) }
 }
