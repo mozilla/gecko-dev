@@ -8,7 +8,7 @@
 # documentation and how to modify this file.
 repo: mozilla-central
 created_at: '2021-10-14T12:50:40.073465'
-updated_at: '2024-11-14T23:41:50.615140+00:00'
+updated_at: '2024-11-19T09:32:55.817961+00:00'
 export:
   path: ./docs/mots/index.rst
   format: rst
@@ -484,6 +484,10 @@ people:
     bmo_id: 533624
     name: Jan-Erik Rediger
     nick: janerik
+  - &janika
+    bmo_id: 708468
+    name: Janika Neuberger
+    nick: janika
   - &janv
     bmo_id: 8340
     name: Jan Varga
@@ -3558,11 +3562,15 @@ modules:
         meta:
           owners_emeritus:
             - Matthew Noorenberghe
+            - *serg
+          peers_emeritus:
+            - *tgiles
         owners:
-          - *serg
-        peers:
-          - *tgiles
           - *dimi
+        peers:
+          - *enndeakin
+          - *issammani
+          - *janika
         machine_name: form_autofill
 
       - name: In-product Messaging
@@ -3661,12 +3669,13 @@ modules:
             - Compatibility
             - Firefox::about:logins
         owners:
-          - *dimi
-        peers:
-          - *enndeakin
-          - *issammani
           - *joschmidt
           - *micah
+        peers:
+          - *dimi
+          - *enndeakin
+          - *issammani
+          - *janika
         machine_name: password_manager
 
       - machine_name: firefox_pip
@@ -4495,5 +4504,5 @@ modules:
         - Ryan Tilder
       group: dev-platform
 hashes:
-  config: b942b23a79fe57b250d4fab82951d9c755dbc954
-  export: 50e502ebc58645c402ff7855df3bb277a960eca0
+  config: 2a5c4cb48b406e93e31e8ba99194ea05115a1b6c
+  export: 885173c4a20da1be754b43cc3868528db3529862
