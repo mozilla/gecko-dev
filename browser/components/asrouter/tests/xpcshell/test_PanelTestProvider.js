@@ -22,7 +22,7 @@ add_task(async function test_PanelTestProvider() {
     cfr_doorhanger: 1,
     milestone_message: 0,
     update_action: 1,
-    spotlight: 4,
+    spotlight: 5,
     feature_callout: 2,
     pb_newtab: 2,
     toast_notification: 3,

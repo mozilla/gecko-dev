@@ -4673,6 +4673,19 @@ BrowserGlue.prototype = {
     lazy.SpecialMessageActions.handleAction(config, gBrowser);
   },
 
+  async _showSetToDefaultSpotlight(message, browser) {
+    const config = {
+      type: "SHOW_SPOTLIGHT",
+      data: message,
+    };
+
+    try {
+      lazy.SpecialMessageActions.handleAction(config, browser);
+    } catch (e) {
+      console.error("Couldn't render spotlight", message, e);
+    }
+  },
+
   async _maybeShowDefaultBrowserPrompt() {
     // Highest priority is about:welcome window modal experiment
     // Second highest priority is the upgrade dialog, which can include a "primary
@@ -4730,6 +4743,21 @@ BrowserGlue.prototype = {
     );
     if (willPrompt) {
       let win = lazy.BrowserWindowTracker.getTopWindow();
+      let setToDefaultFeature = lazy.NimbusFeatures.setToDefaultPrompt;
+
+      // Send exposure telemetry if user will see default prompt or experimental
+      // message
+      await setToDefaultFeature.ready();
+      await setToDefaultFeature.recordExposureEvent();
+
+      const { showSpotlightPrompt, message } =
+        setToDefaultFeature.getAllVariables();
+
+      if (showSpotlightPrompt && message) {
+        // Show experimental message
+        this._showSetToDefaultSpotlight(message, win.gBrowser.selectedBrowser);
+        return;
+      }
       DefaultBrowserCheck.prompt(win);
     } else if (await lazy.QuickSuggest.maybeShowOnboardingDialog()) {
       return;

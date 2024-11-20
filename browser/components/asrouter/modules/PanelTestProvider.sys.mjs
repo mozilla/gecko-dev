@@ -20,6 +20,104 @@ const isMSIX =
 
 const MESSAGES = () => [
   {
+    id: "SET_DEFAULT_SPOTLIGHT_TEST",
+    template: "spotlight",
+    content: {
+      template: "multistage",
+      id: "SET_DEFAULT_SPOTLIGHT",
+      screens: [
+        {
+          id: "PROMPT_CLONE",
+          content: {
+            width: "377px",
+            tiles: {
+              type: "multiselect",
+              style: {
+                flexDirection: "column",
+                alignItems: "flex-start",
+              },
+              data: [
+                {
+                  id: "checkbox-dont-show-again",
+                  type: "checkbox",
+                  defaultValue: false,
+                  style: {
+                    alignItems: "center",
+                  },
+                  label: {
+                    raw: "Don't show this message again",
+                    fontSize: "13px",
+                  },
+                  icon: {
+                    style: {
+                      width: "16px",
+                      height: "16px",
+                      marginInline: "0 8px",
+                    },
+                  },
+                  action: {
+                    type: "SET_PREF",
+                    data: {
+                      pref: {
+                        name: "browser.shell.checkDefaultBrowser",
+                        value: false,
+                      },
+                    },
+                  },
+                },
+              ],
+            },
+            isSystemPromptStyleSpotlight: true,
+            title_logo: {
+              imageURL: "chrome://browser/content/assets/focus-logo.svg",
+              height: "16px",
+              width: "16px",
+            },
+            title: {
+              fontSize: "13px",
+              raw: "Make Nightly your default browser?",
+            },
+            subtitle: {
+              fontSize: "13px",
+              raw: "Keep Nightly at your fingertips — make it your default browser and keep it in your Dock.",
+            },
+            additional_button: {
+              label: {
+                raw: "Not now",
+              },
+              style: "secondary",
+              action: {
+                type: "MULTI_ACTION",
+                collectSelect: true,
+                data: {
+                  actions: [],
+                },
+                dismiss: true,
+              },
+            },
+            primary_button: {
+              label: {
+                raw: "Set as primary browser",
+              },
+              action: {
+                type: "MULTI_ACTION",
+                collectSelect: true,
+                data: {
+                  actions: [
+                    {
+                      type: "PIN_AND_DEFAULT",
+                    },
+                  ],
+                },
+                dismiss: true,
+              },
+            },
+          },
+        },
+      ],
+    },
+  },
+  {
     id: "NEW_PROFILE_SPOTLIGHT",
     groups: [],
     targeting: "canCreateSelectableProfiles && !hasSelectableProfiles",

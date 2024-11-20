@@ -535,6 +535,8 @@ export class ProtonScreen extends React.PureComponent {
         )
       : "";
     const isEmbeddedMigration = content.tiles?.type === "migration-wizard";
+    const isSystemPromptStyleSpotlight =
+      content.isSystemPromptStyleSpotlight === true;
 
     return (
       <main
@@ -556,7 +558,7 @@ export class ProtonScreen extends React.PureComponent {
         <div
           className={`section-main ${
             isEmbeddedMigration ? "embedded-migration" : ""
-          }`}
+          }${isSystemPromptStyleSpotlight ? "system-prompt-spotlight" : ""}`}
           hide-secondary-section={
             content.hide_secondary_section
               ? String(content.hide_secondary_section)

@@ -2243,6 +2243,10 @@ html {
       margin: auto;
     }
 
+    .section-main.system-prompt-spotlight {
+      margin-top: 100px;
+      margin-inline: auto;
+    }
     // Position of noodles on second screen
     .outline-L {
       width: 87px;
@@ -2331,6 +2335,11 @@ html {
       margin: auto;
     }
 
+    .section-main.system-prompt-spotlight {
+      margin-top: 100px;
+      margin-inline: auto;
+    }
+
     // Position of noodles on third screen
     .outline-L {
       width: 87px;
@@ -2407,6 +2416,43 @@ html {
           opacity: 0.2;
         }
       }
+    }
+  }
+
+  .system-prompt-spotlight {
+    .inline-icon-container {
+      display: flex;
+    }
+
+    .welcome-text {
+      align-items: flex-start;
+      padding: 5px;
+
+      h2 {
+        text-align: start;
+        margin: 0;
+        margin-block: 10px 15px;
+      }
+    }
+
+    .brand-logo {
+      margin-block: 2px;
+    }
+
+    .multi-select-container {
+      margin-inline-start: 23px;
+      margin-block-end: 17px;
+    }
+
+    .additional-cta-container {
+      display: flex;
+      flex-direction: row-reverse;
+      padding-inline-end: 15px;
+    }
+
+    .main-content.no-steps {
+      padding-bottom: 12px;
+      margin-inline: auto;
     }
   }
 
