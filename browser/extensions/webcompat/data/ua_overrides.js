@@ -1651,6 +1651,24 @@ const AVAILABLE_UA_OVERRIDES = [
       },
     },
   },
+  {
+    /*
+     * Bug 1899929 - UA override for selecionases.saude.pe.gov.br
+     * Webcompat issue #127079 - https://webcompat.com/issues/127079
+     *
+     * The site says Firefox is unsupported, yet seems to work with a Chrome UA.
+     */
+    id: "bug1899929",
+    platform: "all",
+    domain: "selecionases.saude.pe.gov.br",
+    bug: "1899929",
+    config: {
+      matches: ["*://selecionases.saude.pe.gov.br/*"],
+      uaTransformer: () => {
+        return UAHelpers.getDeviceAppropriateChromeUA();
+      },
+    },
+  },
 ];
 
 module.exports = AVAILABLE_UA_OVERRIDES;
