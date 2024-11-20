@@ -91,11 +91,11 @@ internal object DownloadNotification {
         return NotificationCompat.Builder(context, channelId)
             .setStyle(
                 NotificationCompat.BigTextStyle()
-                    .setBigContentTitle(downloadState.fileName)
+                    .setBigContentTitle(downloadState.fileName.orEmpty())
                     .setSummaryText(downloadJobState.getProgress()),
             )
             .setSmallIcon(R.drawable.mozac_feature_download_ic_ongoing_download)
-            .setContentTitle(downloadState.fileName)
+            .setContentTitle(downloadState.fileName.orEmpty())
             .setContentText(downloadJobState.getProgress())
             .setColor(ContextCompat.getColor(context, notificationAccentColor))
             .setCategory(NotificationCompat.CATEGORY_PROGRESS)
