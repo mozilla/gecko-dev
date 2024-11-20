@@ -107,7 +107,6 @@ class Tab extends PureComponent {
           sourceActor,
         }),
         forTab: true,
-        modifier: icon => (["file", "javascript"].includes(icon) ? null : icon),
       }),
       div(
         {

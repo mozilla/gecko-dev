@@ -373,7 +373,7 @@ add_task(async function testSourceTreeOnTheIntegrationTestPage() {
     }
   );
   await waitForPaused(dbg);
-  assertSourceIcon(dbg, "react-component-module.js", "react");
+  assertSourceIcon(dbg, "react-component-module.js", "javascript");
   await resume(dbg);
   await onResumed;
 
