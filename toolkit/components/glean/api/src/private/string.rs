@@ -9,47 +9,9 @@ use super::{CommonMetricData, MetricId};
 use crate::ipc::need_ipc;
 
 #[cfg(feature = "with_gecko")]
-use super::profiler_utils::{lookup_canonical_metric_name, LookupError};
-
+use super::profiler_utils::StringLikeMetricMarker;
 #[cfg(feature = "with_gecko")]
 use gecko_profiler::gecko_profiler_category;
-
-#[cfg(feature = "with_gecko")]
-#[derive(serde::Serialize, serde::Deserialize, Debug)]
-struct StringMetricMarker {
-    id: MetricId,
-    val: String,
-}
-
-#[cfg(feature = "with_gecko")]
-impl gecko_profiler::ProfilerMarker for StringMetricMarker {
-    fn marker_type_name() -> &'static str {
-        "StringMetric"
-    }
-
-    fn marker_type_display() -> gecko_profiler::MarkerSchema {
-        use gecko_profiler::schema::*;
-        let mut schema = MarkerSchema::new(&[Location::MarkerChart, Location::MarkerTable]);
-        schema.set_tooltip_label("{marker.data.id} {marker.data.val}");
-        schema.set_table_label("{marker.name} - {marker.data.id}: {marker.data.val}");
-        schema.add_key_label_format_searchable(
-            "id",
-            "Metric",
-            Format::String,
-            Searchable::Searchable,
-        );
-        schema.add_key_label_format("val", "Value", Format::String);
-        schema
-    }
-
-    fn stream_json_marker_data(&self, json_writer: &mut gecko_profiler::JSONWriter) {
-        json_writer.string_property(
-            "id",
-            lookup_canonical_metric_name(&self.id).unwrap_or_else(LookupError::as_str),
-        );
-        json_writer.string_property("val", self.val.as_str());
-    }
-}
 
 /// A string metric.
 ///
@@ -130,15 +92,14 @@ impl glean::traits::String for StringMetric {
             StringMetric::Parent { id, inner } => {
                 let value = value.into();
                 #[cfg(feature = "with_gecko")]
-                gecko_profiler::add_marker(
-                    "String::set",
-                    gecko_profiler_category!(Telemetry),
-                    Default::default(),
-                    StringMetricMarker {
-                        id: *id,
-                        val: value.clone(),
-                    },
-                );
+                if gecko_profiler::can_accept_markers() {
+                    gecko_profiler::add_marker(
+                        "String::set",
+                        gecko_profiler_category!(Telemetry),
+                        Default::default(),
+                        StringLikeMetricMarker::new(*id, &value),
+                    );
+                }
                 inner.set(value);
             }
             StringMetric::Child(_) => {

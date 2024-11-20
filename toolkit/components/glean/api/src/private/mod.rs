@@ -91,6 +91,7 @@ impl From<u32> for MetricId {
 // gated with the same #[cfg(feature...)]
 #[cfg(feature = "with_gecko")]
 pub(crate) mod profiler_utils {
+    use super::max_string_byte_length;
     pub(crate) use super::truncate_string_for_marker;
 
     #[derive(Debug)]
@@ -145,15 +146,74 @@ pub(crate) mod profiler_utils {
             }
         }
     }
+
+    #[derive(serde::Serialize, serde::Deserialize, Debug)]
+    pub(crate) struct StringLikeMetricMarker {
+        id: super::MetricId,
+        value: String,
+    }
+
+    impl StringLikeMetricMarker {
+        pub fn new(id: super::MetricId, value: &String) -> StringLikeMetricMarker {
+            StringLikeMetricMarker {
+                id: id,
+                value: truncate_string_for_marker(value.clone()),
+            }
+        }
+
+        pub fn new_owned(id: super::MetricId, value: String) -> StringLikeMetricMarker {
+            StringLikeMetricMarker {
+                id: id,
+                value: truncate_string_for_marker(value),
+            }
+        }
+    }
+
+    impl gecko_profiler::ProfilerMarker for StringLikeMetricMarker {
+        fn marker_type_name() -> &'static str {
+            "StringLikeMetric"
+        }
+
+        fn marker_type_display() -> gecko_profiler::MarkerSchema {
+            use gecko_profiler::schema::*;
+            let mut schema = MarkerSchema::new(&[Location::MarkerChart, Location::MarkerTable]);
+            schema.set_tooltip_label("{marker.data.id}");
+            schema.set_table_label("{marker.name} - {marker.data.id}: {marker.data.value}");
+            schema.add_key_label_format_searchable(
+                "id",
+                "Metric",
+                Format::UniqueString,
+                Searchable::Searchable,
+            );
+            schema.add_key_label_format("value", "Value", Format::String);
+            schema
+        }
+
+        fn stream_json_marker_data(&self, json_writer: &mut gecko_profiler::JSONWriter) {
+            json_writer.unique_string_property(
+                "id",
+                lookup_canonical_metric_name(&self.id).unwrap_or_else(LookupError::as_str),
+            );
+
+            debug_assert!(self.value.len() <= max_string_byte_length());
+            json_writer.string_property("value", self.value.as_str());
+        }
+    }
 }
 
-// These two methods "live" within profiler_utils, but as we need them available
-// testing, when we might not have gecko available, we use a different cfg
-// set of features to enable them in both cases.
+// These two methods, and the constant function, "live" within profiler_utils,
+// but as we need them available for testing, when we might not have gecko
+// available, we use a different set of cfg features to enable them in both
+// cases. Note that we re-export the main truncation method within
+// `profiler_utils` to correct the namespace.
 #[cfg(any(feature = "with_gecko", test))]
 pub(crate) fn truncate_string_for_marker(input: String) -> String {
-    const MAX_STRING_BYTE_LENGTH: usize = 1024;
-    truncate_string_for_marker_to_length(input, MAX_STRING_BYTE_LENGTH)
+    truncate_string_for_marker_to_length(input, max_string_byte_length())
+}
+
+#[cfg(any(feature = "with_gecko", test))]
+const fn max_string_byte_length() -> usize {
+    1024
 }
 
 #[cfg(any(feature = "with_gecko", test))]
