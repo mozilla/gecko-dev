@@ -27,6 +27,10 @@ const ARE_NON_CONTENT_USER_SCRIPTS_APIS_EXPOSED_TO_CONTENT = AppConstants.DEBUG;
 const server = createHttpServer({ hosts: ["example.com"] });
 server.registerPathHandler("/dummy", () => {});
 
+add_setup(() => {
+  Services.prefs.setBoolPref("extensions.userScripts.mv3.enabled", true);
+});
+
 // Test that manifest.user_scripts does not expose a userScripts API in MV3.
 add_task(async function legacy_userScripts_unavailable_in_mv3() {
   let extension = ExtensionTestUtils.loadExtension({
@@ -375,3 +379,46 @@ add_task(async function legacy_userScripts_plus_userScripts_permission_mv3() {
 
   await extension.unload();
 });
+
+async function do_test_userScripts_permission_unavailable(manifest_version) {
+  let extension = ExtensionTestUtils.loadExtension({
+    manifest: {
+      manifest_version,
+      permissions: ["userScripts"],
+    },
+    background() {
+      browser.test.assertEq(
+        undefined,
+        browser.userScripts,
+        "userScripts API unavailable when off by pref"
+      );
+      browser.test.sendMessage("bg_done");
+    },
+  });
+  await extension.startup();
+  await extension.awaitMessage("bg_done");
+
+  Assert.deepEqual(
+    extension.extension.warnings,
+    ["Reading manifest: Invalid extension permission: userScripts"],
+    "userScripts permission unavailable when off by pref"
+  );
+
+  await extension.unload();
+}
+
+add_task(
+  { pref_set: [["extensions.userScripts.mv3.enabled", false]] },
+  async function userScripts_permission_disabled_by_pref_mv2() {
+    // The only difference compared to pref on is that the warning is about an
+    // invalid extension permission, instead of requiring MV3.
+    await do_test_userScripts_permission_unavailable(2);
+  }
+);
+
+add_task(
+  { pref_set: [["extensions.userScripts.mv3.enabled", false]] },
+  async function userScripts_permission_disabled_by_pref_mv3() {
+    await do_test_userScripts_permission_unavailable(3);
+  }
+);

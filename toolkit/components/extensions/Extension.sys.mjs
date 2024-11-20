@@ -111,6 +111,17 @@ XPCOMUtils.defineLazyPreferenceGetter(
   true
 );
 
+// All functionality is gated by the "userScripts" permission, and forgetting
+// about its existence is enough to hide all userScripts functionality.
+// MV3 userScripts API in development (bug 1875475), off by default.
+// Not to be confused with MV2 and extensions.webextensions.userScripts.enabled!
+XPCOMUtils.defineLazyPreferenceGetter(
+  lazy,
+  "userScriptsMV3Enabled",
+  "extensions.userScripts.mv3.enabled",
+  false
+);
+
 // This pref modifies behavior for MV2.  MV3 is enabled regardless.
 XPCOMUtils.defineLazyPreferenceGetter(
   lazy,
@@ -371,6 +382,8 @@ function classifyPermission(perm, restrictSchemes, isPrivileged) {
   } else if (!isPrivileged && PRIVILEGED_PERMS.has(match[1])) {
     return { invalid: perm, privileged: true };
   } else if (perm.startsWith("declarativeNetRequest") && !lazy.dnrEnabled) {
+    return { invalid: perm };
+  } else if (perm === "userScripts" && !lazy.userScriptsMV3Enabled) {
     return { invalid: perm };
   }
   return { permission: perm };
