@@ -110,7 +110,8 @@ void XULFrameElement::LoadSrc() {
         *this, u"XULFrameLoaderCreated"_ns, CanBubble::eYes);
   }
 
-  mFrameLoader->LoadFrame(false);
+  mFrameLoader->LoadFrame(/* aOriginalSrc */ false,
+                          /* aShouldCheckForRecursion */ false);
 }
 
 void XULFrameElement::SwapFrameLoaders(HTMLIFrameElement& aOtherLoaderOwner,

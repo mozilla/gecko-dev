@@ -191,7 +191,7 @@ class nsFrameLoader final : public nsStubMutationObserver,
    * Start loading the frame. This method figures out what to load
    * from the owner content in the frame loader.
    */
-  void LoadFrame(bool aOriginalSrc);
+  void LoadFrame(bool aOriginalSrc, bool aShouldCheckForRecursion);
 
   /**
    * Loads the specified URI in this frame. Behaves identically to loadFrame,
@@ -207,7 +207,8 @@ class nsFrameLoader final : public nsStubMutationObserver,
    *        frame load is upgraded from http to https.
    */
   nsresult LoadURI(nsIURI* aURI, nsIPrincipal* aTriggeringPrincipal,
-                   nsIContentSecurityPolicy* aCsp, bool aOriginalSrc);
+                   nsIContentSecurityPolicy* aCsp, bool aOriginalSrc,
+                   bool aShouldCheckForRecursion);
 
   /**
    * Resume a redirected load within this frame.
@@ -548,6 +549,9 @@ class nsFrameLoader final : public nsStubMutationObserver,
   // True if a pending load corresponds to the original src (or srcdoc)
   // attribute of the frame element.
   bool mLoadingOriginalSrc : 1;
+
+  // True if a pending load corresponds to the src attribute being changed.
+  bool mShouldCheckForRecursion : 1;
 
   bool mRemoteBrowserShown : 1;
   bool mRemoteBrowserSized : 1;

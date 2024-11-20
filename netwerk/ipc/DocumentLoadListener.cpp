@@ -521,6 +521,10 @@ WindowGlobalParent* DocumentLoadListener::GetParentWindowContext() const {
 
 bool CheckRecursiveLoad(CanonicalBrowsingContext* aLoadingContext,
                         nsDocShellLoadState* aLoadState, bool aIsDocumentLoad) {
+  if (!aLoadState->ShouldCheckForRecursion()) {
+    return true;
+  }
+
   // Bug 136580: Check for recursive frame loading excluding about:srcdoc URIs.
   // srcdoc URIs require their contents to be specified inline, so it isn't
   // possible for undesirable recursion to occur without the aid of a

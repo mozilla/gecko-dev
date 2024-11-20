@@ -195,6 +195,7 @@ nsFrameLoader::nsFrameLoader(Element* aOwner, BrowsingContext* aBrowsingContext,
       mHideCalled(false),
       mNetworkCreated(aNetworkCreated),
       mLoadingOriginalSrc(false),
+      mShouldCheckForRecursion(false),
       mRemoteBrowserShown(false),
       mRemoteBrowserSized(false),
       mIsRemoteFrame(aIsRemoteFrame),
@@ -498,7 +499,8 @@ already_AddRefed<nsFrameLoader> nsFrameLoader::Recreate(
   return fl.forget();
 }
 
-void nsFrameLoader::LoadFrame(bool aOriginalSrc) {
+void nsFrameLoader::LoadFrame(bool aOriginalSrc,
+                              bool aShouldCheckForRecursion) {
   if (NS_WARN_IF(!mOwnerContent)) {
     return;
   }
@@ -554,7 +556,7 @@ void nsFrameLoader::LoadFrame(bool aOriginalSrc) {
   }
 
   if (NS_SUCCEEDED(rv)) {
-    rv = LoadURI(uri, principal, csp, aOriginalSrc);
+    rv = LoadURI(uri, principal, csp, aOriginalSrc, aShouldCheckForRecursion);
   }
 
   if (NS_FAILED(rv)) {
@@ -586,7 +588,8 @@ void nsFrameLoader::FireErrorEvent() {
 nsresult nsFrameLoader::LoadURI(nsIURI* aURI,
                                 nsIPrincipal* aTriggeringPrincipal,
                                 nsIContentSecurityPolicy* aCsp,
-                                bool aOriginalSrc) {
+                                bool aOriginalSrc,
+                                bool aShouldCheckForRecursion) {
   if (!aURI) return NS_ERROR_INVALID_POINTER;
   NS_ENSURE_STATE(!mDestroyCalled && mOwnerContent);
   MOZ_ASSERT(
@@ -594,6 +597,7 @@ nsresult nsFrameLoader::LoadURI(nsIURI* aURI,
       "Must have an explicit triggeringPrincipal to nsFrameLoader::LoadURI.");
 
   mLoadingOriginalSrc = aOriginalSrc;
+  mShouldCheckForRecursion = aShouldCheckForRecursion;
 
   nsCOMPtr<Document> doc = mOwnerContent->OwnerDoc();
 
@@ -626,6 +630,7 @@ void nsFrameLoader::ResumeLoad(uint64_t aPendingSwitchID) {
   }
 
   mLoadingOriginalSrc = false;
+  mShouldCheckForRecursion = false;
   mURIToLoad = nullptr;
   mPendingSwitchID = aPendingSwitchID;
   mTriggeringPrincipal = mOwnerContent->NodePrincipal();
@@ -659,6 +664,7 @@ nsresult nsFrameLoader::ReallyStartLoadingInternal() {
   if (!mPendingSwitchID) {
     loadState = new nsDocShellLoadState(mURIToLoad);
     loadState->SetOriginalFrameSrc(mLoadingOriginalSrc);
+    loadState->SetShouldCheckForRecursion(mShouldCheckForRecursion);
 
     // The triggering principal could be null if the frame is loaded other
     // than the src attribute, for example, the frame is sandboxed. In that
@@ -764,6 +770,7 @@ nsresult nsFrameLoader::ReallyStartLoadingInternal() {
   NS_ENSURE_SUCCESS(rv, rv);
 
   mLoadingOriginalSrc = false;
+  mShouldCheckForRecursion = false;
 
   // Kick off the load...
   bool tmpState = mNeedsAsyncDestroy;

@@ -174,7 +174,7 @@ void nsGenericHTMLFrameElement::LoadSrc() {
 
   bool origSrc = !mSrcLoadHappened;
   mSrcLoadHappened = true;
-  mFrameLoader->LoadFrame(origSrc);
+  mFrameLoader->LoadFrame(origSrc, /* aShouldCheckForRecursion */ true);
 }
 
 nsresult nsGenericHTMLFrameElement::BindToTree(BindContext& aContext,
