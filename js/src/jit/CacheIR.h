@@ -174,7 +174,7 @@ class TypedOperandId : public OperandId {
   _(GetName)              \
   _(GetPropSuper)         \
   _(GetElemSuper)         \
-  _(GetIntrinsic)         \
+  _(LazyConstant)         \
   _(SetProp)              \
   _(SetElem)              \
   _(BindName)             \

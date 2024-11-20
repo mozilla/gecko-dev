@@ -29,7 +29,7 @@ namespace jit {
   _(CheckPrivateField)                         \
   _(GetName)                                   \
   _(BindName)                                  \
-  _(GetIntrinsic)                              \
+  _(LazyConstant)                              \
   _(SetProp)                                   \
   _(GetIterator)                               \
   _(OptimizeSpreadCall)                        \

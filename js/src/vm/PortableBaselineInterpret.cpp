@@ -5728,9 +5728,9 @@ DEFINE_IC(NewArray, 0, {
   }
 });
 
-DEFINE_IC(GetIntrinsic, 0, {
+DEFINE_IC(LazyConstant, 0, {
   PUSH_FALLBACK_IC_FRAME();
-  if (!DoGetIntrinsicFallback(cx, ctx.frame, fallback, &ctx.state.res)) {
+  if (!DoLazyConstantFallback(cx, ctx.frame, fallback, &ctx.state.res)) {
     goto error;
   }
 });
@@ -8739,7 +8739,7 @@ PBIResult PortableBaselineInterpret(
         IC_ZERO_ARG(0);
         IC_ZERO_ARG(1);
         IC_ZERO_ARG(2);
-        INVOKE_IC_AND_PUSH(GetIntrinsic, false);
+        INVOKE_IC_AND_PUSH(LazyConstant, false);
         END_OP(GetIntrinsic);
       }
 

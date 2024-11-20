@@ -332,7 +332,7 @@ class MOZ_STATIC_CLASS OpToFallbackKindTable {
     setKind(JSOp::BindUnqualifiedName, BaselineICFallbackKind::BindName);
     setKind(JSOp::BindUnqualifiedGName, BaselineICFallbackKind::BindName);
 
-    setKind(JSOp::GetIntrinsic, BaselineICFallbackKind::GetIntrinsic);
+    setKind(JSOp::GetIntrinsic, BaselineICFallbackKind::LazyConstant);
 
     setKind(JSOp::Call, BaselineICFallbackKind::Call);
     setKind(JSOp::CallContent, BaselineICFallbackKind::Call);
@@ -1236,10 +1236,10 @@ bool FallbackICCodeCompiler::emit_BindName() {
 }
 
 //
-// GetIntrinsic_Fallback
+// LazyConstant_Fallback
 //
 
-bool DoGetIntrinsicFallback(JSContext* cx, BaselineFrame* frame,
+bool DoLazyConstantFallback(JSContext* cx, BaselineFrame* frame,
                             ICFallbackStub* stub, MutableHandleValue res) {
   stub->incrementEnteredCount();
   MaybeNotifyWarp(frame->outerScript(), stub);
@@ -1247,7 +1247,7 @@ bool DoGetIntrinsicFallback(JSContext* cx, BaselineFrame* frame,
   RootedScript script(cx, frame->script());
   jsbytecode* pc = StubOffsetToPc(stub, script);
   mozilla::DebugOnly<JSOp> op = JSOp(*pc);
-  FallbackICSpew(cx, stub, "GetIntrinsic(%s)", CodeName(JSOp(*pc)));
+  FallbackICSpew(cx, stub, "LazyConstant(%s)", CodeName(JSOp(*pc)));
 
   MOZ_ASSERT(op == JSOp::GetIntrinsic);
 
@@ -1255,12 +1255,12 @@ bool DoGetIntrinsicFallback(JSContext* cx, BaselineFrame* frame,
     return false;
   }
 
-  TryAttachStub<GetIntrinsicIRGenerator>("GetIntrinsic", cx, frame, stub, res);
+  TryAttachStub<LazyConstantIRGenerator>("LazyConstant", cx, frame, stub, res);
 
   return true;
 }
 
-bool FallbackICCodeCompiler::emit_GetIntrinsic() {
+bool FallbackICCodeCompiler::emit_LazyConstant() {
   EmitRestoreTailCallReg(masm);
 
   masm.push(ICStubReg);
@@ -1268,7 +1268,7 @@ bool FallbackICCodeCompiler::emit_GetIntrinsic() {
 
   using Fn =
       bool (*)(JSContext*, BaselineFrame*, ICFallbackStub*, MutableHandleValue);
-  return tailCallVM<Fn, DoGetIntrinsicFallback>(masm);
+  return tailCallVM<Fn, DoLazyConstantFallback>(masm);
 }
 
 //

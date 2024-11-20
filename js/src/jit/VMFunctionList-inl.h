@@ -159,7 +159,6 @@ namespace jit {
   _(DoConcatStringObject, js::jit::DoConcatStringObject)                       \
   _(DoGetElemFallback, js::jit::DoGetElemFallback, 2)                          \
   _(DoGetElemSuperFallback, js::jit::DoGetElemSuperFallback, 3)                \
-  _(DoGetIntrinsicFallback, js::jit::DoGetIntrinsicFallback)                   \
   _(DoGetIteratorFallback, js::jit::DoGetIteratorFallback, 1)                  \
   _(DoGetNameFallback, js::jit::DoGetNameFallback)                             \
   _(DoGetPropFallback, js::jit::DoGetPropFallback, 1)                          \
@@ -167,6 +166,7 @@ namespace jit {
   _(DoHasOwnFallback, js::jit::DoHasOwnFallback, 2)                            \
   _(DoInFallback, js::jit::DoInFallback, 2)                                    \
   _(DoInstanceOfFallback, js::jit::DoInstanceOfFallback, 2)                    \
+  _(DoLazyConstantFallback, js::jit::DoLazyConstantFallback)                   \
   _(DoNewArrayFallback, js::jit::DoNewArrayFallback)                           \
   _(DoNewObjectFallback, js::jit::DoNewObjectFallback)                         \
   _(DoOptimizeGetIteratorFallback, js::jit::DoOptimizeGetIteratorFallback)     \

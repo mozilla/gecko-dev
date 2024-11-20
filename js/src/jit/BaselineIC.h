@@ -386,7 +386,7 @@ extern bool DoBindNameFallback(JSContext* cx, BaselineFrame* frame,
                                ICFallbackStub* stub, HandleObject envChain,
                                MutableHandleValue res);
 
-extern bool DoGetIntrinsicFallback(JSContext* cx, BaselineFrame* frame,
+extern bool DoLazyConstantFallback(JSContext* cx, BaselineFrame* frame,
                                    ICFallbackStub* stub,
                                    MutableHandleValue res);
 

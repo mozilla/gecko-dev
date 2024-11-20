@@ -109,7 +109,7 @@ size_t js::jit::NumInputsForCacheKind(CacheKind kind) {
   switch (kind) {
     case CacheKind::NewArray:
     case CacheKind::NewObject:
-    case CacheKind::GetIntrinsic:
+    case CacheKind::LazyConstant:
       return 0;
     case CacheKind::GetProp:
     case CacheKind::TypeOf:
@@ -13587,13 +13587,13 @@ AttachDecision ToBoolIRGenerator::tryAttachBigInt() {
   return AttachDecision::Attach;
 }
 
-GetIntrinsicIRGenerator::GetIntrinsicIRGenerator(JSContext* cx,
+LazyConstantIRGenerator::LazyConstantIRGenerator(JSContext* cx,
                                                  HandleScript script,
                                                  jsbytecode* pc, ICState state,
                                                  HandleValue val)
-    : IRGenerator(cx, script, pc, CacheKind::GetIntrinsic, state), val_(val) {}
+    : IRGenerator(cx, script, pc, CacheKind::LazyConstant, state), val_(val) {}
 
-void GetIntrinsicIRGenerator::trackAttached(const char* name) {
+void LazyConstantIRGenerator::trackAttached(const char* name) {
   stubName_ = name ? name : "NotAttached";
 #ifdef JS_CACHEIR_SPEW
   if (const CacheIRSpewer::Guard& sp = CacheIRSpewer::Guard(*this, name)) {
@@ -13602,11 +13602,11 @@ void GetIntrinsicIRGenerator::trackAttached(const char* name) {
 #endif
 }
 
-AttachDecision GetIntrinsicIRGenerator::tryAttachStub() {
+AttachDecision LazyConstantIRGenerator::tryAttachStub() {
   AutoAssertNoPendingException aanpe(cx_);
   writer.loadValueResult(val_);
   writer.returnFromIC();
-  trackAttached("GetIntrinsic");
+  trackAttached("LazyConstant");
   return AttachDecision::Attach;
 }
 
