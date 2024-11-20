@@ -661,6 +661,11 @@ class WebPlatformTest(TestingMixin, MercurialScript, CodeCoverageMixin, AndroidM
         if self.is_android:
             env["ADB_PATH"] = self.adb_path
 
+        env["MOZ_GMP_PATH"] = os.pathsep.join(
+            os.path.join(dirs["abs_test_bin_dir"], "plugins", p, "1.0")
+            for p in ("gmp-fake", "gmp-fakeopenh264")
+        )
+
         env = self.query_env(partial_env=env, log_level=INFO)
 
         start_time = datetime.now()
