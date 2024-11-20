@@ -2726,11 +2726,11 @@ pub struct CascadeData {
     num_declarations: usize,
 }
 
-// TODO(emilio, dshin): According to https://github.com/w3c/csswg-drafts/issues/10431 other browsers don't quite do this.
 fn parent_selector_for_scope(parent: Option<&SelectorList<SelectorImpl>>) -> &SelectorList<SelectorImpl> {
     lazy_static! {
         static ref SCOPE: SelectorList<SelectorImpl> = {
-            let list = SelectorList::scope();
+            // Implicit scope, as per https://github.com/w3c/csswg-drafts/issues/10196
+            let list = SelectorList::implicit_scope();
             list.mark_as_intentionally_leaked();
             list
         };
