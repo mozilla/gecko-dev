@@ -5,7 +5,6 @@
 package org.mozilla.fenix.components.toolbar.navbar
 
 import android.content.res.Configuration
-import androidx.annotation.ColorInt
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
@@ -20,7 +19,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.dimensionResource
@@ -239,11 +237,6 @@ fun HomeNavBar(
  * @param onOpenInBrowserButtonClick Invoked when the user clicks the open in fenix button in the nav bar.
  * @param onMenuButtonClick Invoked when the user clicks on the menu button in the navigation bar.
  * @param isSandboxCustomTab If true, navigation bar should disable "Open in Firefox" icon.
- * @param backgroundColor Custom background color of the navigation bar.
- * When `null`, [FirefoxTheme.layer1] will be used.
- * @param buttonTint Custom button tint color of the navigation bar. When `null`, [Color.White] will be used.
- * @param buttonDisabledTint Custom disabled button tint color of the navigation bar.
- * When `null`, [FirefoxTheme.iconDisabled] will be used.
  * @param onVisibilityUpdated Invoked when the visibility of the navigation bar changes
  * informing if the navigation bar is visible.
  * @param isMenuRedesignEnabled Whether or not the menu redesign is enabled.
@@ -261,9 +254,6 @@ fun CustomTabNavBar(
     onOpenInBrowserButtonClick: () -> Unit,
     onMenuButtonClick: () -> Unit,
     isSandboxCustomTab: Boolean,
-    backgroundColor: Color,
-    @ColorInt buttonTint: Int? = null,
-    @ColorInt buttonDisabledTint: Int? = null,
     onVisibilityUpdated: (Boolean) -> Unit,
     isMenuRedesignEnabled: Boolean = components.settings.enableMenuRedesign,
 ) {
@@ -275,27 +265,20 @@ fun CustomTabNavBar(
         it.findCustomTab(customTabSessionId)?.content?.canGoForward ?: false
     }
     val canOpenInFirefox = !isSandboxCustomTab
-    val iconTint = buttonTint?.let { Color(it) } ?: FirefoxTheme.colors.iconPrimary
-    val disabledIconTint = buttonDisabledTint?.let { Color(it) } ?: FirefoxTheme.colors.iconDisabled
 
     NavBar(
-        background = backgroundColor,
         onVisibilityUpdated = onVisibilityUpdated,
     ) {
         BackButton(
             onBackButtonClick = onBackButtonClick,
             onBackButtonLongPress = onBackButtonLongPress,
             enabled = canGoBack,
-            buttonEnabledTint = iconTint,
-            buttonDisabledTint = disabledIconTint,
         )
 
         ForwardButton(
             onForwardButtonClick = onForwardButtonClick,
             onForwardButtonLongPress = onForwardButtonLongPress,
             enabled = canGoForward,
-            buttonEnabledTint = iconTint,
-            buttonDisabledTint = disabledIconTint,
         )
 
         OpenInBrowserButton(
@@ -307,7 +290,6 @@ fun CustomTabNavBar(
             menuButton = menuButton,
             isMenuRedesignEnabled = isMenuRedesignEnabled,
             onMenuButtonClick = onMenuButtonClick,
-            tint = iconTint,
         )
     }
 }
@@ -564,8 +546,6 @@ private fun CustomTabNavBarPreviewRoot(isPrivateMode: Boolean) {
         onMenuButtonClick = {},
         isMenuRedesignEnabled = false,
         isSandboxCustomTab = false,
-        backgroundColor = FirefoxTheme.colors.layer1,
-        buttonTint = FirefoxTheme.colors.iconPrimary.toArgb(),
         onVisibilityUpdated = {},
     )
 }

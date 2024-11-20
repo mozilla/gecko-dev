@@ -10,7 +10,6 @@ import android.view.ViewGroup
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.navArgs
@@ -253,9 +252,8 @@ class ExternalAppBrowserFragment : BaseBrowserFragment() {
                 Theme.getTheme()
             }
             FirefoxTheme(theme = customTabTheme) {
-                val background = navbarIntegration.backgroundColor?.let { Color(it) } ?: FirefoxTheme.colors.layer1
                 Column(
-                    modifier = Modifier.background(background),
+                    modifier = Modifier.background(FirefoxTheme.colors.layer1),
                 ) {
                     if (isToolbarAtBottom) {
                         // If the toolbar is reinitialized - for example after the screen is rotated
@@ -306,9 +304,6 @@ class ExternalAppBrowserFragment : BaseBrowserFragment() {
                             )
                         },
                         isSandboxCustomTab = args.isSandboxCustomTab,
-                        backgroundColor = background,
-                        buttonTint = navbarIntegration.buttonTint,
-                        buttonDisabledTint = navbarIntegration.buttonDisabledTint,
                         onVisibilityUpdated = {
                             configureEngineViewWithDynamicToolbarsMaxHeight()
                         },
