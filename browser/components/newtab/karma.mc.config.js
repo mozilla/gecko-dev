@@ -262,6 +262,9 @@ module.exports = function (config) {
               functions: 96,
               branches: 70,
             },
+            "content-src/lib/hooks.jsx": {
+              branches: 60,
+            },
             "content-src/components/**/*.jsx": {
               statements: 51.1,
               lines: 52.38,

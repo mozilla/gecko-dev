@@ -661,6 +661,32 @@ newtab:
     send_in_pings:
       - newtab
 
+  sections_impression:
+    type: event
+    description: >
+      Recorded when a section is viewport and triggers an impression event
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1927916
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1927916
+    data_sensitivity:
+      - interaction
+    notification_emails:
+      - nbarrett@mozilla.com
+    expires: never
+    extra_keys:
+      newtab_visit_id: *newtab_visit_id
+      section:
+        description: >
+          section that had impression event
+        type: string
+      section_position:
+        description: >
+          position of section on newtab
+        type: string
+    send_in_pings:
+      - newtab
+
 newtab.search:
   enabled:
     lifetime: application
@@ -1143,6 +1169,14 @@ pocket:
         description: >
           Where the article card is in the list component
         type: boolean
+      section:
+        description: >
+          If click belongs in a section, the name of the section
+        type: string
+      section_position:
+        description: >
+          If click belongs in a section, the numberic position of the section
+        type: string
     send_in_pings:
       - newtab
 
@@ -1197,6 +1231,14 @@ pocket:
         description: >
           Where the article card is in the list component
         type: boolean
+      section:
+        description: >
+          If click belongs in a section, the name of the section
+        type: string
+      section_position:
+        description: >
+          If click belongs in a section, the numberic position of the section
+        type: string
     send_in_pings:
       - newtab
 
@@ -1227,6 +1269,14 @@ pocket:
         description: >
           Where the article card is in the list component
         type: boolean
+      section:
+        description: >
+          If click belongs in a section, the name of the section
+        type: string
+      section_position:
+        description: >
+          If click belongs in a section, the numberic position of the section
+        type: string
     send_in_pings:
       - newtab
 
@@ -1282,7 +1332,14 @@ pocket:
         description: >
           Where the article card is in the list component
         type: boolean
-
+      section:
+        description: >
+          If click belongs in a section, the name of the section
+        type: string
+      section_position:
+        description: >
+          If click belongs in a section, the numberic position of the section
+        type: string
     send_in_pings:
       - newtab
 

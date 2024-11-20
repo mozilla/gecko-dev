@@ -357,7 +357,7 @@
     gap: var(--space-large);
 
     @for $i from 0 through 6 {
-      .ds-card[data-property-three="#{$i}"] {
+      .ds-card[data-position-three="#{$i}"] {
         order: $i;
       }
     }
@@ -380,7 +380,7 @@
     grid-template-columns: repeat(4, 300px);
 
     @for $i from 0 through 6 {
-      .ds-card[data-property-four="#{$i}"] {
+      .ds-card[data-position-four="#{$i}"] {
         order: $i;
       }
     }

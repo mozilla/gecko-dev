@@ -318,6 +318,12 @@ export class _DSCard extends React.PureComponent {
               selected_topics: this.props.selectedTopics,
               is_list_card: this.props.isListCard,
               ...(this.props.format ? { format: this.props.format } : {}),
+              ...(this.props.section
+                ? {
+                    section: this.props.section,
+                    section_position: this.props.sectionPosition,
+                  }
+                : {}),
             },
           })
         );
@@ -340,6 +346,12 @@ export class _DSCard extends React.PureComponent {
                 selected_topics: this.props.selectedTopics,
                 is_list_card: this.props.isListCard,
                 ...(this.props.format ? { format: this.props.format } : {}),
+                ...(this.props.section
+                  ? {
+                      section: this.props.section,
+                      section_position: this.props.sectionPosition,
+                    }
+                  : {}),
               },
             ],
           })
@@ -381,6 +393,12 @@ export class _DSCard extends React.PureComponent {
             selected_topics: this.props.selectedTopics,
             is_list_card: this.props.isListCard,
             ...(this.props.format ? { format: this.props.format } : {}),
+            ...(this.props.section
+              ? {
+                  section: this.props.section,
+                  section_position: this.props.sectionPosition,
+                }
+              : {}),
           },
         })
       );
@@ -401,6 +419,12 @@ export class _DSCard extends React.PureComponent {
               selected_topics: this.props.selectedTopics,
               is_list_card: this.props.isListCard,
               ...(this.props.format ? { format: this.props.format } : {}),
+              ...(this.props.section
+                ? {
+                    section: this.props.section,
+                    section_position: this.props.sectionPosition,
+                  }
+                : {}),
             },
           ],
         })
@@ -770,6 +794,12 @@ export class _DSCard extends React.PureComponent {
                 ...(format ? { format } : {}),
                 isFakespot,
                 category: this.props.category,
+                ...(this.props.section
+                  ? {
+                      section: this.props.section,
+                      section_position: this.props.sectionPosition,
+                    }
+                  : {}),
               },
             ]}
             dispatch={this.props.dispatch}
@@ -853,6 +883,8 @@ export class _DSCard extends React.PureComponent {
                 recommended_at={this.props.recommended_at}
                 received_rank={this.props.received_rank}
                 is_list_card={this.props.isListCard}
+                section={this.props.section}
+                section_position={this.props.sectionPosition}
                 format={format}
               />
             )}

@@ -119,6 +119,12 @@ export class ImpressionStats extends React.PureComponent {
               topic: link.topic,
               is_list_card: link.is_list_card,
               ...(link.format ? { format: link.format } : {}),
+              ...(link.section
+                ? {
+                    section: link.section,
+                    section_position: link.section_position,
+                  }
+                : {}),
             })),
             firstVisibleTimestamp: this.props.firstVisibleTimestamp,
           })

@@ -2,10 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import React from "react";
+import React, { useCallback } from "react";
 import { DSEmptyState } from "../DSEmptyState/DSEmptyState";
 import { DSCard } from "../DSCard/DSCard";
 import { useSelector } from "react-redux";
+import { actionCreators as ac, actionTypes as at } from "common/Actions.mjs";
+import { useIntersectionObserver } from "../../../lib/hooks";
 
 // Prefs
 const PREF_SECTIONS_CARDS_ENABLED = "discoverystream.sections.cards.enabled";
@@ -25,7 +27,6 @@ function CardSections({
   ctaButtonVariant,
   ctaButtonSponsors,
 }) {
-  // const prefs = this.props.Prefs.values;
   const { recommendations, sections } = data;
   const isEmpty = recommendations?.length === 0 || !sections;
 
@@ -35,6 +36,24 @@ function CardSections({
   const mayHaveThumbsUpDown = prefs[PREF_THUMBS_UP_DOWN_ENABLED];
   const selectedTopics = prefs[PREF_TOPICS_SELECTED];
   const availableTopics = prefs[PREF_TOPICS_AVAILABLE];
+
+  const handleIntersection = useCallback(
+    el => {
+      dispatch(
+        ac.AlsoToMain({
+          type: at.CARD_SECTION_IMPRESSION,
+          data: {
+            section: el.id,
+            section_position: el.dataset.sectionPosition,
+          },
+        })
+      );
+    },
+    [dispatch]
+  );
+
+  // Ref to hold all of the section elements
+  const sectionRefs = useIntersectionObserver(handleIntersection);
 
   // Handle a render before feed has been fetched by displaying nothing
   if (!data) {
@@ -79,12 +98,19 @@ function CardSections({
     </div>
   ) : (
     <div className="ds-section-wrapper">
-      {sections.map(section => {
+      {sections.map((section, sectionIndex) => {
         const { sectionKey, title, subtitle } = section;
         const { responsiveLayouts } = section.layout;
         const { maxTile } = getMaxTiles(responsiveLayouts);
         return (
-          <section key={sectionKey} className="ds-section">
+          <section
+            key={sectionKey}
+            id={sectionKey}
+            className="ds-section"
+            ref={el => {
+              sectionRefs.current[sectionIndex] = el;
+            }}
+          >
             <div className="section-heading">
               <h2 className="section-title">{title}</h2>
               {subtitle && <p className="section-subtitle">{subtitle}</p>}
@@ -140,6 +166,8 @@ function CardSections({
                     data-position-two={position.col2}
                     data-position-three={position.col3}
                     data-position-four={position.col4}
+                    section={sectionKey}
+                    sectionPosition={sectionIndex}
                   />
                 );
               })}

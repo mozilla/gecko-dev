@@ -69,6 +69,12 @@ export class DSLinkMenu extends React.PureComponent {
               received_rank: this.props.received_rank,
               is_list_card: this.props.is_list_card,
               ...(this.props.format ? { format: this.props.format } : {}),
+              ...(this.props.section
+                ? {
+                    section: this.props.section,
+                    section_position: this.props.section_position,
+                  }
+                : {}),
             }}
           />
         </ContextMenuButton>

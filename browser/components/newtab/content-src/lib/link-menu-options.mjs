@@ -122,6 +122,12 @@ export const LinkMenuOptions = {
         is_pocket_card: site.type === "CardGrid",
         is_list_card: site.is_list_card,
         ...(site.format ? { format: site.format } : {}),
+        ...(site.section
+          ? {
+              section: site.section,
+              section_position: site.section_position,
+            }
+          : {}),
       })),
     }),
     impression: ac.ImpressionStats({

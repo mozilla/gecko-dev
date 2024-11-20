@@ -780,6 +780,8 @@ export class TelemetryFeed {
           selected_topics,
           is_list_card,
           format,
+          section,
+          section_position,
         } = action.data.value ?? {};
         if (
           action.data.source === "POPULAR_TOPICS" ||
@@ -799,6 +801,12 @@ export class TelemetryFeed {
             newtab_visit_id: session.session_id,
             is_sponsored: card_type === "spoc",
             ...(format ? { format } : {}),
+            ...(section
+              ? {
+                  section,
+                  section_position,
+                }
+              : {}),
             matches_selected_topic,
             selected_topics,
             topic,
@@ -884,11 +892,19 @@ export class TelemetryFeed {
           selected_topics,
           is_list_card,
           format,
+          section,
+          section_position,
         } = action.data.value ?? {};
         Glean.pocket.save.record({
           newtab_visit_id: session.session_id,
           is_sponsored: card_type === "spoc",
           ...(format ? { format } : {}),
+          ...(section
+            ? {
+                section,
+                section_position,
+              }
+            : {}),
           topic,
           matches_selected_topic,
           selected_topics,
@@ -1149,6 +1165,18 @@ export class TelemetryFeed {
         }
         break;
       }
+      case at.CARD_SECTION_IMPRESSION: {
+        const session = this.sessions.get(au.getPortIdOfSender(action));
+        if (session) {
+          const { section, section_position } = action.data;
+          Glean.newtab.sectionsImpression.record({
+            newtab_visit_id: session.session_id,
+            section,
+            section_position,
+          });
+        }
+        break;
+      }
 
       // The remaining action types come from ASRouter, which doesn't use
       // Actions from Actions.mjs, but uses these other custom strings.
@@ -1311,6 +1339,12 @@ export class TelemetryFeed {
           position: datum.pos,
           tile_id: datum.id || datum.tile_id,
           is_list_card: datum.is_list_card,
+          ...(datum.section
+            ? {
+                section: datum.section,
+                section_position: datum.section_position,
+              }
+            : {}),
           ...(datum.scheduled_corpus_item_id
             ? {
                 scheduled_corpus_item_id: datum.scheduled_corpus_item_id,
@@ -1378,6 +1412,12 @@ export class TelemetryFeed {
           newtab_visit_id: session.session_id,
           is_sponsored: tile.type === "spoc",
           ...(tile.format ? { format: tile.format } : {}),
+          ...(tile.section
+            ? {
+                section: tile.section,
+                section_position: tile.section_position,
+              }
+            : {}),
           position: tile.pos,
           tile_id: tile.id,
           topic: tile.topic,
