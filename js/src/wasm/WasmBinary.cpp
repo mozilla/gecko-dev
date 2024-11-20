@@ -65,7 +65,7 @@ bool Decoder::fail(size_t errorOffset, const char* msg) {
   return false;
 }
 
-bool Decoder::readSectionHeader(uint8_t* id, SectionRange* range) {
+bool Decoder::readSectionHeader(uint8_t* id, BytecodeRange* range) {
   if (!readFixedU8(id)) {
     return false;
   }
@@ -81,7 +81,7 @@ bool Decoder::readSectionHeader(uint8_t* id, SectionRange* range) {
 }
 
 bool Decoder::startSection(SectionId id, CodeMetadata* codeMeta,
-                           MaybeSectionRange* range, const char* sectionName) {
+                           MaybeBytecodeRange* range, const char* sectionName) {
   MOZ_ASSERT(!*range);
 
   // Record state at beginning of section to allow rewinding to this point
@@ -146,7 +146,7 @@ fail:
   return failf("failed to start %s section", sectionName);
 }
 
-bool Decoder::finishSection(const SectionRange& range,
+bool Decoder::finishSection(const BytecodeRange& range,
                             const char* sectionName) {
   if (resilientMode_) {
     return true;
@@ -159,7 +159,7 @@ bool Decoder::finishSection(const SectionRange& range,
 
 bool Decoder::startCustomSection(const char* expected, size_t expectedLength,
                                  CodeMetadata* codeMeta,
-                                 MaybeSectionRange* range) {
+                                 MaybeBytecodeRange* range) {
   // Record state at beginning of section to allow rewinding to this point
   // if, after skipping through several custom sections, we don't find the
   // section 'id'.
@@ -228,7 +228,8 @@ fail:
   return fail("failed to start custom section");
 }
 
-void Decoder::finishCustomSection(const char* name, const SectionRange& range) {
+void Decoder::finishCustomSection(const char* name,
+                                  const BytecodeRange& range) {
   MOZ_ASSERT(cur_ >= beg_);
   MOZ_ASSERT(cur_ <= end_);
 
@@ -255,7 +256,7 @@ void Decoder::finishCustomSection(const char* name, const SectionRange& range) {
   // Nothing to do! (c.f. skipAndFinishCustomSection())
 }
 
-void Decoder::skipAndFinishCustomSection(const SectionRange& range) {
+void Decoder::skipAndFinishCustomSection(const BytecodeRange& range) {
   MOZ_ASSERT(cur_ >= beg_);
   MOZ_ASSERT(cur_ <= end_);
   cur_ = (beg_ + (range.start - offsetInModule_)) + range.size;
@@ -264,7 +265,7 @@ void Decoder::skipAndFinishCustomSection(const SectionRange& range) {
 }
 
 bool Decoder::skipCustomSection(CodeMetadata* codeMeta) {
-  MaybeSectionRange range;
+  MaybeBytecodeRange range;
   if (!startCustomSection(nullptr, 0, codeMeta, &range)) {
     return false;
   }

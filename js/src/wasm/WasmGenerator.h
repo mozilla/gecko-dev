@@ -214,7 +214,7 @@ class MOZ_STACK_CLASS ModuleGenerator {
   SharedCode partialTieringCode_;
 
   // Data that is moved into the Module/Code as the result of finish()
-  FuncDefRangeVector funcDefRanges_;
+  BytecodeRangeVector funcDefRanges_;
   FeatureUsageVector funcDefFeatureUsages_;
   CallRefMetricsRangeVector funcDefCallRefMetrics_;
   FuncImportVector funcImports_;

@@ -419,7 +419,8 @@ bool InitExprInterpreter::evaluate(JSContext* cx, Decoder& d) {
 
 bool wasm::DecodeConstantExpression(Decoder& d, CodeMetadata* codeMeta,
                                     ValType expected, Maybe<LitVal>* literal) {
-  ValidatingOpIter iter(*codeMeta, d, ValidatingOpIter::InitExpr);
+  ValTypeVector locals;
+  ValidatingOpIter iter(*codeMeta, d, locals, ValidatingOpIter::InitExpr);
 
   if (!iter.startInitExpr(expected)) {
     return false;

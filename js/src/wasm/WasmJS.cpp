@@ -4637,7 +4637,7 @@ class CompileStreamTask : public PromiseHelperTask, public JS::StreamConsumer {
 
   // Immutable after Env state:
   Bytes envBytes_;
-  SectionRange codeSection_;
+  BytecodeRange codeSection_;
 
   // The code section vector is resized once during the Env state and filled
   // in chunk by chunk during the Code state, updating the end-pointer after

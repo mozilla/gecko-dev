@@ -2464,7 +2464,7 @@ bool BaseCompiler::atomicWait(ValType type, MemoryAccessDesc* access) {
   return true;
 }
 
-bool BaseCompiler::atomicWake(MemoryAccessDesc* access) {
+bool BaseCompiler::atomicNotify(MemoryAccessDesc* access) {
   RegI32 count = popI32();
 
   if (isMem32(access->memoryIndex())) {

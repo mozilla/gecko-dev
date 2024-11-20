@@ -553,12 +553,12 @@ class Decoder {
 
   // See "section" description in Encoder.
 
-  [[nodiscard]] bool readSectionHeader(uint8_t* id, SectionRange* range);
+  [[nodiscard]] bool readSectionHeader(uint8_t* id, BytecodeRange* range);
 
   [[nodiscard]] bool startSection(SectionId id, CodeMetadata* codeMeta,
-                                  MaybeSectionRange* range,
+                                  MaybeBytecodeRange* range,
                                   const char* sectionName);
-  [[nodiscard]] bool finishSection(const SectionRange& range,
+  [[nodiscard]] bool finishSection(const BytecodeRange& range,
                                    const char* sectionName);
 
   // Custom sections do not cause validation errors unless the error is in
@@ -567,18 +567,18 @@ class Decoder {
   [[nodiscard]] bool startCustomSection(const char* expected,
                                         size_t expectedLength,
                                         CodeMetadata* codeMeta,
-                                        MaybeSectionRange* range);
+                                        MaybeBytecodeRange* range);
 
   template <size_t NameSizeWith0>
   [[nodiscard]] bool startCustomSection(const char (&name)[NameSizeWith0],
                                         CodeMetadata* codeMeta,
-                                        MaybeSectionRange* range) {
+                                        MaybeBytecodeRange* range) {
     MOZ_ASSERT(name[NameSizeWith0 - 1] == '\0');
     return startCustomSection(name, NameSizeWith0 - 1, codeMeta, range);
   }
 
-  void finishCustomSection(const char* name, const SectionRange& range);
-  void skipAndFinishCustomSection(const SectionRange& range);
+  void finishCustomSection(const char* name, const BytecodeRange& range);
+  void skipAndFinishCustomSection(const BytecodeRange& range);
 
   [[nodiscard]] bool skipCustomSection(CodeMetadata* codeMeta);
 

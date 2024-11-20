@@ -2042,13 +2042,13 @@ bool BaseCompiler::callRef(const Stk& calleeRef, const FunctionCall& call,
 }
 
 void BaseCompiler::returnCallRef(const Stk& calleeRef, const FunctionCall& call,
-                                 const FuncType* funcType) {
+                                 const FuncType& funcType) {
   CallSiteDesc desc(bytecodeOffset(), CallSiteDesc::FuncRef);
   CalleeDesc callee = CalleeDesc::wasmFuncRef();
 
   loadRef(calleeRef, RegRef(WasmCallRefReg));
   ReturnCallAdjustmentInfo retCallInfo =
-      BuildReturnCallAdjustmentInfo(this->funcType(), *funcType);
+      BuildReturnCallAdjustmentInfo(this->funcType(), funcType);
   masm.wasmReturnCallRef(desc, callee, retCallInfo);
 }
 
@@ -5623,10 +5623,10 @@ bool BaseCompiler::emitReturnCallIndirect() {
 }
 
 bool BaseCompiler::emitCallRef() {
-  const FuncType* funcType;
+  uint32_t funcTypeIndex;
   Nothing unused_callee;
   BaseNothingVector unused_args{};
-  if (!iter_.readCallRef(&funcType, &unused_callee, &unused_args)) {
+  if (!iter_.readCallRef(&funcTypeIndex, &unused_callee, &unused_args)) {
     return false;
   }
 
@@ -5645,14 +5645,16 @@ bool BaseCompiler::emitCallRef() {
     return true;
   }
 
+  const FuncType& funcType = codeMeta_.types->type(funcTypeIndex).funcType();
+
   sync();
 
   // Stack: ... arg1 .. argn callee
 
-  uint32_t numArgs = funcType->args().length() + 1;
+  uint32_t numArgs = funcType.args().length() + 1;
   size_t stackArgBytes = stackConsumed(numArgs);
 
-  ResultType resultType(ResultType::Vector(funcType->results()));
+  ResultType resultType(ResultType::Vector(funcType.results()));
   StackResultsLoc results;
   if (!pushStackResultsForCall(resultType, RegPtr(ABINonArgReg0), &results)) {
     return false;
@@ -5663,7 +5665,7 @@ bool BaseCompiler::emitCallRef() {
   // MacroAssembler::wasmCallRef).
   beginCall(baselineCall, UseABI::Wasm, RestoreRegisterStateAndRealm::False);
 
-  if (!emitCallArgs(funcType->args(), NormalCallResults(results), &baselineCall,
+  if (!emitCallArgs(funcType.args(), NormalCallResults(results), &baselineCall,
                     CalleeOnStack::True)) {
     return false;
   }
@@ -5693,10 +5695,10 @@ bool BaseCompiler::emitCallRef() {
 }
 
 bool BaseCompiler::emitReturnCallRef() {
-  const FuncType* funcType;
+  uint32_t funcTypeIndex;
   Nothing unused_callee;
   BaseNothingVector unused_args{};
-  if (!iter_.readReturnCallRef(&funcType, &unused_callee, &unused_args)) {
+  if (!iter_.readReturnCallRef(&funcTypeIndex, &unused_callee, &unused_args)) {
     return false;
   }
 
@@ -5704,21 +5706,24 @@ bool BaseCompiler::emitReturnCallRef() {
     return true;
   }
 
+  const FuncType& funcType = codeMeta_.types->type(funcTypeIndex).funcType();
+
   sync();
+
   if (!insertDebugCollapseFrame()) {
     return false;
   }
 
   // Stack: ... arg1 .. argn callee
 
-  uint32_t numArgs = funcType->args().length() + 1;
+  uint32_t numArgs = funcType.args().length() + 1;
 
   FunctionCall baselineCall{};
   // State and realm are restored as needed by by callRef (really by
   // MacroAssembler::wasmCallRef).
   beginCall(baselineCall, UseABI::Wasm, RestoreRegisterStateAndRealm::False);
 
-  if (!emitCallArgs(funcType->args(), TailCallResults(*funcType), &baselineCall,
+  if (!emitCallArgs(funcType.args(), TailCallResults(funcType), &baselineCall,
                     CalleeOnStack::True)) {
     return false;
   }
@@ -5947,7 +5952,7 @@ bool BaseCompiler::emitConvertFloatingToInt64Callout(SymbolicAddress callee,
 
 bool BaseCompiler::emitGetLocal() {
   uint32_t slot;
-  if (!iter_.readGetLocal(locals_, &slot)) {
+  if (!iter_.readGetLocal(&slot)) {
     return false;
   }
 
@@ -6073,7 +6078,7 @@ bool BaseCompiler::emitSetOrTeeLocal(uint32_t slot) {
 bool BaseCompiler::emitSetLocal() {
   uint32_t slot;
   Nothing unused_value;
-  if (!iter_.readSetLocal(locals_, &slot, &unused_value)) {
+  if (!iter_.readSetLocal(&slot, &unused_value)) {
     return false;
   }
   return emitSetOrTeeLocal<true>(slot);
@@ -6082,7 +6087,7 @@ bool BaseCompiler::emitSetLocal() {
 bool BaseCompiler::emitTeeLocal() {
   uint32_t slot;
   Nothing unused_value;
-  if (!iter_.readTeeLocal(locals_, &slot, &unused_value)) {
+  if (!iter_.readTeeLocal(&slot, &unused_value)) {
     return false;
   }
   return emitSetOrTeeLocal<false>(slot);
@@ -6752,10 +6757,10 @@ bool BaseCompiler::emitWait(ValType type, uint32_t byteSize) {
   return atomicWait(type, &access);
 }
 
-bool BaseCompiler::emitWake() {
+bool BaseCompiler::emitNotify() {
   Nothing nothing;
   LinearMemoryAddress<Nothing> addr;
-  if (!iter_.readWake(&addr, &nothing)) {
+  if (!iter_.readNotify(&addr, &nothing)) {
     return false;
   }
   if (deadCode_) {
@@ -6764,7 +6769,7 @@ bool BaseCompiler::emitWake() {
   MemoryAccessDesc access(addr.memoryIndex, Scalar::Int32, addr.align,
                           addr.offset, bytecodeOffset(),
                           hugeMemoryEnabled(addr.memoryIndex));
-  return atomicWake(&access);
+  return atomicNotify(&access);
 }
 
 bool BaseCompiler::emitFence() {
@@ -8427,17 +8432,23 @@ bool BaseCompiler::emitArrayLen() {
 }
 
 bool BaseCompiler::emitArrayCopy() {
-  int32_t elemSize;
-  bool elemsAreRefTyped;
+  uint32_t dstArrayTypeIndex;
+  uint32_t srcArrayTypeIndex;
   Nothing nothing;
-  if (!iter_.readArrayCopy(&elemSize, &elemsAreRefTyped, &nothing, &nothing,
-                           &nothing, &nothing, &nothing)) {
+  if (!iter_.readArrayCopy(&dstArrayTypeIndex, &srcArrayTypeIndex, &nothing,
+                           &nothing, &nothing, &nothing, &nothing)) {
     return false;
   }
 
   if (deadCode_) {
     return true;
   }
+
+  const ArrayType& dstArrayType =
+      codeMeta_.types->type(dstArrayTypeIndex).arrayType();
+  StorageType dstElemType = dstArrayType.elementType();
+  int32_t elemSize = int32_t(dstElemType.size());
+  bool elemsAreRefTyped = dstElemType.isRefType();
 
   // The helper needs to know the element size. If copying ref values, the size
   // is negated to signal to the helper that it needs to do GC barriers and
@@ -10192,7 +10203,7 @@ bool BaseCompiler::emitBody() {
 
   MOZ_ASSERT(stackMapGenerator_.framePushedAtEntryToBody.isSome());
 
-  if (!iter_.startFunction(func_.index, locals_)) {
+  if (!iter_.startFunction(func_.index)) {
     return false;
   }
 
@@ -11782,8 +11793,8 @@ bool BaseCompiler::emitBody() {
           return iter_.unrecognizedOpcode(&op);
         }
         switch (op.b1) {
-          case uint32_t(ThreadOp::Wake):
-            CHECK_NEXT(emitWake());
+          case uint32_t(ThreadOp::Notify):
+            CHECK_NEXT(emitNotify());
 
           case uint32_t(ThreadOp::I32Wait):
             CHECK_NEXT(emitWait(ValType::I32, 4));
@@ -12186,7 +12197,7 @@ BaseCompiler::BaseCompiler(const CodeMetadata& codeMeta,
       masm(*masm),
       // Compilation state
       decoder_(decoder),
-      iter_(codeMeta, decoder),
+      iter_(codeMeta, decoder, locals),
       fr(*masm),
       stackMapGenerator_(stackMaps, trapExitLayout, trapExitLayoutNumWords,
                          *masm),

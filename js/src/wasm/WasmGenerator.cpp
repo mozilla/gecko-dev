@@ -747,7 +747,7 @@ bool ModuleGenerator::compileFuncDef(uint32_t funcIndex,
   if (compilingTier1()) {
     static_assert(MaxFunctionBytes < UINT32_MAX);
     uint32_t bodyLength = (uint32_t)(end - begin);
-    funcDefRanges_.infallibleAppend(FuncDefRange(lineOrBytecode, bodyLength));
+    funcDefRanges_.infallibleAppend(BytecodeRange(lineOrBytecode, bodyLength));
   }
 
   uint32_t threshold;
@@ -1179,13 +1179,11 @@ bool ModuleGenerator::startPartialTier(uint32_t funcIndex) {
       return false;
     }
   }
-  uint32_t bytecodeLen =
-      codeMeta_->funcDefRanges[funcIndex - codeMeta_->numFuncImports]
-          .bodyLength;
+  uint32_t bytecodeLength = codeMeta_->funcDefRange(funcIndex).size;
   JS_LOG(wasmPerf, mozilla::LogLevel::Info,
          "CM=..%06lx  MG::startPartialTier  fI=%-5u  sz=%-5u  %s",
          (unsigned long)(uintptr_t(codeMeta_) & 0xFFFFFFL), funcIndex,
-         bytecodeLen, name.length() > 0 ? name.begin() : "(unknown-name)");
+         bytecodeLength, name.length() > 0 ? name.begin() : "(unknown-name)");
 #endif
 
   if (!startCodeBlock(CodeBlock::kindFromTier(tier()))) {
@@ -1367,8 +1365,8 @@ SharedModule ModuleGenerator::finishModule(
     auto guard = codeMeta->stats.writeLock();
     guard->completeNumFuncs = codeMeta->numFuncDefs();
     guard->completeBCSize = 0;
-    for (const FuncDefRange& fr : codeMeta->funcDefRanges) {
-      guard->completeBCSize += fr.bodyLength;
+    for (const BytecodeRange& range : codeMeta->funcDefRanges) {
+      guard->completeBCSize += range.size;
     }
     // Now that we know the complete bytecode size for the module, we can set
     // the inlining budget for tiered-up compilation, if appropriate.  See

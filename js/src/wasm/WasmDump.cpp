@@ -8,6 +8,8 @@
 
 #include <cinttypes>
 
+#include "wasm/WasmValidate.h"
+
 using namespace js;
 using namespace js::wasm;
 
@@ -294,6 +296,40 @@ void wasm::Dump(const TypeContext& typeContext, IndentedPrinter& out) {
     }
   }
   out.printf(")\n");
+}
+
+void wasm::DumpFunction(const CodeMetadata& codeMeta, uint32_t funcIndex) {
+  Fprinter fileOut(stdout);
+  IndentedPrinter out(fileOut);
+  wasm::DumpFunction(codeMeta, funcIndex, out);
+}
+
+void wasm::DumpFunction(const CodeMetadata& codeMeta, uint32_t funcIndex,
+                        IndentedPrinter& out) {
+  BytecodeSpan funcBytecode = codeMeta.funcDefBody(funcIndex);
+  wasm::DumpFunction(codeMeta, funcIndex, funcBytecode.data(),
+                     funcBytecode.size(), out);
+}
+
+void wasm::DumpFunction(const CodeMetadata& codeMeta, uint32_t funcIndex,
+                        const uint8_t* bodyStart, uint32_t bodySize) {
+  Fprinter fileOut(stdout);
+  IndentedPrinter out(fileOut);
+  wasm::DumpFunction(codeMeta, funcIndex, bodyStart, bodySize, out);
+}
+
+void wasm::DumpFunction(const CodeMetadata& codeMeta, uint32_t funcIndex,
+                        const uint8_t* bodyStart, uint32_t bodySize,
+                        IndentedPrinter& out) {
+  UniqueChars error;
+  if (!wasm::DumpFunctionBody(codeMeta, funcIndex, bodyStart, bodySize, out,
+                              &error)) {
+    if (error.get()) {
+      out.printf("error: %s\n", error.get());
+    } else {
+      out.printf("out of memory");
+    }
+  }
 }
 
 #endif  // DEBUG

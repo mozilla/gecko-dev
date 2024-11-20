@@ -54,6 +54,16 @@ extern void Dump(const RecGroup& recGroup, IndentedPrinter& out);
 
 extern void Dump(const TypeContext& typeContext);
 extern void Dump(const TypeContext& typeContext, IndentedPrinter& out);
+
+extern void DumpFunction(const CodeMetadata& codeMeta, uint32_t funcIndex);
+extern void DumpFunction(const CodeMetadata& codeMeta, uint32_t funcIndex,
+                         IndentedPrinter& out);
+
+extern void DumpFunction(const CodeMetadata& codeMeta, uint32_t funcIndex,
+                         const uint8_t* bodyStart, uint32_t bodySize);
+extern void DumpFunction(const CodeMetadata& codeMeta, uint32_t funcIndex,
+                         const uint8_t* bodyStart, uint32_t bodySize,
+                         IndentedPrinter& out);
 #endif
 
 }  // namespace wasm

@@ -1208,8 +1208,8 @@ CoderResult CodeCodeMetadata(Coder<mode>& coder,
 
   MOZ_TRY(CodePodVector(coder, &item->customSectionRanges));
 
-  MOZ_TRY((
-      CodeMaybe<mode, SectionRange, &CodePod>(coder, &item->codeSectionRange)));
+  MOZ_TRY((CodeMaybe<mode, BytecodeRange, &CodePod>(coder,
+                                                    &item->codeSectionRange)));
   MOZ_TRY((CodeNullablePtr<
            mode, SharedBytes,
            &CodeRefPtr<mode, const ShareableBytes, CodeShareableBytes>>(

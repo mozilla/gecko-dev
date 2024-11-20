@@ -991,7 +991,7 @@ struct BaseCompiler final {
                mozilla::Maybe<size_t> callRefIndex, CodeOffset* fastCallOffset,
                CodeOffset* slowCallOffset);
   void returnCallRef(const Stk& calleeRef, const FunctionCall& call,
-                     const FuncType* funcType);
+                     const FuncType& funcType);
   CodeOffset builtinCall(SymbolicAddress builtin, const FunctionCall& call);
   CodeOffset builtinInstanceMethodCall(const SymbolicAddressSignature& builtin,
                                        const ABIArg& instanceArg,
@@ -1670,8 +1670,8 @@ struct BaseCompiler final {
   [[nodiscard]] bool emitAtomicStore(ValType type, Scalar::Type viewType);
   [[nodiscard]] bool emitWait(ValType type, uint32_t byteSize);
   [[nodiscard]] bool atomicWait(ValType type, MemoryAccessDesc* access);
-  [[nodiscard]] bool emitWake();
-  [[nodiscard]] bool atomicWake(MemoryAccessDesc* access);
+  [[nodiscard]] bool emitNotify();
+  [[nodiscard]] bool atomicNotify(MemoryAccessDesc* access);
   [[nodiscard]] bool emitFence();
   [[nodiscard]] bool emitAtomicXchg(ValType type, Scalar::Type viewType);
   [[nodiscard]] bool emitMemInit();

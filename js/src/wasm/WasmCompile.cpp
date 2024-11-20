@@ -946,7 +946,7 @@ bool wasm::CompileCompleteTier2(const Bytes& bytecode, const Module& module,
   }
 
   if (codeMeta.codeSectionRange) {
-    const SectionRange& codeSection = *codeMeta.codeSectionRange;
+    const BytecodeRange& codeSection = *codeMeta.codeSectionRange;
     const uint8_t* codeSectionStart = bytecode.begin() + codeSection.start;
     const uint8_t* codeSectionEnd = codeSectionStart + codeSection.size;
     Decoder d(codeSectionStart, codeSectionEnd, codeSection.start, error);
@@ -979,21 +979,14 @@ bool wasm::CompilePartialTier2(const Code& code, uint32_t funcIndex,
     return false;
   }
 
-  const FuncDefRange& funcRange = codeMeta.funcDefRange(funcIndex);
-  // Bytecode offset of the code section relative to the beginning of the module
-  uint32_t codeSectionOffset = codeMeta.codeSectionRange->start;
-  // Bytecode offset of the function body relative to the code section
-  uint32_t bodyOffsetInCodeSection =
-      funcRange.bytecodeOffset - codeSectionOffset;
-  // Pointer to the function body bytecode
-  const uint8_t* bodyBegin =
-      codeMeta.codeSectionBytecode->begin() + bodyOffsetInCodeSection;
-  const uint8_t* bodyEnd = bodyBegin + funcRange.bodyLength;
+  const BytecodeRange& funcRange = codeMeta.funcDefRange(funcIndex);
+  BytecodeSpan funcBytecode = codeMeta.funcDefBody(funcIndex);
+
   // The following sequence will compile/finish this function, on this thread.
   // `error` (as stashed in `mg`) may get set to, for example, "stack frame too
   // large", or to "", denoting OOM.
-  return mg.compileFuncDef(funcIndex, funcRange.bytecodeOffset, bodyBegin,
-                           bodyEnd) &&
+  return mg.compileFuncDef(funcIndex, funcRange.start, funcBytecode.data(),
+                           funcBytecode.data() + funcBytecode.size()) &&
          mg.finishFuncDefs() && mg.finishPartialTier2();
 }
 
@@ -1038,7 +1031,7 @@ class StreamingDecoder {
     return waitForBytes(size) && d_.readBytes(size, begin);
   }
 
-  bool finishSection(const SectionRange& range, const char* name) {
+  bool finishSection(const BytecodeRange& range, const char* name) {
     return d_.finishSection(range, name);
   }
 };

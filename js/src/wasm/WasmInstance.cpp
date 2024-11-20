@@ -2729,10 +2729,7 @@ void Instance::resetTemporaryStackLimit(JSContext* cx) {
 
 int32_t Instance::computeInitialHotnessCounter(uint32_t funcIndex) {
   MOZ_ASSERT(code().mode() == CompileMode::LazyTiering);
-  uint32_t bodyLength =
-      codeMeta()
-          .funcDefRanges[funcIndex - codeMeta().numFuncImports]
-          .bodyLength;
+  uint32_t bodyLength = codeMeta().funcDefRange(funcIndex).size;
   return LazyTieringHeuristics::estimateIonCompilationCost(bodyLength);
 }
 
@@ -2787,7 +2784,7 @@ void Instance::submitCallRefHints(uint32_t funcIndex) {
     if (!skipReason) {
       // We assume slot 0 is the hottest of all the slots.  See comments on
       // definition of CallRefMetrics for rationale.
-      targetBodySize = codeMeta().funcDefRange(targetFuncIndex).bodyLength;
+      targetBodySize = codeMeta().funcDefRange(targetFuncIndex).size;
       if (2 * totalCount < targetBodySize) {
         skipReason = "(callsite too cold)";
       } else if ((float(metrics.counts[0]) / float(totalCount)) <

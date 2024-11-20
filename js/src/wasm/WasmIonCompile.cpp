@@ -451,7 +451,7 @@ class FunctionCompiler {
       : rootCompiler_(rootCompiler),
         callerCompiler_(nullptr),
         inliningDepth_(0),
-        iter_(rootCompiler.codeMeta(), decoder),
+        iter_(rootCompiler.codeMeta(), decoder, locals),
         functionBodyOffset_(decoder.beginOffset()),
         func_(func),
         locals_(locals),
@@ -472,7 +472,7 @@ class FunctionCompiler {
       : rootCompiler_(callerCompiler->rootCompiler_),
         callerCompiler_(callerCompiler),
         inliningDepth_(callerCompiler_->inliningDepth() + 1),
-        iter_(rootCompiler_.codeMeta(), decoder),
+        iter_(rootCompiler_.codeMeta(), decoder, locals),
         functionBodyOffset_(decoder.beginOffset()),
         func_(func),
         locals_(locals),
@@ -2559,7 +2559,7 @@ class FunctionCompiler {
 
     // Ask the heuristics system if we're allowed to inline a function of this
     // size and kind at the current inlining depth.
-    uint32_t inlineeBodySize = codeMeta().funcDefRange(funcIndex).bodyLength;
+    uint32_t inlineeBodySize = codeMeta().funcDefRange(funcIndex).size;
     return InliningHeuristics::isSmallEnoughToInline(kind, inliningDepth(),
                                                      inlineeBodySize);
   }
@@ -5790,7 +5790,7 @@ class FunctionCompiler {
   bool emitAtomicStore(ValType type, Scalar::Type viewType);
   bool emitWait(ValType type, uint32_t byteSize);
   bool emitFence();
-  bool emitWake();
+  bool emitNotify();
   bool emitAtomicXchg(ValType type, Scalar::Type viewType);
   bool emitMemCopyCall(uint32_t dstMemIndex, uint32_t srcMemIndex,
                        MDefinition* dst, MDefinition* src, MDefinition* len);
@@ -6319,15 +6319,10 @@ bool FunctionCompiler::emitInlineCall(const FuncType& funcType,
                                       const DefVector& args,
                                       DefVector* results) {
   UniqueChars error;
-  const Bytes& codeSectionBytecode = codeMeta().codeSectionBytecode->bytes;
-  const FuncDefRange& funcRange = codeMeta().funcDefRange(funcIndex);
-  uint32_t codeSectionStart = codeMeta().codeSectionRange->start;
-  uint32_t bodyOffsetInCodeSection =
-      funcRange.bytecodeOffset - codeSectionStart;
-  const uint8_t* bodyBegin =
-      codeSectionBytecode.begin() + bodyOffsetInCodeSection;
-  const uint8_t* bodyEnd = bodyBegin + funcRange.bodyLength;
-  FuncCompileInput func(funcIndex, funcRange.bytecodeOffset, bodyBegin, bodyEnd,
+  const BytecodeRange& funcRange = codeMeta().funcDefRange(funcIndex);
+  BytecodeSpan funcBytecode = codeMeta().funcDefBody(funcIndex);
+  FuncCompileInput func(funcIndex, funcRange.start, funcBytecode.data(),
+                        funcBytecode.data() + funcBytecode.size(),
                         Uint32Vector());
   Decoder d(func.begin, func.end, func.lineOrBytecode, &error);
 
@@ -6337,7 +6332,7 @@ bool FunctionCompiler::emitInlineCall(const FuncType& funcType,
   }
 
   CompileInfo* compileInfo = rootCompiler().addInlineCall(
-      this->funcIndex(), locals.length(), funcRange.bodyLength, callKind);
+      this->funcIndex(), locals.length(), funcRange.size, callKind);
   if (!compileInfo) {
     return false;
   }
@@ -6526,11 +6521,11 @@ bool FunctionCompiler::emitReturnCallIndirect() {
 bool FunctionCompiler::emitReturnCallRef() {
   uint32_t lineOrBytecode = readCallSiteLineOrBytecode();
 
-  const FuncType* funcType;
+  uint32_t funcTypeIndex;
   MDefinition* callee;
   DefVector args;
 
-  if (!iter().readReturnCallRef(&funcType, &callee, &args)) {
+  if (!iter().readReturnCallRef(&funcTypeIndex, &callee, &args)) {
     return false;
   }
 
@@ -6538,13 +6533,14 @@ bool FunctionCompiler::emitReturnCallRef() {
     return true;
   }
 
+  const FuncType& funcType = codeMeta().types->type(funcTypeIndex).funcType();
   DefVector results;
-  return returnCallRef(*funcType, callee, lineOrBytecode, args, &results);
+  return returnCallRef(funcType, callee, lineOrBytecode, args, &results);
 }
 
 bool FunctionCompiler::emitGetLocal() {
   uint32_t id;
-  if (!iter().readGetLocal(locals(), &id)) {
+  if (!iter().readGetLocal(&id)) {
     return false;
   }
 
@@ -6555,7 +6551,7 @@ bool FunctionCompiler::emitGetLocal() {
 bool FunctionCompiler::emitSetLocal() {
   uint32_t id;
   MDefinition* value;
-  if (!iter().readSetLocal(locals(), &id, &value)) {
+  if (!iter().readSetLocal(&id, &value)) {
     return false;
   }
 
@@ -6566,7 +6562,7 @@ bool FunctionCompiler::emitSetLocal() {
 bool FunctionCompiler::emitTeeLocal() {
   uint32_t id;
   MDefinition* value;
-  if (!iter().readTeeLocal(locals(), &id, &value)) {
+  if (!iter().readTeeLocal(&id, &value)) {
     return false;
   }
 
@@ -7287,12 +7283,12 @@ bool FunctionCompiler::emitFence() {
   return true;
 }
 
-bool FunctionCompiler::emitWake() {
+bool FunctionCompiler::emitNotify() {
   uint32_t bytecodeOffset = readBytecodeOffset();
 
   LinearMemoryAddress<MDefinition*> addr;
   MDefinition* count;
-  if (!iter().readWake(&addr, &count)) {
+  if (!iter().readNotify(&addr, &count)) {
     return false;
   }
 
@@ -8399,11 +8395,11 @@ bool FunctionCompiler::emitSpeculativeInlineCallRef(
 
 bool FunctionCompiler::emitCallRef() {
   uint32_t bytecodeOffset = readBytecodeOffset();
-  const FuncType* funcType;
+  uint32_t funcTypeIndex;
   MDefinition* callee;
   DefVector args;
 
-  if (!iter().readCallRef(&funcType, &callee, &args)) {
+  if (!iter().readCallRef(&funcTypeIndex, &callee, &args)) {
     return false;
   }
 
@@ -8415,11 +8411,13 @@ bool FunctionCompiler::emitCallRef() {
     return true;
   }
 
+  const FuncType& funcType = codeMeta().types->type(funcTypeIndex).funcType();
+
   if (hint.isInlineFunc() &&
       shouldInlineCall(InliningHeuristics::CallKind::CallRef,
                        hint.inlineFuncIndex())) {
     DefVector results;
-    if (!emitSpeculativeInlineCallRef(bytecodeOffset, *funcType,
+    if (!emitSpeculativeInlineCallRef(bytecodeOffset, funcType,
                                       hint.inlineFuncIndex(), callee, args,
                                       &results)) {
       return false;
@@ -8429,7 +8427,7 @@ bool FunctionCompiler::emitCallRef() {
   }
 
   DefVector results;
-  if (!callRef(*funcType, callee, bytecodeOffset, args, &results)) {
+  if (!callRef(funcType, callee, bytecodeOffset, args, &results)) {
     return false;
   }
 
@@ -8916,16 +8914,16 @@ bool FunctionCompiler::emitArrayLen() {
 bool FunctionCompiler::emitArrayCopy() {
   uint32_t lineOrBytecode = readCallSiteLineOrBytecode();
 
-  int32_t elemSize;
-  bool elemsAreRefTyped;
+  uint32_t dstArrayTypeIndex;
+  uint32_t srcArrayTypeIndex;
   MDefinition* dstArrayObject;
   MDefinition* dstArrayIndex;
   MDefinition* srcArrayObject;
   MDefinition* srcArrayIndex;
   MDefinition* numElements;
-  if (!iter().readArrayCopy(&elemSize, &elemsAreRefTyped, &dstArrayObject,
-                            &dstArrayIndex, &srcArrayObject, &srcArrayIndex,
-                            &numElements)) {
+  if (!iter().readArrayCopy(&dstArrayTypeIndex, &srcArrayTypeIndex,
+                            &dstArrayObject, &dstArrayIndex, &srcArrayObject,
+                            &srcArrayIndex, &numElements)) {
     return false;
   }
 
@@ -8933,11 +8931,11 @@ bool FunctionCompiler::emitArrayCopy() {
     return true;
   }
 
-  MOZ_ASSERT_IF(elemsAreRefTyped,
-                size_t(elemSize) == MIRTypeToSize(TargetWordMIRType()));
-  MOZ_ASSERT_IF(!elemsAreRefTyped, elemSize == 1 || elemSize == 2 ||
-                                       elemSize == 4 || elemSize == 8 ||
-                                       elemSize == 16);
+  const ArrayType& dstArrayType =
+      codeMeta().types->type(dstArrayTypeIndex).arrayType();
+  StorageType dstElemType = dstArrayType.elementType();
+  int32_t elemSize = int32_t(dstElemType.size());
+  bool elemsAreRefTyped = dstElemType.isRefType();
 
   return createArrayCopy(lineOrBytecode, dstArrayObject, dstArrayIndex,
                          srcArrayObject, srcArrayIndex, numElements, elemSize,
@@ -9098,7 +9096,7 @@ bool FunctionCompiler::emitCallBuiltinModuleFunc() {
 }
 
 bool FunctionCompiler::emitBodyExprs() {
-  if (!iter().startFunction(funcIndex(), locals())) {
+  if (!iter().startFunction(funcIndex())) {
     return false;
   }
 
@@ -10037,8 +10035,8 @@ bool FunctionCompiler::emitBodyExprs() {
           return iter().unrecognizedOpcode(&op);
         }
         switch (op.b1) {
-          case uint32_t(ThreadOp::Wake):
-            CHECK(emitWake());
+          case uint32_t(ThreadOp::Notify):
+            CHECK(emitNotify());
 
           case uint32_t(ThreadOp::I32Wait):
             CHECK(emitWait(ValType::I32, 4));

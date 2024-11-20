@@ -136,11 +136,11 @@ enum class OpKind {
   Loop,
   Unreachable,
   Drop,
-  I32,
-  I64,
-  F32,
-  F64,
-  V128,
+  I32Const,
+  I64Const,
+  F32Const,
+  F64Const,
+  V128Const,
   Br,
   BrIf,
   BrTable,
@@ -175,12 +175,12 @@ enum class OpKind {
   Else,
   End,
   Wait,
-  Wake,
+  Notify,
   Fence,
   AtomicLoad,
   AtomicStore,
-  AtomicBinOp,
-  AtomicCompareExchange,
+  AtomicRMW,
+  AtomicCmpXchg,
   MemOrTableCopy,
   DataOrElemDrop,
   MemFill,
@@ -193,6 +193,7 @@ enum class OpKind {
   TableSize,
   RefNull,
   RefFunc,
+  RefIsNull,
   RefAsNonNull,
   BrOnNull,
   BrOnNonNull,
@@ -421,6 +422,7 @@ class MOZ_STACK_CLASS OpIter : private Policy {
   Kind kind_;
   Decoder& d_;
   const CodeMetadata& codeMeta_;
+  const ValTypeVector& locals_;
 
   TypeAndValueStack valueStack_;
   TypeAndValueStack elseParamStack_;
@@ -536,25 +538,19 @@ class MOZ_STACK_CLASS OpIter : private Policy {
                                uint32_t expectedTypeIndex);
 
  public:
-#ifdef DEBUG
   explicit OpIter(const CodeMetadata& codeMeta, Decoder& decoder,
-                  Kind kind = OpIter::Func)
+                  const ValTypeVector& locals, Kind kind = OpIter::Func)
       : kind_(kind),
         d_(decoder),
         codeMeta_(codeMeta),
+        locals_(locals),
         featureUsage_(FeatureUsage::None),
         branchHintVector_(nullptr),
+#ifdef DEBUG
         op_(OpBytes(Op::Limit)),
-        offsetOfLastReadOp_(0) {}
-#else
-  explicit OpIter(const CodeMetadata& codeMeta, Decoder& decoder,
-                  Kind kind = OpIter::Func)
-      : kind_(kind),
-        d_(decoder),
-        codeMeta_(codeMeta),
-        featureUsage_(FeatureUsage::None),
-        offsetOfLastReadOp_(0) {}
 #endif
+        offsetOfLastReadOp_(0) {
+  }
 
   FeatureUsage featureUsage() const { return featureUsage_; }
   void addFeatureUsage(FeatureUsage featureUsage) {
@@ -627,8 +623,7 @@ class MOZ_STACK_CLASS OpIter : private Policy {
 
   // Initialization and termination
 
-  [[nodiscard]] bool startFunction(uint32_t funcIndex,
-                                   const ValTypeVector& locals);
+  [[nodiscard]] bool startFunction(uint32_t funcIndex);
   [[nodiscard]] bool endFunction(const uint8_t* bodyEnd);
 
   [[nodiscard]] bool startInitExpr(ValType expected);
@@ -697,11 +692,9 @@ class MOZ_STACK_CLASS OpIter : private Policy {
   [[nodiscard]] bool readMemoryGrow(uint32_t* memoryIndex, Value* input);
   [[nodiscard]] bool readSelect(bool typed, StackType* type, Value* trueValue,
                                 Value* falseValue, Value* condition);
-  [[nodiscard]] bool readGetLocal(const ValTypeVector& locals, uint32_t* id);
-  [[nodiscard]] bool readSetLocal(const ValTypeVector& locals, uint32_t* id,
-                                  Value* value);
-  [[nodiscard]] bool readTeeLocal(const ValTypeVector& locals, uint32_t* id,
-                                  Value* value);
+  [[nodiscard]] bool readGetLocal(uint32_t* id);
+  [[nodiscard]] bool readSetLocal(uint32_t* id, Value* value);
+  [[nodiscard]] bool readTeeLocal(uint32_t* id, Value* value);
   [[nodiscard]] bool readGetGlobal(uint32_t* id);
   [[nodiscard]] bool readSetGlobal(uint32_t* id, Value* value);
   [[nodiscard]] bool readTeeGlobal(uint32_t* id, Value* value);
@@ -726,16 +719,16 @@ class MOZ_STACK_CLASS OpIter : private Policy {
   [[nodiscard]] bool readReturnCallIndirect(uint32_t* funcTypeIndex,
                                             uint32_t* tableIndex, Value* callee,
                                             ValueVector* argValues);
-  [[nodiscard]] bool readCallRef(const FuncType** funcType, Value* callee,
+  [[nodiscard]] bool readCallRef(uint32_t* funcTypeIndex, Value* callee,
                                  ValueVector* argValues);
-  [[nodiscard]] bool readReturnCallRef(const FuncType** funcType, Value* callee,
+  [[nodiscard]] bool readReturnCallRef(uint32_t* funcTypeIndex, Value* callee,
                                        ValueVector* argValues);
   [[nodiscard]] bool readOldCallDirect(uint32_t numFuncImports,
                                        uint32_t* funcIndex,
                                        ValueVector* argValues);
   [[nodiscard]] bool readOldCallIndirect(uint32_t* funcTypeIndex, Value* callee,
                                          ValueVector* argValues);
-  [[nodiscard]] bool readWake(LinearMemoryAddress<Value>* addr, Value* count);
+  [[nodiscard]] bool readNotify(LinearMemoryAddress<Value>* addr, Value* count);
   [[nodiscard]] bool readWait(LinearMemoryAddress<Value>* addr,
                               ValType valueType, uint32_t byteSize,
                               Value* value, Value* timeout);
@@ -803,10 +796,10 @@ class MOZ_STACK_CLASS OpIter : private Policy {
   [[nodiscard]] bool readArraySet(uint32_t* typeIndex, Value* val, Value* index,
                                   Value* ptr);
   [[nodiscard]] bool readArrayLen(Value* ptr);
-  [[nodiscard]] bool readArrayCopy(int32_t* elemSize, bool* elemsAreRefTyped,
-                                   Value* dstArray, Value* dstIndex,
-                                   Value* srcArray, Value* srcIndex,
-                                   Value* numElements);
+  [[nodiscard]] bool readArrayCopy(uint32_t* dstArrayTypeIndex,
+                                   uint32_t* srcArrayTypeIndex, Value* dstArray,
+                                   Value* dstIndex, Value* srcArray,
+                                   Value* srcIndex, Value* numElements);
   [[nodiscard]] bool readArrayFill(uint32_t* typeIndex, Value* array,
                                    Value* index, Value* val, Value* length);
   [[nodiscard]] bool readRefTest(bool nullable, RefType* sourceType,
@@ -1263,8 +1256,7 @@ inline void OpIter<Policy>::peekOp(OpBytes* op) {
 }
 
 template <typename Policy>
-inline bool OpIter<Policy>::startFunction(uint32_t funcIndex,
-                                          const ValTypeVector& locals) {
+inline bool OpIter<Policy>::startFunction(uint32_t funcIndex) {
   MOZ_ASSERT(kind_ == OpIter::Func);
   MOZ_ASSERT(elseParamStack_.empty());
   MOZ_ASSERT(valueStack_.empty());
@@ -1279,7 +1271,7 @@ inline bool OpIter<Policy>::startFunction(uint32_t funcIndex,
   }
 
   size_t numArgs = codeMeta_.getFuncType(funcIndex).args().length();
-  if (!unsetLocals_.init(locals, numArgs)) {
+  if (!unsetLocals_.init(locals_, numArgs)) {
     return false;
   }
 
@@ -1308,6 +1300,7 @@ inline bool OpIter<Policy>::endFunction(const uint8_t* bodyEnd) {
 template <typename Policy>
 inline bool OpIter<Policy>::startInitExpr(ValType expected) {
   MOZ_ASSERT(kind_ == OpIter::InitExpr);
+  MOZ_ASSERT(locals_.length() == 0);
   MOZ_ASSERT(elseParamStack_.empty());
   MOZ_ASSERT(valueStack_.empty());
   MOZ_ASSERT(controlStack_.empty());
@@ -2204,15 +2197,14 @@ inline bool OpIter<Policy>::readSelect(bool typed, StackType* type,
 }
 
 template <typename Policy>
-inline bool OpIter<Policy>::readGetLocal(const ValTypeVector& locals,
-                                         uint32_t* id) {
+inline bool OpIter<Policy>::readGetLocal(uint32_t* id) {
   MOZ_ASSERT(Classify(op_) == OpKind::GetLocal);
 
   if (!readVarU32(id)) {
     return fail("unable to read local index");
   }
 
-  if (*id >= locals.length()) {
+  if (*id >= locals_.length()) {
     return fail("local.get index out of range");
   }
 
@@ -2220,19 +2212,18 @@ inline bool OpIter<Policy>::readGetLocal(const ValTypeVector& locals,
     return fail("local.get read from unset local");
   }
 
-  return push(locals[*id]);
+  return push(locals_[*id]);
 }
 
 template <typename Policy>
-inline bool OpIter<Policy>::readSetLocal(const ValTypeVector& locals,
-                                         uint32_t* id, Value* value) {
+inline bool OpIter<Policy>::readSetLocal(uint32_t* id, Value* value) {
   MOZ_ASSERT(Classify(op_) == OpKind::SetLocal);
 
   if (!readVarU32(id)) {
     return fail("unable to read local index");
   }
 
-  if (*id >= locals.length()) {
+  if (*id >= locals_.length()) {
     return fail("local.set index out of range");
   }
 
@@ -2240,19 +2231,18 @@ inline bool OpIter<Policy>::readSetLocal(const ValTypeVector& locals,
     unsetLocals_.set(*id, controlStackDepth());
   }
 
-  return popWithType(locals[*id], value);
+  return popWithType(locals_[*id], value);
 }
 
 template <typename Policy>
-inline bool OpIter<Policy>::readTeeLocal(const ValTypeVector& locals,
-                                         uint32_t* id, Value* value) {
+inline bool OpIter<Policy>::readTeeLocal(uint32_t* id, Value* value) {
   MOZ_ASSERT(Classify(op_) == OpKind::TeeLocal);
 
   if (!readVarU32(id)) {
     return fail("unable to read local index");
   }
 
-  if (*id >= locals.length()) {
+  if (*id >= locals_.length()) {
     return fail("local.set index out of range");
   }
 
@@ -2261,7 +2251,7 @@ inline bool OpIter<Policy>::readTeeLocal(const ValTypeVector& locals,
   }
 
   ValueVector single;
-  if (!checkTopTypeMatches(ResultType::Single(locals[*id]), &single,
+  if (!checkTopTypeMatches(ResultType::Single(locals_[*id]), &single,
                            /*rewriteStackTypes=*/true)) {
     return false;
   }
@@ -2342,7 +2332,7 @@ inline bool OpIter<Policy>::readTeeGlobal(uint32_t* id, Value* value) {
 
 template <typename Policy>
 inline bool OpIter<Policy>::readI32Const(int32_t* i32) {
-  MOZ_ASSERT(Classify(op_) == OpKind::I32);
+  MOZ_ASSERT(Classify(op_) == OpKind::I32Const);
 
   if (!d_.readI32Const(i32)) {
     return false;
@@ -2353,7 +2343,7 @@ inline bool OpIter<Policy>::readI32Const(int32_t* i32) {
 
 template <typename Policy>
 inline bool OpIter<Policy>::readI64Const(int64_t* i64) {
-  MOZ_ASSERT(Classify(op_) == OpKind::I64);
+  MOZ_ASSERT(Classify(op_) == OpKind::I64Const);
 
   if (!d_.readI64Const(i64)) {
     return false;
@@ -2364,7 +2354,7 @@ inline bool OpIter<Policy>::readI64Const(int64_t* i64) {
 
 template <typename Policy>
 inline bool OpIter<Policy>::readF32Const(float* f32) {
-  MOZ_ASSERT(Classify(op_) == OpKind::F32);
+  MOZ_ASSERT(Classify(op_) == OpKind::F32Const);
 
   if (!d_.readF32Const(f32)) {
     return false;
@@ -2375,7 +2365,7 @@ inline bool OpIter<Policy>::readF32Const(float* f32) {
 
 template <typename Policy>
 inline bool OpIter<Policy>::readF64Const(double* f64) {
-  MOZ_ASSERT(Classify(op_) == OpKind::F64);
+  MOZ_ASSERT(Classify(op_) == OpKind::F64Const);
 
   if (!d_.readF64Const(f64)) {
     return false;
@@ -2416,7 +2406,7 @@ inline bool OpIter<Policy>::readRefNull(RefType* type) {
 
 template <typename Policy>
 inline bool OpIter<Policy>::readRefIsNull(Value* input) {
-  MOZ_ASSERT(Classify(op_) == OpKind::Conversion);
+  MOZ_ASSERT(Classify(op_) == OpKind::RefIsNull);
 
   StackType type;
   if (!popWithRefType(input, &type)) {
@@ -2697,57 +2687,55 @@ inline bool OpIter<Policy>::readReturnCallIndirect(uint32_t* funcTypeIndex,
 }
 
 template <typename Policy>
-inline bool OpIter<Policy>::readCallRef(const FuncType** funcType,
-                                        Value* callee, ValueVector* argValues) {
+inline bool OpIter<Policy>::readCallRef(uint32_t* funcTypeIndex, Value* callee,
+                                        ValueVector* argValues) {
   MOZ_ASSERT(Classify(op_) == OpKind::CallRef);
 
-  uint32_t funcTypeIndex;
-  if (!readFuncTypeIndex(&funcTypeIndex)) {
+  if (!readFuncTypeIndex(funcTypeIndex)) {
     return false;
   }
 
-  const TypeDef& typeDef = codeMeta_.types->type(funcTypeIndex);
-  *funcType = &typeDef.funcType();
+  const TypeDef& typeDef = codeMeta_.types->type(*funcTypeIndex);
+  const FuncType& funcType = typeDef.funcType();
 
   if (!popWithType(ValType(RefType::fromTypeDef(&typeDef, true)), callee)) {
     return false;
   }
 
-  if (!popCallArgs((*funcType)->args(), argValues)) {
+  if (!popCallArgs(funcType.args(), argValues)) {
     return false;
   }
 
-  return push(ResultType::Vector((*funcType)->results()));
+  return push(ResultType::Vector(funcType.results()));
 }
 
 template <typename Policy>
-inline bool OpIter<Policy>::readReturnCallRef(const FuncType** funcType,
+inline bool OpIter<Policy>::readReturnCallRef(uint32_t* funcTypeIndex,
                                               Value* callee,
                                               ValueVector* argValues) {
   MOZ_ASSERT(Classify(op_) == OpKind::ReturnCallRef);
 
   featureUsage_ |= FeatureUsage::ReturnCall;
 
-  uint32_t funcTypeIndex;
-  if (!readFuncTypeIndex(&funcTypeIndex)) {
+  if (!readFuncTypeIndex(funcTypeIndex)) {
     return false;
   }
 
-  const TypeDef& typeDef = codeMeta_.types->type(funcTypeIndex);
-  *funcType = &typeDef.funcType();
+  const TypeDef& typeDef = codeMeta_.types->type(*funcTypeIndex);
+  const FuncType& funcType = typeDef.funcType();
 
   if (!popWithType(ValType(RefType::fromTypeDef(&typeDef, true)), callee)) {
     return false;
   }
 
-  if (!popCallArgs((*funcType)->args(), argValues)) {
+  if (!popCallArgs(funcType.args(), argValues)) {
     return false;
   }
 
   // Check if callee results are subtypes of caller's.
   Control& body = controlStack_[0];
   MOZ_ASSERT(body.kind() == LabelKind::Body);
-  if (!checkIsSubtypeOf(ResultType::Vector((*funcType)->results()),
+  if (!checkIsSubtypeOf(ResultType::Vector(funcType.results()),
                         body.resultType())) {
     return false;
   }
@@ -2818,9 +2806,9 @@ inline bool OpIter<Policy>::readOldCallIndirect(uint32_t* funcTypeIndex,
 }
 
 template <typename Policy>
-inline bool OpIter<Policy>::readWake(LinearMemoryAddress<Value>* addr,
-                                     Value* count) {
-  MOZ_ASSERT(Classify(op_) == OpKind::Wake);
+inline bool OpIter<Policy>::readNotify(LinearMemoryAddress<Value>* addr,
+                                       Value* count) {
+  MOZ_ASSERT(Classify(op_) == OpKind::Notify);
 
   if (!popWithType(ValType::I32, count)) {
     return false;
@@ -2902,7 +2890,7 @@ template <typename Policy>
 inline bool OpIter<Policy>::readAtomicRMW(LinearMemoryAddress<Value>* addr,
                                           ValType resultType, uint32_t byteSize,
                                           Value* value) {
-  MOZ_ASSERT(Classify(op_) == OpKind::AtomicBinOp);
+  MOZ_ASSERT(Classify(op_) == OpKind::AtomicRMW);
 
   if (!popWithType(resultType, value)) {
     return false;
@@ -2922,7 +2910,7 @@ inline bool OpIter<Policy>::readAtomicCmpXchg(LinearMemoryAddress<Value>* addr,
                                               uint32_t byteSize,
                                               Value* oldValue,
                                               Value* newValue) {
-  MOZ_ASSERT(Classify(op_) == OpKind::AtomicCompareExchange);
+  MOZ_ASSERT(Classify(op_) == OpKind::AtomicCmpXchg);
 
   if (!popWithType(resultType, newValue)) {
     return false;
@@ -3757,30 +3745,27 @@ inline bool OpIter<Policy>::readArrayLen(Value* ptr) {
 }
 
 template <typename Policy>
-inline bool OpIter<Policy>::readArrayCopy(int32_t* elemSize,
-                                          bool* elemsAreRefTyped,
+inline bool OpIter<Policy>::readArrayCopy(uint32_t* dstArrayTypeIndex,
+                                          uint32_t* srcArrayTypeIndex,
                                           Value* dstArray, Value* dstIndex,
                                           Value* srcArray, Value* srcIndex,
                                           Value* numElements) {
-  // *elemSize is set to 1/2/4/8/16, and *elemsAreRefTyped is set to indicate
-  // *ref-typeness of elements.
   MOZ_ASSERT(Classify(op_) == OpKind::ArrayCopy);
 
-  uint32_t dstTypeIndex, srcTypeIndex;
-  if (!readArrayTypeIndex(&dstTypeIndex)) {
+  if (!readArrayTypeIndex(dstArrayTypeIndex)) {
     return false;
   }
-  if (!readArrayTypeIndex(&srcTypeIndex)) {
+  if (!readArrayTypeIndex(srcArrayTypeIndex)) {
     return false;
   }
 
-  // `dstTypeIndex`/`srcTypeIndex` are ensured by the above to both be array
-  // types.  Reject if:
+  // `dstArrayTypeIndex`/`srcArrayTypeIndex` are ensured by the above to both be
+  // array types.  Reject if:
   // * the dst array is not of mutable type
   // * the element types are incompatible
-  const TypeDef& dstTypeDef = codeMeta_.types->type(dstTypeIndex);
+  const TypeDef& dstTypeDef = codeMeta_.types->type(*dstArrayTypeIndex);
   const ArrayType& dstArrayType = dstTypeDef.arrayType();
-  const TypeDef& srcTypeDef = codeMeta_.types->type(srcTypeIndex);
+  const TypeDef& srcTypeDef = codeMeta_.types->type(*srcArrayTypeIndex);
   const ArrayType& srcArrayType = srcTypeDef.arrayType();
   StorageType dstElemType = dstArrayType.elementType();
   StorageType srcElemType = srcArrayType.elementType();
@@ -3791,13 +3776,7 @@ inline bool OpIter<Policy>::readArrayCopy(int32_t* elemSize,
   if (!checkIsSubtypeOf(srcElemType, dstElemType)) {
     return fail("incompatible element types");
   }
-  bool dstIsRefType = dstElemType.isRefType();
-  MOZ_ASSERT(dstIsRefType == srcElemType.isRefType());
-
-  *elemSize = int32_t(dstElemType.size());
-  *elemsAreRefTyped = dstIsRefType;
-  MOZ_ASSERT(*elemSize >= 1 && *elemSize <= 16);
-  MOZ_ASSERT_IF(*elemsAreRefTyped, *elemSize == 4 || *elemSize == 8);
+  MOZ_ASSERT(dstElemType.isRefType() == srcElemType.isRefType());
 
   if (!popWithType(ValType::I32, numElements)) {
     return false;
@@ -4136,7 +4115,7 @@ inline bool OpIter<Policy>::readVectorShuffle(Value* v1, Value* v2,
 
 template <typename Policy>
 inline bool OpIter<Policy>::readV128Const(V128* value) {
-  MOZ_ASSERT(Classify(op_) == OpKind::V128);
+  MOZ_ASSERT(Classify(op_) == OpKind::V128Const);
 
   if (!d_.readV128Const(value)) {
     return false;
