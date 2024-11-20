@@ -506,13 +506,13 @@ ProfilerParentTracker* ProfilerParentTracker::GetInstance() {
 
   // The main instance pointer, it will be initialized at most once, before
   // XPCOMShutdownThreads.
-  static UniquePtr<ProfilerParentTracker> instance = nullptr;
+  static StaticAutoPtr<ProfilerParentTracker> instance;
   if (MOZ_UNLIKELY(!instance)) {
     if (PastShutdownPhase(ShutdownPhase::XPCOMShutdownThreads)) {
       return nullptr;
     }
 
-    instance = MakeUnique<ProfilerParentTracker>();
+    instance = new ProfilerParentTracker();
 
     // The tracker should get destroyed before threads are shutdown, because its
     // destruction closes extant channels, which could trigger promise
