@@ -940,6 +940,7 @@
         : "translateX(" + Math.round(newMargin) + "px)";
     }
 
+    // eslint-disable-next-line complexity
     on_drop(event) {
       var dt = event.dataTransfer;
       var dropEffect = dt.dropEffect;
@@ -982,16 +983,49 @@
         let newTranslateX = oldTranslateX - translateOffsetX;
         let newTranslateY = oldTranslateY - translateOffsetY;
 
-        // Update both translate axis for pinned vertical expanded tabs
-        if (oldTranslateX > 0 && translateOffsetX > tabWidth / 2) {
-          newTranslateX += tabWidth;
-        } else if (oldTranslateX < 0 && -translateOffsetX > tabWidth / 2) {
-          newTranslateX -= tabWidth;
-        }
-        if (oldTranslateY > 0 && translateOffsetY > tabHeight / 2) {
-          newTranslateY += tabHeight;
-        } else if (oldTranslateY < 0 && -translateOffsetY > tabHeight / 2) {
-          newTranslateY -= tabHeight;
+        if (this.#isContainerVerticalPinnedExpanded(draggedTab)) {
+          // Update both translate axis for pinned vertical expanded tabs
+          if (oldTranslateX > 0 && translateOffsetX > tabWidth / 2) {
+            newTranslateX += tabWidth;
+          } else if (oldTranslateX < 0 && -translateOffsetX > tabWidth / 2) {
+            newTranslateX -= tabWidth;
+          }
+          if (oldTranslateY > 0 && translateOffsetY > tabHeight / 2) {
+            newTranslateY += tabHeight;
+          } else if (oldTranslateY < 0 && -translateOffsetY > tabHeight / 2) {
+            newTranslateY -= tabHeight;
+          }
+        } else {
+          let pinned = draggedTab.pinned;
+          let numPinned = gBrowser.pinnedTabCount;
+          let tabs = this.visibleTabs.slice(
+            pinned ? 0 : numPinned,
+            pinned ? numPinned : undefined
+          );
+          let size = this.verticalMode ? "height" : "width";
+          let screenAxis = this.verticalMode ? "screenY" : "screenX";
+          let tabSize = this.verticalMode ? tabHeight : tabWidth;
+          let firstTab = tabs[0];
+          let lastTab = tabs.at(-1);
+          let lastMovingTabScreen = movingTabs.at(-1)[screenAxis];
+          let firstMovingTabScreen = movingTabs[0][screenAxis];
+          let firstBound = firstTab[screenAxis] - firstMovingTabScreen;
+          let lastBound =
+            lastTab[screenAxis] +
+            window.windowUtils.getBoundsWithoutFlushing(lastTab)[size] -
+            (lastMovingTabScreen + tabSize);
+
+          if (this.verticalMode) {
+            newTranslateY = Math.min(
+              Math.max(oldTranslateY, firstBound),
+              lastBound
+            );
+          } else {
+            newTranslateX = Math.min(
+              Math.max(oldTranslateX, firstBound),
+              lastBound
+            );
+          }
         }
 
         let dropIndex;
