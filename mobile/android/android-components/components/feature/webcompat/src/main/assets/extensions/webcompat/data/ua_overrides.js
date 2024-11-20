@@ -1587,6 +1587,25 @@ const AVAILABLE_UA_OVERRIDES = [
       },
     },
   },
+  {
+    /*
+     * Bug 1913759 - UA override for playblackdesert.com
+     * Webcompat issue #140522 - https://webcompat.com/issues/140522
+     *
+     * The site says Firefox is unsupported, yet seems to work with a Chrome UA.
+     * (The issue does not seem to exist on Android).
+     */
+    id: "bug1913759",
+    platform: "desktop",
+    domain: "playblackdesert.com",
+    bug: "1913759",
+    config: {
+      matches: ["*://eu-trade.naeu.playblackdesert.com/*"],
+      uaTransformer: () => {
+        return UAHelpers.getDeviceAppropriateChromeUA();
+      },
+    },
+  },
 ];
 
 module.exports = AVAILABLE_UA_OVERRIDES;
