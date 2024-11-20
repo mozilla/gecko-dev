@@ -303,6 +303,19 @@ MOZ_NoReturn(int aLine) {
 #endif
 
 /*
+ * MOZ_DIAGNOSTIC_CRASH acts like MOZ_CRASH in a MOZ_DIAGNOSTIC_ASSERT_ENABLED
+ * build, and does nothing otherwise. See the comment later in this file for a
+ * description of when MOZ_DIAGNOSTIC_ASSERT_ENABLED is defined.
+ */
+#if defined(MOZ_DIAGNOSTIC_ASSERT_ENABLED)
+#  define MOZ_DIAGNOSTIC_CRASH(...) MOZ_CRASH(__VA_ARGS__)
+#else
+#  define MOZ_DIAGNOSTIC_CRASH(...) \
+    do { /* nothing */              \
+    } while (false)
+#endif
+
+/*
  * MOZ_CRASH_UNSAFE(explanation-string) can be used if the explanation string
  * cannot be a string literal (but no other processing needs to be done on it).
  * A regular MOZ_CRASH() is preferred wherever possible, as passing arbitrary
@@ -654,18 +667,18 @@ struct AssertionConditionType {
 #endif
 
 /*
- * MOZ_ALWAYS_TRUE(expr) and friends always evaluate the provided expression,
- * in debug builds and in release builds both.  Then, in debug builds and
- * Nightly and early beta builds, the value of the expression is
- * asserted either true or false using MOZ_DIAGNOSTIC_ASSERT.
+ * MOZ_ALWAYS_TRUE(expr) and friends always evaluate the provided expression, in
+ * both debug and release builds.  Then, in debug builds and Nightly and early
+ * beta builds, we crash using the string value of the expression as the message
+ * using MOZ_DIAGNOSTIC_CRASH.
  */
-#define MOZ_ALWAYS_TRUE(expr)              \
-  do {                                     \
-    if (MOZ_LIKELY(expr)) {                \
-      /* Silence [[nodiscard]]. */         \
-    } else {                               \
-      MOZ_DIAGNOSTIC_ASSERT(false, #expr); \
-    }                                      \
+#define MOZ_ALWAYS_TRUE(expr)      \
+  do {                             \
+    if (MOZ_LIKELY(expr)) {        \
+      /* Silence [[nodiscard]]. */ \
+    } else {                       \
+      MOZ_DIAGNOSTIC_CRASH(#expr); \
+    }                              \
   } while (false)
 
 #define MOZ_ALWAYS_FALSE(expr) MOZ_ALWAYS_TRUE(!(expr))
