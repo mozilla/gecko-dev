@@ -193,7 +193,7 @@ unified-extensions-item {
 }
 
 .unified-extensions-message-bar {
-  margin-bottom: 2px;
+  margin-bottom: var(--space-small);
 }
 
 /* Hide the menu button and the unified extensions content when the extension
