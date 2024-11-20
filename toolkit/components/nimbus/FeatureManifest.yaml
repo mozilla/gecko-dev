@@ -2697,6 +2697,18 @@ thirdPartyCookieBlocking:
         branch: default
         pref: "network.cookie.cookieBehavior.optInPartitioning.pbmode"
 
+thirdPartyTrackerCookieBlocking:
+  description: Prefs to control third-party tracker cookie blocking
+  owner: tihuang@mozilla.com
+  hasExposure: false
+  variables:
+    enabled:
+      description: Whether to enable third-party tracker cookie blocking.
+      type: boolean
+      setPref:
+        branch: default
+        pref: "network.cookie.cookieBehavior.trackerCookieBlocking"
+
 fxaButtonVisibility:
   description: Prefs to control the visibility of the Firefox Accounts toolbar button when not signed in.
   owner: mconley@mozilla.com

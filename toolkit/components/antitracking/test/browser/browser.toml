@@ -111,6 +111,8 @@ skip-if = ["os == 'mac' && !debug"] # Bug 1503778, 1577362
 
 ["browser_nimbus_etp_features.js"]
 
+["browser_nimbus_thirdPartyTrackerCookieBlocking.js"]
+
 ["browser_onBeforeRequestNotificationForTrackingResources.js"]
 
 ["browser_onModifyRequestNotificationForTrackingResources.js"]
