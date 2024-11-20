@@ -40,7 +40,9 @@ import androidx.constraintlayout.widget.ConstraintProperties.TOP
 import androidx.constraintlayout.widget.ConstraintSet
 import androidx.core.graphics.drawable.toDrawable
 import androidx.core.net.toUri
+import androidx.core.os.bundleOf
 import androidx.core.view.isVisible
+import androidx.fragment.app.setFragmentResult
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavGraph
@@ -583,6 +585,11 @@ class SearchDialogFragment : AppCompatDialogFragment(), UserInteractionHandler {
     override fun onResume() {
         super.onResume()
 
+        setFragmentResult(
+            SEARCH_VISIBILITY_RESPONSE_KEY,
+            bundleOf(SEARCH_VISIBILITY_RESPONSE_BUNDLE_KEY to SEARCH_IS_VISIBLE),
+        )
+
         qrFeature.get()?.let {
             if (it.isScanInProgress) {
                 it.scan(binding.searchWrapper.id)
@@ -1023,5 +1030,9 @@ class SearchDialogFragment : AppCompatDialogFragment(), UserInteractionHandler {
         private const val TAP_INCREASE_DPS_4 = 4
         private const val QR_FRAGMENT_TAG = "MOZAC_QR_FRAGMENT"
         private const val REQUEST_CODE_CAMERA_PERMISSIONS = 1
+
+        const val SEARCH_VISIBILITY_RESPONSE_KEY = "SEARCH_VISIBILITY_RESPONSE_KEY"
+        const val SEARCH_VISIBILITY_RESPONSE_BUNDLE_KEY = "SEARCH_VISIBILITY_RESPONSE_BUNDLE_KEY"
+        const val SEARCH_IS_VISIBLE = "SEARCH_IS_VISIBLE"
     }
 }

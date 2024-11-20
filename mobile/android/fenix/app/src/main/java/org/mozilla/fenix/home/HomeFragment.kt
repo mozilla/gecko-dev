@@ -47,6 +47,7 @@ import androidx.core.content.res.ResourcesCompat
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
+import androidx.fragment.app.setFragmentResultListener
 import androidx.lifecycle.Observer
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
@@ -287,6 +288,10 @@ class HomeFragment : Fragment() {
         bundleArgs = args.toBundle()
         if (savedInstanceState != null) {
             bundleArgs.putBoolean(FOCUS_ON_ADDRESS_BAR, false)
+        }
+
+        setFragmentResultListener(SearchDialogFragment.SEARCH_VISIBILITY_RESPONSE_KEY) { _, _ ->
+            resetNavbar()
         }
 
         // DO NOT MOVE ANYTHING BELOW THIS addMarker CALL!
@@ -917,6 +922,19 @@ class HomeFragment : Fragment() {
             View.VISIBLE,
             elevation,
         )
+    }
+
+    /**
+     * Build and show a new navbar.
+     * Useful when needed to force an update of it's layout.
+     */
+    private fun resetNavbar() {
+        val safeContext = context ?: return
+        if (!safeContext.shouldAddNavigationBar()) return
+
+        // Prevent showing two navigation bars at the same time.
+        binding.root.removeView(bottomToolbarContainerView.toolbarContainerView)
+        reinitializeNavBar()
     }
 
     private fun updateToolbarViewUI(@DrawableRes id: Int, visibility: Int, elevation: Float) {
