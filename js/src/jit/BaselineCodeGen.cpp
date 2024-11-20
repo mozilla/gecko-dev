@@ -6630,7 +6630,7 @@ bool BaselineCompiler::emitBody() {
       return false;
     }
 
-    perfSpewer_.recordInstruction(cx, masm, handler.pc(), frame);
+    perfSpewer_.recordInstruction(masm, handler.pc(), frame);
 
 #define EMIT_OP(OP, ...)                                \
   case JSOp::OP: {                                      \

@@ -417,7 +417,7 @@ void IonPerfSpewer::recordInstruction(MacroAssembler& masm, LInstruction* ins) {
 }
 
 #ifdef JS_JITSPEW
-static void PrintStackValue(JSContext* cx, StackValue* stackVal,
+static void PrintStackValue(JSContext* maybeCx, StackValue* stackVal,
                             CompilerFrameInfo& frame, Sprinter& buf) {
   switch (stackVal->kind()) {
     /****** Constant ******/
@@ -428,13 +428,21 @@ static void PrintStackValue(JSContext* cx, StackValue* stackVal,
       } else if (constantVal.isObjectOrNull()) {
         buf.printf("obj:%p", constantVal.toObjectOrNull());
       } else if (constantVal.isString()) {
-        buf.put("str:");
-        buf.putString(cx, constantVal.toString());
+        if (maybeCx) {
+          buf.put("str:");
+          buf.putString(maybeCx, constantVal.toString());
+        } else {
+          buf.put("str");
+        }
       } else if (constantVal.isNumber()) {
         buf.printf("num:%f", constantVal.toNumber());
       } else if (constantVal.isSymbol()) {
-        buf.put("sym:");
-        constantVal.toSymbol()->dump(buf);
+        if (maybeCx) {
+          buf.put("sym:");
+          constantVal.toSymbol()->dump(buf);
+        } else {
+          buf.put("sym");
+        }
       } else {
         buf.printf("raw:%" PRIx64, constantVal.asRawBits());
       }
@@ -473,8 +481,7 @@ static void PrintStackValue(JSContext* cx, StackValue* stackVal,
 }
 #endif
 
-void BaselinePerfSpewer::recordInstruction(JSContext* cx, MacroAssembler& masm,
-                                           jsbytecode* pc,
+void BaselinePerfSpewer::recordInstruction(MacroAssembler& masm, jsbytecode* pc,
                                            CompilerFrameInfo& frame) {
   if (!PerfIREnabled() && !PerfSrcEnabled()) {
     return;
@@ -488,37 +495,40 @@ void BaselinePerfSpewer::recordInstruction(JSContext* cx, MacroAssembler& masm,
     JSScript* script = frame.script;
     unsigned numOperands = js::StackUses(op, pc);
 
-    Sprinter buf(cx);
+    JSContext* maybeCx = TlsContext.get();
+    Sprinter buf(maybeCx);
     CHECK_RETURN(buf.init());
     buf.put(js::CodeName(op));
 
-    switch (op) {
-      case JSOp::SetName:
-      case JSOp::SetGName:
-      case JSOp::BindName:
-      case JSOp::BindUnqualifiedName:
-      case JSOp::BindUnqualifiedGName:
-      case JSOp::GetName:
-      case JSOp::GetGName: {
-        // Emit the name used for these ops
-        Rooted<PropertyName*> name(cx, script->getName(pc));
-        buf.put(" ");
-        buf.putString(cx, name);
-      } break;
-      default:
-        break;
-    }
+    if (maybeCx) {
+      switch (op) {
+        case JSOp::SetName:
+        case JSOp::SetGName:
+        case JSOp::BindName:
+        case JSOp::BindUnqualifiedName:
+        case JSOp::BindUnqualifiedGName:
+        case JSOp::GetName:
+        case JSOp::GetGName: {
+          // Emit the name used for these ops
+          Rooted<PropertyName*> name(maybeCx, script->getName(pc));
+          buf.put(" ");
+          buf.putString(maybeCx, name);
+        } break;
+        default:
+          break;
+      }
 
-    // Output should be "JSOp (operand1), (operand2), ..."
-    for (unsigned i = 1; i <= numOperands; i++) {
-      buf.put(" (");
-      StackValue* stackVal = frame.peek(-int(i));
-      PrintStackValue(cx, stackVal, frame, buf);
+      // Output should be "JSOp (operand1), (operand2), ..."
+      for (unsigned i = 1; i <= numOperands; i++) {
+        buf.put(" (");
+        StackValue* stackVal = frame.peek(-int(i));
+        PrintStackValue(maybeCx, stackVal, frame, buf);
 
-      if (i < numOperands) {
-        buf.put("),");
-      } else {
-        buf.put(")");
+        if (i < numOperands) {
+          buf.put("),");
+        } else {
+          buf.put(")");
+        }
       }
     }
     opcodeStr = buf.release();

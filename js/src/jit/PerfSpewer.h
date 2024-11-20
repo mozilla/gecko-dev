@@ -134,7 +134,7 @@ class BaselinePerfSpewer : public PerfSpewer {
   const char* CodeName(unsigned op) override;
 
  public:
-  void recordInstruction(JSContext* cx, MacroAssembler& masm, jsbytecode* pc,
+  void recordInstruction(MacroAssembler& masm, jsbytecode* pc,
                          CompilerFrameInfo& frame);
   void saveProfile(JSContext* cx, JSScript* script, JitCode* code);
 };
