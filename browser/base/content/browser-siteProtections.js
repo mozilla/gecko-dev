@@ -698,7 +698,10 @@ let ThirdPartyCookies =
         (state &
           Ci.nsIWebProgressListener.STATE_COOKIES_BLOCKED_BY_PERMISSION) !=
           0 ||
-        (state & Ci.nsIWebProgressListener.STATE_COOKIES_BLOCKED_FOREIGN) != 0
+        (state & Ci.nsIWebProgressListener.STATE_COOKIES_BLOCKED_FOREIGN) !=
+          0 ||
+        (state & Ci.nsIWebProgressListener.STATE_COOKIES_PARTITIONED_TRACKER) !=
+          0
       );
     }
 
