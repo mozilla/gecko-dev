@@ -824,7 +824,7 @@ class CustomTabsToolbarFeatureTest {
 
         feature.start()
 
-        verify(feature, never()).addMenuButton(anyInt())
+        verify(feature, never()).addMenuButton()
         verify(toolbar, never()).addBrowserAction(any())
     }
 
@@ -859,7 +859,7 @@ class CustomTabsToolbarFeatureTest {
 
         feature.start()
 
-        verify(feature).addMenuButton(anyInt())
+        verify(feature).addMenuButton()
 
         val captor = argumentCaptor<Toolbar.ActionButton>()
         verify(toolbar).addBrowserAction(captor.capture())

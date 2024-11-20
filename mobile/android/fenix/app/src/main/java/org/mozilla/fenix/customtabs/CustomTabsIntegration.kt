@@ -210,6 +210,8 @@ class CustomTabsIntegration(
                 isNavbarVisible = isNavBarVisible,
                 context = context,
             )
+
+            feature.updateMenuVisibility(isVisible = !isNavBarVisible)
         }
     }
 
