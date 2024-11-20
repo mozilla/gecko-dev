@@ -175,11 +175,17 @@ export const BrowserWindowTracker = {
   /**
    * Get the most recent browser window.
    *
-   * @param options an object accepting the arguments for the search.
-   *        * private: true to restrict the search to private windows
-   *            only, false to restrict the search to non-private only.
-   *            Omit the property to search in both groups.
-   *        * allowPopups: true if popup windows are permissable.
+   * @param {Object} options - An object accepting the arguments for the search.
+   * @param {boolean} [options.private]
+   *   true to only search for private windows.
+   *   false to restrict the search to non-private windows.
+   *   If the property is not provided, search for either. If permanent private
+   *   browsing is enabled this option will be ignored!
+   * @param {boolean} [options.allowPopups]: true if popup windows are
+   *   permitted.
+   *
+   * @returns {Window | null} The current top/selected window.
+   *  Can return null on MacOS when there is no open window.
    */
   getTopWindow(options = {}) {
     for (let win of _trackedWindows) {
