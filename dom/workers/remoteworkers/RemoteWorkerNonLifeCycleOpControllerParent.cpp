@@ -21,6 +21,10 @@ void RemoteWorkerNonLifeCycleOpControllerParent::Shutdown() {
   if (CanSend()) {
     Unused << SendShutdown();
   }
+  if (GetIPCChannel()) {
+    GetIPCChannel()->Close();
+  }
+
   mController = nullptr;
 }
 
@@ -29,6 +33,10 @@ IPCResult RemoteWorkerNonLifeCycleOpControllerParent::RecvTerminated() {
   if (mController) {
     mController->mNonLifeCycleOpController = nullptr;
     mController = nullptr;
+  }
+
+  if (GetIPCChannel()) {
+    GetIPCChannel()->Close();
   }
 
   return IPC_OK();
