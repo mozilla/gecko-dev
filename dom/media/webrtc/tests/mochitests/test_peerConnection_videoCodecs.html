@@ -46,6 +46,8 @@
         // We only set it now, or the framework would remove non-H264 codecs
         // for us.
         options.h264 = codec.name == "H264";
+        // Ditto for AV1.
+        options.av1 = codec.name == "AV1";
       },
     ]);
 
@@ -109,6 +111,7 @@
     { name: "H264", offset: 3 },
     { name: "H264", offset: 3, fmtpOverride: "a=fmtp:packetization-mode=0" },
     { name: "H264", offset: 3, fmtpOverride: "" },
+    { name: "AV1" },
   ];
 
   runNetworkTest(async (options) => {
@@ -134,6 +137,13 @@
               ['media.webrtc.encoder_creation_strategy', 0 /* builtin libwertc encoders */],
               ['media.navigator.mediadatadecoder_h264_enabled', false],
             );
+          }
+        }
+        if (codec.name == "AV1" ) {
+          const hasAv1 = await matchPlatformAV1CodecPrefs();
+          if (!hasAv1.software && !hasAv1.hardware) {
+            info("Skipping AV1 test as no AV1 codec is available");
+            continue;
           }
         }
         await testVideoCodec(options, codec);
