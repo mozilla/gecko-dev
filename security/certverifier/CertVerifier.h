@@ -285,6 +285,11 @@ class CertVerifier {
       const nsTArray<nsTArray<uint8_t>>& builtChain,
       mozilla::pkix::Input sctsFromTLS, mozilla::pkix::Time time,
       /*optional out*/ CertificateTransparencyInfo* ctInfo);
+  mozilla::pkix::Result VerifyCertificateTransparencyPolicyInner(
+      NSSCertDBTrustDomain& trustDomain,
+      const nsTArray<nsTArray<uint8_t>>& builtChain,
+      mozilla::pkix::Input sctsFromTLS, mozilla::pkix::Time time,
+      /*optional out*/ CertificateTransparencyInfo* ctInfo);
 };
 
 mozilla::pkix::Result IsCertBuiltInRoot(pkix::Input certInput, bool& result);

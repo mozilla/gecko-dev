@@ -234,6 +234,9 @@ Result CertVerifier::VerifyCertificateTransparencyPolicy(
     NSSCertDBTrustDomain& trustDomain,
     const nsTArray<nsTArray<uint8_t>>& builtChain, Input sctsFromTLS, Time time,
     /*optional out*/ CertificateTransparencyInfo* ctInfo) {
+  if (builtChain.IsEmpty()) {
+    return Result::FATAL_ERROR_INVALID_ARGS;
+  }
   if (ctInfo) {
     ctInfo->Reset();
   }
@@ -248,10 +251,20 @@ Result CertVerifier::VerifyCertificateTransparencyPolicy(
     ctInfo->enabled = true;
   }
 
-  if (builtChain.IsEmpty()) {
-    return Result::FATAL_ERROR_INVALID_ARGS;
+  Result rv = VerifyCertificateTransparencyPolicyInner(
+      trustDomain, builtChain, sctsFromTLS, time, ctInfo);
+  if (rv == Result::ERROR_INSUFFICIENT_CERTIFICATE_TRANSPARENCY &&
+      mCTMode != CertificateTransparencyMode::Enforce) {
+    return Success;
   }
 
+  return rv;
+}
+
+Result CertVerifier::VerifyCertificateTransparencyPolicyInner(
+    NSSCertDBTrustDomain& trustDomain,
+    const nsTArray<nsTArray<uint8_t>>& builtChain, Input sctsFromTLS, Time time,
+    /*optional out*/ CertificateTransparencyInfo* ctInfo) {
   Input embeddedSCTs = trustDomain.GetSCTListFromCertificate();
   if (embeddedSCTs.GetLength() > 0) {
     MOZ_LOG(gCertVerifierLog, LogLevel::Debug,
@@ -284,9 +297,7 @@ Result CertVerifier::VerifyCertificateTransparencyPolicy(
       ctInfo->verifyResult = std::move(emptyResult);
       ctInfo->policyCompliance.emplace(CTPolicyCompliance::NotEnoughScts);
     }
-    return mCTMode == CertificateTransparencyMode::Enforce
-               ? Result::ERROR_INSUFFICIENT_CERTIFICATE_TRANSPARENCY
-               : Success;
+    return Result::ERROR_INSUFFICIENT_CERTIFICATE_TRANSPARENCY;
   }
 
   const nsTArray<uint8_t>& endEntityBytes = builtChain.ElementAt(0);
@@ -366,8 +377,7 @@ Result CertVerifier::VerifyCertificateTransparencyPolicy(
     ctInfo->policyCompliance.emplace(ctPolicyCompliance);
   }
 
-  if (ctPolicyCompliance != CTPolicyCompliance::Compliant &&
-      mCTMode == CertificateTransparencyMode::Enforce) {
+  if (ctPolicyCompliance != CTPolicyCompliance::Compliant) {
     return Result::ERROR_INSUFFICIENT_CERTIFICATE_TRANSPARENCY;
   }
 
