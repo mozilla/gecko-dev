@@ -415,7 +415,7 @@ private fun BookmarksListTopBar(
                     selectedItems.any { it is BookmarkItem.Folder } -> {
                         IconButton(onClick = { store.dispatch(BookmarksListMenuAction.MultiSelect.MoveClicked) }) {
                             Icon(
-                                painter = painterResource(R.drawable.mozac_ic_move_24),
+                                painter = painterResource(R.drawable.mozac_ic_folder_arrow_right_24),
                                 contentDescription = stringResource(R.string.bookmark_menu_move_button),
                                 tint = iconColor,
                             )
@@ -443,7 +443,7 @@ private fun BookmarksListTopBar(
                         }
                         IconButton(onClick = { store.dispatch(BookmarksListMenuAction.MultiSelect.MoveClicked) }) {
                             Icon(
-                                painter = painterResource(R.drawable.mozac_ic_move_24),
+                                painter = painterResource(R.drawable.mozac_ic_folder_arrow_right_24),
                                 contentDescription = stringResource(R.string.bookmark_menu_move_button),
                                 tint = iconColor,
                             )
