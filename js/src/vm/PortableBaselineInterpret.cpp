@@ -7137,16 +7137,10 @@ PBIResult PortableBaselineInterpret(
       }
 
       CASE(ImportMeta) {
-        JSObject* metaObject;
-        {
-          PUSH_EXIT_FRAME();
-          ReservedRooted<JSScript*> script0(&state.script0, frame->script());
-          metaObject = ImportMetaOperation(cx, script0);
-          if (!metaObject) {
-            GOTO_ERROR();
-          }
-        }
-        VIRTPUSH(StackVal(ObjectValue(*metaObject)));
+        IC_ZERO_ARG(0);
+        IC_ZERO_ARG(1);
+        IC_ZERO_ARG(2);
+        INVOKE_IC_AND_PUSH(LazyConstant, false);
         END_OP(ImportMeta);
       }
 

@@ -6434,40 +6434,15 @@ bool BaselineCodeGen<Handler>::emit_FunWithProto() {
   return true;
 }
 
-template <>
-bool BaselineCompilerCodeGen::emit_ImportMeta() {
-  // Note: this is like the interpreter implementation, but optimized a bit by
-  // calling GetModuleObjectForScript at compile-time.
-
-  Rooted<ModuleObject*> module(cx, GetModuleObjectForScript(handler.script()));
-
+template <typename Handler>
+bool BaselineCodeGen<Handler>::emit_ImportMeta() {
   frame.syncStack(0);
 
-  prepareVMCall();
-  pushArg(ImmGCPtr(module));
-
-  using Fn = JSObject* (*)(JSContext*, HandleObject);
-  if (!callVM<Fn, js::GetOrCreateModuleMetaObject>()) {
+  if (!emitNextIC()) {
     return false;
   }
 
-  masm.tagValue(JSVAL_TYPE_OBJECT, ReturnReg, R0);
-  frame.push(R0);
-  return true;
-}
-
-template <>
-bool BaselineInterpreterCodeGen::emit_ImportMeta() {
-  prepareVMCall();
-
-  pushScriptArg();
-
-  using Fn = JSObject* (*)(JSContext*, HandleScript);
-  if (!callVM<Fn, ImportMetaOperation>()) {
-    return false;
-  }
-
-  masm.tagValue(JSVAL_TYPE_OBJECT, ReturnReg, R0);
+  // Mark R0 as pushed stack value.
   frame.push(R0);
   return true;
 }

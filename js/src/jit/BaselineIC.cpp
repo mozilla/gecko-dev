@@ -334,6 +334,7 @@ class MOZ_STATIC_CLASS OpToFallbackKindTable {
 
     setKind(JSOp::GetIntrinsic, BaselineICFallbackKind::LazyConstant);
     setKind(JSOp::BuiltinObject, BaselineICFallbackKind::LazyConstant);
+    setKind(JSOp::ImportMeta, BaselineICFallbackKind::LazyConstant);
 
     setKind(JSOp::Call, BaselineICFallbackKind::Call);
     setKind(JSOp::CallContent, BaselineICFallbackKind::Call);
@@ -1250,7 +1251,8 @@ bool DoLazyConstantFallback(JSContext* cx, BaselineFrame* frame,
   JSOp op = JSOp(*pc);
   FallbackICSpew(cx, stub, "LazyConstant(%s)", CodeName(JSOp(*pc)));
 
-  MOZ_ASSERT(op == JSOp::GetIntrinsic || op == JSOp::BuiltinObject);
+  MOZ_ASSERT(op == JSOp::GetIntrinsic || op == JSOp::BuiltinObject ||
+             op == JSOp::ImportMeta);
 
   if (op == JSOp::GetIntrinsic) {
     if (!GetIntrinsicOperation(cx, script, pc, res)) {
@@ -1263,6 +1265,12 @@ bool DoLazyConstantFallback(JSContext* cx, BaselineFrame* frame,
       return false;
     }
     res.setObject(*builtinObject);
+  } else {
+    JSObject* metaObject = ImportMetaOperation(cx, script);
+    if (!metaObject) {
+      return false;
+    }
+    res.setObject(*metaObject);
   }
 
   TryAttachStub<LazyConstantIRGenerator>("LazyConstant", cx, frame, stub, res);

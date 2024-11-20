@@ -849,7 +849,7 @@
      *   Operands:
      *   Stack: => import.meta
      */ \
-    MACRO(ImportMeta, import_meta, NULL, 1, 0, 1, JOF_BYTE) \
+    MACRO(ImportMeta, import_meta, NULL, 1, 0, 1, JOF_BYTE|JOF_IC) \
     /*
      * Create and push a new object with no properties.
      *
