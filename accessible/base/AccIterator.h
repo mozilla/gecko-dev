@@ -16,10 +16,6 @@
 class nsITreeView;
 
 namespace mozilla {
-namespace dom {
-class Element;
-}
-
 namespace a11y {
 class DocAccessibleParent;
 
@@ -206,16 +202,15 @@ class XULDescriptionIterator : public AccIterable {
 };
 
 /**
- * Used to iterate through elements referenced through explicitly set
- * attr-elements or IDs listed in a content attribute. Note, any method used to
- * iterate through IDs, elements, or accessibles moves iterator to next
- * position.
+ * Used to iterate through IDs, elements or accessibles pointed by IDRefs
+ * attribute. Note, any method used to iterate through IDs, elements, or
+ * accessibles moves iterator to next position.
  */
-class AssociatedElementsIterator : public AccIterable {
+class IDRefsIterator : public AccIterable {
  public:
-  AssociatedElementsIterator(DocAccessible* aDoc, nsIContent* aContent,
-                             nsAtom* aIDRefsAttr);
-  virtual ~AssociatedElementsIterator() {}
+  IDRefsIterator(DocAccessible* aDoc, nsIContent* aContent,
+                 nsAtom* aIDRefsAttr);
+  virtual ~IDRefsIterator() {}
 
   /**
    * Return next ID.
@@ -237,16 +232,14 @@ class AssociatedElementsIterator : public AccIterable {
   virtual LocalAccessible* Next() override;
 
  private:
-  AssociatedElementsIterator();
-  AssociatedElementsIterator(const AssociatedElementsIterator&);
-  AssociatedElementsIterator operator=(const AssociatedElementsIterator&);
+  IDRefsIterator();
+  IDRefsIterator(const IDRefsIterator&);
+  IDRefsIterator operator=(const IDRefsIterator&);
 
   nsString mIDs;
   nsIContent* mContent;
   DocAccessible* mDoc;
   nsAString::index_type mCurrIdx;
-  nsTArray<dom::Element*> mElements;
-  uint32_t mElemIdx;
 };
 
 /**

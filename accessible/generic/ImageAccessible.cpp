@@ -196,8 +196,7 @@ already_AddRefed<nsIURI> ImageAccessible::GetLongDescURI() const {
 
   DocAccessible* document = Document();
   if (document) {
-    AssociatedElementsIterator iter(document, mContent,
-                                    nsGkAtoms::aria_describedby);
+    IDRefsIterator iter(document, mContent, nsGkAtoms::aria_describedby);
     while (nsIContent* target = iter.NextElem()) {
       if ((target->IsHTMLElement(nsGkAtoms::a) ||
            target->IsHTMLElement(nsGkAtoms::area)) &&

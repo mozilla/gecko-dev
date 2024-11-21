@@ -340,7 +340,7 @@ UniquePtr<AccIterable> CachedTableCellAccessible::GetExplicitHeadersIterator() {
       }
     }
   } else if (LocalAccessible* localAcc = mAcc->AsLocal()) {
-    return MakeUnique<AssociatedElementsIterator>(
+    return MakeUnique<IDRefsIterator>(
         localAcc->Document(), localAcc->GetContent(), nsGkAtoms::headers);
   }
   return nullptr;
