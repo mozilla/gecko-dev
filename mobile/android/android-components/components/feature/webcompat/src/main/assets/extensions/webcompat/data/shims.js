@@ -892,6 +892,38 @@ const AVAILABLE_SHIMS = [
       },
     ],
   },
+  {
+    id: "InstagramEmbed",
+    platform: "desktop",
+    name: "Instagram embed placeholder",
+    bug: "1892173",
+    file: "instagram-embed.js",
+    matches: [
+      "https://www.instagram.com/embed.js",
+      "https://platform.instagram.com/*/embeds.js",
+    ],
+    logos: ["instagram.svg"],
+    needsShimHelpers: ["embedClicked", "smartblockGetFluentString"],
+    isSmartblockEmbedShim: true,
+    onlyIfBlockedByETP: true,
+    unblocksOnOptIn: [
+      "*://www.instagram.com/*",
+      "*://platform.instagram.com/*",
+    ],
+  },
+  {
+    id: "TiktokEmbed",
+    platform: "desktop",
+    name: "Tiktok embed placeholder",
+    bug: "1892172",
+    file: "tiktok-embed.js",
+    matches: ["https://www.tiktok.com/embed.js"],
+    logos: ["tiktok.svg"],
+    needsShimHelpers: ["embedClicked", "smartblockGetFluentString"],
+    isSmartblockEmbedShim: true,
+    onlyIfBlockedByETP: true,
+    unblocksOnOptIn: ["*://www.tiktok.com/*"],
+  },
 ];
 
 module.exports = AVAILABLE_SHIMS;

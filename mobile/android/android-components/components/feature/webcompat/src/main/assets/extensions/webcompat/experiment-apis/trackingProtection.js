@@ -172,12 +172,48 @@ this.trackingProtection = class extends ExtensionAPI {
   }
 
   getAPI(context) {
+    const {
+      extension: { tabManager },
+    } = this;
+    const EventManager = ExtensionCommon.EventManager;
     Services.prefs.addObserver(dFPIPrefName, updateDFPIStatus);
     Services.prefs.addObserver(dFPIPbPrefName, updateDFPIStatus);
     updateDFPIStatus();
 
     return {
       trackingProtection: {
+        onSmartBlockEmbedUnblock: new EventManager({
+          context,
+          name: "trackingProtection.onSmartBlockEmbedUnblock",
+          register: fire => {
+            const callback = (subject, topic, data) => {
+              // chrome tab id needs to be converted to extension tab id
+              let hostname = subject.linkedBrowser.currentURI.displayHost;
+              let tabId = tabManager.convert(subject).id;
+              fire.sync(tabId, data, hostname);
+            };
+            Services.obs.addObserver(callback, "smartblock:unblock-embed");
+            return () => {
+              Services.obs.removeObserver(callback, "smartblock:unblock-embed");
+            };
+          },
+        }).api(),
+        onSmartBlockEmbedReblock: new EventManager({
+          context,
+          name: "trackingProtection.onSmartBlockEmbedReblock",
+          register: fire => {
+            const callback = (subject, topic, data) => {
+              // chrome tab id needs to be converted to extension tab id
+              let hostname = subject.linkedBrowser.currentURI.displayHost;
+              let tabId = tabManager.convert(subject).id;
+              fire.sync(tabId, data, hostname);
+            };
+            Services.obs.addObserver(callback, "smartblock:reblock-embed");
+            return () => {
+              Services.obs.removeObserver(callback, "smartblock:reblock-embed");
+            };
+          },
+        }).api(),
         async shim(allowListId, patterns, notHosts) {
           manager.shim(allowListId, patterns, notHosts);
         },
@@ -202,6 +238,46 @@ this.trackingProtection = class extends ExtensionAPI {
             return dFPIStatus.pbMode;
           }
           return dFPIStatus.nonPbMode;
+        },
+        openProtectionsPanel(tabId) {
+          let tab = tabManager.get(tabId);
+          if (!tab.active) {
+            // break if tab is not the active tab
+            return;
+          }
+
+          let win = tab?.window;
+          Services.obs.notifyObservers(
+            win.gBrowser.selectedBrowser.browsingContext,
+            "smartblock:open-protections-panel"
+          );
+        },
+        async getSmartBlockEmbedFluentString(tabId, shimId, websiteHost) {
+          let win = tabManager.get(tabId).window;
+          let document = win.document;
+
+          let { gProtectionsHandler } = win.gBrowser.ownerGlobal;
+          let { displayName } = gProtectionsHandler.smartblockEmbedInfo.find(
+            element => element.shimId == shimId
+          );
+
+          let fluentArgs = [
+            {
+              id: "smartblock-placeholder-title",
+              args: {
+                trackername: displayName,
+              },
+            },
+            {
+              id: "smartblock-placeholder-desc",
+            },
+            {
+              id: "smartblock-placeholder-button-text",
+              args: { websitehost: websiteHost },
+            },
+          ];
+
+          return document.l10n.formatValues(fluentArgs);
         },
       },
     };

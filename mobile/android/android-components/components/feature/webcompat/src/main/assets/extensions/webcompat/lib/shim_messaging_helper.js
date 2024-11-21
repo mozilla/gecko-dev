@@ -10,19 +10,41 @@ if (!window.Shims) {
   window.Shims = new Map();
 }
 
+if (!window.ShimIdsToPorts) {
+  // map mapping shimIds to their connected message port
+  // used for sending messages from the background script the shim.
+  window.ShimIdsToPorts = new Map();
+}
+
 if (!window.ShimsHelperReady) {
   window.ShimsHelperReady = true;
 
   browser.runtime.onMessage.addListener(details => {
-    const { shimId, warning } = details;
+    const { shimId, topic, data, warning } = details;
     if (!shimId) {
       return;
     }
-    window.Shims.set(shimId, details);
-    if (warning) {
-      console.warn(warning);
+    switch (topic) {
+      case "smartblock:unblock-embed":
+        sendMessage(shimId, { topic, data });
+        break;
+      default:
+        window.Shims.set(shimId, details);
+        if (warning) {
+          console.warn(warning);
+        }
     }
   });
+
+  async function sendMessage(shimId, message) {
+    const port = window.ShimIdsToPorts.get(shimId);
+    if (!port) {
+      console.error("Shim must connect to background script first");
+      return;
+    }
+    const messageId = crypto.randomUUID();
+    port.postMessage({ messageId, message });
+  }
 
   async function handleMessage(port, shimId, messageId, message) {
     let response;
@@ -54,6 +76,7 @@ if (!window.ShimsHelperReady) {
       port.onmessage = ({ data }) => {
         handleMessage(port, shimId, data.messageId, data.message);
       };
+      window.ShimIdsToPorts.set(shimId, port);
       for (const [messageId, message] of pendingMessages) {
         handleMessage(port, shimId, messageId, message);
       }

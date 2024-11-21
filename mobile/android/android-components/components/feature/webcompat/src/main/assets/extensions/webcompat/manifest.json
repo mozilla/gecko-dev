@@ -2,7 +2,7 @@
   "manifest_version": 2,
   "name": "Web Compatibility Interventions",
   "description": "Urgent post-release fixes for web compatibility.",
-  "version": "134.4.0",
+  "version": "134.5.0",
   "browser_specific_settings": {
     "gecko": {
       "id": "webcompat@mozilla.org",
@@ -132,7 +132,9 @@
     "shims/history.js",
     "shims/iam.js",
     "shims/iaspet.js",
+    "shims/instagram-embed.js",
     "shims/instagram.js",
+    "shims/instagram.svg",
     "shims/kinja.js",
     "shims/live-test-shim.js",
     "shims/maxmind-geoip.js",
@@ -149,6 +151,8 @@
     "shims/rich-relevance.js",
     "shims/salesforce.js",
     "shims/spotify-embed.js",
+    "shims/tiktok-embed.js",
+    "shims/tiktok.svg",
     "shims/tracking-pixel.png",
     "shims/tsn-ca.js",
     "shims/vast2.xml",
