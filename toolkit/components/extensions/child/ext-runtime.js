@@ -63,6 +63,13 @@ this.runtime = class extends ExtensionAPI {
         onConnectExternal: context.messenger.onConnectEx.api(),
         onMessageExternal: context.messenger.onMessageEx.api(),
 
+        get onUserScriptConnect() {
+          return ExtensionCommon.redefineGetter(
+            this,
+            "onUserScriptConnect",
+            context.messenger.onUserScriptConnect.api()
+          );
+        },
         get onUserScriptMessage() {
           return ExtensionCommon.redefineGetter(
             this,

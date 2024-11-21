@@ -71,6 +71,7 @@ add_task(async function test_runtime_messaging_errors() {
         }
 
         try {
+          // runtime.sendMessage tests:
           assertThrows(
             () => browser.runtime.sendMessage(),
             "runtime.sendMessage's message argument is missing",
@@ -95,6 +96,28 @@ add_task(async function test_runtime_messaging_errors() {
             browser.runtime.sendMessage("msg"),
             "Could not establish connection. Receiving end does not exist.",
             "Expected error when there is no onUserScriptMessage handler"
+          );
+
+          // runtime.connect tests:
+          assertThrows(
+            () => browser.runtime.connect("extensionId", {}),
+            "extensionId is not supported",
+            "connect with unsupported extensionId parameter"
+          );
+          assertThrows(
+            () => browser.runtime.connect("extensionId"),
+            "extensionId is not supported",
+            "connect with unsupported extensionId parameter and no options"
+          );
+          assertThrows(
+            () => browser.runtime.connect({ unknownProp: true }),
+            `Type error for parameter connectInfo (Unexpected property "unknownProp") for runtime.connect.`,
+            "connect with unrecognized property"
+          );
+          assertThrows(
+            () => browser.runtime.connect({}, {}),
+            "Incorrect argument types for runtime.connect.",
+            "connect with too many parameters"
           );
         } catch (e) {
           contentscriptTest.fail(`Unexpected error in userscript.js: ${e}`);
@@ -357,3 +380,203 @@ add_task(async function test_configureWorld_messaging_existing_world() {
 
   await extension.unload();
 });
+
+// This test tests that runtime.connect() works when called from a user script.
+add_task(async function test_onUserScriptConnect() {
+  let extension = ExtensionTestUtils.loadExtension({
+    useAddonManager: "permanent",
+    manifest: {
+      manifest_version: 3,
+      permissions: ["userScripts"],
+      host_permissions: ["*://example.com/*"],
+    },
+    files: {
+      "userscript.js": () => {
+        let port = browser.runtime.connect({ name: "first_port" });
+        port.onMessage.addListener(msg => {
+          port.postMessage({ messageBack: msg });
+        });
+        port.onDisconnect.addListener(() => {
+          let port2 = browser.runtime.connect({ name: "second_port" });
+          port2.postMessage({ errorFromFirstPort: port.error });
+          port2.disconnect();
+        });
+      },
+    },
+    background() {
+      browser.runtime.onUserScriptConnect.addListener(port => {
+        browser.test.assertEq(
+          "connect_world",
+          port.sender.userScriptWorldId,
+          `Expected userScriptWorldId in onUserScriptConnect: ${port.name}`
+        );
+        if (port.name === "first_port") {
+          port.onMessage.addListener(msg => {
+            browser.test.assertDeepEq(
+              { messageBack: { hi: 1 } },
+              msg,
+              "port.onMessage triggered from user script"
+            );
+            port.disconnect();
+            // ^ should trigger port.onDisconnect in the user script, which
+            // will signal back the status by connecting again to second_port.
+          });
+          port.onDisconnect.addListener(() => {
+            // We should not expect a disconnect, because we call
+            // port.disconnect() from this end.
+            browser.test.fail(`Unexpected port.onDisconnect: ${port.error}`);
+          });
+          port.postMessage({ hi: 1 });
+          return;
+        }
+        if (port.name === "second_port") {
+          port.onMessage.addListener(msg => {
+            browser.test.assertDeepEq(
+              { errorFromFirstPort: null },
+              msg,
+              "When we disconnect first_port, other port.error should be null"
+            );
+            browser.test.sendMessage("port.onMessage:done");
+          });
+          port.onDisconnect.addListener(() => {
+            browser.test.assertDeepEq(
+              null,
+              port.error,
+              "Our port.error when other side (user script) disconnects"
+            );
+            browser.test.sendMessage("port.onDisconnect:done");
+          });
+          return;
+        }
+        browser.test.fail(`Unexpected port: ${port.name}`);
+      });
+      browser.runtime.onInstalled.addListener(async () => {
+        await browser.userScripts.configureWorld({ messaging: true });
+        await browser.userScripts.register([
+          {
+            id: "messaging checker",
+            matches: ["*://example.com/dummy"],
+            js: [{ file: "userscript.js" }],
+            worldId: "connect_world",
+          },
+        ]);
+        browser.test.sendMessage("registered");
+      });
+    },
+  });
+
+  await extension.startup();
+  await extension.awaitMessage("registered");
+
+  async function testRuntimeConnect() {
+    let contentPage = await ExtensionTestUtils.loadContentPage(
+      "http://example.com/dummy"
+    );
+    await Promise.all([
+      extension.awaitMessage("port.onMessage:done"),
+      extension.awaitMessage("port.onDisconnect:done"),
+    ]);
+    await contentPage.close();
+  }
+  info("Loading page that should trigger runtime.connect");
+  await testRuntimeConnect();
+
+  await AddonTestUtils.promiseShutdownManager();
+  ExtensionUserScripts._getStoreForTesting()._uninitForTesting();
+  await AddonTestUtils.promiseStartupManager();
+
+  // Because the background has a persistent listener (runtime.onInstalled), it
+  // stays suspended after a restart.
+  await extension.awaitStartup();
+  ExtensionTestCommon.testAssertions.assertBackgroundStatusStopped(extension);
+
+  // We expect that the load of the page that calls runtime.connect from a
+  // user script will wake it to fire runtime.onUserScriptConnect.
+  info("Loading page that should load user script and wake event page");
+  await testRuntimeConnect();
+
+  await extension.unload();
+});
+
+// This tests:
+// - That port.onDisconnect is fired when the document navigates away.
+// - That runtime.connect() can be called without parameters.
+add_task(
+  {
+    // We want to disable the bfcache and use the unload listener to force
+    // that below. But on Android bfcache.allow_unload_listeners is true by
+    // default, so we force the pref to false to make sure that the bfcache is
+    // indeed disabled for the test page.
+    pref_set: [["docshell.shistory.bfcache.allow_unload_listeners", false]],
+  },
+  async function test_onUserScriptConnect_port_disconnect_on_navigate() {
+    let extension = ExtensionTestUtils.loadExtension({
+      useAddonManager: "permanent",
+      manifest: {
+        manifest_version: 3,
+        permissions: ["userScripts"],
+        host_permissions: ["*://example.com/*"],
+      },
+      files: {
+        "userscript.js": () => {
+          let port = browser.runtime.connect();
+
+          // Prevent bfcache from keeping doc + port alive.
+          // eslint-disable-next-line mozilla/balanced-listeners
+          window.addEventListener("unload", () => {});
+
+          // Global var to avoid garbage collection:
+          globalThis.portReference = port;
+
+          port.onMessage.addListener(msg => {
+            dump(`Will navigate elsewhere after bye message: ${msg}\n`);
+            // Change URL. Note: not matched by matches[] above.
+            location.search = "?something_else";
+            // ^ Note: we expect the context to unload. If the test times out
+            // after this point, it may be due to the page unexpectedly not
+            // being unloaded, e.g. due to it being stored in the bfcache.
+            // We disable the bfcache with the unload listener above.
+          });
+        },
+      },
+      async background() {
+        browser.runtime.onUserScriptConnect.addListener(port => {
+          browser.test.assertEq("", port.name, "Got default port.name");
+          browser.test.assertEq(
+            "",
+            port.sender.userScriptWorldId,
+            "Got default userScriptWorldId"
+          );
+          port.onDisconnect.addListener(() => {
+            browser.test.assertDeepEq(
+              null,
+              port.error,
+              "Closing port due to a navigation is not an error"
+            );
+            browser.test.sendMessage("done");
+          });
+          port.postMessage("bye");
+        });
+        await browser.userScripts.configureWorld({ messaging: true });
+        await browser.userScripts.register([
+          {
+            id: "messaging checker",
+            matches: ["*://example.com/dummy"],
+            js: [{ file: "userscript.js" }],
+          },
+        ]);
+        browser.test.sendMessage("registered");
+      },
+    });
+
+    await extension.startup();
+    await extension.awaitMessage("registered");
+
+    let contentPage = await ExtensionTestUtils.loadContentPage(
+      "http://example.com/dummy"
+    );
+    await extension.awaitMessage("done");
+    await contentPage.close();
+    await extension.unload();
+  }
+);

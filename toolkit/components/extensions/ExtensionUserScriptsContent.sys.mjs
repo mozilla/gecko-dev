@@ -62,7 +62,7 @@ class WorldConfigHolder {
  * instance to support APIs exposed to USER_SCRIPT worlds. Such contexts are
  * usually heavier due to the need to track the document lifetime, but because
  * all user script worlds and a content script for a document (and extension)
- * shares the same lifetime, we delegate to the only ContentScriptContextChild
+ * share the same lifetime, we delegate to the only ContentScriptContextChild
  * that exists for the document+extension.
  */
 class UserScriptContext extends BaseContext {
@@ -107,6 +107,10 @@ class UserScriptContext extends BaseContext {
     this.sandbox = null;
   }
 
+  async logActivity(type, name, data) {
+    return this.contentContext.logActivity(type, name, data);
+  }
+
   get cloneScope() {
     return this.sandbox;
   }
@@ -138,10 +142,25 @@ class UserScriptContext extends BaseContext {
 
     if (this.enableMessaging) {
       browser.runtime = {};
+      browser.runtime.connect = wrapF(this.runtimeConnect);
       browser.runtime.sendMessage = wrapF(this.runtimeSendMessage);
     }
     const value = Cu.cloneInto(browser, this.sandbox, { cloneFunctions: true });
     return redefineGetter(this, "browserObj", value);
+  }
+
+  runtimeConnect(...args) {
+    args = this.#schemaCheckParameters("runtime", "connect", args);
+    let [extensionId, options] = args;
+    if (extensionId !== null) {
+      throw new ExtensionError("extensionId is not supported");
+    }
+    let name = options?.name ?? "";
+    return this.contentContext.messenger.connect({
+      context: this,
+      userScriptWorldId: this.worldId,
+      name,
+    });
   }
 
   runtimeSendMessage(...args) {
@@ -170,6 +189,12 @@ class UserScriptContext extends BaseContext {
       message,
       callback,
     });
+  }
+
+  #schemaCheckParameters(namespace, method, args) {
+    let ns = this.contentContext.childManager.schema.getNamespace(namespace);
+    let schemaContext = lazy.Schemas.paramsValidationContexts.get(this);
+    return ns.get(method).checkParameters(args, schemaContext);
   }
 }
 

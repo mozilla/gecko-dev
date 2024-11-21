@@ -174,7 +174,7 @@
           "userScriptWorldId": {
             "type": "string",
             "optional": true,
-            "description": "The worldId of the USER_SCRIPT world that sent the message. Only present on onUserScriptMessage events."
+            "description": "The worldId of the USER_SCRIPT world that sent the message. Only present on onUserScriptMessage and onUserScriptConnect (in port.sender) events."
           }
         }
       },
@@ -748,6 +748,13 @@
         "type": "function",
         "allowedContexts": ["content", "devtools"],
         "description": "Fired when a connection is made from either an extension process or a content script.",
+        "parameters": [{ "$ref": "Port", "name": "port" }]
+      },
+      {
+        "name": "onUserScriptConnect",
+        "type": "function",
+        "description": "Fired when a connection is made from a USER_SCRIPT world registered through the userScripts API.",
+        "permissions": ["userScripts"],
         "parameters": [{ "$ref": "Port", "name": "port" }]
       },
       {

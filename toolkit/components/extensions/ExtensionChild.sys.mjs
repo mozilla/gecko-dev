@@ -330,6 +330,14 @@ export class Messenger {
     this.onMessageEx = new MessageEvent(context, "runtime.onMessageExternal");
   }
 
+  get onUserScriptConnect() {
+    return redefineGetter(
+      this,
+      "onUserScriptConnect",
+      new SimpleEventAPI(this.context, "runtime.onUserScriptConnect")
+    );
+  }
+
   get onUserScriptMessage() {
     return redefineGetter(
       this,
@@ -367,17 +375,25 @@ export class Messenger {
     return context.wrapPromise(response, callback);
   }
 
-  connect({ name, native, ...args }) {
+  connect({ context, name, native, ...args }) {
+    // this.context is usually used, except with user scripts, where we pass a
+    // custom context to ensure that the return value is cloned into the right
+    // USER_SCRIPT world.
+    context ??= this.context;
     let portId = getUniqueId();
-    let port = new Port(this.context, portId, name, !!native);
+    let port = new Port(context, portId, name, !!native);
     this.conduit
       .queryPortConnect({ portId, name, native, ...args })
       .catch(error => port.recvPortDisconnect({ error }));
     return port.api;
   }
 
-  recvPortConnect({ extensionId, portId, name, sender }) {
+  recvPortConnect({ extensionId, portId, name, sender, userScriptWorldId }) {
     let event = sender.id === extensionId ? this.onConnect : this.onConnectEx;
+    if (typeof userScriptWorldId == "string") {
+      sender = { ...sender, userScriptWorldId };
+      event = this.onUserScriptConnect;
+    }
     if (this.context.active && event.fires.size) {
       let port = new Port(this.context, portId, name, false, sender);
       return event.emit(port.api).length;
