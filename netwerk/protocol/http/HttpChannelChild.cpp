@@ -570,8 +570,7 @@ void HttpChannelChild::OnAfterLastPart(const nsresult& aStatus) {
 void HttpChannelChild::DoOnStartRequest(nsIRequest* aRequest) {
   nsresult rv;
 
-  LOG(("HttpChannelChild::DoOnStartRequest [this=%p, request=%p]\n", this,
-       aRequest));
+  LOG(("HttpChannelChild::DoOnStartRequest [this=%p]\n", this));
 
   // We handle all the listener chaining before OnStartRequest at this moment.
   // Prevent additional listeners being added to the chain after the request
@@ -808,11 +807,9 @@ void HttpChannelChild::DoOnDataAvailable(nsIRequest* aRequest,
                                          nsIInputStream* aStream,
                                          uint64_t aOffset, uint32_t aCount) {
   AUTO_PROFILER_LABEL("HttpChannelChild::DoOnDataAvailable", NETWORK);
-  LOG(("HttpChannelChild::DoOnDataAvailable [this=%p, request=%p]\n", this,
-       aRequest));
+  LOG(("HttpChannelChild::DoOnDataAvailable [this=%p]\n", this));
   if (mCanceled) return;
 
-  mGotDataAvailable = true;
   if (mListener) {
     nsCOMPtr<nsIStreamListener> listener(mListener);
     nsresult rv = listener->OnDataAvailable(aRequest, aStream, aOffset, aCount);
@@ -1204,8 +1201,7 @@ void HttpChannelChild::CollectMixedContentTelemetry() {
 void HttpChannelChild::DoOnStopRequest(nsIRequest* aRequest,
                                        nsresult aChannelStatus) {
   AUTO_PROFILER_LABEL("HttpChannelChild::DoOnStopRequest", NETWORK);
-  LOG(("HttpChannelChild::DoOnStopRequest [this=%p, request=%p]\n", this,
-       aRequest));
+  LOG(("HttpChannelChild::DoOnStopRequest [this=%p]\n", this));
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(!LoadIsPending());
 
@@ -3062,15 +3058,7 @@ HttpChannelChild::RetargetDeliveryTo(nsISerialEventTarget* aNewTarget) {
   MOZ_ASSERT(mOnDataAvailableStartTime.IsNull());
   {
     MutexAutoLock lock(mEventTargetMutex);
-    // Don't assert if the target hasn't changed, or if we haven't gotten
-    // OnDataAvailable (backed off on this last bit, see bug 1917901)
-    MOZ_DIAGNOSTIC_ASSERT(!mODATarget || (mODATarget == aNewTarget) ||
-                          !mGotDataAvailable);
-    if (!mODATarget || (mODATarget == aNewTarget) || !mGotDataAvailable) {
-      RetargetDeliveryToImpl(aNewTarget, lock);
-    } else {
-      return NS_ERROR_FAILURE;
-    }
+    RetargetDeliveryToImpl(aNewTarget, lock);
   }
 
   return NS_OK;
