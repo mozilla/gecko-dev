@@ -191,7 +191,11 @@ window.Localization = function () {
 // dispatches telemetry messages to the iOS, we need to modify typedefs in swift. For now, we map the telemetry events
 // to the expected shape. FXCM-935 will tackle cleaning this up.
 window.Glean = {
+  // TODO(FXCM-1453): While moving away from legacy scalars to glean ones, the automated script generated
+  // an additional category `formautofill.credit_cards`. This resulted into two different methods in our code
+  // with different casing for the c in Credit(c|C)ards. This is a temp fix until FXCM-1453 happens.
   formautofillCreditcards: undefinedProxy(),
+  formautofillCreditCards: undefinedProxy(),
   formautofill: undefinedProxy(),
   creditcard: undefinedProxy(),
   _mapGleanToLegacy: (eventName, { value, ...extra }) => {
