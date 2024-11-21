@@ -333,9 +333,9 @@ class InputTestHelpers {
     const LEARN_MORE_TEXT = "Learn more";
 
     let templatesArgs = [
-      [{ "support-page": "test-page" }],
+      [{ "support-page": "test-page", label: "A label" }],
       [
-        {},
+        { label: "A label" },
         this.html`<a slot="support-link" href="www.example.com">Help me!</a>`,
       ],
     ];
@@ -487,6 +487,16 @@ class InputTestHelpers {
     firstInput.checked = true;
     await firstInput.updateComplete;
     ok(firstInput.inputEl.checked, "Input is checked.");
+    ok(firstInput.checked, "Checked state is propagated.");
+
+    // Reset checked state so that the radio input doesn't
+    // give a false negative
+    firstInput.checked = false;
+    await firstInput.updateComplete;
+
+    synthesizeMouseAtCenter(firstInput.inputEl, {});
+    await firstInput.updateComplete;
+    ok(firstInput.inputEl.checked, "Input is checked via mouse.");
     ok(firstInput.checked, "Checked state is propagated.");
   }
 }

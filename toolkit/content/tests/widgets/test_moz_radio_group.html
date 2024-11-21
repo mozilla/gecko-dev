@@ -163,7 +163,6 @@
       let renderTarget = await testHelpers.renderInputElements(defaultTemplate);
       let radioGroup = renderTarget.querySelector("moz-radio-group");
       let [firstButton, secondButton, thirdButton] = renderTarget.querySelectorAll("moz-radio");
-
       firstButton.click();
       is(
         document.activeElement,

@@ -12,13 +12,13 @@
     let testHelpers = new InputTestHelpers();
 
     add_setup(async function setup() {
-      let { literal, html } = await testHelpers.setupLit();
+      let { html } = await testHelpers.setupLit();
       let templateFn = (attrs, children) => html`
         <moz-radio-group name="test-name" label="Radio group label">
           <moz-radio ${attrs}>${children}</moz-radio>
         </moz-radio-group>
       `;
-      await testHelpers.setupInputTests({ inputTag: literal`moz-radio`, templateFn });
+      await testHelpers.setupInputTests({ templateFn });
       testHelpers.checkable = true;
     });
 
