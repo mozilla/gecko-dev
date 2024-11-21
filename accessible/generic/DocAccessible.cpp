@@ -1808,7 +1808,7 @@ void DocAccessible::AddDependentIDsFor(LocalAccessible* aRelProvider,
       }
     }
 
-    IDRefsIterator iter(this, relProviderEl, relAttr);
+    AssociatedElementsIterator iter(this, relProviderEl, relAttr);
     while (true) {
       const nsDependentSubstring id = iter.NextID();
       if (id.IsEmpty()) break;
@@ -1851,7 +1851,7 @@ void DocAccessible::RemoveDependentIDsFor(LocalAccessible* aRelProvider,
     nsStaticAtom* relAttr = kRelationAttrs[idx];
     if (aRelAttr && aRelAttr != kRelationAttrs[idx]) continue;
 
-    IDRefsIterator iter(this, relProviderElm, relAttr);
+    AssociatedElementsIterator iter(this, relProviderElm, relAttr);
     while (true) {
       const nsDependentSubstring id = iter.NextID();
       if (id.IsEmpty()) break;
@@ -2465,7 +2465,7 @@ void DocAccessible::DoARIAOwnsRelocation(LocalAccessible* aOwner) {
   nsTArray<RefPtr<LocalAccessible>>* owned =
       mARIAOwnsHash.GetOrInsertNew(aOwner);
 
-  IDRefsIterator iter(this, aOwner->Elm(), nsGkAtoms::aria_owns);
+  AssociatedElementsIterator iter(this, aOwner->Elm(), nsGkAtoms::aria_owns);
   uint32_t idx = 0;
   while (nsIContent* childEl = iter.NextElem()) {
     LocalAccessible* child = GetAccessible(childEl);

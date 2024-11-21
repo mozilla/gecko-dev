@@ -211,11 +211,11 @@ class XULDescriptionIterator : public AccIterable {
  * iterate through IDs, elements, or accessibles moves iterator to next
  * position.
  */
-class IDRefsIterator : public AccIterable {
+class AssociatedElementsIterator : public AccIterable {
  public:
-  IDRefsIterator(DocAccessible* aDoc, nsIContent* aContent,
-                 nsAtom* aIDRefsAttr);
-  virtual ~IDRefsIterator() {}
+  AssociatedElementsIterator(DocAccessible* aDoc, nsIContent* aContent,
+                             nsAtom* aIDRefsAttr);
+  virtual ~AssociatedElementsIterator() {}
 
   /**
    * Return next ID.
@@ -237,9 +237,9 @@ class IDRefsIterator : public AccIterable {
   virtual LocalAccessible* Next() override;
 
  private:
-  IDRefsIterator();
-  IDRefsIterator(const IDRefsIterator&);
-  IDRefsIterator operator=(const IDRefsIterator&);
+  AssociatedElementsIterator();
+  AssociatedElementsIterator(const AssociatedElementsIterator&);
+  AssociatedElementsIterator operator=(const AssociatedElementsIterator&);
 
   nsString mIDs;
   nsIContent* mContent;
