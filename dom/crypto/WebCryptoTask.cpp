@@ -145,7 +145,7 @@ static nsresult GetAlgorithmName(JSContext* aCx, const OOS& aAlgorithm,
     Algorithm alg;
 
     if (!alg.Init(aCx, value)) {
-      return NS_ERROR_DOM_NOT_SUPPORTED_ERR;
+      return NS_ERROR_DOM_SYNTAX_ERR;
     }
 
     aName = alg.mName;
