@@ -1698,14 +1698,16 @@ networking:
       The proxies configurations created in the browser session (SOCKSv4, SOCKSv5, HTTP, HTTPS)
     bugs:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1879848
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1928273
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1879848
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1928273
     data_sensitivity:
       - technical
     notification_emails:
       - necko@mozilla.com
-      - manuel@mozilla.com
-    expires: 135
+      - vgosu@mozilla.com
+    expires: never
     labels:
       - http
       - https
