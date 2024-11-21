@@ -2,6 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+.requests-list-status-code + .requests-list-status-code {
+  margin-inline-start: 5px;
+}
+
 .status-code {
   /* non-standard codes may be shorter than 3 characters but should match
      width of standard codes */

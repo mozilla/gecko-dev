@@ -16,9 +16,10 @@ const {
   propertiesEqual,
 } = require("resource://devtools/client/netmonitor/src/utils/request-utils.js");
 
-const { div } = dom;
+const { div, span } = dom;
 
 const UPDATED_STATUS_PROPS = [
+  "earlyHintsStatus",
   "fromCache",
   "fromServiceWorker",
   "status",
@@ -47,8 +48,14 @@ class StatusCode extends Component {
 
   render() {
     const { item } = this.props;
-    const { fromCache, fromServiceWorker, status, statusText, blockedReason } =
-      item;
+    const {
+      fromCache,
+      fromServiceWorker,
+      status,
+      statusText,
+      earlyHintsStatus,
+      blockedReason,
+    } = item;
     let code;
 
     if (status) {
@@ -74,23 +81,46 @@ class StatusCode extends Component {
       );
     }
 
+    const statusInfo = [
+      {
+        status,
+        statusText,
+        code,
+      },
+    ];
+    if (earlyHintsStatus) {
+      statusInfo.unshift({
+        status: earlyHintsStatus,
+        statusText: "",
+        code: earlyHintsStatus,
+      });
+    }
+
     // `data-code` refers to the status-code
     // `data-status-code` can be one of "cached", "service worker"
     // or the status-code itself
     // For example - if a resource is cached, `data-code` would be 200
     // and the `data-status-code` would be "cached"
     return div(
-      {
-        className: "requests-list-status-code status-code",
-        onMouseOver({ target }) {
-          if (status && statusText && !target.title) {
-            target.title = getStatusTooltip(item);
-          }
-        },
-        "data-status-code": code,
-        "data-code": status,
-      },
-      status
+      {},
+      statusInfo.map(info => {
+        if (!info.status) {
+          return null;
+        }
+        return span(
+          {
+            className: "requests-list-status-code status-code",
+            onMouseOver({ target }) {
+              if (info.status && info.statusText && !target.title) {
+                target.title = getStatusTooltip(item);
+              }
+            },
+            "data-status-code": info.code,
+            "data-code": info.status,
+          },
+          info.status
+        );
+      })
     );
   }
 }

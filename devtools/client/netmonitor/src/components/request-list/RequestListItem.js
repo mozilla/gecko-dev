@@ -140,6 +140,7 @@ loader.lazyGetter(this, "RequestListColumnPriority", function () {
 const UPDATED_REQ_ITEM_PROPS = [
   "mimeType",
   "eventTimings",
+  "earlyHintsStatus",
   "securityState",
   "status",
   "statusText",

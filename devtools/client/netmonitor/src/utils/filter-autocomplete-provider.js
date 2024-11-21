@@ -31,7 +31,7 @@ function getAutocompleteValuesForFlag(flag, request) {
   switch (flag) {
     case "status-code":
       // Sometimes status comes as Number
-      values.push(String(request.status));
+      values.push(String(request.status), String(request.earlyHintsStatus));
       break;
     case "scheme":
       values.push(request.urlDetails.scheme);

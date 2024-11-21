@@ -352,6 +352,7 @@ class NetworkEventWatcher {
         resourceUpdates.httpVersion = updateResource.httpVersion;
         resourceUpdates.status = updateResource.status;
         resourceUpdates.statusText = updateResource.statusText;
+        resourceUpdates.earlyHintsStatus = updateResource.earlyHintsStatus;
         resourceUpdates.remoteAddress = updateResource.remoteAddress;
         resourceUpdates.remotePort = updateResource.remotePort;
         // The mimetype is only set when then the contentType is available

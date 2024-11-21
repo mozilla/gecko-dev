@@ -177,7 +177,7 @@
 .network-monitor .tabpanel-summary-label {
   display: inline-block;
   padding-inline-end: 3px;
-  min-width: 90px;
+  min-width: 150px;
   color: var(--theme-text-color-alt);
 }
 

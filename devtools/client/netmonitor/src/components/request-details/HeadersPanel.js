@@ -108,6 +108,9 @@ const REQUEST_HEADERS = L10N.getStr("requestHeaders");
 const REQUEST_HEADERS_FROM_UPLOAD = L10N.getStr("requestHeadersFromUpload");
 const RESPONSE_HEADERS = L10N.getStr("responseHeaders");
 const HEADERS_STATUS = L10N.getStr("netmonitor.headers.status");
+const HEADERS_EARLYHINT_STATUS = L10N.getStr(
+  "netmonitor.headers.earlyHintsStatus"
+);
 const HEADERS_VERSION = L10N.getStr("netmonitor.headers.version");
 const HEADERS_TRANSFERRED = L10N.getStr("netmonitor.toolbar.transferred");
 const SUMMARY_STATUS_LEARN_MORE = L10N.getStr("netmonitor.summary.learnMore");
@@ -573,6 +576,7 @@ class HeadersPanel extends Component {
         proxyHttpVersion,
         proxyStatus,
         proxyStatusText,
+        earlyHintsStatus,
       },
       openRequestBlockingAndAddUrl,
       openHTTPCustomRequestTab,
@@ -703,6 +707,40 @@ class HeadersPanel extends Component {
 
     const summarySize = this.renderSummary(HEADERS_TRANSFERRED, sizeText);
 
+    let summaryEarlyStatus;
+    if (earlyHintsStatus) {
+      summaryEarlyStatus = div(
+        {
+          key: "headers-summary",
+          className:
+            "tabpanel-summary-container headers-summary headers-earlyhint-status",
+        },
+        span(
+          {
+            className: "tabpanel-summary-label headers-summary-label",
+          },
+          HEADERS_EARLYHINT_STATUS
+        ),
+        span(
+          {
+            className: "tabpanel-summary-value status",
+            "data-code": earlyHintsStatus,
+          },
+          StatusCode({
+            item: {
+              fromCache,
+              fromServiceWorker,
+              status: earlyHintsStatus,
+              statusText: "",
+            },
+          }),
+          MDNLink({
+            url: getHTTPStatusCodeURL(earlyHintsStatus),
+            title: SUMMARY_STATUS_LEARN_MORE,
+          })
+        )
+      );
+    }
     let summaryStatus;
     if (status) {
       summaryStatus = div(
@@ -826,6 +864,7 @@ class HeadersPanel extends Component {
     );
 
     const summaryItems = [
+      summaryEarlyStatus,
       summaryStatus,
       summaryProxyStatus,
       summaryVersion,

@@ -25,18 +25,6 @@ const REQUESTS = [
   { url: "sjs_status-codes-test-server.sjs?sts=304" },
 ];
 
-function testAutocompleteContents(expected, document) {
-  expected.forEach(function (item, i) {
-    is(
-      document.querySelector(
-        `.devtools-autocomplete-listbox .autocomplete-item:nth-child(${i + 1})`
-      ).textContent,
-      item,
-      `${expected[i]} found`
-    );
-  });
-}
-
 add_task(async function () {
   const { monitor } = await initNetMonitor(FILTERING_URL, { requestCount: 1 });
   const { document, store, windowRequire } = monitor.panelWin;

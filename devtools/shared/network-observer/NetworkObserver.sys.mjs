@@ -492,6 +492,7 @@ export class NetworkObserver {
           fromServiceWorker: httpActivity.fromServiceWorker,
           rawHeaders: httpActivity.responseRawHeaders,
           proxyResponseRawHeaders: httpActivity.proxyResponseRawHeaders,
+          earlyHintsResponseRawHeaders: httpActivity.earlyHintsResponseRawHeaders,
         });
       }
     }
@@ -705,7 +706,7 @@ export class NetworkObserver {
         httpActivity.proxyResponseRawHeaders = extraStringData;
         break;
       case gActivityDistributor.ACTIVITY_SUBTYPE_EARLYHINT_RESPONSE_HEADER:
-        httpActivity.earlyHintResponseRawHeaders = extraStringData;
+        httpActivity.earlyHintsResponseRawHeaders = extraStringData;
         httpActivity.headersSize = extraStringData.length;
         break;
       case gActivityDistributor.ACTIVITY_SUBTYPE_TRANSACTION_CLOSE:

@@ -147,7 +147,9 @@ function isFlagFilterMatch(item, { type, value, negative }) {
 
   const matchers = {
     "status-code": () =>
-      item.status && item.status.toString().startsWith(value),
+      (item.status && item.status.toString().startsWith(value)) ||
+      (item.earlyHintsStatus &&
+        item.earlyHintsStatus.toString().startsWith(value)),
     method: () => item.method.toLowerCase() === value,
     protocol: () => {
       const protocol = item.httpVersion;

@@ -191,6 +191,7 @@ const TEST_EVENTS = {
 const UPDATE_PROPS = [
   "method",
   "url",
+  "earlyHintsStatus",
   "remotePort",
   "remoteAddress",
   "status",
@@ -486,6 +487,7 @@ const DEFAULT_COLUMN_WIDTH = 8; // in %
 const SUPPORTED_HTTP_CODES = [
   "100",
   "101",
+  "103",
   "200",
   "201",
   "202",

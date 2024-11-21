@@ -475,12 +475,14 @@ class NetworkEventActor extends Actor {
    * @param {boolean} options.fromCache
    * @param {string} options.rawHeaders
    * @param {string} options.proxyResponseRawHeaders
+   * @param {string} options.earlyHintsResponseRawHeaders
    */
   addResponseStart({
     channel,
     fromCache,
     rawHeaders = "",
     proxyResponseRawHeaders,
+    earlyHintsResponseRawHeaders,
   }) {
     // Ignore calls when this actor is already destroyed
     if (this.isDestroyed()) {
@@ -547,6 +549,7 @@ class NetworkEventActor extends Actor {
       remotePort: fromCache ? "" : channel.remotePort,
       status: isFileChannel ? "200" : channel.responseStatus + "",
       statusText: isFileChannel ? "0K" : channel.responseStatusText,
+      earlyHintsStatus: earlyHintsResponseRawHeaders ? "103" : "",
       waitingTime,
       isResolvedByTRR: channel.isResolvedByTRR,
       proxyHttpVersion: proxyInfo[0],

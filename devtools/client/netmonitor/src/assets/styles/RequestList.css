@@ -372,6 +372,10 @@
   fill: var(--theme-icon-dimmed-color);
 }
 
+.request-list-item.selected .status-code:not(.status-code-blocked) {
+  outline: 1px solid currentColor;
+}
+
 .request-list-item.selected .status-code-blocked,
 .request-list-item.selected .requests-security-state-icon,
 .request-list-item.selected .tracking-resource {

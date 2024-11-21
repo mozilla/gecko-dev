@@ -15,7 +15,7 @@
     <p>Status codes test</p>
 
     <script type="text/javascript">
-      /* exported performRequests, performCachedRequests, performOneCachedRequest */
+      /* exported performRequests, performCachedRequests, performOneCachedRequest, performEarlyHintRequest */
       "use strict";
 
       function get(address) {
@@ -48,6 +48,10 @@
       async function performOneCachedRequest() {
         await get("sjs_status-codes-test-server.sjs?sts=ok&cached");
         await get("sjs_status-codes-test-server.sjs?sts=ok&cached");
+      }
+
+      async function performEarlyHintRequest() {
+        await get("sjs_early-hint-test-server.sjs?early-hint-pixel.sjs=5ecccd01-dd3f-4bbd-bd3e-0491d7dd78a1");
       }
     </script>
   </body>

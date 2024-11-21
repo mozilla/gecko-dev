@@ -1570,3 +1570,21 @@ async function waitForEagerEvaluationResult(hud, text) {
   });
   ok(true, `Got eager evaluation result ${text}`);
 }
+
+/**
+ * Assert the contents of the filter urls autocomplete box
+ *
+ * @param {Array} expected
+ * @param {Object} document
+ */
+function testAutocompleteContents(expected, document) {
+  expected.forEach(function (item, i) {
+    is(
+      document.querySelector(
+        `.devtools-autocomplete-listbox .autocomplete-item:nth-child(${i + 1})`
+      ).textContent,
+      item,
+      `${expected[i]} found`
+    );
+  });
+}
