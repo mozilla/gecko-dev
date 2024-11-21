@@ -392,10 +392,11 @@ class TypeHostRecord final : public nsHostRecord,
 
   void ResolveComplete() override;
 
-  mozilla::net::TypeRecordResultType mResults = AsVariant(mozilla::Nothing());
-  mozilla::Mutex mResultsLock MOZ_UNANNOTATED{"TypeHostRecord.mResultsLock"};
+  mozilla::net::TypeRecordResultType mResults MOZ_GUARDED_BY(mResultsLock) =
+      AsVariant(mozilla::Nothing());
+  mozilla::Mutex mResultsLock{"TypeHostRecord.mResultsLock"};
 
-  mozilla::Maybe<nsCString> mOriginHost;
+  mozilla::Maybe<nsCString> mOriginHost MOZ_GUARDED_BY(mResultsLock);
   bool mAllRecordsExcluded = false;
 };
 

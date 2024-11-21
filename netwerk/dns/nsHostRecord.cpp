@@ -9,6 +9,7 @@
 #include "DNSLogging.h"
 #include "mozilla/StaticPrefs_network.h"
 #include "mozilla/Telemetry.h"
+#include "mozilla/ThreadSafety.h"
 #include "TRRService.h"
 
 //----------------------------------------------------------------------------
@@ -440,7 +441,10 @@ bool TypeHostRecord::HasUsableResultInternal(
     return true;
   }
 
+  MOZ_PUSH_IGNORE_THREAD_SAFETY
+  // To avoid locking in a const method
   return !mResults.is<Nothing>();
+  MOZ_POP_THREAD_SAFETY
 }
 
 bool TypeHostRecord::RefreshForNegativeResponse() const { return false; }
