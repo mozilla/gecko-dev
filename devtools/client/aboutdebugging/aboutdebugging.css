@@ -5,6 +5,7 @@
 /*
 * Global styles
 */
+@import "chrome://global/skin/design-system/tokens-brand.css";
 @import "chrome://devtools/skin/variables.css";
 @import "chrome://devtools/content/aboutdebugging/src/base.css";
 
