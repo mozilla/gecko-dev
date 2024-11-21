@@ -1741,7 +1741,7 @@ bool AttrIterator::ExposeAttr(AccAttributes* aTargetAttrs) const {
 ////////////////////////////////////////////////////////////////////////////////
 // AttrWithCharacteristicsIterator class
 bool AttrWithCharacteristicsIterator::Next() {
-  for (mIdx++; mIdx < static_cast<int32_t>(ArrayLength(gWAIUnivAttrMap));
+  for (mIdx++; mIdx < static_cast<int32_t>(std::size(gWAIUnivAttrMap));
        mIdx++) {
     if (gWAIUnivAttrMap[mIdx].characteristics & mCharacteristics) {
       return true;
