@@ -10,8 +10,6 @@
 "use strict";
 
 ChromeUtils.defineESModuleGetters(this, {
-  AppProvidedSearchEngine:
-    "resource://gre/modules/AppProvidedSearchEngine.sys.mjs",
   NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
 });
 
@@ -130,38 +128,6 @@ const MAIN_CONFIG = [
   },
 ];
 
-const CONFIG_WITH_MODIFIED_CLASSIFICATION = [
-  {
-    identifier: "originalDefault",
-    base: {
-      name: "Original Default",
-      urls: {
-        search: {
-          base: "https://example.com/search",
-          searchTermParamName: "q",
-        },
-      },
-      classification: "unknown",
-    },
-  },
-];
-
-const CONFIG_WITH_MODIFIED_NAME = [
-  {
-    identifier: "originalDefault",
-    base: {
-      name: "Modified Engine Name",
-      urls: {
-        search: {
-          base: "https://example.com/search",
-          searchTermParamName: "q",
-        },
-      },
-      classification: "general",
-    },
-  },
-];
-
 const testSearchEngine = {
   id: "originalDefault",
   name: "Original Default",
@@ -205,6 +171,13 @@ async function checkTelemetry(
   checkPrivate = false,
   additionalEventsExpected = false
 ) {
+  // TODO Bug 1876178 - Improve engine change telemetry.
+  // When we reload engines due to a config change, we update the engines as
+  // they may have changed, we don't track if any attribute has actually changed
+  // from previous, and so we send out an update regardless. This is why in
+  // this test we test for the additional `engine-update` event that's recorded.
+  // In future, we should be more specific about when to record the event and
+  // so only one event is captured and not two.
   let snapshot;
   if (checkPrivate) {
     snapshot = await Glean.searchEnginePrivate.changed.testGetValue();
@@ -212,8 +185,6 @@ async function checkTelemetry(
     snapshot = await Glean.searchEngineDefault.changed.testGetValue();
   }
 
-  // additionalEventsExpected should be true whenever we expect something
-  // stored in AppProvidedSearchEngine.#prevEngineInfo to have changed.
   if (additionalEventsExpected) {
     delete snapshot[0].timestamp;
     Assert.deepEqual(
@@ -315,7 +286,8 @@ add_task(async function test_experiment_changes_default() {
     "experiment",
     testNewDefaultEngine,
     testDefaultForExperiment,
-    false
+    false,
+    true
   );
 
   // Reset the stub so that we are no longer in an experiment.
@@ -334,7 +306,8 @@ add_task(async function test_locale_changes_default() {
     "locale",
     testDefaultForExperiment,
     testDefaultInLocaleFRNotRegionDEEngine,
-    false
+    false,
+    true
   );
 });
 
@@ -350,7 +323,8 @@ add_task(async function test_region_changes_default() {
     "region",
     testDefaultInLocaleFRNotRegionDEEngine,
     testPrefEngine,
-    false
+    false,
+    true
   );
 });
 
@@ -471,78 +445,3 @@ add_task(async function test_default_engine_update() {
   await checkTelemetry("engine-update", defaultEngineData, defaultEngineData);
   await extension.unload();
 });
-
-add_task(async function test_only_notify_on_relevant_engine_property_change() {
-  clearTelemetry();
-  await SearchTestUtils.updateRemoteSettingsConfig(BASE_CONFIG);
-
-  // Since SearchUtils.notifyAction can be called for multiple different search
-  // engine topics, `resetPrevEngineInfo` is a better way to track
-  // notifications in this case.
-  let notificationSpy = sinon.spy(
-    AppProvidedSearchEngine.prototype,
-    "_resetPrevEngineInfo"
-  );
-
-  // Change an engine property that is not stored in
-  // AppProvidedSearchEngine.#prevEngineInfo.
-  let reloadObserved =
-    SearchTestUtils.promiseSearchNotification("engines-reloaded");
-  await SearchTestUtils.updateRemoteSettingsConfig(
-    CONFIG_WITH_MODIFIED_CLASSIFICATION
-  );
-  await reloadObserved;
-
-  Assert.equal(
-    notificationSpy.callCount,
-    0,
-    "Should not have sent a notification"
-  );
-
-  notificationSpy.restore();
-});
-
-add_task(
-  async function test_multiple_updates_only_notify_on_relevant_engine_property_change() {
-    clearTelemetry();
-    await SearchTestUtils.updateRemoteSettingsConfig(BASE_CONFIG);
-
-    // Since SearchUtils.notifyAction can be called for multiple different search
-    // engine topics, `resetPrevEngineInfo` is a better way to track
-    // notifications in this case.
-    let notificationSpy = sinon.spy(
-      AppProvidedSearchEngine.prototype,
-      "_resetPrevEngineInfo"
-    );
-
-    // Change an engine property that is not stored in
-    // AppProvidedSearchEngine.#prevEngineInfo.
-    let reloadObserved1 =
-      SearchTestUtils.promiseSearchNotification("engines-reloaded");
-    await SearchTestUtils.updateRemoteSettingsConfig(
-      CONFIG_WITH_MODIFIED_CLASSIFICATION
-    );
-    await reloadObserved1;
-
-    Assert.equal(
-      notificationSpy.callCount,
-      0,
-      "Should not have sent a notification"
-    );
-
-    // Now change an engine property that is stored in
-    // AppProvidedSearchEngine.#prevEngineInfo.
-    let reloadObserved2 =
-      SearchTestUtils.promiseSearchNotification("engines-reloaded");
-    await SearchTestUtils.updateRemoteSettingsConfig(CONFIG_WITH_MODIFIED_NAME);
-    await reloadObserved2;
-
-    Assert.equal(
-      notificationSpy.callCount,
-      1,
-      "Should have sent a notification"
-    );
-
-    notificationSpy.restore();
-  }
-);
