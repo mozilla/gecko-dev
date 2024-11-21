@@ -75,6 +75,7 @@
 --wasm-compiler=baseline+optimizing
 --test-wasm-await-tier2
 --wasm-disable-huge-memory
+--setpref=wasm_js_string_builtins=true
 
 # CPU instruction set-related
 --no-sse3
