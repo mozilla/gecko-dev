@@ -149,6 +149,7 @@
       },
       {
         "name": "scalarAdd",
+        "deprecated": "`scalarAdd` is a no-op since Firefox 134 (see bug 1930196)",
         "type": "function",
         "description": "Adds the value to the given scalar.",
         "async": true,
@@ -168,6 +169,7 @@
       },
       {
         "name": "scalarSet",
+        "deprecated": "`scalarSet` is a no-op since Firefox 134 (see bug 1930196)",
         "type": "function",
         "description": "Sets the named scalar to the given value. Throws if the value type doesn't match the scalar type.",
         "async": true,
@@ -191,6 +193,7 @@
       },
       {
         "name": "scalarSetMaximum",
+        "deprecated": "`scalarSetMaximum` is a no-op since Firefox 134 (see bug 1930196)",
         "type": "function",
         "description": "Sets the scalar to the maximum of the current and the passed value",
         "async": true,
@@ -210,6 +213,7 @@
       },
       {
         "name": "keyedScalarAdd",
+        "deprecated": "`keyedScalarAdd` is a no-op since Firefox 134 (see bug 1930196)",
         "type": "function",
         "description": "Adds the value to the given keyed scalar.",
         "async": true,
@@ -234,6 +238,7 @@
       },
       {
         "name": "keyedScalarSet",
+        "deprecated": "`keyedScalarSet` is a no-op since Firefox 134 (see bug 1930196)",
         "type": "function",
         "description": "Sets the keyed scalar to the given value. Throws if the value type doesn't match the scalar type.",
         "async": true,
@@ -262,6 +267,7 @@
       },
       {
         "name": "keyedScalarSetMaximum",
+        "deprecated": "`keyedScalarSetMaximum` is a no-op since Firefox 134 (see bug 1930196)",
         "type": "function",
         "description": "Sets the keyed scalar to the maximum of the current and the passed value",
         "async": true,
@@ -324,6 +330,7 @@
 
       {
         "name": "registerScalars",
+        "deprecated": "`registerScalars` is a no-op since Firefox 134 (see bug 1930196)",
         "type": "function",
         "description": "Register new scalars to record them from addons. See nsITelemetry.idl for more details.",
         "async": true,

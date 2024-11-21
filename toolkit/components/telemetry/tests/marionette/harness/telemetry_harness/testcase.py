@@ -160,15 +160,6 @@ class TelemetryTestCase(WindowManagerMixin, MarionetteTestCase):
         addon_name = "helloworld"
         self._install_addon(addon_name)
 
-    def install_dynamic_addon(self):
-        """Install a dynamic probe addon.
-
-        Source Code:
-        https://github.com/mozilla-extensions/dynamic-probe-telemetry-extension
-        """
-        addon_name = "dynamic_addon/dynamic-probe-telemetry-extension-signed.xpi"
-        self._install_addon(addon_name, temp=False)
-
     def _install_addon(self, addon_name, temp=True):
         """Logic to install addon and add its ID to self.addons.ids"""
         resources_dir = os.path.join(os.path.dirname(__file__), "resources")

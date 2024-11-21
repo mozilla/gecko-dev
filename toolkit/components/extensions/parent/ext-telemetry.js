@@ -9,12 +9,6 @@ ChromeUtils.defineESModuleGetters(this, {
   TelemetryUtils: "resource://gre/modules/TelemetryUtils.sys.mjs",
 });
 
-const SCALAR_TYPES = {
-  count: Ci.nsITelemetry.SCALAR_TYPE_COUNT,
-  string: Ci.nsITelemetry.SCALAR_TYPE_STRING,
-  boolean: Ci.nsITelemetry.SCALAR_TYPE_BOOLEAN,
-};
-
 // Currently unsupported on Android: blocked on 1220177.
 // See 1280234 c67 for discussion.
 function desktopCheck() {
@@ -54,70 +48,37 @@ this.telemetry = class extends ExtensionAPI {
             throw new ExtensionUtils.ExtensionError(ex);
           }
         },
-        scalarAdd(name, value) {
+        scalarAdd(_name, _value) {
           desktopCheck();
-          try {
-            Services.telemetry.scalarAdd(name, value);
-          } catch (ex) {
-            throw new ExtensionUtils.ExtensionError(ex);
-          }
+          // No-op since bug 1930196 (Fx134).
         },
-        scalarSet(name, value) {
+        scalarSet(_name, _value) {
           desktopCheck();
-          try {
-            Services.telemetry.scalarSet(name, value);
-          } catch (ex) {
-            throw new ExtensionUtils.ExtensionError(ex);
-          }
+          // No-op since bug 1930196 (Fx134).
         },
-        scalarSetMaximum(name, value) {
+        scalarSetMaximum(_name, _value) {
           desktopCheck();
-          try {
-            Services.telemetry.scalarSetMaximum(name, value);
-          } catch (ex) {
-            throw new ExtensionUtils.ExtensionError(ex);
-          }
+          // No-op since bug 1930196 (Fx134).
         },
-        keyedScalarAdd(name, key, value) {
+        keyedScalarAdd(_name, _key, _value) {
           desktopCheck();
-          try {
-            Services.telemetry.keyedScalarAdd(name, key, value);
-          } catch (ex) {
-            throw new ExtensionUtils.ExtensionError(ex);
-          }
+          // No-op since bug 1930196 (Fx134).
         },
-        keyedScalarSet(name, key, value) {
+        keyedScalarSet(_name, _key, _value) {
           desktopCheck();
-          try {
-            Services.telemetry.keyedScalarSet(name, key, value);
-          } catch (ex) {
-            throw new ExtensionUtils.ExtensionError(ex);
-          }
+          // No-op since bug 1930196 (Fx134).
         },
-        keyedScalarSetMaximum(name, key, value) {
+        keyedScalarSetMaximum(_name, _key, _value) {
           desktopCheck();
-          try {
-            Services.telemetry.keyedScalarSetMaximum(name, key, value);
-          } catch (ex) {
-            throw new ExtensionUtils.ExtensionError(ex);
-          }
+          // No-op since bug 1930196 (Fx134).
         },
         recordEvent(_category, _method, _object, _value, _extra) {
           desktopCheck();
           // No-op since bug 1894533 (Fx132).
         },
-        registerScalars(category, data) {
+        registerScalars(_category, _data) {
           desktopCheck();
-          try {
-            // For each scalar in `data`, replace scalar.kind with
-            // the appropriate nsITelemetry constant.
-            Object.keys(data).forEach(scalar => {
-              data[scalar].kind = SCALAR_TYPES[data[scalar].kind];
-            });
-            Services.telemetry.registerScalars(category, data);
-          } catch (ex) {
-            throw new ExtensionUtils.ExtensionError(ex);
-          }
+          // No-op since bug 1930196 (Fx134).
         },
         setEventRecordingEnabled(_category, _enabled) {
           desktopCheck();

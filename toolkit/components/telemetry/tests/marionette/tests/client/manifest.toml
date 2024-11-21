@@ -3,8 +3,6 @@ tags = "client"
 
 ["test_deletion_request_ping.py"]
 
-["test_dynamic_probes.py"]
-
 ["test_fog_custom_ping.py"]
 
 ["test_fog_dau_reporting.py"]

@@ -77,10 +77,9 @@ Checks if Telemetry upload is enabled.
 
   browser.telemetry.scalarAdd(name, value);
 
-Adds the value to the given scalar.
+As of Firefox 134, this method is a no-op. See Bug 1930196.
 
-* ``name`` - *(string)* The scalar name.
-* ``value`` - *(integer)* The numeric value to add to the scalar. Only unsigned integers supported.
+Instead, use :doc:`Glean APIs <../../glean/user/glean_for_legacy_scalars>` to record scalars.
 
 ``scalarSet``
 ~~~~~~~~~~~~~
@@ -89,10 +88,9 @@ Adds the value to the given scalar.
 
   browser.telemetry.scalarSet(name, value);
 
-Sets the named scalar to the given value. Throws if the value type doesn't match the scalar type.
+As of Firefox 134, this method is a no-op. See Bug 1930196.
 
-* ``name`` - *(string)* The scalar name.
-* ``value`` - *(string|boolean|integer|object)* The value to set the scalar to.
+Instead, use :doc:`Glean APIs <../../glean/user/glean_for_legacy_scalars>` to record scalars.
 
 ``scalarSetMaximum``
 ~~~~~~~~~~~~~~~~~~~~
@@ -101,10 +99,9 @@ Sets the named scalar to the given value. Throws if the value type doesn't match
 
   browser.telemetry.scalarSetMaximum(name, value);
 
-Sets the scalar to the maximum of the current and the passed value
+As of Firefox 134, this method is a no-op. See Bug 1930196.
 
-* ``name`` - *(string)* The scalar name.
-* ``value`` - *(integer)* The numeric value to set the scalar to. Only unsigned integers supported.
+Instead, use :doc:`Glean APIs <../../glean/user/glean_for_legacy_scalars>` to record scalars.
 
 ``recordEvent``
 ~~~~~~~~~~~~~~~
@@ -120,10 +117,9 @@ Instead, use :doc:`Glean APIs <../../glean/user/glean_for_legacy_events>` to rec
 
   browser.telemetry.registerScalars(category, data);
 
-Register new scalars to record them from addons. See :ref:`registerscalars` for more details.
+As of Firefox 134, this method is a no-op. See Bug 1930196.
 
-* ``category`` - *(string)* The unique category the scalars are registered in.
-* ``data`` - *(object)* An object that contains registration data for multiple scalars. Each property name is the scalar name, and the corresponding property value is an object of ScalarData_ type.
+Instead, use :doc:`Glean APIs <../../glean/user/glean_for_legacy_scalars>` to record scalars.
 
 ``registerEvents``
 ~~~~~~~~~~~~~~~~~~
