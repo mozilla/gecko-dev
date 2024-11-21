@@ -765,8 +765,7 @@ static bool RemoveFirstLine(nsLineList& aFromLines, nsFrameList& aFromFrames,
 /* virtual */
 void nsBlockFrame::MarkIntrinsicISizesDirty() {
   nsBlockFrame* dirtyBlock = static_cast<nsBlockFrame*>(FirstContinuation());
-  dirtyBlock->mCachedMinISize = NS_INTRINSIC_ISIZE_UNKNOWN;
-  dirtyBlock->mCachedPrefISize = NS_INTRINSIC_ISIZE_UNKNOWN;
+  dirtyBlock->mCachedIntrinsics.Clear();
   if (!HasAnyStateBits(NS_BLOCK_NEEDS_BIDI_RESOLUTION)) {
     for (nsIFrame* frame = dirtyBlock; frame;
          frame = frame->GetNextContinuation()) {
@@ -784,8 +783,7 @@ void nsBlockFrame::CheckIntrinsicCacheAgainstShrinkWrapState() {
   }
   bool inflationEnabled = !presContext->mInflationDisabledForShrinkWrap;
   if (inflationEnabled != HasAnyStateBits(NS_BLOCK_INTRINSICS_INFLATED)) {
-    mCachedMinISize = NS_INTRINSIC_ISIZE_UNKNOWN;
-    mCachedPrefISize = NS_INTRINSIC_ISIZE_UNKNOWN;
+    mCachedIntrinsics.Clear();
     AddOrRemoveStateBits(NS_BLOCK_INTRINSICS_INFLATED, inflationEnabled);
   }
 }
@@ -823,17 +821,10 @@ nscoord nsBlockFrame::IntrinsicISize(const IntrinsicSizeInput& aInput,
 
   CheckIntrinsicCacheAgainstShrinkWrapState();
 
-  if (aType == IntrinsicISizeType::MinISize) {
-    if (mCachedMinISize == NS_INTRINSIC_ISIZE_UNKNOWN) {
-      mCachedMinISize = MinISize(aInput);
-    }
-    return mCachedMinISize;
-  }
-
-  if (mCachedPrefISize == NS_INTRINSIC_ISIZE_UNKNOWN) {
-    mCachedPrefISize = PrefISize(aInput);
-  }
-  return mCachedPrefISize;
+  return mCachedIntrinsics.GetOrSet(*this, aType, aInput, [&] {
+    return aType == IntrinsicISizeType::MinISize ? MinISize(aInput)
+                                                 : PrefISize(aInput);
+  });
 }
 
 /* virtual */

@@ -151,17 +151,10 @@ void ColumnSetWrapperFrame::MarkIntrinsicISizesDirty() {
 
 nscoord ColumnSetWrapperFrame::IntrinsicISize(const IntrinsicSizeInput& aInput,
                                               IntrinsicISizeType aType) {
-  if (aType == IntrinsicISizeType::MinISize) {
-    if (mCachedMinISize == NS_INTRINSIC_ISIZE_UNKNOWN) {
-      mCachedMinISize = MinISize(aInput);
-    }
-    return mCachedMinISize;
-  }
-
-  if (mCachedPrefISize == NS_INTRINSIC_ISIZE_UNKNOWN) {
-    mCachedPrefISize = PrefISize(aInput);
-  }
-  return mCachedPrefISize;
+  return mCachedIntrinsics.GetOrSet(*this, aType, aInput, [&] {
+    return aType == IntrinsicISizeType::MinISize ? MinISize(aInput)
+                                                 : PrefISize(aInput);
+  });
 }
 
 nscoord ColumnSetWrapperFrame::MinISize(const IntrinsicSizeInput& aInput) {

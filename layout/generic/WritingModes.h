@@ -969,7 +969,10 @@ class LogicalSize {
   /**
    * Test if a size is (0, 0).
    */
-  bool IsAllZero() const { return ISize() == 0 && BSize() == 0; }
+  bool IsAllZero() const { return IsAllValues(0); }
+  bool IsAllValues(nscoord aValue) const {
+    return ISize() == aValue && BSize() == aValue;
+  }
 
   /**
    * Various binary operators on LogicalSize. These are valid ONLY for operands

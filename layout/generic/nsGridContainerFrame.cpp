@@ -9697,19 +9697,13 @@ nscoord nsGridContainerFrame::IntrinsicISize(const IntrinsicSizeInput& aInput,
   if (firstCont != this) {
     return firstCont->IntrinsicISize(aInput, aType);
   }
-
-  nscoord& cachedISize = aType == IntrinsicISizeType::MinISize
-                             ? mCachedMinISize
-                             : mCachedPrefISize;
-  if (cachedISize == NS_INTRINSIC_ISIZE_UNKNOWN) {
-    cachedISize = ComputeIntrinsicISize(aInput, aType);
-  }
-  return cachedISize;
+  return mCachedIntrinsicSizes.GetOrSet(*this, aType, aInput, [&] {
+    return ComputeIntrinsicISize(aInput, aType);
+  });
 }
 
 void nsGridContainerFrame::MarkIntrinsicISizesDirty() {
-  mCachedMinISize = NS_INTRINSIC_ISIZE_UNKNOWN;
-  mCachedPrefISize = NS_INTRINSIC_ISIZE_UNKNOWN;
+  mCachedIntrinsicSizes.Clear();
   for (auto& perAxisBaseline : mBaseline) {
     for (auto& baseline : perAxisBaseline) {
       baseline = NS_INTRINSIC_ISIZE_UNKNOWN;

@@ -142,6 +142,7 @@ EXPORTS.mozilla += [
     "ColumnUtils.h",
     "CSSAlignUtils.h",
     "CSSOrderAwareFrameIterator.h",
+    "IntrinsicISizesCache.h",
     "LayoutMessageUtils.h",
     "nsVideoFrame.h",
     "PrintedSheetFrame.h",

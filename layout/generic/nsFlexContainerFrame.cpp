@@ -2062,9 +2062,7 @@ const CachedBAxisMeasurement& nsFlexContainerFrame::MeasureBSizeForFlexItem(
 
 /* virtual */
 void nsFlexContainerFrame::MarkIntrinsicISizesDirty() {
-  mCachedMinISize = NS_INTRINSIC_ISIZE_UNKNOWN;
-  mCachedPrefISize = NS_INTRINSIC_ISIZE_UNKNOWN;
-
+  mCachedIntrinsicSizes.Clear();
   nsContainerFrame::MarkIntrinsicISizesDirty();
 }
 
@@ -6551,13 +6549,9 @@ nscoord nsFlexContainerFrame::ComputeIntrinsicISize(
 
 nscoord nsFlexContainerFrame::IntrinsicISize(const IntrinsicSizeInput& aInput,
                                              IntrinsicISizeType aType) {
-  nscoord& cachedISize = aType == IntrinsicISizeType::MinISize
-                             ? mCachedMinISize
-                             : mCachedPrefISize;
-  if (cachedISize == NS_INTRINSIC_ISIZE_UNKNOWN) {
-    cachedISize = ComputeIntrinsicISize(aInput, aType);
-  }
-  return cachedISize;
+  return mCachedIntrinsicSizes.GetOrSet(*this, aType, aInput, [&] {
+    return ComputeIntrinsicISize(aInput, aType);
+  });
 }
 
 int32_t nsFlexContainerFrame::GetNumLines() const {
