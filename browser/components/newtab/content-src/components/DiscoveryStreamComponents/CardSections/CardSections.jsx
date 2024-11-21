@@ -78,9 +78,9 @@ function CardSections({
   }
 
   // function to determine amount of tiles shown per section per viewport
-  function getMaxTiles(responsiveLayout) {
-    return responsiveLayout
-      .flatMap(layout => layout)
+  function getMaxTiles(responsiveLayouts) {
+    return responsiveLayouts
+      .flatMap(responsiveLayout => responsiveLayout)
       .reduce((acc, t) => {
         acc[t.columnCount] = t.tiles.length;
 
