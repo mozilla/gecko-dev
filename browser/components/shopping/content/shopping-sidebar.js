@@ -27,6 +27,7 @@
           remote="true"
           src="about:shoppingsidebar"
           type="content"
+          messagemanagergroup="shopping-sidebar"
           />
       `;
     }

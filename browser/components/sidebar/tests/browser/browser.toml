@@ -41,6 +41,8 @@ run-if = ["os == 'mac'"] # Mac only feature
 
 ["browser_sidebar_prefs.js"]
 
+["browser_sidebar_remote.js"]
+
 ["browser_syncedtabs_sidebar.js"]
 
 ["browser_toolbar_sidebar_button.js"]
