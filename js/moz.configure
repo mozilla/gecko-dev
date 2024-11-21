@@ -816,9 +816,9 @@ option(
 )
 
 
-@depends("--disable-wasm-js-string-builtins", "--wasm-no-experimental")
-def wasm_js_string_builtins(value, no_experimental):
-    if no_experimental or not value:
+@depends("--disable-wasm-js-string-builtins")
+def wasm_js_string_builtins(value):
+    if not value:
         return
 
     return True
