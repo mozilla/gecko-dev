@@ -359,7 +359,6 @@ create_object(
      * in it should not hold references to the token.
      */
     (void)nssToken_Destroy(object->token);
-    object->token = NULL;
     rvCachedObject->object = object;
     rvCachedObject->attributes = nss_ZNEWARRAY(arena, CK_ATTRIBUTE, numTypes);
     if (!rvCachedObject->attributes) {
@@ -578,9 +577,9 @@ get_token_objects_for_cache(
     } else {
         PRUint32 j;
         for (j = 0; j < i; j++) {
-            /* create_object() allocates an arena into
-             * cache->objects[objectType][j]->arena on success.
-             */
+            /* Any token references that were removed in successful loop iterations
+             * need to be restored before we call nssCryptokiObjectArray_Destroy */
+            nssToken_AddRef(cache->objects[objectType][j]->object->token);
             nssArena_Destroy(cache->objects[objectType][j]->arena);
         }
         nss_ZFreeIf(cache->objects[objectType]);

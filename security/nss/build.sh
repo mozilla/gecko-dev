@@ -104,6 +104,7 @@ while [ $# -gt 0 ]; do
         --pprof) gyp_params+=(-Duse_pprof=1) ;;
         --asan) enable_sanitizer asan ;;
         --msan) enable_sanitizer msan ;;
+        --tsan) enable_sanitizer tsan ;;
         --sourcecov) enable_sourcecov ;;
         --ubsan) enable_ubsan ;;
         --ubsan=?*) enable_ubsan "${1#*=}" ;;
@@ -141,6 +142,13 @@ done
 
 if [ "$opt_build" = 1 ] && [ "$fuzz" = 1 ]; then
     echo "Specifiying --opt with --fuzz is not supported." >&2
+    exit 1
+fi
+
+if [ -n "${sanitizers["tsan"]:-}" ] && ([ "$CC" != "clang" ] ||
+                                        [ "$CCC" != "clang++" ] ||
+                                        [ "$CXX" != "clang++" ]); then
+    echo "Specifying --tsan requires clang." >&2
     exit 1
 fi
 

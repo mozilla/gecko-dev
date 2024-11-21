@@ -4,27 +4,38 @@
 
 #include "tls_server_config.h"
 
+#include <cassert>
 #include <cstddef>
 #include <cstdint>
 
+#include "nss_scoped_ptrs.h"
+#include "pk11pub.h"
+#include "prio.h"
+#include "seccomon.h"
+#include "ssl.h"
+#include "sslexp.h"
 #include "sslt.h"
 
-const uint32_t CONFIG_ENABLE_EXTENDED_MS = 1 << 0;
-const uint32_t CONFIG_REQUEST_CERTIFICATE = 1 << 1;
-const uint32_t CONFIG_REQUIRE_CERTIFICATE = 1 << 2;
-const uint32_t CONFIG_ENABLE_DEFLATE = 1 << 3;
-const uint32_t CONFIG_ENABLE_CBC_RANDOM_IV = 1 << 4;
-const uint32_t CONFIG_REQUIRE_SAFE_NEGOTIATION = 1 << 5;
-const uint32_t CONFIG_NO_CACHE = 1 << 6;
-const uint32_t CONFIG_ENABLE_GREASE = 1 << 7;
-const uint32_t CONFIG_SET_CERTIFICATION_COMPRESSION_ALGORITHM = 1 << 8;
-const uint32_t CONFIG_VERSION_RANGE_SET = 1 << 9;
-const uint32_t CONFIG_ADD_EXTERNAL_PSK = 1 << 10;
-const uint32_t CONFIG_ENABLE_ZERO_RTT = 1 << 11;
-const uint32_t CONFIG_ENABLE_ALPN = 1 << 12;
-const uint32_t CONFIG_ENABLE_FALLBACK_SCSV = 1 << 13;
-const uint32_t CONFIG_ENABLE_SESSION_TICKETS = 1 << 14;
-const uint32_t CONFIG_NO_LOCKS = 1 << 15;
+#include "tls_common.h"
+
+const SSLCertificateCompressionAlgorithm kCompressionAlg = {
+    0x1337, "fuzz", DummyCompressionEncode, DummyCompressionDecode};
+const PRUint8 kPskIdentity[] = "fuzz-psk-identity";
+
+static SECStatus AuthCertificateHook(void* arg, PRFileDesc* fd, PRBool checksig,
+                                     PRBool isServer) {
+  assert(isServer);
+  auto config = reinterpret_cast<ServerConfig*>(arg);
+  if (config->FailCertificateAuthentication()) return SECFailure;
+
+  return SECSuccess;
+}
+
+static SECStatus CanFalseStartCallback(PRFileDesc* fd, void* arg,
+                                       PRBool* canFalseStart) {
+  *canFalseStart = true;
+  return SECSuccess;
+}
 
 // XOR 64-bit chunks of data to build a bitmap of config options derived from
 // the fuzzing input. This seems the only way to fuzz various options while
@@ -60,110 +71,126 @@ ServerConfig::ServerConfig(const uint8_t* data, size_t len) {
   };
 }
 
-bool ServerConfig::EnableExtendedMasterSecret() {
-  return config_ & CONFIG_ENABLE_EXTENDED_MS;
+void ServerConfig::SetCallbacks(PRFileDesc* fd) {
+  SECStatus rv = SSL_AuthCertificateHook(fd, AuthCertificateHook, this);
+  assert(rv == SECSuccess);
+
+  rv = SSL_SetCanFalseStartCallback(fd, CanFalseStartCallback, nullptr);
+  assert(rv == SECSuccess);
 }
 
-bool ServerConfig::RequestCertificate() {
-  return config_ & CONFIG_REQUEST_CERTIFICATE;
+void ServerConfig::SetSocketOptions(PRFileDesc* fd) {
+  SECStatus rv = SSL_OptionSet(fd, SSL_ENABLE_EXTENDED_MASTER_SECRET,
+                               this->EnableExtendedMasterSecret());
+  assert(rv == SECSuccess);
+
+  rv = SSL_OptionSet(fd, SSL_REQUEST_CERTIFICATE, this->RequestCertificate());
+  assert(rv == SECSuccess);
+
+  rv = SSL_OptionSet(fd, SSL_REQUIRE_CERTIFICATE, this->RequireCertificate());
+  assert(rv == SECSuccess);
+
+  rv = SSL_OptionSet(fd, SSL_ENABLE_DEFLATE, this->EnableDeflate());
+  assert(rv == SECSuccess);
+
+  rv = SSL_OptionSet(fd, SSL_CBC_RANDOM_IV, this->EnableCbcRandomIv());
+  assert(rv == SECSuccess);
+
+  rv = SSL_OptionSet(fd, SSL_REQUIRE_SAFE_NEGOTIATION,
+                     this->RequireSafeNegotiation());
+  assert(rv == SECSuccess);
+
+  rv = SSL_OptionSet(fd, SSL_NO_CACHE, this->NoCache());
+  assert(rv == SECSuccess);
+
+  rv = SSL_OptionSet(fd, SSL_ENABLE_GREASE, this->EnableGrease());
+  assert(rv == SECSuccess);
+
+  if (this->SetCertificateCompressionAlgorithm()) {
+    rv = SSL_SetCertificateCompressionAlgorithm(fd, kCompressionAlg);
+    assert(rv == SECSuccess);
+  }
+
+  if (this->SetVersionRange()) {
+    rv = SSL_VersionRangeSet(fd, &ssl_version_range_);
+    assert(rv == SECSuccess);
+  }
+
+  if (this->AddExternalPsk()) {
+    ScopedPK11SlotInfo slot(PK11_GetInternalSlot());
+    assert(slot);
+
+    ScopedPK11SymKey key(PK11_KeyGen(slot.get(), CKM_NSS_CHACHA20_POLY1305,
+                                     nullptr, 32, nullptr));
+    assert(key);
+
+    rv = SSL_AddExternalPsk(fd, key.get(), kPskIdentity,
+                            sizeof(kPskIdentity) - 1, this->PskHashType());
+    assert(rv == SECSuccess);
+  }
+
+  rv = SSL_OptionSet(fd, SSL_ENABLE_0RTT_DATA, this->EnableZeroRtt());
+  assert(rv == SECSuccess);
+
+  rv = SSL_OptionSet(fd, SSL_ENABLE_ALPN, this->EnableAlpn());
+  assert(rv == SECSuccess);
+
+  rv = SSL_OptionSet(fd, SSL_ENABLE_FALLBACK_SCSV, this->EnableFallbackScsv());
+  assert(rv == SECSuccess);
+
+  rv = SSL_OptionSet(fd, SSL_ENABLE_SESSION_TICKETS,
+                     this->EnableSessionTickets());
+  assert(rv == SECSuccess);
+
+  rv = SSL_OptionSet(fd, SSL_NO_LOCKS, this->NoLocks());
+  assert(rv == SECSuccess);
+
+#ifndef IS_DTLS_FUZZ
+  rv =
+      SSL_OptionSet(fd, SSL_ENABLE_RENEGOTIATION, SSL_RENEGOTIATE_UNRESTRICTED);
+  assert(rv == SECSuccess);
+#endif
 }
 
-bool ServerConfig::RequireCertificate() {
-  return config_ & CONFIG_REQUIRE_CERTIFICATE;
-}
-
-bool ServerConfig::EnableDeflate() { return config_ & CONFIG_ENABLE_DEFLATE; }
-
-bool ServerConfig::EnableCbcRandomIv() {
-  return config_ & CONFIG_ENABLE_CBC_RANDOM_IV;
-}
-
-bool ServerConfig::RequireSafeNegotiation() {
-  return config_ & CONFIG_REQUIRE_SAFE_NEGOTIATION;
-}
-
-bool ServerConfig::NoCache() { return config_ & CONFIG_NO_CACHE; }
-
-bool ServerConfig::EnableGrease() { return config_ & CONFIG_ENABLE_GREASE; }
-
-bool ServerConfig::SetCertificateCompressionAlgorithm() {
-  return config_ & CONFIG_SET_CERTIFICATION_COMPRESSION_ALGORITHM;
-}
-
-bool ServerConfig::SetVersionRange() {
-  return config_ & CONFIG_VERSION_RANGE_SET;
-}
-
-bool ServerConfig::AddExternalPsk() {
-  return config_ & CONFIG_ADD_EXTERNAL_PSK;
-}
-
-bool ServerConfig::EnableZeroRtt() { return config_ & CONFIG_ENABLE_ZERO_RTT; }
-
-bool ServerConfig::EnableAlpn() { return config_ & CONFIG_ENABLE_ALPN; }
-
-bool ServerConfig::EnableFallbackScsv() {
-  return config_ & CONFIG_ENABLE_FALLBACK_SCSV;
-}
-
-bool ServerConfig::EnableSessionTickets() {
-  return config_ & CONFIG_ENABLE_SESSION_TICKETS;
-}
-
-bool ServerConfig::NoLocks() { return config_ & CONFIG_NO_LOCKS; }
-
-SSLHashType ServerConfig::PskHashType() {
-  if (config_ % 2) return ssl_hash_sha256;
-
-  return ssl_hash_sha384;
-}
-
-const SSLVersionRange& ServerConfig::VersionRange() {
-  return ssl_version_range_;
-}
-
-std::ostream& operator<<(std::ostream& out,
-                         std::unique_ptr<ServerConfig>& config) {
+std::ostream& operator<<(std::ostream& out, ServerConfig& config) {
   out << "============= ServerConfig ============="
       << "\n";
-  out << "SSL_NO_CACHE:                           " << config->NoCache()
-      << "\n";
+  out << "SSL_NO_CACHE:                           " << config.NoCache() << "\n";
   out << "SSL_ENABLE_EXTENDED_MASTER_SECRET:      "
-      << config->EnableExtendedMasterSecret() << "\n";
+      << config.EnableExtendedMasterSecret() << "\n";
   out << "SSL_REQUEST_CERTIFICATE:                "
-      << config->RequestCertificate() << "\n";
+      << config.RequestCertificate() << "\n";
   out << "SSL_REQUIRE_CERTIFICATE:                "
-      << config->RequireCertificate() << "\n";
-  out << "SSL_ENABLE_DEFLATE:                     " << config->EnableDeflate()
+      << config.RequireCertificate() << "\n";
+  out << "SSL_ENABLE_DEFLATE:                     " << config.EnableDeflate()
       << "\n";
   out << "SSL_CBC_RANDOM_IV:                      "
-      << config->EnableCbcRandomIv() << "\n";
+      << config.EnableCbcRandomIv() << "\n";
   out << "SSL_REQUIRE_SAFE_NEGOTIATION:           "
-      << config->RequireSafeNegotiation() << "\n";
-  out << "SSL_ENABLE_GREASE:                      " << config->EnableGrease()
+      << config.RequireSafeNegotiation() << "\n";
+  out << "SSL_ENABLE_GREASE:                      " << config.EnableGrease()
       << "\n";
   out << "SSL_SetCertificateCompressionAlgorithm: "
-      << config->SetCertificateCompressionAlgorithm() << "\n";
-  out << "SSL_VersionRangeSet:                    " << config->SetVersionRange()
+      << config.SetCertificateCompressionAlgorithm() << "\n";
+  out << "SSL_VersionRangeSet:                    " << config.SetVersionRange()
       << "\n";
   out << "  Min:                                  "
-      << config->VersionRange().min << "\n";
+      << config.SslVersionRange().min << "\n";
   out << "  Max:                                  "
-      << config->VersionRange().max << "\n";
-  out << "SSL_AddExternalPsk:                     " << config->AddExternalPsk()
+      << config.SslVersionRange().max << "\n";
+  out << "SSL_AddExternalPsk:                     " << config.AddExternalPsk()
       << "\n";
-  out << "  Type:                                 " << config->PskHashType()
+  out << "  Type:                                 " << config.PskHashType()
       << "\n";
-  out << "SSL_ENABLE_0RTT_DATA:                   " << config->EnableZeroRtt()
+  out << "SSL_ENABLE_0RTT_DATA:                   " << config.EnableZeroRtt()
       << "\n";
-  out << "SSL_ENABLE_ALPN:                        " << config->EnableAlpn()
+  out << "SSL_ENABLE_ALPN:                        " << config.EnableAlpn()
       << "\n";
   out << "SSL_ENABLE_FALLBACK_SCSV:               "
-      << config->EnableFallbackScsv() << "\n";
+      << config.EnableFallbackScsv() << "\n";
   out << "SSL_ENABLE_SESSION_TICKETS:             "
-      << config->EnableSessionTickets() << "\n";
-  out << "SSL_NO_LOCKS:                           " << config->NoLocks()
-      << "\n";
+      << config.EnableSessionTickets() << "\n";
+  out << "SSL_NO_LOCKS:                           " << config.NoLocks() << "\n";
   out << "========================================";
 
   return out;

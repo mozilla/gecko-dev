@@ -126,7 +126,6 @@ static PRDescIdentity ssl_layer_id;
 
 static PRCallOnceType ssl_setDefaultsFromEnvironment = { 0 };
 
-PRBool locksEverDisabled; /* implicitly PR_FALSE */
 PRBool ssl_force_locks;   /* implicitly PR_FALSE */
 int ssl_lock_readers = 1; /* default true. */
 char ssl_debug;
@@ -137,9 +136,6 @@ FILE *ssl_trace_iob;
 FILE *ssl_keylog_iob;
 PZLock *ssl_keylog_lock;
 #endif
-
-char lockStatus[] = "Locks are ENABLED.  ";
-#define LOCKSTATUS_OFFSET 10 /* offset of ENABLED */
 
 /* SRTP_NULL_HMAC_SHA1_80 and SRTP_NULL_HMAC_SHA1_32 are not implemented. */
 static const PRUint16 srtpCiphers[] = {
@@ -782,10 +778,7 @@ SSL_OptionSet(PRFileDesc *fd, PRInt32 which, PRIntn val)
             if (val && ssl_force_locks)
                 val = PR_FALSE; /* silent override */
             ss->opt.noLocks = val;
-            if (val) {
-                locksEverDisabled = PR_TRUE;
-                strcpy(lockStatus + LOCKSTATUS_OFFSET, "DISABLED.");
-            } else if (!holdingLocks) {
+            if (!val && !holdingLocks) {
                 rv = ssl_MakeLocks(ss);
                 if (rv != SECSuccess) {
                     ss->opt.noLocks = PR_TRUE;
@@ -1318,10 +1311,6 @@ SSL_OptionSetDefault(PRInt32 which, PRIntn val)
             if (val && ssl_force_locks)
                 val = PR_FALSE; /* silent override */
             ssl_defaults.noLocks = val;
-            if (val) {
-                locksEverDisabled = PR_TRUE;
-                strcpy(lockStatus + LOCKSTATUS_OFFSET, "DISABLED.");
-            }
             break;
 
         case SSL_ENABLE_SESSION_TICKETS:
@@ -3964,7 +3953,6 @@ ssl_SetDefaultsFromEnvironmentCallOnce(void)
     if (ev && ev[0] == '1') {
         ssl_force_locks = PR_TRUE;
         ssl_defaults.noLocks = 0;
-        strcpy(lockStatus + LOCKSTATUS_OFFSET, "FORCED.  ");
         SSL_TRACE(("SSL: force_locks set to %d", ssl_force_locks));
     }
     ev = PR_GetEnvSecure("NSS_SSL_ENABLE_RENEGOTIATION");

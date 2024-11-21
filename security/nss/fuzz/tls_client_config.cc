@@ -4,33 +4,45 @@
 
 #include "tls_client_config.h"
 
+#include <cassert>
+#include <cstddef>
 #include <cstdint>
-#include <memory>
 
-#include "sslt.h"
+#include "nss_scoped_ptrs.h"
+#include "nssb64.h"
+#include "prio.h"
+#include "prtypes.h"
+#include "seccomon.h"
+#include "ssl.h"
+#include "sslexp.h"
 
-const uint32_t CONFIG_FAIL_CERT_AUTH = 1 << 0;
-const uint32_t CONFIG_ENABLE_EXTENDED_MS = 1 << 1;
-const uint32_t CONFIG_REQUIRE_DH_NAMED_GROUPS = 1 << 2;
-const uint32_t CONFIG_ENABLE_FALSE_START = 1 << 3;
-const uint32_t CONFIG_ENABLE_DEFLATE = 1 << 4;
-const uint32_t CONFIG_ENABLE_CBC_RANDOM_IV = 1 << 5;
-const uint32_t CONFIG_REQUIRE_SAFE_NEGOTIATION = 1 << 6;
-const uint32_t CONFIG_NO_CACHE = 1 << 7;
-const uint32_t CONFIG_ENABLE_GREASE = 1 << 8;
-const uint32_t CONFIG_ENABLE_CH_EXTENSION_PERMUTATION = 1 << 9;
-const uint32_t CONFIG_SET_CERTIFICATION_COMPRESSION_ALGORITHM = 1 << 10;
-const uint32_t CONFIG_SET_CLIENT_ECH_CONFIGS = 1 << 11;
-const uint32_t CONFIG_VERSION_RANGE_SET = 1 << 12;
-const uint32_t CONFIG_ADD_EXTERNAL_PSK = 1 << 13;
-const uint32_t CONFIG_ENABLE_POST_HANDSHAKE_AUTH = 1 << 14;
-const uint32_t CONFIG_ENABLE_ZERO_RTT = 1 << 15;
-const uint32_t CONFIG_ENABLE_ALPN = 1 << 16;
-const uint32_t CONFIG_ENABLE_FALLBACK_SCSV = 1 << 17;
-const uint32_t CONFIG_ENABLE_OCSP_STAPLING = 1 << 18;
-const uint32_t CONFIG_ENABLE_SESSION_TICKETS = 1 << 19;
-const uint32_t CONFIG_ENABLE_TLS13_COMPAT_MODE = 1 << 20;
-const uint32_t CONFIG_NO_LOCKS = 1 << 21;
+#include "tls_common.h"
+
+#ifndef IS_DTLS_FUZZ
+const char kEchConfigs[] =
+    "AEX+"
+    "DQBBcQAgACDh4IuiuhhInUcKZx5uYcehlG9PQ1ZlzhvVZyjJl7dscQAEAAEAAQASY2xvdWRmbG"
+    "FyZS1lY2guY29tAAA=";
+#endif  // IS_DTLS_FUZZ
+const SSLCertificateCompressionAlgorithm kCompressionAlg = {
+    0x1337, "fuzz", DummyCompressionEncode, DummyCompressionDecode};
+const PRUint8 kPskIdentity[] = "fuzz-psk-identity";
+
+static SECStatus AuthCertificateHook(void* arg, PRFileDesc* fd, PRBool checksig,
+                                     PRBool isServer) {
+  assert(!isServer);
+
+  auto config = reinterpret_cast<ClientConfig*>(arg);
+  if (config->FailCertificateAuthentication()) return SECFailure;
+
+  return SECSuccess;
+}
+
+static SECStatus CanFalseStartCallback(PRFileDesc* fd, void* arg,
+                                       PRBool* canFalseStart) {
+  *canFalseStart = true;
+  return SECSuccess;
+}
 
 // XOR 64-bit chunks of data to build a bitmap of config options derived from
 // the fuzzing input. This seems the only way to fuzz various options while
@@ -66,144 +78,161 @@ ClientConfig::ClientConfig(const uint8_t* data, size_t len) {
   };
 }
 
-bool ClientConfig::FailCertificateAuthentication() {
-  return config_ & CONFIG_FAIL_CERT_AUTH;
+void ClientConfig::SetCallbacks(PRFileDesc* fd) {
+  SECStatus rv = SSL_AuthCertificateHook(fd, AuthCertificateHook, this);
+  assert(rv == SECSuccess);
+
+  rv = SSL_SetCanFalseStartCallback(fd, CanFalseStartCallback, nullptr);
+  assert(rv == SECSuccess);
 }
 
-bool ClientConfig::EnableExtendedMasterSecret() {
-  return config_ & CONFIG_ENABLE_EXTENDED_MS;
+void ClientConfig::SetSocketOptions(PRFileDesc* fd) {
+  SECStatus rv = SSL_OptionSet(fd, SSL_ENABLE_EXTENDED_MASTER_SECRET,
+                               this->EnableExtendedMasterSecret());
+  assert(rv == SECSuccess);
+
+  rv = SSL_OptionSet(fd, SSL_REQUIRE_DH_NAMED_GROUPS,
+                     this->RequireDhNamedGroups());
+  assert(rv == SECSuccess);
+
+  rv = SSL_OptionSet(fd, SSL_ENABLE_FALSE_START, this->EnableFalseStart());
+  assert(rv == SECSuccess);
+
+  rv = SSL_OptionSet(fd, SSL_ENABLE_DEFLATE, this->EnableDeflate());
+  assert(rv == SECSuccess);
+
+  rv = SSL_OptionSet(fd, SSL_CBC_RANDOM_IV, this->CbcRandomIv());
+  assert(rv == SECSuccess);
+
+  rv = SSL_OptionSet(fd, SSL_REQUIRE_SAFE_NEGOTIATION,
+                     this->RequireSafeNegotiation());
+  assert(rv == SECSuccess);
+
+  rv = SSL_OptionSet(fd, SSL_NO_CACHE, this->NoCache());
+  assert(rv == SECSuccess);
+
+  rv = SSL_OptionSet(fd, SSL_ENABLE_GREASE, this->EnableGrease());
+  assert(rv == SECSuccess);
+
+  rv = SSL_OptionSet(fd, SSL_ENABLE_CH_EXTENSION_PERMUTATION,
+                     this->EnableCHExtensionPermutation());
+  assert(rv == SECSuccess);
+
+  if (this->SetCertificateCompressionAlgorithm()) {
+    rv = SSL_SetCertificateCompressionAlgorithm(fd, kCompressionAlg);
+    assert(rv == SECSuccess);
+  }
+
+  if (this->SetVersionRange()) {
+    rv = SSL_VersionRangeSet(fd, &ssl_version_range_);
+    assert(rv == SECSuccess);
+  }
+
+  if (this->AddExternalPsk()) {
+    ScopedPK11SlotInfo slot(PK11_GetInternalSlot());
+    assert(slot);
+
+    ScopedPK11SymKey key(PK11_KeyGen(slot.get(), CKM_NSS_CHACHA20_POLY1305,
+                                     nullptr, 32, nullptr));
+    assert(key);
+
+    rv = SSL_AddExternalPsk(fd, key.get(), kPskIdentity,
+                            sizeof(kPskIdentity) - 1, this->PskHashType());
+    assert(rv == SECSuccess);
+  }
+
+  rv = SSL_OptionSet(fd, SSL_ENABLE_POST_HANDSHAKE_AUTH,
+                     this->EnablePostHandshakeAuth());
+  assert(rv == SECSuccess);
+
+  rv = SSL_OptionSet(fd, SSL_ENABLE_0RTT_DATA, this->EnableZeroRtt());
+  assert(rv == SECSuccess);
+
+  rv = SSL_OptionSet(fd, SSL_ENABLE_ALPN, this->EnableAlpn());
+  assert(rv == SECSuccess);
+
+  rv = SSL_OptionSet(fd, SSL_ENABLE_FALLBACK_SCSV, this->EnableFallbackScsv());
+  assert(rv == SECSuccess);
+
+  rv = SSL_OptionSet(fd, SSL_ENABLE_OCSP_STAPLING, this->EnableOcspStapling());
+  assert(rv == SECSuccess);
+
+  rv = SSL_OptionSet(fd, SSL_ENABLE_SESSION_TICKETS,
+                     this->EnableSessionTickets());
+  assert(rv == SECSuccess);
+
+  rv = SSL_OptionSet(fd, SSL_ENABLE_TLS13_COMPAT_MODE,
+                     this->EnableTls13CompatMode());
+  assert(rv == SECSuccess);
+
+  rv = SSL_OptionSet(fd, SSL_NO_LOCKS, this->NoLocks());
+  assert(rv == SECSuccess);
+
+#ifndef IS_DTLS_FUZZ
+  rv =
+      SSL_OptionSet(fd, SSL_ENABLE_RENEGOTIATION, SSL_RENEGOTIATE_UNRESTRICTED);
+  assert(rv == SECSuccess);
+
+  if (this->SetClientEchConfigs()) {
+    ScopedSECItem echConfigsBin(NSSBase64_DecodeBuffer(
+        nullptr, nullptr, kEchConfigs, sizeof(kEchConfigs)));
+    assert(echConfigsBin);
+
+    rv = SSL_SetClientEchConfigs(fd, echConfigsBin->data, echConfigsBin->len);
+    assert(rv == SECSuccess);
+  }
+#endif  // IS_DTLS_FUZZ
 }
 
-bool ClientConfig::RequireDhNamedGroups() {
-  return config_ & CONFIG_REQUIRE_DH_NAMED_GROUPS;
-}
-
-bool ClientConfig::EnableFalseStart() {
-  return config_ & CONFIG_ENABLE_FALSE_START;
-}
-
-bool ClientConfig::EnableDeflate() { return config_ & CONFIG_ENABLE_DEFLATE; }
-
-bool ClientConfig::EnableCbcRandomIv() {
-  return config_ & CONFIG_ENABLE_CBC_RANDOM_IV;
-}
-
-bool ClientConfig::RequireSafeNegotiation() {
-  return config_ & CONFIG_REQUIRE_SAFE_NEGOTIATION;
-}
-
-bool ClientConfig::NoCache() { return config_ & CONFIG_NO_CACHE; }
-
-bool ClientConfig::EnableGrease() { return config_ & CONFIG_ENABLE_GREASE; }
-
-bool ClientConfig::EnableCHExtensionPermutation() {
-  return config_ & CONFIG_ENABLE_CH_EXTENSION_PERMUTATION;
-};
-
-bool ClientConfig::SetCertificateCompressionAlgorithm() {
-  return config_ & CONFIG_SET_CERTIFICATION_COMPRESSION_ALGORITHM;
-}
-
-bool ClientConfig::SetClientEchConfigs() {
-  return config_ & CONFIG_SET_CLIENT_ECH_CONFIGS;
-}
-
-bool ClientConfig::SetVersionRange() {
-  return config_ & CONFIG_VERSION_RANGE_SET;
-}
-
-bool ClientConfig::AddExternalPsk() {
-  return config_ & CONFIG_ADD_EXTERNAL_PSK;
-}
-
-bool ClientConfig::EnablePostHandshakeAuth() {
-  return config_ & CONFIG_ENABLE_POST_HANDSHAKE_AUTH;
-}
-
-bool ClientConfig::EnableZeroRtt() { return config_ & CONFIG_ENABLE_ZERO_RTT; }
-
-bool ClientConfig::EnableAlpn() { return config_ & CONFIG_ENABLE_ALPN; }
-
-bool ClientConfig::EnableFallbackScsv() {
-  return config_ & CONFIG_ENABLE_FALLBACK_SCSV;
-}
-
-bool ClientConfig::EnableOcspStapling() {
-  return config_ & CONFIG_ENABLE_OCSP_STAPLING;
-}
-
-bool ClientConfig::EnableSessionTickets() {
-  return config_ & CONFIG_ENABLE_SESSION_TICKETS;
-}
-
-bool ClientConfig::EnableTls13CompatMode() {
-  return config_ & CONFIG_ENABLE_TLS13_COMPAT_MODE;
-}
-
-bool ClientConfig::NoLocks() { return config_ & CONFIG_NO_LOCKS; }
-
-SSLHashType ClientConfig::PskHashType() {
-  if (config_ % 2) return ssl_hash_sha256;
-
-  return ssl_hash_sha384;
-}
-
-const SSLVersionRange& ClientConfig::VersionRange() {
-  return ssl_version_range_;
-}
-
-std::ostream& operator<<(std::ostream& out,
-                         std::unique_ptr<ClientConfig>& config) {
+std::ostream& operator<<(std::ostream& out, ClientConfig& config) {
   out << "============= ClientConfig ============="
       << "\n";
-  out << "SSL_NO_CACHE:                           " << config->NoCache()
-      << "\n";
+  out << "SSL_NO_CACHE:                           " << config.NoCache() << "\n";
   out << "SSL_ENABLE_EXTENDED_MASTER_SECRET:      "
-      << config->EnableExtendedMasterSecret() << "\n";
+      << config.EnableExtendedMasterSecret() << "\n";
   out << "SSL_REQUIRE_DH_NAMED_GROUPS:            "
-      << config->RequireDhNamedGroups() << "\n";
-  out << "SSL_ENABLE_FALSE_START:                 "
-      << config->EnableFalseStart() << "\n";
-  out << "SSL_ENABLE_DEFLATE:                     " << config->EnableDeflate()
+      << config.RequireDhNamedGroups() << "\n";
+  out << "SSL_ENABLE_FALSE_START:                 " << config.EnableFalseStart()
       << "\n";
-  out << "SSL_CBC_RANDOM_IV:                      "
-      << config->EnableCbcRandomIv() << "\n";
+  out << "SSL_ENABLE_DEFLATE:                     " << config.EnableDeflate()
+      << "\n";
+  out << "SSL_CBC_RANDOM_IV:                      " << config.CbcRandomIv()
+      << "\n";
   out << "SSL_REQUIRE_SAFE_NEGOTIATION:           "
-      << config->RequireSafeNegotiation() << "\n";
-  out << "SSL_ENABLE_GREASE:                      " << config->EnableGrease()
+      << config.RequireSafeNegotiation() << "\n";
+  out << "SSL_ENABLE_GREASE:                      " << config.EnableGrease()
       << "\n";
   out << "SSL_ENABLE_CH_EXTENSION_PERMUTATION:    "
-      << config->EnableCHExtensionPermutation() << "\n";
+      << config.EnableCHExtensionPermutation() << "\n";
   out << "SSL_SetCertificateCompressionAlgorithm: "
-      << config->SetCertificateCompressionAlgorithm() << "\n";
-  out << "SSL_VersionRangeSet:                    " << config->SetVersionRange()
+      << config.SetCertificateCompressionAlgorithm() << "\n";
+  out << "SSL_VersionRangeSet:                    " << config.SetVersionRange()
       << "\n";
   out << "  Min:                                  "
-      << config->VersionRange().min << "\n";
+      << config.SslVersionRange().min << "\n";
   out << "  Max:                                  "
-      << config->VersionRange().max << "\n";
-  out << "SSL_AddExternalPsk:                     " << config->AddExternalPsk()
+      << config.SslVersionRange().max << "\n";
+  out << "SSL_AddExternalPsk:                     " << config.AddExternalPsk()
       << "\n";
-  out << "  Type:                                 " << config->PskHashType()
+  out << "  Type:                                 " << config.PskHashType()
       << "\n";
   out << "SSL_ENABLE_POST_HANDSHAKE_AUTH:         "
-      << config->EnablePostHandshakeAuth() << "\n";
-  out << "SSL_ENABLE_0RTT_DATA:                   " << config->EnableZeroRtt()
+      << config.EnablePostHandshakeAuth() << "\n";
+  out << "SSL_ENABLE_0RTT_DATA:                   " << config.EnableZeroRtt()
       << "\n";
-  out << "SSL_ENABLE_ALPN:                        " << config->EnableAlpn()
+  out << "SSL_ENABLE_ALPN:                        " << config.EnableAlpn()
       << "\n";
   out << "SSL_ENABLE_FALLBACK_SCSV:               "
-      << config->EnableFallbackScsv() << "\n";
+      << config.EnableFallbackScsv() << "\n";
   out << "SSL_ENABLE_OCSP_STAPLING:               "
-      << config->EnableOcspStapling() << "\n";
+      << config.EnableOcspStapling() << "\n";
   out << "SSL_ENABLE_SESSION_TICKETS:             "
-      << config->EnableSessionTickets() << "\n";
+      << config.EnableSessionTickets() << "\n";
   out << "SSL_ENABLE_TLS13_COMPAT_MODE:           "
-      << config->EnableTls13CompatMode() << "\n";
-  out << "SSL_NO_LOCKS:                           " << config->NoLocks()
-      << "\n";
+      << config.EnableTls13CompatMode() << "\n";
+  out << "SSL_NO_LOCKS:                           " << config.NoLocks() << "\n";
   out << "SSL_SetClientEchConfigs:                "
-      << config->SetClientEchConfigs() << "\n";
+      << config.SetClientEchConfigs() << "\n";
   out << "========================================";
 
   return out;

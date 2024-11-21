@@ -8,6 +8,7 @@ Releases
    :glob:
    :hidden:
 
+   nss_3_107.rst
    nss_3_106.rst
    nss_3_105.rst
    nss_3_104.rst
@@ -78,7 +79,7 @@ Releases
 
 .. note::
 
-   **NSS 3.106** is the latest version of NSS.
+   **NSS 3.107** is the latest version of NSS.
    Complete release notes are available here: :ref:`mozilla_projects_nss_nss_3_106_release_notes`
 
    **NSS 3.101.2 (ESR)** is the latest ESR version of NSS.
@@ -86,24 +87,25 @@ Releases
 
 .. container::
 
-   Changes in 3.106 included in this release:
+   Changes in 3.107 included in this release:
 
-   - Bug 1925975 - NSS 3.106 should be distributed with NSPR 4.36.
-   - Bug 1923767 - pk12util: improve error handling in p12U_ReadPKCS12File.
-   - Bug 1899402 - Correctly destroy bulkkey in error scenario.
-   - Bug 1919997 - PKCS7 fuzz target, r=djackson,nss-reviewers.
-   - Bug 1923002 - Extract certificates with handshake collection script.
-   - Bug 1923006 - Specify len_control for fuzz targets.
-   - Bug 1923280 - Fix memory leak in dumpCertificatePEM.
-   - Bug 1102981 - Fix UBSan errors for SECU_PrintCertificate and SECU_PrintCertificateBasicInfo.
-   - Bug 1921528 - add new error codes to mozilla::pkix for Firefox to use.
-   - Bug 1921768 - allow null phKey in NSC_DeriveKey.
-   - Bug 1921801 - Only create seed corpus zip from existing corpus.
-   - Bug 1826035 - Use explicit allowlist for for KDF PRFS.
-   - Bug 1920138 - Increase optimization level for fuzz builds.
-   - Bug 1920470 - Remove incorrect assert.
-   - Bug 1914870 - Use libFuzzer options from fuzz/options/\*.options in CI.
-   - Bug 1920945 - Polish corpus collection for automation.
-   - Bug 1917572 - Detect new and unfuzzed SSL options.
-   - Bug 1804646 - PKCS12 fuzzing target.
-
+   - Bug 1923038 - Remove MPI fuzz targets.
+   - Bug 1925512 - Remove globals `lockStatus` and `locksEverDisabled`.
+   - Bug 1919015 - Enable PKCS8 fuzz target.
+   - Bug 1923037 - Integrate Cryptofuzz in CI.
+   - Bug 1913677 - Part 2: Set tls server target socket options in config class.
+   - Bug 1913677 - Part 1: Set tls client target socket options in config class.
+   - Bug 1913680 - Support building with thread sanitizer.
+   - Bug 1922392 - set nssckbi version number to 2.72.
+   - Bug 1919913 - remove Websites Trust Bit from Entrust Root Certification Authority - G4.
+   - Bug 1920641 - remove Security Communication RootCA3 root cert.
+   - Bug 1918559 - remove SecureSign RootCA11 root cert.
+   - Bug 1922387 - Add distrust-after for TLS to Entrust Roots.
+   - Bug 1927096 - update expected error code in pk12util pbmac1 tests.
+   - Bug 1929041 - Use random tstclnt args with handshake collection script.
+   - Bug 1920466 - Remove extraneous assert in ssl3gthr.c.
+   - Bug 1928402 - Adding missing release notes for NSS_3_105.
+   - Bug 1874451 - Enable the disabled mlkem tests for dtls.
+   - Bug 1874451 - NSS gtests filter cleans up the constucted buffer before the use.
+   - Bug 1925505 - Make ssl_SetDefaultsFromEnvironment thread-safe.
+   - Bug 1925503 - Remove short circuit test from ssl_Init.

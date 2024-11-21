@@ -7,7 +7,7 @@
 ################################################################################
 
 # List of targets disabled for oss-fuzz.
-declare -A disabled=([pkcs8]=1)
+declare -A disabled=()
 
 # List of targets we want to fuzz in TLS and non-TLS mode.
 declare -A tls_targets=([tls-client]=1 [tls-server]=1 [dtls-client]=1 [dtls-server]=1)

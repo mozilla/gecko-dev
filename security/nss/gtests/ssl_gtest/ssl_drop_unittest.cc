@@ -937,8 +937,8 @@ class FirstDropThenKeepHandshakeFilter : public TlsHandshakeFilter {
 };
 
 // This test is responsible for checking that when DTLS fragments the message,
-// the hanshake will be successfully reconstructed, but if one of handshakes 
-// was dropped, they are not going to be glued all together. 
+// the hanshake will be successfully reconstructed, but if one of handshakes
+// was dropped, they are not going to be glued all together.
 
 // See: https://bugzilla.mozilla.org/show_bug.cgi?id=1874451
 TEST_F(TlsConnectDatagram13, PreviousHandshakeRemovedWhenDropped) {

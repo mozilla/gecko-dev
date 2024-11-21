@@ -5,7 +5,7 @@ import sys
 
 def main():
     if len(sys.argv) < 2:
-        raise Exception('Specify either "asan", "fuzzer", "msan", "sancov", "sourcecov" or "ubsan" as argument.')
+        raise Exception('Specify either "asan", "fuzzer", "msan", "sancov", "sourcecov", "tsan" or "ubsan" as argument.')
 
     sanitizer = sys.argv[1]
     if sanitizer == "ubsan":
@@ -29,6 +29,10 @@ def main():
         return
     if sanitizer == "sourcecov":
         print('-fprofile-instr-generate -fcoverage-mapping', end='')
+        return
+    if sanitizer == "tsan":
+        print('-fsanitize=thread ', end='')
+        print('-fno-omit-frame-pointer -fno-optimize-sibling-calls ', end='')
         return
     if sanitizer == "fuzzer":
         print('-fsanitize=fuzzer-no-link ', end='')
