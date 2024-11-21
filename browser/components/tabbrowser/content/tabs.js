@@ -2286,6 +2286,9 @@
       //   as single tab dragging.
 
       tabs = tabs.filter(t => !movingTabs.includes(t) || t == draggedTab);
+      let firstTabCenter = firstMovingTabScreen + translate + tabSize / 2;
+      let lastTabCenter = lastMovingTabScreen + translate + tabSize / 2;
+      let tabCenter = directionForward ? lastTabCenter : firstTabCenter;
       let getTabShift = (tab, dropIndex) => {
         if (tab._tPos < draggedTab._tPos && tab._tPos >= dropIndex) {
           return this.#rtlMode ? -shiftSize : shiftSize;
@@ -2299,12 +2302,7 @@
       // We're doing a binary search in order to reduce the amount of
       // tabs we need to check.
       let oldIndex = dragData.animDropIndex ?? movingTabs[0]._tPos;
-      let getDragOverIndex = tabSizeDragOverThreshold => {
-        let point =
-          (directionForward
-            ? firstMovingTabScreen + tabSize * (1 - tabSizeDragOverThreshold)
-            : lastMovingTabScreen + tabSize * tabSizeDragOverThreshold) +
-          translate;
+      let tabDropIndexFromPoint = point => {
         let index = -1;
         let low = 0;
         let high = tabs.length - 1;
@@ -2324,13 +2322,12 @@
             break;
           }
         }
+        if (index >= oldIndex) {
+          index++;
+        }
         return index;
       };
-      let moveOverThreshold = gBrowser._tabGroupsEnabled ? 0.7 : 0.5;
-      let newIndex = getDragOverIndex(moveOverThreshold);
-      if (newIndex >= oldIndex) {
-        newIndex++;
-      }
+      let newIndex = tabDropIndexFromPoint(tabCenter);
       if (newIndex < 0) {
         newIndex = oldIndex;
       }
@@ -2343,7 +2340,15 @@
           ) / 100;
         dragOverGroupingThreshold = Math.max(0, dragOverGroupingThreshold);
         dragOverGroupingThreshold = Math.min(0.5, dragOverGroupingThreshold);
-        let groupDropIndex = getDragOverIndex(dragOverGroupingThreshold);
+        let groupPoint =
+          (directionForward
+            ? lastMovingTabScreen + tabSize * (1 - dragOverGroupingThreshold)
+            : firstMovingTabScreen + tabSize * dragOverGroupingThreshold) +
+          translate;
+        let groupDropIndex = tabDropIndexFromPoint(groupPoint);
+        if (directionForward) {
+          groupDropIndex--;
+        }
         if (
           "groupDropIndex" in dragData &&
           dragData.groupDropIndex != groupDropIndex
