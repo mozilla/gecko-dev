@@ -80,8 +80,9 @@ class SkipUnlessChanged(OptimizationStrategy):
         return False
 
     def should_remove_task(self, task, params, file_patterns):
-        # pushlog_id == -1 - this is the case when run from a cron.yml job or on a git repository
-        if params.get("repository_type") == "hg" and params.get("pushlog_id") == -1:
+        # skip-unless-changed should not apply when there is no commit delta,
+        # such as for cron and action tasks (there will never be file changes)
+        if params.get("base_rev") and params.get("head_rev") == params.get("base_rev"):
             return False
 
         changed = self.check(params["files_changed"], file_patterns)

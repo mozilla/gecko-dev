@@ -39,7 +39,7 @@ from pathlib import Path
 from threading import Thread
 from typing import Optional
 
-SECRET_BASEURL_TPL = "http://taskcluster/secrets/v1/secret/{}"
+SECRET_BASEURL_TPL = "{}/secrets/v1/secret/{{}}".format(os.environ.get("TASKCLUSTER_PROXY_URL", "http://taskcluster").rstrip('/'))
 
 GITHUB_SSH_FINGERPRINT = (
     b"github.com ssh-ed25519 "

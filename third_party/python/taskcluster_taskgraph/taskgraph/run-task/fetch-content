@@ -209,8 +209,13 @@ def stream_download(url, sha256=None, size=None, headers=None):
                 if size:
                     if size != content_length:
                         raise IntegrityError(
-                            "size mismatch on %s: wanted %d; content-length is %d"
-                            % (url, size, content_length)
+                            "size mismatch on %s: wanted %d; content-length is %d, x-cache-status is: %s"
+                            % (
+                                url,
+                                size,
+                                content_length,
+                                fh.getheader("x-cache-status"),
+                            )
                         )
                 else:
                     size = content_length
@@ -435,7 +440,9 @@ def extract_archive(path, dest_dir):
     log("%s extracted in %.3fs" % (path, time.time() - t0))
 
 
-def should_repack_archive(orig: pathlib.Path, dest: pathlib.Path, strip_components=0, add_prefix="") -> bool:
+def should_repack_archive(
+    orig: pathlib.Path, dest: pathlib.Path, strip_components=0, add_prefix=""
+) -> bool:
     """
     Determines whether we should attempt to repack an archive based on the naming conventions used
     in the original file path, the destination file path, and any modifications such as stripping
@@ -573,7 +580,9 @@ def repack_archive(
                 ctx.copy_stream(ifh, fh)
 
         else:
-            raise Exception(f"Attempt to repack an archive of unsupported type {orig_typ}")
+            raise Exception(
+                f"Attempt to repack an archive of unsupported type {orig_typ}"
+            )
 
 
 def fetch_and_extract(url, dest_dir, extract=True, sha256=None, size=None):
@@ -660,8 +669,9 @@ def git_checkout_archive(
             if re.match(r"^[a-fA-F0-9]{40}$", commit):
                 revision = commit
             else:
-                ref_output = subprocess.check_output(["git", "ls-remote", repo,
-                                                      'refs/heads/' + commit])
+                ref_output = subprocess.check_output(
+                    ["git", "ls-remote", repo, "refs/heads/" + commit]
+                )
                 revision, _ = ref_output.decode().split(maxsplit=1)
             log("Fetching revision {}".format(revision))
             return _git_checkout_github_archive(dest_path, repo, commit, prefix)

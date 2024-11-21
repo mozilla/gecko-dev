@@ -5,6 +5,7 @@
 
 import json
 import logging
+import os
 import sys
 from concurrent import futures
 
@@ -123,7 +124,13 @@ def create_task(session, task_id, label, task_def):
         return
 
     logger.info(f"Creating task with taskId {task_id} for {label}")
-    res = session.put(f"http://taskcluster/queue/v1/task/{task_id}", json=task_def)
+    proxy_url = os.environ.get("TASKCLUSTER_PROXY_URL", "http://taskcluster").rstrip(
+        "/"
+    )
+    res = session.put(
+        f"{proxy_url}/queue/v1/task/{task_id}",
+        json=task_def,
+    )
     if res.status_code != 200:
         try:
             logger.error(res.json()["message"])
