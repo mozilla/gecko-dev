@@ -100,7 +100,7 @@ uluru = "3.0"
 unicode-bidi = { version = "0.3", default-features = false }
 void = "1.0.2"
 gecko-profiler = { path = "../../../tools/profiler/rust-api" }
-url = { version = "2.5", optional = true }
+url = { version = "2.5", optional = true, features = ["serde"] }
 
 [build-dependencies]
 lazy_static = "1"

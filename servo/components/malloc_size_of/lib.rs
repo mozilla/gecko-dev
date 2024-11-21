@@ -46,50 +46,20 @@
 //!   Note: WebRender has a reduced fork of this crate, so that we can avoid
 //!   publishing this crate on crates.io.
 
-#[cfg(feature = "servo")]
-extern crate accountable_refcell;
 extern crate app_units;
-#[cfg(feature = "servo")]
-extern crate content_security_policy;
-#[cfg(feature = "servo")]
-extern crate crossbeam_channel;
 extern crate cssparser;
 extern crate euclid;
-#[cfg(feature = "servo")]
-extern crate http;
-#[cfg(feature = "servo")]
-extern crate keyboard_types;
 extern crate selectors;
-#[cfg(feature = "servo")]
-extern crate serde;
-#[cfg(feature = "servo")]
-extern crate serde_bytes;
 extern crate servo_arc;
 extern crate smallbitvec;
 extern crate smallvec;
-#[cfg(feature = "servo")]
-extern crate string_cache;
-#[cfg(feature = "url")]
-extern crate url;
-#[cfg(feature = "servo")]
-extern crate uuid;
 extern crate void;
-#[cfg(feature = "webrender_api")]
-extern crate webrender_api;
-#[cfg(feature = "servo")]
-extern crate xml5ever;
 
-#[cfg(feature = "servo")]
-use content_security_policy as csp;
-#[cfg(feature = "servo")]
-use serde_bytes::ByteBuf;
 use std::hash::{BuildHasher, Hash};
 use std::mem::size_of;
 use std::ops::Range;
 use std::ops::{Deref, DerefMut};
 use std::os::raw::c_void;
-#[cfg(feature = "servo")]
-use uuid::Uuid;
 use void::Void;
 
 /// A C function that takes a pointer to a heap allocation and returns its size.
@@ -331,24 +301,6 @@ where
 impl<T: MallocSizeOf> MallocSizeOf for [T] {
     fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
         let mut n = 0;
-        for elem in self.iter() {
-            n += elem.size_of(ops);
-        }
-        n
-    }
-}
-
-#[cfg(feature = "servo")]
-impl MallocShallowSizeOf for ByteBuf {
-    fn shallow_size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
-        unsafe { ops.malloc_size_of(self.as_ptr()) }
-    }
-}
-
-#[cfg(feature = "servo")]
-impl MallocSizeOf for ByteBuf {
-    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
-        let mut n = self.shallow_size_of(ops);
         for elem in self.iter() {
             n += elem.size_of(ops);
         }
@@ -863,115 +815,7 @@ malloc_size_of_is_0!(app_units::Au);
 
 malloc_size_of_is_0!(cssparser::TokenSerializationType, cssparser::SourceLocation, cssparser::SourcePosition);
 
-#[cfg(feature = "gecko")]
-malloc_size_of_is_0!(dom::ElementState, dom::DocumentState);
-
 malloc_size_of_is_0!(selectors::OpaqueElement);
-
-#[cfg(feature = "servo")]
-malloc_size_of_is_0!(csp::Destination);
-
-#[cfg(feature = "servo")]
-malloc_size_of_is_0!(Uuid);
-
-#[cfg(feature = "url")]
-impl MallocSizeOf for url::Host {
-    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
-        match *self {
-            url::Host::Domain(ref s) => s.size_of(ops),
-            _ => 0,
-        }
-    }
-}
-#[cfg(feature = "webrender_api")]
-malloc_size_of_is_0!(webrender_api::BorderRadius);
-#[cfg(feature = "webrender_api")]
-malloc_size_of_is_0!(webrender_api::BorderStyle);
-#[cfg(feature = "webrender_api")]
-malloc_size_of_is_0!(webrender_api::BoxShadowClipMode);
-#[cfg(feature = "webrender_api")]
-malloc_size_of_is_0!(webrender_api::ColorF);
-#[cfg(feature = "webrender_api")]
-malloc_size_of_is_0!(webrender_api::ComplexClipRegion);
-#[cfg(feature = "webrender_api")]
-malloc_size_of_is_0!(webrender_api::ExtendMode);
-#[cfg(feature = "webrender_api")]
-malloc_size_of_is_0!(webrender_api::FilterOp);
-#[cfg(feature = "webrender_api")]
-malloc_size_of_is_0!(webrender_api::ExternalScrollId);
-#[cfg(feature = "webrender_api")]
-malloc_size_of_is_0!(webrender_api::FontInstanceKey);
-#[cfg(feature = "webrender_api")]
-malloc_size_of_is_0!(webrender_api::GradientStop);
-#[cfg(feature = "webrender_api")]
-malloc_size_of_is_0!(webrender_api::GlyphInstance);
-#[cfg(feature = "webrender_api")]
-malloc_size_of_is_0!(webrender_api::NinePatchBorder);
-#[cfg(feature = "webrender_api")]
-malloc_size_of_is_0!(webrender_api::ImageKey);
-#[cfg(feature = "webrender_api")]
-malloc_size_of_is_0!(webrender_api::ImageRendering);
-#[cfg(feature = "webrender_api")]
-malloc_size_of_is_0!(webrender_api::LineStyle);
-#[cfg(feature = "webrender_api")]
-malloc_size_of_is_0!(webrender_api::MixBlendMode);
-#[cfg(feature = "webrender_api")]
-malloc_size_of_is_0!(webrender_api::NormalBorder);
-#[cfg(feature = "webrender_api")]
-malloc_size_of_is_0!(webrender_api::RepeatMode);
-#[cfg(feature = "webrender_api")]
-malloc_size_of_is_0!(webrender_api::StickyOffsetBounds);
-#[cfg(feature = "webrender_api")]
-malloc_size_of_is_0!(webrender_api::TransformStyle);
-
-#[cfg(feature = "servo")]
-impl MallocSizeOf for keyboard_types::Key {
-    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
-        match self {
-            keyboard_types::Key::Character(ref s) => s.size_of(ops),
-            _ => 0,
-        }
-    }
-}
-
-#[cfg(feature = "servo")]
-malloc_size_of_is_0!(keyboard_types::Modifiers);
-
-#[cfg(feature = "servo")]
-impl MallocSizeOf for xml5ever::QualName {
-    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
-        self.prefix.size_of(ops) + self.ns.size_of(ops) + self.local.size_of(ops)
-    }
-}
-
-#[cfg(feature = "servo")]
-malloc_size_of_is_0!(std::time::Duration);
-#[cfg(feature = "servo")]
-malloc_size_of_is_0!(std::time::SystemTime);
-#[cfg(feature = "servo")]
-malloc_size_of_is_0!(std::time::Instant);
-#[cfg(feature = "servo")]
-malloc_size_of_hash_set!(indexmap::IndexSet<T, S>);
-#[cfg(feature = "servo")]
-malloc_size_of_hash_map!(indexmap::IndexMap<K, V, S>);
-#[cfg(feature = "servo")]
-malloc_size_of_is_0!(http::StatusCode);
-
-// Placeholder for unique case where internals of Sender cannot be measured.
-// malloc size of is 0 macro complains about type supplied!
-#[cfg(feature = "servo")]
-impl<T> MallocSizeOf for crossbeam_channel::Sender<T> {
-    fn size_of(&self, _ops: &mut MallocSizeOfOps) -> usize {
-        0
-    }
-}
-
-#[cfg(feature = "servo")]
-impl<T> MallocSizeOf for tokio::sync::mpsc::UnboundedSender<T> {
-    fn size_of(&self, _ops: &mut MallocSizeOfOps) -> usize {
-        0
-    }
-}
 
 /// Measurable that defers to inner value and used to verify MallocSizeOf implementation in a
 /// struct.
@@ -989,12 +833,5 @@ impl<T: MallocSizeOf> Deref for Measurable<T> {
 impl<T: MallocSizeOf> DerefMut for Measurable<T> {
     fn deref_mut(&mut self) -> &mut T {
         &mut self.0
-    }
-}
-
-#[cfg(feature = "servo")]
-impl<T: MallocSizeOf> MallocSizeOf for accountable_refcell::RefCell<T> {
-    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
-        self.borrow().size_of(ops)
     }
 }

@@ -1607,6 +1607,7 @@ name = "dom"
 version = "0.1.0"
 dependencies = [
  "bitflags 2.6.0",
+ "malloc_size_of",
 ]
 
 [[package]]
@@ -3733,7 +3734,6 @@ version = "0.0.1"
 dependencies = [
  "app_units",
  "cssparser",
- "dom",
  "euclid",
  "selectors",
  "servo_arc",
