@@ -248,8 +248,12 @@
     <string name="browser_menu_open_in_regular_tab">Odpri v navadnem zavihku</string>
     <!-- Browser menu toggle that adds a shortcut to the site on the device home screen. -->
     <string name="browser_menu_add_to_homescreen">Dodaj na domač zaslon</string>
+    <!-- Browser menu toggle that adds a PWA of the site on the device home screen. -->
+    <string name="browser_menu_add_app_to_homescreen">Dodaj aplikacijo na domači zaslon</string>
     <!-- Browser menu toggle that adds a shortcut to the site on the device home screen. -->
     <string name="browser_menu_add_to_homescreen_2">Dodaj na domači zaslon …</string>
+    <!-- Browser menu toggle that adds a PWA of the site on the device home screen. -->
+    <string name="browser_menu_add_app_to_homescreen_2">Dodaj aplikacijo na domači zaslon …</string>
     <!-- Text for notifying users that Xiaomi devices require additional permissions to add to home screen -->
     <string name="browser_menu_add_to_homescreen_xiaomi">Na napravah Xiaomi so morda za dodajanje bližnjic na domači zaslon potrebna dodatna dovoljenja. Preverite v nastavitvah.</string>
     <!-- Content description (not visible, for screen readers etc.) for the Resync tabs button -->
@@ -336,9 +340,19 @@
     <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar custom tab menu. -->
     <string name="browser_custom_tab_menu_handlebar_content_description">Zapri meni zavihkov po meri</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-    <string name="browser_menu_tools_description_with_translate">Bralni pogled, Prevedi, Natisni, Deli, Odpri aplikacijo</string>
+    <string name="browser_menu_tools_description_with_translate" moz:removedIn="133" tools:ignore="UnusedResources">Bralni pogled, Prevedi, Natisni, Deli, Odpri aplikacijo</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-    <string name="browser_menu_tools_description">Bralni pogled, Natisni, Deli, Odpri aplikacijo</string>
+    <string name="browser_menu_tools_description" moz:removedIn="133" tools:ignore="UnusedResources">Bralni pogled, Natisni, Deli, Odpri aplikacijo</string>
+    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu
+         The first parameter is the label of the report site issue (for example: Report Site issue) -->
+    <string name="browser_menu_tools_description_with_translate_with_report_site">Bralni pogled, Prevedi, %s, Natisni, Deli, Odpri aplikacijo</string>
+    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
+    <string name="browser_menu_tools_description_with_translate_without_report_site">Bralni pogled, Prevedi, Natisni, Deli, Odpri aplikacijo</string>
+    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu
+         The first parameter is the label of the report site issue (for example: Report Site issue) -->
+    <string name="browser_menu_tools_description_with_report_site">Bralni pogled, %s, Natisni, Deli, Odpri aplikacijo</string>
+    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
+    <string name="browser_menu_tools_description_without_report_site">Bralni pogled, Natisni, Deli, Odpri aplikacijo</string>
     <!-- Browser menu label that navigates to the save sub-menu, which contains various save related menu items such as
          bookmarking a page, saving to collection, shortcut or as a PDF, and adding to home screen -->
     <string name="browser_menu_save">Shrani</string>
@@ -954,7 +968,7 @@
     <string name="exceptions_empty_message_learn_more_link">Več o tem</string>
 
     <!-- Preference switch for usage and technical data collection -->
-    <string name="preference_usage_data">Uporaba in tehnični podatki</string>
+    <string name="preference_usage_data" moz:removedIn="134" tools:ignore="UnusedResources">Uporaba in tehnični podatki</string>
     <!-- Preference description for usage and technical data collection -->
     <string name="preferences_usage_data_description">Pošilja podatke o učinkovitosti, uporabi, strojni opremi in prilagoditvah organizaciji Mozilla, da lahko naredi %1$s boljši</string>
     <!-- Preference switch for marketing data collection -->
@@ -1253,6 +1267,7 @@
 
 
     <!-- WebCompat Reporter -->
+
 
     <!-- These reason strings are dropdown options on a WebCompat reporter form, indicating what is broken on the site. -->
     <!-- Broken site reason text for site slow or not working -->

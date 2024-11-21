@@ -204,6 +204,14 @@
     <string name="mozac_feature_addons_failed_to_install_incompatible_error">%1$s nehat sazkirin ji ber ku bi %2$s %3$s re ne lihevhatî ye.</string>
     <!-- Text shown when attempting to install a blocklisted add-on. %1$s is the add-on name. -->
     <string name="mozac_feature_addons_blocklisted_1" moz:removedIn="133" tools:ignore="UnusedResources">%1$s nehate sazkirin ji ber ku rîska wê ya mezin heye ku bibe sedema pirsgirêkên aramî an ewlehiyê.</string>
+    <!-- Text shown when attempting to install a (hard) blocked add-on. %1$s is the add-on name. %2$s is the app name. -->
+    <string name="mozac_feature_addons_blocklisted_2">%1$s polîtîkayên Mozillayê binpê dike û nikare li %2$s bê sazkirin.</string>
+    <!-- Text shown when attempting to install an add-on that can only be install via Enterprise Policies, which is not supported on Android.  %1$s is the add-on name. -->
+    <string name="mozac_feature_addons_admin_install_only">%1$s nehat sazkirin, ji ber ku ew tenê dikare ji hêla rêxistineke ku polîtîkayên pargîdaniyê bikar tîne ve bê sazkirin, ku li ser vê platformê nayê piştgirîkirin.</string>
+    <!-- Text shown when attempting to install an add-on that is soft-blocked. %1$s is the add-on name. -->
+    <string name="mozac_feature_addons_soft_blocked" moz:removedIn="133" tools:ignore="UnusedResources">%1$s polîtîkayên Mozilla binpê dike û nikare bê sazkirin.</string>
+    <!-- Text shown when attempting to install an add-on that is soft-blocked. %1$s is the add-on name. %2$s is the app name. -->
+    <string name="mozac_feature_addons_soft_blocked_1">%1$s polîtîkayên Mozillayê binpê dike û nikare li %2$s bê sazkirin.</string>
     <!-- Text shown after successfully enabled an add-on. %1$s is the add-on name. -->
     <string name="mozac_feature_addons_successfully_enabled">%1$s bi serkeftî hate çalakkirin</string>
     <!-- Text shown after failed to enable an add-on. %1$s is the add-on name. -->
@@ -222,6 +230,8 @@
     <string name="mozac_feature_addons_failed_to_remove" tools:ignore="UnusedResources">%1$s nehate rakirin</string>
     <!-- Label shown to indicate that the add-on was migrated from a previous version of the app. %1$s is the app name most of the case it will be Firefox. -->
     <string name="mozac_feature_addons_migrated_from_a_previous_version_label" tools:ignore="UnusedResources">Ev pêvek ji guhertoyeke kevn a %1$s’ê hatiye anîn</string>
+    <!-- Text shown in not yet supported add-ons section - plural. %1$s is the number of unsupported extensions. -->
+    <string name="mozac_feature_addons_unsupported_caption_plural_2">%1$s pêvek</string>
     <!-- Text link to a sumo page for learning more about unsupported add-ons. -->
     <string name="mozac_feature_addons_unsupported_learn_more">Zêdetir bizane</string>
     <!-- Displayed in the "Status" field for the updater when an add-on has been correctly updated. -->
@@ -244,8 +254,18 @@
     <string name="mozac_feature_addons_installed_dialog_okay_button_2">Baş e</string>
     <!-- "Learn more" link displayed below an add-on status message. -->
     <string name="mozac_feature_addons_status_learn_more">Zêdetir bizane</string>
+    <!-- "See details" link displayed below an add-on status message. -->
+    <string name="mozac_feature_addons_status_see_details">Kitekitan bibîne</string>
     <!-- Status message below an add-on in the add-ons manager when this add-on has been blocklisted. %1$s is the add-on name. -->
     <string name="mozac_feature_addons_status_blocklisted" moz:removedIn="133" tools:ignore="UnusedResources">%1$s ji ber pirsgirêkên ewlekarî an îstiqrarê hate neçalakkirin.</string>
+    <!-- Status message below an add-on in the add-ons manager when this add-on has been blocklisted. %1$s is the add-on name. -->
+    <string name="mozac_feature_addons_status_blocklisted_1">Ev pêvek ji ber binpêkirina polîtîkayên Mozillayê hat astengkirin û hate neçalakkirin.</string>
+    <!-- Status message below an add-on in the add-ons manager when this add-on has been soft-blocked. -->
+    <string name="mozac_feature_addons_status_softblocked" moz:removedIn="133" tools:ignore="UnusedResources">Ev pêvek polîtîkayên Mozillayê binpê dike û hate neçalakkirin. Hûn dikarin wê çalak bikin, lê dibe ku ev xeternak be.</string>
+    <!-- Status message below an add-on in the add-ons manager when this add-on has been soft-blocked. -->
+    <string name="mozac_feature_addons_status_softblocked_1">Ev pêvek polîtîkayên Mozillayê binpê dike û hate neçalakkirin. Hûn dikarin wê çalak bikin, lê dibe ku ev xeternak be.</string>
+    <!-- Status message below an add-on in the add-ons manager when this add-on has been soft-blocked but the user re-enabled it. -->
+    <string name="mozac_feature_addons_status_softblocked_re_enabled">Ev pêvek polîtîkayên Mozilla binpê dike. Bikaranîna wê dibe ku xeternak be.</string>
     <!-- Status message below an add-on in the add-ons manager when this add-on hasn't been signed correctly. %1$s is the add-on name. -->
     <string name="mozac_feature_addons_status_unsigned">%1$s wekî ewledar nehat piştrastkirin û hate neçalakkirin.</string>
     <!-- Status message below an add-on in the add-ons manager when this add-on isn't compatible with the application version. %1$s is the add-on name, %2$s is the app name and %3$s is the app version. -->

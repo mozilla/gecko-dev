@@ -86,7 +86,6 @@
     <string name="share_dialog_title">Κοινοποίηση μέσω</string>
 
     <string name="notification_erase_title_android_14">Διαγραφή ιστορικού περιήγησης;</string>
-    <string name="notification_erase_text_android_14" moz:RemovedIn="124" tools:ignore="UnusedResources">Πατήστε ή εκκαθαρίστε αυτήν την ειδοποίηση για να διαγράψετε με ασφάλεια το ιστορικό περιήγησής σας.</string>
 
     <!-- Text shown in the notification description that pops up to remind the user that a browsing session is active
     for Android 14+. -->
@@ -519,7 +518,7 @@
 
 
   <!-- Content description (not visible, for screen readers etc.): This is the description for the close button from the new onboarding flow screen one and two -->
-    <string name="onboarding_close_button_content_description">Κλείσιμο</string>
+    <string name="onboarding_close_button_content_description" moz:removedIn="133" tools:ignore="UnusedResources">Κλείσιμο</string>
 
     <!-- New Onboarding flow first screen title -->
     <!-- %1$s will be replaced by the app name and build variant(e.g. Firefox Focus, Firefox Klar Nightly) -->
@@ -782,7 +781,7 @@
     <string name="phone_feature_blocked_intro">Για να το επιτρέψετε:</string>
 
     <!-- First step for the allowing a permission -->
-    <string name="phone_feature_blocked_step_settings">1. Μεταβείτε στις ρυθμίσεις Android</string>
+    <string name="phone_feature_blocked_step_settings">1. Μεταβείτε στις ρυθμίσεις του Android</string>
 
     <!-- Second step for the allowing a permission -->
     <string name="phone_feature_blocked_step_permissions"><![CDATA[2. Πατήστε <b>Δικαιώματα</b>]]></string>
@@ -842,7 +841,7 @@
     <string name="studies_learn_more">Μάθετε περισσότερα</string>
 
     <!-- Dialog message shown when some changes are made on studies -->
-    <string name="studies_restart_app">Η εφαρμογή θα κλείσει για την εφαρμογή των αλλαγών</string>
+    <string name="studies_restart_app">Η εφαρμογή θα τερματιστεί για να ισχύσουν οι αλλαγές</string>
 
     <!-- Title of the remove studies button -->
     <string name="studies_remove">Αφαίρεση</string>
@@ -937,9 +936,6 @@
 
     <!-- Label for the button in the snackbar that switches to the newly opened tab -->
     <string name="open_new_tab_snackbar">Εναλλαγή</string>
-
-    <!-- Text displayed in a notification when the user enters full screen mode -->
-    <string name="full_screen_notification" moz:removedIn="130" tools:ignore="UnusedResources">Είσοδος σε λειτουργία πλήρους οθόνης</string>
 
     <!-- Preference for switching to a new tab immediately after opening -->
     <string name="preference_open_new_tab">Άμεση αλλαγή στον σύνδεσμο νέας καρτέλας</string>

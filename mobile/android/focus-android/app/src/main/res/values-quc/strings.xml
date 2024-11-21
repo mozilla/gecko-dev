@@ -885,6 +885,20 @@
     The new line here must be kept as the second half of the string is clickable for the user. -->
     <string name="tip_set_default_browser">Chajaqa\' chi jujunal taq kemwiqb\'al pa%1$s Chajeqeb\'a\' %1$s pacha\' ya\'om chi uloq</string>
 
+    <!-- Tip displayed on home view explaining how to add a custom autocomplete URL
+    The new line here must be kept as the second half of the string is clickable for the user. -->
+    <string name="tip_autocomplete_url">Utz\'aqatisaxik pa utukelam taq URLS chech taq k\'olib\'al web\' le qas kakojo\n Naj-upitz\'ik apachike URL pa le q\'e\'tb\'al rech kemriqonib\'al</string>
+
+    <!-- Tip displayed on home view explaining how to add a custom autocomplete URL
+    The new line here must be kept as the second half of the string is clickable for the user. -->
+    <string name="tip_open_in_new_tab">Chajaqa\' jun kemwiqb\'al pa jun k\'ak\' k\'utjaqb\'al\n Naj-upitz\'ik apachike kemwiqb\'al pa jun uxaq web\'</string>
+
+    <!-- Label for the snackbar when a user opens a new tab -->
+    <string name="new_tab_opened_snackbar">Jaqatal K\'ak\' k\'utjaqb\'al </string>
+
+    <!-- Preference for switching to a new tab immediately after opening -->
+    <string name="preference_open_new_tab">Aninaqil chak\'exa\' pa kemwiqb\'al pa jun k\'ak\' k\'utjaqb\'al </string>
+
     <!-- Tracking protection bottom sheet -->
 
      <!-- Promote SearchWidget Dialog -->

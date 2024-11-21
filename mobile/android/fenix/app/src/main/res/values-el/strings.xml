@@ -122,6 +122,12 @@
     <!-- Text for the message displayed for the popup promoting the long press of navigation in the navigation bar. -->
     <string name="navbar_navigation_buttons_cfr_message">Πατήστε παρατεταμένα τα βελάκια για εναλλαγή μεταξύ των σελίδων του ιστορικού αυτής της καρτέλας.</string>
 
+    <!-- Address bar swipe "contextual feature recommendation" (CFR) -->
+    <!-- Text for the title displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
+    <string name="address_bar_swipe_cfr_title">Σύρετε τη γραμμή εργαλείων για εναλλαγή καρτελών</string>
+    <!-- Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
+    <string name="address_bar_swipe_cfr_message">Σύρετε προς τα αριστερά ή τα δεξιά για εναλλαγή. Σύρετε προς τα αριστερά στην τελευταία σας καρτέλα για να ανοίξετε μια νέα.</string>
+
     <!-- Tablet navigation bar "contextual feature recommendation" (CFR) -->
     <!-- Text for the title displayed in the contextual feature recommendation popup promoting the tablet navigation bar. -->
     <string name="tablet_nav_bar_cfr_title" moz:removedIn="132" tools:ignore="UnusedResources">Νέο: βέλη εμπρός και πίσω με ένα πάτημα</string>
@@ -251,8 +257,12 @@
     <string name="browser_menu_open_in_regular_tab">Άνοιγμα σε κανονική καρτέλα</string>
     <!-- Browser menu toggle that adds a shortcut to the site on the device home screen. -->
     <string name="browser_menu_add_to_homescreen">Προσθήκη στην αρχική οθόνη</string>
+    <!-- Browser menu toggle that adds a PWA of the site on the device home screen. -->
+    <string name="browser_menu_add_app_to_homescreen">Προσθήκη εφαρμογής στην αρχική οθόνη</string>
     <!-- Browser menu toggle that adds a shortcut to the site on the device home screen. -->
     <string name="browser_menu_add_to_homescreen_2">Προσθήκη στην αρχική οθόνη…</string>
+    <!-- Browser menu toggle that adds a PWA of the site on the device home screen. -->
+    <string name="browser_menu_add_app_to_homescreen_2">Προσθήκη εφαρμογής στην αρχική οθόνη…</string>
     <!-- Text for notifying users that Xiaomi devices require additional permissions to add to home screen -->
     <string name="browser_menu_add_to_homescreen_xiaomi">Οι συσκευές Xiaomi ενδέχεται να χρειάζονται επιπλέον δικαιώματα για να προσθέσουν συντομεύσεις στην αρχική οθόνη. Παρακαλούμε ελέγξτε τις ρυθμίσεις σας.</string>
     <!-- Content description (not visible, for screen readers etc.) for the Resync tabs button -->
@@ -342,9 +352,19 @@
     <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar custom tab menu. -->
     <string name="browser_custom_tab_menu_handlebar_content_description">Κλείσιμο φύλλου μενού προσαρμοσμένων καρτελών</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-    <string name="browser_menu_tools_description_with_translate">Προβολή ανάγνωσης, μετάφραση, εκτύπωση, κοινή χρήση, άνοιγμα εφαρμογής</string>
+    <string name="browser_menu_tools_description_with_translate" moz:removedIn="133" tools:ignore="UnusedResources">Προβολή ανάγνωσης, μετάφραση, εκτύπωση, κοινή χρήση, άνοιγμα εφαρμογής</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-    <string name="browser_menu_tools_description">Προβολή ανάγνωσης, εκτύπωση, κοινή χρήση, άνοιγμα εφαρμογής</string>
+    <string name="browser_menu_tools_description" moz:removedIn="133" tools:ignore="UnusedResources">Προβολή ανάγνωσης, εκτύπωση, κοινή χρήση, άνοιγμα εφαρμογής</string>
+    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu
+         The first parameter is the label of the report site issue (for example: Report Site issue) -->
+    <string name="browser_menu_tools_description_with_translate_with_report_site">Προβολή ανάγνωσης, μετάφραση, %s, εκτύπωση, κοινή χρήση, άνοιγμα εφαρμογής</string>
+    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
+    <string name="browser_menu_tools_description_with_translate_without_report_site">Προβολή ανάγνωσης, μετάφραση, εκτύπωση, κοινή χρήση, άνοιγμα εφαρμογής</string>
+    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu
+         The first parameter is the label of the report site issue (for example: Report Site issue) -->
+    <string name="browser_menu_tools_description_with_report_site">Προβολή ανάγνωσης, %s, εκτύπωση, κοινή χρήση, άνοιγμα εφαρμογής</string>
+    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
+    <string name="browser_menu_tools_description_without_report_site">Προβολή ανάγνωσης, εκτύπωση, κοινή χρήση, άνοιγμα εφαρμογής</string>
     <!-- Browser menu label that navigates to the save sub-menu, which contains various save related menu items such as
          bookmarking a page, saving to collection, shortcut or as a PDF, and adding to home screen -->
     <string name="browser_menu_save">Αποθήκευση</string>
@@ -698,7 +718,7 @@
     <!-- Preference to override the Sync token server -->
     <string name="preferences_override_sync_tokenserver">Προσαρμοσμένος διακομιστής Sync</string>
     <!-- Toast shown after updating the Mozilla account/Sync server override preferences -->
-    <string name="toast_override_account_sync_server_done">Ο διακομιστής λογαριασμού Mozilla και συγχρονισμού τροποποιήθηκε. Γίνεται τερματισμός της εφαρμογής για εφαρμογή των αλλαγών…</string>
+    <string name="toast_override_account_sync_server_done">Ο διακομιστής λογαριασμού Mozilla και συγχρονισμού τροποποιήθηκε. Τερματισμός εφαρμογής για εφαρμογή των αλλαγών…</string>
     <!-- Preference category for account information -->
     <string name="preferences_category_account">Λογαριασμός</string>
 
@@ -769,7 +789,7 @@
     <!-- Preference for enabling gecko engine logs -->
     <string name="preferences_enable_gecko_logs">Ενεργοποίηση αρχείων καταγραφής Gecko</string>
     <!-- Message to indicate users that we are quitting the application to apply the changes -->
-    <string name="quit_application">Κλείσιμο εφαρμογής για την εφαρμογή αλλαγών…</string>
+    <string name="quit_application">Τερματισμός εφαρμογής για εφαρμογή των αλλαγών…</string>
 
     <!-- Preference for extensions -->
     <string name="preferences_extensions">Επεκτάσεις</string>
@@ -811,7 +831,7 @@
     <string name="customize_addon_collection_user_hint">Κάτοχος συλλογής (ID χρήστη)</string>
 
     <!-- Toast shown after confirming the custom extension collection configuration -->
-    <string name="toast_customize_extension_collection_done">Η συλλογή επεκτάσεων τροποποιήθηκε. Κλείσιμο εφαρμογής για την εφαρμογή αλλαγών…</string>
+    <string name="toast_customize_extension_collection_done">Η συλλογή επεκτάσεων τροποποιήθηκε. Τερματισμός εφαρμογής για εφαρμογή των αλλαγών…</string>
 
     <!-- Customize Home -->
     <!-- Header text for jumping back into the recent tab in customize the home screen -->
@@ -961,7 +981,11 @@
     <string name="exceptions_empty_message_learn_more_link">Μάθετε περισσότερα</string>
 
     <!-- Preference switch for usage and technical data collection -->
-    <string name="preference_usage_data">Δεδομένα χρήσης και τεχνικά δεδομένα</string>
+    <string name="preference_usage_data" moz:removedIn="134" tools:ignore="UnusedResources">Δεδομένα χρήσης και τεχνικά δεδομένα</string>
+    <!-- Preference switch for usage and technical data collection -->
+    <string name="preference_usage_data_1">Τεχνικά δεδομένα και δεδομένα αλληλεπίδρασης</string>
+    <!-- Preference switch for usage and technical learn more link -->
+    <string name="preference_usage_data_learn_more" tools:ignore="UnusedResources">Μάθετε περισσότερα</string>
     <!-- Preference description for usage and technical data collection -->
     <string name="preferences_usage_data_description">Αποστέλλει πληροφορίες επιδόσεων, χρήσης, υλικού συσκευής και εξατομίκευσης του προγράμματος περιήγησης στη Mozilla για βελτίωση του %1$s</string>
     <!-- Preference switch for marketing data collection -->
@@ -1140,14 +1164,14 @@
     <string name="studies_learn_more">Μάθετε περισσότερα</string>
 
     <!-- Dialog message shown after removing a study -->
-    <string name="studies_restart_app">Η εφαρμογή θα κλείσει για την εφαρμογή των αλλαγών</string>
+    <string name="studies_restart_app">Η εφαρμογή θα τερματιστεί για να ισχύσουν οι αλλαγές</string>
     <!-- Dialog button to confirm the removing a study. -->
     <string name="studies_restart_dialog_ok">OK</string>
     <!-- Dialog button text for canceling removing a study. -->
     <string name="studies_restart_dialog_cancel">Ακύρωση</string>
 
     <!-- Toast shown after turning on/off studies preferences -->
-    <string name="studies_toast_quit_application" tools:ignore="UnusedResources">Κλείσιμο εφαρμογής για την εφαρμογή αλλαγών…</string>
+    <string name="studies_toast_quit_application" tools:ignore="UnusedResources">Τερματισμός εφαρμογής για εφαρμογή των αλλαγών…</string>
 
     <!-- Sessions -->
     <!-- Title for the list of tabs -->
@@ -1257,6 +1281,29 @@
 
 
     <!-- WebCompat Reporter -->
+
+    <!-- WebCompat Reporter -->
+    <!-- The title of the Web Compat Reporter feature. This is displayed in the top app bar. -->
+    <string name="webcompat_reporter_screen_title">Αναφορά προβληματικού ιστοτόπου</string>
+    <!-- The description of the Web Compat Reporter feature. This first parameter is the name of the application (For example: Fenix) -->
+    <string name="webcompat_reporter_description">Βοηθήστε μας να κάνουμε το %1$s καλύτερο για όλους. Οι υπάλληλοι της Mozilla χρησιμοποιούν τις πληροφορίες που στέλνετε για να διορθώσουν τα προβλήματα ιστοτόπων.</string>
+    <!-- The text field label of the URL text field. This is displayed above the user-inputted URL. -->
+    <string name="webcompat_reporter_label_url">URL</string>
+    <!-- The error message of the URL text field when an invalid URL has been entered. -->
+    <string name="webcompat_reporter_url_error_invalid">Εισαγάγετε ένα έγκυρο URL</string>
+    <!-- The label/title of an optional field in the Web Compat Reporter feature for explaining a high-level reason why the site is broken. -->
+    <string name="webcompat_reporter_label_whats_broken">Τι δεν λειτουργεί; (προαιρετικό)</string>
+    <!-- The placeholder text for the dropdown where a user can select a high-level reason why the site is broken. -->
+    <string name="webcompat_reporter_choose_reason">Επιλέξτε λόγο</string>
+    <!-- The label/title of an optional field in the Web Compat Reporter feature for adding additional information. -->
+    <string name="webcompat_reporter_label_description">Περιγράψτε το πρόβλημα (προαιρετικό)</string>
+    <!-- The button text for navigating away from the feature to provide more information on the broken site's bug report. -->
+    <string name="webcompat_reporter_send_more_info">Αποστολή περισσότερων πληροφοριών</string>
+    <!-- The button text for the cancel button to leave the Web Compat Reporter feature. -->
+    <string name="webcompat_reporter_cancel">Ακύρωση</string>
+    <!-- The button text for the send button to submit the provided form data. -->
+    <string name="webcompat_reporter_send">Αποστολή</string>
+
 
     <!-- These reason strings are dropdown options on a WebCompat reporter form, indicating what is broken on the site. -->
     <!-- Broken site reason text for site slow or not working -->
@@ -1726,7 +1773,7 @@
     <!-- Text for the button to delete browsing data -->
     <string name="preferences_delete_browsing_data_button">Διαγραφή δεδομένων περιήγησης</string>
     <!-- Title for the Delete browsing data on quit preference -->
-    <string name="preferences_delete_browsing_data_on_quit">Διαγραφή δεδομένων περιήγησης στην έξοδο</string>
+    <string name="preferences_delete_browsing_data_on_quit">Διαγραφή δεδομένων κατά την έξοδο</string>
     <!-- Summary for the Delete browsing data on quit preference. "Quit" translation should match delete_browsing_data_on_quit_action translation. -->
     <string name="preference_summary_delete_browsing_data_on_quit_2">Αυτόματη διαγραφή δεδομένων περιήγησης όταν επιλέγετε «Έξοδος» από το κύριο μενού</string>
     <!-- Action item in menu for the Delete browsing data on quit feature -->
@@ -1883,9 +1930,9 @@
     <!-- Description of tracking content that can be blocked by Enhanced Tracking Protection -->
     <string name="etp_tracking_content_description">Διακόπτει τη φόρτωση εξωτερικών διαφημίσεων, βίντεο και άλλου περιεχομένου που περιέχει κώδικα καταγραφής. Ίσως επηρεάσει τη λειτουργικότητα ορισμένων ιστοτόπων.</string>
     <!-- Enhanced Tracking Protection message that protection is currently on for this site -->
-    <string name="etp_panel_on">Η προστασία είναι ΕΝΕΡΓΗ στον ιστότοπο</string>
+    <string name="etp_panel_on">Η προστασία είναι ΕΝΕΡΓΗ για τον ιστότοπο</string>
     <!-- Enhanced Tracking Protection message that protection is currently off for this site -->
-    <string name="etp_panel_off">Η προστασία είναι ΑΝΕΝΕΡΓΗ στον ιστότοπο</string>
+    <string name="etp_panel_off">Η προστασία είναι ΑΝΕΝΕΡΓΗ για τον ιστότοπο</string>
     <!-- Header for exceptions list for which sites enhanced tracking protection is always off -->
     <string name="enhanced_tracking_protection_exceptions">Η Ενισχυμένη προστασία από καταγραφή είναι για τους εξής ιστοτόπους</string>
     <!-- Content description (not visible, for screen readers etc.): Navigate
@@ -2895,7 +2942,7 @@
     <!-- The survey header -->
     <string name="micro_survey_survey_header_2">Παρακαλούμε συμπληρώστε την έρευνα</string>
     <!-- The privacy notice link -->
-    <string name="micro_survey_privacy_notice_2">Πολιτική απορρήτου</string>
+    <string name="micro_survey_privacy_notice_2">Σημείωση απορρήτου</string>
     <!-- The submit button label text -->
     <string name="micro_survey_submit_button_label">Υποβολή</string>
     <!-- The survey completion header -->
