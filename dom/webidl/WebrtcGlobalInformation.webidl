@@ -11,7 +11,6 @@ dictionary WebrtcGlobalStatisticsReport {
 
 dictionary WebrtcGlobalMediaContext {
   required boolean hasH264Hardware;
-  required boolean hasAv1;
 };
 
 callback WebrtcGlobalStatisticsCallback = undefined (WebrtcGlobalStatisticsReport reports);

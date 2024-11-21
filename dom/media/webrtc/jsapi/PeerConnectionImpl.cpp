@@ -637,7 +637,6 @@ class ConfigureCodec {
         mH264Enabled(false),
         mVP9Enabled(true),
         mVP9Preferred(false),
-        mAV1Enabled(StaticPrefs::media_webrtc_codec_video_av1_enabled()),
         mH264Level(13),   // minimum suggested for WebRTC spec
         mH264MaxBr(0),    // Unlimited
         mH264MaxMbps(0),  // Unlimited
@@ -752,8 +751,6 @@ class ConfigureCodec {
           }
           videoCodec.mConstraints.maxFs = mVP8MaxFs;
           videoCodec.mConstraints.maxFps = Some(mVP8MaxFr);
-        } else if (videoCodec.mName == "AV1") {
-          videoCodec.mEnabled = mAV1Enabled;
         }
 
         if (mUseTmmbr) {
@@ -779,7 +776,6 @@ class ConfigureCodec {
   bool mH264Enabled;
   bool mVP9Enabled;
   bool mVP9Preferred;
-  bool mAV1Enabled;
   int32_t mH264Level;
   int32_t mH264MaxBr;
   int32_t mH264MaxMbps;
@@ -814,9 +810,6 @@ nsresult PeerConnectionImpl::ConfigureJsepSessionCodecs() {
 
   // We use this to sort the list of codecs once everything is configured
   CompareCodecPriority comparator;
-  if (StaticPrefs::media_webrtc_codec_video_av1_experimental_preferred()) {
-    comparator.SetPreferredCodec(nsCString("av1"));
-  }
   // Sort by priority
   mJsepSession->SortCodecs(comparator);
   return NS_OK;
@@ -2185,6 +2178,8 @@ void PeerConnectionImpl::SendWarningToConsole(const nsCString& aWarning) {
 void PeerConnectionImpl::GetDefaultVideoCodecs(
     std::vector<UniquePtr<JsepCodecDescription>>& aSupportedCodecs,
     bool aUseRtx) {
+  const bool disableBaseline = Preferences::GetBool(
+      "media.navigator.video.disable_h264_baseline", false);
   // Supported video codecs.
   // Note: order here implies priority for building offers!
   aSupportedCodecs.emplace_back(
@@ -2196,9 +2191,6 @@ void PeerConnectionImpl::GetDefaultVideoCodecs(
   aSupportedCodecs.emplace_back(
       JsepVideoCodecDescription::CreateDefaultH264_0(aUseRtx));
 
-  const bool disableBaseline = Preferences::GetBool(
-      "media.navigator.video.disable_h264_baseline", false);
-
   // Only add Baseline if it hasn't been disabled.
   if (!disableBaseline) {
     aSupportedCodecs.emplace_back(
@@ -2207,24 +2199,11 @@ void PeerConnectionImpl::GetDefaultVideoCodecs(
         JsepVideoCodecDescription::CreateDefaultH264Baseline_0(aUseRtx));
   }
 
-  if (WebrtcVideoConduit::HasAv1() &&
-      StaticPrefs::media_webrtc_codec_video_av1_enabled()) {
-    aSupportedCodecs.emplace_back(
-        JsepVideoCodecDescription::CreateDefaultAV1(aUseRtx));
-  }
-
   aSupportedCodecs.emplace_back(
       JsepVideoCodecDescription::CreateDefaultUlpFec());
   aSupportedCodecs.emplace_back(
       JsepApplicationCodecDescription::CreateDefault());
   aSupportedCodecs.emplace_back(JsepVideoCodecDescription::CreateDefaultRed());
-
-  CompareCodecPriority comparator;
-  if (StaticPrefs::media_webrtc_codec_video_av1_experimental_preferred()) {
-    comparator.SetPreferredCodec(nsCString("av1"));
-  }
-  std::stable_sort(aSupportedCodecs.begin(), aSupportedCodecs.end(),
-                   comparator);
 }
 
 void PeerConnectionImpl::GetDefaultAudioCodecs(

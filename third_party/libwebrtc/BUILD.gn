@@ -532,9 +532,6 @@ if (!rtc_build_ssl) {
       "crypto",
       "ssl",
     ]
-    if (build_with_mozilla) {
-      libs = []
-    }
   }
 }
 
@@ -630,7 +627,6 @@ if (!build_with_chromium) {
         "api/environment:environment_factory",
         "api/video:video_frame",
         "api/video:video_rtp_headers",
-        "api/video_codecs:builtin_video_decoder_factory",
         "test:rtp_test_utils",
       ]
       # Added when we removed deps in other places to avoid building

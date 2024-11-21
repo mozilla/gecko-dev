@@ -1101,6 +1101,7 @@ if CONFIG["MOZ_WEBRTC"]:
         "RTCSessionDescription.webidl",
         "RTCStatsReport.webidl",
         "RTCTransformEvent.webidl",
+        "WebrtcGlobalInformation.webidl",
     ]
 
 if CONFIG["MOZ_WEBSPEECH"]:

@@ -183,8 +183,9 @@ const statsExpectedByType = {
       "transportId",
       "mimeType",
       "clockRate",
+      "sdpFmtpLine",
     ],
-    optional: ["codecType", "channels", "sdpFmtpLine"],
+    optional: ["codecType", "channels"],
     unimplemented: [],
     deprecated: [],
   },
@@ -900,10 +901,10 @@ function pedanticChecks(report) {
       //
 
       // qpSum
-      // This is supported for all of our vpx codecs and AV1 (on the encode
-      // side, see bug 1519590)
+      // This is supported for all of our vpx codecs (on the encode side, see
+      // bug 1519590)
       const mimeType = report.get(stat.codecId).mimeType;
-      if (mimeType.includes("VP") || mimeType.includes("AV1")) {
+      if (mimeType.includes("VP")) {
         ok(
           stat.qpSum >= 0,
           `${stat.type}.qpSum is a sane number (${stat.kind}) ` +
@@ -1126,9 +1127,6 @@ function pedanticChecks(report) {
             `codec.payloadType for H264 was ${stat.payloadType}, exp. 97, 126, 103, or 105`
           );
           break;
-        case "video/AV1":
-          is(stat.payloadType, 99, "codec.payloadType for AV1");
-          break;
         default:
           ok(
             false,
@@ -1151,10 +1149,7 @@ function pedanticChecks(report) {
 
       // sdpFmtpLine
       // (not technically mandated by spec, but expected here)
-      // AV1 has no required parameters, so don't require sdpFmtpLine for it.
-      if (stat.mimeType != "video/AV1") {
-        ok(stat.sdpFmtpLine, "codec.sdp FmtpLine is set");
-      }
+      ok(stat.sdpFmtpLine, "codec.sdpFmtpLine is set");
       const opusParams = [
         "maxplaybackrate",
         "maxaveragebitrate",
@@ -1177,21 +1172,9 @@ function pedanticChecks(report) {
         "max-br",
         "max-mbps",
       ];
-      // AV1 parameters:
-      //  https://aomediacodec.github.io/av1-rtp-spec/#721-mapping-of-media-subtype-parameters-to-sdp
-      const av1Params = ["profile", "level-idx", "tier"];
-      // Check that the parameters are as expected. AV1 may have no parameters.
-      for (const param of (stat.sdpFmtpLine || "").split(";")) {
+      for (const param of stat.sdpFmtpLine.split(";")) {
         const [key, value] = param.split("=");
-        if (stat.payloadType == 99) {
-          // AV1 might not have any parameters, if it does make sure they are as expected.
-          if (key) {
-            ok(
-              av1Params.includes(key),
-              `codec.sdpFmtpLine param ${key}=${value} for AV1`
-            );
-          }
-        } else if (stat.payloadType == 109) {
+        if (stat.payloadType == 109) {
           ok(
             opusParams.includes(key),
             `codec.sdpFmtpLine param ${key}=${value} for opus`

@@ -445,9 +445,7 @@ const sdp_namearray_t sdp_fmtp_codec_param[SDP_MAX_FMTP_PARAM] =
     {"max-fr",                          sizeof("max-fr")}, /* 49 */
     {"maxplaybackrate",                 sizeof("maxplaybackrate")}, /* 50 */
     {"apt",                             sizeof("apt")}, /* 51 */
-    {"rtx-time",                         sizeof("rtx-time")}, /* 52 */
-    {"level-idx",                        sizeof("level-idx")}, /* 53 */
-    {"tier",                             sizeof("tier")}, /* 54 */
+    {"rtx-time",                         sizeof("rtx-time")} /* 52 */
 } ;
 
 /* Note: These *must* be in the same order as the enum type. */

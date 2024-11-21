@@ -11996,22 +11996,6 @@
 #endif
   mirror: always
 
-- name: media.webrtc.codec.video.av1.enabled
-  type: RelaxedAtomicBool
-#if defined(MOZ_AV1)
-  value: @IS_NIGHTLY_BUILD@
-#else
-  value: false
-#endif
-  mirror: always
-
-# If true, then AV1 will be used as the preferred codec for WebRTC video.
-# After the AV1 codec is enabled by default, this pref will be renamed.
-- name: media.webrtc.codec.video.av1.experimental_preferred
-  type: bool
-  value: false
-  mirror: always
-
 - name: media.webrtc.tls_tunnel_for_all_proxy
   type: bool
   value: true

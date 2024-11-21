@@ -253,7 +253,6 @@ void WebrtcGlobalInformation::GetStatsHistorySince(
 void WebrtcGlobalInformation::GetMediaContext(
     const GlobalObject& aGlobal, WebrtcGlobalMediaContext& aContext) {
   aContext.mHasH264Hardware = WebrtcVideoConduit::HasH264Hardware();
-  aContext.mHasAv1 = WebrtcVideoConduit::HasAv1();
 }
 
 using StatsPromiseArray =

@@ -135,8 +135,3 @@ if CONFIG["MOZ_WIDGET_TOOLKIT"] == "windows":
     WEBIDL_FILES += [
         "WindowsJumpListShortcutDescription.webidl",
     ]
-
-if CONFIG["MOZ_WEBRTC"]:
-    WEBIDL_FILES += [
-        "WebrtcGlobalInformation.webidl",
-    ]

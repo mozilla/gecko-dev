@@ -797,18 +797,16 @@ auto RTCRtpTransceiver::GetActivePayloadTypes() const
                      });
 }
 
-static auto JsepCodecDescToVideoCodecConfig(
-    const JsepVideoCodecDescription& aCodec) -> Maybe<VideoCodecConfig> {
+static void JsepCodecDescToVideoCodecConfig(
+    const JsepVideoCodecDescription& aCodec, Maybe<VideoCodecConfig>* aConfig) {
   uint16_t pt;
 
-  Maybe<VideoCodecConfig> config;
   // TODO(bug 1761272): Getting the pt for a JsepVideoCodecDescription should be
   // infallible.
-  // Bug 1920249, yes please.
   if (NS_WARN_IF(!aCodec.GetPtAsInt(&pt))) {
     MOZ_MTLOG(ML_ERROR, "Invalid payload type: " << aCodec.mDefaultPt);
     MOZ_ASSERT(false);
-    return Nothing();
+    return;
   }
 
   UniquePtr<VideoCodecConfigH264> h264Config;
@@ -823,45 +821,35 @@ static auto JsepCodecDescToVideoCodecConfig(
         static_cast<int>(aCodec.mPacketizationMode);
     h264Config->profile_level_id = static_cast<int>(aCodec.mProfileLevelId);
     h264Config->tias_bw = 0;  // TODO(bug 1403206)
-    config = Some(VideoCodecConfig::CreateH264Config(pt, aCodec.mConstraints,
-                                                     *h264Config));
   }
 
-  if (aCodec.mName == "AV1") {
-    config = Some(VideoCodecConfig::CreateAv1Config(pt, aCodec.mConstraints,
-                                                    aCodec.mAv1Config));
-  }
+  *aConfig = Some(VideoCodecConfig(pt, aCodec.mName, aCodec.mConstraints,
+                                   h264Config.get()));
 
-  if (config.isNothing()) {
-    // TODO bug 1920249, let's just pass in the JsepCodecConfig
-    config = Some(VideoCodecConfig(pt, aCodec.mName, aCodec.mConstraints));
-  }
-
-  config->mAckFbTypes = aCodec.mAckFbTypes;
-  config->mNackFbTypes = aCodec.mNackFbTypes;
-  config->mCcmFbTypes = aCodec.mCcmFbTypes;
-  config->mRembFbSet = aCodec.RtcpFbRembIsSet();
-  config->mFECFbSet = aCodec.mFECEnabled;
-  config->mTransportCCFbSet = aCodec.RtcpFbTransportCCIsSet();
+  (*aConfig)->mAckFbTypes = aCodec.mAckFbTypes;
+  (*aConfig)->mNackFbTypes = aCodec.mNackFbTypes;
+  (*aConfig)->mCcmFbTypes = aCodec.mCcmFbTypes;
+  (*aConfig)->mRembFbSet = aCodec.RtcpFbRembIsSet();
+  (*aConfig)->mFECFbSet = aCodec.mFECEnabled;
+  (*aConfig)->mTransportCCFbSet = aCodec.RtcpFbTransportCCIsSet();
   if (aCodec.mFECEnabled) {
     uint16_t pt;
     if (SdpHelper::GetPtAsInt(aCodec.mREDPayloadType, &pt)) {
-      config->mREDPayloadType = pt;
+      (*aConfig)->mREDPayloadType = pt;
     }
     if (SdpHelper::GetPtAsInt(aCodec.mULPFECPayloadType, &pt)) {
-      config->mULPFECPayloadType = pt;
+      (*aConfig)->mULPFECPayloadType = pt;
     }
     if (SdpHelper::GetPtAsInt(aCodec.mREDRTXPayloadType, &pt)) {
-      config->mREDRTXPayloadType = pt;
+      (*aConfig)->mREDRTXPayloadType = pt;
     }
   }
   if (aCodec.mRtxEnabled) {
     uint16_t pt;
     if (SdpHelper::GetPtAsInt(aCodec.mRtxPayloadType, &pt)) {
-      config->mRTXPayloadType = pt;
+      (*aConfig)->mRTXPayloadType = pt;
     }
   }
-  return config;
 }
 
 // TODO: Maybe move this someplace else?
@@ -875,23 +863,24 @@ void RTCRtpTransceiver::NegotiatedDetailsToVideoCodecConfigs(
         MOZ_ASSERT(false, "Codec is not video! This is a JSEP bug.");
         return;
       }
+      Maybe<VideoCodecConfig> config;
       const JsepVideoCodecDescription& video =
           static_cast<const JsepVideoCodecDescription&>(*codec);
 
-      JsepCodecDescToVideoCodecConfig(video).apply(
-          [&](VideoCodecConfig config) {
-            config.mTias = aDetails.GetTias();
-            for (size_t i = 0; i < aDetails.GetEncodingCount(); ++i) {
-              const JsepTrackEncoding& jsepEncoding(aDetails.GetEncoding(i));
-              if (jsepEncoding.HasFormat(video.mDefaultPt)) {
-                VideoCodecConfig::Encoding encoding;
-                encoding.rid = jsepEncoding.mRid;
-                config.mEncodings.push_back(encoding);
-              }
-            }
+      JsepCodecDescToVideoCodecConfig(video, &config);
 
-            aConfigs->push_back(std::move(config));
-          });
+      config->mTias = aDetails.GetTias();
+
+      for (size_t i = 0; i < aDetails.GetEncodingCount(); ++i) {
+        const JsepTrackEncoding& jsepEncoding(aDetails.GetEncoding(i));
+        if (jsepEncoding.HasFormat(video.mDefaultPt)) {
+          VideoCodecConfig::Encoding encoding;
+          encoding.rid = jsepEncoding.mRid;
+          config->mEncodings.push_back(encoding);
+        }
+      }
+
+      aConfigs->push_back(std::move(*config));
     }
   }
 }
@@ -924,11 +913,9 @@ void RTCRtpTransceiver::ToDomRtpCodec(const JsepCodecDescription& aCodec,
     if (params != nullptr) {
       std::ostringstream paramsString;
       params->Serialize(paramsString);
-      if (!paramsString.str().empty()) {
-        nsTString<char16_t> fmtp;
-        fmtp.AssignASCII(paramsString.str());
-        aDomCodec->mSdpFmtpLine.Construct(fmtp);
-      }
+      nsTString<char16_t> fmtp;
+      fmtp.AssignASCII(paramsString.str());
+      aDomCodec->mSdpFmtpLine.Construct(fmtp);
     }
   }
 }

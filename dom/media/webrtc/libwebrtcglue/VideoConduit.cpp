@@ -179,7 +179,6 @@ webrtc::VideoCodecType SupportedCodecType(webrtc::VideoCodecType aType) {
     case webrtc::VideoCodecType::kVideoCodecVP8:
     case webrtc::VideoCodecType::kVideoCodecVP9:
     case webrtc::VideoCodecType::kVideoCodecH264:
-    case webrtc::VideoCodecType::kVideoCodecAV1:
       return aType;
     default:
       return webrtc::VideoCodecType::kVideoCodecGeneric;
@@ -205,20 +204,6 @@ ConfigureVideoEncoderSettings(const VideoCodecConfig& aConfig,
     denoising = aConduit->Denoising();
     codec_default_denoising = !denoising;
   }
-
-  using Av1Config = JsepVideoCodecDescription::Av1Config;
-  aConfig.mAv1Config.apply([&](const Av1Config& config) {
-    MOZ_ASSERT(aConfig.mName == kAv1CodecName);
-    config.mProfile.apply([&](uint8_t value) {
-      aParameters[kAv1FmtpProfile] = std::to_string(value);
-    });
-    config.mLevelIdx.apply([&](uint8_t value) {
-      aParameters[kAv1FmtpLevelIdx] = std::to_string(value);
-    });
-    config.mTier.apply([&](uint8_t value) {
-      aParameters[kAv1FmtpTier] = std::to_string(value);
-    });
-  });
 
   if (aConfig.mName == kH264CodecName) {
     aParameters[kH264FmtpPacketizationMode] =
@@ -2093,14 +2078,6 @@ bool WebrtcVideoConduit::HasH264Hardware() {
              nsIGfxInfo::FEATURE_WEBRTC_HW_ACCELERATION_H264, discardFailureId,
              &status)) &&
          status == nsIGfxInfo::FEATURE_STATUS_OK;
-}
-
-bool WebrtcVideoConduit::HasAv1() {
-#if defined(MOZ_AV1)
-  return true;
-#else
-  return false;
-#endif
 }
 
 Maybe<int> WebrtcVideoConduit::ActiveSendPayloadType() const {
