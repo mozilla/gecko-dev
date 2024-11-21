@@ -4,7 +4,7 @@
 
 import React, { useCallback } from "react";
 import { DSEmptyState } from "../DSEmptyState/DSEmptyState";
-import { DSCard } from "../DSCard/DSCard";
+import { DSCard, PlaceholderDSCard } from "../DSCard/DSCard";
 import { useSelector } from "react-redux";
 import { actionCreators as ac, actionTypes as at } from "common/Actions.mjs";
 import { useIntersectionObserver } from "../../../lib/hooks";
@@ -28,7 +28,7 @@ function CardSections({
   ctaButtonSponsors,
 }) {
   const { recommendations, sections } = data;
-  const isEmpty = recommendations?.length === 0 || !sections;
+  const isEmpty = !recommendations?.length || !sections;
 
   const prefs = useSelector(state => state.Prefs.values);
   const showTopics = prefs[PREF_TOPICS_ENABLED];
@@ -102,6 +102,13 @@ function CardSections({
         const { sectionKey, title, subtitle } = section;
         const { responsiveLayouts } = section.layout;
         const { maxTile } = getMaxTiles(responsiveLayouts);
+        const displaySections = section.data.slice(0, maxTile);
+        const isSectionEmpty = !displaySections?.length;
+
+        if (isSectionEmpty) {
+          return null;
+        }
+
         return (
           <section
             key={sectionKey}
@@ -119,6 +126,11 @@ function CardSections({
               {section.data.slice(0, maxTile).map((rec, index) => {
                 const layoutData = getLayoutData(responsiveLayouts, index);
                 const { classNames, position } = layoutData;
+
+                if (!rec || rec.placeholder) {
+                  return <PlaceholderDSCard key={`dscard-${index}`} />;
+                }
+
                 return (
                   <DSCard
                     key={`dscard-${rec.id}`}

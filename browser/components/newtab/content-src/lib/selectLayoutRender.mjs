@@ -100,6 +100,14 @@ export const selectLayoutRender = ({ state = {}, prefs = {} }) => {
     }
     const data = {
       recommendations: [],
+      sections: [
+        {
+          layout: {
+            responsiveLayouts: [],
+          },
+          data: [],
+        },
+      ],
     };
 
     let items = 0;
@@ -110,11 +118,18 @@ export const selectLayoutRender = ({ state = {}, prefs = {} }) => {
       data.recommendations.push({ placeholder: true });
     }
 
+    const sectionsEnabled = prefs["discoverystream.sections.enabled"];
+    if (sectionsEnabled) {
+      for (let i = 0; i < items; i++) {
+        data.sections[0].data.push({ placeholder: true });
+      }
+    }
+
     return { ...component, data };
   };
 
   // TODO update devtools to show placements
-  const handleSpocs = (data, spocsPositions, spocsPlacement) => {
+  const handleSpocs = (data = [], spocsPositions, spocsPlacement) => {
     let result = [...data];
     // Do we ever expect to possibly have a spoc.
     if (spocsPositions?.length) {

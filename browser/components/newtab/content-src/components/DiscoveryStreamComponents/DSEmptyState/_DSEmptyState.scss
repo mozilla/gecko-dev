@@ -5,6 +5,10 @@
   height: $card-height-compact;
   width: 100%;
 
+  @media (min-width: $break-point-sections-variant) {
+    width: 936px;
+  }
+
   .empty-state-message {
     color: var(--newtab-text-secondary-color);
     font-size: 14px;

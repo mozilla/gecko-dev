@@ -533,6 +533,10 @@ main section {
 .layout-variant-b .ds-outer-wrapper-breakpoint-override main .ds-card-grid:not(.ds-section-grid) {
   grid-gap: var(--space-large);
 }
+.layout-variant-a .ds-outer-wrapper-breakpoint-override main .ds-card-grid:not(.ds-section-grid).empty,
+.layout-variant-b .ds-outer-wrapper-breakpoint-override main .ds-card-grid:not(.ds-section-grid).empty {
+  grid-template-columns: auto;
+}
 .layout-variant-a .ds-outer-wrapper-breakpoint-override main .body-wrapper,
 .layout-variant-b .ds-outer-wrapper-breakpoint-override main .body-wrapper {
   width: 346px;
@@ -6154,6 +6158,11 @@ main section {
   display: flex;
   height: 160px;
   width: 100%;
+}
+@media (min-width: 1390px) {
+  .section-empty-state {
+    width: 936px;
+  }
 }
 .section-empty-state .empty-state-message {
   color: var(--newtab-text-secondary-color);

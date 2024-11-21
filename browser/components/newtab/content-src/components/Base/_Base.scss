@@ -97,6 +97,10 @@ main {
 
     .ds-card-grid:not(.ds-section-grid) {
       grid-gap: var(--space-large);
+
+      &.empty {
+        grid-template-columns: auto;
+      }
     }
 
     .body-wrapper {
@@ -114,7 +118,6 @@ main {
       .body-wrapper {
         width: 346px;
       }
-
     }
 
     @media (min-width: $break-point-layout-variant) {
@@ -127,7 +130,6 @@ main {
       .body-wrapper {
         width: 659px;
       }
-
     }
 
     @media (min-width: $break-point-widest) {
@@ -141,7 +143,6 @@ main {
       .body-wrapper {
         width: 989px;
       }
-
     }
 
     @media (min-width: $break-point-ultra-wide) {

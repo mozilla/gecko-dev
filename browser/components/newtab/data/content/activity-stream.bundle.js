@@ -9262,6 +9262,14 @@ const selectLayoutRender = ({ state = {}, prefs = {} }) => {
     }
     const data = {
       recommendations: [],
+      sections: [
+        {
+          layout: {
+            responsiveLayouts: [],
+          },
+          data: [],
+        },
+      ],
     };
 
     let items = 0;
@@ -9272,11 +9280,18 @@ const selectLayoutRender = ({ state = {}, prefs = {} }) => {
       data.recommendations.push({ placeholder: true });
     }
 
+    const sectionsEnabled = prefs["discoverystream.sections.enabled"];
+    if (sectionsEnabled) {
+      for (let i = 0; i < items; i++) {
+        data.sections[0].data.push({ placeholder: true });
+      }
+    }
+
     return { ...component, data };
   };
 
   // TODO update devtools to show placements
-  const handleSpocs = (data, spocsPositions, spocsPlacement) => {
+  const handleSpocs = (data = [], spocsPositions, spocsPlacement) => {
     let result = [...data];
     // Do we ever expect to possibly have a spoc.
     if (spocsPositions?.length) {
@@ -9560,7 +9575,7 @@ function CardSections({
     recommendations,
     sections
   } = data;
-  const isEmpty = recommendations?.length === 0 || !sections;
+  const isEmpty = !recommendations?.length || !sections;
   const prefs = (0,external_ReactRedux_namespaceObject.useSelector)(state => state.Prefs.values);
   const showTopics = prefs[CardSections_PREF_TOPICS_ENABLED];
   const mayHaveSectionsCards = prefs[PREF_SECTIONS_CARDS_ENABLED];
@@ -9628,6 +9643,11 @@ function CardSections({
     const {
       maxTile
     } = getMaxTiles(responsiveLayouts);
+    const displaySections = section.data.slice(0, maxTile);
+    const isSectionEmpty = !displaySections?.length;
+    if (isSectionEmpty) {
+      return null;
+    }
     return /*#__PURE__*/external_React_default().createElement("section", {
       key: sectionKey,
       id: sectionKey,
@@ -9649,6 +9669,11 @@ function CardSections({
         classNames,
         position
       } = layoutData;
+      if (!rec || rec.placeholder) {
+        return /*#__PURE__*/external_React_default().createElement(PlaceholderDSCard, {
+          key: `dscard-${index}`
+        });
+      }
       return /*#__PURE__*/external_React_default().createElement(DSCard, {
         key: `dscard-${rec.id}`,
         pos: rec.pos,
