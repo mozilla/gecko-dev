@@ -384,3 +384,12 @@ async function searchWithTab(
 
   return { tab, expectedSearchUrl };
 }
+
+async function focusSwitcher(win = window) {
+  if (!win.gURLBar.focused) {
+    let focus = BrowserTestUtils.waitForEvent(win.gURLBar.inputField, "focus");
+    EventUtils.synthesizeKey("l", { accelKey: true }, win);
+    await focus;
+  }
+  EventUtils.synthesizeKey("KEY_Tab", { shiftKey: true }, win);
+}
