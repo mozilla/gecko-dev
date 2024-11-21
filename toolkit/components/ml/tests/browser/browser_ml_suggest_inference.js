@@ -112,9 +112,11 @@ async function read_data_by_type(type) {
 async function writeResultsToFile(results, type) {
   try {
     const json = JSON.stringify(results, null, 2);
-    const OUTPUT_FILE_PATH = `${
-      Services.dirsvc.get("DfltDwnld", Ci.nsIFile).path
-    }/ML_output_${type}.json`;
+    const OUTPUT_FILE_PATH = normalizePathForOS(
+      `${
+        Services.dirsvc.get("DfltDwnld", Ci.nsIFile).path
+      }/ML_output_${type}.json`
+    );
     await IOUtils.writeUTF8(OUTPUT_FILE_PATH, json);
     console.log("Results successfully written to:", OUTPUT_FILE_PATH);
   } catch (error) {

@@ -199,6 +199,7 @@ const PIPELINE_READY_MEMORY = "pipeline-ready-memory";
 const INITIALIZATION_MEMORY = "initialization-memory";
 const MODEL_RUN_MEMORY = "model-run-memory";
 const TOTAL_MEMORY_USAGE = "total-memory-usage";
+const COLD_START_PREFIX = "cold-start-";
 const ITERATIONS = 10;
 const WHEN = "when";
 const MEMORY = "memory";
@@ -266,7 +267,7 @@ function fetchMLMetric(metrics, name, key) {
   return latestMetric[key];
 }
 
-function fetchLatencyMetrics(metrics) {
+function fetchLatencyMetrics(metrics, isFirstRun) {
   const pipelineLatency =
     fetchMLMetric(metrics, PIPELINE_READY_END, WHEN) -
     fetchMLMetric(metrics, PIPELINE_READY_START, WHEN);
@@ -277,13 +278,15 @@ function fetchLatencyMetrics(metrics) {
     fetchMLMetric(metrics, RUN_END, WHEN) -
     fetchMLMetric(metrics, RUN_START, WHEN);
   return {
-    [PIPELINE_READY_LATENCY]: pipelineLatency,
-    [INITIALIZATION_LATENCY]: initLatency,
-    [MODEL_RUN_LATENCY]: runLatency,
+    [`${isFirstRun ? COLD_START_PREFIX : ""}${PIPELINE_READY_LATENCY}`]:
+      pipelineLatency,
+    [`${isFirstRun ? COLD_START_PREFIX : ""}${INITIALIZATION_LATENCY}`]:
+      initLatency,
+    [`${isFirstRun ? COLD_START_PREFIX : ""}${MODEL_RUN_LATENCY}`]: runLatency,
   };
 }
 
-function fetchMemoryMetrics(metrics) {
+function fetchMemoryMetrics(metrics, isFirstRun) {
   const pipelineMemory =
     fetchMLMetric(metrics, PIPELINE_READY_END, MEMORY) -
     fetchMLMetric(metrics, PIPELINE_READY_START, MEMORY);
@@ -294,16 +297,19 @@ function fetchMemoryMetrics(metrics) {
     fetchMLMetric(metrics, RUN_END, MEMORY) -
     fetchMLMetric(metrics, RUN_START, MEMORY);
   return {
-    [PIPELINE_READY_MEMORY]: pipelineMemory / MB_TO_BYTES,
-    [INITIALIZATION_MEMORY]: initMemory / MB_TO_BYTES,
-    [MODEL_RUN_MEMORY]: runMemory / MB_TO_BYTES,
+    [`${isFirstRun ? COLD_START_PREFIX : ""}${PIPELINE_READY_MEMORY}`]:
+      pipelineMemory / MB_TO_BYTES,
+    [`${isFirstRun ? COLD_START_PREFIX : ""}${INITIALIZATION_MEMORY}`]:
+      initMemory / MB_TO_BYTES,
+    [`${isFirstRun ? COLD_START_PREFIX : ""}${MODEL_RUN_MEMORY}`]:
+      runMemory / MB_TO_BYTES,
   };
 }
 
-function fetchMetrics(metrics) {
+function fetchMetrics(metrics, isFirstRun) {
   return {
-    ...fetchLatencyMetrics(metrics),
-    ...fetchMemoryMetrics(metrics),
+    ...fetchLatencyMetrics(metrics, isFirstRun),
+    ...fetchMemoryMetrics(metrics, isFirstRun),
   };
 }
 
@@ -480,7 +486,7 @@ async function getTotalMemoryUsage() {
  * Runs an inference given the options and arguments
  *
  */
-async function runInference(pipelineOptions, args) {
+async function runInference(pipelineOptions, args, isFirstRun = false) {
   const { cleanup, engine } = await initializeEngine(pipelineOptions);
   const request = {
     args,
@@ -489,8 +495,9 @@ async function runInference(pipelineOptions, args) {
   let metrics = {};
   try {
     const res = await engine.run(request);
-    metrics = fetchMetrics(res.metrics);
-    metrics[TOTAL_MEMORY_USAGE] = await getTotalMemoryUsage();
+    metrics = fetchMetrics(res.metrics, isFirstRun);
+    metrics[`${isFirstRun ? COLD_START_PREFIX : ""}${TOTAL_MEMORY_USAGE}`] =
+      await getTotalMemoryUsage();
   } finally {
     await EngineProcess.destroyMLEngine();
     await cleanup();
@@ -502,10 +509,16 @@ async function runInference(pipelineOptions, args) {
  * Runs a performance test for the given name, options, and arguments and
  * reports the results for perfherder.
  */
-async function perfTest(name, options, args, iterations = ITERATIONS) {
+async function perfTest(
+  name,
+  options,
+  args,
+  iterations = ITERATIONS,
+  addColdStart = false
+) {
   name = name.toUpperCase();
 
-  const METRICS = [
+  let METRICS = [
     `${name}-${PIPELINE_READY_LATENCY}`,
     `${name}-${INITIALIZATION_LATENCY}`,
     `${name}-${MODEL_RUN_LATENCY}`,
@@ -513,15 +526,29 @@ async function perfTest(name, options, args, iterations = ITERATIONS) {
     `${name}-${INITIALIZATION_MEMORY}`,
     `${name}-${MODEL_RUN_MEMORY}`,
     `${name}-${TOTAL_MEMORY_USAGE}`,
+    ...(addColdStart
+      ? [
+          `${name}-${COLD_START_PREFIX}${PIPELINE_READY_LATENCY}`,
+          `${name}-${COLD_START_PREFIX}${INITIALIZATION_LATENCY}`,
+          `${name}-${COLD_START_PREFIX}${MODEL_RUN_LATENCY}`,
+          `${name}-${COLD_START_PREFIX}${PIPELINE_READY_MEMORY}`,
+          `${name}-${COLD_START_PREFIX}${INITIALIZATION_MEMORY}`,
+          `${name}-${COLD_START_PREFIX}${MODEL_RUN_MEMORY}`,
+          `${name}-${COLD_START_PREFIX}${TOTAL_MEMORY_USAGE}`,
+        ]
+      : []),
   ];
+
   const journal = {};
   for (let metric of METRICS) {
     journal[metric] = [];
   }
 
   const pipelineOptions = new PipelineOptions(options);
-  for (let i = 0; i < iterations; i++) {
-    let metrics = await runInference(pipelineOptions, args);
+  let nIterations = addColdStart ? iterations + 1 : iterations;
+  for (let i = 0; i < nIterations; i++) {
+    const shouldAddColdStart = addColdStart && i === 0;
+    let metrics = await runInference(pipelineOptions, args, shouldAddColdStart);
     for (let [metricName, metricVal] of Object.entries(metrics)) {
       journal[`${name}-${metricName}`].push(metricVal);
     }

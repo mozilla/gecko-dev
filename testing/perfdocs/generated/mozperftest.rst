@@ -455,7 +455,7 @@ browser_ml_engine_perf.js
 ::
 
  --perfherder
- --perfherder-metrics name:pipeline-ready-latency,unit:ms,shouldAlert:True, name:initialization-latency,unit:ms,shouldAlert:True, name:model-run-latency,unit:ms,shouldAlert:True, name:pipeline-ready-memory,unit:MB,shouldAlert:True, name:initialization-memory,unit:MB,shouldAlert:True, name:model-run-memory,unit:MB,shouldAlert:True, name:total-memory-usage,unit:MB,shouldAlert:True
+ --perfherder-metrics name:EXAMPLE-cold-start-pipeline-ready-latency,unit:ms,shouldAlert:True, name:EXAMPLE-cold-start-initialization-latency,unit:ms,shouldAlert:True, name:EXAMPLE-cold-start-model-run-latency,unit:ms,shouldAlert:True, name:EXAMPLE-cold-start-pipeline-ready-memory,unit:MB,shouldAlert:True, name:EXAMPLE-cold-start-initialization-memory,unit:MB,shouldAlert:True, name:EXAMPLE-cold-start-model-run-memory,unit:MB,shouldAlert:True, name:EXAMPLE-cold-start-total-memory-usage,unit:MB,shouldAlert:True, name:EXAMPLE-pipeline-ready-latency,unit:ms,shouldAlert:True, name:EXAMPLE-initialization-latency,unit:ms,shouldAlert:True, name:EXAMPLE-model-run-latency,unit:ms,shouldAlert:True, name:EXAMPLE-pipeline-ready-memory,unit:MB,shouldAlert:True, name:EXAMPLE-initialization-memory,unit:MB,shouldAlert:True, name:EXAMPLE-model-run-memory,unit:MB,shouldAlert:True, name:EXAMPLE-total-memory-usage,unit:MB,shouldAlert:True
  --verbose
  --manifest perftest.toml
  --manifest-flavor browser-chrome

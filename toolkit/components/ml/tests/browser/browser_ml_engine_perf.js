@@ -10,13 +10,64 @@ const perfMetadata = {
     default: {
       perfherder: true,
       perfherder_metrics: [
-        { name: "pipeline-ready-latency", unit: "ms", shouldAlert: true },
-        { name: "initialization-latency", unit: "ms", shouldAlert: true },
-        { name: "model-run-latency", unit: "ms", shouldAlert: true },
-        { name: "pipeline-ready-memory", unit: "MB", shouldAlert: true },
-        { name: "initialization-memory", unit: "MB", shouldAlert: true },
-        { name: "model-run-memory", unit: "MB", shouldAlert: true },
-        { name: "total-memory-usage", unit: "MB", shouldAlert: true },
+        {
+          name: "EXAMPLE-cold-start-pipeline-ready-latency",
+          unit: "ms",
+          shouldAlert: true,
+        },
+        {
+          name: "EXAMPLE-cold-start-initialization-latency",
+          unit: "ms",
+          shouldAlert: true,
+        },
+        {
+          name: "EXAMPLE-cold-start-model-run-latency",
+          unit: "ms",
+          shouldAlert: true,
+        },
+        {
+          name: "EXAMPLE-cold-start-pipeline-ready-memory",
+          unit: "MB",
+          shouldAlert: true,
+        },
+        {
+          name: "EXAMPLE-cold-start-initialization-memory",
+          unit: "MB",
+          shouldAlert: true,
+        },
+        {
+          name: "EXAMPLE-cold-start-model-run-memory",
+          unit: "MB",
+          shouldAlert: true,
+        },
+        {
+          name: "EXAMPLE-cold-start-total-memory-usage",
+          unit: "MB",
+          shouldAlert: true,
+        },
+        {
+          name: "EXAMPLE-pipeline-ready-latency",
+          unit: "ms",
+          shouldAlert: true,
+        },
+        {
+          name: "EXAMPLE-initialization-latency",
+          unit: "ms",
+          shouldAlert: true,
+        },
+        { name: "EXAMPLE-model-run-latency", unit: "ms", shouldAlert: true },
+        {
+          name: "EXAMPLE-pipeline-ready-memory",
+          unit: "MB",
+          shouldAlert: true,
+        },
+        {
+          name: "EXAMPLE-initialization-memory",
+          unit: "MB",
+          shouldAlert: true,
+        },
+        { name: "EXAMPLE-model-run-memory", unit: "MB", shouldAlert: true },
+        { name: "EXAMPLE-total-memory-usage", unit: "MB", shouldAlert: true },
       ],
       verbose: true,
       manifest: "perftest.toml",
@@ -40,5 +91,5 @@ add_task(async function test_ml_generic_pipeline() {
   };
 
   const args = ["The quick brown fox jumps over the lazy dog."];
-  await perfTest("example", options, args);
+  await perfTest("example", options, args, ITERATIONS, true);
 });
