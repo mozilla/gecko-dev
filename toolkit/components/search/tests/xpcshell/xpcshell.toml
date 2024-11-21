@@ -245,6 +245,8 @@ support-files = [
 
 ["test_userEngine.js"]
 
+["test_userInstalledAppEngine.js"]
+
 ["test_validate_engines.js"]
 
 ["test_validate_manifests.js"]

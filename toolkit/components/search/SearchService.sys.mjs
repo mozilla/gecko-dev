@@ -26,6 +26,8 @@ ChromeUtils.defineESModuleGetters(lazy, {
   SearchSettings: "resource://gre/modules/SearchSettings.sys.mjs",
   SearchStaticData: "resource://gre/modules/SearchStaticData.sys.mjs",
   SearchUtils: "resource://gre/modules/SearchUtils.sys.mjs",
+  UserInstalledAppEngine:
+    "resource://gre/modules/AppProvidedSearchEngine.sys.mjs",
   UserSearchEngine: "resource://gre/modules/UserSearchEngine.sys.mjs",
 });
 
@@ -414,8 +416,7 @@ export class SearchService {
       host
     );
     if (config) {
-      let engine = new lazy.AppProvidedSearchEngine({ config, settings });
-      return engine;
+      return new lazy.UserInstalledAppEngine({ config, settings });
     }
     return null;
   }
@@ -1964,16 +1965,20 @@ export class SearchService {
       }
 
       let index = configEngines.findIndex(e => e.identifier == engine.id);
+      let configuration = configEngines?.[index];
 
-      if (index == -1) {
+      if (!configuration && engine._metaData["user-installed"]) {
+        configuration =
+          await this.#engineSelector.findContextualSearchEngineById(engine.id);
+      }
+
+      if (!configuration) {
         engine.pendingRemoval = true;
         continue;
       } else {
         // This is an existing engine that we should update (we don't know if
         // the configuration for this engine has changed or not).
-        await engine.update({
-          configuration: configEngines[index],
-        });
+        await engine.update({ configuration });
       }
 
       configEngines.splice(index, 1);
@@ -2320,7 +2325,10 @@ export class SearchService {
     for (let engineJSON of settings.engines) {
       // We renamed isBuiltin to isAppProvided in bug 1631898,
       // keep checking isBuiltin for older settings.
-      if (engineJSON._isAppProvided || engineJSON._isBuiltin) {
+      if (
+        (engineJSON._isAppProvided || engineJSON._isBuiltin) &&
+        !engineJSON._metaData?.["user-installed"]
+      ) {
         ++skippedEngines;
         continue;
       }
@@ -2372,6 +2380,15 @@ export class SearchService {
           engine = new lazy.AddonSearchEngine({
             json: engineJSON,
           });
+        } else if (
+          (engineJSON._isAppProvided || engineJSON._isBuiltin) &&
+          engineJSON._metaData?.["user-installed"]
+        ) {
+          let config =
+            await this.#engineSelector.findContextualSearchEngineById(
+              engineJSON.id
+            );
+          engine = new lazy.UserInstalledAppEngine({ config, settings });
         } else {
           engine = new lazy.OpenSearchEngine({
             json: engineJSON,

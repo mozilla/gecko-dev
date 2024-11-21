@@ -641,3 +641,23 @@ export class AppProvidedSearchEngine extends SearchEngine {
     this._urls.push(engineURL);
   }
 }
+
+/**
+ * This class defines Search Engines that are built in to to the
+ * application but whose installation was triggered by the user
+ * and not the region configuration.
+ */
+export class UserInstalledAppEngine extends AppProvidedSearchEngine {
+  /**
+   * @param {object} options
+   *   Options object passed to the constructor.
+   * @param {object} options.config
+   *   The configuration object for this engine defined in the Search Configuration.
+   * @param {object} options.settings
+   *   The settings object that the engine details will be stored in.
+   */
+  constructor({ config, settings }) {
+    super({ config, settings });
+    this.setAttr("user-installed", true);
+  }
+}
