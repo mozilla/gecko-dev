@@ -429,25 +429,12 @@ interface nsISearchService : nsISupports
   Promise findContextualSearchEngineByHost(in AString host);
 
   /**
-   * Returns whether the user should be given a prompt to install the
-   * engine they are currently using. A prompt is shown after the
-   * second time a user picks a contextual engine to search with. After
-   * the second time the prompt shuld not be shown again.
-   *
-   * @param   engine
-   *          The engine to check.
-   * @returns {boolean}
-   *          Whether or not to show the prompt.
-   */
-  Promise shouldShowInstallPrompt(in jsval engine);
-
-  /**
    * Installs an engine into the users engine list.
    *
    * @param   engine
    *          An engine configuration definition.
    */
-  Promise addSearchEngine(in jsval engine);
+  Promise addContextualSearchEngine(in jsval engine);
 
   /**
    * Moves a visible search engine.

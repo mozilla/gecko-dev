@@ -103,15 +103,6 @@ export class SearchEngineSelector {
     return this._configuration;
   }
 
-  /**
-   * Finds an engine configuration that has a matching host.
-   *
-   * @param {string} host
-   *   The host to match.
-   *
-   * @returns {object}
-   *   The configuration data for an engine.
-   */
   async findContextualSearchEngineByHost(host) {
     for (let config of this._configuration) {
       if (config.recordType !== "engine") {
@@ -122,29 +113,6 @@ export class SearchEngineSelector {
         searchHost = searchHost.slice(4);
       }
       if (searchHost.startsWith(host)) {
-        let engine = structuredClone(config.base);
-        engine.identifier = config.identifier;
-        return engine;
-      }
-    }
-    return null;
-  }
-
-  /**
-   * Finds an engine configuration that has a matching identifier.
-   *
-   * @param {string} id
-   *   The identifier to match.
-   *
-   * @returns {object}
-   *   The configuration data for an engine.
-   */
-  async findContextualSearchEngineById(id) {
-    for (let config of this._configuration) {
-      if (config.recordType !== "engine") {
-        continue;
-      }
-      if (config.identifier == id) {
         let engine = structuredClone(config.base);
         engine.identifier = config.identifier;
         return engine;

@@ -196,6 +196,8 @@ support-files = [
 
 ["test_sendSubmissionURL.js"]
 
+["test_settings_migrate_icons.js"]
+
 ["test_settings.js"]
 support-files = [
   "settings/settings-loading.json",
@@ -209,8 +211,6 @@ support-files = [
 ["test_settings_duplicate.js"]
 
 ["test_settings_good.js"]
-
-["test_settings_migrate_icons.js"]
 
 ["test_settings_migrate_id_format.js"]
 
@@ -244,8 +244,6 @@ support-files = [
 ["test_telemetry_event_default.js"]
 
 ["test_userEngine.js"]
-
-["test_userInstalledAppEngine.js"]
 
 ["test_validate_engines.js"]
 
