@@ -754,7 +754,7 @@
  */
 .tab-group-line {
   display: none;
-  background-color: var(--tab-group-color);
+  background-color: light-dark(var(--tab-group-color), var(--tab-group-color-invert));
   height: 2px;
   margin: 0 calc(-1 * var(--tab-overflow-clip-margin)) calc(-1 * var(--tab-block-margin));
 
@@ -768,7 +768,7 @@
 
   #tabbrowser-tabs[movingtab] &:is([selected],[multiselected]) {
     display: flex;
-    background-color: var(--dragover-tab-group-color);
+    background-color: light-dark(var(--dragover-tab-group-color), var(--dragover-tab-group-color-invert));
   }
 
   #tabbrowser-tabs:is([movingtab-createGroup],[movingtab-ungroup]) &:is([selected],[multiselected]) {
@@ -808,7 +808,7 @@ tab-group {
 
   tab-group:not([collapsed]) > &::after {
     content: "";
-    background-color: var(--tab-group-color);
+    background-color: light-dark(var(--tab-group-color), var(--tab-group-color-invert));
     height: 2px;
     position: absolute;
     inset: auto 0 0;
