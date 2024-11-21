@@ -17,6 +17,7 @@
 #include "nsLineBox.h"
 #include "nsCSSPseudoElements.h"
 #include "nsFloatManager.h"
+#include "mozilla/IntrinsicISizesCache.h"
 
 enum class LineReflowStatus {
   // The line was completely reflowed and fit in available width, and we should
@@ -273,6 +274,7 @@ class nsBlockFrame : public nsContainerFrame {
                                     BaselineSharingGroup aBaselineGroup,
                                     BaselineExportContext aExportContext) const;
 
+ protected:
   // MinISize() and PrefISize() are helpers to implement IntrinsicISize().
   nscoord MinISize(const mozilla::IntrinsicSizeInput& aInput);
   nscoord PrefISize(const mozilla::IntrinsicSizeInput& aInput);
@@ -1034,8 +1036,7 @@ class nsBlockFrame : public nsContainerFrame {
   int32_t GetDepth() const;
 #endif
 
-  nscoord mCachedMinISize = NS_INTRINSIC_ISIZE_UNKNOWN;
-  nscoord mCachedPrefISize = NS_INTRINSIC_ISIZE_UNKNOWN;
+  mozilla::IntrinsicISizesCache mCachedIntrinsics;
 
   nsLineList mLines;
 

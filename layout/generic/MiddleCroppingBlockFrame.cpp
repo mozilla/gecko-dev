@@ -58,26 +58,28 @@ void MiddleCroppingBlockFrame::UpdateDisplayedValueToUncroppedValue(
 
 nscoord MiddleCroppingBlockFrame::IntrinsicISize(
     const IntrinsicSizeInput& aInput, IntrinsicISizeType aType) {
-  nsAutoString prevValue;
-  bool restoreOldValue = false;
-
-  // Make sure we measure with the uncropped value.
-  if (mCropped && mCachedPrefISize == NS_INTRINSIC_ISIZE_UNKNOWN) {
-    mTextNode->GetNodeValue(prevValue);
-    restoreOldValue = true;
-    UpdateDisplayedValueToUncroppedValue(false);
+  auto* first = FirstContinuation();
+  if (this != first) {
+    return first->IntrinsicISize(aInput, aType);
   }
-
-  // Our min inline size is the same as our pref inline size, so we always
-  // delegate to nsBlockFrame's pref inline size.
-  nscoord result =
-      nsBlockFrame::IntrinsicISize(aInput, IntrinsicISizeType::PrefISize);
-
-  if (restoreOldValue) {
-    UpdateDisplayedValue(prevValue, /* aIsCropped = */ true, false);
-  }
-
-  return result;
+  return mCachedIntrinsics.GetOrSet(*this, aType, aInput, [&] {
+    nsAutoString prevValue;
+    bool restoreOldValue = false;
+    if (mCropped) {
+      // Make sure we measure with the uncropped value, if we're currently
+      // cropped.
+      mTextNode->GetNodeValue(prevValue);
+      UpdateDisplayedValueToUncroppedValue(false);
+      restoreOldValue = true;
+    }
+    // Our min inline size is the same as our pref inline size, so we always
+    // delegate to nsBlockFrame's pref inline size.
+    const nscoord result = nsBlockFrame::PrefISize(aInput);
+    if (restoreOldValue) {
+      UpdateDisplayedValue(prevValue, /* aIsCropped = */ true, false);
+    }
+    return result;
+  });
 }
 
 bool MiddleCroppingBlockFrame::CropTextToWidth(gfxContext& aRenderingContext,
@@ -177,8 +179,9 @@ void MiddleCroppingBlockFrame::Reflow(nsPresContext* aPresContext,
         aStatus.Reset();
         MarkSubtreeDirty();
         AddStateBits(NS_BLOCK_NEEDS_BIDI_RESOLUTION);
-        mCachedMinISize = NS_INTRINSIC_ISIZE_UNKNOWN;
-        mCachedPrefISize = NS_INTRINSIC_ISIZE_UNKNOWN;
+        // FIXME(emilio): Why do we need to clear cached intrinsics, if they are
+        // always based off our uncropped value?
+        mCachedIntrinsics.Clear();
         cropped = true;
         continue;
       }
