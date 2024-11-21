@@ -4,6 +4,7 @@
 
 package org.mozilla.fenix.ui
 
+import androidx.compose.ui.test.junit4.AndroidComposeTestRule
 import org.junit.Rule
 import org.junit.Test
 import org.mozilla.fenix.R
@@ -33,7 +34,9 @@ import org.mozilla.fenix.ui.robots.navigationToolbar
 
 class TopSitesTest : TestSetup() {
     @get:Rule
-    val activityIntentTestRule = HomeActivityIntentTestRule.withDefaultSettingsOverrides(skipOnboarding = true)
+    val activityIntentTestRule = AndroidComposeTestRule(
+        HomeActivityIntentTestRule.withDefaultSettingsOverrides(skipOnboarding = true),
+    ) { it.activity }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/532598
     @SmokeTest
@@ -195,7 +198,7 @@ class TopSitesTest : TestSetup() {
         }.openContextMenuOnTopSitesWithTitle(defaultWebPage.title) {
             verifyTopSiteContextMenuItems()
         }.removeTopSite {
-            clickSnackbarButton("UNDO")
+            clickSnackbarButton(activityIntentTestRule, "UNDO")
             verifyExistingTopSitesTabs(defaultWebPage.title)
         }.openContextMenuOnTopSitesWithTitle(defaultWebPage.title) {
             verifyTopSiteContextMenuItems()

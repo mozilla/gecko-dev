@@ -71,7 +71,7 @@ class CollectionTest : TestSetup() {
 
         composeTabDrawer(composeTestRule) {
             verifySnackBarText("Collection saved!")
-            clickSnackbarButton("VIEW")
+            clickSnackbarButton(composeTestRule, "VIEW")
         }
 
         homeScreen {
@@ -103,7 +103,7 @@ class CollectionTest : TestSetup() {
         }.enterURLAndEnterToBrowser(webPage.url) {
         }.openTabDrawer(composeTestRule) {
             createCollection(webPage.title, collectionName = collectionName)
-            clickSnackbarButton("VIEW")
+            clickSnackbarButton(composeTestRule, "VIEW")
         }
 
         homeScreen {
@@ -218,7 +218,7 @@ class CollectionTest : TestSetup() {
         }.enterURLAndEnterToBrowser(webPage.url) {
         }.openTabDrawer(composeTestRule) {
             createCollection(webPage.title, collectionName = collectionName)
-            clickSnackbarButton("VIEW")
+            clickSnackbarButton(composeTestRule, "VIEW")
         }
 
         homeScreen {
@@ -230,7 +230,7 @@ class CollectionTest : TestSetup() {
 
         homeScreen {
             verifySnackBarText("Collection deleted")
-            clickSnackbarButton("UNDO")
+            clickSnackbarButton(composeTestRule, "UNDO")
             verifyCollectionIsDisplayed(collectionName, true)
         }
 
@@ -370,7 +370,7 @@ class CollectionTest : TestSetup() {
         }
         homeScreen {
             verifySnackBarText("Collection deleted")
-            clickSnackbarButton("UNDO")
+            clickSnackbarButton(composeTestRule, "UNDO")
             verifyCollectionIsDisplayed(collectionName)
         }.expandCollection(collectionName) {
             verifyTabSavedInCollection(webPage.title, true)
@@ -406,7 +406,7 @@ class CollectionTest : TestSetup() {
         }
         homeScreen {
             verifySnackBarText("Collection deleted")
-            clickSnackbarButton("UNDO")
+            clickSnackbarButton(composeTestRule, "UNDO")
             verifyCollectionIsDisplayed(collectionName)
         }.expandCollection(collectionName) {
             verifyTabSavedInCollection(testPage.title, true)
@@ -439,7 +439,7 @@ class CollectionTest : TestSetup() {
         }
         homeScreen {
             verifySnackBarText("Collection deleted")
-            clickSnackbarButton("UNDO")
+            clickSnackbarButton(composeTestRule, "UNDO")
             verifyCollectionIsDisplayed(collectionName)
         }.expandCollection(collectionName) {
             verifyTabSavedInCollection(testPage.title, true)

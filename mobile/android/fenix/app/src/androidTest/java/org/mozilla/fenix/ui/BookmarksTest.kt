@@ -97,7 +97,7 @@ class BookmarksTest : TestSetup() {
         }.enterURLAndEnterToBrowser(defaultWebPage.url) {
         }.openThreeDotMenu {
         }.bookmarkPage {
-            clickSnackbarButton("EDIT")
+            clickSnackbarButton(activityTestRule, "EDIT")
         }
         bookmarksMenu {
             verifyEditBookmarksView()
@@ -314,7 +314,7 @@ class BookmarksTest : TestSetup() {
         }.openThreeDotMenu(defaultWebPage.title) {
         }.clickDelete {
             verifyUndoDeleteSnackBarButton()
-            clickSnackbarButton("UNDO")
+            clickSnackbarButton(activityTestRule, "UNDO")
             verifySnackBarHidden()
             registerAndCleanupIdlingResources(
                 RecyclerViewIdlingResource(activityTestRule.activity.findViewById(R.id.bookmark_list), 2),
@@ -447,7 +447,7 @@ class BookmarksTest : TestSetup() {
 
         bookmarksMenu {
             verifySnackBarText(expectedText = "Bookmarks deleted")
-            clickSnackbarButton("UNDO")
+            clickSnackbarButton(activityTestRule, "UNDO")
             verifyBookmarkedURL(webPages[0].url.toString())
             verifyBookmarkedURL(webPages[1].url.toString())
             registerAndCleanupIdlingResources(
@@ -740,7 +740,7 @@ class BookmarksTest : TestSetup() {
         }.clickDelete {
             confirmDeletion()
             verifySnackBarText(expectedText = "Deleted")
-            clickSnackbarButton("UNDO")
+            clickSnackbarButton(activityTestRule, "UNDO")
             verifyFolderTitle("My Folder")
         }.openThreeDotMenu("My Folder") {
         }.clickDelete {

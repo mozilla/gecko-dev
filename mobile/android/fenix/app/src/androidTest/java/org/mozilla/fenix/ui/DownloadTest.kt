@@ -161,7 +161,7 @@ class DownloadTest : TestSetup() {
         }.openDownloadsManager() {
             verifyDownloadedFileExistsInDownloadsList(activityTestRule, "smallZip.zip")
             deleteDownloadedItem(activityTestRule, "smallZip.zip")
-            clickSnackbarButton("UNDO")
+            clickSnackbarButton(activityTestRule, "UNDO")
             verifyDownloadedFileExistsInDownloadsList(activityTestRule, "smallZip.zip")
             deleteDownloadedItem(activityTestRule, "smallZip.zip")
             verifyEmptyDownloadsList(activityTestRule)
@@ -192,7 +192,7 @@ class DownloadTest : TestSetup() {
             clickDownloadedItem(activityTestRule, secondDownloadedFile)
             openMultiSelectMoreOptionsMenu()
             clickMultiSelectRemoveButton()
-            clickSnackbarButton("UNDO")
+            clickSnackbarButton(activityTestRule, "UNDO")
             verifyDownloadedFileExistsInDownloadsList(activityTestRule, firstDownloadedFile)
             verifyDownloadedFileExistsInDownloadsList(activityTestRule, secondDownloadedFile)
             longClickDownloadedItem(activityTestRule, firstDownloadedFile)

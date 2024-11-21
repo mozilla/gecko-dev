@@ -99,7 +99,7 @@ class TabbedBrowsingTest : TestSetup() {
             verifyExistingOpenTabs("Test_Page_1")
             closeTab()
             verifySnackBarText("Tab closed")
-            clickSnackbarButton("UNDO")
+            clickSnackbarButton(composeTestRule, "UNDO")
         }
         browserScreen {
             verifyTabCounter("1")
@@ -146,7 +146,7 @@ class TabbedBrowsingTest : TestSetup() {
             verifyExistingOpenTabs("Test_Page_1")
             closeTab()
             verifySnackBarText("Private tab closed")
-            clickSnackbarButton("UNDO")
+            clickSnackbarButton(composeTestRule, "UNDO")
         }
         browserScreen {
             verifyTabCounter("1")

@@ -421,7 +421,7 @@ class SettingsSearchTest : TestSetup() {
             openEngineOverflowMenu(customSearchEngineTitle)
             clickDeleteSearchEngine()
             verifySnackBarText("Deleted $customSearchEngineTitle")
-            clickSnackbarButton("UNDO")
+            clickSnackbarButton(activityTestRule, "UNDO")
             verifyEngineListContains(customSearchEngineTitle, shouldExist = true)
             changeDefaultSearchEngine(customSearchEngineTitle)
             openEngineOverflowMenu(customSearchEngineTitle)

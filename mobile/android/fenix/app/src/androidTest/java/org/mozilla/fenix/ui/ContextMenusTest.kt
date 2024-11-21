@@ -71,7 +71,7 @@ class ContextMenusTest : TestSetup() {
             verifyContextMenuForLocalHostLinks(genericURL.url)
             clickContextMenuItem("Open link in new tab")
             verifySnackBarText("New tab opened")
-            clickSnackbarButton("SWITCH")
+            clickSnackbarButton(composeTestRule, "SWITCH")
             verifyUrl(genericURL.url.toString())
         }.openTabDrawer(composeTestRule) {
             verifyNormalBrowsingButtonIsSelected()
@@ -95,7 +95,7 @@ class ContextMenusTest : TestSetup() {
             verifyContextMenuForLocalHostLinks(genericURL.url)
             clickContextMenuItem("Open link in private tab")
             verifySnackBarText("New private tab opened")
-            clickSnackbarButton("SWITCH")
+            clickSnackbarButton(composeTestRule, "SWITCH")
             verifyUrl(genericURL.url.toString())
         }.openTabDrawer(composeTestRule) {
             verifyPrivateBrowsingButtonIsSelected()
@@ -160,7 +160,7 @@ class ContextMenusTest : TestSetup() {
             verifyLinkImageContextMenuItems(imageResource.url)
             clickContextMenuItem("Open image in new tab")
             verifySnackBarText("New tab opened")
-            clickSnackbarButton("SWITCH")
+            clickSnackbarButton(composeTestRule, "SWITCH")
             verifyUrl(imageResource.url.toString())
         }
     }

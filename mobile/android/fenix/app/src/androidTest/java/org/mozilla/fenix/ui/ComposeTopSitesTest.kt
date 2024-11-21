@@ -201,7 +201,7 @@ class ComposeTopSitesTest : TestSetup() {
         }.openContextMenuOnTopSitesWithTitle(defaultWebPage.title) {
             verifyTopSiteContextMenuItems()
         }.removeTopSite {
-            clickSnackbarButton("UNDO")
+            clickSnackbarButton(composeTestRule, "UNDO")
             verifyExistingTopSiteItem(defaultWebPage.title)
         }.openContextMenuOnTopSitesWithTitle(defaultWebPage.title) {
             verifyTopSiteContextMenuItems()

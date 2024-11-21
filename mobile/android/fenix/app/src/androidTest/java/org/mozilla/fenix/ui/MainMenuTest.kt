@@ -232,7 +232,7 @@ class MainMenuTest : TestSetup() {
         }.closeBrowserMenuToBrowser {
             longClickPageObject(MatcherHelper.itemWithText("Link 2"))
             clickContextMenuItem("Open link in new tab")
-            clickSnackbarButton("SWITCH")
+            clickSnackbarButton(composeTestRule, "SWITCH")
         }.openThreeDotMenu {
             verifyDesktopSiteModeEnabled(false)
         }

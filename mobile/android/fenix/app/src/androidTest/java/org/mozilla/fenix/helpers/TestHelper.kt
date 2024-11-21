@@ -8,6 +8,10 @@ import android.content.Context
 import android.net.Uri
 import android.util.Log
 import android.view.View
+import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.junit4.ComposeTestRule
+import androidx.compose.ui.test.performClick
 import androidx.test.espresso.Espresso.onView
 import androidx.test.espresso.action.ViewActions.longClick
 import androidx.test.espresso.intent.Intents
@@ -22,7 +26,6 @@ import androidx.test.uiautomator.By.res
 import androidx.test.uiautomator.UiDevice
 import androidx.test.uiautomator.UiObject
 import androidx.test.uiautomator.UiObject2
-import androidx.test.uiautomator.UiObjectNotFoundException
 import androidx.test.uiautomator.UiScrollable
 import androidx.test.uiautomator.UiSelector
 import androidx.test.uiautomator.Until
@@ -35,7 +38,6 @@ import org.junit.Assert.assertTrue
 import org.mozilla.fenix.R
 import org.mozilla.fenix.compose.snackbar.SNACKBAR_BUTTON_TEST_TAG
 import org.mozilla.fenix.compose.snackbar.SNACKBAR_TEST_TAG
-import org.mozilla.fenix.helpers.Constants.RETRY_COUNT
 import org.mozilla.fenix.helpers.Constants.TAG
 import org.mozilla.fenix.helpers.MatcherHelper.assertUIObjectExists
 import org.mozilla.fenix.helpers.MatcherHelper.itemContainingText
@@ -115,27 +117,13 @@ object TestHelper {
         )
     }
 
-    fun clickSnackbarButton(expectedText: String) {
-        for (i in 1..RETRY_COUNT) {
-            Log.i(TAG, "clickSnackbarButton: Started try #$i")
-            try {
-                Log.i(TAG, "clickSnackbarButton: Waiting for $waitingTimeShort ms for the $expectedText snackbar button to exist")
-                waitUntilObjectIsFound(SNACKBAR_BUTTON_TEST_TAG)
-                assertTrue(snackbarButton!!.children.count { it.text == expectedText } == 1)
-                Log.i(TAG, "clickSnackbarButton: Waited for $waitingTimeShort ms for the $expectedText snackbar button to exist")
-                Log.i(TAG, "clickSnackbarButton: Trying to click the $expectedText and wait for $waitingTime ms for a new window")
-                snackbarButton!!.click()
-                mDevice.waitForIdle()
-                Log.i(TAG, "clickSnackbarButton: Clicked the $expectedText and waited for $waitingTime ms for a new window")
-
-                break
-            } catch (e: UiObjectNotFoundException) {
-                Log.i(TAG, "clickSnackbarButton: UiObjectNotFoundException caught, executing fallback methods")
-                if (i == RETRY_COUNT) {
-                    throw e
-                }
-            }
-        }
+    fun clickSnackbarButton(composeTestRule: ComposeTestRule, expectedText: String) {
+        Log.i(TAG, "clickSnackbarButton: Waiting for compose test rule to be idle")
+        composeTestRule.waitForIdle()
+        Log.i(TAG, "clickSnackbarButton: Waited for compose test rule to be idle")
+        Log.i(TAG, "clickSnackbarButton: Trying to click $expectedText snackbar button")
+        composeTestRule.onNode(hasTestTag(SNACKBAR_BUTTON_TEST_TAG) or hasText(expectedText)).performClick()
+        Log.i(TAG, "clickSnackbarButton: Clicked $expectedText snackbar button")
     }
 
     fun waitUntilSnackbarGone() {
