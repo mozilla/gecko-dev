@@ -182,7 +182,7 @@ intl.ui.browser_language:
     bugs: *intl_ui_browserLanguage_manage_bugs
     data_reviews: *intl_ui_browserLanguage_manage_data_reviews
     notification_emails: *intl_ui_browserLanguage_manage_emails
-    expires: 135
+    expires: 148
     extra_keys: *intl_ui_browserLanguage_manage_extra
     telemetry_mirror: IntlUiBrowserlanguage_Search_Dialog
 
@@ -200,7 +200,7 @@ intl.ui.browser_language:
     bugs: *intl_ui_browserLanguage_manage_bugs
     data_reviews: *intl_ui_browserLanguage_manage_data_reviews
     notification_emails: *intl_ui_browserLanguage_manage_emails
-    expires: 135
+    expires: 148
     extra_keys: *intl_ui_browserLanguage_manage_extra
     telemetry_mirror: IntlUiBrowserlanguage_Search_Main
 
@@ -218,7 +218,7 @@ intl.ui.browser_language:
     bugs: *intl_ui_browserLanguage_manage_bugs
     data_reviews: *intl_ui_browserLanguage_manage_data_reviews
     notification_emails: *intl_ui_browserLanguage_manage_emails
-    expires: 135
+    expires: 148
     extra_keys:
       value:
         description: >
@@ -245,7 +245,7 @@ intl.ui.browser_language:
     bugs: *intl_ui_browserLanguage_manage_bugs
     data_reviews: *intl_ui_browserLanguage_manage_data_reviews
     notification_emails: *intl_ui_browserLanguage_manage_emails
-    expires: 135
+    expires: 148
     extra_keys: *intl_ui_browserLanguage_manage_extra
     telemetry_mirror: IntlUiBrowserlanguage_Remove_Dialog
 
@@ -263,7 +263,7 @@ intl.ui.browser_language:
     bugs: *intl_ui_browserLanguage_manage_bugs
     data_reviews: *intl_ui_browserLanguage_manage_data_reviews
     notification_emails: *intl_ui_browserLanguage_manage_emails
-    expires: 135
+    expires: 148
     extra_keys: *intl_ui_browserLanguage_manage_extra
     telemetry_mirror: IntlUiBrowserlanguage_Reorder_Dialog
 
@@ -281,7 +281,7 @@ intl.ui.browser_language:
     bugs: *intl_ui_browserLanguage_manage_bugs
     data_reviews: *intl_ui_browserLanguage_manage_data_reviews
     notification_emails: *intl_ui_browserLanguage_manage_emails
-    expires: 135
+    expires: 148
     telemetry_mirror: IntlUiBrowserlanguage_Reorder_Main
 
   apply_main:
@@ -298,7 +298,7 @@ intl.ui.browser_language:
     bugs: *intl_ui_browserLanguage_manage_bugs
     data_reviews: *intl_ui_browserLanguage_manage_data_reviews
     notification_emails: *intl_ui_browserLanguage_manage_emails
-    expires: 135
+    expires: 148
     telemetry_mirror: IntlUiBrowserlanguage_Apply_Main
 
   accept_dialog:
@@ -315,7 +315,7 @@ intl.ui.browser_language:
     bugs: *intl_ui_browserLanguage_manage_bugs
     data_reviews: *intl_ui_browserLanguage_manage_data_reviews
     notification_emails: *intl_ui_browserLanguage_manage_emails
-    expires: 135
+    expires: 148
     extra_keys: *intl_ui_browserLanguage_manage_extra
     telemetry_mirror: IntlUiBrowserlanguage_Accept_Dialog
 
@@ -333,7 +333,7 @@ intl.ui.browser_language:
     bugs: *intl_ui_browserLanguage_manage_bugs
     data_reviews: *intl_ui_browserLanguage_manage_data_reviews
     notification_emails: *intl_ui_browserLanguage_manage_emails
-    expires: 135
+    expires: 148
     extra_keys: *intl_ui_browserLanguage_manage_extra
     telemetry_mirror: IntlUiBrowserlanguage_Cancel_Dialog
 
@@ -351,7 +351,7 @@ intl.ui.browser_language:
     bugs: *intl_ui_browserLanguage_manage_bugs
     data_reviews: *intl_ui_browserLanguage_manage_data_reviews
     notification_emails: *intl_ui_browserLanguage_manage_emails
-    expires: 135
+    expires: 148
     extra_keys: *intl_ui_browserLanguage_manage_extra
     telemetry_mirror: IntlUiBrowserlanguage_SetFallback_Dialog
 
