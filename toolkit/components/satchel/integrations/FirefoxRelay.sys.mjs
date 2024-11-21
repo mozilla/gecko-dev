@@ -473,8 +473,8 @@ class RelayOffered {
       isSignup(scenarioName) &&
       !Services.prefs.prefIsLocked(gConfig.relayFeaturePref) &&
       ((await hasFirefoxAccountAsync()) ||
-        Services.prefs.getBoolPref(gConfig.showToAllBrowsersPref, false)) &&
-      (await onAllowList(origin))
+        (Services.prefs.getBoolPref(gConfig.showToAllBrowsersPref, false) &&
+          (await onAllowList(origin))))
     ) {
       const [title, subtitle] = await formatMessages(
         "firefox-relay-opt-in-title-1",

@@ -52,6 +52,33 @@ add_task(async function test_default_displays_Relay_to_signed_in_browser() {
 });
 
 add_task(
+  async function test_site_not_on_allowList_still_shows_Relay_to_signed_in_browser() {
+    const sandbox = stubFxAccountsToSimulateSignedIn();
+    const rsSandbox = await stubRemoteSettingsAllowList([
+      { domain: "not-example.org" },
+    ]);
+    await BrowserTestUtils.withNewTab(
+      {
+        gBrowser,
+        url: TEST_URL_PATH,
+      },
+      async function (browser) {
+        const popup = document.getElementById("PopupAutoComplete");
+        await openACPopup(popup, browser, "#form-basic-username");
+
+        const relayItem = getRelayItemFromACPopup(popup);
+        Assert.ok(
+          relayItem,
+          "Relay item SHOULD be present in the autocomplete popup when the site is not on the allow-list, if the user is signed into the browser."
+        );
+      }
+    );
+    sandbox.restore();
+    rsSandbox.restore();
+  }
+);
+
+add_task(
   async function test_authenticated_browser_use_email_mask_calls_fxa_and_relay_functions() {
     const sandbox = stubFxAccountsToSimulateSignedIn();
     const rsSandbox = await stubRemoteSettingsAllowList();
