@@ -17,7 +17,11 @@
 #endif
         data-l10n-args="{&quot;content-title&quot;:&quot;CONTENTTITLE&quot;}"
         data-l10n-attrs="data-content-title-default, data-content-title-private, data-title-default, data-title-private"
-        chromemargin="0,0,0,0"
+#ifdef XP_WIN
+        chromemargin="0,2,2,2"
+#else
+        chromemargin="0,-1,-1,-1"
+#endif
         tabsintitlebar="true"
         windowtype="navigator:browser"
         macanimationtype="document"
