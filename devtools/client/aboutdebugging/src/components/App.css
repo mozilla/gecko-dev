@@ -63,7 +63,7 @@
 }
 
 .page {
-  max-width: var(--page-width);
+  max-width: var(--page-main-content-width);
   min-width: min-content;
   font-size: var(--body-20-font-size);
   font-weight: var(--body-20-font-weight);
