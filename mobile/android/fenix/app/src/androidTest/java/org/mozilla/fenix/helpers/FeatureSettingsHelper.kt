@@ -84,6 +84,11 @@ interface FeatureSettingsHelper {
     var isNavigationToolbarEnabled: Boolean
 
     /**
+     * Enable or disable the new main menu.
+     */
+    var isMenuRedesignEnabled: Boolean
+
+    /**
      * Enable or disable the new microsurvey feature.
      */
     var isMicrosurveyEnabled: Boolean
