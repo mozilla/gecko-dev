@@ -171,7 +171,7 @@ public final class Clipboard {
         (ClipboardManager) context.getSystemService(Context.CLIPBOARD_SERVICE);
     if (isPrivateData && Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
       final PersistableBundle extras = new PersistableBundle();
-      extras.putBoolean(ClipDescription.EXTRA_IS_SENSITIVE, true);
+      extras.putBoolean("android.content.extra.IS_SENSITIVE", true);
       clipData.getDescription().setExtras(extras);
     }
     try {
