@@ -7,11 +7,7 @@ Services.scriptloader.loadSubScript(
 
 add_setup(async () => {
   await SpecialPowers.pushPrefEnv({
-    set: [
-      ["signon.firefoxRelay.showToAllBrowsers", true],
-      ["identity.fxaccounts.oauth.enabled", false],
-      ["identity.fxaccounts.contextParam", "fx_desktop_v3"],
-    ],
+    set: [["signon.firefoxRelay.showToAllBrowsers", true]],
   });
 });
 
