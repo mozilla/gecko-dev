@@ -14,7 +14,7 @@ To record Legacy Telemetry events using Glean APIs, you need these two things:
 2. A Legacy Telemetry event definition, for the [Glean Interface For Firefox Telemetry][gifft] to mirror to
     * Use `./mach event-into-legacy <Glean event metric name like privacy.sanitize.dialog_open>` to generate this automatically.
     * Place it in `toolkit/components/telemetry/Events.yaml`
-    * Be sure to add the `telemetry-mirror` property to the Glean `event`
+    * Be sure to add the `telemetry_mirror` property to the Glean `event`
       definition from step 1. You can follow the instructions in the output from `./mach event-into-legacy`,
       or [this guide for determining the Legacy Telemetry event's enum name manually][legacy-enum-name].
 

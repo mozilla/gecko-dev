@@ -41,7 +41,7 @@ EXTRA_KEY_TEMPLATE = """
 @Command(
     "gifft",
     category="misc",
-    description="Generate a Glean metric definition for a given Legacy Telemetry probe. Only supports Events.",
+    description="Generate a Glean metric definition for a given Legacy Telemetry probe. Only supports Events and Scalars.",
 )
 @CommandArgument(
     "telemetry_probe_name", help="Telemetry probe name (e.g. readermode.view)"
