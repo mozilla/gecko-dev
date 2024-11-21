@@ -899,18 +899,19 @@ tab-group {
   .tab-group-editor-swatch {
     width: 16px;
     height: 16px;
-    border-radius: var(--border-radius-small);
+    padding: var(--focus-outline-offset);
+    border: var(--focus-outline-width) solid transparent;
+    border-radius: var(--border-radius-medium);
+    background-clip: content-box;
     background-color: light-dark(var(--tabgroup-swatch-color), var(--tabgroup-swatch-color-invert));
 
     input:checked + & {
-      outline: var(--focus-outline);
-      outline-color: currentColor;
-      outline-offset: var(--focus-outline-offset);
+      border-color: var(--focus-outline-color);
     }
 
     input:focus-visible + & {
-      outline-color: var(--focus-outline-color);
-      box-shadow: 0 0 0 calc(var(--focus-outline-width) * 3) color-mix(in srgb, var(--focus-outline-color) 50%, transparent);
+      outline: 1px solid var(--focus-outline-color);
+      outline-offset: 1px;
     }
   }
 
