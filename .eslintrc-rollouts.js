@@ -48,7 +48,6 @@ const rollouts = [
     // modules. To support the gradual switch, we log these as warnings until
     // they have been transitioned.
     files: [
-      "android/modules/geckoview/AndroidLog.sys.mjs",
       "browser/base/content/browser-data-submission-info-bar.js",
       "browser/base/content/browser-sync.js",
       "browser/base/content/browser.js",
@@ -68,6 +67,7 @@ const rollouts = [
       "devtools/shared/tests/xpcshell/test_console_filtering.js",
       "devtools/shared/webconsole/test/chrome/test_consoleapi_innerID.html",
       "dom/push/Push*.sys.mjs",
+      "mobile/android/modules/geckoview/AndroidLog.sys.mjs",
       "mobile/shared/modules/geckoview/GeckoViewUtils.sys.mjs",
       "remote/shared/**",
       "security/manager/ssl/RemoteSecuritySettings.sys.mjs",
