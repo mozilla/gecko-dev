@@ -70,6 +70,13 @@ export const AboutWelcomeUtils = {
   getLoadingStrategyFor(url) {
     return url?.startsWith("http") ? "lazy" : "eager";
   },
+  handleCampaignAction(action, messageId) {
+    window.AWSendToParent("HANDLE_CAMPAIGN_ACTION", action).then(handled => {
+      if (handled) {
+        this.sendActionTelemetry(messageId, "CAMPAIGN_ACTION");
+      }
+    });
+  },
 };
 
 export const DEFAULT_RTAMO_CONTENT = {

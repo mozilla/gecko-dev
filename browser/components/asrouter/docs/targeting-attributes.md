@@ -49,6 +49,7 @@ Please note that some targeting attributes require stricter controls on the tele
 * [isMajorUpgrade](#ismajorupgrade)
 * [isMSIX](#ismsix)
 * [isRTAMO](#isrtamo)
+* [unhandledCampaignAction](#unhandledCampaignAction)
 * [launchOnLoginEnabled](#launchonloginenabled)
 * [locale](#locale)
 * [localeLanguageCode](#localelanguagecode)
@@ -1040,6 +1041,10 @@ A boolean. `true` when both the current install and current profile support crea
 ### `hasSelectableProfiles`
 
 A boolean. `true` when the `toolkit.profiles.storeID` pref has a value. Indicates that the profile is part of a profile group managed by the `SelectableProfileService`, and the user has used the multiple profiles feature. `false` otherwise.
+
+### `unhandledCampaignAction`
+
+A string. A special message action to be executed on first-run. For example, `"SET_DEFAULT_BROWSER"` when the user selected to set as default via the [install marketing page](https://www.mozilla.org/firefox/new/) and set default has not yet been automatically triggered, `null` otherwise.
 
 ### `isMSIX`
 
