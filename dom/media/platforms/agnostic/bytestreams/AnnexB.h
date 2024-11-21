@@ -8,6 +8,7 @@
 #include "ErrorList.h"
 #include "mozilla/RefPtr.h"
 #include "mozilla/Result.h"
+#include "H264.h"
 
 template <class>
 class nsTArray;
@@ -71,6 +72,10 @@ class AnnexB {
   // each NAL in the bytes stream.
   static void ParseNALEntries(const Span<const uint8_t>& aSpan,
                               nsTArray<AnnexB::NALEntry>& aEntries);
+
+  // Parse NAL entries and check if the NAL_TYPES are all present in data
+  static bool FindAllNalTypes(const Span<const uint8_t>& aSpan,
+                              const nsTArray<NAL_TYPES>& aTypes);
 
  private:
   // AVCC box parser helper.

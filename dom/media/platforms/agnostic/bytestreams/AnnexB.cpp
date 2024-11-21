@@ -337,6 +337,28 @@ void AnnexB::ParseNALEntries(const Span<const uint8_t>& aSpan,
   }
 }
 
+/* static */
+bool AnnexB::FindAllNalTypes(const Span<const uint8_t>& aSpan,
+                             const nsTArray<NAL_TYPES>& aTypes) {
+  nsTArray<AnnexB::NALEntry> nalEntries;
+  AnnexB::ParseNALEntries(aSpan, nalEntries);
+  nsTArray<NAL_TYPES> checkTypes = aTypes.Clone();
+  auto entry = nalEntries.cbegin();
+  while (entry != nalEntries.cend()) {
+    int64_t offset = (*entry).mOffset;
+    uint8_t nalUnitType = (aSpan.cbegin() + offset)[0] & 0x1f;
+    size_t index = checkTypes.IndexOf(nalUnitType);
+    if (index != nsTArray<NAL_TYPES>::NoIndex) {
+      checkTypes.RemoveElementAt(index);
+      if (checkTypes.IsEmpty()) {
+        return true;
+      }
+    }
+    entry++;
+  }
+  return false;
+}
+
 static Result<mozilla::Ok, nsresult> ParseNALUnits(ByteWriter<BigEndian>& aBw,
                                                    BufferReader& aBr) {
   size_t startSize;

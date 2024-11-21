@@ -396,7 +396,11 @@ bool WMFMediaDataEncoder::WriteFrameData(RefPtr<MediaRawData>& aDest,
     RefPtr<MediaByteBuffer> avccHeader;
     if (aIsKeyframe && mConfigData) {
       if (IsAnnexB()) {
-        prependLength = mConfigData->Length();
+        const nsTArray<NAL_TYPES> aTypes = {H264_NAL_SPS, H264_NAL_PPS};
+        if (!AnnexB::FindAllNalTypes(
+                Span<const uint8_t>(aSrc.Data(), aSrc.Length()), aTypes)) {
+          prependLength = mConfigData->Length();
+        }
       } else {
         avccHeader = mConfigData;
       }
