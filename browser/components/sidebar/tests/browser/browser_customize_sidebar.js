@@ -10,8 +10,8 @@ const TAB_DIRECTION_PREF = "sidebar.verticalTabs";
 
 async function showCustomizePanel(win) {
   await win.SidebarController.show("viewCustomizeSidebar");
-  return TestUtils.waitForCondition(() => {
-    const document = win.SidebarController.browser.contentDocument;
+  const document = win.SidebarController.browser.contentDocument;
+  return TestUtils.waitForCondition(async () => {
     const component = document.querySelector("sidebar-customize");
     if (!component?.positionInputs || !component?.visibilityInputs) {
       return false;
@@ -122,13 +122,12 @@ add_task(async function test_customize_not_added_in_menubar() {
 
 add_task(async function test_manage_preferences_navigation() {
   const win = await BrowserTestUtils.openNewBrowserWindow();
-  await showCustomizePanel(win);
-  const sidebarBox = win.document.getElementById("sidebar-box");
-  await BrowserTestUtils.waitForCondition(
-    () => BrowserTestUtils.isVisible(sidebarBox),
-    "Sidebar panel is visible"
-  );
-
+  const { SidebarController } = win;
+  const { contentWindow } = SidebarController.browser;
+  const sidebar = document.querySelector("sidebar-main");
+  ok(sidebar, "Sidebar is shown.");
+  await sidebar.updateComplete;
+  await toggleSidebarPanel(win, "viewCustomizeSidebar");
   let customizeDocument = win.SidebarController.browser.contentDocument;
   const customizeComponent =
     customizeDocument.querySelector("sidebar-customize");
@@ -139,7 +138,7 @@ add_task(async function test_manage_preferences_navigation() {
   EventUtils.synthesizeMouseAtCenter(
     manageSettings.querySelector("a"),
     {},
-    customizeDocument.ownerGlobal
+    contentWindow
   );
   await BrowserTestUtils.waitForCondition(
     () =>

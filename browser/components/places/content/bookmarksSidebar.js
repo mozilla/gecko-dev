@@ -29,8 +29,7 @@ XPCOMUtils.defineLazyScriptGetter(
 var gCumulativeSearches = 0;
 
 function init() {
-  let top = window.browsingContext.topChromeWindow;
-  let uidensity = top.document.documentElement.getAttribute("uidensity");
+  let uidensity = window.top.document.documentElement.getAttribute("uidensity");
   if (uidensity) {
     document.documentElement.setAttribute("uidensity", uidensity);
   }
