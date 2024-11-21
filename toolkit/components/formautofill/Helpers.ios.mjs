@@ -16,10 +16,14 @@ HTMLElement.prototype.ownerGlobal = window;
 
 // We cannot mock this in WebKit because we lack access to low-level APIs.
 // For completeness, we simply return true when the input type is "password".
+// NOTE: Since now we also include this file for password generator, it might be included multiple times
+// which causes the defineProperty to throw. Allowing it to be overwritten for now is fine, since
+// our code runs in a sandbox and only firefox code can overwrite it.
 Object.defineProperty(HTMLInputElement.prototype, "hasBeenTypePassword", {
   get() {
     return this.type === "password";
   },
+  configurable: true,
 });
 
 HTMLInputElement.prototype.setUserInput = function (value) {
