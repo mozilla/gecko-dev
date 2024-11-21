@@ -928,8 +928,8 @@ export class AsyncTabSwitcher {
   }
 
   /**
-   * Check if the browser should be deactivated. If the browser is a print preivew or
-   * PiP browser then we won't deactive it.
+   * Check if the browser should be deactivated. If the browser is a print preview or
+   * PiP browser then we won't deactivate it.
    * @param browser The browser to check if it should be deactivated
    * @returns false if a print preview or PiP browser else true
    */
@@ -1061,6 +1061,15 @@ export class AsyncTabSwitcher {
     this.requestedTab = tab;
     if (tabState == this.STATE_LOADED) {
       this.maybeVisibleTabs.clear();
+      // We're switching to a tab that is still loaded.
+      // Make sure its priority is correct as it may
+      // have been deprioritized when it was switched
+      // away from (bug 1927609)
+      let browser = tab.linkedBrowser;
+      let remoteTab = browser.frameLoader?.remoteTab;
+      if (remoteTab) {
+        remoteTab.priorityHint = true;
+      }
     }
 
     tab.linkedBrowser.setAttribute("primary", "true");
