@@ -492,7 +492,8 @@ export class NetworkObserver {
           fromServiceWorker: httpActivity.fromServiceWorker,
           rawHeaders: httpActivity.responseRawHeaders,
           proxyResponseRawHeaders: httpActivity.proxyResponseRawHeaders,
-          earlyHintsResponseRawHeaders: httpActivity.earlyHintsResponseRawHeaders,
+          earlyHintsResponseRawHeaders:
+            httpActivity.earlyHintsResponseRawHeaders,
         });
       }
     }
