@@ -50,21 +50,23 @@ def handle_clippy_msg(config, line, log, base_path, files):
                 if not in_sorted_list(files, p):
                     return
                 p = os.path.join(base_path, l["file_name"])
+                line = l["line_start"]
                 res = {
                     "path": p,
                     "level": detail["level"],
-                    "lineno": l["line_start"],
+                    "lineno": line,
                     "column": l["column_start"],
                     "message": detail["message"],
                     "hint": detail["rendered"],
                     "rule": detail["code"]["code"],
                     "lineoffset": l["line_end"] - l["line_start"],
                 }
+                log.debug("Identified an issue in {}:{}".format(p, line))
                 return result.from_config(config, **res)
 
     except json.decoder.JSONDecodeError:
-        log.debug("Could not parse the output:")
-        log.debug("clippy output: {}".format(line))
+        # Could not parse the message.
+        # It is usually cargo info like "Finished `release` profile", etc
         return
 
 
@@ -74,16 +76,18 @@ def lint(paths, config, fix=None, **lintargs):
     log = lintargs["log"]
     results = []
     mach_path = lintargs["root"] + "/mach"
+    clippy_args = [
+        sys.executable,
+        mach_path,
+        "--log-no-times",
+        "cargo",
+        "clippy",
+        "--",
+        "--message-format=json",
+    ]
+    log.debug("Run clippy with = {}".format(" ".join(clippy_args)))
     march_cargo_process = subprocess.Popen(
-        [
-            sys.executable,
-            mach_path,
-            "--log-no-times",
-            "cargo",
-            "clippy",
-            "--",
-            "--message-format=json",
-        ],
+        clippy_args,
         stdout=subprocess.PIPE,
         text=True,
     )
