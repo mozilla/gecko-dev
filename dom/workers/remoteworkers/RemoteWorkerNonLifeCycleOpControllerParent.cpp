@@ -21,7 +21,12 @@ void RemoteWorkerNonLifeCycleOpControllerParent::Shutdown() {
   if (CanSend()) {
     Unused << SendShutdown();
   }
-  mController = nullptr;
+  if (mController) {
+    mController = nullptr;
+  }
+  if (GetIPCChannel()) {
+    GetIPCChannel()->Close();
+  }
 }
 
 IPCResult RemoteWorkerNonLifeCycleOpControllerParent::RecvTerminated() {
@@ -29,6 +34,10 @@ IPCResult RemoteWorkerNonLifeCycleOpControllerParent::RecvTerminated() {
   if (mController) {
     mController->mNonLifeCycleOpController = nullptr;
     mController = nullptr;
+  }
+
+  if (GetIPCChannel()) {
+    GetIPCChannel()->Close();
   }
 
   return IPC_OK();
@@ -39,14 +48,6 @@ IPCResult RemoteWorkerNonLifeCycleOpControllerParent::RecvError(
   MOZ_ASSERT(mController);
   mController->ErrorPropagation(aError);
   return IPC_OK();
-}
-
-void RemoteWorkerNonLifeCycleOpControllerParent::ActorDestroy(
-    IProtocol::ActorDestroyReason) {
-  if (mController) {
-    mController->mNonLifeCycleOpController = nullptr;
-    mController = nullptr;
-  }
 }
 
 }  // namespace mozilla::dom
