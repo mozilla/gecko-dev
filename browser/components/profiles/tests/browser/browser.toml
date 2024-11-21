@@ -13,6 +13,8 @@ head = "../unit/head.js head.js"
 
 ["browser_create_profile_page_test.js"]
 
+["browser_delete_profile_page_test.js"]
+
 ["browser_edit_profile_test.js"]
 
 ["browser_menubar_profiles.js"]

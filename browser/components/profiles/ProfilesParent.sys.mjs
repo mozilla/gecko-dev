@@ -206,6 +206,8 @@ export class ProfilesParent extends JSWindowActorParent {
         break;
       }
       case "Profiles:GetDeleteProfileContent": {
+        // Make sure SelectableProfileService is initialized
+        await SelectableProfileService.init();
         let profileObj = SelectableProfileService.currentProfile.toObject();
         let windowCount = lazy.EveryWindow.readyWindows.length;
         let tabCount = lazy.EveryWindow.readyWindows
