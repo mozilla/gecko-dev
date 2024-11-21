@@ -47,6 +47,7 @@ mozilla::LogModule* GetMediaSourceSamplesLog() {
 namespace mozilla {
 
 using dom::SourceBufferAppendMode;
+using media::Interval;
 using media::TimeInterval;
 using media::TimeIntervals;
 using media::TimeUnit;
@@ -231,10 +232,9 @@ void TrackBuffersManager::ProcessTasks() {
       }
       mSourceBufferAttributes = MakeUnique<SourceBufferAttributes>(
           task->As<AppendBufferTask>()->mAttributes);
-      mAppendWindow = TimeInterval(
-          TimeUnit::FromSeconds(
-              mSourceBufferAttributes->GetAppendWindowStart()),
-          TimeUnit::FromSeconds(mSourceBufferAttributes->GetAppendWindowEnd()));
+      mAppendWindow =
+          Interval<double>(mSourceBufferAttributes->GetAppendWindowStart(),
+                           mSourceBufferAttributes->GetAppendWindowEnd());
       ScheduleSegmentParserLoop();
       break;
     case Type::RangeRemoval: {
@@ -2154,16 +2154,26 @@ void TrackBuffersManager::ProcessFrames(TrackBuffer& aSamples,
     }
 
     // 7. Let frame end timestamp equal the sum of presentation timestamp and
-    // frame duration. This is sampleInterval.mEnd
-
+    // frame duration.
+    // "presentation timestamp" and "frame duration" are double precision
+    // representations.
+    Interval<double> frameStartAndEnd(
+        sampleInterval.mStart.ToSeconds(),
+        sampleInterval.mStart.ToSeconds() + sampleDuration.ToSeconds());
     // 8. If presentation timestamp is less than appendWindowStart, then set the
     // need random access point flag to true, drop the coded frame, and jump to
     // the top of the loop to start processing the next coded frame.
     // 9. If frame end timestamp is greater than appendWindowEnd, then set the
     // need random access point flag to true, drop the coded frame, and jump to
     // the top of the loop to start processing the next coded frame.
-    if (!mAppendWindow.ContainsStrict(sampleInterval)) {
-      if (mAppendWindow.IntersectsStrict(sampleInterval)) {
+    if (!mAppendWindow.ContainsStrict(frameStartAndEnd)) {
+      // Calculate the intersection using the same denominator as will be used
+      // for the sample time and duration so that a truncated sample is
+      // collected only if its truncated duration would be non-zero.
+      TimeInterval appendWindow(
+          TimeUnit::FromSecondsWithBaseOf(mAppendWindow.mStart, sampleTime),
+          TimeUnit::FromSecondsWithBaseOf(mAppendWindow.mEnd, sampleTime));
+      if (appendWindow.IntersectsStrict(sampleInterval)) {
         // 8. Note: Some implementations MAY choose to collect some of these
         //    coded frames with presentation timestamp less than
         //    appendWindowStart and use them to generate a splice at the first
@@ -2183,9 +2193,7 @@ void TrackBuffersManager::ProcessFrames(TrackBuffer& aSamples,
         //    not be a normative requirement. In conjunction with collecting
         //    coded frames that span appendWindowStart, implementations MAY thus
         //    support gapless audio splicing.
-        TimeInterval intersection = mAppendWindow.Intersection(sampleInterval);
-        intersection.mStart = intersection.mStart.ToBase(sample->mTime);
-        intersection.mEnd = intersection.mEnd.ToBase(sample->mTime);
+        TimeInterval intersection = appendWindow.Intersection(sampleInterval);
         sample->mOriginalPresentationWindow = Some(sampleInterval);
         MSE_DEBUGV("will truncate frame from [%" PRId64 "%s,%" PRId64
                    "%s] to [%" PRId64 "%s,%" PRId64 "%s]",
@@ -2203,16 +2211,13 @@ void TrackBuffersManager::ProcessFrames(TrackBuffer& aSamples,
         sample->mTimecode = decodeTimestamp;
         previouslyDroppedSample = sample;
         MSE_DEBUGV("frame [%" PRId64 "%s,%" PRId64
-                   "%s] outside appendWindow [%" PRId64 "%s,%" PRId64
-                   "%s] dropping",
+                   "%s] outside appendWindow [%f.6%s,%f.6%s] dropping",
                    sampleInterval.mStart.ToMicroseconds(),
                    sampleInterval.mStart.ToString().get(),
                    sampleInterval.mEnd.ToMicroseconds(),
-                   sampleInterval.mEnd.ToString().get(),
-                   mAppendWindow.mStart.ToMicroseconds(),
-                   mAppendWindow.mStart.ToString().get(),
-                   mAppendWindow.mEnd.ToMicroseconds(),
-                   mAppendWindow.mEnd.ToString().get());
+                   sampleInterval.mEnd.ToString().get(), mAppendWindow.mStart,
+                   appendWindow.mStart.ToString().get(), mAppendWindow.mEnd,
+                   appendWindow.mEnd.ToString().get());
         if (samples.Length()) {
           // We are creating a discontinuity in the samples.
           // Insert the samples processed so far.

@@ -529,7 +529,7 @@ class TrackBuffersManager final
       MOZ_GUARDED_BY(mTaskQueueCapability);
   // The current sourcebuffer append window. It's content is equivalent to
   // mSourceBufferAttributes.mAppendWindowStart/End
-  media::TimeInterval mAppendWindow MOZ_GUARDED_BY(mTaskQueueCapability);
+  media::Interval<double> mAppendWindow MOZ_GUARDED_BY(mTaskQueueCapability);
 
   // Strong references to external objects.
   nsMainThreadPtrHandle<MediaSourceDecoder> mParentDecoder;

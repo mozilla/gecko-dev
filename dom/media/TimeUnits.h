@@ -94,8 +94,13 @@ class TimeUnit final {
     return std::numeric_limits<int64_t>::max() - 1;
   }
 
-  // This is only precise up to a point, which is aValue * aBase <= 2^53 - 1
+  // These are only precise up to a point, which is aValue * aBase <= 2^53 - 1
   static TimeUnit FromSeconds(double aValue, int64_t aBase = USECS_PER_S);
+  static TimeUnit FromSecondsWithBaseOf(double aSeconds,
+                                        const TimeUnit& aOtherForBase) {
+    return FromSeconds(aSeconds, aOtherForBase.mBase);
+  }
+
   static constexpr TimeUnit FromMicroseconds(int64_t aValue) {
     return TimeUnit(aValue, USECS_PER_S);
   }
