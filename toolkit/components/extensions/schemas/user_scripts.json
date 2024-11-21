@@ -213,6 +213,25 @@
             }
           }
         ]
+      },
+      {
+        "id": "WorldProperties",
+        "min_manifest_version": 3,
+        "type": "object",
+        "description": "The configuration of a USER_SCRIPT world.",
+        "properties": {
+          "worldId": {
+            "type": "string",
+            "optional": true,
+            "default": "",
+            "description": "The identifier of the world. Values with leading underscores (`_`) are reserved. The maximum length is 256. Defaults to the default USER_SCRIPT world (\"\")."
+          },
+          "csp": {
+            "type": "string",
+            "optional": true,
+            "description": "The world's Content Security Policy. Defaults to the CSP of regular content scripts, which prohibits dynamic code execution such as eval."
+          }
+        }
       }
     ],
     "functions": [
@@ -325,6 +344,57 @@
                 "type": "array",
                 "items": { "$ref": "RegisteredUserScript" },
                 "description": "List of registered user scripts."
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "configureWorld",
+        "min_manifest_version": 3,
+        "type": "function",
+        "description": "Configures the environment for scripts running in a USER_SCRIPT world.",
+        "async": true,
+        "parameters": [
+          {
+            "name": "properties",
+            "$ref": "WorldProperties",
+            "description": "The desired configuration for a USER_SCRIPT world."
+          }
+        ]
+      },
+      {
+        "name": "resetWorldConfiguration",
+        "min_manifest_version": 3,
+        "type": "function",
+        "description": "Resets the configuration for a given world. That world will fall back to the default world's configuration.",
+        "async": true,
+        "parameters": [
+          {
+            "name": "worldId",
+            "type": "string",
+            "optional": true,
+            "default": "",
+            "description": "The ID of the USER_SCRIPT world to reset. If omitted or empty, resets the default world's configuration."
+          }
+        ]
+      },
+      {
+        "name": "getWorldConfigurations",
+        "min_manifest_version": 3,
+        "type": "function",
+        "description": "Returns all registered USER_SCRIPT world configurations.",
+        "async": "callback",
+        "parameters": [
+          {
+            "name": "callback",
+            "type": "function",
+            "parameters": [
+              {
+                "name": "configurations",
+                "type": "array",
+                "items": { "$ref": "WorldProperties" },
+                "description": "All configurations registered with configureWorld()."
               }
             ]
           }

@@ -152,6 +152,26 @@ this.userScripts = class extends ExtensionAPI {
             return usm.getScripts(ids);
           });
         },
+
+        configureWorld: async properties => {
+          ensureValidWorldId(properties.worldId);
+          return usm.runWriteTask(async () => {
+            await usm.configureWorld(properties);
+          });
+        },
+
+        resetWorldConfiguration: async worldId => {
+          ensureValidWorldId(worldId);
+          return usm.runWriteTask(async () => {
+            await usm.resetWorldConfiguration(worldId);
+          });
+        },
+
+        getWorldConfigurations: async () => {
+          return usm.runReadTask(async () => {
+            return usm.getWorldConfigurations();
+          });
+        },
       },
     };
   }

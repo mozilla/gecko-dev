@@ -26,6 +26,14 @@ ChromeUtils.defineESModuleGetters(lazy, {
  */
 
 /**
+ * WorldProperties as received from userScripts.configureWorld.
+ *
+ * @typedef {object} WorldProperties
+ * @property {string} worldId
+ * @property {string|null} csp
+ */
+
+/**
  * User scripts are stored in the following format in a SKV database. A SKV
  * database is a KeyValue store where the keys are ordered lexicographically.
  *
@@ -129,6 +137,8 @@ class UserScriptsManager {
     // internal representation of the script via IPC, and also used as the key
     // in the extension.registeredContentScripts map.
     this.scriptIdsMap = new Map();
+
+    this.worldConfigs = new Map();
   }
 
   runReadTask(callback) {
@@ -153,10 +163,16 @@ class UserScriptsManager {
   }
 
   async initializeFromDatabase() {
+    let worldConfigInitPromise = this.#initializeWorldsFromDatabase();
     const dbScriptEntries = await store.getAllEntries(
       `${this.extension.id}/_script_/`,
       `${this.extension.id}/_script_0`
     );
+
+    // Init worlds before registering scripts, to make sure that if the scripts
+    // are injected, that thet have the expected world configuration.
+    await worldConfigInitPromise;
+
     // The database returns them in lexicographical order, which enables
     // extensions to customize the order, as desired:
     // https://github.com/w3c/webextensions/issues/606
@@ -322,6 +338,65 @@ class UserScriptsManager {
         );
       })
     );
+  }
+
+  async #initializeWorldsFromDatabase() {
+    const dbWorldEntries = await store.getAllEntries(
+      `${this.extension.id}/_world_/`,
+      `${this.extension.id}/_world_0`
+    );
+
+    const allProperties = dbWorldEntries.map(([, properties]) => properties);
+    for (let properties of allProperties) {
+      this.worldConfigs.set(properties.worldId, properties);
+    }
+    this.extension.setSharedData("userScriptsWorldConfigs", this.worldConfigs);
+    if (this.extension.shouldSendSharedData()) {
+      // Broadcast changes to existing processes if we are past startup.
+      await this.extension.broadcast("Extension:UpdateUserScriptWorlds", {
+        id: this.extension.id,
+        reset: null,
+        update: allProperties,
+      });
+    }
+  }
+
+  /**
+   * @param {WorldProperties} properties
+   */
+  async configureWorld(properties) {
+    const worldId = properties.worldId;
+    this.worldConfigs.set(worldId, properties);
+
+    this.extension.setSharedData("userScriptsWorldConfigs", this.worldConfigs);
+    await this.extension.broadcast("Extension:UpdateUserScriptWorlds", {
+      id: this.extension.id,
+      reset: null,
+      update: [properties],
+    });
+    await store.writeMany([[this.#makeDbKey(worldId, "_world_"), properties]]);
+  }
+
+  /**
+   * @param {string} worldId
+   */
+  async resetWorldConfiguration(worldId) {
+    if (!this.worldConfigs.delete(worldId)) {
+      return;
+    }
+
+    this.extension.setSharedData("userScriptsWorldConfigs", this.worldConfigs);
+    await this.extension.broadcast("Extension:UpdateUserScriptWorlds", {
+      id: this.extension.id,
+      reset: [worldId],
+      update: null,
+    });
+    await store.writeMany([[this.#makeDbKey(worldId, "_world_"), null]]);
+  }
+
+  /** @returns {WorldProperties[]} */
+  async getWorldConfigurations() {
+    return Array.from(this.worldConfigs.values());
   }
 
   // userScripts.getScripts & userScripts.unregister accepts an ids filter.

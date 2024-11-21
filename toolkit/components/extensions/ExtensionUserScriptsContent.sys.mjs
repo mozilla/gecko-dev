@@ -12,7 +12,33 @@
 
 import { ExtensionUtils } from "resource://gre/modules/ExtensionUtils.sys.mjs";
 
-const { DefaultMap } = ExtensionUtils;
+const { DefaultMap, DefaultWeakMap } = ExtensionUtils;
+
+class WorldConfigHolder {
+  /** @type {Map<ExtensionChild,WorldConfigHolder>} */
+  static allMaps = new DefaultWeakMap(ext => new WorldConfigHolder(ext));
+
+  constructor(extension) {
+    this.defaultCSP = extension.policy.baseCSP;
+    this.configs = new Map(extension.getSharedData("userScriptsWorldConfigs"));
+  }
+
+  configureWorld(properties) {
+    this.configs.set(properties.worldId, properties);
+  }
+
+  resetWorldConfiguration(worldId) {
+    this.configs.delete(worldId);
+  }
+
+  getCSPForWorldId(worldId) {
+    return (
+      this.configs.get(worldId)?.csp ??
+      this.configs.get("")?.csp ??
+      this.defaultCSP
+    );
+  }
+}
 
 class WorldCollection {
   /** @type {Map<ContentScriptContextChild,WorldCollection>} */
@@ -41,6 +67,7 @@ class WorldCollection {
       throw new Error("Cannot create user script world after context unloaded");
     }
     this.context = context;
+    this.configHolder = WorldConfigHolder.allMaps.get(context.extension);
     context.callOnClose(this);
   }
 
@@ -68,7 +95,7 @@ class WorldCollection {
       },
       sandboxName: `User script world ${worldId} for ${policy.debugName}`,
       sandboxPrototype: contentWindow,
-      sandboxContentSecurityPolicy: policy.baseCSP,
+      sandboxContentSecurityPolicy: this.configHolder.getCSPForWorldId(worldId),
       sameZoneAs: contentWindow,
       wantXrays: true,
       isWebExtensionContentScript: true,
@@ -85,5 +112,18 @@ class WorldCollection {
 export const ExtensionUserScriptsContent = {
   sandboxFor(context, worldId) {
     return WorldCollection.sandboxFor(context, worldId);
+  },
+  updateWorldConfig(extension, reset, update) {
+    let configHolder = WorldConfigHolder.allMaps.get(extension);
+    if (reset) {
+      for (let worldId of reset) {
+        configHolder.resetWorldConfiguration(worldId);
+      }
+    }
+    if (update) {
+      for (let properties of update) {
+        configHolder.configureWorld(properties);
+      }
+    }
   },
 };

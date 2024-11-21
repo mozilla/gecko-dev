@@ -19,6 +19,8 @@ ChromeUtils.defineESModuleGetters(lazy, {
   ExtensionCommon: "resource://gre/modules/ExtensionCommon.sys.mjs",
   ExtensionContent: "resource://gre/modules/ExtensionContent.sys.mjs",
   ExtensionPageChild: "resource://gre/modules/ExtensionPageChild.sys.mjs",
+  ExtensionUserScriptsContent:
+    "resource://gre/modules/ExtensionUserScriptsContent.sys.mjs",
   ExtensionWorkerChild: "resource://gre/modules/ExtensionWorkerChild.sys.mjs",
   Schemas: "resource://gre/modules/Schemas.sys.mjs",
 });
@@ -71,6 +73,7 @@ ExtensionManager = {
       this
     );
     Services.cpmm.addMessageListener("Extension:UpdateContentScripts", this);
+    Services.cpmm.addMessageListener("Extension:UpdateUserScriptWorlds", this);
     Services.cpmm.addMessageListener("Extension:UpdatePermissions", this);
     Services.cpmm.addMessageListener("Extension:UpdateIgnoreQuarantine", this);
 
@@ -317,6 +320,19 @@ ExtensionManager = {
               policy.registerContentScript(newScript);
               registeredContentScripts.set(scriptId, newScript);
             }
+          }
+          break;
+        }
+
+        case "Extension:UpdateUserScriptWorlds": {
+          let policy = WebExtensionPolicy.getByID(data.id);
+
+          if (policy) {
+            lazy.ExtensionUserScriptsContent.updateWorldConfig(
+              extensions.get(policy),
+              data.reset,
+              data.update
+            );
           }
           break;
         }
