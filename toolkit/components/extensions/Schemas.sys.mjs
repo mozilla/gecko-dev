@@ -3965,6 +3965,7 @@ export var Schemas = {
   getPermissionNames(
     types = [
       "Permission",
+      "OptionalOnlyPermission",
       "OptionalPermission",
       "PermissionNoPrompt",
       "OptionalPermissionNoPrompt",

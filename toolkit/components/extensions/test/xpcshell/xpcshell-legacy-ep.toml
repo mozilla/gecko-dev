@@ -23,6 +23,8 @@ prefs = ["services.settings.server='data:,#remote-settings-dummy/v1'"]
 
 ["test_ext_permissions_migrate.js"]
 
+["test_ext_permissions_optional_only.js"]
+
 ["test_ext_permissions_uninstall.js"]
 
 ["test_ext_proxy_config.js"]

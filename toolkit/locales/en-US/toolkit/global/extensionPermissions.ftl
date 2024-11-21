@@ -29,4 +29,5 @@ webext-perms-description-sessions = Access recently closed tabs
 webext-perms-description-tabs = Access browser tabs
 webext-perms-description-tabHide = Hide and show browser tabs
 webext-perms-description-topSites = Access browsing history
+webext-perms-description-trialML = Download and run AI models on your device
 webext-perms-description-webNavigation = Access browser activity during navigation

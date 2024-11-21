@@ -457,6 +457,15 @@
         "additionalProperties": { "$ref": "UnrecognizedProperty" }
       },
       {
+        "id": "OptionalOnlyPermission",
+        "choices": [
+          {
+            "type": "string",
+            "enum": ["trialML"]
+          }
+        ]
+      },
+      {
         "id": "OptionalPermissionNoPrompt",
         "choices": [
           {
@@ -484,6 +493,7 @@
         "id": "OptionalPermissionOrOrigin",
         "choices": [
           { "$ref": "OptionalPermission" },
+          { "$ref": "OptionalOnlyPermission" },
           { "$ref": "MatchPattern" }
         ]
       },
