@@ -803,7 +803,7 @@ load 1682032.html
 load 1699263.html
 load 1699468.html
 load 1728319.html
-asserts-if(Android,2-4) load 1730506.html # asserts from integer overflow & bogus sizes with font inflation
+asserts(0-4) load 1730506.html # asserts from integer overflow & bogus sizes with font inflation
 asserts(1-4) load 1730570.html # asserts from integer overflow & bogus sizes
 load 1734015.html
 skip-if(Android) load 1741488-1.html # printPreview doesn't work on android
