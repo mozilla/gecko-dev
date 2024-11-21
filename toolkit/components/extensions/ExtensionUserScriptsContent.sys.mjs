@@ -11,8 +11,17 @@
  */
 
 import { ExtensionUtils } from "resource://gre/modules/ExtensionUtils.sys.mjs";
+import { ExtensionCommon } from "resource://gre/modules/ExtensionCommon.sys.mjs";
 
-const { DefaultMap, DefaultWeakMap } = ExtensionUtils;
+/** @type {Lazy} */
+const lazy = {};
+
+ChromeUtils.defineESModuleGetters(lazy, {
+  Schemas: "resource://gre/modules/Schemas.sys.mjs",
+});
+
+const { DefaultMap, DefaultWeakMap, ExtensionError } = ExtensionUtils;
+const { BaseContext, redefineGetter } = ExtensionCommon;
 
 class WorldConfigHolder {
   /** @type {Map<ExtensionChild,WorldConfigHolder>} */
@@ -37,6 +46,130 @@ class WorldConfigHolder {
       this.configs.get("")?.csp ??
       this.defaultCSP
     );
+  }
+
+  isMessagingEnabledForWorldId(worldId) {
+    return (
+      this.configs.get(worldId)?.messaging ??
+      this.configs.get("")?.messaging ??
+      false
+    );
+  }
+}
+
+/**
+ * A light wrapper around a ContentScriptContextChild to serve as a BaseContext
+ * instance to support APIs exposed to USER_SCRIPT worlds. Such contexts are
+ * usually heavier due to the need to track the document lifetime, but because
+ * all user script worlds and a content script for a document (and extension)
+ * shares the same lifetime, we delegate to the only ContentScriptContextChild
+ * that exists for the document+extension.
+ */
+class UserScriptContext extends BaseContext {
+  /**
+   * @param {ContentScriptContextChild} contentContext
+   * @param {Sandbox} sandbox
+   * @param {string} worldId
+   * @param {boolean} messaging
+   */
+  constructor(contentContext, sandbox, worldId, messaging) {
+    // Note: envType "userscript_child" is currently not recognized elsewhere.
+    // In particular ParentAPIManager.recvCreateProxyContext refuses to create
+    // ProxyContextParent instances, which is desirable because an extension
+    // can create many user script worlds, and we do not want the overhead of
+    // a new ProxyContextParent for each USER_SCRIPT worldId.
+    super("userscript_child", contentContext.extension);
+
+    this.contentContext = contentContext;
+    this.#forwardGetterToOwnerContext("active");
+    this.#forwardGetterToOwnerContext("incognito");
+    this.#forwardGetterToOwnerContext("messageManager");
+    this.#forwardGetterToOwnerContext("contentWindow");
+    this.#forwardGetterToOwnerContext("innerWindowID");
+    this.cloneScopeError = sandbox.Error;
+    this.cloneScopePromise = sandbox.Promise;
+
+    this.sandbox = sandbox;
+    Object.defineProperty(this, "principal", {
+      value: Cu.getObjectPrincipal(sandbox),
+      enumerable: true,
+      configurable: true,
+    });
+    this.worldId = worldId;
+    this.enableMessaging = messaging;
+
+    contentContext.callOnClose(this);
+  }
+
+  close() {
+    super.close();
+    this.contentContext = null;
+    this.sandbox = null;
+  }
+
+  get cloneScope() {
+    return this.sandbox;
+  }
+
+  #forwardGetterToOwnerContext(name) {
+    Object.defineProperty(this, name, {
+      configurable: true,
+      enumerable: true,
+      get() {
+        return this.contentContext[name];
+      },
+    });
+  }
+
+  get browserObj() {
+    const browser = {};
+    // The set of APIs exposed to user scripts is minimal. For simplicity and
+    // minimizing overhead, we do not use Schemas-generated bindings.
+
+    const wrapF = func => {
+      return (...args) => {
+        try {
+          return func.apply(this, args);
+        } catch (e) {
+          throw this.normalizeError(e);
+        }
+      };
+    };
+
+    if (this.enableMessaging) {
+      browser.runtime = {};
+      browser.runtime.sendMessage = wrapF(this.runtimeSendMessage);
+    }
+    const value = Cu.cloneInto(browser, this.sandbox, { cloneFunctions: true });
+    return redefineGetter(this, "browserObj", value);
+  }
+
+  runtimeSendMessage(...args) {
+    // Simplified version of parseBonkersArgs in child/ext-runtime.js
+    let callback = typeof args[args.length - 1] === "function" && args.pop();
+
+    // The extensionId and options parameters are an optional part of the
+    // runtime.sendMessage() interface, but not supported in user scripts:
+    // runtime.sendMessage() will only trigger runtime.onUserScriptMessage and
+    // never runtime.onMessage nor runtime.onMessageExternal.
+    if (!args.length) {
+      throw new ExtensionError(
+        "runtime.sendMessage's message argument is missing"
+      );
+    } else if (args.length > 1) {
+      throw new ExtensionError(
+        "runtime.sendMessage received too many arguments"
+      );
+    }
+
+    let [message] = args;
+
+    return this.contentContext.messenger.sendRuntimeMessage({
+      context: this,
+      userScriptWorldId: this.worldId,
+      message,
+      callback,
+    });
   }
 }
 
@@ -103,7 +236,19 @@ class WorldCollection {
       originAttributes: docPrincipal.originAttributes,
     });
 
-    // TODO bug 1911836: Expose APIs when messaging is true.
+    let messaging = this.configHolder.isMessagingEnabledForWorldId(worldId);
+    if (messaging) {
+      let userScriptContext = new UserScriptContext(
+        this.context,
+        sandbox,
+        worldId,
+        messaging
+      );
+
+      const getBrowserObj = () => userScriptContext.browserObj;
+      lazy.Schemas.exportLazyGetter(sandbox, "browser", getBrowserObj);
+      lazy.Schemas.exportLazyGetter(sandbox, "chrome", getBrowserObj);
+    }
 
     return sandbox;
   }

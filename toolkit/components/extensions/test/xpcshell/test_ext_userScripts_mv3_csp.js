@@ -69,6 +69,11 @@ async function startEvalTesterExtension() {
           await browser.userScripts.resetWorldConfiguration(args);
         } else if (msg === "getWorldConfigurations") {
           let res = await browser.userScripts.getWorldConfigurations();
+          for (let properties of res) {
+            // We are only interested in the worldId / csp properties, so drop
+            // all other properties so we can keep the assertions simple.
+            delete properties.messaging;
+          }
           browser.test.sendMessage("getWorldConfigurations:done", res);
           return;
         } else {

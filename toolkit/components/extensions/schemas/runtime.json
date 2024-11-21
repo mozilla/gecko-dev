@@ -170,6 +170,11 @@
             "type": "string",
             "optional": true,
             "description": "The TLS channel ID of the page or frame that opened the connection, if requested by the extension or app, and if available."
+          },
+          "userScriptWorldId": {
+            "type": "string",
+            "optional": true,
+            "description": "The worldId of the USER_SCRIPT world that sent the message. Only present on onUserScriptMessage events."
           }
         }
       },
@@ -780,6 +785,31 @@
         "name": "onMessageExternal",
         "type": "function",
         "description": "Fired when a message is sent from another extension/app. Cannot be used in a content script.",
+        "parameters": [
+          {
+            "name": "message",
+            "type": "any",
+            "optional": true,
+            "description": "The message sent by the calling script."
+          },
+          { "name": "sender", "$ref": "MessageSender" },
+          {
+            "name": "sendResponse",
+            "type": "function",
+            "description": "Function to call (at most once) when you have a response. The argument should be any JSON-ifiable object. If you have more than one <code>onMessage</code> listener in the same document, then only one may send a response. This function becomes invalid when the event listener returns, unless you return true from the event listener to indicate you wish to send a response asynchronously (this will keep the message channel open to the other end until <code>sendResponse</code> is called)."
+          }
+        ],
+        "returns": {
+          "type": "boolean",
+          "optional": true,
+          "description": "Return true from the event listener if you wish to call <code>sendResponse</code> after the event listener returns."
+        }
+      },
+      {
+        "name": "onUserScriptMessage",
+        "type": "function",
+        "description": "Fired when a message is sent from a USER_SCRIPT world registered through the userScripts API.",
+        "permissions": ["userScripts"],
         "parameters": [
           {
             "name": "message",

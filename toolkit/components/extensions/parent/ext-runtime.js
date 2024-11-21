@@ -35,6 +35,7 @@ this.runtime = class extends ExtensionAPIPersistent {
     // - runtime.onConnectExternal
     // - runtime.onMessage
     // - runtime.onMessageExternal
+    // - runtime.onUserScriptMessage
     // For details, see bug 1852317 and test_ext_eventpage_messaging_wakeup.js.
 
     onInstalled({ fire }) {

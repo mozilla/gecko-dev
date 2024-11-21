@@ -330,6 +330,14 @@ export class Messenger {
     this.onMessageEx = new MessageEvent(context, "runtime.onMessageExternal");
   }
 
+  get onUserScriptMessage() {
+    return redefineGetter(
+      this,
+      "onUserScriptMessage",
+      new MessageEvent(this.context, "runtime.onUserScriptMessage")
+    );
+  }
+
   sendNativeMessage(nativeApp, json) {
     let holder = holdMessage(
       `Messenger/${this.context.extension.id}/sendNativeMessage/${nativeApp}`,
@@ -340,7 +348,11 @@ export class Messenger {
     return this.conduit.queryNativeMessage({ nativeApp, holder });
   }
 
-  sendRuntimeMessage({ extensionId, message, callback, ...args }) {
+  sendRuntimeMessage({ context, extensionId, message, callback, ...args }) {
+    // this.context is usually used, except with user scripts, where we pass a
+    // custom context to ensure that the return value is cloned into the right
+    // USER_SCRIPT world.
+    context ??= this.context;
     let response = this.conduit.queryRuntimeMessage({
       extensionId: extensionId || this.context.extension.id,
       holder: holdMessage(
@@ -352,7 +364,7 @@ export class Messenger {
     });
     // If |response| is a rejected promise, the value will be sanitized by
     // wrapPromise, according to the rules of context.normalizeError.
-    return this.context.wrapPromise(response, callback);
+    return context.wrapPromise(response, callback);
   }
 
   connect({ name, native, ...args }) {
@@ -372,8 +384,12 @@ export class Messenger {
     }
   }
 
-  recvRuntimeMessage({ extensionId, holder, sender }) {
+  recvRuntimeMessage({ extensionId, holder, sender, userScriptWorldId }) {
     let event = sender.id === extensionId ? this.onMessage : this.onMessageEx;
+    if (typeof userScriptWorldId == "string") {
+      sender = { ...sender, userScriptWorldId };
+      return this.onUserScriptMessage.emit(holder, sender);
+    }
     return event.emit(holder, sender);
   }
 }

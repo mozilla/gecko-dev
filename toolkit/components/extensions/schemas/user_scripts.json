@@ -230,6 +230,12 @@
             "type": "string",
             "optional": true,
             "description": "The world's Content Security Policy. Defaults to the CSP of regular content scripts, which prohibits dynamic code execution such as eval."
+          },
+          "messaging": {
+            "type": "boolean",
+            "optional": true,
+            "default": false,
+            "description": "Whether the runtime.sendMessage and runtime.connect methods are exposed. Defaults to not exposing these messaging APIs."
           }
         }
       }

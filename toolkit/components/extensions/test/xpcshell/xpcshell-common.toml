@@ -621,6 +621,8 @@ run-sequentially = "very high failure rate in parallel"
 
 ["test_ext_userScripts_mv3_injection.js"]
 
+["test_ext_userScripts_mv3_messaging.js"]
+
 ["test_ext_userScripts_mv3_persistence.js"]
 
 ["test_ext_userScripts_mv3_worlds.js"]
