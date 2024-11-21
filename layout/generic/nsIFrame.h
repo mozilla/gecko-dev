@@ -449,11 +449,6 @@ struct MOZ_STACK_CLASS IntrinsicSizeInput final {
   // to NS_UNCONSTRAINEDSIZE.
   Maybe<LogicalSize> mPercentageBasisForChildren;
 
-  bool HasSomePercentageBasisForChildren() const {
-    return mPercentageBasisForChildren &&
-           !mPercentageBasisForChildren->IsAllValues(NS_UNCONSTRAINEDSIZE);
-  }
-
   IntrinsicSizeInput(gfxContext* aContext,
                      const Maybe<LogicalSize>& aContainingBlockSize,
                      const Maybe<LogicalSize>& aPercentageBasisForChildren)

@@ -6577,13 +6577,9 @@ nsIFrame::SizeComputationResult nsIFrame::ComputeSize(
     result.ISize(aWM) = std::min(maxISize, result.ISize(aWM));
   }
 
-  const nscoord bSizeAsPercentageBasis = ComputeBSizeValueAsPercentageBasis(
-      styleBSize, minBSizeCoord, maxBSizeCoord, aCBSize.BSize(aWM),
-      boxSizingAdjust.BSize(aWM));
-  const IntrinsicSizeInput input(
-      aRenderingContext, Some(aCBSize.ConvertTo(GetWritingMode(), aWM)),
-      Some(LogicalSize(aWM, NS_UNCONSTRAINEDSIZE, bSizeAsPercentageBasis)
-               .ConvertTo(GetWritingMode(), aWM)));
+  const IntrinsicSizeInput input(aRenderingContext,
+                                 Some(aCBSize.ConvertTo(GetWritingMode(), aWM)),
+                                 Nothing());
   const auto& minISizeCoord = stylePos->MinISize(aWM);
   nscoord minISize;
   if (!minISizeCoord.IsAuto() && !shouldIgnoreMinMaxISize) {

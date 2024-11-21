@@ -10,7 +10,6 @@
 #define nsGridContainerFrame_h___
 
 #include "mozilla/CSSOrderAwareFrameIterator.h"
-#include "mozilla/IntrinsicISizesCache.h"
 #include "mozilla/MathAlgorithms.h"
 #include "mozilla/Maybe.h"
 #include "mozilla/HashTable.h"
@@ -334,7 +333,9 @@ class nsGridContainerFrame final : public nsContainerFrame,
       mozilla::PresShell* aPresShell, ComputedStyle* aStyle);
   explicit nsGridContainerFrame(ComputedStyle* aStyle,
                                 nsPresContext* aPresContext)
-      : nsContainerFrame(aStyle, aPresContext, kClassID) {
+      : nsContainerFrame(aStyle, aPresContext, kClassID),
+        mCachedMinISize(NS_INTRINSIC_ISIZE_UNKNOWN),
+        mCachedPrefISize(NS_INTRINSIC_ISIZE_UNKNOWN) {
     for (auto& perAxisBaseline : mBaseline) {
       for (auto& baseline : perAxisBaseline) {
         baseline = NS_INTRINSIC_ISIZE_UNKNOWN;
@@ -531,7 +532,11 @@ class nsGridContainerFrame final : public nsContainerFrame,
   void AddImplicitNamedAreasInternal(LineNameList& aNameList,
                                      ImplicitNamedAreas*& aAreas);
 
-  mozilla::IntrinsicISizesCache mCachedIntrinsicSizes;
+  /**
+   * Cached values to optimize IntrinsicISize().
+   */
+  nscoord mCachedMinISize;
+  nscoord mCachedPrefISize;
 
   // Our baselines, one per BaselineSharingGroup per axis.
   PerLogicalAxis<PerBaseline<nscoord>> mBaseline;

@@ -12,7 +12,6 @@
 #include <tuple>
 
 #include "mozilla/dom/FlexBinding.h"
-#include "mozilla/IntrinsicISizesCache.h"
 #include "nsContainerFrame.h"
 #include "nsILineIterator.h"
 
@@ -657,7 +656,8 @@ class nsFlexContainerFrame final : public nsContainerFrame,
   /**
    * Cached values to optimize IntrinsicISize().
    */
-  mozilla::IntrinsicISizesCache mCachedIntrinsicSizes;
+  nscoord mCachedMinISize = NS_INTRINSIC_ISIZE_UNKNOWN;
+  nscoord mCachedPrefISize = NS_INTRINSIC_ISIZE_UNKNOWN;
 
   /**
    * Cached baselines computed in our last reflow to optimize
