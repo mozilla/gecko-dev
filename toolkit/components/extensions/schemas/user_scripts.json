@@ -3,7 +3,7 @@
     "namespace": "manifest",
     "types": [
       {
-        "$extend": "PermissionNoPrompt",
+        "$extend": "OptionalPermission",
         "choices": [
           {
             "type": "string",

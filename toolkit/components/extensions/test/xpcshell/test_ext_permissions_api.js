@@ -64,6 +64,7 @@ add_task(async function setup() {
     "tabHide",
     "tabs",
     "trialML",
+    "userScripts", // Covered by test_ext_userScripts_mv3_availability.js
     "webRequestAuthProvider",
     "webRequestBlocking",
     "webRequestFilterResponse",

@@ -55,6 +55,7 @@ class AddonTest {
                 "topSites",
                 "trialML",
                 "unlimitedStorage",
+                "userScripts",
                 "webNavigation",
                 "devtools",
             ),
@@ -88,6 +89,7 @@ class AddonTest {
             R.string.mozac_feature_addons_permissions_top_sites_description,
             R.string.mozac_feature_addons_permissions_trial_ml_description,
             R.string.mozac_feature_addons_permissions_unlimited_storage_description,
+            R.string.mozac_feature_addons_permissions_user_scripts_description,
             R.string.mozac_feature_addons_permissions_web_navigation_description,
             R.string.mozac_feature_addons_permissions_devtools_description,
         ).map { testContext.getString(it) }

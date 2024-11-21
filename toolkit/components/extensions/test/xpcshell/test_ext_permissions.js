@@ -750,7 +750,6 @@ const GRANTED_WITHOUT_USER_PROMPT = [
   "telemetry",
   "theme",
   "unlimitedStorage",
-  "userScripts", // TODO bug 1917000: should be optional permission with prompt.
   "webRequest",
   "webRequestAuthProvider",
   "webRequestBlocking",

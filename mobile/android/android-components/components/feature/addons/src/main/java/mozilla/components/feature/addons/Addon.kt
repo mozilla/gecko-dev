@@ -340,6 +340,7 @@ data class Addon(
             "tabHide" to R.string.mozac_feature_addons_permissions_tab_hide_description,
             "topSites" to R.string.mozac_feature_addons_permissions_top_sites_description,
             "trialML" to R.string.mozac_feature_addons_permissions_trial_ml_description,
+            "userScripts" to R.string.mozac_feature_addons_permissions_user_scripts_description,
             "devtools" to R.string.mozac_feature_addons_permissions_devtools_description,
         )
 
