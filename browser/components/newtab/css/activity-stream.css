@@ -753,6 +753,8 @@ main section {
   list-style: none;
   margin: 0 -16px;
   padding: 0;
+  display: flex;
+  flex-wrap: wrap;
 }
 .layout-variant-a .top-sites-list, .layout-variant-b .top-sites-list {
   display: grid;
@@ -1052,12 +1054,6 @@ main section {
   margin-inline-end: 2px;
   fill: currentColor;
 }
-.top-site-outer .title span {
-  display: block;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
 .top-site-outer .title .sponsored-label {
   color: var(--newtab-contextual-text-secondary-color);
   font-size: 0.9em;
@@ -1318,6 +1314,27 @@ main section {
 .topsite-form [type=checkbox]:checked:focus + label::before,
 .topsite-form [type=checkbox]:not(:checked):focus + label::before {
   border: 1px dotted var(--newtab-primary-action-background);
+}
+
+.top-sites-list .top-site-outer .top-site-button {
+  display: flex;
+  flex-direction: column;
+}
+.top-sites-list .top-site-outer span[dir=auto] {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-height: 20px;
+  margin-bottom: -19px;
+}
+.top-sites-list .top-site-outer:hover span[dir=auto], .top-sites-list .top-site-outer:focus-within span[dir=auto] {
+  overflow: unset;
+  text-overflow: normal;
+  white-space: normal;
+  text-wrap: wrap;
+  contain: size;
+  word-break: break-all;
 }
 
 @keyframes fade-up-tt {
