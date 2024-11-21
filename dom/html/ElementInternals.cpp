@@ -41,6 +41,13 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(ElementInternals)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mTarget, mSubmissionValue, mState,
                                     mValidity, mValidationAnchor,
                                     mCustomStateSet);
+
+  for (auto& tableEntry : tmp->mAttrElementsMap) {
+    auto& [explicitlySetElements, cachedAttrElements] =
+        *tableEntry.GetModifiableData();
+    ImplCycleCollectionTraverse(cb, cachedAttrElements,
+                                "cached attribute elements entry", 0);
+  }
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
 NS_IMPL_CYCLE_COLLECTING_ADDREF(ElementInternals)
@@ -428,6 +435,7 @@ void ElementInternals::Unlink() {
     mFieldSet->RemoveElement(mTarget);
     mFieldSet = nullptr;
   }
+  mAttrElementsMap.Clear();
 }
 
 void ElementInternals::GetAttr(const nsAtom* aName, nsAString& aResult) const {
@@ -467,6 +475,23 @@ nsresult ElementInternals::SetAttr(nsAtom* aName, const nsAString& aValue) {
   MutationObservers::NotifyARIAAttributeDefaultChanged(mTarget, aName, modType);
 
   return rs;
+}
+
+nsresult ElementInternals::SetAttrInternal(nsAtom* aName,
+                                           const nsAString& aValue) {
+  bool attrHadValue;
+  nsAttrValue attrValue(aValue);
+  return mAttrs.SetAndSwapAttr(aName, attrValue, &attrHadValue);
+}
+
+nsresult ElementInternals::UnsetAttrInternal(nsAtom* aName) {
+  nsAttrValue attrValue;
+  auto attrPos = mAttrs.IndexOfAttr(aName);
+  if (attrPos >= 0) {
+    return mAttrs.RemoveAttrAt(attrPos, attrValue);
+  }
+
+  return NS_OK;
 }
 
 DocGroup* ElementInternals::GetDocGroup() {
@@ -516,9 +541,11 @@ void ElementInternals::SetAttrElement(nsAtom* aAttr, Element* aElement) {
 #endif
 
   if (aElement) {
-    mAttrElements.InsertOrUpdate(aAttr, do_GetWeakReference(aElement));
+    mAttrElementMap.InsertOrUpdate(aAttr, do_GetWeakReference(aElement));
+    SetAttrInternal(aAttr, EmptyString());
   } else {
-    mAttrElements.Remove(aAttr);
+    mAttrElementMap.Remove(aAttr);
+    UnsetAttrInternal(aAttr);
   }
 
 #ifdef ACCESSIBILITY
@@ -529,9 +556,103 @@ void ElementInternals::SetAttrElement(nsAtom* aAttr, Element* aElement) {
 }
 
 Element* ElementInternals::GetAttrElement(nsAtom* aAttr) const {
-  nsWeakPtr weakAttrEl = mAttrElements.Get(aAttr);
+  nsWeakPtr weakAttrEl = mAttrElementMap.Get(aAttr);
   nsCOMPtr<Element> attrEl = do_QueryReferent(weakAttrEl);
   return attrEl;
+}
+
+void ElementInternals::SetAttrElements(
+    nsAtom* aAttr,
+    const Nullable<Sequence<OwningNonNull<Element>>>& aElements) {
+#ifdef ACCESSIBILITY
+  nsAccessibilityService* accService = GetAccService();
+#endif
+  // Accessibility requires that no other attribute changes occur between
+  // AttrElementWillChange and AttrElementChanged. Scripts could cause
+  // this, so don't let them run here. We do this even if accessibility isn't
+  // running so that the JS behavior is consistent regardless of accessibility.
+  // Otherwise, JS might be able to use this difference to determine whether
+  // accessibility is running, which would be a privacy concern.
+  nsAutoScriptBlocker scriptBlocker;
+#ifdef ACCESSIBILITY
+  if (accService) {
+    accService->NotifyAttrElementWillChange(mTarget, aAttr);
+  }
+#endif
+
+  nsAttrValue emptyAttr;
+  if (aElements.IsNull()) {
+    mAttrElementsMap.Remove(aAttr);
+    UnsetAttrInternal(aAttr);
+  } else {
+    auto& [attrElements, cachedAttrElements] =
+        mAttrElementsMap.LookupOrInsert(aAttr);
+    attrElements.Clear();
+    for (Element* el : aElements.Value()) {
+      attrElements.AppendElement(do_GetWeakReference(el));
+    }
+    SetAttrInternal(aAttr, EmptyString());
+  }
+
+#ifdef ACCESSIBILITY
+  if (accService) {
+    accService->NotifyAttrElementChanged(mTarget, aAttr);
+  }
+#endif
+}
+
+void ElementInternals::GetAttrElements(
+    nsAtom* aAttr, bool* aUseCachedValue,
+    Nullable<nsTArray<RefPtr<Element>>>& aElements) {
+  MOZ_ASSERT(aElements.IsNull());
+
+  auto attrElementsMaybeEntry = mAttrElementsMap.Lookup(aAttr);
+  if (!attrElementsMaybeEntry) {
+    return;
+  }
+
+  aElements.SetValue(nsTArray<RefPtr<Element>>());
+  auto& [attrElements, cachedAttrElements] = attrElementsMaybeEntry.Data();
+
+  auto getAttrAssociatedElements = [&, &attrElements = attrElements]() {
+    CopyableTArray<RefPtr<Element>> elements;
+
+    for (const nsWeakPtr& weakEl : attrElements) {
+      // For each attrElement in reflectedTarget's explicitly set attr-elements:
+      if (nsCOMPtr<Element> attrEl = do_QueryReferent(weakEl)) {
+        // Append attrElement to elements.
+        elements.AppendElement(attrEl);
+      }
+    }
+
+    return elements;
+  };
+
+  // https://html.spec.whatwg.org/multipage/common-dom-interfaces.html#attr-associated-elements
+  // Getter steps:
+  // 1. Let elements be the result of running this's get the attr-associated
+  // elements.
+  auto elements = getAttrAssociatedElements();
+
+  if (elements == cachedAttrElements) {
+    // 2. If the contents of elements is equal to the contents of this's cached
+    // attr-associated elements, then return this's cached attr-associated
+    // elements object.
+    MOZ_ASSERT(!*aUseCachedValue);
+    *aUseCachedValue = true;
+    return;
+  }
+
+  // 3. Let elementsAsFrozenArray be elements, converted to a FrozenArray<T>?.
+  //    (the binding code takes aElements and returns it as a FrozenArray)
+  // 5. Set this's cached attr-associated elements object to
+  // elementsAsFrozenArray.
+  //    (the binding code stores the attr-associated elements object in a slot)
+  // 6. Return elementsAsFrozenArray.
+  aElements.SetValue(elements.Clone());
+
+  // 4. Set this's cached attr-associated elements to elements.
+  cachedAttrElements = std::move(elements);
 }
 
 }  // namespace mozilla::dom
