@@ -688,7 +688,7 @@
   }
 
   #tabbrowser-tabs[movingtab-createGroup] & {
-    transition: background-color 300ms ease, color 300ms ease, outline-color 300ms ease;
+    transition: background-color 100ms ease, color 100ms ease, outline-color 100ms ease;
 
     &[dragover-createGroup] {
       background-color: light-dark(var(--dragover-tab-group-color-pale), var(--dragover-tab-group-color));
