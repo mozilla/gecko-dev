@@ -4,39 +4,25 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 /**
- * Native Android logging for JavaScript.  Lets you specify a priority and tag
- * in addition to the message being logged.  Resembles the android.util.Log API
- * <http://developer.android.com/reference/android/util/Log.html>.
+ * Native Android logging for JavaScript, wrapped for use by Log.sys.mjs.
  *
  * // Import it as a ESM:
- * let Log =
- *     ChromeUtils.importESModule("resource://gre/modules/AndroidLog.sys.mjs")
- *     .AndroidLog;
+ * import { AndroidAppender } from "resource://gre/modules/AndroidLog.sys.mjs";
  *
- * // Use Log.i, Log.v, Log.d, Log.w, and Log.e to log verbose, debug, info,
- * // warning, and error messages, respectively.
- * Log.v("MyModule", "This is a verbose message.");
- * Log.d("MyModule", "This is a debug message.");
- * Log.i("MyModule", "This is an info message.");
- * Log.w("MyModule", "This is a warning message.");
- * Log.e("MyModule", "This is an error message.");
+ * // Add the appender to a Log.sys.mjs appender:
+ * import { Log } from "resource://gre/modules/Log.sys.mjs";
+ * let logger = Log.repository.getLogger("Example");
+ * logger.addAppender(new AndroidAppender());
  *
- * // Bind a function with a tag to replace a bespoke dump/log/debug function:
- * let debug = Log.d.bind(null, "MyModule");
- * debug("This is a debug message.");
- * // Outputs "D/GeckoMyModule(#####): This is a debug message."
+ * // Log with the normal Log.sys.mjs API:
+ * logger.info("This is an info message.");
  *
- * // Or "bind" the module object to a tag to automatically tag messages:
- * Log = Log.bind("MyModule");
- * Log.d("This is a debug message.");
- * // Outputs "D/GeckoMyModule(#####): This is a debug message."
- *
- * Note: the module automatically prepends "Gecko" to the tag you specify,
- * since all tags used by Fennec code should start with that string; and it
- * truncates tags longer than MAX_TAG_LENGTH characters (not including "Gecko").
+ * Note: Logger names will automatically be prepended with "Gecko" before being
+ * logged to the system logger, if they do not already have a "Gecko" prefix.
  */
 
 import { ctypes } from "resource://gre/modules/ctypes.sys.mjs";
+import { Log } from "resource://gre/modules/Log.sys.mjs";
 
 // From <https://android.googlesource.com/platform/system/core/+/master/include/android/log.h>.
 const ANDROID_LOG_VERBOSE = 2;
@@ -44,12 +30,6 @@ const ANDROID_LOG_DEBUG = 3;
 const ANDROID_LOG_INFO = 4;
 const ANDROID_LOG_WARN = 5;
 const ANDROID_LOG_ERROR = 6;
-
-// android.util.Log.isLoggable throws IllegalArgumentException if a tag length
-// exceeds 23 characters, and we prepend five characters ("Gecko") to every tag.
-// However, __android_log_write itself and other android.util.Log methods don't
-// seem to mind longer tags.
-const MAX_TAG_LENGTH = 18;
 
 var liblog = ctypes.open("liblog.so"); // /system/lib/liblog.so
 var __android_log_write = liblog.declare(
@@ -61,22 +41,51 @@ var __android_log_write = liblog.declare(
   ctypes.char.ptr
 ); // message
 
-export var AndroidLog = {
-  MAX_TAG_LENGTH,
-  v: (tag, msg) => __android_log_write(ANDROID_LOG_VERBOSE, "Gecko" + tag, msg),
-  d: (tag, msg) => __android_log_write(ANDROID_LOG_DEBUG, "Gecko" + tag, msg),
-  i: (tag, msg) => __android_log_write(ANDROID_LOG_INFO, "Gecko" + tag, msg),
-  w: (tag, msg) => __android_log_write(ANDROID_LOG_WARN, "Gecko" + tag, msg),
-  e: (tag, msg) => __android_log_write(ANDROID_LOG_ERROR, "Gecko" + tag, msg),
+/**
+ * A formatter that does not prepend time/name/level information to messages,
+ * because those fields are logged separately when using the Android logger.
+ */
+class AndroidFormatter extends Log.BasicFormatter {
+  format(message) {
+    return this.formatText(message);
+  }
+}
 
-  bind(tag) {
-    return {
-      MAX_TAG_LENGTH,
-      v: AndroidLog.v.bind(null, tag),
-      d: AndroidLog.d.bind(null, tag),
-      i: AndroidLog.i.bind(null, tag),
-      w: AndroidLog.w.bind(null, tag),
-      e: AndroidLog.e.bind(null, tag),
+/*
+ * AndroidAppender
+ * Logs to Android logcat using __android_log_write
+ */
+export class AndroidAppender extends Log.Appender {
+  constructor(aFormatter) {
+    super(aFormatter || new AndroidFormatter());
+    this._name = "AndroidAppender";
+
+    // Map log level to __android_log_write priority
+    this._mapping = {
+      [Log.Level.Fatal]: ANDROID_LOG_ERROR,
+      [Log.Level.Error]: ANDROID_LOG_ERROR,
+      [Log.Level.Warn]: ANDROID_LOG_WARN,
+      [Log.Level.Info]: ANDROID_LOG_INFO,
+      [Log.Level.Config]: ANDROID_LOG_DEBUG,
+      [Log.Level.Debug]: ANDROID_LOG_DEBUG,
+      [Log.Level.Trace]: ANDROID_LOG_VERBOSE,
     };
-  },
-};
+  }
+
+  append(aMessage) {
+    if (!aMessage) {
+      return;
+    }
+
+    // We'll prepend "Gecko" to the tag, so we strip any leading "Gecko" here.
+    // Also strip dots to save space.
+    const tag = aMessage.loggerName.replace(/^Gecko|\./g, "");
+    const msg = this._formatter.format(aMessage);
+
+    // NOTE: android.util.Log.isLoggable throws IllegalArgumentException if a
+    // tag length exceeds 23 characters, and we prepend five characters
+    // ("Gecko") to every tag.  However, __android_log_write itself and other
+    // android.util.Log methods don't seem to mind longer tags.
+    __android_log_write(this._mapping[aMessage.level], "Gecko" + tag, msg);
+  }
+}
