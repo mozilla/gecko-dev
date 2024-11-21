@@ -1973,10 +1973,6 @@ function isNodeInViewport(node) {
  * @returns {void}
  */
 function updateElement(translationsDocument, element) {
-  if (element.tagName === "OPTION" && !element.hasAttribute("value")) {
-    // This is an implicit option value. Make it explicit before translating it.
-    element.setAttribute("value", element.value);
-  }
   // This text should have the same layout as the target, but it's not completely
   // guaranteed since the content page could change at any time, and the translation process is async.
   //
@@ -1996,7 +1992,50 @@ function updateElement(translationsDocument, element) {
    */
   const clonedNodes = new Set();
 
+  // Guard against unintended changes to the "value" of <option> elements during
+  // translation. This issue occurs because if an <option> element lacks an explicitly
+  // set "value" attribute, then the default "value" will be taken from the text content
+  // when requested.
+  //
+  // For example, <option>dog</option> might be translated to <option>perro</option>.
+  // Without an explicit "value", the implicit "value" would change from "dog" to "perro",
+  // and this can cause problems for submissions to queries etc.
+  //
+  // To prevent this, we ensure every translated <option> has an explicit "value"
+  // attribute, either preserving the original "value" or assigning it from the original
+  // text content. This results in <option>dog</option> being translated to
+  // <option value="dog">perro</option>
+  //
+  // https://developer.mozilla.org/en-US/docs/Web/HTML/Element/option#value
+  if (element.tagName === "OPTION") {
+    element.setAttribute("value", element.value);
+  }
+  for (const option of element.querySelectorAll("option")) {
+    option.setAttribute("value", option.value);
+  }
+
+  /**
+   * Build up a mapping of any element that has a "value" field that may change based
+   * on translations. In the recursive "merge" function below, we can remove <option>
+   * elements from <select> elements, which could cause the value attribute to change
+   * as the option is removed. This will need to be restored.
+   *
+   * @type {Map<Node, string>}
+   */
+  const nodeValues = new Map();
+  for (const select of element.querySelectorAll("select")) {
+    nodeValues.set(select, select.value);
+  }
+
   merge(element, translationsDocument.body.firstChild);
+
+  // Restore the <select> values.
+  if (element.tagName === "SELECT") {
+    element.value = nodeValues.get(element);
+  }
+  for (const select of element.querySelectorAll("select")) {
+    select.value = nodeValues.get(select);
+  }
 
   /**
    * Merge the live tree with the translated tree by re-using elements from the live tree.

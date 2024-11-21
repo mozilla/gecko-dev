@@ -1052,7 +1052,7 @@ add_task(async function test_option_values() {
       <select>
           <option>Red</option>
           <option>Orange</option>
-          <option>Yellow</option>
+          <option selected="">Yellow</option>
           <option value="Green">Green</option>
           <option value="Blue">Blue</option>
           <option value="Purple">Purple</option>
@@ -1067,12 +1067,72 @@ add_task(async function test_option_values() {
       <select>
           <option value="Red">RED</option>
           <option value="Orange">ORANGE</option>
-          <option value="Yellow">YELLOW</option>
+          <option selected="" value="Yellow">YELLOW</option>
           <option value="Green">GREEN</option>
           <option value="Blue">BLUE</option>
           <option value="Purple">PURPLE</option>
       </select>
     `
+  );
+
+  cleanup();
+});
+
+add_task(async function test_option_values() {
+  const { document, translate, htmlMatches, cleanup } =
+    await createTranslationsDoc(/* html */ `
+      <span>
+        <select>
+          <option>unconfirmed</option>
+          <option selected="">new</option>
+          <option>assigned</option>
+          <option>resolved</option>
+        </select>
+      </span>
+  `);
+
+  const select = document.querySelector("select");
+
+  document.querySelector("select").addEventListener("change", () => {
+    ok(false, "The change event should not ever be fired.");
+  });
+
+  is(document.querySelector("select").value, "new", 'The "new" value selected');
+
+  translate();
+
+  await htmlMatches(
+    "Option values are not changed",
+    /* html */ `
+      <span>
+        <select>
+          <option value="unconfirmed">
+            UNCONFIRMED
+          </option>
+          <option selected="" value="new">
+            NEW
+          </option>
+          <option value="assigned">
+            ASSIGNED
+          </option>
+          <option value="resolved">
+            RESOLVED
+          </option>
+        </select>
+      </span>
+    `
+  );
+
+  is(
+    document.querySelector("select").value,
+    "new",
+    'After translation the "new" value is still selected'
+  );
+
+  is(
+    document.querySelector("select"),
+    select,
+    "The original select element is still present"
   );
 
   cleanup();
