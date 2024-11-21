@@ -2,9 +2,11 @@
  * http://creativecommons.org/publicdomain/zero/1.0/ */
 
 add_setup(async function () {
+  Services.prefs.setBoolPref("identity.fxaccounts.oauth.enabled", false);
   registerCleanupFunction(() => {
     // reset internal state so it doesn't affect the next tests
     TabsSetupFlowManager.resetInternalState();
+    Services.prefs.clearUserPref("identity.fxaccounts.oauth.enabled");
   });
 
   // gSync.init() is called in a requestIdleCallback. Force its initialization.

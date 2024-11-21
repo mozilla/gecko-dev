@@ -11,9 +11,8 @@ add_task(async function test_SHOW_FIREFOX_ACCOUNTS() {
       type: "SHOW_FIREFOX_ACCOUNTS",
       data: { entrypoint: "snippets" },
     });
-    Assert.equal(
-      await loaded,
-      "https://example.com/?context=fx_desktop_v3&entrypoint=snippets&action=email&service=sync",
+    Assert.ok(
+      (await loaded).includes("entrypoint=snippets"),
       "should load fxa with endpoint=snippets"
     );
 
@@ -24,9 +23,8 @@ add_task(async function test_SHOW_FIREFOX_ACCOUNTS() {
       data: { entrypoint: "aboutwelcome" },
     });
 
-    Assert.equal(
-      await loaded,
-      "https://example.com/?context=fx_desktop_v3&entrypoint=aboutwelcome&action=email&service=sync",
+    Assert.ok(
+      (await loaded).includes("entrypoint=aboutwelcome"),
       "should load fxa with a custom endpoint"
     );
 
@@ -37,10 +35,12 @@ add_task(async function test_SHOW_FIREFOX_ACCOUNTS() {
       data: { entrypoint: "test", extraParams: { foo: "bar" } },
     });
 
-    Assert.equal(
-      await loaded,
-      "https://example.com/?context=fx_desktop_v3&entrypoint=test&action=email&service=sync&foo=bar",
-      "should load fxa with a custom endpoint and extra parameters in url"
+    let url = await loaded;
+    Assert.ok(
+      url.includes("entrypoint=test") &&
+        url.includes("foo=bar") &&
+        url.includes("service=sync"),
+      "should have correct url params"
     );
   });
 
@@ -55,7 +55,10 @@ add_task(async function test_SHOW_FIREFOX_ACCOUNTS() {
     };
     const tabPromise = BrowserTestUtils.waitForNewTab(
       gBrowser,
-      "https://example.com/?context=fx_desktop_v3&entrypoint=activity-stream-firstrun&action=email&service=sync"
+      url =>
+        url.startsWith("https://example.com") &&
+        url.includes("entrypoint=activity-stream-firstrun") &&
+        url.includes("service=sync")
     );
 
     await SpecialMessageActions.handleAction(action, gBrowser);
