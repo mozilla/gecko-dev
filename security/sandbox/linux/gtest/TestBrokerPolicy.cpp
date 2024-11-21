@@ -69,7 +69,7 @@ TEST(SandboxBrokerPolicyLookup, Recursive)
   EXPECT_EQ(MAY_ACCESS | MAY_READ, psrc.Lookup("/dev/zero"))
       << "Basic path has no extra flags";
 
-  psrc.AddDir(MAY_READ | MAY_WRITE, "/dev/");
+  psrc.AddTree(MAY_READ | MAY_WRITE, "/dev/");
 
   EXPECT_EQ(MAY_ACCESS | MAY_READ | MAY_WRITE, psrc.Lookup("/dev/random"))
       << "Permission via recursive dir.";
@@ -78,12 +78,12 @@ TEST(SandboxBrokerPolicyLookup, Recursive)
   EXPECT_EQ(0, psrc.Lookup("/dev/sd/0/")) << "Invalid path format.";
   EXPECT_EQ(0, psrc.Lookup("/usr/dev/sd")) << "Match must be a prefix.";
 
-  psrc.AddDir(MAY_READ, "/dev/sd/");
+  psrc.AddTree(MAY_READ, "/dev/sd/");
   EXPECT_EQ(MAY_ACCESS | MAY_READ | MAY_WRITE, psrc.Lookup("/dev/sd/0"))
       << "Extra permissions from parent path granted.";
   EXPECT_EQ(0, psrc.Lookup("/dev/..")) << "Refuse attempted subdir escape.";
 
-  psrc.AddDir(MAY_READ, "/tmp");
+  psrc.AddTree(MAY_READ, "/tmp");
   EXPECT_EQ(MAY_ACCESS | MAY_READ, psrc.Lookup("/tmp/good/a"))
       << "Check whether dir add with no trailing / was sucessful.";
   EXPECT_EQ(0, psrc.Lookup("/tmp_good_but_bad"))

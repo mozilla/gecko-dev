@@ -163,47 +163,19 @@ void SandboxBroker::Policy::AddTree(int aPerms, const char* aPath) {
   if (stat(aPath, &statBuf) != 0) {
     return;
   }
-  if (!S_ISDIR(statBuf.st_mode)) {
-    AddPath(aPerms, aPath, AddAlways);
-  } else {
-    DIR* dirp = opendir(aPath);
-    if (!dirp) {
-      return;
-    }
-    while (struct dirent* de = readdir(dirp)) {
-      if (strcmp(de->d_name, ".") == 0 || strcmp(de->d_name, "..") == 0) {
-        continue;
-      }
-      // Note: could optimize the string handling.
-      nsAutoCString subPath;
-      subPath.Assign(aPath);
-      subPath.Append('/');
-      subPath.Append(de->d_name);
-      AddTree(aPerms, subPath.get());
-    }
-    closedir(dirp);
-  }
-}
-
-void SandboxBroker::Policy::AddDir(int aPerms, const char* aPath) {
-  struct stat statBuf;
-
-  if (stat(aPath, &statBuf) != 0) {
-    return;
-  }
 
   if (!S_ISDIR(statBuf.st_mode)) {
     return;
   }
 
-  Policy::AddDirInternal(aPerms, aPath);
+  Policy::AddTreeInternal(aPerms, aPath);
 }
 
 void SandboxBroker::Policy::AddFutureDir(int aPerms, const char* aPath) {
-  Policy::AddDirInternal(aPerms, aPath);
+  Policy::AddTreeInternal(aPerms, aPath);
 }
 
-void SandboxBroker::Policy::AddDirInternal(int aPerms, const char* aPath) {
+void SandboxBroker::Policy::AddTreeInternal(int aPerms, const char* aPath) {
   // Add a Prefix permission on things inside the dir.
   nsDependentCString path(aPath);
   MOZ_ASSERT(path.Length() <= kMaxPathLen - 1);
@@ -270,7 +242,7 @@ void SandboxBroker::Policy::AddDynamic(int aPerms, const char* aPath) {
     size_t len = strlen(aPath);
     if (!len) return;
     if (aPath[len - 1] == '/') {
-      AddDir(aPerms, aPath);
+      AddTree(aPerms, aPath);
     } else {
       AddPath(aPerms, aPath);
     }
@@ -308,7 +280,7 @@ void SandboxBroker::Policy::FixRecursivePermissions() {
 
     nsAutoCString ancestor(path);
     // This is slightly different from the loop in AddAncestors: it
-    // leaves the trailing slashes attached so they'll match AddDir
+    // leaves the trailing slashes attached so they'll match AddTree
     // entries.
     while (true) {
       // Last() release-asserts that the string is not empty.  We
