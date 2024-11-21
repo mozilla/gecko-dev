@@ -143,6 +143,27 @@ ChromeUtils.defineESModuleGetters(lazy, {
 });
 
 export class ProfilesParent extends JSWindowActorParent {
+  get tab() {
+    const gBrowser = this.browsingContext.topChromeWindow.gBrowser;
+    const tab = gBrowser.getTabForBrowser(this.browsingContext.embedderElement);
+    return tab;
+  }
+
+  actorCreated() {
+    let favicon = this.tab.iconImage;
+    favicon.classList.add("profiles-tab");
+  }
+
+  didDestroy() {
+    const gBrowser = this.browsingContext.topChromeWindow?.gBrowser;
+    if (!gBrowser) {
+      // If gBrowser doesn't exist, then we've closed the tab so we can just return
+      return;
+    }
+    let favicon = this.tab.iconImage;
+    favicon.classList.remove("profiles-tab");
+  }
+
   async receiveMessage(message) {
     switch (message.name) {
       case "Profiles:DeleteProfile": {
@@ -171,7 +192,7 @@ export class ProfilesParent extends JSWindowActorParent {
       }
       case "Profiles:CancelDelete": {
         let gBrowser = this.browsingContext.topChromeWindow.gBrowser;
-        gBrowser.removeTab(gBrowser.selectedTab);
+        gBrowser.removeTab(this.tab);
         break;
       }
       // Intentional fallthrough
@@ -261,7 +282,7 @@ export class ProfilesParent extends JSWindowActorParent {
       }
       case "Profiles:CloseProfileTab": {
         let gBrowser = this.browsingContext.topChromeWindow.gBrowser;
-        gBrowser.removeTab(gBrowser.selectedTab);
+        gBrowser.removeTab(this.tab);
         break;
       }
     }

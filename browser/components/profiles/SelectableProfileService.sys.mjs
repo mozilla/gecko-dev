@@ -752,11 +752,12 @@ class SelectableProfileServiceClass {
       return;
     }
 
-    let isDark = Services.appinfo.chromeColorSchemeIsDark;
+    let window = Services.wm.getMostRecentBrowserWindow();
+    let isDark = window.matchMedia("(-moz-system-dark-theme)").matches;
 
     let theme = isDark && !!data.darkTheme ? data.darkTheme : data.theme;
 
-    let themeFg = theme.textcolor;
+    let themeFg = theme.toolbar_text;
     let themeBg = theme.toolbarColor;
 
     if (!themeFg || !themeBg) {

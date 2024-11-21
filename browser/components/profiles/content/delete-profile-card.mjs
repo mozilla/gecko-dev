@@ -57,6 +57,13 @@ export class DeleteProfileCard extends MozLitElement {
     let { themeFg, themeBg } = this.data.profile;
     this.headerAvatar.style.fill = themeBg;
     this.headerAvatar.style.stroke = themeFg;
+
+    this.setFavicon();
+  }
+
+  setFavicon() {
+    let favicon = document.getElementById("favicon");
+    favicon.href = `chrome://browser/content/profiles/assets/16_${this.data.profile.avatar}.svg`;
   }
 
   cancelDelete() {

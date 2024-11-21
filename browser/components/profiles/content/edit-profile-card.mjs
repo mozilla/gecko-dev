@@ -125,7 +125,14 @@ export class EditProfileCard extends MozLitElement {
     this.profiles = profiles;
     this.themes = themes;
 
+    this.setFavicon();
+
     this.initialized = true;
+  }
+
+  setFavicon() {
+    let favicon = document.getElementById("favicon");
+    favicon.href = `chrome://browser/content/profiles/assets/16_${this.profile.avatar}.svg`;
   }
 
   handleEvent(event) {
@@ -189,6 +196,7 @@ export class EditProfileCard extends MozLitElement {
     this.profile.avatar = newAvatar;
     RPMSendAsyncMessage("Profiles:UpdateProfileAvatar", this.profile);
     this.requestUpdate();
+    this.setFavicon();
   }
 
   isDuplicateName(newName) {

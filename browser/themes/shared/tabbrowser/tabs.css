@@ -428,7 +428,7 @@
 }
 
 .tab-icon-image {
-  -moz-context-properties: fill;
+  -moz-context-properties: fill, stroke;
   fill: currentColor;
 
   /* Apply crisp rendering for favicons at exactly 2dppx resolution */
@@ -451,6 +451,11 @@
   #tabbrowser-tabs[orient="horizontal"] &:not([src], [pinned], [crashed], [sharing], [pictureinpicture]),
   &[busy] {
     display: none;
+  }
+
+  &.profiles-tab {
+    fill: var(--toolbar-bgcolor);
+    stroke: var(--toolbar-color);
   }
 }
 

@@ -31,6 +31,8 @@ export class NewProfileCard extends EditProfileCard {
 
     this.setInitialInput();
 
+    super.setFavicon();
+
     this.initialized = true;
   }
 
