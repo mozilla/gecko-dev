@@ -210,56 +210,38 @@ already_AddRefed<IMFSample> WMFMediaDataEncoder::ConvertToNV12InputSample(
   AssertOnTaskQueue();
   MOZ_ASSERT(mEncoder);
 
-  struct NV12Info {
-    int32_t mYStride = 0;
-    int32_t mUVStride = 0;
-    size_t mYLength = 0;
-    size_t mBufferLength = 0;
-  } info;
+  size_t mBufferLength = 0;
 
-  if (const layers::PlanarYCbCrImage* image =
-          aData->mImage->AsPlanarYCbCrImage()) {
-    // Assume this is I420. If it's not, the whole process fails in
-    // ConvertToNV12 below.
-    const layers::PlanarYCbCrData* yuv = image->GetData();
-    info.mYStride = yuv->mYStride;
-    info.mUVStride = yuv->mCbCrStride * 2;
-    info.mYLength = info.mYStride * yuv->YDataSize().height;
-    info.mBufferLength =
-        info.mYLength + (info.mUVStride * yuv->CbCrDataSize().height);
-  } else {
-    info.mYStride = aData->mImage->GetSize().width;
-    info.mUVStride = info.mYStride;
+  const int32_t ySrtride = mConfig.mSize.width;
+  const int32_t uvStride = ySrtride;
 
-    const int32_t yHeight = aData->mImage->GetSize().height;
-    const int32_t uvHeight = yHeight / 2;
+  const int32_t yHeight = mConfig.mSize.height;
+  const int32_t uvHeight = yHeight / 2 + (yHeight % 2);
 
-    CheckedInt<size_t> yLength(info.mYStride);
-    yLength *= yHeight;
-    if (!yLength.isValid()) {
-      WMF_ENC_LOGE("yLength overflows");
-      return nullptr;
-    }
-    info.mYLength = yLength.value();
-
-    CheckedInt<size_t> uvLength(info.mUVStride);
-    uvLength *= uvHeight;
-    if (!uvLength.isValid()) {
-      WMF_ENC_LOGE("uvLength overflows");
-      return nullptr;
-    }
-
-    CheckedInt<size_t> length(yLength);
-    length += uvLength;
-    if (!length.isValid()) {
-      WMF_ENC_LOGE("length overflows");
-      return nullptr;
-    }
-    info.mBufferLength = length.value();
+  CheckedInt<size_t> yLength(ySrtride);
+  yLength *= yHeight;
+  if (!yLength.isValid()) {
+    WMF_ENC_LOGE("dest yLength overflows");
+    return nullptr;
   }
 
+  CheckedInt<size_t> uvLength(uvStride);
+  uvLength *= uvHeight;
+  if (!uvLength.isValid()) {
+    WMF_ENC_LOGE("dest uvLength overflows");
+    return nullptr;
+  }
+
+  CheckedInt<size_t> length(yLength);
+  length += uvLength;
+  if (!length.isValid()) {
+    WMF_ENC_LOGE("dest length overflows");
+    return nullptr;
+  }
+  mBufferLength = length.value();
+
   RefPtr<IMFSample> input;
-  HRESULT hr = mEncoder->CreateInputSample(&input, info.mBufferLength);
+  HRESULT hr = mEncoder->CreateInputSample(&input, mBufferLength);
   if (FAILED(hr)) {
     _com_error error(hr);
     WMF_ENC_LOGE("CreateInputSample: error = 0x%lX, %ls", hr,
@@ -276,7 +258,7 @@ already_AddRefed<IMFSample> WMFMediaDataEncoder::ConvertToNV12InputSample(
     return nullptr;
   }
 
-  hr = buffer->SetCurrentLength(info.mBufferLength);
+  hr = buffer->SetCurrentLength(mBufferLength);
   if (FAILED(hr)) {
     _com_error error(hr);
     WMF_ENC_LOGE("SetCurrentLength: error = 0x%lX, %ls", hr,
@@ -292,9 +274,9 @@ already_AddRefed<IMFSample> WMFMediaDataEncoder::ConvertToNV12InputSample(
     return nullptr;
   }
 
-  nsresult rv =
-      ConvertToNV12(aData->mImage, lockBuffer.Data(), info.mYStride,
-                    lockBuffer.Data() + info.mYLength, info.mUVStride);
+  nsresult rv = ConvertToNV12(aData->mImage, lockBuffer.Data(), ySrtride,
+                              lockBuffer.Data() + yLength.value(), uvStride,
+                              mConfig.mSize);
   if (NS_FAILED(rv)) {
     WMF_ENC_LOGE("Failed to convert to NV12");
     return nullptr;
