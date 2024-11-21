@@ -21,8 +21,11 @@ class TabbedBrowsingWithNavbarTest : TestSetup() {
     @get:Rule(order = 0)
     val composeTestRule =
         AndroidComposeTestRule(
-            HomeActivityIntentTestRule.withDefaultSettingsOverrides(
+            HomeActivityIntentTestRule(
                 skipOnboarding = true,
+                isNavigationToolbarEnabled = true,
+                isNavigationBarCFREnabled = false,
+                isSetAsDefaultBrowserPromptEnabled = false,
             ),
         ) { it.activity }
 
@@ -33,10 +36,6 @@ class TabbedBrowsingWithNavbarTest : TestSetup() {
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/903591
     @Test
     fun closingPrivateTabsFromNavbarTest() {
-        composeTestRule.activityRule.applySettingsExceptions {
-            it.isNavigationToolbarEnabled = true
-            it.isNavigationBarCFREnabled = false
-        }
         val genericURL = TestAssetHelper.getGenericAsset(mockWebServer, 1)
 
         homeScreen { }.togglePrivateBrowsingMode(switchPBModeOn = true)
@@ -56,17 +55,14 @@ class TabbedBrowsingWithNavbarTest : TestSetup() {
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/903587
     @Test
     fun verifyPrivateTabsTrayWithOpenTabFromNavbarTest() {
-        composeTestRule.activityRule.applySettingsExceptions {
-            it.isNavigationToolbarEnabled = true
-        }
         val website = TestAssetHelper.getGenericAsset(mockWebServer, 1)
 
         homeScreen {
-        }.openTabDrawer(composeTestRule) {
+        }.openTabDrawerFromRedesignedToolbar(composeTestRule) {
         }.toggleToPrivateTabs {
         }.openNewTab {
         }.submitQuery(website.url.toString()) {
-        }.openTabDrawer(composeTestRule) {
+        }.openTabDrawerFromRedesignedToolbar(composeTestRule) {
             verifyNormalBrowsingButtonIsSelected(false)
             verifyPrivateBrowsingButtonIsSelected(true)
             verifySyncedTabsButtonIsSelected(false)
@@ -82,9 +78,6 @@ class TabbedBrowsingWithNavbarTest : TestSetup() {
 
     @Test
     fun tabsCounterShortcutMenuOptionFromNavbarInNormalModeTest() {
-        composeTestRule.activityRule.applySettingsExceptions {
-            it.isNavigationToolbarEnabled = true
-        }
         val defaultWebPage = TestAssetHelper.getGenericAsset(mockWebServer, 1)
 
         navigationToolbar {
@@ -99,13 +92,10 @@ class TabbedBrowsingWithNavbarTest : TestSetup() {
 
     @Test
     fun tabsCounterShortcutMenuOptionFromNavbarInPrivateModeTest() {
-        composeTestRule.activityRule.applySettingsExceptions {
-            it.isNavigationToolbarEnabled = true
-        }
         val defaultWebPage = TestAssetHelper.getGenericAsset(mockWebServer, 1)
 
         homeScreen {
-        }.openTabDrawer(composeTestRule) {
+        }.openTabDrawerFromRedesignedToolbar(composeTestRule) {
         }.toggleToPrivateTabs {
         }.openNewTab {
         }.submitQuery(defaultWebPage.url.toString()) {
@@ -120,10 +110,6 @@ class TabbedBrowsingWithNavbarTest : TestSetup() {
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2343663
     @Test
     fun tabsCounterShortcutMenuNewPrivateTabFromNavbarTest() {
-        composeTestRule.activityRule.applySettingsExceptions {
-            it.isNavigationToolbarEnabled = true
-            it.isNavigationBarCFREnabled = false
-        }
         val defaultWebPage = TestAssetHelper.getGenericAsset(mockWebServer, 1)
 
         navigationToolbar {
@@ -141,9 +127,6 @@ class TabbedBrowsingWithNavbarTest : TestSetup() {
     @Ignore("Failing, see: https://bugzilla.mozilla.org/show_bug.cgi?id=1807268")
     @Test
     fun tabsCounterShortcutMenuNewTabFromNavbarTest() {
-        composeTestRule.activityRule.applySettingsExceptions {
-            it.isNavigationToolbarEnabled = true
-        }
         val defaultWebPage = TestAssetHelper.getGenericAsset(mockWebServer, 1)
 
         navigationToolbar {
@@ -160,10 +143,6 @@ class TabbedBrowsingWithNavbarTest : TestSetup() {
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2344199
     @Test
     fun privateTabsCounterShortcutMenuNewPrivateTabFromNavbarTest() {
-        composeTestRule.activityRule.applySettingsExceptions {
-            it.isNavigationToolbarEnabled = true
-            it.isNavigationBarCFREnabled = false
-        }
         val defaultWebPage = TestAssetHelper.getGenericAsset(mockWebServer, 1)
 
         homeScreen {}.togglePrivateBrowsingMode(switchPBModeOn = true)
@@ -183,10 +162,6 @@ class TabbedBrowsingWithNavbarTest : TestSetup() {
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2344198
     @Test
     fun privateTabsCounterShortcutMenuNewTabFromNavbarTest() {
-        composeTestRule.activityRule.applySettingsExceptions {
-            it.isNavigationToolbarEnabled = true
-            it.isNavigationBarCFREnabled = false
-        }
         val defaultWebPage = TestAssetHelper.getGenericAsset(mockWebServer, 1)
 
         homeScreen {}.togglePrivateBrowsingMode(switchPBModeOn = true)
@@ -205,9 +180,6 @@ class TabbedBrowsingWithNavbarTest : TestSetup() {
 
     @Test
     fun verifyTabsCounterShortcutMenuFromNavbarRecordsTelemetry() {
-        composeTestRule.activityRule.applySettingsExceptions {
-            it.isNavigationToolbarEnabled = true
-        }
         val defaultWebPage = TestAssetHelper.getGenericAsset(mockWebServer, 1)
         navigationToolbar {
         }.enterURLAndEnterToBrowser(defaultWebPage.url) { }

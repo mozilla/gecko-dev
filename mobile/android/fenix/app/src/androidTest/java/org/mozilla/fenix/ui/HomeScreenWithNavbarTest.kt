@@ -9,7 +9,6 @@ import org.mozilla.fenix.GleanMetrics.NavigationBar
 import org.mozilla.fenix.helpers.HomeActivityIntentTestRule
 import org.mozilla.fenix.helpers.RetryTestRule
 import org.mozilla.fenix.helpers.TestAssetHelper
-import org.mozilla.fenix.helpers.TestHelper.restartApp
 import org.mozilla.fenix.helpers.TestSetup
 import org.mozilla.fenix.screenshots.tapOnTabCounter
 import org.mozilla.fenix.ui.robots.homeScreen
@@ -23,7 +22,12 @@ class HomeScreenWithNavbarTest : TestSetup() {
     @get:Rule(order = 0)
     val composeTestRule =
         AndroidComposeTestRule(
-            HomeActivityIntentTestRule.withDefaultSettingsOverrides(),
+            HomeActivityIntentTestRule(
+                skipOnboarding = true,
+                isNavigationToolbarEnabled = true,
+                isNavigationBarCFREnabled = false,
+                isSetAsDefaultBrowserPromptEnabled = false,
+            ),
         ) { it.activity }
 
     @Rule(order = 1)
@@ -32,10 +36,6 @@ class HomeScreenWithNavbarTest : TestSetup() {
 
     @Test
     fun verifyTabCounterUpdateInNavbarTest() {
-        composeTestRule.activityRule.applySettingsExceptions {
-            it.isNavigationToolbarEnabled = true
-            it.isNavigationBarCFREnabled = false
-        }
         val defaultWebPage = TestAssetHelper.getGenericAsset(mockWebServer, 1)
 
         navigationToolbar {
@@ -46,12 +46,6 @@ class HomeScreenWithNavbarTest : TestSetup() {
 
     @Test
     fun verifyTabCounterClickFromNavbarInNormalModeTest() {
-        composeTestRule.activityRule.applySettingsExceptions {
-            it.isNavigationToolbarEnabled = true
-            it.isNavigationBarCFREnabled = false
-        }
-        restartApp(composeTestRule.activityRule)
-
         navigationToolbar {
             tapOnTabCounter()
         }
@@ -64,11 +58,6 @@ class HomeScreenWithNavbarTest : TestSetup() {
 
     @Test
     fun verifyTabCounterClickFromNavbarInPrivateModeTest() {
-        composeTestRule.activityRule.applySettingsExceptions {
-            it.isNavigationToolbarEnabled = true
-            it.isNavigationBarCFREnabled = false
-        }
-        restartApp(composeTestRule.activityRule)
         homeScreen { }.togglePrivateBrowsingMode()
 
         navigationToolbar {
@@ -83,12 +72,6 @@ class HomeScreenWithNavbarTest : TestSetup() {
 
     @Test
     fun verifyTabsCounterShortcutMenuOptionFromNavbarInNormalModeTest() {
-        composeTestRule.activityRule.applySettingsExceptions {
-            it.isNavigationToolbarEnabled = true
-            it.isNavigationBarCFREnabled = false
-        }
-        restartApp(composeTestRule.activityRule)
-
         navigationToolbar {
         }.openTabButtonShortcutsMenu {
             verifyTabButtonShortcutMenuItemsForNormalHomescreen()
@@ -97,11 +80,6 @@ class HomeScreenWithNavbarTest : TestSetup() {
 
     @Test
     fun verifyTabsCounterShortcutMenuOptionFromNavbarInPrivateModeTest() {
-        composeTestRule.activityRule.applySettingsExceptions {
-            it.isNavigationToolbarEnabled = true
-            it.isNavigationBarCFREnabled = false
-        }
-        restartApp(composeTestRule.activityRule)
         homeScreen { }.togglePrivateBrowsingMode()
 
         navigationToolbar {
@@ -112,12 +90,6 @@ class HomeScreenWithNavbarTest : TestSetup() {
 
     @Test
     fun verifyTabsCounterShortcutMenuFromNavbarRecordsTelemetry() {
-        composeTestRule.activityRule.applySettingsExceptions {
-            it.isNavigationToolbarEnabled = true
-            it.isNavigationBarCFREnabled = false
-        }
-        restartApp(composeTestRule.activityRule)
-
         assertNull(NavigationBar.homeTabTrayLongTapped.testGetValue())
         navigationToolbar {
         }.openTabButtonShortcutsMenu { }
