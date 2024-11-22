@@ -8,9 +8,17 @@ const MOCK_FLOW_ID =
 const MOCK_FLOW_BEGIN_TIME = 1590780440325;
 const MOCK_DEVICE_ID = "7e450f3337d3479b8582ea1c9bb5ba6c";
 
+Services.prefs.setBoolPref("identity.fxaccounts.oauth.enabled", false);
+Services.prefs.setStringPref(
+  "identity.fxaccounts.contextParam",
+  "fx_desktop_v3"
+);
+
 registerCleanupFunction(function () {
   Services.prefs.clearUserPref("identity.fxaccounts.remote.root");
   Services.prefs.clearUserPref("services.sync.username");
+  Services.prefs.clearUserPref("identity.fxaccounts.oauth.enabled");
+  Services.prefs.clearUserPref("identity.fxaccounts.contextParam");
 });
 
 add_task(setup_UITourTest);

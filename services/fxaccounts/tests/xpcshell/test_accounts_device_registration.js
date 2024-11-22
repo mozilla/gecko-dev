@@ -630,6 +630,7 @@ add_task(
   { skip_if: () => CLIENT_IS_THUNDERBIRD },
   async function test_verification_updates_registration() {
     const deviceName = "foo";
+    ensureOauthNotConfigured();
 
     const credentials = getTestUser("baz");
     const fxa = await MockFxAccounts(credentials, {

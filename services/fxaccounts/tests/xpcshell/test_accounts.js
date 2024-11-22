@@ -392,6 +392,7 @@ add_test(function test_client_mock() {
 // Polling should detect that the email is verified, and eventually
 // 'onverified' should be observed
 add_test(function test_verification_poll() {
+  ensureOauthNotConfigured();
   let fxa = new MockFxAccounts();
   let test_user = getTestUser("francine");
   let login_notification_received = false;
@@ -436,6 +437,7 @@ add_test(function test_verification_poll() {
 // poll should time out.  No verifiedlogin event should be observed, and the
 // internal whenVerified promise should be rejected
 add_test(function test_polling_timeout() {
+  ensureOauthNotConfigured();
   // This test could be better - the onverified observer might fire on
   // somebody else's stack, and we're not making sure that we're not receiving
   // such a message. In other words, this tests either failure, or success, but
@@ -1010,6 +1012,7 @@ add_test(function test_fetchAndUnwrapAndDeriveKeys_no_token() {
 // signs in with a verified email.  Ensure that no sign-in events are triggered
 // on Alice's behalf.  In the end, Bob should be the signed-in user.
 add_test(function test_overlapping_signins() {
+  ensureOauthNotConfigured();
   let fxa = new MockFxAccounts();
   let alice = getTestUser("alice");
   let bob = getTestUser("bob");

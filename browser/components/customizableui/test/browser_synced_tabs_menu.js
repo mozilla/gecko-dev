@@ -227,10 +227,12 @@ add_task(async function () {
   );
   await shown;
 
-  let expectedUrl =
-    "https://example.com/connect_another_device?context=" +
-    "fx_desktop_v3&entrypoint=synced-tabs&service=sync&uid=uid&email=foo%40bar.com";
-  let promiseTabOpened = BrowserTestUtils.waitForNewTab(gBrowser, expectedUrl);
+  let promiseTabOpened = BrowserTestUtils.waitForNewTab(
+    gBrowser,
+    url =>
+      url.startsWith("https://example.com/connect_another_device") &&
+      url.includes("entrypoint=synced-tabs")
+  );
   button.click();
   // the panel should have been closed.
   ok(!isOverflowOpen(), "click closed the panel");
