@@ -726,7 +726,7 @@ class BrowserRobot {
     fun verifyNoDateIsSelected() {
         val currentDate = LocalDate.now()
         assertTrue(
-            itemContainingText("Selected date is: $currentDate").waitUntilGone(waitingTime)
+            itemContainingText("Selected date is: $currentDate").waitUntilGone(waitingTime),
         )
     }
 
