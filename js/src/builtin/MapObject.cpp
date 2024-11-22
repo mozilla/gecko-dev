@@ -579,12 +579,11 @@ template <typename ObjectT>
 }
 
 bool MapObject::getKeysAndValuesInterleaved(
-    HandleObject obj, JS::MutableHandle<GCVector<JS::Value>> entries) {
-  MapObject* mapObj = &obj->as<MapObject>();
+    JS::MutableHandle<GCVector<JS::Value>> entries) {
   auto appendEntry = [&entries](auto& entry) {
     return entries.append(entry.key.get()) && entries.append(entry.value);
   };
-  return Table(mapObj).forEachEntry(appendEntry);
+  return Table(this).forEachEntry(appendEntry);
 }
 
 bool MapObject::set(JSContext* cx, const Value& key, const Value& val) {
@@ -1242,11 +1241,9 @@ const JSPropertySpec SetObject::staticProperties[] = {
   return NativeDefineDataProperty(cx, nativeProto, iteratorId, valuesFn, 0);
 }
 
-bool SetObject::keys(JSContext* cx, HandleObject obj,
-                     JS::MutableHandle<GCVector<JS::Value>> keys) {
-  SetObject* setObj = &obj->as<SetObject>();
+bool SetObject::keys(JS::MutableHandle<GCVector<JS::Value>> keys) {
   auto appendEntry = [&keys](auto& entry) { return keys.append(entry.get()); };
-  return Table(setObj).forEachEntry(appendEntry);
+  return Table(this).forEachEntry(appendEntry);
 }
 
 bool SetObject::add(JSContext* cx, const Value& key) {

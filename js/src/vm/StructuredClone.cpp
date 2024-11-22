@@ -1740,10 +1740,10 @@ bool JSStructuredCloneWriter::traverseMap(HandleObject obj) {
   Rooted<GCVector<Value>> newEntries(context(), GCVector<Value>(context()));
   {
     // If there is no wrapper, the compartment munging is a no-op.
-    RootedObject unwrapped(context(), obj->maybeUnwrapAs<MapObject>());
+    Rooted<MapObject*> unwrapped(context(), obj->maybeUnwrapAs<MapObject>());
     MOZ_ASSERT(unwrapped);
     JSAutoRealm ar(context(), unwrapped);
-    if (!MapObject::getKeysAndValuesInterleaved(unwrapped, &newEntries)) {
+    if (!unwrapped->getKeysAndValuesInterleaved(&newEntries)) {
       return false;
     }
   }
@@ -1775,10 +1775,10 @@ bool JSStructuredCloneWriter::traverseSet(HandleObject obj) {
   Rooted<GCVector<Value>> keys(context(), GCVector<Value>(context()));
   {
     // If there is no wrapper, the compartment munging is a no-op.
-    RootedObject unwrapped(context(), obj->maybeUnwrapAs<SetObject>());
+    Rooted<SetObject*> unwrapped(context(), obj->maybeUnwrapAs<SetObject>());
     MOZ_ASSERT(unwrapped);
     JSAutoRealm ar(context(), unwrapped);
-    if (!SetObject::keys(context(), unwrapped, &keys)) {
+    if (!unwrapped->keys(&keys)) {
       return false;
     }
   }

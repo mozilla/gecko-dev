@@ -141,8 +141,8 @@ class MapObject : public OrderedHashMapObject {
   static const JSClass class_;
   static const JSClass protoClass_;
 
-  [[nodiscard]] static bool getKeysAndValuesInterleaved(
-      HandleObject obj, JS::MutableHandle<GCVector<JS::Value>> entries);
+  [[nodiscard]] bool getKeysAndValuesInterleaved(
+      JS::MutableHandle<GCVector<JS::Value>> entries);
   [[nodiscard]] static bool entries(JSContext* cx, unsigned argc, Value* vp);
   static MapObject* createWithProto(JSContext* cx, HandleObject proto,
                                     NewObjectKind newKind);
@@ -269,8 +269,7 @@ class SetObject : public OrderedHashSetObject {
   static const JSClass class_;
   static const JSClass protoClass_;
 
-  [[nodiscard]] static bool keys(JSContext* cx, HandleObject obj,
-                                 JS::MutableHandle<GCVector<JS::Value>> keys);
+  [[nodiscard]] bool keys(JS::MutableHandle<GCVector<JS::Value>> keys);
   [[nodiscard]] static bool values(JSContext* cx, unsigned argc, Value* vp);
   [[nodiscard]] bool add(JSContext* cx, const Value& key);
 
