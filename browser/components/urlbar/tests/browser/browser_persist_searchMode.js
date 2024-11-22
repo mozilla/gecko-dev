@@ -12,6 +12,7 @@ add_setup(async function setup() {
     set: [
       ["browser.urlbar.secondaryActions.featureGate", true],
       ["browser.urlbar.scotchBonnet.persistSearchMode", true],
+      ["browser.urlbar.showSearchTerms.featureGate", true],
     ],
   });
 });
