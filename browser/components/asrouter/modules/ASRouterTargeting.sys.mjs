@@ -176,12 +176,6 @@ XPCOMUtils.defineLazyPreferenceGetter(
   "toolkit.profiles.storeID",
   null
 );
-XPCOMUtils.defineLazyPreferenceGetter(
-  lazy,
-  "didHandleCampaignAction",
-  "trailhead.firstrun.didHandleCampaignAction",
-  false
-);
 
 XPCOMUtils.defineLazyServiceGetters(lazy, {
   AUS: ["@mozilla.org/updates/update-service;1", "nsIApplicationUpdateService"],
@@ -264,39 +258,6 @@ function CacheListAttachedOAuthClients() {
   };
 }
 
-function CacheUnhandledCampaignAction() {
-  return {
-    _lastUpdated: 0,
-    _value: null,
-    expire() {
-      this._lastUpdated = 0;
-      this._value = null;
-    },
-    get() {
-      const now = Date.now();
-      // Don't get cached value until the action has been handled to ensure
-      // proper screen targeting in about:welcome
-      if (
-        now - this._lastUpdated >= FRECENT_SITES_UPDATE_INTERVAL ||
-        !lazy.didHandleCampaignAction
-      ) {
-        this._value = null;
-        if (!lazy.didHandleCampaignAction) {
-          const attributionData =
-            lazy.AttributionCode.getCachedAttributionData();
-          const ALLOWED_CAMPAIGN_ACTIONS = ["SET_DEFAULT_BROWSER"];
-          const campaign = attributionData?.campaign?.toUpperCase();
-          if (campaign && ALLOWED_CAMPAIGN_ACTIONS.includes(campaign)) {
-            this._value = campaign;
-          }
-        }
-        this._lastUpdated = now;
-      }
-      return this._value;
-    },
-  };
-}
-
 function CheckBrowserNeedsUpdate(
   updateInterval = FRECENT_SITES_UPDATE_INTERVAL
 ) {
@@ -365,7 +326,6 @@ export const QueryCache = {
     RecentBookmarks: new CachedTargetingGetter("getRecentBookmarks"),
     ListAttachedOAuthClients: new CacheListAttachedOAuthClients(),
     UserMonthlyActivity: new CachedTargetingGetter("getUserMonthlyActivity"),
-    UnhandledCampaignAction: new CacheUnhandledCampaignAction(),
   },
   getters: {
     doesAppNeedPin: new CachedTargetingGetter(
@@ -1106,17 +1066,6 @@ const TargetingGetters = {
     return attributionData?.campaign === "migration";
   },
 
-  /**
-   * Whether the user opted into a special message action represented by an
-   * installer attribution campaign and this choice still needs to be honored.
-   * @return {string} A special message action to be executed on first-run. For
-   * example, `"SET_DEFAULT_BROWSER"` when the user selected to set as default
-   * via the install marketing page and set default has not yet been
-   * automatically triggered, 'null' otherwise.
-   */
-  get unhandledCampaignAction() {
-    return QueryCache.queries.UnhandledCampaignAction.get();
-  },
   /**
    * The values of the height and width available to the browser to display
    * web content. The available height and width are each calculated taking

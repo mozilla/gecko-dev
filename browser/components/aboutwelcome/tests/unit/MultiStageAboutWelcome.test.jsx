@@ -12,13 +12,6 @@ import { shallow, mount } from "enzyme";
 import { AboutWelcomeDefaults } from "modules/AboutWelcomeDefaults.sys.mjs";
 import { AboutWelcomeUtils } from "content-src/lib/aboutwelcome-utils.mjs";
 
-const spinEventLoop = async () => {
-  // Spin the event loop to allow the useEffect hooks to execute,
-  // any promises to resolve, and re-rendering to happen after the
-  // promises have updated the state/props
-  await new Promise(resolve => setTimeout(resolve, 0));
-};
-
 describe("MultiStageAboutWelcome module", () => {
   let globals;
   let sandbox;
@@ -37,7 +30,6 @@ describe("MultiStageAboutWelcome module", () => {
       AWEvaluateScreenTargeting: () => {},
       AWGetSelectedTheme: () => Promise.resolve("automatic"),
       AWGetInstalledAddons: () => Promise.resolve(["test-addon-id"]),
-      AWGetUnhandledCampaignAction: () => Promise.resolve(false),
       AWSendEventTelemetry: () => {},
       AWSendToParent: () => {},
       AWWaitForMigrationClose: () => Promise.resolve(),
@@ -61,7 +53,10 @@ describe("MultiStageAboutWelcome module", () => {
 
     it("should pass activeTheme and initialTheme props to WelcomeScreen", async () => {
       let wrapper = mount(<MultiStageAboutWelcome {...DEFAULT_PROPS} />);
-      await spinEventLoop();
+      // Spin the event loop to allow the useEffect hooks to execute,
+      // any promises to resolve, and re-rendering to happen after the
+      // promises have updated the state/props
+      await new Promise(resolve => setTimeout(resolve, 0));
       // sync up enzyme's representation with the real DOM
       wrapper.update();
 
@@ -75,7 +70,10 @@ describe("MultiStageAboutWelcome module", () => {
 
     it("should fetch a list of installed Addons", async () => {
       let wrapper = mount(<MultiStageAboutWelcome {...DEFAULT_PROPS} />);
-      await spinEventLoop();
+      // Spin the event loop to allow the useEffect hooks to execute,
+      // any promises to resolve, and re-rendering to happen after the
+      // promises have updated the state/props
+      await new Promise(resolve => setTimeout(resolve, 0));
       // sync up enzyme's representation with the real DOM
       wrapper.update();
 
@@ -1133,103 +1131,6 @@ describe("MultiStageAboutWelcome module", () => {
 
           AboutWelcomeUtils.handleUserAction.resetHistory();
         }
-      });
-      it("Should handle a campaign action when applicable", async () => {
-        let actionSpy = sandbox.spy(AboutWelcomeUtils, "handleCampaignAction");
-        let telemetrySpy = sandbox.spy(
-          AboutWelcomeUtils,
-          "sendActionTelemetry"
-        );
-
-        globals.set("AWGetUnhandledCampaignAction", () =>
-          Promise.resolve("SET_DEFAULT_BROWSER")
-        );
-        // Return true when "HANDLE_CAMPAIGN_ACTION" is sent to parent
-        globals.set("AWSendToParent", () => Promise.resolve(true));
-        const screens = [
-          {
-            content: {
-              title: "test title",
-            },
-          },
-        ];
-        const TEST_PROPS = {
-          defaultScreens: screens,
-          message_id: "DEFAULT_ABOUTWELCOME",
-          startScreen: 0,
-        };
-        let wrapper = mount(<MultiStageAboutWelcome {...TEST_PROPS} />);
-        await spinEventLoop();
-        wrapper.update();
-        assert.calledOnce(actionSpy);
-        // If campaign is handled, we should send telemetry
-        assert.calledOnce(telemetrySpy);
-        assert.equal(telemetrySpy.firstCall.args[1], "CAMPAIGN_ACTION");
-        globals.restore();
-      });
-      it("Should not handle a campaign action when the action has already been handled", async () => {
-        let actionSpy = sandbox.spy(AboutWelcomeUtils, "handleCampaignAction");
-        let telemetrySpy = sandbox.spy(
-          AboutWelcomeUtils,
-          "sendActionTelemetry"
-        );
-
-        globals.set("AWGetUnhandledCampaignAction", () =>
-          Promise.resolve(false)
-        );
-        const screens = [
-          {
-            content: {
-              title: "test title",
-            },
-          },
-        ];
-        const TEST_PROPS = {
-          defaultScreens: screens,
-          message_id: "DEFAULT_ABOUTWELCOME",
-          startScreen: 0,
-        };
-        let wrapper = mount(<MultiStageAboutWelcome {...TEST_PROPS} />);
-        await spinEventLoop();
-        wrapper.update();
-        assert.notCalled(actionSpy);
-        assert.notCalled(telemetrySpy);
-        globals.restore();
-      });
-      it("Should not send telemetrty when campaign action handling fails", async () => {
-        let actionSpy = sandbox.spy(AboutWelcomeUtils, "handleCampaignAction");
-        let telemetrySpy = sandbox.spy(
-          AboutWelcomeUtils,
-          "sendActionTelemetry"
-        );
-
-        globals.set("AWGetUnhandledCampaignAction", () =>
-          Promise.resolve("SET_DEFAULT_BROWSER")
-        );
-
-        // Return undefined when "HANDLE_CAMPAIGN_ACTION" is sent to parent as
-        // though "AWPage:HANDLE_CAMPAIGN_ACTION" case did not return true due
-        // to failure executing action or the campaign handled pref being true
-        globals.set("AWSendToParent", () => Promise.resolve(undefined));
-        const screens = [
-          {
-            content: {
-              title: "test title",
-            },
-          },
-        ];
-        const TEST_PROPS = {
-          defaultScreens: screens,
-          message_id: "DEFAULT_ABOUTWELCOME",
-          startScreen: 0,
-        };
-        let wrapper = mount(<MultiStageAboutWelcome {...TEST_PROPS} />);
-        await spinEventLoop();
-        wrapper.update();
-        assert.calledOnce(actionSpy);
-        // If campaign handling fails, we should not send telemetry
-        assert.notCalled(telemetrySpy);
-        globals.restore();
       });
     });
 

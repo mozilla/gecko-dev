@@ -11,31 +11,6 @@ const { AWScreenUtils } = ChromeUtils.importESModule(
 const sandbox = sinon.createSandbox();
 const mockAddonAndLocaleAPIs = getAddonAndLocalAPIsMocker(this, sandbox);
 add_task(function initSandbox() {
-  sandbox
-    .stub(AWScreenUtils, "evaluateScreenTargeting")
-    // Renders easy setup import screen as first screen to prevent pin/default dialog boxes breaking tests
-    .withArgs(
-      "!doesAppNeedPin && (!'browser.shell.checkDefaultBrowser'|preferenceValue || isDefaultBrowser || (unhandledCampaignAction == 'SET_DEFAULT_BROWSER'))"
-    )
-    .resolves(true)
-    .withArgs(
-      `("messaging-system-action.showEmbeddedImport" |preferenceValue == true) && useEmbeddedMigrationWizard`
-    )
-    .resolves(true)
-    .withArgs(
-      "doesAppNeedPin && (unhandledCampaignAction != 'SET_DEFAULT_BROWSER') && 'browser.shell.checkDefaultBrowser'|preferenceValue && !isDefaultBrowser"
-    )
-    .resolves(false)
-    .withArgs(
-      "!doesAppNeedPin && (unhandledCampaignAction != 'SET_DEFAULT_BROWSER') && 'browser.shell.checkDefaultBrowser'|preferenceValue && !isDefaultBrowser"
-    )
-    .resolves(false)
-    .withArgs(
-      "doesAppNeedPin && (!'browser.shell.checkDefaultBrowser'|preferenceValue || isDefaultBrowser || (unhandledCampaignAction == 'SET_DEFAULT_BROWSER'))"
-    )
-    .resolves(false)
-    .withArgs("isDeviceMigration")
-    .resolves(false);
   registerCleanupFunction(() => {
     sandbox.restore();
   });
@@ -74,12 +49,26 @@ async function openAboutWelcome() {
     ["browser.aboutwelcome.transitions", false],
     ["intl.multilingual.aboutWelcome.languageMismatchEnabled", true]
   );
-  registerCleanupFunction(async () => {
-    await SpecialPowers.popPrefEnv();
-    await SpecialPowers.popPrefEnv();
-  });
-
   await setAboutWelcomePref(true);
+
+  sandbox
+    .stub(AWScreenUtils, "evaluateScreenTargeting")
+    .resolves(true)
+    // Renders easy setup import screen as first screen to prevent pin/default dialog boxes breaking tests
+    .withArgs(
+      "doesAppNeedPin && 'browser.shell.checkDefaultBrowser'|preferenceValue && !isDefaultBrowser"
+    )
+    .resolves(false)
+    .withArgs(
+      "!doesAppNeedPin && 'browser.shell.checkDefaultBrowser'|preferenceValue && !isDefaultBrowser"
+    )
+    .resolves(false)
+    .withArgs(
+      "doesAppNeedPin && (!'browser.shell.checkDefaultBrowser'|preferenceValue || isDefaultBrowser)"
+    )
+    .resolves(false)
+    .withArgs("isDeviceMigration")
+    .resolves(false);
 
   info("Opening about:welcome");
   let tab = await BrowserTestUtils.openNewForegroundTab(
@@ -503,9 +492,6 @@ add_task(async function test_aboutwelcome_languageSwitcher_noMatch() {
 add_task(async function test_aboutwelcome_languageSwitcher_bidiNotSupported() {
   sandbox.restore();
   await pushPrefs(["intl.multilingual.liveReloadBidirectional", false]);
-  registerCleanupFunction(async () => {
-    await SpecialPowers.popPrefEnv();
-  });
 
   const { mockable } = mockAddonAndLocaleAPIs({
     systemLocale: "ar-EG", // Arabic (Egypt)
@@ -539,9 +525,6 @@ add_task(
   async function test_aboutwelcome_languageSwitcher_bidiNotSupported_noLangPacks() {
     sandbox.restore();
     await pushPrefs(["intl.multilingual.liveReloadBidirectional", false]);
-    registerCleanupFunction(async () => {
-      await SpecialPowers.popPrefEnv();
-    });
 
     const { resolveLangPacks, mockable } = mockAddonAndLocaleAPIs({
       systemLocale: "ar-EG", // Arabic (Egypt)
@@ -573,12 +556,9 @@ add_task(
 /**
  * Test when bidi live reloading is supported.
  */
-add_task(async function test_aboutwelcome_languageSwitcher_bidiSupported() {
+add_task(async function test_aboutwelcome_languageSwitcher_bidiNotSupported() {
   sandbox.restore();
   await pushPrefs(["intl.multilingual.liveReloadBidirectional", true]);
-  registerCleanupFunction(async () => {
-    await SpecialPowers.popPrefEnv();
-  });
 
   const { resolveLangPacks, mockable } = mockAddonAndLocaleAPIs({
     systemLocale: "ar-EG", // Arabic (Egypt)
