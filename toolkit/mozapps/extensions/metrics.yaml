@@ -65,7 +65,7 @@ addons_manager:
           "extension", "enterprise-policy", "file-url",
           "geckoview-app", "gmp-plugin", "internal", "plugin",
           "rtamo", "siteperm-addon-provider" "sync", "system-addon",
-          "temporary-addon", "unknown".
+          "temporary-addon", "unknown", "about:editprofile", "about:newprofile".
           For events with method set to "sideload", the source value
           is derived from the XPIProvider location name (e.g. possible
           values are "app-builtin", "app-global", "app-profile",
