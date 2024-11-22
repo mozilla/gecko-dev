@@ -825,6 +825,12 @@ bool MozDocumentMatcher::Matches(const DocInfo& aDoc,
     return false;
   }
 
+  if (mIsUserScript && mExtension &&
+      !mExtension->HasPermission(nsGkAtoms::userScripts)) {
+    // The "userScripts" permission can be revoked after script registration.
+    return false;
+  }
+
   // Top-level about:blank is a special case. Unlike about:blank frames/windows
   // opened by web pages, these do not have an origin that could be matched by
   // a match pattern (they have a null principal instead). To allow extensions

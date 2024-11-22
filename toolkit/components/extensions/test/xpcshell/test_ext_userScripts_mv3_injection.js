@@ -53,6 +53,12 @@ add_task(async function userScript_runs_in_MAIN_world() {
       "6.file.js": "resultCollector.push('6.file');dump('6.file.js ran\\n');",
     },
     async background() {
+      browser.test.onMessage.addListener(async msg => {
+        browser.test.assertEq("revoke_permission", msg, "Expected msg");
+        await browser.permissions.remove({ permissions: ["userScripts"] });
+        browser.test.assertEq(undefined, browser.userScripts, "API gone");
+        browser.test.sendMessage("revoke_permission:done");
+      });
       await browser.userScripts.register([
         {
           id: "basic",
@@ -96,6 +102,20 @@ add_task(async function userScript_runs_in_MAIN_world() {
 
   await contentPageAfterRegister.close();
   await contentPageBeforeExtStarted.close();
+
+  // Verify that when the "userScripts" permission is revoked, that scripts
+  // won't be injected in new documents.
+  extension.sendMessage("revoke_permission");
+  await extension.awaitMessage("revoke_permission:done");
+  let contentPageAfterRevoke = await ExtensionTestUtils.loadContentPage(
+    "http://example.com/resultCollector"
+  );
+  Assert.deepEqual(
+    await collectResults(contentPageAfterRevoke),
+    [],
+    "Should not execute after permission revocation"
+  );
+  await contentPageAfterRevoke.close();
 
   await extension.unload();
 });
