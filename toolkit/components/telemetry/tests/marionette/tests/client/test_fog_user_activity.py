@@ -16,22 +16,35 @@ class BaselineRidealongFilter:
         return doc_type in self.expected_pings
 
 
-DauReportFilter = BaselineRidealongFilter("dau-reporting")
+DauReportFilter = BaselineRidealongFilter("usage-reporting")
 
 
 class TestClientActivity(FOGTestCase):
     """
     Tests for client activity and FOG's scheduling of the "baseline" ping.
-    For every `baseline` ping we also expect a `dau-reporting` ping.
+    For every `baseline` ping we also expect a `usage-reporting` ping.
     """
 
     def test_user_activity(self):
+        # We might still get those pings in an unexpected order.
+        # Let's check we get both.
+        expected_pings = ["baseline", "usage-reporting"]
+
         # First test that restarting the browser sends a "active" ping
         [ping0, ping1] = self.wait_for_pings(
             self.restart_browser, DauReportFilter, 2, ping_server=self.fog_ping_server
         )
-        self.assertEqual("active", ping0["payload"]["ping_info"]["reason"])
-        self.assertEqual("active", ping1["payload"]["ping_info"]["reason"])
+        received_pings = sorted(
+            [
+                ping0["request_url"]["doc_type"],
+                ping1["request_url"]["doc_type"],
+            ]
+        )
+        self.assertEqual(expected_pings, received_pings)
+        if ping0["request_url"]["doc_type"] == "baseline":
+            self.assertEqual("active", ping0["payload"]["ping_info"]["reason"])
+        if ping1["request_url"]["doc_type"] == "baseline":
+            self.assertEqual("active", ping1["payload"]["ping_info"]["reason"])
 
         with self.marionette.using_context(self.marionette.CONTEXT_CHROME):
             zero_prefs_script = """\
@@ -61,10 +74,6 @@ class TestClientActivity(FOGTestCase):
             ping_server=self.fog_ping_server,
         )
 
-        # We might still get those pings in an unexpected order.
-        # Let's check we get both.
-        expected_pings = ["baseline", "dau-reporting"]
-
         received_pings = sorted(
             [
                 ping2["request_url"]["doc_type"],
@@ -72,8 +81,10 @@ class TestClientActivity(FOGTestCase):
             ]
         )
         self.assertEqual(expected_pings, received_pings)
-        self.assertEqual("active", ping2["payload"]["ping_info"]["reason"])
-        self.assertEqual("active", ping3["payload"]["ping_info"]["reason"])
+        if ping2["request_url"]["doc_type"] == "baseline":
+            self.assertEqual("active", ping2["payload"]["ping_info"]["reason"])
+        if ping3["request_url"]["doc_type"] == "baseline":
+            self.assertEqual("active", ping3["payload"]["ping_info"]["reason"])
 
         received_pings = sorted(
             [
@@ -82,5 +93,7 @@ class TestClientActivity(FOGTestCase):
             ]
         )
         self.assertEqual(expected_pings, received_pings)
-        self.assertEqual("inactive", ping4["payload"]["ping_info"]["reason"])
-        self.assertEqual("inactive", ping5["payload"]["ping_info"]["reason"])
+        if ping4["request_url"]["doc_type"] == "baseline":
+            self.assertEqual("inactive", ping4["payload"]["ping_info"]["reason"])
+        if ping5["request_url"]["doc_type"] == "baseline":
+            self.assertEqual("inactive", ping5["payload"]["ping_info"]["reason"])

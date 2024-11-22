@@ -42,7 +42,7 @@ browser.engagement:
     send_in_pings:
       - baseline
       - metrics
-      - dau-reporting
+      - usage-reporting
     telemetry_mirror: BROWSER_ENGAGEMENT_ACTIVE_TICKS
     no_lint:
       - BASELINE_PING
@@ -75,7 +75,7 @@ browser.engagement:
     send_in_pings:
       - baseline
       - metrics
-      - dau-reporting
+      - usage-reporting
     no_lint:
       - BASELINE_PING
     telemetry_mirror: BROWSER_ENGAGEMENT_TOTAL_URI_COUNT_NORMAL_AND_PRIVATE_MODE

@@ -212,7 +212,7 @@ open class FenixApplication : LocaleAwareApplication(), Provider {
             delayPingLifetimeIo = FxNimbus.features.glean.value().delayPingLifetimeIo,
             pingLifetimeThreshold = FxNimbus.features.glean.value().pingLifetimeThreshold,
             pingLifetimeMaxTime = FxNimbus.features.glean.value().pingLifetimeMaxTime,
-            pingSchedule = mapOf("baseline" to listOf("dau-reporting")),
+            pingSchedule = mapOf("baseline" to listOf("usage-reporting")),
         )
 
         // Set the metric configuration from Nimbus.

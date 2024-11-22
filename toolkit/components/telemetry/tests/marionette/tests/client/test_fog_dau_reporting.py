@@ -8,16 +8,16 @@ from telemetry_harness.fog_ping_filters import (
 )
 from telemetry_harness.fog_testcase import FOGTestCase
 
-FOG_DAU_REPORTING = FOGDocTypePingFilter("dau-reporting")
+FOG_DAU_REPORTING = FOGDocTypePingFilter("usage-reporting")
 CANARY_USAGE_PROFILE_ID = "beefbeef-beef-beef-beef-beeefbeefbee"
 
 
 class TestDauReporting(FOGTestCase):
-    """Tests for FOG dau-reporting ping and dau-id cycling."""
+    """Tests for FOG usage-reporting ping and dau-id cycling."""
 
     def test_dau_reporting(self):
         """
-        Test the "dau-reporting" ping behaviour and dau-id cycling when disabling telemetry.
+        Test the "usage-reporting" ping behaviour and dau-id cycling when disabling telemetry.
         """
 
         ping1 = self.wait_for_ping(
@@ -26,10 +26,8 @@ class TestDauReporting(FOGTestCase):
             ping_server=self.fog_ping_server,
         )
 
-        self.assertIn("ping_info", ping1["payload"])
-        self.assertIn("client_info", ping1["payload"])
-
-        self.assertNotIn("client_id", ping1["payload"]["client_info"])
+        self.assertNotIn("ping_info", ping1["payload"])
+        self.assertNotIn("client_info", ping1["payload"])
 
         metrics = ping1["payload"]["metrics"]
         self.assertNotIn("legacy.telemetry.client_id", metrics["uuid"])

@@ -23,6 +23,7 @@ dau-reporting:
   send_if_empty: true
   bugs:
     - https://bugzilla.mozilla.org/show_bug.cgi?id=1921440
+    - https://bugzilla.mozilla.org/show_bug.cgi?id=1929832
   data_reviews:
     - https://bugzilla.mozilla.org/show_bug.cgi?id=1921440
   notification_emails:

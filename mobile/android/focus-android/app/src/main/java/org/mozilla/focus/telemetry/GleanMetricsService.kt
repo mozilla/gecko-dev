@@ -112,7 +112,7 @@ class GleanMetricsService(context: Context) : MetricsService {
                     client = lazy(LazyThreadSafetyMode.NONE) { components.client },
                     usePrivateRequest = true,
                 ),
-                pingSchedule = mapOf("baseline" to listOf("dau-reporting")),
+                pingSchedule = mapOf("baseline" to listOf("usage-reporting")),
             ),
             buildInfo = GleanBuildInfo.buildInfo,
         )
