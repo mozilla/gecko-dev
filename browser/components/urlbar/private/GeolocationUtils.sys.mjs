@@ -68,9 +68,7 @@ class _GeolocationUtils {
       query: "",
     });
 
-    this.logger.debug(
-      "Got geolocation from Merino: " + JSON.stringify(results)
-    );
+    this.logger.debug("Got geolocation from Merino", results);
 
     return results?.[0]?.custom_details?.geolocation || null;
   }

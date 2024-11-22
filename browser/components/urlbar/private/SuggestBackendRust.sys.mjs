@@ -130,7 +130,7 @@ export class SuggestBackendRust extends BaseFeature {
       return [];
     }
 
-    this.logger.debug("Handling query: " + JSON.stringify(searchString));
+    this.logger.debug("Handling query", { searchString });
 
     if (!types) {
       types = this.#enabledSuggestionTypes;
@@ -147,7 +147,7 @@ export class SuggestBackendRust extends BaseFeature {
     let providers = [];
     let allProviderConstraints = {};
     for (let { type, provider } of types) {
-      this.logger.debug(`Adding type to query: '${type}' (${provider})`);
+      this.logger.debug("Adding type to query", { type, provider });
       providers.push(provider);
 
       let providerConstraints =
@@ -194,9 +194,7 @@ export class SuggestBackendRust extends BaseFeature {
       }
     }
 
-    this.logger.debug(
-      "Got suggestions: " + JSON.stringify(suggestions, null, 2)
-    );
+    this.logger.debug("Got suggestions", suggestions);
 
     return suggestions;
   }
@@ -340,9 +338,9 @@ export class SuggestBackendRust extends BaseFeature {
 
   #init() {
     // Initialize the store.
-    this.logger.info(
-      `Initializing SuggestStore with data path ${this.#storeDataPath}`
-    );
+    this.logger.info("Initializing SuggestStore", {
+      path: this.#storeDataPath,
+    });
     let builder = lazy.SuggestStoreBuilder.init()
       .dataPath(this.#storeDataPath)
       .loadExtension(AppConstants.SQLITE_LIBRARY_FILENAME, "sqlite3_fts5_init")
@@ -351,8 +349,7 @@ export class SuggestBackendRust extends BaseFeature {
     try {
       this.#store = builder.build();
     } catch (error) {
-      this.logger.error("Error initializing SuggestStore:");
-      this.logger.error(error);
+      this.logger.error("Error initializing SuggestStore", error);
       return;
     }
 
@@ -361,15 +358,7 @@ export class SuggestBackendRust extends BaseFeature {
       INGEST_TIMER_LAST_UPDATE_PREF,
       0
     );
-    if (lastIngestSecs) {
-      this.logger.debug(
-        `Last ingest time: ${lastIngestSecs}s (${
-          Math.round(Date.now() / 1000) - lastIngestSecs
-        }s ago)`
-      );
-    } else {
-      this.logger.debug("Last ingest time: none");
-    }
+    this.logger.debug("Last ingest time (seconds)", lastIngestSecs);
 
     // Interrupt any ongoing ingests (WRITE) and queries (READ) on shutdown.
     // Note that `interrupt()` runs on the main thread and is not async; see
@@ -428,7 +417,7 @@ export class SuggestBackendRust extends BaseFeature {
       }
 
       let timerId;
-      this.logger.debug("Starting ingest: " + type);
+      this.logger.debug("Starting ingest", { type });
       try {
         timerId = Glean.urlbar.quickSuggestIngestTime.start();
         const metrics = await this.#store.ingest(
@@ -450,25 +439,25 @@ export class SuggestBackendRust extends BaseFeature {
         // Ingest can throw a `SuggestApiError` subclass called `Other` with a
         // `reason` message, which is very helpful for diagnosing problems with
         // remote settings data in tests in particular.
-        this.logger.error(
-          `Ingest error for ${type}: ` + (error.reason ?? error)
-        );
+        this.logger.error("Ingest error", {
+          type,
+          error,
+          reason: error.reason,
+        });
         Glean.urlbar.quickSuggestIngestTime.cancel(timerId);
       }
-      this.logger.debug("Finished ingest: " + type);
+      this.logger.debug("Finished ingest", { type });
 
       if (!this.#store) {
         return;
       }
 
       // Fetch the provider config.
-      this.logger.debug("Fetching provider config: " + type);
+      this.logger.debug("Fetching provider config", { type });
       let config = await this.#store.fetchProviderConfig(provider);
-      this.logger.debug(
-        `Got provider config for ${type}: ` + JSON.stringify(config)
-      );
+      this.logger.debug("Got provider config", { type, config });
       this.#configsBySuggestionType.set(type, config);
-      this.logger.debug("Finished fetching provider config: " + type);
+      this.logger.debug("Finished fetching provider config", { type });
     });
   }
 
@@ -485,7 +474,7 @@ export class SuggestBackendRust extends BaseFeature {
       }
       this.logger.debug("Fetching global config");
       this.#config = await this.#store.fetchGlobalConfig();
-      this.logger.debug("Got global config: " + JSON.stringify(this.#config));
+      this.logger.debug("Got global config", this.#config);
     });
   }
 
@@ -504,7 +493,7 @@ export class SuggestBackendRust extends BaseFeature {
     if (!lazy.SuggestionProvider.hasOwnProperty(key)) {
       // Normally this shouldn't happen but it can during development when the
       // Rust component and desktop integration are out of sync.
-      this.logger.error(`SuggestionProvider["${key}"] is not defined!`);
+      this.logger.error("SuggestionProvider[key] not defined!", { key });
       return null;
     }
     return lazy.SuggestionProvider[key];
@@ -596,9 +585,8 @@ function getSuggestionType(suggestion) {
     } else {
       console.error(
         "Unexpected error: Suggestion class not found on `Suggestion`. " +
-          "Did the Rust component or its JS bindings change? " +
-          "The suggestion is: " +
-          JSON.stringify(suggestion)
+          "Did the Rust component or its JS bindings change? ",
+        { suggestion }
       );
     }
   }

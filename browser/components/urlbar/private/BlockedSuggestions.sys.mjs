@@ -42,11 +42,10 @@ export class BlockedSuggestions extends BaseFeature {
    *   The suggestion's original URL with its unreplaced timestamp template.
    */
   async add(originalUrl) {
-    this.logger.debug(`Queueing add: ${originalUrl}`);
     await this.#taskQueue.queue(async () => {
-      this.logger.info(`Blocking suggestion: ${originalUrl}`);
+      this.logger.info("Blocking suggestion", { originalUrl });
       let digest = await this.#getDigest(originalUrl);
-      this.logger.debug(`Got digest for '${originalUrl}': ${digest}`);
+      this.logger.debug("Got digest", { originalUrl, digest });
       this.#digests.add(digest);
       let json = JSON.stringify([...this.#digests]);
       this.#updatingDigests = true;
@@ -55,7 +54,7 @@ export class BlockedSuggestions extends BaseFeature {
       } finally {
         this.#updatingDigests = false;
       }
-      this.logger.debug(`All blocked suggestions: ${json}`);
+      this.logger.debug("All blocked suggestions", json);
     });
   }
 
@@ -68,14 +67,9 @@ export class BlockedSuggestions extends BaseFeature {
    *   Whether the suggestion is blocked.
    */
   async has(originalUrl) {
-    this.logger.debug(`Queueing has: ${originalUrl}`);
     return this.#taskQueue.queue(async () => {
-      this.logger.info(`Getting blocked status: ${originalUrl}`);
       let digest = await this.#getDigest(originalUrl);
-      this.logger.debug(`Got digest for '${originalUrl}': ${digest}`);
-      let isBlocked = this.#digests.has(digest);
-      this.logger.info(`Blocked status for '${originalUrl}': ${isBlocked}`);
-      return isBlocked;
+      return this.#digests.has(digest);
     });
   }
 
@@ -83,9 +77,8 @@ export class BlockedSuggestions extends BaseFeature {
    * Unblocks all suggestions.
    */
   async clear() {
-    this.logger.debug(`Queueing clearBlockedSuggestions`);
     await this.#taskQueue.queue(() => {
-      this.logger.info(`Clearing all blocked suggestions`);
+      this.logger.info("Clearing all blocked suggestions");
       this.#digests.clear();
       lazy.UrlbarPrefs.clear("quicksuggest.blockedDigests");
     });
@@ -101,7 +94,7 @@ export class BlockedSuggestions extends BaseFeature {
     switch (pref) {
       case "quicksuggest.blockedDigests":
         if (!this.#updatingDigests) {
-          this.logger.info(
+          this.logger.debug(
             "browser.urlbar.quicksuggest.blockedDigests changed"
           );
           this.#loadDigests();
@@ -114,24 +107,15 @@ export class BlockedSuggestions extends BaseFeature {
    * Loads blocked suggestion digests from the pref into `#digests`.
    */
   async #loadDigests() {
-    this.logger.debug(`Queueing #loadDigests`);
     await this.#taskQueue.queue(() => {
-      this.logger.info(`Loading blocked suggestion digests`);
       let json = lazy.UrlbarPrefs.get("quicksuggest.blockedDigests");
-      this.logger.debug(
-        `browser.urlbar.quicksuggest.blockedDigests value: ${json}`
-      );
       if (!json) {
-        this.logger.info(`There are no blocked suggestion digests`);
         this.#digests.clear();
       } else {
         try {
           this.#digests = new Set(JSON.parse(json));
-          this.logger.info(`Successfully loaded blocked suggestion digests`);
         } catch (error) {
-          this.logger.error(
-            `Error loading blocked suggestion digests: ${error}`
-          );
+          this.logger.error("Error loading blocked suggestion digests", error);
         }
       }
     });

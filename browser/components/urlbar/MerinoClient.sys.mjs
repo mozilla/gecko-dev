@@ -160,7 +160,7 @@ export class MerinoClient {
     extraResponseHistogram = null,
     otherParams = {},
   }) {
-    this.logger.info(`Fetch starting with query: "${query}"`);
+    this.logger.debug("Fetch start", { query });
 
     // Get the endpoint URL. It's empty by default when running tests so they
     // don't hit the network.
@@ -172,7 +172,7 @@ export class MerinoClient {
     try {
       url = new URL(endpointString);
     } catch (error) {
-      this.logger.error("Error creating endpoint URL: " + error);
+      this.logger.error("Error creating endpoint URL", error);
       return [];
     }
 
@@ -214,7 +214,7 @@ export class MerinoClient {
     // params.
 
     let details = { query, providers, timeoutMs, url: url.toString() };
-    this.logger.debug("Fetch details: " + JSON.stringify(details));
+    this.logger.debug("Fetch details", details);
 
     // If caching is enabled, generate the cache key for this request URL.
     let cacheKey;
@@ -228,7 +228,7 @@ export class MerinoClient {
         Date.now() < this.#cache.dateMs + this.#cachePeriodMs &&
         this.#cache.key == cacheKey
       ) {
-        this.logger.info("Fetch served from cache");
+        this.logger.debug("Fetch served from cache");
         return this.#cache.suggestions;
       }
     }
@@ -257,7 +257,7 @@ export class MerinoClient {
     this.#sequenceNumber++;
 
     let recordResponse = category => {
-      this.logger.info("Fetch done with status: " + category);
+      this.logger.debug("Fetch done", { status: category });
       Services.telemetry.getHistogramById(HISTOGRAM_RESPONSE).add(category);
       if (extraResponseHistogram) {
         Services.telemetry
@@ -275,7 +275,7 @@ export class MerinoClient {
       logger: this.logger,
       callback: () => {
         // The fetch timed out.
-        this.logger.info(`Fetch timed out (timeout = ${timeoutMs}ms)`);
+        this.logger.debug("Fetch timed out", { timeoutMs });
         recordResponse?.("timeout");
       },
     }));
@@ -286,7 +286,7 @@ export class MerinoClient {
     try {
       this.#fetchController?.abort();
     } catch (error) {
-      this.logger.error("Error aborting previous fetch: " + error);
+      this.logger.error("Error aborting previous fetch", error);
     }
 
     // Do the fetch.
@@ -314,10 +314,10 @@ export class MerinoClient {
           if (extraLatencyHistogram) {
             TelemetryStopwatch.finish(extraLatencyHistogram, stopwatchInstance);
           }
-          this.logger.debug(
-            "Got response: " +
-              JSON.stringify({ "response.status": response.status, ...details })
-          );
+          this.logger.debug("Got response", {
+            status: response.status,
+            ...details,
+          });
           if (!response.ok) {
             recordResponse?.("http_error");
           }
@@ -327,7 +327,7 @@ export class MerinoClient {
             TelemetryStopwatch.cancel(extraLatencyHistogram, stopwatchInstance);
           }
           if (error.name != "AbortError") {
-            this.logger.error("Fetch error: " + error);
+            this.logger.error("Fetch error", error);
             recordResponse?.("network_error");
           }
         } finally {
@@ -352,11 +352,11 @@ export class MerinoClient {
     try {
       body = await response?.json();
     } catch (error) {
-      this.logger.error("Error getting response as JSON: " + error);
+      this.logger.error("Error getting response as JSON", error);
     }
 
     if (body) {
-      this.logger.debug("Response body: " + JSON.stringify(body));
+      this.logger.debug("Response body", body);
     }
 
     if (!body?.suggestions?.length) {
@@ -366,7 +366,7 @@ export class MerinoClient {
 
     let { suggestions, request_id } = body;
     if (!Array.isArray(suggestions)) {
-      this.logger.error("Unexpected response: " + JSON.stringify(body));
+      this.logger.error("Unexpected response", body);
       recordResponse?.("no_suggestion");
       return [];
     }

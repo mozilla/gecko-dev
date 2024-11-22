@@ -193,10 +193,10 @@ class ProviderQuickSuggest extends UrlbarProvider {
       // Discard suggestions that don't have the required keys, which are used
       // to look up their features. Normally this shouldn't ever happen.
       if (!requiredKeys.every(key => suggestion[key])) {
-        this.logger.error(
-          "Suggestion is missing one or more required keys: " +
-            JSON.stringify({ requiredKeys, suggestion })
-        );
+        this.logger.error("Suggestion is missing one or more required keys", {
+          requiredKeys,
+          suggestion,
+        });
         continue;
       }
 
@@ -491,7 +491,7 @@ class ProviderQuickSuggest extends UrlbarProvider {
       return;
     }
 
-    this.logger.info("Dismissing result: " + JSON.stringify(result));
+    this.logger.info("Dismissing result", result);
     lazy.QuickSuggest.blockedSuggestions.add(
       // adM results have `originalUrl`, which contains timestamp templates.
       result.payload.originalUrl ?? result.payload.url
@@ -733,11 +733,10 @@ class ProviderQuickSuggest extends UrlbarProvider {
     );
     winner.score = highest + 0.001;
 
-    this.logger.debug(
-      `Updated the suggestion score from '${oldScore}' to '${winner.score.toFixed(
-        3
-      )}'`
-    );
+    this.logger.debug("Updated suggestion score (randomly)", {
+      oldScore,
+      newScore: winner.score.toFixed(3),
+    });
   }
 
   /**
@@ -766,16 +765,13 @@ class ProviderQuickSuggest extends UrlbarProvider {
           Glean.suggestRelevance.outcome[
             suggestion.score >= oldScore ? "boosted" : "decreased"
           ].add(1);
-          this.logger.debug(
-            `Updated the suggestion score from '${oldScore}' to '${suggestion.score.toFixed(
-              2
-            )}'`
-          );
+          this.logger.debug("Updated suggestion score (by relevance)", {
+            oldScore,
+            newScore: suggestion.score.toFixed(2),
+          });
         } catch (error) {
           Glean.suggestRelevance.status.failure.add(1);
-          this.logger.error(
-            `Failed to update the suggestion score: '${error}'`
-          );
+          this.logger.error("Error updating suggestion score", error);
           continue;
         }
       }
@@ -792,8 +788,7 @@ class ProviderQuickSuggest extends UrlbarProvider {
    *   Whether the suggestion can be added.
    */
   async _canAddSuggestion(suggestion) {
-    this.logger.info("Checking if suggestion can be added");
-    this.logger.debug(JSON.stringify({ suggestion }));
+    this.logger.debug("Checking if suggestion can be added", suggestion);
 
     // Return false if suggestions are disabled. Always allow Rust exposure
     // suggestions.
@@ -804,7 +799,7 @@ class ProviderQuickSuggest extends UrlbarProvider {
           !lazy.UrlbarPrefs.get("suggest.quicksuggest.nonsponsored"))) &&
       (suggestion.source != "rust" || suggestion.provider != "Exposure")
     ) {
-      this.logger.info("Suggestions disabled, not adding suggestion");
+      this.logger.debug("Suggestions disabled, not adding suggestion");
       return false;
     }
 
@@ -818,8 +813,10 @@ class ProviderQuickSuggest extends UrlbarProvider {
       let type = suggestion.is_sponsored ? "sponsored" : "nonsponsored";
       let hitStats = lazy.QuickSuggest.impressionCaps.getHitStats(type);
       if (hitStats) {
-        this.logger.info("Impression cap(s) hit, not adding suggestion");
-        this.logger.debug(JSON.stringify({ type, hitStats }));
+        this.logger.debug("Impression cap(s) hit, not adding suggestion", {
+          type,
+          hitStats,
+        });
         return false;
       }
     }
@@ -833,11 +830,11 @@ class ProviderQuickSuggest extends UrlbarProvider {
     // order.
     let { blockedSuggestions } = lazy.QuickSuggest;
     if (await blockedSuggestions.has(suggestion.rawUrl ?? suggestion.url)) {
-      this.logger.info("Suggestion blocked, not adding suggestion");
+      this.logger.debug("Suggestion blocked, not adding suggestion");
       return false;
     }
 
-    this.logger.info("Suggestion can be added");
+    this.logger.debug("Suggestion can be added");
     return true;
   }
 

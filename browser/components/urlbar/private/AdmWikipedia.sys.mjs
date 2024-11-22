@@ -65,7 +65,7 @@ export class AdmWikipedia extends BaseFeature {
       case "Wikipedia":
         return lazy.UrlbarPrefs.get("suggest.quicksuggest.nonsponsored");
     }
-    this.logger.error("Unknown Rust suggestion type: " + type);
+    this.logger.error("Unknown Rust suggestion type", { type });
     return false;
   }
 
@@ -107,7 +107,7 @@ export class AdmWikipedia extends BaseFeature {
 
   async onRemoteSettingsSync(rs) {
     let dataType = lazy.UrlbarPrefs.get("quickSuggestRemoteSettingsDataType");
-    this.logger.debug("Loading remote settings with type: " + dataType);
+    this.logger.debug("Loading remote settings", { dataType });
 
     let [data] = await Promise.all([
       rs.get({ filters: { type: dataType } }),
@@ -123,7 +123,7 @@ export class AdmWikipedia extends BaseFeature {
 
     let suggestionsMap = new lazy.SuggestionsMap();
 
-    this.logger.debug(`Got data with ${data.length} records`);
+    this.logger.debug("Got remote settings data", { recordCount: data.length });
     for (let record of data) {
       let { buffer } = await rs.attachments.download(record);
       if (!this.isEnabled) {
@@ -131,7 +131,7 @@ export class AdmWikipedia extends BaseFeature {
       }
 
       let results = JSON.parse(new TextDecoder("utf-8").decode(buffer));
-      this.logger.debug(`Adding ${results.length} results`);
+      this.logger.debug("Adding results", { resultCount: results.length });
       await suggestionsMap.add(results);
       if (!this.isEnabled) {
         return;

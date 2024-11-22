@@ -114,7 +114,7 @@ export class PocketSuggestions extends BaseFeature {
     let lowMap = new lazy.SuggestionsMap();
     let highMap = new lazy.SuggestionsMap();
 
-    this.logger.debug(`Got ${records.length} records`);
+    this.logger.debug("Got records", { recordCount: records.length });
     for (let record of records) {
       let { buffer } = await rs.attachments.download(record);
       if (!this.isEnabled) {
@@ -122,7 +122,9 @@ export class PocketSuggestions extends BaseFeature {
       }
 
       let suggestions = JSON.parse(new TextDecoder("utf-8").decode(buffer));
-      this.logger.debug(`Adding ${suggestions.length} suggestions`);
+      this.logger.debug("Adding suggestions", {
+        suggestionsCount: suggestions.length,
+      });
 
       await lowMap.add(suggestions, {
         keywordsProperty: "lowConfidenceKeywords",

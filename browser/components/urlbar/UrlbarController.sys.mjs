@@ -1158,9 +1158,7 @@ class TelemetryEvent {
       return;
     }
 
-    this._controller.logger.info(
-      `${method} event: ${JSON.stringify(eventInfo)}`
-    );
+    this._controller.logger.info(`${method} event:`, eventInfo);
 
     Glean.urlbar[method].record(eventInfo);
   }
@@ -1192,9 +1190,7 @@ class TelemetryEvent {
       // Record the `keyword_exposure` event if there's a keyword.
       if (keyword) {
         let data = { keyword, terminal, result: resultType };
-        this._controller.logger.debug(
-          `keyword_exposure event: ${JSON.stringify(data)}`
-        );
+        this._controller.logger.debug("Recording keyword_exposure event", data);
         Glean.urlbar.keywordExposure.record(data);
         keywordExposureRecorded = true;
       }
@@ -1206,9 +1202,7 @@ class TelemetryEvent {
       results: tuples.map(t => t[0]).join(","),
       terminal: tuples.map(t => t[1]).join(","),
     };
-    this._controller.logger.debug(
-      `exposure event: ${JSON.stringify(exposure)}`
-    );
+    this._controller.logger.debug("Recording exposure event", exposure);
     Glean.urlbar.exposure.record(exposure);
 
     // Submit the `urlbar-keyword-exposure` ping if any keyword exposure events

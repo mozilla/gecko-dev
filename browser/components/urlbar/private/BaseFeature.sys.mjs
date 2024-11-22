@@ -300,7 +300,9 @@ export class BaseFeature {
     let enable =
       lazy.UrlbarPrefs.get("quickSuggestEnabled") && this.shouldEnable;
     if (enable != this.isEnabled) {
-      this.logger.info(`Setting enabled = ${enable}`);
+      this.logger.info("Feature enabled status changed", {
+        nowEnabled: enable,
+      });
       this.#isEnabled = enable;
       this.enable(enable);
     }

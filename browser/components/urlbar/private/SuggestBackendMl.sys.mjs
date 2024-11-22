@@ -51,7 +51,7 @@ export class SuggestBackendMl extends BaseFeature {
    *   suggestion.
    */
   async query(searchString) {
-    this.logger.debug("Handling query: " + JSON.stringify(searchString));
+    this.logger.debug("Handling query", { searchString });
 
     // Don't waste time calling into `MLSuggest` if no ML intents are enabled.
     if (
@@ -64,7 +64,7 @@ export class SuggestBackendMl extends BaseFeature {
     }
 
     let suggestion = await lazy.MLSuggest.makeSuggestions(searchString);
-    this.logger.debug("Got suggestion: " + JSON.stringify(suggestion, null, 2));
+    this.logger.debug("Got suggestion", suggestion);
 
     if (suggestion?.intent) {
       // `MLSuggest` doesn't have a way to return only enabled intents, so it
