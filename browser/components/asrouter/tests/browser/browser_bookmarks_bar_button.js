@@ -10,6 +10,10 @@ const { SpecialMessageActions } = ChromeUtils.importESModule(
   "resource://messaging-system/lib/SpecialMessageActions.sys.mjs"
 );
 
+const { ExperimentFakes } = ChromeUtils.importESModule(
+  "resource://testing-common/NimbusTestUtils.sys.mjs"
+);
+
 const surfaceName = "fxms-bmb-button";
 
 function getTestMessage() {
@@ -211,6 +215,40 @@ add_task(async function customizableIconLogo() {
   );
 
   CustomizableUI.destroyWidget(Id4);
+  await CustomizableUI.reset();
+  await BrowserTestUtils.closeWindow(win);
+  sandbox.restore();
+});
+
+add_task(async function test_bookmarks_bar_button_experiment_update() {
+  const featureId = "fxms_bmb_button";
+  const sandbox = sinon.createSandbox();
+  const win = await BrowserTestUtils.openNewBrowserWindow();
+  const browser = win.gBrowser.selectedBrowser;
+  const doc = win.document;
+  const buttonClass = ".fxms-bmb-button";
+
+  const message = getTestMessage();
+
+  // enroll in an experiment with the bookmarks bar button feature
+  const cleanup = await ExperimentFakes.enrollWithFeatureConfig({
+    featureId,
+    value: message,
+  });
+
+  // display the bookmarks bar button, and verify its presence
+  await BookmarksBarButton.showBookmarksBarButton(browser, message);
+  ok(doc.querySelector(buttonClass), "Bookmarks Bar Button exists");
+
+  // unenroll from the experiment
+  cleanup();
+
+  // wait for the button to be removed, and verify that it's gone
+  await TestUtils.waitForCondition(
+    () => !doc.querySelector(buttonClass),
+    "Bookmarks Bar Button is removed after experiment is unenrolled"
+  );
+
   await CustomizableUI.reset();
   await BrowserTestUtils.closeWindow(win);
   sandbox.restore();
