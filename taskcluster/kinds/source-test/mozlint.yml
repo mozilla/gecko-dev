@@ -578,6 +578,9 @@ perfdocs-verify:
             - 'testing/performance/**'
             - 'testing/perfdocs/**'
             - 'tools/lint/perfdocs.yml'
+            - 'toolkit/components/ml/tests/browser/**'
+            - '**/*_perf.js'
+
 
 condprof-addons-verify:
     description: |
