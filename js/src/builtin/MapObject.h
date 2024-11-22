@@ -162,7 +162,8 @@ class MapObject : public OrderedHashMapObject {
   [[nodiscard]] bool set(JSContext* cx, const Value& key, const Value& val);
   void clear(JSContext* cx);
   [[nodiscard]] static bool iterator(JSContext* cx, IteratorKind kind,
-                                     HandleObject obj, MutableHandleValue iter);
+                                     Handle<MapObject*> obj,
+                                     MutableHandleValue iter);
 
   void clearNurseryIteratorsBeforeMinorGC();
 
@@ -231,7 +232,7 @@ class MapIteratorObject : public TableIteratorObject {
   static const JSClass class_;
 
   static const JSFunctionSpec methods[];
-  static MapIteratorObject* create(JSContext* cx, HandleObject mapobj,
+  static MapIteratorObject* create(JSContext* cx, Handle<MapObject*> mapobj,
                                    Kind kind);
   static void finalize(JS::GCContext* gcx, JSObject* obj);
   static size_t objectMoved(JSObject* obj, JSObject* old);
@@ -285,7 +286,8 @@ class SetObject : public OrderedHashSetObject {
   [[nodiscard]] bool has(JSContext* cx, const Value& key, bool* rval);
   void clear(JSContext* cx);
   [[nodiscard]] static bool iterator(JSContext* cx, IteratorKind kind,
-                                     HandleObject obj, MutableHandleValue iter);
+                                     Handle<SetObject*> obj,
+                                     MutableHandleValue iter);
   [[nodiscard]] static bool delete_(JSContext* cx, unsigned argc, Value* vp);
   [[nodiscard]] bool delete_(JSContext* cx, const Value& key, bool* rval);
 
@@ -350,7 +352,7 @@ class SetIteratorObject : public TableIteratorObject {
   static const JSClass class_;
 
   static const JSFunctionSpec methods[];
-  static SetIteratorObject* create(JSContext* cx, HandleObject setobj,
+  static SetIteratorObject* create(JSContext* cx, Handle<SetObject*> setobj,
                                    Kind kind);
   static void finalize(JS::GCContext* gcx, JSObject* obj);
   static size_t objectMoved(JSObject* obj, JSObject* old);

@@ -246,9 +246,9 @@ static inline void SetRegisteredNurseryIterators(TableObject* t, bool b) {
                      JS::BooleanValue(b));
 }
 
-MapIteratorObject* MapIteratorObject::create(JSContext* cx, HandleObject obj,
+MapIteratorObject* MapIteratorObject::create(JSContext* cx,
+                                             Handle<MapObject*> mapobj,
                                              Kind kind) {
-  Handle<MapObject*> mapobj(obj.as<MapObject>());
   Rooted<GlobalObject*> global(cx, &mapobj->global());
   Rooted<JSObject*> proto(
       cx, GlobalObject::getOrCreateMapIteratorPrototype(cx, global));
@@ -917,9 +917,9 @@ bool MapObject::delete_(JSContext* cx, unsigned argc, Value* vp) {
   return CallNonGenericMethod<MapObject::is, MapObject::delete_impl>(cx, args);
 }
 
-bool MapObject::iterator(JSContext* cx, IteratorKind kind, HandleObject obj,
-                         MutableHandleValue iter) {
-  Rooted<JSObject*> iterobj(cx, MapIteratorObject::create(cx, obj, kind));
+bool MapObject::iterator(JSContext* cx, IteratorKind kind,
+                         Handle<MapObject*> obj, MutableHandleValue iter) {
+  JSObject* iterobj = MapIteratorObject::create(cx, obj, kind);
   if (!iterobj) {
     return false;
   }
@@ -929,8 +929,8 @@ bool MapObject::iterator(JSContext* cx, IteratorKind kind, HandleObject obj,
 
 bool MapObject::iterator_impl(JSContext* cx, const CallArgs& args,
                               IteratorKind kind) {
-  RootedObject obj(cx, &args.thisv().toObject());
-  return iterator(cx, kind, obj, args.rval());
+  Rooted<MapObject*> mapObj(cx, &args.thisv().toObject().as<MapObject>());
+  return iterator(cx, kind, mapObj, args.rval());
 }
 
 bool MapObject::keys_impl(JSContext* cx, const CallArgs& args) {
@@ -1038,11 +1038,11 @@ bool GlobalObject::initSetIteratorProto(JSContext* cx,
   return true;
 }
 
-SetIteratorObject* SetIteratorObject::create(JSContext* cx, HandleObject obj,
+SetIteratorObject* SetIteratorObject::create(JSContext* cx,
+                                             Handle<SetObject*> setobj,
                                              Kind kind) {
   MOZ_ASSERT(kind != Kind::Keys);
 
-  Handle<SetObject*> setobj(obj.as<SetObject>());
   Rooted<GlobalObject*> global(cx, &setobj->global());
   Rooted<JSObject*> proto(
       cx, GlobalObject::getOrCreateSetIteratorPrototype(cx, global));
@@ -1557,10 +1557,9 @@ bool SetObject::delete_(JSContext* cx, unsigned argc, Value* vp) {
   return CallNonGenericMethod<SetObject::is, SetObject::delete_impl>(cx, args);
 }
 
-bool SetObject::iterator(JSContext* cx, IteratorKind kind, HandleObject obj,
-                         MutableHandleValue iter) {
-  MOZ_ASSERT(SetObject::is(obj));
-  Rooted<JSObject*> iterobj(cx, SetIteratorObject::create(cx, obj, kind));
+bool SetObject::iterator(JSContext* cx, IteratorKind kind,
+                         Handle<SetObject*> obj, MutableHandleValue iter) {
+  JSObject* iterobj = SetIteratorObject::create(cx, obj, kind);
   if (!iterobj) {
     return false;
   }
@@ -1570,13 +1569,8 @@ bool SetObject::iterator(JSContext* cx, IteratorKind kind, HandleObject obj,
 
 bool SetObject::iterator_impl(JSContext* cx, const CallArgs& args,
                               IteratorKind kind) {
-  Rooted<SetObject*> setobj(cx, &args.thisv().toObject().as<SetObject>());
-  Rooted<JSObject*> iterobj(cx, SetIteratorObject::create(cx, setobj, kind));
-  if (!iterobj) {
-    return false;
-  }
-  args.rval().setObject(*iterobj);
-  return true;
+  Rooted<SetObject*> setObj(cx, &args.thisv().toObject().as<SetObject>());
+  return iterator(cx, kind, setObj, args.rval());
 }
 
 bool SetObject::values_impl(JSContext* cx, const CallArgs& args) {
