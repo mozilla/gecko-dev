@@ -4354,7 +4354,11 @@ void MacroAssembler::atomicEffectOpJS(Scalar::Type arrayType,
                  offsetTemp, maskTemp);
 }
 
-void MacroAssembler::atomicPause() { MOZ_CRASH("NYI"); }
+void MacroAssembler::atomicPause() {
+  // LoongArch doesn't have 'pause' or 'yield' instructions like other
+  // platforms, just use nop here.
+  nop();
+}
 
 void MacroAssembler::flexibleQuotient32(Register rhs, Register srcDest,
                                         bool isUnsigned,
