@@ -43,6 +43,20 @@ export const AWScreenUtils = {
     return true;
   },
   /**
+   * Returns the string identifier of an unhandled campaign action, if
+   * applicable otherwise false.
+   *
+   * @returns {string|boolean}
+   */
+  async getUnhandledCampaignAction() {
+    const UNHANDLED_CAMPAIGN_ACTION_TARGETING = "unhandledCampaignAction";
+    let result = await lazy.ASRouter.evaluateExpression({
+      expression: UNHANDLED_CAMPAIGN_ACTION_TARGETING,
+      context: lazy.ASRouterTargeting.Environment,
+    });
+    return result?.evaluationStatus?.result || false;
+  },
+  /**
    * Filter out screens whose targeting do not match.
    *
    * Given an array of screens, each screen will have it's `targeting` property

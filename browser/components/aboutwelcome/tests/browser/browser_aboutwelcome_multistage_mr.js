@@ -86,7 +86,7 @@ add_task(async function test_aboutwelcome_easy_setup_screen_impression() {
     .stub(AWScreenUtils, "evaluateScreenTargeting")
     .resolves(false)
     .withArgs(
-      "doesAppNeedPin && 'browser.shell.checkDefaultBrowser'|preferenceValue && !isDefaultBrowser"
+      "doesAppNeedPin && (unhandledCampaignAction != 'SET_DEFAULT_BROWSER') && 'browser.shell.checkDefaultBrowser'|preferenceValue && !isDefaultBrowser"
     )
     .resolves(true)
     .withArgs("isDeviceMigration")
