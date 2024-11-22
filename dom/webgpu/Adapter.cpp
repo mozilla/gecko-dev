@@ -342,18 +342,6 @@ already_AddRefed<dom::Promise> Adapter::RequestDevice(
 
     ffi::WGPUFeatures featureBits = 0;
     for (const auto requested : aDesc.mRequiredFeatures) {
-      const bool supportedByAdapter = mFeatures->Features().count(requested);
-      if (!supportedByAdapter) {
-        const auto fstr = dom::GetEnumString(requested);
-        const auto astr = this->LabelOrId();
-        nsPrintfCString msg(
-            "`GPUAdapter.requestDevice`: '%s' was requested in "
-            "`requiredFeatures`, but it is not supported by adapter %s.",
-            fstr.get(), astr.get());
-        promise->MaybeRejectWithTypeError(msg);
-        return;
-      }
-
       const auto bit = ToWGPUFeatures(requested);
       if (!bit) {
         const auto featureStr = dom::GetEnumString(requested);
@@ -366,6 +354,18 @@ already_AddRefed<dom::Promise> Adapter::RequestDevice(
         return;
       }
       featureBits |= *bit;
+
+      const bool supportedByAdapter = mFeatures->Features().count(requested);
+      if (!supportedByAdapter) {
+        const auto fstr = dom::GetEnumString(requested);
+        const auto astr = this->LabelOrId();
+        nsPrintfCString msg(
+            "`GPUAdapter.requestDevice`: '%s' was requested in "
+            "`requiredFeatures`, but it is not supported by adapter %s.",
+            fstr.get(), astr.get());
+        promise->MaybeRejectWithTypeError(msg);
+        return;
+      }
     }
 
     // -
