@@ -1510,13 +1510,14 @@ class _ContextMenuItem extends (external_React_default()).PureComponent {
     const {
       option
     } = this.props;
-    const className = [option.disabled ? "disabled" : ""].join(" ");
+    const listItemClassNames = [option.className || ""].join(" ");
+    const buttonClassNames = [option.disabled ? "disabled" : ""].join(" ");
     return /*#__PURE__*/external_React_default().createElement("li", {
       role: "presentation",
-      className: "context-menu-item"
+      className: `context-menu-item ${listItemClassNames}`
     }, /*#__PURE__*/external_React_default().createElement("button", {
-      className: className,
       role: "menuitem",
+      className: buttonClassNames,
       onClick: this.onClick,
       onKeyDown: this.onKeyDown,
       onKeyUp: this.onKeyUp,
@@ -2129,6 +2130,10 @@ class DSLinkMenu extends (external_React_default()).PureComponent {
     if (!this.props.isRecentSave) {
       if (this.props.pocket_button_enabled) {
         pocketMenuOptions = this.props.saveToPocketCard ? ["CheckDeleteFromPocket"] : ["CheckSavedToPocket"];
+      }
+      // Override pocketMenuOptions to add Save to Pocket btn link to all section cards
+      if (this.props.isSectionsCard) {
+        pocketMenuOptions = ["CheckSavedToPocket"];
       }
       TOP_STORIES_CONTEXT_MENU_OPTIONS = ["CheckBookmark", "CheckArchiveFromPocket", ...pocketMenuOptions, "Separator", "OpenInNewWindow", "OpenInPrivateWindow", "Separator", "BlockUrl", ...(this.props.showPrivacyInfo ? ["ShowPrivacyInfo"] : [])];
     }
@@ -3629,7 +3634,8 @@ class _DSCard extends (external_React_default()).PureComponent {
       is_list_card: this.props.isListCard,
       section: this.props.section,
       section_position: this.props.sectionPosition,
-      format: format
+      format: format,
+      isSectionsCard: this.props.mayHaveSectionsCards
     }))));
   }
 }
@@ -9596,6 +9602,9 @@ function CardSections({
   const mayHaveThumbsUpDown = prefs[CardSections_PREF_THUMBS_UP_DOWN_ENABLED];
   const selectedTopics = prefs[CardSections_PREF_TOPICS_SELECTED];
   const availableTopics = prefs[CardSections_PREF_TOPICS_AVAILABLE];
+  const {
+    saveToPocketCard
+  } = (0,external_ReactRedux_namespaceObject.useSelector)(state => state.DiscoveryStream);
   const handleIntersection = (0,external_React_namespaceObject.useCallback)(el => {
     dispatch(actionCreators.AlsoToMain({
       type: actionTypes.CARD_SECTION_IMPRESSION,
@@ -9730,6 +9739,7 @@ function CardSections({
         selectedTopics: selectedTopics,
         availableTopics: availableTopics,
         is_collection: is_collection,
+        saveToPocketCard: saveToPocketCard,
         ctaButtonSponsors: ctaButtonSponsors,
         ctaButtonVariant: ctaButtonVariant,
         spocMessageVariant: spocMessageVariant,

@@ -4576,6 +4576,9 @@ main section {
     gap: var(--space-medium);
     padding: var(--space-large);
   }
+  .ds-section-grid.ds-card-grid .col-1-small .stp-context-menu {
+    display: block;
+  }
   .ds-section-grid.ds-card-grid .col-1-small .card-stp-thumbs-buttons-wrapper {
     display: none;
   }
@@ -4615,7 +4618,7 @@ main section {
     display: none;
   }
   .ds-section-grid.ds-card-grid .col-1-small .meta .sections-card-footer {
-    margin-top: var(--space-small);
+    margin-block-start: var(--space-small);
   }
   .ds-section-grid.ds-card-grid .col-1-small .card-stp-button-hover-background {
     padding-block-start: unset;
@@ -4633,6 +4636,15 @@ main section {
     padding: 0;
     align-items: initial;
     gap: initial;
+  }
+  .ds-section-grid.ds-card-grid .col-1-medium .stp-context-menu {
+    display: none;
+  }
+  .ds-section-grid.ds-card-grid .col-1-medium .card-stp-button-position-wrapper {
+    inset-inline-end: 10px;
+  }
+  .ds-section-grid.ds-card-grid .col-1-medium .card-stp-button-position-wrapper .card-stp-button {
+    display: block;
   }
   .ds-section-grid.ds-card-grid .col-1-medium .card-stp-thumbs-buttons-wrapper {
     display: block;
@@ -4723,6 +4735,9 @@ main section {
     gap: var(--space-medium);
     padding: var(--space-large);
   }
+  .ds-section-grid.ds-card-grid .col-2-small .stp-context-menu {
+    display: block;
+  }
   .ds-section-grid.ds-card-grid .col-2-small .card-stp-thumbs-buttons-wrapper {
     display: none;
   }
@@ -4762,7 +4777,7 @@ main section {
     display: none;
   }
   .ds-section-grid.ds-card-grid .col-2-small .meta .sections-card-footer {
-    margin-top: var(--space-small);
+    margin-block-start: var(--space-small);
   }
   .ds-section-grid.ds-card-grid .col-2-small .card-stp-button-hover-background {
     padding-block-start: unset;
@@ -4780,6 +4795,15 @@ main section {
     padding: 0;
     align-items: initial;
     gap: initial;
+  }
+  .ds-section-grid.ds-card-grid .col-2-medium .stp-context-menu {
+    display: none;
+  }
+  .ds-section-grid.ds-card-grid .col-2-medium .card-stp-button-position-wrapper {
+    inset-inline-end: 10px;
+  }
+  .ds-section-grid.ds-card-grid .col-2-medium .card-stp-button-position-wrapper .card-stp-button {
+    display: block;
   }
   .ds-section-grid.ds-card-grid .col-2-medium .card-stp-thumbs-buttons-wrapper {
     display: block;
@@ -4871,6 +4895,9 @@ main section {
     gap: var(--space-medium);
     padding: var(--space-large);
   }
+  .ds-section-grid.ds-card-grid .col-3-small .stp-context-menu {
+    display: block;
+  }
   .ds-section-grid.ds-card-grid .col-3-small .card-stp-thumbs-buttons-wrapper {
     display: none;
   }
@@ -4910,7 +4937,7 @@ main section {
     display: none;
   }
   .ds-section-grid.ds-card-grid .col-3-small .meta .sections-card-footer {
-    margin-top: var(--space-small);
+    margin-block-start: var(--space-small);
   }
   .ds-section-grid.ds-card-grid .col-3-small .card-stp-button-hover-background {
     padding-block-start: unset;
@@ -4928,6 +4955,15 @@ main section {
     padding: 0;
     align-items: initial;
     gap: initial;
+  }
+  .ds-section-grid.ds-card-grid .col-3-medium .stp-context-menu {
+    display: none;
+  }
+  .ds-section-grid.ds-card-grid .col-3-medium .card-stp-button-position-wrapper {
+    inset-inline-end: 10px;
+  }
+  .ds-section-grid.ds-card-grid .col-3-medium .card-stp-button-position-wrapper .card-stp-button {
+    display: block;
   }
   .ds-section-grid.ds-card-grid .col-3-medium .card-stp-thumbs-buttons-wrapper {
     display: block;
@@ -5018,6 +5054,9 @@ main section {
     gap: var(--space-medium);
     padding: var(--space-large);
   }
+  .ds-section-grid.ds-card-grid .col-4-small .stp-context-menu {
+    display: block;
+  }
   .ds-section-grid.ds-card-grid .col-4-small .card-stp-thumbs-buttons-wrapper {
     display: none;
   }
@@ -5057,7 +5096,7 @@ main section {
     display: none;
   }
   .ds-section-grid.ds-card-grid .col-4-small .meta .sections-card-footer {
-    margin-top: var(--space-small);
+    margin-block-start: var(--space-small);
   }
   .ds-section-grid.ds-card-grid .col-4-small .card-stp-button-hover-background {
     padding-block-start: unset;
@@ -5075,6 +5114,15 @@ main section {
     padding: 0;
     align-items: initial;
     gap: initial;
+  }
+  .ds-section-grid.ds-card-grid .col-4-medium .stp-context-menu {
+    display: none;
+  }
+  .ds-section-grid.ds-card-grid .col-4-medium .card-stp-button-position-wrapper {
+    inset-inline-end: 10px;
+  }
+  .ds-section-grid.ds-card-grid .col-4-medium .card-stp-button-position-wrapper .card-stp-button {
+    display: block;
   }
   .ds-section-grid.ds-card-grid .col-4-medium .card-stp-thumbs-buttons-wrapper {
     display: block;

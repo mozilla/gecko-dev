@@ -40,6 +40,7 @@ function CardSections({
   const mayHaveThumbsUpDown = prefs[PREF_THUMBS_UP_DOWN_ENABLED];
   const selectedTopics = prefs[PREF_TOPICS_SELECTED];
   const availableTopics = prefs[PREF_TOPICS_AVAILABLE];
+  const { saveToPocketCard } = useSelector(state => state.DiscoveryStream);
 
   const handleIntersection = useCallback(
     el => {
@@ -180,6 +181,7 @@ function CardSections({
                     selectedTopics={selectedTopics}
                     availableTopics={availableTopics}
                     is_collection={is_collection}
+                    saveToPocketCard={saveToPocketCard}
                     ctaButtonSponsors={ctaButtonSponsors}
                     ctaButtonVariant={ctaButtonVariant}
                     spocMessageVariant={spocMessageVariant}

@@ -7,6 +7,10 @@
   gap: var(--space-medium);
   padding: var(--space-large);
 
+  .stp-context-menu {
+    display: block;
+  }
+
   .card-stp-thumbs-buttons-wrapper {
     display: none;
   }
@@ -56,7 +60,7 @@
     }
 
     .sections-card-footer {
-      margin-top: var(--space-small);
+      margin-block-start: var(--space-small);
     }
   }
 
@@ -80,6 +84,18 @@
   padding: 0;
   align-items: initial;
   gap: initial;
+
+  .stp-context-menu {
+    display: none;
+  }
+
+  .card-stp-button-position-wrapper {
+    inset-inline-end: 10px;
+
+    .card-stp-button {
+      display: block;
+    }
+  }
 
   .card-stp-thumbs-buttons-wrapper {
     display: block;

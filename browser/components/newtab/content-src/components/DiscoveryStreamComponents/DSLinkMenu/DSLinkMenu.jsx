@@ -21,6 +21,10 @@ export class DSLinkMenu extends React.PureComponent {
           ? ["CheckDeleteFromPocket"]
           : ["CheckSavedToPocket"];
       }
+      // Override pocketMenuOptions to add Save to Pocket btn link to all section cards
+      if (this.props.isSectionsCard) {
+        pocketMenuOptions = ["CheckSavedToPocket"];
+      }
       TOP_STORIES_CONTEXT_MENU_OPTIONS = [
         "CheckBookmark",
         "CheckArchiveFromPocket",

@@ -899,6 +899,7 @@ export class _DSCard extends React.PureComponent {
                 section={this.props.section}
                 section_position={this.props.sectionPosition}
                 format={format}
+                isSectionsCard={this.props.mayHaveSectionsCards}
               />
             )}
           </div>
