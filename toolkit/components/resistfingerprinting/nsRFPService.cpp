@@ -113,7 +113,7 @@ static mozilla::LazyLogModule gTimestamps("Timestamps");
 #define RFP_TIMER_UNCONDITIONAL_VALUE 20
 #define LAST_PB_SESSION_EXITED_TOPIC "last-pb-context-exited"
 #define IDLE_TOPIC "browser-idle-startup-tasks-finished"
-#define GFX_FEATURES "gfx-features-ready"
+#define COMPOSITOR_CREATED "compositor:created"
 #define USER_CHARACTERISTICS_TEST_REQUEST \
   "user-characteristics-testing-please-populate-data"
 
@@ -204,7 +204,7 @@ nsresult nsRFPService::Init() {
     rv = obs->AddObserver(this, IDLE_TOPIC, false);
     NS_ENSURE_SUCCESS(rv, rv);
 
-    rv = obs->AddObserver(this, GFX_FEATURES, false);
+    rv = obs->AddObserver(this, COMPOSITOR_CREATED, false);
     NS_ENSURE_SUCCESS(rv, rv);
 
     rv = obs->AddObserver(this, USER_CHARACTERISTICS_TEST_REQUEST, false);
@@ -313,7 +313,7 @@ void nsRFPService::StartShutdown() {
       obs->RemoveObserver(this, LAST_PB_SESSION_EXITED_TOPIC);
       obs->RemoveObserver(this, OBSERVER_TOPIC_IDLE_DAILY);
       obs->RemoveObserver(this, IDLE_TOPIC);
-      obs->RemoveObserver(this, GFX_FEATURES);
+      obs->RemoveObserver(this, COMPOSITOR_CREATED);
       obs->RemoveObserver(this, USER_CHARACTERISTICS_TEST_REQUEST);
     }
   }
@@ -368,7 +368,7 @@ nsRFPService::Observe(nsISupports* aObject, const char* aTopic,
     ClearBrowsingSessionKey(pattern);
   }
 
-  if (!strcmp(IDLE_TOPIC, aTopic) || !strcmp(GFX_FEATURES, aTopic)) {
+  if (!strcmp(IDLE_TOPIC, aTopic) || !strcmp(COMPOSITOR_CREATED, aTopic)) {
     seenTopicsForUserCharacteristics++;
 
     if (seenTopicsForUserCharacteristics == kNumTopicsForUserCharacteristics) {
