@@ -1670,3 +1670,32 @@ add_task(async function test_moveGroupToNewWindow() {
 
   await BrowserTestUtils.closeWindow(newWin, { animate: false });
 });
+
+add_task(async function test_saveAndCloseGroup() {
+  let { tabgroupEditor, group } = await createTabGroupAndOpenEditPanel();
+  let tabgroupPanel = tabgroupEditor.panel;
+  let tab = group.tabs[0];
+  let saveAndCloseGroupButton = tabgroupPanel.querySelector(
+    "#tabGroupEditor_saveAndCloseGroup"
+  );
+
+  let groupMatch = gBrowser.tabGroups.find(
+    possibleMatch => possibleMatch.id == group.id
+  );
+  Assert.ok(groupMatch, "Group exists in browser");
+
+  let panelHidden = BrowserTestUtils.waitForPopupEvent(tabgroupPanel, "hidden");
+  saveAndCloseGroupButton.click();
+  await panelHidden;
+
+  groupMatch = gBrowser.tabGroups.find(
+    possibleMatch => possibleMatch.id == group.id
+  );
+  Assert.ok(!groupMatch, "Group was removed from browser");
+  let savedGroupMatch = SessionStore.savedGroups.find(
+    savedGroup => savedGroup.id == group.id
+  );
+  Assert.ok(savedGroupMatch, "Group is in savedGroups");
+
+  BrowserTestUtils.removeTab(tab);
+});

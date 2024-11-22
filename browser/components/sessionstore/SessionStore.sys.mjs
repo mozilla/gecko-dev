@@ -241,6 +241,10 @@ export var SessionStore = {
     return SessionStoreInternal._LAST_ACTION_CLOSED_WINDOW;
   },
 
+  get savedGroups() {
+    return SessionStoreInternal._savedGroups;
+  },
+
   get willAutoRestore() {
     return SessionStoreInternal.willAutoRestore;
   },

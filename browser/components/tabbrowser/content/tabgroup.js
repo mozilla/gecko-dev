@@ -202,6 +202,13 @@
     }
 
     /**
+     * Save group data to session store.
+     */
+    save() {
+      SessionStore.addSavedTabGroup(this);
+    }
+
+    /**
      * @param {PointerEvent} event
      */
     on_click(event) {

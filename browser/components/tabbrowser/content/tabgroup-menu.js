@@ -45,7 +45,7 @@
       <html:div class="panel-body tab-group-edit-actions tab-group-edit-mode-only">
         <toolbarbutton tabindex="1" id="tabGroupEditor_addNewTabInGroup" class="subviewbutton" data-l10n-id="tab-group-editor-action-new-tab"></toolbarbutton>
         <toolbarbutton tabindex="1" id="tabGroupEditor_moveGroupToNewWindow" class="subviewbutton" data-l10n-id="tab-group-editor-action-new-window"></toolbarbutton>
-        <toolbarbutton disabled="true" id="tabGroupEditor_saveAndCloseGroup" class="subviewbutton" data-l10n-id="tab-group-editor-action-save"></toolbarbutton>
+        <toolbarbutton tabindex="1" id="tabGroupEditor_saveAndCloseGroup" class="subviewbutton" data-l10n-id="tab-group-editor-action-save"></toolbarbutton>
         <toolbarbutton tabindex="1" id="tabGroupEditor_ungroupTabs" class="subviewbutton" data-l10n-id="tab-group-editor-action-ungroup"></toolbarbutton>
       </html:div>
       <toolbarseparator class="tab-group-edit-mode-only" />
@@ -122,6 +122,12 @@
         .getElementById("tabGroupEditor_ungroupTabs")
         .addEventListener("command", () => {
           this.#handleUngroup();
+        });
+
+      document
+        .getElementById("tabGroupEditor_saveAndCloseGroup")
+        .addEventListener("command", () => {
+          this.#handleSaveAndClose();
         });
 
       document
@@ -275,6 +281,11 @@
 
     #handleUngroup() {
       this.activeGroup?.ungroupTabs();
+    }
+
+    #handleSaveAndClose() {
+      this.activeGroup.save();
+      gBrowser.removeTabGroup(this.activeGroup);
     }
 
     #handleDelete() {
