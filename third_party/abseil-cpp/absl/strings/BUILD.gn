@@ -86,11 +86,7 @@ absl_source_set("strings") {
   if (moz_webrtc_build) {
     # Removed for unreachable sources.  See Bug 1820869.
     sources -= [
-      "charconv.cc",
       "escaping.cc",
-      "internal/charconv_bigint.cc",
-      "internal/charconv_parse.cc",
-      "numbers.cc",
       "str_cat.cc",
       "str_replace.cc",
       "substitute.cc",
