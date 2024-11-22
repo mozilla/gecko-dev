@@ -9,10 +9,7 @@
 use crate::host::Host;
 use crate::parser::default_port;
 use crate::Url;
-use alloc::borrow::ToOwned;
-use alloc::format;
-use alloc::string::String;
-use core::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::atomic::{AtomicUsize, Ordering};
 
 pub fn url_origin(url: &Url) -> Origin {
     let scheme = url.scheme();

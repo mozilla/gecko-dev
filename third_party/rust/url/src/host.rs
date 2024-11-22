@@ -6,14 +6,10 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-use crate::net::{Ipv4Addr, Ipv6Addr};
-use alloc::borrow::Cow;
-use alloc::borrow::ToOwned;
-use alloc::string::String;
-use alloc::string::ToString;
-use alloc::vec::Vec;
-use core::cmp;
-use core::fmt::{self, Formatter};
+use std::borrow::Cow;
+use std::cmp;
+use std::fmt::{self, Formatter};
+use std::net::{Ipv4Addr, Ipv6Addr};
 
 use percent_encoding::{percent_decode, utf8_percent_encode, CONTROLS};
 #[cfg(feature = "serde")]
@@ -313,7 +309,7 @@ fn parse_ipv4addr(input: &str) -> ParseResult<Ipv4Addr> {
     }
     let mut ipv4 = numbers.pop().expect("a non-empty list of numbers");
     // Equivalent to: ipv4 >= 256 ** (4 − numbers.len())
-    if ipv4 > u32::MAX >> (8 * numbers.len() as u32) {
+    if ipv4 > u32::max_value() >> (8 * numbers.len() as u32) {
         return Err(ParseError::InvalidIpv4Address);
     }
     if numbers.iter().any(|x| *x > 255) {
