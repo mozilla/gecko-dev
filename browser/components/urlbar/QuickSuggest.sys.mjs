@@ -6,7 +6,6 @@ const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
   BrowserWindowTracker: "resource:///modules/BrowserWindowTracker.sys.mjs",
-  MerinoClient: "resource:///modules/MerinoClient.sys.mjs",
   NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
   rawSuggestionUrlMatches: "resource://gre/modules/RustSuggest.sys.mjs",
   UrlbarPrefs: "resource:///modules/UrlbarPrefs.sys.mjs",
@@ -38,10 +37,6 @@ const FEATURES = {
   Weather: "resource:///modules/urlbar/private/Weather.sys.mjs",
   YelpSuggestions: "resource:///modules/urlbar/private/YelpSuggestions.sys.mjs",
 };
-
-// Cache period for Merino's geolocation response. This is intentionally a small
-// amount of time. See the `cachePeriodMs` discussion in `MerinoClient`.
-const GEOLOCATION_CACHE_PERIOD_MS = 120000; // 2 minutes
 
 const TIMESTAMP_TEMPLATE = "%YYYYMMDDHH%";
 const TIMESTAMP_LENGTH = 10;
@@ -276,54 +271,6 @@ class _QuickSuggest {
    */
   getFeatureByMlIntent(intent) {
     return this.#featuresByMlIntent.get(intent);
-  }
-
-  /**
-   * Fetches the client's geolocation from Merino. Merino gets the geolocation
-   * by looking up the client's IP address in its MaxMind database. We cache
-   * responses for a brief period of time so that fetches during a urlbar
-   * session don't ping Merino over and over.
-   *
-   * @returns {object}
-   *   An object with the following properties (see Merino source for latest):
-   *
-   *   {string} country
-   *     The full country name.
-   *   {string} country_code
-   *     The country ISO code.
-   *   {string} region
-   *     The full region name, e.g., the full name of a U.S. state.
-   *   {string} region_code
-   *     The region ISO code, e.g., the two-letter abbreviation for U.S. states.
-   *   {string} city
-   *     The city name.
-   *   {object} location
-   *     This object has the following properties:
-   *     {number} latitude
-   *       Latitude in decimal degrees.
-   *     {number} longitude
-   *       Longitude in decimal degrees.
-   *     {number} radius
-   *       Accuracy radius in km.
-   */
-  async geolocation() {
-    if (!this.#merino) {
-      this.#merino = new lazy.MerinoClient("QuickSuggest", {
-        cachePeriodMs: GEOLOCATION_CACHE_PERIOD_MS,
-      });
-    }
-
-    this.logger.debug("Fetching geolocation from Merino");
-    let results = await this.#merino.fetch({
-      providers: ["geolocation"],
-      query: "",
-    });
-
-    this.logger.debug(
-      "Got geolocation from Merino: " + JSON.stringify(results)
-    );
-
-    return results?.[0]?.custom_details?.geolocation || null;
   }
 
   /**
@@ -586,9 +533,6 @@ class _QuickSuggest {
 
   // Maps from preference names to the `Set` of feature instances they enable.
   #featuresByEnablingPrefs = new Map();
-
-  // `MerinoClient`
-  #merino;
 }
 
 export const QuickSuggest = new _QuickSuggest();

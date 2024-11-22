@@ -7,6 +7,8 @@ import { BaseFeature } from "resource:///modules/urlbar/private/BaseFeature.sys.
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
+  GeolocationUtils:
+    "resource:///modules/urlbar/private/GeolocationUtils.sys.mjs",
   QuickSuggest: "resource:///modules/QuickSuggest.sys.mjs",
   UrlbarPrefs: "resource:///modules/UrlbarPrefs.sys.mjs",
   UrlbarResult: "resource:///modules/UrlbarResult.sys.mjs",
@@ -277,7 +279,7 @@ export class YelpSuggestions extends BaseFeature {
   }
 
   async #fetchCity() {
-    let geo = await lazy.QuickSuggest.geolocation();
+    let geo = await lazy.GeolocationUtils.geolocation();
     if (!geo) {
       return null;
     }

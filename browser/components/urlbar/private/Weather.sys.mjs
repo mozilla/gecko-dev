@@ -7,6 +7,8 @@ import { BaseFeature } from "resource:///modules/urlbar/private/BaseFeature.sys.
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
+  GeolocationUtils:
+    "resource:///modules/urlbar/private/GeolocationUtils.sys.mjs",
   MerinoClient: "resource:///modules/MerinoClient.sys.mjs",
   QuickSuggest: "resource:///modules/QuickSuggest.sys.mjs",
   UrlbarPrefs: "resource:///modules/UrlbarPrefs.sys.mjs",
@@ -27,9 +29,6 @@ const HISTOGRAM_RESPONSE = "FX_URLBAR_MERINO_RESPONSE_WEATHER";
 // out of and into the view as the user matches the same suggestion with each
 // keystroke, especially when Merino has high latency.
 const MERINO_WEATHER_CACHE_PERIOD_MS = 60000; // 1 minute
-
-// The mean Earth radius used in distance calculations.
-const EARTH_RADIUS_KM = 6371.009;
 
 const RESULT_MENU_COMMAND = {
   INACCURATE_LOCATION: "inaccurate_location",
@@ -201,117 +200,8 @@ export class Weather extends BaseFeature {
     if (suggestions.length <= 1) {
       return suggestions;
     }
-    let geo = await lazy.QuickSuggest.geolocation();
-    return [
-      this.#bestSuggestionByDistance(geo, suggestions) ||
-        this.#bestSuggestionByRegion(geo, suggestions) ||
-        suggestions[0],
-    ];
-  }
-
-  /**
-   * Returns the suggestion with the city nearest the client's geolocation based
-   * on the great-circle distance between the coordinates [1]. This isn't
-   * necessarily super accurate, but that's OK since it's stable and accurate
-   * enough to find a good matching suggestion.
-   *
-   * [1] https://en.wikipedia.org/wiki/Great-circle_distance
-   *
-   * @param {object} geo
-   *   The `geolocation` object returned by Merino's geolocation provider. It's
-   *   expected to look like the following, but we gracefully handle exceptions:
-   *
-   *     `{ location: { latitude, longitude, radius }}`
-   *
-   *   The coordinates are expected to be in decimal and the radius is expected
-   *   to be in km.
-   * @param {Array} suggestions
-   *   Array of candidate weather suggestions.
-   * @returns {object|null}
-   *   The nearest suggestion as described above. If there are multiple nearest
-   *   cities within the accuracy radius, the most populous one is returned. If
-   *   the `geo` does not include a location or coordinates, null is returned.
-   */
-  #bestSuggestionByDistance(geo, suggestions) {
-    let geoLat = geo?.location?.latitude;
-    let geoLong = geo?.location?.longitude;
-    if (isNaN(geoLat) || isNaN(geoLong)) {
-      return null;
-    }
-
-    // All distances are in km.
-    [geoLat, geoLong] = [geoLat, geoLong].map(toRadians);
-    let geoLatSin = Math.sin(geoLat);
-    let geoLatCos = Math.cos(geoLat);
-    let geoRadius = geo?.location?.radius || 5;
-
-    let best;
-    let dMin = Infinity;
-    for (let s of suggestions) {
-      let [sLat, sLong] = [s.latitude, s.longitude].map(toRadians);
-      let d =
-        EARTH_RADIUS_KM *
-        Math.acos(
-          geoLatSin * Math.sin(sLat) +
-            geoLatCos * Math.cos(sLat) * Math.cos(Math.abs(geoLong - sLong))
-        );
-      if (
-        !best ||
-        // `s` is closer to the client than `best`.
-        d + geoRadius < dMin ||
-        // `s` is the same distance from the client as `best`, i.e., the
-        // difference between `s` and `best` is within the accuracy radius.
-        // Choose `s` if it has a larger population.
-        (Math.abs(d - dMin) <= geoRadius && best.population < s.population)
-      ) {
-        dMin = d;
-        best = s;
-      }
-    }
-
-    return best;
-  }
-
-  /**
-   * Returns the first suggestion with a city located in the same region and
-   * country as the client's geolocation. If there is no such suggestion, the
-   * first suggestion in the same country is returned. If there is no suggestion
-   * in the same country, null is returned. Since `suggestions` is ordered by
-   * population, if multiple cities match any of these criteria, the one that's
-   * returned will be the most populous.
-   *
-   * @param {object} geo
-   *   The `geolocation` object returned by Merino's geolocation provider. It's
-   *   expected to look like the following, but we gracefully handle exceptions:
-   *
-   *     `{ region_code, country_code }`
-   * @param {Array} suggestions
-   *   Array of candidate weather suggestions.
-   * @returns {object|null}
-   *   The suggestion as described above or null.
-   */
-  #bestSuggestionByRegion(geo, suggestions) {
-    let region = geo?.region_code?.toLowerCase();
-    let country = geo?.country_code?.toLowerCase();
-    if (!region && !country) {
-      return null;
-    }
-
-    let sameCountrySuggestion = null;
-    for (let s of suggestions) {
-      let sameRegion = s.region.toLowerCase() == region;
-      let sameCountry = s.country.toLowerCase() == country;
-      if (sameRegion && sameCountry) {
-        // This is the most populous city (since suggestions are ordered by
-        // population) in the client's region. Can't get better than this.
-        return s;
-      }
-      if (sameCountry && !sameCountrySuggestion) {
-        sameCountrySuggestion = s;
-      }
-    }
-
-    return sameCountrySuggestion;
+    let suggestion = await lazy.GeolocationUtils.best(suggestions);
+    return [suggestion];
   }
 
   async makeResult(queryContext, suggestion, searchString) {
@@ -597,8 +487,4 @@ export class Weather extends BaseFeature {
   #fetchInstance = null;
   #merino = null;
   #timeoutMs = MERINO_TIMEOUT_MS;
-}
-
-function toRadians(deg) {
-  return (deg * Math.PI) / 180;
 }

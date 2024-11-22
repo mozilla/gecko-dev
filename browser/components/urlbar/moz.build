@@ -70,6 +70,7 @@ EXTRA_JS_MODULES["urlbar/private"] += [
     "private/BlockedSuggestions.sys.mjs",
     "private/ExposureSuggestions.sys.mjs",
     "private/FakespotSuggestions.sys.mjs",
+    "private/GeolocationUtils.sys.mjs",
     "private/ImpressionCaps.sys.mjs",
     "private/MDNSuggestions.sys.mjs",
     "private/MLSuggest.sys.mjs",

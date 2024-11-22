@@ -77,21 +77,6 @@ const WEATHER_SUGGESTION = {
   },
 };
 
-const GEOLOCATION_DATA = {
-  provider: "geolocation",
-  title: "",
-  url: "https://merino.services.mozilla.com/",
-  is_sponsored: false,
-  score: 0,
-  custom_details: {
-    geolocation: {
-      country: "Japan",
-      region: "Kanagawa",
-      city: "Yokohama",
-    },
-  },
-};
-
 /**
  * Test utils for Merino.
  */
@@ -162,10 +147,40 @@ class _MerinoTestUtils {
 
   /**
    * @returns {object}
-   *   Mock geolocation data.
+   *   The inner `geolocation` object inside the mock geolocation suggestion.
+   *   This returns a new object so callers are free to modify it.
    */
   get GEOLOCATION() {
-    return { ...GEOLOCATION_DATA.custom_details.geolocation };
+    return this.GEOLOCATION_SUGGESTION.custom_details.geolocation;
+  }
+
+  /**
+   * @returns {object}
+   *   Mock geolocation suggestion as returned by Merino. This returns a new
+   *   object so callers are free to modify it.
+   */
+  get GEOLOCATION_SUGGESTION() {
+    return {
+      provider: "geolocation",
+      title: "",
+      url: "https://merino.services.mozilla.com/",
+      is_sponsored: false,
+      score: 0,
+      custom_details: {
+        geolocation: {
+          country: "Japan",
+          country_code: "JP",
+          region: "Kanagawa",
+          region_code: "14",
+          city: "Yokohama",
+          location: {
+            latitude: 35.444167,
+            longitude: 139.638056,
+            radius: 5,
+          },
+        },
+      },
+    };
   }
 
   /**
@@ -344,7 +359,8 @@ class _MerinoTestUtils {
    */
   async initGeolocation() {
     await this.server.start();
-    this.server.response.body.suggestions = [GEOLOCATION_DATA];
+    this.server.response = this.server.makeDefaultResponse();
+    this.server.response.body.suggestions = [this.GEOLOCATION_SUGGESTION];
   }
 
   /**
