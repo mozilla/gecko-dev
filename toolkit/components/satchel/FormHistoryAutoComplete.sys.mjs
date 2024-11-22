@@ -131,8 +131,9 @@ export class FormHistoryAutoCompleteResult {
     return "";
   }
 
-  getImageAt(_index) {
-    return "";
+  getImageAt(index) {
+    const item = this.getAt(index);
+    return item?.image || "";
   }
 
   getFinalCompleteValueAt(index) {

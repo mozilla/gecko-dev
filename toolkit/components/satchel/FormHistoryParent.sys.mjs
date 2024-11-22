@@ -83,7 +83,7 @@ export class FormHistoryParent extends JSWindowActorParent {
     }
 
     const relayPromise = lazy.FirefoxRelay.autocompleteItemsAsync({
-      formOrigin: this.formOrigin,
+      origin: this.formOrigin,
       scenarioName,
       hasInput: !!searchString.length,
     });
