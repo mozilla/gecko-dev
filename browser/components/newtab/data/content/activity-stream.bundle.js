@@ -9645,6 +9645,7 @@ function CardSections({
     } = getMaxTiles(responsiveLayouts);
     const displaySections = section.data.slice(0, maxTile);
     const isSectionEmpty = !displaySections?.length;
+    const shouldShowLabels = sectionKey === "top_stories_section" && showTopics;
     if (isSectionEmpty) {
       return null;
     }
@@ -9708,7 +9709,7 @@ function CardSections({
         alt_text: rec.alt_text,
         mayHaveThumbsUpDown: mayHaveThumbsUpDown,
         mayHaveSectionsCards: mayHaveSectionsCards,
-        showTopics: showTopics,
+        showTopics: shouldShowLabels,
         selectedTopics: selectedTopics,
         availableTopics: availableTopics,
         is_collection: is_collection,
