@@ -67,6 +67,7 @@ export class MarionetteCommandsParent extends JSWindowActorParent {
     this.#deferredDialogOpened = Promise.withResolvers();
     let {
       error,
+      isWebDriverError,
       seenNodeIds,
       serializedValue: serializedResult,
       hasSerializedWindows,
@@ -78,8 +79,12 @@ export class MarionetteCommandsParent extends JSWindowActorParent {
     });
 
     if (error) {
-      const err = lazy.error.WebDriverError.fromJSON(error);
-      this.#handleError(err, seenNodes);
+      if (isWebDriverError) {
+        // If it's a WebDriver error we need to deserialize it.
+        error = lazy.error.WebDriverError.fromJSON(error);
+      }
+
+      this.#handleError(error, seenNodes);
     }
 
     // Update seen nodes for serialized element and shadow root nodes.
@@ -95,15 +100,15 @@ export class MarionetteCommandsParent extends JSWindowActorParent {
   }
 
   /**
-   * Handle WebDriver error and replace error type if necessary.
+   * Handle an error and replace error type if necessary.
    *
-   * @param {WebDriverError} error
-   *     The WebDriver error to handle.
+   * @param {Error} error
+   *     The error to handle.
    * @param {Set<string>} seenNodes
    *     List of node ids already seen in this navigable.
    *
-   * @throws {WebDriverError}
-   *     The original or replaced WebDriver error.
+   * @throws {Error}
+   *     The original or replaced error.
    */
   #handleError(error, seenNodes) {
     // If an element hasn't been found during deserialization check if it

@@ -313,8 +313,12 @@ export class MarionetteCommandsChild extends JSWindowActorChild {
         hasSerializedWindows,
       };
     } catch (e) {
-      // Always wrap errors as WebDriverError
-      return { error: lazy.error.wrap(e).toJSON() };
+      if (lazy.error.isWebDriverError(e)) {
+        // If it's a WebDriver error always serialize it because it could
+        // contain objects that are not serializable by default.
+        return { error: e.toJSON(), isWebDriverError: true };
+      }
+      return { error: e, isWebDriverError: false };
     }
   }
 
