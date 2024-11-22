@@ -54,14 +54,18 @@ static PreBarriered<Value> NormalizeDoubleValue(double d) {
   return JS::CanonicalizedDoubleValue(d);
 }
 
-bool HashableValue::setValue(JSContext* cx, HandleValue v) {
+bool HashableValue::setValue(JSContext* cx, const Value& v) {
   if (v.isString()) {
     // Atomize so that hash() and operator==() are fast and infallible.
-    JSString* str = AtomizeString(cx, v.toString());
-    if (!str) {
-      return false;
+    if (v.toString()->isAtom()) {
+      value = v;
+    } else {
+      JSString* str = AtomizeString(cx, v.toString());
+      if (!str) {
+        return false;
+      }
+      value = StringValue(str);
     }
-    value = StringValue(str);
   } else if (v.isDouble()) {
     value = NormalizeDoubleValue(v.toDouble());
 #ifdef ENABLE_RECORD_TUPLE
@@ -813,15 +817,13 @@ bool MapObject::size(JSContext* cx, unsigned argc, Value* vp) {
   return CallNonGenericMethod<MapObject::is, MapObject::size_impl>(cx, args);
 }
 
-bool MapObject::get(JSContext* cx, HandleObject obj, HandleValue key,
-                    MutableHandleValue rval) {
-  Rooted<HashableValue> k(cx);
-
+bool MapObject::get(JSContext* cx, const Value& key, MutableHandleValue rval) {
+  HashableValue k;
   if (!k.setValue(cx, key)) {
     return false;
   }
 
-  if (const Table::Entry* p = Table(&obj->as<MapObject>()).get(k)) {
+  if (const Table::Entry* p = Table(this).get(k)) {
     rval.set(p->value);
   } else {
     rval.setUndefined();
@@ -831,8 +833,8 @@ bool MapObject::get(JSContext* cx, HandleObject obj, HandleValue key,
 }
 
 bool MapObject::get_impl(JSContext* cx, const CallArgs& args) {
-  RootedObject obj(cx, &args.thisv().toObject());
-  return get(cx, obj, args.get(0), args.rval());
+  auto* mapObj = &args.thisv().toObject().as<MapObject>();
+  return mapObj->get(cx, args.get(0), args.rval());
 }
 
 bool MapObject::get(JSContext* cx, unsigned argc, Value* vp) {
@@ -1727,7 +1729,7 @@ JS_PUBLIC_API bool JS::MapGet(JSContext* cx, HandleObject obj, HandleValue key,
   cx->check(obj, key, rval);
 
   if (obj->is<MapObject>()) {
-    return MapObject::get(cx, obj.as<MapObject>(), key, rval);
+    return obj.as<MapObject>()->get(cx, key, rval);
   }
 
   {
@@ -1736,7 +1738,7 @@ JS_PUBLIC_API bool JS::MapGet(JSContext* cx, HandleObject obj, HandleValue key,
     if (!JS_WrapValue(cx, &wrappedKey)) {
       return false;
     }
-    if (!MapObject::get(cx, enter.unwrapped(), wrappedKey, rval)) {
+    if (!enter.unwrapped()->get(cx, wrappedKey, rval)) {
       return false;
     }
   }

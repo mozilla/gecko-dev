@@ -3120,9 +3120,9 @@ bool MapObjectHas(JSContext* cx, HandleObject obj, HandleValue key,
   return MapObject::has(cx, obj, key, rval);
 }
 
-bool MapObjectGet(JSContext* cx, HandleObject obj, HandleValue key,
+bool MapObjectGet(JSContext* cx, Handle<MapObject*> obj, HandleValue key,
                   MutableHandleValue rval) {
-  return MapObject::get(cx, obj, key, rval);
+  return obj->get(cx, key, rval);
 }
 
 #ifdef DEBUG

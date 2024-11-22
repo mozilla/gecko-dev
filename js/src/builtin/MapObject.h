@@ -31,7 +31,7 @@ class HashableValue {
   HashableValue() : value(UndefinedValue()) {}
   explicit HashableValue(JSWhyMagic whyMagic) : value(MagicValue(whyMagic)) {}
 
-  [[nodiscard]] bool setValue(JSContext* cx, HandleValue v);
+  [[nodiscard]] bool setValue(JSContext* cx, const Value& v);
   HashNumber hash(const mozilla::HashCodeScrambler& hcs) const;
 
   // Value equality. Separate BigInt instances may compare equal.
@@ -151,8 +151,8 @@ class MapObject : public OrderedHashMapObject {
   // Publicly exposed Map calls for JSAPI access (webidl maplike/setlike
   // interfaces, etc.)
   uint32_t size();
-  [[nodiscard]] static bool get(JSContext* cx, HandleObject obj,
-                                HandleValue key, MutableHandleValue rval);
+  [[nodiscard]] bool get(JSContext* cx, const Value& key,
+                         MutableHandleValue rval);
   [[nodiscard]] static bool has(JSContext* cx, HandleObject obj,
                                 HandleValue key, bool* rval);
   [[nodiscard]] static bool delete_(JSContext* cx, HandleObject obj,

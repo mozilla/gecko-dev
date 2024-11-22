@@ -705,7 +705,7 @@ JSAtom* AtomizeStringNoGC(JSContext* cx, JSString* str);
 
 bool SetObjectHas(JSContext* cx, HandleObject obj, HandleValue key, bool* rval);
 bool MapObjectHas(JSContext* cx, HandleObject obj, HandleValue key, bool* rval);
-bool MapObjectGet(JSContext* cx, HandleObject obj, HandleValue key,
+bool MapObjectGet(JSContext* cx, Handle<MapObject*> obj, HandleValue key,
                   MutableHandleValue rval);
 
 void AssertSetObjectHash(JSContext* cx, SetObject* obj, const Value* value,
