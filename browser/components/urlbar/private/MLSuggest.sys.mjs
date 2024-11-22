@@ -310,35 +310,27 @@ class _MLSuggest {
     if (!location || (!location.city && !location.state)) {
       return query;
     }
-    // Remove the city and state from the query
-    let subjectWithoutLocation = query;
-    if (location.city) {
-      subjectWithoutLocation = subjectWithoutLocation
-        .replace(location.city, "")
-        .trim();
-    }
-    if (location.state) {
-      subjectWithoutLocation = subjectWithoutLocation
-        .replace(location.state, "")
-        .trim();
-    }
-    // Remove leftover commas, trailing whitespace, and unnecessary punctuation
-    subjectWithoutLocation = subjectWithoutLocation
-      .replaceAll(",", "")
-      .replace(/\s+/g, " ")
-      .trim();
 
-    return this.#cleanSubject(subjectWithoutLocation);
+    // Remove the city and state values from the query
+    let locValues = Object.values(location).filter(v => !!v);
+    let words = query
+      .trim()
+      .split(/\s+|,/)
+      .filter(w => !!w && !locValues.includes(w));
+
+    let subjectWords = this.#cleanSubject(words);
+    return subjectWords.join(" ");
   }
 
-  #cleanSubject(subject) {
-    let end = PREPOSITIONS.find(
-      p => subject === p || subject.endsWith(" " + p)
-    );
-    if (end) {
-      subject = subject.substring(0, subject.length - end.length).trimEnd();
+  #cleanSubject(words) {
+    // Remove trailing prepositions from the list of words
+    while (
+      words.length > 0 &&
+      PREPOSITIONS.includes(words[words.length - 1])
+    ) {
+      words.pop();
     }
-    return subject;
+    return words;
   }
 }
 
