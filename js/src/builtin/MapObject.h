@@ -159,8 +159,7 @@ class MapObject : public OrderedHashMapObject {
   // Set call for public JSAPI exposure. Does not actually return map object
   // as stated in spec, expects caller to return a value. for instance, with
   // webidl maplike/setlike, should return interface object.
-  [[nodiscard]] static bool set(JSContext* cx, HandleObject obj,
-                                HandleValue key, HandleValue val);
+  [[nodiscard]] bool set(JSContext* cx, const Value& key, const Value& val);
   void clear(JSContext* cx);
   [[nodiscard]] static bool iterator(JSContext* cx, IteratorKind kind,
                                      HandleObject obj, MutableHandleValue iter);
@@ -272,8 +271,7 @@ class SetObject : public OrderedHashSetObject {
   [[nodiscard]] static bool keys(JSContext* cx, HandleObject obj,
                                  JS::MutableHandle<GCVector<JS::Value>> keys);
   [[nodiscard]] static bool values(JSContext* cx, unsigned argc, Value* vp);
-  [[nodiscard]] static bool add(JSContext* cx, HandleObject obj,
-                                HandleValue key);
+  [[nodiscard]] bool add(JSContext* cx, const Value& key);
 
   // Publicly exposed Set calls for JSAPI access (webidl maplike/setlike
   // interfaces, etc.)

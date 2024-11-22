@@ -587,15 +587,12 @@ bool MapObject::getKeysAndValuesInterleaved(
   return Table(mapObj).forEachEntry(appendEntry);
 }
 
-bool MapObject::set(JSContext* cx, HandleObject obj, HandleValue k,
-                    HandleValue v) {
-  MapObject* mapObject = &obj->as<MapObject>();
-  Rooted<HashableValue> key(cx);
-  if (!key.setValue(cx, k)) {
+bool MapObject::set(JSContext* cx, const Value& key, const Value& val) {
+  HashableValue k;
+  if (!k.setValue(cx, key)) {
     return false;
   }
-
-  return mapObject->setWithHashableKey(cx, key, v);
+  return setWithHashableKey(cx, k, val);
 }
 
 bool MapObject::setWithHashableKey(JSContext* cx, const HashableValue& key,
@@ -795,10 +792,6 @@ bool MapObject::is(HandleValue v) {
 
 bool MapObject::is(HandleObject o) { return o->hasClass(&class_); }
 
-#define ARG0_KEY(cx, args, key)  \
-  Rooted<HashableValue> key(cx); \
-  if (args.length() > 0 && !key.setValue(cx, args[0])) return false
-
 uint32_t MapObject::size() {
   static_assert(sizeof(Table(this).count()) <= sizeof(uint32_t),
                 "map count must be precisely representable as a JS number");
@@ -870,14 +863,10 @@ bool MapObject::has(JSContext* cx, unsigned argc, Value* vp) {
 }
 
 bool MapObject::set_impl(JSContext* cx, const CallArgs& args) {
-  MOZ_ASSERT(MapObject::is(args.thisv()));
-
-  MapObject* obj = &args.thisv().toObject().as<MapObject>();
-  ARG0_KEY(cx, args, key);
-  if (!obj->setWithHashableKey(cx, key, args.get(1))) {
+  auto* mapObj = &args.thisv().toObject().as<MapObject>();
+  if (!mapObj->set(cx, args.get(0), args.get(1))) {
     return false;
   }
-
   args.rval().set(args.thisv());
   return true;
 }
@@ -1260,14 +1249,12 @@ bool SetObject::keys(JSContext* cx, HandleObject obj,
   return Table(setObj).forEachEntry(appendEntry);
 }
 
-bool SetObject::add(JSContext* cx, HandleObject obj, HandleValue k) {
-  Rooted<HashableValue> key(cx);
-  if (!key.setValue(cx, k)) {
+bool SetObject::add(JSContext* cx, const Value& key) {
+  HashableValue k;
+  if (!k.setValue(cx, key)) {
     return false;
   }
-
-  SetObject* setObj = &obj->as<SetObject>();
-  return setObj->addHashableValue(cx, key);
+  return addHashableValue(cx, k);
 }
 
 bool SetObject::addHashableValue(JSContext* cx, const HashableValue& value) {
@@ -1530,10 +1517,8 @@ bool SetObject::has(JSContext* cx, unsigned argc, Value* vp) {
 }
 
 bool SetObject::add_impl(JSContext* cx, const CallArgs& args) {
-  MOZ_ASSERT(is(args.thisv()));
-  ARG0_KEY(cx, args, key);
-  SetObject* setObj = &args.thisv().toObject().as<SetObject>();
-  if (!setObj->addHashableValue(cx, key)) {
+  auto* setObj = &args.thisv().toObject().as<SetObject>();
+  if (!setObj->add(cx, args.get(0))) {
     return false;
   }
   args.rval().set(args.thisv());
@@ -1733,7 +1718,7 @@ JS_PUBLIC_API bool JS::MapSet(JSContext* cx, HandleObject obj, HandleValue key,
   cx->check(obj, key, val);
 
   if (obj->is<MapObject>()) {
-    return MapObject::set(cx, obj.as<MapObject>(), key, val);
+    return obj.as<MapObject>()->set(cx, key, val);
   }
 
   AutoEnterTableRealm<MapObject> enter(cx, obj);
@@ -1742,7 +1727,7 @@ JS_PUBLIC_API bool JS::MapSet(JSContext* cx, HandleObject obj, HandleValue key,
   if (!JS_WrapValue(cx, &wrappedKey) || !JS_WrapValue(cx, &wrappedValue)) {
     return false;
   }
-  return MapObject::set(cx, enter.unwrapped(), wrappedKey, wrappedValue);
+  return enter.unwrapped()->set(cx, wrappedKey, wrappedValue);
 }
 
 JS_PUBLIC_API bool JS::MapHas(JSContext* cx, HandleObject obj, HandleValue key,
@@ -1858,7 +1843,7 @@ JS_PUBLIC_API bool JS::SetAdd(JSContext* cx, HandleObject obj,
   cx->check(obj, key);
 
   if (obj->is<SetObject>()) {
-    return SetObject::add(cx, obj.as<SetObject>(), key);
+    return obj.as<SetObject>()->add(cx, key);
   }
 
   AutoEnterTableRealm<SetObject> enter(cx, obj);
@@ -1866,7 +1851,7 @@ JS_PUBLIC_API bool JS::SetAdd(JSContext* cx, HandleObject obj,
   if (!JS_WrapValue(cx, &wrappedKey)) {
     return false;
   }
-  return SetObject::add(cx, enter.unwrapped(), wrappedKey);
+  return enter.unwrapped()->add(cx, wrappedKey);
 }
 
 JS_PUBLIC_API bool JS::SetHas(JSContext* cx, HandleObject obj, HandleValue key,

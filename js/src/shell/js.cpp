@@ -1496,7 +1496,7 @@ static bool TrackUnhandledRejections(JSContext* cx, JS::HandleObject promise,
 
   switch (state) {
     case JS::PromiseRejectionHandlingState::Unhandled:
-      if (!SetObject::add(cx, sc->unhandledRejectedPromises, promiseVal)) {
+      if (!sc->unhandledRejectedPromises->add(cx, promiseVal)) {
         return false;
       }
       break;
