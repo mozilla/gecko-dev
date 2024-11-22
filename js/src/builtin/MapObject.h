@@ -154,8 +154,7 @@ class MapObject : public OrderedHashMapObject {
   [[nodiscard]] bool get(JSContext* cx, const Value& key,
                          MutableHandleValue rval);
   [[nodiscard]] bool has(JSContext* cx, const Value& key, bool* rval);
-  [[nodiscard]] static bool delete_(JSContext* cx, HandleObject obj,
-                                    HandleValue key, bool* rval);
+  [[nodiscard]] bool delete_(JSContext* cx, const Value& key, bool* rval);
 
   // Set call for public JSAPI exposure. Does not actually return map object
   // as stated in spec, expects caller to return a value. for instance, with
@@ -290,8 +289,7 @@ class SetObject : public OrderedHashSetObject {
   [[nodiscard]] static bool iterator(JSContext* cx, IteratorKind kind,
                                      HandleObject obj, MutableHandleValue iter);
   [[nodiscard]] static bool delete_(JSContext* cx, unsigned argc, Value* vp);
-  [[nodiscard]] static bool delete_(JSContext* cx, HandleObject obj,
-                                    HandleValue key, bool* rval);
+  [[nodiscard]] bool delete_(JSContext* cx, const Value& key, bool* rval);
 
   [[nodiscard]] static bool copy(JSContext* cx, unsigned argc, Value* vp);
 

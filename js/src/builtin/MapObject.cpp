@@ -888,19 +888,16 @@ bool MapObject::set(JSContext* cx, unsigned argc, Value* vp) {
   return CallNonGenericMethod<MapObject::is, MapObject::set_impl>(cx, args);
 }
 
-bool MapObject::delete_(JSContext* cx, HandleObject obj, HandleValue key,
-                        bool* rval) {
-  MapObject* mapObject = &obj->as<MapObject>();
-  Rooted<HashableValue> k(cx);
-
+bool MapObject::delete_(JSContext* cx, const Value& key, bool* rval) {
+  HashableValue k;
   if (!k.setValue(cx, key)) {
     return false;
   }
 
-  if (mapObject->isTenured()) {
-    *rval = Table(mapObject).remove(cx, k);
+  if (isTenured()) {
+    *rval = Table(this).remove(cx, k);
   } else {
-    *rval = PreBarrieredTable(mapObject).remove(cx, k);
+    *rval = PreBarrieredTable(this).remove(cx, k);
   }
   return true;
 }
@@ -915,14 +912,12 @@ bool MapObject::delete_impl(JSContext* cx, const CallArgs& args) {
   // because makeEmpty clears the value by doing e->value = Value(), and in the
   // case of Table, Value() means HeapPtr<Value>(), which is the same as
   // HeapPtr<Value>(UndefinedValue()).
-  MOZ_ASSERT(MapObject::is(args.thisv()));
-  RootedObject obj(cx, &args.thisv().toObject());
 
+  auto* mapObj = &args.thisv().toObject().as<MapObject>();
   bool found;
-  if (!delete_(cx, obj, args.get(0), &found)) {
+  if (!mapObj->delete_(cx, args.get(0), &found)) {
     return false;
   }
-
   args.rval().setBoolean(found);
   return true;
 }
@@ -1551,29 +1546,22 @@ bool SetObject::add(JSContext* cx, unsigned argc, Value* vp) {
   return CallNonGenericMethod<SetObject::is, SetObject::add_impl>(cx, args);
 }
 
-bool SetObject::delete_(JSContext* cx, HandleObject obj, HandleValue key,
-                        bool* rval) {
-  MOZ_ASSERT(SetObject::is(obj));
-
-  Rooted<HashableValue> k(cx);
-
+bool SetObject::delete_(JSContext* cx, const Value& key, bool* rval) {
+  HashableValue k;
   if (!k.setValue(cx, key)) {
     return false;
   }
 
-  SetObject* setObj = &obj->as<SetObject>();
-  *rval = Table(setObj).remove(cx, k);
+  *rval = Table(this).remove(cx, k);
   return true;
 }
 
 bool SetObject::delete_impl(JSContext* cx, const CallArgs& args) {
-  MOZ_ASSERT(is(args.thisv()));
-
-  ARG0_KEY(cx, args, key);
-
-  SetObject* setObj = &args.thisv().toObject().as<SetObject>();
-
-  bool found = Table(setObj).remove(cx, key);
+  auto* setObj = &args.thisv().toObject().as<SetObject>();
+  bool found;
+  if (!setObj->delete_(cx, args.get(0), &found)) {
+    return false;
+  }
   args.rval().setBoolean(found);
   return true;
 }
@@ -1780,7 +1768,7 @@ JS_PUBLIC_API bool JS::MapDelete(JSContext* cx, HandleObject obj,
   cx->check(obj, key);
 
   if (obj->is<MapObject>()) {
-    return MapObject::delete_(cx, obj.as<MapObject>(), key, rval);
+    return obj.as<MapObject>()->delete_(cx, key, rval);
   }
 
   AutoEnterTableRealm<MapObject> enter(cx, obj);
@@ -1788,7 +1776,7 @@ JS_PUBLIC_API bool JS::MapDelete(JSContext* cx, HandleObject obj,
   if (!JS_WrapValue(cx, &wrappedKey)) {
     return false;
   }
-  return MapObject::delete_(cx, enter.unwrapped(), wrappedKey, rval);
+  return enter.unwrapped()->delete_(cx, wrappedKey, rval);
 }
 
 JS_PUBLIC_API bool JS::MapClear(JSContext* cx, HandleObject obj) {
@@ -1904,7 +1892,7 @@ JS_PUBLIC_API bool JS::SetDelete(JSContext* cx, HandleObject obj,
   cx->check(obj, key);
 
   if (obj->is<SetObject>()) {
-    return SetObject::delete_(cx, obj.as<SetObject>(), key, rval);
+    return obj.as<SetObject>()->delete_(cx, key, rval);
   }
 
   AutoEnterTableRealm<SetObject> enter(cx, obj);
@@ -1912,7 +1900,7 @@ JS_PUBLIC_API bool JS::SetDelete(JSContext* cx, HandleObject obj,
   if (!JS_WrapValue(cx, &wrappedKey)) {
     return false;
   }
-  return SetObject::delete_(cx, enter.unwrapped(), wrappedKey, rval);
+  return enter.unwrapped()->delete_(cx, wrappedKey, rval);
 }
 
 JS_PUBLIC_API bool JS::SetClear(JSContext* cx, HandleObject obj) {

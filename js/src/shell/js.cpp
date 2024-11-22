@@ -1502,8 +1502,7 @@ static bool TrackUnhandledRejections(JSContext* cx, JS::HandleObject promise,
       break;
     case JS::PromiseRejectionHandlingState::Handled:
       bool deleted = false;
-      if (!SetObject::delete_(cx, sc->unhandledRejectedPromises, promiseVal,
-                              &deleted)) {
+      if (!sc->unhandledRejectedPromises->delete_(cx, promiseVal, &deleted)) {
         return false;
       }
       // We can't MOZ_ASSERT(deleted) here, because it's possible we failed to
