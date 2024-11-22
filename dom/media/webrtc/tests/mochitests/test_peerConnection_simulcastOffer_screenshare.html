@@ -41,7 +41,7 @@
 
     // One send transceiver, that will be used to send both simulcast streams
     SpecialPowers.wrap(document).notifyUserGestureActivation();
-    const videoStream = await navigator.mediaDevices.getDisplayMedia();
+    const videoStream = await navigator.mediaDevices.getDisplayMedia({video: {width: {max: 640}}});
     const sendEncodings = [
             { rid: '0' },
             { rid: '1', maxBitrate: 100000, scaleResolutionDownBy: 2 },
