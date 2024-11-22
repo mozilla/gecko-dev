@@ -171,7 +171,7 @@ class _MerinoTestUtils {
           country: "Japan",
           country_code: "JP",
           region: "Kanagawa",
-          region_code: "14",
+          region_code: "Kanagawa",
           city: "Yokohama",
           location: {
             latitude: 35.444167,

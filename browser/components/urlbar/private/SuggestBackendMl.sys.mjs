@@ -66,9 +66,10 @@ export class SuggestBackendMl extends BaseFeature {
     let suggestion = await lazy.MLSuggest.makeSuggestions(searchString);
     this.logger.debug("Got suggestion: " + JSON.stringify(suggestion, null, 2));
 
-    if (suggestion) {
-      // We can't force `MLSuggest` to return only enabled intents, so it can
-      // return a disabled intent. Discard the suggestion in that case.
+    if (suggestion?.intent) {
+      // `MLSuggest` doesn't have a way to return only enabled intents, so it
+      // can return disabled ones and even ones we don't recognize. Discard the
+      // suggestion in those cases.
       let feature = lazy.QuickSuggest.getFeatureByMlIntent(suggestion.intent);
       if (!feature?.isEnabled || !feature?.isMlIntentEnabled) {
         this.logger.debug("No ML feature for suggestion, ignoring query");

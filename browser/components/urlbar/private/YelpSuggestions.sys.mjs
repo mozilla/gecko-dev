@@ -9,6 +9,8 @@ const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
   GeolocationUtils:
     "resource:///modules/urlbar/private/GeolocationUtils.sys.mjs",
+  GeonameMatchType: "resource://gre/modules/RustSuggest.sys.mjs",
+  GeonameType: "resource://gre/modules/RustSuggest.sys.mjs",
   QuickSuggest: "resource:///modules/QuickSuggest.sys.mjs",
   UrlbarPrefs: "resource:///modules/UrlbarPrefs.sys.mjs",
   UrlbarResult: "resource:///modules/UrlbarResult.sys.mjs",
@@ -49,8 +51,8 @@ export class YelpSuggestions extends BaseFeature {
 
   get isMlIntentEnabled() {
     // Note that even when ML is enabled, we still leave Yelp Rust suggestions
-    // enabled because we need to fetch the Yelp icon, URL, etc. from Rust, and
-    // Rust still needs to ingest all of that.
+    // enabled because we need to fetch the Yelp icon, URL, etc. from Rust, as
+    // well as geonames, and Rust still needs to ingest all of that.
     return lazy.UrlbarPrefs.get("yelpMlEnabled");
   }
 
@@ -82,24 +84,46 @@ export class YelpSuggestions extends BaseFeature {
   }
 
   async filterSuggestions(suggestions) {
-    // We leave Yelp Rust suggestions enabled even when Yelp ML suggestion are
-    // enabled because we need to fetch the Yelp icon, URL, etc. from Rust, and
-    // Rust still needs to ingest all of that. If Yelp ML is disabled, return
-    // only non-ML suggestions; if it's enabled, return only ML suggestions.
+    // Important notes:
+    //
+    // Both Rust and ML return at most one Yelp suggestion each.
+    //
+    // We leave Rust Yelp suggestions enabled even when ML Yelp is enabled
+    // because we need to fetch the Yelp icon, URL, etc. from Rust, as well as
+    // geonames, and Rust still needs to ingest all of that. Since we don't have
+    // a way to tell the Rust backend to leave a suggestion type enabled without
+    // querying it, `suggestions` can contain both kinds of suggestions. If ML
+    // is enabled, return the ML suggestion; if it's disabled, return Rust.
+    //
+    // After this method returns, the Suggest provider will sort suggestions by
+    // score and check whether they've been previously dismissed based on their
+    // URLs. So we need to make sure suggestions have scores and URLs now. For
+    // both Rust and ML suggestions, we'll make sure URLs at this point do *not*
+    // contain a location param because we'll likely end up setting a new param
+    // in `makeResult()`. That means for the purpose of dismissal, Yelp URLs
+    // will exclude location.
+    //
+    // Since we're doing all the above in this method anyway, we'll also
+    // normalize the suggestion so that `makeResult()` can easily handle either
+    // kind of suggestion.
+
+    let suggestion;
     if (!lazy.UrlbarPrefs.get("yelpMlEnabled")) {
-      return suggestions.filter(s => s.source != "ml");
+      suggestion = suggestions.find(s => s.source != "ml");
+      if (suggestion) {
+        suggestion = this.#normalizeRustSuggestion(suggestion);
+      }
+    } else {
+      suggestion = suggestions.find(s => s.source == "ml");
+      if (suggestion) {
+        if (!this.#metadataCache) {
+          this.#metadataCache = await this.#makeMetadataCache();
+        }
+        suggestion = this.#normalizeMlSuggestion(suggestion);
+      }
     }
 
-    // Suggestions must have their intended scores and URLs after this method
-    // returns because the Suggest provider sorts them and checks whether they
-    // can be added, so convert them now.
-    if (!this.#metadataCache) {
-      this.#metadataCache = await this.#makeMetadataCache();
-    }
-    return suggestions
-      .filter(s => s.source == "ml")
-      .map(s => this.#convertMlSuggestion(s))
-      .filter(s => !!s);
+    return suggestion ? [suggestion] : [];
   }
 
   async makeResult(queryContext, suggestion, searchString) {
@@ -113,23 +137,38 @@ export class YelpSuggestions extends BaseFeature {
       return null;
     }
 
-    suggestion.is_top_pick = lazy.UrlbarPrefs.get("yelpSuggestPriority");
+    let { city, region } = suggestion;
+    if (!city && !region) {
+      // The user didn't specify any location at all, so use geolocation. If we
+      // can't get the geolocation for some reason, that's fine, the suggestion
+      // just won't have a location.
+      let geo = await lazy.GeolocationUtils.geolocation();
+      if (geo) {
+        city = geo.city;
+        region = geo.region_code;
+      }
+    } else {
+      // The user specified a city and/or region -- at least we think they did.
+      // If we can't find a matching location, assume they're typing something
+      // unrelated to Yelp and discard the suggestion by returning null.
+      let match = await this.#bestCityRegion(city, region);
+      if (!match) {
+        return null;
+      }
+      city = match.city;
+      region = match.region;
+    }
 
     let url = new URL(suggestion.url);
+
     let title = suggestion.title;
-    if (!url.searchParams.has(suggestion.locationParam)) {
-      let city = await this.#fetchCity();
-
-      // If we can't get city from Merino, rely on Yelp own.
-      if (city) {
-        url.searchParams.set(suggestion.locationParam, city);
-
-        if (!suggestion.hasLocationSign) {
-          title += " in";
-        }
-
-        title += ` ${city}`;
+    let locationStr = [city, region].filter(s => !!s).join(", ");
+    if (locationStr) {
+      url.searchParams.set(suggestion.locationParam, locationStr);
+      if (!suggestion.hasLocationSign) {
+        title += " in";
       }
+      title += " " + locationStr;
     }
 
     url.searchParams.set("utm_medium", "partner");
@@ -139,6 +178,7 @@ export class YelpSuggestions extends BaseFeature {
       isRichSuggestion: true,
       showFeedbackMenu: true,
     };
+    suggestion.is_top_pick = lazy.UrlbarPrefs.get("yelpSuggestPriority");
     if (!suggestion.is_top_pick) {
       let suggestedIndex = lazy.UrlbarPrefs.get("yelpSuggestNonPriorityIndex");
       if (suggestedIndex !== null) {
@@ -278,42 +318,59 @@ export class YelpSuggestions extends BaseFeature {
     return Math.max(minLength, 0);
   }
 
-  async #fetchCity() {
-    let geo = await lazy.GeolocationUtils.geolocation();
-    if (!geo) {
-      return null;
+  #normalizeRustSuggestion(suggestion) {
+    // TODO: The Rust component should be updated to return Yelp suggestions
+    // that don't require us to make these modifications.
+
+    // Rust Yelp suggestions don't currently specify the city and region
+    // separately. Instead the location param in the URL contains whatever was
+    // left over at the end of the search string. We'll assume it's a city. If
+    // it's actually a region, then unfortunately we'll discard the suggestion
+    // because it won't match any cities in our DB, but it's much more likely
+    // for it to be a city.
+    let url = new URL(suggestion.url);
+    let loc = url.searchParams.get(suggestion.locationParam);
+    if (loc) {
+      // Normalized suggestion URLs should not include the location. See
+      // `filterSuggestions()`.
+      url.searchParams.delete(suggestion.locationParam);
+      suggestion.url = url.toString();
+      suggestion.city = loc;
+
+      // Rust includes the location in the title, but we'll want to replace it
+      // with the location we compute in `makeResult()`, so remove it.
+      if (suggestion.title.endsWith(loc)) {
+        suggestion.title = suggestion.title
+          .substring(0, suggestion.title.length - loc.length)
+          .trimEnd();
+      }
     }
-    let { city, region } = geo;
-    return [city, region].filter(loc => !!loc).join(", ");
+
+    return suggestion;
   }
 
-  #convertMlSuggestion(ml) {
-    if (!ml.location?.city && !ml.location?.state && !ml.subject) {
+  #normalizeMlSuggestion(ml) {
+    // The ML model can return false positives, including Yelp-intent
+    // suggestions with nothing but a city or region, no subject. Discard them.
+    if (!ml.subject) {
       return null;
     }
-
-    let loc = [ml.location?.city, ml.location?.state]
-      .filter(s => !!s)
-      .join(", ");
-    let title = [ml.subject, loc].filter(s => !!s).join(" in ");
 
     let url = new URL(this.#metadataCache.urlOrigin);
     url.pathname = this.#metadataCache.urlPathname;
-    if (ml.subject) {
-      url.searchParams.set(this.#metadataCache.findDesc, ml.subject);
-    }
-    if (loc) {
-      url.searchParams.set(this.#metadataCache.findLoc, loc);
-    }
+    url.searchParams.set(this.#metadataCache.findDesc, ml.subject);
 
     return {
-      title,
+      title: ml.subject,
       url: url.toString(),
       subjectExactMatch: false,
-      locationParam: this.#metadataCache.findLoc,
       hasLocationSign: false,
+      locationParam: this.#metadataCache.findLoc,
       icon_blob: this.#metadataCache.iconBlob,
       score: this.#metadataCache.score,
+      subject: ml.subject,
+      city: ml.location?.city,
+      region: ml.location?.state,
       source: ml.source,
       provider: ml.provider,
     };
@@ -375,9 +432,120 @@ export class YelpSuggestions extends BaseFeature {
     return cache;
   }
 
+  /**
+   * Looks up a city-region in the Suggest database and returns the one that
+   * best matches the client's geolocation.
+   *
+   * @param {string|null} city
+   *   The candidate city name or null if you're only matching regions.
+   * @param {region|null} region
+   *   The candidate region name or abbreviation, or null if you're only
+   *   matching cities.
+   * @returns {object|null}
+   *   If a city was passed in and it didn't match a city in the DB, or if a
+   *   region was passed in and it didn't match a region in the DB, null is
+   *   returned. Null is also returned if both were passed but they aren't a
+   *   valid city-region combination. Otherwise, an object `{ city, region }` is
+   *   returned:
+   *
+   *   {string|null} city
+   *     The best matching city's name, or if the passed-in city was null and a
+   *     region was matched, this will be null.
+   *   {string} region
+   *     The best matching region. If a city was matched, it will be the ISO
+   *     code of the city's region (e.g., the usual two-letter abbreviation for
+   *     U.S. states). If a city wasn't passed in, this will be the best
+   *     matching region's name.
+   */
+  async #bestCityRegion(city, region) {
+    // Match the region first since we'll use region matches to filter city
+    // matches. We'll do prefix matching on cities below, so to avoid even more
+    // time and work that's probably unnecessary, don't do it for regions.
+    let regionMatches;
+    if (region) {
+      regionMatches = await lazy.QuickSuggest.rustBackend.fetchGeonames(
+        region,
+        false, // prefix matching
+        lazy.GeonameType.REGION,
+        null
+      );
+      if (!regionMatches.length) {
+        // The user typed something we thought was a region but isn't, so assume
+        // the query is not Yelp-related after all.
+        return null;
+      }
+    }
+
+    if (city) {
+      let cityMatches = await lazy.QuickSuggest.rustBackend.fetchGeonames(
+        city,
+        true, // prefix matching
+        lazy.GeonameType.CITY,
+        regionMatches?.map(m => m.geoname)
+      );
+      // Discard prefix matches on any names that aren't full names, i.e., on
+      // abbreviations and airport codes. Airport codes especially can sometimes
+      // be surprising (e.g., "act" for Waco, TX), and we don't want to return
+      // too many false positives.
+      cityMatches = cityMatches.filter(
+        match => match.matchType == lazy.GeonameMatchType.NAME || !match.prefix
+      );
+      if (!cityMatches.length) {
+        // The user typed something we thought was a city but isn't, so assume
+        // the query is not Yelp-related after all.
+        return null;
+      }
+
+      // Return the best city for the user's geolocation.
+      let best = await lazy.GeolocationUtils.best(
+        cityMatches,
+        locationFromGeonameMatch
+      );
+      return { city: best.geoname.name, region: best.geoname.admin1Code };
+    }
+
+    // We didn't detect a city in the query but we detected a region, so try to
+    // return at least that, but only if a full name was matched, not an
+    // abbreviation. Abbreviations are too short and make it too easy to return
+    // false positives. For example, after the user types "ramen in", we
+    // probably shouldn't match "in" to Indiana.
+    regionMatches = regionMatches?.filter(
+      match => match.matchType == lazy.GeonameMatchType.NAME
+    );
+    if (regionMatches?.length) {
+      let best = await lazy.GeolocationUtils.best(
+        regionMatches,
+        locationFromGeonameMatch
+      );
+      return { city: null, region: best.geoname.name };
+    }
+
+    return null;
+  }
+
   _test_invalidateMetadataCache() {
     this.#metadataCache = null;
   }
 
   #metadataCache = null;
+}
+
+/**
+ * A function that can be passed to `GeolocationUtils.best()` as
+ * `locationFromItem`. It maps `GeonameMatch` objects to the location objects
+ * required by that function.
+ *
+ * @param {GeonameMatch} match
+ *   A match object.
+ * @returns {object}
+ *   A location object suitable for `GeolocationUtils`.
+ */
+function locationFromGeonameMatch(match) {
+  return {
+    latitude: match.geoname.latitude,
+    longitude: match.geoname.longitude,
+    country: match.geoname.countryCode,
+    region: match.geoname.admin1Code,
+    population: match.geoname.population,
+  };
 }

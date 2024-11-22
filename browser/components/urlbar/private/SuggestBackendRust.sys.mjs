@@ -265,6 +265,37 @@ export class SuggestBackendRust extends BaseFeature {
   }
 
   /**
+   * Fetches geonames stored in the Suggest database. A geoname represents a
+   * geographic place.
+   *
+   * See `SuggestStore::fetch_geonames()` in the Rust component for full
+   * documentation.
+   *
+   * @param {string} searchString
+   *   The string to match against geonames.
+   * @param {bool} matchNamePrefix
+   *   Whether prefix matching is performed on names excluding abbreviations and
+   *   airport codes.
+   * @param {GeonameType} geonameType
+   *   Restricts returned geonames to a type.
+   * @param {Array} filter
+   *   Restricts returned geonames to certain cities or regions. Optional.
+   * @returns {Array}
+   *   Array of `GeonameMatch` objects. An empty array if there are no matches.
+   */
+  fetchGeonames(searchString, matchNamePrefix, geonameType, filter) {
+    if (!this.#store) {
+      return [];
+    }
+    return this.#store.fetchGeonames(
+      searchString,
+      matchNamePrefix,
+      geonameType,
+      filter
+    );
+  }
+
+  /**
    * nsITimerCallback
    */
   notify() {

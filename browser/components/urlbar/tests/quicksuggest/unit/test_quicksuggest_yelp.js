@@ -24,20 +24,21 @@ const REMOTE_SETTINGS_RECORDS = [
       score: 0.5,
     },
   },
+  QuickSuggestTestUtils.geonamesRecord(),
 ];
+
+const TOKYO_RESULT = {
+  url: "https://www.yelp.com/search?find_desc=ramen&find_loc=Tokyo%2C+Tokyo-to",
+  title: "ramen in Tokyo, Tokyo-to",
+};
 
 const AB_RESULT = {
   url: "https://www.yelp.com/search?find_desc=ab&find_loc=Yokohama%2C+Kanagawa",
-  originalUrl: "https://www.yelp.com/search?find_desc=ab",
-  displayUrl: "yelp.com/search?find_desc=ab&find_loc=Yokohama,+Kanagawa",
   title: "ab in Yokohama, Kanagawa",
 };
 
 const ALONGERKEYWORD_RESULT = {
   url: "https://www.yelp.com/search?find_desc=alongerkeyword&find_loc=Yokohama%2C+Kanagawa",
-  originalUrl: "https://www.yelp.com/search?find_desc=alongerkeyword",
-  displayUrl:
-    "yelp.com/search?find_desc=alongerkeyword&find_loc=Yokohama,+Kanagawa",
   title: "alongerkeyword in Yokohama, Kanagawa",
 };
 
@@ -64,16 +65,16 @@ add_task(async function basic() {
       description: "Basic",
       query: "best ramen delivery in tokyo",
       expected: {
-        url: "https://www.yelp.com/search?find_desc=best+ramen+delivery&find_loc=tokyo",
-        title: "best ramen delivery in tokyo",
+        url: "https://www.yelp.com/search?find_desc=best+ramen+delivery&find_loc=Tokyo%2C+Tokyo-to",
+        title: "best ramen delivery in Tokyo, Tokyo-to",
       },
     },
     {
       description: "With upper case",
       query: "BeSt RaMeN dElIvErY iN tOkYo",
       expected: {
-        url: "https://www.yelp.com/search?find_desc=BeSt+RaMeN+dElIvErY&find_loc=tOkYo",
-        title: "BeSt RaMeN dElIvErY iN tOkYo",
+        url: "https://www.yelp.com/search?find_desc=BeSt+RaMeN+dElIvErY&find_loc=Tokyo%2C+Tokyo-to",
+        title: "BeSt RaMeN dElIvErY iN Tokyo, Tokyo-to",
       },
     },
     {
@@ -81,9 +82,6 @@ add_task(async function basic() {
       query: "ramen in",
       expected: {
         url: "https://www.yelp.com/search?find_desc=ramen&find_loc=Yokohama%2C+Kanagawa",
-        originalUrl: "https://www.yelp.com/search?find_desc=ramen",
-        displayUrl:
-          "yelp.com/search?find_desc=ramen&find_loc=Yokohama,+Kanagawa",
         title: "ramen in Yokohama, Kanagawa",
       },
     },
@@ -92,9 +90,6 @@ add_task(async function basic() {
       query: "ramen nearby",
       expected: {
         url: "https://www.yelp.com/search?find_desc=ramen+nearby&find_loc=Yokohama%2C+Kanagawa",
-        originalUrl: "https://www.yelp.com/search?find_desc=ramen+nearby",
-        displayUrl:
-          "yelp.com/search?find_desc=ramen+nearby&find_loc=Yokohama,+Kanagawa",
         title: "ramen nearby in Yokohama, Kanagawa",
       },
     },
@@ -113,9 +108,6 @@ add_task(async function basic() {
       query: "rame",
       expected: {
         url: "https://www.yelp.com/search?find_desc=ramen&find_loc=Yokohama%2C+Kanagawa",
-        originalUrl: "https://www.yelp.com/search?find_desc=ramen",
-        displayUrl:
-          "yelp.com/search?find_desc=ramen&find_loc=Yokohama,+Kanagawa",
         title: "ramen in Yokohama, Kanagawa",
       },
     },
@@ -125,9 +117,6 @@ add_task(async function basic() {
       query: "1234",
       expected: {
         url: "https://www.yelp.com/search?find_desc=1234&find_loc=Yokohama%2C+Kanagawa",
-        originalUrl: "https://www.yelp.com/search?find_desc=1234",
-        displayUrl:
-          "yelp.com/search?find_desc=1234&find_loc=Yokohama,+Kanagawa",
         title: "1234 in Yokohama, Kanagawa",
       },
     },
@@ -137,9 +126,6 @@ add_task(async function basic() {
       query: "ramen",
       expected: {
         url: "https://www.yelp.com/search?find_desc=ramen&find_loc=Yokohama%2C+Kanagawa",
-        originalUrl: "https://www.yelp.com/search?find_desc=ramen",
-        displayUrl:
-          "yelp.com/search?find_desc=ramen&find_loc=Yokohama,+Kanagawa",
         title: "ramen in Yokohama, Kanagawa",
       },
     },
@@ -163,9 +149,6 @@ add_task(async function basic() {
       query: "best ra",
       expected: {
         url: "https://www.yelp.com/search?find_desc=best+ramen&find_loc=Yokohama%2C+Kanagawa",
-        originalUrl: "https://www.yelp.com/search?find_desc=best+ramen",
-        displayUrl:
-          "yelp.com/search?find_desc=best+ramen&find_loc=Yokohama,+Kanagawa",
         title: "best ramen in Yokohama, Kanagawa",
       },
     },
@@ -188,9 +171,6 @@ add_task(async function basic() {
       showLessFrequentlyCount: 1,
       expected: {
         url: "https://www.yelp.com/search?find_desc=1234&find_loc=Yokohama%2C+Kanagawa",
-        originalUrl: "https://www.yelp.com/search?find_desc=1234",
-        displayUrl:
-          "yelp.com/search?find_desc=1234&find_loc=Yokohama,+Kanagawa",
         title: "1234 in Yokohama, Kanagawa",
       },
     },
@@ -201,9 +181,6 @@ add_task(async function basic() {
       showLessFrequentlyCount: 1,
       expected: {
         url: "https://www.yelp.com/search?find_desc=ramen&find_loc=Yokohama%2C+Kanagawa",
-        originalUrl: "https://www.yelp.com/search?find_desc=ramen",
-        displayUrl:
-          "yelp.com/search?find_desc=ramen&find_loc=Yokohama,+Kanagawa",
         title: "ramen in Yokohama, Kanagawa",
       },
     },
@@ -304,12 +281,7 @@ add_task(async function sponsoredDisabled() {
       providers: [UrlbarProviderQuickSuggest.name],
       isPrivate: false,
     }),
-    matches: [
-      makeExpectedResult({
-        url: "https://www.yelp.com/search?find_desc=ramen&find_loc=tokyo",
-        title: "ramen in tokyo",
-      }),
-    ],
+    matches: [makeExpectedResult(TOKYO_RESULT)],
   });
 
   // Now disable the pref.
@@ -340,12 +312,7 @@ add_task(async function sponsoredDisabled() {
       providers: [UrlbarProviderQuickSuggest.name],
       isPrivate: false,
     }),
-    matches: [
-      makeExpectedResult({
-        url: "https://www.yelp.com/search?find_desc=ramen&find_loc=tokyo",
-        title: "ramen in tokyo",
-      }),
-    ],
+    matches: [makeExpectedResult(TOKYO_RESULT)],
   });
 });
 
@@ -360,12 +327,7 @@ add_task(async function yelpSpecificPrefsDisabled() {
         providers: [UrlbarProviderQuickSuggest.name],
         isPrivate: false,
       }),
-      matches: [
-        makeExpectedResult({
-          url: "https://www.yelp.com/search?find_desc=ramen&find_loc=tokyo",
-          title: "ramen in tokyo",
-        }),
-      ],
+      matches: [makeExpectedResult(TOKYO_RESULT)],
     });
 
     // Now disable the pref.
@@ -396,12 +358,7 @@ add_task(async function yelpSpecificPrefsDisabled() {
         providers: [UrlbarProviderQuickSuggest.name],
         isPrivate: false,
       }),
-      matches: [
-        makeExpectedResult({
-          url: "https://www.yelp.com/search?find_desc=ramen&find_loc=tokyo",
-          title: "ramen in tokyo",
-        }),
-      ],
+      matches: [makeExpectedResult(TOKYO_RESULT)],
     });
   }
 });
@@ -429,12 +386,7 @@ add_task(async function featureGate() {
       providers: [UrlbarProviderQuickSuggest.name],
       isPrivate: false,
     }),
-    matches: [
-      makeExpectedResult({
-        url: "https://www.yelp.com/search?find_desc=ramen&find_loc=tokyo",
-        title: "ramen in tokyo",
-      }),
-    ],
+    matches: [makeExpectedResult(TOKYO_RESULT)],
   });
   await cleanUpNimbusEnable();
 
@@ -476,8 +428,7 @@ add_task(async function yelpSuggestPriority() {
     }),
     matches: [
       makeExpectedResult({
-        url: "https://www.yelp.com/search?find_desc=ramen&find_loc=tokyo",
-        title: "ramen in tokyo",
+        ...TOKYO_RESULT,
         isTopPick: true,
       }),
     ],
@@ -493,8 +444,7 @@ add_task(async function yelpSuggestPriority() {
     }),
     matches: [
       makeExpectedResult({
-        url: "https://www.yelp.com/search?find_desc=ramen&find_loc=tokyo",
-        title: "ramen in tokyo",
+        ...TOKYO_RESULT,
         isTopPick: false,
       }),
     ],
@@ -519,8 +469,7 @@ add_task(async function nimbusSuggestedIndex() {
     }),
     matches: [
       makeExpectedResult({
-        url: "https://www.yelp.com/search?find_desc=ramen&find_loc=tokyo",
-        title: "ramen in tokyo",
+        ...TOKYO_RESULT,
         isTopPick: false,
         suggestedIndex: -2,
       }),
@@ -539,8 +488,7 @@ add_task(async function nimbusSuggestedIndex() {
     }),
     matches: [
       makeExpectedResult({
-        url: "https://www.yelp.com/search?find_desc=ramen&find_loc=tokyo",
-        title: "ramen in tokyo",
+        ...TOKYO_RESULT,
         isTopPick: false,
         suggestedIndex: 0,
       }),
@@ -560,8 +508,7 @@ add_task(async function showSearchSuggestionsFirstDisabledSuggestedIndex() {
     }),
     matches: [
       makeExpectedResult({
-        url: "https://www.yelp.com/search?find_desc=ramen&find_loc=tokyo",
-        title: "ramen in tokyo",
+        ...TOKYO_RESULT,
         isTopPick: false,
         suggestedIndex: -1,
       }),
@@ -577,8 +524,7 @@ add_task(async function showSearchSuggestionsFirstDisabledSuggestedIndex() {
     }),
     matches: [
       makeExpectedResult({
-        url: "https://www.yelp.com/search?find_desc=ramen&find_loc=tokyo",
-        title: "ramen in tokyo",
+        ...TOKYO_RESULT,
         isTopPick: false,
         suggestedIndex: 0,
       }),
@@ -590,10 +536,7 @@ add_task(async function showSearchSuggestionsFirstDisabledSuggestedIndex() {
 
 // Tests the "Not relevant" command: a dismissed suggestion shouldn't be added.
 add_task(async function notRelevant() {
-  let result = makeExpectedResult({
-    url: "https://www.yelp.com/search?find_desc=ramen&find_loc=tokyo",
-    title: "ramen in tokyo",
-  });
+  let result = makeExpectedResult(TOKYO_RESULT);
 
   info("Triggering the 'Not relevant' command");
   QuickSuggest.getFeature("YelpSuggestions").handleCommand(
@@ -619,6 +562,16 @@ add_task(async function notRelevant() {
     matches: [],
   });
 
+  // Yelp suggestions are blocked by URL excluding location, so all
+  // "ramen in <valid location>" results should be blocked.
+  await check_results({
+    context: createContext("ramen in waterloo", {
+      providers: [UrlbarProviderQuickSuggest.name],
+      isPrivate: false,
+    }),
+    matches: [],
+  });
+
   info("Doing search for a suggestion that wasn't blocked");
   await check_results({
     context: createContext("alongerkeyword in tokyo", {
@@ -627,8 +580,8 @@ add_task(async function notRelevant() {
     }),
     matches: [
       makeExpectedResult({
-        url: "https://www.yelp.com/search?find_desc=alongerkeyword&find_loc=tokyo",
-        title: "alongerkeyword in tokyo",
+        url: "https://www.yelp.com/search?find_desc=alongerkeyword&find_loc=Tokyo%2C+Tokyo-to",
+        title: "alongerkeyword in Tokyo, Tokyo-to",
       }),
     ],
   });
@@ -644,15 +597,24 @@ add_task(async function notRelevant() {
     }),
     matches: [result],
   });
+  await check_results({
+    context: createContext("ramen in waterloo", {
+      providers: [UrlbarProviderQuickSuggest.name],
+      isPrivate: false,
+    }),
+    matches: [
+      makeExpectedResult({
+        url: "https://www.yelp.com/search?find_desc=ramen&find_loc=Waterloo%2C+IA",
+        title: "ramen in Waterloo, IA",
+      }),
+    ],
+  });
 });
 
 // Tests the "Not interested" command: all Yelp suggestions should be disabled
 // and not added anymore.
 add_task(async function notInterested() {
-  let result = makeExpectedResult({
-    url: "https://www.yelp.com/search?find_desc=ramen&find_loc=tokyo",
-    title: "ramen in tokyo",
-  });
+  let result = makeExpectedResult(TOKYO_RESULT);
 
   info("Triggering the 'Not interested' command");
   QuickSuggest.getFeature("YelpSuggestions").handleCommand(
@@ -700,16 +662,12 @@ add_task(async function showLessFrequently() {
   });
 
   let location = `${GEOLOCATION.city}, ${GEOLOCATION.region}`;
-
-  let originalUrl = new URL("https://www.yelp.com/search");
-  originalUrl.searchParams.set("find_desc", "best ramen");
-
-  let url = new URL(originalUrl);
+  let url = new URL("https://www.yelp.com/search");
+  url.searchParams.set("find_desc", "best ramen");
   url.searchParams.set("find_loc", location);
 
   let result = makeExpectedResult({
     url: url.toString(),
-    originalUrl: originalUrl.toString(),
     title: `best ramen in ${location}`,
   });
 
@@ -884,10 +842,6 @@ add_task(async function minKeywordLength_defaultPrefValue() {
         query: "best al",
         expected: {
           url: "https://www.yelp.com/search?find_desc=best+alongerkeyword&find_loc=Yokohama%2C+Kanagawa",
-          originalUrl:
-            "https://www.yelp.com/search?find_desc=best+alongerkeyword",
-          displayUrl:
-            "yelp.com/search?find_desc=best+alongerkeyword&find_loc=Yokohama,+Kanagawa",
           title: "best alongerkeyword in Yokohama, Kanagawa",
         },
       },
@@ -933,10 +887,6 @@ add_task(async function minKeywordLength_smallerPrefUserValue() {
         query: "best al",
         expected: {
           url: "https://www.yelp.com/search?find_desc=best+alongerkeyword&find_loc=Yokohama%2C+Kanagawa",
-          originalUrl:
-            "https://www.yelp.com/search?find_desc=best+alongerkeyword",
-          displayUrl:
-            "yelp.com/search?find_desc=best+alongerkeyword&find_loc=Yokohama,+Kanagawa",
           title: "best alongerkeyword in Yokohama, Kanagawa",
         },
       },
@@ -986,10 +936,6 @@ add_task(async function minKeywordLength_largerPrefUserValue() {
         query: "best al",
         expected: {
           url: "https://www.yelp.com/search?find_desc=best+alongerkeyword&find_loc=Yokohama%2C+Kanagawa",
-          originalUrl:
-            "https://www.yelp.com/search?find_desc=best+alongerkeyword",
-          displayUrl:
-            "yelp.com/search?find_desc=best+alongerkeyword&find_loc=Yokohama,+Kanagawa",
           title: "best alongerkeyword in Yokohama, Kanagawa",
         },
       },
@@ -1035,10 +981,6 @@ add_task(async function minKeywordLength_onlyPrefValue() {
         query: "best al",
         expected: {
           url: "https://www.yelp.com/search?find_desc=best+alongerkeyword&find_loc=Yokohama%2C+Kanagawa",
-          originalUrl:
-            "https://www.yelp.com/search?find_desc=best+alongerkeyword",
-          displayUrl:
-            "yelp.com/search?find_desc=best+alongerkeyword&find_loc=Yokohama,+Kanagawa",
           title: "best alongerkeyword in Yokohama, Kanagawa",
         },
       },
@@ -1084,10 +1026,6 @@ add_task(async function minKeywordLength_noNimbusOrPrefUserValue() {
         query: "best al",
         expected: {
           url: "https://www.yelp.com/search?find_desc=best+alongerkeyword&find_loc=Yokohama%2C+Kanagawa",
-          originalUrl:
-            "https://www.yelp.com/search?find_desc=best+alongerkeyword",
-          displayUrl:
-            "yelp.com/search?find_desc=best+alongerkeyword&find_loc=Yokohama,+Kanagawa",
           title: "best alongerkeyword in Yokohama, Kanagawa",
         },
       },
@@ -1154,6 +1092,9 @@ function makeExpectedResult({
   const utmParameters = "&utm_medium=partner&utm_source=mozilla";
 
   originalUrl ??= url;
+  originalUrl = new URL(originalUrl);
+  originalUrl.searchParams.delete("find_loc");
+  originalUrl = originalUrl.toString();
 
   displayUrl =
     (displayUrl ??

@@ -807,6 +807,19 @@ class _QuickSuggestTestUtils {
         alternate_names: ["twin city b"],
         alternate_names_2: [{ name: "twin city b" }],
       },
+      {
+        id: 1850147,
+        name: "Tokyo",
+        latitude: "35.6895",
+        longitude: "139.69171",
+        feature_class: "P",
+        feature_code: "PPLC",
+        country_code: "JP",
+        admin1_code: "Tokyo-to",
+        population: 8336599,
+        alternate_names: ["tokyo"],
+        alternate_names_2: [{ name: "tokyo" }],
+      },
     ];
     let [maxLen, maxWordCount] = geonames.reduce(
       ([len, wordCount], geoname) => [
