@@ -703,8 +703,10 @@ void DateFillLocalTimeSlots(DateObject* dateObj);
 
 JSAtom* AtomizeStringNoGC(JSContext* cx, JSString* str);
 
-bool SetObjectHas(JSContext* cx, HandleObject obj, HandleValue key, bool* rval);
-bool MapObjectHas(JSContext* cx, HandleObject obj, HandleValue key, bool* rval);
+bool SetObjectHas(JSContext* cx, Handle<SetObject*> obj, HandleValue key,
+                  bool* rval);
+bool MapObjectHas(JSContext* cx, Handle<MapObject*> obj, HandleValue key,
+                  bool* rval);
 bool MapObjectGet(JSContext* cx, Handle<MapObject*> obj, HandleValue key,
                   MutableHandleValue rval);
 

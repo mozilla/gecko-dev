@@ -843,26 +843,24 @@ bool MapObject::get(JSContext* cx, unsigned argc, Value* vp) {
   return CallNonGenericMethod<MapObject::is, MapObject::get_impl>(cx, args);
 }
 
-bool MapObject::has(JSContext* cx, HandleObject obj, HandleValue key,
-                    bool* rval) {
-  Rooted<HashableValue> k(cx);
-
+bool MapObject::has(JSContext* cx, const Value& key, bool* rval) {
+  HashableValue k;
   if (!k.setValue(cx, key)) {
     return false;
   }
 
-  *rval = Table(&obj->as<MapObject>()).has(k);
+  *rval = Table(this).has(k);
   return true;
 }
 
 bool MapObject::has_impl(JSContext* cx, const CallArgs& args) {
+  auto* mapObj = &args.thisv().toObject().as<MapObject>();
   bool found;
-  RootedObject obj(cx, &args.thisv().toObject());
-  if (has(cx, obj, args.get(0), &found)) {
-    args.rval().setBoolean(found);
-    return true;
+  if (!mapObj->has(cx, args.get(0), &found)) {
+    return false;
   }
-  return false;
+  args.rval().setBoolean(found);
+  return true;
 }
 
 bool MapObject::has(JSContext* cx, unsigned argc, Value* vp) {
@@ -1511,26 +1509,22 @@ bool SetObject::size(JSContext* cx, unsigned argc, Value* vp) {
 }
 
 bool SetObject::has_impl(JSContext* cx, const CallArgs& args) {
-  MOZ_ASSERT(is(args.thisv()));
-
-  ARG0_KEY(cx, args, key);
-  SetObject* setObj = &args.thisv().toObject().as<SetObject>();
-  args.rval().setBoolean(Table(setObj).has(key));
+  auto* setObj = &args.thisv().toObject().as<SetObject>();
+  bool found;
+  if (!setObj->has(cx, args.get(0), &found)) {
+    return false;
+  }
+  args.rval().setBoolean(found);
   return true;
 }
 
-bool SetObject::has(JSContext* cx, HandleObject obj, HandleValue key,
-                    bool* rval) {
-  MOZ_ASSERT(SetObject::is(obj));
-
-  Rooted<HashableValue> k(cx);
-
+bool SetObject::has(JSContext* cx, const Value& key, bool* rval) {
+  HashableValue k;
   if (!k.setValue(cx, key)) {
     return false;
   }
 
-  SetObject* setObj = &obj->as<SetObject>();
-  *rval = Table(setObj).has(k);
+  *rval = Table(this).has(k);
   return true;
 }
 
@@ -1769,7 +1763,7 @@ JS_PUBLIC_API bool JS::MapHas(JSContext* cx, HandleObject obj, HandleValue key,
   cx->check(obj, key);
 
   if (obj->is<MapObject>()) {
-    return MapObject::has(cx, obj.as<MapObject>(), key, rval);
+    return obj.as<MapObject>()->has(cx, key, rval);
   }
 
   AutoEnterTableRealm<MapObject> enter(cx, obj);
@@ -1777,7 +1771,7 @@ JS_PUBLIC_API bool JS::MapHas(JSContext* cx, HandleObject obj, HandleValue key,
   if (!JS_WrapValue(cx, &wrappedKey)) {
     return false;
   }
-  return MapObject::has(cx, enter.unwrapped(), wrappedKey, rval);
+  return enter.unwrapped()->has(cx, wrappedKey, rval);
 }
 
 JS_PUBLIC_API bool JS::MapDelete(JSContext* cx, HandleObject obj,
@@ -1893,7 +1887,7 @@ JS_PUBLIC_API bool JS::SetHas(JSContext* cx, HandleObject obj, HandleValue key,
   cx->check(obj, key);
 
   if (obj->is<SetObject>()) {
-    return SetObject::has(cx, obj.as<SetObject>(), key, rval);
+    return obj.as<SetObject>()->has(cx, key, rval);
   }
 
   AutoEnterTableRealm<SetObject> enter(cx, obj);
@@ -1901,7 +1895,7 @@ JS_PUBLIC_API bool JS::SetHas(JSContext* cx, HandleObject obj, HandleValue key,
   if (!JS_WrapValue(cx, &wrappedKey)) {
     return false;
   }
-  return SetObject::has(cx, enter.unwrapped(), wrappedKey, rval);
+  return enter.unwrapped()->has(cx, wrappedKey, rval);
 }
 
 JS_PUBLIC_API bool JS::SetDelete(JSContext* cx, HandleObject obj,

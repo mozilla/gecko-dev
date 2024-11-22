@@ -3110,14 +3110,14 @@ JSAtom* AtomizeStringNoGC(JSContext* cx, JSString* str) {
   return atom;
 }
 
-bool SetObjectHas(JSContext* cx, HandleObject obj, HandleValue key,
+bool SetObjectHas(JSContext* cx, Handle<SetObject*> obj, HandleValue key,
                   bool* rval) {
-  return SetObject::has(cx, obj, key, rval);
+  return obj->has(cx, key, rval);
 }
 
-bool MapObjectHas(JSContext* cx, HandleObject obj, HandleValue key,
+bool MapObjectHas(JSContext* cx, Handle<MapObject*> obj, HandleValue key,
                   bool* rval) {
-  return MapObject::has(cx, obj, key, rval);
+  return obj->has(cx, key, rval);
 }
 
 bool MapObjectGet(JSContext* cx, Handle<MapObject*> obj, HandleValue key,

@@ -10475,7 +10475,7 @@ bool CacheIRCompiler::emitSetHasResult(ObjOperandId setId, ValOperandId valId) {
   masm.Push(val);
   masm.Push(set);
 
-  using Fn = bool (*)(JSContext*, HandleObject, HandleValue, bool*);
+  using Fn = bool (*)(JSContext*, Handle<SetObject*>, HandleValue, bool*);
   callvm.call<Fn, jit::SetObjectHas>();
   return true;
 }
@@ -10608,7 +10608,7 @@ bool CacheIRCompiler::emitMapHasResult(ObjOperandId mapId, ValOperandId valId) {
   masm.Push(val);
   masm.Push(map);
 
-  using Fn = bool (*)(JSContext*, HandleObject, HandleValue, bool*);
+  using Fn = bool (*)(JSContext*, Handle<MapObject*>, HandleValue, bool*);
   callvm.call<Fn, jit::MapObjectHas>();
   return true;
 }
