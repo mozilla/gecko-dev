@@ -14,6 +14,7 @@ import React, { useEffect, useState, useRef, useCallback } from "react";
 import { connect, useSelector } from "react-redux";
 const PREF_ONBOARDING_EXPERIENCE_DISMISSED =
   "discoverystream.onboardingExperience.dismissed";
+const PREF_SECTIONS_CARDS_ENABLED = "discoverystream.sections.cards.enabled";
 const PREF_THUMBS_UP_DOWN_ENABLED = "discoverystream.thumbsUpDown.enabled";
 const PREF_TOPICS_ENABLED = "discoverystream.topicLabels.enabled";
 const PREF_TOPICS_SELECTED = "discoverystream.topicSelection.selectedTopics";
@@ -344,6 +345,7 @@ export class _CardGrid extends React.PureComponent {
     const showRecentSaves = prefs.showRecentSaves && recentSavesEnabled;
     const isOnboardingExperienceDismissed =
       prefs[PREF_ONBOARDING_EXPERIENCE_DISMISSED];
+    const mayHaveSectionsCards = prefs[PREF_SECTIONS_CARDS_ENABLED];
     const mayHaveThumbsUpDown = prefs[PREF_THUMBS_UP_DOWN_ENABLED];
     const showTopics = prefs[PREF_TOPICS_ENABLED];
     const selectedTopics = prefs[PREF_TOPICS_SELECTED];
@@ -407,6 +409,7 @@ export class _CardGrid extends React.PureComponent {
             recommendation_id={rec.recommendation_id}
             firstVisibleTimestamp={this.props.firstVisibleTimestamp}
             mayHaveThumbsUpDown={mayHaveThumbsUpDown}
+            mayHaveSectionsCards={mayHaveSectionsCards}
             scheduled_corpus_item_id={rec.scheduled_corpus_item_id}
             recommended_at={rec.recommended_at}
             received_rank={rec.received_rank}
