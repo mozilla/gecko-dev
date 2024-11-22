@@ -1,0 +1,25 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+---
+task-defaults:
+    platform: lint/opt
+    treeherder:
+        kind: test
+        tier: 1
+    worker-type: t-linux-xlarge-source
+    worker:
+        docker-image: {in-tree: "lint"}
+        max-run-time: 1800
+
+default:
+    description: Web-platform unit tests.
+    treeherder:
+        symbol: wpt-unittest
+    run:
+        using: run-task
+        cwd: '{checkout}'
+        command: ./mach wpt-unittest -e py38
+    when:
+        files-changed:
+            - 'testing/web-platform/tests/tools/**'

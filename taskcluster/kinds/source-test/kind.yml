@@ -41,6 +41,7 @@ tasks-from:
     - webcompat.yml
     - wpt-manifest.yml
     - wpt-metadata.yml
+    - wpt-unittest.yml
 
 task-defaults:
     use-python: default
