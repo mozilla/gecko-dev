@@ -170,7 +170,7 @@ inline bool nsINode::IsEditable() const {
 }
 
 inline bool nsINode::IsEditingHost() const {
-  if (!IsInComposedDoc() || IsInDesignMode() || !IsEditable() ||
+  if (!IsEditable() || !IsInComposedDoc() || IsInDesignMode() ||
       IsInNativeAnonymousSubtree()) {
     return false;
   }
