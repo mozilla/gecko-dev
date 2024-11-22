@@ -129,13 +129,24 @@ struct IntrinsicISizesCache final {
   // If the high bit of mOutOfLine is 1, then it points to an OutOfLineCache.
   union {
     InlineCache mInline;
-    uintptr_t mOutOfLine = 0;
+    struct {
+#ifndef HAVE_64BIT_BUILD
+      uintptr_t mPadding = 0;
+#endif
+      uintptr_t mOutOfLine = 0;
+    };
   };
 
   static constexpr uintptr_t kHighBit = uintptr_t(1)
                                         << (sizeof(void*) * CHAR_BIT - 1);
 
-  bool IsOutOfLine() const { return mOutOfLine & kHighBit; }
+  bool IsOutOfLine() const {
+#ifdef HAVE_64BIT_BUILD
+    return mOutOfLine & kHighBit;
+#else
+    return mPadding & kHighBit;
+#endif
+  }
   bool IsInline() const { return !IsOutOfLine(); }
   OutOfLineCache* EnsureOutOfLine() {
     if (auto* ool = GetOutOfLine()) {
@@ -144,17 +155,31 @@ struct IntrinsicISizesCache final {
     auto inlineCache = mInline;
     auto* ool = new OutOfLineCache();
     ool->mCacheWithoutPercentageBasis = inlineCache;
+#ifdef HAVE_64BIT_BUILD
     MOZ_ASSERT((reinterpret_cast<uintptr_t>(ool) & kHighBit) == 0);
     mOutOfLine = reinterpret_cast<uintptr_t>(ool) | kHighBit;
+#else
+    mOutOfLine = reinterpret_cast<uintptr_t>(ool);
+    mPadding = kHighBit;
+#endif
+    MOZ_ASSERT(IsOutOfLine());
     return ool;
   }
 
   OutOfLineCache* GetOutOfLine() const {
-    return IsOutOfLine()
-               ? reinterpret_cast<OutOfLineCache*>(mOutOfLine & ~kHighBit)
-               : nullptr;
+    if (!IsOutOfLine()) {
+      return nullptr;
+    }
+#ifdef HAVE_64BIT_BUILD
+    return reinterpret_cast<OutOfLineCache*>(mOutOfLine & ~kHighBit);
+#else
+    return reinterpret_cast<OutOfLineCache*>(mOutOfLine);
+#endif
   }
 };
+
+static_assert(sizeof(IntrinsicISizesCache) == 8, "Unexpected cache size");
+
 }  // namespace mozilla
 
 #endif
