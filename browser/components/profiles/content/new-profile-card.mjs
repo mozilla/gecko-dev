@@ -9,6 +9,8 @@ import { EditProfileCard } from "chrome://browser/content/profiles/edit-profile-
 // eslint-disable-next-line import/no-unassigned-import
 import "chrome://global/content/elements/moz-support-link.mjs";
 
+const DEFAULT_THEME_ID = "default-theme@mozilla.org";
+
 /**
  * Element used for updating a profile's name, theme, and avatar.
  */
@@ -29,11 +31,25 @@ export class NewProfileCard extends EditProfileCard {
     this.profiles = profiles;
     this.themes = themes;
 
+    this.setRandomTheme();
+
     this.setInitialInput();
 
     super.setFavicon();
 
     this.initialized = true;
+  }
+
+  async setRandomTheme() {
+    if (this.profile.themeId !== DEFAULT_THEME_ID) {
+      return;
+    }
+
+    let isDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+    let possibleThemes = this.themes.filter(t => t.isDark === isDark);
+    let newTheme =
+      possibleThemes[Math.floor(Math.random() * possibleThemes.length)];
+    super.updateTheme(newTheme.id);
   }
 
   async setInitialInput() {

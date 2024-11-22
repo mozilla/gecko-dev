@@ -30,6 +30,7 @@ const PROFILE_THEMES_MAP = new Map([
         toolbarColor: "#FBDF8C",
         contentColor: "#FEF7E0",
       },
+      isDark: false,
     },
   ],
   [
@@ -43,6 +44,7 @@ const PROFILE_THEMES_MAP = new Map([
         toolbarColor: "#E9F2EC",
         contentColor: "#F5F9F7",
       },
+      isDark: false,
     },
   ],
   [
@@ -56,6 +58,7 @@ const PROFILE_THEMES_MAP = new Map([
         toolbarColor: "#F986B6",
         contentColor: "#FBE0ED",
       },
+      isDark: false,
     },
   ],
   [
@@ -69,6 +72,7 @@ const PROFILE_THEMES_MAP = new Map([
         toolbarColor: "#EBE4FA",
         contentColor: "#F4F0FD",
       },
+      isDark: false,
     },
   ],
   [
@@ -93,6 +97,7 @@ const PROFILE_THEMES_MAP = new Map([
         toolbarColor: "#050D5B",
         contentColor: "#000511",
       },
+      isDark: true,
     },
   ],
   [
@@ -106,6 +111,7 @@ const PROFILE_THEMES_MAP = new Map([
         toolbarColor: "#98240B",
         contentColor: "#060100",
       },
+      isDark: true,
     },
   ],
   [
@@ -119,6 +125,7 @@ const PROFILE_THEMES_MAP = new Map([
         toolbarColor: "#5B7B65",
         contentColor: "#323433",
       },
+      isDark: true,
     },
   ],
   [
@@ -319,6 +326,7 @@ export class ProfilesParent extends JSWindowActorParent {
           dataL10nId: themeObj.dataL10nId,
           isActive: theme.isActive,
           ...themeObj.colors,
+          isDark: themeObj.isDark,
         });
       } else {
         themes.push({
@@ -326,6 +334,7 @@ export class ProfilesParent extends JSWindowActorParent {
           dataL10nId: themeObj.dataL10nId,
           isActive: false,
           ...themeObj.colors,
+          isDark: themeObj.isDark,
         });
       }
     }
