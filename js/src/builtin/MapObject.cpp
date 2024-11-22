@@ -1699,76 +1699,23 @@ static bool forEach(const char* funcName, JSContext* cx, HandleObject obj,
   return Call(cx, fval, obj, callbackFn, thisArg, &fval);
 }
 
-// Handles Clear/Size for public jsapi map/set access
-template <typename RetT>
-RetT CallObjFunc(RetT (*ObjFunc)(JSContext*, HandleObject), JSContext* cx,
-                 HandleObject obj) {
-  CHECK_THREAD(cx);
-  cx->check(obj);
+// RAII class that unwraps a wrapped Map or Set object and then enters its
+// realm.
+template <typename TableObject>
+class MOZ_RAII AutoEnterTableRealm {
+  mozilla::Maybe<AutoRealm> ar_;
+  Rooted<TableObject*> unwrapped_;
 
-  // Always unwrap, in case this is an xray or cross-compartment wrapper.
-  RootedObject unwrappedObj(cx);
-  unwrappedObj = UncheckedUnwrap(obj);
-
-  // Enter the realm of the backing object before calling functions on
-  // it.
-  JSAutoRealm ar(cx, unwrappedObj);
-  return ObjFunc(cx, unwrappedObj);
-}
-
-// Handles Has/Delete for public jsapi map/set access
-bool CallObjFunc(bool (*ObjFunc)(JSContext* cx, HandleObject obj,
-                                 HandleValue key, bool* rval),
-                 JSContext* cx, HandleObject obj, HandleValue key, bool* rval) {
-  CHECK_THREAD(cx);
-  cx->check(obj, key);
-
-  // Always unwrap, in case this is an xray or cross-compartment wrapper.
-  RootedObject unwrappedObj(cx);
-  unwrappedObj = UncheckedUnwrap(obj);
-  JSAutoRealm ar(cx, unwrappedObj);
-
-  // If we're working with a wrapped map/set, rewrap the key into the
-  // compartment of the unwrapped map/set.
-  RootedValue wrappedKey(cx, key);
-  if (obj != unwrappedObj) {
-    if (!JS_WrapValue(cx, &wrappedKey)) {
-      return false;
-    }
+ public:
+  AutoEnterTableRealm(JSContext* cx, JSObject* obj) : unwrapped_(cx) {
+    JSObject* unwrapped = UncheckedUnwrap(obj);
+    MOZ_ASSERT(unwrapped != obj);
+    MOZ_RELEASE_ASSERT(unwrapped->is<TableObject>());
+    unwrapped_ = &unwrapped->as<TableObject>();
+    ar_.emplace(cx, unwrapped_);
   }
-  return ObjFunc(cx, unwrappedObj, wrappedKey, rval);
-}
-
-// Handles iterator generation for public jsapi map/set access
-template <typename Iter>
-bool CallObjFunc(bool (*ObjFunc)(JSContext* cx, Iter kind, HandleObject obj,
-                                 MutableHandleValue iter),
-                 JSContext* cx, Iter iterType, HandleObject obj,
-                 MutableHandleValue rval) {
-  CHECK_THREAD(cx);
-  cx->check(obj);
-
-  // Always unwrap, in case this is an xray or cross-compartment wrapper.
-  RootedObject unwrappedObj(cx);
-  unwrappedObj = UncheckedUnwrap(obj);
-  {
-    // Retrieve the iterator while in the unwrapped map/set's compartment,
-    // otherwise we'll crash on a compartment assert.
-    JSAutoRealm ar(cx, unwrappedObj);
-    if (!ObjFunc(cx, iterType, unwrappedObj, rval)) {
-      return false;
-    }
-  }
-
-  // If the caller is in a different compartment than the map/set, rewrap the
-  // iterator object into the caller's compartment.
-  if (obj != unwrappedObj) {
-    if (!JS_WrapValue(cx, rval)) {
-      return false;
-    }
-  }
-  return true;
-}
+  Handle<TableObject*> unwrapped() const { return unwrapped_; }
+};
 
 /*** JS public APIs *********************************************************/
 
@@ -1777,7 +1724,15 @@ JS_PUBLIC_API JSObject* JS::NewMapObject(JSContext* cx) {
 }
 
 JS_PUBLIC_API uint32_t JS::MapSize(JSContext* cx, HandleObject obj) {
-  return CallObjFunc<uint32_t>(&MapObject::size, cx, obj);
+  CHECK_THREAD(cx);
+  cx->check(obj);
+
+  if (obj->is<MapObject>()) {
+    return MapObject::size(cx, obj.as<MapObject>());
+  }
+
+  AutoEnterTableRealm<MapObject> enter(cx, obj);
+  return MapObject::size(cx, enter.unwrapped());
 }
 
 JS_PUBLIC_API bool JS::MapGet(JSContext* cx, HandleObject obj, HandleValue key,
@@ -1785,32 +1740,21 @@ JS_PUBLIC_API bool JS::MapGet(JSContext* cx, HandleObject obj, HandleValue key,
   CHECK_THREAD(cx);
   cx->check(obj, key, rval);
 
-  // Unwrap the object, and enter its realm. If object isn't wrapped,
-  // this is essentially a noop.
-  RootedObject unwrappedObj(cx);
-  unwrappedObj = UncheckedUnwrap(obj);
+  if (obj->is<MapObject>()) {
+    return MapObject::get(cx, obj.as<MapObject>(), key, rval);
+  }
+
   {
-    JSAutoRealm ar(cx, unwrappedObj);
-    RootedValue wrappedKey(cx, key);
-
-    // If we passed in a wrapper, wrap our key into its compartment now.
-    if (obj != unwrappedObj) {
-      if (!JS_WrapValue(cx, &wrappedKey)) {
-        return false;
-      }
+    AutoEnterTableRealm<MapObject> enter(cx, obj);
+    Rooted<Value> wrappedKey(cx, key);
+    if (!JS_WrapValue(cx, &wrappedKey)) {
+      return false;
     }
-    if (!MapObject::get(cx, unwrappedObj, wrappedKey, rval)) {
+    if (!MapObject::get(cx, enter.unwrapped(), wrappedKey, rval)) {
       return false;
     }
   }
-
-  // If we passed in a wrapper, wrap our return value on the way out.
-  if (obj != unwrappedObj) {
-    if (!JS_WrapValue(cx, rval)) {
-      return false;
-    }
-  }
-  return true;
+  return JS_WrapValue(cx, rval);
 }
 
 JS_PUBLIC_API bool JS::MapSet(JSContext* cx, HandleObject obj, HandleValue key,
@@ -1818,56 +1762,101 @@ JS_PUBLIC_API bool JS::MapSet(JSContext* cx, HandleObject obj, HandleValue key,
   CHECK_THREAD(cx);
   cx->check(obj, key, val);
 
-  // Unwrap the object, and enter its compartment. If object isn't wrapped,
-  // this is essentially a noop.
-  RootedObject unwrappedObj(cx);
-  unwrappedObj = UncheckedUnwrap(obj);
-  {
-    JSAutoRealm ar(cx, unwrappedObj);
-
-    // If we passed in a wrapper, wrap both key and value before adding to
-    // the map
-    RootedValue wrappedKey(cx, key);
-    RootedValue wrappedValue(cx, val);
-    if (obj != unwrappedObj) {
-      if (!JS_WrapValue(cx, &wrappedKey) || !JS_WrapValue(cx, &wrappedValue)) {
-        return false;
-      }
-    }
-    return MapObject::set(cx, unwrappedObj, wrappedKey, wrappedValue);
+  if (obj->is<MapObject>()) {
+    return MapObject::set(cx, obj.as<MapObject>(), key, val);
   }
+
+  AutoEnterTableRealm<MapObject> enter(cx, obj);
+  Rooted<Value> wrappedKey(cx, key);
+  Rooted<Value> wrappedValue(cx, val);
+  if (!JS_WrapValue(cx, &wrappedKey) || !JS_WrapValue(cx, &wrappedValue)) {
+    return false;
+  }
+  return MapObject::set(cx, enter.unwrapped(), wrappedKey, wrappedValue);
 }
 
 JS_PUBLIC_API bool JS::MapHas(JSContext* cx, HandleObject obj, HandleValue key,
                               bool* rval) {
-  return CallObjFunc(MapObject::has, cx, obj, key, rval);
+  CHECK_THREAD(cx);
+  cx->check(obj, key);
+
+  if (obj->is<MapObject>()) {
+    return MapObject::has(cx, obj.as<MapObject>(), key, rval);
+  }
+
+  AutoEnterTableRealm<MapObject> enter(cx, obj);
+  Rooted<Value> wrappedKey(cx, key);
+  if (!JS_WrapValue(cx, &wrappedKey)) {
+    return false;
+  }
+  return MapObject::has(cx, enter.unwrapped(), wrappedKey, rval);
 }
 
 JS_PUBLIC_API bool JS::MapDelete(JSContext* cx, HandleObject obj,
                                  HandleValue key, bool* rval) {
-  return CallObjFunc(MapObject::delete_, cx, obj, key, rval);
+  CHECK_THREAD(cx);
+  cx->check(obj, key);
+
+  if (obj->is<MapObject>()) {
+    return MapObject::delete_(cx, obj.as<MapObject>(), key, rval);
+  }
+
+  AutoEnterTableRealm<MapObject> enter(cx, obj);
+  Rooted<Value> wrappedKey(cx, key);
+  if (!JS_WrapValue(cx, &wrappedKey)) {
+    return false;
+  }
+  return MapObject::delete_(cx, enter.unwrapped(), wrappedKey, rval);
 }
 
 JS_PUBLIC_API bool JS::MapClear(JSContext* cx, HandleObject obj) {
-  return CallObjFunc(&MapObject::clear, cx, obj);
+  CHECK_THREAD(cx);
+  cx->check(obj);
+
+  if (obj->is<MapObject>()) {
+    return MapObject::clear(cx, obj.as<MapObject>());
+  }
+
+  AutoEnterTableRealm<MapObject> enter(cx, obj);
+  return MapObject::clear(cx, enter.unwrapped());
+}
+
+template <typename TableObject>
+[[nodiscard]] static bool CreateIterator(
+    JSContext* cx, typename TableObject::IteratorKind kind,
+    Handle<JSObject*> obj, MutableHandle<Value> rval) {
+  CHECK_THREAD(cx);
+  cx->check(obj);
+
+  if (obj->is<TableObject>()) {
+    return TableObject::iterator(cx, kind, obj.as<TableObject>(), rval);
+  }
+
+  {
+    AutoEnterTableRealm<TableObject> enter(cx, obj);
+    if (!TableObject::iterator(cx, kind, enter.unwrapped(), rval)) {
+      return false;
+    }
+  }
+  return JS_WrapValue(cx, rval);
 }
 
 JS_PUBLIC_API bool JS::MapKeys(JSContext* cx, HandleObject obj,
                                MutableHandleValue rval) {
-  return CallObjFunc(&MapObject::iterator, cx, MapObject::IteratorKind::Keys,
-                     obj, rval);
+  return CreateIterator<MapObject>(cx, MapObject::IteratorKind::Keys, obj,
+                                   rval);
 }
 
 JS_PUBLIC_API bool JS::MapValues(JSContext* cx, HandleObject obj,
                                  MutableHandleValue rval) {
-  return CallObjFunc(&MapObject::iterator, cx, MapObject::IteratorKind::Values,
-                     obj, rval);
+  return CreateIterator<MapObject>(cx, MapObject::IteratorKind::Values, obj,
+                                   rval);
 }
 
 JS_PUBLIC_API bool JS::MapEntries(JSContext* cx, HandleObject obj,
                                   MutableHandleValue rval) {
-  return CallObjFunc(&MapObject::iterator, cx, MapObject::IteratorKind::Entries,
-                     obj, rval);
+  return CreateIterator<MapObject>(cx, MapObject::IteratorKind::Entries, obj,
+                                   rval);
 }
 
 JS_PUBLIC_API bool JS::MapForEach(JSContext* cx, HandleObject obj,
@@ -1880,7 +1869,15 @@ JS_PUBLIC_API JSObject* JS::NewSetObject(JSContext* cx) {
 }
 
 JS_PUBLIC_API uint32_t JS::SetSize(JSContext* cx, HandleObject obj) {
-  return CallObjFunc<uint32_t>(&SetObject::size, cx, obj);
+  CHECK_THREAD(cx);
+  cx->check(obj);
+
+  if (obj->is<SetObject>()) {
+    return SetObject::size(cx, obj.as<SetObject>());
+  }
+
+  AutoEnterTableRealm<SetObject> enter(cx, obj);
+  return SetObject::size(cx, enter.unwrapped());
 }
 
 JS_PUBLIC_API bool JS::SetAdd(JSContext* cx, HandleObject obj,
@@ -1888,36 +1885,62 @@ JS_PUBLIC_API bool JS::SetAdd(JSContext* cx, HandleObject obj,
   CHECK_THREAD(cx);
   cx->check(obj, key);
 
-  // Unwrap the object, and enter its compartment. If object isn't wrapped,
-  // this is essentially a noop.
-  RootedObject unwrappedObj(cx);
-  unwrappedObj = UncheckedUnwrap(obj);
-  {
-    JSAutoRealm ar(cx, unwrappedObj);
-
-    // If we passed in a wrapper, wrap key before adding to the set
-    RootedValue wrappedKey(cx, key);
-    if (obj != unwrappedObj) {
-      if (!JS_WrapValue(cx, &wrappedKey)) {
-        return false;
-      }
-    }
-    return SetObject::add(cx, unwrappedObj, wrappedKey);
+  if (obj->is<SetObject>()) {
+    return SetObject::add(cx, obj.as<SetObject>(), key);
   }
+
+  AutoEnterTableRealm<SetObject> enter(cx, obj);
+  Rooted<Value> wrappedKey(cx, key);
+  if (!JS_WrapValue(cx, &wrappedKey)) {
+    return false;
+  }
+  return SetObject::add(cx, enter.unwrapped(), wrappedKey);
 }
 
 JS_PUBLIC_API bool JS::SetHas(JSContext* cx, HandleObject obj, HandleValue key,
                               bool* rval) {
-  return CallObjFunc(SetObject::has, cx, obj, key, rval);
+  CHECK_THREAD(cx);
+  cx->check(obj, key);
+
+  if (obj->is<SetObject>()) {
+    return SetObject::has(cx, obj.as<SetObject>(), key, rval);
+  }
+
+  AutoEnterTableRealm<SetObject> enter(cx, obj);
+  Rooted<Value> wrappedKey(cx, key);
+  if (!JS_WrapValue(cx, &wrappedKey)) {
+    return false;
+  }
+  return SetObject::has(cx, enter.unwrapped(), wrappedKey, rval);
 }
 
 JS_PUBLIC_API bool JS::SetDelete(JSContext* cx, HandleObject obj,
                                  HandleValue key, bool* rval) {
-  return CallObjFunc(SetObject::delete_, cx, obj, key, rval);
+  CHECK_THREAD(cx);
+  cx->check(obj, key);
+
+  if (obj->is<SetObject>()) {
+    return SetObject::delete_(cx, obj.as<SetObject>(), key, rval);
+  }
+
+  AutoEnterTableRealm<SetObject> enter(cx, obj);
+  Rooted<Value> wrappedKey(cx, key);
+  if (!JS_WrapValue(cx, &wrappedKey)) {
+    return false;
+  }
+  return SetObject::delete_(cx, enter.unwrapped(), wrappedKey, rval);
 }
 
 JS_PUBLIC_API bool JS::SetClear(JSContext* cx, HandleObject obj) {
-  return CallObjFunc(&SetObject::clear, cx, obj);
+  CHECK_THREAD(cx);
+  cx->check(obj);
+
+  if (obj->is<SetObject>()) {
+    return SetObject::clear(cx, obj.as<SetObject>());
+  }
+
+  AutoEnterTableRealm<SetObject> enter(cx, obj);
+  return SetObject::clear(cx, enter.unwrapped());
 }
 
 JS_PUBLIC_API bool JS::SetKeys(JSContext* cx, HandleObject obj,
@@ -1927,14 +1950,14 @@ JS_PUBLIC_API bool JS::SetKeys(JSContext* cx, HandleObject obj,
 
 JS_PUBLIC_API bool JS::SetValues(JSContext* cx, HandleObject obj,
                                  MutableHandleValue rval) {
-  return CallObjFunc(&SetObject::iterator, cx, SetObject::IteratorKind::Values,
-                     obj, rval);
+  return CreateIterator<SetObject>(cx, SetObject::IteratorKind::Values, obj,
+                                   rval);
 }
 
 JS_PUBLIC_API bool JS::SetEntries(JSContext* cx, HandleObject obj,
                                   MutableHandleValue rval) {
-  return CallObjFunc(&SetObject::iterator, cx, SetObject::IteratorKind::Entries,
-                     obj, rval);
+  return CreateIterator<SetObject>(cx, SetObject::IteratorKind::Entries, obj,
+                                   rval);
 }
 
 JS_PUBLIC_API bool JS::SetForEach(JSContext* cx, HandleObject obj,
