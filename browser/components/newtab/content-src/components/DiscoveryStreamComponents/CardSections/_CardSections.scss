@@ -303,7 +303,6 @@
   padding-inline: 0;
 
   .ds-section {
-    border-block-start: 1px solid var(--newtab-button-static-active-background);
     padding-block-end: 50px;
 
     &:last-child {
@@ -311,20 +310,42 @@
     }
 
     .section-heading {
-      margin-block: var(--space-small) var(--space-xlarge);
+      margin-block: var(--space-small) var(--space-medium);
+    }
 
-      .section-title {
-        font-weight: var(--font-weight-bold);
+    .section-title {
+      @include wallpaper-contrast-fix;
+
+      font-weight: var(--font-weight-bold);
+      font-size: var(--font-size-xlarge);
+      color: var(--newtab-contextual-text-primary-color);
+      margin-block: 0;
+
+      @media (min-width: $break-point-layout-variant) {
         font-size: var(--font-size-xxlarge);
-        color: var(--newtab-text-primary-color);
-        margin-block: 0;
       }
 
-      .section-subtitle {
-        margin-block: var(--space-small) 0;
-        font-size: var(--font-size-root);
+      @media (min-width: $break-point-widest) {
+        font-size: 28px;
+      }
+
+      @media (min-width: $break-point-sections-variant) {
+        font-size: 30px;
       }
     }
+
+    .section-subtitle {
+      @include wallpaper-contrast-fix;
+
+      color: var(--newtab-contextual-text-primary-color);
+      margin-block: var(--space-xsmall) 0;
+      font-size: var(--font-size-root);
+
+      @media (min-width: $break-point-widest) {
+        font-size: 1rem // 16px
+      }
+    }
+
   }
 }
 
