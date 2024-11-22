@@ -7,6 +7,7 @@ package org.mozilla.fenix.lifecycle
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleObserver
 import androidx.lifecycle.LifecycleOwner
+import org.mozilla.fenix.AuthenticationStatus
 import org.mozilla.fenix.BiometricAuthenticationManager
 
 /**
@@ -15,8 +16,14 @@ import org.mozilla.fenix.BiometricAuthenticationManager
 class VisibilityLifecycleObserver : DefaultLifecycleObserver {
     override fun onPause(owner: LifecycleOwner) {
         super.onPause(owner)
-        BiometricAuthenticationManager.biometricAuthenticationNeededInfo.shouldShowAuthenticationPrompt =
-            true
-        BiometricAuthenticationManager.biometricAuthenticationNeededInfo.authenticated = false
+
+        if (BiometricAuthenticationManager.biometricAuthenticationNeededInfo.authenticationStatus
+            != AuthenticationStatus.AUTHENTICATION_IN_PROGRESS
+        ) {
+            BiometricAuthenticationManager.biometricAuthenticationNeededInfo.shouldShowAuthenticationPrompt =
+                true
+            BiometricAuthenticationManager.biometricAuthenticationNeededInfo.authenticationStatus =
+                AuthenticationStatus.NOT_AUTHENTICATED
+        }
     }
 }

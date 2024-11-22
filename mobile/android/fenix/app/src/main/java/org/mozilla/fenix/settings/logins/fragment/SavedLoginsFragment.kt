@@ -31,6 +31,7 @@ import androidx.navigation.fragment.findNavController
 import mozilla.components.concept.menu.MenuController
 import mozilla.components.concept.menu.Orientation
 import mozilla.components.lib.state.ext.consumeFrom
+import org.mozilla.fenix.AuthenticationStatus
 import org.mozilla.fenix.BiometricAuthenticationManager
 import org.mozilla.fenix.BrowserDirection
 import org.mozilla.fenix.HomeActivity
@@ -80,7 +81,8 @@ class SavedLoginsFragment : SecureFragment(), MenuProvider {
         startForResult = registerForActivityResult {
             BiometricAuthenticationManager.biometricAuthenticationNeededInfo.shouldShowAuthenticationPrompt =
                 false
-            BiometricAuthenticationManager.biometricAuthenticationNeededInfo.authenticated = true
+            BiometricAuthenticationManager.biometricAuthenticationNeededInfo.authenticationStatus =
+                AuthenticationStatus.AUTHENTICATED
             setSecureContentVisibility(true)
         }
     }
@@ -90,20 +92,29 @@ class SavedLoginsFragment : SecureFragment(), MenuProvider {
         if (BiometricAuthenticationManager.biometricAuthenticationNeededInfo.shouldShowAuthenticationPrompt) {
             BiometricAuthenticationManager.biometricAuthenticationNeededInfo.shouldShowAuthenticationPrompt =
                 false
-            BiometricAuthenticationManager.biometricAuthenticationNeededInfo.authenticated = false
+            BiometricAuthenticationManager.biometricAuthenticationNeededInfo.authenticationStatus =
+                AuthenticationStatus.AUTHENTICATION_IN_PROGRESS
             setSecureContentVisibility(false)
 
             bindBiometricsCredentialsPromptOrShowWarning(
                 view = requireView(),
                 onShowPinVerification = { intent -> startForResult.launch(intent) },
                 onAuthSuccess = {
-                    BiometricAuthenticationManager.biometricAuthenticationNeededInfo.authenticated =
-                        true
+                    BiometricAuthenticationManager.biometricAuthenticationNeededInfo.authenticationStatus =
+                        AuthenticationStatus.AUTHENTICATED
                     setSecureContentVisibility(true)
+                },
+                onAuthFailure = {
+                    BiometricAuthenticationManager.biometricAuthenticationNeededInfo.authenticationStatus =
+                        AuthenticationStatus.NOT_AUTHENTICATED
+                    setSecureContentVisibility(false)
                 },
             )
         } else {
-            setSecureContentVisibility(BiometricAuthenticationManager.biometricAuthenticationNeededInfo.authenticated)
+            setSecureContentVisibility(
+                BiometricAuthenticationManager.biometricAuthenticationNeededInfo.authenticationStatus ==
+                    AuthenticationStatus.AUTHENTICATED,
+            )
         }
         initToolbar()
     }
@@ -117,8 +128,10 @@ class SavedLoginsFragment : SecureFragment(), MenuProvider {
 
         _binding = FragmentSavedLoginsBinding.bind(view)
         setSecureContentVisibility(false)
-        BiometricAuthenticationManager.biometricAuthenticationNeededInfo.shouldShowAuthenticationPrompt = true
-        BiometricAuthenticationManager.biometricAuthenticationNeededInfo.authenticated = false
+        BiometricAuthenticationManager.biometricAuthenticationNeededInfo.shouldShowAuthenticationPrompt =
+            true
+        BiometricAuthenticationManager.biometricAuthenticationNeededInfo.authenticationStatus =
+            AuthenticationStatus.NOT_AUTHENTICATED
 
         savedLoginsStore =
             StoreProvider.get(findNavController().getBackStackEntry(R.id.savedLogins)) {

@@ -13,10 +13,16 @@ object BiometricAuthenticationManager {
 
 /**
  * Data class containing a boolean that dictates the need of displaying the
- * biometric authentication prompt and another boolean about the biometric authentication
- * being successful or not
+ * biometric authentication prompt and the authentication status
  */
 data class BiometricAuthenticationNeededInfo(
     var shouldShowAuthenticationPrompt: Boolean = true,
-    var authenticated: Boolean = false,
+    var authenticationStatus: AuthenticationStatus = AuthenticationStatus.NOT_AUTHENTICATED,
 )
+
+/**
+ * Enum class defining the 3 possible states of the biometric authentication
+ */
+enum class AuthenticationStatus {
+    AUTHENTICATED, NOT_AUTHENTICATED, AUTHENTICATION_IN_PROGRESS
+}
