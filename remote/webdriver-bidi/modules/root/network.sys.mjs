@@ -1486,6 +1486,8 @@ class NetworkModule extends RootBiDiModule {
       }
     }
 
+    const destination = request.destination;
+    const initiatorType = request.initiatorType;
     const timings = request.timings;
 
     return {
@@ -1496,6 +1498,8 @@ class NetworkModule extends RootBiDiModule {
       headersSize,
       headers,
       cookies,
+      destination,
+      initiatorType,
       timings,
     };
   }

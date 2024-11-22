@@ -65,6 +65,7 @@ export class NetworkRequest {
         ? this.#channel.QueryInterface(Ci.nsITimedChannel)
         : {
             redirectCount: 0,
+            initiatorType: "",
             asyncOpenTime: currentTimeStamp,
             redirectStartTime: 0,
             redirectEndTime: 0,
@@ -100,6 +101,10 @@ export class NetworkRequest {
     return this.#contextId;
   }
 
+  get destination() {
+    return this.#channel.loadInfo?.fetchDestination;
+  }
+
   get errorText() {
     // TODO: Update with a proper error text. Bug 1873037.
     return ChromeUtils.getXPCOMErrorName(this.#channel.status);
@@ -114,6 +119,15 @@ export class NetworkRequest {
     // request interception. Need to find another way to retrieve the
     // information dynamically.
     return this.#rawHeaders.length;
+  }
+
+  get initiatorType() {
+    const initiatorType = this.#timedChannel.initiatorType;
+    if (initiatorType === "") {
+      return null;
+    }
+
+    return initiatorType;
   }
 
   get isHttpChannel() {
@@ -304,8 +318,10 @@ export class NetworkRequest {
    */
   toJSON() {
     return {
+      destination: this.destination,
       headers: this.headers,
       headersSize: this.headersSize,
+      initiatorType: this.initiatorType,
       method: this.method,
       navigationId: this.navigationId,
       postDataSize: this.postDataSize,
