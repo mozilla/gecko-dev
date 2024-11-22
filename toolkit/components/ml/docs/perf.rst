@@ -79,6 +79,7 @@ Example:
 .. code-block:: bash
 
   cd ROOT/onnx-models
+  git lfs install
   git clone -b main https://huggingface.co/Xenova/all-MiniLM-L6-v2 onnx-models/Xenova/all-MiniLM-L6-v2/main/
 
 Once done, you should then be able to run it locally with :
