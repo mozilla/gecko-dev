@@ -5493,8 +5493,16 @@ static bool SelfIsSelectable(nsIFrame* aFrame, nsIFrame* aParentFrame,
       !aFrame->StyleVisibility()->IsVisible()) {
     return false;
   }
-  return !aFrame->IsGeneratedContentFrame() &&
-         aFrame->Style()->UserSelect() != StyleUserSelect::None;
+  if (aFrame->IsGeneratedContentFrame()) {
+    return false;
+  }
+  if (aFrame->Style()->UserSelect() == StyleUserSelect::None) {
+    return false;
+  }
+  if (aFrame->IsEmpty()) {
+    return false;
+  }
+  return true;
 }
 
 static bool FrameContentCanHaveParentSelectionRange(nsIFrame* aFrame) {
@@ -5551,8 +5559,7 @@ static FrameTarget DrillDownToSelectionFrame(nsIFrame* aFrame, bool aEndFrame,
     nsIFrame* result = nullptr;
     nsIFrame* frame = aFrame->PrincipalChildList().FirstChild();
     if (!aEndFrame) {
-      while (frame &&
-             (!SelfIsSelectable(frame, aFrame, aFlags) || frame->IsEmpty())) {
+      while (frame && !SelfIsSelectable(frame, aFrame, aFlags)) {
         frame = frame->GetNextSibling();
       }
       if (frame) {
@@ -5564,7 +5571,7 @@ static FrameTarget DrillDownToSelectionFrame(nsIFrame* aFrame, bool aEndFrame,
       // XXX I have a feeling this could be slow for long blocks, although
       //     I can't find any slowdowns
       while (frame) {
-        if (!frame->IsEmpty() && SelfIsSelectable(frame, aFrame, aFlags)) {
+        if (SelfIsSelectable(frame, aFrame, aFlags)) {
           result = frame;
         }
         frame = frame->GetNextSibling();
@@ -5602,7 +5609,7 @@ static FrameTarget GetSelectionClosestFrameForLine(
     // the previous thing had a different editableness than us, since then we
     // may end up not being able to select after it if the br is the last thing
     // on the line.
-    if (!SelfIsSelectable(frame, aParent, aFlags) || frame->IsEmpty() ||
+    if (!SelfIsSelectable(frame, aParent, aFlags) ||
         (canSkipBr && frame->IsBrFrame() &&
          lastFrameWasEditable == frame->GetContent()->IsEditable())) {
       continue;
@@ -5791,7 +5798,7 @@ static FrameTarget GetSelectionClosestFrame(nsIFrame* aFrame,
     // Go through all the child frames to find the closest one
     nsIFrame::FrameWithDistance closest = {nullptr, nscoord_MAX, nscoord_MAX};
     for (; kid; kid = kid->GetNextSibling()) {
-      if (!SelfIsSelectable(kid, aFrame, aFlags) || kid->IsEmpty()) {
+      if (!SelfIsSelectable(kid, aFrame, aFlags)) {
         continue;
       }
 
