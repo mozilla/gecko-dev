@@ -15,6 +15,13 @@ AddonTestUtils.overrideCertDB();
 
 add_setup(async () => {
   Services.prefs.setBoolPref("extensions.userScripts.mv3.enabled", true);
+
+  // Grant "userScripts" permission via permissions.request() without UI.
+  Services.prefs.setBoolPref(
+    "extensions.webextOptionalPermissionPrompts",
+    false
+  );
+
   await ExtensionTestUtils.startAddonManager();
 });
 
@@ -37,7 +44,7 @@ async function startEvalTesterExtension() {
     useAddonManager: "permanent",
     manifest: {
       manifest_version: 3,
-      permissions: ["userScripts"],
+      optional_permissions: ["userScripts"],
       host_permissions: ["*://example.com/*"],
     },
     background() {
@@ -52,7 +59,9 @@ async function startEvalTesterExtension() {
         }
       }
       browser.test.onMessage.addListener(async (msg, args) => {
-        if (msg === "registerUserScriptForWorldId") {
+        if (msg === "grantUserScriptsPermission") {
+          await browser.permissions.request({ permissions: ["userScripts"] });
+        } else if (msg === "registerUserScriptForWorldId") {
           const worldId = args;
           await browser.userScripts.register([
             {
@@ -85,6 +94,11 @@ async function startEvalTesterExtension() {
   });
 
   await extension.startup();
+
+  await withHandlingUserInput(extension, async () => {
+    extension.sendMessage("grantUserScriptsPermission");
+    await extension.awaitMessage("grantUserScriptsPermission:done");
+  });
 
   async function queryExtension(msg, args) {
     info(`queryExtension(${msg}, ${args && JSON.stringify(args)})`);

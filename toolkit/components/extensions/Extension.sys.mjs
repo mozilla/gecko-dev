@@ -1886,14 +1886,42 @@ export class ExtensionData {
         }
       }
 
+      const shouldIgnorePermission = (perm, verbose = true) => {
+        if (perm === "userScripts" && !lazy.userScriptsMV3Enabled) {
+          if (verbose) {
+            this.manifestWarning(`Unavailable extension permission: ${perm}`);
+          }
+          return true;
+        }
+        if (isMV2 && PERMS_NOT_IN_MV2.has(perm)) {
+          if (verbose) {
+            this.manifestWarning(
+              `Permission "${perm}" requires Manifest Version 3.`
+            );
+          }
+          return true;
+        }
+        return false;
+      };
+
+      for (let i = manifest.optional_permissions.length - 1; i >= 0; --i) {
+        if (shouldIgnorePermission(manifest.optional_permissions[i])) {
+          manifest.optional_permissions.splice(i, 1);
+        }
+      }
+
       if (this.id) {
         // An extension always gets permission to its own url.
         let matcher = new MatchPattern(this.getURL(), { ignorePath: true });
         originPermissions.add(matcher.pattern);
 
         // Apply optional permissions
+        // TODO bug 1766915: Validate that the permissions are available.
         let perms = await lazy.ExtensionPermissions.get(this.id);
         for (let perm of perms.permissions) {
+          if (shouldIgnorePermission(perm, /* verbose */ false)) {
+            continue;
+          }
           permissions.add(perm);
         }
         for (let origin of perms.origins) {

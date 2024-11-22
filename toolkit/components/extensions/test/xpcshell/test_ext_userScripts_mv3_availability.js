@@ -24,8 +24,26 @@ ExtensionTestUtils.failOnSchemaWarnings(false);
 // the properties are exposed to content scripts (through lazy getters).
 const ARE_NON_CONTENT_USER_SCRIPTS_APIS_EXPOSED_TO_CONTENT = AppConstants.DEBUG;
 
+const { ExtensionPermissions } = ChromeUtils.importESModule(
+  "resource://gre/modules/ExtensionPermissions.sys.mjs"
+);
+
 const server = createHttpServer({ hosts: ["example.com"] });
 server.registerPathHandler("/dummy", () => {});
+
+async function grantUserScriptsPermission(extensionId) {
+  // The userScripts permission is an optional-only permission. Throughout this
+  // test, whenever we want to verify that the userScripts API is unavailable
+  // for non-permission reasons, we grant the permission before starting the
+  // extension, to rule out permission issues as the cause of the failure.
+  //
+  // When an extension is started, any optional permissions stored in the
+  // permission database are included.
+  await ExtensionPermissions.add(extensionId, {
+    permissions: ["userScripts"],
+    origins: [],
+  });
+}
 
 add_setup(() => {
   Services.prefs.setBoolPref("extensions.userScripts.mv3.enabled", true);
@@ -114,10 +132,14 @@ add_task(async function legacy_userScripts_unavailable_in_mv3_content_script() {
 // Tests that when the legacy user_scripts key is present and the userScripts
 // permission, that none of the MV3-specific functionality is exposed.
 add_task(async function legacy_userScripts_plus_userScripts_permission_mv2() {
+  const extensionId = "@legacy_userScripts_plus_userScripts_permission_mv2";
+  await grantUserScriptsPermission(extensionId);
   let extension = ExtensionTestUtils.loadExtension({
     manifest: {
+      browser_specific_settings: { gecko: { id: extensionId } },
       manifest_version: 2,
-      permissions: ["userScripts", "*://example.com/*"],
+      permissions: ["*://example.com/*"],
+      optional_permissions: ["userScripts"],
       user_scripts: {
         api_script: "api_script.js",
       },
@@ -248,10 +270,13 @@ add_task(async function legacy_userScripts_plus_userScripts_permission_mv2() {
 // Test that there are no traces of the legacy userScripts API in MV3, but only
 // the new userScripts API in MV3.
 add_task(async function legacy_userScripts_plus_userScripts_permission_mv3() {
+  const extensionId = "@legacy_userScripts_plus_userScripts_permission_mv3";
+  await grantUserScriptsPermission(extensionId);
   let extension = ExtensionTestUtils.loadExtension({
     manifest: {
+      browser_specific_settings: { gecko: { id: extensionId } },
       manifest_version: 3,
-      permissions: ["userScripts"],
+      optional_permissions: ["userScripts"],
       host_permissions: ["*://example.com/*"],
       user_scripts: {
         api_script: "api_script.js",
@@ -381,10 +406,13 @@ add_task(async function legacy_userScripts_plus_userScripts_permission_mv3() {
 });
 
 async function do_test_userScripts_permission_unavailable(manifest_version) {
+  const extensionId = `@permission_disabled_by_pref_mv${manifest_version}`;
+  await grantUserScriptsPermission(extensionId);
   let extension = ExtensionTestUtils.loadExtension({
     manifest: {
+      browser_specific_settings: { gecko: { id: extensionId } },
       manifest_version,
-      permissions: ["userScripts"],
+      optional_permissions: ["userScripts"],
     },
     background() {
       browser.test.assertEq(
@@ -400,7 +428,7 @@ async function do_test_userScripts_permission_unavailable(manifest_version) {
 
   Assert.deepEqual(
     extension.extension.warnings,
-    ["Reading manifest: Invalid extension permission: userScripts"],
+    ["Reading manifest: Unavailable extension permission: userScripts"],
     "userScripts permission unavailable when off by pref"
   );
 
@@ -420,5 +448,83 @@ add_task(
   { pref_set: [["extensions.userScripts.mv3.enabled", false]] },
   async function userScripts_permission_disabled_by_pref_mv3() {
     await do_test_userScripts_permission_unavailable(3);
+  }
+);
+
+add_task(
+  {
+    pref_set: [
+      ["extensions.userScripts.mv3.enabled", false],
+      ["extensions.webextOptionalPermissionPrompts", false],
+      [
+        // This pref controls the Cu.isInAutomation flag that is needed to use
+        // browser.test.withHandlingUserInput in xpcshell tests (bug 1598804):
+        "security.turn_off_all_security_so_that_viruses_can_take_over_this_computer",
+        true,
+      ],
+    ],
+  },
+  async function reject_userScripts_permission_request_when_disabled_by_pref() {
+    let extension = ExtensionTestUtils.loadExtension({
+      manifest: {
+        manifest_version: 3,
+        optional_permissions: ["userScripts"],
+      },
+      async background() {
+        let prom;
+        browser.test.withHandlingUserInput(() => {
+          prom = browser.permissions.request({ permissions: ["userScripts"] });
+        });
+        await browser.test.assertRejects(
+          prom,
+          "Cannot request permission userScripts since it was not declared in optional_permissions",
+          "userScripts permission cannot be requested when off by pref"
+        );
+        browser.test.assertEq(undefined, browser.userScripts, "No API please");
+        browser.test.sendMessage("done");
+      },
+    });
+
+    await extension.startup();
+    await extension.awaitMessage("done");
+    await extension.unload();
+  }
+);
+
+add_task(
+  {
+    pref_set: [
+      ["extensions.webextOptionalPermissionPrompts", false],
+      [
+        // This pref controls the Cu.isInAutomation flag that is needed to use
+        // browser.test.withHandlingUserInput in xpcshell tests (bug 1598804):
+        "security.turn_off_all_security_so_that_viruses_can_take_over_this_computer",
+        true,
+      ],
+    ],
+  },
+  async function enable_userScripts_via_permissions_request() {
+    let extension = ExtensionTestUtils.loadExtension({
+      manifest: {
+        manifest_version: 3,
+        optional_permissions: ["userScripts"],
+      },
+      async background() {
+        let prom;
+        browser.test.withHandlingUserInput(() => {
+          prom = browser.permissions.request({ permissions: ["userScripts"] });
+        });
+        browser.test.assertTrue(
+          await prom,
+          "permissions.request() can grant userScripts permission"
+        );
+        browser.test.assertTrue(browser.userScripts, "userScripts API granted");
+        browser.test.sendMessage("done");
+      },
+    });
+
+    await extension.startup();
+    await extension.awaitMessage("done");
+    await extension.unload();
   }
 );

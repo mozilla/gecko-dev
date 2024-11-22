@@ -1,5 +1,9 @@
 "use strict";
 
+const { ExtensionPermissions } = ChromeUtils.importESModule(
+  "resource://gre/modules/ExtensionPermissions.sys.mjs"
+);
+
 const { ExtensionTestCommon } = ChromeUtils.importESModule(
   "resource://testing-common/ExtensionTestCommon.sys.mjs"
 );
@@ -12,11 +16,18 @@ AddonTestUtils.init(this);
 AddonTestUtils.overrideCertDB();
 
 function loadTestExtension({ background }) {
+  const id = Services.uuid.generateUUID().number;
+  // "userScripts" is an optional-only permission, so we need to grant it.
+  // ExtensionPermissions.add() is async, but not waiting here is OK for us:
+  // Extension startup is blocked on reading permissions, which in turn awaits
+  // any previous ExtensionPermissions calls in FIFO order.
+  ExtensionPermissions.add(id, { permissions: ["userScripts"], origins: [] });
   return ExtensionTestUtils.loadExtension({
     useAddonManager: "permanent",
     manifest: {
+      browser_specific_settings: { gecko: { id } },
       manifest_version: 3,
-      permissions: ["userScripts"],
+      optional_permissions: ["userScripts"],
     },
     background,
     files: {

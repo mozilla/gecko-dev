@@ -14,17 +14,33 @@ server.registerPathHandler("/dummy", () => {});
 AddonTestUtils.init(this);
 AddonTestUtils.overrideCertDB();
 
+const { ExtensionPermissions } = ChromeUtils.importESModule(
+  "resource://gre/modules/ExtensionPermissions.sys.mjs"
+);
+
+async function grantUserScriptsPermission(extensionId) {
+  // userScripts is optional-only, and we must grant it. See comment at
+  // grantUserScriptsPermission in test_ext_userScripts_mv3_availability.js.
+  await ExtensionPermissions.add(extensionId, {
+    permissions: ["userScripts"],
+    origins: [],
+  });
+}
+
 add_setup(async () => {
   Services.prefs.setBoolPref("extensions.userScripts.mv3.enabled", true);
   await ExtensionTestUtils.startAddonManager();
 });
 
 add_task(async function test_runtime_messaging_errors() {
+  const extensionId = "@test_runtime_messaging_errors";
+  await grantUserScriptsPermission(extensionId);
   let extension = ExtensionTestUtils.loadExtension({
     useAddonManager: "permanent",
     manifest: {
+      browser_specific_settings: { gecko: { id: extensionId } },
       manifest_version: 3,
-      permissions: ["userScripts"],
+      optional_permissions: ["userScripts"],
       host_permissions: ["*://example.com/*"],
       content_scripts: [
         {
@@ -154,11 +170,14 @@ add_task(async function test_runtime_messaging_errors() {
 // And that the messaging flag persists across restarts.
 // Moreover, that runtime.sendMessage can wake up an event page.
 add_task(async function test_onUserScriptMessage() {
+  const extensionId = "@test_onUserScriptMessage";
+  await grantUserScriptsPermission(extensionId);
   let extension = ExtensionTestUtils.loadExtension({
     useAddonManager: "permanent",
     manifest: {
+      browser_specific_settings: { gecko: { id: extensionId } },
       manifest_version: 3,
-      permissions: ["userScripts"],
+      optional_permissions: ["userScripts"],
       host_permissions: ["*://example.com/*"],
     },
     files: {
@@ -265,11 +284,14 @@ add_task(async function test_onUserScriptMessage() {
 //   even if runtime.onMessage is triggered from a content script, that it does
 //   not have the userScripts-specific "sender.userScriptWorldId" field.
 add_task(async function test_configureWorld_messaging_existing_world() {
+  const extensionId = "@test_configureWorld_messaging_existing_world";
+  await grantUserScriptsPermission(extensionId);
   let extension = ExtensionTestUtils.loadExtension({
     useAddonManager: "permanent",
     manifest: {
+      browser_specific_settings: { gecko: { id: extensionId } },
       manifest_version: 3,
-      permissions: ["userScripts"],
+      optional_permissions: ["userScripts"],
       host_permissions: ["*://example.com/*"],
       content_scripts: [
         {
@@ -383,11 +405,14 @@ add_task(async function test_configureWorld_messaging_existing_world() {
 
 // This test tests that runtime.connect() works when called from a user script.
 add_task(async function test_onUserScriptConnect() {
+  const extensionId = "@test_onUserScriptConnect";
+  await grantUserScriptsPermission(extensionId);
   let extension = ExtensionTestUtils.loadExtension({
     useAddonManager: "permanent",
     manifest: {
+      browser_specific_settings: { gecko: { id: extensionId } },
       manifest_version: 3,
-      permissions: ["userScripts"],
+      optional_permissions: ["userScripts"],
       host_permissions: ["*://example.com/*"],
     },
     files: {
@@ -510,11 +535,14 @@ add_task(
     pref_set: [["docshell.shistory.bfcache.allow_unload_listeners", false]],
   },
   async function test_onUserScriptConnect_port_disconnect_on_navigate() {
+    const extensionId = "@test_onUserScriptConnect_port_disconnect_on_navigate";
+    await grantUserScriptsPermission(extensionId);
     let extension = ExtensionTestUtils.loadExtension({
       useAddonManager: "permanent",
       manifest: {
+        browser_specific_settings: { gecko: { id: extensionId } },
         manifest_version: 3,
-        permissions: ["userScripts"],
+        optional_permissions: ["userScripts"],
         host_permissions: ["*://example.com/*"],
       },
       files: {

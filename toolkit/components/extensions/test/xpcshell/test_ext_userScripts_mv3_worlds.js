@@ -6,6 +6,19 @@ server.registerPathHandler("/dummy", () => {});
 AddonTestUtils.init(this);
 AddonTestUtils.overrideCertDB();
 
+const { ExtensionPermissions } = ChromeUtils.importESModule(
+  "resource://gre/modules/ExtensionPermissions.sys.mjs"
+);
+
+async function grantUserScriptsPermission(extensionId) {
+  // userScripts is optional-only, and we must grant it. See comment at
+  // grantUserScriptsPermission in test_ext_userScripts_mv3_availability.js.
+  await ExtensionPermissions.add(extensionId, {
+    permissions: ["userScripts"],
+    origins: [],
+  });
+}
+
 async function spawnPage(spawnFunc) {
   let contentPage = await ExtensionTestUtils.loadContentPage(
     "http://example.com/dummy"
@@ -21,11 +34,14 @@ add_setup(async () => {
 });
 
 add_task(async function default_USER_SCRIPT_world_behavior() {
+  const extensionId = "@default_USER_SCRIPT_world_behavior";
+  await grantUserScriptsPermission(extensionId);
   let extension = ExtensionTestUtils.loadExtension({
     useAddonManager: "permanent",
     manifest: {
+      browser_specific_settings: { gecko: { id: extensionId } },
       manifest_version: 3,
-      permissions: ["userScripts"],
+      optional_permissions: ["userScripts"],
       host_permissions: ["*://example.com/*"],
     },
     files: {
@@ -77,11 +93,14 @@ add_task(async function default_USER_SCRIPT_world_behavior() {
 });
 
 add_task(async function multiple_scripts_share_same_default_world() {
+  const extensionId = "@multiple_scripts_share_same_default_world";
+  await grantUserScriptsPermission(extensionId);
   let extension = ExtensionTestUtils.loadExtension({
     useAddonManager: "permanent",
     manifest: {
+      browser_specific_settings: { gecko: { id: extensionId } },
       manifest_version: 3,
-      permissions: ["userScripts"],
+      optional_permissions: ["userScripts"],
       host_permissions: ["*://example.com/*"],
     },
     async background() {
@@ -143,6 +162,8 @@ add_task(async function multiple_scripts_share_same_default_world() {
 });
 
 add_task(async function test_worldId_validation() {
+  const extensionId = "@test_worldId_validation";
+  await grantUserScriptsPermission(extensionId);
   async function background() {
     const id = "single user script id";
     function testRegister(props) {
@@ -231,8 +252,9 @@ add_task(async function test_worldId_validation() {
   }
   let extension = ExtensionTestUtils.loadExtension({
     manifest: {
+      browser_specific_settings: { gecko: { id: extensionId } },
       manifest_version: 3,
-      permissions: ["userScripts"],
+      optional_permissions: ["userScripts"],
     },
     background,
   });
@@ -242,11 +264,14 @@ add_task(async function test_worldId_validation() {
 });
 
 add_task(async function test_default_and_many_non_default_worldIds() {
+  const extensionId = "@test_default_and_many_non_default_worldIds";
+  await grantUserScriptsPermission(extensionId);
   let extension = ExtensionTestUtils.loadExtension({
     useAddonManager: "permanent",
     manifest: {
+      browser_specific_settings: { gecko: { id: extensionId } },
       manifest_version: 3,
-      permissions: ["userScripts"],
+      optional_permissions: ["userScripts"],
       host_permissions: ["*://example.com/*"],
     },
     async background() {

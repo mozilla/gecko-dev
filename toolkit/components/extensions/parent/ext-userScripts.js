@@ -6,6 +6,10 @@
 
 "use strict";
 
+ChromeUtils.defineESModuleGetters(this, {
+  ExtensionUserScripts: "resource://gre/modules/ExtensionUserScripts.sys.mjs",
+});
+
 var { ExtensionUtils } = ChromeUtils.importESModule(
   "resource://gre/modules/ExtensionUtils.sys.mjs"
 );
@@ -109,6 +113,14 @@ this.userScripts = class extends ExtensionAPI {
         // worldId length is capped. Limit is consistent with Chrome.
         throw new ExtensionError(`Invalid worldId: ${worldId}`);
       }
+    }
+
+    if (!extension.userScriptsManager) {
+      // extension.userScriptsManager is initialized by initExtension() at
+      // extension startup when the extension has the "userScripts" permission.
+      // When we get here, it means that "userScripts" was requested after
+      // startup, and we need to initialize it here.
+      ExtensionUserScripts.initExtension(extension);
     }
 
     const usm = extension.userScriptsManager;
