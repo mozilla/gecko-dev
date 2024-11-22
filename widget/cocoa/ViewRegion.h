@@ -24,7 +24,8 @@ class ViewRegion {
  public:
   ~ViewRegion();
 
-  mozilla::LayoutDeviceIntRegion Region() { return mRegion; }
+  const mozilla::LayoutDeviceIntRegion& Region() const { return mRegion; }
+  Span<NSView* const> Views() const { return mViews; }
 
   /**
    * Update the region.

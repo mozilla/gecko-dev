@@ -67,6 +67,8 @@ class VibrancyManager {
   bool UpdateVibrantRegion(VibrancyType aType,
                            const LayoutDeviceIntRegion& aRegion);
 
+  void PrefChanged();
+
  protected:
   const nsChildView& mCoordinateConverter;
   NSView* mContainerView;
