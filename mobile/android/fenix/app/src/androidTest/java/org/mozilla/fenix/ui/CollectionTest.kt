@@ -5,6 +5,7 @@
 package org.mozilla.fenix.ui
 
 import androidx.compose.ui.test.junit4.AndroidComposeTestRule
+import org.junit.Ignore
 import org.junit.Rule
 import org.junit.Test
 import org.mozilla.fenix.customannotations.SmokeTest
@@ -209,6 +210,7 @@ class CollectionTest : TestSetup() {
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/343428
     // Test running on beta/release builds in CI:
     // caution when making changes to it, so they don't block the builds
+    @Ignore("Disabled: https://bugzilla.mozilla.org/show_bug.cgi?id=1932862")
     @SmokeTest
     @Test
     fun deleteCollectionTest() {
