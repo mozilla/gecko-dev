@@ -2731,12 +2731,15 @@ WorkerPrivate::ComputeAgentClusterIdAndCoop(WorkerPrivate* aParent,
   // Chrome workers share an AgentCluster with the XPC module global. This
   // allows things like shared memory and WASM modules to be transferred between
   // chrome workers and system JS.
+  // Also set COOP+COEP flags to allow access to shared memory.
   if (aIsChromeWorker) {
     if (nsIGlobalObject* systemGlobal =
             xpc::NativeGlobal(xpc::PrivilegedJunkScope())) {
       nsID agentClusterId = systemGlobal->GetAgentClusterId().valueOrFrom(
           [] { return nsID::GenerateUUID(); });
-      return {agentClusterId, agentClusterCoop};
+      return {
+          agentClusterId,
+          nsILoadInfo::OPENER_POLICY_SAME_ORIGIN_EMBEDDER_POLICY_REQUIRE_CORP};
     }
   }
 
@@ -6287,8 +6290,8 @@ bool WorkerPrivate::IsSharedMemoryAllowed() const {
     return true;
   }
 
-  // Allow privileged addons and chrome workers to access shared memory.
-  if (mIsChromeWorker || mIsPrivilegedAddonGlobal) {
+  // Allow privileged addons to access shared memory.
+  if (mIsPrivilegedAddonGlobal) {
     return true;
   }
 
