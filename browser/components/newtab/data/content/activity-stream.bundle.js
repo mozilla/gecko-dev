@@ -3001,11 +3001,11 @@ const DefaultMeta = ({
   context: context,
   sponsor: sponsor,
   sponsored_by_override: sponsored_by_override
-}), format !== "rectangle" && /*#__PURE__*/external_React_default().createElement((external_React_default()).Fragment, null, /*#__PURE__*/external_React_default().createElement("header", {
+}), format !== "rectangle" && /*#__PURE__*/external_React_default().createElement((external_React_default()).Fragment, null, /*#__PURE__*/external_React_default().createElement("h3", {
   className: "title clamp"
 }, title), excerpt && /*#__PURE__*/external_React_default().createElement("p", {
   className: "excerpt clamp"
-}, excerpt)), format === "rectangle" && /*#__PURE__*/external_React_default().createElement((external_React_default()).Fragment, null, /*#__PURE__*/external_React_default().createElement("header", {
+}, excerpt)), format === "rectangle" && /*#__PURE__*/external_React_default().createElement((external_React_default()).Fragment, null, /*#__PURE__*/external_React_default().createElement("h3", {
   className: "title clamp"
 }, "Sponsored"), /*#__PURE__*/external_React_default().createElement("p", {
   className: "excerpt clamp"
@@ -3576,7 +3576,7 @@ class _DSCard extends (external_React_default()).PureComponent {
       className: "meta"
     }, /*#__PURE__*/external_React_default().createElement("div", {
       className: "info-wrap"
-    }, /*#__PURE__*/external_React_default().createElement("header", {
+    }, /*#__PURE__*/external_React_default().createElement("h3", {
       className: "title clamp"
     }, this.props.title))) : /*#__PURE__*/external_React_default().createElement(DefaultMeta, {
       source: source,

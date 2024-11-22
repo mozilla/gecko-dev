@@ -208,13 +208,13 @@ $ds-card-image-gradient-solid: rgba(0, 0, 0, 100%);
       }
     }
 
-    header {
+    h3 {
       color: var(--newtab-primary-action-background);
     }
   }
 
   &:active {
-    header {
+    h3 {
       color: var(--newtab-primary-element-active-color);
     }
   }
@@ -380,7 +380,7 @@ $ds-card-image-gradient-solid: rgba(0, 0, 0, 100%);
     }
   }
 
-  header {
+  h3 {
     line-height: $header-line-height * 1px;
     font-size: $header-font-size * 1px;
     color: var(--newtab-text-primary-color);

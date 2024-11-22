@@ -111,14 +111,14 @@ export const DefaultMeta = ({
       )}
       {format !== "rectangle" && (
         <>
-          <header className="title clamp">{title}</header>
+          <h3 className="title clamp">{title}</h3>
           {excerpt && <p className="excerpt clamp">{excerpt}</p>}
         </>
       )}
       {/* Rectangle format is returned for English clients only.*/}
       {format === "rectangle" && (
         <>
-          <header className="title clamp">Sponsored</header>
+          <h3 className="title clamp">Sponsored</h3>
           <p className="excerpt clamp">
             Sponsored content supports our mission to build a better web.
           </p>
@@ -829,7 +829,7 @@ export class _DSCard extends React.PureComponent {
         {isFakespot ? (
           <div className="meta">
             <div className="info-wrap">
-              <header className="title clamp">{this.props.title}</header>
+              <h3 className="title clamp">{this.props.title}</h3>
             </div>
           </div>
         ) : (

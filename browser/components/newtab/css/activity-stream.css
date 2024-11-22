@@ -5792,10 +5792,10 @@ main section {
   opacity: 1;
   transform: scale(1);
 }
-.ds-card.active header, .ds-card:focus-within header, .ds-card:hover header {
+.ds-card.active h3, .ds-card:focus-within h3, .ds-card:hover h3 {
   color: var(--newtab-primary-action-background);
 }
-.ds-card:active header {
+.ds-card:active h3 {
   color: var(--newtab-primary-element-active-color);
 }
 .ds-card .img {
@@ -5929,7 +5929,7 @@ main section {
   color: var(--newtab-text-primary-color);
   min-height: var(--size-item-large);
 }
-.ds-card header {
+.ds-card h3 {
   line-height: 24px;
   font-size: 17px;
   color: var(--newtab-text-primary-color);
