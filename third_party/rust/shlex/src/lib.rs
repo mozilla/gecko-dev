@@ -3,20 +3,37 @@
 // the MIT license <https://opensource.org/licenses/MIT>, at your option. This file may not be
 // copied, modified, or distributed except according to those terms.
 
-//! Same idea as (but implementation not directly based on) the Python shlex module.  However, this
-//! implementation does not support any of the Python module's customization because it makes
-//! parsing slower and is fairly useless.  You only get the default settings of shlex.split, which
-//! mimic the POSIX shell:
-//! <https://pubs.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html>
+//! Parse strings like, and escape strings for, POSIX shells.
 //!
-//! This implementation also deviates from the Python version in not treating `\r` specially, which
-//! I believe is more compliant.
-//!
-//! The algorithms in this crate are oblivious to UTF-8 high bytes, so they iterate over the bytes
-//! directly as a micro-optimization.
+//! Same idea as (but implementation not directly based on) the Python shlex module.
 //!
 //! Disabling the `std` feature (which is enabled by default) will allow the crate to work in
 //! `no_std` environments, where the `alloc` crate, and a global allocator, are available.
+//!
+//! ## <span style="color:red">Warning</span>
+//!
+//! The [`try_quote`]/[`try_join`] family of APIs does not quote control characters (because they
+//! cannot be quoted portably).
+//!
+//! This is fully safe in noninteractive contexts, like shell scripts and `sh -c` arguments (or
+//! even scripts `source`d from interactive shells).
+//!
+//! But if you are quoting for human consumption, you should keep in mind that ugly inputs produce
+//! ugly outputs (which may not be copy-pastable).
+//!
+//! And if by chance you are piping the output of [`try_quote`]/[`try_join`] directly to the stdin
+//! of an interactive shell, you should stop, because control characters can lead to arbitrary
+//! command injection.
+//!
+//! For more information, and for information about more minor issues, please see [quoting_warning].
+//!
+//! ## Compatibility
+//!
+//! This crate's quoting functionality tries to be compatible with **any POSIX-compatible shell**;
+//! it's tested against `bash`, `zsh`, `dash`, Busybox `ash`, and `mksh`, plus `fish` (which is not
+//! POSIX-compatible but close enough).
+//!
+//! It also aims to be compatible with Python `shlex` and C `wordexp`.
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
@@ -29,124 +46,45 @@ use alloc::vec;
 #[cfg(test)]
 use alloc::borrow::ToOwned;
 
+pub mod bytes;
+#[cfg(all(doc, not(doctest)))]
+#[path = "quoting_warning.md"]
+pub mod quoting_warning;
+
 /// An iterator that takes an input string and splits it into the words using the same syntax as
 /// the POSIX shell.
-pub struct Shlex<'a> {
-    in_iter: core::str::Bytes<'a>,
-    /// The number of newlines read so far, plus one.
-    pub line_no: usize,
-    /// An input string is erroneous if it ends while inside a quotation or right after an
-    /// unescaped backslash.  Since Iterator does not have a mechanism to return an error, if that
-    /// happens, Shlex just throws out the last token, ends the iteration, and sets 'had_error' to
-    /// true; best to check it after you're done iterating.
-    pub had_error: bool,
-}
+///
+/// See [`bytes::Shlex`].
+pub struct Shlex<'a>(bytes::Shlex<'a>);
 
 impl<'a> Shlex<'a> {
     pub fn new(in_str: &'a str) -> Self {
-        Shlex {
-            in_iter: in_str.bytes(),
-            line_no: 1,
-            had_error: false,
-        }
-    }
-
-    fn parse_word(&mut self, mut ch: u8) -> Option<String> {
-        let mut result: Vec<u8> = Vec::new();
-        loop {
-            match ch as char {
-                '"' => if let Err(()) = self.parse_double(&mut result) {
-                    self.had_error = true;
-                    return None;
-                },
-                '\'' => if let Err(()) = self.parse_single(&mut result) {
-                    self.had_error = true;
-                    return None;
-                },
-                '\\' => if let Some(ch2) = self.next_char() {
-                    if ch2 != '\n' as u8 { result.push(ch2); }
-                } else {
-                    self.had_error = true;
-                    return None;
-                },
-                ' ' | '\t' | '\n' => { break; },
-                _ => { result.push(ch as u8); },
-            }
-            if let Some(ch2) = self.next_char() { ch = ch2; } else { break; }
-        }
-        unsafe { Some(String::from_utf8_unchecked(result)) }
-    }
-
-    fn parse_double(&mut self, result: &mut Vec<u8>) -> Result<(), ()> {
-        loop {
-            if let Some(ch2) = self.next_char() {
-                match ch2 as char {
-                    '\\' => {
-                        if let Some(ch3) = self.next_char() {
-                            match ch3 as char {
-                                // \$ => $
-                                '$' | '`' | '"' | '\\' => { result.push(ch3); },
-                                // \<newline> => nothing
-                                '\n' => {},
-                                // \x => =x
-                                _ => { result.push('\\' as u8); result.push(ch3); }
-                            }
-                        } else {
-                            return Err(());
-                        }
-                    },
-                    '"' => { return Ok(()); },
-                    _ => { result.push(ch2); },
-                }
-            } else {
-                return Err(());
-            }
-        }
-    }
-
-    fn parse_single(&mut self, result: &mut Vec<u8>) -> Result<(), ()> {
-        loop {
-            if let Some(ch2) = self.next_char() {
-                match ch2 as char {
-                    '\'' => { return Ok(()); },
-                    _ => { result.push(ch2); },
-                }
-            } else {
-                return Err(());
-            }
-        }
-    }
-
-    fn next_char(&mut self) -> Option<u8> {
-        let res = self.in_iter.next();
-        if res == Some('\n' as u8) { self.line_no += 1; }
-        res
+        Self(bytes::Shlex::new(in_str.as_bytes()))
     }
 }
 
 impl<'a> Iterator for Shlex<'a> {
     type Item = String;
     fn next(&mut self) -> Option<String> {
-        if let Some(mut ch) = self.next_char() {
-            // skip initial whitespace
-            loop {
-                match ch as char {
-                    ' ' | '\t' | '\n' => {},
-                    '#' => {
-                        while let Some(ch2) = self.next_char() {
-                            if ch2 as char == '\n' { break; }
-                        }
-                    },
-                    _ => { break; }
-                }
-                if let Some(ch2) = self.next_char() { ch = ch2; } else { return None; }
-            }
-            self.parse_word(ch)
-        } else { // no initial character
-            None
-        }
+        self.0.next().map(|byte_word| {
+            // Safety: given valid UTF-8, bytes::Shlex will always return valid UTF-8.
+            unsafe { String::from_utf8_unchecked(byte_word) }
+        })
     }
+}
 
+impl<'a> core::ops::Deref for Shlex<'a> {
+    type Target = bytes::Shlex<'a>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl<'a> core::ops::DerefMut for Shlex<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
 }
 
 /// Convenience function that consumes the whole string at once.  Returns None if the input was
@@ -157,38 +95,151 @@ pub fn split(in_str: &str) -> Option<Vec<String>> {
     if shl.had_error { None } else { Some(res) }
 }
 
-/// Given a single word, return a string suitable to encode it as a shell argument.
-pub fn quote(in_str: &str) -> Cow<str> {
-    if in_str.len() == 0 {
-        "\"\"".into()
-    } else if in_str.bytes().any(|c| match c as char {
-        '|' | '&' | ';' | '<' | '>' | '(' | ')' | '$' | '`' | '\\' | '"' | '\'' | ' ' | '\t' |
-        '\r' | '\n' | '*' | '?' | '[' | '#' | '~' | '=' | '%' => true,
-        _ => false
-    }) {
-        let mut out: Vec<u8> = Vec::new();
-        out.push('"' as u8);
-        for c in in_str.bytes() {
-            match c as char {
-                '$' | '`' | '"' | '\\' => out.push('\\' as u8),
-                _ => ()
-            }
-            out.push(c);
+/// Errors from [`Quoter::quote`], [`Quoter::join`], etc. (and their [`bytes`] counterparts).
+///
+/// By default, the only error that can be returned is [`QuoteError::Nul`].  If you call
+/// `allow_nul(true)`, then no errors can be returned at all.  Any error variants added in the
+/// future will not be enabled by default; they will be enabled through corresponding non-default
+/// [`Quoter`] options.
+///
+/// ...In theory.  In the unlikely event that additional classes of inputs are discovered that,
+/// like nul bytes, are fundamentally unsafe to quote even for non-interactive shells, the risk
+/// will be mitigated by adding corresponding [`QuoteError`] variants that *are* enabled by
+/// default.
+#[non_exhaustive]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum QuoteError {
+    /// The input contained a nul byte.  In most cases, shells fundamentally [cannot handle strings
+    /// containing nul bytes](quoting_warning#nul-bytes), no matter how they are quoted.  But if
+    /// you're sure you can handle nul bytes, you can call `allow_nul(true)` on the `Quoter` to let
+    /// them pass through.
+    Nul,
+}
+
+impl core::fmt::Display for QuoteError {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        match self {
+            QuoteError::Nul => f.write_str("cannot shell-quote string containing nul byte"),
         }
-        out.push('"' as u8);
-        unsafe { String::from_utf8_unchecked(out) }.into()
-    } else {
-        in_str.into()
+    }
+}
+
+#[cfg(feature = "std")]
+impl std::error::Error for QuoteError {}
+
+/// A more configurable interface to quote strings.  If you only want the default settings you can
+/// use the convenience functions [`try_quote`] and [`try_join`].
+///
+/// The bytes equivalent is [`bytes::Quoter`].
+#[derive(Default, Debug, Clone)]
+pub struct Quoter {
+    inner: bytes::Quoter,
+}
+
+impl Quoter {
+    /// Create a new [`Quoter`] with default settings.
+    #[inline]
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Set whether to allow [nul bytes](quoting_warning#nul-bytes).  By default they are not
+    /// allowed and will result in an error of [`QuoteError::Nul`].
+    #[inline]
+    pub fn allow_nul(mut self, allow: bool) -> Self {
+        self.inner = self.inner.allow_nul(allow);
+        self
+    }
+
+    /// Convenience function that consumes an iterable of words and turns it into a single string,
+    /// quoting words when necessary. Consecutive words will be separated by a single space.
+    pub fn join<'a, I: IntoIterator<Item = &'a str>>(&self, words: I) -> Result<String, QuoteError> {
+        // Safety: given valid UTF-8, bytes::join() will always return valid UTF-8.
+        self.inner.join(words.into_iter().map(|s| s.as_bytes()))
+            .map(|bytes| unsafe { String::from_utf8_unchecked(bytes) })
+    }
+
+    /// Given a single word, return a string suitable to encode it as a shell argument.
+    pub fn quote<'a>(&self, in_str: &'a str) -> Result<Cow<'a, str>, QuoteError> {
+        Ok(match self.inner.quote(in_str.as_bytes())? {
+            Cow::Borrowed(out) => {
+                // Safety: given valid UTF-8, bytes::quote() will always return valid UTF-8.
+                unsafe { core::str::from_utf8_unchecked(out) }.into()
+            }
+            Cow::Owned(out) => {
+                // Safety: given valid UTF-8, bytes::quote() will always return valid UTF-8.
+                unsafe { String::from_utf8_unchecked(out) }.into()
+            }
+        })
+    }
+}
+
+impl From<bytes::Quoter> for Quoter {
+    fn from(inner: bytes::Quoter) -> Quoter {
+        Quoter { inner }
+    }
+}
+
+impl From<Quoter> for bytes::Quoter {
+    fn from(quoter: Quoter) -> bytes::Quoter {
+        quoter.inner
     }
 }
 
 /// Convenience function that consumes an iterable of words and turns it into a single string,
 /// quoting words when necessary. Consecutive words will be separated by a single space.
+///
+/// Uses default settings except that nul bytes are passed through, which [may be
+/// dangerous](quoting_warning#nul-bytes), leading to this function being deprecated.
+///
+/// Equivalent to [`Quoter::new().allow_nul(true).join(words).unwrap()`](Quoter).
+///
+/// (That configuration never returns `Err`, so this function does not panic.)
+///
+/// The bytes equivalent is [bytes::join].
+#[deprecated(since = "1.3.0", note = "replace with `try_join(words)?` to avoid nul byte danger")]
 pub fn join<'a, I: IntoIterator<Item = &'a str>>(words: I) -> String {
-    words.into_iter()
-        .map(quote)
-        .collect::<Vec<_>>()
-        .join(" ")
+    Quoter::new().allow_nul(true).join(words).unwrap()
+}
+
+/// Convenience function that consumes an iterable of words and turns it into a single string,
+/// quoting words when necessary. Consecutive words will be separated by a single space.
+///
+/// Uses default settings.  The only error that can be returned is [`QuoteError::Nul`].
+///
+/// Equivalent to [`Quoter::new().join(words)`](Quoter).
+///
+/// The bytes equivalent is [bytes::try_join].
+pub fn try_join<'a, I: IntoIterator<Item = &'a str>>(words: I) -> Result<String, QuoteError> {
+    Quoter::new().join(words)
+}
+
+/// Given a single word, return a string suitable to encode it as a shell argument.
+///
+/// Uses default settings except that nul bytes are passed through, which [may be
+/// dangerous](quoting_warning#nul-bytes), leading to this function being deprecated.
+///
+/// Equivalent to [`Quoter::new().allow_nul(true).quote(in_str).unwrap()`](Quoter).
+///
+/// (That configuration never returns `Err`, so this function does not panic.)
+///
+/// The bytes equivalent is [bytes::quote].
+#[deprecated(since = "1.3.0", note = "replace with `try_quote(str)?` to avoid nul byte danger")]
+pub fn quote(in_str: &str) -> Cow<str> {
+    Quoter::new().allow_nul(true).quote(in_str).unwrap()
+}
+
+/// Given a single word, return a string suitable to encode it as a shell argument.
+///
+/// Uses default settings.  The only error that can be returned is [`QuoteError::Nul`].
+///
+/// Equivalent to [`Quoter::new().quote(in_str)`](Quoter).
+///
+/// (That configuration never returns `Err`, so this function does not panic.)
+///
+/// The bytes equivalent is [bytes::try_quote].
+pub fn try_quote(in_str: &str) -> Result<Cow<str>, QuoteError> {
+    Quoter::new().quote(in_str)
 }
 
 #[cfg(test)]
@@ -233,17 +284,75 @@ fn test_lineno() {
 }
 
 #[test]
+#[cfg_attr(not(feature = "std"), allow(unreachable_code, unused_mut))]
 fn test_quote() {
-    assert_eq!(quote("foobar"), "foobar");
-    assert_eq!(quote("foo bar"), "\"foo bar\"");
-    assert_eq!(quote("\""), "\"\\\"\"");
-    assert_eq!(quote(""), "\"\"");
+    // This is a list of (unquoted, quoted) pairs.
+    // But it's using a single long (raw) string literal with an ad-hoc format, just because it's
+    // hard to read if we have to put the test strings through Rust escaping on top of the escaping
+    // being tested.  (Even raw string literals are noisy for short strings).
+    // Ad-hoc: "NL" is replaced with a literal newline; no other escape sequences.
+    let tests = r#"
+        <>                => <''>
+        <foobar>          => <foobar>
+        <foo bar>         => <'foo bar'>
+        <"foo bar'">      => <"\"foo bar'\"">
+        <'foo bar'>       => <"'foo bar'">
+        <">               => <'"'>
+        <"'>              => <"\"'">
+        <hello!world>     => <'hello!world'>
+        <'hello!world>    => <"'hello"'!world'>
+        <'hello!>         => <"'hello"'!'>
+        <hello ^ world>   => <'hello ''^ world'>
+        <hello^>          => <hello'^'>
+        <!world'>         => <'!world'"'">
+        <{a, b}>          => <'{a, b}'>
+        <NL>              => <'NL'>
+        <^>               => <'^'>
+        <foo^bar>         => <foo'^bar'>
+        <NLx^>            => <'NLx''^'>
+        <NL^x>            => <'NL''^x'>
+        <NL ^x>           => <'NL ''^x'>
+        <{a,b}>           => <'{a,b}'>
+        <a,b>             => <'a,b'>
+        <a..b             => <a..b>
+        <'$>              => <"'"'$'>
+        <"^>              => <'"''^'>
+    "#;
+    let mut ok = true;
+    for test in tests.trim().split('\n') {
+        let parts: Vec<String> = test
+            .replace("NL", "\n")
+            .split("=>")
+            .map(|part| part.trim().trim_start_matches('<').trim_end_matches('>').to_owned())
+            .collect();
+        assert!(parts.len() == 2);
+        let unquoted = &*parts[0];
+        let quoted_expected = &*parts[1];
+        let quoted_actual = try_quote(&parts[0]).unwrap();
+        if quoted_expected != quoted_actual {
+            #[cfg(not(feature = "std"))]
+            panic!("FAIL: for input <{}>, expected <{}>, got <{}>",
+                     unquoted, quoted_expected, quoted_actual);
+            #[cfg(feature = "std")]
+            println!("FAIL: for input <{}>, expected <{}>, got <{}>",
+                     unquoted, quoted_expected, quoted_actual);
+            ok = false;
+        }
+    }
+    assert!(ok);
 }
 
 #[test]
+#[allow(deprecated)]
 fn test_join() {
     assert_eq!(join(vec![]), "");
-    assert_eq!(join(vec![""]), "\"\"");
+    assert_eq!(join(vec![""]), "''");
     assert_eq!(join(vec!["a", "b"]), "a b");
-    assert_eq!(join(vec!["foo bar", "baz"]), "\"foo bar\" baz");
+    assert_eq!(join(vec!["foo bar", "baz"]), "'foo bar' baz");
+}
+
+#[test]
+fn test_fallible() {
+    assert_eq!(try_join(vec!["\0"]), Err(QuoteError::Nul));
+    assert_eq!(try_quote("\0"), Err(QuoteError::Nul));
 }

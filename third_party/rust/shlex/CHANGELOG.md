@@ -1,3 +1,7 @@
+# 1.2.0
+
+* Adds `bytes` module to support operating directly on byte strings.
+
 # 1.1.0
 
 * Adds the `std` feature (enabled by default)
