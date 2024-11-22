@@ -4578,25 +4578,25 @@ main section {
   .ds-section-grid.ds-card-grid {
     grid-template-columns: repeat(1, 300px);
   }
-  .ds-section-grid.ds-card-grid .ds-card[data-position-one="0"] {
+  .ds-section-grid.ds-card-grid .col-1-position-0 {
     order: 0;
   }
-  .ds-section-grid.ds-card-grid .ds-card[data-position-one="1"] {
+  .ds-section-grid.ds-card-grid .col-1-position-1 {
     order: 1;
   }
-  .ds-section-grid.ds-card-grid .ds-card[data-position-one="2"] {
+  .ds-section-grid.ds-card-grid .col-1-position-2 {
     order: 2;
   }
-  .ds-section-grid.ds-card-grid .ds-card[data-position-one="3"] {
+  .ds-section-grid.ds-card-grid .col-1-position-3 {
     order: 3;
   }
-  .ds-section-grid.ds-card-grid .ds-card[data-position-one="4"] {
+  .ds-section-grid.ds-card-grid .col-1-position-4 {
     order: 4;
   }
-  .ds-section-grid.ds-card-grid .ds-card[data-position-one="5"] {
+  .ds-section-grid.ds-card-grid .col-1-position-5 {
     order: 5;
   }
-  .ds-section-grid.ds-card-grid .ds-card[data-position-one="6"] {
+  .ds-section-grid.ds-card-grid .col-1-position-6 {
     order: 6;
   }
   .ds-section-grid.ds-card-grid .col-1-small {
@@ -4737,25 +4737,25 @@ main section {
   .ds-section-grid.ds-card-grid {
     grid-template-columns: repeat(2, 300px);
   }
-  .ds-section-grid.ds-card-grid .ds-card[data-position-two="0"] {
+  .ds-section-grid.ds-card-grid .col-2-position-0 {
     order: 0;
   }
-  .ds-section-grid.ds-card-grid .ds-card[data-position-two="1"] {
+  .ds-section-grid.ds-card-grid .col-2-position-1 {
     order: 1;
   }
-  .ds-section-grid.ds-card-grid .ds-card[data-position-two="2"] {
+  .ds-section-grid.ds-card-grid .col-2-position-2 {
     order: 2;
   }
-  .ds-section-grid.ds-card-grid .ds-card[data-position-two="3"] {
+  .ds-section-grid.ds-card-grid .col-2-position-3 {
     order: 3;
   }
-  .ds-section-grid.ds-card-grid .ds-card[data-position-two="4"] {
+  .ds-section-grid.ds-card-grid .col-2-position-4 {
     order: 4;
   }
-  .ds-section-grid.ds-card-grid .ds-card[data-position-two="5"] {
+  .ds-section-grid.ds-card-grid .col-2-position-5 {
     order: 5;
   }
-  .ds-section-grid.ds-card-grid .ds-card[data-position-two="6"] {
+  .ds-section-grid.ds-card-grid .col-2-position-6 {
     order: 6;
   }
   .ds-section-grid.ds-card-grid .col-2-small {
@@ -4897,25 +4897,25 @@ main section {
     grid-template-columns: repeat(3, 300px);
     gap: var(--space-large);
   }
-  .ds-section-grid.ds-card-grid .ds-card[data-position-three="0"] {
+  .ds-section-grid.ds-card-grid .col-3-position-0 {
     order: 0;
   }
-  .ds-section-grid.ds-card-grid .ds-card[data-position-three="1"] {
+  .ds-section-grid.ds-card-grid .col-3-position-1 {
     order: 1;
   }
-  .ds-section-grid.ds-card-grid .ds-card[data-position-three="2"] {
+  .ds-section-grid.ds-card-grid .col-3-position-2 {
     order: 2;
   }
-  .ds-section-grid.ds-card-grid .ds-card[data-position-three="3"] {
+  .ds-section-grid.ds-card-grid .col-3-position-3 {
     order: 3;
   }
-  .ds-section-grid.ds-card-grid .ds-card[data-position-three="4"] {
+  .ds-section-grid.ds-card-grid .col-3-position-4 {
     order: 4;
   }
-  .ds-section-grid.ds-card-grid .ds-card[data-position-three="5"] {
+  .ds-section-grid.ds-card-grid .col-3-position-5 {
     order: 5;
   }
-  .ds-section-grid.ds-card-grid .ds-card[data-position-three="6"] {
+  .ds-section-grid.ds-card-grid .col-3-position-6 {
     order: 6;
   }
   .ds-section-grid.ds-card-grid .col-3-small {
@@ -5056,25 +5056,25 @@ main section {
   .ds-section-grid.ds-card-grid {
     grid-template-columns: repeat(4, 300px);
   }
-  .ds-section-grid.ds-card-grid .ds-card[data-position-four="0"] {
+  .ds-section-grid.ds-card-grid .col-4-position-0 {
     order: 0;
   }
-  .ds-section-grid.ds-card-grid .ds-card[data-position-four="1"] {
+  .ds-section-grid.ds-card-grid .col-4-position-1 {
     order: 1;
   }
-  .ds-section-grid.ds-card-grid .ds-card[data-position-four="2"] {
+  .ds-section-grid.ds-card-grid .col-4-position-2 {
     order: 2;
   }
-  .ds-section-grid.ds-card-grid .ds-card[data-position-four="3"] {
+  .ds-section-grid.ds-card-grid .col-4-position-3 {
     order: 3;
   }
-  .ds-section-grid.ds-card-grid .ds-card[data-position-four="4"] {
+  .ds-section-grid.ds-card-grid .col-4-position-4 {
     order: 4;
   }
-  .ds-section-grid.ds-card-grid .ds-card[data-position-four="5"] {
+  .ds-section-grid.ds-card-grid .col-4-position-5 {
     order: 5;
   }
-  .ds-section-grid.ds-card-grid .ds-card[data-position-four="6"] {
+  .ds-section-grid.ds-card-grid .col-4-position-6 {
     order: 6;
   }
   .ds-section-grid.ds-card-grid .col-4-small {

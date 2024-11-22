@@ -71,18 +71,20 @@ function CardSections({
 
   function getLayoutData(responsiveLayout, index) {
     let layoutData = {
-      position: {},
       classNames: [],
     };
 
-    responsiveLayout.flatMap(layout =>
-      layout.tiles
-        .filter((_, tileIndex) => tileIndex === index)
-        .forEach(tile => {
+    responsiveLayout.forEach(layout => {
+      layout.tiles.forEach((tile, tileIndex) => {
+        if (tile.position === index) {
           layoutData.classNames.push(`col-${layout.columnCount}-${tile.size}`);
-          layoutData.position[`col${layout.columnCount}`] = tile.position;
-        })
-    );
+          layoutData.classNames.push(
+            `col-${layout.columnCount}-position-${tileIndex}`
+          );
+        }
+      });
+    });
+
     return layoutData;
   }
 
@@ -135,8 +137,7 @@ function CardSections({
             </div>
             <div className="ds-section-grid ds-card-grid">
               {section.data.slice(0, maxTile).map((rec, index) => {
-                const layoutData = getLayoutData(responsiveLayouts, index);
-                const { classNames, position } = layoutData;
+                const { classNames } = getLayoutData(responsiveLayouts, index);
 
                 if (!rec || rec.placeholder) {
                   return <PlaceholderDSCard key={`dscard-${index}`} />;
@@ -186,10 +187,6 @@ function CardSections({
                     ctaButtonVariant={ctaButtonVariant}
                     spocMessageVariant={spocMessageVariant}
                     sectionsClassNames={classNames.join(" ")}
-                    data-position-one={position.col1}
-                    data-position-two={position.col2}
-                    data-position-three={position.col3}
-                    data-position-four={position.col4}
                     section={sectionKey}
                     sectionPosition={sectionIndex}
                   />

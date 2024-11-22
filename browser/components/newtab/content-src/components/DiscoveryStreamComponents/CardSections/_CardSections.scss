@@ -357,7 +357,7 @@
     grid-template-columns: repeat(1, 300px);
 
     @for $i from 0 through 6 {
-      .ds-card[data-position-one="#{$i}"] {
+      .col-1-position-#{$i} {
         order: $i;
       }
     }
@@ -379,7 +379,7 @@
     grid-template-columns: repeat(2, 300px);
 
     @for $i from 0 through 6 {
-      .ds-card[data-position-two="#{$i}"] {
+      .col-2-position-#{$i} {
         order: $i;
       }
     }
@@ -402,7 +402,7 @@
     gap: var(--space-large);
 
     @for $i from 0 through 6 {
-      .ds-card[data-position-three="#{$i}"] {
+      .col-3-position-#{$i} {
         order: $i;
       }
     }
@@ -425,7 +425,7 @@
     grid-template-columns: repeat(4, 300px);
 
     @for $i from 0 through 6 {
-      .ds-card[data-position-four="#{$i}"] {
+      .col-4-position-#{$i} {
         order: $i;
       }
     }
