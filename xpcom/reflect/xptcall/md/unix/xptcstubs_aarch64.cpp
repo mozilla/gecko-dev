@@ -201,6 +201,12 @@ PrepareAndDispatch(nsXPTCStubBase* self, uint32_t methodIndex, void* args,
 #define UNDERSCORE "_"
 #endif
 
+#if defined(__ARM_FEATURE_BTI_DEFAULT) && __ARM_FEATURE_BTI_DEFAULT == 1
+#define VALID_CALL_TARGET "bti    c\n\t"
+#else
+#define VALID_CALL_TARGET
+#endif
+
 // Load w17 with the constant 'n' and branch to SharedStub().
 # define STUB_ENTRY(n)                                                  \
     __asm__ (                                                           \
@@ -224,6 +230,7 @@ PrepareAndDispatch(nsXPTCStubBase* self, uint32_t methodIndex, void* args,
             ".else  \n\t"                                               \
             ".err   \"stub number "#n" >= 1000 not yet supported\"\n"   \
             ".endif \n\t"                                               \
+            VALID_CALL_TARGET                                           \
             "mov    w17,#"#n" \n\t"                                     \
             "b      SharedStub \n"                                      \
 );
