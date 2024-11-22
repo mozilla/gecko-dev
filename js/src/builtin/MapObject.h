@@ -163,7 +163,7 @@ class MapObject : public OrderedHashMapObject {
   // webidl maplike/setlike, should return interface object.
   [[nodiscard]] static bool set(JSContext* cx, HandleObject obj,
                                 HandleValue key, HandleValue val);
-  [[nodiscard]] static bool clear(JSContext* cx, HandleObject obj);
+  void clear(JSContext* cx);
   [[nodiscard]] static bool iterator(JSContext* cx, IteratorKind kind,
                                      HandleObject obj, MutableHandleValue iter);
 
@@ -288,7 +288,7 @@ class SetObject : public OrderedHashSetObject {
   [[nodiscard]] static bool has(JSContext* cx, unsigned argc, Value* vp);
   [[nodiscard]] static bool has(JSContext* cx, HandleObject obj,
                                 HandleValue key, bool* rval);
-  [[nodiscard]] static bool clear(JSContext* cx, HandleObject obj);
+  void clear(JSContext* cx);
   [[nodiscard]] static bool iterator(JSContext* cx, IteratorKind kind,
                                      HandleObject obj, MutableHandleValue iter);
   [[nodiscard]] static bool delete_(JSContext* cx, unsigned argc, Value* vp);

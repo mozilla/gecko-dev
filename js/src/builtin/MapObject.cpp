@@ -981,9 +981,10 @@ bool MapObject::entries(JSContext* cx, unsigned argc, Value* vp) {
 }
 
 bool MapObject::clear_impl(JSContext* cx, const CallArgs& args) {
-  RootedObject obj(cx, &args.thisv().toObject());
+  auto* mapObj = &args.thisv().toObject().as<MapObject>();
+  mapObj->clear(cx);
   args.rval().setUndefined();
-  return clear(cx, obj);
+  return true;
 }
 
 bool MapObject::clear(JSContext* cx, unsigned argc, Value* vp) {
@@ -992,14 +993,12 @@ bool MapObject::clear(JSContext* cx, unsigned argc, Value* vp) {
   return CallNonGenericMethod(cx, is, clear_impl, args);
 }
 
-bool MapObject::clear(JSContext* cx, HandleObject obj) {
-  MapObject* mapObject = &obj->as<MapObject>();
-  if (mapObject->isTenured()) {
-    Table(mapObject).clear(cx);
+void MapObject::clear(JSContext* cx) {
+  if (isTenured()) {
+    Table(this).clear(cx);
   } else {
-    PreBarrieredTable(mapObject).clear(cx);
+    PreBarrieredTable(this).clear(cx);
   }
-  return true;
 }
 
 /*** SetIterator ************************************************************/
@@ -1639,16 +1638,11 @@ bool SetObject::entries(JSContext* cx, unsigned argc, Value* vp) {
   return CallNonGenericMethod(cx, is, entries_impl, args);
 }
 
-bool SetObject::clear(JSContext* cx, HandleObject obj) {
-  MOZ_ASSERT(SetObject::is(obj));
-  SetObject* setObj = &obj->as<SetObject>();
-  Table(setObj).clear(cx);
-  return true;
-}
+void SetObject::clear(JSContext* cx) { Table(this).clear(cx); }
 
 bool SetObject::clear_impl(JSContext* cx, const CallArgs& args) {
-  SetObject* setObj = &args.thisv().toObject().as<SetObject>();
-  Table(setObj).clear(cx);
+  auto* setObj = &args.thisv().toObject().as<SetObject>();
+  setObj->clear(cx);
   args.rval().setUndefined();
   return true;
 }
@@ -1814,11 +1808,13 @@ JS_PUBLIC_API bool JS::MapClear(JSContext* cx, HandleObject obj) {
   cx->check(obj);
 
   if (obj->is<MapObject>()) {
-    return MapObject::clear(cx, obj.as<MapObject>());
+    obj.as<MapObject>()->clear(cx);
+    return true;
   }
 
   AutoEnterTableRealm<MapObject> enter(cx, obj);
-  return MapObject::clear(cx, enter.unwrapped());
+  enter.unwrapped()->clear(cx);
+  return true;
 }
 
 template <typename TableObject>
@@ -1936,11 +1932,13 @@ JS_PUBLIC_API bool JS::SetClear(JSContext* cx, HandleObject obj) {
   cx->check(obj);
 
   if (obj->is<SetObject>()) {
-    return SetObject::clear(cx, obj.as<SetObject>());
+    obj.as<SetObject>()->clear(cx);
+    return true;
   }
 
   AutoEnterTableRealm<SetObject> enter(cx, obj);
-  return SetObject::clear(cx, enter.unwrapped());
+  enter.unwrapped()->clear(cx);
+  return true;
 }
 
 JS_PUBLIC_API bool JS::SetKeys(JSContext* cx, HandleObject obj,
