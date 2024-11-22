@@ -271,7 +271,6 @@ browser.search:
       * `channel` is set to the url "channel" query parameter.
     send_in_pings:
       - metrics
-      - dau-reporting
     bugs:
       - https://github.com/mozilla-mobile/fenix/issues/4967
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1804057
@@ -305,7 +304,6 @@ browser.search:
     send_in_pings:
       - metrics
       - baseline
-      - dau-reporting
     no_lint:
       - BASELINE_PING
     bugs:
@@ -332,7 +330,6 @@ browser.search:
     send_in_pings:
       - metrics
       - baseline
-      - dau-reporting
     no_lint:
       - BASELINE_PING
     bugs:
@@ -365,7 +362,6 @@ browser.search:
     send_in_pings:
       - metrics
       - baseline
-      - dau-reporting
     no_lint:
       - BASELINE_PING
     bugs:

@@ -2114,7 +2114,6 @@ metrics:
     send_in_pings:
       - metrics
       - baseline
-      - dau-reporting
     bugs:
       - https://github.com/mozilla-mobile/fenix/issues/16075
     data_reviews:
@@ -2450,7 +2449,6 @@ metrics:
     send_in_pings:
       - metrics
       - baseline
-      - dau-reporting
     bugs:
       - https://github.com/mozilla-mobile/fenix/issues/1158
       - https://github.com/mozilla-mobile/fenix/issues/6556
@@ -3640,7 +3638,6 @@ search.default_engine:
     send_in_pings:
       - metrics
       - baseline
-      - dau-reporting
     bugs:
       - https://github.com/mozilla-mobile/fenix/issues/800
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1923842
@@ -3670,7 +3667,6 @@ search.default_engine:
     send_in_pings:
       - metrics
       - baseline
-      - dau-reporting
     bugs:
       - https://github.com/mozilla-mobile/fenix/issues/800
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1923842
@@ -8141,7 +8137,6 @@ browser.search:
     send_in_pings:
       - metrics
       - baseline
-      - dau-reporting
     bugs:
       - https://github.com/mozilla-mobile/fenix/issues/6558
       - https://github.com/mozilla-mobile/fenix/issues/28010
@@ -8176,7 +8171,6 @@ browser.search:
     send_in_pings:
       - metrics
       - baseline
-      - dau-reporting
     bugs:
       - https://github.com/mozilla-mobile/fenix/issues/6558
       - https://github.com/mozilla-mobile/fenix/issues/28010
@@ -8202,7 +8196,6 @@ browser.search:
     send_in_pings:
       - metrics
       - baseline
-      - dau-reporting
     bugs:
       - https://github.com/mozilla-mobile/fenix/issues/6557
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1923842
