@@ -90,7 +90,7 @@ const MR_ABOUT_WELCOME_DEFAULT = {
     {
       id: "AW_EASY_SETUP_NEEDS_DEFAULT_AND_PIN",
       targeting:
-        "doesAppNeedPin && (unhandledCampaignAction != 'SET_DEFAULT_BROWSER') && 'browser.shell.checkDefaultBrowser'|preferenceValue && !isDefaultBrowser",
+        "doesAppNeedPin && 'browser.shell.checkDefaultBrowser'|preferenceValue && !isDefaultBrowser",
       content: {
         position: "split",
         split_narrow_bkg_position: "-60px",
@@ -224,7 +224,7 @@ const MR_ABOUT_WELCOME_DEFAULT = {
     {
       id: "AW_EASY_SETUP_NEEDS_DEFAULT",
       targeting:
-        "!doesAppNeedPin && (unhandledCampaignAction != 'SET_DEFAULT_BROWSER') && 'browser.shell.checkDefaultBrowser'|preferenceValue && !isDefaultBrowser",
+        "!doesAppNeedPin && 'browser.shell.checkDefaultBrowser'|preferenceValue && !isDefaultBrowser",
       content: {
         position: "split",
         split_narrow_bkg_position: "-60px",
@@ -335,7 +335,7 @@ const MR_ABOUT_WELCOME_DEFAULT = {
     {
       id: "AW_EASY_SETUP_NEEDS_PIN",
       targeting:
-        "doesAppNeedPin && (!'browser.shell.checkDefaultBrowser'|preferenceValue || isDefaultBrowser || (unhandledCampaignAction == 'SET_DEFAULT_BROWSER'))",
+        "doesAppNeedPin && (!'browser.shell.checkDefaultBrowser'|preferenceValue || isDefaultBrowser)",
       content: {
         position: "split",
         split_narrow_bkg_position: "-60px",
@@ -457,7 +457,7 @@ const MR_ABOUT_WELCOME_DEFAULT = {
     {
       id: "AW_EASY_SETUP_ONLY_IMPORT",
       targeting:
-        "!doesAppNeedPin && (!'browser.shell.checkDefaultBrowser'|preferenceValue || isDefaultBrowser || (unhandledCampaignAction == 'SET_DEFAULT_BROWSER'))",
+        "!doesAppNeedPin && (!'browser.shell.checkDefaultBrowser'|preferenceValue || isDefaultBrowser)",
       content: {
         position: "split",
         split_narrow_bkg_position: "-60px",

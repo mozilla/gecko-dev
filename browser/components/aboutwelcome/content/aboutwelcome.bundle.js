@@ -100,13 +100,6 @@ const AboutWelcomeUtils = {
   getLoadingStrategyFor(url) {
     return url?.startsWith("http") ? "lazy" : "eager";
   },
-  handleCampaignAction(action, messageId) {
-    window.AWSendToParent("HANDLE_CAMPAIGN_ACTION", action).then(handled => {
-      if (handled) {
-        this.sendActionTelemetry(messageId, "CAMPAIGN_ACTION");
-      }
-    });
-  },
 };
 
 const DEFAULT_RTAMO_CONTENT = {
@@ -222,20 +215,6 @@ const MultiStageAboutWelcome = props => {
       // e.g. if AW_LANGUAGE_MISMATCH exists, use it from existing screens
       setScreens(filteredScreens.map(filtered => screens.find(s => s.id === filtered.id) ?? filtered));
       didFilter.current = true;
-
-      // After completing screen filtering, trigger any unhandled campaign
-      // action present in the attribution campaign data. This updates the
-      // "trailhead.firstrun.didHandleCampaignAction" preference, marking the
-      // actions as complete to prevent them from being handled on subsequent
-      // visits to about:welcome. Do not await getting the action to avoid
-      // blocking the thread.
-      window.AWGetUnhandledCampaignAction?.().then(action => {
-        if (typeof action === "string") {
-          _lib_aboutwelcome_utils_mjs__WEBPACK_IMPORTED_MODULE_2__.AboutWelcomeUtils.handleCampaignAction(action, props.message_id);
-        }
-      }).catch(error => {
-        console.error("Failed to get unhandled campaign action:", error);
-      });
       const screenInitials = filteredScreens.map(({
         id
       }) => id?.split("_")[1]?.[0]).join("");
