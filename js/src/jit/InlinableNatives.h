@@ -99,6 +99,7 @@
   _(MapConstructor)                                \
   _(MapGet)                                        \
   _(MapHas)                                        \
+  _(MapSet)                                        \
                                                    \
   _(MathAbs)                                       \
   _(MathFloor)                                     \
@@ -155,6 +156,7 @@
                                                    \
   _(SetConstructor)                                \
   _(SetHas)                                        \
+  _(SetAdd)                                        \
   _(SetSize)                                       \
                                                    \
   _(String)                                        \

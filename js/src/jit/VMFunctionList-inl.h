@@ -250,6 +250,8 @@ namespace jit {
   _(MapObjectCreate, js::MapObject::create)                                    \
   _(MapObjectGet, js::jit::MapObjectGet)                                       \
   _(MapObjectHas, js::jit::MapObjectHas)                                       \
+  _(MapObjectSet, js::jit::MapObjectSet)                                       \
+  _(MapObjectSetFromIC, js::jit::MapObjectSetFromIC)                           \
   _(MutatePrototype, js::jit::MutatePrototype)                                 \
   _(NamedLambdaObjectCreateWithoutEnclosing,                                   \
     js::NamedLambdaObject::createWithoutEnclosing)                             \
@@ -304,6 +306,8 @@ namespace jit {
   _(SetElementSuper, js::SetElementSuper)                                      \
   _(SetFunctionName, js::SetFunctionName)                                      \
   _(SetIntrinsicOperation, js::SetIntrinsicOperation)                          \
+  _(SetObjectAdd, js::jit::SetObjectAdd)                                       \
+  _(SetObjectAddFromIC, js::jit::SetObjectAddFromIC)                           \
   _(SetObjectCreate, js::SetObject::create)                                    \
   _(SetObjectHas, js::jit::SetObjectHas)                                       \
   _(SetPropertyMegamorphicNoCache, js::jit::SetPropertyMegamorphic<false>)     \

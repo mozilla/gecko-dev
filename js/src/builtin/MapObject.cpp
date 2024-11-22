@@ -432,7 +432,7 @@ const JSPropertySpec MapObject::properties[] = {
 const JSFunctionSpec MapObject::methods[] = {
     JS_INLINABLE_FN("get", get, 1, 0, MapGet),
     JS_INLINABLE_FN("has", has, 1, 0, MapHas),
-    JS_FN("set", set, 2, 0),
+    JS_INLINABLE_FN("set", set, 2, 0, MapSet),
     JS_FN("delete", delete_, 1, 0),
     JS_FN("keys", keys, 0, 0),
     JS_FN("values", values, 0, 0),
@@ -1191,7 +1191,7 @@ const JSPropertySpec SetObject::properties[] = {
 
 const JSFunctionSpec SetObject::methods[] = {
     JS_INLINABLE_FN("has", has, 1, 0, SetHas),
-    JS_FN("add", add, 1, 0),
+    JS_INLINABLE_FN("add", add, 1, 0, SetAdd),
     JS_FN("delete", delete_, 1, 0),
     JS_FN("entries", entries, 0, 0),
     JS_FN("clear", clear, 0, 0),

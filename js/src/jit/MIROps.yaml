@@ -3252,6 +3252,13 @@
   alias_set: custom
   possibly_calls: true
 
+- name: SetObjectAdd
+  operands:
+    setObject: Object
+    key: Value
+  possibly_calls: true
+  generate_lir: true
+
 - name: SetObjectSize
   operands:
     set: Object
@@ -3341,6 +3348,14 @@
   congruent_to: if_operands_equal
   alias_set: custom
   possibly_calls: true
+
+- name: MapObjectSet
+  operands:
+    mapObject: Object
+    key: Value
+    value: Value
+  possibly_calls: true
+  generate_lir: true
 
 - name: MapObjectSize
   operands:

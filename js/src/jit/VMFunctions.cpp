@@ -3115,6 +3115,19 @@ bool SetObjectHas(JSContext* cx, Handle<SetObject*> obj, HandleValue key,
   return obj->has(cx, key, rval);
 }
 
+bool SetObjectAdd(JSContext* cx, Handle<SetObject*> obj, HandleValue key) {
+  return obj->add(cx, key);
+}
+
+bool SetObjectAddFromIC(JSContext* cx, Handle<SetObject*> obj, HandleValue key,
+                        MutableHandleValue rval) {
+  if (!SetObjectAdd(cx, obj, key)) {
+    return false;
+  }
+  rval.setObject(*obj);
+  return true;
+}
+
 bool MapObjectHas(JSContext* cx, Handle<MapObject*> obj, HandleValue key,
                   bool* rval) {
   return obj->has(cx, key, rval);
@@ -3123,6 +3136,20 @@ bool MapObjectHas(JSContext* cx, Handle<MapObject*> obj, HandleValue key,
 bool MapObjectGet(JSContext* cx, Handle<MapObject*> obj, HandleValue key,
                   MutableHandleValue rval) {
   return obj->get(cx, key, rval);
+}
+
+bool MapObjectSet(JSContext* cx, Handle<MapObject*> obj, HandleValue key,
+                  HandleValue val) {
+  return obj->set(cx, key, val);
+}
+
+bool MapObjectSetFromIC(JSContext* cx, Handle<MapObject*> obj, HandleValue key,
+                        HandleValue val, MutableHandleValue rval) {
+  if (!MapObjectSet(cx, obj, key, val)) {
+    return false;
+  }
+  rval.setObject(*obj);
+  return true;
 }
 
 #ifdef DEBUG
