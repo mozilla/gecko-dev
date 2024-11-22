@@ -726,24 +726,49 @@ void WindowsUIUtils::UpdateInWin11TabletMode() {
         return false;
       }
 
-      // Check to see if a particular registry key [1] exists. If so, this is
-      // probably a tablet-capable device.
-      //
-      // Comments in Chromium [2] claim that not all devices actually set this
-      // registry key, but do not actually state that there are _convertible_
-      // devices which do not. No exceptions are presently known.
-      //
-      // [1] https://learn.microsoft.com/en-us/windows-hardware/customize/desktop/unattend/microsoft-windows-gpiobuttons-convertibleslatemode
-      // [2] https://source.chromium.org/chromium/chromium/src/+/main:base/win/win_util.cc;l=240;drc=5a02fc6cdee77d0a39e9c43a4c2a29bbccc88852
-      namespace Reg = mozilla::widget::WinRegistry;
-      Reg::Key key(HKEY_LOCAL_MACHINE,
-                   uR"(System\CurrentControlSet\Control\PriorityControl)"_ns,
-                   Reg::KeyMode::QueryValue);
-      if (key && key.GetValueType(u"ConvertibleSlateMode"_ns) !=
-                     Reg::ValueType::None) {
-        MOZ_LOG(gTabletModeLog, LogLevel::Info,
-                ("TCH: 'ConvertibleSlateMode' found"));
-        return true;
+      if (MOZ_LOG_TEST(gTabletModeLog, LogLevel::Info)) {
+        [&]() -> void {
+          // Check to see if a particular registry key [1] exists, and what its
+          // value is.
+          //
+          // This is not presently considered reliable, as some
+          // non-tablet-capable devices have this registry key present, but not
+          // set to 1 -- see bug 1932775, as well as comments in Chromium [2].
+          //
+          // This is probably strictly redundant with the CONVERTIBLESLATEMODE
+          // check above, so we only even look at it if we're logging.
+          //
+          // [1] https://learn.microsoft.com/en-us/windows-hardware/customize/desktop/unattend/microsoft-windows-gpiobuttons-convertibleslatemode
+          // [2] https://source.chromium.org/chromium/chromium/src/+/main:base/win/win_util.cc;l=240;drc=5a02fc6cdee77d0a39e9c43a4c2a29bbccc88852
+          namespace Reg = mozilla::widget::WinRegistry;
+          Reg::Key key(
+              HKEY_LOCAL_MACHINE,
+              uR"(System\CurrentControlSet\Control\PriorityControl)"_ns,
+              Reg::KeyMode::QueryValue);
+          if (!key) {
+            MOZ_LOG(gTabletModeLog, LogLevel::Info,
+                    ("TCH: \"PriorityControl\" registry path not found"));
+          }
+
+          auto const valueType = key.GetValueType(u"ConvertibleSlateMode"_ns);
+          if (valueType == Reg::ValueType::None) {
+            MOZ_LOG(gTabletModeLog, LogLevel::Info,
+                    ("TCH: 'ConvertibleSlateMode' not found"));
+            return;
+          }
+
+          if (auto const val =
+                  key.GetValueAsDword(u"ConvertibleSlateMode"_ns)) {
+            MOZ_LOG(gTabletModeLog, LogLevel::Info,
+                    ("TCH: 'ConvertibleSlateMode' found; value is 0x%08" PRIX32,
+                     *val));
+          } else {
+            MOZ_LOG(gTabletModeLog, LogLevel::Info,
+                    ("TCH: 'ConvertibleSlateMode' found, but not a DWORD "
+                     "(type=0x%08" PRIX32 ")",
+                     uint32_t(valueType)));
+          }
+        }();
       }
 
       // If the device has this GUID mapped to a GPIO pin, it's almost certainly
@@ -784,13 +809,14 @@ void WindowsUIUtils::UpdateInWin11TabletMode() {
       }
 
       // If the device returns `PlatformRoleSlate` for its POWER_PLATFORM_ROLE,
-      // it's probably tablet capable.
+      // it's probably tablet-capable.
       //
-      // The converse is known to be false; a Dell Inspiron 14 7445 2-in-1
-      // returns `PlatformRoleMobile`.
+      // The converse is known to be false; the tablet-capable Dell Inspiron 14
+      // 7445 2-in-1 returns `PlatformRoleMobile`.
       //
       // (Chromium checks for PlatformRoleMobile as well, but (e.g.) a Dell XPS
-      // 15 9500 returns `PlatformRoleMobile` despite not being tablet-capable.)
+      // 15 9500 also returns `PlatformRoleMobile` despite *not* being tablet-
+      // capable.)
       POWER_PLATFORM_ROLE const role =
           mozilla::widget::WinUtils::GetPowerPlatformRole();
       if (role == PlatformRoleSlate) {
