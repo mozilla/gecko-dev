@@ -33,6 +33,7 @@ fun bindBiometricsCredentialsPromptOrShowWarning(
     view: View,
     onShowPinVerification: (Intent) -> Unit,
     onAuthSuccess: () -> Unit,
+    onAuthFailure: () -> Unit,
 ) {
     val (fragment, context) = Result.runCatching {
         view.findFragment() as Fragment to view.context
@@ -51,7 +52,13 @@ fun bindBiometricsCredentialsPromptOrShowWarning(
                     }
                 }
             },
-            onAuthFailure = {},
+            onAuthFailure = {
+                fragment.runIfFragmentIsAttached {
+                    fragment.lifecycleScope.launch(Dispatchers.Main) {
+                        onAuthFailure()
+                    }
+                }
+            },
         ),
     )
     // Use the BiometricPrompt first

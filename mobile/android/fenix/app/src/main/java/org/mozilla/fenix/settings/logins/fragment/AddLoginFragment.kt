@@ -25,6 +25,7 @@ import mozilla.components.lib.state.ext.consumeFrom
 import mozilla.components.support.ktx.android.view.hideKeyboard
 import mozilla.components.support.ktx.android.view.showKeyboard
 import mozilla.components.support.ktx.util.URLStringUtils
+import org.mozilla.fenix.AuthenticationStatus
 import org.mozilla.fenix.BiometricAuthenticationManager
 import org.mozilla.fenix.GleanMetrics.Logins
 import org.mozilla.fenix.R
@@ -386,7 +387,8 @@ class AddLoginFragment : Fragment(R.layout.fragment_add_login), MenuProvider {
         // prompt the user again when navigating back.
         BiometricAuthenticationManager.biometricAuthenticationNeededInfo.shouldShowAuthenticationPrompt =
             false
-        BiometricAuthenticationManager.biometricAuthenticationNeededInfo.authenticated = true
+        BiometricAuthenticationManager.biometricAuthenticationNeededInfo.authenticationStatus =
+            AuthenticationStatus.AUTHENTICATED
     }
 
     companion object {
