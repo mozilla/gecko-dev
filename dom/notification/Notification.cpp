@@ -1151,16 +1151,15 @@ bool Notification::CreateActor() {
   mActor = new notification::NotificationChild(
       persistent ? nullptr : this,
       window ? window->GetWindowGlobalChild() : nullptr);
-  if (!childEndpoint.Bind(mActor)) {
-    return false;
-  }
 
+  nsISerialEventTarget* target = nullptr;
   nsIPrincipal* principal;
   nsIPrincipal* effectiveStoragePrincipal;
   bool isSecureContext;
 
   // TODO: Should get nsIGlobalObject methods for each method
   if (WorkerPrivate* workerPrivate = GetCurrentThreadWorkerPrivate()) {
+    target = workerPrivate->HybridEventTarget();
     principal = workerPrivate->GetPrincipal();
     effectiveStoragePrincipal = workerPrivate->GetEffectiveStoragePrincipal();
     isSecureContext = workerPrivate->IsSecureContext();
@@ -1170,6 +1169,10 @@ bool Notification::CreateActor() {
     principal = win->GetPrincipal();
     effectiveStoragePrincipal = win->GetEffectiveStoragePrincipal();
     isSecureContext = win->IsSecureContext();
+  }
+
+  if (!childEndpoint.Bind(mActor, target)) {
+    return false;
   }
 
   (void)backgroundActor->SendCreateNotificationParent(
