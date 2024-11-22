@@ -130,15 +130,6 @@ export class EditProfileCard extends MozLitElement {
     this.initialized = true;
   }
 
-  async getUpdateComplete() {
-    const result = await super.getUpdateComplete();
-
-    await Promise.all(
-      Array.from(this.themeCards).map(card => card.updateComplete)
-    );
-    return result;
-  }
-
   setFavicon() {
     let favicon = document.getElementById("favicon");
     favicon.href = `chrome://browser/content/profiles/assets/16_${this.profile.avatar}.svg`;
@@ -188,12 +179,6 @@ export class EditProfileCard extends MozLitElement {
     if (newThemeId === this.profile.themeId) {
       return;
     }
-
-    this.getUpdateComplete().then(() => {
-      for (let t of this.themeCards) {
-        t.selected = t.theme.id === newThemeId;
-      }
-    });
 
     let theme = await RPMSendQuery("Profiles:UpdateProfileTheme", newThemeId);
     this.profile.themeId = theme.themeId;
@@ -315,7 +300,14 @@ export class EditProfileCard extends MozLitElement {
   }
 
   handleThemeClick(event) {
-    this.updateTheme(event.target.theme.id);
+    for (let t of this.themeCards) {
+      t.selected = false;
+    }
+
+    let selectedTheme = event.target;
+    selectedTheme.selected = true;
+
+    this.updateTheme(selectedTheme.theme.id);
   }
 
   avatarsTemplate() {
