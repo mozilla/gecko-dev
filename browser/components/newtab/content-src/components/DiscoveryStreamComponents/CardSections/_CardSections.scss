@@ -7,6 +7,10 @@
   gap: var(--space-medium);
   padding: var(--space-large);
 
+  .card-stp-thumbs-buttons-wrapper {
+    display: none;
+  }
+
   .img-wrapper {
     width: 127px;
     flex-shrink: 0;
@@ -52,7 +56,7 @@
     }
 
     .sections-card-footer {
-      padding-top: var(--space-small);
+      margin-top: var(--space-small);
     }
   }
 
@@ -76,6 +80,10 @@
   padding: 0;
   align-items: initial;
   gap: initial;
+
+  .card-stp-thumbs-buttons-wrapper {
+    display: block;
+  }
 
   .img-wrapper {
     width: 100%;

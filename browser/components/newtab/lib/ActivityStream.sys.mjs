@@ -452,6 +452,14 @@ export const PREFS_CONFIG = new Map([
     },
   ],
   [
+    "discoverystream.sections.cards.thumbsUpDown.enabled",
+    {
+      title:
+        "Boolean flag to enable thumbs up/down buttons in the new card UI in recommended stories",
+      value: true,
+    },
+  ],
+  [
     "discoverystream.spoc-positions",
     {
       title: "CSV string of spoc position indexes on newtab Pocket grid",

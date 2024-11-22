@@ -527,7 +527,9 @@ $ds-card-image-gradient-solid: rgba(0, 0, 0, 100%);
     }
 
     .sections-card-footer {
-      padding-top: var(--space-small);
+      margin-block-start: var(--space-small);
+      position: relative;
+      min-height: 28px;
     }
 
     .ds-card-topic {

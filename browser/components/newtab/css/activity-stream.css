@@ -4576,6 +4576,9 @@ main section {
     gap: var(--space-medium);
     padding: var(--space-large);
   }
+  .ds-section-grid.ds-card-grid .col-1-small .card-stp-thumbs-buttons-wrapper {
+    display: none;
+  }
   .ds-section-grid.ds-card-grid .col-1-small .img-wrapper {
     width: 127px;
     flex-shrink: 0;
@@ -4612,7 +4615,7 @@ main section {
     display: none;
   }
   .ds-section-grid.ds-card-grid .col-1-small .meta .sections-card-footer {
-    padding-top: var(--space-small);
+    margin-top: var(--space-small);
   }
   .ds-section-grid.ds-card-grid .col-1-small .card-stp-button-hover-background {
     padding-block-start: unset;
@@ -4630,6 +4633,9 @@ main section {
     padding: 0;
     align-items: initial;
     gap: initial;
+  }
+  .ds-section-grid.ds-card-grid .col-1-medium .card-stp-thumbs-buttons-wrapper {
+    display: block;
   }
   .ds-section-grid.ds-card-grid .col-1-medium .img-wrapper {
     width: 100%;
@@ -4717,6 +4723,9 @@ main section {
     gap: var(--space-medium);
     padding: var(--space-large);
   }
+  .ds-section-grid.ds-card-grid .col-2-small .card-stp-thumbs-buttons-wrapper {
+    display: none;
+  }
   .ds-section-grid.ds-card-grid .col-2-small .img-wrapper {
     width: 127px;
     flex-shrink: 0;
@@ -4753,7 +4762,7 @@ main section {
     display: none;
   }
   .ds-section-grid.ds-card-grid .col-2-small .meta .sections-card-footer {
-    padding-top: var(--space-small);
+    margin-top: var(--space-small);
   }
   .ds-section-grid.ds-card-grid .col-2-small .card-stp-button-hover-background {
     padding-block-start: unset;
@@ -4771,6 +4780,9 @@ main section {
     padding: 0;
     align-items: initial;
     gap: initial;
+  }
+  .ds-section-grid.ds-card-grid .col-2-medium .card-stp-thumbs-buttons-wrapper {
+    display: block;
   }
   .ds-section-grid.ds-card-grid .col-2-medium .img-wrapper {
     width: 100%;
@@ -4859,6 +4871,9 @@ main section {
     gap: var(--space-medium);
     padding: var(--space-large);
   }
+  .ds-section-grid.ds-card-grid .col-3-small .card-stp-thumbs-buttons-wrapper {
+    display: none;
+  }
   .ds-section-grid.ds-card-grid .col-3-small .img-wrapper {
     width: 127px;
     flex-shrink: 0;
@@ -4895,7 +4910,7 @@ main section {
     display: none;
   }
   .ds-section-grid.ds-card-grid .col-3-small .meta .sections-card-footer {
-    padding-top: var(--space-small);
+    margin-top: var(--space-small);
   }
   .ds-section-grid.ds-card-grid .col-3-small .card-stp-button-hover-background {
     padding-block-start: unset;
@@ -4913,6 +4928,9 @@ main section {
     padding: 0;
     align-items: initial;
     gap: initial;
+  }
+  .ds-section-grid.ds-card-grid .col-3-medium .card-stp-thumbs-buttons-wrapper {
+    display: block;
   }
   .ds-section-grid.ds-card-grid .col-3-medium .img-wrapper {
     width: 100%;
@@ -5000,6 +5018,9 @@ main section {
     gap: var(--space-medium);
     padding: var(--space-large);
   }
+  .ds-section-grid.ds-card-grid .col-4-small .card-stp-thumbs-buttons-wrapper {
+    display: none;
+  }
   .ds-section-grid.ds-card-grid .col-4-small .img-wrapper {
     width: 127px;
     flex-shrink: 0;
@@ -5036,7 +5057,7 @@ main section {
     display: none;
   }
   .ds-section-grid.ds-card-grid .col-4-small .meta .sections-card-footer {
-    padding-top: var(--space-small);
+    margin-top: var(--space-small);
   }
   .ds-section-grid.ds-card-grid .col-4-small .card-stp-button-hover-background {
     padding-block-start: unset;
@@ -5054,6 +5075,9 @@ main section {
     padding: 0;
     align-items: initial;
     gap: initial;
+  }
+  .ds-section-grid.ds-card-grid .col-4-medium .card-stp-thumbs-buttons-wrapper {
+    display: block;
   }
   .ds-section-grid.ds-card-grid .col-4-medium .img-wrapper {
     width: 100%;
@@ -5936,7 +5960,9 @@ main section {
   font-size: var(--newtab-font-size-xsmall);
 }
 .ds-card-grid .sections-card-ui .sections-card-footer {
-  padding-top: var(--space-small);
+  margin-block-start: var(--space-small);
+  position: relative;
+  min-height: 28px;
 }
 .ds-card-grid .sections-card-ui .ds-card-topic {
   display: grid;
@@ -6323,10 +6349,17 @@ main section {
 }
 
 .card-stp-thumbs-buttons-wrapper {
-  margin-top: var(--space-medium);
+  margin-block-start: var(--space-medium);
   z-index: 1;
   visibility: hidden;
   opacity: 0;
+}
+.sections-card-ui .card-stp-thumbs-buttons-wrapper {
+  margin-block-start: 0;
+  position: absolute;
+  inset-inline-end: 0;
+  inset-block-start: 50%;
+  transform: translateY(-50%);
 }
 .card-stp-thumbs-buttons-wrapper .card-stp-thumbs-buttons {
   display: flex;
@@ -6339,6 +6372,7 @@ main section {
   pointer-events: auto;
   opacity: 0.8;
   -moz-context-properties: fill;
+  cursor: pointer;
 }
 .card-stp-thumbs-buttons-wrapper .card-stp-thumbs-button:hover, .card-stp-thumbs-buttons-wrapper .card-stp-thumbs-button:focus-visible {
   opacity: 1;

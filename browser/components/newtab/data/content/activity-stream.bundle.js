@@ -771,6 +771,7 @@ class DiscoveryStreamAdminUI extends (external_React_default()).PureComponent {
     } = e.target;
     this.props.dispatch(actionCreators.SetPref("discoverystream.sections.enabled", pressed));
     this.props.dispatch(actionCreators.SetPref("discoverystream.sections.cards.enabled", pressed));
+    this.props.dispatch(actionCreators.SetPref("discoverystream.sections.cards.thumbsUpDown.enabled", pressed));
   }
   renderComponent(width, component) {
     return /*#__PURE__*/external_React_default().createElement("table", null, /*#__PURE__*/external_React_default().createElement("tbody", null, /*#__PURE__*/external_React_default().createElement(Row, null, /*#__PURE__*/external_React_default().createElement("td", {
@@ -2982,7 +2983,8 @@ const DefaultMeta = ({
   state,
   format,
   topic,
-  isSectionsCard
+  isSectionsCard,
+  showTopics
 }) => /*#__PURE__*/external_React_default().createElement("div", {
   className: "meta"
 }, /*#__PURE__*/external_React_default().createElement("div", {
@@ -3010,7 +3012,13 @@ const DefaultMeta = ({
   isThumbsUpActive: state.isThumbsUpActive
 }), isSectionsCard && /*#__PURE__*/external_React_default().createElement("div", {
   className: "sections-card-footer"
-}, /*#__PURE__*/external_React_default().createElement("span", {
+}, !isListCard && format !== "rectangle" && mayHaveSectionsCards && mayHaveThumbsUpDown && /*#__PURE__*/external_React_default().createElement(DSThumbsUpDownButtons, {
+  onThumbsDownClick: onThumbsDownClick,
+  onThumbsUpClick: onThumbsUpClick,
+  sponsor: sponsor,
+  isThumbsDownActive: state.isThumbsDownActive,
+  isThumbsUpActive: state.isThumbsUpActive
+}), showTopics && /*#__PURE__*/external_React_default().createElement("span", {
   className: "ds-card-topic",
   "data-l10n-id": `newtab-topic-label-${topic}`
 })), !newSponsoredLabel && /*#__PURE__*/external_React_default().createElement(DSContextFooter, {
@@ -3585,7 +3593,8 @@ class _DSCard extends (external_React_default()).PureComponent {
       onThumbsDownClick: this.onThumbsDownClick,
       state: this.state,
       isListCard: isListCard,
-      isSectionsCard: this.props.showTopics && this.props.mayHaveSectionsCards && this.props.topic && !isListCard,
+      showTopics: this.props.showTopics,
+      isSectionsCard: this.props.mayHaveSectionsCards && this.props.topic && !isListCard,
       format: format,
       topic: this.props.topic
     }), /*#__PURE__*/external_React_default().createElement("div", {
@@ -9559,6 +9568,7 @@ function useIntersectionObserver(callback, options = {
 
 // Prefs
 const CardSections_PREF_SECTIONS_CARDS_ENABLED = "discoverystream.sections.cards.enabled";
+const PREF_SECTIONS_CARDS_THUMBS_UP_DOWN_ENABLED = "discoverystream.sections.cards.thumbsUpDown.enabled";
 const CardSections_PREF_TOPICS_ENABLED = "discoverystream.topicLabels.enabled";
 const CardSections_PREF_TOPICS_SELECTED = "discoverystream.topicSelection.selectedTopics";
 const CardSections_PREF_TOPICS_AVAILABLE = "discoverystream.topicSelection.topics";
@@ -9582,6 +9592,7 @@ function CardSections({
   const prefs = (0,external_ReactRedux_namespaceObject.useSelector)(state => state.Prefs.values);
   const showTopics = prefs[CardSections_PREF_TOPICS_ENABLED];
   const mayHaveSectionsCards = prefs[CardSections_PREF_SECTIONS_CARDS_ENABLED];
+  const mayHaveSectionsCardsThumbsUpDown = prefs[PREF_SECTIONS_CARDS_THUMBS_UP_DOWN_ENABLED];
   const mayHaveThumbsUpDown = prefs[CardSections_PREF_THUMBS_UP_DOWN_ENABLED];
   const selectedTopics = prefs[CardSections_PREF_TOPICS_SELECTED];
   const availableTopics = prefs[CardSections_PREF_TOPICS_AVAILABLE];
@@ -9602,6 +9613,9 @@ function CardSections({
   if (!data) {
     return null;
   }
+
+  // Only show thumbs up/down buttons if both default thumbs and sections thumbs prefs are enabled
+  const mayHaveCombinedThumbsUpDown = mayHaveSectionsCardsThumbsUpDown && mayHaveThumbsUpDown;
   function getLayoutData(responsiveLayout, index) {
     let layoutData = {
       position: {},
@@ -9710,7 +9724,7 @@ function CardSections({
         received_rank: rec.received_rank,
         format: rec.format,
         alt_text: rec.alt_text,
-        mayHaveThumbsUpDown: mayHaveThumbsUpDown,
+        mayHaveThumbsUpDown: mayHaveCombinedThumbsUpDown,
         mayHaveSectionsCards: mayHaveSectionsCards,
         showTopics: shouldShowLabels,
         selectedTopics: selectedTopics,

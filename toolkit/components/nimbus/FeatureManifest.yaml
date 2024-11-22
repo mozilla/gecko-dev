@@ -1032,6 +1032,14 @@ newTabSectionsExperiment:
         pref:  browser.newtabpage.activity-stream.discoverystream.sections.enabled
       description: >-
         Enable the Section UI for recommended stories on newtab
+    cardRefreshThumbsUpDownEnabled:
+      type: boolean
+      setPref:
+        branch: user
+        pref:  browser.newtabpage.activity-stream.discoverystream.sections.cards.thumbsUpDown.enabled
+      description: >-
+        Enable the thumbs up/down buttons in the revised pocket story
+        card UI in recommended stories on newtab
     cardRefreshEnabled:
       type: boolean
       setPref:

@@ -1,8 +1,16 @@
 .card-stp-thumbs-buttons-wrapper {
-  margin-top: var(--space-medium);
+  margin-block-start: var(--space-medium);
   z-index: 1;
   visibility: hidden;
   opacity: 0;
+
+  .sections-card-ui & {
+    margin-block-start: 0;
+    position: absolute;
+    inset-inline-end: 0;
+    inset-block-start: 50%;
+    transform: translateY(-50%);
+  }
 
   .card-stp-thumbs-buttons {
     display: flex;
@@ -16,6 +24,7 @@
     pointer-events: auto;
     opacity: 0.8;
     -moz-context-properties: fill;
+    cursor: pointer;
 
     &:hover,
     &:focus-visible {

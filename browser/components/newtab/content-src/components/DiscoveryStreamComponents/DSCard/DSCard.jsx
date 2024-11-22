@@ -95,6 +95,7 @@ export const DefaultMeta = ({
   format,
   topic,
   isSectionsCard,
+  showTopics,
 }) => (
   <div className="meta">
     <div className="info-wrap">
@@ -138,10 +139,24 @@ export const DefaultMeta = ({
       )}
     {isSectionsCard && (
       <div className="sections-card-footer">
-        <span
-          className="ds-card-topic"
-          data-l10n-id={`newtab-topic-label-${topic}`}
-        />
+        {!isListCard &&
+          format !== "rectangle" &&
+          mayHaveSectionsCards &&
+          mayHaveThumbsUpDown && (
+            <DSThumbsUpDownButtons
+              onThumbsDownClick={onThumbsDownClick}
+              onThumbsUpClick={onThumbsUpClick}
+              sponsor={sponsor}
+              isThumbsDownActive={state.isThumbsDownActive}
+              isThumbsUpActive={state.isThumbsUpActive}
+            />
+          )}
+        {showTopics && (
+          <span
+            className="ds-card-topic"
+            data-l10n-id={`newtab-topic-label-${topic}`}
+          />
+        )}
       </div>
     )}
     {!newSponsoredLabel && (
@@ -838,11 +853,9 @@ export class _DSCard extends React.PureComponent {
             onThumbsDownClick={this.onThumbsDownClick}
             state={this.state}
             isListCard={isListCard}
+            showTopics={this.props.showTopics}
             isSectionsCard={
-              this.props.showTopics &&
-              this.props.mayHaveSectionsCards &&
-              this.props.topic &&
-              !isListCard
+              this.props.mayHaveSectionsCards && this.props.topic && !isListCard
             }
             format={format}
             topic={this.props.topic}

@@ -11,6 +11,8 @@ import { useIntersectionObserver } from "../../../lib/hooks";
 
 // Prefs
 const PREF_SECTIONS_CARDS_ENABLED = "discoverystream.sections.cards.enabled";
+const PREF_SECTIONS_CARDS_THUMBS_UP_DOWN_ENABLED =
+  "discoverystream.sections.cards.thumbsUpDown.enabled";
 const PREF_TOPICS_ENABLED = "discoverystream.topicLabels.enabled";
 const PREF_TOPICS_SELECTED = "discoverystream.topicSelection.selectedTopics";
 const PREF_TOPICS_AVAILABLE = "discoverystream.topicSelection.topics";
@@ -33,6 +35,8 @@ function CardSections({
   const prefs = useSelector(state => state.Prefs.values);
   const showTopics = prefs[PREF_TOPICS_ENABLED];
   const mayHaveSectionsCards = prefs[PREF_SECTIONS_CARDS_ENABLED];
+  const mayHaveSectionsCardsThumbsUpDown =
+    prefs[PREF_SECTIONS_CARDS_THUMBS_UP_DOWN_ENABLED];
   const mayHaveThumbsUpDown = prefs[PREF_THUMBS_UP_DOWN_ENABLED];
   const selectedTopics = prefs[PREF_TOPICS_SELECTED];
   const availableTopics = prefs[PREF_TOPICS_AVAILABLE];
@@ -59,6 +63,10 @@ function CardSections({
   if (!data) {
     return null;
   }
+
+  // Only show thumbs up/down buttons if both default thumbs and sections thumbs prefs are enabled
+  const mayHaveCombinedThumbsUpDown =
+    mayHaveSectionsCardsThumbsUpDown && mayHaveThumbsUpDown;
 
   function getLayoutData(responsiveLayout, index) {
     let layoutData = {
@@ -166,7 +174,7 @@ function CardSections({
                     received_rank={rec.received_rank}
                     format={rec.format}
                     alt_text={rec.alt_text}
-                    mayHaveThumbsUpDown={mayHaveThumbsUpDown}
+                    mayHaveThumbsUpDown={mayHaveCombinedThumbsUpDown}
                     mayHaveSectionsCards={mayHaveSectionsCards}
                     showTopics={shouldShowLabels}
                     selectedTopics={selectedTopics}
