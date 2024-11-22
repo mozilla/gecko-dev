@@ -97,6 +97,7 @@
   _(IntlGuardToSegmentIterator)                    \
                                                    \
   _(MapConstructor)                                \
+  _(MapDelete)                                     \
   _(MapGet)                                        \
   _(MapHas)                                        \
   _(MapSet)                                        \
@@ -155,6 +156,7 @@
   _(GetFirstDollarIndex)                           \
                                                    \
   _(SetConstructor)                                \
+  _(SetDelete)                                     \
   _(SetHas)                                        \
   _(SetAdd)                                        \
   _(SetSize)                                       \

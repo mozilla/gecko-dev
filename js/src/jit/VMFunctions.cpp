@@ -3115,6 +3115,11 @@ bool SetObjectHas(JSContext* cx, Handle<SetObject*> obj, HandleValue key,
   return obj->has(cx, key, rval);
 }
 
+bool SetObjectDelete(JSContext* cx, Handle<SetObject*> obj, HandleValue key,
+                     bool* rval) {
+  return obj->delete_(cx, key, rval);
+}
+
 bool SetObjectAdd(JSContext* cx, Handle<SetObject*> obj, HandleValue key) {
   return obj->add(cx, key);
 }
@@ -3136,6 +3141,11 @@ bool MapObjectHas(JSContext* cx, Handle<MapObject*> obj, HandleValue key,
 bool MapObjectGet(JSContext* cx, Handle<MapObject*> obj, HandleValue key,
                   MutableHandleValue rval) {
   return obj->get(cx, key, rval);
+}
+
+bool MapObjectDelete(JSContext* cx, Handle<MapObject*> obj, HandleValue key,
+                     bool* rval) {
+  return obj->delete_(cx, key, rval);
 }
 
 bool MapObjectSet(JSContext* cx, Handle<MapObject*> obj, HandleValue key,

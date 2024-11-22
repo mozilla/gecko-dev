@@ -10584,6 +10584,24 @@ bool CacheIRCompiler::emitSetHasObjectResult(ObjOperandId setId,
   return true;
 }
 
+bool CacheIRCompiler::emitSetDeleteResult(ObjOperandId setId,
+                                          ValOperandId valId) {
+  JitSpew(JitSpew_Codegen, "%s", __FUNCTION__);
+
+  AutoCallVM callvm(masm, this, allocator);
+
+  Register set = allocator.useRegister(masm, setId);
+  ValueOperand val = allocator.useValueRegister(masm, valId);
+
+  callvm.prepare();
+  masm.Push(val);
+  masm.Push(set);
+
+  using Fn = bool (*)(JSContext*, Handle<SetObject*>, HandleValue, bool*);
+  callvm.call<Fn, jit::SetObjectDelete>();
+  return true;
+}
+
 bool CacheIRCompiler::emitSetAddResult(ObjOperandId setId, ValOperandId keyId) {
   JitSpew(JitSpew_Codegen, "%s", __FUNCTION__);
 
@@ -10750,6 +10768,24 @@ bool CacheIRCompiler::emitMapGetResult(ObjOperandId mapId, ValOperandId valId) {
   using Fn =
       bool (*)(JSContext*, Handle<MapObject*>, HandleValue, MutableHandleValue);
   callvm.call<Fn, jit::MapObjectGet>();
+  return true;
+}
+
+bool CacheIRCompiler::emitMapDeleteResult(ObjOperandId mapId,
+                                          ValOperandId valId) {
+  JitSpew(JitSpew_Codegen, "%s", __FUNCTION__);
+
+  AutoCallVM callvm(masm, this, allocator);
+
+  Register map = allocator.useRegister(masm, mapId);
+  ValueOperand val = allocator.useValueRegister(masm, valId);
+
+  callvm.prepare();
+  masm.Push(val);
+  masm.Push(map);
+
+  using Fn = bool (*)(JSContext*, Handle<MapObject*>, HandleValue, bool*);
+  callvm.call<Fn, jit::MapObjectDelete>();
   return true;
 }
 

@@ -3252,6 +3252,14 @@
   alias_set: custom
   possibly_calls: true
 
+- name: SetObjectDelete
+  operands:
+    setObject: Object
+    key: Value
+  result_type: Boolean
+  possibly_calls: true
+  generate_lir: true
+
 - name: SetObjectAdd
   operands:
     setObject: Object
@@ -3348,6 +3356,14 @@
   congruent_to: if_operands_equal
   alias_set: custom
   possibly_calls: true
+
+- name: MapObjectDelete
+  operands:
+    mapObject: Object
+    key: Value
+  result_type: Boolean
+  possibly_calls: true
+  generate_lir: true
 
 - name: MapObjectSet
   operands:

@@ -5282,6 +5282,18 @@ bool WarpCacheIRTranspiler::emitSetHasResult(ObjOperandId setId,
   return true;
 }
 
+bool WarpCacheIRTranspiler::emitSetDeleteResult(ObjOperandId setId,
+                                                ValOperandId keyId) {
+  MDefinition* set = getOperand(setId);
+  MDefinition* key = getOperand(keyId);
+
+  auto* ins = MSetObjectDelete::New(alloc(), set, key);
+  addEffectful(ins);
+
+  pushResult(ins);
+  return resumeAfter(ins);
+}
+
 bool WarpCacheIRTranspiler::emitSetAddResult(ObjOperandId setId,
                                              ValOperandId keyId) {
   MDefinition* set = getOperand(setId);
@@ -5510,6 +5522,18 @@ bool WarpCacheIRTranspiler::emitMapGetResult(ObjOperandId mapId,
 
   pushResult(ins);
   return true;
+}
+
+bool WarpCacheIRTranspiler::emitMapDeleteResult(ObjOperandId mapId,
+                                                ValOperandId keyId) {
+  MDefinition* map = getOperand(mapId);
+  MDefinition* key = getOperand(keyId);
+
+  auto* ins = MMapObjectDelete::New(alloc(), map, key);
+  addEffectful(ins);
+
+  pushResult(ins);
+  return resumeAfter(ins);
 }
 
 bool WarpCacheIRTranspiler::emitMapSetResult(ObjOperandId mapId,

@@ -21667,6 +21667,13 @@ void CodeGenerator::visitSetObjectHasValueVMCall(
   callVM<Fn, jit::SetObjectHas>(ins);
 }
 
+void CodeGenerator::visitSetObjectDelete(LSetObjectDelete* ins) {
+  pushArg(ToValue(ins, LSetObjectDelete::KeyIndex));
+  pushArg(ToRegister(ins->setObject()));
+  using Fn = bool (*)(JSContext*, Handle<SetObject*>, HandleValue, bool*);
+  callVM<Fn, jit::SetObjectDelete>(ins);
+}
+
 void CodeGenerator::visitSetObjectAdd(LSetObjectAdd* ins) {
   pushArg(ToValue(ins, LSetObjectAdd::KeyIndex));
   pushArg(ToRegister(ins->setObject()));
@@ -21777,6 +21784,13 @@ void CodeGenerator::visitMapObjectGetValueVMCall(
   using Fn =
       bool (*)(JSContext*, Handle<MapObject*>, HandleValue, MutableHandleValue);
   callVM<Fn, jit::MapObjectGet>(ins);
+}
+
+void CodeGenerator::visitMapObjectDelete(LMapObjectDelete* ins) {
+  pushArg(ToValue(ins, LMapObjectDelete::KeyIndex));
+  pushArg(ToRegister(ins->mapObject()));
+  using Fn = bool (*)(JSContext*, Handle<MapObject*>, HandleValue, bool*);
+  callVM<Fn, jit::MapObjectDelete>(ins);
 }
 
 void CodeGenerator::visitMapObjectSet(LMapObjectSet* ins) {

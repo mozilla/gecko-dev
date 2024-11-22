@@ -10242,6 +10242,37 @@ AttachDecision InlinableNativeIRGenerator::tryAttachSetHas() {
   return AttachDecision::Attach;
 }
 
+AttachDecision InlinableNativeIRGenerator::tryAttachSetDelete() {
+  // Ensure |this| is a SetObject.
+  if (!thisval_.isObject() || !thisval_.toObject().is<SetObject>()) {
+    return AttachDecision::NoAction;
+  }
+
+  // Need a single argument.
+  if (argc_ != 1) {
+    return AttachDecision::NoAction;
+  }
+
+  // Initialize the input operand.
+  initializeInputOperand();
+
+  // Guard callee is the 'delete' native function.
+  emitNativeCalleeGuard();
+
+  // Guard |this| is a SetObject.
+  ValOperandId thisValId =
+      writer.loadArgumentFixedSlot(ArgumentKind::This, argc_);
+  ObjOperandId objId = writer.guardToObject(thisValId);
+  emitOptimisticClassGuard(objId, &thisval_.toObject(), GuardClassKind::Set);
+
+  ValOperandId argId = writer.loadArgumentFixedSlot(ArgumentKind::Arg0, argc_);
+  writer.setDeleteResult(objId, argId);
+  writer.returnFromIC();
+
+  trackAttached("SetDelete");
+  return AttachDecision::Attach;
+}
+
 AttachDecision InlinableNativeIRGenerator::tryAttachSetAdd() {
   // Ensure |this| is a SetObject.
   if (!thisval_.isObject() || !thisval_.toObject().is<SetObject>()) {
@@ -10474,6 +10505,37 @@ AttachDecision InlinableNativeIRGenerator::tryAttachMapGet() {
   writer.returnFromIC();
 
   trackAttached("MapGet");
+  return AttachDecision::Attach;
+}
+
+AttachDecision InlinableNativeIRGenerator::tryAttachMapDelete() {
+  // Ensure |this| is a MapObject.
+  if (!thisval_.isObject() || !thisval_.toObject().is<MapObject>()) {
+    return AttachDecision::NoAction;
+  }
+
+  // Need a single argument.
+  if (argc_ != 1) {
+    return AttachDecision::NoAction;
+  }
+
+  // Initialize the input operand.
+  initializeInputOperand();
+
+  // Guard callee is the 'delete' native function.
+  emitNativeCalleeGuard();
+
+  // Guard |this| is a MapObject.
+  ValOperandId thisValId =
+      writer.loadArgumentFixedSlot(ArgumentKind::This, argc_);
+  ObjOperandId objId = writer.guardToObject(thisValId);
+  emitOptimisticClassGuard(objId, &thisval_.toObject(), GuardClassKind::Map);
+
+  ValOperandId argId = writer.loadArgumentFixedSlot(ArgumentKind::Arg0, argc_);
+  writer.mapDeleteResult(objId, argId);
+  writer.returnFromIC();
+
+  trackAttached("MapDelete");
   return AttachDecision::Attach;
 }
 
@@ -12401,6 +12463,8 @@ AttachDecision InlinableNativeIRGenerator::tryAttachStub() {
       return AttachDecision::NoAction;  // Not callable.
     case InlinableNative::SetHas:
       return tryAttachSetHas();
+    case InlinableNative::SetDelete:
+      return tryAttachSetDelete();
     case InlinableNative::SetAdd:
       return tryAttachSetAdd();
     case InlinableNative::SetSize:
@@ -12413,6 +12477,8 @@ AttachDecision InlinableNativeIRGenerator::tryAttachStub() {
       return tryAttachMapHas();
     case InlinableNative::MapGet:
       return tryAttachMapGet();
+    case InlinableNative::MapDelete:
+      return tryAttachMapDelete();
     case InlinableNative::MapSet:
       return tryAttachMapSet();
 

@@ -7666,6 +7666,13 @@ void LIRGenerator::visitSetObjectHasValueVMCall(MSetObjectHasValueVMCall* ins) {
   assignSafepoint(lir, ins);
 }
 
+void LIRGenerator::visitSetObjectDelete(MSetObjectDelete* ins) {
+  auto* lir = new (alloc()) LSetObjectDelete(
+      useRegisterAtStart(ins->setObject()), useBoxAtStart(ins->key()));
+  defineReturn(lir, ins);
+  assignSafepoint(lir, ins);
+}
+
 void LIRGenerator::visitSetObjectAdd(MSetObjectAdd* ins) {
   auto* lir = new (alloc()) LSetObjectAdd(useRegisterAtStart(ins->setObject()),
                                           useBoxAtStart(ins->key()));
@@ -7730,6 +7737,13 @@ void LIRGenerator::visitMapObjectGetValue(MMapObjectGetValue* ins) {
 void LIRGenerator::visitMapObjectGetValueVMCall(MMapObjectGetValueVMCall* ins) {
   auto* lir = new (alloc()) LMapObjectGetValueVMCall(
       useRegisterAtStart(ins->map()), useBoxAtStart(ins->value()));
+  defineReturn(lir, ins);
+  assignSafepoint(lir, ins);
+}
+
+void LIRGenerator::visitMapObjectDelete(MMapObjectDelete* ins) {
+  auto* lir = new (alloc()) LMapObjectDelete(
+      useRegisterAtStart(ins->mapObject()), useBoxAtStart(ins->key()));
   defineReturn(lir, ins);
   assignSafepoint(lir, ins);
 }
