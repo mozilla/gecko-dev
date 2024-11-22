@@ -89,6 +89,7 @@ UNIFIED_SOURCES += [
     "testLookup.cpp",
     "testLooselyEqual.cpp",
     "testMappedArrayBuffer.cpp",
+    "testMapSet.cpp",
     "testMemoryAssociation.cpp",
     "testMutedErrors.cpp",
     "testNewObject.cpp",
