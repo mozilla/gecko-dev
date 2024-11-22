@@ -120,6 +120,13 @@
     <!-- Text for the message displayed for the popup promoting the long press of navigation in the navigation bar. -->
     <string name="navbar_navigation_buttons_cfr_message">يا ئوقنى چېكىپ بېسىپ تۇرۇلسا بۇ بەتكۈچنىڭ تارىخىدىكى بەتلىرى ئارىسىدا ئاتلايدۇ.</string>
 
+    <!-- Address bar swipe "contextual feature recommendation" (CFR) -->
+    <!-- Text for the title displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
+    <string name="address_bar_swipe_cfr_title">قورال بالداق سۈرۈلسە بەتكۈچ ئالماشتۇرىدۇ</string>
+
+    <!-- Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
+    <string name="address_bar_swipe_cfr_message">ئوڭ ياكى سولغا سۈرۈلسە ئالماشتۇرىدۇ. ئاخىرقى بەتكۈچىڭىز سولغا سۈرۈلسە يېڭى بەتكۈچ ئېچىلىدۇ.</string>
+
     <!-- Tablet navigation bar "contextual feature recommendation" (CFR) -->
     <!-- Text for the title displayed in the contextual feature recommendation popup promoting the tablet navigation bar. -->
     <string name="tablet_nav_bar_cfr_title" moz:removedIn="132" tools:ignore="UnusedResources">يېڭى: ئالدىغا كەينىگە يا ئوقنى چېكىپ بەت ئالماشتۇرغىلى بولىدۇ</string>
@@ -246,8 +253,12 @@
     <string name="browser_menu_open_in_regular_tab">ئادەتتىكى بەتكۈچتە ئاچ</string>
     <!-- Browser menu toggle that adds a shortcut to the site on the device home screen. -->
     <string name="browser_menu_add_to_homescreen">باش ئېكرانغا قوش</string>
+    <!-- Browser menu toggle that adds a PWA of the site on the device home screen. -->
+    <string name="browser_menu_add_app_to_homescreen">ئەپنى باش ئېكرانغا قوش</string>
     <!-- Browser menu toggle that adds a shortcut to the site on the device home screen. -->
     <string name="browser_menu_add_to_homescreen_2">باش ئېكرانغا قوش…</string>
+    <!-- Browser menu toggle that adds a PWA of the site on the device home screen. -->
+    <string name="browser_menu_add_app_to_homescreen_2">ئەپنى باش ئېكرانغا قوش…</string>
     <!-- Text for notifying users that Xiaomi devices require additional permissions to add to home screen -->
     <string name="browser_menu_add_to_homescreen_xiaomi">شياۋمى ئۈسكۈنىلىرىدە باش ئېكرانغا تېزلەتمە قوشۇشتا قوشۇمچە ئىجازەتكە ئېھتىياجلىق بولۇشى مۇمكىن. تەڭشەكلىرىڭىزنى تەكشۈرۈڭ.</string>
     <!-- Content description (not visible, for screen readers etc.) for the Resync tabs button -->
@@ -333,9 +344,19 @@
     <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar custom tab menu. -->
     <string name="browser_custom_tab_menu_handlebar_content_description">ئىختىيارى بەتكۈچ تىزىملىك جەدۋىلىنى تاقايدۇ</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-    <string name="browser_menu_tools_description_with_translate">ئوقۇرمەن كۆرۈنۈشى، تەرجىمە، بېسىش، ھەمبەھىر، ئەپ ئېچىش</string>
+    <string name="browser_menu_tools_description_with_translate" moz:removedIn="133" tools:ignore="UnusedResources">ئوقۇرمەن كۆرۈنۈشى، تەرجىمە، بېسىش، ھەمبەھىر، ئەپ ئېچىش</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-    <string name="browser_menu_tools_description">ئوقۇرمەن كۆرۈنۈشى، بېسىش، ھەمبەھىر، ئەپ ئېچىش</string>
+    <string name="browser_menu_tools_description" moz:removedIn="133" tools:ignore="UnusedResources">ئوقۇرمەن كۆرۈنۈشى، بېسىش، ھەمبەھىر، ئەپ ئېچىش</string>
+    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu
+         The first parameter is the label of the report site issue (for example: Report Site issue) -->
+    <string name="browser_menu_tools_description_with_translate_with_report_site">ئوقۇرمەن كۆرۈنۈشى، تەرجىمە، %s، بېسىش، ھەمبەھىر، ئەپ ئېچىش</string>
+    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
+    <string name="browser_menu_tools_description_with_translate_without_report_site">ئوقۇرمەن كۆرۈنۈشى، تەرجىمە، بېسىش، ھەمبەھىر، ئەپ ئېچىش</string>
+    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu
+         The first parameter is the label of the report site issue (for example: Report Site issue) -->
+    <string name="browser_menu_tools_description_with_report_site">ئوقۇرمەن كۆرۈنۈشى، %s، بېسىش، ھەمبەھىر، ئەپ ئېچىش</string>
+    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
+    <string name="browser_menu_tools_description_without_report_site">ئوقۇرمەن كۆرۈنۈشى، بېسىش، ھەمبەھىر، ئەپ ئېچىش</string>
     <!-- Browser menu label that navigates to the save sub-menu, which contains various save related menu items such as
          bookmarking a page, saving to collection, shortcut or as a PDF, and adding to home screen -->
     <string name="browser_menu_save">ساقلا</string>
@@ -943,8 +964,12 @@
     <string name="exceptions_empty_message_learn_more_link">تەپسىلاتى</string>
 
     <!-- Preference switch for usage and technical data collection -->
-    <string name="preference_usage_data">ئىشلىتىلىشى ۋە تېخنىكىلىق سانلىق مەلۇمات</string>
+    <string name="preference_usage_data" moz:removedIn="134" tools:ignore="UnusedResources">ئىشلىتىلىشى ۋە تېخنىكىلىق سانلىق مەلۇمات</string>
 
+    <!-- Preference switch for usage and technical data collection -->
+    <string name="preference_usage_data_1">تېخنىكىلىق ۋە تەسىرلىشىش سانلىق مەلۇماتى</string>
+    <!-- Preference switch for usage and technical learn more link -->
+    <string name="preference_usage_data_learn_more" tools:ignore="UnusedResources">تەپسىلاتى</string>
     <!-- Preference description for usage and technical data collection -->
     <string name="preferences_usage_data_description">تور كۆرگۈ ئىشلىتىش جەريانىدىكى ئىش ئۈنۈمى، ئىشلىتىش ئۇسۇلى، قاتتىق دېتال ۋە خاسلاشتۇرۇلغان سانلىق مەلۇماتنى Mozilla بىلەن ھەمبەھىرلەپ، %1$s نى ياخشىلىشىمىزغا ياردەم بېرىڭ</string>
     <!-- Preference switch for marketing data collection -->
@@ -1242,6 +1267,32 @@
 
 
     <!-- WebCompat Reporter -->
+
+
+    <!-- WebCompat Reporter -->
+    <!-- The title of the Web Compat Reporter feature. This is displayed in the top app bar. -->
+    <string name="webcompat_reporter_screen_title">بۇزۇلغان بېكەتنى دوكلات قىلىدۇ</string>
+
+
+    <!-- The description of the Web Compat Reporter feature. This first parameter is the name of the application (For example: Fenix) -->
+    <string name="webcompat_reporter_description">ھەممە ئىشلەتكۈچىنىڭ %1$s ئىشلىتىش تەسىراتىنى ياخشىلاشقا ياردەم بېرىدۇ. Mozilla خىزمەتچىلىرى سىز يوللىغان ئۇچۇرغا ئاساسەن تور بېكەت مەسىلىسىنى ئوڭشايدۇ.</string>
+    <!-- The text field label of the URL text field. This is displayed above the user-inputted URL. -->
+    <string name="webcompat_reporter_label_url">تور ئادرېسى</string>
+    <!-- The error message of the URL text field when an invalid URL has been entered. -->
+    <string name="webcompat_reporter_url_error_invalid">ئىناۋەتلىك تور ئادرېسى كىرگۈزۈڭ</string>
+    <!-- The label/title of an optional field in the Web Compat Reporter feature for explaining a high-level reason why the site is broken. -->
+    <string name="webcompat_reporter_label_whats_broken">نېمە بۇزۇلدى؟ (تاللاشچان)</string>
+    <!-- The placeholder text for the dropdown where a user can select a high-level reason why the site is broken. -->
+    <string name="webcompat_reporter_choose_reason">سەۋەب تاللىنىدۇ</string>
+    <!-- The label/title of an optional field in the Web Compat Reporter feature for adding additional information. -->
+    <string name="webcompat_reporter_label_description">مەسىلە بايانى (تاللاشچان)</string>
+    <!-- The button text for navigating away from the feature to provide more information on the broken site's bug report. -->
+    <string name="webcompat_reporter_send_more_info">تېخىمۇ كۆپ ئۇچۇر يوللايدۇ</string>
+    <!-- The button text for the cancel button to leave the Web Compat Reporter feature. -->
+    <string name="webcompat_reporter_cancel">ۋاز كەچ</string>
+    <!-- The button text for the send button to submit the provided form data. -->
+    <string name="webcompat_reporter_send">يوللا</string>
+
 
     <!-- These reason strings are dropdown options on a WebCompat reporter form, indicating what is broken on the site. -->
     <!-- Broken site reason text for site slow or not working -->

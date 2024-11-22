@@ -118,6 +118,13 @@
     <!-- Text for the message displayed for the popup promoting the long press of navigation in the navigation bar. -->
     <string name="navbar_navigation_buttons_cfr_message">Pótusniśo a źaržćo šypki, aby mjazy bokami w historiji toś togo rejtarika tam a sam skócył.</string>
 
+    <!-- Address bar swipe "contextual feature recommendation" (CFR) -->
+    <!-- Text for the title displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
+    <string name="address_bar_swipe_cfr_title">Šmarniśo pśez symbolowu rědku, aby rejtariki wuměnił</string>
+
+    <!-- Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
+    <string name="address_bar_swipe_cfr_message">Šmarniśo nalěwo abo napšawo, aby wuměnił. Šmarniśo nalěwo na waš slědny rejtarik, aby nowy rejtarik wócynił.</string>
+
     <!-- Tablet navigation bar "contextual feature recommendation" (CFR) -->
     <!-- Text for the title displayed in the contextual feature recommendation popup promoting the tablet navigation bar. -->
     <string name="tablet_nav_bar_cfr_title" moz:removedIn="132" tools:ignore="UnusedResources">Nowy: šypce slědk a doprědka z jadnym dotyknjenim</string>
@@ -247,8 +254,12 @@
     <string name="browser_menu_open_in_regular_tab">W normalnem rejtariku wócyniś</string>
     <!-- Browser menu toggle that adds a shortcut to the site on the device home screen. -->
     <string name="browser_menu_add_to_homescreen">Startowej wobrazowce pśidaś</string>
+    <!-- Browser menu toggle that adds a PWA of the site on the device home screen. -->
+    <string name="browser_menu_add_app_to_homescreen">Nałoženje startowej wobrazowce pśidaś</string>
     <!-- Browser menu toggle that adds a shortcut to the site on the device home screen. -->
     <string name="browser_menu_add_to_homescreen_2">Startowej wobrazowce pśidaś…</string>
+    <!-- Browser menu toggle that adds a PWA of the site on the device home screen. -->
+    <string name="browser_menu_add_app_to_homescreen_2">Nałoženje startowej wobrazowce pśidaś…</string>
     <!-- Text for notifying users that Xiaomi devices require additional permissions to add to home screen -->
     <string name="browser_menu_add_to_homescreen_xiaomi">Rědy Xiaomi snaź wósebne pšawa trjebaju, aby startowej wobrazowce zwězanja pśidali. Pšosym pśeglědujśo swóje nastajenja.</string>
     <!-- Content description (not visible, for screen readers etc.) for the Resync tabs button -->
@@ -336,9 +347,19 @@
     <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar custom tab menu. -->
     <string name="browser_custom_tab_menu_handlebar_content_description">Swójski meni rejtarikow zacyniś</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-    <string name="browser_menu_tools_description_with_translate">Cytański naglěd, pśełožyś, śišćaś, źěliś, nałoženje wócyniś</string>
+    <string name="browser_menu_tools_description_with_translate" moz:removedIn="133" tools:ignore="UnusedResources">Cytański naglěd, pśełožyś, śišćaś, źěliś, nałoženje wócyniś</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-    <string name="browser_menu_tools_description">Cytański naglěd, śišćaś, źěliś, nałoženje wócyniś</string>
+    <string name="browser_menu_tools_description" moz:removedIn="133" tools:ignore="UnusedResources">Cytański naglěd, śišćaś, źěliś, nałoženje wócyniś</string>
+    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu
+         The first parameter is the label of the report site issue (for example: Report Site issue) -->
+    <string name="browser_menu_tools_description_with_translate_with_report_site">Cytański naglěd, pśełožyś, %s, śišćaś, źěliś, nałoženje wócyniś</string>
+    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
+    <string name="browser_menu_tools_description_with_translate_without_report_site">Cytański naglěd, pśełožyś, śišćaś, źěliś, nałoženje wócyniś</string>
+    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu
+         The first parameter is the label of the report site issue (for example: Report Site issue) -->
+    <string name="browser_menu_tools_description_with_report_site">Cytański naglěd, %s, śišćaś, źěliś, nałoženje wócyniś</string>
+    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
+    <string name="browser_menu_tools_description_without_report_site">Cytański naglěd, śišćaś, źěliś, nałoženje wócyniś</string>
     <!-- Browser menu label that navigates to the save sub-menu, which contains various save related menu items such as
          bookmarking a page, saving to collection, shortcut or as a PDF, and adding to home screen -->
     <string name="browser_menu_save">Składowaś</string>
@@ -947,7 +968,11 @@
     <string name="exceptions_empty_message_learn_more_link">Dalšne informacije</string>
 
     <!-- Preference switch for usage and technical data collection -->
-    <string name="preference_usage_data">Wužyśe a techniske daty</string>
+    <string name="preference_usage_data" moz:removedIn="134" tools:ignore="UnusedResources">Wužyśe a techniske daty</string>
+    <!-- Preference switch for usage and technical data collection -->
+    <string name="preference_usage_data_1">Techniske daty a daty interakcije</string>
+    <!-- Preference switch for usage and technical learn more link -->
+    <string name="preference_usage_data_learn_more" tools:ignore="UnusedResources">Dalšne informacije</string>
     <!-- Preference description for usage and technical data collection -->
     <string name="preferences_usage_data_description">Źěli wugbaśe, wužyśe, hardware a pśiměrjenja wašogo wobglědowaka z Mozilla, aby nam pomagała, %1$spólěpšyś</string>
     <!-- Preference switch for marketing data collection -->
@@ -1243,6 +1268,30 @@
 
 
     <!-- WebCompat Reporter -->
+
+
+    <!-- WebCompat Reporter -->
+    <!-- The title of the Web Compat Reporter feature. This is displayed in the top app bar. -->
+    <string name="webcompat_reporter_screen_title">Wobškóźone sedło k wěsći daś</string>
+    <!-- The description of the Web Compat Reporter feature. This first parameter is the name of the application (For example: Fenix) -->
+    <string name="webcompat_reporter_description">Pomagajśo %1$s za kuždego pólěpšowaś. Pśistajone Mozilla informacije wužywaju, kótarež sćelośo, aby problemy z websedłom rozwězali.</string>
+    <!-- The text field label of the URL text field. This is displayed above the user-inputted URL. -->
+    <string name="webcompat_reporter_label_url">URL</string>
+    <!-- The error message of the URL text field when an invalid URL has been entered. -->
+    <string name="webcompat_reporter_url_error_invalid">Pšosym zapódajśo płaśiwy URL</string>
+    <!-- The label/title of an optional field in the Web Compat Reporter feature for explaining a high-level reason why the site is broken. -->
+    <string name="webcompat_reporter_label_whats_broken">Co jo wobškóźone? (na žycenje)</string>
+    <!-- The placeholder text for the dropdown where a user can select a high-level reason why the site is broken. -->
+    <string name="webcompat_reporter_choose_reason">Wubjeŕśo pśicynu</string>
+    <!-- The label/title of an optional field in the Web Compat Reporter feature for adding additional information. -->
+    <string name="webcompat_reporter_label_description">Wopišćo problem (na žycenje)</string>
+    <!-- The button text for navigating away from the feature to provide more information on the broken site's bug report. -->
+    <string name="webcompat_reporter_send_more_info">Dalšne informacije pósłaś</string>
+    <!-- The button text for the cancel button to leave the Web Compat Reporter feature. -->
+    <string name="webcompat_reporter_cancel">Pśetergnuś</string>
+    <!-- The button text for the send button to submit the provided form data. -->
+    <string name="webcompat_reporter_send">Pósłaś</string>
+
 
     <!-- These reason strings are dropdown options on a WebCompat reporter form, indicating what is broken on the site. -->
     <!-- Broken site reason text for site slow or not working -->
