@@ -347,8 +347,8 @@ already_AddRefed<dom::Promise> Adapter::RequestDevice(
         const auto fstr = dom::GetEnumString(requested);
         const auto astr = this->LabelOrId();
         nsPrintfCString msg(
-            "requestDevice: Feature '%s' requested must be supported by "
-            "adapter %s",
+            "`GPUAdapter.requestDevice`: '%s' was requested in "
+            "`requiredFeatures`, but it is not supported by adapter %s.",
             fstr.get(), astr.get());
         promise->MaybeRejectWithTypeError(msg);
         return;
@@ -359,7 +359,8 @@ already_AddRefed<dom::Promise> Adapter::RequestDevice(
         const auto featureStr = dom::GetEnumString(requested);
         (void)featureStr;
         nsPrintfCString msg(
-            "Requested feature bit for '%s' is not implemented.",
+            "`GPUAdapter.requestDevice`: '%s' was requested in "
+            "`requiredFeatures`, but it is not supported by Firefox.",
             featureStr.get());
         promise->MaybeRejectWithTypeError(msg);
         return;
