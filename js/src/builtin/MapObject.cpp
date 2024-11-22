@@ -1433,17 +1433,12 @@ bool SetObject::construct(JSContext* cx, unsigned argc, Value* vp) {
     }
 
     if (optimized) {
-      RootedValue keyVal(cx);
-      Rooted<HashableValue> key(cx);
-      Rooted<ArrayObject*> array(cx, &iterable.toObject().as<ArrayObject>());
+      ArrayObject* array = &iterable.toObject().as<ArrayObject>();
       for (uint32_t index = 0; index < array->getDenseInitializedLength();
            ++index) {
-        keyVal.set(array->getDenseElement(index));
+        Value keyVal = array->getDenseElement(index);
         MOZ_ASSERT(!keyVal.isMagic(JS_ELEMENTS_HOLE));
-        if (!key.setValue(cx, keyVal)) {
-          return false;
-        }
-        if (!obj->addHashableValue(cx, key)) {
+        if (!obj->add(cx, keyVal)) {
           return false;
         }
       }
