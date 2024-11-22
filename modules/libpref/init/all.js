@@ -1850,6 +1850,13 @@ pref("extensions.install_origins.enabled", false);
 pref("extensions.browser_style_mv3.supported", false);
 pref("extensions.browser_style_mv3.same_as_mv2", false);
 
+// Experimental Inference API
+#ifdef NIGHTLY_BUILD
+  pref("extensions.ml.enabled", true);
+#else
+  pref("extensions.ml.enabled", false);
+#endif
+
 // Middle-mouse handling
 pref("middlemouse.paste", false);
 pref("middlemouse.contentLoadURL", false);

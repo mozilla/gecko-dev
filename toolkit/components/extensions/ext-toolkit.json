@@ -171,6 +171,12 @@
     "manifest": ["theme"],
     "paths": [["theme"]]
   },
+  "trial_ml": {
+    "url": "chrome://extensions/content/parent/ext-trial-ml.js",
+    "schema": "chrome://extensions/content/schemas/trial_ml.json",
+    "scopes": ["addon_parent", "content_parent"],
+    "paths": [["trial", "ml"]]
+  },
   "userScripts": {
     "url": "chrome://extensions/content/parent/ext-userScripts.js",
     "schema": "chrome://extensions/content/schemas/user_scripts.json",

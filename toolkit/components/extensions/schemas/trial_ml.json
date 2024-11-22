@@ -1,0 +1,88 @@
+[
+  {
+    "namespace": "manifest",
+    "types": [
+      {
+        "$extend": "OptionalOnlyPermission",
+        "choices": [
+          {
+            "type": "string",
+            "enum": ["trialML"]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "namespace": "trial",
+    "allowedContexts": ["content"],
+    "permissions": ["trialML"]
+  },
+  {
+    "namespace": "trial.ml",
+    "description": "Use the trial ML API to run Machine Learning models requests from extensions pages or content scripts.",
+    "allowedContexts": ["content"],
+    "permissions": ["trialML"],
+    "events": [
+      {
+        "name": "onProgress",
+        "type": "function",
+        "allowedContexts": ["content"],
+        "description": "Events from the inference engine.",
+        "parameters": [
+          {
+            "name": "progressData",
+            "description": "Object containing the data, see https://firefox-source-docs.mozilla.org/toolkit/components/ml/notifications.html",
+            "type": "object"
+          }
+        ]
+      }
+    ],
+    "types": [
+      {
+        "id": "CreateEngineRequest",
+        "type": "object",
+        "additionalProperties": true
+      },
+      {
+        "id": "RunEngineRequest",
+        "type": "object",
+        "additionalProperties": true
+      }
+    ],
+    "functions": [
+      {
+        "name": "createEngine",
+        "type": "function",
+        "description": "Prepare the inference engine",
+        "async": true,
+        "parameters": [
+          {
+            "name": "CreateEngineRequest",
+            "$ref": "CreateEngineRequest"
+          }
+        ]
+      },
+      {
+        "name": "runEngine",
+        "type": "function",
+        "allowedContexts": ["content"],
+        "description": "Call the inference engine",
+        "async": true,
+        "parameters": [
+          {
+            "name": "RunEngineRequest",
+            "$ref": "RunEngineRequest"
+          }
+        ]
+      },
+      {
+        "name": "deleteCachedModels",
+        "type": "function",
+        "allowedContexts": ["content"],
+        "description": "Delete the models the extension downloaded.",
+        "async": true
+      }
+    ]
+  }
+]
