@@ -11841,7 +11841,7 @@ static void SetWorkerContextOptions(JSContext* cx) {
 
   AutoRealm ar(cx, sc->unhandledRejectedPromises);
 
-  if (!SetObject::size(cx, sc->unhandledRejectedPromises)) {
+  if (sc->unhandledRejectedPromises->size() == 0) {
     return true;
   }
 

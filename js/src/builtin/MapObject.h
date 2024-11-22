@@ -150,7 +150,7 @@ class MapObject : public OrderedHashMapObject {
 
   // Publicly exposed Map calls for JSAPI access (webidl maplike/setlike
   // interfaces, etc.)
-  static uint32_t size(JSContext* cx, HandleObject obj);
+  uint32_t size();
   [[nodiscard]] static bool get(JSContext* cx, HandleObject obj,
                                 HandleValue key, MutableHandleValue rval);
   [[nodiscard]] static bool has(JSContext* cx, HandleObject obj,
@@ -282,7 +282,7 @@ class SetObject : public OrderedHashSetObject {
   static SetObject* createWithProto(JSContext* cx, HandleObject proto,
                                     NewObjectKind newKind);
   static SetObject* create(JSContext* cx, HandleObject proto = nullptr);
-  static uint32_t size(JSContext* cx, HandleObject obj);
+  uint32_t size();
   [[nodiscard]] static bool size(JSContext* cx, unsigned argc, Value* vp);
   [[nodiscard]] static bool add(JSContext* cx, unsigned argc, Value* vp);
   [[nodiscard]] static bool has(JSContext* cx, unsigned argc, Value* vp);

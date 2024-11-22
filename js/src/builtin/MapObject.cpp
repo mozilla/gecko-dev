@@ -795,16 +795,15 @@ bool MapObject::is(HandleObject o) { return o->hasClass(&class_); }
   Rooted<HashableValue> key(cx); \
   if (args.length() > 0 && !key.setValue(cx, args[0])) return false
 
-uint32_t MapObject::size(JSContext* cx, HandleObject obj) {
-  MapObject* mapObj = &obj->as<MapObject>();
-  static_assert(sizeof(Table(mapObj).count()) <= sizeof(uint32_t),
+uint32_t MapObject::size() {
+  static_assert(sizeof(Table(this).count()) <= sizeof(uint32_t),
                 "map count must be precisely representable as a JS number");
-  return Table(mapObj).count();
+  return Table(this).count();
 }
 
 bool MapObject::size_impl(JSContext* cx, const CallArgs& args) {
-  RootedObject obj(cx, &args.thisv().toObject());
-  args.rval().setNumber(size(cx, obj));
+  auto* mapObj = &args.thisv().toObject().as<MapObject>();
+  args.rval().setNumber(mapObj->size());
   return true;
 }
 
@@ -1491,22 +1490,15 @@ bool SetObject::is(HandleValue v) {
 
 bool SetObject::is(HandleObject o) { return o->hasClass(&class_); }
 
-uint32_t SetObject::size(JSContext* cx, HandleObject obj) {
-  MOZ_ASSERT(SetObject::is(obj));
-  SetObject* setObj = &obj->as<SetObject>();
-  static_assert(sizeof(Table(setObj).count()) <= sizeof(uint32_t),
+uint32_t SetObject::size() {
+  static_assert(sizeof(Table(this).count()) <= sizeof(uint32_t),
                 "set count must be precisely representable as a JS number");
-  return Table(setObj).count();
+  return Table(this).count();
 }
 
 bool SetObject::size_impl(JSContext* cx, const CallArgs& args) {
-  MOZ_ASSERT(is(args.thisv()));
-
-  SetObject* setObj = &args.thisv().toObject().as<SetObject>();
-
-  static_assert(sizeof(Table(setObj).count()) <= sizeof(uint32_t),
-                "set count must be precisely representable as a JS number");
-  args.rval().setNumber(Table(setObj).count());
+  auto* setObj = &args.thisv().toObject().as<SetObject>();
+  args.rval().setNumber(setObj->size());
   return true;
 }
 
@@ -1722,11 +1714,11 @@ JS_PUBLIC_API uint32_t JS::MapSize(JSContext* cx, HandleObject obj) {
   cx->check(obj);
 
   if (obj->is<MapObject>()) {
-    return MapObject::size(cx, obj.as<MapObject>());
+    return obj.as<MapObject>()->size();
   }
 
   AutoEnterTableRealm<MapObject> enter(cx, obj);
-  return MapObject::size(cx, enter.unwrapped());
+  return enter.unwrapped()->size();
 }
 
 JS_PUBLIC_API bool JS::MapGet(JSContext* cx, HandleObject obj, HandleValue key,
@@ -1869,11 +1861,11 @@ JS_PUBLIC_API uint32_t JS::SetSize(JSContext* cx, HandleObject obj) {
   cx->check(obj);
 
   if (obj->is<SetObject>()) {
-    return SetObject::size(cx, obj.as<SetObject>());
+    return obj.as<SetObject>()->size();
   }
 
   AutoEnterTableRealm<SetObject> enter(cx, obj);
-  return SetObject::size(cx, enter.unwrapped());
+  return enter.unwrapped()->size();
 }
 
 JS_PUBLIC_API bool JS::SetAdd(JSContext* cx, HandleObject obj,
