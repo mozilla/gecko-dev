@@ -114,6 +114,8 @@ struct TaskMarker : BaseMarkerType<TaskMarker> {
       "{marker.name} - {marker.data.name} - priority: "
       "{marker.data.priorityName} ({marker.data.priority})";
 
+  static constexpr bool IsStackBased = true;
+
   static constexpr MS::ETWMarkerGroup Group = MS::ETWMarkerGroup::Scheduling;
 
   static void TranslateMarkerInputToSchema(void* aContext,

@@ -229,6 +229,10 @@ void MarkerSchema::Stream(JSONWriter& aWriter,
       aWriter.StringProperty("tableLabel", mTableLabel);
     }
 
+    if (mIsStackBased) {
+      aWriter.BoolProperty("isStackBased", true);
+    }
+
     aWriter.StartArrayProperty("display");
     {
       for (Location location : mLocations) {
