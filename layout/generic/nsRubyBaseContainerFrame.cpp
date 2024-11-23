@@ -341,9 +341,9 @@ void nsRubyBaseContainerFrame::Reflow(nsPresContext* aPresContext,
     // If the writing mode is vertical-rl, the horizontal position of
     // rt frames will be updated when reflowing this text container,
     // hence leave container size 0 here for now.
-    lineLayout->BeginLineReflow(0, 0, reflowInput->ComputedISize(),
-                                NS_UNCONSTRAINEDSIZE, false, false, reflowWM,
-                                nsSize(0, 0));
+    lineLayout->BeginLineReflow(
+        0, 0, reflowInput->ComputedISize(), NS_UNCONSTRAINEDSIZE, false, false,
+        CollapseEmptyInlineFramesInLine::Collapse, reflowWM, nsSize(0, 0));
     lineLayout->AttachRootFrameToBaseLineLayout();
   }
 

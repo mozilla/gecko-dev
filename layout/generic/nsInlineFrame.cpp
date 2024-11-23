@@ -154,21 +154,6 @@ bool nsInlineFrame::IsEmpty() {
   return true;
 }
 
-nscoord nsInlineFrame::GetCaretBaseline() const {
-  if (mBaseline == 0 && mRect.IsEmpty()) {
-    nsBlockFrame* container = do_QueryFrame(FindLineContainer());
-    // TODO(emilio): Ideally we'd want to find out if only our line is empty,
-    // but that's non-trivial to do, and realistically empty inlines and text
-    // will get placed into a non-empty line unless all lines are empty, I
-    // believe...
-    if (container && container->LinesAreEmpty()) {
-      nscoord blockSize = container->ContentBSize(GetWritingMode());
-      return GetFontMetricsDerivedCaretBaseline(blockSize);
-    }
-  }
-  return nsIFrame::GetCaretBaseline();
-}
-
 nsIFrame::FrameSearchResult nsInlineFrame::PeekOffsetCharacter(
     bool aForward, int32_t* aOffset, PeekOffsetCharacterOptions aOptions) {
   // Override the implementation in nsFrame, to skip empty inline frames
