@@ -52,6 +52,8 @@ class nsInlineFrame : public nsContainerFrame {
   bool IsEmpty() override;
   bool IsSelfEmpty() override;
 
+  nscoord GetCaretBaseline() const override;
+
   FrameSearchResult PeekOffsetCharacter(
       bool aForward, int32_t* aOffset,
       PeekOffsetCharacterOptions aOptions =

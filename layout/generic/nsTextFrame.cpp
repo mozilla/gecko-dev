@@ -1140,12 +1140,17 @@ class BuildTextRunsScanner {
   uint8_t mCurrentRunContextInfo;
 };
 
-static nsIFrame* FindLineContainer(nsIFrame* aFrame) {
+static const nsIFrame* FindLineContainer(const nsIFrame* aFrame) {
   while (aFrame &&
          (aFrame->IsLineParticipant() || aFrame->CanContinueTextRun())) {
     aFrame = aFrame->GetParent();
   }
   return aFrame;
+}
+
+static nsIFrame* FindLineContainer(nsIFrame* aFrame) {
+  return const_cast<nsIFrame*>(
+      FindLineContainer(const_cast<const nsIFrame*>(aFrame)));
 }
 
 static bool IsLineBreakingWhiteSpace(char16_t aChar) {
@@ -8915,7 +8920,7 @@ void nsTextFrame::AddInlineMinISize(const IntrinsicSizeInput& aInput,
     if (f == this || f->GetTextRun(trtype) != lastTextRun) {
       nsIFrame* lc;
       if (aData->LineContainer() &&
-          aData->LineContainer() != (lc = FindLineContainer(f))) {
+          aData->LineContainer() != (lc = f->FindLineContainer())) {
         NS_ASSERTION(f != this,
                      "wrong InlineMinISizeData container"
                      " for first continuation");
@@ -9075,7 +9080,7 @@ void nsTextFrame::AddInlinePrefISize(const IntrinsicSizeInput& aInput,
     if (f == this || f->GetTextRun(trtype) != lastTextRun) {
       nsIFrame* lc;
       if (aData->LineContainer() &&
-          aData->LineContainer() != (lc = FindLineContainer(f))) {
+          aData->LineContainer() != (lc = f->FindLineContainer())) {
         NS_ASSERTION(f != this,
                      "wrong InlinePrefISizeData container"
                      " for first continuation");
@@ -10354,7 +10359,7 @@ bool nsTextFrame::AppendRenderedText(AppendRenderedTextState& aState,
   bool startsAtHardBreak, endsAtHardBreak;
   if (!HasAnyStateBits(TEXT_START_OF_LINE | TEXT_END_OF_LINE)) {
     startsAtHardBreak = endsAtHardBreak = false;
-  } else if (nsBlockFrame* thisLc = do_QueryFrame(FindLineContainer(this))) {
+  } else if (nsBlockFrame* thisLc = do_QueryFrame(FindLineContainer())) {
     if (thisLc != aState.mLineContainer) {
       // Setup line cursor when needed.
       aState.mLineContainer = thisLc;
@@ -10536,11 +10541,8 @@ bool nsTextFrame::IsEmpty() {
   if (textStyle->WhiteSpaceIsSignificant()) {
     // When WhiteSpaceIsSignificant styles are in effect, we only treat the
     // frame as empty if its content really is entirely *empty* (not just
-    // whitespace), AND it is NOT editable or within an <input> element.
-    // In these cases we consider that the whitespace-preserving style makes
-    // the frame behave as non-empty so that its height doesn't become zero.
-    return GetContentLength() == 0 && !GetContent()->IsEditable() &&
-           !GetContent()->GetParent()->IsHTMLElement(nsGkAtoms::input);
+    // whitespace).
+    return !GetContentLength();
   }
 
   if (HasAnyStateBits(TEXT_ISNOT_ONLY_WHITESPACE)) {
@@ -10694,6 +10696,21 @@ Maybe<nscoord> nsTextFrame::GetNaturalBaselineBOffset(
     return Some(GetSize().width - descent);
   }
   return Some(parentAscent - (aWM.IsVertical() ? position.x : position.y));
+}
+
+nscoord nsTextFrame::GetCaretBaseline() const {
+  if (mAscent == 0 && HasAnyStateBits(TEXT_NO_RENDERED_GLYPHS)) {
+    nsBlockFrame* container = do_QueryFrame(FindLineContainer());
+    // TODO(emilio): Ideally we'd want to find out if only our line is empty,
+    // but that's non-trivial to do, and realistically empty inlines and text
+    // will get placed into a non-empty line unless all lines are empty, I
+    // believe...
+    if (container && container->LinesAreEmpty()) {
+      nscoord blockSize = container->ContentBSize(GetWritingMode());
+      return GetFontMetricsDerivedCaretBaseline(blockSize);
+    }
+  }
+  return nsIFrame::GetCaretBaseline();
 }
 
 bool nsTextFrame::HasAnyNoncollapsedCharacters() {

@@ -230,6 +230,7 @@ class nsBlockFrame : public nsContainerFrame {
   bool IsEmpty() override;
   bool CachedIsEmpty() override;
   bool IsSelfEmpty() override;
+  bool LinesAreEmpty() const;
 
   // Given that we have a ::marker frame, does it actually draw something, i.e.,
   // do we have either a 'list-style-type' or 'list-style-image' that is
