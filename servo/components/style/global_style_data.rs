@@ -25,6 +25,20 @@ pub type PlatformThreadHandle = RawPthread;
 #[cfg(windows)]
 pub type PlatformThreadHandle = RawHandle;
 
+/// A noop thread join handle for wasm
+#[cfg(target_arch = "wasm32")]
+pub struct DummyThreadHandle;
+#[cfg(target_arch = "wasm32")]
+impl DummyThreadHandle {
+    /// A noop thread join method for wasm
+    pub fn join(&self) {
+        // Do nothing
+    }
+}
+#[cfg(target_arch = "wasm32")]
+/// Platform-specific handle to a thread.
+pub type PlatformThreadHandle = DummyThreadHandle;
+
 /// Global style data
 pub struct GlobalStyleData {
     /// Shared RWLock for CSSOM objects
@@ -131,6 +145,8 @@ impl StyleThreadPool {
             let handle = join_handle.as_pthread_t();
             #[cfg(windows)]
             let handle = join_handle.as_raw_handle();
+            #[cfg(target_arch = "wasm32")]
+            let handle = DummyThreadHandle;
 
             handles.push(handle);
         }
