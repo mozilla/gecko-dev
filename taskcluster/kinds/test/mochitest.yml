@@ -232,8 +232,10 @@ mochitest-browser-chrome:
         - webrender-sw+a11y-checks
         - socketprocess_networking
         - msix
+        - os-integration
     run-on-projects:
         by-variant:
+            os-integration: []  # this variant only runs as a cron task
             webrender-sw:
                 by-test-platform:
                     linux.*64(-asan)?-qr/(opt|debug): ['all']
@@ -272,6 +274,7 @@ mochitest-browser-chrome:
             default: default
     chunks:
         by-variant:
+            os-integration: dynamic
             msix:
                 by-test-platform:
                     .*/debug: 16
@@ -473,8 +476,10 @@ mochitest-chrome:
         - 1proc
         - socketprocess_networking+1proc
         - webrender-sw+1proc
+        - os-integration
     run-on-projects:
         by-variant:
+            os-integration: []  # this variant only runs as a cron task
             socketprocess_networking+1proc:
                 by-test-platform:
                     .*asan.*: []
@@ -491,9 +496,12 @@ mochitest-chrome:
                     .*wayland.*: []
                     default: built-projects
     chunks:
-        by-test-platform:
-            .*tsan.*/opt: 6
-            default: 3
+        by-variant:
+            os-integration: dynamic
+            default:
+                by-test-platform:
+                    .*tsan.*/opt: 6
+                    default: 3
     max-run-time: 3600
     mozharness:
         mochitest-flavor: chrome
@@ -750,8 +758,10 @@ mochitest-media:
         - webrender-sw
         - wmf-media-engine
         - msix
+        - os-integration
     run-on-projects:
         by-variant:
+            os-integration: []  # this variant only runs as a cron task
             socketprocess+no-fission:
                 by-test-platform:
                     .*hw-ref.*: []
@@ -827,6 +837,7 @@ mochitest-media:
     loopback-video: true
     chunks:
         by-variant:
+            os-integration: dynamic
             wmf-media-engine: 1
             media-gpu: 1
             default:

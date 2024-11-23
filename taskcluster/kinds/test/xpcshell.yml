@@ -49,12 +49,14 @@ xpcshell:
         - no-fission
         - msix
         - geckoview-no-fission-ship
+        - os-integration
     instance-size:
         by-variant:
             conditioned_profile: large
             default: large-noscratch
     run-on-projects:
         by-variant:
+            os-integration: []  # this variant only runs as a cron task
             conditioned_profile:
                 by-test-platform:
                     .*asan.*: []
@@ -93,12 +95,15 @@ xpcshell:
                     windows.*-asan-qr/opt: []  # No XPCShell on ASAN yet
                     default: built-projects
     chunks:
-        by-test-platform:
-            .*-asan-qr/opt: 4
-            .*-ccov.*/.*: 8
-            .*-tsan-qr/opt: 10
-            (android-em-7.*|macosx.*|linux1804-64.*/opt): 2
-            default: 4
+        by-variant:
+            os-integration: dynamic
+            default:
+                by-test-platform:
+                    .*-asan-qr/opt: 4
+                    .*-ccov.*/.*: 8
+                    .*-tsan-qr/opt: 10
+                    (android-em-7.*|macosx.*|linux1804-64.*/opt): 2
+                    default: 4
     max-run-time:
         by-variant:
             msix: 7200
