@@ -20,18 +20,6 @@
 class nsFloatManager;
 struct nsStyleText;
 
-/**
- * Flag indicating if inline frames within a line should be collapsed
- * to zero block-size if all frames within it are empty.
- * Declared as typed enum for clearer semantics in function calls, though
- * it is reflected as a boolean in
- * PerSpanData::mDoCollapseEmptyInlineFramesInLine.
- */
-enum class CollapseEmptyInlineFramesInLine {
-  Preserve,
-  Collapse,
-};
-
 class nsLineLayout {
   using BlockReflowState = mozilla::BlockReflowState;
   using ReflowInput = mozilla::ReflowInput;
@@ -64,7 +52,6 @@ class nsLineLayout {
   void BeginLineReflow(
       nscoord aICoord, nscoord aBCoord, nscoord aISize, nscoord aBSize,
       bool aImpactedByFloats, bool aIsTopOfPage,
-      CollapseEmptyInlineFramesInLine aCollapseEmptyInlineFramesInLine,
       mozilla::WritingMode aWritingMode, const nsSize& aContainerSize,
       // aInset is used during text-wrap:balance to reduce
       // the effective available space on the line.
@@ -510,7 +497,6 @@ class nsLineLayout {
     mozilla::WritingMode mWritingMode;
     bool mContainsFloat;
     bool mHasNonemptyContent;
-    bool mDoCollapseEmptyInlineFramesInLine;
 
     nscoord mIStart;
     nscoord mICoord;
