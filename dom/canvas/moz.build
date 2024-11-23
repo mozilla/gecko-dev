@@ -45,6 +45,15 @@ EXPORTS += [
     "nsICanvasRenderingContextInternal.h",
 ]
 
+EXPORTS.mozilla += [
+    "IsEnumCase.h",
+    "ParamTraits_IsEnumCase.h",
+    "ParamTraits_STL.h",
+    "ParamTraits_TiedFields.h",
+    "TiedFields.h",
+    "TupleUtils.h",
+]
+
 EXPORTS.mozilla.dom += [
     "CanvasGradient.h",
     "CanvasPath.h",
@@ -64,8 +73,6 @@ EXPORTS.mozilla.dom += [
     "OffscreenCanvasRenderingContext2D.h",
     "QueueParamTraits.h",
     "TextMetrics.h",
-    "TiedFields.h",
-    "TupleUtils.h",
     "WebGLChild.h",
     "WebGLCommandQueue.h",
     "WebGLIpdl.h",

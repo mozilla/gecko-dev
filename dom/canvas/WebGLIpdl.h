@@ -14,11 +14,10 @@
 #include "mozilla/ipc/IPDLParamTraits.h"
 #include "mozilla/ipc/Shmem.h"
 #include "mozilla/layers/LayersSurfaces.h"
-#include "TiedFields.h"
-#include "TupleUtils.h"
+#include "mozilla/ParamTraits_IsEnumCase.h"
+#include "mozilla/ParamTraits_STL.h"
+#include "mozilla/ParamTraits_TiedFields.h"
 #include "WebGLTypes.h"
-
-#include <memory>
 
 namespace mozilla {
 namespace webgl {
@@ -249,34 +248,6 @@ struct ParamTraits<mozilla::dom::PredefinedColorSpace> final
 // -
 // ParamTraits_IsEnumCase
 
-/*
-`IsEnumCase(T) -> bool` guarantees that we never have false negatives or false
-positives due to adding or removing enum cases to enums, and forgetting to
-update their serializations. Also, it allows enums to be non-continguous, unlike
-ContiguousEnumSerializer.
-*/
-
-template <class T>
-struct ParamTraits_IsEnumCase {
-  static bool Write(MessageWriter* const writer, const T& in) {
-    MOZ_ASSERT(mozilla::IsEnumCase(in));
-    const auto shadow = static_cast<std::underlying_type_t<T>>(in);
-    WriteParam(writer, shadow);
-    return true;
-  }
-
-  static bool Read(MessageReader* const reader, T* const out) {
-    auto shadow = std::underlying_type_t<T>{};
-    if (!ReadParam(reader, &shadow)) return false;
-    const auto e = mozilla::AsEnumCase<T>(shadow);
-    if (!e) return false;
-    *out = *e;
-    return true;
-  }
-};
-
-// -
-
 #define USE_IS_ENUM_CASE(T) \
   template <>               \
   struct ParamTraits<T> : public ParamTraits_IsEnumCase<T> {};
@@ -287,37 +258,6 @@ USE_IS_ENUM_CASE(mozilla::webgl::OptionalRenderableFormatBits)
 
 // -
 // ParamTraits_TiedFields
-
-template <class T>
-struct ParamTraits_TiedFields {
-  static_assert(mozilla::AssertTiedFieldsAreExhaustive<T>());
-
-  static void Write(MessageWriter* const writer, const T& in) {
-    const auto& fields = mozilla::TiedFields(in);
-    mozilla::MapTuple(fields, [&](const auto& field) {
-      WriteParam(writer, field);
-      return true;  // ignored
-    });
-  }
-
-  static bool Read(MessageReader* const reader, T* const out) {
-    const auto& fields = mozilla::TiedFields(*out);
-    bool ok = true;
-    mozilla::MapTuple(fields, [&](auto& field) {
-      if (ok) {
-        ok &= ReadParam(reader, &field);
-      }
-      return true;  // ignored
-    });
-    return ok;
-  }
-};
-
-template <class U, size_t N>
-struct ParamTraits<mozilla::PaddingField<U, N>> final
-    : public ParamTraits_TiedFields<mozilla::PaddingField<U, N>> {};
-
-// -
 
 template <>
 struct ParamTraits<mozilla::webgl::InitContextDesc> final
@@ -566,45 +506,6 @@ struct ParamTraits<mozilla::webgl::ShaderPrecisionFormat> final {
 
 // -
 
-template <typename U, size_t N>
-struct ParamTraits<std::array<U, N>> final {
-  using T = std::array<U, N>;
-
-  static void Write(MessageWriter* const writer, const T& in) {
-    for (const auto& v : in) {
-      WriteParam(writer, v);
-    }
-  }
-
-  static bool Read(MessageReader* const reader, T* const out) {
-    for (auto& v : *out) {
-      if (!ReadParam(reader, &v)) return false;
-    }
-    return true;
-  }
-};
-
-template <typename U, size_t N>
-struct ParamTraits<U[N]> final {
-  using T = U[N];
-  static constexpr size_t kByteSize = sizeof(U) * N;
-
-  static_assert(std::is_trivial<U>::value);
-
-  static void Write(MessageWriter* const writer, const T& in) {
-    writer->WriteBytes(in, kByteSize);
-  }
-
-  static bool Read(MessageReader* const reader, T* const out) {
-    if (!reader->HasBytesAvailable(kByteSize)) {
-      return false;
-    }
-    return reader->ReadBytesInto(*out, kByteSize);
-  }
-};
-
-// -
-
 template <>
 struct ParamTraits<mozilla::webgl::GetUniformData> final {
   using T = mozilla::webgl::GetUniformData;
@@ -651,32 +552,6 @@ struct ParamTraits<mozilla::avec3<U>> final {
   static bool Read(MessageReader* const reader, T* const out) {
     return ReadParam(reader, &out->x) && ReadParam(reader, &out->y) &&
            ReadParam(reader, &out->z);
-  }
-};
-
-// -
-
-template <class U>
-struct ParamTraits<std::optional<U>> final {
-  using T = std::optional<U>;
-
-  static void Write(MessageWriter* const writer, const T& in) {
-    WriteParam(writer, bool{in});
-    if (in) {
-      WriteParam(writer, *in);
-    }
-  }
-
-  static bool Read(MessageReader* const reader, T* const out) {
-    bool isSome;
-    if (!ReadParam(reader, &isSome)) return false;
-
-    if (!isSome) {
-      out->reset();
-      return true;
-    }
-    out->emplace();
-    return ReadParam(reader, &**out);
   }
 };
 
