@@ -49,13 +49,13 @@ class nsLineLayout {
 
   int32_t GetLineNumber() const { return mLineNumber; }
 
-  void BeginLineReflow(
-      nscoord aICoord, nscoord aBCoord, nscoord aISize, nscoord aBSize,
-      bool aImpactedByFloats, bool aIsTopOfPage,
-      mozilla::WritingMode aWritingMode, const nsSize& aContainerSize,
-      // aInset is used during text-wrap:balance to reduce
-      // the effective available space on the line.
-      nscoord aInset = 0);
+  void BeginLineReflow(nscoord aICoord, nscoord aBCoord, nscoord aISize,
+                       nscoord aBSize, bool aImpactedByFloats,
+                       bool aIsTopOfPage, mozilla::WritingMode aWritingMode,
+                       const nsSize& aContainerSize,
+                       // aInset is used during text-wrap:balance to reduce
+                       // the effective available space on the line.
+                       nscoord aInset = 0);
 
   /**
    * Returns true if the line had to use an overflow-wrap break position.
