@@ -5499,7 +5499,12 @@ static bool SelfIsSelectable(nsIFrame* aFrame, nsIFrame* aParentFrame,
   if (aFrame->Style()->UserSelect() == StyleUserSelect::None) {
     return false;
   }
-  if (aFrame->IsEmpty()) {
+  if (aFrame->IsEmpty() &&
+      (!aFrame->IsTextFrame() || !aFrame->ContentIsEditable())) {
+    // FIXME(emilio): Historically we haven't treated empty frames as
+    // selectable, but also we had special-cases so that editable empty text
+    // frames returned false from IsEmpty(). Sort this out (probably by
+    // removing the IsEmpty() condition altogether).
     return false;
   }
   return true;
