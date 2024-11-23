@@ -14,6 +14,7 @@
 #include "mozilla/EventDispatcher.h"
 #include "nsPresContext.h"
 #include "nsIWidget.h"
+#include "nsWaylandDisplay.h"
 #include "nsWindow.h"
 #include "nsStubMutationObserver.h"
 #include "mozilla/dom/Element.h"

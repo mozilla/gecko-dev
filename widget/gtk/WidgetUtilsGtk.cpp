@@ -11,6 +11,7 @@
 #include "nsReadableUtils.h"
 #include "nsString.h"
 #include "nsStringFwd.h"
+#include "nsWaylandDisplay.h"
 #include "nsWindow.h"
 #include "nsIGfxInfo.h"
 #include "mozilla/Components.h"
