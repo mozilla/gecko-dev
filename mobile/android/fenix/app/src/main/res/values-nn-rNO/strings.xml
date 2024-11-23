@@ -325,9 +325,9 @@
     <!-- Content description (not visible, for screen readers etc.) for main menu settings button. -->
     <string name="browser_main_menu_content_description_settings_button">Innstillingar</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-    <string name="browser_menu_tools_description_with_translate">Lesevising, Omset, Skriv ut, Del, Opne app</string>
+    <string name="browser_menu_tools_description_with_translate" moz:removedIn="133" tools:ignore="UnusedResources">Lesevising, Omset, Skriv ut, Del, Opne app</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-    <string name="browser_menu_tools_description">Lesevising, Skriv ut, Del, Opne app</string>
+    <string name="browser_menu_tools_description" moz:removedIn="133" tools:ignore="UnusedResources">Lesevising, Skriv ut, Del, Opne app</string>
     <!-- Browser menu label that navigates to the save sub-menu, which contains various save related menu items such as
          bookmarking a page, saving to collection, shortcut or as a PDF, and adding to home screen -->
     <string name="browser_menu_save">Lagre</string>
@@ -932,7 +932,7 @@
     <string name="exceptions_empty_message_learn_more_link">Les meir</string>
 
     <!-- Preference switch for usage and technical data collection -->
-    <string name="preference_usage_data">Bruk og tekniske data</string>
+    <string name="preference_usage_data" moz:removedIn="134" tools:ignore="UnusedResources">Bruk og tekniske data</string>
     <!-- Preference description for usage and technical data collection -->
     <string name="preferences_usage_data_description">Deler data om yting, bruksmønster, maskinvare og tilpassingar i nettlesaren din med Mozilla, for å hjelpe oss å gjere %1$s betre</string>
     <!-- Preference switch for marketing data collection -->
@@ -1230,6 +1230,16 @@
 
 
     <!-- WebCompat Reporter -->
+
+    <!-- The text field label of the URL text field. This is displayed above the user-inputted URL. -->
+    <string name="webcompat_reporter_label_url">URL</string>
+    <!-- The button text for navigating away from the feature to provide more information on the broken site's bug report. -->
+    <string name="webcompat_reporter_send_more_info">Send meir informasjon</string>
+    <!-- The button text for the cancel button to leave the Web Compat Reporter feature. -->
+    <string name="webcompat_reporter_cancel">Avbryt</string>
+    <!-- The button text for the send button to submit the provided form data. -->
+    <string name="webcompat_reporter_send">Send</string>
+
 
     <!-- These reason strings are dropdown options on a WebCompat reporter form, indicating what is broken on the site. -->
     <!-- Broken site reason text for site slow or not working -->

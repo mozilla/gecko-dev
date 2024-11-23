@@ -11,7 +11,7 @@
 ]]></string>
 
     <!-- The document title and heading of the error page shown when a website sends back unusual and incorrect credentials for an SSL certificate. -->
-    <string name="mozac_browser_errorpages_security_ssl_title">ආරක්‍ෂිත සම්බන්‍ධතාවය බිඳ වැටුණි</string>
+    <string name="mozac_browser_errorpages_security_ssl_title">ආරක්‍ෂිත සම්බන්‍ධතාව බිඳ වැටුණි</string>
 
     <!-- The error message shown when a website sends back unusual and incorrect credentials for an SSL certificate. -->
     <string name="mozac_browser_errorpages_security_ssl_message"><![CDATA[
@@ -22,7 +22,7 @@
 ]]></string>
 
     <!-- The document title and heading of the error page shown when a website sends has an invalid or expired SSL certificate. -->
-    <string name="mozac_browser_errorpages_security_bad_cert_title">ආරක්‍ෂිත සම්බන්‍ධතාවය බිඳ වැටුණි</string>
+    <string name="mozac_browser_errorpages_security_bad_cert_title">ආරක්‍ෂිත සම්බන්‍ධතාව බිඳ වැටුණි</string>
 
     <!-- The error message shown when a website sends has an invalid or expired SSL certificate. -->
     <string name="mozac_browser_errorpages_security_bad_cert_message"><![CDATA[
@@ -46,14 +46,14 @@
     <string name="mozac_browser_errorpages_security_bad_cert_accept_temporary">අවදානම පිළිගෙන ඉදිරියට</string>
 
     <!-- The document title and heading of the error page shown when a website uses HSTS. -->
-    <string name="mozac_browser_errorpages_security_bad_hsts_cert_title">අඩවියට ආරක්‍ෂිත සම්බන්ධතාවයක් අවශ්‍යයි.</string>
+    <string name="mozac_browser_errorpages_security_bad_hsts_cert_title">අඩවියට ආරක්‍ෂිත සම්බන්‍ධතාවක් වුවමනාය.</string>
 
     <!-- The error message shown when a website uses HSTS. -->
     <string name="mozac_browser_errorpages_security_bad_hsts_cert_message"><![CDATA[
   <ul>
-  <li>ඔබ දැකීමට උත්සාහ කරන අඩවියට ආරක්‍ෂිත සම්බන්ධතාවයක් අවශ්‍ය නිසා පෙන්වීමට නොහැකිය.</li>
+  <li>ඔබ දැකීමට උත්සාහ කරන අඩවියට ආරක්‍ෂිත සම්බන්‍ධතාවක් වුවමනා නිසා පෙන්වීමට නොහැකිය.</li>
   <li>බොහෝ විට අඩවියෙහි ගැටලුවක් නිසා, එය විසඳීමට ඔබට කළ හැකි කිසිවක් නැත.</li>
-  <li>මෙම ගැටලුව පිළිබඳව අඩවියේ පරිපාලකයා වෙත දැනුම් දීමට හැකිය.</li>
+  <li>මෙම ගැටලුව පිළිබඳ අඩවියේ පරිපාලකයා වෙත දැනුම් දීමට හැකිය.</li>
   </ul>
   ]]></string>
 
@@ -68,19 +68,19 @@
     <string name="mozac_browser_errorpages_security_bad_hsts_cert_back">ආපසු යන්න</string>
 
     <!-- The document title and heading of the error page shown when the user's network connection is interrupted while connecting to a website. -->
-    <string name="mozac_browser_errorpages_net_interrupt_title">සම්බන්ධතාවයට බාධා විය</string>
+    <string name="mozac_browser_errorpages_net_interrupt_title">සම්බන්ධතාවට බාධා විය</string>
 
     <!-- The error message shown when the user's network connection is interrupted while connecting to a website. -->
     <string name="mozac_browser_errorpages_net_interrupt_message"><![CDATA[
-  <p>අතිරික්සුව සාර්ථකව සම්බන්ධ විය, නමුත් තොරතුරු මාරු කිරීමේ දී සම්බන්ධතාවයට බාධා විය. නැවත උත්සාහ කරන්න.</p>
+  <p>අතිරික්සුව සාර්ථකව සම්බන්ධ විය, නමුත් තොරතුරු මාරු කිරීමේ දී සම්බන්ධතාවට බාධා විය. නැවත උත්සාහ කරන්න.</p>
   <ul>
   <li>අඩවිය තාවකාලිකව නොතිබේ හෝ ඉතා කාර්ය බහුලයි. මොහොතකින් නැවත බලන්න.</li>
-  <li>කිසිදු පිටුවක් පූරණය නොවේ නම්, ඔබගේ උපාංගයේ දත්ත හෝ වයි-ෆයි සම්බන්ධතාවය පරීක්‍ෂා කරන්න.</li>
+  <li>කිසිදු පිටුවක් පූරණය නොවේ නම්, ඔබගේ උපාංගයේ දත්ත හෝ වයි-ෆයි සම්බන්ධතාව පරීක්‍ෂා කරන්න.</li>
   </ul>
   ]]></string>
 
     <!-- The document title and heading of the error page shown when a website takes too long to load. -->
-    <string name="mozac_browser_errorpages_net_timeout_title">සම්බන්ධතාවය ඉකුත් වී ඇත</string>
+    <string name="mozac_browser_errorpages_net_timeout_title">සම්බන්ධතාව ඉකුත් වී ඇත</string>
 
     <!-- The error message shown when a website took long to load. -->
     <string name="mozac_browser_errorpages_net_timeout_message"><![CDATA[
@@ -100,7 +100,7 @@
     <string name="mozac_browser_errorpages_connection_failure_message"><![CDATA[
    <ul>
     <li>අඩවිය තාවකාලිකව නොතිබේ හෝ කාර්ය බහුලයි. මොහොතකින් උත්සාහ කරන්න.</li>
-    <li>කිසිදු පිටුවක් පූරණය නොවේ නම්, උපාංගයේ දත්ත හෝ වයි-ෆයි සම්බන්ධතාවය පරීක්‍ෂා කරන්න.</li>
+    <li>කිසිදු පිටුවක් පූරණය නොවේ නම්, උපාංගයේ දත්ත හෝ වයි-ෆයි සම්බන්ධතාව පරීක්‍ෂා කරන්න.</li>
     </ul>
     ]]></string>
 
@@ -131,7 +131,7 @@
     <string name="mozac_browser_errorpages_offline_message"><![CDATA[
   <p>අතිරික්සුව එහි මාර්ගඅපගත ප්‍රකාරයෙන් ක්‍රියාත්මක වන නිසා ඉල්ලූ අථකයට සම්බන්ධ වීමට නොහැකිය.</p>
   <ul>
-  <li>උපාංගය සක්‍රිය ජාලයකට සම්බන්ධිත ද?</li>
+  <li>උපාංගය සක්‍රිය ජාලයකට සම්බන්ධ ද?</li>
   <li>මාර්ගගත ප්‍රකාරයට මාරු වීමට සහ පිටුව නැවත පූරණයට “යළි උත්සාහ කරන්න” ඔබන්න.</li>
   </ul>
   ]]></string>
@@ -145,14 +145,14 @@
   ]]></string>
 
     <!-- The document title and heading of the error page shown when the Internet connection is disrupted while loading a website. -->
-    <string name="mozac_browser_errorpages_net_reset_title">සම්බන්ධතාවය යළි සැකසිණි</string>
+    <string name="mozac_browser_errorpages_net_reset_title">සම්බන්ධතාව යළි සැකසිණි</string>
 
     <!-- The error message shown when the Internet connection is disrupted while loading a website. -->
     <string name="mozac_browser_errorpages_net_reset_message"><![CDATA[
-  <p>සම්බන්ධතාවයක් කතිකා වන අතරතුර ජාල සබැඳියට බාධා විය. යළි උත්සාහ කරන්න.</p>
+  <p>සම්බන්ධතාවක් කතිකා වන අතරතුර ජාල සබැඳියට බාධා විය. යළි උත්සාහ කරන්න.</p>
   <ul>
   <li>අඩවිය තාවකාලිකව නොතිබේ හෝ ඉතා කාර්ය බහුලයි. මොහොතකින් නැවත බලන්න.</li>
-  <li>කිසිදු පිටුවක් පූරණය නොවේ නම්, ඔබගේ උපාංගයේ දත්ත හෝ වයි-ෆයි සම්බන්ධතාවය පරීක්‍ෂා කරන්න.</li>
+  <li>කිසිදු පිටුවක් පූරණය නොවේ නම්, ඔබගේ උපාංගයේ දත්ත හෝ වයි-ෆයි සම්බන්ධතාව පරීක්‍ෂා කරන්න.</li>
   </ul>
   ]]></string>
 
@@ -206,14 +206,14 @@
   <li>මෙවැනි ලිවීමේ දෝෂ තිබේදැයි බලන්න
   <strong>www</strong>.example.com වෙනුවට
   <strong>ww</strong>.example.com.</li>
-  <li>කිසිදු පිටුවක් පූරණය නොවේ නම්, ඔබගේ උපාංගයේ දත්ත හෝ වයි-ෆයි සම්බන්ධතාවය පරීක්‍ෂා කරන්න.</li>
+  <li>කිසිදු පිටුවක් පූරණය නොවේ නම්, ඔබගේ උපාංගයේ දත්ත හෝ වයි-ෆයි සම්බන්ධතාව පරීක්‍ෂා කරන්න.</li>
   </ul>
   ]]></string>
 
     <!-- The document title and heading of an error page. -->
-    <string name="mozac_browser_errorpages_no_internet_title" moz:removedIn="133" tools:ignore="UnusedResources">අන්තර්ජාල සම්බන්ධතාවයක් නැත</string>
+    <string name="mozac_browser_errorpages_no_internet_title" moz:removedIn="133" tools:ignore="UnusedResources">අන්තර්ජාල සම්බන්ධතාවක් නැත</string>
     <!-- The main body text of this error page. It will be shown beneath the title -->
-    <string name="mozac_browser_errorpages_no_internet_message" moz:removedIn="133" tools:ignore="UnusedResources">ඔබගේ ජාලයේ සම්බන්ධතාවය පරීක්‍ෂා කරන්න හෝ මොහොතකින් පිටුව යළි පූරණය කර බලන්න.</string>
+    <string name="mozac_browser_errorpages_no_internet_message" moz:removedIn="133" tools:ignore="UnusedResources">ඔබගේ ජාලයේ සම්බන්ධතාව පරීක්‍ෂා කරන්න හෝ මොහොතකින් පිටුව යළි පූරණය කර බලන්න.</string>
     <!-- The document title and heading of an error page. -->
     <string name="mozac_browser_errorpages_no_internet_error_code">දෝෂයේ කේතය: NS_ERROR_OFFLINE</string>
 
@@ -270,7 +270,7 @@
     <!-- The document title and heading of an error page. -->
     <string name="mozac_browser_errorpages_proxy_connection_refused_title">ප්‍රතියුක්ත සේවාදායකය සබැඳුම ප්‍රතික්‍ෂේප කෙරිණි</string>
     <string name="mozac_browser_errorpages_proxy_connection_refused_message"><![CDATA[
-  <p>ප්‍රතියුක්ත සේවාදායකයක් භාවිතයට අතිරික්සුව වින්‍යාසගත කර ඇත, නමුත් ප්‍රතියුක්තය සම්බන්ධතාවයක් ප්‍රතික්‍ෂේප කෙරිණි.</p><ul>
+  <p>ප්‍රතියුක්ත සේවාදායකයක් භාවිතයට අතිරික්සුව වින්‍යාසගත කර ඇත, නමුත් ප්‍රතියුක්තය සම්බන්ධතාවක් ප්‍රතික්‍ෂේප කෙරිණි.</p><ul>
   <li>අතිරික්සුවෙහි ප්‍රතියුක්ත වින්‍යාසය නිවැරදි ද? සැකසුම් පරීක්‍ෂා කර යළි උත්සාහ කරන්න.</li>
   <li>ප්‍රතියුක්ත සේවාව මෙම ජාලයෙහි සම්බන්ධතා සඳහා ඉඩ දෙන්නේද?</li>
   <li>තවමත් ගැටළු තිබේද? සහාය සඳහා ඔබගේ ජාලයේ පරිපාලක හෝ අන්තර්ජාල සැපයුම්කරු අමතන්න.</li>
@@ -281,9 +281,9 @@
     <string name="mozac_browser_errorpages_unknown_proxy_host_title">ප්‍රතියුක්ත සේවාදායකය හමු නොවුණි</string>
 
     <string name="mozac_browser_errorpages_unknown_proxy_host_message"><![CDATA[
-  <p>ප්‍රතියුක්ත සේවාදායකයක් භාවිතයට අතිරික්සුව වින්‍යාසගත කර ඇත, නමුත් ප්‍රතියුක්තය හමු නොවිණි.</p><ul>
+  <p>ප්‍රතියුක්ත සේවාදායකයක් භාවිතයට අතිරික්සුව වින්‍යාසගත කර ඇත, නමුත් ප්‍රතියුක්තය හමු නොවුණි.</p><ul>
   <li>අතිරික්සුවෙහි ප්‍රතියුක්ත වින්‍යාසය නිවැරදි ද? සැකසුම් පරීක්‍ෂා කර යළි උත්සාහ කරන්න.</li>
-  <li>උපාංගය සක්‍රිය සම්බන්ධතාවයක් වෙත සම්බන්ධිත ද?</li>
+  <li>උපාංගය සක්‍රිය සම්බන්ධතාවක් වෙත සම්බන්ධ ද?</li>
   <li>තවමත් ගැටළු තිබේද? සහාය සඳහා ඔබගේ ජාලයේ පරිපාලක හෝ අන්තර්ජාල සැපයුම්කරු අමතන්න.</li>
   </ul>
   ]]></string>

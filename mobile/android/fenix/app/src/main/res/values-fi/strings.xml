@@ -254,8 +254,12 @@
     <string name="browser_menu_open_in_regular_tab">Avaa tavallisessa välilehdessä</string>
     <!-- Browser menu toggle that adds a shortcut to the site on the device home screen. -->
     <string name="browser_menu_add_to_homescreen">Lisää aloitusnäytölle</string>
+    <!-- Browser menu toggle that adds a PWA of the site on the device home screen. -->
+    <string name="browser_menu_add_app_to_homescreen">Lisää sovellus aloitusnäytölle</string>
     <!-- Browser menu toggle that adds a shortcut to the site on the device home screen. -->
     <string name="browser_menu_add_to_homescreen_2">Lisää aloitusnäytölle…</string>
+    <!-- Browser menu toggle that adds a PWA of the site on the device home screen. -->
+    <string name="browser_menu_add_app_to_homescreen_2">Lisää sovellus aloitusnäytölle…</string>
     <!-- Text for notifying users that Xiaomi devices require additional permissions to add to home screen -->
     <string name="browser_menu_add_to_homescreen_xiaomi">Xiaomi-laitteet saattavat tarvita ylimääräisiä käyttöoikeuksia lisätäkseen pikakuvakkeita aloitusnäyttöön. Tarkista asetuksesi.</string>
     <!-- Content description (not visible, for screen readers etc.) for the Resync tabs button -->
@@ -349,6 +353,16 @@
     <string name="browser_menu_tools_description_with_translate" moz:removedIn="133" tools:ignore="UnusedResources">Lukunäkymä, käännä, tulosta, jaa, avaa sovellus</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
     <string name="browser_menu_tools_description" moz:removedIn="133" tools:ignore="UnusedResources">Lukunäkymä, tulosta, jaa, avaa sovellus</string>
+    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu
+         The first parameter is the label of the report site issue (for example: Report Site issue) -->
+    <string name="browser_menu_tools_description_with_translate_with_report_site">Lukunäkymä, käännä, %s, tulosta, jaa, avaa sovellus</string>
+    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
+    <string name="browser_menu_tools_description_with_translate_without_report_site">Lukunäkymä, käännä, tulosta, jaa, avaa sovellus</string>
+    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu
+         The first parameter is the label of the report site issue (for example: Report Site issue) -->
+    <string name="browser_menu_tools_description_with_report_site">Lukunäkymä, %s, tulosta, jaa, avaa sovellus</string>
+    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
+    <string name="browser_menu_tools_description_without_report_site">Lukunäkymä, tulosta, jaa, avaa sovellus</string>
     <!-- Browser menu label that navigates to the save sub-menu, which contains various save related menu items such as
          bookmarking a page, saving to collection, shortcut or as a PDF, and adding to home screen -->
     <string name="browser_menu_save">Tallenna</string>

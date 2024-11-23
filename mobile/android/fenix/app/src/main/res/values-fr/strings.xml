@@ -249,8 +249,12 @@
     <string name="browser_menu_open_in_regular_tab">Ouvrir dans un onglet classique</string>
     <!-- Browser menu toggle that adds a shortcut to the site on the device home screen. -->
     <string name="browser_menu_add_to_homescreen">Ajouter à l’écran d’accueil</string>
+    <!-- Browser menu toggle that adds a PWA of the site on the device home screen. -->
+    <string name="browser_menu_add_app_to_homescreen">Ajouter l’application à l’écran d’accueil</string>
     <!-- Browser menu toggle that adds a shortcut to the site on the device home screen. -->
     <string name="browser_menu_add_to_homescreen_2">Ajouter à l’écran d’accueil…</string>
+    <!-- Browser menu toggle that adds a PWA of the site on the device home screen. -->
+    <string name="browser_menu_add_app_to_homescreen_2">Ajouter l’application à l’écran d’accueil…</string>
     <!-- Text for notifying users that Xiaomi devices require additional permissions to add to home screen -->
     <string name="browser_menu_add_to_homescreen_xiaomi">Les appareils Xiaomi peuvent demander des autorisations supplémentaires pour ajouter des raccourcis sur l’écran d’accueil. Veuillez vérifier vos paramètres.</string>
     <!-- Content description (not visible, for screen readers etc.) for the Resync tabs button -->
@@ -340,9 +344,19 @@
     <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar custom tab menu. -->
     <string name="browser_custom_tab_menu_handlebar_content_description">Fermer le panneau du menu des onglets personnalisés</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-    <string name="browser_menu_tools_description_with_translate">Mode lecture, traduire, imprimer, partager, ouvrir dans une application</string>
+    <string name="browser_menu_tools_description_with_translate" moz:removedIn="133" tools:ignore="UnusedResources">Mode lecture, traduire, imprimer, partager, ouvrir dans une application</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-    <string name="browser_menu_tools_description">Mode lecture, imprimer, partager, ouvrir dans une application</string>
+    <string name="browser_menu_tools_description" moz:removedIn="133" tools:ignore="UnusedResources">Mode lecture, imprimer, partager, ouvrir dans une application</string>
+    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu
+         The first parameter is the label of the report site issue (for example: Report Site issue) -->
+    <string name="browser_menu_tools_description_with_translate_with_report_site">Mode lecture, traduire, %s, imprimer, partager, ouvrir dans une application</string>
+    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
+    <string name="browser_menu_tools_description_with_translate_without_report_site">Mode lecture, traduire, imprimer, partager, ouvrir dans une application</string>
+    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu
+         The first parameter is the label of the report site issue (for example: Report Site issue) -->
+    <string name="browser_menu_tools_description_with_report_site">Mode lecture, %s, imprimer, partager, ouvrir dans une application</string>
+    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
+    <string name="browser_menu_tools_description_without_report_site">Mode lecture, imprimer, partager, ouvrir dans une application</string>
     <!-- Browser menu label that navigates to the save sub-menu, which contains various save related menu items such as
          bookmarking a page, saving to collection, shortcut or as a PDF, and adding to home screen -->
     <string name="browser_menu_save">Enregistrer</string>
@@ -961,7 +975,11 @@
     <string name="exceptions_empty_message_learn_more_link">En savoir plus</string>
 
     <!-- Preference switch for usage and technical data collection -->
-    <string name="preference_usage_data">Données techniques et d’utilisation</string>
+    <string name="preference_usage_data" moz:removedIn="134" tools:ignore="UnusedResources">Données techniques et d’utilisation</string>
+    <!-- Preference switch for usage and technical data collection -->
+    <string name="preference_usage_data_1">Données techniques et d’interaction</string>
+    <!-- Preference switch for usage and technical learn more link -->
+    <string name="preference_usage_data_learn_more" tools:ignore="UnusedResources">En savoir plus</string>
     <!-- Preference description for usage and technical data collection -->
     <string name="preferences_usage_data_description">Partage les données de performance, d’utilisation, de matériel et de personnalisation de votre navigateur avec Mozilla pour nous aider à améliorer %1$s</string>
     <!-- Preference switch for marketing data collection -->
@@ -1257,6 +1275,31 @@
 
 
     <!-- WebCompat Reporter -->
+
+    <!-- WebCompat Reporter -->
+    <!-- The title of the Web Compat Reporter feature. This is displayed in the top app bar. -->
+    <string name="webcompat_reporter_screen_title">Signaler des problèmes avec ce site</string>
+    <!-- The description of the Web Compat Reporter feature. This first parameter is the name of the application (For example: Fenix) -->
+    <string name="webcompat_reporter_description">Aidez à améliorer %1$s pour tout le monde. Le personnel de Mozilla utilise les informations que vous envoyez pour résoudre des problèmes sur des sites web.</string>
+    <!-- The text field label of the URL text field. This is displayed above the user-inputted URL. -->
+    <string name="webcompat_reporter_label_url">Adresse web</string>
+
+
+    <!-- The error message of the URL text field when an invalid URL has been entered. -->
+    <string name="webcompat_reporter_url_error_invalid">Veuillez saisir une adresse web valide</string>
+    <!-- The label/title of an optional field in the Web Compat Reporter feature for explaining a high-level reason why the site is broken. -->
+    <string name="webcompat_reporter_label_whats_broken">Quel est le problème ? (facultatif)</string>
+    <!-- The placeholder text for the dropdown where a user can select a high-level reason why the site is broken. -->
+    <string name="webcompat_reporter_choose_reason">Choisissez un motif</string>
+    <!-- The label/title of an optional field in the Web Compat Reporter feature for adding additional information. -->
+    <string name="webcompat_reporter_label_description">Décrivez le problème (facultatif)</string>
+    <!-- The button text for navigating away from the feature to provide more information on the broken site's bug report. -->
+    <string name="webcompat_reporter_send_more_info">Envoyer plus d’informations</string>
+    <!-- The button text for the cancel button to leave the Web Compat Reporter feature. -->
+    <string name="webcompat_reporter_cancel">Annuler</string>
+    <!-- The button text for the send button to submit the provided form data. -->
+    <string name="webcompat_reporter_send">Envoyer</string>
+
 
     <!-- These reason strings are dropdown options on a WebCompat reporter form, indicating what is broken on the site. -->
     <!-- Broken site reason text for site slow or not working -->

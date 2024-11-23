@@ -84,7 +84,7 @@
     <!-- Text for the Private mode shortcut CFR message for adding a private mode shortcut to open private tabs from the Home screen -->
     <string name="private_mode_cfr_message_2">එක් තට්ටුවකින් ඊළඟ පෞද්. පටිත්ත අරින්න.</string>
     <!-- Text for the positive button to accept adding a Private Browsing shortcut to the Home screen -->
-    <string name="private_mode_cfr_pos_button_text">මුල් තිරයට යොදන්න</string>
+    <string name="private_mode_cfr_pos_button_text">මුල් තිරයට දමන්න</string>
     <!-- Text for the negative button to decline adding a Private Browsing shortcut to the Home screen -->
     <string name="cfr_neg_button_text">එපා, ස්තුතියි</string>
 
@@ -189,11 +189,17 @@
     <string name="browser_menu_extensions_banner_learn_more">තව දැනගන්න</string>
     <!-- Browser menu button that opens the extensions manager -->
     <string name="browser_menu_manage_extensions">දිගු කළමනාකරණය</string>
+    <!-- Content description (not visible, for screen readers etc.): Section heading for recommended extensions.-->
+    <string name="browser_menu_recommended_section_content_description">නිර්දේශිත දිගු</string>
     <!-- Content description (not visible, for screen readers etc.): Label for plus icon used to add extension.
       The first parameter is the name of the extension (for example: ClearURLs). -->
     <string name="browser_menu_extension_plus_icon_content_description_2">%1$s එකතු</string>
     <!-- Browser menu button that opens AMO in a tab -->
     <string name="browser_menu_discover_more_extensions">බොහෝ දිගු සොයාගන්න</string>
+    <!-- Browser menu description that is shown when one or more extensions are disabled due to extension errors -->
+    <string name="browser_menu_extensions_disabled_description">තාවකාලිකව අබලයි</string>
+    <!-- The description of the browser menu appears when the user hasn't installed any extensions. -->
+    <string name="browser_menu_no_extensions_installed_description">දිගු සබල කර නැත</string>
     <!-- Browser menu button that opens account settings -->
     <string name="browser_menu_account_settings">ගිණුමේ තොරතුරු</string>
     <!-- Browser menu button that sends a user to help articles -->
@@ -209,9 +215,15 @@
     <!-- Browser menu button that reopens a private tab as a regular tab -->
     <string name="browser_menu_open_in_regular_tab">සාමාන්‍ය පටිත්තක අරින්න</string>
     <!-- Browser menu toggle that adds a shortcut to the site on the device home screen. -->
-    <string name="browser_menu_add_to_homescreen">මුල් තිරයට යොදන්න</string>
+    <string name="browser_menu_add_to_homescreen">මුල් තිරයට දමන්න</string>
+    <!-- Browser menu toggle that adds a PWA of the site on the device home screen. -->
+    <string name="browser_menu_add_app_to_homescreen">මුල් තිරයට යෙදුම දමන්න</string>
     <!-- Browser menu toggle that adds a shortcut to the site on the device home screen. -->
     <string name="browser_menu_add_to_homescreen_2">මුල් තිරයට දමන්න…</string>
+    <!-- Browser menu toggle that adds a PWA of the site on the device home screen. -->
+    <string name="browser_menu_add_app_to_homescreen_2">මුල් තිරයට යෙදුම දමන්න…</string>
+    <!-- Text for notifying users that Xiaomi devices require additional permissions to add to home screen -->
+    <string name="browser_menu_add_to_homescreen_xiaomi">මුල් තිරයට කෙටිමං එක් කිරීමට සියෝමි උපාංග වලට අමතර අවසර වුවමනා විය හැකිය. කරුණාකර ඔබගේ සැකසුම් පරීක්‍ෂා කරන්න.</string>
     <!-- Content description (not visible, for screen readers etc.) for the Resync tabs button -->
     <string name="resync_button_content_description">යළි සමමුහූර්තය</string>
     <!-- Browser menu button that opens the find in page menu -->
@@ -264,16 +276,51 @@
     <string name="browser_menu_new_private_tab">නව පෞද්. පටිත්ත</string>
     <!-- Browser menu label that navigates to the Password screen -->
     <string name="browser_menu_passwords">මුරපද</string>
+    <!-- Browser menu label that navigates to the SUMO page for the Firefox for Android release notes.
+         The first parameter is the name of the app defined in app_name (for example: Fenix)-->
+    <string name="browser_menu_new_in_firefox">%1$s අළුත් දෑ</string>
     <!-- Browser menu label that toggles the request for the desktop site of the currently visited page -->
     <string name="browser_menu_switch_to_desktop_site">වැඩතල අඩවිය</string>
     <!-- Browser menu label that toggles the request for the mobile site of the currently visited page -->
-    <string name="browser_menu_switch_to_mobile_site">ජංගම අඩවියට මාරුවෙන්න</string>
+    <string name="browser_menu_switch_to_mobile_site">ජංගම අඩවිය</string>
     <!-- Browser menu label that navigates to the page tools sub-menu -->
     <string name="browser_menu_tools">මෙවලම්</string>
+    <!-- Content description (not visible, for screen readers etc.): Back button for all menu redesign sub-menu -->
+    <string name="browser_menu_back_button_content_description">ප්‍රධාන වට්ටෝරුවට ආපසු</string>
+    <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar main menu. -->
+    <string name="browser_main_menu_handlebar_content_description">ප්‍රධාන වට්ටෝරු පත්‍රය වසන්න</string>
+    <!-- Content description (not visible, for screen readers etc.) for main menu help button. -->
+    <string name="browser_main_menu_content_description_help_button">උදව්</string>
+    <!-- Content description (not visible, for screen readers etc.) for main menu settings button. -->
+    <string name="browser_main_menu_content_description_settings_button">සැකසුම්</string>
+    <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar extensions menu. -->
+    <string name="browser_extensions_menu_handlebar_content_description">දිගු වට්ටෝරු පත්‍රය වසන්න</string>
+    <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar save menu. -->
+    <string name="browser_save_menu_handlebar_content_description">සුරකින වට්ටෝරු පත්‍රය වසන්න</string>
+    <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar tools menu. -->
+    <string name="browser_tools_menu_handlebar_content_description">මෙවලම් වට්ටෝරු පත්‍රය වසන්න</string>
+    <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar custom tab menu. -->
+    <string name="browser_custom_tab_menu_handlebar_content_description">අභිරුචි පටිති වට්ටෝරු පත්‍රය වසන්න</string>
+    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
+    <string name="browser_menu_tools_description_with_translate" moz:removedIn="133" tools:ignore="UnusedResources">කියවීමේ දැක්ම, පරිවර්තනය, මුද්‍රණය, බෙදාගන්න, යෙදුම අරින්න</string>
+    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
+    <string name="browser_menu_tools_description" moz:removedIn="133" tools:ignore="UnusedResources">කියවීමේ දැක්ම, මුද්‍රණය, බෙදාගන්න, යෙදුම අරින්න</string>
+    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu
+         The first parameter is the label of the report site issue (for example: Report Site issue) -->
+    <string name="browser_menu_tools_description_with_translate_with_report_site">කියවීමේ දැක්ම, පරිවර්තනය, %s, මුද්‍රණය, බෙදාගන්න, යෙදුම අරින්න</string>
+    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
+    <string name="browser_menu_tools_description_with_translate_without_report_site">කියවීමේ දැක්ම, පරිවර්තනය, මුද්‍රණය, බෙදාගන්න, යෙදුම අරින්න</string>
+    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu
+         The first parameter is the label of the report site issue (for example: Report Site issue) -->
+    <string name="browser_menu_tools_description_with_report_site">කියවීමේ දැක්ම, %s, මුද්‍රණය, බෙදාගන්න, යෙදුම අරින්න</string>
+    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
+    <string name="browser_menu_tools_description_without_report_site">කියවීමේ දැක්ම, මුද්‍රණය, බෙදාගන්න, යෙදුම අරින්න</string>
     <!-- Browser menu label that navigates to the save sub-menu, which contains various save related menu items such as
          bookmarking a page, saving to collection, shortcut or as a PDF, and adding to home screen -->
     <string name="browser_menu_save">සුරකින්න</string>
 
+    <!-- Browser menu description that describes the various save related menu items inside of the save sub-menu -->
+    <string name="browser_menu_save_description">පොත්යොමු, කෙටිමං, මුල් පිටු, එකතු, PDF එක් කරන්න</string>
     <!-- Browser menu label that bookmarks the currently visited page -->
     <string name="browser_menu_bookmark_this_page">මෙම පිටුවට පොත්යොමුවක්</string>
     <!-- Browser menu label that navigates to the edit bookmark screen for the current bookmarked page -->
@@ -386,6 +433,11 @@
     <string name="juno_onboarding_privacy_notice_text" tools:ignore="BrandUsage">ෆයර්ෆොක්ස් රහස්‍යතා දැන්වීම</string>
     <!-- Title for set firefox as default browser screen used by Nimbus experiments. -->
     <string name="juno_onboarding_default_browser_title_nimbus_2">ඔබට ආරක්‍ෂාව සලසන්නෙමු</string>
+    <!-- Title for set firefox as default browser screen used by Nimbus experiments.
+        Note: The word "Firefox" should NOT be translated -->
+    <string name="juno_onboarding_default_browser_title_nimbus_3" tools:ignore="BrandUsage,UnusedResources">දශලක්‍ෂ ගණනක් ෆයර්ෆොක්ස් වලට කැමති මන්දැයි සොයා බලන්න</string>
+    <!-- Title for set firefox as default browser screen used by Nimbus experiments. -->
+    <string name="juno_onboarding_default_browser_title_nimbus_4" tools:ignore="UnusedResources">බොහෝ තේරීම් සමඟ ආරක්‍ෂිතව පිරික්සන්න</string>
     <!-- Description for set firefox as default browser screen used by Nimbus experiments. -->
     <string name="juno_onboarding_default_browser_description_nimbus_3">අපගේ ලාභ නොලබන පිටුබලයක් සහිත අතිරික්සුව අන්තර්ජාලය පුරා ඔබව රහසින් ලුහුබඳින සමාගම් ස්වයංක්‍රීයව නවත්වයි.</string>
     <!-- Text for the button to set firefox as default browser on the device -->
@@ -394,6 +446,9 @@
     <string name="juno_onboarding_default_browser_negative_button" tools:ignore="UnusedResources">දැන් නොවේ</string>
     <!-- Title for sign in to sync screen. -->
     <string name="juno_onboarding_sign_in_title_2">ඔබ උපාංග අතර පනින විට සංකේතිතව සිටින්න</string>
+    <!-- Description for sign in to sync screen. Nimbus experiments do not support string placeholders.
+     Note: The word "Firefox" should NOT be translated -->
+    <string name="juno_onboarding_sign_in_description_3" tools:ignore="BrandUsage">සමමුහූර්ත විට ෆයර්ෆොක්ස් ඔබගේ මුරපද, පොත්යොමු සහ තවත් දෑ සංකේතනය කරයි.</string>
     <!-- Text for the button to sign in to sync on the device -->
     <string name="juno_onboarding_sign_in_positive_button" tools:ignore="UnusedResources">පිවිසෙන්න</string>
     <!-- Text for the button dismiss the screen and move on with the flow -->
@@ -415,6 +470,8 @@
     <!-- Text for the button to dismiss the screen and move on with the flow -->
     <string name="juno_onboarding_add_search_widget_negative_button" tools:ignore="UnusedResources">දැන් නොවේ</string>
 
+    <!-- Onboarding add-ons card, for checking more add-ons on, used by Nimbus experiments. -->
+    <string name="onboarding_add_on_explore_more_extensions" tools:ignore="UnusedResources" moz:removedIn="133">තව දිගු ගවේශනය</string>
     <!-- Onboarding add-ons card, button for start browsing, used by Nimbus experiments. -->
     <string name="onboarding_add_on_start_browsing_button" tools:ignore="UnusedResources" moz:removedIn="133">පිරික්සුම අරඹන්න</string>
     <!-- Onboarding add-ons card, for checking more add-ons on, used by Nimbus experiments. -->
@@ -605,7 +662,7 @@
     <!-- Preference title for switch preference to show voice search button -->
     <string name="preferences_show_voice_search">හඬ සෙවුම පෙන්වන්න</string>
     <!-- Preference title for switch preference to show search suggestions also in private mode -->
-    <string name="preferences_show_search_suggestions_in_private">පෞද්. වාරයන්හි පෙන්වන්න</string>
+    <string name="preferences_show_search_suggestions_in_private">පෞද්. වාර වල පෙන්වන්න</string>
     <!-- Preference title for switch preference to show a clipboard suggestion when searching -->
     <string name="preferences_show_clipboard_suggestions">පසුරු පුවරුවේ යෝජනා පෙන්වන්න</string>
     <!-- Preference title for switch preference to suggest browsing history when searching -->
@@ -819,7 +876,9 @@
     <string name="exceptions_empty_message_learn_more_link">තව දැනගන්න</string>
 
     <!-- Preference switch for usage and technical data collection -->
-    <string name="preference_usage_data">භාවිතය සහ තාක්‍ෂණික දත්ත</string>
+    <string name="preference_usage_data" moz:removedIn="134" tools:ignore="UnusedResources">භාවිතය සහ තාක්‍ෂණික දත්ත</string>
+    <!-- Preference switch for usage and technical learn more link -->
+    <string name="preference_usage_data_learn_more" tools:ignore="UnusedResources">තව දැනගන්න</string>
     <!-- Preference description for usage and technical data collection -->
     <string name="preferences_usage_data_description">%1$s දියුණු කිරීම සඳහා ඔබගේ අතිරික්සුවෙහි කාර්ය සාධනය, භාවිතය, දෘඩාංග හා රුචිකරණය පිළිබඳ දත්ත මොසිල්ලා සමඟ බෙදා ගැනෙයි</string>
     <!-- Preference switch for marketing data collection -->
@@ -1105,6 +1164,43 @@
     <string name="download_delete_item_1">ඉවත් කරන්න</string>
 
 
+    <!-- WebCompat Reporter -->
+    <!-- The title of the Web Compat Reporter feature. This is displayed in the top app bar. -->
+    <string name="webcompat_reporter_screen_title">කැඩුණු අඩවි වාර්තා</string>
+    <!-- The text field label of the URL text field. This is displayed above the user-inputted URL. -->
+    <string name="webcompat_reporter_label_url">ඒ.ස.නි.</string>
+
+
+    <!-- The error message of the URL text field when an invalid URL has been entered. -->
+    <string name="webcompat_reporter_url_error_invalid">වලංගු ඒ.ස.නි. ලියන්න</string>
+    <!-- The label/title of an optional field in the Web Compat Reporter feature for explaining a high-level reason why the site is broken. -->
+    <string name="webcompat_reporter_label_whats_broken">කැඩී ඇත්තේ කුමක්ද? (විකල්පයකි)</string>
+    <!-- The placeholder text for the dropdown where a user can select a high-level reason why the site is broken. -->
+    <string name="webcompat_reporter_choose_reason">හේතුව තෝරන්න</string>
+    <!-- The label/title of an optional field in the Web Compat Reporter feature for adding additional information. -->
+    <string name="webcompat_reporter_label_description">ගැටලුව විස්තර කරන්න (විකල්පයකි)</string>
+    <!-- The button text for navigating away from the feature to provide more information on the broken site's bug report. -->
+    <string name="webcompat_reporter_send_more_info">තව තොරතුරු යවන්න</string>
+    <!-- The button text for the cancel button to leave the Web Compat Reporter feature. -->
+    <string name="webcompat_reporter_cancel">අවලංගු</string>
+    <!-- The button text for the send button to submit the provided form data. -->
+    <string name="webcompat_reporter_send">යවන්න</string>
+
+
+    <!-- These reason strings are dropdown options on a WebCompat reporter form, indicating what is broken on the site. -->
+    <!-- Broken site reason text for site slow or not working -->
+    <string name="webcompat_reporter_reason_slow">අඩවිය මන්දගාමී හෝ වැඩ නොකරයි</string>
+    <!-- Broken site reason text for images or videos -->
+    <string name="webcompat_reporter_reason_media">රූප හෝ දෘශ්‍යක</string>
+    <!-- Broken site reason text for buttons, links, and other content -->
+    <string name="webcompat_reporter_reason_content">බොත්තම්, සබැඳි සහ වෙනත් අන්තර්ගත</string>
+    <!-- Broken site reason text for sign in or sign out -->
+    <string name="webcompat_reporter_reason_account">පිවිසීම හෝ නික්මීම</string>
+    <!-- Broken site reason text for ad blocker -->
+    <string name="webcompat_reporter_reason_ad_blocker">දැන්වීම් අවහිරකය</string>
+    <!-- Broken site reason text for something else -->
+    <string name="webcompat_reporter_reason_other">වෙනත් යමක්</string>
+
     <!-- Crashes -->
     <!-- Title text displayed on the tab crash page. This first parameter is the name of the application (For example: Fenix) -->
     <string name="tab_crash_title_2">සමාවන්න. %1$s සඳහා පිටුව පූරණය කිරීමට නොහැකිය.</string>
@@ -1202,6 +1298,8 @@
     <string name="bookmark_undo_deletion">පෙරසේ</string>
     <!-- Bookmark snackbar message for deleting a single item. Parameter is the title of the item being deleted -->
     <string name="bookmark_delete_single_item">%s මැකිණි</string>
+    <!-- Bookmark snackbar message for deleting multiple items. Parameter is the number of items being deleted -->
+    <string name="bookmark_delete_multiple_items">මකන ලද අථක: %s</string>
     <!-- Text for the button to search all bookmarks -->
     <string name="bookmark_search">සෙවුම් පද යොදන්න</string>
 
@@ -1220,6 +1318,8 @@
     <string name="bookmark_empty_list_title">මෙහි පොත්යොමු නැත</string>
     <!-- Text for the button to navigate to sync authentication -->
     <string name="bookmark_empty_list_guest_cta">සමමුහූර්තයට පිවිසෙන්න</string>
+    <!-- Description for the bookmark list empty state when you're in an empty folder. -->
+    <string name="bookmark_empty_list_folder_description">ඔබ පිරික්සන පරිදි පොත්යොමු එක් කරන්න. එවිට ඔබගේ ප්‍රියතම අඩවි පසුව ද බැලීමට හැකිය.</string>
     <!-- Description for the add new folder button when selecting a folder. -->
     <string name="bookmark_select_folder_new_folder_button_title">නව බහාලුම</string>
 
@@ -1309,6 +1409,9 @@
     <string name="preferences_category_permissions">අවසර</string>
     <!-- Category header of a preference that allows a user to alter settings related to web content. -->
     <string name="preferences_category_content">අන්තර්ගතය</string>
+
+    <!-- Preference for altering the default browsing mode. When enabled, the desktop site will always be requested. -->
+    <string name="preference_feature_desktop_mode_default">සැමවිට වැඩතල අඩවිය ඉල්ලන්න</string>
 
     <!-- Collections -->
     <!-- Collections header on home fragment -->
@@ -1728,7 +1831,7 @@
     <!-- About page link text to list of past crashes (like about:crashes on desktop) -->
     <string name="about_crashes">බිඳ වැටීම්</string>
     <!-- About page link text to open privacy notice link -->
-    <string name="about_privacy_notice">පෞද්ගලිකත්‍ව දැන්වීම</string>
+    <string name="about_privacy_notice">රහස්‍යතා දැන්වීම</string>
     <!-- About page link text to open know your rights link -->
     <string name="about_know_your_rights">ඔබගේ අයිතීන්</string>
     <!-- About page link text to open licensing information link -->
@@ -1752,7 +1855,7 @@
     <string name="browser_toolbar_url_copied_to_clipboard_snackbar">ඒ.ස.නි. පසුරුපුවරුවට පිටපත් විය</string>
 
     <!-- Title text for the Add To Homescreen dialog -->
-    <string name="add_to_homescreen_title">මුල් තිරයට යොදන්න</string>
+    <string name="add_to_homescreen_title">මුල් තිරයට දමන්න</string>
     <!-- Cancel button text for the Add to Homescreen dialog -->
     <string name="add_to_homescreen_cancel">අවලංගු</string>
     <!-- Add button text for the Add to Homescreen dialog -->
@@ -2012,9 +2115,9 @@
     <string name="phone_feature_blocked_step_feature"><![CDATA[3. <b>%1$s</b> සබල කරන්න]]></string>
 
     <!-- Label that indicates a site is using a secure connection -->
-    <string name="quick_settings_sheet_secure_connection_2">සම්බන්ධතාවය ආරක්‍ෂිතයි</string>
+    <string name="quick_settings_sheet_secure_connection_2">සම්බන්‍ධතාව ආරක්‍ෂිතයි</string>
     <!-- Label that indicates a site is using a insecure connection -->
-    <string name="quick_settings_sheet_insecure_connection_2">සම්බන්ධතාවය අනාරක්‍ෂිතයි</string>
+    <string name="quick_settings_sheet_insecure_connection_2">සම්බන්‍ධතාව අනාරක්‍ෂිතයි</string>
     <!-- Label to clear site data -->
     <string name="clear_site_data">දත්තකඩ හා අඩවි දත්ත මකන්න</string>
     <!-- Confirmation message for a dialog confirming if the user wants to delete all data for current site -->
@@ -2044,6 +2147,8 @@
     <string name="dialog_delete_positive">මකන්න</string>
     <!-- Negative action of a dialog asking to delete login -->
     <string name="dialog_delete_negative">අවලංගු</string>
+    <!--  The saved password options menu description. -->
+    <string name="login_options_menu_2">මුරපද විකල්ප</string>
     <!--  The button description to save changes to an edited password. -->
     <string name="save_changes_to_login_2">වෙනස්කම් සුරකින්න</string>
     <!--  The page title for editing a saved password. -->
@@ -2248,9 +2353,9 @@
     <!-- Text for body of error card displayed to the user when an error occurred. -->
     <string name="review_quality_check_generic_error_body">අපි ගැටලුව විසඳමින් සිටින්නෙමු. පසුව පරීක්‍ෂා කරන්න.</string>
     <!-- Title for error card displayed to the user when the device is disconnected from the network. -->
-    <string name="review_quality_check_no_connection_title">අන්තර්ජාල සම්බන්ධතාවයක් නැත</string>
+    <string name="review_quality_check_no_connection_title">අන්තර්ජාල සම්බන්ධතාවක් නැත</string>
     <!-- Text for body of error card displayed to the user when the device is disconnected from the network. -->
-    <string name="review_quality_check_no_connection_body">ඔබගේ ජාල සම්බන්ධතාවය පරීක්‍ෂා කර පිටුව නැවත පූරණය කරන්න.</string>
+    <string name="review_quality_check_no_connection_body">ඔබගේ ජාල සම්බන්ධතාව පරීක්‍ෂා කර පිටුව නැවත පූරණය කරන්න.</string>
     <!-- Title for card displayed to the user for products whose reviews were not analyzed yet. -->
     <string name="review_quality_check_no_analysis_title">මෙම සමාලෝචන ගැන තවමත් තොරතුරු නැත</string>
     <!-- Text for button from body of card displayed to the user for products whose reviews were not analyzed yet. Clicking this should trigger a product analysis. -->
@@ -2258,7 +2363,7 @@
     <!-- Clickable text from the contextual onboarding card that links to review quality check support article. -->
     <string name="review_quality_check_contextual_onboarding_learn_more_link">තව දැනගන්න</string>
     <!-- Clickable text from the review quality check contextual onboarding card that links to Fakespot privacy notice. -->
-    <string name="review_quality_check_contextual_onboarding_privacy_policy_3">පෞද්ගලිකත්‍ව දැන්වීම</string>
+    <string name="review_quality_check_contextual_onboarding_privacy_policy_3">රහස්‍යතා දැන්වීම</string>
     <!-- Clickable text from the review quality check contextual onboarding card that links to Fakespot terms of use. -->
     <string name="review_quality_check_contextual_onboarding_terms_use">භාවිත නියම</string>
     <!-- Text for opt-in button from the review quality check contextual onboarding card. -->
@@ -2307,6 +2412,9 @@
     <!-- Title for dialog displayed when trying to access links present in a text. -->
     <string name="a11y_links_title">සබැඳි</string>
 
+    <!-- Additional content description for text bodies that contain urls. -->
+    <string name="a11y_links_available">සබැඳි තිබේ</string>
+
     <!-- Translations feature-->
 
     <!-- Text that links to additional information about the Firefox translations feature. -->
@@ -2318,6 +2426,8 @@
     <string name="translations_bottom_sheet_translate_to">මෙයට</string>
     <!-- Button text on the translations dialog to dismiss the dialog and return to the browser. -->
     <string name="translations_bottom_sheet_negative_button">දැන් නොවේ</string>
+    <!-- Button text on the translations dialog to restore the translated website back to the original untranslated version. -->
+    <string name="translations_bottom_sheet_negative_button_restore">මුල් පිටපත පෙන්වන්න</string>
     <!-- Button text on the translations dialog when a translation error appears, used to dismiss the dialog and return to the browser. -->
     <string name="translations_bottom_sheet_negative_button_error">අහවරයි</string>
     <!-- Button text on the translations dialog to begin a translation of the website. -->
@@ -2328,6 +2438,8 @@
     <string name="translations_bottom_sheet_translating_in_progress">පරිවර්තනය වෙමින්</string>
     <!-- Button content description (not visible, for screen readers etc.) for the translations dialog translate button that indicates a translation is currently in progress. -->
     <string name="translations_bottom_sheet_translating_in_progress_content_description">පරිවර්තනය වෙමින් පවතී</string>
+    <!-- Default dropdown option when initially selecting a language from the translations dialog language selection dropdown. -->
+    <string name="translations_bottom_sheet_default_dropdown_selection">භාෂාවක් තෝරන්න</string>
     <!-- The title of the warning card informs the user that a translation could not be completed. -->
     <string name="translation_error_could_not_translate_warning_text">පරිවර්තන ගැටලුවක් මතු විය. නැවත උත්සාහ කරන්න.</string>
 
@@ -2336,12 +2448,25 @@
     <string name="translation_in_progress_snackbar">පරිවර්තනය වෙමින්…</string>
 
 
+    <!-- Title for the data saving mode warning dialog used in the translation request dialog.
+    This dialog will be presented when the user attempts to perform
+    a translation without the necessary language files downloaded first when Android's data saver mode is enabled and the user is not using WiFi.
+    The first parameter is the size in kilobytes or megabytes of the language file. -->
+    <string name="translations_download_language_file_dialog_title">දත්ත ඉතිරි කරන ප්‍රකාරයේ දී භාෂාව බාගන්න ද (%1$s)?</string>
+
+
+    <!-- Translations options dialog -->
+    <!-- Title of the translation options dialog that allows a user to set their translation options for the site the user is currently on. -->
+    <string name="translation_option_bottom_sheet_title_heading">පරිවර්තන විකල්ප</string>
     <!-- Button text for the button that will take the user to the translation settings dialog. -->
     <string name="translation_option_bottom_sheet_translation_settings">පරිවර්තන සැකසුම්</string>
 
     <!-- Translation settings dialog -->
     <!-- Title of the translation settings dialog that allows a user to set their preferred translation settings. -->
     <string name="translation_settings_toolbar_title">පරිවර්තන</string>
+
+    <!-- Toggle switch label that indicates that downloading files required for translating is permitted when using data saver mode in Android. -->
+    <string name="translation_settings_always_download">සෑමවිට දත්ත ඉතිරි කරන ප්‍රකාරයේ දී භාෂා බාගන්න</string>
 
     <!-- Automatic translation preference screen -->
     <!-- Title of the automatic translation preference screen that will appear on the toolbar.-->
@@ -2452,7 +2577,7 @@
     <!-- The survey header -->
     <string name="micro_survey_survey_header_2">කරුණාකර සමීක්ෂණය සම්පූර්ණ කරන්න</string>
     <!-- The privacy notice link -->
-    <string name="micro_survey_privacy_notice_2">පෞද්ගලිකත්‍ව දැන්වීම</string>
+    <string name="micro_survey_privacy_notice_2">රහස්‍යතා දැන්වීම</string>
     <!-- The submit button label text -->
     <string name="micro_survey_submit_button_label">යොමන්න</string>
     <!-- The survey completion header -->

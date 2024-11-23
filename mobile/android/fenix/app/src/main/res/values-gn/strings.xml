@@ -121,6 +121,10 @@
     <!-- Text for the message displayed for the popup promoting the long press of navigation in the navigation bar. -->
     <string name="navbar_navigation_buttons_cfr_message">Ejopymeme pe hu’y epo hag̃ua tembiasakue kuatiarogue ko tendaykepegua.</string>
 
+    <!-- Address bar swipe "contextual feature recommendation" (CFR) -->
+    <!-- Text for the title displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
+    <string name="address_bar_swipe_cfr_title">Embosyryry tembiporu renda emoambue hag̃ua tendayke</string>
+
     <!-- Tablet navigation bar "contextual feature recommendation" (CFR) -->
     <!-- Text for the title displayed in the contextual feature recommendation popup promoting the tablet navigation bar. -->
     <string name="tablet_nav_bar_cfr_title" moz:removedIn="132" tools:ignore="UnusedResources">Pyahu: hu’y tapykue ha tenonde gotyo jepoko ndive</string>
@@ -252,8 +256,12 @@
     <string name="browser_menu_open_in_regular_tab">Embojuruja tendayke</string>
     <!-- Browser menu toggle that adds a shortcut to the site on the device home screen. -->
     <string name="browser_menu_add_to_homescreen">Embojuaju mba’erechaha ñepyrũgua</string>
+    <!-- Browser menu toggle that adds a PWA of the site on the device home screen. -->
+    <string name="browser_menu_add_app_to_homescreen">Embojuaju app mba’erechaha ñepyrũháre</string>
     <!-- Browser menu toggle that adds a shortcut to the site on the device home screen. -->
     <string name="browser_menu_add_to_homescreen_2">Embojuaju mba’erechaha ñepyrũgua…</string>
+    <!-- Browser menu toggle that adds a PWA of the site on the device home screen. -->
+    <string name="browser_menu_add_app_to_homescreen_2">Embojuaju app mba’erechaha ñepyrũháre…</string>
     <!-- Text for notifying users that Xiaomi devices require additional permissions to add to home screen -->
     <string name="browser_menu_add_to_homescreen_xiaomi">Ikatu umi Xiaomi mba’e’oka oikotevẽ ñemoneĩve ombojuaju hag̃ua jeike pya’erã mba’erechaha ñepyrũguápe. Ehecha jey ne ñemboheko.</string>
     <!-- Content description (not visible, for screen readers etc.) for the Resync tabs button -->
@@ -329,6 +337,10 @@
     <string name="browser_menu_back_button_content_description">Ejevyjey jeporavorãme</string>
     <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar main menu. -->
     <string name="browser_main_menu_handlebar_content_description">Emboty poravorã kuatiarogue</string>
+    <!-- Content description (not visible, for screen readers etc.) for main menu help button. -->
+    <string name="browser_main_menu_content_description_help_button">Pytyvõ</string>
+    <!-- Content description (not visible, for screen readers etc.) for main menu settings button. -->
+    <string name="browser_main_menu_content_description_settings_button">Ñemboheko</string>
     <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar extensions menu. -->
     <string name="browser_extensions_menu_handlebar_content_description">Emboty jepysokue poravorã kuatiarogue</string>
     <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar save menu. -->
@@ -338,9 +350,19 @@
     <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar custom tab menu. -->
     <string name="browser_custom_tab_menu_handlebar_content_description">Emboty tendayke poravorã mba’eteéva</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-    <string name="browser_menu_tools_description_with_translate">Moñe’ẽrã jehechaha, moñe’ẽasa, monguatia, moherakuã, tembiporu’i mbojuruja</string>
+    <string name="browser_menu_tools_description_with_translate" moz:removedIn="133" tools:ignore="UnusedResources">Moñe’ẽrã jehechaha, moñe’ẽasa, monguatia, moherakuã, tembiporu’i mbojuruja</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-    <string name="browser_menu_tools_description">Moñe’ẽrã jehechaha, monguatia, moherakuã, tembiporu’i mbojuruja</string>
+    <string name="browser_menu_tools_description" moz:removedIn="133" tools:ignore="UnusedResources">Moñe’ẽrã jehechaha, monguatia, moherakuã, tembiporu’i mbojuruja</string>
+    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu
+         The first parameter is the label of the report site issue (for example: Report Site issue) -->
+    <string name="browser_menu_tools_description_with_translate_with_report_site">Moñe’ẽha rechaha, ñe’ẽasa, %s, monguatia, moherakuã, embojuruja tembiporu’i</string>
+    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
+    <string name="browser_menu_tools_description_with_translate_without_report_site">Moñe’ẽrã jehechaha, moñe’ẽasa, monguatia, moherakuã, tembiporu’i mbojuruja</string>
+    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu
+         The first parameter is the label of the report site issue (for example: Report Site issue) -->
+    <string name="browser_menu_tools_description_with_report_site">Moñe’ẽrã jehechaha, %s, monguatia, moherakuã, tembiporu’i mbojuruja</string>
+    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
+    <string name="browser_menu_tools_description_without_report_site">Moñe’ẽrã jehechaha, monguatia, moherakuã, tembiporu’i mbojuruja</string>
     <!-- Browser menu label that navigates to the save sub-menu, which contains various save related menu items such as
          bookmarking a page, saving to collection, shortcut or as a PDF, and adding to home screen -->
     <string name="browser_menu_save">Ñongatu</string>
@@ -551,6 +573,10 @@
     <!-- Content description for the add-on icon. -->
     <string name="onboarding_add_on_icon_content_description">Moĩmbaha ra’ãnga’i</string>
 
+    <!-- Content description for the an installed add-on icon. -->
+    <string name="onboarding_installed_add_on_icon_content_description">Moĩmbaha ra’ãnga’i ñemohenda</string>
+    <!-- Content description for the an installing add-on icon. -->
+    <string name="onboarding_installing_add_on_icon_content_description">Moĩmbaha ra’ãnga’i oñemohenda</string>
     <!-- Content description for the add add-on button. -->
     <string name="onboarding_add_on_add_button_content_description">Votõ embojuaju hag̃ua moĩmbaha</string>
     <!-- Content description for the star rating group. -->
@@ -957,7 +983,11 @@
     <string name="exceptions_empty_message_learn_more_link">Kuaave</string>
 
     <!-- Preference switch for usage and technical data collection -->
-    <string name="preference_usage_data">Jeporu ha mba’ekuaarã aporekogua</string>
+    <string name="preference_usage_data" moz:removedIn="134" tools:ignore="UnusedResources">Jeporu ha mba’ekuaarã aporekogua</string>
+    <!-- Preference switch for usage and technical data collection -->
+    <string name="preference_usage_data_1">Mba’ekuaarã aporekogua ha ñomongeta</string>
+    <!-- Preference switch for usage and technical learn more link -->
+    <string name="preference_usage_data_learn_more" tools:ignore="UnusedResources">Eikuaave</string>
     <!-- Preference description for usage and technical data collection -->
     <string name="preferences_usage_data_description">Emoherakuã mba’ekuaarã apopy, jeporu, hardware ha kundahára mboava Mozilla ndive orepytyvõ hag̃ua oikoporãvévo %1$s</string>
     <!-- Preference switch for marketing data collection -->
@@ -1258,6 +1288,26 @@
 
 
     <!-- WebCompat Reporter -->
+
+
+    <!-- WebCompat Reporter -->
+    <!-- The title of the Web Compat Reporter feature. This is displayed in the top app bar. -->
+    <string name="webcompat_reporter_screen_title">Emombe’u tenda vai</string>
+    <!-- The text field label of the URL text field. This is displayed above the user-inputted URL. -->
+    <string name="webcompat_reporter_label_url">URL</string>
+    <!-- The error message of the URL text field when an invalid URL has been entered. -->
+    <string name="webcompat_reporter_url_error_invalid">Emoinge peteĩ URL oikóva</string>
+    <!-- The label/title of an optional field in the Web Compat Reporter feature for explaining a high-level reason why the site is broken. -->
+    <string name="webcompat_reporter_label_whats_broken">Mba’épa oñembyai (eipotárõ)</string>
+    <!-- The placeholder text for the dropdown where a user can select a high-level reason why the site is broken. -->
+    <string name="webcompat_reporter_choose_reason">Ere mba’érepa</string>
+    <!-- The button text for navigating away from the feature to provide more information on the broken site's bug report. -->
+    <string name="webcompat_reporter_send_more_info">Emondove marandu</string>
+    <!-- The button text for the cancel button to leave the Web Compat Reporter feature. -->
+    <string name="webcompat_reporter_cancel">Heja</string>
+    <!-- The button text for the send button to submit the provided form data. -->
+    <string name="webcompat_reporter_send">Mondo</string>
+
 
     <!-- These reason strings are dropdown options on a WebCompat reporter form, indicating what is broken on the site. -->
     <!-- Broken site reason text for site slow or not working -->

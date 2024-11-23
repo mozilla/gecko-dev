@@ -48,7 +48,7 @@
     <string name="menu_add_to_home_screen">මුල් තිරයට යොදන්න</string>
 
     <!-- Menu item: Add the current site as a shortcut on the Home screen -->
-    <string name="menu_add_to_shortcuts">කෙටිමං වෙත යොදන්න</string>
+    <string name="menu_add_to_shortcuts">කෙටිමං වෙත දමන්න</string>
 
     <!-- Menu item: Remove the current site as a shortcut from the Home screen -->
     <string name="menu_remove_from_shortcuts">කෙටිමං වෙතින් ඉවත් කරන්න</string>
@@ -359,7 +359,7 @@
     <string name="preference_mozilla_telemetry_summary2">සැමට %1$s වැඩිදියුණු කර දීමට හා සැපයීමට අවශ්‍ය දෑ පමණක් රැස් කර ගැනීමට මොසිල්ලා උත්සාහ කරයි.</string>
 
     <!-- In-app link (in settings) to Focus privacy notice. -->
-    <string name="preference_privacy_notice">පෞද්ගලිකත්‍ව දැන්වීම</string>
+    <string name="preference_privacy_notice">රහස්‍යතා දැන්වීම</string>
 
     <!-- In-app link (in settings) to Focus licensing information. -->
     <string name="preference_licensing_info">බලපත්‍රදායක තොරතුරු</string>
@@ -431,7 +431,7 @@
 
     <!-- Content description (not visible, for screen readers etc.): Lock icon showed in the URL bar for
      https pages.. -->
-    <string name="content_description_lock">ආරක්‍ෂිත සම්බන්ධතාවයකි</string>
+    <string name="content_description_lock">ආරක්‍ෂිත සම්බන්‍ධතාවකි</string>
 
     <!-- This text is not visible. Instead it will be read by the accessibility service once we start
      loading a website -->
@@ -628,8 +628,8 @@
 
     <!-- Text shown in Security Information Popup -->
     <!-- Text to denote secure or insecure connection -->
-    <string name="security_popup_secure_connection">ආරක්‍ෂිත සම්බන්ධතාවයකි</string>
-    <string name="security_popup_insecure_connection">ආනාරක්‍ෂිත සම්බන්ධතාවයකි</string>
+    <string name="security_popup_secure_connection">ආරක්‍ෂිත සම්බන්‍ධතාවකි</string>
+    <string name="security_popup_insecure_connection">අනාරක්‍ෂිත සම්බන්‍ධතාවකි</string>
     <!-- %1$s will be replaced with organization that granted the SSL certificate -->
     <string name="security_popup_security_verified">සත්‍යාපනය: %1$s</string>
 
@@ -883,7 +883,7 @@
 
     <!-- Tip displayed on home view explaining how to add sites to homescreen
     Argument 1 will be replaced with a line break in the application.-->
-    <string name="tip_add_to_homescreen"><![CDATA[ඔබ නිතර භාවිතා කරන අඩවි වෙත එක් තට්ටුවකින් ප්‍රවේශ වන්න%1$s වට්ටෝරුව > මුල් තිරයට යොදන්න]]></string>
+    <string name="tip_add_to_homescreen"><![CDATA[ඔබ නිතර භාවිතා කරන අඩවි වෙත එක් තට්ටුවකින් ප්‍රවේශ වන්න%1$s වට්ටෝරුව > මුල් තිරයට දමන්න]]></string>
 
     <!-- Tip displayed on home view explaining how to make Focus the default browser
     Argument 1 is the app name (Firefox Focus/Firefox Klar/etc).
@@ -972,9 +972,9 @@
     <!-- Enhanced tracking protection preference description when the tracking protection is enabled for this site-->
     <string name="enhanced_tracking_protection_state_on">අඩවියට දියුණු කළ ලුහුබැඳීමේ රැකවරණය සක්‍රියයි</string>
     <!-- Label that indicates a site is using a secure connection -->
-    <string name="secure_connection">සම්බන්ධතාවය ආරක්‍ෂිතයි</string>
+    <string name="secure_connection">සම්බන්‍ධතාව ආරක්‍ෂිතයි</string>
     <!-- Label that indicates a site is using a insecure connection -->
-    <string name="insecure_connection">සම්බන්ධතාවය අනාරක්‍ෂිතයි</string>
+    <string name="insecure_connection">සම්බන්‍ධතාව අනාරක්‍ෂිතයි</string>
     <!-- Title for the list of trackers enhanced tracking ptotection can block-->
     <string name="trackers_and_scripts">අවහිර කිරීමට ලුහුබැඳීම් හා අත්පත්</string>
 
@@ -1012,12 +1012,12 @@
 
     <!-- The text of the error page for websites that do not support HTTPS when HTTPS-Only is turned on. %1$s will get replaced with the name of the app (e.g. "Firefox Focus").
         Contains a button that will redirect the user to Privacy & Security Screen-->
-    <string name="errorpage_httpsonly_message2" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[වැඩි ආරක්‍ෂාවක් සඳහා %1$s හැකි සෑම විටම HTTPS සම්බන්ධතාවයක් භාවිතයට උත්සාහ කරයි.
+    <string name="errorpage_httpsonly_message2" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[වැඩි ආරක්‍ෂාවක් සඳහා %1$s හැකි සෑම විටම HTTPS සම්බන්ධතාවක් භාවිතයට උත්සාහ කරයි.
  <a href="%2$s">තව දැනගන්න</a> <br/><br/>
  සැකසුම් > පෞද්ගලිකත්‍වය හා ආරක්‍ෂාව > ආරක්‍ෂාව හරහා සැකසුම වෙනස් කරන්න.]]></string>
 
     <!-- The document title and heading of the error page shown when a website has an invalid or expired SSL certificate. -->
-    <string name="mozac_browser_errorpages_security_bad_cert_title">සම්බන්ධතාවය අනාරක්‍ෂිතයි</string>
+    <string name="mozac_browser_errorpages_security_bad_cert_title">සම්බන්‍ධතාව අනාරක්‍ෂිතයි</string>
 
      <!-- The error message shown when a website has an invalid or expired SSL certificate. -->
     <string name="mozac_browser_errorpages_security_bad_cert_message"><![CDATA[
@@ -1080,4 +1080,10 @@
     <!-- Message shown to explain how to exit fullscreen mode when using back button navigation -->
     <string name="exit_fullscreen_with_back_button" moz:removedIn="132" tools:ignore="UnusedResources">පූර්ණ තිරයෙන් පිටවීමට මුදුනින් ඇද ආපසු බොත්තම ඔබන්න</string>
 
-    </resources>
+    <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled. -->
+    <!-- Localisation note: this text should be as short as possible, max 68 chars -->
+    <string name="exit_fullscreen_with_gesture_short">මුදුනෙන් ඇද ආපසු අභිනය භාවිතයෙන් පිටවන්න</string>
+    <!-- Message shown to explain how to exit fullscreen mode when using back button navigation. -->
+    <!-- Localisation note: this text should be as short as possible, max 68 chars -->
+    <string name="exit_fullscreen_with_back_button_short">මුදුනෙන් ඇද ආපසු ඔබා පිටවන්න</string>
+</resources>
