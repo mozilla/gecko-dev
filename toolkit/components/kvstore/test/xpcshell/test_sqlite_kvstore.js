@@ -678,6 +678,40 @@ add_task(async function enumeration() {
   await database.delete("bool-key");
 });
 
+add_task(async function keysWithWhitespace() {
+  const databaseDir = await makeDatabaseDir("keysWithWhitespace");
+  const database = await SQLiteKeyValueService.getOrCreate(databaseDir, "db");
+
+  await database.put(" leading", 1234);
+  await database.writeMany({
+    "trailing ": 5678,
+    " both ": 9123,
+  });
+
+  Assert.strictEqual(await database.get(" leading"), 1234);
+  Assert.strictEqual(await database.get("trailing "), 5678);
+  Assert.strictEqual(await database.get(" both "), 9123);
+
+  Assert.strictEqual(await database.has(" leading"), true);
+  Assert.strictEqual(await database.has(" nonexistent "), false);
+
+  Assert.deepEqual(await allEntries(database), [
+    { key: " both ", value: 9123 },
+    { key: " leading", value: 1234 },
+    { key: "trailing ", value: 5678 },
+  ]);
+
+  Assert.strictEqual(await database.deleteRange(" ", "t"));
+
+  Assert.deepEqual(await allEntries(database), [
+    { key: "trailing ", value: 5678 },
+  ]);
+
+  await database.delete("trailing ");
+
+  Assert.ok(await database.isEmpty());
+});
+
 add_task(async function importFromRkv() {
   const databaseDir = await makeDatabaseDir("importFromRkv");
 

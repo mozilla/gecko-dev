@@ -2,8 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use std::borrow::Cow;
-
 use rkv::{
     backend::{BackendDatabase, BackendEnvironment, BackendRwCursorTransaction},
     Readable, Rkv, SingleStore, StoreOptions, Value, Writer,
@@ -12,7 +10,7 @@ use xpcom::interfaces::nsIKeyValueImporter;
 
 use crate::skv::{
     connection::{ConnectionIncident, ToConnectionIncident},
-    key::{Key as SkvKey, KeyError as SkvKeyError},
+    key::Key as SkvKey,
     store::{Store as SkvStore, StoreError as SkvStoreError},
     value::Value as SkvValue,
 };
@@ -163,9 +161,9 @@ where
     }
 
     fn import_pair(&self, key: &[u8], value: rkv::Value) -> Result<(), ImporterError> {
-        let key = SkvKey::try_from(Cow::Borrowed(
+        let key = SkvKey::from(
             std::str::from_utf8(key).map_err(|err| ImporterError::RkvKey(err.into()))?,
-        ))?;
+        );
         let value = <SkvValue as From<serde_json::Value>>::from(match value {
             Value::Bool(b) => b.into(),
             Value::I64(n) => n.into(),
@@ -293,8 +291,6 @@ pub enum ImporterError {
     Sqlite(#[from] rusqlite::Error),
     #[error("rkv key: {0}")]
     RkvKey(Box<dyn std::error::Error + Send + Sync + 'static>),
-    #[error("skv key: {0}")]
-    SkvKey(#[from] SkvKeyError),
     #[error("unsupported rkv value type")]
     UnsupportedRkvValueType,
     #[error("unnamed database")]

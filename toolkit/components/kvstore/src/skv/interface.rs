@@ -40,7 +40,7 @@ use crate::{
             CleanupPolicy, ConflictPolicy, ImporterError, NamedSourceDatabase, RkvImporter,
             SourceDatabases,
         },
-        key::{Key, KeyError},
+        key::Key,
         store::{Store, StoreError, StorePath},
         value::{Value, ValueError},
     },
@@ -264,7 +264,7 @@ impl KeyValueDatabase {
     ) -> Result<(), Infallible> {
         let inputs = || -> Result<_, InterfaceError> {
             let store = self.store()?;
-            let key = Key::try_from(key)?;
+            let key = Key::from(key);
             let value = Value::from_variant(value)?;
             Ok((store, key, value))
         }();
@@ -312,7 +312,7 @@ impl KeyValueDatabase {
                     let mut key = nsCString::new();
                     unsafe { pair.GetKey(&mut *key) }.to_result()?;
                     let value = getter_addrefs(|p| unsafe { pair.GetValue(p) })?;
-                    Ok((Key::try_from(&*key)?, Value::from_variant(value.coerce())?))
+                    Ok((Key::from(&*key), Value::from_variant(value.coerce())?))
                 })
                 .collect::<Result<Vec<_>, InterfaceError>>()?;
             Ok((store, pairs))
@@ -357,7 +357,7 @@ impl KeyValueDatabase {
     ) -> Result<(), Infallible> {
         let inputs = || -> Result<_, InterfaceError> {
             let store = self.store()?;
-            let key = Key::try_from(key)?;
+            let key = Key::from(key);
             Ok((store, key))
         }();
 
@@ -401,7 +401,7 @@ impl KeyValueDatabase {
     ) -> Result<(), Infallible> {
         let inputs = || -> Result<_, InterfaceError> {
             let store = self.store()?;
-            let key = Key::try_from(key)?;
+            let key = Key::from(key);
             Ok((store, key))
         }();
 
@@ -438,7 +438,7 @@ impl KeyValueDatabase {
     ) -> Result<(), Infallible> {
         let inputs = || -> Result<_, InterfaceError> {
             let store = self.store()?;
-            let key = Key::try_from(key)?;
+            let key = Key::from(key);
             Ok((store, key))
         }();
 
@@ -482,11 +482,11 @@ impl KeyValueDatabase {
             let store = self.store()?;
             let from_key = match from_key.is_empty() {
                 true => Bound::Unbounded,
-                false => Bound::Included(Key::try_from(from_key)?),
+                false => Bound::Included(Key::from(from_key)),
             };
             let to_key = match to_key.is_empty() {
                 true => Bound::Unbounded,
-                false => Bound::Excluded(Key::try_from(to_key)?),
+                false => Bound::Excluded(Key::from(to_key)),
             };
             Ok((store, from_key, to_key))
         }();
@@ -560,11 +560,11 @@ impl KeyValueDatabase {
             let store = self.store()?;
             let from_key = match from_key.is_empty() {
                 true => Bound::Unbounded,
-                false => Bound::Included(Key::try_from(from_key)?),
+                false => Bound::Included(Key::from(from_key)),
             };
             let to_key = match to_key.is_empty() {
                 true => Bound::Unbounded,
-                false => Bound::Excluded(Key::try_from(to_key)?),
+                false => Bound::Excluded(Key::from(to_key)),
             };
             Ok((store, from_key, to_key))
         }();
@@ -1026,8 +1026,6 @@ pub enum InterfaceError {
     Database(#[from] DatabaseError),
     #[error("store: {0}")]
     Store(#[from] StoreError),
-    #[error("key: {0}")]
-    Key(#[from] KeyError),
     #[error("value: {0}")]
     Value(#[from] ValueError),
     #[error("rkv store: {0}")]
