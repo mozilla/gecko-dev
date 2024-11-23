@@ -12,9 +12,7 @@
 #include "mozilla/ArrayUtils.h"
 #include "mozilla/GfxMessageUtils.h"
 #include "mozilla/dom/GamepadMessageUtils.h"
-#include "mozilla/ParamTraits_IsEnumCase.h"
-#include "mozilla/ParamTraits_STL.h"
-#include "mozilla/ParamTraits_TiedFields.h"
+#include "mozilla/dom/WebGLIpdl.h"
 
 #include "gfxVR.h"
 

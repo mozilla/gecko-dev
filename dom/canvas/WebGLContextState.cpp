@@ -13,7 +13,6 @@
 #include "nsString.h"
 #include "WebGLBuffer.h"
 #include "WebGLContextUtils.h"
-#include "WebGLFormats.h"
 #include "WebGLFramebuffer.h"
 #include "WebGLProgram.h"
 #include "WebGLRenderbuffer.h"

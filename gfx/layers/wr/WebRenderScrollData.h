@@ -18,6 +18,7 @@
 #include "mozilla/GfxMessageUtils.h"
 #include "mozilla/layers/FocusTarget.h"
 #include "mozilla/layers/ScrollbarData.h"
+#include "mozilla/layers/WebRenderMessageUtils.h"
 #include "mozilla/webrender/WebRenderTypes.h"
 #include "mozilla/HashTable.h"
 #include "mozilla/Maybe.h"

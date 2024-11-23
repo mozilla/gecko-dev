@@ -32,7 +32,6 @@
 #include "mozilla/layers/WebRenderDrawEventRecorder.h"
 #include "UnitTransforms.h"
 #include "gfxEnv.h"
-#include "MediaInfo.h"
 #include "nsDisplayListInvalidation.h"
 #include "nsLayoutUtils.h"
 #include "nsTHashSet.h"

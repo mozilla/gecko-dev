@@ -125,7 +125,6 @@
 #  include <gdk/gdkkeysyms-compat.h>
 #  include "nsIClipboard.h"
 #  include "nsView.h"
-#  include "WaylandVsyncSource.h"
 #endif
 
 using namespace mozilla;

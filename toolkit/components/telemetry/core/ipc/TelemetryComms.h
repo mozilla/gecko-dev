@@ -12,7 +12,7 @@
 #include "mozilla/TelemetryProcessEnums.h"
 #include "mozilla/TimeStamp.h"
 #include "mozilla/Variant.h"
-#include "mozilla/ParamTraits_TiedFields.h"
+#include "mozilla/dom/WebGLIpdl.h"
 #include "nsITelemetry.h"
 
 namespace mozilla {

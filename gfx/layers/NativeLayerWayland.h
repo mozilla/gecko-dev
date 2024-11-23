@@ -11,18 +11,12 @@
 
 #include "mozilla/Mutex.h"
 #include "mozilla/layers/NativeLayer.h"
+#include "mozilla/layers/SurfacePoolWayland.h"
 #include "mozilla/widget/MozContainerWayland.h"
 #include "nsRegion.h"
 #include "nsTArray.h"
 
-namespace mozilla::widget {
-class WaylandBuffer;
-class WaylandBufferSHM;
-}  // namespace mozilla::widget
-
 namespace mozilla::layers {
-
-class SurfacePoolHandleWayland;
 
 typedef void (*CallbackFunc)(void* aData, uint32_t aTime);
 
@@ -129,7 +123,9 @@ class NativeLayerWayland final : public NativeLayer {
   void Commit();
   void Unmap();
   void EnsureParentSurface(wl_surface* aParentSurface);
-  const auto& GetSurfacePoolHandle() { return mSurfacePoolHandle; };
+  const RefPtr<SurfacePoolHandleWayland> GetSurfacePoolHandle() {
+    return mSurfacePoolHandle;
+  };
   void SetBufferTransformFlipped(bool aFlippedX, bool aFlippedY);
   void SetSubsurfacePosition(int aX, int aY);
   void SetViewportSourceRect(const gfx::Rect aSourceRect);

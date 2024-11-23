@@ -42,6 +42,7 @@
 #ifdef MOZ_WAYLAND
 #  include <gdk/gdkwayland.h>
 #  include "base/thread.h"
+#  include "WaylandVsyncSource.h"
 #  include "nsClipboardWayland.h"
 #endif
 
@@ -118,14 +119,10 @@ typedef enum {
 } GdkTouchpadGesturePhase;
 #endif
 
-struct zwp_locked_pointer_v1;
-struct zwp_relative_pointer_v1;
-
 namespace mozilla {
 enum class NativeKeyBindingsType : uint8_t;
 
 class TimeStamp;
-class WaylandVsyncSource;
 #ifdef MOZ_X11
 class CurrentX11TimeGetter;
 #endif
