@@ -3585,22 +3585,6 @@ already_AddRefed<AccAttributes> LocalAccessible::BundleFieldsForCache(
     }
   }
 
-  if (aCacheDomain & CacheDomain::APZ && IsDoc()) {
-    PresShell* presShell = AsDoc()->PresShellPtr();
-    MOZ_ASSERT(presShell, "Can't get APZ factor for null presShell");
-    nsPoint viewportOffset =
-        presShell->GetVisualViewportOffsetRelativeToLayoutViewport();
-    if (viewportOffset.x || viewportOffset.y) {
-      nsTArray<int32_t> offsetArray(2);
-      offsetArray.AppendElement(viewportOffset.x);
-      offsetArray.AppendElement(viewportOffset.y);
-      fields->SetAttribute(CacheKey::VisualViewportOffset,
-                           std::move(offsetArray));
-    } else if (IsUpdatePush(CacheDomain::APZ)) {
-      fields->SetAttribute(CacheKey::VisualViewportOffset, DeleteEntry());
-    }
-  }
-
   bool boundsChanged = false;
   nsIFrame* frame = GetFrame();
   if (aCacheDomain & CacheDomain::Bounds) {
