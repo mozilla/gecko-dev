@@ -5893,6 +5893,10 @@ void profiler_init(void* aStackTop) {
 
   SharedLibraryInfo::Initialize();
 
+  // We initialize here as well as in baseprofiler because
+  // baseprofiler init doesn't happen in child processes.
+  Flow::Init();
+
   uint32_t features = DefaultFeatures() & AvailableFeatures();
 
   UniquePtr<char[]> filterStorage;

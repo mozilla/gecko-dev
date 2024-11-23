@@ -2630,6 +2630,8 @@ void profiler_init(void* aStackTop) {
 
   profiler_init_main_thread_id();
 
+  Flow::Init();
+
   VTUNE_INIT();
 
   MOZ_RELEASE_ASSERT(!CorePS::Exists());

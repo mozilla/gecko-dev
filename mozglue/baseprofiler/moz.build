@@ -15,6 +15,7 @@ if CONFIG["MOZ_GECKO_PROFILER"]:
         "public/BaseProfilingStack.h",
     ]
     UNIFIED_SOURCES += [
+        "core/Flow.cpp",
         "core/PageInformation.cpp",
         "core/platform.cpp",
         "core/ProfileBuffer.cpp",
@@ -93,6 +94,7 @@ EXPORTS.mozilla += [
     "public/BaseProfilerState.h",
     "public/BaseProfilerUtils.h",
     "public/FailureLatch.h",
+    "public/Flow.h",
     "public/leb128iterator.h",
     "public/ModuloBuffer.h",
     "public/PowerOfTwo.h",

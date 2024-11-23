@@ -775,7 +775,16 @@ class MarkerSchema {
     // The decimal should be used for generic representations of numbers.
     // Do not use it for time information.
     // "Label: 52.23, 0.0054, 123,456.78"
-    Decimal
+    Decimal,
+
+    // A flow is a u64 identifier that's unique across processes. All of
+    // the markers with same flow id before a terminating flow id will be
+    // considered part of the same "flow" and linked together.
+    Flow,
+    // A terminating flow ends a flow of a particular id and allows that id
+    // to be reused again. It often makes sense for destructors to create
+    // a marker with a field of this type.
+    TerminatingFlow
   };
 
   // This represents groups of markers which MarkerTypes can expose to indicate

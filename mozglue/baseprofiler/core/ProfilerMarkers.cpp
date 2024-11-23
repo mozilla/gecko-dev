@@ -346,6 +346,10 @@ Span<const char> MarkerSchema::FormatToStringSpan(
       return mozilla::MakeStringSpan("integer");
     case Format::Decimal:
       return mozilla::MakeStringSpan("decimal");
+    case Format::Flow:
+      return mozilla::MakeStringSpan("flow-id");
+    case Format::TerminatingFlow:
+      return mozilla::MakeStringSpan("terminating-flow-id");
     default:
       MOZ_CRASH("Unexpected Format enum");
       return {};

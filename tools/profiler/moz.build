@@ -184,6 +184,7 @@ EXPORTS += [
 ]
 
 EXPORTS.mozilla += [
+    "public/FlowMarkers.h",
     "public/ProfileBufferEntrySerializationGeckoExtensions.h",
     "public/ProfileJSONWriter.h",
     "public/ProfilerBandwidthCounter.h",
