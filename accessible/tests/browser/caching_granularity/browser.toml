@@ -5,7 +5,10 @@ support-files = [
   "!/accessible/tests/browser/shared-head.js",
   "!/accessible/tests/mochitest/*.js",
   "!/accessible/tests/mochitest/letters.gif",
+  "!/gfx/layers/apz/test/mochitest/apz_test_native_event_utils.js",
 ]
+
+["browser_APZ_domain.js"]
 
 ["browser_actions_domain.js"]
 

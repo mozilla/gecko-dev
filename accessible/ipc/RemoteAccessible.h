@@ -440,6 +440,7 @@ class RemoteAccessible : public Accessible, public HyperTextAccessibleBase {
   bool ApplyTransform(nsRect& aCumulativeBounds) const;
   bool ApplyScrollOffset(nsRect& aBounds) const;
   void ApplyCrossDocOffset(nsRect& aBounds) const;
+  void ApplyVisualViewportOffset(nsRect& aBounds) const;
   LayoutDeviceIntRect BoundsWithOffset(
       Maybe<nsRect> aOffset, bool aBoundsAreForHittesting = false) const;
   bool IsFixedPos() const;

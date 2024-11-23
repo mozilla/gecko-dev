@@ -27,6 +27,7 @@
 #include "mozilla/dom/Element.h"
 #include "mozilla/dom/ScriptSettings.h"
 #include "mozilla/dom/BrowserHost.h"
+#include "mozilla/dom/VisualViewport.h"
 
 #include "nsIDocShellTreeOwner.h"
 #include "mozilla/dom/Event.h"
@@ -161,6 +162,12 @@ nsresult RootAccessible::AddEventListeners() {
     }
   }
 
+  // APZ events are fired on the visual viewport and do not bubble up to the
+  // window. Manage that event listener separately here.
+  if (auto* win = nsGlobalWindowInner::Cast(mDocumentNode->GetInnerWindow())) {
+    win->VisualViewport()->AddEventListener(u"scroll"_ns, this, false, false);
+  }
+
   return DocAccessible::AddEventListeners();
 }
 
@@ -173,6 +180,10 @@ nsresult RootAccessible::RemoveEventListeners() {
          e < e_end; ++e) {
       target->RemoveEventListener(NS_ConvertASCIItoUTF16(*e), this, true);
     }
+  }
+
+  if (auto* win = nsGlobalWindowInner::Cast(mDocumentNode->GetInnerWindow())) {
+    win->VisualViewport()->RemoveEventListener(u"scroll"_ns, this, false);
   }
 
   // Do this before removing clearing caret accessible, so that it can use
@@ -199,10 +210,21 @@ RootAccessible::HandleEvent(Event* aDOMEvent) {
     // just ignore these events.
     return NS_OK;
   }
-
-  nsCOMPtr<nsINode> origTargetNode =
-      do_QueryInterface(aDOMEvent->GetOriginalTarget());
-  if (!origTargetNode) return NS_OK;
+  auto target = aDOMEvent->GetOriginalTarget();
+  nsCOMPtr<nsINode> origTargetNode = do_QueryInterface(target);
+  if (!origTargetNode) {
+    // The visual viewport isn't an nsINode, so if we're fielding
+    // a viewport event, we should end up here.
+    if (auto* win =
+            nsGlobalWindowInner::Cast(mDocumentNode->GetInnerWindow())) {
+      if (target == win->VisualViewport()) {
+        if (DocAccessible* d = PresShellPtr()->GetDocAccessible()) {
+          d->QueueCacheUpdate(d, CacheDomain::APZ);
+        }
+      }
+    }
+    return NS_OK;
+  }
 
 #ifdef A11Y_LOG
   if (logging::IsEnabled(logging::eDOMEvents)) {
