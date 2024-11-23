@@ -91,11 +91,12 @@ nsLineLayout::nsLineLayout(nsPresContext* aPresContext,
   }
 }
 
-void nsLineLayout::BeginLineReflow(
-    nscoord aICoord, nscoord aBCoord, nscoord aISize, nscoord aBSize,
-    bool aImpactedByFloats, bool aIsTopOfPage,
-    CollapseEmptyInlineFramesInLine aCollapseEmptyInlineFramesInLine,
-    WritingMode aWritingMode, const nsSize& aContainerSize, nscoord aInset) {
+void nsLineLayout::BeginLineReflow(nscoord aICoord, nscoord aBCoord,
+                                   nscoord aISize, nscoord aBSize,
+                                   bool aImpactedByFloats, bool aIsTopOfPage,
+                                   WritingMode aWritingMode,
+                                   const nsSize& aContainerSize,
+                                   nscoord aInset) {
   MOZ_ASSERT(nullptr == mRootSpan, "bad linelayout user");
   LAYOUT_WARN_IF_FALSE(aISize != NS_UNCONSTRAINEDSIZE,
                        "have unconstrained width; this should only result from "
@@ -148,9 +149,6 @@ void nsLineLayout::BeginLineReflow(
   psd->mIStart = aICoord;
   psd->mICoord = aICoord;
   psd->mIEnd = aICoord + aISize;
-  psd->mDoCollapseEmptyInlineFramesInLine =
-      aCollapseEmptyInlineFramesInLine ==
-      CollapseEmptyInlineFramesInLine::Collapse;
   // Set up inset to be used for text-wrap:balance implementation, but only if
   // the available size is greater than inset.
   psd->mInset = aISize > aInset ? aInset : 0;
@@ -356,7 +354,6 @@ nsLineLayout::PerSpanData* nsLineLayout::NewPerSpanData() {
   psd->mContainsFloat = false;
   psd->mHasNonemptyContent = false;
   psd->mBaseline = nullptr;
-  psd->mDoCollapseEmptyInlineFramesInLine = false;
 
 #ifdef DEBUG
   outerLineLayout->mSpansAllocated++;
@@ -1381,6 +1378,7 @@ void nsLineLayout::AddMarkerFrame(nsIFrame* aFrame,
   nsBlockFrame* blockFrame = do_QueryFrame(LineContainerFrame());
   MOZ_ASSERT(blockFrame, "must be for block");
   if (!blockFrame->MarkerIsEmpty(aFrame)) {
+    mLineIsEmpty = false;
     mHasMarker = true;
     mLineBox->SetHasMarker();
   }
@@ -1493,7 +1491,7 @@ void nsLineLayout::VerticalAlignLine() {
   // this operation is set to zero so that the y coordinates for all
   // of the placed children will be relative to there.
   PerSpanData* psd = mRootSpan;
-  if (mLineIsEmpty && psd->mDoCollapseEmptyInlineFramesInLine) {
+  if (mLineIsEmpty) {
     // This line is empty, and should be consisting of only inline elements.
     // (inline-block elements would make the line non-empty).
     WritingMode lineWM = psd->mWritingMode;

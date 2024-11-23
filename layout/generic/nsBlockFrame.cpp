@@ -4969,26 +4969,9 @@ void nsBlockFrame::DoReflowInlineFrames(
   // because it might get disabled there
   aLine->EnableResizeReflowOptimization();
 
-  // We want to be able to collapse the height of empty inline elements in empty
-  // lines in general - See [1]. Two exceptions:
-  // 1. There is an outside ::marker frame, which is physical on this line, but
-  //    is not part of the line layout.
-  // 2. The line is inside an anonymous box, like `<input type=button>`. A
-  //    scrolled block frame internally has an anonymous box of the scrolled
-  //    content, which we still want to carry out the collapsing for.
-  //
-  // [1]: https://drafts.csswg.org/css-inline-3/#invisible-line-boxes
-  auto collapseEmptyInlineFramesInLine =
-      HasOutsideMarker() ||
-              (Style()->IsAnonBox() &&
-               Style()->GetPseudoType() != PseudoStyleType::scrolledContent)
-          ? CollapseEmptyInlineFramesInLine::Preserve
-          : CollapseEmptyInlineFramesInLine::Collapse;
-
   aLineLayout.BeginLineReflow(iStart, aState.mBCoord, availISize, availBSize,
                               aFloatAvailableSpace.HasFloats(),
-                              false /*XXX isTopOfPage*/,
-                              collapseEmptyInlineFramesInLine, lineWM,
+                              false /*XXX isTopOfPage*/, lineWM,
                               aState.mContainerSize, aState.mInsetForBalance);
 
   aState.mFlags.mIsLineLayoutEmpty = false;
