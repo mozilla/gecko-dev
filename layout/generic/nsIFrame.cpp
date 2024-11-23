@@ -325,6 +325,16 @@ bool nsIFrame::CheckAndClearPaintedState() {
   return result;
 }
 
+nsIFrame* nsIFrame::FindLineContainer() const {
+  MOZ_ASSERT(IsLineParticipant());
+  nsIFrame* parent = GetParent();
+  while (parent &&
+         (parent->IsLineParticipant() || parent->CanContinueTextRun())) {
+    parent = parent->GetParent();
+  }
+  return parent;
+}
+
 bool nsIFrame::CheckAndClearDisplayListState() {
   bool result = BuiltDisplayList();
   SetBuiltDisplayList(false);
@@ -2132,6 +2142,18 @@ nsIFrame::CaretBlockAxisMetrics nsIFrame::GetCaretBlockAxisMetrics(
                                  .mExtent = height};
   }
   return CaretBlockAxisMetrics{.mOffset = baseline - ascent, .mExtent = height};
+}
+
+nscoord nsIFrame::GetFontMetricsDerivedCaretBaseline(nscoord aBSize) const {
+  float inflation = nsLayoutUtils::FontSizeInflationFor(this);
+  RefPtr<nsFontMetrics> fm =
+      nsLayoutUtils::GetFontMetricsForFrame(this, inflation);
+  const WritingMode wm = GetWritingMode();
+  nscoord lineHeight = ReflowInput::CalcLineHeight(
+      *Style(), PresContext(), GetContent(), aBSize, inflation);
+  return nsLayoutUtils::GetCenteredFontBaseline(fm, lineHeight,
+                                                wm.IsLineInverted()) +
+         GetLogicalUsedBorderAndPadding(wm).BStart(wm);
 }
 
 const nsAtom* nsIFrame::ComputePageValue(const nsAtom* aAutoValue) const {

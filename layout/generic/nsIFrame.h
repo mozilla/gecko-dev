@@ -1798,6 +1798,17 @@ class nsIFrame : public nsQueryFrame {
     return GetLogicalBaseline(GetWritingMode());
   }
 
+  // Gets a caret baseline suitable for the frame if the frame doesn't have one.
+  //
+  // @param aBSize the content box block size of the line container. Needed to
+  // resolve line-height: -moz-block-height. NS_UNCONSTRAINEDSIZE is fine
+  // otherwise.
+  //
+  // TODO(emilio): Now we support align-content on blocks it seems we could
+  // get rid of line-height: -moz-block-height.
+  nscoord GetFontMetricsDerivedCaretBaseline(
+      nscoord aBSize = NS_UNCONSTRAINEDSIZE) const;
+
   /**
    * Subclasses can call this method to enable visibility tracking for this
    * frame.
@@ -2611,6 +2622,11 @@ class nsIFrame : public nsQueryFrame {
    * Return the last frame in our current flow.
    */
   virtual nsIFrame* LastInFlow() const { return const_cast<nsIFrame*>(this); }
+
+  /**
+   * Useful for line participants. Find the line container frame for this line.
+   */
+  nsIFrame* FindLineContainer() const;
 
   /**
    * Mark any stored intrinsic inline size information as dirty (requiring
