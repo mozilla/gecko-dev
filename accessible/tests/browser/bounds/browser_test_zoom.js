@@ -6,6 +6,11 @@
 
 /* import-globals-from ../../mochitest/layout.js */
 
+Services.scriptloader.loadSubScript(
+  "chrome://mochitests/content/browser/gfx/layers/apz/test/mochitest/apz_test_native_event_utils.js",
+  this
+);
+
 async function testContentBounds(browser, acc) {
   let [expectedX, expectedY, expectedWidth, expectedHeight] =
     await getContentBoundsForDOMElm(browser, getAccessibleDOMNodeID(acc));
@@ -65,5 +70,58 @@ addAccessibleTask(
      usemap="#atoz_map"
      src="http://example.com/a11y/accessible/tests/mochitest/letters.gif">`,
   runTests,
+  { iframe: true, remoteIframe: true }
+);
+
+/**
+ * Test accessible bounds after APZ.
+ */
+addAccessibleTask(
+  `
+  <div id="test" style="background:green; height: 100px; width: 100px;">I am square</div>
+  `,
+  async function (browser, accDoc) {
+    const test = findAccessibleChildByID(accDoc, "test");
+
+    info("Verifying initial bounds");
+    await testContentBounds(browser, test, 100, 100);
+    let contentDPR = await getContentDPR(browser);
+    const [, , width, height] = getBounds(test, contentDPR);
+
+    info("Pinch zooming...");
+    await SpecialPowers.spawn(browser, [], async () => {
+      const visualScrollPromise = new Promise(resolve => {
+        content.window.visualViewport.addEventListener("scroll", resolve, {
+          once: true,
+        });
+      });
+      const utils = SpecialPowers.getDOMWindowUtils(content.window);
+      utils.setResolutionAndScaleTo(2);
+      utils.scrollToVisual(
+        200,
+        200,
+        utils.UPDATE_TYPE_MAIN_THREAD,
+        utils.SCROLL_MODE_INSTANT
+      );
+      await visualScrollPromise;
+    });
+
+    info("Verifying scaled bounds");
+    contentDPR = await getContentDPR(browser);
+    const [newX, newY, newWidth, newHeight] = getBounds(test, contentDPR);
+    // We pinch zoom to the right of the square,
+    // which means its coords become off-screen
+    // (negative).
+    Assert.less(newX, 0, "X coord should be smaller than 0");
+    Assert.less(newY, 0, "Y coord should be smaller than 0");
+    // Because we zoomed in, width and height should
+    // be larger than they were before.
+    Assert.greater(newWidth, width, "Width should be larger than old width");
+    Assert.greater(
+      newHeight,
+      height,
+      "Height should be larger than old height"
+    );
+  },
   { iframe: true, remoteIframe: true }
 );

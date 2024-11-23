@@ -38,6 +38,7 @@ class CacheDomain {
   static constexpr uint64_t InnerHTML = ((uint64_t)0x1) << 17;
 #endif
   static constexpr uint64_t TextBounds = ((uint64_t)0x1) << 18;
+  static constexpr uint64_t APZ = ((uint64_t)0x1) << 19;
   static constexpr uint64_t All = ~((uint64_t)0x0);
 };
 
@@ -116,6 +117,11 @@ class CacheKey {
   // int32_t, no domain
   static constexpr nsStaticAtom* AppUnitsPerDevPixel =
       nsGkAtoms::_moz_device_pixel_ratio;
+  // nsTArray<uint32_t>, CacheDomain::APZ
+  // The difference between the layout viewport and the visual viewport in app
+  // units. This is stored as a two-element (x, y) array and is unscaled by zoom
+  // or resolution.
+  static constexpr nsStaticAtom* VisualViewportOffset = nsGkAtoms::voffset_;
   // AccAttributes, CacheDomain::ARIA
   // ARIA attributes that are exposed as object attributes; i.e. returned in
   // Accessible::Attributes.

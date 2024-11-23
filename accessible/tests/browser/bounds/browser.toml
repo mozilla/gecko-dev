@@ -5,6 +5,7 @@ support-files = [
   "!/accessible/tests/browser/shared-head.js",
   "!/accessible/tests/mochitest/*.js",
   "!/accessible/tests/mochitest/letters.gif",
+  "!/gfx/layers/apz/test/mochitest/apz_test_native_event_utils.js",
 ]
 
 ["browser_accessible_moved.js"]
