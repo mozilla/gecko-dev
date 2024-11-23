@@ -31,6 +31,7 @@
 #include "TexUnpackBlob.h"
 #include "WebGLBuffer.h"
 #include "WebGLContext.h"
+#include "WebGLFormats.h"
 #include "WebGLContextUtils.h"
 #include "WebGLFramebuffer.h"
 #include "WebGLTexelConversions.h"

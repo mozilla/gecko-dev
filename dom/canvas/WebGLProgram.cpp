@@ -14,6 +14,7 @@
 #include "nsPrintfCString.h"
 #include "WebGLBuffer.h"
 #include "WebGLContext.h"
+#include "WebGLFormats.h"
 #include "WebGLShader.h"
 #include "WebGLShaderValidator.h"
 #include "WebGLTransformFeedback.h"

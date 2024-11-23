@@ -11,6 +11,7 @@
 #include "mozilla/ScopeExit.h"
 #include "mozilla/StaticPrefs_webgl.h"
 #include "WebGLContext.h"
+#include "WebGLFormats.h"
 
 namespace mozilla {
 
@@ -65,7 +66,7 @@ WebGLExtensionColorBufferFloat::WebGLExtensionColorBufferFloat(
 }
 
 void WebGLExtensionColorBufferFloat::SetRenderable(
-    const webgl::FormatRenderableState state) {
+    const webgl::FormatRenderableState& state) {
   auto& fua = mContext->mFormatUsage;
 
   auto fnUpdateUsage = [&](GLenum sizedFormat,
@@ -106,7 +107,7 @@ WebGLExtensionColorBufferHalfFloat::WebGLExtensionColorBufferHalfFloat(
 }
 
 void WebGLExtensionColorBufferHalfFloat::SetRenderable(
-    const webgl::FormatRenderableState state) {
+    const webgl::FormatRenderableState& state) {
   auto& fua = mContext->mFormatUsage;
 
   auto fnUpdateUsage = [&](GLenum sizedFormat, webgl::EffectiveFormat effFormat,
