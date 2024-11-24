@@ -661,7 +661,7 @@ void WebGPUParent::MapCallback(ffi::WGPUBufferMapAsyncStatus aStatus,
     mapData->mMappedSize = size;
   }
 
-  req->mResolver(std::move(result));
+  req->mResolver(result);
   delete req;
 }
 
