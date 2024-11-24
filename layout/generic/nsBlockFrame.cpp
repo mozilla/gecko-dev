@@ -661,28 +661,18 @@ Maybe<nscoord> nsBlockFrame::GetNaturalBaselineBOffset(
 }
 
 nscoord nsBlockFrame::GetCaretBaseline() const {
-  nsRect contentRect = GetContentRect();
-  nsMargin bp = GetUsedBorderAndPadding();
-
+  const auto wm = GetWritingMode();
   if (!mLines.empty()) {
     ConstLineIterator line = LinesBegin();
     if (!line->IsEmpty()) {
       if (line->IsBlock()) {
-        return bp.top + line->mFirstChild->GetCaretBaseline();
+        return GetLogicalUsedBorderAndPadding(wm).BStart(wm) +
+               line->mFirstChild->GetCaretBaseline();
       }
       return line->BStart() + line->GetLogicalAscent();
     }
   }
-
-  float inflation = nsLayoutUtils::FontSizeInflationFor(this);
-  RefPtr<nsFontMetrics> fm =
-      nsLayoutUtils::GetFontMetricsForFrame(this, inflation);
-  nscoord lineHeight = ReflowInput::CalcLineHeight(
-      *Style(), PresContext(), GetContent(), contentRect.height, inflation);
-  const WritingMode wm = GetWritingMode();
-  return nsLayoutUtils::GetCenteredFontBaseline(fm, lineHeight,
-                                                wm.IsLineInverted()) +
-         bp.top;
+  return GetFontMetricsDerivedCaretBaseline(ContentBSize(wm));
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -2997,8 +2987,8 @@ static void DumpLine(const BlockReflowState& aState, nsLineBox* aLine,
 #endif
 }
 
-static bool LinesAreEmpty(const nsLineList& aList) {
-  for (const auto& line : aList) {
+bool nsBlockFrame::LinesAreEmpty() const {
+  for (const auto& line : mLines) {
     if (!line.IsEmpty()) {
       return false;
     }
@@ -3718,7 +3708,7 @@ bool nsBlockFrame::ReflowDirtyLines(BlockReflowState& aState) {
     }
   }
 
-  if (LinesAreEmpty(mLines) && ShouldHaveLineIfEmpty()) {
+  if (LinesAreEmpty() && ShouldHaveLineIfEmpty()) {
     aState.mBCoord += aState.mMinLineHeight;
   }
 
@@ -4103,7 +4093,7 @@ bool nsBlockFrame::IsEmpty() {
     return false;
   }
 
-  return LinesAreEmpty(mLines);
+  return LinesAreEmpty();
 }
 
 bool nsBlockFrame::ShouldApplyBStartMargin(BlockReflowState& aState,

@@ -1,1 +1,13 @@
-fails-if(useDrawSnapshot) pref(ui.caretWidth,16) needs-focus == caret-color-01.html caret-color-01-ref.html
+defaults pref(ui.caretWidth,16)
+
+# drawSnapshot doesn't draw carets
+fails-if(useDrawSnapshot) needs-focus == caret-color-01.html caret-color-01-ref.html
+
+fails-if(useDrawSnapshot) needs-focus != caret-empty-contenteditable-ref.html about:blank
+
+needs-focus == caret-empty-contenteditable-01.html caret-empty-contenteditable-ref.html
+random needs-focus == caret-empty-contenteditable-02.html caret-empty-contenteditable-ref.html # Dependency on font metrics that needs to be sorted out.
+needs-focus == caret-empty-contenteditable-03.html caret-empty-contenteditable-ref.html
+
+fails-if(useDrawSnapshot) needs-focus != caret-empty-input-ref.html about:blank
+needs-focus == caret-empty-input-01.html caret-empty-input-ref.html
