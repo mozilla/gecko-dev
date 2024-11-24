@@ -903,13 +903,13 @@ ipc::IPCResult WebGPUParent::RecvQueueWriteAction(
   return IPC_OK();
 }
 
-ipc::IPCResult WebGPUParent::RecvBindGroupLayoutDrop(RawId aBindGroupId) {
-  ffi::wgpu_server_bind_group_layout_drop(mContext.get(), aBindGroupId);
+ipc::IPCResult WebGPUParent::RecvBindGroupLayoutDrop(RawId aBindGroupLayoutId) {
+  ffi::wgpu_server_bind_group_layout_drop(mContext.get(), aBindGroupLayoutId);
   return IPC_OK();
 }
 
-ipc::IPCResult WebGPUParent::RecvPipelineLayoutDrop(RawId aLayoutId) {
-  ffi::wgpu_server_pipeline_layout_drop(mContext.get(), aLayoutId);
+ipc::IPCResult WebGPUParent::RecvPipelineLayoutDrop(RawId aPipelineLayoutId) {
+  ffi::wgpu_server_pipeline_layout_drop(mContext.get(), aPipelineLayoutId);
   return IPC_OK();
 }
 
