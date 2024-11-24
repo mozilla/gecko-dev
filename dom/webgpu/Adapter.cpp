@@ -127,6 +127,10 @@ static Maybe<ffi::WGPUFeatures> ToWGPUFeatures(
     case dom::GPUFeatureName::Float32_filterable:
       return Some(WGPUFeatures_FLOAT32_FILTERABLE);
 
+    case dom::GPUFeatureName::Float32_blendable:
+      // TODO: https://bugzilla.mozilla.org/show_bug.cgi?id=1931630
+      return Nothing();
+
     case dom::GPUFeatureName::Clip_distances:
       // TODO: https://bugzilla.mozilla.org/show_bug.cgi?id=1931629
       return Nothing();
