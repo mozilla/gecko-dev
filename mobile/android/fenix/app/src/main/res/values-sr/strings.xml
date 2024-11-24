@@ -615,7 +615,7 @@
     <!-- Preference for adding private browsing shortcut -->
     <string name="preferences_add_private_browsing_shortcut">Додајте пречицу за приватно прегледање</string>
     <!-- Preference for enabling "HTTPS-Only" mode -->
-    <string name="preferences_https_only_title">Строги HTTPS режим</string>
+    <string name="preferences_https_only_title">Строги „Само HTTPS” режим</string>
 
     <!-- Label for cookie banner section in quick settings panel. -->
     <string name="cookie_banner_blocker">Блокатор банера колачића</string>
@@ -674,7 +674,7 @@
     <!-- Message shown in the error page for when trying to access a http website while https only mode is enabled. The message has two paragraphs. This is the first. -->
     <string name="errorpage_httpsonly_message_title">Највероватније, страница једноставно не подржава HTTPS.</string>
     <!-- Message shown in the error page for when trying to access a http website while https only mode is enabled. The message has two paragraphs. This is the second. -->
-    <string name="errorpage_httpsonly_message_summary">Ипак, могуће је да је у питању дигитални напад. Ако наставите ка страници, немојте уносити било какве осетљиве податке. Ако наставите, HTTPS режим биће привремено искључен на овој страници.</string>
+    <string name="errorpage_httpsonly_message_summary">Ипак, могуће је да је у питању дигитални напад. Ако наставите ка страници, немојте уносити било какве осетљиве податке. Ако наставите, „Само HTTPS” режим биће привремено искључен на овој страници.</string>
     <!-- Preference for accessibility -->
     <string name="preferences_accessibility">Приступачност</string>
     <!-- Preference to override the Mozilla account server -->
@@ -722,7 +722,7 @@
     <!-- Preference title for switch preference to suggest browsing history when searching -->
     <string name="preferences_search_browsing_history">Претражи историју прегледања</string>
     <!-- Preference title for switch preference to suggest bookmarks when searching -->
-    <string name="preferences_search_bookmarks">Претражи забелешке</string>
+    <string name="preferences_search_bookmarks">Претражи обележиваче</string>
     <!-- Preference title for switch preference to suggest synced tabs when searching -->
     <string name="preferences_search_synced_tabs">Претражи синхронизоване језичке</string>
     <!-- Preference for account settings -->
@@ -880,7 +880,7 @@
     <!-- Preference for syncing history -->
     <string name="preferences_sync_history">Историја</string>
     <!-- Preference for syncing bookmarks -->
-    <string name="preferences_sync_bookmarks">Забелешке</string>
+    <string name="preferences_sync_bookmarks">Обележивачи</string>
     <!-- Preference for syncing passwords -->
     <string name="preferences_sync_logins_2">Лозинке</string>
     <!-- Preference for syncing tabs -->
@@ -1009,16 +1009,16 @@
     <!-- Option in Library to open Downloads page -->
     <string name="library_downloads">Преузимања</string>
     <!-- Option in library to open Bookmarks page -->
-    <string name="library_bookmarks">Забелешке</string>
+    <string name="library_bookmarks">Обележивачи</string>
 
     <!-- Option in library to open Desktop Bookmarks root page -->
-    <string name="library_desktop_bookmarks_root">Забелешке радне површине</string>
+    <string name="library_desktop_bookmarks_root">Обележивачи радне површине</string>
     <!-- Option in library to open Desktop Bookmarks "menu" page -->
-    <string name="library_desktop_bookmarks_menu">Мени са забелешкама</string>
+    <string name="library_desktop_bookmarks_menu">Мени са обележивачима</string>
     <!-- Option in library to open Desktop Bookmarks "toolbar" page -->
-    <string name="library_desktop_bookmarks_toolbar">Трака са забелешкама</string>
+    <string name="library_desktop_bookmarks_toolbar">Трака са обележивачима</string>
     <!-- Option in library to open Desktop Bookmarks "unfiled" page -->
-    <string name="library_desktop_bookmarks_unfiled">Остале забелешке</string>
+    <string name="library_desktop_bookmarks_unfiled">Остали обележивачи</string>
     <!-- Option in Library to open History page -->
     <string name="library_history">Историја</string>
     <!-- Option in Library to open a new tab -->
@@ -1162,7 +1162,7 @@
     <!-- Text shown in the menu for closing all tabs -->
     <string name="tab_tray_menu_item_close">Затвори све језичке</string>
     <!-- Text shown in the multiselect menu for bookmarking selected tabs. -->
-    <string name="tab_tray_multiselect_menu_item_bookmark">Забелешке</string>
+    <string name="tab_tray_multiselect_menu_item_bookmark">Обележи</string>
     <!-- Text shown in the multiselect menu for closing selected tabs. -->
     <string name="tab_tray_multiselect_menu_item_close">Затвори</string>
     <!-- Content description for tabs tray multiselect share button -->
@@ -1314,7 +1314,7 @@
     <!-- Screen title for adding a bookmarks folder -->
     <string name="bookmark_add_folder">Додај фасциклу</string>
     <!-- Snackbar title shown after a bookmark has been created. -->
-    <string name="bookmark_saved_snackbar" moz:removedIn="132" tools:ignore="UnusedResources">Забелешка је сачувана!</string>
+    <string name="bookmark_saved_snackbar" moz:removedIn="132" tools:ignore="UnusedResources">Обележивач сачуван!</string>
     <!-- Snackbar title that confirms a bookmark was saved into a folder. Parameter will be replaced by the name of the folder the bookmark was saved into. -->
     <string name="bookmark_saved_in_folder_snackbar">Сачувано у “%s”</string>
     <!-- Snackbar edit button shown after a bookmark has been created. -->
@@ -1343,11 +1343,11 @@
      The first parameter is the number of bookmarks selected -->
     <string name="bookmarks_multi_select_title">Изабрано %1$d</string>
     <!-- Bookmark editing screen title -->
-    <string name="edit_bookmark_fragment_title">Уреди забелешку</string>
+    <string name="edit_bookmark_fragment_title">Уреди обележивач</string>
     <!-- Bookmark folder editing screen title -->
     <string name="edit_bookmark_folder_fragment_title">Уреди фасциклу</string>
     <!-- Bookmark sign in button message -->
-    <string name="bookmark_sign_in_button">Пријавите се да бисте видели синхронизоване забелешке</string>
+    <string name="bookmark_sign_in_button">Пријавите се да бисте видели синхронизоване обележиваче</string>
     <!-- Bookmark URL editing field label -->
     <string name="bookmark_url_label">Адреса</string>
     <!-- Bookmark FOLDER editing field label -->
@@ -1367,7 +1367,7 @@
     <!-- Bookmark editing error missing or improper URL -->
     <string name="bookmark_invalid_url_error">Неисправна адреса</string>
     <!-- Bookmark screen message for empty bookmarks folder -->
-    <string name="bookmarks_empty_message">Нема забелешки овде</string>
+    <string name="bookmarks_empty_message">Нема обележивача овде</string>
     <!-- Bookmark snackbar message on deletion
      The first parameter is the host part of the URL of the bookmark deleted, if any -->
     <string name="bookmark_deletion_snackbar_message">Обрисано %1$s</string>
@@ -1658,7 +1658,7 @@
     <!-- Text shown in snackbar when user closes multiple inactive tabs. %1$s will be replaced with the number of tabs closed. -->
     <string name="snackbar_num_tabs_closed">Затворених картица: %1$s</string>
     <!-- Text shown in snackbar when user bookmarks a list of tabs -->
-    <string name="snackbar_message_bookmarks_saved" moz:removedIn="132" tools:ignore="UnusedResources">Забелешке сачуване!</string>
+    <string name="snackbar_message_bookmarks_saved" moz:removedIn="132" tools:ignore="UnusedResources">Обележивачи сачувани!</string>
     <!-- Text shown in snackbar when user bookmarks a list of tabs. Parameter will be replaced by the name of the folder the bookmark was saved into.-->
     <string name="snackbar_message_bookmarks_saved_in">Обележивачи сачувани у “%s”!</string>
     <!-- Text shown in snackbar when user adds a site to shortcuts -->
@@ -2081,7 +2081,7 @@
     <!-- Preference option for managing saved cards -->
     <string name="preferences_credit_cards_manage_saved_cards_2">Управљај картицама</string>
     <!-- Preference option for adding an address -->
-    <string name="preferences_addresses_add_address">Додај адресе</string>
+    <string name="preferences_addresses_add_address">Додај адресу</string>
     <!-- Preference option for managing saved addresses -->
     <string name="preferences_addresses_manage_addresses">Управљај адресама</string>
 
@@ -2140,7 +2140,7 @@
     <!-- Message displayed in biometric prompt for authentication, before allowing users to use their stored payment method information -->
     <string name="credit_cards_biometric_prompt_unlock_message_2">Откључајте да користите сачуване начине плаћања</string>
     <!-- Title of the "Add address" screen -->
-    <string name="addresses_add_address">Додај адресе</string>
+    <string name="addresses_add_address">Додај адресу</string>
     <!-- Title of the "Edit address" screen -->
     <string name="addresses_edit_address">Измени адресу</string>
     <!-- Title of the "Manage addresses" screen -->
@@ -2463,7 +2463,7 @@
     <!-- Title for section explaining how we analyze the reliability of a product's reviews. -->
     <string name="review_quality_check_explanation_title">Како одређујемо квалитет рецензије</string>
     <!-- Paragraph explaining how we analyze the reliability of a product's reviews. First parameter is the Fakespot product name. In the phrase "Fakespot by Mozilla", "by" can be localized. Does not need to stay by. -->
-    <string name="review_quality_check_explanation_body_reliability">Користимо AI технологију Mozilla-иног %s-а да проверимо поузданост рецензија производа. Ово ће вам само помоћи да процените квалитет рецензије, а не квалитет производа. </string>
+    <string name="review_quality_check_explanation_body_reliability">Користимо AI технологију Mozilla-иног %s-а да проверимо поузданост рецензија производа. Ово ће вам само помоћи да процените квалитет рецензије, не и производа.</string>
     <!-- Paragraph explaining the grading system we use to classify the reliability of a product's reviews. -->
     <string name="review_quality_check_info_review_grade_header"><![CDATA[Свакоj рецензији производа додељујемо <b>словну оцену</b> од А до F.]]></string>
     <!-- Description explaining grade C for review quality check adjusted grading. -->

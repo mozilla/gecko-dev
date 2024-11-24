@@ -1278,6 +1278,8 @@
     <!-- WebCompat Reporter -->
     <!-- The title of the Web Compat Reporter feature. This is displayed in the top app bar. -->
     <string name="webcompat_reporter_screen_title">Bozuk siteyi rapor et</string>
+    <!-- The description of the Web Compat Reporter feature. This first parameter is the name of the application (For example: Fenix) -->
+    <string name="webcompat_reporter_description">%1$s tarayıcısını iyileştirmemize yardım edin. Mozilla çalışanları, gönderdiğiniz bilgileri web siteleriyle ilgili sorunlarını gidermek için kullanır.</string>
     <!-- The text field label of the URL text field. This is displayed above the user-inputted URL. -->
     <string name="webcompat_reporter_label_url">Adres</string>
     <!-- The error message of the URL text field when an invalid URL has been entered. -->

@@ -258,7 +258,7 @@
     <string name="browser_menu_add_to_homescreen_2">Ավելացնել Տուն էկրանին…</string>
 
     <!-- Browser menu toggle that adds a PWA of the site on the device home screen. -->
-    <string name="browser_menu_add_app_to_homescreen_2">Հավելել հավելվածը տնային էկրանին...</string>
+    <string name="browser_menu_add_app_to_homescreen_2">Հավելել հավելվածը տնային էկրանին…</string>
     <!-- Text for notifying users that Xiaomi devices require additional permissions to add to home screen -->
     <string name="browser_menu_add_to_homescreen_xiaomi">Xiaomi սարքերին կարող են անհրաժեշտ լինել լրացուցիչ թույլտվություններ՝ հիմնական էկրանին դյուրանցումներ ավելացնելու համար: Խնդրում ենք ստուգել ձեր կարգավորումները:</string>
     <!-- Content description (not visible, for screen readers etc.) for the Resync tabs button -->

@@ -331,9 +331,9 @@
     <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar custom tab menu. -->
     <string name="browser_custom_tab_menu_handlebar_content_description">Tampar lo panèl del menú dels onglets personalizats</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-    <string name="browser_menu_tools_description_with_translate">Mòde lectura, traduire, imprimir, partejar, dobrir dins una aplicacion</string>
+    <string name="browser_menu_tools_description_with_translate" moz:removedIn="133" tools:ignore="UnusedResources">Mòde lectura, traduire, imprimir, partejar, dobrir dins una aplicacion</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-    <string name="browser_menu_tools_description">Mòde lectura, imprimir, partejar, dobrir dins una aplicacion</string>
+    <string name="browser_menu_tools_description" moz:removedIn="133" tools:ignore="UnusedResources">Mòde lectura, imprimir, partejar, dobrir dins una aplicacion</string>
     <!-- Browser menu label that navigates to the save sub-menu, which contains various save related menu items such as
          bookmarking a page, saving to collection, shortcut or as a PDF, and adding to home screen -->
     <string name="browser_menu_save">Enregistrar</string>
@@ -941,7 +941,7 @@
     <string name="exceptions_empty_message_learn_more_link">Ne saber mai</string>
 
     <!-- Preference switch for usage and technical data collection -->
-    <string name="preference_usage_data">Donadas tecnicas e d’utilizacion</string>
+    <string name="preference_usage_data" moz:removedIn="134" tools:ignore="UnusedResources">Donadas tecnicas e d’utilizacion</string>
     <!-- Preference description for usage and technical data collection -->
     <string name="preferences_usage_data_description">Parteja d’informacions sus las performàncias, lo material, l’utilizacion e las personalizacions a Mozilla per nos ajudar a melhorar %1$s</string>
     <!-- Preference switch for marketing data collection -->
@@ -1234,6 +1234,38 @@
     <string name="download_delete_item_1">Suprimir</string>
 
 
+    <!-- The text field label of the URL text field. This is displayed above the user-inputted URL. -->
+    <string name="webcompat_reporter_label_url">URL</string>
+    <!-- The error message of the URL text field when an invalid URL has been entered. -->
+    <string name="webcompat_reporter_url_error_invalid">Picatz una URL valida</string>
+    <!-- The label/title of an optional field in the Web Compat Reporter feature for explaining a high-level reason why the site is broken. -->
+    <string name="webcompat_reporter_label_whats_broken">Qu’es copat ? (facultatiu)</string>
+    <!-- The placeholder text for the dropdown where a user can select a high-level reason why the site is broken. -->
+    <string name="webcompat_reporter_choose_reason">Causissètz una rason</string>
+    <!-- The label/title of an optional field in the Web Compat Reporter feature for adding additional information. -->
+    <string name="webcompat_reporter_label_description">Descrivètz lo problèma (facultatiu)</string>
+    <!-- The button text for navigating away from the feature to provide more information on the broken site's bug report. -->
+    <string name="webcompat_reporter_send_more_info">Enviar mai d’informacions</string>
+    <!-- The button text for the cancel button to leave the Web Compat Reporter feature. -->
+    <string name="webcompat_reporter_cancel">Anullar</string>
+    <!-- The button text for the send button to submit the provided form data. -->
+    <string name="webcompat_reporter_send">Mandar</string>
+
+
+    <!-- These reason strings are dropdown options on a WebCompat reporter form, indicating what is broken on the site. -->
+    <!-- Broken site reason text for site slow or not working -->
+    <string name="webcompat_reporter_reason_slow">Site lent o non foncional</string>
+    <!-- Broken site reason text for images or videos -->
+    <string name="webcompat_reporter_reason_media">Imatges o vidèos</string>
+    <!-- Broken site reason text for buttons, links, and other content -->
+    <string name="webcompat_reporter_reason_content">Botons, ligams o autre contengut</string>
+    <!-- Broken site reason text for sign in or sign out -->
+    <string name="webcompat_reporter_reason_account">Connexion o desconnexion</string>
+    <!-- Broken site reason text for ad blocker -->
+    <string name="webcompat_reporter_reason_ad_blocker">Blocador de publicitat</string>
+    <!-- Broken site reason text for something else -->
+    <string name="webcompat_reporter_reason_other">Quicòm mai</string>
+
     <!-- Crashes -->
     <!-- Title text displayed on the tab crash page. This first parameter is the name of the application (For example: Fenix) -->
     <string name="tab_crash_title_2">%1$s a pas pogut cargar aquesta pagina.</string>
@@ -1247,6 +1279,8 @@
 
     <!-- Unsubmitted crash dialog title, The first parameter is the name of the app (e.g. Firefox)  -->
     <string name="unsubmitted_crash_dialog_title">%s a degut reaviar</string>
+    <!-- Unsubmitted crash dialog checkbox label for automatically sending reports in the future -->
+    <string name="unsubmitted_crash_dialog_checkbox_label">Enviar automaticament los rapòrts de plantatge</string>
     <!-- Unsubmitted crash dialog negative button to dismiss the dialog -->
     <string name="unsubmitted_crash_dialog_negative_button">Tampar</string>
     <!-- Unsubmitted crash dialog positive button to submit crash report -->
@@ -1358,6 +1392,8 @@
     <string name="bookmark_empty_list_guest_description">Enregistratz los sites pendent la navegacion. Connectatz-vos per recuperar los marcapaginas dempuèi d\'autres aparelhs sincronizats.</string>
     <!-- Text for the button to navigate to sync authentication -->
     <string name="bookmark_empty_list_guest_cta">Se connectar a Sync</string>
+    <!-- Description for the bookmark list empty state when you're signed into sync. -->
+    <string name="bookmark_empty_list_authenticated_description">Salvatz de sites en navegant. Se recuperaràn tanben los marcapaginas d’autres aparelhs sincronizats.</string>
     <!-- Description for the add new folder button when selecting a folder. -->
     <string name="bookmark_select_folder_new_folder_button_title">Dossièr novèl</string>
 

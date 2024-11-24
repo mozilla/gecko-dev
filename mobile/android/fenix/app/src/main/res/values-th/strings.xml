@@ -332,9 +332,9 @@
     <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar custom tab menu. -->
     <string name="browser_custom_tab_menu_handlebar_content_description">ปิดแผ่นเมนูแท็บกำหนดเอง</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-    <string name="browser_menu_tools_description_with_translate">มุมมองผู้อ่าน, แปล, พิมพ์, แบ่งปัน, เปิดแอป</string>
+    <string name="browser_menu_tools_description_with_translate" moz:removedIn="133" tools:ignore="UnusedResources">มุมมองผู้อ่าน, แปล, พิมพ์, แบ่งปัน, เปิดแอป</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-    <string name="browser_menu_tools_description">มุมมองผู้อ่าน, พิมพ์, แบ่งปัน, เปิดแอป</string>
+    <string name="browser_menu_tools_description" moz:removedIn="133" tools:ignore="UnusedResources">มุมมองผู้อ่าน, พิมพ์, แบ่งปัน, เปิดแอป</string>
     <!-- Browser menu label that navigates to the save sub-menu, which contains various save related menu items such as
          bookmarking a page, saving to collection, shortcut or as a PDF, and adding to home screen -->
     <string name="browser_menu_save">บันทึก</string>
@@ -951,7 +951,9 @@
     <string name="exceptions_empty_message_learn_more_link">เรียนรู้เพิ่มเติม</string>
 
     <!-- Preference switch for usage and technical data collection -->
-    <string name="preference_usage_data">การใช้งานและข้อมูลทางเทคนิค</string>
+    <string name="preference_usage_data" moz:removedIn="134" tools:ignore="UnusedResources">การใช้งานและข้อมูลทางเทคนิค</string>
+    <!-- Preference switch for usage and technical learn more link -->
+    <string name="preference_usage_data_learn_more" tools:ignore="UnusedResources">เรียนรู้เพิ่มเติม</string>
     <!-- Preference description for usage and technical data collection -->
     <string name="preferences_usage_data_description">แบ่งปันข้อมูลประสิทธิภาพ, การใช้งาน, ฮาร์ดแวร์ และการปรับแต่งเกี่ยวกับเบราว์เซอร์ของคุณกับ Mozilla เพื่อช่วยเราทำ %1$s ให้ดีขึ้น</string>
     <!-- Preference switch for marketing data collection -->
@@ -1245,6 +1247,27 @@
 
 
     <!-- WebCompat Reporter -->
+
+    <!-- WebCompat Reporter -->
+    <!-- The title of the Web Compat Reporter feature. This is displayed in the top app bar. -->
+    <string name="webcompat_reporter_screen_title">รายงานไซต์ที่ใช้งานไม่ได้</string>
+    <!-- The text field label of the URL text field. This is displayed above the user-inputted URL. -->
+    <string name="webcompat_reporter_label_url">URL</string>
+    <!-- The error message of the URL text field when an invalid URL has been entered. -->
+    <string name="webcompat_reporter_url_error_invalid">โปรดกรอก URL ที่ถูกต้อง</string>
+    <!-- The label/title of an optional field in the Web Compat Reporter feature for explaining a high-level reason why the site is broken. -->
+    <string name="webcompat_reporter_label_whats_broken">มีอะไรเสียหาย? (เพิ่มเติม)</string>
+    <!-- The placeholder text for the dropdown where a user can select a high-level reason why the site is broken. -->
+    <string name="webcompat_reporter_choose_reason">เลือกเหตุผล</string>
+    <!-- The label/title of an optional field in the Web Compat Reporter feature for adding additional information. -->
+    <string name="webcompat_reporter_label_description">อธิบายปัญหา (เพิ่มเติม)</string>
+    <!-- The button text for navigating away from the feature to provide more information on the broken site's bug report. -->
+    <string name="webcompat_reporter_send_more_info">ส่งข้อมูลเพิ่มเติม</string>
+    <!-- The button text for the cancel button to leave the Web Compat Reporter feature. -->
+    <string name="webcompat_reporter_cancel">ยกเลิก</string>
+    <!-- The button text for the send button to submit the provided form data. -->
+    <string name="webcompat_reporter_send">ส่ง</string>
+
 
     <!-- These reason strings are dropdown options on a WebCompat reporter form, indicating what is broken on the site. -->
     <!-- Broken site reason text for site slow or not working -->
