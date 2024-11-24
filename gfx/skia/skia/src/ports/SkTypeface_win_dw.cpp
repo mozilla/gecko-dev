@@ -195,11 +195,11 @@ DWriteFontTypeface::DWriteFontTypeface(const SkFontStyle& style,
     if (!SUCCEEDED(fDWriteFontFace->QueryInterface(&fDWriteFontFace4))) {
         SkASSERT_RELEASE(nullptr == fDWriteFontFace4.get());
     }
-#if DWRITE_CORE || (defined(NTDDI_WIN11_ZN) && NTDDI_VERSION >= NTDDI_WIN11_ZN)
+#if !SK_DISABLE_DIRECTWRITE_COLRv1 && (DWRITE_CORE || (defined(NTDDI_WIN11_ZN) && NTDDI_VERSION >= NTDDI_WIN11_ZN))
     if (!SUCCEEDED(fDWriteFontFace->QueryInterface(&fDWriteFontFace7))) {
         SkASSERT_RELEASE(nullptr == fDWriteFontFace7/*.get()*/);
     }
-#endif
+#endif  // !SK_DISABLE_DIRECTWRITE_COLRv1 && (DWRITE_CORE || (defined(NTDDI_WIN11_ZN) && NTDDI_VERSION >= NTDDI_WIN11_ZN))
     if (!SUCCEEDED(fFactory->QueryInterface(&fFactory2))) {
         SkASSERT_RELEASE(nullptr == fFactory2.get());
     }
@@ -213,11 +213,11 @@ DWriteFontTypeface::DWriteFontTypeface(const SkFontStyle& style,
 }
 
 DWriteFontTypeface::~DWriteFontTypeface() {
-#if DWRITE_CORE || (defined(NTDDI_WIN11_ZN) && NTDDI_VERSION >= NTDDI_WIN11_ZN)
+#if !SK_DISABLE_DIRECTWRITE_COLRv1 && (DWRITE_CORE || (defined(NTDDI_WIN11_ZN) && NTDDI_VERSION >= NTDDI_WIN11_ZN))
     if (fDWriteFontFace7) {
         fDWriteFontFace7->Release();
     }
-#endif
+#endif  // !SK_DISABLE_DIRECTWRITE_COLRv1 && (DWRITE_CORE || (defined(NTDDI_WIN11_ZN) && NTDDI_VERSION >= NTDDI_WIN11_ZN))
 }
 
 DWriteFontTypeface::Loaders::~Loaders() {

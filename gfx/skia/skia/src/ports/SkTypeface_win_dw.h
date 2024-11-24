@@ -84,6 +84,7 @@ public:
     SkTScopedComPtr<IDWriteFontFace1> fDWriteFontFace1;
     SkTScopedComPtr<IDWriteFontFace2> fDWriteFontFace2;
     SkTScopedComPtr<IDWriteFontFace4> fDWriteFontFace4;
+#if !SK_DISABLE_DIRECTWRITE_COLRv1 && (DWRITE_CORE || (defined(NTDDI_WIN11_ZN) && NTDDI_VERSION >= NTDDI_WIN11_ZN))
     // Once WDK 10.0.25357.0 or newer is required to build, fDWriteFontFace7 can be a smart pointer.
     // If a smart pointer is used then ~DWriteFontTypeface must call the smart pointer's destructor,
     // which must include code to Release the IDWriteFontFace7, but there may be no IDWriteFontFace7
@@ -93,6 +94,7 @@ public:
     // NTDDI_VERSION shenanigains, otherwise this defintition could just be ifdef'ed.
     //SkTScopedComPtr<IDWriteFontFace7> fDWriteFontFace7;
     IDWriteFontFace7* fDWriteFontFace7 = nullptr;
+#endif  // !SK_DISABLE_DIRECTWRITE_COLRv1 && (DWRITE_CORE || (defined(NTDDI_WIN11_ZN) && NTDDI_VERSION >= NTDDI_WIN11_ZN))
     bool fIsColorFont;
 
     std::unique_ptr<SkFontArguments::Palette::Override> fRequestedPaletteEntryOverrides;

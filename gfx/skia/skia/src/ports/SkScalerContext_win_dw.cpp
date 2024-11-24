@@ -441,7 +441,7 @@ SkScalerContext_DW::SkScalerContext_DW(sk_sp<DWriteFontTypeface> typefaceRef,
 SkScalerContext_DW::~SkScalerContext_DW() {
 }
 
-#if DWRITE_CORE || (defined(NTDDI_WIN11_ZN) && NTDDI_VERSION >= NTDDI_WIN11_ZN)
+#if !SK_DISABLE_DIRECTWRITE_COLRv1 && (DWRITE_CORE || (defined(NTDDI_WIN11_ZN) && NTDDI_VERSION >= NTDDI_WIN11_ZN))
 
 namespace {
 SkColor4f sk_color_from(DWRITE_COLOR_F const& color) {
@@ -1477,13 +1477,13 @@ bool SkScalerContext_DW::generateColorV1Metrics(const SkGlyph& glyph, SkRect* bo
     return true;
 }
 
-#else  // DWRITE_CORE || (defined(NTDDI_WIN11_ZN) && NTDDI_VERSION >= NTDDI_WIN11_ZN)
+#else  // !SK_DISABLE_DIRECTWRITE_COLRv1 && (DWRITE_CORE || (defined(NTDDI_WIN11_ZN) && NTDDI_VERSION >= NTDDI_WIN11_ZN))
 
 bool SkScalerContext_DW::generateColorV1Metrics(const SkGlyph&, SkRect*) { return false; }
 bool SkScalerContext_DW::generateColorV1Image(const SkGlyph&, void*) { return false; }
 bool SkScalerContext_DW::drawColorV1Image(const SkGlyph&, SkCanvas&) { return false; }
 
-#endif  // DWRITE_CORE || (defined(NTDDI_WIN11_ZN) && NTDDI_VERSION >= NTDDI_WIN11_ZN)
+#endif  // !SK_DISABLE_DIRECTWRITE_COLRv1 && (DWRITE_CORE || (defined(NTDDI_WIN11_ZN) && NTDDI_VERSION >= NTDDI_WIN11_ZN))
 
 bool SkScalerContext_DW::setAdvance(const SkGlyph& glyph, SkVector* advance) {
     *advance = {0, 0};
