@@ -225,7 +225,7 @@ class AccessibleCaretCursorModeTestCase(MarionetteTestCase):
         el = self.marionette.find_element(By.ID, "columns-inner")
         sel = SelectionManager(el)
         content_to_add = "!"
-        target_content = sel.content + "\n" + content_to_add
+        target_content = sel.content + content_to_add
 
         # Goal: the cursor position can be changed by dragging the caret from
         # the front to the end of the content.
