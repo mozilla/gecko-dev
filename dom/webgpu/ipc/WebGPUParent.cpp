@@ -1629,10 +1629,7 @@ bool WebGPUParent::EnsureExternalTextureForSwapChain(
 
   auto externalTexture = CreateExternalTexture(aDeviceId, aTextureId, aWidth,
                                                aHeight, aFormat, aUsage);
-  if (!externalTexture) {
-    return false;
-  }
-  return true;
+  return static_cast<bool>(externalTexture);
 }
 
 std::shared_ptr<ExternalTexture> WebGPUParent::CreateExternalTexture(
