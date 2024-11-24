@@ -199,7 +199,7 @@ nsresult SVGTransformListSMILType::ComputeDistance(const SMILValue& aFrom,
       const float& a_ty = fromTransform.mParams[1];
       const float& b_tx = toTransform.mParams[0];
       const float& b_ty = toTransform.mParams[1];
-      aDistance = sqrt(pow(a_tx - b_tx, 2) + (pow(a_ty - b_ty, 2)));
+      aDistance = NS_hypot(a_tx - b_tx, a_ty - b_ty);
     } break;
 
     case SVG_TRANSFORM_ROTATE:
