@@ -4673,9 +4673,18 @@ bool nsIFrame::IsSelectable(StyleUserSelect* aSelectStyle) const {
 }
 
 bool nsIFrame::ShouldHaveLineIfEmpty() const {
-  if (Style()->IsPseudoOrAnonBox() &&
-      Style()->GetPseudoType() != PseudoStyleType::scrolledContent) {
-    return false;
+  switch (Style()->GetPseudoType()) {
+    case PseudoStyleType::NotPseudo:
+      break;
+    case PseudoStyleType::scrolledContent:
+      return GetParent()->ShouldHaveLineIfEmpty();
+    case PseudoStyleType::mozTextControlEditingRoot:
+      return true;
+    case PseudoStyleType::buttonContent:
+      // HTML quirk.
+      return GetContent()->IsHTMLElement(nsGkAtoms::input);
+    default:
+      return false;
   }
   return IsEditingHost(this);
 }
