@@ -258,7 +258,6 @@ UNIFIED_SOURCES += [
     "nsHTMLFormatConverter.cpp",
     "nsIBaseWindow.cpp",
     "nsIDeviceContextSpec.cpp",
-    "nsIWidgetListener.cpp",
     "nsPrimitiveHelpers.cpp",
     "nsPrintSettingsImpl.cpp",
     "nsTransferable.cpp",

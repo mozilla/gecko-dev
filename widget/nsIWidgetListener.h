@@ -49,17 +49,13 @@ class nsIWidgetListener {
    * this is likely a listener for a view, which can be determined using
    * GetView. If both methods return null, this will be an nsWebBrowser.
    */
-  virtual nsIAppWindow* GetAppWindow();
+  virtual nsIAppWindow* GetAppWindow() { return nullptr; }
 
-  /**
-   * If this listener is for an nsView, return it.
-   */
-  virtual nsView* GetView();
+  /** If this listener is for an nsView, return it. */
+  virtual nsView* GetView() { return nullptr; }
 
-  /**
-   * Return the presshell for this widget listener.
-   */
-  virtual mozilla::PresShell* GetPresShell();
+  /** Return the presshell for this widget listener. */
+  virtual mozilla::PresShell* GetPresShell() { return nullptr; }
 
   /**
    * Called when a window is moved to location (x, y). Returns true if the
@@ -67,61 +63,57 @@ class nsIWidgetListener {
    */
   enum class ByMoveToRect : bool { No, Yes };
   virtual bool WindowMoved(nsIWidget* aWidget, int32_t aX, int32_t aY,
-                           ByMoveToRect);
+                           ByMoveToRect) {
+    return false;
+  }
 
   /**
    * Called when a window is resized to (width, height). Returns true if the
    * notification was handled. Coordinates are outer window screen coordinates.
    */
   virtual bool WindowResized(nsIWidget* aWidget, int32_t aWidth,
-                             int32_t aHeight);
+                             int32_t aHeight) {
+    return false;
+  }
 
   /**
    * Called when the size mode (minimized, maximized, fullscreen) is changed.
    */
-  virtual void SizeModeChanged(nsSizeMode aSizeMode);
+  virtual void SizeModeChanged(nsSizeMode aSizeMode) {}
 
 #if defined(MOZ_WIDGET_ANDROID)
-  virtual void DynamicToolbarMaxHeightChanged(mozilla::ScreenIntCoord aHeight);
-  virtual void DynamicToolbarOffsetChanged(mozilla::ScreenIntCoord aOffset);
-
-  /**
-   * Called when the software keyboard appears/disappears.
-   */
-  virtual void KeyboardHeightChanged(mozilla::ScreenIntCoord aHeight);
+  virtual void DynamicToolbarMaxHeightChanged(mozilla::ScreenIntCoord aHeight) {
+  }
+  virtual void DynamicToolbarOffsetChanged(mozilla::ScreenIntCoord aOffset) {}
+  /** Called when the software keyboard appears/disappears. */
+  virtual void KeyboardHeightChanged(mozilla::ScreenIntCoord aHeight) {}
 #endif
 
-  /**
-   * Called when the macOS titlebar is shown while in fullscreen.
-   */
+  /** Called when the macOS titlebar is shown while in fullscreen. */
   virtual void MacFullscreenMenubarOverlapChanged(
-      mozilla::DesktopCoord aOverlapAmount);
+      mozilla::DesktopCoord aOverlapAmount) {}
 
   /**
    * Called when the occlusion state is changed.
    */
-  virtual void OcclusionStateChanged(bool aIsFullyOccluded);
+  virtual void OcclusionStateChanged(bool aIsFullyOccluded) {}
 
-  /**
-   * Called when the window is activated and focused.
-   */
-  virtual void WindowActivated();
+  /** Called when the window is activated and focused. */
+  virtual void WindowActivated() {}
 
-  /**
-   * Called when the window is deactivated and no longer focused.
-   */
-  virtual void WindowDeactivated();
+  /** Called when the window is deactivated and no longer focused. */
+  virtual void WindowDeactivated() {}
 
   /**
    * Called when the show/hide toolbar button on the Mac titlebar is pressed.
    */
-  virtual void OSToolbarButtonPressed();
+  virtual void OSToolbarButtonPressed() {}
 
   /**
    * Called when a request is made to close the window. Returns true if the
    * notification was handled. Returns true if the notification was handled.
    */
-  virtual bool RequestWindowClose(nsIWidget* aWidget);
+  virtual bool RequestWindowClose(nsIWidget* aWidget) { return false; }
 
   /*
    * Indicate that a paint is about to occur on this window. This is called
@@ -129,7 +121,7 @@ class nsIWidgetListener {
    * other widgets. Must be called before every call to PaintWindow.
    */
   MOZ_CAN_RUN_SCRIPT_BOUNDARY
-  virtual void WillPaintWindow(nsIWidget* aWidget);
+  virtual void WillPaintWindow(nsIWidget* aWidget) {}
 
   /**
    * Paint the specified region of the window. Returns true if the
@@ -139,8 +131,9 @@ class nsIWidgetListener {
    */
   MOZ_CAN_RUN_SCRIPT_BOUNDARY
   virtual bool PaintWindow(nsIWidget* aWidget,
-                           mozilla::LayoutDeviceIntRegion aRegion);
-
+                           mozilla::LayoutDeviceIntRegion aRegion) {
+    return false;
+  }
   /**
    * Indicates that a paint occurred.
    * This is called at a time when it is OK to change the geometry of
@@ -148,35 +141,32 @@ class nsIWidgetListener {
    * Must be called after every call to PaintWindow.
    */
   MOZ_CAN_RUN_SCRIPT_BOUNDARY
-  virtual void DidPaintWindow();
+  virtual void DidPaintWindow() {}
 
   virtual void DidCompositeWindow(mozilla::layers::TransactionId aTransactionId,
                                   const mozilla::TimeStamp& aCompositeStart,
-                                  const mozilla::TimeStamp& aCompositeEnd);
+                                  const mozilla::TimeStamp& aCompositeEnd) {}
 
-  /**
-   * Request that layout schedules a repaint on the next refresh driver tick.
+  /** Request that layout schedules a repaint on the next refresh driver tick.
    */
-  virtual void RequestRepaint();
+  virtual void RequestRepaint() {}
 
   /**
    * Returns true if this is a popup that should not be visible. If this
    * is a popup that is visible, not a popup or this state is unknown,
    * returns false.
    */
-  virtual bool ShouldNotBeVisible();
+  virtual bool ShouldNotBeVisible() { return false; }
 
-  /**
-   * Handle an event.
-   */
+  /** Handle an event. */
   virtual nsEventStatus HandleEvent(mozilla::WidgetGUIEvent* aEvent,
-                                    bool aUseAttachedEvents);
+                                    bool aUseAttachedEvents) {
+    return nsEventStatus_eIgnore;
+  }
 
-  /**
-   * Called when safe area insets are changed.
-   */
+  /** Called when safe area insets are changed. */
   virtual void SafeAreaInsetsChanged(
-      const mozilla::LayoutDeviceIntMargin& aSafeAreaInsets);
+      const mozilla::LayoutDeviceIntMargin& aSafeAreaInsets) {}
 };
 
 #endif
