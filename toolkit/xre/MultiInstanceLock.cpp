@@ -284,7 +284,7 @@ already_AddRefed<nsIFile> GetNormalizedAppFile(nsIFile* aAppFile) {
   nsCOMPtr<nsILocalFileMac> macFile = do_QueryInterface(appFile);
   if (macFile && NS_SUCCEEDED(macFile->GetFSRef(&ref)) &&
       NS_SUCCEEDED(NS_NewLocalFileWithFSRef(&ref, getter_AddRefs(macFile)))) {
-    appFile = static_cast<nsIFile*>(macFile);
+    appFile = macFile.forget();
   } else {
     NS_WARNING("Failed to resolve install directory.");
   }

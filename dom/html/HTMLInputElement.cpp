@@ -36,6 +36,7 @@
 #include "mozilla/StaticPrefs_signon.h"
 #include "mozilla/TextUtils.h"
 #include "mozilla/Try.h"
+#include "mozilla/Unused.h"
 #include "nsAttrValueInlines.h"
 #include "nsCRTGlue.h"
 #include "nsIFilePicker.h"
@@ -347,7 +348,7 @@ UploadLastDir::ContentPrefCallback::HandleCompletion(uint16_t aReason) {
 
   if (!prefStr.IsEmpty()) {
     nsresult rv = NS_NewLocalFile(prefStr, getter_AddRefs(localFile));
-    (void)NS_WARN_IF(NS_FAILED(rv));
+    Unused << NS_WARN_IF(NS_FAILED(rv));
   }
 
   if (localFile) {
@@ -2161,13 +2162,13 @@ void HTMLInputElement::MozSetFileNameArray(const Sequence<nsString>& aFileNames,
                          nsASCIICaseInsensitiveStringComparator)) {
       // Converts the URL string into the corresponding nsIFile if possible
       // A local file will be created if the URL string begins with file://
-      NS_GetFileFromURLSpec(NS_ConvertUTF16toUTF8(aFileNames[i]),
-                            getter_AddRefs(file));
+      Unused << NS_GetFileFromURLSpec(NS_ConvertUTF16toUTF8(aFileNames[i]),
+                                      getter_AddRefs(file));
     }
 
     if (!file) {
       // this is no "file://", try as local file
-      NS_NewLocalFile(aFileNames[i], getter_AddRefs(file));
+      Unused << NS_NewLocalFile(aFileNames[i], getter_AddRefs(file));
     }
 
     if (!file) {

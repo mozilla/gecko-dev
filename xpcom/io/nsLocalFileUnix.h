@@ -45,7 +45,6 @@ class nsLocalFile final
   NS_DEFINE_STATIC_CID_ACCESSOR(NS_LOCAL_FILE_CID)
 
   nsLocalFile();
-  explicit nsLocalFile(const nsACString& aFilePath);
 
   static nsresult nsLocalFileConstructor(const nsIID& aIID,
                                          void** aInstancePtr);

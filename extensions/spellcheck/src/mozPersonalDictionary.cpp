@@ -7,6 +7,7 @@
 
 #include <utility>
 
+#include "mozilla/Try.h"
 #include "nsAppDirectoryServiceDefs.h"
 #include "nsCRT.h"
 #include "nsIFile.h"
@@ -90,9 +91,9 @@ class mozPersonalDictionarySave final : public mozilla::Runnable {
       mozilla::MonitorAutoLock mon(mDict->mMonitorSave);
 
       nsCOMPtr<nsIOutputStream> outStream;
-      NS_NewSafeLocalFileOutputStream(getter_AddRefs(outStream), mFile,
-                                      PR_CREATE_FILE | PR_WRONLY | PR_TRUNCATE,
-                                      0664);
+      MOZ_TRY(NS_NewSafeLocalFileOutputStream(
+          getter_AddRefs(outStream), mFile,
+          PR_CREATE_FILE | PR_WRONLY | PR_TRUNCATE, 0664));
 
       // Get a buffered output stream 4096 bytes big, to optimize writes.
       nsCOMPtr<nsIOutputStream> bufferedOutputStream;
@@ -273,7 +274,10 @@ void mozPersonalDictionary::SyncLoadInternal() {
   }
 
   nsCOMPtr<nsIInputStream> inStream;
-  NS_NewLocalFileInputStream(getter_AddRefs(inStream), mFile);
+  rv = NS_NewLocalFileInputStream(getter_AddRefs(inStream), mFile);
+  if (NS_FAILED(rv)) {
+    return;
+  }
 
   nsCOMPtr<nsIUnicharInputStream> convStream;
   rv = NS_NewUnicharInputStream(inStream, getter_AddRefs(convStream));

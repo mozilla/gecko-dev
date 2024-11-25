@@ -183,17 +183,14 @@ nsresult nsAppFileLocationProvider::GetProductDirectory(nsIFile** aLocalFile,
   nsCOMPtr<nsIFile> localDir;
 
 #if defined(MOZ_WIDGET_COCOA)
-  NS_NewLocalFile(u""_ns, getter_AddRefs(localDir));
-  if (!localDir) {
-    return NS_ERROR_FAILURE;
-  }
-  nsCOMPtr<nsILocalFileMac> localDirMac(do_QueryInterface(localDir));
-
-  rv = localDirMac->InitWithCFURL(
-      CocoaFileUtils::GetProductDirectory(aLocal).get());
+  nsCOMPtr<nsILocalFileMac> localDirMac;
+  rv = NS_NewLocalFileWithCFURL(
+      CocoaFileUtils::GetProductDirectory(aLocal).get(),
+      getter_AddRefs(localDirMac));
   if (NS_FAILED(rv)) {
     return rv;
   }
+  localDir = localDirMac.forget();
 #elif defined(XP_WIN)
   nsCOMPtr<nsIProperties> directoryService =
       do_GetService(NS_DIRECTORY_SERVICE_CONTRACTID, &rv);

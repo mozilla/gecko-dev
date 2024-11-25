@@ -56,10 +56,6 @@ nsresult net_GetFileFromURLSpec(const nsACString& aURL, nsIFile** result) {
 
   nsresult rv;
 
-  nsCOMPtr<nsIFile> localFile;
-  rv = NS_NewNativeLocalFile(""_ns, getter_AddRefs(localFile));
-  if (NS_FAILED(rv)) return rv;
-
   nsAutoCString directory, fileBaseName, fileExtension, path;
 
   rv = net_ParseFileURL(aURL, directory, fileBaseName, fileExtension);
@@ -85,25 +81,5 @@ nsresult net_GetFileFromURLSpec(const nsACString& aURL, nsIFile** result) {
   NS_UnescapeURL(path);
   if (path.Length() != strlen(path.get())) return NS_ERROR_FILE_INVALID_PATH;
 
-  if (IsUtf8(path)) {
-    // speed up the start-up where UTF-8 is the native charset
-    // (e.g. on recent Linux distributions)
-    if (NS_IsNativeUTF8()) {
-      rv = localFile->InitWithNativePath(path);
-    } else {
-      rv = localFile->InitWithPath(NS_ConvertUTF8toUTF16(path));
-    }
-    // XXX In rare cases, a valid UTF-8 string can be valid as a native
-    // encoding (e.g. 0xC5 0x83 is valid both as UTF-8 and Windows-125x).
-    // However, the chance is very low that a meaningful word in a legacy
-    // encoding is valid as UTF-8.
-  } else {
-    // if path is not in UTF-8, assume it is encoded in the native charset
-    rv = localFile->InitWithNativePath(path);
-  }
-
-  if (NS_FAILED(rv)) return rv;
-
-  localFile.forget(result);
-  return NS_OK;
+  return NS_NewNativeLocalFile(path, result);
 }

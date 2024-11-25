@@ -301,15 +301,9 @@ class BinaryPath {
     if (NS_FAILED(rv)) {
       return rv;
     }
-#  ifdef XP_WIN
-    rv = NS_NewLocalFile(nsDependentString(exePath), getter_AddRefs(lf));
-#  else
-    rv = NS_NewNativeLocalFile(nsDependentCString(exePath), getter_AddRefs(lf));
-#  endif
-    if (NS_FAILED(rv)) {
-      return rv;
-    }
-    NS_ADDREF(*aResult = lf);
+    MOZ_TRY(NS_NewPathStringLocalFile(DependentPathString(exePath),
+                                      getter_AddRefs(lf)));
+    lf.forget(aResult);
     return NS_OK;
   }
 #endif

@@ -91,8 +91,8 @@ bool FFVPXRuntimeLinker::Init() {
   if (path.IsEmpty()) {
     return false;
   }
-  nsCOMPtr<nsIFile> libFile = new nsLocalFile(path);
-  if (libFile->NativePath().IsEmpty()) {
+  nsCOMPtr<nsIFile> libFile;
+  if (NS_FAILED(NS_NewPathStringLocalFile(path, getter_AddRefs(libFile)))) {
     return false;
   }
 

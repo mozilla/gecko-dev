@@ -506,6 +506,7 @@ void GeckoChildProcessHost::Destroy() {
 // static
 mozilla::BinPathType BaseProcessLauncher::GetPathToBinary(
     FilePath& exePath, GeckoProcessType processType) {
+  exePath = {};
   BinPathType pathType = XRE_GetChildProcBinPathType(processType);
 
   if (pathType == BinPathType::Self) {
@@ -543,21 +544,25 @@ mozilla::BinPathType BaseProcessLauncher::GetPathToBinary(
     exePath = FilePath(char16ptr_t(gGREBinPath));
 #elif MOZ_WIDGET_COCOA
     nsCOMPtr<nsIFile> childProcPath;
-    NS_NewLocalFile(nsDependentString(gGREBinPath),
-                    getter_AddRefs(childProcPath));
-
-    // We need to use an App Bundle on OS X so that we can hide
-    // the dock icon. See Bug 557225.
-    childProcPath->AppendNative(bundleName);
-    childProcPath->AppendNative("Contents"_ns);
-    childProcPath->AppendNative("MacOS"_ns);
-    nsCString tempCPath;
-    childProcPath->GetNativePath(tempCPath);
-    exePath = FilePath(tempCPath.get());
+    if (NS_SUCCEEDED(NS_NewLocalFile(nsDependentString(gGREBinPath),
+                                     getter_AddRefs(childProcPath)))) {
+      // We need to use an App Bundle on OS X so that we can hide
+      // the dock icon. See Bug 557225.
+      if (NS_SUCCEEDED(childProcPath->AppendNative(bundleName)) &&
+          NS_SUCCEEDED(childProcPath->AppendNative("Contents"_ns)) &&
+          NS_SUCCEEDED(childProcPath->AppendNative("MacOS"_ns))) {
+        nsCString tempCPath;
+        if (NS_SUCCEEDED(childProcPath->GetNativePath(tempCPath))) {
+          exePath = FilePath(tempCPath.get());
+        }
+      }
+    }
 #else
     nsCString path;
-    NS_CopyUnicodeToNative(nsDependentString(gGREBinPath), path);
-    exePath = FilePath(path.get());
+    if (NS_SUCCEEDED(
+            NS_CopyUnicodeToNative(nsDependentString(gGREBinPath), path))) {
+      exePath = FilePath(path.get());
+    }
 #endif
   }
 

@@ -180,6 +180,7 @@
 #include "mozilla/Telemetry.h"
 #include "mozilla/ThreadLocal.h"
 #include "mozilla/UniquePtr.h"
+#include "mozilla/Unused.h"
 #include "nsCycleCollectionNoteRootCallback.h"
 #include "nsCycleCollectionParticipant.h"
 #include "nsCycleCollector.h"
@@ -1621,7 +1622,8 @@ class nsCycleCollectorLogSinkToFile final : public nsICycleCollectorLogSink {
     // wouldn't work.
     nsIFile* logFile = nullptr;
     if (char* env = PR_GetEnv("MOZ_CC_LOG_DIRECTORY")) {
-      NS_NewNativeLocalFile(nsCString(env), &logFile);
+      Unused << NS_WARN_IF(
+          NS_FAILED(NS_NewNativeLocalFile(nsCString(env), &logFile)));
     }
 
     // On Android or B2G, this function will open a file named

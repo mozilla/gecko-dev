@@ -6,6 +6,7 @@
 
 #include "nsLocalFile.h"  // includes platform-specific headers
 
+#include "mozilla/Try.h"
 #include "nsString.h"
 #include "nsCOMPtr.h"
 #include "nsReadableUtils.h"
@@ -144,6 +145,30 @@ const char* const sExecutableExts[] = {
   ".xrm-ms"
     // clang-format on
 };
+
+nsresult NS_NewLocalFileWithFile(nsIFile* aFile, nsIFile** aResult) {
+  nsCOMPtr<nsIFile> file = new nsLocalFile();
+  MOZ_TRY(file->InitWithFile(aFile));
+  file.forget(aResult);
+  return NS_OK;
+}
+
+nsresult NS_NewLocalFileWithRelativeDescriptor(nsIFile* aFromFile,
+                                               const nsACString& aRelativeDesc,
+                                               nsIFile** aResult) {
+  nsCOMPtr<nsIFile> file = new nsLocalFile();
+  MOZ_TRY(file->SetRelativeDescriptor(aFromFile, aRelativeDesc));
+  file.forget(aResult);
+  return NS_OK;
+}
+
+nsresult NS_NewLocalFileWithPersistentDescriptor(
+    const nsACString& aPersistentDescriptor, nsIFile** aResult) {
+  nsCOMPtr<nsIFile> file = new nsLocalFile();
+  MOZ_TRY(file->SetPersistentDescriptor(aPersistentDescriptor));
+  file.forget(aResult);
+  return NS_OK;
+}
 
 #if !defined(MOZ_WIDGET_COCOA) && !defined(XP_WIN)
 NS_IMETHODIMP

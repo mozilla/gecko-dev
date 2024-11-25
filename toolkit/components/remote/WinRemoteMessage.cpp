@@ -5,6 +5,7 @@
 
 #include "nsCommandLine.h"
 #include "mozilla/CmdLineAndEnvUtils.h"
+#include "mozilla/Try.h"
 #include "WinRemoteMessage.h"
 
 using namespace mozilla;
@@ -39,7 +40,8 @@ nsresult WinRemoteMessageReceiver::ParseV2(const nsAString& aBuffer) {
 
   nsCOMPtr<nsIFile> workingDir;
   if (cch < aBuffer.Length()) {
-    NS_NewLocalFile(Substring(aBuffer, cch), getter_AddRefs(workingDir));
+    MOZ_TRY(
+        NS_NewLocalFile(Substring(aBuffer, cch), getter_AddRefs(workingDir)));
   }
 
   int argc = parser.Argc();
@@ -78,9 +80,8 @@ nsresult WinRemoteMessageReceiver::ParseV3(const nsACString& aBuffer) {
     return NS_ERROR_FAILURE;
   }
 
-  nsresult rv = NS_NewLocalFile(
-      NS_ConvertUTF8toUTF16(Substring(aBuffer, pos, nextNul - pos)),
-      getter_AddRefs(workingDir));
+  nsresult rv = NS_NewUTF8LocalFile(Substring(aBuffer, pos, nextNul - pos),
+                                    getter_AddRefs(workingDir));
   NS_ENSURE_SUCCESS(rv, rv);
 
   pos = nextNul + 1;

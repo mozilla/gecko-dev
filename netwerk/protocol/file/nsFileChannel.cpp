@@ -250,11 +250,7 @@ nsresult nsFileChannel::Init() {
   // can point to different resources right after the first resource is loaded.
   nsCOMPtr<nsIFile> file;
   nsCOMPtr<nsIURI> targetURI;
-#ifdef XP_WIN
-  nsAutoString fileTarget;
-#else
-  nsAutoCString fileTarget;
-#endif
+  AutoPathString fileTarget;
   nsCOMPtr<nsIFile> resolvedFile;
   bool symLink;
   nsCOMPtr<nsIFileURL> fileURL = do_QueryInterface(mFileURI);
@@ -262,12 +258,11 @@ nsresult nsFileChannel::Init() {
       NS_SUCCEEDED(file->IsSymlink(&symLink)) && symLink &&
 #ifdef XP_WIN
       NS_SUCCEEDED(file->GetTarget(fileTarget)) &&
-      NS_SUCCEEDED(NS_NewLocalFile(fileTarget, getter_AddRefs(resolvedFile))) &&
 #else
       NS_SUCCEEDED(file->GetNativeTarget(fileTarget)) &&
-      NS_SUCCEEDED(
-          NS_NewNativeLocalFile(fileTarget, getter_AddRefs(resolvedFile))) &&
 #endif
+      NS_SUCCEEDED(NS_NewPathStringLocalFile(fileTarget,
+                                             getter_AddRefs(resolvedFile))) &&
       NS_SUCCEEDED(
           NS_NewFileURI(getter_AddRefs(targetURI), resolvedFile, nullptr))) {
     // Make an effort to match up the query strings.

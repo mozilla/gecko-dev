@@ -32,6 +32,7 @@
 #include "mozilla/StaticPrefs_webgl.h"
 #include "mozilla/StaticPrefs_widget.h"
 #include "mozilla/Telemetry.h"
+#include "mozilla/Try.h"
 #include "mozilla/Utf8.h"
 #include "mozilla/intl/LocaleService.h"
 #include "mozilla/JSONWriter.h"
@@ -3440,10 +3441,7 @@ static bool CheckCompatibility(nsIFile* aProfileDir, const nsCString& aVersion,
   if (NS_FAILED(rv)) return false;
 
   nsCOMPtr<nsIFile> lf;
-  rv = NS_NewNativeLocalFile(""_ns, getter_AddRefs(lf));
-  if (NS_FAILED(rv)) return false;
-
-  rv = lf->SetPersistentDescriptor(buf);
+  rv = NS_NewLocalFileWithPersistentDescriptor(buf, getter_AddRefs(lf));
   if (NS_FAILED(rv)) return false;
 
   bool eq;
@@ -3454,10 +3452,7 @@ static bool CheckCompatibility(nsIFile* aProfileDir, const nsCString& aVersion,
     rv = parser.GetString("Compatibility", "LastAppDir", buf);
     if (NS_FAILED(rv)) return false;
 
-    rv = NS_NewNativeLocalFile(""_ns, getter_AddRefs(lf));
-    if (NS_FAILED(rv)) return false;
-
-    rv = lf->SetPersistentDescriptor(buf);
+    rv = NS_NewLocalFileWithPersistentDescriptor(buf, getter_AddRefs(lf));
     if (NS_FAILED(rv)) return false;
 
     rv = lf->Equals(aAppDir, &eq);

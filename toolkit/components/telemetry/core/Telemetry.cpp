@@ -258,8 +258,11 @@ using PathChar = filesystem::Path::value_type;
 using PathCharPtr = const PathChar*;
 
 static uint32_t ReadLastShutdownDuration(PathCharPtr filename) {
-  RefPtr<nsLocalFile> file =
-      new nsLocalFile(nsTDependentString<PathChar>(filename));
+  nsCOMPtr<nsIFile> file;
+  if (NS_FAILED(NS_NewPathStringLocalFile(DependentPathString(filename),
+                                          getter_AddRefs(file)))) {
+    return 0;
+  }
   FILE* f;
   if (NS_FAILED(file->OpenANSIFileDesc("r", &f)) || !f) {
     return 0;
@@ -1751,9 +1754,12 @@ void RecordShutdownEndTimeStamp() {
     return;
   }
 
-  nsTAutoString<PathChar> tmpName(name);
+  AutoPathString tmpName(name);
   tmpName.AppendLiteral(".tmp");
-  RefPtr<nsLocalFile> tmpFile = new nsLocalFile(tmpName);
+  nsCOMPtr<nsIFile> tmpFile;
+  if (NS_FAILED(NS_NewPathStringLocalFile(tmpName, getter_AddRefs(tmpFile)))) {
+    return;
+  }
   FILE* f;
   if (NS_FAILED(tmpFile->OpenANSIFileDesc("w", &f)) || !f) return;
   // On a normal release build this should be called just before
@@ -1773,10 +1779,14 @@ void RecordShutdownEndTimeStamp() {
     tmpFile->Remove(false);
     return;
   }
-  RefPtr<nsLocalFile> file = new nsLocalFile(name);
+  nsCOMPtr<nsIFile> file;
+  if (NS_FAILED(NS_NewPathStringLocalFile(name, getter_AddRefs(file)))) {
+    return;
+  }
   nsAutoString leafName;
-  file->GetLeafName(leafName);
-  tmpFile->RenameTo(nullptr, leafName);
+  if (NS_SUCCEEDED(file->GetLeafName(leafName))) {
+    tmpFile->RenameTo(nullptr, leafName);
+  }
 }
 
 }  // namespace mozilla

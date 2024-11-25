@@ -142,10 +142,6 @@ nsresult net_GetFileFromURLSpec(const nsACString& aURL, nsIFile** result) {
 
   nsresult rv;
 
-  nsCOMPtr<nsIFile> localFile;
-  rv = NS_NewNativeLocalFile(""_ns, getter_AddRefs(localFile));
-  if (NS_FAILED(rv)) return rv;
-
   nsAutoCString directory, fileBaseName, fileExtension, path;
   bool bHFSPath = false;
 
@@ -196,10 +192,5 @@ nsresult net_GetFileFromURLSpec(const nsACString& aURL, nsIFile** result) {
 
   if (bHFSPath) convertHFSPathtoPOSIX(path, path);
 
-  // assuming path is encoded in the native charset
-  rv = localFile->InitWithNativePath(path);
-  if (NS_FAILED(rv)) return rv;
-
-  localFile.forget(result);
-  return NS_OK;
+  return NS_NewNativeLocalFile(path, result);
 }

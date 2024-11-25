@@ -72,7 +72,6 @@
 #include "nsISupportsImpl.h"
 #include "nsISupportsPrimitives.h"
 #include "nsIZipReader.h"
-#include "nsLocalFile.h"
 #include "nsNetUtil.h"
 #include "nsPrintfCString.h"
 #include "nsProxyRelease.h"
@@ -2523,14 +2522,9 @@ nsPrefBranch::GetComplexValue(const char* aPrefName, const nsIID& aType,
 
   if (aType.Equals(NS_GET_IID(nsIFile))) {
     ENSURE_PARENT_PROCESS("GetComplexValue(nsIFile)", aPrefName);
-
-    nsCOMPtr<nsIFile> file = new nsLocalFile();
-    rv = file->SetPersistentDescriptor(utf8String);
-    if (NS_SUCCEEDED(rv)) {
-      file.forget(reinterpret_cast<nsIFile**>(aRetVal));
-      return NS_OK;
-    }
-    return rv;
+    MOZ_TRY(NS_NewLocalFileWithPersistentDescriptor(
+        utf8String, reinterpret_cast<nsIFile**>(aRetVal)));
+    return NS_OK;
   }
 
   if (aType.Equals(NS_GET_IID(nsIRelativeFilePref))) {
@@ -2566,15 +2560,8 @@ nsPrefBranch::GetComplexValue(const char* aPrefName, const nsIID& aType,
     }
 
     nsCOMPtr<nsIFile> theFile;
-    rv = NS_NewNativeLocalFile(""_ns, getter_AddRefs(theFile));
-    if (NS_FAILED(rv)) {
-      return rv;
-    }
-
-    rv = theFile->SetRelativeDescriptor(fromFile, Substring(++keyEnd, strEnd));
-    if (NS_FAILED(rv)) {
-      return rv;
-    }
+    MOZ_TRY(NS_NewLocalFileWithRelativeDescriptor(
+        fromFile, Substring(++keyEnd, strEnd), getter_AddRefs(theFile)));
 
     nsCOMPtr<nsIRelativeFilePref> relativePref = new nsRelativeFilePref();
     Unused << relativePref->SetFile(theFile);

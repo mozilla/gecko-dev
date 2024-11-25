@@ -279,10 +279,6 @@ nsDirEnumeratorUnix::Close() {
 
 nsLocalFile::nsLocalFile() : mCachedStat() {}
 
-nsLocalFile::nsLocalFile(const nsACString& aFilePath) : mCachedStat() {
-  InitWithNativePath(aFilePath);
-}
-
 nsLocalFile::nsLocalFile(const nsLocalFile& aOther) : mPath(aOther.mPath) {}
 
 #ifdef MOZ_WIDGET_COCOA
@@ -2429,6 +2425,16 @@ nsresult NS_NewNativeLocalFile(const nsACString& aPath, nsIFile** aResult) {
   }
   file.forget(aResult);
   return NS_OK;
+}
+
+nsresult NS_NewUTF8LocalFile(const nsACString& aPath, nsIFile** aResult) {
+  static_assert(NS_IsNativeUTF8());
+  return NS_NewNativeLocalFile(aPath, aResult);
+}
+
+nsresult NS_NewPathStringLocalFile(const PathSubstring& aPath,
+                                   nsIFile** aResult) {
+  return NS_NewNativeLocalFile(aPath, aResult);
 }
 
 //-----------------------------------------------------------------------------

@@ -21,6 +21,7 @@
 #include "mozilla/dom/ScriptSettings.h"
 #include "mozilla/IOInterposer.h"
 #include "mozilla/Preferences.h"
+#include "mozilla/Unused.h"
 #include "mozilla/Utf8.h"  // mozilla::Utf8Unit
 #include "nsServiceManagerUtils.h"
 #include "nsComponentManagerUtils.h"
@@ -181,7 +182,7 @@ static bool GetLocationProperty(JSContext* cx, unsigned argc, Value* vp) {
 #  endif
 
     nsCOMPtr<nsIFile> location;
-    nsresult rv = NS_NewLocalFile(filenameString, getter_AddRefs(location));
+    Unused << NS_NewLocalFile(filenameString, getter_AddRefs(location));
 
     if (!location && gWorkingDirectory) {
       // could be a relative path, try appending it to the cwd
@@ -189,7 +190,7 @@ static bool GetLocationProperty(JSContext* cx, unsigned argc, Value* vp) {
       nsAutoString absolutePath(*gWorkingDirectory);
       absolutePath.Append(filenameString);
 
-      rv = NS_NewLocalFile(absolutePath, getter_AddRefs(location));
+      Unused << NS_NewLocalFile(absolutePath, getter_AddRefs(location));
     }
 
     if (location) {
@@ -199,7 +200,7 @@ static bool GetLocationProperty(JSContext* cx, unsigned argc, Value* vp) {
         location->Normalize();
       RootedObject locationObj(cx);
       RootedObject scope(cx, JS::CurrentGlobalOrNull(cx));
-      rv = nsXPConnect::XPConnect()->WrapNative(
+      nsresult rv = nsXPConnect::XPConnect()->WrapNative(
           cx, scope, location, NS_GET_IID(nsIFile), locationObj.address());
       if (NS_SUCCEEDED(rv) && locationObj) {
         args.rval().setObject(*locationObj);

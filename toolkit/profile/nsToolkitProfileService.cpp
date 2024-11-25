@@ -785,10 +785,8 @@ bool nsToolkitProfileService::IsProfileForCurrentInstall(
   }
 
   nsCOMPtr<nsIFile> lastGreDir;
-  rv = NS_NewNativeLocalFile(""_ns, getter_AddRefs(lastGreDir));
-  NS_ENSURE_SUCCESS(rv, false);
-
-  rv = lastGreDir->SetPersistentDescriptor(lastGreDirStr);
+  rv = NS_NewLocalFileWithPersistentDescriptor(lastGreDirStr,
+                                               getter_AddRefs(lastGreDir));
   NS_ENSURE_SUCCESS(rv, false);
 
 #ifdef XP_WIN
@@ -1149,13 +1147,12 @@ nsresult nsToolkitProfileService::Init() {
     }
 
     nsCOMPtr<nsIFile> rootDir;
-    rv = NS_NewNativeLocalFile(""_ns, getter_AddRefs(rootDir));
-    NS_ENSURE_SUCCESS(rv, rv);
-
     if (isRelative) {
-      rv = rootDir->SetRelativeDescriptor(mAppData, filePath);
+      rv = NS_NewLocalFileWithRelativeDescriptor(mAppData, filePath,
+                                                 getter_AddRefs(rootDir));
     } else {
-      rv = rootDir->SetPersistentDescriptor(filePath);
+      rv = NS_NewLocalFileWithPersistentDescriptor(filePath,
+                                                   getter_AddRefs(rootDir));
     }
     if (NS_FAILED(rv)) continue;
 
@@ -2789,11 +2786,9 @@ nsresult nsToolkitProfileService::GetLocalDirFromRootDir(nsIFile* aRootDir,
 
   nsCOMPtr<nsIFile> localDir;
   if (isRelative) {
-    rv = NS_NewNativeLocalFile(""_ns, getter_AddRefs(localDir));
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    rv = localDir->SetRelativeDescriptor(
-        nsToolkitProfileService::gService->mTempData, path);
+    rv = NS_NewLocalFileWithRelativeDescriptor(
+        nsToolkitProfileService::gService->mTempData, path,
+        getter_AddRefs(localDir));
     NS_ENSURE_SUCCESS(rv, rv);
   } else {
     localDir = aRootDir;
@@ -2827,20 +2822,11 @@ nsresult XRE_GetFileFromPath(const char* aPath, nsIFile** aResult) {
       nullptr, (const UInt8*)aPath, pathLen, true);
   if (!fullPath) return NS_ERROR_FAILURE;
 
-  nsCOMPtr<nsIFile> lf;
-  nsresult rv = NS_NewNativeLocalFile(""_ns, getter_AddRefs(lf));
-  if (NS_SUCCEEDED(rv)) {
-    nsCOMPtr<nsILocalFileMac> lfMac = do_QueryInterface(lf, &rv);
-    if (NS_SUCCEEDED(rv)) {
-      rv = lfMac->InitWithCFURL(fullPath);
-      if (NS_SUCCEEDED(rv)) {
-        lf.forget(aResult);
-      }
-    }
-  }
+  nsCOMPtr<nsILocalFileMac> lfMac;
+  nsresult rv = NS_NewLocalFileWithCFURL(fullPath, getter_AddRefs(lfMac));
+  lfMac.forget(aResult);
   CFRelease(fullPath);
   return rv;
-
 #elif defined(XP_UNIX)
   char fullPath[MAXPATHLEN];
 
@@ -2854,7 +2840,6 @@ nsresult XRE_GetFileFromPath(const char* aPath, nsIFile** aResult) {
     return NS_ERROR_FAILURE;
 
   return NS_NewLocalFile(nsDependentString(fullPath), aResult);
-
 #else
 #  error Platform-specific logic needed here.
 #endif

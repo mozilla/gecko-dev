@@ -620,11 +620,6 @@ nsMemoryInfoDumper::DumpMemoryReportsToNamedFile(
     return rv;
   }
 
-  reportsFile->InitWithPath(aFilename);
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    return rv;
-  }
-
   bool exists;
   rv = reportsFile->Exists(&exists);
   if (NS_WARN_IF(NS_FAILED(rv))) {

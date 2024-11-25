@@ -89,22 +89,14 @@ nsresult net_GetFileFromURLSpec(const nsACString& aURL, nsIFile** result) {
   // remove leading '\'
   if (path.CharAt(0) == '\\') path.Cut(0, 1);
 
-  nsCOMPtr<nsIFile> localFile;
   if (IsUtf8(path)) {
-    rv =
-        NS_NewLocalFile(NS_ConvertUTF8toUTF16(path), getter_AddRefs(localFile));
+    return NS_NewUTF8LocalFile(path, result);
   }
   // XXX In rare cases, a valid UTF-8 string can be valid as a native
   // encoding (e.g. 0xC5 0x83 is valid both as UTF-8 and Windows-125x).
   // However, the chance is very low that a meaningful word in a legacy
   // encoding is valid as UTF-8.
-  else {
-    // if path is not in UTF-8, assume it is encoded in the native charset
-    rv = NS_NewNativeLocalFile(path, getter_AddRefs(localFile));
-  }
 
-  if (NS_FAILED(rv)) return rv;
-
-  localFile.forget(result);
-  return NS_OK;
+  // if path is not in UTF-8, assume it is encoded in the native charset
+  return NS_NewNativeLocalFile(path, result);
 }

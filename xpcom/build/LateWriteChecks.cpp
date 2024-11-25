@@ -206,8 +206,10 @@ void LateWriteObserver::Observe(
   for (int i = 0; i < 20; ++i) {
     finalName.AppendPrintf("%02x", sha1[i]);
   }
-  RefPtr<nsLocalFile> file = new nsLocalFile(nameAux);
-  file->RenameTo(nullptr, finalName);
+  RefPtr<nsIFile> file;
+  if (NS_SUCCEEDED(NS_NewPathStringLocalFile(nameAux, getter_AddRefs(file)))) {
+    file->RenameTo(nullptr, finalName);
+  }
 }
 
 /******************************* Setup/Teardown *******************************/

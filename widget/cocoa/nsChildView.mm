@@ -4424,21 +4424,15 @@ static CFTypeRefPtr<CFURLRef> GetPasteLocation(NSPasteboard* aPasteboard) {
                          [UTIHelper
                              stringFromPboardType:
                                  (NSString*)kPasteboardTypeFileURLPromise]]) {
-        nsCOMPtr<nsIFile> targFile;
-        NS_NewLocalFile(u""_ns, getter_AddRefs(targFile));
-        nsCOMPtr<nsILocalFileMac> macLocalFile = do_QueryInterface(targFile);
-        if (!macLocalFile) {
-          NS_ERROR("No Mac local file");
-          continue;
-        }
-
         CFTypeRefPtr<CFURLRef> url = GetPasteLocation(aPasteboard);
         if (!url) {
           continue;
         }
 
-        if (!NS_SUCCEEDED(macLocalFile->InitWithCFURL(url.get()))) {
-          NS_ERROR("failed InitWithCFURL");
+        nsCOMPtr<nsILocalFileMac> macLocalFile;
+        if (NS_FAILED(NS_NewLocalFileWithCFURL(url.get(),
+                                               getter_AddRefs(macLocalFile)))) {
+          NS_ERROR("failed NS_NewLocalFileWithCFURL");
           continue;
         }
 

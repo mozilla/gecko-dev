@@ -49,6 +49,7 @@
 #include "mozilla/Preferences.h"
 #include "mozilla/ProfilerLabels.h"
 #include "mozilla/Telemetry.h"
+#include "mozilla/Try.h"
 #include "mozilla/XREAppData.h"
 #include "nsPrintfCString.h"
 
@@ -962,7 +963,7 @@ nsresult nsXREDirProvider::GetUpdateRootDir(nsIFile** aResult,
   }
   nsAutoString updatePathStr;
   updatePathStr.Assign(updatePath.get());
-  updRoot->InitWithPath(updatePathStr);
+  MOZ_TRY(updRoot->InitWithPath(updatePathStr));
   updRoot.forget(aResult);
   return NS_OK;
 #else
@@ -1028,7 +1029,6 @@ nsresult nsXREDirProvider::SetUserDataProfileDirectory(nsCOMPtr<nsIFile>& aFile,
 nsresult nsXREDirProvider::GetUserDataDirectoryHome(nsIFile** aFile,
                                                     bool aLocal) {
   // Copied from nsAppFileLocationProvider (more or less)
-  nsresult rv;
   nsCOMPtr<nsIFile> localDir;
 
   if (aLocal && gDataDirHomeLocal) {
@@ -1053,18 +1053,12 @@ nsresult nsXREDirProvider::GetUserDataDirectoryHome(nsIFile** aFile,
   OSErr err = ::FSFindFolder(kUserDomain, folderType, kCreateFolder, &fsRef);
   NS_ENSURE_FALSE(err, NS_ERROR_FAILURE);
 
-  rv = NS_NewNativeLocalFile(""_ns, getter_AddRefs(localDir));
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  nsCOMPtr<nsILocalFileMac> dirFileMac = do_QueryInterface(localDir);
-  NS_ENSURE_TRUE(dirFileMac, NS_ERROR_UNEXPECTED);
-
-  rv = dirFileMac->InitWithFSRef(&fsRef);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  localDir = dirFileMac;
+  nsCOMPtr<nsILocalFileMac> dirFileMac;
+  MOZ_TRY(NS_NewLocalFileWithFSRef(&fsRef, getter_AddRefs(dirFileMac)));
+  localDir = dirFileMac.forget();
 #elif defined(XP_IOS)
   nsAutoCString userDir;
+  nsresult rv;
   if (GetUIKitDirectory(aLocal, userDir)) {
     rv = NS_NewNativeLocalFile(userDir, getter_AddRefs(localDir));
   } else {
@@ -1072,6 +1066,7 @@ nsresult nsXREDirProvider::GetUserDataDirectoryHome(nsIFile** aFile,
   }
   NS_ENSURE_SUCCESS(rv, rv);
 #elif defined(XP_WIN)
+  nsresult rv;
   nsString path;
   if (aLocal) {
     rv = GetShellFolderPath(FOLDERID_LocalAppData, path);
@@ -1085,7 +1080,7 @@ nsresult nsXREDirProvider::GetUserDataDirectoryHome(nsIFile** aFile,
   }
   NS_ENSURE_SUCCESS(rv, rv);
 
-  rv = NS_NewLocalFile(path, getter_AddRefs(localDir));
+  MOZ_TRY(NS_NewLocalFile(path, getter_AddRefs(localDir)));
 #elif defined(XP_UNIX)
   const char* homeDir = getenv("HOME");
   if (!homeDir || !*homeDir) return NS_ERROR_FAILURE;
@@ -1098,23 +1093,23 @@ nsresult nsXREDirProvider::GetUserDataDirectoryHome(nsIFile** aFile,
     // If $XDG_CACHE_HOME is defined use it, otherwise use $HOME/.cache.
     const char* cacheHome = getenv("XDG_CACHE_HOME");
     if (cacheHome && *cacheHome) {
-      rv = NS_NewNativeLocalFile(nsDependentCString(cacheHome),
-                                 getter_AddRefs(localDir));
+      MOZ_TRY(NS_NewNativeLocalFile(nsDependentCString(cacheHome),
+                                    getter_AddRefs(localDir)));
     } else {
-      rv = NS_NewNativeLocalFile(nsDependentCString(homeDir),
-                                 getter_AddRefs(localDir));
-      if (NS_SUCCEEDED(rv)) rv = localDir->AppendNative(".cache"_ns);
+      MOZ_TRY(NS_NewNativeLocalFile(nsDependentCString(homeDir),
+                                    getter_AddRefs(localDir)));
+      MOZ_TRY(localDir->AppendNative(".cache"_ns));
     }
   } else {
-    rv = NS_NewNativeLocalFile(nsDependentCString(homeDir),
-                               getter_AddRefs(localDir));
+    MOZ_TRY(NS_NewNativeLocalFile(nsDependentCString(homeDir),
+                                  getter_AddRefs(localDir)));
   }
 #else
 #  error "Don't know how to get product dir on your platform"
 #endif
 
-  NS_IF_ADDREF(*aFile = localDir);
-  return rv;
+  localDir.forget(aFile);
+  return NS_OK;
 }
 
 nsresult nsXREDirProvider::GetSysUserExtensionsDirectory(nsIFile** aFile) {

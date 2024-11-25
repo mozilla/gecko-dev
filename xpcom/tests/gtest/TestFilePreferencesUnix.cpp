@@ -162,13 +162,17 @@ TEST(TestFilePreferencesUnix, Simple)
 
 #if defined(XP_UNIX) && !defined(ANDROID)
   nsAutoCString homePath;
-  NS_GetSpecialDirectory(NS_OS_HOME_DIR, getter_AddRefs(newPath));
-  newPath->GetNativePath(homePath);
+  rv = NS_GetSpecialDirectory(NS_OS_HOME_DIR, getter_AddRefs(newPath));
+  ASSERT_EQ(rv, NS_OK);
+  rv = newPath->GetNativePath(homePath);
+  ASSERT_EQ(rv, NS_OK);
 
-  newPath->InitWithNativePath("~"_ns);
+  rv = newPath->InitWithNativePath("~"_ns);
+  ASSERT_EQ(rv, NS_OK);
   ASSERT_TRUE(newPath->NativePath().Equals(homePath));
 
-  newPath->InitWithNativePath("~/foo"_ns);
+  rv = newPath->InitWithNativePath("~/foo"_ns);
+  ASSERT_EQ(rv, NS_OK);
   ASSERT_TRUE(newPath->NativePath().Equals(homePath + "/foo"_ns));
 
   nsLiteralCString homeBase =
@@ -178,10 +182,12 @@ TEST(TestFilePreferencesUnix, Simple)
       "/home"_ns;
 #  endif
 
-  newPath->InitWithNativePath("~foo"_ns);
+  rv = newPath->InitWithNativePath("~foo"_ns);
+  ASSERT_EQ(rv, NS_OK);
   ASSERT_TRUE(newPath->NativePath().Equals(homeBase + "/foo"_ns));
 
-  newPath->InitWithNativePath("~foo/bar"_ns);
+  rv = newPath->InitWithNativePath("~foo/bar"_ns);
+  ASSERT_EQ(rv, NS_OK);
   ASSERT_TRUE(newPath->NativePath().Equals(homeBase + "/foo/bar"_ns));
 #endif
 

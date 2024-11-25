@@ -879,11 +879,6 @@ NS_IMPL_ISUPPORTS_INHERITED(nsDirEnumerator, nsSimpleEnumerator,
 nsLocalFile::nsLocalFile()
     : mDirty(true), mResolveDirty(true), mUseDOSDevicePathSyntax(false) {}
 
-nsLocalFile::nsLocalFile(const nsAString& aFilePath)
-    : mUseDOSDevicePathSyntax(false) {
-  InitWithPath(aFilePath);
-}
-
 nsresult nsLocalFile::nsLocalFileConstructor(const nsIID& aIID,
                                              void** aInstancePtr) {
   if (NS_WARN_IF(!aInstancePtr)) {
@@ -2152,22 +2147,17 @@ nsresult nsLocalFile::CopyMove(nsIFile* aParentDir, const nsAString& aNewName,
     MakeDirty();
 
     nsAutoString newParentPath;
-    newParentDir->GetPath(newParentPath);
+    MOZ_ALWAYS_SUCCEEDS(newParentDir->GetPath(newParentPath));
 
-    if (newParentPath.IsEmpty()) {
-      return NS_ERROR_FAILURE;
-    }
-
+    nsAutoString newLeafName;
     if (aNewName.IsEmpty()) {
-      nsAutoString aFileName;
-      GetLeafName(aFileName);
-
-      InitWithPath(newParentPath);
-      Append(aFileName);
+      MOZ_ALWAYS_SUCCEEDS(GetLeafName(newLeafName));
     } else {
-      InitWithPath(newParentPath);
-      Append(aNewName);
+      newLeafName = aNewName;
     }
+
+    MOZ_ALWAYS_SUCCEEDS(InitWithPath(newParentPath));
+    MOZ_ALWAYS_SUCCEEDS(Append(newLeafName));
   }
 
   return NS_OK;
@@ -3460,6 +3450,15 @@ nsresult NS_NewLocalFile(const nsAString& aPath, nsIFile** aResult) {
 
   file.forget(aResult);
   return NS_OK;
+}
+
+nsresult NS_NewUTF8LocalFile(const nsACString& aPath, nsIFile** aResult) {
+  return NS_NewLocalFile(NS_ConvertUTF8toUTF16(aPath), aResult);
+}
+
+nsresult NS_NewPathStringLocalFile(const PathSubstring& aPath,
+                                   nsIFile** aResult) {
+  return NS_NewLocalFile(aPath, aResult);
 }
 
 //-----------------------------------------------------------------------------

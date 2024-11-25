@@ -419,12 +419,10 @@ nsIFilePicker::ResultCode nsFilePicker::GetLocalFiles(
       continue;
     }
 
-    nsCOMPtr<nsIFile> localFile;
-    NS_NewLocalFile(u""_ns, getter_AddRefs(localFile));
-    nsCOMPtr<nsILocalFileMac> macLocalFile = do_QueryInterface(localFile);
-    if (macLocalFile &&
-        NS_SUCCEEDED(macLocalFile->InitWithCFURL((CFURLRef)url))) {
-      outFiles.AppendObject(localFile);
+    nsCOMPtr<nsILocalFileMac> macLocalFile;
+    if (NS_SUCCEEDED(NS_NewLocalFileWithCFURL((CFURLRef)url,
+                                              getter_AddRefs(macLocalFile)))) {
+      outFiles.AppendObject(macLocalFile);
     }
   }
 
@@ -478,13 +476,10 @@ nsIFilePicker::ResultCode nsFilePicker::GetLocalFolder(nsIFile** outFile) {
   // get the path for the folder (we allow just 1, so that's all we get)
   NSURL* theURL = [[thePanel URLs] objectAtIndex:0];
   if (theURL) {
-    nsCOMPtr<nsIFile> localFile;
-    NS_NewLocalFile(u""_ns, getter_AddRefs(localFile));
-    nsCOMPtr<nsILocalFileMac> macLocalFile = do_QueryInterface(localFile);
-    if (macLocalFile &&
-        NS_SUCCEEDED(macLocalFile->InitWithCFURL((CFURLRef)theURL))) {
-      *outFile = localFile;
-      NS_ADDREF(*outFile);
+    nsCOMPtr<nsILocalFileMac> macLocalFile;
+    if (NS_SUCCEEDED(NS_NewLocalFileWithCFURL((CFURLRef)theURL,
+                                              getter_AddRefs(macLocalFile)))) {
+      macLocalFile.forget(outFile);
       retVal = returnOK;
     }
   }
@@ -571,13 +566,10 @@ nsIFilePicker::ResultCode nsFilePicker::PutLocalFile(nsIFile** outFile) {
 
   NSURL* fileURL = [thePanel URL];
   if (fileURL) {
-    nsCOMPtr<nsIFile> localFile;
-    NS_NewLocalFile(u""_ns, getter_AddRefs(localFile));
-    nsCOMPtr<nsILocalFileMac> macLocalFile = do_QueryInterface(localFile);
-    if (macLocalFile &&
-        NS_SUCCEEDED(macLocalFile->InitWithCFURL((CFURLRef)fileURL))) {
-      *outFile = localFile;
-      NS_ADDREF(*outFile);
+    nsCOMPtr<nsILocalFileMac> macLocalFile;
+    if (NS_SUCCEEDED(NS_NewLocalFileWithCFURL((CFURLRef)fileURL,
+                                              getter_AddRefs(macLocalFile)))) {
+      macLocalFile.forget(outFile);
       // We tell if we are replacing or not by just looking to see if the file
       // exists. The user could not have hit OK and not meant to replace the
       // file.
