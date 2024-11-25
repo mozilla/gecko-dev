@@ -26,23 +26,29 @@ class UserAgentInput extends PureComponent {
     };
   }
 
+  static getDerivedStateFromProps(props, state) {
+    if (props.userAgent !== state.prevUserAgent) {
+      return {
+        value: props.userAgent,
+        prevUserAgent: props.userAgent,
+      };
+    }
+    return null;
+  }
+
   constructor(props) {
     super(props);
 
     this.state = {
       // The user agent input value.
       value: this.props.userAgent,
+      // Track the last passed userAgent value in the props to
+      // to update the local state "value" when the prop changes
+      prevUserAgent: this.props.userAgent,
     };
 
     this.onChange = this.onChange.bind(this);
     this.onKeyUp = this.onKeyUp.bind(this);
-  }
-
-  // FIXME: https://bugzilla.mozilla.org/show_bug.cgi?id=1774507
-  UNSAFE_componentWillReceiveProps(nextProps) {
-    if (this.props.userAgent !== nextProps.userAgent) {
-      this.setState({ value: nextProps.userAgent });
-    }
   }
 
   /**
