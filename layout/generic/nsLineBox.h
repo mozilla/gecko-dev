@@ -229,20 +229,20 @@ class nsLineBox final : public nsLineLink {
   // mHasForcedLineBreakAfter bit & mFloatClearType value
   void ClearForcedLineBreak() {
     mFlags.mHasForcedLineBreakAfter = false;
-    mFlags.mFloatClearType = mozilla::StyleClear::None;
+    mFlags.mFloatClearType = mozilla::UsedClear::None;
   }
 
   bool HasFloatClearTypeBefore() const {
-    return FloatClearTypeBefore() != mozilla::StyleClear::None;
+    return FloatClearTypeBefore() != mozilla::UsedClear::None;
   }
-  void SetFloatClearTypeBefore(mozilla::StyleClear aClearType) {
+  void SetFloatClearTypeBefore(mozilla::UsedClear aClearType) {
     MOZ_ASSERT(IsBlock(), "Only block lines have break-before status!");
-    MOZ_ASSERT(aClearType != mozilla::StyleClear::None,
-               "Only StyleClear:Left/Right/Both are allowed before a line");
+    MOZ_ASSERT(aClearType != mozilla::UsedClear::None,
+               "Only UsedClear:Left/Right/Both are allowed before a line");
     mFlags.mFloatClearType = aClearType;
   }
-  mozilla::StyleClear FloatClearTypeBefore() const {
-    return IsBlock() ? mFlags.mFloatClearType : mozilla::StyleClear::None;
+  mozilla::UsedClear FloatClearTypeBefore() const {
+    return IsBlock() ? mFlags.mFloatClearType : mozilla::UsedClear::None;
   }
 
   bool HasForcedLineBreakAfter() const {
@@ -250,16 +250,16 @@ class nsLineBox final : public nsLineLink {
                "A block line shouldn't set mHasForcedLineBreakAfter bit!");
     return IsInline() && mFlags.mHasForcedLineBreakAfter;
   }
-  void SetForcedLineBreakAfter(mozilla::StyleClear aClearType) {
+  void SetForcedLineBreakAfter(mozilla::UsedClear aClearType) {
     MOZ_ASSERT(IsInline(), "Only inline lines have break-after status!");
     mFlags.mHasForcedLineBreakAfter = true;
     mFlags.mFloatClearType = aClearType;
   }
   bool HasFloatClearTypeAfter() const {
-    return FloatClearTypeAfter() != mozilla::StyleClear::None;
+    return FloatClearTypeAfter() != mozilla::UsedClear::None;
   }
-  mozilla::StyleClear FloatClearTypeAfter() const {
-    return IsInline() ? mFlags.mFloatClearType : mozilla::StyleClear::None;
+  mozilla::UsedClear FloatClearTypeAfter() const {
+    return IsInline() ? mFlags.mFloatClearType : mozilla::UsedClear::None;
   }
 
   // mCarriedOutBEndMargin value
@@ -409,7 +409,7 @@ class nsLineBox final : public nsLineLink {
                                   int32_t* aFrameIndexInLine);
 
 #ifdef DEBUG_FRAME_DUMP
-  static const char* StyleClearToString(mozilla::StyleClear aClearType);
+  static const char* UsedClearToString(mozilla::UsedClear aClearType);
 
   void List(FILE* out, int32_t aIndent,
             nsIFrame::ListFlags aFlags = nsIFrame::ListFlags()) const;
@@ -527,7 +527,7 @@ class nsLineBox final : public nsLineLink {
     bool mHasForcedLineBreakAfter : 1;
     // mFloatClearType indicates that there's a float clearance before a block
     // line, or after an inline line.
-    mozilla::StyleClear mFloatClearType;
+    mozilla::UsedClear mFloatClearType;
   };
 
   struct ExtraData {

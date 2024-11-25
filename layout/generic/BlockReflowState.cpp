@@ -45,7 +45,7 @@ BlockReflowState::BlockReflowState(
               .ApplySkipSides(aFrame->PreReflowBlockLevelLogicalSkipSides())),
       mMinLineHeight(aReflowInput.GetLineHeight()),
       mLineNumber(0),
-      mTrailingClearFromPIF(StyleClear::None),
+      mTrailingClearFromPIF(UsedClear::None),
       mConsumedBSize(aConsumedBSize),
       mAlignContentShift(mBlock->GetAlignContentShift()) {
   NS_ASSERTION(mConsumedBSize != NS_UNCONSTRAINEDSIZE,
@@ -757,8 +757,8 @@ BlockReflowState::PlaceFloatResult BlockReflowState::FlowAndPlaceFloat(
   // Find a place to place the float. The CSS2 spec doesn't want
   // floats overlapping each other or sticking out of the containing
   // block if possible (CSS2 spec section 9.5.1, see the rule list).
-  StyleFloat floatStyle = floatDisplay->UsedFloat(wm);
-  MOZ_ASSERT(StyleFloat::Left == floatStyle || StyleFloat::Right == floatStyle,
+  UsedFloat floatStyle = floatDisplay->UsedFloat(wm);
+  MOZ_ASSERT(UsedFloat::Left == floatStyle || UsedFloat::Right == floatStyle,
              "Invalid float type!");
 
   // Are we required to place at least part of the float because we're
@@ -800,7 +800,7 @@ BlockReflowState::PlaceFloatResult BlockReflowState::FlowAndPlaceFloat(
   // LineLeft() and LineRight() here, because we would only have to
   // convert the result back into this block's writing mode.
   LogicalPoint floatPos(wm);
-  bool leftFloat = floatStyle == StyleFloat::Left;
+  bool leftFloat = floatStyle == UsedFloat::Left;
 
   if (leftFloat == wm.IsBidiLTR()) {
     floatPos.I(wm) = floatAvailableSpace.mRect.IStart(wm);
@@ -977,11 +977,11 @@ void BlockReflowState::PushFloatPastBreak(nsIFrame* aFloat) {
   //  * don't waste much time trying to reflow this float again until
   //    after the break
   WritingMode wm = mReflowInput.GetWritingMode();
-  StyleFloat floatStyle = aFloat->StyleDisplay()->UsedFloat(wm);
-  if (floatStyle == StyleFloat::Left) {
+  UsedFloat floatStyle = aFloat->StyleDisplay()->UsedFloat(wm);
+  if (floatStyle == UsedFloat::Left) {
     FloatManager()->SetPushedLeftFloatPastBreak();
   } else {
-    MOZ_ASSERT(floatStyle == StyleFloat::Right, "Unexpected float value!");
+    MOZ_ASSERT(floatStyle == UsedFloat::Right, "Unexpected float value!");
     FloatManager()->SetPushedRightFloatPastBreak();
   }
 
@@ -1024,7 +1024,7 @@ void BlockReflowState::PlaceBelowCurrentLineFloats(nsLineBox* aLine) {
 }
 
 std::tuple<nscoord, BlockReflowState::ClearFloatsResult>
-BlockReflowState::ClearFloats(nscoord aBCoord, StyleClear aClearType,
+BlockReflowState::ClearFloats(nscoord aBCoord, UsedClear aClearType,
                               nsIFrame* aFloatAvoidingBlock) {
 #ifdef DEBUG
   if (nsBlockFrame::gNoisyReflow) {
@@ -1039,7 +1039,7 @@ BlockReflowState::ClearFloats(nscoord aBCoord, StyleClear aClearType,
 
   nscoord newBCoord = aBCoord;
 
-  if (aClearType != StyleClear::None) {
+  if (aClearType != UsedClear::None) {
     newBCoord = FloatManager()->ClearFloats(newBCoord, aClearType);
 
     if (FloatManager()->ClearContinues(aClearType)) {

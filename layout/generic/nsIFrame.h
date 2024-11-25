@@ -206,7 +206,7 @@ enum nsSelectionAmount {
 class nsReflowStatus final {
  public:
   nsReflowStatus()
-      : mFloatClearType(mozilla::StyleClear::None),
+      : mFloatClearType(mozilla::UsedClear::None),
         mInlineBreak(InlineBreak::None),
         mCompletion(Completion::FullyComplete),
         mNextInFlowNeedsReflow(false),
@@ -214,7 +214,7 @@ class nsReflowStatus final {
 
   // Reset all the member variables.
   void Reset() {
-    mFloatClearType = mozilla::StyleClear::None;
+    mFloatClearType = mozilla::UsedClear::None;
     mInlineBreak = InlineBreak::None;
     mCompletion = Completion::FullyComplete;
     mNextInFlowNeedsReflow = false;
@@ -307,7 +307,7 @@ class nsReflowStatus final {
     return mInlineBreak == InlineBreak::Before;
   }
   bool IsInlineBreakAfter() const { return mInlineBreak == InlineBreak::After; }
-  mozilla::StyleClear FloatClearType() const { return mFloatClearType; }
+  mozilla::UsedClear FloatClearType() const { return mFloatClearType; }
 
   // Set the inline line-break-before status, and reset other bit flags. Note
   // that other frame completion status isn't expected to matter after calling
@@ -320,14 +320,14 @@ class nsReflowStatus final {
   // column/page where it will hopefully fit.
   void SetInlineLineBreakBeforeAndReset() {
     Reset();
-    mFloatClearType = mozilla::StyleClear::None;
+    mFloatClearType = mozilla::UsedClear::None;
     mInlineBreak = InlineBreak::Before;
   }
 
   // Set the inline line-break-after status. The clear type can be changed
   // via the optional aClearType param.
   void SetInlineLineBreakAfter(
-      mozilla::StyleClear aClearType = mozilla::StyleClear::None) {
+      mozilla::UsedClear aClearType = mozilla::UsedClear::None) {
     mFloatClearType = aClearType;
     mInlineBreak = InlineBreak::After;
   }
@@ -338,7 +338,7 @@ class nsReflowStatus final {
   void SetFirstLetterComplete() { mFirstLetterComplete = true; }
 
  private:
-  mozilla::StyleClear mFloatClearType;
+  mozilla::UsedClear mFloatClearType;
   InlineBreak mInlineBreak;
   Completion mCompletion;
   bool mNextInFlowNeedsReflow : 1;
@@ -2781,7 +2781,7 @@ class nsIFrame : public nsQueryFrame {
      *    side that are prior to a float on the given side that has a
      *    'clear' property that clears them.
      */
-    void ForceBreak(mozilla::StyleClear aClearType = mozilla::StyleClear::Both);
+    void ForceBreak(mozilla::UsedClear aClearType = mozilla::UsedClear::Both);
 
     // The default implementation for nsIFrame::AddInlinePrefISize.
     void DefaultAddInlinePrefISize(nscoord aISize);

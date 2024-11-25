@@ -691,7 +691,7 @@ void nsInlineFrame::ReflowInlineFrame(nsPresContext* aPresContext,
       // Change break-before status into break-after since we have
       // already placed at least one child frame. This preserves the
       // break-type so that it can be propagated upward.
-      StyleClear oldClearType = aStatus.FloatClearType();
+      UsedClear oldClearType = aStatus.FloatClearType();
       aStatus.Reset();
       aStatus.SetIncomplete();
       aStatus.SetInlineLineBreakAfter(oldClearType);

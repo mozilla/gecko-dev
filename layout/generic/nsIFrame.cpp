@@ -6145,10 +6145,10 @@ void nsIFrame::InlineMinISizeData::OptionallyBreak(nscoord aHyphenWidth) {
   ForceBreak();
 }
 
-void nsIFrame::InlinePrefISizeData::ForceBreak(StyleClear aClearType) {
+void nsIFrame::InlinePrefISizeData::ForceBreak(UsedClear aClearType) {
   // If this force break is not clearing any float, we can leave all the
   // floats to the next force break.
-  if (!mFloats.IsEmpty() && aClearType != StyleClear::None) {
+  if (!mFloats.IsEmpty() && aClearType != UsedClear::None) {
     // Preferred isize accumulated for floats that have already
     // been cleared past
     nscoord floatsDone = 0;
@@ -6159,24 +6159,24 @@ void nsIFrame::InlinePrefISizeData::ForceBreak(StyleClear aClearType) {
     for (const FloatInfo& floatInfo : mFloats) {
       const nsStyleDisplay* floatDisp = floatInfo.Frame()->StyleDisplay();
       auto cbWM = floatInfo.Frame()->GetParent()->GetWritingMode();
-      StyleClear clearType = floatDisp->UsedClear(cbWM);
-      if (clearType == StyleClear::Left || clearType == StyleClear::Right ||
-          clearType == StyleClear::Both) {
+      UsedClear clearType = floatDisp->UsedClear(cbWM);
+      if (clearType == UsedClear::Left || clearType == UsedClear::Right ||
+          clearType == UsedClear::Both) {
         nscoord floatsCur = NSCoordSaturatingAdd(floatsCurLeft, floatsCurRight);
         if (floatsCur > floatsDone) {
           floatsDone = floatsCur;
         }
-        if (clearType != StyleClear::Right) {
+        if (clearType != UsedClear::Right) {
           floatsCurLeft = 0;
         }
-        if (clearType != StyleClear::Left) {
+        if (clearType != UsedClear::Left) {
           floatsCurRight = 0;
         }
       }
 
-      StyleFloat floatStyle = floatDisp->UsedFloat(cbWM);
+      UsedFloat floatStyle = floatDisp->UsedFloat(cbWM);
       nscoord& floatsCur =
-          floatStyle == StyleFloat::Left ? floatsCurLeft : floatsCurRight;
+          floatStyle == UsedFloat::Left ? floatsCurLeft : floatsCurRight;
       nscoord floatISize = floatInfo.ISize();
       // Negative-width floats don't change the available space so they
       // shouldn't change our intrinsic line isize either.
@@ -6190,7 +6190,7 @@ void nsIFrame::InlinePrefISizeData::ForceBreak(StyleClear aClearType) {
 
     mCurrentLine = NSCoordSaturatingAdd(mCurrentLine, floatsDone);
 
-    if (aClearType == StyleClear::Both) {
+    if (aClearType == UsedClear::Both) {
       mFloats.Clear();
     } else {
       // If the break type does not clear all floats, it means there may
@@ -6200,10 +6200,10 @@ void nsIFrame::InlinePrefISizeData::ForceBreak(StyleClear aClearType) {
       // floats may be cleared directly or indirectly. See below.
       nsTArray<FloatInfo> newFloats;
       MOZ_ASSERT(
-          aClearType == StyleClear::Left || aClearType == StyleClear::Right,
+          aClearType == UsedClear::Left || aClearType == UsedClear::Right,
           "Other values should have been handled in other branches");
-      StyleFloat clearFloatType =
-          aClearType == StyleClear::Left ? StyleFloat::Left : StyleFloat::Right;
+      UsedFloat clearFloatType =
+          aClearType == UsedClear::Left ? UsedFloat::Left : UsedFloat::Right;
       // Iterate the array in reverse so that we can stop when there are
       // no longer any floats we need to keep. See below.
       for (FloatInfo& floatInfo : Reversed(mFloats)) {
@@ -6219,8 +6219,8 @@ void nsIFrame::InlinePrefISizeData::ForceBreak(StyleClear aClearType) {
           // (earlier) floats on that side would be indirectly cleared
           // as well. Thus, we should break out of this loop and stop
           // considering earlier floats to be kept in mFloats.
-          StyleClear clearType = floatDisp->UsedClear(cbWM);
-          if (clearType != aClearType && clearType != StyleClear::None) {
+          UsedClear clearType = floatDisp->UsedClear(cbWM);
+          if (clearType != aClearType && clearType != UsedClear::None) {
             break;
           }
         }
