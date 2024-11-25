@@ -182,7 +182,7 @@ class HistoryRobot {
         }
 
         fun openWebsite(url: Uri, interact: BrowserRobot.() -> Unit): BrowserRobot.Transition {
-            assertUIObjectExists(itemWithResId("$packageName:id/history_list"))
+            assertUIObjectExists(itemContainingText(url.toString()))
             Log.i(TAG, "openWebsite: Trying to click history item with url: $url")
             onView(withText(url.toString())).click()
             Log.i(TAG, "openWebsite: Clicked history item with url: $url")
