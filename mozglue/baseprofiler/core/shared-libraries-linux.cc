@@ -696,7 +696,7 @@ static SharedLibrary SharedLibraryAtPath(const char* path,
                                          unsigned long offset = 0) {
   std::string pathStr = path;
 
-  size_t pos = pathStr.rfind('\\');
+  size_t pos = pathStr.rfind('/');
   std::string nameStr =
       (pos != std::string::npos) ? pathStr.substr(pos + 1) : pathStr;
 
