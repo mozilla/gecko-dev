@@ -36,18 +36,35 @@ class JS_PUBLIC_API JobQueue {
   virtual ~JobQueue() = default;
 
   /**
-   * Ask the embedding for the incumbent global.
+   * Ask the embedding for the host defined data.
    *
-   * SpiderMonkey doesn't itself have a notion of incumbent globals as defined
+   * This is the step 5 in
+   * https://html.spec.whatwg.org/multipage/webappapis.html#hostmakejobcallback
+   *
+   * SpiderMonkey doesn't itself have a notion of host defined data as defined
    * by the HTML spec, so we need the embedding to provide this. See
    * dom/script/ScriptSettings.h for details.
+   *
+   * If the embedding has the host defined data, this method should return the
+   * host defined data via the `data` out parameter and return `true`.
+   * The object in the `data` out parameter can belong to any compartment.
+   * If the embedding doesn't need the host defined data, this method should
+   * set the `data` out parameter to `nullptr` and return `true`.
+   * If any error happens while generating the host defined data, this method
+   * should set a pending exception to `cx` and return `false`.
    */
-  virtual JSObject* getIncumbentGlobal(JSContext* cx) = 0;
+  virtual bool getHostDefinedData(JSContext* cx,
+                                  JS::MutableHandle<JSObject*> data) const = 0;
 
   /**
    * Enqueue a reaction job `job` for `promise`, which was allocated at
-   * `allocationSite`. Provide `incumbentGlobal` as the incumbent global for
+   * `allocationSite`. Provide `hostDefineData` as the host defined data for
    * the reaction job's execution.
+   *
+   * The `hostDefinedData` value comes from `getHostDefinedData` method.
+   * The object is unwrapped, and it can belong to a different compartment
+   * than the current compartment. It can be `nullptr` if `getHostDefinedData`
+   * returns `nullptr`.
    *
    * `promise` can be null if the promise is optimized out.
    * `promise` is guaranteed not to be optimized out if the promise has
@@ -56,7 +73,7 @@ class JS_PUBLIC_API JobQueue {
   virtual bool enqueuePromiseJob(JSContext* cx, JS::HandleObject promise,
                                  JS::HandleObject job,
                                  JS::HandleObject allocationSite,
-                                 JS::HandleObject incumbentGlobal) = 0;
+                                 JS::HandleObject hostDefinedData) = 0;
 
   /**
    * Run all jobs in the queue. Running one job may enqueue others; continue to

@@ -108,11 +108,11 @@ class FinalizationRegistryCleanup {
   explicit FinalizationRegistryCleanup(CycleCollectedJSContext* aContext);
   void Init();
   void Destroy();
-  void QueueCallback(JSFunction* aDoCleanup, JSObject* aIncumbentGlobal);
+  void QueueCallback(JSFunction* aDoCleanup, JSObject* aHostDefinedData);
   MOZ_CAN_RUN_SCRIPT void DoCleanup();
 
  private:
-  static void QueueCallback(JSFunction* aDoCleanup, JSObject* aIncumbentGlobal,
+  static void QueueCallback(JSFunction* aDoCleanup, JSObject* aHostDefinedData,
                             void* aData);
 
   class CleanupRunnable;
@@ -298,11 +298,13 @@ class CycleCollectedJSContext : dom::PerThreadAtomCache, private JS::JobQueue {
   // Others protect the debuggee microtask queue from the debugger's
   // interruptions; see the comments on JS::AutoDebuggerJobQueueInterruption for
   // details.
-  JSObject* getIncumbentGlobal(JSContext* cx) override;
+  bool getHostDefinedData(JSContext* cx,
+                          JS::MutableHandle<JSObject*> aData) const override;
+
   bool enqueuePromiseJob(JSContext* cx, JS::Handle<JSObject*> promise,
                          JS::Handle<JSObject*> job,
                          JS::Handle<JSObject*> allocationSite,
-                         JS::Handle<JSObject*> incumbentGlobal) override;
+                         JS::Handle<JSObject*> hostDefinedData) override;
   // MOZ_CAN_RUN_SCRIPT_BOUNDARY for now so we don't have to change SpiderMonkey
   // headers.  The caller presumably knows this can run script (like everything
   // in SpiderMonkey!) and will deal.

@@ -700,8 +700,9 @@ enum ReactionRecordSlots {
   ReactionRecordSlot_Resolve,
   ReactionRecordSlot_Reject,
 
-  // The incumbent global for this reaction record. Can be null.
-  ReactionRecordSlot_IncumbentGlobalObject,
+  // The host defined data for this reaction record. Can be null.
+  // See step 5 in https://html.spec.whatwg.org/#hostmakejobcallback
+  ReactionRecordSlot_HostDefinedData,
 
   // Bitmask of the REACTION_FLAG values.
   ReactionRecordSlot_Flags,
@@ -901,10 +902,10 @@ class PromiseReactionRecord : public NativeObject {
     return getFixedSlot(handlerArgSlot());
   }
 
-  JSObject* getAndClearIncumbentGlobalObject() {
+  JSObject* getAndClearHostDefinedData() {
     JSObject* obj =
-        getFixedSlot(ReactionRecordSlot_IncumbentGlobalObject).toObjectOrNull();
-    setFixedSlot(ReactionRecordSlot_IncumbentGlobalObject, UndefinedValue());
+        getFixedSlot(ReactionRecordSlot_HostDefinedData).toObjectOrNull();
+    setFixedSlot(ReactionRecordSlot_HostDefinedData, UndefinedValue());
     return obj;
   }
 
@@ -1545,26 +1546,21 @@ static bool PromiseReactionJob(JSContext* cx, unsigned argc, Value* vp);
     }
   }
 
-  // Using objectFromIncumbentGlobal, we can derive the incumbent global by
-  // unwrapping and then getting the global. This is very convoluted, but
-  // much better than having to store the original global as a private value
-  // because we couldn't wrap it to store it as a normal JS value.
-  Rooted<GlobalObject*> global(cx);
-  if (JSObject* objectFromIncumbentGlobal =
-          reaction->getAndClearIncumbentGlobalObject()) {
-    objectFromIncumbentGlobal = CheckedUnwrapStatic(objectFromIncumbentGlobal);
-    MOZ_ASSERT(objectFromIncumbentGlobal);
-    global = &objectFromIncumbentGlobal->nonCCWGlobal();
+  JS::Rooted<JSObject*> hostDefinedData(cx);
+  if (JSObject* hostDefined = reaction->getAndClearHostDefinedData()) {
+    hostDefined = CheckedUnwrapStatic(hostDefined);
+    MOZ_ASSERT(hostDefined);
+    // If the hostDefined object becomes a dead wrapper here, the target
+    // global has already gone, and the job queue won't run the promise job
+    // anyway.
+    if (JS_IsDeadWrapper(hostDefined)) {
+      return true;
+    }
+    hostDefinedData = hostDefined;
   }
 
   // HostEnqueuePromiseJob(job.[[Job]], job.[[Realm]]).
-  //
-  // Note: the global we pass here might be from a different compartment
-  // than job and promise. While it's somewhat unusual to pass objects
-  // from multiple compartments, in this case we specifically need the
-  // global to be unwrapped because wrapping and unwrapping aren't
-  // necessarily symmetric for globals.
-  return cx->runtime()->enqueuePromiseJob(cx, job, promise, global);
+  return cx->runtime()->enqueuePromiseJob(cx, job, promise, hostDefinedData);
 }
 
 [[nodiscard]] static bool TriggerPromiseReactions(JSContext* cx,
@@ -2500,11 +2496,13 @@ static bool PromiseResolveBuiltinThenableJob(JSContext* cx, unsigned argc,
   // compartment.
   RootedObject promise(cx, &promiseToResolve.toObject());
 
-  Rooted<GlobalObject*> incumbentGlobal(cx,
-                                        cx->runtime()->getIncumbentGlobal(cx));
+  Rooted<JSObject*> hostDefinedData(cx);
+  if (!cx->runtime()->getHostDefinedData(cx, &hostDefinedData)) {
+    return false;
+  }
 
   // Step X. HostEnqueuePromiseJob(job.[[Job]], job.[[Realm]]).
-  return cx->runtime()->enqueuePromiseJob(cx, job, promise, incumbentGlobal);
+  return cx->runtime()->enqueuePromiseJob(cx, job, promise, hostDefinedData);
 }
 
 /**
@@ -2546,12 +2544,14 @@ static bool PromiseResolveBuiltinThenableJob(JSContext* cx, unsigned argc,
   job->setExtendedSlot(ThenableJobSlot_Promise, ObjectValue(*promiseToResolve));
   job->setExtendedSlot(ThenableJobSlot_Thenable, ObjectValue(*thenable));
 
-  Rooted<GlobalObject*> incumbentGlobal(cx,
-                                        cx->runtime()->getIncumbentGlobal(cx));
+  Rooted<JSObject*> hostDefinedData(cx);
+  if (!cx->runtime()->getHostDefinedData(cx, &hostDefinedData)) {
+    return false;
+  }
 
   // HostEnqueuePromiseJob(job.[[Job]], job.[[Realm]]).
   return cx->runtime()->enqueuePromiseJob(cx, job, promiseToResolve,
-                                          incumbentGlobal);
+                                          hostDefinedData);
 }
 
 [[nodiscard]] static bool AddDummyPromiseReactionForDebugger(
@@ -5141,9 +5141,9 @@ static PromiseReactionRecord* NewReactionRecord(
   // Handlers must either both be present or both be absent.
   MOZ_ASSERT(onFulfilled.isNull() == onRejected.isNull());
 
-  RootedObject incumbentGlobalObject(cx);
+  RootedObject hostDefinedData(cx);
   if (incumbentGlobalObjectOption == IncumbentGlobalObject::Yes) {
-    if (!GetObjectFromIncumbentGlobal(cx, &incumbentGlobalObject)) {
+    if (!GetObjectFromHostDefinedData(cx, &hostDefinedData)) {
       return nullptr;
     }
   }
@@ -5159,7 +5159,7 @@ static PromiseReactionRecord* NewReactionRecord(
   cx->check(onRejected);
   cx->check(resultCapability.resolve());
   cx->check(resultCapability.reject());
-  cx->check(incumbentGlobalObject);
+  cx->check(hostDefinedData);
 
   // Step 7. Let fulfillReaction be the PromiseReaction
   //         { [[Capability]]: resultCapability, [[Type]]: Fulfill,
@@ -5181,8 +5181,8 @@ static PromiseReactionRecord* NewReactionRecord(
                          ObjectOrNullValue(resultCapability.resolve()));
   reaction->setFixedSlot(ReactionRecordSlot_Reject,
                          ObjectOrNullValue(resultCapability.reject()));
-  reaction->setFixedSlot(ReactionRecordSlot_IncumbentGlobalObject,
-                         ObjectOrNullValue(incumbentGlobalObject));
+  reaction->setFixedSlot(ReactionRecordSlot_HostDefinedData,
+                         ObjectOrNullValue(hostDefinedData));
 
   return reaction;
 }
@@ -6715,9 +6715,8 @@ void PromiseReactionRecord::dumpOwnFields(js::JSONPrinter& json) const {
   }
 
   {
-    js::GenericPrinter& out = json.beginStringProperty("incumbentGlobal");
-    getFixedSlot(ReactionRecordSlot_IncumbentGlobalObject)
-        .dumpStringContent(out);
+    js::GenericPrinter& out = json.beginStringProperty("hostDefinedData");
+    getFixedSlot(ReactionRecordSlot_HostDefinedData).dumpStringContent(out);
     json.endStringProperty();
   }
 
