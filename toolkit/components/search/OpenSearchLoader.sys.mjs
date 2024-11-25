@@ -60,8 +60,6 @@ const MOZSEARCH_LOCALNAME = "SearchPlugin";
  *   Non-standard. The update URL for the engine.
  * @property {number} [UpdateInterval]
  *   Non-standard. The update interval for the engine.
- * @property {string} [IconUpdateUrl]
- *   Non-standard. The update URL for the icon.
  * @property {OpenSearchURL[]} urls
  *   An array of URLs associated with the engine.
  * @property {OpenSearchImage[]} images
@@ -277,9 +275,6 @@ function processXMLDocument(xmlDocument) {
         break;
       case "UpdateInterval":
         result.updateInterval = parseInt(child.textContent);
-        break;
-      case "IconUpdateUrl":
-        result.iconUpdateURL = child.textContent;
         break;
     }
   }

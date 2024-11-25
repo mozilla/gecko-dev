@@ -52,6 +52,7 @@ add_task(async function test_installEngine_with_updates_enabled() {
     name: "original engine",
     method: "GET",
     updateFile: "opensearch/simple.xml",
+    imageURL: "data:image/png;base64,abc", // engineMaker sets to te resolution to 16x16.
   };
 
   Services.prefs.setBoolPref(SearchUtils.BROWSER_SEARCH_PREF + "update", true);
@@ -80,6 +81,12 @@ add_task(async function test_installEngine_with_updates_enabled() {
   Assert.ok(
     !Services.search.getEngineByName("simple"),
     "Should not be able to get the engine by the new name"
+  );
+
+  Assert.equal(
+    await engine.getIconURL(16),
+    "data:image/png;base64,abc",
+    "Has the original icon."
   );
 });
 
@@ -115,5 +122,10 @@ add_task(async function test_engineUpdate() {
   Assert.ok(
     !Services.search.getEngineByName("original engine"),
     "Should not be able to get the engine by the old name"
+  );
+
+  Assert.ok(
+    (await engine.getIconURL(16)).startsWith("data:image/png;base64,iVBOR"),
+    "Has the new icon."
   );
 });

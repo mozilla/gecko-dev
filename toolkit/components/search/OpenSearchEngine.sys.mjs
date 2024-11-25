@@ -38,8 +38,6 @@ export class OpenSearchEngine extends SearchEngine {
   _updateInterval = null;
   // The url to check at for a new update
   _updateURL = null;
-  // The url to check for a new icon
-  _iconUpdateURL = null;
 
   /**
    * Creates a OpenSearchEngine.
@@ -79,7 +77,6 @@ export class OpenSearchEngine extends SearchEngine {
       this._initWithJSON(options.json);
       this._updateInterval = options.json._updateInterval ?? null;
       this._updateURL = options.json._updateURL ?? null;
-      this._iconUpdateURL = options.json._iconUpdateURL ?? null;
     }
   }
 
@@ -93,7 +90,6 @@ export class OpenSearchEngine extends SearchEngine {
     let json = super.toJSON();
     json._updateInterval = this._updateInterval;
     json._updateURL = this._updateURL;
-    json._iconUpdateURL = this._iconUpdateURL;
     return json;
   }
 
@@ -109,7 +105,7 @@ export class OpenSearchEngine extends SearchEngine {
       lazy.SearchUtils.URL_TYPE.OPENSEARCH,
       "self"
     );
-    return !!(this._updateURL || this._iconUpdateURL || selfURL);
+    return !!(this._updateURL || selfURL);
   }
 
   /**
@@ -169,13 +165,6 @@ export class OpenSearchEngine extends SearchEngine {
       // Keep track of the last modified date, so that we can make conditional
       // server requests for future updates.
       this.setAttr("updatelastmodified", new Date().toUTCString());
-    }
-
-    if (this._iconUpdateURL) {
-      // Force update of the icon from the icon URL.
-      this._setIcon(this._iconUpdateURL).catch(e =>
-        lazy.logConsole.log("Error while setting search engine icon:", e)
-      );
     }
   }
 
