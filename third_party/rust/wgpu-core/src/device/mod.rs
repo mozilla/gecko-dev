@@ -22,6 +22,7 @@ pub(crate) mod bgl;
 pub mod global;
 mod life;
 pub mod queue;
+pub mod ray_tracing;
 pub mod resource;
 #[cfg(any(feature = "trace", feature = "replay"))]
 pub mod trace;
@@ -297,24 +298,25 @@ impl DeviceLostClosure {
     }
 }
 
-fn map_buffer(
-    raw: &dyn hal::DynDevice,
+pub(crate) fn map_buffer(
     buffer: &Buffer,
     offset: BufferAddress,
     size: BufferAddress,
     kind: HostMap,
     snatch_guard: &SnatchGuard,
 ) -> Result<hal::BufferMapping, BufferAccessError> {
+    let raw_device = buffer.device.raw();
     let raw_buffer = buffer.try_raw(snatch_guard)?;
     let mapping = unsafe {
-        raw.map_buffer(raw_buffer, offset..offset + size)
+        raw_device
+            .map_buffer(raw_buffer, offset..offset + size)
             .map_err(|e| buffer.device.handle_hal_error(e))?
     };
 
     if !mapping.is_coherent && kind == HostMap::Read {
         #[allow(clippy::single_range_in_vec_init)]
         unsafe {
-            raw.invalidate_mapped_ranges(raw_buffer, &[offset..offset + size]);
+            raw_device.invalidate_mapped_ranges(raw_buffer, &[offset..offset + size]);
         }
     }
 
@@ -369,7 +371,7 @@ fn map_buffer(
                 && kind == HostMap::Read
                 && buffer.usage.contains(wgt::BufferUsages::MAP_WRITE)
             {
-                unsafe { raw.flush_mapped_ranges(raw_buffer, &[uninitialized]) };
+                unsafe { raw_device.flush_mapped_ranges(raw_buffer, &[uninitialized]) };
             }
         }
     }
@@ -543,6 +545,10 @@ pub fn create_validator(
     caps.set(
         Caps::SUBGROUP_BARRIER,
         features.intersects(wgt::Features::SUBGROUP_BARRIER),
+    );
+    caps.set(
+        Caps::RAY_QUERY,
+        features.intersects(wgt::Features::EXPERIMENTAL_RAY_QUERY),
     );
     caps.set(
         Caps::SUBGROUP_VERTEX_STAGE,

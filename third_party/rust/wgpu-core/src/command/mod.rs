@@ -7,6 +7,7 @@ mod compute_command;
 mod draw;
 mod memory_init;
 mod query;
+mod ray_tracing;
 mod render;
 mod render_command;
 mod timestamp_writes;
@@ -31,7 +32,9 @@ use crate::lock::{rank, Mutex};
 use crate::snatch::SnatchGuard;
 
 use crate::init_tracker::BufferInitTrackerAction;
-use crate::resource::{InvalidResourceError, Labeled};
+use crate::ray_tracing::{BlasAction, TlasAction};
+use crate::resource::{Fallible, InvalidResourceError, Labeled, ParentDevice as _, QuerySet};
+use crate::storage::Storage;
 use crate::track::{DeviceTracker, Tracker, UsageScope};
 use crate::LabelHelpers;
 use crate::{api_log, global::Global, id, resource_log, Label};
@@ -242,6 +245,8 @@ impl CommandEncoder {
     }
 }
 
+/// Look at the documentation for [`CommandBufferMutable`] for an explanation of
+/// the fields in this struct. This is the "built" counterpart to that type.
 pub(crate) struct BakedCommands {
     pub(crate) encoder: Box<dyn hal::DynCommandEncoder>,
     pub(crate) list: Vec<Box<dyn hal::DynCommandBuffer>>,
@@ -274,6 +279,10 @@ pub struct CommandBufferMutable {
     texture_memory_actions: CommandBufferTextureMemoryActions,
 
     pub(crate) pending_query_resets: QueryResetMap,
+
+    blas_actions: Vec<BlasAction>,
+    tlas_actions: Vec<TlasAction>,
+
     #[cfg(feature = "trace")]
     pub(crate) commands: Option<Vec<TraceCommand>>,
 }
@@ -456,6 +465,8 @@ impl CommandBuffer {
                     buffer_memory_init_actions: Default::default(),
                     texture_memory_actions: Default::default(),
                     pending_query_resets: QueryResetMap::new(),
+                    blas_actions: Default::default(),
+                    tlas_actions: Default::default(),
                     #[cfg(feature = "trace")]
                     commands: if device.trace.lock().is_some() {
                         Some(Vec::new())
@@ -644,6 +655,14 @@ pub enum CommandEncoderError {
     InvalidResource(#[from] InvalidResourceError),
     #[error(transparent)]
     MissingFeatures(#[from] MissingFeatures),
+    #[error(
+        "begin and end indices of pass timestamp writes are both set to {idx}, which is not allowed"
+    )]
+    TimestampWriteIndicesEqual { idx: u32 },
+    #[error(transparent)]
+    TimestampWritesInvalid(#[from] QueryUseError),
+    #[error("no begin or end indices were specified for pass timestamp writes, expected at least one to be set")]
+    TimestampWriteIndicesMissing,
 }
 
 impl Global {
@@ -763,6 +782,50 @@ impl Global {
             }
         }
         Ok(())
+    }
+
+    fn validate_pass_timestamp_writes(
+        device: &Device,
+        query_sets: &Storage<Fallible<QuerySet>>,
+        timestamp_writes: &PassTimestampWrites,
+    ) -> Result<ArcPassTimestampWrites, CommandEncoderError> {
+        let &PassTimestampWrites {
+            query_set,
+            beginning_of_pass_write_index,
+            end_of_pass_write_index,
+        } = timestamp_writes;
+
+        device.require_features(wgt::Features::TIMESTAMP_QUERY)?;
+
+        let query_set = query_sets.get(query_set).get()?;
+
+        query_set.same_device(device)?;
+
+        for idx in [beginning_of_pass_write_index, end_of_pass_write_index]
+            .into_iter()
+            .flatten()
+        {
+            query_set.validate_query(SimplifiedQueryType::Timestamp, idx, None)?;
+        }
+
+        if let Some((begin, end)) = beginning_of_pass_write_index.zip(end_of_pass_write_index) {
+            if begin == end {
+                return Err(CommandEncoderError::TimestampWriteIndicesEqual { idx: begin });
+            }
+        }
+
+        if beginning_of_pass_write_index
+            .or(end_of_pass_write_index)
+            .is_none()
+        {
+            return Err(CommandEncoderError::TimestampWriteIndicesMissing);
+        }
+
+        Ok(ArcPassTimestampWrites {
+            query_set,
+            beginning_of_pass_write_index,
+            end_of_pass_write_index,
+        })
     }
 }
 
@@ -904,8 +967,6 @@ pub enum PassErrorScope {
     SetScissorRect,
     #[error("In a draw command, kind: {kind:?}")]
     Draw { kind: DrawKind, indexed: bool },
-    #[error("While resetting queries after the renderpass was ran")]
-    QueryReset,
     #[error("In a write_timestamp command")]
     WriteTimestamp,
     #[error("In a begin_occlusion_query command")]

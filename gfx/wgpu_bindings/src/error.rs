@@ -184,7 +184,6 @@ mod foreign {
         fn error_type(&self) -> ErrorBufferType {
             match self {
                 RequestDeviceError::Device(e) => e.error_type(),
-                RequestDeviceError::NoGraphicsQueue => ErrorBufferType::Internal,
 
                 RequestDeviceError::UnsupportedFeature(_)
                 | RequestDeviceError::LimitsExceeded(_) => ErrorBufferType::Validation,
@@ -274,7 +273,6 @@ mod foreign {
                 | CreateSamplerError::InvalidLodMaxClamp { .. }
                 | CreateSamplerError::InvalidAnisotropy(_)
                 | CreateSamplerError::InvalidFilterModeWithAnisotropy { .. }
-                | CreateSamplerError::TooManyObjects
                 | CreateSamplerError::MissingFeatures(_) => ErrorBufferType::Validation,
 
                 // N.B: forced non-exhaustiveness
@@ -453,8 +451,6 @@ mod foreign {
     impl HasErrorBufferType for CreateTextureViewError {
         fn error_type(&self) -> ErrorBufferType {
             match self {
-                CreateTextureViewError::OutOfMemory => ErrorBufferType::OutOfMemory,
-
                 CreateTextureViewError::InvalidTextureViewDimension { .. }
                 | CreateTextureViewError::InvalidResource(_)
                 | CreateTextureViewError::InvalidMultisampledTextureViewDimension(_)
@@ -511,7 +507,6 @@ mod foreign {
                 | TransferError::UnspecifiedBytesPerRow
                 | TransferError::UnspecifiedRowsPerImage
                 | TransferError::InvalidBytesPerRow
-                | TransferError::InvalidCopySize
                 | TransferError::InvalidRowsPerImage
                 | TransferError::CopySrcMissingAspects
                 | TransferError::CopyDstMissingAspects
@@ -606,11 +601,8 @@ mod foreign {
                 QueueSubmitError::Queue(e) => e.error_type(),
                 QueueSubmitError::Unmap(e) => e.error_type(),
 
-                QueueSubmitError::StuckGpu => ErrorBufferType::Internal, // TODO: validate
                 QueueSubmitError::DestroyedResource(_)
                 | QueueSubmitError::BufferStillMapped(_)
-                | QueueSubmitError::SurfaceOutputDropped
-                | QueueSubmitError::SurfaceUnconfigured
                 | QueueSubmitError::InvalidResource(_) => ErrorBufferType::Validation,
 
                 // N.B: forced non-exhaustiveness

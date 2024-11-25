@@ -96,7 +96,7 @@ optional = true
 version = "1.4.1"
 
 [dependencies.thiserror]
-version = "1.0.67"
+version = "1.0.69"
 
 [dependencies.unicode-xid]
 version = "0.2.6"

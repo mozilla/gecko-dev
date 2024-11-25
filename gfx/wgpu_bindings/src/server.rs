@@ -533,6 +533,14 @@ pub unsafe extern "C" fn wgpu_server_set_device_lost_callback(
         .device_set_device_lost_closure(self_id, wgc::device::DeviceLostClosure::from_c(callback));
 }
 
+#[no_mangle]
+pub unsafe extern "C" fn wgpu_server_unregister_device_lost_callback(
+    global: &Global,
+    self_id: id::DeviceId,
+) {
+    global.device_unregister_device_lost_closure(self_id);
+}
+
 impl ShaderModuleCompilationMessage {
     fn set_error(&mut self, error: &CreateShaderModuleError, source: &str) {
         // The WebGPU spec says that if the message doesn't point to a particular position in
@@ -2047,6 +2055,10 @@ impl Global {
                 if let Err(err) = self.command_encoder_insert_debug_marker(self_id, &marker) {
                     error_buf.init(err);
                 }
+            }
+            CommandEncoderAction::BuildAccelerationStructuresUnsafeTlas { .. }
+            | CommandEncoderAction::BuildAccelerationStructures { .. } => {
+                unreachable!("internal error: attempted to build acceleration structures")
             }
         }
     }

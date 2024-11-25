@@ -75,7 +75,7 @@ version = "1.19"
 optional = true
 
 [dependencies.glow]
-version = "0.14.2"
+version = "0.16"
 optional = true
 
 [dependencies.log]
@@ -102,7 +102,7 @@ version = "0.6"
 version = "1.1.0"
 
 [dependencies.thiserror]
-version = "1.0.67"
+version = "1.0.69"
 
 [dependencies.wgt]
 version = "23.0.0"

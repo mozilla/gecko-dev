@@ -109,7 +109,7 @@ optional = true
 version = "1"
 
 [dependencies.thiserror]
-version = "1.0.67"
+version = "1.0.69"
 
 [dependencies.wgt]
 version = "23.0.0"

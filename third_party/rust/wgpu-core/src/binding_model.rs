@@ -2,7 +2,7 @@ use crate::{
     device::{
         bgl, Device, DeviceError, MissingDownlevelFlags, MissingFeatures, SHADER_STAGE_COUNT,
     },
-    id::{BindGroupLayoutId, BufferId, SamplerId, TextureViewId},
+    id::{BindGroupLayoutId, BufferId, SamplerId, TextureViewId, TlasId},
     init_tracker::{BufferInitTrackerAction, TextureInitTrackerAction},
     pipeline::{ComputePipeline, RenderPipeline},
     resource::{
@@ -29,6 +29,7 @@ use std::{
     sync::{Arc, OnceLock, Weak},
 };
 
+use crate::resource::Tlas;
 use thiserror::Error;
 
 #[derive(Clone, Debug, Error)]
@@ -141,11 +142,18 @@ pub enum CreateBindGroupError {
         layout_multisampled: bool,
         view_samples: u32,
     },
-    #[error("Texture binding {binding} expects sample type = {layout_sample_type:?}, but given a view with format = {view_format:?}")]
+    #[error(
+        "Texture binding {} expects sample type {:?}, but was given a view with format {:?} (sample type {:?})",
+        binding,
+        layout_sample_type,
+        view_format,
+        view_sample_type
+    )]
     InvalidTextureSampleType {
         binding: u32,
         layout_sample_type: wgt::TextureSampleType,
         view_format: wgt::TextureFormat,
+        view_sample_type: wgt::TextureSampleType,
     },
     #[error("Texture binding {binding} expects dimension = {layout_dimension:?}, but given a view with dimension = {view_dimension:?}")]
     InvalidTextureDimension {
@@ -302,6 +310,7 @@ pub(crate) struct BindingTypeMaxCountValidator {
     storage_buffers: PerStageBindingTypeCounter,
     storage_textures: PerStageBindingTypeCounter,
     uniform_buffers: PerStageBindingTypeCounter,
+    acceleration_structures: PerStageBindingTypeCounter,
 }
 
 impl BindingTypeMaxCountValidator {
@@ -337,7 +346,9 @@ impl BindingTypeMaxCountValidator {
             wgt::BindingType::StorageTexture { .. } => {
                 self.storage_textures.add(binding.visibility, count);
             }
-            wgt::BindingType::AccelerationStructure => todo!(),
+            wgt::BindingType::AccelerationStructure => {
+                self.acceleration_structures.add(binding.visibility, count);
+            }
         }
     }
 
@@ -781,6 +792,7 @@ pub enum BindingResource<'a> {
     SamplerArray(Cow<'a, [SamplerId]>),
     TextureView(TextureViewId),
     TextureViewArray(Cow<'a, [TextureViewId]>),
+    AccelerationStructure(TlasId),
 }
 
 // Note: Duplicated in `wgpu-rs` as `BindingResource`
@@ -793,6 +805,7 @@ pub enum ResolvedBindingResource<'a> {
     SamplerArray(Cow<'a, [Arc<Sampler>]>),
     TextureView(Arc<TextureView>),
     TextureViewArray(Cow<'a, [Arc<TextureView>]>),
+    AccelerationStructure(Arc<Tlas>),
 }
 
 #[derive(Clone, Debug, Error)]

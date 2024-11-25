@@ -219,9 +219,11 @@ impl Global {
         device.check_is_valid()?;
         buffer.check_usage(wgt::BufferUsages::MAP_WRITE)?;
 
-        let last_submission = device
-            .lock_life()
-            .get_buffer_latest_submission_index(&buffer);
+        let last_submission = device.get_queue().and_then(|queue| {
+            queue
+                .lock_life()
+                .get_buffer_latest_submission_index(&buffer)
+        });
 
         if let Some(last_submission) = last_submission {
             device.wait_for_submit(last_submission)?;
@@ -732,6 +734,7 @@ impl Global {
                 buffer_storage: &Storage<Fallible<resource::Buffer>>,
                 sampler_storage: &Storage<Fallible<resource::Sampler>>,
                 texture_view_storage: &Storage<Fallible<resource::TextureView>>,
+                tlas_storage: &Storage<Fallible<resource::Tlas>>,
             ) -> Result<ResolvedBindGroupEntry<'a>, binding_model::CreateBindGroupError>
             {
                 let resolve_buffer = |bb: &BufferBinding| {
@@ -753,6 +756,12 @@ impl Global {
                 };
                 let resolve_view = |id: &id::TextureViewId| {
                     texture_view_storage
+                        .get(*id)
+                        .get()
+                        .map_err(binding_model::CreateBindGroupError::from)
+                };
+                let resolve_tlas = |id: &id::TlasId| {
+                    tlas_storage
                         .get(*id)
                         .get()
                         .map_err(binding_model::CreateBindGroupError::from)
@@ -788,6 +797,9 @@ impl Global {
                             .collect::<Result<Vec<_>, _>>()?;
                         ResolvedBindingResource::TextureViewArray(Cow::Owned(views))
                     }
+                    BindingResource::AccelerationStructure(ref tlas) => {
+                        ResolvedBindingResource::AccelerationStructure(resolve_tlas(tlas)?)
+                    }
                 };
                 Ok(ResolvedBindGroupEntry {
                     binding: e.binding,
@@ -799,9 +811,18 @@ impl Global {
                 let buffer_guard = hub.buffers.read();
                 let texture_view_guard = hub.texture_views.read();
                 let sampler_guard = hub.samplers.read();
+                let tlas_guard = hub.tlas_s.read();
                 desc.entries
                     .iter()
-                    .map(|e| resolve_entry(e, &buffer_guard, &sampler_guard, &texture_view_guard))
+                    .map(|e| {
+                        resolve_entry(
+                            e,
+                            &buffer_guard,
+                            &sampler_guard,
+                            &texture_view_guard,
+                            &tlas_guard,
+                        )
+                    })
                     .collect::<Result<Vec<_>, _>>()
             };
             let entries = match entries {
@@ -2059,20 +2080,7 @@ impl Global {
         profiling::scope!("Device::drop");
         api_log!("Device::drop {device_id:?}");
 
-        let device = self.hub.devices.remove(device_id);
-        let device_lost_closure = device.lock_life().device_lost_closure.take();
-        if let Some(closure) = device_lost_closure {
-            closure.call(DeviceLostReason::Dropped, String::from("Device dropped."));
-        }
-
-        // The things `Device::prepare_to_die` takes care are mostly
-        // unnecessary here. We know our queue is empty, so we don't
-        // need to wait for submissions or triage them. We know we were
-        // just polled, so `life_tracker.free_resources` is empty.
-        debug_assert!(device.lock_life().queue_empty());
-        device.pending_writes.lock().deactivate();
-
-        drop(device);
+        self.hub.devices.remove(device_id);
     }
 
     // This closure will be called exactly once during "lose the device",
@@ -2084,14 +2092,22 @@ impl Global {
     ) {
         let device = self.hub.devices.get(device_id);
 
-        let mut life_tracker = device.lock_life();
-        if let Some(existing_closure) = life_tracker.device_lost_closure.take() {
-            // It's important to not hold the lock while calling the closure.
-            drop(life_tracker);
-            existing_closure.call(DeviceLostReason::ReplacedCallback, "".to_string());
-            life_tracker = device.lock_life();
+        let old_device_lost_closure = device
+            .device_lost_closure
+            .lock()
+            .replace(device_lost_closure);
+
+        if let Some(old_device_lost_closure) = old_device_lost_closure {
+            old_device_lost_closure.call(DeviceLostReason::ReplacedCallback, "".to_string());
         }
-        life_tracker.device_lost_closure = Some(device_lost_closure);
+    }
+
+    pub fn device_unregister_device_lost_closure(&self, device_id: DeviceId) {
+        let device = self.hub.devices.get(device_id);
+        let closure = device.device_lost_closure.lock().take();
+        if let Some(closure) = closure {
+            closure.call(DeviceLostReason::ReplacedCallback, "".to_string());
+        }
     }
 
     pub fn device_destroy(&self, device_id: DeviceId) {

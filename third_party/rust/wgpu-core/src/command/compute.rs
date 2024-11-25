@@ -28,10 +28,10 @@ use crate::{
 use thiserror::Error;
 use wgt::{BufferAddress, DynamicOffset};
 
+use super::{bind::BinderError, memory_init::CommandBufferTextureMemoryActions};
+use crate::ray_tracing::TlasAction;
 use std::sync::Arc;
 use std::{fmt, mem::size_of, str};
-
-use super::{bind::BinderError, memory_init::CommandBufferTextureMemoryActions};
 
 pub struct ComputePass {
     /// All pass data & records is stored here.
@@ -210,6 +210,7 @@ struct State<'scope, 'snatch_guard, 'cmd_buf, 'raw_encoder> {
     tracker: &'cmd_buf mut Tracker,
     buffer_memory_init_actions: &'cmd_buf mut Vec<BufferInitTrackerAction>,
     texture_memory_actions: &'cmd_buf mut CommandBufferTextureMemoryActions,
+    tlas_actions: &'cmd_buf mut Vec<TlasAction>,
 
     temp_offsets: Vec<u32>,
     dynamic_offset_count: usize,
@@ -307,30 +308,15 @@ impl Global {
             Err(e) => return make_err(e, arc_desc),
         };
 
-        arc_desc.timestamp_writes = if let Some(tw) = desc.timestamp_writes {
-            let query_set = match hub.query_sets.get(tw.query_set).get() {
-                Ok(query_set) => query_set,
-                Err(e) => return make_err(e.into(), arc_desc),
-            };
-            match query_set.same_device(&cmd_buf.device) {
-                Ok(()) => (),
-                Err(e) => return make_err(e.into(), arc_desc),
-            }
-            match cmd_buf
-                .device
-                .require_features(wgt::Features::TIMESTAMP_QUERY)
-            {
-                Ok(()) => (),
-                Err(e) => return make_err(e.into(), arc_desc),
-            }
-
-            Some(ArcPassTimestampWrites {
-                query_set,
-                beginning_of_pass_write_index: tw.beginning_of_pass_write_index,
-                end_of_pass_write_index: tw.end_of_pass_write_index,
+        arc_desc.timestamp_writes = match desc
+            .timestamp_writes
+            .map(|tw| {
+                Self::validate_pass_timestamp_writes(&cmd_buf.device, &hub.query_sets.read(), tw)
             })
-        } else {
-            None
+            .transpose()
+        {
+            Ok(ok) => ok,
+            Err(e) => return make_err(e, arc_desc),
         };
 
         (ComputePass::new(Some(cmd_buf), arc_desc), None)
@@ -450,6 +436,7 @@ impl Global {
             tracker: &mut cmd_buf_data.trackers,
             buffer_memory_init_actions: &mut cmd_buf_data.buffer_memory_init_actions,
             texture_memory_actions: &mut cmd_buf_data.texture_memory_actions,
+            tlas_actions: &mut cmd_buf_data.tlas_actions,
 
             temp_offsets: Vec::new(),
             dynamic_offset_count: 0,
@@ -694,6 +681,17 @@ fn set_bind_group(
             .pending_discard_init_fixups
             .extend(state.texture_memory_actions.register_init_action(action));
     }
+
+    let used_resource = bind_group
+        .used
+        .acceleration_structures
+        .into_iter()
+        .map(|tlas| TlasAction {
+            tlas: tlas.clone(),
+            kind: crate::ray_tracing::TlasActionKind::Use,
+        });
+
+    state.tlas_actions.extend(used_resource);
 
     let pipeline_layout = state.binder.pipeline_layout.clone();
     let entries = state

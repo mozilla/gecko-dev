@@ -512,9 +512,10 @@ ipc::IPCResult WebGPUParent::RecvDeviceDestroy(RawId aDeviceId) {
 }
 
 ipc::IPCResult WebGPUParent::RecvDeviceDrop(RawId aDeviceId) {
+  ffi::wgpu_server_unregister_device_lost_callback(mContext.get(), aDeviceId);
+  mDeviceLostRequests.erase(aDeviceId);
+
   ffi::wgpu_server_device_drop(mContext.get(), aDeviceId);
-  MOZ_ASSERT(mDeviceLostRequests.find(aDeviceId) == mDeviceLostRequests.end(),
-             "DeviceLostRequest should have been invoked, then erased.");
 
   mErrorScopeStackByDevice.erase(aDeviceId);
   mLostDeviceIds.Remove(aDeviceId);
@@ -588,8 +589,6 @@ static const char* MapStatusString(ffi::WGPUBufferMapAsyncStatus status) {
       return "Already mapped";
     case ffi::WGPUBufferMapAsyncStatus_MapAlreadyPending:
       return "Map is already pending";
-    case ffi::WGPUBufferMapAsyncStatus_Aborted:
-      return "Map aborted";
     case ffi::WGPUBufferMapAsyncStatus_ContextLost:
       return "Context lost";
     case ffi::WGPUBufferMapAsyncStatus_Invalid:
