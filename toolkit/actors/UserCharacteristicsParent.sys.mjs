@@ -20,6 +20,13 @@ XPCOMUtils.defineLazyServiceGetter(
   "nsIUserCharacteristicsPageService"
 );
 
+function mapToObjectReplacer(_key, value) {
+  if (value instanceof Map) {
+    return Object.fromEntries(value);
+  }
+  return value;
+}
+
 class UserCharacteristicsParent extends JSWindowActorParent {
   receiveMessage(aMessage) {
     lazy.console.debug("Actor Parent: Got ", aMessage.name);
@@ -35,14 +42,14 @@ class UserCharacteristicsParent extends JSWindowActorParent {
         Services.obs.notifyObservers(
           null,
           "user-characteristics-screen-info-done",
-          JSON.stringify(aMessage.data)
+          JSON.stringify(aMessage.data, mapToObjectReplacer)
         );
         break;
       case "PointerInfo:Populated":
         Services.obs.notifyObservers(
           null,
           "user-characteristics-pointer-info-done",
-          JSON.stringify(aMessage.data)
+          JSON.stringify(aMessage.data, mapToObjectReplacer)
         );
         break;
       case "WindowInfo::Done":

@@ -41,16 +41,16 @@ export class UserCharacteristicsWindowInfoChild extends JSWindowActorChild {
       return;
     }
 
-    const result = {
-      outerHeight: this.contentWindow.outerHeight,
-      innerHeight: this.contentWindow.innerHeight,
-      outerWidth: this.contentWindow.outerWidth,
-      innerWidth: this.contentWindow.innerWidth,
-      availHeight: this.contentWindow.screen.availHeight,
-      availWidth: this.contentWindow.screen.availWidth,
-    };
+    const result = new Map([
+      ["outerHeight", this.contentWindow.outerHeight],
+      ["innerHeight", this.contentWindow.innerHeight],
+      ["outerWidth", this.contentWindow.outerWidth],
+      ["innerWidth", this.contentWindow.innerWidth],
+      ["availHeight", this.contentWindow.screen.availHeight],
+      ["availWidth", this.contentWindow.screen.availWidth],
+    ]);
 
-    if (Object.values(result).some(v => v <= 0)) {
+    if (result.values().some(v => v <= 0)) {
       return;
     }
 
@@ -98,16 +98,17 @@ export class UserCharacteristicsWindowInfoChild extends JSWindowActorChild {
     };
 
     promise.then(e => {
-      this.sendMessage("PointerInfo:Populated", {
-        pointerPressure: e.pointer.pressure,
-        pointerTangentinalPressure: e.pointer.tangentialPressure,
-        pointerTiltx: e.pointer.tiltX,
-        pointerTilty: e.pointer.tiltY,
-        pointerTwist: e.pointer.twist,
-        pointerWidth: e.pointer.width,
-        pointerHeight: e.pointer.height,
-        touchRotationAngle: e.touch?.rotationAngle || 0,
-      });
+      const map = new Map([
+        ["pointerPressure", e.pointer.pressure],
+        ["pointerTangentinalPressure", e.pointer.tangentialPressure],
+        ["pointerTiltx", e.pointer.tiltX],
+        ["pointerTilty", e.pointer.tiltY],
+        ["pointerTwist", e.pointer.twist],
+        ["pointerWidth", e.pointer.width],
+        ["pointerHeight", e.pointer.height],
+        ["touchRotationAngle", e.touch?.rotationAngle || 0],
+      ]);
+      this.sendMessage("PointerInfo:Populated", map);
       this.propertyCollected("PointerInfo");
     });
 

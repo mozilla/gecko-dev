@@ -278,11 +278,10 @@ export class UserCharacteristicsPageService {
       }
     }
 
-    const screenResult = await screenInfoPromise;
-    this.collectGleanMetricsFromMap(screenResult);
-
-    const pointerResult = await pointerInfoPromise;
-    this.collectGleanMetricsFromMap(pointerResult);
+    await Promise.all([
+      screenInfoPromise.then(data => this.collectGleanMetricsFromMap(data)),
+      pointerInfoPromise.then(data => this.collectGleanMetricsFromMap(data)),
+    ]);
   }
 
   async populateCanvasData() {
