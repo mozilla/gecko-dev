@@ -1,6 +1,7 @@
 @mixin section-card-small {
   grid-row: span 1;
   grid-column: span 1;
+  display: flex;
   flex-direction: row;
   position: relative;
   align-items: center;
@@ -53,6 +54,7 @@
     .info-wrap .title {
       font-size: var(--font-size-small);
       margin-bottom: 0;
+      -webkit-line-clamp: 3;
     }
 
     .info-wrap .excerpt {
@@ -117,18 +119,18 @@
   }
 
   .meta {
-    padding: var(--space-large);
+    padding: var(--space-medium) var(--space-large);
 
     .info-wrap {
       .title {
-        // show only 2 lines of copy
+        -webkit-line-clamp: 3;
         font-size: var(--font-size-root);
         margin-bottom: var(--space-small);
       }
 
       .excerpt {
         display: block;
-        -webkit-line-clamp: 2;
+        -webkit-line-clamp: 3;
       }
     }
   }
@@ -152,7 +154,7 @@
         aspect-ratio: 1/1;
 
         img {
-          border-radius: var(--border-radius-large);
+          border-radius: var(--border-radius-medium);
         }
       }
 
@@ -303,7 +305,7 @@
   padding-inline: 0;
 
   .ds-section {
-    padding-block-end: 50px;
+    padding-block-end: var(--space-xxlarge);
 
     &:last-child {
       padding-block-end: 0;
@@ -324,14 +326,6 @@
       @media (min-width: $break-point-layout-variant) {
         font-size: var(--font-size-xxlarge);
       }
-
-      @media (min-width: $break-point-widest) {
-        font-size: 28px;
-      }
-
-      @media (min-width: $break-point-sections-variant) {
-        font-size: 30px;
-      }
     }
 
     .section-subtitle {
@@ -351,7 +345,6 @@
 
 .ds-section-grid.ds-card-grid {
   grid-gap: var(--space-large);
-  grid-template-rows: repeat(auto-fill, 150px);
 
   @media (min-width: $break-point-medium) {
     grid-template-columns: repeat(1, 300px);
