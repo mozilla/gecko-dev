@@ -146,9 +146,9 @@ class ThrottledEventQueue::Inner final : public nsISupports {
     // we're paused, we don't enqueue an executor.
     MOZ_ASSERT(mEventQueue.IsEmpty(lock) || IsPaused(lock));
 
-    // Some runnables are only safe to drop on the main thread, so if our queue
-    // isn't empty, we'd better be on the main thread.
-    MOZ_ASSERT_IF(!mEventQueue.IsEmpty(lock), NS_IsMainThread());
+    // If we are cleaning up prematurely (i.e. with still some pending
+    // runnables) must be doing so from the target thread.
+    MOZ_ASSERT_IF(!mEventQueue.IsEmpty(lock), IsOnCurrentThread());
 #endif
   }
 
@@ -260,7 +260,6 @@ class ThrottledEventQueue::Inner final : public nsISupports {
  public:
   static already_AddRefed<Inner> Create(nsISerialEventTarget* aBaseTarget,
                                         const char* aName, uint32_t aPriority) {
-    MOZ_ASSERT(NS_IsMainThread());
     // FIXME: This assertion only worked when `sCurrentShutdownPhase` was not
     // being updated.
     // MOZ_ASSERT(ClearOnShutdown_Internal::sCurrentShutdownPhase ==
@@ -392,7 +391,6 @@ ThrottledEventQueue::ThrottledEventQueue(already_AddRefed<Inner> aInner)
 
 already_AddRefed<ThrottledEventQueue> ThrottledEventQueue::Create(
     nsISerialEventTarget* aBaseTarget, const char* aName, uint32_t aPriority) {
-  MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(aBaseTarget);
 
   RefPtr<Inner> inner = Inner::Create(aBaseTarget, aName, aPriority);
