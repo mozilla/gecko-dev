@@ -50,7 +50,9 @@ class MetricsUtilsTest {
     @Test
     fun `getAdvertisingID() returns null if the API returns null info`() {
         mockkStatic(AdvertisingIdClient::class)
-        every { AdvertisingIdClient.getAdvertisingIdInfo(any()) } returns null
+        val mockInfo: AdvertisingIdClient.Info = mockk()
+        every { mockInfo.id } returns null
+        every { AdvertisingIdClient.getAdvertisingIdInfo(any()) } returns mockInfo
 
         assertNull(MetricsUtils.getAdvertisingID(context))
     }
@@ -58,11 +60,13 @@ class MetricsUtilsTest {
     @Test
     fun `getAdvertisingID() returns a valid string if the API returns a valid ID`() {
         val testId = "test-value-id"
+        val mockInfo: AdvertisingIdClient.Info = mockk()
+        every { mockInfo.id } returns testId
 
         mockkStatic(AdvertisingIdClient::class)
         every {
             AdvertisingIdClient.getAdvertisingIdInfo(any())
-        } returns AdvertisingIdClient.Info(testId, false)
+        } returns mockInfo
 
         assertEquals(testId, MetricsUtils.getAdvertisingID(context))
     }

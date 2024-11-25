@@ -93,7 +93,7 @@ object Versions {
         const val material = "1.12.0"
         const val osslicenses_plugin = "0.10.6"
         const val play_review = "2.0.1"
-        const val play_services_ads_id = "16.0.0"
+        const val play_services_ads_id = "18.1.0"
         const val play_services_base = "18.5.0"
         const val play_services_fido = "21.1.0"
         const val protobuf = "4.28.2" // Keep Protobuf in sync with the version used by AppServices.
