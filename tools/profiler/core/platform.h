@@ -44,7 +44,7 @@
 #include "mozilla/UniquePtr.h"
 #include "mozilla/Vector.h"
 #include "nsString.h"
-#include "BaseProfilerSharedLibraries.h"
+#include "SharedLibraries.h"
 
 #include <cstddef>
 #include <cstdint>

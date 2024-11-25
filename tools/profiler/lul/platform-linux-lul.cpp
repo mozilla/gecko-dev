@@ -13,7 +13,7 @@
 #include "platform.h"
 #include "PlatformMacros.h"
 #include "LulMain.h"
-#include "BaseProfilerSharedLibraries.h"
+#include "SharedLibraries.h"
 #include "AutoObjectMapper.h"
 
 // Contains miscellaneous helpers that are used to connect the Gecko Profiler

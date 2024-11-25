@@ -14,7 +14,7 @@
 #include "nsITelemetry.h"
 #include "nsUnicharUtils.h"
 #include "nsXULAppAPI.h"
-#include "BaseProfilerSharedLibraries.h"
+#include "SharedLibraries.h"
 
 namespace mozilla {
 namespace Telemetry {

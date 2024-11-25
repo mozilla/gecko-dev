@@ -13,7 +13,7 @@
 #include "mozilla/ipc/MessageChannel.h"
 #include "mozilla/Vector.h"
 #include "nsStringFwd.h"
-#include "BaseProfilerSharedLibraries.h"
+#include "SharedLibraries.h"
 
 namespace mozilla {
 namespace Telemetry {

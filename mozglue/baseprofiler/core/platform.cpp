@@ -70,7 +70,7 @@
 #include "ProfilerBacktrace.h"
 #include "ProfileBuffer.h"
 #include "RegisteredThread.h"
-#include "BaseProfilerSharedLibraries.h"
+#include "SharedLibraries.h"
 #include "ThreadInfo.h"
 #include "VTuneProfiler.h"
 
