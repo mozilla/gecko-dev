@@ -81,6 +81,15 @@ async function runTopLevelTest(loadMethod, useHashes = false) {
       TEST_PAGE + p + "entry=0"
     );
     let browser = tab.linkedBrowser;
+    // Add some user interaction to entry 0
+    await BrowserTestUtils.synthesizeMouse(
+      "body",
+      0,
+      0,
+      {},
+      browser.browsingContext,
+      true
+    );
 
     assertBackForwardState(false, false);
 
@@ -196,6 +205,15 @@ async function runIframeTest(loadMethod) {
       IFRAME_PAGE + "?entry=0"
     );
     let browser = tab.linkedBrowser;
+    // Add some user interaction to entry 0
+    await BrowserTestUtils.synthesizeMouse(
+      "body",
+      0,
+      0,
+      {},
+      browser.browsingContext,
+      true
+    );
 
     assertBackForwardState(false, false);
 
@@ -263,6 +281,15 @@ async function runIframeTest(loadMethod) {
       IFRAME_PAGE + "?entry=0"
     );
     browser = tab.linkedBrowser;
+    // Add some user interaction to entry 0
+    await BrowserTestUtils.synthesizeMouse(
+      "body",
+      0,
+      0,
+      {},
+      browser.browsingContext,
+      true
+    );
 
     await loadMethod(IFRAME_PAGE + "?entry=1");
 

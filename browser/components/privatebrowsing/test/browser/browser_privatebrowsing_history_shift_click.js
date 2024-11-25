@@ -23,8 +23,11 @@ async function createPrivateWindow() {
     privateWindow.gBrowser.selectedBrowser,
     [],
     async function () {
+      content.document.notifyUserGestureActivation();
       content.history.pushState({}, "first item", "first-item.html");
+      content.document.notifyUserGestureActivation();
       content.history.pushState({}, "second item", "second-item.html");
+      content.document.notifyUserGestureActivation();
       content.history.pushState({}, "third item", "third-item.html");
       content.history.back();
     }

@@ -36,8 +36,12 @@ for (let itemsToClear of prefs) {
 
         await SpecialPowers.spawn(browser, [], async function () {
           let startHistory = content.history.length;
+          content.document.notifyUserGestureActivation();
           content.history.pushState({}, "");
+          content.document.notifyUserGestureActivation();
           content.history.pushState({}, "");
+          content.document.notifyUserGestureActivation();
+
           content.history.back();
           await new Promise(function (r) {
             content.onpopstate = r;

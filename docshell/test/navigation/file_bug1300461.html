@@ -51,6 +51,8 @@
       ];
 
       function test() {
+        SpecialPowers.wrap(document).notifyUserGestureActivation();
+
         if (opener) {
           opener.info("file_bug1300461.html test " + opener.testCount);
           testSteps[opener.testCount++]();

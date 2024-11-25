@@ -287,4 +287,10 @@ interface nsISHistory: nsISupports
                                         in BrowsingContext aRootBC, in boolean aCloneChildren);
 
   [noscript, notxpcom] boolean isEmptyOrHasEntriesForSingleTopLevelPage();
+
+  /**
+   * Determine if we can navigate back in history from the entry at aIndex
+   * to an entry that has user interaction.
+   */
+  boolean canGoBackFromEntryAtIndex(in long aIndex);
 };

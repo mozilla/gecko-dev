@@ -20,6 +20,6 @@ add_task(async () => {
     // Navigate, causing a hashchange event to fire and call history.replaceState
     await BrowserTestUtils.synthesizeMouseAtCenter("#link", {}, browser);
 
-    await assertMenulist([TEST_URI + "#1", TEST_URI + "#inject", TEST_URI]);
+    await assertMenulist([TEST_URI + "#1", TEST_URI]);
   });
 });
