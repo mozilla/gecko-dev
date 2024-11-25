@@ -163,7 +163,7 @@ class MemoryMappedFile {
   MemoryMappedFile(const MemoryMappedFile&) = delete;
   MemoryMappedFile& operator=(const MemoryMappedFile&) = delete;
 
-  ~MemoryMappedFile() {}
+  ~MemoryMappedFile() { Unmap(); }
 
   // Maps a file at |path| into memory, which can then be accessed via
   // content() as a MemoryRange object or via data(), and returns true on
