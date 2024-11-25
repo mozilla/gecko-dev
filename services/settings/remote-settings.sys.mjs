@@ -64,13 +64,6 @@ XPCOMUtils.defineLazyPreferenceGetter(
   true
 );
 
-XPCOMUtils.defineLazyPreferenceGetter(
-  lazy,
-  "gPrefStartupBundleEnabled",
-  PREF_SETTINGS_BRANCH + "startup_bundle_enabled",
-  true
-);
-
 /**
  * Default entry filtering function, in charge of excluding remote settings entries
  * where the JEXL expression evaluates into a falsy value.
@@ -188,108 +181,6 @@ function remoteSettingsFunction() {
   }
 
   /**
-   * Pulls the startup changesets bundle if enabled.
-   *
-   * This function downloads and verifies a bundle of changesets for collections that sync
-   * data right on startup. In order to include a new collection in this bundle, add the
-   * `"startup"` flag in its metadata (see mozilla-services/remote-settings-permissions#524).
-   * If the bundle is already being processed by a client, it waits for the ongoing process
-   * to complete.
-   *
-   * @async
-   * @function pullStartupBundle
-   * @memberof remoteSettings
-   * @returns {Promise<Array<string>>} A promise that resolves to an array of imported collections identifiers.
-   *
-   * @throws {Error} If the signature of any bundled changeset is invalid.
-   */
-  remoteSettings.pullStartupBundle = async () => {
-    if (!lazy.gPrefStartupBundleEnabled) {
-      lazy.console.debug("Remote Settings startup changesets bundle disabled.");
-      return [];
-    }
-
-    if (remoteSettings._ongoingExtractBundlePromise) {
-      return await remoteSettings._ongoingExtractBundlePromise;
-    }
-
-    const startedAt = new Date();
-    let extractedAt;
-    remoteSettings._ongoingExtractBundlePromise = (async () => {
-      lazy.console.info("Download Remote Settings startup changesets bundle.");
-
-      let changesets;
-      try {
-        changesets = await lazy.Utils.fetchChangesetsBundle();
-      } catch (e) {
-        lazy.console.error(
-          "Remote Settings startup changesets bundle could not be extracted.",
-          e
-        );
-        return [];
-      }
-
-      extractedAt = new Date();
-      const pulled = [];
-      for (const changeset of changesets) {
-        const bucket = lazy.Utils.actualBucketName(changeset.metadata.bucket);
-        const collection = changeset.metadata.id;
-        const identifier = `${bucket}/${collection}`;
-
-        if (pulled.includes(identifier)) {
-          // The startup bundles contain both main and preview changesets.
-          // Importing both increases complexity down the line, and brings no value.
-          // On preview mode, this will skip main, and vice-versa.
-          continue;
-        }
-
-        const { metadata, timestamp, changes: records } = changeset;
-
-        const {
-          signature: { signer_id: signerName },
-        } = metadata;
-        const client = RemoteSettings(collection, {
-          bucketName: bucket,
-          signerName: `${signerName}.content-signature.mozilla.org`,
-        });
-        if (client.verifySignature) {
-          lazy.console.debug(
-            `${identifier}: Verify signature of bundled changeset`
-          );
-          try {
-            await client.validateCollectionSignature(
-              records,
-              timestamp,
-              metadata
-            );
-          } catch (e) {
-            // Bundle content is not valid. Skip import.
-            lazy.console.error(
-              `${identifier}: Signature of bundled changeset is invalid: ${e}.`
-            );
-            continue;
-          }
-        }
-        // Only import changes if the signature succeeds.
-        await client.db.importChanges(metadata, timestamp, records, {
-          clear: true,
-        });
-        lazy.console.debug(`${identifier} imported from changesets bundle`);
-        pulled.push(identifier);
-      }
-      return pulled;
-    })();
-    const pulled = await RemoteSettings._ongoingExtractBundlePromise;
-    const durationMilliseconds = new Date() - startedAt;
-    const downloadMilliseconds = extractedAt - startedAt;
-    const extractMilliseconds = durationMilliseconds - downloadMilliseconds;
-    lazy.console.info(
-      `Import of changesets bundle done (duration=${durationMilliseconds}ms, download=${downloadMilliseconds}ms, extraction=${extractMilliseconds}ms)`
-    );
-    return pulled;
-  };
-
-  /**
    * Main polling method, called by the ping mechanism.
    *
    * @param {Object} options
@@ -386,7 +277,7 @@ function remoteSettingsFunction() {
       }
     }
 
-    lazy.console.info(`Start polling for changes (trigger=${trigger})`);
+    lazy.console.info("Start polling for changes");
     Services.obs.notifyObservers(
       null,
       "remote-settings:changes-poll-start",
@@ -576,9 +467,7 @@ function remoteSettingsFunction() {
       .store(currentEtag, status)
       .catch(error => console.error(error));
 
-    lazy.console.info(
-      `Polling for changes done (duration=${durationMilliseconds}ms)`
-    );
+    lazy.console.info("Polling for changes done");
     Services.obs.notifyObservers(null, "remote-settings:changes-poll-end");
   };
 
