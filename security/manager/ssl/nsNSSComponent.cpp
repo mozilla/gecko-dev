@@ -1829,13 +1829,6 @@ nsresult nsNSSComponent::GetNewPrompter(nsIPrompt** result) {
 }
 
 nsresult nsNSSComponent::LogoutAuthenticatedPK11() {
-  nsCOMPtr<nsICertOverrideService> icos =
-      do_GetService("@mozilla.org/security/certoverride;1");
-  if (icos) {
-    icos->ClearValidityOverride("all:temporary-certificates"_ns, 0,
-                                OriginAttributes());
-  }
-
   ClearSSLExternalAndInternalSessionCache();
 
   nsCOMPtr<nsIObserverService> os = mozilla::services::GetObserverService();

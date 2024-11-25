@@ -7,7 +7,6 @@
 #include "nsCertOverrideService.h"
 
 #include "NSSCertDBTrustDomain.h"
-#include "ScopedNSSTypes.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/ScopeExit.h"
 #include "mozilla/TaskQueue.h"
@@ -393,11 +392,6 @@ nsCertOverrideService::RememberValidityOverride(
   }
   if (!NS_IsMainThread()) {
     return NS_ERROR_NOT_SAME_THREAD;
-  }
-
-  UniqueCERTCertificate nsscert(aCert->GetCert());
-  if (!nsscert) {
-    return NS_ERROR_FAILURE;
   }
 
   nsAutoCString fpStr;
