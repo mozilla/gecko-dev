@@ -2050,12 +2050,22 @@ impl BorderRadius {
         }
     }
 
-    pub fn all_sides_uniform(&self) -> bool {
-        let corner_is_uniform = |corner: &LayoutSize| corner.width == corner.height;
-        corner_is_uniform(&self.top_left) &&
-        corner_is_uniform(&self.top_right) &&
-        corner_is_uniform(&self.bottom_right) &&
-        corner_is_uniform(&self.bottom_left)
+    pub fn is_uniform(&self) -> Option<f32> {
+        match self.is_uniform_size() {
+            Some(radius) if radius.width == radius.height => Some(radius.width),
+            _ => None,
+        }
+    }
+
+    pub fn is_uniform_size(&self) -> Option<LayoutSize> {
+        let uniform_radius = self.top_left;
+        if self.top_right == uniform_radius && self.bottom_left == uniform_radius &&
+            self.bottom_right == uniform_radius
+        {
+            Some(uniform_radius)
+        } else {
+            None
+        }
     }
 
     /// Return whether, in each corner, the radius in *either* direction is zero.

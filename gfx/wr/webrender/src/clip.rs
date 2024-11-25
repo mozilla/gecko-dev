@@ -1929,8 +1929,9 @@ impl ClipItemKind {
                 false
             }
             ClipItemKind::RoundedRectangle { ref radius, .. } => {
-                // The rounded clip rect fast path shader can only work if the radii are uniform.
-                radius.all_sides_uniform()
+                // The rounded clip rect fast path shader can only work
+                // if the radii are uniform.
+                radius.is_uniform().is_some()
             }
         }
     }
