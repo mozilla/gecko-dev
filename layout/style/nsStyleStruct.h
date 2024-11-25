@@ -1805,7 +1805,6 @@ struct MOZ_NEEDS_MEMMOVABLE_MEMBERS nsStyleUIReset {
   // The margin of the window region that should be transparent to events.
   mozilla::StyleLength mMozWindowInputRegionMargin;
   mozilla::StyleTransform mMozWindowTransform;
-  mozilla::StyleTransformOrigin mWindowTransformOrigin;
 
   nsStyleAutoArray<mozilla::StyleTransition> mTransitions;
   // The number of elements in mTransitions that are not from repeating

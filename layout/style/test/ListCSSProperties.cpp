@@ -107,7 +107,6 @@ const char* gInaccessibleProperties[] = {
     "-moz-window-input-region-margin",    // chrome-only internal properties
     "-moz-window-opacity",                // chrome-only internal properties
     "-moz-window-transform",              // chrome-only internal properties
-    "-moz-window-transform-origin",       // chrome-only internal properties
     "-moz-window-shadow",                 // chrome-only internal properties
 };
 

@@ -3101,9 +3101,6 @@ nsStyleUIReset::nsStyleUIReset()
       mWindowShadow(StyleWindowShadow::Auto),
       mWindowOpacity(1.0),
       mMozWindowInputRegionMargin(StyleLength::Zero()),
-      mWindowTransformOrigin{LengthPercentage::FromPercentage(0.5),
-                             LengthPercentage::FromPercentage(0.5),
-                             {0.}},
       mTransitions(
           nsStyleAutoArray<StyleTransition>::WITH_SINGLE_INITIAL_ELEMENT),
       mTransitionTimingFunctionCount(1),
@@ -3147,7 +3144,6 @@ nsStyleUIReset::nsStyleUIReset(const nsStyleUIReset& aSource)
       mWindowOpacity(aSource.mWindowOpacity),
       mMozWindowInputRegionMargin(aSource.mMozWindowInputRegionMargin),
       mMozWindowTransform(aSource.mMozWindowTransform),
-      mWindowTransformOrigin(aSource.mWindowTransformOrigin),
       mTransitions(aSource.mTransitions.Clone()),
       mTransitionTimingFunctionCount(aSource.mTransitionTimingFunctionCount),
       mTransitionDurationCount(aSource.mTransitionDurationCount),

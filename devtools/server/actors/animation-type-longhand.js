@@ -340,7 +340,6 @@ exports.ANIMATION_TYPE_FOR_LONGHANDS = [
       "transform-origin",
       "translate",
       "-moz-window-transform",
-      "-moz-window-transform-origin",
       "-webkit-line-clamp",
     ]),
   ],

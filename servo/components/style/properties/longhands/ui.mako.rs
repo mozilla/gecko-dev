@@ -87,18 +87,6 @@ ${helpers.predefined_type(
 )}
 
 ${helpers.predefined_type(
-    "-moz-window-transform-origin",
-    "TransformOrigin",
-    "computed::TransformOrigin::initial_value()",
-    engines="gecko",
-    gecko_ffi_name="mWindowTransformOrigin",
-    boxed=True,
-    spec="None (Nonstandard internal property)",
-    enabled_in="chrome",
-    affects="overflow",
-)}
-
-${helpers.predefined_type(
     "-moz-window-input-region-margin",
     "Length",
     "computed::Length::zero()",
