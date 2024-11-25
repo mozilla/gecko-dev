@@ -522,6 +522,12 @@ class Bootstrapper(object):
 
         print("Checking for Dev Drive...")
 
+        if not shutil.which("powershell"):
+            print(
+                "PowerShell is not available on the system path. Unable to check for Dev Drive."
+            )
+            return
+
         try:
             ver_output = subprocess.check_output(["cmd.exe", "/c", "ver"], text=True)
             current_windows_version = extract_windows_version_number(ver_output)
