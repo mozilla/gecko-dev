@@ -299,7 +299,6 @@ export const CustomizableWidgets = [
       if (lazy.sidebarRevampEnabled) {
         const { SidebarController } = aNode.ownerGlobal;
         SidebarController.updateToolbarButton(aNode);
-        aNode.setAttribute("overflows", "false");
       } else {
         // Add an observer so the button is checked while the sidebar is open
         let doc = aNode.ownerDocument;
