@@ -184,7 +184,7 @@
                           data-l10n-id="menu-view-full-screen"/>
 #endif
                 <menuitem id="menu_readerModeItem"
-                          observes="View:ReaderView"
+                          command="View:ReaderView"
                           key="key_toggleReaderMode"
                           data-l10n-id="menu-view-enter-readerview"
                           hidden="true"/>

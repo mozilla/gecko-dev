@@ -46,7 +46,7 @@
     <command id="View:PageSource" />
     <command id="View:PageInfo" />
     <command id="View:FullScreen" />
-    <command id="View:ReaderView" oncommand="AboutReaderParent.toggleReaderMode(event);" />
+    <command id="View:ReaderView" />
     <command id="View:PictureInPicture" />
     <command id="cmd_find" />
     <command id="cmd_findAgain" />

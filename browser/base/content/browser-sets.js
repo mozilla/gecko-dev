@@ -98,9 +98,9 @@ document.addEventListener(
           case "View:FullScreen":
             BrowserCommands.fullScreen();
             break;
-          // "View:ReaderView": function (event) {
-          //   AboutReaderParent.toggleReaderMode(event);
-          // },
+          case "View:ReaderView":
+            AboutReaderParent.toggleReaderMode(event);
+            break;
           case "View:PictureInPicture":
             PictureInPicture.onCommand(event);
             break;
@@ -116,10 +116,6 @@ document.addEventListener(
           case "cmd_findSelection":
             gLazyFindCommand("onFindSelectionCommand");
             break;
-          // TODO: <observes>
-          // cmd_reportBrokenSite(event) {
-          //   ReportBrokenSite.open(event);
-          // },
           case "cmd_translate":
             FullPageTranslationsPanel.open(event);
             break;
