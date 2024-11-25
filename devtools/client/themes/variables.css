@@ -322,7 +322,7 @@
 
     /* Toolbar buttons */
     --toolbarbutton-background: ButtonFace;
-    --toolbarbutton-hover-background: ButtonFace;
+    --toolbarbutton-hover-background: SelectedItemText;
     --toolbarbutton-hover-color: SelectedItem;
     --toolbarbutton-checked-background: SelectedItem;
     --toolbarbutton-checked-color: SelectedItemText;
