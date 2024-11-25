@@ -37,6 +37,9 @@ tab-group-editor-done =
   .label = Done
   .accessKey = D
 
+tab-context-reopen-tab-group =
+    .label = Reopen tab group
+
 ##
 
 # Variables:

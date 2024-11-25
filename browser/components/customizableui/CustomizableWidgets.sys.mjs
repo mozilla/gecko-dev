@@ -217,8 +217,8 @@ export const CustomizableWidgets = [
       const utils = lazy.RecentlyClosedTabsAndWindowsMenuUtils;
       const fragment =
         panelview.id == this.recentlyClosedTabsPanel
-          ? utils.getTabsFragment(window, "toolbarbutton", true)
-          : utils.getWindowsFragment(window, "toolbarbutton", true);
+          ? utils.getTabsFragment(window, "toolbarbutton")
+          : utils.getWindowsFragment(window, "toolbarbutton");
       let elementCount = fragment.childElementCount;
       this._panelMenuView._setEmptyPopupStatus(panelview, !elementCount);
       if (!elementCount) {
@@ -232,13 +232,12 @@ export const CustomizableWidgets = [
       let footer;
       while (--elementCount >= 0) {
         let element = body.children[elementCount];
+        if (element.tagName != "toolbarbutton") {
+          continue;
+        }
         lazy.CustomizableUI.addShortcut(element);
-        element.classList.add("subviewbutton");
         if (element.classList.contains("restoreallitem")) {
           footer = element;
-          element.classList.add("panel-subview-footer-button");
-        } else {
-          element.classList.add("subviewbutton-iconic", "bookmark-item");
         }
       }
       panelview.appendChild(body);

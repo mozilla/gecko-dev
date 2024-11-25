@@ -7,13 +7,16 @@
 const { SessionStoreTestUtils } = ChromeUtils.importESModule(
   "resource://testing-common/SessionStoreTestUtils.sys.mjs"
 );
+const { TabStateFlusher } = ChromeUtils.importESModule(
+  "resource:///modules/sessionstore/TabStateFlusher.sys.mjs"
+);
 const triggeringPrincipal_base64 = E10SUtils.SERIALIZED_SYSTEMPRINCIPAL;
 
 SessionStoreTestUtils.init(this, window);
 
 const TEST_PATH = getRootDirectory(gTestPath).replace(
   "chrome://mochitests/content",
-  "http://example.com"
+  "https://example.com"
 );
 
 let panelMenuWidgetAdded = false;
@@ -421,10 +424,90 @@ add_task(async function testRecentlyClosedTabsFromClosedWindows() {
     recentlyClosedTabsItem.hasAttribute("disabled"),
     "Recently closed tabs button is now disabled"
   );
+  await hideHistoryPanel();
+
   SpecialPowers.popPrefEnv();
   while (gBrowser.tabs.length > 1) {
     await SessionStoreTestUtils.closeTab(
       gBrowser.tabs[gBrowser.tabs.length - 1]
     );
+  }
+});
+
+add_task(async function testRecentlyClosedTabGroupsSingleTab() {
+  // We need to make sure the history is cleared before starting the test
+  await Sanitizer.sanitize(["history"]);
+  await resetClosedTabsAndWindows();
+  prepareHistoryPanel();
+
+  is(gBrowser.visibleTabs.length, 1, "We start with one tab already open");
+
+  let aboutMozillaTab = BrowserTestUtils.addTab(gBrowser, "about:mozilla");
+  let aboutLogoTab = BrowserTestUtils.addTab(gBrowser, "about:logo");
+  let mozillaTabGroup = gBrowser.addTabGroup([aboutMozillaTab, aboutLogoTab], {
+    color: "red",
+    label: "mozilla stuff",
+  });
+  const mozillaTabGroupId = mozillaTabGroup.id;
+  const mozillaTabGroupName = mozillaTabGroup.label;
+  let aboutRobotsTab = BrowserTestUtils.addTab(gBrowser, "about:robots");
+
+  info("load all of the tabs");
+  await Promise.all(
+    [aboutMozillaTab, aboutLogoTab, aboutRobotsTab].map(async t => {
+      await BrowserTestUtils.browserLoaded(t.linkedBrowser);
+      await TabStateFlusher.flush(t.linkedBrowser);
+    })
+  );
+
+  info("close the tab group and wait for it to be removed");
+  let removePromise = BrowserTestUtils.waitForEvent(
+    mozillaTabGroup,
+    "TabGroupRemoved"
+  );
+  gBrowser.removeTabGroup(mozillaTabGroup);
+  await removePromise;
+
+  is(
+    gBrowser.visibleTabs.length,
+    2,
+    "The tab from before the test plus about:robots should still be open"
+  );
+  info("Open the 'Recently closed tabs' panel.");
+  let closeTabsPanel = await openRecentlyClosedTabsMenu();
+  console.log(closeTabsPanel.innerHTML);
+
+  // Click the tab group button in the panel.
+  let tabGroupToolbarButton = closeTabsPanel.querySelector(
+    `.panel-subview-body toolbarbutton[label="${mozillaTabGroupName}"]`
+  );
+  ok(tabGroupToolbarButton, "should find the tab group toolbar button");
+
+  let tabGroupPanelview = document.getElementById(
+    `closed-tabs-tab-group-${mozillaTabGroupId}`
+  );
+  ok(tabGroupPanelview, "should find the tab group panelview");
+
+  EventUtils.sendMouseEvent({ type: "click" }, tabGroupToolbarButton, window);
+  await BrowserTestUtils.waitForEvent(tabGroupPanelview, "ViewShown");
+
+  info("restore the first tab from the closed tab group");
+  let newTabPromise = BrowserTestUtils.waitForNewTab(gBrowser, null, true);
+  let tabToolbarButton = tabGroupPanelview.querySelector(
+    ".panel-subview-body toolbarbutton"
+  );
+  EventUtils.sendMouseEvent({ type: "click" }, tabToolbarButton, window);
+
+  let reopenedTab = await newTabPromise;
+  is(
+    reopenedTab.linkedBrowser.currentURI.spec,
+    "about:mozilla",
+    "Opened the first URL"
+  );
+  info(`restored tab, total open tabs: ${gBrowser.tabs.length}`);
+
+  // clean up extra tabs
+  while (gBrowser.tabs.length > 1) {
+    BrowserTestUtils.removeTab(gBrowser.tabs.at(-1));
   }
 });

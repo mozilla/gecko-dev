@@ -1478,8 +1478,33 @@ toolbar:not(#TabsToolbar) #firefox-view-button {
   }
 }
 
-.tab-contextmenu-group-icon {
+.tab-menu-group-icon,
+.tab-menu-group-icon > .toolbarbutton-icon {
   list-style-image: url("chrome://browser/skin/tabbrowser/tab-group-chicklet.svg");
   -moz-context-properties: fill;
   fill: light-dark(var(--tab-group-color), var(--tab-group-color-invert));
+}
+
+.tab-menu-group-icon.tab-group-collapsed-icon,
+.tab-menu-group-icon.tab-group-collapsed-icon > .toolbarbutton-icon {
+  fill: light-dark(var(--tab-group-color-pale), var(--tab-group-color));
+}
+
+.tab-menu-group-icon.tab-group-closed-icon,
+.tab-menu-group-icon.tab-group-closed-icon > .toolbarbutton-icon {
+  fill: transparent;
+}
+
+/* TODO: Bug 1932779: Collapsed/closed tab group icon border does not work in menuitem-iconic */
+.tab-menu-group-icon.tab-group-collapsed-icon .menu-iconic-icon,
+.tab-menu-group-icon.tab-group-collapsed-icon > .toolbarbutton-icon {
+  border-radius: var(--tab-border-radius);
+  border: 1px solid light-dark(var(--tab-group-color), var(--tab-group-color-pale));
+}
+
+/* TODO: Bug 1932779: Collapsed/closed tab group icon border does not work in menuitem-iconic */
+.tab-menu-group-icon.tab-group-closed-icon .menu-iconic-icon,
+.tab-menu-group-icon.tab-group-closed-icon > .toolbarbutton-icon {
+  border-radius: var(--tab-border-radius);
+  border: 1px solid light-dark(var(--tab-group-color), var(--tab-group-color-invert));
 }

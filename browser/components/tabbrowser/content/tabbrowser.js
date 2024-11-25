@@ -8274,7 +8274,7 @@ var TabContextMenu = {
             document.l10n.setAttributes(item, "tab-context-unnamed-group");
           }
 
-          item.classList.add("menuitem-iconic", "tab-contextmenu-group-icon");
+          item.classList.add("menuitem-iconic", "tab-menu-group-icon");
           item.style.setProperty(
             "--tab-group-color",
             group.style.getPropertyValue("--tab-group-color")
@@ -8282,6 +8282,10 @@ var TabContextMenu = {
           item.style.setProperty(
             "--tab-group-color-invert",
             group.style.getPropertyValue("--tab-group-color-invert")
+          );
+          item.style.setProperty(
+            "--tab-group-color-pale",
+            group.style.getPropertyValue("--tab-group-color-pale")
           );
           submenu.appendChild(item);
         });
