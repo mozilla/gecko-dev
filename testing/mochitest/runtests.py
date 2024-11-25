@@ -917,8 +917,8 @@ def findTestMediaDevices(log):
         ]
     )
     info["video"] = {"name": name, "process": process}
-
-    info["audio"] = {"name": "Monitor of 44100Hz Null Output"}
+    info["speaker"] = {"name": "44100Hz Null Output"}
+    info["audio"] = {"name": "Monitor of {}".format(info["speaker"]["name"])}
     return info
 
 
@@ -2526,7 +2526,7 @@ toolbar#nav-bar {
         if options.useTestMediaDevices:
             prefs["media.audio_loopback_dev"] = self.mediaDevices["audio"]["name"]
             prefs["media.video_loopback_dev"] = self.mediaDevices["video"]["name"]
-            prefs["media.cubeb.output_device"] = "44100Hz Null Output"
+            prefs["media.cubeb.output_device"] = self.mediaDevices["speaker"]["name"]
             prefs["media.volume_scale"] = "1.0"
             self.gstForV4l2loopbackProcess = self.mediaDevices["video"]["process"]
 
