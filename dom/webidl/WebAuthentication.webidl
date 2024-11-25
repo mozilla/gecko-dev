@@ -83,6 +83,14 @@ partial interface PublicKeyCredential {
     [Throws, Pref="security.webauthn.enable_json_serialization_methods"] static PublicKeyCredentialCreationOptions parseCreationOptionsFromJSON(PublicKeyCredentialCreationOptionsJSON options);
 };
 
+// https://w3c.github.io/webauthn/#sctn-getClientCapabilities
+[SecureContext]
+partial interface PublicKeyCredential {
+        [Throws] static Promise<PublicKeyCredentialClientCapabilities> getClientCapabilities();
+};
+
+typedef record<DOMString, boolean> PublicKeyCredentialClientCapabilities;
+
 dictionary PublicKeyCredentialCreationOptionsJSON {
     required PublicKeyCredentialRpEntity                    rp;
     required PublicKeyCredentialUserEntityJSON              user;

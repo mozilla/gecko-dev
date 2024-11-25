@@ -127,6 +127,130 @@ PublicKeyCredential::IsUserVerifyingPlatformAuthenticatorAvailable(
 }
 
 /* static */
+already_AddRefed<Promise> PublicKeyCredential::GetClientCapabilities(
+    GlobalObject& aGlobal, ErrorResult& aError) {
+  RefPtr<Promise> promise =
+      Promise::Create(xpc::CurrentNativeGlobal(aGlobal.Context()), aError);
+  if (aError.Failed()) {
+    return nullptr;
+  }
+
+  // From https://w3c.github.io/webauthn/#sctn-getClientCapabilities:
+  //    Keys in PublicKeyCredentialClientCapabilities MUST be sorted in
+  //    ascending lexicographical order. The set of keys SHOULD contain the set
+  //    of enumeration values of ClientCapability
+  //    (https://w3c.github.io/webauthn/#enumdef-clientcapability) but the
+  //    client MAY omit keys as it deems necessary. [...] The set of keys SHOULD
+  //    also contain a key for each extension implemented by the client, where
+  //    the key is formed by prefixing the string 'extension:' to the extension
+  //    identifier. The associated value for each implemented extension SHOULD
+  //    be true.
+  //
+  Record<nsString, bool> capabilities;
+
+  auto entry = capabilities.Entries().AppendElement();
+  entry->mKey = u"conditionalCreate"_ns;
+  entry->mValue = false;
+
+  entry = capabilities.Entries().AppendElement();
+  entry->mKey = u"conditionalGet"_ns;
+#if defined(MOZ_WIDGET_ANDROID)
+  entry->mValue = false;
+#else
+  entry->mValue = StaticPrefs::security_webauthn_enable_conditional_mediation();
+#endif
+
+  entry = capabilities.Entries().AppendElement();
+  entry->mKey = u"extension:appid"_ns;
+  entry->mValue = true;
+
+  // Bug 1570429: support the appidExclude extension.
+  // entry = capabilities.Entries().AppendElement();
+  // entry->mKey = u"extension:appidExclude"_ns;
+  // entry->mValue = true;
+
+  // Bug 1844448: support the credBlob extension.
+  // entry = capabilities.Entries().AppendElement();
+  // entry->mKey = u"extension:credBlob"_ns;
+  // entry->mValue = true;
+
+  entry = capabilities.Entries().AppendElement();
+  entry->mKey = u"extension:credProps"_ns;
+  entry->mValue = true;
+
+  // Bug 1844449: support the credProtect extension.
+  // entry = capabilities.Entries().AppendElement();
+  // entry->mKey = u"extension:credentialProtectionPolicy"_ns;
+  // entry->mValue = true;
+
+  // Bug 1844449: support the credProtect extension.
+  // entry = capabilities.Entries().AppendElement();
+  // entry->mKey = u"extension:enforceCredentialProtectionPolicy"_ns;
+  // entry->mValue = true;
+
+  // Bug 1844448: support the credBlob extension.
+  // entry = capabilities.Entries().AppendElement();
+  // entry->mKey = u"extension:getCredBlob"_ns;
+  // entry->mValue = true;
+
+  entry = capabilities.Entries().AppendElement();
+  entry->mKey = u"extension:hmacCreateSecret"_ns;
+  entry->mValue = true;
+
+  entry = capabilities.Entries().AppendElement();
+  entry->mKey = u"extension:minPinLength"_ns;
+  entry->mValue = true;
+
+  // Bug 1863819: support the PRF extension
+  // entry = capabilities.Entries().AppendElement();
+  // entry->mKey = u"extension:prf"_ns;
+  // entry->mValue = true;
+
+  entry = capabilities.Entries().AppendElement();
+  entry->mKey = u"hybridTransport"_ns;
+#if defined(XP_MACOSX) || defined(XP_WIN) || defined(MOZ_WIDGET_ANDROID)
+  entry->mValue = true;
+#else
+  entry->mValue = false;
+#endif
+
+  entry = capabilities.Entries().AppendElement();
+  entry->mKey = u"passkeyPlatformAuthenticator"_ns;
+#if defined(XP_MACOSX) || defined(XP_WIN) || defined(MOZ_WIDGET_ANDROID)
+  entry->mValue = true;
+#else
+  entry->mValue = false;
+#endif
+
+  entry = capabilities.Entries().AppendElement();
+  entry->mKey = u"relatedOrigins"_ns;
+  entry->mValue = false;
+
+  entry = capabilities.Entries().AppendElement();
+  entry->mKey = u"signalAllAcceptedCredentials"_ns;
+  entry->mValue = false;
+
+  entry = capabilities.Entries().AppendElement();
+  entry->mKey = u"signalCurrentUserDetails"_ns;
+  entry->mValue = false;
+
+  entry = capabilities.Entries().AppendElement();
+  entry->mKey = u"signalUnknownCredential"_ns;
+  entry->mValue = false;
+
+  entry = capabilities.Entries().AppendElement();
+  entry->mKey = u"userVerifyingPlatformAuthenticator"_ns;
+#if defined(XP_MACOSX) || defined(XP_WIN) || defined(MOZ_WIDGET_ANDROID)
+  entry->mValue = true;
+#else
+  entry->mValue = false;
+#endif
+
+  promise->MaybeResolve(capabilities);
+  return promise.forget();
+}
+
+/* static */
 already_AddRefed<Promise> PublicKeyCredential::IsConditionalMediationAvailable(
     GlobalObject& aGlobal, ErrorResult& aError) {
   RefPtr<Promise> promise =
