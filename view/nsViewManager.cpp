@@ -214,13 +214,20 @@ nsView* nsViewManager::GetDisplayRootFor(nsView* aView) {
   nsView* displayRoot = aView;
   for (;;) {
     nsView* displayParent = displayRoot->GetParent();
-    if (!displayParent) {
-      return displayRoot;
-    }
+    if (!displayParent) return displayRoot;
 
-    // Any view with a widget is a display root.
+    if (displayRoot->GetFloating() && !displayParent->GetFloating())
+      return displayRoot;
+
+    // If we have a combobox dropdown popup within a panel popup, both the view
+    // for the dropdown popup and its parent will be floating, so we need to
+    // distinguish this situation. We do this by looking for a widget. Any view
+    // with a widget is a display root.
     nsIWidget* widget = displayRoot->GetWidget();
     if (widget && widget->GetWindowType() == widget::WindowType::Popup) {
+      NS_ASSERTION(displayRoot->GetFloating() && displayParent->GetFloating(),
+                   "this should only happen with floating views that have "
+                   "floating parents");
       return displayRoot;
     }
 
@@ -748,6 +755,10 @@ void nsViewManager::InsertChild(nsView* aParent, nsView* aChild,
         ReparentWidgets(aChild, aParent);
       }
     }
+
+    // if the parent view is marked as "floating", make the newly added view
+    // float as well.
+    if (aParent->GetFloating()) aChild->SetFloating(true);
   }
 }
 
@@ -782,6 +793,12 @@ void nsViewManager::ResizeView(nsView* aView, const nsRect& aRect) {
   // in the case where mClipRect has been optimized away to just be a null
   // pointer, and this resize is implicitly changing the clip rect, it's OK
   // because layout will change it back again if necessary.
+}
+
+void nsViewManager::SetViewFloating(nsView* aView, bool aFloating) {
+  NS_ASSERTION(aView, "no view");
+
+  aView->SetFloating(aFloating);
 }
 
 void nsViewManager::SetViewVisibility(nsView* aView, ViewVisibility aVisible) {

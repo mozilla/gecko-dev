@@ -197,6 +197,15 @@ class nsViewManager final {
   void SetViewVisibility(nsView* aView, ViewVisibility aVisible);
 
   /**
+   * Set whether the view "floats" above all other views,
+   * which tells the compositor not to consider higher views in
+   * the view hierarchy that would geometrically intersect with
+   * this view. This is a hack, but it fixes some problems with
+   * views that need to be drawn in front of all other views.
+   */
+  void SetViewFloating(nsView* aView, bool aFloatingView);
+
+  /**
    * Set the presshell associated with this manager
    * @param aPresShell - new presshell
    */

@@ -149,7 +149,12 @@ void nsMenuPopupFrame::Init(nsIContent* aContent, nsContainerFrame* aParent,
 
   CreatePopupView();
 
+  // XXX Hack. The popup's view should float above all other views,
+  // so we use the nsView::SetFloating() to tell the view manager
+  // about that constraint.
   nsView* ourView = GetView();
+  nsViewManager* viewManager = ourView->GetViewManager();
+  viewManager->SetViewFloating(ourView, true);
 
   const auto& el = PopupElement();
   mPopupType = PopupType::Panel;

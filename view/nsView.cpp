@@ -419,6 +419,13 @@ void nsView::SetVisibility(ViewVisibility aVisibility) {
   NotifyEffectiveVisibilityChanged(IsEffectivelyVisible());
 }
 
+void nsView::SetFloating(bool aFloatingView) {
+  if (aFloatingView)
+    mVFlags |= NS_VIEW_FLAG_FLOATING;
+  else
+    mVFlags &= ~NS_VIEW_FLAG_FLOATING;
+}
+
 void nsView::InvalidateHierarchy() {
   if (mViewManager->GetRootView() == this) mViewManager->InvalidateHierarchy();
 
