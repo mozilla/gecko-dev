@@ -93,7 +93,10 @@ nsDataHandler::NewChannel(nsIURI* uri, nsILoadInfo* aLoadInfo,
   nsresult rv = channel->SetLoadInfo(aLoadInfo);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  channel.forget(result);
+  rv = channel->Init();
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  *result = channel.forget().downcast<nsBaseChannel>().take();
   return NS_OK;
 }
 

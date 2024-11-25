@@ -64,7 +64,8 @@ nsresult DataChannelChild::NotifyListeners() {
   LoadInfoArgs loadInfoArgs;
   MOZ_ALWAYS_SUCCEEDS(
       mozilla::ipc::LoadInfoToLoadInfoArgs(mLoadInfo, &loadInfoArgs));
-  DataChannelInfo dataChannelInfo(mURI, loadFlags, loadInfoArgs, mContentType);
+  DataChannelInfo dataChannelInfo(mURI, loadFlags, loadInfoArgs, mContentType,
+                                  mChannelId);
   SendNotifyListeners(dataChannelInfo);
   return NS_OK;
 }

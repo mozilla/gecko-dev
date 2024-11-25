@@ -13,18 +13,26 @@
 
 class nsIInputStream;
 
-class nsDataChannel : public nsBaseChannel, public nsIDataChannel {
+class nsDataChannel : public nsBaseChannel,
+                      public nsIDataChannel,
+                      public nsIIdentChannel {
  public:
   NS_DECL_ISUPPORTS_INHERITED
   NS_DECL_NSIDATACHANNEL
+  NS_FORWARD_NSIREQUEST(nsBaseChannel::)
+  NS_FORWARD_NSICHANNEL(nsBaseChannel::)
+  NS_DECL_NSIIDENTCHANNEL
 
   explicit nsDataChannel(nsIURI* uri) { SetURI(uri); };
+
+  nsresult Init();
 
  protected:
   virtual ~nsDataChannel() = default;
   [[nodiscard]] virtual nsresult OpenContentStream(
       bool async, nsIInputStream** result, nsIChannel** channel) override;
   virtual nsresult NotifyListeners();
+  uint64_t mChannelId = 0;
 
  private:
   nsresult MaybeSendDataChannelOpenNotification();

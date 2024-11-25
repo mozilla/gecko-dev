@@ -121,7 +121,12 @@ mozilla::ipc::IPCResult DataChannelParent::RecvNotifyListeners(
   channel->SetLoadInfo(loadInfo);
   channel->SetContentType(aDataChannelInfo.contentType());
 
-  obsService->NotifyObservers(static_cast<nsIChannel*>(channel),
+  rv = channel->SetChannelId(aDataChannelInfo.channelId());
+  if (NS_FAILED(rv)) {
+    return IPC_FAIL(this, "Failed to set channel id");
+  }
+
+  obsService->NotifyObservers(static_cast<nsIIdentChannel*>(channel),
                               "data-channel-opened", nullptr);
   return IPC_OK();
 }

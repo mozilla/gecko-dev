@@ -16,10 +16,13 @@
 #include "nsStringStream.h"
 #include "nsIObserverService.h"
 #include "mozilla/dom/ContentParent.h"
+#include "../protocol/http/nsHttpHandler.h"
 
 using namespace mozilla;
+using namespace mozilla::net;
 
-NS_IMPL_ISUPPORTS_INHERITED(nsDataChannel, nsBaseChannel, nsIDataChannel)
+NS_IMPL_ISUPPORTS_INHERITED(nsDataChannel, nsBaseChannel, nsIDataChannel,
+                            nsIIdentChannel)
 
 /**
  * Helper for performing a fallible unescape.
@@ -119,6 +122,15 @@ nsresult nsDataChannel::OpenContentStream(bool async, nsIInputStream** result,
   return NS_OK;
 }
 
+nsresult nsDataChannel::Init() {
+  NS_ENSURE_STATE(mLoadInfo);
+
+  RefPtr<nsHttpHandler> handler = nsHttpHandler::GetInstance();
+  MOZ_ALWAYS_SUCCEEDS(handler->NewChannelId(mChannelId));
+
+  return NS_OK;
+}
+
 nsresult nsDataChannel::MaybeSendDataChannelOpenNotification() {
   nsCOMPtr<nsILoadInfo> loadInfo;
   nsresult rv = GetLoadInfo(getter_AddRefs(loadInfo));
@@ -148,5 +160,20 @@ nsresult nsDataChannel::MaybeSendDataChannelOpenNotification() {
 nsresult nsDataChannel::NotifyListeners() {
   // Nothing to do here, this will be handled in
   // DataChannelChild::NotifyListeners.
+  return NS_OK;
+}
+
+//-----------------------------------------------------------------------------
+// nsDataChannel::nsIIdentChannel
+
+NS_IMETHODIMP
+nsDataChannel::GetChannelId(uint64_t* aChannelId) {
+  *aChannelId = mChannelId;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsDataChannel::SetChannelId(uint64_t aChannelId) {
+  mChannelId = aChannelId;
   return NS_OK;
 }

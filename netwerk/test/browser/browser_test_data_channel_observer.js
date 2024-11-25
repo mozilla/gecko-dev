@@ -46,7 +46,14 @@ async function waitForDataChannelNotification(uri, contentType, isDocument) {
             subject instanceof Ci.nsIDataChannel,
             "Channel should be a nsIDataChannel instance"
           );
+          ok(
+            subject instanceof Ci.nsIIdentChannel,
+            "Channel should be a nsIIdentChannel instance"
+          );
+
           const channel = subject.QueryInterface(Ci.nsIChannel);
+          channel.QueryInterface(Ci.nsIIdentChannel);
+
           if (channel.URI.spec === uri) {
             is(
               channel.contentType,
@@ -58,6 +65,12 @@ async function waitForDataChannelNotification(uri, contentType, isDocument) {
               channel.isDocument,
               isDocument,
               "Data channel has the expected isDocument flag"
+            );
+
+            is(
+              typeof channel.channelId,
+              "number",
+              "Data channel has a valid channelId"
             );
 
             receivedNotifications++;
