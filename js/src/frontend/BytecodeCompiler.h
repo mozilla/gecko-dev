@@ -132,19 +132,6 @@ extern already_AddRefed<CompilationStencil> CompileGlobalScriptToStencil(
     CompilationInput& input, ScopeBindingCache* scopeCache,
     JS::SourceText<mozilla::Utf8Unit>& srcBuf, ScopeKind scopeKind);
 
-extern UniquePtr<ExtensibleCompilationStencil>
-CompileGlobalScriptToExtensibleStencil(JSContext* maybeCx, FrontendContext* fc,
-                                       CompilationInput& input,
-                                       ScopeBindingCache* scopeCache,
-                                       JS::SourceText<char16_t>& srcBuf,
-                                       ScopeKind scopeKind);
-
-extern UniquePtr<ExtensibleCompilationStencil>
-CompileGlobalScriptToExtensibleStencil(
-    JSContext* maybeCx, FrontendContext* fc, CompilationInput& input,
-    ScopeBindingCache* scopeCache, JS::SourceText<mozilla::Utf8Unit>& srcBuf,
-    ScopeKind scopeKind);
-
 [[nodiscard]] extern bool InstantiateStencils(JSContext* cx,
                                               CompilationInput& input,
                                               const CompilationStencil& stencil,
@@ -209,15 +196,6 @@ already_AddRefed<CompilationStencil> ParseModuleToStencil(
     JS::SourceText<char16_t>& srcBuf);
 already_AddRefed<CompilationStencil> ParseModuleToStencil(
     JSContext* maybeCx, FrontendContext* fc, js::LifoAlloc& tempLifoAlloc,
-    CompilationInput& input, ScopeBindingCache* scopeCache,
-    JS::SourceText<mozilla::Utf8Unit>& srcBuf);
-
-UniquePtr<ExtensibleCompilationStencil> ParseModuleToExtensibleStencil(
-    JSContext* cx, FrontendContext* fc, js::LifoAlloc& tempLifoAlloc,
-    CompilationInput& input, ScopeBindingCache* scopeCache,
-    JS::SourceText<char16_t>& srcBuf);
-UniquePtr<ExtensibleCompilationStencil> ParseModuleToExtensibleStencil(
-    JSContext* cx, FrontendContext* fc, js::LifoAlloc& tempLifoAlloc,
     CompilationInput& input, ScopeBindingCache* scopeCache,
     JS::SourceText<mozilla::Utf8Unit>& srcBuf);
 

@@ -429,42 +429,6 @@ already_AddRefed<CompilationStencil> frontend::CompileGlobalScriptToStencil(
                                           scopeCache, srcBuf, scopeKind);
 }
 
-template <typename Unit>
-static UniquePtr<ExtensibleCompilationStencil>
-CompileGlobalScriptToExtensibleStencilImpl(JSContext* maybeCx,
-                                           FrontendContext* fc,
-                                           CompilationInput& input,
-                                           ScopeBindingCache* scopeCache,
-                                           JS::SourceText<Unit>& srcBuf,
-                                           ScopeKind scopeKind) {
-  using OutputType = UniquePtr<ExtensibleCompilationStencil>;
-  BytecodeCompilerOutput output((OutputType()));
-  if (!CompileGlobalScriptToStencilAndMaybeInstantiate(
-          maybeCx, fc, maybeCx->tempLifoAlloc(), input, scopeCache, srcBuf,
-          scopeKind, NoExtraBindings, output)) {
-    return nullptr;
-  }
-  return std::move(output.as<OutputType>());
-}
-
-UniquePtr<ExtensibleCompilationStencil>
-frontend::CompileGlobalScriptToExtensibleStencil(
-    JSContext* maybeCx, FrontendContext* fc, CompilationInput& input,
-    ScopeBindingCache* scopeCache, JS::SourceText<char16_t>& srcBuf,
-    ScopeKind scopeKind) {
-  return CompileGlobalScriptToExtensibleStencilImpl(
-      maybeCx, fc, input, scopeCache, srcBuf, scopeKind);
-}
-
-UniquePtr<ExtensibleCompilationStencil>
-frontend::CompileGlobalScriptToExtensibleStencil(
-    JSContext* cx, FrontendContext* fc, CompilationInput& input,
-    ScopeBindingCache* scopeCache, JS::SourceText<Utf8Unit>& srcBuf,
-    ScopeKind scopeKind) {
-  return CompileGlobalScriptToExtensibleStencilImpl(cx, fc, input, scopeCache,
-                                                    srcBuf, scopeKind);
-}
-
 static void FireOnNewScript(JSContext* cx,
                             const JS::InstantiateOptions& options,
                             JS::Handle<JSScript*> script) {
@@ -1233,40 +1197,6 @@ already_AddRefed<CompilationStencil> frontend::ParseModuleToStencil(
     SourceText<Utf8Unit>& srcBuf) {
   return ParseModuleToStencilImpl(maybeCx, fc, tempLifoAlloc, input, scopeCache,
                                   srcBuf);
-}
-
-template <typename Unit>
-UniquePtr<ExtensibleCompilationStencil> ParseModuleToExtensibleStencilImpl(
-    JSContext* cx, FrontendContext* fc, js::LifoAlloc& tempLifoAlloc,
-    CompilationInput& input, ScopeBindingCache* scopeCache,
-    SourceText<Unit>& srcBuf) {
-  using OutputType = UniquePtr<ExtensibleCompilationStencil>;
-  BytecodeCompilerOutput output((OutputType()));
-  if (!ParseModuleToStencilAndMaybeInstantiate(cx, fc, tempLifoAlloc, input,
-                                               scopeCache, srcBuf, output)) {
-    return nullptr;
-  }
-  return std::move(output.as<OutputType>());
-}
-
-UniquePtr<ExtensibleCompilationStencil>
-frontend::ParseModuleToExtensibleStencil(JSContext* cx, FrontendContext* fc,
-                                         js::LifoAlloc& tempLifoAlloc,
-                                         CompilationInput& input,
-                                         ScopeBindingCache* scopeCache,
-                                         SourceText<char16_t>& srcBuf) {
-  return ParseModuleToExtensibleStencilImpl(cx, fc, tempLifoAlloc, input,
-                                            scopeCache, srcBuf);
-}
-
-UniquePtr<ExtensibleCompilationStencil>
-frontend::ParseModuleToExtensibleStencil(JSContext* cx, FrontendContext* fc,
-                                         js::LifoAlloc& tempLifoAlloc,
-                                         CompilationInput& input,
-                                         ScopeBindingCache* scopeCache,
-                                         SourceText<Utf8Unit>& srcBuf) {
-  return ParseModuleToExtensibleStencilImpl(cx, fc, tempLifoAlloc, input,
-                                            scopeCache, srcBuf);
 }
 
 template <typename Unit>
