@@ -56,7 +56,6 @@
 #include "builtin/Promise.h"
 #include "builtin/TestingUtility.h"  // js::ParseCompileOptions, js::ParseDebugMetadata
 #include "ds/IdValuePair.h"          // js::IdValuePair
-#include "frontend/BytecodeCompiler.h"  // frontend::{CompileGlobalScriptToExtensibleStencil,ParseModuleToExtensibleStencil}
 #include "frontend/CompilationStencil.h"  // frontend::CompilationStencil
 #include "frontend/FrontendContext.h"     // AutoReportFrontendContext
 #include "gc/GC.h"
@@ -76,12 +75,12 @@
 #include "js/CallAndConstruct.h"  // JS::Call, JS::IsCallable, JS::IsConstructor, JS_CallFunction
 #include "js/CharacterEncoding.h"
 #include "js/CompilationAndEvaluation.h"
-#include "js/CompileOptions.h"
+#include "js/CompileOptions.h"  // JS::CompileOptions, JS::DecodeOptions, JS::InstantiateOptions
 #include "js/Conversions.h"
 #include "js/Date.h"
-#include "js/experimental/CodeCoverage.h"  // js::GetCodeCoverageSummary
-#include "js/experimental/CompileScript.h"  // JS::ParseGlobalScript, JS::PrepareForInstantiate
-#include "js/experimental/JSStencil.h"         // JS::Stencil
+#include "js/experimental/CodeCoverage.h"   // js::GetCodeCoverageSummary
+#include "js/experimental/CompileScript.h"  // JS::CompileGlobalScriptToStencil, JS::CompileModuleScriptToStencil, JS::PrepareForInstantiate
+#include "js/experimental/JSStencil.h"  // JS::Stencil, JS::EncodeStencil, JS::DecodeStencil, JS::InstantiateGlobalStencil
 #include "js/experimental/PCCountProfiling.h"  // JS::{Start,Stop}PCCountProfiling, JS::PurgePCCounts, JS::GetPCCountScript{Count,Summary,Contents}
 #include "js/experimental/TypedData.h"         // JS_GetObjectAsUint8Array
 #include "js/friend/DumpFunctions.h"  // js::Dump{Backtrace,Heap,Object}, JS::FormatStackDump, js::IgnoreNurseryObjects
@@ -100,6 +99,7 @@
 #include "js/Stack.h"
 #include "js/String.h"  // JS::GetLinearStringLength, JS::StringToLinearString
 #include "js/StructuredClone.h"
+#include "js/Transcoding.h"  // JS::TranscodeResult, JS::TranscodeRange, JS::TranscodeBuffer, JS::IsTranscodeFailureResult
 #include "js/UbiNode.h"
 #include "js/UbiNodeBreadthFirst.h"
 #include "js/UbiNodeShortestPaths.h"
@@ -7532,25 +7532,27 @@ static bool CompileToStencil(JSContext* cx, uint32_t argc, Value* vp) {
     }
   }
 
-  AutoReportFrontendContext fc(cx);
   RefPtr<JS::Stencil> stencil;
   if (isModule) {
-    stencil = JS::CompileModuleScriptToStencil(&fc, options, srcBuf);
+    stencil = JS::CompileModuleScriptToStencil(cx, options, srcBuf);
   } else {
-    stencil = JS::CompileGlobalScriptToStencil(&fc, options, srcBuf);
+    stencil = JS::CompileGlobalScriptToStencil(cx, options, srcBuf);
   }
   if (!stencil) {
     return false;
   }
 
-  if (!SetSourceOptions(cx, &fc, stencil->source, displayURL, sourceMapURL)) {
-    return false;
-  }
-
   JS::InstantiationStorage storage;
-  if (prepareForInstantiate) {
-    if (!JS::PrepareForInstantiate(&fc, *stencil, storage)) {
+  {
+    AutoReportFrontendContext fc(cx);
+    if (!SetSourceOptions(cx, &fc, stencil->source, displayURL, sourceMapURL)) {
       return false;
+    }
+
+    if (prepareForInstantiate) {
+      if (!JS::PrepareForInstantiate(&fc, *stencil, storage)) {
+        return false;
+      }
     }
   }
 
@@ -7695,41 +7697,32 @@ static bool CompileToStencilXDR(JSContext* cx, uint32_t argc, Value* vp) {
     }
   }
 
-  /* Compile the script text to stencil. */
-  AutoReportFrontendContext fc(cx);
-  frontend::NoScopeBindingCache scopeCache;
-  Rooted<frontend::CompilationInput> input(cx,
-                                           frontend::CompilationInput(options));
-  UniquePtr<frontend::ExtensibleCompilationStencil> stencil;
+  RefPtr<JS::Stencil> stencil;
   if (isModule) {
-    stencil = frontend::ParseModuleToExtensibleStencil(
-        cx, &fc, cx->tempLifoAlloc(), input.get(), &scopeCache, srcBuf);
+    stencil = JS::CompileModuleScriptToStencil(cx, options, srcBuf);
   } else {
-    stencil = frontend::CompileGlobalScriptToExtensibleStencil(
-        cx, &fc, input.get(), &scopeCache, srcBuf, ScopeKind::Global);
+    stencil = JS::CompileGlobalScriptToStencil(cx, options, srcBuf);
   }
   if (!stencil) {
     return false;
   }
 
-  if (!SetSourceOptions(cx, &fc, stencil->source, displayURL, sourceMapURL)) {
-    return false;
+  {
+    AutoReportFrontendContext fc(cx);
+    if (!SetSourceOptions(cx, &fc, stencil->source, displayURL, sourceMapURL)) {
+      return false;
+    }
   }
 
   /* Serialize the stencil to XDR. */
   JS::TranscodeBuffer xdrBytes;
-  {
-    frontend::BorrowingCompilationStencil borrowingStencil(*stencil);
-    bool succeeded = false;
-    if (!borrowingStencil.serializeStencils(cx, input.get(), xdrBytes,
-                                            &succeeded)) {
-      return false;
-    }
-    if (!succeeded) {
-      fc.clearAutoReport();
-      JS_ReportErrorASCII(cx, "Encoding failure");
-      return false;
-    }
+  auto result = JS::EncodeStencil(cx, stencil, xdrBytes);
+  if (result == JS::TranscodeResult::Throw) {
+    return false;
+  }
+  if (JS::IsTranscodeFailureResult(result)) {
+    JS_ReportErrorASCII(cx, "Encoding failure");
+    return false;
   }
 
   Rooted<StencilXDRBufferObject*> xdrObj(
@@ -7785,31 +7778,27 @@ static bool EvalStencilXDR(JSContext* cx, uint32_t argc, Value* vp) {
     }
   }
 
-  /* Prepare the CompilationStencil for decoding. */
-  AutoReportFrontendContext fc(cx);
-  frontend::CompilationStencil stencil(nullptr);
-
-  /* Deserialize the stencil from XDR. */
   JS::TranscodeRange xdrRange(xdrObj->buffer(), xdrObj->bufferLength());
-  bool succeeded = false;
-  if (!stencil.deserializeStencils(&fc, options, xdrRange, &succeeded)) {
+  JS::DecodeOptions decodeOptions(options);
+  RefPtr<JS::Stencil> stencil;
+  auto result =
+      JS::DecodeStencil(cx, decodeOptions, xdrRange, getter_AddRefs(stencil));
+  if (result == JS::TranscodeResult::Throw) {
     return false;
   }
-  if (!succeeded) {
-    fc.clearAutoReport();
+  if (JS::IsTranscodeFailureResult(result)) {
     JS_ReportErrorASCII(cx, "Decoding failure");
     return false;
   }
 
-  if (stencil.isModule()) {
-    fc.clearAutoReport();
+  if (stencil->isModule()) {
     JS_ReportErrorASCII(cx,
                         "evalStencilXDR: Module stencil cannot be evaluated. "
                         "Use instantiateModuleStencilXDR instead");
     return false;
   }
 
-  if (!js::ValidateLazinessOfStencilAndGlobal(cx, stencil)) {
+  if (!js::ValidateLazinessOfStencilAndGlobal(cx, *stencil)) {
     return false;
   }
 
@@ -7820,7 +7809,7 @@ static bool EvalStencilXDR(JSContext* cx, uint32_t argc, Value* vp) {
     instantiateOptions.hideScriptFromDebugger = true;
   }
   RootedScript script(
-      cx, JS::InstantiateGlobalStencil(cx, instantiateOptions, &stencil));
+      cx, JS::InstantiateGlobalStencil(cx, instantiateOptions, stencil));
   if (!script) {
     return false;
   }
