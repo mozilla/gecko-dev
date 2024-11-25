@@ -3312,11 +3312,6 @@ class nsIFrame : public nsQueryFrame {
   nsView* GetClosestView(nsPoint* aOffset = nullptr) const;
 
   /**
-   * Find the closest ancestor (excluding |this| !) that has a view
-   */
-  nsIFrame* GetAncestorWithView() const;
-
-  /**
    * Sets the view's attributes from the frame style.
    * Call this for nsChangeHint_SyncFrameView style changes or when the view
    * has just been created.
