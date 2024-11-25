@@ -4,7 +4,7 @@ pypi:Sphinx==7.4.7 ; python_version > '3.8'
 pypi:boto3==1.34.88
 pypi:fluent.pygments==1.0
 pypi:livereload==2.6.3
-pypi:mots==0.11.1
+pypi:mots==0.13.0.post1
 pypi:myst-parser==2.0
 pypi:sphinx-copybutton==0.5.2
 pypi:sphinx-design==0.5.0
