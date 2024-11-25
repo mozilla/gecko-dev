@@ -1025,8 +1025,8 @@ void HttpChannelChild::OnStopRequest(
         mLastStatusReported, now, mTransferSize, kCacheUnknown,
         mLoadInfo->GetInnerWindowID(),
         mLoadInfo->GetOriginAttributes().IsPrivateBrowsing(),
-        mRequestHead.Version(), &mTransactionTimings, std::move(mSource),
-        Some(nsDependentCString(contentType.get())));
+        mRequestHead.Version(), mClassOfService.Flags(), &mTransactionTimings,
+        std::move(mSource), Some(nsDependentCString(contentType.get())));
   }
 
   TimeDuration channelCompletionDuration = now - mAsyncOpenTime;
@@ -1598,9 +1598,9 @@ void HttpChannelChild::Redirect1Begin(
         NetworkLoadType::LOAD_REDIRECT, mLastStatusReported, TimeStamp::Now(),
         0, kCacheUnknown, mLoadInfo->GetInnerWindowID(),
         mLoadInfo->GetOriginAttributes().IsPrivateBrowsing(),
-        mRequestHead.Version(), &mTransactionTimings, std::move(mSource),
-        Some(nsDependentCString(contentType.get())), newOriginalURI,
-        redirectFlags, channelId);
+        mRequestHead.Version(), mClassOfService.Flags(), &mTransactionTimings,
+        std::move(mSource), Some(nsDependentCString(contentType.get())),
+        newOriginalURI, redirectFlags, channelId);
   }
 
   mSecurityInfo = securityInfo;
@@ -1921,7 +1921,7 @@ HttpChannelChild::CompleteRedirectSetup(nsIStreamListener* aListener) {
         mChannelCreationTimestamp, mLastStatusReported, 0, kCacheUnknown,
         mLoadInfo->GetInnerWindowID(),
         mLoadInfo->GetOriginAttributes().IsPrivateBrowsing(),
-        mRequestHead.Version());
+        mRequestHead.Version(), mClassOfService.Flags());
   }
   StoreIsPending(true);
   StoreWasOpened(true);
@@ -2264,7 +2264,7 @@ nsresult HttpChannelChild::AsyncOpenInternal(nsIStreamListener* aListener) {
         mChannelCreationTimestamp, mLastStatusReported, 0, kCacheUnknown,
         mLoadInfo->GetInnerWindowID(),
         mLoadInfo->GetOriginAttributes().IsPrivateBrowsing(),
-        mRequestHead.Version());
+        mRequestHead.Version(), mClassOfService.Flags());
   }
   StoreIsPending(true);
   StoreWasOpened(true);

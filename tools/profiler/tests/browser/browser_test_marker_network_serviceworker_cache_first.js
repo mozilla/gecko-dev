@@ -304,6 +304,7 @@ add_task(async function test_network_markers_service_worker_use() {
         type: "Network",
         URI: expectedFile,
         httpVersion: "http/1.1",
+        classOfService: "Unset",
         requestMethod: "GET",
         contentType: Expect.stringMatches(/^(text\/html|image\/svg\+xml)$/),
         startTime: Expect.number(),
@@ -327,6 +328,7 @@ add_task(async function test_network_markers_service_worker_use() {
           ...commonDataProperties,
           status: "STATUS_REDIRECT",
           httpVersion: "http/1.1",
+          classOfService: "UrgentStart",
           contentType: null,
           cache: "Unresolved",
           RedirectURI: expectedFile,
@@ -338,6 +340,7 @@ add_task(async function test_network_markers_service_worker_use() {
         Assert.objectContainsOnly(parentStopMarker.data, {
           ...commonDataProperties,
           status: "STATUS_STOP",
+          classOfService: "UrgentStart",
         });
 
         Assert.objectContainsOnly(contentMarker.data, {

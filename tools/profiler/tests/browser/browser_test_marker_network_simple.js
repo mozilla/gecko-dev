@@ -50,6 +50,7 @@ add_task(async function test_network_markers() {
         status: "STATUS_STOP",
         URI: url,
         httpVersion: "http/1.1",
+        classOfService: "UrgentStart",
         requestMethod: "GET",
         contentType: "text/html",
         startTime: Expect.number(),

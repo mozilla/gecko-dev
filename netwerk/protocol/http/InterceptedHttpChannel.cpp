@@ -111,7 +111,7 @@ void InterceptedHttpChannel::AsyncOpenInternal() {
         mChannelCreationTimestamp, mLastStatusReported, 0, kCacheUnknown,
         mLoadInfo->GetInnerWindowID(),
         mLoadInfo->GetOriginAttributes().IsPrivateBrowsing(),
-        mRequestHead.Version());
+        mRequestHead.Version(), mClassOfService.Flags());
   }
 
   // If an error occurs in this file we must ensure mListener callbacks are
@@ -550,7 +550,8 @@ InterceptedHttpChannel::Cancel(nsresult aStatus) {
         mLastStatusReported, TimeStamp::Now(), size, kCacheUnknown,
         mLoadInfo->GetInnerWindowID(),
         mLoadInfo->GetOriginAttributes().IsPrivateBrowsing(),
-        mRequestHead.Version(), &mTransactionTimings, std::move(mSource));
+        mRequestHead.Version(), mClassOfService.Flags(), &mTransactionTimings,
+        std::move(mSource));
   }
 
   MOZ_DIAGNOSTIC_ASSERT(NS_FAILED(aStatus));
@@ -779,9 +780,9 @@ InterceptedHttpChannel::ResetInterception(bool aBypass) {
         NetworkLoadType::LOAD_REDIRECT, mLastStatusReported, TimeStamp::Now(),
         size, kCacheUnknown, mLoadInfo->GetInnerWindowID(),
         mLoadInfo->GetOriginAttributes().IsPrivateBrowsing(),
-        mRequestHead.Version(), &mTransactionTimings, std::move(mSource),
-        Some(nsDependentCString(contentType.get())), mURI, flags,
-        newBaseChannel->ChannelId());
+        mRequestHead.Version(), mClassOfService.Flags(), &mTransactionTimings,
+        std::move(mSource), Some(nsDependentCString(contentType.get())), mURI,
+        flags, newBaseChannel->ChannelId());
   }
 
   rv = SetupReplacementChannel(mURI, newChannel, true, flags);
@@ -1224,8 +1225,8 @@ InterceptedHttpChannel::OnStopRequest(nsIRequest* aRequest, nsresult aStatus) {
         mLastStatusReported, TimeStamp::Now(), size, kCacheUnknown,
         mLoadInfo->GetInnerWindowID(),
         mLoadInfo->GetOriginAttributes().IsPrivateBrowsing(),
-        mRequestHead.Version(), &mTransactionTimings, std::move(mSource),
-        Some(nsDependentCString(contentType.get())));
+        mRequestHead.Version(), mClassOfService.Flags(), &mTransactionTimings,
+        std::move(mSource), Some(nsDependentCString(contentType.get())));
   }
 
   nsresult rv = NS_OK;

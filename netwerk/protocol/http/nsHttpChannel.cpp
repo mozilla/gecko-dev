@@ -5750,9 +5750,9 @@ nsresult nsHttpChannel::SetupReplacementChannel(nsIURI* newURI,
         NetworkLoadType::LOAD_REDIRECT, mLastStatusReported, TimeStamp::Now(),
         size, mCacheDisposition, mLoadInfo->GetInnerWindowID(),
         mLoadInfo->GetOriginAttributes().IsPrivateBrowsing(),
-        mRequestHead.Version(), &timings, std::move(mSource),
-        Some(nsDependentCString(contentType.get())), newURI, redirectFlags,
-        channelId);
+        mRequestHead.Version(), mClassOfService.Flags(), &timings,
+        std::move(mSource), Some(nsDependentCString(contentType.get())), newURI,
+        redirectFlags, channelId);
   }
 
   nsresult rv = HttpBaseChannel::SetupReplacementChannel(
@@ -6369,7 +6369,8 @@ nsresult nsHttpChannel::CancelInternal(nsresult status) {
         mLastStatusReported, TimeStamp::Now(), size, mCacheDisposition,
         mLoadInfo->GetInnerWindowID(),
         mLoadInfo->GetOriginAttributes().IsPrivateBrowsing(),
-        mRequestHead.Version(), &mTransactionTimings, std::move(mSource));
+        mRequestHead.Version(), mClassOfService.Flags(), &mTransactionTimings,
+        std::move(mSource));
   }
 
   // If we don't have mTransactionPump and mCachePump, we need to call
@@ -6718,7 +6719,7 @@ void nsHttpChannel::AsyncOpenFinal(TimeStamp aTimeStamp) {
         mChannelCreationTimestamp, mLastStatusReported, 0, mCacheDisposition,
         mLoadInfo->GetInnerWindowID(),
         mLoadInfo->GetOriginAttributes().IsPrivateBrowsing(),
-        mRequestHead.Version());
+        mRequestHead.Version(), mClassOfService.Flags());
   }
 
   // Added due to PauseTask/DelayHttpChannel
@@ -8814,8 +8815,8 @@ nsresult nsHttpChannel::ContinueOnStopRequest(nsresult aStatus, bool aIsFromNet,
         mLastStatusReported, TimeStamp::Now(), size, mCacheDisposition,
         mLoadInfo->GetInnerWindowID(),
         mLoadInfo->GetOriginAttributes().IsPrivateBrowsing(),
-        mRequestHead.Version(), &mTransactionTimings, std::move(mSource),
-        Some(nsDependentCString(contentType.get())));
+        mRequestHead.Version(), mClassOfService.Flags(), &mTransactionTimings,
+        std::move(mSource), Some(nsDependentCString(contentType.get())));
   }
 
   if (mAuthRetryPending &&

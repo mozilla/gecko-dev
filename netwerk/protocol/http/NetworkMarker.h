@@ -9,6 +9,7 @@
 
 #include "mozilla/ProfilerMarkers.h"
 #include "nsHttp.h"
+#include "nsIClassOfService.h"
 
 namespace mozilla {
 namespace net {
@@ -29,6 +30,7 @@ void profiler_add_network_marker(
     mozilla::TimeStamp aEnd, int64_t aCount,
     mozilla::net::CacheDisposition aCacheDisposition, uint64_t aInnerWindowID,
     bool aIsPrivateBrowsing, mozilla::net::HttpVersion aHttpVersion,
+    unsigned long aClassOfServiceFlag,
     const mozilla::net::TimingStruct* aTimings = nullptr,
     mozilla::UniquePtr<mozilla::ProfileChunkedBuffer> aSource = nullptr,
     const mozilla::Maybe<nsDependentCString>& aContentType = mozilla::Nothing(),
