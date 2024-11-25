@@ -1010,6 +1010,18 @@ class MOZ_STACK_CLASS OrderedHashTableImpl {
   static constexpr size_t offsetOfDataChain() { return offsetof(Data, chain); }
   static constexpr size_t sizeofData() { return sizeof(Data); }
 
+#ifdef DEBUG
+  mozilla::Maybe<HashNumber> hash(const Lookup& l) const {
+    // We can only compute the hash number if we have an allocated buffer
+    // because the buffer contains the hash code scrambler.
+    if (!hasAllocatedBuffer()) {
+      return {};
+    }
+    return mozilla::Some(prepareHash(l));
+  }
+#endif
+
+ private:
   HashNumber prepareHash(const Lookup& l) const {
     MOZ_ASSERT(hasAllocatedBuffer(),
                "the hash code scrambler is allocated in the buffer");
@@ -1017,7 +1029,6 @@ class MOZ_STACK_CLASS OrderedHashTableImpl {
     return mozilla::ScrambleHashCode(Ops::hash(l, hcs));
   }
 
- private:
   /* The size of the hash table, in elements. Always a power of two. */
   uint32_t hashBuckets() const {
     return 1 << (js::kHashNumberBits - getHashShift());
@@ -1313,7 +1324,11 @@ class MOZ_STACK_CLASS OrderedHashMapImpl {
     return impl.put(cx, Entry(std::forward<K>(key), std::forward<V>(value)));
   }
 
-  HashNumber hash(const Lookup& key) const { return impl.prepareHash(key); }
+#ifdef DEBUG
+  mozilla::Maybe<HashNumber> hash(const Lookup& key) const {
+    return impl.hash(key);
+  }
+#endif
 
   template <typename GetNewKey>
   mozilla::Maybe<Key> rekeyOneEntry(Lookup& current, GetNewKey&& getNewKey) {
@@ -1416,7 +1431,11 @@ class MOZ_STACK_CLASS OrderedHashSetImpl {
 
   void destroy(JS::GCContext* gcx) { impl.destroy(gcx); }
 
-  HashNumber hash(const Lookup& value) const { return impl.prepareHash(value); }
+#ifdef DEBUG
+  mozilla::Maybe<HashNumber> hash(const Lookup& value) const {
+    return impl.hash(value);
+  }
+#endif
 
   template <typename GetNewKey>
   mozilla::Maybe<T> rekeyOneEntry(Lookup& current, GetNewKey&& getNewKey) {

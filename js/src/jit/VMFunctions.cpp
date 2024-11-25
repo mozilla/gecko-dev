@@ -3166,12 +3166,13 @@ bool MapObjectSetFromIC(JSContext* cx, Handle<MapObject*> obj, HandleValue key,
 template <class T>
 static mozilla::HashNumber HashValue(JSContext* cx, T* obj,
                                      const Value* value) {
-  RootedValue rootedValue(cx, *value);
+  MOZ_ASSERT(obj->size() > 0);
+
   HashableValue hashable;
-  MOZ_ALWAYS_TRUE(hashable.setValue(cx, rootedValue));
+  MOZ_ALWAYS_TRUE(hashable.setValue(cx, *value));
 
   using Table = typename T::Table;
-  return Table(obj).hash(hashable);
+  return *Table(obj).hash(hashable);
 }
 #endif
 

@@ -477,7 +477,7 @@ void MapObject::trace(JSTracer* trc, JSObject* obj) {
   Table(mapObj).trace(trc);
 }
 
-using NurseryKeysVector = GCVector<Value, 0, SystemAllocPolicy>;
+using NurseryKeysVector = GCVector<Value, 4, SystemAllocPolicy>;
 
 template <typename TableObject>
 static NurseryKeysVector* GetNurseryKeys(TableObject* t) {
