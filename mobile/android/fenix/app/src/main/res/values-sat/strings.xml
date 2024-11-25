@@ -117,6 +117,12 @@
     <!-- Text for the message displayed for the popup promoting the long press of navigation in the navigation bar. -->
     <string name="navbar_navigation_buttons_cfr_message">ᱱᱚᱶᱟ ᱴᱮᱵᱽ ᱱᱟᱜᱟᱢ ᱨᱮ ᱥᱟᱦᱴᱟ ᱛᱟᱞᱟ ᱨᱮ ᱩᱪᱟᱹᱲᱚᱜ ᱞᱟᱹᱜᱤᱫ ᱥᱟᱨ ᱪᱤᱱᱦᱟᱹ ᱨᱮ ᱴᱤᱯᱟᱹᱣ ᱢᱮ ᱾</string>
 
+    <!-- Address bar swipe "contextual feature recommendation" (CFR) -->
+    <!-- Text for the title displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
+    <string name="address_bar_swipe_cfr_title">ᱴᱮᱵᱽ ᱵᱚᱫᱚᱞ ᱞᱟᱹᱜᱤᱫ ᱴᱩᱞᱵᱟᱨ ᱠᱷᱚᱥᱨᱚᱫ ᱢᱮ</string>
+    <!-- Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
+    <string name="address_bar_swipe_cfr_message">ᱵᱚᱫᱚᱞ ᱞᱟᱹᱜᱤᱫ ᱞᱮᱝᱜᱟ ᱥᱮ ᱡᱚᱡᱚᱢ ᱥᱮᱫ ᱠᱷᱚᱥᱨᱚᱫ ᱢᱮ ᱾ᱱᱟᱶᱟ ᱴᱮᱵᱽ ᱡᱷᱤᱡᱽ ᱞᱟᱹᱜᱤᱫ ᱟᱢᱟᱜ ᱢᱩᱪᱟᱹᱫ ᱴᱮᱵᱽ ᱨᱮ ᱞᱮᱝᱜᱟ ᱥᱮᱫ ᱠᱷᱚᱥᱨᱚᱫ ᱢᱮ ᱾</string>
+
     <!-- Tablet navigation bar "contextual feature recommendation" (CFR) -->
     <!-- Text for the title displayed in the contextual feature recommendation popup promoting the tablet navigation bar. -->
     <string name="tablet_nav_bar_cfr_title" moz:removedIn="132" tools:ignore="UnusedResources">ᱱᱟᱶᱟ ᱺ ᱢᱤᱫ ᱴᱤᱯᱟᱹᱣ ᱛᱟᱭᱚᱢ ᱟᱨ ᱢᱟᱲᱟᱝ ᱪᱤᱱᱦᱟᱹ</string>
@@ -249,8 +255,12 @@
     <string name="browser_menu_open_in_regular_tab">ᱱᱟᱶᱟ ᱴᱮᱵᱽ ᱨᱮ ᱡᱷᱤᱡᱽ ᱢᱮ</string>
     <!-- Browser menu toggle that adds a shortcut to the site on the device home screen. -->
     <string name="browser_menu_add_to_homescreen">ᱚᱲᱟᱜ ᱥᱠᱨᱤᱱ ᱨᱮ ᱥᱮᱞᱮᱫᱽ ᱢᱮ</string>
+    <!-- Browser menu toggle that adds a PWA of the site on the device home screen. -->
+    <string name="browser_menu_add_app_to_homescreen">ᱚᱲᱟᱜ ᱥᱠᱨᱤᱱ ᱨᱮ ᱮᱯ ᱥᱮᱞᱮᱫ ᱢᱮ</string>
     <!-- Browser menu toggle that adds a shortcut to the site on the device home screen. -->
     <string name="browser_menu_add_to_homescreen_2">ᱚᱲᱟᱜ ᱥᱠᱨᱤᱱ ᱨᱮ ᱥᱮᱞᱮᱫᱽ ᱢᱮ…</string>
+    <!-- Browser menu toggle that adds a PWA of the site on the device home screen. -->
+    <string name="browser_menu_add_app_to_homescreen_2">ᱚᱲᱟᱜ ᱥᱠᱨᱤᱱ ᱨᱮ ᱮᱯ ᱥᱮᱞᱮᱫ ᱢᱮ‌ …</string>
     <!-- Text for notifying users that Xiaomi devices require additional permissions to add to home screen -->
     <string name="browser_menu_add_to_homescreen_xiaomi">Xiaomi ᱥᱟᱷᱚᱱ ᱠᱚ ᱚᱲᱟᱜ ᱥᱠᱨᱤᱱ ᱨᱮ ᱠᱷᱟᱴᱚ ᱠᱚ ᱥᱮᱞᱮᱫ ᱞᱟᱹᱜᱤᱫ ᱟᱨᱦᱚᱸ ᱟᱫᱮᱨ ᱮᱢ ᱛᱮ ᱦᱩᱭᱩᱜᱼᱟ ᱾ ᱟᱢᱟᱜ ᱥᱟᱡᱟᱣ ᱠᱚ ᱧᱮᱞ ᱵᱤᱲᱟᱹᱣ ᱢᱮ ᱾</string>
     <!-- Content description (not visible, for screen readers etc.) for the Resync tabs button -->
@@ -337,9 +347,19 @@
     <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar custom tab menu. -->
     <string name="browser_custom_tab_menu_handlebar_content_description">ᱠᱟᱥᱴᱚᱢ ᱴᱮᱵᱽ ᱢᱮᱱᱩ ᱥᱤᱴ ᱵᱚᱱᱫᱚᱭ ᱢᱮ</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-    <string name="browser_menu_tools_description_with_translate">ᱯᱟᱲᱦᱟᱣᱤᱭᱟᱹ ᱧᱮᱞ, ᱛᱚᱨᱡᱚᱢᱟ, ᱪᱷᱟᱯᱟ, ᱦᱟᱹᱴᱤᱧ, ᱮᱯ ᱡᱷᱤᱡᱽ ᱢᱮ</string>
+    <string name="browser_menu_tools_description_with_translate" moz:removedIn="133" tools:ignore="UnusedResources">ᱯᱟᱲᱦᱟᱣᱤᱭᱟᱹ ᱧᱮᱞ, ᱛᱚᱨᱡᱚᱢᱟ, ᱪᱷᱟᱯᱟ, ᱦᱟᱹᱴᱤᱧ, ᱮᱯ ᱡᱷᱤᱡᱽ ᱢᱮ</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-    <string name="browser_menu_tools_description">ᱯᱟᱲᱦᱟᱣᱤᱭᱟᱹ ᱧᱮᱞ, ᱪᱷᱟᱯᱟ, ᱦᱟᱹᱴᱤᱧ, ᱮᱯ ᱡᱷᱤᱡᱽ ᱢᱮ</string>
+    <string name="browser_menu_tools_description" moz:removedIn="133" tools:ignore="UnusedResources">ᱯᱟᱲᱦᱟᱣᱤᱭᱟᱹ ᱧᱮᱞ, ᱪᱷᱟᱯᱟ, ᱦᱟᱹᱴᱤᱧ, ᱮᱯ ᱡᱷᱤᱡᱽ ᱢᱮ</string>
+    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu
+         The first parameter is the label of the report site issue (for example: Report Site issue) -->
+    <string name="browser_menu_tools_description_with_translate_with_report_site">ᱯᱟᱲᱦᱟᱣᱤᱭᱟᱹ ᱧᱮᱞ, ᱛᱚᱨᱡᱚᱢᱟ, %s, ᱪᱷᱟᱯᱟ, ᱦᱟᱹᱴᱤᱧ, ᱮᱯ ᱡᱷᱤᱡᱽ ᱢᱮ</string>
+    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
+    <string name="browser_menu_tools_description_with_translate_without_report_site">ᱯᱟᱲᱦᱟᱣᱤᱭᱟᱹ ᱧᱮᱞ, ᱛᱚᱨᱡᱚᱢᱟ, ᱪᱷᱟᱯᱟ, ᱦᱟᱹᱴᱤᱧ, ᱮᱯ ᱡᱷᱤᱡᱽ ᱢᱮ</string>
+    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu
+         The first parameter is the label of the report site issue (for example: Report Site issue) -->
+    <string name="browser_menu_tools_description_with_report_site">ᱯᱟᱲᱦᱟᱣᱤᱡ ᱧᱮᱞ, %s, ᱪᱷᱟᱯᱟ, ᱦᱟᱹᱴᱤᱧ, ᱮᱯ ᱡᱷᱤᱡᱽ‌ ᱢᱮ</string>
+    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
+    <string name="browser_menu_tools_description_without_report_site">ᱯᱟᱲᱦᱟᱣᱤᱭᱟᱹ ᱧᱮᱞ, ᱪᱷᱟᱯᱟ, ᱦᱟᱹᱴᱤᱧ, ᱮᱯ ᱡᱷᱤᱡᱽ ᱢᱮ</string>
     <!-- Browser menu label that navigates to the save sub-menu, which contains various save related menu items such as
          bookmarking a page, saving to collection, shortcut or as a PDF, and adding to home screen -->
     <string name="browser_menu_save">ᱥᱟᱺᱪᱟᱣ ᱢᱮ</string>
@@ -951,7 +971,11 @@
     <string name="exceptions_empty_message_learn_more_link">ᱰᱷᱮᱨ ᱥᱮᱬᱟᱭ ᱢᱮ</string>
 
     <!-- Preference switch for usage and technical data collection -->
-    <string name="preference_usage_data">ᱵᱮᱵᱷᱟᱨ ᱟᱨ ᱴᱮᱠᱱᱤᱠᱟᱹᱞ ᱰᱟᱴᱟ ᱠᱚ</string>
+    <string name="preference_usage_data" moz:removedIn="134" tools:ignore="UnusedResources">ᱵᱮᱵᱷᱟᱨ ᱟᱨ ᱴᱮᱠᱱᱤᱠᱟᱹᱞ ᱰᱟᱴᱟ ᱠᱚ</string>
+    <!-- Preference switch for usage and technical data collection -->
+    <string name="preference_usage_data_1">ᱴᱮᱠᱱᱤᱠᱟᱞ ᱟᱨ ᱤᱱᱴᱟᱨᱮᱠᱥᱚᱱ ᱰᱟᱴᱟ</string>
+    <!-- Preference switch for usage and technical learn more link -->
+    <string name="preference_usage_data_learn_more" tools:ignore="UnusedResources">ᱰᱷᱮᱨ ᱥᱮᱬᱟᱭ ᱢᱮ</string>
     <!-- Preference description for usage and technical data collection -->
     <string name="preferences_usage_data_description">ᱟᱢᱟᱜ ᱵᱨᱟᱣᱡᱟᱚᱨ ᱨᱮᱭᱟᱜ ᱠᱟᱹᱢᱤ, ᱭᱩᱥᱮᱡ, ᱦᱟᱰᱣᱮᱨ ᱟᱨ ᱠᱟᱹᱥᱴᱚᱢᱟᱭᱡᱮᱥᱚᱱ ᱰᱟᱴᱟ ᱠᱚ Mozilla ᱥᱟᱞᱟᱜ ᱦᱟᱹᱴᱤᱧᱚᱜ ᱠᱟᱱᱟ ᱚᱠᱟ ᱫᱚ %1$s ᱵᱮᱥ ᱛᱮᱭᱟᱜ ᱨᱮ ᱜᱚᱲᱚ ᱮᱢᱟᱭ</string>
     <!-- Preference switch for marketing data collection -->
@@ -1250,6 +1274,30 @@
 
 
     <!-- WebCompat Reporter -->
+
+
+    <!-- WebCompat Reporter -->
+    <!-- The title of the Web Compat Reporter feature. This is displayed in the top app bar. -->
+    <string name="webcompat_reporter_screen_title">ᱨᱟᱹᱯᱩᱫ ᱥᱟᱭᱤᱴ ᱠᱷᱚᱵᱚᱨ ᱢᱮ</string>
+    <!-- The description of the Web Compat Reporter feature. This first parameter is the name of the application (For example: Fenix) -->
+    <string name="webcompat_reporter_description">ᱡᱷᱚᱛᱚ ᱦᱚᱲ ᱞᱟᱹᱜᱤᱫ %1$s ᱵᱮᱥ ᱵᱮᱱᱟᱣ ᱜᱚᱲᱚ ᱮᱢᱚᱜ ᱢᱮ ᱾  ᱢᱚᱡᱤᱞᱟ ᱠᱟᱹᱢᱤᱭᱟᱹ ᱠᱚ ᱟᱢ ᱵᱷᱮᱡᱟ ᱟᱠᱟᱫ ᱵᱟᱯᱟᱰᱟᱭ ᱠᱚ ᱣᱮᱵᱽᱥᱟᱭᱤᱴ ᱮᱴᱠᱮᱴᱚᱬᱮ ᱠᱚ ᱥᱟᱹᱛ ᱞᱟᱹᱜᱤᱫ ᱠᱚ ᱵᱮᱵᱷᱟᱨᱟ ᱾</string>
+    <!-- The text field label of the URL text field. This is displayed above the user-inputted URL. -->
+    <string name="webcompat_reporter_label_url">URL</string>
+    <!-- The error message of the URL text field when an invalid URL has been entered. -->
+    <string name="webcompat_reporter_url_error_invalid">ᱫᱟᱭᱟ ᱠᱟᱛᱮ ᱢᱤᱫ ᱢᱟᱱᱭᱟ URL ᱮᱢ ᱢᱮ</string>
+    <!-- The label/title of an optional field in the Web Compat Reporter feature for explaining a high-level reason why the site is broken. -->
+    <string name="webcompat_reporter_label_whats_broken">ᱪᱮᱫ ᱨᱟᱹᱯᱩᱫ ᱮᱱᱟ ? (ᱟᱯᱱᱟᱨ ᱢᱚᱱᱮ ᱛᱮᱭᱟᱜ)</string>
+    <!-- The placeholder text for the dropdown where a user can select a high-level reason why the site is broken. -->
+    <string name="webcompat_reporter_choose_reason">ᱠᱟᱨᱚᱬ ᱵᱟᱛᱟᱣ ᱢᱮ</string>
+    <!-- The label/title of an optional field in the Web Compat Reporter feature for adding additional information. -->
+    <string name="webcompat_reporter_label_description">ᱮᱴᱠᱮᱴᱚᱬᱮ ᱵᱟᱛᱟᱣ ᱢᱮ (ᱩᱱᱟᱹᱜ ᱵᱟᱝ ᱞᱟᱹᱠᱛᱤ)</string>
+    <!-- The button text for navigating away from the feature to provide more information on the broken site's bug report. -->
+    <string name="webcompat_reporter_send_more_info">ᱵᱟᱹᱲᱛᱤ ᱵᱟᱰᱟᱭ ᱵᱷᱮᱡᱟᱭ ᱢᱮ</string>
+    <!-- The button text for the cancel button to leave the Web Compat Reporter feature. -->
+    <string name="webcompat_reporter_cancel">ᱵᱟᱹᱰᱨᱟᱹ</string>
+    <!-- The button text for the send button to submit the provided form data. -->
+    <string name="webcompat_reporter_send">ᱠᱩᱞ ᱢᱮ</string>
+
 
     <!-- These reason strings are dropdown options on a WebCompat reporter form, indicating what is broken on the site. -->
     <!-- Broken site reason text for site slow or not working -->

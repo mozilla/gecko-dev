@@ -119,6 +119,12 @@
     <!-- Text for the message displayed for the popup promoting the long press of navigation in the navigation bar. -->
     <string name="navbar_navigation_buttons_cfr_message">Tocca e retene le flechas pro saltar inter paginas in iste chronologia del scheda.</string>
 
+    <!-- Address bar swipe "contextual feature recommendation" (CFR) -->
+    <!-- Text for the title displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
+    <string name="address_bar_swipe_cfr_title">Rolar le barra del instrumentos pro commutar le schedas</string>
+    <!-- Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
+    <string name="address_bar_swipe_cfr_message">Glissar a sinistra o dextra pro commutar. Glissar a sinistra sur tu ultime scheda pro aperir un scheda nove.</string>
+
     <!-- Tablet navigation bar "contextual feature recommendation" (CFR) -->
     <!-- Text for the title displayed in the contextual feature recommendation popup promoting the tablet navigation bar. -->
     <string name="tablet_nav_bar_cfr_title" moz:removedIn="132" tools:ignore="UnusedResources">Nova: flechas retro e avante de un tocco</string>
@@ -346,6 +352,16 @@
     <string name="browser_menu_tools_description_with_translate" moz:removedIn="133" tools:ignore="UnusedResources">Vista de lector, Traducer, Imprimer, Compartir, Aperir app</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
     <string name="browser_menu_tools_description" moz:removedIn="133" tools:ignore="UnusedResources">Vista de lector, Imprimer, Compartir, Aperir app</string>
+    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu
+         The first parameter is the label of the report site issue (for example: Report Site issue) -->
+    <string name="browser_menu_tools_description_with_translate_with_report_site">Modo lectura, traduction, %s, impression, compartimento, apertura app</string>
+    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
+    <string name="browser_menu_tools_description_with_translate_without_report_site">Modo lectura, traduction, impression, compartimento, apertura app</string>
+    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu
+         The first parameter is the label of the report site issue (for example: Report Site issue) -->
+    <string name="browser_menu_tools_description_with_report_site">Modo lectura, traduction, %s, impression, compartimento, apertura app</string>
+    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
+    <string name="browser_menu_tools_description_without_report_site">Modo lectura, traduction, impression, compartimento, apertura app</string>
     <!-- Browser menu label that navigates to the save sub-menu, which contains various save related menu items such as
          bookmarking a page, saving to collection, shortcut or as a PDF, and adding to home screen -->
     <string name="browser_menu_save">Salvar</string>
@@ -1286,6 +1302,8 @@
     <!-- WebCompat Reporter -->
     <!-- The title of the Web Compat Reporter feature. This is displayed in the top app bar. -->
     <string name="webcompat_reporter_screen_title">Reportar sito corrupte</string>
+    <!-- The description of the Web Compat Reporter feature. This first parameter is the name of the application (For example: Fenix) -->
+    <string name="webcompat_reporter_description">Adjutar a render %1$s melior pro totes. Le empleatos de Mozilla usa le info que tu invia pro remediar problemas de sito web.</string>
     <!-- The text field label of the URL text field. This is displayed above the user-inputted URL. -->
     <string name="webcompat_reporter_label_url">URL</string>
     <!-- The error message of the URL text field when an invalid URL has been entered. -->

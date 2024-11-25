@@ -115,6 +115,12 @@
     <!-- Text for the message displayed for the popup promoting the long press of navigation in the navigation bar. -->
     <string name="navbar_navigation_buttons_cfr_message">Koppintson és tartsa lenyomva a nyilakat, hogy az oldalak között ugorjon ennek a lapnak az előzményeiben.</string>
 
+    <!-- Address bar swipe "contextual feature recommendation" (CFR) -->
+    <!-- Text for the title displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
+    <string name="address_bar_swipe_cfr_title">Csúsztassa oldalra az eszköztárat a lapok közti váltáshoz.</string>
+    <!-- Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
+    <string name="address_bar_swipe_cfr_message">Csúsztassa balra vagy jobbra a váltáshoz. Új lap megnyitásához csúsztassa balra az utolsó lapon.</string>
+
     <!-- Tablet navigation bar "contextual feature recommendation" (CFR) -->
     <!-- Text for the title displayed in the contextual feature recommendation popup promoting the tablet navigation bar. -->
     <string name="tablet_nav_bar_cfr_title" moz:removedIn="132" tools:ignore="UnusedResources">Új: vissza és előre nyilak egy koppintással</string>
@@ -244,8 +250,12 @@
     <string name="browser_menu_open_in_regular_tab">Megnyitás szokásos lapon</string>
     <!-- Browser menu toggle that adds a shortcut to the site on the device home screen. -->
     <string name="browser_menu_add_to_homescreen">Kezdőképernyőhöz adás</string>
+    <!-- Browser menu toggle that adds a PWA of the site on the device home screen. -->
+    <string name="browser_menu_add_app_to_homescreen">Alkalmazás hozzáadása a kezdőképernyőhöz</string>
     <!-- Browser menu toggle that adds a shortcut to the site on the device home screen. -->
     <string name="browser_menu_add_to_homescreen_2">Hozzáadás a kezdőképernyőhöz…</string>
+    <!-- Browser menu toggle that adds a PWA of the site on the device home screen. -->
+    <string name="browser_menu_add_app_to_homescreen_2">Alkalmazás hozzáadása a kezdőképernyőhöz…</string>
     <!-- Text for notifying users that Xiaomi devices require additional permissions to add to home screen -->
     <string name="browser_menu_add_to_homescreen_xiaomi">A Xiaomi eszközöknek további engedélyekre lehet szükségük ahhoz, hogy indítóikonokat adjanak a kezdőképernyőhöz. Ellenőrizze a beállításait.</string>
     <!-- Content description (not visible, for screen readers etc.) for the Resync tabs button -->
@@ -335,9 +345,19 @@
     <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar custom tab menu. -->
     <string name="browser_custom_tab_menu_handlebar_content_description">Egyéni lap menülap bezárása</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-    <string name="browser_menu_tools_description_with_translate">Olvasó nézet, fordítás, nyomtatás, megosztás, alkalmazás megnyitása</string>
+    <string name="browser_menu_tools_description_with_translate" moz:removedIn="133" tools:ignore="UnusedResources">Olvasó nézet, fordítás, nyomtatás, megosztás, alkalmazás megnyitása</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-    <string name="browser_menu_tools_description">Olvasó nézet, nyomtatás, megosztás, alkalmazás megnyitása</string>
+    <string name="browser_menu_tools_description" moz:removedIn="133" tools:ignore="UnusedResources">Olvasó nézet, nyomtatás, megosztás, alkalmazás megnyitása</string>
+    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu
+         The first parameter is the label of the report site issue (for example: Report Site issue) -->
+    <string name="browser_menu_tools_description_with_translate_with_report_site">Olvasó nézet, fordítás, %s, nyomtatás, megosztás, alkalmazás megnyitása</string>
+    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
+    <string name="browser_menu_tools_description_with_translate_without_report_site">Olvasó nézet, fordítás, nyomtatás, megosztás, alkalmazás megnyitása</string>
+    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu
+         The first parameter is the label of the report site issue (for example: Report Site issue) -->
+    <string name="browser_menu_tools_description_with_report_site">Olvasó nézet, %s, nyomtatás, megosztás, alkalmazás megnyitása</string>
+    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
+    <string name="browser_menu_tools_description_without_report_site">Olvasó nézet, nyomtatás, megosztás, alkalmazás megnyitása</string>
     <!-- Browser menu label that navigates to the save sub-menu, which contains various save related menu items such as
          bookmarking a page, saving to collection, shortcut or as a PDF, and adding to home screen -->
     <string name="browser_menu_save">Mentés</string>
@@ -953,7 +973,11 @@
     <string name="exceptions_empty_message_learn_more_link">További tudnivalók</string>
 
     <!-- Preference switch for usage and technical data collection -->
-    <string name="preference_usage_data">Használati és műszaki adatok</string>
+    <string name="preference_usage_data" moz:removedIn="134" tools:ignore="UnusedResources">Használati és műszaki adatok</string>
+    <!-- Preference switch for usage and technical data collection -->
+    <string name="preference_usage_data_1">Műszaki és interakciós adatok</string>
+    <!-- Preference switch for usage and technical learn more link -->
+    <string name="preference_usage_data_learn_more" tools:ignore="UnusedResources">További tudnivalók</string>
     <!-- Preference description for usage and technical data collection -->
     <string name="preferences_usage_data_description">Adatokat küld a Mozillának a böngésző teljesítményéről, a hardverről, a felhasználásról és az egyéni beállításokról, hogy a %1$s jobb lehessen</string>
     <!-- Preference switch for marketing data collection -->
@@ -1251,6 +1275,29 @@
 
 
     <!-- WebCompat Reporter -->
+
+    <!-- WebCompat Reporter -->
+    <!-- The title of the Web Compat Reporter feature. This is displayed in the top app bar. -->
+    <string name="webcompat_reporter_screen_title">Hibás webhely bejelentése</string>
+    <!-- The description of the Web Compat Reporter feature. This first parameter is the name of the application (For example: Fenix) -->
+    <string name="webcompat_reporter_description">Segítsen abban, hogy a %1$s mindenki számára jobb legyen. A Mozilla alkalmazottai a küldött információkat a webhely problémáinak javítására használják.</string>
+    <!-- The text field label of the URL text field. This is displayed above the user-inputted URL. -->
+    <string name="webcompat_reporter_label_url">Webcím</string>
+    <!-- The error message of the URL text field when an invalid URL has been entered. -->
+    <string name="webcompat_reporter_url_error_invalid">Adjon meg egy érvényes webcímet</string>
+    <!-- The label/title of an optional field in the Web Compat Reporter feature for explaining a high-level reason why the site is broken. -->
+    <string name="webcompat_reporter_label_whats_broken">Mi hibás? (nem kötelező)</string>
+    <!-- The placeholder text for the dropdown where a user can select a high-level reason why the site is broken. -->
+    <string name="webcompat_reporter_choose_reason">Válasszon okot</string>
+    <!-- The label/title of an optional field in the Web Compat Reporter feature for adding additional information. -->
+    <string name="webcompat_reporter_label_description">Írja le a problémát (nem kötelező)</string>
+    <!-- The button text for navigating away from the feature to provide more information on the broken site's bug report. -->
+    <string name="webcompat_reporter_send_more_info">További információk küldése</string>
+    <!-- The button text for the cancel button to leave the Web Compat Reporter feature. -->
+    <string name="webcompat_reporter_cancel">Mégse</string>
+    <!-- The button text for the send button to submit the provided form data. -->
+    <string name="webcompat_reporter_send">Küldés</string>
+
 
     <!-- These reason strings are dropdown options on a WebCompat reporter form, indicating what is broken on the site. -->
     <!-- Broken site reason text for site slow or not working -->
