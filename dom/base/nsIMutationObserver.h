@@ -243,12 +243,10 @@ class nsIMutationObserver
   virtual void ContentInserted(nsIContent* aChild) = 0;
 
   /**
-   * Notification that a content node has been removed from the child list of
-   * another node in the tree.
+   * Notification that a content node is about to be removed from the child list
+   * of another node in the tree.
    *
-   * @param aChild     The child that was removed.
-   * @param aPreviousSibling The previous sibling to the child that was removed.
-   *                         Can be null if there was no previous sibling.
+   * @param aChild     The child that will be removed.
    *
    * @note Callers of this method might not hold a strong reference to the
    *       observer.  The observer is responsible for making sure it stays
@@ -256,8 +254,7 @@ class nsIMutationObserver
    *       assume that this call will happen when there are script blockers on
    *       the stack.
    */
-  virtual void ContentRemoved(nsIContent* aChild,
-                              nsIContent* aPreviousSibling) = 0;
+  virtual void ContentWillBeRemoved(nsIContent* aChild) = 0;
 
   /**
    * The node is in the process of being destroyed. Calling QI on the node is
@@ -268,7 +265,7 @@ class nsIMutationObserver
    * NOTE: This notification is only called on observers registered directly
    * on the node. This is because when the node is destroyed it can not have
    * any ancestors. If you want to know when a descendant node is being
-   * removed from the observed node, use the ContentRemoved notification.
+   * removed from the observed node, use the ContentWillBeRemoved notification.
    *
    * @param aNode The node being destroyed.
    *
@@ -312,7 +309,7 @@ class nsIMutationObserver
     kAttributeSetToCurrentValue = 1 << 4,
     kContentAppended = 1 << 5,
     kContentInserted = 1 << 6,
-    kContentRemoved = 1 << 7,
+    kContentWillBeRemoved = 1 << 7,
     kNodeWillBeDestroyed = 1 << 8,
     kParentChainChanged = 1 << 9,
     kARIAAttributeDefaultWillChange = 1 << 10,
@@ -371,8 +368,7 @@ NS_DEFINE_STATIC_IID_ACCESSOR(nsIMutationObserver, NS_IMUTATION_OBSERVER_IID)
   virtual void ContentInserted(nsIContent* aChild) override;
 
 #define NS_DECL_NSIMUTATIONOBSERVER_CONTENTREMOVED \
-  virtual void ContentRemoved(nsIContent* aChild,  \
-                              nsIContent* aPreviousSibling) override;
+  virtual void ContentWillBeRemoved(nsIContent* aChild) override;
 
 #define NS_DECL_NSIMUTATIONOBSERVER_NODEWILLBEDESTROYED \
   virtual void NodeWillBeDestroyed(nsINode* aNode) override;
@@ -419,8 +415,7 @@ NS_DEFINE_STATIC_IID_ACCESSOR(nsIMutationObserver, NS_IMUTATION_OBSERVER_IID)
       nsAtom* aAttribute, int32_t aModType, const nsAttrValue* aOldValue) {}   \
   void _class::ContentAppended(nsIContent* aFirstNewContent) {}                \
   void _class::ContentInserted(nsIContent* aChild) {}                          \
-  void _class::ContentRemoved(nsIContent* aChild,                              \
-                              nsIContent* aPreviousSibling) {}                 \
+  void _class::ContentWillBeRemoved(nsIContent* aChild) {}                     \
   void _class::ParentChainChanged(nsIContent* aContent) {}                     \
   void _class::ARIAAttributeDefaultWillChange(                                 \
       mozilla::dom::Element* aElement, nsAtom* aAttribute, int32_t aModType) { \

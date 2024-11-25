@@ -105,8 +105,7 @@ void L10nMutations::ContentInserted(nsIContent* aChild) {
   }
 }
 
-void L10nMutations::ContentRemoved(nsIContent* aChild,
-                                   nsIContent* aPreviousSibling) {
+void L10nMutations::ContentWillBeRemoved(nsIContent* aChild) {
   if (!mObserving || mPendingElements.IsEmpty()) {
     return;
   }

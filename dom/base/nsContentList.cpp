@@ -814,8 +814,7 @@ void nsContentList::ContentInserted(nsIContent* aChild) {
   ASSERT_IN_SYNC;
 }
 
-void nsContentList::ContentRemoved(nsIContent* aChild,
-                                   nsIContent* aPreviousSibling) {
+void nsContentList::ContentWillBeRemoved(nsIContent* aChild) {
   if (mState != State::Dirty &&
       MayContainRelevantNodes(aChild->GetParentNode()) &&
       nsContentUtils::IsInSameAnonymousTree(mRootNode, aChild) &&
@@ -1120,7 +1119,7 @@ void nsLabelsNodeList::ContentAppended(nsIContent* aFirstNewContent) {
   // If a labelable element is moved to outside or inside of
   // nested associated labels, we're gonna have to modify
   // the content list.
-  if (mState != State::Dirty ||
+  if (mState != State::Dirty &&
       nsContentUtils::IsInSameAnonymousTree(mRootNode, container)) {
     SetDirty();
     return;
@@ -1131,18 +1130,17 @@ void nsLabelsNodeList::ContentInserted(nsIContent* aChild) {
   // If a labelable element is moved to outside or inside of
   // nested associated labels, we're gonna have to modify
   // the content list.
-  if (mState != State::Dirty ||
+  if (mState != State::Dirty &&
       nsContentUtils::IsInSameAnonymousTree(mRootNode, aChild)) {
     SetDirty();
     return;
   }
 }
 
-void nsLabelsNodeList::ContentRemoved(nsIContent* aChild,
-                                      nsIContent* aPreviousSibling) {
+void nsLabelsNodeList::ContentWillBeRemoved(nsIContent* aChild) {
   // If a labelable element is removed, we're gonna have to clean
   // the content list.
-  if (mState != State::Dirty ||
+  if (mState != State::Dirty &&
       nsContentUtils::IsInSameAnonymousTree(mRootNode, aChild)) {
     SetDirty();
     return;

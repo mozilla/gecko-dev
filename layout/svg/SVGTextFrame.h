@@ -364,7 +364,7 @@ class SVGTextFrame final : public SVGDisplayContainerFrame {
       mFrame->GetContent()->AddMutationObserver(this);
       SetEnabledCallbacks(kCharacterDataChanged | kAttributeChanged |
                           kContentAppended | kContentInserted |
-                          kContentRemoved);
+                          kContentWillBeRemoved);
     }
 
     // nsISupports

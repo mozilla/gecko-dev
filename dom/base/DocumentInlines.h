@@ -26,8 +26,10 @@ inline nsPresContext* Document::GetPresContext() const {
   return presShell ? presShell->GetPresContext() : nullptr;
 }
 
-inline HTMLBodyElement* Document::GetBodyElement() {
-  return static_cast<HTMLBodyElement*>(GetHtmlChildElement(nsGkAtoms::body));
+inline HTMLBodyElement* Document::GetBodyElement(
+    const nsIContent* aContentToIgnore) const {
+  return static_cast<HTMLBodyElement*>(
+      GetHtmlChildElement(nsGkAtoms::body, aContentToIgnore));
 }
 
 inline void Document::SetServoRestyleRoot(nsINode* aRoot, uint32_t aDirtyBits) {

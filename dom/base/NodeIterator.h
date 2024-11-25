@@ -60,8 +60,8 @@ class NodeIterator final : public nsStubMutationObserver, public nsTraversal {
     bool MoveForward(nsINode* aRoot, nsINode* aNode);
     void MoveBackward(nsINode* aParent, nsINode* aNode);
 
-    void AdjustAfterRemoval(nsINode* aRoot, nsINode* aContainer,
-                            nsIContent* aChild, nsIContent* aPreviousSibling);
+    void AdjustForRemoval(nsINode* aRoot, nsINode* aContainer,
+                          nsIContent* aChild);
 
     void Clear() { mNode = nullptr; }
 

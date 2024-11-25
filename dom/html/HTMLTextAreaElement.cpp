@@ -791,44 +791,32 @@ void HTMLTextAreaElement::ContentInserted(nsIContent* aChild) {
   ContentChanged(aChild);
 }
 
-void HTMLTextAreaElement::ContentRemoved(nsIContent* aChild,
-                                         nsIContent* aPreviousSibling) {
-  ContentChanged(aChild);
+void HTMLTextAreaElement::ContentWillBeRemoved(nsIContent* aChild) {
+  if (mValueChanged || !mDoneAddingChildren ||
+      !nsContentUtils::IsInSameAnonymousTree(this, aChild)) {
+    return;
+  }
+  if (mState->IsSelectionCached()) {
+    // Collapse the selection when removing nodes if necessary, see bug 1818686.
+    auto& props = mState->GetSelectionProperties();
+    props.SetStart(0);
+    props.SetEnd(0);
+  }
+  nsContentUtils::AddScriptRunner(
+      NewRunnableMethod("HTMLTextAreaElement::ResetIfUnchanged", this,
+                        &HTMLTextAreaElement::ResetIfUnchanged));
 }
 
 void HTMLTextAreaElement::ContentChanged(nsIContent* aContent) {
-  if (!mValueChanged && mDoneAddingChildren &&
-      nsContentUtils::IsInSameAnonymousTree(this, aContent)) {
-    if (mState->IsSelectionCached()) {
-      // In case the content is *replaced*, i.e. by calling
-      // `.textContent = "foo";`,
-      // firstly the old content is removed, then the new content is added.
-      // As per wpt, this must collapse the selection to 0.
-      // Removing and adding of an element is routed through here, but due to
-      // the script runner `Reset()` is only invoked after the append operation.
-      // Therefore, `Reset()` would adjust the Selection to the new value, not
-      // to 0.
-      // By forcing a selection update here, the selection is reset in order to
-      // comply with the wpt.
-      auto& props = mState->GetSelectionProperties();
-      nsAutoString resetVal;
-      GetDefaultValue(resetVal, IgnoreErrors());
-      props.SetMaxLength(resetVal.Length());
-      props.SetStart(props.GetStart());
-      props.SetEnd(props.GetEnd());
-    }
-    // We should wait all ranges finish handling the mutation before updating
-    // the anonymous subtree with a call of Reset.
-    nsContentUtils::AddScriptRunner(NS_NewRunnableFunction(
-        "ResetHTMLTextAreaElementIfValueHasNotChangedYet",
-        [self = RefPtr{this}]() {
-          // However, if somebody has already changed the value, we don't need
-          // to keep doing this.
-          if (!self->mValueChanged) {
-            self->Reset();
-          }
-        }));
+  if (mValueChanged || !mDoneAddingChildren ||
+      !nsContentUtils::IsInSameAnonymousTree(this, aContent)) {
+    return;
   }
+  // We should wait all ranges finish handling the mutation before updating
+  // the anonymous subtree with a call of Reset.
+  nsContentUtils::AddScriptRunner(
+      NewRunnableMethod("HTMLTextAreaElement::ResetIfUnchanged", this,
+                        &HTMLTextAreaElement::ResetIfUnchanged));
 }
 
 void HTMLTextAreaElement::AfterSetAttr(int32_t aNameSpaceID, nsAtom* aName,

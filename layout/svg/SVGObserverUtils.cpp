@@ -321,8 +321,7 @@ void SVGRenderingObserver::ContentInserted(nsIContent* aChild) {
   OnRenderingChange();
 }
 
-void SVGRenderingObserver::ContentRemoved(nsIContent* aChild,
-                                          nsIContent* aPreviousSibling) {
+void SVGRenderingObserver::ContentWillBeRemoved(nsIContent* aChild) {
   OnRenderingChange();
 }
 
@@ -346,7 +345,7 @@ class SVGIDRenderingObserver : public SVGRenderingObserver {
       URLAndReferrerInfo* aURI, nsIContent* aObservingContent,
       bool aReferenceImage,
       uint32_t aCallbacks = kAttributeChanged | kContentAppended |
-                            kContentInserted | kContentRemoved,
+                            kContentInserted | kContentWillBeRemoved,
       TargetIsValidCallback aTargetIsValidCallback = nullptr);
 
   void Traverse(nsCycleCollectionTraversalCallback* aCB);
@@ -484,7 +483,7 @@ class SVGRenderingObserverProperty : public SVGIDRenderingObserver {
   SVGRenderingObserverProperty(
       URLAndReferrerInfo* aURI, nsIFrame* aFrame, bool aReferenceImage,
       uint32_t aCallbacks = kAttributeChanged | kContentAppended |
-                            kContentInserted | kContentRemoved,
+                            kContentInserted | kContentWillBeRemoved,
       TargetIsValidCallback aTargetIsValidCallback = nullptr)
       : SVGIDRenderingObserver(aURI, aFrame->GetContent(), aReferenceImage,
                                aCallbacks, aTargetIsValidCallback),
@@ -606,7 +605,8 @@ class SVGMarkerObserver final : public SVGRenderingObserverProperty {
                     bool aReferenceImage)
       : SVGRenderingObserverProperty(aURI, aFrame, aReferenceImage,
                                      kAttributeChanged | kContentAppended |
-                                         kContentInserted | kContentRemoved) {}
+                                         kContentInserted |
+                                         kContentWillBeRemoved) {}
 
  protected:
   void OnRenderingChange() override;
@@ -753,7 +753,7 @@ class SVGFilterObserver final : public SVGIDRenderingObserver {
                     SVGFilterObserverList* aFilterChainObserver)
       : SVGIDRenderingObserver(aURI, aObservingContent, false,
                                kAttributeChanged | kContentAppended |
-                                   kContentInserted | kContentRemoved,
+                                   kContentInserted | kContentWillBeRemoved,
                                IsSVGFilterElement),
         mFilterObserverList(aFilterChainObserver) {}
 
@@ -1065,7 +1065,7 @@ class SVGTemplateElementObserver : public SVGIDRenderingObserver {
                              bool aReferenceImage)
       : SVGIDRenderingObserver(aURI, aFrame->GetContent(), aReferenceImage,
                                kAttributeChanged | kContentAppended |
-                                   kContentInserted | kContentRemoved),
+                                   kContentInserted | kContentWillBeRemoved),
         mFrameReference(aFrame) {}
 
  protected:

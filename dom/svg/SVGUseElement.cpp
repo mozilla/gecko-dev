@@ -81,8 +81,8 @@ SVGUseElement::SVGUseElement(
     already_AddRefed<mozilla::dom::NodeInfo>&& aNodeInfo)
     : SVGUseElementBase(std::move(aNodeInfo)), mReferencedElementTracker(this) {
   SetEnabledCallbacks(kCharacterDataChanged | kAttributeChanged |
-                      kContentAppended | kContentInserted | kContentRemoved |
-                      kNodeWillBeDestroyed);
+                      kContentAppended | kContentInserted |
+                      kContentWillBeRemoved | kNodeWillBeDestroyed);
 }
 
 SVGUseElement::~SVGUseElement() {
@@ -239,8 +239,7 @@ void SVGUseElement::ContentInserted(nsIContent* aChild) {
   }
 }
 
-void SVGUseElement::ContentRemoved(nsIContent* aChild,
-                                   nsIContent* aPreviousSibling) {
+void SVGUseElement::ContentWillBeRemoved(nsIContent* aChild) {
   if (nsContentUtils::IsInSameAnonymousTree(mReferencedElementTracker.get(),
                                             aChild)) {
     TriggerReclone();

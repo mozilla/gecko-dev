@@ -57,8 +57,7 @@ void HTMLTitleElement::ContentInserted(nsIContent* aChild) {
   SendTitleChangeEvent(false);
 }
 
-void HTMLTitleElement::ContentRemoved(nsIContent* aChild,
-                                      nsIContent* aPreviousSibling) {
+void HTMLTitleElement::ContentWillBeRemoved(nsIContent* aChild) {
   SendTitleChangeEvent(false);
 }
 
