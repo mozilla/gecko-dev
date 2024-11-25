@@ -429,6 +429,7 @@ let JSWINDOWACTORS = {
     },
     matches: ["about:shoppingsidebar"],
     remoteTypes: ["privilegedabout"],
+    messageManagerGroups: ["shopping-sidebar", "browsers"],
   },
 
   AboutWelcome: {
@@ -879,6 +880,7 @@ let JSWINDOWACTORS = {
     },
     matches: ["about:shoppingsidebar"],
     remoteTypes: ["privilegedabout"],
+    messageManagerGroups: ["shopping-sidebar", "browsers"],
   },
 
   SpeechDispatcher: {

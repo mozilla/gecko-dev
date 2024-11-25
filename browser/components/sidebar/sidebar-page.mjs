@@ -39,7 +39,7 @@ export class SidebarPage extends MozLitElement {
   }
 
   get topWindow() {
-    return this.ownerGlobal.top;
+    return this.ownerGlobal.browsingContext.topChromeWindow;
   }
 
   get sidebarController() {
