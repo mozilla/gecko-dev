@@ -218,7 +218,8 @@ class nsFloatManager {
    */
   enum class BandInfoType { BandFromPoint, WidthWithinHeight };
   enum class ShapeType { Margin, ShapeOutside };
-  nsFlowAreaRect GetFlowArea(mozilla::WritingMode aWM, nscoord aBCoord,
+  nsFlowAreaRect GetFlowArea(mozilla::WritingMode aCBWM,
+                             mozilla::WritingMode aWM, nscoord aBCoord,
                              nscoord aBSize, BandInfoType aBandInfoType,
                              ShapeType aShapeType,
                              mozilla::LogicalRect aContentArea,

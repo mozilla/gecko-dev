@@ -940,7 +940,7 @@ nscoord nsBlockFrame::PrefISize(const IntrinsicSizeInput& aInput) {
         if (!data.mLineIsEmpty || BlockCanIntersectFloats(kid)) {
           clearType = StyleClear::Both;
         } else {
-          clearType = kid->StyleDisplay()->mClear;
+          clearType = kid->StyleDisplay()->UsedClear(GetWritingMode());
         }
         data.ForceBreak(clearType);
         const IntrinsicSizeInput kidInput(aInput, kid->GetWritingMode(),
@@ -2920,8 +2920,9 @@ void nsBlockFrame::PropagateFloatDamage(BlockReflowState& aState,
     } else {
       bool wasImpactedByFloat = aLine->IsImpactedByFloat();
       nsFlowAreaRect floatAvailableSpace =
-          aState.GetFloatAvailableSpaceForBSize(aLine->BStart() + aDeltaBCoord,
-                                                aLine->BSize(), nullptr);
+          aState.GetFloatAvailableSpaceForBSize(
+              aState.mReflowInput.GetWritingMode(),
+              aLine->BStart() + aDeltaBCoord, aLine->BSize(), nullptr);
 
 #ifdef REALLY_NOISY_REFLOW
       printf("nsBlockFrame::PropagateFloatDamage %p was = %d, is=%d\n", this,
@@ -3829,7 +3830,7 @@ bool nsBlockFrame::ReflowLine(BlockReflowState& aState, LineIterator aLine,
     if (aState.mFlags.mCanHaveOverflowMarkers) {
       WritingMode wm = aLine->mWritingMode;
       nsFlowAreaRect r = aState.GetFloatAvailableSpaceForBSize(
-          aLine->BStart(), aLine->BSize(), nullptr);
+          wm, aLine->BStart(), aLine->BSize(), nullptr);
       if (r.HasFloats()) {
         LogicalRect so = aLine->GetOverflowArea(OverflowType::Scrollable, wm,
                                                 aLine->mContainerSize);
@@ -4168,7 +4169,8 @@ void nsBlockFrame::ReflowBlockFrame(BlockReflowState& aState,
   // Prepare the block reflow engine
   nsBlockReflowContext brc(aState.mPresContext, aState.mReflowInput);
 
-  StyleClear clearType = frame->StyleDisplay()->mClear;
+  WritingMode cbWM = frame->GetContainingBlock()->GetWritingMode();
+  StyleClear clearType = frame->StyleDisplay()->UsedClear(cbWM);
   if (aState.mTrailingClearFromPIF != StyleClear::None) {
     clearType = nsLayoutUtils::CombineClearType(clearType,
                                                 aState.mTrailingClearFromPIF);
@@ -4353,7 +4355,7 @@ void nsBlockFrame::ReflowBlockFrame(BlockReflowState& aState,
 
     // Here aState.mBCoord is the block-start border-edge of the block.
     // Compute the available space for the block
-    nsFlowAreaRect floatAvailableSpace = aState.GetFloatAvailableSpace();
+    nsFlowAreaRect floatAvailableSpace = aState.GetFloatAvailableSpace(cbWM);
     WritingMode wm = aState.mReflowInput.GetWritingMode();
     LogicalRect availSpace = aState.ComputeBlockAvailSpace(
         frame, floatAvailableSpace, (floatAvoidingBlock));
@@ -4510,7 +4512,7 @@ void nsBlockFrame::ReflowBlockFrame(BlockReflowState& aState,
 
       LogicalRect oldFloatAvailableSpaceRect(floatAvailableSpace.mRect);
       floatAvailableSpace = aState.GetFloatAvailableSpaceForBSize(
-          aState.mBCoord + bStartMargin, brc.GetMetrics().BSize(wm),
+          cbWM, aState.mBCoord + bStartMargin, brc.GetMetrics().BSize(wm),
           &floatManagerState);
       NS_ASSERTION(floatAvailableSpace.mRect.BStart(wm) ==
                        oldFloatAvailableSpaceRect.BStart(wm),
@@ -4547,7 +4549,7 @@ void nsBlockFrame::ReflowBlockFrame(BlockReflowState& aState,
 
         // Start over with a new available space rect at the new height.
         floatAvailableSpace = aState.GetFloatAvailableSpaceWithState(
-            aState.mBCoord, ShapeType::ShapeOutside, &floatManagerState);
+            cbWM, aState.mBCoord, ShapeType::ShapeOutside, &floatManagerState);
       }
 
       const LogicalRect oldAvailSpace = availSpace;
@@ -4836,7 +4838,8 @@ bool nsBlockFrame::ReflowInlineFrames(BlockReflowState& aState,
   if (ShouldApplyBStartMargin(aState, aLine)) {
     aState.mBCoord += aState.mPrevBEndMargin.Get();
   }
-  nsFlowAreaRect floatAvailableSpace = aState.GetFloatAvailableSpace();
+  nsFlowAreaRect floatAvailableSpace =
+      aState.GetFloatAvailableSpace(GetWritingMode());
 
   LineReflowStatus lineReflowStatus;
   do {
@@ -5119,7 +5122,7 @@ void nsBlockFrame::DoReflowInlineFrames(
         aState.mBCoord += aState.mPresContext->DevPixelsToAppUnits(1);
       }
 
-      aFloatAvailableSpace = aState.GetFloatAvailableSpace();
+      aFloatAvailableSpace = aState.GetFloatAvailableSpace(GetWritingMode());
     } else {
       // There's nowhere to retry placing the line, so we want to push
       // it to the next page/column where its contents can fit not
@@ -5365,7 +5368,8 @@ void nsBlockFrame::SplitFloat(BlockReflowState& aState, nsIFrame* aFloat,
     nextInFlow->AddStateBits(NS_FRAME_IS_OVERFLOW_CONTAINER);
   }
 
-  StyleFloat floatStyle = aFloat->StyleDisplay()->mFloat;
+  StyleFloat floatStyle =
+      aFloat->StyleDisplay()->UsedFloat(aState.mReflowInput.GetWritingMode());
   if (floatStyle == StyleFloat::Left) {
     aState.FloatManager()->SetSplitLeftFloatAcrossBreak();
   } else {
@@ -5550,10 +5554,10 @@ bool nsBlockFrame::PlaceLine(BlockReflowState& aState,
   // the old BSize, but including the floats that were added in this line.
   LogicalRect floatAvailableSpaceWithOldLineBSize =
       aState.mLineBSize.isNothing()
-          ? aState.GetFloatAvailableSpace(aLine->BStart()).mRect
+          ? aState.GetFloatAvailableSpace(wm, aLine->BStart()).mRect
           : aState
                 .GetFloatAvailableSpaceForBSize(
-                    aLine->BStart(), aState.mLineBSize.value(), nullptr)
+                    wm, aLine->BStart(), aState.mLineBSize.value(), nullptr)
                 .mRect;
 
   // As we redo for floats, we can't reduce the amount of BSize we're
@@ -5561,8 +5565,8 @@ bool nsBlockFrame::PlaceLine(BlockReflowState& aState,
   aAvailableSpaceBSize = std::max(aAvailableSpaceBSize, aLine->BSize());
   LogicalRect floatAvailableSpaceWithLineBSize =
       aState
-          .GetFloatAvailableSpaceForBSize(aLine->BStart(), aAvailableSpaceBSize,
-                                          nullptr)
+          .GetFloatAvailableSpaceForBSize(wm, aLine->BStart(),
+                                          aAvailableSpaceBSize, nullptr)
           .mRect;
 
   // If the available space between the floats is smaller now that we
@@ -5580,7 +5584,7 @@ bool nsBlockFrame::PlaceLine(BlockReflowState& aState,
     // line is placed.
     LogicalRect oldFloatAvailableSpace(aFlowArea.mRect);
     aFlowArea = aState.GetFloatAvailableSpaceForBSize(
-        aLine->BStart(), aAvailableSpaceBSize, aFloatStateBeforeLine);
+        wm, aLine->BStart(), aAvailableSpaceBSize, aFloatStateBeforeLine);
 
     NS_ASSERTION(
         aFlowArea.mRect.BStart(wm) == oldFloatAvailableSpace.BStart(wm),
@@ -8323,7 +8327,8 @@ void nsBlockFrame::ReflowOutsideMarker(nsIFrame* aMarkerFrame,
   // they reposition the line.
   LogicalRect floatAvailSpace =
       aState
-          .GetFloatAvailableSpaceWithState(aLineTop, ShapeType::ShapeOutside,
+          .GetFloatAvailableSpaceWithState(ri.GetWritingMode(), aLineTop,
+                                           ShapeType::ShapeOutside,
                                            &aState.mFloatManagerStateBefore)
           .mRect;
   // FIXME (bug 25888): need to check the entire region that the first

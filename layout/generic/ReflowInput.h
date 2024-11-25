@@ -358,6 +358,10 @@ struct ReflowInput : public SizeComputationInput {
   // unconstrained dimensions replaced by zero.
   nsSize ComputedSizeAsContainerIfConstrained() const;
 
+  // Get the writing mode of the containing block, to resolve float/clear
+  // logical sides appropriately.
+  WritingMode GetCBWritingMode() const;
+
   // Our saved containing block dimensions.
   LogicalSize mContainingBlockSize{mWritingMode};
 

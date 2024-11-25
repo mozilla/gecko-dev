@@ -2467,6 +2467,10 @@ StyleClear nsLayoutUtils::CombineClearType(StyleClear aOrigClearType,
     case StyleClear::Both:
       // Do nothing.
       break;
+    case StyleClear::InlineStart:
+    case StyleClear::InlineEnd:
+      MOZ_ASSERT_UNREACHABLE("should have resolved to physical values");
+      break;
   }
   return clearType;
 }
