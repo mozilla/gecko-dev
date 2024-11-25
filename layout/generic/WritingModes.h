@@ -2200,4 +2200,32 @@ inline mozilla::StyleContentDistribution nsStylePosition::UsedContentAlignment(
   return aAxis == mozilla::LogicalAxis::Block ? mAlignContent : mJustifyContent;
 }
 
+inline mozilla::StyleFloat nsStyleDisplay::UsedFloat(
+    mozilla::WritingMode aCBWM) const {
+  switch (mFloat) {
+    case mozilla::StyleFloat::InlineStart:
+      return aCBWM.IsBidiLTR() ? mozilla::StyleFloat::Left
+                               : mozilla::StyleFloat::Right;
+    case mozilla::StyleFloat::InlineEnd:
+      return aCBWM.IsBidiLTR() ? mozilla::StyleFloat::Right
+                               : mozilla::StyleFloat::Left;
+    default:
+      return mFloat;
+  }
+}
+
+inline mozilla::StyleClear nsStyleDisplay::UsedClear(
+    mozilla::WritingMode aCBWM) const {
+  switch (mClear) {
+    case mozilla::StyleClear::InlineStart:
+      return aCBWM.IsBidiLTR() ? mozilla::StyleClear::Left
+                               : mozilla::StyleClear::Right;
+    case mozilla::StyleClear::InlineEnd:
+      return aCBWM.IsBidiLTR() ? mozilla::StyleClear::Right
+                               : mozilla::StyleClear::Left;
+    default:
+      return mClear;
+  }
+}
+
 #endif  // WritingModes_h_

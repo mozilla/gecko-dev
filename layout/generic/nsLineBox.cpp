@@ -194,6 +194,10 @@ static void ListFloats(FILE* out, const char* aPrefix,
       return "right";
     case StyleClear::Both:
       return "both";
+    case StyleClear::InlineStart:
+      return "inline-start";
+    case StyleClear::InlineEnd:
+      return "inline-end";
   }
   return "unknown";
 }

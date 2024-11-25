@@ -108,7 +108,7 @@ void nsFloatManager::Shutdown() {
                "incompatible writing modes")
 
 nsFlowAreaRect nsFloatManager::GetFlowArea(
-    WritingMode aWM, nscoord aBCoord, nscoord aBSize,
+    WritingMode aCBWM, WritingMode aWM, nscoord aBCoord, nscoord aBSize,
     BandInfoType aBandInfoType, ShapeType aShapeType, LogicalRect aContentArea,
     SavedState* aState, const nsSize& aContainerSize) const {
   CHECK_BLOCK_AND_LINE_DIR(aWM);
@@ -199,7 +199,7 @@ nsFlowAreaRect nsFloatManager::GetFlowArea(
       // This float is in our band.
 
       // Shrink our band's width if needed.
-      StyleFloat floatStyle = fi.mFrame->StyleDisplay()->mFloat;
+      StyleFloat floatStyle = fi.mFrame->StyleDisplay()->UsedFloat(aCBWM);
 
       // When aBandInfoType is BandFromPoint, we're only intended to
       // consider a point along the y axis rather than a band.
@@ -285,7 +285,8 @@ void nsFloatManager::AddFloat(nsIFrame* aFloatFrame,
     info.mLeftBEnd = nscoord_MIN;
     info.mRightBEnd = nscoord_MIN;
   }
-  StyleFloat floatStyle = aFloatFrame->StyleDisplay()->mFloat;
+  WritingMode cbWM = aFloatFrame->GetParent()->GetWritingMode();
+  StyleFloat floatStyle = aFloatFrame->StyleDisplay()->UsedFloat(cbWM);
   MOZ_ASSERT(floatStyle == StyleFloat::Left || floatStyle == StyleFloat::Right,
              "Unexpected float style!");
   nscoord& sideBEnd =
@@ -317,7 +318,8 @@ LogicalRect nsFloatManager::CalculateRegionFor(WritingMode aWM,
     // Preserve the right margin-edge for left floats and the left
     // margin-edge for right floats
     const nsStyleDisplay* display = aFloat->StyleDisplay();
-    StyleFloat floatStyle = display->mFloat;
+    WritingMode cbWM = aFloat->GetParent()->GetWritingMode();
+    StyleFloat floatStyle = display->UsedFloat(cbWM);
     if ((StyleFloat::Left == floatStyle) == aWM.IsBidiLTR()) {
       region.IStart(aWM) = region.IEnd(aWM);
     }

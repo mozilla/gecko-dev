@@ -1329,6 +1329,10 @@ struct MOZ_NEEDS_MEMMOVABLE_MEMBERS nsStyleDisplay {
     return mContainerType != mozilla::StyleContainerType::Normal;
   }
 
+  // See WritingModes.h for the implementations.
+  inline mozilla::StyleFloat UsedFloat(mozilla::WritingMode aWM) const;
+  inline mozilla::StyleClear UsedClear(mozilla::WritingMode aWM) const;
+
  private:
   mozilla::StyleAppearance mAppearance;
   mozilla::StyleContain mContain;
