@@ -6,6 +6,7 @@ arithmetical::uniffi_reexport_scaffolding!();
 uniffi_fixture_callbacks::uniffi_reexport_scaffolding!();
 uniffi_custom_types::uniffi_reexport_scaffolding!();
 uniffi_fixture_external_types::uniffi_reexport_scaffolding!();
+uniffi_fixture_futures::uniffi_reexport_scaffolding!();
 uniffi_fixture_refcounts::uniffi_reexport_scaffolding!();
 uniffi_geometry::uniffi_reexport_scaffolding!();
 uniffi_rondpoint::uniffi_reexport_scaffolding!();

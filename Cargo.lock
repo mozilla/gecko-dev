@@ -2501,6 +2501,7 @@ dependencies = [
  "uniffi-example-todolist",
  "uniffi-fixture-callbacks",
  "uniffi-fixture-external-types",
+ "uniffi-fixture-futures",
  "uniffi-fixture-refcounts",
  "uniffi-trait-interfaces",
 ]
@@ -6591,6 +6592,15 @@ dependencies = [
  "thiserror",
  "uniffi",
  "uniffi-example-geometry",
+]
+
+[[package]]
+name = "uniffi-fixture-futures"
+version = "0.21.0"
+dependencies = [
+ "log",
+ "moz_task",
+ "uniffi",
 ]
 
 [[package]]

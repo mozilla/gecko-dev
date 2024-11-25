@@ -8,6 +8,8 @@
 
 ["test_external_types.js"]
 
+["test_futures.js"]
+
 ["test_geometry.js"]
 
 ["test_refcounts.js"]

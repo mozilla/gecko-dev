@@ -16,9 +16,8 @@
 #include "mozilla/RefPtr.h"
 #include "mozilla/UniquePtr.h"
 
-static mozilla::LazyLogModule UNIFFI_INVOKE_CALLBACK_LOGGER("uniffi");
-
 namespace mozilla::uniffi {
+extern mozilla::LazyLogModule gUniffiLogger;
 
 void UniffiCallbackMethodHandlerBase::FireAndForget(
     UniquePtr<UniffiCallbackMethodHandlerBase> aHandler,
@@ -30,7 +29,7 @@ void UniffiCallbackMethodHandlerBase::FireAndForget(
         // stays alive for the duration of this call
         RefPtr<dom::UniFFICallbackHandler> jsHandler = *aJsHandler;
         if (!jsHandler) {
-          MOZ_LOG(UNIFFI_INVOKE_CALLBACK_LOGGER, LogLevel::Error,
+          MOZ_LOG(gUniffiLogger, LogLevel::Error,
                   ("[UniFFI] %s called, but JS handler not registered",
                    handler->mInterfaceName));
           return;
@@ -38,7 +37,7 @@ void UniffiCallbackMethodHandlerBase::FireAndForget(
 
         JSObject* global = jsHandler->CallbackGlobalOrNull();
         if (!global) {
-          MOZ_LOG(UNIFFI_INVOKE_CALLBACK_LOGGER, LogLevel::Error,
+          MOZ_LOG(gUniffiLogger, LogLevel::Error,
                   ("[UniFFI] JS handler for %s has null global",
                    handler->mInterfaceName));
           return;
@@ -50,7 +49,7 @@ void UniffiCallbackMethodHandlerBase::FireAndForget(
         handler->MakeCall(aes.cx(), jsHandler, error);
 
         if (error.Failed()) {
-          MOZ_LOG(UNIFFI_INVOKE_CALLBACK_LOGGER, LogLevel::Error,
+          MOZ_LOG(gUniffiLogger, LogLevel::Error,
                   ("[UniFFI] Error invoking JS handler for %s",
                    handler->mInterfaceName));
           return;
@@ -58,7 +57,7 @@ void UniffiCallbackMethodHandlerBase::FireAndForget(
       }));
 
   if (NS_FAILED(dispatchResult)) {
-    MOZ_LOG(UNIFFI_INVOKE_CALLBACK_LOGGER, LogLevel::Error,
+    MOZ_LOG(gUniffiLogger, LogLevel::Error,
             ("[UniFFI] Error dispatching UniFFI callback task"));
   }
 }

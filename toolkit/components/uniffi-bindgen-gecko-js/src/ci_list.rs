@@ -141,7 +141,7 @@ impl<'a> FunctionIds<'a> {
         Self {
             map: cis
                 .iter_cis()
-                .flat_map(|ci| exposed_functions(ci).map(move |f| (ci.namespace(), f.name())))
+                .flat_map(|ci| exposed_functions(ci).map(move |(_, f)| (ci.namespace(), f.name())))
                 .enumerate()
                 .map(|(i, (namespace, name))| ((namespace, name), i))
                 // Sort using BTreeSet to guarantee the IDs remain stable across runs

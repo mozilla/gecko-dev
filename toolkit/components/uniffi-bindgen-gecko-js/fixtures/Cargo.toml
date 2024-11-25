@@ -25,5 +25,10 @@ uniffi-example-todolist = { path = "todolist/" }
 uniffi-example-custom-types = { path = "custom-types/" }
 uniffi-fixture-callbacks = { path = "callbacks/" }
 uniffi-fixture-external-types = { path = "external-types/" }
+uniffi-fixture-futures = { path = "futures/" }
 uniffi-fixture-refcounts = { path = "refcounts/" }
 uniffi-trait-interfaces = { path = "trait-interfaces/" }
+
+[features]
+# Should we depend on xpcom crates?
+xpcom = ["uniffi-fixture-futures/moz_task"]

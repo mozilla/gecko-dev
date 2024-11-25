@@ -5,30 +5,53 @@ License, v. 2.0. If a copy of the MPL was not distributed with this
 /// Extension traits that are shared across multiple render targets
 use crate::Config;
 use extend::ext;
-use uniffi_bindgen::interface::{Function, Method, Object};
+use uniffi_bindgen::interface::{Callable, Constructor, Function, Method, Object};
 
-/// Check if a JS function should be async.
-///
-/// `uniffi-bindgen-gecko-js` has special async handling.  Many non-async Rust functions end up
-/// being async in js
-fn use_async_wrapper(config: &Config, spec: &str) -> bool {
-    config.async_wrappers.enable && !config.async_wrappers.main_thread.contains(spec)
+/// How should we call a Rust function from JS?
+pub enum CallStyle {
+    /// Sync Rust function
+    Sync,
+    /// Async Rust function
+    Async,
+    /// Sync Rust function, wrapped to be async
+    AsyncWrapper,
+}
+
+impl CallStyle {
+    /// Is the JS version of this function async?
+    pub fn is_js_async(&self) -> bool {
+        matches!(self, Self::Async | Self::AsyncWrapper)
+    }
+}
+
+fn call_style(callable: impl Callable, config: &Config, spec: &str) -> CallStyle {
+    if callable.is_async() {
+        CallStyle::Async
+    } else if config.async_wrappers.enable && !config.async_wrappers.main_thread.contains(spec) {
+        CallStyle::AsyncWrapper
+    } else {
+        CallStyle::Sync
+    }
 }
 
 #[ext]
 pub impl Function {
-    fn use_async_wrapper(&self, config: &Config) -> bool {
-        use_async_wrapper(config, self.name())
+    fn call_style(&self, config: &Config) -> CallStyle {
+        call_style(self, config, self.name())
     }
 }
 
 #[ext]
 pub impl Object {
-    fn use_async_wrapper_for_constructor(&self, config: &Config) -> bool {
-        use_async_wrapper(config, self.name())
+    fn call_style_for_constructor(&self, cons: &Constructor, config: &Config) -> CallStyle {
+        call_style(cons, config, &format!("{}.{}", self.name(), cons.name()))
     }
 
-    fn use_async_wrapper_for_method(&self, method: &Method, config: &Config) -> bool {
-        use_async_wrapper(config, &format!("{}.{}", self.name(), method.name()))
+    fn call_style_for_method(&self, method: &Method, config: &Config) -> CallStyle {
+        call_style(
+            method,
+            config,
+            &format!("{}.{}", self.name(), method.name()),
+        )
     }
 }

@@ -19,7 +19,7 @@ use std::collections::HashSet;
 use askama::Template;
 use heck::{ToSnakeCase, ToUpperCamelCase};
 use uniffi_bindgen::interface::{
-    AsType, CallbackInterface, ComponentInterface, FfiDefinition, FfiFunction, FfiType,
+    AsType, Callable, CallbackInterface, ComponentInterface, FfiDefinition, FfiFunction, FfiType,
 };
 
 use crate::{CallbackIds, Component, FunctionIds, ObjectIds};
@@ -217,8 +217,9 @@ impl CPPScaffoldingTemplate {
         let mut calls: Vec<ScaffoldingCall> = components
             .iter()
             .flat_map(|c| {
-                exposed_functions(&c.ci)
-                    .map(move |ffi_func| ScaffoldingCall::new(&c.ci, ffi_func, function_ids))
+                exposed_functions(&c.ci).map(move |(callable, ffi_func)| {
+                    ScaffoldingCall::new(&c.ci, callable, ffi_func, function_ids)
+                })
             })
             .collect();
         calls.sort_by_key(|c| c.function_id);
@@ -345,10 +346,16 @@ struct ScaffoldingCall {
     ffi_func_name: String,
     return_type: Option<ScaffoldingCallReturnType>,
     arguments: Vec<ScaffoldingCallArgument>,
+    async_info: Option<ScaffoldingCallAsyncInfo>,
 }
 
 impl ScaffoldingCall {
-    fn new(ci: &ComponentInterface, ffi_func: &FfiFunction, function_ids: &FunctionIds) -> Self {
+    fn new(
+        ci: &ComponentInterface,
+        callable: &dyn Callable,
+        ffi_func: &FfiFunction,
+        function_ids: &FunctionIds,
+    ) -> Self {
         let handler_class_name = format!(
             "ScaffoldingCallHandler{}",
             ffi_func.name().to_upper_camel_case()
@@ -362,17 +369,30 @@ impl ScaffoldingCall {
             })
             .collect::<Vec<_>>();
 
+        let async_info = callable.is_async().then(|| ScaffoldingCallAsyncInfo {
+            poll_fn: callable.ffi_rust_future_poll(ci),
+            complete_fn: callable.ffi_rust_future_complete(ci),
+            free_fn: callable.ffi_rust_future_free(ci),
+        });
+
         Self {
             handler_class_name,
             function_id: function_ids.get(ci, ffi_func),
             ffi_func_name: ffi_func.name().to_owned(),
-            return_type: ffi_func
+            // Make sure to use the callable here, not the ffi_func.  For async functions, the FFI
+            // function always returns a handle.
+            return_type: callable
                 .return_type()
                 .map(|return_type| ScaffoldingCallReturnType {
-                    scaffolding_converter: scaffolding_converter(ci, &return_type),
+                    scaffolding_converter: scaffolding_converter(ci, &return_type.into()),
                 }),
             arguments,
+            async_info,
         }
+    }
+
+    fn is_async(&self) -> bool {
+        self.async_info.is_some()
     }
 }
 
@@ -383,6 +403,12 @@ struct ScaffoldingCallReturnType {
 struct ScaffoldingCallArgument {
     var_name: String,
     scaffolding_converter: String,
+}
+
+struct ScaffoldingCallAsyncInfo {
+    poll_fn: String,
+    complete_fn: String,
+    free_fn: String,
 }
 
 fn scaffolding_converter(ci: &ComponentInterface, ffi_type: &FfiType) -> String {
@@ -433,15 +459,27 @@ fn return_type(ffi_type: Option<&FfiType>) -> String {
     }
 }
 
-/// Get scaffolding call functions exposed to JS through the `UniFFIScaffolding` WebIDL interface
-pub fn exposed_functions(ci: &ComponentInterface) -> impl Iterator<Item = &FfiFunction> {
+// Iterate over functions, methods, and constructors exposed to JS
+//
+// Generates `&dyn Callable` items, since of these is a different type, but they all implement
+// `Callable`.
+//
+// Also generates `&FfiFunction` for each item.  There should probably be a method on `Callable`
+// that returns this and there's a PR to do so, but in the meantime we need to use this workaround.
+pub fn exposed_functions(
+    ci: &ComponentInterface,
+) -> impl Iterator<Item = (&dyn Callable, &FfiFunction)> {
     ci.function_definitions()
         .into_iter()
-        .map(|f| f.ffi_func())
+        .map(|f| (f as &dyn Callable, f.ffi_func()))
         .chain(ci.object_definitions().into_iter().flat_map(|o| {
             o.methods()
                 .into_iter()
-                .map(|m| m.ffi_func())
-                .chain(o.constructors().into_iter().map(|c| c.ffi_func()))
+                .map(|m| (m as &dyn Callable, m.ffi_func()))
+                .chain(
+                    o.constructors()
+                        .into_iter()
+                        .map(|c| (c as &dyn Callable, c.ffi_func())),
+                )
         }))
 }

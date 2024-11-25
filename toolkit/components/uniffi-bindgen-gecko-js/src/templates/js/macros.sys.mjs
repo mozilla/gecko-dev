@@ -1,16 +1,16 @@
 {%- macro call_scaffolding_function(func) %}
-{%- call _call_scaffolding_function(func, func.return_type(), "", func.use_async_wrapper(config)) -%}
+{%- call _call_scaffolding_function(func, func.return_type(), "", func.call_style(config)) -%}
 {%- endmacro %}
 
-{%- macro call_constructor(cons, object_type, use_async_wrapper) %}
-{%- call _call_scaffolding_function(cons, Some(object_type), "", use_async_wrapper) -%}
+{%- macro call_constructor(cons, object_type, call_style) %}
+{%- call _call_scaffolding_function(cons, Some(object_type), "", call_style) -%}
 {%- endmacro %}
 
-{%- macro call_method(method, object_type, use_async_wrapper) %}
-{%- call _call_scaffolding_function(method, method.return_type(), object_type.ffi_converter(), use_async_wrapper) -%}
+{%- macro call_method(method, object_type, call_style) %}
+{%- call _call_scaffolding_function(method, method.return_type(), object_type.ffi_converter(), call_style) -%}
 {%- endmacro %}
 
-{%- macro _call_scaffolding_function(func, return_type, receiver_ffi_converter, use_async_wrapper) %}
+{%- macro _call_scaffolding_function(func, return_type, receiver_ffi_converter, call_style) %}
         {%- match return_type %}
         {%- when Some with (return_type) %}
         const liftResult = (result) => {{ return_type.ffi_converter() }}.lift(result);
@@ -35,11 +35,14 @@
             }
             {%- endfor %}
 
-            {%- if use_async_wrapper %}
+            {%- match call_style %}
+            {%- when CallStyle::AsyncWrapper %}
             return UniFFIScaffolding.callAsyncWrapper(
-            {%- else %}
+            {%- when CallStyle::Sync %}
             return UniFFIScaffolding.callSync(
-            {%- endif %}
+            {%- when CallStyle::Async %}
+            return UniFFIScaffolding.callAsync(
+            {%- endmatch %}
                 {{ function_ids.get(ci, func.ffi_func()) }}, // {{ function_ids.name(ci, func.ffi_func()) }}
                 {%- if receiver_ffi_converter != "" %}
                 {{ receiver_ffi_converter }}.lower(this),
@@ -50,7 +53,7 @@
             )
         }
 
-        {%- if use_async_wrapper %}
+        {%- if call_style.is_js_async() %}
         try {
             return functionCall().then((result) => handleRustResult(result, liftResult, liftError));
         }  catch (error) {

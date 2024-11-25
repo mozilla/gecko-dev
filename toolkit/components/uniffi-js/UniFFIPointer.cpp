@@ -12,9 +12,12 @@
 #include "mozilla/Logging.h"
 #include "UniFFIRust.h"
 
-static mozilla::LazyLogModule sUniFFIPointerLogger("uniffi_logger");
+namespace mozilla::uniffi {
+extern mozilla::LazyLogModule gUniffiLogger;
+}
 
 namespace mozilla::dom {
+using uniffi::gUniffiLogger;
 using uniffi::RUST_CALL_SUCCESS;
 using uniffi::RustCallStatus;
 using uniffi::UniFFIPointerType;
@@ -38,7 +41,7 @@ already_AddRefed<UniFFIPointer> UniFFIPointer::Create(
 already_AddRefed<UniFFIPointer> UniFFIPointer::Read(
     const ArrayBuffer& aArrayBuff, uint32_t aPosition,
     const UniFFIPointerType* aType, ErrorResult& aError) {
-  MOZ_LOG(sUniFFIPointerLogger, LogLevel::Info,
+  MOZ_LOG(gUniffiLogger, LogLevel::Info,
           ("[UniFFI] Reading Pointer from buffer"));
 
   CheckedUint32 end = CheckedUint32(aPosition) + 8;
@@ -70,7 +73,7 @@ void UniFFIPointer::Write(const ArrayBuffer& aArrayBuff, uint32_t aPosition,
         aType->typeName.get(), this->mType->typeName.get()));
     return;
   }
-  MOZ_LOG(sUniFFIPointerLogger, LogLevel::Info,
+  MOZ_LOG(gUniffiLogger, LogLevel::Info,
           ("[UniFFI] Writing Pointer to buffer"));
 
   // Clone the pointer outside of ProcessData, since the JS hazard checker
@@ -111,8 +114,7 @@ JSObject* UniFFIPointer::WrapObject(JSContext* aCx,
 }
 
 void* UniFFIPointer::ClonePtr() const {
-  MOZ_LOG(sUniFFIPointerLogger, LogLevel::Info,
-          ("[UniFFI] Cloning raw pointer"));
+  MOZ_LOG(gUniffiLogger, LogLevel::Info, ("[UniFFI] Cloning raw pointer"));
   RustCallStatus status{};
   auto cloned = this->mType->clone(this->mPtr, &status);
   MOZ_DIAGNOSTIC_ASSERT(status.code == RUST_CALL_SUCCESS,
@@ -125,8 +127,7 @@ bool UniFFIPointer::IsSamePtrType(const UniFFIPointerType* aType) const {
 }
 
 UniFFIPointer::~UniFFIPointer() {
-  MOZ_LOG(sUniFFIPointerLogger, LogLevel::Info,
-          ("[UniFFI] Destroying pointer"));
+  MOZ_LOG(gUniffiLogger, LogLevel::Info, ("[UniFFI] Destroying pointer"));
   RustCallStatus status{};
   this->mType->destructor(this->mPtr, &status);
   MOZ_DIAGNOSTIC_ASSERT(status.code == RUST_CALL_SUCCESS,

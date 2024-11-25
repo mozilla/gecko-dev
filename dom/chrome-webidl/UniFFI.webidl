@@ -86,6 +86,12 @@ namespace UniFFIScaffolding {
   [Throws]
   UniFFIScaffoldingCallResult callSync(UniFFIFunctionId id, UniFFIScaffoldingValue... args);
 
+  // Call an async Rust function
+  //
+  // id is a unique identifier for the function, known to both the C++ and JS code
+  [Throws]
+  Promise<UniFFIScaffoldingCallResult> callAsync(UniFFIFunctionId id, UniFFIScaffoldingValue... args);
+
   // Call a sync Rust function, but wrap it to so that it behaves in JS as an async function
   //
   // id is a unique identifier for the function, known to both the C++ and JS code

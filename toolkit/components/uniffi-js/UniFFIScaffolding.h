@@ -25,6 +25,10 @@ class UniFFIScaffolding {
       RootedDictionary<UniFFIScaffoldingCallResult>& aReturnValue,
       ErrorResult& aErrorResult);
 
+  static already_AddRefed<Promise> CallAsync(
+      const GlobalObject& aGlobal, uint64_t aId,
+      const Sequence<UniFFIScaffoldingValue>& aArgs, ErrorResult& aErrorResult);
+
   static already_AddRefed<Promise> CallAsyncWrapper(
       const GlobalObject& aGlobal, uint64_t aId,
       const Sequence<UniFFIScaffoldingValue>& aArgs, ErrorResult& aErrorResult);

@@ -11,6 +11,7 @@ components = [
     "CustomTypes",
     "ExternalTypes",
     "FixtureCallbacks",
+    "Futures",
     "Geometry",
     "Refcounts",
     "Rondpoint",

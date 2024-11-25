@@ -18,6 +18,10 @@ constexpr int8_t RUST_CALL_SUCCESS = 0;
 constexpr int8_t RUST_CALL_ERROR = 1;
 constexpr int8_t RUST_CALL_INTERNAL_ERROR = 2;
 
+// Future continutation code values
+constexpr int8_t UNIFFI_FUTURE_READY = 0;
+constexpr int8_t UNIFFI_FUTURE_MAYBE_READY = 1;
+
 // Return values for callback interfaces (See
 // https://github.com/mozilla/uniffi-rs/blob/main/uniffi_core/src/ffi/foreigncallbacks.rs
 // for details)
@@ -46,6 +50,17 @@ struct RustCallStatus {
 typedef int (*ForeignCallback)(uint64_t handle, uint32_t method,
                                const uint8_t* argsData, int32_t argsLen,
                                RustBuffer* buf_ptr);
+
+typedef void (*FutureCallback)(uint64_t futureHandle, int8_t code);
+// Poll a future.
+//
+// If the future is ready, then `futureCallback` will be called with
+// `UNIFFI_FUTURE_READY` If the future is pending, then `futureCallback` will be
+// called with `UNIFFI_FUTURE_MAYBE_READY` when the Rust waker is invoked.
+typedef void (*PollFutureFn)(uint64_t futureHandle, FutureCallback callback,
+                             uint64_t callback_data);
+// Free a future
+typedef void (*FreeFutureFn)(uint64_t futureHandle);
 
 RustBuffer uniffi_rustbuffer_alloc(uint64_t size, RustCallStatus* call_status);
 void uniffi_rustbuffer_free(RustBuffer buf, RustCallStatus* call_status);

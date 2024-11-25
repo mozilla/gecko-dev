@@ -16,9 +16,9 @@ enable = true
 # These are exceptions to the async wrapping.  These functions must not be `await`ed.
 main_thread = [
   "raw_suggestion_url_matches",
-  "SuggestStore",
+  "SuggestStore.new",
   "SuggestStore.interrupt",
-  "SuggestStoreBuilder",
+  "SuggestStoreBuilder.new",
   "SuggestStoreBuilder.data_path",
   "SuggestStoreBuilder.load_extension",
   "SuggestStoreBuilder.remote_settings_bucket_name",
@@ -31,7 +31,7 @@ main_thread = [
 enable = true
 # These are exceptions to the async wrapping.  These functions must not be `await`ed.
 main_thread = [
-  "RelevancyStore",
+  "RelevancyStore.new",
   "RelevancyStore.close",
   "RelevancyStore.interrupt",
   "score",
@@ -42,7 +42,7 @@ main_thread = [
 enable = true
 # These are exceptions to the async wrapping.  These functions must not be `await`ed.
 main_thread = [
-  "RemoteSettings",
+  "RemoteSettings.new",
 ]
 
 [error_support.async_wrappers]
