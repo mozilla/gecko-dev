@@ -290,8 +290,8 @@ class GlobalObject : public NativeObject {
 
   void initBuiltinProto(ProtoKind kind, JSObject* proto) {
     MOZ_ASSERT(proto);
-    // Catch double-initialization; however if this is too much of a burden due to
-    // OOM handling it could be removed.
+    // Catch double-initialization; however if this is too much of a burden due
+    // to OOM handling it could be removed.
     MOZ_ASSERT(!hasBuiltinProto(kind));
     data().builtinProtos[kind].init(proto);
   }
