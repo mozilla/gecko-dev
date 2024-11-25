@@ -269,7 +269,7 @@ function setTabGroupColorProperties(element, tabGroup) {
   );
   element.style.setProperty(
     "--tab-group-color-pale",
-    `var(--tab-group-color-${tabGroup.color})-pale`
+    `var(--tab-group-color-${tabGroup.color}-pale)`
   );
 }
 
@@ -290,11 +290,7 @@ function createTabGroupSubmenu(aTabGroup, aIndex, aDocument, aFragment) {
     aDocument.l10n.setAttributes(element, "tab-context-unnamed-group");
   }
 
-  element.classList.add(
-    "menu-iconic",
-    "tab-menu-group-icon",
-    "tab-group-closed-icon"
-  );
+  element.classList.add("menu-iconic", "tab-group-icon-closed");
   setTabGroupColorProperties(element, aTabGroup);
 
   let menuPopup = aDocument.createXULElement("menupopup");
@@ -349,8 +345,7 @@ function createTabGroupSubpanel(aTabGroup, aIndex, aDocument, aFragment) {
     "subviewbutton",
     "subviewbutton-iconic",
     "subviewbutton-nav",
-    "tab-menu-group-icon",
-    "tab-group-closed-icon"
+    "tab-group-icon-closed"
   );
   element.setAttribute("closemenu", "none");
   setTabGroupColorProperties(element, aTabGroup);

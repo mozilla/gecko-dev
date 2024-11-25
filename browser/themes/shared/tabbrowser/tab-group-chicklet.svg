@@ -3,5 +3,5 @@
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 <svg xmlns="http://www.w3.org/2000/svg"
      width="16" height="16" viewBox="0 0 16 16">
-  <rect width="16" height="16" rx="4" fill="context-fill"/>
+  <rect width="16" height="16" rx="4" stroke="context-stroke" stroke-width="1" fill="context-fill"/>
 </svg>

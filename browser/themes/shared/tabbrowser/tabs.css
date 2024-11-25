@@ -1478,33 +1478,29 @@ toolbar:not(#TabsToolbar) #firefox-view-button {
   }
 }
 
-.tab-menu-group-icon,
-.tab-menu-group-icon > .toolbarbutton-icon {
+.menu-iconic.tab-group-icon,
+.menuitem-iconic.tab-group-icon,
+.subviewbutton-iconic.tab-group-icon {
   list-style-image: url("chrome://browser/skin/tabbrowser/tab-group-chicklet.svg");
-  -moz-context-properties: fill;
+  -moz-context-properties: fill, stroke;
   fill: light-dark(var(--tab-group-color), var(--tab-group-color-invert));
+  stroke: transparent;
 }
 
-.tab-menu-group-icon.tab-group-collapsed-icon,
-.tab-menu-group-icon.tab-group-collapsed-icon > .toolbarbutton-icon {
+.menu-iconic.tab-group-icon-collapsed,
+.menuitem-iconic.tab-group-icon-collapsed,
+.subviewbutton-iconic.tab-group-icon-collapsed {
+  list-style-image: url("chrome://browser/skin/tabbrowser/tab-group-chicklet.svg");
+  -moz-context-properties: fill, stroke;
   fill: light-dark(var(--tab-group-color-pale), var(--tab-group-color));
+  stroke: light-dark(var(--tab-group-color), var(--tab-group-color-pale));
 }
 
-.tab-menu-group-icon.tab-group-closed-icon,
-.tab-menu-group-icon.tab-group-closed-icon > .toolbarbutton-icon {
+.menu-iconic.tab-group-icon-closed,
+.menuitem-iconic.tab-group-icon-closed,
+.subviewbutton-iconic.tab-group-icon-closed {
+  list-style-image: url("chrome://browser/skin/tabbrowser/tab-group-chicklet.svg");
+  -moz-context-properties: fill, stroke;
   fill: transparent;
-}
-
-/* TODO: Bug 1932779: Collapsed/closed tab group icon border does not work in menuitem-iconic */
-.tab-menu-group-icon.tab-group-collapsed-icon .menu-iconic-icon,
-.tab-menu-group-icon.tab-group-collapsed-icon > .toolbarbutton-icon {
-  border-radius: var(--tab-border-radius);
-  border: 1px solid light-dark(var(--tab-group-color), var(--tab-group-color-pale));
-}
-
-/* TODO: Bug 1932779: Collapsed/closed tab group icon border does not work in menuitem-iconic */
-.tab-menu-group-icon.tab-group-closed-icon .menu-iconic-icon,
-.tab-menu-group-icon.tab-group-closed-icon > .toolbarbutton-icon {
-  border-radius: var(--tab-border-radius);
-  border: 1px solid light-dark(var(--tab-group-color), var(--tab-group-color-invert));
+  stroke: light-dark(var(--tab-group-color), var(--tab-group-color-invert));
 }

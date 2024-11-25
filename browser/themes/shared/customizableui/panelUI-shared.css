@@ -1177,11 +1177,14 @@ panelview .toolbarbutton-1,
   padding-inline-start: 8px;
 }
 
-.subviewbutton-iconic > .toolbarbutton-icon {
-  width: 16px;
-  height: 16px;
+.subviewbutton-iconic {
   -moz-context-properties: fill;
   fill: currentColor;
+
+  > .toolbarbutton-icon {
+    width: 16px;
+    height: 16px;
+  }
 }
 
 #appMenu-profiles-button {
