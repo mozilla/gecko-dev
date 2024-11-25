@@ -244,9 +244,8 @@
 # If the menu is actually opened, we'll clear this out and replace
 # it with a "real" entry.
 # See bug 492320 for the nasty details.
-                    <menuitem key="key_undoCloseWindow"
-                              oncommand="undoCloseWindow(0)"
-                              />
+                    <menuitem id="hiddenUndoCloseWindow"
+                              key="key_undoCloseWindow"/>
 #endif
                   </menupopup>
                 </menu>
