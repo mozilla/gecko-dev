@@ -40,8 +40,6 @@ namespace {
 static const HEAP_INFORMATION_CLASS HeapOptimizeResources =
     static_cast<HEAP_INFORMATION_CLASS>(3);
 
-static const DWORD HEAP_OPTIMIZE_RESOURCES_CURRENT_VERSION = 1;
-
 typedef struct _HEAP_OPTIMIZE_RESOURCES_INFORMATION {
   DWORD Version;
   DWORD Flags;

@@ -1,0 +1,181 @@
+From c8a7600f9bee5d605b5559dda16b7ae09a17beba Mon Sep 17 00:00:00 2001
+From: Biswapriyo Nath <nathbappai@gmail.com>
+Date: Tue, 5 Nov 2024 06:33:12 +0000
+Subject: [PATCH] headers-git: Workaround redefinition error in
+ windows.foundation.h
+
+diff --git a/mingw-w64-headers/include/windows.foundation.h b/mingw-w64-headers/include/windows.foundation.h
+index 8be88e4..95aa62d 100644
+--- a/mingw-w64-headers/include/windows.foundation.h
++++ b/mingw-w64-headers/include/windows.foundation.h
+@@ -898,14 +898,6 @@ typedef interface __FIReference_1_TimeSpan __FIReference_1_TimeSpan;
+ #endif /* __cplusplus */
+ #endif
+ 
+-#ifndef ____FIReference_1_boolean_FWD_DEFINED__
+-#define ____FIReference_1_boolean_FWD_DEFINED__
+-typedef interface __FIReference_1_boolean __FIReference_1_boolean;
+-#ifdef __cplusplus
+-#define __FIReference_1_boolean ABI::Windows::Foundation::IReference<boolean >
+-#endif /* __cplusplus */
+-#endif
+-
+ #ifndef ____FITypedEventHandler_2_IInspectable_IInspectable_FWD_DEFINED__
+ #define ____FITypedEventHandler_2_IInspectable_IInspectable_FWD_DEFINED__
+ typedef interface __FITypedEventHandler_2_IInspectable_IInspectable __FITypedEventHandler_2_IInspectable_IInspectable;
+@@ -1798,14 +1790,6 @@ typedef interface __FIReference_1_TimeSpan __FIReference_1_TimeSpan;
+ #endif /* __cplusplus */
+ #endif
+ 
+-#ifndef ____FIReference_1_boolean_FWD_DEFINED__
+-#define ____FIReference_1_boolean_FWD_DEFINED__
+-typedef interface __FIReference_1_boolean __FIReference_1_boolean;
+-#ifdef __cplusplus
+-#define __FIReference_1_boolean ABI::Windows::Foundation::IReference<boolean >
+-#endif /* __cplusplus */
+-#endif
+-
+ /*****************************************************************************
+  * IAsyncActionCompletedHandler interface
+  */
+@@ -13624,128 +13608,6 @@ static inline HRESULT __FIReference_1_TimeSpan_get_Value(__FIReference_1_TimeSpa
+ 
+ #endif  /* ____FIReference_1_TimeSpan_INTERFACE_DEFINED__ */
+ 
+-/*****************************************************************************
+- * IReference<boolean > interface
+- */
+-#ifndef ____FIReference_1_boolean_INTERFACE_DEFINED__
+-#define ____FIReference_1_boolean_INTERFACE_DEFINED__
+-
+-DEFINE_GUID(IID___FIReference_1_boolean, 0x3c00fd60, 0x2950, 0x5939, 0xa2,0x1a, 0x2d,0x12,0xc5,0xa0,0x1b,0x8a);
+-#if defined(__cplusplus) && !defined(CINTERFACE)
+-} /* extern "C" */
+-namespace ABI {
+-    namespace Windows {
+-        namespace Foundation {
+-            template<>
+-            MIDL_INTERFACE("3c00fd60-2950-5939-a21a-2d12c5a01b8a")
+-            IReference<boolean > : IReference_impl<boolean >
+-            {
+-            };
+-        }
+-    }
+-}
+-extern "C" {
+-#ifdef __CRT_UUID_DECL
+-__CRT_UUID_DECL(__FIReference_1_boolean, 0x3c00fd60, 0x2950, 0x5939, 0xa2,0x1a, 0x2d,0x12,0xc5,0xa0,0x1b,0x8a)
+-#endif
+-#else
+-typedef struct __FIReference_1_booleanVtbl {
+-    BEGIN_INTERFACE
+-
+-    /*** IUnknown methods ***/
+-    HRESULT (STDMETHODCALLTYPE *QueryInterface)(
+-        __FIReference_1_boolean *This,
+-        REFIID riid,
+-        void **ppvObject);
+-
+-    ULONG (STDMETHODCALLTYPE *AddRef)(
+-        __FIReference_1_boolean *This);
+-
+-    ULONG (STDMETHODCALLTYPE *Release)(
+-        __FIReference_1_boolean *This);
+-
+-    /*** IInspectable methods ***/
+-    HRESULT (STDMETHODCALLTYPE *GetIids)(
+-        __FIReference_1_boolean *This,
+-        ULONG *iidCount,
+-        IID **iids);
+-
+-    HRESULT (STDMETHODCALLTYPE *GetRuntimeClassName)(
+-        __FIReference_1_boolean *This,
+-        HSTRING *className);
+-
+-    HRESULT (STDMETHODCALLTYPE *GetTrustLevel)(
+-        __FIReference_1_boolean *This,
+-        TrustLevel *trustLevel);
+-
+-    /*** IReference<boolean > methods ***/
+-    HRESULT (STDMETHODCALLTYPE *get_Value)(
+-        __FIReference_1_boolean *This,
+-        boolean *value);
+-
+-    END_INTERFACE
+-} __FIReference_1_booleanVtbl;
+-
+-interface __FIReference_1_boolean {
+-    CONST_VTBL __FIReference_1_booleanVtbl* lpVtbl;
+-};
+-
+-#ifdef COBJMACROS
+-#ifndef WIDL_C_INLINE_WRAPPERS
+-/*** IUnknown methods ***/
+-#define __FIReference_1_boolean_QueryInterface(This,riid,ppvObject) (This)->lpVtbl->QueryInterface(This,riid,ppvObject)
+-#define __FIReference_1_boolean_AddRef(This) (This)->lpVtbl->AddRef(This)
+-#define __FIReference_1_boolean_Release(This) (This)->lpVtbl->Release(This)
+-/*** IInspectable methods ***/
+-#define __FIReference_1_boolean_GetIids(This,iidCount,iids) (This)->lpVtbl->GetIids(This,iidCount,iids)
+-#define __FIReference_1_boolean_GetRuntimeClassName(This,className) (This)->lpVtbl->GetRuntimeClassName(This,className)
+-#define __FIReference_1_boolean_GetTrustLevel(This,trustLevel) (This)->lpVtbl->GetTrustLevel(This,trustLevel)
+-/*** IReference<boolean > methods ***/
+-#define __FIReference_1_boolean_get_Value(This,value) (This)->lpVtbl->get_Value(This,value)
+-#else
+-/*** IUnknown methods ***/
+-static inline HRESULT __FIReference_1_boolean_QueryInterface(__FIReference_1_boolean* This,REFIID riid,void **ppvObject) {
+-    return This->lpVtbl->QueryInterface(This,riid,ppvObject);
+-}
+-static inline ULONG __FIReference_1_boolean_AddRef(__FIReference_1_boolean* This) {
+-    return This->lpVtbl->AddRef(This);
+-}
+-static inline ULONG __FIReference_1_boolean_Release(__FIReference_1_boolean* This) {
+-    return This->lpVtbl->Release(This);
+-}
+-/*** IInspectable methods ***/
+-static inline HRESULT __FIReference_1_boolean_GetIids(__FIReference_1_boolean* This,ULONG *iidCount,IID **iids) {
+-    return This->lpVtbl->GetIids(This,iidCount,iids);
+-}
+-static inline HRESULT __FIReference_1_boolean_GetRuntimeClassName(__FIReference_1_boolean* This,HSTRING *className) {
+-    return This->lpVtbl->GetRuntimeClassName(This,className);
+-}
+-static inline HRESULT __FIReference_1_boolean_GetTrustLevel(__FIReference_1_boolean* This,TrustLevel *trustLevel) {
+-    return This->lpVtbl->GetTrustLevel(This,trustLevel);
+-}
+-/*** IReference<boolean > methods ***/
+-static inline HRESULT __FIReference_1_boolean_get_Value(__FIReference_1_boolean* This,boolean *value) {
+-    return This->lpVtbl->get_Value(This,value);
+-}
+-#endif
+-#ifdef WIDL_using_Windows_Foundation
+-#define IID_IReference_boolean IID___FIReference_1_boolean
+-#define IReference_booleanVtbl __FIReference_1_booleanVtbl
+-#define IReference_boolean __FIReference_1_boolean
+-#define IReference_boolean_QueryInterface __FIReference_1_boolean_QueryInterface
+-#define IReference_boolean_AddRef __FIReference_1_boolean_AddRef
+-#define IReference_boolean_Release __FIReference_1_boolean_Release
+-#define IReference_boolean_GetIids __FIReference_1_boolean_GetIids
+-#define IReference_boolean_GetRuntimeClassName __FIReference_1_boolean_GetRuntimeClassName
+-#define IReference_boolean_GetTrustLevel __FIReference_1_boolean_GetTrustLevel
+-#define IReference_boolean_get_Value __FIReference_1_boolean_get_Value
+-#endif /* WIDL_using_Windows_Foundation */
+-#endif
+-
+-#endif
+-
+-#endif  /* ____FIReference_1_boolean_INTERFACE_DEFINED__ */
+-
+ /*****************************************************************************
+  * ITypedEventHandler<IInspectable*,IInspectable* > interface
+  */
+diff --git a/mingw-w64-headers/include/windows.foundation.idl b/mingw-w64-headers/include/windows.foundation.idl
+index 88a9f57..7a64459 100644
+--- a/mingw-w64-headers/include/windows.foundation.idl
++++ b/mingw-w64-headers/include/windows.foundation.idl
+@@ -150,7 +150,6 @@ namespace Windows.Foundation {
+         interface Windows.Foundation.IReference<Windows.Foundation.Rect>;
+         interface Windows.Foundation.IReference<Windows.Foundation.Size>;
+         interface Windows.Foundation.IReference<Windows.Foundation.TimeSpan>;
+-        interface Windows.Foundation.IReference<boolean>;
+         interface Windows.Foundation.TypedEventHandler<IInspectable *, IInspectable *>;
+         interface Windows.Foundation.TypedEventHandler<Windows.Foundation.IMemoryBufferReference *, IInspectable *>;
+     }

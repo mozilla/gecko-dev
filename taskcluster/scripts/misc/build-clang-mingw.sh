@@ -37,25 +37,21 @@ default_win32_winnt=0x601
 
 cd $GECKO_PATH
 
-patch_file2="$(pwd)/taskcluster/scripts/misc/mingw-dwrite_3.patch"
-patch_file3="$(pwd)/taskcluster/scripts/misc/mingw-unknown.patch"
-patch_file4="$(pwd)/taskcluster/scripts/misc/mingw-enum.patch"
-patch_file5="$(pwd)/taskcluster/scripts/misc/mingw-widl.patch"
-patch_file6="$(pwd)/taskcluster/scripts/misc/mingw-dispatchqueue.patch"
-patch_file10="$(pwd)/taskcluster/scripts/misc/mingw-ts_sd.patch"
-patch_file11="$(pwd)/taskcluster/scripts/misc/mingw-composition.patch"
-patch_file12="$(pwd)/taskcluster/scripts/misc/mingw-wintrust.patch"
+patch_file1="$(pwd)/taskcluster/scripts/misc/mingw-dwrite_3.patch"
+patch_file2="$(pwd)/taskcluster/scripts/misc/mingw-enum.patch"
+patch_file3="$(pwd)/taskcluster/scripts/misc/mingw-widl.patch"
+patch_file4="$(pwd)/taskcluster/scripts/misc/mingw-dispatchqueue.patch"
+patch_file5="$(pwd)/taskcluster/scripts/misc/mingw-ts_sd.patch"
+patch_file6="$(pwd)/taskcluster/scripts/misc/mingw-foundation_redef.patch"
 
 prepare() {
   pushd $MOZ_FETCHES_DIR/mingw-w64
+  patch -p1 <$patch_file1
   patch -p1 <$patch_file2
   patch -p1 <$patch_file3
   patch -p1 <$patch_file4
   patch -p1 <$patch_file5
   patch -p1 <$patch_file6
-  patch -p1 <$patch_file10
-  patch -p1 <$patch_file11
-  patch -p1 <$patch_file12
   popd
 }
 

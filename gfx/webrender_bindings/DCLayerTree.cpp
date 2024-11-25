@@ -37,14 +37,6 @@
 
 // -
 
-#if defined(__MINGW32__)  // 64 defines both 32 and 64
-// We need to fake some things, while we wait on updates to mingw's dcomp.h
-// header. Just enough that we can successfully fail to work there.
-#  define MOZ_MINGW_DCOMP_H_INCOMPLETE
-struct IDCompositionColorMatrixEffect : public IDCompositionFilterEffect {};
-struct IDCompositionTableTransferEffect : public IDCompositionFilterEffect {};
-#endif  // defined(__MINGW32__)
-
 namespace mozilla {
 namespace wr {
 
@@ -2295,8 +2287,6 @@ ColorManagementChain ColorManagementChain::From(
     const color::ColorProfileConversionDesc& conv) {
   auto ret = ColorManagementChain{};
 
-#if !defined(MOZ_MINGW_DCOMP_H_INCOMPLETE)
-
   const auto Append = [&](const RefPtr<IDCompositionFilterEffect>& afterLast) {
     if (ret.last) {
       afterLast->SetInput(0, ret.last, 0);
@@ -2332,8 +2322,6 @@ ColorManagementChain ColorManagementChain::From(
   ret.dstLinearFromSrcLinear =
       MaybeAppendColorMatrix(color::mat4(conv.dstLinearFromSrcLinear));
   ret.dstTfFromDstLinear = MaybeAppendTableTransfer(conv.dstTfFromDstLinear);
-
-#endif  // !defined(MOZ_MINGW_DCOMP_H_INCOMPLETE)
 
   return ret;
 }
