@@ -563,9 +563,6 @@ inline js::PropertyName* JSLinearString::toPropertyName(JSContext* cx) {
   uint32_t dummy;
   MOZ_ASSERT(!isIndex(&dummy));
 #endif
-  if (isAtom()) {
-    return asAtom().asPropertyName();
-  }
   JSAtom* atom = js::AtomizeString(cx, this);
   if (!atom) {
     return nullptr;

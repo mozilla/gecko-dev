@@ -370,8 +370,7 @@ static MOZ_ALWAYS_INLINE bool GetObjectElementOperation(
     }
 
     if (key.isString()) {
-      JSString* str = key.toString();
-      JSAtom* name = str->isAtom() ? &str->asAtom() : AtomizeString(cx, str);
+      JSAtom* name = AtomizeString(cx, key.toString());
       if (!name) {
         return false;
       }
@@ -437,8 +436,7 @@ static MOZ_ALWAYS_INLINE bool GetPrimitiveElementOperation(
     }
 
     if (key.isString()) {
-      JSString* str = key.toString();
-      JSAtom* name = str->isAtom() ? &str->asAtom() : AtomizeString(cx, str);
+      JSAtom* name = AtomizeString(cx, key.toString());
       if (!name) {
         return false;
       }

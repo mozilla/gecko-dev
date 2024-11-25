@@ -662,10 +662,8 @@ static MOZ_ALWAYS_INLINE JSAtom* AllocateNewPermanentAtomNonStaticValidLength(
   return atom;
 }
 
-JSAtom* js::AtomizeString(JSContext* cx, JSString* str) {
-  if (str->isAtom()) {
-    return &str->asAtom();
-  }
+JSAtom* js::AtomizeStringSlow(JSContext* cx, JSString* str) {
+  MOZ_ASSERT(!str->isAtom());
 
   if (str->isAtomRef()) {
     return str->atom();
@@ -1001,12 +999,7 @@ JSAtom* js::ToAtom(JSContext* cx,
     return ToAtomSlow<allowGC>(cx, v);
   }
 
-  JSString* str = v.toString();
-  if (str->isAtom()) {
-    return &str->asAtom();
-  }
-
-  JSAtom* atom = AtomizeString(cx, str);
+  JSAtom* atom = AtomizeString(cx, v.toString());
   if (!atom && !allowGC) {
     MOZ_ASSERT(cx->isThrowingOutOfMemory());
     cx->recoverFromOutOfMemory();

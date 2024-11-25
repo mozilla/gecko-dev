@@ -47,17 +47,12 @@ inline bool PrimitiveValueToId(
   MOZ_ASSERT(v.isPrimitive());
 
   if (v.isString()) {
-    JSAtom* atom;
-    if (v.toString()->isAtom()) {
-      atom = &v.toString()->asAtom();
-    } else {
-      atom = AtomizeString(cx, v.toString());
-      if (!atom) {
-        if constexpr (!allowGC) {
-          cx->recoverFromOutOfMemory();
-        }
-        return false;
+    JSAtom* atom = AtomizeString(cx, v.toString());
+    if (!atom) {
+      if constexpr (!allowGC) {
+        cx->recoverFromOutOfMemory();
       }
+      return false;
     }
     idp.set(AtomToId(atom));
     return true;

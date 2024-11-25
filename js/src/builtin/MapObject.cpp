@@ -57,15 +57,11 @@ static PreBarriered<Value> NormalizeDoubleValue(double d) {
 bool HashableValue::setValue(JSContext* cx, const Value& v) {
   if (v.isString()) {
     // Atomize so that hash() and operator==() are fast and infallible.
-    if (v.toString()->isAtom()) {
-      value = v;
-    } else {
-      JSString* str = AtomizeString(cx, v.toString());
-      if (!str) {
-        return false;
-      }
-      value = StringValue(str);
+    JSString* str = AtomizeString(cx, v.toString());
+    if (!str) {
+      return false;
     }
+    value = StringValue(str);
   } else if (v.isDouble()) {
     value = NormalizeDoubleValue(v.toDouble());
 #ifdef ENABLE_RECORD_TUPLE

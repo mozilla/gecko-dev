@@ -1823,16 +1823,10 @@ static MOZ_ALWAYS_INLINE bool ValueToAtomOrSymbolPure(JSContext* cx,
                                                       const Value& idVal,
                                                       jsid* id) {
   if (MOZ_LIKELY(idVal.isString())) {
-    JSString* s = idVal.toString();
-    JSAtom* atom;
-    if (s->isAtom()) {
-      atom = &s->asAtom();
-    } else {
-      atom = AtomizeString(cx, s);
-      if (!atom) {
-        cx->recoverFromOutOfMemory();
-        return false;
-      }
+    JSAtom* atom = AtomizeString(cx, idVal.toString());
+    if (!atom) {
+      cx->recoverFromOutOfMemory();
+      return false;
     }
 
     // Watch out for integer ids because they may be stored in dense elements.
