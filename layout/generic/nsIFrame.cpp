@@ -7541,7 +7541,6 @@ void nsIFrame::SetView(nsView* aView) {
 #ifdef DEBUG
     LayoutFrameType frameType = Type();
     NS_ASSERTION(frameType == LayoutFrameType::SubDocument ||
-                     frameType == LayoutFrameType::ListControl ||
                      frameType == LayoutFrameType::Viewport ||
                      frameType == LayoutFrameType::MenuPopup,
                  "Only specific frame types can have an nsView");
