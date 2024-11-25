@@ -2199,6 +2199,10 @@ public:
       return true;
     }
 
+    if (F->isTemplateInstantiation()) {
+      VisitForwardedStatements(E, Loc);
+    }
+
     SourceLocation SpellingLoc = SM.getSpellingLoc(Loc);
 
     std::vector<SourceRange> argRanges;
@@ -2295,6 +2299,40 @@ public:
     return true;
   }
 
+  void VisitForwardedStatements(const Expr *E, SourceLocation Loc) {
+    // If this is a forwarding template (eg MakeUnique), visit the forwarded statements
+    auto todo = std::stack{std::vector<const Stmt *>{E}};
+    auto seen = std::unordered_set<const Stmt *>{};
+    while (!todo.empty()) {
+      const auto forwarded = std::move(todo.top());
+      todo.pop();
+      if (seen.find(forwarded) != seen.end())
+        continue;
+      seen.insert(forwarded);
+
+      if (const auto *C = dyn_cast<CXXConstructExpr>(forwarded))
+        VisitCXXConstructExpr(C, Loc);
+
+      const Decl *Decl = nullptr;
+      if (const auto *D = dyn_cast<CallExpr>(forwarded))
+        Decl = D->getCalleeDecl();
+      if (const auto *D = dyn_cast<DeclRefExpr>(forwarded))
+        Decl = D->getDecl();
+
+      if (!Decl)
+        continue;
+      const auto *F = Decl->getAsFunction();
+      if (!F)
+        continue;
+      if (!F->isTemplateInstantiation())
+        continue;
+      const auto [ForwardedBegin, ForwardedEnd] = ForwardingTemplates.equal_range(F);
+      for (auto ForwardedIt = ForwardedBegin; ForwardedIt != ForwardedEnd; ++ForwardedIt)
+        if (seen.find(ForwardedIt->second) == seen.end())
+          todo.push(ForwardedIt->second);
+    }
+  }
+
   bool VisitDeclRefExpr(const DeclRefExpr *E) {
     SourceLocation Loc = E->getExprLoc();
     if (!isInterestingLocation(Loc)) {
@@ -2331,35 +2369,7 @@ public:
       const FunctionDecl *F = dyn_cast<FunctionDecl>(Decl);
       if (F->isTemplateInstantiation()) {
         Decl = F->getTemplateInstantiationPattern();
-
-        // If this is a forwarding template (eg MakeUnique), visit the forwarded statements
-        auto todo = std::stack{std::vector<const Stmt *>{E}};
-        auto seen = std::unordered_set<const Stmt *>{};
-        while (!todo.empty()) {
-          const auto forwarded = std::move(todo.top());
-          todo.pop();
-          if (seen.find(forwarded) != seen.end())
-            continue;
-          seen.insert(forwarded);
-
-          if (const auto *C = dyn_cast<CXXConstructExpr>(forwarded))
-            VisitCXXConstructExpr(C, Loc);
-
-          if (const auto *D = dyn_cast<DeclRefExpr>(forwarded)) {
-            const auto *Decl = D->getDecl();
-            if (!Decl)
-              continue;
-            const auto *F = Decl->getAsFunction();
-            if (!F)
-              continue;
-            if (!F->isTemplateInstantiation())
-              continue;
-            const auto [ForwardedBegin, ForwardedEnd] = ForwardingTemplates.equal_range(F);
-            for (auto ForwardedIt = ForwardedBegin; ForwardedIt != ForwardedEnd; ++ForwardedIt)
-              if (seen.find(ForwardedIt->second) == seen.end())
-                todo.push(ForwardedIt->second);
-          }
-        }
+        VisitForwardedStatements(E, Loc);
       }
 
       std::string Mangled = getMangledName(CurMangleContext, Decl);
