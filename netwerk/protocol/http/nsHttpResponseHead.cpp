@@ -83,6 +83,33 @@ nsHttpResponseHead& nsHttpResponseHead::operator=(
   return *this;
 }
 
+nsHttpResponseHead::nsHttpResponseHead(nsHttpResponseHead&& aOther) {
+  nsHttpResponseHead& other = aOther;
+  RecursiveMutexAutoLock monitor(other.mRecursiveMutex);
+
+  mHeaders = std::move(other.mHeaders);
+  mVersion = std::move(other.mVersion);
+  mStatus = std::move(other.mStatus);
+  mStatusText = std::move(other.mStatusText);
+  mContentLength = std::move(other.mContentLength);
+  mContentType = std::move(other.mContentType);
+  mContentCharset = std::move(other.mContentCharset);
+  mHasCacheControl = std::move(other.mHasCacheControl);
+  mCacheControlPublic = std::move(other.mCacheControlPublic);
+  mCacheControlPrivate = std::move(other.mCacheControlPrivate);
+  mCacheControlNoStore = std::move(other.mCacheControlNoStore);
+  mCacheControlNoCache = std::move(other.mCacheControlNoCache);
+  mCacheControlImmutable = std::move(other.mCacheControlImmutable);
+  mCacheControlStaleWhileRevalidateSet =
+      std::move(other.mCacheControlStaleWhileRevalidateSet);
+  mCacheControlStaleWhileRevalidate =
+      std::move(other.mCacheControlStaleWhileRevalidate);
+  mCacheControlMaxAgeSet = std::move(other.mCacheControlMaxAgeSet);
+  mCacheControlMaxAge = std::move(other.mCacheControlMaxAge);
+  mPragmaNoCache = std::move(other.mPragmaNoCache);
+  mInVisitHeaders = false;
+}
+
 HttpVersion nsHttpResponseHead::Version() {
   RecursiveMutexAutoLock monitor(mRecursiveMutex);
   return mVersion;

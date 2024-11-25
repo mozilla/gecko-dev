@@ -146,9 +146,8 @@ class HttpChannelChild final : public PHttpChannelChild,
       const uint32_t& registrarId, nsIURI* newOriginalURI,
       const uint32_t& newLoadFlags, const uint32_t& redirectFlags,
       const ParentLoadInfoForwarderArgs& loadInfoForwarder,
-      const nsHttpResponseHead& responseHead,
-      nsITransportSecurityInfo* securityInfo, const uint64_t& channelId,
-      const NetAddr& oldPeerAddr,
+      nsHttpResponseHead&& responseHead, nsITransportSecurityInfo* securityInfo,
+      const uint64_t& channelId, const NetAddr& oldPeerAddr,
       const ResourceTimingStructArgs& aTiming) override;
   mozilla::ipc::IPCResult RecvRedirect3Complete() override;
   mozilla::ipc::IPCResult RecvRedirectFailed(const nsresult& status) override;

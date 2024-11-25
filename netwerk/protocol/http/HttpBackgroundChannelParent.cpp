@@ -144,7 +144,7 @@ void HttpBackgroundChannelParent::OnChannelClosed() {
 }
 
 bool HttpBackgroundChannelParent::OnStartRequest(
-    const nsHttpResponseHead& aResponseHead, const bool& aUseResponseHead,
+    nsHttpResponseHead&& aResponseHead, const bool& aUseResponseHead,
     const nsHttpHeaderArray& aRequestHeaders,
     const HttpChannelOnStartRequestArgs& aArgs,
     const nsCOMPtr<nsICacheEntry>& aAltDataSource,
@@ -159,14 +159,14 @@ bool HttpBackgroundChannelParent::OnStartRequest(
   if (!IsOnBackgroundThread()) {
     MutexAutoLock lock(mBgThreadMutex);
     nsresult rv = mBackgroundThread->Dispatch(
-        NewRunnableMethod<const nsHttpResponseHead, const bool,
+        NewRunnableMethod<nsHttpResponseHead&&, const bool,
                           const nsHttpHeaderArray,
                           const HttpChannelOnStartRequestArgs,
                           const nsCOMPtr<nsICacheEntry>, TimeStamp>(
             "net::HttpBackgroundChannelParent::OnStartRequest", this,
-            &HttpBackgroundChannelParent::OnStartRequest, aResponseHead,
-            aUseResponseHead, aRequestHeaders, aArgs, aAltDataSource,
-            aOnStartRequestStart),
+            &HttpBackgroundChannelParent::OnStartRequest,
+            std::move(aResponseHead), aUseResponseHead, aRequestHeaders, aArgs,
+            aAltDataSource, aOnStartRequestStart),
         NS_DISPATCH_NORMAL);
 
     MOZ_DIAGNOSTIC_ASSERT(NS_SUCCEEDED(rv));
@@ -191,8 +191,9 @@ bool HttpBackgroundChannelParent::OnStartRequest(
     }
   }
 
-  return SendOnStartRequest(aResponseHead, aUseResponseHead, aRequestHeaders,
-                            aArgs, altData, aOnStartRequestStart);
+  return SendOnStartRequest(std::move(aResponseHead), aUseResponseHead,
+                            aRequestHeaders, aArgs, altData,
+                            aOnStartRequestStart);
 }
 
 bool HttpBackgroundChannelParent::OnTransportAndData(

@@ -27,7 +27,7 @@ include "mozilla/net/ClassOfService.h";
 using mozilla::OriginAttributes from "mozilla/ipc/BackgroundUtils.h";
 using mozilla::net::RequestHeaderTuples from "mozilla/net/PHttpChannelParams.h";
 using struct nsHttpAtom from "nsHttp.h";
-using class mozilla::net::nsHttpResponseHead from "nsHttpResponseHead.h";
+[MoveOnly] using class mozilla::net::nsHttpResponseHead from "nsHttpResponseHead.h";
 using class mozilla::TimeStamp from "mozilla/TimeStamp.h";
 [RefCounted] using class nsIPropertyBag2 from "nsIPropertyBag2.h";
 [RefCounted] using class nsDOMNavigationTiming from "nsDOMNavigationTiming.h";

@@ -1338,13 +1338,18 @@ HttpChannelParent::OnStartRequest(nsIRequest* aRequest) {
   mChannel->GetTrrSkipReason(&reason);
   args.trrSkipReason() = reason;
 
-  if (mIPCClosed ||
-      !mBgParent->OnStartRequest(
-          *responseHead, useResponseHead,
-          cleanedUpRequest ? cleanedUpRequestHeaders : requestHead->Headers(),
-          args, altDataSource, chan->GetOnStartRequestStartTime())) {
+  if (mIPCClosed) {
     rv = NS_ERROR_UNEXPECTED;
+  } else {
+    nsHttpResponseHead newResponseHead = *responseHead;
+    if (!mBgParent->OnStartRequest(
+            std::move(newResponseHead), useResponseHead,
+            cleanedUpRequest ? cleanedUpRequestHeaders : requestHead->Headers(),
+            args, altDataSource, chan->GetOnStartRequestStartTime())) {
+      rv = NS_ERROR_UNEXPECTED;
+    }
   }
+
   requestHead->Exit();
 
   // Need to wait for the cookies/permissions to content process, which is sent
@@ -1911,9 +1916,11 @@ HttpChannelParent::StartRedirect(nsIChannel* newChannel, uint32_t redirectFlags,
   }
 
   if (!mIPCClosed) {
+    cleanedUpResponseHead = *responseHead;
     if (!SendRedirect1Begin(mRedirectChannelId, newOriginalURI, newLoadFlags,
-                            redirectFlags, loadInfoForwarderArg, *responseHead,
-                            securityInfo, channelId, mChannel->GetPeerAddr(),
+                            redirectFlags, loadInfoForwarderArg,
+                            std::move(cleanedUpResponseHead), securityInfo,
+                            channelId, mChannel->GetPeerAddr(),
                             GetTimingAttributes(mChannel))) {
       return NS_BINDING_ABORTED;
     }
