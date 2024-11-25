@@ -27,6 +27,7 @@ task-defaults:
     extra:
         app-name: browser
         branch-prefix: mozilla
+        last-linux-bz2-version: "133.0b9"  # Bug 1710599: Last version to use bz2 compression on Linux builds
         archive-prefix:
             by-release-level:
                 staging: "http://ftp.stage.mozaws.net/pub"

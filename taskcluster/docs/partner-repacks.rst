@@ -150,9 +150,9 @@ There is one task per platform in this step, calling out to `scripts/desktop_par
 The actual repacking is done by `python/mozrelease/mozrelease/partner_repack.py
 <https://hg.mozilla.org/mozilla-central/file/default/python/mozrelease/mozrelease/partner_repack.py>`_.
 
-It takes as input the build-signing and l10n-signing artifacts, which are all zip/tar.gz/tar.bz2
+It takes as input the build-signing and l10n-signing artifacts, which are all zip/tar.gz/tar.xz
 archives, simplifying the repack process by avoiding dmg and exe. Windows produces ``target.zip``
-& ``setup.exe``, Mac is ``target.tar.gz``, Linux is the final product ``target.tar.bz2``
+& ``setup.exe``, Mac is ``target.tar.gz``, Linux is the final product ``target.tar.xz``
 (beetmover handles pretty naming as usual).
 
 Signing

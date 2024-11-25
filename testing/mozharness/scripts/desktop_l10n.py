@@ -337,6 +337,7 @@ class DesktopSingleLocale(LocalesMixin, AutomationMixin, VCSMixin, BaseScript):
             )
             targets_exts = [
                 "tar.bz2",
+                "tar.xz",
                 "dmg",
                 "langpack.xpi",
                 "checksums",
