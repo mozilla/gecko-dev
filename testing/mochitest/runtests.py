@@ -917,9 +917,8 @@ def findTestMediaDevices(log):
         ]
     )
     info["video"] = {"name": name, "process": process}
-
-    # Hardcode the PulseAudio module-null-sink name since it's always the same.
-    info["audio"] = {"name": "Monitor of Null Output"}
+    info["speaker"] = {"name": "44100Hz Null Output"}
+    info["audio"] = {"name": "Monitor of {}".format(info["speaker"]["name"])}
     return info
 
 
@@ -2527,7 +2526,7 @@ toolbar#nav-bar {
         if options.useTestMediaDevices:
             prefs["media.audio_loopback_dev"] = self.mediaDevices["audio"]["name"]
             prefs["media.video_loopback_dev"] = self.mediaDevices["video"]["name"]
-            prefs["media.cubeb.output_device"] = "Null Output"
+            prefs["media.cubeb.output_device"] = self.mediaDevices["speaker"]["name"]
             prefs["media.volume_scale"] = "1.0"
             self.gstForV4l2loopbackProcess = self.mediaDevices["video"]["process"]
 
@@ -2608,6 +2607,11 @@ toolbar#nav-bar {
                     return None
 
             self.virtualDeviceIdList = []
+
+        if hasattr(self, "virtualAudioNodeIdList"):
+            for id in self.virtualAudioNodeIdList:
+                subprocess.check_output(["pw-cli", "destroy", str(id)])
+            self.virtualAudioNodeIdList = []
 
     def dumpScreen(self, utilityPath):
         if self.haveDumpedScreen:
@@ -3073,12 +3077,110 @@ toolbar#nav-bar {
         if not mozinfo.isLinux:
             return
 
-        pactl = which("pactl")
+        INPUT_DEVICES_COUNT = 4
+        DEVICES_BASE_FREQUENCY = 110  # Hz
 
+        output_devices = [
+            {"name": "null-44100", "description": "44100Hz Null Output", "rate": 44100},
+            {"name": "null-48000", "description": "48000Hz Null Output", "rate": 48000},
+        ]
+        # We want quite a number of input devices, each with a different tone
+        # frequency and device name so that we can recognize them easily during
+        # testing.
+        input_devices = []
+        for i in range(1, INPUT_DEVICES_COUNT + 1):
+            freq = i * DEVICES_BASE_FREQUENCY
+            input_devices.append(
+                {
+                    "name": "sine-{}".format(freq),
+                    "description": "{}Hz Sine Source".format(freq),
+                    "frequency": freq,
+                }
+            )
+
+        # Determine if this is running PulseAudio or PipeWire
+        # `pactl info` works on both systems, but when running on PipeWire it says
+        # something like:
+        # Server Name: PulseAudio (on PipeWire 1.0.5)
+        pactl = which("pactl")
         if not pactl:
             self.log.error("Could not find pactl on system")
             return
 
+        o = subprocess.check_output([pactl, "info"])
+        if b"PipeWire" in o:
+            self.initializeVirtualAudioDevicesPipeWire(input_devices, output_devices)
+        else:
+            self.initializeVirtualAudioDevicesPulseAudio(
+                pactl, input_devices, output_devices
+            )
+
+    def initializeVirtualAudioDevicesPipeWire(self, input_devices, output_devices):
+        required_commands = ["pw-cli", "pw-dump"]
+        for command in required_commands:
+            cmd = which(command)
+            if not cmd:
+                self.log.error(
+                    "Could not find required program {} on system".format(command)
+                )
+                return
+
+        # Create outputs
+        for device in output_devices:
+            cmd = ["pw-cli", "create-node", "adapter"]
+            device_spec = [
+                (
+                    "{{factory.name=support.null-audio-sink "
+                    'node.name="{}" '
+                    'node.description="{}" '
+                    "media.class=Audio/Sink "
+                    "object.linger=true "
+                    "audio.position=[FL FR] "
+                    "monitor.channel-volumes=true "
+                    "audio.rate={}}}".format(
+                        device["name"], device["description"], device["rate"]
+                    )
+                )
+            ]
+            subprocess.check_output(cmd + device_spec)
+
+        # Create inputs
+        for device in input_devices:
+            cmd = ["pw-cli", "create-node", "adapter"]
+            # The frequency setting doesn't work for now
+            device_spec = [
+                (
+                    "{{factory.name=audiotestsrc "
+                    'node.name="{}" '
+                    'node.description="{}" '
+                    "media.class=Audio/Source "
+                    "object.linger=true "
+                    "node.param.Props={{frequency: {}}} }}".format(
+                        device["name"], device["description"], device["frequency"]
+                    )
+                )
+            ]
+            subprocess.check_output(cmd + device_spec)
+
+        # Get the node ids for cleanup
+        virtual_node_ids = []
+        cmd = ["pw-dump", "Node"]
+        try:
+            nodes = json.loads(subprocess.check_output(cmd))
+        except json.JSONDecodeError as e:
+            # This can happen but I'm not sure why, leaving that in for now
+            print(e, str(cmd))
+            sys.exit(1)
+        for node in nodes:
+            name = node["info"]["props"]["node.name"]
+            if "null-" in name or "sine-" in name:
+                virtual_node_ids.append(node["info"]["props"]["object.id"])
+
+        self.virtualAudioNodeIdList = virtual_node_ids
+
+    def initializeVirtualAudioDevicesPulseAudio(
+        self, pactl, input_devices, output_devices
+    ):
         def getModuleIds(moduleName):
             o = subprocess.check_output([pactl, "list", "modules", "short"])
             list = []
@@ -3088,17 +3190,13 @@ toolbar#nav-bar {
                     list.append(int(device[0]))
             return list
 
-        OUTPUT_DEVICES_COUNT = 2
-        INPUT_DEVICES_COUNT = 4
-        DEVICES_BASE_FREQUENCY = 110  # Hz
         # If the device are already present, find their id and return early
         outputDeviceIdList = getModuleIds("module-null-sink")
         inputDeviceIdList = getModuleIds("module-sine-source")
 
-        if (
-            len(outputDeviceIdList) == OUTPUT_DEVICES_COUNT
-            and len(inputDeviceIdList) == INPUT_DEVICES_COUNT
-        ):
+        if len(outputDeviceIdList) == len(output_devices) and len(
+            inputDeviceIdList
+        ) == len(input_devices):
             self.virtualDeviceIdList = outputDeviceIdList + inputDeviceIdList
             return
         else:
@@ -3112,33 +3210,29 @@ toolbar#nav-bar {
 
         idList = []
         command = [pactl, "load-module", "module-null-sink"]
-        try:  # device for "media.audio_loopback_dev" pref
-            o = subprocess.check_output(command + ["rate=44100"])
-            idList.append(int(o))
-        except subprocess.CalledProcessError:
-            self.log.error("Could not load module-null-sink")
+        for device in output_devices:
+            try:
+                o = subprocess.check_output(
+                    command
+                    + [
+                        "rate={}".format(device["rate"]),
+                        "sink_name='\"{}\"'".format(device["name"]),
+                        "sink_properties='device.description=\"{}\"'".format(
+                            device["description"]
+                        ),
+                    ]
+                )
+                idList.append(int(o))
+            except subprocess.CalledProcessError:
+                self.log.error(
+                    "Could not load module-null-sink at rate={}".format(device["rate"])
+                )
 
-        try:
-            o = subprocess.check_output(
-                command
-                + [
-                    "rate=48000",
-                    "sink_properties='device.description=\"48000 Hz Null Output\"'",
-                ]
-            )
-            idList.append(int(o))
-        except subprocess.CalledProcessError:
-            self.log.error("Could not load module-null-sink at rate=48000")
-
-        # We want quite a number of input devices, each with a different tone
-        # frequency and device name so that we can recognize them easily during
-        # testing.
         command = [pactl, "load-module", "module-sine-source", "rate=44100"]
-        for i in range(1, INPUT_DEVICES_COUNT + 1):
-            freq = i * DEVICES_BASE_FREQUENCY
+        for device in input_devices:
             complete_command = command + [
-                "source_name=sine-{}".format(freq),
-                "frequency={}".format(freq),
+                'source_name="{}"'.format(device["name"]),
+                "frequency={}".format(device["frequency"]),
             ]
             try:
                 o = subprocess.check_output(complete_command)
@@ -3147,7 +3241,7 @@ toolbar#nav-bar {
             except subprocess.CalledProcessError:
                 self.log.error(
                     "Could not create device with module-sine-source"
-                    " (freq={})".format(freq)
+                    " (freq={})".format(device["frequency"])
                 )
 
         self.virtualDeviceIdList = idList

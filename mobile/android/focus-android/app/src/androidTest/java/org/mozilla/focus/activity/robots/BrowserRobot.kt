@@ -385,21 +385,12 @@ class BrowserRobot {
         mDevice.wait(Until.findObject(By.res("$packageName:id/find_in_page_result_text")), waitingTime)
     }
 
-    fun verifyFindNextInPageResult(ratioCounter: String) {
-        mDevice.wait(Until.findObject(By.text(ratioCounter)), waitingTime)
-        val resultsCounter = mDevice.findObject(By.text(ratioCounter))
-        findInPageResult.check(matches(withText((ratioCounter))))
-        findInPageNextButton.perform(click())
-        resultsCounter.wait(Until.textNotEquals(ratioCounter), waitingTime)
-    }
+    fun verifyFindInPageResult(ratioCounter: String) =
+        assertTrue(mDevice.findObject(UiSelector().textContains(ratioCounter)).waitForExists(waitingTime))
 
-    fun verifyFindPrevInPageResult(ratioCounter: String) {
-        mDevice.wait(Until.findObject(By.text(ratioCounter)), waitingTime)
-        val resultsCounter = mDevice.findObject(By.text(ratioCounter))
-        findInPageResult.check(matches(withText((ratioCounter))))
-        findInPagePrevButton.perform(click())
-        resultsCounter.wait(Until.textNotEquals(ratioCounter), waitingTime)
-    }
+    fun clickFindInPageNextButton() = findInPageNextButton.click()
+
+    fun clickFindInPagePrevButton() = findInPagePrevButton.click()
 
     fun closeFindInPage() {
         findInPageCloseButton.perform(click())
@@ -650,9 +641,9 @@ private val findInPageQuery = onView(withId(R.id.find_in_page_query_text))
 
 private val findInPageResult = onView(withId(R.id.find_in_page_result_text))
 
-private val findInPageNextButton = onView(withId(R.id.find_in_page_next_btn))
+private val findInPageNextButton = mDevice.findObject(UiSelector().resourceId("$packageName:id/find_in_page_next_btn"))
 
-private val findInPagePrevButton = onView(withId(R.id.find_in_page_prev_btn))
+private val findInPagePrevButton = mDevice.findObject(UiSelector().resourceId("$packageName:id/find_in_page_prev_btn"))
 
 private val findInPageCloseButton = onView(withId(R.id.find_in_page_close_btn))
 

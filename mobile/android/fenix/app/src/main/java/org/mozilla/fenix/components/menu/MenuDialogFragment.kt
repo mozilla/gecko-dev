@@ -96,10 +96,10 @@ private const val PRIVATE_HOME_MENU_BACKGROUND_ALPHA = 100
 /**
  * A bottom sheet fragment displaying the menu dialog.
  */
+@Suppress("LargeClass")
 class MenuDialogFragment : BottomSheetDialogFragment() {
 
     private val args by navArgs<MenuDialogFragmentArgs>()
-    private val browsingModeManager get() = (activity as HomeActivity).browsingModeManager
     private val webExtensionsMenuBinding = ViewBoundFeatureWrapper<WebExtensionsMenuBinding>()
     private lateinit var bottomSheetBehavior: BottomSheetBehavior<View>
 
@@ -108,6 +108,9 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
 
         return super.onCreateDialog(savedInstanceState).apply {
             setOnShowListener {
+                val safeActivity = activity ?: return@setOnShowListener
+                val browsingModeManager = (safeActivity as HomeActivity).browsingModeManager
+
                 val navigationBarColor = if (browsingModeManager.mode.isPrivate) {
                     ContextCompat.getColor(context, R.color.fx_mobile_private_layer_color_3)
                 } else {
@@ -157,6 +160,7 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
         setContent {
             FirefoxTheme {
                 val context = LocalContext.current
+                val browsingModeManager = (requireActivity() as HomeActivity).browsingModeManager
 
                 var handlebarContentDescription by remember {
                     mutableStateOf(

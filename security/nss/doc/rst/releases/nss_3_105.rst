@@ -34,7 +34,7 @@ NSS 3.105 release notes
    - Bug 1915792 - Allow importing PKCS#8 private EC keys missing public key
    - Bug 1909768 - UBSAN fix: applying zero offset to null pointer in sslsnce.c
    - Bug 1919577 - set KRML_MUSTINLINE=inline in makefile builds
-   - Bug 1918965 - Don't set CKA_SIGN for CKK_EC_MONTGOMERY private keys 
+   - Bug 1918965 - Don't set CKA_SIGN for CKK_EC_MONTGOMERY private keys
    - Bug 1918767 - override default definition of KRML_MUSTINLINE
    - Bug 1916525 - libssl support for mlkem768x25519
    - Bug 1916524 - support for ML-KEM-768 in softoken and pk11wrap
@@ -48,6 +48,7 @@ NSS 3.105 release notes
    - Bug 1916059 - Fix some simple documentation issues in NSS.
    - Bug 1915439 - improve performance of NSC_FindObjectsInit when template has CKA_TOKEN attr
    - Bug 1912828 - define CKM_NSS_ECDHE_NO_PAIRWISE_CHECK_KEY_PAIR_GEN
+
 `Compatibility <#compatibility>`__
 ----------------------------------
 

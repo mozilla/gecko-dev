@@ -6,6 +6,7 @@
 
 UNIFIED_SOURCES += [
     "Helpers.cpp",
+    "MozPromiseExamples.cpp",
     "TestArenaAllocator.cpp",
     "TestArrayAlgorithm.cpp",
     "TestAtoms.cpp",

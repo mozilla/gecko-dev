@@ -109,15 +109,6 @@ class nsViewManager final {
   void InvalidateView(nsView* aView);
 
   /**
-   * Called to inform the view manager that some portion of a view is dirty and
-   * needs to be redrawn. The rect passed in should be in the view's coordinate
-   * space. Does not check for paint suppression.
-   * @param aView view to paint. should be root view
-   * @param rect rect to mark as damaged
-   */
-  void InvalidateViewNoSuppression(nsView* aView, const nsRect& aRect);
-
-  /**
    * Called to inform the view manager that it should invalidate all views.
    */
   void InvalidateAllViews();
@@ -195,15 +186,6 @@ class nsViewManager final {
    * @param visible new visibility state
    */
   void SetViewVisibility(nsView* aView, ViewVisibility aVisible);
-
-  /**
-   * Set whether the view "floats" above all other views,
-   * which tells the compositor not to consider higher views in
-   * the view hierarchy that would geometrically intersect with
-   * this view. This is a hack, but it fixes some problems with
-   * views that need to be drawn in front of all other views.
-   */
-  void SetViewFloating(nsView* aView, bool aFloatingView);
 
   /**
    * Set the presshell associated with this manager
@@ -356,8 +338,6 @@ class nsViewManager final {
   bool IsPainting() const { return RootViewManager()->mPainting; }
 
   void SetPainting(bool aPainting) { RootViewManager()->mPainting = aPainting; }
-
-  void InvalidateView(nsView* aView, const nsRect& aRect);
 
   nsViewManager* RootViewManager() const {
     return mRootViewManager ? mRootViewManager.get()

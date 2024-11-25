@@ -40,7 +40,6 @@ nsView::nsView(nsViewManager* aViewManager, ViewVisibility aVisibility)
       mVis(aVisibility),
       mPosX(0),
       mPosY(0),
-      mVFlags(0),
       mWidgetIsTopLevel(false),
       mForcedRepaint(false),
       mNeedsWindowPropertiesSync(false) {
@@ -419,13 +418,6 @@ void nsView::SetVisibility(ViewVisibility aVisibility) {
   NotifyEffectiveVisibilityChanged(IsEffectivelyVisible());
 }
 
-void nsView::SetFloating(bool aFloatingView) {
-  if (aFloatingView)
-    mVFlags |= NS_VIEW_FLAG_FLOATING;
-  else
-    mVFlags &= ~NS_VIEW_FLAG_FLOATING;
-}
-
 void nsView::InvalidateHierarchy() {
   if (mViewManager->GetRootView() == this) mViewManager->InvalidateHierarchy();
 
@@ -683,7 +675,7 @@ void nsView::List(FILE* out, int32_t aIndent) const {
   nsRect brect = GetBounds();
   fprintf(out, "{%d,%d,%d,%d} @ %d,%d", brect.X(), brect.Y(), brect.Width(),
           brect.Height(), mPosX, mPosY);
-  fprintf(out, " flags=%x vis=%d frame=%p <\n", mVFlags, int(mVis), mFrame);
+  fprintf(out, " vis=%d frame=%p <\n", int(mVis), mFrame);
   for (nsView* kid = mFirstChild; kid; kid = kid->GetNextSibling()) {
     NS_ASSERTION(kid->GetParent() == this, "incorrect parent");
     kid->List(out, aIndent + 1);

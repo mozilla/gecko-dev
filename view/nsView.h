@@ -100,11 +100,6 @@ enum class WindowType : uint8_t;
 //        the layer's parent.
 enum class ViewVisibility : uint8_t { Hide = 0, Show = 1 };
 
-// Public view flags
-
-// Indicates that the view is a floating view.
-#define NS_VIEW_FLAG_FLOATING 0x0008
-
 //----------------------------------------------------------------------
 
 /**
@@ -224,16 +219,6 @@ class nsView final : public nsIWidgetListener {
    * @result current visibility state
    */
   ViewVisibility GetVisibility() const { return mVis; }
-
-  /**
-   * Get whether the view "floats" above all other views,
-   * which tells the compositor not to consider higher views in
-   * the view hierarchy that would geometrically intersect with
-   * this view. This is a hack, but it fixes some problems with
-   * views that need to be drawn in front of all other views.
-   * @result true if the view floats, false otherwise.
-   */
-  bool GetFloating() const { return (mVFlags & NS_VIEW_FLAG_FLOATING) != 0; }
 
   /**
    * Called to query the parent of the view.
@@ -398,15 +383,6 @@ class nsView final : public nsIWidgetListener {
     mNextSibling = aSibling;
   }
 
-  nsRegion& GetDirtyRegion() {
-    if (!mDirtyRegion) {
-      NS_ASSERTION(!mParent || GetFloating(),
-                   "Only display roots should have dirty regions");
-      mDirtyRegion = mozilla::MakeUnique<nsRegion>();
-    }
-    return *mDirtyRegion;
-  }
-
   // nsIWidgetListener
   mozilla::PresShell* GetPresShell() override;
   nsView* GetView() override { return this; }
@@ -472,23 +448,12 @@ class nsView final : public nsIWidgetListener {
    */
   void SetVisibility(ViewVisibility visibility);
 
-  /**
-   * Set/Get whether the view "floats" above all other views,
-   * which tells the compositor not to consider higher views in
-   * the view hierarchy that would geometrically intersect with
-   * this view. This is a hack, but it fixes some problems with
-   * views that need to be drawn in front of all other views.
-   * @result true if the view floats, false otherwise.
-   */
-  void SetFloating(bool aFloatingView);
-
   // Helper function to get mouse grabbing off this view (by moving it to the
   // parent, if we can)
   void DropMouseGrabbing();
 
-  bool HasNonEmptyDirtyRegion() {
-    return mDirtyRegion && !mDirtyRegion->IsEmpty();
-  }
+  bool IsDirty() const { return mIsDirty; }
+  void SetIsDirty(bool aDirty) { mIsDirty = aDirty; }
 
   void InsertChild(nsView* aChild, nsView* aSibling);
   void RemoveChild(nsView* aChild);
@@ -512,7 +477,6 @@ class nsView final : public nsIWidgetListener {
   nsView* mNextSibling;
   nsView* mFirstChild;
   nsIFrame* mFrame;
-  mozilla::UniquePtr<nsRegion> mDirtyRegion;
   ViewVisibility mVis;
   // position relative our parent view origin but in our appunits
   nscoord mPosX, mPosY;
@@ -520,10 +484,10 @@ class nsView final : public nsIWidgetListener {
   nsRect mDimBounds;
   // in our appunits
   nsPoint mViewToWidgetOffset;
-  uint32_t mVFlags;
   bool mWidgetIsTopLevel;
   bool mForcedRepaint;
   bool mNeedsWindowPropertiesSync;
+  bool mIsDirty = false;
 };
 
 #endif
