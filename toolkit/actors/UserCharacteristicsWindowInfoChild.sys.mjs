@@ -114,6 +114,12 @@ export class UserCharacteristicsWindowInfoChild extends JSWindowActorChild {
 
     this.handlers.touchstart = touchStartHandler;
     this.handlers.pointerdown = pointerDownHandler;
+
+    if (Cu.isInAutomation) {
+      // Just simulate the events if we are in automation
+      const pointerEvent = new PointerEvent("pointerdown");
+      this.contentWindow.windowRoot.dispatchEvent(pointerEvent);
+    }
   }
 
   sendMessage(name, obj, transferables) {

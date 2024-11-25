@@ -215,16 +215,6 @@ export class UserCharacteristicsPageService {
     // existing tabs and continue on a new one before the page
     // is loaded. This is a rare case, but we want to cover it.
 
-    if (Cu.isInAutomation) {
-      // To safeguard against any possible weird empty
-      // documents, we check if the document is empty. If it is
-      // we wait for a valid document to be loaded.
-      // During testing, we load empty.html which doesn't
-      // have any body. So, we end up waiting forever.
-      // Because of this, we skip this part during automation.
-      return;
-    }
-
     const { promise: screenInfoPromise, resolve: screenInfoResolve } =
       Promise.withResolvers();
     const { promise: pointerInfoPromise, resolve: pointerInfoResolve } =
