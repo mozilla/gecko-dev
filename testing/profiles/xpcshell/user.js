@@ -26,6 +26,7 @@ user_pref("telemetry.fog.test.activity_limit", -1);
 user_pref("telemetry.fog.test.inactivity_limit", -1);
 // Prevent Remote Settings to issue non local connections.
 user_pref("services.settings.server", "data:,#remote-settings-dummy/v1");
+user_pref("services.settings.startup_bundle_enabled", false);
 // Prevent intermediate preloads to be downloaded on Remote Settings polling.
 user_pref("security.remote_settings.intermediates.enabled", false);
 // The process priority manager only shifts priorities when it has at least
