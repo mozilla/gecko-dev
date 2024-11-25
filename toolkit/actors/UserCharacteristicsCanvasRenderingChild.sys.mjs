@@ -78,10 +78,8 @@ export class UserCharacteristicsCanvasRenderingChild extends JSWindowActorChild 
       return sha1(canvas.toDataURL("image/png", 1)).catch(stringifyError);
     };
 
-    const data = {
-      errors: [],
-      renderings: {},
-    };
+    const errors = [];
+    const renderings = new Map();
 
     // Run HW renderings
     // Attempt HW rendering regardless of the expected rendering mode.
@@ -98,14 +96,14 @@ export class UserCharacteristicsCanvasRenderingChild extends JSWindowActorChild 
           continue;
         }
 
-        data.errors.push({
+        errors.push({
           name,
           error: result.error,
           originalError: result.originalError,
         });
         continue;
       }
-      data.renderings[name] = result;
+      renderings.set(name, result);
     }
 
     // Run SW renderings
@@ -113,15 +111,19 @@ export class UserCharacteristicsCanvasRenderingChild extends JSWindowActorChild 
       lazy.console.debug("[SW] Rendering ", name);
       const result = await runRecipe(false, recipe);
       if (result.error) {
-        data.errors.push({
+        errors.push({
           name: name + "software",
           error: result.error,
           originalError: result.originalError,
         });
         continue;
       }
-      data.renderings[name + "software"] = result;
+      renderings.set(name + "software", result);
     }
+
+    const data = new Map();
+    data.set("renderings", renderings);
+    data.set("errors", errors);
 
     return data;
   }

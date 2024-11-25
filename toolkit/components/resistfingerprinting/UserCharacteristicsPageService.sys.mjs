@@ -195,7 +195,8 @@ export class UserCharacteristicsPageService {
     data,
     { prefix = "", suffix = "", operation = "set" } = {}
   ) {
-    for (const [key, value] of Object.entries(data)) {
+    const entries = data instanceof Map ? data.entries() : Object.entries(data);
+    for (const [key, value] of entries) {
       Glean.characteristics[prefix + key + suffix][operation](value);
     }
   }
@@ -296,7 +297,7 @@ export class UserCharacteristicsPageService {
       },
     });
 
-    let data = {};
+    let data = new Map();
     // Returns true if we need to try again
     const attemptRender = async allowSoftwareRenderer => {
       const diagnostics = {
@@ -435,13 +436,13 @@ export class UserCharacteristicsPageService {
     }
 
     // We may have HW + SW, or only SW rendered canvases - populate the metrics with what we have
-    this.collectGleanMetricsFromMap(data.renderings);
+    this.collectGleanMetricsFromMap(data.get("renderings"));
 
     ChromeUtils.unregisterWindowActor(actorName);
 
     // Record the errors
-    if (data.errors?.length) {
-      this.handledErrors.push(...data.errors);
+    if (data.get("errors")?.length) {
+      this.handledErrors.push(...data.get("errors"));
     }
   }
 
