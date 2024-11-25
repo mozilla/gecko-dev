@@ -185,6 +185,9 @@ document.addEventListener(
         case "toolbar-context-selectAllTabs":
           gBrowser.selectAllTabs();
           break;
+        case "toolbar-context-customize":
+          gCustomizeMode.enter();
+          break;
         case "toolbar-context-full-screen-autohide":
           FullScreen.setAutohide();
           break;
