@@ -133,7 +133,7 @@ static bool ElementNeedsRestyle(Element* aElement,
   // If the pseudo-element is animating, make sure to flush.
   if (aElement->MayHaveAnimations() &&
       aPseudo.mType != PseudoStyleType::NotPseudo &&
-      AnimationUtils::IsSupportedPseudoForAnimations(aPseudo.mType)) {
+      AnimationUtils::IsSupportedPseudoForAnimations(aPseudo)) {
     if (EffectSet::Get(aElement, aPseudo.mType)) {
       return true;
     }

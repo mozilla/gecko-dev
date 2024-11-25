@@ -130,15 +130,17 @@ class PseudoStyle final {
 struct PseudoStyleRequest {
   PseudoStyleRequest() = default;
   PseudoStyleRequest(PseudoStyleRequest&&) = default;
+  PseudoStyleRequest(const PseudoStyleRequest&) = default;
   PseudoStyleRequest& operator=(PseudoStyleRequest&&) = default;
+  PseudoStyleRequest& operator=(const PseudoStyleRequest&) = default;
 
   explicit PseudoStyleRequest(PseudoStyleType aType) : mType(aType) {}
   PseudoStyleRequest(PseudoStyleType aType, nsAtom* aIdentifier)
       : mType(aType), mIdentifier(aIdentifier) {}
 
+  bool IsNotPseudo() const { return mType == PseudoStyleType::NotPseudo; }
   bool IsPseudoElementOrNotPseudo() const {
-    return mType == PseudoStyleType::NotPseudo ||
-           PseudoStyle::IsPseudoElement(mType);
+    return IsNotPseudo() || PseudoStyle::IsPseudoElement(mType);
   }
 
   static PseudoStyleRequest NotPseudo() { return PseudoStyleRequest(); }

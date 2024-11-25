@@ -8,7 +8,7 @@
 #define mozilla_KeyframeEffectParams_h
 
 #include "mozilla/dom/KeyframeEffectBinding.h"  // IterationCompositeOperation
-#include "mozilla/PseudoStyleType.h"            // PseudoStyleType
+#include "mozilla/PseudoStyleType.h"            // PseudoStyleRequest
 
 namespace mozilla {
 
@@ -16,17 +16,17 @@ struct KeyframeEffectParams {
   KeyframeEffectParams() = default;
   KeyframeEffectParams(dom::IterationCompositeOperation aIterationComposite,
                        dom::CompositeOperation aComposite,
-                       PseudoStyleType aPseudoType)
+                       const PseudoStyleRequest& aPseudoRequest)
       : mIterationComposite(aIterationComposite),
         mComposite(aComposite),
-        mPseudoType(aPseudoType) {}
+        mPseudoRequest(aPseudoRequest) {}
   explicit KeyframeEffectParams(dom::CompositeOperation aComposite)
       : mComposite(aComposite) {}
 
   dom::IterationCompositeOperation mIterationComposite =
       dom::IterationCompositeOperation::Replace;
   dom::CompositeOperation mComposite = dom::CompositeOperation::Replace;
-  PseudoStyleType mPseudoType = PseudoStyleType::NotPseudo;
+  PseudoStyleRequest mPseudoRequest;
 };
 
 }  // namespace mozilla

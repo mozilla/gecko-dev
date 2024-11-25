@@ -58,8 +58,9 @@
 #define CSS_PSEUDO_ELEMENT_IS_FLEX_OR_GRID_ITEM (1 << 7)
 
 class nsCSSPseudoElements {
-  typedef mozilla::PseudoStyleType Type;
-  typedef mozilla::CSSEnabledState EnabledState;
+  using EnabledState = mozilla::CSSEnabledState;
+  using Request = mozilla::PseudoStyleRequest;
+  using Type = mozilla::PseudoStyleType;
 
  public:
   static bool IsEagerlyCascadedInServo(const Type aType) {
@@ -81,17 +82,9 @@ class nsCSSPseudoElements {
 #include "nsCSSPseudoElementList.h"
 #undef CSS_PSEUDO_ELEMENT
 
-  // Returns an empty tuple for a syntactically invalid pseudo-element, and
+  // Returns an empty Request for a syntactically invalid pseudo-element, and
   // NotPseudo for the empty / null string.
-  // The second element of the tuple (functional pseudo parameter) is currently
-  // only used for `::highlight()` pseudos and is `nullptr` otherwise.
-  static mozilla::Maybe<mozilla::PseudoStyleRequest> ParsePseudoElement(
-      const nsAString& aPseudoElement,
-      EnabledState = EnabledState::ForAllContent);
-
-  // Returns Nothing() for a syntactically invalid pseudo-element, and NotPseudo
-  // for the empty / null string.
-  static mozilla::Maybe<Type> GetPseudoType(
+  static mozilla::Maybe<Request> ParsePseudoElement(
       const nsAString& aPseudoElement,
       EnabledState = EnabledState::ForAllContent);
 
@@ -99,11 +92,6 @@ class nsCSSPseudoElements {
   // PseudoType::CSSPseudoElementsEnd.
   // This only ever returns static atoms, so it's fine to return a raw pointer.
   static nsAtom* GetPseudoAtom(Type aType);
-
-  // Get the atom for a given pseudo-element string (e.g. "::before").  This can
-  // return dynamic atoms, for unrecognized pseudo-elements.
-  static already_AddRefed<nsAtom> GetPseudoAtom(
-      const nsAString& aPseudoElement);
 
   static bool PseudoElementContainsElements(const Type aType) {
     return PseudoElementHasFlags(aType, CSS_PSEUDO_ELEMENT_CONTAINS_ELEMENTS);

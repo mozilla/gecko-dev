@@ -93,6 +93,10 @@ class AnimationUtils {
     return aType == PseudoStyleType::before ||
            aType == PseudoStyleType::after || aType == PseudoStyleType::marker;
   }
+  static bool IsSupportedPseudoForAnimations(
+      const PseudoStyleRequest& aRequest) {
+    return IsSupportedPseudoForAnimations(aRequest.mType);
+  }
 
   /**
    * Returns true if the difference between |aFirst| and |aSecond| is within

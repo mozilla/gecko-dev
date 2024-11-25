@@ -3319,14 +3319,13 @@ nsDOMWindowUtils::GetUnanimatedComputedStyle(Element* aElement,
     return NS_ERROR_FAILURE;
   }
 
-  Maybe<PseudoStyleType> pseudo =
-      nsCSSPseudoElements::GetPseudoType(aPseudoElement);
+  Maybe<PseudoStyleRequest> pseudo =
+      nsCSSPseudoElements::ParsePseudoElement(aPseudoElement);
   if (!pseudo) {
     return NS_ERROR_FAILURE;
   }
   RefPtr<const ComputedStyle> computedStyle =
-      nsComputedDOMStyle::GetUnanimatedComputedStyleNoFlush(
-          aElement, PseudoStyleRequest(*pseudo));
+      nsComputedDOMStyle::GetUnanimatedComputedStyleNoFlush(aElement, *pseudo);
   if (!computedStyle) {
     return NS_ERROR_FAILURE;
   }

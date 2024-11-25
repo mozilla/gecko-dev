@@ -102,8 +102,10 @@ KeyframeEffect::KeyframeEffect(Document* aDocument,
                                const KeyframeEffect& aOther)
     : AnimationEffect(aDocument, TimingParams{aOther.SpecifiedTiming()}),
       mTarget(std::move(aTarget)),
+      // TODO: We will use PseudoStyleReqeust in OwningAnimationTarget in the
+      // following patches.
       mEffectOptions{aOther.IterationComposite(), aOther.Composite(),
-                     mTarget.mPseudoType},
+                     PseudoStyleRequest(mTarget.mPseudoType)},
       mKeyframes(aOther.mKeyframes.Clone()),
       mProperties(aOther.mProperties.Clone()),
       mBaseValues(aOther.mBaseValues.Clone()) {}
@@ -787,17 +789,17 @@ static KeyframeEffectParams KeyframeEffectParamsFromUnion(
   const KeyframeEffectOptions& options =
       KeyframeEffectOptionsFromUnion(aOptions);
 
+  // |result.mPseudoRequest| uses the default value, i.e. NotPseudo.
   result.mIterationComposite = options.mIterationComposite;
   result.mComposite = options.mComposite;
 
-  result.mPseudoType = PseudoStyleType::NotPseudo;
   if (DOMStringIsNull(options.mPseudoElement)) {
     return result;
   }
 
-  Maybe<PseudoStyleType> pseudoType =
-      nsCSSPseudoElements::GetPseudoType(options.mPseudoElement);
-  if (!pseudoType) {
+  Maybe<PseudoStyleRequest> pseudoRequest =
+      nsCSSPseudoElements::ParsePseudoElement(options.mPseudoElement);
+  if (!pseudoRequest) {
     // Per the spec, we throw SyntaxError for syntactically invalid pseudos.
     aRv.ThrowSyntaxError(
         nsPrintfCString("'%s' is a syntactically invalid pseudo-element.",
@@ -805,8 +807,8 @@ static KeyframeEffectParams KeyframeEffectParamsFromUnion(
     return result;
   }
 
-  result.mPseudoType = *pseudoType;
-  if (!AnimationUtils::IsSupportedPseudoForAnimations(result.mPseudoType)) {
+  result.mPseudoRequest = std::move(*pseudoRequest);
+  if (!AnimationUtils::IsSupportedPseudoForAnimations(result.mPseudoRequest)) {
     // Per the spec, we throw SyntaxError for unsupported pseudos.
     aRv.ThrowSyntaxError(
         nsPrintfCString("'%s' is an unsupported pseudo-element.",
@@ -849,8 +851,10 @@ already_AddRefed<KeyframeEffect> KeyframeEffect::ConstructKeyframeEffect(
     return nullptr;
   }
 
+  // TODO: We will use PseudoStyleRequest in OwningAnimaitonTarget in the
+  // following patches.
   RefPtr<KeyframeEffect> effect = new KeyframeEffect(
-      doc, OwningAnimationTarget(aTarget, effectOptions.mPseudoType),
+      doc, OwningAnimationTarget(aTarget, effectOptions.mPseudoRequest.mType),
       std::move(timingParams), effectOptions);
 
   effect->SetKeyframes(aGlobal.Context(), aKeyframes, aRv);
@@ -1102,11 +1106,11 @@ void KeyframeEffect::SetPseudoElement(const nsAString& aPseudoElement,
     return;
   }
 
-  // Note: GetPseudoType() returns Some(NotPseudo) for the null string,
+  // Note: ParsePseudoELement() returns Some(NotPseudo) for the null string,
   // so we handle null case before this.
-  Maybe<PseudoStyleType> pseudoType =
-      nsCSSPseudoElements::GetPseudoType(aPseudoElement);
-  if (!pseudoType || *pseudoType == PseudoStyleType::NotPseudo) {
+  Maybe<PseudoStyleRequest> pseudoRequest =
+      nsCSSPseudoElements::ParsePseudoElement(aPseudoElement);
+  if (!pseudoRequest || pseudoRequest->IsNotPseudo()) {
     // Per the spec, we throw SyntaxError for syntactically invalid pseudos.
     aRv.ThrowSyntaxError(
         nsPrintfCString("'%s' is a syntactically invalid pseudo-element.",
@@ -1114,7 +1118,7 @@ void KeyframeEffect::SetPseudoElement(const nsAString& aPseudoElement,
     return;
   }
 
-  if (!AnimationUtils::IsSupportedPseudoForAnimations(*pseudoType)) {
+  if (!AnimationUtils::IsSupportedPseudoForAnimations(*pseudoRequest)) {
     // Per the spec, we throw SyntaxError for unsupported pseudos.
     aRv.ThrowSyntaxError(
         nsPrintfCString("'%s' is an unsupported pseudo-element.",
@@ -1122,7 +1126,7 @@ void KeyframeEffect::SetPseudoElement(const nsAString& aPseudoElement,
     return;
   }
 
-  UpdateTarget(mTarget.mElement, *pseudoType);
+  UpdateTarget(mTarget.mElement, pseudoRequest->mType);
 }
 
 static void CreatePropertyValue(
