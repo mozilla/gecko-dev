@@ -2106,8 +2106,8 @@ void RestyleManager::AnimationsWithDestroyedFrame ::StopAnimationsWithoutFrame(
 
     // FIXME: Bug 1922095. Revisit here to make sure we destroy the view
     // transitions if the associated frames are destroyed.
-    animationManager->StopAnimationsForElement(element, aPseudoRequest.mType);
-    transitionManager->StopAnimationsForElement(element, aPseudoRequest.mType);
+    animationManager->StopAnimationsForElement(element, aPseudoRequest);
+    transitionManager->StopAnimationsForElement(element, aPseudoRequest);
 
     // All other animations should keep running but not running on the
     // *compositor* at this point.

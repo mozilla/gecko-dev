@@ -56,7 +56,8 @@ CSSTransitionCollection&
 ElementAnimationData::PerElementOrPseudoData::DoEnsureTransitions(
     dom::Element& aOwner, PseudoStyleType aType) {
   MOZ_ASSERT(!mTransitions);
-  mTransitions = MakeUnique<CSSTransitionCollection>(aOwner, aType);
+  mTransitions =
+      MakeUnique<CSSTransitionCollection>(aOwner, PseudoStyleRequest(aType));
   return *mTransitions;
 }
 
@@ -64,7 +65,8 @@ CSSAnimationCollection&
 ElementAnimationData::PerElementOrPseudoData::DoEnsureAnimations(
     dom::Element& aOwner, PseudoStyleType aType) {
   MOZ_ASSERT(!mAnimations);
-  mAnimations = MakeUnique<CSSAnimationCollection>(aOwner, aType);
+  mAnimations =
+      MakeUnique<CSSAnimationCollection>(aOwner, PseudoStyleRequest(aType));
   return *mAnimations;
 }
 
@@ -72,7 +74,8 @@ ScrollTimelineCollection&
 ElementAnimationData::PerElementOrPseudoData::DoEnsureScrollTimelines(
     dom::Element& aOwner, PseudoStyleType aType) {
   MOZ_ASSERT(!mScrollTimelines);
-  mScrollTimelines = MakeUnique<ScrollTimelineCollection>(aOwner, aType);
+  mScrollTimelines =
+      MakeUnique<ScrollTimelineCollection>(aOwner, PseudoStyleRequest(aType));
   return *mScrollTimelines;
 }
 
@@ -80,7 +83,8 @@ ViewTimelineCollection&
 ElementAnimationData::PerElementOrPseudoData::DoEnsureViewTimelines(
     dom::Element& aOwner, PseudoStyleType aType) {
   MOZ_ASSERT(!mViewTimelines);
-  mViewTimelines = MakeUnique<ViewTimelineCollection>(aOwner, aType);
+  mViewTimelines =
+      MakeUnique<ViewTimelineCollection>(aOwner, PseudoStyleRequest(aType));
   return *mViewTimelines;
 }
 

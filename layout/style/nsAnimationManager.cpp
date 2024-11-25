@@ -230,17 +230,15 @@ static already_AddRefed<dom::AnimationTimeline> GetNamedProgressTimeline(
       // In case of a name conflict on the same element, scroll progress
       // timelines take precedence over view progress timelines.
       const auto [element, pseudo] = AnimationUtils::GetElementPseudoPair(e);
-      // TODO: Tweak TimelineCollection to handle PseudoStyleRequest well in the
-      // following patches.
       if (auto* collection =
-              TimelineCollection<ScrollTimeline>::Get(element, pseudo.mType)) {
+              TimelineCollection<ScrollTimeline>::Get(element, pseudo)) {
         if (RefPtr<ScrollTimeline> timeline = collection->Lookup(aName)) {
           return timeline.forget();
         }
       }
 
       if (auto* collection =
-              TimelineCollection<ViewTimeline>::Get(element, pseudo.mType)) {
+              TimelineCollection<ViewTimeline>::Get(element, pseudo)) {
         if (RefPtr<ViewTimeline> timeline = collection->Lookup(aName)) {
           return timeline.forget();
         }
@@ -394,9 +392,9 @@ static nsAnimationManager::OwningCSSAnimationPtrArray BuildAnimations(
   return result;
 }
 
-void nsAnimationManager::UpdateAnimations(dom::Element* aElement,
-                                          PseudoStyleType aPseudoType,
-                                          const ComputedStyle* aComputedStyle) {
+void nsAnimationManager::UpdateAnimations(
+    dom::Element* aElement, const PseudoStyleRequest& aPseudoRequest,
+    const ComputedStyle* aComputedStyle) {
   MOZ_ASSERT(mPresContext->IsDynamic(),
              "Should not update animations for print or print preview");
   MOZ_ASSERT(aElement->IsInComposedDoc(),
@@ -411,11 +409,11 @@ void nsAnimationManager::UpdateAnimations(dom::Element* aElement,
     // In either case, since CSS animations should not run in display:none
     // subtrees we should stop (actually, destroy) any animations on this
     // element here.
-    StopAnimationsForElement(aElement, aPseudoType);
+    StopAnimationsForElement(aElement, aPseudoRequest);
     return;
   }
 
-  NonOwningAnimationTarget target(aElement, PseudoStyleRequest(aPseudoType));
+  NonOwningAnimationTarget target(aElement, aPseudoRequest);
   ServoCSSAnimationBuilder builder(aComputedStyle);
 
   DoUpdateAnimations(target, *aComputedStyle->StyleUIReset(), builder);
@@ -429,8 +427,8 @@ void nsAnimationManager::DoUpdateAnimations(
   // Likewise, when we initially construct frames, we're not in a
   // style change, but also not in an animation restyle.
 
-  auto* collection = CSSAnimationCollection::Get(aTarget.mElement,
-                                                 aTarget.mPseudoRequest.mType);
+  auto* collection =
+      CSSAnimationCollection::Get(aTarget.mElement, aTarget.mPseudoRequest);
   if (!collection && aStyle.mAnimationNameCount == 1 &&
       aStyle.mAnimations[0].GetName() == nsGkAtoms::_empty) {
     return;

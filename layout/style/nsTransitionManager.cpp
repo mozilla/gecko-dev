@@ -49,11 +49,12 @@ bool nsTransitionManager::UpdateTransitions(dom::Element* aElement,
 
   MOZ_ASSERT(mPresContext->IsDynamic());
   if (aNewStyle.StyleDisplay()->mDisplay == StyleDisplay::None) {
-    StopAnimationsForElement(aElement, aPseudoType);
+    StopAnimationsForElement(aElement, PseudoStyleRequest(aPseudoType));
     return false;
   }
 
-  auto* collection = CSSTransitionCollection::Get(aElement, aPseudoType);
+  auto* collection =
+      CSSTransitionCollection::Get(aElement, PseudoStyleRequest(aPseudoType));
   return DoUpdateTransitions(*aNewStyle.StyleUIReset(), aElement, aPseudoType,
                              collection, aOldStyle, aNewStyle);
 }

@@ -18,21 +18,21 @@ NS_IMPL_ISUPPORTS_CYCLE_COLLECTION_INHERITED_0(ViewTimeline, ScrollTimeline)
 
 /* static */
 already_AddRefed<ViewTimeline> ViewTimeline::MakeNamed(
-    Document* aDocument, Element* aSubject, PseudoStyleType aPseudoType,
+    Document* aDocument, Element* aSubject,
+    const PseudoStyleRequest& aPseudoRequest,
     const StyleViewTimeline& aStyleTimeline) {
   MOZ_ASSERT(NS_IsMainThread());
 
   // 1. Lookup scroller. We have to find the nearest scroller from |aSubject|
   // and |aPseudoType|.
-  auto [element, pseudo] =
-      FindNearestScroller(aSubject, PseudoStyleRequest(aPseudoType));
+  auto [element, pseudo] = FindNearestScroller(aSubject, aPseudoRequest);
   auto scroller =
       Scroller::Nearest(const_cast<Element*>(element), pseudo.mType);
 
   // 2. Create timeline.
-  return MakeAndAddRef<ViewTimeline>(aDocument, scroller,
-                                     aStyleTimeline.GetAxis(), aSubject,
-                                     aPseudoType, aStyleTimeline.GetInset());
+  return MakeAndAddRef<ViewTimeline>(
+      aDocument, scroller, aStyleTimeline.GetAxis(), aSubject,
+      aPseudoRequest.mType, aStyleTimeline.GetInset());
 }
 
 /* static */
@@ -49,11 +49,11 @@ already_AddRefed<ViewTimeline> ViewTimeline::MakeAnonymous(
                                      aTarget.mPseudoRequest.mType, aInset);
 }
 
-void ViewTimeline::ReplacePropertiesWith(Element* aSubjectElement,
-                                         PseudoStyleType aPseudoType,
-                                         const StyleViewTimeline& aNew) {
+void ViewTimeline::ReplacePropertiesWith(
+    Element* aSubjectElement, const PseudoStyleRequest& aPseudoRequest,
+    const StyleViewTimeline& aNew) {
   mSubject = aSubjectElement;
-  mSubjectPseudoType = aPseudoType;
+  mSubjectPseudoType = aPseudoRequest.mType;
   mAxis = aNew.GetAxis();
   // FIXME: Bug 1817073. We assume it is a non-animatable value for now.
   mInset = aNew.GetInset();

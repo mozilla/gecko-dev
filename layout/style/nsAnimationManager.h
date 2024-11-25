@@ -21,8 +21,8 @@ struct nsStyleUIReset;
 namespace mozilla {
 class ComputedStyle;
 
-enum class PseudoStyleType : uint8_t;
 struct NonOwningAnimationTarget;
+struct PseudoStyleRequest;
 
 } /* namespace mozilla */
 
@@ -45,7 +45,7 @@ class nsAnimationManager final
    * but with servo's computed values.
    */
   void UpdateAnimations(mozilla::dom::Element* aElement,
-                        mozilla::PseudoStyleType aPseudoType,
+                        const mozilla::PseudoStyleRequest& aPseudoRequest,
                         const mozilla::ComputedStyle* aComputedValues);
 
   // Utility function to walk through |aIter| to find the Keyframe with

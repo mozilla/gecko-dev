@@ -29,11 +29,11 @@ void TimelineCollection<TimelineType>::Destroy() {
   auto* data = mElement.GetAnimationData();
   MOZ_ASSERT(data);
   if constexpr (std::is_same_v<TimelineType, dom::ScrollTimeline>) {
-    MOZ_ASSERT(data->GetScrollTimelineCollection(mPseudo) == this);
-    data->ClearScrollTimelineCollectionFor(mPseudo);
+    MOZ_ASSERT(data->GetScrollTimelineCollection(mPseudo.mType) == this);
+    data->ClearScrollTimelineCollectionFor(mPseudo.mType);
   } else if constexpr (std::is_same_v<TimelineType, dom::ViewTimeline>) {
-    MOZ_ASSERT(data->GetViewTimelineCollection(mPseudo) == this);
-    data->ClearViewTimelineCollectionFor(mPseudo);
+    MOZ_ASSERT(data->GetViewTimelineCollection(mPseudo.mType) == this);
+    data->ClearViewTimelineCollectionFor(mPseudo.mType);
   } else {
     MOZ_ASSERT_UNREACHABLE("Unsupported TimelienType");
   }
@@ -41,8 +41,8 @@ void TimelineCollection<TimelineType>::Destroy() {
 
 template <class TimelineType>
 /* static */ TimelineCollection<TimelineType>*
-TimelineCollection<TimelineType>::Get(const dom::Element* aElement,
-                                      const PseudoStyleType aPseudoType) {
+TimelineCollection<TimelineType>::Get(
+    const dom::Element* aElement, const PseudoStyleRequest& aPseudoRequest) {
   MOZ_ASSERT(aElement);
   auto* data = aElement->GetAnimationData();
   if (!data) {
@@ -50,11 +50,11 @@ TimelineCollection<TimelineType>::Get(const dom::Element* aElement,
   }
 
   if constexpr (std::is_same_v<TimelineType, dom::ScrollTimeline>) {
-    return data->GetScrollTimelineCollection(aPseudoType);
+    return data->GetScrollTimelineCollection(aPseudoRequest.mType);
   }
 
   if constexpr (std::is_same_v<TimelineType, dom::ViewTimeline>) {
-    return data->GetViewTimelineCollection(aPseudoType);
+    return data->GetViewTimelineCollection(aPseudoRequest.mType);
   }
 
   return nullptr;

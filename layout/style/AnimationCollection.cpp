@@ -37,25 +37,25 @@ void AnimationCollection<AnimationType>::Destroy() {
   auto* data = mElement.GetAnimationData();
   MOZ_ASSERT(data);
   if constexpr (std::is_same_v<AnimationType, dom::CSSAnimation>) {
-    MOZ_ASSERT(data->GetAnimationCollection(mPseudo) == this);
-    data->ClearAnimationCollectionFor(mPseudo);
+    MOZ_ASSERT(data->GetAnimationCollection(mPseudo.mType) == this);
+    data->ClearAnimationCollectionFor(mPseudo.mType);
   } else {
-    MOZ_ASSERT(data->GetTransitionCollection(mPseudo) == this);
-    data->ClearTransitionCollectionFor(mPseudo);
+    MOZ_ASSERT(data->GetTransitionCollection(mPseudo.mType) == this);
+    data->ClearTransitionCollectionFor(mPseudo.mType);
   }
 }
 
 template <class AnimationType>
 AnimationCollection<AnimationType>* AnimationCollection<AnimationType>::Get(
-    const dom::Element* aElement, const PseudoStyleType aType) {
+    const dom::Element* aElement, const PseudoStyleRequest& aRequest) {
   auto* data = aElement->GetAnimationData();
   if (!data) {
     return nullptr;
   }
   if constexpr (std::is_same_v<AnimationType, dom::CSSAnimation>) {
-    return data->GetAnimationCollection(aType);
+    return data->GetAnimationCollection(aRequest.mType);
   } else {
-    return data->GetTransitionCollection(aType);
+    return data->GetTransitionCollection(aRequest.mType);
   }
 }
 
@@ -68,7 +68,7 @@ AnimationCollection<AnimationType>::Get(const nsIFrame* aFrame) {
     return nullptr;
   }
 
-  return Get(target->mElement, target->mPseudoRequest.mType);
+  return Get(target->mElement, target->mPseudoRequest);
 }
 
 // Explicit class instantiations

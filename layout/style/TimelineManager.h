@@ -15,7 +15,7 @@ class nsPresContext;
 
 namespace mozilla {
 class ComputedStyle;
-enum class PseudoStyleType : uint8_t;
+struct PseudoStyleRequest;
 
 namespace dom {
 class Element;
@@ -47,7 +47,8 @@ class TimelineManager {
     Scroll,
     View,
   };
-  void UpdateTimelines(dom::Element* aElement, PseudoStyleType aPseudoType,
+  void UpdateTimelines(dom::Element* aElement,
+                       const PseudoStyleRequest& aPseudoRequest,
                        const ComputedStyle* aComputedStyle,
                        ProgressTimelineType aType);
 
@@ -56,7 +57,7 @@ class TimelineManager {
  private:
   template <typename StyleType, typename TimelineType>
   void DoUpdateTimelines(nsPresContext* aPresContext, dom::Element* aElement,
-                         PseudoStyleType aPseudoType,
+                         const PseudoStyleRequest& aPseudoRequest,
                          const nsStyleAutoArray<StyleType>& aStyleTimelines,
                          size_t aTimelineCount);
 

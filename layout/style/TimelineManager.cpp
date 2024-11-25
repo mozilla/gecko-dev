@@ -18,9 +18,10 @@ using dom::ScrollTimeline;
 using dom::ViewTimeline;
 
 template <typename TimelineType>
-void TryDestroyTimeline(Element* aElement, PseudoStyleType aPseudoType) {
+static void TryDestroyTimeline(Element* aElement,
+                               const PseudoStyleRequest& aPseudoRequest) {
   auto* collection =
-      TimelineCollection<TimelineType>::Get(aElement, aPseudoType);
+      TimelineCollection<TimelineType>::Get(aElement, aPseudoRequest);
   if (!collection) {
     return;
   }
@@ -28,7 +29,7 @@ void TryDestroyTimeline(Element* aElement, PseudoStyleType aPseudoType) {
 }
 
 void TimelineManager::UpdateTimelines(Element* aElement,
-                                      PseudoStyleType aPseudoType,
+                                      const PseudoStyleRequest& aPseudoRequest,
                                       const ComputedStyle* aComputedStyle,
                                       ProgressTimelineType aType) {
   MOZ_ASSERT(
@@ -46,22 +47,22 @@ void TimelineManager::UpdateTimelines(Element* aElement,
   switch (aType) {
     case ProgressTimelineType::Scroll:
       if (shouldDestroyTimelines) {
-        TryDestroyTimeline<ScrollTimeline>(aElement, aPseudoType);
+        TryDestroyTimeline<ScrollTimeline>(aElement, aPseudoRequest);
         return;
       }
       DoUpdateTimelines<StyleScrollTimeline, ScrollTimeline>(
-          mPresContext, aElement, aPseudoType,
+          mPresContext, aElement, aPseudoRequest,
           aComputedStyle->StyleUIReset()->mScrollTimelines,
           aComputedStyle->StyleUIReset()->mScrollTimelineNameCount);
       break;
 
     case ProgressTimelineType::View:
       if (shouldDestroyTimelines) {
-        TryDestroyTimeline<ViewTimeline>(aElement, aPseudoType);
+        TryDestroyTimeline<ViewTimeline>(aElement, aPseudoRequest);
         return;
       }
       DoUpdateTimelines<StyleViewTimeline, ViewTimeline>(
-          mPresContext, aElement, aPseudoType,
+          mPresContext, aElement, aPseudoRequest,
           aComputedStyle->StyleUIReset()->mViewTimelines,
           aComputedStyle->StyleUIReset()->mViewTimelineNameCount);
       break;
@@ -79,7 +80,7 @@ static already_AddRefed<TimelineType> PopExistingTimeline(
 
 template <typename StyleType, typename TimelineType>
 static auto BuildTimelines(nsPresContext* aPresContext, Element* aElement,
-                           PseudoStyleType aPseudoType,
+                           const PseudoStyleRequest& aPseudoRequest,
                            const nsStyleAutoArray<StyleType>& aTimelines,
                            size_t aTimelineCount,
                            TimelineCollection<TimelineType>* aCollection) {
@@ -97,10 +98,10 @@ static auto BuildTimelines(nsPresContext* aPresContext, Element* aElement,
     RefPtr<TimelineType> dest =
         PopExistingTimeline(timeline.GetName(), aCollection);
     if (dest) {
-      dest->ReplacePropertiesWith(aElement, aPseudoType, timeline);
+      dest->ReplacePropertiesWith(aElement, aPseudoRequest, timeline);
     } else {
       dest = TimelineType::MakeNamed(aPresContext->Document(), aElement,
-                                     aPseudoType, timeline);
+                                     aPseudoRequest, timeline);
     }
     MOZ_ASSERT(dest);
 
@@ -130,10 +131,11 @@ ViewTimelineCollection& EnsureTimelineCollection<ViewTimeline>(
 
 template <typename StyleType, typename TimelineType>
 void TimelineManager::DoUpdateTimelines(
-    nsPresContext* aPresContext, Element* aElement, PseudoStyleType aPseudoType,
+    nsPresContext* aPresContext, Element* aElement,
+    const PseudoStyleRequest& aPseudoRequest,
     const nsStyleAutoArray<StyleType>& aStyleTimelines, size_t aTimelineCount) {
   auto* collection =
-      TimelineCollection<TimelineType>::Get(aElement, aPseudoType);
+      TimelineCollection<TimelineType>::Get(aElement, aPseudoRequest);
   if (!collection && aTimelineCount == 1 &&
       aStyleTimelines[0].GetName() == nsGkAtoms::_empty) {
     return;
@@ -142,7 +144,7 @@ void TimelineManager::DoUpdateTimelines(
   // We create a new timeline list based on its computed style and the existing
   // timelines.
   auto newTimelines = BuildTimelines<StyleType, TimelineType>(
-      aPresContext, aElement, aPseudoType, aStyleTimelines, aTimelineCount,
+      aPresContext, aElement, aPseudoRequest, aStyleTimelines, aTimelineCount,
       collection);
 
   if (newTimelines.IsEmpty()) {
@@ -153,8 +155,8 @@ void TimelineManager::DoUpdateTimelines(
   }
 
   if (!collection) {
-    collection =
-        &EnsureTimelineCollection<TimelineType>(*aElement, aPseudoType);
+    collection = &EnsureTimelineCollection<TimelineType>(*aElement,
+                                                         aPseudoRequest.mType);
     if (!collection->isInList()) {
       AddTimelineCollection(collection);
     }

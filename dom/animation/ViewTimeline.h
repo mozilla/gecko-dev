@@ -34,7 +34,8 @@ class ViewTimeline final : public ScrollTimeline {
   // Note: |aSubject| is used as the subject which specifies view-timeline-name
   // property, and we use this subject to look up its nearest scroll container.
   static already_AddRefed<ViewTimeline> MakeNamed(
-      Document* aDocument, Element* aSubject, PseudoStyleType aPseudoType,
+      Document* aDocument, Element* aSubject,
+      const PseudoStyleRequest& aPseudoRequest,
       const StyleViewTimeline& aStyleTimeline);
 
   static already_AddRefed<ViewTimeline> MakeAnonymous(
@@ -49,7 +50,7 @@ class ViewTimeline final : public ScrollTimeline {
   bool IsViewTimeline() const override { return true; }
 
   void ReplacePropertiesWith(Element* aSubjectElement,
-                             PseudoStyleType aPseudoType,
+                             const PseudoStyleRequest& aPseudoRequest,
                              const StyleViewTimeline& aNew);
 
  private:

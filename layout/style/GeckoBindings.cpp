@@ -542,19 +542,19 @@ void Gecko_UpdateAnimations(const Element* aElement,
   // timeline defined by itself.
   if (aTasks & UpdateAnimationsTasks::ScrollTimelines) {
     presContext->TimelineManager()->UpdateTimelines(
-        const_cast<Element*>(element), pseudoRequest.mType, aComputedData,
+        const_cast<Element*>(element), pseudoRequest, aComputedData,
         TimelineManager::ProgressTimelineType::Scroll);
   }
 
   if (aTasks & UpdateAnimationsTasks::ViewTimelines) {
     presContext->TimelineManager()->UpdateTimelines(
-        const_cast<Element*>(element), pseudoRequest.mType, aComputedData,
+        const_cast<Element*>(element), pseudoRequest, aComputedData,
         TimelineManager::ProgressTimelineType::View);
   }
 
   if (aTasks & UpdateAnimationsTasks::CSSAnimations) {
     presContext->AnimationManager()->UpdateAnimations(
-        const_cast<Element*>(element), pseudoRequest.mType, aComputedData);
+        const_cast<Element*>(element), pseudoRequest, aComputedData);
   }
 
   // aComputedData might be nullptr if the target element is now in a
@@ -619,21 +619,21 @@ bool Gecko_ElementHasAnimations(const Element* aElement) {
 bool Gecko_ElementHasCSSAnimations(const Element* aElement) {
   const auto [element, pseudo] = AnimationUtils::GetElementPseudoPair(aElement);
   auto* collection =
-      nsAnimationManager::CSSAnimationCollection::Get(element, pseudo.mType);
+      nsAnimationManager::CSSAnimationCollection::Get(element, pseudo);
   return collection && !collection->mAnimations.IsEmpty();
 }
 
 bool Gecko_ElementHasCSSTransitions(const Element* aElement) {
   const auto [element, pseudo] = AnimationUtils::GetElementPseudoPair(aElement);
   auto* collection =
-      nsTransitionManager::CSSTransitionCollection::Get(element, pseudo.mType);
+      nsTransitionManager::CSSTransitionCollection::Get(element, pseudo);
   return collection && !collection->mAnimations.IsEmpty();
 }
 
 size_t Gecko_ElementTransitions_Length(const Element* aElement) {
   const auto [element, pseudo] = AnimationUtils::GetElementPseudoPair(aElement);
   auto* collection =
-      nsTransitionManager::CSSTransitionCollection::Get(element, pseudo.mType);
+      nsTransitionManager::CSSTransitionCollection::Get(element, pseudo);
   return collection ? collection->mAnimations.Length() : 0;
 }
 
@@ -641,7 +641,7 @@ static CSSTransition* GetCurrentTransitionAt(const Element* aElement,
                                              size_t aIndex) {
   const auto [element, pseudo] = AnimationUtils::GetElementPseudoPair(aElement);
   auto* collection =
-      nsTransitionManager::CSSTransitionCollection ::Get(element, pseudo.mType);
+      nsTransitionManager::CSSTransitionCollection ::Get(element, pseudo);
   if (!collection) {
     return nullptr;
   }

@@ -102,10 +102,11 @@ already_AddRefed<ScrollTimeline> ScrollTimeline::MakeAnonymous(
 
 /* static*/ already_AddRefed<ScrollTimeline> ScrollTimeline::MakeNamed(
     Document* aDocument, Element* aReferenceElement,
-    PseudoStyleType aPseudoType, const StyleScrollTimeline& aStyleTimeline) {
+    const PseudoStyleRequest& aPseudoRequest,
+    const StyleScrollTimeline& aStyleTimeline) {
   MOZ_ASSERT(NS_IsMainThread());
 
-  Scroller scroller = Scroller::Named(aReferenceElement, aPseudoType);
+  Scroller scroller = Scroller::Named(aReferenceElement, aPseudoRequest.mType);
   return MakeAndAddRef<ScrollTimeline>(aDocument, std::move(scroller),
                                        aStyleTimeline.GetAxis());
 }
@@ -188,11 +189,11 @@ bool ScrollTimeline::ScrollingDirectionIsAvailable() const {
       Axis());
 }
 
-void ScrollTimeline::ReplacePropertiesWith(const Element* aReferenceElement,
-                                           PseudoStyleType aPseudoType,
-                                           const StyleScrollTimeline& aNew) {
+void ScrollTimeline::ReplacePropertiesWith(
+    const Element* aReferenceElement, const PseudoStyleRequest& aPseudoRequest,
+    const StyleScrollTimeline& aNew) {
   MOZ_ASSERT(aReferenceElement == mSource.mElement &&
-             aPseudoType == mSource.mPseudoType);
+             aPseudoRequest.mType == mSource.mPseudoType);
   mAxis = aNew.GetAxis();
 
   for (auto* anim = mAnimationOrder.getFirst(); anim;
@@ -219,8 +220,8 @@ void ScrollTimeline::RegisterWithScrollSource() {
     return;
   }
 
-  auto& scheduler =
-      ProgressTimelineScheduler::Ensure(mSource.mElement, mSource.mPseudoType);
+  auto& scheduler = ProgressTimelineScheduler::Ensure(
+      mSource.mElement, PseudoStyleRequest(mSource.mPseudoType));
   scheduler.AddTimeline(this);
 }
 
@@ -229,15 +230,16 @@ void ScrollTimeline::UnregisterFromScrollSource() {
     return;
   }
 
-  auto* scheduler =
-      ProgressTimelineScheduler::Get(mSource.mElement, mSource.mPseudoType);
+  auto* scheduler = ProgressTimelineScheduler::Get(
+      mSource.mElement, PseudoStyleRequest(mSource.mPseudoType));
   if (!scheduler) {
     return;
   }
 
   scheduler->RemoveTimeline(this);
   if (scheduler->IsEmpty()) {
-    ProgressTimelineScheduler::Destroy(mSource.mElement, mSource.mPseudoType);
+    ProgressTimelineScheduler::Destroy(mSource.mElement,
+                                       PseudoStyleRequest(mSource.mPseudoType));
   }
 }
 
@@ -278,29 +280,29 @@ void ScrollTimeline::NotifyAnimationContentVisibilityChanged(
 // Methods of ProgressTimelineScheduler
 // ------------------------------------
 /* static */ ProgressTimelineScheduler* ProgressTimelineScheduler::Get(
-    const Element* aElement, PseudoStyleType aPseudoType) {
+    const Element* aElement, const PseudoStyleRequest& aPseudoRequest) {
   MOZ_ASSERT(aElement);
   auto* data = aElement->GetAnimationData();
   if (!data) {
     return nullptr;
   }
 
-  return data->GetProgressTimelineScheduler(aPseudoType);
+  return data->GetProgressTimelineScheduler(aPseudoRequest.mType);
 }
 
 /* static */ ProgressTimelineScheduler& ProgressTimelineScheduler::Ensure(
-    Element* aElement, PseudoStyleType aPseudoType) {
+    Element* aElement, const PseudoStyleRequest& aPseudoRequest) {
   MOZ_ASSERT(aElement);
   return aElement->EnsureAnimationData().EnsureProgressTimelineScheduler(
-      *aElement, aPseudoType);
+      *aElement, aPseudoRequest.mType);
 }
 
 /* static */
-void ProgressTimelineScheduler::Destroy(const Element* aElement,
-                                        PseudoStyleType aPseudoType) {
+void ProgressTimelineScheduler::Destroy(
+    const Element* aElement, const PseudoStyleRequest& aPseudoRequest) {
   auto* data = aElement->GetAnimationData();
   MOZ_ASSERT(data);
-  data->ClearProgressTimelineScheduler(aPseudoType);
+  data->ClearProgressTimelineScheduler(aPseudoRequest.mType);
 }
 
 }  // namespace mozilla::dom
