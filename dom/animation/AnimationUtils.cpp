@@ -77,11 +77,11 @@ bool AnimationUtils::FrameHasAnimatedScale(const nsIFrame* aFrame) {
 }
 
 /* static */
-bool AnimationUtils::HasCurrentTransitions(const Element* aElement,
-                                           PseudoStyleType aPseudoType) {
+bool AnimationUtils::HasCurrentTransitions(
+    const Element* aElement, const PseudoStyleRequest& aPseudoRequest) {
   MOZ_ASSERT(aElement);
 
-  EffectSet* effectSet = EffectSet::Get(aElement, aPseudoType);
+  EffectSet* effectSet = EffectSet::Get(aElement, aPseudoRequest);
   if (!effectSet) {
     return false;
   }

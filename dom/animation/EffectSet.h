@@ -7,6 +7,7 @@
 #ifndef mozilla_EffectSet_h
 #define mozilla_EffectSet_h
 
+#include "mozilla/AnimationTarget.h"
 #include "mozilla/DebugOnly.h"
 #include "mozilla/EffectCompositor.h"
 #include "mozilla/EnumeratedArray.h"
@@ -24,7 +25,7 @@ namespace dom {
 class Element;
 }  // namespace dom
 
-enum class PseudoStyleType : uint8_t;
+struct PseudoStyleRequest;
 
 // A wrapper around a hashset of AnimationEffect objects to handle
 // storing the set as a property of an element.
@@ -48,9 +49,19 @@ class EffectSet {
   void Traverse(nsCycleCollectionTraversalCallback& aCallback);
 
   static EffectSet* Get(const dom::Element* aElement,
-                        PseudoStyleType aPseudoType);
+                        const PseudoStyleRequest& aPseudoRequest);
+  static EffectSet* Get(const NonOwningAnimationTarget& aTarget) {
+    return Get(aTarget.mElement, aTarget.mPseudoRequest);
+  }
+  static EffectSet* Get(const OwningAnimationTarget& aTarget) {
+    return Get(aTarget.mElement, aTarget.mPseudoRequest);
+  }
+
   static EffectSet* GetOrCreate(dom::Element* aElement,
-                                PseudoStyleType aPseudoType);
+                                const PseudoStyleRequest& aPseudoRequest);
+  static EffectSet* GetOrCreate(const OwningAnimationTarget& aTarget) {
+    return GetOrCreate(aTarget.mElement, aTarget.mPseudoRequest);
+  }
 
   static EffectSet* GetForFrame(const nsIFrame* aFrame,
                                 const nsCSSPropertyIDSet& aProperties);
@@ -81,7 +92,10 @@ class EffectSet {
   static EffectSet* GetForEffect(const dom::KeyframeEffect* aEffect);
 
   static void DestroyEffectSet(dom::Element* aElement,
-                               PseudoStyleType aPseudoType);
+                               const PseudoStyleRequest& aPseudoRequest);
+  static void DestroyEffectSet(const OwningAnimationTarget& aTarget) {
+    return DestroyEffectSet(aTarget.mElement, aTarget.mPseudoRequest);
+  }
 
   void AddEffect(dom::KeyframeEffect& aEffect);
   void RemoveEffect(dom::KeyframeEffect& aEffect);

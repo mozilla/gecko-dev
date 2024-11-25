@@ -2056,44 +2056,62 @@ RestyleManager::AnimationsWithDestroyedFrame::AnimationsWithDestroyedFrame(
 
 void RestyleManager::AnimationsWithDestroyedFrame ::
     StopAnimationsForElementsWithoutFrames() {
-  StopAnimationsWithoutFrame(mContents, PseudoStyleType::NotPseudo);
-  StopAnimationsWithoutFrame(mBeforeContents, PseudoStyleType::before);
-  StopAnimationsWithoutFrame(mAfterContents, PseudoStyleType::after);
-  StopAnimationsWithoutFrame(mMarkerContents, PseudoStyleType::marker);
+  StopAnimationsWithoutFrame(mContents, PseudoStyleRequest::NotPseudo());
+  StopAnimationsWithoutFrame(mBeforeContents, PseudoStyleRequest::Before());
+  StopAnimationsWithoutFrame(mAfterContents, PseudoStyleRequest::After());
+  StopAnimationsWithoutFrame(mMarkerContents, PseudoStyleRequest::Marker());
 }
 
 void RestyleManager::AnimationsWithDestroyedFrame ::StopAnimationsWithoutFrame(
-    nsTArray<RefPtr<nsIContent>>& aArray, PseudoStyleType aPseudoType) {
+    nsTArray<RefPtr<nsIContent>>& aArray,
+    const PseudoStyleRequest& aPseudoRequest) {
   nsAnimationManager* animationManager =
       mRestyleManager->PresContext()->AnimationManager();
   nsTransitionManager* transitionManager =
       mRestyleManager->PresContext()->TransitionManager();
   for (nsIContent* content : aArray) {
-    if (aPseudoType == PseudoStyleType::NotPseudo) {
-      if (content->GetPrimaryFrame()) {
-        continue;
-      }
-    } else if (aPseudoType == PseudoStyleType::before) {
-      if (nsLayoutUtils::GetBeforeFrame(content)) {
-        continue;
-      }
-    } else if (aPseudoType == PseudoStyleType::after) {
-      if (nsLayoutUtils::GetAfterFrame(content)) {
-        continue;
-      }
-    } else if (aPseudoType == PseudoStyleType::marker) {
-      if (nsLayoutUtils::GetMarkerFrame(content)) {
-        continue;
-      }
+    switch (aPseudoRequest.mType) {
+      case PseudoStyleType::NotPseudo:
+        if (content->GetPrimaryFrame()) {
+          continue;
+        }
+        break;
+      case PseudoStyleType::before:
+        if (nsLayoutUtils::GetBeforeFrame(content)) {
+          continue;
+        }
+        break;
+      case PseudoStyleType::after:
+        if (nsLayoutUtils::GetAfterFrame(content)) {
+          continue;
+        }
+        break;
+      case PseudoStyleType::marker:
+        if (nsLayoutUtils::GetMarkerFrame(content)) {
+          continue;
+        }
+        break;
+      case PseudoStyleType::viewTransition:
+      case PseudoStyleType::viewTransitionGroup:
+      case PseudoStyleType::viewTransitionImagePair:
+      case PseudoStyleType::viewTransitionOld:
+      case PseudoStyleType::viewTransitionNew:
+        // FIXME: Bug 1922095. Revisit here to make sure we destroy the view
+        // transitions if the associated frames are destroyed.
+      default:
+        // Do nothing
+        break;
     }
     dom::Element* element = content->AsElement();
 
-    animationManager->StopAnimationsForElement(element, aPseudoType);
-    transitionManager->StopAnimationsForElement(element, aPseudoType);
+    // FIXME: Bug 1922095. Revisit here to make sure we destroy the view
+    // transitions if the associated frames are destroyed.
+    animationManager->StopAnimationsForElement(element, aPseudoRequest.mType);
+    transitionManager->StopAnimationsForElement(element, aPseudoRequest.mType);
 
     // All other animations should keep running but not running on the
     // *compositor* at this point.
-    if (EffectSet* effectSet = EffectSet::Get(element, aPseudoType)) {
+    if (EffectSet* effectSet = EffectSet::Get(element, aPseudoRequest)) {
       for (KeyframeEffect* effect : *effectSet) {
         effect->ResetIsRunningOnCompositor();
       }

@@ -1836,8 +1836,7 @@ void nsXULPopupManager::FirePopupHidingEvent(Element* aPopup,
   // and wait for it to finish.
   // The transition would still occur either way, but if we don't wait the
   // view will be hidden and you won't be able to see it.
-  if (shouldAnimate && AnimationUtils::HasCurrentTransitions(
-                           aPopup, PseudoStyleType::NotPseudo)) {
+  if (shouldAnimate && AnimationUtils::HasCurrentTransitions(aPopup)) {
     RefPtr<TransitionEnder> ender = new TransitionEnder(aPopup, aOptions);
     aPopup->AddSystemEventListener(u"transitionend"_ns, ender, false, false);
     aPopup->AddSystemEventListener(u"transitioncancel"_ns, ender, false, false);

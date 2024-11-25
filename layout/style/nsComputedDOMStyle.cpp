@@ -129,12 +129,10 @@ static bool ElementNeedsRestyle(Element* aElement,
     return true;
   }
 
-  // TODO: Bug 1921553. Use PseudoStyleRequest for web animations.
   // If the pseudo-element is animating, make sure to flush.
-  if (aElement->MayHaveAnimations() &&
-      aPseudo.mType != PseudoStyleType::NotPseudo &&
+  if (aElement->MayHaveAnimations() && !aPseudo.IsNotPseudo() &&
       AnimationUtils::IsSupportedPseudoForAnimations(aPseudo)) {
-    if (EffectSet::Get(aElement, aPseudo.mType)) {
+    if (EffectSet::Get(aElement, aPseudo)) {
       return true;
     }
   }

@@ -640,8 +640,7 @@ void nsMenuPopupFrame::LayoutPopup(nsPresContext* aPresContext,
         mContent->AsElement()->AttrValueIs(kNameSpaceID_None,
                                            nsGkAtoms::animate, nsGkAtoms::open,
                                            eCaseMatters) &&
-        AnimationUtils::HasCurrentTransitions(mContent->AsElement(),
-                                              PseudoStyleType::NotPseudo)) {
+        AnimationUtils::HasCurrentTransitions(mContent->AsElement())) {
       mPopupShownDispatcher = new nsXULPopupShownEvent(mContent, aPresContext);
       mContent->AddSystemEventListener(u"transitionend"_ns,
                                        mPopupShownDispatcher, false, false);

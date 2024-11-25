@@ -270,6 +270,9 @@ class RestyleManager {
     void Put(nsIContent* aContent, ComputedStyle* aComputedStyle) {
       MOZ_ASSERT(aContent);
       PseudoStyleType pseudoType = aComputedStyle->GetPseudoType();
+      // FIXME: Bug 1922095. Revisit here to make sure we destroy the view
+      // transitions if the associated frames are destroyed. I expect we just
+      // store the view transition pseudo-elements in |mContents|.
       if (pseudoType == PseudoStyleType::NotPseudo) {
         mContents.AppendElement(aContent);
       } else if (pseudoType == PseudoStyleType::before) {
@@ -291,7 +294,7 @@ class RestyleManager {
 
    private:
     void StopAnimationsWithoutFrame(nsTArray<RefPtr<nsIContent>>& aArray,
-                                    PseudoStyleType aPseudoType);
+                                    const PseudoStyleRequest& aPseudoRequest);
 
     RestyleManager* mRestyleManager;
     AutoRestore<AnimationsWithDestroyedFrame*> mRestorePointer;

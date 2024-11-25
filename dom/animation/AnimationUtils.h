@@ -82,7 +82,8 @@ class AnimationUtils {
    * current (playing or waiting to play) or in effect (e.g. filling forwards).
    */
   static bool HasCurrentTransitions(const dom::Element* aElement,
-                                    PseudoStyleType aPseudoType);
+                                    const PseudoStyleRequest& aPseudoRequest =
+                                        PseudoStyleRequest::NotPseudo());
 
   /**
    * Returns true if this pseudo style type is supported by animations.

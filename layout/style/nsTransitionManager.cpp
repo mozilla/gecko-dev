@@ -469,7 +469,8 @@ bool nsTransitionManager::ConsiderInitiatingTransition(
     transitions.AppendElement(transition);
   }
 
-  if (auto* effectSet = EffectSet::Get(aElement, aPseudoType)) {
+  if (auto* effectSet =
+          EffectSet::Get(aElement, PseudoStyleRequest(aPseudoType))) {
     effectSet->UpdateAnimationGeneration(mPresContext);
   }
 
@@ -528,7 +529,8 @@ void nsTransitionManager::DoCancelTransition(
   CSSTransition* transition = transitions[aIndex];
 
   if (transition->HasCurrentEffect()) {
-    if (auto* effectSet = EffectSet::Get(aElement, aPseudoType)) {
+    if (auto* effectSet =
+            EffectSet::Get(aElement, PseudoStyleRequest(aPseudoType))) {
       effectSet->UpdateAnimationGeneration(mPresContext);
     }
   }

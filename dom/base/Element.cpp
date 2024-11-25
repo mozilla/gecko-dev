@@ -3931,7 +3931,9 @@ void Element::GetAnimationsUnsorted(Element* aElement,
              "Unsupported pseudo type");
   MOZ_ASSERT(aElement, "Null element");
 
-  EffectSet* effects = EffectSet::Get(aElement, aPseudoType);
+  // FIXME: Bug 1921109. Support getAnimations() for view transitions.
+  EffectSet* effects =
+      EffectSet::Get(aElement, PseudoStyleRequest(aPseudoType));
   if (!effects) {
     return;
   }
@@ -3962,9 +3964,9 @@ void Element::CloneAnimationsFrom(const Element& aOther) {
         PseudoStyleType::after, PseudoStyleType::marker}) {
     // If the element has an effect set for this pseudo type (or not pseudo)
     // then copy the effects and animation properties.
-    if (auto* const effects = EffectSet::Get(&aOther, pseudoType)) {
-      const PseudoStyleRequest request(pseudoType);
-      auto* const clonedEffects = EffectSet::GetOrCreate(this, pseudoType);
+    const PseudoStyleRequest request(pseudoType);
+    if (auto* const effects = EffectSet::Get(&aOther, request)) {
+      auto* const clonedEffects = EffectSet::GetOrCreate(this, request);
       for (KeyframeEffect* const effect : *effects) {
         auto* animation = effect->GetAnimation();
         if (animation->AsCSSTransition()) {
