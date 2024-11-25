@@ -1755,10 +1755,9 @@ bool js::Stringify(JSContext* cx, MutableHandleValue vp, JSObject* replacer_,
 }
 
 /* https://262.ecma-international.org/14.0/#sec-internalizejsonproperty */
-static bool InternalizeJSONProperty(JSContext* cx, HandleObject holder,
-                                    HandleId name, HandleValue reviver,
-                                    Handle<ParseRecordObject*> parseRecord,
-                                    MutableHandleValue vp) {
+static bool InternalizeJSONProperty(
+    JSContext* cx, HandleObject holder, HandleId name, HandleValue reviver,
+    MutableHandle<ParseRecordObject> parseRecord, MutableHandleValue vp) {
   AutoCheckRecursionLimit recursion(cx);
   if (!recursion.check(cx)) {
     return false;
@@ -1771,31 +1770,29 @@ static bool InternalizeJSONProperty(JSContext* cx, HandleObject holder,
   }
 
   RootedObject context(cx);
-  Rooted<ParseRecordObject::EntryMap*> entries(cx);
+  Rooted<UniquePtr<ParseRecordObject::EntryMap>> entries(cx);
   if (JS::Prefs::experimental_json_parse_with_source()) {
     // https://tc39.es/proposal-json-parse-with-source/#sec-internalizejsonproperty
-    if (parseRecord) {
-      bool sameVal = false;
-      Rooted<Value> parsedValue(cx, parseRecord->getValue());
-      if (!SameValue(cx, parsedValue, val, &sameVal)) {
-        return false;
-      }
-      if (parseRecord->hasValue() && sameVal) {
-        if (parseRecord->getParseNode()) {
-          MOZ_ASSERT(!val.isObject());
-          Rooted<IdValueVector> props(cx, cx);
-          if (!props.emplaceBack(
-                  IdValuePair(NameToId(cx->names().source),
-                              StringValue(parseRecord->getParseNode())))) {
-            return false;
-          }
-          context = NewPlainObjectWithUniqueNames(cx, props);
-          if (!context) {
-            return false;
-          }
+    bool sameVal = false;
+    Rooted<Value> parsedValue(cx, parseRecord.get().value);
+    if (!SameValue(cx, parsedValue, val, &sameVal)) {
+      return false;
+    }
+    if (!parseRecord.get().isEmpty() && sameVal) {
+      if (parseRecord.get().parseNode) {
+        MOZ_ASSERT(!val.isObject());
+        Rooted<IdValueVector> props(cx, cx);
+        if (!props.emplaceBack(
+                IdValuePair(NameToId(cx->names().source),
+                            StringValue(parseRecord.get().parseNode)))) {
+          return false;
         }
-        entries = parseRecord->getEntries(cx);
+        context = NewPlainObjectWithUniqueNames(cx, props);
+        if (!context) {
+          return false;
+        }
       }
+      entries = std::move(parseRecord.get().entries);
     }
     if (!context) {
       context = NewPlainObject(cx);
@@ -1834,17 +1831,13 @@ static bool InternalizeJSONProperty(JSContext* cx, HandleObject holder,
         }
 
         /* Step 2a(iii)(1). */
-        Rooted<ParseRecordObject*> elementRecord(cx);
+        Rooted<ParseRecordObject> elementRecord(cx);
         if (entries) {
-          Rooted<Value> value(cx);
-          if (!JS_GetPropertyById(cx, entries, id, &value)) {
-            return false;
-          }
-          if (!value.isNullOrUndefined()) {
-            elementRecord = &value.toObject().as<ParseRecordObject>();
+          if (auto entry = entries->lookup(id)) {
+            elementRecord = std::move(entry->value());
           }
         }
-        if (!InternalizeJSONProperty(cx, obj, id, reviver, elementRecord,
+        if (!InternalizeJSONProperty(cx, obj, id, reviver, &elementRecord,
                                      &newElement)) {
           return false;
         }
@@ -1884,17 +1877,13 @@ static bool InternalizeJSONProperty(JSContext* cx, HandleObject holder,
 
         /* Step 2c(ii)(1). */
         id = keys[i];
-        Rooted<ParseRecordObject*> entryRecord(cx);
+        Rooted<ParseRecordObject> entryRecord(cx);
         if (entries) {
-          Rooted<Value> value(cx);
-          if (!JS_GetPropertyById(cx, entries, id, &value)) {
-            return false;
-          }
-          if (!value.isNullOrUndefined()) {
-            entryRecord = &value.toObject().as<ParseRecordObject>();
+          if (auto entry = entries->lookup(id)) {
+            entryRecord = std::move(entry->value());
           }
         }
-        if (!InternalizeJSONProperty(cx, obj, id, reviver, entryRecord,
+        if (!InternalizeJSONProperty(cx, obj, id, reviver, &entryRecord,
                                      &newElement)) {
           return false;
         }
@@ -1935,7 +1924,8 @@ static bool InternalizeJSONProperty(JSContext* cx, HandleObject holder,
 }
 
 static bool Revive(JSContext* cx, HandleValue reviver,
-                   Handle<ParseRecordObject*> pro, MutableHandleValue vp) {
+                   MutableHandle<ParseRecordObject> pro,
+                   MutableHandleValue vp) {
   Rooted<PlainObject*> obj(cx, NewPlainObject(cx));
   if (!obj) {
     return false;
@@ -1946,7 +1936,7 @@ static bool Revive(JSContext* cx, HandleValue reviver,
   }
 
   MOZ_ASSERT_IF(JS::Prefs::experimental_json_parse_with_source(),
-                pro->getValue() == vp.get());
+                pro.get().value == vp.get());
   Rooted<jsid> id(cx, NameToId(cx->names().empty_));
   return InternalizeJSONProperty(cx, obj, id, reviver, pro, vp);
 }
@@ -1966,7 +1956,7 @@ bool js::ParseJSONWithReviver(JSContext* cx,
   js::AutoGeckoProfilerEntry pseudoFrame(cx, "parse JSON",
                                          JS::ProfilingCategoryPair::JS_Parsing);
   /* https://262.ecma-international.org/14.0/#sec-json.parse steps 2-10. */
-  Rooted<ParseRecordObject*> pro(cx);
+  Rooted<ParseRecordObject> pro(cx);
   if (JS::Prefs::experimental_json_parse_with_source() && IsCallable(reviver)) {
     Rooted<JSONReviveParser<CharT>> parser(cx, cx, chars);
     if (!parser.get().parse(vp, &pro)) {
@@ -1978,7 +1968,7 @@ bool js::ParseJSONWithReviver(JSContext* cx,
 
   /* Steps 11-12. */
   if (IsCallable(reviver)) {
-    return Revive(cx, reviver, pro, vp);
+    return Revive(cx, reviver, &pro, vp);
   }
   return true;
 }
