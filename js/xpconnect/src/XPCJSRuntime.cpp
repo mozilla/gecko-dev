@@ -2627,6 +2627,42 @@ static void AccumulateTelemetryCallback(JSMetric id, uint32_t sample) {
       glean::javascript_ion::compile_time.AccumulateRawDuration(
           TimeDuration::FromMicroseconds(sample));
       break;
+    case JSMetric::GC_BUDGET_MS_2:
+      glean::javascript_gc::budget.AccumulateRawDuration(
+          TimeDuration::FromMilliseconds(sample));
+      break;
+    case JSMetric::GC_BUDGET_OVERRUN:
+      glean::javascript_gc::budget_overrun.AccumulateRawDuration(
+          TimeDuration::FromMicroseconds(sample));
+      break;
+    case JSMetric::GC_ANIMATION_MS:
+      glean::javascript_gc::animation.AccumulateRawDuration(
+          TimeDuration::FromMilliseconds(sample));
+      break;
+    case JSMetric::GC_MAX_PAUSE_MS_2:
+      glean::javascript_gc::max_pause.AccumulateRawDuration(
+          TimeDuration::FromMilliseconds(sample));
+      break;
+    case JSMetric::GC_MARK_GRAY_MS_2:
+      glean::javascript_gc::mark_gray.AccumulateRawDuration(
+          TimeDuration::FromMilliseconds(sample));
+      break;
+    case JSMetric::GC_MARK_WEAK_MS:
+      glean::javascript_gc::mark_weak.AccumulateRawDuration(
+          TimeDuration::FromMilliseconds(sample));
+      break;
+    case JSMetric::GC_TIME_BETWEEN_S:
+      glean::javascript_gc::time_between.AccumulateRawDuration(
+          TimeDuration::FromSeconds(sample));
+      break;
+    case JSMetric::GC_TIME_BETWEEN_SLICES_MS:
+      glean::javascript_gc::time_between_slices.AccumulateRawDuration(
+          TimeDuration::FromMilliseconds(sample));
+      break;
+    case JSMetric::GC_TASK_START_DELAY_US:
+      glean::javascript_gc::task_start_delay.AccumulateRawDuration(
+          TimeDuration::FromMicroseconds(sample));
+      break;
     default:
       // The rest aren't relayed to Glean.
       break;

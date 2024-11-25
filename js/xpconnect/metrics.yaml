@@ -198,6 +198,132 @@ javascript.gc:
       - jcoppeard@mozilla.com
     expires: never
 
+  budget:
+    type: timing_distribution
+    time_unit: millisecond
+    description: >
+      Requested GC slice budget.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1932957
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1932957
+    notification_emails:
+      - dev-telemetry-gc-alerts@mozilla.org
+      - jcoppeard@mozilla.com
+    expires: never
+
+  budget_overrun:
+    type: timing_distribution
+    time_unit: microsecond
+    description: >
+      How long a GC slice ran over its budget.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1932957
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1932957
+    notification_emails:
+      - dev-telemetry-gc-alerts@mozilla.org
+      - jcoppeard@mozilla.com
+    expires: never
+
+  animation:
+    type: timing_distribution
+    time_unit: millisecond
+    description: >
+      Time spent running JS GC when animating.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1932957
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1932957
+    notification_emails:
+      - dev-telemetry-gc-alerts@mozilla.org
+      - jcoppeard@mozilla.com
+    expires: never
+
+  max_pause:
+    type: timing_distribution
+    time_unit: millisecond
+    description: >
+      Longest GC slice in a GC.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1932957
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1932957
+    notification_emails:
+      - dev-telemetry-gc-alerts@mozilla.org
+      - jcoppeard@mozilla.com
+    expires: never
+
+  mark_gray:
+    type: timing_distribution
+    time_unit: millisecond
+    description: >
+      Time spent marking gray GC objects.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1932957
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1932957
+    notification_emails:
+      - dev-telemetry-gc-alerts@mozilla.org
+      - jcoppeard@mozilla.com
+    expires: never
+
+  mark_weak:
+    type: timing_distribution
+    time_unit: millisecond
+    description: >
+      Time spent marking GC objects held live through weakmaps.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1932957
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1932957
+    notification_emails:
+      - dev-telemetry-gc-alerts@mozilla.org
+      - jcoppeard@mozilla.com
+    expires: never
+
+  time_between:
+    type: timing_distribution
+    time_unit: second
+    description: >
+      Time spent in between garbage collections for the main runtime.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1932957
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1932957
+    notification_emails:
+      - dev-telemetry-gc-alerts@mozilla.org
+      - jcoppeard@mozilla.com
+    expires: never
+
+  time_between_slices:
+    type: timing_distribution
+    time_unit: millisecond
+    description: >
+      Time spent in between garbage collections for the main runtime.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1932957
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1932957
+    notification_emails:
+      - dev-telemetry-gc-alerts@mozilla.org
+      - jcoppeard@mozilla.com
+    expires: never
+
+  task_start_delay:
+    type: timing_distribution
+    time_unit: microsecond
+    description: >
+      Delay between queuing a GC task and the task starting.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1932957
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1932957
+    notification_emails:
+      - dev-telemetry-gc-alerts@mozilla.org
+      - jcoppeard@mozilla.com
+    expires: never
+
 slow_script_warning:
   shown_browser:
     type: event
