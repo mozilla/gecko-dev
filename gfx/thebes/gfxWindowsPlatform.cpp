@@ -713,8 +713,7 @@ void gfxWindowsPlatform::GetCommonFallbackFonts(
       break;
 
     case Script::ARABIC:
-      aFontList.AppendElement("Traditional Arabic");
-      aFontList.AppendElement("Arabic Typesetting");
+      // Default to Arial (added unconditionally below) for Arabic script.
       break;
     case Script::ARABIC_NASTALIQ:
       aFontList.AppendElement("Urdu Typesetting");
