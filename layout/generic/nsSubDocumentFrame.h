@@ -167,6 +167,7 @@ class nsSubDocumentFrame final : public nsAtomicContainerFrame,
 
   nsView* GetViewInternal() const override { return mOuterView; }
   void SetViewInternal(nsView* aView) override { mOuterView = aView; }
+  void CreateView();
 
   mutable RefPtr<nsFrameLoader> mFrameLoader;
 
