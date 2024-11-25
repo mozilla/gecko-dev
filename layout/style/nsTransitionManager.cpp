@@ -513,7 +513,7 @@ already_AddRefed<CSSTransition> nsTransitionManager::DoCreateTransition(
   if (!aElementTransitions) {
     aElementTransitions =
         &aElement->EnsureAnimationData().EnsureTransitionCollection(
-            *aElement, aPseudoRequest.mType);
+            *aElement, aPseudoRequest);
     if (!aElementTransitions->isInList()) {
       AddElementCollection(aElementTransitions);
     }

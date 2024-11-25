@@ -37,11 +37,11 @@ void AnimationCollection<AnimationType>::Destroy() {
   auto* data = mElement.GetAnimationData();
   MOZ_ASSERT(data);
   if constexpr (std::is_same_v<AnimationType, dom::CSSAnimation>) {
-    MOZ_ASSERT(data->GetAnimationCollection(mPseudo.mType) == this);
-    data->ClearAnimationCollectionFor(mPseudo.mType);
+    MOZ_ASSERT(data->GetAnimationCollection(mPseudo) == this);
+    data->ClearAnimationCollectionFor(mPseudo);
   } else {
-    MOZ_ASSERT(data->GetTransitionCollection(mPseudo.mType) == this);
-    data->ClearTransitionCollectionFor(mPseudo.mType);
+    MOZ_ASSERT(data->GetTransitionCollection(mPseudo) == this);
+    data->ClearTransitionCollectionFor(mPseudo);
   }
 }
 
@@ -53,9 +53,9 @@ AnimationCollection<AnimationType>* AnimationCollection<AnimationType>::Get(
     return nullptr;
   }
   if constexpr (std::is_same_v<AnimationType, dom::CSSAnimation>) {
-    return data->GetAnimationCollection(aRequest.mType);
+    return data->GetAnimationCollection(aRequest);
   } else {
-    return data->GetTransitionCollection(aRequest.mType);
+    return data->GetTransitionCollection(aRequest);
   }
 }
 

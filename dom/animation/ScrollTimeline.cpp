@@ -100,7 +100,8 @@ already_AddRefed<ScrollTimeline> ScrollTimeline::MakeAnonymous(
   return MakeAndAddRef<ScrollTimeline>(aDocument, scroller, aAxis);
 }
 
-/* static*/ already_AddRefed<ScrollTimeline> ScrollTimeline::MakeNamed(
+/* static*/
+already_AddRefed<ScrollTimeline> ScrollTimeline::MakeNamed(
     Document* aDocument, Element* aReferenceElement,
     const PseudoStyleRequest& aPseudoRequest,
     const StyleScrollTimeline& aStyleTimeline) {
@@ -287,14 +288,14 @@ void ScrollTimeline::NotifyAnimationContentVisibilityChanged(
     return nullptr;
   }
 
-  return data->GetProgressTimelineScheduler(aPseudoRequest.mType);
+  return data->GetProgressTimelineScheduler(aPseudoRequest);
 }
 
 /* static */ ProgressTimelineScheduler& ProgressTimelineScheduler::Ensure(
     Element* aElement, const PseudoStyleRequest& aPseudoRequest) {
   MOZ_ASSERT(aElement);
   return aElement->EnsureAnimationData().EnsureProgressTimelineScheduler(
-      *aElement, aPseudoRequest.mType);
+      aPseudoRequest);
 }
 
 /* static */
@@ -302,7 +303,7 @@ void ProgressTimelineScheduler::Destroy(
     const Element* aElement, const PseudoStyleRequest& aPseudoRequest) {
   auto* data = aElement->GetAnimationData();
   MOZ_ASSERT(data);
-  data->ClearProgressTimelineScheduler(aPseudoRequest.mType);
+  data->ClearProgressTimelineScheduler(aPseudoRequest);
 }
 
 }  // namespace mozilla::dom

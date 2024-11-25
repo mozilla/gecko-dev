@@ -54,43 +54,38 @@ EffectSet& ElementAnimationData::PerElementOrPseudoData::DoEnsureEffectSet() {
 
 CSSTransitionCollection&
 ElementAnimationData::PerElementOrPseudoData::DoEnsureTransitions(
-    dom::Element& aOwner, PseudoStyleType aType) {
+    dom::Element& aOwner, const PseudoStyleRequest& aRequest) {
   MOZ_ASSERT(!mTransitions);
-  mTransitions =
-      MakeUnique<CSSTransitionCollection>(aOwner, PseudoStyleRequest(aType));
+  mTransitions = MakeUnique<CSSTransitionCollection>(aOwner, aRequest);
   return *mTransitions;
 }
 
 CSSAnimationCollection&
 ElementAnimationData::PerElementOrPseudoData::DoEnsureAnimations(
-    dom::Element& aOwner, PseudoStyleType aType) {
+    dom::Element& aOwner, const PseudoStyleRequest& aRequest) {
   MOZ_ASSERT(!mAnimations);
-  mAnimations =
-      MakeUnique<CSSAnimationCollection>(aOwner, PseudoStyleRequest(aType));
+  mAnimations = MakeUnique<CSSAnimationCollection>(aOwner, aRequest);
   return *mAnimations;
 }
 
 ScrollTimelineCollection&
 ElementAnimationData::PerElementOrPseudoData::DoEnsureScrollTimelines(
-    dom::Element& aOwner, PseudoStyleType aType) {
+    dom::Element& aOwner, const PseudoStyleRequest& aRequest) {
   MOZ_ASSERT(!mScrollTimelines);
-  mScrollTimelines =
-      MakeUnique<ScrollTimelineCollection>(aOwner, PseudoStyleRequest(aType));
+  mScrollTimelines = MakeUnique<ScrollTimelineCollection>(aOwner, aRequest);
   return *mScrollTimelines;
 }
 
 ViewTimelineCollection&
 ElementAnimationData::PerElementOrPseudoData::DoEnsureViewTimelines(
-    dom::Element& aOwner, PseudoStyleType aType) {
+    dom::Element& aOwner, const PseudoStyleRequest& aRequest) {
   MOZ_ASSERT(!mViewTimelines);
-  mViewTimelines =
-      MakeUnique<ViewTimelineCollection>(aOwner, PseudoStyleRequest(aType));
+  mViewTimelines = MakeUnique<ViewTimelineCollection>(aOwner, aRequest);
   return *mViewTimelines;
 }
 
-dom::ProgressTimelineScheduler&
-ElementAnimationData::PerElementOrPseudoData::DoEnsureProgressTimelineScheduler(
-    dom::Element& aOwner, PseudoStyleType aType) {
+dom::ProgressTimelineScheduler& ElementAnimationData::PerElementOrPseudoData::
+    DoEnsureProgressTimelineScheduler() {
   MOZ_ASSERT(!mProgressTimelineScheduler);
   mProgressTimelineScheduler = MakeUnique<dom::ProgressTimelineScheduler>();
   return *mProgressTimelineScheduler;

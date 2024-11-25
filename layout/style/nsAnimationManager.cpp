@@ -452,7 +452,7 @@ void nsAnimationManager::DoUpdateAnimations(
   if (!collection) {
     collection =
         &aTarget.mElement->EnsureAnimationData().EnsureAnimationCollection(
-            *aTarget.mElement, aTarget.mPseudoRequest.mType);
+            *aTarget.mElement, aTarget.mPseudoRequest);
     if (!collection->isInList()) {
       AddElementCollection(collection);
     }

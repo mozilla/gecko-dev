@@ -27,7 +27,7 @@ void EffectSet::Traverse(nsCycleCollectionTraversalCallback& aCallback) {
 EffectSet* EffectSet::Get(const dom::Element* aElement,
                           const PseudoStyleRequest& aPseudoRequest) {
   if (auto* data = aElement->GetAnimationData()) {
-    return data->GetEffectSetFor(aPseudoRequest.mType);
+    return data->GetEffectSetFor(aPseudoRequest);
   }
   return nullptr;
 }
@@ -35,8 +35,7 @@ EffectSet* EffectSet::Get(const dom::Element* aElement,
 /* static */
 EffectSet* EffectSet::GetOrCreate(dom::Element* aElement,
                                   const PseudoStyleRequest& aPseudoRequest) {
-  return &aElement->EnsureAnimationData().EnsureEffectSetFor(
-      aPseudoRequest.mType);
+  return &aElement->EnsureAnimationData().EnsureEffectSetFor(aPseudoRequest);
 }
 
 /* static */
@@ -92,7 +91,7 @@ EffectSet* EffectSet::GetForEffect(const dom::KeyframeEffect* aEffect) {
 void EffectSet::DestroyEffectSet(dom::Element* aElement,
                                  const PseudoStyleRequest& aPseudoRequest) {
   if (auto* data = aElement->GetAnimationData()) {
-    data->ClearEffectSetFor(aPseudoRequest.mType);
+    data->ClearEffectSetFor(aPseudoRequest);
   }
 }
 

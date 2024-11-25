@@ -113,20 +113,20 @@ static auto BuildTimelines(nsPresContext* aPresContext, Element* aElement,
 
 template <typename TimelineType>
 static TimelineCollection<TimelineType>& EnsureTimelineCollection(
-    Element& aElement, PseudoStyleType aPseudoType);
+    Element& aElement, const PseudoStyleRequest& aPseudoRequest);
 
 template <>
 ScrollTimelineCollection& EnsureTimelineCollection<ScrollTimeline>(
-    Element& aElement, PseudoStyleType aPseudoType) {
+    Element& aElement, const PseudoStyleRequest& aPseudoRequest) {
   return aElement.EnsureAnimationData().EnsureScrollTimelineCollection(
-      aElement, aPseudoType);
+      aElement, aPseudoRequest);
 }
 
 template <>
 ViewTimelineCollection& EnsureTimelineCollection<ViewTimeline>(
-    Element& aElement, PseudoStyleType aPseudoType) {
+    Element& aElement, const PseudoStyleRequest& aPseudoRequest) {
   return aElement.EnsureAnimationData().EnsureViewTimelineCollection(
-      aElement, aPseudoType);
+      aElement, aPseudoRequest);
 }
 
 template <typename StyleType, typename TimelineType>
@@ -155,8 +155,8 @@ void TimelineManager::DoUpdateTimelines(
   }
 
   if (!collection) {
-    collection = &EnsureTimelineCollection<TimelineType>(*aElement,
-                                                         aPseudoRequest.mType);
+    collection =
+        &EnsureTimelineCollection<TimelineType>(*aElement, aPseudoRequest);
     if (!collection->isInList()) {
       AddTimelineCollection(collection);
     }
