@@ -40,7 +40,12 @@ loader.lazyRequireGetter(
  * @return object
  *         A promise object that is resolved once the connection is established.
  */
-function connectToFrame(connection, frame, onDestroy) {
+function connectToFrame(
+  connection,
+  frame,
+  onDestroy,
+  { addonId, addonBrowsingContextGroupId } = {}
+) {
   return new Promise(resolve => {
     // Get messageManager from XUL browser (which might be a specialized tunnel for RDM)
     // or else fallback to asking the frameLoader itself.
@@ -157,6 +162,8 @@ function connectToFrame(connection, frame, onDestroy) {
 
     mm.sendAsyncMessage("debug:connect", {
       prefix,
+      addonId,
+      addonBrowsingContextGroupId,
     });
   });
 }

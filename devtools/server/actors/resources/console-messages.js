@@ -55,9 +55,13 @@ class ConsoleMessageWatcher {
     // But ParentProcess should be ignored as we want all messages emitted directly from
     // that process (window and window-less).
     // To do that we pass a null window and ConsoleAPIListener will catch everything.
+    // And also ignore WebExtension as we will filter out only by addonId, which is
+    // passed via consoleAPIListenerOptions. WebExtension may have multiple windows/documents
+    // but all of them will be flagged with the same addon ID.
     const messagesShouldMatchWindow =
       targetActor.targetType === Targets.TYPES.FRAME &&
-      targetActor.typeName != "parentProcessTarget";
+      targetActor.typeName != "parentProcessTarget" &&
+      targetActor.typeName != "webExtensionTarget";
     const window = messagesShouldMatchWindow ? targetActor.window : null;
 
     // If we should match messages for a given window but for some reason, targetActor.window
@@ -71,6 +75,7 @@ class ConsoleMessageWatcher {
     const listener = new ConsoleAPIListener(window, onConsoleAPICall, {
       excludeMessagesBoundToWindow: isTargetActorContentProcess,
       matchExactWindow: targetActor.ignoreSubFrames,
+      ...(targetActor.consoleAPIListenerOptions || {}),
     });
     this.listener = listener;
     listener.init();

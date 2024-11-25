@@ -8,6 +8,7 @@
  * Target actor for the entire parent process.
  *
  * This actor extends WindowGlobalTargetActor.
+ * This actor is extended by WebExtensionTargetActor.
  *
  * See devtools/docs/backend/actor-hierarchy.md for more details.
  */
@@ -33,20 +34,26 @@ class ParentProcessTargetActor extends WindowGlobalTargetActor {
    * RootActor.getProcess request. ParentProcessTargetActor exposes all target-scoped actors
    * via its form() request, like WindowGlobalTargetActor.
    *
-   * @param {DevToolsServerConnection} conn
+   * @param conn DevToolsServerConnection
    *        The connection to the client.
-   * @param {Boolean} options.isTopLevelTarget
-   *        flag to indicate if this is the top
-   *        level target of the DevTools session
-   * @param {Object} options.sessionContext
-   *        The Session Context to help know what is debugged.
-   *        See devtools/server/actors/watcher/session-context.js
+   * @param {Object} options
+   *        - isTopLevelTarget: {Boolean} flag to indicate if this is the top
+   *          level target of the DevTools session
+   *        - sessionContext Object
+   *          The Session Context to help know what is debugged.
+   *          See devtools/server/actors/watcher/session-context.js
+   *        - customSpec Object
+   *          WebExtensionTargetActor inherits from ParentProcessTargetActor
+   *          and has to use its own protocol.js specification object.
    */
-  constructor(conn, { isTopLevelTarget, sessionContext }) {
+  constructor(
+    conn,
+    { isTopLevelTarget, sessionContext, customSpec = parentProcessTargetSpec }
+  ) {
     super(conn, {
       isTopLevelTarget,
       sessionContext,
-      customSpec: parentProcessTargetSpec,
+      customSpec,
     });
 
     // This creates a Debugger instance for chrome debugging all globals.
@@ -65,11 +72,17 @@ class ParentProcessTargetActor extends WindowGlobalTargetActor {
     Services.obs.addObserver(this, "chrome-webnavigation-create");
     Services.obs.addObserver(this, "chrome-webnavigation-destroy");
 
-    this.setDocShell(this._getInitialDocShell());
+    // If we are the parent process target actor and not a subclass
+    // (i.e. if we aren't the webext target actor)
+    // set the parent process docshell:
+    if (customSpec == parentProcessTargetSpec) {
+      this.setDocShell(this._getInitialDocShell());
+    }
   }
 
   // Overload setDocShell in order to observe all the docshells.
-  // WindowGlobalTargetActor only observes the top level one.
+  // WindowGlobalTargetActor only observes the top level one,
+  // but we also need to observe all of them for WebExtensionTargetActor subclass.
   setDocShell(initialDocShell) {
     super.setDocShell(initialDocShell);
 

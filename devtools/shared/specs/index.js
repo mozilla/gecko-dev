@@ -284,6 +284,11 @@ const Types = (exports.__TypesForTests = [
     front: null,
   },
   {
+    types: ["webExtensionTarget"],
+    spec: "devtools/shared/specs/targets/webextension",
+    front: null,
+  },
+  {
     types: ["windowGlobalTarget"],
     spec: "devtools/shared/specs/targets/window-global",
     front: "devtools/client/fronts/targets/window-global",

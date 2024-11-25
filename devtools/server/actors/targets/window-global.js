@@ -12,7 +12,7 @@
  * WindowGlobalTargetActor is an abstract class used by target actors that hold
  * documents, such as frames, chrome windows, etc.
  *
- * This class is extended by ParentProcessTargetActor.
+ * This class is extended by ParentProcessTargetActor, itself being extented by WebExtensionTargetActor.
  *
  * See devtools/docs/backend/actor-hierarchy.md for more details.
  *
@@ -366,7 +366,7 @@ class WindowGlobalTargetActor extends BaseTargetActor {
    * Define the initial docshell.
    *
    * This is called from the constructor for WindowGlobalTargetActor,
-   * or from sub class constructor of ParentProcessTargetActor.
+   * or from sub class constructors: WebExtensionTargetActor and ParentProcessTargetActor.
    *
    * This is to circumvent the fact that sub classes need to call inner method
    * to compute the initial docshell and we can't call inner methods before calling
@@ -424,6 +424,10 @@ class WindowGlobalTargetActor extends BaseTargetActor {
       "A docShell should be provided as constructor argument of WindowGlobalTargetActor, or redefined by the subclass"
     );
   }
+
+  // Optional console API listener options (e.g. used by the WebExtensionActor to
+  // filter console messages by addonID), set to an empty (no options) object by default.
+  consoleAPIListenerOptions = {};
 
   /*
    * Return a Debugger instance or create one if there is none yet
