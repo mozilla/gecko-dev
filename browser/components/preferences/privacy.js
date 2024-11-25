@@ -3021,9 +3021,14 @@ var gPrivacyPane = {
       "privacy.globalprivacycontrol.functionality.enabled",
       false
     );
+    let dntEnabledPrefValue = Services.prefs.getBoolPref(
+      "privacy.donottrackheader.enabled",
+      false
+    );
     document.getElementById("globalPrivacyControlBox").hidden =
       !gpcEnabledPrefValue;
-    document.getElementById("doNotTrackBox").hidden = !gpcEnabledPrefValue;
+    document.getElementById("doNotTrackBox").hidden =
+      !gpcEnabledPrefValue || !dntEnabledPrefValue;
     document.getElementById("legacyDoNotTrackBox").hidden = gpcEnabledPrefValue;
   },
 

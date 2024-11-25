@@ -358,7 +358,7 @@
     </vbox>
   </vbox>
 </groupbox>
-<groupbox id="nonTechnicalPrivacyGroup" data-category="panePrivacy" data-subcategory="nontechnicalprivacy" hidden="true">
+<groupbox id="nonTechnicalPrivacyGroup" data-category="panePrivacy" hidden="true">
   <label id="nonTechnicalPrivacyHeader"><html:h2 data-l10n-id="non-technical-privacy-header"/></label>
   <vbox id="nonTechnicalPrivacyBox">
     <hbox id="globalPrivacyControlBox" flex="1" align="center" hidden="true">
@@ -385,13 +385,10 @@
       </radiogroup>
     </vbox>
     <hbox id="doNotTrackBox" flex="1" align="center">
-      <checkbox id="doNotTrackCheckbox"
-              class="tail-with-learn-more"
-              preference="privacy.donottrackheader.enabled"
-              data-l10n-id="do-not-track-description2" />
       <html:a is="moz-support-link"
-          id="doNotTrackLearnMoreLink"
-          support-page="how-do-i-turn-do-not-track-feature" />
+          id="doNotTrackRemoval"
+          support-page="how-do-i-turn-do-not-track-feature"
+          data-l10n-id="do-not-track-removal" />
     </hbox>
   </vbox>
 </groupbox>
