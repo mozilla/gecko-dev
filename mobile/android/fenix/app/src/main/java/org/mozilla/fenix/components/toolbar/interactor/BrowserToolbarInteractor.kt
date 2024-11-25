@@ -60,8 +60,8 @@ interface BrowserToolbarInteractor {
      *
      * @param accessPoint The [MenuAccessPoint] that was used to navigate to the menu dialog.
      * @param customTabSessionId The ID of the custom tab session if navigating from
-     * @param isSandboxCustomTab Whether or not the current custom tab is sandboxed.
      * an external access point, and null otherwise.
+     * @param isSandboxCustomTab Whether or not the current custom tab is sandboxed.
      */
     fun onMenuButtonClicked(
         accessPoint: MenuAccessPoint,
