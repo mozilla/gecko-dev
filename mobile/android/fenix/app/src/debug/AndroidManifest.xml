@@ -11,13 +11,10 @@
     <uses-permission android:name="android.permission.WAKE_LOCK"/>
 
     <!-- Allows for storing and retrieving screenshots -->
-    <uses-permission
-        android:name="android.permission.WRITE_EXTERNAL_STORAGE"
-        android:maxSdkVersion="30"
-        tools:ignore="ScopedStorage"
-        tools:replace="android:maxSdkVersion"
-        />
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"
+        android:maxSdkVersion="32" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+        android:maxSdkVersion="28" />
 
     <!-- Allows changing locales -->
     <uses-permission android:name="android.permission.CHANGE_CONFIGURATION"
