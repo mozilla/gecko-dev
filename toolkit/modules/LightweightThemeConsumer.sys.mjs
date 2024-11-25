@@ -274,7 +274,7 @@ LightweightThemeConsumer.prototype = {
       // If enabled, apply the dark theme variant to private browsing windows.
       if (
         !Services.prefs.getBoolPref("browser.theme.dark-private-windows") ||
-        !this._win.browsingContext.usePrivateBrowsing ||
+        !lazy.PrivateBrowsingUtils.isWindowPrivate(this._win) ||
         lazy.PrivateBrowsingUtils.permanentPrivateBrowsing
       ) {
         return false;
