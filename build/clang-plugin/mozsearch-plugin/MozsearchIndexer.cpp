@@ -2536,6 +2536,20 @@ public:
     for (const NamedDecl *D : Resolver->resolveDeclRefExpr(E)) {
       visitHeuristicResult(Loc, D);
     }
+
+    // Also record this location so that if we have instantiations, we can
+    // gather more accurate results from them.
+    if (TemplateStack) {
+      TemplateStack->visitDependent(Loc);
+
+      // Also record the dependent NestedNameSpecifier locations
+      for (auto NestedNameLoc = E->getQualifierLoc();
+           NestedNameLoc && NestedNameLoc.getNestedNameSpecifier()->isDependent();
+           NestedNameLoc = NestedNameLoc.getPrefix()) {
+        TemplateStack->visitDependent(NestedNameLoc.getLocalBeginLoc());
+      }
+    }
+
     return true;
   }
 
