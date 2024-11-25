@@ -528,21 +528,19 @@ static bool IsHighMemSystem() { return gIsHighMemSystem; }
 // An RAII class to hide the dynamic toolbar on Android.
 class MOZ_RAII AutoDynamicToolbarHider final {
  public:
-  explicit AutoDynamicToolbarHider(
-      AsyncPanZoomController* aApzc)
+  explicit AutoDynamicToolbarHider(AsyncPanZoomController* aApzc)
       : mApzc(aApzc) {
     MOZ_ASSERT(mApzc);
   }
   ~AutoDynamicToolbarHider() {
     if (mHideDynamicToolbar) {
-      RefPtr<GeckoContentController> controller = mApzc->GetGeckoContentController();
+      RefPtr<GeckoContentController> controller =
+          mApzc->GetGeckoContentController();
       controller->HideDynamicToolbar(mApzc->GetGuid());
     }
   }
 
-  void Hide() {
-    mHideDynamicToolbar = true;
-  }
+  void Hide() { mHideDynamicToolbar = true; }
 
   friend class AsyncPanZoomController;
 
