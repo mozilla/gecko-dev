@@ -137,8 +137,8 @@ export default class SidebarMain extends MozLitElement {
     }
 
     if (
-      this.contextMenuTarget.getAttribute("extensionId") ||
-      this.contextMenuTarget.className.includes("tab") ||
+      this.contextMenuTarget?.getAttribute("extensionId") ||
+      this.contextMenuTarget?.className.includes("tab") ||
       isToolbarTarget
     ) {
       this.updateExtensionContextMenuItems();
