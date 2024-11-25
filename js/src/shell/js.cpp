@@ -80,7 +80,6 @@
 #include "builtin/TestingFunctions.h"
 #include "builtin/TestingUtility.h"  // js::ParseCompileOptions, js::ParseDebugMetadata, js::CreateScriptPrivate
 #include "debugger/DebugAPI.h"
-#include "frontend/BytecodeCompiler.h"  // frontend::{CompileGlobalScriptToExtensibleStencil, ParseModuleToExtensibleStencil}
 #include "frontend/CompilationStencil.h"
 #ifdef JS_ENABLE_SMOOSH
 #  include "frontend/Frontend2.h"
@@ -6053,23 +6052,16 @@ template <typename Unit>
                                       const JS::ReadOnlyCompileOptions& options,
                                       const Unit* units, size_t length,
                                       js::frontend::ParseGoal goal) {
-  Rooted<frontend::CompilationInput> input(cx,
-                                           frontend::CompilationInput(options));
-
   JS::SourceText<Unit> srcBuf;
   if (!srcBuf.init(cx, units, length, JS::SourceOwnership::Borrowed)) {
     return false;
   }
 
-  AutoReportFrontendContext fc(cx);
-  js::frontend::NoScopeBindingCache scopeCache;
-  UniquePtr<frontend::ExtensibleCompilationStencil> stencil;
+  RefPtr<JS::Stencil> stencil;
   if (goal == frontend::ParseGoal::Script) {
-    stencil = frontend::CompileGlobalScriptToExtensibleStencil(
-        cx, &fc, input.get(), &scopeCache, srcBuf, ScopeKind::Global);
+    stencil = JS::CompileGlobalScriptToStencil(cx, options, srcBuf);
   } else {
-    stencil = frontend::ParseModuleToExtensibleStencil(
-        cx, &fc, cx->tempLifoAlloc(), input.get(), &scopeCache, srcBuf);
+    stencil = JS::CompileModuleScriptToStencil(cx, options, srcBuf);
   }
 
   if (!stencil) {
