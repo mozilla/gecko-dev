@@ -13,7 +13,7 @@
 #include "platform.h"
 #include "PlatformMacros.h"
 #include "LulMain.h"
-#include "shared-libraries.h"
+#include "BaseProfilerSharedLibraries.h"
 #include "AutoObjectMapper.h"
 
 // Contains miscellaneous helpers that are used to connect the Gecko Profiler
@@ -31,7 +31,7 @@ void read_procmaps(lul::LUL* aLUL) {
   for (size_t i = 0; i < info.GetSize(); i++) {
     const SharedLibrary& lib = info.GetEntry(i);
 
-    std::string nativePath = lib.GetNativeDebugPath();
+    std::string nativePath = lib.GetDebugPath();
 
     // We can use the standard POSIX-based mapper.
     AutoObjectMapperPOSIX mapper(aLUL->mLog);
@@ -44,7 +44,7 @@ void read_procmaps(lul::LUL* aLUL) {
     if (ok && image && size > 0) {
       aLUL->NotifyAfterMap(lib.GetStart(), lib.GetEnd() - lib.GetStart(),
                            nativePath.c_str(), image);
-    } else if (!ok && lib.GetDebugName().IsEmpty()) {
+    } else if (!ok && lib.GetDebugName().empty()) {
       // The object has no name and (as a consequence) the mapper failed to map
       // it.  This happens on Linux, where GetInfoForSelf() produces such a
       // mapping for the VDSO.  This is a problem on x86-{linux,android} because

@@ -16,6 +16,11 @@
 #include <vector>
 #include <tuple>
 
+namespace IPC {
+template <typename T>
+struct ParamTraits;
+}  // namespace IPC
+
 class SharedLibrary {
  public:
   SharedLibrary(uintptr_t aStart, uintptr_t aEnd, uintptr_t aOffset,
@@ -62,9 +67,9 @@ class SharedLibrary {
            mDebugPath.length() + mVersion.length() + mArch.size();
   }
 
- private:
   SharedLibrary() : mStart{0}, mEnd{0}, mOffset{0} {}
 
+ private:
   uintptr_t mStart;
   uintptr_t mEnd;
   uintptr_t mOffset;
@@ -86,6 +91,8 @@ class SharedLibrary {
   std::string mDebugPath;
   std::string mVersion;
   std::string mArch;
+
+  friend struct IPC::ParamTraits<SharedLibrary>;
 };
 
 static bool CompareAddresses(const SharedLibrary& first,
@@ -96,12 +103,12 @@ static bool CompareAddresses(const SharedLibrary& first,
 class SharedLibraryInfo {
  public:
 #ifdef MOZ_GECKO_PROFILER
-  static SharedLibraryInfo GetInfoForSelf();
+  MFBT_API static SharedLibraryInfo GetInfoForSelf();
 #  ifdef XP_WIN
-  static SharedLibraryInfo GetInfoFromPath(const wchar_t* aPath);
+  MFBT_API static SharedLibraryInfo GetInfoFromPath(const wchar_t* aPath);
 #  endif
 
-  static void Initialize();
+  MFBT_API static void Initialize();
 #else
   static SharedLibraryInfo GetInfoForSelf() { return SharedLibraryInfo(); }
 #  ifdef XP_WIN
@@ -177,6 +184,8 @@ class SharedLibraryInfo {
 
  private:
   std::vector<SharedLibrary> mEntries;
+
+  friend struct IPC::ParamTraits<SharedLibraryInfo>;
 };
 
 #endif  // BASE_PROFILER_SHARED_LIBRARIES_H_

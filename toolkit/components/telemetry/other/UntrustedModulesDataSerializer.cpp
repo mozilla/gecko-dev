@@ -14,7 +14,7 @@
 #include "nsITelemetry.h"
 #include "nsUnicharUtils.h"
 #include "nsXULAppAPI.h"
-#include "shared-libraries.h"
+#include "BaseProfilerSharedLibraries.h"
 
 namespace mozilla {
 namespace Telemetry {
@@ -173,9 +173,9 @@ static bool SerializeModule(JSContext* aCx,
     if (aModule->mResolvedDosName->GetPath(path) == NS_OK) {
       SharedLibraryInfo info = SharedLibraryInfo::GetInfoFromPath(path.Data());
       if (info.GetSize() > 0) {
-        nsCString breakpadId = info.GetEntry(0).GetBreakpadId();
-        if (!AddLengthLimitedStringProp(aCx, obj, "debugID",
-                                        NS_ConvertASCIItoUTF16(breakpadId))) {
+        nsString breakpadId =
+            NS_ConvertUTF8toUTF16(info.GetEntry(0).GetBreakpadId());
+        if (!AddLengthLimitedStringProp(aCx, obj, "debugID", breakpadId)) {
           return false;
         }
       }

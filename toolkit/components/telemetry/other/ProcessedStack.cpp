@@ -141,8 +141,9 @@ static ProcessedStack GetStackAndModulesInternal(
 #ifdef MOZ_GECKO_PROFILER
   for (unsigned i = 0, n = rawModules.GetSize(); i != n; ++i) {
     const SharedLibrary& info = rawModules.GetEntry(i);
-    mozilla::Telemetry::ProcessedStack::Module module = {info.GetDebugName(),
-                                                         info.GetBreakpadId()};
+    mozilla::Telemetry::ProcessedStack::Module module = {
+        NS_ConvertUTF8toUTF16(info.GetDebugName().c_str()),
+        nsCString(info.GetBreakpadId().c_str())};
     Ret.AddModule(module);
   }
 #endif
