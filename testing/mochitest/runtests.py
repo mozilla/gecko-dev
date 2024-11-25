@@ -2608,12 +2608,9 @@ toolbar#nav-bar {
 
             self.virtualDeviceIdList = []
 
-        if hasattr(self, "virtualDeviceProcesses"):
-            for process in self.virtualDeviceProcesses:
-                process.kill()
+        if hasattr(self, "virtualAudioNodeIdList"):
             for id in self.virtualAudioNodeIdList:
                 subprocess.check_output(["pw-cli", "destroy", str(id)])
-            self.virtualDeviceProcesses = []
             self.virtualAudioNodeIdList = []
 
     def dumpScreen(self, utilityPath):
@@ -3124,24 +3121,41 @@ toolbar#nav-bar {
                 )
                 return
 
-        input_device_processes = []
-        output_device_id = []
-
         # Create outputs
         for device in output_devices:
             cmd = ["pw-cli", "create-node", "adapter"]
             device_spec = [
                 (
-                    '{{factory.name=support.null-audio-sink node.name="{}" '
-                    "media.class=Audio/Sink object.linger=true audio.position=[FL FR] "
-                    "monitor.channel-volumes=true audio.rate={}}}".format(
-                        device["name"], device["rate"]
+                    "{{factory.name=support.null-audio-sink "
+                    'node.name="{}" '
+                    "media.class=Audio/Sink "
+                    "object.linger=true "
+                    "audio.position=[FL FR] "
+                    "monitor.channel-volumes=true "
+                    "audio.rate={}}}".format(device["name"], device["rate"])
+                )
+            ]
+            subprocess.check_output(cmd + device_spec)
+
+        # Create inputs
+        for device in input_devices:
+            cmd = ["pw-cli", "create-node", "adapter"]
+            # The frequency setting doesn't work for now
+            device_spec = [
+                (
+                    "{{factory.name=audiotestsrc "
+                    'node.name="{}" '
+                    "media.class=Audio/Source "
+                    "object.linger=true "
+                    "node.param.Props={{frequency: {}}} }}".format(
+                        device["name"], device["frequency"]
                     )
                 )
             ]
             subprocess.check_output(cmd + device_spec)
 
-        # Get the node id for cleanup
+        # Get the node ids for cleanup
+        virtual_node_ids = []
         cmd = ["pw-dump", "Node"]
         try:
             nodes = json.loads(subprocess.check_output(cmd))
@@ -3150,30 +3164,11 @@ toolbar#nav-bar {
             print(e, str(cmd))
             sys.exit(1)
         for node in nodes:
-            if "Null Output" in node["info"]["props"]["node.name"]:
-                output_device_id.append(node["info"]["props"]["object.id"])
+            name = node["info"]["props"]["node.name"]
+            if "Null Output" in name or "Sine Source" in name:
+                virtual_node_ids.append(node["info"]["props"]["object.id"])
 
-        # Pipewire requires the process creating the
-        # audiotestsrc devices to stay alive. They are cleaned up on exit.
-
-        # Create inputs
-        for device in input_devices:
-            cmd = ["pw-cli", "-m", "create-node", "adapter"]
-            # The frequency setting doesn't work for now
-            device_spec = [
-                (
-                    '{{ factory.name = audiotestsrc node.name = "{}"'
-                    " node.description = audiotestsrc "
-                    " node.param.Props[1].frequency = {}"
-                    " object.export = true }}".format(
-                        device["name"], device["frequency"]
-                    )
-                )
-            ]
-            input_device_processes.append(subprocess.Popen(cmd + device_spec))
-
-            self.virtualDeviceProcesses = input_device_processes
-            self.virtualAudioNodeIdList = output_device_id
+        self.virtualAudioNodeIdList = virtual_node_ids
 
     def initializeVirtualAudioDevicesPulseAudio(
         self, pactl, input_devices, output_devices
