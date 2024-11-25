@@ -570,7 +570,7 @@ void Gecko_UpdateAnimations(const Element* aElement,
   if (aTasks & UpdateAnimationsTasks::CSSTransitions) {
     MOZ_ASSERT(aOldComputedData);
     presContext->TransitionManager()->UpdateTransitions(
-        const_cast<Element*>(element), pseudoRequest.mType, *aOldComputedData,
+        const_cast<Element*>(element), pseudoRequest, *aOldComputedData,
         *aComputedData);
   }
 
