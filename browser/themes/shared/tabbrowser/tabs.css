@@ -1268,6 +1268,13 @@ tab-group {
   }
 }
 
+/* stylelint-disable-next-line media-query-no-invalid */
+@media (-moz-bool-pref: "sidebar.verticalTabs") {
+  .titlebar-spacer[type="pre-tabs"] {
+    display: none;
+  }
+}
+
 /* Firefox View button and menu item */
 
 #TabsToolbar #firefox-view-button[open] > .toolbarbutton-icon {
