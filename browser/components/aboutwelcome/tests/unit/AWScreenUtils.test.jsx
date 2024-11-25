@@ -137,4 +137,19 @@ describe("AWScreenUtils", () => {
       assert.equal(addScreenImpressionStub.firstCall.args[0].id, testScreen.id);
     });
   });
+  describe("getUnhandledCampaignAction", () => {
+    it("Should call evaluateExpression", () => {
+      const evaluateExpressionStub = sandbox.stub(
+        ASRouter,
+        "evaluateExpression"
+      );
+      AWScreenUtils.getUnhandledCampaignAction();
+
+      assert.calledOnce(evaluateExpressionStub);
+      assert.equal(
+        evaluateExpressionStub.firstCall.args[0].expression,
+        "unhandledCampaignAction"
+      );
+    });
+  });
 });
