@@ -6,7 +6,7 @@
 
 #include "nsISupports.idl"
 
-interface mozIDOMWindowProxy;
+webidl BrowsingContext;
 
 /**
  * nsIColorPicker is representing colors as strings because the internal
@@ -55,14 +55,15 @@ interface nsIColorPicker : nsISupports
   * one used by the underlying backend or an arbitrary one. The backend could
   * also assert.
   *
-  * @param      parent       nsIDOMWindow parent. This dialog will be dependent
-  *                          on this parent. parent must be non-null.
-  * @param      title        The title for the color picker widget.
-  * @param      initialColor The color to show when the widget is opened. The
-  *                          parameter has to follow the format specified on top
-  *                          of this file.
+  * @param      browsingContext   The context in which the color picker is being
+  *                               shown, must be non-null.
+  * @param      title             The title for the color picker widget.
+  * @param      initialColor      The color to show when the widget is opened. The
+  *                               parameter has to follow the format specified on
+  *                               top of this file.
   */
-  void init(in mozIDOMWindowProxy parent, in AString title, in AString initialColor, in Array<AString> defaultColors);
+  void init(in BrowsingContext browsingContext, in AString title,
+            in AString initialColor, in Array<AString> defaultColors);
 
  /**
   * Opens the color dialog asynchrounously.

@@ -14,8 +14,8 @@ const { debug, warn } = GeckoViewUtils.initLogging("ColorPickerDelegate");
 
 export class ColorPickerDelegate {
   // TODO(bug 1805397): Implement default colors
-  init(aParent, aTitle, aInitialColor, aDefaultColors) {
-    this._prompt = new lazy.GeckoViewPrompter(aParent);
+  init(aBrowsingContext, aTitle, aInitialColor, aDefaultColors) {
+    this._prompt = new lazy.GeckoViewPrompter(aBrowsingContext);
     this._msg = {
       type: "color",
       title: aTitle,

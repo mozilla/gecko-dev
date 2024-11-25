@@ -426,6 +426,7 @@ class BrowserParent final : public PBrowserParent,
       const int32_t& aAppUnitsPerDevPixel);
 
   already_AddRefed<PColorPickerParent> AllocPColorPickerParent(
+      const MaybeDiscarded<BrowsingContext>& aBrowsingContext,
       const nsString& aTitle, const nsString& aInitialColor,
       const nsTArray<nsString>& aDefaultColors);
 

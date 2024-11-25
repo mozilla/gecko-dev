@@ -14,9 +14,11 @@ namespace mozilla::dom {
 
 class ColorPickerParent : public PColorPickerParent {
  public:
-  ColorPickerParent(const nsString& aTitle, const nsString& aInitialColor,
+  ColorPickerParent(BrowsingContext* aBrowsingContext, const nsString& aTitle,
+                    const nsString& aInitialColor,
                     const nsTArray<nsString>& aDefaultColors)
-      : mTitle(aTitle),
+      : mBrowsingContext(aBrowsingContext),
+        mTitle(aTitle),
         mInitialColor(aInitialColor),
         mDefaultColors(aDefaultColors.Clone()) {}
 
@@ -45,6 +47,7 @@ class ColorPickerParent : public PColorPickerParent {
 
   bool CreateColorPicker();
 
+  RefPtr<BrowsingContext> mBrowsingContext;
   RefPtr<ColorPickerShownCallback> mCallback;
   nsCOMPtr<nsIColorPicker> mPicker;
 

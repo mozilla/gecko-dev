@@ -70,13 +70,13 @@ function MockColorPickerInstance(window) {
 }
 MockColorPickerInstance.prototype = {
   QueryInterface: ChromeUtils.generateQI(["nsIColorPicker"]),
-  init(aParent, aTitle, aInitialColor, aDefaultColors) {
-    this.parent = aParent;
+  init(aBrowsingContext, aTitle, aInitialColor, aDefaultColors) {
+    this.browsingContext = aBrowsingContext;
     this.initialColor = aInitialColor;
     this.defaultColors = aDefaultColors;
   },
   initialColor: "",
-  parent: null,
+  browsingContext: null,
   open(aColorPickerShownCallback) {
     MockColorPicker.showing = true;
     MockColorPicker.shown = true;

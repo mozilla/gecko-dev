@@ -38,23 +38,17 @@ void ColorPickerParent::ColorPickerShownCallback::Destroy() {
 }
 
 bool ColorPickerParent::CreateColorPicker() {
+  if (!mBrowsingContext) {
+    return false;
+  }
+
   mPicker = do_CreateInstance("@mozilla.org/colorpicker;1");
   if (!mPicker) {
     return false;
   }
 
-  Element* ownerElement = BrowserParent::GetFrom(Manager())->GetOwnerElement();
-  if (!ownerElement) {
-    return false;
-  }
-
-  nsCOMPtr<nsPIDOMWindowOuter> window = ownerElement->OwnerDoc()->GetWindow();
-  if (!window) {
-    return false;
-  }
-
   return NS_SUCCEEDED(
-      mPicker->Init(window, mTitle, mInitialColor, mDefaultColors));
+      mPicker->Init(mBrowsingContext, mTitle, mInitialColor, mDefaultColors));
 }
 
 mozilla::ipc::IPCResult ColorPickerParent::RecvOpen() {

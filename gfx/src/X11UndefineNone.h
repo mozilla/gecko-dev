@@ -47,3 +47,8 @@
 #  undef False
 #  define X11False 0
 #endif
+
+#ifdef DestroyAll
+#  undef DestroyAll
+#  define X11DestroyAll 0
+#endif

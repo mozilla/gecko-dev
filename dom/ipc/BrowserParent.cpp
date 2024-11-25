@@ -3522,10 +3522,22 @@ BrowserParent::GetAuthPrompt(uint32_t aPromptReason, const nsIID& iid,
 }
 
 already_AddRefed<PColorPickerParent> BrowserParent::AllocPColorPickerParent(
+    const MaybeDiscarded<BrowsingContext>& aBrowsingContext,
     const nsString& aTitle, const nsString& aInitialColor,
     const nsTArray<nsString>& aDefaultColors) {
-  return MakeAndAddRef<ColorPickerParent>(aTitle, aInitialColor,
-                                          aDefaultColors);
+  RefPtr<CanonicalBrowsingContext> browsingContext =
+      [&]() -> CanonicalBrowsingContext* {
+    if (aBrowsingContext.IsNullOrDiscarded()) {
+      return nullptr;
+    }
+    if (!aBrowsingContext.get_canonical()->IsOwnedByProcess(
+            Manager()->ChildID())) {
+      return nullptr;
+    }
+    return aBrowsingContext.get_canonical();
+  }();
+  return MakeAndAddRef<ColorPickerParent>(browsingContext, aTitle,
+                                          aInitialColor, aDefaultColors);
 }
 
 already_AddRefed<nsFrameLoader> BrowserParent::GetFrameLoader(
