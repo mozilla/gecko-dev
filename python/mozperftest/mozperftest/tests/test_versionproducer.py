@@ -12,7 +12,6 @@ from mozperftest.tests.support import get_running_env
 from mozperftest.utils import silence
 
 HERE = pathlib.Path(__file__).parent
-WINDOWS_SAMPLE = HERE / "data" / "windows_version_sample.txt"
 
 
 @mock.patch("mozperftest.system.setups.mozversion")
@@ -70,9 +69,8 @@ def test_versionproducer_fallback_windows(
     mocked_mozversion.get_version = lambda x: Exception("")
     mocked_platform.system.return_value = "windows"
 
-    with WINDOWS_SAMPLE.open() as f:
-        sample_txt = f.read()
-    mocked_subprocess.check_output.return_value = sample_txt.encode()
+    # Mock simplified output as we no longer use WMIC
+    mocked_subprocess.check_output.return_value = "125.0.3.8881"
 
     metadata.binary = "/path/to/binary"
     with system as layer, silence(system):
