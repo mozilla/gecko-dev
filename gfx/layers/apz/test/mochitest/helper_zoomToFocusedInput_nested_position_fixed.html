@@ -31,9 +31,9 @@ async function test() {
   document.querySelector("textarea").focus();
   is(window.scrollY, expectedScrollPosition);
 
-  const transformEndPromise = promiseTransformEnd();
   SpecialPowers.DOMWindowUtils.zoomToFocusedInput();
-  await transformEndPromise;
+
+  await promiseApzFlushedRepaints();
 
   is(window.scrollY, expectedScrollPosition);
 }

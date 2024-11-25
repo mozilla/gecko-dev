@@ -37,10 +37,9 @@
       resolution = await getResolution();
       ok(resolution == prev_resolution, "focusing input1 did not change resolution " + resolution);
 
-      let transformEndPromise = promiseTransformEnd();
       utils.zoomToFocusedInput();
       await waitToClearOutAnyPotentialScrolls(window);
-      await transformEndPromise;
+      await promiseApzFlushedRepaints();
       await promiseApzFlushedRepaints();
       resolution = await getResolution();
       ok(resolution == prev_resolution, "zoomToFocusedInput input1 did not change resolution " + resolution);

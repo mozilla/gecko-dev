@@ -30,9 +30,9 @@ async function test() {
   window.scrollTo(0, 0);
   await waitToClearOutAnyPotentialScrolls(window);
   is(0, window.scrollY, "scroll position is reset");
-  let transformEndPromise = promiseTransformEnd();
+  let scrollendPromise = promiseScrollend();
   utils.zoomToFocusedInput();
-  await transformEndPromise;
+  await scrollendPromise;
   await promiseApzFlushedRepaints();
   ok(window.scrollY > 0, "scroll position isn't top");
 
@@ -42,12 +42,11 @@ async function test() {
   window.scrollTo(0, 0);
   await waitToClearOutAnyPotentialScrolls(window);
   is(0, window.scrollY, "scroll position is reset");
-  transformEndPromise = promiseTransformEnd();
+  scrollendPromise = promiseScrollend();
   utils.zoomToFocusedInput();
+  await scrollendPromise;
   await promiseApzFlushedRepaints();
   ok(prevY < window.scrollY, "scroll position is visibile position of caret");
-
-  await transformEndPromise;
 
   document.getElementById("content").removeChild(div);
 
@@ -66,24 +65,22 @@ async function test() {
   window.scrollTo(0, 0);
   await waitToClearOutAnyPotentialScrolls(window);
   is(0, window.scrollY, "scroll position is reset");
-  transformEndPromise = promiseTransformEnd();
+  scrollendPromise = promiseScrollend();
   utils.zoomToFocusedInput();
+  await scrollendPromise;
   await promiseApzFlushedRepaints();
   ok(window.scrollY > 0, "scroll position isn't top");
   prevY = window.scrollY;
-
-  await transformEndPromise;
 
   textarea.setSelectionRange(textarea.value.length, textarea.value.length);
   window.scrollTo(0, 0);
   await waitToClearOutAnyPotentialScrolls(window);
   is(0, window.scrollY, "scroll position is reset");
-  transformEndPromise = promiseTransformEnd();
+  scrollendPromise = promiseScrollend();
   utils.zoomToFocusedInput();
+  await scrollendPromise;
   await promiseApzFlushedRepaints();
   ok(prevY < window.scrollY, "scroll position is visibile position of caret");
-
-  await transformEndPromise;
 
   document.getElementById("content").removeChild(textarea);
 }

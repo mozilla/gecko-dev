@@ -56,7 +56,7 @@ async function test() {
   });
   is(0, window.scrollY, "scroll position is reset");
 
-  let transformEndPromise = promiseTransformEnd();
+  let scrollendPromise = promiseScrollend();
   await SpecialPowers.spawn(iframe, [], async () => {
     SpecialPowers.DOMWindowUtils.zoomToFocusedInput();
   });
@@ -67,9 +67,8 @@ async function test() {
     return content.window.scrollY;
   });
   ok(iframeWindowScrollY > 0, "scroll position into iframe isn't top");
+  await scrollendPromise;
   let prevPosY = window.scrollY;
-
-  await transformEndPromise;
   await promiseApzFlushedRepaints();
 
   window.scrollTo(0, 0);
@@ -83,11 +82,11 @@ async function test() {
     textarea.setSelectionRange(textarea.value.length, textarea.value.length);
   });
 
-  transformEndPromise = promiseTransformEnd();
+  scrollendPromise = promiseScrollend();
   await SpecialPowers.spawn(iframe, [], async () => {
     SpecialPowers.DOMWindowUtils.zoomToFocusedInput();
   });
-  await transformEndPromise;
+  await scrollendPromise;
   await promiseApzFlushedRepaints();
 
   ok(window.scrollY > 0, "scroll position isn't top");

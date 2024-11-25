@@ -22,7 +22,7 @@ async function test() {
   is(0, window.scrollY, "scroll position is top");
 
   let utils = SpecialPowers.getDOMWindowUtils(window);
-  let transformEndPromise = promiseTransformEnd();
+  let scrollendPromise = promiseScrollend();
   utils.zoomToFocusedInput();
   isnot(0, window.scrollY, "scroll position isn't top");
 
@@ -30,7 +30,7 @@ async function test() {
   // cancelled by a main thread scroll position update triggered by
   // the ScrollContentIntoView() operation performed by zoomToFocusedInput().
 
-  await transformEndPromise;
+  await scrollendPromise;
   await promiseApzFlushedRepaints();
 
   // Check that the zoom animation performed additional scrolling
