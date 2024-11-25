@@ -174,10 +174,10 @@ JS_PUBLIC_API JSObject* JS::CompileJsonModule(
   }
 
   Rooted<ExportNameVector> exportNames(cx);
-  if (!exportNames.reserve(1)) {
+  if (!exportNames.append(cx->names().default_)) {
+    ReportOutOfMemory(cx);
     return nullptr;
   }
-  exportNames.infallibleAppend(cx->names().default_);
 
   Rooted<ModuleObject*> moduleObject(
       cx, ModuleObject::createSynthetic(cx, &exportNames));
@@ -185,11 +185,11 @@ JS_PUBLIC_API JSObject* JS::CompileJsonModule(
     return nullptr;
   }
 
-  Rooted<GCVector<Value>> exportValues(cx, GCVector<Value>(cx));
-  if (!exportValues.reserve(1)) {
+  RootedVector<Value> exportValues(cx);
+  if (!exportValues.append(jsonValue)) {
+    ReportOutOfMemory(cx);
     return nullptr;
   }
-  exportValues.infallibleAppend(jsonValue);
 
   if (!ModuleObject::createSyntheticEnvironment(cx, moduleObject,
                                                 exportValues)) {

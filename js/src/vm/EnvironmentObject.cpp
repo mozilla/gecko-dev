@@ -468,6 +468,10 @@ ModuleEnvironmentObject* ModuleEnvironmentObject::createSynthetic(
   Rooted<SharedShape*> shape(cx,
                              CreateEnvironmentShapeForSyntheticModule(
                                  cx, &class_, JSSLOT_FREE(&class_), module));
+  if (!shape) {
+    return nullptr;
+  }
+
   MOZ_ASSERT(shape->getObjectClass() == &class_);
 
   Rooted<ModuleEnvironmentObject*> env(
