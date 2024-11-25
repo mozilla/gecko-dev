@@ -249,7 +249,6 @@ void nsSubDocumentFrame::CreateView() {
                ("nsIFrame::CreateView: frame=%p view=%p", this, view));
 }
 
-
 nsIFrame* nsSubDocumentFrame::GetSubdocumentRootFrame() {
   if (!mInnerView) {
     return nullptr;
