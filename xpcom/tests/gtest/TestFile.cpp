@@ -10,6 +10,7 @@
 #ifdef XP_WIN
 #  include "nsILocalFileWin.h"
 #endif
+#include "nsLocalFile.h"
 #include "nsComponentManagerUtils.h"
 #include "nsString.h"
 #include "nsDirectoryServiceDefs.h"
@@ -44,8 +45,7 @@ static void SetUseDOSDevicePathSyntax(nsIFile* aFile) {
 
 static already_AddRefed<nsIFile> NewFile(nsIFile* aBase) {
   nsresult rv;
-  nsCOMPtr<nsIFile> file = do_CreateInstance(NS_LOCAL_FILE_CONTRACTID, &rv);
-  VerifyResult(rv, "Creating nsIFile");
+  nsCOMPtr<nsIFile> file = new nsLocalFile();
   rv = file->InitWithFile(aBase);
   VerifyResult(rv, "InitWithFile");
 

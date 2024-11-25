@@ -43,10 +43,8 @@ struct VirtualTableCursor : public VirtualTableCursorBase {
 };
 
 nsresult VirtualTableCursor::Init(const nsAString& aPath) {
-  nsCOMPtr<nsIFile> directory = do_CreateInstance(NS_LOCAL_FILE_CONTRACTID);
-  NS_ENSURE_TRUE(directory, NS_ERROR_FAILURE);
-
-  nsresult rv = directory->InitWithPath(aPath);
+  nsCOMPtr<nsIFile> directory;
+  nsresult rv = (NS_NewLocalFile(aPath, getter_AddRefs(directory)));
   NS_ENSURE_SUCCESS(rv, rv);
 
   rv = directory->GetPath(mDirectoryPath);

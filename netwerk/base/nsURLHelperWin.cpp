@@ -56,12 +56,6 @@ nsresult net_GetFileFromURLSpec(const nsACString& aURL, nsIFile** result) {
     return NS_ERROR_MALFORMED_URI;
   }
 
-  nsCOMPtr<nsIFile> localFile(do_CreateInstance(NS_LOCAL_FILE_CONTRACTID, &rv));
-  if (NS_FAILED(rv)) {
-    NS_ERROR("Only nsIFile supported right now");
-    return rv;
-  }
-
   const nsACString* specPtr;
 
   nsAutoCString buf;
@@ -95,14 +89,19 @@ nsresult net_GetFileFromURLSpec(const nsACString& aURL, nsIFile** result) {
   // remove leading '\'
   if (path.CharAt(0) == '\\') path.Cut(0, 1);
 
-  if (IsUtf8(path)) rv = localFile->InitWithPath(NS_ConvertUTF8toUTF16(path));
+  nsCOMPtr<nsIFile> localFile;
+  if (IsUtf8(path)) {
+    rv =
+        NS_NewLocalFile(NS_ConvertUTF8toUTF16(path), getter_AddRefs(localFile));
+  }
   // XXX In rare cases, a valid UTF-8 string can be valid as a native
   // encoding (e.g. 0xC5 0x83 is valid both as UTF-8 and Windows-125x).
   // However, the chance is very low that a meaningful word in a legacy
   // encoding is valid as UTF-8.
-  else
+  else {
     // if path is not in UTF-8, assume it is encoded in the native charset
-    rv = localFile->InitWithNativePath(path);
+    rv = NS_NewNativeLocalFile(path, getter_AddRefs(localFile));
+  }
 
   if (NS_FAILED(rv)) return rv;
 

@@ -2984,16 +2984,17 @@ static bool GetPendingDir(nsIFile** dir) {
     return false;
   }
 
-  nsCOMPtr<nsIFile> pending = do_CreateInstance(NS_LOCAL_FILE_CONTRACTID);
-  if (!pending) {
-    NS_WARNING("Can't set up pending directory during shutdown.");
+  nsCOMPtr<nsIFile> pending;
+#ifdef XP_WIN
+  nsresult rv = NS_NewLocalFile(nsDependentString(pendingDirectory.c_str()),
+                                getter_AddRefs(pending));
+#else
+  nsresult rv = NS_NewNativeLocalFile(
+      nsDependentCString(pendingDirectory.c_str()), getter_AddRefs(pending));
+#endif
+  if (NS_FAILED(rv)) {
     return false;
   }
-#ifdef XP_WIN
-  pending->InitWithPath(nsDependentString(pendingDirectory.c_str()));
-#else
-  pending->InitWithNativePath(nsDependentCString(pendingDirectory.c_str()));
-#endif
   pending.swap(*dir);
   return true;
 }

@@ -4,6 +4,7 @@
 #include "nsComponentManagerUtils.h"
 #include "nsDirectoryServiceDefs.h"
 #include "nsIFile.h"
+#include "nsLocalFile.h"
 #include "nsXPCOMCID.h"
 
 TEST(FilePreferencesWin, Normalization)
@@ -112,7 +113,7 @@ TEST(FilePreferencesWin, Normalization)
 
 TEST(FilePreferencesWin, AccessUNC)
 {
-  nsCOMPtr<nsIFile> lf = do_CreateInstance(NS_LOCAL_FILE_CONTRACTID);
+  nsCOMPtr<nsIFile> lf = new nsLocalFile();
 
   nsresult rv;
 
@@ -139,7 +140,7 @@ TEST(FilePreferencesWin, AccessDOSDevicePath)
 {
   const auto devicePathSpecifier = u"\\\\?\\"_ns;
 
-  nsCOMPtr<nsIFile> lf = do_CreateInstance(NS_LOCAL_FILE_CONTRACTID);
+  nsCOMPtr<nsIFile> lf = new nsLocalFile();
 
   nsresult rv;
 

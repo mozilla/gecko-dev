@@ -24,6 +24,7 @@
 #include "nsILineInputStream.h"
 #include "nsIFile.h"
 #include "nsIProcess.h"
+#include "nsLocalFile.h"
 #include "nsNetCID.h"
 #include "nsXPCOM.h"
 #include "nsComponentManagerUtils.h"
@@ -263,13 +264,10 @@ static nsresult DoGetFileLocation(FileKind aKind, nsAString& aFileLocation) {
       // natural way to do the charset conversion is by just initing
       // an nsIFile with the native path and asking it for the Unicode
       // version.
-      nsresult rv;
-      nsCOMPtr<nsIFile> file(do_CreateInstance(NS_LOCAL_FILE_CONTRACTID, &rv));
+      nsCOMPtr<nsIFile> file;
+      nsresult rv = NS_NewNativeLocalFile(nsDependentCString(envValue),
+                                          getter_AddRefs(file));
       NS_ENSURE_SUCCESS(rv, rv);
-
-      rv = file->InitWithNativePath(nsDependentCString(envValue));
-      NS_ENSURE_SUCCESS(rv, rv);
-
       return file->GetPath(aFileLocation);
     }
   }
@@ -332,10 +330,8 @@ nsresult nsOSHelperAppService::CreateInputStream(
   LOG("-- CreateInputStream");
   nsresult rv = NS_OK;
 
-  nsCOMPtr<nsIFile> file(do_CreateInstance(NS_LOCAL_FILE_CONTRACTID, &rv));
-  if (NS_FAILED(rv)) return rv;
-  rv = file->InitWithPath(aFilename);
-  if (NS_FAILED(rv)) return rv;
+  nsCOMPtr<nsIFile> file;
+  MOZ_TRY(NS_NewLocalFile(aFilename, getter_AddRefs(file)));
 
   nsCOMPtr<nsIFileInputStream> fileStream(
       do_CreateInstance(NS_LOCALFILEINPUTSTREAM_CONTRACTID, &rv));
@@ -911,10 +907,8 @@ nsresult nsOSHelperAppService::GetHandlerAndDescriptionFromMailcapFile(
   nsresult rv = NS_OK;
   bool more = false;
 
-  nsCOMPtr<nsIFile> file(do_CreateInstance(NS_LOCAL_FILE_CONTRACTID, &rv));
-  if (NS_FAILED(rv)) return rv;
-  rv = file->InitWithPath(aFilename);
-  if (NS_FAILED(rv)) return rv;
+  nsCOMPtr<nsIFile> file;
+  MOZ_TRY(NS_NewLocalFile(aFilename, getter_AddRefs(file)));
 
   nsCOMPtr<nsIFileInputStream> mailcapFile(
       do_CreateInstance(NS_LOCALFILEINPUTSTREAM_CONTRACTID, &rv));
@@ -1046,10 +1040,9 @@ nsresult nsOSHelperAppService::GetHandlerAndDescriptionFromMailcapFile(
                   nsCOMPtr<nsIProcess> process =
                       do_CreateInstance(NS_PROCESS_CONTRACTID, &rv);
                   if (NS_FAILED(rv)) continue;
-                  nsCOMPtr<nsIFile> file(
-                      do_CreateInstance(NS_LOCAL_FILE_CONTRACTID, &rv));
-                  if (NS_FAILED(rv)) continue;
-                  rv = file->InitWithNativePath("/bin/sh"_ns);
+                  nsCOMPtr<nsIFile> file;
+                  rv =
+                      NS_NewNativeLocalFile("/bin/sh"_ns, getter_AddRefs(file));
                   if (NS_FAILED(rv)) continue;
                   rv = process->Init(file);
                   if (NS_FAILED(rv)) continue;
@@ -1166,10 +1159,6 @@ nsresult nsOSHelperAppService::GetFileTokenForPath(
   // If we get here, we really should have a relative path.
   NS_ASSERTION(*platformAppPath != char16_t('/'), "Unexpected absolute path");
 
-  nsCOMPtr<nsIFile> localFile(do_CreateInstance(NS_LOCAL_FILE_CONTRACTID));
-
-  if (!localFile) return NS_ERROR_NOT_INITIALIZED;
-
   bool exists = false;
   // ugly hack.  Walk the PATH variable...
   char* unixpath = PR_GetEnv("PATH");
@@ -1179,11 +1168,13 @@ nsresult nsOSHelperAppService::GetFileTokenForPath(
   const char* colon_iter = start_iter;
   const char* end_iter = path.EndReading(end_iter);
 
+  nsCOMPtr<nsIFile> localFile = new nsLocalFile();
   while (start_iter != end_iter && !exists) {
     while (colon_iter != end_iter && *colon_iter != ':') {
       ++colon_iter;
     }
-    localFile->InitWithNativePath(Substring(start_iter, colon_iter));
+    rv = localFile->InitWithNativePath(Substring(start_iter, colon_iter));
+    NS_ENSURE_SUCCESS(rv, rv);
     rv = localFile->AppendRelativePath(nsDependentString(platformAppPath));
     // Failing AppendRelativePath is a bad thing - it should basically always
     // succeed given a relative path. Show a warning if it does fail.

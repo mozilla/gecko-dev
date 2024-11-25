@@ -42,12 +42,11 @@ class BuildIDReader : public ::testing::Test {
  public:
   nsresult getLib(const nsString& lib, nsAutoString& val) {
     nsresult rv;
-    nsCOMPtr<nsIFile> file
+    nsCOMPtr<nsIFile> file;
 #if defined(ANDROID)
-        = do_CreateInstance(NS_LOCAL_FILE_CONTRACTID, &rv);
-    rv = file->InitWithPath(u"/data/local/tmp/test_root/"_ns);
+    rv =
+        NS_NewLocalFile(u"/data/local/tmp/test_root/"_ns, getter_AddRefs(file));
 #else
-        ;
     rv = NS_GetSpecialDirectory(NS_GRE_BIN_DIR, getter_AddRefs(file));
 #endif
     if (!NS_SUCCEEDED(rv)) {

@@ -184,24 +184,12 @@ nsCommandLine::ResolveFile(const nsAString& aArgument, nsIFile** aResult) {
   // the dir from which we were started was deleted before we started,
 #if defined(XP_UNIX)
   if (aArgument.First() == '/') {
-    nsCOMPtr<nsIFile> lf(do_CreateInstance(NS_LOCAL_FILE_CONTRACTID));
-    NS_ENSURE_TRUE(lf, NS_ERROR_OUT_OF_MEMORY);
-    nsresult rv = lf->InitWithPath(aArgument);
-    if (NS_FAILED(rv)) {
-      return rv;
-    }
-
-    lf.forget(aResult);
-    return NS_OK;
+    return NS_NewLocalFile(aArgument, aResult);
   }
 #elif defined(XP_WIN)
-  nsCOMPtr<nsIFile> lf(do_CreateInstance(NS_LOCAL_FILE_CONTRACTID));
-  NS_ENSURE_TRUE(lf, NS_ERROR_OUT_OF_MEMORY);
-
   // Just try creating the file with the absolute path; if it fails,
   // we'll keep going and try it as a relative path.
-  if (NS_SUCCEEDED(lf->InitWithPath(aArgument))) {
-    lf.forget(aResult);
+  if (NS_SUCCEEDED(NS_NewLocalFile(aArgument, aResult))) {
     return NS_OK;
   }
 #endif
@@ -211,24 +199,20 @@ nsCommandLine::ResolveFile(const nsAString& aArgument, nsIFile** aResult) {
 
 nsresult nsCommandLine::ResolveRelativeFile(const nsAString& aArgument,
                                             nsIFile** aResult) {
+  nsresult rv = NS_OK;
+
   if (!mWorkingDir) {
     *aResult = nullptr;
-    return NS_OK;
+    return rv;
   }
 
   // This is some seriously screwed-up code. nsIFile.appendRelativeNativePath
   // explicitly does not accept .. or . path parts, but that is exactly what we
   // need here. So we hack around it.
 
-  nsresult rv;
-
 #if defined(MOZ_WIDGET_COCOA)
   nsCOMPtr<nsILocalFileMac> lfm(do_QueryInterface(mWorkingDir));
   NS_ENSURE_TRUE(lfm, NS_ERROR_NO_INTERFACE);
-
-  nsCOMPtr<nsILocalFileMac> newfile(
-      do_CreateInstance(NS_LOCAL_FILE_CONTRACTID));
-  NS_ENSURE_TRUE(newfile, NS_ERROR_OUT_OF_MEMORY);
 
   CFURLRef baseurl;
   rv = lfm->GetCFURL(&baseurl);
@@ -242,7 +226,8 @@ nsresult nsCommandLine::ResolveRelativeFile(const nsAString& aArgument,
 
   CFRelease(baseurl);
 
-  rv = newfile->InitWithCFURL(newurl);
+  nsCOMPtr<nsILocalFileMac> newfile;
+  rv = NS_NewLocalFileWithCFURL(newurl, getter_AddRefs(newfile));
   CFRelease(newurl);
   if (NS_FAILED(rv)) return rv;
 
@@ -250,9 +235,6 @@ nsresult nsCommandLine::ResolveRelativeFile(const nsAString& aArgument,
   return NS_OK;
 
 #elif defined(XP_UNIX)
-  nsCOMPtr<nsIFile> lf(do_CreateInstance(NS_LOCAL_FILE_CONTRACTID));
-  NS_ENSURE_TRUE(lf, NS_ERROR_OUT_OF_MEMORY);
-
   nsAutoCString nativeArg;
   NS_CopyUnicodeToNative(aArgument, nativeArg);
 
@@ -262,8 +244,8 @@ nsresult nsCommandLine::ResolveRelativeFile(const nsAString& aArgument,
   newpath.Append('/');
   newpath.Append(nativeArg);
 
-  rv = lf->InitWithNativePath(newpath);
-  if (NS_FAILED(rv)) return rv;
+  nsCOMPtr<nsIFile> lf;
+  MOZ_TRY(NS_NewNativeLocalFile(newpath, getter_AddRefs(lf)));
 
   rv = lf->Normalize();
   if (NS_FAILED(rv)) return rv;
@@ -272,9 +254,6 @@ nsresult nsCommandLine::ResolveRelativeFile(const nsAString& aArgument,
   return NS_OK;
 
 #elif defined(XP_WIN)
-  nsCOMPtr<nsIFile> lf(do_CreateInstance(NS_LOCAL_FILE_CONTRACTID));
-  NS_ENSURE_TRUE(lf, NS_ERROR_OUT_OF_MEMORY);
-
   // This is a relative path. We use string magic
   // and win32 _fullpath. Note that paths of the form "\Relative\To\CurDrive"
   // are going to fail, and I haven't figured out a way to work around this
@@ -290,10 +269,7 @@ nsresult nsCommandLine::ResolveRelativeFile(const nsAString& aArgument,
   WCHAR pathBuf[MAX_PATH];
   if (!_wfullpath(pathBuf, fullPath.get(), MAX_PATH)) return NS_ERROR_FAILURE;
 
-  rv = lf->InitWithPath(nsDependentString(pathBuf));
-  if (NS_FAILED(rv)) return rv;
-  lf.forget(aResult);
-  return NS_OK;
+  return NS_NewLocalFile(nsDependentString(pathBuf), aResult);
 
 #else
 #  error Need platform-specific logic here.
@@ -315,8 +291,8 @@ nsCommandLine::ResolveURI(const nsAString& aArgument, nsIURI** aResult) {
     io->NewFileURI(mWorkingDir, getter_AddRefs(workingDirURI));
   }
 
-  nsCOMPtr<nsIFile> lf(do_CreateInstance(NS_LOCAL_FILE_CONTRACTID));
-  rv = lf->InitWithPath(aArgument);
+  nsCOMPtr<nsIFile> lf;
+  rv = NS_NewLocalFile(aArgument, getter_AddRefs(lf));
   if (NS_SUCCEEDED(rv)) {
     lf->Normalize();
     nsAutoCString url;

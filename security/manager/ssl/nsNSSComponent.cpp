@@ -707,13 +707,9 @@ static nsresult GetNSS3Directory(nsCString& result) {
     MOZ_LOG(gPIPNSSLog, LogLevel::Debug, ("nss not loaded?"));
     return NS_ERROR_FAILURE;
   }
-  nsCOMPtr<nsIFile> nss3File(do_CreateInstance(NS_LOCAL_FILE_CONTRACTID));
-  if (!nss3File) {
-    MOZ_LOG(gPIPNSSLog, LogLevel::Debug, ("couldn't create a file?"));
-    return NS_ERROR_FAILURE;
-  }
-  nsAutoCString nss3PathAsString(nss3Path.get());
-  nsresult rv = nss3File->InitWithNativePath(nss3PathAsString);
+  nsCOMPtr<nsIFile> nss3File;
+  nsresult rv = NS_NewNativeLocalFile(nsDependentCString(nss3Path.get()),
+                                      getter_AddRefs(nss3File));
   if (NS_FAILED(rv)) {
     MOZ_LOG(gPIPNSSLog, LogLevel::Debug,
             ("couldn't initialize file with path '%s'", nss3Path.get()));

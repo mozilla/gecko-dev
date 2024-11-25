@@ -173,11 +173,8 @@ static void CachePathsFromFileInternal(FileCacheT& aCache,
                                        const nsACString& aCwd,
                                        const nsACString& aPath) {
   nsresult rv;
-  nsCOMPtr<nsIFile> ldconfig(do_CreateInstance(NS_LOCAL_FILE_CONTRACTID, &rv));
-  if (NS_FAILED(rv)) {
-    return;
-  }
-  rv = ldconfig->InitWithNativePath(aPath);
+  nsCOMPtr<nsIFile> ldconfig;
+  rv = NS_NewNativeLocalFile(aPath, getter_AddRefs(ldconfig));
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return;
   }
@@ -255,12 +252,8 @@ static void CachePathsFromFileInternal(FileCacheT& aCache,
 static void CachePathsFromFile(FileCacheT& aCache, const nsACString& aPath) {
   // Find the new base path where that file sits in.
   nsresult rv;
-  nsCOMPtr<nsIFile> includeFile(
-      do_CreateInstance(NS_LOCAL_FILE_CONTRACTID, &rv));
-  if (NS_FAILED(rv)) {
-    return;
-  }
-  rv = includeFile->InitWithNativePath(aPath);
+  nsCOMPtr<nsIFile> includeFile;
+  rv = NS_NewNativeLocalFile(aPath, getter_AddRefs(includeFile));
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return;
   }

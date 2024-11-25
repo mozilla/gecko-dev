@@ -346,10 +346,8 @@ UploadLastDir::ContentPrefCallback::HandleCompletion(uint16_t aReason) {
   }
 
   if (!prefStr.IsEmpty()) {
-    localFile = do_CreateInstance(NS_LOCAL_FILE_CONTRACTID);
-    if (localFile && NS_WARN_IF(NS_FAILED(localFile->InitWithPath(prefStr)))) {
-      localFile = nullptr;
-    }
+    nsresult rv = NS_NewLocalFile(prefStr, getter_AddRefs(localFile));
+    (void)NS_WARN_IF(NS_FAILED(rv));
   }
 
   if (localFile) {

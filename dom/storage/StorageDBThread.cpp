@@ -214,12 +214,7 @@ nsresult StorageDBThread::Init(const nsString& aProfilePath) {
       profilePath = aProfilePath;
     }
 
-    mDatabaseFile = do_CreateInstance(NS_LOCAL_FILE_CONTRACTID, &rv);
-    if (NS_WARN_IF(NS_FAILED(rv))) {
-      return rv;
-    }
-
-    rv = mDatabaseFile->InitWithPath(profilePath);
+    rv = NS_NewLocalFile(profilePath, getter_AddRefs(mDatabaseFile));
     if (NS_WARN_IF(NS_FAILED(rv))) {
       return rv;
     }

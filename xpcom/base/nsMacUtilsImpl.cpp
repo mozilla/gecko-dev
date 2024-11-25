@@ -170,10 +170,8 @@ nsresult nsMacUtilsImpl::GetBloatLogDir(nsCString& aDirectoryPath) {
 nsresult nsMacUtilsImpl::GetDirectoryPath(const char* aPath,
                                           nsCString& aDirectoryPath) {
   nsresult rv = NS_OK;
-  nsCOMPtr<nsIFile> file = do_CreateInstance(NS_LOCAL_FILE_CONTRACTID, &rv);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  rv = file->InitWithNativePath(nsDependentCString(aPath));
+  nsCOMPtr<nsIFile> file;
+  rv = NS_NewNativeLocalFile(nsDependentCString(aPath), getter_AddRefs(file));
   NS_ENSURE_SUCCESS(rv, rv);
 
   nsCOMPtr<nsIFile> directoryFile;

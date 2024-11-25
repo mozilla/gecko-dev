@@ -6351,13 +6351,9 @@ nsresult QuotaManager::EnsureTemporaryStorageIsInitializedInternal() {
       return NS_OK;
     }
 
-    QM_TRY_INSPECT(
-        const auto& storageDir,
-        MOZ_TO_RESULT_GET_TYPED(nsCOMPtr<nsIFile>,
-                                MOZ_SELECT_OVERLOAD(do_CreateInstance),
-                                NS_LOCAL_FILE_CONTRACTID));
-
-    QM_TRY(MOZ_TO_RESULT(storageDir->InitWithPath(GetStoragePath())));
+    nsCOMPtr<nsIFile> storageDir;
+    QM_TRY(MOZ_TO_RESULT(
+        NS_NewLocalFile(GetStoragePath(), getter_AddRefs(storageDir))));
 
     // The storage directory must exist before calling GetTemporaryStorageLimit.
     QM_TRY_INSPECT(const bool& created, EnsureDirectory(*storageDir));

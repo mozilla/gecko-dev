@@ -72,6 +72,7 @@
 #include "nsISupportsImpl.h"
 #include "nsISupportsPrimitives.h"
 #include "nsIZipReader.h"
+#include "nsLocalFile.h"
 #include "nsNetUtil.h"
 #include "nsPrintfCString.h"
 #include "nsProxyRelease.h"
@@ -2523,14 +2524,11 @@ nsPrefBranch::GetComplexValue(const char* aPrefName, const nsIID& aType,
   if (aType.Equals(NS_GET_IID(nsIFile))) {
     ENSURE_PARENT_PROCESS("GetComplexValue(nsIFile)", aPrefName);
 
-    nsCOMPtr<nsIFile> file(do_CreateInstance(NS_LOCAL_FILE_CONTRACTID, &rv));
-
+    nsCOMPtr<nsIFile> file = new nsLocalFile();
+    rv = file->SetPersistentDescriptor(utf8String);
     if (NS_SUCCEEDED(rv)) {
-      rv = file->SetPersistentDescriptor(utf8String);
-      if (NS_SUCCEEDED(rv)) {
-        file.forget(reinterpret_cast<nsIFile**>(aRetVal));
-        return NS_OK;
-      }
+      file.forget(reinterpret_cast<nsIFile**>(aRetVal));
+      return NS_OK;
     }
     return rv;
   }

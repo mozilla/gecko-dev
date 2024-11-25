@@ -192,11 +192,6 @@ nsresult nsOSHelperAppService::GetFileTokenForPath(
     const char16_t* aPlatformAppPath, nsIFile** aFile) {
   NS_OBJC_BEGIN_TRY_BLOCK_RETURN;
 
-  nsresult rv;
-  nsCOMPtr<nsILocalFileMac> localFile(
-      do_CreateInstance(NS_LOCAL_FILE_CONTRACTID, &rv));
-  NS_ENSURE_SUCCESS(rv, rv);
-
   CFURLRef pathAsCFURL;
   CFStringRef pathAsCFString = ::CFStringCreateWithCharacters(
       NULL, reinterpret_cast<const UniChar*>(aPlatformAppPath),
@@ -231,7 +226,9 @@ nsresult nsOSHelperAppService::GetFileTokenForPath(
     }
   }
 
-  rv = localFile->InitWithCFURL(pathAsCFURL);
+  nsCOMPtr<nsILocalFileMac> localFile;
+  nsresult rv =
+      NS_NewLocalFileWithCFURL(pathAsCFURL, getter_AddRefs(localFile));
   ::CFRelease(pathAsCFString);
   ::CFRelease(pathAsCFURL);
   if (NS_FAILED(rv)) return rv;
@@ -495,43 +492,30 @@ nsresult nsOSHelperAppService::GetMIMEInfoFromOS(const nsACString& aMIMEType,
   if (typeAppIsDefault || extAppIsDefault) {
     if (haveAppForExt) mimeInfoMac->AppendExtension(aFileExt);
 
-    nsresult rv;
-    nsCOMPtr<nsILocalFileMac> app(
-        do_CreateInstance(NS_LOCAL_FILE_CONTRACTID, &rv));
-    if (NS_FAILED(rv)) {
-      [localPool release];
-      return rv;
-    }
+    const FSRef* appFSRef = typeAppIsDefault ? &typeAppFSRef : &extAppFSRef;
+    nsCOMPtr<nsILocalFileMac> app;
+    if (NS_SUCCEEDED(NS_NewLocalFileWithFSRef(appFSRef, getter_AddRefs(app)))) {
+      mimeInfoMac->SetDefaultApplication(app);
 
-    CFStringRef cfAppName = NULL;
-    if (typeAppIsDefault) {
-      app->InitWithFSRef(&typeAppFSRef);
-      ::LSCopyItemAttribute((const FSRef*)&typeAppFSRef, kLSRolesAll,
-                            kLSItemDisplayName, (CFTypeRef*)&cfAppName);
-    } else {
-      app->InitWithFSRef(&extAppFSRef);
-      ::LSCopyItemAttribute((const FSRef*)&extAppFSRef, kLSRolesAll,
-                            kLSItemDisplayName, (CFTypeRef*)&cfAppName);
+      CFStringRef cfAppName = NULL;
+      ::LSCopyItemAttribute(appFSRef, kLSRolesAll, kLSItemDisplayName,
+                            (CFTypeRef*)&cfAppName);
+      if (cfAppName) {
+        AutoTArray<UniChar, 255> buffer;
+        CFIndex appNameLength = ::CFStringGetLength(cfAppName);
+        buffer.SetLength(appNameLength);
+        ::CFStringGetCharacters(cfAppName, CFRangeMake(0, appNameLength),
+                                buffer.Elements());
+        nsAutoString appName;
+        appName.Assign(reinterpret_cast<char16_t*>(buffer.Elements()),
+                       appNameLength);
+        mimeInfoMac->SetDefaultDescription(appName);
+        ::CFRelease(cfAppName);
+      }
     }
-    if (cfAppName) {
-      AutoTArray<UniChar, 255> buffer;
-      CFIndex appNameLength = ::CFStringGetLength(cfAppName);
-      buffer.SetLength(appNameLength);
-      ::CFStringGetCharacters(cfAppName, CFRangeMake(0, appNameLength),
-                              buffer.Elements());
-      nsAutoString appName;
-      appName.Assign(reinterpret_cast<char16_t*>(buffer.Elements()),
-                     appNameLength);
-      mimeInfoMac->SetDefaultDescription(appName);
-      ::CFRelease(cfAppName);
-    }
-
-    mimeInfoMac->SetDefaultApplication(app);
-    mimeInfoMac->SetPreferredAction(nsIMIMEInfo::saveToDisk);
-
-  } else {
-    mimeInfoMac->SetPreferredAction(nsIMIMEInfo::saveToDisk);
   }
+
+  mimeInfoMac->SetPreferredAction(nsIMIMEInfo::saveToDisk);
 
   nsAutoCString mimeType;
   mimeInfoMac->GetMIMEType(mimeType);

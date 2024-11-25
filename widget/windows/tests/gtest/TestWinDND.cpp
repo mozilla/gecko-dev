@@ -62,9 +62,8 @@ nsresult CheckValidHDROP(STGMEDIUM* pSTG) {
     s = (char16_t*)((char*)pDropFiles + pDropFiles->pFiles + offset);
     if (s.IsEmpty()) break;
     nsresult rv;
-    nsCOMPtr<nsIFile> localFile(
-        do_CreateInstance(NS_LOCAL_FILE_CONTRACTID, &rv));
-    rv = localFile->InitWithPath(s);
+    nsCOMPtr<nsIFile> localFile;
+    rv = NS_NewLocalFile(s, getter_AddRefs(localFile));
     if (NS_FAILED(rv)) {
       fail("File could not be opened");
       return NS_ERROR_UNEXPECTED;

@@ -25,13 +25,15 @@ using namespace mozilla;
 
 static already_AddRefed<nsIURI> FileToURI(const char* aFilename,
                                           nsresult* aRv = 0) {
-  nsCOMPtr<nsIFile> lf(do_CreateInstance(NS_LOCAL_FILE_CONTRACTID, aRv));
-  NS_ENSURE_TRUE(lf, nullptr);
+  nsCOMPtr<nsIFile> lf;
   // XXX Handle relative paths somehow.
-  lf->InitWithNativePath(nsDependentCString(aFilename));
+  nsresult rv =
+      NS_NewNativeLocalFile(nsDependentCString(aFilename), getter_AddRefs(lf));
 
   nsIURI* uri = nullptr;
-  nsresult rv = NS_NewFileURI(&uri, lf);
+  if (NS_SUCCEEDED(rv)) {
+    rv = NS_NewFileURI(&uri, lf);
+  }
   if (aRv) *aRv = rv;
   return uri;
 }
