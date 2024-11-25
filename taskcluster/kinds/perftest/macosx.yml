@@ -467,3 +467,28 @@ ml-perf-suggest-ner:
             --flavor mochitest
             --output $MOZ_FETCHES_DIR/../artifacts
             toolkit/components/ml/tests/browser/browser_ml_suggest_ner_perf.js
+
+ml-perf-autofill:
+    fetches:
+        fetch:
+            - ort.wasm
+            - ort.jsep.wasm
+            - ort-training.wasm
+            - mozilla-autofill
+    description: Run ML Autofill Model
+    treeherder:
+        symbol: perftest(mac-ml-perf-autofill)
+        tier: 2
+    attributes:
+        batch: false
+        cron: false
+    run-on-projects: []
+    run:
+        command: >-
+            mkdir -p $MOZ_FETCHES_DIR/../artifacts &&
+            cd $MOZ_FETCHES_DIR &&
+            python3 python/mozperftest/mozperftest/runner.py
+            --mochitest-binary ${MOZ_FETCHES_DIR}/target.dmg
+            --flavor mochitest
+            --output $MOZ_FETCHES_DIR/../artifacts
+            toolkit/components/ml/tests/browser/browser_ml_autofill_perf.js

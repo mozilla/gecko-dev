@@ -52,3 +52,12 @@ mozilla-intent:
         revision: 67edcd40da2b681d03072d5ea4943d2bff1284ef
         path-prefix: "onnx-models/Mozilla/mobilebert-uncased-finetuned-LoRA-intent-classifier/main/"
         artifact-name: mobilebert-uncased-finetuned-LoRA-intent-classifier.tar.zst
+
+mozilla-autofill:
+    description: autofill model
+    fetch:
+        type: git
+        repo: https://huggingface.co/Mozilla/tinybert-uncased-autofill
+        revision: a8cdc0f19f2f5b6a099e4d7f24725a0b57073cb4
+        path-prefix: "onnx-models/Mozilla/tinybert-uncased-autofill/main/"
+        artifact-name: tinybert-uncased-autofill.tar.zst

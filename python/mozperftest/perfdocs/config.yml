@@ -62,6 +62,7 @@ suites:
             "ML Suggest Inference Model": ""
             "ML Suggest Intent Model": ""
             "ML Suggest NER Model": ""
+            "ML Autofill Model": ""
 
     intl/benchmarks/test/xpcshell:
         description: "Performance tests running through XPCShell for Intl code"

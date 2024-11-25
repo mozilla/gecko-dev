@@ -17,3 +17,6 @@ disabled = "Disabled as we want to run this only as perftest, not regular CI"
 
 ["browser_ml_suggest_ner_perf.js"]
 disabled = "Disabled as we want to run this only as perftest, not regular CI"
+
+["browser_ml_autofill_perf.js"]
+disabled = "Disabled as we want to run this only as perftest, not regular CI"
