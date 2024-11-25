@@ -199,22 +199,4 @@ class SharedLibraryInfo {
   friend struct IPC::ParamTraits<SharedLibraryInfo>;
 };
 
-namespace IPC {
-template <>
-struct ParamTraits<SharedLibrary> {
-  typedef SharedLibrary paramType;
-
-  static void Write(MessageWriter* aWriter, const paramType& aParam);
-  static bool Read(MessageReader* aReader, paramType* aResult);
-};
-
-template <>
-struct ParamTraits<SharedLibraryInfo> {
-  typedef SharedLibraryInfo paramType;
-
-  static void Write(MessageWriter* aWriter, const paramType& aParam);
-  static bool Read(MessageReader* aReader, paramType* aResult);
-};
-}  // namespace IPC
-
 #endif
