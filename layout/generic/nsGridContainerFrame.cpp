@@ -5840,21 +5840,17 @@ static nscoord MinSize(const GridItemInfo& aGridItem,
   nsIFrame* child = aGridItem.mFrame;
   PhysicalAxis axis(aCBWM.PhysicalAxis(aAxis));
   const nsStylePosition* stylePos = child->StylePosition();
-  StyleSize sizeStyle = axis == PhysicalAxis::Horizontal
-                            ? stylePos->GetWidth()
-                            : stylePos->GetHeight();
+  StyleSize styleSize = stylePos->Size(aAxis, aCBWM);
+  const LogicalAxis axisInItemWM = aCBWM.IsOrthogonalTo(child->GetWritingMode())
+                                       ? GetOrthogonalAxis(aAxis)
+                                       : aAxis;
 
-  auto ourInlineAxis =
-      child->GetWritingMode().PhysicalAxis(LogicalAxis::Inline);
   // max-content and min-content should behave as initial value in block axis.
   // FIXME: Bug 567039: moz-fit-content and -moz-available are not supported
   // for block size dimension on sizing properties (e.g. height), so we
   // treat it as `auto`.
-  if (axis != ourInlineAxis && sizeStyle.BehavesLikeInitialValueOnBlockAxis()) {
-    sizeStyle = StyleSize::Auto();
-  }
-
-  if (!sizeStyle.IsAuto() && !sizeStyle.HasPercent()) {
+  if (!styleSize.BehavesLikeInitialValue(axisInItemWM) &&
+      !styleSize.HasPercent()) {
     nscoord s =
         MinContentContribution(aGridItem, aState, aRC, aCBWM, aAxis, aCache);
     aCache->mMinSize.emplace(s);
@@ -5881,18 +5877,14 @@ static nscoord MinSize(const GridItemInfo& aGridItem,
                nsLayoutUtils::MinSizeContributionForAxis(
                    axis, aRC, child, IntrinsicISizeType::MinISize,
                    *aCache->mPercentageBasis);
-  const StyleSize& style = axis == PhysicalAxis::Horizontal
-                               ? stylePos->GetMinWidth()
-                               : stylePos->GetMinHeight();
+  const StyleSize& styleMinSize = stylePos->MinSize(aAxis, aCBWM);
   // max-content and min-content should behave as initial value in block axis.
   // FIXME: Bug 567039: moz-fit-content and -moz-available are not supported
   // for block size dimension on sizing properties (e.g. height), so we
   // treat it as `auto`.
-  const bool inInlineAxis = axis == ourInlineAxis;
-  const bool isAuto =
-      style.IsAuto() ||
-      (!inInlineAxis && style.BehavesLikeInitialValueOnBlockAxis());
-  if ((inInlineAxis && nsIFrame::ToExtremumLength(style)) ||
+  const bool isAuto = styleMinSize.BehavesLikeInitialValue(axisInItemWM);
+  if ((axisInItemWM == LogicalAxis::Inline &&
+       nsIFrame::ToExtremumLength(styleMinSize)) ||
       (isAuto && !child->StyleDisplay()->IsScrollableOverflow())) {
     // Now calculate the "content size" part and return whichever is smaller.
     MOZ_ASSERT(isAuto || sz == NS_UNCONSTRAINEDSIZE);
