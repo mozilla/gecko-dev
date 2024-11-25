@@ -9590,11 +9590,6 @@ function CardSections({
   ctaButtonVariant,
   ctaButtonSponsors
 }) {
-  const {
-    recommendations,
-    sections
-  } = data;
-  const isEmpty = !recommendations?.length || !sections;
   const prefs = (0,external_ReactRedux_namespaceObject.useSelector)(state => state.Prefs.values);
   const showTopics = prefs[CardSections_PREF_TOPICS_ENABLED];
   const mayHaveSectionsCards = prefs[CardSections_PREF_SECTIONS_CARDS_ENABLED];
@@ -9625,6 +9620,10 @@ function CardSections({
 
   // Only show thumbs up/down buttons if both default thumbs and sections thumbs prefs are enabled
   const mayHaveCombinedThumbsUpDown = mayHaveSectionsCardsThumbsUpDown && mayHaveThumbsUpDown;
+  const {
+    sections
+  } = data;
+  const isEmpty = sections.length === 0;
   function getLayoutData(responsiveLayout, index) {
     let layoutData = {
       classNames: []
