@@ -218,7 +218,10 @@ add_task(async function test_load_icons() {
     (await engine.getIconURL(49)).includes("icon2.png"),
     "49x49 icon is correct."
   );
-  Assert.ok(!(await engine.getIconURL(74)), "No 74x74 icon");
+  Assert.ok(
+    (await engine.getIconURL(50)).includes("icon2.png"),
+    "Uses 49x49 icon for size 50."
+  );
 
   // User uninstalls their engine
   await extension.awaitStartup();

@@ -1408,7 +1408,8 @@ export class SearchEngine {
   }
 
   /**
-   * Retrieves the icon URL for this search engine, if any.
+   * Returns the icon URL for the search engine closest to the preferred width
+   * or undefined if the engine has no icons.
    *
    * @param {number} preferredWidth
    *   Width of the requested icon. If not specified, it is assumed that
@@ -1416,24 +1417,29 @@ export class SearchEngine {
    * @returns {Promise<string|undefined>}
    */
   async getIconURL(preferredWidth) {
-    // XPCOM interfaces pass optional number parameters as 0 and can't be
-    // handled in the same way.
-    if (!preferredWidth) {
-      preferredWidth = 16;
-    }
+    // XPCOM interfaces pass optional number parameters as 0.
+    preferredWidth ||= 16;
 
-    if (preferredWidth == 16) {
+    if (preferredWidth == 16 || !this._iconMapObj) {
       return this._iconURL || undefined;
     }
 
-    if (!this._iconMapObj) {
+    let availableWidths = Object.keys(this._iconMapObj).map(k => parseInt(k));
+    if (this._iconURL) {
+      availableWidths.push(16);
+    }
+    if (!availableWidths.length) {
       return undefined;
     }
 
-    if (preferredWidth in this._iconMapObj) {
-      return this._iconMapObj[preferredWidth];
+    let bestWidth = lazy.SearchUtils.chooseIconSize(
+      preferredWidth,
+      availableWidths
+    );
+    if (bestWidth == 16) {
+      return this._iconURL;
     }
-    return undefined;
+    return this._iconMapObj[bestWidth];
   }
 
   /**

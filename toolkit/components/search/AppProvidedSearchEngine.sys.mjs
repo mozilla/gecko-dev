@@ -51,11 +51,16 @@ class IconHandler {
   #iconCollection = null;
 
   /**
-   * The list of icon records from the remote settings collection.
+   * The list of icon records from the remote settings collection indexed by
+   * the first two characters of their engineIdentifier for fast search by
+   * engineID.
    *
-   * @type {?object[]}
+   * If a record has multiple engineIdentifiers with different
+   * first characters, the record will be available once under every key.
+   *
+   * @type {?Map<string, object[]>}
    */
-  #iconList = null;
+  #iconMap = null;
 
   /**
    * A flag that indicates if we have queued an idle observer to update icons.
@@ -79,43 +84,46 @@ class IconHandler {
   }
 
   /**
-   * Returns the icon for the record that matches the engine identifier
-   * and the preferred width.
+   * Extracts the first two chars of an engineID for use with `this.#iconMap`.
+   *
+   * @param {string} engineID
+   *   ID of the engine.
+   * @returns {string}
+   *   The key used by `this.#iconMap`.
+   */
+  getKey(engineID) {
+    return engineID.substring(0, 2);
+  }
+
+  /**
+   * Returns a list of the sizes of the records available for the supplied engine.
    *
    * @param {string} engineIdentifier
-   *   The identifier of the engine to match against.
-   * @param {number} preferredWidth
-   *   The preferred with of the icon.
-   * @returns {string}
-   *   An object URL that can be used to reference the contents of the specified
-   *   source object.
+   *  The ID of the engine.
+   * @returns {Promise<object[]>}
+   *  The available records.
    */
-  async getIcon(engineIdentifier, preferredWidth) {
-    if (!this.#iconList) {
-      await this.#getIconList();
+  async getAvailableRecords(engineIdentifier) {
+    if (!this.#iconMap) {
+      await this.#buildIconMap();
     }
 
-    let iconRecords = this.#iconList.filter(r =>
-      this._identifierMatches(engineIdentifier, r.engineIdentifiers)
+    let iconList = this.#iconMap.get(this.getKey(engineIdentifier)) || [];
+    return iconList.filter(r =>
+      this.#identifierMatches(engineIdentifier, r.engineIdentifiers)
     );
+  }
 
-    if (!iconRecords.length) {
-      console.warn("No icon found for", engineIdentifier);
-      return null;
-    }
-
-    // Default to the first record, in the event we don't have any records
-    // that match the width.
-    let iconRecord = iconRecords[0];
-    for (let record of iconRecords) {
-      // TODO: Bug 1655070. We should be using the closest size, but for now use
-      // an exact match.
-      if (record.imageSize == preferredWidth) {
-        iconRecord = record;
-        break;
-      }
-    }
-
+  /**
+   * Creates an object URL for the icon of the given record.
+   *
+   * @param {object} iconRecord
+   *   The record of the icon.
+   * @returns {Promise<?string>}
+   *   An object URL that can be used to reference the contents of the specified
+   *   source object or null of there is no icon with the supplied width.
+   */
+  async createIconURL(iconRecord) {
     let iconData;
     try {
       iconData = await this.#iconCollection.attachments.get(iconRecord);
@@ -123,7 +131,7 @@ class IconHandler {
       console.error(ex);
     }
     if (!iconData) {
-      console.warn("Unable to find the icon for", engineIdentifier);
+      console.warn("Unable to find the attachment for", iconRecord.id);
       // Queue an update in case we haven't downloaded it yet.
       this.#pendingUpdatesMap.set(iconRecord.id, iconRecord);
       this.#maybeQueueIdle();
@@ -169,7 +177,7 @@ class IconHandler {
     lazy.idleService.removeIdleObserver(this, ICON_UPDATE_ON_IDLE_DELAY);
 
     // Update the icon list, in case engines will call getIcon() again.
-    await this.#getIconList();
+    await this.#buildIconMap();
 
     let appProvidedEngines = await Services.search.getAppProvidedEngines();
     for (let record of this.#pendingUpdatesMap.values()) {
@@ -182,14 +190,16 @@ class IconHandler {
       }
 
       for (let engine of appProvidedEngines) {
-        await engine.maybeUpdateIconURL(
-          record.engineIdentifiers,
-          URL.createObjectURL(
-            new Blob([iconData.buffer], {
-              type: record.attachment.mimetype,
-            })
-          )
-        );
+        if (this.#identifierMatches(engine.id, record.engineIdentifiers)) {
+          await engine.maybeUpdateIconURL(
+            URL.createObjectURL(
+              new Blob([iconData.buffer], {
+                type: record.attachment.mimetype,
+              })
+            ),
+            record.imageSize
+          );
+        }
       }
     }
 
@@ -207,7 +217,7 @@ class IconHandler {
    * @returns {boolean}
    *   Returns true if the identifier matches any of the engine identifiers.
    */
-  _identifierMatches(identifier, engineIdentifiers) {
+  #identifierMatches(identifier, engineIdentifiers) {
     return engineIdentifiers.some(i => {
       if (i.endsWith("*")) {
         return identifier.startsWith(i.slice(0, -1));
@@ -219,15 +229,27 @@ class IconHandler {
   /**
    * Obtains the icon list from the remote settings collection.
    */
-  async #getIconList() {
+  async #buildIconMap() {
+    let iconList = [];
     try {
-      this.#iconList = await this.#iconCollection.get();
+      iconList = await this.#iconCollection.get();
     } catch (ex) {
       console.error(ex);
-      this.#iconList = [];
     }
-    if (!this.#iconList.length) {
+    if (!iconList.length) {
       console.error("Failed to obtain search engine icon list records");
+    }
+
+    this.#iconMap = new Map();
+    for (let record of iconList) {
+      let keys = new Set(record.engineIdentifiers.map(this.getKey));
+      for (let key of keys) {
+        if (this.#iconMap.has(key)) {
+          this.#iconMap.get(key).push(record);
+        } else {
+          this.#iconMap.set(key, [record]);
+        }
+      }
     }
   }
 
@@ -375,19 +397,12 @@ export class AppProvidedSearchEngine extends SearchEngine {
   static iconHandler = new IconHandler();
 
   /**
-   * A promise for the blob URL of the icon. We save the promise to avoid
-   * reentrancy issues.
+   * Promises for the blob URL of the icon by icon width.
+   * We save the promises to avoid reentrancy issues.
    *
-   * @type {?Promise<string>}
+   * @type {Map<number, Promise<?string>>}
    */
-  #blobURLPromise = null;
-
-  /**
-   * The identifier from the configuration.
-   *
-   * @type {?string}
-   */
-  #configurationId = null;
+  #blobURLPromises = new Map();
 
   /**
    * Whether or not this is a general purpose search engine.
@@ -411,9 +426,7 @@ export class AppProvidedSearchEngine extends SearchEngine {
       id: config.identifier,
     });
 
-    this.#configurationId = config.identifier;
     this.#init(config);
-
     this._loadSettings(settings);
   }
 
@@ -422,9 +435,9 @@ export class AppProvidedSearchEngine extends SearchEngine {
    * URL for the icon.
    */
   async cleanup() {
-    if (this.#blobURLPromise) {
-      URL.revokeObjectURL(await this.#blobURLPromise);
-      this.#blobURLPromise = null;
+    for (let [size, blobURLPromise] of this.#blobURLPromises) {
+      URL.revokeObjectURL(await blobURLPromise);
+      this.#blobURLPromises.delete(size);
     }
   }
 
@@ -485,48 +498,48 @@ export class AppProvidedSearchEngine extends SearchEngine {
    * Returns the icon URL for the search engine closest to the preferred width.
    *
    * @param {number} preferredWidth
-   *   The preferred width of the image.
-   * @returns {Promise<string>}
+   *   The preferred width of the image. Defaults to 16.
+   * @returns {Promise<?string>}
    *   A promise that resolves to the URL of the icon.
    */
   async getIconURL(preferredWidth) {
-    if (this.#blobURLPromise) {
-      return this.#blobURLPromise;
+    // XPCOM interfaces pass optional number parameters as 0.
+    preferredWidth ||= 16;
+
+    let availableRecords =
+      await AppProvidedSearchEngine.iconHandler.getAvailableRecords(this.id);
+    if (!availableRecords.length) {
+      console.warn("No icon found for", this.id);
+      return null;
     }
-    this.#blobURLPromise = AppProvidedSearchEngine.iconHandler.getIcon(
-      this.#configurationId,
-      preferredWidth
-    );
-    return this.#blobURLPromise;
+
+    let availableSizes = availableRecords.map(r => r.imageSize);
+    let width = lazy.SearchUtils.chooseIconSize(preferredWidth, availableSizes);
+
+    if (this.#blobURLPromises.has(width)) {
+      return this.#blobURLPromises.get(width);
+    }
+
+    let record = availableRecords.find(r => r.imageSize == width);
+    let promise = AppProvidedSearchEngine.iconHandler.createIconURL(record);
+    this.#blobURLPromises.set(width, promise);
+    return promise;
   }
 
   /**
-   * This will update the icon URL for the search engine if the engine
-   * identifier matches the given engine identifiers.
+   * Updates the icon URL for the given size.
    *
-   * @param {string[]} engineIdentifiers
-   *   The engine identifiers to check against.
    * @param {string} blobURL
    *   The new icon URL for the search engine.
+   * @param {number} size
+   *   The size of the icon in blobURL.
    */
-  async maybeUpdateIconURL(engineIdentifiers, blobURL) {
-    // TODO: Bug 1875912. Once newSearchConfigEnabled has been enabled, we will
-    // be able to use `this.id` instead of `this.#configurationId`. At that
-    // point, `IconHandler._identifierMatches` can be made into a private
-    // function, as this if statement can be handled within `IconHandler.observe`.
-    if (
-      !AppProvidedSearchEngine.iconHandler._identifierMatches(
-        this.#configurationId,
-        engineIdentifiers
-      )
-    ) {
-      return;
+  async maybeUpdateIconURL(blobURL, size) {
+    if (this.#blobURLPromises.has(size)) {
+      URL.revokeObjectURL(await this.#blobURLPromises.get(size));
     }
-    if (this.#blobURLPromise) {
-      URL.revokeObjectURL(await this.#blobURLPromise);
-      this.#blobURLPromise = null;
-    }
-    this.#blobURLPromise = Promise.resolve(blobURL);
+    this.#blobURLPromises.set(size, Promise.resolve(blobURL));
+
     lazy.SearchUtils.notifyAction(
       this,
       lazy.SearchUtils.MODIFIED_TYPE.ICON_CHANGED

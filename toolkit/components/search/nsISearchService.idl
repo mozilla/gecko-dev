@@ -93,8 +93,8 @@ interface nsISearchEngine : nsISupports
   boolean supportsResponseType(in AString responseType);
 
   /**
-   * Returns a string with the URL to an engine's icon matching both width and
-   * height. Returns undefined if icon with specified dimensions is not found.
+   * Returns a string with the URL to an engine's icon matching the preferred
+   * width as closely as possible. Returns undefined if the engine has no icon.
    *
    * @param preferredWidth
    *   Width of the requested icon. If not specified, it is assumed that

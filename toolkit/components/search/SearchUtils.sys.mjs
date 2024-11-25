@@ -433,6 +433,39 @@ export var SearchUtils = {
 
     return [...sortedEngines, ...remainingEngines];
   },
+
+  /**
+   * Chooses the best size out of an array of sizes. If there is no exact match,
+   * chooses the next smaller icon if the difference of the preferred size
+   * to the larger icon is more than 4 times the difference to the the smaller
+   * icon. Otherwise chooses the next larger one.
+   *
+   * @param {number} preferredSize
+   *   The preferred size. Must not be 0.
+   * @param {number[]} availableSizes
+   *   Array of available sizes. Must not be empty.
+   * @returns {number}
+   *   The element of availableSizes chosen by the algorithm.
+   */
+  chooseIconSize(preferredSize, availableSizes) {
+    availableSizes = availableSizes.toSorted((a, b) => b - a);
+    let bestSize = availableSizes.shift();
+    for (let currentSize of availableSizes) {
+      if (currentSize >= preferredSize) {
+        bestSize = currentSize;
+      } else {
+        if (
+          bestSize > preferredSize &&
+          preferredSize - currentSize < (bestSize - preferredSize) / 4
+        ) {
+          bestSize = currentSize;
+        }
+        break;
+      }
+    }
+
+    return bestSize;
+  },
 };
 
 XPCOMUtils.defineLazyPreferenceGetter(

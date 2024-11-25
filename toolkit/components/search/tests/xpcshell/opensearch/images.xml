@@ -8,7 +8,7 @@
     <InputEncoding>UTF-8</InputEncoding>
     <Image width="16" height="16">data:image/x-icon;base64,ico16</Image>
     <Image width="32" height="32">data:image/x-icon;base64,ico32</Image>
-    <Image width="74" height="74">data:image/png;base64,ico74</Image>
+    <Image width="256" height="256">data:image/png;base64,ico256</Image>
     <Url type="application/x-suggestions+json" template="http://api.bing.com/osjson.aspx">
         <Param name="query" value="{searchTerms}"/>
         <Param name="form" value="MOZW"/>
