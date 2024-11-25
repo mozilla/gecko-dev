@@ -569,7 +569,11 @@ export class FxAccounts {
       }
       if (lazy.oauthEnabled) {
         // data.verified is the sessionToken status. oauth cares only about whether it has the keys.
-        if (!data.scopedKeys) {
+        // (Note that this never forces `.verified` to `true` even if we *do* have the keys, which
+        // seems slightly odd)
+        // Note that is the primary-password is locked we can't get the scopedKeys even if they exist, so
+        // we don't want to pretend the user is unverified in that case.
+        if (Services.logins.isLoggedIn && !data.scopedKeys) {
           data.verified = false;
         }
       } else if (!data.verified) {
