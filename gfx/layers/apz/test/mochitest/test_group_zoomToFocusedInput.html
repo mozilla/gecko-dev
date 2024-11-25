@@ -9,20 +9,24 @@
   <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css"/>
   <script type="application/javascript">
 
+let prefs = [
+  ["dom.meta-viewport.enabled", true],
+  ["formhelper.autozoom", true]
+];
+
 var subtests = [
-  {"file": "helper_zoomToFocusedInput_scroll.html"},
-  {"file": "helper_zoomToFocusedInput_multiline.html"},
-  {"file": "helper_zoomToFocusedInput_iframe.html"},
-  {"file": "helper_zoomToFocusedInput_iframe.html?cross-origin"},
+  {"file": "helper_zoomToFocusedInput_scroll.html", prefs},
+  {"file": "helper_zoomToFocusedInput_multiline.html", prefs},
+  {"file": "helper_zoomToFocusedInput_iframe.html", prefs},
+  {"file": "helper_zoomToFocusedInput_iframe.html?cross-origin", prefs},
   {"file": "helper_zoomToFocusedInput_iframe-2.html",
-   "prefs": [["dom.meta-viewport.enabled", true],
-             ["layout.scroll.disable-pixel-alignment", true]]},
-  {"file": "helper_zoomToFocusedInput_fixed_bug1673511.html"},
-  {"file": "helper_zoomToFocusedInput_nozoom_bug1738696.html"},
-  {"file": "helper_zoomToFocusedInput_nested_position_fixed.html"},
-  {"file": "helper_zoomToFocusedInput_zoom_in_position_fixed.html",
-   "prefs": [["dom.meta-viewport.enabled", true], ["formhelper.autozoom", true]],
+   "prefs": [...prefs,
+             ["layout.scroll.disable-pixel-alignment", true]]
   },
+  {"file": "helper_zoomToFocusedInput_fixed_bug1673511.html", prefs},
+  {"file": "helper_zoomToFocusedInput_nozoom_bug1738696.html", prefs},
+  {"file": "helper_zoomToFocusedInput_nested_position_fixed.html", prefs},
+  {"file": "helper_zoomToFocusedInput_zoom_in_position_fixed.html", prefs},
 ];
 
 // These tests rely on mobile viewport sizing, so only run them on
@@ -32,16 +36,16 @@ var subtests = [
 let platform = getPlatform();
 if (platform == "android") {
   subtests.push(
-    {"file": "helper_zoomToFocusedInput_nozoom.html"}
+    {"file": "helper_zoomToFocusedInput_nozoom.html", prefs}
   );
   subtests.push(
-    {"file": "helper_zoomToFocusedInput_zoom.html"}
+    {"file": "helper_zoomToFocusedInput_zoom.html", prefs}
   );
   subtests.push(
-    {"file": "helper_zoomToFocusedInput_touch-action.html"}
+    {"file": "helper_zoomToFocusedInput_touch-action.html", prefs}
   );
   subtests.push(
-    {"file": "helper_zoomToFocusedInput_dynamic_toolbar_bug1828235.html"}
+    {"file": "helper_zoomToFocusedInput_dynamic_toolbar_bug1828235.html", prefs}
   );
 }
 
