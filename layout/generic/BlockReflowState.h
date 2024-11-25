@@ -174,7 +174,7 @@ class BlockReflowState {
     FloatsPushedOrSplit,
   };
   std::tuple<nscoord, ClearFloatsResult> ClearFloats(
-      nscoord aBCoord, StyleClear aClearType,
+      nscoord aBCoord, UsedClear aClearType,
       nsIFrame* aFloatAvoidingBlock = nullptr);
 
   nsFloatManager* FloatManager() const {
@@ -403,7 +403,7 @@ class BlockReflowState {
 
   // Cache the result of nsBlockFrame::FindTrailingClear() from mBlock's
   // prev-in-flows. See nsBlockFrame::ReflowPushedFloats().
-  StyleClear mTrailingClearFromPIF;
+  UsedClear mTrailingClearFromPIF;
 
   // The amount of computed content block-size "consumed" by our previous
   // continuations.

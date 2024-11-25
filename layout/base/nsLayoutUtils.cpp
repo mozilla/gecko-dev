@@ -2441,35 +2441,31 @@ LayoutDeviceIntPoint nsLayoutUtils::TranslateViewToWidget(
   return relativeToViewWidget + WidgetToWidgetOffset(viewWidget, aWidget);
 }
 
-StyleClear nsLayoutUtils::CombineClearType(StyleClear aOrigClearType,
-                                           StyleClear aNewClearType) {
-  StyleClear clearType = aOrigClearType;
+UsedClear nsLayoutUtils::CombineClearType(UsedClear aOrigClearType,
+                                          UsedClear aNewClearType) {
+  UsedClear clearType = aOrigClearType;
   switch (clearType) {
-    case StyleClear::Left:
-      if (StyleClear::Right == aNewClearType ||
-          StyleClear::Both == aNewClearType) {
-        clearType = StyleClear::Both;
+    case UsedClear::Left:
+      if (UsedClear::Right == aNewClearType ||
+          UsedClear::Both == aNewClearType) {
+        clearType = UsedClear::Both;
       }
       break;
-    case StyleClear::Right:
-      if (StyleClear::Left == aNewClearType ||
-          StyleClear::Both == aNewClearType) {
-        clearType = StyleClear::Both;
+    case UsedClear::Right:
+      if (UsedClear::Left == aNewClearType ||
+          UsedClear::Both == aNewClearType) {
+        clearType = UsedClear::Both;
       }
       break;
-    case StyleClear::None:
-      if (StyleClear::Left == aNewClearType ||
-          StyleClear::Right == aNewClearType ||
-          StyleClear::Both == aNewClearType) {
+    case UsedClear::None:
+      if (UsedClear::Left == aNewClearType ||
+          UsedClear::Right == aNewClearType ||
+          UsedClear::Both == aNewClearType) {
         clearType = aNewClearType;
       }
       break;
-    case StyleClear::Both:
+    case UsedClear::Both:
       // Do nothing.
-      break;
-    case StyleClear::InlineStart:
-    case StyleClear::InlineEnd:
-      MOZ_ASSERT_UNREACHABLE("should have resolved to physical values");
       break;
   }
   return clearType;

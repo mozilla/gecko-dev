@@ -732,7 +732,7 @@ class nsBlockFrame : public nsContainerFrame {
    * Find any trailing BR clear from the last line of this block (or from its
    * prev-in-flows).
    */
-  mozilla::StyleClear FindTrailingClear();
+  mozilla::UsedClear FindTrailingClear();
 
   /**
    * Remove a float from our float list.

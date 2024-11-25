@@ -103,6 +103,23 @@ struct ContainSizeAxes {
   const bool mBContained;
 };
 
+// Used value for the CSS 'float' property (logical 'inline-*' in the computed
+// value will have been resolved to 'left' or 'right').
+enum class UsedFloat : uint8_t {
+  None,
+  Left,
+  Right,
+};
+
+// Used value for the CSS 'clear' property (logical 'inline-*' in the computed
+// value will have been resolved to 'left' or 'right').
+enum class UsedClear : uint8_t {
+  None,
+  Left,
+  Right,
+  Both,
+};
+
 }  // namespace mozilla
 
 #define STYLE_STRUCT(name_)                          \
@@ -1330,8 +1347,8 @@ struct MOZ_NEEDS_MEMMOVABLE_MEMBERS nsStyleDisplay {
   }
 
   // See WritingModes.h for the implementations.
-  inline mozilla::StyleFloat UsedFloat(mozilla::WritingMode aWM) const;
-  inline mozilla::StyleClear UsedClear(mozilla::WritingMode aWM) const;
+  inline mozilla::UsedFloat UsedFloat(mozilla::WritingMode aWM) const;
+  inline mozilla::UsedClear UsedClear(mozilla::WritingMode aWM) const;
 
  private:
   mozilla::StyleAppearance mAppearance;

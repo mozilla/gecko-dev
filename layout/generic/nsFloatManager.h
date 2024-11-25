@@ -316,13 +316,13 @@ class nsFloatManager {
    *
    * Both aBCoord and the result are relative to the current translation.
    */
-  nscoord ClearFloats(nscoord aBCoord, mozilla::StyleClear aClearType) const;
+  nscoord ClearFloats(nscoord aBCoord, mozilla::UsedClear aClearType) const;
 
   /**
    * Checks if clear would pass into the floats' BFC's next-in-flow,
    * i.e. whether floats affecting this clear have continuations.
    */
-  bool ClearContinues(mozilla::StyleClear aClearType) const;
+  bool ClearContinues(mozilla::UsedClear aClearType) const;
 
   void AssertStateMatches(SavedState* aState) const {
     NS_ASSERTION(

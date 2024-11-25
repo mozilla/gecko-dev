@@ -199,13 +199,13 @@ nsFlowAreaRect nsFloatManager::GetFlowArea(
       // This float is in our band.
 
       // Shrink our band's width if needed.
-      StyleFloat floatStyle = fi.mFrame->StyleDisplay()->UsedFloat(aCBWM);
+      UsedFloat floatStyle = fi.mFrame->StyleDisplay()->UsedFloat(aCBWM);
 
       // When aBandInfoType is BandFromPoint, we're only intended to
       // consider a point along the y axis rather than a band.
       const nscoord bandBlockEnd =
           aBandInfoType == BandInfoType::BandFromPoint ? blockStart : blockEnd;
-      if (floatStyle == StyleFloat::Left) {
+      if (floatStyle == UsedFloat::Left) {
         // A left float
         nscoord lineRightEdge =
             fi.LineRight(aShapeType, blockStart, bandBlockEnd);
@@ -286,11 +286,11 @@ void nsFloatManager::AddFloat(nsIFrame* aFloatFrame,
     info.mRightBEnd = nscoord_MIN;
   }
   WritingMode cbWM = aFloatFrame->GetParent()->GetWritingMode();
-  StyleFloat floatStyle = aFloatFrame->StyleDisplay()->UsedFloat(cbWM);
-  MOZ_ASSERT(floatStyle == StyleFloat::Left || floatStyle == StyleFloat::Right,
+  UsedFloat floatStyle = aFloatFrame->StyleDisplay()->UsedFloat(cbWM);
+  MOZ_ASSERT(floatStyle == UsedFloat::Left || floatStyle == UsedFloat::Right,
              "Unexpected float style!");
   nscoord& sideBEnd =
-      floatStyle == StyleFloat::Left ? info.mLeftBEnd : info.mRightBEnd;
+      floatStyle == UsedFloat::Left ? info.mLeftBEnd : info.mRightBEnd;
   nscoord thisBEnd = info.BEnd();
   if (thisBEnd > sideBEnd) {
     sideBEnd = thisBEnd;
@@ -319,8 +319,8 @@ LogicalRect nsFloatManager::CalculateRegionFor(WritingMode aWM,
     // margin-edge for right floats
     const nsStyleDisplay* display = aFloat->StyleDisplay();
     WritingMode cbWM = aFloat->GetParent()->GetWritingMode();
-    StyleFloat floatStyle = display->UsedFloat(cbWM);
-    if ((StyleFloat::Left == floatStyle) == aWM.IsBidiLTR()) {
+    UsedFloat floatStyle = display->UsedFloat(cbWM);
+    if ((UsedFloat::Left == floatStyle) == aWM.IsBidiLTR()) {
       region.IStart(aWM) = region.IEnd(aWM);
     }
     region.ISize(aWM) = 0;
@@ -471,7 +471,7 @@ nsresult nsFloatManager::List(FILE* out) const {
 #endif
 
 nscoord nsFloatManager::ClearFloats(nscoord aBCoord,
-                                    StyleClear aClearType) const {
+                                    UsedClear aClearType) const {
   if (!HasAnyFloats()) {
     return aBCoord;
   }
@@ -480,17 +480,17 @@ nscoord nsFloatManager::ClearFloats(nscoord aBCoord,
 
   const FloatInfo& tail = mFloats[mFloats.Length() - 1];
   switch (aClearType) {
-    case StyleClear::Both:
+    case UsedClear::Both:
       blockEnd = std::max(blockEnd, tail.mLeftBEnd);
       blockEnd = std::max(blockEnd, tail.mRightBEnd);
       break;
-    case StyleClear::Left:
+    case UsedClear::Left:
       blockEnd = std::max(blockEnd, tail.mLeftBEnd);
       break;
-    case StyleClear::Right:
+    case UsedClear::Right:
       blockEnd = std::max(blockEnd, tail.mRightBEnd);
       break;
-    default:
+    case UsedClear::None:
       // Do nothing
       break;
   }
@@ -500,11 +500,11 @@ nscoord nsFloatManager::ClearFloats(nscoord aBCoord,
   return blockEnd;
 }
 
-bool nsFloatManager::ClearContinues(StyleClear aClearType) const {
+bool nsFloatManager::ClearContinues(UsedClear aClearType) const {
   return ((mPushedLeftFloatPastBreak || mSplitLeftFloatAcrossBreak) &&
-          (aClearType == StyleClear::Both || aClearType == StyleClear::Left)) ||
+          (aClearType == UsedClear::Both || aClearType == UsedClear::Left)) ||
          ((mPushedRightFloatPastBreak || mSplitRightFloatAcrossBreak) &&
-          (aClearType == StyleClear::Both || aClearType == StyleClear::Right));
+          (aClearType == UsedClear::Both || aClearType == UsedClear::Right));
 }
 
 /////////////////////////////////////////////////////////////////////////////
