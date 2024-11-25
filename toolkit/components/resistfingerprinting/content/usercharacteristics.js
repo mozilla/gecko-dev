@@ -19,14 +19,14 @@ function debug(...args) {
     return;
   }
 
-  let stringify = o => {
+  const stringify = o => {
     if (typeof o == "string") {
       return o;
     }
     return JSON.stringify(o);
   };
 
-  let stringifiedArgs = args.map(stringify);
+  const stringifiedArgs = args.map(stringify);
   msg += stringifiedArgs.join(" ");
   debugMsgs.push(msg);
 

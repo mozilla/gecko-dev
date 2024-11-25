@@ -47,17 +47,17 @@ export class UserCharacteristicsChild extends JSWindowActorChild {
 
   async populateGamepadsInfo() {
     lazy.console.debug("Calling populateGamepadsInfo()");
-    let gamepads = await this.contentWindow.navigator.requestAllGamepads();
+    const gamepads = await this.contentWindow.navigator.requestAllGamepads();
 
     lazy.console.debug(`Found ${gamepads.length} gamepads`);
 
-    let gamepadsInfo = [];
+    const gamepadsInfo = [];
 
     for (const gamepad of gamepads) {
       // We use an array to represent a gamepad device because it uses less size
       // then an object when convert to a JSON string. So, we can fit the string
       // into a Glean string which has a 100 size limitation.
-      let data = [];
+      const data = [];
       data.push(gamepad.id);
       data.push(gamepad?.hand ?? "");
       data.push(gamepad.buttons.length);

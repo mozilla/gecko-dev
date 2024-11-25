@@ -88,24 +88,24 @@ export class UserCharacteristicsPageService {
     return lazy.HiddenBrowserManager.withHiddenBrowser(async browser => {
       lazy.console.debug(`In withHiddenBrowser`);
       try {
-        let { promise, resolve } = Promise.withResolvers();
+        const { promise, resolve } = Promise.withResolvers();
         this._backgroundBrowsers.set(browser, resolve);
 
-        let loadURIOptions = {
+        const loadURIOptions = {
           triggeringPrincipal: principal,
         };
 
-        let userCharacteristicsPageURI = Services.io.newURI(
+        const userCharacteristicsPageURI = Services.io.newURI(
           "about:fingerprintingprotection" +
             (Cu.isInAutomation ? "#automation" : "")
         );
 
         browser.loadURI(userCharacteristicsPageURI, loadURIOptions);
 
-        let data = await promise;
+        const data = await promise;
         if (data.debug) {
           lazy.console.debug(`Debugging Output:`);
-          for (let line of data.debug) {
+          for (const line of data.debug) {
             lazy.console.debug(line);
           }
           lazy.console.debug(`(debugging output done)`);
@@ -476,7 +476,7 @@ export class UserCharacteristicsPageService {
   }
 
   async populateGamepads(gamepads) {
-    for (let gamepad of gamepads) {
+    for (const gamepad of gamepads) {
       Glean.characteristics.gamepads.add(gamepad);
     }
   }
@@ -746,7 +746,7 @@ export class UserCharacteristicsPageService {
         "MEDIUM_INT",
         "HIGH_INT",
       ]) {
-        let { rangeMin, rangeMax, precision } = gl.getShaderPrecisionFormat(
+        const { rangeMin, rangeMax, precision } = gl.getShaderPrecisionFormat(
           gl[shaderType],
           gl[precisionType]
         );
@@ -871,9 +871,9 @@ export class UserCharacteristicsPageService {
       `pageLoaded browsingContext=${browsingContext} data=${data}`
     );
 
-    let browser = browsingContext.embedderElement;
+    const browser = browsingContext.embedderElement;
 
-    let backgroundResolve = this._backgroundBrowsers.get(browser);
+    const backgroundResolve = this._backgroundBrowsers.get(browser);
     if (backgroundResolve) {
       backgroundResolve(data);
       return;
