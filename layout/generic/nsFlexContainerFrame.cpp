@@ -1645,10 +1645,18 @@ void nsFlexContainerFrame::ResolveAutoFlexBasisAndMinSize(
   nscoord resolvedMinSize;  // (only set/used if isMainMinSizeAuto==true)
   bool minSizeNeedsToMeasureContent = false;  // assume the best
   if (isMainMinSizeAuto) {
-    // Resolve the min-size, except for considering the min-content size.
-    // (We'll consider that later, if we need to.)
-    resolvedMinSize =
-        PartiallyResolveAutoMinSize(aFlexItem, aItemReflowInput, aAxisTracker);
+    if (IsLegacyBox(this)) {
+      // Allow flex items in a legacy flex container to shrink below their
+      // automatic minimum size by setting the resolved minimum size to zero.
+      // This behavior is not in the spec, but it aligns with blink and webkit's
+      // implementation.
+      resolvedMinSize = 0;
+    } else {
+      // Resolve the min-size, except for considering the min-content size.
+      // (We'll consider that later, if we need to.)
+      resolvedMinSize = PartiallyResolveAutoMinSize(aFlexItem, aItemReflowInput,
+                                                    aAxisTracker);
+    }
     if (resolvedMinSize > 0) {
       // If resolvedMinSize were already at 0, we could skip calculating content
       // size suggestion because it can't go any lower.
