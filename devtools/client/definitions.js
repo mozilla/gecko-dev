@@ -519,7 +519,11 @@ exports.ToolboxButtons = [
     description: "DevTools Experimental preferences",
     isToolSupported: () => !lazy.AppConstants.MOZILLA_OFFICIAL,
     onClick: (event, toolbox) => DevToolsExperimentalPrefs.showTooltip(toolbox),
-    isChecked: () => DevToolsExperimentalPrefs.isAnyPreferenceEnabled(),
+    get className() {
+      return DevToolsExperimentalPrefs.isAnyPreferenceEnabled()
+        ? "devtools-feature-callout"
+        : "";
+    },
   },
   {
     id: "command-button-responsive",
