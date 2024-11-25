@@ -109,7 +109,7 @@ struct AnimationEventInfo {
       : mAnimation(aAnimation),
         mScheduledEventTimeStamp(aScheduledEventTimeStamp),
         mData(CssAnimationData{
-            {OwningAnimationTarget(aTarget.mElement, aTarget.mPseudoType),
+            {OwningAnimationTarget(aTarget.mElement, aTarget.mPseudoRequest),
              aMessage, aElapsedTime, aAnimationIndex},
             std::move(aAnimationName)}) {
     if (profiler_thread_is_being_profiled_for_markers()) {
@@ -127,7 +127,7 @@ struct AnimationEventInfo {
       : mAnimation(aAnimation),
         mScheduledEventTimeStamp(aScheduledEventTimeStamp),
         mData(CssTransitionData{
-            {OwningAnimationTarget(aTarget.mElement, aTarget.mPseudoType),
+            {OwningAnimationTarget(aTarget.mElement, aTarget.mPseudoRequest),
              aMessage, aElapsedTime, aTransitionGeneration},
             aProperty}) {
     if (profiler_thread_is_being_profiled_for_markers()) {
@@ -216,8 +216,8 @@ struct AnimationEventInfo {
       InternalTransitionEvent event(true, data.mMessage);
       data.mProperty.ToString(event.mPropertyName);
       event.mElapsedTime = data.mElapsedTime;
-      event.mPseudoElement =
-          nsCSSPseudoElements::PseudoTypeAsString(data.mTarget.mPseudoType);
+      event.mPseudoElement = nsCSSPseudoElements::PseudoRequestAsString(
+          data.mTarget.mPseudoRequest);
       event.AssignEventTime(WidgetEventTime(data.mEventEnqueueTimeStamp));
       RefPtr target = data.mTarget.mElement;
       EventDispatcher::Dispatch(target, aPresContext, &event);
@@ -229,7 +229,7 @@ struct AnimationEventInfo {
     data.mAnimationName->ToString(event.mAnimationName);
     event.mElapsedTime = data.mElapsedTime;
     event.mPseudoElement =
-        nsCSSPseudoElements::PseudoTypeAsString(data.mTarget.mPseudoType);
+        nsCSSPseudoElements::PseudoRequestAsString(data.mTarget.mPseudoRequest);
     event.AssignEventTime(WidgetEventTime(data.mEventEnqueueTimeStamp));
     RefPtr target = data.mTarget.mElement;
     EventDispatcher::Dispatch(target, aPresContext, &event);

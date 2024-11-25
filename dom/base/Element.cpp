@@ -3954,12 +3954,16 @@ void Element::CloneAnimationsFrom(const Element& aOther) {
   MOZ_ASSERT(timeline, "Timeline has not been set on the document yet");
   // Iterate through all pseudo types and copy the effects from each of the
   // other element's effect sets into this element's effect set.
+  // FIXME: Bug 1929470. This funciton is for printing, and it may be tricky to
+  // support view transitions. We have to revisit here after we support view
+  // transitions to make sure we clone the animations properly.
   for (PseudoStyleType pseudoType :
        {PseudoStyleType::NotPseudo, PseudoStyleType::before,
         PseudoStyleType::after, PseudoStyleType::marker}) {
     // If the element has an effect set for this pseudo type (or not pseudo)
     // then copy the effects and animation properties.
     if (auto* const effects = EffectSet::Get(&aOther, pseudoType)) {
+      const PseudoStyleRequest request(pseudoType);
       auto* const clonedEffects = EffectSet::GetOrCreate(this, pseudoType);
       for (KeyframeEffect* const effect : *effects) {
         auto* animation = effect->GetAnimation();
@@ -3969,7 +3973,7 @@ void Element::CloneAnimationsFrom(const Element& aOther) {
         }
         // Clone the effect.
         RefPtr<KeyframeEffect> clonedEffect = new KeyframeEffect(
-            OwnerDoc(), OwningAnimationTarget{this, pseudoType}, *effect);
+            OwnerDoc(), OwningAnimationTarget{this, request}, *effect);
 
         // Clone the animation
         RefPtr<Animation> clonedAnimation = Animation::ClonePausedAnimation(

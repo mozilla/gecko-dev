@@ -154,7 +154,7 @@ class nsCSSPseudoElements {
     return false;
   }
 
-  static nsString PseudoTypeAsString(Type aPseudoType);
+  static nsString PseudoRequestAsString(const Request& aPseudoRequest);
 
  private:
   // Does the given pseudo-element have all of the flags given?

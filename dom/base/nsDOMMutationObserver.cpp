@@ -372,7 +372,7 @@ void nsAnimationReceiver::RecordAnimationMutation(
   }
 
   // Record animations targeting to a pseudo element only when subtree is true.
-  if (animationTarget.mPseudoType != PseudoStyleType::NotPseudo && !Subtree()) {
+  if (!animationTarget.mPseudoRequest.IsNotPseudo() && !Subtree()) {
     return;
   }
 

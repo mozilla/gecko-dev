@@ -68,7 +68,7 @@ EffectSet* EffectSet::GetForFrame(const nsIFrame* aFrame,
     return nullptr;
   }
 
-  return Get(target->mElement, target->mPseudoType);
+  return Get(target->mElement, target->mPseudoRequest.mType);
 }
 
 /* static */
@@ -87,7 +87,7 @@ EffectSet* EffectSet::GetForStyleFrame(const nsIFrame* aStyleFrame) {
     return nullptr;
   }
 
-  return Get(target->mElement, target->mPseudoType);
+  return Get(target->mElement, target->mPseudoRequest.mType);
 }
 
 /* static */
@@ -97,7 +97,7 @@ EffectSet* EffectSet::GetForEffect(const dom::KeyframeEffect* aEffect) {
     return nullptr;
   }
 
-  return EffectSet::Get(target.mElement, target.mPseudoType);
+  return EffectSet::Get(target.mElement, target.mPseudoRequest.mType);
 }
 
 /* static */

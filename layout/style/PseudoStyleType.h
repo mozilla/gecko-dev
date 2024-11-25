@@ -138,6 +138,10 @@ struct PseudoStyleRequest {
   PseudoStyleRequest(PseudoStyleType aType, nsAtom* aIdentifier)
       : mType(aType), mIdentifier(aIdentifier) {}
 
+  bool operator==(const PseudoStyleRequest& aOther) const {
+    return mType == aOther.mType && mIdentifier == aOther.mIdentifier;
+  }
+
   bool IsNotPseudo() const { return mType == PseudoStyleType::NotPseudo; }
   bool IsPseudoElementOrNotPseudo() const {
     return IsNotPseudo() || PseudoStyle::IsPseudoElement(mType);

@@ -803,7 +803,7 @@ void Animation::CommitStyles(ErrorResult& aRv) {
     return;
   }
 
-  if (target.mPseudoType != PseudoStyleType::NotPseudo) {
+  if (!target.mPseudoRequest.IsNotPseudo()) {
     return aRv.ThrowNoModificationAllowedError(
         "Can't commit styles of a pseudo-element");
   }

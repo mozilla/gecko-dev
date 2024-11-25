@@ -40,13 +40,13 @@ already_AddRefed<ViewTimeline> ViewTimeline::MakeAnonymous(
     Document* aDocument, const NonOwningAnimationTarget& aTarget,
     StyleScrollAxis aAxis, const StyleViewTimelineInset& aInset) {
   // view() finds the nearest scroll container from the animation target.
-  auto [element, pseudo] = FindNearestScroller(
-      aTarget.mElement, PseudoStyleRequest(aTarget.mPseudoType));
+  auto [element, pseudo] =
+      FindNearestScroller(aTarget.mElement, aTarget.mPseudoRequest);
   Scroller scroller =
       Scroller::Nearest(const_cast<Element*>(element), pseudo.mType);
   return MakeAndAddRef<ViewTimeline>(aDocument, scroller, aAxis,
-                                     aTarget.mElement, aTarget.mPseudoType,
-                                     aInset);
+                                     aTarget.mElement,
+                                     aTarget.mPseudoRequest.mType, aInset);
 }
 
 void ViewTimeline::ReplacePropertiesWith(Element* aSubjectElement,

@@ -102,10 +102,8 @@ KeyframeEffect::KeyframeEffect(Document* aDocument,
                                const KeyframeEffect& aOther)
     : AnimationEffect(aDocument, TimingParams{aOther.SpecifiedTiming()}),
       mTarget(std::move(aTarget)),
-      // TODO: We will use PseudoStyleReqeust in OwningAnimationTarget in the
-      // following patches.
       mEffectOptions{aOther.IterationComposite(), aOther.Composite(),
-                     PseudoStyleRequest(mTarget.mPseudoType)},
+                     mTarget.mPseudoRequest},
       mKeyframes(aOther.mKeyframes.Clone()),
       mProperties(aOther.mProperties.Clone()),
       mBaseValues(aOther.mBaseValues.Clone()) {}
@@ -310,8 +308,9 @@ static bool IsEffectiveProperty(const EffectSet& aEffects,
 
 const AnimationProperty* KeyframeEffect::GetEffectiveAnimationOfProperty(
     const AnimatedPropertyID& aProperty, const EffectSet& aEffects) const {
-  MOZ_ASSERT(mTarget && &aEffects == EffectSet::Get(mTarget.mElement,
-                                                    mTarget.mPseudoType));
+  MOZ_ASSERT(mTarget &&
+             &aEffects == EffectSet::Get(mTarget.mElement,
+                                         mTarget.mPseudoRequest.mType));
 
   for (const AnimationProperty& property : mProperties) {
     if (aProperty != property.mProperty) {
@@ -340,7 +339,7 @@ bool KeyframeEffect::HasEffectiveAnimationOfPropertySet(
 nsCSSPropertyIDSet KeyframeEffect::GetPropertiesForCompositor(
     EffectSet& aEffects, const nsIFrame* aFrame) const {
   MOZ_ASSERT(&aEffects ==
-             EffectSet::Get(mTarget.mElement, mTarget.mPseudoType));
+             EffectSet::Get(mTarget.mElement, mTarget.mPseudoRequest.mType));
 
   nsCSSPropertyIDSet properties;
 
@@ -579,10 +578,8 @@ void KeyframeEffect::EnsureBaseStyle(
   if (!aBaseComputedStyle) {
     MOZ_ASSERT(mTarget, "Should have a valid target");
 
-    // TODO: Update OwningAnimationTarget to use PseudoStyleRequest in the
-    // following patches.
-    Element* animatingElement = mTarget.mElement->GetPseudoElement(
-        PseudoStyleRequest(mTarget.mPseudoType));
+    Element* animatingElement =
+        mTarget.mElement->GetPseudoElement(mTarget.mPseudoRequest);
     if (!animatingElement) {
       return;
     }
@@ -668,7 +665,7 @@ void KeyframeEffect::ComposeStyle(
     nsPresContext* presContext =
         nsContentUtils::GetContextForContent(mTarget.mElement);
     EffectSet* effectSet =
-        EffectSet::Get(mTarget.mElement, mTarget.mPseudoType);
+        EffectSet::Get(mTarget.mElement, mTarget.mPseudoRequest.mType);
     if (presContext && effectSet) {
       TimeStamp now = presContext->RefreshDriver()->MostRecentRefresh();
       effectSet->UpdateLastOverflowAnimationSyncTime(now);
@@ -851,10 +848,8 @@ already_AddRefed<KeyframeEffect> KeyframeEffect::ConstructKeyframeEffect(
     return nullptr;
   }
 
-  // TODO: We will use PseudoStyleRequest in OwningAnimaitonTarget in the
-  // following patches.
   RefPtr<KeyframeEffect> effect = new KeyframeEffect(
-      doc, OwningAnimationTarget(aTarget, effectOptions.mPseudoRequest.mType),
+      doc, OwningAnimationTarget(aTarget, effectOptions.mPseudoRequest),
       std::move(timingParams), effectOptions);
 
   effect->SetKeyframes(aGlobal.Context(), aKeyframes, aRv);
@@ -885,7 +880,7 @@ nsTArray<AnimationProperty> KeyframeEffect::BuildProperties(
   auto keyframesCopy(mKeyframes.Clone());
 
   result = KeyframeUtils::GetAnimationPropertiesFromKeyframes(
-      keyframesCopy, mTarget.mElement, mTarget.mPseudoType, aStyle,
+      keyframesCopy, mTarget.mElement, mTarget.mPseudoRequest, aStyle,
       mEffectOptions.mComposite);
 
 #ifdef DEBUG
@@ -908,8 +903,8 @@ static void EnumerateContinuationsOrIBSplitSiblings(nsIFrame* aFrame,
 }
 
 void KeyframeEffect::UpdateTarget(Element* aElement,
-                                  PseudoStyleType aPseudoType) {
-  OwningAnimationTarget newTarget(aElement, aPseudoType);
+                                  const PseudoStyleRequest& aPseudoRequest) {
+  OwningAnimationTarget newTarget(aElement, aPseudoRequest);
 
   if (mTarget == newTarget) {
     // Assign the same target, skip it.
@@ -973,7 +968,7 @@ void KeyframeEffect::UpdateTargetRegistration() {
 
   if (isRelevant && !mInEffectSet) {
     EffectSet* effectSet =
-        EffectSet::GetOrCreate(mTarget.mElement, mTarget.mPseudoType);
+        EffectSet::GetOrCreate(mTarget.mElement, mTarget.mPseudoRequest.mType);
     effectSet->AddEffect(*this);
     mInEffectSet = true;
     UpdateEffectSet(effectSet);
@@ -990,7 +985,8 @@ void KeyframeEffect::UnregisterTarget() {
     return;
   }
 
-  EffectSet* effectSet = EffectSet::Get(mTarget.mElement, mTarget.mPseudoType);
+  EffectSet* effectSet =
+      EffectSet::Get(mTarget.mElement, mTarget.mPseudoRequest.mType);
   MOZ_ASSERT(effectSet,
              "If mInEffectSet is true, there must be an EffectSet"
              " on the target element");
@@ -999,7 +995,8 @@ void KeyframeEffect::UnregisterTarget() {
     effectSet->RemoveEffect(*this);
 
     if (effectSet->IsEmpty()) {
-      EffectSet::DestroyEffectSet(mTarget.mElement, mTarget.mPseudoType);
+      EffectSet::DestroyEffectSet(mTarget.mElement,
+                                  mTarget.mPseudoRequest.mType);
     }
   }
   nsIFrame* frame = GetPrimaryFrame();
@@ -1016,7 +1013,7 @@ void KeyframeEffect::RequestRestyle(
       nsContentUtils::GetContextForContent(mTarget.mElement);
   if (presContext && mAnimation) {
     presContext->EffectCompositor()->RequestRestyle(
-        mTarget.mElement, PseudoStyleRequest(mTarget.mPseudoType), aRestyleType,
+        mTarget.mElement, mTarget.mPseudoRequest, aRestyleType,
         mAnimation->CascadeLevel());
   }
 }
@@ -1030,14 +1027,14 @@ already_AddRefed<const ComputedStyle> KeyframeEffect::GetTargetComputedStyle(
   MOZ_ASSERT(mTarget,
              "Should only have a document when we have a target element");
 
-  OwningAnimationTarget kungfuDeathGrip(mTarget.mElement, mTarget.mPseudoType);
-  // TODO: Bug 1921553. Use PseudoStyleRequest for web animations.
-  const PseudoStyleRequest pseudo(mTarget.mPseudoType);
+  OwningAnimationTarget kungfuDeathGrip(mTarget.mElement,
+                                        mTarget.mPseudoRequest);
 
   return aFlushType == Flush::Style
-             ? nsComputedDOMStyle::GetComputedStyle(mTarget.mElement, pseudo)
-             : nsComputedDOMStyle::GetComputedStyleNoFlush(mTarget.mElement,
-                                                           pseudo);
+             ? nsComputedDOMStyle::GetComputedStyle(mTarget.mElement,
+                                                    mTarget.mPseudoRequest)
+             : nsComputedDOMStyle::GetComputedStyleNoFlush(
+                   mTarget.mElement, mTarget.mPseudoRequest);
 }
 
 #ifdef DEBUG
@@ -1102,7 +1099,7 @@ already_AddRefed<KeyframeEffect> KeyframeEffect::Constructor(
 void KeyframeEffect::SetPseudoElement(const nsAString& aPseudoElement,
                                       ErrorResult& aRv) {
   if (DOMStringIsNull(aPseudoElement)) {
-    UpdateTarget(mTarget.mElement, PseudoStyleType::NotPseudo);
+    UpdateTarget(mTarget.mElement, PseudoStyleRequest::NotPseudo());
     return;
   }
 
@@ -1126,7 +1123,7 @@ void KeyframeEffect::SetPseudoElement(const nsAString& aPseudoElement,
     return;
   }
 
-  UpdateTarget(mTarget.mElement, pseudoRequest->mType);
+  UpdateTarget(mTarget.mElement, *pseudoRequest);
 }
 
 static void CreatePropertyValue(
@@ -1460,7 +1457,8 @@ bool KeyframeEffect::CanThrottle() const {
                    property.mProperty),
                "The property should be able to run on the compositor");
     if (!effectSet) {
-      effectSet = EffectSet::Get(mTarget.mElement, mTarget.mPseudoType);
+      effectSet =
+          EffectSet::Get(mTarget.mElement, mTarget.mPseudoRequest.mType);
       MOZ_ASSERT(effectSet,
                  "CanThrottle should be called on an effect "
                  "associated with a target element");
@@ -1496,7 +1494,8 @@ bool KeyframeEffect::CanThrottle() const {
 bool KeyframeEffect::CanThrottleOverflowChanges(const nsIFrame& aFrame) const {
   TimeStamp now = aFrame.PresContext()->RefreshDriver()->MostRecentRefresh();
 
-  EffectSet* effectSet = EffectSet::Get(mTarget.mElement, mTarget.mPseudoType);
+  EffectSet* effectSet =
+      EffectSet::Get(mTarget.mElement, mTarget.mPseudoRequest.mType);
   MOZ_ASSERT(effectSet,
              "CanOverflowTransformChanges is expected to be called"
              " on an effect in an effect set");
@@ -1563,16 +1562,30 @@ nsIFrame* KeyframeEffect::GetPrimaryFrame() const {
     return frame;
   }
 
-  if (mTarget.mPseudoType == PseudoStyleType::before) {
-    frame = nsLayoutUtils::GetBeforeFrame(mTarget.mElement);
-  } else if (mTarget.mPseudoType == PseudoStyleType::after) {
-    frame = nsLayoutUtils::GetAfterFrame(mTarget.mElement);
-  } else if (mTarget.mPseudoType == PseudoStyleType::marker) {
-    frame = nsLayoutUtils::GetMarkerFrame(mTarget.mElement);
-  } else {
-    frame = mTarget.mElement->GetPrimaryFrame();
-    MOZ_ASSERT(mTarget.mPseudoType == PseudoStyleType::NotPseudo,
-               "unknown mTarget.mPseudoType");
+  switch (mTarget.mPseudoRequest.mType) {
+    case PseudoStyleType::before:
+      frame = nsLayoutUtils::GetBeforeFrame(mTarget.mElement);
+      break;
+    case PseudoStyleType::after:
+      frame = nsLayoutUtils::GetAfterFrame(mTarget.mElement);
+      break;
+    case PseudoStyleType::marker:
+      frame = nsLayoutUtils::GetMarkerFrame(mTarget.mElement);
+      break;
+    case PseudoStyleType::viewTransition:
+    case PseudoStyleType::viewTransitionGroup:
+    case PseudoStyleType::viewTransitionImagePair:
+    case PseudoStyleType::viewTransitionOld:
+    case PseudoStyleType::viewTransitionNew:
+      if (Element* pseudoElement =
+              mTarget.mElement->GetPseudoElement(mTarget.mPseudoRequest)) {
+        frame = pseudoElement->GetPrimaryFrame();
+      }
+      break;
+    default:
+      frame = mTarget.mElement->GetPrimaryFrame();
+      MOZ_ASSERT(mTarget.mPseudoRequest.IsNotPseudo(),
+                 "unknown mTarget.mPseudoRequest");
   }
 
   return frame;
@@ -1660,7 +1673,8 @@ bool KeyframeEffect::ShouldBlockAsyncTransformAnimations(
     return true;
   }
 
-  EffectSet* effectSet = EffectSet::Get(mTarget.mElement, mTarget.mPseudoType);
+  EffectSet* effectSet =
+      EffectSet::Get(mTarget.mElement, mTarget.mPseudoRequest.mType);
   // The various transform properties ('transform', 'scale' etc.) get combined
   // on the compositor.
   //
@@ -1833,7 +1847,8 @@ void KeyframeEffect::MarkCascadeNeedsUpdate() {
     return;
   }
 
-  EffectSet* effectSet = EffectSet::Get(mTarget.mElement, mTarget.mPseudoType);
+  EffectSet* effectSet =
+      EffectSet::Get(mTarget.mElement, mTarget.mPseudoRequest.mType);
   if (!effectSet) {
     return;
   }
@@ -1922,8 +1937,9 @@ void KeyframeEffect::UpdateEffectSet(EffectSet* aEffectSet) const {
   }
 
   EffectSet* effectSet =
-      aEffectSet ? aEffectSet
-                 : EffectSet::Get(mTarget.mElement, mTarget.mPseudoType);
+      aEffectSet
+          ? aEffectSet
+          : EffectSet::Get(mTarget.mElement, mTarget.mPseudoRequest.mType);
   if (!effectSet) {
     return;
   }

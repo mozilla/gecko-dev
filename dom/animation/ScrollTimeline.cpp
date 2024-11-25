@@ -83,13 +83,13 @@ already_AddRefed<ScrollTimeline> ScrollTimeline::MakeAnonymous(
       break;
 
     case StyleScroller::Nearest: {
-      auto [element, pseudo] = FindNearestScroller(
-          aTarget.mElement, PseudoStyleRequest(aTarget.mPseudoType));
+      auto [element, pseudo] =
+          FindNearestScroller(aTarget.mElement, aTarget.mPseudoRequest);
       scroller = Scroller::Nearest(const_cast<Element*>(element), pseudo.mType);
       break;
     }
     case StyleScroller::SelfElement:
-      scroller = Scroller::Self(aTarget.mElement, aTarget.mPseudoType);
+      scroller = Scroller::Self(aTarget.mElement, aTarget.mPseudoRequest.mType);
       break;
   }
 

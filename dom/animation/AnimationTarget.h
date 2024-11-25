@@ -11,8 +11,10 @@
 #include "mozilla/HashFunctions.h"  // For HashNumber, AddToHash
 #include "mozilla/HashTable.h"      // For DefaultHasher, PointerHasher
 #include "mozilla/Maybe.h"
+#include "mozilla/PseudoStyleType.h"  // For PseudoStyleRequest
 #include "mozilla/RefPtr.h"
-#include "nsCSSPseudoElements.h"
+
+class nsAtom;
 
 namespace mozilla {
 
@@ -22,14 +24,15 @@ class Element;
 
 struct OwningAnimationTarget {
   OwningAnimationTarget() = default;
-
-  OwningAnimationTarget(dom::Element* aElement, PseudoStyleType aType)
-      : mElement(aElement), mPseudoType(aType) {}
+  OwningAnimationTarget(dom::Element* aElement,
+                        const PseudoStyleRequest& aRequest)
+      : mElement(aElement), mPseudoRequest(aRequest) {}
 
   explicit OwningAnimationTarget(dom::Element* aElement) : mElement(aElement) {}
 
   bool operator==(const OwningAnimationTarget& aOther) const {
-    return mElement == aOther.mElement && mPseudoType == aOther.mPseudoType;
+    return mElement == aOther.mElement &&
+           mPseudoRequest == aOther.mPseudoRequest;
   }
 
   explicit operator bool() const { return !!mElement; }
@@ -37,25 +40,26 @@ struct OwningAnimationTarget {
   // mElement represents the parent element of a pseudo-element, not the
   // generated content element.
   RefPtr<dom::Element> mElement;
-  PseudoStyleType mPseudoType = PseudoStyleType::NotPseudo;
+  PseudoStyleRequest mPseudoRequest;
 };
 
 struct NonOwningAnimationTarget {
   NonOwningAnimationTarget() = default;
-
-  NonOwningAnimationTarget(dom::Element* aElement, PseudoStyleType aType)
-      : mElement(aElement), mPseudoType(aType) {}
+  NonOwningAnimationTarget(dom::Element* aElement,
+                           const PseudoStyleRequest& aRequest)
+      : mElement(aElement), mPseudoRequest(aRequest) {}
 
   explicit NonOwningAnimationTarget(const OwningAnimationTarget& aOther)
-      : mElement(aOther.mElement), mPseudoType(aOther.mPseudoType) {}
+      : mElement(aOther.mElement), mPseudoRequest(aOther.mPseudoRequest) {}
 
   bool operator==(const NonOwningAnimationTarget& aOther) const {
-    return mElement == aOther.mElement && mPseudoType == aOther.mPseudoType;
+    return mElement == aOther.mElement &&
+           mPseudoRequest == aOther.mPseudoRequest;
   }
 
   NonOwningAnimationTarget& operator=(const OwningAnimationTarget& aOther) {
     mElement = aOther.mElement;
-    mPseudoType = aOther.mPseudoType;
+    mPseudoRequest = aOther.mPseudoRequest;
     return *this;
   }
 
@@ -64,7 +68,7 @@ struct NonOwningAnimationTarget {
   // mElement represents the parent element of a pseudo-element, not the
   // generated content element.
   dom::Element* MOZ_NON_OWNING_REF mElement = nullptr;
-  PseudoStyleType mPseudoType = PseudoStyleType::NotPseudo;
+  PseudoStyleRequest mPseudoRequest;
 };
 
 // Helper functions for cycle-collecting Maybe<OwningAnimationTarget>
@@ -89,15 +93,20 @@ struct DefaultHasher<OwningAnimationTarget> {
   using Key = OwningAnimationTarget;
   using Lookup = OwningAnimationTarget;
   using PtrHasher = PointerHasher<dom::Element*>;
+  using AtomPtrHasher = DefaultHasher<nsAtom*>;
 
   static HashNumber hash(const Lookup& aLookup) {
-    return AddToHash(PtrHasher::hash(aLookup.mElement.get()),
-                     static_cast<uint8_t>(aLookup.mPseudoType));
+    return AddToHash(
+        PtrHasher::hash(aLookup.mElement.get()),
+        static_cast<uint8_t>(aLookup.mPseudoRequest.mType),
+        AtomPtrHasher::hash(aLookup.mPseudoRequest.mIdentifier.get()));
   }
 
   static bool match(const Key& aKey, const Lookup& aLookup) {
     return PtrHasher::match(aKey.mElement.get(), aLookup.mElement.get()) &&
-           aKey.mPseudoType == aLookup.mPseudoType;
+           aKey.mPseudoRequest.mType == aLookup.mPseudoRequest.mType &&
+           AtomPtrHasher::match(aKey.mPseudoRequest.mIdentifier.get(),
+                                aLookup.mPseudoRequest.mIdentifier.get());
   }
 
   static void rekey(Key& aKey, Key&& aNewKey) { aKey = std::move(aNewKey); }

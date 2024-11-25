@@ -142,9 +142,8 @@ bool FindAnimationsForCompositor(
   MOZ_ASSERT(pseudoElement,
              "We have a valid element for the frame, if we don't we should "
              "have bailed out at above the call to EffectSet::Get");
-  // TODO: Update NonOwningAnimationTarget in the following patches.
-  EffectCompositor::MaybeUpdateCascadeResults(
-      pseudoElement->mElement, PseudoStyleRequest(pseudoElement->mPseudoType));
+  EffectCompositor::MaybeUpdateCascadeResults(pseudoElement->mElement,
+                                              pseudoElement->mPseudoRequest);
 
   bool foundRunningAnimations = false;
   for (KeyframeEffect* effect : *effects) {
@@ -213,8 +212,7 @@ void EffectCompositor::RequestRestyle(dom::Element* aElement,
   }
 
   auto& elementsToRestyle = mElementsToRestyle[aCascadeLevel];
-  // TODO: Update PseudoElementHashEntry::KeyType in the following patches.
-  PseudoElementHashEntry::KeyType key = {aElement, aPseudoRequest.mType};
+  PseudoElementHashEntry::KeyType key = {aElement, aPseudoRequest};
 
   bool& restyleEntry = elementsToRestyle.LookupOrInsert(key, false);
   if (aRestyleType == RestyleType::Throttled) {
@@ -294,39 +292,10 @@ void EffectCompositor::PostRestyleForThrottledAnimations() {
         continue;
       }
 
-      PostRestyleForAnimation(iter.Key().mElement,
-                              PseudoStyleRequest(iter.Key().mPseudoType),
+      PostRestyleForAnimation(iter.Key().mElement, iter.Key().mPseudoRequest,
                               cascadeLevel);
       postedRestyle = true;
     }
-  }
-}
-
-void EffectCompositor::ClearRestyleRequestsFor(Element* aElement) {
-  MOZ_ASSERT(aElement);
-
-  auto& elementsToRestyle = mElementsToRestyle[CascadeLevel::Animations];
-
-  PseudoStyleType pseudoType = aElement->GetPseudoElementType();
-  if (pseudoType == PseudoStyleType::NotPseudo) {
-    PseudoElementHashEntry::KeyType notPseudoKey = {aElement,
-                                                    PseudoStyleType::NotPseudo};
-    PseudoElementHashEntry::KeyType beforePseudoKey = {aElement,
-                                                       PseudoStyleType::before};
-    PseudoElementHashEntry::KeyType afterPseudoKey = {aElement,
-                                                      PseudoStyleType::after};
-    PseudoElementHashEntry::KeyType markerPseudoKey = {aElement,
-                                                       PseudoStyleType::marker};
-
-    elementsToRestyle.Remove(notPseudoKey);
-    elementsToRestyle.Remove(beforePseudoKey);
-    elementsToRestyle.Remove(afterPseudoKey);
-    elementsToRestyle.Remove(markerPseudoKey);
-  } else if (AnimationUtils::IsSupportedPseudoForAnimations(pseudoType)) {
-    Element* parentElement = aElement->GetParentElement();
-    MOZ_ASSERT(parentElement);
-    PseudoElementHashEntry::KeyType key = {parentElement, pseudoType};
-    elementsToRestyle.Remove(key);
   }
 }
 
@@ -471,12 +440,11 @@ bool EffectCompositor::ComposeServoAnimationRuleForEffect(
   // where the cascade results are updated in the pre-traversal as needed.
   // This function, however, is only called when committing styles so we
   // need to ensure the cascade results are up-to-date manually.
-  // TODO: Update NonOwningAnimationTarget in the following patches.
-  MaybeUpdateCascadeResults(target.mElement,
-                            PseudoStyleRequest(target.mPseudoType));
+  MaybeUpdateCascadeResults(target.mElement, target.mPseudoRequest);
 
   // TODO: Update EffectSet::Get() in the following patches.
-  EffectSet* effectSet = EffectSet::Get(target.mElement, target.mPseudoType);
+  EffectSet* effectSet =
+      EffectSet::Get(target.mElement, target.mPseudoRequest.mType);
 
   // Get a list of effects sorted by composite order up to and including
   // |aEffect|, even if it is not in the EffectSet.
@@ -497,8 +465,9 @@ bool EffectCompositor::ComposeServoAnimationRuleForEffect(
                        aAnimationValues);
 
   // TODO: Update EffectSet::Get() in the following patches.
-  MOZ_ASSERT(effectSet == EffectSet::Get(target.mElement, target.mPseudoType),
-             "EffectSet should not change while composing style");
+  MOZ_ASSERT(
+      effectSet == EffectSet::Get(target.mElement, target.mPseudoRequest.mType),
+      "EffectSet should not change while composing style");
 
   return true;
 }
@@ -570,10 +539,13 @@ EffectCompositor::GetAnimationElementAndPseudoForFrame(const nsIFrame* aFrame) {
   // Always return the same object to benefit from return-value optimization.
   Maybe<NonOwningAnimationTarget> result;
 
-  PseudoStyleType pseudoType = aFrame->Style()->GetPseudoType();
+  // FIXME: Bug 1922095. We also need to retrieve the functional parameter for
+  // view transitions.
+  const auto& request = PseudoStyleRequest(aFrame->Style()->GetPseudoType());
+  const bool isSupportedPseudo =
+      AnimationUtils::IsSupportedPseudoForAnimations(request);
 
-  if (pseudoType != PseudoStyleType::NotPseudo &&
-      !AnimationUtils::IsSupportedPseudoForAnimations(pseudoType)) {
+  if (!request.IsNotPseudo() && !isSupportedPseudo) {
     return result;
   }
 
@@ -582,7 +554,7 @@ EffectCompositor::GetAnimationElementAndPseudoForFrame(const nsIFrame* aFrame) {
     return result;
   }
 
-  if (AnimationUtils::IsSupportedPseudoForAnimations(pseudoType)) {
+  if (isSupportedPseudo) {
     content = content->GetParent();
     if (!content) {
       return result;
@@ -593,7 +565,7 @@ EffectCompositor::GetAnimationElementAndPseudoForFrame(const nsIFrame* aFrame) {
     return result;
   }
 
-  result.emplace(content->AsElement(), pseudoType);
+  result.emplace(content->AsElement(), request);
 
   return result;
 }
@@ -856,7 +828,8 @@ bool EffectCompositor::PreTraverseInSubtree(ServoTraversalFlags aFlags,
         continue;
       }
 
-      EffectSet* effects = EffectSet::Get(target.mElement, target.mPseudoType);
+      EffectSet* effects =
+          EffectSet::Get(target.mElement, target.mPseudoRequest.mType);
       if (!effects || !effects->CascadeNeedsUpdate()) {
         continue;
       }
@@ -866,9 +839,7 @@ bool EffectCompositor::PreTraverseInSubtree(ServoTraversalFlags aFlags,
   }
 
   for (const NonOwningAnimationTarget& target : elementsWithCascadeUpdates) {
-    // TODO: Update NonOwningAnimationTarget in the following patches.
-    MaybeUpdateCascadeResults(target.mElement,
-                              PseudoStyleRequest(target.mPseudoType));
+    MaybeUpdateCascadeResults(target.mElement, target.mPseudoRequest);
   }
   elementsWithCascadeUpdates.Clear();
 
@@ -890,16 +861,16 @@ bool EffectCompositor::PreTraverseInSubtree(ServoTraversalFlags aFlags,
       // ensure the final restyling for removed animations.
       // We can't call PostRestyleEvent directly here since we are still in the
       // middle of the servo traversal.
-      // TODO: Update NonOwningAnimationTarget in the following patches.
       mPresContext->RestyleManager()->PostRestyleEventForAnimations(
-          target.mElement, PseudoStyleRequest(target.mPseudoType),
+          target.mElement, target.mPseudoRequest,
           cascadeLevel == CascadeLevel::Transitions
               ? RestyleHint::RESTYLE_CSS_TRANSITIONS
               : RestyleHint::RESTYLE_CSS_ANIMATIONS);
 
       foundElementsNeedingRestyle = true;
 
-      auto* effects = EffectSet::Get(target.mElement, target.mPseudoType);
+      auto* effects =
+          EffectSet::Get(target.mElement, target.mPseudoRequest.mType);
       if (!effects) {
         // Drop EffectSets that have been destroyed.
         iter.Remove();
@@ -930,7 +901,7 @@ bool EffectCompositor::PreTraverseInSubtree(ServoTraversalFlags aFlags,
 void EffectCompositor::NoteElementForReducing(
     const NonOwningAnimationTarget& aTarget) {
   Unused << mElementsToReduce.put(
-      OwningAnimationTarget{aTarget.mElement, aTarget.mPseudoType});
+      OwningAnimationTarget{aTarget.mElement, aTarget.mPseudoRequest});
 }
 
 static void ReduceEffectSet(EffectSet& aEffectSet) {
@@ -962,7 +933,8 @@ static void ReduceEffectSet(EffectSet& aEffectSet) {
 void EffectCompositor::ReduceAnimations() {
   for (auto iter = mElementsToReduce.iter(); !iter.done(); iter.next()) {
     const OwningAnimationTarget& target = iter.get();
-    auto* effectSet = EffectSet::Get(target.mElement, target.mPseudoType);
+    auto* effectSet =
+        EffectSet::Get(target.mElement, target.mPseudoRequest.mType);
     if (effectSet) {
       ReduceEffectSet(*effectSet);
     }

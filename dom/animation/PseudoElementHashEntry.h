@@ -21,14 +21,14 @@ class PseudoElementHashEntry : public PLDHashEntryHdr {
   typedef const NonOwningAnimationTarget* KeyTypePointer;
 
   explicit PseudoElementHashEntry(KeyTypePointer aKey)
-      : mElement(aKey->mElement), mPseudoType(aKey->mPseudoType) {}
+      : mElement(aKey->mElement), mPseudoRequest(aKey->mPseudoRequest) {}
   PseudoElementHashEntry(PseudoElementHashEntry&& aOther) = default;
 
   ~PseudoElementHashEntry() = default;
 
-  KeyType GetKey() const { return {mElement, mPseudoType}; }
+  KeyType GetKey() const { return {mElement, mPseudoRequest}; }
   bool KeyEquals(KeyTypePointer aKey) const {
-    return mElement == aKey->mElement && mPseudoType == aKey->mPseudoType;
+    return mElement == aKey->mElement && mPseudoRequest == aKey->mPseudoRequest;
   }
 
   static KeyTypePointer KeyToPointer(KeyType& aKey) { return &aKey; }
@@ -37,13 +37,14 @@ class PseudoElementHashEntry : public PLDHashEntryHdr {
 
     // Convert the scoped enum into an integer while adding it to hash.
     static_assert(sizeof(PseudoStyleType) == sizeof(uint8_t), "");
-    return mozilla::HashGeneric(aKey->mElement,
-                                static_cast<uint8_t>(aKey->mPseudoType));
+    return mozilla::HashGeneric(
+        aKey->mElement, static_cast<uint8_t>(aKey->mPseudoRequest.mType),
+        aKey->mPseudoRequest.mIdentifier.get());
   }
   enum { ALLOW_MEMMOVE = true };
 
   RefPtr<dom::Element> mElement;
-  PseudoStyleType mPseudoType;
+  PseudoStyleRequest mPseudoRequest;
 };
 
 }  // namespace mozilla

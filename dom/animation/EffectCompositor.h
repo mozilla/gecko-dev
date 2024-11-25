@@ -107,11 +107,6 @@ class EffectCompositor {
   // posted because updates on the main thread are throttled.
   void PostRestyleForThrottledAnimations();
 
-  // Clear all pending restyle requests for the given (pseudo-) element (and its
-  // ::before, ::after and ::marker elements if the given element is not
-  // pseudo).
-  void ClearRestyleRequestsFor(dom::Element* aElement);
-
   // Called when computed style on the specified (pseudo-) element might
   // have changed so that any context-sensitive values stored within
   // animation effects (e.g. em-based endpoints used in keyframe effects)

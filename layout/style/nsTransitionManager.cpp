@@ -484,8 +484,9 @@ already_AddRefed<CSSTransition> nsTransitionManager::DoCreateTransition(
     AnimationValue&& aStartForReversingTest, double aReversePortion) {
   dom::DocumentTimeline* timeline = aElement->OwnerDoc()->Timeline();
   KeyframeEffectParams effectOptions;
+  const PseudoStyleRequest request(aPseudoType);
   auto keyframeEffect = MakeRefPtr<KeyframeEffect>(
-      aElement->OwnerDoc(), OwningAnimationTarget(aElement, aPseudoType),
+      aElement->OwnerDoc(), OwningAnimationTarget(aElement, request),
       std::move(aTiming), effectOptions);
 
   keyframeEffect->SetKeyframes(
@@ -499,7 +500,7 @@ already_AddRefed<CSSTransition> nsTransitionManager::DoCreateTransition(
 
   auto animation = MakeRefPtr<CSSTransition>(
       mPresContext->Document()->GetScopeObject(), aProperty);
-  animation->SetOwningElement(OwningElementRef(*aElement, aPseudoType));
+  animation->SetOwningElement(OwningElementRef(*aElement, request));
   animation->SetTimelineNoUpdate(timeline);
   animation->SetCreationSequence(
       mPresContext->RestyleManager()->GetAnimationGeneration());

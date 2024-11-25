@@ -68,7 +68,7 @@ AnimationCollection<AnimationType>::Get(const nsIFrame* aFrame) {
     return nullptr;
   }
 
-  return Get(target->mElement, target->mPseudoType);
+  return Get(target->mElement, target->mPseudoRequest.mType);
 }
 
 // Explicit class instantiations

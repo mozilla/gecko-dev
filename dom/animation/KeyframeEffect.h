@@ -150,14 +150,15 @@ class KeyframeEffect : public AnimationEffect {
 
   Element* GetTarget() const { return mTarget.mElement.get(); }
   NonOwningAnimationTarget GetAnimationTarget() const {
-    return NonOwningAnimationTarget(mTarget.mElement, mTarget.mPseudoType);
+    return NonOwningAnimationTarget(mTarget.mElement, mTarget.mPseudoRequest);
   }
   void GetPseudoElement(nsAString& aRetVal) const {
-    if (mTarget.mPseudoType == PseudoStyleType::NotPseudo) {
+    if (mTarget.mPseudoRequest.IsNotPseudo()) {
       SetDOMStringToNull(aRetVal);
       return;
     }
-    aRetVal = nsCSSPseudoElements::PseudoTypeAsString(mTarget.mPseudoType);
+    aRetVal =
+        nsCSSPseudoElements::PseudoRequestAsString(mTarget.mPseudoRequest);
   }
 
   // These two setters call GetTargetComputedStyle which is not safe to use when
@@ -166,7 +167,7 @@ class KeyframeEffect : public AnimationEffect {
   // that to update the properties rather than calling
   // GetComputedStyle.
   void SetTarget(Element* aTarget) {
-    UpdateTarget(aTarget, mTarget.mPseudoType);
+    UpdateTarget(aTarget, mTarget.mPseudoRequest);
   }
   void SetPseudoElement(const nsAString& aPseudoElement, ErrorResult& aRv);
 
@@ -381,7 +382,8 @@ class KeyframeEffect : public AnimationEffect {
   nsTArray<AnimationProperty> BuildProperties(const ComputedStyle* aStyle);
 
   // Helper for SetTarget() and SetPseudoElement().
-  void UpdateTarget(Element* aElement, PseudoStyleType aPseudoType);
+  void UpdateTarget(Element* aElement,
+                    const PseudoStyleRequest& aPseudoRequest);
 
   // This effect is registered with its target element so long as:
   //
