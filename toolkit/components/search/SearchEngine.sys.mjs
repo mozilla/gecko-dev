@@ -442,9 +442,6 @@ export class SearchEngine {
   _loadPath = null;
   // The engine's description
   _description = "";
-  // Set to true if the engine has a preferred icon (an icon that should not be
-  // overridden by a non-preferred icon).
-  _hasPreferredIcon = null;
   // The engine's name.
   _name = null;
   // The name of the charset used to submit the search terms.
@@ -517,20 +514,19 @@ export class SearchEngine {
    * Add an icon to the icon map used by getIconURL().
    * Icon must be square.
    *
+   * @param {string} iconURL
+   *   String with the icon's URI.
    * @param {number} size
    *   Width and height of the icon.
-   * @param {string} uriSpec
-   *   String with the icon's URI.
+   * @param {boolean} override
+   *   Whether the new URI should override an existing one.
    */
-  _addIconToMap(size, uriSpec) {
-    if (size == 16) {
-      // The 16x16 icon is stored in _iconURL, we don't need to store it twice.
-      return;
-    }
-
+  _addIconToMap(iconURL, size, override = true) {
     // Use an object instead of a Map() because it needs to be serializable.
     this._iconMapObj = this._iconMapObj || {};
-    this._iconMapObj[size] = uriSpec;
+    if (!(size in this._iconMapObj) || override) {
+      this._iconMapObj[size] = iconURL;
+    }
   }
 
   /**
@@ -543,14 +539,13 @@ export class SearchEngine {
    *   or data scheme. Icons with HTTP[S] schemes will be
    *   downloaded and converted to data URIs for storage in the engine
    *   XML files, if the engine is not built-in.
-   * @param {boolean} isPreferred
-   *   Whether or not this icon is to be preferred. Preferred icons can
-   *   override non-preferred icons.
    * @param {number} [size]
    *   Width and height of the icon.
+   * @param {boolean} [override]
+   *   Whether the new URI should override an existing one.
    */
-  _setIcon(iconURL, isPreferred, size) {
-    var uri = lazy.SearchUtils.makeURI(iconURL);
+  async _setIcon(iconURL, size, override = true) {
+    let uri = lazy.SearchUtils.makeURI(iconURL);
 
     // Ignore bad URIs
     if (!uri) {
@@ -565,80 +560,83 @@ export class SearchEngine {
     );
     // Only accept remote icons from http[s]
     switch (uri.scheme) {
-      // Fall through to the data case
-      case "moz-extension":
       case "data":
-        if (!this._hasPreferredIcon || isPreferred) {
-          this._iconURI = uri;
-
-          this._hasPreferredIcon = isPreferred;
-        }
-
-        if (size) {
-          this._addIconToMap(size, iconURL);
-        }
-        break;
-      case "http":
-      case "https": {
-        let iconLoadCallback = function (byteArray, contentType) {
-          // This callback may run after we've already set a preferred icon,
-          // so check again.
-          if (this._hasPreferredIcon && !isPreferred) {
-            return;
-          }
-
-          if (!byteArray) {
-            lazy.logConsole.warn("iconLoadCallback: load failed");
-            return;
-          }
-
-          if (byteArray.length > lazy.SearchUtils.MAX_ICON_SIZE) {
-            try {
-              lazy.logConsole.debug("iconLoadCallback: rescaling icon");
-              [byteArray, contentType] = rescaleIcon(byteArray, contentType);
-            } catch (ex) {
-              lazy.logConsole.error(
-                "Unable to set icon for the search engine:",
-                ex
-              );
-              return;
-            }
-          }
-
-          let dataURL =
-            "data:" +
-            contentType +
-            ";base64," +
-            btoa(String.fromCharCode(...byteArray));
-
-          this._iconURI = lazy.SearchUtils.makeURI(dataURL);
-
-          if (size) {
-            this._addIconToMap(size, iconURL);
-          }
-
-          if (this._engineAddedToStore) {
-            lazy.SearchUtils.notifyAction(
-              this,
-              lazy.SearchUtils.MODIFIED_TYPE.ICON_CHANGED
+      case "moz-extension": {
+        if (!size) {
+          let byteArray, contentType;
+          try {
+            [byteArray, contentType] = await lazy.SearchUtils.fetchIcon(uri);
+          } catch {
+            lazy.logConsole.warn(
+              `Failed to load icon of search engine ${this.name}.`
             );
+            return;
           }
-          this._hasPreferredIcon = isPreferred;
-        };
 
-        let chan = lazy.SearchUtils.makeChannel(
-          uri,
-          Ci.nsIContentPolicy.TYPE_IMAGE
-        );
-        let listener = new lazy.SearchUtils.LoadListener(
-          chan,
-          /^image\//,
-          iconLoadCallback.bind(this)
-        );
-        chan.notificationCallbacks = listener;
-        chan.asyncOpen(listener);
+          let byteString = String.fromCharCode(...byteArray);
+          size = lazy.SearchUtils.decodeSize(byteString, contentType);
+          if (!size) {
+            lazy.logConsole.warn(
+              `Failed to decode size of icon for search engine ${this.name}.`,
+              "Assuming 16x16."
+            );
+            size = 16;
+          }
+        }
+
+        this._addIconToMap(iconURL, size, override);
         break;
       }
+      case "http":
+      case "https": {
+        let byteArray, contentType;
+        try {
+          [byteArray, contentType] = await lazy.SearchUtils.fetchIcon(uri);
+        } catch {
+          lazy.logConsole.warn(
+            `Failed to load icon of search engine ${this.name}.`
+          );
+          return;
+        }
+
+        if (byteArray.length > lazy.SearchUtils.MAX_ICON_SIZE) {
+          try {
+            lazy.logConsole.debug(
+              `Rescaling icon for search engine ${this.name}.`
+            );
+            [byteArray, contentType] = rescaleIcon(byteArray, contentType);
+          } catch (ex) {
+            lazy.logConsole.error(
+              `Unable to rescale  icon for search engine ${this.name}:`,
+              ex
+            );
+            return;
+          }
+        }
+
+        let byteString = String.fromCharCode(...byteArray);
+        if (!size) {
+          size = lazy.SearchUtils.decodeSize(byteString, contentType);
+          if (!size) {
+            lazy.logConsole.warn(
+              `Failed to decode size of icon for search engine ${this.name}.`,
+              "Assuming 16x16."
+            );
+            size = 16;
+          }
+        }
+
+        let dataURL = "data:" + contentType + ";base64," + btoa(byteString);
+        this._addIconToMap(dataURL, size, override);
+        break;
+      }
+    }
+
+    if (this._engineAddedToStore) {
+      lazy.SearchUtils.notifyAction(
+        this,
+        lazy.SearchUtils.MODIFIED_TYPE.ICON_CHANGED
+      );
     }
   }
 
@@ -693,7 +691,7 @@ export class SearchEngine {
   }
 
   /**
-   * Initialize this engine object.
+   * Initialize this engine object using a WebExtension style object.
    *
    * @param {object} details
    *   The details of the engine.
@@ -730,7 +728,9 @@ export class SearchEngine {
 
     this._description = details.description;
     if (details.iconURL) {
-      this._setIcon(details.iconURL, true);
+      this._setIcon(details.iconURL).catch(e =>
+        lazy.logConsole.log("Error while setting search engine icon:", e)
+      );
     }
     this._setUrls(details);
   }
@@ -906,10 +906,8 @@ export class SearchEngine {
     this.#id = json.id ?? this.#id;
     this._name = json._name;
     this._description = json.description;
-    this._hasPreferredIcon = json._hasPreferredIcon == undefined;
     this._queryCharset =
       json.queryCharset || lazy.SearchUtils.DEFAULT_QUERY_CHARSET;
-    this._iconURI = lazy.SearchUtils.makeURI(json._iconURL);
     this._iconMapObj = json._iconMapObj || null;
     this._metaData = json._metaData || {};
     this._orderHint = json._orderHint || null;
@@ -945,7 +943,6 @@ export class SearchEngine {
       "_name",
       "_loadPath",
       "description",
-      "_iconURL",
       "_iconMapObj",
       "_metaData",
       "_urls",
@@ -962,9 +959,6 @@ export class SearchEngine {
       }
     }
 
-    if (!this._hasPreferredIcon) {
-      json._hasPreferredIcon = this._hasPreferredIcon;
-    }
     if (this.queryCharset != lazy.SearchUtils.DEFAULT_QUERY_CHARSET) {
       json.queryCharset = this.queryCharset;
     }
@@ -1109,13 +1103,6 @@ export class SearchEngine {
         lazy.SearchUtils.MODIFIED_TYPE.CHANGED
       );
     }
-  }
-
-  get _iconURL() {
-    if (!this._iconURI) {
-      return "";
-    }
-    return this._iconURI.spec;
   }
 
   // Where the engine is being loaded from: will return the URI's spec if the
@@ -1420,14 +1407,11 @@ export class SearchEngine {
     // XPCOM interfaces pass optional number parameters as 0.
     preferredWidth ||= 16;
 
-    if (preferredWidth == 16 || !this._iconMapObj) {
-      return this._iconURL || undefined;
+    if (!this._iconMapObj) {
+      return undefined;
     }
 
     let availableWidths = Object.keys(this._iconMapObj).map(k => parseInt(k));
-    if (this._iconURL) {
-      availableWidths.push(16);
-    }
     if (!availableWidths.length) {
       return undefined;
     }
@@ -1436,9 +1420,6 @@ export class SearchEngine {
       preferredWidth,
       availableWidths
     );
-    if (bestWidth == 16) {
-      return this._iconURL;
-    }
     return this._iconMapObj[bestWidth];
   }
 

@@ -3,12 +3,6 @@
 
 "use strict";
 
-add_setup(async function () {
-  let server = useHttpServer("");
-  server.registerContentType("sjs", "sjs");
-  await Services.search.init();
-});
-
 const ICON_TESTS = [
   {
     name: "Big Icon",
@@ -26,6 +20,15 @@ const ICON_TESTS = [
     expected: "data:image/svg+xml;base64,",
   },
 ];
+
+let ENGINE_NO_ICONS;
+
+add_setup(async function () {
+  let server = useHttpServer("");
+  server.registerContentType("sjs", "sjs");
+  ENGINE_NO_ICONS = `${gHttpURL}/opensearch/fr-domain-iso8859-1.xml`;
+  await Services.search.init();
+});
 
 add_task(async function test_icon_types() {
   for (let test of ICON_TESTS) {
@@ -89,14 +92,80 @@ add_task(async function test_multiple_icons_in_file() {
   Assert.ok((await engine.getIconURL(76)).includes("ico32"));
 });
 
-add_task(async function test_icon_not_in_opensearch_file() {
-  let engineUrl = `${gHttpURL}/opensearch/fr-domain-iso8859-1.xml`;
+add_task(async function test_icon_not_in_opensearch_file_invalid_svg() {
+  let promiseIconChanged = SearchTestUtils.promiseSearchNotification(
+    SearchUtils.MODIFIED_TYPE.ICON_CHANGED,
+    SearchUtils.TOPIC_ENGINE_MODIFIED
+  );
   let engine = await Services.search.addOpenSearchEngine(
-    engineUrl,
-    "data:image/x-icon;base64,ico16"
+    ENGINE_NO_ICONS,
+    // We still add the icon even if we cannot determine the size.
+    "data:image/svg+xml;base64,invalid+svg"
   );
 
-  // Even though the icon wasn't specified inside the XML file, it should be
-  // available.
-  Assert.ok((await engine.getIconURL(16)).includes("ico16"));
+  await promiseIconChanged;
+  let sizes = Object.keys(engine.wrappedJSObject._iconMapObj);
+  Assert.deepEqual(sizes, ["16"], "Defaulted to 16x16");
+
+  await Services.search.removeEngine(engine);
+});
+
+add_task(async function test_icon_not_in_opensearch_file_invalid_ico() {
+  let promiseIconChanged = SearchTestUtils.promiseSearchNotification(
+    SearchUtils.MODIFIED_TYPE.ICON_CHANGED,
+    SearchUtils.TOPIC_ENGINE_MODIFIED
+  );
+  let engine = await Services.search.addOpenSearchEngine(
+    ENGINE_NO_ICONS,
+    // We still add the icon even if we cannot determine the size.
+    "data:image/x-icon;base64,invalid+ico"
+  );
+
+  await promiseIconChanged;
+  let sizes = Object.keys(engine.wrappedJSObject._iconMapObj);
+  Assert.deepEqual(sizes, ["16"], "Defaulted to 16x16");
+
+  await Services.search.removeEngine(engine);
+});
+
+add_task(async function test_icon_not_in_opensearch_file_svg() {
+  let promiseIconChanged = SearchTestUtils.promiseSearchNotification(
+    SearchUtils.MODIFIED_TYPE.ICON_CHANGED,
+    SearchUtils.TOPIC_ENGINE_MODIFIED
+  );
+  let icoIconDataUrl = await SearchTestUtils.fetchAsDataUrl(
+    `${gHttpURL}/icons/svgIcon.svg`
+  );
+
+  let engine = await Services.search.addOpenSearchEngine(
+    ENGINE_NO_ICONS,
+    icoIconDataUrl
+  );
+
+  await promiseIconChanged;
+  let sizes = Object.keys(engine.wrappedJSObject._iconMapObj);
+  Assert.deepEqual(sizes, ["16"], "Icon size was correctly detected.");
+  Assert.equal(await engine.getIconURL(16), icoIconDataUrl, "Correct icon");
+  await Services.search.removeEngine(engine);
+});
+
+add_task(async function test_icon_not_in_opensearch_file_ico() {
+  let promiseIconChanged = SearchTestUtils.promiseSearchNotification(
+    SearchUtils.MODIFIED_TYPE.ICON_CHANGED,
+    SearchUtils.TOPIC_ENGINE_MODIFIED
+  );
+  let icoIconDataUrl = await SearchTestUtils.fetchAsDataUrl(
+    `${gHttpURL}/icons/multipleSizes.ico`
+  );
+
+  let engine = await Services.search.addOpenSearchEngine(
+    ENGINE_NO_ICONS,
+    icoIconDataUrl
+  );
+
+  await promiseIconChanged;
+  let sizes = Object.keys(engine.wrappedJSObject._iconMapObj);
+  Assert.deepEqual(sizes, ["32"], "Icon size was correctly detected.");
+  Assert.equal(await engine.getIconURL(32), icoIconDataUrl, "Correct icon");
+  await Services.search.removeEngine(engine);
 });

@@ -667,7 +667,11 @@ export class SearchService {
         Services.io.newURI(engineURL)
       );
       engine = new lazy.OpenSearchEngine({ engineData });
-      engine._setIcon(iconURL, false);
+      engine
+        ._setIcon(iconURL, undefined, false)
+        .catch(e =>
+          lazy.logConsole.log("Error while setting search engine icon:", e)
+        );
     } catch (ex) {
       throw Components.Exception(
         "addEngine: Error adding engine:\n" + ex,

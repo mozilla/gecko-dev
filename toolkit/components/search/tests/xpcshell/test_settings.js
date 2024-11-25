@@ -20,6 +20,7 @@ add_setup(async function () {
     { identifier: "engine1" },
     { identifier: "engine2" },
   ]);
+  await SearchTestUtils.initXPCShellAddonManager();
   await Services.search.init();
 });
 
@@ -91,12 +92,16 @@ async function checkLoadSettingProperties(
   Assert.equal(engines[1].id, "engine2");
 
   // The extra engine is the second in the list.
-  isSubObjectOf(EXPECTED_ENGINE.engine, engines[2]);
+  isSubObjectOf(EXPECTED_ENGINE.engine, engines[2], prop => {
+    return prop == "_iconURL";
+  });
   Assert.ok(engines[2].id, "test-addon-id@mozilla.orgdefault");
 
   let engineFromSS = ss.getEngineByName(EXPECTED_ENGINE.engine.name);
   Assert.ok(!!engineFromSS);
-  isSubObjectOf(EXPECTED_ENGINE.engine, engineFromSS);
+  isSubObjectOf(EXPECTED_ENGINE.engine, engineFromSS, prop => {
+    return prop == "_iconURL";
+  });
 
   Assert.equal(
     engineFromSS.getSubmission("foo").uri.spec,

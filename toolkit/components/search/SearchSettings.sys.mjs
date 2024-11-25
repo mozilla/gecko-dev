@@ -5,6 +5,7 @@
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
+  AddonManager: "resource://gre/modules/AddonManager.sys.mjs",
   AppProvidedSearchEngine:
     "resource://gre/modules/AppProvidedSearchEngine.sys.mjs",
   DeferredTask: "resource://gre/modules/DeferredTask.sys.mjs",
@@ -262,6 +263,58 @@ export class SearchSettings {
           ) {
             engine._iconMapObj[sizeObj.width] = icon;
           }
+        }
+      }
+    }
+
+    // Migration for _iconURL
+    if (this.#settings.version < 12 && this.#settings.engines) {
+      for (let engine of this.#settings.engines) {
+        if (engine._iconURL) {
+          let iconURL = engine._iconURL;
+          delete engine._iconURL;
+
+          let uri = lazy.SearchUtils.makeURI(iconURL);
+          if (!uri) {
+            continue;
+          }
+
+          // The URL should be either a data or moz-extension URL so this should
+          // always succeed and be fast. We skip other schemes just to be sure.
+          // If we fail to fetch or decode the icon, we assume it's 16x16.
+          switch (uri.scheme) {
+            case "moz-extension":
+              await lazy.AddonManager.readyPromise;
+              break;
+            case "data":
+              break;
+            default:
+              continue;
+          }
+
+          let byteArray, contentType;
+          try {
+            [byteArray, contentType] = await lazy.SearchUtils.fetchIcon(uri);
+          } catch {
+            lazy.logConsole.warn(
+              `_iconURL migration: failed to load icon of search engine ${engine._name}.`
+            );
+            engine._iconMapObj ||= {};
+            engine._iconMapObj[16] = iconURL;
+            continue;
+          }
+
+          let byteString = String.fromCharCode(...byteArray);
+          let size = lazy.SearchUtils.decodeSize(byteString, contentType);
+          if (!size) {
+            lazy.logConsole.warn(
+              `_iconURL migration: failed to decode size of icon for search engine ${engine._name}.`
+            );
+            size = 16;
+          }
+
+          engine._iconMapObj ||= {};
+          engine._iconMapObj[size] = iconURL;
         }
       }
     }

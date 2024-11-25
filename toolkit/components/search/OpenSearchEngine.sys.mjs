@@ -115,7 +115,7 @@ export class OpenSearchEngine extends SearchEngine {
   /**
    * Returns the engine's updateURI if it exists and returns null otherwise
    *
-   * @returns {?string}
+   * @returns {?nsIURI}
    */
   get updateURI() {
     let updateURL = this._getURLOfType(lazy.SearchUtils.URL_TYPE.OPENSEARCH);
@@ -173,7 +173,9 @@ export class OpenSearchEngine extends SearchEngine {
 
     if (this._iconUpdateURL) {
       // Force update of the icon from the icon URL.
-      this._setIcon(this._iconUpdateURL, true);
+      this._setIcon(this._iconUpdateURL).catch(e =>
+        lazy.logConsole.log("Error while setting search engine icon:", e)
+      );
     }
   }
 
@@ -254,7 +256,9 @@ export class OpenSearchEngine extends SearchEngine {
     }
 
     for (let image of data.images) {
-      this._setIcon(image.url, image.isPreferred, image.size);
+      this._setIcon(image.url, image.size).catch(e =>
+        lazy.logConsole.log("Error while setting search engine icon:", e)
+      );
     }
   }
 

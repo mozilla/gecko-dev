@@ -192,7 +192,11 @@ export class AddonSearchEngine extends SearchEngine {
     // Record other icons that the WebExtension has.
     if (manifest.icons) {
       for (let [size, icon] of Object.entries(manifest.icons)) {
-        this._addIconToMap(parseInt(size), extensionBaseURI.resolve(icon));
+        this._addIconToMap(
+          extensionBaseURI.resolve(icon),
+          parseInt(size),
+          false
+        );
       }
     }
 

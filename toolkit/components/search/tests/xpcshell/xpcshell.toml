@@ -6,6 +6,7 @@ prefs = ["browser.search.removeEngineInfobar.enabled=true"]
 skip-if = ["os == 'android'"]
 support-files = [
   "icons/bigIcon.ico",
+  "icons/multipleSizes.ico",
   "icons/remoteIcon.ico",
   "icons/svgIcon.svg",
   "opensearch/fr-domain-iso8859-1.xml",
@@ -118,6 +119,8 @@ support-files = [
 ["test_opensearch_icon.js"]
 support-files = [
   "opensearch/images.xml",
+  "icons/svgIcon.svg",
+  "icons/multipleSizes.ico",
 ]
 
 ["test_opensearch_icons_invalid.js"]
@@ -196,7 +199,15 @@ support-files = [
 
 ["test_sendSubmissionURL.js"]
 
-["test_settings_migrate_icons.js"]
+["test_settings_migrate_11.js"]
+support-files = [
+  "icons/remoteIcon.ico",
+]
+
+["test_settings_migrate_12.js"]
+support-files = [
+  "icons/remoteIcon.ico",
+]
 
 ["test_settings.js"]
 support-files = [
@@ -250,6 +261,10 @@ support-files = [
 ["test_validate_manifests.js"]
 
 ["test_webextensions_install.js"]
+support-files = [
+  "sjs/iconsRedirect.sjs",
+  "icons/remoteIcon.ico",
+]
 
 ["test_webextensions_language_switch.js"]
 

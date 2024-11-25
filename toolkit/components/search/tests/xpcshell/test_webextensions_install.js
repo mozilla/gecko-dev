@@ -179,7 +179,111 @@ add_task(async function test_load_favicon_redirect() {
   await promiseAfterSettings();
 });
 
-add_task(async function test_load_icons() {
+// The size of the favicon_url is not explicitly stated in the manifest
+// so we test if it is detected correctly for various file and url types.
+add_task(async function test_load_icon_extension_url_ico() {
+  let promiseIconChanged = SearchTestUtils.promiseSearchNotification(
+    SearchUtils.MODIFIED_TYPE.ICON_CHANGED,
+    SearchUtils.TOPIC_ENGINE_MODIFIED
+  );
+  let response = await fetch(`${gHttpURL}/icons/remoteIcon.ico`);
+  let iconBuffer = await response.arrayBuffer();
+
+  let extension = await SearchTestUtils.installSearchExtension(
+    {
+      favicon_url: "icon.ico", // 16x16
+      icons: {
+        // These icons are not loaded because they have an explicit size.
+        48: "icon2.png",
+        49: "icon3.png",
+      },
+    },
+    { skipUnload: true },
+    { "icon.ico": iconBuffer }
+  );
+
+  let engine = Services.search.getEngineByName("Example");
+  await promiseIconChanged;
+  let iconMapObj = engine.wrappedJSObject._iconMapObj;
+
+  Assert.deepEqual(
+    Object.keys(iconMapObj).toSorted(),
+    ["16", "48", "49"],
+    "Should have the correct 3 icons."
+  );
+
+  Assert.equal(
+    await engine.getIconURL(16),
+    `moz-extension://${extension.uuid}/icon.ico`,
+    "16x16 icon is correct."
+  );
+
+  Assert.equal(
+    await engine.getIconURL(48),
+    `moz-extension://${extension.uuid}/icon2.png`,
+    "48x48 icon is correct."
+  );
+  Assert.equal(
+    await engine.getIconURL(49),
+    `moz-extension://${extension.uuid}/icon3.png`,
+    "49x49 icon is correct."
+  );
+  Assert.equal(
+    await engine.getIconURL(50),
+    `moz-extension://${extension.uuid}/icon3.png`,
+    "Uses 49x49 icon for size 50."
+  );
+
+  // User uninstalls their engine
+  await extension.awaitStartup();
+  await extension.unload();
+  await promiseAfterSettings();
+});
+
+add_task(async function test_load_icon_extension_url_svg() {
+  let promiseIconChanged = SearchTestUtils.promiseSearchNotification(
+    SearchUtils.MODIFIED_TYPE.ICON_CHANGED,
+    SearchUtils.TOPIC_ENGINE_MODIFIED
+  );
+  let response = await fetch(`${gHttpURL}/icons/svgIcon.svg`);
+  let iconBuffer = await response.arrayBuffer();
+
+  let extension = await SearchTestUtils.installSearchExtension(
+    {
+      favicon_url: "icon.svg", // 16x16.
+      icons: {
+        // These icons are not loaded because they have an explicit size.
+        48: "icon2.png",
+        49: "icon3.png",
+      },
+    },
+    { skipUnload: true },
+    { "icon.svg": iconBuffer }
+  );
+
+  let engine = Services.search.getEngineByName("Example");
+  await promiseIconChanged;
+  let iconMapObj = engine.wrappedJSObject._iconMapObj;
+
+  Assert.deepEqual(
+    Object.keys(iconMapObj).toSorted(),
+    ["16", "48", "49"],
+    "Should have the correct 3 icons."
+  );
+
+  Assert.equal(
+    await engine.getIconURL(16),
+    `moz-extension://${extension.uuid}/icon.svg`,
+    "16x16 icon is correct."
+  );
+
+  // User uninstalls their engine
+  await extension.awaitStartup();
+  await extension.unload();
+  await promiseAfterSettings();
+});
+
+add_task(async function test_load_icon_http_url_ico() {
   let promiseIconChanged = SearchTestUtils.promiseSearchNotification(
     SearchUtils.MODIFIED_TYPE.ICON_CHANGED,
     SearchUtils.TOPIC_ENGINE_MODIFIED
@@ -187,7 +291,8 @@ add_task(async function test_load_icons() {
 
   let extension = await SearchTestUtils.installSearchExtension(
     {
-      favicon_url: `${gHttpURL}/sjs/iconsRedirect.sjs`,
+      favicon_url: `${gHttpURL}/sjs/iconsRedirect.sjs`, //16x16
+      // These icons are not loaded because they have an explicit size.
       icons: {
         48: "icon.png",
         49: "icon2.png",
@@ -196,31 +301,18 @@ add_task(async function test_load_icons() {
     { skipUnload: true }
   );
 
-  let engine = await Services.search.getEngineByName("Example");
+  let engine = Services.search.getEngineByName("Example");
   await promiseIconChanged;
+  let iconMapObj = engine.wrappedJSObject._iconMapObj;
 
-  Assert.ok(await engine.getIconURL(), "Should have set an iconURI");
-  Assert.ok(
-    (await engine.getIconURL()).startsWith("data:image/x-icon;base64,"),
-    "Should have saved the expected content type for the icon"
-  );
-  Assert.equal(
-    await engine.getIconURL(),
-    await engine.getIconURL(16),
-    "16x16 icon is same as default icon."
-  );
-
-  Assert.ok(
-    (await engine.getIconURL(48)).includes("icon.png"),
-    "48x48 icon is correct."
+  Assert.deepEqual(
+    Object.keys(iconMapObj).toSorted(),
+    ["16", "48", "49"],
+    "Should have the correct 3 icons."
   );
   Assert.ok(
-    (await engine.getIconURL(49)).includes("icon2.png"),
-    "49x49 icon is correct."
-  );
-  Assert.ok(
-    (await engine.getIconURL(50)).includes("icon2.png"),
-    "Uses 49x49 icon for size 50."
+    iconMapObj[16].startsWith("data:image/x-icon;base64,"),
+    "Should have saved the expected content type for the 16x16 icon"
   );
 
   // User uninstalls their engine

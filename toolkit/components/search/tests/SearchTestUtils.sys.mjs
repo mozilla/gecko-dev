@@ -674,6 +674,29 @@ class _SearchTestUtils {
     this.idleService._fireObservers("idle");
     await reloadObserved;
   }
+
+  /**
+   * Fetches a URL and converts the content to a data URL.
+   *
+   * @param {string} url
+   *   The URL of the file that should be fetched.
+   * @returns {Promise<string>}
+   *   The content of the file as a data URL.
+   */
+  async fetchAsDataUrl(url) {
+    let res = await fetch(url);
+    let blob = await res.blob();
+    let reader = new FileReader();
+    return new Promise((resolve, reject) => {
+      reader.onload = () => {
+        resolve(reader.result);
+      };
+      reader.onerror = () => {
+        reject(new Error("Failed to read blob."));
+      };
+      reader.readAsDataURL(blob);
+    });
+  }
 }
 
 export const SearchTestUtils = new _SearchTestUtils();

@@ -209,7 +209,7 @@ export var SearchUtils = {
    *
    * @param {string} urlSpec
    *        The URL string from which to create an nsIURI.
-   * @returns {nsIURI} an nsIURI object, or null if the creation of the URI failed.
+   * @returns {?nsIURI} an nsIURI object, or null if the creation of the URI failed.
    */
   makeURI(urlSpec) {
     try {
@@ -235,10 +235,15 @@ export var SearchUtils = {
     }
     try {
       let uri = typeof url == "string" ? Services.io.newURI(url) : url;
+      let principal =
+        uri.scheme == "moz-extension"
+          ? Services.scriptSecurityManager.createContentPrincipal(uri, {})
+          : Services.scriptSecurityManager.createNullPrincipal({});
+
       return Services.io.newChannelFromURI(
         uri,
         null /* loadingNode */,
-        Services.scriptSecurityManager.createNullPrincipal({}),
+        principal,
         null /* triggeringPrincipal */,
         Ci.nsILoadInfo.SEC_ALLOW_CROSS_ORIGIN_SEC_CONTEXT_IS_NULL,
         contentPolicyType
@@ -266,7 +271,7 @@ export var SearchUtils = {
    *   The current settings version.
    */
   get SETTINGS_VERSION() {
-    return 11;
+    return 12;
   },
 
   /**
@@ -465,6 +470,74 @@ export var SearchUtils = {
     }
 
     return bestSize;
+  },
+
+  /**
+   * Fetches an icon without sending cookies to the page and returns
+   * the data and the mime type. Rejects if the icon cannot be fetched.
+   *
+   * @param {string|nsIURI} uri
+   *  The URI to the icon.
+   * @returns {Promise<[number[], string]>}
+   *   The data as a byte array and the mime type as a string.
+   */
+  async fetchIcon(uri) {
+    return new Promise((resolve, reject) => {
+      let chan = SearchUtils.makeChannel(uri, Ci.nsIContentPolicy.TYPE_IMAGE);
+      let listener = new SearchUtils.LoadListener(
+        chan,
+        /^image\//,
+        (byteArray, contentType) => {
+          if (!byteArray) {
+            reject(new Error(""));
+          }
+          resolve([byteArray, contentType]);
+        }
+      );
+      chan.notificationCallbacks = listener;
+      chan.asyncOpen(listener);
+    });
+  },
+
+  /**
+   * Decodes the image to extract the size. Returns null
+   * if the image is not square or there is a decoding error.
+   *
+   * @param {string} byteString the raw image data
+   * @param {string} contentType the contentType
+   * @returns {?number} the size of the image
+   */
+  decodeSize(byteString, contentType) {
+    if (contentType == "image/svg+xml") {
+      let parser = new DOMParser();
+      let doc = parser.parseFromString(byteString, contentType);
+      if (doc.querySelector("parsererror")) {
+        return null;
+      }
+      let width = doc.documentElement.width.baseVal.value;
+      let height = doc.documentElement.height.baseVal.value;
+      if (width != height) {
+        return null;
+      }
+      return width;
+    }
+
+    let imageTools = Cc["@mozilla.org/image/tools;1"].getService(Ci.imgITools);
+    let imgDecoded;
+    try {
+      imgDecoded = imageTools.decodeImageFromBuffer(
+        byteString,
+        byteString.length,
+        contentType
+      );
+    } catch {
+      return null;
+    }
+    if (imgDecoded.width != imgDecoded.height) {
+      return null;
+    }
+
+    return imgDecoded.width;
   },
 };
 

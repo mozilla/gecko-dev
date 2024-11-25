@@ -31,6 +31,7 @@ add_setup(async function () {
     { identifier: "engine1" },
     { identifier: "engine2" },
   ]);
+  await SearchTestUtils.initXPCShellAddonManager();
   await Services.search.init();
 });
 

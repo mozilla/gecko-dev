@@ -5,6 +5,7 @@
 // profile directory when a user removes the actual engine from their profile.
 
 add_setup(async function () {
+  await SearchTestUtils.initXPCShellAddonManager();
   SearchTestUtils.setRemoteSettingsConfig([{ identifier: "unused" }]);
 });
 

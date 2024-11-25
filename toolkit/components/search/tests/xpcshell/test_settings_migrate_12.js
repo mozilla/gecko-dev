@@ -3,8 +3,11 @@ https://creativecommons.org/publicdomain/zero/1.0/ */
 
 "use strict";
 
+// Tests search settings migration from version 11 to latest.
+// In version 12 the _iconURL of engines is moved into _iconMapObj.
+
 const SEARCH_SETTINGS = {
-  version: 10,
+  version: 11,
   metaData: {
     useSavedOrder: true,
     defaultEngineId: "engine1",
@@ -21,28 +24,17 @@ const SEARCH_SETTINGS = {
       _name: "IconsTest",
       _loadPath: "[http]127.0.0.1/iconstest.xml",
       description: "IconsTest. Search by Test.",
-      _iconURL: "data:image/x-icon;base64,ico16",
+      _iconURL: "placeholder",
       _iconMapObj: {
-        '{"width":32,"height":32}': "data:image/x-icon;base64,ico32",
-        '{"width":74,"height":74}': "data:image/png;base64,ico74",
-        '{"width":42,"height":41}': "data:image/png;base64,ico42",
-        "{}": "data:image/png;base64,ico0",
-        "invalid json": "data:image/png;base64,ico0",
+        16: "data:image/x-icon;base64,ico16",
+        32: "data:image/x-icon;base64,ico32",
+        74: "data:image/png;base64,ico74",
       },
       _metaData: {
         loadPathHash: "OixanEC3I3fSEnZY/YeX1YndC9qdzkqotEEKsodghLY=",
         order: 2,
       },
       _urls: [
-        {
-          params: [
-            { name: "query", value: "{searchTerms}" },
-            { name: "form", value: "MOZW" },
-          ],
-          rels: [],
-          template: "http://api.bing.com/osjson.aspx",
-          type: "application/x-suggestions+json",
-        },
         {
           params: [
             { name: "q", value: "{searchTerms}" },
@@ -63,8 +55,14 @@ const SEARCH_SETTINGS = {
 };
 
 const CONFIG = [{ identifier: "engine1" }];
+let icon16;
 
 add_setup(async function () {
+  useHttpServer();
+  icon16 = await SearchTestUtils.fetchAsDataUrl(
+    `${gHttpURL}/icons/remoteIcon.ico`
+  );
+  SEARCH_SETTINGS.engines[1]._iconURL = icon16;
   SearchTestUtils.setRemoteSettingsConfig(CONFIG);
 
   await IOUtils.writeJSON(
@@ -76,23 +74,21 @@ add_setup(async function () {
   await Services.search.init();
 });
 
-add_task(async function test_icon_migration() {
+add_task(async function test_migration() {
   let engine = Services.search.getEngineByName("IconsTest");
+  let iconMapObj = engine.wrappedJSObject._iconMapObj;
+  Assert.equal(
+    Object.keys(iconMapObj).length,
+    3,
+    "Still 3 icons in _iconMapObj"
+  );
 
   Assert.equal(
-    Object.keys(engine.wrappedJSObject._iconMapObj).length,
-    2,
-    "Only valid _iconMapObj keys got converted."
+    await engine.getIconURL(16),
+    icon16,
+    "_iconURL overwrote the _iconMapObj icon"
   );
-  Assert.ok(
-    Object.keys(engine.wrappedJSObject._iconMapObj)
-      .map(k => parseInt(k))
-      .every(k => !isNaN(k)),
-    "_iconMapObj keys got converted to numbers."
-  );
-
-  Assert.ok((await engine.getIconURL()).includes("ico16"));
-  Assert.ok((await engine.getIconURL(16)).includes("ico16"));
+  info("Checking if the other icons are correct.");
   Assert.ok((await engine.getIconURL(32)).includes("ico32"));
   Assert.ok((await engine.getIconURL(74)).includes("ico74"));
 });
