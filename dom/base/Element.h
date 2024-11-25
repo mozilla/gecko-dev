@@ -1580,10 +1580,6 @@ class Element : public FragmentOrElement {
   void GetAnimationsWithoutFlush(const GetAnimationsOptions& aOptions,
                                  nsTArray<RefPtr<Animation>>& aAnimations);
 
-  static void GetAnimationsUnsorted(Element* aElement,
-                                    PseudoStyleType aPseudoType,
-                                    nsTArray<RefPtr<Animation>>& aAnimations);
-
   void CloneAnimationsFrom(const Element& aOther);
 
   virtual void GetInnerHTML(nsAString& aInnerHTML, OOMReporter& aError);
