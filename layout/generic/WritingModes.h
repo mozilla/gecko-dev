@@ -2074,6 +2074,18 @@ inline AspectRatio AspectRatio::ConvertToWritingMode(
   return aWM.IsVertical() ? Inverted() : *this;
 }
 
+template <>
+inline bool StyleSize::BehavesLikeInitialValue(LogicalAxis aAxis) const {
+  return aAxis == LogicalAxis::Inline ? IsAuto()
+                                      : BehavesLikeInitialValueOnBlockAxis();
+}
+
+template <>
+inline bool StyleMaxSize::BehavesLikeInitialValue(LogicalAxis aAxis) const {
+  return aAxis == LogicalAxis::Inline ? IsNone()
+                                      : BehavesLikeInitialValueOnBlockAxis();
+}
+
 }  // namespace mozilla
 
 // Definitions of inline methods for nsStylePosition, declared in
