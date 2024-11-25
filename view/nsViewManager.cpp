@@ -200,9 +200,9 @@ void nsViewManager::FlushDelayedResize() {
 
 // Convert aIn from being relative to and in appunits of aFromView, to being
 // relative to and in appunits of aToView.
-static nsRegion ConvertRegionBetweenViews(const nsRegion& aIn,
-                                          nsView* aFromView, nsView* aToView) {
-  nsRegion out = aIn;
+static nsRect ConvertRectBetweenViews(const nsRect& aIn, nsView* aFromView,
+                                      nsView* aToView) {
+  nsRect out = aIn;
   out.MoveBy(aFromView->GetOffsetTo(aToView));
   out = out.ScaleToOtherAppUnitsRoundOut(
       aFromView->GetViewManager()->AppUnitsPerDevPixel(),
@@ -413,33 +413,20 @@ void nsViewManager::FlushDirtyRegionToWidget(nsView* aView) {
   NS_ASSERTION(aView->GetViewManager() == this,
                "FlushDirtyRegionToWidget called on view we don't own");
 
-  if (!aView->HasNonEmptyDirtyRegion()) {
+  if (!aView->IsDirty()) {
     return;
   }
 
-  nsRegion& dirtyRegion = aView->GetDirtyRegion();
+  const nsRect dirtyRegion = aView->GetDimensions();
   nsView* nearestViewWithWidget = aView;
   while (!nearestViewWithWidget->HasWidget() &&
          nearestViewWithWidget->GetParent()) {
     nearestViewWithWidget = nearestViewWithWidget->GetParent();
   }
-  nsRegion r =
-      ConvertRegionBetweenViews(dirtyRegion, aView, nearestViewWithWidget);
-
+  nsRect r = ConvertRectBetweenViews(dirtyRegion, aView, nearestViewWithWidget);
   nsViewManager* widgetVM = nearestViewWithWidget->GetViewManager();
   widgetVM->InvalidateWidgetArea(nearestViewWithWidget, r);
-  dirtyRegion.SetEmpty();
-}
-
-void nsViewManager::InvalidateView(nsView* aView) {
-  // Mark the entire view as damaged
-  InvalidateView(aView, aView->GetDimensions());
-}
-
-static void AddDirtyRegion(nsView* aView, const nsRegion& aDamagedRegion) {
-  nsRegion& dirtyRegion = aView->GetDirtyRegion();
-  dirtyRegion.Or(dirtyRegion, aDamagedRegion);
-  dirtyRegion.SimplifyOutward(8);
+  aView->SetIsDirty(false);
 }
 
 void nsViewManager::PostPendingUpdate() {
@@ -500,41 +487,20 @@ static bool ShouldIgnoreInvalidation(nsViewManager* aVM) {
   return false;
 }
 
-void nsViewManager::InvalidateView(nsView* aView, const nsRect& aRect) {
+void nsViewManager::InvalidateView(nsView* aView) {
   // If painting is suppressed in the presshell or an ancestor drop all
   // invalidates, it will invalidate everything when it unsuppresses.
   if (ShouldIgnoreInvalidation(this)) {
     return;
   }
 
-  InvalidateViewNoSuppression(aView, aRect);
-}
-
-void nsViewManager::InvalidateViewNoSuppression(nsView* aView,
-                                                const nsRect& aRect) {
-  MOZ_ASSERT(nullptr != aView, "null view");
-
   NS_ASSERTION(aView->GetViewManager() == this,
-               "InvalidateViewNoSuppression called on view we don't own");
+               "InvalidateView called on view we don't own");
 
-  nsRect damagedRect(aRect);
-  if (damagedRect.IsEmpty()) {
+  if (aView->GetBounds().IsEmpty()) {
     return;
   }
-
-  nsView* displayRoot = GetDisplayRootFor(aView);
-  nsViewManager* displayRootVM = displayRoot->GetViewManager();
-  // Propagate the update to the displayRoot, since iframes, for example,
-  // can overlap each other and be translucent.  So we have to possibly
-  // invalidate our rect in each of the widgets we have lying about.
-  damagedRect.MoveBy(aView->GetOffsetTo(displayRoot));
-  int32_t rootAPD = displayRootVM->AppUnitsPerDevPixel();
-  int32_t APD = AppUnitsPerDevPixel();
-  damagedRect = damagedRect.ScaleToOtherAppUnitsRoundOut(APD, rootAPD);
-
-  // accumulate this rectangle in the view's dirty region, so we can
-  // process it later.
-  AddDirtyRegion(displayRoot, nsRegion(damagedRect));
+  GetDisplayRootFor(aView)->SetIsDirty(true);
 }
 
 void nsViewManager::InvalidateAllViews() {

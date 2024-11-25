@@ -383,14 +383,6 @@ class nsView final : public nsIWidgetListener {
     mNextSibling = aSibling;
   }
 
-  nsRegion& GetDirtyRegion() {
-    if (!mDirtyRegion) {
-      NS_ASSERTION(!mParent, "Only display roots should have dirty regions");
-      mDirtyRegion = mozilla::MakeUnique<nsRegion>();
-    }
-    return *mDirtyRegion;
-  }
-
   // nsIWidgetListener
   mozilla::PresShell* GetPresShell() override;
   nsView* GetView() override { return this; }
@@ -460,9 +452,8 @@ class nsView final : public nsIWidgetListener {
   // parent, if we can)
   void DropMouseGrabbing();
 
-  bool HasNonEmptyDirtyRegion() {
-    return mDirtyRegion && !mDirtyRegion->IsEmpty();
-  }
+  bool IsDirty() const { return mIsDirty; }
+  void SetIsDirty(bool aDirty) { mIsDirty = aDirty; }
 
   void InsertChild(nsView* aChild, nsView* aSibling);
   void RemoveChild(nsView* aChild);
@@ -486,7 +477,6 @@ class nsView final : public nsIWidgetListener {
   nsView* mNextSibling;
   nsView* mFirstChild;
   nsIFrame* mFrame;
-  mozilla::UniquePtr<nsRegion> mDirtyRegion;
   ViewVisibility mVis;
   // position relative our parent view origin but in our appunits
   nscoord mPosX, mPosY;
@@ -498,6 +488,7 @@ class nsView final : public nsIWidgetListener {
   bool mWidgetIsTopLevel;
   bool mForcedRepaint;
   bool mNeedsWindowPropertiesSync;
+  bool mIsDirty = false;
 };
 
 #endif
