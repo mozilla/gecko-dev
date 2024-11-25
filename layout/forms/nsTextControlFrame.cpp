@@ -1229,8 +1229,8 @@ void nsTextControlFrame::nsAnonDivObserver::ContentInserted(
   mFrame.ClearCachedValue();
 }
 
-void nsTextControlFrame::nsAnonDivObserver::ContentWillBeRemoved(
-    nsIContent* aChild) {
+void nsTextControlFrame::nsAnonDivObserver::ContentRemoved(
+    nsIContent* aChild, nsIContent* aPreviousSibling) {
   mFrame.ClearCachedValue();
 }
 

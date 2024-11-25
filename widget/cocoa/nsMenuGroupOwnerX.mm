@@ -92,7 +92,8 @@ void nsMenuGroupOwnerX::AttributeChanged(dom::Element* aElement,
   }
 }
 
-void nsMenuGroupOwnerX::ContentWillBeRemoved(nsIContent* aChild) {
+void nsMenuGroupOwnerX::ContentRemoved(nsIContent* aChild,
+                                       nsIContent* aPreviousSibling) {
   nsIContent* container = aChild->GetParent();
   if (!container) {
     return;
@@ -101,7 +102,8 @@ void nsMenuGroupOwnerX::ContentWillBeRemoved(nsIContent* aChild) {
   nsCOMPtr<nsIMutationObserver> kungFuDeathGrip(this);
   nsChangeObserver* obs = LookupContentChangeObserver(container);
   if (obs) {
-    obs->ObserveContentRemoved(aChild->OwnerDoc(), container, aChild);
+    obs->ObserveContentRemoved(aChild->OwnerDoc(), container, aChild,
+                               aPreviousSibling);
   } else if (container != mContent) {
     // We do a lookup on the parent container in case things were removed
     // under a "menupopup" item. That is basically a wrapper for the contents
@@ -110,7 +112,8 @@ void nsMenuGroupOwnerX::ContentWillBeRemoved(nsIContent* aChild) {
     if (parent) {
       obs = LookupContentChangeObserver(parent);
       if (obs) {
-        obs->ObserveContentRemoved(aChild->OwnerDoc(), container, aChild);
+        obs->ObserveContentRemoved(aChild->OwnerDoc(), container, aChild,
+                                   aPreviousSibling);
       }
     }
   }

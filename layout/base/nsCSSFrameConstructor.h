@@ -252,7 +252,8 @@ class nsCSSFrameConstructor final : public nsFrameManager {
    * at some ancestor of aChild's frame was destroyed and will be reconstructed
    * async.
    */
-  bool ContentWillBeRemoved(nsIContent* aChild, RemoveFlags aFlags);
+  bool ContentRemoved(nsIContent* aChild, nsIContent* aOldNextSibling,
+                      RemoveFlags aFlags);
 
   void CharacterDataChanged(nsIContent* aContent,
                             const CharacterDataChangeInfo& aInfo);
@@ -2177,7 +2178,6 @@ class nsCSSFrameConstructor final : public nsFrameManager {
   bool mQuotesDirty : 1;
   bool mCountersDirty : 1;
   bool mAlwaysCreateFramesForIgnorableWhitespace : 1;
-  bool mReframingForViewportStyles : 1;
 
   // The layout state from our history entry (to restore scroll positions and
   // such from history), or a new one if there was none (so we can store scroll

@@ -1594,26 +1594,22 @@ class Document : public nsINode,
   // Get the root <html> element, or return null if there isn't one (e.g.
   // if the root isn't <html>)
   Element* GetHtmlElement() const;
-  // Returns the first child of GetHtmlContent which has the given tag and is
-  // not aContentToIgnore, or nullptr if that doesn't exist.
-  Element* GetHtmlChildElement(
-      nsAtom* aTag, const nsIContent* aContentToIgnore = nullptr) const;
+  // Returns the first child of GetHtmlContent which has the given tag,
+  // or nullptr if that doesn't exist.
+  Element* GetHtmlChildElement(nsAtom* aTag);
   // Get the canonical <body> element, or return null if there isn't one (e.g.
   // if the root isn't <html> or if the <body> isn't there)
-  HTMLBodyElement* GetBodyElement(
-      const nsIContent* aContentToIgnore = nullptr) const;
+  HTMLBodyElement* GetBodyElement();
   // Get the canonical <head> element, or return null if there isn't one (e.g.
   // if the root isn't <html> or if the <head> isn't there)
-  Element* GetHeadElement() const {
-    return GetHtmlChildElement(nsGkAtoms::head);
-  }
+  Element* GetHeadElement() { return GetHtmlChildElement(nsGkAtoms::head); }
   // Get the "body" in the sense of document.body: The first <body> or
   // <frameset> that's a child of a root <html>
-  nsGenericHTMLElement* GetBody() const;
+  nsGenericHTMLElement* GetBody();
   // Set the "body" in the sense of document.body.
   void SetBody(nsGenericHTMLElement* aBody, ErrorResult& rv);
   // Get the "head" element in the sense of document.head.
-  HTMLSharedElement* GetHead() const;
+  HTMLSharedElement* GetHead();
 
   ServoStyleSet* StyleSetForPresShell() const {
     MOZ_ASSERT(!!mStyleSet.get());

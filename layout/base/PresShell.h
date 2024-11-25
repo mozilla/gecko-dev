@@ -1159,7 +1159,7 @@ class PresShell final : public nsStubDocumentObserver,
   MOZ_CAN_RUN_SCRIPT void FireResizeEvent();
   MOZ_CAN_RUN_SCRIPT void FireResizeEventSync();
 
-  void NativeAnonymousContentWillBeRemoved(nsIContent* aAnonContent);
+  void NativeAnonymousContentRemoved(nsIContent* aAnonContent);
 
   /**
    * See HTMLDocument.setKeyPressEventModel() in HTMLDocument.webidl for the

@@ -2933,9 +2933,10 @@ void Document::DisconnectNodeTree() {
     // Invalidate cached array of child nodes
     InvalidateChildNodes();
 
-    while (nsCOMPtr<nsIContent> content = GetLastChild()) {
+    while (HasChildren()) {
       nsMutationGuard::DidMutate();
-      MutationObservers::NotifyContentWillBeRemoved(this, content);
+      nsCOMPtr<nsIContent> content = GetLastChild();
+      nsIContent* previousSibling = content->GetPreviousSibling();
       DisconnectChild(content);
       if (content == mCachedRootElement) {
         // Immediately clear mCachedRootElement, now that it's been removed
@@ -2943,6 +2944,7 @@ void Document::DisconnectNodeTree() {
         // now-stale value.
         mCachedRootElement = nullptr;
       }
+      MutationObservers::NotifyContentRemoved(this, content, previousSibling);
       content->UnbindFromTree();
     }
     MOZ_ASSERT(!mCachedRootElement,
@@ -9355,31 +9357,25 @@ bool Document::IsValidDomain(nsIURI* aOrigHost, nsIURI* aNewURI) {
 
 Element* Document::GetHtmlElement() const {
   Element* rootElement = GetRootElement();
-  if (rootElement && rootElement->IsHTMLElement(nsGkAtoms::html)) {
+  if (rootElement && rootElement->IsHTMLElement(nsGkAtoms::html))
     return rootElement;
-  }
   return nullptr;
 }
 
-Element* Document::GetHtmlChildElement(
-    nsAtom* aTag, const nsIContent* aContentToIgnore) const {
+Element* Document::GetHtmlChildElement(nsAtom* aTag) {
   Element* html = GetHtmlElement();
-  if (!html) {
-    return nullptr;
-  }
+  if (!html) return nullptr;
 
   // Look for the element with aTag inside html. This needs to run
   // forwards to find the first such element.
   for (nsIContent* child = html->GetFirstChild(); child;
        child = child->GetNextSibling()) {
-    if (child->IsHTMLElement(aTag) && MOZ_LIKELY(child != aContentToIgnore)) {
-      return child->AsElement();
-    }
+    if (child->IsHTMLElement(aTag)) return child->AsElement();
   }
   return nullptr;
 }
 
-nsGenericHTMLElement* Document::GetBody() const {
+nsGenericHTMLElement* Document::GetBody() {
   Element* html = GetHtmlElement();
   if (!html) {
     return nullptr;
@@ -9387,7 +9383,8 @@ nsGenericHTMLElement* Document::GetBody() const {
 
   for (nsIContent* child = html->GetFirstChild(); child;
        child = child->GetNextSibling()) {
-    if (child->IsAnyOfHTMLElements(nsGkAtoms::body, nsGkAtoms::frameset)) {
+    if (child->IsHTMLElement(nsGkAtoms::body) ||
+        child->IsHTMLElement(nsGkAtoms::frameset)) {
       return static_cast<nsGenericHTMLElement*>(child);
     }
   }
@@ -9421,7 +9418,7 @@ void Document::SetBody(nsGenericHTMLElement* newBody, ErrorResult& rv) {
   }
 }
 
-HTMLSharedElement* Document::GetHead() const {
+HTMLSharedElement* Document::GetHead() {
   return static_cast<HTMLSharedElement*>(GetHeadElement());
 }
 

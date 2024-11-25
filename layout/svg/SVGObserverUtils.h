@@ -129,7 +129,7 @@ class SVGRenderingObserver : public nsStubMutationObserver {
   SVGRenderingObserver(uint32_t aCallbacks = kAttributeChanged |
                                              kContentAppended |
                                              kContentInserted |
-                                             kContentWillBeRemoved) {
+                                             kContentRemoved) {
     SetEnabledCallbacks(aCallbacks);
   }
 

@@ -179,11 +179,10 @@ void nsFormFillController::ContentInserted(nsIContent* aChild) {
 }
 
 MOZ_CAN_RUN_SCRIPT_BOUNDARY
-void nsFormFillController::ContentWillBeRemoved(nsIContent* aChild) {
+void nsFormFillController::ContentRemoved(nsIContent* aChild,
+                                          nsIContent* aPreviousSibling) {
   if (mListNode && mListNode->Contains(aChild->GetParent())) {
-    nsContentUtils::AddScriptRunner(
-        NewRunnableMethod("nsFormFillController::ContentWillBeRemoved", this,
-                          &nsFormFillController::RevalidateDataList));
+    RevalidateDataList();
   }
 }
 

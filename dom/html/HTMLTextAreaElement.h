@@ -292,11 +292,6 @@ class HTMLTextAreaElement final : public TextControlElement,
   using nsGenericHTMLFormControlElementWithState::IsSingleLineTextControl;
 
   JSObject* WrapNode(JSContext*, JS::Handle<JSObject*> aGivenProto) override;
-  void ResetIfUnchanged() {
-    if (!mValueChanged) {
-      Reset();
-    }
-  }
 
   nsCOMPtr<nsIControllers> mControllers;
   /** https://html.spec.whatwg.org/#user-interacted */

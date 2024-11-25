@@ -681,7 +681,7 @@ void nsRange::ContentInserted(nsIContent* aChild) {
   }
 }
 
-void nsRange::ContentWillBeRemoved(nsIContent* aChild) {
+void nsRange::ContentRemoved(nsIContent* aChild, nsIContent* aPreviousSibling) {
   MOZ_ASSERT(mIsPositioned);
 
   nsINode* container = aChild->GetParentNode();
@@ -700,7 +700,7 @@ void nsRange::ContentWillBeRemoved(nsIContent* aChild) {
     // We're only interested if our boundary reference was removed, otherwise
     // we can just invalidate the offset.
     if (aChild == mStart.Ref()) {
-      newStart = {container, aChild->GetPreviousSibling()};
+      newStart = {container, aPreviousSibling};
     } else {
       newStart.CopyFrom(mStart, RangeBoundaryIsMutationObserved::Yes);
       newStart.InvalidateOffset();
@@ -708,14 +708,14 @@ void nsRange::ContentWillBeRemoved(nsIContent* aChild) {
   } else {
     gravitateStart = Some(startContainer->IsInclusiveDescendantOf(aChild));
     if (gravitateStart.value()) {
-      newStart = {container, aChild->GetPreviousSibling()};
+      newStart = {container, aPreviousSibling};
     }
   }
 
   // Do same thing for end boundry.
   if (container == endContainer) {
     if (aChild == mEnd.Ref()) {
-      newEnd = {container, aChild->GetPreviousSibling()};
+      newEnd = {container, aPreviousSibling};
     } else {
       newEnd.CopyFrom(mEnd, RangeBoundaryIsMutationObserved::Yes);
       newEnd.InvalidateOffset();
@@ -727,7 +727,7 @@ void nsRange::ContentWillBeRemoved(nsIContent* aChild) {
       gravitateEnd = endContainer->IsInclusiveDescendantOf(aChild);
     }
     if (gravitateEnd) {
-      newEnd = {container, aChild->GetPreviousSibling()};
+      newEnd = {container, aPreviousSibling};
     }
   }
 

@@ -406,7 +406,8 @@ bool IsMenuStructureElement(nsIContent* aContent) {
 
 void nsMenuItemX::ObserveContentRemoved(dom::Document* aDocument,
                                         nsIContent* aContainer,
-                                        nsIContent* aChild) {
+                                        nsIContent* aChild,
+                                        nsIContent* aPreviousSibling) {
   MOZ_RELEASE_ASSERT(mMenuGroupOwner);
   MOZ_RELEASE_ASSERT(mMenuParent);
 

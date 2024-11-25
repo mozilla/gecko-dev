@@ -88,9 +88,10 @@ class MutationObserverWrapper final : public nsIMutationObserver {
     mOwner->ContentInserted(aChild);
   }
 
-  void ContentWillBeRemoved(nsIContent* aChild) override {
+  void ContentRemoved(nsIContent* aChild,
+                      nsIContent* aPreviousSibling) override {
     MOZ_ASSERT(mOwner);
-    mOwner->ContentWillBeRemoved(aChild);
+    mOwner->ContentRemoved(aChild, aPreviousSibling);
   }
 
   void NodeWillBeDestroyed(nsINode* aNode) override {

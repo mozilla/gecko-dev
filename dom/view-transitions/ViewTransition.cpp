@@ -621,7 +621,7 @@ void ViewTransition::ClearActiveTransition() {
   if (mViewTransitionRoot) {
     nsAutoScriptBlocker scriptBlocker;
     if (PresShell* ps = mDocument->GetPresShell()) {
-      ps->ContentWillBeRemoved(mViewTransitionRoot);
+      ps->ContentRemoved(mViewTransitionRoot, nullptr);
     }
     mViewTransitionRoot->UnbindFromTree();
     mViewTransitionRoot = nullptr;

@@ -122,7 +122,8 @@ void XPathResult::ContentInserted(nsIContent* aChild) {
   Invalidate(aChild->GetParent());
 }
 
-void XPathResult::ContentWillBeRemoved(nsIContent* aChild) {
+void XPathResult::ContentRemoved(nsIContent* aChild,
+                                 nsIContent* aPreviousSibling) {
   Invalidate(aChild->GetParent());
 }
 

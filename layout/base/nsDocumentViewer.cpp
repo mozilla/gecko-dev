@@ -270,7 +270,8 @@ void BFCachePreventionObserver::ContentInserted(nsIContent* aChild) {
   MutationHappened();
 }
 
-void BFCachePreventionObserver::ContentWillBeRemoved(nsIContent* aChild) {
+void BFCachePreventionObserver::ContentRemoved(nsIContent* aChild,
+                                               nsIContent* aPreviousSibling) {
   if (aChild->IsInNativeAnonymousSubtree()) {
     return;
   }

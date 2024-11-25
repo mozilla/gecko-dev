@@ -1082,7 +1082,8 @@ void txMozillaXSLTProcessor::ContentInserted(nsIContent* aChild) {
   mStylesheet = nullptr;
 }
 
-void txMozillaXSLTProcessor::ContentWillBeRemoved(nsIContent* aChild) {
+void txMozillaXSLTProcessor::ContentRemoved(nsIContent* aChild,
+                                            nsIContent* aPreviousSibling) {
   mStylesheet = nullptr;
 }
 

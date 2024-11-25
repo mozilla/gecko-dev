@@ -338,7 +338,8 @@ void HTMLSelectEventListener::CharacterDataChanged(
   }
 }
 
-void HTMLSelectEventListener::ContentWillBeRemoved(nsIContent* aChild) {
+void HTMLSelectEventListener::ContentRemoved(nsIContent* aChild,
+                                             nsIContent* aPreviousSibling) {
   if (nsContentUtils::IsInSameAnonymousTree(mElement, aChild)) {
     OptionValueMightHaveChanged(aChild);
     ComboboxMightHaveChanged();

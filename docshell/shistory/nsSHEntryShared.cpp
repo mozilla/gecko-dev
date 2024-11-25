@@ -357,7 +357,8 @@ void nsSHEntryShared::ContentInserted(nsIContent* aChild) {
   }
 }
 
-void nsSHEntryShared::ContentWillBeRemoved(nsIContent* aChild) {
+void nsSHEntryShared::ContentRemoved(nsIContent* aChild,
+                                     nsIContent* aPreviousSibling) {
   if (!IgnoreMutationForBfCache(*aChild)) {
     RemoveFromBFCacheAsync();
   }

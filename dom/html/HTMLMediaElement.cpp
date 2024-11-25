@@ -2179,9 +2179,10 @@ void HTMLMediaElement::AddSizeOfExcludingThis(nsWindowSizes& aSizes,
   }
 }
 
-void HTMLMediaElement::ContentWillBeRemoved(nsIContent* aChild) {
+void HTMLMediaElement::ContentRemoved(nsIContent* aChild,
+                                      nsIContent* aPreviousSibling) {
   if (aChild == mSourcePointer) {
-    mSourcePointer = aChild->GetPreviousSibling();
+    mSourcePointer = aPreviousSibling;
   }
 }
 

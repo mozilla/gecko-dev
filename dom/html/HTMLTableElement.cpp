@@ -442,7 +442,8 @@ void TableRowsCollection::ContentInserted(nsIContent* aChild) {
   HandleInsert(aChild->GetParent(), aChild);
 }
 
-void TableRowsCollection::ContentWillBeRemoved(nsIContent* aChild) {
+void TableRowsCollection::ContentRemoved(nsIContent* aChild,
+                                         nsIContent* aPreviousSibling) {
   if (!nsContentUtils::IsInSameAnonymousTree(mParent, aChild) ||
       !InterestingContainer(aChild->GetParent())) {
     return;

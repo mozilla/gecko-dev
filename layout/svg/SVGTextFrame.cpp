@@ -2893,7 +2893,8 @@ void SVGTextFrame::MutationObserver::ContentInserted(nsIContent* aChild) {
   mFrame->NotifyGlyphMetricsChange(true);
 }
 
-void SVGTextFrame::MutationObserver::ContentWillBeRemoved(nsIContent* aChild) {
+void SVGTextFrame::MutationObserver::ContentRemoved(
+    nsIContent* aChild, nsIContent* aPreviousSibling) {
   mFrame->NotifyGlyphMetricsChange(true);
 }
 

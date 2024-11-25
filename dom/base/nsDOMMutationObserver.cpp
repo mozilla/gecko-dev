@@ -254,7 +254,8 @@ void nsMutationReceiver::ContentInserted(nsIContent* aChild) {
   m->mNextSibling = aChild->GetNextSibling();
 }
 
-void nsMutationReceiver::ContentWillBeRemoved(nsIContent* aChild) {
+void nsMutationReceiver::ContentRemoved(nsIContent* aChild,
+                                        nsIContent* aPreviousSibling) {
   if (!IsObservable(aChild)) {
     return;
   }
@@ -332,8 +333,9 @@ void nsMutationReceiver::ContentWillBeRemoved(nsIContent* aChild) {
     m->mTarget = parent;
     m->mRemovedNodes = new nsSimpleContentList(parent);
     m->mRemovedNodes->AppendElement(aChild);
-    m->mPreviousSibling = aChild->GetPreviousSibling();
-    m->mNextSibling = aChild->GetNextSibling();
+    m->mPreviousSibling = aPreviousSibling;
+    m->mNextSibling = aPreviousSibling ? aPreviousSibling->GetNextSibling()
+                                       : parent->GetFirstChild();
   }
   // We need to schedule always, so that after microtask mTransientReceivers
   // can be cleared correctly.

@@ -271,8 +271,13 @@ class MOZ_STACK_CLASS ContentEventHandler {
      * previous sibling of aContent actually.
      */
     static RawNodePosition Before(const nsIContent& aContent) {
-      return RawNodePosition(aContent.GetParentNode(),
-                             aContent.GetPreviousSibling());
+      if (!aContent.IsBeingRemoved()) {
+        return RawNodePosition(aContent.GetParentNode(),
+                               aContent.GetPreviousSibling());
+      }
+      RawNodePosition ret(const_cast<nsIContent*>(&aContent), 0u);
+      ret.mAfterOpenTag = false;
+      return ret;
     }
 
     RawNodePosition(nsINode* aContainer, uint32_t aOffset)

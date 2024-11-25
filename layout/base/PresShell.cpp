@@ -2151,7 +2151,7 @@ static nsIContent* GetNativeAnonymousSubtreeRoot(nsIContent* aContent) {
   return aContent->GetClosestNativeAnonymousSubtreeRoot();
 }
 
-void PresShell::NativeAnonymousContentWillBeRemoved(nsIContent* aAnonContent) {
+void PresShell::NativeAnonymousContentRemoved(nsIContent* aAnonContent) {
   MOZ_ASSERT(aAnonContent->IsRootOfNativeAnonymousSubtree());
   mPresContext->EventStateManager()->NativeAnonymousContentRemoved(
       aAnonContent);
@@ -4624,17 +4624,30 @@ MOZ_CAN_RUN_SCRIPT_BOUNDARY void PresShell::ContentInserted(
       aChild, nsCSSFrameConstructor::InsertionKind::Async);
 }
 
-MOZ_CAN_RUN_SCRIPT_BOUNDARY void PresShell::ContentWillBeRemoved(
-    nsIContent* aChild) {
+MOZ_CAN_RUN_SCRIPT_BOUNDARY void PresShell::ContentRemoved(
+    nsIContent* aChild, nsIContent* aPreviousSibling) {
   MOZ_ASSERT(!nsContentUtils::IsSafeToRunScript());
   MOZ_ASSERT(!mIsDocumentGone, "Unexpected ContentRemoved");
   MOZ_ASSERT(aChild->OwnerDoc() == mDocument, "Unexpected document");
+  nsINode* container = aChild->GetParentNode();
+
   // Notify the ESM that the content has been removed, so that
   // it can clean up any state related to the content.
 
   mPresContext->EventStateManager()->ContentRemoved(mDocument, aChild);
 
   nsAutoCauseReflowNotifier crNotifier(this);
+
+  // Call this here so it only happens for real content mutations and
+  // not cases when the frame constructor calls its own methods to force
+  // frame reconstruction.
+  nsIContent* oldNextSibling = nullptr;
+
+  // Editor and view transitions code call into here with NAC.
+  if (MOZ_LIKELY(!aChild->IsRootOfNativeAnonymousSubtree())) {
+    oldNextSibling = aPreviousSibling ? aPreviousSibling->GetNextSibling()
+                                      : container->GetFirstChild();
+  }
 
   // After removing aChild from tree we should save information about live
   // ancestor
@@ -4643,14 +4656,14 @@ MOZ_CAN_RUN_SCRIPT_BOUNDARY void PresShell::ContentWillBeRemoved(
     mPointerEventTarget = aChild->GetParent();
   }
 
-  mFrameConstructor->ContentWillBeRemoved(
-      aChild, nsCSSFrameConstructor::REMOVE_CONTENT);
+  mFrameConstructor->ContentRemoved(aChild, oldNextSibling,
+                                    nsCSSFrameConstructor::REMOVE_CONTENT);
 
   // NOTE(emilio): It's important that this goes after the frame constructor
   // stuff, otherwise the frame constructor can't see elements which are
   // display: contents / display: none, because we'd have cleared all the style
   // data from there.
-  mPresContext->RestyleManager()->ContentWillBeRemoved(aChild);
+  mPresContext->RestyleManager()->ContentRemoved(aChild, oldNextSibling);
 }
 
 void PresShell::NotifyCounterStylesAreDirty() {

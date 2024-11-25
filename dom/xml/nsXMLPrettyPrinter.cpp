@@ -172,7 +172,8 @@ void nsXMLPrettyPrinter::ContentInserted(nsIContent* aChild) {
   MaybeUnhook(aChild->GetParent());
 }
 
-void nsXMLPrettyPrinter::ContentWillBeRemoved(nsIContent* aChild) {
+void nsXMLPrettyPrinter::ContentRemoved(nsIContent* aChild,
+                                        nsIContent* aPreviousSibling) {
   MaybeUnhook(aChild->GetParent());
 }
 

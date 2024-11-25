@@ -541,7 +541,8 @@ class ServoStyleSet {
    * Maybe invalidate if a DOM element removal might require us to restyle
    * the relative selector to ancestors/previous siblings.
    */
-  void MaybeInvalidateForElementRemove(const dom::Element& aElement);
+  void MaybeInvalidateForElementRemove(const dom::Element& aElement,
+                                       const nsIContent* aFollowingSibling);
 
   /**
    * Returns true if a change in event state on an element might require

@@ -817,7 +817,8 @@ static UniquePtr<Area> TakeArea(nsImageMap::AreaList& aAreas,
   return result;
 }
 
-void nsImageMap::ContentWillBeRemoved(nsIContent* aChild) {
+void nsImageMap::ContentRemoved(nsIContent* aChild,
+                                nsIContent* aPreviousSibling) {
   if (aChild->GetParent() != mMap && !mConsiderWholeSubtree) {
     return;
   }

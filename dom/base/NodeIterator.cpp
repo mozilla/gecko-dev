@@ -1,4 +1,4 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*-
+/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 2 -*-
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -52,46 +52,40 @@ bool NodeIterator::NodePointer::MoveToPrevious(nsINode* aRoot) {
     return true;
   }
 
-  if (mNode == aRoot) {
-    return false;
-  }
+  if (mNode == aRoot) return false;
 
   MoveBackward(mNode->GetParentNode(), mNode->GetPreviousSibling());
 
   return true;
 }
 
-void NodeIterator::NodePointer::AdjustForRemoval(nsINode* aRoot,
-                                                 nsINode* aContainer,
-                                                 nsIContent* aChild) {
+void NodeIterator::NodePointer::AdjustAfterRemoval(
+    nsINode* aRoot, nsINode* aContainer, nsIContent* aChild,
+    nsIContent* aPreviousSibling) {
   // If mNode is null or the root there is nothing to do.
-  if (!mNode || mNode == aRoot) {
-    return;
-  }
+  if (!mNode || mNode == aRoot) return;
 
   // check if ancestor was removed
-  if (!mNode->IsInclusiveDescendantOf(aChild)) {
-    return;
-  }
+  if (!mNode->IsInclusiveDescendantOf(aChild)) return;
 
   if (mBeforeNode) {
     // Try the next sibling
-    nsINode* nextSibling = aChild->GetNextSibling();
+    nsINode* nextSibling = aPreviousSibling ? aPreviousSibling->GetNextSibling()
+                                            : aContainer->GetFirstChild();
+
     if (nextSibling) {
       mNode = nextSibling;
       return;
     }
 
     // Next try siblings of ancestors
-    if (MoveForward(aRoot, aContainer)) {
-      return;
-    }
+    if (MoveForward(aRoot, aContainer)) return;
 
     // No suitable node was found so try going backwards
     mBeforeNode = false;
   }
 
-  MoveBackward(aContainer, aChild->GetPreviousSibling());
+  MoveBackward(aContainer, aPreviousSibling);
 }
 
 bool NodeIterator::NodePointer::MoveForward(nsINode* aRoot, nsINode* aNode) {
@@ -201,10 +195,13 @@ void NodeIterator::Detach() {
  * nsIMutationObserver interface
  */
 
-void NodeIterator::ContentWillBeRemoved(nsIContent* aChild) {
+void NodeIterator::ContentRemoved(nsIContent* aChild,
+                                  nsIContent* aPreviousSibling) {
   nsINode* container = aChild->GetParentNode();
-  mPointer.AdjustForRemoval(mRoot, container, aChild);
-  mWorkingPointer.AdjustForRemoval(mRoot, container, aChild);
+
+  mPointer.AdjustAfterRemoval(mRoot, container, aChild, aPreviousSibling);
+  mWorkingPointer.AdjustAfterRemoval(mRoot, container, aChild,
+                                     aPreviousSibling);
 }
 
 bool NodeIterator::WrapObject(JSContext* cx, JS::Handle<JSObject*> aGivenProto,

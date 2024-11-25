@@ -176,16 +176,17 @@ void MutationObservers::NotifyContentInserted(nsINode* aContainer,
          nsIMutationObserver::kContentInserted);
 }
 
-void MutationObservers::NotifyContentWillBeRemoved(nsINode* aContainer,
-                                                   nsIContent* aChild) {
+void MutationObservers::NotifyContentRemoved(nsINode* aContainer,
+                                             nsIContent* aChild,
+                                             nsIContent* aPreviousSibling) {
   MOZ_ASSERT(aContainer->IsContent() || aContainer->IsDocument(),
              "container must be an nsIContent or an Document");
+  aContainer->OwnerDoc()->Changed();
   MOZ_ASSERT(aChild->GetParentNode() == aContainer,
              "We expect the parent link to be still around at this point");
-  aContainer->OwnerDoc()->Changed();
-  Notify<NotifyPresShell::Before>(aContainer,
-                                  NOTIFIER(ContentWillBeRemoved, aChild),
-                                  nsIMutationObserver::kContentWillBeRemoved);
+  Notify<NotifyPresShell::Before>(
+      aContainer, NOTIFIER(ContentRemoved, aChild, aPreviousSibling),
+      nsIMutationObserver::kContentRemoved);
 }
 
 void MutationObservers::NotifyARIAAttributeDefaultWillChange(
