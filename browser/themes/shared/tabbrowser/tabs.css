@@ -760,6 +760,8 @@
 
   .tabbrowser-tab:last-of-type > .tab-stack > .tab-background > & {
     margin-inline-end: 0;
+    border-start-end-radius: 1px;
+    border-end-end-radius: 1px;
   }
 
   tab-group & {
@@ -769,6 +771,7 @@
   #tabbrowser-tabs[movingtab] &:is([selected],[multiselected]) {
     display: flex;
     background-color: light-dark(var(--dragover-tab-group-color), var(--dragover-tab-group-color-invert));
+    border-radius: 1px;
   }
 
   #tabbrowser-tabs:is([movingtab-createGroup],[movingtab-ungroup]) &:is([selected],[multiselected]) {
@@ -812,6 +815,8 @@ tab-group {
     height: 2px;
     position: absolute;
     inset: auto 0 0;
+    border-start-start-radius: 1px;
+    border-end-start-radius: 1px;
   }
 }
 
