@@ -243,7 +243,6 @@
   --theme-toolbarbutton-background: none;
   --theme-toolbarbutton-color: light-dark(var(--grey-70), var(--grey-40));
   --theme-toolbarbutton-hover-background: color-mix(in srgb, currentColor 14%, transparent);
-  --theme-toolbarbutton-hover-color: var(--theme-toolbarbutton-color);
   --theme-toolbarbutton-checked-background: color-mix(in srgb,var(--theme-toolbarbutton-checked-color) 5%,transparent);
   --theme-toolbarbutton-checked-color: light-dark(var(--blue-60), var(--blue-30));
   --theme-toolbarbutton-checked-hover-background: var(--theme-toolbarbutton-hover-background);
@@ -323,20 +322,10 @@
 
     /* Toolbar buttons */
     --toolbarbutton-background: ButtonFace;
-    --toolbarbutton-hover-background: SelectedItemText;
+    --toolbarbutton-hover-background: ButtonFace;
     --toolbarbutton-hover-color: SelectedItem;
     --toolbarbutton-checked-background: SelectedItem;
     --toolbarbutton-checked-color: SelectedItemText;
-
-  /* Styling for devtool buttons */
-  --theme-toolbarbutton-background: ButtonFace;
-  --theme-toolbarbutton-color: ButtonText;
-  --theme-toolbarbutton-hover-background: SelectedItemText;
-  --theme-toolbarbutton-hover-color: SelectedItem;
-  --theme-toolbarbutton-checked-background: SelectedItem;
-  --theme-toolbarbutton-checked-color: SelectedItemText;
-  --theme-toolbarbutton-checked-hover-background: var(--theme-toolbarbutton-checked-background);
-  --theme-toolbarbutton-checked-hover-color: var(--theme-toolbarbutton-checked-color);
 
     /* Text color */
     --theme-selection-background: SelectedItem;

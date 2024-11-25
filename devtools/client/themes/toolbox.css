@@ -387,14 +387,18 @@
   background-repeat: no-repeat;
 }
 
-.devtools-tabbar-button:hover {
-  background-color: var(--theme-toolbar-hover);
-  color: var(--theme-toolbar-hover-color);
+.devtools-tabbar-button::-moz-focus-inner {
+  border: none;
 }
 
+.devtools-tabbar-button:hover,
 .devtools-tabbar-button.checked {
-  color: var(--toolbarbutton-checked-color);
-  background-color: var(--toolbarbutton-checked-background);
+  background-color: var(--theme-toolbar-hover);
+}
+
+.devtools-tabbar-button.checked,
+.devtools-tabbar-button:active {
+  color: var(--theme-icon-checked-color);
 }
 
 .devtools-tabbar-button:disabled {

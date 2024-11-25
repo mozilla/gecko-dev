@@ -344,10 +344,6 @@ iframe {
   border-block: 2px solid transparent;
   /* Separate the outline from the button as it might have a similar background color */
   outline-offset: 2px;
-
-  :root[forced-colors-active] & {
-    border: 1px solid currentColor;
-  }
 }
 
 /* Remove system form border from devtools-button. */
@@ -449,7 +445,6 @@ iframe {
 
 .devtools-togglebutton:hover:not([aria-pressed="true"], :active) {
   background-color: var(--theme-toolbarbutton-hover-background);
-  color: var(--theme-toolbarbutton-hover-color);
 }
 
 /* Selectable button which is checked. */
@@ -470,8 +465,7 @@ iframe {
   color: var(--theme-toolbarbutton-checked-hover-color);
 }
 
-/* Only apply active style on non High Contrast Mode */
-:root:not([forced-colors-active]) .devtools-togglebutton:active {
+.devtools-togglebutton:active {
   background: var(--theme-toolbarbutton-active-background);
 }
 
@@ -489,10 +483,7 @@ iframe {
   list-style-image: url("chrome://devtools/skin/images/settings.svg");
 }
 
-:is(
-  .devtools-button,
-  .devtools-tabbar-button
-).devtools-feature-callout::after {
+.devtools-button.devtools-feature-callout::after {
   content: url("chrome://global/skin/icons/badge-blue.svg");
   width: 14px;
   height: 14px;
