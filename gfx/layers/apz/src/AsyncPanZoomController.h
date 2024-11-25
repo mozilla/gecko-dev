@@ -1388,6 +1388,7 @@ class AsyncPanZoomController {
 
  private:
   friend class AutoApplyAsyncTestAttributes;
+  friend class AutoDynamicToolbarHider;
 
   bool SuppressAsyncScrollOffset() const;
 

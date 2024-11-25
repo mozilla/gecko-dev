@@ -525,6 +525,32 @@ static const double kDefaultEstimatedPaintDurationMs = 50;
 static bool gIsHighMemSystem = false;
 static bool IsHighMemSystem() { return gIsHighMemSystem; }
 
+// An RAII class to hide the dynamic toolbar on Android.
+class MOZ_RAII AutoDynamicToolbarHider final {
+ public:
+  explicit AutoDynamicToolbarHider(
+      AsyncPanZoomController* aApzc)
+      : mApzc(aApzc) {
+    MOZ_ASSERT(mApzc);
+  }
+  ~AutoDynamicToolbarHider() {
+    if (mHideDynamicToolbar) {
+      RefPtr<GeckoContentController> controller = mApzc->GetGeckoContentController();
+      controller->HideDynamicToolbar(mApzc->GetGuid());
+    }
+  }
+
+  void Hide() {
+    mHideDynamicToolbar = true;
+  }
+
+  friend class AsyncPanZoomController;
+
+ private:
+  AsyncPanZoomController* mApzc;
+  bool mHideDynamicToolbar = false;
+};
+
 AsyncPanZoomAnimation* PlatformSpecificStateBase::CreateFlingAnimation(
     AsyncPanZoomController& aApzc, const FlingHandoffState& aHandoffState,
     float aPLPPI) {
@@ -6115,9 +6141,7 @@ void AsyncPanZoomController::ZoomToRect(const ZoomTarget& aZoomTarget,
     return;
   }
 
-  SetState(ANIMATING_ZOOM);
-
-  bool hideDynamicToolbar{false};
+  AutoDynamicToolbarHider dynamicToolbarHider(this);
 
   {
     RecursiveMutexAutoLock lock(mRecursiveMutex);
@@ -6141,7 +6165,7 @@ void AsyncPanZoomController::ZoomToRect(const ZoomTarget& aZoomTarget,
              aZoomTarget.targetRect.YMost());
         const CSSCoord dynamicToolbarHeight = (lvh - svh);
         if (targetDistanceFromBottom < dynamicToolbarHeight) {
-          hideDynamicToolbar = true;
+          dynamicToolbarHider.Hide();
         }
       }
     }
@@ -6251,6 +6275,13 @@ void AsyncPanZoomController::ZoomToRect(const ZoomTarget& aZoomTarget,
     targetZoom.scale =
         std::clamp(targetZoom.scale, localMinZoom.scale, localMaxZoom.scale);
 
+    // For zoom-to-focused-input, we've already centered the given focused
+    // element in nsDOMWindowUtils::ZoomToFocusedInput() so that if the target
+    // zoom scale would be same we don't need to trigger a ZoomAnimation.
+    if ((aFlags & ZOOM_TO_FOCUSED_INPUT) && targetZoom == currentZoom) {
+      return;
+    }
+
     FrameMetrics endZoomToMetrics = Metrics();
     endZoomToMetrics.SetZoom(CSSToParentLayerScale(targetZoom));
     CSSSize sizeAfterZoom =
@@ -6351,16 +6382,12 @@ void AsyncPanZoomController::ZoomToRect(const ZoomTarget& aZoomTarget,
     endZoomToMetrics.SetVisualScrollOffset(rect.TopLeft());
     endZoomToMetrics.RecalculateLayoutViewportOffset();
 
+    SetState(ANIMATING_ZOOM);
     StartAnimation(do_AddRef(new ZoomAnimation(
         *this, Metrics().GetVisualScrollOffset(), Metrics().GetZoom(),
         endZoomToMetrics.GetVisualScrollOffset(), endZoomToMetrics.GetZoom())));
 
     RequestContentRepaint(RepaintUpdateType::eUserAction);
-  }
-
-  if (hideDynamicToolbar) {
-    RefPtr<GeckoContentController> controller = GetGeckoContentController();
-    controller->HideDynamicToolbar(GetGuid());
   }
 }
 

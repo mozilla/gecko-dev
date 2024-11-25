@@ -3101,6 +3101,43 @@ static nsTArray<ScrollContainerFrame*> CollectScrollableAncestors(
   return result;
 }
 
+static std::pair<nsIContent*, CSSRect> GetCaretContentAndBounds(
+    const ScrollContainerFrame* aRootScrollContainerFrame, Element* aElement) {
+  nsIContent* content = aElement;
+  CSSRect bounds;
+
+  if (!aRootScrollContainerFrame) {
+    return {content, bounds};
+  }
+
+  if (aElement->IsHTMLElement(nsGkAtoms::input)) {
+    bounds = nsLayoutUtils::GetBoundingContentRect(aElement,
+                                                   aRootScrollContainerFrame);
+  } else {
+    // When focused elment is content editable or <textarea> element,
+    // focused element will have multi-line content.
+    nsIFrame* frame = aElement->GetPrimaryFrame();
+    if (frame) {
+      RefPtr<nsCaret> caret = frame->PresShell()->GetCaret();
+      if (caret && caret->IsVisible()) {
+        nsRect rect;
+        if (nsIFrame* frame = caret->GetGeometry(&rect)) {
+          bounds = nsLayoutUtils::GetBoundingFrameRect(
+              frame, aRootScrollContainerFrame);
+          content = frame->GetContent();
+        }
+      }
+    }
+    if (bounds.IsEmpty()) {
+      // Fallback if no caret frame.
+      bounds = nsLayoutUtils::GetBoundingContentRect(aElement,
+                                                     aRootScrollContainerFrame);
+    }
+  }
+
+  return {content, bounds};
+}
+
 NS_IMETHODIMP
 nsDOMWindowUtils::ZoomToFocusedInput() {
   if (!Preferences::GetBool("apz.zoom-to-focused-input.enabled")) {
@@ -3131,13 +3168,20 @@ nsDOMWindowUtils::ZoomToFocusedInput() {
     return NS_OK;
   }
 
+  ScrollContainerFrame* rootScrollContainerFrame =
+      presShell->GetRootScrollContainerFrame();
+  auto [targetContent, bounds] =
+      GetCaretContentAndBounds(rootScrollContainerFrame, element);
+
+  // Hold a strong reference of the target content.
+  RefPtr<nsIContent> refContent = targetContent;
   // The content may be inside a scrollable subframe inside a non-scrollable
   // root content document. In this scenario, we want to ensure that the
   // main-thread side knows to scroll the content into view before we get
-  // the bounding content rect and ask APZ to adjust the visual viewport.
+  // the bounding content rect and ask APZ to zoom in to the target content.
   presShell->ScrollContentIntoView(
-      element, ScrollAxis(WhereToScroll::Nearest, WhenToScroll::IfNotVisible),
-      ScrollAxis(WhereToScroll::Nearest, WhenToScroll::IfNotVisible),
+      refContent, ScrollAxis(WhereToScroll::Center, WhenToScroll::IfNotVisible),
+      ScrollAxis(WhereToScroll::Center, WhenToScroll::IfNotVisible),
       ScrollFlags::ScrollOverflowHidden);
 
   RefPtr<Document> document = presShell->GetDocument();
@@ -3166,37 +3210,6 @@ nsDOMWindowUtils::ZoomToFocusedInput() {
     flags |= layers::ONLY_ZOOM_TO_DEFAULT_SCALE;
   }
 
-  ScrollContainerFrame* rootScrollContainerFrame =
-      presShell->GetRootScrollContainerFrame();
-  if (!rootScrollContainerFrame) {
-    return NS_OK;
-  }
-
-  CSSRect bounds;
-  if (element->IsHTMLElement(nsGkAtoms::input)) {
-    bounds = nsLayoutUtils::GetBoundingContentRect(element,
-                                                   rootScrollContainerFrame);
-  } else {
-    // When focused elment is content editable or <textarea> element,
-    // focused element will have multi-line content.
-    nsIFrame* frame = element->GetPrimaryFrame();
-    if (frame) {
-      RefPtr<nsCaret> caret = frame->PresShell()->GetCaret();
-      if (caret && caret->IsVisible()) {
-        nsRect rect;
-        if (nsIFrame* frame = caret->GetGeometry(&rect)) {
-          bounds = nsLayoutUtils::GetBoundingFrameRect(
-              frame, rootScrollContainerFrame);
-        }
-      }
-    }
-    if (bounds.IsEmpty()) {
-      // Fallback if no caret frame.
-      bounds = nsLayoutUtils::GetBoundingContentRect(element,
-                                                     rootScrollContainerFrame);
-    }
-  }
-
   if (bounds.IsEmpty()) {
     // Do not zoom on empty bounds. Bail out.
     return NS_OK;
@@ -3220,7 +3233,7 @@ nsDOMWindowUtils::ZoomToFocusedInput() {
       presContext->RegisterManagedPostRefreshObserver(
           new ManagedPostRefreshObserver(
               presContext, [widget = RefPtr<nsIWidget>(widget), presShellId,
-                            viewId, bounds, flags](bool aWasCanceled) {
+                            viewId, bounds = bounds, flags](bool aWasCanceled) {
                 if (!aWasCanceled) {
                   widget->ZoomToRect(presShellId, viewId, bounds, flags);
                 }
