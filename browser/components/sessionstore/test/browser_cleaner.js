@@ -39,9 +39,7 @@ var CLOSED_STATE;
 add_setup(async function () {
   forgetClosedWindows();
   forgetClosedTabs(window);
-  try {
-    ss.forgetClosedTabGroup(window, 0);
-  } catch {}
+  forgetClosedTabGroups(window);
 });
 
 add_task(async function test_open_and_close() {
@@ -251,7 +249,5 @@ add_task(async function test_cleanup() {
   await promiseCleanup();
 
   // Cleanup closed tab group
-  try {
-    ss.forgetClosedTabGroup(window, 0);
-  } catch {}
+  forgetClosedTabGroups(window);
 });

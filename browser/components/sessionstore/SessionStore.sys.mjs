@@ -412,6 +412,16 @@ export var SessionStore = {
     },
 
   /**
+   * Retrieve the closed tab groups for a particular window or closed window.
+   *
+   * @param {Window|{sourceWindowId: string}|{sourceClosedId: number}} source
+   * @returns {TabGroupStateData[]}
+   */
+  getClosedTabGroups(source) {
+    return SessionStoreInternal.getClosedTabGroups(source);
+  },
+
+  /**
    * Re-open a closed tab
    * @param {Window|Object} aSource
    *        Either a DOMWindow or an object with properties to resolve to the window
@@ -487,12 +497,13 @@ export var SessionStore = {
             A SessionStore window id used to look up the window where the tab group was closed
    * @param {number} aSource.sourceClosedId
             The closedId used to look up the closed window where the tab group was closed
-   * @param {Integer} [aIndex = 0]
-   *        The index into the window's list of closed tabs
-   * @throws {InvalidArgumentError} if the window is not tracked by SessionStore, or index is out of bounds
+   * @param {string} tabGroupId
+   *        The tab group ID of the closed tab group
+   * @throws {InvalidArgumentError}
+   *        if the window or tab group is not tracked by SessionStore
    */
-  forgetClosedTabGroup: function ss_forgetClosedTabGroup(aSource, aIndex) {
-    return SessionStoreInternal.forgetClosedTabGroup(aSource, aIndex);
+  forgetClosedTabGroup: function ss_forgetClosedTabGroup(aSource, tabGroupId) {
+    return SessionStoreInternal.forgetClosedTabGroup(aSource, tabGroupId);
   },
 
   /**
@@ -800,11 +811,42 @@ export var SessionStore = {
   },
 
   /**
-   * Remove a tab group to the session's saved group list.
-   * @param {string} tabGroupId - The ID of the tab group to remove
+   * Remove a tab group from the session's saved tab group list.
+   * @param {string} tabGroupId
+   *   The ID of the tab group to remove
    */
-  removeSavedTabGroup(tabGroupId) {
-    return SessionStoreInternal.removeSavedTabGroup(tabGroupId);
+  forgetSavedTabGroup(tabGroupId) {
+    return SessionStoreInternal.forgetSavedTabGroup(tabGroupId);
+  },
+
+  /**
+   * @typedef {object} SavedTabGroupSource
+   * @property {string} savedTabGroupId
+   *
+   * @typedef {object} WindowClosedTabGroupSource
+   * @property {string} sourceWindowId
+   * @property {string} closedTabGroupId
+   *
+   * @typedef {object} ClosedWindowClosedTabGroupSource
+   * @property {number} sourceClosedId
+   * @property {string} closedTabGroupId
+   */
+
+  /**
+   * Restore a saved or closed tab group to the browser. This will remove the
+   * saved or closed tab group data from its source.
+   *
+   * @param {SavedTabGroupSource|WindowClosedTabGroupSource|ClosedWindowClosedTabGroupSource} source
+   *   A sourcing object specifying one of the following:
+   *   1. a saved tab group ID to be found in global session state
+   *   2. a closed tab group ID to be found in an open window's closed tab groups list
+   *   3. a closed tab group ID to be found in a closed window's closed tab groups list
+   * @param {Window} [targetWindow] defaults to the top window if not specified.
+   * @returns {MozTabbrowserTabGroup}
+   *   a reference to the restored tab group in a browser window.
+   */
+  restoreTabGroup(source, targetWindow) {
+    return SessionStoreInternal.restoreTabGroup(source, targetWindow);
   },
 };
 
@@ -2874,6 +2916,14 @@ var SessionStoreInternal = {
     win,
     tabGroup
   ) {
+    if (this.getSavedTabGroup(tabGroup.id)) {
+      // If a tab group is being removed from the tab strip but it's already
+      // saved, then this is a "save and close" action; the saved tab group
+      // should be stored in global session state rather than in this window's
+      // closed tab groups.
+      return;
+    }
+
     // don't update our internal state if we don't have to
     if (this._max_tabs_undo == 0) {
       return;
@@ -3999,23 +4049,48 @@ var SessionStoreInternal = {
     this._notifyOfClosedObjectsChange();
   },
 
-  forgetClosedTabGroup: function ssi_forgetClosedTabGroup(aSource, aIndex) {
+  forgetClosedTabGroup: function ssi_forgetClosedTabGroup(aSource, tabGroupId) {
     const winData = this._resolveClosedDataSource(aSource);
-    // default to the most-recently closed tab
-    aIndex = aIndex || 0;
-    if (!(aIndex in winData.closedGroups)) {
+    let closedGroupIndex = winData.closedGroups.findIndex(
+      closedTabGroup => closedTabGroup.id == tabGroupId
+    );
+    // let closedTabGroup = this.getClosedTabGroup(aSource, tabGroupId);
+    if (closedGroupIndex < 0) {
       throw Components.Exception(
-        "Invalid index: not in the closed groups",
+        "Closed tab group not found",
         Cr.NS_ERROR_INVALID_ARG
       );
     }
 
-    for (let i = 0; i < winData.closedGroups[aIndex].length; i++) {
-      this.removeClosedTabData(winData, winData.closedGroups[aIndex], i);
+    let closedGroup = winData.closedGroups[closedGroupIndex];
+    while (closedGroup.tabs.length) {
+      this.removeClosedTabData(winData, closedGroup.tabs, 0);
     }
-    winData.closedGroups.splice(aIndex, 1);
+    winData.closedGroups.splice(closedGroupIndex, 1);
 
     // Notify of changes to closed objects.
+    this._notifyOfClosedObjectsChange();
+  },
+
+  /**
+   * @param {string} savedTabGroupId
+   */
+  forgetSavedTabGroup: function ssi_forgetSavedTabGroup(savedTabGroupId) {
+    let savedGroupIndex = this._savedGroups.findIndex(
+      savedTabGroup => savedTabGroup.id == savedTabGroupId
+    );
+    if (savedGroupIndex < 0) {
+      throw Components.Exception(
+        "Closed tab group not found",
+        Cr.NS_ERROR_INVALID_ARG
+      );
+    }
+
+    let savedGroup = this._savedGroups[savedGroupIndex];
+    for (let i = 0; i < savedGroup.tabs.length; i++) {
+      this.removeClosedTabData({}, savedGroup.tabs, i);
+    }
+    this._savedGroups.splice(savedGroupIndex, 1);
     this._notifyOfClosedObjectsChange();
   },
 
@@ -7294,15 +7369,96 @@ var SessionStoreInternal = {
     }
   },
 
+  /**
+   * @param {MozTabbrowserTabGroup} tabGroup
+   */
   addSavedTabGroup(tabGroup) {
-    this.removeSavedTabGroup(tabGroup.id);
+    if (this.getSavedTabGroup(tabGroup.id)) {
+      return;
+    }
     this._savedGroups.push(lazy.TabGroupState.clone(tabGroup));
   },
 
-  removeSavedTabGroup(tabGroupId) {
-    this._savedGroups = this._savedGroups.filter(
-      group => group.id !== tabGroupId
+  /**
+   * @param {string} tabGroupId
+   * @returns {TabGroupStateData|undefined}
+   */
+  getSavedTabGroup(tabGroupId) {
+    return this._savedGroups.find(
+      savedTabGroup => savedTabGroup.id == tabGroupId
     );
+  },
+
+  /**
+   * @param {Window|{sourceWindowId: string}|{sourceClosedId: number}} source
+   * @returns {TabGroupStateData[]}
+   */
+  getClosedTabGroups(source) {
+    return this._resolveClosedDataSource(source).closedGroups;
+  },
+
+  /**
+   * @param {Window|{sourceWindowId: string}|{sourceClosedId: number}} source
+   * @param {string} tabGroupId
+   * @returns {TabGroupStateData|undefined}
+   */
+  getClosedTabGroup(source, tabGroupId) {
+    let winData = this._resolveClosedDataSource(source);
+    return winData?.closedGroups.find(
+      closedGroup => closedGroup.id == tabGroupId
+    );
+  },
+
+  /**
+   * @param {SavedTabGroupSource|WindowClosedTabGroupSource|ClosedWindowClosedTabGroupSource} source
+   * @returns {MozTabbrowserTabGroup}
+   */
+  restoreTabGroup(source, targetWindow) {
+    let tabGroupData;
+    if (source.savedTabGroupId) {
+      tabGroupData = this.getSavedTabGroup(source.savedTabGroupId);
+    } else if (source.sourceWindowId || source.sourceClosedId) {
+      tabGroupData = this.getClosedTabGroup(source, source.closedTabGroupId);
+    } else {
+      throw Components.Exception(
+        "Unrecognized source for restoring tab group",
+        Cr.NS_ERROR_INVALID_ARG
+      );
+    }
+
+    if (!tabGroupData) {
+      throw Components.Exception(
+        "Tab group not found in source",
+        Cr.NS_ERROR_INVALID_ARG
+      );
+    }
+
+    if (targetWindow && !targetWindow.__SSi) {
+      throw Components.Exception(
+        "Target window is not tracked",
+        Cr.NS_ERROR_INVALID_ARG
+      );
+    } else if (!targetWindow) {
+      // TODO Bug 1933112 - Do not save or restore tab groups in private windows
+      targetWindow = this._getTopWindow();
+    }
+
+    let tabs = targetWindow.gBrowser.createTabsForSessionRestore(
+      true,
+      0, // TODO Bug 1933113 - Save tab group position and selected tab with saved tab group data
+      tabGroupData.tabs,
+      [tabGroupData]
+    );
+
+    this.restoreTabs(targetWindow, tabs, tabGroupData.tabs, 0);
+
+    if (source.savedTabGroupId) {
+      this.forgetSavedTabGroup(source.savedTabGroupId);
+    } else if (source.sourceWindowId || source.sourceClosedId) {
+      this.forgetClosedTabGroup(source, source.closedTabGroupId);
+    }
+
+    return tabs[0].group;
   },
 };
 

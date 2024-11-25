@@ -29,12 +29,12 @@ add_task(async function test_SaveTabGroups() {
   Assert.equal(state.savedGroups[0].id, group1.id, "group1 is in savedGroups");
   Assert.equal(state.savedGroups[1].id, group2.id, "group2 is in savedGroups");
 
-  ss.removeSavedTabGroup(group1.id);
+  ss.forgetSavedTabGroup(group1.id);
   state = ss.getCurrentState();
 
   Assert.equal(state.savedGroups.length, 1, "savedGroups has 1 group");
   Assert.equal(state.savedGroups[0].id, group2.id, "group2 is in savedGroups");
 
-  ss.removeSavedTabGroup(group2.id);
+  ss.forgetSavedTabGroup(group2.id);
   await BrowserTestUtils.closeWindow(win);
 });

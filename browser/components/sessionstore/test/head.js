@@ -370,6 +370,11 @@ function forgetClosedTabs(win) {
   }
 }
 
+function forgetClosedTabGroups(win) {
+  const tabGroups = ss.getClosedTabGroups(win);
+  tabGroups.forEach(tabGroup => ss.forgetClosedTabGroup(win, tabGroup.id));
+}
+
 /**
  * When opening a new window it is not sufficient to wait for its load event.
  * We need to use whenDelayedStartupFinshed() here as the browser window's

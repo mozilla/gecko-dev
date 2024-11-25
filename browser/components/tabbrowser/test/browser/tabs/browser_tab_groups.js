@@ -1684,9 +1684,12 @@ add_task(async function test_saveAndCloseGroup() {
   );
   Assert.ok(groupMatch, "Group exists in browser");
 
-  let panelHidden = BrowserTestUtils.waitForPopupEvent(tabgroupPanel, "hidden");
+  let events = [
+    BrowserTestUtils.waitForPopupEvent(tabgroupPanel, "hidden"),
+    BrowserTestUtils.waitForEvent(group, "TabGroupRemoved"),
+  ];
   saveAndCloseGroupButton.click();
-  await panelHidden;
+  await Promise.all(events);
 
   groupMatch = gBrowser.tabGroups.find(
     possibleMatch => possibleMatch.id == group.id
