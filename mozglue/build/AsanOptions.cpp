@@ -74,7 +74,7 @@ extern "C" MOZ_ASAN_IGNORE const char* __asan_default_options() {
 #  endif
          ":max_free_fill_size=268435456:max_malloc_fill_size=268435456"
          ":malloc_fill_byte=228:free_fill_byte=229"
-         ":handle_sigill=1"
+         ":handle_sigill=1:handle_abort=1:handle_sigtrap=1"
          ":allocator_may_return_null=1"
          ":intercept_tls_get_addr=0";
 }
