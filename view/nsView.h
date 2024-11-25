@@ -100,11 +100,6 @@ enum class WindowType : uint8_t;
 //        the layer's parent.
 enum class ViewVisibility : uint8_t { Hide = 0, Show = 1 };
 
-// Public view flags
-
-// Indicates that the view is a floating view.
-#define NS_VIEW_FLAG_FLOATING 0x0008
-
 //----------------------------------------------------------------------
 
 /**
@@ -224,16 +219,6 @@ class nsView final : public nsIWidgetListener {
    * @result current visibility state
    */
   ViewVisibility GetVisibility() const { return mVis; }
-
-  /**
-   * Get whether the view "floats" above all other views,
-   * which tells the compositor not to consider higher views in
-   * the view hierarchy that would geometrically intersect with
-   * this view. This is a hack, but it fixes some problems with
-   * views that need to be drawn in front of all other views.
-   * @result true if the view floats, false otherwise.
-   */
-  bool GetFloating() const { return (mVFlags & NS_VIEW_FLAG_FLOATING) != 0; }
 
   /**
    * Called to query the parent of the view.
@@ -400,8 +385,7 @@ class nsView final : public nsIWidgetListener {
 
   nsRegion& GetDirtyRegion() {
     if (!mDirtyRegion) {
-      NS_ASSERTION(!mParent || GetFloating(),
-                   "Only display roots should have dirty regions");
+      NS_ASSERTION(!mParent, "Only display roots should have dirty regions");
       mDirtyRegion = mozilla::MakeUnique<nsRegion>();
     }
     return *mDirtyRegion;
@@ -471,16 +455,6 @@ class nsView final : public nsIWidgetListener {
    * @param visibility new visibility state
    */
   void SetVisibility(ViewVisibility visibility);
-
-  /**
-   * Set/Get whether the view "floats" above all other views,
-   * which tells the compositor not to consider higher views in
-   * the view hierarchy that would geometrically intersect with
-   * this view. This is a hack, but it fixes some problems with
-   * views that need to be drawn in front of all other views.
-   * @result true if the view floats, false otherwise.
-   */
-  void SetFloating(bool aFloatingView);
 
   // Helper function to get mouse grabbing off this view (by moving it to the
   // parent, if we can)
