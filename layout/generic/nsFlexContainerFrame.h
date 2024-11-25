@@ -428,6 +428,25 @@ class nsFlexContainerFrame final : public nsContainerFrame,
                                       const FlexboxAxisTracker& aAxisTracker);
 
   /**
+   * Partially resolves "min-[width|height]:auto" and returns the resulting
+   * value. By "partially", I mean we don't consider the min-content size (but
+   * we do consider the main-size and main max-size properties, and the
+   * preferred aspect ratio). The caller is responsible for computing &
+   * considering the min-content size in combination with the partially-resolved
+   * value that this function returns.
+   *
+   * Basically, this function gets the specified size suggestion; if not, the
+   * transferred size suggestion; if both sizes do not exist, return
+   * nscoord_MAX.
+   *
+   * Spec reference: https://drafts.csswg.org/css-flexbox-1/#min-size-auto
+   * (Helper for ResolveAutoFlexBasisAndMinSize().)
+   */
+  nscoord PartiallyResolveAutoMinSize(
+      const FlexItem& aFlexItem, const ReflowInput& aItemReflowInput,
+      const FlexboxAxisTracker& aAxisTracker) const;
+
+  /**
    * This method:
    *  - Creates FlexItems for all of our child frames (except placeholders).
    *  - Groups those FlexItems into FlexLines.
