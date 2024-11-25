@@ -629,9 +629,9 @@ class nsLayoutUtils {
   static nsIFrame* GetFloatFromPlaceholder(nsIFrame* aPlaceholder);
 
   // Combine aOrigClearType with aNewClearType, but limit the clear types
-  // to UsedClear::Left, Right, Both.
-  static mozilla::UsedClear CombineClearType(mozilla::UsedClear aOrigClearType,
-                                             mozilla::UsedClear aNewClearType);
+  // to StyleClear::Left, Right, Both.
+  static mozilla::StyleClear CombineClearType(
+      mozilla::StyleClear aOrigClearType, mozilla::StyleClear aNewClearType);
 
   /**
    * Get the coordinates of a given DOM mouse event, relative to a given

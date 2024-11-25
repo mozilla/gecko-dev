@@ -154,8 +154,7 @@ void BRFrame::Reflow(nsPresContext* aPresContext, ReflowOutput& aMetrics,
     }
 
     // Return our reflow status
-    aStatus.SetInlineLineBreakAfter(
-        aReflowInput.mStyleDisplay->UsedClear(aReflowInput.GetCBWritingMode()));
+    aStatus.SetInlineLineBreakAfter(aReflowInput.mStyleDisplay->mClear);
     ll->SetLineEndsInBR(true);
   }
 

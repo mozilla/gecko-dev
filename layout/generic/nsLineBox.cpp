@@ -184,15 +184,15 @@ static void ListFloats(FILE* out, const char* aPrefix,
   }
 }
 
-/* static */ const char* nsLineBox::UsedClearToString(UsedClear aClearType) {
+/* static */ const char* nsLineBox::StyleClearToString(StyleClear aClearType) {
   switch (aClearType) {
-    case UsedClear::None:
+    case StyleClear::None:
       return "none";
-    case UsedClear::Left:
+    case StyleClear::Left:
       return "left";
-    case UsedClear::Right:
+    case StyleClear::Right:
       return "right";
-    case UsedClear::Both:
+    case StyleClear::Both:
       return "both";
   }
   return "unknown";
@@ -218,8 +218,8 @@ void nsLineBox::List(FILE* out, const char* aPrefix,
       IsImpactedByFloat() ? "impacted" : "not-impacted",
       IsLineWrapped() ? "wrapped" : "not-wrapped",
       HasForcedLineBreakAfter() ? "forced-break-after" : "no-break",
-      UsedClearToString(FloatClearTypeBefore()),
-      UsedClearToString(FloatClearTypeAfter()));
+      StyleClearToString(FloatClearTypeBefore()),
+      StyleClearToString(FloatClearTypeAfter()));
 
   if (IsBlock() && !GetCarriedOutBEndMargin().IsZero()) {
     const nscoord bm = GetCarriedOutBEndMargin().Get();

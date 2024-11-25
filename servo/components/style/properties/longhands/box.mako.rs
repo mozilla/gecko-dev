@@ -92,9 +92,11 @@ ${helpers.predefined_type(
     "Float",
     "computed::Float::None",
     engines="gecko servo",
-    animation_type="discrete",
+    initial_specified_value="specified::Float::None",
     spec="https://drafts.csswg.org/css-box/#propdef-float",
+    animation_type="discrete",
     servo_restyle_damage="rebuild_and_reflow",
+    gecko_ffi_name="mFloat",
     affects="layout",
 )}
 

@@ -2441,30 +2441,30 @@ LayoutDeviceIntPoint nsLayoutUtils::TranslateViewToWidget(
   return relativeToViewWidget + WidgetToWidgetOffset(viewWidget, aWidget);
 }
 
-UsedClear nsLayoutUtils::CombineClearType(UsedClear aOrigClearType,
-                                          UsedClear aNewClearType) {
-  UsedClear clearType = aOrigClearType;
+StyleClear nsLayoutUtils::CombineClearType(StyleClear aOrigClearType,
+                                           StyleClear aNewClearType) {
+  StyleClear clearType = aOrigClearType;
   switch (clearType) {
-    case UsedClear::Left:
-      if (UsedClear::Right == aNewClearType ||
-          UsedClear::Both == aNewClearType) {
-        clearType = UsedClear::Both;
+    case StyleClear::Left:
+      if (StyleClear::Right == aNewClearType ||
+          StyleClear::Both == aNewClearType) {
+        clearType = StyleClear::Both;
       }
       break;
-    case UsedClear::Right:
-      if (UsedClear::Left == aNewClearType ||
-          UsedClear::Both == aNewClearType) {
-        clearType = UsedClear::Both;
+    case StyleClear::Right:
+      if (StyleClear::Left == aNewClearType ||
+          StyleClear::Both == aNewClearType) {
+        clearType = StyleClear::Both;
       }
       break;
-    case UsedClear::None:
-      if (UsedClear::Left == aNewClearType ||
-          UsedClear::Right == aNewClearType ||
-          UsedClear::Both == aNewClearType) {
+    case StyleClear::None:
+      if (StyleClear::Left == aNewClearType ||
+          StyleClear::Right == aNewClearType ||
+          StyleClear::Both == aNewClearType) {
         clearType = aNewClearType;
       }
       break;
-    case UsedClear::Both:
+    case StyleClear::Both:
       // Do nothing.
       break;
   }

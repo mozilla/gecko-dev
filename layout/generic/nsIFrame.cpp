@@ -6145,10 +6145,10 @@ void nsIFrame::InlineMinISizeData::OptionallyBreak(nscoord aHyphenWidth) {
   ForceBreak();
 }
 
-void nsIFrame::InlinePrefISizeData::ForceBreak(UsedClear aClearType) {
+void nsIFrame::InlinePrefISizeData::ForceBreak(StyleClear aClearType) {
   // If this force break is not clearing any float, we can leave all the
   // floats to the next force break.
-  if (!mFloats.IsEmpty() && aClearType != UsedClear::None) {
+  if (!mFloats.IsEmpty() && aClearType != StyleClear::None) {
     // Preferred isize accumulated for floats that have already
     // been cleared past
     nscoord floatsDone = 0;
@@ -6158,25 +6158,24 @@ void nsIFrame::InlinePrefISizeData::ForceBreak(UsedClear aClearType) {
 
     for (const FloatInfo& floatInfo : mFloats) {
       const nsStyleDisplay* floatDisp = floatInfo.Frame()->StyleDisplay();
-      auto cbWM = floatInfo.Frame()->GetParent()->GetWritingMode();
-      UsedClear clearType = floatDisp->UsedClear(cbWM);
-      if (clearType == UsedClear::Left || clearType == UsedClear::Right ||
-          clearType == UsedClear::Both) {
+      StyleClear clearType = floatDisp->mClear;
+      if (clearType == StyleClear::Left || clearType == StyleClear::Right ||
+          clearType == StyleClear::Both) {
         nscoord floatsCur = NSCoordSaturatingAdd(floatsCurLeft, floatsCurRight);
         if (floatsCur > floatsDone) {
           floatsDone = floatsCur;
         }
-        if (clearType != UsedClear::Right) {
+        if (clearType != StyleClear::Right) {
           floatsCurLeft = 0;
         }
-        if (clearType != UsedClear::Left) {
+        if (clearType != StyleClear::Left) {
           floatsCurRight = 0;
         }
       }
 
-      UsedFloat floatStyle = floatDisp->UsedFloat(cbWM);
+      StyleFloat floatStyle = floatDisp->mFloat;
       nscoord& floatsCur =
-          floatStyle == UsedFloat::Left ? floatsCurLeft : floatsCurRight;
+          floatStyle == StyleFloat::Left ? floatsCurLeft : floatsCurRight;
       nscoord floatISize = floatInfo.ISize();
       // Negative-width floats don't change the available space so they
       // shouldn't change our intrinsic line isize either.
@@ -6190,7 +6189,7 @@ void nsIFrame::InlinePrefISizeData::ForceBreak(UsedClear aClearType) {
 
     mCurrentLine = NSCoordSaturatingAdd(mCurrentLine, floatsDone);
 
-    if (aClearType == UsedClear::Both) {
+    if (aClearType == StyleClear::Both) {
       mFloats.Clear();
     } else {
       // If the break type does not clear all floats, it means there may
@@ -6200,16 +6199,15 @@ void nsIFrame::InlinePrefISizeData::ForceBreak(UsedClear aClearType) {
       // floats may be cleared directly or indirectly. See below.
       nsTArray<FloatInfo> newFloats;
       MOZ_ASSERT(
-          aClearType == UsedClear::Left || aClearType == UsedClear::Right,
+          aClearType == StyleClear::Left || aClearType == StyleClear::Right,
           "Other values should have been handled in other branches");
-      UsedFloat clearFloatType =
-          aClearType == UsedClear::Left ? UsedFloat::Left : UsedFloat::Right;
+      StyleFloat clearFloatType =
+          aClearType == StyleClear::Left ? StyleFloat::Left : StyleFloat::Right;
       // Iterate the array in reverse so that we can stop when there are
       // no longer any floats we need to keep. See below.
       for (FloatInfo& floatInfo : Reversed(mFloats)) {
         const nsStyleDisplay* floatDisp = floatInfo.Frame()->StyleDisplay();
-        auto cbWM = floatInfo.Frame()->GetParent()->GetWritingMode();
-        if (floatDisp->UsedFloat(cbWM) != clearFloatType) {
+        if (floatDisp->mFloat != clearFloatType) {
           newFloats.AppendElement(floatInfo);
         } else {
           // This is a float on the side that this break directly clears
@@ -6219,8 +6217,8 @@ void nsIFrame::InlinePrefISizeData::ForceBreak(UsedClear aClearType) {
           // (earlier) floats on that side would be indirectly cleared
           // as well. Thus, we should break out of this loop and stop
           // considering earlier floats to be kept in mFloats.
-          UsedClear clearType = floatDisp->UsedClear(cbWM);
-          if (clearType != aClearType && clearType != UsedClear::None) {
+          StyleClear clearType = floatDisp->mClear;
+          if (clearType != aClearType && clearType != StyleClear::None) {
             break;
           }
         }

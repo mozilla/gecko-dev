@@ -296,11 +296,6 @@ nscoord SizeComputationInput::ComputeBSizeValue(
   return nsLayoutUtils::ComputeBSizeValue(aContainingBlockBSize, inside, aSize);
 }
 
-WritingMode ReflowInput::GetCBWritingMode() const {
-  return mCBReflowInput ? mCBReflowInput->GetWritingMode()
-                        : mFrame->GetContainingBlock()->GetWritingMode();
-}
-
 nsSize ReflowInput::ComputedSizeAsContainerIfConstrained() const {
   LogicalSize size = ComputedSize();
   if (size.ISize(mWritingMode) == NS_UNCONSTRAINEDSIZE) {
@@ -2383,8 +2378,8 @@ void ReflowInput::InitConstraints(
           // flag.
           return true;
         }
-        if (!alignCB->IsGridContainerFrame() &&
-            mWritingMode.IsOrthogonalTo(GetCBWritingMode())) {
+        if (!alignCB->IsGridContainerFrame() && mCBReflowInput &&
+            mCBReflowInput->GetWritingMode().IsOrthogonalTo(mWritingMode)) {
           // Shrink-wrap blocks that are orthogonal to their container (unless
           // we're in a grid?)
           return true;
@@ -2610,7 +2605,8 @@ void ReflowInput::CalculateBlockSideMargins() {
   // case, "CalculateBlock*Side*Margins" will actually end up adjusting
   // the BStart/BEnd margins; those are the "sides" of the block from its
   // container's point of view.
-  WritingMode cbWM = GetCBWritingMode();
+  WritingMode cbWM =
+      mCBReflowInput ? mCBReflowInput->GetWritingMode() : GetWritingMode();
 
   nscoord availISizeCBWM = AvailableSize(cbWM).ISize(cbWM);
   nscoord computedISizeCBWM = ComputedSize(cbWM).ISize(cbWM);

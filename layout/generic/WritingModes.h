@@ -2188,42 +2188,4 @@ inline mozilla::StyleContentDistribution nsStylePosition::UsedContentAlignment(
   return aAxis == mozilla::LogicalAxis::Block ? mAlignContent : mJustifyContent;
 }
 
-inline mozilla::UsedFloat nsStyleDisplay::UsedFloat(
-    mozilla::WritingMode aCBWM) const {
-  switch (mFloat) {
-    case mozilla::StyleFloat::None:
-      return mozilla::UsedFloat::None;
-    case mozilla::StyleFloat::Left:
-      return mozilla::UsedFloat::Left;
-    case mozilla::StyleFloat::Right:
-      return mozilla::UsedFloat::Right;
-    case mozilla::StyleFloat::InlineStart:
-      return aCBWM.IsBidiLTR() ? mozilla::UsedFloat::Left
-                               : mozilla::UsedFloat::Right;
-    case mozilla::StyleFloat::InlineEnd:
-      return aCBWM.IsBidiLTR() ? mozilla::UsedFloat::Right
-                               : mozilla::UsedFloat::Left;
-  }
-}
-
-inline mozilla::UsedClear nsStyleDisplay::UsedClear(
-    mozilla::WritingMode aCBWM) const {
-  switch (mClear) {
-    case mozilla::StyleClear::None:
-      return mozilla::UsedClear::None;
-    case mozilla::StyleClear::Left:
-      return mozilla::UsedClear::Left;
-    case mozilla::StyleClear::Right:
-      return mozilla::UsedClear::Right;
-    case mozilla::StyleClear::Both:
-      return mozilla::UsedClear::Both;
-    case mozilla::StyleClear::InlineStart:
-      return aCBWM.IsBidiLTR() ? mozilla::UsedClear::Left
-                               : mozilla::UsedClear::Right;
-    case mozilla::StyleClear::InlineEnd:
-      return aCBWM.IsBidiLTR() ? mozilla::UsedClear::Right
-                               : mozilla::UsedClear::Left;
-  }
-}
-
 #endif  // WritingModes_h_
