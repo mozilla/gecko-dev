@@ -1973,8 +1973,9 @@ export class SearchService {
         engine.pendingRemoval = true;
         continue;
       } else {
-        // This is an existing engine that we should update (we don't know if
-        // the configuration for this engine has changed or not).
+        // This is an existing engine that we should update. (However
+        // notification will happen only if the configuration for this engine
+        // has changed).
         await engine.update({
           configuration: configEngines[index],
         });
@@ -2921,7 +2922,7 @@ export class SearchService {
    *   check the "separatePrivateDefault" preference - that is up to the caller.
    * @param {nsISearchEngine} newEngine
    *   The search engine to select
-   * @param {SearchUtils.REASON_CHANGE_MAP} changeSource
+   * @param {REASON_CHANGE_MAP} changeSource
    *   The source of the change of engine.
    */
   #setEngineDefault(privateMode, newEngine, changeSource) {
