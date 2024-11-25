@@ -95,10 +95,9 @@ document.addEventListener(
           case "View:PageInfo":
             BrowserCommands.pageInfo();
             break;
-          // TODO: Used with <observes>
-          // "View:FullScreen": function () {
-          //   BrowserCommands.fullScreen();
-          // },
+          case "View:FullScreen":
+            BrowserCommands.fullScreen();
+            break;
           // "View:ReaderView": function (event) {
           //   AboutReaderParent.toggleReaderMode(event);
           // },

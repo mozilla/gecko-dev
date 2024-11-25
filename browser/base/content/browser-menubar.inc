@@ -167,19 +167,21 @@
                 <menuseparator/>
 #ifdef XP_MACOSX
                 <menuitem id="enterFullScreenItem"
-                          key="key_enterFullScreen" data-l10n-id="menu-view-enter-full-screen">
-                  <observes element="View:FullScreen" attribute="oncommand"/>
+                          key="key_enterFullScreen"
+                          command="View:FullScreen"
+                          data-l10n-id="menu-view-enter-full-screen">
                 </menuitem>
                 <menuitem id="exitFullScreenItem"
                           key="key_exitFullScreen"
+                          command="View:FullScreen"
                           hidden="true" data-l10n-id="menu-view-exit-full-screen">
-                  <observes element="View:FullScreen" attribute="oncommand"/>
                 </menuitem>
 #else
                 <menuitem id="fullScreenItem"
                           key="key_enterFullScreen"
                           type="checkbox"
-                          observes="View:FullScreen" data-l10n-id="menu-view-full-screen"/>
+                          command="View:FullScreen"
+                          data-l10n-id="menu-view-full-screen"/>
 #endif
                 <menuitem id="menu_readerModeItem"
                           observes="View:ReaderView"
