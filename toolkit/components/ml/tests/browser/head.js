@@ -54,7 +54,7 @@ async function setup({ disabled = false, prefs = [], records = null } = {}) {
       ["browser.ml.enable", !disabled],
       ["browser.ml.logLevel", "All"],
       ["browser.ml.modelCacheTimeout", 1000],
-      ["browser.ml.checkForMemory", true],
+      ["browser.ml.checkForMemory", false],
       ["browser.ml.queueWaitTimeout", 2],
       ["javascript.options.wasm_lazy_tiering", true],
       ...prefs,
@@ -71,6 +71,7 @@ async function setup({ disabled = false, prefs = [], records = null } = {}) {
         100,
         200
       );
+      await SpecialPowers.popPrefEnv();
     },
   };
 }

@@ -675,7 +675,9 @@ add_task(async function test_ml_engine_get_status() {
 });
 
 add_task(async function test_ml_engine_not_enough_memory() {
-  const { cleanup, remoteClients } = await setup();
+  const { cleanup, remoteClients } = await setup({
+    prefs: [["browser.ml.checkForMemory", true]],
+  });
 
   info("Get the greedy engine");
   const engineInstance = await createEngine({

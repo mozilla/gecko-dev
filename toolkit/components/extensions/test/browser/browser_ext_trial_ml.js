@@ -64,7 +64,6 @@ function createMlExtensionTest({
   prefs = [
     ["extensions.experiments.enabled", true],
     ["extensions.ml.enabled", true],
-    ["browser.ml.checkForMemory", false],
   ],
 }) {
   const func = async function () {
@@ -116,7 +115,6 @@ add_task(
     prefs: [
       ["extensions.experiments.enabled", true],
       ["extensions.ml.enabled", false],
-      ["browser.ml.checkForMemory", false],
     ],
   })
 );
