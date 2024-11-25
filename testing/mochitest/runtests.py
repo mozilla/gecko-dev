@@ -3081,8 +3081,8 @@ toolbar#nav-bar {
         DEVICES_BASE_FREQUENCY = 110  # Hz
 
         output_devices = [
-            {"name": "44100Hz Null Output", "rate": 44100},
-            {"name": "48000Hz Null Output", "rate": 48000},
+            {"name": "null-44100", "description": "44100Hz Null Output", "rate": 44100},
+            {"name": "null-48000", "description": "48000Hz Null Output", "rate": 48000},
         ]
         # We want quite a number of input devices, each with a different tone
         # frequency and device name so that we can recognize them easily during
@@ -3091,7 +3091,11 @@ toolbar#nav-bar {
         for i in range(1, INPUT_DEVICES_COUNT + 1):
             freq = i * DEVICES_BASE_FREQUENCY
             input_devices.append(
-                {"name": "Sine Source {}".format(freq), "frequency": freq}
+                {
+                    "name": "sine-{}".format(freq),
+                    "description": "{}Hz Sine Source".format(freq),
+                    "frequency": freq,
+                }
             )
 
         # Determine if this is running PulseAudio or PipeWire
@@ -3128,11 +3132,14 @@ toolbar#nav-bar {
                 (
                     "{{factory.name=support.null-audio-sink "
                     'node.name="{}" '
+                    'node.description="{}" '
                     "media.class=Audio/Sink "
                     "object.linger=true "
                     "audio.position=[FL FR] "
                     "monitor.channel-volumes=true "
-                    "audio.rate={}}}".format(device["name"], device["rate"])
+                    "audio.rate={}}}".format(
+                        device["name"], device["description"], device["rate"]
+                    )
                 )
             ]
             subprocess.check_output(cmd + device_spec)
@@ -3145,10 +3152,11 @@ toolbar#nav-bar {
                 (
                     "{{factory.name=audiotestsrc "
                     'node.name="{}" '
+                    'node.description="{}" '
                     "media.class=Audio/Source "
                     "object.linger=true "
                     "node.param.Props={{frequency: {}}} }}".format(
-                        device["name"], device["frequency"]
+                        device["name"], device["description"], device["frequency"]
                     )
                 )
             ]
@@ -3165,7 +3173,7 @@ toolbar#nav-bar {
             sys.exit(1)
         for node in nodes:
             name = node["info"]["props"]["node.name"]
-            if "Null Output" in name or "Sine Source" in name:
+            if "null-" in name or "sine-" in name:
                 virtual_node_ids.append(node["info"]["props"]["object.id"])
 
         self.virtualAudioNodeIdList = virtual_node_ids
@@ -3208,8 +3216,9 @@ toolbar#nav-bar {
                     command
                     + [
                         "rate={}".format(device["rate"]),
+                        "sink_name='\"{}\"'".format(device["name"]),
                         "sink_properties='device.description=\"{}\"'".format(
-                            device["name"]
+                            device["description"]
                         ),
                     ]
                 )
