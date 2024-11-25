@@ -34,6 +34,7 @@ async function test() {
   const transformEndPromise = promiseTransformEnd();
   SpecialPowers.DOMWindowUtils.zoomToFocusedInput();
   await transformEndPromise;
+  await promiseApzFlushedRepaints();
 
   let resolution = await getResolution();
   ok(resolution > initial_resolution, "zoomToFocusedInput zooms in to " + resolution);
