@@ -140,7 +140,7 @@ mochitest-harness:
             ./mach python-test --subsuite mochitest
     fetches:
         build:
-            - target.tar.xz
+            - target.tar.bz2
             - artifact: target.common.tests.tar.gz
               dest: tests
             - artifact: target.mochitest.tests.tar.gz
@@ -321,7 +321,7 @@ reftest-harness:
             ./mach python-test --subsuite reftest
     fetches:
         build:
-            - target.tar.xz
+            - target.tar.bz2
             - artifact: target.common.tests.tar.gz
               dest: tests
             - artifact: target.reftest.tests.tar.gz
@@ -451,7 +451,7 @@ fxms-schemas:
                 linux1804-64/opt: build-linux64/opt
     fetches:
         build:
-            - artifact: target.tar.xz
+            - artifact: target.tar.bz2
             - artifact: target.common.tests.tar.gz
     worker:
         by-platform:

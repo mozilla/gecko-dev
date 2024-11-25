@@ -26,7 +26,7 @@ def run_profile_data(config, jobs):
         elif "win" in build_platform:
             artifact = "target.zip"
         else:
-            artifact = "target.tar.xz"
+            artifact = "target.tar.bz2"
         job.setdefault("fetches", {})[instr] = [
             {"artifact": artifact, "extract": not artifact.endswith((".dmg", ".apk"))},
             "target.crashreporter-symbols.zip",

@@ -281,7 +281,6 @@ class TestScript(unittest.TestCase):
             "archive.tar",
             "archive.tar.bz2",
             "archive.tar.gz",
-            "archive.tar.xz",
             "archive.zip",
         ):
             self.s.download_unpack(
@@ -344,7 +343,6 @@ class TestScript(unittest.TestCase):
             "archive.tar",
             "archive.tar.bz2",
             "archive.tar.gz",
-            "archive.tar.xz",
             "archive.zip",
         ):
             self.s.unpack(os.path.join(archives_path, archive), self.tmpdir)

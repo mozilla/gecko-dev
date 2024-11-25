@@ -14,7 +14,7 @@ _renames = {"win": "windows"}
 
 
 _archive_formats = {
-    "linux": ".tar.xz",
+    "linux": ".tar.bz2",
     "macosx": ".tar.gz",
     "windows": ".zip",
 }

@@ -149,7 +149,7 @@ def generate_upstream_artifacts(
             {
                 "taskId": {"task-reference": build_task_ref},
                 "taskType": "build",
-                "paths": [f"{artifact_prefix}/{repack_id}/target.tar.xz"],
+                "paths": [f"{artifact_prefix}/{repack_id}/target.tar.bz2"],
                 "locale": partner_path,
             }
         )
@@ -157,7 +157,7 @@ def generate_upstream_artifacts(
             {
                 "taskId": {"task-reference": repackage_signing_task_ref},
                 "taskType": "repackage",
-                "paths": [f"{artifact_prefix}/{repack_id}/target.tar.xz.asc"],
+                "paths": [f"{artifact_prefix}/{repack_id}/target.tar.bz2.asc"],
                 "locale": partner_path,
             }
         )
