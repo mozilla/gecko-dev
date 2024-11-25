@@ -109,24 +109,19 @@ class AnimationUtils {
     return diff <= TimeDuration::FromMicroseconds(1);
   }
 
-  // Returns the target element for restyling.
+  // Returns the pair of |Element, PseudoStyleRequest| from an element which
+  // could be an element or a pseudo element (i.e. an element used for restyling
+  // and DOM tree.).
   //
-  // If |aPseudoType| is ::after, ::before or ::marker, returns the generated
-  // content element of which |aElement| is the parent. If |aPseudoType| is any
-  // other pseudo type (other than PseudoStyleType::NotPseudo) returns nullptr.
-  // Otherwise, returns |aElement|.
-  static dom::Element* GetElementForRestyle(dom::Element* aElement,
-                                            PseudoStyleType aPseudoType);
-
-  // Returns the pair of |Element, PseudoStyleType| from an element which could
-  // be an element or a pseudo element (i.e. an element used for restyling and
-  // DOM tree).
-  //
-  // Animation module usually uses a pair of (Element*, PseudoStyleType) to
-  // represent the animation target, and the |Element| in the pair is the
-  // generated content container if it's a pseudo element.
-  static std::pair<const dom::Element*, PseudoStyleType> GetElementPseudoPair(
-      const dom::Element* aElementOrPseudo);
+  // Animation module usually uses a pair of (Element*, PseudoStyleRequest) to
+  // represent the animation target.
+  // Note that we sepatate the originating element and PseudoStyleRequest in
+  // Animation code, but store the animations on "::before", "::after", and
+  // "::marker" in the originating element. For view-transition pseudo-elements
+  // and others, we store their KeyframeEffect, timelines, animations, and
+  // transitions in the pseudo-element themself. So use this function carefully.
+  static std::pair<const dom::Element*, PseudoStyleRequest>
+  GetElementPseudoPair(const dom::Element* aElementOrPseudo);
 };
 
 }  // namespace mozilla

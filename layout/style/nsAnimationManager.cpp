@@ -218,8 +218,10 @@ static already_AddRefed<dom::AnimationTimeline> GetNamedProgressTimeline(
   // 3. that element’s following siblings and their descendants
   // https://drafts.csswg.org/scroll-animations-1/#timeline-scope
   // FIXME: Bug 1823500. Reduce default scoping to ancestors only.
-  for (Element* curr = AnimationUtils::GetElementForRestyle(
-           aTarget.mElement, aTarget.mPseudoType);
+  // TODO: We will update NonOwningAnimationTarget to use PseudoStyleRequest in
+  // the following patches.
+  for (Element* curr = aTarget.mElement->GetPseudoElement(
+           PseudoStyleRequest(aTarget.mPseudoType));
        curr; curr = curr->GetParentElement()) {
     // If multiple elements have declared the same timeline name, the matching
     // timeline is the one declared on the nearest element in tree order, which
@@ -229,17 +231,18 @@ static already_AddRefed<dom::AnimationTimeline> GetNamedProgressTimeline(
     for (Element* e = curr; e; e = e->GetPreviousElementSibling()) {
       // In case of a name conflict on the same element, scroll progress
       // timelines take precedence over view progress timelines.
-      const auto [element, pseudoType] =
-          AnimationUtils::GetElementPseudoPair(e);
+      const auto [element, pseudo] = AnimationUtils::GetElementPseudoPair(e);
+      // TODO: Tweak TimelineCollection to handle PseudoStyleRequest well in the
+      // following patches.
       if (auto* collection =
-              TimelineCollection<ScrollTimeline>::Get(element, pseudoType)) {
+              TimelineCollection<ScrollTimeline>::Get(element, pseudo.mType)) {
         if (RefPtr<ScrollTimeline> timeline = collection->Lookup(aName)) {
           return timeline.forget();
         }
       }
 
       if (auto* collection =
-              TimelineCollection<ViewTimeline>::Get(element, pseudoType)) {
+              TimelineCollection<ViewTimeline>::Get(element, pseudo.mType)) {
         if (RefPtr<ViewTimeline> timeline = collection->Lookup(aName)) {
           return timeline.forget();
         }

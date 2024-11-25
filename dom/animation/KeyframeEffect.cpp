@@ -577,8 +577,10 @@ void KeyframeEffect::EnsureBaseStyle(
   if (!aBaseComputedStyle) {
     MOZ_ASSERT(mTarget, "Should have a valid target");
 
-    Element* animatingElement = AnimationUtils::GetElementForRestyle(
-        mTarget.mElement, mTarget.mPseudoType);
+    // TODO: Update OwningAnimationTarget to use PseudoStyleRequest in the
+    // following patches.
+    Element* animatingElement = mTarget.mElement->GetPseudoElement(
+        PseudoStyleRequest(mTarget.mPseudoType));
     if (!animatingElement) {
       return;
     }
@@ -1010,7 +1012,7 @@ void KeyframeEffect::RequestRestyle(
       nsContentUtils::GetContextForContent(mTarget.mElement);
   if (presContext && mAnimation) {
     presContext->EffectCompositor()->RequestRestyle(
-        mTarget.mElement, mTarget.mPseudoType, aRestyleType,
+        mTarget.mElement, PseudoStyleRequest(mTarget.mPseudoType), aRestyleType,
         mAnimation->CascadeLevel());
   }
 }

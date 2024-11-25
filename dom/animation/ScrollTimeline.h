@@ -77,6 +77,8 @@ class ScrollTimeline : public AnimationTimeline {
     };
     Type mType = Type::Root;
     RefPtr<Element> mElement;
+    // FIXME: Bug 1928437. We have to update mPseudoType to use
+    // PseudoStyleRequest.
     PseudoStyleType mPseudoType;
 
     // We use the owner doc of the animation target. This may be different from
@@ -226,8 +228,8 @@ class ScrollTimeline : public AnimationTimeline {
 
   const ScrollContainerFrame* GetScrollContainerFrame() const;
 
-  static std::pair<const Element*, PseudoStyleType> FindNearestScroller(
-      Element* aSubject, PseudoStyleType aPseudoType);
+  static std::pair<const Element*, PseudoStyleRequest> FindNearestScroller(
+      Element* aSubject, const PseudoStyleRequest& aPseudoRequest);
 
   RefPtr<Document> mDocument;
 

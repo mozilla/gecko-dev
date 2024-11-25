@@ -2444,12 +2444,10 @@ void RestyleManager::PostRestyleEvent(Element* aElement,
   }
 }
 
-void RestyleManager::PostRestyleEventForAnimations(Element* aElement,
-                                                   PseudoStyleType aPseudoType,
-                                                   RestyleHint aRestyleHint) {
-  Element* elementToRestyle =
-      AnimationUtils::GetElementForRestyle(aElement, aPseudoType);
-
+void RestyleManager::PostRestyleEventForAnimations(
+    Element* aElement, const PseudoStyleRequest& aPseudoRequest,
+    RestyleHint aRestyleHint) {
+  Element* elementToRestyle = aElement->GetPseudoElement(aPseudoRequest);
   if (!elementToRestyle) {
     // FIXME: Bug 1371107: When reframing happens,
     // EffectCompositor::mElementsToRestyle still has unbound old pseudo

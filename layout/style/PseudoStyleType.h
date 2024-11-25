@@ -113,6 +113,13 @@ class PseudoStyle final {
     return aType >= Type::WrapperAnonBoxesStart &&
            aType < Type::WrapperAnonBoxesEnd;
   }
+
+  static bool IsViewTransitionPseudoElement(Type aType) {
+    return aType == Type::viewTransition ||
+           aType == Type::viewTransitionGroup ||
+           aType == Type::viewTransitionImagePair ||
+           aType == Type::viewTransitionOld || aType == Type::viewTransitionNew;
+  }
 };
 
 /*
@@ -132,6 +139,17 @@ struct PseudoStyleRequest {
   bool IsPseudoElementOrNotPseudo() const {
     return mType == PseudoStyleType::NotPseudo ||
            PseudoStyle::IsPseudoElement(mType);
+  }
+
+  static PseudoStyleRequest NotPseudo() { return PseudoStyleRequest(); }
+  static PseudoStyleRequest Before() {
+    return PseudoStyleRequest(PseudoStyleType::before);
+  }
+  static PseudoStyleRequest After() {
+    return PseudoStyleRequest(PseudoStyleType::after);
+  }
+  static PseudoStyleRequest Marker() {
+    return PseudoStyleRequest(PseudoStyleType::marker);
   }
 
   PseudoStyleType mType = PseudoStyleType::NotPseudo;

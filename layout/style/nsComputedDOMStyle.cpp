@@ -588,9 +588,7 @@ nsComputedDOMStyle::GetUnanimatedComputedStyleNoFlush(
   MOZ_ASSERT(presShell,
              "How in the world did we get a style a few lines above?");
 
-  // TODO: Bug 1921553. Use PseudoStyleRequest for animations.
-  Element* elementOrPseudoElement =
-      AnimationUtils::GetElementForRestyle(aElement, aPseudo.mType);
+  Element* elementOrPseudoElement = aElement->GetPseudoElement(aPseudo);
   if (!elementOrPseudoElement) {
     return nullptr;
   }

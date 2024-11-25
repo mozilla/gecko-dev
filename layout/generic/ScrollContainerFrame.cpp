@@ -8065,9 +8065,12 @@ void ScrollContainerFrame::ScheduleScrollAnimations() {
     return;
   }
 
-  const auto [element, type] =
+  // TODO: We will tweak ProgressTimelineScheduler::Get() to handle
+  // PseudoStyleRequest better in the following patches.
+  const auto [element, request] =
       AnimationUtils::GetElementPseudoPair(elementOrPseudo);
-  const auto* scheduler = ProgressTimelineScheduler::Get(element, type);
+  const auto* scheduler =
+      ProgressTimelineScheduler::Get(element, request.mType);
   if (!scheduler) {
     // We don't have scroll timelines associated with this frame.
     return;

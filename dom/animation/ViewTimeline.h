@@ -75,6 +75,8 @@ class ViewTimeline final : public ScrollTimeline {
   // 2. For view-timeline property, the subject element is the element who
   //    defines this property.
   RefPtr<Element> mSubject;
+  // FIXME: Bug 1928437. We have to update mSubjectPseudoType to use
+  // PseudoStyleRequest.
   PseudoStyleType mSubjectPseudoType;
 
   // FIXME: Bug 1817073. view-timeline-inset is an animatable property. However,

@@ -90,7 +90,8 @@ class EffectCompositor {
   // (pseudo-)element at the specified cascade level needs to be updated.
   // The specified steps taken to update the animation rule depend on
   // |aRestyleType| whose values are described above.
-  void RequestRestyle(dom::Element* aElement, PseudoStyleType aPseudoType,
+  void RequestRestyle(dom::Element* aElement,
+                      const PseudoStyleRequest& aPseudoRequest,
                       RestyleType aRestyleType, CascadeLevel aCascadeLevel);
 
   // Schedule an animation restyle. This is called automatically by
@@ -98,7 +99,7 @@ class EffectCompositor {
   // need to perform this step when triggering transitions *without* also
   // invalidating the animation style rule (which RequestRestyle would do).
   void PostRestyleForAnimation(dom::Element* aElement,
-                               PseudoStyleType aPseudoType,
+                               const PseudoStyleRequest& aPseudoRequest,
                                CascadeLevel aCascadeLevel);
 
   // Posts an animation restyle for any elements whose animation style rule
@@ -117,7 +118,7 @@ class EffectCompositor {
   // can be re-resolved to computed values.
   void UpdateEffectProperties(const ComputedStyle* aStyle,
                               dom::Element* aElement,
-                              PseudoStyleType aPseudoType);
+                              const PseudoStyleRequest& aPseudoRequest);
 
   // Get the animation rule for the appropriate level of the cascade for
   // a (pseudo-)element. Called from the Servo side.
@@ -126,7 +127,7 @@ class EffectCompositor {
   // We need to be careful while doing any modification because it may cause
   // some thread-safe issues.
   bool GetServoAnimationRule(const dom::Element* aElement,
-                             PseudoStyleType aPseudoType,
+                             const PseudoStyleRequest& aPseudoRequest,
                              CascadeLevel aCascadeLevel,
                              StyleAnimationValueMap* aAnimationValues);
 
@@ -157,8 +158,8 @@ class EffectCompositor {
   //
   // This method does NOT detect if other styles that apply above the
   // animation level of the cascade have changed.
-  static void MaybeUpdateCascadeResults(dom::Element* aElement,
-                                        PseudoStyleType aPseudoType);
+  static void MaybeUpdateCascadeResults(
+      dom::Element* aElement, const PseudoStyleRequest& aPseudoRequest);
 
   // Update the mPropertiesWithImportantRules and
   // mPropertiesForAnimationsLevel members of the given EffectSet, and also
@@ -174,7 +175,7 @@ class EffectCompositor {
   // of a follow-up sequential task.
   static void UpdateCascadeResults(EffectSet& aEffectSet,
                                    dom::Element* aElement,
-                                   PseudoStyleType aPseudoType);
+                                   const PseudoStyleRequest& aPseudoRequest);
 
   // Helper to fetch the corresponding element and pseudo-type from a frame.
   //
@@ -233,7 +234,7 @@ class EffectCompositor {
   // than the animations level.
   static nsCSSPropertyIDSet GetOverriddenProperties(
       EffectSet& aEffectSet, dom::Element* aElement,
-      PseudoStyleType aPseudoType);
+      const PseudoStyleRequest& aPseudoRequest);
 
   static nsPresContext* GetPresContext(dom::Element* aElement);
 

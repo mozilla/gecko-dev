@@ -49,13 +49,11 @@ ScrollTimeline::ScrollTimeline(Document* aDocument, const Scroller& aScroller,
   RegisterWithScrollSource();
 }
 
-/* static */ std::pair<const Element*, PseudoStyleType>
+/* static */ std::pair<const Element*, PseudoStyleRequest>
 ScrollTimeline::FindNearestScroller(Element* aSubject,
-                                    PseudoStyleType aPseudoType) {
+                                    const PseudoStyleRequest& aPseudoRequest) {
   MOZ_ASSERT(aSubject);
-  Element* subject =
-      AnimationUtils::GetElementForRestyle(aSubject, aPseudoType);
-
+  Element* subject = aSubject->GetPseudoElement(aPseudoRequest);
   Element* curr = subject->GetFlattenedTreeParentElement();
   Element* root = subject->OwnerDoc()->GetDocumentElement();
   while (curr && curr != root) {
@@ -68,7 +66,7 @@ ScrollTimeline::FindNearestScroller(Element* aSubject,
   }
   // If there is no scroll container, we use root.
   if (!curr) {
-    return {root, PseudoStyleType::NotPseudo};
+    return {root, PseudoStyleRequest::NotPseudo()};
   }
   return AnimationUtils::GetElementPseudoPair(curr);
 }
@@ -85,9 +83,9 @@ already_AddRefed<ScrollTimeline> ScrollTimeline::MakeAnonymous(
       break;
 
     case StyleScroller::Nearest: {
-      auto [element, pseudo] =
-          FindNearestScroller(aTarget.mElement, aTarget.mPseudoType);
-      scroller = Scroller::Nearest(const_cast<Element*>(element), pseudo);
+      auto [element, pseudo] = FindNearestScroller(
+          aTarget.mElement, PseudoStyleRequest(aTarget.mPseudoType));
+      scroller = Scroller::Nearest(const_cast<Element*>(element), pseudo.mType);
       break;
     }
     case StyleScroller::SelfElement:

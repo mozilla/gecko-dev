@@ -97,49 +97,39 @@ bool AnimationUtils::HasCurrentTransitions(const Element* aElement,
   return false;
 }
 
-/*static*/ Element* AnimationUtils::GetElementForRestyle(
-    Element* aElement, PseudoStyleType aPseudoType) {
-  if (aPseudoType == PseudoStyleType::NotPseudo) {
-    return aElement;
-  }
-
-  if (aPseudoType == PseudoStyleType::before) {
-    return nsLayoutUtils::GetBeforePseudo(aElement);
-  }
-
-  if (aPseudoType == PseudoStyleType::after) {
-    return nsLayoutUtils::GetAfterPseudo(aElement);
-  }
-
-  if (aPseudoType == PseudoStyleType::marker) {
-    return nsLayoutUtils::GetMarkerPseudo(aElement);
-  }
-
-  MOZ_ASSERT_UNREACHABLE(
-      "Should not try to get the element to restyle for a pseudo other that "
-      ":before, :after or ::marker");
-  return nullptr;
-}
-
-/*static*/ std::pair<const Element*, PseudoStyleType>
+/*static*/
+std::pair<const Element*, PseudoStyleRequest>
 AnimationUtils::GetElementPseudoPair(const Element* aElementOrPseudo) {
   MOZ_ASSERT(aElementOrPseudo);
 
   if (aElementOrPseudo->IsGeneratedContentContainerForBefore()) {
     return {aElementOrPseudo->GetParent()->AsElement(),
-            PseudoStyleType::before};
+            PseudoStyleRequest::Before()};
   }
 
   if (aElementOrPseudo->IsGeneratedContentContainerForAfter()) {
-    return {aElementOrPseudo->GetParent()->AsElement(), PseudoStyleType::after};
+    return {aElementOrPseudo->GetParent()->AsElement(),
+            PseudoStyleRequest::After()};
   }
 
   if (aElementOrPseudo->IsGeneratedContentContainerForMarker()) {
     return {aElementOrPseudo->GetParent()->AsElement(),
-            PseudoStyleType::marker};
+            PseudoStyleRequest::Marker()};
   }
 
-  return {aElementOrPseudo, PseudoStyleType::NotPseudo};
+  const PseudoStyleType type = aElementOrPseudo->GetPseudoElementType();
+  if (PseudoStyle::IsViewTransitionPseudoElement(type)) {
+    // Note: ::view-transition doesn't have a name, so we check if it has a name
+    // first.
+    nsAtom* name =
+        aElementOrPseudo->HasName()
+            ? aElementOrPseudo->GetParsedAttr(nsGkAtoms::name)->GetAtomValue()
+            : nullptr;
+    return {aElementOrPseudo->GetOwnerDocument()->GetRootElement(),
+            PseudoStyleRequest(type, name)};
+  }
+
+  return {aElementOrPseudo, PseudoStyleRequest::NotPseudo()};
 }
 
 }  // namespace mozilla

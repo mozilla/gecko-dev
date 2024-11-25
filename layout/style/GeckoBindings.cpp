@@ -494,10 +494,10 @@ bool Gecko_GetAnimationRule(const Element* aElement,
     return false;
   }
 
-  const auto [element, pseudoType] =
+  const auto [element, pseudoRequest] =
       AnimationUtils::GetElementPseudoPair(aElement);
   return presContext->EffectCompositor()->GetServoAnimationRule(
-      element, pseudoType, aCascadeLevel, aAnimationValues);
+      element, pseudoRequest, aCascadeLevel, aAnimationValues);
 }
 
 bool Gecko_StyleAnimationsEquals(const nsStyleAutoArray<StyleAnimation>* aA,
@@ -535,26 +535,26 @@ void Gecko_UpdateAnimations(const Element* aElement,
 
   nsAutoAnimationMutationBatch mb(aElement->OwnerDoc());
 
-  const auto [element, pseudoType] =
+  const auto [element, pseudoRequest] =
       AnimationUtils::GetElementPseudoPair(aElement);
 
   // Handle scroll/view timelines first because CSS animations may refer to the
   // timeline defined by itself.
   if (aTasks & UpdateAnimationsTasks::ScrollTimelines) {
     presContext->TimelineManager()->UpdateTimelines(
-        const_cast<Element*>(element), pseudoType, aComputedData,
+        const_cast<Element*>(element), pseudoRequest.mType, aComputedData,
         TimelineManager::ProgressTimelineType::Scroll);
   }
 
   if (aTasks & UpdateAnimationsTasks::ViewTimelines) {
     presContext->TimelineManager()->UpdateTimelines(
-        const_cast<Element*>(element), pseudoType, aComputedData,
+        const_cast<Element*>(element), pseudoRequest.mType, aComputedData,
         TimelineManager::ProgressTimelineType::View);
   }
 
   if (aTasks & UpdateAnimationsTasks::CSSAnimations) {
     presContext->AnimationManager()->UpdateAnimations(
-        const_cast<Element*>(element), pseudoType, aComputedData);
+        const_cast<Element*>(element), pseudoRequest.mType, aComputedData);
   }
 
   // aComputedData might be nullptr if the target element is now in a
@@ -570,17 +570,17 @@ void Gecko_UpdateAnimations(const Element* aElement,
   if (aTasks & UpdateAnimationsTasks::CSSTransitions) {
     MOZ_ASSERT(aOldComputedData);
     presContext->TransitionManager()->UpdateTransitions(
-        const_cast<Element*>(element), pseudoType, *aOldComputedData,
+        const_cast<Element*>(element), pseudoRequest.mType, *aOldComputedData,
         *aComputedData);
   }
 
   if (aTasks & UpdateAnimationsTasks::EffectProperties) {
     presContext->EffectCompositor()->UpdateEffectProperties(
-        aComputedData, const_cast<Element*>(element), pseudoType);
+        aComputedData, const_cast<Element*>(element), pseudoRequest);
   }
 
   if (aTasks & UpdateAnimationsTasks::CascadeResults) {
-    EffectSet* effectSet = EffectSet::Get(element, pseudoType);
+    EffectSet* effectSet = EffectSet::Get(element, pseudoRequest.mType);
     // CSS animations/transitions might have been destroyed as part of the above
     // steps so before updating cascade results, we check if there are still any
     // animations to update.
@@ -591,62 +591,57 @@ void Gecko_UpdateAnimations(const Element* aElement,
       // it since we avoid mutating state as part of the Servo parallel
       // traversal.
       presContext->EffectCompositor()->UpdateCascadeResults(
-          *effectSet, const_cast<Element*>(element), pseudoType);
+          *effectSet, const_cast<Element*>(element), pseudoRequest);
     }
   }
 
   if (aTasks & UpdateAnimationsTasks::DisplayChangedFromNone) {
     presContext->EffectCompositor()->RequestRestyle(
-        const_cast<Element*>(element), pseudoType,
+        const_cast<Element*>(element), pseudoRequest,
         EffectCompositor::RestyleType::Standard,
         EffectCompositor::CascadeLevel::Animations);
   }
 }
 
 size_t Gecko_GetAnimationEffectCount(const Element* aElementOrPseudo) {
-  const auto [element, pseudoType] =
+  const auto [element, pseudo] =
       AnimationUtils::GetElementPseudoPair(aElementOrPseudo);
 
-  EffectSet* effectSet = EffectSet::Get(element, pseudoType);
+  EffectSet* effectSet = EffectSet::Get(element, pseudo.mType);
   return effectSet ? effectSet->Count() : 0;
 }
 
 bool Gecko_ElementHasAnimations(const Element* aElement) {
-  const auto [element, pseudoType] =
-      AnimationUtils::GetElementPseudoPair(aElement);
-  return !!EffectSet::Get(element, pseudoType);
+  const auto [element, pseudo] = AnimationUtils::GetElementPseudoPair(aElement);
+  return !!EffectSet::Get(element, pseudo.mType);
 }
 
 bool Gecko_ElementHasCSSAnimations(const Element* aElement) {
-  const auto [element, pseudoType] =
-      AnimationUtils::GetElementPseudoPair(aElement);
+  const auto [element, pseudo] = AnimationUtils::GetElementPseudoPair(aElement);
   auto* collection =
-      nsAnimationManager::CSSAnimationCollection::Get(element, pseudoType);
+      nsAnimationManager::CSSAnimationCollection::Get(element, pseudo.mType);
   return collection && !collection->mAnimations.IsEmpty();
 }
 
 bool Gecko_ElementHasCSSTransitions(const Element* aElement) {
-  const auto [element, pseudoType] =
-      AnimationUtils::GetElementPseudoPair(aElement);
+  const auto [element, pseudo] = AnimationUtils::GetElementPseudoPair(aElement);
   auto* collection =
-      nsTransitionManager::CSSTransitionCollection::Get(element, pseudoType);
+      nsTransitionManager::CSSTransitionCollection::Get(element, pseudo.mType);
   return collection && !collection->mAnimations.IsEmpty();
 }
 
 size_t Gecko_ElementTransitions_Length(const Element* aElement) {
-  const auto [element, pseudoType] =
-      AnimationUtils::GetElementPseudoPair(aElement);
+  const auto [element, pseudo] = AnimationUtils::GetElementPseudoPair(aElement);
   auto* collection =
-      nsTransitionManager::CSSTransitionCollection::Get(element, pseudoType);
+      nsTransitionManager::CSSTransitionCollection::Get(element, pseudo.mType);
   return collection ? collection->mAnimations.Length() : 0;
 }
 
 static CSSTransition* GetCurrentTransitionAt(const Element* aElement,
                                              size_t aIndex) {
-  const auto [element, pseudoType] =
-      AnimationUtils::GetElementPseudoPair(aElement);
+  const auto [element, pseudo] = AnimationUtils::GetElementPseudoPair(aElement);
   auto* collection =
-      nsTransitionManager::CSSTransitionCollection ::Get(element, pseudoType);
+      nsTransitionManager::CSSTransitionCollection ::Get(element, pseudo.mType);
   if (!collection) {
     return nullptr;
   }

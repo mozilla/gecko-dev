@@ -347,7 +347,7 @@ class RestyleManager {
    * restyling process and this restyle event will be processed in the second
    * traversal of the same restyling process.
    */
-  void PostRestyleEventForAnimations(dom::Element*, PseudoStyleType,
+  void PostRestyleEventForAnimations(dom::Element*, const PseudoStyleRequest&,
                                      RestyleHint);
 
   void NextRestyleIsForCSSRuleChanges() { mRestyleForCSSRuleChanges = true; }

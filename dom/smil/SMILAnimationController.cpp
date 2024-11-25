@@ -627,7 +627,8 @@ void SMILAnimationController::PreTraverseInSubtree(Element* aRoot) {
     }
 
     context->RestyleManager()->PostRestyleEventForAnimations(
-        key.mElement, PseudoStyleType::NotPseudo, RestyleHint::RESTYLE_SMIL);
+        key.mElement, PseudoStyleRequest::NotPseudo(),
+        RestyleHint::RESTYLE_SMIL);
   }
 
   // Only clear the mMightHavePendingStyleUpdates flag if we definitely posted
