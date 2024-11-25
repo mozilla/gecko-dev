@@ -377,7 +377,7 @@ var gMainPane = {
         let quitKey = ShortcutUtils.prettifyShortcut(quitKeyElement);
         document.l10n.setAttributes(
           document.getElementById("warnOnQuitKey"),
-          "confirm-on-quit-with-key",
+          "ask-on-quit-with-key",
           { quitKey }
         );
       } else {

@@ -35,6 +35,8 @@ run-if = ["os == 'win'"]
 ["browser_initial_tab_remoteType.js"]
 https_first_disabled = true
 
+["browser_quit_close_current_tab.js"]
+
 ["browser_quit_disabled.js"]
 run-if = ["os != 'mac'"] # On macOS we can't change browser.quitShortcut.disabled during runtime.
 

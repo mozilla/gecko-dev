@@ -21,6 +21,9 @@ async function runTests(util) {
   const { NetUtil } = SpecialPowers.ChromeUtils.importESModule(
     "resource://gre/modules/NetUtil.sys.mjs"
   );
+  const { AppConstants } = SpecialPowers.ChromeUtils.importESModule(
+  "resource://gre/modules/AppConstants.sys.mjs"
+);
 
   let state, action, promptDone;
 
@@ -1088,6 +1091,63 @@ async function runTests(util) {
     true,
     "expected checkbox setting"
   );
+
+  await promptDone;
+
+  // =====
+  info("Starting test: ConfirmEx (buttons from args, cancel, isExtra1Secondary flag)");
+  state = {
+    msg: "This is the confirmEx text.",
+    title: "TestTitle",
+    iconClass: "question-icon",
+    titleHidden: true,
+    textHidden: true,
+    passHidden: true,
+    checkHidden: true,
+    textValue: "",
+    passValue: "",
+    checkMsg: "",
+    checked: false,
+    focused: "button0",
+    defButton: "button0",
+    butt0Label: "butt0",
+    butt1Label: "Cancel",
+    butt2Label: "butt2",
+    isExtra1Secondary: true,
+  };
+  action = {
+    buttonClick: "cancel",
+  };
+
+  promptDone = handlePrompt(state, action);
+
+  flags =
+    (Ci.nsIPromptService.BUTTON_TITLE_IS_STRING *
+      Ci.nsIPromptService.BUTTON_POS_0 +
+      Ci.nsIPromptService.BUTTON_TITLE_CANCEL *
+        Ci.nsIPromptService.BUTTON_POS_1 +
+      Ci.nsIPromptService.BUTTON_TITLE_IS_STRING *
+        Ci.nsIPromptService.BUTTON_POS_2) |
+    Ci.nsIPromptService.BUTTON_POS_1_IS_SECONDARY;
+
+  promptArgs = [
+    "TestTitle",
+    "This is the confirmEx text.",
+    flags,
+    "butt0",
+    null,
+    "butt2",
+    null,
+    util.useAsync ? false : {},
+  ];
+  result = await util.prompt("confirmEx", promptArgs);
+  if (util.useAsync && AppConstants.XP_UNIX) {
+    is(
+      result.isExtra1Secondary,
+      true,
+      "checking extra1 button is positioned as a secondary action"
+    );
+  }
 
   await promptDone;
 

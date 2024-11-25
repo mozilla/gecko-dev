@@ -78,7 +78,7 @@ tabbrowser-confirm-close-tabs-title =
        *[other] Close { $tabCount } tabs?
     }
 tabbrowser-confirm-close-tabs-button = Close tabs
-tabbrowser-confirm-close-tabs-checkbox = Confirm before closing multiple tabs
+tabbrowser-ask-close-tabs-checkbox = Ask before closing multiple tabs
 
 ## Confirmation dialog when quitting using the menu and multiple windows are open.
 
@@ -103,7 +103,18 @@ tabbrowser-confirm-close-tabs-with-key-title = Close window and quit { -brand-sh
 tabbrowser-confirm-close-tabs-with-key-button = Quit { -brand-short-name }
 # Variables:
 #   $quitKey (String): the text of the keyboard shortcut for quitting.
-tabbrowser-confirm-close-tabs-with-key-checkbox = Confirm before quitting with { $quitKey }
+tabbrowser-ask-close-tabs-with-key-checkbox = Ask before quitting with { $quitKey }
+
+## Confirmation dialog when quitting using the keyboard shortcut (Ctrl/Cmd+Q)
+## and browser.warnOnQuitShortcut is true.
+
+tabbrowser-confirm-close-warn-shortcut-title = Quit { -brand-short-name } or close current tab?
+tabbrowser-confirm-close-windows-warn-shortcut-button =
+    { PLATFORM() ->
+        [windows] Exit { -brand-short-name }
+       *[other] Quit { -brand-short-name }
+    }
+tabbrowser-confirm-close-tab-only-button = Close current tab
 
 ## Confirmation dialog when opening multiple tabs simultaneously
 

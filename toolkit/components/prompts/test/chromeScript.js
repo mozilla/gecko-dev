@@ -136,6 +136,14 @@ function getPromptState(ui) {
       "ERROR: unexpected element focused: " + (e ? e.localName : "<null>");
   }
 
+  function checkIsExtra1Secondary() {
+    const buttonBox = ui.button1.parentNode;
+    const button1Index = Array.from(buttonBox.children).indexOf(ui.button1);
+    const button2Index = Array.from(buttonBox.children).indexOf(ui.button2);
+    return button1Index < button2Index;
+  }
+  state.isExtra1Secondary = checkIsExtra1Secondary();
+
   let treeOwner =
     ui.prompt && ui.prompt.docShell && ui.prompt.docShell.treeOwner;
   if (treeOwner && treeOwner.QueryInterface(Ci.nsIInterfaceRequestor)) {

@@ -282,6 +282,12 @@ interface nsIPromptService : nsISupports
       BUTTON_TITLE_IS_STRING * BUTTON_POS_0;
 
   /**
+   * Allows the extra1 button to be positioned next to the primary button.
+   * This flag is only compatible with async prompt calls.
+   */
+  const unsigned long BUTTON_POS_1_IS_SECONDARY  = 1 << 29;
+
+  /**
    * Selects the standard set of OK/Cancel buttons.
    */
   const unsigned long STD_OK_CANCEL_BUTTONS      = (BUTTON_TITLE_OK     * BUTTON_POS_0) |

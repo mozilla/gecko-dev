@@ -17,7 +17,10 @@
     }
 
     static get observedAttributes() {
-      return super.observedAttributes.concat("subdialog");
+      return super.observedAttributes.concat(
+        "subdialog",
+        "extra1-is-secondary"
+      );
     }
 
     attributeChangedCallback(name, oldValue, newValue) {
@@ -32,6 +35,10 @@
           );
         }
         return;
+      }
+      // Only move the button on UNIX, since it's already in the correct spot on Windows
+      if (name === "extra1-is-secondary" && AppConstants.XP_UNIX) {
+        this.getButton("cancel").after(this.getButton("extra1"));
       }
       super.attributeChangedCallback(name, oldValue, newValue);
     }

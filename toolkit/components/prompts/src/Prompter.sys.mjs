@@ -352,7 +352,7 @@ Prompter.prototype = {
    *        Null if no checkbox.
    * @param {Boolean} checkValue - The initial checked state of the checkbox.
    * @param {Object} [extraArgs] - Extra arguments for the prompt metadata.
-   * @returns {Promise<nsIPropertyBag<{ buttonNumClicked: Number, checked: Boolean }>>}
+   * @returns {Promise<nsIPropertyBag<{ buttonNumClicked: Number, checked: Boolean, isExtra1Secondary: Boolean }>>}
    */
   asyncConfirmEx(browsingContext, modalType, ...promptArgs) {
     let p = this.pickPrompter({ browsingContext, modalType, async: true });
@@ -1503,6 +1503,10 @@ class ModalPrompter {
       }
     }
 
+    if (flags & Ci.nsIPrompt.BUTTON_POS_1_IS_SECONDARY) {
+      args.isExtra1Secondary = true;
+    }
+
     if (flags & Ci.nsIPrompt.SHOW_SPINNER) {
       args.headerIconCSSValue = "url('chrome://global/skin/icons/loading.svg')";
     }
@@ -1511,6 +1515,7 @@ class ModalPrompter {
       return this.openPromptAsync(args, result => ({
         checked: !!result.checked,
         buttonNumClicked: result.buttonNumClicked,
+        isExtra1Secondary: result.isExtra1Secondary,
       }));
     }
 
