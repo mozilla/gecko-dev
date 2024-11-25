@@ -125,6 +125,11 @@ apt_packages+=('libasound2:i386')
 apt-get install --allow-downgrades "${apt_packages[@]}"
 rm -rf /var/lib/apt/lists/*
 
+# enable audiotestsrc plugin in pipewire config
+# used by gecko media tests to create dummy sound sources
+install -d -o root -g root -m 755 /etc/pipewire
+sed -e '/^context.spa-libs = {/,/^}$/ s/#\(audiotestsrc\)/\1/' /usr/share/pipewire/pipewire.conf > /etc/pipewire/pipewire.conf
+
 # Build a list of packages to purge from the image.
 apt_packages=()
 apt_packages+=('gnome-calendar')
