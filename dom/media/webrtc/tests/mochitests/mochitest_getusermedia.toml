@@ -91,8 +91,7 @@ skip-if = [
 skip-if = [
   "os == 'android'", #     no screenshare on android
   "apple_silicon", #            bug 1707742
-  "os == 'mac' && os_version == '14.70' && processor == 'x86_64' && debug", # Bug 1929425
-  "os == 'mac' && os_version == '14.70' && processor == 'x86_64' && opt && socketprocess_e10s", # Bug 1929425
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'", # Bug 1929425
 ]
 
 ["test_getUserMedia_basicTabshare.html"]

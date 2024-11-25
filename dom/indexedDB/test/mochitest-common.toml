@@ -207,6 +207,7 @@ skip-if = [
 skip-if = ["verify"]
 
 ["test_event_listener_leaks.html"]
+skip-if = ["os == 'mac' && os_version == '14.70' && processor == 'x86_64' && opt"] # Bug 1930730
 
 ["test_event_propagation.html"]
 skip-if = ["verify"]
@@ -220,6 +221,7 @@ skip-if = ["verify"]
 ["test_file_cross_database_copying.html"]
 
 ["test_file_delete.html"]
+skip-if = ["os == 'mac' && os_version == '14.70' && processor == 'x86_64' && opt"] # Bug 1930730 (secondary)
 
 ["test_file_filelist.html"]
 
@@ -230,16 +232,24 @@ skip-if = ["verify"]
 ["test_file_repeated_add_delete.html"]
 
 ["test_file_replace.html"]
+skip-if = ["os == 'mac' && os_version == '14.70' && processor == 'x86_64' && opt"] # Bug 1930730 (secondary)
 
 ["test_file_resurrection_delete.html"]
-skip-if = ["os == 'android'"]
+skip-if = [
+  "os == 'android'",
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64' && opt", # Bug 1930730 (secondary)
+]
 
 ["test_file_resurrection_transaction_abort.html"]
-skip-if = ["os == 'android'"]
+skip-if = [
+  "os == 'android'",
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64' && opt", # Bug 1930730 (secondary)
+]
 
 ["test_file_sharing.html"]
 
 ["test_file_transaction_abort.html"]
+skip-if = ["os == 'mac' && os_version == '14.70' && processor == 'x86_64' && opt"] # Bug 1930730 (secondary)
 
 ["test_getAll.html"]
 
@@ -340,7 +350,10 @@ skip-if = ["os == 'linux' && os_version == '18.04' && processor == 'x86_64'"] #B
 ["test_request_readyState.html"]
 
 ["test_sandbox.html"]
-skip-if = ["verify"]
+skip-if = [
+  "verify",
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64' && opt", # Bug 1930730 (secondary)
+]
 
 ["test_setVersion.html"]
 
@@ -388,15 +401,19 @@ skip-if = [
 ["test_unique_index_update.html"]
 
 ["test_upgrade_add_index.html"]
+scheme = "https"
 skip-if = [
   "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && opt",
   "os == 'mac' && os_version == '10.15' && processor == 'x86_64' && opt",
   "os == 'mac' && os_version == '11.20' && arch == 'aarch64' && opt",
-  "os == 'win'", #Bug 1637715
+  "os == 'win'", # Bug 1637715
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64' && opt", # Bug 1930730 (secondary)
 ]
-scheme = "https"
 
 ["test_view_put_get_values.html"]
+skip-if = [
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64' && opt", # Bug 1930730 (secondary)
+]
 
 ["test_wasm_put_get_values.html"]
 
