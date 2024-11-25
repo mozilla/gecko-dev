@@ -51,8 +51,7 @@ bool nsTransitionManager::UpdateTransitions(
     return false;
   }
 
-  auto* collection =
-      CSSTransitionCollection::Get(aElement, aPseudoRequest);
+  auto* collection = CSSTransitionCollection::Get(aElement, aPseudoRequest);
   return DoUpdateTransitions(*aNewStyle.StyleUIReset(), aElement,
                              aPseudoRequest, collection, aOldStyle, aNewStyle);
 }
