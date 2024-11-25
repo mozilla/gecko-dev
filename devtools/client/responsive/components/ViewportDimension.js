@@ -27,6 +27,19 @@ class ViewportDimension extends PureComponent {
     };
   }
 
+  static getDerivedStateFromProps(props, state) {
+    const { width, height } = props.viewport;
+    if (state.prevWidth !== width || state.prevHeight !== height) {
+      return {
+        width,
+        height,
+        prevWidth: width,
+        prevHeight: height,
+      };
+    }
+    return null;
+  }
+
   constructor(props) {
     super(props);
 
@@ -35,6 +48,8 @@ class ViewportDimension extends PureComponent {
     this.state = {
       width,
       height,
+      prevWidth: width,
+      prevHeight: height,
       isEditing: false,
       isWidthValid: true,
       isHeightValid: true,
@@ -47,16 +62,6 @@ class ViewportDimension extends PureComponent {
     this.onInputKeyDown = this.onInputKeyDown.bind(this);
     this.onInputKeyUp = this.onInputKeyUp.bind(this);
     this.onInputSubmit = this.onInputSubmit.bind(this);
-  }
-
-  // FIXME: https://bugzilla.mozilla.org/show_bug.cgi?id=1774507
-  UNSAFE_componentWillReceiveProps(nextProps) {
-    const { width, height } = nextProps.viewport;
-
-    this.setState({
-      width,
-      height,
-    });
   }
 
   /**
