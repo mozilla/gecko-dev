@@ -35,10 +35,10 @@ desc(
   Then call copyExternalImageToTexture() to do a full copy to the 0 mipLevel
   of dst texture, and read the contents out to compare with the HTMLImageElement contents.
 
-  Do premultiply alpha during copy if 'premultipliedAlpha' in 'GPUImageCopyTextureTagged'
+  Do premultiply alpha during copy if 'premultipliedAlpha' in 'GPUCopyExternalImageDestInfo'
   is set to 'true' and do unpremultiply alpha if it is set to 'false'.
 
-  If 'flipY' in 'GPUImageCopyExternalImage' is set to 'true', copy will ensure the result
+  If 'flipY' in 'GPUCopyExternalImageSourceInfo' is set to 'true', copy will ensure the result
   is flipped.
 
   The tests covers:
@@ -46,7 +46,7 @@ desc(
   - Valid dstColorFormat of copyExternalImageToTexture()
   - Valid source image alphaMode
   - Valid dest alphaMode
-  - Valid 'flipY' config in 'GPUImageCopyExternalImage' (named 'srcDoFlipYDuringCopy' in cases)
+  - Valid 'flipY' config in 'GPUCopyExternalImageSourceInfo' (named 'srcDoFlipYDuringCopy' in cases)
 
   And the expected results are all passed.
   `
@@ -229,10 +229,10 @@ desc(
   rect info list, to the 0 mipLevel of dst texture, and read the contents out to compare
   with the HTMLImageElement contents.
 
-  Do premultiply alpha during copy if 'premultipliedAlpha' in 'GPUImageCopyTextureTagged'
+  Do premultiply alpha during copy if 'premultipliedAlpha' in 'GPUCopyExternalImageDestInfo'
   is set to 'true' and do unpremultiply alpha if it is set to 'false'.
 
-  If 'flipY' in 'GPUImageCopyExternalImage' is set to 'true', copy will ensure the result
+  If 'flipY' in 'GPUCopyExternalImageSourceInfo' is set to 'true', copy will ensure the result
   is flipped, and origin is top-left consistantly.
 
   The tests covers:
@@ -240,7 +240,7 @@ desc(
   - Valid dstColorFormat of copyExternalImageToTexture()
   - Valid source image alphaMode
   - Valid dest alphaMode
-  - Valid 'flipY' config in 'GPUImageCopyExternalImage' (named 'srcDoFlipYDuringCopy' in cases)
+  - Valid 'flipY' config in 'GPUCopyExternalImageSourceInfo' (named 'srcDoFlipYDuringCopy' in cases)
   - Valid subrect copies.
 
   And the expected results are all passed.

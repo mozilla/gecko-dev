@@ -12,7 +12,8 @@ If an out-of-bounds access occurs, the built-in function should not be executed.
 `;
 
 import { makeTestGroup } from '../../../../../../common/framework/test_group.js';
-import { unreachable, iterRange } from '../../../../../../common/util/util.js';
+import { unreachable, iterRange, range } from '../../../../../../common/util/util.js';
+import { kTextureFormatInfo } from '../../../../../format_info.js';
 import { GPUTest, TextureTestMixin } from '../../../../../gpu_test.js';
 import {
   kFloat32Format,
@@ -21,115 +22,17 @@ import {
   pack4x8unorm,
   pack4x8snorm,
 } from '../../../../../util/conversion.js';
-import { virtualMipSize } from '../../../../../util/texture/base.js';
+import { align, clamp } from '../../../../../util/math.js';
+import { getTextureDimensionFromView, virtualMipSize } from '../../../../../util/texture/base.js';
 import { TexelFormats } from '../../../../types.js';
 
-import { generateCoordBoundaries } from './utils.js';
+const kDims = ['1d', '2d', '3d'] as const;
+const kViewDimensions = ['1d', '2d', '2d-array', '3d'] as const;
 
 export const g = makeTestGroup(TextureTestMixin(GPUTest));
 
-g.test('store_1d_coords')
-  .specURL('https://www.w3.org/TR/WGSL/#texturestore')
-  .desc(
-    `
-C is i32 or u32
-
-fn textureStore(t: texture_storage_1d<F,write>, coords: C, value: vec4<T>)
-
-Parameters:
- * t  The sampled, depth, or external texture to sample.
- * s  The sampler type.
- * coords The texture coordinates used for sampling.
- * value The new texel value
-`
-  )
-  .params(u =>
-    u
-      .combineWithParams(TexelFormats)
-      .beginSubcases()
-      .combine('coords', generateCoordBoundaries(1))
-      .combine('C', ['i32', 'u32'] as const)
-  )
-  .unimplemented();
-
-g.test('store_2d_coords')
-  .specURL('https://www.w3.org/TR/WGSL/#texturestore')
-  .desc(
-    `
-C is i32 or u32
-
-fn textureStore(t: texture_storage_2d<F,write>, coords: vec2<C>, value: vec4<T>)
-
-Parameters:
- * t  The sampled, depth, or external texture to sample.
- * s  The sampler type.
- * coords The texture coordinates used for sampling.
- * value The new texel value
-`
-  )
-  .params(u =>
-    u
-      .combineWithParams(TexelFormats)
-      .beginSubcases()
-      .combine('coords', generateCoordBoundaries(2))
-      .combine('C', ['i32', 'u32'] as const)
-  )
-  .unimplemented();
-
-g.test('store_array_2d_coords')
-  .specURL('https://www.w3.org/TR/WGSL/#texturestore')
-  .desc(
-    `
-C is i32 or u32
-
-fn textureStore(t: texture_storage_2d_array<F,write>, coords: vec2<C>, array_index: C, value: vec4<T>)
-
-Parameters:
- * t  The sampled, depth, or external texture to sample.
- * s  The sampler type.
- * array_index The 0-based texture array index
- * coords The texture coordinates used for sampling.
- * value The new texel value
-`
-  )
-  .params(
-    u =>
-      u
-        .combineWithParams(TexelFormats)
-        .beginSubcases()
-        .combine('coords', generateCoordBoundaries(2))
-        .combine('C', ['i32', 'u32'] as const)
-        .combine('C_value', [-1, 0, 1, 2, 3, 4] as const)
-    /* array_index not param'd as out-of-bounds is implementation specific */
-  )
-  .unimplemented();
-
-g.test('store_3d_coords')
-  .specURL('https://www.w3.org/TR/WGSL/#texturestore')
-  .desc(
-    `
-C is i32 or u32
-
-fn textureStore(t: texture_storage_3d<F,write>, coords: vec3<C>, value: vec4<T>)
-
-Parameters:
- * t  The sampled, depth, or external texture to sample.
- * s  The sampler type.
- * coords The texture coordinates used for sampling.
- * value The new texel value
-`
-  )
-  .params(u =>
-    u
-      .combineWithParams(TexelFormats)
-      .beginSubcases()
-      .combine('coords', generateCoordBoundaries(3))
-      .combine('C', ['i32', 'u32'] as const)
-  )
-  .unimplemented();
-
-// Returns shader input values for texel format tests.
-// Values are intentionally simple to avoid rounding issues.
+// We require a few values that are out of range for a given type
+// so we can check clamping behavior.
 function inputArray(format: string): number[] {
   switch (format) {
     case 'rgba8snorm':
@@ -138,24 +41,26 @@ function inputArray(format: string): number[] {
     case 'bgra8unorm':
       return [-0.1, 0, 0.2, 0.4, 0.6, 0.8, 1.0, 1.1];
     case 'rgba8uint':
+      return [0, 8, 16, 24, 32, 64, 100, 128, 200, 255, 256, 512];
     case 'rgba16uint':
+      return [0, 8, 16, 24, 32, 64, 100, 128, 200, 255, 0xffff, 0x1ffff];
     case 'rgba32uint':
     case 'r32uint':
     case 'rg32uint':
-      // Stick within 8-bit ranges for simplicity.
-      return [0, 8, 16, 24, 32, 64, 100, 128, 200, 255];
+      return [0, 8, 16, 24, 32, 64, 100, 128, 200, 255, 256, 512, 0xffffffff];
     case 'rgba8sint':
+      return [-128, -100, -64, -32, -16, -8, 0, 8, 16, 32, 64, 100, 127];
     case 'rgba16sint':
-    case 'rgba32sint':
+      return [-32768, -32769, -100, -64, -32, -16, -8, 0, 8, 16, 32, 64, 100, 127, 0x7fff, 0x8000];
     case 'r32sint':
     case 'rg32sint':
-      // Stick within 8-bit ranges for simplicity.
-      return [-128, -100, -64, -32, -16, -8, 0, 8, 16, 32, 64, 100, 127];
+    case 'rgba32sint':
+      return [-0x8000000, -32769, -100, -64, -32, -16, -8, 0, 8, 16, 32, 64, 100, 127, 0x7ffffff];
     case 'rgba16float':
     case 'rgba32float':
     case 'r32float':
     case 'rg32float':
-      // Stick with simple values.
+      // Stick with simple values to avoid rounding issues.
       return [-100, -50, -32, -16, -8, -1, 0, 1, 8, 16, 32, 50, 100];
     default:
       unreachable(`unhandled format ${format}`);
@@ -165,8 +70,29 @@ function inputArray(format: string): number[] {
 }
 
 g.test('texel_formats')
-  .desc(`Test storage of texel formats`)
-  .params(u => u.combineWithParams([...TexelFormats, { format: 'bgra8unorm', _shaderType: 'f32' }]))
+  .desc(
+    `
+    Test storage of texel formats
+
+    - test values make it through.
+    - test out of range values get clamped.
+    - test 1d, 2d, 2d-array, 3d.
+    - test all storage formats.
+  `
+  )
+  .params(u =>
+    u
+      .combineWithParams([...TexelFormats, { format: 'bgra8unorm', _shaderType: 'f32' }])
+      .combine('viewDimension', kViewDimensions)
+      // Note: We can't use writable storage textures in a vertex stage.
+      .combine('stage', ['compute', 'fragment'] as const)
+      .combine('access', ['write', 'read_write'] as const)
+      .unless(
+        t =>
+          t.access === 'read_write' &&
+          !kTextureFormatInfo[t.format as GPUTextureFormat].color?.readWriteStorage
+      )
+  )
   .beforeAllSubcases(t => {
     if (t.params.format === 'bgra8unorm') {
       t.selectDeviceOrSkipTestCase('bgra8unorm-storage');
@@ -175,72 +101,84 @@ g.test('texel_formats')
     }
   })
   .fn(t => {
-    const { format, _shaderType } = t.params;
+    const { format, stage, access, viewDimension, _shaderType } = t.params;
     const values = inputArray(format);
 
-    let numChannels = 4;
-    switch (format) {
-      case 'r32uint':
-      case 'r32sint':
-      case 'r32float':
-        numChannels = 1;
-        break;
-      case 'rg32uint':
-      case 'rg32sint':
-      case 'rg32float':
-        numChannels = 2;
-        break;
-      default:
-        break;
-    }
-
-    let zeroVal = ``;
-    if (numChannels > 1) {
-      zeroVal = `val[idx % ${numChannels}] = 0;`;
-    }
-
-    let wgsl = `
-const range = array(`;
-    for (const v of values) {
-      wgsl += `${v},\n`;
-    }
-
-    wgsl += `
-);
+    const suffix = format.endsWith('sint') ? 'i' : format.endsWith('uint') ? 'u' : 'f';
+    const swizzleWGSL = viewDimension === '1d' ? 'x' : viewDimension === '3d' ? 'xyz' : 'xy';
+    const layerWGSL = viewDimension === '2d-array' ? ', gid.z' : '';
+    const wgsl = `
+const range = array(${values.map(v => `${v}${suffix}`).join(',')});
 
 @group(0) @binding(0)
-var tex : texture_storage_1d<${format}, write>;
+var tex : texture_storage_${viewDimension.replace('-', '_')}<${format}, ${access}>;
+
+fn setValue(gid: vec3u) {
+  let ndx = gid.x + gid.y + gid.z;
+  let vecVal = vec4(
+    range[(ndx + 0) % ${values.length}],
+    range[(ndx + 1) % ${values.length}],
+    range[(ndx + 2) % ${values.length}],
+    range[(ndx + 3) % ${values.length}],
+  );
+  var val = vec4<${_shaderType}>(vecVal);
+  let coord = gid.${swizzleWGSL};
+  textureStore(tex, coord${layerWGSL}, val);
+}
 
 @compute @workgroup_size(${values.length})
-fn main(@builtin(global_invocation_id) gid : vec3u) {
-  let idx = gid.x;
-  let scalarVal = range[idx];
-  let vecVal = vec4(scalarVal);
-  var val = vec4<${_shaderType}>(vecVal);
-  ${zeroVal}
-  textureStore(tex, gid.x, val);
+fn cs(@builtin(global_invocation_id) gid : vec3u) {
+  setValue(gid);
+}
+
+struct VOut {
+  @builtin(position) pos: vec4f,
+  @location(0) @interpolate(flat, either) z: u32,
+}
+@vertex fn vs(
+  @builtin(vertex_index) vNdx: u32,
+  @builtin(instance_index) iNdx: u32,
+) -> VOut {
+  let pos = array(vec2f(-1, 3), vec2f(3, -1), vec2f(-1, -1));
+  return VOut(vec4f(pos[vNdx], 0, 1), iNdx);
+}
+
+@fragment fn fs(v: VOut) -> @location(0) vec4f {
+  setValue(vec3u(u32(v.pos.x), u32(v.pos.y), v.z));
+  return vec4f(0);
 }
 `;
 
-    const numTexels = values.length;
-    const textureSize: GPUExtent3D = { width: numTexels, height: 1, depthOrArrayLayers: 1 };
+    const textureSize = [
+      values.length,
+      viewDimension === '1d' ? 1 : values.length,
+      viewDimension === '2d-array' || viewDimension === '3d' ? values.length : 1,
+    ] as const;
+    const dimension = getTextureDimensionFromView(viewDimension);
     const texture = t.createTextureTracked({
       format: format as GPUTextureFormat,
-      dimension: '1d',
       size: textureSize,
       mipLevelCount: 1,
+      dimension,
       usage: GPUTextureUsage.STORAGE_BINDING | GPUTextureUsage.COPY_SRC,
     });
 
-    const pipeline = t.device.createComputePipeline({
-      layout: 'auto',
-      compute: {
-        module: t.device.createShaderModule({
-          code: wgsl,
-        }),
-        entryPoint: 'main',
-      },
+    const module = t.device.createShaderModule({
+      code: wgsl,
     });
+
+    const pipeline =
+      stage === 'compute'
+        ? t.device.createComputePipeline({
+            layout: 'auto',
+            compute: { module },
+          })
+        : t.device.createRenderPipeline({
+            layout: 'auto',
+            vertex: { module },
+            fragment: { module, targets: [{ format: 'rgba8unorm' }] },
+          });
+
     const bg = t.device.createBindGroup({
       layout: pipeline.getBindGroupLayout(0),
       entries: [
@@ -248,18 +186,44 @@ fn main(@builtin(global_invocation_id) gid : vec3u) {
           binding: 0,
           resource: texture.createView({
             format: format as GPUTextureFormat,
-            dimension: '1d',
+            dimension: viewDimension,
           }),
         },
       ],
     });
 
     const encoder = t.device.createCommandEncoder();
-    const pass = encoder.beginComputePass();
-    pass.setPipeline(pipeline);
-    pass.setBindGroup(0, bg);
-    pass.dispatchWorkgroups(1, 1, 1);
-    pass.end();
+    switch (stage) {
+      case 'compute': {
+        const pass = encoder.beginComputePass();
+        pass.setPipeline(pipeline as GPUComputePipeline);
+        pass.setBindGroup(0, bg);
+        pass.dispatchWorkgroups(...textureSize);
+        pass.end();
+        break;
+      }
+      case 'fragment': {
+        const renderTarget = t.createTextureTracked({
+          size: textureSize.slice(0, 2),
+          format: 'rgba8unorm',
+          usage: GPUTextureUsage.RENDER_ATTACHMENT,
+        });
+        const pass = encoder.beginRenderPass({
+          colorAttachments: [
+            {
+              view: renderTarget.createView(),
+              loadOp: 'clear',
+              storeOp: 'store',
+            },
+          ],
+        });
+        pass.setPipeline(pipeline as GPURenderPipeline);
+        pass.setBindGroup(0, bg);
+        pass.draw(3, textureSize[2]);
+        pass.end();
+        break;
+      }
+    }
     t.queue.submit([encoder.finish()]);
 
     let bytesPerTexel = 4;
@@ -281,45 +245,58 @@ fn main(@builtin(global_invocation_id) gid : vec3u) {
         break;
     }
 
-    let zeroChannel = 0;
     const buffer = t.copyWholeTextureToNewBufferSimple(texture, 0);
-    const uintsPerTexel = bytesPerTexel / 4;
+    const u32sPerTexel = bytesPerTexel / 4;
+    const bytesPerRow = align(textureSize[0] * bytesPerTexel, 256);
+    const texelsPerRow = bytesPerRow / bytesPerTexel;
+    const texelsPerSlice = texelsPerRow * textureSize[1];
+    const getValue = (i: number) => values[i % values.length];
+    const clampedPack4x8unorm = (...v: number[]) => {
+      const c = v.map(v => clamp(v, { min: 0, max: 1 }));
+      return pack4x8unorm(c[0], c[1], c[2], c[3]);
+    };
+    const clampedPack4x8snorm = (...v: number[]) => {
+      const c = v.map(v => clamp(v, { min: -1, max: 1 }));
+      return pack4x8snorm(c[0], c[1], c[2], c[3]);
+    };
     const expected = new Uint32Array([
-      ...iterRange(numTexels * uintsPerTexel, x => {
-        const idx = Math.floor(x / uintsPerTexel);
-        const channel = idx % numChannels;
-        zeroChannel = zeroChannel % numChannels;
-        const shaderVal = values[idx];
+      // iterate over each u32
+      ...iterRange(buffer.size / 4, i => {
+        const texelId = (i / u32sPerTexel) | 0;
+        const z = (texelId / texelsPerSlice) | 0;
+        const y = ((texelId / texelsPerRow) | 0) % textureSize[1];
+        const x = texelId % texelsPerRow;
+        // buffer is padded to 256 per row so when x is out of range just return 0
+        if (x >= textureSize[0]) {
+          return 0;
+        }
+        const id = x + y + z;
+        const unit = i % u32sPerTexel;
         switch (format) {
           case 'rgba8unorm': {
-            const vals = [shaderVal, shaderVal, shaderVal, shaderVal];
-            vals[zeroChannel++] = 0;
-            return pack4x8unorm(vals[0], vals[1], vals[2], vals[3]);
+            const vals = range(4, i => getValue(id + i));
+            return clampedPack4x8unorm(vals[0], vals[1], vals[2], vals[3]);
           }
           case 'bgra8unorm': {
-            const vals = [shaderVal, shaderVal, shaderVal, shaderVal];
-            vals[zeroChannel++] = 0;
-            return pack4x8unorm(vals[2], vals[1], vals[0], vals[3]);
+            const vals = range(4, i => getValue(id + i));
+            return clampedPack4x8unorm(vals[2], vals[1], vals[0], vals[3]);
           }
           case 'rgba8snorm': {
-            const vals = [shaderVal, shaderVal, shaderVal, shaderVal];
-            vals[zeroChannel++] = 0;
-            return pack4x8snorm(vals[0], vals[1], vals[2], vals[3]);
+            const vals = range(4, i => getValue(id + i));
+            return clampedPack4x8snorm(vals[0], vals[1], vals[2], vals[3]);
           }
           case 'r32uint':
+            return clamp(getValue(id), { min: 0, max: 0xffffffff });
           case 'r32sint':
-            return shaderVal;
+            return clamp(getValue(id), { min: -0x80000000, max: 0x7fffffff });
           case 'rg32uint':
           case 'rgba32uint':
+            return clamp(getValue(id + unit), { min: 0, max: 0xffffffff });
           case 'rg32sint':
-          case 'rgba32sint': {
-            const maskedVal = channel === zeroChannel++ ? 0 : shaderVal;
-            return maskedVal;
-          }
-          case 'rgba8uint':
-          case 'rgba8sint': {
-            const vals = [shaderVal, shaderVal, shaderVal, shaderVal];
-            vals[zeroChannel++] = 0;
+          case 'rgba32sint':
+            return clamp(getValue(id + unit), { min: -0x80000000, max: 0x7fffffff });
+          case 'rgba8uint': {
+            const vals = range(4, i => clamp(getValue(id + i), { min: 0, max: 255 }));
             return (
               ((vals[3] & 0xff) << 24) |
               ((vals[2] & 0xff) << 16) |
@@ -327,55 +304,40 @@ fn main(@builtin(global_invocation_id) gid : vec3u) {
               (vals[0] & 0xff)
             );
           }
-          case 'rgba16uint':
-          case 'rgba16sint': {
-            // 4 channels split over 2 uint32s.
-            // Determine if this pair has the zero channel.
-            const vals = [shaderVal, shaderVal];
-            const lowChannels = (x & 0x1) === 0;
-            if (lowChannels) {
-              if (zeroChannel < 2) {
-                vals[zeroChannel] = 0;
-              }
-            } else {
-              if (zeroChannel >= 2) {
-                vals[zeroChannel - 2] = 0;
-              }
-              zeroChannel++;
-            }
+          case 'rgba8sint': {
+            const vals = range(4, i => clamp(getValue(id + i), { min: -0x80, max: 0x7f }));
+            return (
+              ((vals[3] & 0xff) << 24) |
+              ((vals[2] & 0xff) << 16) |
+              ((vals[1] & 0xff) << 8) |
+              (vals[0] & 0xff)
+            );
+          }
+          case 'rgba16uint': {
+            const vals = range(2, i => clamp(getValue(id + unit * 2 + i), { min: 0, max: 0xffff }));
             return ((vals[1] & 0xffff) << 16) | (vals[0] & 0xffff);
           }
-          case 'r32float': {
-            return numberToFloatBits(shaderVal, kFloat32Format);
+          case 'rgba16sint': {
+            const vals = range(2, i =>
+              clamp(getValue(id + unit * 2 + i), { min: -0x8000, max: 0x7fff })
+            );
+            return ((vals[1] & 0xffff) << 16) | (vals[0] & 0xffff);
           }
+          case 'r32float':
           case 'rg32float':
           case 'rgba32float': {
-            const maskedVal = channel === zeroChannel++ ? 0 : shaderVal;
-            return numberToFloatBits(maskedVal, kFloat32Format);
+            return numberToFloatBits(getValue(id + unit), kFloat32Format);
           }
           case 'rgba16float': {
-            // 4 channels split over 2 uint32s.
-            // Determine if this pair has the zero channel.
-            const bits = numberToFloatBits(shaderVal, kFloat16Format);
-            const vals = [bits, bits];
-            const lowChannels = (x & 0x1) === 0;
-            if (lowChannels) {
-              if (zeroChannel < 2) {
-                vals[zeroChannel] = 0;
-              }
-            } else {
-              if (zeroChannel >= 2) {
-                vals[zeroChannel - 2] = 0;
-              }
-              zeroChannel++;
-            }
+            const vals = range(2, i =>
+              numberToFloatBits(getValue(id + unit * 2 + i), kFloat16Format)
+            );
             return ((vals[1] & 0xffff) << 16) | (vals[0] & 0xffff);
           }
           default:
             unreachable(`unhandled format ${format}`);
             break;
         }
-        return 0;
       }),
     ]);
     t.expectGPUBufferValuesEqual(buffer, expected);
@@ -598,8 +560,6 @@ function getMipTexels(numTexels: number, dim: GPUTextureDimension, mip: number):
   }
   return texels;
 }
-
-const kDims = ['1d', '2d', '3d'] as const;
 
 g.test('out_of_bounds')
   .desc('Test that textureStore on out-of-bounds coordinates have no effect')

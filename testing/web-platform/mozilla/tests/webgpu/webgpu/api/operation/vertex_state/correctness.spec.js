@@ -427,25 +427,51 @@ struct VSOutputs {
 
       case 'unorm':{
           if (formatInfo.bytesPerComponent === 'packed') {
-            assert(format === 'unorm10-10-10-2'); // This is the only packed format for now.
             assert(bitSize === 0);
 
+            switch (format) {
+              case 'unorm10-10-10-2':{
 
-            const data = [
-            [0, 0, 0, 0],
-            [1023, 1023, 1023, 3],
-            [243, 567, 765, 2]];
+                  const data = [
+                  [0, 0, 0, 0],
+                  [1023, 1023, 1023, 3],
+                  [243, 567, 765, 2]];
 
-            const vertexData = new Uint32Array(data.map(makeRgb10a2)).buffer;
-            const expectedData = new Float32Array(data.flat().map(normalizeRgb10a2)).buffer;
+                  const vertexData = new Uint32Array(data.map(makeRgb10a2)).buffer;
+                  const expectedData = new Float32Array(data.flat().map(normalizeRgb10a2)).buffer;
 
-            return {
-              shaderBaseType: 'f32',
-              testComponentCount: data.flat().length,
-              expectedData,
-              vertexData,
-              floatTolerance: 0.1 / 1023
-            };
+                  return {
+                    shaderBaseType: 'f32',
+                    testComponentCount: data.flat().length,
+                    expectedData,
+                    vertexData,
+                    floatTolerance: 0.1 / 1023
+                  };
+                }
+
+              case 'unorm8x4-bgra':{
+                  const data = [42, 0, 1, 2, 3, 4, 128, 255];
+                  const vertexData = new Uint8Array(data).buffer;
+                  const expectedData = new Float32Array(
+                    data.map((v) => normalizedIntegerAsFloat(v, 8, false))
+                  );
+
+                  for (let i = 0; i + 2 < expectedData.length; i += 4) {
+                    const r = expectedData[i + 0];
+                    const b = expectedData[i + 2];
+                    expectedData[i + 0] = b;
+                    expectedData[i + 2] = r;
+                  }
+
+                  return {
+                    shaderBaseType: 'f32',
+                    testComponentCount: data.length,
+                    expectedData: expectedData.buffer,
+                    vertexData,
+                    floatTolerance: 0.1 / 255
+                  };
+                }
+            }
           }
 
 

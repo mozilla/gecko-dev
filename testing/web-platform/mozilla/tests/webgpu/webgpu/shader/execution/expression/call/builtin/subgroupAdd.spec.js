@@ -24,6 +24,7 @@ import {
 import { FP } from '../../../../../util/floating_point.js';
 
 import {
+  kDataSentinel,
   kNumCases,
   kStride,
   kWGSizes,
@@ -278,7 +279,7 @@ filter)
         }
       }
     } else {
-      expected = 999;
+      expected = kDataSentinel;
     }
     if (expected !== output[i]) {
       return new Error(`Invocation ${i}: incorrect result
@@ -309,6 +310,9 @@ fn(async (t) => {
 
   const wgsl = `
 enable subgroups;
+
+diagnostic(off, subgroup_uniformity);
+diagnostic(off, subgroup_branching);
 
 @group(0) @binding(0)
 var<storage> input : array<u32>;

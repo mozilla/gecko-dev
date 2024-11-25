@@ -126,7 +126,7 @@ const altDataGenerator = new DataArrayGenerator();
 
 class ImageCopyTest extends TextureTestMixin(GPUTest) {
   /**
-   * This is used for testing passing undefined members of `GPUImageDataLayout` instead of actual
+   * This is used for testing passing undefined members of `GPUTexelCopyBufferLayout` instead of actual
    * values where possible. Passing arguments as values and not as objects so that they are passed
    * by copy and not by reference.
    */
@@ -151,7 +151,7 @@ class ImageCopyTest extends TextureTestMixin(GPUTest) {
   }
 
   /**
-   * This is used for testing passing undefined members of `GPUImageCopyTexture` instead of actual
+   * This is used for testing passing undefined members of `GPUTexelCopyTextureInfo` instead of actual
    * values where possible and also for testing passing the origin as `[number, number, number]`.
    * Passing arguments as values and not as objects so that they are passed by copy and not by
    * reference.

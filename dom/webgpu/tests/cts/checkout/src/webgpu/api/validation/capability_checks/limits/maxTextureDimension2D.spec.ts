@@ -59,7 +59,7 @@ g.test('configure,at_over')
 
           // This should not fail, even if the size is too large but it might fail
           // if we're in a worker and HTMLCanvasElement does not exist.
-          const canvas = createCanvas(t, canvasType, size[0], size[1])!;
+          const canvas = createCanvas(t, canvasType, size[0], size[1]);
           if (canvas) {
             const context = canvas.getContext('webgpu') as GPUCanvasContext;
             t.expect(!!context, 'should not fail to create context even if size is too large');
@@ -96,7 +96,7 @@ g.test('getCurrentTexture,at_over')
           // Start with a small size so configure will succeed.
           // This should not fail, even if the size is too large but it might fail
           // if we're in a worker and HTMLCanvasElement does not exist.
-          const canvas = createCanvas(t, canvasType, 1, 1)!;
+          const canvas = createCanvas(t, canvasType, 1, 1);
           if (canvas) {
             const context = canvas.getContext('webgpu') as GPUCanvasContext;
             t.expect(!!context, 'should not fail to create context even if size is too large');

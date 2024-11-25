@@ -1001,7 +1001,7 @@ export function getSingleDataType(format: UncompressedTextureFormat): ComponentD
     assert(cur !== undefined);
     assert(acc === undefined || acc === cur.dataType);
     return cur.dataType;
-  }, infos[0]!.dataType);
+  }, infos[0].dataType);
 }
 
 /**

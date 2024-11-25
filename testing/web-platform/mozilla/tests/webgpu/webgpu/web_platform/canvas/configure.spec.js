@@ -49,7 +49,7 @@ fn((t) => {
   t.expect(configuration.usage === GPUTextureUsage.RENDER_ATTACHMENT);
   t.expect(configuration.viewFormats.length === 0);
   t.expect(configuration.colorSpace === 'srgb');
-  t.expect(configuration.toneMapping.mode === 'standard');
+  t.expect(configuration.toneMapping?.mode === 'standard');
   t.expect(configuration.alphaMode === 'opaque');
 
   const currentTexture = ctx.getCurrentTexture();
@@ -109,7 +109,7 @@ fn((t) => {
   t.expect(configuration.usage === GPUTextureUsage.RENDER_ATTACHMENT);
   t.expect(configuration.viewFormats.length === 0);
   t.expect(configuration.colorSpace === 'srgb');
-  t.expect(configuration.toneMapping.mode === 'standard');
+  t.expect(configuration.toneMapping?.mode === 'standard');
   t.expect(configuration.alphaMode === 'opaque');
 
   // getCurrentTexture will succeed with a valid device.
@@ -140,7 +140,7 @@ fn((t) => {
   t.expect(newConfiguration.usage === GPUTextureUsage.RENDER_ATTACHMENT);
   t.expect(newConfiguration.viewFormats.length === 0);
   t.expect(newConfiguration.colorSpace === 'srgb');
-  t.expect(newConfiguration.toneMapping.mode === 'standard');
+  t.expect(newConfiguration.toneMapping?.mode === 'standard');
   t.expect(newConfiguration.alphaMode === 'premultiplied');
 });
 

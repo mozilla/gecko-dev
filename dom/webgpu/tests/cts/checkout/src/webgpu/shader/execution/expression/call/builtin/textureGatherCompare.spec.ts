@@ -18,11 +18,7 @@ A texture gather compare operation performs a depth comparison on four texels in
 
 import { makeTestGroup } from '../../../../../../common/framework/test_group.js';
 import { kCompareFunctions } from '../../../../../capability_info.js';
-import {
-  isDepthTextureFormat,
-  isEncodableTextureFormat,
-  kDepthStencilFormats,
-} from '../../../../../format_info.js';
+import { isDepthTextureFormat, kDepthStencilFormats } from '../../../../../format_info.js';
 
 import {
   checkCallResults,
@@ -74,8 +70,6 @@ Parameters:
       .combine('format', kDepthStencilFormats)
       // filter out stencil only formats
       .filter(t => isDepthTextureFormat(t.format))
-      // MAINTENANCE_TODO: Remove when support for depth24plus, depth24plus-stencil8, and depth32float-stencil8 is added.
-      .filter(t => isEncodableTextureFormat(t.format))
       .combine('filt', ['nearest', 'linear'] as const)
       .combine('modeU', kShortAddressModes)
       .combine('modeV', kShortAddressModes)
@@ -87,6 +81,7 @@ Parameters:
   )
   .beforeAllSubcases(t => {
     t.skipIfTextureFormatNotSupported(t.params.format);
+    t.selectDeviceForTextureFormatOrSkipTestCase(t.params.format);
   })
   .fn(async t => {
     const {
@@ -187,8 +182,6 @@ Parameters:
       .combine('format', kDepthStencilFormats)
       // filter out stencil only formats
       .filter(t => isDepthTextureFormat(t.format))
-      // MAINTENANCE_TODO: Remove when support for depth24plus, depth24plus-stencil8, and depth32float-stencil8 is added.
-      .filter(t => isEncodableTextureFormat(t.format))
       .combine('filt', ['nearest', 'linear'] as const)
       .combine('mode', kShortAddressModes)
       .beginSubcases()
@@ -198,6 +191,7 @@ Parameters:
   )
   .beforeAllSubcases(t => {
     t.skipIfTextureViewDimensionNotSupported('cube-array');
+    t.selectDeviceForTextureFormatOrSkipTestCase(t.params.format);
   })
   .fn(async t => {
     const { format, A, stage, samplePoints, mode, filt: minFilter, compare } = t.params;
@@ -294,8 +288,6 @@ Parameters:
       .combine('format', kDepthStencilFormats)
       // filter out stencil only formats
       .filter(t => isDepthTextureFormat(t.format))
-      // MAINTENANCE_TODO: Remove when support for depth24plus, depth24plus-stencil8, and depth32float-stencil8 is added.
-      .filter(t => isEncodableTextureFormat(t.format))
       .combine('filt', ['nearest', 'linear'] as const)
       .combine('mode', kShortAddressModes)
       .combine('offset', [false, true] as const)
@@ -304,6 +296,7 @@ Parameters:
       .combine('samplePoints', kSamplePointMethods)
       .combine('compare', kCompareFunctions)
   )
+  .beforeAllSubcases(t => t.selectDeviceForTextureFormatOrSkipTestCase(t.params.format))
   .fn(async t => {
     const { format, C, stage, samplePoints, mode, compare, filt: minFilter, offset } = t.params;
 
@@ -385,14 +378,13 @@ Parameters:
       .combine('format', kDepthStencilFormats)
       // filter out stencil only formats
       .filter(t => isDepthTextureFormat(t.format))
-      // MAINTENANCE_TODO: Remove when support for depth24plus, depth24plus-stencil8, and depth32float-stencil8 is added.
-      .filter(t => isEncodableTextureFormat(t.format))
       .combine('filt', ['nearest', 'linear'] as const)
       .combine('mode', kShortAddressModes)
       .beginSubcases()
       .combine('samplePoints', kCubeSamplePointMethods)
       .combine('compare', kCompareFunctions)
   )
+  .beforeAllSubcases(t => t.selectDeviceForTextureFormatOrSkipTestCase(t.params.format))
   .fn(async t => {
     const { format, stage, samplePoints, mode, filt: minFilter, compare } = t.params;
 

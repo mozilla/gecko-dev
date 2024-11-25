@@ -169,8 +169,8 @@ export class TextureUploadingUtils extends TextureTestMixin(GPUTest) {
   }
 
   doTestAndCheckResult(
-    imageCopyExternalImage: GPUImageCopyExternalImage,
-    dstTextureCopyView: GPUImageCopyTextureTagged,
+    imageCopyExternalImage: GPUCopyExternalImageSourceInfo,
+    dstTextureCopyView: GPUCopyExternalImageDestInfo,
     expTexelView: TexelView,
     copySize: Required<GPUExtent3DDict>,
     texelCompareOptions: TexelCompareOptions

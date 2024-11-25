@@ -1307,6 +1307,13 @@ export const listing = [
     "file": [
       "api",
       "validation",
+      "non_filterable_texture"
+    ]
+  },
+  {
+    "file": [
+      "api",
+      "validation",
       "query_set",
       "create"
     ]
@@ -1679,6 +1686,14 @@ export const listing = [
       "encoding",
       "programmable",
       "pipeline_bind_group_compat"
+    ]
+  },
+  {
+    "file": [
+      "compat",
+      "api",
+      "validation",
+      "pipeline_creation"
     ]
   },
   {
@@ -3394,6 +3409,16 @@ export const listing = [
       "call",
       "builtin",
       "textureStore"
+    ]
+  },
+  {
+    "file": [
+      "shader",
+      "execution",
+      "expression",
+      "call",
+      "builtin",
+      "texture_utils"
     ]
   },
   {

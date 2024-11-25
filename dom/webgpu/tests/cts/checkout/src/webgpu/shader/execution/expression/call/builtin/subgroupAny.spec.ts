@@ -208,6 +208,9 @@ g.test('compute,split')
     const wgsl = `
 enable subgroups;
 
+diagnostic(off, subgroup_uniformity);
+diagnostic(off, subgroup_branching);
+
 @group(0) @binding(0)
 var<storage> inputs : array<u32>;
 

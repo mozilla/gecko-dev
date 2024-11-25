@@ -13,7 +13,10 @@ const kTests = {
   },
   one: {
     src: '@align(1)',
-    pass: true
+    pass: false
+    // EXCEPTION: Error: Unexpected validation error occurred:
+    // Error while parsing WGSL: :6:10 error: alignment must be a
+    // multiple of '4' bytes for the 'uniform' address space @align(1) a: i32,
   },
   four_a: {
     src: '@align(4)',
@@ -45,6 +48,14 @@ const kTests = {
   },
   const_expr: {
     src: '@align(i_val + 4 - 6)',
+    pass: false
+    // EXCEPTION: Error: Unexpected validation error occurred:
+    // Error while parsing WGSL: :6:10 error: alignment must be a
+    // multiple of '4' bytes for the 'uniform' address space
+    // @align(i_val + 4 - 6) a: i32
+  },
+  const_expr_2: {
+    src: '@align(i_val + 8 - 4)',
     pass: true
   },
   large: {
@@ -185,7 +196,7 @@ combine('type', [
 { name: 'mat3x4<f16>', storage: 8, uniform: 8 },
 { name: 'mat4x4<f16>', storage: 8, uniform: 8 },
 { name: 'array<vec2<i32>, 2>', storage: 8, uniform: 16 },
-{ name: 'array<vec4<i32>, 2>', storage: 8, uniform: 16 },
+{ name: 'array<vec4<i32>, 2>', storage: 16, uniform: 16 },
 { name: 'S', storage: 8, uniform: 16 }]
 ).
 beginSubcases()
@@ -218,15 +229,12 @@ fn((t) => {
       `;
   }
 
-  let align = t.params.align;
-  if (t.params.align === 'alignment') {
-    // Alignment value listed in the spec
-    if (t.params.address_space === 'storage') {
-      align = `${t.params.type.storage}`;
-    } else {
-      align = `${t.params.type.uniform}`;
-    }
-  }
+  // Alignment value listed in the spec
+  const min_align =
+  t.params.address_space === 'storage' ?
+  `${t.params.type.storage}` :
+  `${t.params.type.uniform}`;
+  const align = t.params.align === 'alignment' ? min_align : t.params.align;
 
   let address_space = 'uniform';
   if (t.params.address_space === 'storage') {
@@ -252,7 +260,8 @@ fn((t) => {
   // requires that inner vec2 to have an align 16 which can only be done by specifying `vec4`
   // instead.
   const fails =
-  t.params.address_space === 'uniform' && t.params.type.name.startsWith('array<vec2');
+  t.params.address_space === 'uniform' && t.params.type.name.startsWith('array<vec2') ||
+  align < min_align;
 
   t.expectCompileResult(!fails, code);
 });

@@ -6,7 +6,7 @@ Samples a texture using explicit gradients.
 `;
 
 import { makeTestGroup } from '../../../../../../common/framework/test_group.js';
-import { kCompressedTextureFormats, kEncodableTextureFormats } from '../../../../../format_info.js';
+import { isFilterableAsTextureF32, kAllTextureFormats } from '../../../../../format_info.js';
 
 import {
   appendComponentTypeForFormatToTextureType,
@@ -34,8 +34,6 @@ import {
   WGSLTextureSampleTest,
 } from './texture_utils.js';
 
-const kTestableColorFormats = [...kEncodableTextureFormats, ...kCompressedTextureFormats] as const;
-
 export const g = makeTestGroup(WGSLTextureSampleTest);
 
 g.test('sampled_2d_coords')
@@ -62,9 +60,10 @@ Parameters:
   .params(u =>
     u
       .combine('stage', kShortShaderStages)
-      .combine('format', kTestableColorFormats)
+      .combine('format', kAllTextureFormats)
       .filter(t => isPotentiallyFilterableAndFillable(t.format))
       .combine('filt', ['nearest', 'linear'] as const)
+      .filter(t => t.filt === 'nearest' || isFilterableAsTextureF32(t.format))
       .combine('modeU', kShortAddressModes)
       .combine('modeV', kShortAddressModes)
       .combine('offset', [false, true] as const)
@@ -161,11 +160,12 @@ Parameters:
   .params(u =>
     u
       .combine('stage', kShortShaderStages)
-      .combine('format', kTestableColorFormats)
+      .combine('format', kAllTextureFormats)
       .filter(t => isPotentiallyFilterableAndFillable(t.format))
       .combine('dim', ['3d', 'cube'] as const)
       .filter(t => isSupportedViewFormatCombo(t.format, t.dim))
       .combine('filt', ['nearest', 'linear'] as const)
+      .filter(t => t.filt === 'nearest' || isFilterableAsTextureF32(t.format))
       .combine('modeU', kShortAddressModes)
       .combine('modeV', kShortAddressModes)
       .combine('modeW', kShortAddressModes)
@@ -251,7 +251,7 @@ Parameters:
     const viewDescriptor = {
       dimension: viewDimension,
     };
-    const textureType = getTextureTypeForTextureViewDimension(viewDimension)!;
+    const textureType = getTextureTypeForTextureViewDimension(viewDimension);
     const results = await doTextureCalls(
       t,
       texture,
@@ -301,9 +301,10 @@ Parameters:
   .params(u =>
     u
       .combine('stage', kShortShaderStages)
-      .combine('format', kTestableColorFormats)
+      .combine('format', kAllTextureFormats)
       .filter(t => isPotentiallyFilterableAndFillable(t.format))
       .combine('filt', ['nearest', 'linear'] as const)
+      .filter(t => t.filt === 'nearest' || isFilterableAsTextureF32(t.format))
       .combine('modeU', kShortAddressModes)
       .combine('modeV', kShortAddressModes)
       .combine('offset', [false, true] as const)
@@ -407,9 +408,10 @@ Parameters:
   .params(u =>
     u
       .combine('stage', kShortShaderStages)
-      .combine('format', kTestableColorFormats)
+      .combine('format', kAllTextureFormats)
       .filter(t => isPotentiallyFilterableAndFillable(t.format))
       .combine('filt', ['nearest', 'linear'] as const)
+      .filter(t => t.filt === 'nearest' || isFilterableAsTextureF32(t.format))
       .combine('mode', kShortAddressModes)
       .beginSubcases()
       .combine('samplePoints', kCubeSamplePointMethods)

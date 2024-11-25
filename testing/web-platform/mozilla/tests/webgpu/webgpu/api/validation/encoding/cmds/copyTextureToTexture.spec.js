@@ -691,7 +691,7 @@ fn((t) => {
 g.test('copy_aspects').
 desc(
   `
-Test the validations on the member 'aspect' of GPUImageCopyTexture in CopyTextureToTexture().
+Test the validations on the member 'aspect' of GPUTexelCopyTextureInfo in CopyTextureToTexture().
 - for all the color and depth-stencil formats: the texture copy aspects must be both 'all'.
 - for all the depth-only formats: the texture copy aspects must be either 'all' or 'depth-only'.
 - for all the stencil-only formats: the texture copy aspects must be either 'all' or 'stencil-only'.

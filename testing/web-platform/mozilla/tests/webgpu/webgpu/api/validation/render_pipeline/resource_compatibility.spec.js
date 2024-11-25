@@ -55,6 +55,7 @@ fn((t) => {
     wgslResource.storageTexture.access !== 'read-only'),
     'Storage buffers and textures cannot be used in vertex shaders'
   );
+  t.skipIfTextureViewDimensionNotSupported(wgslResource.texture?.viewDimension);
   const emptyVS = `
 @vertex
 fn main() -> @builtin(position) vec4f {

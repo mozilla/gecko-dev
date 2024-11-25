@@ -89,6 +89,12 @@ g.test('subresources,set_bind_group_on_same_index_color_texture')
       .combine('view1Binding', kTextureBindingTypes)
       .combine('view2Binding', kTextureBindingTypes)
   )
+  .beforeAllSubcases(t => {
+    t.skipIf(
+      t.isCompatibility,
+      'texture views used in bindgroups must consist of the entire array in compatibility mode. textureView0 does not fit.'
+    );
+  })
   .fn(t => {
     const { useDifferentTextureAsTexture2, baseLayer2, view1Binding, view2Binding } = t.params;
 
@@ -232,6 +238,12 @@ g.test('subresources,set_unused_bind_group')
       .combine('textureUsage0', kTextureBindingTypes)
       .combine('textureUsage1', kTextureBindingTypes)
   )
+  .beforeAllSubcases(t => {
+    t.skipIf(
+      t.isCompatibility,
+      'texture views used in bindgroups must consist of the entire array in compatibility mode. textureView0 does not fit.'
+    );
+  })
   .fn(t => {
     const { inRenderPass, textureUsage0, textureUsage1 } = t.params;
 

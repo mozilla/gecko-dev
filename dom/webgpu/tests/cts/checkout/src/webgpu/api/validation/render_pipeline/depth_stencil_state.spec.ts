@@ -232,6 +232,10 @@ g.test('depth_bias')
   .fn(t => {
     const { isAsync, topology, depthBias, depthBiasSlopeScale, depthBiasClamp } = t.params;
 
+    if (t.isCompatibility && !!depthBiasClamp) {
+      t.skip('depthBiasClamp must be 0 on compatibility mode');
+    }
+
     const isTriangleTopology = topology === 'triangle-list' || topology === 'triangle-strip';
     const hasDepthBias = !!depthBias || !!depthBiasSlopeScale || !!depthBiasClamp;
     const shouldSucceed = !hasDepthBias || isTriangleTopology;

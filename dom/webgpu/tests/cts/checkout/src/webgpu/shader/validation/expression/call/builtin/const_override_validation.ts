@@ -137,7 +137,7 @@ export type ExecutionStage = 'constant' | 'override' | 'runtime';
  * @returns true if evaluation stage `stage` supports expressions of type @p.
  */
 export function stageSupportsType(stage: ConstantOrOverrideStage, type: Type) {
-  if (stage === 'override' && isAbstractType(elementTypeOf(type)!)) {
+  if (stage === 'override' && isAbstractType(elementTypeOf(type))) {
     // Abstract numerics are concretized before being used in an override expression.
     return false;
   }
@@ -162,7 +162,7 @@ export function validateConstOrOverrideBuiltinEval(
   stage: ConstantOrOverrideStage,
   returnType?: Type
 ) {
-  const elTys = args.map(arg => elementTypeOf(arg.type)!);
+  const elTys = args.map(arg => elementTypeOf(arg.type));
   const enables = elTys.some(ty => ty === Type.f16) ? 'enable f16;' : '';
   const optionalVarType = returnType ? `: ${returnType.toString()}` : '';
 
@@ -225,7 +225,7 @@ export function validateConstOrOverrideBinaryOpEval(
   right: Value
 ) {
   const allArgs = [left, right];
-  const elTys = allArgs.map(arg => elementTypeOf(arg.type)!);
+  const elTys = allArgs.map(arg => elementTypeOf(arg.type));
   const enables = elTys.some(ty => ty === Type.f16) ? 'enable f16;' : '';
 
   const codeLines = [enables];

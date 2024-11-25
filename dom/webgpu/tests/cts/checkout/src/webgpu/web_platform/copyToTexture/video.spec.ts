@@ -34,12 +34,12 @@ It creates HTMLVideoElement with videos under Resource folder.
   Then call copyExternalImageToTexture() to do a full copy to the 0 mipLevel
   of dst texture, and read the contents out to compare with the ImageBitmap contents.
 
-  If 'flipY' in 'GPUImageCopyExternalImage' is set to 'true', copy will ensure the result
+  If 'flipY' in 'GPUCopyExternalImageSourceInfo' is set to 'true', copy will ensure the result
   is flipped.
 
   The tests covers:
   - Video comes from different color spaces.
-  - Valid 'flipY' config in 'GPUImageCopyExternalImage' (named 'srcDoFlipYDuringCopy' in cases)
+  - Valid 'flipY' config in 'GPUCopyExternalImageSourceInfo' (named 'srcDoFlipYDuringCopy' in cases)
   - TODO: partial copy tests should be added
   - TODO: all valid dstColorFormat tests should be added.
 `
