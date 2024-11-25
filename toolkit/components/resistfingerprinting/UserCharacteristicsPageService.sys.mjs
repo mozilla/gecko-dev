@@ -112,6 +112,8 @@ export class UserCharacteristicsPageService {
         }
         lazy.console.debug(`Data:`, data.output);
 
+        lazy.console.debug(`Gamepad data:`, data.gamepads);
+
         lazy.console.debug("Populating Glean metrics...");
 
         await this.populateAndCollectErrors(browser, data);
@@ -150,7 +152,7 @@ export class UserCharacteristicsPageService {
       [this.populateDisabledMediaPrefs, []],
       [this.populateMathOps, []],
       [this.populateMappableData, [data.output]],
-      [this.populateGamepads, [data.output.gamepads]],
+      [this.populateGamepads, [data.gamepads]],
       [this.populateClientInfo, []],
       [this.populateCPUInfo, []],
       [this.populateWindowInfo, []],
@@ -536,7 +538,7 @@ export class UserCharacteristicsPageService {
 
     for (const type in metrics) {
       for (const metric of metrics[type]) {
-        Glean.characteristics[metric][type](data[metric]);
+        Glean.characteristics[metric][type](data.get(metric));
       }
     }
   }

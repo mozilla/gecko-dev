@@ -22,7 +22,8 @@ export class UserCharacteristicsChild extends JSWindowActorChild {
    *
    * @typedef {Object} userDataDetails
    *   @property {string} debug - The debug messages.
-   *   @property {Object} output - The user characteristics data.
+   *   @property {Array<string>} gamepads - The user characteristics data for gamepads.
+   *   @property {Map<string, number | string | boolean>} output - The user characteristics data.
    */
   userDataDetails;
 
@@ -69,7 +70,7 @@ export class UserCharacteristicsChild extends JSWindowActorChild {
     }
 
     lazy.console.debug(`Reporting gamepad: ${gamepadsInfo}`);
-    this.userDataDetails.output.gamepads = gamepadsInfo;
+    this.userDataDetails.gamepads = gamepadsInfo;
   }
 
   async handleEvent(event) {

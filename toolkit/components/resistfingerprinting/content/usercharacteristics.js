@@ -1058,11 +1058,12 @@ async function startPopulating() {
   await Promise.allSettled(Object.values(data));
 
   debug("Sizes of extractions:");
-  const output = {};
+  const output = new Map();
   for (const key in data) {
     try {
-      output[key] = await data[key];
-      debug(key, output[key] ? output[key].length : "null");
+      let outputValue = await data[key];
+      output.set(key, outputValue);
+      debug(key, output.get(key) ? output.get(key).length : "null");
     } catch (e) {
       debug("Promise rejected for", key, "Error:", e);
       errors.push(`${key}: ${await stringifyError(e)}`);
