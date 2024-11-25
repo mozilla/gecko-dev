@@ -245,8 +245,7 @@ class MOZ_STACK_CLASS ScriptCompiler : public SourceAwareCompiler<Unit> {
 #endif  // JS_ENABLE_SMOOSH
 
 using BytecodeCompilerOutput =
-    mozilla::Variant<UniquePtr<ExtensibleCompilationStencil>,
-                     RefPtr<CompilationStencil>, CompilationGCOutput*>;
+    mozilla::Variant<RefPtr<CompilationStencil>, CompilationGCOutput*>;
 
 static constexpr ExtraBindingInfoVector* NoExtraBindings = nullptr;
 
@@ -280,10 +279,7 @@ template <typename Unit>
           WaitForAllDelazifyTasks(maybeCx->runtime());
         }
       }
-      if (output.is<UniquePtr<ExtensibleCompilationStencil>>()) {
-        output.as<UniquePtr<ExtensibleCompilationStencil>>() =
-            std::move(extensibleStencil);
-      } else if (output.is<RefPtr<CompilationStencil>>()) {
+      if (output.is<RefPtr<CompilationStencil>>()) {
         RefPtr<CompilationStencil> stencil =
             fc->getAllocator()->new_<frontend::CompilationStencil>(
                 std::move(extensibleStencil));
@@ -355,15 +351,7 @@ template <typename Unit>
     }
   }
 
-  if (output.is<UniquePtr<ExtensibleCompilationStencil>>()) {
-    auto stencil =
-        fc->getAllocator()->make_unique<ExtensibleCompilationStencil>(
-            std::move(compiler.stencil()));
-    if (!stencil) {
-      return false;
-    }
-    output.as<UniquePtr<ExtensibleCompilationStencil>>() = std::move(stencil);
-  } else if (output.is<RefPtr<CompilationStencil>>()) {
+  if (output.is<RefPtr<CompilationStencil>>()) {
     Maybe<AutoGeckoProfilerEntry> pseudoFrame;
     if (maybeCx) {
       pseudoFrame.emplace(maybeCx, "script emit",
@@ -1126,15 +1114,7 @@ template <typename Unit>
     return false;
   }
 
-  if (output.is<UniquePtr<ExtensibleCompilationStencil>>()) {
-    auto stencil =
-        fc->getAllocator()->make_unique<ExtensibleCompilationStencil>(
-            std::move(compiler.stencil()));
-    if (!stencil) {
-      return false;
-    }
-    output.as<UniquePtr<ExtensibleCompilationStencil>>() = std::move(stencil);
-  } else if (output.is<RefPtr<CompilationStencil>>()) {
+  if (output.is<RefPtr<CompilationStencil>>()) {
     Maybe<AutoGeckoProfilerEntry> pseudoFrame;
     if (maybeCx) {
       pseudoFrame.emplace(maybeCx, "script emit",
@@ -1314,21 +1294,6 @@ static GetCachedResult GetCachedLazyFunctionStencilMaybeInstantiate(
     return GetCachedResult::Found;
   }
 
-  if (output.is<UniquePtr<ExtensibleCompilationStencil>>()) {
-    auto extensible =
-        fc->getAllocator()->make_unique<ExtensibleCompilationStencil>(input);
-    if (!extensible) {
-      return GetCachedResult::Error;
-    }
-    if (!extensible->cloneFrom(fc, *stencil)) {
-      return GetCachedResult::Error;
-    }
-
-    output.as<UniquePtr<ExtensibleCompilationStencil>>() =
-        std::move(extensible);
-    return GetCachedResult::Found;
-  }
-
   MOZ_ASSERT(maybeCx);
 
   if (!InstantiateLazyFunction(maybeCx, input, *stencil, output)) {
@@ -1436,15 +1401,7 @@ static bool CompileLazyFunctionToStencilMaybeInstantiate(
     }
   }
 
-  if (output.is<UniquePtr<ExtensibleCompilationStencil>>()) {
-    auto stencil =
-        fc->getAllocator()->make_unique<ExtensibleCompilationStencil>(
-            std::move(compilationState));
-    if (!stencil) {
-      return false;
-    }
-    output.as<UniquePtr<ExtensibleCompilationStencil>>() = std::move(stencil);
-  } else if (output.is<RefPtr<CompilationStencil>>()) {
+  if (output.is<RefPtr<CompilationStencil>>()) {
     Maybe<AutoGeckoProfilerEntry> pseudoFrame;
     if (maybeCx) {
       pseudoFrame.emplace(maybeCx, "script emit",
