@@ -251,6 +251,33 @@ class TestBuildDict(unittest.TestCase, Base):
         )
         self.assertEqual(True, d["crashreporter"])
 
+    def test_gecko_profiler(self):
+        """
+        Test that gecko profiler values are properly detected.
+        """
+        d = build_dict(
+            self._config(
+                dict(
+                    OS_TARGET="Linux",
+                    TARGET_CPU="i386",
+                    MOZ_WIDGET_TOOLKIT="gtk",
+                )
+            )
+        )
+        self.assertEqual(False, d["gecko_profiler"])
+
+        d = build_dict(
+            self._config(
+                dict(
+                    OS_TARGET="Linux",
+                    TARGET_CPU="i386",
+                    MOZ_WIDGET_TOOLKIT="gtk",
+                    MOZ_GECKO_PROFILER="1",
+                )
+            )
+        )
+        self.assertEqual(True, d["gecko_profiler"])
+
 
 class TestWriteMozinfo(unittest.TestCase, Base):
     """
