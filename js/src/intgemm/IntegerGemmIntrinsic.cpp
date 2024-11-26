@@ -308,34 +308,47 @@ int32_t js::intgemm::IntrI8PrepareBias(
     return -1;
   }
 
-  // Memory Bound checks for all matricies
+  // Memory Bound checks for all matrices
   uint64_t sizeB = (uint64_t)rowsB * (uint64_t)colsB;
   uint64_t sizeBias = colsB;
   size_t wasmBufferSize = GetWasmRawBufferLength(memBase);
   if (!CheckMatrixBoundAndAlignment(cx, inputMatrixBPrepared, sizeB,
                                     wasmBufferSize) ||
-      !CheckMatrixBound(cx, inputBias, sizeBias, wasmBufferSize) ||
       !CheckMatrixBound(cx, output, sizeBias, wasmBufferSize)) {
     wasm::Log(cx,
               "%s: preparedB:%x  rowsB:%" PRIu32 "  colsB:%" PRIu32
-              "  inputBias:%x  outputBias:%x  sizeB:%" PRIu64
-              "  wasmBufferSize:%zu",
-              __FUNCTION__, inputMatrixBPrepared, rowsB, colsB, inputBias,
-              output, sizeB, wasmBufferSize);
+              "  outputBias:%x  sizeB:%" PRIu64 "  wasmBufferSize:%zu",
+              __FUNCTION__, inputMatrixBPrepared, rowsB, colsB, output, sizeB,
+              wasmBufferSize);
     ReportGemmError(cx, JSMSG_WASM_OUT_OF_BOUNDS);
     return -1;
   }
 
   // Actual call to the 3rd party library (intgemm)
   uint8_t* inputMatrixBPreparedPtr = &memBase[inputMatrixBPrepared];
-  uint8_t* inputBiasPtr = &memBase[inputBias];
   uint8_t* outputPtr = &memBase[output];
   float unquantFactor =
       (-1) * ((127.0f / scaleA) * (127.0f / scaleB)) / (127.0f);
-  GEMMOLOGY_DISPATCH(Shift::PrepareBias)
-  ((const int8_t*)inputMatrixBPreparedPtr, rowsB, colsB,
-   gemmology::callbacks::UnquantizeAndAddBiasAndWrite(
-       unquantFactor, (const float*)inputBiasPtr, (float*)outputPtr));
+
+  if (inputBias) {
+    if (!CheckMatrixBound(cx, inputBias, sizeBias, wasmBufferSize)) {
+      wasm::Log(cx, "%s: inputBias:%x wasmBufferSize:%zu", __FUNCTION__,
+                inputBias, wasmBufferSize);
+      ReportGemmError(cx, JSMSG_WASM_OUT_OF_BOUNDS);
+      return -1;
+    }
+    const float* inputBiasPtr = reinterpret_cast<float*>(&memBase[inputBias]);
+
+    GEMMOLOGY_DISPATCH(Shift::PrepareBias)
+    ((const int8_t*)inputMatrixBPreparedPtr, rowsB, colsB,
+     gemmology::callbacks::UnquantizeAndAddBiasAndWrite(
+         unquantFactor, inputBiasPtr, (float*)outputPtr));
+  } else {
+    GEMMOLOGY_DISPATCH(Shift::PrepareBias)
+    ((const int8_t*)inputMatrixBPreparedPtr, rowsB, colsB,
+     gemmology::callbacks::UnquantizeAndWrite(unquantFactor,
+                                              (float*)outputPtr));
+  }
   return 0;
 }
 

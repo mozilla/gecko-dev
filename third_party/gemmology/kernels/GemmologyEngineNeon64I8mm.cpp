@@ -16,4 +16,7 @@ template void Engine<xsimd::i8mm<xsimd::neon64>>::Shift::Multiply(
 template void Engine<xsimd::i8mm<xsimd::neon64>>::Shift::PrepareBias(
     int8_t const*, size_t, size_t,
     gemmology::callbacks::UnquantizeAndAddBiasAndWrite);
+template void Engine<xsimd::i8mm<xsimd::neon64>>::Shift::PrepareBias(
+    int8_t const*, size_t, size_t,
+    gemmology::callbacks::UnquantizeAndWrite);
 }  // namespace gemmology

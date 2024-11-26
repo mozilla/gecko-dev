@@ -16,4 +16,7 @@ template void Engine<xsimd::avx512vnni<xsimd::avx512bw>>::Shift::Multiply(
 template void Engine<xsimd::avx512vnni<xsimd::avx512bw>>::Shift::PrepareBias(
     int8_t const*, size_t, size_t,
     gemmology::callbacks::UnquantizeAndAddBiasAndWrite);
+template void Engine<xsimd::avx512vnni<xsimd::avx512bw>>::Shift::PrepareBias(
+    int8_t const*, size_t, size_t,
+    gemmology::callbacks::UnquantizeAndWrite);
 }  // namespace gemmology
