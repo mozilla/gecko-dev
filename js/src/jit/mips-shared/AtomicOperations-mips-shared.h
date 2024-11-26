@@ -77,6 +77,16 @@ inline void js::jit::AtomicOperations::fenceSeqCst() {
   __atomic_thread_fence(__ATOMIC_SEQ_CST);
 }
 
+namespace js {
+namespace jit {
+
+inline void AtomicPause() { asm volatile("sync" ::: "memory"); }
+
+}  // namespace jit
+}  // namespace js
+
+inline void js::jit::AtomicOperations::pause() { AtomicPause(); }
+
 template <typename T>
 inline T js::jit::AtomicOperations::loadSeqCst(T* addr) {
   static_assert(sizeof(T) <= sizeof(void*),
