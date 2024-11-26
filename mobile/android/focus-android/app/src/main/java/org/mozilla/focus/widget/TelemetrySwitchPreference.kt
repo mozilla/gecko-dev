@@ -9,6 +9,7 @@ import android.os.Handler
 import android.os.Looper
 import android.util.AttributeSet
 import android.widget.Toast
+import mozilla.telemetry.glean.Glean
 import org.mozilla.focus.R
 import org.mozilla.focus.ext.components
 import org.mozilla.focus.ext.settings
@@ -30,7 +31,7 @@ internal class TelemetrySwitchPreference(context: Context, attrs: AttributeSet?)
     override fun onClick() {
         super.onClick()
 
-        context.components.metrics.setUploadEnabled(isChecked)
+        Glean.setUploadEnabled(isChecked)
         if (!isChecked && context.settings.isExperimentationEnabled) {
             context.settings.isExperimentationEnabled = false
             context.components.experiments.globalUserParticipation = false

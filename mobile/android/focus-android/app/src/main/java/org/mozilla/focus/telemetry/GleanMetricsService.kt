@@ -40,14 +40,12 @@ import org.mozilla.focus.GleanMetrics.Pings
 import org.mozilla.focus.GleanMetrics.Preferences
 import org.mozilla.focus.GleanMetrics.Shortcuts
 import org.mozilla.focus.GleanMetrics.TrackingProtection
-import org.mozilla.focus.GleanMetrics.Usage
 import org.mozilla.focus.R
 import org.mozilla.focus.ext.components
 import org.mozilla.focus.ext.settings
 import org.mozilla.focus.topsites.DefaultTopSitesStorage.Companion.TOP_SITES_MAX_LIMIT
 import org.mozilla.focus.utils.AppConstants
 import org.mozilla.focus.utils.Settings
-import java.util.UUID
 
 /**
  * Glean telemetry service.
@@ -57,9 +55,6 @@ import java.util.UUID
 class GleanMetricsService(context: Context) : MetricsService {
 
     private val activationPing = ActivationPing(context)
-    private val preferences = PreferenceManager.getDefaultSharedPreferences(context)
-    private val usageProfileIdPreferenceKey =
-        context.resources.getString(R.string.pref_key_glean_usage_profile_id)
 
     companion object {
         // collection name to fetch from server for SERP telemetry
@@ -78,13 +73,6 @@ class GleanMetricsService(context: Context) : MetricsService {
 
             return Build.BRAND == brand && Build.DEVICE == device
         }
-
-        /**
-         * Glean doesn't have an API to remove a value,
-         * so we have to use this canary value.
-         * (would also allow us to notice if we ever accidentally sent data after we shouldn't).
-         */
-        private val CANARY_UUID = UUID.fromString("beefbeef-beef-beef-beef-beeefbeefbee")
 
         /**
          * Determines whether or not telemetry is enabled.
@@ -129,12 +117,6 @@ class GleanMetricsService(context: Context) : MetricsService {
             buildInfo = GleanBuildInfo.buildInfo,
         )
 
-        if (telemetryEnabled) {
-            checkAndSetUsageProfileId()
-        } else {
-            unsetUsageProfileId()
-        }
-
         Glean.registerPings(Pings)
 
         if (telemetryEnabled) {
@@ -169,40 +151,6 @@ class GleanMetricsService(context: Context) : MetricsService {
                 activationPing.checkAndSend()
             }
         }
-    }
-
-    /**
-     * Toggle the glean upload enabled flag on or off.
-     *
-     * @param enabled true if enabling upload, false if disabling it.
-     */
-    fun setUploadEnabled(enabled: Boolean) {
-        Glean.setUploadEnabled(enabled)
-        if (enabled) {
-            checkAndSetUsageProfileId()
-        } else {
-            unsetUsageProfileId()
-        }
-    }
-
-    private fun checkAndSetUsageProfileId() {
-        val usageProfileIdPreferenceValue: String? = preferences.getString(
-            usageProfileIdPreferenceKey,
-            null,
-        )
-        if (usageProfileIdPreferenceValue == null) {
-            val newUsageProfileIdValue = Usage.profileId.generateAndSet().toString()
-            preferences.edit()
-                .putString(usageProfileIdPreferenceKey, newUsageProfileIdValue)
-                .apply()
-        } else {
-            Usage.profileId.set(UUID.fromString(usageProfileIdPreferenceValue))
-        }
-    }
-
-    private fun unsetUsageProfileId() {
-        preferences.edit().remove(usageProfileIdPreferenceKey).apply()
-        Usage.profileId.set(CANARY_UUID)
     }
 
     private fun collectPrefMetricsAsync(
