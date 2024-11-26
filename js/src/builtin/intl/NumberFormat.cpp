@@ -125,7 +125,7 @@ const ClassSpec NumberFormatObject::classSpec_ = {
 /**
  * 15.1.1 Intl.NumberFormat ( [ locales [ , options ] ] )
  *
- * ES2024 Intl draft rev 74ca7099f103d143431b2ea422ae640c6f43e3e6
+ * ES2025 Intl draft rev 5ea95f8a98d660e94c177d6f5e88c6d2962123b1
  */
 static bool NumberFormat(JSContext* cx, const CallArgs& args, bool construct) {
   AutoJSConstructorProfilerEntry pseudoFrame(cx, "Intl.NumberFormat");
@@ -150,7 +150,7 @@ static bool NumberFormat(JSContext* cx, const CallArgs& args, bool construct) {
   HandleValue locales = args.get(0);
   HandleValue options = args.get(1);
 
-  // Step 3.
+  // Steps 3-33.
   return intl::InitializeNumberFormatObject(cx, numberFormat, thisValue,
                                             locales, options, args.rval());
 }
