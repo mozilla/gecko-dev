@@ -39,7 +39,7 @@ class ApplicationExitInfoMetricsTest {
     private val server = MockWebServerHelper.createAlwaysOkMockWebServer()
 
     @get:Rule
-    val activityRule: ActivityTestRule<HomeActivity> = HomeActivityTestRule()
+    val activityRule: ActivityTestRule<HomeActivity> = HomeActivityTestRule(skipOnboarding = true)
 
     @get:Rule
     val gleanRule = GleanTestLocalServer(ApplicationProvider.getApplicationContext(), server.port)
