@@ -365,55 +365,8 @@ bool js::intl_IsValidTimeZoneName(JSContext* cx, unsigned argc, Value* vp) {
   } else {
     args.rval().setNull();
   }
+
   return true;
-}
-
-JSLinearString* js::intl::CanonicalizeTimeZone(JSContext* cx,
-                                               Handle<JSString*> timeZone) {
-  SharedIntlData& sharedIntlData = cx->runtime()->sharedIntlData.ref();
-
-  // Some time zone names are canonicalized differently by ICU -- handle those
-  // first.
-  Rooted<JSAtom*> ianaTimeZone(cx);
-  if (!sharedIntlData.tryCanonicalizeTimeZoneConsistentWithIANA(
-          cx, timeZone, &ianaTimeZone)) {
-    return nullptr;
-  }
-
-  JSLinearString* resultTimeZone;
-  if (ianaTimeZone) {
-    cx->markAtom(ianaTimeZone);
-    resultTimeZone = ianaTimeZone;
-  } else {
-    AutoStableStringChars stableChars(cx);
-    if (!stableChars.initTwoByte(cx, timeZone)) {
-      return nullptr;
-    }
-
-    // Call into ICU to canonicalize the time zone.
-    FormatBuffer<char16_t, INITIAL_CHAR_BUFFER_SIZE> canonicalTimeZone(cx);
-    auto result = mozilla::intl::TimeZone::GetCanonicalTimeZoneID(
-        stableChars.twoByteRange(), canonicalTimeZone);
-    if (result.isErr()) {
-      ReportInternalError(cx, result.unwrapErr());
-      return nullptr;
-    }
-
-    resultTimeZone = canonicalTimeZone.toString(cx);
-    if (!resultTimeZone) {
-      return nullptr;
-    }
-  }
-
-  MOZ_ASSERT(!StringEqualsLiteral(resultTimeZone, "Etc/Unknown"),
-             "Invalid canonical time zone");
-
-  // Links to UTC are handled by SharedIntlData.
-  MOZ_ASSERT(!StringEqualsLiteral(resultTimeZone, "GMT"));
-  MOZ_ASSERT(!StringEqualsLiteral(resultTimeZone, "Etc/UTC"));
-  MOZ_ASSERT(!StringEqualsLiteral(resultTimeZone, "Etc/GMT"));
-
-  return resultTimeZone;
 }
 
 bool js::intl_canonicalizeTimeZone(JSContext* cx, unsigned argc, Value* vp) {
@@ -421,13 +374,42 @@ bool js::intl_canonicalizeTimeZone(JSContext* cx, unsigned argc, Value* vp) {
   MOZ_ASSERT(args.length() == 1);
   MOZ_ASSERT(args[0].isString());
 
+  SharedIntlData& sharedIntlData = cx->runtime()->sharedIntlData.ref();
+
+  // Some time zone names are canonicalized differently by ICU -- handle
+  // those first:
   RootedString timeZone(cx, args[0].toString());
-  auto* result = intl::CanonicalizeTimeZone(cx, timeZone);
-  if (!result) {
+  Rooted<JSAtom*> ianaTimeZone(cx);
+  if (!sharedIntlData.tryCanonicalizeTimeZoneConsistentWithIANA(
+          cx, timeZone, &ianaTimeZone)) {
     return false;
   }
 
-  args.rval().setString(result);
+  if (ianaTimeZone) {
+    cx->markAtom(ianaTimeZone);
+    args.rval().setString(ianaTimeZone);
+    return true;
+  }
+
+  AutoStableStringChars stableChars(cx);
+  if (!stableChars.initTwoByte(cx, timeZone)) {
+    return false;
+  }
+
+  FormatBuffer<char16_t, intl::INITIAL_CHAR_BUFFER_SIZE> canonicalTimeZone(cx);
+  auto result = mozilla::intl::TimeZone::GetCanonicalTimeZoneID(
+      stableChars.twoByteRange(), canonicalTimeZone);
+  if (result.isErr()) {
+    intl::ReportInternalError(cx, result.unwrapErr());
+    return false;
+  }
+
+  JSString* str = canonicalTimeZone.toString(cx);
+  if (!str) {
+    return false;
+  }
+
+  args.rval().setString(str);
   return true;
 }
 
