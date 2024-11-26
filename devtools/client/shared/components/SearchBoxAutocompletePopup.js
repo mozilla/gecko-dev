@@ -27,10 +27,23 @@ class SearchBoxAutocompletePopup extends Component {
     };
   }
 
+  static computeState({ autocompleteProvider, filter }) {
+    const list = autocompleteProvider(filter);
+    const selectedIndex = list.length ? 0 : -1;
+
+    return { list, selectedIndex, prevFilter: filter };
+  }
+
+  static getDerivedStateFromProps(props, state) {
+    if (props.filter !== state.prevFilter) {
+      return SearchBoxAutocompletePopup.computeState(props);
+    }
+    return null;
+  }
+
   constructor(props, context) {
     super(props, context);
-    this.state = this.computeState(props);
-    this.computeState = this.computeState.bind(this);
+    this.state = SearchBoxAutocompletePopup.computeState(props);
     this.jumpToTop = this.jumpToTop.bind(this);
     this.jumpToBottom = this.jumpToBottom.bind(this);
     this.jumpBy = this.jumpBy.bind(this);
@@ -38,25 +51,10 @@ class SearchBoxAutocompletePopup extends Component {
     this.onMouseDown = this.onMouseDown.bind(this);
   }
 
-  // FIXME: https://bugzilla.mozilla.org/show_bug.cgi?id=1774507
-  UNSAFE_componentWillReceiveProps(nextProps) {
-    if (this.props.filter === nextProps.filter) {
-      return;
-    }
-    this.setState(this.computeState(nextProps));
-  }
-
   componentDidUpdate() {
     if (this.refs.selected) {
       this.refs.selected.scrollIntoView(false);
     }
-  }
-
-  computeState({ autocompleteProvider, filter }) {
-    const list = autocompleteProvider(filter);
-    const selectedIndex = list.length ? 0 : -1;
-
-    return { list, selectedIndex };
   }
 
   /**
