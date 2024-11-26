@@ -19,16 +19,36 @@ export class LoginForm extends MozLitElement {
   static properties = {
     type: { type: String, reflect: true },
     onSaveClick: { type: Function },
-    onCancelClick: { type: Function },
+    onClose: { type: Function },
+    originValue: { type: String },
+    usernameValue: { type: String },
+    passwordValue: { type: String },
+    passwordVisible: { type: Boolean },
+    onPasswordRevealClick: { type: Function },
   };
 
   static queries = {
     formEl: "form",
     originField: "login-origin-field",
+    usernameField: "login-username-field",
     passwordField: "login-password-field",
     originWarning: "origin-warning",
     passwordWarning: "password-warning",
   };
+
+  constructor() {
+    super();
+    this.originValue = "";
+    this.usernameValue = "";
+    this.passwordValue = "";
+    this.onPasswordRevealClick = () => {
+      this.passwordVisible = !this.passwordVisible;
+    };
+  }
+
+  disconnectedCallback() {
+    this.onClose();
+  }
 
   #removeWarning(warning) {
     if (warning.classList.contains("invalid-input")) {
@@ -59,7 +79,10 @@ export class LoginForm extends MozLitElement {
   onSubmit(e) {
     e.preventDefault();
 
-    if (this.#shouldShowWarning(this.originField.input, this.originWarning)) {
+    if (
+      this.type !== "edit" &&
+      this.#shouldShowWarning(this.originField.input, this.originWarning)
+    ) {
       return;
     }
 
@@ -69,7 +92,12 @@ export class LoginForm extends MozLitElement {
       return;
     }
 
-    this.onSaveClick(new FormData(e.target));
+    const loginForm = {
+      origin: this.originValue || this.originField.input.value,
+      username: this.usernameField.input.value,
+      password: this.passwordField.value,
+    };
+    this.onSaveClick(loginForm);
   }
 
   render() {
@@ -104,16 +132,25 @@ export class LoginForm extends MozLitElement {
               <login-origin-field
                 name="origin"
                 required
+                ?readonly=${this.type === "edit"}
+                value=${this.originValue}
                 @input=${e => this.onInput(e)}
               >
               </login-origin-field>
               <origin-warning arrowdirection="down"></origin-warning>
             </div>
-            <login-username-field name="username"></login-username-field>
+            <login-username-field
+              name="username"
+              value=${this.usernameValue}
+            ></login-username-field>
             <div class="field-container">
               <login-password-field
                 name="password"
                 required
+                ?visible=${this.passwordVisible}
+                ?newPassword=${this.type !== "edit"}
+                .value=${this.passwordValue}
+                .onRevealClick=${this.onPasswordRevealClick}
                 @input=${e => this.onInput(e)}
               ></login-password-field>
               <password-warning
@@ -124,7 +161,7 @@ export class LoginForm extends MozLitElement {
             <moz-button-group>
               <moz-button
                 data-l10n-id="login-item-cancel-button"
-                @click=${this.onCancelClick}
+                @click=${this.remove}
               ></moz-button>
               <moz-button
                 data-l10n-id="login-item-save-new-button"

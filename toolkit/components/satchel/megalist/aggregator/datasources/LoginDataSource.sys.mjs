@@ -39,6 +39,12 @@ const ALERT_VALUES = {
   none: 2,
 };
 
+const VIEW_MODES = {
+  LIST: "List",
+  ADD: "Add",
+  EDIT: "Edit",
+};
+
 export const SUPPORT_URL =
   Services.urlFormatter.formatURLPref("app.support.baseURL") +
   "password-manager-remember-delete-edit-logins";
@@ -89,6 +95,11 @@ export class LoginDataSource extends DataSourceBase {
           "passwords-copy-password-os-auth-dialog-message"
         ),
       },
+      editPasswordOSAuthDialogPrompt: {
+        id: this.getPlatformFtl(
+          "passwords-edit-password-os-auth-dialog-message"
+        ),
+      },
       passwordOSAuthDialogCaption: { id: "passwords-os-auth-dialog-caption" },
       passwordsImportFilePickerTitle: {
         id: "passwords-import-file-picker-title",
@@ -134,7 +145,8 @@ export class LoginDataSource extends DataSourceBase {
       };
       this.#header = this.createHeaderLine(strings.headerLabel, tooltip);
       this.#header.commands.push(
-        { id: "Create", label: "passwords-command-create" },
+        { id: "AddLogin" },
+        { id: "UpdateLogin" },
         {
           id: "ImportFromBrowser",
           label: "passwords-command-import-from-browser",
@@ -167,7 +179,8 @@ export class LoginDataSource extends DataSourceBase {
       this.#header.executeExport = async () => this.#exportLogins();
       this.#header.executeSettings = () => this.#openLink(PREFERENCES_URL);
       this.#header.executeHelp = () => this.#openLink(SUPPORT_URL);
-      this.#header.executeAddLogin = formData => this.#addLogin(formData);
+      this.#header.executeAddLogin = newLogin => this.#addLogin(newLogin);
+      this.#header.executeUpdateLogin = login => this.#updateLogin(login);
 
       this.#exportPasswordsStrings = {
         OSReauthMessage: strings.exportPasswordsOSReauthMessage,
@@ -262,19 +275,6 @@ export class LoginDataSource extends DataSourceBase {
             this.refreshOnScreen();
           },
         },
-        executeSave: {
-          value(value) {
-            try {
-              const modifiedLogin = this.record.clone();
-              modifiedLogin.username = value;
-              Services.logins.modifyLogin(this.record, modifiedLogin);
-            } catch (error) {
-              //todo
-              console.error("failed to modify login", error);
-            }
-            this.executeCancel();
-          },
-        },
       });
       this.#passwordPrototype = this.prototypeDataLine({
         field: { value: "password" },
@@ -305,8 +305,14 @@ export class LoginDataSource extends DataSourceBase {
               OSAuthCaptionMessage: strings.passwordOSAuthDialogCaption,
             },
             { id: "Conceal", label: "command-conceal" },
-            editCommand,
+            {
+              ...editCommand,
+              verify: true,
+              OSAuthPromptMessage: strings.editPasswordOSAuthDialogPrompt,
+              OSAuthCaptionMessage: strings.passwordOSAuthDialogCaption,
+            },
             deleteCommand,
+            { id: "Cancel", label: "command-cancel" },
           ],
         },
         executeReveal: {
@@ -335,23 +341,6 @@ export class LoginDataSource extends DataSourceBase {
           value() {
             this.editingValue = this.record.password ?? "";
             this.refreshOnScreen();
-          },
-        },
-        executeSave: {
-          value(value) {
-            if (!value) {
-              return;
-            }
-
-            try {
-              const modifiedLogin = this.record.clone();
-              modifiedLogin.password = value;
-              Services.logins.modifyLogin(this.record, modifiedLogin);
-            } catch (error) {
-              //todo
-              console.error("failed to modify login", error);
-            }
-            this.executeCancel();
           },
         },
       });
@@ -597,8 +586,7 @@ export class LoginDataSource extends DataSourceBase {
     return buttonPressed == 0;
   }
 
-  async #addLogin(formData) {
-    let newLogin = Object.fromEntries(formData.entries());
+  async #addLogin(newLogin) {
     const origin = LoginHelper.getLoginOrigin(newLogin.origin);
     newLogin.origin = origin;
     Object.assign(newLogin, {
@@ -613,9 +601,36 @@ export class LoginDataSource extends DataSourceBase {
         id: "add-login-success",
         l10nArgs: { url: origin },
         guid: newLogin.guid,
+        viewMode: VIEW_MODES.LIST,
       });
     } catch (error) {
       this.#handleLoginStorageErrors(origin, error);
+    }
+  }
+
+  async #updateLogin(login) {
+    const logins = await Services.logins.searchLoginsAsync({
+      origin: login.origin,
+      guid: login.guid,
+    });
+    if (logins.length != 1) {
+      return;
+    }
+    const modifiedLogin = logins[0].clone();
+    if (login.hasOwnProperty("username")) {
+      modifiedLogin.username = login.username;
+    }
+    if (login.hasOwnProperty("password")) {
+      modifiedLogin.password = login.password;
+    }
+    try {
+      Services.logins.modifyLogin(logins[0], modifiedLogin);
+      this.setNotification({
+        id: "update-login-success",
+        viewMode: VIEW_MODES.LIST,
+      });
+    } catch (error) {
+      this.#handleLoginStorageErrors(modifiedLogin.origin, error);
     }
   }
 
@@ -623,7 +638,7 @@ export class LoginDataSource extends DataSourceBase {
     if (error.message.includes("This login already exists")) {
       const existingLoginGuid = error.data.toString();
       this.setNotification({
-        id: "add-login-already-exists-warning",
+        id: "login-already-exists-warning",
         l10nArgs: { url: origin },
         guid: existingLoginGuid,
       });

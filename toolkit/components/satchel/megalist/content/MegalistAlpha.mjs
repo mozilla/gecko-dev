@@ -29,6 +29,7 @@ const DISPLAY_MODES = {
 const VIEW_MODES = {
   LIST: "List",
   ADD: "Add",
+  EDIT: "Edit",
 };
 
 const INPUT_CHANGE_DELAY = 300;
@@ -45,6 +46,7 @@ export class MegalistAlpha extends MozLitElement {
     this.displayMode = DISPLAY_MODES.ALL;
     this.inputChangeTimeout = null;
     this.viewMode = VIEW_MODES.LIST;
+    this.editingRecord = null;
 
     window.addEventListener("MessageFromViewModel", ev =>
       this.#onMessageFromViewModel(ev)
@@ -75,6 +77,20 @@ export class MegalistAlpha extends MozLitElement {
       this.shadowRoot.querySelectorAll("password-card")
     );
     await Promise.all(passwordCards.map(el => el.updateComplete));
+  }
+
+  #onPasswordRevealClick(concealed, lineIndex) {
+    if (concealed) {
+      this.#messageToViewModel("Command", {
+        commandId: "Reveal",
+        snapshotId: lineIndex,
+      });
+    } else {
+      this.#messageToViewModel("Command", {
+        commandId: "Conceal",
+        snapshotId: lineIndex,
+      });
+    }
   }
 
   #onMessageFromViewModel({ detail }) {
@@ -140,9 +156,7 @@ export class MegalistAlpha extends MozLitElement {
 
   receiveSetNotification(notification) {
     this.notification = notification;
-    if (notification.id === "add-login-success") {
-      this.viewMode = VIEW_MODES.LIST;
-    }
+    this.viewMode = notification.viewMode ?? this.viewMode;
   }
 
   receiveReauthResponse(isAuthorized) {
@@ -181,7 +195,7 @@ export class MegalistAlpha extends MozLitElement {
   }
 
   // TODO: This should be passed to virtualized list with an explicit height.
-  renderListItem({ origin: displayOrigin, username, password }) {
+  renderListItem({ origin: displayOrigin, username, password }, index) {
     return html` <password-card
       @keypress=${e => {
         if (e.shiftKey && e.key === "Tab") {
@@ -202,6 +216,12 @@ export class MegalistAlpha extends MozLitElement {
       .password=${password}
       .messageToViewModel=${this.#messageToViewModel.bind(this)}
       .reauthCommandHandler=${commandFn => this.reauthCommandHandler(commandFn)}
+      .onPasswordRevealClick=${(concealed, lineIndex) =>
+        this.#onPasswordRevealClick(concealed, lineIndex)}
+      .handleEditButtonClick=${() => {
+        this.viewMode = VIEW_MODES.EDIT;
+        this.editingRecord = this.records[index];
+      }}
     >
     </password-card>`;
   }
@@ -224,7 +244,9 @@ export class MegalistAlpha extends MozLitElement {
               }
             }}
           >
-            ${this.records.map(record => this.renderListItem(record))}
+            ${this.records.map((record, index) =>
+              this.renderListItem(record, index)
+            )}
           </div>
         `
       : this.renderEmptyState();
@@ -291,9 +313,35 @@ export class MegalistAlpha extends MozLitElement {
         return this.renderList();
       case VIEW_MODES.ADD:
         return html` <login-form
-          .onCancelClick=${() => (this.viewMode = VIEW_MODES.LIST)}
-          .onSaveClick=${formData => {
-            this.#sendCommand("AddLogin", { value: formData });
+          .onClose=${() => (this.viewMode = VIEW_MODES.LIST)}
+          .onSaveClick=${loginForm => {
+            this.#sendCommand("AddLogin", { value: loginForm });
+          }}
+        >
+        </login-form>`;
+      case VIEW_MODES.EDIT:
+        return html` <login-form
+          type="edit"
+          originValue=${this.editingRecord.origin.href}
+          usernameValue=${this.editingRecord.username.value}
+          ?passwordVisible=${!this.editingRecord.password.concealed}
+          .passwordValue=${this.editingRecord.password.value}
+          .onPasswordRevealClick=${() =>
+            this.#onPasswordRevealClick(
+              this.editingRecord.password.concealed,
+              this.editingRecord.password.lineIndex
+            )}
+          .onClose=${() => {
+            this.#messageToViewModel("Command", {
+              commandId: "Cancel",
+              snapshotId: this.editingRecord.password.lineIndex,
+            });
+            this.viewMode = VIEW_MODES.LIST;
+            this.editingRecord = null;
+          }}
+          .onSaveClick=${loginForm => {
+            loginForm.guid = this.editingRecord.origin.guid;
+            this.#sendCommand("UpdateLogin", { value: loginForm });
           }}
         >
         </login-form>`;
