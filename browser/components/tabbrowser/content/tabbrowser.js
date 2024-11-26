@@ -2667,6 +2667,12 @@
       // If we're opening a foreground tab, set the owner by default.
       ownerTab ??= inBackground ? null : this.selectedTab;
 
+      // Don't use document.l10n.setAttributes because the FTL file is loaded
+      // lazily and we won't be able to resolve the string.
+      document
+        .getElementById("History:UndoCloseTab")
+        .setAttribute("data-l10n-args", JSON.stringify({ tabCount: 1 }));
+
       // if we're adding tabs, we're past interrupt mode, ditch the owner
       if (this.selectedTab.owner) {
         this.selectedTab.owner = null;
@@ -4336,6 +4342,14 @@
 
       this._clearMultiSelectionLocked = false;
       this._avoidSingleSelectedTab();
+      // Don't use document.l10n.setAttributes because the FTL file is loaded
+      // lazily and we won't be able to resolve the string.
+      document.getElementById("History:UndoCloseTab").setAttribute(
+        "data-l10n-args",
+        JSON.stringify({
+          tabCount: SessionStore.getLastClosedTabCount(window),
+        })
+      );
     }
 
     removeCurrentTab(aParams) {
@@ -8182,13 +8196,8 @@ var TabContextMenu = {
     );
 
     // Session store
-    let closedCount = SessionStore.getLastClosedTabCount(window);
-    document
-      .getElementById("History:UndoCloseTab")
-      .setAttribute("disabled", closedCount == 0);
-    document.l10n.setArgs(document.getElementById("context_undoCloseTab"), {
-      tabCount: closedCount,
-    });
+    document.getElementById("context_undoCloseTab").disabled =
+      SessionStore.getClosedTabCount() == 0;
 
     // Show/hide fullscreen context menu items and set the
     // autohide item's checked state to mirror the autohide pref.

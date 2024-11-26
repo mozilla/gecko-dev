@@ -76,7 +76,6 @@ export var ToolbarContextMenu = {
 
   onViewToolbarsPopupShowing(aEvent, aInsertPoint) {
     var popup = aEvent.target;
-    let window = popup.ownerGlobal;
     let {
       document,
       BookmarkingUI,
@@ -86,7 +85,7 @@ export var ToolbarContextMenu = {
       gBrowser,
       CustomizationHandler,
       gNavToolbox,
-    } = window;
+    } = popup.ownerGlobal;
 
     // triggerNode can be a nested child element of a toolbaritem.
     let toolbarItem = popup.triggerNode;
@@ -236,14 +235,8 @@ export var ToolbarContextMenu = {
         multipleTabsSelected;
       document.getElementById("toolbar-context-selectAllTabs").disabled =
         gBrowser.allTabsSelected();
-      let closedCount = lazy.SessionStore.getLastClosedTabCount(window);
-      document
-        .getElementById("History:UndoCloseTab")
-        .setAttribute("disabled", closedCount == 0);
-      document.l10n.setArgs(
-        document.getElementById("toolbar-context-undoCloseTab"),
-        { tabCount: closedCount }
-      );
+      document.getElementById("toolbar-context-undoCloseTab").disabled =
+        lazy.SessionStore.getClosedTabCount() == 0;
       return;
     }
 
