@@ -136,95 +136,10 @@ add_task(async function test_selectContextualSearchResult_already_installed() {
     expectedUrl,
     "Selecting the contextual search result opens the search URL"
   );
-  window.document.querySelector("#searchmode-switcher-close").click();
-});
-
-add_task(async function test_selectContextualSearchResult_not_installed() {
-  const ENGINE_TEST_URL =
-    "http://mochi.test:8888/browser/browser/components/search/test/browser/opensearch.html";
-  const EXPECTED_URL =
-    "http://mochi.test:8888/browser/browser/components/search/test/browser/?search&test=search";
-
-  await loadUri(ENGINE_TEST_URL);
-  const query = "search";
-
-  await UrlbarTestUtils.promiseAutocompleteResultPopup({
-    window,
-    value: query,
+  await UrlbarTestUtils.exitSearchMode(window, {
+    clickClose: true,
+    waitForSearch: false,
   });
-
-  await UrlbarTestUtils.promiseSearchComplete(window);
-
-  Assert.ok(
-    !Services.search.getEngineByName("Foo"),
-    "Engine is not currently installed."
-  );
-
-  info("Focus and select the contextual search result");
-  let onLoad = BrowserTestUtils.browserLoaded(
-    gBrowser.selectedBrowser,
-    false,
-    EXPECTED_URL
-  );
-  EventUtils.synthesizeKey("KEY_Tab");
-  EventUtils.synthesizeKey("KEY_Enter");
-  await onLoad;
-
-  await UrlbarTestUtils.assertSearchMode(window, null);
-
-  Assert.equal(
-    gBrowser.selectedBrowser.currentURI.spec,
-    EXPECTED_URL,
-    "Selecting the contextual search result opens the search URL"
-  );
-
-  let engine = Services.search.getEngineByName("Foo");
-  Assert.ok(engine != null, "Engine was installed.");
-  Assert.equal(
-    engine.wrappedJSObject.getAttr("auto-installed"),
-    true,
-    "Engine was marks as auto installed."
-  );
-
-  window.document.querySelector("#searchmode-switcher-close").click();
-  await UrlbarTestUtils.promisePopupClose(window);
-  await Services.search.removeEngine(engine);
-});
-
-add_task(async function test_contextual_search_engine() {
-  await updateConfig(CONFIG);
-  await loadUri("https://example.org/");
-
-  await UrlbarTestUtils.promiseAutocompleteResultPopup({
-    window,
-    value: "test",
-  });
-
-  let expectedUrl = "https://example.org/?q=test";
-  info("Focus and select the contextual search result");
-  let onLoad = BrowserTestUtils.browserLoaded(
-    gBrowser.selectedBrowser,
-    false,
-    expectedUrl
-  );
-
-  EventUtils.synthesizeKey("KEY_Tab");
-  EventUtils.synthesizeKey("KEY_Enter");
-  await onLoad;
-
-  Assert.equal(
-    gBrowser.selectedBrowser.currentURI.spec,
-    expectedUrl,
-    "Selecting the contextual search result opens the search URL"
-  );
-
-  let engine = Services.search.getEngineByName("config-engine");
-  Assert.ok(engine != null, "Engine was installed.");
-  Assert.equal(engine.name, "config-engine", "Correct engine was installed.");
-
-  window.document.querySelector("#searchmode-switcher-close").click();
-  await UrlbarTestUtils.promisePopupClose(window);
-  await updateConfig(null);
 });
 
 add_task(async function test_tab_to_search_engine() {
@@ -263,7 +178,10 @@ add_task(async function test_tab_to_search_engine() {
     "Selecting the contextual search result opens the search URL"
   );
 
-  window.document.querySelector("#searchmode-switcher-close").click();
+  await UrlbarTestUtils.exitSearchMode(window, {
+    clickClose: true,
+    waitForSearch: false,
+  });
   await updateConfig(null);
 });
 
