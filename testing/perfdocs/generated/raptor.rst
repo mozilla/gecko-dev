@@ -486,7 +486,17 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
         - autoland
         - mozilla-release
         - mozilla-beta
+      * - **browsertime-benchmark-jetstream2-chrome-m-jetstream2**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-benchmark-jetstream2-chrome-m-jetstream2-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-benchmark-jetstream2-cstm-car-m-jetstream2**
         - ❌
         - ❌
         - ❌
@@ -496,8 +506,23 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
         - ❌
         - ❌
         - ❌
+      * - **browsertime-benchmark-jetstream2-fenix-jetstream2**
+        - ✅
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-benchmark-jetstream2-fenix-jetstream2-nofis**
         - ✅
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-benchmark-jetstream2-geckoview-jetstream2**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-benchmark-jetstream2-geckoview-jetstream2-nofis**
+        - ❌
         - ❌
         - ❌
         - ❌
@@ -512,7 +537,22 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
         - autoland
         - mozilla-release
         - mozilla-beta
+      * - **browsertime-benchmark-jetstream2-fenix-jetstream2**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-benchmark-jetstream2-fenix-jetstream2-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-benchmark-jetstream2-geckoview-jetstream2**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-benchmark-jetstream2-geckoview-jetstream2-nofis**
         - ❌
         - ❌
         - ❌
@@ -728,7 +768,7 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
    **Owner**: :jandem and SpiderMonkey Team
 
    * **alert threshold**: 2.0
-   * **apps**: fenix, chrome-m, cstm-car-m
+   * **apps**: fenix, geckoview, chrome-m, cstm-car-m
    * **expected**: pass
    * **expose browser profiler**: true
    * **gecko profile interval**: 1
@@ -755,7 +795,17 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
         - autoland
         - mozilla-release
         - mozilla-beta
+      * - **browsertime-benchmark-jetstream2-chrome-m-jetstream2**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-benchmark-jetstream2-chrome-m-jetstream2-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-benchmark-jetstream2-cstm-car-m-jetstream2**
         - ❌
         - ❌
         - ❌
@@ -765,8 +815,23 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
         - ❌
         - ❌
         - ❌
+      * - **browsertime-benchmark-jetstream2-fenix-jetstream2**
+        - ✅
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-benchmark-jetstream2-fenix-jetstream2-nofis**
         - ✅
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-benchmark-jetstream2-geckoview-jetstream2**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-benchmark-jetstream2-geckoview-jetstream2-nofis**
+        - ❌
         - ❌
         - ❌
         - ❌
@@ -781,7 +846,22 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
         - autoland
         - mozilla-release
         - mozilla-beta
+      * - **browsertime-benchmark-jetstream2-fenix-jetstream2**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-benchmark-jetstream2-fenix-jetstream2-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-benchmark-jetstream2-geckoview-jetstream2**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-benchmark-jetstream2-geckoview-jetstream2-nofis**
         - ❌
         - ❌
         - ❌

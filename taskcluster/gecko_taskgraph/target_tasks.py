@@ -794,21 +794,30 @@ def target_tasks_custom_car_perf_testing(full_task_graph, parameters, graph_conf
 
         try_name = attributes.get("raptor_try_name")
 
+        if "network-bench" in try_name:
+            return False
+
         # Desktop and Android selection for CaR
-        if accept_raptor_desktop_build(platform) or accept_raptor_android_build(
-            platform
-        ):
-            if "browsertime" in try_name and (
-                "custom-car" in try_name or "cstm-car-m" in try_name
-            ):
+        if accept_raptor_desktop_build(platform):
+            if "browsertime" in try_name and "custom-car" in try_name:
+                # Bug 1898514: avoid tp6m or non-essential tp6 jobs in cron
+                if "tp6" in try_name and "essential" not in try_name:
+                    return False
+                # Bug 1928416
+                # For ARM coverage, this will only run on M2 machines at the moment.
+                if "jetstream2" in try_name:
+                    return True
+                return True
+        elif accept_raptor_android_build(platform):
+            if "browsertime" in try_name and "cstm-car-m" in try_name:
+                if "-nofis" not in try_name:
+                    return False
                 if "hw-s24" in platform and "speedometer3" not in try_name:
                     return False
-                if "network-bench" in try_name:
-                    return False
+                if "jetstream2" in try_name:
+                    return True
                 # Bug 1898514: avoid tp6m or non-essential tp6 jobs in cron
-                if (
-                    "tp6" in try_name and "essential" not in try_name
-                ) or "tp6m" in try_name:
+                if "tp6m" in try_name:
                     return False
                 return True
         return False
@@ -871,10 +880,10 @@ def target_tasks_general_perf_testing(full_task_graph, parameters, graph_config)
         elif accept_raptor_android_build(platform):
             if "hw-s24" in platform and "speedometer3" not in try_name:
                 return False
-            if "chrome-m" in try_name and "essential" in try_name:
-                return True
             if "chrome-m" in try_name and "-nofis" not in try_name:
                 return False
+            if "chrome-m" in try_name and "essential" in try_name:
+                return True
             if "chrome-m" in try_name and (
                 ("ebay" in try_name and "live" not in try_name)
                 or (
@@ -910,6 +919,8 @@ def target_tasks_general_perf_testing(full_task_graph, parameters, graph_config)
                 # Don't run android CaR sp tests as we already have a cron for this.
                 if "m-car" in try_name:
                     return False
+                if "jetstream2" in try_name:
+                    return True
                 if "fenix" in try_name:
                     return False
                 if "speedometer" in try_name:
@@ -949,17 +960,24 @@ def target_tasks_speedometer_tests(full_task_graph, parameters, graph_config):
         if attributes.get("unittest_suite") != "raptor":
             return False
 
-        if accept_raptor_desktop_build(platform) or accept_raptor_android_build(
-            platform
-        ):
-            try_name = attributes.get("raptor_try_name")
-            if "hw-s24" in platform and "speedometer3" not in try_name:
-                return False
+        try_name = attributes.get("raptor_try_name")
+        if accept_raptor_desktop_build(platform):
             if (
                 "browsertime" in try_name
                 and "speedometer" in try_name
                 and "chrome" in try_name
             ):
+                return True
+        if accept_raptor_android_build(platform):
+            if "hw-s24" in platform and "speedometer3" not in try_name:
+                return False
+            if (
+                "browsertime" in try_name
+                and "speedometer" in try_name
+                and "chrome-m" in try_name
+            ):
+                if "-nofis" not in try_name:
+                    return False
                 return True
 
     return [l for l, t in full_task_graph.tasks.items() if filter(t)]

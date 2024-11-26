@@ -509,9 +509,8 @@ browsertime-benchmark-motionmark-1-3:
 
 browsertime-benchmark-jetstream2:
     description: Raptor (browsertime) jetstream 2 benchmark test
-    run-without-variant: false
     raptor:
-        apps: [fenix, chrome-m, cstm-car-m]
+        apps: [geckoview, fenix, chrome-m, cstm-car-m]
         subtests:
             - [jetstream2, js]
     run-on-projects:
