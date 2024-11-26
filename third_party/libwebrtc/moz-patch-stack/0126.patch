@@ -61,7 +61,7 @@ index ae832adb64..938f957060 100644
  
  rtc_library("encoded_frame") {
 diff --git a/webrtc.gni b/webrtc.gni
-index 167b4d7de0..794857942b 100644
+index b16f07f64d..c86c54776a 100644
 --- a/webrtc.gni
 +++ b/webrtc.gni
 @@ -11,7 +11,7 @@ import("//build/config/mips.gni")
