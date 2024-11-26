@@ -1,421 +1,125 @@
 From: Michael Froman <mjfroman@mac.com>
-Date: Tue, 19 Nov 2024 16:14:39 -0600
-Subject: (tmp-cherry-pick) Revert "Spanify SRTP key export" (32590ef877)
+Date: Tue, 19 Nov 2024 16:16:38 -0600
+Subject: (tmp-cherry-pick) Revert "Roll chromium_revision
+ ccf648df91..dcb20ee7c2 (1365600:1365760)" (042359fe36)
 
-This reverts commit 65ae3245f9380e46b1d755f3f452ba63ab6cdf8d.
+This reverts commit 1c6d50960e13dc6616bd612385fdbd270755d078.
 
-Reason for revert: breaks downstream compilation
+Reason for revert: speculative revert
 
 Original change's description:
-> Spanify SRTP key export
+> Roll chromium_revision ccf648df91..dcb20ee7c2 (1365600:1365760)
 >
-> and simplify the interface used as this is only used for exporting
-> SRTP keys and passing arcane OpenSSL arguments around does not make
-> much sense.
+> Change log: https://chromium.googlesource.com/chromium/src/+log/ccf648df91..dcb20ee7c2
+> Full diff: https://chromium.googlesource.com/chromium/src/+/ccf648df91..dcb20ee7c2
 >
-> BUG=webrtc:357776213
+> Changed dependencies
+> * src/build: https://chromium.googlesource.com/chromium/src/build/+log/f2790bfa32..ba9b42d40c
+> * src/ios: https://chromium.googlesource.com/chromium/src/ios/+log/26dfb6e15c..af24c7d949
+> * src/testing: https://chromium.googlesource.com/chromium/src/testing/+log/3ef5641e1f..b86522e058
+> * src/third_party: https://chromium.googlesource.com/chromium/src/third_party/+log/c8056c18ac..5c651ea03a
+> * src/third_party/depot_tools: https://chromium.googlesource.com/chromium/tools/depot_tools.git/+log/c109945e72..1df84d0a0a
+> * src/third_party/perfetto: https://android.googlesource.com/platform/external/perfetto.git/+log/5361e5909e..74fbed7d43
+> * src/third_party/r8/d8/cipd: yEomA-IPmb_JtuiEvwgtxRHtSEaICkDY1sDko_rQGO0C..3KCj5eRYCvGGYs5i90pRaeihkzsqgUGc4OkICT8AOlIC
+> * src/tools: https://chromium.googlesource.com/chromium/src/tools/+log/8c5814c8d2..63ecf6c58b
+> DEPS diff: https://chromium.googlesource.com/chromium/src/+/ccf648df91..dcb20ee7c2/DEPS
 >
-> Change-Id: I9e5a94fe368b77975e48b6dd5ab6a2d2575d6382
-> Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/364521
-> Commit-Queue: Philipp Hancke <phancke@meta.com>
-> Reviewed-by: Harald Alvestrand <hta@webrtc.org>
-> Reviewed-by: Florent Castelli <orphis@webrtc.org>
-> Cr-Commit-Position: refs/heads/main@{#43198}
+> No update to Clang.
+>
+> BUG=None
+>
+> Change-Id: I758355ae79e03876b8f4dd5aacf10bad0205b972
+> Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/364981
+> Commit-Queue: Autoroller <chromium-webrtc-autoroll@webrtc-ci.iam.gserviceaccount.com>
+> Bot-Commit: Autoroller <chromium-webrtc-autoroll@webrtc-ci.iam.gserviceaccount.com>
+> Cr-Commit-Position: refs/heads/main@{#43200}
 
-Bug: webrtc:357776213
-Change-Id: I03ffcda3d6821718f355b243ce78a9c54b4036f3
+Bug: None
+Change-Id: I3cb43b18de809552dc0f1dfaa1b5521015800cd4
 No-Presubmit: true
 No-Tree-Checks: true
 No-Try: true
-Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/365062
-Bot-Commit: rubber-stamper@appspot.gserviceaccount.com <rubber-stamper@appspot.gserviceaccount.com>
+Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/365141
+Reviewed-by: Mirko Bonadei <mbonadei@webrtc.org>
 Commit-Queue: Jeremy Leconte <jleconte@webrtc.org>
-Owners-Override: Jeremy Leconte <jleconte@webrtc.org>
-Cr-Commit-Position: refs/heads/main@{#43202}
+Bot-Commit: rubber-stamper@appspot.gserviceaccount.com <rubber-stamper@appspot.gserviceaccount.com>
+Cr-Commit-Position: refs/heads/main@{#43207}
 ---
- p2p/base/dtls_transport.cc              | 18 +++-------
- p2p/base/dtls_transport.h               | 17 ++++-----
- p2p/base/dtls_transport_internal.h      | 16 ++++-----
- p2p/base/dtls_transport_unittest.cc     | 27 --------------
- p2p/base/fake_dtls_transport.h          |  8 -----
- pc/dtls_srtp_transport.cc               | 11 ++++--
- rtc_base/openssl_stream_adapter.cc      | 28 ++++++---------
- rtc_base/openssl_stream_adapter.h       |  8 +++--
- rtc_base/ssl_stream_adapter.cc          |  9 +++++
- rtc_base/ssl_stream_adapter.h           | 19 ++++++++--
- rtc_base/ssl_stream_adapter_unittest.cc | 48 +++++++++++++++++--------
- 11 files changed, 101 insertions(+), 108 deletions(-)
+ DEPS | 18 +++++++++---------
+ 1 file changed, 9 insertions(+), 9 deletions(-)
 
-diff --git a/p2p/base/dtls_transport.cc b/p2p/base/dtls_transport.cc
-index 60d41a8441..5ed2a11438 100644
---- a/p2p/base/dtls_transport.cc
-+++ b/p2p/base/dtls_transport.cc
-@@ -354,26 +354,16 @@ std::unique_ptr<rtc::SSLCertChain> DtlsTransport::GetRemoteSSLCertChain()
-   return dtls_->GetPeerSSLCertChain();
- }
+diff --git a/DEPS b/DEPS
+index 7a95f03edc..f66953e612 100644
+--- a/DEPS
++++ b/DEPS
+@@ -10,7 +10,7 @@ vars = {
+   # chromium waterfalls. More info at: crbug.com/570091.
+   'checkout_configuration': 'default',
+   'checkout_instrumented_libraries': 'checkout_linux and checkout_configuration == "default"',
+-  'chromium_revision': 'dcb20ee7c28712ed658b54b3a2fc3277b6056ac3',
++  'chromium_revision': 'ccf648df915eadad3d27653c32709dfc5b3e5254',
  
--bool DtlsTransport::ExportSrtpKeyingMaterial(
--    rtc::ZeroOnFreeBuffer<unsigned char>& keying_material) {
--  return dtls_ ? dtls_->ExportSrtpKeyingMaterial(keying_material) : false;
--}
--
- bool DtlsTransport::ExportKeyingMaterial(absl::string_view label,
-                                          const uint8_t* context,
-                                          size_t context_len,
-                                          bool use_context,
-                                          uint8_t* result,
-                                          size_t result_len) {
--  RTC_DCHECK(!context);
--  RTC_DCHECK_EQ(context_len, 0u);
--  RTC_DCHECK_EQ(use_context, false);
--  rtc::ZeroOnFreeBuffer<unsigned char> temporary_result(result_len);
--  if (ExportSrtpKeyingMaterial(temporary_result)) {
--    std::memcpy(result, temporary_result.data(), result_len);
--    return true;
--  }
--  return false;
-+  return (dtls_.get())
-+             ? dtls_->ExportKeyingMaterial(label, context, context_len,
-+                                           use_context, result, result_len)
-+             : false;
- }
+   # Fetch the prebuilt binaries for llvm-cov and llvm-profdata. Needed to
+   # process the raw profiles produced by instrumented targets (built with
+@@ -63,7 +63,7 @@ deps = {
+   'src/base':
+     'https://chromium.googlesource.com/chromium/src/base@006d78d70b321239c8953bec055e37638e04d900',
+   'src/build':
+-    'https://chromium.googlesource.com/chromium/src/build@ba9b42d40c98b2d45594931473c52d6485514764',
++    'https://chromium.googlesource.com/chromium/src/build@f2790bfa3238410fbb4bb74b6282f6edb3c1e089',
+   'src/buildtools':
+     'https://chromium.googlesource.com/chromium/src/buildtools@0a905dcb6d88dbfe4b9b169bf367da9371f72ae3',
+   # Gradle 6.6.1. Used for testing Android Studio project generation for WebRTC.
+@@ -72,13 +72,13 @@ deps = {
+     'condition': 'checkout_android',
+   },
+   'src/ios': {
+-    'url': 'https://chromium.googlesource.com/chromium/src/ios@af24c7d949b3797b1a9dffb7e0be0503ab93a369',
++    'url': 'https://chromium.googlesource.com/chromium/src/ios@26dfb6e15c33512e9ce695d5ed9ea8bcfc2ef8ce',
+     'condition': 'checkout_ios',
+   },
+   'src/testing':
+-    'https://chromium.googlesource.com/chromium/src/testing@b86522e0589c5c4ee1787c0dfe5f42441b7c471f',
++    'https://chromium.googlesource.com/chromium/src/testing@3ef5641e1fbbd8fbf2fba9fb0aac929dc3b04d97',
+   'src/third_party':
+-    'https://chromium.googlesource.com/chromium/src/third_party@5c651ea03af823237a5bc331ca3212d4a189eecc',
++    'https://chromium.googlesource.com/chromium/src/third_party@c8056c18ac5999093ce3c9aa25286d6787e9c6d0',
  
- bool DtlsTransport::SetupDtls() {
-diff --git a/p2p/base/dtls_transport.h b/p2p/base/dtls_transport.h
-index a317275c9d..0a988dfe38 100644
---- a/p2p/base/dtls_transport.h
-+++ b/p2p/base/dtls_transport.h
-@@ -179,16 +179,13 @@ class DtlsTransport : public DtlsTransportInternal {
-   // Once DTLS has established (i.e., this ice_transport is writable), this
-   // method extracts the keys negotiated during the DTLS handshake, for use in
-   // external encryption. DTLS-SRTP uses this to extract the needed SRTP keys.
--  bool ExportSrtpKeyingMaterial(
--      rtc::ZeroOnFreeBuffer<unsigned char>& keying_material) override;
--
--  [[deprecated("Use ExportSrtpKeyingMaterial instead")]] bool
--  ExportKeyingMaterial(absl::string_view label,
--                       const uint8_t* context,
--                       size_t context_len,
--                       bool use_context,
--                       uint8_t* result,
--                       size_t result_len) override;
-+  // See the SSLStreamAdapter documentation for info on the specific parameters.
-+  bool ExportKeyingMaterial(absl::string_view label,
-+                            const uint8_t* context,
-+                            size_t context_len,
-+                            bool use_context,
-+                            uint8_t* result,
-+                            size_t result_len) override;
+   'src/buildtools/linux64': {
+     'packages': [
+@@ -251,7 +251,7 @@ deps = {
+   'src/third_party/crc32c/src':
+     'https://chromium.googlesource.com/external/github.com/google/crc32c.git@d3d60ac6e0f16780bcfcc825385e1d338801a558',
+   'src/third_party/depot_tools':
+-    'https://chromium.googlesource.com/chromium/tools/depot_tools.git@1df84d0a0a794a76aaef1faae971e1c683d90ca9',
++    'https://chromium.googlesource.com/chromium/tools/depot_tools.git@c109945e729cb3d8c17f306c9cae9d3f98d7d323',
+   'src/third_party/ffmpeg':
+     'https://chromium.googlesource.com/chromium/third_party/ffmpeg.git@686d6944501a6ee9c849581e3fe343273d4af3f6',
+   'src/third_party/flatbuffers/src':
+@@ -351,7 +351,7 @@ deps = {
+       'condition': 'checkout_android',
+   },
+   'src/third_party/perfetto':
+-    'https://android.googlesource.com/platform/external/perfetto.git@74fbed7d43de71e92e8042f931c76a2662554efc',
++    'https://android.googlesource.com/platform/external/perfetto.git@5361e5909e80f71900ba231872fe0cc008d1e3cb',
+   'src/third_party/protobuf-javascript/src':
+     Var('chromium_git') + '/external/github.com/protocolbuffers/protobuf-javascript' + '@' + 'e34549db516f8712f678fcd4bc411613b5cc5295',
+   'src/third_party/libvpx/source/libvpx':
+@@ -399,7 +399,7 @@ deps = {
+       'packages': [
+           {
+               'package': 'chromium/third_party/r8',
+-              'version': '3KCj5eRYCvGGYs5i90pRaeihkzsqgUGc4OkICT8AOlIC',
++              'version': 'yEomA-IPmb_JtuiEvwgtxRHtSEaICkDY1sDko_rQGO0C',
+           },
+       ],
+       'condition': 'checkout_android',
+@@ -410,7 +410,7 @@ deps = {
+     'condition': 'checkout_android',
+   },
+   'src/tools':
+-    'https://chromium.googlesource.com/chromium/src/tools@63ecf6c58b023caa4f453a42b65ece744270af16',
++    'https://chromium.googlesource.com/chromium/src/tools@8c5814c8d24ad90987b4cbd3c69947fc2e461f0e',
  
-   IceTransportInternal* ice_transport() override;
- 
-diff --git a/p2p/base/dtls_transport_internal.h b/p2p/base/dtls_transport_internal.h
-index 69881dd9c6..05501458f8 100644
---- a/p2p/base/dtls_transport_internal.h
-+++ b/p2p/base/dtls_transport_internal.h
-@@ -89,16 +89,12 @@ class DtlsTransportInternal : public rtc::PacketTransportInternal {
-   virtual std::unique_ptr<rtc::SSLCertChain> GetRemoteSSLCertChain() const = 0;
- 
-   // Allows key material to be extracted for external encryption.
--  virtual bool ExportSrtpKeyingMaterial(
--      rtc::ZeroOnFreeBuffer<unsigned char>& keying_material) = 0;
--
--  [[deprecated("Use ExportSrtpKeyingMaterial instead")]] virtual bool
--  ExportKeyingMaterial(absl::string_view label,
--                       const uint8_t* context,
--                       size_t context_len,
--                       bool use_context,
--                       uint8_t* result,
--                       size_t result_len) = 0;
-+  virtual bool ExportKeyingMaterial(absl::string_view label,
-+                                    const uint8_t* context,
-+                                    size_t context_len,
-+                                    bool use_context,
-+                                    uint8_t* result,
-+                                    size_t result_len) = 0;
- 
-   // Set DTLS remote fingerprint. Must be after local identity set.
-   ABSL_DEPRECATED("Use SetRemoteParameters instead.")
-diff --git a/p2p/base/dtls_transport_unittest.cc b/p2p/base/dtls_transport_unittest.cc
-index c57942113a..767fc4d0c6 100644
---- a/p2p/base/dtls_transport_unittest.cc
-+++ b/p2p/base/dtls_transport_unittest.cc
-@@ -458,33 +458,6 @@ TEST_F(DtlsTransportTest, TestTransferDtlsCombineRecords) {
-   TestTransfer(500, 100, /*srtp=*/false);
- }
- 
--#pragma clang diagnostic push
--#pragma clang diagnostic ignored "-Wdeprecated-declarations"
--TEST_F(DtlsTransportTest, KeyingMaterialExporter) {
--  PrepareDtls(rtc::KT_DEFAULT);
--  ASSERT_TRUE(Connect());
--
--  int crypto_suite;
--  EXPECT_TRUE(client1_.dtls_transport()->GetSrtpCryptoSuite(&crypto_suite));
--  int key_len;
--  int salt_len;
--  EXPECT_TRUE(rtc::GetSrtpKeyAndSaltLengths(crypto_suite, &key_len, &salt_len));
--  rtc::ZeroOnFreeBuffer<unsigned char> client1_out(2 * (key_len + salt_len));
--  rtc::ZeroOnFreeBuffer<unsigned char> client2_out(2 * (key_len + salt_len));
--  EXPECT_TRUE(client1_.dtls_transport()->ExportSrtpKeyingMaterial(client1_out));
--  EXPECT_TRUE(client2_.dtls_transport()->ExportSrtpKeyingMaterial(client2_out));
--  EXPECT_EQ(client1_out, client2_out);
--
--  // Legacy variant using the deprecated API.
--  rtc::ZeroOnFreeBuffer<unsigned char> client1_out_legacy(2 *
--                                                          (key_len + salt_len));
--  EXPECT_TRUE(client1_.dtls_transport()->ExportKeyingMaterial(
--      "EXTRACTOR-dtls_srtp", nullptr, 0, false, client1_out_legacy.data(),
--      client1_out_legacy.size()));
--  EXPECT_EQ(client1_out, client1_out_legacy);
--}
--#pragma clang diagnostic pop
--
- class DtlsTransportVersionTest
-     : public DtlsTransportTestBase,
-       public ::testing::TestWithParam<
-diff --git a/p2p/base/fake_dtls_transport.h b/p2p/base/fake_dtls_transport.h
-index f885165d9d..042d93b171 100644
---- a/p2p/base/fake_dtls_transport.h
-+++ b/p2p/base/fake_dtls_transport.h
-@@ -11,7 +11,6 @@
- #ifndef P2P_BASE_FAKE_DTLS_TRANSPORT_H_
- #define P2P_BASE_FAKE_DTLS_TRANSPORT_H_
- 
--#include <cstring>
- #include <memory>
- #include <string>
- #include <utility>
-@@ -228,13 +227,6 @@ class FakeDtlsTransport : public DtlsTransportInternal {
-     }
-     return std::make_unique<rtc::SSLCertChain>(remote_cert_->Clone());
-   }
--  bool ExportSrtpKeyingMaterial(
--      rtc::ZeroOnFreeBuffer<unsigned char>& keying_material) override {
--    if (do_dtls_) {
--      std::memset(keying_material.data(), 0xff, keying_material.size());
--    }
--    return do_dtls_;
--  }
-   bool ExportKeyingMaterial(absl::string_view label,
-                             const uint8_t* context,
-                             size_t context_len,
-diff --git a/pc/dtls_srtp_transport.cc b/pc/dtls_srtp_transport.cc
-index 7d1cb99061..96a7a09785 100644
---- a/pc/dtls_srtp_transport.cc
-+++ b/pc/dtls_srtp_transport.cc
-@@ -20,6 +20,11 @@
- #include "rtc_base/logging.h"
- #include "rtc_base/ssl_stream_adapter.h"
- 
-+namespace {
-+// Value specified in RFC 5764.
-+static const char kDtlsSrtpExporterLabel[] = "EXTRACTOR-dtls_srtp";
-+}  // namespace
-+
- namespace webrtc {
- 
- DtlsSrtpTransport::DtlsSrtpTransport(bool rtcp_mux_enabled,
-@@ -225,8 +230,10 @@ bool DtlsSrtpTransport::ExtractParams(
-   rtc::ZeroOnFreeBuffer<unsigned char> dtls_buffer(key_len * 2 + salt_len * 2);
- 
-   // RFC 5705 exporter using the RFC 5764 parameters
--  if (!dtls_transport->ExportSrtpKeyingMaterial(dtls_buffer)) {
--    RTC_LOG(LS_ERROR) << "DTLS-SRTP key export failed";
-+  if (!dtls_transport->ExportKeyingMaterial(kDtlsSrtpExporterLabel, NULL, 0,
-+                                            false, &dtls_buffer[0],
-+                                            dtls_buffer.size())) {
-+    RTC_LOG(LS_WARNING) << "DTLS-SRTP key export failed";
-     RTC_DCHECK_NOTREACHED();  // This should never happen
-     return false;
-   }
-diff --git a/rtc_base/openssl_stream_adapter.cc b/rtc_base/openssl_stream_adapter.cc
-index c60f4a7aa2..bbad2a31ac 100644
---- a/rtc_base/openssl_stream_adapter.cc
-+++ b/rtc_base/openssl_stream_adapter.cc
-@@ -63,11 +63,6 @@
- #error "webrtc requires at least OpenSSL version 1.1.0, to support DTLS-SRTP"
- #endif
- 
--namespace {
--// Value specified in RFC 5764.
--static const char kDtlsSrtpExporterLabel[] = "EXTRACTOR-dtls_srtp";
--}  // namespace
--
- namespace rtc {
- namespace {
- using ::webrtc::SafeTask;
-@@ -382,19 +377,16 @@ bool OpenSSLStreamAdapter::GetSslVersionBytes(int* version) const {
-   return true;
- }
- 
--bool OpenSSLStreamAdapter::ExportSrtpKeyingMaterial(
--    rtc::ZeroOnFreeBuffer<unsigned char>& keying_material) {
--  // Arguments are:
--  // keying material/len -- a buffer to hold the keying material.
--  // label               -- the exporter label.
--  //                        part of the RFC defining each exporter
--  //                        usage. We only use RFC 5764 for DTLS-SRTP.
--  // context/context_len -- a context to bind to for this connection;
--  // use_context            optional, can be null, 0 (IN). Not used by WebRTC.
--  if (SSL_export_keying_material(ssl_, keying_material.data(),
--                                 keying_material.size(), kDtlsSrtpExporterLabel,
--                                 sizeof(kDtlsSrtpExporterLabel), nullptr, 0,
--                                 false) != 1) {
-+// Key Extractor interface
-+bool OpenSSLStreamAdapter::ExportKeyingMaterial(absl::string_view label,
-+                                                const uint8_t* context,
-+                                                size_t context_len,
-+                                                bool use_context,
-+                                                uint8_t* result,
-+                                                size_t result_len) {
-+  if (SSL_export_keying_material(ssl_, result, result_len, label.data(),
-+                                 label.length(), context, context_len,
-+                                 use_context) != 1) {
-     return false;
-   }
-   return true;
-diff --git a/rtc_base/openssl_stream_adapter.h b/rtc_base/openssl_stream_adapter.h
-index 25ca678021..a776c1ae5d 100644
---- a/rtc_base/openssl_stream_adapter.h
-+++ b/rtc_base/openssl_stream_adapter.h
-@@ -109,8 +109,12 @@ class OpenSSLStreamAdapter final : public SSLStreamAdapter {
-       const override;
-   bool GetSslVersionBytes(int* version) const override;
-   // Key Extractor interface
--  bool ExportSrtpKeyingMaterial(
--      rtc::ZeroOnFreeBuffer<unsigned char>& keying_material) override;
-+  bool ExportKeyingMaterial(absl::string_view label,
-+                            const uint8_t* context,
-+                            size_t context_len,
-+                            bool use_context,
-+                            uint8_t* result,
-+                            size_t result_len) override;
- 
-   uint16_t GetPeerSignatureAlgorithm() const override;
- 
-diff --git a/rtc_base/ssl_stream_adapter.cc b/rtc_base/ssl_stream_adapter.cc
-index ce26e4f201..75e3dda66c 100644
---- a/rtc_base/ssl_stream_adapter.cc
-+++ b/rtc_base/ssl_stream_adapter.cc
-@@ -87,6 +87,15 @@ std::unique_ptr<SSLStreamAdapter> SSLStreamAdapter::Create(
-                                                 std::move(handshake_error));
- }
- 
-+bool SSLStreamAdapter::ExportKeyingMaterial(absl::string_view label,
-+                                            const uint8_t* context,
-+                                            size_t context_len,
-+                                            bool use_context,
-+                                            uint8_t* result,
-+                                            size_t result_len) {
-+  return false;  // Default is unsupported
-+}
-+
- bool SSLStreamAdapter::IsBoringSsl() {
-   return OpenSSLStreamAdapter::IsBoringSsl();
- }
-diff --git a/rtc_base/ssl_stream_adapter.h b/rtc_base/ssl_stream_adapter.h
-index 5019b37eb8..dcaaf3a0d1 100644
---- a/rtc_base/ssl_stream_adapter.h
-+++ b/rtc_base/ssl_stream_adapter.h
-@@ -198,8 +198,23 @@ class SSLStreamAdapter : public StreamInterface {
-   virtual bool GetSslVersionBytes(int* version) const = 0;
- 
-   // Key Exporter interface from RFC 5705
--  virtual bool ExportSrtpKeyingMaterial(
--      rtc::ZeroOnFreeBuffer<unsigned char>& keying_material) = 0;
-+  // Arguments are:
-+  // label               -- the exporter label.
-+  //                        part of the RFC defining each exporter
-+  //                        usage (IN)
-+  // context/context_len -- a context to bind to for this connection;
-+  //                        optional, can be null, 0 (IN)
-+  // use_context         -- whether to use the context value
-+  //                        (needed to distinguish no context from
-+  //                        zero-length ones).
-+  // result              -- where to put the computed value
-+  // result_len          -- the length of the computed value
-+  virtual bool ExportKeyingMaterial(absl::string_view label,
-+                                    const uint8_t* context,
-+                                    size_t context_len,
-+                                    bool use_context,
-+                                    uint8_t* result,
-+                                    size_t result_len);
- 
-   // Returns the signature algorithm or 0 if not applicable.
-   virtual uint16_t GetPeerSignatureAlgorithm() const = 0;
-diff --git a/rtc_base/ssl_stream_adapter_unittest.cc b/rtc_base/ssl_stream_adapter_unittest.cc
-index 02883df97a..cf428245f3 100644
---- a/rtc_base/ssl_stream_adapter_unittest.cc
-+++ b/rtc_base/ssl_stream_adapter_unittest.cc
-@@ -56,6 +56,10 @@ using ::testing::Values;
- using ::testing::WithParamInterface;
- using ::webrtc::SafeTask;
- 
-+static const char kExporterLabel[] = "label";
-+static const unsigned char kExporterContext[] = "context";
-+static int kExporterContextLen = sizeof(kExporterContext);
-+
- // A private key used for testing, broken into pieces in order to avoid
- // issues with Git's checks for private keys in repos.
- // Generated using `openssl genrsa -out key.pem 2048`
-@@ -814,6 +818,21 @@ class SSLStreamAdapterTestBase : public ::testing::Test,
-       return server_ssl_->GetSslVersionBytes(version);
-   }
- 
-+  bool ExportKeyingMaterial(absl::string_view label,
-+                            const unsigned char* context,
-+                            size_t context_len,
-+                            bool use_context,
-+                            bool client,
-+                            unsigned char* result,
-+                            size_t result_len) {
-+    if (client)
-+      return client_ssl_->ExportKeyingMaterial(label, context, context_len,
-+                                               use_context, result, result_len);
-+    else
-+      return server_ssl_->ExportKeyingMaterial(label, context, context_len,
-+                                               use_context, result, result_len);
-+  }
-+
-   // To be implemented by subclasses.
-   virtual void WriteData() = 0;
-   virtual void ReadData(rtc::StreamInterface* stream) = 0;
-@@ -1379,23 +1398,22 @@ TEST_F(SSLStreamAdapterTestDTLS, TestDTLSSrtpKeyAndSaltLengths) {
- 
- // Test an exporter
- TEST_F(SSLStreamAdapterTestDTLS, TestDTLSExporter) {
--  const std::vector<int> crypto_suites = {rtc::kSrtpAes128CmSha1_80};
--  SetDtlsSrtpCryptoSuites(crypto_suites, true);
--  SetDtlsSrtpCryptoSuites(crypto_suites, false);
--
-   TestHandshake();
--  int selected_crypto_suite;
--  EXPECT_TRUE(GetDtlsSrtpCryptoSuite(/*client=*/false, &selected_crypto_suite));
--  int key_len;
--  int salt_len;
--  ASSERT_TRUE(rtc::GetSrtpKeyAndSaltLengths(selected_crypto_suite, &key_len,
--                                            &salt_len));
--  rtc::ZeroOnFreeBuffer<unsigned char> client_out(2 * (key_len + salt_len));
--  rtc::ZeroOnFreeBuffer<unsigned char> server_out(2 * (key_len + salt_len));
-+  unsigned char client_out[EVP_MAX_MD_SIZE];
-+  unsigned char server_out[EVP_MAX_MD_SIZE];
-+
-+  bool result;
-+  result = ExportKeyingMaterial(kExporterLabel, kExporterContext,
-+                                kExporterContextLen, true, true, client_out,
-+                                sizeof(client_out));
-+  ASSERT_TRUE(result);
-+
-+  result = ExportKeyingMaterial(kExporterLabel, kExporterContext,
-+                                kExporterContextLen, true, false, server_out,
-+                                sizeof(server_out));
-+  ASSERT_TRUE(result);
- 
--  EXPECT_TRUE(client_ssl_->ExportSrtpKeyingMaterial(client_out));
--  EXPECT_TRUE(server_ssl_->ExportSrtpKeyingMaterial(server_out));
--  EXPECT_EQ(client_out, server_out);
-+  ASSERT_TRUE(!memcmp(client_out, server_out, sizeof(client_out)));
- }
- 
- // Test not yet valid certificates are not rejected.
+   'src/third_party/espresso': {
+       'packages': [
