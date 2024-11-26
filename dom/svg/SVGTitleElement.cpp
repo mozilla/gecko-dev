@@ -32,7 +32,7 @@ SVGTitleElement::SVGTitleElement(
     : SVGTitleElementBase(std::move(aNodeInfo)) {
   AddMutationObserver(this);
   SetEnabledCallbacks(kCharacterDataChanged | kContentAppended |
-                      kContentInserted | kContentRemoved);
+                      kContentInserted | kContentWillBeRemoved);
 }
 
 void SVGTitleElement::CharacterDataChanged(nsIContent* aContent,
@@ -48,8 +48,7 @@ void SVGTitleElement::ContentInserted(nsIContent* aChild) {
   SendTitleChangeEvent(false);
 }
 
-void SVGTitleElement::ContentRemoved(nsIContent* aChild,
-                                     nsIContent* aPreviousSibling) {
+void SVGTitleElement::ContentWillBeRemoved(nsIContent* aChild) {
   SendTitleChangeEvent(false);
 }
 
@@ -77,8 +76,7 @@ void SVGTitleElement::DoneAddingChildren(bool aHaveNotified) {
 }
 
 void SVGTitleElement::SendTitleChangeEvent(bool aBound) {
-  Document* doc = GetUncomposedDoc();
-  if (doc) {
+  if (Document* doc = GetUncomposedDoc()) {
     doc->NotifyPossibleTitleChange(aBound);
   }
 }

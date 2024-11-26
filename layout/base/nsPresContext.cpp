@@ -1606,11 +1606,12 @@ static bool CheckOverflow(const ComputedStyle* aComputedStyle,
 // properly when we insert a body element and there is a previous one, for
 // example).
 static Element* GetPropagatedScrollStylesForViewport(
-    nsPresContext* aPresContext, ScrollStyles* aStyles) {
+    nsPresContext* aPresContext, const Element* aRemovedChild,
+    ScrollStyles* aStyles) {
   Document* document = aPresContext->Document();
   Element* docElement = document->GetRootElement();
   // docElement might be null if we're doing this after removing it.
-  if (!docElement) {
+  if (!docElement || docElement == aRemovedChild) {
     return nullptr;
   }
 
@@ -1630,17 +1631,15 @@ static Element* GetPropagatedScrollStylesForViewport(
   // XXX this should be earlier; we shouldn't even look at the document root
   // for non-HTML documents. Fix this once we support explicit CSS styling
   // of the viewport
-  if (!document->IsHTMLOrXHTML() || !docElement->IsHTMLElement()) {
+  if (!document->IsHTMLOrXHTML() ||
+      !docElement->IsHTMLElement(nsGkAtoms::html)) {
     return nullptr;
   }
 
-  Element* bodyElement = document->AsHTMLDocument()->GetBodyElement();
+  Element* bodyElement = document->GetBodyElement(aRemovedChild);
   if (!bodyElement) {
     return nullptr;
   }
-
-  MOZ_ASSERT(bodyElement->IsHTMLElement(nsGkAtoms::body),
-             "GetBodyElement returned something bogus");
 
   const auto* bodyStyle = Servo_Element_GetMaybeOutOfDateStyle(bodyElement);
   if (bodyStyle && bodyStyle->StyleDisplay()->IsContainAny()) {
@@ -1655,7 +1654,8 @@ static Element* GetPropagatedScrollStylesForViewport(
   return nullptr;
 }
 
-Element* nsPresContext::UpdateViewportScrollStylesOverride() {
+Element* nsPresContext::UpdateViewportScrollStylesOverride(
+    const Element* aRemovedChild) {
   ScrollStyles oldViewportScrollStyles = mViewportScrollStyles;
 
   // Start off with our default styles, and then update them as needed.
@@ -1664,8 +1664,8 @@ Element* nsPresContext::UpdateViewportScrollStylesOverride() {
   mViewportScrollOverrideElement = nullptr;
   // Don't propagate the scrollbar state in printing or print preview.
   if (!IsPaginated()) {
-    mViewportScrollOverrideElement =
-        GetPropagatedScrollStylesForViewport(this, &mViewportScrollStyles);
+    mViewportScrollOverrideElement = GetPropagatedScrollStylesForViewport(
+        this, aRemovedChild, &mViewportScrollStyles);
   }
 
   dom::Document* document = Document();
@@ -1705,7 +1705,8 @@ bool nsPresContext::ElementWouldPropagateScrollStyles(const Element& aElement) {
   // in practice we will make this call quite rarely, because we checked for all
   // the common cases above.
   ScrollStyles dummy(StyleOverflow::Auto, StyleOverflow::Auto);
-  return GetPropagatedScrollStylesForViewport(this, &dummy) == &aElement;
+  return GetPropagatedScrollStylesForViewport(this, nullptr, &dummy) ==
+         &aElement;
 }
 
 nsISupports* nsPresContext::GetContainerWeak() const {

@@ -20,8 +20,8 @@ class Document;
                                nsIContent* aContent, nsAtom* aAttribute)  \
       override;                                                           \
   void ObserveContentRemoved(mozilla::dom::Document* aDocument,           \
-                             nsIContent* aContainer, nsIContent* aChild,  \
-                             nsIContent* aPreviousChild) override;        \
+                             nsIContent* aContainer, nsIContent* aChild)  \
+      override;                                                           \
   void ObserveContentInserted(mozilla::dom::Document* aDocument,          \
                               nsIContent* aContainer, nsIContent* aChild) \
       override;
@@ -54,8 +54,8 @@ class nsChangeObserver {
   // if that element's children and grandchildren are removed. NOT if the
   // observed element itself is removed.
   virtual void ObserveContentRemoved(mozilla::dom::Document* aDocument,
-                                     nsIContent* aContainer, nsIContent* aChild,
-                                     nsIContent* aPreviousSibling) = 0;
+                                     nsIContent* aContainer,
+                                     nsIContent* aChild) = 0;
 
   // Called when aChild has been inserted into its new parent aContainer.
   // Only called if aContainer or aContainer's parent node are being observed

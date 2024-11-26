@@ -229,7 +229,7 @@ static void SetOrUpdateRectValuedProperty(
 
 FrameDestroyContext::~FrameDestroyContext() {
   for (auto& content : mozilla::Reversed(mAnonymousContent)) {
-    mPresShell->NativeAnonymousContentRemoved(content);
+    mPresShell->NativeAnonymousContentWillBeRemoved(content);
     content->UnbindFromTree();
   }
 }

@@ -938,8 +938,7 @@ void nsTreeContentView::ContentInserted(nsIContent* aChild) {
   }
 }
 
-void nsTreeContentView::ContentRemoved(nsIContent* aChild,
-                                       nsIContent* aPreviousSibling) {
+void nsTreeContentView::ContentWillBeRemoved(nsIContent* aChild) {
   NS_ASSERTION(aChild, "null ptr");
 
   nsIContent* container = aChild->GetParent();

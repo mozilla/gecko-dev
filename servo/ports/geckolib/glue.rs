@@ -7655,28 +7655,10 @@ pub extern "C" fn Servo_StyleSet_MaybeInvalidateRelativeSelectorForAppend(
     }
 }
 
-fn get_siblings_of_element<'e>(
-    element: GeckoElement<'e>,
-    following_node: &'e Option<GeckoNode<'e>>,
-) -> (Option<GeckoElement<'e>>, Option<GeckoElement<'e>>) {
-    let node = match following_node {
-        Some(n) => n,
-        None => {
-            return match element.as_node().parent_node() {
-                Some(p) => (p.last_child_element(), None),
-                None => (None, None),
-            }
-        },
-    };
-
-    (node.prev_sibling_element(), node.next_sibling_element())
-}
-
 #[no_mangle]
 pub extern "C" fn Servo_StyleSet_MaybeInvalidateRelativeSelectorForRemoval(
     raw_data: &PerDocumentStyleData,
     element: &RawGeckoElement,
-    following_node: Option<&RawGeckoNode>,
 ) {
     let element = GeckoElement(element);
 
@@ -7686,8 +7668,9 @@ pub extern "C" fn Servo_StyleSet_MaybeInvalidateRelativeSelectorForRemoval(
     if element.relative_selector_search_direction().is_empty() {
         return;
     }
-    let following_node = following_node.map(GeckoNode);
-    let (prev_sibling, next_sibling) = get_siblings_of_element(element, &following_node);
+    let node = element.as_node();
+    let (prev_sibling, next_sibling) =
+        (node.prev_sibling_element(), node.next_sibling_element());
 
     let inherited =
         inherit_relative_selector_search_direction(element.parent_element(), prev_sibling);
@@ -7700,16 +7683,25 @@ pub extern "C" fn Servo_StyleSet_MaybeInvalidateRelativeSelectorForRemoval(
     // Same comment as insertion applies.
     match (prev_sibling, next_sibling) {
         (Some(prev_sibling), Some(next_sibling)) => {
+            // Pretend the element isn't there.
             invalidate_relative_selector_prev_sibling_side_effect(
                 prev_sibling,
                 quirks_mode,
-                SiblingTraversalMap::default(),
+                SiblingTraversalMap::new(
+                    prev_sibling,
+                    prev_sibling.prev_sibling_element(),
+                    Some(next_sibling),
+                ),
                 &data.stylist,
             );
             invalidate_relative_selector_next_sibling_side_effect(
                 next_sibling,
                 quirks_mode,
-                SiblingTraversalMap::default(),
+                SiblingTraversalMap::new(
+                    next_sibling,
+                    Some(prev_sibling),
+                    next_sibling.next_sibling_element(),
+                ),
                 &data.stylist,
             );
         },
@@ -7719,7 +7711,7 @@ pub extern "C" fn Servo_StyleSet_MaybeInvalidateRelativeSelectorForRemoval(
         element,
         quirks_mode,
         snapshot_table: None,
-        sibling_traversal_map: SiblingTraversalMap::new(element, prev_sibling, next_sibling),
+        sibling_traversal_map: SiblingTraversalMap::default(),
         invalidated: relative_selector_invalidated_at,
         _marker: std::marker::PhantomData,
     };

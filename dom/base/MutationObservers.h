@@ -94,14 +94,13 @@ class MutationObservers {
    */
   static void NotifyContentInserted(nsINode* aContainer, nsIContent* aChild);
   /**
-   * Send ContentRemoved notifications to nsIMutationObservers
+   * Send ContentWillBeRemoved notifications to nsIMutationObservers
    * @param aContainer        Node from which child was removed
    * @param aChild            Removed child
-   * @param aPreviousSibling  Previous sibling of the removed child
-   * @see nsIMutationObserver::ContentRemoved
+   * @see nsIMutationObserver::ContentWillBeRemoved
    */
-  static void NotifyContentRemoved(nsINode* aContainer, nsIContent* aChild,
-                                   nsIContent* aPreviousSibling);
+  static void NotifyContentWillBeRemoved(nsINode* aContainer,
+                                         nsIContent* aChild);
 
   /**
    * Send ParentChainChanged notifications to nsIMutationObservers

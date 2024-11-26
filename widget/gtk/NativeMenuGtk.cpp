@@ -232,9 +232,10 @@ class MenuModelGMenu final : public MenuModel {
 
 NS_IMPL_ISUPPORTS(MenuModel, nsIMutationObserver)
 
-void MenuModel::ContentRemoved(nsIContent* aChild, nsIContent*) {
+void MenuModel::ContentWillBeRemoved(nsIContent* aChild) {
   if (NodeIsRelevant(*aChild)) {
-    DirtyModel();
+    nsContentUtils::AddScriptRunner(NewRunnableMethod(
+        "MenuModel::ContentWillBeRemoved", this, &MenuModel::DirtyModel));
   }
 }
 

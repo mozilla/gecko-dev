@@ -322,13 +322,8 @@ class RestyleManager {
   void ContentInserted(nsIContent* aChild);
   void ContentAppended(nsIContent* aFirstNewContent);
 
-  // This would be have the same logic as RestyleForInsertOrChange if we got the
-  // notification before the removal.  However, we get it after, so we need the
-  // following sibling in addition to the old child.
-  //
-  // aFollowingSibling is the sibling that used to come after aOldChild before
-  // the removal.
-  void ContentRemoved(nsIContent* aOldChild, nsIContent* aFollowingSibling);
+  // Restyling for a content removal that is about to happen.
+  void ContentWillBeRemoved(nsIContent* aOldChild);
 
   // Restyling for a ContentInserted (notification after insertion) or
   // for some CharacterDataChanged.

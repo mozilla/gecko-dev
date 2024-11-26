@@ -138,8 +138,7 @@ void CrossShadowBoundaryRange::DoSetRange(
     }
   }
 }
-void CrossShadowBoundaryRange::ContentRemoved(nsIContent* aChild,
-                                              nsIContent* aPreviousSibling) {
+void CrossShadowBoundaryRange::ContentWillBeRemoved(nsIContent* aChild) {
   // It's unclear from the spec about what should the selection be after
   // DOM mutation. See https://github.com/w3c/selection-api/issues/168
   //
@@ -174,14 +173,15 @@ void CrossShadowBoundaryRange::ContentRemoved(nsIContent* aChild,
   nsINode* container = aChild->GetParentNode();
 
   auto MaybeCreateNewBoundary =
-      [container, aChild, aPreviousSibling](
+      [container, aChild](
           const nsINode* aContainer,
           const RangeBoundary& aBoundary) -> Maybe<RawRangeBoundary> {
     if (container == aContainer) {
       // We're only interested if our boundary reference was removed, otherwise
       // we can just invalidate the offset.
       if (aChild == aBoundary.Ref()) {
-        return Some<RawRangeBoundary>({container, aPreviousSibling});
+        return Some<RawRangeBoundary>(
+            {container, aChild->GetPreviousSibling()});
       }
       RawRangeBoundary newBoundary;
       newBoundary.CopyFrom(aBoundary, RangeBoundaryIsMutationObserved::Yes);

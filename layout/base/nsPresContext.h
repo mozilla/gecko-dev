@@ -740,10 +740,13 @@ class nsPresContext : public nsISupports, public mozilla::SupportsWeakPtr {
    * treated as "overflow: visible"), and we store the overflow style here.
    * If the document is in fullscreen, and the fullscreen element is not the
    * root, the scrollbar of viewport will be suppressed.
+   * @param aRemovedChild the element we're about to remove from the DOM, which
+   *                      we can't make the new override element.
    * @return if scroll was propagated from some content node, the content node
    *         it was propagated from.
    */
-  mozilla::dom::Element* UpdateViewportScrollStylesOverride();
+  mozilla::dom::Element* UpdateViewportScrollStylesOverride(
+      const mozilla::dom::Element* aRemovedChild = nullptr);
 
   /**
    * Returns the cached result from the last call to
