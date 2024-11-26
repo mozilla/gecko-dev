@@ -43,6 +43,7 @@ import org.mozilla.fenix.GleanMetrics.TabsTray
 import org.mozilla.fenix.HomeActivity
 import org.mozilla.fenix.NavGraphDirections
 import org.mozilla.fenix.R
+import org.mozilla.fenix.browser.tabstrip.isTabStripEnabled
 import org.mozilla.fenix.components.StoreProvider
 import org.mozilla.fenix.compose.core.Action
 import org.mozilla.fenix.compose.snackbar.Snackbar
@@ -271,7 +272,10 @@ class TabsTrayFragment : AppCompatDialogFragment() {
                         onTabMediaClick = tabsTrayInteractor::onMediaClicked,
                         onTabClick = { tab ->
                             run outer@{
-                                if (!requireContext().settings().hasShownTabSwipeCFR) {
+                                if (!requireContext().settings().hasShownTabSwipeCFR &&
+                                    !requireContext().isTabStripEnabled() &&
+                                    requireContext().settings().isSwipeToolbarToSwitchTabsEnabled
+                                ) {
                                     val normalTabs = tabsTrayStore.state.normalTabs
                                     val currentTabId = tabsTrayStore.state.selectedTabId
 

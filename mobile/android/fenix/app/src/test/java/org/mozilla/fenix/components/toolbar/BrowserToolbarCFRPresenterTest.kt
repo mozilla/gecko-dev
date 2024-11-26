@@ -36,6 +36,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mozilla.fenix.R
+import org.mozilla.fenix.browser.tabstrip.isTabStripEnabled
 import org.mozilla.fenix.ext.isLargeWindow
 import org.mozilla.fenix.helpers.FenixRobolectricTestRunner
 import org.mozilla.fenix.utils.Settings
@@ -51,11 +52,13 @@ class BrowserToolbarCFRPresenterTest {
     @Before
     fun setup() {
         mockkStatic("org.mozilla.fenix.ext.ContextKt")
+        mockkStatic(Context::isTabStripEnabled)
     }
 
     @After
     fun teardown() {
         unmockkStatic("org.mozilla.fenix.ext.ContextKt")
+        unmockkStatic(Context::isTabStripEnabled)
     }
 
     @Test
@@ -136,16 +139,21 @@ class BrowserToolbarCFRPresenterTest {
     fun `GIVEN the Tab Swipe CFR should be shown WHEN in Normal mode THEN the Tab Swipe CFR is shown once`() {
         val normalTab = createTab(url = "", private = false)
         val browserStore = createBrowserStore(tab = normalTab, selectedTabId = normalTab.id)
+        val context: Context = mockk {
+            every { isTabStripEnabled() } returns false
+        }
         val settings: Settings = mockk(relaxed = true) {
             every { reviewQualityCheckOptInTimeInMillis } returns System.currentTimeMillis()
             every { shouldShowEraseActionCFR } returns false
             every { shouldShowCookieBannersCFR } returns false
             every { shouldUseCookieBannerPrivateMode } returns false
             every { shouldShowTabSwipeCFR } returns true
+            every { isSwipeToolbarToSwitchTabsEnabled } returns true
             every { hasShownTabSwipeCFR } returns false
         }
 
         val presenter = createPresenterThatShowsCFRs(
+            context = context,
             browserStore = browserStore,
             settings = settings,
             isPrivate = false,
@@ -156,6 +164,68 @@ class BrowserToolbarCFRPresenterTest {
         verify { presenter.showTabSwipeCFR() }
         verify { settings.hasShownTabSwipeCFR = true }
         verify { settings.shouldShowTabSwipeCFR = false }
+    }
+
+    @Test
+    fun `GIVEN tab strip is enabled WHEN in Normal mode THEN the Tab Swipe CFR is not shown`() {
+        val normalTab = createTab(url = "", private = false)
+        val browserStore = createBrowserStore(tab = normalTab, selectedTabId = normalTab.id)
+        val context: Context = mockk {
+            every { isTabStripEnabled() } returns true
+        }
+        val settings: Settings = mockk(relaxed = true) {
+            every { reviewQualityCheckOptInTimeInMillis } returns System.currentTimeMillis()
+            every { shouldShowEraseActionCFR } returns false
+            every { shouldShowCookieBannersCFR } returns false
+            every { shouldUseCookieBannerPrivateMode } returns false
+            every { shouldShowTabSwipeCFR } returns true
+            every { isSwipeToolbarToSwitchTabsEnabled } returns true
+            every { hasShownTabSwipeCFR } returns false
+        }
+
+        val presenter = createPresenterThatShowsCFRs(
+            context = context,
+            browserStore = browserStore,
+            settings = settings,
+            isPrivate = false,
+        )
+
+        presenter.start()
+
+        verify(exactly = 0) { presenter.showTabSwipeCFR() }
+        verify(exactly = 0) { settings.hasShownTabSwipeCFR = any() }
+        verify(exactly = 0) { settings.shouldShowTabSwipeCFR = any() }
+    }
+
+    @Test
+    fun `GIVEN swipe toolbar to change tabs is disabled WHEN in Normal mode THEN the Tab Swipe CFR is not shown`() {
+        val normalTab = createTab(url = "", private = false)
+        val browserStore = createBrowserStore(tab = normalTab, selectedTabId = normalTab.id)
+        val context: Context = mockk {
+            every { isTabStripEnabled() } returns false
+        }
+        val settings: Settings = mockk(relaxed = true) {
+            every { reviewQualityCheckOptInTimeInMillis } returns System.currentTimeMillis()
+            every { shouldShowEraseActionCFR } returns false
+            every { shouldShowCookieBannersCFR } returns false
+            every { shouldUseCookieBannerPrivateMode } returns false
+            every { shouldShowTabSwipeCFR } returns true
+            every { isSwipeToolbarToSwitchTabsEnabled } returns false
+            every { hasShownTabSwipeCFR } returns false
+        }
+
+        val presenter = createPresenterThatShowsCFRs(
+            context = context,
+            browserStore = browserStore,
+            settings = settings,
+            isPrivate = false,
+        )
+
+        presenter.start()
+
+        verify(exactly = 0) { presenter.showTabSwipeCFR() }
+        verify(exactly = 0) { settings.hasShownTabSwipeCFR = any() }
+        verify(exactly = 0) { settings.shouldShowTabSwipeCFR = any() }
     }
 
     /**
