@@ -391,7 +391,7 @@ localization:
 
 
 l10n-conflicts:
-    description: l10n tests for strings with errors and conflicts with cross-channel
+    description: l10n tests for strings with errors and conflicts with firefox-l10n-source
     treeherder:
         symbol: l10n(l1nt-conflicts)
     always-target: false

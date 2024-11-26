@@ -778,12 +778,6 @@ startup-test
 
 Runs Firefox for a short period of time to see if it crashes
 
-l10n-cross-channel
-------------------
-
-Compiles a set of en-US strings from all shipping release trains and pushes to
-the quarantine strings repo.
-
 attribution
 -----------
 Injects attribution information into en-US installers.

@@ -1638,16 +1638,6 @@ def target_tasks_perftest_autoland(full_task_graph, parameters, graph_config):
             yield name
 
 
-@register_target_task("l10n-cross-channel")
-def target_tasks_l10n_cross_channel(full_task_graph, parameters, graph_config):
-    """Select the set of tasks required to run l10n cross-channel."""
-
-    def filter(task):
-        return task.kind in ["l10n-cross-channel"]
-
-    return [l for l, t in full_task_graph.tasks.items() if filter(t)]
-
-
 @register_target_task("eslint-build")
 def target_tasks_eslint_build(full_task_graph, parameters, graph_config):
     """Select the task to run additional ESLint rules which require a build."""

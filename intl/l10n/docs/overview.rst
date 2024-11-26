@@ -80,8 +80,8 @@ into `mozilla-central`.
 
 .. _exposure-in-gecko-strings:
 
-4) Exposure in `firefox-l10n-source` and `gecko-strings`
---------------------------------------------------------
+4) Exposure in `firefox-l10n-source`
+------------------------------------
 
 Once the patch lands in `mozilla-central`, strings won't be exposed to localization
 until they are merged into `firefox-l10n-source`_, a unified repository that includes
@@ -95,12 +95,6 @@ asked to land a follow up, or the patch could be backed out with the help of she
 
 As a last step, strings are merged into the `main` branch which is exposed to our
 web localization tool Pontoon.
-
-During the current transition from Mercurial to GitHub a parallel legacy process
-(called `cross-channel`) happens for source strings in two unified Mercurial repositories:
-`gecko-strings-quarantine` (pre-review) and `gecko-strings` (post-review). These strings
-mirror those in `firefox-l10n-source` and are currently used to compare outputs of the
-GitHub workflows to ensure parity. `Cross-channel` will be phased out in the future.
 
 5) Localization
 ---------------

@@ -132,9 +132,6 @@ MACH_COMMANDS = {
     "jsshell-bench": MachCommandReference("testing/mach_commands.py"),
     "jstestbrowser": MachCommandReference("layout/tools/reftest/mach_commands.py"),
     "jstests": MachCommandReference("testing/mach_commands.py"),
-    "l10n-cross-channel": MachCommandReference(
-        "tools/compare-locales/mach_commands.py"
-    ),
     "lint": MachCommandReference("tools/lint/mach_commands.py"),
     "logspam": MachCommandReference("tools/mach_commands.py"),
     "mach-commands": MachCommandReference("python/mach/mach/commands/commandinfo.py"),

@@ -270,7 +270,7 @@ look for the :js:`l1nt` job.
 
 Besides displaying errors and warnings due to syntax errors, it’s particularly
 important because it also checks for message changes without new IDs, and
-conflicts with the cross-channel repository used to ship localized versions of
+conflicts with the firefox-l10n-source repository used to ship localized versions of
 Firefox.
 
 

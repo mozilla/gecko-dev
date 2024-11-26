@@ -339,18 +339,6 @@ jobs:
           include-cron-input: true
       when: []  # never (hook only)
 
-    - name: l10n-cross-channel
-      job:
-          type: decision-task
-          treeherder-symbol: l10n-cross-channel
-          target-tasks-method: l10n-cross-channel
-      run-on-projects:
-          - mozilla-central
-      when:
-          by-project:
-              mozilla-central: [{hour: 11, minute: 0}, {hour: 23, minute: 0}]
-              default: []
-
     - name: eslint-build
       job:
           type: decision-task
