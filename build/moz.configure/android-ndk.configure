@@ -267,7 +267,7 @@ def android_flags(extra_toolchain_flags):
     return namespace(
         cflags=extra_toolchain_flags + ["-fno-short-enums"],
         cxxflags=extra_toolchain_flags + ["-fno-short-enums"],
-        ldflags=extra_toolchain_flags,
+        ldflags=extra_toolchain_flags + ["-Wl,-z,max-page-size=16384"],
         asflags=extra_toolchain_flags + ["-DANDROID"],
     )
 
