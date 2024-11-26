@@ -267,14 +267,11 @@ static bool ActionIdComparableAndLower(uint64_t aActionId,
 
 // given a frame content node, retrieve the nsIDOMWindow displayed in it
 static nsPIDOMWindowOuter* GetContentWindow(nsIContent* aContent) {
-  Document* doc = aContent->GetComposedDoc();
-  if (doc) {
-    Document* subdoc = doc->GetSubDocumentFor(aContent);
-    if (subdoc) {
+  if (Document* doc = aContent->GetComposedDoc()) {
+    if (Document* subdoc = doc->GetSubDocumentFor(aContent)) {
       return subdoc->GetWindow();
     }
   }
-
   return nullptr;
 }
 
@@ -440,10 +437,10 @@ nsresult nsFocusManager::SetFocusedWindowWithCallerType(
     // clear the focus. Otherwise, focus should already be in this frame, or
     // already cleared. This ensures that focus will be in this frame and not
     // in a child.
-    nsIContent* content = windowToFocus->GetFocusedElement();
-    if (content) {
-      if (nsCOMPtr<nsPIDOMWindowOuter> childWindow = GetContentWindow(content))
+    if (Element* el = windowToFocus->GetFocusedElement()) {
+      if (nsCOMPtr<nsPIDOMWindowOuter> childWindow = GetContentWindow(el)) {
         ClearFocus(windowToFocus);
+      }
     }
   }
 
