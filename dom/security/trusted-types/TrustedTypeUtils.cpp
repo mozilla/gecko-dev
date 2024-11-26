@@ -14,6 +14,8 @@
 #include "mozilla/ErrorResult.h"
 #include "mozilla/dom/Document.h"
 #include "mozilla/dom/TrustedHTML.h"
+#include "mozilla/dom/TrustedScript.h"
+#include "mozilla/dom/TrustedScriptURL.h"
 #include "mozilla/dom/TrustedTypePolicy.h"
 #include "mozilla/dom/TrustedTypePolicyFactory.h"
 #include "nsGlobalWindowInner.h"
@@ -24,7 +26,6 @@
 #include "mozilla/dom/CSPViolationData.h"
 #include "mozilla/dom/ElementBinding.h"
 #include "mozilla/dom/nsCSPUtils.h"
-#include "mozilla/dom/TrustedHTML.h"
 
 #include "nsContentUtils.h"
 #include "nsIContentSecurityPolicy.h"
@@ -163,8 +164,8 @@ void ProcessValueWithADefaultPolicy(const Document& aDocument,
       defaultPolicy->GetOptions().mCreateHTMLCallback;
 
   JS::Rooted<JS::Value> trustedTypeName{cx};
-  if (!xpc::NonVoidLatin1StringToJsval(cx, "TrustedHTML"_ns,
-                                       &trustedTypeName)) {
+  if (!xpc::NonVoidStringToJsval(cx, GetTrustedTypeName<TrustedHTML>(),
+                                 &trustedTypeName)) {
     aError.StealExceptionFromJSContext(cx);
     return;
   }

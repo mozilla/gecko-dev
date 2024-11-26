@@ -32,6 +32,18 @@ class TrustedHTMLOrNullIsEmptyString;
 
 namespace TrustedTypeUtils {
 
+template <typename T>
+nsString GetTrustedTypeName() {
+  if constexpr (std::is_same_v<T, TrustedHTML>) {
+    return u"TrustedHTML"_ns;
+  }
+  if constexpr (std::is_same_v<T, TrustedScript>) {
+    return u"TrustedScript"_ns;
+  }
+  MOZ_ASSERT((std::is_same_v<T, TrustedScriptURL>));
+  return u"TrustedScriptURL"_ns;
+}
+
 // https://w3c.github.io/trusted-types/dist/spec/#get-trusted-type-compliant-string-algorithm
 // specialized for TrustedHTML.
 //
