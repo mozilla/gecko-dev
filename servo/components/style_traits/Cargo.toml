@@ -11,7 +11,7 @@ name = "style_traits"
 path = "lib.rs"
 
 [features]
-servo = ["servo_atoms", "cssparser/serde", "webrender_api", "url", "euclid/serde"]
+servo = ["servo_atoms", "cssparser/serde", "url", "euclid/serde"]
 gecko = ["nsstring"]
 
 [dependencies]
@@ -31,4 +31,3 @@ thin-vec = "0.2"
 to_shmem = { path = "../to_shmem" }
 to_shmem_derive = { path = "../to_shmem_derive" }
 url = { version = "2.5", optional = true }
-webrender_api = { git = "https://github.com/servo/webrender", optional = true }
