@@ -44,24 +44,6 @@ class MultiLocaleBuild(LocalesMixin, MercurialScript):
                 "help": "Specify the objdir",
             },
         ],
-        [
-            ["--l10n-base"],
-            {
-                "action": "store",
-                "dest": "hg_l10n_base",
-                "type": "string",
-                "help": "Specify the L10n repo base directory",
-            },
-        ],
-        [
-            ["--l10n-tag"],
-            {
-                "action": "store",
-                "dest": "hg_l10n_tag",
-                "type": "string",
-                "help": "Specify the L10n tag",
-            },
-        ],
     ]
 
     def __init__(self, require_config_file=True):
