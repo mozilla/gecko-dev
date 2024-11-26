@@ -212,11 +212,9 @@ JSLinearString* js::temporal::CanonicalizeTimeZoneName(
              "Unsupported canonical time zone");
 #endif
 
-  // Step 3.
-  if (StringEqualsLiteral(ianaTimeZone, "Etc/UTC") ||
-      StringEqualsLiteral(ianaTimeZone, "Etc/GMT")) {
-    return cx->names().UTC;
-  }
+  // Step 3. (Links to UTC are handled by SharedIntlData.)
+  MOZ_ASSERT(!StringEqualsLiteral(ianaTimeZone, "Etc/UTC"));
+  MOZ_ASSERT(!StringEqualsLiteral(ianaTimeZone, "Etc/GMT"));
 
   // We don't need to check against "GMT", because ICU uses the tzdata rearguard
   // format, where "GMT" is a link to "Etc/GMT".
