@@ -83,7 +83,7 @@ tasks:
         fetches:
             build:
                 - artifact: target.condprof.tests.tar.gz
-                - artifact: target.tar.xz
+                - artifact: target.tar.bz2
             toolchain:
                 - linux64-geckodriver
         run:

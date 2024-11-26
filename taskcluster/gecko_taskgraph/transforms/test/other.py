@@ -318,7 +318,7 @@ def set_target(config, tasks):
             elif build_platform.startswith("win"):
                 target = "target.zip"
             else:
-                target = "target.tar.xz"
+                target = "target.tar.bz2"
 
         if isinstance(target, dict):
             if "index" in target:

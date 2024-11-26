@@ -215,7 +215,7 @@ def getFtpPlatform(platform: str):
 def getFileExtension(platform: str):
     """The extension for the output file, which may be passed to the internal-signing task"""
     if isLinux(platform):
-        return "tar.xz"
+        return "tar.bz2"
     elif isMac(platform):
         return "tar.gz"
     elif isWin(platform):

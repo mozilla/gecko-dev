@@ -12,7 +12,7 @@ task-defaults:
                 linux1804-64/opt: build-linux64-shippable/opt
     fetches:
         build:
-            - target.tar.xz
+            - target.tar.bz2
         toolchain:
             - linux64-geckodriver
     run-on-projects: []

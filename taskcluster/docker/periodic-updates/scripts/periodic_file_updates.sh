@@ -130,10 +130,10 @@ case "${BRANCH}" in
     ;;
 esac
 
-BROWSER_ARCHIVE="target.tar.xz"
+BROWSER_ARCHIVE="target.tar.bz2"
 TESTS_ARCHIVE="target.common.tests.tar.gz"
 
-UNPACK_CMD="tar Jxf"
+UNPACK_CMD="tar jxf"
 COMMIT_AUTHOR='ffxbld <ffxbld@mozilla.com>'
 WGET="wget -nv"
 UNTAR="tar -zxf"

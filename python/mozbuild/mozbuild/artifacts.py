@@ -552,7 +552,7 @@ class AndroidArtifactJob(ArtifactJob):
 
 
 class LinuxArtifactJob(ArtifactJob):
-    package_re = r"public/build/target\.tar\.(bz2|xz)$"
+    package_re = r"public/build/target\.tar\.bz2$"
     product = "firefox"
 
     _package_artifact_patterns = {
