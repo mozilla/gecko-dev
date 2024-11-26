@@ -498,11 +498,20 @@ bool js::intl_GetPluralCategories(JSContext* cx, unsigned argc, Value* vp) {
   res->setDenseInitializedLength(categories.size());
 
   size_t index = 0;
-  for (PluralRules::Keyword keyword : categories) {
-    JSString* str = KeywordToString(keyword, cx);
-    MOZ_ASSERT(str);
+  for (auto keyword : {
+           PluralRules::Keyword::Zero,
+           PluralRules::Keyword::One,
+           PluralRules::Keyword::Two,
+           PluralRules::Keyword::Few,
+           PluralRules::Keyword::Many,
+           PluralRules::Keyword::Other,
+       }) {
+    if (categories.contains(keyword)) {
+      JSString* str = KeywordToString(keyword, cx);
+      MOZ_ASSERT(str);
 
-    res->initDenseElement(index++, StringValue(str));
+      res->initDenseElement(index++, StringValue(str));
+    }
   }
   MOZ_ASSERT(index == categories.size());
 
