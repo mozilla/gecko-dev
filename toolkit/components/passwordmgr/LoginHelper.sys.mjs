@@ -1337,7 +1337,7 @@ export const LoginHelper = {
    * @returns {boolean} True if any of the rules matches
    */
   isInferredNonUsernameField(element) {
-    const expr = /search|code|add/i;
+    const expr = /\b(search|code|add)\b/i;
 
     if (
       Logic.elementAttrsMatchRegex(element, expr) ||
