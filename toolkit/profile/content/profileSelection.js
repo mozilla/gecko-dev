@@ -31,8 +31,6 @@ function getFluentString(str) {
 function startup() {
   try {
     gDialogParams = window.arguments[0].QueryInterface(I.nsIDialogParamBlock);
-    gDialogParams.SetNumberStrings(0);
-    gDialogParams.SetInt(2, 0);
 
     gProfileService = C[ToolkitProfileService].getService(
       I.nsIToolkitProfileService

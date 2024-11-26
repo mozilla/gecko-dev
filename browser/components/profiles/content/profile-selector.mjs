@@ -29,48 +29,11 @@ export class ProfileSelector extends MozLitElement {
   };
 
   #initPromise = null;
-  #startupParams = null;
 
   constructor() {
     super();
 
     this.#initPromise = this.init();
-    if (window.arguments?.[0] instanceof Ci.nsIDialogParamBlock) {
-      this.#startupParams = window.arguments[0];
-    }
-  }
-
-  get isStartupUI() {
-    return !!this.#startupParams;
-  }
-
-  /**
-   * Sets the return block for the startup UI.
-   *
-   * @param {SelectableProfile} profile The profile to launch
-   * @param {string[]} args Any additional command line arguments to append
-   */
-  async setLaunchArguments(profile, args = []) {
-    if (!this.#startupParams) {
-      return;
-    }
-
-    this.#startupParams.SetInt(
-      0,
-      Ci.nsIToolkitProfileService.launchWithProfile
-    );
-    // Set start offline to false.
-    this.#startupParams.SetInt(1, 0);
-    // Number of new arguments.
-    this.#startupParams.SetInt(2, args.length);
-
-    this.#startupParams.objects.insertElementAt(await profile.rootDir, 0);
-    this.#startupParams.objects.insertElementAt(await profile.localDir, 1);
-
-    this.#startupParams.SetNumberStrings(args.length);
-    for (let i = 0; i < args.length; i++) {
-      this.#startupParams.SetString(i, args[i]);
-    }
   }
 
   async getUpdateComplete() {
@@ -100,13 +63,6 @@ export class ProfileSelector extends MozLitElement {
 
     this.initialized = true;
     this.#initPromise = null;
-
-    if (this.isStartupUI) {
-      window.addEventListener("unload", () => {
-        // In case the user closed the window manually.
-        this.selectableProfileService.uninit();
-      });
-    }
   }
 
   handleCheckboxToggle() {
@@ -115,22 +71,12 @@ export class ProfileSelector extends MozLitElement {
     );
   }
 
-  async launchProfile(profile, url) {
-    if (this.isStartupUI) {
-      await this.setLaunchArguments(profile, url ? ["-url", url] : []);
-      await this.selectableProfileService.uninit();
-    } else {
-      this.selectableProfileService.launchInstance(profile, url);
-    }
-
-    window.close();
-  }
-
   async handleEvent(event) {
     switch (event.type) {
       case "LaunchProfile": {
         let { profile, url } = event.detail;
-        await this.launchProfile(profile, url);
+        this.selectableProfileService.launchInstance(profile, url);
+        window.close();
         break;
       }
       case "CreateProfile": {
@@ -140,7 +86,11 @@ export class ProfileSelector extends MozLitElement {
       }
       case "DeleteProfile": {
         let profile = event.detail;
-        await this.launchProfile(profile, "about:deleteprofile");
+        this.selectableProfileService.launchInstance(
+          profile,
+          "about:deleteprofile"
+        );
+        window.close();
         break;
       }
     }
