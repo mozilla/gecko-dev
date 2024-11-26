@@ -332,7 +332,8 @@
   margin: 0 4px;
   padding: 0;
   border: none;
-  fill: var(--theme-icon-color);
+  color: var(--theme-icon-color);
+  fill: currentColor;
   cursor: pointer;
   -moz-context-properties: fill;
 }
@@ -343,7 +344,7 @@
 .open-accessibility-inspector:hover,
 .highlight-node:hover,
 .open-inspector:hover {
-  fill: var(--theme-icon-checked-color);
+  color: var(--theme-icon-alternate-hover-color);
 }
 
 /******************************************************************************/

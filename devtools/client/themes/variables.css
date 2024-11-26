@@ -198,6 +198,8 @@
   --theme-icon-checked-color: light-dark(var(--blue-60), var(--blue-30));
   --theme-icon-error-color: light-dark(var(--red-60), var(--red-40));
   --theme-icon-warning-color: light-dark(var(--yellow-65), var(--yellow-60));
+  /* Some buttons changes the icon color to blue on hover */
+  --theme-icon-alternate-hover-color: var(--theme-icon-checked-color);
 
   /* Text color */
   --theme-comment: light-dark(var(--grey-55), var(--grey-45));
@@ -362,6 +364,7 @@
     --theme-icon-error-color: ButtonText;
     --theme-icon-warning-color: ButtonText;
     --theme-icon-checked-color: SelectedItemText;
+    --theme-icon-alternate-hover-color: SelectedItem;
 
     --theme-search-results-background: Mark;
     --theme-search-results-color: MarkText;
