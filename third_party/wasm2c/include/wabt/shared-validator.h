@@ -75,7 +75,7 @@ class SharedValidator {
 
   Result OnFunction(const Location&, Var sig_var);
   Result OnTable(const Location&, Type elem_type, const Limits&);
-  Result OnMemory(const Location&, const Limits&, uint32_t page_size);
+  Result OnMemory(const Location&, const Limits&);
   Result OnGlobalImport(const Location&, Type type, bool mutable_);
   Result OnGlobal(const Location&, Type type, bool mutable_);
   Result OnTag(const Location&, Var sig_var);
@@ -89,6 +89,9 @@ class SharedValidator {
 
   Result OnElemSegment(const Location&, Var table_var, SegmentKind);
   Result OnElemSegmentElemType(const Location&, Type elem_type);
+  Result OnElemSegmentElemExpr_RefNull(const Location&, Type type);
+  Result OnElemSegmentElemExpr_RefFunc(const Location&, Var func_var);
+  Result OnElemSegmentElemExpr_Other(const Location&);
 
   void OnDataCount(Index count);
   Result OnDataSegment(const Location&, Var memory_var, SegmentKind);
@@ -101,36 +104,12 @@ class SharedValidator {
   Result OnLocalDecl(const Location&, Index count, Type type);
 
   Result OnAtomicFence(const Location&, uint32_t consistency_model);
-  Result OnAtomicLoad(const Location&,
-                      Opcode,
-                      Var memidx,
-                      Address align,
-                      Address offset);
-  Result OnAtomicNotify(const Location&,
-                        Opcode,
-                        Var memidx,
-                        Address align,
-                        Address offset);
-  Result OnAtomicRmwCmpxchg(const Location&,
-                            Opcode,
-                            Var memidx,
-                            Address align,
-                            Address offset);
-  Result OnAtomicRmw(const Location&,
-                     Opcode,
-                     Var memidx,
-                     Address align,
-                     Address offset);
-  Result OnAtomicStore(const Location&,
-                       Opcode,
-                       Var memidx,
-                       Address align,
-                       Address offset);
-  Result OnAtomicWait(const Location&,
-                      Opcode,
-                      Var memidx,
-                      Address align,
-                      Address offset);
+  Result OnAtomicLoad(const Location&, Opcode, Var memidx, Address align);
+  Result OnAtomicNotify(const Location&, Opcode, Var memidx, Address align);
+  Result OnAtomicRmwCmpxchg(const Location&, Opcode, Var memidx, Address align);
+  Result OnAtomicRmw(const Location&, Opcode, Var memidx, Address align);
+  Result OnAtomicStore(const Location&, Opcode, Var memidx, Address align);
+  Result OnAtomicWait(const Location&, Opcode, Var memidx, Address align);
   Result OnBinary(const Location&, Opcode);
   Result OnBlock(const Location&, Type sig_type);
   Result OnBr(const Location&, Var depth);
@@ -154,22 +133,14 @@ class SharedValidator {
   Result OnGlobalGet(const Location&, Var);
   Result OnGlobalSet(const Location&, Var);
   Result OnIf(const Location&, Type sig_type);
-  Result OnLoad(const Location&, Opcode, Var memidx, Address align, Address offset);
-  Result OnLoadSplat(const Location&,
-                     Opcode,
-                     Var memidx,
-                     Address align,
-                     Address offset);
-  Result OnLoadZero(const Location&,
-                    Opcode,
-                    Var memidx,
-                    Address align,
-                    Address offset);
+  Result OnLoad(const Location&, Opcode, Var memidx, Address align);
+  Result OnLoadSplat(const Location&, Opcode, Var memidx, Address align);
+  Result OnLoadZero(const Location&, Opcode, Var memidx, Address align);
   Result OnLocalGet(const Location&, Var);
   Result OnLocalSet(const Location&, Var);
   Result OnLocalTee(const Location&, Var);
   Result OnLoop(const Location&, Type sig_type);
-  Result OnMemoryCopy(const Location&, Var destmemidx, Var srcmemidx);
+  Result OnMemoryCopy(const Location&, Var srcmemidx, Var destmemidx);
   Result OnMemoryFill(const Location&, Var memidx);
   Result OnMemoryGrow(const Location&, Var memidx);
   Result OnMemoryInit(const Location&, Var segment_var, Var memidx);
@@ -188,20 +159,14 @@ class SharedValidator {
                         Opcode,
                         Var memidx,
                         Address align,
-                        Address offset,
                         uint64_t lane_idx);
   Result OnSimdStoreLane(const Location&,
                          Opcode,
                          Var memidx,
                          Address align,
-                         Address offset,
                          uint64_t lane_idx);
   Result OnSimdShuffleOp(const Location&, Opcode, v128 lane_idx);
-  Result OnStore(const Location&,
-                 Opcode,
-                 Var memidx,
-                 Address align,
-                 Address offset);
+  Result OnStore(const Location&, Opcode, Var memidx, Address align);
   Result OnTableCopy(const Location&, Var dst_var, Var src_var);
   Result OnTableFill(const Location&, Var table_var);
   Result OnTableGet(const Location&, Var table_var);
@@ -315,7 +280,6 @@ class SharedValidator {
   Result CheckDataSegmentIndex(Var data_segment_var);
 
   Result CheckAlign(const Location&, Address align, Address natural_align);
-  Result CheckOffset(const Location&, Address offset, const Limits& limits);
   Result CheckAtomicAlign(const Location&,
                           Address align,
                           Address natural_align);

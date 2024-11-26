@@ -64,18 +64,11 @@ void WriteType(Stream* stream, Type type, const char* desc) {
   }
 }
 
-void WriteLimitsFlags(Stream* stream, uint32_t flags) {
-  WriteU32Leb128(stream, flags, "limits: flags");
-}
-
-uint32_t ComputeLimitsFlags(const Limits* limits) {
+void WriteLimits(Stream* stream, const Limits* limits) {
   uint32_t flags = limits->has_max ? WABT_BINARY_LIMITS_HAS_MAX_FLAG : 0;
   flags |= limits->is_shared ? WABT_BINARY_LIMITS_IS_SHARED_FLAG : 0;
   flags |= limits->is_64 ? WABT_BINARY_LIMITS_IS_64_FLAG : 0;
-  return flags;
-}
-
-void WriteLimitsData(Stream* stream, const Limits* limits) {
+  WriteU32Leb128(stream, flags, "limits: flags");
   if (limits->is_64) {
     WriteU64Leb128(stream, limits->initial, "limits: initial");
     if (limits->has_max) {
@@ -701,7 +694,7 @@ void BinaryWriter::WriteLoadStoreExpr(const Func* func,
   } else {
     stream_->WriteU8(log2_u32(align), "alignment");
   }
-  WriteU64Leb128(stream_, typed_expr->offset, desc);
+  WriteU32Leb128(stream_, typed_expr->offset, desc);
 }
 
 template <typename T>
@@ -900,13 +893,13 @@ void BinaryWriter::WriteExpr(const Func* func, const Expr* expr) {
       WriteOpcode(stream_, Opcode::End);
       break;
     case ExprType::MemoryCopy: {
-      Index destmemidx =
-          module_->GetMemoryIndex(cast<MemoryCopyExpr>(expr)->destmemidx);
       Index srcmemidx =
           module_->GetMemoryIndex(cast<MemoryCopyExpr>(expr)->srcmemidx);
+      Index destmemidx =
+          module_->GetMemoryIndex(cast<MemoryCopyExpr>(expr)->destmemidx);
       WriteOpcode(stream_, Opcode::MemoryCopy);
-      WriteU32Leb128(stream_, destmemidx, "memory.copy destmemidx");
       WriteU32Leb128(stream_, srcmemidx, "memory.copy srcmemidx");
+      WriteU32Leb128(stream_, destmemidx, "memory.copy destmemidx");
       break;
     }
     case ExprType::DataDrop: {
@@ -1164,19 +1157,11 @@ void BinaryWriter::WriteFunc(const Func* func) {
 
 void BinaryWriter::WriteTable(const Table* table) {
   WriteType(stream_, table->elem_type);
-  WriteLimitsFlags(stream_, ComputeLimitsFlags(&table->elem_limits));
-  WriteLimitsData(stream_, &table->elem_limits);
+  WriteLimits(stream_, &table->elem_limits);
 }
 
 void BinaryWriter::WriteMemory(const Memory* memory) {
-  uint32_t flags = ComputeLimitsFlags(&memory->page_limits);
-  const bool custom_page_size = memory->page_size != WABT_DEFAULT_PAGE_SIZE;
-  flags |= custom_page_size ? WABT_BINARY_LIMITS_HAS_CUSTOM_PAGE_SIZE_FLAG : 0;
-  WriteLimitsFlags(stream_, flags);
-  WriteLimitsData(stream_, &memory->page_limits);
-  if (custom_page_size) {
-    WriteU32Leb128(stream_, log2_u32(memory->page_size), "memory page size");
-  }
+  WriteLimits(stream_, &memory->page_limits);
 }
 
 void BinaryWriter::WriteGlobalHeader(const Global* global) {
@@ -1212,16 +1197,13 @@ void BinaryWriter::WriteRelocSection(const RelocSection* reloc_section) {
       case RelocType::MemoryAddressRelSLEB64:
       case RelocType::MemoryAddressI32:
       case RelocType::MemoryAddressI64:
-      case RelocType::MemoryAddressLocRelI32:
       case RelocType::FunctionOffsetI32:
-      case RelocType::FunctionOffsetI64:
       case RelocType::SectionOffsetI32:
       case RelocType::MemoryAddressTLSSLEB:
-      case RelocType::MemoryAddressTLSSLEB64:
+      case RelocType::MemoryAddressTLSI32:
         WriteU32Leb128(stream_, reloc.addend, "reloc addend");
         break;
       case RelocType::FuncIndexLEB:
-      case RelocType::FuncIndexI32:
       case RelocType::TableIndexSLEB:
       case RelocType::TableIndexSLEB64:
       case RelocType::TableIndexI32:
@@ -1230,7 +1212,6 @@ void BinaryWriter::WriteRelocSection(const RelocSection* reloc_section) {
       case RelocType::GlobalIndexLEB:
       case RelocType::TagIndexLEB:
       case RelocType::TableIndexRelSLEB:
-      case RelocType::TableIndexRelSLEB64:
       case RelocType::TableNumberLEB:
         break;
       default:
@@ -1686,23 +1667,6 @@ Result BinaryWriter::WriteModule() {
       WriteHeader("data segment data", i);
       stream_->WriteData(segment->data, "data segment data");
     }
-    EndSection();
-  }
-
-  for (const Custom& custom : module_->customs) {
-    // These custom sections are already specially handled by BinaryWriter, so
-    // we don't want to double-write.
-    if ((custom.name == WABT_BINARY_SECTION_NAME &&
-         options_.write_debug_names) ||
-        (custom.name.rfind(WABT_BINARY_SECTION_RELOC) == 0 &&
-         options_.relocatable) ||
-        (custom.name == WABT_BINARY_SECTION_LINKING && options_.relocatable) ||
-        (custom.name.find(WABT_BINARY_SECTION_CODE_METADATA) == 0 &&
-         options_.features.code_metadata_enabled())) {
-      continue;
-    }
-    BeginCustomSection(custom.name.data());
-    stream_->WriteData(custom.data, "custom data");
     EndSection();
   }
 

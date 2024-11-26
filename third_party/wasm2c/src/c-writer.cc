@@ -43,7 +43,6 @@ extern const char* s_header_bottom;
 extern const char* s_source_includes;
 extern const char* s_source_declarations;
 extern const char* s_simd_source_declarations;
-extern const char* s_atomicops_source_declarations;
 
 namespace wabt {
 
@@ -94,23 +93,12 @@ struct GlobalName {
   const std::string& name;
 };
 
-struct TagSymbol : GlobalName {
-  explicit TagSymbol(const std::string& name)
-      : GlobalName(ModuleFieldType::Tag, name) {}
+struct ExternalPtr : GlobalName {
+  using GlobalName::GlobalName;
 };
 
 struct ExternalRef : GlobalName {
   using GlobalName::GlobalName;
-};
-
-struct WrapperRef : GlobalName {
-  explicit WrapperRef(const std::string& name)
-      : GlobalName(ModuleFieldType::Func, name) {}
-};
-
-struct TailCallRef : GlobalName {
-  explicit TailCallRef(const std::string& name)
-      : GlobalName(ModuleFieldType::Func, name) {}
 };
 
 struct ExternalInstancePtr : GlobalName {
@@ -151,6 +139,11 @@ struct TypeEnum {
 struct SignedType {
   explicit SignedType(Type type) : type(type) {}
   Type type;
+};
+
+struct ResultType {
+  explicit ResultType(const TypeVector& types) : types(types) {}
+  const TypeVector& types;
 };
 
 struct TryCatchLabel {
@@ -268,16 +261,14 @@ class CWriter {
 
   static constexpr char MangleType(Type);
   static constexpr char MangleField(ModuleFieldType);
-  static std::string MangleTypes(const TypeVector&);
+  static std::string MangleMultivalueTypes(const TypeVector&);
+  static std::string MangleTagTypes(const TypeVector&);
   static std::string Mangle(std::string_view name, bool double_underscores);
   static std::string MangleName(std::string_view);
   static std::string MangleModuleName(std::string_view);
-  static std::string ExportName(std::string_view module_name,
-                                std::string_view export_name);
-  std::string ExportName(std::string_view export_name) const;
-  static std::string TailCallExportName(std::string_view module_name,
-                                        std::string_view export_name);
-  std::string TailCallExportName(std::string_view export_name) const;
+  std::string ExportName(std::string_view module_name,
+                         std::string_view export_name);
+  std::string ExportName(std::string_view export_name);
   std::string ModuleInstanceTypeName() const;
   static std::string ModuleInstanceTypeName(std::string_view module_name);
   void ClaimName(SymbolSet& set,
@@ -285,8 +276,7 @@ class CWriter {
                  char type_suffix,
                  std::string_view wasm_name,
                  const std::string& c_name);
-  std::string FindUniqueName(SymbolSet& set,
-                             std::string_view proposed_name) const;
+  std::string FindUniqueName(SymbolSet& set, std::string_view proposed_name);
   std::string ClaimUniqueName(SymbolSet& set,
                               SymbolMap& map,
                               char type_suffix,
@@ -309,11 +299,9 @@ class CWriter {
 
   std::string GetGlobalName(ModuleFieldType, const std::string&) const;
   std::string GetLocalName(const std::string&, bool is_label) const;
-  std::string GetTailCallRef(const std::string&) const;
 
   void Indent(int size = INDENT_SIZE);
   void Dedent(int size = INDENT_SIZE);
-  void NonIndented(std::function<void()> func);
   void WriteIndent();
   void WriteData(const char* src, size_t size);
   void Writef(const char* format, ...);
@@ -345,10 +333,8 @@ class CWriter {
   void Write(const ParamName&);
   void Write(const LabelName&);
   void Write(const GlobalName&);
-  void Write(const TagSymbol&);
+  void Write(const ExternalPtr&);
   void Write(const ExternalRef&);
-  void Write(const WrapperRef&);
-  void Write(const TailCallRef&);
   void Write(const ExternalInstancePtr&);
   void Write(const ExternalInstanceRef&);
   void Write(Type);
@@ -358,7 +344,7 @@ class CWriter {
   void Write(const LabelDecl&);
   void Write(const GlobalInstanceVar&);
   void Write(const StackVar&);
-  void Write(const TypeVector&);
+  void Write(const ResultType&);
   void Write(const Const&);
   void WriteInitExpr(const ExprList&);
   void WriteInitExprTerminal(const Expr*);
@@ -366,9 +352,7 @@ class CWriter {
   void WriteSourceTop();
   void WriteMultiCTop();
   void WriteMultiCTopEmpty();
-  void DeclareStruct(const TypeVector&);
-  void WriteTailcalleeParamTypes();
-  void WriteMultivalueResultTypes();
+  void WriteMultivalueTypes();
   void WriteTagTypes();
   void WriteFuncTypeDecls();
   void WriteFuncTypes();
@@ -378,14 +362,11 @@ class CWriter {
   void ComputeUniqueImports();
   void BeginInstance();
   void WriteImports();
-  void WriteTailCallWeakImports();
   void WriteFuncDeclarations();
   void WriteFuncDeclaration(const FuncDeclaration&, const std::string&);
-  void WriteTailCallFuncDeclaration(const std::string&);
   void WriteImportFuncDeclaration(const FuncDeclaration&,
                                   const std::string& module_name,
                                   const std::string&);
-  void WriteFuncRefWrapper(const Func* func);
   void WriteCallIndirectFuncDeclaration(const FuncDeclaration&,
                                         const std::string&);
   void ComputeSimdScope();
@@ -396,8 +377,8 @@ class CWriter {
   void WriteGlobal(const Global&, const std::string&);
   void WriteGlobalPtr(const Global&, const std::string&);
   void WriteMemories();
-  void WriteMemory(const std::string&, const Memory& memory);
-  void WriteMemoryPtr(const std::string&, const Memory& memory);
+  void WriteMemory(const std::string&);
+  void WriteMemoryPtr(const std::string&);
   void WriteTables();
   void WriteTable(const std::string&, const wabt::Type&);
   void WriteTablePtr(const std::string&, const Table&);
@@ -409,13 +390,8 @@ class CWriter {
   void WriteDataInitializers();
   void WriteElemInitializerDecls();
   void WriteElemInitializers();
-  void WriteFuncRefWrappers();
   void WriteElemTableInit(bool, const ElemSegment*, const Table*);
-  bool IsSingleUnsharedMemory();
-  void InstallSegueBase(Memory* memory, bool save_old_value);
-  void RestoreSegueBase();
   void WriteExports(CWriterPhase);
-  void WriteTailCallExports(CWriterPhase);
   void WriteInitDecl();
   void WriteFreeDecl();
   void WriteGetFuncTypeDecl();
@@ -425,32 +401,14 @@ class CWriter {
   void WriteInitInstanceImport();
   void WriteImportProperties(CWriterPhase);
   void WriteFuncs();
-  void BeginFunction(const Func&);
-  void FinishFunction(size_t);
   void Write(const Func&);
-  void WriteTailCallee(const Func&);
   void WriteParamsAndLocals();
-  void WriteParams(const std::vector<std::string>& index_to_name,
-                   bool setjmp_safe = false);
+  void WriteParams(const std::vector<std::string>& index_to_name);
   void WriteParamSymbols(const std::vector<std::string>& index_to_name);
   void WriteParamTypes(const FuncDeclaration& decl);
   void WriteLocals(const std::vector<std::string>& index_to_name);
   void WriteStackVarDeclarations();
   void Write(const ExprList&);
-  void WriteTailCallAsserts(const FuncSignature&);
-  void WriteTailCallStack();
-  void WriteUnwindTryCatchStack(const Label*);
-  void FinishReturnCall();
-  void Spill(const TypeVector&);
-  void Unspill(const TypeVector&);
-
-  template <typename Vars, typename TypeOf, typename ToDo>
-  void WriteVarsByType(const Vars&, const TypeOf&, const ToDo&, bool);
-
-  template <typename sources>
-  void Spill(const TypeVector&, const sources& src);
-  template <typename targets>
-  void Unspill(const TypeVector&, const targets& tgt);
 
   enum class AssignOp {
     Disallowed,
@@ -478,11 +436,6 @@ class CWriter {
   void Write(const LoadZeroExpr&);
   void Write(const Block&);
 
-  void Write(const AtomicLoadExpr& expr);
-  void Write(const AtomicStoreExpr& expr);
-  void Write(const AtomicRmwExpr& expr);
-  void Write(const AtomicRmwCmpxchgExpr& expr);
-
   size_t BeginTry(const TryExpr& tryexpr);
   void WriteTryCatch(const TryExpr& tryexpr);
   void WriteTryDelegate(const TryExpr& tryexpr);
@@ -493,8 +446,6 @@ class CWriter {
   void PopTryCatch();
 
   void PushFuncSection(std::string_view include_condition = "");
-
-  bool IsImport(const std::string& name) const;
 
   const WriteCOptions& options_;
   const Module* module_ = nullptr;
@@ -516,11 +467,11 @@ class CWriter {
   StackVarSymbolMap stack_var_sym_map_;
   SymbolSet global_syms_;
   SymbolSet local_syms_;
+  SymbolSet import_syms_;
   TypeVector type_stack_;
   std::vector<Label> label_stack_;
   std::vector<TryCatchLabel> try_catch_stack_;
   std::string module_prefix_;
-  SymbolSet typevector_structs_;
 
   std::vector<const Import*> unique_imports_;
   SymbolSet import_module_set_;       // modules that are imported from
@@ -538,8 +489,6 @@ class CWriter {
       name_to_output_file_index_;
 
   bool simd_used_in_header_;
-
-  bool in_tail_callee_;
 };
 
 // TODO: if WABT begins supporting debug names for labels,
@@ -553,12 +502,8 @@ static constexpr char kParamSuffix =
 static constexpr char kLabelSuffix = kParamSuffix + 1;
 
 static constexpr char kGlobalSymbolPrefix[] = "w2c_";
-static constexpr char kWrapperSymbolPrefix[] = "wrap_";
 static constexpr char kLocalSymbolPrefix[] = "var_";
 static constexpr char kAdminSymbolPrefix[] = "wasm2c_";
-static constexpr char kTailCallSymbolPrefix[] = "wasm_tailcall_";
-static constexpr char kTailCallFallbackPrefix[] = "wasm_fallback_";
-static constexpr unsigned int kTailCallStackSize = 1024;
 
 size_t CWriter::MarkTypeStack() const {
   return type_stack_.size();
@@ -676,7 +621,7 @@ static std::string SanitizeForComment(std::string_view str) {
 }
 
 // static
-std::string CWriter::MangleTypes(const TypeVector& types) {
+std::string CWriter::MangleMultivalueTypes(const TypeVector& types) {
   assert(types.size() >= 2);
   std::string result = "wasm_multi_";
   for (auto type : types) {
@@ -685,8 +630,18 @@ std::string CWriter::MangleTypes(const TypeVector& types) {
   return result;
 }
 
+// static
+std::string CWriter::MangleTagTypes(const TypeVector& types) {
+  assert(types.size() >= 2);
+  std::string result = "wasm_tag_";
+  for (auto type : types) {
+    result += MangleType(type);
+  }
+  return result;
+}
+
 /* The C symbol for an export from this module. */
-std::string CWriter::ExportName(std::string_view export_name) const {
+std::string CWriter::ExportName(std::string_view export_name) {
   return kGlobalSymbolPrefix + module_prefix_ + '_' + MangleName(export_name);
 }
 
@@ -696,18 +651,6 @@ std::string CWriter::ExportName(std::string_view module_name,
                                 std::string_view export_name) {
   return kGlobalSymbolPrefix + MangleModuleName(module_name) + '_' +
          MangleName(export_name);
-}
-
-/* The C symbol for a tail-callee export from this module. */
-std::string CWriter::TailCallExportName(std::string_view export_name) const {
-  return kTailCallSymbolPrefix + ExportName(export_name);
-}
-
-/* The C symbol for a tail-callee export from an arbitrary module. */
-// static
-std::string CWriter::TailCallExportName(std::string_view module_name,
-                                        std::string_view export_name) {
-  return kTailCallSymbolPrefix + ExportName(module_name, export_name);
 }
 
 /* The type name of an instance of this module. */
@@ -867,7 +810,7 @@ void CWriter::ClaimName(SymbolSet& set,
  * an integer to the symbol if necessary.
  */
 std::string CWriter::FindUniqueName(SymbolSet& set,
-                                    std::string_view proposed_name) const {
+                                    std::string_view proposed_name) {
   std::string unique{proposed_name};
   if (set.find(unique) != set.end()) {
     std::string base = unique + "_";
@@ -929,6 +872,7 @@ void CWriter::DefineImportName(const Import* import,
       break;
   }
 
+  import_syms_.insert(name);
   import_module_sym_map_.emplace(name, import->module_name);
 
   const std::string mangled = ExportName(module, field_name);
@@ -980,10 +924,6 @@ std::string CWriter::GetLocalName(const std::string& name,
   return local_sym_map_.at(mangled);
 }
 
-std::string CWriter::GetTailCallRef(const std::string& name) const {
-  return kTailCallSymbolPrefix + GetGlobalName(ModuleFieldType::Func, name);
-}
-
 std::string CWriter::DefineParamName(std::string_view name) {
   return DefineLocalScopeName(name, false);
 }
@@ -1033,13 +973,6 @@ void CWriter::Indent(int size) {
 void CWriter::Dedent(int size) {
   indent_ -= size;
   assert(indent_ >= 0);
-}
-
-void CWriter::NonIndented(std::function<void()> func) {
-  int copy = indent_;
-  indent_ = 0;
-  func();
-  indent_ = copy;
 }
 
 void CWriter::WriteIndent() {
@@ -1113,38 +1046,34 @@ void CWriter::Write(const GlobalName& name) {
   Write(GetGlobalName(name.type, name.name));
 }
 
-void CWriter::Write(const TagSymbol& name) {
-  if (!IsImport(name.name)) {
+void CWriter::Write(const ExternalPtr& name) {
+  bool is_import = import_syms_.count(name.name) != 0;
+  if (!is_import) {
     Write("&");
   }
   Write(GlobalName(name));
 }
 
 void CWriter::Write(const ExternalInstancePtr& name) {
-  if (!IsImport(name.name)) {
+  bool is_import = import_syms_.count(name.name) != 0;
+  if (!is_import) {
     Write("&");
   }
   Write("instance->", GlobalName(name));
 }
 
 void CWriter::Write(const ExternalRef& name) {
-  if (name.type == ModuleFieldType::Func || !IsImport(name.name)) {
-    Write(GlobalName(name));
-  } else {
+  bool is_import = import_syms_.count(name.name) != 0;
+  if (is_import) {
     Write("(*", GlobalName(name), ")");
+  } else {
+    Write(GlobalName(name));
   }
 }
 
-void CWriter::Write(const WrapperRef& name) {
-  Write(kWrapperSymbolPrefix, GlobalName(name));
-}
-
-void CWriter::Write(const TailCallRef& name) {
-  Write(GetTailCallRef(name.name));
-}
-
 void CWriter::Write(const ExternalInstanceRef& name) {
-  if (IsImport(name.name)) {
+  bool is_import = import_syms_.count(name.name) != 0;
+  if (is_import) {
     Write("(*instance->", GlobalName(name), ")");
   } else {
     Write("instance->", GlobalName(name));
@@ -1167,7 +1096,14 @@ void CWriter::Write(const GotoLabel& goto_label) {
     }
   }
 
-  WriteUnwindTryCatchStack(label);
+  assert(try_catch_stack_.size() >= label->try_catch_stack_size);
+
+  if (try_catch_stack_.size() != label->try_catch_stack_size) {
+    const std::string& name =
+        try_catch_stack_.at(label->try_catch_stack_size).name;
+
+    Write("wasm_rt_set_unwind_target(", name, "_outer_target);", Newline());
+  }
 
   if (goto_label.var.is_name()) {
     Write("goto ", LabelName(goto_label.var.name()), ";");
@@ -1255,13 +1191,13 @@ void CWriter::Write(SignedType type) {
   // clang-format on
 }
 
-void CWriter::Write(const TypeVector& types) {
-  if (types.empty()) {
+void CWriter::Write(const ResultType& rt) {
+  if (rt.types.empty()) {
     Write("void");
-  } else if (types.size() == 1) {
-    Write(types[0]);
+  } else if (rt.types.size() == 1) {
+    Write(rt.types[0]);
   } else {
-    Write("struct ", MangleTypes(types));
+    Write("struct ", MangleMultivalueTypes(rt.types));
   }
 }
 
@@ -1317,24 +1253,14 @@ void CWriter::Write(const Const& const_) {
         // Negative zero. Special-cased so it isn't written as -0 below.
         Writef("-0.0");
       } else {
-        char buf[128];
-        snprintf(buf, sizeof(buf), "%.17g", Bitcast<double>(f64_bits));
-        // Append .0 if sprint didn't include a decimal point or use the
-        // exponent ('e') form.  This is a workaround for an MSVC parsing
-        // issue: https://github.com/WebAssembly/wabt/issues/2422
-        if (!strchr(buf, '.') && !strchr(buf, 'e')) {
-          strcat(buf, ".0");
-        }
-        Writef("%s", buf);
+        Writef("%.17g", Bitcast<double>(f64_bits));
       }
       break;
     }
     case Type::V128: {
-      Writef("v128_const(0x%02x", const_.vec128().u8(0));
-      for (int i = 1; i < 16; i++) {
-        Writef(", 0x%02x", const_.vec128().u8(i));
-      }
-      Write(")");
+      Writef("simde_wasm_i32x4_const(0x%08x, 0x%08x, 0x%08x, 0x%08x)",
+             const_.vec128().u32(0), const_.vec128().u32(1),
+             const_.vec128().u32(2), const_.vec128().u32(3));
       break;
     }
 
@@ -1361,15 +1287,6 @@ void CWriter::WriteGetFuncTypeDecl() {
   Write("wasm_rt_func_type_t ", kAdminSymbolPrefix, module_prefix_,
         "_get_func_type(uint32_t param_count, uint32_t result_count, ...);",
         Newline());
-}
-
-static std::string GetMemoryTypeString(const Memory& memory) {
-  return memory.page_limits.is_shared ? "wasm_rt_shared_memory_t"
-                                      : "wasm_rt_memory_t";
-}
-
-static std::string GetMemoryAPIString(const Memory& memory, std::string api) {
-  return memory.page_limits.is_shared ? (api + "_shared") : api;
 }
 
 void CWriter::WriteInitExpr(const ExprList& expr_list) {
@@ -1460,22 +1377,18 @@ void CWriter::WriteInitExprTerminal(const Expr* expr) {
       const FuncType* func_type = module_->GetFuncType(decl.type_var);
 
       Write("(wasm_rt_funcref_t){", FuncTypeExpr(func_type), ", ",
-            "(wasm_rt_function_ptr_t)", WrapperRef(func->name), ", {");
-      if (options_.features.tail_call_enabled() &&
-          (IsImport(func->name) || func->features_used.tailcall)) {
-        Write(TailCallRef(func->name));
-      } else {
-        Write("NULL");
-      }
-      Write("}, ");
+            "(wasm_rt_function_ptr_t)",
+            ExternalPtr(ModuleFieldType::Func, func->name), ", ");
 
-      if (IsImport(func->name)) {
+      bool is_import = import_module_sym_map_.count(func->name) != 0;
+      if (is_import) {
         Write("instance->", GlobalName(ModuleFieldType::Import,
                                        import_module_sym_map_[func->name]));
       } else {
         Write("instance");
       }
-      Write("}");
+
+      Write("};", Newline());
     } break;
 
     case ExprType::RefNull:
@@ -1503,11 +1416,6 @@ std::string CWriter::GenerateHeaderGuard() const {
 void CWriter::WriteSourceTop() {
   Write(s_source_includes);
   Write(Newline(), "#include \"", header_name_, "\"", Newline());
-
-  if (IsSingleUnsharedMemory()) {
-    Write("#define IS_SINGLE_UNSHARED_MEMORY 1", Newline());
-  }
-
   Write(s_source_declarations, Newline());
 
   if (module_->features_used.simd) {
@@ -1515,10 +1423,6 @@ void CWriter::WriteSourceTop() {
       WriteV128Decl();
     }
     Write(s_simd_source_declarations);
-  }
-
-  if (module_->features_used.threads) {
-    Write(s_atomicops_source_declarations);
   }
 }
 
@@ -1540,54 +1444,26 @@ void CWriter::WriteMultiCTopEmpty() {
   }
 }
 
-void CWriter::DeclareStruct(const TypeVector& types) {
-  const std::string name = MangleTypes(types);
-  if (!typevector_structs_.insert(name).second) {
-    return;
-  }
-
-  Write(Newline(), "#ifndef ", name, Newline());
-  Write("#define ", name, " ", name, Newline());
-  Write("struct ", name, " ", OpenBrace());
-  for (Index i = 0; i < types.size(); ++i) {
-    const Type type = types[i];
-    Write(type);
-    Writef(" %c%d;", MangleType(type), i);
-    Write(Newline());
-  }
-  Write(CloseBrace(), ";", Newline(), "#endif  /* ", name, " */", Newline());
-}
-
-void CWriter::WriteTailcalleeParamTypes() {
-  // A structure for the spilled parameters of a tail-callee is needed in
-  // three cases: for a function that makes a tail-call (and therefore
-  // will have a tail-callee version generated), for any imported function
-  // (for which wasm2c generates a weak import that presents the tail-callee
-  // interface, in case the exporting module doesn't generate one itself), and
-  // for any type entry referenced in a return_call_indirect instruction.
-
-  for (const Func* func : module_->funcs) {
-    if (IsImport(func->name) || func->features_used.tailcall) {
-      if (func->decl.sig.GetNumParams() > 1) {
-        DeclareStruct(func->decl.sig.param_types);
-      }
-    }
-  }
-
+void CWriter::WriteMultivalueTypes() {
   for (TypeEntry* type : module_->types) {
     FuncType* func_type = cast<FuncType>(type);
-    if (func_type->GetNumParams() > 1 && func_type->features_used.tailcall) {
-      DeclareStruct(func_type->sig.param_types);
+    Index num_results = func_type->GetNumResults();
+    if (num_results <= 1) {
+      continue;
     }
-  }
-}
-
-void CWriter::WriteMultivalueResultTypes() {
-  for (TypeEntry* type : module_->types) {
-    FuncType* func_type = cast<FuncType>(type);
-    if (func_type->GetNumResults() > 1) {
-      DeclareStruct(func_type->sig.result_types);
+    std::string name = MangleMultivalueTypes(func_type->sig.result_types);
+    // these ifndefs are actually to support importing multiple modules
+    // incidentally they also mean we don't have to bother with deduplication
+    Write("#ifndef ", name, Newline());
+    Write("#define ", name, " ", name, Newline());
+    Write("struct ", name, " ", OpenBrace());
+    for (Index i = 0; i < num_results; ++i) {
+      Type type = func_type->GetResultType(i);
+      Write(type);
+      Writef(" %c%d;", MangleType(type), i);
+      Write(Newline());
     }
+    Write(CloseBrace(), ";", Newline(), "#endif  /* ", name, " */", Newline());
   }
 }
 
@@ -1598,7 +1474,18 @@ void CWriter::WriteTagTypes() {
     if (num_params <= 1) {
       continue;
     }
-    DeclareStruct(tag_type.sig.param_types);
+    const std::string name = MangleTagTypes(tag_type.sig.param_types);
+    // use same method as WriteMultivalueTypes
+    Write("#ifndef ", name, Newline());
+    Write("#define ", name, " ", name, Newline());
+    Write("struct ", name, " ", OpenBrace());
+    for (Index i = 0; i < num_params; ++i) {
+      Type type = tag_type.GetParamType(i);
+      Write(type);
+      Writef(" %c%d;", MangleType(type), i);
+      Write(Newline());
+    }
+    Write(CloseBrace(), ";", Newline(), "#endif  /* ", name, " */", Newline());
   }
 }
 
@@ -1681,7 +1568,7 @@ void CWriter::SerializeFuncType(const FuncType& func_type,
     *next_byte++ = MangleType(func_type.GetResultType(i));
   }
 
-  assert(next_byte - mangled_signature == static_cast<ptrdiff_t>(len));
+  assert(next_byte - mangled_signature == len);
 
   // step 4: SHA-256 the whole string
   sha256({mangled_signature, len}, serialized_type);
@@ -1784,7 +1671,7 @@ void CWriter::BeginInstance() {
       }
 
       case ExternalKind::Memory: {
-        Write(GetMemoryTypeString(cast<MemoryImport>(import)->memory));
+        Write("wasm_rt_memory_t");
         break;
       }
 
@@ -1827,8 +1714,7 @@ void CWriter::BeginInstance() {
 
       case ExternalKind::Memory:
         WriteMemory(std::string("*") +
-                        ExportName(import->module_name, import->field_name),
-                    cast<MemoryImport>(import)->memory);
+                    ExportName(import->module_name, import->field_name));
         break;
 
       case ExternalKind::Table: {
@@ -1861,11 +1747,8 @@ void CWriter::WriteImports() {
       WriteImportFuncDeclaration(
           func.decl, import->module_name,
           ExportName(import->module_name, import->field_name));
-      Write(";", Newline());
-      if (options_.features.tail_call_enabled()) {
-        WriteTailCallFuncDeclaration(GetTailCallRef(func.name));
-        Write(";", Newline());
-      }
+      Write(";");
+      Write(Newline());
     } else if (import->kind() == ExternalKind::Tag) {
       Write(Newline(), "/* import: '", SanitizeForComment(import->module_name),
             "' '", SanitizeForComment(import->field_name), "' */", Newline());
@@ -1873,55 +1756,6 @@ void CWriter::WriteImports() {
             ExportName(import->module_name, import->field_name), ";",
             Newline());
     }
-  }
-}
-
-void CWriter::WriteTailCallWeakImports() {
-  for (const Import* import : unique_imports_) {
-    if (import->kind() != ExternalKind::Func) {
-      continue;
-    }
-    const Func& func = cast<FuncImport>(import)->func;
-    Write(Newline(), "/* handler for missing tail-call on import: '",
-          SanitizeForComment(import->module_name), "' '",
-          SanitizeForComment(import->field_name), "' */", Newline());
-    Write("WEAK_FUNC_DECL(",
-          TailCallExportName(import->module_name, import->field_name), ", ",
-          kTailCallFallbackPrefix, module_prefix_, "_",
-          ExportName(import->module_name, import->field_name), ")", Newline());
-    Write(OpenBrace(), "next->fn = NULL;", Newline());
-
-    Index num_params = func.GetNumParams();
-    Index num_results = func.GetNumResults();
-    if (num_params >= 1) {
-      Write(func.decl.sig.param_types, " params;", Newline());
-      Write("wasm_rt_memcpy(params, tail_call_stack, sizeof(params));",
-            Newline());
-    }
-
-    if (num_results >= 1) {
-      Write(func.decl.sig.result_types, " result = ");
-    }
-
-    Write(ExportName(import->module_name, import->field_name),
-          "(*instance_ptr");
-
-    if (num_params == 1) {
-      Write(", params");
-    } else {
-      for (Index i = 0; i < num_params; ++i) {
-        Writef(", params.%c%d", MangleType(func.GetParamType(i)), i);
-      }
-    }
-
-    Write(");", Newline());
-
-    if (num_results >= 1) {
-      Write("wasm_rt_memcpy(tail_call_stack, &result, sizeof(result));",
-            Newline());
-    }
-
-    Write(CloseBrace(), Newline());
   }
 }
 
@@ -1939,12 +1773,6 @@ void CWriter::WriteFuncDeclarations() {
       WriteFuncDeclaration(
           func->decl, DefineGlobalScopeName(ModuleFieldType::Func, func->name));
       Write(";", Newline());
-
-      if (func->features_used.tailcall) {
-        Write(InternalSymbolScope());
-        WriteTailCallFuncDeclaration(GetTailCallRef(func->name));
-        Write(";", Newline());
-      }
     }
     ++func_index;
   }
@@ -1952,22 +1780,16 @@ void CWriter::WriteFuncDeclarations() {
 
 void CWriter::WriteFuncDeclaration(const FuncDeclaration& decl,
                                    const std::string& name) {
-  Write(decl.sig.result_types, " ", name, "(");
+  Write(ResultType(decl.sig.result_types), " ", name, "(");
   Write(ModuleInstanceTypeName(), "*");
   WriteParamTypes(decl);
   Write(")");
 }
 
-void CWriter::WriteTailCallFuncDeclaration(const std::string& mangled_name) {
-  Write("void ", mangled_name,
-        "(void **instance_ptr, void *tail_call_stack, wasm_rt_tailcallee_t "
-        "*next)");
-}
-
 void CWriter::WriteImportFuncDeclaration(const FuncDeclaration& decl,
                                          const std::string& module_name,
                                          const std::string& name) {
-  Write(decl.sig.result_types, " ", name, "(");
+  Write(ResultType(decl.sig.result_types), " ", name, "(");
   Write("struct ", ModuleInstanceTypeName(module_name), "*");
   WriteParamTypes(decl);
   Write(")");
@@ -1975,7 +1797,7 @@ void CWriter::WriteImportFuncDeclaration(const FuncDeclaration& decl,
 
 void CWriter::WriteCallIndirectFuncDeclaration(const FuncDeclaration& decl,
                                                const std::string& name) {
-  Write(decl.sig.result_types, " ", name, "(void*");
+  Write(ResultType(decl.sig.result_types), " ", name, "(void*");
   WriteParamTypes(decl);
   Write(")");
 }
@@ -2076,20 +1898,19 @@ void CWriter::WriteMemories() {
     bool is_import = memory_index < module_->num_memory_imports;
     if (!is_import) {
       WriteMemory(
-          DefineInstanceMemberName(ModuleFieldType::Memory, memory->name),
-          *memory);
+          DefineInstanceMemberName(ModuleFieldType::Memory, memory->name));
       Write(Newline());
     }
     ++memory_index;
   }
 }
 
-void CWriter::WriteMemory(const std::string& name, const Memory& memory) {
-  Write(GetMemoryTypeString(memory), " ", name, ";");
+void CWriter::WriteMemory(const std::string& name) {
+  Write("wasm_rt_memory_t ", name, ";");
 }
 
-void CWriter::WriteMemoryPtr(const std::string& name, const Memory& memory) {
-  Write(GetMemoryTypeString(memory), "* ", name, "(", ModuleInstanceTypeName(),
+void CWriter::WriteMemoryPtr(const std::string& name) {
+  Write("wasm_rt_memory_t* ", name, "(", ModuleInstanceTypeName(),
         "* instance)");
 }
 
@@ -2219,8 +2040,7 @@ void CWriter::WriteDataInitializers() {
         max = memory->page_limits.is_64 ? (static_cast<uint64_t>(1) << 48)
                                         : 65536;
       }
-      std::string func = GetMemoryAPIString(*memory, "wasm_rt_allocate_memory");
-      Write(func, "(",
+      Write("wasm_rt_allocate_memory(",
             ExternalInstancePtr(ModuleFieldType::Memory, memory->name), ", ",
             memory->page_limits.initial, ", ", max, ", ",
             memory->page_limits.is_64, ");", Newline());
@@ -2299,53 +2119,6 @@ void CWriter::WriteElemInitializerDecls() {
   }
 }
 
-void CWriter::WriteFuncRefWrapper(const Func* func) {
-  Write("static ", func->decl.sig.result_types, " ", WrapperRef(func->name));
-  Write("(void *instance");
-  if (func->GetNumParams() != 0) {
-    Indent(4);
-    for (Index i = 0; i < func->GetNumParams(); ++i) {
-      Write(", ");
-      if (i != 0 && (i % 8) == 0) {
-        Write(Newline());
-      }
-      Write(func->GetParamType(i), " ", kLocalSymbolPrefix);
-      Writef("%d", i);
-    }
-    Dedent(4);
-  }
-  Write(") ", OpenBrace());
-  Write("return ");
-  Write(ExternalRef(ModuleFieldType::Func, func->name));
-  Write("(instance");
-  if (func->GetNumParams() != 0) {
-    Indent(4);
-    for (Index i = 0; i < func->GetNumParams(); ++i) {
-      Write(", ");
-      if (i != 0 && (i % 8) == 0) {
-        Write(Newline());
-      }
-      Write(kLocalSymbolPrefix);
-      Writef("%d", i);
-    }
-    Dedent(4);
-  }
-  Write(");", Newline(), CloseBrace(), Newline());
-}
-
-void CWriter::WriteFuncRefWrappers() {
-  std::set<std::string> unique_func_wrappers;
-
-  for (Index index : module_->used_func_refs) {
-    assert(index < module_->funcs.size());
-    const Func* func = module_->funcs[index];
-    if (unique_func_wrappers.count(func->name) == 0) {
-      WriteFuncRefWrapper(func);
-      unique_func_wrappers.insert(func->name);
-    }
-  }
-}
-
 void CWriter::WriteElemInitializers() {
   if (module_->tables.empty()) {
     return;
@@ -2374,17 +2147,10 @@ void CWriter::WriteElemInitializers() {
         case ExprType::RefFunc: {
           const Func* func = module_->GetFunc(cast<RefFuncExpr>(&expr)->var);
           const FuncType* func_type = module_->GetFuncType(func->decl.type_var);
-          Write("{RefFunc, ", FuncTypeExpr(func_type),
-                ", (wasm_rt_function_ptr_t)", WrapperRef(func->name), ", {");
-          if (options_.features.tail_call_enabled() &&
-              (IsImport(func->name) || func->features_used.tailcall)) {
-            Write(TailCallRef(func->name));
-          } else {
-            Write("NULL");
-          }
-          Write("}, ");
-
-          if (IsImport(func->name)) {
+          Write("{", FuncTypeExpr(func_type), ", (wasm_rt_function_ptr_t)",
+                ExternalPtr(ModuleFieldType::Func, func->name), ", ");
+          const bool is_import = import_module_sym_map_.count(func->name) != 0;
+          if (is_import) {
             Write("offsetof(", ModuleInstanceTypeName(), ", ",
                   GlobalName(ModuleFieldType::Import,
                              import_module_sym_map_[func->name]),
@@ -2395,17 +2161,8 @@ void CWriter::WriteElemInitializers() {
           Write("},", Newline());
         } break;
         case ExprType::RefNull:
-          Write("{RefNull, NULL, NULL, {NULL}, 0},", Newline());
+          Write("{NULL, NULL, 0},", Newline());
           break;
-        case ExprType::GlobalGet: {
-          const Global* global =
-              module_->GetGlobal(cast<GlobalGetExpr>(&expr)->var);
-          assert(IsImport(global->name));
-          Write("{GlobalGet, NULL, NULL, {NULL}, offsetof(",
-                ModuleInstanceTypeName(), ", ",
-                GlobalName(ModuleFieldType::Global, global->name), ")},",
-                Newline());
-        } break;
         default:
           WABT_UNREACHABLE;
       }
@@ -2500,35 +2257,6 @@ void CWriter::WriteElemTableInit(bool active_initialization,
   Write(");", Newline());
 }
 
-bool CWriter::IsSingleUnsharedMemory() {
-  return module_->memories.size() == 1 &&
-         !module_->memories[0]->page_limits.is_shared;
-}
-
-void CWriter::InstallSegueBase(Memory* memory, bool save_old_value) {
-  NonIndented(
-      [&] { Write("#if WASM_RT_USE_SEGUE_FOR_THIS_MODULE", Newline()); });
-  if (save_old_value) {
-    NonIndented([&] { Write("#if !WASM_RT_SEGUE_FREE_SEGMENT", Newline()); });
-    Write("void* segue_saved_base = wasm_rt_segue_read_base();", Newline());
-    NonIndented([&] { Write("#endif", Newline()); });
-  }
-  auto primary_memory =
-      ExternalInstanceRef(ModuleFieldType::Memory, memory->name);
-  Write("wasm_rt_segue_write_base(", primary_memory, ".data);", Newline());
-  NonIndented([&] { Write("#endif", Newline()); });
-}
-
-void CWriter::RestoreSegueBase() {
-  NonIndented([&] {
-    Write(
-        "#if WASM_RT_USE_SEGUE_FOR_THIS_MODULE && !WASM_RT_SEGUE_FREE_SEGMENT",
-        Newline());
-  });
-  Write("wasm_rt_segue_write_base(segue_saved_base);", Newline());
-  NonIndented([&] { Write("#endif", Newline()); });
-}
-
 void CWriter::WriteExports(CWriterPhase kind) {
   if (module_->exports.empty())
     return;
@@ -2552,7 +2280,8 @@ void CWriter::WriteExports(CWriterPhase kind) {
           local_syms_ = global_syms_;
           local_sym_map_.clear();
           stack_var_sym_map_.clear();
-          Write(func_->decl.sig.result_types, " ", mangled_name, "(");
+          Write(ResultType(func_->decl.sig.result_types), " ", mangled_name,
+                "(");
           MakeTypeBindingReverseMapping(func_->GetNumParamsAndLocals(),
                                         func_->bindings, &index_to_name);
           WriteParams(index_to_name);
@@ -2570,7 +2299,7 @@ void CWriter::WriteExports(CWriterPhase kind) {
       case ExternalKind::Memory: {
         const Memory* memory = module_->GetMemory(export_->var);
         internal_name = memory->name;
-        WriteMemoryPtr(mangled_name, *memory);
+        WriteMemoryPtr(mangled_name);
         break;
       }
 
@@ -2604,18 +2333,11 @@ void CWriter::WriteExports(CWriterPhase kind) {
     switch (export_->kind) {
       case ExternalKind::Func: {
         Write(OpenBrace());
-        if (IsSingleUnsharedMemory()) {
-          InstallSegueBase(module_->memories[0], true /* save_old_value */);
-        }
-        auto num_results = func_->GetNumResults();
-        if (num_results > 1) {
-          Write(func_->decl.sig.result_types, " ret = ");
-        } else if (num_results == 1) {
-          Write(func_->GetResultType(0), " ret = ");
-        }
-        Write(ExternalRef(ModuleFieldType::Func, internal_name), "(");
+        Write("return ", ExternalRef(ModuleFieldType::Func, internal_name),
+              "(");
 
-        if (IsImport(internal_name)) {
+        bool is_import = import_module_sym_map_.count(internal_name) != 0;
+        if (is_import) {
           Write("instance->",
                 GlobalName(ModuleFieldType::Import,
                            import_module_sym_map_[internal_name]));
@@ -2623,12 +2345,6 @@ void CWriter::WriteExports(CWriterPhase kind) {
           Write("instance");
         }
         WriteParamSymbols(index_to_name);
-        if (IsSingleUnsharedMemory()) {
-          RestoreSegueBase();
-        }
-        if (num_results > 0) {
-          Write("return ret;", Newline());
-        }
         Write(CloseBrace(), Newline());
 
         local_sym_map_.clear();
@@ -2662,40 +2378,12 @@ void CWriter::WriteExports(CWriterPhase kind) {
         break;
 
       case ExternalKind::Tag:
-        Write("= ", TagSymbol(internal_name), ";", Newline());
+        Write("= ", ExternalPtr(ModuleFieldType::Tag, internal_name), ";",
+              Newline());
         break;
 
       default:
         WABT_UNREACHABLE;
-    }
-  }
-}
-
-void CWriter::WriteTailCallExports(CWriterPhase kind) {
-  for (const Export* export_ : module_->exports) {
-    if (export_->kind != ExternalKind::Func) {
-      continue;
-    }
-
-    const Func* func = module_->GetFunc(export_->var);
-
-    if (!IsImport(func->name) && !func->features_used.tailcall) {
-      continue;
-    }
-
-    const std::string mangled_name = TailCallExportName(export_->name);
-
-    Write(Newline(), "/* export for tail-call of '",
-          SanitizeForComment(export_->name), "' */", Newline());
-    if (kind == CWriterPhase::Declarations) {
-      WriteTailCallFuncDeclaration(mangled_name);
-      Write(";", Newline());
-    } else {
-      WriteTailCallFuncDeclaration(mangled_name);
-      Write(" ", OpenBrace());
-      const Func* func = module_->GetFunc(export_->var);
-      Write(TailCallRef(func->name), "(instance_ptr, tail_call_stack, next);",
-            Newline(), CloseBrace(), Newline());
     }
   }
 }
@@ -2727,9 +2415,6 @@ void CWriter::WriteInit() {
   }
   if (!module_->memories.empty()) {
     Write("init_memories(instance);", Newline());
-    if (IsSingleUnsharedMemory()) {
-      InstallSegueBase(module_->memories[0], true /* save_old_value */);
-    }
   }
   if (!module_->tables.empty() && !module_->elem_segments.empty()) {
     Write("init_elem_instances(instance);", Newline());
@@ -2740,7 +2425,9 @@ void CWriter::WriteInit() {
 
   for (Var* var : module_->starts) {
     Write(ExternalRef(ModuleFieldType::Func, module_->GetFunc(*var)->name));
-    if (IsImport(module_->GetFunc(*var)->name)) {
+    bool is_import =
+        import_module_sym_map_.count(module_->GetFunc(*var)->name) != 0;
+    if (is_import) {
       Write("(instance->",
             GlobalName(ModuleFieldType::Import,
                        import_module_sym_map_[module_->GetFunc(*var)->name]),
@@ -2749,10 +2436,6 @@ void CWriter::WriteInit() {
       Write("(instance);");
     }
     Write(Newline());
-  }
-
-  if (IsSingleUnsharedMemory()) {
-    RestoreSegueBase();
   }
   Write(CloseBrace(), Newline());
 }
@@ -2801,7 +2484,7 @@ void CWriter::WriteInitInstanceImport() {
     Write(", struct ", ModuleInstanceTypeName(import_module_name), "* ",
           GlobalName(ModuleFieldType::Import, import_module_name));
   }
-  Write(") ", OpenBrace());
+  Write(")", OpenBrace());
 
   for (const auto& import_module : import_func_module_set_) {
     Write("instance->", GlobalName(ModuleFieldType::Import, import_module),
@@ -2899,8 +2582,7 @@ void CWriter::WriteFree() {
     for (const Memory* memory : module_->memories) {
       bool is_import = memory_index < module_->num_memory_imports;
       if (!is_import) {
-        std::string func = GetMemoryAPIString(*memory, "wasm_rt_free_memory");
-        Write(func, "(",
+        Write("wasm_rt_free_memory(",
               ExternalInstancePtr(ModuleFieldType::Memory, memory->name), ");",
               Newline());
       }
@@ -2921,9 +2603,6 @@ void CWriter::WriteFuncs() {
     if (!is_import) {
       stream_ = c_streams_.at(c_stream_assignment.at(func_index));
       Write(*func);
-      if (func->features_used.tailcall) {
-        WriteTailCallee(*func);
-      }
     }
     ++func_index;
   }
@@ -2934,108 +2613,15 @@ void CWriter::PushFuncSection(std::string_view include_condition) {
   stream_ = &func_sections_.back().second;
 }
 
-bool CWriter::IsImport(const std::string& name) const {
-  return import_module_sym_map_.count(name);
-}
-
-template <typename sources>
-void CWriter::Spill(const TypeVector& types, const sources& src) {
-  assert(types.size() > 0);
-
-  if (types.size() == 1) {
-    Write("tmp = ", src(0), ";", Newline());
-    return;
-  }
-
-  for (Index i = 0; i < types.size(); ++i) {
-    Writef("tmp.%c%d = ", MangleType(types.at(i)), i);
-    Write(src(i), ";", Newline());
-  }
-}
-
-void CWriter::Spill(const TypeVector& types) {
-  Spill(types, [&](auto i) { return StackVar(types.size() - i - 1); });
-}
-
-template <typename targets>
-void CWriter::Unspill(const TypeVector& types, const targets& tgt) {
-  assert(types.size() > 0);
-
-  if (types.size() == 1) {
-    Write(tgt(0), " = tmp;", Newline());
-    return;
-  }
-
-  for (Index i = 0; i < types.size(); ++i) {
-    Write(tgt(i));
-    Writef(" = tmp.%c%d;", MangleType(types.at(i)), i);
-    Write(Newline());
-  }
-}
-
-void CWriter::Unspill(const TypeVector& types) {
-  Unspill(types, [&](auto i) { return StackVar(types.size() - i - 1); });
-}
-
-void CWriter::WriteTailCallAsserts(const FuncSignature& sig) {
-  if (sig.param_types.size()) {
-    Write("static_assert(sizeof(", sig.param_types, ") <= ", kTailCallStackSize,
-          ");", Newline());
-  }
-  if (sig.result_types.size() && sig.result_types != sig.param_types) {
-    Write("static_assert(sizeof(", sig.result_types,
-          ") <= ", kTailCallStackSize, ");", Newline());
-  }
-}
-
-void CWriter::WriteTailCallStack() {
-  Write("void *instance_ptr_storage;", Newline());
-  Write("void **instance_ptr = &instance_ptr_storage;", Newline());
-  Write("char tail_call_stack[", std::to_string(kTailCallStackSize), "];",
-        Newline());
-  Write("wasm_rt_tailcallee_t next_storage;", Newline());
-  Write("wasm_rt_tailcallee_t *next = &next_storage;", Newline());
-}
-
-void CWriter::WriteUnwindTryCatchStack(const Label* label) {
-  assert(try_catch_stack_.size() >= label->try_catch_stack_size);
-
-  if (try_catch_stack_.size() != label->try_catch_stack_size) {
-    const std::string& name =
-        try_catch_stack_.at(label->try_catch_stack_size).name;
-
-    Write("wasm_rt_set_unwind_target(", name, "_outer_target);", Newline());
-  }
-}
-
-void CWriter::FinishReturnCall() {
-  if (in_tail_callee_) {
-    Write(CloseBrace(), Newline(), "return;", Newline());
-    return;
-  }
-
-  Write("while (next->fn) { next->fn(instance_ptr, tail_call_stack, next); }",
-        Newline());
-  PushTypes(func_->decl.sig.result_types);
-  if (!func_->decl.sig.result_types.empty()) {
-    Write(OpenBrace(), func_->decl.sig.result_types, " tmp;", Newline(),
-          "wasm_rt_memcpy(&tmp, tail_call_stack, sizeof(tmp));", Newline());
-    Unspill(func_->decl.sig.result_types);
-    Write(CloseBrace(), Newline());
-  }
-
-  Write(CloseBrace(), Newline(), "goto ", LabelName(kImplicitFuncLabel), ";",
-        Newline());
-}
-
-void CWriter::BeginFunction(const Func& func) {
+void CWriter::Write(const Func& func) {
   func_ = &func;
-  in_tail_callee_ = false;
   local_syms_.clear();
   local_sym_map_.clear();
   stack_var_sym_map_.clear();
   func_sections_.clear();
   func_includes_.clear();
+
+  Stream* prev_stream = stream_;
 
   /*
    * If offset of stream_ is 0, this is the first time some function is written
@@ -3045,37 +2631,13 @@ void CWriter::BeginFunction(const Func& func) {
     WriteMultiCTop();
   }
   Write(Newline());
-}
 
-void CWriter::FinishFunction(size_t stack_var_section) {
-  for (size_t i = 0; i < func_sections_.size(); ++i) {
-    auto& [condition, stream] = func_sections_.at(i);
-    std::unique_ptr<OutputBuffer> buf = stream.ReleaseOutputBuffer();
-    if (condition.empty() || func_includes_.count(condition)) {
-      stream_->WriteData(buf->data.data(), buf->data.size());
-    }
-
-    if (i == stack_var_section) {
-      WriteStackVarDeclarations();  // these come immediately after section #0
-                                    // (return type/name/params/locals)
-    }
-  }
-
-  Write(CloseBrace(), Newline());
-
-  func_ = nullptr;
-}
-
-void CWriter::Write(const Func& func) {
-  Stream* prev_stream = stream_;
-  BeginFunction(func);
   PushFuncSection();
-  Write(func.decl.sig.result_types, " ",
+  Write(ResultType(func.decl.sig.result_types), " ",
         GlobalName(ModuleFieldType::Func, func.name), "(");
   WriteParamsAndLocals();
   Write("FUNC_PROLOGUE;", Newline());
 
-  size_t stack_vars_section = func_sections_.size() - 1;
   PushFuncSection();
 
   std::string label = DefineLabelName(kImplicitFuncLabel);
@@ -3093,114 +2655,47 @@ void CWriter::Write(const Func& func) {
   if (num_results == 1) {
     Write("return ", StackVar(0), ";", Newline());
   } else if (num_results >= 2) {
-    Write(OpenBrace(), func.decl.sig.result_types, " tmp;", Newline());
-    Spill(func.decl.sig.result_types);
-    Write("return tmp;", Newline(), CloseBrace(), Newline());
-  }
-
-  stream_ = prev_stream;
-  FinishFunction(stack_vars_section);
-}
-
-template <typename Vars, typename TypeOf, typename ToDo>
-void CWriter::WriteVarsByType(const Vars& vars,
-                              const TypeOf& typeoffunc,
-                              const ToDo& todo,
-                              bool setjmp_safe) {
-  for (Type type : {Type::I32, Type::I64, Type::F32, Type::F64, Type::V128,
-                    Type::FuncRef, Type::ExternRef}) {
-    Index var_index = 0;
-    size_t count = 0;
-    for (const auto& var : vars) {
-      if (typeoffunc(var) == type) {
-        if (count == 0) {
-          Write(type, " ");
-          if (setjmp_safe) {
-            PushFuncSection("exceptions");
-            Write("volatile ");
-            PushFuncSection();
-          }
-          Indent(4);
-        } else {
-          Write(", ");
-          if ((count % 8) == 0)
-            Write(Newline());
-        }
-
-        todo(var_index, var);
-        ++count;
-      }
-      ++var_index;
+    Write(OpenBrace());
+    Write(ResultType(func.decl.sig.result_types), " tmp;", Newline());
+    for (Index i = 0; i < num_results; ++i) {
+      Type type = func.GetResultType(i);
+      Writef("tmp.%c%d = ", MangleType(type), i);
+      Write(StackVar(num_results - i - 1), ";", Newline());
     }
-    if (count != 0) {
-      Dedent(4);
-      Write(";", Newline());
-    }
-  }
-}
-
-void CWriter::WriteTailCallee(const Func& func) {
-  Stream* prev_stream = stream_;
-  BeginFunction(func);
-  in_tail_callee_ = true;
-  PushFuncSection();
-  WriteTailCallFuncDeclaration(GetTailCallRef(func.name));
-  Write(" ", OpenBrace());
-  WriteTailCallAsserts(func.decl.sig);
-  Write(ModuleInstanceTypeName(), "* instance = *instance_ptr;", Newline());
-
-  std::vector<std::string> index_to_name;
-  MakeTypeBindingReverseMapping(func.GetNumParamsAndLocals(), func.bindings,
-                                &index_to_name);
-  if (func.GetNumParams()) {
-    WriteVarsByType(
-        func.decl.sig.param_types, [](auto x) { return x; },
-        [&](Index i, Type) { Write(DefineParamName(index_to_name[i])); }, true);
-    Write(OpenBrace(), func.decl.sig.param_types, " tmp;", Newline(),
-          "wasm_rt_memcpy(&tmp, tail_call_stack, sizeof(tmp));", Newline());
-    Unspill(func.decl.sig.param_types,
-            [&](auto i) { return ParamName(index_to_name[i]); });
+    Write("return tmp;", Newline());
     Write(CloseBrace(), Newline());
   }
 
-  size_t stack_vars_section = func_sections_.size() - 1;
-  WriteLocals(index_to_name);
-
-  PushFuncSection();
-
-  std::string label = DefineLabelName(kImplicitFuncLabel);
-  ResetTypeStack(0);
-  std::string empty;  // Must not be temporary, since address is taken by Label.
-  PushLabel(LabelType::Func, empty, func.decl.sig);
-  Write(func.exprs, LabelDecl(label));
-  PopLabel();
-  ResetTypeStack(0);
-  PushTypes(func.decl.sig.result_types);
-
-  // Return the top of the stack implicitly.
-  if (func.GetNumResults()) {
-    Write(OpenBrace(), func.decl.sig.result_types, " tmp;", Newline());
-    Spill(func.decl.sig.result_types);
-    Write("wasm_rt_memcpy(tail_call_stack, &tmp, sizeof(tmp));", Newline());
-    Write(CloseBrace(), Newline());
-  }
-  Write("next->fn = NULL;", Newline());
-
   stream_ = prev_stream;
-  FinishFunction(stack_vars_section);
+
+  for (size_t i = 0; i < func_sections_.size(); ++i) {
+    auto& [condition, stream] = func_sections_.at(i);
+    std::unique_ptr<OutputBuffer> buf = stream.ReleaseOutputBuffer();
+    if (condition.empty() || func_includes_.count(condition)) {
+      stream_->WriteData(buf->data.data(), buf->data.size());
+    }
+
+    if (i == 0) {
+      WriteStackVarDeclarations();  // these come immediately after section #0
+                                    // (return type/name/params/locals)
+    }
+  }
+
+  Write(CloseBrace(), Newline());
+
+  func_ = nullptr;
 }
 
 void CWriter::WriteParamsAndLocals() {
   std::vector<std::string> index_to_name;
   MakeTypeBindingReverseMapping(func_->GetNumParamsAndLocals(), func_->bindings,
                                 &index_to_name);
-  WriteParams(index_to_name, true);
+  WriteParams(index_to_name);
   Write(" ", OpenBrace());
   WriteLocals(index_to_name);
 }
 
-void CWriter::WriteParams(const std::vector<std::string>& index_to_name,
-                          bool setjmp_safe) {
+void CWriter::WriteParams(const std::vector<std::string>& index_to_name) {
   Write(ModuleInstanceTypeName(), "* instance");
   if (func_->GetNumParams() != 0) {
     Indent(4);
@@ -3209,13 +2704,7 @@ void CWriter::WriteParams(const std::vector<std::string>& index_to_name,
       if (i != 0 && (i % 8) == 0) {
         Write(Newline());
       }
-      Write(func_->GetParamType(i), " ");
-      if (setjmp_safe) {
-        PushFuncSection("exceptions");
-        Write("volatile ");
-        PushFuncSection();
-      }
-      Write(DefineParamName(index_to_name[i]));
+      Write(func_->GetParamType(i), " ", DefineParamName(index_to_name[i]));
     }
     Dedent(4);
   }
@@ -3248,9 +2737,21 @@ void CWriter::WriteParamTypes(const FuncDeclaration& decl) {
 
 void CWriter::WriteLocals(const std::vector<std::string>& index_to_name) {
   Index num_params = func_->GetNumParams();
-  WriteVarsByType(
-      func_->local_types, [](auto x) { return x; },
-      [&](Index local_index, Type local_type) {
+  for (Type type : {Type::I32, Type::I64, Type::F32, Type::F64, Type::V128,
+                    Type::FuncRef, Type::ExternRef}) {
+    Index local_index = 0;
+    size_t count = 0;
+    for (Type local_type : func_->local_types) {
+      if (local_type == type) {
+        if (count == 0) {
+          Write(type, " ");
+          Indent(4);
+        } else {
+          Write(", ");
+          if ((count % 8) == 0)
+            Write(Newline());
+        }
+
         Write(DefineParamName(index_to_name[num_params + local_index]), " = ");
         if (local_type == Type::FuncRef || local_type == Type::ExternRef) {
           Write(GetReferenceNullValue(local_type));
@@ -3259,17 +2760,43 @@ void CWriter::WriteLocals(const std::vector<std::string>& index_to_name) {
         } else {
           Write("0");
         }
-      },
-      true);
+        ++count;
+      }
+      ++local_index;
+    }
+    if (count != 0) {
+      Dedent(4);
+      Write(";", Newline());
+    }
+  }
 }
 
 void CWriter::WriteStackVarDeclarations() {
-  // NOTE: setjmp_safe must be false, can't push func sections in here because
-  // this is called from FinishFunction.
-  // (luckily, we don't need setjmp_safe for these.)
-  WriteVarsByType(
-      stack_var_sym_map_, [](auto stp_name) { return stp_name.first.second; },
-      [&](Index, auto& stp_name) { Write(stp_name.second); }, false);
+  for (Type type : {Type::I32, Type::I64, Type::F32, Type::F64, Type::V128,
+                    Type::FuncRef, Type::ExternRef}) {
+    size_t count = 0;
+    for (const auto& [pair, name] : stack_var_sym_map_) {
+      Type stp_type = pair.second;
+
+      if (stp_type == type) {
+        if (count == 0) {
+          Write(type, " ");
+          Indent(4);
+        } else {
+          Write(", ");
+          if ((count % 8) == 0)
+            Write(Newline());
+        }
+
+        Write(name);
+        ++count;
+      }
+    }
+    if (count != 0) {
+      Dedent(4);
+      Write(";", Newline());
+    }
+  }
 }
 
 void CWriter::Write(const Block& block) {
@@ -3285,7 +2812,6 @@ void CWriter::Write(const Block& block) {
 }
 
 size_t CWriter::BeginTry(const TryExpr& tryexpr) {
-  func_includes_.insert("exceptions");
   Write(OpenBrace()); /* beginning of try-catch */
   const std::string tlabel = DefineLabelName(tryexpr.block.label);
   Write("WASM_RT_UNWIND_TARGET *", tlabel,
@@ -3374,19 +2900,30 @@ void CWriter::Write(const Catch& c) {
   }
 
   Write("if (wasm_rt_exception_tag() == ",
-        TagSymbol(module_->GetTag(c.var)->name), ") ", OpenBrace());
+        ExternalPtr(ModuleFieldType::Tag, module_->GetTag(c.var)->name), ") ",
+        OpenBrace());
 
   const Tag* tag = module_->GetTag(c.var);
   const FuncDeclaration& tag_type = tag->decl;
   const Index num_params = tag_type.GetNumParams();
-  PushTypes(tag_type.sig.param_types);
   if (num_params == 1) {
+    PushType(tag_type.GetParamType(0));
     Write("wasm_rt_memcpy(&", StackVar(0), ", wasm_rt_exception(), sizeof(",
           tag_type.GetParamType(0), "));", Newline());
   } else if (num_params > 1) {
-    Write(OpenBrace(), tag_type.sig.param_types, " tmp;", Newline());
+    for (const auto& type : tag_type.sig.param_types) {
+      PushType(type);
+    }
+    Write(OpenBrace());
+    Write("struct ", MangleTagTypes(tag_type.sig.param_types), " tmp;",
+          Newline());
     Write("wasm_rt_memcpy(&tmp, wasm_rt_exception(), sizeof(tmp));", Newline());
-    Unspill(tag_type.sig.param_types);
+    for (unsigned int i = 0; i < tag_type.sig.param_types.size(); ++i) {
+      Write(StackVar(i));
+      Writef(" = tmp.%c%d;", MangleType(tag_type.sig.param_types.at(i)), i);
+      Write(Newline());
+    }
+
     Write(CloseBrace(), Newline());
   }
 
@@ -3504,14 +3041,17 @@ void CWriter::Write(const ExprList& exprs) {
         Index num_results = func.GetNumResults();
         assert(type_stack_.size() >= num_params);
         if (num_results > 1) {
-          Write(OpenBrace(), func.decl.sig.result_types, " tmp = ");
+          Write(OpenBrace());
+          Write("struct ", MangleMultivalueTypes(func.decl.sig.result_types));
+          Write(" tmp = ");
         } else if (num_results == 1) {
           Write(StackVar(num_params - 1, func.GetResultType(0)), " = ");
         }
 
         assert(var.is_name());
         Write(ExternalRef(ModuleFieldType::Func, var.name()), "(");
-        if (IsImport(func.name)) {
+        bool is_import = import_module_sym_map_.count(func.name) != 0;
+        if (is_import) {
           Write("instance->", GlobalName(ModuleFieldType::Import,
                                          import_module_sym_map_[func.name]));
         } else {
@@ -3523,10 +3063,17 @@ void CWriter::Write(const ExprList& exprs) {
         }
         Write(");", Newline());
         DropTypes(num_params);
-        PushTypes(func.decl.sig.result_types);
         if (num_results > 1) {
-          Unspill(func.decl.sig.result_types);
+          for (Index i = 0; i < num_results; ++i) {
+            Type type = func.GetResultType(i);
+            PushType(type);
+            Write(StackVar(0));
+            Writef(" = tmp.%c%d;", MangleType(type), i);
+            Write(Newline());
+          }
           Write(CloseBrace(), Newline());
+        } else {
+          PushTypes(func.decl.sig.result_types);
         }
         break;
       }
@@ -3537,7 +3084,9 @@ void CWriter::Write(const ExprList& exprs) {
         Index num_results = decl.GetNumResults();
         assert(type_stack_.size() > num_params);
         if (num_results > 1) {
-          Write(OpenBrace(), decl.sig.result_types, " tmp = ");
+          Write(OpenBrace());
+          Write("struct ", MangleMultivalueTypes(decl.sig.result_types));
+          Write(" tmp = ");
         } else if (num_results == 1) {
           Write(StackVar(num_params, decl.GetResultType(0)), " = ");
         }
@@ -3558,14 +3107,18 @@ void CWriter::Write(const ExprList& exprs) {
           Write(", ", StackVar(num_params - i));
         }
         Write(");", Newline());
-        if (IsSingleUnsharedMemory()) {
-          InstallSegueBase(module_->memories[0], false /* save_old_value */);
-        }
         DropTypes(num_params + 1);
-        PushTypes(decl.sig.result_types);
         if (num_results > 1) {
-          Unspill(decl.sig.result_types);
+          for (Index i = 0; i < num_results; ++i) {
+            Type type = decl.GetResultType(i);
+            PushType(type);
+            Write(StackVar(0));
+            Writef(" = tmp.%c%d;", MangleType(type), i);
+            Write(Newline());
+          }
           Write(CloseBrace(), Newline());
+        } else {
+          PushTypes(decl.sig.result_types);
         }
         break;
       }
@@ -3790,18 +3343,18 @@ void CWriter::Write(const ExprList& exprs) {
 
       case ExprType::TableGrow: {
         const Table* table = module_->GetTable(cast<TableGrowExpr>(&expr)->var);
-        Write(StackVar(1, table->elem_limits.IndexType()), " = wasm_rt_grow_",
+        Write(StackVar(1, Type::I32), " = wasm_rt_grow_",
               GetReferenceTypeName(table->elem_type), "_table(",
               ExternalInstancePtr(ModuleFieldType::Table, table->name), ", ",
               StackVar(0), ", ", StackVar(1), ");", Newline());
         DropTypes(2);
-        PushType(table->elem_limits.IndexType());
+        PushType(Type::I32);
       } break;
 
       case ExprType::TableSize: {
         const Table* table = module_->GetTable(cast<TableSizeExpr>(&expr)->var);
 
-        PushType(table->elem_limits.IndexType());
+        PushType(Type::I32);
         Write(StackVar(0), " = ",
               ExternalInstanceRef(ModuleFieldType::Table, table->name),
               ".size;", Newline());
@@ -3825,16 +3378,11 @@ void CWriter::Write(const ExprList& exprs) {
         const FuncType* func_type = module_->GetFuncType(decl.type_var);
 
         Write(StackVar(0), " = (wasm_rt_funcref_t){", FuncTypeExpr(func_type),
-              ", (wasm_rt_function_ptr_t)", WrapperRef(func->name), ", {");
-        if (options_.features.tail_call_enabled() &&
-            (IsImport(func->name) || func->features_used.tailcall)) {
-          Write(TailCallRef(func->name));
-        } else {
-          Write("NULL");
-        }
-        Write("}, ");
+              ", (wasm_rt_function_ptr_t)",
+              ExternalPtr(ModuleFieldType::Func, func->name), ", ");
 
-        if (IsImport(func->name)) {
+        bool is_import = import_module_sym_map_.count(func->name) != 0;
+        if (is_import) {
           Write("instance->", GlobalName(ModuleFieldType::Import,
                                          import_module_sym_map_[func->name]));
         } else {
@@ -3874,13 +3422,9 @@ void CWriter::Write(const ExprList& exprs) {
         Memory* memory = module_->memories[module_->GetMemoryIndex(
             cast<MemoryGrowExpr>(&expr)->memidx)];
 
-        std::string func = GetMemoryAPIString(*memory, "wasm_rt_grow_memory");
-        Write(StackVar(0), " = ", func, "(",
+        Write(StackVar(0), " = wasm_rt_grow_memory(",
               ExternalInstancePtr(ModuleFieldType::Memory, memory->name), ", ",
               StackVar(0), ");", Newline());
-        if (IsSingleUnsharedMemory()) {
-          InstallSegueBase(module_->memories[0], false /* save_old_value */);
-        }
         break;
       }
 
@@ -3964,17 +3508,26 @@ void CWriter::Write(const ExprList& exprs) {
 
         Index num_params = tag->decl.GetNumParams();
         if (num_params == 0) {
-          Write("wasm_rt_load_exception(", TagSymbol(tag->name), ", 0, NULL);",
+          Write("wasm_rt_load_exception(",
+                ExternalPtr(ModuleFieldType::Tag, tag->name), ", 0, NULL);",
                 Newline());
         } else if (num_params == 1) {
-          Write("wasm_rt_load_exception(", TagSymbol(tag->name), ", sizeof(",
+          Write("wasm_rt_load_exception(",
+                ExternalPtr(ModuleFieldType::Tag, tag->name), ", sizeof(",
                 tag->decl.GetParamType(0), "), &", StackVar(0), ");",
                 Newline());
         } else {
-          Write(OpenBrace(), tag->decl.sig.param_types, " tmp;", Newline());
-          Spill(tag->decl.sig.param_types);
-          Write("wasm_rt_load_exception(", TagSymbol(tag->name),
-                ", sizeof(tmp), &tmp);", Newline(), CloseBrace(), Newline());
+          Write(OpenBrace());
+          Write("struct ", MangleTagTypes(tag->decl.sig.param_types));
+          Write(" tmp = {");
+          for (Index i = 0; i < num_params; ++i) {
+            Write(StackVar(i), ", ");
+          }
+          Write("};", Newline());
+          Write("wasm_rt_load_exception(",
+                ExternalPtr(ModuleFieldType::Tag, tag->name),
+                ", sizeof(tmp), &tmp);", Newline());
+          Write(CloseBrace(), Newline());
         }
 
         WriteThrow();
@@ -4005,129 +3558,15 @@ void CWriter::Write(const ExprList& exprs) {
         }
       } break;
 
-      case ExprType::AtomicLoad: {
-        Write(*cast<AtomicLoadExpr>(&expr));
-        break;
-      }
-
-      case ExprType::AtomicStore: {
-        Write(*cast<AtomicStoreExpr>(&expr));
-        break;
-      }
-
-      case ExprType::AtomicRmw: {
-        Write(*cast<AtomicRmwExpr>(&expr));
-        break;
-      }
-
-      case ExprType::AtomicRmwCmpxchg: {
-        Write(*cast<AtomicRmwCmpxchgExpr>(&expr));
-        break;
-      }
-
-      case ExprType::AtomicFence: {
-        Write("atomic_fence();", Newline());
-        break;
-      }
-
-      case ExprType::ReturnCall: {
-        const auto inst = cast<ReturnCallExpr>(&expr);
-        const Func& func = *module_->GetFunc(inst->var);
-
-        const FuncDeclaration& decl = func.decl;
-        assert(decl.sig.result_types == func_->decl.sig.result_types);
-        WriteUnwindTryCatchStack(FindLabel(Var(label_stack_.size() - 1, {})));
-
-        if (!IsImport(func.name) && !func.features_used.tailcall) {
-          // make normal call, then return
-          Write(ExprList{std::make_unique<CallExpr>(inst->var, inst->loc)});
-          Write("goto ", LabelName(kImplicitFuncLabel), ";", Newline());
-          return;
-        }
-
-        WriteTailCallAsserts(decl.sig);
-        Write(OpenBrace());
-        if (!in_tail_callee_) {
-          WriteTailCallStack();
-        }
-
-        const Index num_params = decl.GetNumParams();
-        if (decl.GetNumParams()) {
-          Write(OpenBrace(), decl.sig.param_types, " tmp;", Newline());
-          Spill(decl.sig.param_types);
-          Write("wasm_rt_memcpy(tail_call_stack, &tmp, sizeof(tmp));",
-                Newline());
-          Write(CloseBrace(), Newline());
-        }
-
-        Write("next->fn = ", TailCallRef(func.name), ";", Newline());
-        if (IsImport(func.name)) {
-          Write("*instance_ptr = ",
-                GlobalName(ModuleFieldType::Import,
-                           import_module_sym_map_.at(func.name)),
-                ";", Newline());
-        }
-        DropTypes(num_params);
-        FinishReturnCall();
-        return;
-      }
-
-      case ExprType::ReturnCallIndirect: {
-        const auto inst = cast<ReturnCallIndirectExpr>(&expr);
-        const FuncDeclaration& decl = inst->decl;
-        assert(decl.sig.result_types == func_->decl.sig.result_types);
-        assert(decl.has_func_type);
-        const Index num_params = decl.GetNumParams();
-        WriteTailCallAsserts(decl.sig);
-        WriteUnwindTryCatchStack(FindLabel(Var(label_stack_.size() - 1, {})));
-        const Table* table = module_->GetTable(inst->table);
-        Write("CHECK_CALL_INDIRECT(",
-              ExternalInstanceRef(ModuleFieldType::Table, table->name), ", ",
-              FuncTypeExpr(module_->GetFuncType(decl.type_var)), ", ",
-              StackVar(0), ");", Newline());
-
-        Write("if (!", ExternalInstanceRef(ModuleFieldType::Table, table->name),
-              ".data[", StackVar(0), "].func_tailcallee.fn) ", OpenBrace());
-        auto ci = std::make_unique<CallIndirectExpr>(inst->loc);
-        std::tie(ci->decl, ci->table) = std::make_pair(inst->decl, inst->table);
-        Write(ExprList{std::move(ci)});
-        if (in_tail_callee_) {
-          Write("next->fn = NULL;", Newline());
-        }
-        Write(CloseBrace(), " else ", OpenBrace());
-
-        DropTypes(decl.GetNumResults());
-        PushTypes(decl.sig.param_types);
-        PushType(Type::I32);
-
-        if (!in_tail_callee_) {
-          WriteTailCallStack();
-        }
-
-        if (num_params) {
-          Write(OpenBrace(), decl.sig.param_types, " tmp;", Newline());
-          Spill(decl.sig.param_types,
-                [&](auto i) { return StackVar(num_params - i); });
-          Write("wasm_rt_memcpy(tail_call_stack, &tmp, sizeof(tmp));",
-                Newline());
-          Write(CloseBrace(), Newline());
-        }
-
-        assert(decl.has_func_type);
-        Write("next->fn = ",
-              ExternalInstanceRef(ModuleFieldType::Table, table->name),
-              ".data[", StackVar(0), "].func_tailcallee.fn;", Newline());
-        Write("*instance_ptr = ",
-              ExternalInstanceRef(ModuleFieldType::Table, table->name),
-              ".data[", StackVar(0), "].module_instance;", Newline());
-
-        DropTypes(num_params + 1);
-        FinishReturnCall();
-        return;
-      }
-
+      case ExprType::AtomicLoad:
+      case ExprType::AtomicRmw:
+      case ExprType::AtomicRmwCmpxchg:
+      case ExprType::AtomicStore:
       case ExprType::AtomicWait:
+      case ExprType::AtomicFence:
       case ExprType::AtomicNotify:
+      case ExprType::ReturnCall:
+      case ExprType::ReturnCallIndirect:
       case ExprType::CallRef:
         UNIMPLEMENTED("...");
         break;
@@ -4336,11 +3775,11 @@ void CWriter::Write(const BinaryExpr& expr) {
       break;
 
     case Opcode::I8X16NarrowI16X8S:
-      WritePrefixBinaryExpr(expr.opcode, "v128_i8x16_narrow_i16x8");
+      WritePrefixBinaryExpr(expr.opcode, "simde_wasm_i8x16_narrow_i16x8");
       break;
 
     case Opcode::I8X16NarrowI16X8U:
-      WritePrefixBinaryExpr(expr.opcode, "v128_u8x16_narrow_i16x8");
+      WritePrefixBinaryExpr(expr.opcode, "simde_wasm_u8x16_narrow_i16x8");
       break;
 
     case Opcode::I8X16Shl:
@@ -4368,7 +3807,7 @@ void CWriter::Write(const BinaryExpr& expr) {
       break;
 
     case Opcode::I8X16Swizzle:
-      WritePrefixBinaryExpr(expr.opcode, "v128_i8x16_swizzle");
+      WritePrefixBinaryExpr(expr.opcode, "simde_wasm_i8x16_swizzle");
       break;
 
     case Opcode::I16X8Add:
@@ -4388,19 +3827,19 @@ void CWriter::Write(const BinaryExpr& expr) {
       break;
 
     case Opcode::I16X8ExtmulHighI8X16S:
-      WritePrefixBinaryExpr(expr.opcode, "v128_i16x8_extmul_high_i8x16");
+      WritePrefixBinaryExpr(expr.opcode, "simde_wasm_i16x8_extmul_high_i8x16");
       break;
 
     case Opcode::I16X8ExtmulHighI8X16U:
-      WritePrefixBinaryExpr(expr.opcode, "v128_u16x8_extmul_high_u8x16");
+      WritePrefixBinaryExpr(expr.opcode, "simde_wasm_u16x8_extmul_high_u8x16");
       break;
 
     case Opcode::I16X8ExtmulLowI8X16S:
-      WritePrefixBinaryExpr(expr.opcode, "v128_i16x8_extmul_low_i8x16");
+      WritePrefixBinaryExpr(expr.opcode, "simde_wasm_i16x8_extmul_low_i8x16");
       break;
 
     case Opcode::I16X8ExtmulLowI8X16U:
-      WritePrefixBinaryExpr(expr.opcode, "v128_u16x8_extmul_low_u8x16");
+      WritePrefixBinaryExpr(expr.opcode, "simde_wasm_u16x8_extmul_low_u8x16");
       break;
 
     case Opcode::I16X8MaxS:
@@ -4424,11 +3863,11 @@ void CWriter::Write(const BinaryExpr& expr) {
       break;
 
     case Opcode::I16X8NarrowI32X4S:
-      WritePrefixBinaryExpr(expr.opcode, "v128_i16x8_narrow_i32x4");
+      WritePrefixBinaryExpr(expr.opcode, "simde_wasm_i16x8_narrow_i32x4");
       break;
 
     case Opcode::I16X8NarrowI32X4U:
-      WritePrefixBinaryExpr(expr.opcode, "v128_u16x8_narrow_i32x4");
+      WritePrefixBinaryExpr(expr.opcode, "simde_wasm_u16x8_narrow_i32x4");
       break;
 
     case Opcode::I16X8Q15mulrSatS:
@@ -4468,19 +3907,19 @@ void CWriter::Write(const BinaryExpr& expr) {
       break;
 
     case Opcode::I32X4ExtmulHighI16X8S:
-      WritePrefixBinaryExpr(expr.opcode, "v128_i32x4_extmul_high_i16x8");
+      WritePrefixBinaryExpr(expr.opcode, "simde_wasm_i32x4_extmul_high_i16x8");
       break;
 
     case Opcode::I32X4ExtmulHighI16X8U:
-      WritePrefixBinaryExpr(expr.opcode, "v128_u32x4_extmul_high_u16x8");
+      WritePrefixBinaryExpr(expr.opcode, "simde_wasm_u32x4_extmul_high_u16x8");
       break;
 
     case Opcode::I32X4ExtmulLowI16X8S:
-      WritePrefixBinaryExpr(expr.opcode, "v128_i32x4_extmul_low_i16x8");
+      WritePrefixBinaryExpr(expr.opcode, "simde_wasm_i32x4_extmul_low_i16x8");
       break;
 
     case Opcode::I32X4ExtmulLowI16X8U:
-      WritePrefixBinaryExpr(expr.opcode, "v128_u32x4_extmul_low_u16x8");
+      WritePrefixBinaryExpr(expr.opcode, "simde_wasm_u32x4_extmul_low_u16x8");
       break;
 
     case Opcode::I32X4MaxS:
@@ -4524,19 +3963,19 @@ void CWriter::Write(const BinaryExpr& expr) {
       break;
 
     case Opcode::I64X2ExtmulHighI32X4S:
-      WritePrefixBinaryExpr(expr.opcode, "v128_i64x2_extmul_high_i32x4");
+      WritePrefixBinaryExpr(expr.opcode, "simde_wasm_i64x2_extmul_high_i32x4");
       break;
 
     case Opcode::I64X2ExtmulHighI32X4U:
-      WritePrefixBinaryExpr(expr.opcode, "v128_u64x2_extmul_high_u32x4");
+      WritePrefixBinaryExpr(expr.opcode, "simde_wasm_u64x2_extmul_high_u32x4");
       break;
 
     case Opcode::I64X2ExtmulLowI32X4S:
-      WritePrefixBinaryExpr(expr.opcode, "v128_i64x2_extmul_low_i32x4");
+      WritePrefixBinaryExpr(expr.opcode, "simde_wasm_i64x2_extmul_low_i32x4");
       break;
 
     case Opcode::I64X2ExtmulLowI32X4U:
-      WritePrefixBinaryExpr(expr.opcode, "v128_u64x2_extmul_low_u32x4");
+      WritePrefixBinaryExpr(expr.opcode, "simde_wasm_u64x2_extmul_low_u32x4");
       break;
 
     case Opcode::I64X2Mul:
@@ -5056,11 +4495,13 @@ void CWriter::Write(const ConvertExpr& expr) {
       break;
 
     case Opcode::I32X4TruncSatF64X2SZero:
-      WriteSimpleUnaryExpr(expr.opcode, "v128_i32x4_trunc_sat_f64x2_zero");
+      WriteSimpleUnaryExpr(expr.opcode,
+                           "simde_wasm_i32x4_trunc_sat_f64x2_zero");
       break;
 
     case Opcode::I32X4TruncSatF64X2UZero:
-      WriteSimpleUnaryExpr(expr.opcode, "v128_u32x4_trunc_sat_f64x2_zero");
+      WriteSimpleUnaryExpr(expr.opcode,
+                           "simde_wasm_u32x4_trunc_sat_f64x2_zero");
       break;
 
     case Opcode::F32X4ConvertI32X4S:
@@ -5072,19 +4513,19 @@ void CWriter::Write(const ConvertExpr& expr) {
       break;
 
     case Opcode::F32X4DemoteF64X2Zero:
-      WriteSimpleUnaryExpr(expr.opcode, "v128_f32x4_demote_f64x2_zero");
+      WriteSimpleUnaryExpr(expr.opcode, "simde_wasm_f32x4_demote_f64x2_zero");
       break;
 
     case Opcode::F64X2ConvertLowI32X4S:
-      WriteSimpleUnaryExpr(expr.opcode, "v128_f64x2_convert_low_i32x4");
+      WriteSimpleUnaryExpr(expr.opcode, "simde_wasm_f64x2_convert_low_i32x4");
       break;
 
     case Opcode::F64X2ConvertLowI32X4U:
-      WriteSimpleUnaryExpr(expr.opcode, "v128_f64x2_convert_low_u32x4");
+      WriteSimpleUnaryExpr(expr.opcode, "simde_wasm_f64x2_convert_low_u32x4");
       break;
 
     case Opcode::F64X2PromoteLowF32X4:
-      WriteSimpleUnaryExpr(expr.opcode, "v128_f64x2_promote_low_f32x4");
+      WriteSimpleUnaryExpr(expr.opcode, "simde_wasm_f64x2_promote_low_f32x4");
       break;
 
     default:
@@ -5093,7 +4534,7 @@ void CWriter::Write(const ConvertExpr& expr) {
 }
 
 void CWriter::Write(const LoadExpr& expr) {
-  std::string func;
+  const char* func = nullptr;
   // clang-format off
   switch (expr.opcode) {
     case Opcode::I32Load: func = "i32_load"; break;
@@ -5124,7 +4565,6 @@ void CWriter::Write(const LoadExpr& expr) {
   // clang-format on
 
   Memory* memory = module_->memories[module_->GetMemoryIndex(expr.memidx)];
-  func = GetMemoryAPIString(*memory, func);
 
   Type result_type = expr.opcode.GetResultType();
   Write(StackVar(0, result_type), " = ", func, "(",
@@ -5138,7 +4578,7 @@ void CWriter::Write(const LoadExpr& expr) {
 }
 
 void CWriter::Write(const StoreExpr& expr) {
-  std::string func;
+  const char* func = nullptr;
   // clang-format off
   switch (expr.opcode) {
     case Opcode::I32Store: func = "i32_store"; break;
@@ -5158,7 +4598,6 @@ void CWriter::Write(const StoreExpr& expr) {
   // clang-format on
 
   Memory* memory = module_->memories[module_->GetMemoryIndex(expr.memidx)];
-  func = GetMemoryAPIString(*memory, func);
 
   Write(func, "(", ExternalInstancePtr(ModuleFieldType::Memory, memory->name),
         ", (u64)(", StackVar(1), ")");
@@ -5276,7 +4715,7 @@ void CWriter::Write(const UnaryExpr& expr) {
       break;
 
     case Opcode::I8X16Bitmask:
-      WriteSimpleUnaryExpr(expr.opcode, "v128_i8x16_bitmask");
+      WriteSimpleUnaryExpr(expr.opcode, "simde_wasm_i8x16_bitmask");
       break;
 
     case Opcode::I8X16Neg:
@@ -5300,7 +4739,7 @@ void CWriter::Write(const UnaryExpr& expr) {
       break;
 
     case Opcode::I16X8Bitmask:
-      WriteSimpleUnaryExpr(expr.opcode, "v128_i16x8_bitmask");
+      WriteSimpleUnaryExpr(expr.opcode, "simde_wasm_i16x8_bitmask");
       break;
 
     case Opcode::I16X8ExtaddPairwiseI8X16S:
@@ -5314,19 +4753,19 @@ void CWriter::Write(const UnaryExpr& expr) {
       break;
 
     case Opcode::I16X8ExtendHighI8X16S:
-      WriteSimpleUnaryExpr(expr.opcode, "v128_i16x8_extend_high_i8x16");
+      WriteSimpleUnaryExpr(expr.opcode, "simde_wasm_i16x8_extend_high_i8x16");
       break;
 
     case Opcode::I16X8ExtendHighI8X16U:
-      WriteSimpleUnaryExpr(expr.opcode, "v128_u16x8_extend_high_u8x16");
+      WriteSimpleUnaryExpr(expr.opcode, "simde_wasm_u16x8_extend_high_u8x16");
       break;
 
     case Opcode::I16X8ExtendLowI8X16S:
-      WriteSimpleUnaryExpr(expr.opcode, "v128_i16x8_extend_low_i8x16");
+      WriteSimpleUnaryExpr(expr.opcode, "simde_wasm_i16x8_extend_low_i8x16");
       break;
 
     case Opcode::I16X8ExtendLowI8X16U:
-      WriteSimpleUnaryExpr(expr.opcode, "v128_u16x8_extend_low_u8x16");
+      WriteSimpleUnaryExpr(expr.opcode, "simde_wasm_u16x8_extend_low_u8x16");
       break;
 
     case Opcode::I16X8Neg:
@@ -5346,7 +4785,7 @@ void CWriter::Write(const UnaryExpr& expr) {
       break;
 
     case Opcode::I32X4Bitmask:
-      WriteSimpleUnaryExpr(expr.opcode, "v128_i32x4_bitmask");
+      WriteSimpleUnaryExpr(expr.opcode, "simde_wasm_i32x4_bitmask");
       break;
 
     case Opcode::I32X4ExtaddPairwiseI16X8S:
@@ -5360,19 +4799,19 @@ void CWriter::Write(const UnaryExpr& expr) {
       break;
 
     case Opcode::I32X4ExtendHighI16X8S:
-      WriteSimpleUnaryExpr(expr.opcode, "v128_i32x4_extend_high_i16x8");
+      WriteSimpleUnaryExpr(expr.opcode, "simde_wasm_i32x4_extend_high_i16x8");
       break;
 
     case Opcode::I32X4ExtendHighI16X8U:
-      WriteSimpleUnaryExpr(expr.opcode, "v128_u32x4_extend_high_u16x8");
+      WriteSimpleUnaryExpr(expr.opcode, "simde_wasm_u32x4_extend_high_u16x8");
       break;
 
     case Opcode::I32X4ExtendLowI16X8S:
-      WriteSimpleUnaryExpr(expr.opcode, "v128_i32x4_extend_low_i16x8");
+      WriteSimpleUnaryExpr(expr.opcode, "simde_wasm_i32x4_extend_low_i16x8");
       break;
 
     case Opcode::I32X4ExtendLowI16X8U:
-      WriteSimpleUnaryExpr(expr.opcode, "v128_u32x4_extend_low_u16x8");
+      WriteSimpleUnaryExpr(expr.opcode, "simde_wasm_u32x4_extend_low_u16x8");
       break;
 
     case Opcode::I32X4Neg:
@@ -5392,23 +4831,23 @@ void CWriter::Write(const UnaryExpr& expr) {
       break;
 
     case Opcode::I64X2Bitmask:
-      WriteSimpleUnaryExpr(expr.opcode, "v128_i64x2_bitmask");
+      WriteSimpleUnaryExpr(expr.opcode, "simde_wasm_i64x2_bitmask");
       break;
 
     case Opcode::I64X2ExtendHighI32X4S:
-      WriteSimpleUnaryExpr(expr.opcode, "v128_i64x2_extend_high_i32x4");
+      WriteSimpleUnaryExpr(expr.opcode, "simde_wasm_i64x2_extend_high_i32x4");
       break;
 
     case Opcode::I64X2ExtendHighI32X4U:
-      WriteSimpleUnaryExpr(expr.opcode, "v128_u64x2_extend_high_u32x4");
+      WriteSimpleUnaryExpr(expr.opcode, "simde_wasm_u64x2_extend_high_u32x4");
       break;
 
     case Opcode::I64X2ExtendLowI32X4S:
-      WriteSimpleUnaryExpr(expr.opcode, "v128_i64x2_extend_low_i32x4");
+      WriteSimpleUnaryExpr(expr.opcode, "simde_wasm_i64x2_extend_low_i32x4");
       break;
 
     case Opcode::I64X2ExtendLowI32X4U:
-      WriteSimpleUnaryExpr(expr.opcode, "v128_u64x2_extend_low_u32x4");
+      WriteSimpleUnaryExpr(expr.opcode, "simde_wasm_u64x2_extend_low_u32x4");
       break;
 
     case Opcode::I64X2Neg:
@@ -5516,85 +4955,85 @@ void CWriter::Write(const SimdLaneOpExpr& expr) {
 
   switch (expr.opcode) {
     case Opcode::I8X16ExtractLaneS: {
-      Write(StackVar(0, result_type), " = v128_i8x16_extract_lane(",
+      Write(StackVar(0, result_type), " = simde_wasm_i8x16_extract_lane(",
             StackVar(0), ", ", expr.val, ");", Newline());
       DropTypes(1);
       break;
     }
     case Opcode::I8X16ExtractLaneU: {
-      Write(StackVar(0, result_type), " = v128_u8x16_extract_lane(",
+      Write(StackVar(0, result_type), " = simde_wasm_u8x16_extract_lane(",
             StackVar(0), ", ", expr.val, ");", Newline());
       DropTypes(1);
       break;
     }
     case Opcode::I16X8ExtractLaneS: {
-      Write(StackVar(0, result_type), " = v128_i16x8_extract_lane(",
+      Write(StackVar(0, result_type), " = simde_wasm_i16x8_extract_lane(",
             StackVar(0), ", ", expr.val, ");", Newline());
       DropTypes(1);
       break;
     }
     case Opcode::I16X8ExtractLaneU: {
-      Write(StackVar(0, result_type), " = v128_u16x8_extract_lane(",
+      Write(StackVar(0, result_type), " = simde_wasm_u16x8_extract_lane(",
             StackVar(0), ", ", expr.val, ");", Newline());
       DropTypes(1);
       break;
     }
     case Opcode::I32X4ExtractLane: {
-      Write(StackVar(0, result_type), " = v128_i32x4_extract_lane(",
+      Write(StackVar(0, result_type), " = simde_wasm_i32x4_extract_lane(",
             StackVar(0), ", ", expr.val, ");", Newline());
       DropTypes(1);
       break;
     }
     case Opcode::I64X2ExtractLane: {
-      Write(StackVar(0, result_type), " = v128_i64x2_extract_lane(",
+      Write(StackVar(0, result_type), " = simde_wasm_i64x2_extract_lane(",
             StackVar(0), ", ", expr.val, ");", Newline());
       DropTypes(1);
       break;
     }
     case Opcode::F32X4ExtractLane: {
-      Write(StackVar(0, result_type), " = v128_f32x4_extract_lane(",
+      Write(StackVar(0, result_type), " = simde_wasm_f32x4_extract_lane(",
             StackVar(0), ", ", expr.val, ");", Newline());
       DropTypes(1);
       break;
     }
     case Opcode::F64X2ExtractLane: {
-      Write(StackVar(0, result_type), " = v128_f64x2_extract_lane(",
+      Write(StackVar(0, result_type), " = simde_wasm_f64x2_extract_lane(",
             StackVar(0), ", ", expr.val, ");", Newline());
       DropTypes(1);
       break;
     }
     case Opcode::I8X16ReplaceLane: {
-      Write(StackVar(1, result_type), " = v128_i8x16_replace_lane(",
+      Write(StackVar(1, result_type), " = simde_wasm_i8x16_replace_lane(",
             StackVar(1), ", ", expr.val, ", ", StackVar(0), ");", Newline());
       DropTypes(2);
       break;
     }
     case Opcode::I16X8ReplaceLane: {
-      Write(StackVar(1, result_type), " = v128_i16x8_replace_lane(",
+      Write(StackVar(1, result_type), " = simde_wasm_i16x8_replace_lane(",
             StackVar(1), ", ", expr.val, ", ", StackVar(0), ");", Newline());
       DropTypes(2);
       break;
     }
     case Opcode::I32X4ReplaceLane: {
-      Write(StackVar(1, result_type), " = v128_i32x4_replace_lane(",
+      Write(StackVar(1, result_type), " = simde_wasm_i32x4_replace_lane(",
             StackVar(1), ", ", expr.val, ", ", StackVar(0), ");", Newline());
       DropTypes(2);
       break;
     }
     case Opcode::I64X2ReplaceLane: {
-      Write(StackVar(1, result_type), " = v128_i64x2_replace_lane(",
+      Write(StackVar(1, result_type), " = simde_wasm_i64x2_replace_lane(",
             StackVar(1), ", ", expr.val, ", ", StackVar(0), ");", Newline());
       DropTypes(2);
       break;
     }
     case Opcode::F32X4ReplaceLane: {
-      Write(StackVar(1, result_type), " = v128_f32x4_replace_lane(",
+      Write(StackVar(1, result_type), " = simde_wasm_f32x4_replace_lane(",
             StackVar(1), ", ", expr.val, ", ", StackVar(0), ");", Newline());
       DropTypes(2);
       break;
     }
     case Opcode::F64X2ReplaceLane: {
-      Write(StackVar(1, result_type), " = v128_f64x2_replace_lane(",
+      Write(StackVar(1, result_type), " = simde_wasm_f64x2_replace_lane(",
             StackVar(1), ", ", expr.val, ", ", StackVar(0), ");", Newline());
       DropTypes(2);
       break;
@@ -5663,12 +5102,14 @@ void CWriter::Write(const SimdShuffleOpExpr& expr) {
   Type result_type = expr.opcode.GetResultType();
   switch (expr.opcode) {
     case Opcode::I8X16Shuffle: {
-      Write(StackVar(1, result_type), " = v128_i8x16_shuffle(", StackVar(1),
-            ", ", StackVar(0));
-      for (int i = 0; i < 16; i++) {
-        Write(", ", expr.val.u8(i));
-      }
-      Write(");", Newline());
+      Write(StackVar(1, result_type), " = simde_wasm_i8x16_shuffle(",
+            StackVar(1), ", ", StackVar(0), ", ", expr.val.u8(0), ", ",
+            expr.val.u8(1), ", ", expr.val.u8(2), ", ", expr.val.u8(3), ", ",
+            expr.val.u8(4), ", ", expr.val.u8(5), ", ", expr.val.u8(6), ", ",
+            expr.val.u8(7), ", ", expr.val.u8(8), ", ", expr.val.u8(9), ", ",
+            expr.val.u8(10), ", ", expr.val.u8(11), ", ", expr.val.u8(12), ", ",
+            expr.val.u8(13), ", ", expr.val.u8(14), ", ", expr.val.u8(15), ");",
+            Newline());
       DropTypes(2);
       break;
     }
@@ -5729,162 +5170,6 @@ void CWriter::Write(const LoadZeroExpr& expr) {
   PushType(result_type);
 }
 
-void CWriter::Write(const AtomicLoadExpr& expr) {
-  std::string func;
-  // clang-format off
-  switch (expr.opcode) {
-    case Opcode::I32AtomicLoad: func = "i32_atomic_load"; break;
-    case Opcode::I64AtomicLoad: func = "i64_atomic_load"; break;
-    case Opcode::I32AtomicLoad8U: func = "i32_atomic_load8_u"; break;
-    case Opcode::I64AtomicLoad8U: func = "i64_atomic_load8_u"; break;
-    case Opcode::I32AtomicLoad16U: func = "i32_atomic_load16_u"; break;
-    case Opcode::I64AtomicLoad16U: func = "i64_atomic_load16_u"; break;
-    case Opcode::I64AtomicLoad32U: func = "i64_atomic_load32_u"; break;
-
-    default:
-      WABT_UNREACHABLE;
-  }
-  // clang-format on
-
-  Memory* memory = module_->memories[module_->GetMemoryIndex(expr.memidx)];
-  func = GetMemoryAPIString(*memory, func);
-
-  Type result_type = expr.opcode.GetResultType();
-  Write(StackVar(0, result_type), " = ", func, "(",
-        ExternalInstancePtr(ModuleFieldType::Memory, memory->name), ", (u64)(",
-        StackVar(0), ")");
-  if (expr.offset != 0)
-    Write(" + ", expr.offset, "u");
-  Write(");", Newline());
-  DropTypes(1);
-  PushType(result_type);
-}
-
-void CWriter::Write(const AtomicStoreExpr& expr) {
-  std::string func;
-  // clang-format off
-  switch (expr.opcode) {
-    case Opcode::I32AtomicStore: func = "i32_atomic_store"; break;
-    case Opcode::I64AtomicStore: func = "i64_atomic_store"; break;
-    case Opcode::I32AtomicStore8: func = "i32_atomic_store8"; break;
-    case Opcode::I64AtomicStore8: func = "i64_atomic_store8"; break;
-    case Opcode::I32AtomicStore16: func = "i32_atomic_store16"; break;
-    case Opcode::I64AtomicStore16: func = "i64_atomic_store16"; break;
-    case Opcode::I64AtomicStore32: func = "i64_atomic_store32"; break;
-
-    default:
-      WABT_UNREACHABLE;
-  }
-  // clang-format on
-
-  Memory* memory = module_->memories[module_->GetMemoryIndex(expr.memidx)];
-  func = GetMemoryAPIString(*memory, func);
-
-  Write(func, "(", ExternalInstancePtr(ModuleFieldType::Memory, memory->name),
-        ", (u64)(", StackVar(1), ")");
-  if (expr.offset != 0)
-    Write(" + ", expr.offset);
-  Write(", ", StackVar(0), ");", Newline());
-  DropTypes(2);
-}
-
-void CWriter::Write(const AtomicRmwExpr& expr) {
-  std::string func;
-  // clang-format off
-  switch (expr.opcode) {
-    case Opcode::I32AtomicRmwAdd: func = "i32_atomic_rmw_add"; break;
-    case Opcode::I64AtomicRmwAdd: func = "i64_atomic_rmw_add"; break;
-    case Opcode::I32AtomicRmw8AddU: func = "i32_atomic_rmw8_add_u"; break;
-    case Opcode::I32AtomicRmw16AddU: func = "i32_atomic_rmw16_add_u"; break;
-    case Opcode::I64AtomicRmw8AddU: func = "i64_atomic_rmw8_add_u"; break;
-    case Opcode::I64AtomicRmw16AddU: func = "i64_atomic_rmw16_add_u"; break;
-    case Opcode::I64AtomicRmw32AddU: func = "i64_atomic_rmw32_add_u"; break;
-    case Opcode::I32AtomicRmwSub: func = "i32_atomic_rmw_sub"; break;
-    case Opcode::I64AtomicRmwSub: func = "i64_atomic_rmw_sub"; break;
-    case Opcode::I32AtomicRmw8SubU: func = "i32_atomic_rmw8_sub_u"; break;
-    case Opcode::I32AtomicRmw16SubU: func = "i32_atomic_rmw16_sub_u"; break;
-    case Opcode::I64AtomicRmw8SubU: func = "i64_atomic_rmw8_sub_u"; break;
-    case Opcode::I64AtomicRmw16SubU: func = "i64_atomic_rmw16_sub_u"; break;
-    case Opcode::I64AtomicRmw32SubU: func = "i64_atomic_rmw32_sub_u"; break;
-    case Opcode::I32AtomicRmwAnd: func = "i32_atomic_rmw_and"; break;
-    case Opcode::I64AtomicRmwAnd: func = "i64_atomic_rmw_and"; break;
-    case Opcode::I32AtomicRmw8AndU: func = "i32_atomic_rmw8_and_u"; break;
-    case Opcode::I32AtomicRmw16AndU: func = "i32_atomic_rmw16_and_u"; break;
-    case Opcode::I64AtomicRmw8AndU: func = "i64_atomic_rmw8_and_u"; break;
-    case Opcode::I64AtomicRmw16AndU: func = "i64_atomic_rmw16_and_u"; break;
-    case Opcode::I64AtomicRmw32AndU: func = "i64_atomic_rmw32_and_u"; break;
-    case Opcode::I32AtomicRmwOr: func = "i32_atomic_rmw_or"; break;
-    case Opcode::I64AtomicRmwOr: func = "i64_atomic_rmw_or"; break;
-    case Opcode::I32AtomicRmw8OrU: func = "i32_atomic_rmw8_or_u"; break;
-    case Opcode::I32AtomicRmw16OrU: func = "i32_atomic_rmw16_or_u"; break;
-    case Opcode::I64AtomicRmw8OrU: func = "i64_atomic_rmw8_or_u"; break;
-    case Opcode::I64AtomicRmw16OrU: func = "i64_atomic_rmw16_or_u"; break;
-    case Opcode::I64AtomicRmw32OrU: func = "i64_atomic_rmw32_or_u"; break;
-    case Opcode::I32AtomicRmwXor: func = "i32_atomic_rmw_xor"; break;
-    case Opcode::I64AtomicRmwXor: func = "i64_atomic_rmw_xor"; break;
-    case Opcode::I32AtomicRmw8XorU: func = "i32_atomic_rmw8_xor_u"; break;
-    case Opcode::I32AtomicRmw16XorU: func = "i32_atomic_rmw16_xor_u"; break;
-    case Opcode::I64AtomicRmw8XorU: func = "i64_atomic_rmw8_xor_u"; break;
-    case Opcode::I64AtomicRmw16XorU: func = "i64_atomic_rmw16_xor_u"; break;
-    case Opcode::I64AtomicRmw32XorU: func = "i64_atomic_rmw32_xor_u"; break;
-    case Opcode::I32AtomicRmwXchg: func = "i32_atomic_rmw_xchg"; break;
-    case Opcode::I64AtomicRmwXchg: func = "i64_atomic_rmw_xchg"; break;
-    case Opcode::I32AtomicRmw8XchgU: func = "i32_atomic_rmw8_xchg_u"; break;
-    case Opcode::I32AtomicRmw16XchgU: func = "i32_atomic_rmw16_xchg_u"; break;
-    case Opcode::I64AtomicRmw8XchgU: func = "i64_atomic_rmw8_xchg_u"; break;
-    case Opcode::I64AtomicRmw16XchgU: func = "i64_atomic_rmw16_xchg_u"; break;
-    case Opcode::I64AtomicRmw32XchgU: func = "i64_atomic_rmw32_xchg_u"; break;
-    default:
-      WABT_UNREACHABLE;
-  }
-  // clang-format on
-
-  Memory* memory = module_->memories[module_->GetMemoryIndex(expr.memidx)];
-  func = GetMemoryAPIString(*memory, func);
-
-  Type result_type = expr.opcode.GetResultType();
-
-  Write(StackVar(1, result_type), " = ", func, "(",
-        ExternalInstancePtr(ModuleFieldType::Memory, memory->name), ", (u64)(",
-        StackVar(1), ")");
-  if (expr.offset != 0)
-    Write(" + ", expr.offset);
-  Write(", ", StackVar(0), ");", Newline());
-  DropTypes(2);
-  PushType(result_type);
-}
-
-void CWriter::Write(const AtomicRmwCmpxchgExpr& expr) {
-  std::string func;
-  // clang-format off
-  switch(expr.opcode) {
-    case Opcode::I32AtomicRmwCmpxchg: func = "i32_atomic_rmw_cmpxchg"; break;
-    case Opcode::I64AtomicRmwCmpxchg: func = "i64_atomic_rmw_cmpxchg"; break;
-    case Opcode::I32AtomicRmw8CmpxchgU: func = "i32_atomic_rmw8_cmpxchg_u"; break;
-    case Opcode::I32AtomicRmw16CmpxchgU: func = "i32_atomic_rmw16_cmpxchg_u"; break;
-    case Opcode::I64AtomicRmw8CmpxchgU: func = "i64_atomic_rmw8_cmpxchg_u"; break;
-    case Opcode::I64AtomicRmw16CmpxchgU: func = "i64_atomic_rmw16_cmpxchg_u"; break;
-    case Opcode::I64AtomicRmw32CmpxchgU: func = "i64_atomic_rmw32_cmpxchg_u"; break;
-    default:
-      WABT_UNREACHABLE;
-  }
-  // clang-format on
-
-  Memory* memory = module_->memories[module_->GetMemoryIndex(expr.memidx)];
-  func = GetMemoryAPIString(*memory, func);
-
-  Type result_type = expr.opcode.GetResultType();
-
-  Write(StackVar(2, result_type), " = ", func, "(",
-        ExternalInstancePtr(ModuleFieldType::Memory, memory->name), ", (u64)(",
-        StackVar(2), ")");
-  if (expr.offset != 0)
-    Write(" + ", expr.offset);
-  Write(", ", StackVar(1), ", ", StackVar(0), ");", Newline());
-  DropTypes(3);
-  PushType(result_type);
-}
-
 void CWriter::ReserveExportNames() {
   for (const Export* export_ : module_->exports) {
     ReserveExportName(export_->name);
@@ -5908,13 +5193,10 @@ void CWriter::WriteCHeader() {
   WriteInitDecl();
   WriteFreeDecl();
   WriteGetFuncTypeDecl();
-  WriteMultivalueResultTypes();
+  WriteMultivalueTypes();
   WriteImports();
   WriteImportProperties(CWriterPhase::Declarations);
   WriteExports(CWriterPhase::Declarations);
-  if (options_.features.tail_call_enabled()) {
-    WriteTailCallExports(CWriterPhase::Declarations);
-  }
   Write(Newline());
   Write(s_header_bottom);
   Write(Newline(), "#endif  /* ", guard, " */", Newline());
@@ -5933,24 +5215,16 @@ void CWriter::WriteCSource() {
   WriteFuncDeclarations();
   WriteDataInitializerDecls();
   WriteElemInitializerDecls();
-  if (options_.features.tail_call_enabled()) {
-    WriteTailcalleeParamTypes();
-  }
 
   /* Write the module-wide material to the first output stream */
   stream_ = c_streams_.front();
   WriteMultiCTop();
   WriteFuncTypes();
   WriteTags();
-  WriteFuncRefWrappers();
   WriteGlobalInitializers();
   WriteDataInitializers();
   WriteElemInitializers();
   WriteExports(CWriterPhase::Definitions);
-  if (options_.features.tail_call_enabled()) {
-    WriteTailCallExports(CWriterPhase::Definitions);
-    WriteTailCallWeakImports();
-  }
   WriteInitInstanceImport();
   WriteImportProperties(CWriterPhase::Definitions);
   WriteInit();

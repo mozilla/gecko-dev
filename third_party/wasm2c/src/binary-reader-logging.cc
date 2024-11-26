@@ -217,15 +217,14 @@ Result BinaryReaderLogging::OnImportMemory(Index import_index,
                                            std::string_view module_name,
                                            std::string_view field_name,
                                            Index memory_index,
-                                           const Limits* page_limits,
-                                           uint32_t page_size) {
+                                           const Limits* page_limits) {
   char buf[100];
   SPrintLimits(buf, sizeof(buf), page_limits);
   LOGF("OnImportMemory(import_index: %" PRIindex ", memory_index: %" PRIindex
        ", %s)\n",
        import_index, memory_index, buf);
   return reader_->OnImportMemory(import_index, module_name, field_name,
-                                 memory_index, page_limits, page_size);
+                                 memory_index, page_limits);
 }
 
 Result BinaryReaderLogging::OnImportGlobal(Index import_index,
@@ -265,13 +264,11 @@ Result BinaryReaderLogging::OnTable(Index index,
   return reader_->OnTable(index, elem_type, elem_limits);
 }
 
-Result BinaryReaderLogging::OnMemory(Index index,
-                                     const Limits* page_limits,
-                                     uint32_t page_size) {
+Result BinaryReaderLogging::OnMemory(Index index, const Limits* page_limits) {
   char buf[100];
   SPrintLimits(buf, sizeof(buf), page_limits);
   LOGF("OnMemory(index: %" PRIindex ", %s)\n", index, buf);
-  return reader_->OnMemory(index, page_limits, page_size);
+  return reader_->OnMemory(index, page_limits);
 }
 
 Result BinaryReaderLogging::BeginGlobal(Index index, Type type, bool mutable_) {
@@ -657,15 +654,6 @@ Result BinaryReaderLogging::OnCodeMetadata(Offset code_offset,
   return reader_->OnCodeMetadata(code_offset, data, size);
 }
 
-Result BinaryReaderLogging::OnGenericCustomSection(std::string_view name,
-                                                   const void* data,
-                                                   Offset size) {
-  LOGF("OnGenericCustomSection(name: \"" PRIstringview "\", size: %" PRIzd
-       ")\n",
-       WABT_PRINTF_STRING_VIEW_ARG(name), size);
-  return reader_->OnGenericCustomSection(name, data, size);
-}
-
 #define DEFINE_BEGIN(name)                        \
   Result BinaryReaderLogging::name(Offset size) { \
     LOGF(#name "(%" PRIzd ")\n", size);           \
@@ -798,7 +786,6 @@ DEFINE_BEGIN(BeginCodeSection)
 DEFINE_INDEX(OnFunctionBodyCount)
 DEFINE_INDEX(EndFunctionBody)
 DEFINE_INDEX(OnLocalDeclCount)
-DEFINE0(EndLocalDecls)
 DEFINE_LOAD_STORE_OPCODE(OnAtomicLoadExpr);
 DEFINE_LOAD_STORE_OPCODE(OnAtomicRmwExpr);
 DEFINE_LOAD_STORE_OPCODE(OnAtomicRmwCmpxchgExpr);
@@ -824,7 +811,7 @@ DEFINE_LOAD_STORE_OPCODE(OnLoadExpr);
 DEFINE_INDEX_DESC(OnLocalGetExpr, "index")
 DEFINE_INDEX_DESC(OnLocalSetExpr, "index")
 DEFINE_INDEX_DESC(OnLocalTeeExpr, "index")
-DEFINE_INDEX_INDEX(OnMemoryCopyExpr, "dest_memory_index", "src_memory_index")
+DEFINE_INDEX_INDEX(OnMemoryCopyExpr, "src_memory_index", "dest_memory_index")
 DEFINE_INDEX(OnDataDropExpr)
 DEFINE_INDEX(OnMemoryFillExpr)
 DEFINE_INDEX(OnMemoryGrowExpr)
@@ -863,8 +850,8 @@ DEFINE_INDEX(OnElemSegmentCount)
 DEFINE_INDEX(BeginElemSegmentInitExpr)
 DEFINE_INDEX(EndElemSegmentInitExpr)
 DEFINE_INDEX_INDEX(OnElemSegmentElemExprCount, "index", "count")
-DEFINE_INDEX_INDEX(BeginElemExpr, "elem_index", "expr_index")
-DEFINE_INDEX_INDEX(EndElemExpr, "elem_index", "expr_index")
+DEFINE_INDEX_TYPE(OnElemSegmentElemExpr_RefNull)
+DEFINE_INDEX_INDEX(OnElemSegmentElemExpr_RefFunc, "index", "func_index")
 DEFINE_INDEX(EndElemSegment)
 DEFINE_END(EndElemSection)
 
@@ -906,9 +893,6 @@ DEFINE_INDEX(OnSegmentInfoCount)
 DEFINE_INDEX(OnInitFunctionCount)
 DEFINE_INDEX(OnComdatCount)
 DEFINE_END(EndLinkingSection)
-
-DEFINE_BEGIN(BeginGenericCustomSection);
-DEFINE_END(EndGenericCustomSection);
 
 DEFINE_BEGIN(BeginTagSection);
 DEFINE_INDEX(OnTagCount);

@@ -381,9 +381,8 @@ Result Validator::EndIfExpr(IfExpr* expr) {
 }
 
 Result Validator::OnLoadExpr(LoadExpr* expr) {
-  result_ |=
-      validator_.OnLoad(expr->loc, expr->opcode, expr->memidx,
-                        expr->opcode.GetAlignment(expr->align), expr->offset);
+  result_ |= validator_.OnLoad(expr->loc, expr->opcode, expr->memidx,
+                               expr->opcode.GetAlignment(expr->align));
   return Result::Ok;
 }
 
@@ -414,7 +413,7 @@ Result Validator::EndLoopExpr(LoopExpr* expr) {
 
 Result Validator::OnMemoryCopyExpr(MemoryCopyExpr* expr) {
   result_ |=
-      validator_.OnMemoryCopy(expr->loc, expr->destmemidx, expr->srcmemidx);
+      validator_.OnMemoryCopy(expr->loc, expr->srcmemidx, expr->destmemidx);
   return Result::Ok;
 }
 
@@ -524,13 +523,17 @@ Result Validator::OnReturnCallIndirectExpr(ReturnCallIndirectExpr* expr) {
 Result Validator::OnSelectExpr(SelectExpr* expr) {
   result_ |= validator_.OnSelect(expr->loc, expr->result_type.size(),
                                  expr->result_type.data());
+  // TODO: Existing behavior fails when select fails.
+#if 0
   return Result::Ok;
+#else
+  return result_;
+#endif
 }
 
 Result Validator::OnStoreExpr(StoreExpr* expr) {
-  result_ |=
-      validator_.OnStore(expr->loc, expr->opcode, expr->memidx,
-                         expr->opcode.GetAlignment(expr->align), expr->offset);
+  result_ |= validator_.OnStore(expr->loc, expr->opcode, expr->memidx,
+                                expr->opcode.GetAlignment(expr->align));
   return Result::Ok;
 }
 
@@ -576,8 +579,7 @@ Result Validator::OnRethrowExpr(RethrowExpr* expr) {
 
 Result Validator::OnAtomicWaitExpr(AtomicWaitExpr* expr) {
   result_ |= validator_.OnAtomicWait(expr->loc, expr->opcode, expr->memidx,
-                                     expr->opcode.GetAlignment(expr->align),
-                                     expr->offset);
+                                     expr->opcode.GetAlignment(expr->align));
   return Result::Ok;
 }
 
@@ -588,36 +590,32 @@ Result Validator::OnAtomicFenceExpr(AtomicFenceExpr* expr) {
 
 Result Validator::OnAtomicNotifyExpr(AtomicNotifyExpr* expr) {
   result_ |= validator_.OnAtomicNotify(expr->loc, expr->opcode, expr->memidx,
-                                       expr->opcode.GetAlignment(expr->align),
-                                       expr->offset);
+                                       expr->opcode.GetAlignment(expr->align));
   return Result::Ok;
 }
 
 Result Validator::OnAtomicLoadExpr(AtomicLoadExpr* expr) {
   result_ |= validator_.OnAtomicLoad(expr->loc, expr->opcode, expr->memidx,
-                                     expr->opcode.GetAlignment(expr->align),
-                                     expr->offset);
+                                     expr->opcode.GetAlignment(expr->align));
   return Result::Ok;
 }
 
 Result Validator::OnAtomicStoreExpr(AtomicStoreExpr* expr) {
   result_ |= validator_.OnAtomicStore(expr->loc, expr->opcode, expr->memidx,
-                                      expr->opcode.GetAlignment(expr->align),
-                                      expr->offset);
+                                      expr->opcode.GetAlignment(expr->align));
   return Result::Ok;
 }
 
 Result Validator::OnAtomicRmwExpr(AtomicRmwExpr* expr) {
   result_ |= validator_.OnAtomicRmw(expr->loc, expr->opcode, expr->memidx,
-                                    expr->opcode.GetAlignment(expr->align),
-                                    expr->offset);
+                                    expr->opcode.GetAlignment(expr->align));
   return Result::Ok;
 }
 
 Result Validator::OnAtomicRmwCmpxchgExpr(AtomicRmwCmpxchgExpr* expr) {
-  result_ |= validator_.OnAtomicRmwCmpxchg(
-      expr->loc, expr->opcode, expr->memidx,
-      expr->opcode.GetAlignment(expr->align), expr->offset);
+  result_ |=
+      validator_.OnAtomicRmwCmpxchg(expr->loc, expr->opcode, expr->memidx,
+                                    expr->opcode.GetAlignment(expr->align));
   return Result::Ok;
 }
 
@@ -634,14 +632,14 @@ Result Validator::OnSimdLaneOpExpr(SimdLaneOpExpr* expr) {
 Result Validator::OnSimdLoadLaneExpr(SimdLoadLaneExpr* expr) {
   result_ |= validator_.OnSimdLoadLane(expr->loc, expr->opcode, expr->memidx,
                                        expr->opcode.GetAlignment(expr->align),
-                                       expr->offset, expr->val);
+                                       expr->val);
   return Result::Ok;
 }
 
 Result Validator::OnSimdStoreLaneExpr(SimdStoreLaneExpr* expr) {
   result_ |= validator_.OnSimdStoreLane(expr->loc, expr->opcode, expr->memidx,
                                         expr->opcode.GetAlignment(expr->align),
-                                        expr->offset, expr->val);
+                                        expr->val);
   return Result::Ok;
 }
 
@@ -652,15 +650,13 @@ Result Validator::OnSimdShuffleOpExpr(SimdShuffleOpExpr* expr) {
 
 Result Validator::OnLoadSplatExpr(LoadSplatExpr* expr) {
   result_ |= validator_.OnLoadSplat(expr->loc, expr->opcode, expr->memidx,
-                                    expr->opcode.GetAlignment(expr->align),
-                                    expr->offset);
+                                    expr->opcode.GetAlignment(expr->align));
   return Result::Ok;
 }
 
 Result Validator::OnLoadZeroExpr(LoadZeroExpr* expr) {
   result_ |= validator_.OnLoadZero(expr->loc, expr->opcode, expr->memidx,
-                                   expr->opcode.GetAlignment(expr->align),
-                                   expr->offset);
+                                   expr->opcode.GetAlignment(expr->align));
   return Result::Ok;
 }
 
@@ -732,8 +728,7 @@ Result Validator::CheckModule() {
 
         case ExternalKind::Memory: {
           auto&& memory = cast<MemoryImport>(f->import.get())->memory;
-          result_ |= validator_.OnMemory(field.loc, memory.page_limits,
-                                         memory.page_size);
+          result_ |= validator_.OnMemory(field.loc, memory.page_limits);
           break;
         }
 
@@ -773,8 +768,7 @@ Result Validator::CheckModule() {
   // Memory section.
   for (const ModuleField& field : module->fields) {
     if (auto* f = dyn_cast<MemoryModuleField>(&field)) {
-      result_ |= validator_.OnMemory(field.loc, f->memory.page_limits,
-                                     f->memory.page_size);
+      result_ |= validator_.OnMemory(field.loc, f->memory.page_limits);
     }
   }
 
@@ -827,13 +821,7 @@ Result Validator::CheckModule() {
 
       // Init expr.
       if (f->elem_segment.kind == SegmentKind::Active) {
-        Type offset_type = Type::I32;
-        Index table_index = module->GetTableIndex(f->elem_segment.table_var);
-        if (table_index < module->tables.size() &&
-            module->tables[table_index]->elem_limits.is_64) {
-          offset_type = Type::I64;
-        }
-        result_ |= validator_.BeginInitExpr(field.loc, offset_type);
+        result_ |= validator_.BeginInitExpr(field.loc, Type::I32);
         ExprVisitor visitor(this);
         result_ |= visitor.VisitExprList(
             const_cast<ExprList&>(f->elem_segment.offset));
@@ -842,11 +830,24 @@ Result Validator::CheckModule() {
 
       // Element expr.
       for (auto&& elem_expr : f->elem_segment.elem_exprs) {
-        result_ |= validator_.BeginInitExpr(elem_expr.front().loc,
-                                            f->elem_segment.elem_type);
-        ExprVisitor visitor(this);
-        result_ |= visitor.VisitExprList(const_cast<ExprList&>(elem_expr));
-        result_ |= validator_.EndInitExpr();
+        if (elem_expr.size() == 1) {
+          const Expr* expr = &elem_expr.front();
+          switch (expr->type()) {
+            case ExprType::RefNull:
+              result_ |= validator_.OnElemSegmentElemExpr_RefNull(
+                  expr->loc, cast<RefNullExpr>(expr)->type);
+              break;
+            case ExprType::RefFunc:
+              result_ |= validator_.OnElemSegmentElemExpr_RefFunc(
+                  expr->loc, cast<RefFuncExpr>(expr)->var);
+              break;
+            default:
+              result_ |= validator_.OnElemSegmentElemExpr_Other(expr->loc);
+              break;
+          }
+        } else if (elem_expr.size() > 1) {
+          result_ |= validator_.OnElemSegmentElemExpr_Other(field.loc);
+        }
       }
     }
   }

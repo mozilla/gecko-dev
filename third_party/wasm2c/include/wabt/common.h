@@ -44,18 +44,14 @@
 #define WABT_USE(x) static_cast<void>(x)
 
 // 64k
-#define WABT_DEFAULT_PAGE_SIZE 0x10000
-
-inline uint64_t WABT_BYTES_TO_MIN_PAGES(uint64_t num_bytes,
-                                        uint32_t page_size) {
-  if ((page_size == 0) ||
-      (page_size & (page_size - 1))) {  // malformed page sizes
-    WABT_UNREACHABLE;
-    return 0;
-  }
-  uint64_t num_pages = num_bytes / page_size;
-  return (page_size * num_pages == num_bytes) ? num_pages : num_pages + 1;
-}
+#define WABT_PAGE_SIZE 0x10000
+// # of pages that fit in 32-bit address space
+#define WABT_MAX_PAGES32 0x10000
+// # of pages that fit in 64-bit address space
+#define WABT_MAX_PAGES64 0x1000000000000
+#define WABT_BYTES_TO_PAGES(x) ((x) >> 16)
+#define WABT_ALIGN_UP_TO_PAGE(x) \
+  (((x) + WABT_PAGE_SIZE - 1) & ~(WABT_PAGE_SIZE - 1))
 
 #define WABT_ENUM_COUNT(name) \
   (static_cast<int>(name::Last) - static_cast<int>(name::First) + 1)
@@ -170,7 +166,7 @@ Dst WABT_VECTORCALL Bitcast(Src&& value) {
 
 template <typename T>
 void ZeroMemory(T& v) {
-  WABT_STATIC_ASSERT(std::is_trivial<T>::value);
+  WABT_STATIC_ASSERT(std::is_pod<T>::value);
   memset(&v, 0, sizeof(v));
 }
 
@@ -281,14 +277,10 @@ enum class RelocType {
   TableIndexI64 = 19,           // Memory64: Like TableIndexI32
   TableNumberLEB = 20,          // e.g. Immediate of table.get
   MemoryAddressTLSSLEB = 21,    // Address relative to __tls_base
-  FunctionOffsetI64 = 22,       // Memory64: Like FunctionOffsetI32
-  MemoryAddressLocRelI32 = 23,  // Address relative to the relocation's location
-  TableIndexRelSLEB64 = 24,     // Memory64: TableIndexRelSLEB
-  MemoryAddressTLSSLEB64 = 25,  // Memory64: MemoryAddressTLSSLEB
-  FuncIndexI32 = 26,            // Function index as an I32
+  MemoryAddressTLSI32 = 22,     // Address relative to __tls_base
 
   First = FuncIndexLEB,
-  Last = FuncIndexI32,
+  Last = MemoryAddressTLSI32,
 };
 constexpr int kRelocTypeCount = WABT_ENUM_COUNT(RelocType);
 
@@ -336,12 +328,10 @@ enum class ComdatType {
 #define WABT_SYMBOL_FLAG_EXPLICIT_NAME 0x40
 #define WABT_SYMBOL_FLAG_NO_STRIP 0x80
 #define WABT_SYMBOL_FLAG_TLS 0x100
-#define WABT_SYMBOL_FLAG_ABS 0x200
-#define WABT_SYMBOL_FLAG_MAX 0x3ff
+#define WABT_SYMBOL_FLAG_MAX 0x1ff
 
 #define WABT_SEGMENT_FLAG_STRINGS 0x1
 #define WABT_SEGMENT_FLAG_TLS 0x2
-#define WASM_SEGMENT_FLAG_RETAIN 0x4
 #define WABT_SEGMENT_FLAG_MAX 0xff
 
 enum class SymbolVisibility {

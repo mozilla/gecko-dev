@@ -123,7 +123,7 @@ LOCAL_INCLUDES += ["/security/sandbox/linux"]
 LOCAL_INCLUDES += ["/security/sandbox/chromium-shim"]
 LOCAL_INCLUDES += ["/security/sandbox/chromium"]
 LOCAL_INCLUDES += ["/nsprpub"]
-LOCAL_INCLUDES += ["/mozglue/baseprofiler/core/"]
+
 
 if CONFIG["OS_TARGET"] != "Android":
     # Needed for clock_gettime with glibc < 2.17:

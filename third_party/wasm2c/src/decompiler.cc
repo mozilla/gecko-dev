@@ -527,10 +527,7 @@ struct Decompiler {
           ifs.precedence = Precedence::If;
           return std::move(ifs);
         } else {
-          auto s = cat("if (", ifs.v[0], ") {");
-          if (!thenp.v.empty())
-            s += cat(" ", thenp.v[0], " ");
-          s += "}";
+          auto s = cat("if (", ifs.v[0], ") { ", thenp.v[0], " }");
           if (elsep)
             s += cat(" else { ", elsep->v[0], " }");
           return Value{{std::move(s)}, Precedence::If};
@@ -702,7 +699,7 @@ struct Decompiler {
     size_t line_start = 0;
     static const char s_hexdigits[] = "0123456789abcdef";
     for (auto c : in) {
-      if (c >= ' ' && c <= '~' && c != '"' && c != '\\') {
+      if (c >= ' ' && c <= '~') {
         s += c;
       } else {
         s += '\\';
@@ -773,11 +770,7 @@ struct Decompiler {
 
     // Data.
     for (auto dat : mc.module.data_segments) {
-      s += cat("data ", dat->name,
-               dat->kind != SegmentKind::Passive
-                   ? cat("(offset: ", InitExp(dat->offset))
-                   : "(passive",
-               ") =");
+      s += cat("data ", dat->name, "(offset: ", InitExp(dat->offset), ") =");
       auto ds = BinaryToString(dat->data);
       if (ds.size() > target_exp_width / 2) {
         s += "\n";
@@ -826,9 +819,9 @@ struct Decompiler {
         }
       }
       if (is_import) {
-        s += cat("; // func", std::to_string(func_index));
+        s += ";";
       } else {
-        s += cat(" { // func", std::to_string(func_index), "\n");
+        s += " {\n";
         auto val = DecompileExpr(ast.exp_stack[0], nullptr);
         IndentValue(val, indent_amount, {});
         for (auto& stat : val.v) {
