@@ -52,6 +52,29 @@ privacy.ui.fpp.click:
         type: string
     telemetry_mirror: PrivacyUiFpp_Click_Menu
 
+network.proxy.settings:
+  proxy_type_preference:
+    type: event
+    description: >
+      This metric tracks what proxy types users are choosing in the Network Settings dialog
+      at the bottom of about:preferences#general.
+      It gets recorded when pressing OK in the dialog box.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1909436
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1909436
+    data_sensitivity:
+      - interaction
+    notification_emails:
+      - necko@mozilla.com
+      - omansfeld@mozilla.com
+    expires: never
+    extra_keys:
+      value:
+        description: >
+          Type of proxy that is selected (DIRECT, MANUAL, PAC, WPAD, SYSTEM, OTHER).
+        type: string
+
 security.doh.settings:
   mode_changed_button:
     type: event

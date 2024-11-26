@@ -70,6 +70,8 @@ skip-if = [
 ["browser_connection_system_wpad.js"]
 run-if = ["os == 'win'"]
 
+["browser_connection_telemetry.js"]
+
 ["browser_connection_valid_hostname.js"]
 
 ["browser_containers_name_input.js"]
