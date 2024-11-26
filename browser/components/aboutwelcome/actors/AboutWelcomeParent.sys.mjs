@@ -34,6 +34,8 @@ ChromeUtils.defineLazyGetter(
 );
 
 const DID_SEE_ABOUT_WELCOME_PREF = "trailhead.firstrun.didSeeAboutWelcome";
+const DID_HANDLE_CAMAPAIGN_ACTION_PREF =
+  "trailhead.firstrun.didHandleCampaignAction";
 const AWTerminate = {
   WINDOW_CLOSED: "welcome-window-closed",
   TAB_CLOSED: "welcome-tab-closed",
@@ -259,6 +261,28 @@ export class AboutWelcomeParent extends JSWindowActorParent {
         return lazy.LangPackMatcher.setRequestedAppLocales(data);
       case "AWPage:SEND_TO_DEVICE_EMAILS_SUPPORTED": {
         return lazy.BrowserUtils.sendToDeviceEmailsSupported();
+      }
+      case "AWPage:GET_UNHANDLED_CAMPAIGN_ACTION": {
+        if (
+          !Services.prefs.getBoolPref(DID_HANDLE_CAMAPAIGN_ACTION_PREF, false)
+        ) {
+          return lazy.AWScreenUtils.getUnhandledCampaignAction();
+        }
+        break;
+      }
+      case "AWPage:HANDLE_CAMPAIGN_ACTION": {
+        if (
+          !Services.prefs.getBoolPref(DID_HANDLE_CAMAPAIGN_ACTION_PREF, false)
+        ) {
+          lazy.SpecialMessageActions.handleAction({ type: data }, browser);
+          try {
+            Services.prefs.setBoolPref(DID_HANDLE_CAMAPAIGN_ACTION_PREF, true);
+          } catch (e) {
+            lazy.log.debug(`Fails to set ${DID_HANDLE_CAMAPAIGN_ACTION_PREF}.`);
+          }
+          return true;
+        }
+        break;
       }
       default:
         lazy.log.debug(`Unexpected event ${type} was not handled.`);

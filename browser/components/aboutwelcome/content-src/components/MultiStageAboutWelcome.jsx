@@ -59,6 +59,23 @@ export const MultiStageAboutWelcome = props => {
 
       didFilter.current = true;
 
+      // After completing screen filtering, trigger any unhandled campaign
+      // action present in the attribution campaign data. This updates the
+      // "trailhead.firstrun.didHandleCampaignAction" preference, marking the
+      // actions as complete to prevent them from being handled on subsequent
+      // visits to about:welcome. Do not await getting the action to avoid
+      // blocking the thread.
+      window
+        .AWGetUnhandledCampaignAction?.()
+        .then(action => {
+          if (typeof action === "string") {
+            AboutWelcomeUtils.handleCampaignAction(action, props.message_id);
+          }
+        })
+        .catch(error => {
+          console.error("Failed to get unhandled campaign action:", error);
+        });
+
       const screenInitials = filteredScreens
         .map(({ id }) => id?.split("_")[1]?.[0])
         .join("");

@@ -137,6 +137,9 @@ export class AboutWelcomeChild extends JSWindowActorChild {
     Cu.exportFunction(this.AWNewScreen.bind(this), window, {
       defineAs: "AWNewScreen",
     });
+    Cu.exportFunction(this.AWGetUnhandledCampaignAction.bind(this), window, {
+      defineAs: "AWGetUnhandledCampaignAction",
+    });
   }
 
   /**
@@ -387,6 +390,12 @@ export class AboutWelcomeChild extends JSWindowActorChild {
 
   AWNewScreen(screenId) {
     return this.wrapPromise(this.sendQuery("AWPage:NEW_SCREEN", screenId));
+  }
+
+  AWGetUnhandledCampaignAction() {
+    return this.sendQueryAndCloneForContent(
+      "AWPage:GET_UNHANDLED_CAMPAIGN_ACTION"
+    );
   }
 
   /**

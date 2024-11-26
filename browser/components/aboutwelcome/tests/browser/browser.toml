@@ -14,6 +14,13 @@ run-if = [
 ]
 skip-if = ["os == 'win' && msix"] # These tests rely on the ability to write postSigningData, which we can't do in MSIX builds. https://bugzilla.mozilla.org/show_bug.cgi?id=1805911
 
+["browser_aboutwelcome_campaign_actions.js"]
+run-if = [
+  "os == 'win'", #  installation attribution is only available on Windows and macOS
+  "os == 'mac'", #  installation attribution is only available on Windows and macOS
+]
+skip-if = ["os == 'win' && msix"] #  Attribution code cannot be written for MSIX builds
+
 ["browser_aboutwelcome_configurable_ui.js"]
 
 ["browser_aboutwelcome_fxa_signin_flow.js"]
