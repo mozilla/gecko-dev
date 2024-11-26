@@ -640,3 +640,10 @@ TEST(CodecTest, H264CostrainedBaselineNotAddedIfAlreadySpecified) {
   EXPECT_EQ(supported_formats[3], kExplicitlySupportedFormats[3]);
   EXPECT_EQ(supported_formats.size(), kExplicitlySupportedFormats.size());
 }
+
+TEST(CodecTest, AbslStringify) {
+  Codec codec = cricket::CreateAudioCodec(47, "custom-audio", 48000, 2);
+  EXPECT_EQ(absl::StrCat(codec), "[47:audio/custom-audio/48000/2]");
+  codec.params["key"] = "value";
+  EXPECT_EQ(absl::StrCat(codec), "[47:audio/custom-audio/48000/2;key=value]");
+}

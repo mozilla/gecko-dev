@@ -396,6 +396,7 @@ rtc_library("codec") {
     "//third_party/abseil-cpp/absl/algorithm:container",
     "//third_party/abseil-cpp/absl/container:inlined_vector",
     "//third_party/abseil-cpp/absl/strings",
+    "//third_party/abseil-cpp/absl/strings:str_format",
     "//third_party/abseil-cpp/absl/strings:string_view",
   ]
 }

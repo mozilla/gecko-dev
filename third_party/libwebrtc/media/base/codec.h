@@ -17,6 +17,7 @@
 #include <vector>
 
 #include "absl/container/inlined_vector.h"
+#include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
 #include "api/audio_codecs/audio_format.h"
 #include "api/rtp_parameters.h"
@@ -173,6 +174,26 @@ struct RTC_EXPORT Codec {
   bool operator==(const Codec& c) const;
 
   bool operator!=(const Codec& c) const { return !(*this == c); }
+
+  template <typename Sink>
+  friend void AbslStringify(Sink& sink, const Codec& c) {
+    absl::Format(&sink, "[%d:", c.id);
+    switch (c.type) {
+      case Codec::Type::kAudio:
+        sink.Append("audio/");
+        break;
+      case Codec::Type::kVideo:
+        sink.Append("video/");
+    }
+    absl::Format(&sink, "%s/%d/%d", c.name, c.clockrate, c.channels);
+    for (auto param : c.params) {
+      sink.Append(";");
+      sink.Append(param.first);
+      sink.Append("=");
+      sink.Append(param.second);
+    }
+    sink.Append("]");
+  }
 
  protected:
   // Creates an empty codec.
