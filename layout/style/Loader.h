@@ -469,6 +469,9 @@ class Loader final {
 
   bool ShouldBypassCache() const;
 
+  // Inserts a style sheet in a document or a ShadowRoot.
+  void InsertSheetInTree(StyleSheet& aSheet);
+
   enum class PendingLoad { No, Yes };
 
  private:
@@ -564,8 +567,6 @@ class Loader final {
                             const nsAString& aMediaString, dom::MediaList*,
                             IsAlternate, IsExplicitlyEnabled);
 
-  // Inserts a style sheet in a document or a ShadowRoot.
-  void InsertSheetInTree(StyleSheet& aSheet);
   // Inserts a style sheet into a parent style sheet.
   void InsertChildSheet(StyleSheet& aSheet, StyleSheet& aParentSheet);
 

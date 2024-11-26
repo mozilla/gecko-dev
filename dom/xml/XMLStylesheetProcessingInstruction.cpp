@@ -153,8 +153,11 @@ XMLStylesheetProcessingInstruction::CloneDataNode(
   GetData(data);
   RefPtr<mozilla::dom::NodeInfo> ni = aNodeInfo;
   auto* nim = ni->NodeInfoManager();
-  return do_AddRef(new (nim)
-                       XMLStylesheetProcessingInstruction(ni.forget(), data));
+  auto* doc = ni->GetDocument();
+  RefPtr<XMLStylesheetProcessingInstruction> it = do_AddRef(
+      new (nim) XMLStylesheetProcessingInstruction(ni.forget(), data));
+  MaybeStartCopyStyleSheetTo(it.get(), doc);
+  return it.forget();
 }
 
 }  // namespace mozilla::dom
