@@ -7,6 +7,8 @@
 #ifndef MOZILLA_GFX_VideoProcessorD3D11_H
 #define MOZILLA_GFX_VideoProcessorD3D11_H
 
+#include <winerror.h>
+
 #include "mozilla/gfx/2D.h"
 #include "mozilla/RefPtr.h"
 #include "nsISupportsImpl.h"
@@ -36,7 +38,7 @@ class VideoProcessorD3D11 {
 
   static RefPtr<VideoProcessorD3D11> Create(ID3D11Device* aDevice);
 
-  bool Init(const gfx::IntSize& aSize);
+  HRESULT Init(const gfx::IntSize& aSize);
 
   struct InputTextureInfo {
     InputTextureInfo(gfx::ColorSpace2 aColorSpace, gfx::ColorRange aColorRange,
