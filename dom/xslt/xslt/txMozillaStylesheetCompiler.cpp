@@ -242,7 +242,14 @@ txStylesheetSink::OnStartRequest(nsIRequest* aRequest) {
   // Time to sniff! Note: this should go away once file channels do
   // sniffing themselves.
   nsCOMPtr<nsIURI> uri;
-  channel->GetURI(getter_AddRefs(uri));
+  nsresult rv = NS_GetFinalChannelURI(channel, getter_AddRefs(uri));
+  NS_ENSURE_SUCCESS(rv, rv);
+  nsAutoCString spec;
+  uri->GetSpec(spec);
+  NS_ConvertUTF8toUTF16 baseURI(spec);
+  mCompiler->setBaseURI(
+      baseURI);  // Redirections potentially impact the Base URI, always update
+                 // the base URI with the final URL.
   if (uri->SchemeIs("file") &&
       contentType.EqualsLiteral(UNKNOWN_CONTENT_TYPE)) {
     nsresult rv;
