@@ -341,6 +341,10 @@ bool BaselineCompiler::finishCompile(JSContext* cx) {
     baselineScript->setHasDebugInstrumentation();
   }
 
+  // If BytecodeAnalysis indicated that we should disable Ion or inlining,
+  // update the script now.
+  handler.maybeDisableIon();
+
   // Always register a native => bytecode mapping entry, since profiler can be
   // turned on with baseline jitcode on stack, and baseline jitcode cannot be
   // invalidated.
@@ -382,6 +386,15 @@ bool BaselineCompiler::finishCompile(JSContext* cx) {
 #endif
 
   return true;
+}
+
+void BaselineCompilerHandler::maybeDisableIon() {
+  if (analysis_.isIonDisabled()) {
+    script()->disableIon();
+  }
+  if (analysis_.isInliningDisabled()) {
+    script()->setUninlineable();
+  }
 }
 
 // On most platforms we use a dedicated bytecode PC register to avoid many

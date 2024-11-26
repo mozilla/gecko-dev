@@ -370,6 +370,8 @@ class BaselineCompilerHandler {
   JSObject* globalThis() const { return globalThis_; }
 
   uint32_t baseWarmUpThreshold() const { return baseWarmUpThreshold_; }
+
+  void maybeDisableIon();
 };
 
 using BaselineCompilerCodeGen = BaselineCodeGen<BaselineCompilerHandler>;

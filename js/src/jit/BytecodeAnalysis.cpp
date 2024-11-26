@@ -313,7 +313,7 @@ bool BytecodeAnalysis::init(TempAllocator& alloc) {
   }
 
   if (!normallyReachableReturn) {
-    script_->setUninlineable();
+    disableInlining();
   }
 
   if (!analyzer.canIon()) {
@@ -323,7 +323,7 @@ bool BytecodeAnalysis::init(TempAllocator& alloc) {
           "Disabling Warp support for %s:%d:%d due to Yield being in a loop",
           script_->filename(), script_->lineno(),
           script_->column().oneOriginValue());
-      script_->disableIon();
+      disableIon();
     }
   }
 
@@ -339,7 +339,7 @@ void BytecodeAnalysis::checkWarpSupport(JSOp op) {
       JitSpew(JitSpew_IonAbort, "Disabling Warp support for %s:%d:%d due to %s",
               script_->filename(), script_->lineno(),
               script_->column().oneOriginValue(), CodeName(op));
-      script_->disableIon();
+      disableIon();
     }
     break;
     default:
