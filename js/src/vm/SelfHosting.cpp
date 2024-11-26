@@ -2655,7 +2655,6 @@ bool JSRuntime::initSelfHostingStencil(JSContext* cx,
   FillSelfHostingCompileOptions(options);
 
   // Try initializing from Stencil XDR.
-  bool decodeOk = false;
   AutoPrintSelfHostingFrontendContext fc(cx);
   if (xdrCache.Length() > 0) {
     // Allow the VM to directly use bytecode from the XDR buffer without
@@ -2675,16 +2674,11 @@ bool JSRuntime::initSelfHostingStencil(JSContext* cx,
       }
     }
 
-    RefPtr<frontend::CompilationStencil> stencil(
-        cx->new_<frontend::CompilationStencil>(input->source));
-    if (!stencil) {
-      return false;
-    }
-    if (!stencil->deserializeStencils(&fc, options, xdrCache, &decodeOk)) {
-      return false;
-    }
-
-    if (decodeOk) {
+    JS::DecodeOptions decodeOption(options);
+    RefPtr<frontend::CompilationStencil> stencil;
+    JS::TranscodeResult result =
+        JS::DecodeStencil(&fc, decodeOption, xdrCache, getter_AddRefs(stencil));
+    if (result == JS::TranscodeResult::Ok) {
       MOZ_ASSERT(input->atomCache.empty());
 
       MOZ_ASSERT(!hasSelfHostStencil());
@@ -2732,11 +2726,8 @@ bool JSRuntime::initSelfHostingStencil(JSContext* cx,
   // Serialize the stencil to XDR.
   if (xdrWriter) {
     JS::TranscodeBuffer xdrBuffer;
-    bool succeeded = false;
-    if (!stencil->serializeStencils(cx, *input, xdrBuffer, &succeeded)) {
-      return false;
-    }
-    if (!succeeded) {
+    JS::TranscodeResult result = JS::EncodeStencil(cx, stencil, xdrBuffer);
+    if (result != JS::TranscodeResult::Ok) {
       JS_ReportErrorASCII(cx, "Encoding failure");
       return false;
     }
