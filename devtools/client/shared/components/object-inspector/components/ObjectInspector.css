@@ -16,7 +16,7 @@
 }
 
 .tree.object-inspector .lessen,
-.tree.object-inspector .lessen *,
+.tree.object-inspector .lessen :not(button),
 .tree.object-inspector .lessen .object-label,
 .tree.object-inspector .lessen .object-label * {
   color: var(--theme-comment);
