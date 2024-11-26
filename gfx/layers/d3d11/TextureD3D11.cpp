@@ -1106,8 +1106,9 @@ DXGITextureHostD3D11::GetAsSurfaceWithDevice(
       return nullptr;
     }
 
-    if (!videoProcessor->CallVideoProcessorBlt(this, d3dTexture,
-                                               copiedTexture)) {
+    VideoProcessorD3D11::InputTextureInfo info(mColorSpace, mColorRange,
+                                               mArrayIndex, d3dTexture);
+    if (!videoProcessor->CallVideoProcessorBlt(info, copiedTexture)) {
       gfxCriticalNoteOnce << "CallVideoProcessorBlt failed";
       return nullptr;
     }
