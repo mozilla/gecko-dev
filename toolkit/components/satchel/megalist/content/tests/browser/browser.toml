@@ -15,4 +15,10 @@ support-files = [
 
 ["browser_passwords_sidebar_import_from_csv.js"]
 
+["browser_passwords_update_login.js"]
+skip-if = [
+	"os == 'win' && debug", # Can not test OsAuth on debug builds
+	"os == 'mac' && debug", # Can not test OsAuth on debug builds
+]
+
 ["browser_viewmodel.js"]

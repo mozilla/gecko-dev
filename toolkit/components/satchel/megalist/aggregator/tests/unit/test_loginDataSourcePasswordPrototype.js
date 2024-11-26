@@ -49,20 +49,4 @@ add_task(async function test_loginDataSourcePasswordPrototype() {
     login.password,
     "password of line matches password of login record"
   );
-
-  const modifiedPassword = "newPass";
-  passwordLine.executeSave(modifiedPassword);
-
-  await TestUtils.waitForCondition(
-    () => loginDataSource.doneReloadDataSource,
-    "reloadDataSource has finished"
-  );
-
-  const updatedLogin = (await Services.logins.getAllLogins())[0];
-
-  Assert.equal(
-    updatedLogin.password,
-    modifiedPassword,
-    "calling executeSave updated the password of the login record "
-  );
 });

@@ -41,19 +41,4 @@ add_task(async function test_loginDataSourceUsernamePrototype() {
     login.username,
     "username of line matches username of login record"
   );
-
-  const modifiedUsername = "newUsername";
-  usernameLine.executeSave(modifiedUsername);
-
-  await TestUtils.waitForCondition(
-    () => loginDataSource.doneReloadDataSource,
-    "reloadDataSource has finished"
-  );
-
-  const updatedLogin = (await Services.logins.getAllLogins())[0];
-  Assert.equal(
-    updatedLogin.username,
-    modifiedUsername,
-    "calling executeSave updated the username of the login record"
-  );
 });

@@ -24,4 +24,8 @@ export class MegalistParent extends JSWindowActorParent {
   receiveMessage(message) {
     return this.#viewModel?.handleViewMessage(message);
   }
+
+  authExpirationTime() {
+    return this.#viewModel.authExpirationTime;
+  }
 }
