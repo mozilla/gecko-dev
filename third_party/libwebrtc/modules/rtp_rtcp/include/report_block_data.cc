@@ -21,8 +21,8 @@ TimeDelta ReportBlockData::jitter(int rtp_clock_rate_hz) const {
   return TimeDelta::Seconds(jitter()) / rtp_clock_rate_hz;
 }
 
-// TODO(webrtc:370535296): When (webrtc:370535296) is fixed, we don't need the
-// utc timestamp.
+// TODO: bugs.webrtc.org/370535296 - Remove the utc timestamp when linked
+// issue is fixed.
 void ReportBlockData::SetReportBlock(uint32_t sender_ssrc,
                                      const rtcp::ReportBlock& report_block,
                                      Timestamp report_block_timestamp_utc,

@@ -72,8 +72,8 @@ class ReportBlockData {
   TimeDelta jitter(int rtp_clock_rate_hz) const;
 
   // Time in utc epoch (Jan 1st, 1970) the report block was received.
-  // TODO(webrtc:370535296): When (webrtc:370535296) is fixed, we don't need the
-  // utc timestamp.
+  // TODO: bugs.webrtc.org/370535296 - Remove the utc timestamp when linked
+  // issue is fixed.
   Timestamp report_block_timestamp_utc() const {
     return report_block_timestamp_utc_;
   }
@@ -96,8 +96,8 @@ class ReportBlockData {
     extended_highest_sequence_number_ = sn;
   }
   void set_jitter(uint32_t jitter) { jitter_ = jitter; }
-  // TODO(webrtc:370535296): When (webrtc:370535296) is fixed, we don't need the
-  // utc timestamp.
+  // TODO: bugs.webrtc.org/370535296 - Remove the utc timestamp when linked
+  // issue is fixed.
   void set_report_block_timestamp_utc(Timestamp arrival_time) {
     report_block_timestamp_utc_ = arrival_time;
   }
@@ -118,8 +118,8 @@ class ReportBlockData {
   int32_t cumulative_lost_ = 0;
   uint32_t extended_highest_sequence_number_ = 0;
   uint32_t jitter_ = 0;
-  // TODO(webrtc:370535296): When (webrtc:370535296) is fixed, we don't need the
-  // utc timestamp.
+  // TODO: bugs.webrtc.org/370535296 - Remove the utc timestamp when linked
+  // issue is fixed.
   Timestamp report_block_timestamp_utc_ = Timestamp::Zero();
   Timestamp report_block_timestamp_ = Timestamp::Zero();
   TimeDelta last_rtt_ = TimeDelta::Zero();
