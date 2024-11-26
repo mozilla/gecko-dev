@@ -19,7 +19,11 @@ add_task(async function () {
 
   let visible = gBrowser.visibleTabs;
   is(visible.length, 3, "3 tabs should be visible");
-  is(gBrowser.openTabCount, 4, "number of tabs to be considered open (step 1)");
+  is(
+    gBrowser.openTabs.length,
+    4,
+    "number of tabs to be considered open (step 1)"
+  );
   is(visible[0], pinned, "the pinned tab is first");
   is(visible[1], origTab, "original tab is next");
   is(visible[2], testTab, "last created tab is next to last");
@@ -32,7 +36,11 @@ add_task(async function () {
   );
   BrowserTestUtils.showOnlyTheseTabs(gBrowser, [testTab]);
   is(gBrowser.visibleTabs.length, 3, "all 3 tabs are still visible");
-  is(gBrowser.openTabCount, 4, "number of tabs to be considered open (step 2)");
+  is(
+    gBrowser.openTabs.length,
+    4,
+    "number of tabs to be considered open (step 2)"
+  );
 
   info("Select the test tab and only show that (and pinned)");
   gBrowser.selectedTab = testTab;
@@ -43,7 +51,11 @@ add_task(async function () {
   is(visible[0], pinned, "first is pinned");
   is(visible[1], testTab, "next is the test tab");
   is(gBrowser.tabs.length, 4, "4 tabs should still be open");
-  is(gBrowser.openTabCount, 4, "number of tabs to be considered open (step 3)");
+  is(
+    gBrowser.openTabs.length,
+    4,
+    "number of tabs to be considered open (step 3)"
+  );
 
   gBrowser.selectTabAtIndex(1);
   is(gBrowser.selectedTab, testTab, "second tab is the test tab");
@@ -98,7 +110,11 @@ add_task(async function () {
     Array.from(gBrowser.tabs.slice(0, 3))
   );
   is(gBrowser.visibleTabs.length, 3, "all 3 tabs are visible again");
-  is(gBrowser.openTabCount, 4, "number of tabs to be considered open (step 4)");
+  is(
+    gBrowser.openTabs.length,
+    4,
+    "number of tabs to be considered open (step 4)"
+  );
 
   info(
     "Select the pinned tab and show the testTab to make sure selection updates"
@@ -110,12 +126,20 @@ add_task(async function () {
   gBrowser.removeTab(pinned);
   is(gBrowser.selectedTab, testTab, "making sure origTab was skipped");
   is(gBrowser.visibleTabs.length, 1, "only testTab is there");
-  is(gBrowser.openTabCount, 3, "number of tabs to be considered open (step 5)");
+  is(
+    gBrowser.openTabs.length,
+    3,
+    "number of tabs to be considered open (step 5)"
+  );
 
   info("Only show one of the non-pinned tabs (but testTab is selected)");
   BrowserTestUtils.showOnlyTheseTabs(gBrowser, [origTab]);
   is(gBrowser.visibleTabs.length, 2, "got 2 tabs");
-  is(gBrowser.openTabCount, 3, "number of tabs to be considered open (step 6)");
+  is(
+    gBrowser.openTabs.length,
+    3,
+    "number of tabs to be considered open (step 6)"
+  );
 
   info("Now really only show one of the tabs");
   BrowserTestUtils.showOnlyTheseTabs(gBrowser, [testTab]);
@@ -123,7 +147,11 @@ add_task(async function () {
   is(visible.length, 1, "only the original tab is visible");
   is(visible[0], testTab, "it's the original tab");
   is(gBrowser.tabs.length, 3, "still have 3 open tabs");
-  is(gBrowser.openTabCount, 3, "number of tabs to be considered open (step 7)");
+  is(
+    gBrowser.openTabs.length,
+    3,
+    "number of tabs to be considered open (step 7)"
+  );
 
   info("Close the selectable hidden tab");
   gBrowser.removeTab(firefoxViewTab);
@@ -137,7 +165,11 @@ add_task(async function () {
   gBrowser.removeTab(testTab);
   is(gBrowser.visibleTabs.length, 1, "a new visible tab was opened");
   is(gBrowser.tabs.length, 2, "we have two tabs in total");
-  is(gBrowser.openTabCount, 2, "number of tabs to be considered open (step 8)");
+  is(
+    gBrowser.openTabs.length,
+    2,
+    "number of tabs to be considered open (step 8)"
+  );
   ok(origTab.hidden, "original tab is still hidden");
   ok(!origTab.selected, "original tab is not selected");
   gBrowser.removeTab(origTab);

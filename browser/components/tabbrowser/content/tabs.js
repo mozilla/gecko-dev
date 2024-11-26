@@ -1498,16 +1498,28 @@
       return children.filter(node => node.tagName == "tab-group");
     }
 
-    #visibleTabs;
+    /**
+     * Returns all tabs in the current window, including hidden tabs and tabs
+     * in collapsed groups, but excluding closing tabs and the Firefox View tab.
+     */
+    get openTabs() {
+      if (!this.#openTabs) {
+        this.#openTabs = this.allTabs.filter(tab => tab.isOpen);
+      }
+      return this.#openTabs;
+    }
+    #openTabs;
+
+    /**
+     * Same as `openTabs` but excluding hidden tabs and tabs in collapsed groups.
+     */
     get visibleTabs() {
       if (!this.#visibleTabs) {
-        this.#visibleTabs = Array.prototype.filter.call(
-          this.allTabs,
-          tab => tab.visible
-        );
+        this.#visibleTabs = this.openTabs.filter(tab => tab.visible);
       }
       return this.#visibleTabs;
     }
+    #visibleTabs;
 
     /**
      * @returns {boolean} true if the keyboard focus is on the active tab
@@ -1569,6 +1581,7 @@
     }
 
     _invalidateCachedVisibleTabs() {
+      this.#openTabs = null;
       this.#visibleTabs = null;
       // Focusable items must also be visible, but they do not depend on
       // this.#visibleTabs, so changes to visible tabs need to also invalidate

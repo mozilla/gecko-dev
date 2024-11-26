@@ -232,7 +232,7 @@ export class ProfilesParent extends JSWindowActorParent {
         let profileObj = SelectableProfileService.currentProfile.toObject();
         let windowCount = lazy.EveryWindow.readyWindows.length;
         let tabCount = lazy.EveryWindow.readyWindows
-          .flatMap(win => win.gBrowser.openTabCount)
+          .flatMap(win => win.gBrowser.openTabs.length)
           .reduce((total, current) => total + current);
         let loginCount = (await lazy.LoginHelper.getAllUserFacingLogins())
           .length;

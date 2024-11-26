@@ -234,7 +234,7 @@
         position: "bottomleft topleft",
       });
       document.getElementById("tabGroupEditor_moveGroupToNewWindow").disabled =
-        gBrowser.openTabCount == this.activeGroup?.tabs.length;
+        gBrowser.openTabs.length == this.activeGroup?.tabs.length;
     }
 
     on_popupshown() {

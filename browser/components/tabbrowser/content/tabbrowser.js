@@ -393,20 +393,19 @@
       return this.tabpanels.dispatchEvent(...args);
     }
 
-    get visibleTabs() {
-      return this.tabContainer.visibleTabs;
+    /**
+     * Returns all tabs in the current window, including hidden tabs and tabs
+     * in collapsed groups, but excluding closing tabs and the Firefox View tab.
+     */
+    get openTabs() {
+      return this.tabContainer.openTabs;
     }
 
     /**
-     * Returns the number of tabs in the current window, including hidden tabs
-     * and tabs in collapsed groups, but excluding the Firefox View tab.
+     * Same as `openTabs` but excluding hidden tabs and tabs in collapsed groups.
      */
-    get openTabCount() {
-      let count = this.tabs.length - this._removingTabs.size;
-      if (FirefoxViewHandler.tab) {
-        count--;
-      }
-      return count;
+    get visibleTabs() {
+      return this.tabContainer.visibleTabs;
     }
 
     get pinnedTabCount() {

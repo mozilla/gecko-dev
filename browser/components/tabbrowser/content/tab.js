@@ -195,13 +195,14 @@
       return this.hasAttribute("pinned");
     }
 
-    get visible() {
+    get isOpen() {
       return (
-        this.isConnected &&
-        !this.hidden &&
-        !this.closing &&
-        !this.group?.collapsed
+        this.isConnected && !this.closing && this != FirefoxViewHandler.tab
       );
+    }
+
+    get visible() {
+      return this.isOpen && !this.hidden && !this.group?.collapsed;
     }
 
     get hidden() {

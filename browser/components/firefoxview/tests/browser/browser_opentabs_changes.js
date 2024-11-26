@@ -400,6 +400,26 @@ add_task(async function test_TabRecencyChange() {
     "The most-recent non-private tab is the selected tab in the current window"
   );
 
+  tabChangeRaised = BrowserTestUtils.waitForEvent(
+    NonPrivateTabs,
+    "TabRecencyChange"
+  );
+  // Add tab to group and collapse that group, which selects another tab,
+  // which should produce a recency change event.
+  let tabCount = NonPrivateTabs.getRecentTabs().length;
+  win0.gBrowser.addTabGroup([win0.gBrowser.selectedTab]).collapsed = true;
+  changeEvent = await tabChangeRaised;
+  Assert.deepEqual(
+    changeEvent.detail.windowIds,
+    [getWindowId(win0)],
+    "The event had the correct window id"
+  );
+  is(
+    tabCount,
+    NonPrivateTabs.getRecentTabs().length,
+    "Adding selected tab to group and collapsing that group doesn't remove tab from recent tabs"
+  );
+
   await cleanup("TabRecencyChange");
   while (win0.gBrowser.tabs.length > 1) {
     info(

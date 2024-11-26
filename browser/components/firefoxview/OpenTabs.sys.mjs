@@ -348,10 +348,8 @@ class OpenTabsTarget extends EventTarget {
    */
   getTabsForWindow(win, sortByRecency = false) {
     if (this.currentWindows.includes(win)) {
-      const { visibleTabs } = win.gBrowser;
-      return sortByRecency
-        ? visibleTabs.toSorted(lastSeenActiveSort)
-        : [...visibleTabs];
+      const tabs = win.gBrowser.openTabs.filter(tab => !tab.hidden);
+      return sortByRecency ? tabs.toSorted(lastSeenActiveSort) : tabs;
     }
     return [];
   }
