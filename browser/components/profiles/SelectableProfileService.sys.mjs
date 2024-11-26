@@ -165,7 +165,7 @@ class SelectableProfileServiceClass {
   static getDirectory(id) {
     if (this.#dirSvc) {
       if (id in this.#dirSvc) {
-        return this.#dirSvc[id];
+        return this.#dirSvc[id].clone();
       }
     }
 
@@ -655,7 +655,8 @@ class SelectableProfileServiceClass {
 
   async #updateTaskbar() {
     try {
-      if (!gSupportsBadging) {
+      // We don't want the startup profile selector to badge the dock icon.
+      if (!gSupportsBadging || Services.startup.startingUp) {
         return;
       }
 
