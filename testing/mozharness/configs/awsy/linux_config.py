@@ -8,7 +8,7 @@ PYTHON = "/usr/bin/env python"
 VENV_PATH = "%s/build/venv" % os.getcwd()
 ABS_WORK_DIR = os.path.join(os.getcwd(), "build")
 BINARY_PATH = os.path.join(ABS_WORK_DIR, "application", "firefox", "firefox-bin")
-INSTALLER_PATH = os.path.join(ABS_WORK_DIR, "installer.tar.bz2")
+INSTALLER_PATH = os.path.join(ABS_WORK_DIR, "installer.tar.xz")
 
 config = {
     "log_name": "awsy",

@@ -244,7 +244,7 @@ mapping:
         destinations:
             - ${version}-candidates/build${build_number}/mar-tools
         expiry: "1 year"
-    target.tar.bz2:
+    target.tar.xz:
         <<: *default
         description: "Main installer for Linux platforms"
         all_locales: true
@@ -255,10 +255,10 @@ mapping:
             - linux64-shippable
             - linux-devedition
             - linux64-devedition
-        pretty_name: firefox-${version}.tar.bz2
-        checksums_path: ${path_platform}/${locale}/firefox-${version}.tar.bz2
+        pretty_name: firefox-${version}.tar.xz
+        checksums_path: ${path_platform}/${locale}/firefox-${version}.tar.xz
         expiry: "1 year"
-    target.tar.bz2.asc:
+    target.tar.xz.asc:
         <<: *default
         description: "Detached signature for the checksums file"
         all_locales: true
@@ -269,8 +269,8 @@ mapping:
             - linux64-shippable
             - linux-devedition
             - linux64-devedition
-        pretty_name: firefox-${version}.tar.bz2.asc
-        checksums_path: ${path_platform}/${locale}/firefox-${version}.tar.bz2.asc
+        pretty_name: firefox-${version}.tar.xz.asc
+        checksums_path: ${path_platform}/${locale}/firefox-${version}.tar.xz.asc
         expiry: "1 year"
     target.pkg:
         <<: *default

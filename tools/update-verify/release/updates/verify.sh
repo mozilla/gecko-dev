@@ -182,7 +182,7 @@ do
                     ;;
             esac
             ;;
-          *bz2)
+          *bz2|*xz)
             updater_package_url=${updater_package_url/ja-JP-mac/ja}
             platform_dirname=$(echo "$product" | tr '[:upper:]' '[:lower:]')
             updater_bins="updater"

@@ -160,7 +160,7 @@ class MozharnessRunner(MozbuildObject):
 
     def _installer_url(self):
         package_re = {
-            "linux": re.compile(r"^firefox-\d+\..+\.tar\.bz2$"),
+            "linux": re.compile(r"^firefox-\d+\..+\.tar\.(bz2|xz)$"),
             "win": re.compile(r"^firefox-\d+\..+\.installer\.exe$"),
             "mac": re.compile(r"^firefox-\d+\..+\.mac(?:64)?\.dmg$"),
         }[mozinfo.info["os"]]

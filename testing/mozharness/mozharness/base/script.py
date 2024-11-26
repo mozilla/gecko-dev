@@ -717,7 +717,7 @@ class ScriptMixin(PlatformMixin):
                     self.warning("{} was not found in the zip file".format(entry))
 
     def deflate(self, compressed_file, mode, extract_to=".", *args, **kwargs):
-        """This method allows to extract a compressed file from a tar, tar.bz2 and tar.gz files.
+        """This method allows to extract a compressed file from a tar{,bz2,gz,xz} files.
 
         Args:
             compressed_file (object): File-like object with the contents of a compressed file.
@@ -745,11 +745,16 @@ class ScriptMixin(PlatformMixin):
         def _determine_extraction_method_and_kwargs(url):
             EXTENSION_TO_MIMETYPE = {
                 "bz2": "application/x-bzip2",
+                "xz": "application/x-xz",
                 "gz": "application/x-gzip",
                 "tar": "application/x-tar",
                 "zip": "application/zip",
             }
             MIMETYPES = {
+                "application/x-xz": {
+                    "function": self.deflate,
+                    "kwargs": {"mode": "r:xz"},
+                },
                 "application/x-bzip2": {
                     "function": self.deflate,
                     "kwargs": {"mode": "r:bz2"},
@@ -771,7 +776,7 @@ class ScriptMixin(PlatformMixin):
             }
 
             filename = url.split("/")[-1]
-            # XXX: bz2/gz instead of tar.{bz2/gz}
+            # XXX: bz2/gz/xz instead of tar.{bz2/gz/xz}
             extension = filename[filename.rfind(".") + 1 :]
             mimetype = EXTENSION_TO_MIMETYPE[extension]
             self.debug("Mimetype: {}".format(mimetype))

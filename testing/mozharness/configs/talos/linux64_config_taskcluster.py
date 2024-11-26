@@ -12,7 +12,7 @@ exes = {
     "python": PYTHON,
 }
 ABS_WORK_DIR = os.path.join(os.getcwd(), "build")
-INSTALLER_PATH = os.path.join(ABS_WORK_DIR, "installer.tar.bz2")
+INSTALLER_PATH = os.path.join(ABS_WORK_DIR, "installer.tar.xz")
 
 config = {
     "log_name": "talos",

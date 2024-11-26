@@ -11,7 +11,7 @@ import pytest
 def test_is_installer(request, get_installer):
     """Test that we can identify a correct installer."""
     if mozinfo.isLinux:
-        assert mozinstall.is_installer(get_installer("tar.bz2"))
+        assert mozinstall.is_installer(get_installer("tar.xz"))
 
     if mozinfo.isWin:
         # test zip installer

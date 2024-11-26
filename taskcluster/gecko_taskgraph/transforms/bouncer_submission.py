@@ -54,8 +54,8 @@ CONFIG_PER_BOUNCER_PRODUCT = {
     "installer": {
         "path_template": RELEASES_PATH_TEMPLATE,
         "file_names": {
-            "linux": "{product}-{version}.tar.bz2",
-            "linux64": "{product}-{version}.tar.bz2",
+            "linux": "{product}-{version}.tar.xz",
+            "linux64": "{product}-{version}.tar.xz",
             "osx": "{pretty_product}%20{version}.dmg",
             "win": "{pretty_product}%20Setup%20{version}.exe",
             "win64": "{pretty_product}%20Setup%20{version}.exe",

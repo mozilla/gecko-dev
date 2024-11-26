@@ -16,7 +16,7 @@ task-defaults:
             - artifact: target.perftests.tests.tar.gz
             - artifact: target.xpcshell.tests.tar.gz
             - artifact: target.mochitest.tests.tar.gz
-            - artifact: target.tar.bz2
+            - artifact: target.tar.xz
     platform: linux1804-64-shippable/opt
     require-build:
         linux1804-64-shippable/opt: build-linux64-shippable/opt

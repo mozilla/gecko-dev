@@ -12,7 +12,7 @@ import pytest
 def test_uninstall(tmpdir, get_installer):
     """Test to uninstall an installed binary."""
     if mozinfo.isLinux:
-        installdir = mozinstall.install(get_installer("tar.bz2"), tmpdir.strpath)
+        installdir = mozinstall.install(get_installer("tar.xz"), tmpdir.strpath)
         mozinstall.uninstall(installdir)
         assert not py.path.local(installdir).check()
 

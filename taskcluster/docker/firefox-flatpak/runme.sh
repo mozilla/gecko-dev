@@ -47,8 +47,8 @@ rm -rf ~/.local/share/flatpak/
 CURL="curl --location --retry 10 --retry-delay 10"
 
 # Download en-US linux64 binary
-$CURL -o "${WORKSPACE}/firefox.tar.bz2" \
-    "${CANDIDATES_DIR}/${VERSION}-candidates/build${BUILD_NUMBER}/linux-x86_64/en-US/firefox-${VERSION}.tar.bz2"
+$CURL -o "${WORKSPACE}/firefox.tar.xz" \
+    "${CANDIDATES_DIR}/${VERSION}-candidates/build${BUILD_NUMBER}/linux-x86_64/en-US/firefox-${VERSION}.tar.xz"
 
 # Use list of locales to fetch L10N XPIs
 $CURL -o "${WORKSPACE}/l10n_changesets.json" "$L10N_CHANGESETS"
@@ -118,7 +118,7 @@ EOF
 
 appdir=build/files
 install -d "${appdir}/lib/"
-(cd "${appdir}/lib/" && tar jxf "${WORKSPACE}/firefox.tar.bz2")
+(cd "${appdir}/lib/" && tar xfJ "${WORKSPACE}/firefox.tar.xz")
 install -D -m644 -t "${appdir}/share/appdata" org.mozilla.firefox.appdata.xml
 install -D -m644 -t "${appdir}/share/applications" org.mozilla.firefox.desktop
 for size in 16 32 48 64 128; do
@@ -177,7 +177,7 @@ flatpak build-export --disable-sandbox --no-update-summary --exclude='/share/run
 flatpak build-export --disable-sandbox --no-update-summary --metadata=metadata.locale --files=files/share/runtime/langpack repo build "$FLATPAK_BRANCH"
 ostree commit --repo=repo --canonical-permissions --branch=screenshots/x86_64 build/screenshots
 flatpak build-update-repo --generate-static-deltas repo
-tar cvfJ flatpak.tar.xz repo
+XZ_OPT='-e9' tar cvfJ flatpak.tar.xz repo
 
 mv -- flatpak.tar.xz "$TARGET_TAR_XZ_FULL_PATH"
 

@@ -41,7 +41,7 @@ class InvalidSource(Exception):
     """Thrown when the specified source is not a recognized file type.
 
     Supported types:
-    Linux:   tar.gz, tar.bz2
+    Linux:   tar.gz, tar.bz2, tar.xz
     Mac:     dmg
     Windows: zip, exe
 
@@ -99,7 +99,7 @@ def get_binary(path, app_name):
 
 
 def install(src, dest):
-    """Install a zip, exe, tar.gz, tar.bz2 or dmg file, and return the path of
+    """Install a zip, exe, tar.gz, tar.bz2, tar.xz or dmg file, and return the path of
     the installation folder.
 
     :param src: Path to the install file
@@ -168,7 +168,7 @@ def is_installer(src):
     """Tests if the given file is a valid installer package.
 
     Supported types:
-    Linux:   tar.gz, tar.bz2
+    Linux:   tar.gz, tar.bz2, tar.xz
     Mac:     dmg
     Windows: zip, exe
 

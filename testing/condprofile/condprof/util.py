@@ -147,7 +147,7 @@ def get_firefox_download_link():
         extension = ".dmg"
     elif platform.system() == "Linux":
         arch = platform.machine()
-        extension = ".linux-%s.tar.bz2" % arch
+        extension = ".linux-%s.tar.xz" % arch
     else:
         raise NotImplementedError(platform.system())
 
@@ -313,7 +313,7 @@ def latest_nightly(binary=None):
         elif platform.system() == "Linux":
             cmd = "bunzip2 %s" % target
             os.system(cmd)
-            cmd = "tar -xvf %s" % target[: -len(".bz2")]
+            cmd = "tar -xvf %s" % target[: -len(".xz")]
             os.system(cmd)
             binary = "firefox/firefox"
 

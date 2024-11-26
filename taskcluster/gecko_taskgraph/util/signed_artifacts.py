@@ -119,7 +119,7 @@ def generate_specifications_of_artifacts_to_sign(
     elif "linux" in build_platform:
         artifacts_specifications = [
             {
-                "artifacts": [get_artifact_path(job, "{locale}/target.tar.bz2")],
+                "artifacts": [get_artifact_path(job, "{locale}/target.tar.xz")],
                 "formats": ["autograph_gpg", "autograph_widevine", "autograph_omnija"],
             }
         ]

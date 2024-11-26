@@ -13,7 +13,7 @@ import pytest
 def test_get_binary(tmpdir, get_installer):
     """Test to retrieve binary from install path."""
     if mozinfo.isLinux:
-        installdir = mozinstall.install(get_installer("tar.bz2"), tmpdir.strpath)
+        installdir = mozinstall.install(get_installer("tar.xz"), tmpdir.strpath)
         binary = os.path.join(installdir, "firefox")
 
         assert mozinstall.get_binary(installdir, "firefox") == binary

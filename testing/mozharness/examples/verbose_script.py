@@ -25,13 +25,13 @@ class VerboseExample(BaseScript):
                 "verbosity",
             ],
             require_config_file=require_config_file,
-            config={"tarball_name": "bar.tar.bz2"},
+            config={"tarball_name": "bar.tar.xz"},
         )
 
     def verbosity(self):
         tarball_name = self.config["tarball_name"]
         self.download_file(
-            "http://people.mozilla.org/~asasaki/foo.tar.bz2", file_name=tarball_name
+            "http://people.mozilla.org/~asasaki/foo.tar.xz", file_name=tarball_name
         )
         # the error_list adds more error checking.
         # the halt_on_failure will kill the script at this point if
@@ -40,7 +40,7 @@ class VerboseExample(BaseScript):
         # |if self.run_command(...):| construct, or define a self._post_fatal()
         # for a generic end-of-fatal-run method.
         self.run_command(
-            ["tar", "xjvf", tarball_name],
+            ["tar", "xJvf", tarball_name],
             #            error_list=TarErrorList,
             #            halt_on_failure=True,
             #            fatal_exit_code=3,
@@ -48,14 +48,14 @@ class VerboseExample(BaseScript):
         self.rmtree("x/ship2")
         self.rmtree(tarball_name)
         self.run_command(
-            ["tar", "cjvf", tarball_name, "x"],
+            ["tar", "cJvf", tarball_name, "x"],
             #            error_list=TarErrorList,
             #            halt_on_failure=True,
             #            fatal_exit_code=3,
         )
         self.rmtree("x")
         if self.run_command(
-            ["scp", tarball_name, "people.mozilla.org:public_html/foo2.tar.bz2"],
+            ["scp", tarball_name, "people.mozilla.org:public_html/foo2.tar.xz"],
             #            error_list=SSHErrorList,
         ):
             self.error(

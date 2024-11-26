@@ -8,9 +8,9 @@ ifndef MOZ_PKG_FORMAT
     else ifeq ($(OS_ARCH),WINNT)
         MOZ_PKG_FORMAT = ZIP
     else ifeq ($(OS_ARCH),SunOS)
-        MOZ_PKG_FORMAT = BZ2
+        MOZ_PKG_FORMAT = XZ
     else ifeq ($(MOZ_WIDGET_TOOLKIT),gtk)
-        MOZ_PKG_FORMAT = BZ2
+        MOZ_PKG_FORMAT = XZ
     else ifeq ($(MOZ_WIDGET_TOOLKIT),android)
         MOZ_PKG_FORMAT = APK
     else
@@ -106,6 +106,12 @@ ifeq ($(MOZ_PKG_FORMAT),TGZ)
   PKG_SUFFIX	= .tar.gz
   INNER_MAKE_PACKAGE 	= cd $(1) && $(CREATE_FINAL_TAR) - $(MOZ_PKG_DIR) | gzip -vf9 > $(PACKAGE)
   INNER_UNMAKE_PACKAGE	= cd $(1) && gunzip -c $(UNPACKAGE) | $(UNPACK_TAR)
+endif
+
+ifeq ($(MOZ_PKG_FORMAT),XZ)
+  PKG_SUFFIX = .tar.xz
+  INNER_MAKE_PACKAGE 	= cd $(1) && $(CREATE_FINAL_TAR) - $(MOZ_PKG_DIR) | xz --compress --stdout -9 --extreme > $(PACKAGE)
+  INNER_UNMAKE_PACKAGE	= cd $(1) && xz --decompress --stdout $(UNPACKAGE) | $(UNPACK_TAR)
 endif
 
 ifeq ($(MOZ_PKG_FORMAT),BZ2)

@@ -33,6 +33,7 @@ from mozharness.mozilla.tooltool import TooltoolMixin
 INSTALLER_SUFFIXES = (
     ".apk",  # Android
     ".tar.bz2",
+    ".tar.xz",
     ".tar.gz",  # Linux
     ".dmg",  # Mac
     ".installer-stub.exe",

@@ -1111,7 +1111,7 @@ items from that key's value."
         dirs = self.query_abs_dirs()
 
         dist_dir = os.path.join(dirs["abs_obj_dir"], "dist")
-        for ext in ["apk", "dmg", "tar.bz2", "zip"]:
+        for ext in ["apk", "dmg", "tar.bz2", "zip", "tar.xz"]:
             name = "target." + ext
             if os.path.exists(os.path.join(dist_dir, name)):
                 packageName = name

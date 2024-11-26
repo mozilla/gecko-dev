@@ -684,7 +684,7 @@ def build_docker_worker_payload(config, task, task_def):
                 # Required if and only if `content` is specified and mounting a
                 # directory (not a file). This should be the archive format of the
                 # content (either pre-loaded cache or read-only directory).
-                Optional("format"): Any("rar", "tar.bz2", "tar.gz", "zip"),
+                Optional("format"): Any("rar", "tar.bz2", "tar.gz", "zip", "tar.xz"),
             }
         ],
         # environment variables

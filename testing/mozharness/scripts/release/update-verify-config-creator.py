@@ -269,6 +269,13 @@ class UpdateVerifyConfigCreator(BaseScript):
             },
         ],
         [
+            ["--last-linux-bz2-version"],
+            {
+                "dest": "last_linux_bz2_version",
+                "help": "Last linux build version with bz2 compression.",
+            },
+        ],
+        [
             ["--hg-server"],
             {
                 "dest": "hg_server",
@@ -646,6 +653,7 @@ class UpdateVerifyConfigCreator(BaseScript):
             self.config["to_version"],
             self.config["platform"],
             locale="%locale%",
+            last_linux_bz2_version=self.config.get("last_linux_bz2_version"),
         )
         to_path = "{}/{}".format(candidates_dir, to_)
 

@@ -13,7 +13,7 @@ import pytest
 def test_is_installer(request, get_installer):
     """Test that we can identify a correct installer."""
     if mozinfo.isLinux:
-        assert mozinstall.is_installer(get_installer("tar.bz2"))
+        assert mozinstall.is_installer(get_installer("tar.xz"))
 
     if mozinfo.isWin:
         # test zip installer
@@ -46,11 +46,11 @@ def test_invalid_source_error(get_installer):
 
     elif mozinfo.isWin:
         with pytest.raises(mozinstall.InvalidSource):
-            mozinstall.install(get_installer("tar.bz2"), "firefox")
+            mozinstall.install(get_installer("tar.xz"), "firefox")
 
     elif mozinfo.isMac:
         with pytest.raises(mozinstall.InvalidSource):
-            mozinstall.install(get_installer("tar.bz2"), "firefox")
+            mozinstall.install(get_installer("tar.xz"), "firefox")
 
     # Test an invalid url handler
     with pytest.raises(mozinstall.InvalidSource):
@@ -64,7 +64,7 @@ def test_invalid_source_error(get_installer):
 def test_install(tmpdir, get_installer):
     """Test to install an installer."""
     if mozinfo.isLinux:
-        installdir = mozinstall.install(get_installer("tar.bz2"), tmpdir.strpath)
+        installdir = mozinstall.install(get_installer("tar.xz"), tmpdir.strpath)
         assert installdir == tmpdir.join("firefox").strpath
 
     elif mozinfo.isWin:
