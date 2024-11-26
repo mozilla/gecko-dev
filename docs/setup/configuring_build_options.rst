@@ -416,11 +416,11 @@ better debugging experience without having the entire browser being very slow:
 
 .. code:: python
 
-    nonopt = [
+    nonopt = (
         "dom/media/",
         "media/ffvpx/",
         "media/libcubeb/"
-    ]
+    )
     if RELATIVEDIR.startswith(nonopt):
         COMPILE_FLAGS["OPTIMIZE"] = []
 
