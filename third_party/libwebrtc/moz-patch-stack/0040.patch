@@ -91,7 +91,7 @@ index 865fe00442..723e13fe1d 100644
  
  }  // namespace voe
 diff --git a/audio/channel_receive.h b/audio/channel_receive.h
-index afac2944ca..3db1c8fff3 100644
+index ab6ce531d6..d396511ab5 100644
 --- a/audio/channel_receive.h
 +++ b/audio/channel_receive.h
 @@ -29,6 +29,7 @@
@@ -113,7 +113,7 @@ index afac2944ca..3db1c8fff3 100644
  }  // namespace voe
  }  // namespace webrtc
 diff --git a/call/audio_receive_stream.h b/call/audio_receive_stream.h
-index f66abdff3c..2764c396fc 100644
+index 8056e9c0d9..ec8b5c04fb 100644
 --- a/call/audio_receive_stream.h
 +++ b/call/audio_receive_stream.h
 @@ -21,6 +21,7 @@
@@ -147,7 +147,7 @@ index c03b053113..04e34ff579 100644
    return ss.str();
  }
 diff --git a/call/video_receive_stream.h b/call/video_receive_stream.h
-index c2caa05b38..7888255129 100644
+index c60aba7886..6a06bdda23 100644
 --- a/call/video_receive_stream.h
 +++ b/call/video_receive_stream.h
 @@ -22,6 +22,7 @@
@@ -253,7 +253,7 @@ index 029fc3a5e2..33aa986e8b 100644
    RtcpLossNotificationObserver* const rtcp_loss_notification_observer_;
    NetworkStateEstimateObserver* const network_state_estimate_observer_;
 diff --git a/modules/rtp_rtcp/source/rtp_rtcp_interface.h b/modules/rtp_rtcp/source/rtp_rtcp_interface.h
-index 18647ed098..0fd753f469 100644
+index 68e8fb70bd..e14072c0fc 100644
 --- a/modules/rtp_rtcp/source/rtp_rtcp_interface.h
 +++ b/modules/rtp_rtcp/source/rtp_rtcp_interface.h
 @@ -70,6 +70,9 @@ class RtpRtcpInterface : public RtcpFeedbackSenderInterface {

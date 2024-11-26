@@ -152,7 +152,7 @@ class RtpRtcpInterface : public RtcpFeedbackSenderInterface {
     // Arrival timestamp (enviroment clock) for the last received RTCP SR.
     Timestamp last_arrival_timestamp = Timestamp::Zero();
     // Arrival NTP timestamp for the last received RTCP SR.
-    // TODO: bugs.webrtc.org/370535296: Remove the ntp arrival timestamp when
+    // TODO: bugs.webrtc.org/370535296 - Remove the ntp arrival timestamp when
     // linked issue is fixed.
     NtpTime last_arrival_ntp_timestamp;
     // Received (a.k.a., remote) NTP timestamp for the last received RTCP SR.

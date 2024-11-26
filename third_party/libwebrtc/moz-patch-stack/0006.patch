@@ -16,7 +16,7 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/b55b0368d9f21849f
  8 files changed, 34 insertions(+)
 
 diff --git a/call/video_receive_stream.h b/call/video_receive_stream.h
-index fea706e09f..1ff8a8adf1 100644
+index 4a2ebfb08b..8834dfc9a9 100644
 --- a/call/video_receive_stream.h
 +++ b/call/video_receive_stream.h
 @@ -169,6 +169,9 @@ class VideoReceiveStreamInterface : public MediaReceiveStreamInterface {
@@ -123,7 +123,7 @@ index 57139e2242..1b2afac61f 100644
    // interest to statistics. Used to implement RTCRemoteInboundRtpStreamStats.
    // Within this list, the `ReportBlockData::source_ssrc()`, which is the SSRC
 diff --git a/modules/rtp_rtcp/source/rtp_rtcp_interface.h b/modules/rtp_rtcp/source/rtp_rtcp_interface.h
-index 85152357e1..3ae90f31fc 100644
+index 1ae3a312d2..b61d75cde2 100644
 --- a/modules/rtp_rtcp/source/rtp_rtcp_interface.h
 +++ b/modules/rtp_rtcp/source/rtp_rtcp_interface.h
 @@ -403,6 +403,10 @@ class RtpRtcpInterface : public RtcpFeedbackSenderInterface {
