@@ -4,10 +4,13 @@
 
 :host {
   --page-nav-button-border-radius: var(--button-border-radius);
-  --page-nav-button-text-color: var(--button-text-color);
-  --page-nav-button-background-color: transparent;
-  --page-nav-button-background-color-hover: var(--button-background-color-hover);
-  --page-nav-button-background-color-selected: var(--color-accent-primary);
+  --page-nav-button-text-color: var(--button-text-color-ghost);
+  --page-nav-button-text-color-hover: var(--button-text-color-ghost-hover);
+  --page-nav-button-text-color-active: var(--button-text-color-ghost-active);
+  --page-nav-button-background-color: var(--button-background-color-ghost);
+  --page-nav-button-background-color-hover: var(--button-background-color-ghost-hover);
+  --page-nav-button-background-color-active: var(--button-background-color-ghost-active);
+  --page-nav-button-background-color-selected: color-mix(in srgb, currentColor 8%, transparent);
   --page-nav-button-padding: var(--space-small) var(--space-medium);
   --page-nav-margin-top: 72px;
   --page-nav-margin-bottom: 36px;

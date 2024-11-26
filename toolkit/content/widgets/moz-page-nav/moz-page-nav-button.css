@@ -19,6 +19,7 @@ button {
   grid-template-columns: min-content 1fr;
   gap: var(--space-medium);
   align-items: center;
+  font-family: inherit;
   font-size: inherit;
   width: 100%;
   font-weight: normal;
@@ -50,33 +51,31 @@ button:hover {
     position: absolute;
     inset-block: 0;
     inset-inline-start: 0;
-    width: 2px;
+    width: 4px;
     background-color: transparent;
+    border-start-start-radius: var(--page-nav-button-border-radius);
+    border-end-start-radius: var(--page-nav-button-border-radius);
   }
 
   button[selected]::before {
     background-color: var(--color-accent-primary);
   }
 
-  button[selected]:hover::before {
-    background-color: var(--icon-color);
-  }
-
   a[href]:hover,
-  button:hover,
-  button[selected]:hover {
+  button:hover:not([selected]) {
+    color: var(--page-nav-button-text-color-hover);
     background-color: var(--page-nav-button-background-color-hover);
+
+    &:active {
+      color: var(--page-nav-button-text-color-active);
+      background-color: var(--page-nav-button-background-color-active);
+    }
   }
 
-  button[selected]:not(:hover) {
-    color: var(--color-accent-primary);
-    background-color: color-mix(in srgb, var(--page-nav-button-background-color-selected) 5%, transparent);
-  }
-}
-
-@media (prefers-color-scheme: dark) {
   button[selected] {
-    background-color: color-mix(in srgb, var(--page-nav-button-background-color-selected) 12%, transparent);
+    color: var(--color-accent-primary);
+    background-color: var(--page-nav-button-background-color-selected);
+    font-weight: var(--font-weight-bold);
   }
 }
 
