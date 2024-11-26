@@ -39,6 +39,8 @@ class SupportMeasurements {
     if (this.isAndroid) {
       if (this.application == "firefox") {
         this.androidPackage = this.context.options.firefox.android.package;
+      } else if (this.application == "chrome") {
+        this.androidPackage = "com.android.chrome";
       } else {
         this.androidPackage = this.context.options.chrome.android.package;
       }

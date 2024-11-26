@@ -5,6 +5,12 @@
 /* eslint-env node */
 
 const { logTest, logTask } = require("./utils/profiling");
+const {
+  initializeMeasurements,
+  startMeasurements,
+  stopMeasurements,
+  finalizeMeasurements,
+} = require("./utils/support_measurements");
 
 module.exports = logTest(
   "browsertime benchmark",
@@ -17,6 +23,14 @@ module.exports = logTest(
     let page_timeout = context.options.timeouts.pageLoad;
     let ret = false;
     let expose_profiler = context.options.browsertime.expose_profiler;
+
+    await initializeMeasurements(
+      context,
+      commands,
+      context.options.browsertime.cpuTime_test,
+      context.options.browsertime.power_test,
+      context.options.browsertime.wallclock_tracking_test
+    );
 
     context.log.info(
       "Waiting for %d ms (post_startup_delay)",
@@ -45,7 +59,9 @@ module.exports = logTest(
             await commands.trace.start();
           }
         }
+
         await commands.measure.start(url);
+        await startMeasurements(context, commands);
 
         context.log.info("Benchmark custom metric collection");
 
@@ -56,7 +72,8 @@ module.exports = logTest(
           (await commands.js.run(`return performance.now();`)) - starttime <
             page_timeout
         ) {
-          let wait_time = 3000;
+          let wait_time =
+            context.options.browsertime.benchmark_wait_time || 3000;
           context.log.info(
             "Waiting %d ms for data from benchmark...",
             wait_time
@@ -66,6 +83,7 @@ module.exports = logTest(
             "return window.sessionStorage.getItem('benchmark_results');"
           );
         }
+
         if (expose_profiler === "true") {
           context.log.info("Custom profiler stop!");
           if (context.options.browser === "firefox") {
@@ -82,6 +100,8 @@ module.exports = logTest(
           ret = false;
           context.log.error("Benchmark timed out. Aborting...");
         } else if (data) {
+          await stopMeasurements();
+
           // Reset benchmark results
           await commands.js.run(
             "return window.sessionStorage.removeItem('benchmark_results');"
@@ -106,6 +126,8 @@ module.exports = logTest(
         }
       });
     }
+    await finalizeMeasurements();
+
     context.log.info("Browsertime benchmark ended.");
     return ret;
   }
