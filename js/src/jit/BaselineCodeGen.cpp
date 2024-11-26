@@ -277,16 +277,26 @@ MethodStatus BaselineCompiler::compile(JSContext* cx) {
   perfSpewer_.recordOffset(masm, "OOLPostBarrierSlot");
   emitOutOfLinePostBarrierSlot();
 
+  if (!finishCompile(cx)) {
+    return Method_Error;
+  }
+
+  return Method_Compiled;
+}
+
+bool BaselineCompiler::finishCompile(JSContext* cx) {
+  Rooted<JSScript*> script(cx, handler.script());
+
   AutoCreatedBy acb2(masm, "exception_tail");
   Linker linker(masm);
   if (masm.oom()) {
     ReportOutOfMemory(cx);
-    return Method_Error;
+    return false;
   }
 
   JitCode* code = linker.newCode(cx, CodeKind::Baseline);
   if (!code) {
-    return Method_Error;
+    return false;
   }
 
   UniquePtr<BaselineScript> baselineScript(
@@ -298,7 +308,7 @@ MethodStatus BaselineCompiler::compile(JSContext* cx) {
           debugTrapEntries_.length(), script->resumeOffsets().size()),
       JS::DeletePolicy<BaselineScript>(cx->runtime()));
   if (!baselineScript) {
-    return Method_Error;
+    return false;
   }
 
   baselineScript->setMethod(code);
@@ -337,20 +347,20 @@ MethodStatus BaselineCompiler::compile(JSContext* cx) {
     // Generate profiling string.
     UniqueChars str = GeckoProfilerRuntime::allocProfileString(cx, script);
     if (!str) {
-      return Method_Error;
+      return false;
     }
 
     auto entry = MakeJitcodeGlobalEntry<BaselineEntry>(
         cx, code, code->raw(), code->rawEnd(), script, std::move(str));
     if (!entry) {
-      return Method_Error;
+      return false;
     }
 
     JitcodeGlobalTable* globalTable =
         cx->runtime()->jitRuntime()->getJitcodeGlobalTable();
     if (!globalTable->addEntry(std::move(entry))) {
       ReportOutOfMemory(cx);
-      return Method_Error;
+      return false;
     }
 
     // Mark the jitcode as having a bytecode map.
@@ -365,7 +375,7 @@ MethodStatus BaselineCompiler::compile(JSContext* cx) {
   vtune::MarkScript(code, script, "baseline");
 #endif
 
-  return Method_Compiled;
+  return true;
 }
 
 // On most platforms we use a dedicated bytecode PC register to avoid many
