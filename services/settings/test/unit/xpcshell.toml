@@ -24,6 +24,9 @@ support-files = ["test_attachments_downloader/**"]
 
 ["test_remote_settings_signatures.js"]
 
+["test_remote_settings_startup_bundle.js"]
+support-files = ["test_remote_settings_startup_bundle/**"]
+
 ["test_remote_settings_sync_history.js"]
 
 ["test_remote_settings_utils.js"]
