@@ -207,8 +207,6 @@ def set_treeherder_machine_platform(config, tasks):
             task["treeherder-machine-platform"] = task["test-platform"].replace(
                 ".", "-"
             )
-        elif "-qr" in task["test-platform"]:
-            task["treeherder-machine-platform"] = task["test-platform"]
         elif "android-hw" in task["test-platform"]:
             task["treeherder-machine-platform"] = task["test-platform"]
         elif "android-em-7.0-x86_64" in task["test-platform"]:
@@ -226,6 +224,8 @@ def set_treeherder_machine_platform(config, tasks):
             task["treeherder-machine-platform"] = "linux64/asan"
         elif "linux1804-asan/opt" in task["test-platform"]:
             task["treeherder-machine-platform"] = "linux1804-64/asan"
+        elif "-qr" in task["test-platform"]:
+            task["treeherder-machine-platform"] = task["test-platform"]
         else:
             task["treeherder-machine-platform"] = translation.get(
                 task["build-platform"], task["test-platform"]
@@ -931,7 +931,7 @@ def set_test_setting(config, tasks):
 
         else:
             arch = parts.pop(0)
-            if parts[0].isdigit():
+            if parts and parts[0].isdigit():
                 os_build = parts.pop(0)
 
             if parts and parts[0] == "hw-ref":

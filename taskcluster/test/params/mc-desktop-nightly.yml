@@ -94,7 +94,6 @@ existing_tasks:
   build-macosx64-aarch64/debug: H-4DeaDtRrCTh5flT76Juw
   build-macosx64-aarch64/debug-upload-symbols: b29Qn5sfTa6c7NJYf4hG-g
   build-macosx64-asan-fuzzing/opt: QvrVWu0NQ9m0MxivVbjnIw
-  build-macosx64-ccov/opt: KsPp_CeKQOWcyYQOZa3V0A
   build-macosx64-fuzzing/debug: c-nGwvvzRRa1Vaayem4Z3w
   build-macosx64-fuzzing/debug-upload-symbols: ffJHYLPWRYCvDrYhSjzgiA
   build-macosx64-nightlyasrelease/opt: b9JxnpZzS_iX3SsOgiBSTQ
