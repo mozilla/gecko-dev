@@ -900,19 +900,6 @@ GlobalObject::getOrCreateFinalizationRegistryData() {
   return maybeFinalizationRegistryData();
 }
 
-#ifndef NIGHTLY_BUILD
-bool GlobalObject::addToVarNames(JSContext* cx, JS::Handle<JSAtom*> name) {
-  MOZ_ASSERT(name);
-
-  if (!data().varNames.put(name)) {
-    ReportOutOfMemory(cx);
-    return false;
-  }
-
-  return true;
-}
-#endif
-
 /* static */
 bool GlobalObject::createIntrinsicsHolder(JSContext* cx,
                                           Handle<GlobalObject*> global) {
@@ -1070,23 +1057,11 @@ void GlobalObject::releaseData(JS::GCContext* gcx) {
   gcx->delete_(this, data, MemoryUse::GlobalObjectData);
 }
 
-GlobalObjectData::GlobalObjectData(Zone* zone)
-#ifndef NIGHTLY_BUILD
-    : varNames(zone)
-#endif
-{
-}
+GlobalObjectData::GlobalObjectData(Zone* zone) {}
 
 GlobalObjectData::~GlobalObjectData() = default;
 
 void GlobalObjectData::trace(JSTracer* trc, GlobalObject* global) {
-#ifndef NIGHTLY_BUILD
-  // Atoms are always tenured so don't need to be traced during minor GC.
-  if (trc->runtime()->heapState() != JS::HeapState::MinorCollecting) {
-    varNames.trace(trc);
-  }
-#endif
-
   for (auto& ctorWithProto : builtinConstructors) {
     TraceNullableEdge(trc, &ctorWithProto.constructor, "global-builtin-ctor");
     TraceNullableEdge(trc, &ctorWithProto.prototype,
@@ -1154,9 +1129,4 @@ void GlobalObjectData::addSizeOfIncludingThis(
     info->objectsMallocHeapGlobalData +=
         regExpRealm.regExpStatics->sizeOfIncludingThis(mallocSizeOf);
   }
-
-#ifndef NIGHTLY_BUILD
-  info->objectsMallocHeapGlobalVarNamesSet +=
-      varNames.shallowSizeOfExcludingThis(mallocSizeOf);
-#endif
 }

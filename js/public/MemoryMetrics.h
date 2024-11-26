@@ -181,18 +181,17 @@ struct InefficientNonFlatteningStringHashPolicy {
 namespace JS {
 
 struct ClassInfo {
-#define FOR_EACH_SIZE(MACRO)                                     \
-  MACRO(Objects, GCHeapUsed, objectsGCHeap)                      \
-  MACRO(Objects, MallocHeap, objectsMallocHeapSlots)             \
-  MACRO(Objects, MallocHeap, objectsMallocHeapElementsNormal)    \
-  MACRO(Objects, MallocHeap, objectsMallocHeapElementsAsmJS)     \
-  MACRO(Objects, MallocHeap, objectsMallocHeapGlobalData)        \
-  MACRO(Objects, MallocHeap, objectsMallocHeapGlobalVarNamesSet) \
-  MACRO(Objects, MallocHeap, objectsMallocHeapMisc)              \
-  MACRO(Objects, NonHeap, objectsNonHeapElementsNormal)          \
-  MACRO(Objects, NonHeap, objectsNonHeapElementsShared)          \
-  MACRO(Objects, NonHeap, objectsNonHeapElementsWasm)            \
-  MACRO(Objects, NonHeap, objectsNonHeapElementsWasmShared)      \
+#define FOR_EACH_SIZE(MACRO)                                  \
+  MACRO(Objects, GCHeapUsed, objectsGCHeap)                   \
+  MACRO(Objects, MallocHeap, objectsMallocHeapSlots)          \
+  MACRO(Objects, MallocHeap, objectsMallocHeapElementsNormal) \
+  MACRO(Objects, MallocHeap, objectsMallocHeapElementsAsmJS)  \
+  MACRO(Objects, MallocHeap, objectsMallocHeapGlobalData)     \
+  MACRO(Objects, MallocHeap, objectsMallocHeapMisc)           \
+  MACRO(Objects, NonHeap, objectsNonHeapElementsNormal)       \
+  MACRO(Objects, NonHeap, objectsNonHeapElementsShared)       \
+  MACRO(Objects, NonHeap, objectsNonHeapElementsWasm)         \
+  MACRO(Objects, NonHeap, objectsNonHeapElementsWasmShared)   \
   MACRO(Objects, NonHeap, objectsNonHeapCodeWasm)
 
   ClassInfo() = default;

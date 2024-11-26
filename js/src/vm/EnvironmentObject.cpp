@@ -3663,15 +3663,7 @@ static void ReportRuntimeRedeclaration(JSContext* cx,
   mozilla::Maybe<PropertyInfo> prop;
   bool shadowsExistingProperty = false;
 
-#ifndef NIGHTLY_BUILD
-  if (varObj->is<GlobalObject>() &&
-      varObj->as<GlobalObject>().isInVarNames(name)) {
-    // ES 15.1.11 step 5.a
-    redeclKind = "var";
-  } else
-#endif
-
-      if ((prop = lexicalEnv->lookup(cx, name))) {
+  if ((prop = lexicalEnv->lookup(cx, name))) {
     // ES 15.1.11 step 5.b
     redeclKind = prop->writable() ? "let" : "const";
   } else if (varObj->is<NativeObject>() &&
@@ -3810,14 +3802,6 @@ static bool InitGlobalOrEvalDeclarations(
           }
         }
 
-#ifndef NIGHTLY_BUILD
-        if (varObj->is<GlobalObject>()) {
-          if (!varObj->as<GlobalObject>().addToVarNames(cx, name)) {
-            return false;
-          }
-        }
-#endif
-
         break;
       }
 
@@ -3890,14 +3874,6 @@ static bool InitHoistedFunctionDeclarations(JSContext* cx, HandleScript script,
         return false;
       }
 
-#ifndef NIGHTLY_BUILD
-      if (varObj->is<GlobalObject>()) {
-        if (!varObj->as<GlobalObject>().addToVarNames(cx, name)) {
-          return false;
-        }
-      }
-#endif
-
       // Done processing this function.
       continue;
     }
@@ -3922,14 +3898,6 @@ static bool InitHoistedFunctionDeclarations(JSContext* cx, HandleScript script,
         MOZ_ASSERT(propInfo.writable());
         MOZ_ASSERT(propInfo.enumerable());
       }
-
-#ifndef NIGHTLY_BUILD
-      // Careful: the presence of a shape, even one appearing to derive from
-      // a variable declaration, doesn't mean it's in [[VarNames]].
-      if (!varObj->as<GlobalObject>().addToVarNames(cx, name)) {
-        return false;
-      }
-#endif
     }
 
     /*
