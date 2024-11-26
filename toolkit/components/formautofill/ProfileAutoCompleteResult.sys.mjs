@@ -138,8 +138,8 @@ class ProfileAutoCompleteResult {
   }
 
   getLabelAt(index) {
-    const label = this.getAt(index);
-    return typeof label == "string" ? label : label.primary;
+    const item = this.getAt(index);
+    return typeof item == "string" ? item : item.primary || item.label;
   }
 
   /**
