@@ -128,6 +128,11 @@ objects:
         description: >
           An optional list of add-ons which will be shown in add-on onboarding card.
         default: []
+      customization-toolbar-data:
+        type: List<CustomizationToolbarData>
+        description: >
+          An optional list of toolbar placements for the toolbar placement card.
+        default: []
 
   AddOnData:
       description: An object to describe an add-on to be installed from the onboarding card.
@@ -168,6 +173,26 @@ objects:
           # This should never be defaulted.
           default: "0.0"
 
+  CustomizationToolbarData:
+    description: An object to describe the placement of the toolbar.
+    fields:
+      toolbar-type:
+        type: ToolbarType
+        description: The type of toolbar placement.
+        # This should never be defaulted.
+        default: toolbar-top
+      label:
+        type: Text
+        description: Display text for the toolbar placement option (e.g. "Top placement").
+        # This should never be defaulted.
+        default: ""
+      image-res:
+        type: Image
+        description: The resource id of toolbar placement image.
+        # This should never be defaulted.
+        default: ic_onboarding_customize_toolbar
+
+
 enums:
 
   OnboardingCardType:
@@ -183,3 +208,13 @@ enums:
         description: Allows user to add search widget to homescreen.
       add-ons:
         description: Allows user to install add-ons from onboarding.
+      toolbar-placement:
+        description: Allows user to choose the toolbar position.
+
+  ToolbarType:
+    description: An enum to describe a toolbar placement option.
+    variants:
+      toolbar-top:
+        description: Sets the toolbar placement on the top.
+      toolbar-bottom:
+        description: Sets the toolbar placement on the bottom.

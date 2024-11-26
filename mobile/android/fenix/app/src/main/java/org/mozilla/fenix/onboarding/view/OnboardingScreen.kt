@@ -62,6 +62,8 @@ import org.mozilla.fenix.theme.FirefoxTheme
  * @param onboardingAddOnsStore The store which contains all the state related to the add-ons onboarding screen.
  * @param onAddOnsButtonClick Invoked when the primary button on add-ons page is clicked.
  * @param onInstallAddOnButtonClick Invoked when a button for installing an add-on is clicked.
+ * @param onCustomizeToolbarClick Invoked when positive button customize toolbar page is clicked.
+ * @param onSkipCustomizeToolbarClick Invoked when negative button on customize toolbar page is clicked.
  * @param onFinish Invoked when the onboarding is completed.
  * @param onImpression Invoked when a page in the pager is displayed.
  */
@@ -80,6 +82,8 @@ fun OnboardingScreen(
     onboardingAddOnsStore: OnboardingAddOnsStore? = null,
     onAddOnsButtonClick: () -> Unit,
     onInstallAddOnButtonClick: (AddOn) -> Unit,
+    onCustomizeToolbarClick: () -> Unit,
+    onSkipCustomizeToolbarClick: () -> Unit,
     onFinish: (pageType: OnboardingPageUiData) -> Unit,
     onImpression: (pageType: OnboardingPageUiData) -> Unit,
 ) {
@@ -164,6 +168,14 @@ fun OnboardingScreen(
             onAddOnsButtonClick()
         },
         onInstallAddOnButtonClick = onInstallAddOnButtonClick,
+        onCustomizeToolbarButtonClick = {
+            scrollToNextPageOrDismiss()
+            onCustomizeToolbarClick()
+        },
+        onCustomizeToolbarSkipClick = {
+            scrollToNextPageOrDismiss()
+            onSkipCustomizeToolbarClick()
+        },
         addOnsStore = onboardingAddOnsStore,
     )
 }
@@ -184,6 +196,8 @@ private fun OnboardingContent(
     addOnsStore: OnboardingAddOnsStore? = null,
     onAddOnsButtonClick: () -> Unit,
     onInstallAddOnButtonClick: (AddOn) -> Unit,
+    onCustomizeToolbarButtonClick: () -> Unit,
+    onCustomizeToolbarSkipClick: () -> Unit,
 ) {
     val nestedScrollConnection = remember { DisableForwardSwipeNestedScrollConnection(pagerState) }
 
@@ -212,6 +226,8 @@ private fun OnboardingContent(
                 onAddFirefoxWidgetClick = onAddFirefoxWidgetClick,
                 onAddFirefoxWidgetSkipClick = onSkipFirefoxWidgetClick,
                 onAddOnsButtonClick = onAddOnsButtonClick,
+                onCustomizeToolbarButtonClick = onCustomizeToolbarButtonClick,
+                onCustomizeToolbarSkipClick = onCustomizeToolbarSkipClick,
             )
             OnboardingPageForType(pageUiState.type, onboardingPageState, addOnsStore, onInstallAddOnButtonClick)
         }
@@ -240,9 +256,11 @@ private fun OnboardingPageForType(
         OnboardingPageUiData.Type.SYNC_SIGN_IN,
         OnboardingPageUiData.Type.ADD_SEARCH_WIDGET,
         OnboardingPageUiData.Type.NOTIFICATION_PERMISSION,
+        OnboardingPageUiData.Type.TOOLBAR_PLACEMENT,
         -> OnboardingPage(state)
 
-        OnboardingPageUiData.Type.ADD_ONS -> onboardingAddOnsStore?.let {
+        OnboardingPageUiData.Type.ADD_ONS,
+        -> onboardingAddOnsStore?.let {
             state.addOns?.let { addOns ->
                 onboardingAddOnsStore.dispatch(OnboardingAddOnsAction.Init(addOns))
             }
@@ -292,6 +310,8 @@ private fun OnboardingScreenPreview() {
             onSkipFirefoxWidgetClick = {},
             onAddOnsButtonClick = {},
             onInstallAddOnButtonClick = {},
+            onCustomizeToolbarButtonClick = {},
+            onCustomizeToolbarSkipClick = {},
         )
     }
 }

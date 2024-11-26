@@ -41,6 +41,8 @@ class OnboardingMapperTest {
             onAddFirefoxWidgetClick = {},
             onAddFirefoxWidgetSkipClick = {},
             onAddOnsButtonClick = {},
+            onCustomizeToolbarButtonClick = {},
+            onCustomizeToolbarSkipClick = {},
         )
 
         assertEquals(expected, actual)
@@ -76,6 +78,8 @@ class OnboardingMapperTest {
             onAddFirefoxWidgetClick = {},
             onAddFirefoxWidgetSkipClick = {},
             onAddOnsButtonClick = {},
+            onCustomizeToolbarButtonClick = {},
+            onCustomizeToolbarSkipClick = {},
         )
 
         assertEquals(expected, actual)
@@ -111,6 +115,8 @@ class OnboardingMapperTest {
             onAddFirefoxWidgetClick = {},
             onAddFirefoxWidgetSkipClick = {},
             onAddOnsButtonClick = {},
+            onCustomizeToolbarButtonClick = {},
+            onCustomizeToolbarSkipClick = {},
         )
 
         assertEquals(expected, actual)
@@ -146,6 +152,8 @@ class OnboardingMapperTest {
             onAddFirefoxWidgetClick = unitLambda,
             onAddFirefoxWidgetSkipClick = unitLambda,
             onAddOnsButtonClick = {},
+            onCustomizeToolbarButtonClick = {},
+            onCustomizeToolbarSkipClick = {},
         )
 
         assertEquals(expected, actual)
@@ -213,6 +221,59 @@ class OnboardingMapperTest {
             onAddFirefoxWidgetClick = {},
             onAddFirefoxWidgetSkipClick = {},
             onAddOnsButtonClick = unitLambda,
+            onCustomizeToolbarButtonClick = {},
+            onCustomizeToolbarSkipClick = {},
+        )
+
+        assertEquals(expected, actual)
+    }
+
+    @Test
+    fun `GIVEN a toolbar placement page WHEN mapToOnboardingPageState is called THEN creates the expected OnboardingPageState`() {
+        val toolbarOptions = listOf(
+            ToolbarOption(
+                toolbarType = ToolbarOptionType.TOOLBAR_TOP,
+                imageRes = R.drawable.ic_onboarding_top_toolbar,
+                label = "Top",
+            ),
+            ToolbarOption(
+                toolbarType = ToolbarOptionType.TOOLBAR_BOTTOM,
+                imageRes = R.drawable.ic_onboarding_bottom_toolbar,
+                label = "Bottom",
+            ),
+        )
+
+        val expected = OnboardingPageState(
+            imageRes = R.drawable.ic_onboarding_customize_toolbar,
+            title = "Pick a toolbar placement",
+            description = "Keep searches within reach",
+            primaryButton = Action("Save and continue", unitLambda),
+            secondaryButton = Action("Skip", unitLambda),
+        )
+
+        val onboardingPageUiData = OnboardingPageUiData(
+            type = OnboardingPageUiData.Type.TOOLBAR_PLACEMENT,
+            imageRes = R.drawable.ic_onboarding_customize_toolbar,
+            title = "Pick a toolbar placement",
+            description = "Keep searches within reach",
+            primaryButtonLabel = "Save and continue",
+            secondaryButtonLabel = "Skip",
+            toolbarOptions = toolbarOptions,
+        )
+
+        val actual = mapToOnboardingPageState(
+            onboardingPageUiData = onboardingPageUiData,
+            onMakeFirefoxDefaultClick = {},
+            onMakeFirefoxDefaultSkipClick = {},
+            onSignInButtonClick = {},
+            onSignInSkipClick = {},
+            onNotificationPermissionButtonClick = {},
+            onNotificationPermissionSkipClick = {},
+            onAddFirefoxWidgetClick = {},
+            onAddFirefoxWidgetSkipClick = {},
+            onAddOnsButtonClick = {},
+            onCustomizeToolbarButtonClick = unitLambda,
+            onCustomizeToolbarSkipClick = unitLambda,
         )
 
         assertEquals(expected, actual)

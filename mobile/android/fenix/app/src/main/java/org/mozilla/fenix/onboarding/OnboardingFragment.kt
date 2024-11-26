@@ -206,6 +206,14 @@ class OnboardingFragment : Fragment() {
             },
             onboardingAddOnsStore = onboardingAddOnsStore,
             onInstallAddOnButtonClick = { installUrl -> installAddon(installUrl) },
+            onCustomizeToolbarClick = {
+                // Todo as part of https://bugzilla.mozilla.org/show_bug.cgi?id=1918351
+                throw NotImplementedError()
+            },
+            onSkipCustomizeToolbarClick = {
+                // Todo as part of https://bugzilla.mozilla.org/show_bug.cgi?id=1918351
+                throw NotImplementedError()
+            },
         )
     }
 

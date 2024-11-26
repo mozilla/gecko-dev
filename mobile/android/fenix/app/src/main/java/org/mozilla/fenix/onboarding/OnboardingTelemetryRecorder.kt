@@ -99,6 +99,11 @@ class OnboardingTelemetryRecorder {
                     ),
                 )
             }
+
+            OnboardingPageUiData.Type.TOOLBAR_PLACEMENT -> {
+                // Todo as part of https://bugzilla.mozilla.org/show_bug.cgi?id=1926956
+                throw NotImplementedError()
+            }
         }
     }
 

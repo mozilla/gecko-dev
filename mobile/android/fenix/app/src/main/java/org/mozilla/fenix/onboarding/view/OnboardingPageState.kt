@@ -60,3 +60,27 @@ data class OnboardingAddOn(
     val installUrl: String,
     val status: OnboardingAddonStatus,
 )
+
+/**
+ * Model containing data for a toolbar placement.
+ */
+data class ToolbarOption(
+    val toolbarType: ToolbarOptionType,
+    @DrawableRes val imageRes: Int,
+    val label: String,
+)
+
+/**
+ * Types of toolbar placement options available.
+ */
+enum class ToolbarOptionType {
+    /**
+     * Sets the toolbar placement to the top.
+     */
+    TOOLBAR_TOP,
+
+    /**
+     * Sets the toolbar placement to the bottom.
+     */
+    TOOLBAR_BOTTOM,
+}

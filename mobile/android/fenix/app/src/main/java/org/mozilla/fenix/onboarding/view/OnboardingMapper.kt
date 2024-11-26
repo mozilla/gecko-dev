@@ -5,8 +5,10 @@
 package org.mozilla.fenix.onboarding.view
 
 import org.mozilla.fenix.nimbus.AddOnData
+import org.mozilla.fenix.nimbus.CustomizationToolbarData
 import org.mozilla.fenix.nimbus.OnboardingCardData
 import org.mozilla.fenix.nimbus.OnboardingCardType
+import org.mozilla.fenix.nimbus.ToolbarType
 import org.mozilla.fenix.onboarding.store.OnboardingAddonStatus
 
 /**
@@ -41,6 +43,7 @@ private fun OnboardingCardData.isCardEnabled(
     OnboardingCardType.NOTIFICATION_PERMISSION -> enabled && showNotificationPage
     OnboardingCardType.ADD_SEARCH_WIDGET -> enabled && showAddWidgetPage
     OnboardingCardType.ADD_ONS -> extraData.let { it != null && it.addOnsData.isNotEmpty() }
+    OnboardingCardType.TOOLBAR_PLACEMENT -> extraData?.customizationToolbarData?.isNotEmpty() == true
     else -> enabled
 }
 
@@ -106,6 +109,9 @@ private fun OnboardingCardData.toPageUiData(privacyCaption: Caption?) = Onboardi
             it.addOnsData.toOnboardingAddOns()
         }
     },
+    toolbarOptions = extraData?.customizationToolbarData
+        ?.takeIf { it.isNotEmpty() }
+        ?.toOnboardingToolbarOptions(),
 )
 
 private fun OnboardingCardType.toPageUiDataType() = when (this) {
@@ -114,9 +120,12 @@ private fun OnboardingCardType.toPageUiDataType() = when (this) {
     OnboardingCardType.NOTIFICATION_PERMISSION -> OnboardingPageUiData.Type.NOTIFICATION_PERMISSION
     OnboardingCardType.ADD_SEARCH_WIDGET -> OnboardingPageUiData.Type.ADD_SEARCH_WIDGET
     OnboardingCardType.ADD_ONS -> OnboardingPageUiData.Type.ADD_ONS
+    OnboardingCardType.TOOLBAR_PLACEMENT -> OnboardingPageUiData.Type.TOOLBAR_PLACEMENT
 }
 
 private fun List<AddOnData>.toOnboardingAddOns() = map { it.toOnboardingAddOn() }
+
+private fun List<CustomizationToolbarData>.toOnboardingToolbarOptions() = map { it.toOnboardingCustomizeToolbar() }
 
 private fun AddOnData.toOnboardingAddOn() = with(this) {
     OnboardingAddOn(
@@ -129,6 +138,19 @@ private fun AddOnData.toOnboardingAddOn() = with(this) {
         installUrl = installUrl,
         status = OnboardingAddonStatus.NOT_INSTALLED,
     )
+}
+
+private fun CustomizationToolbarData.toOnboardingCustomizeToolbar() = with(this) {
+    ToolbarOption(
+        toolbarType = toolbarType.toToolbarOptionType(),
+        imageRes = imageRes.resourceId,
+        label = label,
+    )
+}
+
+private fun ToolbarType.toToolbarOptionType() = when (this) {
+    ToolbarType.TOOLBAR_TOP -> ToolbarOptionType.TOOLBAR_TOP
+    ToolbarType.TOOLBAR_BOTTOM -> ToolbarOptionType.TOOLBAR_BOTTOM
 }
 
 /**
@@ -147,6 +169,8 @@ internal fun mapToOnboardingPageState(
     onAddFirefoxWidgetClick: () -> Unit,
     onAddFirefoxWidgetSkipClick: () -> Unit,
     onAddOnsButtonClick: () -> Unit,
+    onCustomizeToolbarButtonClick: () -> Unit,
+    onCustomizeToolbarSkipClick: () -> Unit,
 ): OnboardingPageState = when (onboardingPageUiData.type) {
     OnboardingPageUiData.Type.DEFAULT_BROWSER -> createOnboardingPageState(
         onboardingPageUiData = onboardingPageUiData,
@@ -176,6 +200,12 @@ internal fun mapToOnboardingPageState(
         onboardingPageUiData = onboardingPageUiData,
         onPositiveButtonClick = onAddOnsButtonClick,
         onNegativeButtonClick = {}, // No negative button option for add-ons.
+    )
+
+    OnboardingPageUiData.Type.TOOLBAR_PLACEMENT -> createOnboardingPageState(
+        onboardingPageUiData = onboardingPageUiData,
+        onPositiveButtonClick = onCustomizeToolbarButtonClick,
+        onNegativeButtonClick = onCustomizeToolbarSkipClick,
     )
 }
 
