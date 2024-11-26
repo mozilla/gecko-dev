@@ -542,8 +542,8 @@ static void inttoptrFunc(
 #endif /* SQLITE_OMIT_VIRTUALTABLE */
 
 SQLITE_API int sqlite3_carray_init(
-  sqlite3 *db,
-  char **pzErrMsg,
+  sqlite3 *db, 
+  char **pzErrMsg, 
   const sqlite3_api_routines *pApi
 ){
   int rc = SQLITE_OK;
