@@ -1320,6 +1320,11 @@ export class DiscoveryStreamFeed {
 
     if (unifiedAdsEnabled) {
       const endpointBaseUrl = state.Prefs.values[PREF_UNIFIED_ADS_ENDPOINT];
+
+      if (!endpointBaseUrl) {
+        return;
+      }
+
       endpoint = `${endpointBaseUrl}v1/delete_user`;
       body = {
         context_id: lazy.contextId,
