@@ -5,16 +5,18 @@ registerCleanupFunction(() => {
 
 const EXPECTED_START_ORDINALS = [
   ["sidebar-main", 1],
-  ["sidebar-box", 2],
-  ["sidebar-splitter", 3],
-  ["tabbrowser-tabbox", 4],
+  ["sidebar-launcher-splitter", 2],
+  ["sidebar-box", 3],
+  ["sidebar-splitter", 4],
+  ["tabbrowser-tabbox", 5],
 ];
 
 const EXPECTED_END_ORDINALS = [
-  ["sidebar-main", 5],
-  ["sidebar-box", 4],
-  ["sidebar-splitter", 3],
-  ["tabbrowser-tabbox", 2],
+  ["sidebar-main", 7],
+  ["sidebar-launcher-splitter", 6],
+  ["sidebar-box", 5],
+  ["sidebar-splitter", 4],
+  ["tabbrowser-tabbox", 3],
 ];
 
 function getBrowserChildrenWithOrdinals() {
