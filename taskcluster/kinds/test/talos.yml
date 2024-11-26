@@ -207,7 +207,7 @@ talos-g1:
                     default: [trunk]
     max-run-time:
         by-test-platform:
-            linux1804-64.*: 3600
+            linux1804-64.*: 7200
             default: 7200
     mozharness:
         extra-options:

@@ -1047,6 +1047,22 @@ class tp5o_scroll(PageloaderTest):
 
 
 @register_test()
+class tp5o_scroll_paint_skip(tp5o_scroll):
+    """
+    Tests scroll with paint skip (like tscrollx does, including ASAP) but on the tp5o pageset.
+    """
+
+    preferences = {
+        "layout.frame_rate": 0,
+        "docshell.event_starvation_delay_hint": 1,
+        "dom.send_after_paint_to_content": True,
+        "apz.paint_skipping.enabled": True,
+        "layout.css.scroll-behavior.spring-constant": "'10'",
+        "toolkit.framesRecording.bufferSize": 10000,
+    }
+
+
+@register_test()
 class v8_7(PageloaderTest):
     """
     This is the V8 (version 7) javascript benchmark taken verbatim and
@@ -1275,6 +1291,22 @@ class tscrollx(PageloaderTest):
     filters = filter.ignore_first.prepare(5) + filter.median.prepare()
     unit = "ms"
     pine = False
+
+
+@register_test()
+class tscrollx_paint_skip(tscrollx):
+    """
+    This test does some scrolly thing with paint skip.
+    """
+
+    preferences = {
+        "layout.frame_rate": 0,
+        "docshell.event_starvation_delay_hint": 1,
+        "dom.send_after_paint_to_content": True,
+        "apz.paint_skipping.enabled": True,
+        "layout.css.scroll-behavior.spring-constant": "'10'",
+        "toolkit.framesRecording.bufferSize": 10000,
+    }
 
 
 @register_test()
