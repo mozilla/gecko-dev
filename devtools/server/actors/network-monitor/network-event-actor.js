@@ -213,7 +213,7 @@ class NetworkEventActor extends Actor {
       browsingContextID,
       cause,
       // This is used specifically in the browser toolbox console to distinguish privileged
-      // resources from the parent process from those from the contet
+      // resources from the parent process from those from the content.
       chromeContext: lazy.NetworkUtils.isChannelFromSystemPrincipal(channel),
       innerWindowId: this._innerWindowId,
       isNavigationRequest: this._isNavigationRequest,
