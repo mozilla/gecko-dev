@@ -164,6 +164,7 @@ class WatWriter : ModuleContext {
   void WriteTypeEntry(const TypeEntry& type);
   void WriteField(const Field& field);
   void WriteStartFunction(const Var& start);
+  void WriteCustom(const Custom& custom);
 
   class ExprVisitorDelegate;
 
@@ -671,7 +672,11 @@ Result WatWriter::ExprVisitorDelegate::OnCallIndirectExpr(
   writer_->WritePutsSpace(Opcode::CallIndirect_Opcode.GetName());
   writer_->WriteVarUnlessZero(expr->table, NextChar::Space);
   writer_->WriteOpenSpace("type");
-  writer_->WriteVar(expr->decl.type_var, NextChar::Newline);
+  const auto type_var =
+      expr->decl.has_func_type
+          ? expr->decl.type_var
+          : Var{writer_->module.GetFuncTypeIndex(expr->decl), expr->loc};
+  writer_->WriteVar(type_var, NextChar::Newline);
   writer_->WriteCloseNewline();
   return Result::Ok;
 }
@@ -780,7 +785,7 @@ Result WatWriter::ExprVisitorDelegate::EndLoopExpr(LoopExpr* expr) {
 
 Result WatWriter::ExprVisitorDelegate::OnMemoryCopyExpr(MemoryCopyExpr* expr) {
   writer_->WritePutsSpace(Opcode::MemoryCopy_Opcode.GetName());
-  writer_->WriteTwoMemoryVarsUnlessBothZero(expr->srcmemidx, expr->destmemidx,
+  writer_->WriteTwoMemoryVarsUnlessBothZero(expr->destmemidx, expr->srcmemidx,
                                             NextChar::Space);
   writer_->WriteNewline(NO_FORCE_NEWLINE);
   return Result::Ok;
@@ -911,7 +916,11 @@ Result WatWriter::ExprVisitorDelegate::OnReturnCallIndirectExpr(
     ReturnCallIndirectExpr* expr) {
   writer_->WritePutsSpace(Opcode::ReturnCallIndirect_Opcode.GetName());
   writer_->WriteOpenSpace("type");
-  writer_->WriteVar(expr->decl.type_var, NextChar::Space);
+  const auto type_var =
+      expr->decl.has_func_type
+          ? expr->decl.type_var
+          : Var{writer_->module.GetFuncTypeIndex(expr->decl), expr->loc};
+  writer_->WriteVar(type_var, NextChar::Space);
   writer_->WriteCloseNewline();
   return Result::Ok;
 }
@@ -1487,6 +1496,11 @@ void WatWriter::WriteMemory(const Memory& memory) {
   WriteInlineExports(ExternalKind::Memory, memory_index_);
   WriteInlineImport(ExternalKind::Memory, memory_index_);
   WriteLimits(memory.page_limits);
+  if (memory.page_size != WABT_DEFAULT_PAGE_SIZE) {
+    WriteOpenSpace("pagesize");
+    Writef("%u", memory.page_size);
+    WriteCloseSpace();
+  }
   WriteCloseNewline();
   memory_index_++;
 }
@@ -1495,7 +1509,11 @@ void WatWriter::WriteDataSegment(const DataSegment& segment) {
   WriteOpenSpace("data");
   WriteNameOrIndex(segment.name, data_segment_index_, NextChar::Space);
   if (segment.kind != SegmentKind::Passive) {
-    WriteMemoryVarUnlessZero(segment.memory_var, NextChar::Space);
+    if (module.GetMemoryIndex(segment.memory_var) != 0) {
+      WriteOpenSpace("memory");
+      WriteVar(segment.memory_var, NextChar::Space);
+      WriteCloseSpace();
+    }
     WriteInitExpr(segment.offset);
   }
   WriteQuotedData(segment.data.data(), segment.data.size());
@@ -1605,6 +1623,13 @@ void WatWriter::WriteStartFunction(const Var& start) {
   WriteCloseNewline();
 }
 
+void WatWriter::WriteCustom(const Custom& custom) {
+  WriteOpenSpace("@custom");
+  WriteQuotedString(custom.name, NextChar::Space);
+  WriteQuotedData(custom.data.data(), custom.data.size());
+  WriteCloseNewline();
+}
+
 Result WatWriter::WriteModule() {
   BuildInlineExportMap();
   BuildInlineImportMap();
@@ -1649,6 +1674,11 @@ Result WatWriter::WriteModule() {
       case ModuleFieldType::Start:
         WriteStartFunction(cast<StartModuleField>(&field)->start);
         break;
+    }
+  }
+  if (options_.features.annotations_enabled()) {
+    for (const Custom& custom : module.customs) {
+      WriteCustom(custom);
     }
   }
   WriteCloseNewline();
