@@ -86,7 +86,6 @@ class SVGStyleElement final : public SVGStyleElementBase,
    * parent; we should only respond to the change if aContent is non-anonymous.
    */
   void ContentChanged(nsIContent* aContent);
-  nsresult CopyInnerTo(SVGStyleElement* aDest);
 };
 
 }  // namespace mozilla::dom
