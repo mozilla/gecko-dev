@@ -2957,59 +2957,6 @@ bool CompilationStencil::prepareForInstantiate(
                            stencil.scopeData.size());
 }
 
-bool CompilationStencil::serializeStencils(JSContext* cx,
-                                           CompilationInput& input,
-                                           JS::TranscodeBuffer& buf,
-                                           bool* succeededOut) const {
-  if (succeededOut) {
-    *succeededOut = false;
-  }
-  AutoReportFrontendContext fc(cx);
-  XDRStencilEncoder encoder(&fc, buf);
-
-  XDRResult res = encoder.codeStencil(*this);
-  if (res.isErr()) {
-    if (JS::IsTranscodeFailureResult(res.unwrapErr())) {
-      buf.clear();
-      return true;
-    }
-    MOZ_ASSERT(res.unwrapErr() == JS::TranscodeResult::Throw);
-
-    return false;
-  }
-
-  if (succeededOut) {
-    *succeededOut = true;
-  }
-  return true;
-}
-
-bool CompilationStencil::deserializeStencils(
-    FrontendContext* fc, const JS::ReadOnlyCompileOptions& compileOptions,
-    const JS::TranscodeRange& range, bool* succeededOut) {
-  if (succeededOut) {
-    *succeededOut = false;
-  }
-  MOZ_ASSERT(parserAtomData.empty());
-  XDRStencilDecoder decoder(fc, range);
-  JS::DecodeOptions options(compileOptions);
-
-  XDRResult res = decoder.codeStencil(options, *this);
-  if (res.isErr()) {
-    if (JS::IsTranscodeFailureResult(res.unwrapErr())) {
-      return true;
-    }
-    MOZ_ASSERT(res.unwrapErr() == JS::TranscodeResult::Throw);
-
-    return false;
-  }
-
-  if (succeededOut) {
-    *succeededOut = true;
-  }
-  return true;
-}
-
 ExtensibleCompilationStencil::ExtensibleCompilationStencil(ScriptSource* source)
     : alloc(CompilationStencil::LifoAllocChunkSize, js::BackgroundMallocArena),
       source(source),

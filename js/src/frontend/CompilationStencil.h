@@ -1272,13 +1272,6 @@ struct CompilationStencil {
                                                 ScriptIndexRange range,
                                                 JS::Handle<JSFunction*> fun);
 
-  [[nodiscard]] bool serializeStencils(JSContext* cx, CompilationInput& input,
-                                       JS::TranscodeBuffer& buf,
-                                       bool* succeededOut = nullptr) const;
-  [[nodiscard]] bool deserializeStencils(
-      FrontendContext* fc, const JS::ReadOnlyCompileOptions& options,
-      const JS::TranscodeRange& range, bool* succeededOut = nullptr);
-
   // To avoid any misuses, make sure this is neither copyable or assignable.
   CompilationStencil(const CompilationStencil&) = delete;
   CompilationStencil(CompilationStencil&&) = delete;
