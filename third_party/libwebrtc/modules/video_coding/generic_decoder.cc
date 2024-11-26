@@ -134,14 +134,13 @@ void VCMDecodedFrameCallback::Decoded(VideoFrame& decodedImage,
     return;
   }
 
-  // TODO: bugs.webrtc.org/358039777 - Use the score.
-  std::optional<double> score;
+  std::optional<double> corruption_score;
   if (corruption_score_calculator_ &&
       frame_info->frame_instrumentation_data.has_value()) {
     if (const FrameInstrumentationData* data =
             absl::get_if<FrameInstrumentationData>(
                 &*frame_info->frame_instrumentation_data)) {
-      score = corruption_score_calculator_->CalculateCorruptionScore(
+      corruption_score = corruption_score_calculator_->CalculateCorruptionScore(
           decodedImage, *data);
     }
   }
@@ -242,7 +241,8 @@ void VCMDecodedFrameCallback::Decoded(VideoFrame& decodedImage,
                                      .qp = qp,
                                      .decode_time = decode_time,
                                      .content_type = frame_info->content_type,
-                                     .frame_type = frame_info->frame_type});
+                                     .frame_type = frame_info->frame_type,
+                                     .corruption_score = corruption_score});
 }
 
 void VCMDecodedFrameCallback::OnDecoderInfoChanged(

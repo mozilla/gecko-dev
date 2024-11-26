@@ -30,7 +30,7 @@ index 4a965e69d5..9f0c1277c5 100644
  if (rtc_use_perfetto) {
    rtc_library("webrtc_libperfetto") {
 diff --git a/modules/video_coding/generic_decoder.cc b/modules/video_coding/generic_decoder.cc
-index 166ce1d9f1..4f730587a2 100644
+index 23199f7a34..721ce7fac9 100644
 --- a/modules/video_coding/generic_decoder.cc
 +++ b/modules/video_coding/generic_decoder.cc
 @@ -109,9 +109,9 @@ void VCMDecodedFrameCallback::Decoded(VideoFrame& decodedImage,

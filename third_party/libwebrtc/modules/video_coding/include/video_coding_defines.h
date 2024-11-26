@@ -59,6 +59,7 @@ class VCMReceiveCallback {
     TimeDelta decode_time;
     VideoContentType content_type;
     VideoFrameType frame_type;
+    std::optional<double> corruption_score;
   };
 
   // TODO: bugs.webrtc.org/358039777 - Delete this function.

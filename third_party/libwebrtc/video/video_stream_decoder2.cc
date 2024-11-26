@@ -66,6 +66,10 @@ int32_t VideoStreamDecoder::OnFrameToRender(
   receive_stats_callback_->OnDecodedFrame(
       arguments.video_frame, arguments.qp, arguments.decode_time,
       arguments.content_type, arguments.frame_type);
+  if (arguments.corruption_score.has_value()) {
+    receive_stats_callback_->OnCorruptionScore(*arguments.corruption_score,
+                                               arguments.content_type);
+  }
   incoming_video_stream_->OnFrame(arguments.video_frame);
   return 0;
 }
