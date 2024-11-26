@@ -18,7 +18,6 @@
   browser                                          (%browser/**/*.ftl)
   preview/backupSettings.ftl                       (../locales-preview/backupSettings.ftl)
   preview/firefoxRelayToAllBrowsers.ftl            (../locales-preview/firefoxRelayToAllBrowsers.ftl)
-  preview/tabGroups.ftl                            (../locales-preview/tabGroups.ftl)
   preview/tabUnload.ftl                            (../locales-preview/tabUnload.ftl)
 
 @AB_CD@.jar:
