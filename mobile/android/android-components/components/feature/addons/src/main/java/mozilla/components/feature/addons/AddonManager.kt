@@ -47,6 +47,7 @@ import java.util.concurrent.ConcurrentHashMap
  * @property addonsProvider The [AddonsProvider] to query available [Addon]s.
  * @property addonUpdater The [AddonUpdater] instance to use when checking / triggering
  * updates.
+ * @param ioDispatcher Coroutine dispatcher for IO operations.
  */
 @Suppress("LargeClass")
 class AddonManager(
@@ -54,6 +55,7 @@ class AddonManager(
     private val runtime: WebExtensionRuntime,
     private val addonsProvider: AddonsProvider,
     private val addonUpdater: AddonUpdater,
+    private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) {
 
     @VisibleForTesting
@@ -80,7 +82,10 @@ class AddonManager(
      */
     @Throws(AddonManagerException::class)
     @Suppress("TooGenericExceptionCaught")
-    suspend fun getAddons(waitForPendingActions: Boolean = true, allowCache: Boolean = true): List<Addon> {
+    suspend fun getAddons(
+        waitForPendingActions: Boolean = true,
+        allowCache: Boolean = true,
+    ): List<Addon> = withContext(ioDispatcher) {
         try {
             // Make sure extension support is initialized, i.e. the state of all installed extensions is known.
             WebExtensionSupport.awaitInitialization()
@@ -114,7 +119,7 @@ class AddonManager(
                     Addon.newFromWebExtension(extension, installedState)
                 }
 
-            return featuredAddons + installedAddons
+            return@withContext featuredAddons + installedAddons
         } catch (throwable: Throwable) {
             throw AddonManagerException(throwable)
         }

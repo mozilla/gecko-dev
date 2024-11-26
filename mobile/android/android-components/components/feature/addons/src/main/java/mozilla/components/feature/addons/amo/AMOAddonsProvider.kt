@@ -9,11 +9,13 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.util.AtomicFile
 import androidx.annotation.VisibleForTesting
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.withContext
 import mozilla.components.concept.fetch.Client
 import mozilla.components.concept.fetch.Request
 import mozilla.components.concept.fetch.isSuccess
@@ -62,6 +64,7 @@ internal const val PAGE_SIZE = 50
  * @property maxCacheAgeInMinutes maximum time (in minutes) the cached featured add-ons
  * should remain valid before a refresh is attempted. Defaults to -1, meaning no cache
  * is being used by default
+ * @property ioDispatcher Coroutine dispatcher for IO operations.
  */
 class AMOAddonsProvider(
     private val context: Context,
@@ -71,6 +74,7 @@ class AMOAddonsProvider(
     private val collectionName: String = DEFAULT_COLLECTION_NAME,
     private val sortOption: SortOption = SortOption.POPULARITY_DESC,
     private val maxCacheAgeInMinutes: Long = -1,
+    private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) : AddonsProvider {
 
     private val logger = Logger("AMOAddonsProvider")
@@ -109,7 +113,7 @@ class AMOAddonsProvider(
         allowCache: Boolean,
         readTimeoutInSeconds: Long?,
         language: String?,
-    ): List<Addon> {
+    ): List<Addon> = withContext(ioDispatcher) {
         // We want to make sure we always use useFallbackFile = false here, as it warranties
         // that we are trying to fetch the latest localized add-ons when the user changes
         // language from the previous one.
@@ -120,10 +124,10 @@ class AMOAddonsProvider(
         }
 
         if (cachedFeaturedAddons != null) {
-            return cachedFeaturedAddons
+            return@withContext cachedFeaturedAddons
         }
 
-        return try {
+        return@withContext try {
             fetchFeaturedAddons(readTimeoutInSeconds, language)
         } catch (e: IOException) {
             logger.error("Failed to fetch available add-ons", e)
@@ -137,7 +141,7 @@ class AMOAddonsProvider(
                                 SimpleDateFormat("yyyy-MM-dd'T'HH:mm'Z'", Locale.US).format(cacheLastUpdated)
                             }",
                         )
-                        return it
+                        return@withContext it
                     }
                 }
             }
@@ -145,7 +149,10 @@ class AMOAddonsProvider(
         }
     }
 
-    private suspend fun fetchFeaturedAddons(readTimeoutInSeconds: Long?, language: String?): List<Addon> {
+    private suspend fun fetchFeaturedAddons(
+        readTimeoutInSeconds: Long?,
+        language: String?,
+    ): List<Addon> = withContext(ioDispatcher) {
         val langParam = if (!language.isNullOrEmpty()) {
             "&lang=$language"
         } else {
@@ -165,7 +172,7 @@ class AMOAddonsProvider(
             .use { response ->
                 if (response.isSuccess) {
                     val responseBody = response.body.string(Charsets.UTF_8)
-                    return try {
+                    return@withContext try {
                         JSONObject(responseBody).getAddonsFromCollection(language)
                             .loadIcons()
                             .also {
@@ -244,9 +251,12 @@ class AMOAddonsProvider(
     }
 
     @VisibleForTesting
-    internal fun readFromDiskCache(language: String?, useFallbackFile: Boolean): List<Addon>? {
+    internal suspend fun readFromDiskCache(
+        language: String?,
+        useFallbackFile: Boolean,
+    ): List<Addon>? = withContext(ioDispatcher) {
         synchronized(diskCacheLock) {
-            return getCacheFile(context, language, useFallbackFile).readAndDeserialize {
+            return@withContext getCacheFile(context, language, useFallbackFile).readAndDeserialize {
                 JSONObject(it).getAddonsFromCollection(language)
             }
         }

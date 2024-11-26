@@ -6,6 +6,7 @@ package mozilla.components.feature.addons.amo
 
 import android.graphics.Bitmap
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
 import mozilla.components.concept.fetch.Client
 import mozilla.components.concept.fetch.Request
@@ -15,6 +16,7 @@ import mozilla.components.support.test.any
 import mozilla.components.support.test.file.loadResourceAsString
 import mozilla.components.support.test.mock
 import mozilla.components.support.test.robolectric.testContext
+import mozilla.components.support.test.rule.MainCoroutineRule
 import mozilla.components.support.test.whenever
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -22,6 +24,7 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
+import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.Mockito.never
@@ -34,13 +37,18 @@ import java.io.InputStream
 import java.util.Date
 import java.util.concurrent.TimeUnit
 
+@ExperimentalCoroutinesApi
 @RunWith(AndroidJUnit4::class)
 class AMOAddonsProviderTest {
+
+    @get:Rule
+    val coroutinesTestRule = MainCoroutineRule()
+    private val dispatcher = coroutinesTestRule.testDispatcher
 
     @Test
     fun `getFeaturedAddons - with a successful status response must contain add-ons`() = runTest {
         val mockedClient = prepareClient(loadResourceAsString("/collection.json"))
-        val provider = AMOAddonsProvider(testContext, client = mockedClient)
+        val provider = AMOAddonsProvider(testContext, client = mockedClient, ioDispatcher = dispatcher)
         val addons = provider.getFeaturedAddons()
         val addon = addons.first()
 
@@ -51,7 +59,7 @@ class AMOAddonsProviderTest {
     @Test
     fun `getFeaturedAddons - with a successful status response must handle empty values`() = runTest {
         val client = prepareClient()
-        val provider = AMOAddonsProvider(testContext, client = client)
+        val provider = AMOAddonsProvider(testContext, client = client, ioDispatcher = dispatcher)
 
         val addons = provider.getFeaturedAddons()
         val addon = addons.first()
@@ -91,7 +99,7 @@ class AMOAddonsProviderTest {
     @Test
     fun `getFeaturedAddons - with a language`() = runTest {
         val client = prepareClient(loadResourceAsString("/localized_collection.json"))
-        val provider = AMOAddonsProvider(testContext, client = client)
+        val provider = AMOAddonsProvider(testContext, client = client, ioDispatcher = dispatcher)
 
         val addons = provider.getFeaturedAddons(language = "en")
         val addon = addons.first()
@@ -159,7 +167,7 @@ class AMOAddonsProviderTest {
     fun `getFeaturedAddons - read timeout can be configured`() = runTest {
         val mockedClient = prepareClient()
 
-        val provider = spy(AMOAddonsProvider(testContext, client = mockedClient))
+        val provider = spy(AMOAddonsProvider(testContext, client = mockedClient, ioDispatcher = dispatcher))
         provider.getFeaturedAddons(readTimeoutInSeconds = 5)
         verify(mockedClient).fetch(
             Request(
@@ -175,7 +183,7 @@ class AMOAddonsProviderTest {
     @Test(expected = IOException::class)
     fun `getFeaturedAddons - with unexpected status will throw exception`() = runTest {
         val mockedClient = prepareClient(status = 500)
-        val provider = AMOAddonsProvider(testContext, client = mockedClient)
+        val provider = AMOAddonsProvider(testContext, client = mockedClient, ioDispatcher = dispatcher)
         provider.getFeaturedAddons()
         Unit
     }
@@ -184,7 +192,7 @@ class AMOAddonsProviderTest {
     fun `getFeaturedAddons - returns cached result if allowed and not expired`() = runTest {
         val mockedClient = prepareClient(loadResourceAsString("/collection.json"))
 
-        val provider = spy(AMOAddonsProvider(testContext, client = mockedClient))
+        val provider = spy(AMOAddonsProvider(testContext, client = mockedClient, ioDispatcher = dispatcher))
         provider.getFeaturedAddons(false)
         verify(provider, never()).readFromDiskCache(null, useFallbackFile = false)
 
@@ -205,22 +213,22 @@ class AMOAddonsProviderTest {
         val cachedAddons: List<Addon> = emptyList()
         whenever(mockedClient.fetch(any())).thenThrow(exception)
 
-        val provider = spy(AMOAddonsProvider(testContext, client = mockedClient))
+        val provider = spy(AMOAddonsProvider(testContext, client = mockedClient, ioDispatcher = dispatcher))
 
         try {
             // allowCache = false
             provider.getFeaturedAddons(allowCache = false)
             fail("Expected IOException")
         } catch (e: IOException) {
-            assertSame(exception, e)
+            assertEquals("test", e.message)
         }
 
         try {
             // allowCache = true, but no cache present
             provider.getFeaturedAddons(allowCache = true)
             fail("Expected IOException")
-        } catch (e: IOException) {
-            assertSame(exception, e)
+        } catch (error: IOException) {
+            assertEquals("test", error.message)
         }
 
         try {
@@ -228,8 +236,8 @@ class AMOAddonsProviderTest {
             whenever(provider.getCacheLastUpdated(testContext, null, useFallbackFile = false)).thenReturn(Date().time)
             provider.getFeaturedAddons(allowCache = true)
             fail("Expected IOException")
-        } catch (e: IOException) {
-            assertSame(exception, e)
+        } catch (error: IOException) {
+            assertEquals("test", error.message)
         }
 
         // allowCache = true, cache present for a fallback file, and reading successfully
@@ -250,8 +258,8 @@ class AMOAddonsProviderTest {
         val jsonResponse = loadResourceAsString("/collection.json")
         val mockedClient = prepareClient(jsonResponse)
 
-        val provider = spy(AMOAddonsProvider(testContext, client = mockedClient))
-        val cachingProvider = spy(AMOAddonsProvider(testContext, client = mockedClient, maxCacheAgeInMinutes = 1))
+        val provider = spy(AMOAddonsProvider(testContext, client = mockedClient, ioDispatcher = dispatcher))
+        val cachingProvider = spy(AMOAddonsProvider(testContext, client = mockedClient, maxCacheAgeInMinutes = 1, ioDispatcher = dispatcher))
 
         provider.getFeaturedAddons()
         verify(provider, never()).writeToDiskCache(jsonResponse, null)
@@ -265,7 +273,7 @@ class AMOAddonsProviderTest {
         val jsonResponse = loadResourceAsString("/collection.json")
         val mockedClient = prepareClient(jsonResponse)
 
-        val provider = spy(AMOAddonsProvider(testContext, client = mockedClient, maxCacheAgeInMinutes = 1))
+        val provider = spy(AMOAddonsProvider(testContext, client = mockedClient, maxCacheAgeInMinutes = 1, ioDispatcher = dispatcher))
 
         provider.getFeaturedAddons()
         verify(provider).deleteUnusedCacheFiles(null)
@@ -285,7 +293,7 @@ class AMOAddonsProviderTest {
         collectionFile.createNewFile()
         assertTrue(collectionFile.exists())
 
-        val provider = AMOAddonsProvider(testContext, client = prepareClient(), maxCacheAgeInMinutes = 1)
+        val provider = AMOAddonsProvider(testContext, client = prepareClient(), maxCacheAgeInMinutes = 1, ioDispatcher = dispatcher)
         provider.deleteUnusedCacheFiles(null)
         assertTrue(regularFile.exists())
         assertTrue(regularDir.exists())
@@ -302,7 +310,7 @@ class AMOAddonsProviderTest {
         regularDir.mkdir()
         assertTrue(regularDir.exists())
 
-        val provider = AMOAddonsProvider(testContext, client = prepareClient(), maxCacheAgeInMinutes = 1)
+        val provider = AMOAddonsProvider(testContext, client = prepareClient(), maxCacheAgeInMinutes = 1, ioDispatcher = dispatcher)
         val enFile = File(testContext.filesDir, provider.getCacheFileName("en"))
 
         enFile.createNewFile()
@@ -326,7 +334,7 @@ class AMOAddonsProviderTest {
 
     @Test
     fun `getBaseCacheFile - will return a first localized file WHEN the provided language file is not available`() {
-        val provider = AMOAddonsProvider(testContext, client = prepareClient(), maxCacheAgeInMinutes = 1)
+        val provider = AMOAddonsProvider(testContext, client = prepareClient(), maxCacheAgeInMinutes = 1, ioDispatcher = dispatcher)
         val enFile = File(testContext.filesDir, provider.getCacheFileName("en"))
 
         enFile.createNewFile()
@@ -345,14 +353,14 @@ class AMOAddonsProviderTest {
 
     @Test
     fun `getFeaturedAddons - cache expiration check`() {
-        var provider = spy(AMOAddonsProvider(testContext, client = mock(), maxCacheAgeInMinutes = -1))
+        var provider = spy(AMOAddonsProvider(testContext, client = mock(), maxCacheAgeInMinutes = -1, ioDispatcher = dispatcher))
         whenever(provider.getCacheLastUpdated(testContext, null, useFallbackFile = false)).thenReturn(Date().time)
         assertTrue(provider.cacheExpired(testContext, null, useFallbackFile = false))
 
         whenever(provider.getCacheLastUpdated(testContext, null, useFallbackFile = false)).thenReturn(-1)
         assertTrue(provider.cacheExpired(testContext, null, useFallbackFile = false))
 
-        provider = spy(AMOAddonsProvider(testContext, client = mock(), maxCacheAgeInMinutes = 10))
+        provider = spy(AMOAddonsProvider(testContext, client = mock(), maxCacheAgeInMinutes = 10, ioDispatcher = dispatcher))
         whenever(provider.getCacheLastUpdated(testContext, null, useFallbackFile = false)).thenReturn(-1)
         assertTrue(provider.cacheExpired(testContext, null, useFallbackFile = false))
 
@@ -374,7 +382,7 @@ class AMOAddonsProviderTest {
         whenever(mockedResponse.status).thenReturn(200)
         whenever(mockedClient.fetch(any())).thenReturn(mockedResponse)
 
-        val provider = AMOAddonsProvider(testContext, client = mockedClient)
+        val provider = AMOAddonsProvider(testContext, client = mockedClient, ioDispatcher = dispatcher)
 
         val bitmap = provider.loadIconAsync("id", "https://example.com/image.png").await()
         assertTrue(bitmap is Bitmap)
@@ -385,7 +393,7 @@ class AMOAddonsProviderTest {
         val mockedClient = mock<Client>()
         val expectedIcon = mock<Bitmap>()
 
-        val provider = AMOAddonsProvider(testContext, client = mockedClient)
+        val provider = AMOAddonsProvider(testContext, client = mockedClient, ioDispatcher = dispatcher)
 
         provider.iconsCache["id"] = expectedIcon
 
@@ -399,7 +407,7 @@ class AMOAddonsProviderTest {
     @Test
     fun `loadIconAsync - with an unsuccessful status will return null`() = runTest {
         val mockedClient = prepareClient(status = 500)
-        val provider = AMOAddonsProvider(testContext, client = mockedClient)
+        val provider = AMOAddonsProvider(testContext, client = mockedClient, ioDispatcher = dispatcher)
 
         val bitmap = provider.loadIconAsync("id", "https://example.com/image.png").await()
         assertNull(bitmap)
@@ -414,6 +422,7 @@ class AMOAddonsProviderTest {
             testContext,
             client = mockedClient,
             collectionName = collectionName,
+            ioDispatcher = dispatcher,
         )
 
         provider.getFeaturedAddons()
@@ -439,6 +448,7 @@ class AMOAddonsProviderTest {
             client = mockedClient,
             collectionName = collectionName,
             sortOption = SortOption.POPULARITY,
+            ioDispatcher = dispatcher,
         ).also {
             it.getFeaturedAddons()
         }
@@ -457,6 +467,7 @@ class AMOAddonsProviderTest {
             client = mockedClient,
             collectionName = collectionName,
             sortOption = SortOption.POPULARITY_DESC,
+            ioDispatcher = dispatcher,
         ).also {
             it.getFeaturedAddons()
         }
@@ -475,6 +486,7 @@ class AMOAddonsProviderTest {
             client = mockedClient,
             collectionName = collectionName,
             sortOption = SortOption.NAME,
+            ioDispatcher = dispatcher,
         ).also {
             it.getFeaturedAddons()
         }
@@ -493,6 +505,7 @@ class AMOAddonsProviderTest {
             client = mockedClient,
             collectionName = collectionName,
             sortOption = SortOption.NAME_DESC,
+            ioDispatcher = dispatcher,
         ).also {
             it.getFeaturedAddons()
         }
@@ -511,6 +524,7 @@ class AMOAddonsProviderTest {
             client = mockedClient,
             collectionName = collectionName,
             sortOption = SortOption.DATE_ADDED,
+            ioDispatcher = dispatcher,
         ).also {
             it.getFeaturedAddons()
         }
@@ -529,6 +543,7 @@ class AMOAddonsProviderTest {
             client = mockedClient,
             collectionName = collectionName,
             sortOption = SortOption.DATE_ADDED_DESC,
+            ioDispatcher = dispatcher,
         ).also {
             it.getFeaturedAddons()
         }
@@ -555,6 +570,7 @@ class AMOAddonsProviderTest {
             client = mockedClient,
             collectionUser = collectionUser,
             collectionName = collectionName,
+            ioDispatcher = dispatcher,
         )
 
         provider.getFeaturedAddons()
@@ -582,6 +598,7 @@ class AMOAddonsProviderTest {
         val provider = AMOAddonsProvider(
             testContext,
             client = mockedClient,
+            ioDispatcher = dispatcher,
         )
 
         provider.getFeaturedAddons()
@@ -609,6 +626,7 @@ class AMOAddonsProviderTest {
             client = mockedClient,
             collectionUser = collectionUser,
             collectionName = collectionName,
+            ioDispatcher = dispatcher,
         )
 
         assertEquals(
