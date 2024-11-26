@@ -2325,12 +2325,6 @@
   value: true
   mirror: always
 
-# Block multiple window.open() per single event.
-- name: dom.block_multiple_popups
-  type: bool
-  value: true
-  mirror: always
-
 # The maximum number of popup that is allowed to be opened. Set to -1 for no
 # limit.
 - name: dom.popup_maximum

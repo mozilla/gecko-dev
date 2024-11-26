@@ -2297,7 +2297,7 @@ PopupBlocker::PopupControlState BrowsingContext::RevisePopupAbuseLevel(
     // PopupBlocker::openBlocked state.
     if ((abuse == PopupBlocker::openAllowed ||
          abuse == PopupBlocker::openControlled) &&
-        StaticPrefs::dom_block_multiple_popups() && !IsPopupAllowed() &&
+        !IsPopupAllowed() &&
         !ConsumeTransientUserActivationForMultiplePopupBlocking()) {
       nsContentUtils::ReportToConsole(nsIScriptError::warningFlag, "DOM"_ns,
                                       doc, nsContentUtils::eDOM_PROPERTIES,

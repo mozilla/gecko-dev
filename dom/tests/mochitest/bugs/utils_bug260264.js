@@ -17,6 +17,10 @@ function send(element, event, handler) {
     element.removeEventListener(event, unique_handler);
   }
 }
+function sendWithUserActivation(element, event, handler) {
+  SpecialPowers.wrap(document).notifyUserGestureActivation();
+  send(element, event, handler);
+}
 
 /**
  * Because it's not nice to leave popup windows open after the tests are

@@ -93,23 +93,6 @@ function startOpeningTwoPopups(browser) {
 }
 
 add_task(async _ => {
-  info("All opened if the pref is off");
-  await withTestPage(2, async function (browser) {
-    await SpecialPowers.pushPrefEnv({
-      set: [
-        // XXXedgar, perhaps dom.block_multiple_popups will be removed at some
-        // point, we would need to update this test then.
-        ["dom.block_multiple_popups", false],
-      ],
-    });
-
-    await BrowserTestUtils.synthesizeMouseAtCenter("#openPopups", {}, browser);
-
-    await SpecialPowers.popPrefEnv();
-  });
-});
-
-add_task(async _ => {
   info("2 window.open()s in a click event allowed because whitelisted domain.");
 
   const uri = Services.io.newURI(TEST_DOMAIN);
