@@ -2495,7 +2495,7 @@
     <!-- Caption for review quality check panel. First parameter is for clickable text defined in review_quality_check_powered_by_link. -->
     <string name="review_quality_check_powered_by_2">Прегледач рецензија покреће %s</string>
     <!-- Text for title of warning card informing the user that the current analysis is outdated. -->
-    <string name="review_quality_check_outdated_analysis_warning_title" tools:ignore="UnusedResources">Нове подаци за проверу</string>
+    <string name="review_quality_check_outdated_analysis_warning_title" tools:ignore="UnusedResources">Нови подаци за проверу</string>
     <!-- Text for button from warning card informing the user that the current analysis is outdated. Clicking this should trigger the product's re-analysis. -->
     <string name="review_quality_check_outdated_analysis_warning_action" tools:ignore="UnusedResources">Проверите сада</string>
     <!-- Title for warning card informing the user that the current product does not have enough reviews for a review analysis. -->
