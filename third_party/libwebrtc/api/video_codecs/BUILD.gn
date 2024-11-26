@@ -34,6 +34,7 @@ rtc_source_set("scalability_mode_helper") {
   deps = [
     ":scalability_mode",
     "../../modules/video_coding/svc:scalability_mode_util",
+    "../../rtc_base/system:rtc_export",
     "//third_party/abseil-cpp/absl/strings:string_view",
   ]
 }

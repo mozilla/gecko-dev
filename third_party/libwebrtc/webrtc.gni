@@ -1048,6 +1048,24 @@ template("rtc_executable") {
         "//chromium/build/win:default_exe_manifest",
       ]
     }
+
+    # Convert abseil dependencies to //third_party/abseil-cpp:absl_full when
+    # build_with_chromium=true so that webrtc targets won't need exceptions to
+    # depend on individual absl targets.
+    # Note that //third_party/abseil-cpp:absl_full build target includes flags,
+    # but //third_party/abseil-cpp:absl target - doesn't. That allows webrtc
+    # executables, but not libraries to use absl flags.
+    if (build_with_chromium && defined(deps)) {
+      absl_dependencies =
+          filter_labels_include(deps, [ "//third_party/abseil-cpp/*" ])
+      if (absl_dependencies != []) {
+        filtered_deps =
+            filter_labels_exclude(deps, [ "//third_party/abseil-cpp/*" ])
+        deps = []
+        deps = filtered_deps
+        deps += [ "//third_party/abseil-cpp:absl_full" ]
+      }
+    }
   }
 }
 

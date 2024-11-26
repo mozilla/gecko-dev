@@ -19,6 +19,7 @@
 #include <utility>
 #include <vector>
 
+#include "api/environment/environment.h"
 #include "api/function_view.h"
 #include "api/units/time_delta.h"
 #include "api/units/timestamp.h"
@@ -56,7 +57,7 @@ class RtpPacketHistory {
   // With kStoreAndCull, always remove packets after 3x max(1000ms, 3x rtt).
   static constexpr int kPacketCullingDelayFactor = 3;
 
-  RtpPacketHistory(Clock* clock, PaddingMode padding_mode);
+  RtpPacketHistory(const Environment& env, PaddingMode padding_mode);
 
   RtpPacketHistory() = delete;
   RtpPacketHistory(const RtpPacketHistory&) = delete;

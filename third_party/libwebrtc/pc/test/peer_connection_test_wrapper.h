@@ -106,10 +106,10 @@ class PeerConnectionTestWrapper
   void AddIceCandidate(const std::string& sdp_mid,
                        int sdp_mline_index,
                        const std::string& candidate);
-  void WaitForCallEstablished();
-  void WaitForConnection();
-  void WaitForAudio();
-  void WaitForVideo();
+  bool WaitForCallEstablished();
+  bool WaitForConnection();
+  bool WaitForAudio();
+  bool WaitForVideo();
   void GetAndAddUserMedia(bool audio,
                           const cricket::AudioOptions& audio_options,
                           bool video);

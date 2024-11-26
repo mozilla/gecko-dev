@@ -13,10 +13,10 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/91a763d768b74acc9
  2 files changed, 19 insertions(+), 3 deletions(-)
 
 diff --git a/sdk/objc/components/capturer/RTCCameraVideoCapturer.h b/sdk/objc/components/capturer/RTCCameraVideoCapturer.h
-index 370bfa70f0..b1f3f64f74 100644
+index 9874121238..39619b2fc3 100644
 --- a/sdk/objc/components/capturer/RTCCameraVideoCapturer.h
 +++ b/sdk/objc/components/capturer/RTCCameraVideoCapturer.h
-@@ -26,7 +26,10 @@ NS_EXTENSION_UNAVAILABLE_IOS("Camera not available in app extensions.")
+@@ -26,7 +26,10 @@ RTC_OBJC_EXPORT
  @property(readonly, nonatomic) AVCaptureSession *captureSession;
  
  // Returns list of available capture devices that support video capture.

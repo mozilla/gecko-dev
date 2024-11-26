@@ -167,8 +167,8 @@ RtpVideoSenderInterface* RtpTransportControllerSend::CreateRtpVideoSender(
     rtc::scoped_refptr<FrameTransformerInterface> frame_transformer) {
   RTC_DCHECK_RUN_ON(&sequence_checker_);
   video_rtp_senders_.push_back(std::make_unique<RtpVideoSender>(
-      env_, suspended_ssrcs, states, rtp_config, rtcp_report_interval_ms,
-      send_transport, observers,
+      env_, task_queue_, suspended_ssrcs, states, rtp_config,
+      rtcp_report_interval_ms, send_transport, observers,
       // TODO(holmer): Remove this circular dependency by injecting
       // the parts of RtpTransportControllerSendInterface that are really used.
       this, &retransmission_rate_limiter_, std::move(fec_controller),

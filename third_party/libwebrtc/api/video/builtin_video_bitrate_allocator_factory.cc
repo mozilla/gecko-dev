@@ -38,7 +38,7 @@ class BuiltinVideoBitrateAllocatorFactory
     if ((codec.codecType == kVideoCodecAV1 ||
          codec.codecType == kVideoCodecVP9) &&
         codec.numberOfSimulcastStreams <= 1) {
-      return std::make_unique<SvcRateAllocator>(codec);
+      return std::make_unique<SvcRateAllocator>(codec, env.field_trials());
     }
     return std::make_unique<SimulcastRateAllocator>(env, codec);
   }

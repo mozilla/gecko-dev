@@ -18,6 +18,7 @@
 #include <optional>
 #include <vector>
 
+#include "absl/base/nullability.h"
 #include "api/array_view.h"
 #include "api/call/bitrate_allocation.h"
 #include "api/call/transport.h"
@@ -27,6 +28,8 @@
 #include "api/frame_transformer_interface.h"
 #include "api/scoped_refptr.h"
 #include "api/sequence_checker.h"
+#include "api/task_queue/pending_task_safety_flag.h"
+#include "api/task_queue/task_queue_base.h"
 #include "api/units/data_rate.h"
 #include "api/units/data_size.h"
 #include "api/units/frequency.h"
@@ -84,6 +87,7 @@ class RtpVideoSender : public RtpVideoSenderInterface,
   // Rtp modules are assumed to be sorted in simulcast index order.
   RtpVideoSender(
       const Environment& env,
+      absl::Nonnull<TaskQueueBase*> transport_queue,
       const std::map<uint32_t, RtpState>& suspended_ssrcs,
       const std::map<uint32_t, RtpPayloadState>& states,
       const RtpConfig& rtp_config,
@@ -173,6 +177,8 @@ class RtpVideoSender : public RtpVideoSenderInterface,
                                  DataSize packet_size,
                                  DataSize overhead_per_packet,
                                  Frequency framerate) const;
+  void SetModuleIsActive(bool sending, RtpRtcpInterface& rtp_module)
+      RTC_RUN_ON(transport_checker_);
 
   const Environment env_;
   const bool use_frame_rate_for_overhead_;
@@ -181,6 +187,7 @@ class RtpVideoSender : public RtpVideoSenderInterface,
   // Semantically equivalent to checking for `transport_->GetWorkerQueue()`
   // but some tests need to be updated to call from the correct context.
   RTC_NO_UNIQUE_ADDRESS SequenceChecker transport_checker_;
+  TaskQueueBase& transport_queue_;
 
   // TODO(bugs.webrtc.org/13517): Remove mutex_ once RtpVideoSender runs on the
   // transport task queue.
@@ -218,6 +225,8 @@ class RtpVideoSender : public RtpVideoSenderInterface,
   // This map is set at construction time and never changed, but it's
   // non-trivial to make it properly const.
   std::map<uint32_t, RtpRtcpInterface*> ssrc_to_rtp_module_;
+
+  ScopedTaskSafety safety_;
 };
 
 }  // namespace webrtc

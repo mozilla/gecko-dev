@@ -17,6 +17,7 @@
 #include <string>
 #include <utility>
 
+#include "api/video/resolution.h"
 #include "api/video/video_source_interface.h"
 #include "common_video/framerate_controller.h"
 #include "media/base/video_common.h"
@@ -148,6 +149,8 @@ class RTC_EXPORT VideoAdapter {
   int resolution_request_target_pixel_count_ RTC_GUARDED_BY(mutex_);
   int resolution_request_max_pixel_count_ RTC_GUARDED_BY(mutex_);
   int max_framerate_request_ RTC_GUARDED_BY(mutex_);
+  std::optional<webrtc::Resolution> requested_resolution_
+      RTC_GUARDED_BY(mutex_);
 
   // Stashed OutputFormatRequest that is used to save value of
   // OnOutputFormatRequest in case all active encoders are using

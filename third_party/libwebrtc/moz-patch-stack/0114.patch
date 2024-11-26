@@ -42,7 +42,7 @@ index db2a3c7099..a0607b4aba 100644
  uint32_t DeviceInfoPipeWire::NumberOfDevices() {
    RTC_CHECK(pipewire_session_);
 diff --git a/modules/video_capture/linux/pipewire_session.cc b/modules/video_capture/linux/pipewire_session.cc
-index e9f7f765a5..29e454f00b 100644
+index 85ccb289d8..dc270b7b3a 100644
 --- a/modules/video_capture/linux/pipewire_session.cc
 +++ b/modules/video_capture/linux/pipewire_session.cc
 @@ -9,6 +9,7 @@
@@ -53,7 +53,7 @@ index e9f7f765a5..29e454f00b 100644
  
  #include <spa/monitor/device.h>
  #include <spa/param/format-utils.h>
-@@ -278,6 +279,28 @@ void PipeWireSession::InitPipeWire(int fd) {
+@@ -286,6 +287,28 @@ void PipeWireSession::InitPipeWire(int fd) {
      Finish(VideoCaptureOptions::Status::ERROR);
  }
  
@@ -82,7 +82,7 @@ index e9f7f765a5..29e454f00b 100644
  RTC_NO_SANITIZE("cfi-icall")
  bool PipeWireSession::StartPipeWire(int fd) {
    pw_init(/*argc=*/nullptr, /*argv=*/nullptr);
-@@ -350,6 +373,21 @@ void PipeWireSession::PipeWireSync() {
+@@ -358,6 +381,21 @@ void PipeWireSession::PipeWireSync() {
    sync_seq_ = pw_core_sync(pw_core_, PW_ID_CORE, sync_seq_);
  }
  
@@ -104,7 +104,7 @@ index e9f7f765a5..29e454f00b 100644
  // static
  void PipeWireSession::OnCoreError(void* data,
                                    uint32_t id,
-@@ -408,6 +446,8 @@ void PipeWireSession::OnRegistryGlobal(void* data,
+@@ -416,6 +454,8 @@ void PipeWireSession::OnRegistryGlobal(void* data,
  
    that->nodes_.push_back(PipeWireNode::Create(that, id, props));
    that->PipeWireSync();
@@ -113,7 +113,7 @@ index e9f7f765a5..29e454f00b 100644
  }
  
  // static
-@@ -419,10 +459,15 @@ void PipeWireSession::OnRegistryGlobalRemove(void* data, uint32_t id) {
+@@ -427,10 +467,15 @@ void PipeWireSession::OnRegistryGlobalRemove(void* data, uint32_t id) {
                               return node->id() == id;
                             });
    that->nodes_.erase(it, that->nodes_.end());

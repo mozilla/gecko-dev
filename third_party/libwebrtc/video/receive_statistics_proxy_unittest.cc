@@ -555,6 +555,8 @@ TEST_F(ReceiveStatisticsProxyTest, GetStatsReportsOnCorruptionScore) {
         VideoContentType::UNSPECIFIED);
   }
 
+  time_controller_.AdvanceTime(TimeDelta::Zero());
+
   VideoReceiveStreamInterface::Stats stats = statistics_proxy_->GetStats();
   EXPECT_THAT(kExpectedCorruptionScoreSum,
               DoubleEq(*stats.corruption_score_sum));

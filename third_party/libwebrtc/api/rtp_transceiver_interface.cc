@@ -10,6 +10,8 @@
 
 #include "api/rtp_transceiver_interface.h"
 
+#include <optional>
+
 #include "api/rtc_error.h"
 #include "api/rtp_transceiver_direction.h"
 #include "rtc_base/checks.h"

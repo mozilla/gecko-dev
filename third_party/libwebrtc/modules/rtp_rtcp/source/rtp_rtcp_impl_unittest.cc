@@ -131,8 +131,7 @@ class RtpRtcpModule : public RtcpPacketTypeCounterObserver {
   RtpRtcpModule(SimulatedClock* clock, bool is_sender)
       : env_(CreateEnvironment(clock)),
         is_sender_(is_sender),
-        receive_statistics_(ReceiveStatistics::Create(clock)),
-        clock_(clock) {
+        receive_statistics_(ReceiveStatistics::Create(clock)) {
     CreateModuleImpl();
     transport_.SimulateNetworkDelay(kOneWayNetworkDelay.ms(), clock);
   }
@@ -178,7 +177,6 @@ class RtpRtcpModule : public RtcpPacketTypeCounterObserver {
   void CreateModuleImpl() {
     RtpRtcpInterface::Configuration config;
     config.audio = false;
-    config.clock = clock_;
     config.outgoing_transport = &transport_;
     config.receive_statistics = receive_statistics_.get();
     config.rtcp_packet_type_counter_observer = this;
@@ -193,7 +191,6 @@ class RtpRtcpModule : public RtcpPacketTypeCounterObserver {
     impl_->SetRTCPStatus(RtcpMode::kCompound);
   }
 
-  SimulatedClock* const clock_;
   std::map<uint32_t, RtcpPacketTypeCounter> counter_map_;
 };
 }  // namespace
@@ -663,11 +660,11 @@ TEST_F(RtpRtcpImplTest, SenderReportStatsCheckStatsFromLastReport) {
   sr.SetOctetCount(kOctetCount);
   receiver_.impl_->IncomingRtcpPacket(sr.Build());
 
-  EXPECT_THAT(
-      receiver_.impl_->GetSenderReportStats(),
-      Optional(AllOf(Field(&SenderReportStats::last_remote_timestamp, Eq(ntp)),
-                     Field(&SenderReportStats::packets_sent, Eq(kPacketCount)),
-                     Field(&SenderReportStats::bytes_sent, Eq(kOctetCount)))));
+  EXPECT_THAT(receiver_.impl_->GetSenderReportStats(),
+              Optional(AllOf(
+                  Field(&SenderReportStats::last_remote_ntp_timestamp, Eq(ntp)),
+                  Field(&SenderReportStats::packets_sent, Eq(kPacketCount)),
+                  Field(&SenderReportStats::bytes_sent, Eq(kOctetCount)))));
 }
 
 // Checks that the remote sender stats count equals the number of sent RTCP SRs.
@@ -694,7 +691,7 @@ TEST_F(RtpRtcpImplTest, SenderReportStatsArrivalTimestampSet) {
   ASSERT_THAT(sender_.impl_->SendRTCP(kRtcpReport), Eq(0));
   auto stats = receiver_.impl_->GetSenderReportStats();
   ASSERT_THAT(stats, Not(Eq(std::nullopt)));
-  EXPECT_TRUE(stats->last_arrival_timestamp.Valid());
+  EXPECT_TRUE(stats->last_arrival_ntp_timestamp.Valid());
 }
 
 // Checks that the packet and byte counters from an RTCP SR are not zero once

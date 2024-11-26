@@ -64,14 +64,14 @@ class HaltonFrameSampler {
 // 1. Scale the frame buffer to the resolution given by `scaled_width` and
 // `scaled_height`.
 // 2. Scale the `sample_coordinates` to the frame's resolution.
-// 3. Apply the Gaussian filtering given by `stddev_gaussian_blur`.
+// 3. Apply the Gaussian filtering given by `std_dev_gaussian_blur`.
 // 4. Fetch the values at the scaled coordinates in the filtered frame.
 std::vector<FilteredSample> GetSampleValuesForFrame(
     scoped_refptr<I420BufferInterface> i420_frame_buffer,
     std::vector<HaltonFrameSampler::Coordinates> sample_coordinates,
     int scaled_width,
     int scaled_height,
-    double stddev_gaussian_blur);
+    double std_dev_gaussian_blur);
 
 double GetFilteredElement(int width,
                           int height,
@@ -79,7 +79,7 @@ double GetFilteredElement(int width,
                           const uint8_t* data,
                           int row,
                           int column,
-                          double stddev);
+                          double std_dev);
 
 }  // namespace webrtc
 

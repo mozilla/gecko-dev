@@ -22,8 +22,11 @@
 
 #include "absl/functional/any_invocable.h"
 #include "absl/strings/string_view.h"
+#include "api/array_view.h"
 #include "rtc_base/buffer.h"
 #ifdef OPENSSL_IS_BORINGSSL
+#include <openssl/base.h>
+
 #include "rtc_base/boringssl_identity.h"
 #else
 #include "rtc_base/openssl_identity.h"
@@ -32,9 +35,8 @@
 #include "rtc_base/ssl_identity.h"
 #include "rtc_base/ssl_stream_adapter.h"
 #include "rtc_base/stream.h"
-#include "rtc_base/system/rtc_export.h"
 #include "rtc_base/task_utils/repeating_task.h"
-#include "rtc_base/third_party/sigslot/sigslot.h"
+#include "rtc_base/thread.h"
 
 namespace rtc {
 
@@ -60,14 +62,11 @@ namespace rtc {
 // and it has an explicit SSL_CLOSED state. It should not be possible to send
 // any data in clear after one of the StartSSL methods has been called.
 
-// Look in sslstreamadapter.h for documentation of the methods.
-
-class SSLCertChain;
+// Look in ssl_stream_adapter.h for documentation of the methods.
 
 ///////////////////////////////////////////////////////////////////////////////
 
-class OpenSSLStreamAdapter final : public SSLStreamAdapter,
-                                   public sigslot::has_slots<> {
+class OpenSSLStreamAdapter final : public SSLStreamAdapter {
  public:
   OpenSSLStreamAdapter(
       std::unique_ptr<StreamInterface> stream,
@@ -103,10 +102,9 @@ class OpenSSLStreamAdapter final : public SSLStreamAdapter,
   void Close() override;
   StreamState GetState() const override;
 
-  // TODO(guoweis): Move this away from a static class method.
-  static std::string SslCipherSuiteToName(int crypto_suite);
+  std::optional<absl::string_view> GetTlsCipherSuiteName() const override;
 
-  bool GetSslCipherSuite(int* cipher) override;
+  bool GetSslCipherSuite(int* cipher) const override;
   [[deprecated("Use GetSslVersionBytes")]] SSLProtocolVersion GetSslVersion()
       const override;
   bool GetSslVersionBytes(int* version) const override;
@@ -122,7 +120,7 @@ class OpenSSLStreamAdapter final : public SSLStreamAdapter,
 
   // DTLS-SRTP interface
   bool SetDtlsSrtpCryptoSuites(const std::vector<int>& crypto_suites) override;
-  bool GetDtlsSrtpCryptoSuite(int* crypto_suite) override;
+  bool GetDtlsSrtpCryptoSuite(int* crypto_suite) const override;
 
   bool IsTlsConnected() override;
 
@@ -250,6 +248,9 @@ class OpenSSLStreamAdapter final : public SSLStreamAdapter,
   // A 50-ms initial timeout ensures rapid setup on fast connections, but may
   // be too aggressive for low bandwidth links.
   int dtls_handshake_timeout_ms_ = 50;
+
+  // Rollout killswitch for disabling session tickets.
+  const bool disable_handshake_ticket_;
 };
 
 /////////////////////////////////////////////////////////////////////////////

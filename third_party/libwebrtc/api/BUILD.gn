@@ -493,6 +493,7 @@ rtc_source_set("ref_count") {
 rtc_source_set("scoped_refptr") {
   visibility = [ "*" ]
   sources = [ "scoped_refptr.h" ]
+  deps = [ "//third_party/abseil-cpp/absl/base:nullability" ]
 }
 
 rtc_source_set("make_ref_counted") {
@@ -502,6 +503,7 @@ rtc_source_set("make_ref_counted") {
     ":ref_count",
     ":scoped_refptr",
     "../rtc_base:refcount",
+    "//third_party/abseil-cpp/absl/base:nullability",
   ]
 }
 
@@ -1573,6 +1575,7 @@ if (rtc_include_tests) {
       "candidate_unittest.cc",
       "field_trials_unittest.cc",
       "function_view_unittest.cc",
+      "jsep_unittest.cc",
       "rtc_error_unittest.cc",
       "rtc_event_log_output_file_unittest.cc",
       "rtp_packet_info_unittest.cc",
@@ -1606,6 +1609,7 @@ if (rtc_include_tests) {
       "../rtc_base:buffer",
       "../rtc_base:checks",
       "../rtc_base:gunit_helpers",
+      "../rtc_base:logging",
       "../rtc_base:macromagic",
       "../rtc_base:platform_thread",
       "../rtc_base:rtc_event",

@@ -58,24 +58,20 @@ class SrtpTransport : public RtpTransport {
   // packet encryption. The keys can either come from SDES negotiation or DTLS
   // handshake.
   bool SetRtpParams(int send_crypto_suite,
-                    const uint8_t* send_key,
-                    int send_key_len,
+                    const rtc::ZeroOnFreeBuffer<uint8_t>& send_key,
                     const std::vector<int>& send_extension_ids,
                     int recv_crypto_suite,
-                    const uint8_t* recv_key,
-                    int recv_key_len,
+                    const rtc::ZeroOnFreeBuffer<uint8_t>& recv_key,
                     const std::vector<int>& recv_extension_ids);
 
   // Create new send/recv sessions and set the negotiated crypto keys for RTCP
   // packet encryption. The keys can either come from SDES negotiation or DTLS
   // handshake.
   bool SetRtcpParams(int send_crypto_suite,
-                     const uint8_t* send_key,
-                     int send_key_len,
+                     const rtc::ZeroOnFreeBuffer<uint8_t>& send_key,
                      const std::vector<int>& send_extension_ids,
                      int recv_crypto_suite,
-                     const uint8_t* recv_key,
-                     int recv_key_len,
+                     const rtc::ZeroOnFreeBuffer<uint8_t>& recv_key,
                      const std::vector<int>& recv_extension_ids);
 
   void ResetParams();
@@ -140,9 +136,6 @@ class SrtpTransport : public RtpTransport {
   bool UnprotectRtp(void* data, int in_len, int* out_len);
 
   bool UnprotectRtcp(void* data, int in_len, int* out_len);
-
-  bool MaybeSetKeyParams();
-  bool ParseKeyParams(const std::string& key_params, uint8_t* key, size_t len);
 
   const std::string content_name_;
 

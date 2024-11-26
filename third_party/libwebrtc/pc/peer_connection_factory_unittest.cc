@@ -114,10 +114,8 @@ class MockNetworkManager : public rtc::NetworkManager {
  public:
   MOCK_METHOD(void, StartUpdating, (), (override));
   MOCK_METHOD(void, StopUpdating, (), (override));
-  MOCK_METHOD(std::vector<const rtc::Network*>,
-              GetNetworks,
-              (),
-              (const override));
+  MOCK_METHOD(std::vector<const rtc::Network*>, GetNetworks, (),
+              (const, override));
   MOCK_METHOD(std::vector<const rtc::Network*>,
               GetAnyAddressNetworks,
               (),

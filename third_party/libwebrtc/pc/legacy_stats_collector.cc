@@ -1012,13 +1012,10 @@ void LegacyStatsCollector::ExtractSessionInfo_s(SessionStats& session_stats) {
             StatsReport::kStatsValueNameSrtpCipher,
             rtc::SrtpCryptoSuiteToName(srtp_crypto_suite));
       }
-      int ssl_cipher_suite = channel_iter.ssl_cipher_suite;
-      if (ssl_cipher_suite != rtc::kTlsNullWithNullNull &&
-          rtc::SSLStreamAdapter::SslCipherSuiteToName(ssl_cipher_suite)
-              .length()) {
+      if (channel_iter.tls_cipher_suite_name) {
         channel_report->AddString(
             StatsReport::kStatsValueNameDtlsCipher,
-            rtc::SSLStreamAdapter::SslCipherSuiteToName(ssl_cipher_suite));
+            std::string(*channel_iter.tls_cipher_suite_name));
       }
 
       // Collect stats for non-pooled candidates. Note that the reports

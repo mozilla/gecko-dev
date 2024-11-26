@@ -237,11 +237,38 @@ bool VideoAdapter::AdaptFrameResolution(int in_width,
   RTC_DCHECK_EQ(0, *cropped_width % scale.denominator);
   RTC_DCHECK_EQ(0, *cropped_height % scale.denominator);
 
-  // Calculate final output size.
+  // Calculate output size.
   *out_width = *cropped_width / scale.denominator * scale.numerator;
   *out_height = *cropped_height / scale.denominator * scale.numerator;
   RTC_DCHECK_EQ(0, *out_width % resolution_alignment_);
   RTC_DCHECK_EQ(0, *out_height % resolution_alignment_);
+
+  // Lastly, make the output size fit within the resolution restrictions as
+  // specified by `requested_resolution_`. This does not modify aspect ratio or
+  // cropping, only `out_width` and `out_height`.
+  if (requested_resolution_.has_value()) {
+    // Make frame and requested resolution have matching orientation.
+    webrtc::Resolution requested_resolution = requested_resolution_.value();
+    if ((*out_width < *out_height) !=
+        (requested_resolution_->width < requested_resolution_->height)) {
+      requested_resolution = {.width = requested_resolution_->height,
+                              .height = requested_resolution_->width};
+    }
+    // Downscale by smallest scaling factor, if necessary.
+    if (*out_width > 0 && *out_height > 0 &&
+        (requested_resolution.width < *out_width ||
+         requested_resolution.height < *out_height)) {
+      double scale_factor = std::min(
+          requested_resolution.width / static_cast<double>(*out_width),
+          requested_resolution.height / static_cast<double>(*out_height));
+      *out_width = roundUp(std::round(*out_width * scale_factor),
+                           resolution_alignment_, requested_resolution.width);
+      *out_height = roundUp(std::round(*out_height * scale_factor),
+                            resolution_alignment_, requested_resolution.height);
+      RTC_DCHECK_EQ(0, *out_width % resolution_alignment_);
+      RTC_DCHECK_EQ(0, *out_height % resolution_alignment_);
+    }
+  }
 
   ++frames_out_;
   if (scale.numerator != scale.denominator)
@@ -341,11 +368,12 @@ void VideoAdapter::OnSinkWants(const rtc::VideoSinkWants& sink_wants) {
   max_framerate_request_ = sink_wants.max_framerate_fps;
   resolution_alignment_ = cricket::LeastCommonMultiple(
       source_resolution_alignment_, sink_wants.resolution_alignment);
-
-  if (!sink_wants.aggregates) {
-    RTC_LOG(LS_WARNING)
-        << "These should always be created by VideoBroadcaster!";
-    return;
+  // Convert from std::optional<rtc::VideoSinkWants::FrameSize> to
+  // std::optional<webrtc::Resolution>. Both are {int,int}.
+  requested_resolution_ = std::nullopt;
+  if (sink_wants.requested_resolution.has_value()) {
+    requested_resolution_ = {.width = sink_wants.requested_resolution->width,
+                             .height = sink_wants.requested_resolution->height};
   }
 
   // If requested_resolution is used, and there are no active encoders
@@ -365,12 +393,19 @@ void VideoAdapter::OnSinkWants(const rtc::VideoSinkWants& sink_wants) {
     return;
   }
 
-  if (sink_wants.aggregates->any_active_without_requested_resolution) {
+  // The code below is only needed when `requested_resolution` is signalled back
+  // to the video source which only happens if
+  // `VideoStreamEncoderSettings::use_standard_requested_resolution` is false.
+  // TODO(https://crbug.com/webrtc/366284861): Delete the code below as part of
+  // deleting this flag and only supporting the standard behavior.
+
+  if (sink_wants.aggregates.has_value() &&
+      sink_wants.aggregates->any_active_without_requested_resolution) {
     return;
   }
 
   if (!stashed_output_format_request_) {
-    // The active output format request is about to be rewritten by
+    // The active output format request is about to be cleared due to
     // request_resolution. We need to save it for later use in case the encoder
     // which doesn't use request_resolution logic become active in the future.
     stashed_output_format_request_ = output_format_request_;
@@ -378,22 +413,9 @@ void VideoAdapter::OnSinkWants(const rtc::VideoSinkWants& sink_wants) {
                      << stashed_output_format_request_->ToString();
   }
 
-  auto res = *sink_wants.requested_resolution;
-  if (res.width < res.height) {
-    // Adjust `res` to landscape mode.
-    res.width = sink_wants.requested_resolution->height;
-    res.height = sink_wants.requested_resolution->width;
-  }
-  auto pixel_count = res.width * res.height;
-  output_format_request_.target_landscape_aspect_ratio =
-      std::make_pair(res.width, res.height);
-  output_format_request_.max_landscape_pixel_count = pixel_count;
-  output_format_request_.target_portrait_aspect_ratio =
-      std::make_pair(res.height, res.width);
-  output_format_request_.max_portrait_pixel_count = pixel_count;
-  output_format_request_.max_fps = max_framerate_request_;
-  RTC_LOG(LS_INFO) << "Setting output_format_request_ based on sink_wants: "
-                   << output_format_request_.ToString();
+  // Clear the output format request. Requested resolution will be applied
+  // instead which happens inside AdaptFrameResolution().
+  output_format_request_ = {};
 }
 
 int VideoAdapter::GetTargetPixels() const {

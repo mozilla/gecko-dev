@@ -621,10 +621,8 @@ size_t WebRtcSpl_FilterAR(const int16_t* ar_coef,
                           int16_t* filter_state,
                           size_t filter_state_length,
                           int16_t* filter_state_low,
-                          size_t filter_state_low_length,
                           int16_t* out_vector,
-                          int16_t* out_vector_low,
-                          size_t out_vector_low_length);
+                          int16_t* out_vector_low);
 
 // WebRtcSpl_FilterMAFastQ12(...)
 //
@@ -1464,9 +1462,6 @@ void WebRtcSpl_SynthesisQMF(const int16_t* low_band,
 //  - filter_state              : Current state (higher part) of the filter.
 //  - filter_state_length       : Length (in samples) of `filter_state`.
 //  - filter_state_low          : Current state (lower part) of the filter.
-//  - filter_state_low_length   : Length (in samples) of `filter_state_low`.
-//  - out_vector_low_length     : Maximum length (in samples) of
-//                                `out_vector_low`.
 //
 // Output:
 //  - filter_state              : Updated state (upper part) vector.

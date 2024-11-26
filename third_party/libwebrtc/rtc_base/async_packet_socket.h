@@ -191,7 +191,6 @@ class RTC_EXPORT AsyncListenSocket : public sigslot::has_slots<> {
 
 void CopySocketInformationToPacketInfo(size_t packet_size_bytes,
                                        const AsyncPacketSocket& socket_from,
-                                       bool is_connectionless,
                                        rtc::PacketInfo* info);
 
 }  // namespace rtc

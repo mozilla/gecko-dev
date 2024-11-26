@@ -16,7 +16,8 @@
 
 #include "absl/strings/string_view.h"
 #include "api/environment/environment.h"
-#include "modules/audio_coding/acm2/acm_receiver.h"
+#include "api/neteq/neteq.h"
+#include "modules/audio_coding/acm2/acm_resampler.h"
 #include "modules/audio_coding/include/audio_coding_module.h"
 #include "modules/audio_coding/test/PCMFile.h"
 #include "modules/audio_coding/test/RTPFile.h"
@@ -76,7 +77,7 @@ class Receiver {
  public:
   Receiver();
   virtual ~Receiver() {}
-  void Setup(acm2::AcmReceiver* acm_receiver,
+  void Setup(NetEq* neteq,
              RTPStream* rtpStream,
              absl::string_view out_file_name,
              size_t channels,
@@ -94,7 +95,8 @@ class Receiver {
   bool _firstTime;
 
  protected:
-  acm2::AcmReceiver* _acm_receiver;
+  NetEq* _neteq;
+  acm2::ResamplerHelper _resampler_helper;
   uint8_t _incomingPayload[MAX_INCOMING_PAYLOAD];
   RTPStream* _rtpStream;
   RTPHeader _rtpHeader;

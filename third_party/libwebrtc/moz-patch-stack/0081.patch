@@ -30,10 +30,10 @@ index 6959445285..47e2fddd3b 100644
    virtual VideoFrameMetadata Metadata() const = 0;
  
 diff --git a/modules/rtp_rtcp/source/rtp_sender.h b/modules/rtp_rtcp/source/rtp_sender.h
-index d97e4ae036..8336e85e2b 100644
+index 0a29968b0c..c23051401e 100644
 --- a/modules/rtp_rtcp/source/rtp_sender.h
 +++ b/modules/rtp_rtcp/source/rtp_sender.h
-@@ -145,6 +145,10 @@ class RTPSender {
+@@ -141,6 +141,10 @@ class RTPSender {
  
    uint32_t SSRC() const RTC_LOCKS_EXCLUDED(send_mutex_) { return ssrc_; }
  
@@ -45,10 +45,10 @@ index d97e4ae036..8336e85e2b 100644
      return flexfec_ssrc_;
    }
 diff --git a/modules/rtp_rtcp/source/rtp_sender_video.cc b/modules/rtp_rtcp/source/rtp_sender_video.cc
-index e505e282c6..248a85e91d 100644
+index 95c5c41bb3..94ae84a790 100644
 --- a/modules/rtp_rtcp/source/rtp_sender_video.cc
 +++ b/modules/rtp_rtcp/source/rtp_sender_video.cc
-@@ -156,6 +156,7 @@ RTPSenderVideo::RTPSenderVideo(const Config& config)
+@@ -183,6 +183,7 @@ RTPSenderVideo::RTPSenderVideo(const Config& config)
                      this,
                      config.frame_transformer,
                      rtp_sender_->SSRC(),
@@ -148,7 +148,7 @@ index 3580d84402..e4a75a9734 100644
    // happen if a hardware encoder was used.
    std::unique_ptr<TaskQueueBase, TaskQueueDeleter> transformation_queue_;
 diff --git a/modules/rtp_rtcp/source/rtp_video_stream_receiver_frame_transformer_delegate.cc b/modules/rtp_rtcp/source/rtp_video_stream_receiver_frame_transformer_delegate.cc
-index de74684a1f..7e0754284a 100644
+index 7ab96263cf..9952828922 100644
 --- a/modules/rtp_rtcp/source/rtp_video_stream_receiver_frame_transformer_delegate.cc
 +++ b/modules/rtp_rtcp/source/rtp_video_stream_receiver_frame_transformer_delegate.cc
 @@ -59,6 +59,11 @@ class TransformableVideoReceiverFrame

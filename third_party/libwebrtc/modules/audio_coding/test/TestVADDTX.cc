@@ -21,6 +21,7 @@
 #include "api/audio_codecs/opus/audio_decoder_opus.h"
 #include "api/audio_codecs/opus/audio_encoder_opus.h"
 #include "api/environment/environment_factory.h"
+#include "api/neteq/default_neteq_factory.h"
 #include "modules/audio_coding/codecs/cng/audio_encoder_cng.h"
 #include "modules/audio_coding/test/PCMFile.h"
 #include "rtc_base/strings/string_builder.h"
@@ -73,16 +74,16 @@ TestVadDtx::TestVadDtx()
       decoder_factory_(
           CreateAudioDecoderFactory<AudioDecoderIlbc, AudioDecoderOpus>()),
       acm_send_(AudioCodingModule::Create()),
-      acm_receive_(std::make_unique<acm2::AcmReceiver>(
-          env_,
-          acm2::AcmReceiver::Config(decoder_factory_))),
+      neteq_(DefaultNetEqFactory().Create(env_,
+                                          NetEq::Config(),
+                                          decoder_factory_)),
       channel_(std::make_unique<Channel>()),
       packetization_callback_(
           std::make_unique<MonitoringAudioPacketizationCallback>(
               channel_.get())) {
   EXPECT_EQ(
       0, acm_send_->RegisterTransportCallback(packetization_callback_.get()));
-  channel_->RegisterReceiverACM(acm_receive_.get());
+  channel_->RegisterReceiverNetEq(neteq_.get());
 }
 
 bool TestVadDtx::RegisterCodec(const SdpAudioFormat& codec_format,
@@ -106,7 +107,7 @@ bool TestVadDtx::RegisterCodec(const SdpAudioFormat& codec_format,
   acm_send_->SetEncoder(std::move(encoder));
 
   std::map<int, SdpAudioFormat> receive_codecs = {{payload_type, codec_format}};
-  acm_receive_->SetCodecs(receive_codecs);
+  neteq_->SetCodecs(receive_codecs);
 
   return added_comfort_noise;
 }
@@ -145,7 +146,8 @@ void TestVadDtx::Run(absl::string_view in_filename,
     time_stamp_ += frame_size_samples;
     EXPECT_GE(acm_send_->Add10MsData(audio_frame), 0);
     bool muted;
-    acm_receive_->GetAudio(kOutputFreqHz, &audio_frame, &muted);
+    neteq_->GetAudio(&audio_frame, &muted);
+    resampler_helper_.MaybeResample(kOutputFreqHz, &audio_frame);
     ASSERT_FALSE(muted);
     out_file.Write10MsData(audio_frame);
   }

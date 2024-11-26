@@ -15,6 +15,7 @@
 #include <memory>
 #include <utility>
 
+#include "api/environment/environment_factory.h"
 #include "api/units/time_delta.h"
 #include "api/units/timestamp.h"
 #include "modules/rtp_rtcp/include/rtp_rtcp_defines.h"
@@ -57,9 +58,11 @@ class RtpPacketHistoryTest
  protected:
   RtpPacketHistoryTest()
       : fake_clock_(123456),
-        hist_(&fake_clock_, /*enable_padding_prio=*/GetParam()) {}
+        env_(CreateEnvironment(&fake_clock_)),
+        hist_(env_, /*enable_padding_prio=*/GetParam()) {}
 
   SimulatedClock fake_clock_;
+  Environment env_;
   RtpPacketHistory hist_;
 
   std::unique_ptr<RtpPacketToSend> CreateRtpPacket(uint16_t seq_num) {
@@ -157,7 +160,7 @@ TEST_P(RtpPacketHistoryTest, GetRtpPacket) {
 }
 
 TEST_P(RtpPacketHistoryTest, MinResendTime) {
-  static const TimeDelta kMinRetransmitInterval = TimeDelta::Millis(100);
+  static constexpr TimeDelta kMinRetransmitInterval = TimeDelta::Millis(100);
 
   hist_.SetStorePacketsStatus(StorageMode::kStoreAndCull, 10);
   hist_.SetRtt(kMinRetransmitInterval);
@@ -626,7 +629,8 @@ INSTANTIATE_TEST_SUITE_P(
 TEST(RtpPacketHistoryRecentLargePacketMode,
      GetPayloadPaddingPacketAfterCullWithAcksReturnOldPacket) {
   SimulatedClock fake_clock(1234);
-  RtpPacketHistory history(&fake_clock,
+  Environment env = CreateEnvironment(&fake_clock);
+  RtpPacketHistory history(env,
                            RtpPacketHistory::PaddingMode::kRecentLargePacket);
 
   history.SetStorePacketsStatus(StorageMode::kStoreAndCull, 10);
@@ -646,7 +650,8 @@ TEST(RtpPacketHistoryRecentLargePacketMode,
 TEST(RtpPacketHistoryRecentLargePacketMode,
      GetPayloadPaddingPacketIgnoreSmallRecentPackets) {
   SimulatedClock fake_clock(1234);
-  RtpPacketHistory history(&fake_clock,
+  Environment env = CreateEnvironment(&fake_clock);
+  RtpPacketHistory history(env,
                            RtpPacketHistory::PaddingMode::kRecentLargePacket);
   history.SetStorePacketsStatus(StorageMode::kStoreAndCull, 10);
   std::unique_ptr<RtpPacketToSend> packet = CreatePacket(kStartSeqNum);
@@ -667,7 +672,8 @@ TEST(RtpPacketHistoryRecentLargePacketMode,
 TEST(RtpPacketHistoryRecentLargePacketMode,
      GetPayloadPaddingPacketReturnsRecentPacketIfSizeNearMax) {
   SimulatedClock fake_clock(1234);
-  RtpPacketHistory history(&fake_clock,
+  Environment env = CreateEnvironment(&fake_clock);
+  RtpPacketHistory history(env,
                            RtpPacketHistory::PaddingMode::kRecentLargePacket);
   history.SetStorePacketsStatus(StorageMode::kStoreAndCull, 10);
   std::unique_ptr<RtpPacketToSend> packet = CreatePacket(kStartSeqNum);
@@ -688,7 +694,8 @@ TEST(RtpPacketHistoryRecentLargePacketMode,
 TEST(RtpPacketHistoryRecentLargePacketMode,
      GetPayloadPaddingPacketReturnsLastPacketAfterLargeSequenceNumberGap) {
   SimulatedClock fake_clock(1234);
-  RtpPacketHistory history(&fake_clock,
+  Environment env = CreateEnvironment(&fake_clock);
+  RtpPacketHistory history(env,
                            RtpPacketHistory::PaddingMode::kRecentLargePacket);
   history.SetStorePacketsStatus(StorageMode::kStoreAndCull, 10);
   uint16_t sequence_number = std::numeric_limits<uint16_t>::max() - 50;

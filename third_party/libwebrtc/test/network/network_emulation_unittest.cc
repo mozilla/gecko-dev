@@ -88,7 +88,8 @@ class MockNetworkBehaviourInterface : public NetworkBehaviorInterface {
               DequeueDeliverablePackets,
               (int64_t),
               (override));
-  MOCK_METHOD(std::optional<int64_t>, NextDeliveryTimeUs, (), (const override));
+  MOCK_METHOD(std::optional<int64_t>, NextDeliveryTimeUs, (),
+              (const, override));
   MOCK_METHOD(void,
               RegisterDeliveryTimeChangedCallback,
               (absl::AnyInvocable<void()>),

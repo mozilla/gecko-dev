@@ -12,7 +12,7 @@
 
 #import "RTCCertificate.h"
 #import "RTCCryptoOptions.h"
-#import "RTCMacros.h"
+#import "sdk/objc/base/RTCMacros.h"
 
 @class RTC_OBJC_TYPE(RTCIceServer);
 

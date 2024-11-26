@@ -165,18 +165,7 @@ RTPSender::RTPSender(const Environment& env,
                      const RtpRtcpInterface::Configuration& config,
                      RtpPacketHistory* packet_history,
                      RtpPacketSender* packet_sender)
-    : RTPSender(&env.clock(), config, packet_history, packet_sender) {}
-
-RTPSender::RTPSender(const RtpRtcpInterface::Configuration& config,
-                     RtpPacketHistory* packet_history,
-                     RtpPacketSender* packet_sender)
-    : RTPSender(config.clock, config, packet_history, packet_sender) {}
-
-RTPSender::RTPSender(Clock* clock,
-                     const RtpRtcpInterface::Configuration& config,
-                     RtpPacketHistory* packet_history,
-                     RtpPacketSender* packet_sender)
-    : clock_(clock),
+    : clock_(&env.clock()),
       random_(clock_->TimeInMicroseconds()),
       audio_configured_(config.audio),
       ssrc_(config.local_media_ssrc),

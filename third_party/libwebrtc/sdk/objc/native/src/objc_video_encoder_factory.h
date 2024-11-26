@@ -19,7 +19,7 @@
 #include "api/environment/environment.h"
 #include "api/video_codecs/sdp_video_format.h"
 #include "api/video_codecs/video_encoder_factory.h"
-#import "base/RTCMacros.h"
+#import "sdk/objc/base/RTCMacros.h"
 
 @protocol RTC_OBJC_TYPE
 (RTCVideoEncoderFactory);

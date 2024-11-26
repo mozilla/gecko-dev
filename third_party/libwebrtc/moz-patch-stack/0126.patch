@@ -1,104 +1,86 @@
 From: Michael Froman <mfroman@mozilla.com>
-Date: Tue, 1 Oct 2024 21:05:00 +0000
-Subject: Bug 1921706 - use relative paths on deps in a few places to avoid
- future issues. r=ng,webrtc-reviewers DONTBUILD
+Date: Thu, 10 Oct 2024 13:42:00 +0000
+Subject: Bug 1921707 - libwebrtc preprocessor, .json, .gni, and *.gn changes
+ r=ng,webrtc-reviewers
 
-Note: this produces no changes in the generated moz.build files.
-
-Differential Revision: https://phabricator.services.mozilla.com/D224070
-Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/bbec1b95ddb5e00967a0fb002f54f8f24336b904
+Differential Revision: https://phabricator.services.mozilla.com/D224076
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/7017edc7cfc880bb19f94115d4f48a8c58920a9b
 ---
- modules/audio_coding/BUILD.gn  |  2 +-
- modules/portal/BUILD.gn        |  8 ++++----
- modules/video_capture/BUILD.gn |  2 +-
- sdk/BUILD.gn                   | 14 ++++++++++++++
- test/BUILD.gn                  |  6 ++++++
- 5 files changed, 26 insertions(+), 6 deletions(-)
+ .gn                           | 4 ++--
+ media/BUILD.gn                | 2 +-
+ modules/video_coding/BUILD.gn | 2 +-
+ webrtc.gni                    | 6 +++---
+ 4 files changed, 7 insertions(+), 7 deletions(-)
 
-diff --git a/modules/audio_coding/BUILD.gn b/modules/audio_coding/BUILD.gn
-index 6fe5ff6a44..ab4854f8e3 100644
---- a/modules/audio_coding/BUILD.gn
-+++ b/modules/audio_coding/BUILD.gn
-@@ -540,7 +540,7 @@ rtc_library("webrtc_opus_wrapper") {
-     deps += [ rtc_opus_dir ]
-     public_configs = [ "//third_party/opus:opus_config" ]
-   } else if (build_with_mozilla) {
--    public_configs = [ "//third_party/opus:opus_config" ]
-+    public_configs = [ "../../third_party/opus:opus_config" ]
-   }
- }
+diff --git a/.gn b/.gn
+index 52acee7e60..e6aa410434 100644
+--- a/.gn
++++ b/.gn
+@@ -18,7 +18,7 @@ script_executable = "python3"
+ # The secondary source root is a parallel directory tree where
+ # GN build files are placed when they can not be placed directly
+ # in the source tree, e.g. for third party source trees.
+-secondary_source = "//build/secondary/"
++secondary_source = "//libwebrtc/"
  
-diff --git a/modules/portal/BUILD.gn b/modules/portal/BUILD.gn
-index aff8609b54..901597ecde 100644
---- a/modules/portal/BUILD.gn
-+++ b/modules/portal/BUILD.gn
-@@ -137,10 +137,10 @@ if (!build_with_mozilla) {
-       deps -= [ ":pipewire_stubs" ]
-       defines -= [ "WEBRTC_DLOPEN_PIPEWIRE" ]
-       public_deps = [
--        "//third_party/pipewire",
--        "//third_party/drm",
--        "//third_party/gbm",
--        "//third_party/libepoxy"
-+        "../../third_party/pipewire",
-+        "../../third_party/drm",
-+        "../../third_party/gbm",
-+        "../../third_party/libepoxy"
-       ]
-     }
-   }
-diff --git a/modules/video_capture/BUILD.gn b/modules/video_capture/BUILD.gn
-index d9b3471572..60e191908b 100644
---- a/modules/video_capture/BUILD.gn
-+++ b/modules/video_capture/BUILD.gn
-@@ -110,7 +110,7 @@ if (!build_with_chromium || is_linux || is_chromeos) {
-         ]
-         if (build_with_mozilla) {
-           configs -= [ "../portal:pipewire_base" ]
--          public_deps = [ "//third_party/pipewire" ]
-+          public_deps = [ "../../third_party/pipewire" ]
-         }
-       }
-     }
-diff --git a/sdk/BUILD.gn b/sdk/BUILD.gn
-index fce3ca62ff..d2a74716dd 100644
---- a/sdk/BUILD.gn
-+++ b/sdk/BUILD.gn
-@@ -588,6 +588,20 @@ if (is_ios || is_mac) {
-         "CoreGraphics.framework",
-         "CoreVideo.framework",
-       ]
-+      if (build_with_mozilla) {
-+        deps -= [
-+          "//api/video:video_frame",
-+          "//api/video:video_rtp_headers",
-+          "//common_video",
-+          "//rtc_base:checks",
-+        ]
-+        deps += [
-+          "../api/video:video_frame",
-+          "../api/video:video_rtp_headers",
-+          "../common_video",
-+          "../rtc_base:checks",
-+        ]
-+      }
-     }
+ # These are the targets to skip header checking by default. The files in targets
+ # matching these patterns (see "gn help label_pattern" for format) will not have
+@@ -36,7 +36,7 @@ no_check_targets = [
+ # to force additional review for new uses of exec_script, which is strongly
+ # discouraged except for gypi_to_gn calls.
+ exec_script_whitelist = build_dotfile_settings.exec_script_whitelist +
+-                        [ "//build_overrides/build.gni" ]
++                        [ "//libwebrtc/build_overrides/build.gni" ]
  
-     if (!build_with_mozilla) {
-diff --git a/test/BUILD.gn b/test/BUILD.gn
-index ac80805821..b4fd619f3d 100644
---- a/test/BUILD.gn
-+++ b/test/BUILD.gn
-@@ -483,6 +483,12 @@ rtc_source_set("test_support") {
-     "//testing/gmock",
-     "//testing/gtest",
-   ]
-+  if (build_with_mozilla) {
-+    all_dependent_configs -= [
-+      "//third_party/googletest:gmock_config",
-+      "//third_party/googletest:gtest_config",
-+    ]
-+  }
- }
+ # Normally, we'd use 'if (!build_with_mozilla)', but that flag isn't
+ # available yet.
+diff --git a/media/BUILD.gn b/media/BUILD.gn
+index 9b2a439eac..30b62b4abc 100644
+--- a/media/BUILD.gn
++++ b/media/BUILD.gn
+@@ -7,7 +7,7 @@
+ # be found in the AUTHORS file in the root of the source tree.
  
- rtc_library("fixed_fps_video_frame_writer_adapter") {
+ import("//build/config/linux/pkg_config.gni")
+-import("//third_party/libaom/options.gni")
++import("//libwebrtc/third_party/libaom/options.gni")
+ import("../webrtc.gni")
+ 
+ group("media") {
+diff --git a/modules/video_coding/BUILD.gn b/modules/video_coding/BUILD.gn
+index ae832adb64..938f957060 100644
+--- a/modules/video_coding/BUILD.gn
++++ b/modules/video_coding/BUILD.gn
+@@ -7,7 +7,7 @@
+ # be found in the AUTHORS file in the root of the source tree.
+ 
+ import("//build/config/linux/pkg_config.gni")
+-import("//third_party/libaom/options.gni")
++import("//libwebrtc/third_party/libaom/options.gni")
+ import("../../webrtc.gni")
+ 
+ rtc_library("encoded_frame") {
+diff --git a/webrtc.gni b/webrtc.gni
+index b16f07f64d..c86c54776a 100644
+--- a/webrtc.gni
++++ b/webrtc.gni
+@@ -11,7 +11,7 @@ import("//build/config/mips.gni")
+ import("//build/config/ozone.gni")
+ import("//build/config/sanitizers/sanitizers.gni")
+ import("//build/config/sysroot.gni")
+-import("//build_overrides/build.gni")
++import("//libwebrtc/build_overrides/build.gni")
+ 
+ if (!build_with_chromium && is_component_build) {
+   print("The Gn argument `is_component_build` is currently " +
+@@ -500,8 +500,8 @@ all_poison_types = [
+   "software_video_codecs",
+ ]
+ 
+-absl_include_config = "//third_party/abseil-cpp:absl_include_config"
+-absl_define_config = "//third_party/abseil-cpp:absl_define_config"
++absl_include_config = "//libwebrtc/third_party/abseil-cpp:absl_include_config"
++absl_define_config = "//libwebrtc/third_party/abseil-cpp:absl_define_config"
+ 
+ # Abseil Flags are testonly, so this config will only be applied to WebRTC targets
+ # that are testonly.

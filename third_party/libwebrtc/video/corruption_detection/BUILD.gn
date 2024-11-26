@@ -8,6 +8,36 @@
 
 import("../../webrtc.gni")
 
+rtc_library("corruption_classifier") {
+  sources = [
+    "corruption_classifier.cc",
+    "corruption_classifier.h",
+  ]
+  deps = [
+    ":halton_frame_sampler",
+    "../../api:array_view",
+    "../../rtc_base:checks",
+    "../../rtc_base:logging",
+  ]
+}
+
+rtc_library("frame_instrumentation_evaluation") {
+  sources = [
+    "frame_instrumentation_evaluation.cc",
+    "frame_instrumentation_evaluation.h",
+  ]
+  deps = [
+    ":corruption_classifier",
+    ":halton_frame_sampler",
+    "../../api:array_view",
+    "../../api:scoped_refptr",
+    "../../api/video:video_frame",
+    "../../common_video:frame_instrumentation_data",
+    "../../rtc_base:checks",
+    "../../rtc_base:logging",
+  ]
+}
+
 rtc_library("frame_instrumentation_generator") {
   sources = [
     "frame_instrumentation_generator.cc",
@@ -24,6 +54,7 @@ rtc_library("frame_instrumentation_generator") {
     "../../common_video:frame_instrumentation_data",
     "../../modules:module_api_public",
     "../../modules/video_coding:video_coding_utility",
+    "../../rtc_base:checks",
     "../../rtc_base:logging",
     "//third_party/abseil-cpp/absl/algorithm:container",
     "//third_party/abseil-cpp/absl/types:variant",
@@ -65,6 +96,28 @@ rtc_library("halton_sequence") {
 }
 
 if (rtc_include_tests) {
+  rtc_library("corruption_classifier_unittest") {
+    testonly = true
+    sources = [ "corruption_classifier_unittest.cc" ]
+    deps = [
+      ":corruption_classifier",
+      ":halton_frame_sampler",
+      "../../test:test_support",
+    ]
+  }
+
+  rtc_library("frame_instrumentation_evaluation_unittest") {
+    testonly = true
+    sources = [ "frame_instrumentation_evaluation_unittest.cc" ]
+    deps = [
+      ":frame_instrumentation_evaluation",
+      "../../api:scoped_refptr",
+      "../../api/video:video_frame",
+      "../../common_video:frame_instrumentation_data",
+      "../../test:test_support",
+    ]
+  }
+
   rtc_library("frame_instrumentation_generator_unittest") {
     testonly = true
     sources = [ "frame_instrumentation_generator_unittest.cc" ]
@@ -114,6 +167,8 @@ if (rtc_include_tests) {
     testonly = true
     sources = []
     deps = [
+      ":corruption_classifier_unittest",
+      ":frame_instrumentation_evaluation_unittest",
       ":frame_instrumentation_generator_unittest",
       ":generic_mapping_functions_unittest",
       ":halton_frame_sampler_unittest",

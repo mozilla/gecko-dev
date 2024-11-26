@@ -22,8 +22,6 @@ rtc_source_set("audio_coding_module_typedefs") {
 rtc_library("audio_coding") {
   visibility += [ "*" ]
   sources = [
-    "acm2/acm_receiver.cc",
-    "acm2/acm_receiver.h",
     "acm2/acm_remixing.cc",
     "acm2/acm_remixing.h",
     "acm2/acm_resampler.cc",
@@ -38,7 +36,6 @@ rtc_library("audio_coding") {
 
   deps = [
     ":audio_coding_module_typedefs",
-    ":default_neteq_factory",
     ":neteq",
     "..:module_api",
     "..:module_api_public",
@@ -47,6 +44,7 @@ rtc_library("audio_coding") {
     "../../api/audio:audio_frame_api",
     "../../api/audio_codecs:audio_codecs_api",
     "../../api/environment",
+    "../../api/neteq:default_neteq_factory",
     "../../api/neteq:neteq_api",
     "../../api/units:timestamp",
     "../../common_audio",
@@ -550,6 +548,7 @@ if (rtc_enable_protobuf) {
     sources = [ "audio_network_adaptor/debug_dump.proto" ]
     link_deps = [ ":ana_config_proto" ]
     proto_out_dir = "modules/audio_coding/audio_network_adaptor"
+    proto_data_sources = [ "audio_network_adaptor/config.proto" ]
   }
   proto_library("ana_config_proto") {
     visibility += [ "*" ]
@@ -644,6 +643,8 @@ rtc_library("neteq") {
     "neteq/decision_logic.h",
     "neteq/decoder_database.cc",
     "neteq/decoder_database.h",
+    "neteq/delay_constraints.cc",
+    "neteq/delay_constraints.h",
     "neteq/delay_manager.cc",
     "neteq/delay_manager.h",
     "neteq/dsp_helper.cc",
@@ -730,22 +731,6 @@ rtc_library("neteq") {
   ]
 }
 
-rtc_source_set("default_neteq_factory") {
-  visibility += webrtc_default_visibility
-  sources = [
-    "neteq/default_neteq_factory.cc",
-    "neteq/default_neteq_factory.h",
-  ]
-  deps = [
-    ":neteq",
-    "../../api:scoped_refptr",
-    "../../api/audio_codecs:audio_codecs_api",
-    "../../api/environment",
-    "../../api/neteq:default_neteq_controller_factory",
-    "../../api/neteq:neteq_api",
-  ]
-}
-
 # Although providing only test support, this target must be outside of the
 # rtc_include_tests conditional. The reason is that it supports fuzzer tests
 # that ultimately are built and run as a part of the Chromium ecosystem, which
@@ -768,7 +753,6 @@ rtc_library("neteq_tools_minimal") {
   ]
 
   deps = [
-    ":default_neteq_factory",
     ":neteq",
     "../../api:array_view",
     "../../api:field_trials",
@@ -780,6 +764,7 @@ rtc_library("neteq_tools_minimal") {
     "../../api/environment:environment_factory",
     "../../api/neteq:custom_neteq_factory",
     "../../api/neteq:default_neteq_controller_factory",
+    "../../api/neteq:default_neteq_factory",
     "../../api/neteq:neteq_api",
     "../../api/units:timestamp",
     "../../rtc_base:buffer",
@@ -924,7 +909,6 @@ rtc_library("audio_coding_modules_tests_shared") {
   deps = [
     ":audio_coding",
     ":audio_coding_module_typedefs",
-    ":default_neteq_factory",
     ":neteq_test_tools",
     ":neteq_tools_minimal",
     ":webrtc_opus_wrapper",
@@ -935,6 +919,7 @@ rtc_library("audio_coding_modules_tests_shared") {
     "../../api/audio_codecs:builtin_audio_encoder_factory",
     "../../api/environment",
     "../../api/environment:environment_factory",
+    "../../api/neteq:default_neteq_factory",
     "../../api/neteq:neteq_api",
     "../../api/units:timestamp",
     "../../rtc_base:checks",
@@ -1067,6 +1052,8 @@ if (rtc_include_tests) {
       "../../api/audio_codecs/opus:audio_encoder_opus",
       "../../api/environment",
       "../../api/environment:environment_factory",
+      "../../api/neteq:default_neteq_factory",
+      "../../api/neteq:neteq_api",
       "../../api/units:timestamp",
       "../../common_audio",
       "../../rtc_base:checks",
@@ -1126,6 +1113,8 @@ if (rtc_include_tests) {
       "../../api/audio_codecs:audio_codecs_api",
       "../../api/audio_codecs:builtin_audio_decoder_factory",
       "../../api/environment:environment_factory",
+      "../../api/neteq:default_neteq_factory",
+      "../../api/neteq:neteq_api",
       "../../test:test_support",
       "//testing/gtest",
     ]
@@ -1329,7 +1318,6 @@ if (rtc_include_tests) {
     ]
 
     deps = [
-      ":default_neteq_factory",
       ":neteq",
       ":neteq_test_tools",
       ":pcm16b",
@@ -1338,6 +1326,7 @@ if (rtc_include_tests) {
       "../../api/audio_codecs:builtin_audio_decoder_factory",
       "../../api/environment",
       "../../api/environment:environment_factory",
+      "../../api/neteq:default_neteq_factory",
       "../../api/neteq:neteq_api",
       "../../rtc_base:checks",
       "../../system_wrappers",
@@ -1356,13 +1345,13 @@ if (rtc_include_tests) {
       ]
 
       deps = [
-        ":default_neteq_factory",
         ":neteq",
         ":neteq_input_audio_tools",
         ":neteq_test_tools",
         ":neteq_tools_minimal",
         "../../api/audio_codecs:builtin_audio_decoder_factory",
         "../../api/environment:environment_factory",
+        "../../api/neteq:default_neteq_factory",
         "../../api/neteq:neteq_api",
         "../../api/units:timestamp",
         "../../rtc_base:checks",
@@ -1582,7 +1571,6 @@ if (rtc_include_tests) {
       visibility += webrtc_default_visibility
 
       sources = [
-        "acm2/acm_receiver_unittest.cc",
         "acm2/acm_remixing_unittest.cc",
         "acm2/audio_coding_module_unittest.cc",
         "acm2/call_statistics_unittest.cc",
@@ -1615,6 +1603,7 @@ if (rtc_include_tests) {
         "neteq/comfort_noise_unittest.cc",
         "neteq/decision_logic_unittest.cc",
         "neteq/decoder_database_unittest.cc",
+        "neteq/delay_constraints_unittest.cc",
         "neteq/delay_manager_unittest.cc",
         "neteq/dsp_helper_unittest.cc",
         "neteq/dtmf_buffer_unittest.cc",
@@ -1664,7 +1653,6 @@ if (rtc_include_tests) {
         ":audio_coding_opus_common",
         ":audio_encoder_cng",
         ":audio_network_adaptor",
-        ":default_neteq_factory",
         ":g711",
         ":ilbc",
         ":legacy_encoded_audio_frame",
@@ -1693,6 +1681,7 @@ if (rtc_include_tests) {
         "../../api/environment",
         "../../api/environment:environment_factory",
         "../../api/neteq:default_neteq_controller_factory",
+        "../../api/neteq:default_neteq_factory",
         "../../api/neteq:neteq_api",
         "../../api/neteq:neteq_controller_api",
         "../../api/neteq:tick_timer",

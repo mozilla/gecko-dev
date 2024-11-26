@@ -19,12 +19,17 @@
 
 #include "absl/algorithm/container.h"
 #include "absl/memory/memory.h"
+#include "absl/types/variant.h"
 #include "api/video/video_codec_type.h"
+#include "common_video/corruption_detection_converters.h"
+#include "common_video/corruption_detection_message.h"
+#include "common_video/frame_instrumentation_data.h"
 #include "media/base/media_constants.h"
 #include "modules/pacing/packet_router.h"
 #include "modules/remote_bitrate_estimator/include/remote_bitrate_estimator.h"
 #include "modules/rtp_rtcp/include/receive_statistics.h"
 #include "modules/rtp_rtcp/include/rtp_cvo.h"
+#include "modules/rtp_rtcp/source/corruption_detection_extension.h"
 #include "modules/rtp_rtcp/source/create_video_rtp_depacketizer.h"
 #include "modules/rtp_rtcp/source/frame_object.h"
 #include "modules/rtp_rtcp/source/rtp_dependency_descriptor_extension.h"
@@ -383,8 +388,8 @@ std::optional<Syncable::Info> RtpVideoStreamReceiver2::GetSyncInfo() const {
   if (!last_sr.has_value()) {
     return std::nullopt;
   }
-  info.capture_time_ntp_secs = last_sr->last_remote_timestamp.seconds();
-  info.capture_time_ntp_frac = last_sr->last_remote_timestamp.fractions();
+  info.capture_time_ntp_secs = last_sr->last_remote_ntp_timestamp.seconds();
+  info.capture_time_ntp_frac = last_sr->last_remote_ntp_timestamp.fractions();
   info.capture_time_source_clock = last_sr->last_remote_rtp_timestamp;
 
   if (!last_received_rtp_timestamp_ || !last_received_rtp_system_time_) {
@@ -503,6 +508,21 @@ RtpVideoStreamReceiver2::ParseGenericDependenciesExtension(
   return kHasGenericDescriptor;
 }
 
+void RtpVideoStreamReceiver2::SetLastCorruptionDetectionIndex(
+    const absl::variant<FrameInstrumentationSyncData, FrameInstrumentationData>&
+        frame_instrumentation_data) {
+  if (const auto* sync_data = absl::get_if<FrameInstrumentationSyncData>(
+          &frame_instrumentation_data)) {
+    last_corruption_detection_index_ = sync_data->sequence_index;
+  } else if (const auto* data = absl::get_if<FrameInstrumentationData>(
+                 &frame_instrumentation_data)) {
+    last_corruption_detection_index_ =
+        data->sequence_index + data->sample_values.size();
+  } else {
+    RTC_DCHECK_NOTREACHED();
+  }
+}
+
 bool RtpVideoStreamReceiver2::OnReceivedPayloadData(
     rtc::CopyOnWriteBuffer codec_payload,
     const RtpPacketReceived& rtp_packet,
@@ -588,9 +608,7 @@ bool RtpVideoStreamReceiver2::OnReceivedPayloadData(
     return false;
   }
 
-  // Color space should only be transmitted in the last packet of a frame,
-  // therefore, neglect it otherwise so that last_color_space_ is not reset by
-  // mistake.
+  // Extensions that should only be transmitted in the last packet of a frame.
   if (video_header.is_last_packet_in_frame) {
     video_header.color_space = rtp_packet.GetExtension<ColorSpaceExtension>();
     if (video_header.color_space ||
@@ -601,6 +619,20 @@ bool RtpVideoStreamReceiver2::OnReceivedPayloadData(
       last_color_space_ = video_header.color_space;
     } else if (last_color_space_) {
       video_header.color_space = last_color_space_;
+    }
+    CorruptionDetectionMessage message;
+    rtp_packet.GetExtension<CorruptionDetectionExtension>(&message);
+    if (message.sample_values().empty()) {
+      video_header.frame_instrumentation_data =
+          ConvertCorruptionDetectionMessageToFrameInstrumentationSyncData(
+              message, last_corruption_detection_index_);
+    } else {
+      video_header.frame_instrumentation_data =
+          ConvertCorruptionDetectionMessageToFrameInstrumentationData(
+              message, last_corruption_detection_index_);
+    }
+    if (video_header.frame_instrumentation_data.has_value()) {
+      SetLastCorruptionDetectionIndex(*video_header.frame_instrumentation_data);
     }
   }
   video_header.video_frame_tracking_id =
@@ -802,22 +834,23 @@ void RtpVideoStreamReceiver2::OnInsertedPacket(
 
       const video_coding::PacketBuffer::Packet& last_packet = *packet;
       OnAssembledFrame(std::make_unique<RtpFrameObject>(
-          first_packet->seq_num(),                           //
-          last_packet.seq_num(),                             //
-          last_packet.marker_bit,                            //
-          max_nack_count,                                    //
-          min_recv_time,                                     //
-          max_recv_time,                                     //
-          first_packet->timestamp,                           //
-          ntp_estimator_.Estimate(first_packet->timestamp),  //
-          last_packet.video_header.video_timing,             //
-          first_packet->payload_type,                        //
-          first_packet->codec(),                             //
-          last_packet.video_header.rotation,                 //
-          last_packet.video_header.content_type,             //
-          first_packet->video_header,                        //
-          last_packet.video_header.color_space,              //
-          RtpPacketInfos(std::move(packet_infos)),           //
+          first_packet->seq_num(),                              //
+          last_packet.seq_num(),                                //
+          last_packet.marker_bit,                               //
+          max_nack_count,                                       //
+          min_recv_time,                                        //
+          max_recv_time,                                        //
+          first_packet->timestamp,                              //
+          ntp_estimator_.Estimate(first_packet->timestamp),     //
+          last_packet.video_header.video_timing,                //
+          first_packet->payload_type,                           //
+          first_packet->codec(),                                //
+          last_packet.video_header.rotation,                    //
+          last_packet.video_header.content_type,                //
+          first_packet->video_header,                           //
+          last_packet.video_header.color_space,                 //
+          last_packet.video_header.frame_instrumentation_data,  //
+          RtpPacketInfos(std::move(packet_infos)),              //
           std::move(bitstream)));
       payloads.clear();
       packet_infos.clear();
@@ -1200,10 +1233,10 @@ bool RtpVideoStreamReceiver2::DeliverRtcp(const uint8_t* rtcp_packet,
     return true;
   }
   int64_t time_since_received = env_.clock().CurrentNtpInMilliseconds() -
-                                last_sr->last_arrival_timestamp.ToMs();
+                                last_sr->last_arrival_ntp_timestamp.ToMs();
   // Don't use old SRs to estimate time.
   if (time_since_received <= 1) {
-    ntp_estimator_.UpdateRtcpTimestamp(*rtt, last_sr->last_remote_timestamp,
+    ntp_estimator_.UpdateRtcpTimestamp(*rtt, last_sr->last_remote_ntp_timestamp,
                                        last_sr->last_remote_rtp_timestamp);
     std::optional<int64_t> remote_to_local_clock_offset =
         ntp_estimator_.EstimateRemoteToLocalClockOffset();

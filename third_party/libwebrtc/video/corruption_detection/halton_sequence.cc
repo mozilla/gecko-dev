@@ -59,6 +59,13 @@ std::vector<double> HaltonSequence::GetNext() {
   return point;
 }
 
+void HaltonSequence::SetCurrentIndex(int idx) {
+  if (idx >= 0) {
+    current_idx_ = idx;
+  }
+  RTC_DCHECK_GE(idx, 0) << "Index must be non-negative";
+}
+
 void HaltonSequence::Reset() {
   HaltonSequence::current_idx_ = 0;
 }

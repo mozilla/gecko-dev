@@ -17,12 +17,12 @@
 #include "api/audio_codecs/builtin_audio_decoder_factory.h"
 #include "api/environment/environment_factory.h"
 #include "api/neteq/default_neteq_controller_factory.h"
+#include "api/neteq/default_neteq_factory.h"
 #include "api/neteq/neteq.h"
 #include "api/neteq/neteq_controller.h"
 #include "modules/audio_coding/codecs/g711/audio_decoder_pcm.h"
 #include "modules/audio_coding/neteq/accelerate.h"
 #include "modules/audio_coding/neteq/decision_logic.h"
-#include "modules/audio_coding/neteq/default_neteq_factory.h"
 #include "modules/audio_coding/neteq/expand.h"
 #include "modules/audio_coding/neteq/histogram.h"
 #include "modules/audio_coding/neteq/mock/mock_decoder_database.h"
@@ -382,6 +382,35 @@ TEST_F(NetEqImplTest, InsertPacket) {
   rtp_header.sequenceNumber += 1;
   neteq_->InsertPacket(rtp_header, payload,
                        /*receive_time=*/clock_.CurrentTime());
+}
+
+TEST_F(NetEqImplTest, CountStatsAfterFirstDecodedPacket) {
+  UseNoMocks();
+  CreateInstance();
+  const uint8_t kPayloadType = 17;  // Just an arbitrary number.
+  EXPECT_TRUE(neteq_->RegisterPayloadType(kPayloadType,
+                                          SdpAudioFormat("l16", 8000, 1)));
+  const size_t kPayloadLengthSamples = 80;
+  const size_t kPayloadLengthBytes = 2 * kPayloadLengthSamples;  // PCM 16-bit.
+  uint8_t payload[kPayloadLengthBytes] = {0};
+  RTPHeader rtp_header;
+  rtp_header.payloadType = kPayloadType;
+  rtp_header.sequenceNumber = 0x1234;
+  rtp_header.timestamp = 0x12345678;
+  rtp_header.ssrc = 0x87654321;
+  AudioFrame frame;
+  // Get audio a couple of times to make sure that samples received remains
+  // zero.
+  for (int i = 0; i < 3; ++i) {
+    neteq_->GetAudio(&frame);
+    EXPECT_EQ(neteq_->GetLifetimeStatistics().concealed_samples, 0u);
+    EXPECT_EQ(neteq_->GetLifetimeStatistics().total_samples_received, 0u);
+  }
+  neteq_->InsertPacket(rtp_header, payload, clock_.CurrentTime());
+  neteq_->GetAudio(&frame);
+  EXPECT_EQ(neteq_->GetLifetimeStatistics().concealed_samples, 0u);
+  EXPECT_EQ(neteq_->GetLifetimeStatistics().total_samples_received,
+            kPayloadLengthSamples);
 }
 
 TEST_F(NetEqImplTest, InsertPacketsUntilBufferIsFull) {

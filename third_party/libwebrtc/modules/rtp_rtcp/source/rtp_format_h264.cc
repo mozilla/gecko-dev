@@ -34,9 +34,9 @@
 namespace webrtc {
 namespace {
 
-static const size_t kNalHeaderSize = 1;
-static const size_t kFuAHeaderSize = 2;
-static const size_t kLengthFieldSize = 2;
+constexpr size_t kNalHeaderSize = 1;
+constexpr size_t kFuAHeaderSize = 2;
+constexpr size_t kLengthFieldSize = 2;
 
 }  // namespace
 

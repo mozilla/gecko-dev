@@ -21,6 +21,7 @@
 #import "api/peerconnection/RTCPeerConnectionFactory.h"
 #import "api/peerconnection/RTCRtpCapabilities.h"
 #import "api/peerconnection/RTCRtpCodecCapability.h"
+#import "api/peerconnection/RTCRtpHeaderExtensionCapability.h"
 #import "api/peerconnection/RTCRtpReceiver.h"
 #import "api/peerconnection/RTCRtpSender.h"
 #import "api/peerconnection/RTCRtpTransceiver.h"
@@ -510,6 +511,131 @@
   }
 }
 
+- (void)testSetHeaderExtensionsToNegotiate {
+  @autoreleasepool {
+    RTC_OBJC_TYPE(RTCConfiguration) *config = [[RTC_OBJC_TYPE(RTCConfiguration) alloc] init];
+    RTC_OBJC_TYPE(RTCMediaConstraints) *constraints =
+        [[RTC_OBJC_TYPE(RTCMediaConstraints) alloc] initWithMandatoryConstraints:nil
+                                                             optionalConstraints:nil];
+    RTC_OBJC_TYPE(RTCRtpTransceiverInit) *init =
+        [[RTC_OBJC_TYPE(RTCRtpTransceiverInit) alloc] init];
+
+    RTC_OBJC_TYPE(RTCPeerConnectionFactory) * factory;
+    RTC_OBJC_TYPE(RTCPeerConnection) * peerConnection;
+    RTC_OBJC_TYPE(RTCRtpTransceiver) * tranceiver;
+    factory = [[RTC_OBJC_TYPE(RTCPeerConnectionFactory) alloc] init];
+
+    peerConnection = [factory peerConnectionWithConfiguration:config
+                                                  constraints:constraints
+                                                     delegate:nil];
+    tranceiver = [peerConnection addTransceiverOfType:RTCRtpMediaTypeVideo init:init];
+    XCTAssertNotNil(tranceiver);
+
+    NSArray<RTC_OBJC_TYPE(RTCRtpHeaderExtensionCapability) *> *headerExtensionsToNegotiate =
+        tranceiver.headerExtensionsToNegotiate;
+
+    __block RTC_OBJC_TYPE(RTCRtpHeaderExtensionCapability) *targetExtension = nil;
+    [headerExtensionsToNegotiate
+        enumerateObjectsUsingBlock:^(RTC_OBJC_TYPE(RTCRtpHeaderExtensionCapability) * extension,
+                                     NSUInteger idx,
+                                     BOOL * stop) {
+          if ([extension.uri isEqualToString:@"urn:ietf:params:rtp-hdrext:sdes:mid"]) {
+            targetExtension = extension;
+          } else {
+            extension.direction = RTCRtpTransceiverDirectionStopped;
+          }
+        }];
+
+    NSError *error = nil;
+    BOOL isOK = [tranceiver setHeaderExtensionsToNegotiate:headerExtensionsToNegotiate
+                                                     error:&error];
+    XCTAssertNil(error);
+    XCTAssertTrue(isOK);
+
+    @autoreleasepool {
+      dispatch_semaphore_t semaphore = dispatch_semaphore_create(0);
+
+      __block BOOL completed = NO;
+      [peerConnection offerForConstraints:constraints
+                        completionHandler:^(RTC_OBJC_TYPE(RTCSessionDescription) *_Nullable sdp,
+                                            NSError *_Nullable error) {
+                          XCTAssertNil(error);
+                          XCTAssertNotNil(sdp);
+
+                          NSArray<NSString *> *extMaps = [self extMapsFromSDP:sdp.sdp];
+                          XCTAssertEqual(1, extMaps.count);
+
+                          XCTAssertNotNil(targetExtension);
+                          XCTAssertNotNil(targetExtension.preferredId);
+
+                          NSString *expected =
+                              [NSString stringWithFormat:@"a=extmap:%i %@",
+                                                         targetExtension.preferredId.intValue,
+                                                         targetExtension.uri];
+
+                          XCTAssertTrue([expected isEqualToString:extMaps[0]]);
+
+                          completed = YES;
+                          dispatch_semaphore_signal(semaphore);
+                        }];
+
+      [peerConnection close];
+      peerConnection = nil;
+      factory = nil;
+      tranceiver = nil;
+
+      dispatch_semaphore_wait(semaphore, dispatch_time(DISPATCH_TIME_NOW, 15.0 * NSEC_PER_SEC));
+      XCTAssertTrue(completed);
+    }
+  }
+}
+
+- (void)testSetHeaderExtensionsToNegotiateError {
+  @autoreleasepool {
+    RTC_OBJC_TYPE(RTCConfiguration) *config = [[RTC_OBJC_TYPE(RTCConfiguration) alloc] init];
+    RTC_OBJC_TYPE(RTCMediaConstraints) *constraints =
+        [[RTC_OBJC_TYPE(RTCMediaConstraints) alloc] initWithMandatoryConstraints:nil
+                                                             optionalConstraints:nil];
+    RTC_OBJC_TYPE(RTCRtpTransceiverInit) *init =
+        [[RTC_OBJC_TYPE(RTCRtpTransceiverInit) alloc] init];
+
+    RTC_OBJC_TYPE(RTCPeerConnectionFactory) * factory;
+    RTC_OBJC_TYPE(RTCPeerConnection) * peerConnection;
+    RTC_OBJC_TYPE(RTCRtpTransceiver) * tranceiver;
+    factory = [[RTC_OBJC_TYPE(RTCPeerConnectionFactory) alloc] init];
+
+    peerConnection = [factory peerConnectionWithConfiguration:config
+                                                  constraints:constraints
+                                                     delegate:nil];
+    tranceiver = [peerConnection addTransceiverOfType:RTCRtpMediaTypeVideo init:init];
+    XCTAssertNotNil(tranceiver);
+
+    NSArray<RTC_OBJC_TYPE(RTCRtpHeaderExtensionCapability) *> *headerExtensionsToNegotiate =
+        tranceiver.headerExtensionsToNegotiate;
+
+    [headerExtensionsToNegotiate
+        enumerateObjectsUsingBlock:^(RTC_OBJC_TYPE(RTCRtpHeaderExtensionCapability) * extension,
+                                     NSUInteger idx,
+                                     BOOL * stop) {
+          if ([extension.uri isEqualToString:@"urn:ietf:params:rtp-hdrext:sdes:mid"]) {
+            extension.direction = RTCRtpTransceiverDirectionStopped;
+          }
+        }];
+
+    // Stopping a mandatory extension should yield an error
+    NSError *error = nil;
+    BOOL isOK = [tranceiver setHeaderExtensionsToNegotiate:headerExtensionsToNegotiate
+                                                     error:&error];
+    XCTAssertNotNil(error);
+    XCTAssertFalse(isOK);
+
+    [peerConnection close];
+    peerConnection = nil;
+    factory = nil;
+    tranceiver = nil;
+  }
+}
+
 - (bool)negotiatePeerConnection:(RTC_OBJC_TYPE(RTCPeerConnection) *)pc1
              withPeerConnection:(RTC_OBJC_TYPE(RTCPeerConnection) *)pc2
              negotiationTimeout:(NSTimeInterval)timeout {
@@ -572,6 +698,18 @@
     }
   }
   return rtpMaps;
+}
+
+- (NSArray<NSString *> *)extMapsFromSDP:(NSString *)sdp {
+  NSMutableArray<NSString *> *extMaps = [NSMutableArray new];
+  NSArray *sdpLines =
+      [sdp componentsSeparatedByCharactersInSet:[NSCharacterSet newlineCharacterSet]];
+  for (NSString *line in sdpLines) {
+    if ([line hasPrefix:@"a=extmap:"]) {
+      [extMaps addObject:line];
+    }
+  }
+  return extMaps;
 }
 
 @end

@@ -22,8 +22,8 @@ class MockPacketArrivalHistory : public PacketArrivalHistory {
   MockPacketArrivalHistory(const TickTimer* tick_timer)
       : PacketArrivalHistory(tick_timer, 0) {}
 
-  MOCK_METHOD(int, GetDelayMs, (uint32_t rtp_timestamp), (const override));
-  MOCK_METHOD(int, GetMaxDelayMs, (), (const override));
+  MOCK_METHOD(int, GetDelayMs, (uint32_t rtp_timestamp), (const, override));
+  MOCK_METHOD(int, GetMaxDelayMs, (), (const, override));
 };
 
 }  // namespace webrtc

@@ -14,8 +14,10 @@
 #include <optional>
 #include <vector>
 
+#include "absl/types/variant.h"
 #include "api/video/encoded_frame.h"
 #include "api/video/video_frame_metadata.h"
+#include "common_video/frame_instrumentation_data.h"
 
 namespace webrtc {
 
@@ -36,6 +38,9 @@ class RtpFrameObject : public EncodedFrame {
                  VideoContentType content_type,
                  const RTPVideoHeader& video_header,
                  const std::optional<webrtc::ColorSpace>& color_space,
+                 const std::optional<absl::variant<FrameInstrumentationSyncData,
+                                                   FrameInstrumentationData>>&
+                     frame_instrumentation_data,
                  RtpPacketInfos packet_infos,
                  rtc::scoped_refptr<EncodedImageBuffer> image_buffer);
 

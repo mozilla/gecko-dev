@@ -16,6 +16,7 @@
 #include "api/audio_codecs/builtin_audio_decoder_factory.h"
 #include "api/environment/environment.h"
 #include "api/environment/environment_factory.h"
+#include "api/neteq/default_neteq_factory.h"
 #include "api/units/timestamp.h"
 #include "rtc_base/strings/string_builder.h"
 #include "test/gtest.h"
@@ -30,7 +31,7 @@ ReceiverWithPacketLoss::ReceiverWithPacketLoss()
       lost_packet_counter_(0),
       burst_lost_counter_(burst_length_) {}
 
-void ReceiverWithPacketLoss::Setup(acm2::AcmReceiver* acm_receiver,
+void ReceiverWithPacketLoss::Setup(NetEq* neteq,
                                    RTPStream* rtpStream,
                                    absl::string_view out_file_name,
                                    int channels,
@@ -42,7 +43,7 @@ void ReceiverWithPacketLoss::Setup(acm2::AcmReceiver* acm_receiver,
   burst_lost_counter_ = burst_length_;  // To prevent first packet gets lost.
   rtc::StringBuilder ss;
   ss << out_file_name << "_" << loss_rate_ << "_" << burst_length_ << "_";
-  Receiver::Setup(acm_receiver, rtpStream, ss.str(), channels, file_num);
+  Receiver::Setup(neteq, rtpStream, ss.str(), channels, file_num);
 }
 
 bool ReceiverWithPacketLoss::IncomingPacket() {
@@ -61,10 +62,10 @@ bool ReceiverWithPacketLoss::IncomingPacket() {
     }
 
     if (!PacketLost()) {
-      _acm_receiver->InsertPacket(_rtpHeader,
-                                  rtc::ArrayView<const uint8_t>(
-                                      _incomingPayload, _realPayloadSizeBytes),
-                                  Timestamp::Millis(_nextTime));
+      _neteq->InsertPacket(_rtpHeader,
+                           rtc::ArrayView<const uint8_t>(_incomingPayload,
+                                                         _realPayloadSizeBytes),
+                           Timestamp::Millis(_nextTime));
     }
     packet_counter_++;
     _realPayloadSizeBytes = _rtpStream->Read(&_rtpHeader, _incomingPayload,
@@ -162,11 +163,10 @@ void PacketLossTest::Perform() {
 
   rtpFile.Open(fileName.c_str(), "rb");
   rtpFile.ReadHeader();
-  std::unique_ptr<acm2::AcmReceiver> acm_receiver =
-      std::make_unique<acm2::AcmReceiver>(
-          env, acm2::AcmReceiver::Config(CreateBuiltinAudioDecoderFactory()));
+  std::unique_ptr<NetEq> neteq = DefaultNetEqFactory().Create(
+      env, NetEq::Config(), CreateBuiltinAudioDecoderFactory());
   ReceiverWithPacketLoss receiver;
-  receiver.Setup(acm_receiver.get(), &rtpFile, "packetLoss_out", channels_, 15,
+  receiver.Setup(neteq.get(), &rtpFile, "packetLoss_out", channels_, 15,
                  actual_loss_rate_, burst_length_);
   receiver.Run();
   receiver.Teardown();

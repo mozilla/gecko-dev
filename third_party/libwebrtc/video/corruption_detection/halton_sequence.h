@@ -35,7 +35,7 @@ class HaltonSequence {
   // interval [0,1).
   std::vector<double> GetNext();
   int GetCurrentIndex() const { return current_idx_; }
-  void SetCurrentIndex(int idx) { current_idx_ = idx; }
+  void SetCurrentIndex(int idx);
   void Reset();
 
  private:

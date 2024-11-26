@@ -116,7 +116,6 @@ class FixedLengthEncodingParameters final {
  public:
   static bool ValidParameters(uint64_t delta_width_bits,
                               bool signed_deltas,
-                              bool values_optional,
                               uint64_t value_width_bits) {
     return (1 <= delta_width_bits && delta_width_bits <= 64 &&
             1 <= value_width_bits && value_width_bits <= 64 &&
@@ -133,8 +132,8 @@ class FixedLengthEncodingParameters final {
         value_width_bits_(value_width_bits),
         delta_mask_(MaxUnsignedValueOfBitWidth(delta_width_bits_)),
         value_mask_(MaxUnsignedValueOfBitWidth(value_width_bits_)) {
-    RTC_DCHECK(ValidParameters(delta_width_bits, signed_deltas, values_optional,
-                               value_width_bits));
+    RTC_DCHECK(
+        ValidParameters(delta_width_bits, signed_deltas, value_width_bits));
   }
 
   // Number of bits necessary to hold the widest(*) of the deltas between the
@@ -701,7 +700,7 @@ std::unique_ptr<FixedLengthDeltaDecoder> FixedLengthDeltaDecoder::Create(
   // for illegal values to be read. We check nevertheless, in case the code
   // changes in the future in a way that breaks this promise.
   if (!FixedLengthEncodingParameters::ValidParameters(
-          delta_width_bits, signed_deltas, values_optional, value_width_bits)) {
+          delta_width_bits, signed_deltas, value_width_bits)) {
     RTC_LOG(LS_WARNING) << "Corrupt log; illegal encoding parameters.";
     return nullptr;
   }

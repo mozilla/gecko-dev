@@ -1,170 +1,24 @@
-From: Jan Grulich <jgrulich@redhat.com>
-Date: Wed, 25 Sep 2024 06:52:00 +0000
-Subject: Bug 1920472 - WebRTC backport: PipeWire camera: use exact stream
- parameters specified by capability r=pehrsons,webrtc-reviewers
+From: Randell Jesup <rjesup@mozilla.com>
+Date: Tue, 1 Oct 2024 21:28:00 +0000
+Subject: Bug 1922048: fix comma instead of semicolon in libwebrtc AEC code
+ r=mjf,webrtc-reviewers
 
-We currently specify stream parameters to be a range for both framerate
-and resolution, where preferred value is specified. The preferred value
-doesn't seem to be taken into account and we end up accepting resolution
-from 1x1 to MAX_INTxMAX_INT. In case the other side tries to first match
-with lower resolution than requested, we will happily match it and start
-streaming low quality video. We should instead request the exact stream
-parameters as specified by requested capability. This capability always
-come from what has been originally reported as supported so it shouldn't
-happen we don't find a matching stream. This also applies to requested
-video format. We previously requested mjpg for streams with resolution
-higher than 640x480, but it doesn't necessarily mean the camera supports
-mjpg for the requested resolution. Again, refer to requested capability
-in this case as it should indicate what is supported and we know we can
-request exactly the same video format. It can happen that framerate is
-set to 0 as unspecified. In that case keep using a range as before, but
-with more sane values.
-
-This is a simple backport of an WebRTC upstream change.
-
-Upstream commit: 9703f8474f156e08e4a96dc36253f1cdccd549e1
-
-Differential Revision: https://phabricator.services.mozilla.com/D223119
-Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/75a999c1bd73f3fe323652aa1def8d2daa3ebb2d
+Differential Revision: https://phabricator.services.mozilla.com/D224242
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/fd7a2f8d10cf9d6e862b8f8bb8e675f0d9ddb4bf
 ---
- .../linux/video_capture_pipewire.cc           | 85 +++++++++++--------
- .../linux/video_capture_pipewire.h            |  1 +
- 2 files changed, 51 insertions(+), 35 deletions(-)
+ modules/audio_processing/aec3/echo_canceller3.cc | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/modules/video_capture/linux/video_capture_pipewire.cc b/modules/video_capture/linux/video_capture_pipewire.cc
-index b21b55fd7d..e9d99133f5 100644
---- a/modules/video_capture/linux/video_capture_pipewire.cc
-+++ b/modules/video_capture/linux/video_capture_pipewire.cc
-@@ -52,10 +52,20 @@ VideoType VideoCaptureModulePipeWire::PipeWireRawFormatToVideoType(
-     if (spa_and_pixel_format.spa_format == spa_format)
-       return spa_and_pixel_format.video_type;
-   }
--  RTC_LOG(LS_INFO) << "Unsupported pixel format: " << spa_format;
-+  RTC_LOG(LS_WARNING) << "Unsupported pixel format: " << spa_format;
-   return VideoType::kUnknown;
- }
- 
-+uint32_t VideoCaptureModulePipeWire::VideoTypeToPipeWireRawFormat(
-+    VideoType type) {
-+  for (const auto& spa_and_pixel_format : kSupportedFormats) {
-+    if (spa_and_pixel_format.video_type == type)
-+      return spa_and_pixel_format.spa_format;
-+  }
-+  RTC_LOG(LS_WARNING) << "Unsupported video type: " << static_cast<int>(type);
-+  return SPA_VIDEO_FORMAT_UNKNOWN;
-+}
-+
- VideoCaptureModulePipeWire::VideoCaptureModulePipeWire(
-     VideoCaptureOptions* options)
-     : VideoCaptureImpl(),
-@@ -88,45 +98,53 @@ int32_t VideoCaptureModulePipeWire::Init(const char* deviceUniqueId) {
- }
- 
- static spa_pod* BuildFormat(spa_pod_builder* builder,
--                            uint32_t format,
-+                            VideoType video_type,
-                             uint32_t width,
-                             uint32_t height,
-                             float frame_rate) {
--  spa_pod_frame frames[2];
-+  spa_pod_frame frame;
-+
-+  const uint32_t media_subtype = video_type == VideoType::kMJPEG
-+                                     ? SPA_MEDIA_SUBTYPE_mjpg
-+                                     : SPA_MEDIA_SUBTYPE_raw;
- 
--  spa_pod_builder_push_object(builder, &frames[0], SPA_TYPE_OBJECT_Format,
-+  spa_pod_builder_push_object(builder, &frame, SPA_TYPE_OBJECT_Format,
-                               SPA_PARAM_EnumFormat);
-   spa_pod_builder_add(builder, SPA_FORMAT_mediaType,
-                       SPA_POD_Id(SPA_MEDIA_TYPE_video), SPA_FORMAT_mediaSubtype,
--                      SPA_POD_Id(format), 0);
--
--  if (format == SPA_MEDIA_SUBTYPE_raw) {
--    spa_pod_builder_prop(builder, SPA_FORMAT_VIDEO_format, 0);
--    spa_pod_builder_push_choice(builder, &frames[1], SPA_CHOICE_Enum, 0);
--    spa_pod_builder_id(builder, kSupportedFormats[0].spa_format);
--    for (const auto& spa_and_pixel_format : kSupportedFormats)
--      spa_pod_builder_id(builder, spa_and_pixel_format.spa_format);
--    spa_pod_builder_pop(builder, &frames[1]);
--  }
-+                      SPA_POD_Id(media_subtype), 0);
- 
--  spa_rectangle preferred_size = spa_rectangle{width, height};
--  spa_rectangle min_size = spa_rectangle{1, 1};
--  spa_rectangle max_size = spa_rectangle{4096, 4096};
--  spa_pod_builder_add(
--      builder, SPA_FORMAT_VIDEO_size,
--      SPA_POD_CHOICE_RANGE_Rectangle(&preferred_size, &min_size, &max_size), 0);
-+  if (media_subtype == SPA_MEDIA_SUBTYPE_raw) {
-+    const uint32_t format =
-+        VideoCaptureModulePipeWire::VideoTypeToPipeWireRawFormat(video_type);
-+    RTC_CHECK(format != SPA_VIDEO_FORMAT_UNKNOWN);
-+    spa_pod_builder_add(builder, SPA_FORMAT_VIDEO_format, SPA_POD_Id(format),
-+                        0);
-+  }
- 
--  spa_fraction preferred_frame_rate =
--      spa_fraction{static_cast<uint32_t>(frame_rate), 1};
--  spa_fraction min_frame_rate = spa_fraction{0, 1};
--  spa_fraction max_frame_rate = spa_fraction{INT32_MAX, 1};
--  spa_pod_builder_add(
--      builder, SPA_FORMAT_VIDEO_framerate,
--      SPA_POD_CHOICE_RANGE_Fraction(&preferred_frame_rate, &min_frame_rate,
--                                    &max_frame_rate),
--      0);
-+  spa_rectangle resolution = spa_rectangle{width, height};
-+  spa_pod_builder_add(builder, SPA_FORMAT_VIDEO_size,
-+                      SPA_POD_Rectangle(&resolution), 0);
-+
-+  // Framerate can be also set to 0 to be unspecified
-+  if (frame_rate) {
-+    spa_fraction framerate = spa_fraction{static_cast<uint32_t>(frame_rate), 1};
-+    spa_pod_builder_add(builder, SPA_FORMAT_VIDEO_framerate,
-+                        SPA_POD_Fraction(&framerate), 0);
-+  } else {
-+    // Default to some reasonable values
-+    spa_fraction preferred_frame_rate =
-+        spa_fraction{static_cast<uint32_t>(30), 1};
-+    spa_fraction min_frame_rate = spa_fraction{1, 1};
-+    spa_fraction max_frame_rate = spa_fraction{30, 1};
-+    spa_pod_builder_add(
-+        builder, SPA_FORMAT_VIDEO_framerate,
-+        SPA_POD_CHOICE_RANGE_Fraction(&preferred_frame_rate, &min_frame_rate,
-+                                      &max_frame_rate),
-+        0);
-+  }
- 
--  return static_cast<spa_pod*>(spa_pod_builder_pop(builder, &frames[0]));
-+  return static_cast<spa_pod*>(spa_pod_builder_pop(builder, &frame));
- }
- 
- RTC_NO_SANITIZE("cfi-icall")
-@@ -178,13 +196,10 @@ int32_t VideoCaptureModulePipeWire::StartCapture(
-   uint32_t width = capability.width;
-   uint32_t height = capability.height;
-   uint32_t frame_rate = capability.maxFPS;
--  bool prefer_jpeg = (width > 640) || (height > 480);
-+  VideoType video_type = capability.videoType;
- 
-   params.push_back(
--      BuildFormat(&builder, SPA_MEDIA_SUBTYPE_raw, width, height, frame_rate));
--  params.insert(
--      prefer_jpeg ? params.begin() : params.end(),
--      BuildFormat(&builder, SPA_MEDIA_SUBTYPE_mjpg, width, height, frame_rate));
-+      BuildFormat(&builder, video_type, width, height, frame_rate));
- 
-   int res = pw_stream_connect(
-       stream_, PW_DIRECTION_INPUT, node_id_,
-diff --git a/modules/video_capture/linux/video_capture_pipewire.h b/modules/video_capture/linux/video_capture_pipewire.h
-index eeb3b9497c..789f2034d3 100644
---- a/modules/video_capture/linux/video_capture_pipewire.h
-+++ b/modules/video_capture/linux/video_capture_pipewire.h
-@@ -28,6 +28,7 @@ class VideoCaptureModulePipeWire : public VideoCaptureImpl {
-   int32_t CaptureSettings(VideoCaptureCapability& settings) override;
- 
-   static VideoType PipeWireRawFormatToVideoType(uint32_t format);
-+  static uint32_t VideoTypeToPipeWireRawFormat(VideoType type);
- 
-  private:
-   static void OnStreamParamChanged(void* data,
+diff --git a/modules/audio_processing/aec3/echo_canceller3.cc b/modules/audio_processing/aec3/echo_canceller3.cc
+index 00010ceaea..4b3747e92b 100644
+--- a/modules/audio_processing/aec3/echo_canceller3.cc
++++ b/modules/audio_processing/aec3/echo_canceller3.cc
+@@ -781,7 +781,7 @@ EchoCanceller3::EchoCanceller3(
+     linear_output_framer_.reset(
+         new BlockFramer(/*num_bands=*/1, num_capture_channels_));
+     linear_output_block_ =
+-        std::make_unique<Block>(/*num_bands=*/1, num_capture_channels_),
++        std::make_unique<Block>(/*num_bands=*/1, num_capture_channels_);
+     linear_output_sub_frame_view_ =
+         std::vector<std::vector<rtc::ArrayView<float>>>(
+             1, std::vector<rtc::ArrayView<float>>(num_capture_channels_));

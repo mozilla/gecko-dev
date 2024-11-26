@@ -351,23 +351,6 @@ class MediaStreamInterface : public webrtc::RefCountInterface,
   virtual bool RemoveTrack(rtc::scoped_refptr<VideoTrackInterface> track) {
     RTC_CHECK_NOTREACHED();
   }
-  // Deprecated: Should use scoped_refptr versions rather than pointers.
-  [[deprecated("Pass a scoped_refptr")]] virtual bool AddTrack(
-      AudioTrackInterface* track) {
-    return AddTrack(rtc::scoped_refptr<AudioTrackInterface>(track));
-  }
-  [[deprecated("Pass a scoped_refptr")]] virtual bool AddTrack(
-      VideoTrackInterface* track) {
-    return AddTrack(rtc::scoped_refptr<VideoTrackInterface>(track));
-  }
-  [[deprecated("Pass a scoped_refptr")]] virtual bool RemoveTrack(
-      AudioTrackInterface* track) {
-    return RemoveTrack(rtc::scoped_refptr<AudioTrackInterface>(track));
-  }
-  [[deprecated("Pass a scoped_refptr")]] virtual bool RemoveTrack(
-      VideoTrackInterface* track) {
-    return RemoveTrack(rtc::scoped_refptr<VideoTrackInterface>(track));
-  }
 
  protected:
   ~MediaStreamInterface() override = default;

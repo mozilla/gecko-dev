@@ -96,7 +96,7 @@ NetEqImpl::Dependencies::Dependencies(
     const NetEqControllerFactory& controller_factory)
     : env(env),
       tick_timer(new TickTimer),
-      stats(new StatisticsCalculator),
+      stats(std::make_unique<StatisticsCalculator>(tick_timer.get())),
       decoder_database(
           std::make_unique<DecoderDatabase>(env,
                                             std::move(decoder_factory),
@@ -148,12 +148,6 @@ NetEqImpl::NetEqImpl(const NetEq::Config& config,
       enable_fast_accelerate_(config.enable_fast_accelerate),
       nack_enabled_(false),
       enable_muted_state_(config.enable_muted_state),
-      expand_uma_logger_("WebRTC.Audio.ExpandRatePercent",
-                         10,  // Report once every 10 s.
-                         tick_timer_.get()),
-      speech_expand_uma_logger_("WebRTC.Audio.SpeechExpandRatePercent",
-                                10,  // Report once every 10 s.
-                                tick_timer_.get()),
       no_time_stretching_(config.for_test_no_time_stretching) {
   RTC_LOG(LS_INFO) << "NetEq config: " << config.ToString();
   int fs = config.sample_rate_hz;
@@ -207,6 +201,7 @@ int NetEqImpl::GetAudio(AudioFrame* audio_frame,
   if (GetAudioInternal(audio_frame, action_override) != 0) {
     return kFail;
   }
+  stats_->IncreaseCounter(output_size_samples_, fs_hz_);
   RTC_DCHECK_EQ(
       audio_frame->sample_rate_hz_,
       rtc::dchecked_cast<int>(audio_frame->samples_per_channel_ * 100));
@@ -739,14 +734,6 @@ int NetEqImpl::GetAudioInternal(AudioFrame* audio_frame,
   bool play_dtmf;
   last_decoded_packet_infos_.clear();
   tick_timer_->Increment();
-  stats_->IncreaseCounter(output_size_samples_, fs_hz_);
-  const auto lifetime_stats = stats_->GetLifetimeStatistics();
-  expand_uma_logger_.UpdateSampleCounter(lifetime_stats.concealed_samples,
-                                         fs_hz_);
-  speech_expand_uma_logger_.UpdateSampleCounter(
-      lifetime_stats.concealed_samples -
-          lifetime_stats.silent_concealed_samples,
-      fs_hz_);
 
   // Check for muted state.
   if (enable_muted_state_ && expand_->Muted() && packet_buffer_->Empty()) {

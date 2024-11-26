@@ -350,11 +350,4 @@ RTCError ParseIceServersOrError(
   return RTCError::OK();
 }
 
-RTCErrorType ParseIceServers(
-    const PeerConnectionInterface::IceServers& servers,
-    cricket::ServerAddresses* stun_servers,
-    std::vector<cricket::RelayServerConfig>* turn_servers) {
-  return ParseIceServersOrError(servers, stun_servers, turn_servers).type();
-}
-
 }  // namespace webrtc

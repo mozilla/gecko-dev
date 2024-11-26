@@ -14,10 +14,20 @@
 #include <cmath>
 #include <cstddef>
 #include <numeric>
+#include <optional>
 #include <vector>
 
 #include "absl/container/inlined_vector.h"
+#include "api/field_trials_view.h"
+#include "api/units/data_rate.h"
+#include "api/video/video_bitrate_allocation.h"
+#include "api/video/video_bitrate_allocator.h"
+#include "api/video/video_codec_constants.h"
+#include "api/video/video_codec_type.h"
+#include "api/video_codecs/scalability_mode.h"
+#include "api/video_codecs/video_codec.h"
 #include "modules/video_coding/svc/create_scalability_structure.h"
+#include "modules/video_coding/svc/scalable_video_controller.h"
 #include "rtc_base/checks.h"
 
 namespace webrtc {
@@ -235,10 +245,11 @@ SvcRateAllocator::NumLayers SvcRateAllocator::GetNumLayers(
   return layers;
 }
 
-SvcRateAllocator::SvcRateAllocator(const VideoCodec& codec)
+SvcRateAllocator::SvcRateAllocator(const VideoCodec& codec,
+                                   const FieldTrialsView& field_trials)
     : codec_(codec),
       num_layers_(GetNumLayers(codec)),
-      experiment_settings_(StableTargetRateExperiment::ParseFromFieldTrials()),
+      experiment_settings_(field_trials),
       cumulative_layer_start_bitrates_(GetLayerStartBitrates(codec)),
       last_active_layer_count_(0) {
   RTC_DCHECK_GT(num_layers_.spatial, 0);

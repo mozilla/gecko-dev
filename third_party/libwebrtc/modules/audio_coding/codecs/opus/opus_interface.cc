@@ -310,6 +310,16 @@ int16_t WebRtcOpus_GetUseDtx(OpusEncInst* inst) {
   return -1;
 }
 
+int16_t WebRtcOpus_GetInDtx(OpusEncInst* inst) {
+  if (inst) {
+    opus_int32 in_dtx;
+    if (ENCODER_CTL(inst, OPUS_GET_IN_DTX(&in_dtx)) == 0) {
+      return in_dtx;
+    }
+  }
+  return -1;
+}
+
 int16_t WebRtcOpus_EnableCbr(OpusEncInst* inst) {
   if (inst) {
     return ENCODER_CTL(inst, OPUS_SET_VBR(0));

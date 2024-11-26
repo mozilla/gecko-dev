@@ -45,9 +45,9 @@ class MockDtmfSender : public DtmfSenderInterface {
               (override));
   MOCK_METHOD(void, UnregisterObserver, (), (override));
   MOCK_METHOD(bool, CanInsertDtmf, (), (override));
-  MOCK_METHOD(std::string, tones, (), (const override));
-  MOCK_METHOD(int, duration, (), (const override));
-  MOCK_METHOD(int, inter_tone_gap, (), (const override));
+  MOCK_METHOD(std::string, tones, (), (const, override));
+  MOCK_METHOD(int, duration, (), (const, override));
+  MOCK_METHOD(int, inter_tone_gap, (), (const, override));
 
  protected:
   MockDtmfSender() = default;

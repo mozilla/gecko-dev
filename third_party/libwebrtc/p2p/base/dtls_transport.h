@@ -156,7 +156,7 @@ class DtlsTransport : public DtlsTransportInternal {
   // Find out which TLS version was negotiated
   bool GetSslVersionBytes(int* version) const override;
   // Find out which DTLS-SRTP cipher was negotiated
-  bool GetSrtpCryptoSuite(int* cipher) override;
+  bool GetSrtpCryptoSuite(int* cipher) const override;
 
   // Find out which signature algorithm was used by the peer. Returns values
   // from
@@ -168,7 +168,8 @@ class DtlsTransport : public DtlsTransportInternal {
   bool SetDtlsRole(rtc::SSLRole role) override;
 
   // Find out which DTLS cipher was negotiated
-  bool GetSslCipherSuite(int* cipher) override;
+  bool GetSslCipherSuite(int* cipher) const override;
+  std::optional<absl::string_view> GetTlsCipherSuiteName() const override;
 
   // Once DTLS has been established, this method retrieves the certificate
   // chain in use by the remote peer, for use in external identity

@@ -224,6 +224,7 @@ class PeerConnectionEncodingsIntegrationTest : public ::testing::Test {
     // Create and set answer for `remote_pc_wrapper`.
     std::unique_ptr<SessionDescriptionInterface> answer =
         CreateAnswer(remote_pc_wrapper);
+    EXPECT_TRUE(answer);
     p1 = SetLocalDescription(remote_pc_wrapper, answer.get());
     // Modify the answer before handoff because `local_pc_wrapper` should still
     // send simulcast.
@@ -1325,8 +1326,8 @@ TEST_F(PeerConnectionEncodingsIntegrationTest,
   EXPECT_EQ(*parameters.encodings[0].codec, *pcmu);
 
   NegotiateWithSimulcastTweaks(local_pc_wrapper, remote_pc_wrapper);
-  local_pc_wrapper->WaitForConnection();
-  remote_pc_wrapper->WaitForConnection();
+  ASSERT_TRUE(local_pc_wrapper->WaitForConnection());
+  ASSERT_TRUE(remote_pc_wrapper->WaitForConnection());
 
   rtc::scoped_refptr<const RTCStatsReport> report = GetStats(local_pc_wrapper);
   std::vector<const RTCOutboundRtpStreamStats*> outbound_rtps =
@@ -1945,7 +1946,6 @@ TEST_F(PeerConnectionEncodingsIntegrationTest,
 
   RtpParameters parameters = audio_transceiver->sender()->GetParameters();
   EXPECT_EQ(parameters.encodings[0].codec, opus);
-  EXPECT_EQ(parameters.codecs[0].payload_type, red->preferred_payload_type);
   EXPECT_EQ(parameters.codecs[0].name, red->name);
 
   // Check that it's possible to switch back to Opus without RED.
@@ -1957,7 +1957,6 @@ TEST_F(PeerConnectionEncodingsIntegrationTest,
 
   parameters = audio_transceiver->sender()->GetParameters();
   EXPECT_EQ(parameters.encodings[0].codec, opus);
-  EXPECT_EQ(parameters.codecs[0].payload_type, opus->preferred_payload_type);
   EXPECT_EQ(parameters.codecs[0].name, opus->name);
 }
 
@@ -2134,6 +2133,15 @@ TEST_F(PeerConnectionEncodingsIntegrationTest,
   EXPECT_EQ(transceiver_or_error.error().type(),
             RTCErrorType::UNSUPPORTED_OPERATION);
 
+  // AddTransceiver: Width and height must not be zero.
+  init.send_encodings[0].requested_resolution = {.width = 1280, .height = 0};
+  init.send_encodings[1].requested_resolution = {.width = 0, .height = 720};
+  transceiver_or_error =
+      pc_wrapper->pc()->AddTransceiver(cricket::MEDIA_TYPE_VIDEO, init);
+  EXPECT_FALSE(transceiver_or_error.ok());
+  EXPECT_EQ(transceiver_or_error.error().type(),
+            RTCErrorType::UNSUPPORTED_OPERATION);
+
   // AddTransceiver: Specifying both `requested_resolution` and
   // `scale_resolution_down_by` is allowed (the latter is ignored).
   init.send_encodings[0].requested_resolution = {.width = 640, .height = 480};
@@ -2144,13 +2152,30 @@ TEST_F(PeerConnectionEncodingsIntegrationTest,
       pc_wrapper->pc()->AddTransceiver(cricket::MEDIA_TYPE_VIDEO, init);
   ASSERT_TRUE(transceiver_or_error.ok());
 
-  // SetParameters: If `requested_resolution` is specified on any encoding it
-  // must be specified on all encodings.
+  // SetParameters: If `requested_resolution` is specified on any active
+  // encoding it must be specified on all active encodings.
   auto sender = transceiver_or_error.value()->sender();
   auto parameters = sender->GetParameters();
   parameters.encodings[0].requested_resolution = {.width = 640, .height = 480};
   parameters.encodings[1].requested_resolution = std::nullopt;
   auto error = sender->SetParameters(parameters);
+  EXPECT_FALSE(error.ok());
+  EXPECT_EQ(error.type(), RTCErrorType::INVALID_MODIFICATION);
+  // But it's OK not to specify `requested_resolution` on an inactive encoding.
+  parameters = sender->GetParameters();
+  parameters.encodings[0].requested_resolution = {.width = 640, .height = 480};
+  parameters.encodings[1].active = false;
+  parameters.encodings[1].requested_resolution = std::nullopt;
+  error = sender->SetParameters(parameters);
+  EXPECT_TRUE(error.ok());
+
+  // SetParameters: Width and height must not be zero.
+  sender = transceiver_or_error.value()->sender();
+  parameters = sender->GetParameters();
+  parameters.encodings[0].requested_resolution = {.width = 1280, .height = 0};
+  parameters.encodings[1].active = true;
+  parameters.encodings[1].requested_resolution = {.width = 0, .height = 720};
+  error = sender->SetParameters(parameters);
   EXPECT_FALSE(error.ok());
   EXPECT_EQ(error.type(), RTCErrorType::INVALID_MODIFICATION);
 
@@ -2463,9 +2488,153 @@ TEST_P(PeerConnectionEncodingsIntegrationParameterizedTest,
                        Resolution({.width = 960, .height = 540}),
                    kLongTimeoutForRampingUp.ms());
 
-  // Ensure 180p frames continue to be encoded post reconfiguration.
-  int frames_encoded = EncodedFrames(local_pc_wrapper, "q");
-  ASSERT_TRUE_WAIT(EncodedFrames(local_pc_wrapper, "q") > frames_encoded,
+  // Ensure frames continue to be encoded post reconfiguration.
+  int q_frames_encoded = EncodedFrames(local_pc_wrapper, "q");
+  ASSERT_TRUE_WAIT(EncodedFrames(local_pc_wrapper, "q") > q_frames_encoded,
+                   kLongTimeoutForRampingUp.ms());
+  int h_frames_encoded = EncodedFrames(local_pc_wrapper, "h");
+  ASSERT_TRUE_WAIT(EncodedFrames(local_pc_wrapper, "h") > h_frames_encoded,
+                   kLongTimeoutForRampingUp.ms());
+  int f_frames_encoded = EncodedFrames(local_pc_wrapper, "f");
+  ASSERT_TRUE_WAIT(EncodedFrames(local_pc_wrapper, "f") > f_frames_encoded,
+                   kLongTimeoutForRampingUp.ms());
+}
+
+// Simulcast starting in 720p 4:2:1 then changing to {180p, 360p, 540p} using
+// the `requested_resolution` API.
+TEST_P(PeerConnectionEncodingsIntegrationParameterizedTest,
+       SimulcastRequestedResolutionNoLongerPowerOfTwo) {
+  rtc::scoped_refptr<PeerConnectionTestWrapper> local_pc_wrapper = CreatePc();
+  if (SkipTestDueToAv1Missing(local_pc_wrapper)) {
+    return;
+  }
+  rtc::scoped_refptr<PeerConnectionTestWrapper> remote_pc_wrapper = CreatePc();
+  ExchangeIceCandidates(local_pc_wrapper, remote_pc_wrapper);
+
+  std::vector<cricket::SimulcastLayer> layers =
+      CreateLayers({"q", "h", "f"}, /*active=*/true);
+  rtc::scoped_refptr<RtpTransceiverInterface> transceiver =
+      AddTransceiverWithSimulcastLayers(local_pc_wrapper, remote_pc_wrapper,
+                                        layers);
+  std::vector<RtpCodecCapability> codecs =
+      GetCapabilitiesAndRestrictToCodec(remote_pc_wrapper, codec_name_);
+  transceiver->SetCodecPreferences(codecs);
+  rtc::scoped_refptr<RtpSenderInterface> sender = transceiver->sender();
+
+  // Configure {180p, 360p, 720p}.
+  RtpParameters parameters = sender->GetParameters();
+  ASSERT_THAT(parameters.encodings, SizeIs(3));
+  parameters.encodings[0].scalability_mode = "L1T1";
+  parameters.encodings[0].requested_resolution = {.width = 320, .height = 180};
+  parameters.encodings[1].scalability_mode = "L1T1";
+  parameters.encodings[1].requested_resolution = {.width = 640, .height = 360};
+  parameters.encodings[2].scalability_mode = "L1T1";
+  parameters.encodings[2].requested_resolution = {.width = 1280, .height = 720};
+  sender->SetParameters(parameters);
+
+  NegotiateWithSimulcastTweaks(local_pc_wrapper, remote_pc_wrapper);
+  local_pc_wrapper->WaitForConnection();
+  remote_pc_wrapper->WaitForConnection();
+
+  // Wait for media to flow on all layers.
+  // Needed repro step of https://crbug.com/webrtc/369654168: When the same
+  // LibvpxVp9Encoder instance was used to first produce simulcast and later for
+  // a single encoding, the previously used simulcast index (= 2) would still be
+  // set when producing 180p since non-simulcast config does not reset this,
+  // resulting in the 180p encoding freezing and the 540p encoding having double
+  // frame rate and toggling between 180p and 540p in resolution.
+  ASSERT_TRUE_WAIT(HasOutboundRtpBytesSent(local_pc_wrapper, 3u),
+                   kLongTimeoutForRampingUp.ms());
+
+  // Configure {180p, 360p, 540p}.
+  parameters = sender->GetParameters();
+  parameters.encodings[0].requested_resolution = {.width = 320, .height = 180};
+  parameters.encodings[1].requested_resolution = {.width = 640, .height = 360};
+  parameters.encodings[2].requested_resolution = {.width = 960, .height = 540};
+  sender->SetParameters(parameters);
+
+  // Wait for the new resolutions to be produced.
+  ASSERT_TRUE_WAIT(GetEncodingResolution(local_pc_wrapper, "q") ==
+                       Resolution({.width = 320, .height = 180}),
+                   kLongTimeoutForRampingUp.ms());
+  ASSERT_TRUE_WAIT(GetEncodingResolution(local_pc_wrapper, "h") ==
+                       Resolution({.width = 640, .height = 360}),
+                   kLongTimeoutForRampingUp.ms());
+  ASSERT_TRUE_WAIT(GetEncodingResolution(local_pc_wrapper, "f") ==
+                       Resolution({.width = 960, .height = 540}),
+                   kLongTimeoutForRampingUp.ms());
+
+  // Ensure frames continue to be encoded post reconfiguration.
+  int q_frames_encoded = EncodedFrames(local_pc_wrapper, "q");
+  ASSERT_TRUE_WAIT(EncodedFrames(local_pc_wrapper, "q") > q_frames_encoded,
+                   kLongTimeoutForRampingUp.ms());
+  int h_frames_encoded = EncodedFrames(local_pc_wrapper, "h");
+  ASSERT_TRUE_WAIT(EncodedFrames(local_pc_wrapper, "h") > h_frames_encoded,
+                   kLongTimeoutForRampingUp.ms());
+  int f_frames_encoded = EncodedFrames(local_pc_wrapper, "f");
+  ASSERT_TRUE_WAIT(EncodedFrames(local_pc_wrapper, "f") > f_frames_encoded,
+                   kLongTimeoutForRampingUp.ms());
+}
+
+// The code path that disables layers based on resolution size should NOT run
+// when `requested_resolution` is specified. (It shouldn't run in any case but
+// that is an existing legacy code and non-compliance problem that we don't have
+// to repeat here.)
+TEST_P(PeerConnectionEncodingsIntegrationParameterizedTest,
+       LowResolutionSimulcastWithRequestedResolution) {
+  rtc::scoped_refptr<PeerConnectionTestWrapper> local_pc_wrapper = CreatePc();
+  if (SkipTestDueToAv1Missing(local_pc_wrapper)) {
+    return;
+  }
+  rtc::scoped_refptr<PeerConnectionTestWrapper> remote_pc_wrapper = CreatePc();
+  ExchangeIceCandidates(local_pc_wrapper, remote_pc_wrapper);
+
+  std::vector<cricket::SimulcastLayer> layers =
+      CreateLayers({"q", "h", "f"}, /*active=*/true);
+
+  // Configure {20p,40p,80p} with 2:1 aspect ratio.
+  RtpTransceiverInit init;
+  RtpEncodingParameters encoding;
+  encoding.scalability_mode = "L1T3";
+  encoding.rid = "q";
+  encoding.requested_resolution = {.width = 40, .height = 20};
+  init.send_encodings.push_back(encoding);
+  encoding.rid = "h";
+  encoding.requested_resolution = {.width = 80, .height = 40};
+  init.send_encodings.push_back(encoding);
+  encoding.rid = "f";
+  encoding.requested_resolution = {.width = 160, .height = 80};
+  init.send_encodings.push_back(encoding);
+  rtc::scoped_refptr<MediaStreamInterface> stream =
+      local_pc_wrapper->GetUserMedia(
+          /*audio=*/false, {}, /*video=*/true, {.width = 160, .height = 80});
+  rtc::scoped_refptr<VideoTrackInterface> track = stream->GetVideoTracks()[0];
+  auto transceiver_or_error =
+      local_pc_wrapper->pc()->AddTransceiver(track, init);
+  ASSERT_TRUE(transceiver_or_error.ok());
+  rtc::scoped_refptr<RtpTransceiverInterface> transceiver =
+      transceiver_or_error.value();
+
+  std::vector<RtpCodecCapability> codecs =
+      GetCapabilitiesAndRestrictToCodec(remote_pc_wrapper, codec_name_);
+  transceiver->SetCodecPreferences(codecs);
+
+  NegotiateWithSimulcastTweaks(local_pc_wrapper, remote_pc_wrapper);
+  local_pc_wrapper->WaitForConnection();
+  remote_pc_wrapper->WaitForConnection();
+
+  // Wait for media to flow on all layers.
+  ASSERT_TRUE_WAIT(HasOutboundRtpBytesSent(local_pc_wrapper, 3u),
+                   kLongTimeoutForRampingUp.ms());
+  // q=20p, h=40p, f=80p.
+  ASSERT_TRUE_WAIT(GetEncodingResolution(local_pc_wrapper, "q") ==
+                       Resolution({.width = 40, .height = 20}),
+                   kLongTimeoutForRampingUp.ms());
+  ASSERT_TRUE_WAIT(GetEncodingResolution(local_pc_wrapper, "h") ==
+                       Resolution({.width = 80, .height = 40}),
+                   kLongTimeoutForRampingUp.ms());
+  ASSERT_TRUE_WAIT(GetEncodingResolution(local_pc_wrapper, "f") ==
+                       Resolution({.width = 160, .height = 80}),
                    kLongTimeoutForRampingUp.ms());
 }
 
@@ -2580,6 +2749,80 @@ TEST_P(PeerConnectionEncodingsIntegrationParameterizedTest,
   // Confirm 1280x720 is sent.
   ASSERT_TRUE_WAIT(GetEncodingResolution(local_pc_wrapper) ==
                        (Resolution{.width = 1280, .height = 720}),
+                   kLongTimeoutForRampingUp.ms());
+}
+
+TEST_P(PeerConnectionEncodingsIntegrationParameterizedTest,
+       RequestedResolutionIsOrientationAgnostic) {
+  rtc::scoped_refptr<PeerConnectionTestWrapper> local_pc_wrapper = CreatePc();
+  if (SkipTestDueToAv1Missing(local_pc_wrapper)) {
+    return;
+  }
+  rtc::scoped_refptr<PeerConnectionTestWrapper> remote_pc_wrapper = CreatePc();
+  ExchangeIceCandidates(local_pc_wrapper, remote_pc_wrapper);
+
+  std::vector<cricket::SimulcastLayer> layers =
+      CreateLayers({"f"}, /*active=*/true);
+
+  // This transceiver receives a 1280x720 source.
+  rtc::scoped_refptr<RtpTransceiverInterface> transceiver =
+      AddTransceiverWithSimulcastLayers(local_pc_wrapper, remote_pc_wrapper,
+                                        layers);
+  std::vector<RtpCodecCapability> codecs =
+      GetCapabilitiesAndRestrictToCodec(remote_pc_wrapper, codec_name_);
+  transceiver->SetCodecPreferences(codecs);
+
+  NegotiateWithSimulcastTweaks(local_pc_wrapper, remote_pc_wrapper);
+  local_pc_wrapper->WaitForConnection();
+  remote_pc_wrapper->WaitForConnection();
+
+  // 360x640 is the same as 640x360 due to orientation agnosticism.
+  // The orientation is determined by the frame (1280x720): landscape.
+  rtc::scoped_refptr<RtpSenderInterface> sender = transceiver->sender();
+  RtpParameters parameters = sender->GetParameters();
+  ASSERT_THAT(parameters.encodings, SizeIs(1));
+  parameters.encodings[0].requested_resolution = {.width = 360, .height = 640};
+  sender->SetParameters(parameters);
+  // Confirm 640x360 is sent.
+  ASSERT_TRUE_WAIT(GetEncodingResolution(local_pc_wrapper) ==
+                       (Resolution{.width = 640, .height = 360}),
+                   kLongTimeoutForRampingUp.ms());
+}
+
+TEST_P(PeerConnectionEncodingsIntegrationParameterizedTest,
+       RequestedResolutionMaintainsAspectRatio) {
+  rtc::scoped_refptr<PeerConnectionTestWrapper> local_pc_wrapper = CreatePc();
+  if (SkipTestDueToAv1Missing(local_pc_wrapper)) {
+    return;
+  }
+  rtc::scoped_refptr<PeerConnectionTestWrapper> remote_pc_wrapper = CreatePc();
+  ExchangeIceCandidates(local_pc_wrapper, remote_pc_wrapper);
+
+  std::vector<cricket::SimulcastLayer> layers =
+      CreateLayers({"f"}, /*active=*/true);
+
+  // This transceiver receives a 1280x720 source.
+  rtc::scoped_refptr<RtpTransceiverInterface> transceiver =
+      AddTransceiverWithSimulcastLayers(local_pc_wrapper, remote_pc_wrapper,
+                                        layers);
+  std::vector<RtpCodecCapability> codecs =
+      GetCapabilitiesAndRestrictToCodec(remote_pc_wrapper, codec_name_);
+  transceiver->SetCodecPreferences(codecs);
+
+  NegotiateWithSimulcastTweaks(local_pc_wrapper, remote_pc_wrapper);
+  local_pc_wrapper->WaitForConnection();
+  remote_pc_wrapper->WaitForConnection();
+
+  // Restrict height more than width, the scaling factor needed on height should
+  // also be applied on the width in order to maintain the frame aspect ratio.
+  rtc::scoped_refptr<RtpSenderInterface> sender = transceiver->sender();
+  RtpParameters parameters = sender->GetParameters();
+  ASSERT_THAT(parameters.encodings, SizeIs(1));
+  parameters.encodings[0].requested_resolution = {.width = 1280, .height = 360};
+  sender->SetParameters(parameters);
+  // Confirm 640x360 is sent.
+  ASSERT_TRUE_WAIT(GetEncodingResolution(local_pc_wrapper) ==
+                       (Resolution{.width = 640, .height = 360}),
                    kLongTimeoutForRampingUp.ms());
 }
 

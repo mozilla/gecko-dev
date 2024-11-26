@@ -10,7 +10,7 @@
 
 #import <GLKit/GLKit.h>
 
-#import "base/RTCMacros.h"
+#import "sdk/objc/base/RTCMacros.h"
 
 @class RTC_OBJC_TYPE(RTCVideoFrame);
 

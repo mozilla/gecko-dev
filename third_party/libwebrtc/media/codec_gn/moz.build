@@ -31,7 +31,8 @@ LOCAL_INCLUDES += [
 ]
 
 UNIFIED_SOURCES += [
-    "/third_party/libwebrtc/media/base/codec.cc"
+    "/third_party/libwebrtc/media/base/codec.cc",
+    "/third_party/libwebrtc/media/base/codec_comparators.cc"
 ]
 
 if not CONFIG["MOZ_DEBUG"]:

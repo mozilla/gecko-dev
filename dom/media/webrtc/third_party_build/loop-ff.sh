@@ -275,7 +275,7 @@ if [ "x$MOZ_BUILD_CHANGE_CNT" != "x0" ]; then
   # Show the time used for this command, and don't let it fail if the
   # command times out so the script continues running.  This command
   # can take quite long, occasionally 10min.
-  (time ./mach try fuzzy --full -q $TRY_FUZZY_QUERY_STRING) 2>&1| tee -a $LOOP_OUTPUT_LOG || true
+  (time ./mach try fuzzy --push-to-vcs --full -q $TRY_FUZZY_QUERY_STRING) 2>&1| tee -a $LOOP_OUTPUT_LOG || true
 fi
 
 if [ ! "x$MOZ_STOP_AFTER_COMMIT" = "x" ]; then

@@ -10,7 +10,7 @@
 
 #import <Foundation/Foundation.h>
 
-#import "base/RTCMacros.h"
+#import "sdk/objc/base/RTCMacros.h"
 
 #include <memory>
 

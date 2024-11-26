@@ -443,7 +443,7 @@ TEST(VideoRtpDepacketizerH264Test, StapASpsPpsMultiSlice) {
   // A STAP-A containing a black 320x192 key frame with multiple slices.
   const uint8_t kPayload[] = {
       // clang-format off
-      0x67, 0x42, 0xc0, 0x15, 0x8c, 0x68, 0x14, 0x19,  // SPS.
+      0x67, 0x42, 0xc0, 0x15, 0x8c, 0x68, 0x14, 0x19,  // STAP-A, SPS.
       0x79, 0xe0, 0x1e, 0x11, 0x08, 0xd4, 0x00, 0x04, 0x68, 0xce, 0x3c, 0x80,
       0x00, 0x2e,  // PPS.
       // Slices.
@@ -501,6 +501,45 @@ TEST(VideoRtpDepacketizerH264Test, SecondSliceIdrNalu) {
       depacketizer.Parse(rtc::CopyOnWriteBuffer(kPayload));
   ASSERT_TRUE(parsed);
   EXPECT_FALSE(parsed->video_header.is_first_packet_in_frame);
+}
+
+TEST(VideoRtpDepacketizerH264Test, AudSetsFirstPacketInFrame) {
+  const uint8_t kPayload[] = {
+      // clang-format off
+      0x09, 0x10  // AUD.
+      // clang-format on
+  };
+
+  VideoRtpDepacketizerH264 depacketizer;
+  std::optional<VideoRtpDepacketizer::ParsedRtpPayload> parsed =
+      depacketizer.Parse(rtc::CopyOnWriteBuffer(kPayload));
+  ASSERT_TRUE(parsed);
+  EXPECT_TRUE(parsed->video_header.is_first_packet_in_frame);
+}
+
+TEST(VideoRtpDepacketizerH264Test, PpsSetsFirstPacketInFrame) {
+  const uint8_t kPayload[] = {
+      0x08, 0x69, 0xFC, 0x0,  0x0,  0x3, 0x0,
+      0x7,  0xFF, 0xFF, 0xFF, 0xF6, 0x40  // PPS.
+  };
+
+  VideoRtpDepacketizerH264 depacketizer;
+  std::optional<VideoRtpDepacketizer::ParsedRtpPayload> parsed =
+      depacketizer.Parse(rtc::CopyOnWriteBuffer(kPayload));
+  ASSERT_TRUE(parsed);
+  EXPECT_TRUE(parsed->video_header.is_first_packet_in_frame);
+}
+
+TEST(VideoRtpDepacketizerH264Test, SeiSetsFirstPacketInFrame) {
+  const uint8_t kPayload[] = {
+      0x06, 0x05, 0x04, 0xDE, 0xAD, 0xBE, 0xEF, 0x80  // SEI.
+  };
+
+  VideoRtpDepacketizerH264 depacketizer;
+  std::optional<VideoRtpDepacketizer::ParsedRtpPayload> parsed =
+      depacketizer.Parse(rtc::CopyOnWriteBuffer(kPayload));
+  ASSERT_TRUE(parsed);
+  EXPECT_TRUE(parsed->video_header.is_first_packet_in_frame);
 }
 
 }  // namespace

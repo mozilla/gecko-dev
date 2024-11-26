@@ -762,10 +762,11 @@ RTCError PeerConnection::Initialize(
   configuration_ = configuration;
 
   legacy_stats_ = std::make_unique<LegacyStatsCollector>(this);
-  stats_collector_ = RTCStatsCollector::Create(this);
+  stats_collector_ = RTCStatsCollector::Create(this, env_);
 
-  sdp_handler_ = SdpOfferAnswerHandler::Create(this, configuration,
-                                               dependencies, context_.get());
+  sdp_handler_ =
+      SdpOfferAnswerHandler::Create(this, configuration, dependencies,
+                                    context_.get(), transport_controller_copy_);
 
   rtp_manager_ = std::make_unique<RtpTransmissionManager>(
       env_, IsUnifiedPlan(), context_.get(), &usage_pattern_, observer_,

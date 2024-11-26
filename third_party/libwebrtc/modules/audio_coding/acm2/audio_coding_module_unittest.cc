@@ -27,6 +27,7 @@
 #include "api/audio_codecs/opus/audio_encoder_opus.h"
 #include "api/environment/environment.h"
 #include "api/environment/environment_factory.h"
+#include "api/neteq/default_neteq_factory.h"
 #include "api/units/timestamp.h"
 #include "modules/audio_coding/acm2/acm_receive_test.h"
 #include "modules/audio_coding/acm2/acm_send_test.h"
@@ -174,9 +175,8 @@ class AudioCodingModuleTestOldApi : public ::testing::Test {
 
   void SetUp() {
     acm_ = AudioCodingModule::Create();
-    acm2::AcmReceiver::Config config;
-    config.decoder_factory = CreateBuiltinAudioDecoderFactory();
-    acm_receiver_ = std::make_unique<acm2::AcmReceiver>(env_, config);
+    neteq_ = DefaultNetEqFactory().Create(env_, NetEq::Config(),
+                                          CreateBuiltinAudioDecoderFactory());
 
     rtp_utility_->Populate(&rtp_header_);
 
@@ -199,7 +199,7 @@ class AudioCodingModuleTestOldApi : public ::testing::Test {
   }
 
   virtual void RegisterCodec() {
-    acm_receiver_->SetCodecs({{kPayloadType, *audio_format_}});
+    neteq_->SetCodecs({{kPayloadType, *audio_format_}});
     acm_->SetEncoder(CreateBuiltinAudioEncoderFactory()->Create(
         env_, *audio_format_, {.payload_type = kPayloadType}));
   }
@@ -211,7 +211,7 @@ class AudioCodingModuleTestOldApi : public ::testing::Test {
 
   virtual void InsertPacket() {
     const uint8_t kPayload[kPayloadSizeBytes] = {0};
-    ASSERT_EQ(0, acm_receiver_->InsertPacket(
+    ASSERT_EQ(0, neteq_->InsertPacket(
                      rtp_header_,
                      rtc::ArrayView<const uint8_t>(kPayload, kPayloadSizeBytes),
                      /*receive_time=*/Timestamp::MinusInfinity()));
@@ -221,7 +221,7 @@ class AudioCodingModuleTestOldApi : public ::testing::Test {
   virtual void PullAudio() {
     AudioFrame audio_frame;
     bool muted;
-    ASSERT_EQ(0, acm_receiver_->GetAudio(-1, &audio_frame, &muted));
+    ASSERT_EQ(0, neteq_->GetAudio(&audio_frame, &muted));
     ASSERT_FALSE(muted);
   }
 
@@ -244,7 +244,7 @@ class AudioCodingModuleTestOldApi : public ::testing::Test {
   Environment env_;
   std::unique_ptr<RtpData> rtp_utility_;
   std::unique_ptr<AudioCodingModule> acm_;
-  std::unique_ptr<acm2::AcmReceiver> acm_receiver_;
+  std::unique_ptr<NetEq> neteq_;
   PacketizationCallbackStubOldApi packet_cb_;
   RTPHeader rtp_header_;
   AudioFrame input_frame_;
@@ -255,19 +255,6 @@ class AudioCodingModuleTestOldApi : public ::testing::Test {
 
 class AudioCodingModuleTestOldApiDeathTest
     : public AudioCodingModuleTestOldApi {};
-
-// The below test is temporarily disabled on Windows due to problems
-// with clang debug builds.
-// TODO(tommi): Re-enable when we've figured out what the problem is.
-// http://crbug.com/615050
-#if !defined(WEBRTC_WIN) && defined(__clang__) && RTC_DCHECK_IS_ON && \
-    GTEST_HAS_DEATH_TEST && !defined(WEBRTC_ANDROID)
-TEST_F(AudioCodingModuleTestOldApiDeathTest, FailOnZeroDesiredFrequency) {
-  AudioFrame audio_frame;
-  bool muted;
-  RTC_EXPECT_DEATH(acm_receiver_->GetAudio(0, &audio_frame, &muted), "");
-}
-#endif
 
 // Checks that the transport callback is invoked once for each speech packet.
 // Also checks that the frame type is kAudioFrameSpeech.
@@ -297,8 +284,8 @@ class AudioCodingModuleTestWithComfortNoiseOldApi
     : public AudioCodingModuleTestOldApi {
  protected:
   void RegisterCngCodec(int rtp_payload_type) {
-    acm_receiver_->SetCodecs({{kPayloadType, *audio_format_},
-                              {rtp_payload_type, {"cn", kSampleRateHz, 1}}});
+    neteq_->SetCodecs({{kPayloadType, *audio_format_},
+                       {rtp_payload_type, {"cn", kSampleRateHz, 1}}});
     acm_->ModifyEncoder([&](std::unique_ptr<AudioEncoder>* enc) {
       AudioEncoderCngConfig config;
       config.speech_encoder = std::move(*enc);

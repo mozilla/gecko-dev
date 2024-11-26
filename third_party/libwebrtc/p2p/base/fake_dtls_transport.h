@@ -194,7 +194,7 @@ class FakeDtlsTransport : public DtlsTransportInternal {
     *version = 0x0102;
     return true;
   }
-  bool GetSrtpCryptoSuite(int* crypto_suite) override {
+  bool GetSrtpCryptoSuite(int* crypto_suite) const override {
     if (!do_dtls_) {
       return false;
     }
@@ -203,7 +203,7 @@ class FakeDtlsTransport : public DtlsTransportInternal {
   }
   void SetSrtpCryptoSuite(int crypto_suite) { crypto_suite_ = crypto_suite; }
 
-  bool GetSslCipherSuite(int* cipher_suite) override {
+  bool GetSslCipherSuite(int* cipher_suite) const override {
     if (ssl_cipher_suite_) {
       *cipher_suite = *ssl_cipher_suite_;
       return true;
@@ -212,6 +212,10 @@ class FakeDtlsTransport : public DtlsTransportInternal {
   }
   void SetSslCipherSuite(std::optional<int> cipher_suite) {
     ssl_cipher_suite_ = cipher_suite;
+  }
+
+  std::optional<absl::string_view> GetTlsCipherSuiteName() const override {
+    return "FakeTlsCipherSuite";
   }
   uint16_t GetSslPeerSignatureAlgorithm() const override { return 0; }
   rtc::scoped_refptr<rtc::RTCCertificate> GetLocalCertificate() const override {

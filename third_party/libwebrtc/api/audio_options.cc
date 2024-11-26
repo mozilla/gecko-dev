@@ -10,6 +10,7 @@
 
 #include "api/audio_options.h"
 
+#include <optional>
 #include <string>
 
 #include "api/array_view.h"

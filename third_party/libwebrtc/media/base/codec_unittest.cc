@@ -420,8 +420,8 @@ TEST(CodecTest, TestH265CodecMatches) {
     Codec c_level_id_4 = cricket::CreateVideoCodec(95, cricket::kH265CodecName);
     c_level_id_4.params[cricket::kH265FmtpLevelId] = kLevel4;
 
-    // Does not match since different level-ids are specified.
-    EXPECT_FALSE(c_ptl_blank.Matches(c_level_id_4));
+    // Matches since we ignore level-id when matching H.265 codecs.
+    EXPECT_TRUE(c_ptl_blank.Matches(c_level_id_4));
   }
 
   {
@@ -639,4 +639,11 @@ TEST(CodecTest, H264CostrainedBaselineNotAddedIfAlreadySpecified) {
   EXPECT_EQ(supported_formats[2], kExplicitlySupportedFormats[2]);
   EXPECT_EQ(supported_formats[3], kExplicitlySupportedFormats[3]);
   EXPECT_EQ(supported_formats.size(), kExplicitlySupportedFormats.size());
+}
+
+TEST(CodecTest, AbslStringify) {
+  Codec codec = cricket::CreateAudioCodec(47, "custom-audio", 48000, 2);
+  EXPECT_EQ(absl::StrCat(codec), "[47:audio/custom-audio/48000/2]");
+  codec.params["key"] = "value";
+  EXPECT_EQ(absl::StrCat(codec), "[47:audio/custom-audio/48000/2;key=value]");
 }

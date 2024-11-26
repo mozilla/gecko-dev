@@ -91,8 +91,8 @@ FixedLengthEncodingParametersV3::CalculateParameters(
   // equal".
   RTC_DCHECK(!use_signed_deltas || delta_bit_width < 64);
 
-  RTC_DCHECK(ValidParameters(delta_bit_width, use_signed_deltas,
-                             values_optional, value_bit_width));
+  RTC_DCHECK(
+      ValidParameters(delta_bit_width, use_signed_deltas, value_bit_width));
   return FixedLengthEncodingParametersV3(delta_bit_width, use_signed_deltas,
                                          values_optional, value_bit_width);
 }
@@ -122,8 +122,7 @@ FixedLengthEncodingParametersV3::ParseDeltaHeader(uint64_t header,
     return std::nullopt;
   }
 
-  if (!ValidParameters(delta_bit_width, signed_deltas, values_optional,
-                       value_bit_width)) {
+  if (!ValidParameters(delta_bit_width, signed_deltas, value_bit_width)) {
     RTC_LOG(LS_ERROR) << "Failed to parse delta header. Invalid combination of "
                          "values: delta_bit_width="
                       << delta_bit_width << " signed_deltas=" << signed_deltas

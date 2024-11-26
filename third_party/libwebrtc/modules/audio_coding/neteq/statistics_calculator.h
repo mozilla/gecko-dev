@@ -16,6 +16,7 @@
 
 #include "absl/strings/string_view.h"
 #include "api/neteq/neteq.h"
+#include "modules/audio_coding/neteq/expand_uma_logger.h"
 
 namespace webrtc {
 
@@ -24,7 +25,7 @@ class DelayManager;
 // This class handles various network statistics in NetEq.
 class StatisticsCalculator {
  public:
-  StatisticsCalculator();
+  StatisticsCalculator(TickTimer* tick_timer);
 
   virtual ~StatisticsCalculator();
 
@@ -205,6 +206,8 @@ class StatisticsCalculator {
   PeriodicUmaAverage excess_buffer_delay_;
   PeriodicUmaCount buffer_full_counter_;
   bool decoded_output_played_ = false;
+  ExpandUmaLogger expand_uma_logger_;
+  ExpandUmaLogger speech_expand_uma_logger_;
 };
 
 }  // namespace webrtc

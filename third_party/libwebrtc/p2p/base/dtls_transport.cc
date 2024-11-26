@@ -225,12 +225,19 @@ bool DtlsTransport::GetDtlsRole(rtc::SSLRole* role) const {
   return true;
 }
 
-bool DtlsTransport::GetSslCipherSuite(int* cipher) {
+bool DtlsTransport::GetSslCipherSuite(int* cipher) const {
   if (dtls_state() != webrtc::DtlsTransportState::kConnected) {
     return false;
   }
 
   return dtls_->GetSslCipherSuite(cipher);
+}
+
+std::optional<absl::string_view> DtlsTransport::GetTlsCipherSuiteName() const {
+  if (dtls_state() != webrtc::DtlsTransportState::kConnected) {
+    return std::nullopt;
+  }
+  return dtls_->GetTlsCipherSuiteName();
 }
 
 webrtc::RTCError DtlsTransport::SetRemoteParameters(
@@ -408,7 +415,7 @@ bool DtlsTransport::SetupDtls() {
   return true;
 }
 
-bool DtlsTransport::GetSrtpCryptoSuite(int* cipher) {
+bool DtlsTransport::GetSrtpCryptoSuite(int* cipher) const {
   if (dtls_state() != webrtc::DtlsTransportState::kConnected) {
     return false;
   }

@@ -82,7 +82,7 @@ int32_t Channel::SendData(AudioFrameType frameType,
     return 0;
   }
 
-  status = _receiverACM->InsertPacket(
+  status = _neteq->InsertPacket(
       rtp_header, rtc::ArrayView<const uint8_t>(_payloadData, payloadDataSize),
       /*receive_time=*/Timestamp::MinusInfinity());
 
@@ -187,7 +187,7 @@ void Channel::CalcStatistics(const RTPHeader& rtp_header, size_t payloadSize) {
 }
 
 Channel::Channel(int16_t chID)
-    : _receiverACM(NULL),
+    : _neteq(NULL),
       _seqNo(0),
       _bitStreamFile(NULL),
       _saveBitStream(false),
@@ -229,8 +229,8 @@ Channel::Channel(int16_t chID)
 
 Channel::~Channel() {}
 
-void Channel::RegisterReceiverACM(acm2::AcmReceiver* acm_receiver) {
-  _receiverACM = acm_receiver;
+void Channel::RegisterReceiverNetEq(NetEq* neteq) {
+  _neteq = neteq;
   return;
 }
 

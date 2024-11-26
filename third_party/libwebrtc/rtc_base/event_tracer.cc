@@ -129,7 +129,7 @@ class EventLogger final {
                      const unsigned char* arg_types,
                      const unsigned long long* arg_values,
                      uint64_t timestamp,
-                     int pid,
+                     int /* pid */,
                      rtc::PlatformThreadId thread_id) {
     std::vector<TraceArg> args(num_args);
     for (int i = 0; i < num_args; ++i) {
@@ -379,12 +379,12 @@ const unsigned char* InternalEnableAllCategories(const char* name) {
 void InternalAddTraceEvent(char phase,
                            const unsigned char* category_enabled,
                            const char* name,
-                           unsigned long long id,
+                           unsigned long long /* id */,
                            int num_args,
                            const char** arg_names,
                            const unsigned char* arg_types,
                            const unsigned long long* arg_values,
-                           unsigned char flags) {
+                           unsigned char /* flags */) {
   // Fast path for when event tracing is inactive.
   if (g_event_logging_active.load() == 0)
     return;

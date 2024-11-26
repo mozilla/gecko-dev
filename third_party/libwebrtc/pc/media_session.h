@@ -22,6 +22,7 @@
 #include "api/rtc_error.h"
 #include "api/rtp_parameters.h"
 #include "api/rtp_transceiver_direction.h"
+#include "call/payload_type.h"
 #include "media/base/codec.h"
 #include "media/base/rid_description.h"
 #include "media/base/stream_params.h"
@@ -141,13 +142,14 @@ class MediaSessionDescriptionFactory {
  public:
   // This constructor automatically sets up the factory to get its configuration
   // from the specified MediaEngine (when provided).
-  // The TransportDescriptionFactory and the UniqueRandomIdGenerator are not
-  // owned by MediaSessionDescriptionFactory, so they must be kept alive by the
-  // user of this class.
+  // The TransportDescriptionFactory, the UniqueRandomIdGenerator, and the
+  // PayloadTypeSuggester are not owned by MediaSessionDescriptionFactory, so
+  // they must be kept alive by the user of this class.
   MediaSessionDescriptionFactory(cricket::MediaEngineInterface* media_engine,
                                  bool rtx_enabled,
                                  rtc::UniqueRandomIdGenerator* ssrc_generator,
-                                 const TransportDescriptionFactory* factory);
+                                 const TransportDescriptionFactory* factory,
+                                 webrtc::PayloadTypeSuggester* pt_suggester);
 
   const Codecs& audio_sendrecv_codecs() const;
   const Codecs& audio_send_codecs() const;
@@ -318,6 +320,9 @@ class MediaSessionDescriptionFactory {
       ssrc_generator_;
   bool enable_encrypted_rtp_header_extensions_ = false;
   const TransportDescriptionFactory* transport_desc_factory_;
+  // Payoad type tracker interface. Must live longer than this object.
+  webrtc::PayloadTypeSuggester* pt_suggester_;
+  bool payload_types_in_transport_trial_enabled_;
 };
 
 // Convenience functions.

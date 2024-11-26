@@ -247,10 +247,7 @@ class JsepTransportController : public PayloadTypeSuggester,
                            PayloadType payload_type,
                            const cricket::Codec& codec) override;
 
-  // TODO(deadbeef): GetStats isn't const because all the way down to
-  // OpenSSLStreamAdapter, GetSslCipherSuite and GetDtlsSrtpCryptoSuite are not
-  // const. Fix this.
-  bool GetStats(const std::string& mid, cricket::TransportStats* stats);
+  bool GetStats(const std::string& mid, cricket::TransportStats* stats) const;
 
   bool initial_offerer() const { return initial_offerer_ && *initial_offerer_; }
 

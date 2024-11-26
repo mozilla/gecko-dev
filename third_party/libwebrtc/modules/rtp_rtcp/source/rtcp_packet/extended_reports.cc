@@ -19,8 +19,6 @@
 
 namespace webrtc {
 namespace rtcp {
-constexpr uint8_t ExtendedReports::kPacketType;
-constexpr size_t ExtendedReports::kMaxNumberOfDlrrItems;
 // From RFC 3611: RTP Control Protocol Extended Reports (RTCP XR).
 //
 // Format for XR packets:

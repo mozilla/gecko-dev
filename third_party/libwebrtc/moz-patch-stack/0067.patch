@@ -116,7 +116,7 @@ index 4981acf0ca..f0c48f3702 100644
    num_discarded_packets_ += num_discarded_packets;
  }
 diff --git a/video/receive_statistics_proxy.cc b/video/receive_statistics_proxy.cc
-index 6e75eb837f..e8725574a0 100644
+index 84f4bfcae1..aec3a25df7 100644
 --- a/video/receive_statistics_proxy.cc
 +++ b/video/receive_statistics_proxy.cc
 @@ -20,6 +20,7 @@
@@ -166,10 +166,10 @@ index 6e75eb837f..e8725574a0 100644
  }
  
 diff --git a/video/rtp_video_stream_receiver2.cc b/video/rtp_video_stream_receiver2.cc
-index d8930a8b8e..531098e317 100644
+index d599fa2f23..23c24c2c45 100644
 --- a/video/rtp_video_stream_receiver2.cc
 +++ b/video/rtp_video_stream_receiver2.cc
-@@ -44,6 +44,7 @@
+@@ -49,6 +49,7 @@
  #include "rtc_base/checks.h"
  #include "rtc_base/logging.h"
  #include "rtc_base/strings/string_builder.h"
@@ -177,7 +177,7 @@ index d8930a8b8e..531098e317 100644
  #include "system_wrappers/include/metrics.h"
  #include "system_wrappers/include/ntp_time.h"
  
-@@ -1238,6 +1239,9 @@ void RtpVideoStreamReceiver2::FrameDecoded(int64_t picture_id) {
+@@ -1271,6 +1272,9 @@ void RtpVideoStreamReceiver2::FrameDecoded(int64_t picture_id) {
                          packet_infos_.upper_bound(unwrapped_rtp_seq_num));
      uint32_t num_packets_cleared = packet_buffer_.ClearTo(seq_num);
      if (num_packets_cleared > 0) {

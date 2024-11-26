@@ -64,7 +64,6 @@ void AsyncPacketSocket::NotifyPacketReceived(
 
 void CopySocketInformationToPacketInfo(size_t packet_size_bytes,
                                        const AsyncPacketSocket& socket_from,
-                                       bool is_connectionless,
                                        rtc::PacketInfo* info) {
   info->packet_size_bytes = packet_size_bytes;
   info->ip_overhead_bytes = socket_from.GetLocalAddress().ipaddr().overhead();

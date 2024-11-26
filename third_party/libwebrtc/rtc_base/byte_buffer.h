@@ -101,6 +101,10 @@ class ByteBufferWriterT {
     WriteBytesInternal(reinterpret_cast<const value_type*>(val), len);
   }
 
+  void Write(ArrayView<const value_type> data) {
+    WriteBytesInternal(data.data(), data.size());
+  }
+
   // Reserves the given number of bytes and returns a value_type* that can be
   // written into. Useful for functions that require a value_type* buffer and
   // not a ByteBufferWriter.
@@ -114,6 +118,8 @@ class ByteBufferWriterT {
 
   // Clears the contents of the buffer. After this, Length() will be 0.
   void Clear() { buffer_.Clear(); }
+
+  BufferClassT Extract() && { return std::move(buffer_); }
 
  private:
   static constexpr size_t kDefaultCapacity = 4096;

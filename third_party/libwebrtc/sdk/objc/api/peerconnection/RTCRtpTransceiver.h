@@ -10,9 +10,9 @@
 
 #import <Foundation/Foundation.h>
 
-#import "RTCMacros.h"
 #import "RTCRtpReceiver.h"
 #import "RTCRtpSender.h"
+#import "sdk/objc/base/RTCMacros.h"
 
 NS_ASSUME_NONNULL_BEGIN
 
@@ -47,6 +47,7 @@ RTC_OBJC_EXPORT
 
 @class RTC_OBJC_TYPE(RTCRtpTransceiver);
 @class RTC_OBJC_TYPE(RTCRtpCodecCapability);
+@class RTC_OBJC_TYPE(RTCRtpHeaderExtensionCapability);
 
 /** The RTCRtpTransceiver maps to the RTCRtpTransceiver defined by the
  *  WebRTC specification. A transceiver represents a combination of an RTCRtpSender
@@ -105,6 +106,17 @@ RTC_OBJC_EXPORT
  */
 @property(nonatomic, readonly) RTCRtpTransceiverDirection direction;
 
+/** It will contain all the RTP header extensions that are supported.
+ *  The direction attribute for all extensions that are mandatory to use MUST be initialized to an
+ * appropriate value other than RTCRtpTransceiverDirectionStopped. The direction attribute for
+ * extensions that will not be offered by default in an initial offer MUST be initialized to
+ * RTCRtpTransceiverDirectionStopped.
+ */
+@property(nonatomic, readonly, copy)
+    NSArray<RTC_OBJC_TYPE(RTCRtpHeaderExtensionCapability) *> *headerExtensionsToNegotiate;
+@property(nonatomic, readonly, copy)
+    NSArray<RTC_OBJC_TYPE(RTCRtpHeaderExtensionCapability) *> *negotiatedHeaderExtensions;
+
 /** The currentDirection attribute indicates the current direction negotiated
  *  for this transceiver. If this transceiver has never been represented in an
  *  offer/answer exchange, or if the transceiver is stopped, the value is not
@@ -129,6 +141,14 @@ RTC_OBJC_EXPORT
 /** Deprecated version of [RTCRtpTransceiver setCodecPreferences:error:] */
 - (void)setCodecPreferences:(NSArray<RTC_OBJC_TYPE(RTCRtpCodecCapability) *> *_Nullable)codecs
     RTC_OBJC_DEPRECATED("Use setCodecPreferences:error: instead.");
+
+/** The setHeaderExtensionsToNegotiate method overrides the default header extensions used
+ *  by WebRTC for this transceiver.
+ *  https://w3c.github.io/webrtc-extensions/#ref-for-dom-rtcrtptransceiver-setheaderextensionstonegotiate
+ */
+- (BOOL)setHeaderExtensionsToNegotiate:
+            (NSArray<RTC_OBJC_TYPE(RTCRtpHeaderExtensionCapability) *> *)extensions
+                                 error:(NSError **)error;
 
 /** An update of directionality does not take effect immediately. Instead,
  *  future calls to createOffer and createAnswer mark the corresponding media

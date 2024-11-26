@@ -478,8 +478,13 @@ struct MediaReceiverInfo {
 
   // Remote outbound stats derived by the received RTCP sender reports.
   // https://w3c.github.io/webrtc-stats/#remoteoutboundrtpstats-dict*
+  // TODO: bugs.webrtc.org/372393493 - timestamps should use the type Timestamp,
+  // not int64_t.
   std::optional<int64_t> last_sender_report_timestamp_ms;
-  std::optional<int64_t> last_sender_report_remote_timestamp_ms;
+  // TODO: bugs.webrtc.org/370535296 - Remove the utc timestamp when linked
+  // issue is fixed.
+  std::optional<int64_t> last_sender_report_utc_timestamp_ms;
+  std::optional<int64_t> last_sender_report_remote_utc_timestamp_ms;
   uint64_t sender_reports_packets_sent = 0;
   uint64_t sender_reports_bytes_sent = 0;
   uint64_t sender_reports_reports_count = 0;

@@ -101,21 +101,21 @@ double GetFilteredElement(int width,
                           const uint8_t* data,
                           int row,
                           int column,
-                          double stddev) {
+                          double std_dev) {
   RTC_CHECK_GE(row, 0);
   RTC_CHECK_LT(row, height);
   RTC_CHECK_GE(column, 0);
   RTC_CHECK_LT(column, width);
   RTC_CHECK_GE(stride, width);
-  RTC_CHECK_GE(stddev, 0.0);
+  RTC_CHECK_GE(std_dev, 0.0);
 
-  if (stddev == 0.0) {
+  if (std_dev == 0.0) {
     return data[row * stride + column];
   }
 
   const double kCutoff = 0.2;
   const int kMaxDistance =
-      std::ceil(sqrt(-2.0 * std::log(kCutoff) * std::pow(stddev, 2.0))) - 1;
+      std::ceil(sqrt(-2.0 * std::log(kCutoff) * std::pow(std_dev, 2.0))) - 1;
   RTC_CHECK_GE(kMaxDistance, 0);
   if (kMaxDistance == 0) {
     return data[row * stride + column];
@@ -129,7 +129,7 @@ double GetFilteredElement(int width,
          c < std::min(column + kMaxDistance + 1, width); ++c) {
       double weight =
           std::exp(-1.0 * (std::pow(row - r, 2) + std::pow(column - c, 2)) /
-                   (2.0 * std::pow(stddev, 2)));
+                   (2.0 * std::pow(std_dev, 2)));
       element_sum += data[r * stride + c] * weight;
       total_weight += weight;
     }
@@ -142,7 +142,7 @@ std::vector<FilteredSample> GetSampleValuesForFrame(
     std::vector<HaltonFrameSampler::Coordinates> sample_coordinates,
     int scaled_width,
     int scaled_height,
-    double stddev_gaussian_blur) {
+    double std_dev_gaussian_blur) {
   // Validate input.
   if (i420_frame_buffer == nullptr) {
     RTC_LOG(LS_WARNING) << "The framebuffer must not be nullptr";
@@ -167,10 +167,10 @@ std::vector<FilteredSample> GetSampleValuesForFrame(
         << scaled_width << ", height=" << scaled_height << ".\n";
     return {};
   }
-  if (stddev_gaussian_blur <= 0.0) {
-    RTC_LOG(LS_WARNING) << "The standard deviation for the Gaussian blur must "
-                           "be larger than 0: "
-                        << stddev_gaussian_blur << ".\n";
+  if (std_dev_gaussian_blur < 0.0) {
+    RTC_LOG(LS_WARNING)
+        << "The standard deviation for the Gaussian blur must not be negative: "
+        << std_dev_gaussian_blur << ".\n";
     return {};
   }
 
@@ -211,7 +211,7 @@ std::vector<FilteredSample> GetSampleValuesForFrame(
       value_for_coordinate = GetFilteredElement(
           scaled_i420_buffer->width(), scaled_i420_buffer->height(),
           scaled_i420_buffer->StrideY(), scaled_i420_buffer->DataY(), row,
-          column, stddev_gaussian_blur);
+          column, std_dev_gaussian_blur);
       filtered_samples.push_back(
           {.value = value_for_coordinate, .plane = ImagePlane::kLuma});
     } else if (row < scaled_i420_buffer->ChromaHeight()) {
@@ -220,7 +220,7 @@ std::vector<FilteredSample> GetSampleValuesForFrame(
       value_for_coordinate = GetFilteredElement(
           scaled_i420_buffer->ChromaWidth(), scaled_i420_buffer->ChromaHeight(),
           scaled_i420_buffer->StrideU(), scaled_i420_buffer->DataU(), row,
-          column, stddev_gaussian_blur);
+          column, std_dev_gaussian_blur);
       filtered_samples.push_back(
           {.value = value_for_coordinate, .plane = ImagePlane::kChroma});
     } else {
@@ -230,7 +230,7 @@ std::vector<FilteredSample> GetSampleValuesForFrame(
       value_for_coordinate = GetFilteredElement(
           scaled_i420_buffer->ChromaWidth(), scaled_i420_buffer->ChromaHeight(),
           scaled_i420_buffer->StrideV(), scaled_i420_buffer->DataV(), row,
-          column, stddev_gaussian_blur);
+          column, std_dev_gaussian_blur);
       filtered_samples.push_back(
           {.value = value_for_coordinate, .plane = ImagePlane::kChroma});
     }

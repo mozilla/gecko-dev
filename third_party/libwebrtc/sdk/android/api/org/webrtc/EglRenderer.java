@@ -14,6 +14,7 @@ import android.graphics.Bitmap;
 import android.graphics.Matrix;
 import android.graphics.SurfaceTexture;
 import android.opengl.GLES20;
+import android.opengl.GLException;
 import android.view.Surface;
 import androidx.annotation.GuardedBy;
 import androidx.annotation.Nullable;
@@ -686,7 +687,13 @@ public class EglRenderer implements VideoSink {
       frame.release();
       return;
     }
-    eglBase.makeCurrent();
+    try {
+      eglBase.makeCurrent();
+    } catch (GLException e) {
+      logE("Error while eglMakeCurrent", e);
+      frame.release();
+      return;
+    }
 
     // Check if fps reduction is active.
     final boolean shouldRenderFrame;

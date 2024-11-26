@@ -64,6 +64,8 @@ rtc_library("audio_ingress") {
     "../../api/audio:audio_mixer_api",
     "../../api/audio_codecs:audio_codecs_api",
     "../../api/environment",
+    "../../api/neteq:default_neteq_factory",
+    "../../api/neteq:neteq_api",
     "../../api/voip:voip_api",
     "../../modules/audio_coding",
     "../../modules/rtp_rtcp",

@@ -366,24 +366,6 @@ bool StunMessage::ValidateMessageIntegrity32ForTesting(
                                         password);
 }
 
-// Deprecated
-bool StunMessage::ValidateMessageIntegrity(const char* data,
-                                           size_t size,
-                                           const std::string& password) {
-  return ValidateMessageIntegrityOfType(STUN_ATTR_MESSAGE_INTEGRITY,
-                                        kStunMessageIntegritySize, data, size,
-                                        password);
-}
-
-// Deprecated
-bool StunMessage::ValidateMessageIntegrity32(const char* data,
-                                             size_t size,
-                                             const std::string& password) {
-  return ValidateMessageIntegrityOfType(STUN_ATTR_GOOG_MESSAGE_INTEGRITY_32,
-                                        kStunMessageIntegrity32Size, data, size,
-                                        password);
-}
-
 // Verifies a STUN message has a valid MESSAGE-INTEGRITY attribute, using the
 // procedure outlined in RFC 5389, section 15.4.
 bool StunMessage::ValidateMessageIntegrityOfType(int mi_attr_type,

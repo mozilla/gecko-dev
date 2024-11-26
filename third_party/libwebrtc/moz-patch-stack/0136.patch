@@ -1,23 +1,59 @@
-From: Michael Froman <mfroman@mozilla.com>
-Date: Tue, 15 Oct 2024 16:46:00 -0500
-Subject: Bug 1924098 - (fix-e432503389) upstream changed signature of
- LibvpxVp9Encoder::InitAndSetControlSettings
+From: Jan Grulich <grulja@gmail.com>
+Date: Tue, 12 Nov 2024 12:28:00 +0000
+Subject: Bug 1930598 - WebRTC backport: PipeWire camera: use better unique
+ device name for camera devices r=pehrsons,webrtc-reviewers
 
-Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/fadad7695efe0d9cc6b999a613b9e1f536e660bd
+Originally we used node id from PipeWire as an unique device name and
+while this works, it will change everytime PipeWire is restarted. This
+has an impact on default camera selection, where for example Firefox can
+automatically request a camera device that was used before, but this can
+break with the next PipeWire restart.
+
+This is a simple backport of an WebRTC upstream change.
+
+Upstream commit: a5d71009ac1dce7da23813dc9413c03073cfa8ca
+
+Differential Revision: https://phabricator.services.mozilla.com/D228635
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/b48b48759149275fc393d76c851f5b8cb75c63ed
 ---
- modules/video_coding/codecs/vp9/libvpx_vp9_encoder.cc | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+ modules/video_capture/linux/pipewire_session.cc       |  2 +-
+ modules/video_capture/linux/video_capture_pipewire.cc | 11 +++++++----
+ 2 files changed, 8 insertions(+), 5 deletions(-)
 
-diff --git a/modules/video_coding/codecs/vp9/libvpx_vp9_encoder.cc b/modules/video_coding/codecs/vp9/libvpx_vp9_encoder.cc
-index ea7cb5767e..2e6e53969a 100644
---- a/modules/video_coding/codecs/vp9/libvpx_vp9_encoder.cc
-+++ b/modules/video_coding/codecs/vp9/libvpx_vp9_encoder.cc
-@@ -1273,7 +1273,7 @@ int LibvpxVp9Encoder::UpdateCodecFrameSize(
-   // bugs in trying to do it the "right" way, we basically re-do
-   // the initialization.
-   vpx_codec_destroy(encoder_); // clean up old state
--  int result = InitAndSetControlSettings(&codec_);
-+  int result = InitAndSetControlSettings();
-   if (result == WEBRTC_VIDEO_CODEC_OK) {
-     // TODO: Mozilla rates have become much more complicated, we need to store
-     // more state or find another way of doing this.
+diff --git a/modules/video_capture/linux/pipewire_session.cc b/modules/video_capture/linux/pipewire_session.cc
+index dc270b7b3a..0b1504170b 100644
+--- a/modules/video_capture/linux/pipewire_session.cc
++++ b/modules/video_capture/linux/pipewire_session.cc
+@@ -76,7 +76,7 @@ PipeWireNode::PipeWireNode(PipeWireSession* session,
+     : session_(session),
+       id_(id),
+       display_name_(spa_dict_lookup(props, PW_KEY_NODE_DESCRIPTION)),
+-      unique_id_(rtc::ToString(id)) {
++      unique_id_(spa_dict_lookup(props, PW_KEY_NODE_NAME)) {
+   RTC_LOG(LS_VERBOSE) << "Found Camera: " << display_name_;
+ 
+   proxy_ = static_cast<pw_proxy*>(pw_registry_bind(
+diff --git a/modules/video_capture/linux/video_capture_pipewire.cc b/modules/video_capture/linux/video_capture_pipewire.cc
+index e9d99133f5..f6cd57ac36 100644
+--- a/modules/video_capture/linux/video_capture_pipewire.cc
++++ b/modules/video_capture/linux/video_capture_pipewire.cc
+@@ -83,12 +83,15 @@ int32_t VideoCaptureModulePipeWire::Init(const char* deviceUniqueId) {
+   RTC_CHECK_RUNS_SERIALIZED(&capture_checker_);
+   RTC_DCHECK_RUN_ON(&api_checker_);
+ 
+-  std::optional<int> id;
+-  id = rtc::StringToNumber<int>(deviceUniqueId);
+-  if (id == std::nullopt)
++  auto node =
++      std::find_if(session_->nodes_.begin(), session_->nodes_.end(),
++                   [deviceUniqueId](const PipeWireNode::PipeWireNodePtr& node) {
++                     return node->unique_id() == deviceUniqueId;
++                   });
++  if (node == session_->nodes_.end())
+     return -1;
+ 
+-  node_id_ = id.value();
++  node_id_ = (*node)->id();
+ 
+   const int len = strlen(deviceUniqueId);
+   _deviceUniqueId = new (std::nothrow) char[len + 1];

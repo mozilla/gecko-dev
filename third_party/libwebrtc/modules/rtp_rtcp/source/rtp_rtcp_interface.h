@@ -20,7 +20,6 @@
 
 #include "absl/strings/string_view.h"
 #include "api/array_view.h"
-#include "api/field_trials_view.h"
 #include "api/frame_transformer_interface.h"
 #include "api/rtp_headers.h"
 #include "api/rtp_packet_sender.h"
@@ -43,7 +42,6 @@ namespace webrtc {
 // Forward declarations.
 class FrameEncryptorInterface;
 class RateLimiter;
-class RtcEventLog;
 class RTPSender;
 class Transport;
 class VideoBitrateAllocationObserver;
@@ -55,9 +53,6 @@ class RtpRtcpInterface : public RtcpFeedbackSenderInterface {
     // a video version.
     bool audio = false;
     bool receiver_only = false;
-
-    // The clock to use to read time. If nullptr then system clock will be used.
-    Clock* clock = nullptr;
 
     ReceiveStatisticsProvider* receive_statistics = nullptr;
 
@@ -104,7 +99,6 @@ class RtpRtcpInterface : public RtcpFeedbackSenderInterface {
     VideoFecGenerator* fec_generator = nullptr;
 
     BitrateStatisticsObserver* send_bitrate_observer = nullptr;
-    RtcEventLog* event_log = nullptr;
     SendPacketObserver* send_packet_observer = nullptr;
     RateLimiter* retransmission_rate_limiter = nullptr;
     StreamDataCountersCallback* rtp_stats_callback = nullptr;
@@ -131,9 +125,6 @@ class RtpRtcpInterface : public RtcpFeedbackSenderInterface {
     // done by RTCP RR acking.
     bool always_send_mid_and_rid = false;
 
-    // If set, field trials are read from `field_trials`.
-    const FieldTrialsView* field_trials = nullptr;
-
     // SSRCs for media and retransmission, respectively.
     // FlexFec SSRC is fetched from `flexfec_sender`.
     uint32_t local_media_ssrc = 0;
@@ -158,10 +149,14 @@ class RtpRtcpInterface : public RtcpFeedbackSenderInterface {
   // Stats for RTCP sender reports (SR) for a specific SSRC.
   // Refer to https://tools.ietf.org/html/rfc3550#section-6.4.1.
   struct SenderReportStats {
+    // Arrival timestamp (enviroment clock) for the last received RTCP SR.
+    Timestamp last_arrival_timestamp = Timestamp::Zero();
     // Arrival NTP timestamp for the last received RTCP SR.
-    NtpTime last_arrival_timestamp;
+    // TODO: bugs.webrtc.org/370535296 - Remove the ntp arrival timestamp when
+    // linked issue is fixed.
+    NtpTime last_arrival_ntp_timestamp;
     // Received (a.k.a., remote) NTP timestamp for the last received RTCP SR.
-    NtpTime last_remote_timestamp;
+    NtpTime last_remote_ntp_timestamp;
     // Received (a.k.a., remote) RTP timestamp from the last received RTCP SR.
     uint32_t last_remote_rtp_timestamp = 0;
     // Total number of RTP data packets transmitted by the sender since starting

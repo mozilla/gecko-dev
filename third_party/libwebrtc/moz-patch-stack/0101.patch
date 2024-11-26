@@ -9,7 +9,7 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/60304c5d8a86fdecf
  1 file changed, 11 insertions(+), 6 deletions(-)
 
 diff --git a/media/BUILD.gn b/media/BUILD.gn
-index c55930ca14..808222978a 100644
+index 371e78d09c..9b2a439eac 100644
 --- a/media/BUILD.gn
 +++ b/media/BUILD.gn
 @@ -55,6 +55,11 @@ rtc_library("rtc_media_base") {
@@ -24,7 +24,7 @@ index c55930ca14..808222978a 100644
    deps = [
      ":adapted_video_track_source",
      ":codec",
-@@ -126,12 +131,6 @@ rtc_library("rtc_media_base") {
+@@ -127,12 +132,6 @@ rtc_library("rtc_media_base") {
      "../rtc_base/third_party/sigslot",
      "../video/config:encoder_config",
    ]
@@ -37,7 +37,7 @@ index c55930ca14..808222978a 100644
  }
  
  rtc_library("adapted_video_track_source") {
-@@ -139,6 +138,12 @@ rtc_library("adapted_video_track_source") {
+@@ -140,6 +139,12 @@ rtc_library("adapted_video_track_source") {
      "base/adapted_video_track_source.cc",
      "base/adapted_video_track_source.h",
    ]

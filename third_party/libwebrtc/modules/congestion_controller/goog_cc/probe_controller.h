@@ -82,8 +82,11 @@ struct ProbeControllerConfig {
   FieldTrialParameter<TimeDelta> min_probe_delta;
   FieldTrialParameter<double> loss_limited_probe_scale;
   // Don't send a probe if min(estimate, network state estimate) is larger than
-  // this fraction of the set max bitrate.
+  // this fraction of the set max or max allocated bitrate.
   FieldTrialParameter<double> skip_if_estimate_larger_than_fraction_of_max;
+  // Scale factor of the max allocated bitrate. Used when deciding if a probe
+  // can be skiped due to that the estimate is already high enough.
+  FieldTrialParameter<double> skip_probe_max_allocated_scale;
 };
 
 // Reason that bandwidth estimate is limited. Bandwidth estimate can be limited

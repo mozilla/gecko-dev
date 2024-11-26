@@ -28,6 +28,7 @@
 #include "api/video/video_frame_type.h"
 #include "api/video/video_rotation.h"
 #include "api/video/video_timing.h"
+#include "rtc_base/buffer.h"
 #include "rtc_base/checks.h"
 #include "rtc_base/system/rtc_export.h"
 
@@ -51,10 +52,11 @@ class EncodedImageBufferInterface : public RefCountInterface {
 // Basic implementation of EncodedImageBufferInterface.
 class RTC_EXPORT EncodedImageBuffer : public EncodedImageBufferInterface {
  public:
-  static rtc::scoped_refptr<EncodedImageBuffer> Create() { return Create(0); }
-  static rtc::scoped_refptr<EncodedImageBuffer> Create(size_t size);
-  static rtc::scoped_refptr<EncodedImageBuffer> Create(const uint8_t* data,
-                                                       size_t size);
+  static scoped_refptr<EncodedImageBuffer> Create() { return Create(0); }
+  static scoped_refptr<EncodedImageBuffer> Create(size_t size);
+  static scoped_refptr<EncodedImageBuffer> Create(const uint8_t* data,
+                                                  size_t size);
+  static scoped_refptr<EncodedImageBuffer> Create(rtc::Buffer buffer);
 
   const uint8_t* data() const override;
   uint8_t* data() override;
@@ -64,10 +66,9 @@ class RTC_EXPORT EncodedImageBuffer : public EncodedImageBufferInterface {
  protected:
   explicit EncodedImageBuffer(size_t size);
   EncodedImageBuffer(const uint8_t* data, size_t size);
-  ~EncodedImageBuffer();
+  explicit EncodedImageBuffer(rtc::Buffer buffer);
 
-  size_t size_;
-  uint8_t* buffer_;
+  rtc::Buffer buffer_;
 };
 
 // TODO(bug.webrtc.org/9378): This is a legacy api class, which is slowly being

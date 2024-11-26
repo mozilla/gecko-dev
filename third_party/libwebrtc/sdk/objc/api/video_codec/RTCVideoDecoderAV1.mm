@@ -11,10 +11,10 @@
 
 #import <Foundation/Foundation.h>
 
-#import "RTCMacros.h"
 #import "RTCNativeVideoDecoder.h"
 #import "RTCNativeVideoDecoderBuilder+Native.h"
 #import "RTCVideoDecoderAV1.h"
+#import "sdk/objc/base/RTCMacros.h"
 
 #include "modules/video_coding/codecs/av1/dav1d_decoder.h"
 

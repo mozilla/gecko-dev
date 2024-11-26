@@ -25,7 +25,6 @@ class FixedLengthEncodingParametersV3 final {
  public:
   static bool ValidParameters(uint64_t delta_bit_width,
                               bool signed_deltas,
-                              bool values_optional,
                               uint64_t value_bit_width) {
     return (1 <= delta_bit_width && delta_bit_width <= 64 &&
             1 <= value_bit_width && value_bit_width <= 64 &&

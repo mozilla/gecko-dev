@@ -157,6 +157,7 @@ void FuzzOneInput(const uint8_t* data, size_t size) {
         VideoContentType::UNSPECIFIED,
         video_header,
         /*color_space=*/std::nullopt,
+        /*frame_instrumentation_data=*/std::nullopt,
         RtpPacketInfos(),
         EncodedImageBuffer::Create(/*size=*/0));
     // clang-format on

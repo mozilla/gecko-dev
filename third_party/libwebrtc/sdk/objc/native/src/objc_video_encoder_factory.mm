@@ -13,7 +13,6 @@
 #include <optional>
 #include <string>
 
-#import "base/RTCMacros.h"
 #import "base/RTCVideoEncoder.h"
 #import "base/RTCVideoEncoderFactory.h"
 #import "components/video_codec/RTCCodecSpecificInfoH264+Private.h"
@@ -22,6 +21,7 @@
 #import "sdk/objc/api/peerconnection/RTCVideoEncoderSettings+Private.h"
 #import "sdk/objc/api/video_codec/RTCNativeVideoEncoderBuilder+Native.h"
 #import "sdk/objc/api/video_codec/RTCVideoCodecConstants.h"
+#import "sdk/objc/base/RTCMacros.h"
 #import "sdk/objc/helpers/NSString+StdString.h"
 
 #include "api/environment/environment.h"

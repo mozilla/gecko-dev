@@ -351,6 +351,13 @@ class RTC_EXPORT PeerConnectionInterface : public webrtc::RefCountInterface {
     bool dscp() const { return media_config.enable_dscp; }
     void set_dscp(bool enable) { media_config.enable_dscp = enable; }
 
+    bool stats_timestamp_with_environment_clock() const {
+      return media_config.stats_timestamp_with_environment_clock;
+    }
+    void set_stats_timestamp_with_environment_clock(bool enable) {
+      media_config.stats_timestamp_with_environment_clock = enable;
+    }
+
     bool cpu_adaptation() const {
       return media_config.video.enable_cpu_adaptation;
     }

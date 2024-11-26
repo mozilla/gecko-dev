@@ -41,14 +41,12 @@ TimeDelta UnixEpochDelta(Clock& clock) {
 
 StreamStatistician::~StreamStatistician() {}
 
-StreamStatisticianImpl::StreamStatisticianImpl(uint32_t ssrc,
-                                               Clock* clock,
-                                               int max_reordering_threshold)
+StreamStatisticianImpl::StreamStatisticianImpl(uint32_t ssrc, Clock* clock)
     : ssrc_(ssrc),
       clock_(clock),
       delta_internal_unix_epoch_(UnixEpochDelta(*clock_)),
       incoming_bitrate_(/*max_window_size=*/kStatisticsProcessInterval),
-      max_reordering_threshold_(max_reordering_threshold),
+      max_reordering_threshold_(kDefaultMaxReorderingThreshold),
       enable_retransmit_detection_(false),
       cumulative_loss_is_capped_(false),
       jitter_q4_(0),
@@ -334,18 +332,16 @@ bool StreamStatisticianImpl::IsRetransmitOfOldPacket(
 
 std::unique_ptr<ReceiveStatistics> ReceiveStatistics::Create(Clock* clock) {
   return std::make_unique<ReceiveStatisticsLocked>(
-      clock, [](uint32_t ssrc, Clock* clock, int max_reordering_threshold) {
-        return std::make_unique<StreamStatisticianLocked>(
-            ssrc, clock, max_reordering_threshold);
+      clock, [](uint32_t ssrc, Clock* clock) {
+        return std::make_unique<StreamStatisticianLocked>(ssrc, clock);
       });
 }
 
 std::unique_ptr<ReceiveStatistics> ReceiveStatistics::CreateThreadCompatible(
     Clock* clock) {
   return std::make_unique<ReceiveStatisticsImpl>(
-      clock, [](uint32_t ssrc, Clock* clock, int max_reordering_threshold) {
-        return std::make_unique<StreamStatisticianImpl>(
-            ssrc, clock, max_reordering_threshold);
+      clock, [](uint32_t ssrc, Clock* clock) {
+        return std::make_unique<StreamStatisticianImpl>(ssrc, clock);
       });
 }
 
@@ -353,12 +349,10 @@ ReceiveStatisticsImpl::ReceiveStatisticsImpl(
     Clock* clock,
     std::function<std::unique_ptr<StreamStatisticianImplInterface>(
         uint32_t ssrc,
-        Clock* clock,
-        int max_reordering_threshold)> stream_statistician_factory)
+        Clock* clock)> stream_statistician_factory)
     : clock_(clock),
       stream_statistician_factory_(std::move(stream_statistician_factory)),
-      last_returned_ssrc_idx_(0),
-      max_reordering_threshold_(kDefaultMaxReorderingThreshold) {}
+      last_returned_ssrc_idx_(0) {}
 
 void ReceiveStatisticsImpl::OnRtpPacket(const RtpPacketReceived& packet) {
   // StreamStatisticianImpl instance is created once and only destroyed when
@@ -380,19 +374,10 @@ StreamStatisticianImplInterface* ReceiveStatisticsImpl::GetOrCreateStatistician(
     uint32_t ssrc) {
   std::unique_ptr<StreamStatisticianImplInterface>& impl = statisticians_[ssrc];
   if (impl == nullptr) {  // new element
-    impl =
-        stream_statistician_factory_(ssrc, clock_, max_reordering_threshold_);
+    impl = stream_statistician_factory_(ssrc, clock_);
     all_ssrcs_.push_back(ssrc);
   }
   return impl.get();
-}
-
-void ReceiveStatisticsImpl::SetMaxReorderingThreshold(
-    int max_reordering_threshold) {
-  max_reordering_threshold_ = max_reordering_threshold;
-  for (auto& statistician : statisticians_) {
-    statistician.second->SetMaxReorderingThreshold(max_reordering_threshold);
-  }
 }
 
 void ReceiveStatisticsImpl::SetMaxReorderingThreshold(

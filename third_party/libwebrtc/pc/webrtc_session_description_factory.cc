@@ -12,23 +12,33 @@
 
 #include <stddef.h>
 
+#include <cstdint>
+#include <functional>
+#include <memory>
 #include <optional>
 #include <queue>
 #include <string>
-#include <type_traits>
 #include <utility>
 #include <vector>
 
 #include "absl/algorithm/container.h"
+#include "absl/functional/any_invocable.h"
+#include "api/field_trials_view.h"
 #include "api/jsep.h"
 #include "api/jsep_session_description.h"
+#include "api/peer_connection_interface.h"
 #include "api/rtc_error.h"
+#include "api/scoped_refptr.h"
 #include "api/sequence_checker.h"
+#include "call/payload_type.h"
 #include "pc/connection_context.h"
+#include "pc/media_session.h"
 #include "pc/sdp_state_provider.h"
 #include "pc/session_description.h"
 #include "rtc_base/checks.h"
 #include "rtc_base/logging.h"
+#include "rtc_base/rtc_certificate.h"
+#include "rtc_base/rtc_certificate_generator.h"
 #include "rtc_base/ssl_identity.h"
 #include "rtc_base/ssl_stream_adapter.h"
 #include "rtc_base/string_encode.h"
@@ -108,13 +118,15 @@ WebRtcSessionDescriptionFactory::WebRtcSessionDescriptionFactory(
     rtc::scoped_refptr<rtc::RTCCertificate> certificate,
     std::function<void(const rtc::scoped_refptr<rtc::RTCCertificate>&)>
         on_certificate_ready,
+    PayloadTypeSuggester* pt_suggester,
     const FieldTrialsView& field_trials)
     : signaling_thread_(context->signaling_thread()),
       transport_desc_factory_(field_trials),
       session_desc_factory_(context->media_engine(),
                             context->use_rtx(),
                             context->ssrc_generator(),
-                            &transport_desc_factory_),
+                            &transport_desc_factory_,
+                            pt_suggester),
       // RFC 4566 suggested a Network Time Protocol (NTP) format timestamp
       // as the session id and session version. To simplify, it should be fine
       // to just use a random number as session id and start version from

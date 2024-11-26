@@ -10,13 +10,13 @@
 
 #import <Foundation/Foundation.h>
 
-#import "RTCMacros.h"
+#import "sdk/objc/base/RTCMacros.h"
 
-RTC_OBJC_EXPORT extern NSString *const kRTCVideoCodecH264Name;
-RTC_OBJC_EXPORT extern NSString *const kRTCLevel31ConstrainedHigh;
-RTC_OBJC_EXPORT extern NSString *const kRTCLevel31ConstrainedBaseline;
-RTC_OBJC_EXPORT extern NSString *const kRTCMaxSupportedH264ProfileLevelConstrainedHigh;
-RTC_OBJC_EXPORT extern NSString *const kRTCMaxSupportedH264ProfileLevelConstrainedBaseline;
+RTC_EXTERN NSString *const kRTCVideoCodecH264Name;
+RTC_EXTERN NSString *const kRTCLevel31ConstrainedHigh;
+RTC_EXTERN NSString *const kRTCLevel31ConstrainedBaseline;
+RTC_EXTERN NSString *const kRTCMaxSupportedH264ProfileLevelConstrainedHigh;
+RTC_EXTERN NSString *const kRTCMaxSupportedH264ProfileLevelConstrainedBaseline;
 
 /** H264 Profiles and levels. */
 typedef NS_ENUM(NSUInteger, RTCH264Profile) {

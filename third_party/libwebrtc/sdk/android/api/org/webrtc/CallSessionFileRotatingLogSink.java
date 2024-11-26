@@ -20,6 +20,7 @@ public class CallSessionFileRotatingLogSink {
     return nativeGetLogData(dirPath);
   }
 
+  @SuppressWarnings("EnumOrdinal")
   public CallSessionFileRotatingLogSink(
       String dirPath, int maxFileSize, Logging.Severity severity) {
     if (dirPath == null) {

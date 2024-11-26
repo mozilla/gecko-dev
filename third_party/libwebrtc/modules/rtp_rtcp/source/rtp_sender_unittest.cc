@@ -154,7 +154,7 @@ class RtpSenderTest : public ::testing::Test {
 
   void CreateSender(const RtpRtcpInterface::Configuration& config) {
     packet_history_ = std::make_unique<RtpPacketHistory>(
-        &env_.clock(), RtpPacketHistory::PaddingMode::kRecentLargePacket);
+        env_, RtpPacketHistory::PaddingMode::kRecentLargePacket);
     sequencer_.emplace(kSsrc, kRtxSsrc,
                        /*require_marker_before_media_padding=*/!config.audio,
                        &env_.clock());

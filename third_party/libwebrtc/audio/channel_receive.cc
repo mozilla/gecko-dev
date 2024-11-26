@@ -20,6 +20,7 @@
 #include "api/audio/audio_device.h"
 #include "api/crypto/frame_decryptor_interface.h"
 #include "api/frame_transformer_interface.h"
+#include "api/neteq/default_neteq_factory.h"
 #include "api/neteq/neteq.h"
 #include "api/rtc_event_log/rtc_event_log.h"
 #include "api/sequence_checker.h"
@@ -36,7 +37,6 @@
 #include "modules/audio_coding/acm2/acm_resampler.h"
 #include "modules/audio_coding/acm2/call_statistics.h"
 #include "modules/audio_coding/audio_network_adaptor/include/audio_network_adaptor_config.h"
-#include "modules/audio_coding/neteq/default_neteq_factory.h"
 #include "modules/pacing/packet_router.h"
 #include "modules/rtp_rtcp/include/receive_statistics.h"
 #include "modules/rtp_rtcp/include/remote_ntp_time_estimator.h"
@@ -780,7 +780,7 @@ void ChannelReceive::ReceivedRTCPPacket(const uint8_t* data, size_t length) {
 
   {
     MutexLock lock(&ts_stats_lock_);
-    ntp_estimator_.UpdateRtcpTimestamp(*rtt, last_sr->last_remote_timestamp,
+    ntp_estimator_.UpdateRtcpTimestamp(*rtt, last_sr->last_remote_ntp_timestamp,
                                        last_sr->last_remote_rtp_timestamp);
     std::optional<int64_t> remote_to_local_clock_offset =
         ntp_estimator_.EstimateRemoteToLocalClockOffset();
@@ -876,10 +876,13 @@ CallReceiveStatistics ChannelReceive::GetRTCPStatistics() const {
       rtp_rtcp_->GetSenderReportStats();
   if (rtcp_sr_stats.has_value()) {
     stats.last_sender_report_timestamp_ms =
-        rtcp_sr_stats->last_arrival_timestamp.ToMs() -
+        rtcp_sr_stats->last_arrival_timestamp.ms<int64_t>();
+    stats.last_sender_report_utc_timestamp_ms =
+        rtcp_sr_stats->last_arrival_ntp_timestamp.ToMs() -
         rtc::kNtpJan1970Millisecs;
-    stats.last_sender_report_remote_timestamp_ms =
-        rtcp_sr_stats->last_remote_timestamp.ToMs() - rtc::kNtpJan1970Millisecs;
+    stats.last_sender_report_remote_utc_timestamp_ms =
+        rtcp_sr_stats->last_remote_ntp_timestamp.ToMs() -
+        rtc::kNtpJan1970Millisecs;
     stats.sender_reports_packets_sent = rtcp_sr_stats->packets_sent;
     stats.sender_reports_bytes_sent = rtcp_sr_stats->bytes_sent;
     stats.sender_reports_reports_count = rtcp_sr_stats->reports_count;
@@ -901,11 +904,12 @@ void ChannelReceive::SetNACKStatus(bool enable, int max_packets) {
   RTC_DCHECK_RUN_ON(&worker_thread_checker_);
   // None of these functions can fail.
   if (enable) {
-    rtp_receive_statistics_->SetMaxReorderingThreshold(max_packets);
+    rtp_receive_statistics_->SetMaxReorderingThreshold(remote_ssrc_,
+                                                       max_packets);
     neteq_->EnableNack(max_packets);
   } else {
     rtp_receive_statistics_->SetMaxReorderingThreshold(
-        kDefaultMaxReorderingThreshold);
+        remote_ssrc_, kDefaultMaxReorderingThreshold);
     neteq_->DisableNack();
   }
 }
@@ -1129,8 +1133,8 @@ std::optional<Syncable::Info> ChannelReceive::GetSyncInfo() const {
   if (!last_sr.has_value()) {
     return std::nullopt;
   }
-  info.capture_time_ntp_secs = last_sr->last_remote_timestamp.seconds();
-  info.capture_time_ntp_frac = last_sr->last_remote_timestamp.fractions();
+  info.capture_time_ntp_secs = last_sr->last_remote_ntp_timestamp.seconds();
+  info.capture_time_ntp_frac = last_sr->last_remote_ntp_timestamp.fractions();
   info.capture_time_source_clock = last_sr->last_remote_rtp_timestamp;
 
   if (!last_received_rtp_timestamp_ || !last_received_rtp_system_time_ms_) {

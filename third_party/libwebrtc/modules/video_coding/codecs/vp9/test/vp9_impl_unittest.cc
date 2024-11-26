@@ -490,6 +490,78 @@ TEST_F(TestVp9Impl, EncoderAcceptsSvcLikeSimulcast) {
             encoder_->InitEncode(&codec_settings_, kSettings));
 }
 
+TEST_F(TestVp9Impl, SvcSimulcastThenSinglecastWithCorrectSimulcastIndex) {
+  const int kTargetBitrate = 1200;
+  const int kMaxFramerate = 30;
+
+  // Configure 720p 4:2:1
+  codec_settings_.VP9()->numberOfTemporalLayers = 1;
+  codec_settings_.VP9()->numberOfSpatialLayers = 1;
+  codec_settings_.numberOfSimulcastStreams = 3;
+  codec_settings_.width = 1280;
+  codec_settings_.height = 720;
+  codec_settings_.simulcastStream[0].width = codec_settings_.width / 4;
+  codec_settings_.simulcastStream[0].height = codec_settings_.height / 4;
+  codec_settings_.simulcastStream[0].maxFramerate = kMaxFramerate;
+  codec_settings_.simulcastStream[0].minBitrate = kTargetBitrate / 2;
+  codec_settings_.simulcastStream[0].maxBitrate = kTargetBitrate;
+  codec_settings_.simulcastStream[0].targetBitrate = kTargetBitrate;
+  codec_settings_.simulcastStream[0].active = true;
+  codec_settings_.simulcastStream[1].width = codec_settings_.width / 2;
+  codec_settings_.simulcastStream[1].height = codec_settings_.height / 2;
+  codec_settings_.simulcastStream[1].maxFramerate = kMaxFramerate;
+  codec_settings_.simulcastStream[1].minBitrate = kTargetBitrate / 2;
+  codec_settings_.simulcastStream[1].maxBitrate = kTargetBitrate;
+  codec_settings_.simulcastStream[1].targetBitrate = kTargetBitrate;
+  codec_settings_.simulcastStream[1].active = true;
+  codec_settings_.simulcastStream[2].width = codec_settings_.width;
+  codec_settings_.simulcastStream[2].height = codec_settings_.height;
+  codec_settings_.simulcastStream[2].maxFramerate = kMaxFramerate;
+  codec_settings_.simulcastStream[2].minBitrate = kTargetBitrate / 2;
+  codec_settings_.simulcastStream[2].maxBitrate = kTargetBitrate;
+  codec_settings_.simulcastStream[2].targetBitrate = kTargetBitrate;
+  codec_settings_.simulcastStream[2].active = true;
+  EXPECT_EQ(WEBRTC_VIDEO_CODEC_OK,
+            encoder_->InitEncode(&codec_settings_, kSettings));
+
+  // Bitrate must be set for all layers to be produced.
+  VideoBitrateAllocation bitrate_allocation;
+  bitrate_allocation.SetBitrate(0, 0, kTargetBitrate * 1000);
+  bitrate_allocation.SetBitrate(1, 0, kTargetBitrate * 1000);
+  bitrate_allocation.SetBitrate(2, 0, kTargetBitrate * 1000);
+  encoder_->SetRates(
+      VideoEncoder::RateControlParameters(bitrate_allocation, kMaxFramerate));
+
+  // Encode a frame and confirm simulcast index is set for all layers.
+  {
+    SetWaitForEncodedFramesThreshold(3);
+    std::vector<EncodedImage> encoded_frame;
+    std::vector<CodecSpecificInfo> codec_specific_info;
+    EXPECT_EQ(WEBRTC_VIDEO_CODEC_OK,
+              encoder_->Encode(NextInputFrame(), nullptr));
+    ASSERT_TRUE(WaitForEncodedFrames(&encoded_frame, &codec_specific_info));
+    EXPECT_EQ(encoded_frame[0].SimulcastIndex().value_or(-1), 0);
+    EXPECT_EQ(encoded_frame[1].SimulcastIndex().value_or(-1), 1);
+    EXPECT_EQ(encoded_frame[2].SimulcastIndex().value_or(-1), 2);
+  }
+
+  // Reconfigure 720p singlecast.
+  codec_settings_.numberOfSimulcastStreams = 1;
+  EXPECT_EQ(WEBRTC_VIDEO_CODEC_OK,
+            encoder_->InitEncode(&codec_settings_, kSettings));
+
+  // Encode a frame and confirm simulcast index is not set.
+  {
+    SetWaitForEncodedFramesThreshold(1);
+    std::vector<EncodedImage> encoded_frame;
+    std::vector<CodecSpecificInfo> codec_specific_info;
+    EXPECT_EQ(WEBRTC_VIDEO_CODEC_OK,
+              encoder_->Encode(NextInputFrame(), nullptr));
+    ASSERT_TRUE(WaitForEncodedFrames(&encoded_frame, &codec_specific_info));
+    EXPECT_FALSE(encoded_frame[0].SimulcastIndex().has_value());
+  }
+}
+
 TEST_F(TestVp9Impl, EnableDisableSpatialLayers) {
   // Configure encoder to produce N spatial layers. Encode frames of layer 0
   // then enable layer 1 and encode more frames and so on until layer N-1.

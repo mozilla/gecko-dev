@@ -10,7 +10,7 @@
 
 #import <Foundation/Foundation.h>
 
-#import "RTCMacros.h"
+#import "sdk/objc/base/RTCMacros.h"
 
 /** The only valid value for the following if set is kRTCFieldTrialEnabledValue. */
 RTC_EXTERN NSString *const kRTCFieldTrialAudioForceABWENoTWCCKey;

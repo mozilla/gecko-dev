@@ -11,8 +11,8 @@
 #import <Foundation/Foundation.h>
 
 #import "RTCNativeVideoEncoder.h"
-#import "base/RTCMacros.h"
 #include "rtc_base/checks.h"
+#import "sdk/objc/base/RTCMacros.h"
 
 @implementation RTC_OBJC_TYPE (RTCNativeVideoEncoder)
 

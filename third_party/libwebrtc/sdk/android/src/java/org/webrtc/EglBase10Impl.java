@@ -193,11 +193,9 @@ class EglBase10Impl implements EglBase10 {
 
   @Override
   public void createSurface(Surface surface) {
-    /**
-     * We have to wrap Surface in a SurfaceHolder because for some reason eglCreateWindowSurface
-     * couldn't actually take a Surface object until API 17. Older versions fortunately just call
-     * SurfaceHolder.getSurface(), so we'll do that. No other methods are relevant.
-     */
+    // We have to wrap Surface in a SurfaceHolder because for some reason eglCreateWindowSurface
+    // couldn't actually take a Surface object until API 17. Older versions fortunately just call
+    // SurfaceHolder.getSurface(), so we'll do that. No other methods are relevant.
     class FakeSurfaceHolder implements SurfaceHolder {
       private final Surface surface;
 

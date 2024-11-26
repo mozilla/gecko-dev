@@ -6,6 +6,13 @@ include_rules = [
 ]
 
 specific_include_rules = {
+  "checks.h": [
+    "+absl/strings/has_absl_stringify.h",
+    "+absl/strings/str_cat.h",
+  ],
+  "string_encode.h": [
+    "+absl/strings/str_cat.h"
+  ],
   "protobuf_utils.h": [
     "+third_party/protobuf",
   ],
@@ -18,6 +25,10 @@ specific_include_rules = {
   "event_tracer\.cc": [
     "+third_party/perfetto",
   ],
+  "logging.h": [
+    "+absl/strings/has_absl_stringify.h",
+    "+absl/strings/str_cat.h",
+  ],
   "trace_event\.h": [
     "+third_party/perfetto",
   ],
@@ -25,6 +36,9 @@ specific_include_rules = {
     "+openssl",
   ],
   "openssl_stream_adapter.cc": [
+    "+openssl",
+  ],
+  "openssl_stream_adapter.h": [
     "+openssl",
   ],
 }

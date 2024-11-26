@@ -13,34 +13,61 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <algorithm>
-#include <limits>
+#include <cstdint>
 #include <memory>
-#include <string>
+#include <optional>
 #include <utility>
+#include <vector>
 
 #include "absl/algorithm/container.h"
 #include "absl/memory/memory.h"
 #include "absl/strings/match.h"
+#include "absl/types/variant.h"
+#include "api/array_view.h"
 #include "api/crypto/frame_encryptor_interface.h"
+#include "api/field_trials_view.h"
+#include "api/make_ref_counted.h"
+#include "api/media_types.h"
 #include "api/transport/rtp/dependency_descriptor.h"
+#include "api/units/data_rate.h"
 #include "api/units/frequency.h"
 #include "api/units/time_delta.h"
 #include "api/units/timestamp.h"
+#include "api/video/encoded_image.h"
+#include "api/video/video_codec_type.h"
+#include "api/video/video_content_type.h"
+#include "api/video/video_frame_type.h"
+#include "api/video/video_layers_allocation.h"
+#include "api/video/video_rotation.h"
+#include "api/video/video_timing.h"
+#include "common_video/corruption_detection_converters.h"
+#include "common_video/corruption_detection_message.h"
+#include "common_video/frame_instrumentation_data.h"
 #include "modules/rtp_rtcp/include/rtp_rtcp_defines.h"
 #include "modules/rtp_rtcp/source/absolute_capture_time_sender.h"
-#include "modules/rtp_rtcp/source/byte_io.h"
-#include "modules/rtp_rtcp/source/ntp_time_util.h"
+#include "modules/rtp_rtcp/source/corruption_detection_extension.h"
 #include "modules/rtp_rtcp/source/rtp_dependency_descriptor_extension.h"
 #include "modules/rtp_rtcp/source/rtp_descriptor_authentication.h"
 #include "modules/rtp_rtcp/source/rtp_format.h"
+#include "modules/rtp_rtcp/source/rtp_generic_frame_descriptor.h"
 #include "modules/rtp_rtcp/source/rtp_generic_frame_descriptor_extension.h"
 #include "modules/rtp_rtcp/source/rtp_header_extensions.h"
 #include "modules/rtp_rtcp/source/rtp_packet_to_send.h"
+#include "modules/rtp_rtcp/source/rtp_sender_video_frame_transformer_delegate.h"
+#include "modules/rtp_rtcp/source/rtp_video_header.h"
 #include "modules/rtp_rtcp/source/rtp_video_layers_allocation_extension.h"
+#include "modules/rtp_rtcp/source/video_fec_generator.h"
+#include "modules/video_coding/codecs/h264/include/h264_globals.h"
+#include "modules/video_coding/codecs/interface/common_constants.h"
+#include "modules/video_coding/codecs/vp8/include/vp8_globals.h"
+#include "modules/video_coding/codecs/vp9/include/vp9_globals.h"
+#include "rtc_base/buffer.h"
 #include "rtc_base/checks.h"
 #include "rtc_base/experiments/field_trial_parser.h"
 #include "rtc_base/logging.h"
+#include "rtc_base/race_checker.h"
+#include "rtc_base/synchronization/mutex.h"
+#include "system_wrappers/include/ntp_time.h"
 
 namespace webrtc {
 
@@ -453,6 +480,29 @@ void RTPSenderVideo::AddRtpHeaderExtensions(const RTPVideoHeader& video_header,
   if (first_packet && video_header.video_frame_tracking_id) {
     packet->SetExtension<VideoFrameTrackingIdExtension>(
         *video_header.video_frame_tracking_id);
+  }
+
+  if (last_packet && video_header.frame_instrumentation_data) {
+    std::optional<CorruptionDetectionMessage> message;
+    if (const auto* data = absl::get_if<FrameInstrumentationData>(
+            &(*video_header.frame_instrumentation_data))) {
+      message =
+          ConvertFrameInstrumentationDataToCorruptionDetectionMessage(*data);
+    } else if (const auto* sync_data =
+                   absl::get_if<FrameInstrumentationSyncData>(
+                       &(*video_header.frame_instrumentation_data))) {
+      message = ConvertFrameInstrumentationSyncDataToCorruptionDetectionMessage(
+          *sync_data);
+    } else {
+      RTC_DCHECK_NOTREACHED();
+    }
+
+    if (message.has_value()) {
+      packet->SetExtension<CorruptionDetectionExtension>(*message);
+    } else {
+      RTC_LOG(LS_WARNING) << "Failed to convert frame instrumentation data to "
+                             "corruption detection message.";
+    }
   }
 }
 

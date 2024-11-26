@@ -1,177 +1,23 @@
-From: Michael Froman <mjfroman@mac.com>
-Date: Mon, 14 Oct 2024 17:39:14 -0500
-Subject: Bug 1924098 - Cherry-pick upstream libwebrtc commit a8efbb223b r?ng
+From: Michael Froman <mfroman@mozilla.com>
+Date: Tue, 15 Oct 2024 16:46:00 -0500
+Subject: Bug 1924098 - (fix-e432503389) upstream changed signature of
+ LibvpxVp9Encoder::InitAndSetControlSettings
 
-Upstream commit: https://webrtc.googlesource.com/src/+/a8efbb223be5ec2f8283949a5f3484c2b8576825
-       [cleanup] Migrate `absl::in_place` to `std::in_place`
-
-       Self-explanatory.
-
-       Fixed: webrtc:342905193
-       Change-Id: I3cf1ec99ef6867bb33289977246725badf2bfcfe
-       Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/363360
-       Commit-Queue: Danil Chapovalov <danilchap@webrtc.org>
-       Auto-Submit: Ho Cheung <hocheung@chromium.org>
-       Commit-Queue: Harald Alvestrand <hta@webrtc.org>
-       Reviewed-by: Harald Alvestrand <hta@webrtc.org>
-       Reviewed-by: Danil Chapovalov <danilchap@webrtc.org>
-       Cr-Commit-Position: refs/heads/main@{#43071}
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/fadad7695efe0d9cc6b999a613b9e1f536e660bd
 ---
- modules/rtp_rtcp/source/video_rtp_depacketizer_av1.cc     | 3 ++-
- modules/rtp_rtcp/source/video_rtp_depacketizer_generic.cc | 2 +-
- modules/rtp_rtcp/source/video_rtp_depacketizer_h264.cc    | 4 ++--
- modules/rtp_rtcp/source/video_rtp_depacketizer_h265.cc    | 4 ++--
- modules/rtp_rtcp/source/video_rtp_depacketizer_raw.cc     | 2 +-
- modules/rtp_rtcp/source/video_rtp_depacketizer_vp8.cc     | 2 +-
- modules/rtp_rtcp/source/video_rtp_depacketizer_vp9.cc     | 4 +++-
- rtc_base/bitstream_reader_unittest.cc                     | 4 ++--
- 8 files changed, 14 insertions(+), 11 deletions(-)
+ modules/video_coding/codecs/vp9/libvpx_vp9_encoder.cc | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/modules/rtp_rtcp/source/video_rtp_depacketizer_av1.cc b/modules/rtp_rtcp/source/video_rtp_depacketizer_av1.cc
-index 6f70297447..16dcbb59ab 100644
---- a/modules/rtp_rtcp/source/video_rtp_depacketizer_av1.cc
-+++ b/modules/rtp_rtcp/source/video_rtp_depacketizer_av1.cc
-@@ -13,6 +13,7 @@
- #include <stddef.h>
- #include <stdint.h>
- 
-+#include <optional>
- #include <utility>
- 
- #include "modules/rtp_rtcp/source/leb128.h"
-@@ -367,7 +368,7 @@ VideoRtpDepacketizerAv1::Parse(rtc::CopyOnWriteBuffer rtp_payload) {
-     // new coded video sequence can't start from an OBU fragment.
-     return std::nullopt;
-   }
--  std::optional<ParsedRtpPayload> parsed(absl::in_place);
-+  std::optional<ParsedRtpPayload> parsed(std::in_place);
- 
-   // To assemble frame, all of the rtp payload is required, including
-   // aggregation header.
-diff --git a/modules/rtp_rtcp/source/video_rtp_depacketizer_generic.cc b/modules/rtp_rtcp/source/video_rtp_depacketizer_generic.cc
-index ec8993b191..344bb3f1e1 100644
---- a/modules/rtp_rtcp/source/video_rtp_depacketizer_generic.cc
-+++ b/modules/rtp_rtcp/source/video_rtp_depacketizer_generic.cc
-@@ -39,7 +39,7 @@ VideoRtpDepacketizerGeneric::Parse(rtc::CopyOnWriteBuffer rtp_payload) {
-     RTC_LOG(LS_WARNING) << "Empty payload.";
-     return std::nullopt;
-   }
--  std::optional<ParsedRtpPayload> parsed(absl::in_place);
-+  std::optional<ParsedRtpPayload> parsed(std::in_place);
-   const uint8_t* payload_data = rtp_payload.cdata();
- 
-   uint8_t generic_header = payload_data[0];
-diff --git a/modules/rtp_rtcp/source/video_rtp_depacketizer_h264.cc b/modules/rtp_rtcp/source/video_rtp_depacketizer_h264.cc
-index e8fd911efe..16d1c2c14c 100644
---- a/modules/rtp_rtcp/source/video_rtp_depacketizer_h264.cc
-+++ b/modules/rtp_rtcp/source/video_rtp_depacketizer_h264.cc
-@@ -63,7 +63,7 @@ std::optional<VideoRtpDepacketizer::ParsedRtpPayload> ProcessStapAOrSingleNalu(
-     rtc::CopyOnWriteBuffer rtp_payload) {
-   const uint8_t* const payload_data = rtp_payload.cdata();
-   std::optional<VideoRtpDepacketizer::ParsedRtpPayload> parsed_payload(
--      absl::in_place);
-+      std::in_place);
-   bool modified_buffer = false;
-   parsed_payload->video_payload = rtp_payload;
-   parsed_payload->video_header.width = 0;
-@@ -235,7 +235,7 @@ std::optional<VideoRtpDepacketizer::ParsedRtpPayload> ParseFuaNalu(
-     return std::nullopt;
-   }
-   std::optional<VideoRtpDepacketizer::ParsedRtpPayload> parsed_payload(
--      absl::in_place);
-+      std::in_place);
-   uint8_t fnri = rtp_payload.cdata()[0] & (kH264FBit | kH264NriMask);
-   uint8_t original_nal_type = rtp_payload.cdata()[1] & kH264TypeMask;
-   bool first_fragment = (rtp_payload.cdata()[1] & kH264SBit) > 0;
-diff --git a/modules/rtp_rtcp/source/video_rtp_depacketizer_h265.cc b/modules/rtp_rtcp/source/video_rtp_depacketizer_h265.cc
-index d16e638d06..e0ed2215af 100644
---- a/modules/rtp_rtcp/source/video_rtp_depacketizer_h265.cc
-+++ b/modules/rtp_rtcp/source/video_rtp_depacketizer_h265.cc
-@@ -71,7 +71,7 @@ std::optional<VideoRtpDepacketizer::ParsedRtpPayload> ProcessApOrSingleNalu(
-   }
-   const uint8_t* const payload_data = rtp_payload.cdata();
-   std::optional<VideoRtpDepacketizer::ParsedRtpPayload> parsed_payload(
--      absl::in_place);
-+      std::in_place);
-   parsed_payload->video_header.width = 0;
-   parsed_payload->video_header.height = 0;
-   parsed_payload->video_header.codec = kVideoCodecH265;
-@@ -191,7 +191,7 @@ std::optional<VideoRtpDepacketizer::ParsedRtpPayload> ParseFuNalu(
-     return std::nullopt;
-   }
-   std::optional<VideoRtpDepacketizer::ParsedRtpPayload> parsed_payload(
--      absl::in_place);
-+      std::in_place);
- 
-   uint8_t f = rtp_payload.cdata()[0] & kH265FBit;
-   uint8_t layer_id_h = rtp_payload.cdata()[0] & kH265LayerIDHMask;
-diff --git a/modules/rtp_rtcp/source/video_rtp_depacketizer_raw.cc b/modules/rtp_rtcp/source/video_rtp_depacketizer_raw.cc
-index f4f4a794ea..f18e344baa 100644
---- a/modules/rtp_rtcp/source/video_rtp_depacketizer_raw.cc
-+++ b/modules/rtp_rtcp/source/video_rtp_depacketizer_raw.cc
-@@ -20,7 +20,7 @@ namespace webrtc {
- 
- std::optional<VideoRtpDepacketizer::ParsedRtpPayload>
- VideoRtpDepacketizerRaw::Parse(rtc::CopyOnWriteBuffer rtp_payload) {
--  std::optional<ParsedRtpPayload> parsed(absl::in_place);
-+  std::optional<ParsedRtpPayload> parsed(std::in_place);
-   parsed->video_payload = std::move(rtp_payload);
-   return parsed;
- }
-diff --git a/modules/rtp_rtcp/source/video_rtp_depacketizer_vp8.cc b/modules/rtp_rtcp/source/video_rtp_depacketizer_vp8.cc
-index 157ad37aaa..709415771f 100644
---- a/modules/rtp_rtcp/source/video_rtp_depacketizer_vp8.cc
-+++ b/modules/rtp_rtcp/source/video_rtp_depacketizer_vp8.cc
-@@ -136,7 +136,7 @@ std::optional<VideoRtpDepacketizer::ParsedRtpPayload>
- VideoRtpDepacketizerVp8::Parse(rtc::CopyOnWriteBuffer rtp_payload) {
-   rtc::ArrayView<const uint8_t> payload(rtp_payload.cdata(),
-                                         rtp_payload.size());
--  std::optional<ParsedRtpPayload> result(absl::in_place);
-+  std::optional<ParsedRtpPayload> result(std::in_place);
-   int offset = ParseRtpPayload(payload, &result->video_header);
-   if (offset == kFailedToParse)
-     return std::nullopt;
-diff --git a/modules/rtp_rtcp/source/video_rtp_depacketizer_vp9.cc b/modules/rtp_rtcp/source/video_rtp_depacketizer_vp9.cc
-index ebd27ffdea..574c7c8530 100644
---- a/modules/rtp_rtcp/source/video_rtp_depacketizer_vp9.cc
-+++ b/modules/rtp_rtcp/source/video_rtp_depacketizer_vp9.cc
-@@ -12,6 +12,8 @@
- 
- #include <string.h>
- 
-+#include <optional>
-+
- #include "api/video/video_codec_constants.h"
- #include "modules/rtp_rtcp/source/rtp_packet_to_send.h"
- #include "modules/video_coding/codecs/interface/common_constants.h"
-@@ -148,7 +150,7 @@ void ParseSsData(BitstreamReader& parser, RTPVideoHeaderVP9* vp9) {
- 
- std::optional<VideoRtpDepacketizer::ParsedRtpPayload>
- VideoRtpDepacketizerVp9::Parse(rtc::CopyOnWriteBuffer rtp_payload) {
--  std::optional<ParsedRtpPayload> result(absl::in_place);
-+  std::optional<ParsedRtpPayload> result(std::in_place);
-   int offset = ParseRtpPayload(rtp_payload, &result->video_header);
-   if (offset == 0)
-     return std::nullopt;
-diff --git a/rtc_base/bitstream_reader_unittest.cc b/rtc_base/bitstream_reader_unittest.cc
-index b9b51a2571..3a48e7d086 100644
---- a/rtc_base/bitstream_reader_unittest.cc
-+++ b/rtc_base/bitstream_reader_unittest.cc
-@@ -28,7 +28,7 @@ namespace {
- 
- TEST(BitstreamReaderTest, InDebugModeRequiresToCheckOkStatusBeforeDestruction) {
-   const uint8_t bytes[32] = {};
--  std::optional<BitstreamReader> reader(absl::in_place, bytes);
-+  std::optional<BitstreamReader> reader(std::in_place, bytes);
- 
-   EXPECT_GE(reader->ReadBits(7), 0u);
- #if RTC_DCHECK_IS_ON && GTEST_HAS_DEATH_TEST && !defined(OS_ANDROID)
-@@ -40,7 +40,7 @@ TEST(BitstreamReaderTest, InDebugModeRequiresToCheckOkStatusBeforeDestruction) {
- 
- TEST(BitstreamReaderTest, InDebugModeMayCheckRemainingBitsInsteadOfOkStatus) {
-   const uint8_t bytes[32] = {};
--  std::optional<BitstreamReader> reader(absl::in_place, bytes);
-+  std::optional<BitstreamReader> reader(std::in_place, bytes);
- 
-   EXPECT_GE(reader->ReadBit(), 0);
- #if RTC_DCHECK_IS_ON && GTEST_HAS_DEATH_TEST && !defined(OS_ANDROID)
+diff --git a/modules/video_coding/codecs/vp9/libvpx_vp9_encoder.cc b/modules/video_coding/codecs/vp9/libvpx_vp9_encoder.cc
+index e98fd428bf..d30de4d4c9 100644
+--- a/modules/video_coding/codecs/vp9/libvpx_vp9_encoder.cc
++++ b/modules/video_coding/codecs/vp9/libvpx_vp9_encoder.cc
+@@ -1298,7 +1298,7 @@ int LibvpxVp9Encoder::UpdateCodecFrameSize(
+   // bugs in trying to do it the "right" way, we basically re-do
+   // the initialization.
+   vpx_codec_destroy(encoder_); // clean up old state
+-  int result = InitAndSetControlSettings(&codec_);
++  int result = InitAndSetControlSettings();
+   if (result == WEBRTC_VIDEO_CODEC_OK) {
+     // TODO: Mozilla rates have become much more complicated, we need to store
+     // more state or find another way of doing this.

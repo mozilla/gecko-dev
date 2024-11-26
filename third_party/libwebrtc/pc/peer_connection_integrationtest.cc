@@ -2637,9 +2637,10 @@ TEST_P(PeerConnectionIntegrationTest, GetSourcesVideo) {
   caller()->AddVideoTrack();
   caller()->CreateAndSetAndSignalOffer();
   ASSERT_TRUE_WAIT(SignalingStateStable(), kDefaultTimeout);
-  // Wait for one video frame to be received by the callee.
+  // Wait for two video frames to be received by the callee.
+  // TODO: https://issues.webrtc.org/42220900 - wait for only one frame again
   MediaExpectations media_expectations;
-  media_expectations.CalleeExpectsSomeVideo(1);
+  media_expectations.CalleeExpectsSomeVideo(2);
   ASSERT_TRUE(ExpectNewFrames(media_expectations));
   ASSERT_EQ(callee()->pc()->GetReceivers().size(), 1u);
   auto receiver = callee()->pc()->GetReceivers()[0];

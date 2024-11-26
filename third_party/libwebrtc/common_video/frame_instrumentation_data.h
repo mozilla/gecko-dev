@@ -15,7 +15,7 @@
 
 namespace webrtc {
 
-// TODO: b/358039777 - Error handling: negative values etc.
+// TODO: bugs.webrtc.org/358039777 - Error handling: negative values etc.
 struct FrameInstrumentationSyncData {
   int sequence_index;
   bool communicate_upper_bits;

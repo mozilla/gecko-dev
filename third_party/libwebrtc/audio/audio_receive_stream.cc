@@ -336,8 +336,10 @@ webrtc::AudioReceiveStreamInterface::Stats AudioReceiveStreamImpl::GetStats(
 
   stats.last_sender_report_timestamp_ms =
       call_stats.last_sender_report_timestamp_ms;
-  stats.last_sender_report_remote_timestamp_ms =
-      call_stats.last_sender_report_remote_timestamp_ms;
+  stats.last_sender_report_utc_timestamp_ms =
+      call_stats.last_sender_report_utc_timestamp_ms;
+  stats.last_sender_report_remote_utc_timestamp_ms =
+      call_stats.last_sender_report_remote_utc_timestamp_ms;
   stats.sender_reports_packets_sent = call_stats.sender_reports_packets_sent;
   stats.sender_reports_bytes_sent = call_stats.sender_reports_bytes_sent;
   stats.sender_reports_reports_count = call_stats.sender_reports_reports_count;

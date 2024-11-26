@@ -263,6 +263,9 @@ TEST(ToString, SanityCheck) {
   const char* c = "message";
   EXPECT_EQ(ToString(c), c);
   EXPECT_EQ(ToString(std::string(c)), c);
+  char nonconst_c[] = "message";
+  EXPECT_EQ(ToString(nonconst_c), c);
+  EXPECT_EQ(ToString(&nonconst_c[0]), c);
 
   EXPECT_EQ(ToString(short{-123}), "-123");
   EXPECT_EQ(ToString((unsigned short)123), "123");

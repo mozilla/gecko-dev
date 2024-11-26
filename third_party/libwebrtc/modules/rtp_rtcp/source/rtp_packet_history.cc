@@ -50,8 +50,9 @@ void RtpPacketHistory::StoredPacket::IncrementTimesRetransmitted() {
   ++times_retransmitted_;
 }
 
-RtpPacketHistory::RtpPacketHistory(Clock* clock, PaddingMode padding_mode)
-    : clock_(clock),
+RtpPacketHistory::RtpPacketHistory(const Environment& env,
+                                   PaddingMode padding_mode)
+    : clock_(&env.clock()),
       padding_mode_(padding_mode),
       number_to_store_(0),
       mode_(StorageMode::kDisabled),

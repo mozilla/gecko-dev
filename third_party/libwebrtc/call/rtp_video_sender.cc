@@ -387,6 +387,7 @@ bool IsFirstFrameOfACodedVideoSequence(
 
 RtpVideoSender::RtpVideoSender(
     const Environment& env,
+    absl::Nonnull<TaskQueueBase*> transport_queue,
     const std::map<uint32_t, RtpState>& suspended_ssrcs,
     const std::map<uint32_t, RtpPayloadState>& states,
     const RtpConfig& rtp_config,
@@ -404,6 +405,7 @@ RtpVideoSender::RtpVideoSender(
           env.field_trials().Lookup("WebRTC-Video-UseFrameRateForOverhead"),
           "Enabled")),
       has_packet_feedback_(TransportSeqNumExtensionConfigured(rtp_config)),
+      transport_queue_(*transport_queue),
       active_(false),
       fec_controller_(std::move(fec_controller)),
       fec_allowed_(true),
@@ -428,7 +430,10 @@ RtpVideoSender::RtpVideoSender(
       transport_overhead_bytes_per_packet_(0),
       encoder_target_rate_bps_(0),
       frame_counts_(rtp_config.ssrcs.size()),
-      frame_count_observer_(observers.frame_count_observer) {
+      frame_count_observer_(observers.frame_count_observer),
+      safety_(PendingTaskSafetyFlag::CreateAttachedToTaskQueue(
+          /*alive=*/true,
+          transport_queue)) {
   transport_checker_.Detach();
   RTC_DCHECK_EQ(rtp_config_.ssrcs.size(), rtp_streams_.size());
   if (has_packet_feedback_)
@@ -493,8 +498,7 @@ RtpVideoSender::RtpVideoSender(
 
 RtpVideoSender::~RtpVideoSender() {
   RTC_DCHECK_RUN_ON(&transport_checker_);
-  SetActiveModulesLocked(
-      /*sending=*/false);
+  SetActiveModulesLocked(/*sending=*/false);
 }
 
 void RtpVideoSender::SetSending(bool enabled) {
@@ -512,22 +516,30 @@ void RtpVideoSender::SetActiveModulesLocked(bool sending) {
     return;
   }
   active_ = sending;
-  for (size_t i = 0; i < rtp_streams_.size(); ++i) {
-    RtpRtcpInterface& rtp_module = *rtp_streams_[i].rtp_rtcp;
-    // Sends a kRtcpByeCode when going from true to false.
-    rtp_module.SetSendingStatus(sending);
-    rtp_module.SetSendingMediaStatus(sending);
-    if (sending) {
-      transport_->RegisterSendingRtpStream(rtp_module);
-    } else {
-      transport_->DeRegisterSendingRtpStream(rtp_module);
-    }
+  for (const RtpStreamSender& stream : rtp_streams_) {
+    SetModuleIsActive(sending, *stream.rtp_rtcp);
   }
   auto* feedback_provider = transport_->GetStreamFeedbackProvider();
   if (!sending) {
     feedback_provider->DeRegisterStreamFeedbackObserver(this);
   } else {
     feedback_provider->RegisterStreamFeedbackObserver(rtp_config_.ssrcs, this);
+  }
+}
+
+void RtpVideoSender::SetModuleIsActive(bool sending,
+                                       RtpRtcpInterface& rtp_module) {
+  if (rtp_module.SendingMedia() == sending) {
+    return;
+  }
+
+  // Sends a kRtcpByeCode when going from true to false.
+  rtp_module.SetSendingStatus(sending);
+  rtp_module.SetSendingMediaStatus(sending);
+  if (sending) {
+    transport_->RegisterSendingRtpStream(rtp_module);
+  } else {
+    transport_->DeRegisterSendingRtpStream(rtp_module);
   }
 }
 
@@ -655,6 +667,7 @@ void RtpVideoSender::OnBitrateAllocationUpdated(
     }
   }
 }
+
 void RtpVideoSender::OnVideoLayersAllocationUpdated(
     const VideoLayersAllocation& allocation) {
   MutexLock lock(&mutex_);
@@ -664,15 +677,28 @@ void RtpVideoSender::OnVideoLayersAllocationUpdated(
       stream_allocation.rtp_stream_index = i;
       rtp_streams_[i].sender_video->SetVideoLayersAllocation(
           std::move(stream_allocation));
-      // Only send video frames on the rtp module if the encoder is configured
-      // to send. This is to prevent stray frames to be sent after an encoder
-      // has been reconfigured.
-      rtp_streams_[i].rtp_rtcp->SetSendingMediaStatus(
-          absl::c_any_of(allocation.active_spatial_layers,
-                         [&i](const VideoLayersAllocation::SpatialLayer layer) {
-                           return layer.rtp_stream_index == static_cast<int>(i);
-                         }));
     }
+
+    // Only send video frames on the rtp module if the encoder is configured
+    // to send. This is to prevent stray frames to be sent after an encoder
+    // has been reconfigured.
+    // Reconfiguration of the RtpRtcp modules must happen on the transport queue
+    // to avoid races with batch sending of packets.
+    std::vector<bool> sending(rtp_streams_.size(), false);
+    for (const VideoLayersAllocation::SpatialLayer& layer :
+         allocation.active_spatial_layers) {
+      if (layer.rtp_stream_index < static_cast<int>(sending.size())) {
+        sending[layer.rtp_stream_index] = true;
+      }
+    }
+    transport_queue_.PostTask(
+        SafeTask(safety_.flag(), [this, sending = std::move(sending)] {
+          RTC_DCHECK_RUN_ON(&transport_checker_);
+          RTC_CHECK_EQ(sending.size(), rtp_streams_.size());
+          for (size_t i = 0; i < sending.size(); ++i) {
+            SetModuleIsActive(sending[i], *rtp_streams_[i].rtp_rtcp);
+          }
+        }));
   }
 }
 

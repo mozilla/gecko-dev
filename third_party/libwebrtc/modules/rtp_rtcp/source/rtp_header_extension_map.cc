@@ -70,9 +70,6 @@ static_assert(arraysize(kExtensions) ==
 
 }  // namespace
 
-constexpr RTPExtensionType RtpHeaderExtensionMap::kInvalidType;
-constexpr int RtpHeaderExtensionMap::kInvalidId;
-
 RtpHeaderExtensionMap::RtpHeaderExtensionMap() : RtpHeaderExtensionMap(false) {}
 
 RtpHeaderExtensionMap::RtpHeaderExtensionMap(bool extmap_allow_mixed)

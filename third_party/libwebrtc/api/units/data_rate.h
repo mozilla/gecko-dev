@@ -20,6 +20,7 @@
 #include "api/units/frequency.h"
 #include "api/units/time_delta.h"
 #include "rtc_base/checks.h"
+#include "rtc_base/system/rtc_export.h"
 #include "rtc_base/units/unit_base.h"  // IWYU pragma: export
 
 namespace webrtc {
@@ -46,6 +47,9 @@ class DataRate final : public rtc_units_impl::RelativeUnit<DataRate> {
   static constexpr DataRate Infinity() { return PlusInfinity(); }
 
   DataRate() = delete;
+
+  template <typename Sink>
+  friend void AbslStringify(Sink& sink, DataRate value);
 
   template <typename T = int64_t>
   constexpr T bps() const {
@@ -134,9 +138,14 @@ inline constexpr DataRate operator*(const Frequency frequency,
   return size * frequency;
 }
 
-std::string ToString(DataRate value);
+RTC_EXPORT std::string ToString(DataRate value);
 inline std::string ToLogString(DataRate value) {
   return ToString(value);
+}
+
+template <typename Sink>
+void AbslStringify(Sink& sink, DataRate value) {
+  sink.Append(ToString(value));
 }
 
 }  // namespace webrtc

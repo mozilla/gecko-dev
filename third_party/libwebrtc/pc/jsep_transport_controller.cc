@@ -443,10 +443,11 @@ RTCError JsepTransportController::RemoveRemoteCandidates(
 }
 
 bool JsepTransportController::GetStats(const std::string& transport_name,
-                                       cricket::TransportStats* stats) {
+                                       cricket::TransportStats* stats) const {
   RTC_DCHECK_RUN_ON(network_thread_);
 
-  cricket::JsepTransport* transport = GetJsepTransportByName(transport_name);
+  const cricket::JsepTransport* transport =
+      GetJsepTransportByName(transport_name);
   if (!transport) {
     return false;
   }

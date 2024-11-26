@@ -10,6 +10,7 @@
 
 #include "modules/video_coding/rtp_vp8_ref_finder.h"
 
+#include <optional>
 #include <utility>
 #include <vector>
 
@@ -93,6 +94,7 @@ class Frame {
         VideoContentType::UNSPECIFIED,
         video_header,
         /*color_space=*/std::nullopt,
+        /*frame_instrumentation_data=*/std::nullopt,
         RtpPacketInfos(),
         EncodedImageBuffer::Create(/*size=*/0));
     // clang-format on

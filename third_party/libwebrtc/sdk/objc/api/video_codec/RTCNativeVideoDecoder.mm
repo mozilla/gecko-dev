@@ -11,9 +11,9 @@
 #import <Foundation/Foundation.h>
 
 #import "RTCNativeVideoDecoder.h"
-#import "base/RTCMacros.h"
 #import "helpers/NSString+StdString.h"
 #include "rtc_base/checks.h"
+#import "sdk/objc/base/RTCMacros.h"
 
 @implementation RTC_OBJC_TYPE (RTCNativeVideoDecoder)
 

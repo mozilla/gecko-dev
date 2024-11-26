@@ -1,4 +1,3 @@
-
 /*
  *  Copyright (c) 2016 The WebRTC project authors. All Rights Reserved.
  *
@@ -14,10 +13,12 @@
 #include <cstdint>
 #include <limits>
 #include <memory>
+#include <optional>
 #include <tuple>
 #include <utility>
 
 #include "absl/memory/memory.h"
+#include "absl/types/variant.h"
 #include "api/environment/environment.h"
 #include "api/environment/environment_factory.h"
 #include "api/field_trials_view.h"
@@ -31,6 +32,7 @@
 #include "api/units/data_rate.h"
 #include "api/units/time_delta.h"
 #include "api/video/builtin_video_bitrate_allocator_factory.h"
+#include "api/video/encoded_image.h"
 #include "api/video/i420_buffer.h"
 #include "api/video/nv12_buffer.h"
 #include "api/video/resolution.h"
@@ -44,6 +46,7 @@
 #include "api/video_codecs/vp8_temporal_layers_factory.h"
 #include "call/adaptation/test/fake_adaptation_constraint.h"
 #include "call/adaptation/test/fake_resource.h"
+#include "common_video/frame_instrumentation_data.h"
 #include "common_video/h264/h264_common.h"
 #include "common_video/include/video_frame_buffer.h"
 #include "media/base/video_adapter.h"
@@ -54,6 +57,7 @@
 #include "modules/video_coding/codecs/vp9/include/vp9.h"
 #include "modules/video_coding/codecs/vp9/include/vp9_globals.h"
 #include "modules/video_coding/codecs/vp9/svc_config.h"
+#include "modules/video_coding/include/video_codec_interface.h"
 #include "modules/video_coding/utility/quality_scaler.h"
 #include "modules/video_coding/utility/simulcast_rate_allocator.h"
 #include "modules/video_coding/utility/vp8_constants.h"
@@ -63,6 +67,7 @@
 #include "rtc_base/logging.h"
 #include "rtc_base/ref_counted_object.h"
 #include "rtc_base/synchronization/mutex.h"
+#include "rtc_base/thread_annotations.h"
 #include "system_wrappers/include/metrics.h"
 #include "test/encoder_settings.h"
 #include "test/fake_encoder.h"
@@ -1513,6 +1518,13 @@ class VideoStreamEncoderTest : public ::testing::Test {
       return number_of_layers_allocations_;
     }
 
+    std::optional<
+        absl::variant<FrameInstrumentationSyncData, FrameInstrumentationData>>
+    GetLastFrameInstrumentationData() const {
+      MutexLock lock(&mutex_);
+      return last_frame_instrumentation_data_;
+    }
+
    private:
     Result OnEncodedImage(
         const EncodedImage& encoded_image,
@@ -1537,6 +1549,11 @@ class VideoStreamEncoderTest : public ::testing::Test {
       last_rotation_ = encoded_image.rotation_;
       if (num_received_layers_ == num_expected_layers_) {
         encoded_frame_event_.Set();
+      }
+      if (codec_specific_info &&
+          codec_specific_info->frame_instrumentation_data.has_value()) {
+        last_frame_instrumentation_data_ =
+            codec_specific_info->frame_instrumentation_data;
       }
 
       return Result(Result::OK, last_timestamp_);
@@ -1597,6 +1614,9 @@ class VideoStreamEncoderTest : public ::testing::Test {
     int number_of_bitrate_allocations_ RTC_GUARDED_BY(&mutex_) = 0;
     VideoLayersAllocation last_layers_allocation_ RTC_GUARDED_BY(&mutex_);
     int number_of_layers_allocations_ RTC_GUARDED_BY(&mutex_) = 0;
+    std::optional<
+        absl::variant<FrameInstrumentationSyncData, FrameInstrumentationData>>
+        last_frame_instrumentation_data_ RTC_GUARDED_BY(&mutex_);
   };
 
   class VideoBitrateAllocatorProxyFactory
@@ -1661,6 +1681,43 @@ TEST_F(VideoStreamEncoderTest, EncodeOneFrame) {
   video_source_.IncomingCapturedFrame(CreateFrame(1, &frame_destroyed_event));
   WaitForEncodedFrame(1);
   EXPECT_TRUE(frame_destroyed_event.Wait(kDefaultTimeout));
+  video_stream_encoder_->Stop();
+}
+
+TEST_F(VideoStreamEncoderTest, PopulatesFrameInstrumentationDataWhenSetTo) {
+  video_send_config_.encoder_settings.enable_frame_instrumentation_generator =
+      true;
+  ConfigureEncoder(video_encoder_config_.Copy());
+  video_stream_encoder_->OnBitrateUpdatedAndWaitForManagedResources(
+      kTargetBitrate, kTargetBitrate, kTargetBitrate, 0, 0, 0);
+
+  // We need a QP for the encoded frame.
+  fake_encoder_.SetEncodedImageData(EncodedImageBuffer::Create(
+      kCodedFrameVp8Qp25, sizeof(kCodedFrameVp8Qp25)));
+  video_source_.IncomingCapturedFrame(
+      CreateFrame(1, codec_width_, codec_height_));
+  WaitForEncodedFrame(1);
+
+  EXPECT_TRUE(sink_.GetLastFrameInstrumentationData().has_value());
+  video_stream_encoder_->Stop();
+}
+
+TEST_F(VideoStreamEncoderTest,
+       DoesNotPopulateFrameInstrumentationDataWhenSetNotTo) {
+  video_send_config_.encoder_settings.enable_frame_instrumentation_generator =
+      false;
+  ConfigureEncoder(video_encoder_config_.Copy());
+  video_stream_encoder_->OnBitrateUpdatedAndWaitForManagedResources(
+      kTargetBitrate, kTargetBitrate, kTargetBitrate, 0, 0, 0);
+
+  // We need a QP for the encoded frame.
+  fake_encoder_.SetEncodedImageData(EncodedImageBuffer::Create(
+      kCodedFrameVp8Qp25, sizeof(kCodedFrameVp8Qp25)));
+  video_source_.IncomingCapturedFrame(
+      CreateFrame(1, codec_width_, codec_height_));
+  WaitForEncodedFrame(1);
+
+  EXPECT_FALSE(sink_.GetLastFrameInstrumentationData().has_value());
   video_stream_encoder_->Stop();
 }
 
@@ -2530,14 +2587,21 @@ TEST_F(VideoStreamEncoderTest, FrameRateLimitCanBeReset) {
   video_stream_encoder_->Stop();
 }
 
-TEST_F(VideoStreamEncoderTest,
-       ResolutionLimitPropagatedToSinkWantsBeforeFirstFrame) {
+TEST_F(VideoStreamEncoderTest, RequestInSinkWantsBeforeFirstFrame) {
+  // Use a real video stream factory or else `requested_resolution` is not
+  // applied correctly.
+  video_encoder_config_.video_stream_factory = nullptr;
+  ConfigureEncoder(video_encoder_config_.Copy());
+  video_stream_encoder_->OnBitrateUpdatedAndWaitForManagedResources(
+      kTargetBitrate, kTargetBitrate, kTargetBitrate, 0, 0, 0);
+
   ASSERT_THAT(video_encoder_config_.simulcast_layers, SizeIs(1));
   video_encoder_config_.simulcast_layers[0].requested_resolution.emplace(
       Resolution({.width = 320, .height = 160}));
 
   video_stream_encoder_->ConfigureEncoder(video_encoder_config_.Copy(),
                                           kMaxPayloadLength);
+
   EXPECT_EQ(video_source_.sink_wants().requested_resolution,
             rtc::VideoSinkWants::FrameSize(320, 160));
 
@@ -2545,8 +2609,38 @@ TEST_F(VideoStreamEncoderTest,
   video_encoder_config_.simulcast_layers[0].requested_resolution->width = 640;
   video_stream_encoder_->ConfigureEncoder(video_encoder_config_.Copy(),
                                           kMaxPayloadLength);
+
   EXPECT_EQ(video_source_.sink_wants().requested_resolution,
             rtc::VideoSinkWants::FrameSize(640, 320));
+
+  video_stream_encoder_->Stop();
+}
+
+TEST_F(VideoStreamEncoderTest, RequestInWrongAspectRatioWithAdapter) {
+  // Use a real video stream factory or else `requested_resolution` is not
+  // applied correctly.
+  video_encoder_config_.video_stream_factory = nullptr;
+  ConfigureEncoder(video_encoder_config_.Copy());
+  video_stream_encoder_->OnBitrateUpdatedAndWaitForManagedResources(
+      kTargetBitrate, kTargetBitrate, kTargetBitrate, 0, 0, 0);
+
+  // Use a source that adapts resolution based on OnSinkWants.
+  AdaptingFrameForwarder source(&time_controller_);
+  source.set_adaptation_enabled(true);
+  video_stream_encoder_->SetSource(
+      &source, webrtc::DegradationPreference::MAINTAIN_FRAMERATE);
+
+  ASSERT_THAT(video_encoder_config_.simulcast_layers, SizeIs(1));
+  video_encoder_config_.simulcast_layers[0].requested_resolution = {
+      .width = 30, .height = 30};
+  video_stream_encoder_->ConfigureEncoder(video_encoder_config_.Copy(),
+                                          kMaxPayloadLength);
+
+  // Capture a 60x30 frame.
+  source.IncomingCapturedFrame(CreateFrame(1, 60, 30));
+  // The 60x30 frame does not fit inside the 30x30 restrictions.
+  // Expect 30x15, maintaining aspect ratio.
+  WaitForEncodedFrame(30, 15);
 
   video_stream_encoder_->Stop();
 }

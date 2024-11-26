@@ -16,6 +16,7 @@
 #include "api/audio_codecs/builtin_audio_decoder_factory.h"
 #include "api/audio_codecs/builtin_audio_encoder_factory.h"
 #include "api/environment/environment_factory.h"
+#include "api/neteq/default_neteq_factory.h"
 #include "modules/audio_coding/include/audio_coding_module_typedefs.h"
 #include "modules/include/module_common_types.h"
 #include "rtc_base/strings/string_builder.h"
@@ -26,7 +27,7 @@ namespace webrtc {
 
 // Class for simulating packet handling
 TestPackStereo::TestPackStereo()
-    : receiver_acm_(NULL),
+    : neteq_(NULL),
       seq_no_(0),
       timestamp_diff_(0),
       last_in_timestamp_(0),
@@ -36,8 +37,8 @@ TestPackStereo::TestPackStereo()
 
 TestPackStereo::~TestPackStereo() {}
 
-void TestPackStereo::RegisterReceiverACM(acm2::AcmReceiver* acm_receiver) {
-  receiver_acm_ = acm_receiver;
+void TestPackStereo::RegisterReceiverNetEq(NetEq* neteq) {
+  neteq_ = neteq;
   return;
 }
 
@@ -61,7 +62,7 @@ int32_t TestPackStereo::SendData(const AudioFrameType frame_type,
   }
 
   if (lost_packet_ == false) {
-    status = receiver_acm_->InsertPacket(
+    status = neteq_->InsertPacket(
         rtp_header, rtc::ArrayView<const uint8_t>(payload_data, payload_size),
         /*receive_time=*/Timestamp::MinusInfinity());
 
@@ -101,9 +102,9 @@ void TestPackStereo::set_lost_packet(bool lost) {
 TestStereo::TestStereo()
     : env_(CreateEnvironment()),
       acm_a_(AudioCodingModule::Create()),
-      acm_b_(std::make_unique<acm2::AcmReceiver>(
-          env_,
-          acm2::AcmReceiver::Config(CreateBuiltinAudioDecoderFactory()))),
+      neteq_(DefaultNetEqFactory().Create(env_,
+                                          NetEq::Config(),
+                                          CreateBuiltinAudioDecoderFactory())),
       channel_a2b_(NULL),
       test_cntr_(0),
       pack_size_samp_(0),
@@ -136,10 +137,10 @@ void TestStereo::Perform() {
   in_file_mono_->ReadStereo(false);
 
   // Create and initialize two ACMs, one for each side of a one-to-one call.
-  ASSERT_TRUE((acm_a_.get() != NULL) && (acm_b_.get() != NULL));
-  acm_b_->FlushBuffers();
+  ASSERT_TRUE((acm_a_.get() != NULL) && (neteq_.get() != NULL));
+  neteq_->FlushBuffers();
 
-  acm_b_->SetCodecs({{103, {"ISAC", 16000, 1}},
+  neteq_->SetCodecs({{103, {"ISAC", 16000, 1}},
                      {104, {"ISAC", 32000, 1}},
                      {107, {"L16", 8000, 1}},
                      {108, {"L16", 16000, 1}},
@@ -162,7 +163,7 @@ void TestStereo::Perform() {
   // Create and connect the channel.
   channel_a2b_ = new TestPackStereo;
   EXPECT_EQ(0, acm_a_->RegisterTransportCallback(channel_a2b_));
-  channel_a2b_->RegisterReceiverACM(acm_b_.get());
+  channel_a2b_->RegisterReceiverNetEq(neteq_.get());
 
   char codec_pcma_temp[] = "PCMA";
   RegisterSendCodec('A', codec_pcma_temp, 8000, 64000, 80, 2);
@@ -400,7 +401,7 @@ void TestStereo::Perform() {
   OpenOutFile(test_cntr_);
   // Encode and decode in mono.
   RegisterSendCodec('A', codec_opus, 48000, 32000, 960, codec_channels);
-  acm_b_->SetCodecs({{120, {"OPUS", 48000, 2}}});
+  neteq_->SetCodecs({{120, {"OPUS", 48000, 2}}});
   Run(channel_a2b_, audio_channels, codec_channels);
 
   // Encode in stereo, decode in mono.
@@ -419,13 +420,13 @@ void TestStereo::Perform() {
   // Decode in stereo.
   test_cntr_++;
   OpenOutFile(test_cntr_);
-  acm_b_->SetCodecs({{120, {"OPUS", 48000, 2, {{"stereo", "1"}}}}});
+  neteq_->SetCodecs({{120, {"OPUS", 48000, 2, {{"stereo", "1"}}}}});
   Run(channel_a2b_, audio_channels, 2);
   out_file_.Close();
   // Decode in mono.
   test_cntr_++;
   OpenOutFile(test_cntr_);
-  acm_b_->SetCodecs({{120, {"OPUS", 48000, 2}}});
+  neteq_->SetCodecs({{120, {"OPUS", 48000, 2}}});
   Run(channel_a2b_, audio_channels, codec_channels);
   out_file_.Close();
 #endif
@@ -468,7 +469,7 @@ void TestStereo::RegisterSendCodec(char side,
     case 'B': {
       // We no longer use this case. Refactor code to avoid the switch.
       ASSERT_TRUE(false);
-      // my_acm = acm_b_.get();
+      // my_acm = neteq_.get();
       break;
     }
     default:
@@ -571,7 +572,8 @@ void TestStereo::Run(TestPackStereo* channel,
 
     // Run receive side of ACM
     bool muted;
-    EXPECT_EQ(0, acm_b_->GetAudio(out_freq_hz_b, &audio_frame, &muted));
+    EXPECT_EQ(NetEq::kOK, neteq_->GetAudio(&audio_frame, &muted));
+    EXPECT_TRUE(resampler_helper_.MaybeResample(out_freq_hz_b, &audio_frame));
     ASSERT_FALSE(muted);
 
     // Write output speech to file

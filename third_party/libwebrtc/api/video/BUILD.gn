@@ -158,6 +158,7 @@ rtc_library("encoded_image") {
     "..:refcountedbase",
     "..:rtp_packet_info",
     "..:scoped_refptr",
+    "../../rtc_base:buffer",
     "../../rtc_base:checks",
     "../../rtc_base:refcount",
     "../../rtc_base/system:rtc_export",

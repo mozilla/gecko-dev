@@ -247,10 +247,6 @@ std::optional<int> ComputeSendBitrate(int max_send_bitrate_bps,
   }
 }
 
-bool IsEnabled(const webrtc::FieldTrialsView& config, absl::string_view trial) {
-  return absl::StartsWith(config.Lookup(trial), "Enabled");
-}
-
 struct AdaptivePtimeConfig {
   bool enabled = false;
   webrtc::DataRate min_payload_bitrate = webrtc::DataRate::KilobitsPerSec(16);
@@ -473,9 +469,9 @@ WebRtcVoiceEngine::WebRtcVoiceEngine(
       apm_(audio_processing),
       audio_frame_processor_(std::move(audio_frame_processor)),
       minimized_remsampling_on_mobile_trial_enabled_(
-          IsEnabled(trials, "WebRTC-Audio-MinimizeResamplingOnMobile")),
+          trials.IsEnabled("WebRTC-Audio-MinimizeResamplingOnMobile")),
       payload_types_in_transport_trial_enabled_(
-          IsEnabled(trials, "WebRTC-PayloadTypesInTransport")) {
+          trials.IsEnabled("WebRTC-PayloadTypesInTransport")) {
   RTC_LOG(LS_INFO) << "WebRtcVoiceEngine::WebRtcVoiceEngine";
   RTC_DCHECK(decoder_factory);
   RTC_DCHECK(encoder_factory);
@@ -2703,8 +2699,10 @@ bool WebRtcVoiceReceiveChannel::GetStats(VoiceMediaReceiveInfo* info,
     rinfo.total_interruption_duration_ms = stats.total_interruption_duration_ms;
     rinfo.last_sender_report_timestamp_ms =
         stats.last_sender_report_timestamp_ms;
-    rinfo.last_sender_report_remote_timestamp_ms =
-        stats.last_sender_report_remote_timestamp_ms;
+    rinfo.last_sender_report_utc_timestamp_ms =
+        stats.last_sender_report_utc_timestamp_ms;
+    rinfo.last_sender_report_remote_utc_timestamp_ms =
+        stats.last_sender_report_remote_utc_timestamp_ms;
     rinfo.sender_reports_packets_sent = stats.sender_reports_packets_sent;
     rinfo.sender_reports_bytes_sent = stats.sender_reports_bytes_sent;
     rinfo.sender_reports_reports_count = stats.sender_reports_reports_count;

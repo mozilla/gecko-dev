@@ -280,7 +280,7 @@ int AsyncTCPSocket::Send(const void* pv,
 
   rtc::SentPacket sent_packet(options.packet_id, rtc::TimeMillis(),
                               options.info_signaled_after_sent);
-  CopySocketInformationToPacketInfo(cb, *this, false, &sent_packet.info);
+  CopySocketInformationToPacketInfo(cb, *this, &sent_packet.info);
   SignalSentPacket(this, sent_packet);
 
   // We claim to have sent the whole thing, even if we only sent partial

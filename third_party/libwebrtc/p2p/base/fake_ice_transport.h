@@ -11,6 +11,7 @@
 #ifndef P2P_BASE_FAKE_ICE_TRANSPORT_H_
 #define P2P_BASE_FAKE_ICE_TRANSPORT_H_
 
+#include <cstddef>
 #include <map>
 #include <memory>
 #include <optional>
@@ -19,13 +20,29 @@
 
 #include "absl/algorithm/container.h"
 #include "absl/strings/string_view.h"
+#include "api/candidate.h"
 #include "api/ice_transport_interface.h"
+#include "api/sequence_checker.h"
 #include "api/task_queue/pending_task_safety_flag.h"
+#include "api/transport/enums.h"
 #include "api/units/time_delta.h"
+#include "p2p/base/candidate_pair_interface.h"
+#include "p2p/base/connection.h"
+#include "p2p/base/connection_info.h"
 #include "p2p/base/ice_transport_internal.h"
+#include "p2p/base/port.h"
+#include "p2p/base/transport_description.h"
+#include "rtc_base/async_packet_socket.h"
+#include "rtc_base/checks.h"
 #include "rtc_base/copy_on_write_buffer.h"
+#include "rtc_base/logging.h"
 #include "rtc_base/network/received_packet.h"
+#include "rtc_base/network/sent_packet.h"
+#include "rtc_base/network_route.h"
+#include "rtc_base/socket.h"
 #include "rtc_base/task_queue_for_test.h"
+#include "rtc_base/thread.h"
+#include "rtc_base/thread_annotations.h"
 #include "rtc_base/time_utils.h"
 
 namespace cricket {

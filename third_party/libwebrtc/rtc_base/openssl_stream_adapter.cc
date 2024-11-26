@@ -63,12 +63,6 @@
 #error "webrtc requires at least OpenSSL version 1.1.0, to support DTLS-SRTP"
 #endif
 
-// Defines for the TLS Cipher Suite Map.
-#define DEFINE_CIPHER_ENTRY_SSL3(name) \
-  { SSL3_CK_##name, "TLS_" #name }
-#define DEFINE_CIPHER_ENTRY_TLS1(name) \
-  { TLS1_CK_##name, "TLS_" #name }
-
 namespace rtc {
 namespace {
 using ::webrtc::SafeTask;
@@ -92,68 +86,6 @@ constexpr SrtpCipherMapEntry kSrtpCipherMap[] = {
     {"SRTP_AES128_CM_SHA1_32", kSrtpAes128CmSha1_32},
     {"SRTP_AEAD_AES_128_GCM", kSrtpAeadAes128Gcm},
     {"SRTP_AEAD_AES_256_GCM", kSrtpAeadAes256Gcm}};
-
-#ifndef OPENSSL_IS_BORINGSSL
-// The "SSL_CIPHER_standard_name" function is only available in OpenSSL when
-// compiled with tracing, so we need to define the mapping manually here.
-constexpr SslCipherMapEntry kSslCipherMap[] = {
-    // TLS v1.0 ciphersuites from RFC2246.
-    DEFINE_CIPHER_ENTRY_SSL3(RSA_RC4_128_SHA),
-    {SSL3_CK_RSA_DES_192_CBC3_SHA, "TLS_RSA_WITH_3DES_EDE_CBC_SHA"},
-
-    // AES ciphersuites from RFC3268.
-    {TLS1_CK_RSA_WITH_AES_128_SHA, "TLS_RSA_WITH_AES_128_CBC_SHA"},
-    {TLS1_CK_DHE_RSA_WITH_AES_128_SHA, "TLS_DHE_RSA_WITH_AES_128_CBC_SHA"},
-    {TLS1_CK_RSA_WITH_AES_256_SHA, "TLS_RSA_WITH_AES_256_CBC_SHA"},
-    {TLS1_CK_DHE_RSA_WITH_AES_256_SHA, "TLS_DHE_RSA_WITH_AES_256_CBC_SHA"},
-
-    // ECC ciphersuites from RFC4492.
-    DEFINE_CIPHER_ENTRY_TLS1(ECDHE_ECDSA_WITH_RC4_128_SHA),
-    {TLS1_CK_ECDHE_ECDSA_WITH_DES_192_CBC3_SHA,
-     "TLS_ECDHE_ECDSA_WITH_3DES_EDE_CBC_SHA"},
-    DEFINE_CIPHER_ENTRY_TLS1(ECDHE_ECDSA_WITH_AES_128_CBC_SHA),
-    DEFINE_CIPHER_ENTRY_TLS1(ECDHE_ECDSA_WITH_AES_256_CBC_SHA),
-
-    DEFINE_CIPHER_ENTRY_TLS1(ECDHE_RSA_WITH_RC4_128_SHA),
-    {TLS1_CK_ECDHE_RSA_WITH_DES_192_CBC3_SHA,
-     "TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA"},
-    DEFINE_CIPHER_ENTRY_TLS1(ECDHE_RSA_WITH_AES_128_CBC_SHA),
-    DEFINE_CIPHER_ENTRY_TLS1(ECDHE_RSA_WITH_AES_256_CBC_SHA),
-
-    // TLS v1.2 ciphersuites.
-    {TLS1_CK_RSA_WITH_AES_128_SHA256, "TLS_RSA_WITH_AES_128_CBC_SHA256"},
-    {TLS1_CK_RSA_WITH_AES_256_SHA256, "TLS_RSA_WITH_AES_256_CBC_SHA256"},
-    {TLS1_CK_DHE_RSA_WITH_AES_128_SHA256,
-     "TLS_DHE_RSA_WITH_AES_128_CBC_SHA256"},
-    {TLS1_CK_DHE_RSA_WITH_AES_256_SHA256,
-     "TLS_DHE_RSA_WITH_AES_256_CBC_SHA256"},
-
-    // TLS v1.2 GCM ciphersuites from RFC5288.
-    DEFINE_CIPHER_ENTRY_TLS1(RSA_WITH_AES_128_GCM_SHA256),
-    DEFINE_CIPHER_ENTRY_TLS1(RSA_WITH_AES_256_GCM_SHA384),
-    DEFINE_CIPHER_ENTRY_TLS1(DHE_RSA_WITH_AES_128_GCM_SHA256),
-    DEFINE_CIPHER_ENTRY_TLS1(DHE_RSA_WITH_AES_256_GCM_SHA384),
-    DEFINE_CIPHER_ENTRY_TLS1(DH_RSA_WITH_AES_128_GCM_SHA256),
-    DEFINE_CIPHER_ENTRY_TLS1(DH_RSA_WITH_AES_256_GCM_SHA384),
-
-    // ECDH HMAC based ciphersuites from RFC5289.
-    {TLS1_CK_ECDHE_ECDSA_WITH_AES_128_SHA256,
-     "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256"},
-    {TLS1_CK_ECDHE_ECDSA_WITH_AES_256_SHA384,
-     "TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA384"},
-    {TLS1_CK_ECDHE_RSA_WITH_AES_128_SHA256,
-     "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256"},
-    {TLS1_CK_ECDHE_RSA_WITH_AES_256_SHA384,
-     "TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384"},
-
-    // ECDH GCM based ciphersuites from RFC5289.
-    DEFINE_CIPHER_ENTRY_TLS1(ECDHE_ECDSA_WITH_AES_128_GCM_SHA256),
-    DEFINE_CIPHER_ENTRY_TLS1(ECDHE_ECDSA_WITH_AES_256_GCM_SHA384),
-    DEFINE_CIPHER_ENTRY_TLS1(ECDHE_RSA_WITH_AES_128_GCM_SHA256),
-    DEFINE_CIPHER_ENTRY_TLS1(ECDHE_RSA_WITH_AES_256_GCM_SHA384),
-
-    {0, nullptr}};
-#endif  // #ifndef OPENSSL_IS_BORINGSSL
 
 #ifdef OPENSSL_IS_BORINGSSL
 // Enabled by EnableTimeCallbackForTesting. Should never be set in production
@@ -306,7 +238,9 @@ OpenSSLStreamAdapter::OpenSSLStreamAdapter(
           !webrtc::field_trial::IsDisabled("WebRTC-PermuteTlsClientHello")),
 #endif
       ssl_mode_(SSL_MODE_DTLS),
-      ssl_max_version_(SSL_PROTOCOL_TLS_12) {
+      ssl_max_version_(SSL_PROTOCOL_DTLS_12),
+      disable_handshake_ticket_(!webrtc::field_trial::IsDisabled(
+          "WebRTC-DisableTlsSessionTicketKillswitch")) {
   stream_->SetEventCallback(
       [this](int events, int err) { OnEvent(events, err); });
 }
@@ -386,26 +320,17 @@ bool OpenSSLStreamAdapter::SetPeerCertificateDigest(
   return true;
 }
 
-std::string OpenSSLStreamAdapter::SslCipherSuiteToName(int cipher_suite) {
-#ifdef OPENSSL_IS_BORINGSSL
-  const SSL_CIPHER* ssl_cipher = SSL_get_cipher_by_value(cipher_suite);
-  if (!ssl_cipher) {
-    return std::string();
+std::optional<absl::string_view> OpenSSLStreamAdapter::GetTlsCipherSuiteName()
+    const {
+  if (state_ != SSL_CONNECTED) {
+    return std::nullopt;
   }
-  return SSL_CIPHER_standard_name(ssl_cipher);
-#else
-  const int openssl_cipher_id = 0x03000000L | cipher_suite;
-  for (const SslCipherMapEntry* entry = kSslCipherMap; entry->rfc_name;
-       ++entry) {
-    if (openssl_cipher_id == static_cast<int>(entry->openssl_id)) {
-      return entry->rfc_name;
-    }
-  }
-  return std::string();
-#endif
+
+  const SSL_CIPHER* current_cipher = SSL_get_current_cipher(ssl_);
+  return SSL_CIPHER_standard_name(current_cipher);
 }
 
-bool OpenSSLStreamAdapter::GetSslCipherSuite(int* cipher_suite) {
+bool OpenSSLStreamAdapter::GetSslCipherSuite(int* cipher_suite) const {
   if (state_ != SSL_CONNECTED) {
     return false;
   }
@@ -512,7 +437,7 @@ bool OpenSSLStreamAdapter::SetDtlsSrtpCryptoSuites(
   return true;
 }
 
-bool OpenSSLStreamAdapter::GetDtlsSrtpCryptoSuite(int* crypto_suite) {
+bool OpenSSLStreamAdapter::GetDtlsSrtpCryptoSuite(int* crypto_suite) const {
   RTC_DCHECK(state_ == SSL_CONNECTED);
   if (state_ != SSL_CONNECTED) {
     return false;
@@ -1080,6 +1005,9 @@ SSL_CTX* OpenSSLStreamAdapter::SetupSSLContext() {
   SSL_CTX_set_permute_extensions(ctx, permute_extension_);
 #endif
 
+  if (disable_handshake_ticket_) {
+    SSL_CTX_set_options(ctx, SSL_OP_NO_TICKET);
+  }
   return ctx;
 }
 
@@ -1203,8 +1131,10 @@ static const cipher_list OK_RSA_ciphers[] = {
 #ifdef TLS1_CK_ECDHE_RSA_WITH_AES_256_GCM_SHA256
     CDEF(ECDHE_RSA_WITH_AES_256_GCM_SHA256),
 #endif
-#ifdef TLS1_CK_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256
+#ifdef TLS1_CK_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256  // BoringSSL.
     CDEF(ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256),
+#elif defined(TLS1_RFC_ECDHE_ECDSA_WITH_CHACHA20_POLY1305)  // OpenSSL.
+    CDEF(ECDHE_RSA_WITH_CHACHA20_POLY1305),
 #endif
 };
 
@@ -1215,8 +1145,10 @@ static const cipher_list OK_ECDSA_ciphers[] = {
 #ifdef TLS1_CK_ECDHE_ECDSA_WITH_AES_256_GCM_SHA256
     CDEF(ECDHE_ECDSA_WITH_AES_256_GCM_SHA256),
 #endif
-#ifdef TLS1_CK_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256
+#ifdef TLS1_CK_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256  // BoringSSL.
     CDEF(ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256),
+#elif defined(TLS1_CK_ECDHE_ECDSA_WITH_CHACHA20_POLY1305)  // OpenSSL.
+    CDEF(ECDHE_ECDSA_WITH_CHACHA20_POLY1305),
 #endif
 };
 #undef CDEF

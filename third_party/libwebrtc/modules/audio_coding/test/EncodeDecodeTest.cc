@@ -20,6 +20,7 @@
 #include "api/audio_codecs/builtin_audio_encoder_factory.h"
 #include "api/environment/environment.h"
 #include "api/environment/environment_factory.h"
+#include "api/neteq/default_neteq_factory.h"
 #include "modules/audio_coding/include/audio_coding_module.h"
 #include "rtc_base/strings/string_builder.h"
 #include "test/gtest.h"
@@ -105,32 +106,32 @@ Receiver::Receiver()
     : _playoutLengthSmpls(kWebRtc10MsPcmAudio),
       _payloadSizeBytes(MAX_INCOMING_PAYLOAD) {}
 
-void Receiver::Setup(acm2::AcmReceiver* acm_receiver,
+void Receiver::Setup(NetEq* neteq,
                      RTPStream* rtpStream,
                      absl::string_view out_file_name,
                      size_t channels,
                      int file_num) {
   if (channels == 1) {
-    acm_receiver->SetCodecs({{107, {"L16", 8000, 1}},
-                             {108, {"L16", 16000, 1}},
-                             {109, {"L16", 32000, 1}},
-                             {0, {"PCMU", 8000, 1}},
-                             {8, {"PCMA", 8000, 1}},
-                             {102, {"ILBC", 8000, 1}},
-                             {9, {"G722", 8000, 1}},
-                             {120, {"OPUS", 48000, 2}},
-                             {13, {"CN", 8000, 1}},
-                             {98, {"CN", 16000, 1}},
-                             {99, {"CN", 32000, 1}}});
+    neteq->SetCodecs({{107, {"L16", 8000, 1}},
+                      {108, {"L16", 16000, 1}},
+                      {109, {"L16", 32000, 1}},
+                      {0, {"PCMU", 8000, 1}},
+                      {8, {"PCMA", 8000, 1}},
+                      {102, {"ILBC", 8000, 1}},
+                      {9, {"G722", 8000, 1}},
+                      {120, {"OPUS", 48000, 2}},
+                      {13, {"CN", 8000, 1}},
+                      {98, {"CN", 16000, 1}},
+                      {99, {"CN", 32000, 1}}});
   } else {
     ASSERT_EQ(channels, 2u);
-    acm_receiver->SetCodecs({{111, {"L16", 8000, 2}},
-                             {112, {"L16", 16000, 2}},
-                             {113, {"L16", 32000, 2}},
-                             {110, {"PCMU", 8000, 2}},
-                             {118, {"PCMA", 8000, 2}},
-                             {119, {"G722", 8000, 2}},
-                             {120, {"OPUS", 48000, 2, {{"stereo", "1"}}}}});
+    neteq->SetCodecs({{111, {"L16", 8000, 2}},
+                      {112, {"L16", 16000, 2}},
+                      {113, {"L16", 32000, 2}},
+                      {110, {"PCMU", 8000, 2}},
+                      {118, {"PCMA", 8000, 2}},
+                      {119, {"G722", 8000, 2}},
+                      {120, {"OPUS", 48000, 2, {{"stereo", "1"}}}}});
   }
 
   int playSampFreq;
@@ -147,7 +148,7 @@ void Receiver::Setup(acm2::AcmReceiver* acm_receiver,
   _realPayloadSizeBytes = 0;
   _playoutBuffer = new int16_t[kWebRtc10MsPcmAudio];
   _frequency = playSampFreq;
-  _acm_receiver = acm_receiver;
+  _neteq = neteq;
   _firstTime = true;
 }
 
@@ -172,11 +173,11 @@ bool Receiver::IncomingPacket() {
       }
     }
 
-    EXPECT_EQ(0, _acm_receiver->InsertPacket(
-                     _rtpHeader,
-                     rtc::ArrayView<const uint8_t>(_incomingPayload,
-                                                   _realPayloadSizeBytes),
-                     /*receive_time=*/Timestamp::Millis(_nextTime)));
+    EXPECT_GE(
+        0, _neteq->InsertPacket(_rtpHeader,
+                                rtc::ArrayView<const uint8_t>(
+                                    _incomingPayload, _realPayloadSizeBytes),
+                                /*receive_time=*/Timestamp::Millis(_nextTime)));
     _realPayloadSizeBytes = _rtpStream->Read(&_rtpHeader, _incomingPayload,
                                              _payloadSizeBytes, &_nextTime);
     if (_realPayloadSizeBytes == 0 && _rtpStream->EndOfFile()) {
@@ -189,18 +190,19 @@ bool Receiver::IncomingPacket() {
 bool Receiver::PlayoutData() {
   AudioFrame audioFrame;
   bool muted;
-  int32_t ok = _acm_receiver->GetAudio(_frequency, &audioFrame, &muted);
+  int ok = _neteq->GetAudio(&audioFrame, &muted);
   if (muted) {
     ADD_FAILURE();
     return false;
   }
-  EXPECT_EQ(0, ok);
+  EXPECT_EQ(NetEq::kOK, ok);
   if (ok < 0) {
     return false;
   }
   if (_playoutLengthSmpls == 0) {
     return false;
   }
+  EXPECT_TRUE(_resampler_helper.MaybeResample(_frequency, &audioFrame));
   _pcmFile.Write10MsData(audioFrame.data(), audioFrame.samples_per_channel_ *
                                                 audioFrame.num_channels_);
   return true;
@@ -264,12 +266,10 @@ void EncodeDecodeTest::Perform() {
 
     rtpFile.Open(fileName.c_str(), "rb");
     rtpFile.ReadHeader();
-    std::unique_ptr<acm2::AcmReceiver> acm_receiver =
-        std::make_unique<acm2::AcmReceiver>(
-            env, acm2::AcmReceiver::Config(CreateBuiltinAudioDecoderFactory()));
+    std::unique_ptr<NetEq> neteq = DefaultNetEqFactory().Create(
+        env, NetEq::Config(), CreateBuiltinAudioDecoderFactory());
     Receiver receiver;
-    receiver.Setup(acm_receiver.get(), &rtpFile, "encodeDecode_out", 1,
-                   file_num);
+    receiver.Setup(neteq.get(), &rtpFile, "encodeDecode_out", 1, file_num);
     receiver.Run();
     receiver.Teardown();
     rtpFile.Close();

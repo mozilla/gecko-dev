@@ -499,9 +499,9 @@ TEST(SplTest, FilterTest) {
                             kFilterOrder + 1, 1);
   EXPECT_EQ(0, data_out[kFilterOrder]);
 
-  EXPECT_EQ(kVectorSize, WebRtcSpl_FilterAR(A5, 5, data_in, kVectorSize, bState,
-                                            kVectorSize, bStateLow, kVectorSize,
-                                            data_out, bTmp16Low, kVectorSize));
+  EXPECT_EQ(kVectorSize,
+            WebRtcSpl_FilterAR(A5, 5, data_in, kVectorSize, bState, kVectorSize,
+                               bStateLow, data_out, bTmp16Low));
 }
 
 TEST(SplTest, RandTest) {

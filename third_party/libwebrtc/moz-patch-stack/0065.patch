@@ -114,7 +114,7 @@ index e607a182c2..5f2c5d0f2a 100644
  
  }  // namespace webrtc
 diff --git a/call/video_receive_stream.h b/call/video_receive_stream.h
-index 472199ef57..cda4dac800 100644
+index ea408827bb..6e9a0b1937 100644
 --- a/call/video_receive_stream.h
 +++ b/call/video_receive_stream.h
 @@ -116,6 +116,8 @@ class VideoReceiveStreamInterface : public MediaReceiveStreamInterface {
@@ -187,7 +187,7 @@ index 495f64bdb3..10a9caacdd 100644
  
    void ForceSpsPpsIdrIsH264Keyframe();
 diff --git a/video/receive_statistics_proxy.cc b/video/receive_statistics_proxy.cc
-index e74968bdfd..729f7b7efb 100644
+index 671416a007..3b3bc5bbd2 100644
 --- a/video/receive_statistics_proxy.cc
 +++ b/video/receive_statistics_proxy.cc
 @@ -799,6 +799,11 @@ void ReceiveStatisticsProxy::OnDroppedFrames(uint32_t frames_dropped) {
@@ -215,10 +215,10 @@ index 7af28fd982..8d5e208d63 100644
                                     int current_delay_ms,
                                     int target_delay_ms,
 diff --git a/video/rtp_video_stream_receiver2.cc b/video/rtp_video_stream_receiver2.cc
-index 6fe5b247bd..a1d863b3ec 100644
+index efde076054..0e251ccb47 100644
 --- a/video/rtp_video_stream_receiver2.cc
 +++ b/video/rtp_video_stream_receiver2.cc
-@@ -239,6 +239,7 @@ RtpVideoStreamReceiver2::RtpVideoStreamReceiver2(
+@@ -244,6 +244,7 @@ RtpVideoStreamReceiver2::RtpVideoStreamReceiver2(
      RtcpPacketTypeCounterObserver* rtcp_packet_type_counter_observer,
      RtcpCnameCallback* rtcp_cname_callback,
      NackPeriodicProcessor* nack_periodic_processor,
@@ -226,7 +226,7 @@ index 6fe5b247bd..a1d863b3ec 100644
      OnCompleteFrameCallback* complete_frame_callback,
      scoped_refptr<FrameDecryptorInterface> frame_decryptor,
      scoped_refptr<FrameTransformerInterface> frame_transformer)
-@@ -282,6 +283,7 @@ RtpVideoStreamReceiver2::RtpVideoStreamReceiver2(
+@@ -287,6 +288,7 @@ RtpVideoStreamReceiver2::RtpVideoStreamReceiver2(
                                              config_.rtp.nack,
                                              &rtcp_feedback_buffer_,
                                              &rtcp_feedback_buffer_)),
@@ -234,7 +234,7 @@ index 6fe5b247bd..a1d863b3ec 100644
        packet_buffer_(kPacketBufferStartSize,
                       PacketBufferMaxSize(env_.field_trials())),
        reference_finder_(std::make_unique<RtpFrameReferenceFinder>()),
-@@ -1234,7 +1236,8 @@ void RtpVideoStreamReceiver2::FrameDecoded(int64_t picture_id) {
+@@ -1267,7 +1269,8 @@ void RtpVideoStreamReceiver2::FrameDecoded(int64_t picture_id) {
      int64_t unwrapped_rtp_seq_num = rtp_seq_num_unwrapper_.Unwrap(seq_num);
      packet_infos_.erase(packet_infos_.begin(),
                          packet_infos_.upper_bound(unwrapped_rtp_seq_num));
@@ -245,10 +245,10 @@ index 6fe5b247bd..a1d863b3ec 100644
    }
  }
 diff --git a/video/rtp_video_stream_receiver2.h b/video/rtp_video_stream_receiver2.h
-index 11b9548b76..d993fa104f 100644
+index e5266ed337..85606fd405 100644
 --- a/video/rtp_video_stream_receiver2.h
 +++ b/video/rtp_video_stream_receiver2.h
-@@ -51,6 +51,7 @@
+@@ -53,6 +53,7 @@
  #include "rtc_base/thread_annotations.h"
  #include "video/buffered_frame_decryptor.h"
  #include "video/unique_timestamp_counter.h"
@@ -256,7 +256,7 @@ index 11b9548b76..d993fa104f 100644
  
  namespace webrtc {
  
-@@ -93,6 +94,7 @@ class RtpVideoStreamReceiver2 : public LossNotificationSender,
+@@ -95,6 +96,7 @@ class RtpVideoStreamReceiver2 : public LossNotificationSender,
        RtcpPacketTypeCounterObserver* rtcp_packet_type_counter_observer,
        RtcpCnameCallback* rtcp_cname_callback,
        NackPeriodicProcessor* nack_periodic_processor,
@@ -264,7 +264,7 @@ index 11b9548b76..d993fa104f 100644
        // The KeyFrameRequestSender is optional; if not provided, key frame
        // requests are sent via the internal RtpRtcp module.
        OnCompleteFrameCallback* complete_frame_callback,
-@@ -367,6 +369,7 @@ class RtpVideoStreamReceiver2 : public LossNotificationSender,
+@@ -373,6 +375,7 @@ class RtpVideoStreamReceiver2 : public LossNotificationSender,
    std::unique_ptr<LossNotificationController> loss_notification_controller_
        RTC_GUARDED_BY(packet_sequence_checker_);
  
@@ -273,10 +273,10 @@ index 11b9548b76..d993fa104f 100644
        RTC_GUARDED_BY(packet_sequence_checker_);
    // h26x_packet_buffer_ is nullptr if codec list doens't contain H.264 or
 diff --git a/video/video_receive_stream2.cc b/video/video_receive_stream2.cc
-index ed9edcdd08..7ff917e05c 100644
+index 1a4401ca2b..d376829365 100644
 --- a/video/video_receive_stream2.cc
 +++ b/video/video_receive_stream2.cc
-@@ -209,6 +209,7 @@ VideoReceiveStream2::VideoReceiveStream2(
+@@ -212,6 +212,7 @@ VideoReceiveStream2::VideoReceiveStream2(
                                   &stats_proxy_,
                                   &stats_proxy_,
                                   nack_periodic_processor,
