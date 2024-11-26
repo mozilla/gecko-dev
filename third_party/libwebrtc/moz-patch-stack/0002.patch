@@ -1,421 +1,330 @@
 From: Michael Froman <mjfroman@mac.com>
-Date: Tue, 19 Nov 2024 16:14:39 -0600
-Subject: (tmp-cherry-pick) Revert "Spanify SRTP key export" (32590ef877)
+Date: Tue, 19 Nov 2024 16:13:40 -0600
+Subject: (tmp-cherry-pick) Revert "Allow sending to separate payload types for
+ each simulcast index." (f95278f0d2)
 
-This reverts commit 65ae3245f9380e46b1d755f3f452ba63ab6cdf8d.
+This reverts commit bcb19c00ba8ab1788ba3c08f28ee1b23e0cc77b9.
 
-Reason for revert: breaks downstream compilation
+Reason for revert: speculative revert
 
 Original change's description:
-> Spanify SRTP key export
+> Allow sending to separate payload types for each simulcast index.
 >
-> and simplify the interface used as this is only used for exporting
-> SRTP keys and passing arcane OpenSSL arguments around does not make
-> much sense.
+> This change is for mixed-codec simulcast.
 >
-> BUG=webrtc:357776213
+> By obtaining the payload type via RtpConfig::GetStreamConfig(),
+> the correct payload type can be retrieved regardless of whether
+> RtpConfig::stream_configs is initialized or not.
 >
-> Change-Id: I9e5a94fe368b77975e48b6dd5ab6a2d2575d6382
-> Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/364521
-> Commit-Queue: Philipp Hancke <phancke@meta.com>
-> Reviewed-by: Harald Alvestrand <hta@webrtc.org>
+> Bug: webrtc:362277533
+> Change-Id: I6b2a1ae66356b20a832565ce6729c3ce9e73a161
+> Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/364760
+> Reviewed-by: Danil Chapovalov <danilchap@webrtc.org>
+> Commit-Queue: Florent Castelli <orphis@webrtc.org>
 > Reviewed-by: Florent Castelli <orphis@webrtc.org>
-> Cr-Commit-Position: refs/heads/main@{#43198}
+> Cr-Commit-Position: refs/heads/main@{#43197}
 
-Bug: webrtc:357776213
-Change-Id: I03ffcda3d6821718f355b243ce78a9c54b4036f3
+Bug: webrtc:362277533
+Change-Id: I50ac1fa0d9963bf9796f8604542aef5cec653493
 No-Presubmit: true
 No-Tree-Checks: true
 No-Try: true
-Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/365062
-Bot-Commit: rubber-stamper@appspot.gserviceaccount.com <rubber-stamper@appspot.gserviceaccount.com>
+Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/365161
 Commit-Queue: Jeremy Leconte <jleconte@webrtc.org>
-Owners-Override: Jeremy Leconte <jleconte@webrtc.org>
-Cr-Commit-Position: refs/heads/main@{#43202}
+Reviewed-by: Danil Chapovalov <danilchap@webrtc.org>
+Bot-Commit: rubber-stamper@appspot.gserviceaccount.com <rubber-stamper@appspot.gserviceaccount.com>
+Cr-Commit-Position: refs/heads/main@{#43208}
 ---
- p2p/base/dtls_transport.cc              | 18 +++-------
- p2p/base/dtls_transport.h               | 17 ++++-----
- p2p/base/dtls_transport_internal.h      | 16 ++++-----
- p2p/base/dtls_transport_unittest.cc     | 27 --------------
- p2p/base/fake_dtls_transport.h          |  8 -----
- pc/dtls_srtp_transport.cc               | 11 ++++--
- rtc_base/openssl_stream_adapter.cc      | 28 ++++++---------
- rtc_base/openssl_stream_adapter.h       |  8 +++--
- rtc_base/ssl_stream_adapter.cc          |  9 +++++
- rtc_base/ssl_stream_adapter.h           | 19 ++++++++--
- rtc_base/ssl_stream_adapter_unittest.cc | 48 +++++++++++++++++--------
- 11 files changed, 101 insertions(+), 108 deletions(-)
+ call/rtp_config.cc                |  27 -------
+ call/rtp_config.h                 |   3 -
+ call/rtp_video_sender.cc          |  22 +++---
+ call/rtp_video_sender_unittest.cc | 113 +-----------------------------
+ 4 files changed, 10 insertions(+), 155 deletions(-)
 
-diff --git a/p2p/base/dtls_transport.cc b/p2p/base/dtls_transport.cc
-index 60d41a8441..5ed2a11438 100644
---- a/p2p/base/dtls_transport.cc
-+++ b/p2p/base/dtls_transport.cc
-@@ -354,26 +354,16 @@ std::unique_ptr<rtc::SSLCertChain> DtlsTransport::GetRemoteSSLCertChain()
-   return dtls_->GetPeerSSLCertChain();
+diff --git a/call/rtp_config.cc b/call/rtp_config.cc
+index 16911297ef..02cc0f40b1 100644
+--- a/call/rtp_config.cc
++++ b/call/rtp_config.cc
+@@ -239,31 +239,4 @@ std::optional<std::string> RtpConfig::GetRidForSsrc(uint32_t ssrc) const {
+   return std::nullopt;
  }
  
--bool DtlsTransport::ExportSrtpKeyingMaterial(
--    rtc::ZeroOnFreeBuffer<unsigned char>& keying_material) {
--  return dtls_ ? dtls_->ExportSrtpKeyingMaterial(keying_material) : false;
--}
--
- bool DtlsTransport::ExportKeyingMaterial(absl::string_view label,
-                                          const uint8_t* context,
-                                          size_t context_len,
-                                          bool use_context,
-                                          uint8_t* result,
-                                          size_t result_len) {
--  RTC_DCHECK(!context);
--  RTC_DCHECK_EQ(context_len, 0u);
--  RTC_DCHECK_EQ(use_context, false);
--  rtc::ZeroOnFreeBuffer<unsigned char> temporary_result(result_len);
--  if (ExportSrtpKeyingMaterial(temporary_result)) {
--    std::memcpy(result, temporary_result.data(), result_len);
--    return true;
+-RtpStreamConfig RtpConfig::GetStreamConfig(size_t index) const {
+-  // GetStreamConfig function usually returns stream_configs[index], but if
+-  // stream_configs is not initialized (i.e., index >= stream_configs.size()),
+-  // it creates and returns an RtpStreamConfig using fields such as ssrcs, rids,
+-  // payload_name, and payload_type from RtpConfig.
+-  RTC_DCHECK_LT(index, ssrcs.size());
+-  if (index < stream_configs.size()) {
+-    return stream_configs[index];
 -  }
--  return false;
-+  return (dtls_.get())
-+             ? dtls_->ExportKeyingMaterial(label, context, context_len,
-+                                           use_context, result, result_len)
-+             : false;
- }
- 
- bool DtlsTransport::SetupDtls() {
-diff --git a/p2p/base/dtls_transport.h b/p2p/base/dtls_transport.h
-index a317275c9d..0a988dfe38 100644
---- a/p2p/base/dtls_transport.h
-+++ b/p2p/base/dtls_transport.h
-@@ -179,16 +179,13 @@ class DtlsTransport : public DtlsTransportInternal {
-   // Once DTLS has established (i.e., this ice_transport is writable), this
-   // method extracts the keys negotiated during the DTLS handshake, for use in
-   // external encryption. DTLS-SRTP uses this to extract the needed SRTP keys.
--  bool ExportSrtpKeyingMaterial(
--      rtc::ZeroOnFreeBuffer<unsigned char>& keying_material) override;
+-  RtpStreamConfig stream_config;
+-  stream_config.ssrc = ssrcs[index];
+-  if (index < rids.size()) {
+-    stream_config.rid = rids[index];
+-  }
+-  stream_config.payload_name = payload_name;
+-  stream_config.payload_type = payload_type;
+-  stream_config.raw_payload = raw_payload;
+-  if (!rtx.ssrcs.empty()) {
+-    RTC_DCHECK_EQ(ssrcs.size(), rtx.ssrcs.size());
+-    auto& stream_config_rtx = stream_config.rtx.emplace();
+-    stream_config_rtx.ssrc = rtx.ssrcs[index];
+-    stream_config_rtx.payload_type = rtx.payload_type;
+-  }
 -
--  [[deprecated("Use ExportSrtpKeyingMaterial instead")]] bool
--  ExportKeyingMaterial(absl::string_view label,
--                       const uint8_t* context,
--                       size_t context_len,
--                       bool use_context,
--                       uint8_t* result,
--                       size_t result_len) override;
-+  // See the SSLStreamAdapter documentation for info on the specific parameters.
-+  bool ExportKeyingMaterial(absl::string_view label,
-+                            const uint8_t* context,
-+                            size_t context_len,
-+                            bool use_context,
-+                            uint8_t* result,
-+                            size_t result_len) override;
- 
-   IceTransportInternal* ice_transport() override;
- 
-diff --git a/p2p/base/dtls_transport_internal.h b/p2p/base/dtls_transport_internal.h
-index 69881dd9c6..05501458f8 100644
---- a/p2p/base/dtls_transport_internal.h
-+++ b/p2p/base/dtls_transport_internal.h
-@@ -89,16 +89,12 @@ class DtlsTransportInternal : public rtc::PacketTransportInternal {
-   virtual std::unique_ptr<rtc::SSLCertChain> GetRemoteSSLCertChain() const = 0;
- 
-   // Allows key material to be extracted for external encryption.
--  virtual bool ExportSrtpKeyingMaterial(
--      rtc::ZeroOnFreeBuffer<unsigned char>& keying_material) = 0;
--
--  [[deprecated("Use ExportSrtpKeyingMaterial instead")]] virtual bool
--  ExportKeyingMaterial(absl::string_view label,
--                       const uint8_t* context,
--                       size_t context_len,
--                       bool use_context,
--                       uint8_t* result,
--                       size_t result_len) = 0;
-+  virtual bool ExportKeyingMaterial(absl::string_view label,
-+                                    const uint8_t* context,
-+                                    size_t context_len,
-+                                    bool use_context,
-+                                    uint8_t* result,
-+                                    size_t result_len) = 0;
- 
-   // Set DTLS remote fingerprint. Must be after local identity set.
-   ABSL_DEPRECATED("Use SetRemoteParameters instead.")
-diff --git a/p2p/base/dtls_transport_unittest.cc b/p2p/base/dtls_transport_unittest.cc
-index c57942113a..767fc4d0c6 100644
---- a/p2p/base/dtls_transport_unittest.cc
-+++ b/p2p/base/dtls_transport_unittest.cc
-@@ -458,33 +458,6 @@ TEST_F(DtlsTransportTest, TestTransferDtlsCombineRecords) {
-   TestTransfer(500, 100, /*srtp=*/false);
- }
- 
--#pragma clang diagnostic push
--#pragma clang diagnostic ignored "-Wdeprecated-declarations"
--TEST_F(DtlsTransportTest, KeyingMaterialExporter) {
--  PrepareDtls(rtc::KT_DEFAULT);
--  ASSERT_TRUE(Connect());
--
--  int crypto_suite;
--  EXPECT_TRUE(client1_.dtls_transport()->GetSrtpCryptoSuite(&crypto_suite));
--  int key_len;
--  int salt_len;
--  EXPECT_TRUE(rtc::GetSrtpKeyAndSaltLengths(crypto_suite, &key_len, &salt_len));
--  rtc::ZeroOnFreeBuffer<unsigned char> client1_out(2 * (key_len + salt_len));
--  rtc::ZeroOnFreeBuffer<unsigned char> client2_out(2 * (key_len + salt_len));
--  EXPECT_TRUE(client1_.dtls_transport()->ExportSrtpKeyingMaterial(client1_out));
--  EXPECT_TRUE(client2_.dtls_transport()->ExportSrtpKeyingMaterial(client2_out));
--  EXPECT_EQ(client1_out, client2_out);
--
--  // Legacy variant using the deprecated API.
--  rtc::ZeroOnFreeBuffer<unsigned char> client1_out_legacy(2 *
--                                                          (key_len + salt_len));
--  EXPECT_TRUE(client1_.dtls_transport()->ExportKeyingMaterial(
--      "EXTRACTOR-dtls_srtp", nullptr, 0, false, client1_out_legacy.data(),
--      client1_out_legacy.size()));
--  EXPECT_EQ(client1_out, client1_out_legacy);
+-  return stream_config;
 -}
--#pragma clang diagnostic pop
 -
- class DtlsTransportVersionTest
-     : public DtlsTransportTestBase,
-       public ::testing::TestWithParam<
-diff --git a/p2p/base/fake_dtls_transport.h b/p2p/base/fake_dtls_transport.h
-index f885165d9d..042d93b171 100644
---- a/p2p/base/fake_dtls_transport.h
-+++ b/p2p/base/fake_dtls_transport.h
-@@ -11,7 +11,6 @@
- #ifndef P2P_BASE_FAKE_DTLS_TRANSPORT_H_
- #define P2P_BASE_FAKE_DTLS_TRANSPORT_H_
+ }  // namespace webrtc
+diff --git a/call/rtp_config.h b/call/rtp_config.h
+index d77289febc..6b79e55f40 100644
+--- a/call/rtp_config.h
++++ b/call/rtp_config.h
+@@ -193,9 +193,6 @@ struct RtpConfig {
+   uint32_t GetMediaSsrcAssociatedWithRtxSsrc(uint32_t rtx_ssrc) const;
+   uint32_t GetMediaSsrcAssociatedWithFlexfecSsrc(uint32_t flexfec_ssrc) const;
+   std::optional<std::string> GetRidForSsrc(uint32_t ssrc) const;
+-
+-  // Returns send config for RTP stream by provided simulcast `index`.
+-  RtpStreamConfig GetStreamConfig(size_t index) const;
+ };
+ }  // namespace webrtc
+ #endif  // CALL_RTP_CONFIG_H_
+diff --git a/call/rtp_video_sender.cc b/call/rtp_video_sender.cc
+index 3e931de69f..be56eac626 100644
+--- a/call/rtp_video_sender.cc
++++ b/call/rtp_video_sender.cc
+@@ -470,14 +470,12 @@ RtpVideoSender::RtpVideoSender(
+   }
  
--#include <cstring>
- #include <memory>
- #include <string>
- #include <utility>
-@@ -228,13 +227,6 @@ class FakeDtlsTransport : public DtlsTransportInternal {
+   bool fec_enabled = false;
+-  for (size_t i = 0; i < rtp_streams_.size(); i++) {
+-    const RtpStreamSender& stream = rtp_streams_[i];
++  for (const RtpStreamSender& stream : rtp_streams_) {
+     // Simulcast has one module for each layer. Set the CNAME on all modules.
+     stream.rtp_rtcp->SetCNAME(rtp_config_.c_name.c_str());
+     stream.rtp_rtcp->SetMaxRtpPacketSize(rtp_config_.max_packet_size);
+-    stream.rtp_rtcp->RegisterSendPayloadFrequency(
+-        rtp_config_.GetStreamConfig(i).payload_type,
+-        kVideoPayloadTypeFrequency);
++    stream.rtp_rtcp->RegisterSendPayloadFrequency(rtp_config_.payload_type,
++                                                  kVideoPayloadTypeFrequency);
+     if (stream.fec_generator != nullptr) {
+       fec_enabled = true;
      }
-     return std::make_unique<rtc::SSLCertChain>(remote_cert_->Clone());
+@@ -578,7 +576,7 @@ EncodedImageCallback::Result RtpVideoSender::OnEncodedImage(
+   // knowledge of the offset to a single place.
+   if (!rtp_streams_[simulcast_index].rtp_rtcp->OnSendingRtpFrame(
+           encoded_image.RtpTimestamp(), encoded_image.capture_time_ms_,
+-          rtp_config_.GetStreamConfig(simulcast_index).payload_type,
++          rtp_config_.payload_type,
+           encoded_image._frameType == VideoFrameType::kVideoFrameKey)) {
+     // The payload router could be active but this module isn't sending.
+     return Result(Result::ERROR_SEND_FAILED);
+@@ -618,8 +616,7 @@ EncodedImageCallback::Result RtpVideoSender::OnEncodedImage(
+ 
+   bool send_result =
+       rtp_streams_[simulcast_index].sender_video->SendEncodedImage(
+-          rtp_config_.GetStreamConfig(simulcast_index).payload_type,
+-          codec_type_, rtp_timestamp, encoded_image,
++          rtp_config_.payload_type, codec_type_, rtp_timestamp, encoded_image,
+           params_[simulcast_index].GetRtpVideoHeader(
+               encoded_image, codec_specific_info, frame_id),
+           expected_retransmission_time);
+@@ -757,12 +754,9 @@ void RtpVideoSender::ConfigureSsrcs(
+ 
+   // Configure RTX payload types.
+   RTC_DCHECK_GE(rtp_config_.rtx.payload_type, 0);
+-  for (size_t i = 0; i < rtp_streams_.size(); ++i) {
+-    const RtpStreamSender& stream = rtp_streams_[i];
+-    RtpStreamConfig stream_config = rtp_config_.GetStreamConfig(i);
+-    RTC_DCHECK(stream_config.rtx);
+-    stream.rtp_rtcp->SetRtxSendPayloadType(stream_config.rtx->payload_type,
+-                                           stream_config.payload_type);
++  for (const RtpStreamSender& stream : rtp_streams_) {
++    stream.rtp_rtcp->SetRtxSendPayloadType(rtp_config_.rtx.payload_type,
++                                           rtp_config_.payload_type);
+     stream.rtp_rtcp->SetRtxSendStatus(kRtxRetransmitted |
+                                       kRtxRedundantPayloads);
    }
--  bool ExportSrtpKeyingMaterial(
--      rtc::ZeroOnFreeBuffer<unsigned char>& keying_material) override {
--    if (do_dtls_) {
--      std::memset(keying_material.data(), 0xff, keying_material.size());
+diff --git a/call/rtp_video_sender_unittest.cc b/call/rtp_video_sender_unittest.cc
+index 5e8ab8508e..32fa2cd530 100644
+--- a/call/rtp_video_sender_unittest.cc
++++ b/call/rtp_video_sender_unittest.cc
+@@ -82,7 +82,6 @@ using ::testing::SaveArg;
+ using ::testing::SizeIs;
+ 
+ const int8_t kPayloadType = 96;
+-const int8_t kPayloadType2 = 98;
+ const uint32_t kSsrc1 = 12345;
+ const uint32_t kSsrc2 = 23456;
+ const uint32_t kRtxSsrc1 = 34567;
+@@ -132,8 +131,7 @@ VideoSendStream::Config CreateVideoSendStreamConfig(
+     Transport* transport,
+     const std::vector<uint32_t>& ssrcs,
+     const std::vector<uint32_t>& rtx_ssrcs,
+-    int payload_type,
+-    rtc::ArrayView<const int> payload_types) {
++    int payload_type) {
+   VideoSendStream::Config config(transport);
+   config.rtp.ssrcs = ssrcs;
+   config.rtp.rtx.ssrcs = rtx_ssrcs;
+@@ -145,20 +143,6 @@ VideoSendStream::Config CreateVideoSendStreamConfig(
+   config.rtp.extensions.emplace_back(RtpDependencyDescriptorExtension::Uri(),
+                                      kDependencyDescriptorExtensionId);
+   config.rtp.extmap_allow_mixed = true;
+-
+-  if (!payload_types.empty()) {
+-    RTC_CHECK_EQ(payload_types.size(), ssrcs.size());
+-    for (size_t i = 0; i < ssrcs.size(); ++i) {
+-      auto& stream_config = config.rtp.stream_configs.emplace_back();
+-      stream_config.ssrc = ssrcs[i];
+-      stream_config.payload_type = payload_types[i];
+-      if (i < rtx_ssrcs.size()) {
+-        auto& rtx = stream_config.rtx.emplace();
+-        rtx.ssrc = rtx_ssrcs[i];
+-        rtx.payload_type = payload_types[i] + 1;
+-      }
 -    }
--    return do_dtls_;
 -  }
-   bool ExportKeyingMaterial(absl::string_view label,
-                             const uint8_t* context,
-                             size_t context_len,
-diff --git a/pc/dtls_srtp_transport.cc b/pc/dtls_srtp_transport.cc
-index 7d1cb99061..96a7a09785 100644
---- a/pc/dtls_srtp_transport.cc
-+++ b/pc/dtls_srtp_transport.cc
-@@ -20,6 +20,11 @@
- #include "rtc_base/logging.h"
- #include "rtc_base/ssl_stream_adapter.h"
+   return config;
+ }
  
-+namespace {
-+// Value specified in RFC 5764.
-+static const char kDtlsSrtpExporterLabel[] = "EXTRACTOR-dtls_srtp";
-+}  // namespace
-+
- namespace webrtc {
- 
- DtlsSrtpTransport::DtlsSrtpTransport(bool rtcp_mux_enabled,
-@@ -225,8 +230,10 @@ bool DtlsSrtpTransport::ExtractParams(
-   rtc::ZeroOnFreeBuffer<unsigned char> dtls_buffer(key_len * 2 + salt_len * 2);
- 
-   // RFC 5705 exporter using the RFC 5764 parameters
--  if (!dtls_transport->ExportSrtpKeyingMaterial(dtls_buffer)) {
--    RTC_LOG(LS_ERROR) << "DTLS-SRTP key export failed";
-+  if (!dtls_transport->ExportKeyingMaterial(kDtlsSrtpExporterLabel, NULL, 0,
-+                                            false, &dtls_buffer[0],
-+                                            dtls_buffer.size())) {
-+    RTC_LOG(LS_WARNING) << "DTLS-SRTP key export failed";
-     RTC_DCHECK_NOTREACHED();  // This should never happen
-     return false;
+@@ -171,7 +155,6 @@ class RtpVideoSenderTestFixture {
+       const std::map<uint32_t, RtpPayloadState>& suspended_payload_states,
+       FrameCountObserver* frame_count_observer,
+       rtc::scoped_refptr<FrameTransformerInterface> frame_transformer,
+-      const std::vector<int>& payload_types,
+       const FieldTrialsView* field_trials = nullptr)
+       : time_controller_(Timestamp::Millis(1000000)),
+         env_(CreateEnvironment(&field_trials_,
+@@ -181,8 +164,7 @@ class RtpVideoSenderTestFixture {
+         config_(CreateVideoSendStreamConfig(&transport_,
+                                             ssrcs,
+                                             rtx_ssrcs,
+-                                            payload_type,
+-                                            payload_types)),
++                                            payload_type)),
+         bitrate_config_(GetBitrateConfig()),
+         transport_controller_(
+             RtpTransportConfig{.env = env_, .bitrate_config = bitrate_config_}),
+@@ -204,22 +186,6 @@ class RtpVideoSenderTestFixture {
+         std::make_unique<FecControllerDefault>(env_), nullptr, CryptoOptions{},
+         frame_transformer);
    }
-diff --git a/rtc_base/openssl_stream_adapter.cc b/rtc_base/openssl_stream_adapter.cc
-index c60f4a7aa2..bbad2a31ac 100644
---- a/rtc_base/openssl_stream_adapter.cc
-+++ b/rtc_base/openssl_stream_adapter.cc
-@@ -63,11 +63,6 @@
- #error "webrtc requires at least OpenSSL version 1.1.0, to support DTLS-SRTP"
- #endif
+-  RtpVideoSenderTestFixture(
+-      const std::vector<uint32_t>& ssrcs,
+-      const std::vector<uint32_t>& rtx_ssrcs,
+-      int payload_type,
+-      const std::map<uint32_t, RtpPayloadState>& suspended_payload_states,
+-      FrameCountObserver* frame_count_observer,
+-      rtc::scoped_refptr<FrameTransformerInterface> frame_transformer,
+-      const FieldTrialsView* field_trials = nullptr)
+-      : RtpVideoSenderTestFixture(ssrcs,
+-                                  rtx_ssrcs,
+-                                  payload_type,
+-                                  suspended_payload_states,
+-                                  frame_count_observer,
+-                                  frame_transformer,
+-                                  /*payload_types=*/{},
+-                                  field_trials) {}
  
--namespace {
--// Value specified in RFC 5764.
--static const char kDtlsSrtpExporterLabel[] = "EXTRACTOR-dtls_srtp";
--}  // namespace
+   RtpVideoSenderTestFixture(
+       const std::vector<uint32_t>& ssrcs,
+@@ -234,7 +200,6 @@ class RtpVideoSenderTestFixture {
+                                   suspended_payload_states,
+                                   frame_count_observer,
+                                   /*frame_transformer=*/nullptr,
+-                                  /*payload_types=*/{},
+                                   field_trials) {}
+ 
+   RtpVideoSenderTestFixture(
+@@ -249,7 +214,6 @@ class RtpVideoSenderTestFixture {
+                                   suspended_payload_states,
+                                   /*frame_count_observer=*/nullptr,
+                                   /*frame_transformer=*/nullptr,
+-                                  /*payload_types=*/{},
+                                   field_trials) {}
+ 
+   ~RtpVideoSenderTestFixture() { SetSending(false); }
+@@ -987,79 +951,6 @@ TEST(RtpVideoSenderTest,
+   EXPECT_EQ(dd_s1.frame_number(), 1002);
+ }
+ 
+-TEST(RtpVideoSenderTest, MixedCodecSimulcastPayloadType) {
+-  // When multiple payload types are set, verify that the payload type switches
+-  // corresponding to the simulcast index.
+-  RtpVideoSenderTestFixture test({kSsrc1, kSsrc2}, {kRtxSsrc1, kRtxSsrc2},
+-                                 kPayloadType, {}, nullptr, nullptr,
+-                                 {kPayloadType, kPayloadType2});
+-  test.SetSending(true);
 -
- namespace rtc {
- namespace {
- using ::webrtc::SafeTask;
-@@ -382,19 +377,16 @@ bool OpenSSLStreamAdapter::GetSslVersionBytes(int* version) const {
-   return true;
- }
- 
--bool OpenSSLStreamAdapter::ExportSrtpKeyingMaterial(
--    rtc::ZeroOnFreeBuffer<unsigned char>& keying_material) {
--  // Arguments are:
--  // keying material/len -- a buffer to hold the keying material.
--  // label               -- the exporter label.
--  //                        part of the RFC defining each exporter
--  //                        usage. We only use RFC 5764 for DTLS-SRTP.
--  // context/context_len -- a context to bind to for this connection;
--  // use_context            optional, can be null, 0 (IN). Not used by WebRTC.
--  if (SSL_export_keying_material(ssl_, keying_material.data(),
--                                 keying_material.size(), kDtlsSrtpExporterLabel,
--                                 sizeof(kDtlsSrtpExporterLabel), nullptr, 0,
--                                 false) != 1) {
-+// Key Extractor interface
-+bool OpenSSLStreamAdapter::ExportKeyingMaterial(absl::string_view label,
-+                                                const uint8_t* context,
-+                                                size_t context_len,
-+                                                bool use_context,
-+                                                uint8_t* result,
-+                                                size_t result_len) {
-+  if (SSL_export_keying_material(ssl_, result, result_len, label.data(),
-+                                 label.length(), context, context_len,
-+                                 use_context) != 1) {
-     return false;
-   }
-   return true;
-diff --git a/rtc_base/openssl_stream_adapter.h b/rtc_base/openssl_stream_adapter.h
-index 25ca678021..a776c1ae5d 100644
---- a/rtc_base/openssl_stream_adapter.h
-+++ b/rtc_base/openssl_stream_adapter.h
-@@ -109,8 +109,12 @@ class OpenSSLStreamAdapter final : public SSLStreamAdapter {
-       const override;
-   bool GetSslVersionBytes(int* version) const override;
-   // Key Extractor interface
--  bool ExportSrtpKeyingMaterial(
--      rtc::ZeroOnFreeBuffer<unsigned char>& keying_material) override;
-+  bool ExportKeyingMaterial(absl::string_view label,
-+                            const uint8_t* context,
-+                            size_t context_len,
-+                            bool use_context,
-+                            uint8_t* result,
-+                            size_t result_len) override;
- 
-   uint16_t GetPeerSignatureAlgorithm() const override;
- 
-diff --git a/rtc_base/ssl_stream_adapter.cc b/rtc_base/ssl_stream_adapter.cc
-index ce26e4f201..75e3dda66c 100644
---- a/rtc_base/ssl_stream_adapter.cc
-+++ b/rtc_base/ssl_stream_adapter.cc
-@@ -87,6 +87,15 @@ std::unique_ptr<SSLStreamAdapter> SSLStreamAdapter::Create(
-                                                 std::move(handshake_error));
- }
- 
-+bool SSLStreamAdapter::ExportKeyingMaterial(absl::string_view label,
-+                                            const uint8_t* context,
-+                                            size_t context_len,
-+                                            bool use_context,
-+                                            uint8_t* result,
-+                                            size_t result_len) {
-+  return false;  // Default is unsupported
-+}
-+
- bool SSLStreamAdapter::IsBoringSsl() {
-   return OpenSSLStreamAdapter::IsBoringSsl();
- }
-diff --git a/rtc_base/ssl_stream_adapter.h b/rtc_base/ssl_stream_adapter.h
-index 5019b37eb8..dcaaf3a0d1 100644
---- a/rtc_base/ssl_stream_adapter.h
-+++ b/rtc_base/ssl_stream_adapter.h
-@@ -198,8 +198,23 @@ class SSLStreamAdapter : public StreamInterface {
-   virtual bool GetSslVersionBytes(int* version) const = 0;
- 
-   // Key Exporter interface from RFC 5705
--  virtual bool ExportSrtpKeyingMaterial(
--      rtc::ZeroOnFreeBuffer<unsigned char>& keying_material) = 0;
-+  // Arguments are:
-+  // label               -- the exporter label.
-+  //                        part of the RFC defining each exporter
-+  //                        usage (IN)
-+  // context/context_len -- a context to bind to for this connection;
-+  //                        optional, can be null, 0 (IN)
-+  // use_context         -- whether to use the context value
-+  //                        (needed to distinguish no context from
-+  //                        zero-length ones).
-+  // result              -- where to put the computed value
-+  // result_len          -- the length of the computed value
-+  virtual bool ExportKeyingMaterial(absl::string_view label,
-+                                    const uint8_t* context,
-+                                    size_t context_len,
-+                                    bool use_context,
-+                                    uint8_t* result,
-+                                    size_t result_len);
- 
-   // Returns the signature algorithm or 0 if not applicable.
-   virtual uint16_t GetPeerSignatureAlgorithm() const = 0;
-diff --git a/rtc_base/ssl_stream_adapter_unittest.cc b/rtc_base/ssl_stream_adapter_unittest.cc
-index 02883df97a..cf428245f3 100644
---- a/rtc_base/ssl_stream_adapter_unittest.cc
-+++ b/rtc_base/ssl_stream_adapter_unittest.cc
-@@ -56,6 +56,10 @@ using ::testing::Values;
- using ::testing::WithParamInterface;
- using ::webrtc::SafeTask;
- 
-+static const char kExporterLabel[] = "label";
-+static const unsigned char kExporterContext[] = "context";
-+static int kExporterContextLen = sizeof(kExporterContext);
-+
- // A private key used for testing, broken into pieces in order to avoid
- // issues with Git's checks for private keys in repos.
- // Generated using `openssl genrsa -out key.pem 2048`
-@@ -814,6 +818,21 @@ class SSLStreamAdapterTestBase : public ::testing::Test,
-       return server_ssl_->GetSslVersionBytes(version);
-   }
- 
-+  bool ExportKeyingMaterial(absl::string_view label,
-+                            const unsigned char* context,
-+                            size_t context_len,
-+                            bool use_context,
-+                            bool client,
-+                            unsigned char* result,
-+                            size_t result_len) {
-+    if (client)
-+      return client_ssl_->ExportKeyingMaterial(label, context, context_len,
-+                                               use_context, result, result_len);
-+    else
-+      return server_ssl_->ExportKeyingMaterial(label, context, context_len,
-+                                               use_context, result, result_len);
-+  }
-+
-   // To be implemented by subclasses.
-   virtual void WriteData() = 0;
-   virtual void ReadData(rtc::StreamInterface* stream) = 0;
-@@ -1379,23 +1398,22 @@ TEST_F(SSLStreamAdapterTestDTLS, TestDTLSSrtpKeyAndSaltLengths) {
- 
- // Test an exporter
- TEST_F(SSLStreamAdapterTestDTLS, TestDTLSExporter) {
--  const std::vector<int> crypto_suites = {rtc::kSrtpAes128CmSha1_80};
--  SetDtlsSrtpCryptoSuites(crypto_suites, true);
--  SetDtlsSrtpCryptoSuites(crypto_suites, false);
+-  std::vector<uint16_t> rtp_sequence_numbers;
+-  std::vector<RtpPacket> sent_packets;
+-  EXPECT_CALL(test.transport(), SendRtp)
+-      .Times(3)
+-      .WillRepeatedly([&](rtc::ArrayView<const uint8_t> packet,
+-                          const PacketOptions& options) -> bool {
+-        RtpPacket& rtp_packet = sent_packets.emplace_back();
+-        EXPECT_TRUE(rtp_packet.Parse(packet));
+-        rtp_sequence_numbers.push_back(rtp_packet.SequenceNumber());
+-        return true;
+-      });
 -
-   TestHandshake();
--  int selected_crypto_suite;
--  EXPECT_TRUE(GetDtlsSrtpCryptoSuite(/*client=*/false, &selected_crypto_suite));
--  int key_len;
--  int salt_len;
--  ASSERT_TRUE(rtc::GetSrtpKeyAndSaltLengths(selected_crypto_suite, &key_len,
--                                            &salt_len));
--  rtc::ZeroOnFreeBuffer<unsigned char> client_out(2 * (key_len + salt_len));
--  rtc::ZeroOnFreeBuffer<unsigned char> server_out(2 * (key_len + salt_len));
-+  unsigned char client_out[EVP_MAX_MD_SIZE];
-+  unsigned char server_out[EVP_MAX_MD_SIZE];
-+
-+  bool result;
-+  result = ExportKeyingMaterial(kExporterLabel, kExporterContext,
-+                                kExporterContextLen, true, true, client_out,
-+                                sizeof(client_out));
-+  ASSERT_TRUE(result);
-+
-+  result = ExportKeyingMaterial(kExporterLabel, kExporterContext,
-+                                kExporterContextLen, true, false, server_out,
-+                                sizeof(server_out));
-+  ASSERT_TRUE(result);
- 
--  EXPECT_TRUE(client_ssl_->ExportSrtpKeyingMaterial(client_out));
--  EXPECT_TRUE(server_ssl_->ExportSrtpKeyingMaterial(server_out));
--  EXPECT_EQ(client_out, server_out);
-+  ASSERT_TRUE(!memcmp(client_out, server_out, sizeof(client_out)));
- }
- 
- // Test not yet valid certificates are not rejected.
+-  const uint8_t kPayload[1] = {'a'};
+-  EncodedImage encoded_image;
+-  encoded_image.SetEncodedData(
+-      EncodedImageBuffer::Create(kPayload, sizeof(kPayload)));
+-
+-  CodecSpecificInfo codec_specific;
+-  codec_specific.codecType = VideoCodecType::kVideoCodecVP8;
+-
+-  encoded_image.SetSimulcastIndex(0);
+-  ASSERT_EQ(test.router()->OnEncodedImage(encoded_image, &codec_specific).error,
+-            EncodedImageCallback::Result::OK);
+-  ASSERT_EQ(test.router()->OnEncodedImage(encoded_image, &codec_specific).error,
+-            EncodedImageCallback::Result::OK);
+-  encoded_image.SetSimulcastIndex(1);
+-  ASSERT_EQ(test.router()->OnEncodedImage(encoded_image, &codec_specific).error,
+-            EncodedImageCallback::Result::OK);
+-
+-  test.AdvanceTime(TimeDelta::Millis(33));
+-  ASSERT_THAT(sent_packets, SizeIs(3));
+-  EXPECT_EQ(sent_packets[0].PayloadType(), kPayloadType);
+-  EXPECT_EQ(sent_packets[1].PayloadType(), kPayloadType);
+-  EXPECT_EQ(sent_packets[2].PayloadType(), kPayloadType2);
+-
+-  // Verify that NACK is sent to the RTX payload type corresponding to the
+-  // payload type.
+-  rtcp::Nack nack1, nack2;
+-  nack1.SetMediaSsrc(kSsrc1);
+-  nack2.SetMediaSsrc(kSsrc2);
+-  nack1.SetPacketIds({rtp_sequence_numbers[0], rtp_sequence_numbers[1]});
+-  nack2.SetPacketIds({rtp_sequence_numbers[2]});
+-  rtc::Buffer nack_buffer1 = nack1.Build();
+-  rtc::Buffer nack_buffer2 = nack2.Build();
+-
+-  std::vector<RtpPacket> sent_rtx_packets;
+-  EXPECT_CALL(test.transport(), SendRtp)
+-      .Times(3)
+-      .WillRepeatedly([&](rtc::ArrayView<const uint8_t> packet,
+-                          const PacketOptions& options) {
+-        RtpPacket& rtp_packet = sent_rtx_packets.emplace_back();
+-        EXPECT_TRUE(rtp_packet.Parse(packet));
+-        return true;
+-      });
+-  test.router()->DeliverRtcp(nack_buffer1.data(), nack_buffer1.size());
+-  test.router()->DeliverRtcp(nack_buffer2.data(), nack_buffer2.size());
+-
+-  test.AdvanceTime(TimeDelta::Millis(33));
+-
+-  ASSERT_THAT(sent_rtx_packets, SizeIs(3));
+-  EXPECT_EQ(sent_rtx_packets[0].PayloadType(), kPayloadType + 1);
+-  EXPECT_EQ(sent_rtx_packets[1].PayloadType(), kPayloadType + 1);
+-  EXPECT_EQ(sent_rtx_packets[2].PayloadType(), kPayloadType2 + 1);
+-}
+-
+ TEST(RtpVideoSenderTest,
+      SupportsDependencyDescriptorForVp8NotProvidedByEncoder) {
+   constexpr uint8_t kPayload[1] = {'a'};
