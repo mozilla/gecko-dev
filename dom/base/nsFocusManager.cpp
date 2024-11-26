@@ -1271,8 +1271,13 @@ void nsFocusManager::FireDelayedEvents(Document* aDocument) {
 
 void nsFocusManager::WasNuked(nsPIDOMWindowOuter* aWindow) {
   MOZ_ASSERT(aWindow, "Expected non-null window.");
-  MOZ_ASSERT(aWindow != mActiveWindow,
-             "How come we're nuking a window that's still active?");
+  if (aWindow == mActiveWindow) {
+    // TODO(emilio, bug 1933555): Figure out if we can assert below.
+    // MOZ_ASSERT_UNREACHABLE("How come we're nuking a window that's still
+    // active?");
+    mActiveWindow = nullptr;
+    SetActiveBrowsingContextInChrome(nullptr, GenerateFocusActionId());
+  }
   if (aWindow == mFocusedWindow) {
     mFocusedWindow = nullptr;
     SetFocusedBrowsingContext(nullptr, GenerateFocusActionId());
