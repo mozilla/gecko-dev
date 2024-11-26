@@ -330,15 +330,9 @@
     <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar custom tab menu. -->
     <string name="browser_custom_tab_menu_handlebar_content_description">Close custom tab menu sheet</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-    <string name="browser_menu_tools_description_with_translate" moz:removedIn="133" tools:ignore="UnusedResources">Reader View, Translate, Print, Share, Open app</string>
+    <string name="browser_menu_tools_description_with_translate" moz:removedIn="134" tools:ignore="UnusedResources">Reader View, Translate, Print, Share, Open app</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-    <string name="browser_menu_tools_description" moz:removedIn="133" tools:ignore="UnusedResources">Reader View, Print, Share, Open app</string>
-    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu
-         The first parameter is the label of the report site issue (for example: Report Site issue) -->
-    <string name="browser_menu_tools_description_with_translate_2"  moz:removedIn="133" tools:ignore="UnusedResources">Reader View, Translate,%s Print, Share, Open app</string>
-    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu
-         The first parameter is the label of the report site issue (for example: Report Site issue) -->
-    <string name="browser_menu_tools_description_2"  moz:removedIn="133" tools:ignore="UnusedResources">Reader View,%s Print, Share, Open app</string>
+    <string name="browser_menu_tools_description" moz:removedIn="134" tools:ignore="UnusedResources">Reader View, Print, Share, Open app</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu
          The first parameter is the label of the report site issue (for example: Report Site issue) -->
     <string name="browser_menu_tools_description_with_translate_with_report_site">Reader View, Translate, %s, Print, Share, Open app</string>
