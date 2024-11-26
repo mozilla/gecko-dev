@@ -377,6 +377,11 @@ rtc_library("codec") {
   sources = [
     "base/codec.cc",
     "base/codec.h",
+
+    # Because Codec::Matches uses a function from codec_comparators,
+    # there's a mutual dependency between these two files.
+    "base/codec_comparators.cc",
+    "base/codec_comparators.h",
   ]
   deps = [
     ":media_constants",

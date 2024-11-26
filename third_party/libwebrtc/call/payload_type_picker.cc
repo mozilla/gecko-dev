@@ -20,6 +20,7 @@
 #include "api/rtc_error.h"
 #include "call/payload_type.h"
 #include "media/base/codec.h"
+#include "media/base/codec_comparators.h"
 #include "media/base/media_constants.h"
 #include "rtc_base/logging.h"
 
@@ -39,14 +40,6 @@ static const int kLastDynamicPayloadTypeUpperRange = 127;
 // the subtype (vp8/h264/....), the clock rate, the channel count, and the
 // fmtp parameters. The use of cricket::Codec, which contains more fields,
 // is only a temporary measure.
-
-bool MatchesForSdp(const cricket::Codec& codec_1,
-                   const cricket::Codec& codec_2) {
-  return absl::EqualsIgnoreCase(codec_1.name, codec_2.name) &&
-         codec_1.type == codec_2.type && codec_1.channels == codec_2.channels &&
-         codec_1.clockrate == codec_2.clockrate &&
-         codec_1.params == codec_2.params;
-}
 
 struct MapTableEntry {
   webrtc::SdpAudioFormat format;
