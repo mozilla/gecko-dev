@@ -2326,7 +2326,12 @@
         }
         return index;
       };
-      let moveOverThreshold = gBrowser._tabGroupsEnabled ? 0.7 : 0.5;
+      let moveOverThreshold = gBrowser._tabGroupsEnabled
+        ? Services.prefs.getIntPref(
+            "browser.tabs.dragdrop.moveOverThresholdPercent"
+          ) / 100
+        : 0.5;
+      moveOverThreshold = Math.min(1, Math.max(0, moveOverThreshold));
       let newIndex = getDragOverIndex(moveOverThreshold);
       if (newIndex >= oldIndex) {
         newIndex++;
@@ -2341,8 +2346,10 @@
           Services.prefs.getIntPref(
             "browser.tabs.groups.dragOverThresholdPercent"
           ) / 100;
-        dragOverGroupingThreshold = Math.max(0, dragOverGroupingThreshold);
-        dragOverGroupingThreshold = Math.min(0.5, dragOverGroupingThreshold);
+        dragOverGroupingThreshold = Math.min(
+          moveOverThreshold,
+          Math.max(0, dragOverGroupingThreshold)
+        );
         let groupDropIndex = getDragOverIndex(dragOverGroupingThreshold);
         if (
           "groupDropIndex" in dragData &&
