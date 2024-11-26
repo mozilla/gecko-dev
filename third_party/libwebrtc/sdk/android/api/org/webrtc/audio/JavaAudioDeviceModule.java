@@ -432,7 +432,7 @@ public class JavaAudioDeviceModule implements AudioDeviceModule {
    */
   @RequiresApi(Build.VERSION_CODES.M)
   public void setPreferredInputDevice(AudioDeviceInfo preferredInputDevice) {
-    Logging.d(TAG, "setPreferredInputDevice: " + preferredInputDevice);
+    Logging.d(TAG, "setPreferredInputDevice: " + preferredInputDevice.getId());
     audioInput.setPreferredDevice(preferredInputDevice);
   }
 

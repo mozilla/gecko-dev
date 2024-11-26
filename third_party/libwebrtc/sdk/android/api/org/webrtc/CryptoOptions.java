@@ -21,6 +21,7 @@ public final class CryptoOptions {
   /**
    * SRTP Related Peer Connection Options.
    */
+  @SuppressWarnings("ClassCanBeStatic")
   public final class Srtp {
     /**
      * Enable GCM crypto suites from RFC 7714 for SRTP. GCM will only be used
@@ -66,6 +67,7 @@ public final class CryptoOptions {
   /**
    * Options to be used when the FrameEncryptor / FrameDecryptor APIs are used.
    */
+  @SuppressWarnings("ClassCanBeStatic")
   public final class SFrame {
     /**
      * If set all RtpSenders must have an FrameEncryptor attached to them before
