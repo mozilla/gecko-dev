@@ -11,11 +11,13 @@ add_setup(async function () {
 add_task(async () => {
   await BrowserTestUtils.withNewTab(TEST_URI, async browser => {
     // Navigate away, after causing a user interaction.
-    SpecialPowers.wrap(document).notifyUserGestureActivation();
+    await SpecialPowers.spawn(browser, [], async () => {
+      content.document.notifyUserGestureActivation();
+    });
     await followLink(TEST_URI + "2.html");
 
     // Navigate again, without causing a user interaction.
-    await SpecialPowers.spawn(browser, [], async function () {
+    await SpecialPowers.spawn(browser, [], async () => {
       content.history.pushState({}, "", "https://example.com/3.html");
     });
 
@@ -27,7 +29,7 @@ add_task(async () => {
     await assertMenulist([TEST_URI + "3.html", TEST_URI]);
 
     // Go back using history.back, which does not check for user interaction.
-    await SpecialPowers.spawn(browser, [], async function () {
+    await SpecialPowers.spawn(browser, [], async () => {
       content.history.back();
     });
 

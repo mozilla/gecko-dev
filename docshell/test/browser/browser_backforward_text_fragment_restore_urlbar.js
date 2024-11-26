@@ -16,6 +16,10 @@ function waitForPageShow(browser) {
 
 add_task(async function test_fragment_restore_urlbar() {
   await BrowserTestUtils.withNewTab("https://example.com", async browser => {
+    await SpecialPowers.spawn(browser, [], () => {
+      content.document.notifyUserGestureActivation();
+    });
+
     let loaded = BrowserTestUtils.browserLoaded(browser, false);
     BrowserTestUtils.startLoadingURIString(browser, kURL);
     await loaded;

@@ -157,6 +157,10 @@ add_task(async function test_navigation_via_back_button() {
       false,
       serpUrl
     );
+    await SpecialPowers.spawn(browser, [], () => {
+      content.document.notifyUserGestureActivation();
+    });
+
     BrowserTestUtils.startLoadingURIString(browser, serpUrl);
     await pageLoadPromise;
     info("Serp is now loaded.");
