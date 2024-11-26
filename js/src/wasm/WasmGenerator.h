@@ -213,6 +213,9 @@ class MOZ_STACK_CLASS ModuleGenerator {
   // Data that is used for partial tiering
   SharedCode partialTieringCode_;
 
+  // Data that is used for compiling a complete tier
+  mozilla::TimeStamp completeTierStartTime_;
+
   // Data that is moved into the Module/Code as the result of finish()
   BytecodeRangeVector funcDefRanges_;
   FeatureUsageVector funcDefFeatureUsages_;
