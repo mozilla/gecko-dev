@@ -100,14 +100,13 @@ BaselineCodeGen<Handler>::BaselineCodeGen(TempAllocator& alloc,
       frame(handler.frame()) {}
 
 BaselineCompiler::BaselineCompiler(JSContext* cx, TempAllocator& alloc,
-                                   MacroAssembler& masm,
-                                   JSScript* script, JSObject* globalLexical,
+                                   MacroAssembler& masm, JSScript* script,
+                                   JSObject* globalLexical,
                                    JSObject* globalThis,
                                    uint32_t baseWarmUpThreshold)
-    : BaselineCodeGen(alloc, masm,
-                      CompileRuntime::get(cx->runtime()),
-                      /* HandlerArgs = */ alloc, script,
-                      globalLexical, globalThis, baseWarmUpThreshold) {
+    : BaselineCodeGen(alloc, masm, CompileRuntime::get(cx->runtime()),
+                      /* HandlerArgs = */ alloc, script, globalLexical,
+                      globalThis, baseWarmUpThreshold) {
 #ifdef JS_CODEGEN_NONE
   MOZ_CRASH();
 #endif
@@ -116,8 +115,8 @@ BaselineCompiler::BaselineCompiler(JSContext* cx, TempAllocator& alloc,
 BaselineInterpreterGenerator::BaselineInterpreterGenerator(JSContext* cx,
                                                            TempAllocator& alloc,
                                                            MacroAssembler& masm)
-  : BaselineCodeGen(alloc, masm, CompileRuntime::get(cx->runtime())
-                    /* no handlerArgs */) {}
+    : BaselineCodeGen(alloc, masm, CompileRuntime::get(cx->runtime())
+                      /* no handlerArgs */) {}
 
 bool BaselineCompilerHandler::init() {
   if (!analysis_.init(alloc_)) {
@@ -200,30 +199,23 @@ bool BaselineInterpreterHandler::addDebugInstrumentationOffset(
   return debugInstrumentationOffsets_.append(offset.offset());
 }
 
-MethodStatus BaselineCompiler::compile(JSContext* cx) {
-  AutoCreatedBy acb(masm, "BaselineCompiler::compile");
-
-  Rooted<JSScript*> script(cx, handler.script());
+/*static*/
+bool BaselineCompiler::prepareToCompile(JSContext* cx, Handle<JSScript*> script,
+                                        bool compileDebugInstrumentation) {
   JitSpew(JitSpew_BaselineScripts, "Baseline compiling script %s:%u:%u (%p)",
           script->filename(), script->lineno(),
           script->column().oneOriginValue(), script.get());
 
-  JitSpew(JitSpew_Codegen, "# Emitting baseline code for script %s:%u:%u",
-          script->filename(), script->lineno(),
-          script->column().oneOriginValue());
-
-  AutoIncrementalTimer timer(cx->realm()->timers.baselineCompileTime);
-
   AutoKeepJitScripts keepJitScript(cx);
   if (!script->ensureHasJitScript(cx, keepJitScript)) {
-    return Method_Error;
+    return false;
   }
 
   // When code coverage is enabled, we have to create the ScriptCounts if they
   // do not exist.
   if (!script->hasScriptCounts() && cx->realm()->collectCoverageForDebug()) {
     if (!script->initScriptCounts(cx)) {
-      return Method_Error;
+      return false;
     }
   }
 
@@ -233,18 +225,35 @@ MethodStatus BaselineCompiler::compile(JSContext* cx) {
     jitHints->setEagerBaselineHint(script);
   }
 
+  if (!script->jitScript()->ensureHasCachedBaselineJitData(cx, script)) {
+    return false;
+  }
+
+  if (MOZ_UNLIKELY(compileDebugInstrumentation) &&
+      !cx->runtime()->jitRuntime()->ensureDebugTrapHandler(
+          cx, DebugTrapHandlerKind::Compiler)) {
+    return false;
+  }
+
+  return true;
+}
+
+MethodStatus BaselineCompiler::compile(JSContext* cx) {
+  AutoCreatedBy acb(masm, "BaselineCompiler::compile");
+
   // Suppress GC during compilation.
   gc::AutoSuppressGC suppressGC(cx);
 
-  if (!script->jitScript()->ensureHasCachedBaselineJitData(cx, script)) {
+  Rooted<JSScript*> script(cx, handler.script());
+  if (!prepareToCompile(cx, script, compileDebugInstrumentation())) {
     return Method_Error;
   }
 
-  if (MOZ_UNLIKELY(compileDebugInstrumentation()) &&
-      !cx->runtime()->jitRuntime()->ensureDebugTrapHandler(
-          cx, DebugTrapHandlerKind::Compiler)) {
-    return Method_Error;
-  }
+  JitSpew(JitSpew_Codegen, "# Emitting baseline code for script %s:%u:%u",
+          script->filename(), script->lineno(),
+          script->column().oneOriginValue());
+
+  AutoIncrementalTimer timer(cx->realm()->timers.baselineCompileTime);
 
   MOZ_ASSERT(!script->hasBaselineScript());
 

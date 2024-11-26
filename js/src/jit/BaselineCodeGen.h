@@ -394,6 +394,8 @@ class BaselineCompiler final : private BaselineCompilerCodeGen {
                    JSObject* globalThis, uint32_t baseWarmUpThreshold);
   [[nodiscard]] bool init();
 
+  static bool prepareToCompile(JSContext* cx, Handle<JSScript*> script,
+                               bool compileDebugInstrumentation);
   MethodStatus compile(JSContext* cx);
 
   bool compileDebugInstrumentation() const {
