@@ -81,7 +81,7 @@ fun WebCompatReporter(
             Text(
                 text = stringResource(
                     id = R.string.webcompat_reporter_description,
-                    R.string.app_name,
+                    stringResource(R.string.app_name),
                 ),
                 color = FirefoxTheme.colors.textPrimary,
                 style = FirefoxTheme.typography.body2,
