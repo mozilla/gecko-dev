@@ -501,6 +501,15 @@ wheels = [
 ]
 
 [[package]]
+name = "gitignorant"
+version = "0.3.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/b0/3e/c789602feb9a5edf75b296305fd7b25d2b6e44f3abba565374683c8cf0ad/gitignorant-0.3.1.tar.gz", hash = "sha256:eb51b3421761e41f594758ef1f93aa438f94856da8beea44ccd043f9c2373442", size = 4425 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/5b/e0/8594e6d99c89c40010d572687d709d345061ff66583d51d443d4a74b472f/gitignorant-0.3.1-py3-none-any.whl", hash = "sha256:d2b96ffe90eaf4fa2e1d68ad4e3f807213c8ec1e54a943a9e7105a9f7aaa4232", size = 5064 },
+]
+
+[[package]]
 name = "giturlparse"
 version = "0.12.0"
 source = { registry = "https://pypi.org/simple" }
@@ -557,6 +566,18 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/98/be/f3e8c6081b684f176b761e6a2fef02a0be939740ed6f54109a2951d806f3/importlib_resources-6.4.5.tar.gz", hash = "sha256:980862a1d16c9e147a59603677fa2aa5fd82b87f223b6cb870695bcfce830065", size = 43372 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/e1/6a/4604f9ae2fa62ef47b9de2fa5ad599589d28c9fd1d335f32759813dfa91e/importlib_resources-6.4.5-py3-none-any.whl", hash = "sha256:ac29d5f956f01d5e4bb63102a5a19957f1b9175e45649977264a1416783bb717", size = 36115 },
+]
+
+[[package]]
+name = "iniparse"
+version = "0.5"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "six" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/4c/9a/02beaf11fc9ea7829d3a9041536934cd03990e09c359724f99ee6bd2b41b/iniparse-0.5.tar.gz", hash = "sha256:932e5239d526e7acb504017bb707be67019ac428a6932368e6851691093aa842", size = 32233 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/5f/b0/4d357324948188e76154b332e119fb28e374c1ebe4d4f6bca729aaa44309/iniparse-0.5-py3-none-any.whl", hash = "sha256:db6ef1d8a02395448e0e7b17ac0aa28b8d338b632bbd1ffca08c02ddae32cf97", size = 24445 },
 ]
 
 [[package]]
@@ -716,6 +737,22 @@ wheels = [
 ]
 
 [[package]]
+name = "moz-l10n"
+version = "0.5.5"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "fluent-syntax" },
+    { name = "gitignorant" },
+    { name = "iniparse" },
+    { name = "polib" },
+    { name = "tomli", marker = "python_full_version < '3.11'" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/cb/8e/7a6789591ab773251cb87c42dedf769c6ee9821fc8e5bcd8ed06376c4ef8/moz_l10n-0.5.5.tar.gz", hash = "sha256:7d524ff31ca42d72904f479b86cb3cb296c39dd8182b79ee34de7a32d7cb328f", size = 68905 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/c5/7d/5e82f433a8bc3692d2ac001b74e6eba8c48d8680096403736b14ae18271f/moz.l10n-0.5.5-py3-none-any.whl", hash = "sha256:30b0475f79a2a3c6118e63e5a769b8587bd623399ebb5a0b5f9940261e4df566", size = 93368 },
+]
+
+[[package]]
 name = "mozilla-repo-urls"
 version = "0.1.1"
 source = { registry = "https://pypi.org/simple" }
@@ -756,6 +793,7 @@ dependencies = [
     { name = "looseversion" },
     { name = "mako" },
     { name = "markupsafe" },
+    { name = "moz-l10n" },
     { name = "mozilla-repo-urls" },
     { name = "mozilla-version" },
     { name = "packaging" },
@@ -816,6 +854,7 @@ requires-dist = [
     { name = "looseversion", specifier = "==1.0.1" },
     { name = "mako", specifier = "==1.1.2" },
     { name = "markupsafe", specifier = "==2.0.1" },
+    { name = "moz-l10n", specifier = "~=0.5.5" },
     { name = "mozilla-repo-urls", specifier = "==0.1.1" },
     { name = "mozilla-version", specifier = "==3.1.0" },
     { name = "packaging", specifier = "==23.1" },
@@ -1032,6 +1071,15 @@ name = "ply"
 version = "3.10"
 source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/ce/3d/1f9ca69192025046f02a02ffc61bfbac2731aab06325a218370fd93e18df/ply-3.10.tar.gz", hash = "sha256:96e94af7dd7031d8d6dd6e2a8e0de593b511c211a86e28a9c9621c275ac8bacb", size = 150926 }
+
+[[package]]
+name = "polib"
+version = "1.2.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/10/9a/79b1067d27e38ddf84fe7da6ec516f1743f31f752c6122193e7bce38bdbf/polib-1.2.0.tar.gz", hash = "sha256:f3ef94aefed6e183e342a8a269ae1fc4742ba193186ad76f175938621dbfc26b", size = 161658 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/6b/99/45bb1f9926efe370c6dbe324741c749658e44cb060124f28dad201202274/polib-1.2.0-py2.py3-none-any.whl", hash = "sha256:1c77ee1b81feb31df9bca258cbc58db1bbb32d10214b173882452c73af06d62d", size = 20634 },
+]
 
 [[package]]
 name = "pyasn1"

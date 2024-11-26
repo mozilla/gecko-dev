@@ -1,0 +1,5 @@
+[console_scripts]
+l10n-build = moz.l10n.bin.build:cli
+l10n-build-file = moz.l10n.bin.build_file:cli
+l10n-compare = moz.l10n.bin.compare:cli
+l10n-fix = moz.l10n.bin.fix:cli
