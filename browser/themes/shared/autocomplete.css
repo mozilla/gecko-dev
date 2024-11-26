@@ -244,11 +244,9 @@
 
     &[selected] {
       background-color: var(--arrowpanel-dimmed-further);
-      color: -moz-DialogText;
     }
 
     > .ac-title {
-      color: var(--grey-60);
       font-size: 1em;
     }
 
@@ -262,8 +260,6 @@
 
     > .ac-site-icon {
       list-style-image: url(chrome://global/skin/icons/security-broken.svg);
-      -moz-context-properties: fill;
-      fill: var(--grey-60);
     }
   }
 }
