@@ -29,6 +29,12 @@ ChromeUtils.defineESModuleGetters(
 
 const CONTENT_TYPE_REGEXP = /^content-type/i;
 
+function isDataOrFileChannel(channel) {
+  return (
+    channel instanceof Ci.nsIFileChannel || channel instanceof Ci.nsIDataChannel
+  );
+}
+
 /**
  * Creates an actor for a network event.
  *
@@ -88,7 +94,7 @@ class NetworkEventActor extends Actor {
       content: {},
     };
 
-    if (channel instanceof Ci.nsIFileChannel) {
+    if (isDataOrFileChannel(channel)) {
       this._innerWindowId = null;
       this._isNavigationRequest = false;
 
@@ -137,8 +143,7 @@ class NetworkEventActor extends Actor {
   _createResource(networkEventOptions, channel) {
     let wsChannel;
     let method;
-    if (channel instanceof Ci.nsIFileChannel) {
-      channel = channel.QueryInterface(Ci.nsIFileChannel);
+    if (isDataOrFileChannel(channel)) {
       channel.QueryInterface(Ci.nsIChannel);
       wsChannel = null;
       method = "GET";
@@ -201,7 +206,7 @@ class NetworkEventActor extends Actor {
     }
 
     const resource = {
-      resourceId: channel.channelId,
+      resourceId: this._channelId,
       resourceType: NETWORK_EVENT,
       blockedReason,
       blockingExtension: networkEventOptions.blockingExtension,
@@ -212,7 +217,7 @@ class NetworkEventActor extends Actor {
       chromeContext: lazy.NetworkUtils.isChannelFromSystemPrincipal(channel),
       innerWindowId: this._innerWindowId,
       isNavigationRequest: this._isNavigationRequest,
-      isFileRequest: channel instanceof Ci.nsIFileChannel,
+      isDataOrFileRequest: isDataOrFileChannel(channel),
       isThirdPartyTrackingResource:
         lazy.NetworkUtils.isThirdPartyTrackingResource(channel),
       isXHR,
@@ -494,7 +499,7 @@ class NetworkEventActor extends Actor {
     // Read response headers and cookies.
     let responseHeaders = [];
     let responseCookies = [];
-    if (!this._blockedReason && !(channel instanceof Ci.nsIFileChannel)) {
+    if (!this._blockedReason && !isDataOrFileChannel(channel)) {
       const { cookies, headers } =
         lazy.NetworkUtils.fetchResponseHeadersAndCookies(channel);
       responseCookies = cookies;
@@ -525,7 +530,7 @@ class NetworkEventActor extends Actor {
     }
 
     let waitingTime = null;
-    if (!(channel instanceof Ci.nsIFileChannel)) {
+    if (!isDataOrFileChannel(channel)) {
       const timedChannel = channel.QueryInterface(Ci.nsITimedChannel);
       waitingTime = Math.round(
         (timedChannel.responseStartTime - timedChannel.requestStartTime) / 1000
@@ -539,16 +544,16 @@ class NetworkEventActor extends Actor {
       proxyInfo = proxyResponseRawHeaders.split("\r\n")[0].split(" ");
     }
 
-    const isFileChannel = channel instanceof Ci.nsIFileChannel;
+    const isDataOrFile = isDataOrFileChannel(channel);
     this._onEventUpdate("responseStart", {
-      httpVersion: isFileChannel
+      httpVersion: isDataOrFile
         ? null
         : lazy.NetworkUtils.getHttpVersion(channel),
       mimeType,
       remoteAddress: fromCache ? "" : channel.remoteAddress,
       remotePort: fromCache ? "" : channel.remotePort,
-      status: isFileChannel ? "200" : channel.responseStatus + "",
-      statusText: isFileChannel ? "0K" : channel.responseStatusText,
+      status: isDataOrFile ? "200" : channel.responseStatus + "",
+      statusText: isDataOrFile ? "0K" : channel.responseStatusText,
       earlyHintsStatus: earlyHintsResponseRawHeaders ? "103" : "",
       waitingTime,
       isResolvedByTRR: channel.isResolvedByTRR,

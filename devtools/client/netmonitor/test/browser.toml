@@ -241,6 +241,8 @@ skip-if = [
 
 ["browser_net_cyrillic-02.js"]
 
+["browser_net_data_uri.js"]
+
 ["browser_net_decode-params.js"]
 
 ["browser_net_decode-url.js"]
