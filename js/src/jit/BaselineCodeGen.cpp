@@ -345,6 +345,9 @@ bool BaselineCompiler::finishCompile(JSContext* cx) {
   // update the script now.
   handler.maybeDisableIon();
 
+  // AllocSites must be allocated on the main thread.
+  handler.createAllocSites();
+
   // Always register a native => bytecode mapping entry, since profiler can be
   // turned on with baseline jitcode on stack, and baseline jitcode cannot be
   // invalidated.
@@ -644,10 +647,10 @@ static bool CreateAllocSitesForCacheIRStub(JSScript* script, uint32_t pcOffset,
   return true;
 }
 
-static void CreateAllocSitesForICChain(JSScript* script, uint32_t pcOffset,
-                                       uint32_t entryIndex) {
+static void CreateAllocSitesForICChain(JSScript* script, uint32_t entryIndex) {
   JitScript* jitScript = script->jitScript();
   ICStub* stub = jitScript->icEntry(entryIndex).firstStub();
+  uint32_t pcOffset = jitScript->fallbackStub(entryIndex)->pcOffset();
 
   while (!stub->isFallback()) {
     if (!CreateAllocSitesForCacheIRStub(script, pcOffset,
@@ -657,6 +660,12 @@ static void CreateAllocSitesForICChain(JSScript* script, uint32_t pcOffset,
       return;
     }
     stub = stub->toCacheIRStub()->next();
+  }
+}
+
+void BaselineCompilerHandler::createAllocSites() {
+  for (uint32_t allocSiteIndex : allocSiteIndices_) {
+    CreateAllocSitesForICChain(script(), allocSiteIndex);
   }
 }
 
@@ -684,8 +693,9 @@ bool BaselineCompilerCodeGen::emitNextIC() {
   MOZ_ASSERT(stub->pcOffset() == pcOffset);
   MOZ_ASSERT(BytecodeOpHasIC(JSOp(*handler.pc())));
 
-  if (BytecodeOpCanHaveAllocSite(JSOp(*handler.pc()))) {
-    CreateAllocSitesForICChain(script, pcOffset, entryIndex);
+  if (BytecodeOpCanHaveAllocSite(JSOp(*handler.pc())) &&
+      !handler.addAllocSiteIndex(entryIndex)) {
+    return false;
   }
 
   // Load stub pointer into ICStubReg.
