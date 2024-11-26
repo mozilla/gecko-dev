@@ -99,7 +99,7 @@
     <command id="Tools:Sanitize" />
     <command id="Tools:PrivateBrowsing" />
     <command id="Browser:Screenshot" />
-    <command id="History:UndoCloseTab" oncommand="undoCloseTab();" data-l10n-args='{"tabCount": 1}' />
+    <command id="History:UndoCloseTab" />
     <command id="History:UndoCloseWindow" />
     <command id="History:RestoreLastClosedTabOrWindowOrSession" />
     <command id="History:SearchHistory" />
