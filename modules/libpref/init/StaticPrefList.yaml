@@ -5525,7 +5525,11 @@
 # If true, crash when a blocklisted preference is accessed in a subprocess
 - name: fission.enforceBlocklistedPrefsInSubprocesses
   type: RelaxedAtomicBool
-  value: @IS_EARLY_BETA_OR_EARLIER@
+#ifdef DEBUG
+  value: true
+#else
+  value: false
+#endif
   mirror: always
 
 #---------------------------------------------------------------------------
