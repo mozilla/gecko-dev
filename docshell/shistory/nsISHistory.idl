@@ -124,12 +124,13 @@ interface nsISHistory: nsISupports
    */
   void removeSHistoryListener(in nsISHistoryListener aListener);
 
+  [can_run_script]
   void reloadCurrentEntry();
 
   /**
    * Load the entry at the particular index.
    */
-  [noscript]
+  [noscript, can_run_script]
   void gotoIndex(in long aIndex, in boolean aUserActivation);
 
   /**
@@ -268,7 +269,7 @@ interface nsISHistory: nsISupports
   [noscript, notxpcom]
   void RemoveFrameEntries(in nsISHEntry aEntry);
 
-  void reload(in unsigned long aReloadFlags);
+  [can_run_script] void reload(in unsigned long aReloadFlags);
 
   [notxpcom] void EnsureCorrectEntryAtCurrIndex(in nsISHEntry aEntry);
 

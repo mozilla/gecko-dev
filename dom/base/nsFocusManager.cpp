@@ -2542,6 +2542,18 @@ void nsFocusManager::ActivateRemoteFrameIfNeeded(Element& aElement,
   }
 }
 
+void nsFocusManager::FixUpFocusAfterFrameLoaderChange(Element& aElement) {
+  MOZ_ASSERT(mFocusedElement == &aElement);
+  MOZ_ASSERT(nsContentUtils::IsSafeToRunScript());
+  if (GetContentWindow(&aElement)) {
+    // This will focus the content window.
+    SetFocusInner(&aElement, 0, false, false);
+  } else {
+    // If we're remote, activate the frame.
+    ActivateRemoteFrameIfNeeded(aElement, GenerateFocusActionId());
+  }
+}
+
 void nsFocusManager::Focus(
     nsPIDOMWindowOuter* aWindow, Element* aElement, uint32_t aFlags,
     bool aIsNewDocument, bool aFocusChanged, bool aWindowRaised,

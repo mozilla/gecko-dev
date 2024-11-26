@@ -1048,6 +1048,7 @@ class EventStateManager : public nsSupportsWeakReference, public nsIObserver {
   void DoScrollText(ScrollContainerFrame* aScrollContainerFrame,
                     WidgetWheelEvent* aEvent);
 
+  MOZ_CAN_RUN_SCRIPT
   void DoScrollHistory(int32_t direction);
   void DoScrollZoom(nsIFrame* aTargetFrame, int32_t adjustment);
   void ChangeZoom(bool aIncrease);

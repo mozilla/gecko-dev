@@ -4079,8 +4079,8 @@ mozilla::ipc::IPCResult ContentParent::RecvCloneDocumentTreeInto(
     return IPC_OK();
   }
 
-  auto* source = aSource.get_canonical();
-  auto* target = aTarget.get_canonical();
+  RefPtr source = aSource.get_canonical();
+  RefPtr target = aTarget.get_canonical();
 
   if (!CloneIsLegal(this, *source, *target)) {
     return IPC_FAIL(this, "Illegal subframe clone");

@@ -159,10 +159,12 @@ class WindowGlobalChild final : public WindowGlobalActor,
       const JSActorMessageMeta& aMeta, const Maybe<ClonedMessageData>& aData,
       const Maybe<ClonedMessageData>& aStack);
 
+  MOZ_CAN_RUN_SCRIPT_BOUNDARY
   mozilla::ipc::IPCResult RecvMakeFrameLocal(
       const MaybeDiscarded<dom::BrowsingContext>& aFrameContext,
       uint64_t aPendingSwitchId);
 
+  MOZ_CAN_RUN_SCRIPT_BOUNDARY
   mozilla::ipc::IPCResult RecvMakeFrameRemote(
       const MaybeDiscarded<dom::BrowsingContext>& aFrameContext,
       ManagedEndpoint<PBrowserBridgeChild>&& aEndpoint, const TabId& aTabId,

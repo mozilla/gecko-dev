@@ -70,6 +70,7 @@ interface nsIWebNavigation : nsISupports
    *        Indicates that the call was unexpected at this time, which implies
    *        that canGoBack is false.
    */
+  [can_run_script]
   void goBack([optional] in boolean aRequireUserInteraction, [optional] in boolean aUserActivation);
 
   /**
@@ -94,6 +95,7 @@ interface nsIWebNavigation : nsISupports
    *        Indicates that the call was unexpected at this time, which implies
    *        that canGoForward is false.
    */
+  [can_run_script]
   void goForward([optional] in boolean aRequireUserInteraction, [optional] in boolean aUserActivation);
 
   /**
@@ -107,6 +109,7 @@ interface nsIWebNavigation : nsISupports
    *        Indicates that the call was unexpected at this time, which implies
    *        that session history entry at the given index does not exist.
    */
+  [can_run_script]
   void gotoIndex(in long index, [optional] in boolean aUserActivation);
 
   /****************************************************************************

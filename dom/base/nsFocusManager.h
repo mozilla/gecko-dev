@@ -220,11 +220,9 @@ class nsFocusManager final : public nsIFocusManager,
   MOZ_CAN_RUN_SCRIPT nsresult SetFocusedWindowWithCallerType(
       mozIDOMWindowProxy* aWindowToFocus, mozilla::dom::CallerType aCallerType);
 
-  /**
-   * Given an element, which must be the focused element, activate the remote
-   * frame it embeds, if any.
-   */
-  void ActivateRemoteFrameIfNeeded(mozilla::dom::Element&, uint64_t aActionId);
+  /** Given a focused frame loader owner, fix up the focus to be consistent */
+  MOZ_CAN_RUN_SCRIPT void FixUpFocusAfterFrameLoaderChange(
+      mozilla::dom::Element&);
 
   /**
    * Raises the top-level window aWindow at the widget level.
@@ -760,6 +758,12 @@ class nsFocusManager final : public nsIFocusManager,
                            nsIContent** aFocusedContent);
 
  private:
+  /**
+   * Given an element, which must be the focused element, activate the remote
+   * frame it embeds, if any.
+   */
+  void ActivateRemoteFrameIfNeeded(mozilla::dom::Element&, uint64_t aActionId);
+
   // Notify that the focus state of aElement has changed.  Note that we need to
   // pass in whether the window should show a focus ring before the
   // SetFocusedNode call on it happened when losing focus and after the

@@ -58,12 +58,14 @@ class nsFrameLoaderOwner : public nsISupports {
   // BrowsingContexts across process switches during navigation.
   //
   // See the WebIDL definition for more details.
+  MOZ_CAN_RUN_SCRIPT
   void ChangeRemoteness(const mozilla::dom::RemotenessOptions& aOptions,
                         mozilla::ErrorResult& rv);
 
   // Like `ChangeRemoteness` but switches to an already-created
   // `BrowserBridgeChild`. This method is used when performing remote subframe
   // process switches.
+  MOZ_CAN_RUN_SCRIPT
   void ChangeRemotenessWithBridge(mozilla::dom::BrowserBridgeChild* aBridge,
                                   mozilla::ErrorResult& rv);
 
@@ -73,15 +75,18 @@ class nsFrameLoaderOwner : public nsISupports {
   //
   // If `aReplaceBrowsingContext` is set, BrowsingContext preservation will be
   // disabled for this process switch.
+  MOZ_CAN_RUN_SCRIPT
   void ChangeRemotenessToProcess(
       mozilla::dom::ContentParent* aContentParent,
       const mozilla::dom::NavigationIsolationOptions& aOptions,
       mozilla::dom::BrowsingContextGroup* aGroup, mozilla::ErrorResult& rv);
 
+  MOZ_CAN_RUN_SCRIPT
   void SubframeCrashed();
 
   void RestoreFrameLoaderFromBFCache(nsFrameLoader* aNewFrameLoader);
 
+  MOZ_CAN_RUN_SCRIPT
   void UpdateFocusAndMouseEnterStateAfterFrameLoaderChange();
 
   void AttachFrameLoader(nsFrameLoader* aFrameLoader);
@@ -108,6 +113,7 @@ class nsFrameLoaderOwner : public nsISupports {
   ChangeRemotenessContextType ShouldPreserveBrowsingContext(
       bool aIsRemote, bool aReplaceBrowsingContext);
 
+  MOZ_CAN_RUN_SCRIPT
   void ChangeRemotenessCommon(
       const ChangeRemotenessContextType& aContextType,
       const mozilla::dom::NavigationIsolationOptions& aOptions,
@@ -118,6 +124,7 @@ class nsFrameLoaderOwner : public nsISupports {
   void ChangeFrameLoaderCommon(mozilla::dom::Element* aOwner,
                                bool aRetainPaint);
 
+  MOZ_CAN_RUN_SCRIPT
   void UpdateFocusAndMouseEnterStateAfterFrameLoaderChange(
       mozilla::dom::Element* aOwner);
 

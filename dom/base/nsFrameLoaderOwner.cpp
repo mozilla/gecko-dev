@@ -231,10 +231,9 @@ void nsFrameLoaderOwner::UpdateFocusAndMouseEnterStateAfterFrameLoaderChange(
     Element* aOwner) {
   // If the element is focused, or the current mouse over target then
   // we need to update that state for the new BrowserParent too.
-  if (nsFocusManager* fm = nsFocusManager::GetFocusManager()) {
+  if (RefPtr<nsFocusManager> fm = nsFocusManager::GetFocusManager()) {
     if (fm->GetFocusedElement() == aOwner) {
-      fm->ActivateRemoteFrameIfNeeded(*aOwner,
-                                      nsFocusManager::GenerateFocusActionId());
+      fm->FixUpFocusAfterFrameLoaderChange(*aOwner);
     }
   }
 

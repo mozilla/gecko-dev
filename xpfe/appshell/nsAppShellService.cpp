@@ -308,7 +308,7 @@ class WindowlessBrowser final : public nsIWindowlessBrowser,
   }
   NS_DECL_ISUPPORTS
   NS_DECL_NSIWINDOWLESSBROWSER
-  NS_FORWARD_SAFE_NSIWEBNAVIGATION(mWebNavigation)
+  NS_FORWARD_SAFE_NSIWEBNAVIGATION(RefPtr{mWebNavigation.get()})
   NS_FORWARD_SAFE_NSIINTERFACEREQUESTOR(mInterfaceRequestor)
 
  private:

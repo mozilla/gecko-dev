@@ -93,6 +93,7 @@ class BrowserBridgeChild : public PBrowserBridgeChild {
       const ScrollAxis& aHorizontal, const ScrollFlags& aScrollFlags,
       const int32_t& aAppUnitsPerDevPixel);
 
+  MOZ_CAN_RUN_SCRIPT_BOUNDARY
   mozilla::ipc::IPCResult RecvSubFrameCrashed();
 
   void ActorDestroy(ActorDestroyReason aWhy) override;

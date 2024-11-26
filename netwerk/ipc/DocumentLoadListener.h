@@ -367,11 +367,17 @@ class DocumentLoadListener : public nsIInterfaceRequestor,
   // by us, and resumes the underlying source channel.
   void FinishReplacementChannelSetup(nsresult aResult);
 
+  // TODO: Make nsIRequestObserver MOZ_CAN_RUN_SCRIPT, then remove this. It's a
+  // scriptable interface so it should be the right thing to do.
+  MOZ_CAN_RUN_SCRIPT_BOUNDARY
+  nsresult DoOnStartRequest(nsIRequest*);
+
   // Called from `OnStartRequest` to make the decision about whether or not to
   // change process. This method will return `nullptr` if the current target
   // process is appropriate.
   // aWillSwitchToRemote is set to true if we initiate a process switch,
   // and that the new remote type will be something other than NOT_REMOTE
+  MOZ_CAN_RUN_SCRIPT
   bool MaybeTriggerProcessSwitch(bool* aWillSwitchToRemote);
 
   // Called when the process switch is going to happen, potentially
@@ -384,6 +390,7 @@ class DocumentLoadListener : public nsIInterfaceRequestor,
   // If `aIsNewTab` is specified, the navigation in the original process will be
   // aborted immediately, rather than waiting for a process switch to happen and
   // the previous page to be unloaded or hidden.
+  MOZ_CAN_RUN_SCRIPT
   void TriggerProcessSwitch(dom::CanonicalBrowsingContext* aContext,
                             const dom::NavigationIsolationOptions& aOptions,
                             bool aIsNewTab = false);

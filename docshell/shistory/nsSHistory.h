@@ -155,7 +155,9 @@ class nsSHistory : public mozilla::LinkedListElement<nsSHistory>,
     RefPtr<nsDocShellLoadState> mLoadState;
   };
 
+  MOZ_CAN_RUN_SCRIPT
   static void LoadURIs(nsTArray<LoadEntryResult>& aLoadResults);
+  MOZ_CAN_RUN_SCRIPT
   static void LoadURIOrBFCache(LoadEntryResult& aLoadEntry);
 
   // If this doesn't return an error then either aLoadResult is set to nothing,

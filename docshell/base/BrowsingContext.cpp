@@ -3832,9 +3832,8 @@ void BrowsingContext::HistoryGo(
     RefPtr<CanonicalBrowsingContext> self = Canonical();
     aResolver(self->HistoryGo(
         aOffset, aHistoryEpoch, aRequireUserInteraction, aUserActivation,
-        Canonical()->GetContentParent()
-            ? Some(Canonical()->GetContentParent()->ChildID())
-            : Nothing()));
+        self->GetContentParent() ? Some(self->GetContentParent()->ChildID())
+                                 : Nothing()));
   }
 }
 
