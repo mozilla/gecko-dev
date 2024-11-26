@@ -423,4 +423,8 @@
 
     <!-- Bookmarks -->
     <string name="pref_key_use_new_bookmarks_ui" translatable="false">pref_key_use_new_bookmarks_ui</string>
+
+    <!-- Glean usage profile id -->
+    <string name="pref_key_glean_usage_profile_id" translatable="false">pref_key_glean_usage_profile_id</string>
+
 </resources>
