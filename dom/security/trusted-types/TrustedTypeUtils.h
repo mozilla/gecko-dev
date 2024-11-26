@@ -45,9 +45,8 @@ nsString GetTrustedTypeName() {
 }
 
 // https://w3c.github.io/trusted-types/dist/spec/#get-trusted-type-compliant-string-algorithm
-// specialized for TrustedHTML.
 //
-// May only run script if aInput is not TrustedHTML and if the trusted types
+// May only run script if aInput is not a trusted type and if the trusted types
 // pref is set to `true`. If this changes, callees might require adjusting.
 //
 // @param aResultHolder Keeps the compliant string alive when necessary.
