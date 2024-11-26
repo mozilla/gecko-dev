@@ -145,5 +145,6 @@ tasks:
                 - testing/mozharness/mozharness/mozilla/l10n/locales.py
                 - testing/mozharness/scripts/desktop_l10n.py
                 - third_party/python/compare-locales/**
+                - third_party/python/moz.l10n/**
                 - toolkit/locales/**
                 - toolkit/mozapps/installer/**

@@ -151,7 +151,7 @@ merge-%: IS_LANGUAGE_REPACK=1
 merge-%: AB_CD=$*
 merge-%:
 # For nightly builds, we automatically check out missing localizations
-# from l10n-central.  We never automatically check out in automation:
+# from firefox-l10n.  We never automatically check out in automation:
 # automation builds check out revisions that have been signed-off by
 # l10n drivers prior to use.
 ifdef MOZ_AUTOMATION
@@ -175,7 +175,7 @@ ifndef MOZ_AUTOMATION
 endif
 endif
 	$(RM) -rf $(REAL_LOCALE_MERGEDIR)
-	-$(PYTHON3) $(MOZILLA_DIR)/mach compare-locales --merge $(BASE_MERGE) $(srcdir)/l10n.toml $(L10NBASEDIR) $*
+	$(PYTHON3) -m moz.l10n.bin.build --config $(srcdir)/l10n.toml --base $(L10NBASEDIR) --target $(BASE_MERGE) --locales $(AB_CD)
 # Hunspell dictionaries are interesting, as we don't ship the en-US
 # dictionary in repacks. Thus we can't use the merge logic from
 # compare-locales above, which would add en-US.dic and en-US.aff to
