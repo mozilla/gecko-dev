@@ -18,7 +18,7 @@ unpack_build () {
 
     if [ ! -f "$pkg_file" ]; then
       return 1
-    fi 
+    fi
     mkdir -p "$dir_name"
     pushd "$dir_name" > /dev/null || exit
     case $unpack_platform in
@@ -71,7 +71,7 @@ unpack_build () {
               rm -rf nonlocalized
               rm -rf localized
               if [ "$(find optional/ | wc -l)" -gt 1 ]
-              then 
+              then
                 cp -rp optional/*     bin/
                 rm -rf optional
               fi
@@ -96,6 +96,9 @@ unpack_build () {
             elif echo "$pkg_file" | grep -q "tar.bz2"
             then
                 tar xfj ../"$pkg_file" > /dev/null
+            elif echo "$pkg_file" | grep -q "tar.xz"
+            then
+                tar xfJ ../"$pkg_file" > /dev/null
             else
                 echo "Unknown package type for file: $pkg_file"
                 exit 1

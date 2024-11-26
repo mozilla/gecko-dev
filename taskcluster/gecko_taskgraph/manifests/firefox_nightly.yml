@@ -255,7 +255,7 @@ mapping:
         destinations:
             - ${year}/${month}/${upload_date}-${branch}/mar-tools/${stage_platform}
             - latest-${branch}/mar-tools/${stage_platform}
-    target.tar.bz2:
+    target.tar.xz:
         <<: *default
         description: "Main installer for Linux platforms"
         all_locales: true
@@ -266,8 +266,8 @@ mapping:
             - linux64-shippable
             - linux64-aarch64-shippable
             - linux64-asan-reporter-shippable
-        pretty_name: firefox-${version}.${locale}.${filename_platform}.tar.bz2
-        checksums_path: firefox-${version}.${locale}.${filename_platform}.tar.bz2
+        pretty_name: firefox-${version}.${locale}.${filename_platform}.tar.xz
+        checksums_path: firefox-${version}.${locale}.${filename_platform}.tar.xz
         destinations:
             by-locale:
                 en-US:
@@ -277,7 +277,7 @@ mapping:
                 default:
                     - ${year}/${month}/${upload_date}-${branch}-l10n
                     - latest-${branch}-l10n
-    target.tar.bz2.asc:
+    target.tar.xz.asc:
         <<: *default
         description: "Detached signature for the checksums file"
         all_locales: true
@@ -288,8 +288,8 @@ mapping:
             - linux64-shippable
             - linux64-aarch64-shippable
             - linux64-asan-reporter-shippable
-        pretty_name: firefox-${version}.${locale}.${filename_platform}.tar.bz2.asc
-        checksums_path: firefox-${version}.${locale}.${filename_platform}.tar.bz2.asc
+        pretty_name: firefox-${version}.${locale}.${filename_platform}.tar.xz.asc
+        checksums_path: firefox-${version}.${locale}.${filename_platform}.tar.xz.asc
         destinations:
             by-locale:
                 en-US:

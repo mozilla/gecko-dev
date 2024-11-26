@@ -582,7 +582,7 @@ class DesktopUnittest(TestingMixin, MercurialScript, MozbaseMixin, CodeCoverageM
         symbols_url = None
         self.info("finding symbols_url based upon self.installer_url")
         if self.installer_url:
-            for ext in [".zip", ".dmg", ".tar.bz2"]:
+            for ext in [".zip", ".dmg", ".tar.bz2", ".tar.xz"]:
                 if ext in self.installer_url:
                     symbols_url = self.installer_url.replace(
                         ext, ".crashreporter-symbols.zip"

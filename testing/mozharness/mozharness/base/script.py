@@ -745,11 +745,16 @@ class ScriptMixin(PlatformMixin):
         def _determine_extraction_method_and_kwargs(url):
             EXTENSION_TO_MIMETYPE = {
                 "bz2": "application/x-bzip2",
+                "xz": "application/x-xz",
                 "gz": "application/x-gzip",
                 "tar": "application/x-tar",
                 "zip": "application/zip",
             }
             MIMETYPES = {
+                "application/x-xz": {
+                    "function": self.deflate,
+                    "kwargs": {"mode": "r:xz"},
+                },
                 "application/x-bzip2": {
                     "function": self.deflate,
                     "kwargs": {"mode": "r:bz2"},

@@ -16,7 +16,7 @@ kind-dependencies:
     - repackage
 
 task-defaults:
-    description: Generates flatpak by reackaging the existing tar.bz2
+    description: Generates flatpak by repackaging the existing tar.xz
     run-on-projects: []  # to make sure this never runs as part of CI
     run-on-releases: [beta, release, release-rc]
     shipping-phase: promote

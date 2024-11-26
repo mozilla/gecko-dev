@@ -76,6 +76,10 @@ def add_command(config, tasks):
             task["attributes"]["build_platform"]
         )
 
+        llbv_arg = ()
+        if last_linux_bz2_version := task["extra"].get("last-linux-bz2-version", None):
+            llbv_arg = ("--last-linux-bz2-version", last_linux_bz2_version)
+
         command = [
             "python",
             "testing/mozharness/scripts/release/update-verify-config-creator.py",
@@ -99,6 +103,7 @@ def add_command(config, tasks):
             config.params["moz_build_date"],
             "--to-revision",
             get_branch_rev(config),
+            *llbv_arg,
             "--output-file",
             "update-verify.cfg",
             "--local-repo",

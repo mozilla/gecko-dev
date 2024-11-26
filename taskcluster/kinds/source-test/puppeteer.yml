@@ -12,7 +12,7 @@ task-defaults:
                 linux1804-64/opt: build-linux64-shippable/opt
     fetches:
         build:
-            - target.tar.bz2
+            - target.tar.xz
         toolchain:
             - linux64-node
     treeherder:

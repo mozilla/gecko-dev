@@ -2,6 +2,7 @@
 
 set -e
 set -x
+set -o pipefail
 
 cd /builds/worker
 
@@ -30,6 +31,11 @@ case "$ORIG_URL" in
 *.tar.bz2)
 	curl -L "$ORIG_URL" | tar -C a -jxf -
 	curl -L "$NEW_URL" | tar -C b -jxf -
+	;;
+*.tar.xz)
+	# Account for comparing with old bz2 format
+	curl -L "$ORIG_URL" | tar -C a -Jxf -
+	curl -L "$NEW_URL" | tar -C b -Jxf -
 	;;
 *.tar.gz)
 	curl -L "$ORIG_URL" | tar -C a -zxf -

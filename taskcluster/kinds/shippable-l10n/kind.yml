@@ -110,7 +110,7 @@ tasks:
         env:
             by-build-platform:
                 linux.*:    # linux64 and 32 get same treatment here
-                    EN_US_PACKAGE_NAME: target.tar.bz2
+                    EN_US_PACKAGE_NAME: target.tar.xz
                     EN_US_BINARY_URL:
                         artifact-reference: <build-signing/{artifact_prefix}>
                 macosx64.*:
