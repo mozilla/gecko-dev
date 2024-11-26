@@ -32,7 +32,6 @@ class XULButtonAccessible : public AccessibleWrap {
   // LocalAccessible
   virtual mozilla::a11y::role NativeRole() const override;
   virtual uint64_t NativeState() const override;
-  virtual bool AttributeChangesState(nsAtom* aAttribute) override;
 
   // ActionAccessible
   virtual bool HasPrimaryAction() const override;
@@ -47,6 +46,13 @@ class XULButtonAccessible : public AccessibleWrap {
 
  protected:
   virtual ~XULButtonAccessible();
+
+  // LocalAccessible
+  virtual bool AttributeChangesState(nsAtom* aAttribute) override;
+  virtual void DOMAttributeChanged(int32_t aNameSpaceID, nsAtom* aAttribute,
+                                   int32_t aModType,
+                                   const nsAttrValue* aOldValue,
+                                   uint64_t aOldState) override;
 
   // XULButtonAccessible
   bool ContainsMenu() const;

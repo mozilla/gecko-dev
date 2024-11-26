@@ -10,6 +10,7 @@
   <script src="chrome://mochikit/content/chrome-harness.js"/>
 
   <script src="../common.js" />
+  <script src="../name.js" />
   <script src="../promisified-events.js" />
 
   <script type="application/javascript">
@@ -23,6 +24,15 @@
       info("Changing childContent value");
       getNode("childcontent").setAttribute("value", "Changed.");
       await changed;
+
+      const buttonWithLabel = getNode("buttonWithLabel");
+      testName(buttonWithLabel, "initial");
+      info("Changing buttonWithLabel label");
+      changed = waitForEvent(EVENT_NAME_CHANGE, buttonWithLabel);
+      buttonWithLabel.setAttribute("label", "changed");
+      await changed;
+      testName(buttonWithLabel, "changed");
+
       SimpleTest.finish();
     }
 
@@ -45,5 +55,7 @@
         <description id="childcontent" value="This will be changed."/>
       </richlistitem>
     </richlistbox>
+
+    <button id="buttonWithLabel" label="initial"/>
   </vbox>
 </window>

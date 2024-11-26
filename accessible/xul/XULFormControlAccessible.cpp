@@ -104,6 +104,18 @@ bool XULButtonAccessible::AttributeChangesState(nsAtom* aAttribute) {
   return AccessibleWrap::AttributeChangesState(aAttribute);
 }
 
+void XULButtonAccessible::DOMAttributeChanged(int32_t aNameSpaceID,
+                                              nsAtom* aAttribute,
+                                              int32_t aModType,
+                                              const nsAttrValue* aOldValue,
+                                              uint64_t aOldState) {
+  AccessibleWrap::DOMAttributeChanged(aNameSpaceID, aAttribute, aModType,
+                                      aOldValue, aOldState);
+  if (aAttribute == nsGkAtoms::label) {
+    mDoc->FireDelayedEvent(nsIAccessibleEvent::EVENT_NAME_CHANGE, this);
+  }
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 // XULButtonAccessible: Widgets
 
