@@ -67,8 +67,8 @@ class BaselineCodeGen {
 #endif
 
   template <typename... HandlerArgs>
-  explicit BaselineCodeGen(JSContext* cx, TempAllocator& alloc,
-                           MacroAssembler& masmArg, HandlerArgs&&... args);
+  explicit BaselineCodeGen(TempAllocator& alloc, MacroAssembler& masmArg,
+                           CompileRuntime* runtimeArg, HandlerArgs&&... args);
 
   template <typename T>
   void pushArg(const T& t) {
