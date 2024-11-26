@@ -382,7 +382,7 @@ class D3D11DXVA2Manager : public DXVA2Manager {
   struct InputTextureInfo {
     InputTextureInfo(ID3D11Texture2D* aTexture, UINT aIndex,
                      const gfx::IntRect& aRegion)
-        : mTexture(aTexture), mIndex(aIndex), mRegion(aRegion){};
+        : mTexture(aTexture), mIndex(aIndex), mRegion(aRegion) {};
     ID3D11Texture2D* mTexture;
     const UINT mIndex;
     const gfx::IntRect mRegion;
