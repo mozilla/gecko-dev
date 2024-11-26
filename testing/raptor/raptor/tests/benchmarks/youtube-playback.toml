@@ -79,6 +79,20 @@ alert_on = [
 apps = "firefox, geckoview, fenix, refbrow, chrome"
 test_url = "https://prod.youtube-test.prod.webservices.mozgcp.net/main.html?test_type=playbackperf-hfr-test&raptor=true&exclude=1,2&muted=true&command=run"
 
+["youtube-playback-h264-720p60"]
+apps = "firefox, chrome, geckoview, fenix, refbrow, chrome-m"
+page_cycles = 20
+test_url = "https://prod.youtube-test.prod.webservices.mozgcp.net/main.html?test_type=playbackperf-hfr-test&tests=38&raptor=true&exclude=1,2&muted=true&command=run"
+support_class = "browsertime_benchmark.py"
+browsertime_args = "--pageCompleteWaitTime=10 --pageCompleteCheckPollTimeout=10 --browsertime.benchmark_wait_time=500"
+
+["youtube-playback-vp9-720p60"]
+apps = "firefox, chrome, geckoview, fenix, refbrow, chrome-m"
+page_cycles = 20
+test_url = "https://prod.youtube-test.prod.webservices.mozgcp.net/main.html?test_type=playbackperf-hfr-test&tests=6&raptor=true&exclude=1,2&muted=true&command=run"
+support_class = "browsertime_benchmark.py"
+browsertime_args = "--pageCompleteWaitTime=10 --pageCompleteCheckPollTimeout=10 --browsertime.benchmark_wait_time=500"
+
 ["youtube-playback-v9-1080p30"]
 apps = "firefox"
 page_cycles = 20

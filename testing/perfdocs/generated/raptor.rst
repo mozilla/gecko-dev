@@ -7306,6 +7306,193 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
 
 
 
+.. dropdown:: youtube-playback-h264-720p60
+   :class-container: anchor-id-youtube-playback-h264-720p60-b
+
+   * Command to Run Locally
+
+   .. code-block::
+
+      ./mach raptor -t youtube-playback-h264-720p60
+
+   **Owner**: PerfTest Team
+
+   * **alert threshold**: 2.0
+   * **apps**: firefox, chrome, geckoview, fenix, refbrow, chrome-m
+   * **browsertime args**: --pageCompleteWaitTime=10 --pageCompleteCheckPollTimeout=10 --browsertime.benchmark_wait_time=500
+   * **expected**: pass
+   * **expose browser profiler**: true
+   * **gecko profile interval**: 1000
+   * **gecko profile threads**: MediaPlayback
+   * **link searchfox**: `<https://searchfox.org/mozilla-central/source/testing/raptor/raptor/tests/benchmarks/youtube-playback.toml#82>`__
+   * **lower is better**: true
+   * **page cycles**: 20
+   * **page timeout**: 2700000
+   * **preferences**: media.autoplay.default=0 media.autoplay.ask-permission=false media.autoplay.blocking_policy=0 media.allowed-to-play.enabled=true media.block-autoplay-until-in-foreground=false
+   * **subtest lower is better**: true
+   * **subtest unit**: score
+   * **support class**: browsertime_benchmark.py
+   * **test url**: `<https://prod.youtube-test.prod.webservices.mozgcp.net/main.html?test_type=playbackperf-hfr-test&tests=38&raptor=true&exclude=1,2&muted=true&command=run>`__
+   * **type**: benchmark
+   * **unit**: score
+   * **use live sites**: true
+   * **Test Task**:
+
+   .. list-table:: **test-android-hw-a55-14-0-aarch64-shippable/opt**
+      :widths: 30 15 15 15 15
+      :header-rows: 1
+
+      * - **Test Name**
+        - mozilla-central
+        - autoland
+        - mozilla-release
+        - mozilla-beta
+      * - **browsertime-power-mobile-chrome-m-youtube-playback-h264-720p60**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-power-mobile-chrome-m-youtube-playback-h264-720p60-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-power-mobile-fenix-youtube-playback-h264-720p60**
+        - ✅
+        - ✅
+        - ❌
+        - ❌
+      * - **browsertime-power-mobile-fenix-youtube-playback-h264-720p60-nofis**
+        - ✅
+        - ✅
+        - ❌
+        - ❌
+      * - **browsertime-power-mobile-geckoview-youtube-playback-h264-720p60**
+        - ✅
+        - ✅
+        - ❌
+        - ❌
+      * - **browsertime-power-mobile-geckoview-youtube-playback-h264-720p60-nofis**
+        - ✅
+        - ✅
+        - ❌
+        - ❌
+
+
+   .. list-table:: **test-android-hw-a55-14-0-aarch64/opt**
+      :widths: 30 15 15 15 15
+      :header-rows: 1
+
+      * - **Test Name**
+        - mozilla-central
+        - autoland
+        - mozilla-release
+        - mozilla-beta
+      * - **browsertime-power-mobile-fenix-youtube-playback-h264-720p60**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-power-mobile-fenix-youtube-playback-h264-720p60-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-power-mobile-geckoview-youtube-playback-h264-720p60**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-power-mobile-geckoview-youtube-playback-h264-720p60-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+
+
+   .. list-table:: **test-android-hw-p6-13-0-aarch64-shippable/opt**
+      :widths: 30 15 15 15 15
+      :header-rows: 1
+
+      * - **Test Name**
+        - mozilla-central
+        - autoland
+        - mozilla-release
+        - mozilla-beta
+      * - **browsertime-power-mobile-chrome-m-youtube-playback-h264-720p60**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-power-mobile-chrome-m-youtube-playback-h264-720p60-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-power-mobile-fenix-youtube-playback-h264-720p60**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-power-mobile-fenix-youtube-playback-h264-720p60-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-power-mobile-geckoview-youtube-playback-h264-720p60**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-power-mobile-geckoview-youtube-playback-h264-720p60-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+
+
+   .. list-table:: **test-android-hw-s24-14-0-aarch64-shippable/opt**
+      :widths: 30 15 15 15 15
+      :header-rows: 1
+
+      * - **Test Name**
+        - mozilla-central
+        - autoland
+        - mozilla-release
+        - mozilla-beta
+      * - **browsertime-power-mobile-chrome-m-youtube-playback-h264-720p60**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-power-mobile-chrome-m-youtube-playback-h264-720p60-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-power-mobile-fenix-youtube-playback-h264-720p60**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-power-mobile-fenix-youtube-playback-h264-720p60-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-power-mobile-geckoview-youtube-playback-h264-720p60**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-power-mobile-geckoview-youtube-playback-h264-720p60-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+
+
+
 .. dropdown:: youtube-playback-h264-full-1080p30
    :class-container: anchor-id-youtube-playback-h264-full-1080p30-b
 
@@ -8183,7 +8370,7 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
    * **gather cpuTime**: true
    * **gecko profile interval**: 1000
    * **gecko profile threads**: MediaPlayback
-   * **link searchfox**: `<https://searchfox.org/mozilla-central/source/testing/raptor/raptor/tests/benchmarks/youtube-playback.toml#82>`__
+   * **link searchfox**: `<https://searchfox.org/mozilla-central/source/testing/raptor/raptor/tests/benchmarks/youtube-playback.toml#96>`__
    * **lower is better**: true
    * **page cycles**: 20
    * **page timeout**: 2700000
@@ -8359,7 +8546,7 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
    * **gather cpuTime**: true
    * **gecko profile interval**: 1000
    * **gecko profile threads**: MediaPlayback
-   * **link searchfox**: `<https://searchfox.org/mozilla-central/source/testing/raptor/raptor/tests/benchmarks/youtube-playback.toml#88>`__
+   * **link searchfox**: `<https://searchfox.org/mozilla-central/source/testing/raptor/raptor/tests/benchmarks/youtube-playback.toml#102>`__
    * **lower is better**: true
    * **page cycles**: 20
    * **page timeout**: 2700000
@@ -8535,7 +8722,7 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
    * **gather cpuTime**: true
    * **gecko profile interval**: 1000
    * **gecko profile threads**: MediaPlayback
-   * **link searchfox**: `<https://searchfox.org/mozilla-central/source/testing/raptor/raptor/tests/benchmarks/youtube-playback.toml#94>`__
+   * **link searchfox**: `<https://searchfox.org/mozilla-central/source/testing/raptor/raptor/tests/benchmarks/youtube-playback.toml#108>`__
    * **lower is better**: true
    * **page cycles**: 20
    * **page timeout**: 2700000
@@ -8711,7 +8898,7 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
    * **gather cpuTime**: true
    * **gecko profile interval**: 1000
    * **gecko profile threads**: MediaPlayback
-   * **link searchfox**: `<https://searchfox.org/mozilla-central/source/testing/raptor/raptor/tests/benchmarks/youtube-playback.toml#109>`__
+   * **link searchfox**: `<https://searchfox.org/mozilla-central/source/testing/raptor/raptor/tests/benchmarks/youtube-playback.toml#123>`__
    * **lower is better**: true
    * **page cycles**: 20
    * **page timeout**: 2700000
@@ -8869,6 +9056,193 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
 
 
 
+.. dropdown:: youtube-playback-vp9-720p60
+   :class-container: anchor-id-youtube-playback-vp9-720p60-b
+
+   * Command to Run Locally
+
+   .. code-block::
+
+      ./mach raptor -t youtube-playback-vp9-720p60
+
+   **Owner**: PerfTest Team
+
+   * **alert threshold**: 2.0
+   * **apps**: firefox, chrome, geckoview, fenix, refbrow, chrome-m
+   * **browsertime args**: --pageCompleteWaitTime=10 --pageCompleteCheckPollTimeout=10 --browsertime.benchmark_wait_time=500
+   * **expected**: pass
+   * **expose browser profiler**: true
+   * **gecko profile interval**: 1000
+   * **gecko profile threads**: MediaPlayback
+   * **link searchfox**: `<https://searchfox.org/mozilla-central/source/testing/raptor/raptor/tests/benchmarks/youtube-playback.toml#89>`__
+   * **lower is better**: true
+   * **page cycles**: 20
+   * **page timeout**: 2700000
+   * **preferences**: media.autoplay.default=0 media.autoplay.ask-permission=false media.autoplay.blocking_policy=0 media.allowed-to-play.enabled=true media.block-autoplay-until-in-foreground=false
+   * **subtest lower is better**: true
+   * **subtest unit**: score
+   * **support class**: browsertime_benchmark.py
+   * **test url**: `<https://prod.youtube-test.prod.webservices.mozgcp.net/main.html?test_type=playbackperf-hfr-test&tests=6&raptor=true&exclude=1,2&muted=true&command=run>`__
+   * **type**: benchmark
+   * **unit**: score
+   * **use live sites**: true
+   * **Test Task**:
+
+   .. list-table:: **test-android-hw-a55-14-0-aarch64-shippable/opt**
+      :widths: 30 15 15 15 15
+      :header-rows: 1
+
+      * - **Test Name**
+        - mozilla-central
+        - autoland
+        - mozilla-release
+        - mozilla-beta
+      * - **browsertime-power-mobile-chrome-m-youtube-playback-vp9-720p60**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-power-mobile-chrome-m-youtube-playback-vp9-720p60-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-power-mobile-fenix-youtube-playback-vp9-720p60**
+        - ✅
+        - ✅
+        - ❌
+        - ❌
+      * - **browsertime-power-mobile-fenix-youtube-playback-vp9-720p60-nofis**
+        - ✅
+        - ✅
+        - ❌
+        - ❌
+      * - **browsertime-power-mobile-geckoview-youtube-playback-vp9-720p60**
+        - ✅
+        - ✅
+        - ❌
+        - ❌
+      * - **browsertime-power-mobile-geckoview-youtube-playback-vp9-720p60-nofis**
+        - ✅
+        - ✅
+        - ❌
+        - ❌
+
+
+   .. list-table:: **test-android-hw-a55-14-0-aarch64/opt**
+      :widths: 30 15 15 15 15
+      :header-rows: 1
+
+      * - **Test Name**
+        - mozilla-central
+        - autoland
+        - mozilla-release
+        - mozilla-beta
+      * - **browsertime-power-mobile-fenix-youtube-playback-vp9-720p60**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-power-mobile-fenix-youtube-playback-vp9-720p60-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-power-mobile-geckoview-youtube-playback-vp9-720p60**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-power-mobile-geckoview-youtube-playback-vp9-720p60-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+
+
+   .. list-table:: **test-android-hw-p6-13-0-aarch64-shippable/opt**
+      :widths: 30 15 15 15 15
+      :header-rows: 1
+
+      * - **Test Name**
+        - mozilla-central
+        - autoland
+        - mozilla-release
+        - mozilla-beta
+      * - **browsertime-power-mobile-chrome-m-youtube-playback-vp9-720p60**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-power-mobile-chrome-m-youtube-playback-vp9-720p60-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-power-mobile-fenix-youtube-playback-vp9-720p60**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-power-mobile-fenix-youtube-playback-vp9-720p60-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-power-mobile-geckoview-youtube-playback-vp9-720p60**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-power-mobile-geckoview-youtube-playback-vp9-720p60-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+
+
+   .. list-table:: **test-android-hw-s24-14-0-aarch64-shippable/opt**
+      :widths: 30 15 15 15 15
+      :header-rows: 1
+
+      * - **Test Name**
+        - mozilla-central
+        - autoland
+        - mozilla-release
+        - mozilla-beta
+      * - **browsertime-power-mobile-chrome-m-youtube-playback-vp9-720p60**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-power-mobile-chrome-m-youtube-playback-vp9-720p60-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-power-mobile-fenix-youtube-playback-vp9-720p60**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-power-mobile-fenix-youtube-playback-vp9-720p60-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-power-mobile-geckoview-youtube-playback-vp9-720p60**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-power-mobile-geckoview-youtube-playback-vp9-720p60-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+
+
+
 .. dropdown:: youtube-playback-vp9-sfr
    :class-container: anchor-id-youtube-playback-vp9-sfr-b
 
@@ -8886,7 +9260,7 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
    * **expose browser profiler**: true
    * **gecko profile interval**: 1000
    * **gecko profile threads**: MediaPlayback
-   * **link searchfox**: `<https://searchfox.org/mozilla-central/source/testing/raptor/raptor/tests/benchmarks/youtube-playback.toml#124>`__
+   * **link searchfox**: `<https://searchfox.org/mozilla-central/source/testing/raptor/raptor/tests/benchmarks/youtube-playback.toml#138>`__
    * **lower is better**: true
    * **page cycles**: 1
    * **page timeout**: 2700000
@@ -9119,7 +9493,7 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
    * **expose browser profiler**: true
    * **gecko profile interval**: 1000
    * **gecko profile threads**: MediaPlayback
-   * **link searchfox**: `<https://searchfox.org/mozilla-central/source/testing/raptor/raptor/tests/benchmarks/youtube-playback.toml#128>`__
+   * **link searchfox**: `<https://searchfox.org/mozilla-central/source/testing/raptor/raptor/tests/benchmarks/youtube-playback.toml#142>`__
    * **lower is better**: true
    * **page cycles**: 1
    * **page timeout**: 2700000
@@ -9310,7 +9684,7 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
    * **expose browser profiler**: true
    * **gecko profile interval**: 1000
    * **gecko profile threads**: MediaPlayback
-   * **link searchfox**: `<https://searchfox.org/mozilla-central/source/testing/raptor/raptor/tests/benchmarks/youtube-playback.toml#142>`__
+   * **link searchfox**: `<https://searchfox.org/mozilla-central/source/testing/raptor/raptor/tests/benchmarks/youtube-playback.toml#156>`__
    * **lower is better**: true
    * **page cycles**: 1
    * **page timeout**: 2700000
@@ -9501,7 +9875,7 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
    * **expose browser profiler**: true
    * **gecko profile interval**: 1000
    * **gecko profile threads**: MediaPlayback
-   * **link searchfox**: `<https://searchfox.org/mozilla-central/source/testing/raptor/raptor/tests/benchmarks/youtube-playback.toml#156>`__
+   * **link searchfox**: `<https://searchfox.org/mozilla-central/source/testing/raptor/raptor/tests/benchmarks/youtube-playback.toml#170>`__
    * **lower is better**: true
    * **page cycles**: 1
    * **page timeout**: 2700000

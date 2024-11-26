@@ -520,6 +520,7 @@ android-hw-browsertime:
     - browsertime-benchmark-motionmark-1-3
     - browsertime-benchmark-jetstream2
     - browsertime-video-playback-latency-mobile
+    - browsertime-youtube-playback-power-mobile
 
 android-hw-browsertime-profiling:
     - browsertime-tp6m-profiling
@@ -527,3 +528,6 @@ android-hw-browsertime-profiling:
 android-hw-speedometer-tests:
     - browsertime-benchmark-speedometer-mobile
     - browsertime-benchmark-speedometer3-mobile
+
+android-hw-power-tests:
+    - browsertime-youtube-playback-power-mobile
