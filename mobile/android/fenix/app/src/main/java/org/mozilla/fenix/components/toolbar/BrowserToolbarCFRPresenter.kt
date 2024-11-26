@@ -40,6 +40,7 @@ import mozilla.telemetry.glean.private.NoExtras
 import org.mozilla.fenix.GleanMetrics.CookieBanners
 import org.mozilla.fenix.GleanMetrics.TrackingProtection
 import org.mozilla.fenix.R
+import org.mozilla.fenix.browser.tabstrip.isTabStripEnabled
 import org.mozilla.fenix.ext.settings
 import org.mozilla.fenix.theme.FirefoxTheme
 import org.mozilla.fenix.utils.Settings
@@ -80,7 +81,10 @@ class BrowserToolbarCFRPresenter(
      */
     @Suppress("MagicNumber")
     fun start() {
-        if (!isPrivate && !settings.hasShownTabSwipeCFR) {
+        @Suppress("ComplexCondition")
+        if (!isPrivate && !settings.hasShownTabSwipeCFR &&
+            !context.isTabStripEnabled() && settings.isSwipeToolbarToSwitchTabsEnabled
+        ) {
             scope = browserStore.flowScoped { flow ->
                 flow
                     .distinctUntilChangedBy { it.selectedNormalTab?.id }
