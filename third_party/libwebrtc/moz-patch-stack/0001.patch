@@ -1,125 +1,330 @@
 From: Michael Froman <mjfroman@mac.com>
-Date: Tue, 19 Nov 2024 16:16:38 -0600
-Subject: (tmp-cherry-pick) Revert "Roll chromium_revision
- ccf648df91..dcb20ee7c2 (1365600:1365760)" (042359fe36)
+Date: Tue, 19 Nov 2024 16:13:40 -0600
+Subject: (tmp-cherry-pick) Revert "Allow sending to separate payload types for
+ each simulcast index." (f95278f0d2)
 
-This reverts commit 1c6d50960e13dc6616bd612385fdbd270755d078.
+This reverts commit bcb19c00ba8ab1788ba3c08f28ee1b23e0cc77b9.
 
 Reason for revert: speculative revert
 
 Original change's description:
-> Roll chromium_revision ccf648df91..dcb20ee7c2 (1365600:1365760)
+> Allow sending to separate payload types for each simulcast index.
 >
-> Change log: https://chromium.googlesource.com/chromium/src/+log/ccf648df91..dcb20ee7c2
-> Full diff: https://chromium.googlesource.com/chromium/src/+/ccf648df91..dcb20ee7c2
+> This change is for mixed-codec simulcast.
 >
-> Changed dependencies
-> * src/build: https://chromium.googlesource.com/chromium/src/build/+log/f2790bfa32..ba9b42d40c
-> * src/ios: https://chromium.googlesource.com/chromium/src/ios/+log/26dfb6e15c..af24c7d949
-> * src/testing: https://chromium.googlesource.com/chromium/src/testing/+log/3ef5641e1f..b86522e058
-> * src/third_party: https://chromium.googlesource.com/chromium/src/third_party/+log/c8056c18ac..5c651ea03a
-> * src/third_party/depot_tools: https://chromium.googlesource.com/chromium/tools/depot_tools.git/+log/c109945e72..1df84d0a0a
-> * src/third_party/perfetto: https://android.googlesource.com/platform/external/perfetto.git/+log/5361e5909e..74fbed7d43
-> * src/third_party/r8/d8/cipd: yEomA-IPmb_JtuiEvwgtxRHtSEaICkDY1sDko_rQGO0C..3KCj5eRYCvGGYs5i90pRaeihkzsqgUGc4OkICT8AOlIC
-> * src/tools: https://chromium.googlesource.com/chromium/src/tools/+log/8c5814c8d2..63ecf6c58b
-> DEPS diff: https://chromium.googlesource.com/chromium/src/+/ccf648df91..dcb20ee7c2/DEPS
+> By obtaining the payload type via RtpConfig::GetStreamConfig(),
+> the correct payload type can be retrieved regardless of whether
+> RtpConfig::stream_configs is initialized or not.
 >
-> No update to Clang.
->
-> BUG=None
->
-> Change-Id: I758355ae79e03876b8f4dd5aacf10bad0205b972
-> Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/364981
-> Commit-Queue: Autoroller <chromium-webrtc-autoroll@webrtc-ci.iam.gserviceaccount.com>
-> Bot-Commit: Autoroller <chromium-webrtc-autoroll@webrtc-ci.iam.gserviceaccount.com>
-> Cr-Commit-Position: refs/heads/main@{#43200}
+> Bug: webrtc:362277533
+> Change-Id: I6b2a1ae66356b20a832565ce6729c3ce9e73a161
+> Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/364760
+> Reviewed-by: Danil Chapovalov <danilchap@webrtc.org>
+> Commit-Queue: Florent Castelli <orphis@webrtc.org>
+> Reviewed-by: Florent Castelli <orphis@webrtc.org>
+> Cr-Commit-Position: refs/heads/main@{#43197}
 
-Bug: None
-Change-Id: I3cb43b18de809552dc0f1dfaa1b5521015800cd4
+Bug: webrtc:362277533
+Change-Id: I50ac1fa0d9963bf9796f8604542aef5cec653493
 No-Presubmit: true
 No-Tree-Checks: true
 No-Try: true
-Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/365141
-Reviewed-by: Mirko Bonadei <mbonadei@webrtc.org>
+Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/365161
 Commit-Queue: Jeremy Leconte <jleconte@webrtc.org>
+Reviewed-by: Danil Chapovalov <danilchap@webrtc.org>
 Bot-Commit: rubber-stamper@appspot.gserviceaccount.com <rubber-stamper@appspot.gserviceaccount.com>
-Cr-Commit-Position: refs/heads/main@{#43207}
+Cr-Commit-Position: refs/heads/main@{#43208}
 ---
- DEPS | 18 +++++++++---------
- 1 file changed, 9 insertions(+), 9 deletions(-)
+ call/rtp_config.cc                |  27 -------
+ call/rtp_config.h                 |   3 -
+ call/rtp_video_sender.cc          |  22 +++---
+ call/rtp_video_sender_unittest.cc | 113 +-----------------------------
+ 4 files changed, 10 insertions(+), 155 deletions(-)
 
-diff --git a/DEPS b/DEPS
-index 7a95f03edc..f66953e612 100644
---- a/DEPS
-+++ b/DEPS
-@@ -10,7 +10,7 @@ vars = {
-   # chromium waterfalls. More info at: crbug.com/570091.
-   'checkout_configuration': 'default',
-   'checkout_instrumented_libraries': 'checkout_linux and checkout_configuration == "default"',
--  'chromium_revision': 'dcb20ee7c28712ed658b54b3a2fc3277b6056ac3',
-+  'chromium_revision': 'ccf648df915eadad3d27653c32709dfc5b3e5254',
+diff --git a/call/rtp_config.cc b/call/rtp_config.cc
+index 16911297ef..02cc0f40b1 100644
+--- a/call/rtp_config.cc
++++ b/call/rtp_config.cc
+@@ -239,31 +239,4 @@ std::optional<std::string> RtpConfig::GetRidForSsrc(uint32_t ssrc) const {
+   return std::nullopt;
+ }
  
-   # Fetch the prebuilt binaries for llvm-cov and llvm-profdata. Needed to
-   # process the raw profiles produced by instrumented targets (built with
-@@ -63,7 +63,7 @@ deps = {
-   'src/base':
-     'https://chromium.googlesource.com/chromium/src/base@006d78d70b321239c8953bec055e37638e04d900',
-   'src/build':
--    'https://chromium.googlesource.com/chromium/src/build@ba9b42d40c98b2d45594931473c52d6485514764',
-+    'https://chromium.googlesource.com/chromium/src/build@f2790bfa3238410fbb4bb74b6282f6edb3c1e089',
-   'src/buildtools':
-     'https://chromium.googlesource.com/chromium/src/buildtools@0a905dcb6d88dbfe4b9b169bf367da9371f72ae3',
-   # Gradle 6.6.1. Used for testing Android Studio project generation for WebRTC.
-@@ -72,13 +72,13 @@ deps = {
-     'condition': 'checkout_android',
-   },
-   'src/ios': {
--    'url': 'https://chromium.googlesource.com/chromium/src/ios@af24c7d949b3797b1a9dffb7e0be0503ab93a369',
-+    'url': 'https://chromium.googlesource.com/chromium/src/ios@26dfb6e15c33512e9ce695d5ed9ea8bcfc2ef8ce',
-     'condition': 'checkout_ios',
-   },
-   'src/testing':
--    'https://chromium.googlesource.com/chromium/src/testing@b86522e0589c5c4ee1787c0dfe5f42441b7c471f',
-+    'https://chromium.googlesource.com/chromium/src/testing@3ef5641e1fbbd8fbf2fba9fb0aac929dc3b04d97',
-   'src/third_party':
--    'https://chromium.googlesource.com/chromium/src/third_party@5c651ea03af823237a5bc331ca3212d4a189eecc',
-+    'https://chromium.googlesource.com/chromium/src/third_party@c8056c18ac5999093ce3c9aa25286d6787e9c6d0',
+-RtpStreamConfig RtpConfig::GetStreamConfig(size_t index) const {
+-  // GetStreamConfig function usually returns stream_configs[index], but if
+-  // stream_configs is not initialized (i.e., index >= stream_configs.size()),
+-  // it creates and returns an RtpStreamConfig using fields such as ssrcs, rids,
+-  // payload_name, and payload_type from RtpConfig.
+-  RTC_DCHECK_LT(index, ssrcs.size());
+-  if (index < stream_configs.size()) {
+-    return stream_configs[index];
+-  }
+-  RtpStreamConfig stream_config;
+-  stream_config.ssrc = ssrcs[index];
+-  if (index < rids.size()) {
+-    stream_config.rid = rids[index];
+-  }
+-  stream_config.payload_name = payload_name;
+-  stream_config.payload_type = payload_type;
+-  stream_config.raw_payload = raw_payload;
+-  if (!rtx.ssrcs.empty()) {
+-    RTC_DCHECK_EQ(ssrcs.size(), rtx.ssrcs.size());
+-    auto& stream_config_rtx = stream_config.rtx.emplace();
+-    stream_config_rtx.ssrc = rtx.ssrcs[index];
+-    stream_config_rtx.payload_type = rtx.payload_type;
+-  }
+-
+-  return stream_config;
+-}
+-
+ }  // namespace webrtc
+diff --git a/call/rtp_config.h b/call/rtp_config.h
+index d77289febc..6b79e55f40 100644
+--- a/call/rtp_config.h
++++ b/call/rtp_config.h
+@@ -193,9 +193,6 @@ struct RtpConfig {
+   uint32_t GetMediaSsrcAssociatedWithRtxSsrc(uint32_t rtx_ssrc) const;
+   uint32_t GetMediaSsrcAssociatedWithFlexfecSsrc(uint32_t flexfec_ssrc) const;
+   std::optional<std::string> GetRidForSsrc(uint32_t ssrc) const;
+-
+-  // Returns send config for RTP stream by provided simulcast `index`.
+-  RtpStreamConfig GetStreamConfig(size_t index) const;
+ };
+ }  // namespace webrtc
+ #endif  // CALL_RTP_CONFIG_H_
+diff --git a/call/rtp_video_sender.cc b/call/rtp_video_sender.cc
+index 3e931de69f..be56eac626 100644
+--- a/call/rtp_video_sender.cc
++++ b/call/rtp_video_sender.cc
+@@ -470,14 +470,12 @@ RtpVideoSender::RtpVideoSender(
+   }
  
-   'src/buildtools/linux64': {
-     'packages': [
-@@ -251,7 +251,7 @@ deps = {
-   'src/third_party/crc32c/src':
-     'https://chromium.googlesource.com/external/github.com/google/crc32c.git@d3d60ac6e0f16780bcfcc825385e1d338801a558',
-   'src/third_party/depot_tools':
--    'https://chromium.googlesource.com/chromium/tools/depot_tools.git@1df84d0a0a794a76aaef1faae971e1c683d90ca9',
-+    'https://chromium.googlesource.com/chromium/tools/depot_tools.git@c109945e729cb3d8c17f306c9cae9d3f98d7d323',
-   'src/third_party/ffmpeg':
-     'https://chromium.googlesource.com/chromium/third_party/ffmpeg.git@686d6944501a6ee9c849581e3fe343273d4af3f6',
-   'src/third_party/flatbuffers/src':
-@@ -351,7 +351,7 @@ deps = {
-       'condition': 'checkout_android',
-   },
-   'src/third_party/perfetto':
--    'https://android.googlesource.com/platform/external/perfetto.git@74fbed7d43de71e92e8042f931c76a2662554efc',
-+    'https://android.googlesource.com/platform/external/perfetto.git@5361e5909e80f71900ba231872fe0cc008d1e3cb',
-   'src/third_party/protobuf-javascript/src':
-     Var('chromium_git') + '/external/github.com/protocolbuffers/protobuf-javascript' + '@' + 'e34549db516f8712f678fcd4bc411613b5cc5295',
-   'src/third_party/libvpx/source/libvpx':
-@@ -399,7 +399,7 @@ deps = {
-       'packages': [
-           {
-               'package': 'chromium/third_party/r8',
--              'version': '3KCj5eRYCvGGYs5i90pRaeihkzsqgUGc4OkICT8AOlIC',
-+              'version': 'yEomA-IPmb_JtuiEvwgtxRHtSEaICkDY1sDko_rQGO0C',
-           },
-       ],
-       'condition': 'checkout_android',
-@@ -410,7 +410,7 @@ deps = {
-     'condition': 'checkout_android',
-   },
-   'src/tools':
--    'https://chromium.googlesource.com/chromium/src/tools@63ecf6c58b023caa4f453a42b65ece744270af16',
-+    'https://chromium.googlesource.com/chromium/src/tools@8c5814c8d24ad90987b4cbd3c69947fc2e461f0e',
+   bool fec_enabled = false;
+-  for (size_t i = 0; i < rtp_streams_.size(); i++) {
+-    const RtpStreamSender& stream = rtp_streams_[i];
++  for (const RtpStreamSender& stream : rtp_streams_) {
+     // Simulcast has one module for each layer. Set the CNAME on all modules.
+     stream.rtp_rtcp->SetCNAME(rtp_config_.c_name.c_str());
+     stream.rtp_rtcp->SetMaxRtpPacketSize(rtp_config_.max_packet_size);
+-    stream.rtp_rtcp->RegisterSendPayloadFrequency(
+-        rtp_config_.GetStreamConfig(i).payload_type,
+-        kVideoPayloadTypeFrequency);
++    stream.rtp_rtcp->RegisterSendPayloadFrequency(rtp_config_.payload_type,
++                                                  kVideoPayloadTypeFrequency);
+     if (stream.fec_generator != nullptr) {
+       fec_enabled = true;
+     }
+@@ -578,7 +576,7 @@ EncodedImageCallback::Result RtpVideoSender::OnEncodedImage(
+   // knowledge of the offset to a single place.
+   if (!rtp_streams_[simulcast_index].rtp_rtcp->OnSendingRtpFrame(
+           encoded_image.RtpTimestamp(), encoded_image.capture_time_ms_,
+-          rtp_config_.GetStreamConfig(simulcast_index).payload_type,
++          rtp_config_.payload_type,
+           encoded_image._frameType == VideoFrameType::kVideoFrameKey)) {
+     // The payload router could be active but this module isn't sending.
+     return Result(Result::ERROR_SEND_FAILED);
+@@ -618,8 +616,7 @@ EncodedImageCallback::Result RtpVideoSender::OnEncodedImage(
  
-   'src/third_party/espresso': {
-       'packages': [
+   bool send_result =
+       rtp_streams_[simulcast_index].sender_video->SendEncodedImage(
+-          rtp_config_.GetStreamConfig(simulcast_index).payload_type,
+-          codec_type_, rtp_timestamp, encoded_image,
++          rtp_config_.payload_type, codec_type_, rtp_timestamp, encoded_image,
+           params_[simulcast_index].GetRtpVideoHeader(
+               encoded_image, codec_specific_info, frame_id),
+           expected_retransmission_time);
+@@ -757,12 +754,9 @@ void RtpVideoSender::ConfigureSsrcs(
+ 
+   // Configure RTX payload types.
+   RTC_DCHECK_GE(rtp_config_.rtx.payload_type, 0);
+-  for (size_t i = 0; i < rtp_streams_.size(); ++i) {
+-    const RtpStreamSender& stream = rtp_streams_[i];
+-    RtpStreamConfig stream_config = rtp_config_.GetStreamConfig(i);
+-    RTC_DCHECK(stream_config.rtx);
+-    stream.rtp_rtcp->SetRtxSendPayloadType(stream_config.rtx->payload_type,
+-                                           stream_config.payload_type);
++  for (const RtpStreamSender& stream : rtp_streams_) {
++    stream.rtp_rtcp->SetRtxSendPayloadType(rtp_config_.rtx.payload_type,
++                                           rtp_config_.payload_type);
+     stream.rtp_rtcp->SetRtxSendStatus(kRtxRetransmitted |
+                                       kRtxRedundantPayloads);
+   }
+diff --git a/call/rtp_video_sender_unittest.cc b/call/rtp_video_sender_unittest.cc
+index 5e8ab8508e..32fa2cd530 100644
+--- a/call/rtp_video_sender_unittest.cc
++++ b/call/rtp_video_sender_unittest.cc
+@@ -82,7 +82,6 @@ using ::testing::SaveArg;
+ using ::testing::SizeIs;
+ 
+ const int8_t kPayloadType = 96;
+-const int8_t kPayloadType2 = 98;
+ const uint32_t kSsrc1 = 12345;
+ const uint32_t kSsrc2 = 23456;
+ const uint32_t kRtxSsrc1 = 34567;
+@@ -132,8 +131,7 @@ VideoSendStream::Config CreateVideoSendStreamConfig(
+     Transport* transport,
+     const std::vector<uint32_t>& ssrcs,
+     const std::vector<uint32_t>& rtx_ssrcs,
+-    int payload_type,
+-    rtc::ArrayView<const int> payload_types) {
++    int payload_type) {
+   VideoSendStream::Config config(transport);
+   config.rtp.ssrcs = ssrcs;
+   config.rtp.rtx.ssrcs = rtx_ssrcs;
+@@ -145,20 +143,6 @@ VideoSendStream::Config CreateVideoSendStreamConfig(
+   config.rtp.extensions.emplace_back(RtpDependencyDescriptorExtension::Uri(),
+                                      kDependencyDescriptorExtensionId);
+   config.rtp.extmap_allow_mixed = true;
+-
+-  if (!payload_types.empty()) {
+-    RTC_CHECK_EQ(payload_types.size(), ssrcs.size());
+-    for (size_t i = 0; i < ssrcs.size(); ++i) {
+-      auto& stream_config = config.rtp.stream_configs.emplace_back();
+-      stream_config.ssrc = ssrcs[i];
+-      stream_config.payload_type = payload_types[i];
+-      if (i < rtx_ssrcs.size()) {
+-        auto& rtx = stream_config.rtx.emplace();
+-        rtx.ssrc = rtx_ssrcs[i];
+-        rtx.payload_type = payload_types[i] + 1;
+-      }
+-    }
+-  }
+   return config;
+ }
+ 
+@@ -171,7 +155,6 @@ class RtpVideoSenderTestFixture {
+       const std::map<uint32_t, RtpPayloadState>& suspended_payload_states,
+       FrameCountObserver* frame_count_observer,
+       rtc::scoped_refptr<FrameTransformerInterface> frame_transformer,
+-      const std::vector<int>& payload_types,
+       const FieldTrialsView* field_trials = nullptr)
+       : time_controller_(Timestamp::Millis(1000000)),
+         env_(CreateEnvironment(&field_trials_,
+@@ -181,8 +164,7 @@ class RtpVideoSenderTestFixture {
+         config_(CreateVideoSendStreamConfig(&transport_,
+                                             ssrcs,
+                                             rtx_ssrcs,
+-                                            payload_type,
+-                                            payload_types)),
++                                            payload_type)),
+         bitrate_config_(GetBitrateConfig()),
+         transport_controller_(
+             RtpTransportConfig{.env = env_, .bitrate_config = bitrate_config_}),
+@@ -204,22 +186,6 @@ class RtpVideoSenderTestFixture {
+         std::make_unique<FecControllerDefault>(env_), nullptr, CryptoOptions{},
+         frame_transformer);
+   }
+-  RtpVideoSenderTestFixture(
+-      const std::vector<uint32_t>& ssrcs,
+-      const std::vector<uint32_t>& rtx_ssrcs,
+-      int payload_type,
+-      const std::map<uint32_t, RtpPayloadState>& suspended_payload_states,
+-      FrameCountObserver* frame_count_observer,
+-      rtc::scoped_refptr<FrameTransformerInterface> frame_transformer,
+-      const FieldTrialsView* field_trials = nullptr)
+-      : RtpVideoSenderTestFixture(ssrcs,
+-                                  rtx_ssrcs,
+-                                  payload_type,
+-                                  suspended_payload_states,
+-                                  frame_count_observer,
+-                                  frame_transformer,
+-                                  /*payload_types=*/{},
+-                                  field_trials) {}
+ 
+   RtpVideoSenderTestFixture(
+       const std::vector<uint32_t>& ssrcs,
+@@ -234,7 +200,6 @@ class RtpVideoSenderTestFixture {
+                                   suspended_payload_states,
+                                   frame_count_observer,
+                                   /*frame_transformer=*/nullptr,
+-                                  /*payload_types=*/{},
+                                   field_trials) {}
+ 
+   RtpVideoSenderTestFixture(
+@@ -249,7 +214,6 @@ class RtpVideoSenderTestFixture {
+                                   suspended_payload_states,
+                                   /*frame_count_observer=*/nullptr,
+                                   /*frame_transformer=*/nullptr,
+-                                  /*payload_types=*/{},
+                                   field_trials) {}
+ 
+   ~RtpVideoSenderTestFixture() { SetSending(false); }
+@@ -987,79 +951,6 @@ TEST(RtpVideoSenderTest,
+   EXPECT_EQ(dd_s1.frame_number(), 1002);
+ }
+ 
+-TEST(RtpVideoSenderTest, MixedCodecSimulcastPayloadType) {
+-  // When multiple payload types are set, verify that the payload type switches
+-  // corresponding to the simulcast index.
+-  RtpVideoSenderTestFixture test({kSsrc1, kSsrc2}, {kRtxSsrc1, kRtxSsrc2},
+-                                 kPayloadType, {}, nullptr, nullptr,
+-                                 {kPayloadType, kPayloadType2});
+-  test.SetSending(true);
+-
+-  std::vector<uint16_t> rtp_sequence_numbers;
+-  std::vector<RtpPacket> sent_packets;
+-  EXPECT_CALL(test.transport(), SendRtp)
+-      .Times(3)
+-      .WillRepeatedly([&](rtc::ArrayView<const uint8_t> packet,
+-                          const PacketOptions& options) -> bool {
+-        RtpPacket& rtp_packet = sent_packets.emplace_back();
+-        EXPECT_TRUE(rtp_packet.Parse(packet));
+-        rtp_sequence_numbers.push_back(rtp_packet.SequenceNumber());
+-        return true;
+-      });
+-
+-  const uint8_t kPayload[1] = {'a'};
+-  EncodedImage encoded_image;
+-  encoded_image.SetEncodedData(
+-      EncodedImageBuffer::Create(kPayload, sizeof(kPayload)));
+-
+-  CodecSpecificInfo codec_specific;
+-  codec_specific.codecType = VideoCodecType::kVideoCodecVP8;
+-
+-  encoded_image.SetSimulcastIndex(0);
+-  ASSERT_EQ(test.router()->OnEncodedImage(encoded_image, &codec_specific).error,
+-            EncodedImageCallback::Result::OK);
+-  ASSERT_EQ(test.router()->OnEncodedImage(encoded_image, &codec_specific).error,
+-            EncodedImageCallback::Result::OK);
+-  encoded_image.SetSimulcastIndex(1);
+-  ASSERT_EQ(test.router()->OnEncodedImage(encoded_image, &codec_specific).error,
+-            EncodedImageCallback::Result::OK);
+-
+-  test.AdvanceTime(TimeDelta::Millis(33));
+-  ASSERT_THAT(sent_packets, SizeIs(3));
+-  EXPECT_EQ(sent_packets[0].PayloadType(), kPayloadType);
+-  EXPECT_EQ(sent_packets[1].PayloadType(), kPayloadType);
+-  EXPECT_EQ(sent_packets[2].PayloadType(), kPayloadType2);
+-
+-  // Verify that NACK is sent to the RTX payload type corresponding to the
+-  // payload type.
+-  rtcp::Nack nack1, nack2;
+-  nack1.SetMediaSsrc(kSsrc1);
+-  nack2.SetMediaSsrc(kSsrc2);
+-  nack1.SetPacketIds({rtp_sequence_numbers[0], rtp_sequence_numbers[1]});
+-  nack2.SetPacketIds({rtp_sequence_numbers[2]});
+-  rtc::Buffer nack_buffer1 = nack1.Build();
+-  rtc::Buffer nack_buffer2 = nack2.Build();
+-
+-  std::vector<RtpPacket> sent_rtx_packets;
+-  EXPECT_CALL(test.transport(), SendRtp)
+-      .Times(3)
+-      .WillRepeatedly([&](rtc::ArrayView<const uint8_t> packet,
+-                          const PacketOptions& options) {
+-        RtpPacket& rtp_packet = sent_rtx_packets.emplace_back();
+-        EXPECT_TRUE(rtp_packet.Parse(packet));
+-        return true;
+-      });
+-  test.router()->DeliverRtcp(nack_buffer1.data(), nack_buffer1.size());
+-  test.router()->DeliverRtcp(nack_buffer2.data(), nack_buffer2.size());
+-
+-  test.AdvanceTime(TimeDelta::Millis(33));
+-
+-  ASSERT_THAT(sent_rtx_packets, SizeIs(3));
+-  EXPECT_EQ(sent_rtx_packets[0].PayloadType(), kPayloadType + 1);
+-  EXPECT_EQ(sent_rtx_packets[1].PayloadType(), kPayloadType + 1);
+-  EXPECT_EQ(sent_rtx_packets[2].PayloadType(), kPayloadType2 + 1);
+-}
+-
+ TEST(RtpVideoSenderTest,
+      SupportsDependencyDescriptorForVp8NotProvidedByEncoder) {
+   constexpr uint8_t kPayload[1] = {'a'};
