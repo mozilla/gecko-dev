@@ -217,12 +217,14 @@ MethodStatus jit::BaselineCompile(JSContext* cx, JSScript* script,
   TempAllocator temp(&cx->tempLifoAlloc());
   JitContext jctx(cx);
 
+  StackMacroAssembler masm(cx, temp);
+
   GlobalLexicalEnvironmentObject* globalLexical =
       &cx->global()->lexicalEnvironment();
   JSObject* globalThis = globalLexical->thisObject();
   uint32_t baseWarmUpThreshold =
       OptimizationInfo::baseWarmUpThresholdForScript(cx, script);
-  BaselineCompiler compiler(cx, temp, script, globalLexical, globalThis,
+  BaselineCompiler compiler(cx, temp, masm, script, globalLexical, globalThis,
                             baseWarmUpThreshold);
   if (!compiler.init()) {
     ReportOutOfMemory(cx);
@@ -1008,7 +1010,8 @@ bool jit::GenerateBaselineInterpreter(JSContext* cx,
                                       BaselineInterpreter& interpreter) {
   if (IsBaselineInterpreterEnabled()) {
     TempAllocator temp(&cx->tempLifoAlloc());
-    BaselineInterpreterGenerator generator(cx, temp);
+    StackMacroAssembler masm(cx, temp);
+    BaselineInterpreterGenerator generator(cx, temp, masm);
     return generator.generate(cx, interpreter);
   }
 

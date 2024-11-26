@@ -91,17 +91,19 @@ BaselineInterpreterHandler::BaselineInterpreterHandler(MacroAssembler& masm)
 template <typename Handler>
 template <typename... HandlerArgs>
 BaselineCodeGen<Handler>::BaselineCodeGen(JSContext* cx, TempAllocator& alloc,
+                                          MacroAssembler& masmArg,
                                           HandlerArgs&&... args)
-    : handler(masm, std::forward<HandlerArgs>(args)...),
+    : handler(masmArg, std::forward<HandlerArgs>(args)...),
       runtime(CompileRuntime::get(cx->runtime())),
-      masm(cx, alloc),
+      masm(masmArg),
       frame(handler.frame()) {}
 
 BaselineCompiler::BaselineCompiler(JSContext* cx, TempAllocator& alloc,
+                                   MacroAssembler& masm,
                                    JSScript* script, JSObject* globalLexical,
                                    JSObject* globalThis,
                                    uint32_t baseWarmUpThreshold)
-    : BaselineCodeGen(cx, alloc, /* HandlerArgs = */ alloc, script,
+    : BaselineCodeGen(cx, alloc, masm, /* HandlerArgs = */ alloc, script,
                       globalLexical, globalThis, baseWarmUpThreshold) {
 #ifdef JS_CODEGEN_NONE
   MOZ_CRASH();
@@ -109,8 +111,9 @@ BaselineCompiler::BaselineCompiler(JSContext* cx, TempAllocator& alloc,
 }
 
 BaselineInterpreterGenerator::BaselineInterpreterGenerator(JSContext* cx,
-                                                           TempAllocator& alloc)
-    : BaselineCodeGen(cx, alloc /* no handlerArgs */) {}
+                                                           TempAllocator& alloc,
+                                                           MacroAssembler& masm)
+  : BaselineCodeGen(cx, alloc, masm /* no handlerArgs */) {}
 
 bool BaselineCompilerHandler::init() {
   if (!analysis_.init(alloc_)) {

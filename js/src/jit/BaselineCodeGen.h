@@ -38,7 +38,7 @@ class BaselineCodeGen {
   Handler handler;
 
   CompileRuntime* runtime;
-  StackMacroAssembler masm;
+  MacroAssembler& masm;
 
   typename Handler::FrameInfoT& frame;
 
@@ -68,7 +68,7 @@ class BaselineCodeGen {
 
   template <typename... HandlerArgs>
   explicit BaselineCodeGen(JSContext* cx, TempAllocator& alloc,
-                           HandlerArgs&&... args);
+                           MacroAssembler& masmArg, HandlerArgs&&... args);
 
   template <typename T>
   void pushArg(const T& t) {
@@ -389,9 +389,9 @@ class BaselineCompiler final : private BaselineCompilerCodeGen {
   BaselinePerfSpewer perfSpewer_;
 
  public:
-  BaselineCompiler(JSContext* cx, TempAllocator& alloc, JSScript* script,
-                   JSObject* globalLexical, JSObject* globalThis,
-                   uint32_t baseWarmUpThreshold);
+  BaselineCompiler(JSContext* cx, TempAllocator& alloc, MacroAssembler& masm,
+                   JSScript* script, JSObject* globalLexical,
+                   JSObject* globalThis, uint32_t baseWarmUpThreshold);
   [[nodiscard]] bool init();
 
   MethodStatus compile(JSContext* cx);
@@ -522,7 +522,8 @@ class BaselineInterpreterGenerator final : private BaselineInterpreterCodeGen {
   BaselineInterpreterPerfSpewer perfSpewer_;
 
  public:
-  explicit BaselineInterpreterGenerator(JSContext* cx, TempAllocator& alloc);
+  explicit BaselineInterpreterGenerator(JSContext* cx, TempAllocator& alloc,
+                                        MacroAssembler& masm);
 
   [[nodiscard]] bool generate(JSContext* cx, BaselineInterpreter& interpreter);
 
