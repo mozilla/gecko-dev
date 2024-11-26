@@ -49,5 +49,4 @@ RUN apt-get update && \
       unzip \
       uuid \
       wget \
-      x11-utils \
       zip

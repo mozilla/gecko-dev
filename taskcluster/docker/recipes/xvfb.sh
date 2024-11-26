@@ -16,60 +16,24 @@ cleanup_xvfb() {
     local interactive=${TASKCLUSTER_INTERACTIVE:-false}
     if [ -n "$xvfb_pid" ] && [[ $vnc == false ]] && [[ $interactive == false ]] ; then
         kill $xvfb_pid || true
-        screen -XS xvfb quit || true
-    fi
-}
-
-# Attempt to start xvfb in a screen session with the given resolution and display
-# number.  Up to 5 attempts will be made to start xvfb with a short delay
-# between retries
-try_xvfb() {
-    screen -dmS xvfb Xvfb :$2 -nolisten tcp -noreset -screen 0 $1 \
-       > ~/artifacts/xvfb/xvfb.log 2>&1
-    export DISPLAY=:$2
-
-    # Only error code 255 matters, because it signifies that no
-    # display could be opened. As long as we can open the display
-    # tests should work. We'll retry a few times with a sleep before
-    # failing.
-    local retry_count=0
-    local max_retries=5
-    xvfb_test=0
-    until [ $retry_count -gt $max_retries ]; do
-        xvinfo; xvfb_test=$?
-        if [ $xvfb_test != 255 ]; then
-            retry_count=$(($max_retries + 1))
-        else
-            retry_count=$(($retry_count + 1))
-            echo "Failed to start Xvfb, retry: $retry_count"
-            sleep 2
-        fi
-    done
-    if [ $xvfb_test == 255 ]; then
-        return 1
-    else
-        return 0
     fi
 }
 
 start_xvfb() {
-    set +e
     mkdir -p ~/artifacts/xvfb
-    local retry_count=0
-    local max_retries=2
-    local success=1
-    until [ $retry_count -gt $max_retries ]; do
-        try_xvfb $1 $2
-        success=$?
-        if [ $success -eq 0 ]; then
-            retry_count=$(($max_retries + 1))
-        else
-            retry_count=$(($retry_count + 1))
-            sleep 10
-        fi
-    done
-    set -e
-    if [ $success -eq 1 ]; then
-        fail "Could not start xvfb after ${max_retries} attempts"
+    # Add a handler for SIGUSR1
+    trap : SIGUSR1
+    # Start Xvfb with SIGUSR1 set to SIG_IGN; it will then signal its parent when it's ready to accept connections
+    (trap '' SIGUSR1; exec Xvfb :$2 -nolisten tcp -noreset -screen 0 $1 > ~/artifacts/xvfb/xvfb.log 2>&1) &
+    xvfb_pid=$!
+    # Wait for SIGUSR1 (or Xvfb exit in case of error)
+    set +e
+    wait $xvfb_pid
+    wait_result=$?
+    if [ $wait_result -ne $((128 + $(kill -l SIGUSR1) )) ]; then
+        fail "Xvfb failed to start" "$(cat ~/artifacts/xvfb/xvfb.log >&2)"
     fi
+    set -e
+
+    export DISPLAY=:$2
 }

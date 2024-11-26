@@ -90,9 +90,6 @@ apt_packages+=('xwit')
 apt_packages+=('yasm')
 apt_packages+=('zip')
 
-# xvinfo for test-linux.sh to monitor Xvfb startup
-apt_packages+=('x11-utils')
-
 # Bug 1232407 - this allows the user to start vnc
 apt_packages+=('x11vnc')
 
