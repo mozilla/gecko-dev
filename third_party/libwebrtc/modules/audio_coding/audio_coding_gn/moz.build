@@ -31,7 +31,6 @@ LOCAL_INCLUDES += [
 ]
 
 UNIFIED_SOURCES += [
-    "/third_party/libwebrtc/modules/audio_coding/acm2/acm_receiver.cc",
     "/third_party/libwebrtc/modules/audio_coding/acm2/acm_remixing.cc",
     "/third_party/libwebrtc/modules/audio_coding/acm2/acm_resampler.cc",
     "/third_party/libwebrtc/modules/audio_coding/acm2/audio_coding_module.cc",
