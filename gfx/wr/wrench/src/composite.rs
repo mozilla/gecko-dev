@@ -6,7 +6,7 @@ use std::os::raw::c_void;
 use std::ptr;
 
 use glutin::platform::windows::EGLContext;
-use webrender::{Compositor2, CompositorInputConfig};
+use webrender::{Compositor2, CompositorInputConfig, CompositorOutputConfig};
 use winit::platform::windows::WindowExtWindows;
 
 use crate::WindowWrapper;
@@ -37,13 +37,10 @@ extern "C" {
     fn wrc_new(d3d11_device: *const c_void, hwnd: *const c_void) -> CompositorHandle;
     fn wrc_delete(compositor: CompositorHandle);
 
-    fn wrc_create_layer(compositor: CompositorHandle, width: i32, height: i32, is_opaque: bool) -> LayerId;
+    fn wrc_create_layer(compositor: CompositorHandle, width: i32, height: i32) -> LayerId;
     fn wrc_get_layer_backbuffer(layer_id: LayerId) -> *mut c_void;
-    fn wrc_set_layer_position(layer_id: LayerId, x: f32, y: f32);
     fn wrc_present_layer(layer_id: LayerId);
-    fn wrc_add_layer(compositor: CompositorHandle, layer_id: LayerId);
 
-    fn wrc_begin_frame(compositor: CompositorHandle);
     fn wrc_end_frame(compositor: CompositorHandle);
 }
 
@@ -52,10 +49,10 @@ struct WrLayer {
     // Layer dimensions
     width: i32,
     height: i32,
-    // EGL surface that gets bound for webrender to draw to
-    surface: EGLSurface,
     // Handle to the FFI layer
     layer_id: LayerId,
+    // EGL surface that gets bound for webrender to draw to
+    surface: EGLSurface,
 }
 
 impl WrLayer {
@@ -76,8 +73,8 @@ pub struct WrCompositor {
     display: EGLDisplay,
     // FFI compositor handle
     compositor: CompositorHandle,
-    // The swapchain layers needed for current scene
-    layers: Vec<WrLayer>,
+    // The main swapchain layer - in future we'll have a pool of layers here
+    main_layer: WrLayer,
 }
 
 impl WrCompositor {
@@ -102,7 +99,7 @@ impl WrCompositor {
             display,
             context,
             compositor,
-            layers: Vec::new(),
+            main_layer: WrLayer::empty(),
         }
     }
 }
@@ -123,146 +120,98 @@ impl Compositor2 for WrCompositor {
     fn begin_frame(
         &mut self,
         input: &CompositorInputConfig,
-    ) {
-        unsafe {
-            // Reset DC visual tree
-            wrc_begin_frame(self.compositor);
+    ) -> CompositorOutputConfig {
+        let output = CompositorOutputConfig {
+        };
+
+        // See if we need to construct a primary swap-chain layer
+        if self.main_layer.width != input.framebuffer_size.width ||
+           self.main_layer.height != input.framebuffer_size.height {
+            // TODO: Handle resize of layer (not needed for initial commit,
+            // but will need to support resizing wrench window)
+            assert_eq!(self.main_layer.layer_id, LayerId::INVALID);
+
+            // Construct a DC swap-chain
+            let layer_id = unsafe {
+                wrc_create_layer(self.compositor, input.framebuffer_size.width, input.framebuffer_size.height)
+            };
+
+            let pbuffer_attribs: [EGLint; 5] = [
+                egl::ffi::WIDTH as EGLint, input.framebuffer_size.width,
+                egl::ffi::HEIGHT as EGLint, input.framebuffer_size.height,
+                egl::ffi::NONE as EGLint,
+            ];
+
+            let attribs: [EGLint; 18] = [
+                egl::ffi::SURFACE_TYPE as EGLint, egl::ffi::WINDOW_BIT as EGLint,
+                egl::ffi::RED_SIZE as EGLint, 8,
+                egl::ffi::GREEN_SIZE as EGLint, 8,
+                egl::ffi::BLUE_SIZE as EGLint, 8,
+                egl::ffi::ALPHA_SIZE as EGLint, 8,
+                egl::ffi::RENDERABLE_TYPE as EGLint, egl::ffi::OPENGL_ES2_BIT as EGLint,
+                // TODO(gw): Can we disable z-buffer for compositing always?
+                egl::ffi::DEPTH_SIZE as EGLint, 24,
+                egl::ffi::STENCIL_SIZE as EGLint, 8,
+                egl::ffi::NONE as EGLint, egl::ffi::NONE as EGLint
+            ];
+
+            // Get the D3D backbuffer texture for the swap-chain
+            let back_buffer = unsafe {
+                wrc_get_layer_backbuffer(layer_id)
+            };
+
+            // Create an EGL surface <-> binding to the D3D backbuffer texture
+            let mut egl_config = ptr::null();
+            let mut cfg_count = 0;
+
+            let ok = unsafe {
+                egl::ffi::ChooseConfig(self.display, attribs.as_ptr(), &mut egl_config, 1, &mut cfg_count)
+            };
+
+            assert_ne!(ok, 0);
+            assert_eq!(cfg_count, 1);
+            assert_ne!(egl_config, ptr::null());
+
+            let surface = unsafe {
+                egl::ffi::CreatePbufferFromClientBuffer(
+                    self.display,
+                    egl::ffi::D3D_TEXTURE_ANGLE,
+                    back_buffer,
+                    egl_config,
+                    pbuffer_attribs.as_ptr(),
+                )
+            };
+            assert_ne!(surface, ptr::null());
+
+            self.main_layer = WrLayer {
+                width: input.framebuffer_size.width,
+                height: input.framebuffer_size.height,
+                layer_id,
+                surface,
+            };
         }
 
-        let prev_layer_count = self.layers.len();
-        let curr_layer_count = input.layers.len();
-
-        if prev_layer_count > curr_layer_count {
-            todo!();
-        } else if curr_layer_count > prev_layer_count {
-            // Construct new empty layers, they'll get resized below
-            for _ in 0 .. curr_layer_count-prev_layer_count {
-                self.layers.push(WrLayer::empty());
-            }
-        }
-
-        assert_eq!(self.layers.len(), input.layers.len());
-
-        for (input, layer) in input.layers.iter().zip(self.layers.iter_mut()) {
-            let input_size = input.rect.size();
-
-            // TODO(gwc): Handle External surfaces as swapchains separate from content
-
-            // See if we need to resize the swap-chain layer
-            if input_size.width != layer.width ||
-                input_size.height != layer.height {
-                // TODO: Handle resize of layer (not needed for initial commit,
-                // but will need to support resizing wrench window)
-                assert_eq!(layer.layer_id, LayerId::INVALID);
-
-                // Construct a DC swap-chain
-                layer.width = input_size.width;
-                layer.height = input_size.height;
-                layer.layer_id = unsafe {
-                    wrc_create_layer(self.compositor, layer.width, layer.height, input.is_opaque)
-                };
-
-                let pbuffer_attribs: [EGLint; 5] = [
-                    egl::ffi::WIDTH as EGLint, layer.width,
-                    egl::ffi::HEIGHT as EGLint, layer.height,
-                    egl::ffi::NONE as EGLint,
-                ];
-
-                let attribs: [EGLint; 18] = [
-                    egl::ffi::SURFACE_TYPE as EGLint, egl::ffi::WINDOW_BIT as EGLint,
-                    egl::ffi::RED_SIZE as EGLint, 8,
-                    egl::ffi::GREEN_SIZE as EGLint, 8,
-                    egl::ffi::BLUE_SIZE as EGLint, 8,
-                    egl::ffi::ALPHA_SIZE as EGLint, 8,
-                    egl::ffi::RENDERABLE_TYPE as EGLint, egl::ffi::OPENGL_ES2_BIT as EGLint,
-                    // TODO(gw): Can we disable z-buffer for compositing always?
-                    egl::ffi::DEPTH_SIZE as EGLint, 24,
-                    egl::ffi::STENCIL_SIZE as EGLint, 8,
-                    egl::ffi::NONE as EGLint, egl::ffi::NONE as EGLint
-                ];
-
-                // Get the D3D backbuffer texture for the swap-chain
-                let back_buffer = unsafe {
-                    wrc_get_layer_backbuffer(layer.layer_id)
-                };
-
-                // Create an EGL surface <-> binding to the D3D backbuffer texture
-                let mut egl_config = ptr::null();
-                let mut cfg_count = 0;
-
-                let ok = unsafe {
-                    egl::ffi::ChooseConfig(self.display, attribs.as_ptr(), &mut egl_config, 1, &mut cfg_count)
-                };
-
-                assert_ne!(ok, 0);
-                assert_eq!(cfg_count, 1);
-                assert_ne!(egl_config, ptr::null());
-
-                let surface = unsafe {
-                    egl::ffi::CreatePbufferFromClientBuffer(
-                        self.display,
-                        egl::ffi::D3D_TEXTURE_ANGLE,
-                        back_buffer,
-                        egl_config,
-                        pbuffer_attribs.as_ptr(),
-                    )
-                };
-                assert_ne!(surface, ptr::null());
-
-                layer.surface = surface;
-            }
-
-            unsafe {
-                wrc_set_layer_position(
-                    layer.layer_id,
-                    input.rect.min.x as f32,
-                    input.rect.min.y as f32,
-                );
-            }
-        }
-    }
-
-    // Bind a layer by index for compositing into
-    fn bind_layer(&mut self, index: usize) {
         // Bind the DC surface to EGL so that WR can composite to the layer
-        let layer = &self.layers[index];
-
         let ok = unsafe {
             egl::ffi::MakeCurrent(
                 self.display,
-                layer.surface,
-                layer.surface,
+                self.main_layer.surface,
+                self.main_layer.surface,
                 self.context,
             )
         };
         assert!(ok != 0);
-    }
 
-    // Finish compositing a layer and present the swapchain
-    fn present_layer(&mut self, index: usize) {
-        let layer = &self.layers[index];
-
-        unsafe {
-            wrc_present_layer(layer.layer_id);
-        }
-    }
-
-    fn add_surface(
-            &mut self,
-            index: usize,
-            _clip_rect: webrender::api::units::DeviceIntRect,
-            _image_rendering: webrender::api::ImageRendering,
-        ) {
-        let layer = &self.layers[index];
-
-        unsafe {
-            wrc_add_layer(self.compositor, layer.layer_id);
-        }
+        output
     }
 
     // Finish compositing this frame
     fn end_frame(&mut self) {
         unsafe {
+            // TODO(gw): Once multiple layers are supported, present gets called on each
+            //           layer, as required, rather than during `end_frame`.
+            wrc_present_layer(self.main_layer.layer_id);
+
             // Do any final commits to DC
             wrc_end_frame(self.compositor);
         }
