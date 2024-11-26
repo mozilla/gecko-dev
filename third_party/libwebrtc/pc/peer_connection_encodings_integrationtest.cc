@@ -2152,8 +2152,8 @@ TEST_F(PeerConnectionEncodingsIntegrationTest,
       pc_wrapper->pc()->AddTransceiver(cricket::MEDIA_TYPE_VIDEO, init);
   ASSERT_TRUE(transceiver_or_error.ok());
 
-  // SetParameters: If `requested_resolution` is specified on any encoding it
-  // must be specified on all encodings.
+  // SetParameters: If `requested_resolution` is specified on any active
+  // encoding it must be specified on all active encodings.
   auto sender = transceiver_or_error.value()->sender();
   auto parameters = sender->GetParameters();
   parameters.encodings[0].requested_resolution = {.width = 640, .height = 480};
@@ -2161,11 +2161,19 @@ TEST_F(PeerConnectionEncodingsIntegrationTest,
   auto error = sender->SetParameters(parameters);
   EXPECT_FALSE(error.ok());
   EXPECT_EQ(error.type(), RTCErrorType::INVALID_MODIFICATION);
+  // But it's OK not to specify `requested_resolution` on an inactive encoding.
+  parameters = sender->GetParameters();
+  parameters.encodings[0].requested_resolution = {.width = 640, .height = 480};
+  parameters.encodings[1].active = false;
+  parameters.encodings[1].requested_resolution = std::nullopt;
+  error = sender->SetParameters(parameters);
+  EXPECT_TRUE(error.ok());
 
   // SetParameters: Width and height must not be zero.
   sender = transceiver_or_error.value()->sender();
   parameters = sender->GetParameters();
   parameters.encodings[0].requested_resolution = {.width = 1280, .height = 0};
+  parameters.encodings[1].active = true;
   parameters.encodings[1].requested_resolution = {.width = 0, .height = 720};
   error = sender->SetParameters(parameters);
   EXPECT_FALSE(error.ok());

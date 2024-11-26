@@ -206,7 +206,8 @@ webrtc::RTCError CheckRtpParametersValues(
   if (has_requested_resolution &&
       absl::c_any_of(rtp_parameters.encodings,
                      [](const webrtc::RtpEncodingParameters& encoding) {
-                       return !encoding.requested_resolution.has_value();
+                       return encoding.active &&
+                              !encoding.requested_resolution.has_value();
                      })) {
     LOG_AND_RETURN_ERROR(RTCErrorType::INVALID_MODIFICATION,
                          "If a resolution is specified on any encoding then "
