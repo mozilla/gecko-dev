@@ -24,7 +24,7 @@
 
 // -----------------------------------------------------------------------------
 TestArray.addTest(
-  "Deriving zero bits should fail",
+  "Deriving zero bits should produce an empty array",
   function() {
     var that = this;
     var key = util.hex2abv("0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b");
@@ -37,8 +37,9 @@ TestArray.addTest(
     };
 
     crypto.subtle.importKey("raw", key, "HKDF", false, ["deriveBits"])
-      .then(x => crypto.subtle.deriveBits(alg, x, 0), error(that))
-      .then(error(that), complete(that));
+      .then(x => crypto.subtle.deriveBits(alg, x, 0))
+      .then(memcmp_complete(that, new Uint8Array([])))
+      .catch(error(that));
   }
 );
 

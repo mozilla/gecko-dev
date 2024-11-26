@@ -2820,8 +2820,8 @@ class DeriveHkdfBitsTask : public ReturnArrayBufferViewTask {
       return;
     }
 
-    // length must be non-null and greater than zero and multiple of eight.
-    if (aLength.IsNull() || aLength.Value() == 0 || aLength.Value() % 8 != 0) {
+    // length must be non-null and multiple of eight.
+    if (aLength.IsNull() || aLength.Value() % 8 != 0) {
       mEarlyRv = NS_ERROR_DOM_OPERATION_ERR;
       return;
     }
@@ -2886,6 +2886,12 @@ class DeriveHkdfBitsTask : public ReturnArrayBufferViewTask {
                                                &keyItem, nullptr));
     if (!baseKey) {
       return NS_ERROR_DOM_INVALID_ACCESS_ERR;
+    }
+
+    // We are going to return an empty string, so we can skip the rest.
+    if (mLengthInBits == 0) {
+      mResult.Clear();
+      return NS_OK;
     }
 
     SECItem salt = {siBuffer, nullptr, 0};
@@ -2967,8 +2973,8 @@ class DerivePbkdfBitsTask : public ReturnArrayBufferViewTask {
       return;
     }
 
-    // length must be non-null and greater than zero and multiple of eight.
-    if (aLength.IsNull() || aLength.Value() == 0 || aLength.Value() % 8) {
+    // length must be non-null and multiple of eight.
+    if (aLength.IsNull() || aLength.Value() % 8) {
       mEarlyRv = NS_ERROR_DOM_OPERATION_ERR;
       return;
     }
@@ -3043,6 +3049,12 @@ class DerivePbkdfBitsTask : public ReturnArrayBufferViewTask {
 
     if (!algID) {
       return NS_ERROR_DOM_OPERATION_ERR;
+    }
+
+    // We are going to return an empty string, so we can skip the rest.
+    if (mLength == 0) {
+      mResult.Clear();
+      return NS_OK;
     }
 
     UniquePK11SlotInfo slot(PK11_GetInternalSlot());
