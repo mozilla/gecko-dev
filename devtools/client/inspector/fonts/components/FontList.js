@@ -59,9 +59,9 @@ class FontList extends PureComponent {
       {
         className: "fonts-list",
       },
-      fonts.map((font, i) =>
+      fonts.map(font =>
         Font({
-          key: i,
+          key: font.name,
           font,
           onPreviewClick,
           onToggleFontHighlight,
