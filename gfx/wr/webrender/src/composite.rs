@@ -431,6 +431,16 @@ pub struct CompositeTileDescriptor {
     pub surface_kind: TileSurfaceKind,
 }
 
+// Whether a compositor surface / swapchain is being used
+// by WR to render content, or is an external swapchain for video
+#[cfg_attr(feature = "capture", derive(Serialize))]
+#[cfg_attr(feature = "replay", derive(Deserialize))]
+#[derive(Debug, PartialEq, Copy, Clone)]
+pub enum CompositorSurfaceUsage {
+    Content,
+    External,
+}
+
 /// Describes the properties that identify a surface composition uniquely.
 #[cfg_attr(feature = "capture", derive(Serialize))]
 #[cfg_attr(feature = "replay", derive(Deserialize))]
@@ -1295,17 +1305,22 @@ pub trait Compositor {
     fn get_window_visibility(&self, device: &mut Device) -> WindowVisibility;
 }
 
-// Provides the parameters about the frame to the compositor implementation.
-// TODO(gw): Include information about picture cache slices and external surfaces.
-pub struct CompositorInputConfig {
-    pub framebuffer_size: DeviceIntSize,
+// Describes the configuration for an input layer that the compositor
+// implemention should prepare
+pub struct CompositorInputLayer {
+    // Device space location and size of the layer
+    pub rect: DeviceIntRect,
+    // Whether a content or external surface
+    pub usage: CompositorSurfaceUsage,
+    // If true, layer is opaque, blend can be disabled
+    pub is_opaque: bool,
 }
 
-// Provides the configuration that the compositor selected based on the input
-// config.
-// TODO(gw): Return information about promoted surfaces and swapchain count.
-pub struct CompositorOutputConfig {
-
+// Provides the parameters about the frame to the compositor implementation.
+// TODO(gw): Include information about picture cache slices and external surfaces.
+pub struct CompositorInputConfig<'a> {
+    pub layers: &'a [CompositorInputLayer],
+    pub framebuffer_size: DeviceIntSize,
 }
 
 // Skeleton trait for implementors of swapchain based compositing. For now
@@ -1313,11 +1328,28 @@ pub struct CompositorOutputConfig {
 // be presented by the native compositor.
 // TODO(gw): Extend to handle external surfaces, layers, swgl, etc.
 pub trait Compositor2 {
+    // Prepare to composite a frame. Ensure that layers are constructed
+    // to match the input config
     fn begin_frame(
         &mut self,
         input: &CompositorInputConfig,
-    ) -> CompositorOutputConfig;
+    );
 
+    // Bind a layer (by index in the input config) to begin rendering
+    // content to it.
+    fn bind_layer(&mut self, index: usize);
+
+    // Complete rendering of a layer and present / swap buffers
+    fn present_layer(&mut self, index: usize);
+
+    fn add_surface(
+        &mut self,
+        index: usize,
+        clip_rect: DeviceIntRect,
+        image_rendering: ImageRendering,
+    );
+
+    // Finish compositing this frame - commit the visual tree to the OS
     fn end_frame(&mut self);
 }
 
