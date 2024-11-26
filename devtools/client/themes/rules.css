@@ -723,7 +723,7 @@
      don't have specific highlighted colors (selectors, semi colons, stylesheet location, ...) */
   :root[forced-colors-active] & {
     color: var(--theme-contrast-color);
-    a {
+    a, .theme-twisty {
       color: var(--theme-contrast-color);
     }
 
