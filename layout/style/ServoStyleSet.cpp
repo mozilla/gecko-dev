@@ -1442,9 +1442,10 @@ void ServoStyleSet::MaybeInvalidateRelativeSelectorForEmptyDependency(
 }
 
 void ServoStyleSet::MaybeInvalidateRelativeSelectorForNthEdgeDependency(
-    const Element& aElement) {
+    const Element& aElement,
+    StyleRelativeSelectorNthEdgeInvalidateFor aInvalidateFor) {
   Servo_StyleSet_MaybeInvalidateRelativeSelectorNthEdgeDependency(
-      mRawData.get(), &aElement);
+      mRawData.get(), &aElement, aInvalidateFor);
 }
 
 void ServoStyleSet::MaybeInvalidateRelativeSelectorForNthDependencyFromSibling(

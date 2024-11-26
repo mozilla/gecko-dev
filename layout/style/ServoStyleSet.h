@@ -31,6 +31,7 @@ namespace mozilla {
 enum class MediaFeatureChangeReason : uint8_t;
 enum class StylePageSizeOrientation : uint8_t;
 enum class StyleRuleChangeKind : uint32_t;
+enum class StyleRelativeSelectorNthEdgeInvalidateFor : uint8_t;
 
 class ErrorResult;
 
@@ -514,7 +515,8 @@ class ServoStyleSet {
    * by a selector that can only selector first/last child, that
    * might require us to restyle the relative selector it refers to.
    */
-  void MaybeInvalidateRelativeSelectorForNthEdgeDependency(const dom::Element&);
+  void MaybeInvalidateRelativeSelectorForNthEdgeDependency(
+      const dom::Element&, StyleRelativeSelectorNthEdgeInvalidateFor);
 
   /**
    * Maybe invalidate if a state change on an element that might be selected by

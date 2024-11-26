@@ -160,7 +160,7 @@ void RestyleManager::ContentAppended(nsIContent* aFirstNewContent) {
         PostRestyleEvent(element, RestyleHint::RestyleSubtree(),
                          nsChangeHint(0));
         StyleSet()->MaybeInvalidateRelativeSelectorForNthEdgeDependency(
-            *element);
+            *element, StyleRelativeSelectorNthEdgeInvalidateFor::Last);
         break;
       }
     }
@@ -218,7 +218,7 @@ void RestyleManager::MaybeRestyleForEdgeChildChange(nsINode* aContainer,
         PostRestyleEvent(element, RestyleHint::RestyleSubtree(),
                          nsChangeHint(0));
         StyleSet()->MaybeInvalidateRelativeSelectorForNthEdgeDependency(
-            *element);
+            *element, StyleRelativeSelectorNthEdgeInvalidateFor::First);
       }
       break;
     }
@@ -237,7 +237,7 @@ void RestyleManager::MaybeRestyleForEdgeChildChange(nsINode* aContainer,
         PostRestyleEvent(element, RestyleHint::RestyleSubtree(),
                          nsChangeHint(0));
         StyleSet()->MaybeInvalidateRelativeSelectorForNthEdgeDependency(
-            *element);
+            *element, StyleRelativeSelectorNthEdgeInvalidateFor::Last);
       }
       break;
     }
@@ -541,7 +541,7 @@ void RestyleManager::ContentWillBeRemoved(nsIContent* aOldChild) {
           PostRestyleEvent(element, RestyleHint::RestyleSubtree(),
                            nsChangeHint(0));
           StyleSet()->MaybeInvalidateRelativeSelectorForNthEdgeDependency(
-              *element);
+              *element, StyleRelativeSelectorNthEdgeInvalidateFor::First);
         }
         break;
       }
@@ -560,7 +560,7 @@ void RestyleManager::ContentWillBeRemoved(nsIContent* aOldChild) {
           PostRestyleEvent(element, RestyleHint::RestyleSubtree(),
                            nsChangeHint(0));
           StyleSet()->MaybeInvalidateRelativeSelectorForNthEdgeDependency(
-              *element);
+              *element, StyleRelativeSelectorNthEdgeInvalidateFor::Last);
         }
         break;
       }

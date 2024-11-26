@@ -291,25 +291,33 @@ pub struct InvalidationMap {
 
 /// Tree-structural pseudoclasses that we care about for (Relative selector) invalidation.
 /// Specifically, we need to store information on ones that don't generate the inner selector.
+/// Given the nature of these selectors:
+/// * These are only relevant during DOM mutation invalidations
+/// * Some invalidations may be optimized away.
 #[derive(Clone, Copy, Debug, MallocSizeOf)]
 pub struct TSStateForInvalidation(u8);
 
 bitflags! {
     impl TSStateForInvalidation : u8 {
-        /// :empty
+        /// :empty. This only needs to be considered for DOM mutation, and for
+        /// elements that do not have any children.
         const EMPTY = 1 << 0;
         /// :nth and related selectors, without of.
         const NTH = 1 << 1;
-        /// "Simple" edge child selectors, like :first-child, :last-child, etc.
-        /// Excludes :*-of-type as well as :only-child.
-        const NTH_EDGE = 1 << 2;
+        /// :first-child. This only needs to be considered for DOM mutation, and
+        /// for elements that have no previous sibling.
+        const NTH_EDGE_FIRST = 1 << 2;
+        /// :last-child. This only needs to be considered for DOM mutation,
+        /// and for elements have no next sibling.
+        const NTH_EDGE_LAST = 1 << 3;
     }
 }
 
 impl TSStateForInvalidation {
-    /// Return true if this state invalidation should not result in a blanket
-    pub fn avoid_blanket_invalidation_on_dom_mutation(&self) -> bool {
-        (Self::EMPTY | Self::NTH_EDGE).contains(*self)
+    /// Return true if this state invalidation could be skipped (As per comment
+    /// in the definition of this bitflags)
+    pub fn may_be_optimized(&self) -> bool {
+        (Self::EMPTY | Self::NTH_EDGE_FIRST | Self::NTH_EDGE_LAST).contains(*self)
     }
 }
 
@@ -1166,7 +1174,11 @@ fn on_simple_selector<C: Collector>(
         Component::Empty => Ok(ComponentVisitResult::Handled(TSStateForInvalidation::EMPTY)),
         Component::Nth(data) => {
             let kind = if data.is_simple_edge() {
-                TSStateForInvalidation::NTH_EDGE
+                if data.ty.is_from_end() {
+                    TSStateForInvalidation::NTH_EDGE_LAST
+                } else {
+                    TSStateForInvalidation::NTH_EDGE_FIRST
+                }
             } else {
                 TSStateForInvalidation::NTH
             };

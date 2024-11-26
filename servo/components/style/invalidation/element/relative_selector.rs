@@ -11,7 +11,7 @@ use crate::gecko_bindings::structs::ServoElementSnapshotTable;
 use crate::invalidation::element::element_wrapper::ElementWrapper;
 use crate::invalidation::element::invalidation_map::{
     Dependency, DependencyInvalidationKind, NormalDependencyInvalidationKind,
-    RelativeDependencyInvalidationKind, RelativeSelectorInvalidationMap,
+    RelativeDependencyInvalidationKind, RelativeSelectorInvalidationMap, TSStateForInvalidation,
 };
 use crate::invalidation::element::invalidator::{
     DescendantInvalidationLists, Invalidation, InvalidationProcessor, InvalidationResult,
@@ -515,13 +515,45 @@ where
                 if !operation.accept(&dependency.dep, element) {
                     return true;
                 }
-                if dependency
-                    .state
-                    .avoid_blanket_invalidation_on_dom_mutation()
-                {
-                    // We assume here that these dependencies are handled elsewhere,
-                    // in a more constrained manner.
-                    return true;
+                // This section contain potential optimization for not running full invalidation -
+                // consult documentation in `TSStateForInvalidation`.
+                if dependency.state.may_be_optimized() {
+                    debug_assert!(
+                        self.optimization_context.is_some(),
+                        "Optimization context not available for DOM mutation?"
+                    );
+                    if operation.is_side_effect() {
+                        // Side effect operations act on element not being mutated, so they can't
+                        // change the match outcome of these optimizable pseudoclasses.
+                        return true;
+                    }
+
+                    if dependency.state.contains(TSStateForInvalidation::EMPTY) &&
+                        element.first_element_child().is_some()
+                    {
+                        return true;
+                    }
+
+                    let sibling_traversal_map = self
+                        .optimization_context
+                        .as_ref()
+                        .unwrap()
+                        .sibling_traversal_map;
+                    if dependency
+                        .state
+                        .contains(TSStateForInvalidation::NTH_EDGE_FIRST) &&
+                        sibling_traversal_map.prev_sibling_for(&element).is_some()
+                    {
+                        return true;
+                    }
+
+                    if dependency
+                        .state
+                        .contains(TSStateForInvalidation::NTH_EDGE_LAST) &&
+                        sibling_traversal_map.next_sibling_for(&element).is_some()
+                    {
+                        return true;
+                    }
                 }
                 self.add_dependency(&dependency.dep, element, scope);
                 true

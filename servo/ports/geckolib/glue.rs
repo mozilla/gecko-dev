@@ -7497,15 +7497,26 @@ pub extern "C" fn Servo_StyleSet_MaybeInvalidateRelativeSelectorEmptyDependency(
     );
 }
 
+/// Which edge side should the invalidation run for?
+#[repr(u8)]
+pub enum RelativeSelectorNthEdgeInvalidateFor {
+    First,
+    Last
+}
+
 #[no_mangle]
 pub extern "C" fn Servo_StyleSet_MaybeInvalidateRelativeSelectorNthEdgeDependency(
     raw_data: &PerDocumentStyleData,
     element: &RawGeckoElement,
+    invalidate_for: RelativeSelectorNthEdgeInvalidateFor,
 ) {
     invalidate_relative_selector_ts_dependency(
         &raw_data.borrow().stylist,
         GeckoElement(element),
-        TSStateForInvalidation::NTH_EDGE,
+        match invalidate_for {
+            RelativeSelectorNthEdgeInvalidateFor::First => TSStateForInvalidation::NTH_EDGE_FIRST,
+            RelativeSelectorNthEdgeInvalidateFor::Last => TSStateForInvalidation::NTH_EDGE_LAST,
+        },
     );
 }
 
