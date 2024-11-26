@@ -87,6 +87,7 @@ $shadow-image-inset: inset 0 0 0 0.5px $black-15;
   --newtab-status-success: #{$status-green};
   --newtab-status-error: #{$red-60};
   --newtab-inner-box-shadow-color: #{$black-10};
+  --newtab-section-card-box-shadow-color: rgba(58, 57, 68, 20%);
   --newtab-overlay-color: color-mix(in srgb, var(--newtab-background-color) 85%, transparent);
 
   // Custom border radius
@@ -119,7 +120,7 @@ $shadow-image-inset: inset 0 0 0 0.5px $black-15;
 
     --newtab-element-hover-color: color-mix(in srgb, var(--newtab-background-color) 80%, #{$white});
     --newtab-element-active-color:  color-mix(in srgb, var(--newtab-background-color) 60%, #{$white});
-
+    --newtab-section-card-box-shadow-color: rgba(0, 0, 0, 80%);
     --newtab-element-secondary-color: color-mix(in srgb, currentColor 10%, transparent);
     --newtab-element-secondary-hover-color: color-mix(in srgb, currentColor 17%, transparent);
     --newtab-element-secondary-active-color: color-mix(in srgb, currentColor 30%, transparent);
