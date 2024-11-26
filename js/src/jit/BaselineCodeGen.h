@@ -397,6 +397,7 @@ class BaselineCompiler final : private BaselineCompilerCodeGen {
   static bool prepareToCompile(JSContext* cx, Handle<JSScript*> script,
                                bool compileDebugInstrumentation);
   MethodStatus compile(JSContext* cx);
+
   bool finishCompile(JSContext* cx);
 
   bool compileDebugInstrumentation() const {
@@ -408,6 +409,8 @@ class BaselineCompiler final : private BaselineCompilerCodeGen {
   void setIonCompileable(bool value) { handler.setIonCompileable(value); }
 
  private:
+  bool compileImpl();
+
   bool emitBody();
 
   [[nodiscard]] bool emitDebugTrap();

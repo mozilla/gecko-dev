@@ -239,8 +239,6 @@ bool BaselineCompiler::prepareToCompile(JSContext* cx, Handle<JSScript*> script,
 }
 
 MethodStatus BaselineCompiler::compile(JSContext* cx) {
-  AutoCreatedBy acb(masm, "BaselineCompiler::compile");
-
   // Suppress GC during compilation.
   gc::AutoSuppressGC suppressGC(cx);
 
@@ -257,31 +255,39 @@ MethodStatus BaselineCompiler::compile(JSContext* cx) {
 
   MOZ_ASSERT(!script->hasBaselineScript());
 
-  perfSpewer_.recordOffset(masm, "Prologue");
-  if (!emitPrologue()) {
+  if (!compileImpl()) {
     ReportOutOfMemory(cx);
     return Method_Error;
   }
-
-  if (!emitBody()) {
-    ReportOutOfMemory(cx);
-    return Method_Error;
-  }
-
-  perfSpewer_.recordOffset(masm, "Epilogue");
-  if (!emitEpilogue()) {
-    ReportOutOfMemory(cx);
-    return Method_Error;
-  }
-
-  perfSpewer_.recordOffset(masm, "OOLPostBarrierSlot");
-  emitOutOfLinePostBarrierSlot();
 
   if (!finishCompile(cx)) {
     return Method_Error;
   }
 
   return Method_Compiled;
+}
+
+bool BaselineCompiler::compileImpl() {
+  AutoCreatedBy acb(masm, "BaselineCompiler::compile");
+
+  perfSpewer_.recordOffset(masm, "Prologue");
+  if (!emitPrologue()) {
+    return false;
+  }
+
+  if (!emitBody()) {
+    return false;
+  }
+
+  perfSpewer_.recordOffset(masm, "Epilogue");
+  if (!emitEpilogue()) {
+    return false;
+  }
+
+  perfSpewer_.recordOffset(masm, "OOLPostBarrierSlot");
+  emitOutOfLinePostBarrierSlot();
+
+  return true;
 }
 
 bool BaselineCompiler::finishCompile(JSContext* cx) {
