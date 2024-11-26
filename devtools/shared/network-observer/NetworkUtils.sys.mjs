@@ -73,22 +73,27 @@ function stringToCauseType(value) {
 }
 
 function isChannelFromSystemPrincipal(channel) {
-  let principal;
-
-  if (channel.isDocument) {
-    // The loadingPrincipal is the principal where the request will be used.
-    principal = channel.loadInfo.loadingPrincipal;
-  } else {
-    // The triggeringPrincipal is the principal of the resource which triggered
-    // the request. Except for document loads, this is normally the best way
-    // to know if a request is done on behalf of a chrome resource.
-    // For instance if a chrome stylesheet loads a resource which is used in a
-    // content page, the loadingPrincipal will be a content principal, but the
-    // triggeringPrincipal will be the system principal.
-    principal = channel.loadInfo.triggeringPrincipal;
+  let principal = null;
+  let browsingContext = channel.loadInfo.browsingContext;
+  if (!browsingContext) {
+    const topFrame = lazy.NetworkHelper.getTopFrameForRequest(channel);
+    if (topFrame) {
+      browsingContext = topFrame.browsingContext;
+    } else {
+      // Fallback to the triggering principal when browsingContext and topFrame is null
+      // e.g some chrome requests
+      principal = channel.loadInfo.triggeringPrincipal;
+    }
   }
 
-  return !!principal?.isSystemPrincipal;
+  // When in the parent process, we can get the documentPrincipal from the
+  // WindowGlobal which is available on the BrowsingContext
+  if (!principal) {
+    principal = CanonicalBrowsingContext.isInstance(browsingContext)
+      ? browsingContext.currentWindowGlobal?.documentPrincipal
+      : browsingContext.window.document.nodePrincipal;
+  }
+  return principal?.isSystemPrincipal;
 }
 
 /**
@@ -496,7 +501,8 @@ function matchRequest(channel, filters) {
     // Ignore requests from chrome or add-on code when we don't monitor the whole browser
     if (
       channel.loadInfo?.loadingDocument === null &&
-      (isChannelFromSystemPrincipal(channel) ||
+      (channel.loadInfo.loadingPrincipal ===
+        Services.scriptSecurityManager.getSystemPrincipal() ||
         channel.loadInfo.isInDevToolsContext)
     ) {
       return false;
@@ -566,7 +572,8 @@ function legacyMatchRequest(channel, filters) {
   // content.
   if (
     channel.loadInfo?.loadingDocument === null &&
-    (isChannelFromSystemPrincipal(channel) ||
+    (channel.loadInfo.loadingPrincipal ===
+      Services.scriptSecurityManager.getSystemPrincipal() ||
       channel.loadInfo.isInDevToolsContext)
   ) {
     return false;

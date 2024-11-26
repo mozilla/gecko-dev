@@ -115,10 +115,10 @@ export function DevToolsLoader({
   // inject them into the globals list.
   // Changes here should be mirrored to devtools/.eslintrc.
   const injectedGlobals = {
-    BrowsingContext,
     CanonicalBrowsingContext,
-    ChromeWorker,
     console,
+    BrowsingContext,
+    ChromeWorker,
     DebuggerNotificationObserver,
     DOMPoint,
     DOMQuad,
@@ -137,8 +137,8 @@ export function DevToolsLoader({
     TelemetryStopwatch,
     WebExtensionPolicy,
     WebSocket,
-    WindowGlobalChild,
     WindowGlobalParent,
+    WindowGlobalChild,
   };
   for (const name in injectedGlobals) {
     this.loader.globals[name] = injectedGlobals[name];
