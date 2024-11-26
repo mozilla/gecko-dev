@@ -38,6 +38,8 @@ DEFAULT_CXX_17 = {"__cplusplus": "201703L"}
 
 SUPPORTS_GNU99 = {"-std=gnu99": DEFAULT_C99}
 
+SUPPORTS_GNU17 = {"-std=gnu17": DEFAULT_C17}
+
 SUPPORTS_GNUXX11 = {"-std=gnu++11": DEFAULT_CXX_11}
 
 SUPPORTS_GNUXX14 = {"-std=gnu++14": DEFAULT_CXX_14}
@@ -97,7 +99,7 @@ GXX_6 = (
 )
 GCC_7 = GCC("7.3.0") + DEFAULT_C11
 GXX_7 = GXX("7.3.0") + DEFAULT_CXX_14 + SUPPORTS_GNUXX17 + SUPPORTS_CXX17
-GCC_8 = GCC("8.3.0") + DEFAULT_C11
+GCC_8 = GCC("8.3.0") + DEFAULT_C17
 GXX_8 = GXX("8.3.0") + DEFAULT_CXX_14 + SUPPORTS_GNUXX17 + SUPPORTS_CXX17
 GCC_10 = GCC("10.2.1") + DEFAULT_C17
 GXX_10 = GXX("10.2.1") + DEFAULT_CXX_14 + SUPPORTS_GNUXX17 + SUPPORTS_CXX17
@@ -179,7 +181,7 @@ CLANG_3_3 = CLANG("3.3.0") + DEFAULT_C99
 CLANGXX_3_3 = CLANGXX("3.3.0")
 CLANG_4_0 = CLANG("4.0.2") + DEFAULT_C11
 CLANGXX_4_0 = CLANGXX("4.0.2") + SUPPORTS_GNUXX1Z
-CLANG_8_0 = CLANG("8.0.0") + DEFAULT_C11
+CLANG_8_0 = CLANG("8.0.0") + DEFAULT_C11 + SUPPORTS_GNU17
 CLANGXX_8_0 = CLANGXX("8.0.0") + DEFAULT_CXX_14 + SUPPORTS_GNUXX17
 XCODE_CLANG_3_3 = (
     CLANG("5.0")
@@ -194,7 +196,9 @@ XCODE_CLANG_4_0 = CLANG("9.0.0") + DEFAULT_C11 + {"__apple_build_version__": "1"
 XCODE_CLANGXX_4_0 = (
     CLANGXX("9.0.0") + SUPPORTS_GNUXX1Z + {"__apple_build_version__": "1"}
 )
-XCODE_CLANG_8_0 = CLANG("11.0.1") + DEFAULT_C11 + {"__apple_build_version__": "1"}
+XCODE_CLANG_8_0 = (
+    CLANG("11.0.1") + DEFAULT_C11 + SUPPORTS_GNU17 + {"__apple_build_version__": "1"}
+)
 XCODE_CLANGXX_8_0 = (
     CLANGXX("11.0.1") + SUPPORTS_GNUXX17 + {"__apple_build_version__": "1"}
 )
@@ -263,7 +267,7 @@ CLANG_CL_9_0 = (
     CLANG_BASE("9.0.0")
     + VS("18.00.00000")
     + DEFAULT_C11
-    + SUPPORTS_GNU99
+    + SUPPORTS_GNU17
     + SUPPORTS_GNUXX11
     + SUPPORTS_CXX14
     + SUPPORTS_CXX17
@@ -470,7 +474,7 @@ class LinuxToolchainTest(BaseToolchainTest):
     GCC_7_RESULT = old_gcc_message("7.3.0")
     GXX_7_RESULT = GCC_7_RESULT
     GCC_8_RESULT = CompilerResult(
-        flags=["-std=gnu99"],
+        # gcc 8 defaults to C17, so no there's need to add -std=gnu17.
         version="8.3.0",
         type="gcc",
         compiler="/usr/bin/gcc-8",
@@ -499,7 +503,7 @@ class LinuxToolchainTest(BaseToolchainTest):
         "Only clang/llvm 8.0 or newer is supported (found version 4.0.2)."
     )
     CLANG_8_0_RESULT = CompilerResult(
-        flags=["-std=gnu99"],
+        flags=["-std=gnu17"],
         version="8.0.0",
         type="clang",
         compiler="/usr/bin/clang-8.0",
@@ -872,7 +876,7 @@ class OSXToolchainTest(BaseToolchainTest):
         "Only clang/llvm 8.0 or newer is supported (found version 4.0.0.or.less)."
     )
     DEFAULT_CLANG_RESULT = CompilerResult(
-        flags=["-std=gnu99"],
+        flags=["-std=gnu17"],
         version="8.0.0",
         type="clang",
         compiler="/usr/bin/clang",
@@ -992,7 +996,7 @@ class MingwToolchainTest(BaseToolchainTest):
     )
     CLANG_CL_9_0_RESULT = CompilerResult(
         version="9.0.0",
-        flags=["-Xclang", "-std=gnu99"],
+        flags=["-Xclang", "-std=gnu17"],
         type="clang-cl",
         compiler="/usr/bin/clang-cl",
         language="C",
@@ -1572,7 +1576,7 @@ class OSXCrossToolchainTest(BaseToolchainTest):
         }
     )
     DEFAULT_CLANG_RESULT = CompilerResult(
-        flags=["-std=gnu99"],
+        flags=["-std=gnu17"],
         version="8.0.0",
         type="clang",
         compiler="/usr/bin/clang",

@@ -664,12 +664,12 @@ def check_compiler(configure_cache, compiler, language, target, android_version)
 
     # Note: We do a strict version check because there sometimes are backwards
     # incompatible changes in the standard, and not all code that compiles as
-    # C99 compiles as e.g. C11 (as of writing, this is true of libnestegg, for
-    # example)
-    if info.language == "C" and info.language_version != 199901:
+    # C17 compiles as C23.
+    c17_version = 201710
+    if info.language == "C" and info.language_version != c17_version:
         if info.type == "clang-cl":
             flags.append("-Xclang")
-        flags.append("-std=gnu99")
+        flags.append("-std=gnu17")
 
     cxx17_version = 201703
     if info.language == "C++":
