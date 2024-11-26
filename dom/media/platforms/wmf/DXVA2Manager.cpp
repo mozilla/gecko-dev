@@ -22,7 +22,6 @@
 #include "gfxWindowsPlatform.h"
 #include "mfapi.h"
 #include "mozilla/AppShutdown.h"
-#include "mozilla/Assertions.h"
 #include "mozilla/ClearOnShutdown.h"
 #include "mozilla/StaticMutex.h"
 #include "mozilla/StaticPrefs_media.h"
@@ -34,7 +33,6 @@
 #include "mozilla/layers/ImageBridgeChild.h"
 #include "mozilla/layers/TextureD3D11.h"
 #include "mozilla/layers/TextureForwarder.h"
-#include "mozilla/layers/VideoProcessorD3D11.h"
 #include "mozilla/mscom/EnsureMTA.h"
 #include "nsPrintfCString.h"
 #include "nsThreadUtils.h"
@@ -116,7 +114,6 @@ static const DWORD sNVIDIABrokenNV12[] = {
 
 extern mozilla::LazyLogModule sPDMLog;
 #define LOG(...) MOZ_LOG(sPDMLog, mozilla::LogLevel::Debug, (__VA_ARGS__))
-#define LOGV(...) MOZ_LOG(sPDMLog, mozilla::LogLevel::Debug, (__VA_ARGS__))
 
 namespace mozilla {
 
@@ -322,8 +319,6 @@ static const char* DecoderGUIDToStr(const GUID& aGuid) {
 // number of videos we're decoding with DXVA. Use on main thread only.
 static Atomic<uint32_t> sDXVAVideosCount(0);
 
-// This class's functions are not thread-safe, please use them carefully.
-// TODO : make this class better in bug1932998.
 class D3D11DXVA2Manager : public DXVA2Manager {
  public:
   D3D11DXVA2Manager();
@@ -379,19 +374,6 @@ class D3D11DXVA2Manager : public DXVA2Manager {
   void RefreshIMFSampleWrappers();
   void ReleaseAllIMFSamples();
 
-  struct InputTextureInfo {
-    InputTextureInfo(ID3D11Texture2D* aTexture, UINT aIndex,
-                     const gfx::IntRect& aRegion)
-        : mTexture(aTexture), mIndex(aIndex), mRegion(aRegion) {};
-    ID3D11Texture2D* mTexture;
-    const UINT mIndex;
-    const gfx::IntRect mRegion;
-  };
-  HRESULT CopyTextureToImage(const InputTextureInfo& aInTexture,
-                             Image** aOutImage);
-
-  VideoProcessorD3D11* GetOrCreateVideoProcessor();
-
   RefPtr<ID3D11Device> mDevice;
   RefPtr<ID3D11DeviceContext> mContext;
   RefPtr<IMFDXGIDeviceManager> mDXGIDeviceManager;
@@ -400,7 +382,6 @@ class D3D11DXVA2Manager : public DXVA2Manager {
   RefPtr<layers::KnowsCompositor> mKnowsCompositor;
   RefPtr<ID3D11VideoDecoder> mDecoder;
   RefPtr<layers::SyncObjectClient> mSyncObject;
-  RefPtr<VideoProcessorD3D11> mProcessor;
   uint32_t mWidth = 0;
   uint32_t mHeight = 0;
   UINT mDeviceManagerToken = 0;
@@ -780,6 +761,10 @@ D3D11DXVA2Manager::CopyToImage(IMFSample* aVideoSample,
   NS_ENSURE_TRUE(aOutImage, E_POINTER);
   MOZ_ASSERT(mTextureClientAllocator);
 
+  RefPtr<D3D11ShareHandleImage> image =
+      new D3D11ShareHandleImage(gfx::IntSize(mWidth, mHeight), aRegion,
+                                ToColorSpace2(mYUVColorSpace), mColorRange);
+
   // Retrieve the DXGI_FORMAT for the current video sample.
   RefPtr<IMFMediaBuffer> buffer;
   HRESULT hr = aVideoSample->GetBufferByIndex(0, getter_AddRefs(buffer));
@@ -789,16 +774,126 @@ D3D11DXVA2Manager::CopyToImage(IMFSample* aVideoSample,
   hr = buffer->QueryInterface((IMFDXGIBuffer**)getter_AddRefs(dxgiBuf));
   NS_ENSURE_TRUE(SUCCEEDED(hr), hr);
 
-  RefPtr<ID3D11Texture2D> inputTexture;
-  hr = dxgiBuf->GetResource(__uuidof(ID3D11Texture2D),
-                            getter_AddRefs(inputTexture));
+  RefPtr<ID3D11Texture2D> tex;
+  hr = dxgiBuf->GetResource(__uuidof(ID3D11Texture2D), getter_AddRefs(tex));
   NS_ENSURE_TRUE(SUCCEEDED(hr), hr);
 
-  UINT index;
-  dxgiBuf->GetSubresourceIndex(&index);
+  D3D11_TEXTURE2D_DESC inDesc;
+  tex->GetDesc(&inDesc);
 
-  InputTextureInfo info(inputTexture, index, aRegion);
-  return CopyTextureToImage(info, aOutImage);
+  bool ok = image->AllocateTexture(mTextureClientAllocator, mDevice);
+  NS_ENSURE_TRUE(ok, E_FAIL);
+
+  RefPtr<TextureClient> client =
+      image->GetTextureClient(ImageBridgeChild::GetSingleton().get());
+  NS_ENSURE_TRUE(client, E_FAIL);
+
+  RefPtr<ID3D11Texture2D> texture = image->GetTexture();
+  D3D11_TEXTURE2D_DESC outDesc;
+  texture->GetDesc(&outDesc);
+
+  RefPtr<IDXGIKeyedMutex> mutex;
+  texture->QueryInterface((IDXGIKeyedMutex**)getter_AddRefs(mutex));
+
+  {
+    AutoTextureLock(mutex, hr, 2000);
+    if (mutex && (FAILED(hr) || hr == WAIT_TIMEOUT || hr == WAIT_ABANDONED)) {
+      return hr;
+    }
+
+    if (!mutex && mDevice != DeviceManagerDx::Get()->GetCompositorDevice()) {
+      NS_ENSURE_TRUE(mSyncObject, E_FAIL);
+    }
+
+    UINT height = std::min(inDesc.Height, outDesc.Height);
+    PerformanceRecorder<PlaybackStage> perfRecorder(
+        MediaStage::CopyDecodedVideo, height);
+    // The D3D11TextureClientAllocator may return a different texture format
+    // than preferred. In which case the destination texture will be BGRA32.
+    if (outDesc.Format == inDesc.Format) {
+      // Our video frame is stored in a non-sharable ID3D11Texture2D. We need
+      // to create a copy of that frame as a sharable resource, save its share
+      // handle, and put that handle into the rendering pipeline.
+      UINT width = std::min(inDesc.Width, outDesc.Width);
+      D3D11_BOX srcBox = {0, 0, 0, width, height, 1};
+
+      UINT index;
+      dxgiBuf->GetSubresourceIndex(&index);
+      mContext->CopySubresourceRegion(texture, 0, 0, 0, 0, tex, index, &srcBox);
+    } else {
+      // Use MFT to do color conversion.
+      hr = E_FAIL;
+      mozilla::mscom::EnsureMTA(
+          [&]() -> void { hr = mTransform->Input(aVideoSample); });
+      NS_ENSURE_TRUE(SUCCEEDED(hr), hr);
+
+      RefPtr<IMFSample> sample;
+      hr = CreateOutputSample(sample, texture);
+      NS_ENSURE_TRUE(SUCCEEDED(hr), hr);
+
+      hr = E_FAIL;
+      mozilla::mscom::EnsureMTA(
+          [&]() -> void { hr = mTransform->Output(&sample); });
+      NS_ENSURE_TRUE(SUCCEEDED(hr), hr);
+    }
+    perfRecorder.Record();
+  }
+
+  if (!mutex && mDevice != DeviceManagerDx::Get()->GetCompositorDevice() &&
+      mSyncObject) {
+    static StaticMutex sMutex MOZ_UNANNOTATED;
+    // Ensure that we only ever attempt to synchronise via the sync object
+    // serially as when using the same D3D11 device for multiple video decoders
+    // it can lead to deadlocks.
+    StaticMutexAutoLock lock(sMutex);
+    // It appears some race-condition may allow us to arrive here even when
+    // mSyncObject is null. It's better to avoid that crash.
+    client->SyncWithObject(mSyncObject);
+    if (!mSyncObject->Synchronize(true)) {
+      return DXGI_ERROR_DEVICE_RESET;
+    }
+  } else if (mDevice == DeviceManagerDx::Get()->GetCompositorDevice() &&
+             mVendorID != 0x8086) {
+    MOZ_ASSERT(XRE_IsGPUProcess());
+    MOZ_ASSERT(mVendorID);
+
+    // Normally when D3D11Texture2D is copied by
+    // ID3D11DeviceContext::CopySubresourceRegion() with compositor device,
+    // WebRender does not need to wait copy complete, since WebRender also uses
+    // compositor device. But with some non-Intel GPUs, the copy complete need
+    // to be wait explicitly even with compositor device such as when using
+    // video overlays.
+
+    RefPtr<ID3D11DeviceContext> context;
+    mDevice->GetImmediateContext(getter_AddRefs(context));
+
+    RefPtr<ID3D11Query> query;
+    CD3D11_QUERY_DESC desc(D3D11_QUERY_EVENT);
+    HRESULT hr = mDevice->CreateQuery(&desc, getter_AddRefs(query));
+    if (SUCCEEDED(hr) && query) {
+      context->End(query);
+
+      auto* data = client->GetInternalData()->AsD3D11TextureData();
+      MOZ_ASSERT(data);
+      if (data) {
+        // If GPU is not NVIDIA GPU, ID3D11Query is used only for video overlay.
+        // See Bug 1910990 Intel GPU does not use ID3D11Query for waiting video
+        // frame copy.
+        const bool onlyForOverlay = mVendorID != 0x10DE;
+        // Wait query happens only just before blitting for video overlay.
+        data->RegisterQuery(query, onlyForOverlay);
+      } else {
+        gfxCriticalNoteOnce << "D3D11TextureData does not exist";
+      }
+    } else {
+      gfxCriticalNoteOnce << "Could not create D3D11_QUERY_EVENT: "
+                          << gfx::hexa(hr);
+    }
+  }
+
+  image.forget(aOutImage);
+
+  return S_OK;
 }
 
 HRESULT D3D11DXVA2Manager::WrapTextureWithImage(IMFSample* aVideoSample,
@@ -1047,7 +1142,6 @@ D3D11DXVA2Manager::ConfigureForSize(IMFMediaType* aInputType,
   });
   NS_ENSURE_TRUE(SUCCEEDED(hr), hr);
 
-  const bool isSizeChanged = (mWidth != aWidth) || (mHeight != aHeight);
   mWidth = aWidth;
   mHeight = aHeight;
   mInputType = inputType;
@@ -1068,11 +1162,6 @@ D3D11DXVA2Manager::ConfigureForSize(IMFMediaType* aInputType,
       }
     }();
     mTextureClientAllocator->SetPreferredSurfaceFormat(format);
-  }
-  // Reconfig video processor as well
-  if (isSizeChanged && mProcessor) {
-    hr = mProcessor->Init(gfx::IntSize(mWidth, mHeight));
-    NS_ENSURE_TRUE(SUCCEEDED(hr), hr);
   }
   return S_OK;
 }
@@ -1170,159 +1259,6 @@ bool DXVA2Manager::IsNV12Supported(uint32_t aVendorID, uint32_t aDeviceID,
   return true;
 }
 
-HRESULT D3D11DXVA2Manager::CopyTextureToImage(
-    const InputTextureInfo& aInTexture, Image** aOutImage) {
-  MOZ_DIAGNOSTIC_ASSERT(aInTexture.mTexture);
-
-  D3D11_TEXTURE2D_DESC inDesc;
-  aInTexture.mTexture->GetDesc(&inDesc);
-
-  RefPtr<D3D11ShareHandleImage> image = new D3D11ShareHandleImage(
-      gfx::IntSize(mWidth, mHeight), aInTexture.mRegion,
-      ToColorSpace2(mYUVColorSpace), mColorRange);
-
-  if (!image->AllocateTexture(mTextureClientAllocator, mDevice)) {
-    LOG("Failed to allocate texture!");
-    return E_FAIL;
-  }
-
-  RefPtr<TextureClient> client =
-      image->GetTextureClient(ImageBridgeChild::GetSingleton().get());
-  if (!client) {
-    LOG("Failed to get texture client!");
-    return E_FAIL;
-  }
-
-  RefPtr<ID3D11Texture2D> texture = image->GetTexture();
-  D3D11_TEXTURE2D_DESC outDesc;
-  texture->GetDesc(&outDesc);
-
-  LOGV("CopyTexture, inTextureFormat=%d, outTextureFormat=%d", inDesc.Format,
-       outDesc.Format);
-
-  RefPtr<IDXGIKeyedMutex> mutex;
-  texture->QueryInterface((IDXGIKeyedMutex**)getter_AddRefs(mutex));
-
-  HRESULT hr;
-  {
-    AutoTextureLock(mutex, hr, 2000);
-    if (mutex && (FAILED(hr) || hr == WAIT_TIMEOUT || hr == WAIT_ABANDONED)) {
-      LOG("Failed to require texture lock");
-      return hr;
-    }
-
-    if (!mutex && mDevice != DeviceManagerDx::Get()->GetCompositorDevice() &&
-        !mSyncObject) {
-      LOG("No sync object!");
-      return E_FAIL;
-    }
-
-    UINT height = std::min(inDesc.Height, outDesc.Height);
-    PerformanceRecorder<PlaybackStage> perfRecorder(
-        MediaStage::CopyDecodedVideo, height);
-    // The D3D11TextureClientAllocator may return a different texture format
-    // than preferred. In which case the destination texture will be BGRA32.
-    // Eg. when NV12 is blocked by Gfx.
-    if (outDesc.Format == inDesc.Format) {
-      // Our video frame is stored in a non-sharable ID3D11Texture2D. We need
-      // to create a copy of that frame as a sharable resource, save its share
-      // handle, and put that handle into the rendering pipeline.
-      UINT width = std::min(inDesc.Width, outDesc.Width);
-      D3D11_BOX srcBox = {0, 0, 0, width, height, 1};
-      mContext->CopySubresourceRegion(texture, 0, 0, 0, 0, aInTexture.mTexture,
-                                      aInTexture.mIndex, &srcBox);
-    } else {
-      // Convert YUV to RGB.
-      auto* processor = GetOrCreateVideoProcessor();
-      if (!processor) {
-        LOG("Failed to get a video processor");
-        return E_FAIL;
-      }
-      VideoProcessorD3D11::InputTextureInfo info(ToColorSpace2(mYUVColorSpace),
-                                                 mColorRange, aInTexture.mIndex,
-                                                 aInTexture.mTexture);
-      if (!processor->CallVideoProcessorBlt(info, texture.get())) {
-        LOG("Failed on CallVideoProcessorBlt!");
-        return E_FAIL;
-      }
-    }
-    perfRecorder.Record();
-  }
-
-  if (!mutex && mDevice != DeviceManagerDx::Get()->GetCompositorDevice() &&
-      mSyncObject) {
-    static StaticMutex sMutex MOZ_UNANNOTATED;
-    // Ensure that we only ever attempt to synchronise via the sync object
-    // serially as when using the same D3D11 device for multiple video decoders
-    // it can lead to deadlocks.
-    StaticMutexAutoLock lock(sMutex);
-    // It appears some race-condition may allow us to arrive here even when
-    // mSyncObject is null. It's better to avoid that crash.
-    client->SyncWithObject(mSyncObject);
-    if (!mSyncObject->Synchronize(true)) {
-      return DXGI_ERROR_DEVICE_RESET;
-    }
-  } else if (mDevice == DeviceManagerDx::Get()->GetCompositorDevice() &&
-             mVendorID != 0x8086) {
-    MOZ_ASSERT(XRE_IsGPUProcess());
-    MOZ_ASSERT(mVendorID);
-
-    // Normally when D3D11Texture2D is copied by
-    // ID3D11DeviceContext::CopySubresourceRegion() with compositor device,
-    // WebRender does not need to wait copy complete, since WebRender also uses
-    // compositor device. But with some non-Intel GPUs, the copy complete need
-    // to be wait explicitly even with compositor device such as when using
-    // video overlays.
-
-    RefPtr<ID3D11DeviceContext> context;
-    mDevice->GetImmediateContext(getter_AddRefs(context));
-
-    RefPtr<ID3D11Query> query;
-    CD3D11_QUERY_DESC desc(D3D11_QUERY_EVENT);
-    HRESULT hr = mDevice->CreateQuery(&desc, getter_AddRefs(query));
-    if (SUCCEEDED(hr) && query) {
-      context->End(query);
-
-      auto* data = client->GetInternalData()->AsD3D11TextureData();
-      MOZ_ASSERT(data);
-      if (data) {
-        // If GPU is not NVIDIA GPU, ID3D11Query is used only for video overlay.
-        // See Bug 1910990 Intel GPU does not use ID3D11Query for waiting video
-        // frame copy.
-        const bool onlyForOverlay = mVendorID != 0x10DE;
-        // Wait query happens only just before blitting for video overlay.
-        data->RegisterQuery(query, onlyForOverlay);
-      } else {
-        gfxCriticalNoteOnce << "D3D11TextureData does not exist";
-      }
-    } else {
-      gfxCriticalNoteOnce << "Could not create D3D11_QUERY_EVENT: "
-                          << gfx::hexa(hr);
-    }
-  }
-
-  image.forget(aOutImage);
-  return S_OK;
-}
-
-VideoProcessorD3D11* D3D11DXVA2Manager::GetOrCreateVideoProcessor() {
-  if (mProcessor) {
-    return mProcessor;
-  }
-  mProcessor = VideoProcessorD3D11::Create(mDevice);
-  if (!mProcessor) {
-    LOG("Failed to create video processor D3D11");
-    return nullptr;
-  }
-  HRESULT hr = mProcessor->Init(gfx::IntSize(mWidth, mHeight));
-  if (FAILED(hr)) {
-    mProcessor = nullptr;
-    LOG("Failed to init video processor D3D11, hr=%lx", hr);
-  }
-  return mProcessor;
-}
-
 }  // namespace mozilla
 
 #undef LOG
-#undef LOGV
