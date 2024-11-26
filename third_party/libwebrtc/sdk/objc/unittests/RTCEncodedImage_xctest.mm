@@ -18,7 +18,7 @@
 @implementation RTCEncodedImageTests
 
 - (void)testInitializedWithNativeEncodedImage {
-  const auto encoded_data = webrtc::EncodedImageBuffer::Create();
+  const auto encoded_data = webrtc::EncodedImageBuffer::Create(1);
   webrtc::EncodedImage encoded_image;
   encoded_image.SetEncodedData(encoded_data);
 
@@ -41,7 +41,7 @@
 - (void)testRetainsNativeEncodedImage {
   RTC_OBJC_TYPE(RTCEncodedImage) * encodedImage;
   {
-    const auto encoded_data = webrtc::EncodedImageBuffer::Create();
+    const auto encoded_data = webrtc::EncodedImageBuffer::Create(1);
     webrtc::EncodedImage encoded_image;
     encoded_image.SetEncodedData(encoded_data);
     encodedImage =

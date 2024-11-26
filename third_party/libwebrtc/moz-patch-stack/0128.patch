@@ -257,7 +257,7 @@ index e895884434..6dcf4c8089 100644
  
  if (rtc_include_tests) {
 diff --git a/api/video/BUILD.gn b/api/video/BUILD.gn
-index 866757e440..8c3a4a86e4 100644
+index 106140e22f..a4dd9c4c2d 100644
 --- a/api/video/BUILD.gn
 +++ b/api/video/BUILD.gn
 @@ -8,8 +8,8 @@
