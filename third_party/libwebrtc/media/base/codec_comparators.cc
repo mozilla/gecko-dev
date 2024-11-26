@@ -138,13 +138,6 @@ bool ReferencedCodecsMatch(const std::vector<Codec>& codecs1,
 
 }  // namespace
 
-bool MatchesForSdp(const Codec& codec_1, const Codec& codec_2) {
-  return absl::EqualsIgnoreCase(codec_1.name, codec_2.name) &&
-         codec_1.type == codec_2.type && codec_1.channels == codec_2.channels &&
-         codec_1.clockrate == codec_2.clockrate &&
-         codec_1.params == codec_2.params;
-}
-
 bool MatchesWithCodecRules(const Codec& left_codec, const Codec& right_codec) {
   // Match the codec id/name based on the typical static/dynamic name rules.
   // Matching is case-insensitive.

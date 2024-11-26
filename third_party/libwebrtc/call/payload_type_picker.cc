@@ -140,10 +140,10 @@ RTCErrorOr<PayloadType> PayloadTypePicker::SuggestMapping(
   // The first matching entry is returned, unless excluder
   // maps it to something different.
   for (auto entry : entries_) {
-    if (MatchesForSdp(entry.codec(), codec)) {
+    if (MatchesWithCodecRules(entry.codec(), codec)) {
       if (excluder) {
         auto result = excluder->LookupCodec(entry.payload_type());
-        if (result.ok() && !MatchesForSdp(result.value(), codec)) {
+        if (result.ok() && !MatchesWithCodecRules(result.value(), codec)) {
           continue;
         }
       }
@@ -164,7 +164,7 @@ RTCError PayloadTypePicker::AddMapping(PayloadType payload_type,
   // Multiple mappings for the same codec and the same PT are legal;
   for (auto entry : entries_) {
     if (payload_type == entry.payload_type() &&
-        MatchesForSdp(codec, entry.codec())) {
+        MatchesWithCodecRules(codec, entry.codec())) {
       return RTCError::OK();
     }
   }
@@ -177,7 +177,7 @@ RTCError PayloadTypeRecorder::AddMapping(PayloadType payload_type,
                                          cricket::Codec codec) {
   auto existing_codec_it = payload_type_to_codec_.find(payload_type);
   if (existing_codec_it != payload_type_to_codec_.end() &&
-      !MatchesForSdp(codec, existing_codec_it->second)) {
+      !MatchesWithCodecRules(codec, existing_codec_it->second)) {
     if (absl::EqualsIgnoreCase(codec.name, existing_codec_it->second.name)) {
       // The difference is in clock rate, channels or FMTP parameters.
       RTC_LOG(LS_INFO) << "Warning: Attempt to change a codec's parameters";
@@ -208,9 +208,11 @@ RTCErrorOr<PayloadType> PayloadTypeRecorder::LookupPayloadType(
     cricket::Codec codec) const {
   // Note that having multiple PTs mapping to the same codec is NOT an error.
   // In this case, we return the first found (not deterministic).
-  auto result = std::find_if(
-      payload_type_to_codec_.begin(), payload_type_to_codec_.end(),
-      [codec](const auto& iter) { return MatchesForSdp(iter.second, codec); });
+  auto result =
+      std::find_if(payload_type_to_codec_.begin(), payload_type_to_codec_.end(),
+                   [codec](const auto& iter) {
+                     return MatchesWithCodecRules(iter.second, codec);
+                   });
   if (result == payload_type_to_codec_.end()) {
     return RTCError(RTCErrorType::INVALID_PARAMETER,
                     "No payload type found for codec");
