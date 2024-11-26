@@ -446,13 +446,6 @@ nsWebBrowser::GetCanGoBack(bool* aCanGoBack) {
 }
 
 NS_IMETHODIMP
-nsWebBrowser::GetCanGoBackIgnoringUserInteraction(bool* aCanGoBack) {
-  NS_ENSURE_STATE(mDocShell);
-
-  return mDocShell->GetCanGoBackIgnoringUserInteraction(aCanGoBack);
-}
-
-NS_IMETHODIMP
 nsWebBrowser::GetCanGoForward(bool* aCanGoForward) {
   NS_ENSURE_STATE(mDocShell);
 

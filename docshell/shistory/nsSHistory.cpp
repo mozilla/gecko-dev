@@ -2057,24 +2057,6 @@ nsSHistory::HasUserInteractionAtIndex(int32_t aIndex) {
   return entry->GetHasUserInteraction();
 }
 
-NS_IMETHODIMP
-nsSHistory::CanGoBackFromEntryAtIndex(int32_t aIndex, bool* aCanGoBack) {
-  *aCanGoBack = false;
-  if (!StaticPrefs::browser_navigation_requireUserInteraction()) {
-    *aCanGoBack = aIndex > 0;
-    return NS_OK;
-  }
-
-  for (int32_t i = aIndex - 1; i >= 0; i--) {
-    if (HasUserInteractionAtIndex(i)) {
-      *aCanGoBack = true;
-      break;
-    }
-  }
-
-  return NS_OK;
-}
-
 nsresult nsSHistory::LoadNextPossibleEntry(
     int32_t aNewIndex, long aLoadType, uint32_t aHistCmd,
     nsTArray<LoadEntryResult>& aLoadResults, bool aLoadCurrentEntry,
