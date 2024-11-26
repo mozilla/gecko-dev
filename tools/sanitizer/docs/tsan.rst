@@ -139,18 +139,13 @@ content in your mozilla-central directory:
    ac_add_options --disable-sandbox
 
    # Keep symbols to symbolize TSan traces later
-   export MOZ_DEBUG_SYMBOLS=1
-   ac_add_options --enable-debug-symbols
    ac_add_options --disable-install-strip
 
-   # Settings for an opt build (preferred)
    # The -gline-tables-only ensures that all the necessary debug information for ASan
    # is present, but the rest is stripped so the resulting binaries are smaller.
-   ac_add_options --enable-optimize="-O2 -gline-tables-only"
-   ac_add_options --disable-debug
+   ac_add_options --enable-debug-symbols=-gline-tables-only
 
    # Settings for a debug+opt build
-   #ac_add_options --enable-optimize
    #ac_add_options --enable-debug
 
 
@@ -207,7 +202,7 @@ subdirectory with that name.
         cd $1
         CC="/path/to/mozbuild/clang" \
         CXX="/path/to/mozbuild/clang++" \
-        ../configure --disable-debug --enable-optimize="-O2 -gline-tables-only" --enable-thread-sanitizer --disable-jemalloc
+        ../configure --enable-debug-symbols=-gline-tables-only --enable-thread-sanitizer --disable-jemalloc
    fi
 
 Thread Sanitizer and Symbols

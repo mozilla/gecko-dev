@@ -96,13 +96,8 @@ content in your Mozilla-central directory:
    ac_add_options --disable-elf-hack
 
    # Keep symbols to symbolize MSan traces
-   export MOZ_DEBUG_SYMBOLS=1
-   ac_add_options --enable-debug-symbols
+   ac_add_options --enable-debug-symbols=-gline-tables-only
    ac_add_options --disable-install-strip
-
-   # Settings for an opt build
-   ac_add_options --enable-optimize="-O2 -gline-tables-only"
-   ac_add_options --disable-debug
 
 Starting the build process
 ^^^^^^^^^^^^^^^^^^^^^^^^^^

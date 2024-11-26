@@ -153,18 +153,14 @@ content in your mozilla-central directory:
    ac_add_options --disable-elf-hack
 
    # Keep symbols to symbolize ASan traces later
-   export MOZ_DEBUG_SYMBOLS=1
-   ac_add_options --enable-debug-symbols
    ac_add_options --disable-install-strip
 
    # Settings for an opt build (preferred)
    # The -gline-tables-only ensures that all the necessary debug information for ASan
    # is present, but the rest is stripped so the resulting binaries are smaller.
-   ac_add_options --enable-optimize="-O2 -gline-tables-only"
-   ac_add_options --disable-debug
+   ac_add_options --enable-debug-symbols=-gline-tables-only
 
    # Settings for a debug+opt build
-   #ac_add_options --enable-optimize
    #ac_add_options --enable-debug
 
    # MacOSX only: Uncomment and adjust this path to match your SDK
