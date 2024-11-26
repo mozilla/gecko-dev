@@ -10,7 +10,7 @@ vars = {
   # chromium waterfalls. More info at: crbug.com/570091.
   'checkout_configuration': 'default',
   'checkout_instrumented_libraries': 'checkout_linux and checkout_configuration == "default"',
-  'chromium_revision': 'aa68dfe99718b74eee443084496b9d94b80d5f51',
+  'chromium_revision': '1f8c3616d878a69cb1fb64f522f5c110895b51e0',
 
   # Fetch the prebuilt binaries for llvm-cov and llvm-profdata. Needed to
   # process the raw profiles produced by instrumented targets (built with
@@ -61,7 +61,7 @@ vars = {
 deps = {
   # TODO(kjellander): Move this to be Android-only.
   'src/base':
-    'https://chromium.googlesource.com/chromium/src/base@68128fa0f006398c1faf8dc60508acdc6316c83a',
+    'https://chromium.googlesource.com/chromium/src/base@93dade6f0fe2483d47f52bdf237f219b4978c800',
   'src/build':
     'https://chromium.googlesource.com/chromium/src/build@6d08a23c995ea495b6601afc73742b550d91dafd',
   'src/buildtools':
@@ -72,13 +72,13 @@ deps = {
     'condition': 'checkout_android',
   },
   'src/ios': {
-    'url': 'https://chromium.googlesource.com/chromium/src/ios@53b28a3235e7ce23bca82cb4df0c39f7f50ca290',
+    'url': 'https://chromium.googlesource.com/chromium/src/ios@d6d7a0ce3d79000551e5426fdd7b46053c86bf5a',
     'condition': 'checkout_ios',
   },
   'src/testing':
-    'https://chromium.googlesource.com/chromium/src/testing@b6f87cfcfbd58a20c99ab5cdd08c45672b1229aa',
+    'https://chromium.googlesource.com/chromium/src/testing@3ea4a098a7644171e4327d3873e524da05373ea1',
   'src/third_party':
-    'https://chromium.googlesource.com/chromium/src/third_party@512db14abf893f88fd99df2a41be6616336f8447',
+    'https://chromium.googlesource.com/chromium/src/third_party@c13162c576dbefd5ebbd1f229f6f039ca0306c3d',
 
   'src/buildtools/linux64': {
     'packages': [
@@ -130,7 +130,7 @@ deps = {
   'src/third_party/libc++abi/src':
     'https://chromium.googlesource.com/external/github.com/llvm/llvm-project/libcxxabi.git@975ef56df0f09388b3012b51e8c57bb1fd4a57c0',
   'src/third_party/libunwind/src':
-    'https://chromium.googlesource.com/external/github.com/llvm/llvm-project/libunwind.git@71735e82a6fda4af58f68b9028a7c5ac49898884',
+    'https://chromium.googlesource.com/external/github.com/llvm/llvm-project/libunwind.git@87f19104b59199bfdd1e30440ec3ca7a843578eb',
 
   'src/third_party/test_fonts/test_fonts': {
       'dep_type': 'gcs',
@@ -265,7 +265,7 @@ deps = {
       'condition': 'checkout_linux',
   },
   'src/third_party/freetype/src':
-    'https://chromium.googlesource.com/chromium/src/third_party/freetype2.git@c82745878da1acef2ce6bd7e17a8d59b8612d509',
+    'https://chromium.googlesource.com/chromium/src/third_party/freetype2.git@0dd4eef68fb5f79e87d8cf61570faa2162f1190b',
   'src/third_party/harfbuzz-ng/src':
     'https://chromium.googlesource.com/external/github.com/harfbuzz/harfbuzz.git@1da053e87f0487382404656edca98b85fe51f2fd',
   'src/third_party/google_benchmark/src': {
@@ -351,7 +351,7 @@ deps = {
       'condition': 'checkout_android',
   },
   'src/third_party/perfetto':
-    'https://android.googlesource.com/platform/external/perfetto.git@48c5df53f475348c2ed8e5ee6f19319718642cf0',
+    'https://android.googlesource.com/platform/external/perfetto.git@b6f61a4a8e1a2ab642521a4acabe40e5ee40215e',
   'src/third_party/protobuf-javascript/src':
     Var('chromium_git') + '/external/github.com/protocolbuffers/protobuf-javascript' + '@' + 'e34549db516f8712f678fcd4bc411613b5cc5295',
   'src/third_party/libvpx/source/libvpx':
@@ -386,7 +386,7 @@ deps = {
       'packages': [
           {
               'package': 'chromium/third_party/r8',
-              'version': '3KCj5eRYCvGGYs5i90pRaeihkzsqgUGc4OkICT8AOlIC',
+              'version': '6pzT4UkzHpjnobJW8Yujr0Z4dGqQgOvpH9AJh96Bmn8C',
           },
       ],
       'condition': 'checkout_android',
@@ -410,7 +410,7 @@ deps = {
     'condition': 'checkout_android',
   },
   'src/tools':
-    'https://chromium.googlesource.com/chromium/src/tools@3a202879c10d5517ac112f719ad6d07f93e59b9c',
+    'https://chromium.googlesource.com/chromium/src/tools@76d842ff5c49dea6f905f674c620c05181bc50bf',
 
   'src/third_party/espresso': {
       'packages': [
