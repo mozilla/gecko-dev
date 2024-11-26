@@ -37,6 +37,10 @@
   stroke: var(--theme-icon-color);
   /* Prevent line break when copy/pasting an entire rule */
   user-select: auto;
+
+  &:hover {
+    stroke: var(--theme-icon-alternate-hover-color);
+  }
 }
 
 :is(
@@ -44,7 +48,8 @@
   .inspector-grid,
   .inspector-shapeswatch
 )[aria-pressed="true"] {
-  stroke: var(--theme-icon-checked-color);
+  background-color: var(--theme-toolbarbutton-checked-background);
+  stroke: var(--theme-toolbarbutton-checked-color);
 }
 
 .inspector-flex {
