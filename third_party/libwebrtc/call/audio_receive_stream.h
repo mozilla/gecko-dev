@@ -101,6 +101,9 @@ class AudioReceiveStreamInterface : public MediaReceiveStreamInterface {
     std::optional<int64_t> estimated_playout_ntp_timestamp_ms;
     // Remote outbound stats derived by the received RTCP sender reports.
     // https://w3c.github.io/webrtc-stats/#remoteoutboundrtpstats-dict*
+    std::optional<int64_t> last_sender_report_timestamp_ms;
+    // TODO: bugs.webrtc.org/370535296: Remove the ntp arrival timestamp when
+    // linked issue is fixed.
     std::optional<int64_t> last_sender_report_utc_timestamp_ms;
     std::optional<int64_t> last_sender_report_remote_utc_timestamp_ms;
     uint64_t sender_reports_packets_sent = 0;

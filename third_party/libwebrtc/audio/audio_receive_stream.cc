@@ -334,6 +334,8 @@ webrtc::AudioReceiveStreamInterface::Stats AudioReceiveStreamImpl::GetStats(
   stats.decoding_plc_cng = ds.decoded_plc_cng;
   stats.decoding_muted_output = ds.decoded_muted_output;
 
+  stats.last_sender_report_timestamp_ms =
+      call_stats.last_sender_report_timestamp_ms;
   stats.last_sender_report_utc_timestamp_ms =
       call_stats.last_sender_report_utc_timestamp_ms;
   stats.last_sender_report_remote_utc_timestamp_ms =

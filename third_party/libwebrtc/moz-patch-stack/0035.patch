@@ -11,10 +11,10 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/7330681cf4de6d8dd
  2 files changed, 4 insertions(+), 1 deletion(-)
 
 diff --git a/call/video_receive_stream.h b/call/video_receive_stream.h
-index b39f564530..7a5f4ef5bf 100644
+index 0d373da456..c2caa05b38 100644
 --- a/call/video_receive_stream.h
 +++ b/call/video_receive_stream.h
-@@ -236,6 +236,9 @@ class VideoReceiveStreamInterface : public MediaReceiveStreamInterface {
+@@ -239,6 +239,9 @@ class VideoReceiveStreamInterface : public MediaReceiveStreamInterface {
        // disabled.
        KeyFrameReqMethod keyframe_method = KeyFrameReqMethod::kPliRtcp;
  

@@ -114,7 +114,7 @@ index e607a182c2..5f2c5d0f2a 100644
  
  }  // namespace webrtc
 diff --git a/call/video_receive_stream.h b/call/video_receive_stream.h
-index 51a82d38ae..0db294fc5f 100644
+index 790adb95c9..0f52d7fdc8 100644
 --- a/call/video_receive_stream.h
 +++ b/call/video_receive_stream.h
 @@ -116,6 +116,8 @@ class VideoReceiveStreamInterface : public MediaReceiveStreamInterface {
