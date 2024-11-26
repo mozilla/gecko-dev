@@ -273,7 +273,6 @@ ml-perf:
         fetch:
             - ort.wasm
             - ort.jsep.wasm
-            - ort-training.wasm
             - xenova-all-minilm-l6-v2
     description: Run ML Models Perf Tests
     treeherder:
@@ -298,7 +297,6 @@ ml-multi-perf:
         fetch:
             - ort.wasm
             - ort.jsep.wasm
-            - ort-training.wasm
             - xenova-all-minilm-l6-v2
             - mozilla-ner
             - mozilla-intent
@@ -325,7 +323,6 @@ ml-perf-suggest-inf:
         fetch:
             - ort.wasm
             - ort.jsep.wasm
-            - ort-training.wasm
             - mozilla-ner
             - mozilla-intent
     description: Run ML Suggest Inference Model
@@ -351,7 +348,6 @@ ml-perf-suggest-int:
         fetch:
             - ort.wasm
             - ort.jsep.wasm
-            - ort-training.wasm
             - mozilla-intent
     description: Run ML Suggest Intent Model
     treeherder:
@@ -376,7 +372,6 @@ ml-perf-suggest-ner:
         fetch:
             - ort.wasm
             - ort.jsep.wasm
-            - ort-training.wasm
             - mozilla-ner
     description: Run ML Suggest NER Model
     treeherder:
