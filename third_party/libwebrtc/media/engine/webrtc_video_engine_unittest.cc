@@ -3173,6 +3173,44 @@ TEST_F(WebRtcVideoChannelTest, RecvVideoRotationHeaderExtensions) {
   TestSetRecvRtpHeaderExtensions(RtpExtension::kVideoRotationUri);
 }
 
+TEST_F(WebRtcVideoChannelTest, SendCorruptionDetectionHeaderExtensions) {
+  TestSetSendRtpHeaderExtensions(RtpExtension::kCorruptionDetectionUri);
+}
+
+TEST_F(WebRtcVideoChannelTest, DisableFrameInstrumentationByDefault) {
+  EXPECT_TRUE(send_channel_->SetSenderParameters(send_parameters_));
+  FakeVideoSendStream* send_stream =
+      AddSendStream(cricket::StreamParams::CreateLegacy(123));
+  EXPECT_FALSE(send_stream->GetConfig()
+                   .encoder_settings.enable_frame_instrumentation_generator);
+}
+
+TEST_F(WebRtcVideoChannelTest,
+       EnableFrameInstrumentationWhenEncryptedExtensionIsPresent) {
+  cricket::VideoSenderParameters parameters = send_parameters_;
+  parameters.extensions.push_back(RtpExtension(
+      RtpExtension::kCorruptionDetectionUri, /*id=*/1, /*encrypt=*/true));
+  EXPECT_TRUE(send_channel_->SetSenderParameters(parameters));
+
+  FakeVideoSendStream* send_stream =
+      AddSendStream(cricket::StreamParams::CreateLegacy(123));
+  EXPECT_TRUE(send_stream->GetConfig()
+                  .encoder_settings.enable_frame_instrumentation_generator);
+}
+
+TEST_F(WebRtcVideoChannelTest,
+       DisableFrameInstrumentationWhenNoEncryptedExtensionIsPresent) {
+  cricket::VideoSenderParameters parameters = send_parameters_;
+  parameters.extensions.push_back(RtpExtension(
+      RtpExtension::kCorruptionDetectionUri, /*id=*/1, /*encrypt=*/false));
+  EXPECT_TRUE(send_channel_->SetSenderParameters(parameters));
+
+  FakeVideoSendStream* send_stream =
+      AddSendStream(cricket::StreamParams::CreateLegacy(123));
+  EXPECT_FALSE(send_stream->GetConfig()
+                   .encoder_settings.enable_frame_instrumentation_generator);
+}
+
 TEST_F(WebRtcVideoChannelTest, IdenticalSendExtensionsDoesntRecreateStream) {
   const int kAbsSendTimeId = 1;
   const int kVideoRotationId = 2;

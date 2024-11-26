@@ -187,7 +187,7 @@ index 495f64bdb3..10a9caacdd 100644
  
    void ForceSpsPpsIdrIsH264Keyframe();
 diff --git a/video/receive_statistics_proxy.cc b/video/receive_statistics_proxy.cc
-index e74968bdfd..729f7b7efb 100644
+index 671416a007..3b3bc5bbd2 100644
 --- a/video/receive_statistics_proxy.cc
 +++ b/video/receive_statistics_proxy.cc
 @@ -799,6 +799,11 @@ void ReceiveStatisticsProxy::OnDroppedFrames(uint32_t frames_dropped) {

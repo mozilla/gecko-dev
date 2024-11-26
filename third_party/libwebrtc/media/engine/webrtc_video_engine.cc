@@ -1532,13 +1532,6 @@ bool WebRtcVideoSendChannel::AddSendStream(const StreamParams& sp) {
       bitrate_allocator_factory_;
   config.encoder_settings.encoder_switch_request_callback = this;
 
-  // TODO: bugs.webrtc.org/358039777 - Add test when this effectively does
-  // something.
-  if (webrtc::RtpExtension::FindHeaderExtensionByUri(
-          config.rtp.extensions, webrtc::RtpExtension::kCorruptionDetectionUri,
-          webrtc::RtpExtension::kRequireEncryptedExtension)) {
-    config.encoder_settings.enable_frame_instrumentation_generator = true;
-  }
   config.crypto_options = crypto_options_;
   config.rtp.extmap_allow_mixed = ExtmapAllowMixed();
   config.rtcp_report_interval_ms = video_config_.rtcp_report_interval_ms;
@@ -2620,6 +2613,13 @@ void WebRtcVideoSendChannel::WebRtcVideoSendStream::RecreateWebRtcStream() {
       }
     }
   }
+
+  if (webrtc::RtpExtension::FindHeaderExtensionByUri(
+          config.rtp.extensions, webrtc::RtpExtension::kCorruptionDetectionUri,
+          webrtc::RtpExtension::kRequireEncryptedExtension)) {
+    config.encoder_settings.enable_frame_instrumentation_generator = true;
+  }
+
   stream_ = call_->CreateVideoSendStream(std::move(config),
                                          parameters_.encoder_config.Copy());
 

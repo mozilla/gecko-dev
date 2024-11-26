@@ -846,21 +846,24 @@ void ReceiveStatisticsProxy::OnRttUpdate(int64_t avg_rtt_ms) {
 
 void ReceiveStatisticsProxy::OnCorruptionScore(double corruption_score,
                                                VideoContentType content_type) {
-  RTC_DCHECK_RUN_ON(&main_thread_);
+  worker_thread_->PostTask(SafeTask(task_safety_.flag(), [corruption_score,
+                                                          content_type, this] {
+    RTC_DCHECK_RUN_ON(&main_thread_);
 
-  if (!stats_.corruption_score_sum.has_value()) {
-    RTC_DCHECK(!stats_.corruption_score_squared_sum.has_value());
-    RTC_DCHECK_EQ(stats_.corruption_score_count, 0);
-    stats_.corruption_score_sum = 0;
-    stats_.corruption_score_squared_sum = 0;
-  }
-  *stats_.corruption_score_sum += corruption_score;
-  *stats_.corruption_score_squared_sum += corruption_score * corruption_score;
-  ++stats_.corruption_score_count;
+    if (!stats_.corruption_score_sum.has_value()) {
+      RTC_DCHECK(!stats_.corruption_score_squared_sum.has_value());
+      RTC_DCHECK_EQ(stats_.corruption_score_count, 0);
+      stats_.corruption_score_sum = 0;
+      stats_.corruption_score_squared_sum = 0;
+    }
+    *stats_.corruption_score_sum += corruption_score;
+    *stats_.corruption_score_squared_sum += corruption_score * corruption_score;
+    ++stats_.corruption_score_count;
 
-  ContentSpecificStats* content_specific_stats =
-      &content_specific_stats_[content_type];
-  content_specific_stats->corruption_score.AddSample(corruption_score);
+    ContentSpecificStats* content_specific_stats =
+        &content_specific_stats_[content_type];
+    content_specific_stats->corruption_score.AddSample(corruption_score);
+  }));
 }
 
 void ReceiveStatisticsProxy::DecoderThreadStarting() {
