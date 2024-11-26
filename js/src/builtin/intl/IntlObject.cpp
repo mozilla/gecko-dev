@@ -736,8 +736,7 @@ static ArrayObject* AvailableNumberingSystems(JSContext* cx) {
  * AvailableTimeZones ( )
  */
 static ArrayObject* AvailableTimeZones(JSContext* cx) {
-  // Unsorted list of canonical time zone names, possibly containing
-  // duplicates.
+  // Unsorted list of canonical time zone names, possibly containing duplicates.
   Rooted<StringList> timeZones(cx, StringList(cx));
 
   intl::SharedIntlData& sharedIntlData = cx->runtime()->sharedIntlData.ref();
@@ -748,52 +747,13 @@ static ArrayObject* AvailableTimeZones(JSContext* cx) {
   auto iter = iterResult.unwrap();
 
   Rooted<JSAtom*> validatedTimeZone(cx);
-  Rooted<JSAtom*> ianaTimeZone(cx);
   for (; !iter.done(); iter.next()) {
     validatedTimeZone = iter.get();
 
     // Canonicalize the time zone before adding it to the result array.
-
-    // Some time zone names are canonicalized differently by ICU -- handle
-    // those first.
-    ianaTimeZone.set(nullptr);
-    if (!sharedIntlData.tryCanonicalizeTimeZoneConsistentWithIANA(
-            cx, validatedTimeZone, &ianaTimeZone)) {
+    auto* timeZone = intl::CanonicalizeTimeZone(cx, validatedTimeZone);
+    if (!timeZone) {
       return nullptr;
-    }
-
-    JSLinearString* timeZone;
-    if (ianaTimeZone) {
-      cx->markAtom(ianaTimeZone);
-
-      timeZone = ianaTimeZone;
-    } else {
-      // Call into ICU to canonicalize the time zone.
-
-      JS::AutoStableStringChars stableChars(cx);
-      if (!stableChars.initTwoByte(cx, validatedTimeZone)) {
-        return nullptr;
-      }
-
-      intl::FormatBuffer<char16_t, intl::INITIAL_CHAR_BUFFER_SIZE>
-          canonicalTimeZone(cx);
-      auto result = mozilla::intl::TimeZone::GetCanonicalTimeZoneID(
-          stableChars.twoByteRange(), canonicalTimeZone);
-      if (result.isErr()) {
-        intl::ReportInternalError(cx, result.unwrapErr());
-        return nullptr;
-      }
-
-      timeZone = canonicalTimeZone.toString(cx);
-      if (!timeZone) {
-        return nullptr;
-      }
-
-      // Canonicalize both to "UTC" per CanonicalizeTimeZoneName().
-      if (StringEqualsLiteral(timeZone, "Etc/UTC") ||
-          StringEqualsLiteral(timeZone, "Etc/GMT")) {
-        timeZone = cx->names().UTC;
-      }
     }
 
     if (!timeZones.append(timeZone)) {
