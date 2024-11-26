@@ -908,11 +908,7 @@
         .navigationRequireUserInteraction
     ) {
       var webNavigation = this.webNavigation;
-      if (
-        requireUserInteraction
-          ? webNavigation.canGoBack
-          : webNavigation.canGoBackIgnoringUserInteraction
-      ) {
+      if (webNavigation.canGoBack) {
         this._wrapURIChangeCall(() =>
           webNavigation.goBack(requireUserInteraction)
         );
