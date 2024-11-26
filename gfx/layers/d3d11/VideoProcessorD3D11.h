@@ -36,7 +36,7 @@ class VideoProcessorD3D11 {
 
   static RefPtr<VideoProcessorD3D11> Create(ID3D11Device* aDevice);
 
-  bool Init(const gfx::IntSize& aSize);
+  HRESULT Init(const gfx::IntSize& aSize);
 
   struct InputTextureInfo {
     InputTextureInfo(gfx::ColorSpace2 aColorSpace, gfx::ColorRange aColorRange,

@@ -1101,8 +1101,10 @@ DXGITextureHostD3D11::GetAsSurfaceWithDevice(
       }
     }
 
-    if (!videoProcessor->Init(mSize)) {
-      gfxCriticalNoteOnce << "Failed to init VideoProcessorD3D11";
+    hr = videoProcessor->Init(mSize);
+    if (FAILED(hr)) {
+      gfxCriticalNoteOnce << "Failed to init VideoProcessorD3D11"
+                          << gfx::hexa(hr);
       return nullptr;
     }
 
