@@ -1,86 +1,58 @@
 From: Michael Froman <mjfroman@mac.com>
-Date: Sat, 16 Nov 2024 18:35:31 -0600
-Subject: (tmp-cherry-pick) Revert "Per defaul probe max to 2x current BWE if
- max total allocated bitrate change" (0549950113)
-MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
+Date: Mon, 18 Nov 2024 17:59:01 -0600
+Subject: (tmp-cherry-pick) Revert "Disable LibaomAv1Encoder tests to unblock
+ Chromium roll" (084f1ae4bb)
 
-This reverts commit 37458ce40a1741f9d5358d49fe49beed20140502.
+This reverts commit f8b3dab7c6320a9890f0b003b43d7099e2e00a5b.
 
-Reason for revert: Will be wired up as an experiment instead.
+Reason for revert: The fix landed in libaom (https://aomedia-review.googlesource.com/c/aom/+/193761) and it is now available in WebRTC (import CL: https://webrtc-review.googlesource.com/c/src/+/364126).
 
 Original change's description:
-> Per defaul probe max to 2x current BWE if max total allocated bitrate change
+> Disable LibaomAv1Encoder tests to unblock Chromium roll
 >
-> This aligns to probe limits in ALR for example.
+> The tests exercise the new encoder API that is not used in prod yet.
 >
-> Bug: webrtc:369044000, b/369021234
-> Change-Id: I3823b308cf97a8b7060b35b2ac38864e75d6f983
-> Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/363301
-> Reviewed-by: Jonas Oreland <jonaso@webrtc.org>
-> Reviewed-by: Diep Bui <diepbp@webrtc.org>
-> Commit-Queue: Per Kjellander <perkj@webrtc.org>
-> Cr-Commit-Position: refs/heads/main@{#43074}
+> Bug: webrtc:369633254
+> Change-Id: Iee6bc16ebd471f4accdd9531cdb404f159557f51
+> Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/363820
+> Commit-Queue: Sergey Silkin <ssilkin@webrtc.org>
+> Reviewed-by: Rasmus Brandt <brandtr@webrtc.org>
+> Cr-Commit-Position: refs/heads/main@{#43083}
 
-Bug: webrtc:369044000, b/369021234
-Change-Id: I22b457254c9c21d2d951af2bda01a349ef83b3c7
-Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/364242
+Bug: webrtc:369633254
+Change-Id: Ia02db32f7f09e3abc3d0a46605feeabd82673f06
+Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/364281
+Commit-Queue: Mirko Bonadei <mbonadei@webrtc.org>
+Reviewed-by: Sergey Silkin <ssilkin@webrtc.org>
+Reviewed-by: Rasmus Brandt <brandtr@webrtc.org>
 Bot-Commit: rubber-stamper@appspot.gserviceaccount.com <rubber-stamper@appspot.gserviceaccount.com>
-Commit-Queue: Per Kjellander <perkj@webrtc.org>
-Commit-Queue: Ranveer Aggarwal‎ <ranvr@webrtc.org>
-Reviewed-by: Diep Bui <diepbp@webrtc.org>
-Cr-Commit-Position: refs/heads/main@{#43130}
+Cr-Commit-Position: refs/heads/main@{#43120}
 ---
- .../congestion_controller/goog_cc/probe_controller.cc  |  2 +-
- .../goog_cc/probe_controller_unittest.cc               | 10 +++++-----
- 2 files changed, 6 insertions(+), 6 deletions(-)
+ api/video_codecs/libaom_av1_encoder_factory_test.cc | 7 +++----
+ 1 file changed, 3 insertions(+), 4 deletions(-)
 
-diff --git a/modules/congestion_controller/goog_cc/probe_controller.cc b/modules/congestion_controller/goog_cc/probe_controller.cc
-index 3a4454bbba..b031814774 100644
---- a/modules/congestion_controller/goog_cc/probe_controller.cc
-+++ b/modules/congestion_controller/goog_cc/probe_controller.cc
-@@ -109,7 +109,7 @@ ProbeControllerConfig::ProbeControllerConfig(
-       probe_on_max_allocated_bitrate_change("probe_max_allocation", true),
-       first_allocation_probe_scale("alloc_p1", 1),
-       second_allocation_probe_scale("alloc_p2", 2),
--      allocation_probe_limit_by_current_scale("alloc_current_bwe_limit", 2.0),
-+      allocation_probe_limit_by_current_scale("alloc_current_bwe_limit"),
-       min_probe_packets_sent("min_probe_packets_sent", 5),
-       min_probe_duration("min_probe_duration", TimeDelta::Millis(15)),
-       min_probe_delta("min_probe_delta", TimeDelta::Millis(2)),
-diff --git a/modules/congestion_controller/goog_cc/probe_controller_unittest.cc b/modules/congestion_controller/goog_cc/probe_controller_unittest.cc
-index b841c2bac2..bb3c79c466 100644
---- a/modules/congestion_controller/goog_cc/probe_controller_unittest.cc
-+++ b/modules/congestion_controller/goog_cc/probe_controller_unittest.cc
-@@ -217,7 +217,9 @@ TEST(ProbeControllerTest, ProbesOnMaxAllocatedBitrateIncreaseOnlyWhenInAlr) {
+diff --git a/api/video_codecs/libaom_av1_encoder_factory_test.cc b/api/video_codecs/libaom_av1_encoder_factory_test.cc
+index 594f9fc066..0d87a8c57b 100644
+--- a/api/video_codecs/libaom_av1_encoder_factory_test.cc
++++ b/api/video_codecs/libaom_av1_encoder_factory_test.cc
+@@ -420,8 +420,8 @@ TEST(LibaomAv1Encoder, InputResolutionSwitching) {
+   EXPECT_THAT(Resolution(f2), ResolutionIs(160, 90));
+   EXPECT_THAT(Psnr(in2, f2), Gt(40));
+ }
+-// TODO(webrtc:369633254): Re-enable after the libaom issue is fixed.
+-TEST(LibaomAv1Encoder, DISABLED_TempoSpatial) {
++
++TEST(LibaomAv1Encoder, TempoSpatial) {
+   auto frame_reader = CreateFrameReader();
+   auto enc = LibaomAv1EncoderFactory().CreateEncoder(kCbrEncoderSettings, {});
+ 
+@@ -507,8 +507,7 @@ TEST(DISABLED_LibaomAv1Encoder, InvertedTempoSpatial) {
+   EXPECT_THAT(Resolution(dec.Decode(tu2_s1.bitstream)), ResolutionIs(640, 360));
  }
  
- TEST(ProbeControllerTest, ProbesOnMaxAllocatedBitrateLimitedByCurrentBwe) {
--  ProbeControllerFixture fixture;
-+  ProbeControllerFixture fixture(
-+      "WebRTC-Bwe-ProbingConfiguration/"
-+      "alloc_current_bwe_limit:1.5/");
-   ASSERT_TRUE(kMaxBitrate > 1.5 * kStartBitrate);
-   std::unique_ptr<ProbeController> probe_controller =
-       fixture.CreateController();
-@@ -240,7 +242,7 @@ TEST(ProbeControllerTest, ProbesOnMaxAllocatedBitrateLimitedByCurrentBwe) {
-   probes = probe_controller->OnMaxTotalAllocatedBitrate(kMaxBitrate,
-                                                         fixture.CurrentTime());
-   EXPECT_EQ(probes.size(), 1u);
--  EXPECT_EQ(probes.at(0).target_data_rate, 2 * kStartBitrate);
-+  EXPECT_EQ(probes.at(0).target_data_rate, 1.5 * kStartBitrate);
+-// TODO(webrtc:369633254): Re-enable after the libaom issue is fixed.
+-TEST(LibaomAv1Encoder, DISABLED_SkipMidLayer) {
++TEST(LibaomAv1Encoder, SkipMidLayer) {
+   auto frame_reader = CreateFrameReader();
+   auto enc = LibaomAv1EncoderFactory().CreateEncoder(kCbrEncoderSettings, {});
  
-   // Continue probing if probe succeeds.
-   probes = probe_controller->SetEstimatedBitrate(
-@@ -764,9 +766,7 @@ TEST(ProbeControllerTest, ConfigurableProbingFieldTrial) {
-   ProbeControllerFixture fixture(
-       "WebRTC-Bwe-ProbingConfiguration/"
-       "p1:2,p2:5,step_size:3,further_probe_threshold:0.8,"
--      "alloc_p1:2,alloc_p2,alloc_current_bwe_limit:1000.0,min_probe_packets_"
--      "sent:"
--      "2/");
-+      "alloc_p1:2,alloc_p2,min_probe_packets_sent:2/");
-   std::unique_ptr<ProbeController> probe_controller =
-       fixture.CreateController();
-   ASSERT_THAT(
