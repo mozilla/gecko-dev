@@ -14,7 +14,7 @@ let originalDT = Intl.DateTimeFormat("en-US", {
   timeStyle: "full",
 });
 assertEq(originalDT.format(original).endsWith("Pacific Standard Time"), true);
-assertEq(originalDT.resolvedOptions().timeZone, "PST8PDT");
+assertEq(originalDT.resolvedOptions().timeZone, "America/Los_Angeles");
 
 let global = newGlobal({forceUTC: true});
 
