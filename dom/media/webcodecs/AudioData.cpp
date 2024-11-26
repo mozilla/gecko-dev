@@ -40,7 +40,8 @@ namespace mozilla::dom {
 template <typename... Args>
 [[nodiscard]] Result<Ok, nsCString> LogAndReturnErr(
     fmt::format_string<Args...> aFmt, Args&&... aArgs) {
-  nsFmtCString str(aFmt, std::forward<Args>(aArgs)...);
+  nsAutoCStringN<100> str;
+  str.AppendVfmt(aFmt, fmt::make_format_args(aArgs...));
   MOZ_LOG(gWebCodecsLog, LogLevel::Debug, ("%s", str.get()));
   return Err(str);
 }
