@@ -20,13 +20,7 @@ add_task(async function () {
 
   store.dispatch(Actions.batchEnable(false));
 
-  // Bug 1932818: In theory we should only get 1 request here, but on neterror,
-  // resource://gre-resources/html.css is loading an additional font as data-url
-  // which shows up in the netmonitor. Bug filed to find a way to filter it out.
-  // In the meantime, filter out non-https schemes from this test.
-  store.dispatch(Actions.setRequestFilterText("scheme:https"));
-
-  const wait = waitForNetworkEvents(monitor, 2);
+  const wait = waitForNetworkEvents(monitor, 1);
   reloadBrowser({ waitForLoad: false });
   await wait;
 
