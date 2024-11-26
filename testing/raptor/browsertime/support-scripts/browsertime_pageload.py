@@ -230,29 +230,28 @@ class PageloadSupport(BasePythonSupport):
             if "cputime" in measurement_name.lower():
                 measurement_info["shouldAlert"] = False
 
+    def _process_geomean(self, subtest):
+        data = subtest["replicates"]
+        subtest["value"] = round(filters.geometric_mean(data), 1)
+
+    def _process_alt_method(self, subtest, alternative_method):
+        data = subtest["replicates"]
+        if alternative_method == "median":
+            subtest["value"] = filters.median(data)
+
+    def _process(self, subtest, method="geomean"):
+        if self.test_type == "power":
+            subtest["value"] = filters.mean(subtest["replicates"])
+        elif method == "geomean":
+            self._process_geomean(subtest)
+        else:
+            self._process_alt_method(subtest, method)
+        return subtest
+
     def summarize_suites(self, suites):
-        def _process_geomean(subtest):
-            data = subtest["replicates"]
-            subtest["value"] = round(filters.geometric_mean(data), 1)
-
-        def _process_alt_method(subtest, alternative_method):
-            data = subtest["replicates"]
-            if alternative_method == "median":
-                subtest["value"] = filters.median(data)
-
-        # converting suites and subtests into lists, and sorting them
-        def _process(subtest, method="geomean"):
-            if self.test_type == "power":
-                subtest["value"] = filters.mean(subtest["replicates"])
-            elif method == "geomean":
-                _process_geomean(subtest)
-            else:
-                _process_alt_method(subtest, method)
-            return subtest
-
         for suite in suites:
             suite["subtests"] = [
-                _process(subtest)
+                self._process(subtest)
                 for subtest in suite["subtests"].values()
                 if subtest["replicates"]
             ]
@@ -267,7 +266,7 @@ class PageloadSupport(BasePythonSupport):
                             new_subtest["name"] = (
                                 f"{new_subtest['name']} ({alternative_method})"
                             )
-                            _process(new_subtest, alternative_method)
+                            self._process(new_subtest, alternative_method)
                             new_subtests.append(new_subtest)
                     except Exception as e:
                         # Ignore failures here
