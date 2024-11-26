@@ -5839,6 +5839,7 @@ main section {
   font-size: 17px;
   -webkit-line-clamp: 3;
   line-height: 24px;
+  margin-block: 0;
   font-weight: 600;
 }
 .ds-card .meta .excerpt {
