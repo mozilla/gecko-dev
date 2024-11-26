@@ -37,8 +37,20 @@ class VideoProcessorD3D11 {
   static RefPtr<VideoProcessorD3D11> Create(ID3D11Device* aDevice);
 
   bool Init(const gfx::IntSize& aSize);
-  bool CallVideoProcessorBlt(DXGITextureHostD3D11* aTextureHost,
-                             ID3D11Texture2D* aInputTexture,
+
+  struct InputTextureInfo {
+    InputTextureInfo(gfx::ColorSpace2 aColorSpace, gfx::ColorRange aColorRange,
+                     uint32_t aIndex, ID3D11Texture2D* aTexture)
+        : mColorSpace(aColorSpace),
+          mColorRange(aColorRange),
+          mIndex(aIndex),
+          mTexture(aTexture) {}
+    const gfx::ColorSpace2 mColorSpace;
+    const gfx::ColorRange mColorRange;
+    const uint32_t mIndex;
+    ID3D11Texture2D* mTexture;
+  };
+  bool CallVideoProcessorBlt(InputTextureInfo& aTextureInfo,
                              ID3D11Texture2D* aOutputTexture);
   gfx::IntSize GetSize() const { return mSize; }
 
