@@ -17,6 +17,13 @@ class nsDOMTokenList;
 
 namespace mozilla::dom {
 
+class OwningTrustedScriptOrNullIsEmptyString;
+class OwningTrustedScriptOrString;
+class OwningTrustedScriptURLOrString;
+class TrustedScriptOrNullIsEmptyString;
+class TrustedScriptOrString;
+class TrustedScriptURLOrString;
+
 class HTMLScriptElement final : public nsGenericHTMLElement,
                                 public ScriptElement {
  public:
@@ -66,7 +73,31 @@ class HTMLScriptElement final : public nsGenericHTMLElement,
   // WebIDL
   void GetText(nsAString& aValue, ErrorResult& aRv) const;
 
-  void SetText(const nsAString& aValue, ErrorResult& aRv);
+  // @param aValue will always be of type `String`.
+  MOZ_CAN_RUN_SCRIPT void GetText(OwningTrustedScriptOrString& aValue,
+                                  ErrorResult& aRv) const;
+
+  MOZ_CAN_RUN_SCRIPT void SetText(const TrustedScriptOrString& aValue,
+                                  ErrorResult& aRv);
+
+  // @param aValue will always be of type `NullIsEmptyString`.
+  MOZ_CAN_RUN_SCRIPT void GetInnerText(
+      OwningTrustedScriptOrNullIsEmptyString& aValue, ErrorResult& aError);
+
+  MOZ_CAN_RUN_SCRIPT void SetInnerText(
+      const TrustedScriptOrNullIsEmptyString& aValue, ErrorResult& aError);
+
+  // @param aTextContent will always be of type `String`.
+  MOZ_CAN_RUN_SCRIPT void GetTextContent(
+      Nullable<OwningTrustedScriptOrString>& aTextContent,
+      mozilla::OOMReporter& aError);
+
+  MOZ_CAN_RUN_SCRIPT void SetTextContent(
+      const Nullable<TrustedScriptOrString>& aTextContent,
+      nsIPrincipal* aSubjectPrincipal, mozilla::ErrorResult& aError);
+  MOZ_CAN_RUN_SCRIPT void SetTextContent(
+      const Nullable<TrustedScriptOrString>& aTextContent,
+      mozilla::ErrorResult& aError);
 
   void GetCharset(nsAString& aCharset) {
     GetHTMLAttr(nsGkAtoms::charset, aCharset);
@@ -80,11 +111,12 @@ class HTMLScriptElement final : public nsGenericHTMLElement,
     SetHTMLBoolAttr(nsGkAtoms::defer, aDefer, aRv);
   }
 
-  void GetSrc(nsAString& aSrc) { GetURIAttr(nsGkAtoms::src, nullptr, aSrc); }
-  void SetSrc(const nsAString& aSrc, nsIPrincipal* aTriggeringPrincipal,
-              ErrorResult& aRv) {
-    SetHTMLAttr(nsGkAtoms::src, aSrc, aTriggeringPrincipal, aRv);
-  }
+  // @param aSrc will always be of type `String`.
+  void GetSrc(OwningTrustedScriptURLOrString& aSrc);
+
+  MOZ_CAN_RUN_SCRIPT void SetSrc(const TrustedScriptURLOrString& aSrc,
+                                 nsIPrincipal* aTriggeringPrincipal,
+                                 ErrorResult& aRv);
 
   void GetType(nsAString& aType) { GetHTMLAttr(nsGkAtoms::type, aType); }
   void SetType(const nsAString& aType, ErrorResult& aRv) {

@@ -28,7 +28,11 @@ class Maybe;
 namespace dom {
 
 class TrustedHTMLOrString;
-class TrustedHTMLOrNullIsEmptyString;
+class TrustedScript;
+class TrustedScriptOrString;
+class TrustedScriptOrNullIsEmptyString;
+class TrustedScriptURL;
+class TrustedScriptURLOrString;
 
 namespace TrustedTypeUtils {
 
@@ -57,6 +61,18 @@ MOZ_CAN_RUN_SCRIPT const nsAString* GetTrustedTypesCompliantString(
     Maybe<nsAutoString>& aResultHolder, ErrorResult& aError);
 MOZ_CAN_RUN_SCRIPT const nsAString* GetTrustedTypesCompliantString(
     const TrustedHTMLOrNullIsEmptyString& aInput, const nsAString& aSink,
+    const nsAString& aSinkGroup, const nsINode& aNode,
+    Maybe<nsAutoString>& aResultHolder, ErrorResult& aError);
+MOZ_CAN_RUN_SCRIPT const nsAString* GetTrustedTypesCompliantString(
+    const TrustedScriptOrString& aInput, const nsAString& aSink,
+    const nsAString& aSinkGroup, const nsINode& aNode,
+    Maybe<nsAutoString>& aResultHolder, ErrorResult& aError);
+MOZ_CAN_RUN_SCRIPT const nsAString* GetTrustedTypesCompliantString(
+    const TrustedScriptOrNullIsEmptyString& aInput, const nsAString& aSink,
+    const nsAString& aSinkGroup, const nsINode& aNode,
+    Maybe<nsAutoString>& aResultHolder, ErrorResult& aError);
+MOZ_CAN_RUN_SCRIPT const nsAString* GetTrustedTypesCompliantString(
+    const TrustedScriptURLOrString& aInput, const nsAString& aSink,
     const nsAString& aSinkGroup, const nsINode& aNode,
     Maybe<nsAutoString>& aResultHolder, ErrorResult& aError);
 

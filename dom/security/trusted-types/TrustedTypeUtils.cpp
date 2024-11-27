@@ -25,6 +25,7 @@
 
 #include "mozilla/dom/CSPViolationData.h"
 #include "mozilla/dom/ElementBinding.h"
+#include "mozilla/dom/HTMLScriptElementBinding.h"
 #include "mozilla/dom/nsCSPUtils.h"
 
 #include "nsContentUtils.h"
@@ -219,22 +220,34 @@ MOZ_CAN_RUN_SCRIPT inline const nsAString* GetTrustedTypesCompliantString(
   using TrustedTypeOrStringArg =
       std::remove_const_t<std::remove_reference_t<decltype(aInput)>>;
   auto isString = [&aInput] {
-    if constexpr (std::is_same_v<TrustedTypeOrStringArg, TrustedHTMLOrString>) {
+    if constexpr (std::is_same_v<TrustedTypeOrStringArg, TrustedHTMLOrString> ||
+                  std::is_same_v<TrustedTypeOrStringArg,
+                                 TrustedScriptOrString> ||
+                  std::is_same_v<TrustedTypeOrStringArg,
+                                 TrustedScriptURLOrString>) {
       return aInput.IsString();
     }
     if constexpr (std::is_same_v<TrustedTypeOrStringArg,
-                                 TrustedHTMLOrNullIsEmptyString>) {
+                                 TrustedHTMLOrNullIsEmptyString> ||
+                  std::is_same_v<TrustedTypeOrStringArg,
+                                 TrustedScriptOrNullIsEmptyString>) {
       return aInput.IsNullIsEmptyString();
     }
     MOZ_ASSERT_UNREACHABLE();
     return false;
   };
   auto getAsString = [&aInput] {
-    if constexpr (std::is_same_v<TrustedTypeOrStringArg, TrustedHTMLOrString>) {
+    if constexpr (std::is_same_v<TrustedTypeOrStringArg, TrustedHTMLOrString> ||
+                  std::is_same_v<TrustedTypeOrStringArg,
+                                 TrustedScriptOrString> ||
+                  std::is_same_v<TrustedTypeOrStringArg,
+                                 TrustedScriptURLOrString>) {
       return &aInput.GetAsString();
     }
     if constexpr (std::is_same_v<TrustedTypeOrStringArg,
-                                 TrustedHTMLOrNullIsEmptyString>) {
+                                 TrustedHTMLOrNullIsEmptyString> ||
+                  std::is_same_v<TrustedTypeOrStringArg,
+                                 TrustedScriptOrNullIsEmptyString>) {
       return &aInput.GetAsNullIsEmptyString();
     }
     MOZ_ASSERT_UNREACHABLE();
@@ -246,6 +259,16 @@ MOZ_CAN_RUN_SCRIPT inline const nsAString* GetTrustedTypesCompliantString(
                                  TrustedHTMLOrNullIsEmptyString>) {
       return aInput.IsTrustedHTML();
     }
+    if constexpr (std::is_same_v<TrustedTypeOrStringArg,
+                                 TrustedScriptOrString> ||
+                  std::is_same_v<TrustedTypeOrStringArg,
+                                 TrustedScriptOrNullIsEmptyString>) {
+      return aInput.IsTrustedScript();
+    }
+    if constexpr (std::is_same_v<TrustedTypeOrStringArg,
+                                 TrustedScriptURLOrString>) {
+      return aInput.IsTrustedScriptURL();
+    }
     MOZ_ASSERT_UNREACHABLE();
     return false;
   };
@@ -254,6 +277,16 @@ MOZ_CAN_RUN_SCRIPT inline const nsAString* GetTrustedTypesCompliantString(
                   std::is_same_v<TrustedTypeOrStringArg,
                                  TrustedHTMLOrNullIsEmptyString>) {
       return &aInput.GetAsTrustedHTML().mData;
+    }
+    if constexpr (std::is_same_v<TrustedTypeOrStringArg,
+                                 TrustedScriptOrString> ||
+                  std::is_same_v<TrustedTypeOrStringArg,
+                                 TrustedScriptOrNullIsEmptyString>) {
+      return &aInput.GetAsTrustedScript().mData;
+    }
+    if constexpr (std::is_same_v<TrustedTypeOrStringArg,
+                                 TrustedScriptURLOrString>) {
+      return &aInput.GetAsTrustedScriptURL().mData;
     }
     MOZ_ASSERT_UNREACHABLE();
     return &EmptyString();
@@ -333,5 +366,10 @@ MOZ_CAN_RUN_SCRIPT inline const nsAString* GetTrustedTypesCompliantString(
 IMPL_GET_TRUSTED_TYPES_COMPLIANT_STRING(TrustedHTMLOrString, TrustedHTML);
 IMPL_GET_TRUSTED_TYPES_COMPLIANT_STRING(TrustedHTMLOrNullIsEmptyString,
                                         TrustedHTML);
+IMPL_GET_TRUSTED_TYPES_COMPLIANT_STRING(TrustedScriptOrString, TrustedScript);
+IMPL_GET_TRUSTED_TYPES_COMPLIANT_STRING(TrustedScriptOrNullIsEmptyString,
+                                        TrustedScript);
+IMPL_GET_TRUSTED_TYPES_COMPLIANT_STRING(TrustedScriptURLOrString,
+                                        TrustedScriptURL);
 
 }  // namespace mozilla::dom::TrustedTypeUtils
