@@ -60,7 +60,7 @@
             android:autoRemoveFromRecents="false" />
 
         <activity
-                android:theme="@style/Theme.AppCompat.Light"
+                android:theme="@style/AddonsActivityTheme"
                 android:name=".addons.AddonsActivity"
                 android:label="@string/mozac_feature_addons_addons"
                 android:parentActivityName=".BrowserActivity" />
