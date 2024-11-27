@@ -885,8 +885,8 @@ nsresult nsPrintJob::SetupToPrintContent() {
   nsTArray<int32_t> ranges;
   mPrintSettings->GetPageRanges(ranges);
   for (size_t i = 0; i < ranges.Length(); i += 2) {
-    startPage = std::clamp(startPage, 1, ranges[i]);
-    endPage = std::clamp(endPage, ranges[i + 1], mNumPrintablePages);
+    startPage = std::max(1, std::min(startPage, ranges[i]));
+    endPage = std::min(mNumPrintablePages, std::max(endPage, ranges[i + 1]));
   }
 
   nsresult rv = NS_OK;
