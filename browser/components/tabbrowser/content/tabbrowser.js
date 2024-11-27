@@ -5675,6 +5675,7 @@
       }
 
       this._handleTabMove(aTab, () => aGroup.appendChild(aTab));
+      this.removeFromMultiSelectedTabs(aTab);
     }
 
     /**
@@ -5688,8 +5689,8 @@
 
       moveActionCallback();
 
-      // We want to clear _allTabs after moving nodes because the order of
-      // vertical tabs may have changed.
+      // Clear tabs cache after moving nodes because the order of tabs may have
+      // changed.
       this.tabContainer._invalidateCachedTabs();
 
       this._updateTabsAfterInsert();

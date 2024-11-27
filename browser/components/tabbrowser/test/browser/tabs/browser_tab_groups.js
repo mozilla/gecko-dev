@@ -1176,7 +1176,14 @@ add_task(async function test_removeFromGroupForSingleTab() {
 add_task(async function test_removeFromGroupForMultipleTabs() {
   // initial tab strip: [group1, group1, group1, none, none, group2, group2, none, group3, none]
   let tabs = createManyTabs(10);
+  [tabs[0], tabs[1], tabs[2]].forEach(t => {
+    gBrowser.addToMultiSelectedTabs(t);
+    ok(t.multiselected, "added tab to mutliselection");
+  });
   gBrowser.addTabGroup([tabs[0], tabs[1], tabs[2]], { insertBefore: tabs[0] });
+  [tabs[0], tabs[1], tabs[2]].forEach(t => {
+    ok(!t.multiselected, "tab no longer multiselected after adding to group");
+  });
   gBrowser.addTabGroup([tabs[5], tabs[6]], { insertBefore: tabs[5] });
   gBrowser.addTabGroup([tabs[8]], { insertBefore: tabs[8] });
 
