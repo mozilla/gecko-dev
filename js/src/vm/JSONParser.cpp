@@ -33,6 +33,7 @@
 #include "js/GCVector.h"                // JS::GCVector
 #include "js/Id.h"                      // jsid
 #include "js/JSON.h"                    // JS::IsValidJSON
+#include "js/PropertyAndElement.h"      // JS_SetPropertyById
 #include "js/RootingAPI.h"  // JS::Handle, JS::MutableHandle, MutableWrappedPtrOperations
 #include "js/TypeDecls.h"  // Latin1Char
 #include "js/Utility.h"    // js_delete
@@ -1108,7 +1109,11 @@ template class js::JSONParser<char16_t>;
 template <typename CharT>
 inline bool JSONReviveHandler<CharT>::objectOpen(Vector<StackEntry, 10>& stack,
                                                  PropertyVector** properties) {
-  if (!parseRecordStack.append(ParseRecordEntry{context()})) {
+  ParseRecordEntry* newParseEntry = NewPlainObject(context());
+  if (!newParseEntry) {
+    return false;
+  }
+  if (!parseRecordStack.append(newParseEntry)) {
     return false;
   }
 
@@ -1122,9 +1127,10 @@ inline bool JSONReviveHandler<CharT>::finishObjectMember(
   if (!Base::finishObjectMember(stack, value, properties)) {
     return false;
   }
-  parseRecord.value = value;
-  return finishMemberParseRecord((*properties)->back().id,
-                                 parseRecordStack.back());
+  parseRecord->setValue(value);
+  Rooted<JS::PropertyKey> key(context(), (*properties)->back().id);
+  Rooted<ParseRecordEntry*> parseRecordBack(context(), parseRecordStack.back());
+  return finishMemberParseRecord(key, parseRecordBack);
 }
 
 template <typename CharT>
@@ -1134,7 +1140,8 @@ inline bool JSONReviveHandler<CharT>::finishObject(
   if (!Base::finishObject(stack, vp, properties)) {
     return false;
   }
-  if (!finishCompoundParseRecord(vp, parseRecordStack.back())) {
+  Rooted<ParseRecordEntry*> parseRecordBack(context(), parseRecordStack.back());
+  if (!finishCompoundParseRecord(vp, parseRecordBack)) {
     return false;
   }
   parseRecordStack.popBack();
@@ -1145,7 +1152,11 @@ inline bool JSONReviveHandler<CharT>::finishObject(
 template <typename CharT>
 inline bool JSONReviveHandler<CharT>::arrayOpen(Vector<StackEntry, 10>& stack,
                                                 ElementVector** elements) {
-  if (!parseRecordStack.append(ParseRecordEntry{context()})) {
+  ParseRecordEntry* newParseEntry = NewPlainObject(context());
+  if (!newParseEntry) {
+    return false;
+  }
+  if (!parseRecordStack.append(newParseEntry)) {
     return false;
   }
 
@@ -1160,8 +1171,12 @@ inline bool JSONReviveHandler<CharT>::arrayElement(
     return false;
   }
   size_t index = (*elements)->length() - 1;
-  JS::PropertyKey key = js::PropertyKey::Int(index);
-  return finishMemberParseRecord(key, parseRecordStack.back());
+  // The JSON string is limited to JS::MaxStringLength, so there should be no
+  // way to get more than IntMax elements
+  MOZ_ASSERT(index <= js::PropertyKey::IntMax);
+  Rooted<JS::PropertyKey> key(context(), js::PropertyKey::Int(int32_t(index)));
+  Rooted<ParseRecordEntry*> parseRecordBack(context(), parseRecordStack.back());
+  return finishMemberParseRecord(key, parseRecordBack);
 }
 
 template <typename CharT>
@@ -1171,7 +1186,8 @@ inline bool JSONReviveHandler<CharT>::finishArray(
   if (!Base::finishArray(stack, vp, elements)) {
     return false;
   }
-  if (!finishCompoundParseRecord(vp, parseRecordStack.back())) {
+  Rooted<ParseRecordEntry*> parseRecordBack(context(), parseRecordStack.back());
+  if (!finishCompoundParseRecord(vp, parseRecordBack)) {
     return false;
   }
   parseRecordStack.popBack();
@@ -1181,17 +1197,21 @@ inline bool JSONReviveHandler<CharT>::finishArray(
 
 template <typename CharT>
 inline bool JSONReviveHandler<CharT>::finishMemberParseRecord(
-    JS::PropertyKey& key, ParseRecordEntry& objectEntry) {
-  parseRecord.key = key;
-  return objectEntry.put(key, std::move(parseRecord));
+    Handle<JS::PropertyKey> key, Handle<ParseRecordEntry*> parseEntry) {
+  parseRecord->setKey(context(), key.get());
+  Rooted<Value> pro(context(), ObjectValue(*parseRecord));
+  parseRecord = nullptr;
+  return JS_SetPropertyById(context(), parseEntry, key, pro);
 }
 
 template <typename CharT>
 inline bool JSONReviveHandler<CharT>::finishCompoundParseRecord(
-    const Value& value, ParseRecordEntry& objectEntry) {
-  Rooted<JSONParseNode*> parseNode(context());
-  parseRecord = ParseRecordObject(parseNode, value);
-  return parseRecord.addEntries(context(), std::move(objectEntry));
+    const Value& value, Handle<ParseRecordEntry*> parseEntry) {
+  parseRecord = ParseRecordObject::create(context(), value);
+  if (!parseRecord) {
+    return false;
+  }
+  return parseRecord->setEntries(context(), parseEntry);
 }
 
 template <typename CharT>
@@ -1203,30 +1223,33 @@ inline bool JSONReviveHandler<CharT>::finishPrimitiveParseRecord(
   if (!parseNode) {
     return false;
   }
-  parseRecord = ParseRecordObject(parseNode, value);
-  return true;
+  parseRecord = ParseRecordObject::create(context(), parseNode, value);
+  return !!parseRecord;
 }
 
 template <typename CharT>
 void JSONReviveHandler<CharT>::trace(JSTracer* trc) {
   Base::trace(trc);
-  parseRecord.trace(trc);
-  for (auto& entry : this->parseRecordStack) {
-    entry.trace(trc);
+  if (parseRecord) {
+    TraceRoot(trc, &parseRecord, "parse record");
   }
+  this->parseRecordStack.trace(trc);
 }
 
 template <typename CharT>
 bool JSONReviveParser<CharT>::parse(JS::MutableHandle<JS::Value> vp,
-                                    JS::MutableHandle<ParseRecordObject> pro) {
+                                    JS::MutableHandle<ParseRecordObject*> pro) {
   JS::Rooted<JS::Value> tempValue(this->handler.cx);
 
   vp.setUndefined();
 
-  bool result = this->parseImpl(
-      tempValue, [&](JS::Handle<JS::Value> value) { vp.set(value); });
-  pro.set(std::move(this->handler.parseRecord));
-  return result;
+  if (!this->parseImpl(tempValue,
+                       [&](JS::Handle<JS::Value> value) { vp.set(value); })) {
+    return false;
+  }
+  MOZ_ASSERT(this->handler.parseRecord);
+  pro.set(this->handler.parseRecord);
+  return true;
 }
 
 template <typename CharT>
