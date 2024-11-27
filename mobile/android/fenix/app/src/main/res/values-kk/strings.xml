@@ -252,8 +252,12 @@
     <string name="browser_menu_open_in_regular_tab">Қалыпты бетте ашу</string>
     <!-- Browser menu toggle that adds a shortcut to the site on the device home screen. -->
     <string name="browser_menu_add_to_homescreen">Үй экранына қосу</string>
+    <!-- Browser menu toggle that adds a PWA of the site on the device home screen. -->
+    <string name="browser_menu_add_app_to_homescreen">Қолданбаны үй экранына қосу</string>
     <!-- Browser menu toggle that adds a shortcut to the site on the device home screen. -->
     <string name="browser_menu_add_to_homescreen_2">Үй экранына қосу…</string>
+    <!-- Browser menu toggle that adds a PWA of the site on the device home screen. -->
+    <string name="browser_menu_add_app_to_homescreen_2">Қолданбаны үй экранына қосу…</string>
     <!-- Text for notifying users that Xiaomi devices require additional permissions to add to home screen -->
     <string name="browser_menu_add_to_homescreen_xiaomi">Xiaomi құрылғыларына негізгі экранға жарлықтарды қосу үшін  қосымша рұқсаттар қажет болуы мүмкін. Баптауларды тексеріңіз.</string>
     <!-- Content description (not visible, for screen readers etc.) for the Resync tabs button -->
@@ -344,6 +348,16 @@
     <string name="browser_menu_tools_description_with_translate" moz:removedIn="133" tools:ignore="UnusedResources">Оқу режимі, Аудару, Баспаға шығару, Бөлісу, Қолданбаны ашу</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
     <string name="browser_menu_tools_description" moz:removedIn="133" tools:ignore="UnusedResources">Оқу режимі, Баспаға шығару, Бөлісу, Қолданбаны ашу</string>
+    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu
+         The first parameter is the label of the report site issue (for example: Report Site issue) -->
+    <string name="browser_menu_tools_description_with_translate_with_report_site">Оқу режимі, Аудару, %s, Баспаға шығару, Бөлісу, Қолданбаны ашу</string>
+    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
+    <string name="browser_menu_tools_description_with_translate_without_report_site">Оқу режимі, Аудару, Баспаға шығару, Бөлісу, Қолданбаны ашу</string>
+    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu
+         The first parameter is the label of the report site issue (for example: Report Site issue) -->
+    <string name="browser_menu_tools_description_with_report_site">Оқу режимі, %s, Баспаға шығару, Бөлісу, Қолданбаны ашу</string>
+    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
+    <string name="browser_menu_tools_description_without_report_site">Оқу режимі, Баспаға шығару, Бөлісу, Қолданбаны ашу</string>
     <!-- Browser menu label that navigates to the save sub-menu, which contains various save related menu items such as
          bookmarking a page, saving to collection, shortcut or as a PDF, and adding to home screen -->
     <string name="browser_menu_save">Сақтау</string>
@@ -956,6 +970,8 @@
 
     <!-- Preference switch for usage and technical data collection -->
     <string name="preference_usage_data" moz:removedIn="134" tools:ignore="UnusedResources">Пайдалану және техникалық мәліметтер</string>
+    <!-- Preference switch for usage and technical data collection -->
+    <string name="preference_usage_data_1">Техникалық және өзара әрекеттесу деректері</string>
     <!-- Preference switch for usage and technical learn more link -->
     <string name="preference_usage_data_learn_more" tools:ignore="UnusedResources">Көбірек білу</string>
     <!-- Preference description for usage and technical data collection -->
@@ -1254,6 +1270,8 @@
     <!-- WebCompat Reporter -->
     <!-- The title of the Web Compat Reporter feature. This is displayed in the top app bar. -->
     <string name="webcompat_reporter_screen_title">Сынған сайт туралы хабарлау</string>
+    <!-- The description of the Web Compat Reporter feature. This first parameter is the name of the application (For example: Fenix) -->
+    <string name="webcompat_reporter_description">%1$s өнімін әркім үшін де жақсартуға көмектесіңіз. Mozilla қызметкерлері сіз жіберген ақпаратты веб-сайт мәселелерін шешу үшін пайдаланады.</string>
     <!-- The text field label of the URL text field. This is displayed above the user-inputted URL. -->
     <string name="webcompat_reporter_label_url">URL</string>
     <!-- The error message of the URL text field when an invalid URL has been entered. -->

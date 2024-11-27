@@ -119,6 +119,12 @@
     <!-- Text for the message displayed for the popup promoting the long press of navigation in the navigation bar. -->
     <string name="navbar_navigation_buttons_cfr_message">Ťuknutím a podržaním šípok preskočíte medzi stránkami v histórii tejto karty.</string>
 
+    <!-- Address bar swipe "contextual feature recommendation" (CFR) -->
+    <!-- Text for the title displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
+    <string name="address_bar_swipe_cfr_title">Karty môžete prepínať potiahnutím prstom po paneli s nástrojmi</string>
+    <!-- Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
+    <string name="address_bar_swipe_cfr_message">Prepínajte potiahnutím doľava alebo doprava. Potiahnutím doľava na poslednej karte otvoríte novú kartu.</string>
+
     <!-- Tablet navigation bar "contextual feature recommendation" (CFR) -->
     <!-- Text for the title displayed in the contextual feature recommendation popup promoting the tablet navigation bar. -->
     <string name="tablet_nav_bar_cfr_title" moz:removedIn="132" tools:ignore="UnusedResources">Novinka: šípky dozadu a dopredu jediným ťuknutím</string>
@@ -248,8 +254,12 @@
     <string name="browser_menu_open_in_regular_tab">Otvoriť na bežnej karte</string>
     <!-- Browser menu toggle that adds a shortcut to the site on the device home screen. -->
     <string name="browser_menu_add_to_homescreen">Pridať na úvodnú obrazovku</string>
+    <!-- Browser menu toggle that adds a PWA of the site on the device home screen. -->
+    <string name="browser_menu_add_app_to_homescreen">Pridať aplikáciu na Úvodnú obrazovku</string>
     <!-- Browser menu toggle that adds a shortcut to the site on the device home screen. -->
     <string name="browser_menu_add_to_homescreen_2">Pridať na úvodnú obrazovku…</string>
+    <!-- Browser menu toggle that adds a PWA of the site on the device home screen. -->
+    <string name="browser_menu_add_app_to_homescreen_2">Pridať aplikáciu na Úvodnú obrazovku…</string>
     <!-- Text for notifying users that Xiaomi devices require additional permissions to add to home screen -->
     <string name="browser_menu_add_to_homescreen_xiaomi">Zariadenia Xiaomi môžu potrebovať dodatočné povolenia na pridávanie skratiek na domovskú obrazovku. Skontrolujte svoje nastavenia.</string>
     <!-- Content description (not visible, for screen readers etc.) for the Resync tabs button -->
@@ -341,9 +351,19 @@
     <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar custom tab menu. -->
     <string name="browser_custom_tab_menu_handlebar_content_description">Zavrieť zoznam s ponukou pre vlastnú kartu</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-    <string name="browser_menu_tools_description_with_translate">Zobrazenie Čítačka, Preložiť, Tlačiť, Zdieľať, Otvoriť aplikáciu</string>
+    <string name="browser_menu_tools_description_with_translate" moz:removedIn="133" tools:ignore="UnusedResources">Zobrazenie Čítačka, Preložiť, Tlačiť, Zdieľať, Otvoriť aplikáciu</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-    <string name="browser_menu_tools_description">Zobrazenie Čítačka, Tlačiť, Zdieľať, Otvoriť aplikáciu</string>
+    <string name="browser_menu_tools_description" moz:removedIn="133" tools:ignore="UnusedResources">Zobrazenie Čítačka, Tlačiť, Zdieľať, Otvoriť aplikáciu</string>
+    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu
+         The first parameter is the label of the report site issue (for example: Report Site issue) -->
+    <string name="browser_menu_tools_description_with_translate_with_report_site">Zobrazenie Čítačka, Preložiť, %s, Tlačiť, Zdieľať, Otvoriť aplikáciu</string>
+    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
+    <string name="browser_menu_tools_description_with_translate_without_report_site">Zobrazenie Čítačka, Preložiť, Tlačiť, Zdieľať, Otvoriť aplikáciu</string>
+    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu
+         The first parameter is the label of the report site issue (for example: Report Site issue) -->
+    <string name="browser_menu_tools_description_with_report_site">Zobrazenie Čítačka, %s, Tlačiť, Zdieľať, Otvoriť aplikáciu</string>
+    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
+    <string name="browser_menu_tools_description_without_report_site">Zobrazenie Čítačka, Tlačiť, Zdieľať, Otvoriť aplikáciu</string>
     <!-- Browser menu label that navigates to the save sub-menu, which contains various save related menu items such as
          bookmarking a page, saving to collection, shortcut or as a PDF, and adding to home screen -->
     <string name="browser_menu_save">Uložiť</string>
@@ -963,7 +983,11 @@
     <string name="exceptions_empty_message_learn_more_link">Ďalšie informácie</string>
 
     <!-- Preference switch for usage and technical data collection -->
-    <string name="preference_usage_data">Údaje o používaní a technické údaje</string>
+    <string name="preference_usage_data" moz:removedIn="134" tools:ignore="UnusedResources">Údaje o používaní a technické údaje</string>
+    <!-- Preference switch for usage and technical data collection -->
+    <string name="preference_usage_data_1">Technické údaje a údaje o interakciách</string>
+    <!-- Preference switch for usage and technical learn more link -->
+    <string name="preference_usage_data_learn_more" tools:ignore="UnusedResources">Ďalšie informácie</string>
     <!-- Preference description for usage and technical data collection -->
     <string name="preferences_usage_data_description">Zdieľa údaje o výkonnosti, využívaní funkcií, hardvérovej konfigurácii a prispôsobení prehliadača s Mozillou s cieľom urobiť %1$s lepším</string>
     <!-- Preference switch for marketing data collection -->
@@ -1257,6 +1281,29 @@
 
 
     <!-- WebCompat Reporter -->
+
+    <!-- WebCompat Reporter -->
+    <!-- The title of the Web Compat Reporter feature. This is displayed in the top app bar. -->
+    <string name="webcompat_reporter_screen_title">Nahlásiť nefunkčnú stránku</string>
+    <!-- The description of the Web Compat Reporter feature. This first parameter is the name of the application (For example: Fenix) -->
+    <string name="webcompat_reporter_description">Pomôžte vylepšiť %1$s pre všetkých. Zamestnanci Mozilly používajú informácie, ktoré odošlete, na riešenie problémov s webovými stránkami.</string>
+    <!-- The text field label of the URL text field. This is displayed above the user-inputted URL. -->
+    <string name="webcompat_reporter_label_url">Adresa URL</string>
+    <!-- The error message of the URL text field when an invalid URL has been entered. -->
+    <string name="webcompat_reporter_url_error_invalid">Zadajte platnú adresu URL</string>
+    <!-- The label/title of an optional field in the Web Compat Reporter feature for explaining a high-level reason why the site is broken. -->
+    <string name="webcompat_reporter_label_whats_broken">Čo je nefunkčné? (voliteľné)</string>
+    <!-- The placeholder text for the dropdown where a user can select a high-level reason why the site is broken. -->
+    <string name="webcompat_reporter_choose_reason">Vyberte dôvod</string>
+    <!-- The label/title of an optional field in the Web Compat Reporter feature for adding additional information. -->
+    <string name="webcompat_reporter_label_description">Popis problému (voliteľný)</string>
+    <!-- The button text for navigating away from the feature to provide more information on the broken site's bug report. -->
+    <string name="webcompat_reporter_send_more_info">Odoslať ďalšie informácie</string>
+    <!-- The button text for the cancel button to leave the Web Compat Reporter feature. -->
+    <string name="webcompat_reporter_cancel">Zrušiť</string>
+    <!-- The button text for the send button to submit the provided form data. -->
+    <string name="webcompat_reporter_send">Odoslať</string>
+
 
     <!-- These reason strings are dropdown options on a WebCompat reporter form, indicating what is broken on the site. -->
     <!-- Broken site reason text for site slow or not working -->

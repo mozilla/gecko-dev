@@ -3013,7 +3013,7 @@
 
     <!-- Message shown to explain how to exit fullscreen mode when using back button navigation. -->
     <!-- Localisation note: this text should be as short as possible, max 68 chars -->
-    <string name="exit_fullscreen_with_back_button_short">Deslize do topo para baixo e toque em Voltar para sair de tela inteira</string>
+    <string name="exit_fullscreen_with_back_button_short">Para sair de tela inteira, deslize do topo para baixo e toque em Voltar</string>
 
     <!-- Beta Label Component !-->
     <!-- Text shown as a label or tag to indicate a feature or area is still undergoing active development. Note that here "Beta" should not be translated, as it is used as an icon styled element. -->
