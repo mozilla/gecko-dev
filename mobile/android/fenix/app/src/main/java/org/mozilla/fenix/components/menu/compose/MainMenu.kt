@@ -32,12 +32,12 @@ import org.mozilla.fenix.theme.Theme
  * @param account [Account] information available for a synced account.
  * @param accountState The [AccountState] of a Mozilla account.
  * @param availableAddons A list of installed and enabled [Addon]s to be shown.
+ * @param showQuitMenu Whether or not the button to delete browsing data and quit
+ * should be visible.
  * @param isPrivate Whether or not the browsing mode is in private mode.
  * @param isDesktopMode Whether or not the desktop mode is enabled.
  * @param isPdf Whether or not the current tab is a PDF.
  * @param isTranslationSupported Whether or not translation is supported.
- * @param showQuitMenu Whether or not the button to delete browsing data and quit
- * should be visible.
  * @param isExtensionsProcessDisabled Whether or not the extensions process is disabled due to extension errors.
  * @param reportSiteIssueLabel The label of report site issue web extension menu item.
  * @param onMozillaAccountButtonClick Invoked when the user clicks on Mozilla account button.
@@ -67,11 +67,11 @@ fun MainMenu(
     account: Account?,
     accountState: AccountState,
     availableAddons: List<Addon>,
+    showQuitMenu: Boolean,
     isPrivate: Boolean,
     isDesktopMode: Boolean,
     isPdf: Boolean,
     isTranslationSupported: Boolean,
-    showQuitMenu: Boolean,
     isExtensionsProcessDisabled: Boolean,
     reportSiteIssueLabel: String?,
     onMozillaAccountButtonClick: () -> Unit,
