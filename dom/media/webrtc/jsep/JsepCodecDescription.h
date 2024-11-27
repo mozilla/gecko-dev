@@ -560,6 +560,17 @@ class JsepVideoCodecDescription : public JsepCodecDescription {
         vp8Params.max_fr = 60;
       }
       aFmtp.reset(vp8Params.Clone());
+    } else if (mName == "AV1") {
+      auto av1Params = SdpFmtpAttributeList::Av1Parameters();
+      if (aFmtp) {
+        MOZ_RELEASE_ASSERT(aFmtp->codec_type == SdpRtpmapAttributeList::kAV1);
+        av1Params =
+            static_cast<const SdpFmtpAttributeList::Av1Parameters&>(*aFmtp);
+        av1Params.profile = mAv1Config.mProfile;
+        av1Params.levelIdx = mAv1Config.mLevelIdx;
+        av1Params.tier = mAv1Config.mTier;
+      }
+      aFmtp.reset(av1Params.Clone());
     }
   }
 
@@ -641,6 +652,12 @@ class JsepVideoCodecDescription : public JsepCodecDescription {
         ApplyConfigToFmtp(vp8Params);
         msection.SetFmtp(SdpFmtpAttributeList::Fmtp(mDefaultPt, *vp8Params));
       }
+    } else if (mName == "AV1") {
+      UniquePtr<SdpFmtpAttributeList::Parameters> av1Params =
+          MakeUnique<SdpFmtpAttributeList::Av1Parameters>(
+              GetAv1Parameters(mDefaultPt, msection));
+      ApplyConfigToFmtp(av1Params);
+      msection.SetFmtp(SdpFmtpAttributeList::Fmtp(mDefaultPt, *av1Params));
     }
 
     if (mRtxEnabled && mDirection == sdp::kRecv) {
@@ -765,6 +782,22 @@ class JsepVideoCodecDescription : public JsepCodecDescription {
     return result;
   }
 
+  SdpFmtpAttributeList::Av1Parameters GetAv1Parameters(
+      const std::string& pt, const SdpMediaSection& msection) const {
+    SdpRtpmapAttributeList::CodecType expectedType(
+        SdpRtpmapAttributeList::kAV1);
+
+    // Will contain defaults if nothing else
+    SdpFmtpAttributeList::Av1Parameters result;
+    const auto* params = msection.FindFmtp(pt);
+
+    if (params && params->codec_type == expectedType) {
+      result = static_cast<const SdpFmtpAttributeList::Av1Parameters&>(*params);
+    }
+
+    return result;
+  }
+
   void NegotiateRtcpFb(const SdpMediaSection& remoteMsection,
                        SdpRtcpFbAttributeList::Type type,
                        std::vector<std::string>* supportedTypes) {
@@ -803,6 +836,33 @@ class JsepVideoCodecDescription : public JsepCodecDescription {
     NegotiateRtcpFb(remote, SdpRtcpFbAttributeList::kNack, &mNackFbTypes);
     NegotiateRtcpFb(remote, SdpRtcpFbAttributeList::kCcm, &mCcmFbTypes);
     NegotiateRtcpFb(remote, &mOtherFbTypes);
+  }
+
+  // Some parameters are hierarchical, meaning that a lower value reflects a
+  // lower capability.  In these cases, we want the sender to use the lower of
+  // the two values. There is also an implied default value which may be higher
+  // than the signalled value.
+  template <typename T>
+  static auto NegotiateHierarchicalParam(const sdp::Direction direction,
+                                         const Maybe<T>& localParam,
+                                         const Maybe<T>& remoteParam,
+                                         const T& defaultValue) -> Maybe<T> {
+    const auto maybe_min = [&](const Maybe<T>& a,
+                               const Maybe<T>& b) -> Maybe<T> {
+      auto val = std::min(a.valueOr(defaultValue), b.valueOr(defaultValue));
+      if (val == defaultValue) {
+        // Are we using defaultValue because we fell back on it, or because it
+        // was actually signaled?
+        if (a != Some(defaultValue) && b != Some(defaultValue)) {
+          return Nothing();
+        }
+      }
+      return Some(val);
+    };
+    if (direction == sdp::kSend) {
+      return maybe_min(localParam, remoteParam);
+    }
+    return localParam;
   }
 
   virtual bool Negotiate(const std::string& pt,
@@ -850,6 +910,29 @@ class JsepVideoCodecDescription : public JsepCodecDescription {
           mConstraints.maxFps = Some(vp8Params.max_fr);
         }
       }
+    } else if (mName == "AV1") {
+      using Av1Params = SdpFmtpAttributeList::Av1Parameters;
+      Av1Params av1Params(GetAv1Parameters(mDefaultPt, remoteMsection));
+
+      Maybe<SdpFmtpAttributeList::Av1Parameters> localParams =
+          localMsection.isSome()
+              ? Some(GetAv1Parameters(mDefaultPt, *localMsection))
+              : Nothing();
+      auto localProfile =
+          localParams.isSome() ? localParams.value().profile : Nothing();
+      auto localLevelIdx =
+          localParams.isSome() ? localParams.value().levelIdx : Nothing();
+      auto tier = localParams.isSome() ? localParams.value().tier : Nothing();
+
+      av1Params.profile = NegotiateHierarchicalParam(
+          mDirection, localProfile, av1Params.profile,
+          Av1Params::kDefaultProfile);
+      av1Params.levelIdx = NegotiateHierarchicalParam(
+          mDirection, localLevelIdx, av1Params.levelIdx,
+          Av1Params::kDefaultLevelIdx);
+      av1Params.tier = NegotiateHierarchicalParam(
+          mDirection, tier, av1Params.tier, Av1Params::kDefaultTier);
+      mAv1Config = Av1Config(av1Params);
     }
 
     if (mRtxEnabled && (mDirection == sdp::kSend || remoteIsOffer)) {
