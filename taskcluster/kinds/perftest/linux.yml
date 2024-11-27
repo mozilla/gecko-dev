@@ -417,6 +417,31 @@ ml-perf:
             --output $MOZ_FETCHES_DIR/../artifacts
             toolkit/components/ml/tests/browser/browser_ml_engine_perf.js
 
+ml-summarizer-perf:
+    fetches:
+        fetch:
+            - ort.wasm
+            - ort.jsep.wasm
+            - qwen2.5-0.5-instruct
+            - distilbart-cnn-12-6
+    description: Run ML Models Perf Tests
+    treeherder:
+        symbol: perftest(linux-ml-sum-perf)
+        tier: 2
+    attributes:
+        batch: false
+        cron: false
+    run-on-projects: [autoland, mozilla-central]
+    run:
+        command: >-
+            mkdir -p $MOZ_FETCHES_DIR/../artifacts &&
+            cd $MOZ_FETCHES_DIR &&
+            python3 python/mozperftest/mozperftest/runner.py
+            --mochitest-binary ${MOZ_FETCHES_DIR}/firefox/firefox-bin
+            --flavor mochitest
+            --output $MOZ_FETCHES_DIR/../artifacts
+            toolkit/components/ml/tests/browser/browser_ml_summarizer_perf.js
+
 ml-multi-perf:
     fetches:
         fetch:

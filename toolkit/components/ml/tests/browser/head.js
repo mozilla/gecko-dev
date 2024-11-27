@@ -487,12 +487,8 @@ async function getTotalMemoryUsage() {
  * Runs an inference given the options and arguments
  *
  */
-async function runInference(pipelineOptions, args, isFirstRun = false) {
+async function runInference(pipelineOptions, request, isFirstRun = false) {
   const { cleanup, engine } = await initializeEngine(pipelineOptions);
-  const request = {
-    args,
-    options: { pooling: "mean", normalize: true },
-  };
   let metrics = {};
   try {
     const res = await engine.run(request);
@@ -513,7 +509,7 @@ async function runInference(pipelineOptions, args, isFirstRun = false) {
 async function perfTest(
   name,
   options,
-  args,
+  request,
   iterations = ITERATIONS,
   addColdStart = false
 ) {
@@ -549,8 +545,15 @@ async function perfTest(
   let nIterations = addColdStart ? iterations + 1 : iterations;
   for (let i = 0; i < nIterations; i++) {
     const shouldAddColdStart = addColdStart && i === 0;
-    let metrics = await runInference(pipelineOptions, args, shouldAddColdStart);
+    let metrics = await runInference(
+      pipelineOptions,
+      request,
+      shouldAddColdStart
+    );
     for (let [metricName, metricVal] of Object.entries(metrics)) {
+      if (metricVal === null || metricVal === undefined || metricVal < 0) {
+        metricVal = 0;
+      }
       journal[`${name}-${metricName}`].push(metricVal);
     }
   }

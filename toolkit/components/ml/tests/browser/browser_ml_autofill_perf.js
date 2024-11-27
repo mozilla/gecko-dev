@@ -60,5 +60,10 @@ add_task(async function test_ml_generic_pipeline() {
     "<input id='new-password' autocomplete='new-password' placeholder='Please enter a new password'>",
   ];
 
-  await perfTest("autofill", options, args);
+  const request = {
+    args,
+    options: { pooling: "mean", normalize: true },
+  };
+
+  await perfTest("autofill", options, request);
 });

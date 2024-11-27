@@ -61,3 +61,21 @@ mozilla-autofill:
         revision: a8cdc0f19f2f5b6a099e4d7f24725a0b57073cb4
         path-prefix: "onnx-models/Mozilla/tinybert-uncased-autofill/main/"
         artifact-name: tinybert-uncased-autofill.tar.zst
+
+distilbart-cnn-12-6:
+    description: Distilbart-cnn-12-6 text summarization model
+    fetch:
+        type: git
+        repo: https://huggingface.co/Xenova/distilbart-cnn-12-6
+        revision: 90818435f864622768d27f97fede11a3727c3316
+        path-prefix: "onnx-models/Xenova/distilbart-cnn-12-6/main/"
+        artifact-name: distilbart-cnn-12-6.tar.zst
+
+qwen2.5-0.5-instruct:
+    description: Qwen text summarization model
+    fetch:
+        type: git
+        repo: https://huggingface.co/onnx-community/Qwen2.5-0.5B-Instruct
+        revision: cc5cc01a65cc3ff17bdb73a7de33d879f62599b0
+        path-prefix: "onnx-models/onnx-community/Qwen2.5-0.5B-Instruct/main/"
+        artifact-name: qwen2_5-0_5_instruct.tar.zst

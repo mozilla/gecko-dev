@@ -91,5 +91,9 @@ add_task(async function test_ml_generic_pipeline() {
   };
 
   const args = ["The quick brown fox jumps over the lazy dog."];
-  await perfTest("example", options, args, ITERATIONS, true);
+  const request = {
+    args,
+    options: { pooling: "mean", normalize: true },
+  };
+  await perfTest("example", options, request, ITERATIONS, true);
 });

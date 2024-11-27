@@ -52,5 +52,9 @@ add_task(async function test_ml_generic_pipeline() {
     dtype: "q8",
   };
   const args = ["restaurants in seattle, wa"];
-  await perfTest("intent", options, args);
+  const request = {
+    args,
+    options: { pooling: "mean", normalize: true },
+  };
+  await perfTest("intent", options, request);
 });

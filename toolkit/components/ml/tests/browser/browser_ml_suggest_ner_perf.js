@@ -41,5 +41,10 @@ add_task(async function test_ml_ner_perftest() {
   };
 
   const args = ["restaurants in seattle, wa"];
-  await perfTest("ner", options, args);
+
+  const request = {
+    args,
+    options: { pooling: "mean", normalize: true },
+  };
+  await perfTest("ner", options, request);
 });
