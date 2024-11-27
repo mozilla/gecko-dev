@@ -7594,6 +7594,8 @@ var SessionStoreInternal = {
       );
     }
 
+    let tabDataList = tabGroupData.tabs.map(tab => tab.state);
+
     if (targetWindow && !targetWindow.__SSi) {
       throw Components.Exception(
         "Target window is not tracked",
@@ -7607,11 +7609,11 @@ var SessionStoreInternal = {
     let tabs = targetWindow.gBrowser.createTabsForSessionRestore(
       true,
       0, // TODO Bug 1933113 - Save tab group position and selected tab with saved tab group data
-      tabGroupData.tabs,
+      tabDataList,
       [tabGroupData]
     );
 
-    this.restoreTabs(targetWindow, tabs, tabGroupData.tabs, 0);
+    this.restoreTabs(targetWindow, tabs, tabDataList, 0);
 
     if (source.savedTabGroupId) {
       this.forgetSavedTabGroup(source.savedTabGroupId);

@@ -316,7 +316,10 @@ function createTabGroupSubmenu(aTabGroup, aIndex, aDocument, aFragment) {
     "tab-context-reopen-tab-group"
   );
   reopenTabGroupItem.addEventListener("command", () => {
-    // TODO Bug 1932670: Session Restore support for restoring tab groups
+    lazy.SessionStore.restoreTabGroup({
+      closedTabGroupId: aTabGroup.id,
+      sourceWindowId: aDocument.ownerGlobal.__SSi,
+    });
   });
   menuPopup.appendChild(reopenTabGroupItem);
 
@@ -391,7 +394,10 @@ function createTabGroupSubpanel(aTabGroup, aIndex, aDocument, aFragment) {
     "panel-subview-footer-button"
   );
   reopenTabGroupItem.addEventListener("command", () => {
-    // TODO Bug 1932670: Session Restore support for restoring tab groups
+    lazy.SessionStore.restoreTabGroup({
+      closedTabGroupId: aTabGroup.id,
+      sourceWindowId: aDocument.ownerGlobal.__SSi,
+    });
   });
 
   panelview.appendChild(reopenTabGroupItem);
