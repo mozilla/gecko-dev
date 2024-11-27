@@ -880,8 +880,13 @@
     width: var(--tab-collapsed-background-width);
     min-height: var(--tab-collapsed-background-width);
     max-width: var(--tab-collapsed-background-width);
-    line-height: var(--tab-collapsed-background-width);
     margin: auto;
+    font-size: 0;
+
+    &:first-letter {
+      font: message-box;
+      line-height: var(--tab-collapsed-background-width);
+    }
   }
 
   #tabbrowser-tabs[tablist-has-focus] &.tablist-keyboard-focus {
