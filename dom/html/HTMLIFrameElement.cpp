@@ -10,6 +10,8 @@
 #include "mozilla/dom/Document.h"
 #include "mozilla/dom/HTMLIFrameElementBinding.h"
 #include "mozilla/dom/FeaturePolicy.h"
+#include "mozilla/dom/TrustedTypeUtils.h"
+#include "mozilla/dom/TrustedTypesConstants.h"
 #include "mozilla/MappedDeclarationsBuilder.h"
 #include "mozilla/NullPrincipal.h"
 #include "mozilla/StaticPrefs_dom.h"
@@ -384,4 +386,25 @@ void HTMLIFrameElement::CancelLazyLoading(bool aClearLazyLoadState) {
     mLazyLoadState.Clear();
   }
 }
+
+void HTMLIFrameElement::GetSrcdoc(OwningTrustedHTMLOrString& aSrcdoc) {
+  GetHTMLAttr(nsGkAtoms::srcdoc, aSrcdoc.SetAsString());
+}
+
+void HTMLIFrameElement::SetSrcdoc(const TrustedHTMLOrString& aSrcdoc,
+                                  ErrorResult& aError) {
+  constexpr nsLiteralString sink = u"HTMLIFrameElement srcdoc"_ns;
+
+  Maybe<nsAutoString> compliantStringHolder;
+  const nsAString* compliantString =
+      TrustedTypeUtils::GetTrustedTypesCompliantString(
+          aSrcdoc, sink, kTrustedTypesOnlySinkGroup, *this,
+          compliantStringHolder, aError);
+  if (aError.Failed()) {
+    return;
+  }
+
+  SetHTMLAttr(nsGkAtoms::srcdoc, *compliantString, aError);
+}
+
 }  // namespace mozilla::dom

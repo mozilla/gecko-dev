@@ -26,6 +26,7 @@
 #include "mozilla/dom/CSPViolationData.h"
 #include "mozilla/dom/ElementBinding.h"
 #include "mozilla/dom/HTMLScriptElementBinding.h"
+#include "mozilla/dom/UnionTypes.h"
 #include "mozilla/dom/nsCSPUtils.h"
 
 #include "nsContentUtils.h"
