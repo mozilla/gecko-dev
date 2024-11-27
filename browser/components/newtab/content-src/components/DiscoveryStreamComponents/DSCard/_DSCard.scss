@@ -483,23 +483,21 @@ $ds-card-image-gradient-solid: rgba(0, 0, 0, 100%);
     }
 
     .meta {
-      $line-count: 2;
-
       padding: var(--space-large);
 
       .title {
-        // show only 2 lines of copy
+        // show only 3 lines of copy
+        -webkit-line-clamp: 3;
         font-size: var(--font-size-root);
-        -webkit-line-clamp: $line-count;
         line-height: normal;
         margin-bottom: var(--space-small);
         font-weight: var(--font-weight-bold);
       }
 
       .excerpt {
-        // show only 2 lines of copy
+        // show only 3 lines of copy
+        -webkit-line-clamp: 3;
         font-size: var(--font-size-small);
-        -webkit-line-clamp: $line-count;
         line-height: normal;
       }
 
