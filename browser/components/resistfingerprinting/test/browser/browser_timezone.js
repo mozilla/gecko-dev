@@ -7,10 +7,10 @@
 async function verifySpoofed() {
   ok(true, "Running on " + content.location.origin);
 
-  SpecialPowers.Cu.getJSTestingFunctions().setTimeZone("America/Los_Angeles");
+  SpecialPowers.Cu.getJSTestingFunctions().setTimeZone("PST8PDT");
   is(
     Intl.DateTimeFormat("en-US").resolvedOptions().timeZone,
-    "America/Los_Angeles",
+    "PST8PDT",
     "Default time zone should have changed"
   );
 
@@ -113,10 +113,10 @@ add_task(async function test_timezone_exempt() {
   });
 
   await SpecialPowers.spawn(tab.linkedBrowser, [], async function () {
-    SpecialPowers.Cu.getJSTestingFunctions().setTimeZone("America/Los_Angeles");
+    SpecialPowers.Cu.getJSTestingFunctions().setTimeZone("PST8PDT");
     is(
       Intl.DateTimeFormat("en-US").resolvedOptions().timeZone,
-      "America/Los_Angeles",
+      "PST8PDT",
       "Default time zone should have changed"
     );
 
@@ -129,7 +129,7 @@ add_task(async function test_timezone_exempt() {
 
       is(
         Intl.DateTimeFormat("en-US").resolvedOptions().timeZone,
-        "America/Los_Angeles",
+        "PST8PDT",
         "Content should use default time zone"
       );
     }
@@ -169,10 +169,10 @@ add_task(async function test_timezone_exempt_wrong_domain() {
 });
 
 add_task(async function test_timezone_exmpt_browser() {
-  SpecialPowers.Cu.getJSTestingFunctions().setTimeZone("America/Los_Angeles");
+  SpecialPowers.Cu.getJSTestingFunctions().setTimeZone("PST8PDT");
   is(
     Intl.DateTimeFormat("en-US").resolvedOptions().timeZone,
-    "America/Los_Angeles",
+    "PST8PDT",
     "Default time zone should have changed"
   );
 
@@ -182,7 +182,7 @@ add_task(async function test_timezone_exmpt_browser() {
 
   is(
     Intl.DateTimeFormat("en-US").resolvedOptions().timeZone,
-    "America/Los_Angeles",
+    "PST8PDT",
     "Timezone in chrome should be unaffected by resistFingerprinting"
   );
 
@@ -196,7 +196,7 @@ add_task(async function test_timezone_exmpt_browser() {
 
   is(
     newWindow.Intl.DateTimeFormat("en-US").resolvedOptions().timeZone,
-    "America/Los_Angeles",
+    "PST8PDT",
     "Timezone in new chrome window should be unaffected by resistFingerprinting"
   );
 
