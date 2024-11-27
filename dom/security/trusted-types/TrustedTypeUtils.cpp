@@ -18,7 +18,6 @@
 #include "mozilla/dom/TrustedScriptURL.h"
 #include "mozilla/dom/TrustedTypePolicy.h"
 #include "mozilla/dom/TrustedTypePolicyFactory.h"
-#include "mozilla/dom/TrustedTypesConstants.h"
 #include "nsGlobalWindowInner.h"
 #include "nsLiteralString.h"
 #include "nsTArray.h"
@@ -34,20 +33,6 @@
 #include "nsIContentSecurityPolicy.h"
 
 namespace mozilla::dom::TrustedTypeUtils {
-
-nsString GetTrustedTypeName(TrustedType aTrustedType) {
-  switch (aTrustedType) {
-    case TrustedType::TrustedHTML:
-      return GetTrustedTypeName<TrustedHTML>();
-      break;
-    case TrustedType::TrustedScript:
-      return GetTrustedTypeName<TrustedScript>();
-      break;
-    case TrustedType::TrustedScriptURL:
-      return GetTrustedTypeName<TrustedScriptURL>();
-      break;
-  }
-}
 
 // https://w3c.github.io/trusted-types/dist/spec/#abstract-opdef-does-sink-type-require-trusted-types
 static bool DoesSinkTypeRequireTrustedTypes(nsIContentSecurityPolicy* aCSP,
@@ -249,10 +234,6 @@ MOZ_CAN_RUN_SCRIPT inline const nsAString* GetTrustedTypesCompliantString(
                                  TrustedScriptOrNullIsEmptyString>) {
       return aInput.IsNullIsEmptyString();
     }
-    if constexpr (std::is_same_v<TrustedTypeOrStringArg, const nsAString*>) {
-      Unused << aInput;
-      return true;
-    }
     MOZ_ASSERT_UNREACHABLE();
     return false;
   };
@@ -269,9 +250,6 @@ MOZ_CAN_RUN_SCRIPT inline const nsAString* GetTrustedTypesCompliantString(
                   std::is_same_v<TrustedTypeOrStringArg,
                                  TrustedScriptOrNullIsEmptyString>) {
       return &aInput.GetAsNullIsEmptyString();
-    }
-    if constexpr (std::is_same_v<TrustedTypeOrStringArg, const nsAString*>) {
-      return aInput;
     }
     MOZ_ASSERT_UNREACHABLE();
     return static_cast<const nsAString*>(&EmptyString());
@@ -292,10 +270,6 @@ MOZ_CAN_RUN_SCRIPT inline const nsAString* GetTrustedTypesCompliantString(
                                  TrustedScriptURLOrString>) {
       return aInput.IsTrustedScriptURL();
     }
-    if constexpr (std::is_same_v<TrustedTypeOrStringArg, const nsAString*>) {
-      Unused << aInput;
-      return false;
-    }
     MOZ_ASSERT_UNREACHABLE();
     return false;
   };
@@ -315,7 +289,6 @@ MOZ_CAN_RUN_SCRIPT inline const nsAString* GetTrustedTypesCompliantString(
                                  TrustedScriptURLOrString>) {
       return &aInput.GetAsTrustedScriptURL().mData;
     }
-    Unused << aInput;
     MOZ_ASSERT_UNREACHABLE();
     return &EmptyString();
   };
@@ -399,123 +372,5 @@ IMPL_GET_TRUSTED_TYPES_COMPLIANT_STRING(TrustedScriptOrNullIsEmptyString,
                                         TrustedScript);
 IMPL_GET_TRUSTED_TYPES_COMPLIANT_STRING(TrustedScriptURLOrString,
                                         TrustedScriptURL);
-
-bool GetTrustedTypeDataForAttribute(const nsAtom* aElementName,
-                                    int32_t aElementNamespaceID,
-                                    nsAtom* aAttributeName,
-                                    int32_t aAttributeNamespaceID,
-                                    TrustedType& aTrustedType,
-                                    nsAString& aSink) {
-  // The spec is not really clear about which "event handler content attributes"
-  // we should consider, so we just include everything but XUL's specific ones.
-  // See https://github.com/w3c/trusted-types/issues/520.
-  if (aAttributeNamespaceID == kNameSpaceID_None &&
-      nsContentUtils::IsEventAttributeName(
-          aAttributeName, EventNameType_All & ~EventNameType_XUL)) {
-    aTrustedType = TrustedType::TrustedScript;
-    return true;
-  }
-  if (aElementNamespaceID == kNameSpaceID_XHTML) {
-    if (aElementName == nsGkAtoms::iframe) {
-      // HTMLIFrameElement
-      if (aAttributeNamespaceID == kNameSpaceID_None &&
-          aAttributeName == nsGkAtoms::srcdoc) {
-        aTrustedType = TrustedType::TrustedHTML;
-        aSink.AssignLiteral(u"HTMLIFrameElement srcdoc");
-        return true;
-      }
-    } else if (aElementName == nsGkAtoms::script) {
-      // HTMLScriptElement
-      if (aAttributeNamespaceID == kNameSpaceID_None &&
-          aAttributeName == nsGkAtoms::src) {
-        aTrustedType = TrustedType::TrustedScriptURL;
-        aSink.AssignLiteral(u"HTMLScriptElement src");
-        return true;
-      }
-    }
-  } else if (aElementNamespaceID == kNameSpaceID_SVG) {
-    if (aElementName == nsGkAtoms::script) {
-      // SVGScriptElement
-      if ((aAttributeNamespaceID == kNameSpaceID_None ||
-           aAttributeNamespaceID == kNameSpaceID_XLink) &&
-          aAttributeName == nsGkAtoms::href) {
-        aTrustedType = TrustedType::TrustedScriptURL;
-        aSink.AssignLiteral(u"SVGScriptElement href");
-        return true;
-      }
-    }
-  }
-
-  return false;
-}
-
-MOZ_CAN_RUN_SCRIPT const nsAString* GetTrustedTypesCompliantAttributeValue(
-    const nsINode& aElement, nsAtom* aAttributeName,
-    int32_t aAttributeNamespaceID,
-    const TrustedHTMLOrTrustedScriptOrTrustedScriptURLOrString& aNewValue,
-    Maybe<nsAutoString>& aResultHolder, ErrorResult& aError) {
-  auto getAsTrustedType = [&aNewValue] {
-    if (aNewValue.IsTrustedHTML()) {
-      return &aNewValue.GetAsTrustedHTML().mData;
-    }
-    if (aNewValue.IsTrustedScript()) {
-      return &aNewValue.GetAsTrustedScript().mData;
-    }
-    MOZ_ASSERT(aNewValue.IsTrustedScriptURL());
-    return &aNewValue.GetAsTrustedScriptURL().mData;
-  };
-  auto getContent = [&aNewValue, &getAsTrustedType] {
-    return aNewValue.IsString() ? &aNewValue.GetAsString() : getAsTrustedType();
-  };
-
-  if (!StaticPrefs::dom_security_trusted_types_enabled()) {
-    // A trusted type might've been created before the pref was set to `false`,
-    // so we cannot assume aNewValue.IsString().
-    return getContent();
-  }
-
-  // In the common situation of non-data document without any
-  // require-trusted-types-for directive, we just return immediately.
-  const NodeInfo* nodeInfo = aElement.NodeInfo();
-  Document* ownerDoc = nodeInfo->GetDocument();
-  const bool ownerDocLoadedAsData = ownerDoc->IsLoadedAsData();
-  if (!ownerDoc->HasPolicyWithRequireTrustedTypesForDirective() &&
-      !ownerDocLoadedAsData) {
-    return getContent();
-  }
-
-  TrustedType expectedType;
-  nsAutoString sink;
-  if (!GetTrustedTypeDataForAttribute(
-          nodeInfo->NameAtom(), nodeInfo->NamespaceID(), aAttributeName,
-          aAttributeNamespaceID, expectedType, sink)) {
-    return getContent();
-  }
-
-  if ((expectedType == TrustedType::TrustedHTML && aNewValue.IsTrustedHTML()) ||
-      (expectedType == TrustedType::TrustedScript &&
-       aNewValue.IsTrustedScript()) ||
-      (expectedType == TrustedType::TrustedScriptURL &&
-       aNewValue.IsTrustedScriptURL())) {
-    return getAsTrustedType();
-  }
-
-  const nsAString* input =
-      aNewValue.IsString() ? &aNewValue.GetAsString() : getAsTrustedType();
-  switch (expectedType) {
-    case TrustedType::TrustedHTML:
-      return GetTrustedTypesCompliantString<TrustedHTML>(
-          input, sink, kTrustedTypesOnlySinkGroup, aElement, aResultHolder,
-          aError);
-    case TrustedType::TrustedScript:
-      return GetTrustedTypesCompliantString<TrustedScript>(
-          input, sink, kTrustedTypesOnlySinkGroup, aElement, aResultHolder,
-          aError);
-    case TrustedType::TrustedScriptURL:
-      return GetTrustedTypesCompliantString<TrustedScriptURL>(
-          input, sink, kTrustedTypesOnlySinkGroup, aElement, aResultHolder,
-          aError);
-  }
-}
 
 }  // namespace mozilla::dom::TrustedTypeUtils

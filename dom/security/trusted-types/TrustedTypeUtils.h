@@ -33,7 +33,6 @@ class TrustedScriptOrString;
 class TrustedScriptOrNullIsEmptyString;
 class TrustedScriptURL;
 class TrustedScriptURLOrString;
-class TrustedHTMLOrTrustedScriptOrTrustedScriptURLOrString;
 
 namespace TrustedTypeUtils {
 
@@ -48,13 +47,6 @@ nsString GetTrustedTypeName() {
   MOZ_ASSERT((std::is_same_v<T, TrustedScriptURL>));
   return u"TrustedScriptURL"_ns;
 }
-
-enum class TrustedType : int8_t {
-  TrustedHTML,
-  TrustedScript,
-  TrustedScriptURL,
-};
-nsString GetTrustedTypeName(TrustedType aTrustedType);
 
 // https://w3c.github.io/trusted-types/dist/spec/#get-trusted-type-compliant-string-algorithm
 //
@@ -89,21 +81,6 @@ template <typename ExpectedType>
 MOZ_CAN_RUN_SCRIPT void ProcessValueWithADefaultPolicy(
     const Document& aDocument, const nsAString& aInput, const nsAString& aSink,
     ExpectedType** aResult, ErrorResult& aError);
-
-// https://w3c.github.io/trusted-types/dist/spec/#get-trusted-type-data-for-attribute
-bool GetTrustedTypeDataForAttribute(const nsAtom* aElementName,
-                                    int32_t aElementNamespaceID,
-                                    nsAtom* aAttributeName,
-                                    int32_t aAttributeNamespaceID,
-                                    TrustedType& aTrustedType,
-                                    nsAString& aSink);
-
-// https://w3c.github.io/trusted-types/dist/spec/#abstract-opdef-get-trusted-types-compliant-attribute-value
-MOZ_CAN_RUN_SCRIPT const nsAString* GetTrustedTypesCompliantAttributeValue(
-    const nsINode& aElement, nsAtom* aAttributeName,
-    int32_t aAttributeNamespaceID,
-    const TrustedHTMLOrTrustedScriptOrTrustedScriptURLOrString& aNewValue,
-    Maybe<nsAutoString>& aResultHolder, ErrorResult& aError);
 
 }  // namespace TrustedTypeUtils
 
