@@ -1320,7 +1320,24 @@ sdp_result_e sdp_parse_attr_fmtp (sdp_t *sdp_p, sdp_attr_t *attr_p,
           fmtp_p->rtx_time = (uint32_t)strtoul_result;
 
           codec_info_found = TRUE;
-
+        } else if (cpr_strncasecmp(tmp, sdp_fmtp_codec_param[53].name,
+                                   sdp_fmtp_codec_param[53].strlen) == 0) {
+            result1 = sdp_get_fmtp_tok_val(sdp_p, &fmtp_ptr, "level-idx", tmp, sizeof(tmp),
+                                           &tok, &strtoul_result, -1, 0, UINT8_MAX);
+            if (result1 != SDP_SUCCESS) { SDP_FREE(temp_ptr); return result1; }
+            fmtp_p->fmtp_format = SDP_FMTP_CODEC_INFO;
+            fmtp_p->av1_has_level_idx = TRUE;
+            fmtp_p->av1_level_idx = (uint8_t)strtoul_result;
+            codec_info_found = TRUE;
+        } else if (cpr_strncasecmp(tmp, sdp_fmtp_codec_param[54].name,
+                                   sdp_fmtp_codec_param[54].strlen) == 0) {
+            result1 = sdp_get_fmtp_tok_val(sdp_p, &fmtp_ptr, "tier", tmp, sizeof(tmp),
+                                           &tok, &strtoul_result, -1, 0, UINT8_MAX);
+            if (result1 != SDP_SUCCESS) { SDP_FREE(temp_ptr); return result1; }
+            fmtp_p->fmtp_format = SDP_FMTP_CODEC_INFO;
+            fmtp_p->av1_has_tier = TRUE;
+            fmtp_p->av1_tier = (uint8_t)strtoul_result;
+            codec_info_found = TRUE;
         } else if (strchr(tmp, '/')) {
             // XXX Note that because RFC 5109 so conveniently specified
             // this fmtp with no param names, we hope that nothing else
