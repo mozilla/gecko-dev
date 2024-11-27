@@ -39,7 +39,6 @@
 <non-spec:/.//p> set hostname to <h>
 <non-spec:/.//p> set hostname to <>
 <foo:///some/path> set pathname to <>
-<http://example.net:8080/path> set port to <randomstring>
 <file:///var/log/system.log> set href to <http://0300.168.0xF0>
 <file://monkey/> set pathname to <\\\\>
 <file:///unicorn> set pathname to <//\\/>

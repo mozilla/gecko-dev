@@ -28,6 +28,10 @@ Apps that need to display host names to the user should use `uts46::Uts46::to_us
 * `std` - Adds `impl std::error::Error for Errors {}` (and implies `alloc`).
 * By default, all of the above are enabled.
 
+## Alternative Unicode back ends
+
+By default, `idna` uses [ICU4X](https://github.com/unicode-org/icu4x/) as its Unicode back end. If you wish to opt for different tradeoffs between correctness, run-time performance, binary size, compile time, and MSRV, please see the [README of the latest version of the `idna_adapter` crate](https://docs.rs/crate/idna_adapter/latest) for how to opt into a different Unicode back end.
+
 ## Breaking changes since 0.5.0
 
 * Stricter IDNA 2008 restrictions are no longer supported. Attempting to enable them panics immediately. UTS 46 allows all the names that IDNA 2008 allows, and when transitional processing is disabled, they resolve the same way. There are additional names that IDNA 2008 disallows but UTS 46 maps to names that IDNA 2008 allows (notably, input is mapped to fold-case output). UTS 46 also allows symbols that were allowed in IDNA 2003 as well as newer symbols that are allowed according to the same principle. (Earlier versions of this crate allowed rejecting such symbols. Rejecting characters that UTS 46 maps to IDNA 2008-permitted characters wasn't supported in earlier versions, either.)

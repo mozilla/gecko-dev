@@ -11,11 +11,15 @@
 
 [package]
 edition = "2018"
-rust-version = "1.67"
+rust-version = "1.57"
 name = "idna"
-version = "1.0.2"
+version = "1.0.3"
 authors = ["The rust-url developers"]
+build = false
+autobins = false
+autoexamples = false
 autotests = false
+autobenches = false
 description = "IDNA (Internationalizing Domain Names in Applications) and Punycode."
 readme = "README.md"
 keywords = [
@@ -30,27 +34,30 @@ repository = "https://github.com/servo/rust-url/"
 rustdoc-args = ["--generate-link-to-definition"]
 
 [lib]
+name = "idna"
+path = "src/lib.rs"
 doctest = false
 
 [[test]]
 name = "tests"
+path = "tests/tests.rs"
 harness = false
 
 [[test]]
 name = "unit"
+path = "tests/unit.rs"
 
 [[test]]
 name = "unitbis"
+path = "tests/unitbis.rs"
 
 [[bench]]
 name = "all"
+path = "benches/all.rs"
 harness = false
 
-[dependencies.icu_normalizer]
-version = "1.4.3"
-
-[dependencies.icu_properties]
-version = "1.4.2"
+[dependencies.idna_adapter]
+version = "1"
 
 [dependencies.smallvec]
 version = "1.13.1"
@@ -73,10 +80,7 @@ version = "0.9"
 
 [features]
 alloc = []
-compiled_data = [
-    "icu_normalizer/compiled_data",
-    "icu_properties/compiled_data",
-]
+compiled_data = ["idna_adapter/compiled_data"]
 default = [
     "std",
     "compiled_data",

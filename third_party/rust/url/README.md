@@ -12,3 +12,7 @@ URL library for Rust, based on the [URL Standard](https://url.spec.whatwg.org/).
 [Documentation](https://docs.rs/url)
 
 Please see [UPGRADING.md](https://github.com/servo/rust-url/blob/main/UPGRADING.md) if you are upgrading from a previous version.
+
+## Alternative Unicode back ends
+
+`url` depends on the `idna` crate. By default, `idna` uses [ICU4X](https://github.com/unicode-org/icu4x/) as its Unicode back end. If you wish to opt for different tradeoffs between correctness, run-time performance, binary size, compile time, and MSRV, please see the [README of the latest version of the `idna_adapter` crate](https://docs.rs/crate/idna_adapter/latest) for how to opt into a different Unicode back end.

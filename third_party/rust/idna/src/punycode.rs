@@ -469,7 +469,7 @@ fn value_to_digit(value: u32) -> char {
 fn huge_encode() {
     let mut buf = String::new();
     assert!(encode_into::<_, _, ExternalCaller>(
-        std::iter::repeat('ß').take(u32::MAX as usize + 1),
+        core::iter::repeat('ß').take(u32::MAX as usize + 1),
         &mut buf
     )
     .is_err());

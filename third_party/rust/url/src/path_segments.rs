@@ -8,7 +8,8 @@
 
 use crate::parser::{self, to_u32, SchemeType};
 use crate::Url;
-use std::str;
+use alloc::string::String;
+use core::str;
 
 /// Exposes methods to manipulate the path of an URL that is not cannot-be-base.
 ///
@@ -19,7 +20,11 @@ use std::str;
 ///
 /// ```rust
 /// use url::Url;
+///
+/// # #[cfg(feature = "std")]
 /// # use std::error::Error;
+/// # #[cfg(not(feature = "std"))]
+/// # use core::error::Error;
 ///
 /// # fn run() -> Result<(), Box<dyn Error>> {
 /// let mut url = Url::parse("mailto:me@example.com")?;
@@ -78,7 +83,11 @@ impl<'a> PathSegmentsMut<'a> {
     ///
     /// ```rust
     /// use url::Url;
+    ///
+    /// # #[cfg(feature = "std")]
     /// # use std::error::Error;
+    /// # #[cfg(not(feature = "std"))]
+    /// # use core::error::Error;
     ///
     /// # fn run() -> Result<(), Box<dyn Error>> {
     /// let mut url = Url::parse("https://github.com/servo/rust-url/")?;
@@ -106,7 +115,11 @@ impl<'a> PathSegmentsMut<'a> {
     ///
     /// ```rust
     /// use url::Url;
+    ///
+    /// # #[cfg(feature = "std")]
     /// # use std::error::Error;
+    /// # #[cfg(not(feature = "std"))]
+    /// # use core::error::Error;
     ///
     /// # fn run() -> Result<(), Box<dyn Error>> {
     /// let mut url = Url::parse("https://github.com/servo/rust-url/")?;
@@ -181,7 +194,11 @@ impl<'a> PathSegmentsMut<'a> {
     ///
     /// ```rust
     /// use url::Url;
+    ///
+    /// # #[cfg(feature = "std")]
     /// # use std::error::Error;
+    /// # #[cfg(not(feature = "std"))]
+    /// # use core::error::Error;
     ///
     /// # fn run() -> Result<(), Box<dyn Error>> {
     /// let mut url = Url::parse("https://github.com/")?;
@@ -201,7 +218,11 @@ impl<'a> PathSegmentsMut<'a> {
     ///
     /// ```rust
     /// use url::Url;
+    ///
+    /// # #[cfg(feature = "std")]
     /// # use std::error::Error;
+    /// # #[cfg(not(feature = "std"))]
+    /// # use core::error::Error;
     ///
     /// # fn run() -> Result<(), Box<dyn Error>> {
     /// let mut url = Url::parse("https://github.com/servo")?;

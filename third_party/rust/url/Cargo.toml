@@ -11,16 +11,21 @@
 
 [package]
 edition = "2018"
-rust-version = "1.67"
+rust-version = "1.63"
 name = "url"
-version = "2.5.1"
+version = "2.5.4"
 authors = ["The rust-url developers"]
+build = false
 include = [
     "src/**/*",
     "LICENSE-*",
     "README.md",
     "tests/**",
 ]
+autobins = false
+autoexamples = false
+autotests = false
+autobenches = false
 description = "URL library for Rust, based on the WHATWG URL Standard"
 documentation = "https://docs.rs/url"
 readme = "README.md"
@@ -32,6 +37,7 @@ categories = [
     "parser-implementations",
     "web-programming",
     "encoding",
+    "no-std",
 ]
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/servo/rust-url"
@@ -43,24 +49,36 @@ rustdoc-args = ["--generate-link-to-definition"]
 [package.metadata.playground]
 features = ["serde"]
 
+[lib]
+name = "url"
+path = "src/lib.rs"
+
+[[test]]
+name = "unit"
+path = "tests/unit.rs"
+
 [[test]]
 name = "url_wpt"
 path = "tests/wpt.rs"
 harness = false
 
-[[bench]]
-name = "parse_url"
-path = "benches/parse_url.rs"
-harness = false
-
 [dependencies.form_urlencoded]
 version = "1.2.1"
+features = ["alloc"]
+default-features = false
 
 [dependencies.idna]
-version = "1.0.0"
+version = "1.0.3"
+features = [
+    "alloc",
+    "compiled_data",
+]
+default-features = false
 
 [dependencies.percent-encoding]
 version = "2.3.1"
+features = ["alloc"]
+default-features = false
 
 [dependencies.serde]
 version = "1.0"
@@ -79,8 +97,13 @@ version = "1.0"
 
 [features]
 debugger_visualizer = []
-default = []
+default = ["std"]
 expose_internals = []
+std = [
+    "idna/std",
+    "percent-encoding/std",
+    "form_urlencoded/std",
+]
 
-[target."cfg(all(target_arch = \"wasm32\", target_os = \"unknown\"))".dev-dependencies.wasm-bindgen-test]
+[target.'cfg(all(target_arch = "wasm32", target_os = "unknown"))'.dev-dependencies.wasm-bindgen-test]
 version = "0.3"

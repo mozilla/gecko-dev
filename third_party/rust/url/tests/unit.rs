@@ -7,13 +7,39 @@
 // except according to those terms.
 
 //! Unit tests
+#![no_std]
 
-use std::borrow::Cow;
-use std::cell::{Cell, RefCell};
-use std::net::{Ipv4Addr, Ipv6Addr};
+#[cfg(feature = "std")]
+extern crate std;
+
+#[macro_use]
+extern crate alloc;
+
+use alloc::borrow::Cow;
+use alloc::borrow::ToOwned;
+use alloc::string::{String, ToString};
+use alloc::vec::Vec;
+use core::cell::{Cell, RefCell};
+#[cfg(feature = "std")]
+use std::dbg;
+use url::{form_urlencoded, Host, Origin, Url};
+
+/// `std` version of `net`
+#[cfg(feature = "std")]
+pub(crate) mod net {
+    pub use std::net::*;
+}
+/// `no_std` nightly version of `net`
+#[cfg(not(feature = "std"))]
+pub(crate) mod net {
+    pub use core::net::*;
+}
+
+use crate::net::{Ipv4Addr, Ipv6Addr};
+
+#[cfg(feature = "std")]
 #[cfg(any(unix, windows, target_os = "redox", target_os = "wasi"))]
 use std::path::{Path, PathBuf};
-use url::{form_urlencoded, Host, Origin, Url};
 
 // https://rustwasm.github.io/wasm-bindgen/wasm-bindgen-test/usage.html
 #[cfg(all(target_arch = "wasm32", target_os = "unknown"))]
@@ -23,7 +49,7 @@ wasm_bindgen_test_configure!(run_in_browser);
 
 #[test]
 fn size() {
-    use std::mem::size_of;
+    use core::mem::size_of;
     assert_eq!(size_of::<Url>(), size_of::<Option<Url>>());
 }
 
@@ -124,6 +150,7 @@ fn test_set_empty_query() {
     assert_eq!(base.as_str(), "moz://example.com/path");
 }
 
+#[cfg(feature = "std")]
 #[cfg(any(unix, windows, target_os = "redox", target_os = "wasi"))]
 macro_rules! assert_from_file_path {
     ($path: expr) => {
@@ -138,6 +165,7 @@ macro_rules! assert_from_file_path {
 }
 
 #[test]
+#[cfg(feature = "std")]
 #[cfg(any(unix, windows))]
 fn new_file_paths() {
     if cfg!(unix) {
@@ -160,7 +188,7 @@ fn new_file_paths() {
 }
 
 #[test]
-#[cfg(unix)]
+#[cfg(all(feature = "std", unix))]
 fn new_path_bad_utf8() {
     use std::ffi::OsStr;
     use std::os::unix::prelude::*;
@@ -171,7 +199,7 @@ fn new_path_bad_utf8() {
 }
 
 #[test]
-#[cfg(windows)]
+#[cfg(all(feature = "std", windows))]
 fn new_path_windows_fun() {
     assert_from_file_path!(r"C:\foo\bar", "/C:/foo/bar");
     assert_from_file_path!("C:\\foo\\ba\0r", "/C:/foo/ba%00r");
@@ -192,6 +220,10 @@ fn new_path_windows_fun() {
 }
 
 #[test]
+#[cfg(all(
+    feature = "std",
+    any(unix, windows, target_os = "redox", target_os = "wasi")
+))]
 #[cfg(any(unix, windows))]
 fn new_directory_paths() {
     if cfg!(unix) {
@@ -258,6 +290,7 @@ fn issue_124() {
 }
 
 #[test]
+#[cfg(feature = "std")]
 fn test_equality() {
     use std::collections::hash_map::DefaultHasher;
     use std::hash::{Hash, Hasher};
@@ -448,6 +481,7 @@ fn issue_61() {
 }
 
 #[test]
+#[cfg(feature = "std")]
 #[cfg(any(unix, target_os = "redox", target_os = "wasi"))]
 #[cfg(not(windows))]
 /// https://github.com/servo/rust-url/issues/197
@@ -539,6 +573,7 @@ fn test_leading_dots() {
 }
 
 #[test]
+#[cfg(feature = "std")]
 /// https://github.com/servo/rust-url/issues/302
 fn test_origin_hash() {
     use std::collections::hash_map::DefaultHasher;
@@ -633,6 +668,7 @@ fn test_origin_unicode_serialization() {
 }
 
 #[test]
+#[cfg(feature = "std")]
 #[cfg(any(unix, windows, target_os = "redox", target_os = "wasi"))]
 fn test_socket_addrs() {
     use std::net::ToSocketAddrs;
@@ -815,6 +851,7 @@ fn test_expose_internals() {
 }
 
 #[test]
+#[cfg(feature = "std")]
 #[cfg(windows)]
 fn test_windows_unc_path() {
     let url = Url::from_file_path(Path::new(r"\\host\share\path\file.txt")).unwrap();
@@ -923,8 +960,8 @@ fn test_options_reuse() {
 }
 
 /// https://github.com/servo/rust-url/issues/505
-#[cfg(windows)]
 #[test]
+#[cfg(all(feature = "std", windows))]
 fn test_url_from_file_path() {
     use std::path::PathBuf;
     use url::Url;
@@ -936,6 +973,7 @@ fn test_url_from_file_path() {
 }
 
 /// https://github.com/servo/rust-url/issues/505
+#[cfg(feature = "std")]
 #[cfg(any(unix, target_os = "redox", target_os = "wasi"))]
 #[cfg(not(windows))]
 #[test]
@@ -1309,10 +1347,35 @@ fn test_file_with_drive_and_path() {
     assert_eq!(url2.to_string(), "file:///p:/a");
 }
 
+#[cfg(feature = "std")]
 #[test]
 fn issue_864() {
     let mut url = url::Url::parse("file://").unwrap();
     dbg!(&url);
     url.set_path("x");
     dbg!(&url);
+}
+
+#[test]
+fn issue_974() {
+    let mut url = url::Url::parse("http://example.com:8000").unwrap();
+    let _ = url::quirks::set_port(&mut url, "\u{0000}9000");
+    assert_eq!(url.port(), Some(8000));
+}
+
+#[cfg(feature = "serde")]
+#[test]
+fn serde_error_message() {
+    use serde::Deserialize;
+    #[derive(Debug, Deserialize)]
+    #[allow(dead_code)]
+    struct TypeWithUrl {
+        url: Url,
+    }
+
+    let err = serde_json::from_str::<TypeWithUrl>(r#"{"url": "§invalid#+#*Ä"}"#).unwrap_err();
+    assert_eq!(
+        err.to_string(),
+        r#"relative URL without a base: "§invalid#+#*Ä" at line 1 column 25"#
+    );
 }
