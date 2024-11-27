@@ -1,3 +1,6 @@
+/* Any copyright is dedicated to the Public Domain.
+   http://creativecommons.org/publicdomain/zero/1.0/ */
+
 package org.mozilla.geckoview.test
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -12,6 +15,7 @@ import org.mozilla.geckoview.* // ktlint-disable no-wildcard-imports
 import org.mozilla.geckoview.GeckoRuntime.ServiceWorkerDelegate
 import org.mozilla.geckoview.GeckoSession.ContentDelegate
 import org.mozilla.geckoview.GeckoSession.NavigationDelegate
+import org.mozilla.geckoview.GeckoSession.NavigationDelegate.LoadRequest
 import org.mozilla.geckoview.GeckoSession.PermissionDelegate
 import org.mozilla.geckoview.test.rule.GeckoSessionTestRule
 import org.mozilla.geckoview.test.rule.GeckoSessionTestRule.AssertCalled
@@ -136,6 +140,41 @@ class OpenWindowTest : BaseSessionTest() {
             }
 
             @AssertCalled(count = 1, order = [2])
+            override fun onTitleChange(session: GeckoSession, title: String?) {
+                assertThat("Should be on the target session", session, equalTo(targetSession))
+                assertThat("Title should be correct", title, equalTo("Open Window test target"))
+            }
+        })
+    }
+
+    @Test
+    fun openWindowNewClosedSession() {
+        var targetSession: GeckoSession? = null
+        sessionRule.delegateUntilTestEnd(object : ServiceWorkerDelegate {
+            @AssertCalled(count = 1)
+            override fun onOpenWindow(url: String): GeckoResult<GeckoSession> {
+                ThreadUtils.assertOnUiThread()
+                assertThat("URL should match", url, equalTo(createTestUrl(OPEN_WINDOW_TARGET_PATH)))
+                targetSession = sessionRule.createClosedSession()
+                return GeckoResult.fromValue(targetSession)
+            }
+        })
+        openPageClickNotification()
+        sessionRule.waitUntilCalled(object : ContentDelegate, NavigationDelegate {
+            @AssertCalled(count = 2, order = [1, 2])
+            override fun onLocationChange(session: GeckoSession, url: String?, perms: MutableList<PermissionDelegate.ContentPermission>, hasUserGesture: Boolean) {
+                assertThat("Should be on the target session", session, equalTo(targetSession))
+                assertThat("URL should match", url, equalTo(forEachCall("about:blank", createTestUrl(OPEN_WINDOW_TARGET_PATH))))
+            }
+
+            @AssertCalled(count = 1, order = [3])
+            override fun onLoadRequest(session: GeckoSession, request: LoadRequest): GeckoResult<AllowOrDeny>? {
+                assertThat("Should be on the target session", session, equalTo(targetSession))
+                assertThat("URL should match", request.uri, equalTo(createTestUrl(OPEN_WINDOW_TARGET_PATH)))
+                return null
+            }
+
+            @AssertCalled(count = 1, order = [4])
             override fun onTitleChange(session: GeckoSession, title: String?) {
                 assertThat("Should be on the target session", session, equalTo(targetSession))
                 assertThat("Title should be correct", title, equalTo("Open Window test target"))

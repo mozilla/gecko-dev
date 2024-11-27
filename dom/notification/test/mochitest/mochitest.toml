@@ -41,7 +41,6 @@ support-files = [
 
 ["test_notification_serviceworker_openWindow_nested.html"]
 skip-if = [
-  "os == 'android'", # Bug 1620052
   "xorigin", # Bug 1792790
   "condprof",  #: timed out
   "http3",

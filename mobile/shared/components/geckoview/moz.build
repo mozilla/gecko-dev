@@ -28,6 +28,7 @@ EXTRA_JS_MODULES += [
     "GeckoViewPrompt.sys.mjs",
     "GeckoViewPrompter.sys.mjs",
     "GeckoViewPush.sys.mjs",
+    "GeckoViewServiceWorker.sys.mjs",
     "GeckoViewStartup.sys.mjs",
     "LoginStorageDelegate.sys.mjs",
     "PromptCollection.sys.mjs",

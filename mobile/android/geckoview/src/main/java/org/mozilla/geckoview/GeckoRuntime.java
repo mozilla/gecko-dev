@@ -266,33 +266,15 @@ public final class GeckoRuntime implements Parcelable {
    * @return SessionID to use for the request.
    */
   @SuppressLint("WrongThread") // for .isOpen() which is called on the UI thread
-  @WrapForJNI(calledFrom = "gecko")
-  private static @NonNull GeckoResult<String> serviceWorkerOpenWindow(final @NonNull String url) {
+  @UiThread
+  private static @NonNull GeckoResult<GeckoSession> serviceWorkerOpenWindow(
+      final @NonNull String url) {
     if (sRuntime != null && sRuntime.mServiceWorkerDelegate != null) {
-      final GeckoResult<String> result = new GeckoResult<>();
-      // perform the onOpenWindow call in the UI thread
-      ThreadUtils.runOnUiThread(
-          () -> {
-            sRuntime
-                .mServiceWorkerDelegate
-                .onOpenWindow(url)
-                .accept(
-                    session -> {
-                      if (session != null) {
-                        if (!session.isOpen()) {
-                          session.open(sRuntime);
-                        }
-                        result.complete(session.getId());
-                      } else {
-                        result.complete(null);
-                      }
-                    });
-          });
-      return result;
-    } else {
-      return GeckoResult.fromException(
-          new java.lang.RuntimeException("No available Service Worker delegate."));
+      ThreadUtils.assertOnUiThread();
+      return sRuntime.mServiceWorkerDelegate.onOpenWindow(url);
     }
+    return GeckoResult.fromException(
+        new java.lang.RuntimeException("No available Service Worker delegate."));
   }
 
   /**
@@ -327,9 +309,16 @@ public final class GeckoRuntime implements Parcelable {
             final String url = message.getString("url", "about:blank");
             serviceWorkerOpenWindow(url)
                 .then(
-                    (GeckoResult.OnValueListener<String, Void>)
-                        value -> {
-                          callback.sendSuccess(value);
+                    (GeckoResult.OnValueListener<GeckoSession, Void>)
+                        session -> {
+                          if (session == null) {
+                            callback.sendSuccess(null);
+                            return null;
+                          }
+                          if (!session.isOpen()) {
+                            session.open(sRuntime);
+                          }
+                          callback.sendSuccess(session.getId());
                           return null;
                         })
                 .exceptionally(
@@ -351,6 +340,32 @@ public final class GeckoRuntime implements Parcelable {
             } else {
               context.startService(i);
             }
+          } else if ("GeckoView:ServiceWorkerOpenWindow".equals(event)) {
+            final String url = message.getString("url", "about:blank");
+            serviceWorkerOpenWindow(url)
+                .then(
+                    (GeckoResult.OnValueListener<GeckoSession, Void>)
+                        session -> {
+                          if (session == null) {
+                            callback.sendSuccess(null);
+                            return null;
+                          }
+                          final boolean isOpen = session.isOpen();
+                          if (!isOpen) {
+                            session.open(sRuntime);
+                          }
+                          final GeckoBundle bundle = new GeckoBundle();
+                          bundle.putBoolean("isOpen", isOpen);
+                          bundle.putString("sessionId", session.getId());
+                          callback.sendSuccess(bundle);
+                          return null;
+                        })
+                .exceptionally(
+                    (GeckoResult.OnExceptionListener<Void>)
+                        error -> {
+                          callback.sendError(error + " Could not open tab.");
+                          return null;
+                        });
           }
         }
       };
@@ -471,7 +486,11 @@ public final class GeckoRuntime implements Parcelable {
 
     // Bug 1453062 -- the EventDispatcher should really live here (or in GeckoThread)
     EventDispatcher.getInstance()
-        .registerUiThreadListener(mEventListener, "Gecko:Exited", "GeckoView:Test:NewTab");
+        .registerUiThreadListener(
+            mEventListener,
+            "Gecko:Exited",
+            "GeckoView:Test:NewTab",
+            "GeckoView:ServiceWorkerOpenWindow");
 
     // Attach and commit settings.
     mSettings.attachTo(this);

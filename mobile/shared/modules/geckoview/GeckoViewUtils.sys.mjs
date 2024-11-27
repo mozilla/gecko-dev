@@ -467,6 +467,57 @@ export var GeckoViewUtils = {
   isSupportedPermissionsScheme(scheme) {
     return ["http", "https", "moz-extension", "file"].includes(scheme);
   },
+
+  /**
+   * Attach nsIOpenWindowInfo when opening GeckoSession
+   *
+   * @param {string} aSessionId A session id
+   * @param {nsIOpenWindowInfo} aOpenWindowInfo Attached nsIOpendWindowInfo
+   * @param {string} aName A window name
+   * @returns {Promise} resolved when nsIOpenWindowInfo is attached
+   */
+  waitAndSetupWindow(aSessionId, aOpenWindowInfo, aName) {
+    if (!aSessionId) {
+      return Promise.reject();
+    }
+
+    return new Promise((resolve, reject) => {
+      const handler = {
+        observe(aSubject, aTopic) {
+          if (
+            aTopic === "geckoview-window-created" &&
+            aSubject.name === aSessionId
+          ) {
+            // This value will be read by nsFrameLoader while it is being initialized.
+            aSubject.browser.openWindowInfo = aOpenWindowInfo;
+
+            // Gecko will use this attribute to set the name of the opened window.
+            if (aName) {
+              aSubject.browser.setAttribute("name", aName);
+            }
+
+            if (
+              !aOpenWindowInfo.isRemote &&
+              aSubject.browser.hasAttribute("remote")
+            ) {
+              // We cannot start in remote mode when we have an opener.
+              aSubject.browser.setAttribute("remote", "false");
+              aSubject.browser.removeAttribute("remoteType");
+            }
+            Services.obs.removeObserver(handler, "geckoview-window-created");
+            if (!aSubject) {
+              reject();
+              return;
+            }
+            resolve(aSubject);
+          }
+        },
+      };
+
+      // This event is emitted from createBrowser() in geckoview.js
+      Services.obs.addObserver(handler, "geckoview-window-created");
+    });
+  },
 };
 
 ChromeUtils.defineLazyGetter(

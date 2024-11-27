@@ -38,9 +38,10 @@
 #include "mozilla/dom/nsCSPContext.h"
 #include "mozilla/dom/WindowGlobalParent.h"
 
-#ifdef MOZ_WIDGET_ANDROID
-#  include "mozilla/java/GeckoResultWrappers.h"
-#  include "mozilla/java/GeckoRuntimeWrappers.h"
+#ifdef MOZ_GECKOVIEW
+#  include "mozilla/dom/Promise-inl.h"
+#  include "nsIGeckoViewServiceWorker.h"
+#  include "nsImportModule.h"
 #endif
 
 namespace mozilla::dom {
@@ -204,6 +205,7 @@ struct ClientOpenWindowArgsParsed {
   RefPtr<ThreadsafeContentParentHandle> originContent;
 };
 
+#ifndef MOZ_GECKOVIEW
 void OpenWindow(const ClientOpenWindowArgsParsed& aArgsValidated,
                 nsOpenWindowInfo* aOpenInfo, BrowsingContext** aBC,
                 ErrorResult& aRv) {
@@ -244,6 +246,7 @@ void OpenWindow(const ClientOpenWindowArgsParsed& aArgsValidated,
     return;
   }
 }
+#endif
 
 void WaitForLoad(const ClientOpenWindowArgsParsed& aArgsValidated,
                  BrowsingContext* aBrowsingContext,
@@ -306,63 +309,56 @@ void WaitForLoad(const ClientOpenWindowArgsParsed& aArgsValidated,
       [listener](const CopyableErrorResult& aResult) {});
 }
 
-#ifdef MOZ_WIDGET_ANDROID
-
+#ifdef MOZ_GECKOVIEW
 void GeckoViewOpenWindow(const ClientOpenWindowArgsParsed& aArgsValidated,
-                         ClientOpPromise::Private* aPromise) {
-  RefPtr<ClientOpPromise::Private> promise = aPromise;
+                         nsOpenWindowInfo* aOpenInfo, BrowsingContext** aBC,
+                         ErrorResult& aRv) {
+  MOZ_ASSERT(aOpenInfo);
 
   // passes the request to open a new window to GeckoView. Allowing the
   // application to decide how to hand the open window request.
-  nsAutoCString uri;
-  MOZ_ALWAYS_SUCCEEDS(aArgsValidated.uri->GetSpec(uri));
-  auto genericResult = java::GeckoRuntime::ServiceWorkerOpenWindow(uri);
-  auto typedResult = java::GeckoResult::LocalRef(std::move(genericResult));
+  nsCOMPtr<nsIGeckoViewServiceWorker> sw = do_ImportESModule(
+      "resource://gre/modules/GeckoViewServiceWorker.sys.mjs");
+  MOZ_ASSERT(sw);
 
-  // MozPromise containing the ID for the handling GeckoSession
-  auto promiseResult =
-      mozilla::MozPromise<nsString, nsString, false>::FromGeckoResult(
-          typedResult);
+  RefPtr<dom::Promise> promise;
+  nsresult rv =
+      sw->OpenWindow(aArgsValidated.uri, aOpenInfo, getter_AddRefs(promise));
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    aRv.Throw(rv);
+    return;
+  }
 
-  promiseResult->Then(
-      GetMainThreadSerialEventTarget(), __func__,
-      [aArgsValidated, promise](nsString sessionId) {
-        // Retrieve the primary content BrowsingContext using the GeckoSession
-        // ID. The chrome window is named the same as the ID of the GeckoSession
-        // it is associated with.
-        RefPtr<BrowsingContext> browsingContext;
-        nsresult rv = [&sessionId, &browsingContext]() -> nsresult {
-          nsresult rv;
-          nsCOMPtr<nsIWindowWatcher> wwatch =
-              do_GetService(NS_WINDOWWATCHER_CONTRACTID, &rv);
-          NS_ENSURE_SUCCESS(rv, rv);
-          nsCOMPtr<mozIDOMWindowProxy> chromeWindow;
-          rv = wwatch->GetWindowByName(sessionId, getter_AddRefs(chromeWindow));
-          NS_ENSURE_SUCCESS(rv, rv);
-          NS_ENSURE_TRUE(chromeWindow, NS_ERROR_FAILURE);
-          nsCOMPtr<nsIDocShellTreeOwner> treeOwner =
-              nsPIDOMWindowOuter::From(chromeWindow)->GetTreeOwner();
-          NS_ENSURE_TRUE(treeOwner, NS_ERROR_FAILURE);
-          rv = treeOwner->GetPrimaryContentBrowsingContext(
-              getter_AddRefs(browsingContext));
-          NS_ENSURE_SUCCESS(rv, rv);
-          NS_ENSURE_TRUE(browsingContext, NS_ERROR_FAILURE);
-          return NS_OK;
-        }();
-        if (NS_WARN_IF(NS_FAILED(rv))) {
-          promise->Reject(rv, __func__);
-          return rv;
+  promise->AddCallbacksWithCycleCollectedArgs(
+      [](JSContext* aCx, JS::Handle<JS::Value> aValue, ErrorResult& aRv,
+         nsOpenWindowInfo* aOpenWindowInfo) {
+        if (aValue.isNull()) {
+          // nsIBrowsingContextReadyCallback will be called when browsing
+          // context is ready
+          return;
         }
 
-        WaitForLoad(aArgsValidated, browsingContext, promise);
-        return NS_OK;
-      },
-      [promise](nsString aResult) {
-        promise->Reject(NS_ERROR_FAILURE, __func__);
-      });
-}
+        auto cancelOpen =
+            MakeScopeExit([&aOpenWindowInfo] { aOpenWindowInfo->Cancel(); });
 
-#endif  // MOZ_WIDGET_ANDROID
+        RefPtr<BrowsingContext> browsingContext;
+        if (NS_WARN_IF(!aValue.isObject()) ||
+            NS_WARN_IF(NS_FAILED(
+                UNWRAP_OBJECT(BrowsingContext, aValue, browsingContext)))) {
+          return;
+        }
+
+        if (nsIBrowsingContextReadyCallback* callback =
+                aOpenWindowInfo->BrowsingContextReadyCallback()) {
+          callback->BrowsingContextReady(browsingContext);
+        }
+        cancelOpen.release();
+      },
+      [](JSContext* aContext, JS::Handle<JS::Value> aValue, ErrorResult& aRv,
+         nsOpenWindowInfo* aOpenWindowInfo) { aOpenWindowInfo->Cancel(); },
+      RefPtr(aOpenInfo));
+}
+#endif  // MOZ_GECKOVIEW
 
 }  // anonymous namespace
 
@@ -418,12 +414,6 @@ RefPtr<ClientOpPromise> ClientOpenWindow(
       .originContent = aOriginContent,
   };
 
-#ifdef MOZ_WIDGET_ANDROID
-  // If we are on Android we are GeckoView.
-  GeckoViewOpenWindow(argsValidated, promise);
-  return promise.forget();
-#endif  // MOZ_WIDGET_ANDROID
-
   RefPtr<BrowsingContextCallbackReceivedPromise::Private>
       browsingContextReadyPromise =
           new BrowsingContextCallbackReceivedPromise::Private(__func__);
@@ -436,8 +426,13 @@ RefPtr<ClientOpPromise> ClientOpenWindow(
   openInfo->mIsRemote = true;
 
   RefPtr<BrowsingContext> bc;
-  ErrorResult errResult;
+  IgnoredErrorResult errResult;
+#ifdef MOZ_GECKOVIEW
+  // GeckoView has a delegation for service worker window.
+  GeckoViewOpenWindow(argsValidated, openInfo, getter_AddRefs(bc), errResult);
+#else
   OpenWindow(argsValidated, openInfo, getter_AddRefs(bc), errResult);
+#endif
   if (NS_WARN_IF(errResult.Failed())) {
     promise->Reject(errResult, __func__);
     return promise;

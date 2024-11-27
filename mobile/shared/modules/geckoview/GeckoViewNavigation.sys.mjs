@@ -288,49 +288,6 @@ export class GeckoViewNavigation extends GeckoViewModule {
     }
   }
 
-  waitAndSetupWindow(aSessionId, aOpenWindowInfo, aName) {
-    if (!aSessionId) {
-      return Promise.reject();
-    }
-
-    return new Promise((resolve, reject) => {
-      const handler = {
-        observe(aSubject, aTopic) {
-          if (
-            aTopic === "geckoview-window-created" &&
-            aSubject.name === aSessionId
-          ) {
-            // This value will be read by nsFrameLoader while it is being initialized.
-            aSubject.browser.openWindowInfo = aOpenWindowInfo;
-
-            // Gecko will use this attribute to set the name of the opened window.
-            if (aName) {
-              aSubject.browser.setAttribute("name", aName);
-            }
-
-            if (
-              !aOpenWindowInfo.isRemote &&
-              aSubject.browser.hasAttribute("remote")
-            ) {
-              // We cannot start in remote mode when we have an opener.
-              aSubject.browser.setAttribute("remote", "false");
-              aSubject.browser.removeAttribute("remoteType");
-            }
-            Services.obs.removeObserver(handler, "geckoview-window-created");
-            if (!aSubject) {
-              reject();
-              return;
-            }
-            resolve(aSubject);
-          }
-        },
-      };
-
-      // This event is emitted from createBrowser() in geckoview.js
-      Services.obs.addObserver(handler, "geckoview-window-created");
-    });
-  }
-
   handleNewSession(aUri, aOpenWindowInfo, aWhere, aFlags, aName) {
     debug`handleNewSession: uri=${aUri && aUri.spec}
                              where=${aWhere} flags=${aFlags}`;
@@ -390,7 +347,7 @@ export class GeckoViewNavigation extends GeckoViewModule {
 
     // The window might be already open by the time we get the response from
     // the Java layer, so we need to start waiting before sending the message.
-    const setupPromise = this.waitAndSetupWindow(
+    const setupPromise = lazy.GeckoViewUtils.waitAndSetupWindow(
       newSessionId,
       aOpenWindowInfo,
       aName
