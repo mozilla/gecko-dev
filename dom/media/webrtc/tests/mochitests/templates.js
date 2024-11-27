@@ -574,6 +574,21 @@ function PC_LOCAL_REMOVE_ALL_BUT_H264_FROM_OFFER(test) {
   info("Updated H264 only offer: " + JSON.stringify(test.originalOffer));
 }
 
+function PC_LOCAL_REMOVE_ALL_BUT_AV1_FROM_OFFER(test) {
+  isnot(
+    test.originalOffer.sdp.search("AV1/90000"),
+    -1,
+    "AV1 should be present in the SDP offer"
+  );
+  for (const codec of [103, 105, 120, 121, 126, 97]) {
+    test.originalOffer.sdp = sdputils.removeCodec(
+      test.originalOffer.sdp,
+      codec
+    );
+  }
+  info("Updated AV1 only offer: " + JSON.stringify(test.originalOffer));
+}
+
 function PC_LOCAL_REMOVE_BUNDLE_FROM_OFFER(test) {
   test.originalOffer.sdp = sdputils.removeBundle(test.originalOffer.sdp);
   info("Updated no bundle offer: " + JSON.stringify(test.originalOffer));

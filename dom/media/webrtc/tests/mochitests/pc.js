@@ -72,6 +72,7 @@ function PeerConnectionTest(options) {
   options.is_remote = "is_remote" in options ? options.is_remote : true;
 
   options.h264 = "h264" in options ? options.h264 : false;
+  options.av1 = "av1" in options ? options.av1 : false;
   options.bundle = "bundle" in options ? options.bundle : true;
   options.rtcpmux = "rtcpmux" in options ? options.rtcpmux : true;
   options.opus = "opus" in options ? options.opus : true;
@@ -514,6 +515,11 @@ PeerConnectionTest.prototype.updateChainSteps = function () {
   if (this.testOptions.h264) {
     this.chain.insertAfterEach("PC_LOCAL_CREATE_OFFER", [
       PC_LOCAL_REMOVE_ALL_BUT_H264_FROM_OFFER,
+    ]);
+  }
+  if (this.testOptions.av1) {
+    this.chain.insertAfterEach("PC_LOCAL_CREATE_OFFER", [
+      PC_LOCAL_REMOVE_ALL_BUT_AV1_FROM_OFFER,
     ]);
   }
   if (!this.testOptions.bundle) {
