@@ -924,9 +924,11 @@ void RTCRtpTransceiver::ToDomRtpCodec(const JsepCodecDescription& aCodec,
     if (params != nullptr) {
       std::ostringstream paramsString;
       params->Serialize(paramsString);
-      nsTString<char16_t> fmtp;
-      fmtp.AssignASCII(paramsString.str());
-      aDomCodec->mSdpFmtpLine.Construct(fmtp);
+      if (!paramsString.str().empty()) {
+        nsTString<char16_t> fmtp;
+        fmtp.AssignASCII(paramsString.str());
+        aDomCodec->mSdpFmtpLine.Construct(fmtp);
+      }
     }
   }
 }
