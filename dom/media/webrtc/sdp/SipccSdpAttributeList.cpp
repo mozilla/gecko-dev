@@ -345,6 +345,8 @@ SdpRtpmapAttributeList::CodecType SipccSdpAttributeList::GetCodecType(
     case RTP_H264_P0:
     case RTP_H264_P1:
       return SdpRtpmapAttributeList::kH264;
+    case RTP_AV1:
+      return SdpRtpmapAttributeList::kAV1;
     case RTP_OPUS:
       return SdpRtpmapAttributeList::kOpus;
     case RTP_VP8:
@@ -732,6 +734,20 @@ void SipccSdpAttributeList::LoadFmtp(sdp_t* sdp, uint16_t level) {
         h264Parameters->max_br = fmtp->max_br;
 
         parameters.reset(h264Parameters);
+      } break;
+      case RTP_AV1: {
+        SdpFmtpAttributeList::Av1Parameters* av1Parameters(
+            new SdpFmtpAttributeList::Av1Parameters());
+        if (fmtp->profile > 0 && fmtp->profile <= UINT8_MAX) {
+          av1Parameters->profile = Some(static_cast<uint8_t>(fmtp->profile));
+        }
+        if (fmtp->av1_has_level_idx) {
+          av1Parameters->profile = Some(fmtp->av1_level_idx);
+        }
+        if (fmtp->av1_has_tier) {
+          av1Parameters->tier = Some(fmtp->av1_tier);
+        }
+        parameters.reset(av1Parameters);
       } break;
       case RTP_VP9: {
         SdpFmtpAttributeList::VP8Parameters* vp9Parameters(
