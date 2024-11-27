@@ -26,9 +26,7 @@ add_task(async function test_support_tab_text_property_css_color() {
   await extension.startup();
 
   info("Checking selected tab colors");
-  let selectedTab = document.querySelector(
-    ".tabbrowser-tab[selected] .tab-content"
-  );
+  let selectedTab = document.querySelector(".tabbrowser-tab[selected]");
   Assert.equal(
     window.getComputedStyle(selectedTab).color,
     "rgb(" + hexToRGB(TAB_TEXT_COLOR).join(", ") + ")",
@@ -61,9 +59,7 @@ add_task(async function test_support_tab_text_chrome_array() {
   await extension.startup();
 
   info("Checking selected tab colors");
-  let selectedTab = document.querySelector(
-    ".tabbrowser-tab[selected] .tab-content"
-  );
+  let selectedTab = document.querySelector(".tabbrowser-tab[selected]");
   Assert.equal(
     window.getComputedStyle(selectedTab).color,
     "rgb(" + TAB_TEXT_COLOR.join(", ") + ")",

@@ -227,6 +227,11 @@
   &[multiselected-move-together][multiselected]:not([selected]) {
     z-index: 2;
   }
+
+  &:is([visuallyselected], [multiselected]) {
+    color: var(--tab-selected-textcolor);
+    color-scheme: var(--tab-selected-color-scheme);
+  }
 }
 
 .tab-content {
@@ -238,11 +243,6 @@
 
   :root:not([uidensity=compact]) &[pinned] {
     padding: 0 10px;
-  }
-
-  &:is([selected], [multiselected]) {
-    color: var(--tab-selected-textcolor);
-    color-scheme: var(--tab-selected-color-scheme);
   }
 }
 

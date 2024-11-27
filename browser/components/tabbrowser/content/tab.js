@@ -85,7 +85,7 @@
         ".tab-group-line": "selected=visuallyselected,multiselected",
         ".tab-loading-burst": "pinned,bursting,notselectedsinceload",
         ".tab-content":
-          "pinned,selected=visuallyselected,multiselected,titlechanged,attention",
+          "pinned,selected=visuallyselected,titlechanged,attention",
         ".tab-icon-stack":
           "sharing,pictureinpicture,crashed,busy,soundplaying,soundplaying-scheduledremoval,pinned,muted,blocked,selected=visuallyselected,activemedia-blocked,indicator-replaces-favicon",
         ".tab-throbber":
