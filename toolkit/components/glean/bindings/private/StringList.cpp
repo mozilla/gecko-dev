@@ -13,6 +13,7 @@
 #include "mozilla/glean/fog_ffi_generated.h"
 #include "nsString.h"
 #include "nsTArray.h"
+#include "GIFFTFwd.h"
 
 namespace mozilla::glean {
 
@@ -21,7 +22,7 @@ namespace impl {
 void StringListMetric::Add(const nsACString& aValue) const {
   auto scalarId = ScalarIdForMetric(mId);
   if (scalarId) {
-    Telemetry::ScalarSet(scalarId.extract(), NS_ConvertUTF8toUTF16(aValue),
+    TelemetryScalar::Set(scalarId.extract(), NS_ConvertUTF8toUTF16(aValue),
                          true);
   }
   fog_string_list_add(mId, &aValue);

@@ -13,6 +13,7 @@
 #include "mozilla/dom/GleanMetricsBinding.h"
 #include "mozilla/glean/bindings/ScalarGIFFTMap.h"
 #include "mozilla/glean/fog_ffi_generated.h"
+#include "GIFFTFwd.h"
 
 namespace mozilla::glean {
 
@@ -21,7 +22,7 @@ namespace impl {
 void RateMetric::AddToNumerator(int32_t aAmount) const {
   auto scalarId = ScalarIdForMetric(mId);
   if (scalarId && aAmount >= 0) {
-    Telemetry::ScalarAdd(scalarId.extract(), u"numerator"_ns, aAmount);
+    TelemetryScalar::Add(scalarId.extract(), u"numerator"_ns, aAmount);
   }
   fog_rate_add_to_numerator(mId, aAmount);
 }
@@ -29,7 +30,7 @@ void RateMetric::AddToNumerator(int32_t aAmount) const {
 void RateMetric::AddToDenominator(int32_t aAmount) const {
   auto scalarId = ScalarIdForMetric(mId);
   if (scalarId && aAmount >= 0) {
-    Telemetry::ScalarAdd(scalarId.extract(), u"denominator"_ns, aAmount);
+    TelemetryScalar::Add(scalarId.extract(), u"denominator"_ns, aAmount);
   }
   fog_rate_add_to_denominator(mId, aAmount);
 }
