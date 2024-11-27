@@ -61,6 +61,14 @@ passwords-reveal-password-os-auth-dialog-message-win = To view your password, en
 # Only provide the reason that account verification is needed. Do not put a complete sentence here.
 passwords-reveal-password-os-auth-dialog-message-macosx = reveal the saved password
 
+
+# This message can be seen when attempting to edit a login in contextual password manager on Windows.
+passwords-edit-password-os-auth-dialog-message-win = To edit your password, enter your Windows login credentials. This helps protect the security of your accounts.
+# The MacOS string is preceded by the operating system with "Firefox is trying to ".
+# On MacOS, only provide the reason that account verification is needed. Do not put a complete sentence here.
+passwords-edit-password-os-auth-dialog-message-macosx = edit the saved password
+
+
 # This message can be seen when attempting to copy a password in contextual password manager on Windows.
 passwords-copy-password-os-auth-dialog-message-win = To copy your password, enter your Windows login credentials. This helps protect the security of your accounts.
 # The MacOS string is preceded by the operating system with "Firefox is trying to ".
@@ -203,6 +211,10 @@ passwords-add-password-success-button = View
 passwords-password-already-exists-error-heading =
   .heading = A password and username for { $url } already exists
 passwords-password-already-exists-error-button = Go to Password
+
+passwords-update-password-success-heading =
+  .heading = Password saved
+passwords-update-password-success-button = Done
 
 # Radiobutton label to display total number of passwords
 #   $total (number) - Total number of passwords

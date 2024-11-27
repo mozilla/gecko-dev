@@ -10,35 +10,30 @@ class LoginPasswordField extends MozLitElement {
   static CONCEALED_PASSWORD_TEXT = " ".repeat(8);
 
   static properties = {
-    _value: { type: String, state: true },
+    value: { type: String },
     name: { type: String },
-    readonly: { type: Boolean, reflect: true },
+    newPassword: { type: Boolean },
     visible: { type: Boolean, reflect: true },
     required: { type: Boolean, reflect: true },
+    onRevealClick: { type: Function },
   };
 
   static queries = {
     input: "input",
-    button: "button",
+    label: "label",
+    button: "moz-button",
   };
-
-  static formAssociated = true;
 
   constructor() {
     super();
-    this._value = "";
+    this.value = "";
   }
 
   connectedCallback() {
     super.connectedCallback();
-    this.internals.setFormValue(this._value);
     this.addEventListener("input", e => {
-      this.internals.setFormValue(e.composedTarget.value);
+      this.value = e.composedTarget.value;
     });
-  }
-
-  set value(newValue) {
-    this._value = newValue;
   }
 
   get #type() {
@@ -46,15 +41,21 @@ class LoginPasswordField extends MozLitElement {
   }
 
   get #password() {
-    return this.readonly && !this.visible
+    return !this.newPassword && !this.visible
       ? LoginPasswordField.CONCEALED_PASSWORD_TEXT
-      : this._value;
+      : this.value;
   }
 
   #revealIconSrc(concealed) {
     return concealed
       ? "chrome://browser/content/aboutlogins/icons/password-hide.svg"
       : "chrome://browser/content/aboutlogins/icons/password.svg";
+  }
+
+  updated(changedProperties) {
+    if (changedProperties.has("visible") && !changedProperties.visible) {
+      this.input.selectionStart = this.value.length;
+    }
   }
 
   render() {
@@ -78,28 +79,32 @@ class LoginPasswordField extends MozLitElement {
         class="reveal-password-button"
         type="icon ghost"
         iconSrc=${this.#revealIconSrc(this.visible)}
-        @click=${this.toggleVisibility}
+        @mousedown=${() => {
+          /* Programmatically focus the button on mousedown instead of waiting for focus on click
+           * because the blur event occurs before the click event.
+           */
+          this.button.focus();
+        }}
+        @click=${this.onRevealClick}
       ></moz-button>
     `;
   }
 
-  handleFocus(ev) {
-    if (ev.relatedTarget !== this.button) {
-      this.visible = true;
+  handleFocus() {
+    if (this.visible) {
+      return;
     }
+    this.onRevealClick();
   }
 
   handleBlur(ev) {
-    if (ev.relatedTarget !== this.button) {
-      this.visible = false;
+    if (ev.relatedTarget === this.button || ev.relatedTarget === this.label) {
+      return;
     }
-  }
-
-  toggleVisibility() {
-    this.visible = !this.visible;
-    if (this.visible) {
-      this.onPasswordVisible?.();
+    if (!this.visible) {
+      return;
     }
+    this.onRevealClick();
   }
 }
 

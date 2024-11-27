@@ -13,8 +13,6 @@ class LoginOriginField extends MozLitElement {
     required: { type: Boolean, reflect: true },
   };
 
-  static formAssociated = true;
-
   static queries = {
     input: "input",
   };
@@ -22,14 +20,6 @@ class LoginOriginField extends MozLitElement {
   constructor() {
     super();
     this.value = "";
-  }
-
-  connectedCallback() {
-    super.connectedCallback();
-    this.internals.setFormValue(this.value);
-    this.addEventListener("input", e => {
-      this.internals.setFormValue(e.composedTarget.value);
-    });
   }
 
   addHTTPSPrefix(e) {
@@ -41,12 +31,6 @@ class LoginOriginField extends MozLitElement {
 
     if (!originValue.match(/:\/\//)) {
       input.value = "https://" + originValue;
-      input.dispatchEvent(
-        new InputEvent("input", {
-          composed: true,
-          bubbles: true,
-        })
-      );
     }
   }
 

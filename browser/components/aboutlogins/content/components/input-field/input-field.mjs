@@ -24,7 +24,13 @@ export const editableFieldTemplate = ({
   noteL10nId,
 }) =>
   html`
-    <label for="input" class="field-label" data-l10n-id=${labelL10nId}> </label>
+    <label
+      for="input"
+      class="field-label"
+      data-l10n-id=${labelL10nId}
+      tabindex="-1"
+    >
+    </label>
     <input
       id="input"
       class="input-field"
