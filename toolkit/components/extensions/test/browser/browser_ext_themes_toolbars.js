@@ -47,7 +47,9 @@ add_task(async function test_support_toolbar_property() {
   }
 
   info("Checking selected tab colors");
-  let selectedTab = document.querySelector(".tabbrowser-tab[selected]");
+  let selectedTab = document.querySelector(
+    ".tabbrowser-tab[selected] .tab-content"
+  );
   Assert.equal(
     window.getComputedStyle(selectedTab).color,
     hexToCSS(TOOLBAR_TEXT_COLOR),
@@ -94,7 +96,9 @@ add_task(async function test_bookmark_text_property() {
   }
 
   info("Checking selected tab colors");
-  let selectedTab = document.querySelector(".tabbrowser-tab[selected]");
+  let selectedTab = document.querySelector(
+    ".tabbrowser-tab[selected] .tab-content"
+  );
   Assert.equal(
     window.getComputedStyle(selectedTab).color,
     rgbToCSS(TOOLBAR_TEXT_COLOR),
