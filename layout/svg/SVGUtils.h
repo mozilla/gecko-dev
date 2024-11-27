@@ -452,8 +452,7 @@ class SVGUtils final {
    * the range of valid integers.
    */
   static int32_t ClampToInt(double aVal) {
-    return NS_lround(
-        std::max(double(INT32_MIN), std::min(double(INT32_MAX), aVal)));
+    return NS_lround(std::clamp(aVal, double(INT32_MIN), double(INT32_MAX)));
   }
 
   /**

@@ -2635,7 +2635,7 @@ MOZ_CAN_RUN_SCRIPT_BOUNDARY NS_IMETHODIMP nsDocumentViewer::GetContentSize(
       prefISize = root->GetPrefISize(input);
     }
     prefISize = nsPresContext::RoundUpAppUnitsToCSSPixel(
-        std::max(minISize, std::min(prefISize, maxISize)));
+        CSSMinMax(prefISize, minISize, maxISize));
   }
 
   // We should never intentionally get here with this sentinel value, but it's

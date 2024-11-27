@@ -847,8 +847,8 @@ bool nsPresContext::UpdateFontVisibility() {
   }
 
   // Clamp result to the valid range of levels.
-  level = std::max(std::min(level, int32_t(FontVisibility::User)),
-                   int32_t(FontVisibility::Base));
+  level = std::clamp(level, int32_t(FontVisibility::Base),
+                     int32_t(FontVisibility::User));
 
   mFontVisibility = FontVisibility(level);
   return mFontVisibility != oldValue;

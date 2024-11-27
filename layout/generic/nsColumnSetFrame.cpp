@@ -318,7 +318,7 @@ nsColumnSetFrame::ReflowConfig nsColumnSetFrame::ChooseColumnStrategy(
       int32_t maxColumns =
           std::min(nscoord(kMaxColumnCount),
                    (availContentISize + colGap) / (colGap + colISize));
-      numColumns = std::max(1, std::min(numColumns, maxColumns));
+      numColumns = std::clamp(numColumns, 1, maxColumns);
     }
   } else if (numColumns > 0 && availContentISize != NS_UNCONSTRAINEDSIZE) {
     nscoord iSizeMinusGaps = availContentISize - colGap * (numColumns - 1);
@@ -328,7 +328,7 @@ nsColumnSetFrame::ReflowConfig nsColumnSetFrame::ChooseColumnStrategy(
   }
   // Take care of the situation where there's only one column but it's
   // still too wide
-  colISize = std::max(1, std::min(colISize, availContentISize));
+  colISize = CSSMinMax(colISize, 1, availContentISize);
 
   nscoord expectedISizeLeftOver = 0;
 
