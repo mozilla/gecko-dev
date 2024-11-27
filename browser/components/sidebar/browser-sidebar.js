@@ -356,6 +356,7 @@ var SidebarController = {
         !window.toolbar.visible ||
         (this.sidebarRevampVisibility === "hide-sidebar" && !this.isOpen);
       document.getElementById("sidebar-header").hidden = true;
+      this._updateTabbrowser();
       if (!this._mainResizeObserverAdded) {
         this._mainResizeObserver.observe(this.sidebarMain);
         this._mainResizeObserverAdded = true;
@@ -430,7 +431,6 @@ var SidebarController = {
         this.setUIState(backupState);
       }
     });
-
     this._initDeferred.resolve();
   },
 
@@ -548,6 +548,7 @@ var SidebarController = {
       }
       this.updateToolbarButton();
       this._updateLauncherWidth();
+      this._updateTabbrowser();
     }
     this.uiStateInitialized = true;
   },
@@ -638,6 +639,12 @@ var SidebarController = {
         break;
       }
     }
+  },
+
+  _updateTabbrowser() {
+    document
+      .getElementById("tabbrowser-tabbox")
+      .toggleAttribute("sidebar-shown", !this.sidebarContainer.hidden);
   },
 
   hideSwitcherPanel() {
@@ -996,6 +1003,8 @@ var SidebarController = {
       this.toggleExpanded(true);
     }
     this.sidebarContainer.hidden = !isHidden;
+
+    this._updateTabbrowser();
   },
 
   async _animateSidebarMain() {

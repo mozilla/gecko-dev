@@ -39,25 +39,13 @@
   text-shadow: none;
   max-width: 75vw;
 
-  &:not(.browser-toolbox-background) {
+  /* stylelint-disable-next-line media-query-no-invalid */
+  @media not (-moz-bool-pref: "sidebar.revamp") {
     background-color: var(--sidebar-background-color);
     color: var(--sidebar-text-color);
-
     /* Note that with sidebar.revamp we apply the --sidebar-background-color to the
      * #sidebar browser. We still need the #sidebar-box background to match the
-     * toolbar tho */
-    /* stylelint-disable-next-line media-query-no-invalid */
-    @media (-moz-bool-pref: "sidebar.revamp") {
-      background-color: var(--toolbar-bgcolor);
-      color: var(--toolbar-color);
-
-      :root[lwtheme] & {
-        /* Ensure toolbar color displays on top of the frame/toolbox color to
-         * guarantee full opacity */
-        background-color: var(--lwt-accent-color);
-        background-image: linear-gradient(var(--toolbar-bgcolor), var(--toolbar-bgcolor));
-      }
-    }
+     * toolbar tho - this background is set on the #browser ancestor rather than here */
   }
 }
 

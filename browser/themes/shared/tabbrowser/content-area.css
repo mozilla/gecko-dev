@@ -49,6 +49,18 @@
   min-height: 0;
 }
 
+#browser:not(.browser-toolbox-background) {
+  background-color: var(--toolbar-bgcolor);
+  color: var(--toolbar-color);
+
+  :root[lwtheme] & {
+    /* Ensure toolbar color displays on top of the frame/toolbox color to
+    * guarantee full opacity */
+    background-color: var(--lwt-accent-color);
+    background-image: linear-gradient(var(--toolbar-bgcolor), var(--toolbar-bgcolor));
+  }
+}
+
 #tabbrowser-tabbox {
   position: relative;
   z-index: var(--browser-area-z-index-tabbox);
@@ -58,6 +70,17 @@
   @media (-moz-bool-pref: "sidebar.revamp") {
     outline: 0.01px solid var(--chrome-content-separator-color);
     box-shadow: var(--content-area-shadow);
+
+    :root:not([inDOMFullscreen]) &[sidebar-shown] {
+      overflow: clip;
+      border-start-end-radius: var(--border-radius-medium);
+
+      /* stylelint-disable-next-line media-query-no-invalid */
+      @media (-moz-bool-pref: "sidebar.position_start") {
+        border-start-start-radius: var(--border-radius-medium);
+        border-start-end-radius: 0;
+      }
+    }
   }
 }
 
