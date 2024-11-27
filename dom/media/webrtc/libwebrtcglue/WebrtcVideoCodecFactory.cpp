@@ -15,6 +15,8 @@
 #include "api/video_codecs/video_codec.h"
 #include "api/video_codecs/video_encoder_software_fallback_wrapper.h"
 #include "media/engine/simulcast_encoder_adapter.h"
+#include "modules/video_coding/codecs/av1/libaom_av1_encoder.h"
+#include "modules/video_coding/codecs/av1/dav1d_decoder.h"
 #include "modules/video_coding/codecs/vp8/include/vp8.h"
 #include "modules/video_coding/codecs/vp9/include/vp9.h"
 
@@ -51,7 +53,9 @@ std::unique_ptr<webrtc::VideoDecoder> WebrtcVideoDecoderFactory::Create(
     case webrtc::VideoCodecType::kVideoCodecVP9:
       decoder = webrtc::VP9Decoder::Create();
       break;
-
+    case webrtc::VideoCodecType::kVideoCodecAV1:
+      decoder = webrtc::CreateDav1dDecoder();
+      break;
     default:
       break;
   }
@@ -66,6 +70,8 @@ std::unique_ptr<webrtc::VideoEncoder> WebrtcVideoEncoderFactory::Create(
   }
   auto type = webrtc::PayloadStringToCodecType(aFormat.name);
   switch (type) {
+    // Bug 1932065 - Add simulcast support for AV1
+    // e.g.: case webrtc::VideoCodecType::kVideoCodecAV1:
     case webrtc::VideoCodecType::kVideoCodecVP8:
       // XXX We might be able to use the simulcast proxy for more codecs, but
       // that requires testing.
@@ -82,6 +88,7 @@ bool WebrtcVideoEncoderFactory::InternalFactory::Supports(
     case webrtc::VideoCodecType::kVideoCodecVP8:
     case webrtc::VideoCodecType::kVideoCodecVP9:
     case webrtc::VideoCodecType::kVideoCodecH264:
+    case webrtc::VideoCodecType::kVideoCodecAV1:
       return true;
     default:
       return false;
@@ -121,7 +128,9 @@ WebrtcVideoEncoderFactory::InternalFactory::Create(
       case webrtc::VideoCodecType::kVideoCodecVP9:
         encoder = webrtc::CreateVp9Encoder(aEnv);
         break;
-
+      case webrtc::VideoCodecType::kVideoCodecAV1:
+        encoder = webrtc::CreateLibaomAv1Encoder(aEnv);
+        break;
       default:
         break;
     }
@@ -156,8 +165,8 @@ WebrtcVideoEncoderFactory::InternalFactory::Create(
       platformEncoder = createPlatformEncoder();
       encoder = createWebRTCEncoder();
       if (encoder && platformEncoder) {
-        return webrtc::CreateVideoEncoderSoftwareFallbackWrapper(aEnv,
-            std::move(encoder), std::move(platformEncoder), false);
+        return webrtc::CreateVideoEncoderSoftwareFallbackWrapper(
+            aEnv, std::move(encoder), std::move(platformEncoder), false);
       }
       if (platformEncoder) {
         NS_WARNING(nsPrintfCString("No WebRTC encoder to fall back to for "

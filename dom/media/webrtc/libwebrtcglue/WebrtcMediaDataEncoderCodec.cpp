@@ -13,6 +13,7 @@
 #include "MediaData.h"
 #include "modules/video_coding/utility/vp8_header_parser.h"
 #include "modules/video_coding/utility/vp9_uncompressed_header_parser.h"
+#include "mozilla/Assertions.h"
 #include "mozilla/Maybe.h"
 #include "mozilla/gfx/Point.h"
 #include "mozilla/media/MediaUtils.h"
@@ -46,9 +47,14 @@ CodecType ConvertWebrtcCodecTypeToCodecType(
       return CodecType::VP9;
     case webrtc::VideoCodecType::kVideoCodecH264:
       return CodecType::H264;
-    default:
-      MOZ_MAKE_COMPILER_ASSUME_IS_UNREACHABLE("Unsupported codec type");
+    case webrtc::VideoCodecType::kVideoCodecAV1:
+      return CodecType::AV1;
+    case webrtc::VideoCodecType::kVideoCodecGeneric:
+    case webrtc::VideoCodecType::kVideoCodecH265:
+      return CodecType::Unknown;
   }
+  MOZ_CRASH("Unsupported codec type");
+  return CodecType::Unknown;
 }
 
 bool WebrtcMediaDataEncoder::CanCreate(
