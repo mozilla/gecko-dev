@@ -284,9 +284,9 @@ namespace xsimd
             return detail::load_unaligned<A>(mem, cvt, generic {}, detail::conversion_type<A, T_in, T_out> {});
         }
 
-        // rotate_left
+        // rotate_right
         template <size_t N, class A, class T>
-        XSIMD_INLINE batch<T, A> rotate_left(batch<T, A> const& self, requires_arch<generic>) noexcept
+        XSIMD_INLINE batch<T, A> rotate_right(batch<T, A> const& self, requires_arch<generic>) noexcept
         {
             struct rotate_generator
             {
@@ -300,14 +300,14 @@ namespace xsimd
         }
 
         template <size_t N, class A, class T>
-        XSIMD_INLINE batch<std::complex<T>, A> rotate_left(batch<std::complex<T>, A> const& self, requires_arch<generic>) noexcept
+        XSIMD_INLINE batch<std::complex<T>, A> rotate_right(batch<std::complex<T>, A> const& self, requires_arch<generic>) noexcept
         {
-            return { rotate_left<N>(self.real()), rotate_left<N>(self.imag()) };
+            return { rotate_right<N>(self.real()), rotate_right<N>(self.imag()) };
         }
 
-        // rotate_right
+        // rotate_left
         template <size_t N, class A, class T>
-        XSIMD_INLINE batch<T, A> rotate_right(batch<T, A> const& self, requires_arch<generic>) noexcept
+        XSIMD_INLINE batch<T, A> rotate_left(batch<T, A> const& self, requires_arch<generic>) noexcept
         {
             struct rotate_generator
             {
@@ -321,9 +321,9 @@ namespace xsimd
         }
 
         template <size_t N, class A, class T>
-        XSIMD_INLINE batch<std::complex<T>, A> rotate_right(batch<std::complex<T>, A> const& self, requires_arch<generic>) noexcept
+        XSIMD_INLINE batch<std::complex<T>, A> rotate_left(batch<std::complex<T>, A> const& self, requires_arch<generic>) noexcept
         {
-            return { rotate_right<N>(self.real()), rotate_right<N>(self.imag()) };
+            return { rotate_left<N>(self.real()), rotate_left<N>(self.imag()) };
         }
 
         // Scatter with runtime indexes.

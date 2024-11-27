@@ -105,16 +105,16 @@ namespace xsimd
             }
         }
 
-        // rotate_right
+        // rotate_left
         template <size_t N, class A>
-        XSIMD_INLINE batch<uint16_t, A> rotate_right(batch<uint16_t, A> const& self, requires_arch<ssse3>) noexcept
+        XSIMD_INLINE batch<uint16_t, A> rotate_left(batch<uint16_t, A> const& self, requires_arch<ssse3>) noexcept
         {
             return _mm_alignr_epi8(self, self, N);
         }
         template <size_t N, class A>
-        XSIMD_INLINE batch<int16_t, A> rotate_right(batch<int16_t, A> const& self, requires_arch<ssse3>) noexcept
+        XSIMD_INLINE batch<int16_t, A> rotate_left(batch<int16_t, A> const& self, requires_arch<ssse3>) noexcept
         {
-            return bitwise_cast<int16_t>(rotate_right<N, A>(bitwise_cast<uint16_t>(self), ssse3 {}));
+            return bitwise_cast<int16_t>(rotate_left<N, A>(bitwise_cast<uint16_t>(self), ssse3 {}));
         }
 
         // swizzle (dynamic mask)

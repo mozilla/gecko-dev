@@ -713,9 +713,9 @@ namespace xsimd
          * Permutation *
          ***************/
 
-        //  rotate_right
+        //  rotate_left
         template <size_t N, class A, class T, detail::sve_enable_all_t<T> = 0>
-        XSIMD_INLINE batch<T, A> rotate_right(batch<T, A> const& a, requires_arch<sve>) noexcept
+        XSIMD_INLINE batch<T, A> rotate_left(batch<T, A> const& a, requires_arch<sve>) noexcept
         {
             return svext(a, a, N);
         }

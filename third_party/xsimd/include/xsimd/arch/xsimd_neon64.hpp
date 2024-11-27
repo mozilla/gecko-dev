@@ -1265,10 +1265,10 @@ namespace xsimd
         }
 
         /****************
-         * rotate_right *
+         * rotate_left *
          ****************/
         template <size_t N, class A>
-        XSIMD_INLINE batch<double, A> rotate_right(batch<double, A> const& a, requires_arch<neon64>) noexcept
+        XSIMD_INLINE batch<double, A> rotate_left(batch<double, A> const& a, requires_arch<neon64>) noexcept
         {
             return vextq_f64(a, a, N);
         }

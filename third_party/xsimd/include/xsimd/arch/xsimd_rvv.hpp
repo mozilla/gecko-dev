@@ -1129,13 +1129,14 @@ namespace xsimd
          *************/
         namespace detail
         {
-            XSIMD_RVV_OVERLOAD(rvvcompress, (__riscv_vcompress), , vec(vec, bvec))
+            XSIMD_RVV_OVERLOAD(rvvcompress, (__riscv_vcompress_tu), , vec(vec, vec, bvec))
         }
         // compress
         template <class A, class T>
         XSIMD_INLINE batch<T, A> compress(batch<T, A> const& x, batch_bool<T, A> const& mask, requires_arch<rvv>) noexcept
         {
-            return detail::rvvcompress(x, mask);
+            auto zero = broadcast<A>(T(0), rvv {});
+            return detail::rvvcompress(zero, x, mask);
         }
 
         /***************
