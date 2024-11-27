@@ -204,48 +204,47 @@ void TrustedTypePolicyFactory::GetAttributeType(const nsAString& aTagName,
                                                 const nsAString& aElementNs,
                                                 const nsAString& aAttrNs,
                                                 DOMString& aResult) {
+  // We first determine the namespace IDs for the element and attribute.
+  // Currently, GetTrustedTypeDataForAttribute() only test a few of them so use
+  // direct string comparisons instead of relying on
+  // nsNameSpaceManager::GetNameSpaceID().
+
+  // GetTrustedTypeDataForAttribute() can only return true for empty or XLink
+  // attribute namespaces, so don't bother calling it for other namespaces.
+  int32_t attributeNamespaceID = kNameSpaceID_Unknown;
+  if (aAttrNs.IsEmpty()) {
+    attributeNamespaceID = kNameSpaceID_None;
+  } else if (nsGkAtoms::nsuri_xlink->Equals(aAttrNs)) {
+    attributeNamespaceID = kNameSpaceID_XLink;
+  } else {
+    aResult.SetNull();
+    return;
+  }
+
+  // GetTrustedTypeDataForAttribute() only test HTML or SVG element namespaces,
+  // for testing event handler attributes the element namespace does not matter.
+  int32_t elementNamespaceID = kNameSpaceID_Unknown;
+  if (aElementNs.IsEmpty() || nsGkAtoms::nsuri_xhtml->Equals(aElementNs)) {
+    elementNamespaceID = kNameSpaceID_XHTML;
+  } else if (nsGkAtoms::nsuri_svg->Equals(aElementNs)) {
+    elementNamespaceID = kNameSpaceID_SVG;
+  }
+
   nsAutoString attribute;
   nsContentUtils::ASCIIToLower(aAttribute, attribute);
   RefPtr<nsAtom> attributeAtom = NS_Atomize(attribute);
 
-  // The spec is not really clear about which "event handler content attributes"
-  // we should consider, so we just include everything but XUL's specific ones.
-  // See https://github.com/w3c/trusted-types/issues/520.
-  if (aAttrNs.IsEmpty() &&
-      nsContentUtils::IsEventAttributeName(
-          attributeAtom, EventNameType_All & ~EventNameType_XUL)) {
-    // Event handler content attribute.
-    aResult.SetKnownLiveString(GetTrustedTypeName<TrustedScript>());
+  nsAutoString localName;
+  nsContentUtils::ASCIIToLower(aTagName, localName);
+  RefPtr<nsAtom> elementAtom = NS_Atomize(localName);
+
+  TrustedType trustedType;
+  nsAutoString unusedSink;
+  if (GetTrustedTypeDataForAttribute(elementAtom, elementNamespaceID,
+                                     attributeAtom, attributeNamespaceID,
+                                     trustedType, unusedSink)) {
+    aResult.SetKnownLiveString(GetTrustedTypeName(trustedType));
     return;
-  }
-  if (aElementNs.IsEmpty() ||
-      aElementNs == nsDependentAtomString(nsGkAtoms::nsuri_xhtml)) {
-    if (nsContentUtils::EqualsIgnoreASCIICase(
-            aTagName, nsDependentAtomString(nsGkAtoms::iframe))) {
-      // HTMLIFrameElement
-      if (aAttrNs.IsEmpty() && attributeAtom == nsGkAtoms::srcdoc) {
-        aResult.SetKnownLiveString(GetTrustedTypeName<TrustedHTML>());
-        return;
-      }
-    } else if (nsContentUtils::EqualsIgnoreASCIICase(
-                   aTagName, nsDependentAtomString(nsGkAtoms::script))) {
-      // HTMLScriptElement
-      if (aAttrNs.IsEmpty() && attributeAtom == nsGkAtoms::src) {
-        aResult.SetKnownLiveString(GetTrustedTypeName<TrustedScriptURL>());
-        return;
-      }
-    }
-  } else if (aElementNs == nsDependentAtomString(nsGkAtoms::nsuri_svg)) {
-    if (nsContentUtils::EqualsIgnoreASCIICase(
-            aTagName, nsDependentAtomString(nsGkAtoms::script))) {
-      // SVGScriptElement
-      if ((aAttrNs.IsEmpty() ||
-           aAttrNs == nsDependentAtomString(nsGkAtoms::nsuri_xlink)) &&
-          attributeAtom == nsGkAtoms::href) {
-        aResult.SetKnownLiveString(GetTrustedTypeName<TrustedScriptURL>());
-        return;
-      }
-    }
   }
 
   aResult.SetNull();
@@ -263,8 +262,7 @@ void TrustedTypePolicyFactory::GetPropertyType(const nsAString& aTagName,
                                                const nsAString& aElementNs,
                                                DOMString& aResult) {
   RefPtr<nsAtom> propertyAtom = NS_Atomize(aProperty);
-  if (aElementNs.IsEmpty() ||
-      aElementNs == nsDependentAtomString(nsGkAtoms::nsuri_xhtml)) {
+  if (aElementNs.IsEmpty() || nsGkAtoms::nsuri_xhtml->Equals(aElementNs)) {
     if (nsContentUtils::EqualsIgnoreASCIICase(
             aTagName, nsDependentAtomString(nsGkAtoms::iframe))) {
       // HTMLIFrameElement

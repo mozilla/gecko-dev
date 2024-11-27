@@ -48,6 +48,13 @@ nsString GetTrustedTypeName() {
   return u"TrustedScriptURL"_ns;
 }
 
+enum class TrustedType : int8_t {
+  TrustedHTML,
+  TrustedScript,
+  TrustedScriptURL,
+};
+nsString GetTrustedTypeName(TrustedType aTrustedType);
+
 // https://w3c.github.io/trusted-types/dist/spec/#get-trusted-type-compliant-string-algorithm
 //
 // May only run script if aInput is not a trusted type and if the trusted types
@@ -81,6 +88,14 @@ template <typename ExpectedType>
 MOZ_CAN_RUN_SCRIPT void ProcessValueWithADefaultPolicy(
     const Document& aDocument, const nsAString& aInput, const nsAString& aSink,
     ExpectedType** aResult, ErrorResult& aError);
+
+// https://w3c.github.io/trusted-types/dist/spec/#get-trusted-type-data-for-attribute
+bool GetTrustedTypeDataForAttribute(const nsAtom* aElementName,
+                                    int32_t aElementNamespaceID,
+                                    nsAtom* aAttributeName,
+                                    int32_t aAttributeNamespaceID,
+                                    TrustedType& aTrustedType,
+                                    nsAString& aSink);
 
 }  // namespace TrustedTypeUtils
 
