@@ -7,6 +7,7 @@ import hashlib
 import json
 import logging
 import re
+from urllib.parse import urlparse, urlunparse
 
 import requests
 
@@ -24,6 +25,17 @@ def fetch_url_for_cdms(cdms, urlParams):
                     )
                 )
 
+            redirectUrl = response.headers["Location"]
+            parsedUrl = urlparse(redirectUrl)
+            if parsedUrl.scheme != "https":
+                raise Exception(
+                    "{} expected https scheme '{}'".format(cdm["target"], redirectUrl)
+                )
+
+            sanitizedUrl = urlunparse(
+                (parsedUrl.scheme, parsedUrl.netloc, parsedUrl.path, None, None, None)
+            )
+
             # Note that here we modify the returned URL from the
             # component update service because it returns a preferred
             # server for the caller of the script. This may not match
@@ -31,17 +43,29 @@ def fetch_url_for_cdms(cdms, urlParams):
             # that we instead replace these results with the
             # edgedl.me.gvt1.com domain/path, which should be location
             # agnostic.
-            redirectUrl = response.headers["Location"]
             normalizedUrl = re.sub(
                 r"https.+?release2",
                 "https://edgedl.me.gvt1.com/edgedl/release2",
-                redirectUrl,
+                sanitizedUrl,
+            )
+            if not normalizedUrl:
+                raise Exception(
+                    "{} cannot normalize '{}'".format(cdm["target"], sanitizedUrl)
+                )
+
+            # Because some users are unable to resolve *.gvt1.com
+            # URLs, we supply an alternative based on www.google.com.
+            # This should resolve with success more frequently.
+            mirrorUrl = re.sub(
+                r"https.+?release2",
+                "https://www.google.com/dl/release2",
+                sanitizedUrl,
             )
 
-            version = re.search(r".*?_([\d]+\.[\d]+\.[\d]+\.[\d]+)/", redirectUrl)
+            version = re.search(r".*?_([\d]+\.[\d]+\.[\d]+\.[\d]+)/", sanitizedUrl)
             if version is None:
                 raise Exception(
-                    "{} cannot extract version '{}'".format(cdm["target"], redirectUrl)
+                    "{} cannot extract version '{}'".format(cdm["target"], sanitizedUrl)
                 )
             if any_version is None:
                 any_version = version.group(1)
@@ -52,6 +76,8 @@ def fetch_url_for_cdms(cdms, urlParams):
                     )
                 )
             cdm["fileName"] = normalizedUrl
+            if mirrorUrl and mirrorUrl != normalizedUrl:
+                cdm["fileNameMirror"] = mirrorUrl
     return any_version
 
 
@@ -62,6 +88,17 @@ def fetch_data_for_cdms(cdms, urlParams):
             response = requests.get(cdm["fileUrl"])
             response.raise_for_status()
             cdm["hashValue"] = hashlib.sha512(response.content).hexdigest()
+            if "fileNameMirror" in cdm:
+                cdm["mirrorUrl"] = cdm["fileNameMirror"].format_map(urlParams)
+                mirrorresponse = requests.get(cdm["mirrorUrl"])
+                mirrorresponse.raise_for_status()
+                mirrorhash = hashlib.sha512(mirrorresponse.content).hexdigest()
+                if cdm["hashValue"] != mirrorhash:
+                    raise Exception(
+                        "Primary hash {} and mirror hash {} differ",
+                        cdm["hashValue"],
+                        mirrorhash,
+                    )
             cdm["filesize"] = len(response.content)
             if cdm["filesize"] == 0:
                 raise Exception("Empty response for {target}".format_map(cdm))
@@ -76,10 +113,22 @@ def generate_json_for_cdms(cdms):
                 + '          "alias": "{alias}"\n'
                 + "        }},\n"
             ).format_map(cdm)
+        elif "mirrorUrl" in cdm:
+            cdm_json += (
+                '        "{target}": {{\n'
+                + '          "fileUrl": "{fileUrl}",\n'
+                + '          "mirrorUrls": [\n'
+                + '            "{mirrorUrl}"\n'
+                + "          ],\n"
+                + '          "filesize": {filesize},\n'
+                + '          "hashValue": "{hashValue}"\n'
+                + "        }},\n"
+            ).format_map(cdm)
         else:
             cdm_json += (
                 '        "{target}": {{\n'
                 + '          "fileUrl": "{fileUrl}",\n'
+                + '          "mirrorUrls": [],\n'
                 + '          "filesize": {filesize},\n'
                 + '          "hashValue": "{hashValue}"\n'
                 + "        }},\n"
@@ -92,10 +141,10 @@ def calculate_gmpopenh264_json(version: str, version_hash: str, url_base: str) -
     cdms = [
         {"target": "Darwin_aarch64-gcc3", "fileName": "{url_base}/openh264-macosx64-aarch64-{version}.zip"},
         {"target": "Darwin_x86_64-gcc3", "fileName": "{url_base}/openh264-macosx64-{version}.zip"},
+        {"target": "Linux_aarch64-gcc3", "fileName": "{url_base}/openh264-linux64-aarch64-{version}.zip"},
         {"target": "Linux_x86-gcc3", "fileName": "{url_base}/openh264-linux32-{version}.zip"},
         {"target": "Linux_x86_64-gcc3", "fileName": "{url_base}/openh264-linux64-{version}.zip"},
         {"target": "Linux_x86_64-gcc3-asan", "alias": "Linux_x86_64-gcc3"},
-        {"target": "Linux_aarch64-gcc3", "fileName": "{url_base}/openh264-linux64-aarch64-{version}.zip"},
         {"target": "WINNT_aarch64-msvc-aarch64", "fileName": "{url_base}/openh264-win64-aarch64-{version}.zip"},
         {"target": "WINNT_x86-msvc", "fileName": "{url_base}/openh264-win32-{version}.zip"},
         {"target": "WINNT_x86-msvc-x64", "alias": "WINNT_x86-msvc"},
@@ -273,7 +322,7 @@ def main():
             parser.error("widevine requires version")
         if args.revision is not None:
             parser.error("widevine cannot use revision")
-    elif args.plugin == "widevine_component" or args.plugin == "widevine_l1_component":
+    elif args.plugin in ("widevine_component", "widevine_l1_component"):
         url_base = "https://update.googleapis.com/service/update2/crx?response=redirect&x=id%3D{guid}%26uc&acceptformat=crx3&updaterversion=999"
         if args.testrequest:
             url_base += "&testrequest=1"
