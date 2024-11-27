@@ -274,12 +274,16 @@ class _MLSuggest {
     // Handle city_state as combined and split into city and state
     if (cityStateResult.length && !cityResult.length && !stateResult.length) {
       let cityStateSplit = cityStateResult.join(" ").split(",");
-      cityResult = cityStateSplit[0]?.trim?.().split(",").filter(
-        item => item.trim() !== ""
-      ) || [];
-      stateResult = cityStateSplit[1]?.trim?.().split(",").filter(
-        item => item.trim() !== ""
-      ) || [];
+      cityResult =
+        cityStateSplit[0]
+          ?.trim?.()
+          .split(",")
+          .filter(item => item.trim() !== "") || [];
+      stateResult =
+        cityStateSplit[1]
+          ?.trim?.()
+          .split(",")
+          .filter(item => item.trim() !== "") || [];
     }
 
     // Remove trailing punctuation from the last cityResult element if present
