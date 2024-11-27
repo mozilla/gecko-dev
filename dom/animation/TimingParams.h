@@ -163,8 +163,7 @@ struct TimingParams {
   StickyTimeDuration CalcBeforeActiveBoundary() const {
     static constexpr StickyTimeDuration zeroDuration;
     // https://drafts.csswg.org/web-animations-1/#before-active-boundary-time
-    return std::max(std::min(StickyTimeDuration(mDelay), mEndTime),
-                    zeroDuration);
+    return std::clamp(StickyTimeDuration(mDelay), zeroDuration, mEndTime);
   }
 
   StickyTimeDuration CalcActiveAfterBoundary() const {
