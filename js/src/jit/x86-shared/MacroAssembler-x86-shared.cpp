@@ -1129,36 +1129,38 @@ void MacroAssembler::patchSub32FromMemAndBranchIfNegative(CodeOffset offset,
 // Primitive atomic operations.
 
 static void ExtendTo32(MacroAssembler& masm, Scalar::Type type, Register r) {
-  switch (Scalar::byteSize(type)) {
-    case 1:
-      if (Scalar::isSignedIntType(type)) {
-        masm.movsbl(r, r);
-      } else {
-        masm.movzbl(r, r);
-      }
+  switch (type) {
+    case Scalar::Int8:
+      masm.movsbl(r, r);
       break;
-    case 2:
-      if (Scalar::isSignedIntType(type)) {
-        masm.movswl(r, r);
-      } else {
-        masm.movzwl(r, r);
-      }
+    case Scalar::Uint8:
+      masm.movzbl(r, r);
+      break;
+    case Scalar::Int16:
+      masm.movswl(r, r);
+      break;
+    case Scalar::Uint16:
+      masm.movzwl(r, r);
+      break;
+    case Scalar::Int32:
+    case Scalar::Uint32:
       break;
     default:
-      break;
+      MOZ_CRASH("unexpected type");
   }
 }
 
-static inline void CheckBytereg(Register r) {
 #ifdef DEBUG
+static inline bool IsByteReg(Register r) {
   AllocatableGeneralRegisterSet byteRegs(Registers::SingleByteRegs);
-  MOZ_ASSERT(byteRegs.has(r));
-#endif
+  return byteRegs.has(r);
 }
 
-static inline void CheckBytereg(Imm32 r) {
+static inline bool IsByteReg(Imm32 r) {
   // Nothing
+  return true;
 }
+#endif
 
 template <typename T>
 static void CompareExchange(MacroAssembler& masm,
@@ -1180,7 +1182,7 @@ static void CompareExchange(MacroAssembler& masm,
   // GenerateAtomicOperations.py
   switch (Scalar::byteSize(type)) {
     case 1:
-      CheckBytereg(newval);
+      MOZ_ASSERT(IsByteReg(newval));
       masm.lock_cmpxchgb(newval, Operand(mem));
       break;
     case 2:
@@ -1239,7 +1241,7 @@ static void AtomicExchange(MacroAssembler& masm,
 
   switch (Scalar::byteSize(type)) {
     case 1:
-      CheckBytereg(output);
+      MOZ_ASSERT(IsByteReg(output));
       masm.xchgb(output, Operand(mem));
       break;
     case 2:
@@ -1297,6 +1299,34 @@ static void SetupValue(MacroAssembler& masm, AtomicOp op, Register src,
   }
 }
 
+static auto WasmTrapMachineInsn(Scalar::Type arrayType, AtomicOp op) {
+  switch (op) {
+    case AtomicOp::Add:
+    case AtomicOp::Sub:
+      return wasm::TrapMachineInsn::Atomic;
+    case AtomicOp::And:
+    case AtomicOp::Or:
+    case AtomicOp::Xor:
+      switch (arrayType) {
+        case Scalar::Int8:
+        case Scalar::Uint8:
+          return wasm::TrapMachineInsn::Load8;
+        case Scalar::Int16:
+        case Scalar::Uint16:
+          return wasm::TrapMachineInsn::Load16;
+        case Scalar::Int32:
+        case Scalar::Uint32:
+          return wasm::TrapMachineInsn::Load32;
+        default:
+          break;
+      }
+      [[fallthrough]];
+    default:
+      break;
+  }
+  MOZ_CRASH();
+}
+
 template <typename T, typename V>
 static void AtomicFetchOp(MacroAssembler& masm,
                           const wasm::MemoryAccessDesc* access,
@@ -1306,117 +1336,150 @@ static void AtomicFetchOp(MacroAssembler& masm,
 
   // NOTE: the generated code must match the assembly code in gen_fetchop in
   // GenerateAtomicOperations.py
-#define ATOMIC_BITOP_BODY(LOAD, LOAD_DESCR, OP, LOCK_CMPXCHG) \
-  do {                                                        \
-    MOZ_ASSERT(output != temp);                               \
-    MOZ_ASSERT(output == eax);                                \
-    if (access)                                               \
-      masm.append(*access, LOAD_DESCR,                        \
-                  FaultingCodeOffset(masm.currentOffset()));  \
-    masm.LOAD(Operand(mem), eax);                             \
-    Label again;                                              \
-    masm.bind(&again);                                        \
-    masm.movl(eax, temp);                                     \
-    masm.OP(value, temp);                                     \
-    masm.LOCK_CMPXCHG(temp, Operand(mem));                    \
-    masm.j(MacroAssembler::NonZero, &again);                  \
-  } while (0)
 
-  MOZ_ASSERT_IF(op == AtomicOp::Add || op == AtomicOp::Sub, temp == InvalidReg);
+  // Setup the output register.
+  switch (op) {
+    case AtomicOp::Add:
+    case AtomicOp::Sub:
+      MOZ_ASSERT(temp == InvalidReg);
+      MOZ_ASSERT_IF(Scalar::byteSize(arrayType) == 1,
+                    IsByteReg(output) && IsByteReg(value));
 
-  switch (Scalar::byteSize(arrayType)) {
-    case 1:
-      CheckBytereg(output);
-      switch (op) {
-        case AtomicOp::Add:
-        case AtomicOp::Sub:
-          CheckBytereg(value);  // But not for the bitwise ops
-          SetupValue(masm, op, value, output);
-          if (access) {
-            masm.append(*access, wasm::TrapMachineInsn::Atomic,
-                        FaultingCodeOffset(masm.currentOffset()));
-          }
-          masm.lock_xaddb(output, Operand(mem));
-          break;
-        case AtomicOp::And:
-          CheckBytereg(temp);
-          ATOMIC_BITOP_BODY(movb, wasm::TrapMachineInsn::Load8, andl,
-                            lock_cmpxchgb);
-          break;
-        case AtomicOp::Or:
-          CheckBytereg(temp);
-          ATOMIC_BITOP_BODY(movb, wasm::TrapMachineInsn::Load8, orl,
-                            lock_cmpxchgb);
-          break;
-        case AtomicOp::Xor:
-          CheckBytereg(temp);
-          ATOMIC_BITOP_BODY(movb, wasm::TrapMachineInsn::Load8, xorl,
-                            lock_cmpxchgb);
-          break;
-        default:
-          MOZ_CRASH();
-      }
+      SetupValue(masm, op, value, output);
       break;
-    case 2:
-      switch (op) {
-        case AtomicOp::Add:
-        case AtomicOp::Sub:
-          SetupValue(masm, op, value, output);
-          if (access) {
-            masm.append(*access, wasm::TrapMachineInsn::Atomic,
-                        FaultingCodeOffset(masm.currentOffset()));
-          }
-          masm.lock_xaddw(output, Operand(mem));
-          break;
-        case AtomicOp::And:
-          ATOMIC_BITOP_BODY(movw, wasm::TrapMachineInsn::Load16, andl,
-                            lock_cmpxchgw);
-          break;
-        case AtomicOp::Or:
-          ATOMIC_BITOP_BODY(movw, wasm::TrapMachineInsn::Load16, orl,
-                            lock_cmpxchgw);
-          break;
-        case AtomicOp::Xor:
-          ATOMIC_BITOP_BODY(movw, wasm::TrapMachineInsn::Load16, xorl,
-                            lock_cmpxchgw);
-          break;
-        default:
-          MOZ_CRASH();
-      }
-      break;
-    case 4:
-      switch (op) {
-        case AtomicOp::Add:
-        case AtomicOp::Sub:
-          SetupValue(masm, op, value, output);
-          if (access) {
-            masm.append(*access, wasm::TrapMachineInsn::Atomic,
-                        FaultingCodeOffset(masm.currentOffset()));
-          }
-          masm.lock_xaddl(output, Operand(mem));
-          break;
-        case AtomicOp::And:
-          ATOMIC_BITOP_BODY(movl, wasm::TrapMachineInsn::Load32, andl,
-                            lock_cmpxchgl);
-          break;
-        case AtomicOp::Or:
-          ATOMIC_BITOP_BODY(movl, wasm::TrapMachineInsn::Load32, orl,
-                            lock_cmpxchgl);
-          break;
-        case AtomicOp::Xor:
-          ATOMIC_BITOP_BODY(movl, wasm::TrapMachineInsn::Load32, xorl,
-                            lock_cmpxchgl);
-          break;
-        default:
-          MOZ_CRASH();
-      }
+    case AtomicOp::And:
+    case AtomicOp::Or:
+    case AtomicOp::Xor:
+      MOZ_ASSERT(output != temp && output == eax);
+      MOZ_ASSERT_IF(Scalar::byteSize(arrayType) == 1,
+                    IsByteReg(output) && IsByteReg(temp));
+
+      // Bitwise operations don't require any additional setup.
       break;
     default:
-      MOZ_CRASH("Invalid size");
+      MOZ_CRASH();
   }
-  ExtendTo32(masm, arrayType, output);
 
-#undef ATOMIC_BITOP_BODY
+  auto lock_xadd = [&]() {
+    switch (arrayType) {
+      case Scalar::Int8:
+      case Scalar::Uint8:
+        masm.lock_xaddb(output, Operand(mem));
+        break;
+      case Scalar::Int16:
+      case Scalar::Uint16:
+        masm.lock_xaddw(output, Operand(mem));
+        break;
+      case Scalar::Int32:
+      case Scalar::Uint32:
+        masm.lock_xaddl(output, Operand(mem));
+        break;
+      default:
+        MOZ_CRASH();
+    }
+  };
+
+  auto load = [&]() {
+    switch (arrayType) {
+      case Scalar::Int8:
+      case Scalar::Uint8:
+        masm.movzbl(Operand(mem), eax);
+        break;
+      case Scalar::Int16:
+      case Scalar::Uint16:
+        masm.movzwl(Operand(mem), eax);
+        break;
+      case Scalar::Int32:
+      case Scalar::Uint32:
+        masm.movl(Operand(mem), eax);
+        break;
+      default:
+        MOZ_CRASH();
+    }
+  };
+
+  auto bitwiseOp = [&]() {
+    switch (op) {
+      case AtomicOp::And:
+        masm.andl(value, temp);
+        break;
+      case AtomicOp::Or:
+        masm.orl(value, temp);
+        break;
+      case AtomicOp::Xor:
+        masm.xorl(value, temp);
+        break;
+      default:
+        MOZ_CRASH();
+    }
+  };
+
+  auto lock_cmpxchg = [&]() {
+    switch (arrayType) {
+      case Scalar::Int8:
+      case Scalar::Uint8:
+        masm.lock_cmpxchgb(temp, Operand(mem));
+        break;
+      case Scalar::Int16:
+      case Scalar::Uint16:
+        masm.lock_cmpxchgw(temp, Operand(mem));
+        break;
+      case Scalar::Int32:
+      case Scalar::Uint32:
+        masm.lock_cmpxchgl(temp, Operand(mem));
+        break;
+      default:
+        MOZ_CRASH();
+    }
+  };
+
+  // Add trap instruction directly before the load.
+  if (access) {
+    masm.append(*access, WasmTrapMachineInsn(arrayType, op),
+                FaultingCodeOffset(masm.currentOffset()));
+  }
+
+  switch (op) {
+    case AtomicOp::Add:
+    case AtomicOp::Sub:
+      // `add` and `sub` operations can be optimized with XADD.
+      lock_xadd();
+
+      ExtendTo32(masm, arrayType, output);
+      break;
+
+    case AtomicOp::And:
+    case AtomicOp::Or:
+    case AtomicOp::Xor: {
+      // Bitwise operations need a CAS loop.
+
+      // Load memory into eax.
+      load();
+
+      // Loop.
+      Label again;
+      masm.bind(&again);
+      masm.movl(eax, temp);
+
+      // temp = temp <op> value.
+      bitwiseOp();
+
+      // Compare and swap `temp` with memory.
+      lock_cmpxchg();
+
+      // Repeat if the comparison failed.
+      masm.j(MacroAssembler::NonZero, &again);
+
+      // Sign-extend the zero-extended load.
+      if (Scalar::isSignedIntType(arrayType)) {
+        ExtendTo32(masm, arrayType, eax);
+      }
+      break;
+    }
+
+    default:
+      MOZ_CRASH();
+  }
 }
 
 void MacroAssembler::atomicFetchOp(Scalar::Type arrayType, Synchronization,
