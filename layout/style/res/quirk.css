@@ -13,12 +13,12 @@ li {
 }
 
 /* restore outside position for lists inside LIs */
-li :is(ul, ol, dir, menu) {
+li :is(ul, ol) {
   list-style-position: outside;
 }
 
 /* undo previous two rules for properly nested lists */
-:is(ul, ol, dir, menu) :is(ul, ol, dir, menu, li) {
+:is(ul, ol) :is(ul, ol, li) {
   list-style-position: unset;
 }
 
