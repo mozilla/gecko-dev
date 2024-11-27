@@ -11,7 +11,6 @@
 #include "mozilla/dom/GleanMetricsBinding.h"
 #include "mozilla/glean/bindings/ScalarGIFFTMap.h"
 #include "mozilla/glean/fog_ffi_generated.h"
-#include "GIFFTFwd.h"
 
 namespace mozilla::glean {
 
@@ -21,12 +20,12 @@ void CounterMetric::Add(int32_t aAmount) const {
   auto scalarId = ScalarIdForMetric(mId);
   if (aAmount >= 0) {
     if (scalarId) {
-      TelemetryScalar::Add(scalarId.extract(), aAmount);
+      Telemetry::ScalarAdd(scalarId.extract(), aAmount);
     } else if (IsSubmetricId(mId)) {
       GetLabeledMirrorLock().apply([&](const auto& lock) {
         auto tuple = lock.ref()->MaybeGet(mId);
         if (tuple && aAmount > 0) {
-          TelemetryScalar::Add(std::get<0>(tuple.ref()),
+          Telemetry::ScalarAdd(std::get<0>(tuple.ref()),
                                std::get<1>(tuple.ref()), (uint32_t)aAmount);
         }
       });

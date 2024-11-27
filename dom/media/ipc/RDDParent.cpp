@@ -57,10 +57,6 @@
 #  include "VideoUtils.h"
 #endif
 
-namespace TelemetryScalar {
-void Set(mozilla::Telemetry::ScalarID aId, uint32_t aValue);
-}
-
 namespace mozilla {
 
 using namespace ipc;
@@ -288,7 +284,7 @@ mozilla::ipc::IPCResult RDDParent::RecvTestTriggerMetrics(
 
 mozilla::ipc::IPCResult RDDParent::RecvTestTelemetryProbes() {
   const uint32_t kExpectedUintValue = 42;
-  TelemetryScalar::Set(Telemetry::ScalarID::TELEMETRY_TEST_RDD_ONLY_UINT,
+  Telemetry::ScalarSet(Telemetry::ScalarID::TELEMETRY_TEST_RDD_ONLY_UINT,
                        kExpectedUintValue);
   return IPC_OK();
 }

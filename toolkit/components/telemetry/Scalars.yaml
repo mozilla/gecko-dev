@@ -7935,7 +7935,6 @@ telemetry.test:
     release_channel_collection: opt-out
     products:
       - 'firefox'
-      - 'fennec'
       - 'thunderbird'
     record_in_processes:
       - 'main'
@@ -8352,7 +8351,7 @@ telemetry.test:
     expires: never
     kind: uint
     notification_emails: [glean-team@mozilla.com]
-    products: ["firefox", "fennec", "thunderbird"]
+    products: ["firefox", "thunderbird"]
     record_in_processes: ["all"]
     release_channel_collection: opt-out
 

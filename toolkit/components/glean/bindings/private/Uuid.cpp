@@ -12,7 +12,6 @@
 #include "mozilla/glean/bindings/ScalarGIFFTMap.h"
 #include "mozilla/glean/fog_ffi_generated.h"
 #include "nsString.h"
-#include "GIFFTFwd.h"
 
 namespace mozilla::glean {
 
@@ -21,7 +20,7 @@ namespace impl {
 void UuidMetric::Set(const nsACString& aValue) const {
   auto scalarId = ScalarIdForMetric(mId);
   if (scalarId) {
-    TelemetryScalar::Set(scalarId.extract(), NS_ConvertUTF8toUTF16(aValue));
+    Telemetry::ScalarSet(scalarId.extract(), NS_ConvertUTF8toUTF16(aValue));
   }
   fog_uuid_set(mId, &aValue);
 }

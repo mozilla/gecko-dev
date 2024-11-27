@@ -1540,10 +1540,56 @@ TelemetryImpl::MsSystemNow(double* aResult) {
 // Telemetry Scalars IDL Implementation
 
 NS_IMETHODIMP
+TelemetryImpl::ScalarAdd(const nsACString& aName, JS::Handle<JS::Value> aVal,
+                         JSContext* aCx) {
+  return TelemetryScalar::Add(aName, aVal, aCx);
+}
+
+NS_IMETHODIMP
+TelemetryImpl::ScalarSet(const nsACString& aName, JS::Handle<JS::Value> aVal,
+                         JSContext* aCx) {
+  return TelemetryScalar::Set(aName, aVal, aCx);
+}
+
+NS_IMETHODIMP
+TelemetryImpl::ScalarSetMaximum(const nsACString& aName,
+                                JS::Handle<JS::Value> aVal, JSContext* aCx) {
+  return TelemetryScalar::SetMaximum(aName, aVal, aCx);
+}
+
+NS_IMETHODIMP
+TelemetryImpl::KeyedScalarAdd(const nsACString& aName, const nsAString& aKey,
+                              JS::Handle<JS::Value> aVal, JSContext* aCx) {
+  return TelemetryScalar::Add(aName, aKey, aVal, aCx);
+}
+
+NS_IMETHODIMP
+TelemetryImpl::KeyedScalarSet(const nsACString& aName, const nsAString& aKey,
+                              JS::Handle<JS::Value> aVal, JSContext* aCx) {
+  return TelemetryScalar::Set(aName, aKey, aVal, aCx);
+}
+
+NS_IMETHODIMP
+TelemetryImpl::KeyedScalarSetMaximum(const nsACString& aName,
+                                     const nsAString& aKey,
+                                     JS::Handle<JS::Value> aVal,
+                                     JSContext* aCx) {
+  return TelemetryScalar::SetMaximum(aName, aKey, aVal, aCx);
+}
+
+NS_IMETHODIMP
+TelemetryImpl::RegisterScalars(const nsACString& aCategoryName,
+                               JS::Handle<JS::Value> aScalarData,
+                               JSContext* cx) {
+  return TelemetryScalar::RegisterScalars(aCategoryName, aScalarData, false,
+                                          cx);
+}
+
+NS_IMETHODIMP
 TelemetryImpl::RegisterBuiltinScalars(const nsACString& aCategoryName,
                                       JS::Handle<JS::Value> aScalarData,
                                       JSContext* cx) {
-  return TelemetryScalar::RegisterScalars(aCategoryName, aScalarData, cx);
+  return TelemetryScalar::RegisterScalars(aCategoryName, aScalarData, true, cx);
 }
 
 NS_IMETHODIMP
@@ -1906,6 +1952,48 @@ void SetProfileDir(nsIFile* aProfD) {
     return;
   }
   sTelemetryIOObserver->AddPath(profDirPath, u"{profile}"_ns);
+}
+
+// Scalar API C++ Endpoints
+
+void ScalarAdd(mozilla::Telemetry::ScalarID aId, uint32_t aVal) {
+  TelemetryScalar::Add(aId, aVal);
+}
+
+void ScalarSet(mozilla::Telemetry::ScalarID aId, uint32_t aVal) {
+  TelemetryScalar::Set(aId, aVal);
+}
+
+void ScalarSet(mozilla::Telemetry::ScalarID aId, bool aVal) {
+  TelemetryScalar::Set(aId, aVal);
+}
+
+void ScalarSet(mozilla::Telemetry::ScalarID aId, const nsAString& aVal) {
+  TelemetryScalar::Set(aId, aVal);
+}
+
+void ScalarSetMaximum(mozilla::Telemetry::ScalarID aId, uint32_t aVal) {
+  TelemetryScalar::SetMaximum(aId, aVal);
+}
+
+void ScalarAdd(mozilla::Telemetry::ScalarID aId, const nsAString& aKey,
+               uint32_t aVal) {
+  TelemetryScalar::Add(aId, aKey, aVal);
+}
+
+void ScalarSet(mozilla::Telemetry::ScalarID aId, const nsAString& aKey,
+               uint32_t aVal) {
+  TelemetryScalar::Set(aId, aKey, aVal);
+}
+
+void ScalarSet(mozilla::Telemetry::ScalarID aId, const nsAString& aKey,
+               bool aVal) {
+  TelemetryScalar::Set(aId, aKey, aVal);
+}
+
+void ScalarSetMaximum(mozilla::Telemetry::ScalarID aId, const nsAString& aKey,
+                      uint32_t aVal) {
+  TelemetryScalar::SetMaximum(aId, aKey, aVal);
 }
 
 void ShutdownTelemetry() { TelemetryImpl::ShutdownTelemetry(); }

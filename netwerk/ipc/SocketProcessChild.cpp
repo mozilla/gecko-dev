@@ -73,10 +73,6 @@
 #  include "mozilla/SandboxTestingChild.h"
 #endif
 
-namespace TelemetryScalar {
-void Set(mozilla::Telemetry::ScalarID aId, uint32_t aValue);
-}
-
 namespace mozilla {
 namespace net {
 
@@ -392,7 +388,7 @@ mozilla::ipc::IPCResult SocketProcessChild::RecvInitSandboxTesting(
 
 mozilla::ipc::IPCResult SocketProcessChild::RecvSocketProcessTelemetryPing() {
   const uint32_t kExpectedUintValue = 42;
-  TelemetryScalar::Set(Telemetry::ScalarID::TELEMETRY_TEST_SOCKET_ONLY_UINT,
+  Telemetry::ScalarSet(Telemetry::ScalarID::TELEMETRY_TEST_SOCKET_ONLY_UINT,
                        kExpectedUintValue);
   return IPC_OK();
 }

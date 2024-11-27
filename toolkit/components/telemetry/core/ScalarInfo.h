@@ -26,19 +26,22 @@ struct BaseScalarInfo {
   uint32_t key_count;
   uint32_t key_offset;
   mozilla::Telemetry::Common::SupportedProduct products;
+  bool builtin;
 
   constexpr BaseScalarInfo(
       uint32_t aKind, uint32_t aDataset,
       mozilla::Telemetry::Common::RecordedProcessType aRecordInProcess,
       bool aKeyed, uint32_t aKeyCount, uint32_t aKeyOffset,
-      mozilla::Telemetry::Common::SupportedProduct aProducts)
+      mozilla::Telemetry::Common::SupportedProduct aProducts,
+      bool aBuiltin = true)
       : kind(aKind),
         dataset(aDataset),
         record_in_processes(aRecordInProcess),
         keyed(aKeyed),
         key_count(aKeyCount),
         key_offset(aKeyOffset),
-        products(aProducts) {}
+        products(aProducts),
+        builtin(aBuiltin) {}
   virtual ~BaseScalarInfo() = default;
 
   virtual const char* name() const = 0;
