@@ -2795,11 +2795,12 @@ class GetObjectSlotNameFunctor : public JS::TracingContext::Functor {
 
  public:
   explicit GetObjectSlotNameFunctor(JSObject* ctx) : obj(ctx) {}
-  virtual void operator()(JS::TracingContext* trc, char* buf,
+  virtual void operator()(JS::TracingContext* trc, const char* name, char* buf,
                           size_t bufsize) override;
 };
 
-void GetObjectSlotNameFunctor::operator()(JS::TracingContext* tcx, char* buf,
+void GetObjectSlotNameFunctor::operator()(JS::TracingContext* tcx,
+                                          const char* name, char* buf,
                                           size_t bufsize) {
   MOZ_ASSERT(tcx->index() != JS::TracingContext::InvalidIndex);
 

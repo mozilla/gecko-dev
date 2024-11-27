@@ -42,7 +42,7 @@ void JS::TracingContext::getEdgeName(const char* name, char* buffer,
                                      size_t bufferSize) {
   MOZ_ASSERT(bufferSize > 0);
   if (functor_) {
-    (*functor_)(this, buffer, bufferSize);
+    (*functor_)(this, name, buffer, bufferSize);
     return;
   }
   if (index_ != InvalidIndex) {
