@@ -176,7 +176,7 @@ void AudioDecoderInputTrack::DispatchPushBatchedDataIfNeeded() {
         }
         PushBatchedDataIfNeeded();
       },
-      []() { MOZ_DIAGNOSTIC_ASSERT(false); });
+      []() { MOZ_DIAGNOSTIC_CRASH("DispatchPushBatchedDataIfNeeded reject"); });
 }
 
 void AudioDecoderInputTrack::PushBatchedDataIfNeeded() {

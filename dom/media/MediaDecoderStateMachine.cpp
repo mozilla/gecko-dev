@@ -3839,7 +3839,7 @@ void MediaDecoderStateMachine::SetVideoDecodeModeInternal(
     RefPtr<MediaDecoderStateMachine> self = this;
     mVideoDecodeSuspendTimer.Ensure(
         target, [=]() { self->OnSuspendTimerResolved(); },
-        []() { MOZ_DIAGNOSTIC_ASSERT(false); });
+        []() { MOZ_DIAGNOSTIC_CRASH("SetVideoDecodeModeInternal reject"); });
     mOnPlaybackEvent.Notify(MediaPlaybackEvent::StartVideoSuspendTimer);
     return;
   }
@@ -4387,7 +4387,7 @@ void MediaDecoderStateMachine::ScheduleStateMachineIn(const TimeUnit& aTime) {
         self->mDelayedScheduler.CompleteRequest();
         self->RunStateMachine();
       },
-      []() { MOZ_DIAGNOSTIC_ASSERT(false); });
+      []() { MOZ_DIAGNOSTIC_CRASH("ScheduleStateMachineIn reject"); });
 }
 
 bool MediaDecoderStateMachine::IsStateMachineScheduled() const {

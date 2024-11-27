@@ -11,6 +11,7 @@
 
 #include "MediaTimer.h"
 #include "PlatformDecoderModule.h"
+#include "mozilla/Assertions.h"
 
 namespace mozilla {
 
@@ -75,7 +76,9 @@ class DecryptThroughputLimit {
           mDecrypts.push_back(DecryptedJob({TimeStamp::Now(), sampleDuration}));
           mPromiseHolder.Resolve(sample, __func__);
         },
-        []() { MOZ_DIAGNOSTIC_ASSERT(false); });
+        []() {
+          MOZ_DIAGNOSTIC_CRASH("DecryptThroughputLimit::Throttle reject");
+        });
 
     return p;
   }
