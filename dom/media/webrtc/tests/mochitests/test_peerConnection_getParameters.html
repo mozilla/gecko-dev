@@ -32,9 +32,8 @@
   function checkCodecsAgainstSDP(codecs, msection) {
     const rtpParameters = SDPUtils.parseRtpParameters(msection);
     const {kind} = SDPUtils.parseMLine(msection);
-
-    isnot(codecs.length, 0);
     is(codecs.length, rtpParameters.codecs.length);
+    isnot(codecs.length, 0);
     for (let i = 0; i < codecs.length; ++i) {
       const observed = codecs[i];
       const fromSdp = rtpParameters.codecs[i];
@@ -132,6 +131,7 @@ a=fmtp:120 max-fs=12266;max-fr=40
 a=fmtp:124 apt=120
 a=fmtp:127 apt=126
 a=fmtp:98 apt=97
+a=fmtp:100 apt=99
 a=fmtp:119 apt=122
 a=ice-pwd:60840251a559417c253d68478b0020fb
 a=ice-ufrag:741347dd
@@ -258,6 +258,7 @@ a=setup:passive
         await pc1.setRemoteDescription(pc2.localDescription);
         {
           const {codecs} = pc1.getSenders()[0].getParameters();
+          info("pc1 codecs: " + JSON.stringify(codecs, null, 2));
           is(codecs.filter(c => c.mimeType.toLowerCase() == 'video/h264').length, 4);
           const sections = SDPUtils.splitSections(pc1.remoteDescription.sdp);
           checkCodecsAgainstSDP(codecs, sections[1]);
@@ -265,6 +266,7 @@ a=setup:passive
 
         {
           const {codecs} = pc2.getSenders()[0].getParameters();
+          info("pc2 codecs: " + JSON.stringify(codecs, null, 2));
           is(codecs.filter(c => c.mimeType.toLowerCase() == 'video/h264').length, 4);
           const sections = SDPUtils.splitSections(pc2.remoteDescription.sdp);
           checkCodecsAgainstSDP(codecs, sections[1]);
