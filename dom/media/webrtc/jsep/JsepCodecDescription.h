@@ -6,6 +6,7 @@
 #define _JSEPCODECDESCRIPTION_H_
 
 #include <cmath>
+#include <set>
 #include <string>
 #include "sdp/SdpMediaSection.h"
 #include "sdp/SdpHelper.h"
@@ -399,6 +400,18 @@ class JsepVideoCodecDescription : public JsepCodecDescription {
   static constexpr SdpMediaSection::MediaType type = SdpMediaSection::kVideo;
 
   SdpMediaSection::MediaType Type() const override { return type; }
+
+  static UniquePtr<JsepVideoCodecDescription> CreateDefaultAV1(bool aUseRtx) {
+    auto codec = MakeUnique<JsepVideoCodecDescription>("99", "AV1", 90000);
+    // Defaults for mandatory params
+    codec->mConstraints.maxFs = 12288;  // Enough for 2048x1536
+    codec->mConstraints.maxFps = Some(60);
+    codec->mAv1Config.mProfile = Nothing();
+    if (aUseRtx) {
+      codec->EnableRtx("100");
+    }
+    return codec;
+  }
 
   static UniquePtr<JsepVideoCodecDescription> CreateDefaultVP8(bool aUseRtx) {
     auto codec = MakeUnique<JsepVideoCodecDescription>("120", "VP8", 90000);
@@ -1091,6 +1104,26 @@ class JsepVideoCodecDescription : public JsepCodecDescription {
   uint32_t mProfileLevelId;
   uint32_t mPacketizationMode;
   std::string mSpropParameterSets;
+
+  // AV1-specific stuff
+  struct Av1Config {
+    Maybe<uint8_t> mProfile = Nothing();
+    Maybe<uint8_t> mLevelIdx = Nothing();
+    Maybe<uint8_t> mTier = Nothing();
+    Av1Config() = default;
+    explicit Av1Config(const SdpFmtpAttributeList::Av1Parameters& aParams)
+        : mProfile(aParams.profile),
+          mLevelIdx(aParams.levelIdx),
+          mTier(aParams.tier) {}
+    auto ProfileOrDefault() const -> uint8_t { return mProfile.valueOr(0); }
+    auto LevelIdxDefault() const -> uint8_t { return mLevelIdx.valueOr(5); }
+    auto TierOrDefault() const -> uint8_t { return mTier.valueOr(0); }
+    auto operator==(const Av1Config& aOther) const -> bool {
+      return ProfileOrDefault() == aOther.ProfileOrDefault() &&
+             LevelIdxDefault() == aOther.LevelIdxDefault() &&
+             TierOrDefault() == aOther.TierOrDefault();
+    }
+  } mAv1Config;
 };
 
 class JsepApplicationCodecDescription : public JsepCodecDescription {
