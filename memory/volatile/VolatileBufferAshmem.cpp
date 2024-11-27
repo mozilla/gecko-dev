@@ -114,7 +114,8 @@ size_t VolatileBuffer::NonHeapSizeOfExcludingThis() const {
     return 0;
   }
 
-  return (mSize + (PAGE_SIZE - 1)) & PAGE_MASK;
+  size_t pagemask = getpagesize() - 1;
+  return (mSize + pagemask) & ~pagemask;
 }
 
 }  // namespace mozilla
