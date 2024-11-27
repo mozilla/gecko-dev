@@ -886,26 +886,26 @@ dictionary GPUVertexAttribute {
     required GPUIndex32 shaderLocation;
 };
 
-dictionary GPUTexelCopyBufferLayout {
+dictionary GPUImageDataLayout {
     GPUSize64 offset = 0;
     GPUSize32 bytesPerRow;
     GPUSize32 rowsPerImage;
 };
 
-dictionary GPUTexelCopyBufferInfo
-         : GPUTexelCopyBufferLayout {
+dictionary GPUImageCopyBuffer
+         : GPUImageDataLayout {
     required GPUBuffer buffer;
 };
 
-dictionary GPUTexelCopyTextureInfo {
+dictionary GPUImageCopyTexture {
     required GPUTexture texture;
     GPUIntegerCoordinate mipLevel = 0;
     GPUOrigin3D origin = {};
     GPUTextureAspect aspect = "all";
 };
 
-dictionary GPUCopyExternalImageDestInfo
-         : GPUTexelCopyTextureInfo {
+dictionary GPUImageCopyTextureTagged
+         : GPUImageCopyTexture {
     //GPUPredefinedColorSpace colorSpace = "srgb"; //TODO
     boolean premultipliedAlpha = false;
 };
@@ -943,18 +943,18 @@ interface GPUCommandEncoder {
         GPUSize64 size);
 
     undefined copyBufferToTexture(
-        GPUTexelCopyBufferInfo source,
-        GPUTexelCopyTextureInfo destination,
+        GPUImageCopyBuffer source,
+        GPUImageCopyTexture destination,
         GPUExtent3D copySize);
 
     undefined copyTextureToBuffer(
-        GPUTexelCopyTextureInfo source,
-        GPUTexelCopyBufferInfo destination,
+        GPUImageCopyTexture source,
+        GPUImageCopyBuffer destination,
         GPUExtent3D copySize);
 
     undefined copyTextureToTexture(
-        GPUTexelCopyTextureInfo source,
-        GPUTexelCopyTextureInfo destination,
+        GPUImageCopyTexture source,
+        GPUImageCopyTexture destination,
         GPUExtent3D copySize);
 
     undefined clearBuffer(
@@ -1166,15 +1166,15 @@ interface GPUQueue {
 
     [Throws]
     undefined writeTexture(
-        GPUTexelCopyTextureInfo destination,
+        GPUImageCopyTexture destination,
         BufferSource data,
-        GPUTexelCopyBufferLayout dataLayout,
+        GPUImageDataLayout dataLayout,
         GPUExtent3D size);
 
     [Throws]
     undefined copyExternalImageToTexture(
-        GPUCopyExternalImageSourceInfo source,
-        GPUCopyExternalImageDestInfo destination,
+        GPUImageCopyExternalImage source,
+        GPUImageCopyTextureTagged destination,
         GPUExtent3D copySize);
 };
 GPUQueue includes GPUObjectBase;

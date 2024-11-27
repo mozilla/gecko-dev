@@ -20,10 +20,8 @@ template <typename T>
 class Optional;
 template <typename T>
 class Sequence;
-struct GPUCopyExternalImageDestInfo;
-struct GPUCopyExternalImageSourceInfo;
-struct GPUTexelCopyTextureInfo;
-struct GPUTexelCopyBufferLayout;
+struct GPUImageCopyTexture;
+struct GPUImageDataLayout;
 struct TextureCopyView;
 struct TextureDataLayout;
 using GPUExtent3D = RangeEnforcedUnsignedLongSequenceOrGPUExtent3DDict;
@@ -52,14 +50,14 @@ class Queue final : public ObjectBase, public ChildOf<Device> {
                    uint64_t aDataOffset, const dom::Optional<uint64_t>& aSize,
                    ErrorResult& aRv);
 
-  void WriteTexture(const dom::GPUTexelCopyTextureInfo& aDestination,
+  void WriteTexture(const dom::GPUImageCopyTexture& aDestination,
                     const dom::ArrayBufferViewOrArrayBuffer& aData,
-                    const dom::GPUTexelCopyBufferLayout& aDataLayout,
+                    const dom::GPUImageDataLayout& aDataLayout,
                     const dom::GPUExtent3D& aSize, ErrorResult& aRv);
 
   void CopyExternalImageToTexture(
-      const dom::GPUCopyExternalImageSourceInfo& aSource,
-      const dom::GPUCopyExternalImageDestInfo& aDestination,
+      const dom::GPUImageCopyExternalImage& aSource,
+      const dom::GPUImageCopyTextureTagged& aDestination,
       const dom::GPUExtent3D& aCopySize, ErrorResult& aRv);
 
  private:

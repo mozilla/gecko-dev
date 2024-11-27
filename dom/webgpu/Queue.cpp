@@ -125,9 +125,9 @@ void Queue::WriteBuffer(const Buffer& aBuffer, uint64_t aBufferOffset,
   });
 }
 
-void Queue::WriteTexture(const dom::GPUTexelCopyTextureInfo& aDestination,
+void Queue::WriteTexture(const dom::GPUImageCopyTexture& aDestination,
                          const dom::ArrayBufferViewOrArrayBuffer& aData,
-                         const dom::GPUTexelCopyBufferLayout& aDataLayout,
+                         const dom::GPUImageDataLayout& aDataLayout,
                          const dom::GPUExtent3D& aSize, ErrorResult& aRv) {
   ffi::WGPUImageCopyTexture copyView = {};
   CommandEncoder::ConvertTextureCopyViewToFFI(aDestination, &copyView);
@@ -214,8 +214,8 @@ static WebGLTexelFormat ToWebGLTexelFormat(dom::GPUTextureFormat aFormat) {
 }
 
 void Queue::CopyExternalImageToTexture(
-    const dom::GPUCopyExternalImageSourceInfo& aSource,
-    const dom::GPUCopyExternalImageDestInfo& aDestination,
+    const dom::GPUImageCopyExternalImage& aSource,
+    const dom::GPUImageCopyTextureTagged& aDestination,
     const dom::GPUExtent3D& aCopySize, ErrorResult& aRv) {
   const auto dstFormat = ToWebGLTexelFormat(aDestination.mTexture->Format());
   if (dstFormat == WebGLTexelFormat::FormatNotSupportingAnyConversion) {
