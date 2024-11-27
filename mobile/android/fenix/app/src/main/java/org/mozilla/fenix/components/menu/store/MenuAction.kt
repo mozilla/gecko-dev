@@ -211,7 +211,7 @@ sealed class MenuAction : Action {
     data object SaveMenuClicked : MenuAction()
 
     /**
-     * [MenuAction] dispatched when the save menu item is clicked.
+     * [MenuAction] dispatched when the tools menu item is clicked.
      */
     data object ToolsMenuClicked : MenuAction()
 

@@ -472,9 +472,11 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                                         store.dispatch(MenuAction.FindInPage)
                                     },
                                     onToolsMenuClick = {
+                                        store.dispatch(MenuAction.ToolsMenuClicked)
                                         contentState = Route.ToolsMenu
                                     },
                                     onSaveMenuClick = {
+                                        store.dispatch(MenuAction.SaveMenuClicked)
                                         contentState = Route.SaveMenu
                                     },
                                     onExtensionsMenuClick = {
