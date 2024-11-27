@@ -352,9 +352,13 @@
   background: var(--theme-tab-toolbar-background);
 }
 
-.ruleview-rule.unmatched,
-.ruleview-rule[unmatched=true] {
-  opacity: 0.5;
+:root[forced-colors-active] .ruleview-rule:is(
+  .unmatched,
+  [unmatched=true]
+) {
+  /* Set an inactive color in High Contrast Mode as we don't have the
+     distinct background that is set in regular mode */
+  color: var(--theme-text-color-inactive);
 }
 
 .ruleview-rule.uneditable :focus,
@@ -779,6 +783,7 @@
   color: var(--theme-text-color-alt);
 }
 
+.ruleview-rule:is(.unmatched, [unmatched=true]) .ruleview-selector,
 .ruleview-selector.unmatched,
 .ruleview-property:is(.unused, .ruleview-overridden) :is(.ruleview-propertyname,.ruleview-propertyvalue) {
   color: var(--theme-text-color-inactive);
@@ -789,7 +794,8 @@
 :is(
   .ruleview-selector.unmatched,
   .inspector-unmatched,
-  .ruleview-invalid-at-computed-value-time
+  .ruleview-invalid-at-computed-value-time,
+  .ruleview-rule:is(.unmatched, [unmatched=true]) .ruleview-selector,
 ):not(
   /* don't show the strike through when the element is hovered so it's more legible */
   :hover
