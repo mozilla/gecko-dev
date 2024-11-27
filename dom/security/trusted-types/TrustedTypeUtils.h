@@ -33,6 +33,7 @@ class TrustedScriptOrString;
 class TrustedScriptOrNullIsEmptyString;
 class TrustedScriptURL;
 class TrustedScriptURLOrString;
+class TrustedHTMLOrTrustedScriptOrTrustedScriptURLOrString;
 
 namespace TrustedTypeUtils {
 
@@ -96,6 +97,13 @@ bool GetTrustedTypeDataForAttribute(const nsAtom* aElementName,
                                     int32_t aAttributeNamespaceID,
                                     TrustedType& aTrustedType,
                                     nsAString& aSink);
+
+// https://w3c.github.io/trusted-types/dist/spec/#abstract-opdef-get-trusted-types-compliant-attribute-value
+MOZ_CAN_RUN_SCRIPT const nsAString* GetTrustedTypesCompliantAttributeValue(
+    const nsINode& aElement, nsAtom* aAttributeName,
+    int32_t aAttributeNamespaceID,
+    const TrustedHTMLOrTrustedScriptOrTrustedScriptURLOrString& aNewValue,
+    Maybe<nsAutoString>& aResultHolder, ErrorResult& aError);
 
 }  // namespace TrustedTypeUtils
 
