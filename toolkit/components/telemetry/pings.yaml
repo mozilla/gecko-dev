@@ -24,3 +24,13 @@ usage-reporting:
     include_info_sections: false
     ping_schedule:
       - baseline
+  reasons:
+    dirty_startup: |
+      Defined to avoid error logging.
+      *Note*: this ping will not actually send a ping reason.
+    inactive: |
+      Defined to avoid error logging.
+      *Note*: this ping will not actually send a ping reason.
+    active: |
+      Defined to avoid error logging.
+      *Note*: this ping will not actually send a ping reason.
