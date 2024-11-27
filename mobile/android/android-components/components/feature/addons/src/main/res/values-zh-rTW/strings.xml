@@ -70,6 +70,10 @@
     <string name="mozac_feature_addons_permissions_tab_hide_description">隱藏或顯示瀏覽器分頁</string>
     <!-- Description for top_sites permission. -->
     <string name="mozac_feature_addons_permissions_top_sites_description">取得瀏覽紀錄</string>
+    <!-- Description for trialML permission. -->
+    <string name="mozac_feature_addons_permissions_trial_ml_description">下載 AI 模型，並在您的裝置上執行</string>
+    <!-- Description for userScripts permission. -->
+    <string name="mozac_feature_addons_permissions_user_scripts_description">允許未驗證的第三方指令碼存取您的資料</string>
     <!-- Description for devtools permission. -->
     <string name="mozac_feature_addons_permissions_devtools_description">讓開發者工具可存取您在開啟分頁中的資料</string>
     <!-- The version on of add-on. -->

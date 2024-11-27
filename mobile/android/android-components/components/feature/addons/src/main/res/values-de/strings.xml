@@ -70,6 +70,10 @@
     <string name="mozac_feature_addons_permissions_tab_hide_description">Browsertabs ausblenden und anzeigen</string>
     <!-- Description for top_sites permission. -->
     <string name="mozac_feature_addons_permissions_top_sites_description">Auf Chronik zugreifen</string>
+    <!-- Description for trialML permission. -->
+    <string name="mozac_feature_addons_permissions_trial_ml_description">Laden Sie KI-Modelle herunter und führen Sie diese auf Ihrem Gerät aus</string>
+    <!-- Description for userScripts permission. -->
+    <string name="mozac_feature_addons_permissions_user_scripts_description">Nicht verifizierten Skripten von Drittanbietern den Zugriff auf Ihre Daten erlauben</string>
     <!-- Description for devtools permission. -->
     <string name="mozac_feature_addons_permissions_devtools_description">Entwicklerwerkzeuge erweitern, sodass Zugriff auf offene Tabs besteht</string>
     <!-- The version on of add-on. -->

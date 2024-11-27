@@ -70,6 +70,10 @@
     <string name="mozac_feature_addons_permissions_tab_hide_description">Agochar e amosar as lapelas do navegador</string>
     <!-- Description for top_sites permission. -->
     <string name="mozac_feature_addons_permissions_top_sites_description">Acceder ao historial de navegación</string>
+    <!-- Description for trialML permission. -->
+    <string name="mozac_feature_addons_permissions_trial_ml_description">Descarga e executa modelos de IA no teu dispositivo</string>
+    <!-- Description for userScripts permission. -->
+    <string name="mozac_feature_addons_permissions_user_scripts_description">Permite que scripts de terceiros non verificados accedan aos teus datos</string>
     <!-- Description for devtools permission. -->
     <string name="mozac_feature_addons_permissions_devtools_description">Estender as ferramentas de desenvolvemento para acceder aos seus datos nas lapelas abertas</string>
     <!-- The version on of add-on. -->

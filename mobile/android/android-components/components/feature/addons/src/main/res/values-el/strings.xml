@@ -70,6 +70,10 @@
     <string name="mozac_feature_addons_permissions_tab_hide_description">Απόκρυψη και εμφανιση καρτελών προγράμματος περιήγησης</string>
     <!-- Description for top_sites permission. -->
     <string name="mozac_feature_addons_permissions_top_sites_description">Πρόσβαση στο ιστορικό περιήγησης</string>
+    <!-- Description for trialML permission. -->
+    <string name="mozac_feature_addons_permissions_trial_ml_description">Λήψη και εκτέλεση μοντέλων AI στη συσκευή</string>
+    <!-- Description for userScripts permission. -->
+    <string name="mozac_feature_addons_permissions_user_scripts_description">Να επιτρέπεται σε μη επαληθευμένα σενάρια τρίτων η πρόσβαση στα δεδομένα σας</string>
     <!-- Description for devtools permission. -->
     <string name="mozac_feature_addons_permissions_devtools_description">Επέκταση εργαλείων προγραμματιστή για πρόσβαση στα δεδομένα σας στις ανοικτές καρτέλες</string>
     <!-- The version on of add-on. -->

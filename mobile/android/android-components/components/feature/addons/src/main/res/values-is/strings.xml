@@ -70,6 +70,10 @@
     <string name="mozac_feature_addons_permissions_tab_hide_description">Fela og sýna flipa</string>
     <!-- Description for top_sites permission. -->
     <string name="mozac_feature_addons_permissions_top_sites_description">Skoða ferilsögu vafra</string>
+    <!-- Description for trialML permission. -->
+    <string name="mozac_feature_addons_permissions_trial_ml_description">Sæktu og keyrðu gervigreindarlíkön á tækinu þínu</string>
+    <!-- Description for userScripts permission. -->
+    <string name="mozac_feature_addons_permissions_user_scripts_description">Leyfa óstaðfestum skriftum frá utanaðkomandi aðilum að fá aðgang að gögnunum þínum</string>
     <!-- Description for devtools permission. -->
     <string name="mozac_feature_addons_permissions_devtools_description">Veita þróunartólum aðgang að gögnum þínum í opnum flipum</string>
     <!-- The version on of add-on. -->

@@ -70,6 +70,8 @@
     <string name="mozac_feature_addons_permissions_tab_hide_description">Сакријте и прикажите језичке прегледача</string>
     <!-- Description for top_sites permission. -->
     <string name="mozac_feature_addons_permissions_top_sites_description">Приступите историји прегледања</string>
+    <!-- Description for userScripts permission. -->
+    <string name="mozac_feature_addons_permissions_user_scripts_description">Дозволите непровереним скриптама трећих страна да приступе вашим подацима</string>
     <!-- Description for devtools permission. -->
     <string name="mozac_feature_addons_permissions_devtools_description">Омогући програмерским алаткама приступ вашим подацима у отвореним језичцима</string>
     <!-- The version on of add-on. -->

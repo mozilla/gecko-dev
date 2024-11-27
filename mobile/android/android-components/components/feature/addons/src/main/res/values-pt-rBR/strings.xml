@@ -70,6 +70,10 @@
     <string name="mozac_feature_addons_permissions_tab_hide_description">Ocultar e exibir abas do navegador</string>
     <!-- Description for top_sites permission. -->
     <string name="mozac_feature_addons_permissions_top_sites_description">Acessar o histórico de navegação</string>
+    <!-- Description for trialML permission. -->
+    <string name="mozac_feature_addons_permissions_trial_ml_description">Baixar e executar modelos de inteligência artificial em seu dispositivo</string>
+    <!-- Description for userScripts permission. -->
+    <string name="mozac_feature_addons_permissions_user_scripts_description">Permitir que scripts não verificados de terceiros acessem seus dados</string>
     <!-- Description for devtools permission. -->
     <string name="mozac_feature_addons_permissions_devtools_description">Estender as ferramentas do desenvolvedor para acessar seus dados nas abas abertas</string>
     <!-- The version on of add-on. -->

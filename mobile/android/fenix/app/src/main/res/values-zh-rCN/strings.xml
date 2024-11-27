@@ -2182,7 +2182,7 @@
     <!-- The text for the "Delete card" button for deleting a credit card -->
     <string name="credit_cards_delete_card_button">删除卡片</string>
     <!-- The text for the confirmation message of "Delete card" dialog -->
-    <string name="credit_cards_delete_dialog_confirmation_2">确定删除信用卡吗？</string>
+    <string name="credit_cards_delete_dialog_confirmation_2">确定要删除信用卡吗？</string>
     <!-- The text for the positive button on "Delete card" dialog -->
     <string name="credit_cards_delete_dialog_button">删除</string>
     <!-- The title for the "Save" menu item for saving a credit card -->
@@ -2247,7 +2247,7 @@
     <string name="addressess_delete_address_button">删除地址</string>
 
     <!-- The title for the "Delete address" confirmation dialog -->
-    <string name="addressess_confirm_dialog_message_2">确定删除此地址吗？</string>
+    <string name="addressess_confirm_dialog_message_2">确定要删除此地址吗？</string>
     <!-- The text for the positive button on "Delete address" dialog -->
     <string name="addressess_confirm_dialog_ok_button">删除</string>
     <!-- The text for the negative button on "Delete address" dialog -->
@@ -2841,7 +2841,7 @@
     <string name="never_translate_site_error_warning_text">无法加载网站，请稍后再试。</string>
     <!-- The Delete site dialogue title will appear when the user clicks on a list item.
              The first parameter is web site url (for example:"wikipedia.com") -->
-    <string name="never_translate_site_dialog_title_preference">确定删除 %1$s 吗？</string>
+    <string name="never_translate_site_dialog_title_preference">确定要删除 %1$s 吗？</string>
     <!-- The Delete site dialogue positive button will appear when the user clicks on a list item. The site will be deleted. -->
     <string name="never_translate_site_dialog_confirm_delete_preference">删除</string>
     <!-- The Delete site dialogue negative button will appear when the user clicks on a list item. The dialog will be dismissed. -->
@@ -2891,13 +2891,13 @@
     <!-- Title for the dialog used by the translations feature to confirm deleting a language.
     The dialog will be presented when the user requests deletion of a language.
     The first parameter is the name of the language, for example, "Spanish" and the second parameter is the size in kilobytes or megabytes of the language file. -->
-    <string name="delete_language_file_dialog_title">确定删除%1$s（%2$s）吗？</string>
+    <string name="delete_language_file_dialog_title">确定要删除%1$s（%2$s）吗？</string>
     <!-- Additional information for the dialog used by the translations feature to confirm deleting a language. The first parameter is the name of the application, for example, "Fenix". -->
     <string name="delete_language_file_dialog_message">若删除此语言，%1$s 将在翻译时下载并缓存语言包中部分内容。</string>
     <!-- Title for the dialog used by the translations feature to confirm deleting all languages file.
     The dialog will be presented when the user requests deletion of all languages file.
     The first parameter is the size in kilobytes or megabytes of the language file. -->
-    <string name="delete_language_all_languages_file_dialog_title">确定删除所有语言（%1$s）吗？</string>
+    <string name="delete_language_all_languages_file_dialog_title">确定要删除所有语言（%1$s）吗？</string>
     <!-- Additional information for the dialog used by the translations feature to confirm deleting all languages file. The first parameter is the name of the application, for example, "Fenix". -->
     <string name="delete_language_all_languages_file_dialog_message">若删除所有语言，%1$s 将在翻译时下载并缓存语言包中部分内容。</string>
     <!-- Button text on the dialog used by the translations feature to confirm deleting a language. -->
