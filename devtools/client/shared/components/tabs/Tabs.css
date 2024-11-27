@@ -101,6 +101,14 @@ div[hidetabs=true] .tabs .tabs-navigation {
   text-align: center;
 }
 
+.tabs .tabs-menu-item a:focus-visible {
+  /* Override the box-shadow from the `:focus-visible` style of common.css. In
+     the tabbar, the focus ring should always be visible so we don't need to
+     force a box-shadow, which will otherwise overlap with the siblings of the
+     focused tab. */
+  box-shadow: unset;
+}
+
 .tabs .tabs-navigation .tabs-menu-item > a {
   outline-offset: -2px;
 }
