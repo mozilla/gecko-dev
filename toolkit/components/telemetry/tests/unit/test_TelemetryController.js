@@ -966,11 +966,11 @@ add_task(function test_histogram_filtering() {
 });
 
 add_task(function test_scalar_filtering() {
-  const COUNT_ID = "telemetry.test.unsigned_int_kind";
-  const KEYED_ID = "telemetry.test.keyed_unsigned_int";
+  const COUNT_ID = "telemetry.test.mirror_for_quantity";
+  const KEYED_ID = "telemetry.test.mirror_for_labeled_quantity";
 
-  Telemetry.scalarSet(COUNT_ID, 2);
-  Telemetry.keyedScalarSet(KEYED_ID, "a", 2);
+  Glean.testOnly.meaningOfLife.set(2);
+  Glean.testOnly.buttonJars.a.set(2);
 
   let snapshot = Telemetry.getSnapshotForScalars(
     "main",

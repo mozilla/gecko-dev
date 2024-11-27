@@ -26,9 +26,6 @@ generated-files = [
 skip-if = ["os == 'android'"] # Disabled due to crashes (see bug 1331366)
 tags = "addons"
 
-["test_ChildScalars.js"]
-skip-if = ["os == 'android'"] # Disabled due to crashes (see bug 1331366)
-
 ["test_CoveragePing.js"]
 
 ["test_EventPing.js"]
@@ -113,8 +110,6 @@ tags = "addons"
 skip-if = ["os == 'win' && msix"] # https://bugzilla.mozilla.org/show_bug.cgi?id=1807929
 
 ["test_TelemetryScalars_impressionId.js"]
-
-["test_TelemetryScalars_multistore.js"]
 
 ["test_TelemetrySend.js"]
 skip-if = ["os == 'linux' && ccov"] # Bug 1701874

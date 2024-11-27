@@ -711,23 +711,33 @@ add_task(async function test_checkSubsessionScalars() {
   await TelemetryController.testReset();
 
   // Set some scalars.
-  const UINT_SCALAR = "telemetry.test.unsigned_int_kind";
+  const UINT_SCALAR = "telemetry.test.mirror_for_quantity";
   const STRING_SCALAR = "telemetry.test.string_kind";
+  const BOOLEAN_SCALAR = "telemetry.test.mirror_for_unordered_bool";
+  const KEYED_UINT_SCALAR = "telemetry.test.mirror_for_labeled_quantity";
   let expectedUint = 37;
-  let expectedString = "Test value. Yay.";
-  Telemetry.scalarSet(UINT_SCALAR, expectedUint);
-  Telemetry.scalarSet(STRING_SCALAR, expectedString);
+  let expectedString = "decafdec-afde-cafd-ecaf-decafdecafde";
+  Glean.testOnly.meaningOfLife.set(expectedUint);
+  Glean.testOnlyIpc.aUuid.set(expectedString);
+  Glean.testOnlyIpc.anUnorderedBool.set(false);
+  Glean.testOnly.buttonJars.some_random_key.set(12);
 
   // Check that scalars are not available in classic pings but are in subsession
   // pings. Also clear the subsession.
   let classic = TelemetrySession.getPayload();
   let subsession = TelemetrySession.getPayload("environment-change", true);
 
-  const TEST_SCALARS = [UINT_SCALAR, STRING_SCALAR];
+  const TEST_SCALARS = [
+    UINT_SCALAR,
+    STRING_SCALAR,
+    BOOLEAN_SCALAR,
+    KEYED_UINT_SCALAR,
+  ];
   for (let name of TEST_SCALARS) {
     // Scalar must be reported in subsession pings (e.g. main).
     Assert.ok(
-      name in subsession.processes.parent.scalars,
+      name in subsession.processes.parent.scalars ||
+        name in subsession.processes.parent.keyedScalars,
       name + " must be reported in a subsession ping."
     );
   }
@@ -749,6 +759,16 @@ add_task(async function test_checkSubsessionScalars() {
     expectedString,
     STRING_SCALAR + " must contain the expected value."
   );
+  Assert.equal(
+    subsession.processes.parent.scalars[BOOLEAN_SCALAR],
+    false,
+    BOOLEAN_SCALAR + " must contain the expected value."
+  );
+  Assert.deepEqual(
+    subsession.processes.parent.keyedScalars[KEYED_UINT_SCALAR],
+    { some_random_key: 12 },
+    KEYED_UINT_SCALAR + " must contain the expected value."
+  );
 
   // Since we cleared the subsession in the last getPayload(), check that
   // breaking subsessions clears the scalars.
@@ -763,8 +783,10 @@ add_task(async function test_checkSubsessionScalars() {
   // Check if setting the scalars again works as expected.
   expectedUint = 85;
   expectedString = "A creative different value";
-  Telemetry.scalarSet(UINT_SCALAR, expectedUint);
-  Telemetry.scalarSet(STRING_SCALAR, expectedString);
+  Glean.testOnly.meaningOfLife.set(expectedUint);
+  Glean.testOnlyIpc.aUuid.set(expectedString);
+  Glean.testOnlyIpc.anUnorderedBool.set(false);
+  Glean.testOnly.buttonJars.some_random_key.set(12);
   subsession = TelemetrySession.getPayload("environment-change");
   Assert.equal(
     subsession.processes.parent.scalars[UINT_SCALAR],
@@ -775,6 +797,16 @@ add_task(async function test_checkSubsessionScalars() {
     subsession.processes.parent.scalars[STRING_SCALAR],
     expectedString,
     STRING_SCALAR + " must contain the expected value."
+  );
+  Assert.equal(
+    subsession.processes.parent.scalars[BOOLEAN_SCALAR],
+    false,
+    BOOLEAN_SCALAR + " must contain the expected value."
+  );
+  Assert.deepEqual(
+    subsession.processes.parent.keyedScalars[KEYED_UINT_SCALAR],
+    { some_random_key: 12 },
+    KEYED_UINT_SCALAR + " must contain the expected value."
   );
 
   await TelemetryController.testShutdown();
