@@ -298,8 +298,9 @@ int LibaomAv1Encoder::InitEncode(const VideoCodec* codec_settings,
   } else {
     SET_ENCODER_PARAM_OR_RETURN_ERROR(AV1E_SET_ENABLE_PALETTE, 0);
   }
-
+#if !defined(WEBRTC_MOZILLA_BUILD) // Mozilla: Need to update AV1 to enable this
   SET_ENCODER_PARAM_OR_RETURN_ERROR(AV1E_SET_AUTO_TILES, 1);
+#endif
   SET_ENCODER_PARAM_OR_RETURN_ERROR(AV1E_SET_ROW_MT, 1);
   SET_ENCODER_PARAM_OR_RETURN_ERROR(AV1E_SET_ENABLE_OBMC, 0);
   SET_ENCODER_PARAM_OR_RETURN_ERROR(AV1E_SET_NOISE_SENSITIVITY, 0);
@@ -332,8 +333,10 @@ int LibaomAv1Encoder::InitEncode(const VideoCodec* codec_settings,
   SET_ENCODER_PARAM_OR_RETURN_ERROR(AV1E_SET_MAX_REFERENCE_FRAMES, 3);
 
   if (adaptive_max_consec_drops_) {
+#if !defined(WEBRTC_MOZILLA_BUILD) // Mozilla: Need to update AV1 to enable this
     SET_ENCODER_PARAM_OR_RETURN_ERROR(AV1E_SET_MAX_CONSEC_FRAME_DROP_MS_CBR,
                                       250);
+#endif
   }
 
   return WEBRTC_VIDEO_CODEC_OK;
