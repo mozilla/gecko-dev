@@ -972,9 +972,7 @@ class SVGFilterObserverListForCanvasContext final
 void SVGFilterObserverListForCanvasContext::OnRenderingChange(
     Element* aObservingContent) {
   if (!mContext) {
-    NS_WARNING(
-        "GFX: This should never be called without a context, except during "
-        "cycle collection (when Detach has been called)");
+    MOZ_DIAGNOSTIC_CRASH("This should never be called without a context");
     return;
   }
   // Refresh the cached FilterDescription in mContext->CurrentState().filter.
