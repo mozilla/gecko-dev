@@ -230,7 +230,6 @@ pub(crate) mod profiler_utils {
             // See https://bugzilla.mozilla.org/show_bug.cgi?id=1611770.
 
             use chrono::{FixedOffset, Utc};
-            use time;
 
             // Get timespec, including the user's timezone.
             let tm = time::now();
