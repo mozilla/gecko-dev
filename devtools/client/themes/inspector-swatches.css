@@ -78,6 +78,7 @@
 .inspector-shape-point.active,
 .inspector-shapeswatch[aria-pressed="true"] + .inspector-shape > .inspector-shape-point:hover {
   background-color: var(--inspector-highlight-background-color);
+  color: var(--inspector-highlight-color);
   /* Add an outline so when the property is highlighted because of search,
      the active point still stands out */
   outline: 1px solid var(--theme-contrast-border);
