@@ -2856,6 +2856,28 @@ static ReturnAbortOnError ShowProfileDialog(
       rv = dlgArray->QueryElementAt(1, NS_GET_IID(nsIFile),
                                     getter_AddRefs(profLD));
       NS_ENSURE_SUCCESS_LOG(rv, rv);
+
+      if (dialogReturn == nsIToolkitProfileService::launchWithProfile) {
+        int32_t newArguments;
+        rv = ioParamBlock->GetInt(2, &newArguments);
+
+        if (NS_SUCCEEDED(rv) && newArguments > 0) {
+          char** newArgv = (char**)realloc(
+              gRestartArgv, sizeof(char*) * (gRestartArgc + newArguments + 1));
+          NS_ENSURE_TRUE(newArgv, NS_ERROR_OUT_OF_MEMORY);
+
+          gRestartArgv = newArgv;
+
+          for (auto i = 0; i < newArguments; i++) {
+            char16_t* arg;
+            ioParamBlock->GetString(i, &arg);
+            gRestartArgv[gRestartArgc++] =
+                strdup(NS_ConvertUTF16toUTF8(nsDependentString(arg)).get());
+          }
+
+          gRestartArgv[gRestartArgc] = nullptr;
+        }
+      }
     }
   }
 
@@ -5071,31 +5093,29 @@ int XREMain::XRE_mainStartup(bool* aExitFlag) {
   }
 #endif
 
-  bool useSelectedProfile;
-  rv = mProfileSvc->GetStartWithLastProfile(&useSelectedProfile);
-  NS_ENSURE_SUCCESS(rv, 1);
+  // We now know there is no existing instance using the selected profile.
 
-  // We now know there is no existing instance using the selected profile. If
-  // the profile wasn't selected by specific command line arguments and the
-  // user has chosen to show the profile manager on startup then do that.
-  if (wasDefaultSelection && !useSelectedProfile) {
-    rv = ShowProfileManager(mProfileSvc, mNativeApp);
-  } else if (profile) {
-    bool showSelector = false;
-    profile->GetShowProfileSelector(&showSelector);
-    if (showSelector) {
+  // We only ever show the profile selector if a specific profile wasn't chosen
+  // via command line arguments or environment variables.
+  if (wasDefaultSelection) {
+    if (!mProfileSvc->GetStartWithLastProfile()) {
+      // First check the old style profile manager
+      rv = ShowProfileManager(mProfileSvc, mNativeApp);
+    } else if (profile && profile->GetShowProfileSelector()) {
+      // Now check the new profile group selector
       rv = ShowProfileSelector(mProfileSvc, mNativeApp);
     } else {
       rv = NS_OK;
     }
-  }
 
-  if (rv == NS_ERROR_LAUNCHED_CHILD_PROCESS || rv == NS_ERROR_ABORT) {
-    *aExitFlag = true;
-    return 0;
-  }
-  if (NS_FAILED(rv)) {
-    return 1;
+    if (rv == NS_ERROR_LAUNCHED_CHILD_PROCESS || rv == NS_ERROR_ABORT) {
+      *aExitFlag = true;
+      return 0;
+    }
+
+    if (NS_FAILED(rv)) {
+      return 1;
+    }
   }
 
   // We always want to lock the profile even if we're actually going to reset

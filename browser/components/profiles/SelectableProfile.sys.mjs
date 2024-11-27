@@ -87,13 +87,31 @@ export class SelectableProfile {
   }
 
   /**
-   * Get the profile directory as an  nsIFile.
+   * Get the profile directory as an nsIFile.
    *
-   * @returns {Promise<nsIFile>} A promise that resolves to an nsIFIle for
+   * @returns {Promise<nsIFile>} A promise that resolves to an nsIFile for
    * the profile directory
    */
   get rootDir() {
     return IOUtils.getDirectory(this.path);
+  }
+
+  /**
+   * Get the profile local directory as an nsIFile.
+   *
+   * @returns {Promise<nsIFile>} A promise that resolves to an nsIFile for
+   * the profile local directory
+   */
+  get localDir() {
+    return this.rootDir.then(root => {
+      let relative = root.getRelativePath(
+        this.#selectableProfileService.constructor.getDirectory("DefProfRt")
+      );
+      let local =
+        this.#selectableProfileService.constructor.getDirectory("DefProfLRt");
+      local.appendRelativePath(relative);
+      return local;
+    });
   }
 
   /**
