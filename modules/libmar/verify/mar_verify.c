@@ -11,11 +11,16 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
 #include "mar_private.h"
 #include "mar.h"
 #include "cryptox.h"
+
+static bool CryptoX_Failed(CryptoX_Result status) {
+  return status != CryptoX_Success;
+}
 
 int mar_read_entire_file(const char* filePath, uint32_t maxSize,
                          /*out*/ const uint8_t** data,
