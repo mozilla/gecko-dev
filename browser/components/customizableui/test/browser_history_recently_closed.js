@@ -475,7 +475,6 @@ add_task(async function testRecentlyClosedTabGroupsSingleTab() {
   );
   info("Open the 'Recently closed tabs' panel.");
   let closeTabsPanel = await openRecentlyClosedTabsMenu();
-  console.log(closeTabsPanel.innerHTML);
 
   // Click the tab group button in the panel.
   let tabGroupToolbarButton = closeTabsPanel.querySelector(
@@ -496,14 +495,12 @@ add_task(async function testRecentlyClosedTabGroupsSingleTab() {
   let tabToolbarButton = tabGroupPanelview.querySelector(
     ".panel-subview-body toolbarbutton"
   );
+  ok(tabToolbarButton, "should find at least one tab to restore");
+  let tabTitle = tabToolbarButton.label;
   EventUtils.sendMouseEvent({ type: "click" }, tabToolbarButton, window);
 
   let reopenedTab = await newTabPromise;
-  is(
-    reopenedTab.linkedBrowser.currentURI.spec,
-    "about:mozilla",
-    "Opened the first URL"
-  );
+  is(reopenedTab.label, tabTitle, "Opened the first URL");
   info(`restored tab, total open tabs: ${gBrowser.tabs.length}`);
 
   // clean up extra tabs
