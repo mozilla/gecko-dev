@@ -974,11 +974,84 @@ function IteratorFind(predicate) {
   }
 }
 
-
 #ifdef NIGHTLY_BUILD
-/** 
+/**
+ * Iterator.concat ( ...items )
+ *
+ * https://tc39.es/proposal-iterator-sequencing/
+ */
+function IteratorConcat() {
+  // Step 1.
+  //
+  // Stored in reversed order to simplify removing processed items.
+  var index = ArgumentsLength() * 2;
+  var iterables = std_Array(index);
+
+  // Step 2.
+  for (var i = 0; i < ArgumentsLength(); i++) {
+    var item = GetArgument(i);
+
+    // Step 2.a.
+    if (!IsObject(item)) {
+      ThrowTypeError(JSMSG_OBJECT_REQUIRED, typeof item);
+    }
+
+    // Step 2.b. (Inlined GetMethod)
+    var method = item[GetBuiltinSymbol("iterator")];
+
+    // Step 2.c.
+    if (!IsCallable(method)) {
+      ThrowTypeError(JSMSG_NOT_ITERABLE, ToSource(item));
+    }
+
+    // Step 2.d.
+    DefineDataProperty(iterables, --index, item);
+    DefineDataProperty(iterables, --index, method);
+  }
+  assert(index === 0, "all items stored");
+
+  // Steps 3-5.
+  var result = NewIteratorHelper();
+  var generator = IteratorConcatGenerator(iterables);
+  UnsafeSetReservedSlot(
+    result,
+    ITERATOR_HELPER_GENERATOR_SLOT,
+    generator
+  );
+
+  // Step 6.
+  return result;
+}
+
+/**
+ * Iterator.concat ( ...items )
+ *
+ * https://tc39.es/proposal-iterator-sequencing/
+ */
+function* IteratorConcatGenerator(iterables) {
+  assert(IsArray(iterables), "iterables is an array");
+  assert(iterables.length % 2 === 0, "iterables contains pairs (item, method)");
+
+  // Step 3.a.
+  for (var i = iterables.length; i > 0; ) {
+    var item = iterables[--i];
+    var method = iterables[--i];
+
+    // Remove processed items to avoid keeping them alive.
+    iterables.length -= 2;
+
+    // Steps 3.a.i-v.
+    for (var innerValue of allowContentIterWith(item, method)) {
+      // Steps 3.a.v.1-3. (Implicit through for-of loop)
+
+      yield innerValue;
+    }
+  }
+}
+
+/**
  * Iterator.zip (iterables [, options])
- * 
+ *
  * https://tc39.es/proposal-joint-iteration/#sec-iterator.zip
  */
 function IteratorZip(predicate) {

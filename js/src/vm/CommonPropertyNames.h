@@ -98,6 +98,7 @@
   MACRO_(compact, "compact")                                                   \
   MACRO_(compactDisplay, "compactDisplay")                                     \
   MACRO_(compare, "compare")                                                   \
+  MACRO_(concat, "concat")                                                     \
   MACRO_(configurable, "configurable")                                         \
   MACRO_(const_, "const")                                                      \
   MACRO_(constrain, "constrain")                                               \
