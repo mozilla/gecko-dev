@@ -51,11 +51,11 @@ an `image-to-text` model.
 Pre-requisites
 --------------
 
-If not running in Nightly, make sure your browser has the inference engine and the experiments
-enabled by switching the following flags in `about:config`:
+If not running in Nightly, make sure your browser has the inference engine and
+the WebExtensions API enabled by switching the following flags in `about:config`:
 
 - `browser.ml.enable`: true
-- `extensions.experiments.enabled`: true
+- `extensions.ml.enabled`: true
 
 Installation
 ------------
