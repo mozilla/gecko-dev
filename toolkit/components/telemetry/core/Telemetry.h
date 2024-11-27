@@ -473,15 +473,6 @@ void ScalarSet(mozilla::Telemetry::ScalarID aId, bool aValue);
 void ScalarSet(mozilla::Telemetry::ScalarID aId, const nsAString& aValue);
 
 /**
- * Sets the scalar to the maximum of the current and the passed value.
- *
- * @param aId The scalar enum id.
- * @param aValue The value the scalar is set to if its greater
- *        than the current value.
- */
-void ScalarSetMaximum(mozilla::Telemetry::ScalarID aId, uint32_t aValue);
-
-/**
  * Adds the value to the given scalar.
  *
  * @param aId The scalar enum id.
@@ -510,17 +501,6 @@ void ScalarSet(mozilla::Telemetry::ScalarID aId, const nsAString& aKey,
  */
 void ScalarSet(mozilla::Telemetry::ScalarID aId, const nsAString& aKey,
                bool aValue);
-
-/**
- * Sets the scalar to the maximum of the current and the passed value.
- *
- * @param aId The scalar enum id.
- * @param aKey The scalar key.
- * @param aValue The value the scalar is set to if its greater
- *        than the current value.
- */
-void ScalarSetMaximum(mozilla::Telemetry::ScalarID aId, const nsAString& aKey,
-                      uint32_t aValue);
 
 }  // namespace Telemetry
 }  // namespace mozilla

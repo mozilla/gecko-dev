@@ -99,84 +99,6 @@ add_task(
     await TelemetryController.testReset();
     await TelemetryController.testPromiseJsProbeRegistration();
 
-    // Store to that scalar.
-    const TEST_SCALAR1 = "telemetry.test.builtin_dynamic";
-    const TEST_SCALAR2 = "telemetry.test.builtin_dynamic_other";
-    const TEST_SCALAR3 = "telemetry.test.builtin_dynamic_multi";
-    const TEST_SCALAR4 = "telemetry.test.builtin_dynamic_sync_only";
-    const TEST_SCALAR5 = "telemetry.test.builtin_dynamic_expired";
-    Telemetry.scalarSet(TEST_SCALAR1, 3785);
-    Telemetry.scalarSet(TEST_SCALAR2, true);
-    Telemetry.scalarSet(TEST_SCALAR3, 1337);
-    Telemetry.scalarSet(TEST_SCALAR4, 31337);
-    Telemetry.scalarSet(TEST_SCALAR5, true);
-
-    // Check the values we tried to store.
-    const scalars = Telemetry.getSnapshotForScalars("main", false).parent;
-    const syncScalars = Telemetry.getSnapshotForScalars("sync", false).parent;
-
-    // Check that they are serialized to the correct format.
-    Assert.equal(
-      typeof scalars[TEST_SCALAR1],
-      "number",
-      TEST_SCALAR1 + " must be serialized to the correct format."
-    );
-    Assert.ok(
-      Number.isInteger(scalars[TEST_SCALAR1]),
-      TEST_SCALAR1 + " must be a finite integer."
-    );
-    Assert.equal(
-      scalars[TEST_SCALAR1],
-      3785,
-      TEST_SCALAR1 + " must have the correct value."
-    );
-    Assert.equal(
-      typeof scalars[TEST_SCALAR2],
-      "boolean",
-      TEST_SCALAR2 + " must be serialized to the correct format."
-    );
-    Assert.equal(
-      scalars[TEST_SCALAR2],
-      true,
-      TEST_SCALAR2 + " must have the correct value."
-    );
-
-    Assert.equal(
-      typeof scalars[TEST_SCALAR3],
-      "number",
-      `${TEST_SCALAR3} must be serialized to the correct format.`
-    );
-    Assert.equal(
-      scalars[TEST_SCALAR3],
-      1337,
-      `${TEST_SCALAR3} must have the correct value.`
-    );
-    Assert.equal(
-      typeof syncScalars[TEST_SCALAR3],
-      "number",
-      `${TEST_SCALAR3} must be serialized in the sync store to the correct format.`
-    );
-    Assert.equal(
-      syncScalars[TEST_SCALAR3],
-      1337,
-      `${TEST_SCALAR3} must have the correct value in the sync snapshot.`
-    );
-
-    Assert.ok(
-      !(TEST_SCALAR4 in scalars),
-      `${TEST_SCALAR4} must not be in the main store.`
-    );
-    Assert.equal(
-      typeof syncScalars[TEST_SCALAR4],
-      "number",
-      `${TEST_SCALAR4} must be in the sync snapshot.`
-    );
-    Assert.equal(
-      syncScalars[TEST_SCALAR4],
-      31337,
-      `${TEST_SCALAR4} must have the correct value.`
-    );
-
     // Clean up.
     await TelemetryController.testShutdown();
     await IOUtils.remove(FILE_PATH);
@@ -195,32 +117,4 @@ add_task(async function test_keyedDynamicBuiltin() {
       keyed: true,
     },
   });
-
-  // Store to that scalar.
-  const TEST_SCALAR1 = "telemetry.test.builtin_dynamic_keyed";
-  Telemetry.keyedScalarSet(TEST_SCALAR1, "test-key", 3785);
-
-  // Check the values we tried to store.
-  const scalars = Telemetry.getSnapshotForKeyedScalars("main", false).parent;
-
-  // Check that they are serialized to the correct format.
-  Assert.equal(
-    typeof scalars[TEST_SCALAR1],
-    "object",
-    TEST_SCALAR1 + " must be a keyed scalar."
-  );
-  Assert.equal(
-    typeof scalars[TEST_SCALAR1]["test-key"],
-    "number",
-    TEST_SCALAR1 + " must be serialized to the correct format."
-  );
-  Assert.ok(
-    Number.isInteger(scalars[TEST_SCALAR1]["test-key"]),
-    TEST_SCALAR1 + " must be a finite integer."
-  );
-  Assert.equal(
-    scalars[TEST_SCALAR1]["test-key"],
-    3785,
-    TEST_SCALAR1 + " must have the correct value."
-  );
 });

@@ -49,13 +49,17 @@ add_setup(function test_setup() {
 add_task(function test_gifft_counter() {
   Glean.testOnlyIpc.aCounter.add(20);
   Assert.equal(20, Glean.testOnlyIpc.aCounter.testGetValue());
-  Assert.equal(20, scalarValue("telemetry.test.mirror_for_counter"));
+  let telemetryValue = scalarValue("telemetry.test.mirror_for_counter");
+  Assert.equal(20, telemetryValue);
+  Assert.equal("number", typeof telemetryValue);
 });
 
 add_task(function test_gifft_boolean() {
   Glean.testOnlyIpc.aBool.set(false);
   Assert.equal(false, Glean.testOnlyIpc.aBool.testGetValue());
-  Assert.equal(false, scalarValue("telemetry.test.boolean_kind"));
+  let telemetryValue = scalarValue("telemetry.test.boolean_kind");
+  Assert.equal(false, telemetryValue);
+  Assert.equal("boolean", typeof telemetryValue);
 });
 
 add_task(function test_gifft_datetime() {
@@ -73,7 +77,9 @@ add_task(function test_gifft_string() {
   Glean.testOnlyIpc.aString.set(value);
 
   Assert.equal(value, Glean.testOnlyIpc.aString.testGetValue());
-  Assert.equal(value, scalarValue("telemetry.test.multiple_stores_string"));
+  let telemetryValue = scalarValue("telemetry.test.multiple_stores_string");
+  Assert.equal(value, telemetryValue);
+  Assert.equal("string", typeof telemetryValue);
 });
 
 add_task(function test_gifft_memory_dist() {

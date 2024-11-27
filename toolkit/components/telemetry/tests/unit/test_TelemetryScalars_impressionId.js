@@ -11,8 +11,8 @@ add_task(async function test_multistore_basics() {
 
   const expectedUint = 3785;
   const expectedString = "{some_impression_id}";
-  Telemetry.scalarSet(MAIN_ONLY, expectedUint);
-  Telemetry.scalarSet(IMPRESSION_ID_ONLY, expectedString);
+  Glean.testOnly.mainOnly.set(expectedUint);
+  Glean.testOnly.impressionIdOnly.set(expectedString);
 
   const mainScalars = Telemetry.getSnapshotForScalars("main").parent;
   const impressionIdScalars =

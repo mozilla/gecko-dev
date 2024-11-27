@@ -434,66 +434,6 @@ interface nsITelemetry : nsISupports
   double msSystemNow();
 
   /**
-   * Adds the value to the given scalar.
-   *
-   * @param aName The scalar name.
-   * @param aValue The numeric value to add to the scalar. Only unsigned integers supported.
-   */
-  [implicit_jscontext]
-  void scalarAdd(in ACString aName, in jsval aValue);
-
-  /**
-   * Sets the scalar to the given value.
-   *
-   * @param aName The scalar name.
-   * @param aValue The value to set the scalar to. If the type of aValue doesn't match the
-   *        type of the scalar, the function will fail. For scalar string types, the this
-   *        is truncated to 50 characters.
-   */
-  [implicit_jscontext]
-  void scalarSet(in ACString aName, in jsval aValue);
-
-  /**
-   * Sets the scalar to the maximum of the current and the passed value.
-   *
-   * @param aName The scalar name.
-   * @param aValue The numeric value to set the scalar to. Only unsigned integers supported.
-   */
-  [implicit_jscontext]
-  void scalarSetMaximum(in ACString aName, in jsval aValue);
-
-  /**
-   * Adds the value to the given keyed scalar.
-   *
-   * @param aName The scalar name.
-   * @param aKey The key name.
-   * @param aValue The numeric value to add to the scalar. Only unsigned integers supported.
-   */
-  [implicit_jscontext]
-  void keyedScalarAdd(in ACString aName, in AString aKey, in jsval aValue);
-
-  /**
-   * Sets the keyed scalar to the given value.
-   *
-   * @param aName The scalar name.
-   * @param aKey The key name.
-   * @param aValue The value to set the scalar to. If the type of aValue doesn't match the
-   *        type of the scalar, the function will fail.
-   */
-  [implicit_jscontext]
-  void keyedScalarSet(in ACString aName, in AString aKey, in jsval aValue);
-
-  /**
-   * Sets the keyed scalar to the maximum of the current and the passed value.
-   *
-   * @param aName The scalar name.
-   * @param aKey The key name.
-   * @param aValue The numeric value to set the scalar to. Only unsigned integers supported.
-   */
-  [implicit_jscontext]
-  void keyedScalarSetMaximum(in ACString aName, in AString aKey, in jsval aValue);
-
-  /**
    * Resets all the stored scalars. This is intended to be only used in tests.
    */
   void clearScalars();
@@ -553,10 +493,13 @@ interface nsITelemetry : nsISupports
   void registerBuiltinEvents(in ACString aCategory, in jsval aEventData);
 
   /**
-   * Parent process only. Register new scalars to record them from addons. This
-   * allows registering multiple scalars for a category. They will be valid only for
+   * Parent process only. Register dynamic builtin scalars. This allows
+   * registering multiple scalars for a category. They will be valid only for
    * the current Firefox session.
-   * Note that scalars shipping in Firefox should be registered in Scalars.yaml.
+   *
+   * This function is only meant to be used to support the "artifact build"/
+   * "build faster" developers by allowing to add new scalars without rebuilding
+   * the C++ components including the headers files.
    *
    * @param aCategoryName The unique category the scalars are registered in.
    * @param aScalarData An object that contains registration data for multiple scalars in the form:
@@ -575,17 +518,6 @@ interface nsITelemetry : nsISupports
    *                                             Defaults to false.
    * @param aScalarData.<name>.expired Optional, whether this scalar entry is expired. This allows
    *                                   recording it without error, but it will be discarded. Defaults to false.
-   */
-  [implicit_jscontext]
-  void registerScalars(in ACString aCategoryName, in jsval aScalarData);
-
-  /**
-   * Parent process only. Register dynamic builtin scalars. The parameters
-   * have the same meaning as the usual |registerScalars| function.
-   *
-   * This function is only meant to be used to support the "artifact build"/
-   * "build faster" developers by allowing to add new scalars without rebuilding
-   * the C++ components including the headers files.
    */
   [implicit_jscontext]
   void registerBuiltinScalars(in ACString aCategoryName, in jsval aScalarData);

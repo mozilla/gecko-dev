@@ -62,13 +62,12 @@ struct DynamicScalarDefinition {
   uint32_t dataset;
   bool expired;
   bool keyed;
-  bool builtin;
   nsCString name;
 
   bool operator==(const DynamicScalarDefinition& rhs) const {
     return type == rhs.type && dataset == rhs.dataset &&
            expired == rhs.expired && keyed == rhs.keyed &&
-           builtin == rhs.builtin && name.Equals(rhs.name);
+           name.Equals(rhs.name);
   }
 };
 
@@ -326,7 +325,6 @@ struct ParamTraits<mozilla::Telemetry::DynamicScalarDefinition> {
     WriteParam(aWriter, aParam.dataset);
     WriteParam(aWriter, aParam.expired);
     WriteParam(aWriter, aParam.keyed);
-    WriteParam(aWriter, aParam.builtin);
     WriteParam(aWriter, aParam.name);
   }
 
@@ -335,7 +333,6 @@ struct ParamTraits<mozilla::Telemetry::DynamicScalarDefinition> {
         !ReadParam(aReader, reinterpret_cast<uint32_t*>(&(aResult->dataset))) ||
         !ReadParam(aReader, reinterpret_cast<bool*>(&(aResult->expired))) ||
         !ReadParam(aReader, reinterpret_cast<bool*>(&(aResult->keyed))) ||
-        !ReadParam(aReader, reinterpret_cast<bool*>(&(aResult->builtin))) ||
         !ReadParam(aReader, &(aResult->name))) {
       return false;
     }

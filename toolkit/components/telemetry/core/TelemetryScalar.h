@@ -35,24 +35,12 @@ void SetCanRecordBase(bool b);
 void SetCanRecordExtended(bool b);
 
 // JS API Endpoints.
-nsresult Add(const nsACString& aName, JS::Handle<JS::Value> aVal,
-             JSContext* aCx);
-nsresult Set(const nsACString& aName, JS::Handle<JS::Value> aVal,
-             JSContext* aCx);
-nsresult SetMaximum(const nsACString& aName, JS::Handle<JS::Value> aVal,
-                    JSContext* aCx);
 nsresult CreateSnapshots(unsigned int aDataset, bool aClearScalars,
                          JSContext* aCx, uint8_t optional_argc,
                          JS::MutableHandle<JS::Value> aResult, bool aFilterTest,
                          const nsACString& aStoreName);
 
 // Keyed JS API Endpoints.
-nsresult Add(const nsACString& aName, const nsAString& aKey,
-             JS::Handle<JS::Value> aVal, JSContext* aCx);
-nsresult Set(const nsACString& aName, const nsAString& aKey,
-             JS::Handle<JS::Value> aVal, JSContext* aCx);
-nsresult SetMaximum(const nsACString& aName, const nsAString& aKey,
-                    JS::Handle<JS::Value> aVal, JSContext* aCx);
 nsresult CreateKeyedSnapshots(unsigned int aDataset, bool aClearScalars,
                               JSContext* aCx, uint8_t optional_argc,
                               JS::MutableHandle<JS::Value> aResult,
@@ -63,7 +51,6 @@ void Add(mozilla::Telemetry::ScalarID aId, uint32_t aValue);
 void Set(mozilla::Telemetry::ScalarID aId, uint32_t aValue);
 void Set(mozilla::Telemetry::ScalarID aId, const nsAString& aValue);
 void Set(mozilla::Telemetry::ScalarID aId, bool aValue);
-void SetMaximum(mozilla::Telemetry::ScalarID aId, uint32_t aValue);
 
 // Keyed C++ API Endpoints.
 void Add(mozilla::Telemetry::ScalarID aId, const nsAString& aKey,
@@ -71,12 +58,9 @@ void Add(mozilla::Telemetry::ScalarID aId, const nsAString& aKey,
 void Set(mozilla::Telemetry::ScalarID aId, const nsAString& aKey,
          uint32_t aValue);
 void Set(mozilla::Telemetry::ScalarID aId, const nsAString& aKey, bool aValue);
-void SetMaximum(mozilla::Telemetry::ScalarID aId, const nsAString& aKey,
-                uint32_t aValue);
 
 nsresult RegisterScalars(const nsACString& aCategoryName,
-                         JS::Handle<JS::Value> aScalarData, bool aBuiltin,
-                         JSContext* cx);
+                         JS::Handle<JS::Value> aScalarData, JSContext* cx);
 
 // Event Summary
 void SummarizeEvent(const nsCString& aUniqueEventName,
