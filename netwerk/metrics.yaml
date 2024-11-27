@@ -466,6 +466,86 @@ networking:
       - h3_network_only
     expires: never
 
+  trr_dns_start: &trr_dns_start
+    type: labeled_timing_distribution
+    time_unit: millisecond
+    description: >
+      In TRR channel, time from connection open to the DNS request
+      being issued.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1922238
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1922238
+    notification_emails:
+      - necko@mozilla.com
+      - kershaw@mozilla.com
+    labels:
+      - mozilla.cloudflare-dns.com
+      - firefox.dns.nextdns.io
+      - private.canadianshield.cira.ca
+      - doh.xfinity.com
+      - dns.shaw.ca
+      - dooh.cloudflare-dns.com
+      - mozilla.cloudflare-dns.com_2
+      - firefox.dns.nextdns.io_2
+      - private.canadianshield.cira.ca_2
+      - doh.xfinity.com_2
+      - dns.shaw.ca_2
+      - dooh.cloudflare-dns.com_2
+      - mozilla.cloudflare-dns.com_3
+      - firefox.dns.nextdns.io_3
+      - private.canadianshield.cira.ca_3
+      - doh.xfinity.com_3
+      - dns.shaw.ca_3
+      - dooh.cloudflare-dns.com_3
+    expires: never
+
+  trr_dns_end:
+    <<: *trr_dns_start
+    description: >
+      In TRR channel, time from the DNS request being issued to
+      the response.
+    expires: never
+
+  trr_tcp_connection:
+    <<: *trr_dns_start
+    description: >
+      In TRR channel, time from the TCP SYN packet is received to
+      the connection is established and ready for HTTP.
+    expires: never
+
+  trr_tls_handshake:
+    <<: *trr_dns_start
+    description: >
+      In TRR channel, time from after the TCP SYN packet is
+      received to the secure connection is established and ready for HTTP.
+    expires: never
+
+  trr_open_to_first_sent:
+    <<: *trr_dns_start
+    description: >
+      In TRR channel, time from open to first byte of request.
+    expires: never
+
+  trr_first_sent_to_last_received:
+    <<: *trr_dns_start
+    description: >
+      In TRR channel, time from first byte of request sent to
+      last byte of response received.
+    expires: never
+
+  trr_open_to_first_received:
+    <<: *trr_dns_start
+    description: >
+      In TRR channel, time from open to first byte of reply received.
+    expires: never
+
+  trr_complete_load:
+    <<: *trr_dns_start
+    description: >
+      In TRR channel, overall load time.
+    expires: never
+
   dns_renewal_time:
     type: timing_distribution
     time_unit: millisecond
