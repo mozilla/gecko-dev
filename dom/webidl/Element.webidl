@@ -264,7 +264,7 @@ partial interface Element {
   [CEReactions, SetterNeedsSubjectPrincipal=NonSystem, Pure, SetterThrows, GetterCanOOM]
   attribute (TrustedHTML or [LegacyNullToEmptyString] DOMString) innerHTML;
   [CEReactions, Pure, SetterThrows]
-  attribute [LegacyNullToEmptyString] DOMString outerHTML;
+  attribute (TrustedHTML or [LegacyNullToEmptyString] DOMString) outerHTML;
   [CEReactions, Throws]
   undefined insertAdjacentHTML(DOMString position, (TrustedHTML or DOMString) text);
 };

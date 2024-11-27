@@ -4018,11 +4018,23 @@ void Element::SetInnerHTMLTrusted(const nsAString& aInnerHTML,
   SetInnerHTMLInternal(aInnerHTML, aError);
 }
 
-void Element::GetOuterHTML(nsAString& aOuterHTML) {
-  GetMarkup(true, aOuterHTML);
+void Element::GetOuterHTML(OwningTrustedHTMLOrNullIsEmptyString& aOuterHTML) {
+  GetMarkup(true, aOuterHTML.SetAsNullIsEmptyString());
 }
 
-void Element::SetOuterHTML(const nsAString& aOuterHTML, ErrorResult& aError) {
+void Element::SetOuterHTML(const TrustedHTMLOrNullIsEmptyString& aOuterHTML,
+                           ErrorResult& aError) {
+  constexpr nsLiteralString sink = u"Element outerHTML"_ns;
+
+  Maybe<nsAutoString> compliantStringHolder;
+  const nsAString* compliantString =
+      TrustedTypeUtils::GetTrustedTypesCompliantString(
+          aOuterHTML, sink, kTrustedTypesOnlySinkGroup, *this,
+          compliantStringHolder, aError);
+  if (aError.Failed()) {
+    return;
+  }
+
   nsCOMPtr<nsINode> parent = GetParentNode();
   if (!parent) {
     return;
@@ -4049,7 +4061,7 @@ void Element::SetOuterHTML(const nsAString& aOuterHTML, ErrorResult& aError) {
     RefPtr<DocumentFragment> fragment = new (OwnerDoc()->NodeInfoManager())
         DocumentFragment(OwnerDoc()->NodeInfoManager());
     nsContentUtils::ParseFragmentHTML(
-        aOuterHTML, fragment, localName, namespaceID,
+        *compliantString, fragment, localName, namespaceID,
         OwnerDoc()->GetCompatibilityMode() == eCompatibility_NavQuirks, true);
     parent->ReplaceChild(*fragment, *this, aError);
     return;
@@ -4069,7 +4081,7 @@ void Element::SetOuterHTML(const nsAString& aOuterHTML, ErrorResult& aError) {
   }
 
   RefPtr<DocumentFragment> fragment = nsContentUtils::CreateContextualFragment(
-      context, aOuterHTML, true, aError);
+      context, *compliantString, true, aError);
   if (aError.Failed()) {
     return;
   }

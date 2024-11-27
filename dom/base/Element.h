@@ -1602,8 +1602,12 @@ class Element : public FragmentOrElement {
                                    nsIPrincipal* aSubjectPrincipal,
                                    ErrorResult& aError);
 
-  void GetOuterHTML(nsAString& aOuterHTML);
-  void SetOuterHTML(const nsAString& aOuterHTML, ErrorResult& aError);
+  // @param aOuterHTML will always be of type `NullIsEmptyString`.
+  void GetOuterHTML(OwningTrustedHTMLOrNullIsEmptyString& aOuterHTML);
+
+  MOZ_CAN_RUN_SCRIPT void SetOuterHTML(
+      const TrustedHTMLOrNullIsEmptyString& aOuterHTML, ErrorResult& aError);
+
   MOZ_CAN_RUN_SCRIPT void InsertAdjacentHTML(
       const nsAString& aPosition,
       const TrustedHTMLOrString& aTrustedHTMLOrString, ErrorResult& aError);
