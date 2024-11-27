@@ -272,7 +272,7 @@ public final class MediaDrmProxy {
         return proxy.getMediaCryptoFromBridge();
       }
     }
-    if (DEBUG) Log.d(LOGTAG, " NULL crytpo ");
+    if (DEBUG) Log.d(LOGTAG, " NULL crypto ");
     return null;
   }
 

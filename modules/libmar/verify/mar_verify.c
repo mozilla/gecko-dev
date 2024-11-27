@@ -145,7 +145,7 @@ int mar_verify_signatures(MarFile* mar, const uint8_t* const* certData,
   }
 
   if (CryptoX_Failed(CryptoX_InitCryptoProvider(&provider))) {
-    fprintf(stderr, "ERROR: Could not init crytpo library.\n");
+    fprintf(stderr, "ERROR: Could not init crypto library.\n");
     goto failure;
   }
 
