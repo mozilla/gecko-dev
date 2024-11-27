@@ -20,6 +20,7 @@ data class OnboardingPageUiData(
     val privacyCaption: Caption? = null,
     val addOns: List<OnboardingAddOn>? = null,
     val toolbarOptions: List<ToolbarOption>? = null,
+    val termsOfService: OnboardingTermsOfService? = null,
 ) {
     /**
      * Model for different types of Onboarding Pages.
@@ -46,6 +47,9 @@ data class OnboardingPageUiData(
         ),
         TOOLBAR_PLACEMENT(
             telemetryId = "toolbar_placement",
+        ),
+        TERMS_OF_SERVICE(
+            telemetryId = "terms_of_service",
         ),
     }
 }

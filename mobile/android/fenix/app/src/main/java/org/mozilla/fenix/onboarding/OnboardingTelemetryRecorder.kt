@@ -104,6 +104,17 @@ class OnboardingTelemetryRecorder {
                 // Todo as part of https://bugzilla.mozilla.org/show_bug.cgi?id=1926956
                 throw NotImplementedError()
             }
+
+            OnboardingPageUiData.Type.TERMS_OF_SERVICE -> {
+                Onboarding.termsOfServiceCard.record(
+                    Onboarding.TermsOfServiceCardExtra(
+                        action = ACTION_IMPRESSION,
+                        elementType = ET_ONBOARDING_CARD,
+                        sequenceId = sequenceId,
+                        sequencePosition = sequencePosition,
+                    ),
+                )
+            }
         }
     }
 
@@ -277,6 +288,34 @@ class OnboardingTelemetryRecorder {
                 sequencePosition = sequencePosition,
             ),
         )
+    }
+
+    /**
+     * Records when the terms of service link is clicked.
+     */
+    fun onTermsOfServiceLinkClick() {
+        Onboarding.termsOfServiceCard.record()
+    }
+
+    /**
+     * Records when the privacy notice link clicked.
+     */
+    fun onTermsOfServicePrivacyNoticeLinkClick() {
+        Onboarding.termsOfServicePrivacyNoticeLinkClicked.record()
+    }
+
+    /**
+     * Records when the manage privacy preferences link clicked.
+     */
+    fun onTermsOfServiceManagePrivacyPreferencesLinkClick() {
+        Onboarding.termsOfServiceManageLinkClicked.record()
+    }
+
+    /**
+     * Records when the accept terms button clicked.
+     */
+    fun onTermsOfServiceManagerAcceptTermsButtonClick() {
+        Onboarding.termsOfServiceAccepted.record()
     }
 
     companion object {

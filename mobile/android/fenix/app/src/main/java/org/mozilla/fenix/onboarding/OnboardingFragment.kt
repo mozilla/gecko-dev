@@ -62,6 +62,13 @@ import org.mozilla.fenix.utils.showAddSearchWidgetPrompt
 class OnboardingFragment : Fragment() {
     private val logger = Logger("OnboardingFragment")
 
+    private val termsOfServiceEventHandler by lazy {
+        DefaultOnboardingTermsOfServiceEventHandler(
+            telemetryRecorder = telemetryRecorder,
+            this::launchSandboxCustomTab,
+        )
+    }
+
     private val pagesToDisplay by lazy {
         pagesToDisplay(
             isNotDefaultBrowser(requireContext()) &&
@@ -207,6 +214,7 @@ class OnboardingFragment : Fragment() {
             },
             onboardingAddOnsStore = onboardingAddOnsStore,
             onInstallAddOnButtonClick = { installUrl -> installAddon(installUrl) },
+            termsOfServiceEventHandler = termsOfServiceEventHandler,
             onCustomizeToolbarClick = {
                 // Todo as part of https://bugzilla.mozilla.org/show_bug.cgi?id=1918351
                 throw NotImplementedError()
@@ -335,5 +343,13 @@ class OnboardingFragment : Fragment() {
             sequenceId = pagesToDisplay.telemetrySequenceId(),
             sequencePosition = pagesToDisplay.sequencePosition(OnboardingPageUiData.Type.DEFAULT_BROWSER),
         )
+    }
+
+    private fun launchSandboxCustomTab(url: String) {
+        val intent = SupportUtils.createSandboxCustomTabIntent(
+            context = requireContext(),
+            url = url,
+        )
+        requireContext().startActivity(intent)
     }
 }

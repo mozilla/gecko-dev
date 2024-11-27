@@ -562,6 +562,22 @@
     <string name="onboarding_preferences_dialog_positive_button" tools:ignore="UnusedResources">Done</string>
     <!-- Negative button label for the privacy preferences dialog shown during onboarding. -->
     <string name="onboarding_preferences_dialog_negative_button" tools:ignore="UnusedResources">Cancel</string>
+    <!-- Terms of service onboarding title card label. 'Firefox' intentionally hardcoded here-->
+    <string name="onboarding_welcome_to_firefox" tools:ignore="UnusedResources,BrandUsage">Welcome to Firefox</string>
+    <!-- Terms of service onboarding page continue button label. -->
+    <string name="onboarding_term_of_service_agree_and_continue_button_label" tools:ignore="UnusedResources">Agree and continue</string>
+    <!-- Terms of service onboarding page line one text. 'Firefox' intentionally hardcoded here-->
+    <string name="onboarding_term_of_service_line_one" tools:ignore="UnusedResources,BrandUsage">By continuing, you agree to the Firefox Terms of Service.</string>
+    <!-- Terms of service onboarding page line one text which should be displayed as a link. -->
+    <string name="onboarding_term_of_service_line_one_link_text" tools:ignore="UnusedResources,BrandUsage">Terms of Service</string>
+    <!-- Terms of service onboarding page line two text. 'Firefox' intentionally hardcoded here-->
+    <string name="onboarding_term_of_service_line_two" tools:ignore="UnusedResources,BrandUsage">Firefox cares about your privacy. Read more in our Privacy Notice.</string>
+    <!-- Terms of service onboarding page line two text which should be displayed as a link. -->
+    <string name="onboarding_term_of_service_line_two_link_text" tools:ignore="UnusedResources,BrandUsage">Privacy Notice</string>
+    <!-- Terms of service onboarding page line three text. 'Firefox' intentionally hardcoded here-->
+    <string name="onboarding_term_of_service_line_three" tools:ignore="UnusedResources,BrandUsage">To help improve the browser, Firefox sends diagnostic and interaction data to Mozilla. Manage</string>
+    <!-- Terms of service onboarding page line three text which should be displayed as a link-->
+    <string name="onboarding_term_of_service_line_three_link_text" tools:ignore="UnusedResources,BrandUsage">Manage</string>
 
     <!-- Search Widget -->
     <!-- Content description for searching with a widget. The first parameter is the name of the application.-->

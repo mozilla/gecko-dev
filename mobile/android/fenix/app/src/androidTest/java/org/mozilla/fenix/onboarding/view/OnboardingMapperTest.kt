@@ -21,6 +21,7 @@ import org.mozilla.fenix.nimbus.FxNimbus
 import org.mozilla.fenix.nimbus.JunoOnboarding
 import org.mozilla.fenix.nimbus.OnboardingCardData
 import org.mozilla.fenix.nimbus.OnboardingCardType
+import org.mozilla.fenix.nimbus.TermsOfServiceData
 import org.mozilla.fenix.onboarding.store.OnboardingAddonStatus
 
 class OnboardingMapperTest {
@@ -175,6 +176,76 @@ class OnboardingMapperTest {
                 jexlConditions = jexlConditions,
                 func = evalFunction,
             ),
+        )
+    }
+
+    @Test
+    fun termsOfServiceData_toPageUiData_returnsConvertedPage() {
+        val imageRes = R.drawable.ic_extensions_onboarding
+        val title = "Terms of service card title"
+        val description = "Terms of service card body"
+        val primaryButtonLabel = "add-ons card primary button text"
+
+        val lineOneText = "By continuing, you agree to the Firefox Terms of Service."
+        val lineOneLinkText = "Terms of Service"
+        val lineOneLinkUrl = "LinkOne"
+        val lineTwoText = "Firefox cares about your privacy. Read more in our Privacy Notice."
+        val lineTwoLinkText = "Privacy Notice"
+        val lineTwoLinkUrl = "LinkTwo"
+        val lineThreeText = "To help improve the browser, Firefox sends diagnostic and interaction data to Mozilla. Manage"
+        val lineThreeLinkText = "Manage"
+
+        val expected = OnboardingPageUiData(
+            type = OnboardingPageUiData.Type.TERMS_OF_SERVICE,
+            imageRes = imageRes,
+            title = title,
+            description = description,
+            primaryButtonLabel = primaryButtonLabel,
+            termsOfService = OnboardingTermsOfService(
+                lineOneText = lineOneText,
+                lineOneLinkText = lineOneLinkText,
+                lineOneLinkUrl = lineOneLinkUrl,
+                lineTwoText = lineTwoText,
+                lineTwoLinkText = lineTwoLinkText,
+                lineTwoLinkUrl = lineTwoLinkUrl,
+                lineThreeText = lineThreeText,
+                lineThreeLinkText = lineThreeLinkText,
+            ),
+        )
+
+        val nimbusTermsOfServiceData = TermsOfServiceData(
+            lineOneText = StringHolder(R.string.onboarding_term_of_service_line_one, ""),
+            lineOneLinkText = StringHolder(R.string.onboarding_term_of_service_line_one_link_text, ""),
+            lineOneLinkUrl = StringHolder(null, lineOneLinkUrl),
+            lineTwoText = StringHolder(R.string.onboarding_term_of_service_line_two, ""),
+            lineTwoLinkText = StringHolder(R.string.onboarding_term_of_service_line_two_link_text, ""),
+            lineTwoLinkUrl = StringHolder(null, lineTwoLinkUrl),
+            lineThreeText = StringHolder(R.string.onboarding_term_of_service_line_three, ""),
+            lineThreeLinkText = StringHolder(R.string.onboarding_term_of_service_line_three_link_text, ""),
+        )
+
+        val termsOfServiceCardData = OnboardingCardData(
+            cardType = OnboardingCardType.TERMS_OF_SERVICE,
+            imageRes = imageRes,
+            title = StringHolder(null, title),
+            body = StringHolder(null, description),
+            primaryButtonLabel = StringHolder(null, primaryButtonLabel),
+            ordering = 30,
+            extraData = ExtraCardData(
+                termOfServiceData = nimbusTermsOfServiceData,
+            ),
+        )
+
+        assertEquals(
+            expected,
+            listOf(defaultBrowserCardData, termsOfServiceCardData).toPageUiData(
+                privacyCaption = privacyCaption,
+                showDefaultBrowserPage = true,
+                showNotificationPage = false,
+                showAddWidgetPage = false,
+                jexlConditions = jexlConditions,
+                func = evalFunction,
+            ).last(),
         )
     }
 

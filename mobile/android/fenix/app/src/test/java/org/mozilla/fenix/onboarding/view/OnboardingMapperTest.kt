@@ -43,6 +43,7 @@ class OnboardingMapperTest {
             onAddOnsButtonClick = {},
             onCustomizeToolbarButtonClick = {},
             onCustomizeToolbarSkipClick = {},
+            onTermsOfServiceButtonClick = {},
         )
 
         assertEquals(expected, actual)
@@ -80,6 +81,7 @@ class OnboardingMapperTest {
             onAddOnsButtonClick = {},
             onCustomizeToolbarButtonClick = {},
             onCustomizeToolbarSkipClick = {},
+            onTermsOfServiceButtonClick = {},
         )
 
         assertEquals(expected, actual)
@@ -117,6 +119,7 @@ class OnboardingMapperTest {
             onAddOnsButtonClick = {},
             onCustomizeToolbarButtonClick = {},
             onCustomizeToolbarSkipClick = {},
+            onTermsOfServiceButtonClick = {},
         )
 
         assertEquals(expected, actual)
@@ -154,6 +157,7 @@ class OnboardingMapperTest {
             onAddOnsButtonClick = {},
             onCustomizeToolbarButtonClick = {},
             onCustomizeToolbarSkipClick = {},
+            onTermsOfServiceButtonClick = {},
         )
 
         assertEquals(expected, actual)
@@ -223,6 +227,7 @@ class OnboardingMapperTest {
             onAddOnsButtonClick = unitLambda,
             onCustomizeToolbarButtonClick = {},
             onCustomizeToolbarSkipClick = {},
+            onTermsOfServiceButtonClick = {},
         )
 
         assertEquals(expected, actual)
@@ -274,6 +279,7 @@ class OnboardingMapperTest {
             onAddOnsButtonClick = {},
             onCustomizeToolbarButtonClick = unitLambda,
             onCustomizeToolbarSkipClick = unitLambda,
+            onTermsOfServiceButtonClick = unitLambda,
         )
 
         assertEquals(expected, actual)

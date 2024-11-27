@@ -18,6 +18,7 @@ import org.mozilla.fenix.onboarding.store.OnboardingAddonStatus
  * @property primaryButton [Action] for the primary button.
  * @property secondaryButton Optional [Action] for the secondary button.
  * @property addOns Optional list of add-ons to install during onboarding.
+ * @property termsOfService Optional term of service page data.
  * @property onRecordImpressionEvent Callback for recording impression event.
  */
 data class OnboardingPageState(
@@ -28,6 +29,7 @@ data class OnboardingPageState(
     val primaryButton: Action,
     val secondaryButton: Action? = null,
     val addOns: List<OnboardingAddOn>? = null,
+    val termsOfService: OnboardingTermsOfService? = null,
     val onRecordImpressionEvent: () -> Unit = {},
 )
 
@@ -83,4 +85,44 @@ enum class ToolbarOptionType {
      * Sets the toolbar placement to the bottom.
      */
     TOOLBAR_BOTTOM,
+}
+
+/**
+ * Model containing data for the terms of service page during onboarding.
+ */
+data class OnboardingTermsOfService(
+    val lineOneText: String,
+    val lineOneLinkText: String,
+    val lineOneLinkUrl: String,
+    val lineTwoText: String,
+    val lineTwoLinkText: String,
+    val lineTwoLinkUrl: String,
+    val lineThreeText: String,
+    val lineThreeLinkText: String,
+)
+
+/**
+ * Contains all the events which can happen in terms of service onboarding page.
+ */
+interface OnboardingTermsOfServiceEventHandler {
+
+    /**
+     * Invoked when the terms of service link is clicked.
+     */
+    fun onTermsOfServiceLinkClicked(url: String) = Unit
+
+    /**
+     * Invoked when the privacy notice link is clicked.
+     */
+    fun onPrivacyNoticeLinkClicked(url: String) = Unit
+
+    /**
+     * Invoked when the manage privacy preferences link is clicked.
+     */
+    fun onManagePrivacyPreferencesLinkClicked() = Unit
+
+    /**
+     * Invoked when the accept button is clicked.
+     */
+    fun onAcceptTermsButtonClicked() = Unit
 }

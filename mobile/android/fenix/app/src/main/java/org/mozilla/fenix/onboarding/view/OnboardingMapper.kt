@@ -8,6 +8,7 @@ import org.mozilla.fenix.nimbus.AddOnData
 import org.mozilla.fenix.nimbus.CustomizationToolbarData
 import org.mozilla.fenix.nimbus.OnboardingCardData
 import org.mozilla.fenix.nimbus.OnboardingCardType
+import org.mozilla.fenix.nimbus.TermsOfServiceData
 import org.mozilla.fenix.nimbus.ToolbarType
 import org.mozilla.fenix.onboarding.store.OnboardingAddonStatus
 
@@ -112,6 +113,7 @@ private fun OnboardingCardData.toPageUiData(privacyCaption: Caption?) = Onboardi
     toolbarOptions = extraData?.customizationToolbarData
         ?.takeIf { it.isNotEmpty() }
         ?.toOnboardingToolbarOptions(),
+    termsOfService = extraData?.termOfServiceData?.toOnboardingTermsOfService(),
 )
 
 private fun OnboardingCardType.toPageUiDataType() = when (this) {
@@ -121,11 +123,25 @@ private fun OnboardingCardType.toPageUiDataType() = when (this) {
     OnboardingCardType.ADD_SEARCH_WIDGET -> OnboardingPageUiData.Type.ADD_SEARCH_WIDGET
     OnboardingCardType.ADD_ONS -> OnboardingPageUiData.Type.ADD_ONS
     OnboardingCardType.TOOLBAR_PLACEMENT -> OnboardingPageUiData.Type.TOOLBAR_PLACEMENT
+    OnboardingCardType.TERMS_OF_SERVICE -> OnboardingPageUiData.Type.TERMS_OF_SERVICE
 }
 
 private fun List<AddOnData>.toOnboardingAddOns() = map { it.toOnboardingAddOn() }
 
 private fun List<CustomizationToolbarData>.toOnboardingToolbarOptions() = map { it.toOnboardingCustomizeToolbar() }
+
+private fun TermsOfServiceData.toOnboardingTermsOfService() = with(this) {
+    OnboardingTermsOfService(
+        lineOneText = lineOneText,
+        lineOneLinkText = lineOneLinkText,
+        lineOneLinkUrl = lineOneLinkUrl,
+        lineTwoText = lineTwoText,
+        lineTwoLinkText = lineTwoLinkText,
+        lineTwoLinkUrl = lineTwoLinkUrl,
+        lineThreeText = lineThreeText,
+        lineThreeLinkText = lineThreeLinkText,
+    )
+}
 
 private fun AddOnData.toOnboardingAddOn() = with(this) {
     OnboardingAddOn(
@@ -171,6 +187,7 @@ internal fun mapToOnboardingPageState(
     onAddOnsButtonClick: () -> Unit,
     onCustomizeToolbarButtonClick: () -> Unit,
     onCustomizeToolbarSkipClick: () -> Unit,
+    onTermsOfServiceButtonClick: () -> Unit,
 ): OnboardingPageState = when (onboardingPageUiData.type) {
     OnboardingPageUiData.Type.DEFAULT_BROWSER -> createOnboardingPageState(
         onboardingPageUiData = onboardingPageUiData,
@@ -207,6 +224,12 @@ internal fun mapToOnboardingPageState(
         onPositiveButtonClick = onCustomizeToolbarButtonClick,
         onNegativeButtonClick = onCustomizeToolbarSkipClick,
     )
+
+    OnboardingPageUiData.Type.TERMS_OF_SERVICE -> createOnboardingPageState(
+        onboardingPageUiData = onboardingPageUiData,
+        onPositiveButtonClick = onTermsOfServiceButtonClick,
+        onNegativeButtonClick = {}, // No negative button option for terms of service.
+    )
 }
 
 private fun createOnboardingPageState(
@@ -223,4 +246,5 @@ private fun createOnboardingPageState(
     },
     privacyCaption = onboardingPageUiData.privacyCaption,
     addOns = onboardingPageUiData.addOns,
+    termsOfService = onboardingPageUiData.termsOfService,
 )
