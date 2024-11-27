@@ -236,6 +236,29 @@ activation:
       - jalmeida@mozilla.com
     expires: never
 
+usage:
+  profile_id:
+    type: uuid
+    lifetime: user
+    description: |
+      A UUID uniquely identifying the profile,
+      not shared with other telemetry data.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1923902
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1926829
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1923902
+    data_sensitivity:
+      - technical
+      - highly_sensitive
+    notification_emails:
+      - glean-team@mozilla.com
+      - jrediger@mozilla.com
+      - loines@mozilla.com
+    expires: never
+    send_in_pings:
+      - usage-reporting
+
 legacy_ids:
   client_id:
     type: uuid
