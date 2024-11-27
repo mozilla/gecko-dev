@@ -357,7 +357,8 @@ Use ``mozilla::CopyNSStringToXPCOMString()`` in
 Searching strings - looking for substrings, characters, etc.
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The ``nsReadableUtils.h`` header provides helper methods for searching in runnables.
+The ``nsReadableUtils.h`` header provides helper methods for searching in
+readables.
 
 .. code-block:: cpp
 
