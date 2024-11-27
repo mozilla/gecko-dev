@@ -25,13 +25,11 @@ LOCAL_INCLUDES += [
     "!/ipc/ipdl/_ipdlheaders",
     "!/third_party/libwebrtc/gen",
     "/ipc/chromium/src",
+    "/media/libdav1d/",
     "/third_party/abseil-cpp/",
+    "/third_party/dav1d/include/dav1d/",
     "/third_party/libwebrtc/",
     "/tools/profiler/public"
-]
-
-UNIFIED_SOURCES += [
-    "/third_party/libwebrtc/media/base/rid_description.cc"
 ]
 
 if not CONFIG["MOZ_DEBUG"]:
@@ -131,10 +129,6 @@ if CONFIG["TARGET_CPU"] == "aarch64":
 
 if CONFIG["TARGET_CPU"] == "arm":
 
-    CXXFLAGS += [
-        "-mfpu=neon"
-    ]
-
     DEFINES["WEBRTC_ARCH_ARM"] = True
     DEFINES["WEBRTC_ARCH_ARM_V7"] = True
     DEFINES["WEBRTC_HAS_NEON"] = True
@@ -187,12 +181,6 @@ if CONFIG["OS_TARGET"] == "Android" and CONFIG["TARGET_CPU"] == "arm":
         "unwind"
     ]
 
-if CONFIG["OS_TARGET"] == "Android" and CONFIG["TARGET_CPU"] == "x86":
-
-    CXXFLAGS += [
-        "-msse2"
-    ]
-
 if CONFIG["OS_TARGET"] == "Linux" and CONFIG["TARGET_CPU"] == "aarch64":
 
     DEFINES["_GNU_SOURCE"] = True
@@ -203,14 +191,10 @@ if CONFIG["OS_TARGET"] == "Linux" and CONFIG["TARGET_CPU"] == "arm":
 
 if CONFIG["OS_TARGET"] == "Linux" and CONFIG["TARGET_CPU"] == "x86":
 
-    CXXFLAGS += [
-        "-msse2"
-    ]
-
     DEFINES["_GNU_SOURCE"] = True
 
 if CONFIG["OS_TARGET"] == "Linux" and CONFIG["TARGET_CPU"] == "x86_64":
 
     DEFINES["_GNU_SOURCE"] = True
 
-Library("rid_description_gn")
+Library("dav1d_gn")
