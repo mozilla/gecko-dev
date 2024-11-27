@@ -6,7 +6,8 @@
 
 varying highp vec4 vLocalPos;
 #ifdef WR_FEATURE_FAST_PATH
-flat varying mediump vec3 vClipParams;      // xy = box size, z = radius
+flat varying highp vec4 v_clip_radii;
+flat varying highp vec2 v_clip_size;
 #else
 flat varying highp vec4 vClipCenter_Radius_TL;
 flat varying highp vec4 vClipCenter_Radius_TR;
@@ -106,9 +107,14 @@ void main(void) {
     // If the radii are all uniform, we can use a much simpler 2d
     // signed distance function to get a rounded rect clip.
     vec2 half_size = 0.5 * rect_size(local_rect);
-    float radius = clip.top_left.outer_inner_radius.x;
     vLocalPos.xy -= (half_size + cmi.local_pos) * vi.local_pos.w;
-    vClipParams = vec3(half_size - vec2(radius), radius);
+    v_clip_size = half_size;
+    v_clip_radii = vec4(
+      clip.bottom_right.outer_inner_radius.x,
+      clip.top_right.outer_inner_radius.x,
+      clip.bottom_left.outer_inner_radius.x,
+      clip.top_left.outer_inner_radius.x
+    );
 #else
     RectWithEndpoint clip_rect = local_rect;
 
@@ -156,14 +162,15 @@ void main(void) {
 #ifdef WR_FRAGMENT_SHADER
 
 #ifdef WR_FEATURE_FAST_PATH
-// See http://www.iquilezles.org/www/articles/distfunctions2d/distfunctions2d.htm
-float sd_box(in vec2 pos, in vec2 box_size) {
-    vec2 d = abs(pos) - box_size;
-    return length(max(d, vec2(0.0))) + min(max(d.x,d.y), 0.0);
-}
-
-float sd_rounded_box(in vec2 pos, in vec2 box_size, in float radius) {
-    return sd_box(pos, box_size) - radius;
+// See https://www.shadertoy.com/view/4llXD7
+// Notes:
+//  * pos is centered in the origin (so 0,0 is the center of the box).
+//  * The border radii must not be larger than half_box_size.
+float sd_round_box(in vec2 pos, in vec2 half_box_size, in vec4 radii) {
+    radii.xy = (pos.x > 0.0) ? radii.xy : radii.zw;
+    radii.x  = (pos.y > 0.0) ? radii.x  : radii.y;
+    vec2 q = abs(pos) - half_box_size + radii.x;
+    return min(max(q.x, q.y), 0.0) + length(max(q, 0.0)) - radii.x;
 }
 #endif
 
@@ -172,7 +179,7 @@ void main(void) {
     float aa_range = compute_aa_range(local_pos);
 
 #ifdef WR_FEATURE_FAST_PATH
-    float dist = sd_rounded_box(local_pos, vClipParams.xy, vClipParams.z);
+    float dist = sd_round_box(local_pos, v_clip_size, v_clip_radii);
 #else
     float dist = distance_to_rounded_rect(
         local_pos,
@@ -254,12 +261,11 @@ void swgl_drawSpanR8() {
 
     // We need to know the bounds of the aligned rectangle portion of the rrect
     // in local-space. If we're using the fast-path, this is specified as the
-    // inner bounding-box half-width of the rrect and the uniform outer radius
-    // of the corners in vClipParams, which we map to the outer bounding-box.
-    // For the general case, we have already stored the outer bounding box in
-    // vTransformBounds.
+    // half-width of the rrect in v_clip_size, which we map to the outer
+    // bounding-box. For the general case, we have already stored the outer
+    // bounding box in vTransformBounds.
     #ifdef WR_FEATURE_FAST_PATH
-        vec4 clip_rect = vec4(-vClipParams.xy - vClipParams.z, vClipParams.xy + vClipParams.z);
+        vec4 clip_rect = vec4(-v_clip_size, v_clip_size);
     #else
         vec4 clip_rect = vTransformBounds;
     #endif
@@ -343,23 +349,25 @@ void swgl_drawSpanR8() {
     } while (false)
 
     #ifdef WR_FEATURE_FAST_PATH
-        // For the fast-path, we only have the half-width of the inner bounding
+        // For the fast-path, we only have the half-width of the outer bounding
         // box. We need to map this to points that fall on the diagonal of the
         // half-space for each corner. To do this we just need to push out the
         // vertex in the right direction on a single axis, leaving the other
         // unchanged.
-        // However, since the corner radii are all the same, and since the local
+        // However, since the corner radii are symmetric, and since the local
         // origin of each ellipse is assumed to be at (0, 0), the plane offset
-        // of the half-space is the same for each case. So given a corner offset
-        // of (x+z, y) and a vector of (z, z), the dot product becomes:
-        //   (x+z)*z + y*z == x*z + y*z + z*z 
+        // of the half-space is similar for each case.
+        // So for a given corner radii of z, given a corner offset (x, y - z)
+        // and a vector of (z, z), the dot product becomes:
+        //   x * z + (y-z)*z == x*z + y*z - z*z
         // The direction vector of the corner half-space has constant length,
         // but just needs an appropriate direction set.
-        float offset = (vClipParams.x + vClipParams.y + vClipParams.z) * vClipParams.z;
-        vec3 plane_tl = vec3(-vClipParams.zz, offset);
-        vec3 plane_tr = vec3(vClipParams.z, -vClipParams.z, offset);
-        vec3 plane_br = vec3(vClipParams.zz, offset);
-        vec3 plane_bl = vec3(-vClipParams.z, vClipParams.z, offset);
+        #define OFFSET_FOR(radii) \
+          (v_clip_size.x + v_clip_size.y - radii) * radii
+        vec3 plane_br = vec3(v_clip_radii.xx, OFFSET_FOR(v_clip_radii.x));
+        vec3 plane_tr = vec3(v_clip_radii.y, -v_clip_radii.y, OFFSET_FOR(v_clip_radii.y));
+        vec3 plane_bl = vec3(-v_clip_radii.z, v_clip_radii.z, OFFSET_FOR(v_clip_radii.z));
+        vec3 plane_tl = vec3(-v_clip_radii.ww, OFFSET_FOR(v_clip_radii.w));
 
         #define SET_CORNER(corner, info)
 
@@ -371,9 +379,9 @@ void swgl_drawSpanR8() {
 
         // Later we need to calculate distance AA for both corners and the
         // outer bounding rect. For the fast-path, this is all done inside
-        // sd_rounded_box.
+        // sd_round_box.
         #define AA_RECT(local_pos) \
-            sd_rounded_box(local_pos, vClipParams.xy, vClipParams.z)
+            sd_round_box(local_pos, v_clip_size, v_clip_radii)
     #else
         // For the general case, we need to remember which of the actual start
         // and end corners we intersect, so that we can evaluate the curve AA

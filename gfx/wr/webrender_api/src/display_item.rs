@@ -2050,22 +2050,30 @@ impl BorderRadius {
         }
     }
 
-    pub fn is_uniform(&self) -> Option<f32> {
-        match self.is_uniform_size() {
-            Some(radius) if radius.width == radius.height => Some(radius.width),
-            _ => None,
-        }
+    pub fn all_sides_uniform(&self) -> bool {
+        let corner_is_uniform = |corner: &LayoutSize| corner.width == corner.height;
+        corner_is_uniform(&self.top_left) &&
+        corner_is_uniform(&self.top_right) &&
+        corner_is_uniform(&self.bottom_right) &&
+        corner_is_uniform(&self.bottom_left)
     }
 
-    pub fn is_uniform_size(&self) -> Option<LayoutSize> {
-        let uniform_radius = self.top_left;
-        if self.top_right == uniform_radius && self.bottom_left == uniform_radius &&
-            self.bottom_right == uniform_radius
-        {
-            Some(uniform_radius)
-        } else {
-            None
+    pub fn can_use_fast_path_in(&self, rect: &LayoutRect) -> bool {
+        if !self.all_sides_uniform() {
+            // The fast path needs uniform sides.
+            return false;
         }
+        // The shader code that evaluates the rounded corners in the fast path relies on each
+        // corner fitting into their quadrant of the quad. In other words the radius cannot
+        // exceed half of the length of the sides they are on. That necessarily holds if all the
+        // radii are the same.
+        let tl = self.top_left.width;
+        if tl == self.bottom_right.width && tl == self.top_right.width && tl == self.bottom_left.width {
+            return true;
+        }
+        let half_size = rect.size() * 0.5;
+        let fits = |v: f32| v <= half_size.width && v <= half_size.height;
+        fits(tl) && fits(self.bottom_right.width) && fits(self.top_right.width) && fits(self.bottom_left.width)
     }
 
     /// Return whether, in each corner, the radius in *either* direction is zero.

@@ -9,7 +9,8 @@
 varying highp vec4 vClipLocalPos;
 
 #ifdef WR_FEATURE_FAST_PATH
-flat varying highp vec3 v_clip_params;      // xy = box size, z = radius
+flat varying highp vec4 v_clip_radii;
+flat varying highp vec2 v_clip_size;
 #else
 flat varying highp vec4 vClipCenter_Radius_TL;
 flat varying highp vec4 vClipCenter_Radius_TR;
@@ -84,12 +85,13 @@ void pattern_vertex(PrimitiveInfo prim_info) {
     vClipMode.x = clip.mode;
 
 #ifdef WR_FEATURE_FAST_PATH
-    // If the radii are all uniform, we can use a much simpler 2d
-    // signed distance function to get a rounded rect clip.
+    // If the radii are uniform, we can use a simpler 2d signed distance
+    // function to get a rounded rect clip.
     vec2 half_size = 0.5 * (clip.rect.p1 - clip.rect.p0);
-    float radius = clip.radii.x;
+    // Center the position in the box.
     vClipLocalPos.xy -= (half_size + clip.rect.p0) * vClipLocalPos.w;
-    v_clip_params = vec3(half_size - vec2(radius), radius);
+    v_clip_size = half_size;
+    v_clip_radii = clip.radii;
 #else
     vec2 r_tl = clip.radii_top.xy;
     vec2 r_tr = clip.radii_top.zw;
@@ -140,14 +142,15 @@ void pattern_vertex(PrimitiveInfo prim_info) {
 #ifdef WR_FRAGMENT_SHADER
 
 #ifdef WR_FEATURE_FAST_PATH
-// See http://www.iquilezles.org/www/articles/distfunctions2d/distfunctions2d.htm
-float sd_box(in vec2 pos, in vec2 box_size) {
-    vec2 d = abs(pos) - box_size;
-    return length(max(d, vec2(0.0))) + min(max(d.x,d.y), 0.0);
-}
-
-float sd_rounded_box(in vec2 pos, in vec2 box_size, in float radius) {
-    return sd_box(pos, box_size) - radius;
+// See https://www.shadertoy.com/view/4llXD7
+// Notes:
+//  * pos is centered in the origin (so 0,0 is the center of the box).
+//  * The border radii must not be larger than half_box_size.
+float sd_round_box(in vec2 pos, in vec2 half_box_size, in vec4 radii) {
+    radii.xy = (pos.x > 0.0) ? radii.xy : radii.zw;
+    radii.x  = (pos.y > 0.0) ? radii.x  : radii.y;
+    vec2 q = abs(pos) - half_box_size + radii.x;
+    return min(max(q.x, q.y), 0.0) + length(max(q, 0.0)) - radii.x;
 }
 #endif
 
@@ -156,7 +159,7 @@ vec4 pattern_fragment(vec4 _base_color) {
     float aa_range = compute_aa_range(clip_local_pos);
 
 #ifdef WR_FEATURE_FAST_PATH
-    float dist = sd_rounded_box(clip_local_pos, v_clip_params.xy, v_clip_params.z);
+    float dist = sd_round_box(clip_local_pos, v_clip_size, v_clip_radii);
 #else
     vec3 plane_tl = vec3(vClipPlane_A.x, vClipPlane_A.y, vClipPlane_A.z);
     vec3 plane_tr = vec3(vClipPlane_A.w, vClipPlane_B.x, vClipPlane_B.y);
