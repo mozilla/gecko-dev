@@ -42,10 +42,6 @@ export class MegalistViewModel {
     MegalistViewModel.#aggregator.attachViewModel(this);
   }
 
-  get authExpirationTime() {
-    return this.#authExpirationTime;
-  }
-
   willDestroy() {
     MegalistViewModel.#aggregator.detachViewModel(this);
   }

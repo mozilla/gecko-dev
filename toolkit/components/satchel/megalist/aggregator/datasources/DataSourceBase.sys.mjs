@@ -77,10 +77,6 @@ export class DataSourceBase {
 
   async localizeStrings(strings) {
     const keys = Object.keys(strings);
-    // On Linux there are no translation id's for OS auth messsages because it
-    // is not supported (see getPlatformFtl), so we need to filter them out
-    // to stay consistent with l10nObj.
-    const validKeys = keys.filter(key => !!strings[key]?.id);
     const l10nObj = Object.values(strings)
       .filter(({ id }) => id)
       .map(({ id, args = {} }) => ({ id, args }));
@@ -94,7 +90,7 @@ export class DataSourceBase {
           {}
         );
       }
-      strings[validKeys[i]] = value;
+      strings[keys[i]] = value;
     }
     return strings;
   }

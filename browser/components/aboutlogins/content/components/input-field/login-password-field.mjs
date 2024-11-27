@@ -10,30 +10,35 @@ class LoginPasswordField extends MozLitElement {
   static CONCEALED_PASSWORD_TEXT = " ".repeat(8);
 
   static properties = {
-    value: { type: String },
+    _value: { type: String, state: true },
     name: { type: String },
-    newPassword: { type: Boolean },
+    readonly: { type: Boolean, reflect: true },
     visible: { type: Boolean, reflect: true },
     required: { type: Boolean, reflect: true },
-    onRevealClick: { type: Function },
   };
 
   static queries = {
     input: "input",
-    label: "label",
-    button: "moz-button",
+    button: "button",
   };
+
+  static formAssociated = true;
 
   constructor() {
     super();
-    this.value = "";
+    this._value = "";
   }
 
   connectedCallback() {
     super.connectedCallback();
+    this.internals.setFormValue(this._value);
     this.addEventListener("input", e => {
-      this.value = e.composedTarget.value;
+      this.internals.setFormValue(e.composedTarget.value);
     });
+  }
+
+  set value(newValue) {
+    this._value = newValue;
   }
 
   get #type() {
@@ -41,21 +46,15 @@ class LoginPasswordField extends MozLitElement {
   }
 
   get #password() {
-    return !this.newPassword && !this.visible
+    return this.readonly && !this.visible
       ? LoginPasswordField.CONCEALED_PASSWORD_TEXT
-      : this.value;
+      : this._value;
   }
 
   #revealIconSrc(concealed) {
     return concealed
       ? "chrome://browser/content/aboutlogins/icons/password-hide.svg"
       : "chrome://browser/content/aboutlogins/icons/password.svg";
-  }
-
-  updated(changedProperties) {
-    if (changedProperties.has("visible") && !changedProperties.visible) {
-      this.input.selectionStart = this.value.length;
-    }
   }
 
   render() {
@@ -79,32 +78,28 @@ class LoginPasswordField extends MozLitElement {
         class="reveal-password-button"
         type="icon ghost"
         iconSrc=${this.#revealIconSrc(this.visible)}
-        @mousedown=${() => {
-          /* Programmatically focus the button on mousedown instead of waiting for focus on click
-           * because the blur event occurs before the click event.
-           */
-          this.button.focus();
-        }}
-        @click=${this.onRevealClick}
+        @click=${this.toggleVisibility}
       ></moz-button>
     `;
   }
 
-  handleFocus() {
-    if (this.visible) {
-      return;
+  handleFocus(ev) {
+    if (ev.relatedTarget !== this.button) {
+      this.visible = true;
     }
-    this.onRevealClick();
   }
 
   handleBlur(ev) {
-    if (ev.relatedTarget === this.button || ev.relatedTarget === this.label) {
-      return;
+    if (ev.relatedTarget !== this.button) {
+      this.visible = false;
     }
-    if (!this.visible) {
-      return;
+  }
+
+  toggleVisibility() {
+    this.visible = !this.visible;
+    if (this.visible) {
+      this.onPasswordVisible?.();
     }
-    this.onRevealClick();
   }
 }
 

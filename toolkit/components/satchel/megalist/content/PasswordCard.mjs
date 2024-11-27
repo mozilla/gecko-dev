@@ -21,8 +21,6 @@ export class PasswordCard extends MozLitElement {
     password: { type: Object },
     messageToViewModel: { type: Function },
     reauthCommandHandler: { type: Function },
-    onPasswordRevealClick: { type: Function },
-    handleEditButtonClick: { type: Function },
   };
 
   static get queries() {
@@ -111,19 +109,8 @@ export class PasswordCard extends MozLitElement {
     this.messageToViewModel("Command", { commandId, snapshotId: lineIndex });
   }
 
-  async onEditButtonClick() {
-    const isAuthenticated = await this.reauthCommandHandler(() =>
-      this.messageToViewModel("Command", {
-        commandId: "Edit",
-        snapshotId: this.password.lineIndex,
-      })
-    );
-
-    if (!isAuthenticated) {
-      return;
-    }
-
-    this.handleEditButtonClick();
+  onEditButtonClick() {
+    // TODO: Implement me!
   }
 
   #onOriginLineClick(lineIndex) {
@@ -132,6 +119,14 @@ export class PasswordCard extends MozLitElement {
 
   #onCopyButtonClick(lineIndex) {
     this.handleCommand("Copy", lineIndex);
+  }
+
+  #onPasswordRevealClick(concealed, lineIndex) {
+    if (concealed) {
+      this.handleCommand("Reveal", lineIndex);
+    } else {
+      this.handleCommand("Conceal", lineIndex);
+    }
   }
 
   renderOriginField() {
@@ -193,7 +188,7 @@ export class PasswordCard extends MozLitElement {
           )}
         .onButtonClick=${() =>
           this.reauthCommandHandler(() =>
-            this.onPasswordRevealClick(
+            this.#onPasswordRevealClick(
               this.password.concealed,
               this.password.lineIndex
             )
