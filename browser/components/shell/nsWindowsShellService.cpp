@@ -133,7 +133,7 @@ static nsresult PinCurrentAppToTaskbarWin10(bool aCheckOnly,
                                             const nsAString& aAppUserModelId,
                                             const nsAString& aShortcutPath);
 static nsresult WriteBitmap(nsIFile* aFile, imgIContainer* aImage);
-static nsresult WriteIcon(nsIFile* aIcoFile, imgIContainer* aImage);
+static nsresult WriteIcon(nsIFile* aIcoFile, gfx::DataSourceSurface* aSurface);
 
 static nsresult OpenKeyForReading(HKEY aKeyRoot, const nsAString& aKeyName,
                                   HKEY* aKey) {
@@ -462,16 +462,29 @@ nsWindowsShellService::CreateWindowsIcon(nsIFile* aIcoFile,
   auto promiseHolder = MakeRefPtr<nsMainThreadPtrHolder<dom::Promise>>(
       "CreateWindowsIcon promise", promise);
 
+  MOZ_LOG(sLog, LogLevel::Debug,
+          ("%s:%d - Reading input image...\n", __FILE__, __LINE__));
+
+  RefPtr<gfx::SourceSurface> surface = aImage->GetFrame(
+      imgIContainer::FRAME_FIRST, imgIContainer::FLAG_SYNC_DECODE);
+  NS_ENSURE_TRUE(surface, NS_ERROR_FAILURE);
+
+  // At time of writing only `DataSourceSurface` was guaranteed thread safe. We
+  // need this guarantee to write the icon file off the main thread.
+  RefPtr<gfx::DataSourceSurface> dataSurface = surface->GetDataSurface();
+  NS_ENSURE_TRUE(dataSurface, NS_ERROR_FAILURE);
+
+  MOZ_LOG(sLog, LogLevel::Debug,
+          ("%s:%d - Surface found, writing icon... \n", __FILE__, __LINE__));
+
   NS_DispatchBackgroundTask(
       NS_NewRunnableFunction(
           "CreateWindowsIcon",
-          [icoFile = nsCOMPtr<nsIFile>(aIcoFile),
-           image = nsCOMPtr<imgIContainer>(aImage),
-           promiseHolder = std::move(promiseHolder)] {
-            nsresult rv = WriteIcon(icoFile, image);
+          [icoFile = nsCOMPtr<nsIFile>(aIcoFile), dataSurface, promiseHolder] {
+            nsresult rv = WriteIcon(icoFile, dataSurface);
+
             NS_DispatchToMainThread(NS_NewRunnableFunction(
-                "CreateWindowsIcon callback",
-                [rv, promiseHolder = std::move(promiseHolder)] {
+                "CreateWindowsIcon callback", [rv, promiseHolder] {
                   dom::Promise* promise = promiseHolder.get()->get();
 
                   if (NS_SUCCEEDED(rv)) {
@@ -487,28 +500,19 @@ nsWindowsShellService::CreateWindowsIcon(nsIFile* aIcoFile,
   return NS_OK;
 }
 
-static nsresult WriteIcon(nsIFile* aIcoFile, imgIContainer* aImage) {
-  MOZ_LOG(sLog, LogLevel::Debug,
-          ("%s:%d - Reading input image...\n", __FILE__, __LINE__));
+static nsresult WriteIcon(nsIFile* aIcoFile, gfx::DataSourceSurface* aSurface) {
+  NS_ENSURE_ARG(aIcoFile);
+  NS_ENSURE_ARG(aSurface);
 
-  RefPtr<gfx::SourceSurface> surface = aImage->GetFrame(
-      imgIContainer::FRAME_FIRST, imgIContainer::FLAG_SYNC_DECODE);
-  NS_ENSURE_TRUE(surface, NS_ERROR_FAILURE);
-
-  MOZ_LOG(sLog, LogLevel::Debug,
-          ("%s:%d - Surface found, writing icon... \n", __FILE__, __LINE__));
-
-  const gfx::IntSize size = surface->GetSize();
+  const gfx::IntSize size = aSurface->GetSize();
   if (size.IsEmpty()) {
     MOZ_LOG(sLog, LogLevel::Debug,
             ("%s:%d - The input image looks empty :(\n", __FILE__, __LINE__));
     return NS_ERROR_FAILURE;
   }
 
-  RefPtr<gfx::DataSourceSurface> dataSurface = surface->GetDataSurface();
-  NS_ENSURE_TRUE(dataSurface, NS_ERROR_FAILURE);
-  int32_t width = dataSurface->GetSize().width;
-  int32_t height = dataSurface->GetSize().height;
+  int32_t width = aSurface->GetSize().width;
+  int32_t height = aSurface->GetSize().height;
 
   MOZ_LOG(sLog, LogLevel::Debug,
           ("%s:%d - Input image dimensions are: %dx%d pixels\n", __FILE__,
@@ -523,14 +527,12 @@ static nsresult WriteIcon(nsIFile* aIcoFile, imgIContainer* aImage) {
 
   ScopedCloseFile file;
   nsresult rv = aIcoFile->OpenANSIFileDesc("wb", getter_Transfers(file));
-  if (NS_FAILED(rv)) {
-    return rv;
-  }
+  NS_ENSURE_SUCCESS(rv, rv);
 
   MOZ_LOG(sLog, LogLevel::Debug,
           ("%s:%d - Writing icon...\n", __FILE__, __LINE__));
 
-  rv = gfxUtils::EncodeSourceSurface(surface, ImageType::ICO, u""_ns,
+  rv = gfxUtils::EncodeSourceSurface(aSurface, ImageType::ICO, u""_ns,
                                      gfxUtils::eBinaryEncode, file.get());
 
   if (NS_FAILED(rv)) {
