@@ -146,3 +146,26 @@ async function addLocalOriginLogin() {
     origin: "about:preferences#privacy",
   });
 }
+
+function waitForNotification(megalist, notificationId) {
+  info(`Wait for notification with id ${notificationId}.`);
+  const notifcationPromise = BrowserTestUtils.waitForCondition(() => {
+    const notificationMsgBar = megalist.querySelector(
+      "notification-message-bar"
+    );
+    return notificationMsgBar?.notification.id === notificationId;
+  }, `Notification with id ${notificationId} did not render.`);
+  return notifcationPromise;
+}
+
+function setInputValue(loginForm, fieldElement, value) {
+  info(`Filling ${fieldElement} with value '${value}'.`);
+  const field = loginForm.shadowRoot.querySelector(fieldElement);
+  field.input.value = value;
+  field.input.dispatchEvent(
+    new InputEvent("input", {
+      composed: true,
+      bubbles: true,
+    })
+  );
+}

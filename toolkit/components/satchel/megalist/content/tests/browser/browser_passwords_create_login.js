@@ -24,18 +24,6 @@ async function openLoginForm(megalist) {
   return loginFormPromise;
 }
 
-function setInputValue(loginForm, fieldElement, value) {
-  info(`Filling ${fieldElement} with value '${value}'.`);
-  const field = loginForm.shadowRoot.querySelector(fieldElement);
-  field.input.value = value;
-  field.input.dispatchEvent(
-    new InputEvent("input", {
-      composed: true,
-      bubbles: true,
-    })
-  );
-}
-
 function addLogin(megalist, { origin, username, password }) {
   const loginForm = megalist.querySelector("login-form");
   setInputValue(loginForm, "login-origin-field", origin);
@@ -46,17 +34,6 @@ function addLogin(megalist, { origin, username, password }) {
   );
   info("Submitting form.");
   saveButton.buttonEl.click();
-}
-
-function waitForNotification(megalist, notificationId) {
-  info(`Wait for notification with id ${notificationId}.`);
-  const notifcationPromise = BrowserTestUtils.waitForCondition(() => {
-    const notificationMsgBar = megalist.querySelector(
-      "notification-message-bar"
-    );
-    return notificationMsgBar?.notification.id === notificationId;
-  }, `Notification with id ${notificationId} did not render.`);
-  return notifcationPromise;
 }
 
 function waitForSnapshots() {
@@ -115,7 +92,7 @@ add_task(async function test_add_duplicate_login() {
   await waitForSnapshots();
   await openLoginForm(megalist);
   addLogin(megalist, TEST_LOGIN_1);
-  await waitForNotification(megalist, "add-login-already-exists-warning");
+  await waitForNotification(megalist, "login-already-exists-warning");
 
   LoginTestUtils.clearData();
 });
