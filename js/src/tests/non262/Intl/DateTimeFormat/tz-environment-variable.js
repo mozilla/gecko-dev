@@ -40,10 +40,10 @@ function inTimeZone(tzname, fn) {
 }
 
 const timeZones = [
-    { id: "EST5EDT" },
-    { id: "CST6CDT" },
-    { id: "MST7MDT" },
-    { id: "PST8PDT" },
+    { id: "EST5EDT", normalized: "America/New_York" },
+    { id: "CST6CDT", normalized: "America/Chicago" },
+    { id: "MST7MDT", normalized: "America/Denver" },
+    { id: "PST8PDT", normalized: "America/Los_Angeles" },
     // ICU on non-Windows platforms doesn't accept these three time zone
     // identifiers, cf. isValidOlsonID in $ICU/source/common/putil.cpp. We
     // could add support for them, but it seems unlikely they're used in
