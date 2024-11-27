@@ -10,9 +10,9 @@
 #ifndef SBEntries_h__
 #define SBEntries_h__
 
+#include "mozilla/crypto_hash_sha2.h"
 #include "nsTArray.h"
 #include "nsString.h"
-#include "nsICryptoHash.h"
 #include "nsNetUtil.h"
 #include "nsIOutputStream.h"
 #include "nsClassHashtable.h"
@@ -39,27 +39,10 @@ struct SafebrowsingHash {
     // From the protocol doc:
     // Each entry in the chunk is composed
     // of the SHA 256 hash of a suffix/prefix expression.
-    nsresult rv;
-    nsCOMPtr<nsICryptoHash> hash =
-        do_CreateInstance(NS_CRYPTO_HASH_CONTRACTID, &rv);
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    rv = hash->Init(nsICryptoHash::SHA256);
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    rv = hash->Update(
-        reinterpret_cast<const uint8_t*>(aPlainText.BeginReading()),
-        aPlainText.Length());
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    nsAutoCString hashed;
-    rv = hash->Finish(false, hashed);
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    NS_ASSERTION(hashed.Length() >= sHashSize,
-                 "not enough characters in the hash");
-
-    memcpy(buf, hashed.BeginReading(), sHashSize);
+    uint8_t hash[COMPLETE_SIZE];
+    crypto_hash_sha256(reinterpret_cast<const uint8_t*>(aPlainText.Data()),
+                       aPlainText.Length(), hash);
+    memcpy(buf, hash, sHashSize);
 
     return NS_OK;
   }

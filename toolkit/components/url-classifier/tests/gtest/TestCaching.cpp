@@ -5,6 +5,7 @@
 
 #include "Common.h"
 #include "LookupCacheV4.h"
+#include "nsICryptoHash.h"
 
 #define EXPIRED_TIME_SEC (PR_Now() / PR_USEC_PER_SEC - 3600)
 #define NOTEXPIRED_TIME_SEC (PR_Now() / PR_USEC_PER_SEC + 3600)

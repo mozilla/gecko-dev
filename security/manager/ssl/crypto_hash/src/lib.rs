@@ -13,6 +13,7 @@ extern crate sha2;
 extern crate xpcom;
 
 use base64::Engine;
+use digest::generic_array::GenericArray;
 use digest::{Digest, DynDigest};
 use nserror::{
     nsresult, NS_ERROR_FAILURE, NS_ERROR_INVALID_ARG, NS_ERROR_NOT_AVAILABLE,
@@ -184,4 +185,28 @@ pub extern "C" fn crypto_hash_constructor(
         digest: Mutex::new(None),
     });
     unsafe { crypto_hash.QueryInterface(iid, result) }
+}
+
+// 32 bytes will be written to `output` so it must point at a buffer
+// at least that big.
+#[no_mangle]
+pub extern "C" fn crypto_hash_sha256(
+    data: *const u8,
+    length: usize,
+    result: *mut u8,
+) {
+    let mut hasher = sha2::Sha256::new();
+    // slice::from_raw_parts doesn't want a null pointer. We'll handle that here
+    // so the caller doesn't have to worry about it.
+    let data = if data.is_null() {
+        &[]
+    } else {
+        unsafe { std::slice::from_raw_parts(data, length) }
+    };
+    // Sha256 implements both Digest and DynDigest so use function call syntax instead of a method
+    // call to disambiguate
+    Digest::update(&mut hasher, data);
+    let result = unsafe { std::slice::from_raw_parts_mut(result, 32) };
+    let result = GenericArray::from_mut_slice(result);
+    Digest::finalize_into(hasher, result);
 }

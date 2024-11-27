@@ -8,6 +8,7 @@
 #include "mozilla/Components.h"
 #include "mozilla/Unused.h"
 #include "nsAppDirectoryServiceDefs.h"
+#include "nsICryptoHash.h"
 #include "nsIFile.h"
 #include "nsThreadUtils.h"
 #include "string.h"
