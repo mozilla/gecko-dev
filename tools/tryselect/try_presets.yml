@@ -232,6 +232,25 @@ mochitest-bc:
         - "'browser-chrome !tsan !asan !msix !spi !a11y !swr | 'linux"
     selector: fuzzy
 
+os_integration:
+    selector: fuzzy
+    description: >-
+        run tests that have os_integration tag.
+    env:
+        - MOZHARNESS_TEST_TAG=["os_integration"]
+    query:
+        - "'source-test-python"
+        - "'opt-talos- !swr !nightly !damp   'xperf | 'other | 'webgl"
+        - "'perftest        !nightly         'service-worker | 'startup-geckoview"
+        - "'browsertime     !nightly         speedometer3"
+        - "'browsertime     !nightly         firefox billgates-ama"
+        - "'browsertime     !nightly         firefox playback-widevine"
+        - "'browsertime     !nightly         tp6-essential-firefox amazon"
+        - "'marionette      !-cf        !unit   !64-qr/opt !64/opt !2009-qr/opt"
+        - "'mochitest-      !-cf        !webgl !-gpu !devtools !dfpi !nofis !a11y !trans !wmfme !64-qr/opt !64/opt !2009-qr/opt"
+        - "'mochitest-webgl1-core !-cf  !64-qr/opt !64/opt !2009-qr/opt"
+        - "'xpcshell        !64-qr/opt !64/opt !2009-qr/opt"
+
 perf:
     selector: fuzzy
     description: >-
