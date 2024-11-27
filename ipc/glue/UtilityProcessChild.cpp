@@ -49,6 +49,10 @@
 
 #include "mozilla/Services.h"
 
+namespace TelemetryScalar {
+void Set(mozilla::Telemetry::ScalarID aId, uint32_t aValue);
+}
+
 namespace mozilla::ipc {
 
 using namespace layers;
@@ -256,7 +260,7 @@ mozilla::ipc::IPCResult UtilityProcessChild::RecvTestTriggerMetrics(
 
 mozilla::ipc::IPCResult UtilityProcessChild::RecvTestTelemetryProbes() {
   const uint32_t kExpectedUintValue = 42;
-  Telemetry::ScalarSet(Telemetry::ScalarID::TELEMETRY_TEST_UTILITY_ONLY_UINT,
+  TelemetryScalar::Set(Telemetry::ScalarID::TELEMETRY_TEST_UTILITY_ONLY_UINT,
                        kExpectedUintValue);
   return IPC_OK();
 }

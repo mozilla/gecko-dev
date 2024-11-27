@@ -11,6 +11,7 @@
 #include "mozilla/glean/bindings/ScalarGIFFTMap.h"
 #include "mozilla/glean/fog_ffi_generated.h"
 #include "nsString.h"
+#include "GIFFTFwd.h"
 
 namespace mozilla::glean {
 
@@ -24,12 +25,12 @@ void QuantityMetric::Set(int64_t aValue) const {
       theValue = std::numeric_limits<uint32_t>::max();
     }
     if (scalarId) {
-      Telemetry::ScalarSet(scalarId.extract(), theValue);
+      TelemetryScalar::Set(scalarId.extract(), theValue);
     } else if (IsSubmetricId(mId)) {
       GetLabeledMirrorLock().apply([&](const auto& lock) {
         auto tuple = lock.ref()->MaybeGet(mId);
         if (tuple) {
-          Telemetry::ScalarSet(std::get<0>(tuple.ref()),
+          TelemetryScalar::Set(std::get<0>(tuple.ref()),
                                std::get<1>(tuple.ref()), theValue);
         }
       });

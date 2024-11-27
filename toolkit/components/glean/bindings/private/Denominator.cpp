@@ -11,6 +11,7 @@
 #include "mozilla/dom/GleanMetricsBinding.h"
 #include "mozilla/glean/bindings/ScalarGIFFTMap.h"
 #include "mozilla/glean/fog_ffi_generated.h"
+#include "GIFFTFwd.h"
 
 namespace mozilla::glean {
 
@@ -19,7 +20,7 @@ namespace impl {
 void DenominatorMetric::Add(int32_t aAmount) const {
   auto scalarId = ScalarIdForMetric(mId);
   if (scalarId && aAmount >= 0) {
-    Telemetry::ScalarAdd(scalarId.extract(), aAmount);
+    TelemetryScalar::Add(scalarId.extract(), aAmount);
   }
   fog_denominator_add(mId, aAmount);
 }

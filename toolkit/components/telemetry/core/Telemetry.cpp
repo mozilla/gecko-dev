@@ -1908,39 +1908,6 @@ void SetProfileDir(nsIFile* aProfD) {
   sTelemetryIOObserver->AddPath(profDirPath, u"{profile}"_ns);
 }
 
-// Scalar API C++ Endpoints
-
-void ScalarAdd(mozilla::Telemetry::ScalarID aId, uint32_t aVal) {
-  TelemetryScalar::Add(aId, aVal);
-}
-
-void ScalarSet(mozilla::Telemetry::ScalarID aId, uint32_t aVal) {
-  TelemetryScalar::Set(aId, aVal);
-}
-
-void ScalarSet(mozilla::Telemetry::ScalarID aId, bool aVal) {
-  TelemetryScalar::Set(aId, aVal);
-}
-
-void ScalarSet(mozilla::Telemetry::ScalarID aId, const nsAString& aVal) {
-  TelemetryScalar::Set(aId, aVal);
-}
-
-void ScalarAdd(mozilla::Telemetry::ScalarID aId, const nsAString& aKey,
-               uint32_t aVal) {
-  TelemetryScalar::Add(aId, aKey, aVal);
-}
-
-void ScalarSet(mozilla::Telemetry::ScalarID aId, const nsAString& aKey,
-               uint32_t aVal) {
-  TelemetryScalar::Set(aId, aKey, aVal);
-}
-
-void ScalarSet(mozilla::Telemetry::ScalarID aId, const nsAString& aKey,
-               bool aVal) {
-  TelemetryScalar::Set(aId, aKey, aVal);
-}
-
 void ShutdownTelemetry() { TelemetryImpl::ShutdownTelemetry(); }
 
 }  // namespace mozilla::Telemetry
