@@ -2627,6 +2627,10 @@ static nsresult ProfileMissingDialog(nsINativeAppSupport* aNative) {
   rv = xpcom.SetWindowCreator(aNative);
   NS_ENSURE_SUCCESS(rv, NS_ERROR_FAILURE);
 
+#  ifdef XP_MACOSX
+  InitializeMacApp();
+#  endif
+
   {  // extra scoping is needed so we release these components before xpcom
      // shutdown
     nsCOMPtr<nsIStringBundleService> sbs =
@@ -2657,7 +2661,7 @@ static nsresult ProfileMissingDialog(nsINativeAppSupport* aNative) {
 
     return NS_ERROR_ABORT;
   }
-#endif    // MOZ_WIDGET_ANDROID
+#endif  // MOZ_WIDGET_ANDROID
 }
 
 static ReturnAbortOnError ProfileLockedDialog(nsIFile* aProfileDir,
@@ -3255,6 +3259,10 @@ static ReturnAbortOnError CheckDowngrade(nsIFile* aProfileDir,
 
     rv = xpcom.SetWindowCreator(aNative);
     NS_ENSURE_SUCCESS(rv, rv);
+
+#  ifdef XP_MACOSX
+    InitializeMacApp();
+#  endif
 
     {  // extra scoping is needed so we release these components before xpcom
        // shutdown
