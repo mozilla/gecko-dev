@@ -128,7 +128,7 @@ declare_args() {
 
   # Used to specify an external OpenSSL include path when not compiling the
   # library that comes with WebRTC (i.e. rtc_build_ssl == 0).
-  rtc_ssl_root = "unused"
+  rtc_ssl_root = ""
 
   # Enable when an external authentication mechanism is used for performing
   # packet authentication for RTP packets instead of libsrtp.
@@ -354,7 +354,7 @@ declare_args() {
 }
 
 # Enable liboam only on non-mozilla builds.
-enable_libaom = !build_with_mozilla
+enable_libaom = true
 
 # Make it possible to provide custom locations for some libraries (move these
 # up into declare_args should we need to actually use them for the GN build).
