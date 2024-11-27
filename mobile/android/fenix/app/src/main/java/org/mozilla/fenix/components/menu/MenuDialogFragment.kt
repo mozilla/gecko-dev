@@ -134,7 +134,7 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                     isFitToContents = true
                     peekHeight = PEEK_HEIGHT.dpToPx(resources.displayMetrics)
                     halfExpandedRatio = EXPANDED_MIN_RATIO
-                    maxHeight = resources.displayMetrics.heightPixels - EXPANDED_OFFSET.dpToPx(resources.displayMetrics)
+                    maxHeight = calculateMenuSheetHeight()
                     state = BottomSheetBehavior.STATE_COLLAPSED
                     hideFriction = HIDING_FRICTION
                 }
@@ -144,9 +144,10 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
 
     override fun onConfigurationChanged(newConfig: Configuration) {
         super.onConfigurationChanged(newConfig)
-        bottomSheetBehavior.maxWidth = calculateMenuSheetWidth()
-        bottomSheetBehavior.maxHeight =
-            resources.displayMetrics.heightPixels - EXPANDED_OFFSET.dpToPx(resources.displayMetrics)
+        bottomSheetBehavior.apply {
+            maxWidth = calculateMenuSheetWidth()
+            maxHeight = calculateMenuSheetHeight()
+        }
     }
 
     @Suppress("LongMethod", "CyclomaticComplexMethod")
@@ -751,6 +752,14 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
             screenWidthPx - totalHorizontalPadding
         } else {
             requireContext().resources.getDimensionPixelSize(R.dimen.browser_menu_max_width)
+        }
+    }
+
+    private fun calculateMenuSheetHeight(): Int {
+        return if (requireContext().isLandscape()) {
+            resources.displayMetrics.heightPixels
+        } else {
+            resources.displayMetrics.heightPixels - EXPANDED_OFFSET.dpToPx(resources.displayMetrics)
         }
     }
 }
