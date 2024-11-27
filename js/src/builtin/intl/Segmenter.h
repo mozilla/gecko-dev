@@ -198,6 +198,11 @@ class SegmentsObject : public NativeObject {
     setFixedSlot(STRING_CHARS_SLOT, PrivateValue(chars.tagged()));
   }
 
+  bool hasLatin1StringChars() const {
+    MOZ_ASSERT(hasStringChars());
+    return getStringChars().has<JS::Latin1Char>();
+  }
+
   int32_t getIndex() const {
     const auto& slot = getFixedSlot(INDEX_SLOT);
     if (slot.isUndefined()) {
@@ -293,6 +298,11 @@ class SegmentIteratorObject : public NativeObject {
 
   void setStringChars(SegmentsStringChars chars) {
     setFixedSlot(STRING_CHARS_SLOT, PrivateValue(chars.tagged()));
+  }
+
+  bool hasLatin1StringChars() const {
+    MOZ_ASSERT(hasStringChars());
+    return getStringChars().has<JS::Latin1Char>();
   }
 
   int32_t getIndex() const {
