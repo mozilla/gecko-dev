@@ -10,6 +10,8 @@ support-files = [
 
 ["browser_content_prompt.js"]
 
+["browser_focus_document.js"]
+
 ["browser_test_A11yUtils_announce.js"]
 
 ["browser_test_caret_move_granularity.js"]
