@@ -836,6 +836,10 @@ def test_info_tests(
 )
 @CommandArgument("--output-file", help="Path to report file.")
 @CommandArgument("--runcounts-input-file", help="Optional path to report file.")
+@CommandArgument(
+    "--config-matrix-output-file",
+    help="Path to report the config matrix for each manifest.",
+)
 @CommandArgument("--verbose", action="store_true", help="Enable debug logging.")
 @CommandArgument(
     "--start",
@@ -864,6 +868,7 @@ def test_report(
     end,
     show_testruns,
     runcounts_input_file,
+    config_matrix_output_file,
 ):
     import testinfo
     from mozbuild import build_commands
@@ -892,6 +897,7 @@ def test_report(
         end,
         show_testruns,
         runcounts_input_file,
+        config_matrix_output_file,
     )
 
 
