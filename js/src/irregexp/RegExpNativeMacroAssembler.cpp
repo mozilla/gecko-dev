@@ -998,7 +998,7 @@ void SMRegExpMacroAssembler::JumpOrBacktrack(Label* to) {
 void SMRegExpMacroAssembler::CheckBacktrackStackLimit() {
   js::jit::Label no_stack_overflow;
   masm_.branchPtr(
-      Assembler::BelowOrEqual,
+      Assembler::Below,
       AbsoluteAddress(isolate()->regexp_stack()->limit_address_address()),
       backtrack_stack_pointer_, &no_stack_overflow);
 
