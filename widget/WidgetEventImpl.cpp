@@ -28,6 +28,7 @@
 #include "nsContentUtils.h"
 #include "nsIContent.h"
 #include "nsIDragSession.h"
+#include "nsMathUtils.h"
 #include "nsPrintfCString.h"
 
 #if defined(XP_WIN)
@@ -801,8 +802,8 @@ double WidgetPointerHelper::ComputeAltitudeAngle(int32_t aTiltX,
   if (!aTiltY) {
     return kHalfPi - std::abs(tiltXRadians);
   }
-  return std::atan(1.0 / std::sqrt(std::pow(std::tan(tiltXRadians), 2) +
-                                   std::pow(std::tan(tiltYRadians), 2)));
+  return std::atan(1.0 /
+                   NS_hypot(std::tan(tiltXRadians), std::tan(tiltYRadians)));
 }
 
 // static
