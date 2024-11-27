@@ -23,7 +23,7 @@ GPU_IMPL_CYCLE_COLLECTION(CommandEncoder, mParent, mBridge)
 GPU_IMPL_JS_WRAP(CommandEncoder)
 
 void CommandEncoder::ConvertTextureDataLayoutToFFI(
-    const dom::GPUImageDataLayout& aLayout,
+    const dom::GPUTexelCopyBufferLayout& aLayout,
     ffi::WGPUImageDataLayout* aLayoutFFI) {
   *aLayoutFFI = {};
   aLayoutFFI->offset = aLayout.mOffset;
@@ -42,7 +42,7 @@ void CommandEncoder::ConvertTextureDataLayoutToFFI(
 }
 
 void CommandEncoder::ConvertTextureCopyViewToFFI(
-    const dom::GPUImageCopyTexture& aCopy,
+    const dom::GPUTexelCopyTextureInfo& aCopy,
     ffi::WGPUImageCopyTexture* aViewFFI) {
   *aViewFFI = {};
   aViewFFI->texture = aCopy.mTexture->mId;
@@ -64,7 +64,7 @@ void CommandEncoder::ConvertTextureCopyViewToFFI(
 }
 
 static ffi::WGPUImageCopyTexture ConvertTextureCopyView(
-    const dom::GPUImageCopyTexture& aCopy) {
+    const dom::GPUTexelCopyTextureInfo& aCopy) {
   ffi::WGPUImageCopyTexture view = {};
   CommandEncoder::ConvertTextureCopyViewToFFI(aCopy, &view);
   return view;
@@ -120,8 +120,8 @@ void CommandEncoder::CopyBufferToBuffer(const Buffer& aSource,
 }
 
 void CommandEncoder::CopyBufferToTexture(
-    const dom::GPUImageCopyBuffer& aSource,
-    const dom::GPUImageCopyTexture& aDestination,
+    const dom::GPUTexelCopyBufferInfo& aSource,
+    const dom::GPUTexelCopyTextureInfo& aDestination,
     const dom::GPUExtent3D& aCopySize) {
   if (!mBridge->CanSend()) {
     return;
@@ -138,8 +138,8 @@ void CommandEncoder::CopyBufferToTexture(
   TrackPresentationContext(aDestination.mTexture->mTargetContext);
 }
 void CommandEncoder::CopyTextureToBuffer(
-    const dom::GPUImageCopyTexture& aSource,
-    const dom::GPUImageCopyBuffer& aDestination,
+    const dom::GPUTexelCopyTextureInfo& aSource,
+    const dom::GPUTexelCopyBufferInfo& aDestination,
     const dom::GPUExtent3D& aCopySize) {
   if (!mBridge->CanSend()) {
     return;
@@ -154,8 +154,8 @@ void CommandEncoder::CopyTextureToBuffer(
   mBridge->SendCommandEncoderAction(mId, mParent->mId, std::move(bb));
 }
 void CommandEncoder::CopyTextureToTexture(
-    const dom::GPUImageCopyTexture& aSource,
-    const dom::GPUImageCopyTexture& aDestination,
+    const dom::GPUTexelCopyTextureInfo& aSource,
+    const dom::GPUTexelCopyTextureInfo& aDestination,
     const dom::GPUExtent3D& aCopySize) {
   if (!mBridge->CanSend()) {
     return;
