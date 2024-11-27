@@ -15,156 +15,168 @@ Services.scriptloader.loadSubScript(
   this
 );
 
-let nerResultsMap = {
+let nerResultsMap = {};
+function getNerResult(query, nerExample) {
+  nerResultsMap[query] = nerExample.map(
+    ([entity, index, word, score = 0.999]) => ({
+      entity,
+      index,
+      word,
+      score,
+    })
+  );
+}
+
+let nerExamples = {
   "restaurants in seattle, wa": [
-    {
-      entity: "B-CITYSTATE",
-      score: 0.9999846816062927,
-      index: 3,
-      word: "seattle",
-    },
-    {
-      entity: "I-CITYSTATE",
-      score: 0.9999918341636658,
-      index: 4,
-      word: ",",
-    },
-    {
-      entity: "I-CITYSTATE",
-      score: 0.9999667406082153,
-      index: 5,
-      word: "wa",
-    },
+    ["B-CITYSTATE", 3, "seattle"],
+    ["I-CITYSTATE", 4, ","],
+    ["I-CITYSTATE", 5, "wa"],
   ],
   "hotels in new york, ny": [
-    {
-      entity: "B-CITYSTATE",
-      score: 0.999022364616394,
-      index: 3,
-      word: "new",
-    },
-    {
-      entity: "I-CITYSTATE",
-      score: 0.9999206066131592,
-      index: 4,
-      word: "york",
-    },
-    {
-      entity: "I-CITYSTATE",
-      score: 0.9999917149543762,
-      index: 5,
-      word: ",",
-    },
-    {
-      entity: "I-CITYSTATE",
-      score: 0.9999532103538513,
-      index: 6,
-      word: "ny",
-    },
+    ["B-CITYSTATE", 3, "new"],
+    ["I-CITYSTATE", 4, "york"],
+    ["I-CITYSTATE", 5, ","],
+    ["I-CITYSTATE", 6, "ny"],
   ],
-  "restaurants seattle": [
-    {
-      entity: "B-CITY",
-      score: 0.9980050921440125,
-      index: 2,
-      word: "seattle",
-    },
-  ],
-  "restaurants in seattle": [
-    {
-      entity: "B-CITY",
-      score: 0.9980319738388062,
-      index: 3,
-      word: "seattle",
-    },
-  ],
-  "restaurants near seattle": [
-    {
-      entity: "B-CITY",
-      score: 0.998751163482666,
-      index: 3,
-      word: "seattle",
-    },
-  ],
-  "seattle restaurants": [
-    {
-      entity: "B-CITY",
-      score: 0.8563504219055176,
-      index: 1,
-      word: "seattle",
-    },
-  ],
+  "restaurants seattle": [["B-CITY", 2, "seattle"]],
+  "restaurants in seattle": [["B-CITY", 3, "seattle"]],
+  "restaurants near seattle": [["B-CITY", 3, "seattle"]],
+  "seattle restaurants": [["B-CITY", 1, "seattle"]],
   "seattle wa restaurants": [
-    {
-      entity: "B-CITY",
-      score: 0.5729296207427979,
-      index: 1,
-      word: "seattle",
-    },
-    {
-      entity: "B-STATE",
-      score: 0.7850125432014465,
-      index: 2,
-      word: "wa",
-    },
+    ["B-CITY", 1, "seattle"],
+    ["B-STATE", 2, "wa"],
   ],
   "seattle, wa restaurants": [
-    {
-      entity: "B-CITYSTATE",
-      score: 0.9999499320983887,
-      index: 1,
-      word: "seattle",
-    },
-    {
-      entity: "I-CITYSTATE",
-      score: 0.9999974370002747,
-      index: 2,
-      word: ",",
-    },
-    {
-      entity: "I-CITYSTATE",
-      score: 0.9999855160713196,
-      index: 3,
-      word: "wa",
-    },
+    ["B-CITYSTATE", 1, "seattle"],
+    ["I-CITYSTATE", 2, ","],
+    ["I-CITYSTATE", 3, "wa"],
   ],
-  "dumplings in ca": [
-    {
-      entity: "B-STATE",
-      score: 0.998980700969696,
-      index: 4,
-      word: "ca",
-    },
+  "dumplings in ca": [["B-STATE", 4, "ca"]],
+  "ramen ra": [["B-CITY", 3, "ra"]],
+  "ra ramen": [["B-CITY", 1, "ra"]],
+  "ramen st. louis": [
+    ["B-CITY", 3, "st"],
+    ["I-CITY", 4, "."],
+    ["I-CITY", 5, "louis"],
   ],
-  "ramen ra": [
-    {
-      entity: "B-CITY",
-      score: 0.6767462491989136,
-      index: 3,
-      word: "ra",
-    },
+  "st. louis ramen": [
+    ["B-CITY", 1, "st"],
+    ["I-CITY", 2, "."],
+    ["I-CITY", 3, "louis"],
+  ],
+  "ramen winston-salem": [
+    ["B-CITY", 3, "winston"],
+    ["I-CITY", 4, "-"],
+    ["I-CITY", 5, "salem"],
+  ],
+  "winston-salem ramen": [
+    ["B-CITY", 1, "winston"],
+    ["I-CITY", 2, "-"],
+    ["I-CITY", 3, "salem"],
+  ],
+  "ramen hawai'i": [
+    ["B-CITY", 3, "ha"],
+    ["I-CITY", 4, "##wai"],
+    ["I-CITY", 5, "'"],
+    ["I-CITY", 6, "i"],
+  ],
+  "hawai'i ramen": [
+    ["B-CITY", 1, "ha"],
+    ["I-CITY", 2, "##wai"],
+    ["I-CITY", 3, "'"],
+    ["I-CITY", 4, "i"],
+  ],
+  "cafe in ca": [["B-STATE", 3, "ca"]],
+  "ramen noodles ra ca": [
+    ["B-CITY", 4, "ra"],
+    ["B-STATE", 5, "ca"],
+  ],
+  "ra ca ramen noodles": [
+    ["B-CITY", 1, "ra"],
+    ["B-STATE", 2, "ca"],
   ],
   "plumbers in seattle,wa": [
-    {
-      entity: "B-CITYSTATE",
-      index: 4,
-      score: 0.99997478723526,
-      word: "seattle",
-    },
-    {
-      entity: "I-CITYSTATE",
-      index: 5,
-      score: 0.9999989867210388,
-      word: ",",
-    },
-    {
-      entity: "I-CITYSTATE",
-      index: 6,
-      score: 0.9999985098838806,
-      word: "wa",
-    },
+    ["B-CITYSTATE", 4, "seattle"],
+    ["I-CITYSTATE", 5, ","],
+    ["I-CITYSTATE", 6, "wa"],
+  ],
+  "cafe in san francisco": [
+    ["B-CITY", 3, "san"],
+    ["I-CITY", 4, "francisco"],
+  ],
+  "san francisco cafe": [
+    ["B-CITY", 1, "san"],
+    ["I-CITY", 2, "francisco"],
+  ],
+  "cafe in st. louis": [
+    ["B-CITY", 3, "st"],
+    ["I-CITY", 4, "."],
+    ["I-CITY", 5, "louis"],
+  ],
+  "st. louis cafe": [
+    ["B-CITY", 1, "st"],
+    ["I-CITY", 2, "."],
+    ["I-CITY", 3, "louis"],
+  ],
+  "cafe in winston-salem": [
+    ["B-CITY", 3, "winston"],
+    ["I-CITY", 4, "-"],
+    ["I-CITY", 5, "salem"],
+  ],
+  "winston-salem cafe": [
+    ["B-CITY", 1, "winston"],
+    ["I-CITY", 2, "-"],
+    ["I-CITY", 3, "salem"],
+  ],
+  "cafe in winston-": [
+    ["B-CITY", 3, "winston"],
+    ["I-CITY", 4, "-"],
+  ],
+  "cafe in hawai'i": [
+    ["B-CITY", 3, "ha"],
+    ["I-CITY", 4, "##wai"],
+    ["I-CITY", 5, "'"],
+    ["I-CITY", 6, "i"],
+  ],
+  "hawai'i cafe": [
+    ["B-CITY", 1, "ha"],
+    ["I-CITY", 2, "##wai"],
+    ["I-CITY", 3, "'"],
+    ["I-CITY", 4, "i"],
+  ],
+  "cafe in san francisco, ca": [
+    ["B-ORG", 1, "cafe"],
+    ["B-CITYSTATE", 3, "san"],
+    ["I-CITYSTATE", 4, "francisco"],
+    ["I-CITYSTATE", 5, ","],
+    ["I-CITYSTATE", 6, "ca"],
+  ],
+  "cafe in sf": [["B-CITY", 3, "sf"]],
+  "cafe in san francisco,ca": [
+    ["B-ORG", 1, "cafe"],
+    ["B-CITYSTATE", 3, "san"],
+    ["I-CITYSTATE", 4, "francisco"],
+    ["I-CITYSTATE", 5, ","],
+    ["I-CITYSTATE", 6, "ca"],
+  ],
+  "cafe in san francisco,ca-": [
+    ["B-ORG", 1, "cafe"],
+    ["B-CITYSTATE", 3, "san"],
+    ["I-CITYSTATE", 4, "francisco"],
+    ["I-CITYSTATE", 5, ","],
+    ["I-CITYSTATE", 6, "ca"],
+    ["I-CITYSTATE", 7, "-"],
+  ],
+  "cafe in ca-": [
+    ["B-STATE", 4, "ca"],
+    ["I-STATE", 5, "-"],
   ],
 };
+
+for (const [query, nerExample] of Object.entries(nerExamples)) {
+  getNerResult(query, nerExample);
+}
 
 add_setup(async function () {
   await SpecialPowers.pushPrefEnv({
@@ -414,6 +426,33 @@ class MLEngineWithHighYelpIntent {
   }
 }
 
+// utility function for asserting suggestion
+async function checkSuggestion(query, expected) {
+  let suggestion = await MLSuggest.makeSuggestions(query);
+  Assert.ok(suggestion, "Suggestion should be good");
+  Assert.deepEqual(suggestion.intent, expected.intent);
+  Assert.deepEqual(suggestion.location, expected.location);
+  Assert.deepEqual(suggestion.subject, expected.subject);
+}
+
+// utility to prepare queriesAndExpectations
+function prepQueriesAndExpectations(
+  queryVal,
+  intentVal,
+  cityVal,
+  stateVal,
+  subjectVal
+) {
+  return {
+    query: queryVal,
+    expected: {
+      intent: intentVal,
+      location: { city: cityVal, state: stateVal },
+      subject: subjectVal,
+    },
+  };
+}
+
 add_task(async function test_MLSuggest_city_dup_in_subject() {
   // Restore any previous stubs
   sinon.restore();
@@ -428,16 +467,70 @@ add_task(async function test_MLSuggest_city_dup_in_subject() {
 
   await MLSuggest.initialize();
 
-  let suggestion = await MLSuggest.makeSuggestions("ramen ra");
-  Assert.ok(suggestion, "Suggestion should be good");
-  const expected = {
-    intent: "yelp_intent",
-    location: { city: "ra", state: null },
-    subject: "ramen",
-  };
-  Assert.deepEqual(suggestion.intent, expected.intent);
-  Assert.deepEqual(suggestion.location, expected.location);
-  Assert.deepEqual(suggestion.subject, expected.subject);
+  // syntax for test_examples [[query, intent, city, state, subject]]
+  let testExamples = [
+    ["ramen ra", "yelp_intent", "ra", null, "ramen"],
+    ["ra ramen", "yelp_intent", "ra", null, "ramen"],
+    ["ramen st. louis", "yelp_intent", "st. louis", null, "ramen"],
+    ["st. louis ramen", "yelp_intent", "st. louis", null, "ramen"],
+    ["ramen winston-salem", "yelp_intent", "winston-salem", null, "ramen"],
+    ["winston-salem ramen", "yelp_intent", "winston-salem", null, "ramen"],
+    ["ramen hawai'i", "yelp_intent", "hawai'i", null, "ramen"],
+    ["hawai'i ramen", "yelp_intent", "hawai'i", null, "ramen"],
+    ["cafe in ca", "yelp_intent", null, "ca", "cafe"],
+    ["ramen noodles ra ca", "yelp_intent", "ra", "ca", "ramen noodles"],
+    ["ra ca ramen noodles", "yelp_intent", "ra", "ca", "ramen noodles"],
+  ];
+  let queriesAndExpectations = testExamples.map(args =>
+    prepQueriesAndExpectations(...args)
+  );
+  for (const { query, expected } of queriesAndExpectations) {
+    checkSuggestion(query, expected);
+  }
+
+  await MLSuggest.shutdown();
+  await EngineProcess.destroyMLEngine();
+  await cleanup();
+  sinon.restore();
+});
+
+add_task(async function test_MLSuggest_location_and_subject() {
+  // Restore any previous stubs
+  sinon.restore();
+
+  sinon.stub(MLSuggest, "createEngine").callsFake(() => {
+    return new MLEngineWithHighYelpIntent();
+  });
+  sinon.stub(MLSuggest, "_findNER").callsFake(query => {
+    return nerResultsMap[query] || [];
+  });
+  const { cleanup } = await setup();
+
+  await MLSuggest.initialize();
+
+  // syntax for test_examples [[query, intent, city, state, subject]]
+  let testExamples = [
+    ["cafe in san francisco", "yelp_intent", "san francisco", null, "cafe"],
+    ["san francisco cafe", "yelp_intent", "san francisco", null, "cafe"],
+    ["cafe in st. louis", "yelp_intent", "st. louis", null, "cafe"],
+    ["cafe in winston-salem", "yelp_intent", "winston-salem", null, "cafe"],
+    ["st. louis cafe", "yelp_intent", "st. louis", null, "cafe"],
+    ["winston-salem cafe", "yelp_intent", "winston-salem", null, "cafe"],
+    ["cafe in winston-", "yelp_intent", "winston", null, "cafe"],
+    ["cafe in hawai'i", "yelp_intent", "hawai'i", null, "cafe"],
+    ["hawai'i cafe", "yelp_intent", "hawai'i", null, "cafe"],
+    ["cafe in san francisco, ca", "yelp_intent", "san francisco", "ca", "cafe"],
+    ["cafe in sf", "yelp_intent", "sf", null, "cafe"],
+    ["cafe in san francisco,ca", "yelp_intent", "san francisco", "ca", "cafe"],
+    ["cafe in san francisco,ca-", "yelp_intent", "san francisco", "ca", "cafe"],
+    ["cafe in ca-", "yelp_intent", null, "ca", "cafe"],
+  ];
+  let queriesAndExpectations = testExamples.map(args =>
+    prepQueriesAndExpectations(...args)
+  );
+  for (const { query, expected } of queriesAndExpectations) {
+    checkSuggestion(query, expected);
+  }
 
   await MLSuggest.shutdown();
   await EngineProcess.destroyMLEngine();
