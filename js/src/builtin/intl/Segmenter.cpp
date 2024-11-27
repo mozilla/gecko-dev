@@ -574,7 +574,7 @@ static void DestroyBreakIterator(const T* segments) {
   void* brk = segments->getBreakIterator();
   MOZ_ASSERT(brk);
 
-  bool isLatin1 = segments->getString()->hasLatin1Chars();
+  bool isLatin1 = segments->hasLatin1StringChars();
 
   switch (segments->getGranularity()) {
     case SegmenterGranularity::Grapheme: {
@@ -660,7 +660,7 @@ static Boundaries FindBoundaryFrom(Handle<T*> segments, int32_t index) {
 template <typename T>
 static Boundaries GraphemeBoundaries(Handle<T*> segments, int32_t index) {
 #if defined(MOZ_ICU4X)
-  if (segments->getString()->hasLatin1Chars()) {
+  if (segments->hasLatin1StringChars()) {
     return FindBoundaryFrom<GraphemeClusterSegmenter::BreakIteratorLatin1>(
         segments, index);
   }
@@ -674,7 +674,7 @@ static Boundaries GraphemeBoundaries(Handle<T*> segments, int32_t index) {
 template <typename T>
 static Boundaries WordBoundaries(Handle<T*> segments, int32_t index) {
 #if defined(MOZ_ICU4X)
-  if (segments->getString()->hasLatin1Chars()) {
+  if (segments->hasLatin1StringChars()) {
     return FindBoundaryFrom<WordSegmenter::BreakIteratorLatin1>(segments,
                                                                 index);
   }
@@ -687,7 +687,7 @@ static Boundaries WordBoundaries(Handle<T*> segments, int32_t index) {
 template <typename T>
 static Boundaries SentenceBoundaries(Handle<T*> segments, int32_t index) {
 #if defined(MOZ_ICU4X)
-  if (segments->getString()->hasLatin1Chars()) {
+  if (segments->hasLatin1StringChars()) {
     return FindBoundaryFrom<SentenceSegmenter::BreakIteratorLatin1>(segments,
                                                                     index);
   }
@@ -782,7 +782,7 @@ static bool EnsureBreakIterator(JSContext* cx, Handle<T*> segments,
   }
 
 #if defined(MOZ_ICU4X)
-  bool isLatin1 = segments->getString()->hasLatin1Chars();
+  bool isLatin1 = segments->hasLatin1StringChars();
 
   // Create a new break iterator based on the granularity and character type.
   void* brk;
