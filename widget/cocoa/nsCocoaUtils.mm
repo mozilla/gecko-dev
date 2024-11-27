@@ -793,8 +793,9 @@ Modifiers nsCocoaUtils::ModifiersForEvent(NSEvent* aNativeEvent) {
   // that the event's keyCode falls outside the range of keys that will also set
   // the function modifier.
   if (!!(modifiers & NSEventModifierFlagFunction) &&
-      (aNativeEvent.type == NSKeyDown || aNativeEvent.type == NSKeyUp ||
-       aNativeEvent.type == NSFlagsChanged) &&
+      (aNativeEvent.type == NSEventTypeKeyDown ||
+       aNativeEvent.type == NSEventTypeKeyUp ||
+       aNativeEvent.type == NSEventTypeFlagsChanged) &&
       !(kVK_Return <= aNativeEvent.keyCode &&
         aNativeEvent.keyCode <= NSModeSwitchFunctionKey)) {
     result |= MODIFIER_FN;
