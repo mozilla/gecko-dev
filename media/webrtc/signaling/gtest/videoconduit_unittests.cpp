@@ -2310,7 +2310,8 @@ TEST_F(VideoConduitTest, TestVideoConfigurationH264) {
       h264.profile_level_id = profileLevelId1;
       strncpy(h264.sprop_parameter_sets, sprop1,
               sizeof(h264.sprop_parameter_sets) - 1);
-      VideoCodecConfig codecConfig(97, "H264", EncodingConstraints(), &h264);
+      auto codecConfig =
+          VideoCodecConfig::CreateH264Config(97, EncodingConstraints(), h264);
       codecConfig.mEncodings.emplace_back();
       aControl.mVideoSendCodec = Some(codecConfig);
       aControl.mVideoSendRtpRtcpConfig =
@@ -2331,7 +2332,8 @@ TEST_F(VideoConduitTest, TestVideoConfigurationH264) {
       h264.profile_level_id = profileLevelId2;
       strncpy(h264.sprop_parameter_sets, sprop2,
               sizeof(h264.sprop_parameter_sets) - 1);
-      VideoCodecConfig codecConfig(126, "H264", EncodingConstraints(), &h264);
+      auto codecConfig =
+          VideoCodecConfig::CreateH264Config(126, EncodingConstraints(), h264);
       codecConfig.mEncodings.emplace_back();
       aControl.mVideoSendCodec = Some(codecConfig);
     });
@@ -2341,6 +2343,32 @@ TEST_F(VideoConduitTest, TestVideoConfigurationH264) {
     EXPECT_EQ(params[cricket::kH264FmtpPacketizationMode], "1");
     EXPECT_EQ(params[cricket::kH264FmtpProfileLevelId], "64000c");
     EXPECT_EQ(params[cricket::kH264FmtpSpropParameterSets], sprop2);
+  }
+}
+
+TEST_F(VideoConduitTest, TestVideoConfigurationAV1) {
+  // Test that VideoConduit propagates AV1 configuration data properly.
+  {
+    mControl.Update([&](auto& aControl) {
+      aControl.mTransmitting = true;
+      auto av1Config = JsepVideoCodecDescription::Av1Config();
+
+      av1Config.mProfile = Some(2);
+      av1Config.mLevelIdx = Some(4);
+      av1Config.mTier = Some(1);
+      auto codecConfig = VideoCodecConfig::CreateAv1Config(
+          99, EncodingConstraints(), av1Config);
+      codecConfig.mEncodings.emplace_back();
+      aControl.mVideoSendCodec = Some(codecConfig);
+      aControl.mVideoSendRtpRtcpConfig =
+          Some(RtpRtcpConfig(webrtc::RtcpMode::kCompound));
+    });
+
+    ASSERT_TRUE(Call()->mVideoSendEncoderConfig);
+    auto& params = Call()->mVideoSendEncoderConfig->video_format.parameters;
+    EXPECT_EQ(params[cricket::kAv1FmtpProfile], "2");
+    EXPECT_EQ(params[cricket::kAv1FmtpLevelIdx], "4");
+    EXPECT_EQ(params[cricket::kAv1FmtpTier], "1");
   }
 }
 
