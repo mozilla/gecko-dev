@@ -61,7 +61,7 @@ void ChannelEventQueue::FlushQueue() {
     if (NS_WARN_IF(NS_FAILED(rv))) {
       // Simply run this event on current thread if we are not sure about it
       // in release channel, or assert in Aurora/Nightly channel.
-      MOZ_DIAGNOSTIC_ASSERT(false);
+      MOZ_DIAGNOSTIC_CRASH("IsOnCurrentThread failed");
       isCurrentThread = true;
     }
 

@@ -861,7 +861,7 @@ nsWebBrowser::InitWindow(nsIWidget* aParentWidget, int32_t aX, int32_t aY,
                          int32_t aCX, int32_t aCY) {
   // nsIBaseWindow::InitWindow and nsIBaseWindow::Create
   // implementations have been merged into nsWebBrowser::Create
-  MOZ_DIAGNOSTIC_ASSERT(false);
+  MOZ_DIAGNOSTIC_CRASH("Superceded by nsWebBrowser::Create()");
   return NS_ERROR_NULL_POINTER;
 }
 

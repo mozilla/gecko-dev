@@ -688,7 +688,7 @@ void SandboxLaunch::StartChrootServer() {
   caps.Effective(CAP_SYS_CHROOT) = true;
   if (!caps.SetCurrent()) {
     SANDBOX_LOG_ERRNO("capset (chroot helper)");
-    MOZ_DIAGNOSTIC_ASSERT(false);
+    MOZ_DIAGNOSTIC_CRASH("caps.SetCurrent() failed");
   }
 
   base::CloseSuperfluousFds(this, [](void* aCtx, int aFd) {

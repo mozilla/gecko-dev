@@ -1388,7 +1388,7 @@ void CompareManager::ResolvedCallback(JSContext* aCx,
       }
       return;
     default:
-      MOZ_DIAGNOSTIC_ASSERT(false);
+      MOZ_DIAGNOSTIC_CRASH("Missing case in CompareManager::ResolvedCallback");
   }
 }
 
@@ -1412,7 +1412,7 @@ void CompareManager::RejectedCallback(JSContext* aCx,
       NS_WARNING("Could not write to cache.");
       break;
     default:
-      MOZ_DIAGNOSTIC_ASSERT(false);
+      MOZ_DIAGNOSTIC_CRASH("Missing case in CompareManager::RejectedCallback");
   }
 
   Fail(NS_ERROR_FAILURE);

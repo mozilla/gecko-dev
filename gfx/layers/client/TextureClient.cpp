@@ -1768,8 +1768,8 @@ already_AddRefed<TextureReadLock> TextureReadLock::Deserialize(
       return nullptr;
     }
     default: {
-      // Invalid descriptor.
-      MOZ_DIAGNOSTIC_ASSERT(false);
+      MOZ_DIAGNOSTIC_CRASH(
+          "Invalid descriptor in TextureReadLock::Deserialize");
     }
   }
   return nullptr;
