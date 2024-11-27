@@ -476,10 +476,10 @@ mochitest-chrome:
         - 1proc
         - socketprocess_networking+1proc
         - webrender-sw+1proc
-        - os-integration
+        - 1proc+os-integration
     run-on-projects:
         by-variant:
-            os-integration: []  # this variant only runs as a cron task
+            1proc+os-integration: []  # this variant only runs as a cron task
             socketprocess_networking+1proc:
                 by-test-platform:
                     .*asan.*: []
