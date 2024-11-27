@@ -315,10 +315,6 @@ add_task(async function construct_widget() {
 
 add_task(async function insertBeforeFirstItemInOverflow() {
   originalWindowWidth = window.outerWidth;
-  let sidebarRevampEnabled = Services.prefs.getBoolPref(
-    "sidebar.revamp",
-    false
-  );
   ok(
     !navbar.hasAttribute("overflowing"),
     "Should start insertBeforeFirstItemInOverflow with a non-overflowing toolbar."
@@ -327,6 +323,9 @@ add_task(async function insertBeforeFirstItemInOverflow() {
     CustomizableUI.inDefaultState,
     "Should start insertBeforeFirstItemInOverflow in default state."
   );
+
+  // Remove sidebar button if present
+  CustomizableUI.removeWidgetFromArea("sidebar-button");
 
   CustomizableUI.addWidgetToArea(
     kLibraryButton,
@@ -358,15 +357,9 @@ add_task(async function insertBeforeFirstItemInOverflow() {
   );
   window.resizeBy(resizeWidthToMakeLibraryLast, 0);
   await TestUtils.waitForCondition(() => {
-    if (!sidebarRevampEnabled) {
-      return (
-        libraryButton.getAttribute("overflowedItem") == "true" &&
-        !libraryButton.previousElementSibling
-      );
-    }
     return (
       libraryButton.getAttribute("overflowedItem") == "true" &&
-      libraryButton.previousElementSibling?.id === "sidebar-button"
+      !libraryButton.previousElementSibling
     );
   });
 
