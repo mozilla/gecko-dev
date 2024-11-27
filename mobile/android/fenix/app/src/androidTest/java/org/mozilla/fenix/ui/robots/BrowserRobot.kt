@@ -1309,8 +1309,24 @@ class BrowserRobot {
         }
 
         fun clickRequestStorageAccessButton(interact: SitePermissionsRobot.() -> Unit): SitePermissionsRobot.Transition {
-            // Clicks the "request storage access" button from the "cross-site-cookies.html" local asset
-            clickPageObject(itemContainingText("requestStorageAccess()"))
+            for (i in 1..RETRY_COUNT) {
+                Log.i(TAG, "clickRequestStorageAccessButton: Started try #$i")
+                try {
+                    // Clicks the "request storage access" button from the "cross-site-cookies.html" local asset
+                    clickPageObject(itemContainingText("requestStorageAccess()"))
+                    assertUIObjectExists(
+                        itemWithResId("$packageName:id/deny_button"),
+                        itemWithResId("$packageName:id/allow_button"),
+                    )
+
+                    break
+                } catch (e: AssertionError) {
+                    Log.i(TAG, "clickRequestStorageAccessButton: AssertionError caught, executing fallback methods")
+                    if (i == RETRY_COUNT) {
+                        throw e
+                    }
+                }
+            }
 
             SitePermissionsRobot().interact()
             return SitePermissionsRobot.Transition()
