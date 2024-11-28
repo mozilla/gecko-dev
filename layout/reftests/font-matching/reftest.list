@@ -202,6 +202,9 @@ test-pref(intl.accept_languages,"ja-JP,zh-CN,en") ref-pref(intl.accept_languages
 
 == 1923698-font-variant-emoji.html 1923698-font-variant-emoji-ref.html
 
+# Bug 1932814 - GetCommonFallbackFonts for Arabic on Windows:
+skip-if(!winWidget) == windows-arabic-fallback.html windows-arabic-fallback-ref.html
+
 # Reset default prefs.
 defaults
 
