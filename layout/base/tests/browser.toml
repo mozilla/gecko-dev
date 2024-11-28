@@ -44,6 +44,8 @@ support-files = [
   "scroll_into_view_in_child.html"
 ]
 
+["browser_select_popup_from_background_tab.js"]
+
 ["browser_select_popup_position_in_out_of_process_iframe.js"]
 skip-if = [
   "os == 'mac' && os_version == '10.15' && processor == 'x86_64' && verify", # bug 1627874
