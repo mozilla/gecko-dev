@@ -7,6 +7,7 @@
 #ifndef mozilla_BounceTrackingMapEntry_h
 #define mozilla_BounceTrackingMapEntry_h
 
+#include "mozilla/OriginAttributes.h"
 #include "nsIBounceTrackingMapEntry.h"
 #include "nsString.h"
 
@@ -20,12 +21,22 @@ class BounceTrackingMapEntry final : public nsIBounceTrackingMapEntry {
   NS_DECL_ISUPPORTS
   NS_DECL_NSIBOUNCETRACKINGMAPENTRY
 
-  BounceTrackingMapEntry(const nsACString& aSiteHost, PRTime aTimeStamp)
-      : mSiteHost(aSiteHost), mTimeStamp(aTimeStamp) {}
+  BounceTrackingMapEntry(const OriginAttributes& aOriginAttributes,
+                         const nsACString& aSiteHost, PRTime aTimeStamp)
+      : mOriginAttributes(aOriginAttributes),
+        mSiteHost(aSiteHost),
+        mTimeStamp(aTimeStamp) {}
+
+  OriginAttributes& OriginAttributesRef() { return mOriginAttributes; }
+
+  nsACString& SiteHostRef() { return mSiteHost; }
+
+  PRTime& TimeStampRef() { return mTimeStamp; }
 
  private:
   ~BounceTrackingMapEntry() = default;
 
+  OriginAttributes mOriginAttributes;
   nsAutoCString mSiteHost;
   PRTime mTimeStamp;
 };

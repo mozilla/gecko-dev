@@ -4,6 +4,7 @@
 #ifndef mozilla_BounceTrackingProtection_h__
 #define mozilla_BounceTrackingProtection_h__
 
+#include "BounceTrackingMapEntry.h"
 #include "BounceTrackingStorageObserver.h"
 #include "mozilla/Logging.h"
 #include "mozilla/MozPromise.h"
@@ -30,7 +31,8 @@ namespace dom {
 class WindowContext;
 }
 
-using ClearDataMozPromise = MozPromise<nsCString, uint32_t, true>;
+using ClearDataMozPromise =
+    MozPromise<RefPtr<BounceTrackingMapEntry>, uint32_t, true>;
 
 extern LazyLogModule gBounceTrackingProtectionLog;
 
@@ -120,13 +122,13 @@ class BounceTrackingProtection final : public nsIBounceTrackingProtection,
 
   // Clear state for classified bounce trackers. To be called on an interval.
   using PurgeBounceTrackersMozPromise =
-      MozPromise<nsTArray<nsCString>, nsresult, true>;
+      MozPromise<nsTArray<RefPtr<BounceTrackingMapEntry>>, nsresult, true>;
   RefPtr<PurgeBounceTrackersMozPromise> PurgeBounceTrackers();
 
   // Report purged trackers to the anti-tracking database via
   // nsITrackingDBService.
   static void ReportPurgedTrackersToAntiTrackingDB(
-      const nsTArray<nsCString>& aPurgedSiteHosts);
+      const nsTArray<RefPtr<BounceTrackingMapEntry>>& aPurgedSiteHosts);
 
   // Clear state for classified bounce trackers for a specific state global.
   // aClearPromises is populated with promises for each host that is cleared.

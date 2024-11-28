@@ -483,8 +483,8 @@ BounceTrackingProtection::TestGetBounceTrackerCandidateHosts(
 
   for (auto iter = globalState->BounceTrackersMapRef().ConstIter();
        !iter.Done(); iter.Next()) {
-    RefPtr<nsIBounceTrackingMapEntry> candidate =
-        new BounceTrackingMapEntry(iter.Key(), iter.Data());
+    RefPtr<nsIBounceTrackingMapEntry> candidate = new BounceTrackingMapEntry(
+        globalState->OriginAttributesRef(), iter.Key(), iter.Data());
     aCandidates.AppendElement(candidate);
   }
 
@@ -507,8 +507,8 @@ BounceTrackingProtection::TestGetUserActivationHosts(
 
   for (auto iter = globalState->UserActivationMapRef().ConstIter();
        !iter.Done(); iter.Next()) {
-    RefPtr<nsIBounceTrackingMapEntry> candidate =
-        new BounceTrackingMapEntry(iter.Key(), iter.Data());
+    RefPtr<nsIBounceTrackingMapEntry> candidate = new BounceTrackingMapEntry(
+        globalState->OriginAttributesRef(), iter.Key(), iter.Data());
     aHosts.AppendElement(candidate);
   }
 
@@ -638,8 +638,15 @@ BounceTrackingProtection::TestRunPurgeBounceTrackers(
   PurgeBounceTrackers()->Then(
       GetMainThreadSerialEventTarget(), __func__,
       [promise](const PurgeBounceTrackersMozPromise::ResolveValueType&
-                    purgedSiteHosts) {
-        promise->MaybeResolve(purgedSiteHosts);
+                    purgedEntries) {
+        // Convert array of BounceTrackingMapEntry to array of site host
+        // strings for the JS caller. We can't pass an XPCOM type as the
+        // resolver value of a JS Promise.
+        nsTArray<nsCString> purgedSitesHosts;
+        for (const auto& entry : purgedEntries) {
+          purgedSitesHosts.AppendElement(entry->SiteHostRef());
+        }
+        promise->MaybeResolve(purgedSitesHosts);
       },
       [promise](const PurgeBounceTrackersMozPromise::RejectValueType& error) {
         promise->MaybeReject(error);
@@ -900,21 +907,23 @@ BounceTrackingProtection::PurgeBounceTrackers() {
                   // Check if any clear call failed.
                   bool anyFailed = false;
 
-                  nsTArray<nsCString> purgedSiteHosts;
+                  nsTArray<RefPtr<BounceTrackingMapEntry>> purgedSites;
 
                   // If any clear call failed reject.
                   for (auto& result : aResults.ResolveValue()) {
                     if (result.IsReject()) {
                       anyFailed = true;
                     } else {
-                      purgedSiteHosts.AppendElement(result.ResolveValue());
+                      purgedSites.AppendElement(result.ResolveValue());
                     }
                   }
 
+                  // TODO: Log purges in storage.
+
                   // Record successful purges via nsITrackingDBService for
                   // tracker stats.
-                  if (purgedSiteHosts.Length() > 0) {
-                    ReportPurgedTrackersToAntiTrackingDB(purgedSiteHosts);
+                  if (purgedSites.Length() > 0) {
+                    ReportPurgedTrackersToAntiTrackingDB(purgedSites);
                   }
 
                   self->mPurgeInProgress = false;
@@ -924,7 +933,7 @@ BounceTrackingProtection::PurgeBounceTrackers() {
                     resultPromise->Reject(NS_ERROR_FAILURE, __func__);
                     return;
                   }
-                  resultPromise->Resolve(std::move(purgedSiteHosts), __func__);
+                  resultPromise->Resolve(std::move(purgedSites), __func__);
                 });
       });
   return resultPromise.forget();
@@ -932,13 +941,13 @@ BounceTrackingProtection::PurgeBounceTrackers() {
 
 // static
 void BounceTrackingProtection::ReportPurgedTrackersToAntiTrackingDB(
-    const nsTArray<nsCString>& aPurgedSiteHosts) {
+    const nsTArray<RefPtr<BounceTrackingMapEntry>>& aPurgedSiteHosts) {
   MOZ_ASSERT(!aPurgedSiteHosts.IsEmpty());
 
   ContentBlockingLog log;
-  for (const nsCString& host : aPurgedSiteHosts) {
+  for (const RefPtr<BounceTrackingMapEntry>& entry : aPurgedSiteHosts) {
     nsAutoCString origin("https://");
-    origin.Append(host);
+    origin.Append(entry->SiteHostRef());
 
     log.RecordLogParent(
         origin, nsIWebProgressListener::STATE_PURGED_BOUNCETRACKER, true);
@@ -1080,7 +1089,7 @@ nsresult BounceTrackingProtection::PurgeStateForHostAndOriginAttributes(
   RefPtr<ClearDataMozPromise::Private> clearPromise =
       new ClearDataMozPromise::Private(__func__);
   RefPtr<ClearDataCallback> cb =
-      new ClearDataCallback(clearPromise, aHost, bounceTime);
+      new ClearDataCallback(clearPromise, aOriginAttributes, aHost, bounceTime);
 
   if (StaticPrefs::privacy_bounceTrackingProtection_mode() ==
       nsIBounceTrackingProtection::MODE_ENABLED_DRY_RUN) {
