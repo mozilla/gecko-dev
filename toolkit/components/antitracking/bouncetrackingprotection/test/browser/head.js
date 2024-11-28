@@ -519,6 +519,47 @@ async function runTestBounce(options = {}) {
         expectPurge ? [SITE_TRACKER] : [],
         `Should ${expectPurge ? "" : "not "}purge state for ${SITE_TRACKER}.`
       );
+
+      info("Testing the purge log.");
+      let purgeLog =
+        bounceTrackingProtection.testGetRecentlyPurgedTrackers(
+          originAttributes
+        );
+      if (expectPurge) {
+        Assert.equal(
+          purgeLog.length,
+          1,
+          "Should have one tracker in purge log."
+        );
+        let { siteHost, timeStamp, purgeTime } = purgeLog[0];
+
+        Assert.equal(
+          siteHost,
+          SITE_TRACKER,
+          `The purge log entry should be for site host '${SITE_TRACKER}'`
+        );
+        Assert.greater(
+          timeStamp,
+          0,
+          "The purge log entry should have a valid timestamp for bounce time."
+        );
+        Assert.greater(
+          purgeTime,
+          0,
+          "The purge log entry should have a valid timestamp for purge time."
+        );
+        Assert.greaterOrEqual(
+          purgeTime,
+          timeStamp,
+          "The purge time should be greater or equal to bounce time."
+        );
+      } else {
+        Assert.equal(
+          purgeLog.length,
+          0,
+          "Should have no trackers in purge log."
+        );
+      }
     }
   } else {
     info("BTP is disabled. Skipping purge call.");
