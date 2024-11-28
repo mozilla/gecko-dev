@@ -70,6 +70,10 @@
     <string name="mozac_feature_addons_permissions_tab_hide_description">Rajtarki wobhladowaka schować a pokazać</string>
     <!-- Description for top_sites permission. -->
     <string name="mozac_feature_addons_permissions_top_sites_description">Mějće přistup k přehladowanskej historiji</string>
+    <!-- Description for trialML permission. -->
+    <string name="mozac_feature_addons_permissions_trial_ml_description">Sćehńće a wuwjedźće Modele KI na swojim graće</string>
+    <!-- Description for userScripts permission. -->
+    <string name="mozac_feature_addons_permissions_user_scripts_description">Njepřepruwowanym skriptam třećich poskićowarjow přistup k wašim datam dowolić</string>
     <!-- Description for devtools permission. -->
     <string name="mozac_feature_addons_permissions_devtools_description">Rozšěrće wuwiwarske nastroje, zo byšće přistup k swojim datam we wočinjenych rajtarkach měł</string>
     <!-- The version on of add-on. -->

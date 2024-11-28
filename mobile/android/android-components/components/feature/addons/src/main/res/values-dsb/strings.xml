@@ -70,6 +70,10 @@
     <string name="mozac_feature_addons_permissions_tab_hide_description">Rejtariki wobglědowaka schowaś a pokazaś</string>
     <!-- Description for top_sites permission. -->
     <string name="mozac_feature_addons_permissions_top_sites_description">Mějśo pśistup k pśeglědowańskej historiji</string>
+    <!-- Description for trialML permission. -->
+    <string name="mozac_feature_addons_permissions_trial_ml_description">Ześěgniśo a wuwjeźćo Modele KI na swójom rěźe</string>
+    <!-- Description for userScripts permission. -->
+    <string name="mozac_feature_addons_permissions_user_scripts_description">Njepśeglědanym skriptam tśeśich póbitowarjow pśistup k wašym datam dowóliś</string>
     <!-- Description for devtools permission. -->
     <string name="mozac_feature_addons_permissions_devtools_description">Rozšyŕśo wuwijarske rědy, aby pśistup k swójim datam we wócynjonych rejtarikach měł</string>
     <!-- The version on of add-on. -->

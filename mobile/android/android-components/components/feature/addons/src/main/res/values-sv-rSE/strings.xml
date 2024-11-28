@@ -70,6 +70,10 @@
     <string name="mozac_feature_addons_permissions_tab_hide_description">Dölja och visa webbläsarens flikar</string>
     <!-- Description for top_sites permission. -->
     <string name="mozac_feature_addons_permissions_top_sites_description">Åtkomst till webbhistoriken</string>
+    <!-- Description for trialML permission. -->
+    <string name="mozac_feature_addons_permissions_trial_ml_description">Ladda ner och kör AI-modeller på din enhet</string>
+    <!-- Description for userScripts permission. -->
+    <string name="mozac_feature_addons_permissions_user_scripts_description">Tillåt overifierade skript från tredje part att komma åt dina uppgifter</string>
     <!-- Description for devtools permission. -->
     <string name="mozac_feature_addons_permissions_devtools_description">Utöka utvecklarverktyg för att komma åt dina data i öppna flikar</string>
     <!-- The version on of add-on. -->
