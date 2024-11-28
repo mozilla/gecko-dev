@@ -48,7 +48,7 @@ class SettingsAdvancedTest : TestSetup() {
             verifyAdvancedHeading()
             verifyAddons()
             verifyOpenLinksInAppsButton()
-            verifySettingsOptionSummary("Open links in apps", "Never")
+            verifySettingsOptionSummary("Open links in apps", "Ask before opening")
             verifyExternalDownloadManagerButton()
             verifyExternalDownloadManagerToggle(false)
             verifyLeakCanaryButton()
@@ -64,16 +64,16 @@ class SettingsAdvancedTest : TestSetup() {
     // Assumes Youtube is installed and enabled
     @SmokeTest
     @Test
-    fun neverOpenLinkInAppTest() {
+    fun askBeforeOpeningOpenLinkInAppTest() {
         val externalLinksPage = TestAssetHelper.getExternalLinksAsset(mockWebServer)
 
         homeScreen {
         }.openThreeDotMenu {
         }.openSettings {
             verifyOpenLinksInAppsButton()
-            verifySettingsOptionSummary("Open links in apps", "Never")
+            verifySettingsOptionSummary("Open links in apps", "Ask before opening")
         }.openOpenLinksInAppsMenu {
-            verifyOpenLinksInAppsView("Never")
+            verifyOpenLinksInAppsView("Ask before opening")
         }
 
         exitMenu()
@@ -88,7 +88,7 @@ class SettingsAdvancedTest : TestSetup() {
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2121052
     // Assumes Youtube is installed and enabled
     @Test
-    fun privateBrowsingNeverOpenLinkInAppTest() {
+    fun privateBrowsingAskBeforeOpeningOpenLinkInAppTest() {
         val externalLinksPage = TestAssetHelper.getExternalLinksAsset(mockWebServer)
 
         homeScreen {
@@ -98,9 +98,9 @@ class SettingsAdvancedTest : TestSetup() {
         }.openThreeDotMenu {
         }.openSettings {
             verifyOpenLinksInAppsButton()
-            verifySettingsOptionSummary("Open links in apps", "Never")
+            verifySettingsOptionSummary("Open links in apps", "Ask before opening")
         }.openOpenLinksInAppsMenu {
-            verifyPrivateOpenLinksInAppsView("Never")
+            verifyPrivateOpenLinksInAppsView("Ask before opening")
         }
 
         exitMenu()
@@ -123,10 +123,9 @@ class SettingsAdvancedTest : TestSetup() {
         }.openThreeDotMenu {
         }.openSettings {
             verifyOpenLinksInAppsButton()
-            verifySettingsOptionSummary("Open links in apps", "Never")
+            verifySettingsOptionSummary("Open links in apps", "Ask before opening")
         }.openOpenLinksInAppsMenu {
-            verifyOpenLinksInAppsView("Never")
-            clickOpenLinkInAppOption("Ask before opening")
+            verifyOpenLinksInAppsView("Ask before opening")
             verifySelectedOpenLinksInAppOption("Ask before opening")
         }.goBack {
             verifySettingsOptionSummary("Open links in apps", "Ask before opening")
@@ -154,10 +153,9 @@ class SettingsAdvancedTest : TestSetup() {
         }.openThreeDotMenu {
         }.openSettings {
             verifyOpenLinksInAppsButton()
-            verifySettingsOptionSummary("Open links in apps", "Never")
+            verifySettingsOptionSummary("Open links in apps", "Ask before opening")
         }.openOpenLinksInAppsMenu {
-            verifyOpenLinksInAppsView("Never")
-            clickOpenLinkInAppOption("Ask before opening")
+            verifyOpenLinksInAppsView("Ask before opening")
             verifySelectedOpenLinksInAppOption("Ask before opening")
         }.goBack {
             verifySettingsOptionSummary("Open links in apps", "Ask before opening")
@@ -190,10 +188,9 @@ class SettingsAdvancedTest : TestSetup() {
         }.openThreeDotMenu {
         }.openSettings {
             verifyOpenLinksInAppsButton()
-            verifySettingsOptionSummary("Open links in apps", "Never")
+            verifySettingsOptionSummary("Open links in apps", "Ask before opening")
         }.openOpenLinksInAppsMenu {
-            verifyPrivateOpenLinksInAppsView("Never")
-            clickOpenLinkInAppOption("Ask before opening")
+            verifyPrivateOpenLinksInAppsView("Ask before opening")
             verifySelectedOpenLinksInAppOption("Ask before opening")
         }.goBack {
             verifySettingsOptionSummary("Open links in apps", "Ask before opening")
@@ -226,10 +223,9 @@ class SettingsAdvancedTest : TestSetup() {
         }.openThreeDotMenu {
         }.openSettings {
             verifyOpenLinksInAppsButton()
-            verifySettingsOptionSummary("Open links in apps", "Never")
+            verifySettingsOptionSummary("Open links in apps", "Ask before opening")
         }.openOpenLinksInAppsMenu {
-            verifyPrivateOpenLinksInAppsView("Never")
-            clickOpenLinkInAppOption("Ask before opening")
+            verifyPrivateOpenLinksInAppsView("Ask before opening")
             verifySelectedOpenLinksInAppOption("Ask before opening")
         }.goBack {
             verifySettingsOptionSummary("Open links in apps", "Ask before opening")
@@ -261,9 +257,9 @@ class SettingsAdvancedTest : TestSetup() {
         }.openThreeDotMenu {
         }.openSettings {
             verifyOpenLinksInAppsButton()
-            verifySettingsOptionSummary("Open links in apps", "Never")
+            verifySettingsOptionSummary("Open links in apps", "Ask before opening")
         }.openOpenLinksInAppsMenu {
-            verifyOpenLinksInAppsView("Never")
+            verifyOpenLinksInAppsView("Ask before opening")
             clickOpenLinkInAppOption("Always")
             verifySelectedOpenLinksInAppOption("Always")
         }.goBack {
@@ -287,6 +283,20 @@ class SettingsAdvancedTest : TestSetup() {
             it.isOpenInAppBannerEnabled = true
         }
 
+        homeScreen {
+        }.openThreeDotMenu {
+        }.openSettings {
+            verifyOpenLinksInAppsButton()
+            verifySettingsOptionSummary("Open links in apps", "Ask before opening")
+        }.openOpenLinksInAppsMenu {
+            verifyOpenLinksInAppsView("Ask before opening")
+            clickOpenLinkInAppOption("Never")
+            verifySelectedOpenLinksInAppOption("Never")
+        }.goBack {
+            verifySettingsOptionSummary("Open links in apps", "Never")
+        }
+
+        exitMenu()
         navigationToolbar {
         }.enterURLAndEnterToBrowser("https://m.youtube.com/".toUri()) {
             verifyPageContent("youtube")
@@ -302,6 +312,21 @@ class SettingsAdvancedTest : TestSetup() {
         activityIntentTestRule.applySettingsExceptions {
             it.isOpenInAppBannerEnabled = true
         }
+
+        homeScreen {
+        }.openThreeDotMenu {
+        }.openSettings {
+            verifyOpenLinksInAppsButton()
+            verifySettingsOptionSummary("Open links in apps", "Ask before opening")
+        }.openOpenLinksInAppsMenu {
+            verifyOpenLinksInAppsView("Ask before opening")
+            clickOpenLinkInAppOption("Never")
+            verifySelectedOpenLinksInAppOption("Never")
+        }.goBack {
+            verifySettingsOptionSummary("Open links in apps", "Never")
+        }
+
+        exitMenu()
 
         navigationToolbar {
         }.enterURLAndEnterToBrowser("https://m.youtube.com/".toUri()) {

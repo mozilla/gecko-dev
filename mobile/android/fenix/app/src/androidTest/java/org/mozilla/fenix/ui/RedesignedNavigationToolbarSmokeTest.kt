@@ -17,6 +17,7 @@ import org.mozilla.fenix.helpers.AppAndSystemHelper.enableOrDisableBackGestureNa
 import org.mozilla.fenix.helpers.AppAndSystemHelper.grantSystemPermission
 import org.mozilla.fenix.helpers.DataGenerationHelper.createCustomTabIntent
 import org.mozilla.fenix.helpers.HomeActivityIntentTestRule
+import org.mozilla.fenix.helpers.MatcherHelper.itemWithResIdAndText
 import org.mozilla.fenix.helpers.MatcherHelper.itemWithText
 import org.mozilla.fenix.helpers.TestAssetHelper
 import org.mozilla.fenix.helpers.TestAssetHelper.waitingTimeLong
@@ -190,6 +191,7 @@ class RedesignedNavigationToolbarSmokeTest : TestSetup() {
         }.enterURLAndEnterToBrowser(genericURL.url) {
             clickPageObject(itemWithText("PDF form file"))
             waitForPageToLoad()
+            clickPageObject(itemWithResIdAndText("android:id/button2", "CANCEL"))
             fillPdfForm("Firefox")
         }.clickShareButtonFromRedesignedToolbar {
         }.clickSaveAsPDF {

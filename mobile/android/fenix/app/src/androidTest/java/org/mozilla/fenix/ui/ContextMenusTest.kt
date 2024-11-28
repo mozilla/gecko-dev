@@ -12,6 +12,7 @@ import org.mozilla.fenix.helpers.AppAndSystemHelper.assertAppWithPackageNameOpen
 import org.mozilla.fenix.helpers.Constants.PackageName.YOUTUBE_APP
 import org.mozilla.fenix.helpers.HomeActivityIntentTestRule
 import org.mozilla.fenix.helpers.MatcherHelper.itemContainingText
+import org.mozilla.fenix.helpers.MatcherHelper.itemWithResIdAndText
 import org.mozilla.fenix.helpers.MatcherHelper.itemWithText
 import org.mozilla.fenix.helpers.RetryTestRule
 import org.mozilla.fenix.helpers.TestAssetHelper
@@ -244,6 +245,7 @@ class ContextMenusTest : TestSetup() {
         }.enterURLAndEnterToBrowser(genericURL.url) {
             clickPageObject(itemWithText("PDF form file"))
             waitForPageToLoad()
+            clickPageObject(itemWithResIdAndText("android:id/button2", "CANCEL"))
             longClickPageObject(itemWithText("Wikipedia link"))
             verifyContextMenuForLinksToOtherHosts("wikipedia.org".toUri())
             dismissContentContextMenu()

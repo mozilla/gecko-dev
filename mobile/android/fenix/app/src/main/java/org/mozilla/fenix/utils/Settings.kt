@@ -1323,7 +1323,7 @@ class Settings(private val appContext: Context) : PreferencesHolder {
 
     var openLinksInExternalAppOld by booleanPreference(
         appContext.getPreferenceKey(R.string.pref_key_open_links_in_external_app_old),
-        default = false,
+        default = true,
     )
 
     /**

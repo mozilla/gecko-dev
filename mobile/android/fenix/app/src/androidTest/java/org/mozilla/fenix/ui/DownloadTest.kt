@@ -17,6 +17,7 @@ import org.mozilla.fenix.helpers.AppAndSystemHelper.deleteDownloadedFileOnStorag
 import org.mozilla.fenix.helpers.AppAndSystemHelper.setNetworkEnabled
 import org.mozilla.fenix.helpers.Constants.PackageName.GOOGLE_APPS_PHOTOS
 import org.mozilla.fenix.helpers.HomeActivityTestRule
+import org.mozilla.fenix.helpers.MatcherHelper.itemWithResIdAndText
 import org.mozilla.fenix.helpers.MatcherHelper.itemWithText
 import org.mozilla.fenix.helpers.TestAssetHelper
 import org.mozilla.fenix.helpers.TestAssetHelper.waitingTimeLong
@@ -341,6 +342,7 @@ class DownloadTest : TestSetup() {
         }.enterURLAndEnterToBrowser(genericURL.url) {
             clickPageObject(itemWithText("PDF form file"))
             waitForPageToLoad()
+            clickPageObject(itemWithResIdAndText("android:id/button2", "CANCEL"))
             fillPdfForm("Firefox")
         }.openThreeDotMenu {
         }.clickShareButton {
