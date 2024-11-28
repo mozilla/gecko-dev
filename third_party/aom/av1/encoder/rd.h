@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Alliance for Open Media. All rights reserved.
+ * Copyright (c) 2016, Alliance for Open Media. All rights reserved
  *
  * This source code is subject to the terms of the BSD 2 Clause License and
  * the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
@@ -14,13 +14,12 @@
 
 #include <limits.h>
 
-#include "aom/aomcx.h"
 #include "av1/common/blockd.h"
+
 #include "av1/encoder/block.h"
 #include "av1/encoder/context_tree.h"
 #include "av1/encoder/cost.h"
 #include "av1/encoder/ratectrl.h"
-#include "config/aom_config.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -75,7 +74,7 @@ static const MV_REFERENCE_FRAME real_time_ref_combos[RTC_REFS][2] = {
   { INTRA_FRAME, NONE_FRAME }
 };
 
-static inline int mode_offset(const PREDICTION_MODE mode) {
+static INLINE int mode_offset(const PREDICTION_MODE mode) {
   if (mode >= NEARESTMV) {
     return INTER_OFFSET(mode);
   } else {
@@ -115,7 +114,7 @@ typedef struct RD_OPT {
   double r0;
 } RD_OPT;
 
-static inline void av1_init_rd_stats(RD_STATS *rd_stats) {
+static INLINE void av1_init_rd_stats(RD_STATS *rd_stats) {
 #if CONFIG_RD_DEBUG
   int plane;
 #endif
@@ -134,7 +133,7 @@ static inline void av1_init_rd_stats(RD_STATS *rd_stats) {
 #endif
 }
 
-static inline void av1_invalid_rd_stats(RD_STATS *rd_stats) {
+static INLINE void av1_invalid_rd_stats(RD_STATS *rd_stats) {
 #if CONFIG_RD_DEBUG
   int plane;
 #endif
@@ -153,7 +152,7 @@ static inline void av1_invalid_rd_stats(RD_STATS *rd_stats) {
 #endif
 }
 
-static inline void av1_merge_rd_stats(RD_STATS *rd_stats_dst,
+static INLINE void av1_merge_rd_stats(RD_STATS *rd_stats_dst,
                                       const RD_STATS *rd_stats_src) {
   if (rd_stats_dst->rate == INT_MAX || rd_stats_src->rate == INT_MAX) {
     // If rd_stats_dst or rd_stats_src has invalid rate, we will make
@@ -179,7 +178,7 @@ static inline void av1_merge_rd_stats(RD_STATS *rd_stats_dst,
 #endif
 }
 
-static inline void av1_accumulate_rd_stats(RD_STATS *rd_stats, int64_t dist,
+static INLINE void av1_accumulate_rd_stats(RD_STATS *rd_stats, int64_t dist,
                                            int rate, int skip_txfm, int64_t sse,
                                            int zero_rate) {
   assert(rd_stats->rate != INT_MAX && rate != INT_MAX);
@@ -190,7 +189,7 @@ static inline void av1_accumulate_rd_stats(RD_STATS *rd_stats, int64_t dist,
   rd_stats->sse += sse;
 }
 
-static inline int64_t av1_calculate_rd_cost(int mult, int rate, int64_t dist) {
+static INLINE int64_t av1_calculate_rd_cost(int mult, int rate, int64_t dist) {
   assert(mult >= 0);
   if (rate >= 0) {
     return RDCOST(mult, rate, dist);
@@ -198,7 +197,7 @@ static inline int64_t av1_calculate_rd_cost(int mult, int rate, int64_t dist) {
   return RDCOST_NEG_R(mult, -rate, dist);
 }
 
-static inline void av1_rd_cost_update(int mult, RD_STATS *rd_cost) {
+static INLINE void av1_rd_cost_update(int mult, RD_STATS *rd_cost) {
   if (rd_cost->rate < INT_MAX && rd_cost->dist < INT64_MAX &&
       rd_cost->rdcost < INT64_MAX) {
     rd_cost->rdcost = av1_calculate_rd_cost(mult, rd_cost->rate, rd_cost->dist);
@@ -207,7 +206,7 @@ static inline void av1_rd_cost_update(int mult, RD_STATS *rd_cost) {
   }
 }
 
-static inline void av1_rd_stats_subtraction(int mult,
+static INLINE void av1_rd_stats_subtraction(int mult,
                                             const RD_STATS *const left,
                                             const RD_STATS *const right,
                                             RD_STATS *result) {
@@ -232,21 +231,19 @@ struct macroblock;
  * \param[in]       bit_depth       bit depth
  * \param[in]       update_type     frame update type
  * \param[in]       qindex          q index
- * \param[in]       tuning          visual tuning metric
  *
  * \return rdmult
  */
 int av1_compute_rd_mult_based_on_qindex(aom_bit_depth_t bit_depth,
                                         FRAME_UPDATE_TYPE update_type,
-                                        int qindex, aom_tune_metric tuning);
+                                        int qindex);
 
 int av1_compute_rd_mult(const int qindex, const aom_bit_depth_t bit_depth,
                         const FRAME_UPDATE_TYPE update_type,
                         const int layer_depth, const int boost_index,
                         const FRAME_TYPE frame_type,
                         const int use_fixed_qp_offsets,
-                        const int is_stat_consumption_stage,
-                        const aom_tune_metric tuning);
+                        const int is_stat_consumption_stage);
 
 void av1_initialize_rd_consts(struct AV1_COMP *cpi);
 
@@ -259,6 +256,8 @@ void av1_model_rd_from_var_lapndz(int64_t var, unsigned int n,
 
 void av1_model_rd_curvfit(BLOCK_SIZE bsize, double sse_norm, double xqr,
                           double *rate_f, double *distbysse_f);
+void av1_model_rd_surffit(BLOCK_SIZE bsize, double sse_norm, double xm,
+                          double yl, double *rate_f, double *distbysse_f);
 
 int av1_get_switchable_rate(const MACROBLOCK *x, const MACROBLOCKD *xd,
                             InterpFilter interp_filter, int dual_filter);
@@ -285,7 +284,7 @@ void av1_update_rd_thresh_fact(const AV1_COMMON *const cm,
                                THR_MODES intra_mode_start,
                                THR_MODES intra_mode_end);
 
-static inline void reset_thresh_freq_fact(MACROBLOCK *const x) {
+static INLINE void reset_thresh_freq_fact(MACROBLOCK *const x) {
   for (int i = 0; i < BLOCK_SIZES_ALL; ++i) {
     for (int j = 0; j < MAX_MODES; ++j) {
       x->thresh_freq_fact[i][j] = RD_THRESH_FAC_FRAC_VAL;
@@ -293,7 +292,7 @@ static inline void reset_thresh_freq_fact(MACROBLOCK *const x) {
   }
 }
 
-static inline int rd_less_than_thresh(int64_t best_rd, int64_t thresh,
+static INLINE int rd_less_than_thresh(int64_t best_rd, int64_t thresh,
                                       int thresh_fact) {
   return best_rd < (thresh * thresh_fact >> 5) || thresh == INT_MAX;
 }
@@ -303,13 +302,13 @@ void av1_mv_pred(const struct AV1_COMP *cpi, MACROBLOCK *x,
                  BLOCK_SIZE block_size);
 
 // Sets the multiplier to convert mv cost to l2 error during motion search.
-static inline void av1_set_error_per_bit(int *errorperbit, int rdmult) {
+static INLINE void av1_set_error_per_bit(int *errorperbit, int rdmult) {
   *errorperbit = AOMMAX(rdmult >> RD_EPB_SHIFT, 1);
 }
 
 // Get the threshold for R-D optimization of coefficients depending upon mode
 // decision/winner mode processing
-static inline void get_rd_opt_coeff_thresh(
+static INLINE void get_rd_opt_coeff_thresh(
     const uint32_t (*const coeff_opt_threshold)[2],
     TxfmSearchParams *txfm_params, int enable_winner_mode_for_coeff_opt,
     int is_winner_mode) {
@@ -339,7 +338,7 @@ static inline void get_rd_opt_coeff_thresh(
 }
 
 // Used to reset the state of mb rd hash information
-static inline void reset_mb_rd_record(MB_RD_RECORD *const mb_rd_record) {
+static INLINE void reset_mb_rd_record(MB_RD_RECORD *const mb_rd_record) {
   if (!mb_rd_record) return;
 
   // Reset the state for use_mb_rd_hash
@@ -359,9 +358,7 @@ int av1_get_intra_cost_penalty(int qindex, int qdelta,
 void av1_fill_mode_rates(AV1_COMMON *const cm, ModeCosts *mode_costs,
                          FRAME_CONTEXT *fc);
 
-#if !CONFIG_REALTIME_ONLY
 void av1_fill_lr_rates(ModeCosts *mode_costs, FRAME_CONTEXT *fc);
-#endif
 
 void av1_fill_coeff_costs(CoeffCosts *coeff_costs, FRAME_CONTEXT *fc,
                           const int num_planes);
@@ -371,9 +368,7 @@ void av1_fill_mv_costs(const nmv_context *nmvc, int integer_mv, int usehp,
 
 void av1_fill_dv_costs(const nmv_context *ndvc, IntraBCMVCosts *dv_costs);
 
-#if !CONFIG_REALTIME_ONLY
 int av1_get_adaptive_rdmult(const struct AV1_COMP *cpi, double beta);
-#endif
 
 int av1_get_deltaq_offset(aom_bit_depth_t bit_depth, int qindex, double beta);
 

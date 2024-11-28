@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Alliance for Open Media. All rights reserved.
+ * Copyright (c) 2019, Alliance for Open Media. All rights reserved
  *
  * This source code is subject to the terms of the BSD 2 Clause License and
  * the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
@@ -38,9 +38,8 @@ extern "C" {
  * returns AOM_CODEC_OK.
  *
  * \param[in]    cpi         Top-level encoder structure
- * \param[out]   size        Bitstream size
- * \param[out]   dest        Bitstream output buffer
- * \param[in]    dest_size   Bitstream output buffer size
+ * \param[in]    size        Bitstream size
+ * \param[in]    dest        Bitstream output
  * \param[in]    frame_flags Flags to decide how to encoding the frame
  * \param[out]   time_stamp  Time stamp of the frame
  * \param[out]   time_end    Time end
@@ -54,9 +53,8 @@ extern "C" {
  * \retval #AOM_CODEC_ERROR
  */
 int av1_encode_strategy(AV1_COMP *const cpi, size_t *const size,
-                        uint8_t *const dest, size_t dest_size,
-                        unsigned int *frame_flags, int64_t *const time_stamp,
-                        int64_t *const time_end,
+                        uint8_t *const dest, unsigned int *frame_flags,
+                        int64_t *const time_stamp, int64_t *const time_end,
                         const aom_rational64_t *const timestamp_ratio,
                         int *const pop_lookahead, int flush);
 
@@ -96,7 +94,7 @@ int is_forced_keyframe_pending(struct lookahead_ctx *lookahead,
                                const int up_to_index,
                                const COMPRESSOR_STAGE compressor_stage);
 
-static inline int is_frame_droppable(
+static AOM_INLINE int is_frame_droppable(
     const RTC_REF *const rtc_ref,
     const ExtRefreshFrameFlagsInfo *const ext_refresh_frame_flags) {
   // Droppable frame is only used by external refresh flags. VoD setting won't
@@ -113,7 +111,7 @@ static inline int is_frame_droppable(
     return 0;
 }
 
-static inline int get_current_frame_ref_type(const AV1_COMP *const cpi) {
+static AOM_INLINE int get_current_frame_ref_type(const AV1_COMP *const cpi) {
   // We choose the reference "type" of this frame from the flags which indicate
   // which reference frames will be refreshed by it. More than one of these
   // flags may be set, so the order here implies an order of precedence. This is

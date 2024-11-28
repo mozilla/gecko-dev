@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Alliance for Open Media. All rights reserved.
+ * Copyright (c) 2016, Alliance for Open Media. All rights reserved
  *
  * This source code is subject to the terms of the BSD 2 Clause License and
  * the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
@@ -12,8 +12,6 @@
 #ifndef AOM_AOM_DSP_AOM_DSP_COMMON_H_
 #define AOM_AOM_DSP_AOM_DSP_COMMON_H_
 
-#include <limits.h>
-
 #include "config/aom_config.h"
 
 #include "aom/aom_integer.h"
@@ -21,12 +19,6 @@
 
 #ifdef __cplusplus
 extern "C" {
-#endif
-
-#if defined(_MSC_VER)
-#define AOM_FORCE_INLINE __forceinline
-#else
-#define AOM_FORCE_INLINE __inline__ __attribute__((always_inline))
 #endif
 
 #define PI 3.141592653589793238462643383279502884
@@ -67,23 +59,23 @@ typedef uint8_t qm_val_t;
 typedef int64_t tran_high_t;
 typedef int32_t tran_low_t;
 
-static inline uint8_t clip_pixel(int val) {
+static INLINE uint8_t clip_pixel(int val) {
   return (val > 255) ? 255 : (val < 0) ? 0 : val;
 }
 
-static inline int clamp(int value, int low, int high) {
+static INLINE int clamp(int value, int low, int high) {
   return value < low ? low : (value > high ? high : value);
 }
 
-static inline int64_t clamp64(int64_t value, int64_t low, int64_t high) {
+static INLINE int64_t clamp64(int64_t value, int64_t low, int64_t high) {
   return value < low ? low : (value > high ? high : value);
 }
 
-static inline double fclamp(double value, double low, double high) {
+static INLINE double fclamp(double value, double low, double high) {
   return value < low ? low : (value > high ? high : value);
 }
 
-static inline uint16_t clip_pixel_highbd(int val, int bd) {
+static INLINE uint16_t clip_pixel_highbd(int val, int bd) {
   switch (bd) {
     case 8:
     default: return (uint16_t)clamp(val, 0, 255);
@@ -96,14 +88,8 @@ static inline uint16_t clip_pixel_highbd(int val, int bd) {
 // or max(0, value) and might be faster in some cases.
 // Care should be taken since the behavior of right shifting signed type
 // negative value is undefined by C standards and implementation defined,
-static inline unsigned int negative_to_zero(int value) {
+static INLINE unsigned int negative_to_zero(int value) {
   return value & ~(value >> (sizeof(value) * 8 - 1));
-}
-
-// Returns the saturating cast of a double value to int.
-static inline int saturate_cast_double_to_int(double d) {
-  if (d > INT_MAX) return INT_MAX;
-  return (int)d;
 }
 
 #ifdef __cplusplus

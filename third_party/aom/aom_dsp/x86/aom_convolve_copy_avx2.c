@@ -1,19 +1,18 @@
 /*
- * Copyright (c) 2020, Alliance for Open Media. All rights reserved.
+ *  Copyright (c) 2020, Alliance for Open Media. All Rights Reserved.
  *
- * This source code is subject to the terms of the BSD 2 Clause License and
- * the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
- * was not distributed with this source code in the LICENSE file, you can
- * obtain it at www.aomedia.org/license/software. If the Alliance for Open
- * Media Patent License 1.0 was not distributed with this source code in the
- * PATENTS file, you can obtain it at www.aomedia.org/license/patent.
+ *  Use of this source code is governed by a BSD-style license
+ *  that can be found in the LICENSE file in the root of the source
+ *  tree. An additional intellectual property rights grant can be found
+ *  in the file PATENTS.  All contributing project authors may
+ *  be found in the AUTHORS file in the root of the source tree.
  */
 
 #include <immintrin.h>
 
 #include "config/aom_dsp_rtcd.h"
 
-static inline void copy_128(const uint8_t *src, uint8_t *dst) {
+static INLINE void copy_128(const uint8_t *src, uint8_t *dst) {
   __m256i s[4];
   s[0] = _mm256_loadu_si256((__m256i *)(src + 0 * 32));
   s[1] = _mm256_loadu_si256((__m256i *)(src + 1 * 32));
@@ -27,9 +26,7 @@ static inline void copy_128(const uint8_t *src, uint8_t *dst) {
 
 void aom_convolve_copy_avx2(const uint8_t *src, ptrdiff_t src_stride,
                             uint8_t *dst, ptrdiff_t dst_stride, int w, int h) {
-  // The w == 16 case uses _mm_store_si128(), which requires its output address
-  // be aligned on a 16-byte boundary.
-  if (w == 16) {
+  if (w >= 16) {
     assert(!((intptr_t)dst % 16));
     assert(!(dst_stride % 16));
   }
@@ -125,7 +122,7 @@ void aom_convolve_copy_avx2(const uint8_t *src, ptrdiff_t src_stride,
 
 #if CONFIG_AV1_HIGHBITDEPTH
 
-static inline void highbd_copy_64(const uint16_t *src, uint16_t *dst) {
+static INLINE void highbd_copy_64(const uint16_t *src, uint16_t *dst) {
   __m256i s[4];
   s[0] = _mm256_loadu_si256((__m256i *)(src + 0 * 16));
   s[1] = _mm256_loadu_si256((__m256i *)(src + 1 * 16));
@@ -137,7 +134,7 @@ static inline void highbd_copy_64(const uint16_t *src, uint16_t *dst) {
   _mm256_storeu_si256((__m256i *)(dst + 3 * 16), s[3]);
 }
 
-static inline void highbd_copy_128(const uint16_t *src, uint16_t *dst) {
+static INLINE void highbd_copy_128(const uint16_t *src, uint16_t *dst) {
   __m256i s[8];
   s[0] = _mm256_loadu_si256((__m256i *)(src + 0 * 16));
   s[1] = _mm256_loadu_si256((__m256i *)(src + 1 * 16));
@@ -161,11 +158,9 @@ static inline void highbd_copy_128(const uint16_t *src, uint16_t *dst) {
 void aom_highbd_convolve_copy_avx2(const uint16_t *src, ptrdiff_t src_stride,
                                    uint16_t *dst, ptrdiff_t dst_stride, int w,
                                    int h) {
-  // The w == 8 case uses _mm_store_si128(), which requires its output address
-  // be aligned on a 16-byte boundary.
-  if (w == 8) {
+  if (w >= 16) {
     assert(!((intptr_t)dst % 16));
-    assert(!(dst_stride % 8));
+    assert(!(dst_stride % 16));
   }
 
   if (w == 2) {

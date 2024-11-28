@@ -621,7 +621,7 @@ uint64 MakeUID(unsigned int* seed) {
 #ifdef _WIN32
     (void)seed;
     const int32 nn = rand();
-#elif defined(__ANDROID__)
+#elif __ANDROID__
     (void)seed;
     int32 temp_num = 1;
     int fd = open("/dev/urandom", O_RDONLY);

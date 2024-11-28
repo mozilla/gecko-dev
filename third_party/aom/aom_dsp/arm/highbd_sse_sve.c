@@ -1,12 +1,11 @@
 /*
- * Copyright (c) 2023, Alliance for Open Media. All rights reserved.
+ *  Copyright (c) 2023, Alliance for Open Media. All Rights Reserved.
  *
- * This source code is subject to the terms of the BSD 2 Clause License and
- * the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
- * was not distributed with this source code in the LICENSE file, you can
- * obtain it at www.aomedia.org/license/software. If the Alliance for Open
- * Media Patent License 1.0 was not distributed with this source code in the
- * PATENTS file, you can obtain it at www.aomedia.org/license/patent.
+ *  Use of this source code is governed by a BSD-style license
+ *  that can be found in the LICENSE file in the root of the source
+ *  tree. An additional intellectual property rights grant can be found
+ *  in the file PATENTS.  All contributing project authors may
+ *  be found in the AUTHORS file in the root of the source tree.
  */
 
 #include <arm_neon.h>
@@ -15,7 +14,7 @@
 #include "aom_dsp/arm/mem_neon.h"
 #include "config/aom_dsp_rtcd.h"
 
-static inline void highbd_sse_8x1_neon(const uint16_t *src, const uint16_t *ref,
+static INLINE void highbd_sse_8x1_neon(const uint16_t *src, const uint16_t *ref,
                                        uint64x2_t *sse) {
   uint16x8_t s = vld1q_u16(src);
   uint16x8_t r = vld1q_u16(ref);
@@ -25,7 +24,7 @@ static inline void highbd_sse_8x1_neon(const uint16_t *src, const uint16_t *ref,
   *sse = aom_udotq_u16(*sse, abs_diff, abs_diff);
 }
 
-static inline int64_t highbd_sse_128xh_sve(const uint16_t *src, int src_stride,
+static INLINE int64_t highbd_sse_128xh_sve(const uint16_t *src, int src_stride,
                                            const uint16_t *ref, int ref_stride,
                                            int height) {
   uint64x2_t sse[4] = { vdupq_n_u64(0), vdupq_n_u64(0), vdupq_n_u64(0),
@@ -59,7 +58,7 @@ static inline int64_t highbd_sse_128xh_sve(const uint16_t *src, int src_stride,
   return vaddvq_u64(sse[0]);
 }
 
-static inline int64_t highbd_sse_64xh_sve(const uint16_t *src, int src_stride,
+static INLINE int64_t highbd_sse_64xh_sve(const uint16_t *src, int src_stride,
                                           const uint16_t *ref, int ref_stride,
                                           int height) {
   uint64x2_t sse[4] = { vdupq_n_u64(0), vdupq_n_u64(0), vdupq_n_u64(0),
@@ -85,7 +84,7 @@ static inline int64_t highbd_sse_64xh_sve(const uint16_t *src, int src_stride,
   return vaddvq_u64(sse[0]);
 }
 
-static inline int64_t highbd_sse_32xh_sve(const uint16_t *src, int src_stride,
+static INLINE int64_t highbd_sse_32xh_sve(const uint16_t *src, int src_stride,
                                           const uint16_t *ref, int ref_stride,
                                           int height) {
   uint64x2_t sse[4] = { vdupq_n_u64(0), vdupq_n_u64(0), vdupq_n_u64(0),
@@ -107,7 +106,7 @@ static inline int64_t highbd_sse_32xh_sve(const uint16_t *src, int src_stride,
   return vaddvq_u64(sse[0]);
 }
 
-static inline int64_t highbd_sse_16xh_sve(const uint16_t *src, int src_stride,
+static INLINE int64_t highbd_sse_16xh_sve(const uint16_t *src, int src_stride,
                                           const uint16_t *ref, int ref_stride,
                                           int height) {
   uint64x2_t sse[2] = { vdupq_n_u64(0), vdupq_n_u64(0) };
@@ -123,7 +122,7 @@ static inline int64_t highbd_sse_16xh_sve(const uint16_t *src, int src_stride,
   return vaddvq_u64(vaddq_u64(sse[0], sse[1]));
 }
 
-static inline int64_t highbd_sse_8xh_sve(const uint16_t *src, int src_stride,
+static INLINE int64_t highbd_sse_8xh_sve(const uint16_t *src, int src_stride,
                                          const uint16_t *ref, int ref_stride,
                                          int height) {
   uint64x2_t sse[2] = { vdupq_n_u64(0), vdupq_n_u64(0) };
@@ -140,7 +139,7 @@ static inline int64_t highbd_sse_8xh_sve(const uint16_t *src, int src_stride,
   return vaddvq_u64(vaddq_u64(sse[0], sse[1]));
 }
 
-static inline int64_t highbd_sse_4xh_sve(const uint16_t *src, int src_stride,
+static INLINE int64_t highbd_sse_4xh_sve(const uint16_t *src, int src_stride,
                                          const uint16_t *ref, int ref_stride,
                                          int height) {
   uint64x2_t sse = vdupq_n_u64(0);
@@ -160,7 +159,7 @@ static inline int64_t highbd_sse_4xh_sve(const uint16_t *src, int src_stride,
   return vaddvq_u64(sse);
 }
 
-static inline int64_t highbd_sse_wxh_sve(const uint16_t *src, int src_stride,
+static INLINE int64_t highbd_sse_wxh_sve(const uint16_t *src, int src_stride,
                                          const uint16_t *ref, int ref_stride,
                                          int width, int height) {
   svuint64_t sse = svdup_n_u64(0);

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Alliance for Open Media. All rights reserved.
+ * Copyright (c) 2016, Alliance for Open Media. All rights reserved
  *
  * This source code is subject to the terms of the BSD 2 Clause License and
  * the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
@@ -14,7 +14,7 @@
 #include <stdio.h>
 #include <string>
 
-#include "gtest/gtest.h"
+#include "third_party/googletest/src/googletest/include/gtest/gtest.h"
 
 #include "config/aom_dsp_rtcd.h"
 
@@ -421,14 +421,13 @@ INTRA_PRED_TEST(C, TX_4X8, aom_dc_predictor_4x8_c, aom_dc_left_predictor_4x8_c,
                 aom_v_predictor_4x8_c, aom_h_predictor_4x8_c,
                 aom_paeth_predictor_4x8_c, aom_smooth_predictor_4x8_c,
                 aom_smooth_v_predictor_4x8_c, aom_smooth_h_predictor_4x8_c)
-#if !CONFIG_REALTIME_ONLY || CONFIG_AV1_DECODER
 INTRA_PRED_TEST(C, TX_4X16, aom_dc_predictor_4x16_c,
                 aom_dc_left_predictor_4x16_c, aom_dc_top_predictor_4x16_c,
                 aom_dc_128_predictor_4x16_c, aom_v_predictor_4x16_c,
                 aom_h_predictor_4x16_c, aom_paeth_predictor_4x16_c,
                 aom_smooth_predictor_4x16_c, aom_smooth_v_predictor_4x16_c,
                 aom_smooth_h_predictor_4x16_c)
-#endif  // !CONFIG_REALTIME_ONLY || CONFIG_AV1_DECODER
+
 #if HAVE_SSE2
 INTRA_PRED_TEST(SSE2, TX_4X4, aom_dc_predictor_4x4_sse2,
                 aom_dc_left_predictor_4x4_sse2, aom_dc_top_predictor_4x4_sse2,
@@ -438,12 +437,10 @@ INTRA_PRED_TEST(SSE2, TX_4X8, aom_dc_predictor_4x8_sse2,
                 aom_dc_left_predictor_4x8_sse2, aom_dc_top_predictor_4x8_sse2,
                 aom_dc_128_predictor_4x8_sse2, aom_v_predictor_4x8_sse2,
                 aom_h_predictor_4x8_sse2, nullptr, nullptr, nullptr, nullptr)
-#if !CONFIG_REALTIME_ONLY || CONFIG_AV1_DECODER
 INTRA_PRED_TEST(SSE2, TX_4X16, aom_dc_predictor_4x16_sse2,
                 aom_dc_left_predictor_4x16_sse2, aom_dc_top_predictor_4x16_sse2,
                 aom_dc_128_predictor_4x16_sse2, aom_v_predictor_4x16_sse2,
                 aom_h_predictor_4x16_sse2, nullptr, nullptr, nullptr, nullptr)
-#endif  // !CONFIG_REALTIME_ONLY || CONFIG_AV1_DECODER
 #endif  // HAVE_SSE2
 
 #if HAVE_SSSE3
@@ -457,13 +454,11 @@ INTRA_PRED_TEST(SSSE3, TX_4X8, nullptr, nullptr, nullptr, nullptr, nullptr,
                 aom_smooth_predictor_4x8_ssse3,
                 aom_smooth_v_predictor_4x8_ssse3,
                 aom_smooth_h_predictor_4x8_ssse3)
-#if !CONFIG_REALTIME_ONLY || CONFIG_AV1_DECODER
 INTRA_PRED_TEST(SSSE3, TX_4X16, nullptr, nullptr, nullptr, nullptr, nullptr,
                 nullptr, aom_paeth_predictor_4x16_ssse3,
                 aom_smooth_predictor_4x16_ssse3,
                 aom_smooth_v_predictor_4x16_ssse3,
                 aom_smooth_h_predictor_4x16_ssse3)
-#endif  // !CONFIG_REALTIME_ONLY || CONFIG_AV1_DECODER
 #endif  // HAVE_SSSE3
 
 #if HAVE_NEON
@@ -479,7 +474,6 @@ INTRA_PRED_TEST(NEON, TX_4X8, aom_dc_predictor_4x8_neon,
                 aom_h_predictor_4x8_neon, aom_paeth_predictor_4x8_neon,
                 aom_smooth_predictor_4x8_neon, aom_smooth_v_predictor_4x8_neon,
                 aom_smooth_h_predictor_4x8_neon)
-#if !CONFIG_REALTIME_ONLY || CONFIG_AV1_DECODER
 INTRA_PRED_TEST(NEON, TX_4X16, aom_dc_predictor_4x16_neon,
                 aom_dc_left_predictor_4x16_neon, aom_dc_top_predictor_4x16_neon,
                 aom_dc_128_predictor_4x16_neon, aom_v_predictor_4x16_neon,
@@ -487,7 +481,6 @@ INTRA_PRED_TEST(NEON, TX_4X16, aom_dc_predictor_4x16_neon,
                 aom_smooth_predictor_4x16_neon,
                 aom_smooth_v_predictor_4x16_neon,
                 aom_smooth_h_predictor_4x16_neon)
-#endif  // !CONFIG_REALTIME_ONLY || CONFIG_AV1_DECODER
 #endif  // HAVE_NEON
 
 // -----------------------------------------------------------------------------
@@ -510,14 +503,12 @@ INTRA_PRED_TEST(C, TX_8X16, aom_dc_predictor_8x16_c,
                 aom_h_predictor_8x16_c, aom_paeth_predictor_8x16_c,
                 aom_smooth_predictor_8x16_c, aom_smooth_v_predictor_8x16_c,
                 aom_smooth_h_predictor_8x16_c)
-#if !CONFIG_REALTIME_ONLY || CONFIG_AV1_DECODER
 INTRA_PRED_TEST(C, TX_8X32, aom_dc_predictor_8x32_c,
                 aom_dc_left_predictor_8x32_c, aom_dc_top_predictor_8x32_c,
                 aom_dc_128_predictor_8x32_c, aom_v_predictor_8x32_c,
                 aom_h_predictor_8x32_c, aom_paeth_predictor_8x32_c,
                 aom_smooth_predictor_8x32_c, aom_smooth_v_predictor_8x32_c,
                 aom_smooth_h_predictor_8x32_c)
-#endif  // !CONFIG_REALTIME_ONLY || CONFIG_AV1_DECODER
 
 #if HAVE_SSE2
 INTRA_PRED_TEST(SSE2, TX_8X8, aom_dc_predictor_8x8_sse2,
@@ -532,12 +523,10 @@ INTRA_PRED_TEST(SSE2, TX_8X16, aom_dc_predictor_8x16_sse2,
                 aom_dc_left_predictor_8x16_sse2, aom_dc_top_predictor_8x16_sse2,
                 aom_dc_128_predictor_8x16_sse2, aom_v_predictor_8x16_sse2,
                 aom_h_predictor_8x16_sse2, nullptr, nullptr, nullptr, nullptr)
-#if !CONFIG_REALTIME_ONLY || CONFIG_AV1_DECODER
 INTRA_PRED_TEST(SSE2, TX_8X32, aom_dc_predictor_8x32_sse2,
                 aom_dc_left_predictor_8x32_sse2, aom_dc_top_predictor_8x32_sse2,
                 aom_dc_128_predictor_8x32_sse2, aom_v_predictor_8x32_sse2,
                 aom_h_predictor_8x32_sse2, nullptr, nullptr, nullptr, nullptr)
-#endif  // !CONFIG_REALTIME_ONLY || CONFIG_AV1_DECODER
 #endif  // HAVE_SSE2
 
 #if HAVE_SSSE3
@@ -556,13 +545,11 @@ INTRA_PRED_TEST(SSSE3, TX_8X16, nullptr, nullptr, nullptr, nullptr, nullptr,
                 aom_smooth_predictor_8x16_ssse3,
                 aom_smooth_v_predictor_8x16_ssse3,
                 aom_smooth_h_predictor_8x16_ssse3)
-#if !CONFIG_REALTIME_ONLY || CONFIG_AV1_DECODER
 INTRA_PRED_TEST(SSSE3, TX_8X32, nullptr, nullptr, nullptr, nullptr, nullptr,
                 nullptr, aom_paeth_predictor_8x32_ssse3,
                 aom_smooth_predictor_8x32_ssse3,
                 aom_smooth_v_predictor_8x32_ssse3,
                 aom_smooth_h_predictor_8x32_ssse3)
-#endif  // !CONFIG_REALTIME_ONLY || CONFIG_AV1_DECODER
 #endif  // HAVE_SSSE3
 
 #if HAVE_NEON
@@ -585,7 +572,6 @@ INTRA_PRED_TEST(NEON, TX_8X16, aom_dc_predictor_8x16_neon,
                 aom_smooth_predictor_8x16_neon,
                 aom_smooth_v_predictor_8x16_neon,
                 aom_smooth_h_predictor_8x16_neon)
-#if !CONFIG_REALTIME_ONLY || CONFIG_AV1_DECODER
 INTRA_PRED_TEST(NEON, TX_8X32, aom_dc_predictor_8x32_neon,
                 aom_dc_left_predictor_8x32_neon, aom_dc_top_predictor_8x32_neon,
                 aom_dc_128_predictor_8x32_neon, aom_v_predictor_8x32_neon,
@@ -593,7 +579,6 @@ INTRA_PRED_TEST(NEON, TX_8X32, aom_dc_predictor_8x32_neon,
                 aom_smooth_predictor_8x32_neon,
                 aom_smooth_v_predictor_8x32_neon,
                 aom_smooth_h_predictor_8x32_neon)
-#endif  // !CONFIG_REALTIME_ONLY || CONFIG_AV1_DECODER
 #endif  // HAVE_NEON
 
 // -----------------------------------------------------------------------------
@@ -617,7 +602,6 @@ INTRA_PRED_TEST(C, TX_16X32, aom_dc_predictor_16x32_c,
                 aom_h_predictor_16x32_c, aom_paeth_predictor_16x32_c,
                 aom_smooth_predictor_16x32_c, aom_smooth_v_predictor_16x32_c,
                 aom_smooth_h_predictor_16x32_c)
-#if !CONFIG_REALTIME_ONLY || CONFIG_AV1_DECODER
 INTRA_PRED_TEST(C, TX_16X4, aom_dc_predictor_16x4_c,
                 aom_dc_left_predictor_16x4_c, aom_dc_top_predictor_16x4_c,
                 aom_dc_128_predictor_16x4_c, aom_v_predictor_16x4_c,
@@ -630,7 +614,6 @@ INTRA_PRED_TEST(C, TX_16X64, aom_dc_predictor_16x64_c,
                 aom_h_predictor_16x64_c, aom_paeth_predictor_16x64_c,
                 aom_smooth_predictor_16x64_c, aom_smooth_v_predictor_16x64_c,
                 aom_smooth_h_predictor_16x64_c)
-#endif  // !CONFIG_REALTIME_ONLY || CONFIG_AV1_DECODER
 
 #if HAVE_SSE2
 INTRA_PRED_TEST(SSE2, TX_16X16, aom_dc_predictor_16x16_sse2,
@@ -647,7 +630,6 @@ INTRA_PRED_TEST(SSE2, TX_16X32, aom_dc_predictor_16x32_sse2,
                 aom_dc_top_predictor_16x32_sse2,
                 aom_dc_128_predictor_16x32_sse2, aom_v_predictor_16x32_sse2,
                 aom_h_predictor_16x32_sse2, nullptr, nullptr, nullptr, nullptr)
-#if !CONFIG_REALTIME_ONLY || CONFIG_AV1_DECODER
 INTRA_PRED_TEST(SSE2, TX_16X64, aom_dc_predictor_16x64_sse2,
                 aom_dc_left_predictor_16x64_sse2,
                 aom_dc_top_predictor_16x64_sse2,
@@ -657,7 +639,6 @@ INTRA_PRED_TEST(SSE2, TX_16X4, aom_dc_predictor_16x4_sse2,
                 aom_dc_left_predictor_16x4_sse2, aom_dc_top_predictor_16x4_sse2,
                 aom_dc_128_predictor_16x4_sse2, aom_v_predictor_16x4_sse2,
                 aom_h_predictor_16x4_sse2, nullptr, nullptr, nullptr, nullptr)
-#endif  // !CONFIG_REALTIME_ONLY || CONFIG_AV1_DECODER
 #endif  // HAVE_SSE2
 
 #if HAVE_SSSE3
@@ -676,7 +657,6 @@ INTRA_PRED_TEST(SSSE3, TX_16X32, nullptr, nullptr, nullptr, nullptr, nullptr,
                 aom_smooth_predictor_16x32_ssse3,
                 aom_smooth_v_predictor_16x32_ssse3,
                 aom_smooth_h_predictor_16x32_ssse3)
-#if !CONFIG_REALTIME_ONLY || CONFIG_AV1_DECODER
 INTRA_PRED_TEST(SSSE3, TX_16X64, nullptr, nullptr, nullptr, nullptr, nullptr,
                 nullptr, aom_paeth_predictor_16x64_ssse3,
                 aom_smooth_predictor_16x64_ssse3,
@@ -687,7 +667,6 @@ INTRA_PRED_TEST(SSSE3, TX_16X4, nullptr, nullptr, nullptr, nullptr, nullptr,
                 aom_smooth_predictor_16x4_ssse3,
                 aom_smooth_v_predictor_16x4_ssse3,
                 aom_smooth_h_predictor_16x4_ssse3)
-#endif  // !CONFIG_REALTIME_ONLY || CONFIG_AV1_DECODER
 #endif  // HAVE_SSSE3
 
 #if HAVE_AVX2
@@ -700,11 +679,9 @@ INTRA_PRED_TEST(AVX2, TX_16X8, nullptr, nullptr, nullptr, nullptr, nullptr,
 INTRA_PRED_TEST(AVX2, TX_16X32, nullptr, nullptr, nullptr, nullptr, nullptr,
                 nullptr, aom_paeth_predictor_16x32_avx2, nullptr, nullptr,
                 nullptr)
-#if !CONFIG_REALTIME_ONLY || CONFIG_AV1_DECODER
 INTRA_PRED_TEST(AVX2, TX_16X64, nullptr, nullptr, nullptr, nullptr, nullptr,
                 nullptr, aom_paeth_predictor_16x64_avx2, nullptr, nullptr,
                 nullptr)
-#endif  // !CONFIG_REALTIME_ONLY || CONFIG_AV1_DECODER
 #endif  // HAVE_AVX2
 
 #if HAVE_NEON
@@ -731,7 +708,6 @@ INTRA_PRED_TEST(NEON, TX_16X32, aom_dc_predictor_16x32_neon,
                 aom_smooth_predictor_16x32_neon,
                 aom_smooth_v_predictor_16x32_neon,
                 aom_smooth_h_predictor_16x32_neon)
-#if !CONFIG_REALTIME_ONLY || CONFIG_AV1_DECODER
 INTRA_PRED_TEST(NEON, TX_16X4, aom_dc_predictor_16x4_neon,
                 aom_dc_left_predictor_16x4_neon, aom_dc_top_predictor_16x4_neon,
                 aom_dc_128_predictor_16x4_neon, aom_v_predictor_16x4_neon,
@@ -747,7 +723,6 @@ INTRA_PRED_TEST(NEON, TX_16X64, aom_dc_predictor_16x64_neon,
                 aom_smooth_predictor_16x64_neon,
                 aom_smooth_v_predictor_16x64_neon,
                 aom_smooth_h_predictor_16x64_neon)
-#endif  // !CONFIG_REALTIME_ONLY || CONFIG_AV1_DECODER
 #endif  // HAVE_NEON
 
 // -----------------------------------------------------------------------------
@@ -771,14 +746,12 @@ INTRA_PRED_TEST(C, TX_32X64, aom_dc_predictor_32x64_c,
                 aom_h_predictor_32x64_c, aom_paeth_predictor_32x64_c,
                 aom_smooth_predictor_32x64_c, aom_smooth_v_predictor_32x64_c,
                 aom_smooth_h_predictor_32x64_c)
-#if !CONFIG_REALTIME_ONLY || CONFIG_AV1_DECODER
 INTRA_PRED_TEST(C, TX_32X8, aom_dc_predictor_32x8_c,
                 aom_dc_left_predictor_32x8_c, aom_dc_top_predictor_32x8_c,
                 aom_dc_128_predictor_32x8_c, aom_v_predictor_32x8_c,
                 aom_h_predictor_32x8_c, aom_paeth_predictor_32x8_c,
                 aom_smooth_predictor_32x8_c, aom_smooth_v_predictor_32x8_c,
                 aom_smooth_h_predictor_32x8_c)
-#endif  // !CONFIG_REALTIME_ONLY || CONFIG_AV1_DECODER
 
 #if HAVE_SSE2
 INTRA_PRED_TEST(SSE2, TX_32X32, aom_dc_predictor_32x32_sse2,
@@ -796,12 +769,10 @@ INTRA_PRED_TEST(SSE2, TX_32X64, aom_dc_predictor_32x64_sse2,
                 aom_dc_top_predictor_32x64_sse2,
                 aom_dc_128_predictor_32x64_sse2, aom_v_predictor_32x64_sse2,
                 aom_h_predictor_32x64_sse2, nullptr, nullptr, nullptr, nullptr)
-#if !CONFIG_REALTIME_ONLY || CONFIG_AV1_DECODER
 INTRA_PRED_TEST(SSE2, TX_32X8, aom_dc_predictor_32x8_sse2,
                 aom_dc_left_predictor_32x8_sse2, aom_dc_top_predictor_32x8_sse2,
                 aom_dc_128_predictor_32x8_sse2, aom_v_predictor_32x8_sse2,
                 aom_h_predictor_32x8_sse2, nullptr, nullptr, nullptr, nullptr)
-#endif  // !CONFIG_REALTIME_ONLY || CONFIG_AV1_DECODER
 #endif  // HAVE_SSE2
 
 #if HAVE_SSSE3
@@ -820,13 +791,11 @@ INTRA_PRED_TEST(SSSE3, TX_32X64, nullptr, nullptr, nullptr, nullptr, nullptr,
                 aom_smooth_predictor_32x64_ssse3,
                 aom_smooth_v_predictor_32x64_ssse3,
                 aom_smooth_h_predictor_32x64_ssse3)
-#if !CONFIG_REALTIME_ONLY || CONFIG_AV1_DECODER
 INTRA_PRED_TEST(SSSE3, TX_32X8, nullptr, nullptr, nullptr, nullptr, nullptr,
                 nullptr, aom_paeth_predictor_32x8_ssse3,
                 aom_smooth_predictor_32x8_ssse3,
                 aom_smooth_v_predictor_32x8_ssse3,
                 aom_smooth_h_predictor_32x8_ssse3)
-#endif  // !CONFIG_REALTIME_ONLY || CONFIG_AV1_DECODER
 #endif  // HAVE_SSSE3
 
 #if HAVE_AVX2
@@ -875,7 +844,6 @@ INTRA_PRED_TEST(NEON, TX_32X64, aom_dc_predictor_32x64_neon,
                 aom_smooth_predictor_32x64_neon,
                 aom_smooth_v_predictor_32x64_neon,
                 aom_smooth_h_predictor_32x64_neon)
-#if !CONFIG_REALTIME_ONLY || CONFIG_AV1_DECODER
 INTRA_PRED_TEST(NEON, TX_32X8, aom_dc_predictor_32x8_neon,
                 aom_dc_left_predictor_32x8_neon, aom_dc_top_predictor_32x8_neon,
                 aom_dc_128_predictor_32x8_neon, aom_v_predictor_32x8_neon,
@@ -883,7 +851,6 @@ INTRA_PRED_TEST(NEON, TX_32X8, aom_dc_predictor_32x8_neon,
                 aom_smooth_predictor_32x8_neon,
                 aom_smooth_v_predictor_32x8_neon,
                 aom_smooth_h_predictor_32x8_neon)
-#endif  // !CONFIG_REALTIME_ONLY || CONFIG_AV1_DECODER
 #endif  // HAVE_NEON
 
 // -----------------------------------------------------------------------------
@@ -901,14 +868,12 @@ INTRA_PRED_TEST(C, TX_64X32, aom_dc_predictor_64x32_c,
                 aom_h_predictor_64x32_c, aom_paeth_predictor_64x32_c,
                 aom_smooth_predictor_64x32_c, aom_smooth_v_predictor_64x32_c,
                 aom_smooth_h_predictor_64x32_c)
-#if !CONFIG_REALTIME_ONLY || CONFIG_AV1_DECODER
 INTRA_PRED_TEST(C, TX_64X16, aom_dc_predictor_64x16_c,
                 aom_dc_left_predictor_64x16_c, aom_dc_top_predictor_64x16_c,
                 aom_dc_128_predictor_64x16_c, aom_v_predictor_64x16_c,
                 aom_h_predictor_64x16_c, aom_paeth_predictor_64x16_c,
                 aom_smooth_predictor_64x16_c, aom_smooth_v_predictor_64x16_c,
                 aom_smooth_h_predictor_64x16_c)
-#endif  // !CONFIG_REALTIME_ONLY || CONFIG_AV1_DECODER
 
 #if HAVE_SSE2
 INTRA_PRED_TEST(SSE2, TX_64X64, aom_dc_predictor_64x64_sse2,
@@ -921,13 +886,11 @@ INTRA_PRED_TEST(SSE2, TX_64X32, aom_dc_predictor_64x32_sse2,
                 aom_dc_top_predictor_64x32_sse2,
                 aom_dc_128_predictor_64x32_sse2, aom_v_predictor_64x32_sse2,
                 aom_h_predictor_64x32_sse2, nullptr, nullptr, nullptr, nullptr)
-#if !CONFIG_REALTIME_ONLY || CONFIG_AV1_DECODER
 INTRA_PRED_TEST(SSE2, TX_64X16, aom_dc_predictor_64x16_sse2,
                 aom_dc_left_predictor_64x16_sse2,
                 aom_dc_top_predictor_64x16_sse2,
                 aom_dc_128_predictor_64x16_sse2, aom_v_predictor_64x16_sse2,
                 aom_h_predictor_64x16_sse2, nullptr, nullptr, nullptr, nullptr)
-#endif  // !CONFIG_REALTIME_ONLY || CONFIG_AV1_DECODER
 #endif
 
 #if HAVE_SSSE3
@@ -941,13 +904,11 @@ INTRA_PRED_TEST(SSSE3, TX_64X32, nullptr, nullptr, nullptr, nullptr, nullptr,
                 aom_smooth_predictor_64x32_ssse3,
                 aom_smooth_v_predictor_64x32_ssse3,
                 aom_smooth_h_predictor_64x32_ssse3)
-#if !CONFIG_REALTIME_ONLY || CONFIG_AV1_DECODER
 INTRA_PRED_TEST(SSSE3, TX_64X16, nullptr, nullptr, nullptr, nullptr, nullptr,
                 nullptr, aom_paeth_predictor_64x16_ssse3,
                 aom_smooth_predictor_64x16_ssse3,
                 aom_smooth_v_predictor_64x16_ssse3,
                 aom_smooth_h_predictor_64x16_ssse3)
-#endif  // !CONFIG_REALTIME_ONLY || CONFIG_AV1_DECODER
 #endif
 
 #if HAVE_AVX2
@@ -963,14 +924,12 @@ INTRA_PRED_TEST(AVX2, TX_64X32, aom_dc_predictor_64x32_avx2,
                 aom_dc_128_predictor_64x32_avx2, aom_v_predictor_64x32_avx2,
                 nullptr, aom_paeth_predictor_64x32_avx2, nullptr, nullptr,
                 nullptr)
-#if !CONFIG_REALTIME_ONLY || CONFIG_AV1_DECODER
 INTRA_PRED_TEST(AVX2, TX_64X16, aom_dc_predictor_64x16_avx2,
                 aom_dc_left_predictor_64x16_avx2,
                 aom_dc_top_predictor_64x16_avx2,
                 aom_dc_128_predictor_64x16_avx2, aom_v_predictor_64x16_avx2,
                 nullptr, aom_paeth_predictor_64x16_avx2, nullptr, nullptr,
                 nullptr)
-#endif  // !CONFIG_REALTIME_ONLY || CONFIG_AV1_DECODER
 #endif
 
 #if HAVE_NEON
@@ -990,7 +949,6 @@ INTRA_PRED_TEST(NEON, TX_64X32, aom_dc_predictor_64x32_neon,
                 aom_smooth_predictor_64x32_neon,
                 aom_smooth_v_predictor_64x32_neon,
                 aom_smooth_h_predictor_64x32_neon)
-#if !CONFIG_REALTIME_ONLY || CONFIG_AV1_DECODER
 INTRA_PRED_TEST(NEON, TX_64X16, aom_dc_predictor_64x16_neon,
                 aom_dc_left_predictor_64x16_neon,
                 aom_dc_top_predictor_64x16_neon,
@@ -999,7 +957,6 @@ INTRA_PRED_TEST(NEON, TX_64X16, aom_dc_predictor_64x16_neon,
                 aom_smooth_predictor_64x16_neon,
                 aom_smooth_v_predictor_64x16_neon,
                 aom_smooth_h_predictor_64x16_neon)
-#endif  // !CONFIG_REALTIME_ONLY || CONFIG_AV1_DECODER
 #endif  // HAVE_NEON
 
 #if CONFIG_AV1_HIGHBITDEPTH
@@ -1323,8 +1280,6 @@ HIGHBD_INTRA_PRED_TEST(
     aom_highbd_h_predictor_4x8_c, aom_highbd_paeth_predictor_4x8_c,
     aom_highbd_smooth_predictor_4x8_c, aom_highbd_smooth_v_predictor_4x8_c,
     aom_highbd_smooth_h_predictor_4x8_c)
-
-#if !CONFIG_REALTIME_ONLY || CONFIG_AV1_DECODER
 HIGHBD_INTRA_PRED_TEST(
     C, TX_4X16, aom_highbd_dc_predictor_4x16_c,
     aom_highbd_dc_left_predictor_4x16_c, aom_highbd_dc_top_predictor_4x16_c,
@@ -1332,8 +1287,6 @@ HIGHBD_INTRA_PRED_TEST(
     aom_highbd_h_predictor_4x16_c, aom_highbd_paeth_predictor_4x16_c,
     aom_highbd_smooth_predictor_4x16_c, aom_highbd_smooth_v_predictor_4x16_c,
     aom_highbd_smooth_h_predictor_4x16_c)
-#endif  // !CONFIG_REALTIME_ONLY || CONFIG_AV1_DECODER
-
 #if HAVE_SSE2
 HIGHBD_INTRA_PRED_TEST(SSE2, TX_4X4, aom_highbd_dc_predictor_4x4_sse2,
                        aom_highbd_dc_left_predictor_4x4_sse2,
@@ -1351,7 +1304,6 @@ HIGHBD_INTRA_PRED_TEST(SSE2, TX_4X8, aom_highbd_dc_predictor_4x8_sse2,
                        aom_highbd_h_predictor_4x8_sse2, nullptr, nullptr,
                        nullptr, nullptr)
 #endif
-
 #if HAVE_NEON
 HIGHBD_INTRA_PRED_TEST(NEON, TX_4X4, aom_highbd_dc_predictor_4x4_neon,
                        aom_highbd_dc_left_predictor_4x4_neon,
@@ -1373,7 +1325,6 @@ HIGHBD_INTRA_PRED_TEST(NEON, TX_4X8, aom_highbd_dc_predictor_4x8_neon,
                        aom_highbd_smooth_predictor_4x8_neon,
                        aom_highbd_smooth_v_predictor_4x8_neon,
                        aom_highbd_smooth_h_predictor_4x8_neon)
-#if !CONFIG_REALTIME_ONLY || CONFIG_AV1_DECODER
 HIGHBD_INTRA_PRED_TEST(NEON, TX_4X16, aom_highbd_dc_predictor_4x16_neon,
                        aom_highbd_dc_left_predictor_4x16_neon,
                        aom_highbd_dc_top_predictor_4x16_neon,
@@ -1384,7 +1335,6 @@ HIGHBD_INTRA_PRED_TEST(NEON, TX_4X16, aom_highbd_dc_predictor_4x16_neon,
                        aom_highbd_smooth_predictor_4x16_neon,
                        aom_highbd_smooth_v_predictor_4x16_neon,
                        aom_highbd_smooth_h_predictor_4x16_neon)
-#endif  // !CONFIG_REALTIME_ONLY || CONFIG_AV1_DECODER
 #endif  // HAVE_NEON
 
 // -----------------------------------------------------------------------------
@@ -1411,7 +1361,6 @@ HIGHBD_INTRA_PRED_TEST(
     aom_highbd_h_predictor_8x16_c, aom_highbd_paeth_predictor_8x16_c,
     aom_highbd_smooth_predictor_8x16_c, aom_highbd_smooth_v_predictor_8x16_c,
     aom_highbd_smooth_h_predictor_8x16_c)
-#if !CONFIG_REALTIME_ONLY || CONFIG_AV1_DECODER
 HIGHBD_INTRA_PRED_TEST(
     C, TX_8X32, aom_highbd_dc_predictor_8x32_c,
     aom_highbd_dc_left_predictor_8x32_c, aom_highbd_dc_top_predictor_8x32_c,
@@ -1419,7 +1368,6 @@ HIGHBD_INTRA_PRED_TEST(
     aom_highbd_h_predictor_8x32_c, aom_highbd_paeth_predictor_8x32_c,
     aom_highbd_smooth_predictor_8x32_c, aom_highbd_smooth_v_predictor_8x32_c,
     aom_highbd_smooth_h_predictor_8x32_c)
-#endif  // !CONFIG_REALTIME_ONLY || CONFIG_AV1_DECODER
 
 #if HAVE_SSE2
 HIGHBD_INTRA_PRED_TEST(SSE2, TX_8X8, aom_highbd_dc_predictor_8x8_sse2,
@@ -1481,7 +1429,6 @@ HIGHBD_INTRA_PRED_TEST(NEON, TX_8X16, aom_highbd_dc_predictor_8x16_neon,
                        aom_highbd_smooth_predictor_8x16_neon,
                        aom_highbd_smooth_v_predictor_8x16_neon,
                        aom_highbd_smooth_h_predictor_8x16_neon)
-#if !CONFIG_REALTIME_ONLY || CONFIG_AV1_DECODER
 HIGHBD_INTRA_PRED_TEST(NEON, TX_8X32, aom_highbd_dc_predictor_8x32_neon,
                        aom_highbd_dc_left_predictor_8x32_neon,
                        aom_highbd_dc_top_predictor_8x32_neon,
@@ -1492,7 +1439,6 @@ HIGHBD_INTRA_PRED_TEST(NEON, TX_8X32, aom_highbd_dc_predictor_8x32_neon,
                        aom_highbd_smooth_predictor_8x32_neon,
                        aom_highbd_smooth_v_predictor_8x32_neon,
                        aom_highbd_smooth_h_predictor_8x32_neon)
-#endif  // !CONFIG_REALTIME_ONLY || CONFIG_AV1_DECODER
 #endif  // HAVE_NEON
 
 // -----------------------------------------------------------------------------
@@ -1519,7 +1465,6 @@ HIGHBD_INTRA_PRED_TEST(
     aom_highbd_h_predictor_16x32_c, aom_highbd_paeth_predictor_16x32_c,
     aom_highbd_smooth_predictor_16x32_c, aom_highbd_smooth_v_predictor_16x32_c,
     aom_highbd_smooth_h_predictor_16x32_c)
-#if !CONFIG_REALTIME_ONLY || CONFIG_AV1_DECODER
 HIGHBD_INTRA_PRED_TEST(
     C, TX_16X4, aom_highbd_dc_predictor_16x4_c,
     aom_highbd_dc_left_predictor_16x4_c, aom_highbd_dc_top_predictor_16x4_c,
@@ -1534,7 +1479,6 @@ HIGHBD_INTRA_PRED_TEST(
     aom_highbd_h_predictor_16x64_c, aom_highbd_paeth_predictor_16x64_c,
     aom_highbd_smooth_predictor_16x64_c, aom_highbd_smooth_v_predictor_16x64_c,
     aom_highbd_smooth_h_predictor_16x64_c)
-#endif  // !CONFIG_REALTIME_ONLY || CONFIG_AV1_DECODER
 
 #if HAVE_SSE2
 HIGHBD_INTRA_PRED_TEST(SSE2, TX_16X16, aom_highbd_dc_predictor_16x16_sse2,
@@ -1607,7 +1551,6 @@ HIGHBD_INTRA_PRED_TEST(NEON, TX_16X32, aom_highbd_dc_predictor_16x32_neon,
                        aom_highbd_smooth_predictor_16x32_neon,
                        aom_highbd_smooth_v_predictor_16x32_neon,
                        aom_highbd_smooth_h_predictor_16x32_neon)
-#if !CONFIG_REALTIME_ONLY || CONFIG_AV1_DECODER
 HIGHBD_INTRA_PRED_TEST(NEON, TX_16X4, aom_highbd_dc_predictor_16x4_neon,
                        aom_highbd_dc_left_predictor_16x4_neon,
                        aom_highbd_dc_top_predictor_16x4_neon,
@@ -1628,7 +1571,6 @@ HIGHBD_INTRA_PRED_TEST(NEON, TX_16X64, aom_highbd_dc_predictor_16x64_neon,
                        aom_highbd_smooth_predictor_16x64_neon,
                        aom_highbd_smooth_v_predictor_16x64_neon,
                        aom_highbd_smooth_h_predictor_16x64_neon)
-#endif  // !CONFIG_REALTIME_ONLY || CONFIG_AV1_DECODER
 #endif  // HAVE_NEON
 
 // -----------------------------------------------------------------------------
@@ -1655,7 +1597,6 @@ HIGHBD_INTRA_PRED_TEST(
     aom_highbd_h_predictor_32x64_c, aom_highbd_paeth_predictor_32x64_c,
     aom_highbd_smooth_predictor_32x64_c, aom_highbd_smooth_v_predictor_32x64_c,
     aom_highbd_smooth_h_predictor_32x64_c)
-#if !CONFIG_REALTIME_ONLY || CONFIG_AV1_DECODER
 HIGHBD_INTRA_PRED_TEST(
     C, TX_32X8, aom_highbd_dc_predictor_32x8_c,
     aom_highbd_dc_left_predictor_32x8_c, aom_highbd_dc_top_predictor_32x8_c,
@@ -1663,7 +1604,6 @@ HIGHBD_INTRA_PRED_TEST(
     aom_highbd_h_predictor_32x8_c, aom_highbd_paeth_predictor_32x8_c,
     aom_highbd_smooth_predictor_32x8_c, aom_highbd_smooth_v_predictor_32x8_c,
     aom_highbd_smooth_h_predictor_32x8_c)
-#endif  // !CONFIG_REALTIME_ONLY || CONFIG_AV1_DECODER
 
 #if HAVE_SSE2
 HIGHBD_INTRA_PRED_TEST(SSE2, TX_32X32, aom_highbd_dc_predictor_32x32_sse2,
@@ -1726,7 +1666,6 @@ HIGHBD_INTRA_PRED_TEST(NEON, TX_32X64, aom_highbd_dc_predictor_32x64_neon,
                        aom_highbd_smooth_predictor_32x64_neon,
                        aom_highbd_smooth_v_predictor_32x64_neon,
                        aom_highbd_smooth_h_predictor_32x64_neon)
-#if !CONFIG_REALTIME_ONLY || CONFIG_AV1_DECODER
 HIGHBD_INTRA_PRED_TEST(NEON, TX_32X8, aom_highbd_dc_predictor_32x8_neon,
                        aom_highbd_dc_left_predictor_32x8_neon,
                        aom_highbd_dc_top_predictor_32x8_neon,
@@ -1737,7 +1676,6 @@ HIGHBD_INTRA_PRED_TEST(NEON, TX_32X8, aom_highbd_dc_predictor_32x8_neon,
                        aom_highbd_smooth_predictor_32x8_neon,
                        aom_highbd_smooth_v_predictor_32x8_neon,
                        aom_highbd_smooth_h_predictor_32x8_neon)
-#endif  // !CONFIG_REALTIME_ONLY || CONFIG_AV1_DECODER
 #endif  // HAVE_NEON
 
 // -----------------------------------------------------------------------------
@@ -1757,7 +1695,6 @@ HIGHBD_INTRA_PRED_TEST(
     aom_highbd_h_predictor_64x32_c, aom_highbd_paeth_predictor_64x32_c,
     aom_highbd_smooth_predictor_64x32_c, aom_highbd_smooth_v_predictor_64x32_c,
     aom_highbd_smooth_h_predictor_64x32_c)
-#if !CONFIG_REALTIME_ONLY || CONFIG_AV1_DECODER
 HIGHBD_INTRA_PRED_TEST(
     C, TX_64X16, aom_highbd_dc_predictor_64x16_c,
     aom_highbd_dc_left_predictor_64x16_c, aom_highbd_dc_top_predictor_64x16_c,
@@ -1765,7 +1702,6 @@ HIGHBD_INTRA_PRED_TEST(
     aom_highbd_h_predictor_64x16_c, aom_highbd_paeth_predictor_64x16_c,
     aom_highbd_smooth_predictor_64x16_c, aom_highbd_smooth_v_predictor_64x16_c,
     aom_highbd_smooth_h_predictor_64x16_c)
-#endif  // !CONFIG_REALTIME_ONLY || CONFIG_AV1_DECODER
 
 #if HAVE_NEON
 HIGHBD_INTRA_PRED_TEST(NEON, TX_64X64, aom_highbd_dc_predictor_64x64_neon,
@@ -1788,7 +1724,6 @@ HIGHBD_INTRA_PRED_TEST(NEON, TX_64X32, aom_highbd_dc_predictor_64x32_neon,
                        aom_highbd_smooth_predictor_64x32_neon,
                        aom_highbd_smooth_v_predictor_64x32_neon,
                        aom_highbd_smooth_h_predictor_64x32_neon)
-#if !CONFIG_REALTIME_ONLY || CONFIG_AV1_DECODER
 HIGHBD_INTRA_PRED_TEST(NEON, TX_64X16, aom_highbd_dc_predictor_64x16_neon,
                        aom_highbd_dc_left_predictor_64x16_neon,
                        aom_highbd_dc_top_predictor_64x16_neon,
@@ -1799,7 +1734,6 @@ HIGHBD_INTRA_PRED_TEST(NEON, TX_64X16, aom_highbd_dc_predictor_64x16_neon,
                        aom_highbd_smooth_predictor_64x16_neon,
                        aom_highbd_smooth_v_predictor_64x16_neon,
                        aom_highbd_smooth_h_predictor_64x16_neon)
-#endif  // !CONFIG_REALTIME_ONLY || CONFIG_AV1_DECODER
 #endif  // HAVE_NEON
 
 // -----------------------------------------------------------------------------

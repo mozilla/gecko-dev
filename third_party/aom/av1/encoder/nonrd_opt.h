@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, Alliance for Open Media. All rights reserved.
+ * Copyright (c) 2022, Alliance for Open Media. All rights reserved
  *
  * This source code is subject to the terms of the BSD 2 Clause License and
  * the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
@@ -392,7 +392,7 @@ DECLARE_ALIGNED(16, static const int16_t, av1_fast_idtx_iscan_16x16[256]) = {
 };
 
 // Indicates the blocks for which RD model should be based on special logic
-static inline int get_model_rd_flag(const AV1_COMP *cpi, const MACROBLOCKD *xd,
+static INLINE int get_model_rd_flag(const AV1_COMP *cpi, const MACROBLOCKD *xd,
                                     BLOCK_SIZE bsize) {
   const AV1_COMMON *const cm = &cpi->common;
   const int large_block = bsize >= BLOCK_32X32;
@@ -426,7 +426,7 @@ static inline int get_model_rd_flag(const AV1_COMP *cpi, const MACROBLOCKD *xd,
  * \remark Nothing is returned. Instead, predicted MVs are placed into
  * \c frame_mv array, and use_scaled_ref_frame is set.
  */
-static inline void find_predictors(
+static INLINE void find_predictors(
     AV1_COMP *cpi, MACROBLOCK *x, MV_REFERENCE_FRAME ref_frame,
     int_mv frame_mv[MB_MODE_COUNT][REF_FRAMES],
     struct buf_2d yv12_mb[8][MAX_MB_PLANE], BLOCK_SIZE bsize,
@@ -477,7 +477,7 @@ static inline void find_predictors(
   *use_scaled_ref_frame = ref_is_scaled && scaled_ref;
 }
 
-static inline void init_mbmi_nonrd(MB_MODE_INFO *mbmi,
+static INLINE void init_mbmi_nonrd(MB_MODE_INFO *mbmi,
                                    PREDICTION_MODE pred_mode,
                                    MV_REFERENCE_FRAME ref_frame0,
                                    MV_REFERENCE_FRAME ref_frame1,
@@ -498,7 +498,7 @@ static inline void init_mbmi_nonrd(MB_MODE_INFO *mbmi,
   set_default_interp_filters(mbmi, cm->features.interp_filter);
 }
 
-static inline void init_estimate_block_intra_args(
+static INLINE void init_estimate_block_intra_args(
     struct estimate_block_intra_args *args, AV1_COMP *cpi, MACROBLOCK *x) {
   args->cpi = cpi;
   args->x = x;
@@ -509,7 +509,7 @@ static inline void init_estimate_block_intra_args(
   args->prune_mode_based_on_sad = false;
 }
 
-static inline int get_pred_buffer(PRED_BUFFER *p, int len) {
+static INLINE int get_pred_buffer(PRED_BUFFER *p, int len) {
   for (int buf_idx = 0; buf_idx < len; buf_idx++) {
     if (!p[buf_idx].in_use) {
       p[buf_idx].in_use = 1;
@@ -519,16 +519,16 @@ static inline int get_pred_buffer(PRED_BUFFER *p, int len) {
   return -1;
 }
 
-static inline void free_pred_buffer(PRED_BUFFER *p) {
+static INLINE void free_pred_buffer(PRED_BUFFER *p) {
   if (p != NULL) p->in_use = 0;
 }
 
 #if CONFIG_INTERNAL_STATS
-static inline void store_coding_context_nonrd(MACROBLOCK *x,
+static INLINE void store_coding_context_nonrd(MACROBLOCK *x,
                                               PICK_MODE_CONTEXT *ctx,
                                               int mode_index) {
 #else
-static inline void store_coding_context_nonrd(MACROBLOCK *x,
+static INLINE void store_coding_context_nonrd(MACROBLOCK *x,
                                               PICK_MODE_CONTEXT *ctx) {
 #endif  // CONFIG_INTERNAL_STATS
   MACROBLOCKD *const xd = &x->e_mbd;

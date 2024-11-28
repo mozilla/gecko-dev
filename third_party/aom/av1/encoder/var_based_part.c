@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Alliance for Open Media. All rights reserved.
+ * Copyright (c) 2019, Alliance for Open Media. All rights reserved
  *
  * This source code is subject to the terms of the BSD 2 Clause License and
  * the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
@@ -48,8 +48,8 @@ typedef struct {
   VPartVar *split[4];
 } variance_node;
 
-static inline void tree_to_node(void *data, BLOCK_SIZE bsize,
-                                variance_node *node) {
+static AOM_INLINE void tree_to_node(void *data, BLOCK_SIZE bsize,
+                                    variance_node *node) {
   node->part_variances = NULL;
   switch (bsize) {
     case BLOCK_128X128: {
@@ -99,13 +99,14 @@ static inline void tree_to_node(void *data, BLOCK_SIZE bsize,
 }
 
 // Set variance values given sum square error, sum error, count.
-static inline void fill_variance(uint32_t s2, int32_t s, int c, VPartVar *v) {
+static AOM_INLINE void fill_variance(uint32_t s2, int32_t s, int c,
+                                     VPartVar *v) {
   v->sum_square_error = s2;
   v->sum_error = s;
   v->log2_count = c;
 }
 
-static inline void get_variance(VPartVar *v) {
+static AOM_INLINE void get_variance(VPartVar *v) {
   v->variance =
       (int)(256 * (v->sum_square_error -
                    (uint32_t)(((int64_t)v->sum_error * v->sum_error) >>
@@ -113,14 +114,14 @@ static inline void get_variance(VPartVar *v) {
             v->log2_count);
 }
 
-static inline void sum_2_variances(const VPartVar *a, const VPartVar *b,
-                                   VPartVar *r) {
+static AOM_INLINE void sum_2_variances(const VPartVar *a, const VPartVar *b,
+                                       VPartVar *r) {
   assert(a->log2_count == b->log2_count);
   fill_variance(a->sum_square_error + b->sum_square_error,
                 a->sum_error + b->sum_error, a->log2_count + 1, r);
 }
 
-static inline void fill_variance_tree(void *data, BLOCK_SIZE bsize) {
+static AOM_INLINE void fill_variance_tree(void *data, BLOCK_SIZE bsize) {
   variance_node node;
   memset(&node, 0, sizeof(node));
   tree_to_node(data, bsize, &node);
@@ -132,8 +133,8 @@ static inline void fill_variance_tree(void *data, BLOCK_SIZE bsize) {
                   &node.part_variances->none);
 }
 
-static inline void set_block_size(AV1_COMP *const cpi, int mi_row, int mi_col,
-                                  BLOCK_SIZE bsize) {
+static AOM_INLINE void set_block_size(AV1_COMP *const cpi, int mi_row,
+                                      int mi_col, BLOCK_SIZE bsize) {
   if (cpi->common.mi_params.mi_cols > mi_col &&
       cpi->common.mi_params.mi_rows > mi_row) {
     CommonModeInfoParams *mi_params = &cpi->common.mi_params;
@@ -251,8 +252,8 @@ static int set_vt_partitioning(AV1_COMP *cpi, MACROBLOCKD *const xd,
   return 0;
 }
 
-static inline int all_blks_inside(int x16_idx, int y16_idx, int pixels_wide,
-                                  int pixels_high) {
+static AOM_INLINE int all_blks_inside(int x16_idx, int y16_idx, int pixels_wide,
+                                      int pixels_high) {
   int all_inside = 1;
   for (int idx = 0; idx < 4; idx++) {
     all_inside &= ((x16_idx + GET_BLK_IDX_X(idx, 3)) < pixels_wide);
@@ -263,7 +264,7 @@ static inline int all_blks_inside(int x16_idx, int y16_idx, int pixels_wide,
 
 #if CONFIG_AV1_HIGHBITDEPTH
 // TODO(yunqingwang): Perform average of four 8x8 blocks similar to lowbd
-static inline void fill_variance_8x8avg_highbd(
+static AOM_INLINE void fill_variance_8x8avg_highbd(
     const uint8_t *src_buf, int src_stride, const uint8_t *dst_buf,
     int dst_stride, int x16_idx, int y16_idx, VP16x16 *vst, int pixels_wide,
     int pixels_high) {
@@ -286,7 +287,7 @@ static inline void fill_variance_8x8avg_highbd(
 }
 #endif
 
-static inline void fill_variance_8x8avg_lowbd(
+static AOM_INLINE void fill_variance_8x8avg_lowbd(
     const uint8_t *src_buf, int src_stride, const uint8_t *dst_buf,
     int dst_stride, int x16_idx, int y16_idx, VP16x16 *vst, int pixels_wide,
     int pixels_high) {
@@ -326,11 +327,10 @@ static inline void fill_variance_8x8avg_lowbd(
 // at 8x8 sub-block level for a given 16x16 block.
 // The function can be called only when is_key_frame is false since sum is
 // computed between source and reference frames.
-static inline void fill_variance_8x8avg(const uint8_t *src_buf, int src_stride,
-                                        const uint8_t *dst_buf, int dst_stride,
-                                        int x16_idx, int y16_idx, VP16x16 *vst,
-                                        int highbd_flag, int pixels_wide,
-                                        int pixels_high) {
+static AOM_INLINE void fill_variance_8x8avg(
+    const uint8_t *src_buf, int src_stride, const uint8_t *dst_buf,
+    int dst_stride, int x16_idx, int y16_idx, VP16x16 *vst, int highbd_flag,
+    int pixels_wide, int pixels_high) {
 #if CONFIG_AV1_HIGHBITDEPTH
   if (highbd_flag) {
     fill_variance_8x8avg_highbd(src_buf, src_stride, dst_buf, dst_stride,
@@ -386,13 +386,14 @@ static int compute_minmax_8x8(const uint8_t *src_buf, int src_stride,
 // Function to compute average and variance of 4x4 sub-block.
 // The function can be called only when is_key_frame is true since sum is
 // computed using source frame only.
-static inline void fill_variance_4x4avg(const uint8_t *src_buf, int src_stride,
-                                        int x8_idx, int y8_idx, VP8x8 *vst,
+static AOM_INLINE void fill_variance_4x4avg(const uint8_t *src_buf,
+                                            int src_stride, int x8_idx,
+                                            int y8_idx, VP8x8 *vst,
 #if CONFIG_AV1_HIGHBITDEPTH
-                                        int highbd_flag,
+                                            int highbd_flag,
 #endif
-                                        int pixels_wide, int pixels_high,
-                                        int border_offset_4x4) {
+                                            int pixels_wide, int pixels_high,
+                                            int border_offset_4x4) {
   for (int idx = 0; idx < 4; idx++) {
     const int x4_idx = x8_idx + GET_BLK_IDX_X(idx, 2);
     const int y4_idx = y8_idx + GET_BLK_IDX_Y(idx, 2);
@@ -421,11 +422,14 @@ static inline void fill_variance_4x4avg(const uint8_t *src_buf, int src_stride,
   }
 }
 
+// TODO(kyslov) Bring back threshold adjustment based on content state
 static int64_t scale_part_thresh_content(int64_t threshold_base, int speed,
-                                         int non_reference_frame,
-                                         int is_static) {
+                                         int width, int height,
+                                         int non_reference_frame) {
+  (void)width;
+  (void)height;
   int64_t threshold = threshold_base;
-  if (non_reference_frame && !is_static) threshold = (3 * threshold) >> 1;
+  if (non_reference_frame) threshold = (3 * threshold) >> 1;
   if (speed >= 8) {
     return (5 * threshold) >> 2;
   }
@@ -433,7 +437,7 @@ static int64_t scale_part_thresh_content(int64_t threshold_base, int speed,
 }
 
 // Tune thresholds less or more aggressively to prefer larger partitions
-static inline void tune_thresh_based_on_qindex(
+static AOM_INLINE void tune_thresh_based_on_qindex(
     AV1_COMP *cpi, int64_t thresholds[], uint64_t block_sad, int current_qindex,
     int num_pixels, bool is_segment_id_boosted, int source_sad_nonrd,
     int lighting_change) {
@@ -558,7 +562,7 @@ static void set_vbp_thresholds_key_frame(AV1_COMP *cpi, int64_t thresholds[],
   thresholds[4] = threshold_base << 2;
 }
 
-static inline void tune_thresh_based_on_resolution(
+static AOM_INLINE void tune_thresh_based_on_resolution(
     AV1_COMP *cpi, int64_t thresholds[], int64_t threshold_base,
     int current_qindex, int source_sad_rd, int num_pixels) {
   if (num_pixels >= RESOLUTION_720P) thresholds[3] = thresholds[3] << 1;
@@ -623,12 +627,14 @@ static inline void tune_thresh_based_on_resolution(
   }
 }
 
-// Increase the base partition threshold, based on content and noise level.
-static inline int64_t tune_base_thresh_content(AV1_COMP *cpi,
-                                               int64_t threshold_base,
-                                               int content_lowsumdiff,
-                                               int source_sad_nonrd,
-                                               int num_pixels) {
+// Increase partition thresholds for noisy content. Apply it only for
+// superblocks where sumdiff is low, as we assume the sumdiff of superblock
+// whose only change is due to noise will be low (i.e, noise will average
+// out over large block).
+static AOM_INLINE int64_t tune_thresh_noisy_content(AV1_COMP *cpi,
+                                                    int64_t threshold_base,
+                                                    int content_lowsumdiff,
+                                                    int num_pixels) {
   AV1_COMMON *const cm = &cpi->common;
   int64_t updated_thresh_base = threshold_base;
   if (cpi->noise_estimate.enabled && content_lowsumdiff &&
@@ -641,21 +647,30 @@ static inline int64_t tune_base_thresh_content(AV1_COMP *cpi,
              !cpi->sf.rt_sf.prefer_large_partition_blocks)
       updated_thresh_base = (5 * updated_thresh_base) >> 2;
   }
+  // TODO(kyslov) Enable var based partition adjusment on temporal denoising
+#if 0  // CONFIG_AV1_TEMPORAL_DENOISING
+  if (cpi->oxcf.noise_sensitivity > 0 && denoise_svc(cpi) &&
+      cpi->oxcf.speed > 5 && cpi->denoiser.denoising_level >= kDenLow)
+      updated_thresh_base =
+          av1_scale_part_thresh(updated_thresh_base, cpi->denoiser.denoising_level,
+                                content_state, cpi->svc.temporal_layer_id);
+  else
+    threshold_base =
+        scale_part_thresh_content(updated_thresh_base, cpi->oxcf.speed, cm->width,
+                                  cm->height, cpi->ppi->rtc_ref.non_reference_frame);
+#else
+  // Increase base variance threshold based on content_state/sum_diff level.
   updated_thresh_base = scale_part_thresh_content(
-      updated_thresh_base, cpi->oxcf.speed,
-      cpi->ppi->rtc_ref.non_reference_frame, cpi->rc.frame_source_sad == 0);
-  if (cpi->oxcf.speed >= 11 && source_sad_nonrd > kLowSad &&
-      cpi->rc.high_motion_content_screen_rtc)
-    updated_thresh_base = updated_thresh_base << 4;
+      updated_thresh_base, cpi->oxcf.speed, cm->width, cm->height,
+      cpi->ppi->rtc_ref.non_reference_frame);
+#endif
   return updated_thresh_base;
 }
 
-static inline void set_vbp_thresholds(AV1_COMP *cpi, int64_t thresholds[],
-                                      uint64_t blk_sad, int qindex,
-                                      int content_lowsumdiff,
-                                      int source_sad_nonrd, int source_sad_rd,
-                                      bool is_segment_id_boosted,
-                                      int lighting_change) {
+static AOM_INLINE void set_vbp_thresholds(
+    AV1_COMP *cpi, int64_t thresholds[], uint64_t blk_sad, int qindex,
+    int content_lowsumdiff, int source_sad_nonrd, int source_sad_rd,
+    bool is_segment_id_boosted, int lighting_change) {
   AV1_COMMON *const cm = &cpi->common;
   const int is_key_frame = frame_is_intra_only(cm);
   const int threshold_multiplier = is_key_frame ? 120 : 1;
@@ -671,8 +686,8 @@ static inline void set_vbp_thresholds(AV1_COMP *cpi, int64_t thresholds[],
     return;
   }
 
-  threshold_base = tune_base_thresh_content(
-      cpi, threshold_base, content_lowsumdiff, source_sad_nonrd, num_pixels);
+  threshold_base = tune_thresh_noisy_content(cpi, threshold_base,
+                                             content_lowsumdiff, num_pixels);
   thresholds[0] = threshold_base >> 1;
   thresholds[1] = threshold_base;
   thresholds[3] = threshold_base << threshold_left_shift;
@@ -687,11 +702,10 @@ static inline void set_vbp_thresholds(AV1_COMP *cpi, int64_t thresholds[],
 
 // Set temporal variance low flag for superblock 64x64.
 // Only first 25 in the array are used in this case.
-static inline void set_low_temp_var_flag_64x64(CommonModeInfoParams *mi_params,
-                                               PartitionSearchInfo *part_info,
-                                               MACROBLOCKD *xd, VP64x64 *vt,
-                                               const int64_t thresholds[],
-                                               int mi_col, int mi_row) {
+static AOM_INLINE void set_low_temp_var_flag_64x64(
+    CommonModeInfoParams *mi_params, PartitionSearchInfo *part_info,
+    MACROBLOCKD *xd, VP64x64 *vt, const int64_t thresholds[], int mi_col,
+    int mi_row) {
   if (xd->mi[0]->bsize == BLOCK_64X64) {
     if ((vt->part_variances).none.variance < (thresholds[0] >> 1))
       part_info->variance_low[0] = 1;
@@ -740,7 +754,7 @@ static inline void set_low_temp_var_flag_64x64(CommonModeInfoParams *mi_params,
   }
 }
 
-static inline void set_low_temp_var_flag_128x128(
+static AOM_INLINE void set_low_temp_var_flag_128x128(
     CommonModeInfoParams *mi_params, PartitionSearchInfo *part_info,
     MACROBLOCKD *xd, VP128x128 *vt, const int64_t thresholds[], int mi_col,
     int mi_row) {
@@ -825,7 +839,7 @@ static inline void set_low_temp_var_flag_128x128(
   }
 }
 
-static inline void set_low_temp_var_flag(
+static AOM_INLINE void set_low_temp_var_flag(
     AV1_COMP *cpi, PartitionSearchInfo *part_info, MACROBLOCKD *xd,
     VP128x128 *vt, int64_t thresholds[], MV_REFERENCE_FRAME ref_frame_partition,
     int mi_col, int mi_row, const bool is_small_sb) {
@@ -983,10 +997,11 @@ void av1_set_variance_partition_thresholds(AV1_COMP *cpi, int qindex,
   }
 }
 
-static inline void chroma_check(AV1_COMP *cpi, MACROBLOCK *x, BLOCK_SIZE bsize,
-                                unsigned int y_sad, unsigned int y_sad_g,
-                                unsigned int y_sad_alt, bool is_key_frame,
-                                bool zero_motion, unsigned int *uv_sad) {
+static AOM_INLINE void chroma_check(AV1_COMP *cpi, MACROBLOCK *x,
+                                    BLOCK_SIZE bsize, unsigned int y_sad,
+                                    unsigned int y_sad_g,
+                                    unsigned int y_sad_alt, bool is_key_frame,
+                                    bool zero_motion, unsigned int *uv_sad) {
   MACROBLOCKD *xd = &x->e_mbd;
   const int source_sad_nonrd = x->content_state_sb.source_sad_nonrd;
   int shift_upper_limit = 1;
@@ -1008,11 +1023,6 @@ static inline void chroma_check(AV1_COMP *cpi, MACROBLOCK *x, BLOCK_SIZE bsize,
   if (cpi->oxcf.tune_cfg.content == AOM_CONTENT_SCREEN &&
       cpi->rc.high_source_sad) {
     shift_lower_limit = 7;
-  } else if (cpi->oxcf.tune_cfg.content == AOM_CONTENT_SCREEN &&
-             cpi->rc.percent_blocks_with_motion > 90 &&
-             cpi->rc.frame_source_sad > 10000 && source_sad_nonrd > kLowSad) {
-    shift_lower_limit = 8;
-    shift_upper_limit = 3;
   } else if (source_sad_nonrd >= kMedSad && x->source_variance > 500 &&
              cpi->common.width * cpi->common.height >= 640 * 360) {
     shift_upper_limit = 2;
@@ -1211,7 +1221,7 @@ static void fill_variance_tree_leaves(
   }
 }
 
-static inline void set_ref_frame_for_partition(
+static AOM_INLINE void set_ref_frame_for_partition(
     AV1_COMP *cpi, MACROBLOCK *x, MACROBLOCKD *xd,
     MV_REFERENCE_FRAME *ref_frame_partition, MB_MODE_INFO *mi,
     unsigned int *y_sad, unsigned int *y_sad_g, unsigned int *y_sad_alt,
@@ -1253,9 +1263,10 @@ static AOM_FORCE_INLINE int mv_distance(const FULLPEL_MV *mv0,
   return abs(mv0->row - mv1->row) + abs(mv0->col - mv1->col);
 }
 
-static inline void evaluate_neighbour_mvs(AV1_COMP *cpi, MACROBLOCK *x,
-                                          unsigned int *y_sad, bool is_small_sb,
-                                          int est_motion) {
+static AOM_INLINE void evaluate_neighbour_mvs(AV1_COMP *cpi, MACROBLOCK *x,
+                                              unsigned int *y_sad,
+                                              bool is_small_sb,
+                                              int est_motion) {
   const int source_sad_nonrd = x->content_state_sb.source_sad_nonrd;
   // TODO(yunqingwang@google.com): test if this condition works with other
   // speeds.
@@ -1492,7 +1503,7 @@ static void setup_planes(AV1_COMP *cpi, MACROBLOCK *x, unsigned int *y_sad,
 
 // Decides whether to split or merge a 16x16 partition block in variance based
 // partitioning based on the 8x8 sub-block variances.
-static inline PART_EVAL_STATUS get_part_eval_based_on_sub_blk_var(
+static AOM_INLINE PART_EVAL_STATUS get_part_eval_based_on_sub_blk_var(
     VP16x16 *var_16x16_info, int64_t threshold16) {
   int max_8x8_var = 0, min_8x8_var = INT_MAX;
   for (int split_idx = 0; split_idx < 4; split_idx++) {
@@ -1511,7 +1522,7 @@ static inline PART_EVAL_STATUS get_part_eval_based_on_sub_blk_var(
              : PART_EVAL_ONLY_NONE;
 }
 
-static inline bool is_set_force_zeromv_skip_based_on_src_sad(
+static AOM_INLINE bool is_set_force_zeromv_skip_based_on_src_sad(
     int set_zeromv_skip_based_on_source_sad, SOURCE_SAD source_sad_nonrd) {
   if (set_zeromv_skip_based_on_source_sad == 0) return false;
 
@@ -1525,7 +1536,7 @@ static inline bool is_set_force_zeromv_skip_based_on_src_sad(
   return false;
 }
 
-static inline bool set_force_zeromv_skip_for_sb(
+static AOM_INLINE bool set_force_zeromv_skip_for_sb(
     AV1_COMP *cpi, MACROBLOCK *x, const TileInfo *const tile, VP128x128 *vt,
     unsigned int *uv_sad, int mi_row, int mi_col, unsigned int y_sad,
     BLOCK_SIZE bsize) {

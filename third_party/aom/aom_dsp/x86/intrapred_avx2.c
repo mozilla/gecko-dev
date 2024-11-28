@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Alliance for Open Media. All rights reserved.
+ * Copyright (c) 2017, Alliance for Open Media. All rights reserved
  *
  * This source code is subject to the terms of the BSD 2 Clause License and
  * the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
@@ -16,7 +16,7 @@
 #include "aom_dsp/x86/intrapred_utils.h"
 #include "aom_dsp/x86/lpf_common_sse2.h"
 
-static inline __m256i dc_sum_64(const uint8_t *ref) {
+static INLINE __m256i dc_sum_64(const uint8_t *ref) {
   const __m256i x0 = _mm256_loadu_si256((const __m256i *)ref);
   const __m256i x1 = _mm256_loadu_si256((const __m256i *)(ref + 32));
   const __m256i zero = _mm256_setzero_si256();
@@ -29,7 +29,7 @@ static inline __m256i dc_sum_64(const uint8_t *ref) {
   return _mm256_add_epi16(y0, u0);
 }
 
-static inline __m256i dc_sum_32(const uint8_t *ref) {
+static INLINE __m256i dc_sum_32(const uint8_t *ref) {
   const __m256i x = _mm256_loadu_si256((const __m256i *)ref);
   const __m256i zero = _mm256_setzero_si256();
   __m256i y = _mm256_sad_epu8(x, zero);
@@ -39,7 +39,7 @@ static inline __m256i dc_sum_32(const uint8_t *ref) {
   return _mm256_add_epi16(y, u);
 }
 
-static inline void row_store_32xh(const __m256i *r, int height, uint8_t *dst,
+static INLINE void row_store_32xh(const __m256i *r, int height, uint8_t *dst,
                                   ptrdiff_t stride) {
   for (int i = 0; i < height; ++i) {
     _mm256_storeu_si256((__m256i *)dst, *r);
@@ -47,7 +47,7 @@ static inline void row_store_32xh(const __m256i *r, int height, uint8_t *dst,
   }
 }
 
-static inline void row_store_32x2xh(const __m256i *r0, const __m256i *r1,
+static INLINE void row_store_32x2xh(const __m256i *r0, const __m256i *r1,
                                     int height, uint8_t *dst,
                                     ptrdiff_t stride) {
   for (int i = 0; i < height; ++i) {
@@ -57,7 +57,7 @@ static inline void row_store_32x2xh(const __m256i *r0, const __m256i *r1,
   }
 }
 
-static inline void row_store_64xh(const __m256i *r, int height, uint8_t *dst,
+static INLINE void row_store_64xh(const __m256i *r, int height, uint8_t *dst,
                                   ptrdiff_t stride) {
   for (int i = 0; i < height; ++i) {
     _mm256_storeu_si256((__m256i *)dst, *r);
@@ -66,7 +66,6 @@ static inline void row_store_64xh(const __m256i *r, int height, uint8_t *dst,
   }
 }
 
-#if CONFIG_AV1_HIGHBITDEPTH
 static DECLARE_ALIGNED(16, uint8_t, HighbdLoadMaskx[8][16]) = {
   { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 },
   { 0, 1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13 },
@@ -135,8 +134,7 @@ static DECLARE_ALIGNED(32, uint16_t, HighbdBaseMask[17][16]) = {
     0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff }
 };
 
-#if !CONFIG_REALTIME_ONLY || CONFIG_AV1_DECODER
-static inline void highbd_transpose16x4_8x8_sse2(__m128i *x, __m128i *d) {
+static INLINE void highbd_transpose16x4_8x8_sse2(__m128i *x, __m128i *d) {
   __m128i r0, r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11, r12, r13, r14, r15;
 
   r0 = _mm_unpacklo_epi16(x[0], x[1]);
@@ -180,7 +178,7 @@ static inline void highbd_transpose16x4_8x8_sse2(__m128i *x, __m128i *d) {
   d[7] = _mm_unpackhi_epi64(r5, r7);
 }
 
-static inline void highbd_transpose4x16_avx2(__m256i *x, __m256i *d) {
+static INLINE void highbd_transpose4x16_avx2(__m256i *x, __m256i *d) {
   __m256i w0, w1, w2, w3, ww0, ww1;
 
   w0 = _mm256_unpacklo_epi16(x[0], x[1]);  // 00 10 01 11 02 12 03 13
@@ -200,9 +198,8 @@ static inline void highbd_transpose4x16_avx2(__m256i *x, __m256i *d) {
   d[2] = _mm256_unpacklo_epi64(ww0, ww1);  // 02 12 22 32 42 52 62 72
   d[3] = _mm256_unpackhi_epi64(ww0, ww1);  // 03 13 23 33 43 53 63 73
 }
-#endif  // !CONFIG_REALTIME_ONLY || CONFIG_AV1_DECODER
 
-static inline void highbd_transpose8x16_16x8_avx2(__m256i *x, __m256i *d) {
+static INLINE void highbd_transpose8x16_16x8_avx2(__m256i *x, __m256i *d) {
   __m256i w0, w1, w2, w3, ww0, ww1;
 
   w0 = _mm256_unpacklo_epi16(x[0], x[1]);  // 00 10 01 11 02 12 03 13
@@ -240,7 +237,7 @@ static inline void highbd_transpose8x16_16x8_avx2(__m256i *x, __m256i *d) {
   d[7] = _mm256_unpackhi_epi64(ww0, ww1);  // 07 17 27 37 47 57 67 77
 }
 
-static inline void highbd_transpose16x16_avx2(__m256i *x, __m256i *d) {
+static INLINE void highbd_transpose16x16_avx2(__m256i *x, __m256i *d) {
   __m256i w0, w1, w2, w3, ww0, ww1;
   __m256i dd[16];
   w0 = _mm256_unpacklo_epi16(x[0], x[1]);
@@ -317,7 +314,6 @@ static inline void highbd_transpose16x16_avx2(__m256i *x, __m256i *d) {
                                        _mm256_extracti128_si256(dd[i], 1), 0);
   }
 }
-#endif  // CONFIG_AV1_HIGHBITDEPTH
 
 void aom_dc_predictor_32x32_avx2(uint8_t *dst, ptrdiff_t stride,
                                  const uint8_t *above, const uint8_t *left) {
@@ -380,7 +376,7 @@ void aom_v_predictor_32x32_avx2(uint8_t *dst, ptrdiff_t stride,
 // 0,1,2,3, and 16,17,18,19. The next call would do
 // 4,5,6,7, and 20,21,22,23. So 4 times of calling
 // would finish 32 rows.
-static inline void h_predictor_32x8line(const __m256i *row, uint8_t *dst,
+static INLINE void h_predictor_32x8line(const __m256i *row, uint8_t *dst,
                                         ptrdiff_t stride) {
   __m256i t[4];
   __m256i m = _mm256_setzero_si256();
@@ -473,7 +469,6 @@ void aom_dc_predictor_64x32_avx2(uint8_t *dst, ptrdiff_t stride,
   row_store_64xh(&row, 32, dst, stride);
 }
 
-#if !CONFIG_REALTIME_ONLY || CONFIG_AV1_DECODER
 void aom_dc_predictor_64x16_avx2(uint8_t *dst, ptrdiff_t stride,
                                  const uint8_t *above, const uint8_t *left) {
   const __m256i sum_above = dc_sum_64(above);
@@ -485,7 +480,6 @@ void aom_dc_predictor_64x16_avx2(uint8_t *dst, ptrdiff_t stride,
   const __m256i row = _mm256_set1_epi8((int8_t)sum);
   row_store_64xh(&row, 16, dst, stride);
 }
-#endif  // !CONFIG_REALTIME_ONLY || CONFIG_AV1_DECODER
 
 void aom_dc_top_predictor_32x16_avx2(uint8_t *dst, ptrdiff_t stride,
                                      const uint8_t *above,
@@ -543,7 +537,6 @@ void aom_dc_top_predictor_64x32_avx2(uint8_t *dst, ptrdiff_t stride,
   row_store_64xh(&row, 32, dst, stride);
 }
 
-#if !CONFIG_REALTIME_ONLY || CONFIG_AV1_DECODER
 void aom_dc_top_predictor_64x16_avx2(uint8_t *dst, ptrdiff_t stride,
                                      const uint8_t *above,
                                      const uint8_t *left) {
@@ -557,7 +550,6 @@ void aom_dc_top_predictor_64x16_avx2(uint8_t *dst, ptrdiff_t stride,
   __m256i row = _mm256_shuffle_epi8(sum, zero);
   row_store_64xh(&row, 16, dst, stride);
 }
-#endif  // !CONFIG_REALTIME_ONLY || CONFIG_AV1_DECODER
 
 void aom_dc_left_predictor_32x16_avx2(uint8_t *dst, ptrdiff_t stride,
                                       const uint8_t *above,
@@ -616,7 +608,6 @@ void aom_dc_left_predictor_64x32_avx2(uint8_t *dst, ptrdiff_t stride,
   row_store_64xh(&row, 32, dst, stride);
 }
 
-#if !CONFIG_REALTIME_ONLY || CONFIG_AV1_DECODER
 void aom_dc_left_predictor_64x16_avx2(uint8_t *dst, ptrdiff_t stride,
                                       const uint8_t *above,
                                       const uint8_t *left) {
@@ -631,7 +622,6 @@ void aom_dc_left_predictor_64x16_avx2(uint8_t *dst, ptrdiff_t stride,
   const __m256i row = _mm256_inserti128_si256(_mm256_castsi128_si256(r), r, 1);
   row_store_64xh(&row, 16, dst, stride);
 }
-#endif  // !CONFIG_REALTIME_ONLY || CONFIG_AV1_DECODER
 
 void aom_dc_128_predictor_32x16_avx2(uint8_t *dst, ptrdiff_t stride,
                                      const uint8_t *above,
@@ -669,7 +659,6 @@ void aom_dc_128_predictor_64x32_avx2(uint8_t *dst, ptrdiff_t stride,
   row_store_64xh(&row, 32, dst, stride);
 }
 
-#if !CONFIG_REALTIME_ONLY || CONFIG_AV1_DECODER
 void aom_dc_128_predictor_64x16_avx2(uint8_t *dst, ptrdiff_t stride,
                                      const uint8_t *above,
                                      const uint8_t *left) {
@@ -678,7 +667,6 @@ void aom_dc_128_predictor_64x16_avx2(uint8_t *dst, ptrdiff_t stride,
   const __m256i row = _mm256_set1_epi8((int8_t)0x80);
   row_store_64xh(&row, 16, dst, stride);
 }
-#endif  // !CONFIG_REALTIME_ONLY || CONFIG_AV1_DECODER
 
 void aom_v_predictor_32x16_avx2(uint8_t *dst, ptrdiff_t stride,
                                 const uint8_t *above, const uint8_t *left) {
@@ -710,7 +698,6 @@ void aom_v_predictor_64x32_avx2(uint8_t *dst, ptrdiff_t stride,
   row_store_32x2xh(&row0, &row1, 32, dst, stride);
 }
 
-#if !CONFIG_REALTIME_ONLY || CONFIG_AV1_DECODER
 void aom_v_predictor_64x16_avx2(uint8_t *dst, ptrdiff_t stride,
                                 const uint8_t *above, const uint8_t *left) {
   const __m256i row0 = _mm256_loadu_si256((const __m256i *)above);
@@ -718,13 +705,12 @@ void aom_v_predictor_64x16_avx2(uint8_t *dst, ptrdiff_t stride,
   (void)left;
   row_store_32x2xh(&row0, &row1, 16, dst, stride);
 }
-#endif  // !CONFIG_REALTIME_ONLY || CONFIG_AV1_DECODER
 
 // -----------------------------------------------------------------------------
 // PAETH_PRED
 
 // Return 16 16-bit pixels in one row (__m256i)
-static inline __m256i paeth_pred(const __m256i *left, const __m256i *top,
+static INLINE __m256i paeth_pred(const __m256i *left, const __m256i *top,
                                  const __m256i *topleft) {
   const __m256i base =
       _mm256_sub_epi16(_mm256_add_epi16(*top, *left), *topleft);
@@ -748,7 +734,7 @@ static inline __m256i paeth_pred(const __m256i *left, const __m256i *top,
 }
 
 // Return 16 8-bit pixels in one row (__m128i)
-static inline __m128i paeth_16x1_pred(const __m256i *left, const __m256i *top,
+static INLINE __m128i paeth_16x1_pred(const __m256i *left, const __m256i *top,
                                       const __m256i *topleft) {
   const __m256i p0 = paeth_pred(left, top, topleft);
   const __m256i p1 = _mm256_permute4x64_epi64(p0, 0xe);
@@ -756,7 +742,7 @@ static inline __m128i paeth_16x1_pred(const __m256i *left, const __m256i *top,
   return _mm256_castsi256_si128(p);
 }
 
-static inline __m256i get_top_vector(const uint8_t *above) {
+static INLINE __m256i get_top_vector(const uint8_t *above) {
   const __m128i x = _mm_load_si128((const __m128i *)above);
   const __m128i zero = _mm_setzero_si128();
   const __m128i t0 = _mm_unpacklo_epi8(x, zero);
@@ -784,7 +770,7 @@ void aom_paeth_predictor_16x8_avx2(uint8_t *dst, ptrdiff_t stride,
   }
 }
 
-static inline __m256i get_left_vector(const uint8_t *left) {
+static INLINE __m256i get_left_vector(const uint8_t *left) {
   const __m128i x = _mm_load_si128((const __m128i *)left);
   return _mm256_inserti128_si256(_mm256_castsi128_si256(x), x, 1);
 }
@@ -838,7 +824,6 @@ void aom_paeth_predictor_16x32_avx2(uint8_t *dst, ptrdiff_t stride,
   }
 }
 
-#if !CONFIG_REALTIME_ONLY || CONFIG_AV1_DECODER
 void aom_paeth_predictor_16x64_avx2(uint8_t *dst, ptrdiff_t stride,
                                     const uint8_t *above, const uint8_t *left) {
   const __m256i tl16 = _mm256_set1_epi16((int16_t)above[-1]);
@@ -858,10 +843,9 @@ void aom_paeth_predictor_16x64_avx2(uint8_t *dst, ptrdiff_t stride,
     }
   }
 }
-#endif  // !CONFIG_REALTIME_ONLY || CONFIG_AV1_DECODER
 
 // Return 32 8-bit pixels in one row (__m256i)
-static inline __m256i paeth_32x1_pred(const __m256i *left, const __m256i *top0,
+static INLINE __m256i paeth_32x1_pred(const __m256i *left, const __m256i *top0,
                                       const __m256i *top1,
                                       const __m256i *topleft) {
   __m256i p0 = paeth_pred(left, top0, topleft);
@@ -1026,7 +1010,6 @@ void aom_paeth_predictor_64x64_avx2(uint8_t *dst, ptrdiff_t stride,
   }
 }
 
-#if !CONFIG_REALTIME_ONLY || CONFIG_AV1_DECODER
 void aom_paeth_predictor_64x16_avx2(uint8_t *dst, ptrdiff_t stride,
                                     const uint8_t *above, const uint8_t *left) {
   const __m256i t0 = get_top_vector(above);
@@ -1056,9 +1039,9 @@ void aom_paeth_predictor_64x16_avx2(uint8_t *dst, ptrdiff_t stride,
     rep = _mm256_add_epi16(rep, one);
   }
 }
-#endif  // !CONFIG_REALTIME_ONLY || CONFIG_AV1_DECODER
 
-#if CONFIG_AV1_HIGHBITDEPTH
+#define PERM4x64(c0, c1, c2, c3) c0 + (c1 << 2) + (c2 << 4) + (c3 << 6)
+#define PERM2x128(c0, c1) c0 + (c1 << 4)
 
 static AOM_FORCE_INLINE void highbd_dr_prediction_z1_4xN_internal_avx2(
     int N, __m128i *dst, const uint16_t *above, int upsample_above, int dx) {
@@ -3043,7 +3026,6 @@ static void highbd_dr_prediction_z3_16x8_avx2(uint16_t *dst, ptrdiff_t stride,
   }
 }
 
-#if !CONFIG_REALTIME_ONLY || CONFIG_AV1_DECODER
 static void highbd_dr_prediction_z3_4x16_avx2(uint16_t *dst, ptrdiff_t stride,
                                               const uint16_t *left,
                                               int upsample_left, int dy,
@@ -3156,7 +3138,6 @@ static void highbd_dr_prediction_z3_32x8_avx2(uint16_t *dst, ptrdiff_t stride,
     _mm_storeu_si128((__m128i *)(dst + i * stride + 24), d[i + 24]);
   }
 }
-#endif  // !CONFIG_REALTIME_ONLY || CONFIG_AV1_DECODER
 
 static void highbd_dr_prediction_z3_16x16_avx2(uint16_t *dst, ptrdiff_t stride,
                                                const uint16_t *left,
@@ -3300,7 +3281,6 @@ static void highbd_dr_prediction_z3_64x32_avx2(uint16_t *dst, ptrdiff_t stride,
   return;
 }
 
-#if !CONFIG_REALTIME_ONLY || CONFIG_AV1_DECODER
 static void highbd_dr_prediction_z3_16x64_avx2(uint16_t *dst, ptrdiff_t stride,
                                                const uint16_t *left,
                                                int upsample_left, int dy,
@@ -3334,7 +3314,6 @@ static void highbd_dr_prediction_z3_64x16_avx2(uint16_t *dst, ptrdiff_t stride,
     }
   }
 }
-#endif  // !CONFIG_REALTIME_ONLY || CONFIG_AV1_DECODER
 
 void av1_highbd_dr_prediction_z3_avx2(uint16_t *dst, ptrdiff_t stride, int bw,
                                       int bh, const uint16_t *above,
@@ -3391,7 +3370,6 @@ void av1_highbd_dr_prediction_z3_avx2(uint16_t *dst, ptrdiff_t stride, int bw,
         }
       } else {
         switch (bw) {
-#if !CONFIG_REALTIME_ONLY || CONFIG_AV1_DECODER
           case 4:
             highbd_dr_prediction_z3_4x16_avx2(dst, stride, left, upsample_left,
                                               dy, bd);
@@ -3404,7 +3382,6 @@ void av1_highbd_dr_prediction_z3_avx2(uint16_t *dst, ptrdiff_t stride, int bw,
             highbd_dr_prediction_z3_16x64_avx2(dst, stride, left, upsample_left,
                                                dy, bd);
             break;
-#endif  // !CONFIG_REALTIME_ONLY || CONFIG_AV1_DECODER
         }
       }
     } else {
@@ -3429,7 +3406,6 @@ void av1_highbd_dr_prediction_z3_avx2(uint16_t *dst, ptrdiff_t stride, int bw,
         }
       } else {
         switch (bh) {
-#if !CONFIG_REALTIME_ONLY || CONFIG_AV1_DECODER
           case 4:
             highbd_dr_prediction_z3_16x4_avx2(dst, stride, left, upsample_left,
                                               dy, bd);
@@ -3442,14 +3418,12 @@ void av1_highbd_dr_prediction_z3_avx2(uint16_t *dst, ptrdiff_t stride, int bw,
             highbd_dr_prediction_z3_64x16_avx2(dst, stride, left, upsample_left,
                                                dy, bd);
             break;
-#endif  // !CONFIG_REALTIME_ONLY || CONFIG_AV1_DECODER
         }
       }
     }
   }
   return;
 }
-#endif  // CONFIG_AV1_HIGHBITDEPTH
 
 // Low bit depth functions
 static DECLARE_ALIGNED(32, uint8_t, BaseMask[33][32]) = {
@@ -4265,7 +4239,7 @@ void av1_dr_prediction_z2_avx2(uint8_t *dst, ptrdiff_t stride, int bw, int bh,
 }
 
 // z3 functions
-static inline void transpose16x32_avx2(__m256i *x, __m256i *d) {
+static INLINE void transpose16x32_avx2(__m256i *x, __m256i *d) {
   __m256i w0, w1, w2, w3, w4, w5, w6, w7, w8, w9;
   __m256i w10, w11, w12, w13, w14, w15;
 
@@ -4452,7 +4426,6 @@ static void dr_prediction_z3_16x8_avx2(uint8_t *dst, ptrdiff_t stride,
   }
 }
 
-#if !CONFIG_REALTIME_ONLY || CONFIG_AV1_DECODER
 static void dr_prediction_z3_4x16_avx2(uint8_t *dst, ptrdiff_t stride,
                                        const uint8_t *left, int upsample_left,
                                        int dy) {
@@ -4531,7 +4504,6 @@ static void dr_prediction_z3_32x8_avx2(uint8_t *dst, ptrdiff_t stride,
     _mm_storeu_si128((__m128i *)(dst + i * stride + 16), d[i + 8]);
   }
 }
-#endif  // !CONFIG_REALTIME_ONLY || CONFIG_AV1_DECODER
 
 static void dr_prediction_z3_16x16_avx2(uint8_t *dst, ptrdiff_t stride,
                                         const uint8_t *left, int upsample_left,
@@ -4623,7 +4595,6 @@ static void dr_prediction_z3_64x32_avx2(uint8_t *dst, ptrdiff_t stride,
   return;
 }
 
-#if !CONFIG_REALTIME_ONLY || CONFIG_AV1_DECODER
 static void dr_prediction_z3_16x64_avx2(uint8_t *dst, ptrdiff_t stride,
                                         const uint8_t *left, int upsample_left,
                                         int dy) {
@@ -4645,7 +4616,6 @@ static void dr_prediction_z3_64x16_avx2(uint8_t *dst, ptrdiff_t stride,
     }
   }
 }
-#endif  // !CONFIG_REALTIME_ONLY || CONFIG_AV1_DECODER
 
 void av1_dr_prediction_z3_avx2(uint8_t *dst, ptrdiff_t stride, int bw, int bh,
                                const uint8_t *above, const uint8_t *left,
@@ -4692,7 +4662,6 @@ void av1_dr_prediction_z3_avx2(uint8_t *dst, ptrdiff_t stride, int bw, int bh,
         }
       } else {
         switch (bw) {
-#if !CONFIG_REALTIME_ONLY || CONFIG_AV1_DECODER
           case 4:
             dr_prediction_z3_4x16_avx2(dst, stride, left, upsample_left, dy);
             break;
@@ -4702,7 +4671,6 @@ void av1_dr_prediction_z3_avx2(uint8_t *dst, ptrdiff_t stride, int bw, int bh,
           case 16:
             dr_prediction_z3_16x64_avx2(dst, stride, left, upsample_left, dy);
             break;
-#endif  // !CONFIG_REALTIME_ONLY || CONFIG_AV1_DECODER
         }
       }
     } else {
@@ -4723,7 +4691,6 @@ void av1_dr_prediction_z3_avx2(uint8_t *dst, ptrdiff_t stride, int bw, int bh,
         }
       } else {
         switch (bh) {
-#if !CONFIG_REALTIME_ONLY || CONFIG_AV1_DECODER
           case 4:
             dr_prediction_z3_16x4_avx2(dst, stride, left, upsample_left, dy);
             break;
@@ -4733,7 +4700,6 @@ void av1_dr_prediction_z3_avx2(uint8_t *dst, ptrdiff_t stride, int bw, int bh,
           case 16:
             dr_prediction_z3_64x16_avx2(dst, stride, left, upsample_left, dy);
             break;
-#endif  // !CONFIG_REALTIME_ONLY || CONFIG_AV1_DECODER
         }
       }
     }

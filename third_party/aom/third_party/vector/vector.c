@@ -36,24 +36,20 @@ static bool _vector_should_grow(Vector *vector) {
   return vector->size == vector->capacity;
 }
 
-#if 0
 static bool _vector_should_shrink(Vector *vector) {
   assert(vector->size <= vector->capacity);
   return vector->size == vector->capacity * VECTOR_SHRINK_THRESHOLD;
 }
-#endif  // 0
 
 static void *_vector_offset(Vector *vector, size_t index) {
   // return vector->data + (index * vector->element_size);
   return (unsigned char *)vector->data + (index * vector->element_size);
 }
 
-#if 0
 static const void *_vector_const_offset(const Vector *vector, size_t index) {
   // return vector->data + (index * vector->element_size);
   return (unsigned char *)vector->data + (index * vector->element_size);
 }
-#endif  // 0
 
 static void _vector_assign(Vector *vector, size_t index, void *element) {
   /* Insert the element */
@@ -61,7 +57,6 @@ static void _vector_assign(Vector *vector, size_t index, void *element) {
   memcpy(offset, element, vector->element_size);
 }
 
-#if 0
 static int _vector_move_right(Vector *vector, size_t index) {
   assert(vector->size < vector->capacity);
 
@@ -108,7 +103,6 @@ static void _vector_move_left(Vector *vector, size_t index) {
   memmove(offset, (unsigned char *)offset + vector->element_size,
           right_elements_in_bytes);
 }
-#endif  // 0
 
 static int _vector_reallocate(Vector *vector, size_t new_capacity) {
   size_t new_capacity_in_bytes;
@@ -156,13 +150,11 @@ static int _vector_adjust_capacity(Vector *vector) {
                             MAX(1, vector->size * VECTOR_GROWTH_FACTOR));
 }
 
-#if 0
 static void _vector_swap(size_t *first, size_t *second) {
   size_t temp = *first;
   *first = *second;
   *second = temp;
 }
-#endif  // 0
 
 int aom_vector_setup(Vector *vector, size_t capacity, size_t element_size) {
   assert(vector != NULL);
@@ -177,7 +169,6 @@ int aom_vector_setup(Vector *vector, size_t capacity, size_t element_size) {
   return vector->data == NULL ? VECTOR_ERROR : VECTOR_SUCCESS;
 }
 
-#if 0
 int aom_vector_copy(Vector *destination, Vector *source) {
   assert(destination != NULL);
   assert(source != NULL);
@@ -260,7 +251,6 @@ int aom_vector_swap(Vector *destination, Vector *source) {
 
   return VECTOR_SUCCESS;
 }
-#endif  // 0
 
 int aom_vector_destroy(Vector *vector) {
   assert(vector != NULL);
@@ -291,7 +281,6 @@ int aom_vector_push_back(Vector *vector, void *element) {
   return VECTOR_SUCCESS;
 }
 
-#if 0
 int aom_vector_push_front(Vector *vector, void *element) {
   return aom_vector_insert(vector, 0, element);
 }
@@ -413,7 +402,6 @@ void *aom_vector_front(Vector *vector) { return aom_vector_get(vector, 0); }
 void *aom_vector_back(Vector *vector) {
   return aom_vector_get(vector, vector->size - 1);
 }
-#endif  // 0
 
 /* Information */
 
@@ -425,7 +413,6 @@ size_t aom_vector_byte_size(const Vector *vector) {
   return vector->size * vector->element_size;
 }
 
-#if 0
 size_t aom_vector_free_space(const Vector *vector) {
   return vector->capacity - vector->size;
 }
@@ -463,16 +450,13 @@ int aom_vector_reserve(Vector *vector, size_t minimum_capacity) {
 int aom_vector_shrink_to_fit(Vector *vector) {
   return _vector_reallocate(vector, vector->size);
 }
-#endif  // 0
 
 /* Iterators */
 Iterator aom_vector_begin(Vector *vector) { return aom_vector_iterator(vector, 0); }
 
-#if 0
 Iterator aom_vector_end(Vector *vector) {
   return aom_vector_iterator(vector, vector->size);
 }
-#endif  // 0
 
 Iterator aom_vector_iterator(Vector *vector, size_t index) {
   Iterator iterator = { NULL, 0 };
@@ -492,7 +476,6 @@ Iterator aom_vector_iterator(Vector *vector, size_t index) {
 
 void *aom_iterator_get(Iterator *iterator) { return iterator->pointer; }
 
-#if 0
 int aom_iterator_erase(Vector *vector, Iterator *iterator) {
   size_t index = aom_iterator_index(vector, iterator);
 
@@ -504,7 +487,6 @@ int aom_iterator_erase(Vector *vector, Iterator *iterator) {
 
   return VECTOR_SUCCESS;
 }
-#endif  // 0
 
 void aom_iterator_increment(Iterator *iterator) {
   assert(iterator != NULL);
@@ -513,7 +495,6 @@ void aom_iterator_increment(Iterator *iterator) {
       (unsigned char *)iterator->pointer + iterator->element_size;
 }
 
-#if 0
 void aom_iterator_decrement(Iterator *iterator) {
   assert(iterator != NULL);
   // iterator->pointer -= iterator->element_size;
@@ -557,4 +538,3 @@ size_t aom_iterator_index(Vector *vector, Iterator *iterator) {
   return ((unsigned char *)iterator->pointer - (unsigned char *)vector->data) /
          vector->element_size;
 }
-#endif  // 0

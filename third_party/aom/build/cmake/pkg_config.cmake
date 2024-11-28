@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2017, Alliance for Open Media. All rights reserved.
+# Copyright (c) 2017, Alliance for Open Media. All rights reserved
 #
 # This source code is subject to the terms of the BSD 2 Clause License and the
 # Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License was
@@ -60,11 +60,10 @@ if(CONFIG_TUNE_BUTTERAUGLI)
 endif()
 file(APPEND "${pkgconfig_file}" "\nConflicts:\n")
 file(APPEND "${pkgconfig_file}" "Libs: -L\${libdir} -l${pkg_name}\n")
-file(APPEND "${pkgconfig_file}" "Libs.private:")
-if(NOT WIN32 AND NOT APPLE)
-  file(APPEND "${pkgconfig_file}" " -lm")
-endif()
 if(CONFIG_MULTITHREAD AND CMAKE_THREAD_LIBS_INIT)
-  file(APPEND "${pkgconfig_file}" " ${CMAKE_THREAD_LIBS_INIT}")
+  file(APPEND "${pkgconfig_file}"
+       "Libs.private: -lm ${CMAKE_THREAD_LIBS_INIT}\n")
+else()
+  file(APPEND "${pkgconfig_file}" "Libs.private: -lm\n")
 endif()
-file(APPEND "${pkgconfig_file}" "\nCflags: -I\${includedir}\n")
+file(APPEND "${pkgconfig_file}" "Cflags: -I\${includedir}\n")

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Alliance for Open Media. All rights reserved.
+ * Copyright (c) 2016, Alliance for Open Media. All rights reserved
  *
  * This source code is subject to the terms of the BSD 2 Clause License and
  * the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
@@ -280,8 +280,7 @@ struct parm_offset parm_offsets[] = {
 };
 int parm_count = sizeof(parm_offsets) / sizeof(parm_offsets[0]);
 
-static int convert_to_indices(char *str, int *indices, int maxCount,
-                              int *count) {
+int convert_to_indices(char *str, int *indices, int maxCount, int *count) {
   *count = 0;
   do {
     char *comma = strchr(str, ',');
@@ -308,7 +307,7 @@ AvxVideoReader *reader = NULL;
 const AvxVideoInfo *info = NULL;
 aom_image_t *img = NULL;
 
-static void on_frame_decoded_dump(char *json) {
+void on_frame_decoded_dump(char *json) {
 #ifdef __EMSCRIPTEN__
   EM_ASM_({ Module.on_frame_decoded_json($0); }, json);
 #else
@@ -318,7 +317,7 @@ static void on_frame_decoded_dump(char *json) {
 
 // Writing out the JSON buffer using snprintf is very slow, especially when
 // compiled with emscripten, these functions speed things up quite a bit.
-static int put_str(char *buffer, const char *str) {
+int put_str(char *buffer, const char *str) {
   int i;
   for (i = 0; str[i] != '\0'; i++) {
     buffer[i] = str[i];
@@ -326,7 +325,7 @@ static int put_str(char *buffer, const char *str) {
   return i;
 }
 
-static int put_str_with_escape(char *buffer, const char *str) {
+int put_str_with_escape(char *buffer, const char *str) {
   int i;
   int j = 0;
   for (i = 0; str[i] != '\0'; i++) {
@@ -340,7 +339,7 @@ static int put_str_with_escape(char *buffer, const char *str) {
   return j;
 }
 
-static int put_num(char *buffer, char prefix, int num, char suffix) {
+int put_num(char *buffer, char prefix, int num, char suffix) {
   int i = 0;
   char *buf = buffer;
   int is_neg = 0;
@@ -377,7 +376,7 @@ static int put_num(char *buffer, char prefix, int num, char suffix) {
   return i;
 }
 
-static int put_map(char *buffer, const map_entry *map) {
+int put_map(char *buffer, const map_entry *map) {
   char *buf = buffer;
   const map_entry *entry = map;
   while (entry->name != NULL) {
@@ -393,8 +392,7 @@ static int put_map(char *buffer, const map_entry *map) {
   return (int)(buf - buffer);
 }
 
-#if 0
-static int put_reference_frame(char *buffer) {
+int put_reference_frame(char *buffer) {
   const int mi_rows = frame_data.mi_rows;
   const int mi_cols = frame_data.mi_cols;
   char *buf = buffer;
@@ -431,9 +429,8 @@ static int put_reference_frame(char *buffer) {
   buf += put_str(buf, "],\n");
   return (int)(buf - buffer);
 }
-#endif
 
-static int put_motion_vectors(char *buffer) {
+int put_motion_vectors(char *buffer) {
   const int mi_rows = frame_data.mi_rows;
   const int mi_cols = frame_data.mi_cols;
   char *buf = buffer;
@@ -472,7 +469,7 @@ static int put_motion_vectors(char *buffer) {
   return (int)(buf - buffer);
 }
 
-static int put_combined(char *buffer) {
+int put_combined(char *buffer) {
   const int mi_rows = frame_data.mi_rows;
   const int mi_cols = frame_data.mi_cols;
   char *buf = buffer;
@@ -504,8 +501,8 @@ static int put_combined(char *buffer) {
   return (int)(buf - buffer);
 }
 
-static int put_block_info(char *buffer, const map_entry *map, const char *name,
-                          size_t offset, int len) {
+int put_block_info(char *buffer, const map_entry *map, const char *name,
+                   size_t offset, int len) {
   const int mi_rows = frame_data.mi_rows;
   const int mi_cols = frame_data.mi_cols;
   char *buf = buffer;
@@ -571,7 +568,7 @@ static int put_block_info(char *buffer, const map_entry *map, const char *name,
 }
 
 #if CONFIG_ACCOUNTING
-static int put_accounting(char *buffer) {
+int put_accounting(char *buffer) {
   char *buf = buffer;
   int i;
   const Accounting *accounting = frame_data.accounting;
@@ -613,7 +610,7 @@ static int put_accounting(char *buffer) {
 
 int skip_non_transform = 0;
 
-static void inspect(void *pbi, void *data) {
+void inspect(void *pbi, void *data) {
   /* Fetch frame data. */
   ifd_inspect(&frame_data, pbi, skip_non_transform);
 
@@ -745,14 +742,12 @@ static void inspect(void *pbi, void *data) {
   aom_free(buffer);
 }
 
-static void ifd_init_cb(void) {
+void ifd_init_cb(void) {
   aom_inspect_init ii;
   ii.inspect_cb = inspect;
   ii.inspect_ctx = NULL;
   aom_codec_control(&codec, AV1_SET_INSPECTION_CALLBACK, &ii);
 }
-
-EMSCRIPTEN_KEEPALIVE int open_file(char *file);
 
 EMSCRIPTEN_KEEPALIVE
 int open_file(char *file) {
@@ -778,9 +773,6 @@ int have_frame = 0;
 const unsigned char *frame;
 const unsigned char *end_frame;
 size_t frame_size = 0;
-struct av1_ref_frame ref_dec;
-
-EMSCRIPTEN_KEEPALIVE int read_frame(void);
 
 EMSCRIPTEN_KEEPALIVE
 int read_frame(void) {
@@ -809,6 +801,7 @@ int read_frame(void) {
 
   int got_any_frames = 0;
   aom_image_t *frame_img;
+  struct av1_ref_frame ref_dec;
   ref_dec.idx = adr.idx;
 
   // ref_dec.idx is the index to the reference buffer idx to AV1_GET_REFERENCE
@@ -830,54 +823,34 @@ int read_frame(void) {
   return EXIT_SUCCESS;
 }
 
-EMSCRIPTEN_KEEPALIVE const char *get_aom_codec_build_config(void);
-
 EMSCRIPTEN_KEEPALIVE
 const char *get_aom_codec_build_config(void) {
   return aom_codec_build_config();
 }
 
-EMSCRIPTEN_KEEPALIVE int get_bit_depth(void);
-
 EMSCRIPTEN_KEEPALIVE
 int get_bit_depth(void) { return img->bit_depth; }
-
-EMSCRIPTEN_KEEPALIVE int get_bits_per_sample(void);
 
 EMSCRIPTEN_KEEPALIVE
 int get_bits_per_sample(void) { return img->bps; }
 
-EMSCRIPTEN_KEEPALIVE int get_image_format(void);
-
 EMSCRIPTEN_KEEPALIVE
 int get_image_format(void) { return img->fmt; }
-
-EMSCRIPTEN_KEEPALIVE unsigned char *get_plane(int plane);
 
 EMSCRIPTEN_KEEPALIVE
 unsigned char *get_plane(int plane) { return img->planes[plane]; }
 
-EMSCRIPTEN_KEEPALIVE int get_plane_stride(int plane);
-
 EMSCRIPTEN_KEEPALIVE
 int get_plane_stride(int plane) { return img->stride[plane]; }
-
-EMSCRIPTEN_KEEPALIVE int get_plane_width(int plane);
 
 EMSCRIPTEN_KEEPALIVE
 int get_plane_width(int plane) { return aom_img_plane_width(img, plane); }
 
-EMSCRIPTEN_KEEPALIVE int get_plane_height(int plane);
-
 EMSCRIPTEN_KEEPALIVE
 int get_plane_height(int plane) { return aom_img_plane_height(img, plane); }
 
-EMSCRIPTEN_KEEPALIVE int get_frame_width(void);
-
 EMSCRIPTEN_KEEPALIVE
 int get_frame_width(void) { return info->frame_width; }
-
-EMSCRIPTEN_KEEPALIVE int get_frame_height(void);
 
 EMSCRIPTEN_KEEPALIVE
 int get_frame_height(void) { return info->frame_height; }
@@ -977,20 +950,14 @@ int main(int argc, char **argv) {
   }
 }
 
-EMSCRIPTEN_KEEPALIVE void quit(void);
-
 EMSCRIPTEN_KEEPALIVE
 void quit(void) {
   if (aom_codec_destroy(&codec)) die_codec(&codec, "Failed to destroy codec");
   aom_video_reader_close(reader);
 }
 
-EMSCRIPTEN_KEEPALIVE void set_layers(LayerType v);
-
 EMSCRIPTEN_KEEPALIVE
 void set_layers(LayerType v) { layers = v; }
-
-EMSCRIPTEN_KEEPALIVE void set_compress(int v);
 
 EMSCRIPTEN_KEEPALIVE
 void set_compress(int v) { compress = v; }

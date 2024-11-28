@@ -1,12 +1,11 @@
 /*
- * Copyright (c) 2024, Alliance for Open Media. All rights reserved.
+ *  Copyright (c) 2024, Alliance for Open Media. All Rights Reserved.
  *
- * This source code is subject to the terms of the BSD 2 Clause License and
- * the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
- * was not distributed with this source code in the LICENSE file, you can
- * obtain it at www.aomedia.org/license/software. If the Alliance for Open
- * Media Patent License 1.0 was not distributed with this source code in the
- * PATENTS file, you can obtain it at www.aomedia.org/license/patent.
+ *  Use of this source code is governed by a BSD-style license
+ *  that can be found in the LICENSE file in the root of the source
+ *  tree. An additional intellectual property rights grant can be found
+ *  in the file PATENTS.  All contributing project authors may
+ *  be found in the AUTHORS file in the root of the source tree.
  */
 
 #ifndef AOM_AOM_DSP_ARM_HIGHBD_CONVOLVE8_NEON_H_
@@ -17,7 +16,7 @@
 #include "config/aom_config.h"
 #include "aom_dsp/arm/mem_neon.h"
 
-static inline void highbd_convolve8_horiz_2tap_neon(
+static INLINE void highbd_convolve8_horiz_2tap_neon(
     const uint16_t *src_ptr, ptrdiff_t src_stride, uint16_t *dst_ptr,
     ptrdiff_t dst_stride, const int16_t *x_filter_ptr, int w, int h, int bd) {
   // Bilinear filter values are all positive and multiples of 8. Divide by 8 to
@@ -96,7 +95,7 @@ static inline void highbd_convolve8_horiz_2tap_neon(
   }
 }
 
-static inline uint16x4_t highbd_convolve4_4(
+static INLINE uint16x4_t highbd_convolve4_4(
     const int16x4_t s0, const int16x4_t s1, const int16x4_t s2,
     const int16x4_t s3, const int16x4_t filter, const uint16x4_t max) {
   int32x4_t sum = vmull_lane_s16(s0, filter, 0);
@@ -109,7 +108,7 @@ static inline uint16x4_t highbd_convolve4_4(
   return vmin_u16(res, max);
 }
 
-static inline uint16x8_t highbd_convolve4_8(
+static INLINE uint16x8_t highbd_convolve4_8(
     const int16x8_t s0, const int16x8_t s1, const int16x8_t s2,
     const int16x8_t s3, const int16x4_t filter, const uint16x8_t max) {
   int32x4_t sum0 = vmull_lane_s16(vget_low_s16(s0), filter, 0);
@@ -128,7 +127,7 @@ static inline uint16x8_t highbd_convolve4_8(
   return vminq_u16(res, max);
 }
 
-static inline void highbd_convolve8_vert_4tap_neon(
+static INLINE void highbd_convolve8_vert_4tap_neon(
     const uint16_t *src_ptr, ptrdiff_t src_stride, uint16_t *dst_ptr,
     ptrdiff_t dst_stride, const int16_t *y_filter_ptr, int w, int h, int bd) {
   assert(w >= 4 && h >= 4);
@@ -200,7 +199,7 @@ static inline void highbd_convolve8_vert_4tap_neon(
   }
 }
 
-static inline void highbd_convolve8_vert_2tap_neon(
+static INLINE void highbd_convolve8_vert_2tap_neon(
     const uint16_t *src_ptr, ptrdiff_t src_stride, uint16_t *dst_ptr,
     ptrdiff_t dst_stride, const int16_t *x_filter_ptr, int w, int h, int bd) {
   // Bilinear filter values are all positive and multiples of 8. Divide by 8 to

@@ -16,7 +16,6 @@
 #include <cfloat>
 #include <climits>
 #include <cmath>
-#include <cstdint>
 #include <cstring>
 #include <memory>
 #include <new>

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Alliance for Open Media. All rights reserved.
+ * Copyright (c) 2016, Alliance for Open Media. All rights reserved
  *
  * This source code is subject to the terms of the BSD 2 Clause License and
  * the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
@@ -50,7 +50,7 @@ static void yv12_copy_plane(const YV12_BUFFER_CONFIG *src_bc,
   }
 }
 
-static int get_max_filter_level(const AV1_COMP *cpi) {
+int av1_get_max_filter_level(const AV1_COMP *cpi) {
   if (is_stat_consumption_stage_twopass(cpi)) {
     return cpi->ppi->twopass.section_intra_rating > 8 ? MAX_LOOP_FILTER * 3 / 4
                                                       : MAX_LOOP_FILTER;
@@ -72,8 +72,7 @@ static int64_t try_filter_frame(const YV12_BUFFER_CONFIG *sd,
   if (plane == 0 && dir == 0) filter_level[1] = cm->lf.filter_level[1];
   if (plane == 0 && dir == 1) filter_level[0] = cm->lf.filter_level[0];
 
-  // set base filters for use of get_filter_level (av1_loopfilter.c) when in
-  // DELTA_LF mode
+  // set base filters for use of av1_get_filter_level when in DELTA_LF mode
   switch (plane) {
     case 0:
       cm->lf.filter_level[0] = filter_level[0];
@@ -105,7 +104,7 @@ static int search_filter_level(const YV12_BUFFER_CONFIG *sd, AV1_COMP *cpi,
                                int dir) {
   const AV1_COMMON *const cm = &cpi->common;
   const int min_filter_level = 0;
-  const int max_filter_level = get_max_filter_level(cpi);
+  const int max_filter_level = av1_get_max_filter_level(cpi);
   int filt_direction = 0;
   int64_t best_err;
   int filt_best;
@@ -215,10 +214,7 @@ void av1_pick_filter_level(const YV12_BUFFER_CONFIG *sd, AV1_COMP *cpi,
   int disable_filter_rt_screen = 0;
   (void)sd;
 
-  // Enable loop filter sharpness only for allintra encoding mode,
-  // as frames do not have to serve as references to others
-  lf->sharpness_level =
-      cpi->oxcf.mode == ALLINTRA ? cpi->oxcf.algo_cfg.sharpness : 0;
+  lf->sharpness_level = 0;
 
   if (cpi->oxcf.tune_cfg.content == AOM_CONTENT_SCREEN &&
       cpi->oxcf.q_cfg.aq_mode == CYCLIC_REFRESH_AQ &&
@@ -239,7 +235,7 @@ void av1_pick_filter_level(const YV12_BUFFER_CONFIG *sd, AV1_COMP *cpi,
     lf->filter_level[1] = 0;
   } else if (method >= LPF_PICK_FROM_Q) {
     const int min_filter_level = 0;
-    const int max_filter_level = get_max_filter_level(cpi);
+    const int max_filter_level = av1_get_max_filter_level(cpi);
     const int q = av1_ac_quant_QTX(cm->quant_params.base_qindex, 0,
                                    seq_params->bit_depth);
     // based on tests result for rtc test set

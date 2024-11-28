@@ -1,12 +1,11 @@
 /*
- * Copyright (c) 2023, Alliance for Open Media. All rights reserved.
+ *  Copyright (c) 2023, Alliance for Open Media. All Rights Reserved.
  *
- * This source code is subject to the terms of the BSD 2 Clause License and
- * the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
- * was not distributed with this source code in the LICENSE file, you can
- * obtain it at www.aomedia.org/license/software. If the Alliance for Open
- * Media Patent License 1.0 was not distributed with this source code in the
- * PATENTS file, you can obtain it at www.aomedia.org/license/patent.
+ *  Use of this source code is governed by a BSD-style license
+ *  that can be found in the LICENSE file in the root of the source
+ *  tree. An additional intellectual property rights grant can be found
+ *  in the file PATENTS.  All contributing project authors may
+ *  be found in the AUTHORS file in the root of the source tree.
  */
 
 #include <arm_neon.h>
@@ -14,7 +13,7 @@
 #include "config/aom_dsp_rtcd.h"
 #include "aom_dsp/arm/sum_neon.h"
 
-static inline void highbd_sse_8x1_init_neon(const uint16_t *src,
+static INLINE void highbd_sse_8x1_init_neon(const uint16_t *src,
                                             const uint16_t *ref,
                                             uint32x4_t *sse_acc0,
                                             uint32x4_t *sse_acc1) {
@@ -29,7 +28,7 @@ static inline void highbd_sse_8x1_init_neon(const uint16_t *src,
   *sse_acc1 = vmull_u16(abs_diff_hi, abs_diff_hi);
 }
 
-static inline void highbd_sse_8x1_neon(const uint16_t *src, const uint16_t *ref,
+static INLINE void highbd_sse_8x1_neon(const uint16_t *src, const uint16_t *ref,
                                        uint32x4_t *sse_acc0,
                                        uint32x4_t *sse_acc1) {
   uint16x8_t s = vld1q_u16(src);
@@ -43,7 +42,7 @@ static inline void highbd_sse_8x1_neon(const uint16_t *src, const uint16_t *ref,
   *sse_acc1 = vmlal_u16(*sse_acc1, abs_diff_hi, abs_diff_hi);
 }
 
-static inline int64_t highbd_sse_128xh_neon(const uint16_t *src, int src_stride,
+static INLINE int64_t highbd_sse_128xh_neon(const uint16_t *src, int src_stride,
                                             const uint16_t *ref, int ref_stride,
                                             int height) {
   uint32x4_t sse[16];
@@ -92,7 +91,7 @@ static inline int64_t highbd_sse_128xh_neon(const uint16_t *src, int src_stride,
   return horizontal_long_add_u32x4_x16(sse);
 }
 
-static inline int64_t highbd_sse_64xh_neon(const uint16_t *src, int src_stride,
+static INLINE int64_t highbd_sse_64xh_neon(const uint16_t *src, int src_stride,
                                            const uint16_t *ref, int ref_stride,
                                            int height) {
   uint32x4_t sse[8];
@@ -125,7 +124,7 @@ static inline int64_t highbd_sse_64xh_neon(const uint16_t *src, int src_stride,
   return horizontal_long_add_u32x4_x8(sse);
 }
 
-static inline int64_t highbd_sse_32xh_neon(const uint16_t *src, int src_stride,
+static INLINE int64_t highbd_sse_32xh_neon(const uint16_t *src, int src_stride,
                                            const uint16_t *ref, int ref_stride,
                                            int height) {
   uint32x4_t sse[8];
@@ -150,7 +149,7 @@ static inline int64_t highbd_sse_32xh_neon(const uint16_t *src, int src_stride,
   return horizontal_long_add_u32x4_x8(sse);
 }
 
-static inline int64_t highbd_sse_16xh_neon(const uint16_t *src, int src_stride,
+static INLINE int64_t highbd_sse_16xh_neon(const uint16_t *src, int src_stride,
                                            const uint16_t *ref, int ref_stride,
                                            int height) {
   uint32x4_t sse[4];
@@ -171,7 +170,7 @@ static inline int64_t highbd_sse_16xh_neon(const uint16_t *src, int src_stride,
   return horizontal_long_add_u32x4_x4(sse);
 }
 
-static inline int64_t highbd_sse_8xh_neon(const uint16_t *src, int src_stride,
+static INLINE int64_t highbd_sse_8xh_neon(const uint16_t *src, int src_stride,
                                           const uint16_t *ref, int ref_stride,
                                           int height) {
   uint32x4_t sse[2];
@@ -190,7 +189,7 @@ static inline int64_t highbd_sse_8xh_neon(const uint16_t *src, int src_stride,
   return horizontal_long_add_u32x4_x2(sse);
 }
 
-static inline int64_t highbd_sse_4xh_neon(const uint16_t *src, int src_stride,
+static INLINE int64_t highbd_sse_4xh_neon(const uint16_t *src, int src_stride,
                                           const uint16_t *ref, int ref_stride,
                                           int height) {
   // Peel the first loop iteration.
@@ -217,7 +216,7 @@ static inline int64_t highbd_sse_4xh_neon(const uint16_t *src, int src_stride,
   return horizontal_long_add_u32x4(sse);
 }
 
-static inline int64_t highbd_sse_wxh_neon(const uint16_t *src, int src_stride,
+static INLINE int64_t highbd_sse_wxh_neon(const uint16_t *src, int src_stride,
                                           const uint16_t *ref, int ref_stride,
                                           int width, int height) {
   // { 0, 1, 2, 3, 4, 5, 6, 7 }
