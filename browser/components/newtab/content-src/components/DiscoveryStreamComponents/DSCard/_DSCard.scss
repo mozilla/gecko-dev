@@ -265,6 +265,7 @@ $ds-card-image-gradient-solid: rgba(0, 0, 0, 100%);
       // show only 3 lines of copy
       @include limit-visible-lines(3, $header-line-height, $header-font-size);
 
+      margin-block: 0;
       font-weight: 600;
     }
 
