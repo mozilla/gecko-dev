@@ -280,6 +280,7 @@ class ImageDocument;
 class Touch;
 class TouchList;
 class TreeWalker;
+class OwningTrustedHTMLOrString;
 enum class ViewportFitType : uint8_t;
 class ViewTransition;
 class ViewTransitionUpdateCallback;
@@ -3341,10 +3342,12 @@ class Document : public nsINode,
       const nsAString& aURL, const nsAString& aName, const nsAString& aFeatures,
       mozilla::ErrorResult& rv);
   void Close(mozilla::ErrorResult& rv);
-  void Write(const mozilla::dom::Sequence<nsString>& aText,
-             mozilla::ErrorResult& rv);
-  void Writeln(const mozilla::dom::Sequence<nsString>& aText,
-               mozilla::ErrorResult& rv);
+  MOZ_CAN_RUN_SCRIPT void Write(
+      const mozilla::dom::Sequence<OwningTrustedHTMLOrString>& aText,
+      mozilla::ErrorResult& rv);
+  MOZ_CAN_RUN_SCRIPT void Writeln(
+      const mozilla::dom::Sequence<OwningTrustedHTMLOrString>& aText,
+      mozilla::ErrorResult& rv);
   Nullable<WindowProxyHolder> GetDefaultView() const;
   Element* GetActiveElement();
   enum class IncludeChromeOnly : bool { No, Yes };
@@ -4280,11 +4283,13 @@ class Document : public nsINode,
   already_AddRefed<nsIURI> RegistrableDomainSuffixOfInternal(
       const nsAString& aHostSuffixString, nsIURI* aOrigHost);
 
-  void WriteCommon(const nsAString& aText, bool aNewlineTerminate,
-                   mozilla::ErrorResult& aRv);
+  MOZ_CAN_RUN_SCRIPT void WriteCommon(const nsAString& aText,
+                                      bool aNewlineTerminate, bool aIsTrusted,
+                                      mozilla::ErrorResult& aRv);
   // A version of WriteCommon used by WebIDL bindings
-  void WriteCommon(const mozilla::dom::Sequence<nsString>& aText,
-                   bool aNewlineTerminate, mozilla::ErrorResult& rv);
+  MOZ_CAN_RUN_SCRIPT void WriteCommon(
+      const mozilla::dom::Sequence<OwningTrustedHTMLOrString>& aText,
+      bool aNewlineTerminate, mozilla::ErrorResult& rv);
 
   void* GenerateParserKey(void);
 

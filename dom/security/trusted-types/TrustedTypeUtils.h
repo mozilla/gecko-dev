@@ -83,6 +83,13 @@ MOZ_CAN_RUN_SCRIPT const nsAString* GetTrustedTypesCompliantString(
     const TrustedScriptURLOrString& aInput, const nsAString& aSink,
     const nsAString& aSinkGroup, const nsINode& aNode,
     Maybe<nsAutoString>& aResultHolder, ErrorResult& aError);
+MOZ_CAN_RUN_SCRIPT const nsAString*
+GetTrustedTypesCompliantStringForTrustedHTML(const nsAString& aInput,
+                                             const nsAString& aSink,
+                                             const nsAString& aSinkGroup,
+                                             const nsINode& aNode,
+                                             Maybe<nsAutoString>& aResultHolder,
+                                             ErrorResult& aError);
 
 // https://w3c.github.io/trusted-types/dist/spec/#abstract-opdef-process-value-with-a-default-policy
 template <typename ExpectedType>

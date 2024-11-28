@@ -402,6 +402,17 @@ IMPL_GET_TRUSTED_TYPES_COMPLIANT_STRING(TrustedScriptOrNullIsEmptyString,
 IMPL_GET_TRUSTED_TYPES_COMPLIANT_STRING(TrustedScriptURLOrString,
                                         TrustedScriptURL);
 
+MOZ_CAN_RUN_SCRIPT const nsAString*
+GetTrustedTypesCompliantStringForTrustedHTML(const nsAString& aInput,
+                                             const nsAString& aSink,
+                                             const nsAString& aSinkGroup,
+                                             const nsINode& aNode,
+                                             Maybe<nsAutoString>& aResultHolder,
+                                             ErrorResult& aError) {
+  return GetTrustedTypesCompliantString<TrustedHTML>(
+      &aInput, aSink, aSinkGroup, aNode, aResultHolder, aError);
+}
+
 bool GetTrustedTypeDataForAttribute(const nsAtom* aElementName,
                                     int32_t aElementNamespaceID,
                                     nsAtom* aAttributeName,

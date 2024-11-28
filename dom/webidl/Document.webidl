@@ -188,9 +188,9 @@ partial interface Document {
   [CEReactions, Throws]
   undefined close();
   [CEReactions, Throws]
-  undefined write(DOMString... text);
+  undefined write((TrustedHTML or DOMString)... text);
   [CEReactions, Throws]
-  undefined writeln(DOMString... text);
+  undefined writeln((TrustedHTML or DOMString)... text);
 
   // user interaction
   [Pure]
