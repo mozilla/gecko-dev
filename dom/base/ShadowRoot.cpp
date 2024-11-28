@@ -408,7 +408,7 @@ void ShadowRoot::RuleRemoved(StyleSheet& aSheet, css::Rule& aRule) {
 }
 
 void ShadowRoot::RuleChanged(StyleSheet& aSheet, css::Rule*,
-                             StyleRuleChangeKind) {
+                             const StyleRuleChange&) {
   if (!aSheet.IsApplicable()) {
     return;
   }
