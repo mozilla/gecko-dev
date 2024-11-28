@@ -2526,6 +2526,12 @@ public:
     for (auto *Candidate : E->decls()) {
       visitHeuristicResult(Loc, Candidate);
     }
+
+    // Also record this location so that if we have instantiations, we can
+    // gather more accurate results from them.
+    if (TemplateStack) {
+      TemplateStack->visitDependent(Loc);
+    }
     return true;
   }
 
