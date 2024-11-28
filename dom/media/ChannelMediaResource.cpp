@@ -756,6 +756,12 @@ nsresult ChannelMediaResource::RecreateChannel() {
 
   Unused << loadInfo->SetIsMediaRequest(true);
 
+  if (nsCOMPtr<nsITimedChannel> timedChannel = do_QueryInterface(mChannel)) {
+    nsString initiatorType =
+        element->IsHTMLElement(nsGkAtoms::audio) ? u"audio"_ns : u"video"_ns;
+    timedChannel->SetInitiatorType(initiatorType);
+  }
+
   nsCOMPtr<nsIClassOfService> cos(do_QueryInterface(mChannel));
   if (cos) {
     // Unconditionally disable throttling since we want the media to fluently
