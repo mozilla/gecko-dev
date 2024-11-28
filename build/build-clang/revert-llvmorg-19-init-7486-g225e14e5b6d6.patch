@@ -1,0 +1,31 @@
+From 846c166a4b82fe11f985fd2152593460b997af1d Mon Sep 17 00:00:00 2001
+From: Mike Hommey <mh@glandium.org>
+Date: Tue, 8 Oct 2024 09:43:21 +0900
+Subject: [PATCH] Revert "[Support][Windows] Use the original path if
+ GetFinalPathNameByHandleW() failed (#87749)"
+
+This reverts commit 225e14e5b6d64e1f63da39fa7fe31d2ebb08260d because it
+piles up on f11b056c02cca28fe0b82ec44c59537035100e67 which we also
+revert.
+---
+ llvm/lib/Support/Windows/Path.inc | 4 +---
+ 1 file changed, 1 insertion(+), 3 deletions(-)
+
+diff --git a/llvm/lib/Support/Windows/Path.inc b/llvm/lib/Support/Windows/Path.inc
+index c4bd5e247235..66ca1e432739 100644
+--- a/llvm/lib/Support/Windows/Path.inc
++++ b/llvm/lib/Support/Windows/Path.inc
+@@ -157,9 +157,7 @@ std::string getMainExecutable(const char *argv0, void *MainExecAddr) {
+ 
+   SmallString<256> RealPath;
+   sys::fs::real_path(PathNameUTF8, RealPath);
+-  if (RealPath.size())
+-    return std::string(RealPath);
+-  return std::string(PathNameUTF8.data());
++  return std::string(RealPath);
+ }
+ 
+ UniqueID file_status::getUniqueID() const {
+-- 
+2.47.0.1.g59ce1bf855
+

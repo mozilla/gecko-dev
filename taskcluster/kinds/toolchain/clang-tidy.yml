@@ -24,7 +24,7 @@ task-defaults:
             - 'build/build-clang/build-clang.py'
     fetches:
         fetch:
-            - clang-18
+            - clang-19
 
 linux64-clang-tidy:
     index:
@@ -41,7 +41,7 @@ linux64-clang-tidy:
             - 'build/build-clang/clang-tidy.json'
     fetches:
         toolchain:
-            - linux64-clang-18
+            - linux64-clang-toolchain
             - linux64-toolchain-sysroot
 
 macosx64-clang-tidy:
@@ -62,7 +62,7 @@ macosx64-clang-tidy:
             - 'build/build-clang/macosx64.json'
     fetches:
         toolchain:
-            - linux64-clang-18
+            - linux64-clang-toolchain
             - macosx64-sdk-toolchain
 
 macosx64-aarch64-clang-tidy:
@@ -83,7 +83,7 @@ macosx64-aarch64-clang-tidy:
             - 'build/build-clang/macosx64-aarch64.json'
     fetches:
         toolchain:
-            - linux64-clang-18
+            - linux64-clang-toolchain
             - macosx64-sdk-toolchain
 
 win64-clang-tidy:
@@ -106,7 +106,7 @@ win64-clang-tidy:
             - 'build/build-clang/win64.json'
     fetches:
         toolchain:
-            - linux64-clang-18
+            - linux64-clang-toolchain
             - vs-toolchain
             - win64-libxml2
 
@@ -130,7 +130,7 @@ win64-aarch64-clang-tidy:
             - 'build/build-clang/win64-aarch64.json'
     fetches:
         toolchain:
-            - linux64-clang-18
+            - linux64-clang-toolchain
             - vs-toolchain
             - win64-aarch64-libxml2
 
@@ -157,5 +157,5 @@ linux64-clang-tidy-external:
         fetch:
             - civet-source
         toolchain:
-            - linux64-clang-18
+            - linux64-clang-toolchain
             - linux64-toolchain-sysroot

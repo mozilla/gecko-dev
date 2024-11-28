@@ -10,80 +10,80 @@ task-defaults:
         using: toolchain-script
         script: build-libunwind.sh
 
-android-aarch64-libunwind-18:
-    description: "android aarch64 libunwind for Clang 18 toolchain build"
+android-aarch64-libunwind-19:
+    description: "android aarch64 libunwind for Clang 19 toolchain build"
     treeherder:
-        symbol: TA(aarch64-unwind-18)
+        symbol: TA(aarch64-unwind-19)
     run:
         arguments:
-            - build/build-clang/clang-18.json
+            - build/build-clang/clang-19.json
         resources:
-            - build/build-clang/clang-18.json
+            - build/build-clang/clang-19.json
             - taskcluster/scripts/misc/build-llvm-common.sh
         toolchain-artifact: public/build/libunwind-aarch64-linux-android.tar.zst
     fetches:
         fetch:
-            - clang-18
+            - clang-19
         toolchain:
-            - android-aarch64-compiler-rt-18
-            - linux64-clang-18-stage1
+            - android-aarch64-compiler-rt-19
+            - linux64-clang-19-stage1
             - linux64-android-ndk-linux-repack
 
-android-arm-libunwind-18:
-    description: "android arm libunwind for Clang 18 toolchain build"
+android-arm-libunwind-19:
+    description: "android arm libunwind for Clang 19 toolchain build"
     treeherder:
-        symbol: TA(arm-unwind-18)
+        symbol: TA(arm-unwind-19)
     run:
         arguments:
-            - build/build-clang/clang-18.json
+            - build/build-clang/clang-19.json
         resources:
-            - build/build-clang/clang-18.json
+            - build/build-clang/clang-19.json
             - taskcluster/scripts/misc/build-llvm-common.sh
         toolchain-artifact: public/build/libunwind-armv7-linux-android.tar.zst
     fetches:
         fetch:
-            - clang-18
+            - clang-19
         toolchain:
-            - android-arm-compiler-rt-18
-            - linux64-clang-18-stage1
+            - android-arm-compiler-rt-19
+            - linux64-clang-19-stage1
             - linux64-android-ndk-linux-repack
 
-android-x86-libunwind-18:
-    description: "android x86 libunwind for Clang 18 toolchain build"
+android-x86-libunwind-19:
+    description: "android x86 libunwind for Clang 19 toolchain build"
     treeherder:
-        symbol: TA(x86-unwind-18)
+        symbol: TA(x86-unwind-19)
     run:
         arguments:
-            - build/build-clang/clang-18.json
+            - build/build-clang/clang-19.json
         resources:
-            - build/build-clang/clang-18.json
+            - build/build-clang/clang-19.json
             - taskcluster/scripts/misc/build-llvm-common.sh
         toolchain-artifact: public/build/libunwind-i686-linux-android.tar.zst
     fetches:
         fetch:
-            - clang-18
+            - clang-19
         toolchain:
-            - android-x86-compiler-rt-18
-            - linux64-clang-18-stage1
+            - android-x86-compiler-rt-19
+            - linux64-clang-19-stage1
             - linux64-android-ndk-linux-repack
 
-android-x64-libunwind-18:
-    description: "android x64 libunwind for Clang 18 toolchain build"
+android-x64-libunwind-19:
+    description: "android x64 libunwind for Clang 19 toolchain build"
     treeherder:
-        symbol: TA(x64-unwind-18)
+        symbol: TA(x64-unwind-19)
     run:
         arguments:
-            - build/build-clang/clang-18.json
+            - build/build-clang/clang-19.json
         resources:
-            - build/build-clang/clang-18.json
+            - build/build-clang/clang-19.json
             - taskcluster/scripts/misc/build-llvm-common.sh
         toolchain-artifact: public/build/libunwind-x86_64-linux-android.tar.zst
     fetches:
         fetch:
-            - clang-18
+            - clang-19
         toolchain:
-            - android-x64-compiler-rt-18
-            - linux64-clang-18-stage1
+            - android-x64-compiler-rt-19
+            - linux64-clang-19-stage1
             - linux64-android-ndk-linux-repack
 
 android-aarch64-libunwind-trunk:
