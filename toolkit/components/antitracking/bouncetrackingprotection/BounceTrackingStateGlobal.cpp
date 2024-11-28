@@ -105,6 +105,8 @@ nsresult BounceTrackingStateGlobal::ClearSiteHost(const nsACString& aSiteHost,
                "A site must only be in one of the maps at a time.");
   }
 
+  mRecentPurges.Remove(aSiteHost);
+
   if (aSkipStorage || !ShouldPersistToDisk()) {
     return NS_OK;
   }
@@ -151,6 +153,24 @@ nsresult BounceTrackingStateGlobal::ClearByTimeRange(
                 ("%s: Remove bouncer tracker for %s", __FUNCTION__,
                  PromiseFlatCString(iter.Key()).get()));
         iter.Remove();
+      }
+    }
+  }
+
+  // Clear purge tracker log if there is no type filter. Used for
+  // ClearDataService.
+  if (aEntryType.isNothing()) {
+    for (auto iter = mRecentPurges.Iter(); !iter.Done(); iter.Next()) {
+      for (const auto& entry : iter.Data()) {
+        const PRTime& purgeTime = entry->PurgeTimeRefConst();
+
+        if (purgeTime >= aFrom &&
+            (aTo.isNothing() || purgeTime <= aTo.value())) {
+          MOZ_LOG(gBounceTrackingProtectionLog, LogLevel::Debug,
+                  ("%s: Remove purge log entry for site %s", __FUNCTION__,
+                   PromiseFlatCString(iter.Key()).get()));
+          iter.Remove();
+        }
       }
     }
   }
