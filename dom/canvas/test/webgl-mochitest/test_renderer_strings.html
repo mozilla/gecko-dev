@@ -67,7 +67,8 @@ async function testKnownCiStrings() {
     unmasked_renderer: [
       'Adreno (TM) 540', // Android
       'Adreno (TM) 620', // Android pixel5
-      'llvmpipe (LLVM 10.0.0, 256 bits)', // Linux
+      'llvmpipe (LLVM 10.0.0, 256 bits)', // Linux (Ubuntu 18.04)
+      'llvmpipe (LLVM 17.0.6, 256 bits)', // Linux (Ubuntu 24.04)
       'Intel(R) UHD Graphics 630', // Mac
       'Apple M1', // Mac
       'Apple M2', // Mac
@@ -78,6 +79,7 @@ async function testKnownCiStrings() {
     unmasked_vendor: [
       'Qualcomm', // Android
       'VMware, Inc.', // Linux
+      'Mesa', // Linux
       'Intel Inc.', // Mac
       'Apple', // Mac
       'Google Inc. (NVIDIA)', // Windows
