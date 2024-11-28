@@ -82,37 +82,25 @@ void ChromeObserver::AttributeChanged(dom::Element* aElement,
     return;
   }
 
-  const nsAttrValue* value = aElement->GetParsedAttr(aName, aNamespaceID);
-  if (value) {
-    // Hide chrome if needed
+  if (aModType == dom::MutationEvent_Binding::ADDITION ||
+      aModType == dom::MutationEvent_Binding::REMOVAL) {
+    const bool added = aModType == dom::MutationEvent_Binding::ADDITION;
     if (aName == nsGkAtoms::hidechrome) {
-      HideWindowChrome(value->Equals(u"true"_ns, eCaseMatters));
+      HideWindowChrome(added);
     } else if (aName == nsGkAtoms::customtitlebar) {
-      SetCustomTitlebar(true);
-    }
-    // title and drawintitlebar are settable on
-    // any root node (windows, dialogs, etc)
-    else if (aName == nsGkAtoms::title) {
-      mDocument->NotifyPossibleTitleChange(false);
+      SetCustomTitlebar(added);
     } else if (aName == nsGkAtoms::drawtitle) {
-      SetDrawsTitle(value->Equals(u"true"_ns, eCaseMatters));
-    } else if (aName == nsGkAtoms::localedir) {
-      // if the localedir changed on the root element, reset the document
-      // direction
-      mDocument->ResetDocumentDirection();
+      SetDrawsTitle(added);
     }
-  } else {
-    if (aName == nsGkAtoms::hidechrome) {
-      HideWindowChrome(false);
-    } else if (aName == nsGkAtoms::customtitlebar) {
-      SetCustomTitlebar(false);
-    } else if (aName == nsGkAtoms::localedir) {
-      // if the localedir changed on the root element, reset the document
-      // direction
-      mDocument->ResetDocumentDirection();
-    } else if (aName == nsGkAtoms::drawtitle) {
-      SetDrawsTitle(false);
-    }
+  }
+  if (aName == nsGkAtoms::localedir) {
+    // if the localedir changed on the root element, reset the document
+    // direction
+    mDocument->ResetDocumentDirection();
+  }
+  if (aName == nsGkAtoms::title &&
+      aModType != dom::MutationEvent_Binding::REMOVAL) {
+    mDocument->NotifyPossibleTitleChange(false);
   }
 }
 
