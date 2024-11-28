@@ -37,6 +37,4 @@ std::string hash(const std::string &Str) {
   return std::string(HashStr);
 }
 
-std::string toString(int N) {
-  return stringFormat("%d", N);
-}
+std::string toString(int N) { return stringFormat("%d", N); }

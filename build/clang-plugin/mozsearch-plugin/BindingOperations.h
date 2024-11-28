@@ -10,8 +10,10 @@
 
 void findBindingToJavaClass(clang::ASTContext &C, clang::CXXRecordDecl &klass);
 void findBoundAsJavaClasses(clang::ASTContext &C, clang::CXXRecordDecl &klass);
-void findBindingToJavaFunction(clang::ASTContext &C, clang::FunctionDecl &function);
-void findBindingToJavaMember(clang::ASTContext &C, clang::CXXMethodDecl &method);
+void findBindingToJavaFunction(clang::ASTContext &C,
+                               clang::FunctionDecl &function);
+void findBindingToJavaMember(clang::ASTContext &C,
+                             clang::CXXMethodDecl &method);
 void findBindingToJavaConstant(clang::ASTContext &C, clang::VarDecl &field);
 
 void emitBindingAttributes(llvm::json::OStream &json, const clang::Decl &decl);

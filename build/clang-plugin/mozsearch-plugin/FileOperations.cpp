@@ -9,10 +9,10 @@
 #include <stdlib.h>
 
 #if defined(_WIN32) || defined(_WIN64)
+#include "StringOperations.h"
 #include <direct.h>
 #include <io.h>
 #include <windows.h>
-#include "StringOperations.h"
 #else
 #include <sys/file.h>
 #include <sys/time.h>
@@ -50,7 +50,8 @@ void ensurePath(std::string Path) {
 }
 
 #if defined(_WIN32) || defined(_WIN64)
-AutoLockFile::AutoLockFile(const std::string &SrcFile, const std::string &DstFile) {
+AutoLockFile::AutoLockFile(const std::string &SrcFile,
+                           const std::string &DstFile) {
   this->Filename = DstFile;
   std::string Hash = hash(SrcFile);
   std::string MutexName = std::string("Local\\searchfox-") + Hash;
@@ -71,12 +72,11 @@ AutoLockFile::~AutoLockFile() {
   CloseHandle(Handle);
 }
 
-bool AutoLockFile::success() {
-  return Handle != NULL;
-}
+bool AutoLockFile::success() { return Handle != NULL; }
 
 FILE *AutoLockFile::openTmp() {
-  int TmpDescriptor = _open((Filename + ".tmp").c_str(), _O_WRONLY | _O_APPEND | _O_CREAT | _O_BINARY, 0666);
+  int TmpDescriptor = _open((Filename + ".tmp").c_str(),
+                            _O_WRONLY | _O_APPEND | _O_CREAT | _O_BINARY, 0666);
   return _fdopen(TmpDescriptor, "ab");
 }
 
@@ -97,7 +97,8 @@ std::string getAbsolutePath(const std::string &Filename) {
   return std::string(Full);
 }
 #else
-AutoLockFile::AutoLockFile(const std::string &SrcFile, const std::string &DstFile) {
+AutoLockFile::AutoLockFile(const std::string &SrcFile,
+                           const std::string &DstFile) {
   this->Filename = DstFile;
   FileDescriptor = open(SrcFile.c_str(), O_RDONLY);
   if (FileDescriptor == -1) {
@@ -116,8 +117,9 @@ AutoLockFile::~AutoLockFile() { close(FileDescriptor); }
 
 bool AutoLockFile::success() { return FileDescriptor != -1; }
 
-FILE* AutoLockFile::openTmp() {
-  int TmpDescriptor = open((Filename + ".tmp").c_str(), O_WRONLY | O_APPEND | O_CREAT, 0666);
+FILE *AutoLockFile::openTmp() {
+  int TmpDescriptor =
+      open((Filename + ".tmp").c_str(), O_WRONLY | O_APPEND | O_CREAT, 0666);
   return fdopen(TmpDescriptor, "ab");
 }
 

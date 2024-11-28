@@ -7,8 +7,8 @@
 #define StringOperations_h
 
 #include <memory>
-#include <string>
 #include <string.h>
+#include <string>
 
 std::string hash(const std::string &Str);
 
