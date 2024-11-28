@@ -2553,6 +2553,8 @@ nsresult nsLayoutUtils::GetFramesForArea(RelativeTo aRelativeTo,
 
   nsDisplayItem::HitTestState hitTestState;
   list.HitTest(&builder, aRect, &hitTestState, &aOutFrames);
+
+  builder.SetIsDestroying();
   list.DeleteAll(&builder);
   builder.EndFrame();
   return NS_OK;
@@ -2807,7 +2809,10 @@ struct TemporaryDisplayListBuilder {
                               const bool aBuildCaret)
       : mBuilder(aFrame, aBuilderMode, aBuildCaret), mList(&mBuilder) {}
 
-  ~TemporaryDisplayListBuilder() { mList.DeleteAll(&mBuilder); }
+  ~TemporaryDisplayListBuilder() {
+    mBuilder.SetIsDestroying();
+    mList.DeleteAll(&mBuilder);
+  }
 
   nsDisplayListBuilder mBuilder;
   nsDisplayList mList;

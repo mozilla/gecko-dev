@@ -918,10 +918,12 @@ class nsDisplayListBuilder {
   }
 
   void Destroy(DisplayListArenaObjectId aId, void* aPtr) {
-    return mPool.Free(aId, aPtr);
+    if (!mIsDestroying) {
+      mPool.Free(aId, aPtr);
+    }
   }
   void Destroy(DisplayItemType aType, void* aPtr) {
-    return Destroy(DisplayListArenaObjectId(size_t(aType)), aPtr);
+    Destroy(DisplayListArenaObjectId(size_t(aType)), aPtr);
   }
 
   /**
@@ -1691,6 +1693,9 @@ class nsDisplayListBuilder {
    */
   void ReuseDisplayItem(nsDisplayItem* aItem);
 
+  void SetIsDestroying() { mIsDestroying = true; }
+  bool IsDestroying() const { return mIsDestroying; }
+
  private:
   bool MarkOutOfFlowFrameForDisplay(nsIFrame* aDirtyFrame, nsIFrame* aFrame,
                                     const nsRect& aVisibleRect,
@@ -1890,6 +1895,7 @@ class nsDisplayListBuilder {
   bool mAlwaysLayerizeScrollbars;
 
   bool mIsReusingStackingContextItems;
+  bool mIsDestroying;
 
   Maybe<layers::ScrollDirection> mCurrentScrollbarDirection;
 };
