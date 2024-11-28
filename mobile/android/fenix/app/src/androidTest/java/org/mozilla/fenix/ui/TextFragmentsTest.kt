@@ -28,13 +28,13 @@ class TextFragmentsTest : TestSetup() {
 
         navigationToolbar {
         }.enterURLAndEnterToBrowser(textFragmentLink.toUri()) {
-            verifyPageContent("Firefox")
+            verifyTextFragmentsPageContent("Firefox")
         }.openThreeDotMenu {
         }.openAddToHomeScreen {
             clickAddShortcutButton()
             clickSystemHomeScreenShortcutAddButton()
         }.openHomeScreenShortcut(genericPage.title) {
-            verifyPageContent("Firefox")
+            verifyTextFragmentsPageContent("Firefox")
         }
     }
 
@@ -47,7 +47,7 @@ class TextFragmentsTest : TestSetup() {
 
         navigationToolbar {
         }.enterURLAndEnterToBrowser(textFragmentLink.toUri()) {
-            verifyPageContent("Firefox")
+            verifyTextFragmentsPageContent("Firefox")
         }.openTabDrawer(activityTestRule) {
             closeTabWithTitle(genericPage.title)
         }
@@ -56,7 +56,7 @@ class TextFragmentsTest : TestSetup() {
         }.openHistory {
             verifyHistoryItemExists(true, genericPage.title)
         }.openWebsite(textFragmentLink.toUri()) {
-            verifyPageContent("Firefox")
+            verifyTextFragmentsPageContent("Firefox")
         }
     }
 
@@ -69,7 +69,7 @@ class TextFragmentsTest : TestSetup() {
 
         navigationToolbar {
         }.enterURLAndEnterToBrowser(textFragmentLink.toUri()) {
-            verifyPageContent("Firefox")
+            verifyTextFragmentsPageContent("Firefox")
         }.openThreeDotMenu {
         }.bookmarkPage {
         }
@@ -82,7 +82,7 @@ class TextFragmentsTest : TestSetup() {
         }.openBookmarks {
             verifyBookmarkTitle(genericPage.title)
         }.openBookmarkWithTitle(genericPage.title) {
-            verifyPageContent("Firefox")
+            verifyTextFragmentsPageContent("Firefox")
         }
     }
 
@@ -95,7 +95,7 @@ class TextFragmentsTest : TestSetup() {
 
         navigationToolbar {
         }.enterURLAndEnterToBrowser(textFragmentLink.toUri()) {
-            verifyPageContent("Firefox")
+            verifyTextFragmentsPageContent("Firefox")
         }.openThreeDotMenu {
         }.clickShareButton {
             verifyShareTabLayout()

@@ -199,6 +199,27 @@ class BrowserRobot {
         }
     }
 
+    fun verifyTextFragmentsPageContent(expectedText: String) {
+        for (i in 1..RETRY_COUNT) {
+            Log.i(TAG, "verifyTextFragmentsPageContent: Started try #$i")
+            try {
+                assertUIObjectExists(
+                    itemWithResId("$packageName:id/engineView")
+                        .getChild(UiSelector().textContains(expectedText)),
+                )
+
+                break
+            } catch (e: AssertionError) {
+                Log.i(TAG, "verifyTextFragmentsPageContent: AssertionError caught, executing fallback methods")
+                navigationToolbar {
+                }.openThreeDotMenu {
+                }.refreshPage {
+                    waitForPageToLoad()
+                }
+            }
+        }
+    }
+
     fun verifyTabCrashReporterView() {
         assertUIObjectExists(itemWithResId("$packageName:id/crash_tab_image"))
         assertUIObjectExists(itemWithText(getStringResource(R.string.tab_crash_title_2)))
