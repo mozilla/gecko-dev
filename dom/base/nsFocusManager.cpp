@@ -3039,15 +3039,13 @@ void nsFocusManager::RaiseWindow(nsPIDOMWindowOuter* aWindow,
     // care of lowering the present active window. This happens in
     // a separate runnable to avoid touching multiple windows in
     // the current runnable.
-
-    nsCOMPtr<nsPIDOMWindowOuter> window(aWindow);
-    RefPtr<nsFocusManager> self(this);
     NS_DispatchToCurrentThread(NS_NewRunnableFunction(
         "nsFocusManager::RaiseWindow",
         // TODO: Convert this to MOZ_CAN_RUN_SCRIPT (bug 1770093)
-        [self, window]() MOZ_CAN_RUN_SCRIPT_BOUNDARY -> void {
-          self->WindowRaised(window, GenerateFocusActionId());
-        }));
+        [self = RefPtr{this}, window = nsCOMPtr{aWindow}]()
+            MOZ_CAN_RUN_SCRIPT_BOUNDARY -> void {
+              self->WindowRaised(window, GenerateFocusActionId());
+            }));
     return;
   }
 
@@ -3062,36 +3060,6 @@ void nsFocusManager::RaiseWindow(nsPIDOMWindowOuter* aWindow,
     }
   }
 
-#if defined(XP_WIN)
-  // Windows would rather we focus the child widget, otherwise, the toplevel
-  // widget will always end up being focused. Fortunately, focusing the child
-  // widget will also have the effect of raising the window this widget is in.
-  // But on other platforms, we can just focus the toplevel widget to raise
-  // the window.
-  nsCOMPtr<nsPIDOMWindowOuter> childWindow;
-  GetFocusedDescendant(aWindow, eIncludeAllDescendants,
-                       getter_AddRefs(childWindow));
-  if (!childWindow) {
-    childWindow = aWindow;
-  }
-
-  nsCOMPtr<nsIDocShell> docShell = aWindow->GetDocShell();
-  if (!docShell) {
-    return;
-  }
-
-  PresShell* presShell = docShell->GetPresShell();
-  if (!presShell) {
-    return;
-  }
-
-  if (nsViewManager* vm = presShell->GetViewManager()) {
-    nsCOMPtr<nsIWidget> widget = vm->GetRootWidget();
-    if (widget) {
-      widget->SetFocus(nsIWidget::Raise::Yes, aCallerType);
-    }
-  }
-#else
   nsCOMPtr<nsIBaseWindow> treeOwnerAsWin =
       do_QueryInterface(aWindow->GetDocShell());
   if (treeOwnerAsWin) {
@@ -3101,7 +3069,6 @@ void nsFocusManager::RaiseWindow(nsPIDOMWindowOuter* aWindow,
       widget->SetFocus(nsIWidget::Raise::Yes, aCallerType);
     }
   }
-#endif
 }
 
 void nsFocusManager::UpdateCaretForCaretBrowsingMode() {
