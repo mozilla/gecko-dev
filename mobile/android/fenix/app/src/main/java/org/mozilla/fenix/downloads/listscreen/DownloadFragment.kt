@@ -7,18 +7,14 @@ package org.mozilla.fenix.downloads.listscreen
 import android.content.Context
 import android.os.Bundle
 import android.text.SpannableString
-import android.view.LayoutInflater
 import android.view.Menu
 import android.view.MenuInflater
 import android.view.MenuItem
 import android.view.View
-import android.view.ViewGroup
 import androidx.appcompat.widget.Toolbar
-import androidx.compose.ui.platform.ComposeView
-import androidx.compose.ui.platform.ViewCompositionStrategy
+import androidx.compose.runtime.Composable
 import androidx.core.content.ContextCompat
 import androidx.core.view.MenuProvider
-import androidx.fragment.app.Fragment
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
@@ -37,6 +33,7 @@ import org.mozilla.fenix.HomeActivity
 import org.mozilla.fenix.R
 import org.mozilla.fenix.browser.browsingmode.BrowsingMode
 import org.mozilla.fenix.components.lazyStore
+import org.mozilla.fenix.compose.ComposeFragment
 import org.mozilla.fenix.compose.snackbar.Snackbar
 import org.mozilla.fenix.compose.snackbar.SnackbarState
 import org.mozilla.fenix.downloads.dialog.DynamicDownloadDialog
@@ -53,7 +50,7 @@ import org.mozilla.fenix.utils.allowUndo
  * Fragment for displaying and managing the downloads list.
  */
 @SuppressWarnings("TooManyFunctions", "LargeClass")
-class DownloadFragment : Fragment(), UserInteractionHandler, MenuProvider {
+class DownloadFragment : ComposeFragment(), UserInteractionHandler, MenuProvider {
 
     private val downloadStore by lazyStore { viewModelScope ->
         DownloadFragmentStore(
@@ -67,20 +64,14 @@ class DownloadFragment : Fragment(), UserInteractionHandler, MenuProvider {
         )
     }
 
-    override fun onCreateView(
-        inflater: LayoutInflater,
-        container: ViewGroup?,
-        savedInstanceState: Bundle?,
-    ): View = ComposeView(requireContext()).apply {
-        setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnLifecycleDestroyed(viewLifecycleOwner))
-        setContent {
-            FirefoxTheme {
-                DownloadsScreen(
-                    downloadsStore = downloadStore,
-                    onItemClick = { openItem(it) },
-                    onItemDeleteClick = { deleteDownloadItems(setOf(it)) },
-                )
-            }
+    @Composable
+    override fun UI() {
+        FirefoxTheme {
+            DownloadsScreen(
+                downloadsStore = downloadStore,
+                onItemClick = { openItem(it) },
+                onItemDeleteClick = { deleteDownloadItems(setOf(it)) },
+            )
         }
     }
 
