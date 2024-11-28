@@ -17,7 +17,7 @@
   }
 
   .img-wrapper {
-    width: 127px;
+    width: 120px;
     flex-shrink: 0;
     flex-grow: 0;
     aspect-ratio: 1/1;
@@ -50,10 +50,11 @@
 
   .meta {
     padding: var(--space-xsmall) 0;
+    align-self: flex-start;
 
     .info-wrap .title {
       font-size: var(--font-size-small);
-      margin-bottom: 0;
+      margin-block: var(--space-xsmall) 0;
       -webkit-line-clamp: 3;
     }
 
@@ -125,7 +126,7 @@
       .title {
         -webkit-line-clamp: 3;
         font-size: var(--font-size-root);
-        margin-bottom: var(--space-small);
+        margin-block: 0 var(--space-small);
       }
 
       .excerpt {
@@ -145,9 +146,15 @@
     @media (min-width: $break-point-layout-variant ) and (max-width: $break-point-widest ),
       (min-width: $break-point-sections-variant ) {
       display: grid;
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: auto 1fr;
       gap: var(--space-xlarge);
       padding: var(--space-xxlarge);
+      align-items: center;
+
+      .img-wrapper {
+        width: 220px;
+        height: 220px;
+      }
 
       .ds-image.img {
         // Square ratio
@@ -160,11 +167,14 @@
 
       .meta {
         padding: 0;
+        // match height of image for large cards
+        min-height: 220px;
 
         .title {
           -webkit-line-clamp: 3;
           font-size: var(--font-size-large);
           font-weight: var(--font-weight-bold);
+          margin-block: 0 var(--space-small);
         }
 
         .excerpt {
@@ -345,10 +355,9 @@
 
 .ds-section-grid.ds-card-grid {
   grid-gap: var(--space-large);
+  grid-template-columns: repeat(1, 300px);
 
   @media (min-width: $break-point-medium) {
-    grid-template-columns: repeat(1, 300px);
-
     @for $i from 0 through 6 {
       .col-1-position-#{$i} {
         order: $i;
