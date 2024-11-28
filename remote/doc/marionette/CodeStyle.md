@@ -34,19 +34,19 @@ you may find they have different techniques for exporting symbols,
 varying indentation and code style, as well as varying linting
 requirements.
 
-To export symbols to other Marionette modules, remember to assign
-your exported symbols to the shared global `this`:
+Modules with _.sys.mjs_ file extensions follow the regular ECMAScript module,
+and you can export symbols with `export` declarations.
 
 ```javascript
-const EXPORTED_SYMBOLS = ["PollPromise", "TimedPromise"];
+export function TimedPromise() {}
 ```
 
 When importing symbols in Marionette code, try to be specific about
 what you need:
 
 ```javascript
-const { TimedPromise } = ChromeUtils.import(
-  "chrome://remote/content/marionette/sync.js"
+const { TimedPromise } = ChromeUtils.importESModule(
+  "chrome://remote/content/marionette/sync.sys.mjs"
 );
 ```
 
