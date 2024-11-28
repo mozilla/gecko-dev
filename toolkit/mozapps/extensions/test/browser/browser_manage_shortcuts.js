@@ -54,6 +54,10 @@ add_task(async function testUpdatingCommands() {
       description: "Command Two!",
       suggested_key: { default: "Alt+4" },
     },
+    commandThree: {
+      description: "Command Three!",
+      suggested_key: { default: "Alt+F12" },
+    },
     _execute_browser_action: {
       suggested_key: { default: "Shift+Alt+9" },
     },
@@ -77,6 +81,7 @@ add_task(async function testUpdatingCommands() {
   await extensionShortcutsReady(extension.id);
 
   async function checkShortcut(name, key, modifiers) {
+    info(`Synthesize keyboard shortcut ${JSON.stringify({ key, modifiers })}`);
     EventUtils.synthesizeKey(key, modifiers);
     let message = await extension.awaitMessage("oncommand");
     is(
@@ -103,6 +108,7 @@ add_task(async function testUpdatingCommands() {
   // Check that the original shortcuts work.
   await checkShortcut("commandOne", "7", { shiftKey: true, altKey: true });
   await checkShortcut("commandTwo", "4", { altKey: true });
+  await checkShortcut("commandThree", "VK_F12", { altKey: true });
 
   let doc = win.document;
 
@@ -119,7 +125,13 @@ add_task(async function testUpdatingCommands() {
   let nameOrder = Array.from(inputs).map(input => input.getAttribute("name"));
   Assert.deepEqual(
     nameOrder,
-    ["commandOne", "commandTwo", "_execute_browser_action", "commandZero"],
+    [
+      "commandOne",
+      "commandTwo",
+      "commandThree",
+      "_execute_browser_action",
+      "commandZero",
+    ],
     "commandZero should be last since it is unset"
   );
 
@@ -154,6 +166,29 @@ add_task(async function testUpdatingCommands() {
       () => input.getAttribute("shortcut") == `Alt+Shift+${count}`,
       `Wait for shortcut to update to Alt+Shift+${count}`
     );
+  }
+
+  // Test F1-F19 keys are all considered valid and trigger the command
+  // as expected.
+  const shortcutInput = Array.from(inputs)
+    .filter(input => input.getAttribute("name") != "_execute_browser_action")
+    .pop();
+  const shortcutInputCmdName = shortcutInput.getAttribute("name");
+  info(`Verify F1-F19 keys shortcuts on ${shortcutInputCmdName}`);
+  for (let i = 1; i <= 19; i++) {
+    const key = `F${i}`;
+    const synthesizeKey = `VK_${key}`;
+    shortcutInput.focus();
+    EventUtils.synthesizeKey(synthesizeKey, { shiftKey: true, altKey: true });
+    // Wait for the shortcut attribute to change.
+    await BrowserTestUtils.waitForCondition(
+      () => shortcutInput.getAttribute("shortcut") == `Alt+Shift+${key}`,
+      `Wait for shortcut to update to Alt+Shift+${key}`
+    );
+    await checkShortcut(shortcutInputCmdName, synthesizeKey, {
+      shiftKey: true,
+      altKey: true,
+    });
   }
 
   // Check that errors can be shown.
