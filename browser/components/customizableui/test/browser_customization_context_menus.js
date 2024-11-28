@@ -92,7 +92,7 @@ add_task(async function tabstrip_context() {
 // Right-click on the title bar spacer before the tabstrip should show a
 // context menu without options to move it and no tab-specific options.
 add_task(async function titlebar_spacer_context() {
-  if (!TabsInTitlebar.enabled) {
+  if (!CustomTitlebar.enabled) {
     info("Skipping test that requires tabs in the title bar.");
     return;
   }

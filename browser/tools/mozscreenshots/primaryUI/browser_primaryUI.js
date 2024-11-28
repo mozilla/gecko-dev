@@ -12,7 +12,7 @@ add_task(async function capture() {
   }
 
   let sets = [
-    "TabsInTitlebar",
+    "CustomTitlebar",
     "Tabs",
     "WindowSize",
     "Toolbars",
