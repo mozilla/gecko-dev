@@ -37,9 +37,7 @@ class HTTPSRecordResolver : public nsIDNSListener {
   virtual ~HTTPSRecordResolver();
 
  private:
-  nsresult InvokeCallback(nsIDNSHTTPSSVCRecord* aHTTPSSVCRecord,
-                          nsISVCBRecord* aHighestPriorityRecord,
-                          const nsACString& aCname);
+  nsresult InvokeCallback();
 
   mozilla::Mutex mMutex{"HTTPSRecordResolver::mMutex"};
   RefPtr<nsAHttpTransaction> mTransaction;
