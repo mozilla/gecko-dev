@@ -1732,11 +1732,6 @@ nsMemoryReporterManager::Init() {
   }
   isInited = true;
 
-  // The execution of reporters will happen in the same order they were
-  // registered. The below registrations are the very first to happen and
-  // in particular we can be sure that low level measurements like jemalloc
-  // are less influenced by alloc/free noise caused by other reporters.
-
 #ifdef HAVE_JEMALLOC_STATS
   RegisterStrongReporter(new JemallocHeapReporter());
 #endif
@@ -2062,13 +2057,13 @@ nsMemoryReporterManager::GetReportsForThisProcessExtended(
     mozilla::MutexAutoLock autoLock(mMutex);
 
     for (const auto& entry : *mStrongReporters) {
-      DispatchReporter(entry.mPtr, entry.mIsAsync, aHandleReport,
+      DispatchReporter(entry.GetKey(), entry.GetData(), aHandleReport,
                        aHandleReportData, aAnonymize);
     }
 
     for (const auto& entry : *mWeakReporters) {
-      nsCOMPtr<nsIMemoryReporter> reporter = entry.mPtr;
-      DispatchReporter(reporter, entry.mIsAsync, aHandleReport,
+      nsCOMPtr<nsIMemoryReporter> reporter = entry.GetKey();
+      DispatchReporter(reporter, entry.GetData(), aHandleReport,
                        aHandleReportData, aAnonymize);
     }
   }
@@ -2311,18 +2306,20 @@ nsresult nsMemoryReporterManager::RegisterReporterHelper(
     return NS_ERROR_FAILURE;
   }
 
-  // If |aStrong| is true, |aReporter| may have a refcnt of 0, which is
-  // going to 1 thanks to StrongReporterEntry and kept alive until firmly
-  // fixed inside the array.
+  // If |aStrong| is true, |aReporter| may have a refcnt of 0, so we take
+  // a kung fu death grip before calling PutEntry.  Otherwise, if PutEntry
+  // addref'ed and released |aReporter| before finally addref'ing it for
+  // good, it would free aReporter!  The kung fu death grip could itself be
+  // problematic if PutEntry didn't addref |aReporter| (because then when the
+  // death grip goes out of scope, we would delete the reporter).  In debug
+  // mode, we check that this doesn't happen.
   //
   // If |aStrong| is false, we require that |aReporter| have a non-zero
   // refcnt.
   //
   if (aStrong) {
-    {
-      mStrongReporters->AppendElement(StrongReporterEntry{aReporter, aIsAsync});
-    }
-    // The array is now supposed to keep |aReporter| alive.
+    nsCOMPtr<nsIMemoryReporter> kungFuDeathGrip = aReporter;
+    mStrongReporters->InsertOrUpdate(aReporter, aIsAsync);
     CrashIfRefcountIsZero(aReporter);
   } else {
     CrashIfRefcountIsZero(aReporter);
@@ -2335,7 +2332,7 @@ nsresult nsMemoryReporterManager::RegisterReporterHelper(
       // CollectReports().
       return NS_ERROR_XPC_BAD_CONVERT_JS;
     }
-    mWeakReporters->AppendElement(WeakReporterEntry{aReporter, aIsAsync});
+    mWeakReporters->InsertOrUpdate(aReporter, aIsAsync);
   }
 
   return NS_OK;
