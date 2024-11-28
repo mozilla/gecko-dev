@@ -24,6 +24,7 @@ import org.mozilla.fenix.GleanMetrics.AppMenu
 import org.mozilla.fenix.GleanMetrics.Events
 import org.mozilla.fenix.GleanMetrics.HomeMenu
 import org.mozilla.fenix.GleanMetrics.HomeScreen
+import org.mozilla.fenix.GleanMetrics.Menu
 import org.mozilla.fenix.GleanMetrics.ReaderMode
 import org.mozilla.fenix.GleanMetrics.Translations
 import org.mozilla.fenix.components.menu.middleware.MenuTelemetryMiddleware
@@ -451,6 +452,26 @@ class MenuTelemetryMiddlewareTest {
         store.dispatch(MenuAction.InstallAddon(Addon(""))).joinBlocking()
 
         assertTelemetryRecorded(Events.browserMenuAction, item = "install_addon")
+    }
+
+    @Test
+    fun `WHEN CFR is shown THEN record the CFR is shown menu telemetry`() {
+        val store = createStore()
+        assertNull(Menu.showCfr.testGetValue())
+
+        store.dispatch(MenuAction.ShowCFR).joinBlocking()
+
+        assertTelemetryRecorded(Menu.showCfr)
+    }
+
+    @Test
+    fun `WHEN CFR is dismissed THEN record the CFR is dismissed menu telemetry`() {
+        val store = createStore()
+        assertNull(Menu.dismissCfr.testGetValue())
+
+        store.dispatch(MenuAction.DismissCFR).joinBlocking()
+
+        assertTelemetryRecorded(Menu.dismissCfr)
     }
 
     private fun assertTelemetryRecorded(

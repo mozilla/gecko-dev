@@ -57,6 +57,7 @@ import org.mozilla.fenix.components.components
 import org.mozilla.fenix.components.menu.compose.CustomTabMenu
 import org.mozilla.fenix.components.menu.compose.ExtensionsSubmenu
 import org.mozilla.fenix.components.menu.compose.MainMenu
+import org.mozilla.fenix.components.menu.compose.MenuCFRState
 import org.mozilla.fenix.components.menu.compose.MenuDialogBottomSheet
 import org.mozilla.fenix.components.menu.compose.SaveSubmenu
 import org.mozilla.fenix.components.menu.compose.ToolsSubmenu
@@ -163,6 +164,95 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                 val context = LocalContext.current
                 val browsingModeManager = (requireActivity() as HomeActivity).browsingModeManager
 
+                val components = components
+                val settings = components.settings
+                val appStore = components.appStore
+                val browserStore = components.core.store
+
+                val selectedTab = browserStore.state.selectedTab
+                val customTab = args.customTabSessionId?.let {
+                    browserStore.state.findCustomTab(it)
+                }
+
+                val appLinksUseCases = components.useCases.appLinksUseCases
+                val webAppUseCases = components.useCases.webAppUseCases
+
+                val coroutineScope = rememberCoroutineScope()
+
+                val store = remember {
+                    MenuStore(
+                        initialState = MenuState(
+                            browserMenuState = if (selectedTab != null) {
+                                BrowserMenuState(selectedTab = selectedTab)
+                            } else {
+                                null
+                            },
+                            customTabSessionId = args.customTabSessionId,
+                            isDesktopMode = when (args.accesspoint) {
+                                MenuAccessPoint.Home -> {
+                                    false // this is not supported on Home
+                                }
+                                MenuAccessPoint.External -> {
+                                    customTab?.content?.desktopMode ?: false
+                                }
+                                else -> {
+                                    selectedTab?.content?.desktopMode ?: false
+                                }
+                            },
+                        ),
+                        middleware = listOf(
+                            MenuDialogMiddleware(
+                                appStore = appStore,
+                                addonManager = components.addonManager,
+                                settings = settings,
+                                bookmarksStorage = components.core.bookmarksStorage,
+                                pinnedSiteStorage = components.core.pinnedSiteStorage,
+                                appLinksUseCases = appLinksUseCases,
+                                addBookmarkUseCase = components.useCases.bookmarksUseCases.addBookmark,
+                                addPinnedSiteUseCase = components.useCases.topSitesUseCase.addPinnedSites,
+                                removePinnedSitesUseCase = components.useCases.topSitesUseCase.removeTopSites,
+                                requestDesktopSiteUseCase = components.useCases.sessionUseCases.requestDesktopSite,
+                                alertDialogBuilder = AlertDialog.Builder(context),
+                                topSitesMaxLimit = components.settings.topSitesMaxLimit,
+                                onDeleteAndQuit = {
+                                    deleteAndQuit(
+                                        activity = activity as HomeActivity,
+                                        // This menu's coroutineScope would cancel all in progress operations
+                                        // when the dialog is closed.
+                                        // Need to use a scope that will ensure the background operation
+                                        // will continue even if the dialog is closed.
+                                        coroutineScope = (activity as LifecycleOwner).lifecycleScope,
+                                    )
+                                },
+                                onDismiss = {
+                                    withContext(Dispatchers.Main) {
+                                        this@MenuDialogFragment.dismiss()
+                                    }
+                                },
+                                onSendPendingIntentWithUrl = ::sendPendingIntentWithUrl,
+                                scope = coroutineScope,
+                            ),
+                            MenuNavigationMiddleware(
+                                navController = findNavController(),
+                                browsingModeManager = browsingModeManager,
+                                openToBrowser = ::openToBrowser,
+                                webAppUseCases = webAppUseCases,
+                                settings = settings,
+                                onDismiss = {
+                                    withContext(Dispatchers.Main) {
+                                        this@MenuDialogFragment.dismiss()
+                                    }
+                                },
+                                scope = coroutineScope,
+                                customTab = customTab,
+                            ),
+                            MenuTelemetryMiddleware(
+                                accessPoint = args.accesspoint,
+                            ),
+                        ),
+                    )
+                }
+
                 var handlebarContentDescription by remember {
                     mutableStateOf(
                         if (args.accesspoint == MenuAccessPoint.External) {
@@ -174,29 +264,29 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                 }
 
                 MenuDialogBottomSheet(
+                    onRequestDismiss = ::dismiss,
                     handlebarContentDescription = handlebarContentDescription,
-                    appStore = components.appStore,
-                    context = context,
-                    onRequestDismiss = { dismiss() },
+                    menuCfrState = if (settings.shouldShowMenuCFR) {
+                        MenuCFRState(
+                            showCFR = settings.shouldShowMenuCFR,
+                            titleRes = R.string.menu_cfr_title,
+                            messageRes = R.string.menu_cfr_body,
+                            orientation = appStore.state.orientation,
+                            onShown = {
+                                store.dispatch(MenuAction.ShowCFR)
+                            },
+                            onDismiss = {
+                                store.dispatch(MenuAction.DismissCFR)
+                            },
+                        )
+                    } else {
+                        null
+                    },
                 ) {
-                    val appStore = components.appStore
-                    val browserStore = components.core.store
                     val syncStore = components.backgroundServices.syncStore
-                    val addonManager = components.addonManager
-                    val bookmarksStorage = components.core.bookmarksStorage
-                    val pinnedSiteStorage = components.core.pinnedSiteStorage
                     val tabCollectionStorage = components.core.tabCollectionStorage
-                    val addBookmarkUseCase = components.useCases.bookmarksUseCases.addBookmark
-                    val addPinnedSiteUseCase = components.useCases.topSitesUseCase.addPinnedSites
-                    val removePinnedSiteUseCase = components.useCases.topSitesUseCase.removeTopSites
-                    val topSitesMaxLimit = components.settings.topSitesMaxLimit
-                    val appLinksUseCases = components.useCases.appLinksUseCases
-                    val webAppUseCases = components.useCases.webAppUseCases
                     val printContentUseCase = components.useCases.sessionUseCases.printContent
-                    val requestDesktopSiteUseCase =
-                        components.useCases.sessionUseCases.requestDesktopSite
                     val saveToPdfUseCase = components.useCases.sessionUseCases.saveToPdf
-                    val selectedTab = browserStore.state.selectedTab
                     val isTranslationEngineSupported =
                         browserStore.state.translationEngine.isEngineSupported ?: false
                     val isTranslationSupported =
@@ -204,7 +294,6 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                             FxNimbus.features.translations.value().mainFlowBrowserMenuEnabled
                     val isPdf = selectedTab?.content?.isPdf ?: false
                     val isReaderable = selectedTab?.readerState?.readerable ?: false
-                    val settings = components.settings
                     val supportedLanguages = components.core.store.state.translationEngine.supportedLanguages
                     val translateLanguageCode = selectedTab?.translationsState?.translationEngineState
                         ?.requestedTranslationPair?.toLanguage
@@ -212,84 +301,6 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                     val isReportSiteIssueSupported =
                         FxNimbus.features.menuRedesign.value().reportSiteIssue
 
-                    val customTab = args.customTabSessionId?.let {
-                        browserStore.state.findCustomTab(it)
-                    }
-
-                    val coroutineScope = rememberCoroutineScope()
-                    val store = remember {
-                        MenuStore(
-                            initialState = MenuState(
-                                browserMenuState = if (selectedTab != null) {
-                                    BrowserMenuState(selectedTab = selectedTab)
-                                } else {
-                                    null
-                                },
-                                customTabSessionId = args.customTabSessionId,
-                                isDesktopMode = when (args.accesspoint) {
-                                    MenuAccessPoint.Home -> {
-                                        false // this is not supported on Home
-                                    }
-                                    MenuAccessPoint.External -> {
-                                        customTab?.content?.desktopMode ?: false
-                                    }
-                                    else -> {
-                                        selectedTab?.content?.desktopMode ?: false
-                                    }
-                                },
-                            ),
-                            middleware = listOf(
-                                MenuDialogMiddleware(
-                                    appStore = appStore,
-                                    addonManager = addonManager,
-                                    settings = settings,
-                                    bookmarksStorage = bookmarksStorage,
-                                    pinnedSiteStorage = pinnedSiteStorage,
-                                    appLinksUseCases = appLinksUseCases,
-                                    addBookmarkUseCase = addBookmarkUseCase,
-                                    addPinnedSiteUseCase = addPinnedSiteUseCase,
-                                    removePinnedSitesUseCase = removePinnedSiteUseCase,
-                                    requestDesktopSiteUseCase = requestDesktopSiteUseCase,
-                                    alertDialogBuilder = AlertDialog.Builder(context),
-                                    topSitesMaxLimit = topSitesMaxLimit,
-                                    onDeleteAndQuit = {
-                                        deleteAndQuit(
-                                            activity = activity as HomeActivity,
-                                            // This menu's coroutineScope would cancel all in progress operations
-                                            // when the dialog is closed.
-                                            // Need to use a scope that will ensure the background operation
-                                            // will continue even if the dialog is closed.
-                                            coroutineScope = (activity as LifecycleOwner).lifecycleScope,
-                                        )
-                                    },
-                                    onDismiss = {
-                                        withContext(Dispatchers.Main) {
-                                            this@MenuDialogFragment.dismiss()
-                                        }
-                                    },
-                                    onSendPendingIntentWithUrl = ::sendPendingIntentWithUrl,
-                                    scope = coroutineScope,
-                                ),
-                                MenuNavigationMiddleware(
-                                    navController = findNavController(),
-                                    browsingModeManager = browsingModeManager,
-                                    openToBrowser = ::openToBrowser,
-                                    webAppUseCases = webAppUseCases,
-                                    settings = settings,
-                                    onDismiss = {
-                                        withContext(Dispatchers.Main) {
-                                            this@MenuDialogFragment.dismiss()
-                                        }
-                                    },
-                                    scope = coroutineScope,
-                                    customTab = customTab,
-                                ),
-                                MenuTelemetryMiddleware(
-                                    accessPoint = args.accesspoint,
-                                ),
-                            ),
-                        )
-                    }
                     val isDesktopMode by store.observeAsState(initialValue = false) { state ->
                         state.isDesktopMode
                     }

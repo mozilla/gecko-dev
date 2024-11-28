@@ -11,6 +11,7 @@ import org.mozilla.fenix.GleanMetrics.AppMenu
 import org.mozilla.fenix.GleanMetrics.Events
 import org.mozilla.fenix.GleanMetrics.HomeMenu
 import org.mozilla.fenix.GleanMetrics.HomeScreen
+import org.mozilla.fenix.GleanMetrics.Menu
 import org.mozilla.fenix.GleanMetrics.ReaderMode
 import org.mozilla.fenix.GleanMetrics.Translations
 import org.mozilla.fenix.components.menu.MenuAccessPoint
@@ -256,6 +257,10 @@ class MenuTelemetryMiddleware(
                     ),
                 )
             }
+
+            MenuAction.ShowCFR -> Menu.showCfr.record(NoExtras())
+
+            MenuAction.DismissCFR -> Menu.dismissCfr.record(NoExtras())
 
             MenuAction.InitAction,
             is MenuAction.CustomMenuItemAction,

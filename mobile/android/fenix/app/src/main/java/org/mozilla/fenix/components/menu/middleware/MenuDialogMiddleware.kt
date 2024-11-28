@@ -111,6 +111,7 @@ class MenuDialogMiddleware(
             is MenuAction.CustomMenuItemAction -> customMenuItemAction(action.intent, action.url)
             is MenuAction.ToggleReaderView -> toggleReaderView(state = currentState)
             is MenuAction.CustomizeReaderView -> customizeReaderView()
+            is MenuAction.DismissCFR -> dismissMenuCFR()
 
             is MenuAction.RequestDesktopSite,
             is MenuAction.RequestMobileSite,
@@ -402,6 +403,11 @@ class MenuDialogMiddleware(
     ) = scope.launch {
         onSendPendingIntentWithUrl(intent, url)
         onDismiss()
+    }
+
+    private fun dismissMenuCFR() = scope.launch {
+        settings.shouldShowMenuCFR = false
+        settings.lastCfrShownTimeInMillis = System.currentTimeMillis()
     }
 
     companion object {

@@ -216,6 +216,16 @@ sealed class MenuAction : Action {
     data object ToolsMenuClicked : MenuAction()
 
     /**
+     * [MenuAction] dispatched to show the menu CFR.
+     */
+    data object ShowCFR : MenuAction()
+
+    /**
+     * [MenuAction] dispatched when the menu CFR is dismissed.
+     */
+    data object DismissCFR : MenuAction()
+
+    /**
      * [MenuAction] dispatched when a navigation event occurs for a specific destination.
      */
     sealed class Navigate : MenuAction() {
