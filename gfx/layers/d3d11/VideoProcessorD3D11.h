@@ -7,7 +7,7 @@
 #ifndef MOZILLA_GFX_VideoProcessorD3D11_H
 #define MOZILLA_GFX_VideoProcessorD3D11_H
 
-#include <winerror.h>
+#include <d3d11.h>
 
 #include "mozilla/gfx/2D.h"
 #include "mozilla/RefPtr.h"
