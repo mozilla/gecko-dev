@@ -82,7 +82,8 @@
 use self::plumbing::*;
 use self::private::Try;
 pub use either::Either;
-use std::cmp::{self, Ordering};
+use std::cmp::Ordering;
+use std::collections::LinkedList;
 use std::iter::{Product, Sum};
 use std::ops::{Fn, RangeBounds};
 
@@ -102,6 +103,7 @@ mod test;
 //   e.g. `find::find()`, are always used **prefixed**, so that they
 //   can be readily distinguished.
 
+mod blocks;
 mod chain;
 mod chunks;
 mod cloned;
@@ -141,20 +143,26 @@ mod reduce;
 mod repeat;
 mod rev;
 mod skip;
+mod skip_any;
+mod skip_any_while;
 mod splitter;
 mod step_by;
 mod sum;
 mod take;
+mod take_any;
+mod take_any_while;
 mod try_fold;
 mod try_reduce;
 mod try_reduce_with;
 mod unzip;
 mod update;
+mod walk_tree;
 mod while_some;
 mod zip;
 mod zip_eq;
 
 pub use self::{
+    blocks::{ExponentialBlocks, UniformBlocks},
     chain::Chain,
     chunks::Chunks,
     cloned::Cloned,
@@ -185,11 +193,18 @@ pub use self::{
     repeat::{repeat, repeatn, Repeat, RepeatN},
     rev::Rev,
     skip::Skip,
+    skip_any::SkipAny,
+    skip_any_while::SkipAnyWhile,
     splitter::{split, Split},
     step_by::StepBy,
     take::Take,
+    take_any::TakeAny,
+    take_any_while::TakeAnyWhile,
     try_fold::{TryFold, TryFoldWith},
     update::Update,
+    walk_tree::{
+        walk_tree, walk_tree_postfix, walk_tree_prefix, WalkTree, WalkTreePostfix, WalkTreePrefix,
+    },
     while_some::WhileSome,
     zip::Zip,
     zip_eq::ZipEq,
@@ -1417,7 +1432,7 @@ pub trait ParallelIterator: Sized + Send {
     /// specified, so if the `Ord` impl is not truly associative, then
     /// the results are not deterministic.
     ///
-    /// Basically equivalent to `self.reduce_with(|a, b| cmp::min(a, b))`.
+    /// Basically equivalent to `self.reduce_with(|a, b| Ord::min(a, b))`.
     ///
     /// # Examples
     ///
@@ -1436,7 +1451,7 @@ pub trait ParallelIterator: Sized + Send {
     where
         Self::Item: Ord,
     {
-        self.reduce_with(cmp::min)
+        self.reduce_with(Ord::min)
     }
 
     /// Computes the minimum of all the items in the iterator with respect to
@@ -1515,7 +1530,7 @@ pub trait ParallelIterator: Sized + Send {
     /// specified, so if the `Ord` impl is not truly associative, then
     /// the results are not deterministic.
     ///
-    /// Basically equivalent to `self.reduce_with(|a, b| cmp::max(a, b))`.
+    /// Basically equivalent to `self.reduce_with(|a, b| Ord::max(a, b))`.
     ///
     /// # Examples
     ///
@@ -1534,12 +1549,12 @@ pub trait ParallelIterator: Sized + Send {
     where
         Self::Item: Ord,
     {
-        self.reduce_with(cmp::max)
+        self.reduce_with(Ord::max)
     }
 
     /// Computes the maximum of all the items in the iterator with respect to
     /// the given comparison function. If the iterator is empty, `None` is
-    /// returned; otherwise, `Some(min)` is returned.
+    /// returned; otherwise, `Some(max)` is returned.
     ///
     /// Note that the order in which the items will be reduced is not
     /// specified, so if the comparison function is not associative, then
@@ -1664,6 +1679,9 @@ pub trait ParallelIterator: Sized + Send {
     /// Once a match is found, all attempts to the right of the match
     /// will be stopped, while attempts to the left must continue in case
     /// an earlier match is found.
+    ///
+    /// For added performance, you might consider using `find_first` in conjunction with
+    /// [`by_exponential_blocks()`][IndexedParallelIterator::by_exponential_blocks].
     ///
     /// Note that not all parallel iterators have a useful order, much like
     /// sequential `HashMap` iteration, so "first" may be nebulous.  If you
@@ -1953,6 +1971,9 @@ pub trait ParallelIterator: Sized + Send {
     /// of how many elements the iterator contains, and even allows you to reuse
     /// an existing vector's backing store rather than allocating a fresh vector.
     ///
+    /// See also [`collect_vec_list()`][Self::collect_vec_list] for collecting
+    /// into a `LinkedList<Vec<T>>`.
+    ///
     /// [`IndexedParallelIterator`]: trait.IndexedParallelIterator.html
     /// [`collect_into_vec()`]:
     ///     trait.IndexedParallelIterator.html#method.collect_into_vec
@@ -2194,6 +2215,188 @@ pub trait ParallelIterator: Sized + Send {
         Intersperse::new(self, element)
     }
 
+    /// Creates an iterator that yields `n` elements from *anywhere* in the original iterator.
+    ///
+    /// This is similar to [`IndexedParallelIterator::take`] without being
+    /// constrained to the "first" `n` of the original iterator order. The
+    /// taken items will still maintain their relative order where that is
+    /// visible in `collect`, `reduce`, and similar outputs.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use rayon::prelude::*;
+    ///
+    /// let result: Vec<_> = (0..100)
+    ///     .into_par_iter()
+    ///     .filter(|&x| x % 2 == 0)
+    ///     .take_any(5)
+    ///     .collect();
+    ///
+    /// assert_eq!(result.len(), 5);
+    /// assert!(result.windows(2).all(|w| w[0] < w[1]));
+    /// ```
+    fn take_any(self, n: usize) -> TakeAny<Self> {
+        TakeAny::new(self, n)
+    }
+
+    /// Creates an iterator that skips `n` elements from *anywhere* in the original iterator.
+    ///
+    /// This is similar to [`IndexedParallelIterator::skip`] without being
+    /// constrained to the "first" `n` of the original iterator order. The
+    /// remaining items will still maintain their relative order where that is
+    /// visible in `collect`, `reduce`, and similar outputs.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use rayon::prelude::*;
+    ///
+    /// let result: Vec<_> = (0..100)
+    ///     .into_par_iter()
+    ///     .filter(|&x| x % 2 == 0)
+    ///     .skip_any(5)
+    ///     .collect();
+    ///
+    /// assert_eq!(result.len(), 45);
+    /// assert!(result.windows(2).all(|w| w[0] < w[1]));
+    /// ```
+    fn skip_any(self, n: usize) -> SkipAny<Self> {
+        SkipAny::new(self, n)
+    }
+
+    /// Creates an iterator that takes elements from *anywhere* in the original iterator
+    /// until the given `predicate` returns `false`.
+    ///
+    /// The `predicate` may be anything -- e.g. it could be checking a fact about the item, a
+    /// global condition unrelated to the item itself, or some combination thereof.
+    ///
+    /// If parallel calls to the `predicate` race and give different results, then the
+    /// `true` results will still take those particular items, while respecting the `false`
+    /// result from elsewhere to skip any further items.
+    ///
+    /// This is similar to [`Iterator::take_while`] without being constrained to the original
+    /// iterator order. The taken items will still maintain their relative order where that is
+    /// visible in `collect`, `reduce`, and similar outputs.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use rayon::prelude::*;
+    ///
+    /// let result: Vec<_> = (0..100)
+    ///     .into_par_iter()
+    ///     .take_any_while(|x| *x < 50)
+    ///     .collect();
+    ///
+    /// assert!(result.len() <= 50);
+    /// assert!(result.windows(2).all(|w| w[0] < w[1]));
+    /// ```
+    ///
+    /// ```
+    /// use rayon::prelude::*;
+    /// use std::sync::atomic::AtomicUsize;
+    /// use std::sync::atomic::Ordering::Relaxed;
+    ///
+    /// // Collect any group of items that sum <= 1000
+    /// let quota = AtomicUsize::new(1000);
+    /// let result: Vec<_> = (0_usize..100)
+    ///     .into_par_iter()
+    ///     .take_any_while(|&x| {
+    ///         quota.fetch_update(Relaxed, Relaxed, |q| q.checked_sub(x))
+    ///             .is_ok()
+    ///     })
+    ///     .collect();
+    ///
+    /// let sum = result.iter().sum::<usize>();
+    /// assert!(matches!(sum, 902..=1000));
+    /// ```
+    fn take_any_while<P>(self, predicate: P) -> TakeAnyWhile<Self, P>
+    where
+        P: Fn(&Self::Item) -> bool + Sync + Send,
+    {
+        TakeAnyWhile::new(self, predicate)
+    }
+
+    /// Creates an iterator that skips elements from *anywhere* in the original iterator
+    /// until the given `predicate` returns `false`.
+    ///
+    /// The `predicate` may be anything -- e.g. it could be checking a fact about the item, a
+    /// global condition unrelated to the item itself, or some combination thereof.
+    ///
+    /// If parallel calls to the `predicate` race and give different results, then the
+    /// `true` results will still skip those particular items, while respecting the `false`
+    /// result from elsewhere to skip any further items.
+    ///
+    /// This is similar to [`Iterator::skip_while`] without being constrained to the original
+    /// iterator order. The remaining items will still maintain their relative order where that is
+    /// visible in `collect`, `reduce`, and similar outputs.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use rayon::prelude::*;
+    ///
+    /// let result: Vec<_> = (0..100)
+    ///     .into_par_iter()
+    ///     .skip_any_while(|x| *x < 50)
+    ///     .collect();
+    ///
+    /// assert!(result.len() >= 50);
+    /// assert!(result.windows(2).all(|w| w[0] < w[1]));
+    /// ```
+    fn skip_any_while<P>(self, predicate: P) -> SkipAnyWhile<Self, P>
+    where
+        P: Fn(&Self::Item) -> bool + Sync + Send,
+    {
+        SkipAnyWhile::new(self, predicate)
+    }
+
+    /// Collects this iterator into a linked list of vectors.
+    ///
+    /// This is useful when you need to condense a parallel iterator into a collection,
+    /// but have no specific requirements for what that collection should be. If you
+    /// plan to store the collection longer-term, `Vec<T>` is, as always, likely the
+    /// best default choice, despite the overhead that comes from concatenating each
+    /// vector. Or, if this is an `IndexedParallelIterator`, you should also prefer to
+    /// just collect to a `Vec<T>`.
+    ///
+    /// Internally, most [`FromParallelIterator`]/[`ParallelExtend`] implementations
+    /// use this strategy; each job collecting their chunk of the iterator to a `Vec<T>`
+    /// and those chunks getting merged into a `LinkedList`, before then extending the
+    /// collection with each vector. This is a very efficient way to collect an
+    /// unindexed parallel iterator, without much intermediate data movement.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use std::collections::LinkedList;
+    /// use rayon::prelude::*;
+    ///
+    /// let result: LinkedList<Vec<_>> = (0..=100)
+    ///     .into_par_iter()
+    ///     .filter(|x| x % 2 == 0)
+    ///     .flat_map(|x| 0..x)
+    ///     .collect_vec_list();
+    ///
+    /// // `par_iter.collect_vec_list().into_iter().flatten()` turns
+    /// // a parallel iterator into a serial one
+    /// let total_len = result.into_iter().flatten().count();
+    /// assert_eq!(total_len, 2550);
+    /// ```
+    fn collect_vec_list(self) -> LinkedList<Vec<Self::Item>> {
+        match extend::fast_collect(self) {
+            Either::Left(vec) => {
+                let mut list = LinkedList::new();
+                if !vec.is_empty() {
+                    list.push_back(vec);
+                }
+                list
+            }
+            Either::Right(list) => list,
+        }
+    }
+
     /// Internal method used to define the behavior of this parallel
     /// iterator. You should not need to call this directly.
     ///
@@ -2205,7 +2408,7 @@ pub trait ParallelIterator: Sized + Send {
     /// See the [README] for more details on the internals of parallel
     /// iterators.
     ///
-    /// [README]: https://github.com/rayon-rs/rayon/blob/master/src/iter/plumbing/README.md
+    /// [README]: https://github.com/rayon-rs/rayon/blob/main/src/iter/plumbing/README.md
     fn drive_unindexed<C>(self, consumer: C) -> C::Result
     where
         C: UnindexedConsumer<Self::Item>;
@@ -2246,8 +2449,72 @@ impl<T: ParallelIterator> IntoParallelIterator for T {
 // Waiting for `ExactSizeIterator::is_empty` to be stabilized. See rust-lang/rust#35428
 #[allow(clippy::len_without_is_empty)]
 pub trait IndexedParallelIterator: ParallelIterator {
+    /// Divides an iterator into sequential blocks of exponentially-increasing size.
+    ///
+    /// Normally, parallel iterators are recursively divided into tasks in parallel.
+    /// This adaptor changes the default behavior by splitting the iterator into a **sequence**
+    /// of parallel iterators of increasing sizes.
+    /// Sizes grow exponentially in order to avoid creating
+    /// too many blocks. This also allows to balance the current block with all previous ones.
+    ///
+    /// This can have many applications but the most notable ones are:
+    /// - better performance with [`find_first()`][ParallelIterator::find_first]
+    /// - more predictable performance with [`find_any()`][ParallelIterator::find_any]
+    ///   or any interruptible computation
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use rayon::prelude::*;
+    /// assert_eq!((0..10_000).into_par_iter()
+    ///                       .by_exponential_blocks()
+    ///                       .find_first(|&e| e==4_999), Some(4_999))
+    /// ```
+    ///
+    /// In this example, without blocks, rayon will split the initial range into two but all work
+    /// on the right hand side (from 5,000 onwards) is **useless** since the sequential algorithm
+    /// never goes there. This means that if two threads are used there will be **no** speedup **at
+    /// all**.
+    ///
+    /// `by_exponential_blocks` on the other hand will start with the leftmost range from 0
+    /// to `p` (threads number), continue with p to 3p, the 3p to 7p...
+    ///
+    /// Each subrange is treated in parallel, while all subranges are treated sequentially.
+    /// We therefore ensure a logarithmic number of blocks (and overhead) while guaranteeing
+    /// we stop at the first block containing the searched data.
+    fn by_exponential_blocks(self) -> ExponentialBlocks<Self> {
+        ExponentialBlocks::new(self)
+    }
+
+    /// Divides an iterator into sequential blocks of the given size.
+    ///
+    /// Normally, parallel iterators are recursively divided into tasks in parallel.
+    /// This adaptor changes the default behavior by splitting the iterator into a **sequence**
+    /// of parallel iterators of given `block_size`.
+    /// The main application is to obtain better
+    /// memory locality (especially if the reduce operation re-use folded data).
+    ///
+    /// **Panics** if `block_size` is 0.
+    ///
+    /// # Example
+    /// ```
+    /// use rayon::prelude::*;
+    /// // during most reductions v1 and v2 fit the cache
+    /// let v = (0u32..10_000_000)
+    ///     .into_par_iter()
+    ///     .by_uniform_blocks(1_000_000)
+    ///     .fold(Vec::new, |mut v, e| { v.push(e); v})
+    ///     .reduce(Vec::new, |mut v1, mut v2| { v1.append(&mut v2); v1});
+    /// assert_eq!(v, (0u32..10_000_000).collect::<Vec<u32>>());
+    /// ```
+    #[track_caller]
+    fn by_uniform_blocks(self, block_size: usize) -> UniformBlocks<Self> {
+        assert!(block_size != 0, "block_size must not be zero");
+        UniformBlocks::new(self, block_size)
+    }
+
     /// Collects the results of the iterator into the specified
-    /// vector. The vector is always truncated before execution
+    /// vector. The vector is always cleared before execution
     /// begins. If possible, reusing the vector across calls can lead
     /// to better performance since it reuses the same backing buffer.
     ///
@@ -2256,7 +2523,7 @@ pub trait IndexedParallelIterator: ParallelIterator {
     /// ```
     /// use rayon::prelude::*;
     ///
-    /// // any prior data will be truncated
+    /// // any prior data will be cleared
     /// let mut vec = vec![-1, -2, -3];
     ///
     /// (0..5).into_par_iter()
@@ -2269,7 +2536,7 @@ pub trait IndexedParallelIterator: ParallelIterator {
     }
 
     /// Unzips the results of the iterator into the specified
-    /// vectors. The vectors are always truncated before execution
+    /// vectors. The vectors are always cleared before execution
     /// begins. If possible, reusing the vectors across calls can lead
     /// to better performance since they reuse the same backing buffer.
     ///
@@ -2278,7 +2545,7 @@ pub trait IndexedParallelIterator: ParallelIterator {
     /// ```
     /// use rayon::prelude::*;
     ///
-    /// // any prior data will be truncated
+    /// // any prior data will be cleared
     /// let mut left = vec![42; 10];
     /// let mut right = vec![-1; 10];
     ///
@@ -2411,6 +2678,8 @@ pub trait IndexedParallelIterator: ParallelIterator {
     /// [`par_chunks()`]: ../slice/trait.ParallelSlice.html#method.par_chunks
     /// [`par_chunks_mut()`]: ../slice/trait.ParallelSliceMut.html#method.par_chunks_mut
     ///
+    /// **Panics** if `chunk_size` is 0.
+    ///
     /// # Examples
     ///
     /// ```
@@ -2419,6 +2688,7 @@ pub trait IndexedParallelIterator: ParallelIterator {
     /// let r: Vec<Vec<i32>> = a.into_par_iter().chunks(3).collect();
     /// assert_eq!(r, vec![vec![1,2,3], vec![4,5,6], vec![7,8,9], vec![10]]);
     /// ```
+    #[track_caller]
     fn chunks(self, chunk_size: usize) -> Chunks<Self> {
         assert!(chunk_size != 0, "chunk_size must not be zero");
         Chunks::new(self, chunk_size)
@@ -2977,7 +3247,7 @@ pub trait IndexedParallelIterator: ParallelIterator {
     /// See the [README] for more details on the internals of parallel
     /// iterators.
     ///
-    /// [README]: https://github.com/rayon-rs/rayon/blob/master/src/iter/plumbing/README.md
+    /// [README]: https://github.com/rayon-rs/rayon/blob/main/src/iter/plumbing/README.md
     fn drive<C: Consumer<Self::Item>>(self, consumer: C) -> C::Result;
 
     /// Internal method used to define the behavior of this parallel
@@ -2994,7 +3264,7 @@ pub trait IndexedParallelIterator: ParallelIterator {
     /// See the [README] for more details on the internals of parallel
     /// iterators.
     ///
-    /// [README]: https://github.com/rayon-rs/rayon/blob/master/src/iter/plumbing/README.md
+    /// [README]: https://github.com/rayon-rs/rayon/blob/main/src/iter/plumbing/README.md
     fn with_producer<CB: ProducerCallback<Self::Item>>(self, callback: CB) -> CB::Output;
 }
 
@@ -3042,14 +3312,15 @@ where
     ///
     /// If your collection is not naturally parallel, the easiest (and
     /// fastest) way to do this is often to collect `par_iter` into a
-    /// [`LinkedList`] or other intermediate data structure and then
-    /// sequentially extend your collection. However, a more 'native'
-    /// technique is to use the [`par_iter.fold`] or
+    /// [`LinkedList`] (via [`collect_vec_list`]) or another intermediate
+    /// data structure and then sequentially extend your collection. However,
+    /// a more 'native' technique is to use the [`par_iter.fold`] or
     /// [`par_iter.fold_with`] methods to create the collection.
     /// Alternatively, if your collection is 'natively' parallel, you
     /// can use `par_iter.for_each` to process each element in turn.
     ///
     /// [`LinkedList`]: https://doc.rust-lang.org/std/collections/struct.LinkedList.html
+    /// [`collect_vec_list`]: ParallelIterator::collect_vec_list
     /// [`par_iter.fold`]: trait.ParallelIterator.html#method.fold
     /// [`par_iter.fold_with`]: trait.ParallelIterator.html#method.fold_with
     /// [`par_iter.for_each`]: trait.ParallelIterator.html#method.for_each

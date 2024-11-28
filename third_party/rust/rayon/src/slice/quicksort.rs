@@ -4,17 +4,34 @@
 //! The only difference from the original is that calls to `recurse` are executed in parallel using
 //! `rayon_core::join`.
 
-use std::cmp;
+use std::marker::PhantomData;
 use std::mem::{self, MaybeUninit};
 use std::ptr;
 
 /// When dropped, copies from `src` into `dest`.
-struct CopyOnDrop<T> {
+#[must_use]
+struct CopyOnDrop<'a, T> {
     src: *const T,
     dest: *mut T,
+    /// `src` is often a local pointer here, make sure we have appropriate
+    /// PhantomData so that dropck can protect us.
+    marker: PhantomData<&'a mut T>,
 }
 
-impl<T> Drop for CopyOnDrop<T> {
+impl<'a, T> CopyOnDrop<'a, T> {
+    /// Construct from a source pointer and a destination
+    /// Assumes dest lives longer than src, since there is no easy way to
+    /// copy down lifetime information from another pointer
+    unsafe fn new(src: &'a T, dest: *mut T) -> Self {
+        CopyOnDrop {
+            src,
+            dest,
+            marker: PhantomData,
+        }
+    }
+}
+
+impl<T> Drop for CopyOnDrop<'_, T> {
     fn drop(&mut self) {
         // SAFETY:  This is a helper class.
         //          Please refer to its usage for correctness.
@@ -54,10 +71,7 @@ where
             // into the slice.
             let tmp = mem::ManuallyDrop::new(ptr::read(v.get_unchecked(0)));
             let v = v.as_mut_ptr();
-            let mut hole = CopyOnDrop {
-                src: &*tmp,
-                dest: v.add(1),
-            };
+            let mut hole = CopyOnDrop::new(&*tmp, v.add(1));
             ptr::copy_nonoverlapping(v.add(1), v.add(0), 1);
 
             for i in 2..len {
@@ -103,10 +117,7 @@ where
             // into the slice.
             let tmp = mem::ManuallyDrop::new(ptr::read(v.get_unchecked(len - 1)));
             let v = v.as_mut_ptr();
-            let mut hole = CopyOnDrop {
-                src: &*tmp,
-                dest: v.add(len - 2),
-            };
+            let mut hole = CopyOnDrop::new(&*tmp, v.add(len - 2));
             ptr::copy_nonoverlapping(v.add(len - 2), v.add(len - 1), 1);
 
             for i in (0..len - 2).rev() {
@@ -366,7 +377,7 @@ where
         }
 
         // Number of out-of-order elements to swap between the left and right side.
-        let count = cmp::min(width(start_l, end_l), width(start_r, end_r));
+        let count = Ord::min(width(start_l, end_l), width(start_r, end_r));
 
         if count > 0 {
             macro_rules! left {
@@ -510,10 +521,7 @@ where
 
         // SAFETY: `pivot` is a reference to the first element of `v`, so `ptr::read` is safe.
         let tmp = mem::ManuallyDrop::new(unsafe { ptr::read(pivot) });
-        let _pivot_guard = CopyOnDrop {
-            src: &*tmp,
-            dest: pivot,
-        };
+        let _pivot_guard = unsafe { CopyOnDrop::new(&*tmp, pivot) };
         let pivot = &*tmp;
 
         // Find the first pair of out-of-order elements.
@@ -569,10 +577,7 @@ where
     // operation panics, the pivot will be automatically written back into the slice.
     // SAFETY: The pointer here is valid because it is obtained from a reference to a slice.
     let tmp = mem::ManuallyDrop::new(unsafe { ptr::read(pivot) });
-    let _pivot_guard = CopyOnDrop {
-        src: &*tmp,
-        dest: pivot,
-    };
+    let _pivot_guard = unsafe { CopyOnDrop::new(&*tmp, pivot) };
     let pivot = &*tmp;
 
     // Now partition the slice.
@@ -805,7 +810,7 @@ where
 
         // Partition the slice.
         let (mid, was_p) = partition(v, pivot, is_less);
-        was_balanced = cmp::min(mid, len - mid) >= len / 8;
+        was_balanced = Ord::min(mid, len - mid) >= len / 8;
         was_partitioned = was_p;
 
         // Split the slice into `left`, `pivot`, and `right`.
@@ -813,7 +818,7 @@ where
         let (pivot, right) = right.split_at_mut(1);
         let pivot = &mut pivot[0];
 
-        if cmp::max(left.len(), right.len()) <= MAX_SEQUENTIAL {
+        if Ord::max(left.len(), right.len()) <= MAX_SEQUENTIAL {
             // Recurse into the shorter side only in order to minimize the total number of recursive
             // calls and consume less stack space. Then just continue with the longer side (this is
             // akin to tail recursion).

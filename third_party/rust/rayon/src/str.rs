@@ -6,8 +6,8 @@
 //! Note: [`ParallelString::par_split()`] and [`par_split_terminator()`]
 //! reference a `Pattern` trait which is not visible outside this crate.
 //! This trait is intentionally kept private, for use only by Rayon itself.
-//! It is implemented for `char`, `&[char]`, and any function or closure
-//! `F: Fn(char) -> bool + Sync + Send`.
+//! It is implemented for `char`, `&[char]`, `[char; N]`, `&[char; N]`,
+//! and any function or closure `F: Fn(char) -> bool + Sync + Send`.
 //!
 //! [`ParallelString::par_split()`]: trait.ParallelString.html#method.par_split
 //! [`par_split_terminator()`]: trait.ParallelString.html#method.par_split_terminator
@@ -140,8 +140,8 @@ pub trait ParallelString {
     /// given character or predicate, similar to `str::split`.
     ///
     /// Note: the `Pattern` trait is private, for use only by Rayon itself.
-    /// It is implemented for `char`, `&[char]`, and any function or closure
-    /// `F: Fn(char) -> bool + Sync + Send`.
+    /// It is implemented for `char`, `&[char]`, `[char; N]`, `&[char; N]`,
+    /// and any function or closure `F: Fn(char) -> bool + Sync + Send`.
     ///
     /// # Examples
     ///
@@ -157,14 +157,35 @@ pub trait ParallelString {
         Split::new(self.as_parallel_string(), separator)
     }
 
+    /// Returns a parallel iterator over substrings separated by a
+    /// given character or predicate, keeping the matched part as a terminator
+    /// of the substring similar to `str::split_inclusive`.
+    ///
+    /// Note: the `Pattern` trait is private, for use only by Rayon itself.
+    /// It is implemented for `char`, `&[char]`, `[char; N]`, `&[char; N]`,
+    /// and any function or closure `F: Fn(char) -> bool + Sync + Send`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use rayon::prelude::*;
+    /// let lines: Vec<_> = "Mary had a little lamb\nlittle lamb\nlittle lamb."
+    ///    .par_split_inclusive('\n')
+    ///    .collect();
+    /// assert_eq!(lines, ["Mary had a little lamb\n", "little lamb\n", "little lamb."]);
+    /// ```
+    fn par_split_inclusive<P: Pattern>(&self, separator: P) -> SplitInclusive<'_, P> {
+        SplitInclusive::new(self.as_parallel_string(), separator)
+    }
+
     /// Returns a parallel iterator over substrings terminated by a
     /// given character or predicate, similar to `str::split_terminator`.
     /// It's equivalent to `par_split`, except it doesn't produce an empty
     /// substring after a trailing terminator.
     ///
     /// Note: the `Pattern` trait is private, for use only by Rayon itself.
-    /// It is implemented for `char`, `&[char]`, and any function or closure
-    /// `F: Fn(char) -> bool + Sync + Send`.
+    /// It is implemented for `char`, `&[char]`, `[char; N]`, `&[char; N]`,
+    /// and any function or closure `F: Fn(char) -> bool + Sync + Send`.
     ///
     /// # Examples
     ///
@@ -203,6 +224,8 @@ pub trait ParallelString {
     ///
     /// As with `str::split_whitespace`, 'whitespace' is defined according to
     /// the terms of the Unicode Derived Core Property `White_Space`.
+    /// If you only want to split on ASCII whitespace instead, use
+    /// [`par_split_ascii_whitespace`][`ParallelString::par_split_ascii_whitespace`].
     ///
     /// # Examples
     ///
@@ -213,16 +236,71 @@ pub trait ParallelString {
     ///     .max_by_key(|word| word.len());
     /// assert_eq!(Some("longest"), longest);
     /// ```
+    ///
+    /// All kinds of whitespace are considered:
+    ///
+    /// ```
+    /// use rayon::prelude::*;
+    /// let words: Vec<&str> = " Mary   had\ta\u{2009}little  \n\t lamb"
+    ///     .par_split_whitespace()
+    ///     .collect();
+    /// assert_eq!(words, ["Mary", "had", "a", "little", "lamb"]);
+    /// ```
+    ///
+    /// If the string is empty or all whitespace, the iterator yields no string slices:
+    ///
+    /// ```
+    /// use rayon::prelude::*;
+    /// assert_eq!("".par_split_whitespace().count(), 0);
+    /// assert_eq!("   ".par_split_whitespace().count(), 0);
+    /// ```
     fn par_split_whitespace(&self) -> SplitWhitespace<'_> {
         SplitWhitespace(self.as_parallel_string())
+    }
+
+    /// Returns a parallel iterator over the sub-slices of a string that are
+    /// separated by any amount of ASCII whitespace.
+    ///
+    /// To split by Unicode `White_Space` instead, use
+    /// [`par_split_whitespace`][`ParallelString::par_split_whitespace`].
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use rayon::prelude::*;
+    /// let longest = "which is the longest word?"
+    ///     .par_split_ascii_whitespace()
+    ///     .max_by_key(|word| word.len());
+    /// assert_eq!(Some("longest"), longest);
+    /// ```
+    ///
+    /// All kinds of ASCII whitespace are considered, but not Unicode `White_Space`:
+    ///
+    /// ```
+    /// use rayon::prelude::*;
+    /// let words: Vec<&str> = " Mary   had\ta\u{2009}little  \n\t lamb"
+    ///     .par_split_ascii_whitespace()
+    ///     .collect();
+    /// assert_eq!(words, ["Mary", "had", "a\u{2009}little", "lamb"]);
+    /// ```
+    ///
+    /// If the string is empty or all ASCII whitespace, the iterator yields no string slices:
+    ///
+    /// ```
+    /// use rayon::prelude::*;
+    /// assert_eq!("".par_split_whitespace().count(), 0);
+    /// assert_eq!("   ".par_split_whitespace().count(), 0);
+    /// ```
+    fn par_split_ascii_whitespace(&self) -> SplitAsciiWhitespace<'_> {
+        SplitAsciiWhitespace(self.as_parallel_string())
     }
 
     /// Returns a parallel iterator over substrings that match a
     /// given character or predicate, similar to `str::matches`.
     ///
     /// Note: the `Pattern` trait is private, for use only by Rayon itself.
-    /// It is implemented for `char`, `&[char]`, and any function or closure
-    /// `F: Fn(char) -> bool + Sync + Send`.
+    /// It is implemented for `char`, `&[char]`, `[char; N]`, `&[char; N]`,
+    /// and any function or closure `F: Fn(char) -> bool + Sync + Send`.
     ///
     /// # Examples
     ///
@@ -245,8 +323,8 @@ pub trait ParallelString {
     /// or predicate, with their positions, similar to `str::match_indices`.
     ///
     /// Note: the `Pattern` trait is private, for use only by Rayon itself.
-    /// It is implemented for `char`, `&[char]`, and any function or closure
-    /// `F: Fn(char) -> bool + Sync + Send`.
+    /// It is implemented for `char`, `&[char]`, `[char; N]`, `&[char; N]`,
+    /// and any function or closure `F: Fn(char) -> bool + Sync + Send`.
     ///
     /// # Examples
     ///
@@ -291,6 +369,9 @@ mod private {
         fn rfind_in(&self, haystack: &str) -> Option<usize>;
         fn is_suffix_of(&self, haystack: &str) -> bool;
         fn fold_splits<'ch, F>(&self, haystack: &'ch str, folder: F, skip_last: bool) -> F
+        where
+            F: Folder<&'ch str>;
+        fn fold_inclusive_splits<'ch, F>(&self, haystack: &'ch str, folder: F) -> F
         where
             F: Folder<&'ch str>;
         fn fold_matches<'ch, F>(&self, haystack: &'ch str, folder: F) -> F
@@ -338,6 +419,13 @@ macro_rules! impl_pattern {
             folder.consume_iter(split)
         }
 
+        fn fold_inclusive_splits<'ch, F>(&$self, chars: &'ch str, folder: F) -> F
+        where
+            F: Folder<&'ch str>,
+        {
+            folder.consume_iter(chars.split_inclusive($pattern))
+        }
+
         fn fold_matches<'ch, F>(&$self, chars: &'ch str, folder: F) -> F
         where
             F: Folder<&'ch str>,
@@ -360,6 +448,17 @@ impl Pattern for char {
 
 impl Pattern for &[char] {
     impl_pattern!(&self => *self);
+}
+
+// TODO (MSRV 1.75): use `*self` for array patterns too.
+// - Needs `DoubleEndedSearcher` so `split.next_back()` works.
+
+impl<const N: usize> Pattern for [char; N] {
+    impl_pattern!(&self => self.as_slice());
+}
+
+impl<const N: usize> Pattern for &[char; N] {
+    impl_pattern!(&self => self.as_slice());
 }
 
 impl<FN: Sync + Send + Fn(char) -> bool> Pattern for FN {
@@ -600,18 +699,56 @@ impl<'ch, P: Pattern> Fissile<P> for &'ch str {
         separator.rfind_in(&self[..end])
     }
 
-    fn split_once(self, index: usize) -> (Self, Self) {
-        let (left, right) = self.split_at(index);
-        let mut right_iter = right.chars();
-        right_iter.next(); // skip the separator
-        (left, right_iter.as_str())
+    fn split_once<const INCL: bool>(self, index: usize) -> (Self, Self) {
+        if INCL {
+            // include the separator in the left side
+            let separator = self[index..].chars().next().unwrap();
+            self.split_at(index + separator.len_utf8())
+        } else {
+            let (left, right) = self.split_at(index);
+            let mut right_iter = right.chars();
+            right_iter.next(); // skip the separator
+            (left, right_iter.as_str())
+        }
     }
 
-    fn fold_splits<F>(self, separator: &P, folder: F, skip_last: bool) -> F
+    fn fold_splits<F, const INCL: bool>(self, separator: &P, folder: F, skip_last: bool) -> F
     where
         F: Folder<Self>,
     {
-        separator.fold_splits(self, folder, skip_last)
+        if INCL {
+            debug_assert!(!skip_last);
+            separator.fold_inclusive_splits(self, folder)
+        } else {
+            separator.fold_splits(self, folder, skip_last)
+        }
+    }
+}
+
+// /////////////////////////////////////////////////////////////////////////
+
+/// Parallel iterator over substrings separated by a pattern
+#[derive(Debug, Clone)]
+pub struct SplitInclusive<'ch, P: Pattern> {
+    chars: &'ch str,
+    separator: P,
+}
+
+impl<'ch, P: Pattern> SplitInclusive<'ch, P> {
+    fn new(chars: &'ch str, separator: P) -> Self {
+        SplitInclusive { chars, separator }
+    }
+}
+
+impl<'ch, P: Pattern> ParallelIterator for SplitInclusive<'ch, P> {
+    type Item = &'ch str;
+
+    fn drive_unindexed<C>(self, consumer: C) -> C::Result
+    where
+        C: UnindexedConsumer<Self::Item>,
+    {
+        let producer = SplitInclusiveProducer::new_incl(self.chars, &self.separator);
+        bridge_unindexed(producer, consumer)
     }
 }
 
@@ -726,6 +863,31 @@ impl<'ch> ParallelIterator for SplitWhitespace<'ch> {
     {
         self.0
             .par_split(char::is_whitespace)
+            .filter(not_empty)
+            .drive_unindexed(consumer)
+    }
+}
+
+// /////////////////////////////////////////////////////////////////////////
+
+/// Parallel iterator over substrings separated by ASCII whitespace
+#[derive(Debug, Clone)]
+pub struct SplitAsciiWhitespace<'ch>(&'ch str);
+
+#[inline]
+fn is_ascii_whitespace(c: char) -> bool {
+    c.is_ascii_whitespace()
+}
+
+impl<'ch> ParallelIterator for SplitAsciiWhitespace<'ch> {
+    type Item = &'ch str;
+
+    fn drive_unindexed<C>(self, consumer: C) -> C::Result
+    where
+        C: UnindexedConsumer<Self::Item>,
+    {
+        self.0
+            .par_split(is_ascii_whitespace)
             .filter(not_empty)
             .drive_unindexed(consumer)
     }

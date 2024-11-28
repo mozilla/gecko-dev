@@ -1,3 +1,69 @@
+# Release rayon 1.10.0 (2024-03-23)
+
+- The new methods `ParallelSlice::par_chunk_by` and
+  `ParallelSliceMut::par_chunk_by_mut` work like the slice methods `chunk_by`
+  and `chunk_by_mut` added in Rust 1.77.
+
+# Release rayon 1.9.0 (2024-02-27)
+
+- The new methods `IndexedParallelIterator::by_exponential_blocks` and
+  `by_uniform_blocks` allow processing items in smaller groups at a time.
+- The new `iter::walk_tree`, `walk_tree_prefix`, and `walk_tree_postfix`
+  functions enable custom parallel iteration over tree-like structures.
+- The new method `ParallelIterator::collect_vec_list` returns items as a linked
+  list of vectors, which is an efficient mode of parallel collection used by
+  many of the internal implementations of `collect`.
+- The new methods `ParallelSliceMut::par_split_inclusive_mut`,
+  `ParallelSlice::par_split_inclusive`, and
+  `ParallelString::par_split_inclusive` all work like a normal split but
+  keeping the separator as part of the left slice.
+- The new `ParallelString::par_split_ascii_whitespace` splits only on ASCII
+  whitespace, which is faster than including Unicode multi-byte whitespace.
+- `OsString` now implements `FromParallelIterator<_>` and `ParallelExtend<_>`
+  for a few item types similar to the standard `FromIterator` and `Extend`.
+- The internal `Pattern` trait for string methods is now implemented for
+  `[char; N]` and `&[char; N]`, matching any of the given characters.
+
+# Release rayon 1.8.1 / rayon-core 1.12.1 (2024-01-17)
+
+- The new `"web_spin_lock"` crate feature makes mutexes spin on the main
+  browser thread in WebAssembly, rather than suffer an error about forbidden
+  `atomics.wait` if they were to block in that context. Thanks @RReverser!
+
+# Release rayon 1.8.0 / rayon-core 1.12.0 (2023-09-20)
+
+- The minimum supported `rustc` is now 1.63.
+- Added `ThreadPoolBuilder::use_current_thread` to use the builder thread as
+  part of the new thread pool. That thread does not run the pool's main loop,
+  but it may participate in work-stealing if it yields to rayon in some way.
+- Implemented `FromParallelIterator<T>` for `Box<[T]>`, `Rc<[T]>`, and
+  `Arc<[T]>`, as well as `FromParallelIterator<Box<str>>` and
+  `ParallelExtend<Box<str>>` for `String`.
+- `ThreadPoolBuilder::build_scoped` now uses `std::thread::scope`.
+- The default number of threads is now determined using
+  `std::thread::available_parallelism` instead of the `num_cpus` crate.
+- The internal logging facility has been removed, reducing bloat for all users.
+- Many smaller performance tweaks and documentation updates.
+
+# Release rayon 1.7.0 / rayon-core 1.11.0 (2023-03-03)
+
+- The minimum supported `rustc` is now 1.59.
+- Added a fallback when threading is unsupported.
+- The new `ParallelIterator::take_any` and `skip_any` methods work like
+  unordered `IndexedParallelIterator::take` and `skip`, counting items in
+  whatever order they are visited in parallel.
+- The new `ParallelIterator::take_any_while` and `skip_any_while` methods work
+  like unordered `Iterator::take_while` and `skip_while`, which previously had
+  no parallel equivalent. The "while" condition may be satisfied from anywhere
+  in the parallel iterator, affecting all future items regardless of position.
+- The new `yield_now` and `yield_local` functions will cooperatively yield
+  execution to Rayon, either trying to execute pending work from the entire
+  pool or from just the local deques of the current thread, respectively.
+
+# Release rayon-core 1.10.2 (2023-01-22)
+
+- Fixed miri-reported UB for SharedReadOnly tags protected by a call.
+
 # Release rayon 1.6.1 (2022-12-09)
 
 - Simplified `par_bridge` to only pull one item at a time from the iterator,
@@ -303,8 +369,8 @@ Thanks to all of the contributors for this release!
 - @seanchen1991
 - @yegeun542
 
-[RFC 1]: https://github.com/rayon-rs/rfcs/blob/master/accepted/rfc0001-scope-scheduling.md
-[RFC 3]: https://github.com/rayon-rs/rfcs/blob/master/accepted/rfc0003-minimum-rustc.md
+[RFC 1]: https://github.com/rayon-rs/rfcs/blob/main/accepted/rfc0001-scope-scheduling.md
+[RFC 3]: https://github.com/rayon-rs/rfcs/blob/main/accepted/rfc0003-minimum-rustc.md
 
 
 # Release rayon 1.0.3 (2018-11-02)

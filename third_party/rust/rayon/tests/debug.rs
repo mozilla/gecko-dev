@@ -104,8 +104,10 @@ fn debug_str() {
     check(s.par_chars());
     check(s.par_lines());
     check(s.par_split('\n'));
+    check(s.par_split_inclusive('\n'));
     check(s.par_split_terminator('\n'));
     check(s.par_split_whitespace());
+    check(s.par_split_ascii_whitespace());
 }
 
 #[test]
@@ -119,6 +121,8 @@ fn debug_vec() {
     let mut v: Vec<_> = (0..10).collect();
     check(v.par_iter());
     check(v.par_iter_mut());
+    check(v.par_chunk_by(i32::eq));
+    check(v.par_chunk_by_mut(i32::eq));
     check(v.par_chunks(42));
     check(v.par_chunks_exact(42));
     check(v.par_chunks_mut(42));
@@ -129,7 +133,9 @@ fn debug_vec() {
     check(v.par_rchunks_exact_mut(42));
     check(v.par_windows(42));
     check(v.par_split(|x| x % 3 == 0));
+    check(v.par_split_inclusive(|x| x % 3 == 0));
     check(v.par_split_mut(|x| x % 3 == 0));
+    check(v.par_split_inclusive_mut(|x| x % 3 == 0));
     check(v.par_drain(..));
     check(v.into_par_iter());
 }
@@ -143,6 +149,8 @@ fn debug_array() {
 #[test]
 fn debug_adaptors() {
     let v: Vec<_> = (0..10).collect();
+    check(v.par_iter().by_exponential_blocks());
+    check(v.par_iter().by_uniform_blocks(5));
     check(v.par_iter().chain(&v));
     check(v.par_iter().cloned());
     check(v.par_iter().copied());
@@ -172,7 +180,11 @@ fn debug_adaptors() {
     check(v.par_iter().positions(|_| true));
     check(v.par_iter().rev());
     check(v.par_iter().skip(1));
+    check(v.par_iter().skip_any(1));
+    check(v.par_iter().skip_any_while(|_| false));
     check(v.par_iter().take(1));
+    check(v.par_iter().take_any(1));
+    check(v.par_iter().take_any_while(|_| true));
     check(v.par_iter().map(Some).while_some());
     check(v.par_iter().with_max_len(1));
     check(v.par_iter().with_min_len(1));

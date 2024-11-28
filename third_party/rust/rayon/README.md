@@ -2,8 +2,8 @@
 
 [![Rayon crate](https://img.shields.io/crates/v/rayon.svg)](https://crates.io/crates/rayon)
 [![Rayon documentation](https://docs.rs/rayon/badge.svg)](https://docs.rs/rayon)
-![minimum rustc 1.56](https://img.shields.io/badge/rustc-1.56+-red.svg)
-[![build status](https://github.com/rayon-rs/rayon/workflows/master/badge.svg)](https://github.com/rayon-rs/rayon/actions)
+![minimum rustc 1.63](https://img.shields.io/badge/rustc-1.63+-red.svg)
+[![build status](https://github.com/rayon-rs/rayon/workflows/main/badge.svg)](https://github.com/rayon-rs/rayon/actions)
 [![Join the chat at https://gitter.im/rayon-rs/Lobby](https://badges.gitter.im/rayon-rs/Lobby.svg)](https://gitter.im/rayon-rs/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
 Rayon is a data-parallelism library for Rust. It is extremely
@@ -13,7 +13,7 @@ enjoy [this blog post][blog] about Rayon, which gives more background
 and details about how it works, or [this video][video], from the Rust
 Belt Rust conference.) Rayon is
 [available on crates.io](https://crates.io/crates/rayon), and
-[API Documentation is available on docs.rs](https://docs.rs/rayon/).
+[API documentation is available on docs.rs](https://docs.rs/rayon).
 
 [blog]: https://smallcultfollowing.com/babysteps/blog/2015/12/18/rayon-data-parallelism-in-rust/
 [video]: https://www.youtube.com/watch?v=gof_OEv71Aw
@@ -71,12 +71,12 @@ as:
 
 ```toml
 [dependencies]
-rayon = "1.5"
+rayon = "1.8"
 ```
 
-To use the Parallel Iterator APIs, a number of traits have to be in
+To use the parallel iterator APIs, a number of traits have to be in
 scope. The easiest way to bring those things into scope is to use the
-[Rayon prelude](https://docs.rs/rayon/*/rayon/prelude/index.html).  In
+[Rayon prelude](https://docs.rs/rayon/*/rayon/prelude/index.html). In
 each module where you would like to use the parallel iterator APIs,
 just add:
 
@@ -84,26 +84,44 @@ just add:
 use rayon::prelude::*;
 ```
 
-Rayon currently requires `rustc 1.56.0` or greater.
+Rayon currently requires `rustc 1.63.0` or greater.
 
 ### Usage with WebAssembly
 
-Rayon can work on the Web via WebAssembly, but requires an adapter
-and some project configuration to account for differences between
-WebAssembly threads and threads on the other platforms.
+By default, when building to WebAssembly, Rayon will treat it as any
+other platform without multithreading support and will fall back to
+sequential iteration. This allows existing code to compile and run
+successfully with no changes necessary, but it will run slower as it
+will only use a single CPU core.
 
-Check out [wasm-bindgen-rayon](https://github.com/GoogleChromeLabs/wasm-bindgen-rayon)
+You can build Rayon-based projects with proper multithreading support
+for the Web, but you'll need an adapter and some project configuration
+to account for differences between WebAssembly threads and threads
+on the other platforms.
+
+Check out the
+[wasm-bindgen-rayon](https://github.com/RReverser/wasm-bindgen-rayon)
 docs for more details.
 
 ## Contribution
 
-Rayon is an open source project! If you'd like to contribute to Rayon, check out [the list of "help wanted" issues](https://github.com/rayon-rs/rayon/issues?q=is%3Aissue+is%3Aopen+label%3A%22help+wanted%22). These are all (or should be) issues that are suitable for getting started, and they generally include a detailed set of instructions for what to do. Please ask questions if anything is unclear! Also, check out the [Guide to Development](https://github.com/rayon-rs/rayon/wiki/Guide-to-Development) page on the wiki. Note that all code submitted in PRs to Rayon is assumed to [be licensed under Rayon's dual MIT/Apache2 licensing](https://github.com/rayon-rs/rayon/blob/master/README.md#license).
+Rayon is an open source project! If you'd like to contribute to Rayon,
+check out
+[the list of "help wanted" issues](https://github.com/rayon-rs/rayon/issues?q=is%3Aissue+is%3Aopen+label%3A%22help+wanted%22).
+These are all (or should be) issues that are suitable for getting
+started, and they generally include a detailed set of instructions for
+what to do. Please ask questions if anything is unclear! Also, check
+out the
+[Guide to Development](https://github.com/rayon-rs/rayon/wiki/Guide-to-Development)
+page on the wiki. Note that all code submitted in PRs to Rayon is
+assumed to
+[be licensed under Rayon's dual MIT/Apache 2.0 licensing](https://github.com/rayon-rs/rayon/blob/main/README.md#license).
 
 ## Quick demo
 
 To see Rayon in action, check out the `rayon-demo` directory, which
 includes a number of demos of code using Rayon. For example, run this
-command to get a visualization of an nbody simulation. To see the
+command to get a visualization of an N-body simulation. To see the
 effect of using Rayon, press `s` to run sequentially and `p` to run in
 parallel.
 
@@ -123,7 +141,7 @@ For more information on demos, try:
 
 See [the Rayon FAQ][faq].
 
-[faq]: https://github.com/rayon-rs/rayon/blob/master/FAQ.md
+[faq]: https://github.com/rayon-rs/rayon/blob/main/FAQ.md
 
 ## License
 

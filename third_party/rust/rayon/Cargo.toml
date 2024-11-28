@@ -11,9 +11,9 @@
 
 [package]
 edition = "2021"
-rust-version = "1.56"
+rust-version = "1.63"
 name = "rayon"
-version = "1.6.1"
+version = "1.10.0"
 authors = [
     "Niko Matsakis <niko@alum.mit.edu>",
     "Josh Stone <cuviper@gmail.com>",
@@ -22,7 +22,6 @@ exclude = [
     "/ci/*",
     "/scripts/*",
     "/.github/*",
-    "/bors.toml",
 ]
 description = "Simple work-stealing parallelism for Rust"
 documentation = "https://docs.rs/rayon/"
@@ -43,13 +42,20 @@ version = "1.0"
 default-features = false
 
 [dependencies.rayon-core]
-version = "1.10.0"
+version = "1.12.1"
 
-[dev-dependencies.lazy_static]
-version = "1"
+[dependencies.wasm_sync]
+version = "0.1.0"
+optional = true
 
 [dev-dependencies.rand]
 version = "0.8"
 
 [dev-dependencies.rand_xorshift]
 version = "0.3"
+
+[features]
+web_spin_lock = [
+    "dep:wasm_sync",
+    "rayon-core/web_spin_lock",
+]

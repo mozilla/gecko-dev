@@ -2,20 +2,19 @@
 //! low-level details -- users of parallel iterators should not need to
 //! interact with them directly.  See [the `plumbing` README][r] for a general overview.
 //!
-//! [r]: https://github.com/rayon-rs/rayon/blob/master/src/iter/plumbing/README.md
+//! [r]: https://github.com/rayon-rs/rayon/blob/main/src/iter/plumbing/README.md
 
 use crate::join_context;
 
 use super::IndexedParallelIterator;
 
-use std::cmp;
 use std::usize;
 
 /// The `ProducerCallback` trait is a kind of generic closure,
 /// [analogous to `FnOnce`][FnOnce]. See [the corresponding section in
 /// the plumbing README][r] for more details.
 ///
-/// [r]: https://github.com/rayon-rs/rayon/blob/master/src/iter/plumbing/README.md#producer-callback
+/// [r]: https://github.com/rayon-rs/rayon/blob/main/src/iter/plumbing/README.md#producer-callback
 /// [FnOnce]: https://doc.rust-lang.org/std/ops/trait.FnOnce.html
 pub trait ProducerCallback<T> {
     /// The type of value returned by this callback. Analogous to
@@ -54,7 +53,7 @@ pub trait ProducerCallback<T> {
 /// constraints on a required IntoIterator trait, so we inline
 /// IntoIterator here until that issue is fixed.
 ///
-/// [r]: https://github.com/rayon-rs/rayon/blob/master/src/iter/plumbing/README.md
+/// [r]: https://github.com/rayon-rs/rayon/blob/main/src/iter/plumbing/README.md
 /// [20671]: https://github.com/rust-lang/rust/issues/20671
 pub trait Producer: Send + Sized {
     /// The type of item that will be produced by this producer once
@@ -121,7 +120,7 @@ pub trait Producer: Send + Sized {
 /// combine their two results into one. See [the `plumbing`
 /// README][r] for further details.
 ///
-/// [r]: https://github.com/rayon-rs/rayon/blob/master/src/iter/plumbing/README.md
+/// [r]: https://github.com/rayon-rs/rayon/blob/main/src/iter/plumbing/README.md
 /// [fold]: https://doc.rust-lang.org/std/iter/trait.Iterator.html#method.fold
 /// [`Folder`]: trait.Folder.html
 /// [`Producer`]: trait.Producer.html
@@ -198,7 +197,7 @@ pub trait Folder<Item>: Sized {
 /// used to combine those two results into one. See [the `plumbing`
 /// README][r] for further details.
 ///
-/// [r]: https://github.com/rayon-rs/rayon/blob/master/src/iter/plumbing/README.md
+/// [r]: https://github.com/rayon-rs/rayon/blob/main/src/iter/plumbing/README.md
 pub trait Reducer<Result> {
     /// Reduce two final results into one; this is executed after a
     /// split.
@@ -275,7 +274,7 @@ impl Splitter {
         if stolen {
             // This job was stolen!  Reset the number of desired splits to the
             // thread count, if that's more than we had remaining anyway.
-            self.splits = cmp::max(crate::current_num_threads(), self.splits / 2);
+            self.splits = Ord::max(crate::current_num_threads(), self.splits / 2);
             true
         } else if splits > 0 {
             // We have splits remaining, make it so.
@@ -313,14 +312,14 @@ impl LengthSplitter {
     fn new(min: usize, max: usize, len: usize) -> LengthSplitter {
         let mut splitter = LengthSplitter {
             inner: Splitter::new(),
-            min: cmp::max(min, 1),
+            min: Ord::max(min, 1),
         };
 
         // Divide the given length by the max working length to get the minimum
         // number of splits we need to get under that max.  This rounds down,
         // but the splitter actually gives `next_power_of_two()` pieces anyway.
         // e.g. len 12345 / max 100 = 123 min_splits -> 128 pieces.
-        let min_splits = len / cmp::max(max, 1);
+        let min_splits = len / Ord::max(max, 1);
 
         // Only update the value if it's not splitting enough already.
         if min_splits > splitter.inner.splits {

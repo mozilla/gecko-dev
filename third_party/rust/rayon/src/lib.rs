@@ -3,10 +3,10 @@
 #![deny(unreachable_pub)]
 #![warn(rust_2018_idioms)]
 
-//! Data-parallelism library that makes it easy to convert sequential
-//! computations into parallel
+//! Rayon is a data-parallelism library that makes it easy to convert sequential
+//! computations into parallel.
 //!
-//! Rayon is lightweight and convenient for introducing parallelism into existing
+//! It is lightweight and convenient for introducing parallelism into existing
 //! code. It guarantees data-race free executions and takes advantage of
 //! parallelism when sensible, based on work-load at runtime.
 //!
@@ -76,11 +76,16 @@
 //! [the `collections` from `std`]: https://doc.rust-lang.org/std/collections/index.html
 //! [`std`]: https://doc.rust-lang.org/std/
 //!
+//! # Targets without threading
+//!
+//! Rayon has limited support for targets without `std` threading implementations.
+//! See the [`rayon_core`] documentation for more information about its global fallback.
+//!
 //! # Other questions?
 //!
 //! See [the Rayon FAQ][faq].
 //!
-//! [faq]: https://github.com/rayon-rs/rayon/blob/master/FAQ.md
+//! [faq]: https://github.com/rayon-rs/rayon/blob/main/FAQ.md
 
 #[macro_use]
 mod delegate;
@@ -119,6 +124,7 @@ pub use rayon_core::{in_place_scope, scope, Scope};
 pub use rayon_core::{in_place_scope_fifo, scope_fifo, ScopeFifo};
 pub use rayon_core::{join, join_context};
 pub use rayon_core::{spawn, spawn_fifo};
+pub use rayon_core::{yield_local, yield_now, Yield};
 
 /// We need to transmit raw pointers across threads. It is possible to do this
 /// without any unsafe code by converting pointers to usize or to AtomicPtr<T>
@@ -146,7 +152,7 @@ impl<T> SendPtr<T> {
 // Implement Clone without the T: Clone bound from the derive
 impl<T> Clone for SendPtr<T> {
     fn clone(&self) -> Self {
-        Self(self.0)
+        *self
     }
 }
 

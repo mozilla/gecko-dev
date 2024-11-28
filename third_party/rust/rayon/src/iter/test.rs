@@ -7,10 +7,10 @@ use rayon_core::*;
 use rand::distributions::Standard;
 use rand::{Rng, SeedableRng};
 use rand_xorshift::XorShiftRng;
-use std::collections::LinkedList;
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::collections::{BinaryHeap, VecDeque};
 use std::f64;
+use std::ffi::OsStr;
 use std::fmt::Debug;
 use std::sync::mpsc;
 use std::usize;
@@ -60,8 +60,7 @@ fn execute_unindexed_range() {
 
 #[test]
 fn execute_pseudo_indexed_range() {
-    use std::i128::MAX;
-    let range = MAX - 1024..MAX;
+    let range = i128::MAX - 1024..i128::MAX;
 
     // Given `Some` length, collecting `Vec` will try to act indexed.
     let a = range.clone().into_par_iter();
@@ -278,6 +277,7 @@ fn check_skip() {
 
     let mut v1 = Vec::new();
     a.par_iter().skip(0).collect_into_vec(&mut v1);
+    #[allow(clippy::iter_skip_zero)]
     let v2 = a.iter().skip(0).collect::<Vec<_>>();
     assert_eq!(v1, v2);
 
@@ -468,6 +468,7 @@ fn check_cmp_gt_to_seq() {
 }
 
 #[test]
+#[cfg_attr(any(target_os = "emscripten", target_family = "wasm"), ignore)]
 fn check_cmp_short_circuit() {
     // We only use a single thread in order to make the short-circuit behavior deterministic.
     let pool = ThreadPoolBuilder::new().num_threads(1).build().unwrap();
@@ -497,6 +498,7 @@ fn check_cmp_short_circuit() {
 }
 
 #[test]
+#[cfg_attr(any(target_os = "emscripten", target_family = "wasm"), ignore)]
 fn check_partial_cmp_short_circuit() {
     // We only use a single thread to make the short-circuit behavior deterministic.
     let pool = ThreadPoolBuilder::new().num_threads(1).build().unwrap();
@@ -526,6 +528,7 @@ fn check_partial_cmp_short_circuit() {
 }
 
 #[test]
+#[cfg_attr(any(target_os = "emscripten", target_family = "wasm"), ignore)]
 fn check_partial_cmp_nan_short_circuit() {
     // We only use a single thread to make the short-circuit behavior deterministic.
     let pool = ThreadPoolBuilder::new().num_threads(1).build().unwrap();
@@ -626,7 +629,7 @@ fn check_partial_cmp_none_direct() {
 
     let result = a.par_iter().partial_cmp(b.par_iter());
 
-    assert!(result == None);
+    assert!(result.is_none());
 }
 
 #[test]
@@ -651,7 +654,7 @@ fn check_partial_cmp_late_nan_direct() {
 }
 
 #[test]
-fn check_partial_cmp_late_nane_to_seq() {
+fn check_partial_cmp_late_nan_to_seq() {
     let a = vec![0.0, f64::NAN];
     let b = vec![1.0, 1.0];
 
@@ -981,6 +984,25 @@ fn check_slice_split() {
 }
 
 #[test]
+fn check_slice_split_inclusive() {
+    let v: Vec<_> = (0..1000).collect();
+    for m in 1..100 {
+        let a: Vec<_> = v.split_inclusive(|x| x % m == 0).collect();
+        let b: Vec<_> = v.par_split_inclusive(|x| x % m == 0).collect();
+        assert_eq!(a, b);
+    }
+
+    // same as std::slice::split_inclusive() examples
+    let slice = [10, 40, 33, 20];
+    let v: Vec<_> = slice.par_split_inclusive(|num| num % 3 == 0).collect();
+    assert_eq!(v, &[&slice[..3], &slice[3..]]);
+
+    let slice = [3, 10, 40, 33];
+    let v: Vec<_> = slice.par_split_inclusive(|num| num % 3 == 0).collect();
+    assert_eq!(v, &[&slice[..1], &slice[1..]]);
+}
+
+#[test]
 fn check_slice_split_mut() {
     let mut v1: Vec<_> = (0..1000).collect();
     let mut v2 = v1.clone();
@@ -996,6 +1018,26 @@ fn check_slice_split_mut() {
         group[0] = 1;
     });
     assert_eq!(v, [1, 40, 30, 1, 60, 1]);
+}
+
+#[test]
+fn check_slice_split_inclusive_mut() {
+    let mut v1: Vec<_> = (0..1000).collect();
+    let mut v2 = v1.clone();
+    for m in 1..100 {
+        let a: Vec<_> = v1.split_inclusive_mut(|x| x % m == 0).collect();
+        let b: Vec<_> = v2.par_split_inclusive_mut(|x| x % m == 0).collect();
+        assert_eq!(a, b);
+    }
+
+    // same as std::slice::split_inclusive_mut() example
+    let mut v = [10, 40, 30, 20, 60, 50];
+    v.par_split_inclusive_mut(|num| num % 3 == 0)
+        .for_each(|group| {
+            let terminator_idx = group.len() - 1;
+            group[terminator_idx] = 1;
+        });
+    assert_eq!(v, [10, 40, 1, 20, 1, 1]);
 }
 
 #[test]
@@ -1526,13 +1568,27 @@ fn par_iter_collect_cows() {
     assert_eq!(a, b);
 
     // Collects `str` into a `String`
-    let a: Cow<'_, str> = s.split_whitespace().collect();
-    let b: Cow<'_, str> = s.par_split_whitespace().collect();
+    let sw = s.split_whitespace();
+    let psw = s.par_split_whitespace();
+    let a: Cow<'_, str> = sw.clone().collect();
+    let b: Cow<'_, str> = psw.clone().collect();
     assert_eq!(a, b);
 
     // Collects `String` into a `String`
-    let a: Cow<'_, str> = s.split_whitespace().map(str::to_owned).collect();
-    let b: Cow<'_, str> = s.par_split_whitespace().map(str::to_owned).collect();
+    let a: Cow<'_, str> = sw.map(str::to_owned).collect();
+    let b: Cow<'_, str> = psw.map(str::to_owned).collect();
+    assert_eq!(a, b);
+
+    // Collects `OsStr` into a `OsString`
+    let sw = s.split_whitespace().map(OsStr::new);
+    let psw = s.par_split_whitespace().map(OsStr::new);
+    let a: Cow<'_, OsStr> = Cow::Owned(sw.clone().collect());
+    let b: Cow<'_, OsStr> = psw.clone().collect();
+    assert_eq!(a, b);
+
+    // Collects `OsString` into a `OsString`
+    let a: Cow<'_, OsStr> = Cow::Owned(sw.map(OsStr::to_owned).collect());
+    let b: Cow<'_, OsStr> = psw.map(OsStr::to_owned).collect();
     assert_eq!(a, b);
 }
 
@@ -1651,8 +1707,8 @@ fn check_lengths() {
         let range = 0..1024 * 1024;
 
         // Check against normalized values.
-        let min_check = cmp::min(cmp::max(min, 1), range.len());
-        let max_check = cmp::max(max, min_check.saturating_add(min_check - 1));
+        let min_check = Ord::min(Ord::max(min, 1), range.len());
+        let max_check = Ord::max(max, min_check.saturating_add(min_check - 1));
 
         assert!(
             range
@@ -2182,4 +2238,96 @@ fn check_update() {
     v.par_iter_mut().update(|v| v.push(0)).for_each(|_| ());
 
     assert_eq!(v, vec![vec![1, 0], vec![3, 2, 1, 0]]);
+}
+
+#[test]
+fn walk_tree_prefix() {
+    let v: Vec<u32> = crate::iter::walk_tree_prefix(0u32..100, |r| {
+        // root is smallest
+        let mid = (r.start + 1 + r.end) / 2;
+        // small indices to the left, large to the right
+        std::iter::once((r.start + 1)..mid)
+            .chain(std::iter::once(mid..r.end))
+            .filter(|r| !r.is_empty())
+    })
+    .map(|r| r.start)
+    .collect();
+    assert!(v.into_iter().eq(0..100));
+}
+
+#[test]
+fn walk_tree_postfix() {
+    let v: Vec<_> = crate::iter::walk_tree_postfix(0u64..100, |r| {
+        // root is largest
+        let mid = (r.start + r.end - 1) / 2;
+        // small indices to the left, large to the right
+        std::iter::once(r.start..mid)
+            .chain(std::iter::once(mid..(r.end - 1)))
+            .filter(|r| !r.is_empty())
+    })
+    .map(|r| r.end - 1)
+    .collect();
+    assert!(v.into_iter().eq(0..100));
+}
+
+#[test]
+fn walk_flat_tree_prefix() {
+    let v: Vec<_> =
+        crate::iter::walk_tree_prefix(0, |&e| if e < 99 { Some(e + 1) } else { None }).collect();
+    assert!(v.into_iter().eq(0..100));
+}
+
+#[test]
+fn walk_flat_tree_postfix() {
+    let v: Vec<_> =
+        crate::iter::walk_tree_postfix(99, |&e| if e > 0 { Some(e - 1) } else { None }).collect();
+    assert!(v.into_iter().eq(0..100));
+}
+
+#[test]
+fn walk_tree_prefix_degree5() {
+    let depth = 5;
+    let nodes_number = (1 - 5i32.pow(depth)) / (1 - 5);
+    let nodes = (0..nodes_number).collect::<Vec<_>>();
+    let v: Vec<i32> = crate::iter::walk_tree_prefix(nodes.as_slice(), |&r| {
+        r.split_first()
+            .into_iter()
+            .filter_map(|(_, r)| if r.is_empty() { None } else { Some(r) })
+            .flat_map(|r| r.chunks(r.len() / 5))
+    })
+    .filter_map(|r| r.first().copied())
+    .collect();
+    assert_eq!(v, nodes);
+}
+
+#[test]
+fn walk_tree_postfix_degree5() {
+    let depth = 5;
+    let nodes_number = (1 - 5i32.pow(depth)) / (1 - 5);
+    let nodes = (0..nodes_number).collect::<Vec<_>>();
+    let v: Vec<i32> = crate::iter::walk_tree_postfix(nodes.as_slice(), |&r| {
+        r.split_last()
+            .into_iter()
+            .filter_map(|(_, r)| if r.is_empty() { None } else { Some(r) })
+            .flat_map(|r| r.chunks(r.len() / 5))
+    })
+    .filter_map(|r| r.last().copied())
+    .collect();
+    assert_eq!(v, nodes)
+}
+
+#[test]
+fn blocks() {
+    let count = AtomicUsize::new(0);
+    let v: Vec<usize> = (0..1000)
+        .into_par_iter()
+        .map(|_| count.fetch_add(1, Ordering::Relaxed))
+        .by_uniform_blocks(100)
+        .collect();
+    let m = v
+        .chunks(100)
+        .map(|c| c.iter().max().copied().unwrap())
+        .collect::<Vec<usize>>();
+    assert!(m.windows(2).all(|w| w[0].lt(&w[1])));
+    assert_eq!(v.len(), 1000);
 }
