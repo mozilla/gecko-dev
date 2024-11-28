@@ -2464,18 +2464,7 @@ void nsCocoaWindow::SetDrawsTitle(bool aDrawTitle) {
   NS_OBJC_END_TRY_IGNORE_BLOCK;
 }
 
-nsresult nsCocoaWindow::SetNonClientMargins(
-    const LayoutDeviceIntMargin& margins) {
-  NS_OBJC_BEGIN_TRY_BLOCK_RETURN;
-
-  SetDrawsInTitlebar(margins.top == 0);
-
-  return NS_OK;
-
-  NS_OBJC_END_TRY_BLOCK_RETURN(NS_ERROR_FAILURE);
-}
-
-void nsCocoaWindow::SetDrawsInTitlebar(bool aState) {
+void nsCocoaWindow::SetCustomTitlebar(bool aState) {
   NS_OBJC_BEGIN_TRY_IGNORE_BLOCK;
 
   if (mWindow) {

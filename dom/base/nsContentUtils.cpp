@@ -1819,50 +1819,6 @@ bool nsContentUtils::IsHTMLBlockLevelElement(nsIContent* aContent) {
       nsGkAtoms::ul, nsGkAtoms::xmp);
 }
 
-/* static */
-bool nsContentUtils::ParseIntMarginValue(const nsAString& aString,
-                                         nsIntMargin& result) {
-  nsAutoString marginStr(aString);
-  marginStr.CompressWhitespace(true, true);
-  if (marginStr.IsEmpty()) {
-    return false;
-  }
-
-  int32_t start = 0, end = 0;
-  for (int count = 0; count < 4; count++) {
-    if ((uint32_t)end >= marginStr.Length()) return false;
-
-    // top, right, bottom, left
-    if (count < 3)
-      end = Substring(marginStr, start).FindChar(',');
-    else
-      end = Substring(marginStr, start).Length();
-
-    if (end <= 0) return false;
-
-    nsresult ec;
-    int32_t val = nsString(Substring(marginStr, start, end)).ToInteger(&ec);
-    if (NS_FAILED(ec)) return false;
-
-    switch (count) {
-      case 0:
-        result.top = val;
-        break;
-      case 1:
-        result.right = val;
-        break;
-      case 2:
-        result.bottom = val;
-        break;
-      case 3:
-        result.left = val;
-        break;
-    }
-    start += end + 1;
-  }
-  return true;
-}
-
 // static
 int32_t nsContentUtils::ParseLegacyFontSize(const nsAString& aValue) {
   nsAString::const_iterator iter, end;

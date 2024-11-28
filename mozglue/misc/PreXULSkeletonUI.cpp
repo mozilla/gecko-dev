@@ -1997,13 +1997,10 @@ static Result<Ok, PreXULSkeletonUIError> CreateAndStorePreXULSkeletonUIImpl(
   // These match the offsets that we get with default prefs. We don't use the
   // skeleton ui if tabsInTitlebar is disabled, see bug 1673092.
   if (sMaximized) {
-    sNonClientOffset.top = sCaptionHeight;
+    sNonClientOffset = Margin{sCaptionHeight, 0, 0, 0};
   } else {
     // See nsWindow::NormalWindowNonClientOffset()
-    sNonClientOffset.top = sCaptionHeight + sVerticalResizeMargin;
-    sNonClientOffset.bottom = 0;
-    sNonClientOffset.left = 0;
-    sNonClientOffset.right = 0;
+    sNonClientOffset = Margin{sCaptionHeight + sVerticalResizeMargin, 0, 0, 0};
   }
 
   if (sMaximized) {

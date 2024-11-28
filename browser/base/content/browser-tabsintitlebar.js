@@ -69,13 +69,13 @@ var TabsInTitlebar = {
       !Object.keys(this._disallowed).length;
     if (allowed) {
       document.documentElement.setAttribute("tabsintitlebar", "true");
-      document.documentElement.setAttribute("chromemargin", "0,0,0,0");
+      document.documentElement.setAttribute("customtitlebar", "true");
       if (AppConstants.platform == "macosx") {
         document.documentElement.removeAttribute("drawtitle");
       }
     } else {
       document.documentElement.removeAttribute("tabsintitlebar");
-      document.documentElement.removeAttribute("chromemargin");
+      document.documentElement.removeAttribute("customtitlebar");
       if (AppConstants.platform == "macosx") {
         document.documentElement.setAttribute("drawtitle", "true");
       }

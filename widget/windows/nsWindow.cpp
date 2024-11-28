@@ -940,10 +940,8 @@ nsresult nsWindow::Create(nsIWidget* aParent, const LayoutDeviceIntRect& aRect,
           DesktopIntRect::Round(LayoutDeviceRect(GetBounds()) / scale)
               .ToUnknownRect());
 
-      // These match the margins set in browser-tabsintitlebar.js with
-      // default prefs on Windows. Bug 1673092 tracks lining this up with
-      // that more correctly instead of hard-coding it.
-      SetNonClientMargins(LayoutDeviceIntMargin());
+      // Skeleton ui is disabled when custom titlebar is off, see bug 1673092.
+      SetCustomTitlebar(true);
       // The skeleton UI already painted over the NC area, so there's no need
       // to do that again; the effective non-client margins haven't changed.
       mNeedsNCAreaClear = false;
@@ -2337,7 +2335,7 @@ void nsWindow::SetFocus(Raise aRaise, mozilla::dom::CallerType aCallerType) {
  * SECTION: Bounds
  *
  * GetBounds, GetClientBounds, GetScreenBounds,
- * GetRestoredBounds, GetClientOffset, SetNonClientMargins
+ * GetRestoredBounds, GetClientOffset, SetCustomTitlebar
  *
  * Bound calculations.
  *
@@ -2523,31 +2521,17 @@ void nsWindow::SetColorScheme(const Maybe<ColorScheme>& aScheme) {
 }
 
 LayoutDeviceIntMargin nsWindow::NormalWindowNonClientOffset() const {
-  LayoutDeviceIntMargin nonClientOffset;
-
+  MOZ_ASSERT(mCustomNonClient);
   // We're dealing with a "normal" window (not maximized, minimized, or
-  // fullscreen), so process `mNonClientMargins` and set `mNonClientOffset`
-  // accordingly.
+  // fullscreen), so set `mNonClientOffset` accordingly.
   //
   // Setting `mNonClientOffset` to 0 has the effect of leaving the default
   // frame intact.  Setting it to a value greater than 0 reduces the frame
   // size by that amount.
-  constexpr LayoutDeviceIntCoord kZero(0);
-  if (mNonClientMargins.top == 0) {
-    // Top is a bit special, because we rely on 0 removing the caption entirely.
-    nonClientOffset.top = mCaptionHeight + mVertResizeMargin;
-  } else {
-    nonClientOffset.top =
-        std::clamp(mNonClientMargins.top, kZero, mVertResizeMargin);
-  }
-  nonClientOffset.bottom =
-      std::clamp(mNonClientMargins.bottom, kZero, mVertResizeMargin);
-  nonClientOffset.left =
-      std::clamp(mNonClientMargins.left, kZero, mHorResizeMargin);
-  nonClientOffset.right =
-      std::clamp(mNonClientMargins.right, kZero, mHorResizeMargin);
-
-  return nonClientOffset;
+  //
+  // When using custom titlebar, we hide the titlebar and leave the default
+  // frame on the other sides.
+  return LayoutDeviceIntMargin(mCaptionHeight + mVertResizeMargin, 0, 0, 0);
 }
 
 /**
@@ -2556,23 +2540,14 @@ LayoutDeviceIntMargin nsWindow::NormalWindowNonClientOffset() const {
  * margins and fires off a frame changed event, which triggers an nc calc
  * size windows event, kicking the changes in.
  *
- * The offsets calculated here are based on the value of `mNonClientMargins`
- * which is specified in the "chromemargins" attribute of the window.  For
- * each margin, the value specified has the following meaning:
- *    -1  - leave the default frame in place
- *    >=0 - frame size equals min(0, (default frame size - margin value))
- *
  * This function calculates and populates `mNonClientOffset`.
  * In our processing of `WM_NCCALCSIZE`, the frame size will be calculated
  * as (default frame size - offset).  For example, if the left frame should
  * be 1 pixel narrower than the default frame size, `mNonClientOffset.left`
  * will equal 1.
  *
- * For maximized, fullscreen, and minimized windows, the values stored in
- * `mNonClientMargins` are ignored, and special processing takes place.
- *
- * For non-glass windows, we only allow frames to be their default size
- * or removed entirely.
+ * For maximized, fullscreen, and minimized windows special processing takes
+ * place.
  */
 bool nsWindow::UpdateNonClientMargins(bool aReflowWindow) {
   if (!mCustomNonClient) {
@@ -2678,26 +2653,23 @@ bool nsWindow::UpdateNonClientMargins(bool aReflowWindow) {
   return true;
 }
 
-nsresult nsWindow::SetNonClientMargins(const LayoutDeviceIntMargin& margins) {
+void nsWindow::SetCustomTitlebar(bool aCustomTitlebar) {
   if (!IsTopLevelWidget() || mBorderStyle == BorderStyle::None) {
-    return NS_ERROR_INVALID_ARG;
+    return;
   }
 
-  if (mNonClientMargins == margins) {
-    return NS_OK;
+  if (mCustomNonClient == aCustomTitlebar) {
+    return;
   }
 
   if (mHideChrome) {
-    mFutureMarginsOnceChromeShows = margins;
-    mFutureMarginsToUse = true;
-    return NS_OK;
+    mCustomTitlebarOnceChromeShows = Some(aCustomTitlebar);
+    return;
   }
 
-  mFutureMarginsToUse = false;
+  mCustomTitlebarOnceChromeShows.reset();
 
-  // -1 margins request a reset
-  mCustomNonClient = margins != LayoutDeviceIntMargin(-1, -1, -1, -1);
-  mNonClientMargins = margins;
+  mCustomNonClient = aCustomTitlebar;
 
   // Force a reflow of content based on the new client dimensions.
   if (mCustomNonClient) {
@@ -2705,8 +2677,6 @@ nsresult nsWindow::SetNonClientMargins(const LayoutDeviceIntMargin& margins) {
   } else {
     ResetLayout();
   }
-
-  return NS_OK;
 }
 
 void nsWindow::SetResizeMargin(mozilla::LayoutDeviceIntCoord aResizeMargin) {
@@ -3005,8 +2975,9 @@ void nsWindow::HideWindowChrome(bool aShouldHide) {
     // if there's nothing to "restore" it to, just use what's there now
     oldChrome = mOldStyles.refOr(currentChrome);
     newChrome = oldChrome;
-    if (mFutureMarginsToUse) {
-      SetNonClientMargins(mFutureMarginsOnceChromeShows);
+    if (mCustomTitlebarOnceChromeShows) {
+      SetCustomTitlebar(mCustomTitlebarOnceChromeShows.extract());
+      MOZ_ASSERT(!mCustomTitlebarOnceChromeShows);
     }
   }
 
@@ -4951,8 +4922,9 @@ bool nsWindow::ProcessMessageInternal(UINT msg, WPARAM& wParam, LPARAM& lParam,
        * sending the message with an updated title
        */
 
-      if (mSendingSetText || !mCustomNonClient || mNonClientMargins.top == -1)
+      if (mSendingSetText || !mCustomNonClient) {
         break;
+      }
 
       {
         // From msdn, the way around this is to disable the visible state
