@@ -119,7 +119,7 @@
                 data-l10n-id="main-context-menu-copy-link-simple"
                 />
       <menuitem id="context-stripOnShareLink"
-                data-l10n-id="main-context-menu-strip-on-share-link"
+                data-l10n-id="main-context-menu-copy-clean-link"
                 hidden="true"
                 />
       <menu id="context-sendlinktodevice"

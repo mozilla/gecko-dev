@@ -3523,7 +3523,7 @@ export class UrlbarInput {
     let stripOnShare = this.document.createXULElement("menuitem");
     this.document.l10n.setAttributes(
       stripOnShare,
-      "text-action-strip-on-share"
+      "text-action-copy-clean-link"
     );
     stripOnShare.setAttribute("anonid", "strip-on-share");
     stripOnShare.id = "strip-on-share";
