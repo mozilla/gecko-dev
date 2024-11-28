@@ -316,10 +316,7 @@ function createTabGroupSubmenu(aTabGroup, aIndex, aDocument, aFragment) {
     "tab-context-reopen-tab-group"
   );
   reopenTabGroupItem.addEventListener("command", () => {
-    lazy.SessionStore.restoreTabGroup({
-      closedTabGroupId: aTabGroup.id,
-      sourceWindowId: aDocument.ownerGlobal.__SSi,
-    });
+    lazy.SessionStore.undoCloseTabGroup(aDocument.ownerGlobal, aTabGroup.id);
   });
   menuPopup.appendChild(reopenTabGroupItem);
 
@@ -394,10 +391,7 @@ function createTabGroupSubpanel(aTabGroup, aIndex, aDocument, aFragment) {
     "panel-subview-footer-button"
   );
   reopenTabGroupItem.addEventListener("command", () => {
-    lazy.SessionStore.restoreTabGroup({
-      closedTabGroupId: aTabGroup.id,
-      sourceWindowId: aDocument.ownerGlobal.__SSi,
-    });
+    lazy.SessionStore.undoCloseTabGroup(aDocument.ownerGlobal, aTabGroup.id);
   });
 
   panelview.appendChild(reopenTabGroupItem);
