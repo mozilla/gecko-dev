@@ -319,6 +319,8 @@ class TaskController {
 
   static void Shutdown();
 
+  static Task::TaskResult RunTask(Task*);
+
   // This adds a task to the TaskController graph.
   // This may be called on any thread.
   void AddTask(already_AddRefed<Task>&& aTask);

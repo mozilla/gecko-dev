@@ -8,6 +8,7 @@
 #define ETWTools_h
 
 #include "mozilla/BaseProfilerMarkers.h"
+#include "mozilla/Flow.h"
 #include "mozilla/TimeStamp.h"
 #include "nsString.h"
 
@@ -203,6 +204,13 @@ static inline void CreateDataDescForPayloadNonPOD(
     const mozilla::detail::nsTStringRepr<T>& aPayload) {
   EventDataDescCreate(&aDescriptor, aPayload.BeginReading(),
                       (aPayload.Length() + 1) * sizeof(T));
+}
+
+static inline void CreateDataDescForPayloadNonPOD(
+    PayloadBuffer& aBuffer, EVENT_DATA_DESCRIPTOR& aDescriptor,
+    const Flow& aFlow) {
+  // TODO: we could use a custom schema à la TraceLoggingCustom
+  CreateDataDescForPayloadPOD(aBuffer, aDescriptor, aFlow.Id());
 }
 
 static inline void CreateDataDescForPayloadNonPOD(

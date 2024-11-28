@@ -9,6 +9,7 @@
 
 #ifdef MOZ_PERFETTO
 #  include "mozilla/BaseProfilerMarkers.h"
+#  include "mozilla/Flow.h"
 #  include "mozilla/Span.h"
 #  include "mozilla/TimeStamp.h"
 #  include "nsString.h"
@@ -180,6 +181,14 @@ struct AddDebugAnnotationImpl<
     auto* arg = ctx.event()->add_debug_annotations();
     arg->set_name(aKey);
     arg->set_uint_value(static_cast<uint64_t>(aValue.ToMilliseconds()));
+  }
+};
+
+template <>
+struct AddDebugAnnotationImpl<Flow> {
+  static void call(perfetto::EventContext& ctx, const char* const aKey,
+                   const Flow& aValue) {
+    AddDebugAnnotationImpl<uint64_t>::call(ctx, aKey, aValue.Id());
   }
 };
 
