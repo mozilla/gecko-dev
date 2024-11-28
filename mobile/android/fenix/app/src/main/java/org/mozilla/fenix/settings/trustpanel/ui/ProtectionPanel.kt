@@ -23,9 +23,11 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import org.mozilla.fenix.R
 import org.mozilla.fenix.components.menu.compose.MenuGroup
+import org.mozilla.fenix.components.menu.compose.MenuItem
 import org.mozilla.fenix.components.menu.compose.MenuScaffold
 import org.mozilla.fenix.components.menu.compose.MenuTextItem
 import org.mozilla.fenix.compose.Divider
+import org.mozilla.fenix.compose.SwitchWithLabel
 import org.mozilla.fenix.compose.annotation.LightDarkPreview
 import org.mozilla.fenix.theme.FirefoxTheme
 
@@ -36,6 +38,7 @@ internal fun ProtectionPanel(
     url: String,
     title: String,
     isSecured: Boolean,
+    onTrackerBlockedMenuClick: () -> Unit,
     onClearSiteDataMenuClick: () -> Unit,
 ) {
     MenuScaffold(
@@ -47,6 +50,25 @@ internal fun ProtectionPanel(
             )
         },
     ) {
+        MenuGroup {
+            MenuItem(
+                label = "5 Trackers blocked",
+                beforeIconPainter = painterResource(id = R.drawable.mozac_ic_shield_24),
+                onClick = onTrackerBlockedMenuClick,
+                afterIconPainter = painterResource(id = R.drawable.mozac_ic_chevron_right_24),
+            )
+
+            Divider(color = FirefoxTheme.colors.borderSecondary)
+
+            SwitchWithLabel(
+                label = "Enhanced Tracking Protection ",
+                checked = true,
+                modifier = Modifier.padding(start = 16.dp, top = 6.dp, end = 9.dp, bottom = 14.dp),
+                description = "If something looks broken on this site, try turning off protections.",
+                onCheckedChange = {},
+            )
+        }
+
         MenuGroup {
             MenuTextItem(
                 label = stringResource(id = R.string.clear_site_data),
@@ -135,6 +157,7 @@ private fun ProtectionPanelPreview() {
                 url = "https://www.mozilla.org",
                 title = "Mozilla",
                 isSecured = true,
+                onTrackerBlockedMenuClick = {},
                 onClearSiteDataMenuClick = {},
             )
         }

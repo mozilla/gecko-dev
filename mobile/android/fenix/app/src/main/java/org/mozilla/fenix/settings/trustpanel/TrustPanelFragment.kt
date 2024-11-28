@@ -24,6 +24,8 @@ import org.mozilla.fenix.R
 import org.mozilla.fenix.components.menu.compose.MenuDialogBottomSheet
 import org.mozilla.fenix.settings.trustpanel.ui.PROTECTION_PANEL_ROUTE
 import org.mozilla.fenix.settings.trustpanel.ui.ProtectionPanel
+import org.mozilla.fenix.settings.trustpanel.ui.TRACKERS_PANEL_ROUTE
+import org.mozilla.fenix.settings.trustpanel.ui.TrackersBlockedPanel
 import org.mozilla.fenix.theme.FirefoxTheme
 
 /**
@@ -80,7 +82,19 @@ class TrustPanelFragment : BottomSheetDialogFragment() {
                                 url = args.url,
                                 title = args.title,
                                 isSecured = args.isSecured,
+                                onTrackerBlockedMenuClick = {
+                                    navHostController.navigate(route = TRACKERS_PANEL_ROUTE)
+                                },
                                 onClearSiteDataMenuClick = {},
+                            )
+                        }
+
+                        composable(route = TRACKERS_PANEL_ROUTE) {
+                            TrackersBlockedPanel(
+                                title = args.title,
+                                onBackButtonClick = {
+                                    navHostController.navigate(route = PROTECTION_PANEL_ROUTE)
+                                },
                             )
                         }
                     }
