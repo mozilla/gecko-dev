@@ -34,6 +34,22 @@
 
 namespace mozilla::dom::TrustedTypeUtils {
 
+nsString GetTrustedTypeName(TrustedType aTrustedType) {
+  switch (aTrustedType) {
+    case TrustedType::TrustedHTML:
+      return GetTrustedTypeName<TrustedHTML>();
+      break;
+    case TrustedType::TrustedScript:
+      return GetTrustedTypeName<TrustedScript>();
+      break;
+    case TrustedType::TrustedScriptURL:
+      return GetTrustedTypeName<TrustedScriptURL>();
+      break;
+  }
+  MOZ_ASSERT_UNREACHABLE();
+  return EmptyString();
+}
+
 // https://w3c.github.io/trusted-types/dist/spec/#abstract-opdef-does-sink-type-require-trusted-types
 static bool DoesSinkTypeRequireTrustedTypes(nsIContentSecurityPolicy* aCSP,
                                             const nsAString& aSinkGroup) {
@@ -372,5 +388,51 @@ IMPL_GET_TRUSTED_TYPES_COMPLIANT_STRING(TrustedScriptOrNullIsEmptyString,
                                         TrustedScript);
 IMPL_GET_TRUSTED_TYPES_COMPLIANT_STRING(TrustedScriptURLOrString,
                                         TrustedScriptURL);
+
+bool GetTrustedTypeDataForAttribute(const nsAtom* aElementName,
+                                    int32_t aElementNamespaceID,
+                                    nsAtom* aAttributeName,
+                                    int32_t aAttributeNamespaceID,
+                                    TrustedType& aTrustedType,
+                                    nsAString& aSink) {
+  // The spec is not really clear about which "event handler content attributes"
+  // we should consider, so we just include everything but XUL's specific ones.
+  // See https://github.com/w3c/trusted-types/issues/520.
+  if (aAttributeNamespaceID == kNameSpaceID_None &&
+      nsContentUtils::IsEventAttributeName(
+          aAttributeName, EventNameType_All & ~EventNameType_XUL)) {
+    aTrustedType = TrustedType::TrustedScript;
+    return true;
+  }
+  if (aElementNamespaceID == kNameSpaceID_XHTML) {
+    if (aElementName == nsGkAtoms::iframe) {
+      // HTMLIFrameElement
+      if (aAttributeNamespaceID == kNameSpaceID_None &&
+          aAttributeName == nsGkAtoms::srcdoc) {
+        aTrustedType = TrustedType::TrustedHTML;
+        return true;
+      }
+    } else if (aElementName == nsGkAtoms::script) {
+      // HTMLScriptElement
+      if (aAttributeNamespaceID == kNameSpaceID_None &&
+          aAttributeName == nsGkAtoms::src) {
+        aTrustedType = TrustedType::TrustedScriptURL;
+        return true;
+      }
+    }
+  } else if (aElementNamespaceID == kNameSpaceID_SVG) {
+    if (aElementName == nsGkAtoms::script) {
+      // SVGScriptElement
+      if ((aAttributeNamespaceID == kNameSpaceID_None ||
+           aAttributeNamespaceID == kNameSpaceID_XLink) &&
+          aAttributeName == nsGkAtoms::href) {
+        aTrustedType = TrustedType::TrustedScriptURL;
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
 
 }  // namespace mozilla::dom::TrustedTypeUtils
