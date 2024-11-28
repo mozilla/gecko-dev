@@ -114,11 +114,15 @@ class PseudoStyle final {
            aType < Type::WrapperAnonBoxesEnd;
   }
 
-  static bool IsViewTransitionPseudoElement(Type aType) {
-    return aType == Type::viewTransition ||
-           aType == Type::viewTransitionGroup ||
+  static bool IsNamedViewTransitionPseudoElement(Type aType) {
+    return aType == Type::viewTransitionGroup ||
            aType == Type::viewTransitionImagePair ||
            aType == Type::viewTransitionOld || aType == Type::viewTransitionNew;
+  }
+
+  static bool IsViewTransitionPseudoElement(Type aType) {
+    return aType == Type::viewTransition ||
+           IsNamedViewTransitionPseudoElement(aType);
   }
 };
 

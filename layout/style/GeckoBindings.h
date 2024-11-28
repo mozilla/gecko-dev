@@ -333,9 +333,11 @@ bool Gecko_AnimationNameMayBeReferencedFromStyle(const nsPresContext*,
 
 float Gecko_GetScrollbarInlineSize(const nsPresContext*);
 
-// Incremental restyle.
-mozilla::PseudoStyleType Gecko_GetImplementedPseudo(
+// Retrive pseudo type from an element.
+mozilla::PseudoStyleType Gecko_GetImplementedPseudoType(
     const mozilla::dom::Element*);
+// Retrive pseudo identifier from an element if any.
+nsAtom* Gecko_GetImplementedPseudoIdentifier(const mozilla::dom::Element*);
 
 // We'd like to return `nsChangeHint` here, but bindgen bitfield enums don't
 // work as return values with the Linux 32-bit ABI at the moment because

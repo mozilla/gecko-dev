@@ -317,8 +317,21 @@ float Gecko_GetScrollbarInlineSize(const nsPresContext* aPc) {
   return aPc->DevPixelsToFloatCSSPixels(size);
 }
 
-PseudoStyleType Gecko_GetImplementedPseudo(const Element* aElement) {
+PseudoStyleType Gecko_GetImplementedPseudoType(const Element* aElement) {
   return aElement->GetPseudoElementType();
+}
+
+nsAtom* Gecko_GetImplementedPseudoIdentifier(const Element* aElement) {
+  if (!PseudoStyle::IsNamedViewTransitionPseudoElement(
+          aElement->GetPseudoElementType())) {
+    return nullptr;
+  }
+
+  if (!aElement->HasName()) {
+    return nullptr;
+  }
+
+  return aElement->GetParsedAttr(nsGkAtoms::name)->GetAtomValue();
 }
 
 uint32_t Gecko_CalcStyleDifference(const ComputedStyle* aOldStyle,
