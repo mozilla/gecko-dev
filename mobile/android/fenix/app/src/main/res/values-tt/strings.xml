@@ -265,9 +265,9 @@
     <!-- Content description (not visible, for screen readers etc.) for main menu settings button. -->
     <string name="browser_main_menu_content_description_settings_button">Көйләүләр</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-    <string name="browser_menu_tools_description_with_translate">Уку режимы, Тәрҗемә итү, Бастыру, Уртаклашу, Кушымтаны ачу</string>
+    <string name="browser_menu_tools_description_with_translate" moz:removedIn="133" tools:ignore="UnusedResources">Уку режимы, Тәрҗемә итү, Бастыру, Уртаклашу, Кушымтаны ачу</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-    <string name="browser_menu_tools_description">Уку режимы, Бастыру, Уртаклашу, Кушымтаны ачу</string>
+    <string name="browser_menu_tools_description" moz:removedIn="133" tools:ignore="UnusedResources">Уку режимы, Бастыру, Уртаклашу, Кушымтаны ачу</string>
     <!-- Browser menu label that navigates to the save sub-menu, which contains various save related menu items such as
          bookmarking a page, saving to collection, shortcut or as a PDF, and adding to home screen -->
     <string name="browser_menu_save">Саклау</string>
@@ -471,6 +471,10 @@
     <string name="preferences_search_engines_suggestions">Эзләү системаларыннан тәкъдимнәр</string>
     <!-- Preference Category for settings related to Search address bar -->
     <string name="preferences_settings_address_bar">Адрес юлына кагылышлы көйләүләр</string>
+    <!-- Preference Category for settings to Firefox Suggest -->
+    <string name="preference_search_address_bar_fx_suggest" tools:ignore="BrandUsage">Адрес юлы - Firefox Suggest</string>
+    <!-- Preference link to Learn more about Firefox Suggest -->
+    <string name="preference_search_learn_about_fx_suggest" tools:ignore="BrandUsage">Firefox Suggest турында күбрәк белү</string>
     <!-- Preference link to rating Fenix on the Play Store -->
     <string name="preferences_rate">Google Play-да бәяләү</string>
     <!-- Preference linking to about page for Fenix
@@ -484,6 +488,8 @@
     <string name="preferences_category_privacy_security">Хосусыйлык һәм хәвефсезлек</string>
     <!-- Preference for advanced site permissions -->
     <string name="preferences_site_permissions" moz:removedIn="133" tools:ignore="UnusedResources">Сайт рөхсәтләре</string>
+    <!-- Preference for advanced site settings -->
+    <string name="preferences_site_settings">Сайт көйләүләре</string>
     <!-- Preference for private browsing options -->
     <string name="preferences_private_browsing_options">Хосусый гизү</string>
     <!-- Preference for opening links in a private tab-->
@@ -514,8 +520,15 @@
     <string name="cookie_banner_handling_report_site_snack_bar_text_2">Cорау җибәрелде</string>
     <!-- Text for indicating cookie banner handling is on this site, this is shown as part of the protections panel with the tracking protection toggle -->
     <string name="reduce_cookie_banner_on_for_site">Бу сайт өчен кабынган</string>
+    <!-- Text for indicating that a request for unsupported site was sent to Nimbus (it's a Mozilla library for experiments), this is shown as part of the protections panel with the tracking protection toggle -->
+    <string name="reduce_cookie_banner_unsupported_site_request_submitted_2">Тәэмин ителүен сорау җибәрелде</string>
     <!-- Text for indicating cookie banner handling is currently not supported for this site, this is shown as part of the protections panel with the tracking protection toggle -->
     <string name="reduce_cookie_banner_unsupported_site">Бу сайт хәзерге вакытта танылмый</string>
+
+    <!-- Title text for a detail explanation indicating cookie banner handling is on this site, this is shown as part of the cookie banner panel in the toolbar. The first parameter is a shortened URL of the current site-->
+    <string name="reduce_cookie_banner_details_panel_title_on_for_site_1">%1$s өчен Куки баннерларын тыючы эшләсенме?</string>
+    <!-- Title text for a detail explanation indicating cookie banner handling is off this site, this is shown as part of the cookie banner panel in the toolbar. The first parameter is a shortened URL of the current site-->
+    <string name="reduce_cookie_banner_details_panel_title_off_for_site_1">%1$s өчен Куки баннерларын тыючы сүндерелсенме?</string>
 
     <!-- Summary of https only preference if https only is set to off -->
     <string name="preferences_https_only_off">Сүнгән</string>
@@ -545,12 +558,16 @@
     <string name="preferences_gestures">Ишарәләр</string>
     <!-- Preference for settings related to visual options -->
     <string name="preferences_customize">Яраклаштыру</string>
+    <!-- Preference shown instead of account display name while account profile information isn't available yet. -->
+    <string name="preferences_account_default_name_2">Mozilla хисап язмасы</string>
     <!-- Preference text for account title when there was an error syncing FxA -->
     <string name="preferences_account_sync_error">Синхронлауны дәвам итү өчен яңадан тоташыгыз</string>
     <!-- Preference for language -->
     <string name="preferences_language">Тел</string>
 
 
+    <!-- Preference for translations -->
+    <string name="preferences_translations">Тәрҗемәләр</string>
     <!-- Preference for data choices -->
     <string name="preferences_data_choices">Бирелгәннәрне сайлау</string>
     <!-- Preference for data collection -->
@@ -575,6 +592,8 @@
     <string name="preferences_account_settings">Хисап язмасы көйләүләре</string>
     <!-- Preference for enabling url autocomplete-->
     <string name="preferences_enable_autocomplete_urls">URL aдресларын автотәмамлау</string>
+    <!-- Preference title for switch preference to show sponsored Firefox Suggest search suggestions -->
+    <string name="preferences_show_sponsored_suggestions">Иганәчеләрдән тәкъдимнәр</string>
     <!-- Preference for open links in third party apps -->
     <string name="preferences_open_links_in_apps">Сылтамаларны кушымталарда ачу</string>
     <!-- Preference for open links in third party apps always open in apps option -->
@@ -742,7 +761,9 @@
     <string name="exceptions_empty_message_learn_more_link">Күбрәк белү</string>
 
     <!-- Preference switch for usage and technical data collection -->
-    <string name="preference_usage_data">Куллану турында һәм техник мәгълүматлар</string>
+    <string name="preference_usage_data" moz:removedIn="134" tools:ignore="UnusedResources">Куллану турында һәм техник мәгълүматлар</string>
+    <!-- Preference switch for usage and technical learn more link -->
+    <string name="preference_usage_data_learn_more" tools:ignore="UnusedResources">Күбрәк белү</string>
     <!-- Preference switch for marketing data collection -->
     <string name="preferences_marketing_data">Маркетинг мәгълүматлары</string>
     <!-- Title for studies preferences -->
@@ -951,6 +972,9 @@
     <!-- Postfix for private WebApp titles, placeholder is replaced with app name -->
     <string name="pwa_site_controls_title_private">%1$s (Хосусый режим)</string>
 
+    <!-- History -->
+    <!-- Text for the button to search all history -->
+    <string name="history_search_1">Эзләү терминнарын кертү</string>
     <!-- Text for the button to clear all history -->
     <string name="history_delete_all">Тарихны бетерү</string>
     <!-- Text for the snackbar to confirm that multiple browsing history items has been deleted -->
@@ -991,6 +1015,19 @@
 
     <!-- WebCompat Reporter -->
 
+    <!-- The text field label of the URL text field. This is displayed above the user-inputted URL. -->
+    <string name="webcompat_reporter_label_url">URL</string>
+    <!-- The button text for the cancel button to leave the Web Compat Reporter feature. -->
+    <string name="webcompat_reporter_cancel">Баш тарту</string>
+    <!-- The button text for the send button to submit the provided form data. -->
+    <string name="webcompat_reporter_send">Җибәрү</string>
+
+
+    <!-- Broken site reason text for images or videos -->
+    <string name="webcompat_reporter_reason_media">Рәсемнәр яки видеолар</string>
+    <!-- Broken site reason text for sign in or sign out -->
+    <string name="webcompat_reporter_reason_account">Керү яки чыгу</string>
+
     <!-- Crashes -->
     <!-- Title text displayed on the tab crash page. This first parameter is the name of the application (For example: Fenix) -->
     <string name="tab_crash_title_2">Гафу. %1$s бу сәхифәне йөкли алмый.</string>
@@ -1001,6 +1038,9 @@
     <string name="tab_crash_close">Табны ябу</string>
     <!-- Restore tab button text on the tab crash page -->
     <string name="tab_crash_restore">Табны кире кайтару</string>
+
+    <!-- Unsubmitted crash dialog title, The first parameter is the name of the app (e.g. Firefox)  -->
+    <string name="unsubmitted_crash_dialog_title">%s кушымчасын сүндереп кабызырга туры килде</string>
 
     <!-- Bookmarks -->
     <!-- Confirmation message for a dialog confirming if the user wants to delete the selected folder -->
@@ -1243,6 +1283,9 @@
     <!-- Name of the marketing notification channel. Displayed in the "App notifications" system settings for the app -->
     <string name="notification_marketing_channel_name">Маркетинг</string>
 
+    <!-- Preference for not taking the short survey. -->
+    <string name="preferences_not_take_survey">Юк, рәхмәт</string>
+
     <!-- Snackbar -->
     <!-- Text shown in snackbar when user deletes a collection -->
     <string name="snackbar_collection_deleted">Җыентык бетерелде</string>
@@ -1252,8 +1295,12 @@
     <string name="snackbar_tab_closed">Таб ябылды</string>
     <!-- Text shown in snackbar when user closes all tabs -->
     <string name="snackbar_tabs_closed">Таблар ябылды</string>
+    <!-- Text shown in snackbar when user closes multiple inactive tabs. %1$s will be replaced with the number of tabs closed. -->
+    <string name="snackbar_num_tabs_closed">Ябылган таблар: %1$s</string>
     <!-- Text shown in snackbar when user bookmarks a list of tabs -->
     <string name="snackbar_message_bookmarks_saved" moz:removedIn="132" tools:ignore="UnusedResources">Кыстыргычлар cакланды!</string>
+    <!-- Text shown in snackbar when user bookmarks a list of tabs. Parameter will be replaced by the name of the folder the bookmark was saved into.-->
+    <string name="snackbar_message_bookmarks_saved_in">Кыстыргычлар &quot;%s&quot; эчендә cакланды!</string>
     <!-- Text shown in snackbar when user closes a private tab -->
     <string name="snackbar_private_tab_closed">Хосусый таб ябылды</string>
     <!-- Text shown in snackbar when user closes all private tabs -->
@@ -1633,6 +1680,14 @@
     <!-- Title of PIN verification dialog to direct users to re-enter their device credentials to access their credit cards -->
     <string name="credit_cards_biometric_prompt_message_pin">Җиһазыгызның йозагын ачыгыз</string>
 
+    <!-- Title of the "Add address" screen -->
+    <string name="addresses_add_address">Адрес өстәү</string>
+    <!-- Title of the "Edit address" screen -->
+    <string name="addresses_edit_address">Адресны үзгәртү</string>
+    <!-- Title of the "Manage addresses" screen -->
+    <string name="addresses_manage_addresses">Адреслар белән идарә итү</string>
+    <!-- The header for the name of an address. Name represents a person's full name, typically made up of a first, middle and last name, e.g. John Joe Doe. -->
+    <string name="addresses_name">Исем</string>
     <!-- The header for the street address of an address -->
     <string name="addresses_street_address">Урам</string>
     <!-- The header for the city of an address -->
@@ -1691,6 +1746,9 @@
     <!-- Accessibility description for the form in which details about the custom search engine are entered -->
     <string name="search_add_custom_engine_form_description">Үзгә эзләү системасының нечкәлекләре</string>
 
+    <!-- The text for the "Save" button for saving a custom search engine -->
+    <string name="search_custom_engine_save_button">Саклау</string>
+
     <!-- Text shown when a user leaves the name field empty -->
     <string name="search_add_custom_engine_error_empty_name">Эзләү системасының исемен кертегез</string>
     <!-- Text shown when a user leaves the search string field empty -->
@@ -1734,6 +1792,10 @@
     <string name="no_site_exceptions">Сайт өчен чыгармалар юк</string>
     <!-- Bookmark deletion confirmation -->
     <string name="bookmark_deletion_confirmation">Бу кыстыргычны бетерүне раслыйсызмы?</string>
+    <!-- Browser menu button that adds a shortcut to the home fragment -->
+    <string name="browser_menu_add_to_shortcuts">Ярлыкларга өстәү</string>
+    <!-- Browser menu button that removes a shortcut from the home fragment -->
+    <string name="browser_menu_remove_from_shortcuts">Ярлыклардан бетерү</string>
     <!-- text shown before the issuer name to indicate who its verified by, parameter is the name of
      the certificate authority that verified the ticket-->
     <string name="certificate_info_verified_by">Раслаучы: %1$s</string>
@@ -1741,11 +1803,29 @@
     <string name="login_menu_delete_button">Бетерү</string>
     <!-- Login overflow menu edit button -->
     <string name="login_menu_edit_button">Үзгәртү</string>
+    <!-- Message in delete confirmation dialog for password -->
+    <string name="login_deletion_confirmation_2">Бу серсүзне бетерүне раслыйсызмы?</string>
     <!-- Positive action of a dialog asking to delete  -->
     <string name="dialog_delete_positive">Бетерү</string>
 
+    <!-- Negative action of a dialog asking to delete login -->
+    <string name="dialog_delete_negative">Баш тарту</string>
+    <!--  The saved password options menu description. -->
+    <string name="login_options_menu_2">Серсүз көйләүләре</string>
+    <!--  The button description to save changes to an edited password. -->
+    <string name="save_changes_to_login_2">Үзгәрешләрне саклау.</string>
+    <!--  The page title for editing a saved password. -->
+    <string name="edit_2">Серсүзне үзгәртү</string>
+    <!--  The page title for adding new password. -->
+    <string name="add_login_2">Серсүз өстәү</string>
+    <!--  Error text displayed underneath the password field when it is in an error case. -->
+    <string name="saved_login_password_required_2">Серсүз кертегез</string>
+    <!--  The error message in add login view when username field is blank. -->
+    <string name="saved_login_username_required_2">Кулланучы исемен кертегез</string>
     <!--  The error message in add login view when hostname field is blank. -->
     <string name="saved_login_hostname_required" tools:ignore="UnusedResources">Хост исеме кирәк</string>
+    <!--  The error message in add login view when hostname field is blank. -->
+    <string name="saved_login_hostname_required_2" tools:ignore="UnusedResources">Веб-адресын кертегез</string>
     <!-- Voice search button content description  -->
     <string name="voice_search_content_description">Тавышлы эзләү</string>
     <!-- Voice search prompt description displayed after the user presses the voice search button -->
@@ -1783,6 +1863,10 @@
     <string name="top_sites_toggle_top_recent_sites_4">Ярлыклар</string>
     <!-- Title text displayed in the rename top site dialog. -->
     <string name="top_sites_rename_dialog_title">Исем</string>
+    <!-- Hint for renaming title of a shortcut -->
+    <string name="shortcut_name_hint">Ярлык исеме</string>
+    <!-- Hint for editing URL of a shortcut. -->
+    <string name="shortcut_url_hint">Ярлык URL-ы</string>
     <!-- Dialog button text for canceling the rename top site prompt. -->
     <string name="top_sites_rename_dialog_cancel">Баш тарту</string>
 
@@ -1794,11 +1878,27 @@
     <!-- Label text displayed for a sponsored top site. -->
     <string name="top_sites_sponsored_label">Спонсорланган</string>
 
+    <!-- Text for the menu item to edit a top site. -->
+    <string name="top_sites_edit_top_site">Үзгәртү</string>
+    <!-- Text for the dialog title to edit a top site. -->
+    <string name="top_sites_edit_dialog_title">Ярлыкны үзгәртү</string>
+    <!-- Button caption to confirm the edit of the top site. -->
+    <string name="top_sites_edit_dialog_save">Саклау</string>
+    <!-- Error message when the user entered an invalid URL -->
+    <string name="top_sites_edit_dialog_url_error">Дөрес URL кертегез</string>
+    <!-- Label for the URL edit field in the edit top site dialog. -->
+    <string name="top_sites_edit_dialog_url_title">URL</string>
+
     <!-- Inactive tabs in the tabs tray -->
     <!-- Title text displayed in the tabs tray when a tab has been unused for 14 days. -->
     <string name="inactive_tabs_title">Актив булмаган таблар</string>
     <!-- Content description for closing all inactive tabs -->
     <string name="inactive_tabs_delete_all">Барлык актив булмаган табларны ябу</string>
+
+    <!-- Content description for expanding the inactive tabs section. -->
+    <string name="inactive_tabs_expand_content_description">Актив булмаган табларны ачып салу</string>
+    <!-- Content description for collapsing the inactive tabs section. -->
+    <string name="inactive_tabs_collapse_content_description">Актив булмаган табларны төрү</string>
 
     <!-- Inactive tabs auto-close message in the tabs tray -->
     <!-- The header text of the auto-close message when the user is asked if they want to turn on the auto-closing of inactive tabs. -->
@@ -1810,6 +1910,17 @@
     <!-- Text for the snackbar to confirm auto-close is enabled for inactive tabs -->
     <string name="inactive_tabs_auto_close_message_snackbar">Автоябу кабызылды</string>
 
+    <!-- Awesome bar suggestion's headers -->
+    <!-- Search suggestions title for Firefox Suggest. -->
+    <string name="firefox_suggest_header" tools:ignore="BrandUsage">Firefox Suggest</string>
+    <!-- Title for search suggestions when Google is the default search suggestion engine. -->
+    <string name="google_search_engine_suggestion_header">Google-да эзләү</string>
+    <!-- Title for search suggestions when the default search suggestion engine is anything other than Google. The first parameter is default search engine name. -->
+    <string name="other_default_search_engine_suggestion_header">%s эзләү</string>
+
+    <!-- Default browser experiment -->
+    <!-- Default browser card title -->
+    <string name="default_browser_experiment_card_title">Башка браузерны төп браузер итү</string>
     <!-- Default browser card text -->
     <string name="default_browser_experiment_card_text" tools:ignore="BrandUsage">Вебсайтлардан, эл. хатлардан һәм хәбәрләрдән сылтамаларны автоматик рәвештә Firefox-та ачылсын.</string>
 
@@ -1832,10 +1943,15 @@
     <string name="pocket_stories_categories_header">Темалар буенча хикәяләр</string>
     <!-- Text of a button allowing users to access an external url for more Pocket recommendations. -->
     <string name="pocket_stories_placeholder_text">Күбрәген күрү</string>
+    <!-- Title of an app feature. Smaller than a heading. The first parameter is product name Pocket -->
+    <string name="pocket_stories_feature_title_2">%s нигезендә.</string>
     <!-- Caption for describing a certain feature. The placeholder is for a clickable text (eg: Learn more) which will load an url in a new tab when clicked.  -->
     <string name="pocket_stories_feature_caption" tools:ignore="BrandUsage">Firefox гаиләсеннән. %s</string>
     <!-- Clickable text for opening an external link for more information about Pocket. -->
     <string name="pocket_stories_feature_learn_more">Күбрәк белү</string>
+
+    <!-- Text indicating that the Pocket story that also displays this text is a sponsored story by other 3rd party entity. -->
+    <string name="pocket_stories_sponsor_indication">Спонсорланган</string>
 
     <!-- Clickable text from the contextual onboarding card that links to review quality check support article. -->
     <string name="review_quality_check_contextual_onboarding_learn_more_link">Күбрәк белү</string>
@@ -1915,6 +2031,22 @@
     <string name="translations_bottom_sheet_negative_button_restore">Оригиналны күрсәтү</string>
 
 
+    <!-- Snackbar title shown if the user closes the Translation Request dialogue and a translation is in progress. -->
+    <string name="translation_in_progress_snackbar">Тәрҗемә ителә…</string>
+
+
+    <!-- Translations options dialog -->
+    <!-- Title of the translation options dialog that allows a user to set their translation options for the site the user is currently on. -->
+    <string name="translation_option_bottom_sheet_title_heading">Тәрҗемә көйләүләре</string>
+    <!-- Toggle switch label that allows a user to set the setting if they would like the browser to always offer or suggest translations when available. -->
+    <string name="translation_option_bottom_sheet_always_translate">Һәрвакыт тәрҗемә итәргә тәкъдим ит</string>
+    <!-- Toggle switch label that allows a user to set if they would like a given language to automatically translate or not. The first parameter is the language name, for example, "Spanish". -->
+    <string name="translation_option_bottom_sheet_always_translate_in_language">%1$s теленнән һәрвакыт тәрҗемә ит</string>
+    <!-- Toggle switch label that allows a user to set if they would like to never be offered a translation of the given language. The first parameter is the language name, for example, "Spanish". -->
+    <string name="translation_option_bottom_sheet_never_translate_in_language">%1$s теленнән беркайчан да тәрҗемә итмә</string>
+    <!-- Toggle switch label that allows a user to set the setting if they would like the browser to never translate the site the user is currently visiting. -->
+    <string name="translation_option_bottom_sheet_never_translate_site">Бу сайтны беркайчан да тәрҗемә итмә</string>
+
     <!-- Translation settings dialog -->
     <!-- Title of the translation settings dialog that allows a user to set their preferred translation settings. -->
     <string name="translation_settings_toolbar_title">Тәрҗемәләр</string>
@@ -1928,4 +2060,41 @@
     <!-- Preference option for never translate. Radio button title text.-->
     <string name="automatic_translation_option_never_translate_title_preference">Беркайчан да тәрҗемә итмәү</string>
 
-    </resources>
+    <!-- The Delete site dialogue positive button will appear when the user clicks on a list item. The site will be deleted. -->
+    <string name="never_translate_site_dialog_confirm_delete_preference">Бетерү</string>
+    <!-- The Delete site dialogue negative button will appear when the user clicks on a list item. The dialog will be dismissed. -->
+    <string name="never_translate_site_dialog_cancel_preference">Баш тарту</string>
+
+    <!-- Download languages preference screen -->
+    <!-- Title of the toolbar for the translation feature screen where users may download different languages for translation. -->
+    <string name="download_languages_translations_toolbar_title_preference">Телләрне иңдерү</string>
+    <!-- Clickable text from the screen header that links to a website. -->
+    <string name="download_languages_header_learn_more_preference">Күбрәк белү</string>
+    <!-- A text for download language preference item.
+    The first parameter is the language name, for example, "Spanish".
+    The second parameter is the language file size, for example, "(3.91 KB)" or, if the language package name is a pivot language, "(required)". -->
+    <string name="download_languages_language_item_preference">%1$s (%2$s)</string>
+    <!-- The subhead of the download language preference screen will appear above the items that were not downloaded. -->
+    <string name="download_language_header_preference">Телләрне иңдерү</string>
+    <!-- All languages list item. When the user presses this item, they can download all languages. -->
+    <string name="download_language_all_languages_item_preference">Барлык телләр</string>
+    <!-- All languages list item. When the user presses this item, they can delete all languages that were downloaded. -->
+    <string name="download_language_all_languages_item_preference_to_delete">Барлык телләрне бетерү</string>
+    <!-- Content description (not visible, for screen readers etc.): For a language list item that was downloaded, the user can now delete it. -->
+    <string name="download_languages_item_content_description_downloaded_state">Бетерү</string>
+
+    <!-- Button text on the dialog used by the translations feature to confirm deleting a language. -->
+    <string name="delete_language_file_dialog_positive_button_text">Бетерү</string>
+    <!-- Button text on the dialog used by the translations feature to cancel deleting a language. -->
+    <string name="delete_language_file_dialog_negative_button_text">Баш тарту</string>
+
+    <!-- Button text on the data saving mode warning dialog used by the translations feature to allow users to cancel the action and not perform a download of the language file. -->
+    <string name="download_language_file_dialog_negative_button_text">Баш тарту</string>
+
+    <!-- The total tab count category in the tab count section in Tab Tools. -->
+    <string name="debug_drawer_tab_tools_tab_count_total">Барлыгы</string>
+
+    <!-- Beta Label Component !-->
+    <!-- Text shown as a label or tag to indicate a feature or area is still undergoing active development. Note that here "Beta" should not be translated, as it is used as an icon styled element. -->
+    <string name="beta_feature">BETA</string>
+</resources>

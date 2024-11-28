@@ -346,9 +346,9 @@
     <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar custom tab menu. -->
     <string name="browser_custom_tab_menu_handlebar_content_description">Swójski meni rajtarkow začinić</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-    <string name="browser_menu_tools_description_with_translate" moz:removedIn="133" tools:ignore="UnusedResources">Čitanski napohlad, přełožić, ćišćeć, dźělić, nałoženje wočinić</string>
+    <string name="browser_menu_tools_description_with_translate" moz:removedIn="134" tools:ignore="UnusedResources">Čitanski napohlad, přełožić, ćišćeć, dźělić, nałoženje wočinić</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-    <string name="browser_menu_tools_description" moz:removedIn="133" tools:ignore="UnusedResources">Čitanski napohlad, ćišćeć, dźělić, nałoženje wočinić</string>
+    <string name="browser_menu_tools_description" moz:removedIn="134" tools:ignore="UnusedResources">Čitanski napohlad, ćišćeć, dźělić, nałoženje wočinić</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu
          The first parameter is the label of the report site issue (for example: Report Site issue) -->
     <string name="browser_menu_tools_description_with_translate_with_report_site">Čitanski napohlad, přełožić, %s, ćišćeć, dźělić, nałoženje wočinić</string>
@@ -574,6 +574,25 @@
     <string name="onboarding_add_on_add_button_content_description">Přidatkowy tłóčatko přidać</string>
     <!-- Content description for the star rating group. -->
     <string name="onboarding_add_on_star_rating_content_description">Pohódnoćenja: %1$s z 5</string>
+
+    <!-- Title for the privacy preferences dialog shown during onboarding. Note: The word "Firefox" should NOT be translated. -->
+    <string name="onboarding_preferences_dialog_title" tools:ignore="BrandUsage,UnusedResources">Pomhajće nam, Firefox polěpšić</string>
+    <!-- Title for the crash reporting option in the privacy preferences dialog shown during onboarding. -->
+    <string name="onboarding_preferences_dialog_crash_reporting_title" tools:ignore="UnusedResources">Spadowe rozprawy awtomatisce pósłać</string>
+    <!-- Description for the crash reporting option in the privacy preferences dialog shown during onboarding. -->
+    <string name="onboarding_preferences_dialog_crash_reporting_description" tools:ignore="UnusedResources">Spadowe rozprawy wam zmóžnjeja, problemy z wobhladowakom diagnosticěrować a rozrisać. Rozprawy móža wosobinske abo sensibelne daty wobsahować.</string>
+    <!-- Learn more link for the crash reporting option in the privacy preferences dialog shown during onboarding. -->
+    <string name="onboarding_preferences_dialog_crash_reporting_learn_more" tools:ignore="UnusedResources">Dalše informacije wo spadowych rozprawach</string>
+    <!-- Title for the usage data option in the privacy preferences dialog shown during onboarding. Note: The word "Mozilla" should NOT be translated. -->
+    <string name="onboarding_preferences_dialog_usage_data_title" tools:ignore="UnusedResources">Techniske daty a daty interakcije na Mozilla pósłać</string>
+    <!-- Description for the usage data option in the privacy preferences dialog shown during onboarding. Note: The word "Firefox" should NOT be translated. -->
+    <string name="onboarding_preferences_dialog_usage_data_description" tools:ignore="BrandUsage,UnusedResources">Daty wo wašim graće, wašej hardwarowej konfiguraciji a wo tym, kak Firefox wužiwaće, wšudźe pomhaja, funkcije, wukon a stabilnosć za wužiwarjow polěpšić.</string>
+    <!-- Learn more link for the usage data option in the privacy preferences dialog shown during onboarding. -->
+    <string name="onboarding_preferences_dialog_usage_data_learn_more" tools:ignore="UnusedResources">Zhońće wjace wo wužiwanskich datach</string>
+    <!-- Positive button label for the privacy preferences dialog shown during onboarding. -->
+    <string name="onboarding_preferences_dialog_positive_button" tools:ignore="UnusedResources">Dokónčeny</string>
+    <!-- Negative button label for the privacy preferences dialog shown during onboarding. -->
+    <string name="onboarding_preferences_dialog_negative_button" tools:ignore="UnusedResources">Přetorhnyć</string>
 
     <!-- Search Widget -->
     <!-- Content description for searching with a widget. The first parameter is the name of the application.-->

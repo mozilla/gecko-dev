@@ -933,6 +933,8 @@
 
     <!-- Preference switch for usage and technical data collection -->
     <string name="preference_usage_data" moz:removedIn="134" tools:ignore="UnusedResources">Bruk og tekniske data</string>
+    <!-- Preference switch for usage and technical learn more link -->
+    <string name="preference_usage_data_learn_more" tools:ignore="UnusedResources">Les meir</string>
     <!-- Preference description for usage and technical data collection -->
     <string name="preferences_usage_data_description">Deler data om yting, bruksmønster, maskinvare og tilpassingar i nettlesaren din med Mozilla, for å hjelpe oss å gjere %1$s betre</string>
     <!-- Preference switch for marketing data collection -->
@@ -1231,6 +1233,9 @@
 
     <!-- WebCompat Reporter -->
 
+    <!-- WebCompat Reporter -->
+    <!-- The title of the Web Compat Reporter feature. This is displayed in the top app bar. -->
+    <string name="webcompat_reporter_screen_title">Rapporter problem med ein nettstad</string>
     <!-- The text field label of the URL text field. This is displayed above the user-inputted URL. -->
     <string name="webcompat_reporter_label_url">URL</string>
     <!-- The button text for navigating away from the feature to provide more information on the broken site's bug report. -->
