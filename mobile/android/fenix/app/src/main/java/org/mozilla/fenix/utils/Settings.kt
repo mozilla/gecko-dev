@@ -1900,6 +1900,14 @@ class Settings(private val appContext: Context) : PreferencesHolder {
     )
 
     /**
+     * Indicates if the Unified Trust Panel is enabled.
+     */
+    var enableUnifiedTrustPanel by booleanPreference(
+        key = appContext.getPreferenceKey(R.string.pref_key_enable_unified_trust_panel),
+        default = FeatureFlags.unifiedTrustPanel,
+    )
+
+    /**
      * Adjust Activated User sent
      */
     var growthUserActivatedSent by booleanPreference(

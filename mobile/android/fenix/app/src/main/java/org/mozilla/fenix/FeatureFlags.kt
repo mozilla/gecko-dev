@@ -92,4 +92,9 @@ object FeatureFlags {
      * Enables Merino content recommendations.
      */
     const val merinoContentRecommendations = false
+
+    /**
+     * Enables the Unified Trust Panel.
+     */
+    const val unifiedTrustPanel = false
 }
