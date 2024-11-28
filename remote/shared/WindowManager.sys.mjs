@@ -39,8 +39,23 @@ class WindowManager {
     return chromeWindowHandles;
   }
 
+  /**
+   * Retrieve all the open windows.
+   *
+   * @returns {Array<Window>}
+   *     All the open windows. Will return an empty list if no window is open.
+   */
   get windows() {
-    return Services.wm.getEnumerator(null);
+    const windows = [];
+
+    for (const win of Services.wm.getEnumerator(null)) {
+      if (win.closed) {
+        continue;
+      }
+      windows.push(win);
+    }
+
+    return windows;
   }
 
   /**

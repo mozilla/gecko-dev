@@ -114,7 +114,7 @@ class BrowserModule extends RootBiDiModule {
     const clientWindowsIds = new Set();
     const clientWindows = [];
 
-    for (const win of lazy.TabManager.windows) {
+    for (const win of lazy.windowManager.windows) {
       let clientWindowId = lazy.windowManager.getIdForWindow(win);
       if (clientWindowsIds.has(clientWindowId)) {
         continue;

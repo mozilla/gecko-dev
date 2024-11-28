@@ -13,6 +13,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   MobileTabBrowser: "chrome://remote/content/shared/MobileTabBrowser.sys.mjs",
   UserContextManager:
     "chrome://remote/content/shared/UserContextManager.sys.mjs",
+  windowManager: "chrome://remote/content/shared/WindowManager.sys.mjs",
 });
 
 class TabManagerClass {
@@ -54,7 +55,7 @@ class TabManagerClass {
   get browsers() {
     const browsers = [];
 
-    for (const win of this.windows) {
+    for (const win of lazy.windowManager.windows) {
       for (const tab of this.getTabsForWindow(win)) {
         const contentBrowser = this.getBrowserForTab(tab);
         if (contentBrowser !== null) {
@@ -76,30 +77,11 @@ class TabManagerClass {
   get tabs() {
     const tabs = [];
 
-    for (const win of this.windows) {
+    for (const win of lazy.windowManager.windows) {
       tabs.push(...this.getTabsForWindow(win));
     }
 
     return tabs;
-  }
-
-  /**
-   * Retrieve all the open windows.
-   *
-   * @returns {Array<Window>}
-   *     All the open windows. Will return an empty list if no window is open.
-   */
-  get windows() {
-    const windows = [];
-
-    for (const win of Services.wm.getEnumerator(null)) {
-      if (win.closed) {
-        continue;
-      }
-      windows.push(win);
-    }
-
-    return windows;
   }
 
   /**
@@ -115,7 +97,7 @@ class TabManagerClass {
   get allBrowserUniqueIds() {
     const browserIds = [];
 
-    for (const win of this.windows) {
+    for (const win of lazy.windowManager.windows) {
       // Only return handles for browser windows
       for (const tab of this.getTabsForWindow(win)) {
         const contentBrowser = this.getBrowserForTab(tab);
@@ -232,7 +214,7 @@ class TabManagerClass {
    *     no matching browser element is found.
    */
   getBrowserById(id) {
-    for (const win of this.windows) {
+    for (const win of lazy.windowManager.windows) {
       for (const tab of this.getTabsForWindow(win)) {
         const contentBrowser = this.getBrowserForTab(tab);
         if (this.getIdForBrowser(contentBrowser) == id) {
@@ -345,7 +327,7 @@ class TabManagerClass {
 
   getTabCount() {
     let count = 0;
-    for (const win of this.windows) {
+    for (const win of lazy.windowManager.windows) {
       // For browser windows count the tabs. Otherwise take the window itself.
       const tabsLength = this.getTabsForWindow(win).length;
       count += tabsLength ? tabsLength : 1;
