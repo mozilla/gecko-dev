@@ -254,7 +254,6 @@ class BrowserToolbarCFRPresenterTest {
      */
     private fun createPresenter(
         context: Context = mockk {
-            every { getString(R.string.tcp_cfr_message) } returns "Test"
             every { getColor(any()) } returns 0
         },
         anchor: View = mockk(relaxed = true),

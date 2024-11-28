@@ -1207,12 +1207,7 @@ class BrowserRobot {
             clickPageObject(itemWithDescription("Home screen"))
             Log.i(TAG, "goToHomescreen: Waiting for $waitingTime ms for for home screen layout or jump back in contextual hint to exist")
             mDevice.findObject(UiSelector().resourceId("$packageName:id/homeLayout"))
-                .waitForExists(waitingTime) ||
-                mDevice.findObject(
-                    UiSelector().text(
-                        getStringResource(R.string.onboarding_home_screen_jump_back_contextual_hint_2),
-                    ),
-                ).waitForExists(waitingTime)
+                .waitForExists(waitingTime)
             Log.i(TAG, "goToHomescreen: Waited for $waitingTime ms for for home screen layout or jump back in contextual hint to exist")
 
             HomeScreenRobot().interact()
@@ -1226,12 +1221,7 @@ class BrowserRobot {
             }
             Log.i(TAG, "goToHomescreenWithRedesignedToolbar: Waiting for $waitingTime ms for for home screen layout or jump back in contextual hint to exist")
             mDevice.findObject(UiSelector().resourceId("$packageName:id/homeLayout"))
-                .waitForExists(waitingTime) ||
-                mDevice.findObject(
-                    UiSelector().text(
-                        getStringResource(R.string.onboarding_home_screen_jump_back_contextual_hint_2),
-                    ),
-                ).waitForExists(waitingTime)
+                .waitForExists(waitingTime)
             Log.i(TAG, "goToHomescreenWithRedesignedToolbar: Waited for $waitingTime ms for for home screen layout or jump back in contextual hint to exist")
 
             HomeScreenRobot().interact()
@@ -1243,12 +1233,7 @@ class BrowserRobot {
 
             Log.i(TAG, "goToHomescreenWithComposeTopSites: Waiting for $waitingTime ms for for home screen layout or jump back in contextual hint to exist")
             mDevice.findObject(UiSelector().resourceId("$packageName:id/homeLayout"))
-                .waitForExists(waitingTime) ||
-                mDevice.findObject(
-                    UiSelector().text(
-                        getStringResource(R.string.onboarding_home_screen_jump_back_contextual_hint_2),
-                    ),
-                ).waitForExists(waitingTime)
+                .waitForExists(waitingTime)
             Log.i(TAG, "goToHomescreenWithComposeTopSites: Waited for $waitingTime ms for for home screen layout or jump back in contextual hint to exist")
 
             ComposeTopSitesRobot(composeTestRule).interact()
