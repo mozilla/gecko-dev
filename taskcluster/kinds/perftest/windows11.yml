@@ -101,8 +101,9 @@ livesites:
         symbol: perftest({symbol})
     attributes:
         batch: false
-        cron: true
+        cron: false
     perftest:
+        # broken: bug 1933712
         - [cloudflare, netwerk/test/perf/perftest_http3_cloudflareblog.js]
         # broken: bug 1678588
         # - [fb-scroll, netwerk/test/perf/perftest_http3_facebook_scroll.js]
