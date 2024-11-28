@@ -552,7 +552,7 @@ use.counter.page:
     send_in_pings:
       - use-counters
 
-  js__optimize_get_iterator_fuse:
+  js_optimize_get_iterator_fuse:
     type: counter
     description: >
       Whether a page has modified any builtins such that the GetIterator fuse is popped.
@@ -6606,7 +6606,7 @@ use.counter.doc:
     send_in_pings:
       - use-counters
 
-  js__optimize_get_iterator_fuse:
+  js_optimize_get_iterator_fuse:
     type: counter
     description: >
       Whether a document has modified any builtins such that the GetIterator fuse is popped.

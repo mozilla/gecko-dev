@@ -2678,7 +2678,7 @@ static void SetUseCounterCallback(JSObject* obj, JSUseCounter counter) {
       SetUseCounter(obj, eUseCounter_custom_JS_isHTMLDDA_fuse);
       return;
     case JSUseCounter::OPTIMIZE_GET_ITERATOR_FUSE:
-      SetUseCounter(obj, eUseCounter_custom_JS_OptimizeGetIterator_fuse);
+      SetUseCounter(obj, eUseCounter_custom_JS_optimizeGetIterator_fuse);
       return;
     case JSUseCounter::COUNT:
       break;
