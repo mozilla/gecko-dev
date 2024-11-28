@@ -29,4 +29,21 @@ add_task(async function () {
     "the property should be 'font-weight'"
   );
   is(rule.ruleLine, 2, "the property has no source line");
+
+  info("Check that updating cssom declaration works");
+  // Testing Bug 1933473
+  const prop = getTextProperty(view, 1, { color: "seagreen" });
+  await setProperty(view, prop, "red");
+  is(
+    await getComputedStyleProperty("#target", null, "color"),
+    "rgb(255, 0, 0)",
+    "target element color was properly updated"
+  );
+
+  info("Select another node and re-select target node to update the rule view");
+  await selectNode("body", inspector);
+  await selectNode("#target", inspector);
+
+  const newProp = getTextProperty(view, 1, { color: "red" });
+  ok(!!newProp, "Rule is still visible after updating it");
 });
