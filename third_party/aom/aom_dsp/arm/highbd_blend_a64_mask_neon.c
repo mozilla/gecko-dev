@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023, Alliance for Open Media. All rights reserved
+ * Copyright (c) 2023, Alliance for Open Media. All rights reserved.
  *
  * This source code is subject to the terms of the BSD 2 Clause License and
  * the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
@@ -20,7 +20,7 @@
 #include "aom_dsp/blend.h"
 
 #define HBD_BLEND_A64_D16_MASK(bd, round0_bits)                               \
-  static INLINE uint16x8_t alpha_##bd##_blend_a64_d16_u16x8(                  \
+  static inline uint16x8_t alpha_##bd##_blend_a64_d16_u16x8(                  \
       uint16x8_t m, uint16x8_t a, uint16x8_t b, int32x4_t round_offset) {     \
     const uint16x8_t m_inv =                                                  \
         vsubq_u16(vdupq_n_u16(AOM_BLEND_A64_MAX_ALPHA), m);                   \
@@ -50,7 +50,7 @@
     return blend_u16;                                                         \
   }                                                                           \
                                                                               \
-  static INLINE void highbd_##bd##_blend_a64_d16_mask_neon(                   \
+  static inline void highbd_##bd##_blend_a64_d16_mask_neon(                   \
       uint16_t *dst, uint32_t dst_stride, const CONV_BUF_TYPE *src0,          \
       uint32_t src0_stride, const CONV_BUF_TYPE *src1, uint32_t src1_stride,  \
       const uint8_t *mask, uint32_t mask_stride, int w, int h, int subw,      \

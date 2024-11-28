@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, Alliance for Open Media. All rights reserved
+ * Copyright (c) 2021, Alliance for Open Media. All rights reserved.
  *
  * This source code is subject to the terms of the BSD 2 Clause License and
  * the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
@@ -299,7 +299,8 @@ void av1_setup_butteraugli_rdmult(AV1_COMP *cpi) {
   // cpi->sf.part_sf.fixed_partition_size = BLOCK_32X32;
 
   av1_set_quantizer(cm, q_cfg->qm_minlevel, q_cfg->qm_maxlevel, q_index,
-                    q_cfg->enable_chroma_deltaq, q_cfg->enable_hdr_deltaq);
+                    q_cfg->enable_chroma_deltaq, q_cfg->enable_hdr_deltaq,
+                    oxcf->mode == ALLINTRA, oxcf->tune_cfg.tuning);
   av1_set_speed_features_qindex_dependent(cpi, oxcf->speed);
   av1_init_quantizer(&cpi->enc_quant_dequant_params, &cm->quant_params,
                      cm->seq_params->bit_depth);

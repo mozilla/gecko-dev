@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, Alliance for Open Media. All rights reserved
+ * Copyright (c) 2022, Alliance for Open Media. All rights reserved.
  *
  * This source code is subject to the terms of the BSD 2 Clause License and
  * the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
@@ -18,7 +18,7 @@
 #include "av1/common/quant_common.h"
 #include "av1/encoder/av1_quantize.h"
 
-static INLINE uint16x4_t quantize_4(const tran_low_t *coeff_ptr,
+static inline uint16x4_t quantize_4(const tran_low_t *coeff_ptr,
                                     tran_low_t *qcoeff_ptr,
                                     tran_low_t *dqcoeff_ptr,
                                     int32x4_t v_quant_s32,
@@ -57,7 +57,7 @@ static INLINE uint16x4_t quantize_4(const tran_low_t *coeff_ptr,
   return vmovn_u32(nz_qcoeff_mask);
 }
 
-static INLINE int16x8_t get_max_lane_eob(const int16_t *iscan,
+static inline int16x8_t get_max_lane_eob(const int16_t *iscan,
                                          int16x8_t v_eobmax,
                                          uint16x8_t v_mask) {
   const int16x8_t v_iscan = vld1q_s16(&iscan[0]);
@@ -66,7 +66,7 @@ static INLINE int16x8_t get_max_lane_eob(const int16_t *iscan,
   return vmaxq_s16(v_eobmax, v_nz_iscan);
 }
 
-static INLINE uint16_t get_max_eob(int16x8_t v_eobmax) {
+static inline uint16_t get_max_eob(int16x8_t v_eobmax) {
 #if AOM_ARCH_AARCH64
   return (uint16_t)vmaxvq_s16(v_eobmax);
 #else

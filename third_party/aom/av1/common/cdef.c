@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Alliance for Open Media. All rights reserved
+ * Copyright (c) 2016, Alliance for Open Media. All rights reserved.
  *
  * This source code is subject to the terms of the BSD 2 Clause License and
  * the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
@@ -82,6 +82,7 @@ void cdef_copy_rect8_8bit_to_16bit_c(uint16_t *dst, int dstride,
   }
 }
 
+#if CONFIG_AV1_HIGHBITDEPTH
 void cdef_copy_rect8_16bit_to_16bit_c(uint16_t *dst, int dstride,
                                       const uint16_t *src, int sstride,
                                       int width, int height) {
@@ -91,6 +92,7 @@ void cdef_copy_rect8_16bit_to_16bit_c(uint16_t *dst, int dstride,
     }
   }
 }
+#endif  // CONFIG_AV1_HIGHBITDEPTH
 
 void av1_cdef_copy_sb8_16_lowbd(uint16_t *const dst, int dstride,
                                 const uint8_t *src, int src_voffset,
@@ -100,6 +102,7 @@ void av1_cdef_copy_sb8_16_lowbd(uint16_t *const dst, int dstride,
   cdef_copy_rect8_8bit_to_16bit(dst, dstride, base, sstride, hsize, vsize);
 }
 
+#if CONFIG_AV1_HIGHBITDEPTH
 void av1_cdef_copy_sb8_16_highbd(uint16_t *const dst, int dstride,
                                  const uint8_t *src, int src_voffset,
                                  int src_hoffset, int sstride, int vsize,
@@ -108,20 +111,25 @@ void av1_cdef_copy_sb8_16_highbd(uint16_t *const dst, int dstride,
       &CONVERT_TO_SHORTPTR(src)[src_voffset * (ptrdiff_t)sstride + src_hoffset];
   cdef_copy_rect8_16bit_to_16bit(dst, dstride, base, sstride, hsize, vsize);
 }
+#endif  // CONFIG_AV1_HIGHBITDEPTH
 
 void av1_cdef_copy_sb8_16(const AV1_COMMON *const cm, uint16_t *const dst,
                           int dstride, const uint8_t *src, int src_voffset,
                           int src_hoffset, int sstride, int vsize, int hsize) {
+#if CONFIG_AV1_HIGHBITDEPTH
   if (cm->seq_params->use_highbitdepth) {
     av1_cdef_copy_sb8_16_highbd(dst, dstride, src, src_voffset, src_hoffset,
                                 sstride, vsize, hsize);
-  } else {
-    av1_cdef_copy_sb8_16_lowbd(dst, dstride, src, src_voffset, src_hoffset,
-                               sstride, vsize, hsize);
+    return;
   }
+#else
+  (void)cm;
+#endif  // CONFIG_AV1_HIGHBITDEPTH
+  av1_cdef_copy_sb8_16_lowbd(dst, dstride, src, src_voffset, src_hoffset,
+                             sstride, vsize, hsize);
 }
 
-static INLINE void copy_rect(uint16_t *dst, int dstride, const uint16_t *src,
+static inline void copy_rect(uint16_t *dst, int dstride, const uint16_t *src,
                              int sstride, int v, int h) {
   for (int i = 0; i < v; i++) {
     for (int j = 0; j < h; j++) {
@@ -249,7 +257,7 @@ static void cdef_prepare_fb(const AV1_COMMON *const cm, CdefBlockInfo *fb_info,
   }
 }
 
-static INLINE void cdef_filter_fb(CdefBlockInfo *const fb_info, int plane,
+static inline void cdef_filter_fb(CdefBlockInfo *const fb_info, int plane,
                                   uint8_t use_highbitdepth) {
   ptrdiff_t offset =
       (ptrdiff_t)fb_info->dst_stride * fb_info->roffset + fb_info->coffset;
@@ -271,7 +279,7 @@ static INLINE void cdef_filter_fb(CdefBlockInfo *const fb_info, int plane,
 }
 
 // Initializes block-level parameters for CDEF.
-static INLINE void cdef_init_fb_col(const MACROBLOCKD *const xd,
+static inline void cdef_init_fb_col(const MACROBLOCKD *const xd,
                                     CdefBlockInfo *const fb_info, int *level,
                                     int *sec_strength, int fbc, int fbr,
                                     int plane) {

@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2017, Alliance for Open Media. All rights reserved
+# Copyright (c) 2017, Alliance for Open Media. All rights reserved.
 #
 # This source code is subject to the terms of the BSD 2 Clause License and the
 # Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License was
@@ -86,7 +86,6 @@ list(APPEND AOM_UNIT_TEST_ENCODER_SOURCES
             "${AOM_ROOT}/test/horz_superres_test.cc"
             "${AOM_ROOT}/test/i420_video_source.h"
             "${AOM_ROOT}/test/level_test.cc"
-            "${AOM_ROOT}/test/metadata_test.cc"
             "${AOM_ROOT}/test/monochrome_test.cc"
             "${AOM_ROOT}/test/postproc_filters_test.cc"
             "${AOM_ROOT}/test/resize_test.cc"
@@ -132,8 +131,6 @@ if(CONFIG_REALTIME_ONLY)
                    "${AOM_ROOT}/test/gf_pyr_height_test.cc"
                    "${AOM_ROOT}/test/horz_superres_test.cc"
                    "${AOM_ROOT}/test/level_test.cc"
-                   "${AOM_ROOT}/test/metadata_test.cc"
-                   "${AOM_ROOT}/test/monochrome_test.cc"
                    "${AOM_ROOT}/test/postproc_filters_test.cc"
                    "${AOM_ROOT}/test/sharpness_test.cc")
 endif()
@@ -142,6 +139,7 @@ if(NOT BUILD_SHARED_LIBS)
   list(APPEND AOM_UNIT_TEST_COMMON_SOURCES
               "${AOM_ROOT}/test/aom_mem_test.cc"
               "${AOM_ROOT}/test/av1_common_int_test.cc"
+              "${AOM_ROOT}/test/av1_scale_test.cc"
               "${AOM_ROOT}/test/cdef_test.cc"
               "${AOM_ROOT}/test/cfl_test.cc"
               "${AOM_ROOT}/test/convolve_test.cc"
@@ -153,8 +151,15 @@ if(NOT BUILD_SHARED_LIBS)
               "${AOM_ROOT}/test/lpf_test.cc"
               "${AOM_ROOT}/test/scan_test.cc"
               "${AOM_ROOT}/test/selfguided_filter_test.cc"
-              "${AOM_ROOT}/test/simd_cmp_impl.h"
+              "${AOM_ROOT}/test/simd_cmp_impl.inc"
               "${AOM_ROOT}/test/simd_impl.h")
+
+  if(CONFIG_REALTIME_ONLY AND NOT CONFIG_AV1_DECODER)
+    list(REMOVE_ITEM AOM_UNIT_TEST_COMMON_SOURCES "${AOM_ROOT}/test/cfl_test.cc"
+                     "${AOM_ROOT}/test/hiprec_convolve_test.cc"
+                     "${AOM_ROOT}/test/hiprec_convolve_test_util.cc"
+                     "${AOM_ROOT}/test/hiprec_convolve_test_util.h")
+  endif()
 
   if(HAVE_SSE2)
     list(APPEND AOM_UNIT_TEST_COMMON_INTRIN_SSE2
@@ -185,6 +190,7 @@ if(NOT BUILD_SHARED_LIBS)
               "${AOM_ROOT}/test/av1_convolve_test.cc"
               "${AOM_ROOT}/test/av1_fwd_txfm1d_test.cc"
               "${AOM_ROOT}/test/av1_fwd_txfm2d_test.cc"
+              "${AOM_ROOT}/test/av1_get_qmlevel_test.cc"
               "${AOM_ROOT}/test/av1_inv_txfm1d_test.cc"
               "${AOM_ROOT}/test/av1_inv_txfm2d_test.cc"
               "${AOM_ROOT}/test/av1_k_means_test.cc"
@@ -197,8 +203,6 @@ if(NOT BUILD_SHARED_LIBS)
               "${AOM_ROOT}/test/avg_test.cc"
               "${AOM_ROOT}/test/blend_a64_mask_1d_test.cc"
               "${AOM_ROOT}/test/blend_a64_mask_test.cc"
-              "${AOM_ROOT}/test/comp_avg_pred_test.cc"
-              "${AOM_ROOT}/test/comp_avg_pred_test.h"
               "${AOM_ROOT}/test/comp_mask_pred_test.cc"
               "${AOM_ROOT}/test/disflow_test.cc"
               "${AOM_ROOT}/test/encodemb_test.cc"
@@ -215,10 +219,10 @@ if(NOT BUILD_SHARED_LIBS)
               "${AOM_ROOT}/test/horver_correlation_test.cc"
               "${AOM_ROOT}/test/masked_sad_test.cc"
               "${AOM_ROOT}/test/masked_variance_test.cc"
+              "${AOM_ROOT}/test/metadata_test.cc"
               "${AOM_ROOT}/test/minmax_test.cc"
               "${AOM_ROOT}/test/motion_vector_test.cc"
               "${AOM_ROOT}/test/mv_cost_test.cc"
-              "${AOM_ROOT}/test/noise_model_test.cc"
               "${AOM_ROOT}/test/obmc_sad_test.cc"
               "${AOM_ROOT}/test/obmc_variance_test.cc"
               "${AOM_ROOT}/test/pickrst_test.cc"
@@ -261,8 +265,8 @@ if(NOT BUILD_SHARED_LIBS)
                 "${AOM_ROOT}/test/film_grain_table_test.cc"
                 "${AOM_ROOT}/test/kf_test.cc"
                 "${AOM_ROOT}/test/lossless_test.cc"
+                "${AOM_ROOT}/test/noise_model_test.cc"
                 "${AOM_ROOT}/test/quant_test.cc"
-                "${AOM_ROOT}/test/ratectrl_test.cc"
                 "${AOM_ROOT}/test/rd_test.cc"
                 "${AOM_ROOT}/test/sb_multipass_test.cc"
                 "${AOM_ROOT}/test/sb_qp_sweep_test.cc"
@@ -283,11 +287,14 @@ if(NOT BUILD_SHARED_LIBS)
                      "${AOM_ROOT}/test/altref_test.cc"
                      "${AOM_ROOT}/test/av1_encoder_parms_get_to_decoder.cc"
                      "${AOM_ROOT}/test/av1_ext_tile_test.cc"
+                     "${AOM_ROOT}/test/binary_codes_test.cc"
                      "${AOM_ROOT}/test/cnn_test.cc"
                      "${AOM_ROOT}/test/decode_multithreaded_test.cc"
                      "${AOM_ROOT}/test/error_resilience_test.cc"
+                     "${AOM_ROOT}/test/film_grain_table_test.cc"
                      "${AOM_ROOT}/test/kf_test.cc"
                      "${AOM_ROOT}/test/lossless_test.cc"
+                     "${AOM_ROOT}/test/noise_model_test.cc"
                      "${AOM_ROOT}/test/sb_multipass_test.cc"
                      "${AOM_ROOT}/test/sb_qp_sweep_test.cc"
                      "${AOM_ROOT}/test/selfguided_filter_test.cc"
@@ -406,8 +413,11 @@ if(ENABLE_TESTS)
     aom_gtest STATIC
     "${AOM_ROOT}/third_party/googletest/src/googletest/src/gtest-all.cc")
   set_property(TARGET aom_gtest PROPERTY FOLDER ${AOM_IDE_TEST_FOLDER})
+  # There are -Wundef warnings in the gtest headers. Tell the compiler to treat
+  # the gtest include directories as system include directories and suppress
+  # compiler warnings in the gtest headers.
   target_include_directories(
-    aom_gtest
+    aom_gtest SYSTEM
     PUBLIC "${AOM_ROOT}/third_party/googletest/src/googletest/include"
     PRIVATE "${AOM_ROOT}/third_party/googletest/src/googletest")
 
@@ -420,16 +430,6 @@ if(ENABLE_TESTS)
       target_compile_definitions(aom_gtest PUBLIC GTEST_HAS_PTHREAD=0)
     endif()
   endif()
-
-  add_library(
-    aom_gmock STATIC
-    "${AOM_ROOT}/third_party/googletest/src/googlemock/src/gmock-all.cc")
-  set_property(TARGET aom_gmock PROPERTY FOLDER ${AOM_IDE_TEST_FOLDER})
-  target_include_directories(
-    aom_gmock
-    PUBLIC "${AOM_ROOT}/third_party/googletest/src/googlemock/include"
-    PRIVATE "${AOM_ROOT}/third_party/googletest/src/googlemock")
-  target_link_libraries(aom_gmock ${AOM_LIB_LINK_TYPE} aom_gtest)
 endif()
 
 # Setup testdata download targets, test build targets, and test run targets. The

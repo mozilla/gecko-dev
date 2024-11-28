@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023, Alliance for Open Media. All rights reserved
+ * Copyright (c) 2023, Alliance for Open Media. All rights reserved.
  *
  * This source code is subject to the terms of the BSD 2 Clause License and
  * the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
@@ -19,7 +19,7 @@
 #include "aom_dsp/arm/mem_neon.h"
 #include "aom_dsp/arm/sum_neon.h"
 
-static INLINE void get_squared_error(
+static inline void get_squared_error(
     const uint16_t *frame1, const uint32_t stride1, const uint16_t *frame2,
     const uint32_t stride2, const uint32_t block_width,
     const uint32_t block_height, uint32_t *frame_sse,

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023, Alliance for Open Media. All rights reserved
+ * Copyright (c) 2023, Alliance for Open Media. All rights reserved.
  *
  * This source code is subject to the terms of the BSD 2 Clause License and
  * the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
@@ -22,7 +22,7 @@ int64_t av1_highbd_block_error_neon(const tran_low_t *coeff,
   int64x2_t ssz_s64 = vdupq_n_s64(0);
 
   const int shift = 2 * (bd - 8);
-  const int rounding = shift > 0 ? 1 << (shift - 1) : 0;
+  const int rounding = (1 << shift) >> 1;
 
   assert(block_size >= 16);
   assert((block_size % 16) == 0);

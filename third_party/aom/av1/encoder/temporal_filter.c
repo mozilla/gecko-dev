@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Alliance for Open Media. All rights reserved
+ * Copyright (c) 2016, Alliance for Open Media. All rights reserved.
  *
  * This source code is subject to the terms of the BSD 2 Clause License and
  * the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
@@ -22,7 +22,6 @@
 #include "aom_mem/aom_mem.h"
 #include "aom_ports/aom_timer.h"
 #include "aom_ports/mem.h"
-#include "aom_scale/aom_scale.h"
 #include "av1/common/alloccommon.h"
 #include "av1/common/av1_common_int.h"
 #include "av1/common/quant_common.h"
@@ -53,7 +52,7 @@ static void tf_determine_block_partition(const MV block_mv, const int block_mse,
 
 // This function returns the minimum and maximum log variances for 4x4 sub
 // blocks in the current block.
-static INLINE void get_log_var_4x4sub_blk(
+static inline void get_log_var_4x4sub_blk(
     AV1_COMP *cpi, const YV12_BUFFER_CONFIG *const frame_to_filter, int mb_row,
     int mb_col, BLOCK_SIZE block_size, double *blk_4x4_var_min,
     double *blk_4x4_var_max, int is_hbd) {
@@ -67,12 +66,12 @@ static INLINE void get_log_var_4x4sub_blk(
   const int y_offset = mb_row * mb_height * src_stride + mb_col * mb_width;
   const uint8_t *src_buf = frame_to_filter->y_buffer + y_offset;
 
+  aom_variance_fn_t vf = cpi->ppi->fn_ptr[BLOCK_4X4].vf;
   for (int i = 0; i < mb_height; i += MI_SIZE) {
     for (int j = 0; j < mb_width; j += MI_SIZE) {
       // Calculate the 4x4 sub-block variance.
       const int var = av1_calc_normalized_variance(
-          cpi->ppi->fn_ptr[BLOCK_4X4].vf, src_buf + (i * src_stride) + j,
-          src_stride, is_hbd);
+          vf, src_buf + (i * src_stride) + j, src_stride, is_hbd);
 
       // Record min and max for over-arching block
       var_min = AOMMIN(var_min, var);
@@ -82,6 +81,16 @@ static INLINE void get_log_var_4x4sub_blk(
 
   *blk_4x4_var_min = log1p(var_min / 16.0);
   *blk_4x4_var_max = log1p(var_max / 16.0);
+}
+
+// Helper function to get `q` used for encoding.
+static int get_q(const AV1_COMP *cpi) {
+  const GF_GROUP *gf_group = &cpi->ppi->gf_group;
+  const FRAME_TYPE frame_type = gf_group->frame_type[cpi->gf_frame_index];
+  const int q =
+      (int)av1_convert_qindex_to_q(cpi->ppi->p_rc.avg_frame_qindex[frame_type],
+                                   cpi->common.seq_params->bit_depth);
+  return q;
 }
 
 /*!\endcond */
@@ -119,6 +128,8 @@ static INLINE void get_log_var_4x4sub_blk(
  *                                    4 sub-blocks
  * \param[out]  subblock_mses         Pointer to the search errors (MSE) for
  *                                    4 sub-blocks
+ * \param[out]  is_dc_diff_large      Pointer to the value that tells if the DC
+ *                                    difference is large for the block
  *
  * \remark Nothing will be returned. Results are saved in subblock_mvs and
  *         subblock_mses
@@ -129,7 +140,7 @@ static void tf_motion_search(AV1_COMP *cpi, MACROBLOCK *mb,
                              const BLOCK_SIZE block_size, const int mb_row,
                              const int mb_col, MV *ref_mv,
                              bool allow_me_for_sub_blks, MV *subblock_mvs,
-                             int *subblock_mses) {
+                             int *subblock_mses, int *is_dc_diff_large) {
   // Frame information
   const int min_frame_size = AOMMIN(cpi->common.width, cpi->common.height);
 
@@ -173,6 +184,7 @@ static void tf_motion_search(AV1_COMP *cpi, MACROBLOCK *mb,
   mbd->plane[0].pre[0].buf = ref_frame->y_buffer + y_offset;
   mbd->plane[0].pre[0].stride = y_stride;
   mbd->plane[0].pre[0].width = ref_width;
+  *is_dc_diff_large = 0;
 
   const SEARCH_METHODS search_method = NSTEP;
   const search_site_config *search_site_cfg =
@@ -188,7 +200,7 @@ static void tf_motion_search(AV1_COMP *cpi, MACROBLOCK *mb,
   FULLPEL_MV_STATS best_mv_stats;
   int block_mse = INT_MAX;
   MV block_mv = kZeroMv;
-  const int q = av1_get_q(cpi);
+  const int q = get_q(cpi);
 
   av1_make_default_fullpel_ms_params(&full_ms_params, cpi, mb, block_size,
                                      &baseline_mv, start_mv, search_site_cfg,
@@ -236,6 +248,7 @@ static void tf_motion_search(AV1_COMP *cpi, MACROBLOCK *mb,
     block_mse = DIVIDE_AND_ROUND(error, mb_pels);
     block_mv = best_mv.as_mv;
     *ref_mv = best_mv.as_mv;
+    *is_dc_diff_large = 50 * error < sse;
 
     if (allow_me_for_sub_blks) {
       // On 4 sub-blocks.
@@ -352,7 +365,7 @@ static void tf_determine_block_partition(const MV block_mv, const int block_mse,
 }
 
 // Helper function to determine whether a frame is encoded with high bit-depth.
-static INLINE int is_frame_high_bitdepth(const YV12_BUFFER_CONFIG *frame) {
+static inline int is_frame_high_bitdepth(const YV12_BUFFER_CONFIG *frame) {
   return (frame->flags & YV12_FLAG_HIGHBITDEPTH) ? 1 : 0;
 }
 
@@ -520,7 +533,7 @@ static void tf_apply_temporal_filter_self(const YV12_BUFFER_CONFIG *ref_frame,
 // Returns:
 //   Nothing will be returned. But the content to which `square_diff` points
 //   will be modified.
-static INLINE void compute_square_diff(const uint8_t *ref, const int ref_offset,
+static inline void compute_square_diff(const uint8_t *ref, const int ref_offset,
                                        const int ref_stride, const uint8_t *tgt,
                                        const int tgt_offset,
                                        const int tgt_stride, const int height,
@@ -848,15 +861,6 @@ static void tf_normalize_filtered_frame(
   }
 }
 
-int av1_get_q(const AV1_COMP *cpi) {
-  const GF_GROUP *gf_group = &cpi->ppi->gf_group;
-  const FRAME_TYPE frame_type = gf_group->frame_type[cpi->gf_frame_index];
-  const int q =
-      (int)av1_convert_qindex_to_q(cpi->ppi->p_rc.avg_frame_qindex[frame_type],
-                                   cpi->common.seq_params->bit_depth);
-  return q;
-}
-
 void av1_tf_do_filtering_row(AV1_COMP *cpi, ThreadData *td, int mb_row) {
   TemporalFilterCtx *tf_ctx = &cpi->tf_ctx;
   YV12_BUFFER_CONFIG **frames = tf_ctx->frames;
@@ -883,7 +887,9 @@ void av1_tf_do_filtering_row(AV1_COMP *cpi, ThreadData *td, int mb_row) {
   uint8_t *pred = tf_data->pred;
 
   // Factor to control the filering strength.
-  const int filter_strength = cpi->oxcf.algo_cfg.arnr_strength;
+  int filter_strength = cpi->oxcf.algo_cfg.arnr_strength;
+  const GF_GROUP *gf_group = &cpi->ppi->gf_group;
+  const FRAME_TYPE frame_type = gf_group->frame_type[cpi->gf_frame_index];
 
   // Do filtering.
   FRAME_DIFF *diff = &td->tf_data.diff;
@@ -924,6 +930,8 @@ void av1_tf_do_filtering_row(AV1_COMP *cpi, ThreadData *td, int mb_row) {
       // Motion search.
       MV subblock_mvs[4] = { kZeroMv, kZeroMv, kZeroMv, kZeroMv };
       int subblock_mses[4] = { INT_MAX, INT_MAX, INT_MAX, INT_MAX };
+      int is_dc_diff_large = 0;
+
       if (frame ==
           filter_frame_idx) {  // Frame to be filtered.
                                // Change ref_mv sign for following frames.
@@ -932,8 +940,12 @@ void av1_tf_do_filtering_row(AV1_COMP *cpi, ThreadData *td, int mb_row) {
       } else {  // Other reference frames.
         tf_motion_search(cpi, mb, frame_to_filter, frames[frame], block_size,
                          mb_row, mb_col, &ref_mv, allow_me_for_sub_blks,
-                         subblock_mvs, subblock_mses);
+                         subblock_mvs, subblock_mses, &is_dc_diff_large);
       }
+
+      if (cpi->oxcf.kf_cfg.enable_keyframe_filtering == 1 &&
+          frame_type == KEY_FRAME && is_dc_diff_large)
+        filter_strength = AOMMIN(filter_strength, 1);
 
       // Perform weighted averaging.
       if (frame == filter_frame_idx) {  // Frame to be filtered.
@@ -1090,7 +1102,7 @@ static void tf_setup_filtering_buffer(AV1_COMP *cpi,
                            num_planes - 1, cpi->common.seq_params->bit_depth,
                            NOISE_ESTIMATION_EDGE_THRESHOLD);
   // Get quantization factor.
-  const int q = av1_get_q(cpi);
+  const int q = get_q(cpi);
   // Get correlation estimates from first-pass;
   const FIRSTPASS_STATS *stats =
       cpi->twopass_frame.stats_in - (cpi->rc.frames_since_key == 0);
@@ -1377,7 +1389,7 @@ static void init_tf_ctx(AV1_COMP *cpi, int filter_frame_lookahead_idx,
   tf_ctx->mb_rows = mb_rows;
   tf_ctx->mb_cols = mb_cols;
   tf_ctx->is_highbitdepth = is_highbitdepth;
-  tf_ctx->q_factor = av1_get_q(cpi);
+  tf_ctx->q_factor = get_q(cpi);
 }
 
 int av1_check_show_filtered_frame(const YV12_BUFFER_CONFIG *frame,

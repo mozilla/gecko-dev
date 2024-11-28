@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Alliance for Open Media. All rights reserved
+ * Copyright (c) 2020, Alliance for Open Media. All rights reserved.
  *
  * This source code is subject to the terms of the BSD 2 Clause License and
  * the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
@@ -23,7 +23,7 @@
 #include "av1/encoder/av1_temporal_denoiser.h"
 
 // Compute the sum of all pixel differences of this MB.
-static INLINE int horizontal_add_s8x16(const int8x16_t v_sum_diff_total) {
+static inline int horizontal_add_s8x16(const int8x16_t v_sum_diff_total) {
 #if AOM_ARCH_AARCH64
   return vaddlvq_s8(v_sum_diff_total);
 #else
@@ -38,7 +38,7 @@ static INLINE int horizontal_add_s8x16(const int8x16_t v_sum_diff_total) {
 }
 
 // Denoise a 16x1 vector.
-static INLINE int8x16_t denoiser_16x1_neon(
+static inline int8x16_t denoiser_16x1_neon(
     const uint8_t *sig, const uint8_t *mc_running_avg_y, uint8_t *running_avg_y,
     const uint8x16_t v_level1_threshold, const uint8x16_t v_level2_threshold,
     const uint8x16_t v_level3_threshold, const uint8x16_t v_level1_adjustment,
@@ -100,7 +100,7 @@ static INLINE int8x16_t denoiser_16x1_neon(
   return v_sum_diff_total;
 }
 
-static INLINE int8x16_t denoiser_adjust_16x1_neon(
+static inline int8x16_t denoiser_adjust_16x1_neon(
     const uint8_t *sig, const uint8_t *mc_running_avg_y, uint8_t *running_avg_y,
     const uint8x16_t k_delta, int8x16_t v_sum_diff_total) {
   uint8x16_t v_running_avg_y = vld1q_u8(running_avg_y);

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Alliance for Open Media. All rights reserved
+ * Copyright (c) 2016, Alliance for Open Media. All rights reserved.
  *
  * This source code is subject to the terms of the BSD 2 Clause License and
  * the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
@@ -50,6 +50,7 @@ void cdef_copy_rect8_8bit_to_16bit_neon(uint16_t *dst, int dstride,
   } while (--height != 0);
 }
 
+#if CONFIG_AV1_HIGHBITDEPTH
 void cdef_copy_rect8_16bit_to_16bit_neon(uint16_t *dst, int dstride,
                                          const uint16_t *src, int sstride,
                                          int width, int height) {
@@ -73,6 +74,7 @@ void cdef_copy_rect8_16bit_to_16bit_neon(uint16_t *dst, int dstride,
     dst += dstride;
   } while (--height != 0);
 }
+#endif  // CONFIG_AV1_HIGHBITDEPTH
 
 // partial A is a 16-bit vector of the form:
 // [x8 x7 x6 x5 x4 x3 x2 x1] and partial B has the form:
@@ -80,7 +82,7 @@ void cdef_copy_rect8_16bit_to_16bit_neon(uint16_t *dst, int dstride,
 // This function computes (x1^2+y1^2)*C1 + (x2^2+y2^2)*C2 + ...
 // (x7^2+y2^7)*C7 + (x8^2+0^2)*C8 where the C1..C8 constants are in const1
 // and const2.
-static INLINE uint32x4_t fold_mul_and_sum_neon(int16x8_t partiala,
+static inline uint32x4_t fold_mul_and_sum_neon(int16x8_t partiala,
                                                int16x8_t partialb,
                                                uint32x4_t const1,
                                                uint32x4_t const2) {
@@ -146,7 +148,7 @@ static INLINE uint32x4_t fold_mul_and_sum_neon(int16x8_t partiala,
 // two of them to compute each half of the new configuration, and pad the empty
 // spaces with zeros. Similar shifting is done for other directions, except
 // direction 6 which is straightforward as it's the vertical direction.
-static INLINE uint32x4_t compute_vert_directions_neon(int16x8_t lines[8],
+static inline uint32x4_t compute_vert_directions_neon(int16x8_t lines[8],
                                                       uint32_t cost[4]) {
   const int16x8_t zero = vdupq_n_s16(0);
 
@@ -226,7 +228,7 @@ static INLINE uint32x4_t compute_vert_directions_neon(int16x8_t lines[8],
   return costs[0];
 }
 
-static INLINE uint32x4_t fold_mul_and_sum_pairwise_neon(int16x8_t partiala,
+static inline uint32x4_t fold_mul_and_sum_pairwise_neon(int16x8_t partiala,
                                                         int16x8_t partialb,
                                                         int16x8_t partialc,
                                                         uint32x4_t const0) {
@@ -448,7 +450,7 @@ void cdef_find_dir_dual_neon(const uint16_t *img1, const uint16_t *img2,
 }
 
 // sign(a-b) * min(abs(a-b), max(0, threshold - (abs(a-b) >> adjdamp)))
-static INLINE int16x8_t constrain16(uint16x8_t a, uint16x8_t b,
+static inline int16x8_t constrain16(uint16x8_t a, uint16x8_t b,
                                     unsigned int threshold, int adjdamp) {
   uint16x8_t diff = vabdq_u16(a, b);
   const uint16x8_t a_gt_b = vcgtq_u16(a, b);
@@ -458,7 +460,7 @@ static INLINE int16x8_t constrain16(uint16x8_t a, uint16x8_t b,
   return vbslq_s16(a_gt_b, clip, vnegq_s16(clip));
 }
 
-static INLINE void primary_filter(uint16x8_t s, uint16x8_t tap[4],
+static inline void primary_filter(uint16x8_t s, uint16x8_t tap[4],
                                   const int *pri_taps, int pri_strength,
                                   int pri_damping, int16x8_t *sum) {
   // Near taps
@@ -476,7 +478,7 @@ static INLINE void primary_filter(uint16x8_t s, uint16x8_t tap[4],
   *sum = vmlaq_n_s16(*sum, f0, pri_taps[1]);
 }
 
-static INLINE void secondary_filter(uint16x8_t s, uint16x8_t tap[8],
+static inline void secondary_filter(uint16x8_t s, uint16x8_t tap[8],
                                     const int *sec_taps, int sec_strength,
                                     int sec_damping, int16x8_t *sum) {
   // Near taps

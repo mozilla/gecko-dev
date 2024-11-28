@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Alliance for Open Media. All rights reserved
+ * Copyright (c) 2016, Alliance for Open Media. All rights reserved.
  *
  * This source code is subject to the terms of the BSD 2 Clause License and
  * the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
@@ -150,7 +150,7 @@ class AV1InvTxfm2d : public ::testing::TestWithParam<AV1InvTxfm2dParam> {
   TxSize tx_size_;
 };
 
-static int max_error_ls[TX_SIZES_ALL] = {
+static const int max_error_ls[TX_SIZES_ALL] = {
   2,  // 4x4 transform
   2,  // 8x8 transform
   2,  // 16x16 transform
@@ -172,7 +172,7 @@ static int max_error_ls[TX_SIZES_ALL] = {
   3,  // 64x16 transform
 };
 
-static double avg_error_ls[TX_SIZES_ALL] = {
+static const double avg_error_ls[TX_SIZES_ALL] = {
   0.002,  // 4x4 transform
   0.05,   // 8x8 transform
   0.07,   // 16x16 transform

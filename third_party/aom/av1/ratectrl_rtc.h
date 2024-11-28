@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, Alliance for Open Media. All rights reserved
+ * Copyright (c) 2021, Alliance for Open Media. All rights reserved.
  *
  * This source code is subject to the terms of the BSD 2 Clause License and
  * the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
@@ -46,7 +46,7 @@ struct AV1RateControlRtcConfig {
   int max_intra_bitrate_pct;
   int max_inter_bitrate_pct;
   int frame_drop_thresh;
-  int max_consec_drop;
+  int max_consec_drop_ms;
   double framerate;
   int layer_target_bitrate[kAV1MaxLayers];
   int ts_rate_decimator[kAV1MaxTemporalLayers];

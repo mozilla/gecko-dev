@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Alliance for Open Media. All rights reserved
+ * Copyright (c) 2016, Alliance for Open Media. All rights reserved.
  *
  * This source code is subject to the terms of the BSD 2 Clause License and
  * the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
@@ -278,7 +278,9 @@ aom_image_t *aom_img_alloc(aom_image_t *img, aom_img_fmt_t fmt,
  *                         (2^27).
  * \param[in]    align     Alignment, in bytes, of each row in the image
  *                         (stride). Must not exceed 65536.
- * \param[in]    img_data  Storage to use for the image
+ * \param[in]    img_data  Storage to use for the image. The storage must
+ *                         outlive the returned image descriptor; it can be
+ *                         disposed of after calling aom_img_free().
  *
  * \return Returns a pointer to the initialized image descriptor. If the img
  *         parameter is non-null, the value of the img parameter will be

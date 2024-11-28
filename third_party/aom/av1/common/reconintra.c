@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Alliance for Open Media. All rights reserved
+ * Copyright (c) 2016, Alliance for Open Media. All rights reserved.
  *
  * This source code is subject to the terms of the BSD 2 Clause License and
  * the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
@@ -464,6 +464,17 @@ static intra_high_pred_fn dc_pred_high[2][2][TX_SIZES_ALL];
 static void init_intra_predictors_internal(void) {
   assert(NELEMENTS(mode_to_angle_map) == INTRA_MODES);
 
+#if CONFIG_REALTIME_ONLY && !CONFIG_AV1_DECODER
+#define INIT_RECTANGULAR(p, type)             \
+  p[TX_4X8] = aom_##type##_predictor_4x8;     \
+  p[TX_8X4] = aom_##type##_predictor_8x4;     \
+  p[TX_8X16] = aom_##type##_predictor_8x16;   \
+  p[TX_16X8] = aom_##type##_predictor_16x8;   \
+  p[TX_16X32] = aom_##type##_predictor_16x32; \
+  p[TX_32X16] = aom_##type##_predictor_32x16; \
+  p[TX_32X64] = aom_##type##_predictor_32x64; \
+  p[TX_64X32] = aom_##type##_predictor_64x32;
+#else
 #define INIT_RECTANGULAR(p, type)             \
   p[TX_4X8] = aom_##type##_predictor_4x8;     \
   p[TX_8X4] = aom_##type##_predictor_8x4;     \
@@ -479,6 +490,7 @@ static void init_intra_predictors_internal(void) {
   p[TX_32X8] = aom_##type##_predictor_32x8;   \
   p[TX_16X64] = aom_##type##_predictor_16x64; \
   p[TX_64X16] = aom_##type##_predictor_64x16;
+#endif  // CONFIG_REALTIME_ONLY && !CONFIG_AV1_DECODER
 
 #define INIT_NO_4X4(p, type)                  \
   p[TX_8X8] = aom_##type##_predictor_8x8;     \
@@ -1622,7 +1634,7 @@ static void highbd_build_non_directional_intra_predictors(
 }
 #endif  // CONFIG_AV1_HIGHBITDEPTH
 
-static INLINE BLOCK_SIZE scale_chroma_bsize(BLOCK_SIZE bsize, int subsampling_x,
+static inline BLOCK_SIZE scale_chroma_bsize(BLOCK_SIZE bsize, int subsampling_x,
                                             int subsampling_y) {
   assert(subsampling_x >= 0 && subsampling_x < 2);
   assert(subsampling_y >= 0 && subsampling_y < 2);
@@ -1838,6 +1850,7 @@ void av1_predict_intra_block_facade(const AV1_COMMON *cm, MACROBLOCKD *xd,
   const int angle_delta = mbmi->angle_delta[plane != AOM_PLANE_Y] * ANGLE_STEP;
   const SequenceHeader *seq_params = cm->seq_params;
 
+#if !CONFIG_REALTIME_ONLY || CONFIG_AV1_DECODER
   if (plane != AOM_PLANE_Y && mbmi->uv_mode == UV_CFL_PRED) {
 #if CONFIG_DEBUG
     assert(is_cfl_allowed(xd));
@@ -1870,6 +1883,7 @@ void av1_predict_intra_block_facade(const AV1_COMMON *cm, MACROBLOCKD *xd,
     av1_cfl_predict_block(xd, dst, dst_stride, tx_size, plane);
     return;
   }
+#endif  // !CONFIG_REALTIME_ONLY || CONFIG_AV1_DECODER
   av1_predict_intra_block(
       xd, seq_params->sb_size, seq_params->enable_intra_edge_filter, pd->width,
       pd->height, tx_size, mode, angle_delta, use_palette, filter_intra_mode,

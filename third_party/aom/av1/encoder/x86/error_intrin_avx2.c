@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Alliance for Open Media. All rights reserved
+ * Copyright (c) 2016, Alliance for Open Media. All rights reserved.
  *
  * This source code is subject to the terms of the BSD 2 Clause License and
  * the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
@@ -15,7 +15,7 @@
 
 #include "aom/aom_integer.h"
 
-static INLINE void read_coeff(const tran_low_t *coeff, intptr_t offset,
+static inline void read_coeff(const tran_low_t *coeff, intptr_t offset,
                               __m256i *c) {
   const tran_low_t *addr = coeff + offset;
 
@@ -29,7 +29,7 @@ static INLINE void read_coeff(const tran_low_t *coeff, intptr_t offset,
   }
 }
 
-static INLINE void av1_block_error_block_size16_avx2(const int16_t *coeff,
+static inline void av1_block_error_block_size16_avx2(const int16_t *coeff,
                                                      const int16_t *dqcoeff,
                                                      __m256i *sse_256) {
   const __m256i _coeff = _mm256_loadu_si256((const __m256i *)coeff);
@@ -44,7 +44,7 @@ static INLINE void av1_block_error_block_size16_avx2(const int16_t *coeff,
   *sse_256 = _mm256_unpacklo_epi32(error_hi, _mm256_setzero_si256());
 }
 
-static INLINE void av1_block_error_block_size32_avx2(const int16_t *coeff,
+static inline void av1_block_error_block_size32_avx2(const int16_t *coeff,
                                                      const int16_t *dqcoeff,
                                                      __m256i *sse_256) {
   const __m256i zero = _mm256_setzero_si256();
@@ -71,7 +71,7 @@ static INLINE void av1_block_error_block_size32_avx2(const int16_t *coeff,
   *sse_256 = _mm256_add_epi64(*sse_256, sum_temp_0);
 }
 
-static INLINE void av1_block_error_block_size64_avx2(const int16_t *coeff,
+static inline void av1_block_error_block_size64_avx2(const int16_t *coeff,
                                                      const int16_t *dqcoeff,
                                                      __m256i *sse_256,
                                                      intptr_t block_size) {

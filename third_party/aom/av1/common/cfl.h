@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Alliance for Open Media. All rights reserved
+ * Copyright (c) 2016, Alliance for Open Media. All rights reserved.
  *
  * This source code is subject to the terms of the BSD 2 Clause License and
  * the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
@@ -16,7 +16,7 @@
 #include "av1/common/blockd.h"
 
 // Can we use CfL for the current block?
-static INLINE CFL_ALLOWED_TYPE is_cfl_allowed(const MACROBLOCKD *xd) {
+static inline CFL_ALLOWED_TYPE is_cfl_allowed(const MACROBLOCKD *xd) {
   const MB_MODE_INFO *mbmi = xd->mi[0];
   const BLOCK_SIZE bsize = mbmi->bsize;
   assert(bsize < BLOCK_SIZES_ALL);
@@ -35,7 +35,7 @@ static INLINE CFL_ALLOWED_TYPE is_cfl_allowed(const MACROBLOCKD *xd) {
 
 // Do we need to save the luma pixels from the current block,
 // for a possible future CfL prediction?
-static INLINE CFL_ALLOWED_TYPE store_cfl_required(const AV1_COMMON *cm,
+static inline CFL_ALLOWED_TYPE store_cfl_required(const AV1_COMMON *cm,
                                                   const MACROBLOCKD *xd) {
   const MB_MODE_INFO *mbmi = xd->mi[0];
 
@@ -56,17 +56,17 @@ static INLINE CFL_ALLOWED_TYPE store_cfl_required(const AV1_COMMON *cm,
                             mbmi->uv_mode == UV_CFL_PRED);
 }
 
-static INLINE int get_scaled_luma_q0(int alpha_q3, int16_t pred_buf_q3) {
+static inline int get_scaled_luma_q0(int alpha_q3, int16_t pred_buf_q3) {
   int scaled_luma_q6 = alpha_q3 * pred_buf_q3;
   return ROUND_POWER_OF_TWO_SIGNED(scaled_luma_q6, 6);
 }
 
-static INLINE CFL_PRED_TYPE get_cfl_pred_type(int plane) {
+static inline CFL_PRED_TYPE get_cfl_pred_type(int plane) {
   assert(plane > 0);
   return (CFL_PRED_TYPE)(plane - 1);
 }
 
-static INLINE void clear_cfl_dc_pred_cache_flags(CFL_CTX *cfl) {
+static inline void clear_cfl_dc_pred_cache_flags(CFL_CTX *cfl) {
   cfl->use_dc_pred_cache = false;
   cfl->dc_pred_is_cached[CFL_PRED_U] = false;
   cfl->dc_pred_is_cached[CFL_PRED_V] = false;

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, Alliance for Open Media. All rights reserved
+ * Copyright (c) 2022, Alliance for Open Media. All rights reserved.
  *
  * This source code is subject to the terms of the BSD 2 Clause License and
  * the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
@@ -30,7 +30,7 @@ DECLARE_ALIGNED(32, static const uint16_t, kSlidingWindowMask[]) = {
   0x0000, 0x0000, 0x0000, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF
 };
 
-static INLINE void get_squared_error(
+static inline void get_squared_error(
     const uint8_t *frame1, const uint32_t stride1, const uint8_t *frame2,
     const uint32_t stride2, const uint32_t block_width,
     const uint32_t block_height, uint16_t *frame_sse,
@@ -60,7 +60,7 @@ static INLINE void get_squared_error(
   } while (++i < block_height);
 }
 
-static INLINE uint16x8_t load_and_pad(const uint16_t *src, const uint32_t col,
+static inline uint16x8_t load_and_pad(const uint16_t *src, const uint32_t col,
                                       const uint32_t block_width) {
   uint16x8_t s = vld1q_u16(src);
 
@@ -86,7 +86,7 @@ static void apply_temporal_filter(
   assert(((block_width == 16) || (block_width == 32)) &&
          ((block_height == 16) || (block_height == 32)));
 
-  uint32_t acc_5x5_neon[BH][BW];
+  uint32_t diff_sse[BH][BW];
   const uint16x8x4_t vmask = vld1q_u16_x4(kSlidingWindowMask);
 
   // Traverse 4 columns at a time - first and last two columns need padding.
@@ -104,13 +104,26 @@ static void apply_temporal_filter(
     vsrc[0] = vsrc[2];
     vsrc[1] = vsrc[2];
 
+    uint32x4_t vsum[4] = { vdupq_n_u32(0), vdupq_n_u32(0), vdupq_n_u32(0),
+                           vdupq_n_u32(0) };
+
+    for (int i = 0; i < 4; i++) {
+      vsum[i] = vpadalq_u16(vsum[i], vandq_u16(vsrc[0], vmask.val[i]));
+      vsum[i] = vpadalq_u16(vsum[i], vandq_u16(vsrc[1], vmask.val[i]));
+      vsum[i] = vpadalq_u16(vsum[i], vandq_u16(vsrc[2], vmask.val[i]));
+      vsum[i] = vpadalq_u16(vsum[i], vandq_u16(vsrc[3], vmask.val[i]));
+      vsum[i] = vpadalq_u16(vsum[i], vandq_u16(vsrc[4], vmask.val[i]));
+    }
+
     for (unsigned int row = 0; row < block_height; row++) {
+      uint32x4_t sum_luma = vld1q_u32(luma_sse_sum + row * BW + col);
+      uint32x4_t sum_src = horizontal_add_4d_u32x4(vsum);
+
+      vst1q_u32(&diff_sse[row][col], vaddq_u32(sum_src, sum_luma));
+
       for (int i = 0; i < 4; i++) {
-        uint32x4_t vsum = vdupq_n_u32(0);
-        for (int j = 0; j < 5; j++) {
-          vsum = vpadalq_u16(vsum, vandq_u16(vsrc[j], vmask.val[i]));
-        }
-        acc_5x5_neon[row][col + i] = horizontal_add_u32x4(vsum);
+        uint32x4_t vsum_0 = vpaddlq_u16(vandq_u16(vsrc[0], vmask.val[i]));
+        vsum[i] = vsubq_u32(vsum[i], vsum_0);
       }
 
       // Push all rows in the sliding window up one.
@@ -126,6 +139,10 @@ static void apply_temporal_filter(
         // Pad the bottom 2 rows.
         vsrc[4] = vsrc[3];
       }
+
+      for (int i = 0; i < 4; i++) {
+        vsum[i] = vpadalq_u16(vsum[i], vandq_u16(vsrc[4], vmask.val[i]));
+      }
     }
   }
 
@@ -134,9 +151,8 @@ static void apply_temporal_filter(
     for (unsigned int i = 0, k = 0; i < block_height; i++) {
       for (unsigned int j = 0; j < block_width; j++, k++) {
         const int pixel_value = frame[i * stride + j];
-        const uint32_t diff_sse = acc_5x5_neon[i][j] + luma_sse_sum[i * BW + j];
 
-        const double window_error = diff_sse * inv_num_ref_pixels;
+        const double window_error = diff_sse[i][j] * inv_num_ref_pixels;
         const int subblock_idx =
             (i >= block_height / 2) * 2 + (j >= block_width / 2);
         const double block_error = (double)subblock_mses[subblock_idx];
@@ -155,9 +171,8 @@ static void apply_temporal_filter(
     for (unsigned int i = 0, k = 0; i < block_height; i++) {
       for (unsigned int j = 0; j < block_width; j++, k++) {
         const int pixel_value = frame[i * stride + j];
-        const uint32_t diff_sse = acc_5x5_neon[i][j] + luma_sse_sum[i * BW + j];
 
-        const double window_error = diff_sse * inv_num_ref_pixels;
+        const double window_error = diff_sse[i][j] * inv_num_ref_pixels;
         const int subblock_idx =
             (i >= block_height / 2) * 2 + (j >= block_width / 2);
         const double block_error = (double)subblock_mses[subblock_idx];
@@ -456,15 +471,15 @@ double av1_estimate_noise_from_single_plane_neon(const uint8_t *src, int height,
     if (w <= (width - 1) - 4) {
       uint16x8_t mask = vcombine_u16(vdup_n_u16(65535), vdup_n_u16(0));
       uint8x8_t mat[3][3];
-      mat[0][0] = load_u8_4x1(src_ptr - stride - 1);
-      mat[0][1] = load_u8_4x1(src_ptr - stride);
-      mat[0][2] = load_u8_4x1(src_ptr - stride + 1);
-      mat[1][0] = load_u8_4x1(src_ptr - 1);
-      mat[1][1] = load_u8_4x1(src_ptr);
-      mat[1][2] = load_u8_4x1(src_ptr + 1);
-      mat[2][0] = load_u8_4x1(src_ptr + stride - 1);
-      mat[2][1] = load_u8_4x1(src_ptr + stride);
-      mat[2][2] = load_u8_4x1(src_ptr + stride + 1);
+      mat[0][0] = load_unaligned_u8_4x1(src_ptr - stride - 1);
+      mat[0][1] = load_unaligned_u8_4x1(src_ptr - stride);
+      mat[0][2] = load_unaligned_u8_4x1(src_ptr - stride + 1);
+      mat[1][0] = load_unaligned_u8_4x1(src_ptr - 1);
+      mat[1][1] = load_unaligned_u8_4x1(src_ptr);
+      mat[1][2] = load_unaligned_u8_4x1(src_ptr + 1);
+      mat[2][0] = load_unaligned_u8_4x1(src_ptr + stride - 1);
+      mat[2][1] = load_unaligned_u8_4x1(src_ptr + stride);
+      mat[2][2] = load_unaligned_u8_4x1(src_ptr + stride + 1);
 
       // Compute Sobel gradients.
       uint16x8_t gxa = vaddl_u8(mat[0][0], mat[2][0]);

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, Alliance for Open Media. All rights reserved
+ * Copyright (c) 2021, Alliance for Open Media. All rights reserved.
  *
  * This source code is subject to the terms of the BSD 2 Clause License and
  * the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
@@ -13,11 +13,11 @@
 
 #include <memory>
 
+#include "gtest/gtest.h"
 #include "test/codec_factory.h"
 #include "test/encode_test_driver.h"
-#include "test/util.h"
 #include "test/i420_video_source.h"
-#include "third_party/googletest/src/googletest/include/gtest/gtest.h"
+#include "test/util.h"
 
 namespace {
 
@@ -37,7 +37,7 @@ class RcInterfaceTest : public ::libaom_test::EncoderTest,
       : EncoderTest(GET_PARAM(0)), aq_mode_(GET_PARAM(1)), key_interval_(3000),
         encoder_exit_(false), layer_frame_cnt_(0), superframe_cnt_(0),
         frame_cnt_(0), dynamic_temporal_layers_(false),
-        dynamic_spatial_layers_(false), num_drops_(0), max_consec_drop_(0),
+        dynamic_spatial_layers_(false), num_drops_(0), max_consec_drop_ms_(0),
         frame_drop_thresh_(0) {
     memset(&svc_params_, 0, sizeof(svc_params_));
     memset(&layer_id_, 0, sizeof(layer_id_));
@@ -59,6 +59,7 @@ class RcInterfaceTest : public ::libaom_test::EncoderTest,
     if (video->frame() == 0 && layer_frame_cnt_ == 0) {
       encoder->Control(AOME_SET_CPUUSED, 7);
       encoder->Control(AV1E_SET_AQ_MODE, aq_mode_);
+      encoder->Control(AV1E_SET_ENABLE_ORDER_HINT, 0);
       if (rc_cfg_.is_screen) {
         encoder->Control(AV1E_SET_TUNE_CONTENT, AOM_CONTENT_SCREEN);
       } else {
@@ -67,7 +68,8 @@ class RcInterfaceTest : public ::libaom_test::EncoderTest,
       encoder->Control(AOME_SET_MAX_INTRA_BITRATE_PCT,
                        rc_cfg_.max_intra_bitrate_pct);
       if (use_svc) encoder->Control(AV1E_SET_SVC_PARAMS, &svc_params_);
-      encoder->Control(AV1E_SET_MAX_CONSEC_FRAME_DROP_CBR, max_consec_drop_);
+      encoder->Control(AV1E_SET_MAX_CONSEC_FRAME_DROP_MS_CBR,
+                       max_consec_drop_ms_);
     }
     // SVC specific settings
     if (use_svc) {
@@ -210,7 +212,7 @@ class RcInterfaceTest : public ::libaom_test::EncoderTest,
 
   void RunOneLayerDropFramesCBR() {
     key_interval_ = 10000;
-    max_consec_drop_ = 8;
+    max_consec_drop_ms_ = 250;
     frame_drop_thresh_ = 30;
     SetConfig();
     rc_cfg_.target_bandwidth = 100;
@@ -319,7 +321,7 @@ class RcInterfaceTest : public ::libaom_test::EncoderTest,
     rc_cfg_.min_quantizers[0] = 2;
     rc_cfg_.aq_mode = aq_mode_;
     rc_cfg_.frame_drop_thresh = frame_drop_thresh_;
-    rc_cfg_.max_consec_drop = max_consec_drop_;
+    rc_cfg_.max_consec_drop_ms = max_consec_drop_ms_;
 
     // Encoder settings for ground truth.
     cfg_.g_w = 640;
@@ -480,7 +482,7 @@ class RcInterfaceTest : public ::libaom_test::EncoderTest,
   bool dynamic_temporal_layers_;
   bool dynamic_spatial_layers_;
   int num_drops_;
-  int max_consec_drop_;
+  int max_consec_drop_ms_;
   int frame_drop_thresh_;
 };
 

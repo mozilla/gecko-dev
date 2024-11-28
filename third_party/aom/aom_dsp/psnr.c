@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Alliance for Open Media. All rights reserved
+ * Copyright (c) 2016, Alliance for Open Media. All rights reserved.
  *
  * This source code is subject to the terms of the BSD 2 Clause License and
  * the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
@@ -12,12 +12,19 @@
 #include <assert.h>
 #include <math.h>
 
+#include "config/aom_config.h"
 #include "config/aom_dsp_rtcd.h"
 
 #include "aom_dsp/psnr.h"
 #include "aom_scale/yv12config.h"
 
-double aom_sse_to_psnr(double samples, double peak, double sse) {
+#if CONFIG_INTERNAL_STATS
+#define STATIC
+#else
+#define STATIC static
+#endif  // CONFIG_INTERNAL_STATS
+
+STATIC double aom_sse_to_psnr(double samples, double peak, double sse) {
   if (sse > 0.0) {
     const double psnr = 10.0 * log10(samples * peak * peak / sse);
     return psnr > MAX_PSNR ? MAX_PSNR : psnr;
@@ -25,6 +32,8 @@ double aom_sse_to_psnr(double samples, double peak, double sse) {
     return MAX_PSNR;
   }
 }
+
+#undef STATIC
 
 static int64_t encoder_sse(const uint8_t *a, int a_stride, const uint8_t *b,
                            int b_stride, int w, int h) {

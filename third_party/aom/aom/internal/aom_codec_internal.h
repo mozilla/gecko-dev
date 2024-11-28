@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Alliance for Open Media. All rights reserved
+ * Copyright (c) 2016, Alliance for Open Media. All rights reserved.
  *
  * This source code is subject to the terms of the BSD 2 Clause License and
  * the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
@@ -189,7 +189,7 @@ typedef const struct aom_codec_ctrl_fn_map {
 #define CTRL_MAP_END \
   { 0, NULL }
 
-static AOM_INLINE int at_ctrl_map_end(aom_codec_ctrl_fn_map_t *e) {
+static inline int at_ctrl_map_end(aom_codec_ctrl_fn_map_t *e) {
   return e->ctrl_id == 0 && e->fn == NULL;
 }
 

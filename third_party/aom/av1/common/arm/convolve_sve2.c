@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Alliance for Open Media. All rights reserved
+ * Copyright (c) 2024, Alliance for Open Media. All rights reserved.
  *
  * This source code is subject to the terms of the BSD 2 Clause License and
  * the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
@@ -26,7 +26,7 @@
 #include "av1/common/arm/highbd_convolve_sve2.h"
 #include "av1/common/arm/convolve_neon_i8mm.h"
 
-static INLINE int32x4_t highbd_convolve12_4_2d_v(int16x8_t s0[2],
+static inline int32x4_t highbd_convolve12_4_2d_v(int16x8_t s0[2],
                                                  int16x8_t s1[2],
                                                  int16x8_t s2[2],
                                                  int16x8_t filter_0_7,
@@ -42,7 +42,7 @@ static INLINE int32x4_t highbd_convolve12_4_2d_v(int16x8_t s0[2],
   return vcombine_s32(vmovn_s64(sum01), vmovn_s64(sum23));
 }
 
-static INLINE void convolve_2d_sr_vert_12tap_sve2(
+static inline void convolve_2d_sr_vert_12tap_sve2(
     const int16_t *src_ptr, int src_stride, uint8_t *dst_ptr,
     const int dst_stride, int w, int h, const int16x8_t y_filter_0_7,
     const int16x8_t y_filter_4_11) {
@@ -184,14 +184,11 @@ void av1_convolve_2d_sr_sve2(const uint8_t *src, int src_stride, uint8_t *dst,
     DECLARE_ALIGNED(16, int16_t,
                     im_block[(MAX_SB_SIZE + MAX_FILTER_TAP - 1) * MAX_SB_SIZE]);
 
-    const int16x8_t x_filter_0_7 = vld1q_s16(x_filter_ptr);
-    const int16x4_t x_filter_8_11 = vld1_s16(x_filter_ptr + 8);
     const int16x8_t y_filter_0_7 = vld1q_s16(y_filter_ptr);
     const int16x8_t y_filter_4_11 = vld1q_s16(y_filter_ptr + 4);
 
     convolve_2d_sr_horiz_12tap_neon_i8mm(src_ptr, src_stride, im_block,
-                                         im_stride, w, im_h, x_filter_0_7,
-                                         x_filter_8_11);
+                                         im_stride, w, im_h, x_filter_ptr);
 
     convolve_2d_sr_vert_12tap_sve2(im_block, im_stride, dst, dst_stride, w, h,
                                    y_filter_0_7, y_filter_4_11);

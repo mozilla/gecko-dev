@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Alliance for Open Media. All rights reserved
+ * Copyright (c) 2018, Alliance for Open Media. All rights reserved.
  *
  * This source code is subject to the terms of the BSD 2 Clause License and
  * the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
@@ -18,7 +18,7 @@
 #include "config/aom_config.h"
 #include "config/av1_rtcd.h"
 
-static INLINE int16x4_t convolve4_4_2d_h(const int16x4_t s0, const int16x4_t s1,
+static inline int16x4_t convolve4_4_2d_h(const int16x4_t s0, const int16x4_t s1,
                                          const int16x4_t s2, const int16x4_t s3,
                                          const int16x4_t x_filter,
                                          const int16x4_t horiz_const) {
@@ -32,7 +32,7 @@ static INLINE int16x4_t convolve4_4_2d_h(const int16x4_t s0, const int16x4_t s1,
   return vshr_n_s16(sum, ROUND0_BITS - 1);
 }
 
-static INLINE int16x8_t convolve8_8_2d_h(const int16x8_t s0, const int16x8_t s1,
+static inline int16x8_t convolve8_8_2d_h(const int16x8_t s0, const int16x8_t s1,
                                          const int16x8_t s2, const int16x8_t s3,
                                          const int16x8_t s4, const int16x8_t s5,
                                          const int16x8_t s6, const int16x8_t s7,
@@ -55,7 +55,7 @@ static INLINE int16x8_t convolve8_8_2d_h(const int16x8_t s0, const int16x8_t s1,
   return vshrq_n_s16(sum, ROUND0_BITS - 1);
 }
 
-static INLINE void dist_wtd_convolve_2d_horiz_neon(
+static inline void dist_wtd_convolve_2d_horiz_neon(
     const uint8_t *src, int src_stride, int16_t *im_block, const int im_stride,
     const int16_t *x_filter_ptr, const int im_h, int w) {
   const int bd = 8;
@@ -294,7 +294,7 @@ void av1_dist_wtd_convolve_2d_neon(const uint8_t *src, int src_stride,
   }
 }
 
-static INLINE void dist_wtd_convolve_2d_copy_dist_wtd_avg_neon(
+static inline void dist_wtd_convolve_2d_copy_dist_wtd_avg_neon(
     const uint8_t *src, int src_stride, uint8_t *dst8, int dst8_stride, int w,
     int h, ConvolveParams *conv_params) {
   assert(w % 4 == 0);
@@ -384,7 +384,7 @@ static INLINE void dist_wtd_convolve_2d_copy_dist_wtd_avg_neon(
   }
 }
 
-static INLINE void dist_wtd_convolve_2d_copy_avg_neon(
+static inline void dist_wtd_convolve_2d_copy_avg_neon(
     const uint8_t *src, int src_stride, uint8_t *dst8, int dst8_stride, int w,
     int h, ConvolveParams *conv_params) {
   assert(w % 4 == 0);
@@ -470,7 +470,7 @@ static INLINE void dist_wtd_convolve_2d_copy_avg_neon(
   }
 }
 
-static INLINE void dist_wtd_convolve_2d_copy_neon(const uint8_t *src,
+static inline void dist_wtd_convolve_2d_copy_neon(const uint8_t *src,
                                                   int src_stride, int w, int h,
                                                   ConvolveParams *conv_params) {
   assert(w % 4 == 0);
@@ -551,7 +551,7 @@ void av1_dist_wtd_convolve_2d_copy_neon(const uint8_t *src, int src_stride,
   }
 }
 
-static INLINE uint16x4_t convolve4_4_x(const int16x4_t s0, const int16x4_t s1,
+static inline uint16x4_t convolve4_4_x(const int16x4_t s0, const int16x4_t s1,
                                        const int16x4_t s2, const int16x4_t s3,
                                        const int16x4_t x_filter,
                                        const int16x4_t round_offset) {
@@ -565,7 +565,7 @@ static INLINE uint16x4_t convolve4_4_x(const int16x4_t s0, const int16x4_t s1,
   return vreinterpret_u16_s16(res);
 }
 
-static INLINE uint16x8_t convolve8_8_x(const int16x8_t s0, const int16x8_t s1,
+static inline uint16x8_t convolve8_8_x(const int16x8_t s0, const int16x8_t s1,
                                        const int16x8_t s2, const int16x8_t s3,
                                        const int16x8_t s4, const int16x8_t s5,
                                        const int16x8_t s6, const int16x8_t s7,
@@ -588,7 +588,7 @@ static INLINE uint16x8_t convolve8_8_x(const int16x8_t s0, const int16x8_t s1,
   return vreinterpretq_u16_s16(res);
 }
 
-static INLINE void dist_wtd_convolve_x_dist_wtd_avg_neon(
+static inline void dist_wtd_convolve_x_dist_wtd_avg_neon(
     const uint8_t *src, int src_stride, uint8_t *dst8, int dst8_stride, int w,
     int h, const InterpFilterParams *filter_params_x, const int subpel_x_qn,
     ConvolveParams *conv_params) {
@@ -805,7 +805,7 @@ static INLINE void dist_wtd_convolve_x_dist_wtd_avg_neon(
   }
 }
 
-static INLINE void dist_wtd_convolve_x_avg_neon(
+static inline void dist_wtd_convolve_x_avg_neon(
     const uint8_t *src, int src_stride, uint8_t *dst8, int dst8_stride, int w,
     int h, const InterpFilterParams *filter_params_x, const int subpel_x_qn,
     ConvolveParams *conv_params) {
@@ -1015,7 +1015,7 @@ static INLINE void dist_wtd_convolve_x_avg_neon(
   }
 }
 
-static INLINE void dist_wtd_convolve_x_neon(
+static inline void dist_wtd_convolve_x_neon(
     const uint8_t *src, int src_stride, int w, int h,
     const InterpFilterParams *filter_params_x, const int subpel_x_qn,
     ConvolveParams *conv_params) {
@@ -1209,7 +1209,7 @@ void av1_dist_wtd_convolve_x_neon(const uint8_t *src, int src_stride,
   }
 }
 
-static INLINE uint16x4_t convolve6_4_y(const int16x4_t s0, const int16x4_t s1,
+static inline uint16x4_t convolve6_4_y(const int16x4_t s0, const int16x4_t s1,
                                        const int16x4_t s2, const int16x4_t s3,
                                        const int16x4_t s4, const int16x4_t s5,
                                        const int16x8_t y_filter,
@@ -1230,7 +1230,7 @@ static INLINE uint16x4_t convolve6_4_y(const int16x4_t s0, const int16x4_t s1,
   return vreinterpret_u16_s16(res);
 }
 
-static INLINE uint16x8_t convolve6_8_y(const int16x8_t s0, const int16x8_t s1,
+static inline uint16x8_t convolve6_8_y(const int16x8_t s0, const int16x8_t s1,
                                        const int16x8_t s2, const int16x8_t s3,
                                        const int16x8_t s4, const int16x8_t s5,
                                        const int16x8_t y_filter,
@@ -1251,7 +1251,7 @@ static INLINE uint16x8_t convolve6_8_y(const int16x8_t s0, const int16x8_t s1,
   return vreinterpretq_u16_s16(res);
 }
 
-static INLINE void dist_wtd_convolve_y_6tap_dist_wtd_avg_neon(
+static inline void dist_wtd_convolve_y_6tap_dist_wtd_avg_neon(
     const uint8_t *src_ptr, int src_stride, uint8_t *dst8_ptr,
     const int dst8_stride, int w, int h, const int16x8_t y_filter,
     ConvolveParams *conv_params) {
@@ -1471,7 +1471,7 @@ static INLINE void dist_wtd_convolve_y_6tap_dist_wtd_avg_neon(
   }
 }
 
-static INLINE void dist_wtd_convolve_y_6tap_avg_neon(
+static inline void dist_wtd_convolve_y_6tap_avg_neon(
     const uint8_t *src_ptr, int src_stride, uint8_t *dst8_ptr,
     const int dst8_stride, int w, int h, const int16x8_t y_filter,
     ConvolveParams *conv_params) {
@@ -1684,7 +1684,7 @@ static INLINE void dist_wtd_convolve_y_6tap_avg_neon(
   }
 }
 
-static INLINE void dist_wtd_convolve_y_6tap_neon(const uint8_t *src_ptr,
+static inline void dist_wtd_convolve_y_6tap_neon(const uint8_t *src_ptr,
                                                  int src_stride, int w, int h,
                                                  const int16x8_t y_filter,
                                                  ConvolveParams *conv_params) {
@@ -1854,7 +1854,7 @@ static INLINE void dist_wtd_convolve_y_6tap_neon(const uint8_t *src_ptr,
   }
 }
 
-static INLINE uint16x4_t convolve8_4_y(const int16x4_t s0, const int16x4_t s1,
+static inline uint16x4_t convolve8_4_y(const int16x4_t s0, const int16x4_t s1,
                                        const int16x4_t s2, const int16x4_t s3,
                                        const int16x4_t s4, const int16x4_t s5,
                                        const int16x4_t s6, const int16x4_t s7,
@@ -1877,7 +1877,7 @@ static INLINE uint16x4_t convolve8_4_y(const int16x4_t s0, const int16x4_t s1,
   return vreinterpret_u16_s16(res);
 }
 
-static INLINE uint16x8_t convolve8_8_y(const int16x8_t s0, const int16x8_t s1,
+static inline uint16x8_t convolve8_8_y(const int16x8_t s0, const int16x8_t s1,
                                        const int16x8_t s2, const int16x8_t s3,
                                        const int16x8_t s4, const int16x8_t s5,
                                        const int16x8_t s6, const int16x8_t s7,
@@ -1900,7 +1900,7 @@ static INLINE uint16x8_t convolve8_8_y(const int16x8_t s0, const int16x8_t s1,
   return vreinterpretq_u16_s16(res);
 }
 
-static INLINE void dist_wtd_convolve_y_8tap_dist_wtd_avg_neon(
+static inline void dist_wtd_convolve_y_8tap_dist_wtd_avg_neon(
     const uint8_t *src_ptr, int src_stride, uint8_t *dst8_ptr,
     const int dst8_stride, int w, int h, const int16x8_t y_filter,
     ConvolveParams *conv_params) {
@@ -2181,7 +2181,7 @@ static INLINE void dist_wtd_convolve_y_8tap_dist_wtd_avg_neon(
   }
 }
 
-static INLINE void dist_wtd_convolve_y_8tap_avg_neon(
+static inline void dist_wtd_convolve_y_8tap_avg_neon(
     const uint8_t *src_ptr, int src_stride, uint8_t *dst8_ptr,
     const int dst8_stride, int w, int h, const int16x8_t y_filter,
     ConvolveParams *conv_params) {
@@ -2455,7 +2455,7 @@ static INLINE void dist_wtd_convolve_y_8tap_avg_neon(
   }
 }
 
-static INLINE void dist_wtd_convolve_y_8tap_neon(const uint8_t *src_ptr,
+static inline void dist_wtd_convolve_y_8tap_neon(const uint8_t *src_ptr,
                                                  int src_stride, int w, int h,
                                                  const int16x8_t y_filter,
                                                  ConvolveParams *conv_params) {

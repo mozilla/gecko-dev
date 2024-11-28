@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Alliance for Open Media. All rights reserved
+ * Copyright (c) 2018, Alliance for Open Media. All rights reserved.
  *
  * This source code is subject to the terms of the BSD 2 Clause License and
  * the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
@@ -18,7 +18,7 @@
 #include "aom_dsp/arm/mem_neon.h"
 #include "aom_dsp/arm/transpose_neon.h"
 
-static INLINE uint8x8_t lpf_mask(uint8x8_t p3q3, uint8x8_t p2q2, uint8x8_t p1q1,
+static inline uint8x8_t lpf_mask(uint8x8_t p3q3, uint8x8_t p2q2, uint8x8_t p1q1,
                                  uint8x8_t p0q0, const uint8_t blimit,
                                  const uint8_t limit) {
   // Calculate mask values for four samples
@@ -52,7 +52,7 @@ static INLINE uint8x8_t lpf_mask(uint8x8_t p3q3, uint8x8_t p2q2, uint8x8_t p1q1,
   return mask_8x8;
 }
 
-static INLINE uint8x8_t lpf_mask2(uint8x8_t p1q1, uint8x8_t p0q0,
+static inline uint8x8_t lpf_mask2(uint8x8_t p1q1, uint8x8_t p0q0,
                                   const uint8_t blimit, const uint8_t limit) {
   uint32x2x2_t p0q0_p1q1;
   uint16x8_t temp_16x8;
@@ -82,7 +82,7 @@ static INLINE uint8x8_t lpf_mask2(uint8x8_t p1q1, uint8x8_t p0q0,
   return mask_8x8;
 }
 
-static INLINE uint8x8_t lpf_flat_mask4(uint8x8_t p3q3, uint8x8_t p2q2,
+static inline uint8x8_t lpf_flat_mask4(uint8x8_t p3q3, uint8x8_t p2q2,
                                        uint8x8_t p1q1, uint8x8_t p0q0) {
   const uint8x8_t thresh_8x8 = vdup_n_u8(1);  // for bd==8 threshold is always 1
   uint8x8_t flat_8x8, temp_8x8;
@@ -98,7 +98,7 @@ static INLINE uint8x8_t lpf_flat_mask4(uint8x8_t p3q3, uint8x8_t p2q2,
   return flat_8x8;
 }
 
-static INLINE uint8x8_t lpf_flat_mask3(uint8x8_t p2q2, uint8x8_t p1q1,
+static inline uint8x8_t lpf_flat_mask3(uint8x8_t p2q2, uint8x8_t p1q1,
                                        uint8x8_t p0q0) {
   const uint8x8_t thresh_8x8 = vdup_n_u8(1);  // for bd==8 threshold is always 1
   uint8x8_t flat_8x8, temp_8x8;
@@ -113,7 +113,7 @@ static INLINE uint8x8_t lpf_flat_mask3(uint8x8_t p2q2, uint8x8_t p1q1,
   return flat_8x8;
 }
 
-static INLINE uint8x8_t lpf_mask3_chroma(uint8x8_t p2q2, uint8x8_t p1q1,
+static inline uint8x8_t lpf_mask3_chroma(uint8x8_t p2q2, uint8x8_t p1q1,
                                          uint8x8_t p0q0, const uint8_t blimit,
                                          const uint8_t limit) {
   // Calculate mask3 values for four samples

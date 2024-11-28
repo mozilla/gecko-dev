@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Alliance for Open Media. All rights reserved
+ * Copyright (c) 2016, Alliance for Open Media. All rights reserved.
  *
  * This source code is subject to the terms of the BSD 2 Clause License and
  * the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
@@ -36,6 +36,10 @@ extern "C" {
 #define DEFAULT_QM_V 12
 #define DEFAULT_QM_FIRST 5
 #define DEFAULT_QM_LAST 9
+#define DEFAULT_QM_FIRST_ALLINTRA 4
+#define DEFAULT_QM_LAST_ALLINTRA 10
+#define QM_FIRST_SSIMULACRA2 2
+#define QM_LAST_SSIMULACRA2 10
 #define LOSSLESS_Q_STEP 4  // this should equal to dc/ac_qlookup_QTX[0]
 
 struct AV1Common;
@@ -53,20 +57,86 @@ bool av1_use_qmatrix(const struct CommonQuantParams *quant_params,
                      const struct macroblockd *xd, int segment_id);
 
 // Reduce the large number of quantizers to a smaller number of levels for which
-// different matrices may be defined
-static INLINE int aom_get_qmlevel(int qindex, int first, int last) {
+// different matrices may be defined. This is an increasing function in qindex.
+static inline int aom_get_qmlevel(int qindex, int first, int last) {
   return first + (qindex * (last + 1 - first)) / QINDEX_RANGE;
+}
+
+// QM levels tuned for all intra mode (including still images)
+// This formula was empirically derived by encoding the CID22 validation
+// testset for each QP/QM tuple, and building a convex hull that
+// maximizes SSIMULACRA 2 scores, and a final subjective visual quality pass
+// as a sanity check. This is a decreasing function in qindex.
+// There are a total of 16 luma QM levels, and the higher the level, the
+// flatter these QMs are.
+// QM level 15 is a completely-flat matrix and level 0 is the steepest.
+// This formula only uses levels 4 through 10, unless qm-min and qm-max are
+// both set below or above this range.
+// For more information on quantization matrices, please refer to
+// https://arxiv.org/pdf/2008.06091, section F.
+static inline int aom_get_qmlevel_allintra(int qindex, int first, int last) {
+  int qm_level = 0;
+
+  if (qindex <= 40) {
+    qm_level = 10;
+  } else if (qindex <= 100) {
+    qm_level = 9;
+  } else if (qindex <= 160) {
+    qm_level = 8;
+  } else if (qindex <= 200) {
+    qm_level = 7;
+  } else if (qindex <= 220) {
+    qm_level = 6;
+  } else if (qindex <= 240) {
+    qm_level = 5;
+  } else {
+    qm_level = 4;
+  }
+
+  return clamp(qm_level, first, last);
+}
+
+// Chroma QM levels for 4:4:4 subsampling tuned for SSIMULACRA 2 tune
+// This formula was empirically derived by encoding Daala's subset1 validation
+// testset for each QP/QM tuple, and building a convex hull that maximizes
+// SSIMULACRA 2 scores, and a final subjective visual quality pass as a sanity
+// check. This is a decreasing function in qindex.
+// Like with luma QMs, there are a total of 16 chroma QM levels, and the higher
+// the level, the flatter these QMs are.
+// QM level 15 is a completely-flat matrix and level 0 is the steepest.
+// This formula only uses levels 2 through 10, unless qm-min and qm-max are
+// both set below or above this range.
+// For more information on quantization matrices, please refer to
+// https://arxiv.org/pdf/2008.06091, section F.
+static inline int aom_get_qmlevel_444_chroma_ssimulacra2(int qindex, int first,
+                                                         int last) {
+  int chroma_qm_level = 0;
+
+  if (qindex <= 12) {
+    chroma_qm_level = 10;
+  } else if (qindex <= 24) {
+    chroma_qm_level = 9;
+  } else if (qindex <= 32) {
+    chroma_qm_level = 8;
+  } else if (qindex <= 36) {
+    chroma_qm_level = 7;
+  } else if (qindex <= 44) {
+    chroma_qm_level = 6;
+  } else if (qindex <= 48) {
+    chroma_qm_level = 5;
+  } else if (qindex <= 56) {
+    chroma_qm_level = 4;
+  } else if (qindex <= 88) {
+    chroma_qm_level = 3;
+  } else {
+    chroma_qm_level = 2;
+  }
+
+  return clamp(chroma_qm_level, first, last);
 }
 
 // Initialize all global quant/dequant matrices.
 void av1_qm_init(struct CommonQuantParams *quant_params, int num_planes);
-
-// Get global dequant matrix.
-const qm_val_t *av1_iqmatrix(const struct CommonQuantParams *quant_params,
-                             int qmlevel, int plane, TX_SIZE tx_size);
-// Get global quant matrix.
-const qm_val_t *av1_qmatrix(const struct CommonQuantParams *quant_params,
-                            int qmlevel, int plane, TX_SIZE tx_size);
 
 // Get either local / global dequant matrix as appropriate.
 const qm_val_t *av1_get_iqmatrix(const struct CommonQuantParams *quant_params,

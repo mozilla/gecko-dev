@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Alliance for Open Media. All rights reserved
+ * Copyright (c) 2016, Alliance for Open Media. All rights reserved.
  *
  * This source code is subject to the terms of the BSD 2 Clause License and
  * the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
@@ -191,7 +191,7 @@ void av1_setup_frame_contexts(struct AV1Common *cm);
 void av1_setup_past_independence(struct AV1Common *cm);
 
 // Returns (int)ceil(log2(n)).
-static INLINE int av1_ceil_log2(int n) {
+static inline int av1_ceil_log2(int n) {
   if (n < 2) return 0;
   return get_msb(n - 1) + 1;
 }

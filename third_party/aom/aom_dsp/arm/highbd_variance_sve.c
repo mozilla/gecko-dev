@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023, Alliance for Open Media. All rights reserved
+ * Copyright (c) 2023, Alliance for Open Media. All rights reserved.
  *
  * This source code is subject to the terms of the BSD 2 Clause License and
  * the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
@@ -21,7 +21,7 @@
 #include "aom_dsp/variance.h"
 
 // Process a block of width 4 two rows at a time.
-static INLINE void highbd_variance_4xh_sve(const uint16_t *src_ptr,
+static inline void highbd_variance_4xh_sve(const uint16_t *src_ptr,
                                            int src_stride,
                                            const uint16_t *ref_ptr,
                                            int ref_stride, int h, uint64_t *sse,
@@ -47,7 +47,7 @@ static INLINE void highbd_variance_4xh_sve(const uint16_t *src_ptr,
   *sse = vaddvq_s64(sse_s64);
 }
 
-static INLINE void variance_8x1_sve(const uint16_t *src, const uint16_t *ref,
+static inline void variance_8x1_sve(const uint16_t *src, const uint16_t *ref,
                                     int32x4_t *sum, int64x2_t *sse) {
   const uint16x8_t s = vld1q_u16(src);
   const uint16x8_t r = vld1q_u16(ref);
@@ -58,7 +58,7 @@ static INLINE void variance_8x1_sve(const uint16_t *src, const uint16_t *ref,
   *sse = aom_sdotq_s16(*sse, diff, diff);
 }
 
-static INLINE void highbd_variance_8xh_sve(const uint16_t *src_ptr,
+static inline void highbd_variance_8xh_sve(const uint16_t *src_ptr,
                                            int src_stride,
                                            const uint16_t *ref_ptr,
                                            int ref_stride, int h, uint64_t *sse,
@@ -77,7 +77,7 @@ static INLINE void highbd_variance_8xh_sve(const uint16_t *src_ptr,
   *sse = vaddvq_s64(sse_s64);
 }
 
-static INLINE void highbd_variance_16xh_sve(const uint16_t *src_ptr,
+static inline void highbd_variance_16xh_sve(const uint16_t *src_ptr,
                                             int src_stride,
                                             const uint16_t *ref_ptr,
                                             int ref_stride, int h,
@@ -97,7 +97,7 @@ static INLINE void highbd_variance_16xh_sve(const uint16_t *src_ptr,
   *sse = vaddvq_s64(vaddq_s64(sse_s64[0], sse_s64[1]));
 }
 
-static INLINE void highbd_variance_large_sve(const uint16_t *src_ptr,
+static inline void highbd_variance_large_sve(const uint16_t *src_ptr,
                                              int src_stride,
                                              const uint16_t *ref_ptr,
                                              int ref_stride, int w, int h,
@@ -133,21 +133,21 @@ static INLINE void highbd_variance_large_sve(const uint16_t *src_ptr,
   *sse = vaddvq_s64(vaddq_s64(sse_s64[0], sse_s64[2]));
 }
 
-static INLINE void highbd_variance_32xh_sve(const uint16_t *src, int src_stride,
+static inline void highbd_variance_32xh_sve(const uint16_t *src, int src_stride,
                                             const uint16_t *ref, int ref_stride,
                                             int h, uint64_t *sse,
                                             int64_t *sum) {
   highbd_variance_large_sve(src, src_stride, ref, ref_stride, 32, h, sse, sum);
 }
 
-static INLINE void highbd_variance_64xh_sve(const uint16_t *src, int src_stride,
+static inline void highbd_variance_64xh_sve(const uint16_t *src, int src_stride,
                                             const uint16_t *ref, int ref_stride,
                                             int h, uint64_t *sse,
                                             int64_t *sum) {
   highbd_variance_large_sve(src, src_stride, ref, ref_stride, 64, h, sse, sum);
 }
 
-static INLINE void highbd_variance_128xh_sve(const uint16_t *src,
+static inline void highbd_variance_128xh_sve(const uint16_t *src,
                                              int src_stride,
                                              const uint16_t *ref,
                                              int ref_stride, int h,
@@ -319,7 +319,7 @@ HBD_VARIANCE_WXH_12_SVE(64, 16)
 #undef HBD_VARIANCE_WXH_10_SVE
 #undef HBD_VARIANCE_WXH_12_SVE
 
-static INLINE uint32_t highbd_mse_wxh_sve(const uint16_t *src_ptr,
+static inline uint32_t highbd_mse_wxh_sve(const uint16_t *src_ptr,
                                           int src_stride,
                                           const uint16_t *ref_ptr,
                                           int ref_stride, int w, int h,

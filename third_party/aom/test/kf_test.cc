@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Alliance for Open Media. All rights reserved
+ * Copyright (c) 2020, Alliance for Open Media. All rights reserved.
  *
  * This source code is subject to the terms of the BSD 2 Clause License and
  * the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
@@ -17,7 +17,7 @@
 #include "aom/aom_encoder.h"
 #include "aom/aom_image.h"
 #include "aom/aomcx.h"
-#include "third_party/googletest/src/googletest/include/gtest/gtest.h"
+#include "gtest/gtest.h"
 #include "test/codec_factory.h"
 #include "test/encode_test_driver.h"
 #include "test/i420_video_source.h"
@@ -190,7 +190,7 @@ class KeyFrameIntervalTestLarge
 // Because valgrind builds take a very long time to run, use a lower
 // resolution video for valgrind runs.
 const char *TestFileName() {
-#if AOM_VALGRIND_BUILD
+#ifdef AOM_VALGRIND_BUILD
   return "hantro_collage_w176h144.yuv";
 #else
   return "hantro_collage_w352h288.yuv";
@@ -198,7 +198,7 @@ const char *TestFileName() {
 }
 
 int TestFileWidth() {
-#if AOM_VALGRIND_BUILD
+#ifdef AOM_VALGRIND_BUILD
   return 176;
 #else
   return 352;
@@ -206,7 +206,7 @@ int TestFileWidth() {
 }
 
 int TestFileHeight() {
-#if AOM_VALGRIND_BUILD
+#ifdef AOM_VALGRIND_BUILD
   return 144;
 #else
   return 288;

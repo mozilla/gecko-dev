@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Alliance for Open Media. All rights reserved
+ * Copyright (c) 2016, Alliance for Open Media. All rights reserved.
  *
  * This source code is subject to the terms of the BSD 2 Clause License and
  * the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
@@ -1123,8 +1123,8 @@ void av1_loop_restoration_filter_frame_init(AV1LrStruct *lr_ctxt,
   }
 }
 
-void av1_loop_restoration_copy_planes(AV1LrStruct *loop_rest_ctxt,
-                                      AV1_COMMON *cm, int num_planes) {
+static void loop_restoration_copy_planes(AV1LrStruct *loop_rest_ctxt,
+                                         AV1_COMMON *cm, int num_planes) {
   typedef void (*copy_fun)(const YV12_BUFFER_CONFIG *src_ybc,
                            YV12_BUFFER_CONFIG *dst_ybc, int hstart, int hend,
                            int vstart, int vend);
@@ -1140,6 +1140,46 @@ void av1_loop_restoration_copy_planes(AV1LrStruct *loop_rest_ctxt,
   }
 }
 
+// Call on_rest_unit for each loop restoration unit in the plane.
+static void foreach_rest_unit_in_plane(const struct AV1Common *cm, int plane,
+                                       rest_unit_visitor_t on_rest_unit,
+                                       void *priv, int32_t *tmpbuf,
+                                       RestorationLineBuffers *rlbs) {
+  const RestorationInfo *rsi = &cm->rst_info[plane];
+  const int hnum_rest_units = rsi->horz_units;
+  const int vnum_rest_units = rsi->vert_units;
+  const int unit_size = rsi->restoration_unit_size;
+
+  const int is_uv = plane > 0;
+  const int ss_y = is_uv && cm->seq_params->subsampling_y;
+  const int ext_size = unit_size * 3 / 2;
+  int plane_w, plane_h;
+  av1_get_upsampled_plane_size(cm, is_uv, &plane_w, &plane_h);
+
+  int y0 = 0, i = 0;
+  while (y0 < plane_h) {
+    int remaining_h = plane_h - y0;
+    int h = (remaining_h < ext_size) ? remaining_h : unit_size;
+
+    RestorationTileLimits limits;
+    limits.v_start = y0;
+    limits.v_end = y0 + h;
+    assert(limits.v_end <= plane_h);
+    // Offset upwards to align with the restoration processing stripe
+    const int voffset = RESTORATION_UNIT_OFFSET >> ss_y;
+    limits.v_start = AOMMAX(0, limits.v_start - voffset);
+    if (limits.v_end < plane_h) limits.v_end -= voffset;
+
+    av1_foreach_rest_unit_in_row(&limits, plane_w, on_rest_unit, i, unit_size,
+                                 hnum_rest_units, vnum_rest_units, plane, priv,
+                                 tmpbuf, rlbs, av1_lr_sync_read_dummy,
+                                 av1_lr_sync_write_dummy, NULL, cm->error);
+
+    y0 += h;
+    ++i;
+  }
+}
+
 static void foreach_rest_unit_in_planes(AV1LrStruct *lr_ctxt, AV1_COMMON *cm,
                                         int num_planes) {
   FilterFrameCtxt *ctxt = lr_ctxt->ctxt;
@@ -1149,8 +1189,8 @@ static void foreach_rest_unit_in_planes(AV1LrStruct *lr_ctxt, AV1_COMMON *cm,
       continue;
     }
 
-    av1_foreach_rest_unit_in_plane(cm, plane, lr_ctxt->on_rest_unit,
-                                   &ctxt[plane], cm->rst_tmpbuf, cm->rlbs);
+    foreach_rest_unit_in_plane(cm, plane, lr_ctxt->on_rest_unit, &ctxt[plane],
+                               cm->rst_tmpbuf, cm->rlbs);
   }
 }
 
@@ -1167,7 +1207,7 @@ void av1_loop_restoration_filter_frame(YV12_BUFFER_CONFIG *frame,
 
   foreach_rest_unit_in_planes(loop_rest_ctxt, cm, num_planes);
 
-  av1_loop_restoration_copy_planes(loop_rest_ctxt, cm, num_planes);
+  loop_restoration_copy_planes(loop_rest_ctxt, cm, num_planes);
 }
 
 void av1_foreach_rest_unit_in_row(
@@ -1232,45 +1272,6 @@ void av1_lr_sync_write_dummy(void *const lr_sync, int r, int c,
   (void)c;
   (void)sb_cols;
   (void)plane;
-}
-
-void av1_foreach_rest_unit_in_plane(const struct AV1Common *cm, int plane,
-                                    rest_unit_visitor_t on_rest_unit,
-                                    void *priv, int32_t *tmpbuf,
-                                    RestorationLineBuffers *rlbs) {
-  const RestorationInfo *rsi = &cm->rst_info[plane];
-  const int hnum_rest_units = rsi->horz_units;
-  const int vnum_rest_units = rsi->vert_units;
-  const int unit_size = rsi->restoration_unit_size;
-
-  const int is_uv = plane > 0;
-  const int ss_y = is_uv && cm->seq_params->subsampling_y;
-  const int ext_size = unit_size * 3 / 2;
-  int plane_w, plane_h;
-  av1_get_upsampled_plane_size(cm, is_uv, &plane_w, &plane_h);
-
-  int y0 = 0, i = 0;
-  while (y0 < plane_h) {
-    int remaining_h = plane_h - y0;
-    int h = (remaining_h < ext_size) ? remaining_h : unit_size;
-
-    RestorationTileLimits limits;
-    limits.v_start = y0;
-    limits.v_end = y0 + h;
-    assert(limits.v_end <= plane_h);
-    // Offset upwards to align with the restoration processing stripe
-    const int voffset = RESTORATION_UNIT_OFFSET >> ss_y;
-    limits.v_start = AOMMAX(0, limits.v_start - voffset);
-    if (limits.v_end < plane_h) limits.v_end -= voffset;
-
-    av1_foreach_rest_unit_in_row(&limits, plane_w, on_rest_unit, i, unit_size,
-                                 hnum_rest_units, vnum_rest_units, plane, priv,
-                                 tmpbuf, rlbs, av1_lr_sync_read_dummy,
-                                 av1_lr_sync_write_dummy, NULL, cm->error);
-
-    y0 += h;
-    ++i;
-  }
 }
 
 int av1_loop_restoration_corners_in_sb(const struct AV1Common *cm, int plane,

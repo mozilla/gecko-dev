@@ -1,6 +1,6 @@
 /*
- * Copyright (c) 2014 The WebM project authors. All Rights Reserved.
- * Copyright (c) 2023, Alliance for Open Media. All rights reserved
+ * Copyright (c) 2014 The WebM project authors. All rights reserved.
+ * Copyright (c) 2023, Alliance for Open Media. All rights reserved.
  *
  * This source code is subject to the terms of the BSD 2 Clause License and
  * the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
@@ -25,11 +25,11 @@
 #include "aom_dsp/arm/transpose_neon.h"
 #include "aom_ports/mem.h"
 
-static INLINE uint16x4_t
-highbd_convolve8_4(const int16x4_t s0, const int16x4_t s1, const int16x4_t s2,
-                   const int16x4_t s3, const int16x4_t s4, const int16x4_t s5,
-                   const int16x4_t s6, const int16x4_t s7,
-                   const int16x8_t filter, const uint16x4_t max) {
+static inline uint16x4_t highbd_convolve8_4(
+    const int16x4_t s0, const int16x4_t s1, const int16x4_t s2,
+    const int16x4_t s3, const int16x4_t s4, const int16x4_t s5,
+    const int16x4_t s6, const int16x4_t s7, const int16x8_t filter,
+    const uint16x4_t max) {
   const int16x4_t filter_lo = vget_low_s16(filter);
   const int16x4_t filter_hi = vget_high_s16(filter);
 
@@ -47,11 +47,11 @@ highbd_convolve8_4(const int16x4_t s0, const int16x4_t s1, const int16x4_t s2,
   return vmin_u16(res, max);
 }
 
-static INLINE uint16x8_t
-highbd_convolve8_8(const int16x8_t s0, const int16x8_t s1, const int16x8_t s2,
-                   const int16x8_t s3, const int16x8_t s4, const int16x8_t s5,
-                   const int16x8_t s6, const int16x8_t s7,
-                   const int16x8_t filter, const uint16x8_t max) {
+static inline uint16x8_t highbd_convolve8_8(
+    const int16x8_t s0, const int16x8_t s1, const int16x8_t s2,
+    const int16x8_t s3, const int16x8_t s4, const int16x8_t s5,
+    const int16x8_t s6, const int16x8_t s7, const int16x8_t filter,
+    const uint16x8_t max) {
   const int16x4_t filter_lo = vget_low_s16(filter);
   const int16x4_t filter_hi = vget_high_s16(filter);
 

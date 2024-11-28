@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Alliance for Open Media. All rights reserved
+ * Copyright (c) 2016, Alliance for Open Media. All rights reserved.
  *
  * This source code is subject to the terms of the BSD 2 Clause License and
  * the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
@@ -156,7 +156,7 @@ typedef struct {
   int16_t *src_avg;
 } RestSearchCtxt;
 
-static AOM_INLINE void rsc_on_tile(void *priv) {
+static inline void rsc_on_tile(void *priv) {
   RestSearchCtxt *rsc = (RestSearchCtxt *)priv;
   set_default_wiener(&rsc->ref_wiener);
   set_default_sgrproj(&rsc->ref_sgrproj);
@@ -164,16 +164,16 @@ static AOM_INLINE void rsc_on_tile(void *priv) {
   set_default_sgrproj(&rsc->switchable_ref_sgrproj);
 }
 
-static AOM_INLINE void reset_rsc(RestSearchCtxt *rsc) {
+static inline void reset_rsc(RestSearchCtxt *rsc) {
   memset(rsc->total_sse, 0, sizeof(rsc->total_sse));
   memset(rsc->total_bits, 0, sizeof(rsc->total_bits));
 }
 
-static AOM_INLINE void init_rsc(const YV12_BUFFER_CONFIG *src,
-                                const AV1_COMMON *cm, const MACROBLOCK *x,
-                                const LOOP_FILTER_SPEED_FEATURES *lpf_sf,
-                                int plane, RestUnitSearchInfo *rusi,
-                                YV12_BUFFER_CONFIG *dst, RestSearchCtxt *rsc) {
+static inline void init_rsc(const YV12_BUFFER_CONFIG *src, const AV1_COMMON *cm,
+                            const MACROBLOCK *x,
+                            const LOOP_FILTER_SPEED_FEATURES *lpf_sf, int plane,
+                            RestUnitSearchInfo *rusi, YV12_BUFFER_CONFIG *dst,
+                            RestSearchCtxt *rsc) {
   rsc->src = src;
   rsc->dst = dst;
   rsc->cm = cm;
@@ -469,10 +469,12 @@ static int64_t signed_rounded_divide(int64_t dividend, int64_t divisor) {
     return (dividend + divisor / 2) / divisor;
 }
 
-static AOM_INLINE void calc_proj_params_r0_r1_c(
-    const uint8_t *src8, int width, int height, int src_stride,
-    const uint8_t *dat8, int dat_stride, int32_t *flt0, int flt0_stride,
-    int32_t *flt1, int flt1_stride, int64_t H[2][2], int64_t C[2]) {
+static inline void calc_proj_params_r0_r1_c(const uint8_t *src8, int width,
+                                            int height, int src_stride,
+                                            const uint8_t *dat8, int dat_stride,
+                                            int32_t *flt0, int flt0_stride,
+                                            int32_t *flt1, int flt1_stride,
+                                            int64_t H[2][2], int64_t C[2]) {
   const int size = width * height;
   const uint8_t *src = src8;
   const uint8_t *dat = dat8;
@@ -498,7 +500,8 @@ static AOM_INLINE void calc_proj_params_r0_r1_c(
   C[1] /= size;
 }
 
-static AOM_INLINE void calc_proj_params_r0_r1_high_bd_c(
+#if CONFIG_AV1_HIGHBITDEPTH
+static inline void calc_proj_params_r0_r1_high_bd_c(
     const uint8_t *src8, int width, int height, int src_stride,
     const uint8_t *dat8, int dat_stride, int32_t *flt0, int flt0_stride,
     int32_t *flt1, int flt1_stride, int64_t H[2][2], int64_t C[2]) {
@@ -526,13 +529,13 @@ static AOM_INLINE void calc_proj_params_r0_r1_high_bd_c(
   C[0] /= size;
   C[1] /= size;
 }
+#endif  // CONFIG_AV1_HIGHBITDEPTH
 
-static AOM_INLINE void calc_proj_params_r0_c(const uint8_t *src8, int width,
-                                             int height, int src_stride,
-                                             const uint8_t *dat8,
-                                             int dat_stride, int32_t *flt0,
-                                             int flt0_stride, int64_t H[2][2],
-                                             int64_t C[2]) {
+static inline void calc_proj_params_r0_c(const uint8_t *src8, int width,
+                                         int height, int src_stride,
+                                         const uint8_t *dat8, int dat_stride,
+                                         int32_t *flt0, int flt0_stride,
+                                         int64_t H[2][2], int64_t C[2]) {
   const int size = width * height;
   const uint8_t *src = src8;
   const uint8_t *dat = dat8;
@@ -550,7 +553,8 @@ static AOM_INLINE void calc_proj_params_r0_c(const uint8_t *src8, int width,
   C[0] /= size;
 }
 
-static AOM_INLINE void calc_proj_params_r0_high_bd_c(
+#if CONFIG_AV1_HIGHBITDEPTH
+static inline void calc_proj_params_r0_high_bd_c(
     const uint8_t *src8, int width, int height, int src_stride,
     const uint8_t *dat8, int dat_stride, int32_t *flt0, int flt0_stride,
     int64_t H[2][2], int64_t C[2]) {
@@ -570,13 +574,13 @@ static AOM_INLINE void calc_proj_params_r0_high_bd_c(
   H[0][0] /= size;
   C[0] /= size;
 }
+#endif  // CONFIG_AV1_HIGHBITDEPTH
 
-static AOM_INLINE void calc_proj_params_r1_c(const uint8_t *src8, int width,
-                                             int height, int src_stride,
-                                             const uint8_t *dat8,
-                                             int dat_stride, int32_t *flt1,
-                                             int flt1_stride, int64_t H[2][2],
-                                             int64_t C[2]) {
+static inline void calc_proj_params_r1_c(const uint8_t *src8, int width,
+                                         int height, int src_stride,
+                                         const uint8_t *dat8, int dat_stride,
+                                         int32_t *flt1, int flt1_stride,
+                                         int64_t H[2][2], int64_t C[2]) {
   const int size = width * height;
   const uint8_t *src = src8;
   const uint8_t *dat = dat8;
@@ -594,7 +598,8 @@ static AOM_INLINE void calc_proj_params_r1_c(const uint8_t *src8, int width,
   C[1] /= size;
 }
 
-static AOM_INLINE void calc_proj_params_r1_high_bd_c(
+#if CONFIG_AV1_HIGHBITDEPTH
+static inline void calc_proj_params_r1_high_bd_c(
     const uint8_t *src8, int width, int height, int src_stride,
     const uint8_t *dat8, int dat_stride, int32_t *flt1, int flt1_stride,
     int64_t H[2][2], int64_t C[2]) {
@@ -614,6 +619,7 @@ static AOM_INLINE void calc_proj_params_r1_high_bd_c(
   H[1][1] /= size;
   C[1] /= size;
 }
+#endif  // CONFIG_AV1_HIGHBITDEPTH
 
 // The function calls 3 subfunctions for the following cases :
 // 1) When params->r[0] > 0 and params->r[1] > 0. In this case all elements
@@ -639,6 +645,7 @@ void av1_calc_proj_params_c(const uint8_t *src8, int width, int height,
   }
 }
 
+#if CONFIG_AV1_HIGHBITDEPTH
 void av1_calc_proj_params_high_bd_c(const uint8_t *src8, int width, int height,
                                     int src_stride, const uint8_t *dat8,
                                     int dat_stride, int32_t *flt0,
@@ -658,14 +665,14 @@ void av1_calc_proj_params_high_bd_c(const uint8_t *src8, int width, int height,
                                   dat_stride, flt1, flt1_stride, H, C);
   }
 }
+#endif  // CONFIG_AV1_HIGHBITDEPTH
 
-static AOM_INLINE void get_proj_subspace(const uint8_t *src8, int width,
-                                         int height, int src_stride,
-                                         const uint8_t *dat8, int dat_stride,
-                                         int use_highbitdepth, int32_t *flt0,
-                                         int flt0_stride, int32_t *flt1,
-                                         int flt1_stride, int *xq,
-                                         const sgr_params_type *params) {
+static inline void get_proj_subspace(const uint8_t *src8, int width, int height,
+                                     int src_stride, const uint8_t *dat8,
+                                     int dat_stride, int use_highbitdepth,
+                                     int32_t *flt0, int flt0_stride,
+                                     int32_t *flt1, int flt1_stride, int *xq,
+                                     const sgr_params_type *params) {
   int64_t H[2][2] = { { 0, 0 }, { 0, 0 } };
   int64_t C[2] = { 0, 0 };
 
@@ -732,8 +739,7 @@ static AOM_INLINE void get_proj_subspace(const uint8_t *src8, int width,
   }
 }
 
-static AOM_INLINE void encode_xq(int *xq, int *xqd,
-                                 const sgr_params_type *params) {
+static inline void encode_xq(int *xq, int *xqd, const sgr_params_type *params) {
   if (params->r[0] == 0) {
     xqd[0] = 0;
     xqd[1] = clamp((1 << SGRPROJ_PRJ_BITS) - xq[1], SGRPROJ_PRJ_MIN1,
@@ -750,12 +756,11 @@ static AOM_INLINE void encode_xq(int *xq, int *xqd,
 }
 
 // Apply the self-guided filter across an entire restoration unit.
-static AOM_INLINE void apply_sgr(int sgr_params_idx, const uint8_t *dat8,
-                                 int width, int height, int dat_stride,
-                                 int use_highbd, int bit_depth, int pu_width,
-                                 int pu_height, int32_t *flt0, int32_t *flt1,
-                                 int flt_stride,
-                                 struct aom_internal_error_info *error_info) {
+static inline void apply_sgr(int sgr_params_idx, const uint8_t *dat8, int width,
+                             int height, int dat_stride, int use_highbd,
+                             int bit_depth, int pu_width, int pu_height,
+                             int32_t *flt0, int32_t *flt1, int flt_stride,
+                             struct aom_internal_error_info *error_info) {
   for (int i = 0; i < height; i += pu_height) {
     const int h = AOMMIN(pu_height, height - i);
     int32_t *flt0_row = flt0 + i * flt_stride;
@@ -776,7 +781,7 @@ static AOM_INLINE void apply_sgr(int sgr_params_idx, const uint8_t *dat8,
   }
 }
 
-static AOM_INLINE void compute_sgrproj_err(
+static inline void compute_sgrproj_err(
     const uint8_t *dat8, const int width, const int height,
     const int dat_stride, const uint8_t *src8, const int src_stride,
     const int use_highbitdepth, const int bit_depth, const int pu_width,
@@ -796,9 +801,9 @@ static AOM_INLINE void compute_sgrproj_err(
       flt_stride, flt1, flt_stride, 2, exqd, params);
 }
 
-static AOM_INLINE void get_best_error(int64_t *besterr, const int64_t err,
-                                      const int *exqd, int *bestxqd,
-                                      int *bestep, const int ep) {
+static inline void get_best_error(int64_t *besterr, const int64_t err,
+                                  const int *exqd, int *bestxqd, int *bestep,
+                                  const int ep) {
   if (*besterr == -1 || err < *besterr) {
     *bestep = ep;
     *besterr = err;
@@ -886,10 +891,10 @@ static int count_sgrproj_bits(SgrprojInfo *sgrproj_info,
   return bits;
 }
 
-static AOM_INLINE void search_sgrproj(
-    const RestorationTileLimits *limits, int rest_unit_idx, void *priv,
-    int32_t *tmpbuf, RestorationLineBuffers *rlbs,
-    struct aom_internal_error_info *error_info) {
+static inline void search_sgrproj(const RestorationTileLimits *limits,
+                                  int rest_unit_idx, void *priv,
+                                  int32_t *tmpbuf, RestorationLineBuffers *rlbs,
+                                  struct aom_internal_error_info *error_info) {
   (void)rlbs;
   RestSearchCtxt *rsc = (RestSearchCtxt *)priv;
   RestUnitSearchInfo *rusi = &rsc->rusi[rest_unit_idx];
@@ -1101,14 +1106,14 @@ void av1_compute_stats_highbd_c(int wiener_win, const uint8_t *dgd8,
 }
 #endif  // CONFIG_AV1_HIGHBITDEPTH
 
-static INLINE int wrap_index(int i, int wiener_win) {
+static inline int wrap_index(int i, int wiener_win) {
   const int wiener_halfwin1 = (wiener_win >> 1) + 1;
   return (i >= wiener_halfwin1 ? wiener_win - 1 - i : i);
 }
 
 // Splits each w[i] into smaller components w1[i] and w2[i] such that
 // w[i] = w1[i] * WIENER_TAP_SCALE_FACTOR + w2[i].
-static INLINE void split_wiener_filter_coefficients(int wiener_win,
+static inline void split_wiener_filter_coefficients(int wiener_win,
                                                     const int32_t *w,
                                                     int32_t *w1, int32_t *w2) {
   for (int i = 0; i < wiener_win; i++) {
@@ -1123,7 +1128,7 @@ static INLINE void split_wiener_filter_coefficients(int wiener_win,
 //
 // The multiplication x * w may overflow, so we multiply x by the components of
 // w (w1 and w2) and combine the multiplication with the division.
-static INLINE int64_t multiply_and_scale(int64_t x, int32_t w1, int32_t w2) {
+static inline int64_t multiply_and_scale(int64_t x, int32_t w1, int32_t w2) {
   // Let y = x * w / WIENER_TAP_SCALE_FACTOR
   //       = x * (w1 * WIENER_TAP_SCALE_FACTOR + w2) / WIENER_TAP_SCALE_FACTOR
   const int64_t y = x * w1 + x * w2 / WIENER_TAP_SCALE_FACTOR;
@@ -1201,9 +1206,8 @@ static int linsolve_wiener(int n, int64_t *A, int stride, int64_t *b,
 }
 
 // Fix vector b, update vector a
-static AOM_INLINE void update_a_sep_sym(int wiener_win, int64_t **Mc,
-                                        int64_t **Hc, int32_t *a,
-                                        const int32_t *b) {
+static inline void update_a_sep_sym(int wiener_win, int64_t **Mc, int64_t **Hc,
+                                    int32_t *a, const int32_t *b) {
   int i, j;
   int64_t S[WIENER_WIN];
   int64_t A[WIENER_HALFWIN1], B[WIENER_HALFWIN1 * WIENER_HALFWIN1];
@@ -1272,9 +1276,8 @@ static AOM_INLINE void update_a_sep_sym(int wiener_win, int64_t **Mc,
 }
 
 // Fix vector a, update vector b
-static AOM_INLINE void update_b_sep_sym(int wiener_win, int64_t **Mc,
-                                        int64_t **Hc, const int32_t *a,
-                                        int32_t *b) {
+static inline void update_b_sep_sym(int wiener_win, int64_t **Mc, int64_t **Hc,
+                                    const int32_t *a, int32_t *b) {
   int i, j;
   int64_t S[WIENER_WIN];
   int64_t A[WIENER_HALFWIN1], B[WIENER_HALFWIN1 * WIENER_HALFWIN1];
@@ -1416,8 +1419,8 @@ static int64_t compute_score(int wiener_win, int64_t *M, int64_t *H,
   return Score - iScore;
 }
 
-static AOM_INLINE void finalize_sym_filter(int wiener_win, int32_t *f,
-                                           InterpKernel fi) {
+static inline void finalize_sym_filter(int wiener_win, int32_t *f,
+                                       InterpKernel fi) {
   int i;
   const int wiener_halfwin = (wiener_win >> 1);
 
@@ -1594,10 +1597,10 @@ static int64_t finer_search_wiener(const RestSearchCtxt *rsc,
   return err;
 }
 
-static AOM_INLINE void search_wiener(
-    const RestorationTileLimits *limits, int rest_unit_idx, void *priv,
-    int32_t *tmpbuf, RestorationLineBuffers *rlbs,
-    struct aom_internal_error_info *error_info) {
+static inline void search_wiener(const RestorationTileLimits *limits,
+                                 int rest_unit_idx, void *priv, int32_t *tmpbuf,
+                                 RestorationLineBuffers *rlbs,
+                                 struct aom_internal_error_info *error_info) {
   (void)tmpbuf;
   (void)rlbs;
   (void)error_info;
@@ -1740,7 +1743,7 @@ static AOM_INLINE void search_wiener(
   if (cost_wiener < cost_none) rsc->ref_wiener = rusi->wiener;
 }
 
-static AOM_INLINE void search_norestore(
+static inline void search_norestore(
     const RestorationTileLimits *limits, int rest_unit_idx, void *priv,
     int32_t *tmpbuf, RestorationLineBuffers *rlbs,
     struct aom_internal_error_info *error_info) {
@@ -1758,7 +1761,7 @@ static AOM_INLINE void search_norestore(
   rsc->total_sse[RESTORE_NONE] += rsc->sse[RESTORE_NONE];
 }
 
-static AOM_INLINE void search_switchable(
+static inline void search_switchable(
     const RestorationTileLimits *limits, int rest_unit_idx, void *priv,
     int32_t *tmpbuf, RestorationLineBuffers *rlbs,
     struct aom_internal_error_info *error_info) {
@@ -1838,9 +1841,9 @@ static AOM_INLINE void search_switchable(
     rsc->switchable_ref_sgrproj = rusi->sgrproj;
 }
 
-static AOM_INLINE void copy_unit_info(RestorationType frame_rtype,
-                                      const RestUnitSearchInfo *rusi,
-                                      RestorationUnitInfo *rui) {
+static inline void copy_unit_info(RestorationType frame_rtype,
+                                  const RestUnitSearchInfo *rusi,
+                                  RestorationUnitInfo *rui) {
   assert(frame_rtype > 0);
   rui->restoration_type = rusi->best_rtype[frame_rtype - 1];
   if (rui->restoration_type == RESTORE_WIENER)
@@ -1941,7 +1944,7 @@ static void restoration_search(AV1_COMMON *cm, int plane, RestSearchCtxt *rsc,
   }
 }
 
-static INLINE void av1_derive_flags_for_lr_processing(
+static inline void av1_derive_flags_for_lr_processing(
     const LOOP_FILTER_SPEED_FEATURES *lpf_sf, bool *disable_lr_filter) {
   const bool is_wiener_disabled = lpf_sf->disable_wiener_filter;
   const bool is_sgr_disabled = lpf_sf->disable_sgr_filter;
@@ -2076,14 +2079,14 @@ void av1_pick_filter_restoration(const YV12_BUFFER_CONFIG *src, AV1_COMP *cpi) {
   // and height aligned to multiple of 16 is considered for intrinsic purpose.
   rsc.dgd_avg = NULL;
   rsc.src_avg = NULL;
-#if HAVE_AVX2 || HAVE_SVE
+#if HAVE_AVX2 || HAVE_NEON || HAVE_SVE
   // The buffers allocated below are used during Wiener filter processing.
   // Hence, allocate the same when Wiener filter is enabled. Make sure to
   // allocate these buffers only for the SIMD extensions that make use of them
-  // (i.e. AVX2 for low bitdepth and SVE for low and high bitdepth).
+  // (i.e. AVX2 for low bitdepth and NEON and SVE for low and high bitdepth).
 #if HAVE_AVX2
   bool allocate_buffers = !cpi->sf.lpf_sf.disable_wiener_filter && !highbd;
-#elif HAVE_SVE
+#elif HAVE_NEON || HAVE_SVE
   bool allocate_buffers = !cpi->sf.lpf_sf.disable_wiener_filter;
 #endif
   if (allocate_buffers) {
@@ -2222,10 +2225,10 @@ void av1_pick_filter_restoration(const YV12_BUFFER_CONFIG *src, AV1_COMP *cpi) {
                               best_luma_unit_size);
   }
 
-#if HAVE_AVX2 || HAVE_SVE
+#if HAVE_AVX2 || HAVE_NEON || HAVE_SVE
 #if HAVE_AVX2
   bool free_buffers = !cpi->sf.lpf_sf.disable_wiener_filter && !highbd;
-#elif HAVE_SVE
+#elif HAVE_NEON || HAVE_SVE
   bool free_buffers = !cpi->sf.lpf_sf.disable_wiener_filter;
 #endif
   if (free_buffers) {

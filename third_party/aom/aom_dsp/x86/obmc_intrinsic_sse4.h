@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Alliance for Open Media. All rights reserved
+ * Copyright (c) 2018, Alliance for Open Media. All rights reserved.
  *
  * This source code is subject to the terms of the BSD 2 Clause License and
  * the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
@@ -17,7 +17,7 @@
 #include "aom_dsp/x86/obmc_intrinsic_ssse3.h"
 #include "aom_dsp/x86/synonyms.h"
 
-static INLINE void obmc_variance_w4(const uint8_t *pre, const int pre_stride,
+static inline void obmc_variance_w4(const uint8_t *pre, const int pre_stride,
                                     const int32_t *wsrc, const int32_t *mask,
                                     unsigned int *const sse, int *const sum,
                                     const int h) {

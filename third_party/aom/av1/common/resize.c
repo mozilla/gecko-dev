@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Alliance for Open Media. All rights reserved
+ * Copyright (c) 2016, Alliance for Open Media. All rights reserved.
  *
  * This source code is subject to the terms of the BSD 2 Clause License and
  * the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
@@ -23,7 +23,6 @@
 #include "aom_dsp/aom_dsp_common.h"
 #include "aom_dsp/flow_estimation/corner_detect.h"
 #include "aom_ports/mem.h"
-#include "aom_scale/aom_scale.h"
 #include "av1/common/common.h"
 #include "av1/common/resize.h"
 
@@ -933,9 +932,9 @@ static void highbd_fill_arr_to_col(uint16_t *img, int stride, int len,
   }
 }
 
-void av1_highbd_resize_plane(const uint8_t *input, int height, int width,
-                             int in_stride, uint8_t *output, int height2,
-                             int width2, int out_stride, int bd) {
+static void highbd_resize_plane(const uint8_t *input, int height, int width,
+                                int in_stride, uint8_t *output, int height2,
+                                int width2, int out_stride, int bd) {
   int i;
   uint16_t *intbuf = (uint16_t *)aom_malloc(sizeof(uint16_t) * width2 * height);
   uint16_t *tmpbuf =
@@ -1032,97 +1031,6 @@ static bool highbd_upscale_normative_rect(const uint8_t *const input,
 }
 #endif  // CONFIG_AV1_HIGHBITDEPTH
 
-void av1_resize_frame420(const uint8_t *y, int y_stride, const uint8_t *u,
-                         const uint8_t *v, int uv_stride, int height, int width,
-                         uint8_t *oy, int oy_stride, uint8_t *ou, uint8_t *ov,
-                         int ouv_stride, int oheight, int owidth) {
-  if (!av1_resize_plane(y, height, width, y_stride, oy, oheight, owidth,
-                        oy_stride))
-    abort();
-  if (!av1_resize_plane(u, height / 2, width / 2, uv_stride, ou, oheight / 2,
-                        owidth / 2, ouv_stride))
-    abort();
-  if (!av1_resize_plane(v, height / 2, width / 2, uv_stride, ov, oheight / 2,
-                        owidth / 2, ouv_stride))
-    abort();
-}
-
-bool av1_resize_frame422(const uint8_t *y, int y_stride, const uint8_t *u,
-                         const uint8_t *v, int uv_stride, int height, int width,
-                         uint8_t *oy, int oy_stride, uint8_t *ou, uint8_t *ov,
-                         int ouv_stride, int oheight, int owidth) {
-  if (!av1_resize_plane(y, height, width, y_stride, oy, oheight, owidth,
-                        oy_stride))
-    return false;
-  if (!av1_resize_plane(u, height, width / 2, uv_stride, ou, oheight,
-                        owidth / 2, ouv_stride))
-    return false;
-  if (!av1_resize_plane(v, height, width / 2, uv_stride, ov, oheight,
-                        owidth / 2, ouv_stride))
-    return false;
-  return true;
-}
-
-bool av1_resize_frame444(const uint8_t *y, int y_stride, const uint8_t *u,
-                         const uint8_t *v, int uv_stride, int height, int width,
-                         uint8_t *oy, int oy_stride, uint8_t *ou, uint8_t *ov,
-                         int ouv_stride, int oheight, int owidth) {
-  if (!av1_resize_plane(y, height, width, y_stride, oy, oheight, owidth,
-                        oy_stride))
-    return false;
-  if (!av1_resize_plane(u, height, width, uv_stride, ou, oheight, owidth,
-                        ouv_stride))
-    return false;
-  if (!av1_resize_plane(v, height, width, uv_stride, ov, oheight, owidth,
-                        ouv_stride))
-    return false;
-  return true;
-}
-
-#if CONFIG_AV1_HIGHBITDEPTH
-void av1_highbd_resize_frame420(const uint8_t *y, int y_stride,
-                                const uint8_t *u, const uint8_t *v,
-                                int uv_stride, int height, int width,
-                                uint8_t *oy, int oy_stride, uint8_t *ou,
-                                uint8_t *ov, int ouv_stride, int oheight,
-                                int owidth, int bd) {
-  av1_highbd_resize_plane(y, height, width, y_stride, oy, oheight, owidth,
-                          oy_stride, bd);
-  av1_highbd_resize_plane(u, height / 2, width / 2, uv_stride, ou, oheight / 2,
-                          owidth / 2, ouv_stride, bd);
-  av1_highbd_resize_plane(v, height / 2, width / 2, uv_stride, ov, oheight / 2,
-                          owidth / 2, ouv_stride, bd);
-}
-
-void av1_highbd_resize_frame422(const uint8_t *y, int y_stride,
-                                const uint8_t *u, const uint8_t *v,
-                                int uv_stride, int height, int width,
-                                uint8_t *oy, int oy_stride, uint8_t *ou,
-                                uint8_t *ov, int ouv_stride, int oheight,
-                                int owidth, int bd) {
-  av1_highbd_resize_plane(y, height, width, y_stride, oy, oheight, owidth,
-                          oy_stride, bd);
-  av1_highbd_resize_plane(u, height, width / 2, uv_stride, ou, oheight,
-                          owidth / 2, ouv_stride, bd);
-  av1_highbd_resize_plane(v, height, width / 2, uv_stride, ov, oheight,
-                          owidth / 2, ouv_stride, bd);
-}
-
-void av1_highbd_resize_frame444(const uint8_t *y, int y_stride,
-                                const uint8_t *u, const uint8_t *v,
-                                int uv_stride, int height, int width,
-                                uint8_t *oy, int oy_stride, uint8_t *ou,
-                                uint8_t *ov, int ouv_stride, int oheight,
-                                int owidth, int bd) {
-  av1_highbd_resize_plane(y, height, width, y_stride, oy, oheight, owidth,
-                          oy_stride, bd);
-  av1_highbd_resize_plane(u, height, width, uv_stride, ou, oheight, owidth,
-                          ouv_stride, bd);
-  av1_highbd_resize_plane(v, height, width, uv_stride, ov, oheight, owidth,
-                          ouv_stride, bd);
-}
-#endif  // CONFIG_AV1_HIGHBITDEPTH
-
 void av1_resize_and_extend_frame_c(const YV12_BUFFER_CONFIG *src,
                                    YV12_BUFFER_CONFIG *dst,
                                    const InterpFilter filter,
@@ -1184,10 +1092,10 @@ bool av1_resize_and_extend_frame_nonnormative(const YV12_BUFFER_CONFIG *src,
     const int is_uv = i > 0;
 #if CONFIG_AV1_HIGHBITDEPTH
     if (src->flags & YV12_FLAG_HIGHBITDEPTH) {
-      av1_highbd_resize_plane(src->buffers[i], src->crop_heights[is_uv],
-                              src->crop_widths[is_uv], src->strides[is_uv],
-                              dst->buffers[i], dst->crop_heights[is_uv],
-                              dst->crop_widths[is_uv], dst->strides[is_uv], bd);
+      highbd_resize_plane(src->buffers[i], src->crop_heights[is_uv],
+                          src->crop_widths[is_uv], src->strides[is_uv],
+                          dst->buffers[i], dst->crop_heights[is_uv],
+                          dst->crop_widths[is_uv], dst->strides[is_uv], bd);
     } else if (!av1_resize_plane(src->buffers[i], src->crop_heights[is_uv],
                                  src->crop_widths[is_uv], src->strides[is_uv],
                                  dst->buffers[i], dst->crop_heights[is_uv],
@@ -1278,9 +1186,9 @@ void av1_upscale_normative_rows(const AV1_COMMON *cm, const uint8_t *src,
   }
 }
 
-void av1_upscale_normative_and_extend_frame(const AV1_COMMON *cm,
-                                            const YV12_BUFFER_CONFIG *src,
-                                            YV12_BUFFER_CONFIG *dst) {
+static void upscale_normative_and_extend_frame(const AV1_COMMON *cm,
+                                               const YV12_BUFFER_CONFIG *src,
+                                               YV12_BUFFER_CONFIG *dst) {
   const int num_planes = av1_num_planes(cm);
   for (int i = 0; i < num_planes; ++i) {
     const int is_uv = (i > 0);
@@ -1386,15 +1294,6 @@ void av1_calculate_scaled_superres_size(int *width, int *height,
   calculate_scaled_size_helper(width, superres_denom);
 }
 
-void av1_calculate_unscaled_superres_size(int *width, int *height, int denom) {
-  if (denom != SCALE_NUMERATOR) {
-    // Note: av1_calculate_scaled_superres_size() rounds *up* after division
-    // when the resulting dimensions are odd. So here, we round *down*.
-    *width = *width * denom / SCALE_NUMERATOR;
-    (void)height;
-  }
-}
-
 // Copy only the config data from 'src' to 'dst'.
 static void copy_buffer_config(const YV12_BUFFER_CONFIG *const src,
                                YV12_BUFFER_CONFIG *const dst) {
@@ -1493,7 +1392,7 @@ void av1_superres_upscale(AV1_COMMON *cm, BufferPool *const pool,
 
   // Scale up and back into frame_to_show.
   assert(frame_to_show->y_crop_width != cm->width);
-  av1_upscale_normative_and_extend_frame(cm, &copy_buffer, frame_to_show);
+  upscale_normative_and_extend_frame(cm, &copy_buffer, frame_to_show);
 
   // Free the copy buffer
   aom_free_frame_buffer(&copy_buffer);

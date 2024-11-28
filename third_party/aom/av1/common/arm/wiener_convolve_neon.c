@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Alliance for Open Media. All rights reserved
+ * Copyright (c) 2018, Alliance for Open Media. All rights reserved.
  *
  * This source code is subject to the terms of the BSD 2 Clause License and
  * the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
@@ -22,7 +22,7 @@
 #include "av1/common/common.h"
 #include "av1/common/restoration.h"
 
-static INLINE uint16x8_t wiener_convolve5_8_2d_h(
+static inline uint16x8_t wiener_convolve5_8_2d_h(
     const uint8x8_t t0, const uint8x8_t t1, const uint8x8_t t2,
     const uint8x8_t t3, const uint8x8_t t4, const int16x4_t x_filter,
     const int32x4_t round_vec, const uint16x8_t im_max_val) {
@@ -47,7 +47,7 @@ static INLINE uint16x8_t wiener_convolve5_8_2d_h(
   return vminq_u16(res, im_max_val);
 }
 
-static INLINE void convolve_add_src_horiz_5tap_neon(
+static inline void convolve_add_src_horiz_5tap_neon(
     const uint8_t *src_ptr, ptrdiff_t src_stride, uint16_t *dst_ptr,
     ptrdiff_t dst_stride, int w, int h, const int16x4_t x_filter,
     const int32x4_t round_vec, const uint16x8_t im_max_val) {
@@ -74,7 +74,7 @@ static INLINE void convolve_add_src_horiz_5tap_neon(
   } while (--h != 0);
 }
 
-static INLINE uint16x8_t wiener_convolve7_8_2d_h(
+static inline uint16x8_t wiener_convolve7_8_2d_h(
     const uint8x8_t t0, const uint8x8_t t1, const uint8x8_t t2,
     const uint8x8_t t3, const uint8x8_t t4, const uint8x8_t t5,
     const uint8x8_t t6, const int16x4_t x_filter, const int32x4_t round_vec,
@@ -102,7 +102,7 @@ static INLINE uint16x8_t wiener_convolve7_8_2d_h(
   return vminq_u16(res, im_max_val);
 }
 
-static INLINE void convolve_add_src_horiz_7tap_neon(
+static inline void convolve_add_src_horiz_7tap_neon(
     const uint8_t *src_ptr, ptrdiff_t src_stride, uint16_t *dst_ptr,
     ptrdiff_t dst_stride, int w, int h, const int16x4_t x_filter,
     const int32x4_t round_vec, const uint16x8_t im_max_val) {
@@ -129,7 +129,7 @@ static INLINE void convolve_add_src_horiz_7tap_neon(
   } while (--h != 0);
 }
 
-static INLINE uint8x8_t wiener_convolve5_8_2d_v(
+static inline uint8x8_t wiener_convolve5_8_2d_v(
     const int16x8_t s0, const int16x8_t s1, const int16x8_t s2,
     const int16x8_t s3, const int16x8_t s4, const int16x4_t y_filter,
     const int32x4_t round_vec) {
@@ -152,7 +152,7 @@ static INLINE uint8x8_t wiener_convolve5_8_2d_v(
   return vqmovun_s16(vcombine_s16(res_lo, res_hi));
 }
 
-static INLINE void convolve_add_src_vert_5tap_neon(
+static inline void convolve_add_src_vert_5tap_neon(
     const uint16_t *src, ptrdiff_t src_stride, uint8_t *dst,
     ptrdiff_t dst_stride, int w, int h, const int16x4_t y_filter,
     const int32x4_t round_vec) {
@@ -200,7 +200,7 @@ static INLINE void convolve_add_src_vert_5tap_neon(
   } while (w != 0);
 }
 
-static INLINE uint8x8_t wiener_convolve7_8_2d_v(
+static inline uint8x8_t wiener_convolve7_8_2d_v(
     const int16x8_t s0, const int16x8_t s1, const int16x8_t s2,
     const int16x8_t s3, const int16x8_t s4, const int16x8_t s5,
     const int16x8_t s6, const int16x4_t y_filter, const int32x4_t round_vec) {
@@ -226,7 +226,7 @@ static INLINE uint8x8_t wiener_convolve7_8_2d_v(
   return vqmovun_s16(vcombine_s16(res_lo, res_hi));
 }
 
-static INLINE void convolve_add_src_vert_7tap_neon(
+static inline void convolve_add_src_vert_7tap_neon(
     const uint16_t *src, ptrdiff_t src_stride, uint8_t *dst,
     ptrdiff_t dst_stride, int w, int h, const int16x4_t y_filter,
     const int32x4_t round_vec) {
@@ -275,7 +275,7 @@ static INLINE void convolve_add_src_vert_7tap_neon(
   } while (w != 0);
 }
 
-static AOM_INLINE int get_wiener_filter_taps(const int16_t *filter) {
+static inline int get_wiener_filter_taps(const int16_t *filter) {
   assert(filter[7] == 0);
   if (filter[0] == 0 && filter[6] == 0) {
     return WIENER_WIN_REDUCED;

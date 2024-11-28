@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Alliance for Open Media. All rights reserved
+ * Copyright (c) 2018, Alliance for Open Media. All rights reserved.
  *
  * This source code is subject to the terms of the BSD 2 Clause License and
  * the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
@@ -13,7 +13,7 @@
 #include <utility>
 #include <vector>
 
-#include "third_party/googletest/src/googletest/include/gtest/gtest.h"
+#include "gtest/gtest.h"
 
 #include "test/register_state_check.h"
 #include "test/acm_random.h"
@@ -572,6 +572,9 @@ class WienerTestHighbd : public ::testing::TestWithParam<WienerTestParam> {
   void RunWienerTest_ExtremeValues(const int32_t wiener_win,
                                    aom_bit_depth_t bit_depth);
 
+  void RunWienerTest_Overflow32bTest(const int32_t wiener_win,
+                                     aom_bit_depth_t bit_depth);
+
  private:
   compute_stats_Func target_func_;
   libaom_test::ACMRandom rng_;
@@ -722,6 +725,68 @@ void WienerTestHighbd::RunWienerTest_ExtremeValues(const int32_t wiener_win,
   }
 }
 
+void WienerTestHighbd::RunWienerTest_Overflow32bTest(
+    const int32_t wiener_win, aom_bit_depth_t bit_depth) {
+  const int32_t wiener_halfwin = wiener_win >> 1;
+  const int32_t wiener_win2 = wiener_win * wiener_win;
+  DECLARE_ALIGNED(32, int64_t, M_ref[WIENER_WIN2]);
+  DECLARE_ALIGNED(32, int64_t, H_ref[WIENER_WIN2 * WIENER_WIN2]);
+  DECLARE_ALIGNED(32, int64_t, M_test[WIENER_WIN2]);
+  DECLARE_ALIGNED(32, int64_t, H_test[WIENER_WIN2 * WIENER_WIN2]);
+  const int h_start = 16;
+  const int h_end = MAX_WIENER_BLOCK;
+  const int v_start = 16;
+  const int v_end = MAX_WIENER_BLOCK;
+  const int dgd_stride = h_end;
+  const int src_stride = MAX_DATA_BLOCK;
+  const int iters = 1;
+  int16_t *dgd_avg = buf;
+  int16_t *src_avg =
+      buf + (3 * RESTORATION_UNITSIZE_MAX * RESTORATION_UNITSIZE_MAX);
+  for (int iter = 0; iter < iters && !HasFatalFailure(); ++iter) {
+    // Fill src and dgd such that the intermediate values for M and H will at
+    // some point overflow a signed 32-bit value.
+    for (int i = 0; i < MAX_DATA_BLOCK * MAX_DATA_BLOCK; ++i) {
+      dgd_buf[i] = ((uint16_t)1 << bit_depth) - 1;
+      src_buf[i] = 0;
+    }
+
+    memset(dgd_buf, 0, MAX_DATA_BLOCK * 30 * sizeof(dgd_buf));
+    const uint8_t *dgd8 = CONVERT_TO_BYTEPTR(
+        dgd_buf + wiener_halfwin * MAX_DATA_BLOCK + wiener_halfwin);
+    const uint8_t *src8 = CONVERT_TO_BYTEPTR(src_buf);
+
+    av1_compute_stats_highbd_c(wiener_win, dgd8, src8, dgd_avg, src_avg,
+                               h_start, h_end, v_start, v_end, dgd_stride,
+                               src_stride, M_ref, H_ref, bit_depth);
+
+    target_func_(wiener_win, dgd8, src8, dgd_avg, src_avg, h_start, h_end,
+                 v_start, v_end, dgd_stride, src_stride, M_test, H_test,
+                 bit_depth);
+
+    int failed = 0;
+    for (int i = 0; i < wiener_win2; ++i) {
+      if (M_ref[i] != M_test[i]) {
+        failed = 1;
+        printf("win %d bd %d M iter %d [%4d] ref %6" PRId64 " test %6" PRId64
+               " \n",
+               wiener_win, bit_depth, iter, i, M_ref[i], M_test[i]);
+        break;
+      }
+    }
+    for (int i = 0; i < wiener_win2 * wiener_win2; ++i) {
+      if (H_ref[i] != H_test[i]) {
+        failed = 1;
+        printf("win %d bd %d H iter %d [%4d] ref %6" PRId64 " test %6" PRId64
+               " \n",
+               wiener_win, bit_depth, iter, i, H_ref[i], H_test[i]);
+        break;
+      }
+    }
+    ASSERT_EQ(failed, 0);
+  }
+}
+
 TEST_P(WienerTestHighbd, RandomValues) {
   RunWienerTest(WIENER_WIN, 1, AOM_BITS_8);
   RunWienerTest(WIENER_WIN_CHROMA, 1, AOM_BITS_8);
@@ -740,6 +805,14 @@ TEST_P(WienerTestHighbd, ExtremeValues) {
   RunWienerTest_ExtremeValues(WIENER_WIN_CHROMA, AOM_BITS_12);
 }
 
+TEST_P(WienerTestHighbd, Overflow32bTest) {
+  RunWienerTest_Overflow32bTest(WIENER_WIN, AOM_BITS_8);
+  RunWienerTest_Overflow32bTest(WIENER_WIN_CHROMA, AOM_BITS_8);
+  RunWienerTest_Overflow32bTest(WIENER_WIN, AOM_BITS_10);
+  RunWienerTest_Overflow32bTest(WIENER_WIN_CHROMA, AOM_BITS_10);
+  RunWienerTest_Overflow32bTest(WIENER_WIN, AOM_BITS_12);
+  RunWienerTest_Overflow32bTest(WIENER_WIN_CHROMA, AOM_BITS_12);
+}
 TEST_P(WienerTestHighbd, DISABLED_Speed) {
   RunWienerTest(WIENER_WIN, 200, AOM_BITS_8);
   RunWienerTest(WIENER_WIN_CHROMA, 200, AOM_BITS_8);

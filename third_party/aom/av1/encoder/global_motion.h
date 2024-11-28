@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Alliance for Open Media. All rights reserved
+ * Copyright (c) 2016, Alliance for Open Media. All rights reserved.
  *
  * This source code is subject to the terms of the BSD 2 Clause License and
  * the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
@@ -102,16 +102,7 @@ int64_t av1_segmented_frame_error(int use_hbd, int bd, const uint8_t *ref,
                                   int p_width, int p_height,
                                   uint8_t *segment_map, int segment_map_stride);
 
-// Returns the error between the result of applying motion 'wm' to the frame
-// described by 'ref' and the frame described by 'dst'.
-int64_t av1_warp_error(WarpedMotionParams *wm, int use_hbd, int bd,
-                       const uint8_t *ref, int ref_width, int ref_height,
-                       int ref_stride, uint8_t *dst, int dst_stride, int p_col,
-                       int p_row, int p_width, int p_height, int subsampling_x,
-                       int subsampling_y, int64_t best_error,
-                       uint8_t *segment_map, int segment_map_stride);
-
-// Returns the av1_warp_error between "dst" and the result of applying the
+// Returns the warp error between "dst" and the result of applying the
 // motion params that result from fine-tuning "wm" to "ref". Note that "wm" is
 // modified in place.
 int64_t av1_refine_integerized_param(

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Alliance for Open Media. All rights reserved
+ * Copyright (c) 2016, Alliance for Open Media. All rights reserved.
  *
  * This source code is subject to the terms of the BSD 2 Clause License and
  * the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
@@ -668,12 +668,12 @@ void av1_read_tx_type(const AV1_COMMON *const cm, MACROBLOCKD *xd, int blk_row,
   }
 }
 
-static INLINE void read_mv(aom_reader *r, MV *mv, const MV *ref,
+static inline void read_mv(aom_reader *r, MV *mv, const MV *ref,
                            nmv_context *ctx, MvSubpelPrecision precision);
 
-static INLINE int is_mv_valid(const MV *mv);
+static inline int is_mv_valid(const MV *mv);
 
-static INLINE int assign_dv(AV1_COMMON *cm, MACROBLOCKD *xd, int_mv *mv,
+static inline int assign_dv(AV1_COMMON *cm, MACROBLOCKD *xd, int_mv *mv,
                             const int_mv *ref_mv, int mi_row, int mi_col,
                             BLOCK_SIZE bsize, aom_reader *r) {
   FRAME_CONTEXT *ec_ctx = xd->tile_ctx;
@@ -882,7 +882,7 @@ static int read_mv_component(aom_reader *r, nmv_component *mvcomp,
   return sign ? -mag : mag;
 }
 
-static INLINE void read_mv(aom_reader *r, MV *mv, const MV *ref,
+static inline void read_mv(aom_reader *r, MV *mv, const MV *ref,
                            nmv_context *ctx, MvSubpelPrecision precision) {
   MV diff = kZeroMv;
   const MV_JOINT_TYPE joint_type =
@@ -1030,7 +1030,7 @@ static void read_ref_frames(AV1_COMMON *const cm, MACROBLOCKD *const xd,
   }
 }
 
-static INLINE void read_mb_interp_filter(const MACROBLOCKD *const xd,
+static inline void read_mb_interp_filter(const MACROBLOCKD *const xd,
                                          InterpFilter interp_filter,
                                          bool enable_dual_filter,
                                          MB_MODE_INFO *const mbmi,
@@ -1105,12 +1105,12 @@ static void read_intra_block_mode_info(AV1_COMMON *const cm,
   read_filter_intra_mode_info(cm, xd, r);
 }
 
-static INLINE int is_mv_valid(const MV *mv) {
+static inline int is_mv_valid(const MV *mv) {
   return mv->row > MV_LOW && mv->row < MV_UPP && mv->col > MV_LOW &&
          mv->col < MV_UPP;
 }
 
-static INLINE int assign_mv(AV1_COMMON *cm, MACROBLOCKD *xd,
+static inline int assign_mv(AV1_COMMON *cm, MACROBLOCKD *xd,
                             PREDICTION_MODE mode,
                             MV_REFERENCE_FRAME ref_frame[2], int_mv mv[2],
                             int_mv ref_mv[2], int_mv nearest_mv[2],

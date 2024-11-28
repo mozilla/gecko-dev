@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Alliance for Open Media. All rights reserved
+ * Copyright (c) 2016, Alliance for Open Media. All rights reserved.
  *
  * This source code is subject to the terms of the BSD 2 Clause License and
  * the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
@@ -20,7 +20,6 @@
 #include "aom_dsp/variance.h"
 #include "aom_mem/aom_mem.h"
 #include "aom_ports/mem.h"
-#include "aom_scale/aom_scale.h"
 #include "aom_scale/yv12config.h"
 #include "aom_util/aom_pthread.h"
 
@@ -59,8 +58,8 @@
 
 #define INVALID_FP_STATS_TO_PREDICT_FLAT_GOP -1
 
-static AOM_INLINE void output_stats(FIRSTPASS_STATS *stats,
-                                    struct aom_codec_pkt_list *pktlist) {
+static inline void output_stats(FIRSTPASS_STATS *stats,
+                                struct aom_codec_pkt_list *pktlist) {
   struct aom_codec_cx_pkt pkt;
   pkt.kind = AOM_CODEC_STATS_PKT;
   pkt.data.twopass_stats.buf = stats;
@@ -261,9 +260,8 @@ static int get_search_range(int width, int height) {
   return sr;
 }
 
-static AOM_INLINE const search_site_config *
-av1_get_first_pass_search_site_config(const AV1_COMP *cpi, MACROBLOCK *x,
-                                      SEARCH_METHODS search_method) {
+static inline const search_site_config *av1_get_first_pass_search_site_config(
+    const AV1_COMP *cpi, MACROBLOCK *x, SEARCH_METHODS search_method) {
   const int ref_stride = x->e_mbd.plane[0].pre[0].stride;
 
   // For AVIF applications, even the source frames can have changing resolution,
@@ -290,10 +288,10 @@ av1_get_first_pass_search_site_config(const AV1_COMP *cpi, MACROBLOCK *x,
   return x->search_site_cfg_buf;
 }
 
-static AOM_INLINE void first_pass_motion_search(AV1_COMP *cpi, MACROBLOCK *x,
-                                                const MV *ref_mv,
-                                                FULLPEL_MV *best_mv,
-                                                int *best_motion_err) {
+static inline void first_pass_motion_search(AV1_COMP *cpi, MACROBLOCK *x,
+                                            const MV *ref_mv,
+                                            FULLPEL_MV *best_mv,
+                                            int *best_motion_err) {
   AV1_COMMON *const cm = &cpi->common;
   MACROBLOCKD *const xd = &x->e_mbd;
   FULLPEL_MV start_mv = get_fullmv_from_mv(ref_mv);
@@ -391,7 +389,7 @@ static double raw_motion_error_stdev(int *raw_motion_err_list,
   return raw_err_stdev;
 }
 
-static AOM_INLINE int calc_wavelet_energy(const AV1EncoderConfig *oxcf) {
+static inline int calc_wavelet_energy(const AV1EncoderConfig *oxcf) {
   return oxcf->q_cfg.deltaq_mode == DELTA_Q_PERCEPTUAL;
 }
 typedef struct intra_pred_block_pass1_args {
@@ -399,7 +397,7 @@ typedef struct intra_pred_block_pass1_args {
   MACROBLOCK *x;
 } intra_pred_block_pass1_args;
 
-static INLINE void copy_rect(uint8_t *dst, int dstride, const uint8_t *src,
+static inline void copy_rect(uint8_t *dst, int dstride, const uint8_t *src,
                              int sstride, int width, int height, int use_hbd) {
 #if CONFIG_AV1_HIGHBITDEPTH
   if (use_hbd) {
@@ -1370,7 +1368,8 @@ void av1_first_pass(AV1_COMP *cpi, const int64_t ts_duration) {
 
   av1_set_quantizer(
       cm, cpi->oxcf.q_cfg.qm_minlevel, cpi->oxcf.q_cfg.qm_maxlevel, qindex,
-      cpi->oxcf.q_cfg.enable_chroma_deltaq, cpi->oxcf.q_cfg.enable_hdr_deltaq);
+      cpi->oxcf.q_cfg.enable_chroma_deltaq, cpi->oxcf.q_cfg.enable_hdr_deltaq,
+      cpi->oxcf.mode == ALLINTRA, cpi->oxcf.tune_cfg.tuning);
 
   av1_setup_block_planes(xd, seq_params->subsampling_x,
                          seq_params->subsampling_y, num_planes);
@@ -1588,14 +1587,6 @@ int av1_firstpass_info_future_count(const FIRSTPASS_INFO *firstpass_info,
                                     int offset_from_cur) {
   if (offset_from_cur < firstpass_info->future_stats_count) {
     return firstpass_info->future_stats_count - offset_from_cur;
-  }
-  return 0;
-}
-
-int av1_firstpass_info_past_count(const FIRSTPASS_INFO *firstpass_info,
-                                  int offset_from_cur) {
-  if (offset_from_cur >= -firstpass_info->past_stats_count) {
-    return offset_from_cur + firstpass_info->past_stats_count;
   }
   return 0;
 }

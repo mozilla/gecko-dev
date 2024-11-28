@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023, Alliance for Open Media. All rights reserved
+ * Copyright (c) 2023, Alliance for Open Media. All rights reserved.
  *
  * This source code is subject to the terms of the BSD 2 Clause License and
  * the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
@@ -23,7 +23,7 @@ DECLARE_ALIGNED(16, static const uint8_t, dot_prod_permute_tbl[48]) = {
   8, 9, 10, 11, 9, 10, 11, 12, 10, 11, 12, 13, 11, 12, 13, 14
 };
 
-static INLINE int16x4_t convolve4_4_2d_h(uint8x16_t samples,
+static inline int16x4_t convolve4_4_2d_h(uint8x16_t samples,
                                          const int8x8_t x_filter,
                                          const int32x4_t correction,
                                          const uint8x16_t range_limit,
@@ -43,7 +43,7 @@ static INLINE int16x4_t convolve4_4_2d_h(uint8x16_t samples,
   return vshrn_n_s32(sum, ROUND0_BITS - 1);
 }
 
-static INLINE int16x8_t convolve8_8_2d_h(uint8x16_t samples,
+static inline int16x8_t convolve8_8_2d_h(uint8x16_t samples,
                                          const int8x8_t x_filter,
                                          const int32x4_t correction,
                                          const uint8x16_t range_limit,
@@ -76,7 +76,7 @@ static INLINE int16x8_t convolve8_8_2d_h(uint8x16_t samples,
                       vshrn_n_s32(sum[1], ROUND0_BITS - 1));
 }
 
-static INLINE void dist_wtd_convolve_2d_horiz_neon_dotprod(
+static inline void dist_wtd_convolve_2d_horiz_neon_dotprod(
     const uint8_t *src, int src_stride, int16_t *im_block, const int im_stride,
     const int16_t *x_filter_ptr, const int im_h, int w) {
   const int bd = 8;
@@ -255,7 +255,7 @@ void av1_dist_wtd_convolve_2d_neon_dotprod(
   }
 }
 
-static INLINE uint16x4_t convolve4_4_x(uint8x16_t samples,
+static inline uint16x4_t convolve4_4_x(uint8x16_t samples,
                                        const int8x8_t x_filter,
                                        const int32x4_t correction,
                                        const uint8x16_t range_limit,
@@ -275,7 +275,7 @@ static INLINE uint16x4_t convolve4_4_x(uint8x16_t samples,
   return vreinterpret_u16_s16(vshrn_n_s32(sum, ROUND0_BITS - 1));
 }
 
-static INLINE uint16x8_t convolve8_8_x(uint8x16_t samples,
+static inline uint16x8_t convolve8_8_x(uint8x16_t samples,
                                        const int8x8_t x_filter,
                                        const int32x4_t correction,
                                        const uint8x16_t range_limit,
@@ -309,7 +309,7 @@ static INLINE uint16x8_t convolve8_8_x(uint8x16_t samples,
   return vreinterpretq_u16_s16(res);
 }
 
-static INLINE void dist_wtd_convolve_x_dist_wtd_avg_neon_dotprod(
+static inline void dist_wtd_convolve_x_dist_wtd_avg_neon_dotprod(
     const uint8_t *src, int src_stride, uint8_t *dst8, int dst8_stride, int w,
     int h, const InterpFilterParams *filter_params_x, const int subpel_x_qn,
     ConvolveParams *conv_params) {
@@ -432,7 +432,7 @@ static INLINE void dist_wtd_convolve_x_dist_wtd_avg_neon_dotprod(
   }
 }
 
-static INLINE void dist_wtd_convolve_x_avg_neon_dotprod(
+static inline void dist_wtd_convolve_x_avg_neon_dotprod(
     const uint8_t *src, int src_stride, uint8_t *dst8, int dst8_stride, int w,
     int h, const InterpFilterParams *filter_params_x, const int subpel_x_qn,
     ConvolveParams *conv_params) {
@@ -551,7 +551,7 @@ static INLINE void dist_wtd_convolve_x_avg_neon_dotprod(
   }
 }
 
-static INLINE void dist_wtd_convolve_x_neon_dotprod(
+static inline void dist_wtd_convolve_x_neon_dotprod(
     const uint8_t *src, int src_stride, int w, int h,
     const InterpFilterParams *filter_params_x, const int subpel_x_qn,
     ConvolveParams *conv_params) {

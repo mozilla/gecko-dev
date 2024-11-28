@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Alliance for Open Media. All rights reserved
+ * Copyright (c) 2016, Alliance for Open Media. All rights reserved.
  *
  * This source code is subject to the terms of the BSD 2 Clause License and
  * the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
@@ -310,10 +310,8 @@ static aom_codec_err_t decoder_peek_si_internal(const uint8_t *data,
         return AOM_CODEC_UNSUP_BITSTREAM;
       }
 
-      if (parse_operating_points(&rb, reduced_still_picture_hdr, si) !=
-          AOM_CODEC_OK) {
-        return AOM_CODEC_ERROR;
-      }
+      status = parse_operating_points(&rb, reduced_still_picture_hdr, si);
+      if (status != AOM_CODEC_OK) return status;
 
       int num_bits_width = aom_rb_read_literal(&rb, 4) + 1;
       int num_bits_height = aom_rb_read_literal(&rb, 4) + 1;
@@ -508,7 +506,7 @@ static aom_codec_err_t init_decoder(aom_codec_alg_priv_t *ctx) {
   return AOM_CODEC_OK;
 }
 
-static INLINE void check_resync(aom_codec_alg_priv_t *const ctx,
+static inline void check_resync(aom_codec_alg_priv_t *const ctx,
                                 const AV1Decoder *const pbi) {
   // Clear resync flag if worker got a key frame or intra only frame.
   if (ctx->need_resync == 1 && pbi->need_resync == 0 &&

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Alliance for Open Media. All rights reserved
+ * Copyright (c) 2017, Alliance for Open Media. All rights reserved.
  *
  * This source code is subject to the terms of the BSD 2 Clause License and
  * the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
@@ -19,7 +19,7 @@
 #include "aom_dsp/x86/synonyms.h"
 #include "av1/common/convolve.h"
 
-static INLINE void prepare_coeffs(const InterpFilterParams *const filter_params,
+static inline void prepare_coeffs(const InterpFilterParams *const filter_params,
                                   const int subpel_q4,
                                   __m128i *const coeffs /* [4] */) {
   const int16_t *const y_filter = av1_get_interp_filter_subpel_kernel(
@@ -36,7 +36,7 @@ static INLINE void prepare_coeffs(const InterpFilterParams *const filter_params,
   coeffs[3] = _mm_unpackhi_epi64(tmp_1, tmp_1);  // coeffs 6 7 6 7 6 7 6 7
 }
 
-static INLINE __m128i convolve(const __m128i *const s,
+static inline __m128i convolve(const __m128i *const s,
                                const __m128i *const coeffs) {
   const __m128i d0 = _mm_madd_epi16(s[0], coeffs[0]);
   const __m128i d1 = _mm_madd_epi16(s[1], coeffs[1]);
@@ -46,7 +46,7 @@ static INLINE __m128i convolve(const __m128i *const s,
   return d;
 }
 
-static INLINE __m128i convolve_lo_x(const __m128i *const s,
+static inline __m128i convolve_lo_x(const __m128i *const s,
                                     const __m128i *const coeffs) {
   __m128i ss[4];
   ss[0] = _mm_unpacklo_epi8(s[0], _mm_setzero_si128());
@@ -56,7 +56,7 @@ static INLINE __m128i convolve_lo_x(const __m128i *const s,
   return convolve(ss, coeffs);
 }
 
-static INLINE __m128i convolve_lo_y(const __m128i *const s,
+static inline __m128i convolve_lo_y(const __m128i *const s,
                                     const __m128i *const coeffs) {
   __m128i ss[4];
   ss[0] = _mm_unpacklo_epi8(s[0], _mm_setzero_si128());
@@ -66,7 +66,7 @@ static INLINE __m128i convolve_lo_y(const __m128i *const s,
   return convolve(ss, coeffs);
 }
 
-static INLINE __m128i convolve_hi_y(const __m128i *const s,
+static inline __m128i convolve_hi_y(const __m128i *const s,
                                     const __m128i *const coeffs) {
   __m128i ss[4];
   ss[0] = _mm_unpackhi_epi8(s[0], _mm_setzero_si128());
