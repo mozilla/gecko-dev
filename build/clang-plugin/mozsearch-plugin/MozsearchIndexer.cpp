@@ -1138,9 +1138,57 @@ public:
     return CurDeclContext && CurDeclContext->VisitImplicit;
   }
 
+  // We don't want to traverse all specializations everytime we find a forward
+  // declaration, so only traverse specializations related to an actual
+  // definition.
+  //
+  // ```
+  // // This is the canonical declaration for Maybe but isn't really useful.
+  // template <typename T>
+  // struct Maybe;
+  //
+  // // This is another ClassTemplateDecl, but not the canonical one, where we
+  // // actually have the definition. This is the one we want to traverse.
+  // template <typename T>
+  // struct Maybe {
+  //   // This is both the canonical declaration and the definition for
+  //   // inline_method and we want to traverse it.
+  //   template <typename... Args>
+  //   T *inline_method(Args&&... args) {
+  //     // definition
+  //   }
+  //
+  //   // This is the canonical declaration, TraverseFunctionTemplateDecl
+  //   // traverses its out of line definition too.
+  //   template <typename... Args>
+  //   T *out_of_line_method(Args&&... args);
+  // }
+  //
+  // // This is the definition for Maybe<T>::out_of_line_method<Args...>
+  // // It is traversed when calling TraverseFunctionTemplateDecl on the
+  // // canonical declaration.
+  // template <typename T>
+  // template <typename... Args>
+  // T *maybe(Args&&... args) {
+  //   // definition
+  // }
+  // ```
+  //
+  // So:
+  // - for class templates we check isThisDeclarationADefinition
+  // - for function templates we check isCanonicalDecl
   bool TraverseClassTemplateDecl(ClassTemplateDecl *D) {
     AutoTemplateContext Atc(this);
     Super::TraverseClassTemplateDecl(D);
+
+    // Gather dependent locations from partial specializations too
+    SmallVector<ClassTemplatePartialSpecializationDecl *> PS;
+    D->getPartialSpecializations(PS);
+    for (auto *Spec : PS) {
+      for (auto *Rd : Spec->redecls()) {
+        TraverseDecl(Rd);
+      }
+    }
 
     if (!Atc.needsAnalysis()) {
       return true;
@@ -1148,9 +1196,8 @@ public:
 
     Atc.switchMode();
 
-    if (D != D->getCanonicalDecl()) {
+    if (!D->isThisDeclarationADefinition())
       return true;
-    }
 
     for (auto *Spec : D->specializations()) {
       for (auto *Rd : Spec->redecls()) {
@@ -1165,6 +1212,7 @@ public:
     return true;
   }
 
+  // See also comment above TraverseClassTemplateDecl
   bool TraverseFunctionTemplateDecl(FunctionTemplateDecl *D) {
     AutoTemplateContext Atc(this);
     if (Atc.inGatherMode()) {
@@ -1177,9 +1225,8 @@ public:
 
     Atc.switchMode();
 
-    if (D != D->getCanonicalDecl()) {
+    if (!D->isCanonicalDecl())
       return true;
-    }
 
     for (auto *Spec : D->specializations()) {
       for (auto *Rd : Spec->redecls()) {
@@ -2144,21 +2191,23 @@ public:
   }
 
   bool VisitCXXConstructExpr(const CXXConstructExpr *E) {
-    SourceLocation Loc = E->getBeginLoc();
-    if (!isInterestingLocation(Loc)) {
-      return true;
-    }
-
     // If we are in a template and find a Stmt that was registed in
     // ForwardedTemplateLocations, convert the location to an actual Stmt* in
     // ForwardingTemplates
     if (TemplateStack && !TemplateStack->inGatherMode()) {
       if (ForwardedTemplateLocations.find(E->getBeginLoc().getRawEncoding()) !=
           ForwardedTemplateLocations.end()) {
-        ForwardingTemplates.insert(
-            {getCurrentFunctionTemplateInstantiation(), E});
+        if (const auto *currentTemplate =
+                getCurrentFunctionTemplateInstantiation()) {
+          ForwardingTemplates.insert({currentTemplate, E});
+        }
         return true;
       }
+    }
+
+    SourceLocation Loc = E->getBeginLoc();
+    if (!isInterestingLocation(Loc)) {
+      return true;
     }
 
     return VisitCXXConstructExpr(E, Loc);
@@ -2181,21 +2230,50 @@ public:
     return true;
   }
 
-  bool VisitUnresolvedLookupExpr(UnresolvedLookupExpr *E) {
-    // If we are in a template and the callee is type-dependent, register it in
-    // ForwardedTemplateLocations to forward its uses to the surrounding
-    // template call site
-    if (TemplateStack && TemplateStack->inGatherMode()) {
-      if (E->isTypeDependent()) {
-        TemplateStack->visitDependent(E->getBeginLoc());
-        ForwardedTemplateLocations.insert(E->getBeginLoc().getRawEncoding());
+  bool VisitCallExpr(CallExpr *E) {
+    Expr *CalleeExpr = E->getCallee()->IgnoreParenImpCasts();
+
+    if (TemplateStack) {
+      const auto CalleeLocation = [&] {
+        if (const auto *Member =
+                dyn_cast<CXXDependentScopeMemberExpr>(CalleeExpr)) {
+          return Member->getMemberLoc();
+        }
+        if (const auto *DeclRef =
+                dyn_cast<DependentScopeDeclRefExpr>(CalleeExpr)) {
+          return DeclRef->getLocation();
+        }
+        if (const auto *DeclRef = dyn_cast<DeclRefExpr>(CalleeExpr)) {
+          return DeclRef->getLocation();
+        }
+
+        // Does the right thing for MemberExpr and UnresolvedMemberExpr at
+        // least.
+        return CalleeExpr->getExprLoc();
+      }();
+
+      // If we are in a template:
+      // - when in GatherDependent mode and the callee is type-dependent,
+      //   register it in ForwardedTemplateLocations
+      // - when in AnalyseDependent mode and the callee is in
+      //   ForwardedTemplateLocations, convert the location to an actual Stmt*
+      //   in ForwardingTemplates
+      if (TemplateStack->inGatherMode()) {
+        if (CalleeExpr->isTypeDependent()) {
+          TemplateStack->visitDependent(CalleeLocation);
+          ForwardedTemplateLocations.insert(CalleeLocation.getRawEncoding());
+        }
+      } else {
+        if (ForwardedTemplateLocations.find(CalleeLocation.getRawEncoding()) !=
+            ForwardedTemplateLocations.end()) {
+          if (const auto *currentTemplate =
+                  getCurrentFunctionTemplateInstantiation()) {
+            ForwardingTemplates.insert({currentTemplate, E});
+          }
+        }
       }
     }
 
-    return true;
-  }
-
-  bool VisitCallExpr(CallExpr *E) {
     Decl *Callee = E->getCalleeDecl();
     if (!Callee || !FunctionDecl::classof(Callee)) {
       return true;
@@ -2212,8 +2290,6 @@ public:
 
     std::string Mangled = getMangledName(CurMangleContext, NamedCallee);
     int Flags = 0;
-
-    Expr *CalleeExpr = E->getCallee()->IgnoreParenImpCasts();
 
     if (CXXOperatorCallExpr::classof(E)) {
       // Just take the first token.
@@ -2336,6 +2412,11 @@ public:
   }
 
   void VisitForwardedStatements(const Expr *E, SourceLocation Loc) {
+    // If Loc itself is forwarded to its callers, do nothing
+    if (ForwardedTemplateLocations.find(Loc.getRawEncoding()) !=
+        ForwardedTemplateLocations.cend())
+      return;
+
     // If this is a forwarding template (eg MakeUnique), visit the forwarded
     // statements
     auto todo = std::stack{std::vector<const Stmt *>{E}};
@@ -2376,20 +2457,6 @@ public:
     SourceLocation Loc = E->getExprLoc();
     if (!isInterestingLocation(Loc)) {
       return true;
-    }
-
-    // If we are in a template and find a Stmt that was registed in
-    // ForwardedTemplateLocations, convert the location to an actual Stmt* in
-    // ForwardingTemplates
-    if (TemplateStack && !TemplateStack->inGatherMode()) {
-      const auto IsForwarded =
-          ForwardedTemplateLocations.find(E->getBeginLoc().getRawEncoding()) !=
-          ForwardedTemplateLocations.end();
-      if (IsForwarded) {
-        ForwardingTemplates.insert(
-            {getCurrentFunctionTemplateInstantiation(), E});
-        return true;
-      }
     }
 
     SourceLocation SpellingLoc = SM.getSpellingLoc(Loc);
@@ -2556,12 +2623,6 @@ public:
   }
 
   bool VisitCXXNewExpr(CXXNewExpr *N) {
-    SourceLocation Loc = N->getExprLoc();
-    normalizeLocation(&Loc);
-    if (!isInterestingLocation(Loc)) {
-      return true;
-    }
-
     // If we are in a template and the new is type-dependent, register it in
     // ForwardedTemplateLocations to forward its uses to the surrounding
     // template call site
