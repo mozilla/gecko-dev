@@ -4722,7 +4722,7 @@ main section {
     font-weight: var(--font-weight-bold);
   }
   .ds-section-grid.ds-card-grid .col-1-large.ds-card.sections-card-ui .meta .excerpt {
-    -webkit-line-clamp: 3;
+    -webkit-line-clamp: 4;
     font-size: var(--font-size-root);
   }
 }
@@ -4884,7 +4884,7 @@ main section {
     font-weight: var(--font-weight-bold);
   }
   .ds-section-grid.ds-card-grid .col-2-large.ds-card.sections-card-ui .meta .excerpt {
-    -webkit-line-clamp: 3;
+    -webkit-line-clamp: 4;
     font-size: var(--font-size-root);
   }
 }
@@ -5047,7 +5047,7 @@ main section {
     font-weight: var(--font-weight-bold);
   }
   .ds-section-grid.ds-card-grid .col-3-large.ds-card.sections-card-ui .meta .excerpt {
-    -webkit-line-clamp: 3;
+    -webkit-line-clamp: 4;
     font-size: var(--font-size-root);
   }
 }
@@ -5209,7 +5209,7 @@ main section {
     font-weight: var(--font-weight-bold);
   }
   .ds-section-grid.ds-card-grid .col-4-large.ds-card.sections-card-ui .meta .excerpt {
-    -webkit-line-clamp: 3;
+    -webkit-line-clamp: 4;
     font-size: var(--font-size-root);
   }
 }
@@ -6012,15 +6012,15 @@ main section {
   padding: var(--space-large);
 }
 .ds-card-grid .sections-card-ui .meta .title {
+  -webkit-line-clamp: 3;
   font-size: var(--font-size-root);
-  -webkit-line-clamp: 2;
   line-height: normal;
   margin-bottom: var(--space-small);
   font-weight: var(--font-weight-bold);
 }
 .ds-card-grid .sections-card-ui .meta .excerpt {
+  -webkit-line-clamp: 3;
   font-size: var(--font-size-small);
-  -webkit-line-clamp: 2;
   line-height: normal;
 }
 .ds-card-grid .sections-card-ui .meta .source {
