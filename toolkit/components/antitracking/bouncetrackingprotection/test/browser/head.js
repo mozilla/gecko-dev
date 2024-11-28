@@ -278,6 +278,9 @@ async function waitForRecordBounces(browser) {
  * @param {boolean} [options.skipSiteDataCleanup=false] - Skip the cleanup of
  * site data after the test. When this is enabled the caller is responsible for
  * cleaning up site data.
+ * @param {boolean} [options.skipBounceTrackingProtectionCleanup=false] - Skip
+ * the cleanup of BounceTrackingProtection state. When this is enabled the
+ * caller is responsible for cleaning BTP state.
  * @param {boolean} [options.closeTabAfterBounce=false] - Close the tab right
  * after the bounce completes before the extended navigation ends as the result
  * of a timeout or user interaction.
@@ -297,6 +300,7 @@ async function runTestBounce(options = {}) {
     originAttributes = {},
     postBounceCallback = () => {},
     skipSiteDataCleanup = false,
+    skipBounceTrackingProtectionCleanup = false,
     closeTabAfterBounce = false,
   } = options;
   info(`runTestBounce ${JSON.stringify(options)}`);
@@ -590,7 +594,10 @@ async function runTestBounce(options = {}) {
       );
     }
   }
-  bounceTrackingProtection?.clearAll();
+  if (!skipBounceTrackingProtectionCleanup) {
+    bounceTrackingProtection?.clearAll();
+  }
+
   if (!skipSiteDataCleanup) {
     await SiteDataTestUtils.clear();
   }
