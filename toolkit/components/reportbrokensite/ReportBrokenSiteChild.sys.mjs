@@ -289,6 +289,7 @@ export class ReportBrokenSiteChild extends JSWindowActorChild {
         hasMixedActiveContentBlocked,
         hasMixedDisplayContentBlocked,
         hasTrackingContentBlocked,
+        btpHasPurgedSite,
       } = antitracking;
 
       message.blockList = blockList;
@@ -324,6 +325,7 @@ export class ReportBrokenSiteChild extends JSWindowActorChild {
         hasMixedActiveContentBlocked,
         hasMixedDisplayContentBlocked,
         hasTrackingContentBlocked,
+        btpHasPurgedSite,
         isPB: isPrivateBrowsing,
         languages,
         locales,
@@ -384,6 +386,7 @@ export class ReportBrokenSiteChild extends JSWindowActorChild {
           antitracking.hasTrackingContentBlocked
             ? `true (${antitracking.blockList})`
             : "false";
+        details["btp has purged site"] = antitracking.btpHasPurgedSite;
 
         if (antitracking.hasTrackingContentBlocked) {
           extra_labels.push(

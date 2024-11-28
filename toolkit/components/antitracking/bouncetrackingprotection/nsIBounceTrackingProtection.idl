@@ -70,6 +70,10 @@ interface nsIBounceTrackingProtection : nsISupports {
     // Remove a list of hosts from the global exception list.
     void removeSiteHostExceptions(in Array<ACString> aSiteHosts);
 
+    // Checks whether a site has recently been purged by BTP. This check is done
+    // across all OriginAttributes.
+    boolean hasRecentlyPurgedSite(in ACString aSiteHost);
+
     // Test getter to inspect remote exception list state.
     Array<ACString> testGetSiteHostExceptions();
 

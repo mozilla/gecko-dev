@@ -47,6 +47,8 @@ async function reformatExpectedWebCompatInfo(tab, overrides) {
     antitracking.hasTrackingContentBlocked;
   const isPrivateBrowsing =
     atOverrides?.isPrivateBrowsing ?? antitracking.isPrivateBrowsing;
+  const btpHasPurgedSite =
+    atOverrides?.btpHasPurgedSite ?? antitracking.btpHasPurgedSite;
 
   const extra_labels = [];
   const frameworks = overrides.frameworks ?? {
@@ -108,6 +110,7 @@ async function reformatExpectedWebCompatInfo(tab, overrides) {
         hasMixedActiveContentBlocked,
         hasMixedDisplayContentBlocked,
         hasTrackingContentBlocked,
+        btpHasPurgedSite,
         isPB: isPrivateBrowsing,
         languages,
         locales: snapshot.intl.localeService.available,
@@ -130,6 +133,7 @@ async function reformatExpectedWebCompatInfo(tab, overrides) {
       "tracking content blocked": hasTrackingContentBlocked
         ? `true (${blockList})`
         : "false",
+      "btp has purged site": btpHasPurgedSite,
     },
     extra_labels,
     src: "desktop-reporter",
@@ -190,6 +194,7 @@ async function reformatExpectedWebCompatInfo(tab, overrides) {
     delete reformatted.details["mixed active content blocked"];
     delete reformatted.details["mixed passive content blocked"];
     delete reformatted.details["tracking content blocked"];
+    delete reformatted.details["btp has purged site"];
   } else {
     const { fastclick, mobify, marfeel } = frameworks;
     if (fastclick) {

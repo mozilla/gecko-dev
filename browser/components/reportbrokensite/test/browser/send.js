@@ -209,6 +209,7 @@ async function getExpectedWebCompatInfo(tab, snapshot, fullAppData = false) {
           hasTrackingContentBlocked: false,
           hasMixedActiveContentBlocked: false,
           hasMixedDisplayContentBlocked: false,
+          btpHasPurgedSite: false,
         },
         frameworks: {
           fastclick: false,

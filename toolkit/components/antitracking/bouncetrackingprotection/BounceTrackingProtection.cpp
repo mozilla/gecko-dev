@@ -638,6 +638,28 @@ BounceTrackingProtection::RemoveSiteHostExceptions(
 }
 
 NS_IMETHODIMP
+BounceTrackingProtection::HasRecentlyPurgedSite(const nsACString& aSiteHost,
+                                                bool* aResult) {
+  NS_ENSURE_ARG_POINTER(aResult);
+  *aResult = false;
+  NS_ENSURE_TRUE(!aSiteHost.IsEmpty(), NS_ERROR_INVALID_ARG);
+
+  // Look for a purge log entry matching the site and return greedily if we find
+  // one. We look through all state globals because we want to search across all
+  // OriginAttributes.
+  for (const auto& entry : mStorage->StateGlobalMapRef()) {
+    RefPtr<BounceTrackingStateGlobal> stateGlobal = entry.GetData();
+    MOZ_ASSERT(stateGlobal);
+
+    if (stateGlobal->RecentPurgesMapRef().Contains(aSiteHost)) {
+      *aResult = true;
+      return NS_OK;
+    }
+  }
+  return NS_OK;
+}
+
+NS_IMETHODIMP
 BounceTrackingProtection::TestGetSiteHostExceptions(
     nsTArray<nsCString>& aSiteHostExceptions) {
   aSiteHostExceptions.Clear();

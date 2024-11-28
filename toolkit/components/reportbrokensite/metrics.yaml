@@ -184,6 +184,24 @@ broken_site_report.tab_info.antitracking:
     send_in_pings:
       - broken-site-report
 
+  btp_has_purged_site:
+    type: boolean
+    expires: never
+    data_sensitivity:
+      - interaction
+    description: >
+      Whether the site in the current tab has recently been purged by Bounce
+      Tracking Protection.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1932148
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1932148
+    notification_emails:
+      - twisniewski@mozilla.com
+      - webcompat-reporting-tool-telemetry@mozilla.com
+    send_in_pings:
+      - broken-site-report
+
 broken_site_report.tab_info.frameworks:
   fastclick:
     type: boolean
