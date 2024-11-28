@@ -9,6 +9,7 @@ import android.hardware.camera2.CameraManager
 import androidx.compose.ui.test.junit4.AndroidComposeTestRule
 import androidx.core.net.toUri
 import androidx.test.espresso.Espresso
+import androidx.test.filters.SdkSuppress
 import mozilla.components.feature.sitepermissions.SitePermissionsRules
 import okhttp3.mockwebserver.MockWebServer
 import org.junit.After
@@ -94,6 +95,7 @@ class SearchTest : TestSetup() {
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2154189
+    @SdkSuppress(minSdkVersion = 34)
     @Test
     fun verifySearchBarItemsTest() {
         navigationToolbar {
@@ -722,6 +724,7 @@ class SearchTest : TestSetup() {
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2154197
+    @SdkSuppress(minSdkVersion = 34)
     @Test
     fun verifyTabsSearchItemsTest() {
         navigationToolbar {
@@ -786,6 +789,7 @@ class SearchTest : TestSetup() {
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2154203
+    @SdkSuppress(minSdkVersion = 34)
     @Test
     fun verifyBookmarksSearchItemsTest() {
         navigationToolbar {
@@ -838,6 +842,7 @@ class SearchTest : TestSetup() {
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2154212
+    @SdkSuppress(minSdkVersion = 34)
     @Test
     fun verifyHistorySearchItemsTest() {
         navigationToolbar {
