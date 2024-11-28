@@ -1071,6 +1071,9 @@ interface nsIDOMWindowUtils : nsISupports {
    */
   DOMRect getBoundsWithoutFlushing(in Element aElement);
 
+  /** Returns the opaque region, for testing */
+  Array<DOMRect> getWidgetOpaqueRegion();
+
   /**
    * Scroll the visual viewport to the given coordinates, relative to the
    * document origin.

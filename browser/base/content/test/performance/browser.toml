@@ -39,6 +39,8 @@ skip-if = [
 
 ["browser_hiddenwindow_existence.js"]
 
+["browser_opaque_region.js"]
+
 ["browser_panel_vsync.js"]
 support-files = ["!/browser/components/downloads/test/browser/head.js"]
 
