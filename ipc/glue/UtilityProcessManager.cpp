@@ -317,6 +317,26 @@ UtilityProcessManager::StartUtility(RefPtr<Actor> aActor,
       });
 }
 
+void UtilityProcessManager::StartProcessForRemoteMediaDecoding() {
+  RefPtr<UtilityAudioDecoderChild> genericUadc =
+      UtilityAudioDecoderChild::GetSingleton(SandboxingKind::GENERIC_UTILITY);
+  StartUtility(genericUadc, SandboxingKind::GENERIC_UTILITY);
+
+#ifdef MOZ_APPLEMEDIA
+  RefPtr<UtilityAudioDecoderChild> appleUadc =
+      UtilityAudioDecoderChild::GetSingleton(
+          SandboxingKind::UTILITY_AUDIO_DECODING_APPLE_MEDIA);
+  StartUtility(appleUadc, SandboxingKind::UTILITY_AUDIO_DECODING_APPLE_MEDIA);
+#endif
+
+#ifdef XP_WIN
+  RefPtr<UtilityAudioDecoderChild> wmfUadc =
+      UtilityAudioDecoderChild::GetSingleton(
+          SandboxingKind::UTILITY_AUDIO_DECODING_WMF);
+  StartUtility(wmfUadc, SandboxingKind::UTILITY_AUDIO_DECODING_WMF);
+#endif
+}
+
 RefPtr<UtilityProcessManager::StartRemoteDecodingUtilityPromise>
 UtilityProcessManager::StartProcessForRemoteMediaDecoding(
     EndpointProcInfo aOtherProcess, dom::ContentParentId aChildId,

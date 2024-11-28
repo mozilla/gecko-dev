@@ -151,6 +151,7 @@
 #include "mozilla/ipc/Endpoint.h"
 #include "mozilla/ipc/FileDescriptorUtils.h"
 #include "mozilla/ipc/IPCStreamUtils.h"
+#include "mozilla/ipc/UtilityProcessManager.h"
 #include "mozilla/ipc/SharedMemory.h"
 #include "mozilla/ipc/TestShellParent.h"
 #include "mozilla/layers/CompositorThread.h"
@@ -2969,6 +2970,12 @@ bool ContentParent::InitInternal(ProcessPriority aInitialPriority) {
     // Ensure the RDD process has been started.
     RDDProcessManager* rdd = RDDProcessManager::Get();
     rdd->LaunchRDDProcess();
+  }
+
+  if (StaticPrefs::media_utility_process_enabled()) {
+    // Ensure the Utility media processes have been started.
+    RefPtr<UtilityProcessManager> upm = UtilityProcessManager::GetSingleton();
+    upm->StartProcessForRemoteMediaDecoding();
   }
 
   nsStyleSheetService* sheetService = nsStyleSheetService::GetInstance();
