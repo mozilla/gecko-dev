@@ -529,7 +529,9 @@ async function runTestBounce(options = {}) {
         bounceTrackingProtection.testGetRecentlyPurgedTrackers(
           originAttributes
         );
-      if (expectPurge) {
+      // Purges are only logged in (fully) enabled mode. Dry-run mode does not
+      // log purges.
+      if (expectPurge && mode == Ci.nsIBounceTrackingProtection.MODE_ENABLED) {
         Assert.equal(
           purgeLog.length,
           1,

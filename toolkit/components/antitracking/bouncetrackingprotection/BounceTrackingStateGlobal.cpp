@@ -10,6 +10,7 @@
 #include "mozilla/Assertions.h"
 #include "mozilla/Logging.h"
 #include "mozilla/IntegerPrintfMacros.h"
+#include "nsIBounceTrackingProtection.h"
 #include "nsIPrincipal.h"
 
 namespace mozilla {
@@ -212,6 +213,10 @@ nsresult BounceTrackingStateGlobal::RecordBounceTracker(
 
 nsresult BounceTrackingStateGlobal::RecordPurgedTracker(
     const RefPtr<BounceTrackingPurgeEntry>& aEntry) {
+  MOZ_ASSERT(StaticPrefs::privacy_bounceTrackingProtection_mode() ==
+                 nsIBounceTrackingProtection::MODE_ENABLED,
+             "Should only record purged trackers when the feature is enabled.");
+
   NS_ENSURE_ARG_POINTER(aEntry);
   // Ensure that entries unrelated to this state global can not be added.
   bool entryOAMatchesStateGlobalOA =

@@ -974,23 +974,26 @@ BounceTrackingProtection::PurgeBounceTrackers() {
                     }
                   }
 
-                  // Log successful purges.
-                  for (const auto& entry : purgedSites) {
-                    RefPtr<BounceTrackingStateGlobal> stateGlobal =
-                        self->mStorage->GetOrCreateStateGlobal(
-                            entry->OriginAttributesRef());
-                    MOZ_ASSERT(stateGlobal);
-                    DebugOnly<nsresult> rv =
-                        stateGlobal->RecordPurgedTracker(entry);
-                    NS_WARNING_ASSERTION(
-                        NS_SUCCEEDED(rv),
-                        "Failed to record purged tracker in log.");
-                  }
+                  if (StaticPrefs::privacy_bounceTrackingProtection_mode() ==
+                      nsIBounceTrackingProtection::MODE_ENABLED) {
+                    // Log successful purges.
+                    for (const auto& entry : purgedSites) {
+                      RefPtr<BounceTrackingStateGlobal> stateGlobal =
+                          self->mStorage->GetOrCreateStateGlobal(
+                              entry->OriginAttributesRef());
+                      MOZ_ASSERT(stateGlobal);
+                      DebugOnly<nsresult> rv =
+                          stateGlobal->RecordPurgedTracker(entry);
+                      NS_WARNING_ASSERTION(
+                          NS_SUCCEEDED(rv),
+                          "Failed to record purged tracker in log.");
+                    }
 
-                  // Record successful purges via nsITrackingDBService for
-                  // tracker stats.
-                  if (purgedSites.Length() > 0) {
-                    ReportPurgedTrackersToAntiTrackingDB(purgedSites);
+                    // Record successful purges via nsITrackingDBService for
+                    // tracker stats.
+                    if (purgedSites.Length() > 0) {
+                      ReportPurgedTrackersToAntiTrackingDB(purgedSites);
+                    }
                   }
 
                   self->mPurgeInProgress = false;
@@ -1010,6 +1013,8 @@ BounceTrackingProtection::PurgeBounceTrackers() {
 void BounceTrackingProtection::ReportPurgedTrackersToAntiTrackingDB(
     const nsTArray<RefPtr<BounceTrackingPurgeEntry>>& aPurgedSiteHosts) {
   MOZ_ASSERT(!aPurgedSiteHosts.IsEmpty());
+  MOZ_ASSERT(StaticPrefs::privacy_bounceTrackingProtection_mode() ==
+             nsIBounceTrackingProtection::MODE_ENABLED);
 
   ContentBlockingLog log;
   for (const RefPtr<BounceTrackingPurgeEntry>& entry : aPurgedSiteHosts) {
