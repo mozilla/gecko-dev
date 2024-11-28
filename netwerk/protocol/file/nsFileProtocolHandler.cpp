@@ -177,6 +177,17 @@ nsFileProtocolHandler::NewChannel(nsIURI* uri, nsILoadInfo* aLoadInfo,
     chan = new nsFileChannel(uri);
   }
 
+  // file URLs with hostnames should be considered an error
+  // Before bug 1507354 file URLs ignored the host part. So we intentionally
+  // fail the channel if the file URL has a host to prevent any security issues
+  // that might arise.
+  nsAutoCString host;
+  rv = uri->GetHost(host);
+  NS_ENSURE_SUCCESS(rv, rv);
+  if (NS_WARN_IF(!host.IsEmpty())) {
+    return NS_ERROR_FAILURE;
+  }
+
   // set the loadInfo on the new channel ; must do this
   // before calling Init() on it, since it needs the load
   // info be already set.

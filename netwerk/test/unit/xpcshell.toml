@@ -592,6 +592,8 @@ skip-if = ["tsan && socketprocess_networking"] # Bug 1808236
 
 ["test_file_protocol.js"]
 
+["test_file_url_with_host.js"]
+
 ["test_filestreams.js"]
 
 ["test_freshconnection.js"]
