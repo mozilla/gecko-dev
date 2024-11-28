@@ -2161,15 +2161,53 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
 
     fn match_pseudo_element(
         &self,
-        pseudo_element: &PseudoElement,
+        pseudo_selector: &PseudoElement,
         _context: &mut MatchingContext<Self::Impl>,
     ) -> bool {
         // TODO(emilio): I believe we could assert we are a pseudo-element and
         // match the proper pseudo-element, given how we rulehash the stuff
         // based on the pseudo.
-        match self.implemented_pseudo_element() {
-            Some(ref pseudo) => *pseudo == *pseudo_element,
-            None => false,
+        let pseudo = match self.implemented_pseudo_element() {
+            Some(pseudo) => pseudo,
+            None => return false,
+        };
+
+        if pseudo == *pseudo_selector {
+            return true;
+        }
+
+        if std::mem::discriminant(&pseudo) != std::mem::discriminant(pseudo_selector) {
+            return false;
+        }
+
+        match (&pseudo, pseudo_selector) {
+            (
+                &PseudoElement::ViewTransitionGroup(ref _name),
+                &PseudoElement::ViewTransitionGroup(ref selector_name),
+            )
+            | (
+                &PseudoElement::ViewTransitionImagePair(ref _name),
+                &PseudoElement::ViewTransitionImagePair(ref selector_name),
+            )
+            | (
+                &PseudoElement::ViewTransitionOld(ref _name),
+                &PseudoElement::ViewTransitionOld(ref selector_name),
+            )
+            | (
+                &PseudoElement::ViewTransitionNew(ref _name),
+                &PseudoElement::ViewTransitionNew(ref selector_name),
+            ) => {
+                // Named view transition pseudos accept the universal selector as the name, so we
+                // check it first.
+                // https://drafts.csswg.org/css-view-transitions-1/#named-view-transition-pseudo
+                if selector_name.0 == atom!("*") {
+                    return true;
+                }
+                // We don't need to check if `*_name == *selector_name` here because we already
+                // check if the enums are equal above.
+                false
+            },
+            _ => false,
         }
     }
 
