@@ -47,12 +47,18 @@ class BounceTrackingProtectionStorage final : public nsIObserver,
   [[nodiscard]] nsresult Init();
 
   // Getters for mStateGlobal.
-  BounceTrackingStateGlobal* GetOrCreateStateGlobal(
+  RefPtr<BounceTrackingStateGlobal> GetStateGlobal(
       const OriginAttributes& aOriginAttributes);
 
-  BounceTrackingStateGlobal* GetOrCreateStateGlobal(nsIPrincipal* aPrincipal);
+  RefPtr<BounceTrackingStateGlobal> GetStateGlobal(nsIPrincipal* aPrincipal);
 
-  BounceTrackingStateGlobal* GetOrCreateStateGlobal(
+  RefPtr<BounceTrackingStateGlobal> GetOrCreateStateGlobal(
+      const OriginAttributes& aOriginAttributes);
+
+  RefPtr<BounceTrackingStateGlobal> GetOrCreateStateGlobal(
+      nsIPrincipal* aPrincipal);
+
+  RefPtr<BounceTrackingStateGlobal> GetOrCreateStateGlobal(
       BounceTrackingState* aBounceTrackingState);
 
   using StateGlobalMap =

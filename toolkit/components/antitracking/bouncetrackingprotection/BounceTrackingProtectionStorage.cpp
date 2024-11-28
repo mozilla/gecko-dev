@@ -38,21 +38,33 @@ namespace mozilla {
 NS_IMPL_ISUPPORTS(BounceTrackingProtectionStorage, nsIAsyncShutdownBlocker,
                   nsIObserver);
 
-BounceTrackingStateGlobal*
+RefPtr<BounceTrackingStateGlobal>
+BounceTrackingProtectionStorage::GetStateGlobal(nsIPrincipal* aPrincipal) {
+  MOZ_ASSERT(aPrincipal);
+  return GetStateGlobal(aPrincipal->OriginAttributesRef());
+}
+
+RefPtr<BounceTrackingStateGlobal>
+BounceTrackingProtectionStorage::GetStateGlobal(
+    const OriginAttributes& aOriginAttributes) {
+  return mStateGlobal.Get(aOriginAttributes);
+}
+
+RefPtr<BounceTrackingStateGlobal>
 BounceTrackingProtectionStorage::GetOrCreateStateGlobal(
     nsIPrincipal* aPrincipal) {
   MOZ_ASSERT(aPrincipal);
   return GetOrCreateStateGlobal(aPrincipal->OriginAttributesRef());
 }
 
-BounceTrackingStateGlobal*
+RefPtr<BounceTrackingStateGlobal>
 BounceTrackingProtectionStorage::GetOrCreateStateGlobal(
     BounceTrackingState* aBounceTrackingState) {
   MOZ_ASSERT(aBounceTrackingState);
   return GetOrCreateStateGlobal(aBounceTrackingState->OriginAttributesRef());
 }
 
-BounceTrackingStateGlobal*
+RefPtr<BounceTrackingStateGlobal>
 BounceTrackingProtectionStorage::GetOrCreateStateGlobal(
     const OriginAttributes& aOriginAttributes) {
   return mStateGlobal.GetOrInsertNew(aOriginAttributes, this,

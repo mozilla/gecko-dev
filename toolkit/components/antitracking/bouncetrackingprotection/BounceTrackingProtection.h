@@ -78,6 +78,14 @@ class BounceTrackingProtection final : public nsIBounceTrackingProtection,
   [[nodiscard]] nsresult ClearExpiredUserInteractions(
       BounceTrackingStateGlobal* aStateGlobal = nullptr);
 
+  // Logs a warning to the DevTools website console if we recently purged a site
+  // matching the given principal. Purge log data is not persisted across
+  // restarts so we only know whether a purge happened during this session. For
+  // private browsing mode closing the last private browsing window clears purge
+  // information.
+  void MaybeLogPurgedWarningForSite(nsIPrincipal* aPrincipal,
+                                    BounceTrackingState* aBounceTrackingState);
+
  private:
   BounceTrackingProtection() = default;
   ~BounceTrackingProtection() = default;

@@ -478,8 +478,10 @@ BounceTrackingProtection::TestGetBounceTrackerCandidateHosts(
     return NS_ERROR_INVALID_ARG;
   }
 
-  BounceTrackingStateGlobal* globalState = mStorage->GetOrCreateStateGlobal(oa);
-  MOZ_ASSERT(globalState);
+  RefPtr<BounceTrackingStateGlobal> globalState = mStorage->GetStateGlobal(oa);
+  if (!globalState) {
+    return NS_OK;
+  }
 
   for (auto iter = globalState->BounceTrackersMapRef().ConstIter();
        !iter.Done(); iter.Next()) {
@@ -502,8 +504,10 @@ BounceTrackingProtection::TestGetUserActivationHosts(
     return NS_ERROR_INVALID_ARG;
   }
 
-  BounceTrackingStateGlobal* globalState = mStorage->GetOrCreateStateGlobal(oa);
-  MOZ_ASSERT(globalState);
+  RefPtr<BounceTrackingStateGlobal> globalState = mStorage->GetStateGlobal(oa);
+  if (!globalState) {
+    return NS_OK;
+  }
 
   for (auto iter = globalState->UserActivationMapRef().ConstIter();
        !iter.Done(); iter.Next()) {
@@ -526,8 +530,10 @@ BounceTrackingProtection::TestGetRecentlyPurgedTrackers(
     return NS_ERROR_INVALID_ARG;
   }
 
-  BounceTrackingStateGlobal* globalState = mStorage->GetOrCreateStateGlobal(oa);
-  MOZ_ASSERT(globalState);
+  RefPtr<BounceTrackingStateGlobal> globalState = mStorage->GetStateGlobal(oa);
+  if (!globalState) {
+    return NS_OK;
+  }
 
   nsTArray<RefPtr<BounceTrackingPurgeEntry>> purgeEntriesSorted;
   for (auto iter = globalState->RecentPurgesMapRef().ConstIter(); !iter.Done();
@@ -699,8 +705,8 @@ BounceTrackingProtection::TestAddBounceTrackerCandidate(
     return NS_ERROR_INVALID_ARG;
   }
 
-  BounceTrackingStateGlobal* stateGlobal = mStorage->GetOrCreateStateGlobal(oa);
-  MOZ_ASSERT(stateGlobal);
+  RefPtr<BounceTrackingStateGlobal> stateGlobal =
+      mStorage->GetOrCreateStateGlobal(oa);
 
   // Ensure aHost is lowercase to match nsIURI and nsIPrincipal.
   nsAutoCString host(aHost);
@@ -723,7 +729,8 @@ BounceTrackingProtection::TestAddUserActivation(
     return NS_ERROR_INVALID_ARG;
   }
 
-  BounceTrackingStateGlobal* stateGlobal = mStorage->GetOrCreateStateGlobal(oa);
+  RefPtr<BounceTrackingStateGlobal> stateGlobal =
+      mStorage->GetOrCreateStateGlobal(oa);
   MOZ_ASSERT(stateGlobal);
 
   // Ensure aHost is lowercase to match nsIURI and nsIPrincipal.
@@ -947,7 +954,7 @@ BounceTrackingProtection::PurgeBounceTrackers() {
 
                   // Log successful purges.
                   for (const auto& entry : purgedSites) {
-                    BounceTrackingStateGlobal* stateGlobal =
+                    RefPtr<BounceTrackingStateGlobal> stateGlobal =
                         self->mStorage->GetOrCreateStateGlobal(
                             entry->OriginAttributesRef());
                     MOZ_ASSERT(stateGlobal);
@@ -1219,6 +1226,69 @@ nsresult BounceTrackingProtection::ClearExpiredUserInteractions(
   }
 
   return NS_OK;
+}
+
+void BounceTrackingProtection::MaybeLogPurgedWarningForSite(
+    nsIPrincipal* aPrincipal, BounceTrackingState* aBounceTrackingState) {
+  NS_ENSURE_TRUE_VOID(aPrincipal);
+  NS_ENSURE_TRUE_VOID(aBounceTrackingState);
+
+  // Ensure that the BTS is connected to a BrowsingContext. We will later use
+  // this BC to get the DevTools console to log to.
+  RefPtr<dom::BrowsingContext> browsingContext =
+      aBounceTrackingState->CurrentBrowsingContext();
+  if (!browsingContext) {
+    return;
+  }
+
+  // Check if the site is in the recently purged log. If it is we should log a
+  // console warning.
+  RefPtr<BounceTrackingStateGlobal> stateGlobal =
+      mStorage->GetStateGlobal(aPrincipal);
+  if (!stateGlobal) {
+    // No state global which means we don't have any purge data for the given
+    // OriginAttributes on record.
+    return;
+  }
+
+  nsAutoCString siteHost;
+  nsresult rv = aPrincipal->GetBaseDomain(siteHost);
+  NS_ENSURE_SUCCESS_VOID(rv);
+
+  if (!stateGlobal->RecentPurgesMapRef().Contains(siteHost)) {
+    // No recent purge found for the given site.
+    return;
+  }
+
+  // Recently purged the site. Log a warning.
+
+  // Get the localized copy from antiTracking.ftl and insert the variables.
+  nsTArray<nsCString> resourceIDs = {"toolkit/global/antiTracking.ftl"_ns};
+  RefPtr<intl::Localization> l10n =
+      intl::Localization::Create(resourceIDs, true);
+
+  auto l10nArgs = dom::Optional<intl::L10nArgs>();
+  l10nArgs.Construct();
+
+  auto siteHostArg = l10nArgs.Value().Entries().AppendElement();
+  siteHostArg->mKey = "siteHost";
+  siteHostArg->mValue.SetValue().SetAsUTF8String().Assign(siteHost);
+
+  // Construct the localized string.
+  nsAutoCString message;
+  ErrorResult errorResult;
+  l10n->FormatValueSync("btp-warning-tracker-purged"_ns, l10nArgs, message,
+                        errorResult);
+  if (NS_WARN_IF(errorResult.Failed())) {
+    return;
+  }
+
+  rv = nsContentUtils::ReportToConsoleByWindowID(
+      NS_ConvertUTF8toUTF16(message), nsIScriptError::warningFlag,
+      "bounceTrackingProtection"_ns,
+      browsingContext->GetCurrentInnerWindowId());
+
+  NS_ENSURE_SUCCESS_VOID(rv);
 }
 
 nsresult BounceTrackingProtection::MaybeMigrateUserInteractionPermissions() {

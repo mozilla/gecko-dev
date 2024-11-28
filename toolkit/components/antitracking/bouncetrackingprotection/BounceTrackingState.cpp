@@ -753,6 +753,17 @@ nsresult BounceTrackingState::OnDocumentLoaded(
              Describe().get()));
   }
 
+  bool shouldTrackPrincipal =
+      BounceTrackingState::ShouldTrackPrincipal(aDocumentPrincipal);
+
+  // Check if we need to log a warning to the DevTools console because we have
+  // previously purged this site. This is only relevant to check if we actually
+  // monitor this principal for bounce tracking.
+  if (shouldTrackPrincipal) {
+    mBounceTrackingProtection->MaybeLogPurgedWarningForSite(aDocumentPrincipal,
+                                                            this);
+  }
+
   // Assert: navigable’s bounce tracking record is not null.
   // TODO: Bug 1894936
   if (!mBounceTrackingRecord) {
@@ -760,7 +771,7 @@ nsresult BounceTrackingState::OnDocumentLoaded(
   }
 
   nsAutoCString siteHost;
-  if (!BounceTrackingState::ShouldTrackPrincipal(aDocumentPrincipal)) {
+  if (!shouldTrackPrincipal) {
     siteHost = "";
   } else {
     nsresult rv = aDocumentPrincipal->GetBaseDomain(siteHost);
