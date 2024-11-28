@@ -156,7 +156,7 @@ impl<'data> IslamicCacheV1<'data> {
     databake(path = icu_calendar::provider),
 )]
 #[cfg_attr(feature = "serde", derive(serde::Deserialize))]
-#[repr(packed)]
+#[repr(C, packed)]
 pub struct PackedIslamicYearInfo(pub u8, pub u8);
 
 impl fmt::Debug for PackedIslamicYearInfo {

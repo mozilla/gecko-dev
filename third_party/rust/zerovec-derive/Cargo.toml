@@ -12,7 +12,7 @@
 [package]
 edition = "2021"
 name = "zerovec-derive"
-version = "0.10.2"
+version = "0.10.3"
 authors = ["Manish Goregaokar <manishsmail@gmail.com>"]
 description = "Custom derive for the zerovec crate"
 readme = "README.md"

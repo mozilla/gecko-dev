@@ -83,7 +83,7 @@ fn make_ule_enum_impl(
     attrs: ZeroVecAttrs,
 ) -> TokenStream2 {
     // We could support more int reprs in the future if needed
-    if !utils::has_valid_repr(&input.attrs, |r| r == "u8") {
+    if !utils::ReprInfo::compute(&input.attrs).u8 {
         return Error::new(
             input.span(),
             "#[make_ule] can only be applied to #[repr(u8)] enums",

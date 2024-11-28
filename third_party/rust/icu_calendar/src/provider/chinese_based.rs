@@ -143,7 +143,7 @@ impl<'data> ChineseBasedCacheV1<'data> {
     derive(databake::Bake),
     databake(path = icu_calendar::provider),
 )]
-#[repr(packed)]
+#[repr(C, packed)]
 pub struct PackedChineseBasedYearInfo(pub u8, pub u8, pub u8);
 
 impl PackedChineseBasedYearInfo {

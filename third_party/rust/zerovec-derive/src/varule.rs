@@ -15,10 +15,10 @@ pub fn derive_impl(
     input: &DeriveInput,
     custom_varule_validator: Option<TokenStream2>,
 ) -> TokenStream2 {
-    if !utils::has_valid_repr(&input.attrs, |r| r == "packed" || r == "transparent") {
+    if !utils::ReprInfo::compute(&input.attrs).cpacked_or_transparent() {
         return Error::new(
             input.span(),
-            "derive(VarULE) must be applied to a #[repr(packed)] or #[repr(transparent)] type",
+            "derive(VarULE) must be applied to a #[repr(C, packed)] or #[repr(transparent)] type",
         )
         .to_compile_error();
     }
