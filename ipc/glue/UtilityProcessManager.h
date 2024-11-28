@@ -64,9 +64,6 @@ class UtilityProcessManager final : public UtilityProcessHost::Listener {
   RefPtr<LaunchPromise<Ok>> StartUtility(RefPtr<Actor> aActor,
                                          SandboxingKind aSandbox);
 
-  // Launch Utility processes for media decoding.
-  void StartProcessForRemoteMediaDecoding();
-
   RefPtr<StartRemoteDecodingUtilityPromise> StartProcessForRemoteMediaDecoding(
       EndpointProcInfo aOtherProcess, dom::ContentParentId aChildId,
       SandboxingKind aSandbox);
