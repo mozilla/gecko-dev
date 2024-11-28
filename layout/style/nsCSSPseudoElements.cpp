@@ -38,6 +38,11 @@ nsAtom* nsCSSPseudoElements::GetPseudoAtom(Type aType) {
   return nsGkAtoms::GetAtomByIndex(index);
 }
 
+static bool IsFunctionalPseudo(PseudoStyleType aType) {
+  return aType == PseudoStyleType::highlight ||
+         PseudoStyle::IsNamedViewTransitionPseudoElement(aType);
+}
+
 /* static */
 Maybe<PseudoStyleRequest> nsCSSPseudoElements::ParsePseudoElement(
     const nsAString& aPseudoElement, CSSEnabledState aEnabledState) {
@@ -78,7 +83,7 @@ Maybe<PseudoStyleRequest> nsCSSPseudoElements::ParsePseudoElement(
   auto type = static_cast<Type>(*index);
   RefPtr<nsAtom> functionalPseudoParameter;
   if (hasParameter) {
-    if (type != PseudoStyleType::highlight) {
+    if (!IsFunctionalPseudo(type)) {
       return Nothing();
     }
     functionalPseudoParameter =
@@ -92,6 +97,13 @@ Maybe<PseudoStyleRequest> nsCSSPseudoElements::ParsePseudoElement(
       }
       return NS_Atomize(Substring(start, end));
     }();
+
+    // The universal selector is pre-defined and should not be a valid name for
+    // a named view-transition pseudo element.
+    if (PseudoStyle::IsNamedViewTransitionPseudoElement(type) &&
+        functionalPseudoParameter == nsGkAtoms::_asterisk) {
+      return Nothing();
+    }
   }
 
   if (!haveTwoColons &&
