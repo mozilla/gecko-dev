@@ -102,13 +102,13 @@ var gBrowserInit = {
       toolbarMenubar.setAttribute("data-l10n-attrs", "toolbarname");
     }
 
-    // Run menubar initialization first, to avoid TabsInTitlebar code picking
+    // Run menubar initialization first, to avoid CustomTitlebar code picking
     // up mutations from it and causing a reflow.
     AutoHideMenubar.init();
     // Update the customtitlebar attribute so the window can be sized
     // correctly.
     window.TabBarVisibility.update();
-    TabsInTitlebar.init();
+    CustomTitlebar.init();
 
     new LightweightThemeConsumer(document);
 
@@ -1025,7 +1025,7 @@ var gBrowserInit = {
   onUnload() {
     gUIDensity.uninit();
 
-    TabsInTitlebar.uninit();
+    CustomTitlebar.uninit();
 
     ToolbarIconColor.uninit();
 

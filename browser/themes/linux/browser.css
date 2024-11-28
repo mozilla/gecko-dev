@@ -34,7 +34,7 @@
  * (in X11) or the compositor (in Wayland) does draw the shadow corners
  * already.
  */
-:root[tabsintitlebar] {
+:root[customtitlebar] {
   background-color: transparent;
 
   &[sizemode="normal"]:not([gtktiledwindow="true"]) {

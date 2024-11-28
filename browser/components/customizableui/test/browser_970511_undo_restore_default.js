@@ -143,9 +143,9 @@ add_task(async function () {
 // Bug 971626 - Restore Defaults should collapse the Title Bar
 add_task(async function () {
   {
-    const supported = TabsInTitlebar.systemSupported;
+    const supported = CustomTitlebar.systemSupported;
     is(typeof supported, "boolean");
-    info("TabsInTitlebar support: " + supported);
+    info("CustomTitlebar support: " + supported);
     if (!supported) {
       return;
     }

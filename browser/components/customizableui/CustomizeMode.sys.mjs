@@ -1674,7 +1674,7 @@ CustomizeMode.prototype = {
   },
 
   _canDrawInTitlebar() {
-    return this.window.TabsInTitlebar.systemSupported;
+    return this.window.CustomTitlebar.systemSupported;
   },
 
   _ensureCustomizationPanels() {
