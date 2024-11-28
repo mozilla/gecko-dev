@@ -8,14 +8,35 @@
 
 namespace mozilla {
 
+// BounceTrackingMapEntry
+
 NS_IMPL_ISUPPORTS(BounceTrackingMapEntry, nsIBounceTrackingMapEntry);
 
 NS_IMETHODIMP BounceTrackingMapEntry::GetSiteHost(nsACString& aSiteHost) {
   aSiteHost = mSiteHost;
   return NS_OK;
 }
-NS_IMETHODIMP BounceTrackingMapEntry::GetTimeStamp(int64_t* aTimeStamp) {
+NS_IMETHODIMP BounceTrackingMapEntry::GetTimeStamp(PRTime* aTimeStamp) {
   *aTimeStamp = mTimeStamp;
+  return NS_OK;
+}
+
+// BounceTrackingPurgeEntry
+
+NS_IMPL_ISUPPORTS(BounceTrackingPurgeEntry, nsIBounceTrackingPurgeEntry,
+                  nsIBounceTrackingMapEntry);
+
+NS_IMETHODIMP BounceTrackingPurgeEntry::GetSiteHost(nsACString& aSiteHost) {
+  aSiteHost = mSiteHost;
+  return NS_OK;
+}
+NS_IMETHODIMP BounceTrackingPurgeEntry::GetTimeStamp(PRTime* aTimeStamp) {
+  *aTimeStamp = mTimeStamp;
+  return NS_OK;
+}
+
+NS_IMETHODIMP BounceTrackingPurgeEntry::GetPurgeTime(PRTime* aPurgeTime) {
+  *aPurgeTime = mPurgeTime;
   return NS_OK;
 }
 

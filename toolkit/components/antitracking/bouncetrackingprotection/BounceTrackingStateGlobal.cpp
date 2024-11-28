@@ -190,6 +190,22 @@ nsresult BounceTrackingStateGlobal::RecordBounceTracker(
       BounceTrackingProtectionStorage::EntryType::BounceTracker, aTime);
 }
 
+nsresult BounceTrackingStateGlobal::RecordPurgedTracker(
+    const RefPtr<BounceTrackingPurgeEntry>& aEntry) {
+  NS_ENSURE_ARG_POINTER(aEntry);
+  // Ensure that entries unrelated to this state global can not be added.
+  bool entryOAMatchesStateGlobalOA =
+      aEntry->OriginAttributesRef() == mOriginAttributes;
+  MOZ_ASSERT(entryOAMatchesStateGlobalOA);
+  NS_ENSURE_TRUE(entryOAMatchesStateGlobalOA, NS_ERROR_INVALID_ARG);
+
+  nsTArray<RefPtr<BounceTrackingPurgeEntry>>& entriesForSite =
+      mRecentPurges.LookupOrInsert(aEntry->SiteHostRef());
+  entriesForSite.AppendElement(aEntry);
+
+  return NS_OK;
+}
+
 nsresult BounceTrackingStateGlobal::RemoveBounceTrackers(
     const nsTArray<nsCString>& aSiteHosts) {
   for (const nsCString& siteHost : aSiteHosts) {

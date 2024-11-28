@@ -32,7 +32,7 @@ class WindowContext;
 }
 
 using ClearDataMozPromise =
-    MozPromise<RefPtr<BounceTrackingMapEntry>, uint32_t, true>;
+    MozPromise<RefPtr<BounceTrackingPurgeEntry>, uint32_t, true>;
 
 extern LazyLogModule gBounceTrackingProtectionLog;
 
@@ -122,13 +122,13 @@ class BounceTrackingProtection final : public nsIBounceTrackingProtection,
 
   // Clear state for classified bounce trackers. To be called on an interval.
   using PurgeBounceTrackersMozPromise =
-      MozPromise<nsTArray<RefPtr<BounceTrackingMapEntry>>, nsresult, true>;
+      MozPromise<nsTArray<RefPtr<BounceTrackingPurgeEntry>>, nsresult, true>;
   RefPtr<PurgeBounceTrackersMozPromise> PurgeBounceTrackers();
 
   // Report purged trackers to the anti-tracking database via
   // nsITrackingDBService.
   static void ReportPurgedTrackersToAntiTrackingDB(
-      const nsTArray<RefPtr<BounceTrackingMapEntry>>& aPurgedSiteHosts);
+      const nsTArray<RefPtr<BounceTrackingPurgeEntry>>& aPurgedSiteHosts);
 
   // Clear state for classified bounce trackers for a specific state global.
   // aClearPromises is populated with promises for each host that is cleared.
@@ -160,6 +160,22 @@ class BounceTrackingProtection final : public nsIBounceTrackingProtection,
   [[nodiscard]] static nsresult LogBounceTrackersClassifiedToWebConsole(
       BounceTrackingState* aBounceTrackingState,
       const nsTArray<nsCString>& aSiteHosts);
+
+  // Comparator for sorting purge log entries by purge timestamp.
+  class PurgeEntryTimeComparator {
+   public:
+    bool Equals(const BounceTrackingPurgeEntry* a,
+                const BounceTrackingPurgeEntry* b) const {
+      MOZ_ASSERT(a && b);
+      return a->PurgeTimeRefConst() == b->PurgeTimeRefConst();
+    }
+
+    bool LessThan(const BounceTrackingPurgeEntry* a,
+                  const BounceTrackingPurgeEntry* b) const {
+      MOZ_ASSERT(a && b);
+      return a->PurgeTimeRefConst() < b->PurgeTimeRefConst();
+    }
+  };
 };
 
 }  // namespace mozilla

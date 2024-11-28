@@ -516,6 +516,33 @@ BounceTrackingProtection::TestGetUserActivationHosts(
 }
 
 NS_IMETHODIMP
+BounceTrackingProtection::TestGetRecentlyPurgedTrackers(
+    JS::Handle<JS::Value> aOriginAttributes, JSContext* aCx,
+    nsTArray<RefPtr<nsIBounceTrackingPurgeEntry>>& aPurgedTrackers) {
+  MOZ_ASSERT(aCx);
+
+  OriginAttributes oa;
+  if (!aOriginAttributes.isObject() || !oa.Init(aCx, aOriginAttributes)) {
+    return NS_ERROR_INVALID_ARG;
+  }
+
+  BounceTrackingStateGlobal* globalState = mStorage->GetOrCreateStateGlobal(oa);
+  MOZ_ASSERT(globalState);
+
+  nsTArray<RefPtr<BounceTrackingPurgeEntry>> purgeEntriesSorted;
+  for (auto iter = globalState->RecentPurgesMapRef().ConstIter(); !iter.Done();
+       iter.Next()) {
+    for (const auto& entry : iter.Data()) {
+      purgeEntriesSorted.InsertElementSorted(entry, PurgeEntryTimeComparator{});
+    }
+  }
+
+  aPurgedTrackers.AppendElements(purgeEntriesSorted);
+
+  return NS_OK;
+}
+
+NS_IMETHODIMP
 BounceTrackingProtection::ClearAll() {
   BounceTrackingState::ResetAll();
   return mStorage->Clear();
@@ -907,7 +934,7 @@ BounceTrackingProtection::PurgeBounceTrackers() {
                   // Check if any clear call failed.
                   bool anyFailed = false;
 
-                  nsTArray<RefPtr<BounceTrackingMapEntry>> purgedSites;
+                  nsTArray<RefPtr<BounceTrackingPurgeEntry>> purgedSites;
 
                   // If any clear call failed reject.
                   for (auto& result : aResults.ResolveValue()) {
@@ -918,7 +945,18 @@ BounceTrackingProtection::PurgeBounceTrackers() {
                     }
                   }
 
-                  // TODO: Log purges in storage.
+                  // Log successful purges.
+                  for (const auto& entry : purgedSites) {
+                    BounceTrackingStateGlobal* stateGlobal =
+                        self->mStorage->GetOrCreateStateGlobal(
+                            entry->OriginAttributesRef());
+                    MOZ_ASSERT(stateGlobal);
+                    DebugOnly<nsresult> rv =
+                        stateGlobal->RecordPurgedTracker(entry);
+                    NS_WARNING_ASSERTION(
+                        NS_SUCCEEDED(rv),
+                        "Failed to record purged tracker in log.");
+                  }
 
                   // Record successful purges via nsITrackingDBService for
                   // tracker stats.
@@ -941,11 +979,11 @@ BounceTrackingProtection::PurgeBounceTrackers() {
 
 // static
 void BounceTrackingProtection::ReportPurgedTrackersToAntiTrackingDB(
-    const nsTArray<RefPtr<BounceTrackingMapEntry>>& aPurgedSiteHosts) {
+    const nsTArray<RefPtr<BounceTrackingPurgeEntry>>& aPurgedSiteHosts) {
   MOZ_ASSERT(!aPurgedSiteHosts.IsEmpty());
 
   ContentBlockingLog log;
-  for (const RefPtr<BounceTrackingMapEntry>& entry : aPurgedSiteHosts) {
+  for (const RefPtr<BounceTrackingPurgeEntry>& entry : aPurgedSiteHosts) {
     nsAutoCString origin("https://");
     origin.Append(entry->SiteHostRef());
 

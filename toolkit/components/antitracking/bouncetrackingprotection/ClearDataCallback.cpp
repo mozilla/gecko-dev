@@ -44,7 +44,8 @@ ClearDataCallback::ClearDataCallback(ClearDataMozPromise::Private* aPromise,
     : mPromise(aPromise), mClearDurationTimer(0) {
   MOZ_ASSERT(!aHost.IsEmpty(), "Host must not be empty");
 
-  mEntry = new BounceTrackingMapEntry(aOriginAttributes, aHost, aBounceTime);
+  mEntry =
+      new BounceTrackingPurgeEntry(aOriginAttributes, aHost, aBounceTime, 0);
 
   if (StaticPrefs::privacy_bounceTrackingProtection_mode() ==
       nsIBounceTrackingProtection::MODE_ENABLED) {
@@ -94,6 +95,7 @@ NS_IMETHODIMP ClearDataCallback::OnDataDeleted(uint32_t aFailedFlags) {
              PromiseFlatCString(mEntry->SiteHostRef()).get(),
              mEntry->TimeStampRef()));
 
+    mEntry->PurgeTimeRef() = PR_Now();
     mPromise->Resolve(mEntry, __func__);
 
     // Only record classifications on successful deletion.

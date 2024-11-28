@@ -13,5 +13,16 @@ interface nsIBounceTrackingMapEntry : nsISupports {
     readonly attribute ACString siteHost;
     // The time when the user activation or bounce tracker candidate was added.
     // This is a PRTime, which is USEC since the epoch.
-    readonly attribute int64_t timeStamp;
+    readonly attribute PRTime timeStamp;
+};
+
+/**
+ * This interface represents an entry in the purged bounce trackers log.
+ */
+[scriptable, builtinclass, uuid(DFED8ADB-C15C-4E87-AC11-7101AB8BC7DD)]
+interface nsIBounceTrackingPurgeEntry : nsIBounceTrackingMapEntry {
+    // The time when the bounce tracker was purged. timeStamp of the parent
+    // class is the bounce time. This is a PRTime, which is USEC since the
+    // epoch.
+    readonly attribute PRTime purgeTime;
 };

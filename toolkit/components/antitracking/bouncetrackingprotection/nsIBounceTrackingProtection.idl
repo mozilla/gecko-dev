@@ -98,6 +98,10 @@ interface nsIBounceTrackingProtection : nsISupports {
     [implicit_jscontext]
     void testAddUserActivation(in jsval originAttributes, in ACString aSiteHost, in PRTime aActivationTime);
 
+    // Get a list of recently purged bounce trackers.
+    [implicit_jscontext]
+    Array<nsIBounceTrackingPurgeEntry> testGetRecentlyPurgedTrackers(in jsval originAttributes);
+
     // Test helper to trigger user activation import from the permission
     // manager. Will only import if the pref
     // privacy.bounceTrackingProtection.hasMigratedUserActivationData is set to

@@ -14,7 +14,7 @@ namespace mozilla {
 
 // Pending clear operations are stored as ClearDataMozPromise, one per host.
 using ClearDataMozPromise =
-    MozPromise<RefPtr<BounceTrackingMapEntry>, uint32_t, true>;
+    MozPromise<RefPtr<BounceTrackingPurgeEntry>, uint32_t, true>;
 
 extern LazyLogModule gBounceTrackingProtectionLog;
 
@@ -36,7 +36,7 @@ class ClearDataCallback final : public nsIClearDataCallback,
 
   // Entry containing the site host which was cleared and the timestamp of when
   // the bounce occurred that led to the tracker being purged.
-  RefPtr<BounceTrackingMapEntry> mEntry;
+  RefPtr<BounceTrackingPurgeEntry> mEntry;
 
   // Promise which is resolved or rejected when the clear operation completes.
   RefPtr<ClearDataMozPromise::Private> mPromise;
