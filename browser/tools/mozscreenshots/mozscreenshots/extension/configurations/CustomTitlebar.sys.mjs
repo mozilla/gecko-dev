@@ -17,9 +17,7 @@ export var CustomTitlebar = {
     },
 
     tabsOutsideTitlebar: {
-      selectors: ["#navigator-toolbox"].concat(
-        Services.appinfo.OS == "Linux" ? [] : ["#titlebar"]
-      ),
+      selectors: ["#navigator-toolbox"],
       async applyConfig() {
         Services.prefs.setIntPref(PREF_TABS_IN_TITLEBAR, 0);
       },
