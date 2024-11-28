@@ -3946,37 +3946,6 @@ formautofill:
       - 'main'
 
 formautofill.addresses:
-  detected_sections_count:
-    bug_numbers:
-      - 1801039
-    description: >
-      Count at detection time number of address form sections.
-      A single form can contain more than one address form section.
-    expires: never
-    kind: uint
-    notification_emails:
-      - autofill@lists.mozilla.org
-      - passwords-dev@mozilla.org
-    release_channel_collection: opt-out
-    products:
-      - 'firefox'
-    record_in_processes:
-      - 'main'
-  submitted_sections_count:
-    bug_numbers:
-      - 1656344
-    description: >
-      Count at submission time number of credit card form sections submitted.
-    expires: never
-    kind: uint
-    notification_emails:
-      - autofill@lists.mozilla.org
-      - passwords-dev@mozilla.org
-    release_channel_collection: opt-out
-    products:
-      - 'firefox'
-    record_in_processes:
-      - 'main'
   autofill_profiles_count:
     bug_numbers:
       - 1801039
@@ -4004,38 +3973,6 @@ formautofill.creditCards:
     notification_emails:
       - autofill@lists.mozilla.org
       - passwords-dev@mozilla.org
-    release_channel_collection: opt-out
-    products:
-      - 'firefox'
-    record_in_processes:
-      - 'main'
-  detected_sections_count:
-    bug_numbers:
-      - 1656344
-    description: >
-      Count at detection time number of credit card form sections.
-      A single form can contain more than one credit card form section.
-    expires: never
-    kind: uint
-    notification_emails:
-      - autofill@lists.mozilla.org
-      - passwords-dev@mozilla.org
-    release_channel_collection: opt-out
-    products:
-      - 'firefox'
-    record_in_processes:
-      - 'main'
-  submitted_sections_count:
-    bug_numbers:
-      - 1656344
-    description: >
-      Count at submission time number of credit card form sections submitted.
-    expires: never
-    kind: uint
-    notification_emails:
-      - autofill@lists.mozilla.org
-      - jmathies@mozilla.com
-      - chsiang@mozilla.com
     release_channel_collection: opt-out
     products:
       - 'firefox'

@@ -13,10 +13,6 @@ const { AddressTelemetry } = ChromeUtils.importESModule(
 // Telemetry definitions
 const EVENT_CATEGORY = "address";
 
-const SCALAR_DETECTED_SECTION_COUNT =
-  "formautofill.addresses.detected_sections_count";
-const SCALAR_SUBMITTED_SECTION_COUNT =
-  "formautofill.addresses.submitted_sections_count";
 const SCALAR_AUTOFILL_PROFILE_COUNT =
   "formautofill.addresses.autofill_profiles_count";
 
@@ -289,21 +285,8 @@ add_task(async function test_popup_opened() {
     ...formArgs("popup_shown", { field_name: TEST_FOCUS_NAME_FIELD }),
   ]);
 
-  TelemetryTestUtils.assertScalar(
-    TelemetryTestUtils.getProcessScalars("parent"),
-    SCALAR_DETECTED_SECTION_COUNT,
-    1,
-    "There should be 1 section detected."
-  );
-  TelemetryTestUtils.assertScalarUnset(
-    TelemetryTestUtils.getProcessScalars("parent"),
-    SCALAR_SUBMITTED_SECTION_COUNT,
-    1
-  );
-
   await removeAllRecords();
   Services.telemetry.clearEvents();
-  Services.telemetry.clearScalars();
 });
 
 add_task(async function test_popup_opened_form_without_autocomplete() {
@@ -324,20 +307,8 @@ add_task(async function test_popup_opened_form_without_autocomplete() {
     ...formArgs("popup_shown", { field_name: TEST_FOCUS_NAME_FIELD }),
   ]);
 
-  TelemetryTestUtils.assertScalar(
-    TelemetryTestUtils.getProcessScalars("parent"),
-    SCALAR_DETECTED_SECTION_COUNT,
-    1,
-    "There should be 1 section detected."
-  );
-  TelemetryTestUtils.assertScalarUnset(
-    TelemetryTestUtils.getProcessScalars("parent"),
-    SCALAR_SUBMITTED_SECTION_COUNT
-  );
-
   await removeAllRecords();
   Services.telemetry.clearEvents();
-  Services.telemetry.clearScalars();
 });
 
 add_task(async function test_submit_autofill_profile_new() {
@@ -418,22 +389,8 @@ add_task(async function test_submit_autofill_profile_new() {
     [EVENT_CATEGORY, "save", "capture_doorhanger"],
   ]);
 
-  TelemetryTestUtils.assertScalar(
-    TelemetryTestUtils.getProcessScalars("parent"),
-    SCALAR_DETECTED_SECTION_COUNT,
-    1,
-    "There should be 1 sections detected."
-  );
-  TelemetryTestUtils.assertScalar(
-    TelemetryTestUtils.getProcessScalars("parent"),
-    SCALAR_SUBMITTED_SECTION_COUNT,
-    1,
-    "There should be 1 section submitted."
-  );
-
   await removeAllRecords();
   Services.telemetry.clearEvents();
-  Services.telemetry.clearScalars();
 });
 
 add_task(async function test_submit_autofill_profile_update() {
