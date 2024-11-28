@@ -16,6 +16,10 @@ ChromeUtils.defineESModuleGetters(lazy, {
 // List of prepositions used in subject cleaning.
 const PREPOSITIONS = ["in", "at", "on", "for", "to", "near"];
 
+const MAX_QUERY_LENGTH = 200;
+const NAME_PUNCTUATION = [".", "-", "'"];
+const NAME_PUNCTUATION_EXCEPT_DOT = NAME_PUNCTUATION.filter(p => p !== ".");
+
 /**
  * Class for handling ML-based suggestions using intent and NER models.
  *
@@ -63,7 +67,7 @@ class _MLSuggest {
    *   The user's input query.
    * @returns {object | null}
    *   The suggestion result including intent, location, and subject, or null if
-   *   an error occurs.
+   *   an error occurs or query length > MAX_QUERY_LENGTH
    *   {string} intent
    *     The predicted intent label of the query. Possible values include:
    *       - 'information_intent': For queries seeking general information.
@@ -87,6 +91,11 @@ class _MLSuggest {
    *     information about the model's performance.
    */
   async makeSuggestions(query) {
+    // avoid bunch of work for very long strings
+    if (query.length > MAX_QUERY_LENGTH) {
+      return null;
+    }
+
     let intentRes, nerResult;
     try {
       [intentRes, nerResult] = await Promise.all([
@@ -253,56 +262,107 @@ class _MLSuggest {
 
     for (let i = 0; i < nerResult.length; i++) {
       const res = nerResult[i];
-
-      // Handle B-CITY, I-CITY
-      if (
-        (res.entity === "B-CITY" || res.entity === "I-CITY") &&
-        res.score > nerThreshold
-      ) {
-        if (res.word.startsWith("##") && cityResult.length) {
-          cityResult[cityResult.length - 1] += res.word.slice(2);
-        } else {
-          cityResult.push(res.word);
-        }
-      }
-      // Handle B-STATE, I-STATE
-      else if (
-        (res.entity === "B-STATE" || res.entity === "I-STATE") &&
-        res.score > nerThreshold
-      ) {
-        if (res.word.startsWith("##") && stateResult.length) {
-          stateResult[stateResult.length - 1] += res.word.slice(2);
-        } else {
-          stateResult.push(res.word);
-        }
-      }
-      // Handle B-CITYSTATE, I-CITYSTATE
-      else if (
-        (res.entity === "B-CITYSTATE" || res.entity === "I-CITYSTATE") &&
-        res.score > nerThreshold
-      ) {
-        if (res.word.startsWith("##") && cityStateResult.length) {
-          cityStateResult[cityStateResult.length - 1] += res.word.slice(2);
-        } else {
-          cityStateResult.push(res.word);
-        }
+      if (res.entity === "B-CITY" || res.entity === "I-CITY") {
+        this.#processNERToken(res, cityResult, nerThreshold);
+      } else if (res.entity === "B-STATE" || res.entity === "I-STATE") {
+        this.#processNERToken(res, stateResult, nerThreshold);
+      } else if (res.entity === "B-CITYSTATE" || res.entity === "I-CITYSTATE") {
+        this.#processNERToken(res, cityStateResult, nerThreshold);
       }
     }
 
     // Handle city_state as combined and split into city and state
-    if (cityStateResult.length) {
+    if (cityStateResult.length && !cityResult.length && !stateResult.length) {
       let cityStateSplit = cityStateResult.join(" ").split(",");
-      return {
-        city: cityStateSplit[0]?.trim() || null,
-        state: cityStateSplit[1]?.trim() || null,
-      };
+      cityResult =
+        cityStateSplit[0]
+          ?.trim?.()
+          .split(",")
+          .filter(item => item.trim() !== "") || [];
+      stateResult =
+        cityStateSplit[1]
+          ?.trim?.()
+          .split(",")
+          .filter(item => item.trim() !== "") || [];
     }
+
+    // Remove trailing punctuation from the last cityResult element if present
+    this.#removePunctFromEndIfPresent(cityResult);
+    this.#removePunctFromEndIfPresent(stateResult);
 
     // Return city and state as separate components if detected
     return {
       city: cityResult.join(" ").trim() || null,
       state: stateResult.join(" ").trim() || null,
     };
+  }
+
+  /**
+   * Processes a token from the NER results, appending it to the provided result
+   * array while handling wordpieces (e.g., "##"), punctuation, and
+   * multi-token entities.
+   *
+   * - Appends wordpieces (starting with "##") to the last token in the array.
+   * - Handles punctuation tokens like ".", "-", or "'".
+   * - Ensures continuity for entities split across multiple tokens.
+   *
+   * @param {object} res
+   *   The NER result token to process. Should include:
+   *   - {string} word: The word or token from the NER output.
+   *   - {number} score: The confidence score for the token.
+   *   - {string} entity: The entity type label (e.g., "B-CITY", "I-STATE").
+   * @param {string[]} resultArray
+   *   The array to append the processed token. Typically `cityResult`,
+   *   `stateResult`, or `cityStateResult`.
+   * @param {number} nerThreshold
+   *   The confidence threshold for including tokens. Tokens with a score below
+   *   this threshold will be ignored.
+   */
+  async #processNERToken(res, resultArray, nerThreshold) {
+    // Skip low-confidence tokens
+    if (res.score <= nerThreshold) {
+      return;
+    }
+
+    const lastTokenIndex = resultArray.length - 1;
+    // "##" prefix indicates that a token is continuation of a word
+    // rather than a start of a new word.
+    // reference -> https://github.com/google-research/bert/blob/master/tokenization.py#L314-L316
+    if (res.word.startsWith("##") && resultArray.length) {
+      resultArray[lastTokenIndex] += res.word.slice(2);
+    } else if (
+      resultArray.length &&
+      (NAME_PUNCTUATION.includes(res.word) ||
+        NAME_PUNCTUATION_EXCEPT_DOT.includes(
+          resultArray[lastTokenIndex].slice(-1)
+        ))
+    ) {
+      // Special handling for punctuation like ".", "-", or "'"
+      resultArray[lastTokenIndex] += res.word;
+    } else {
+      resultArray.push(res.word);
+    }
+  }
+
+  /**
+   * Removes trailing punctuation from the last element in the result array
+   * if the last character matches any punctuation in `NAME_PUNCTUATION`.
+   *
+   * This method is useful for cleaning up city or state tokens that may
+   * contain unwanted punctuation after processing NER results.
+   *
+   * @param {string[]} resultArray
+   *   An array of strings representing detected entities (e.g., cities or states).
+   *   The array is modified in place if the last element ends with punctuation.
+   */
+  async #removePunctFromEndIfPresent(resultArray) {
+    const lastTokenIndex = resultArray.length - 1;
+    if (
+      resultArray.length &&
+      NAME_PUNCTUATION.includes(resultArray[lastTokenIndex].slice(-1))
+    ) {
+      resultArray[lastTokenIndex] = resultArray[lastTokenIndex].slice(0, -1);
+    }
   }
 
   #findSubjectFromQuery(query, location) {
@@ -313,10 +373,19 @@ class _MLSuggest {
 
     // Remove the city and state values from the query
     let locValues = Object.values(location).filter(v => !!v);
+
+    // Regular expression to remove locations
+    // This handles single & multi-worded cities/states
+    let locPattern = locValues
+      .map(loc => `\\b${loc.replace(/[-/\\^$*+?.()|[\]{}]'/g, "\\$&")}\\b`)
+      .join("|");
+    let locRegex = new RegExp(locPattern, "g");
+
+    // Remove locations, trim whitespace, and split words
     let words = query
-      .trim()
-      .split(/\s+|,/)
-      .filter(w => !!w && !locValues.includes(w));
+      .replace(locRegex, "")
+      .split(/\W+/)
+      .filter(word => !!word.length);
 
     let subjectWords = this.#cleanSubject(words);
     return subjectWords.join(" ");
