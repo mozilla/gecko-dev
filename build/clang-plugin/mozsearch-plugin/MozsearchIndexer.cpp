@@ -1209,7 +1209,10 @@ public:
     // should be respected. If this flag is not set, the visitIdentifier
     // function should use only the start of the SourceRange and auto-detect
     // the end based on whatever token is found at the start.
-    LocRangeEndValid = 1 << 2
+    LocRangeEndValid = 1 << 2,
+    // Indicates this record was generated through heuristic template
+    // resolution.
+    Heuristic = 1 << 3,
   };
 
   void emitStructuredRecordInfo(llvm::json::OStream &J, SourceLocation Loc,
@@ -1741,6 +1744,14 @@ public:
 
     if (Flags & NoCrossref) {
       J.attribute("no_crossref", 1);
+    }
+
+    if (Flags & Heuristic) {
+      J.attributeBegin("confidence");
+      J.arrayBegin();
+      J.value("cppTemplateHeuristic");
+      J.arrayEnd();
+      J.attributeEnd();
     }
 
     if (ArgRanges) {
@@ -2465,15 +2476,15 @@ public:
   }
 
   // Helper function for producing heuristic results for usages in dependent
-  // code. These should be distinguished from concrete results (obtained for
-  // dependent code using the AutoTemplateContext machinery) once bug 1833552 is
-  // fixed.
-  // We don't expect this method to be intentionally called multiple times for
-  // a given (Loc, NamedDecl) pair because our callers should be mutually
-  // exclusive AST node types. However, it's fine if this method is called
-  // multiple time for a given pair because we explicitly de-duplicate records
-  // with an identical string representation (which is a good reason to have
-  // this helper, as it ensures identical representations).
+  // code. These are distinguished from concrete results (obtained for dependent
+  // code using the AutoTemplateContext machinery) by setting the “confidence”
+  // property to “cppTemplateHeuristic”. We don't expect this method to be
+  // intentionally called multiple times for a given (Loc, NamedDecl) pair
+  // because our callers should be mutually exclusive AST node types. However,
+  // it's fine if this method is called multiple time for a given pair because
+  // we explicitly de-duplicate records with an identical string representation
+  // (which is a good reason to have this helper, as it ensures identical
+  // representations).
   void visitHeuristicResult(SourceLocation Loc, const NamedDecl *ND) {
     SourceLocation SpellingLoc = SM.getSpellingLoc(Loc);
 
@@ -2501,7 +2512,7 @@ public:
     if (SyntaxKind) {
       std::string Mangled = getMangledName(CurMangleContext, ND);
       visitIdentifier("use", SyntaxKind, getQualifiedName(ND), Loc, Mangled,
-                      MaybeType, getContext(SpellingLoc));
+                      MaybeType, getContext(SpellingLoc), Heuristic);
     }
   }
 
