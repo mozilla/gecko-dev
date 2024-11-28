@@ -518,16 +518,15 @@ where
                 // This section contain potential optimization for not running full invalidation -
                 // consult documentation in `TSStateForInvalidation`.
                 if dependency.state.may_be_optimized() {
-                    debug_assert!(
-                        self.optimization_context.is_some(),
-                        "Optimization context not available for DOM mutation?"
-                    );
                     if operation.is_side_effect() {
                         // Side effect operations act on element not being mutated, so they can't
                         // change the match outcome of these optimizable pseudoclasses.
                         return true;
                     }
-
+                    debug_assert!(
+                        self.optimization_context.is_some(),
+                        "Optimization context not available for DOM mutation?"
+                    );
                     if dependency.state.contains(TSStateForInvalidation::EMPTY) &&
                         element.first_element_child().is_some()
                     {
