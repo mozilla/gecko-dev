@@ -147,6 +147,6 @@ information on managing triggers and a reference of other commands, see the `off
 .. _fsmonitor: https://www.mercurial-scm.org/wiki/FsMonitorExtension
 .. _install watchman: https://facebook.github.io/watchman/docs/install.html
 .. _inotify limits: https://facebook.github.io/watchman/docs/install.html#linux-inotify-limits
-.. _read this page: https://github.com/guard/listen/wiki/Increasing-the-amount-of-inotify-watchers
+.. _read this page: https://github.com/guard/listen/blob/master/README.md#increasing-the-amount-of-inotify-watchers
 .. _this hint: https://github.com/facebook/watchman/commit/2985377eaf8c8538b28fae9add061b67991a87c2
 .. _official docs: https://facebook.github.io/watchman/docs/cmd/trigger.html
