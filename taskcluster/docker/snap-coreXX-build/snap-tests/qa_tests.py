@@ -84,7 +84,9 @@ class QATests(SnapTestsBase):
         self._logger.info(
             "find video: check autoplay: {}".format(video.get_property("autoplay"))
         )
-        if not click_to_play and video.get_property("paused") is True:
+        if click_to_play or (
+            not click_to_play and video.get_property("paused") is True
+        ):
             self._driver.execute_script("arguments[0].play()", video)
 
         self._logger.info("find video: sleep")
@@ -99,26 +101,22 @@ class QATests(SnapTestsBase):
 
         # this should pause
         self._logger.info("find video: pause")
-        if click_to_play:
-            video.send_keys("k")
-        else:
-            self._driver.execute_script("arguments[0].pause()", video)
+        self._driver.execute_script("arguments[0].pause()", video)
         datum = video.get_property("currentTime")
+        paused = video.get_property("paused")
         time.sleep(1)
         datum_after_sleep = video.get_property("currentTime")
         self._logger.info(
             "datum={} datum_after_sleep={}".format(datum, datum_after_sleep)
         )
         assert datum == datum_after_sleep, "<video> is sleeping"
-        assert video.get_property("paused") is True, "<video> is paused"
+        assert paused is True, "<video> is paused"
 
         self._logger.info("find video: unpause")
         # unpause and verify playback
-        if click_to_play:
-            video.send_keys("k")
-        else:
-            self._driver.execute_script("arguments[0].play()", video)
-        assert video.get_property("paused") is False, "<video> is not paused"
+        self._driver.execute_script("arguments[0].play()", video)
+        paused = video.get_property("paused")
+        assert paused is False, "<video> is not paused"
         time.sleep(2)
         datum_after_resume = video.get_property("currentTime")
         self._logger.info(
@@ -144,6 +142,7 @@ class QATests(SnapTestsBase):
         self._logger.info("find video: done")
 
     def _test_audio_video_playback(self, url):
+        iframe_css_selector = "#ucc-1"
         self._logger.info("open url {}".format(url))
         self.open_tab(url)
         self._logger.info("find thumbnail")
@@ -155,33 +154,65 @@ class QATests(SnapTestsBase):
         self._logger.info("audio test")
         self._test_audio_playback(
             url=None,
-            iframe_selector="#drive-viewer-video-player-object-0",
+            iframe_selector=iframe_css_selector,
             click_to_play=True,
         )
 
+        # switch back
+        self._driver.switch_to.parent_frame()
+        self._logger.info("try fullscreen")
+
+        fullscreen_button = self._wait.until(
+            EC.presence_of_element_located(
+                (By.CSS_SELECTOR, "button[aria-label*='Full screen']")
+            )
+        )
+        self._driver.execute_script("return arguments[0].click();", fullscreen_button)
+        time.sleep(1)
+        fullscreen = self._driver.execute_script("return document.fullscreen")
+        assert fullscreen, "<video> is fullscreen"
+
+        iframe = self._wait.until(
+            EC.visibility_of_element_located((By.CSS_SELECTOR, iframe_css_selector))
+        )
+        self._driver.switch_to.frame(iframe)
+        time.sleep(0.5)
+        # we are again in the iframe
         self._logger.info("find video again")
-        # we are still in the iframe
         video = self._wait.until(
             EC.visibility_of_element_located((By.CSS_SELECTOR, "video"))
         )
-        self._logger.info("try fullscreen")
-        promise = self._driver.execute_script(
-            "return arguments[0].requestFullscreen().then(() => { return true; }).catch(() => { return false; })",
-            video,
-        )
-        assert promise is True, "<video> full screen promised fullfilled"
 
         self._driver.execute_script("arguments[0].pause();", video)
         self._driver.execute_script("document.exitFullscreen()")
+
+    def _set_language(self, lang):
+        self._driver.set_context("chrome")
+        accept_lang = self._driver.execute_script(
+            "return Services.prefs.getStringPref('intl.accept_languages');"
+        )
+        self._logger.info("Changing lang from '{}'".format(accept_lang))
+        self._driver.execute_script(
+            "return Services.prefs.setStringPref('intl.accept_languages', '{}');".format(
+                accept_lang
+            )
+        )
+        self._driver.set_context("content")
+
+        return accept_lang
 
     def test_h264_mov(self, exp):
         """
         C95233
         """
 
+        langs = self._set_language("en")
+
         self._test_audio_video_playback(
-            "https://drive.google.com/file/d/0BwxFVkl63-lEY3l3ODJReDg3RzQ/view?resourcekey=0-5kDw2QbFk9eLrWE1N9M1rQ"
+            "https://drive.google.com/file/d/0BwxFVkl63-lEY3l3ODJReDg3RzQ/view?resourcekey=0-5kDw2QbFk9eLrWE1N9M1rQ&hl=en-US"
         )
+
+        self._set_language(langs)
 
         return True
 
@@ -411,7 +442,7 @@ class QATests(SnapTestsBase):
             button_to_test.click()
 
             # rotation does not close the menu?:
-            if menu_id == "pageRotateCw" or menu_id == "pageRotateCcw":
+            if self.is_esr_128() and menu_id in ("pageRotateCw", "pageRotateCcw"):
                 secondary_menu.click()
 
             time.sleep(0.75)
