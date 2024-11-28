@@ -4,6 +4,7 @@
 
 :root {
   min-width: 29em;
+  width: min-content;
 }
 
 dialog[insecureauth] {
