@@ -943,7 +943,7 @@ nsresult nsWindow::Create(nsIWidget* aParent, const LayoutDeviceIntRect& aRect,
       // These match the margins set in browser-tabsintitlebar.js with
       // default prefs on Windows. Bug 1673092 tracks lining this up with
       // that more correctly instead of hard-coding it.
-      SetNonClientMargins(LayoutDeviceIntMargin(0, 2, 2, 2));
+      SetNonClientMargins(LayoutDeviceIntMargin());
       // The skeleton UI already painted over the NC area, so there's no need
       // to do that again; the effective non-client margins haven't changed.
       mNeedsNCAreaClear = false;

@@ -1995,22 +1995,16 @@ static Result<Ok, PreXULSkeletonUIError> CreateAndStorePreXULSkeletonUIImpl(
   sCaptionHeight =
       sVerticalResizeMargin + sGetSystemMetricsForDpi(SM_CYCAPTION, sDpi);
 
-  // These match the margins set in browser-tabsintitlebar.js with default prefs
-  // on Windows. We don't use the skeleton ui if tabsInTitlebar is disabled, see
-  // bug 1673092.
-  const Margin nonClientMargin{0, 2, 2, 2};
-
+  // These match the offsets that we get with default prefs. We don't use the
+  // skeleton ui if tabsInTitlebar is disabled, see bug 1673092.
   if (sMaximized) {
     sNonClientOffset.top = sCaptionHeight - sVerticalResizeMargin;
   } else {
     // See nsWindow::NormalWindowNonClientOffset()
     sNonClientOffset.top = sCaptionHeight;
-    sNonClientOffset.bottom =
-        std::min(sVerticalResizeMargin, nonClientMargin.bottom);
-    sNonClientOffset.left =
-        std::min(sHorizontalResizeMargin, nonClientMargin.left);
-    sNonClientOffset.right =
-        std::min(sHorizontalResizeMargin, nonClientMargin.right);
+    sNonClientOffset.bottom = sVerticalResizeMargin;
+    sNonClientOffset.left = sHorizontalResizeMargin;
+    sNonClientOffset.right = sHorizontalResizeMargin;
   }
 
   if (sMaximized) {
