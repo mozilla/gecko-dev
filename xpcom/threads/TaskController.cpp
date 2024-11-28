@@ -20,6 +20,7 @@
 #include "mozilla/StaticPtr.h"
 #include "mozilla/SchedulerGroup.h"
 #include "mozilla/ScopeExit.h"
+#include "mozilla/FlowMarkers.h"
 #include "nsIThreadInternal.h"
 #include "nsThread.h"
 #include "prenv.h"
@@ -94,6 +95,12 @@ int32_t TaskController::GetPoolThreadCount() {
 
 #if defined(MOZ_COLLECTING_RUNNABLE_TELEMETRY)
 
+// This struct is duplicated below as 'IncompleteTaskMarker'.
+// Make sure you keep the two in sync.
+// The only difference between the two schemas is the type of the "task" field:
+// TaskMarker uses TerminatingFlow and IncompleteTaskMarker uses Flow.
+// We have two schemas so that we don't need to emit a separate marker for the
+// TerminatingFlow in the common case.
 struct TaskMarker : BaseMarkerType<TaskMarker> {
   static constexpr const char* Name = "Task";
   static constexpr const char* Description =
@@ -105,6 +112,8 @@ struct TaskMarker : BaseMarkerType<TaskMarker> {
        MS::PayloadFlags::Searchable},
       {"priority", MS::InputType::Uint32, "Priority level",
        MS::Format::Integer},
+      {"task", MS::InputType::Uint64, "Task", MS::Format::TerminatingFlow,
+       MS::PayloadFlags::Searchable},
       {"priorityName", MS::InputType::CString, "Priority Name"}};
 
   static constexpr MS::Location Locations[] = {MS::Location::MarkerChart,
@@ -112,7 +121,8 @@ struct TaskMarker : BaseMarkerType<TaskMarker> {
   static constexpr const char* ChartLabel = "{marker.data.name}";
   static constexpr const char* TableLabel =
       "{marker.name} - {marker.data.name} - priority: "
-      "{marker.data.priorityName} ({marker.data.priority})";
+      "{marker.data.priorityName} ({marker.data.priority})"
+      " task: {marker.data.task}";
 
   static constexpr bool IsStackBased = true;
 
@@ -120,13 +130,14 @@ struct TaskMarker : BaseMarkerType<TaskMarker> {
 
   static void TranslateMarkerInputToSchema(void* aContext,
                                            const nsCString& aName,
-                                           uint32_t aPriority) {
-    ETW::OutputMarkerSchema(aContext, TaskMarker{}, aName, aPriority,
+                                           uint32_t aPriority, Flow aFlow) {
+    ETW::OutputMarkerSchema(aContext, TaskMarker{}, aName, aPriority, aFlow,
                             ProfilerStringView(""));
   }
 
   static void StreamJSONMarkerData(baseprofiler::SpliceableJSONWriter& aWriter,
-                                   const nsCString& aName, uint32_t aPriority) {
+                                   const nsCString& aName, uint32_t aPriority,
+                                   Flow aFlow) {
     aWriter.StringProperty("name", aName);
     aWriter.IntProperty("priority", aPriority);
 
@@ -139,46 +150,101 @@ struct TaskMarker : BaseMarkerType<TaskMarker> {
     {
       aWriter.StringProperty("priorityName", "Invalid Value");
     }
+    aWriter.FlowProperty("task", aFlow);
   }
 };
 
-class MOZ_RAII AutoProfileTask {
- public:
-  explicit AutoProfileTask(nsACString& aName, uint64_t aPriority)
-      : mName(aName), mPriority(aPriority) {
-    if (profiler_is_collecting_markers()) {
-      mStartTime = TimeStamp::Now();
-    }
+// This is a duplicate of the code above with the format of the 'task'
+// field changed from `TerminatingFlow` to Flow`
+struct IncompleteTaskMarker : BaseMarkerType<IncompleteTaskMarker> {
+  static constexpr const char* Name = "Task";
+  static constexpr const char* Description =
+      "Marker representing a task being executed in TaskController.";
+
+  using MS = MarkerSchema;
+  static constexpr MS::PayloadField PayloadFields[] = {
+      {"name", MS::InputType::CString, "Task Name", MS::Format::String,
+       MS::PayloadFlags::Searchable},
+      {"priority", MS::InputType::Uint32, "Priority level",
+       MS::Format::Integer},
+      {"task", MS::InputType::Uint64, "Task", MS::Format::Flow,
+       MS::PayloadFlags::Searchable},
+      {"priorityName", MS::InputType::CString, "Priority Name"}};
+
+  static constexpr MS::Location Locations[] = {MS::Location::MarkerChart,
+                                               MS::Location::MarkerTable};
+  static constexpr const char* ChartLabel = "{marker.data.name}";
+  static constexpr const char* TableLabel =
+      "{marker.name} - {marker.data.name} - priority: "
+      "{marker.data.priorityName} ({marker.data.priority})"
+      " task: {marker.data.task}";
+
+  static constexpr bool IsStackBased = true;
+
+  static constexpr MS::ETWMarkerGroup Group = MS::ETWMarkerGroup::Scheduling;
+
+  static void TranslateMarkerInputToSchema(void* aContext,
+                                           const nsCString& aName,
+                                           uint32_t aPriority, Flow aFlow) {
+    ETW::OutputMarkerSchema(aContext, IncompleteTaskMarker{}, aName, aPriority,
+                            aFlow, ProfilerStringView(""));
   }
 
-  ~AutoProfileTask() {
-    if (!profiler_thread_is_being_profiled_for_markers()) {
-      return;
-    }
+  static void StreamJSONMarkerData(baseprofiler::SpliceableJSONWriter& aWriter,
+                                   const nsCString& aName, uint32_t aPriority,
+                                   Flow aFlow) {
+    aWriter.StringProperty("name", aName);
+    aWriter.IntProperty("priority", aPriority);
 
+#  define EVENT_PRIORITY(NAME, VALUE)                \
+    if (aPriority == (VALUE)) {                      \
+      aWriter.StringProperty("priorityName", #NAME); \
+    } else
+    EVENT_QUEUE_PRIORITY_LIST(EVENT_PRIORITY)
+#  undef EVENT_PRIORITY
+    {
+      aWriter.StringProperty("priorityName", "Invalid Value");
+    }
+    aWriter.FlowProperty("task", aFlow);
+  }
+};
+
+// Wrap task->Run() so that we can add markers for it
+Task::TaskResult TaskController::RunTask(Task* aTask) {
+  if (!profiler_is_collecting_markers()) {
+    return aTask->Run();
+  }
+
+  TimeStamp startTime = TimeStamp::Now();
+
+  nsAutoCString name;
+  aTask->GetName(name);
+
+  PERFETTO_TRACE_EVENT("task", perfetto::DynamicString{name.get()});
+  AUTO_PROFILER_LABEL_DYNAMIC_NSCSTRING_NONSENSITIVE("Task", OTHER, name);
+
+  auto result = aTask->Run();
+
+  if (profiler_thread_is_being_profiled_for_markers()) {
     AUTO_PROFILER_LABEL("AutoProfileTask", PROFILER);
     AUTO_PROFILER_STATS(AUTO_PROFILE_TASK);
-    profiler_add_marker("Runnable", ::mozilla::baseprofiler::category::OTHER,
-                        mStartTime.IsNull()
-                            ? MarkerTiming::IntervalEnd()
-                            : MarkerTiming::IntervalUntilNowFrom(mStartTime),
-                        TaskMarker{}, mName, mPriority);
+    auto priority = aTask->GetPriority();
+    auto flow = Flow::FromPointer(aTask);
+    if (result == Task::TaskResult::Complete) {
+      profiler_add_marker("Runnable", baseprofiler::category::OTHER,
+                          MarkerTiming::IntervalUntilNowFrom(startTime),
+                          TaskMarker{}, name, priority, flow);
+    } else {
+      profiler_add_marker("Runnable", baseprofiler::category::OTHER,
+                          MarkerTiming::IntervalUntilNowFrom(startTime),
+                          IncompleteTaskMarker{}, name, priority, flow);
+    }
   }
 
- private:
-  TimeStamp mStartTime;
-  nsAutoCString mName;
-  uint32_t mPriority;
-};
-
-#  define AUTO_PROFILE_FOLLOWING_TASK(task)                                  \
-    nsAutoCString name;                                                      \
-    (task)->GetName(name);                                                   \
-    PERFETTO_TRACE_EVENT("task", perfetto::DynamicString{name.get()});       \
-    AUTO_PROFILER_LABEL_DYNAMIC_NSCSTRING_NONSENSITIVE("Task", OTHER, name); \
-    mozilla::AutoProfileTask PROFILER_RAII(name, (task)->GetPriority());
+  return result;
+}
 #else
-#  define AUTO_PROFILE_FOLLOWING_TASK(task)
+Task::TaskResult TaskController::RunTask(Task* aTask) { return aTask->Run(); }
 #endif
 
 bool TaskManager::
@@ -348,8 +414,7 @@ void TaskController::RunPoolThread(PoolThread* aThread) {
 
     {
       MutexAutoUnlock unlock(mGraphMutex);
-      AUTO_PROFILE_FOLLOWING_TASK(task);
-      taskCompleted = task->Run() == Task::TaskResult::Complete;
+      taskCompleted = RunTask(task) == Task::TaskResult::Complete;
     }
 
     task->mInProgress = false;
@@ -436,6 +501,9 @@ void TaskController::AddTask(already_AddRefed<Task>&& aTask) {
 #endif
 
   LogTask::LogDispatch(task);
+  profiler_add_marker("TaskController::AddTask", baseprofiler::category::OTHER,
+                      MarkerTiming::InstantNow(), FlowMarker{},
+                      Flow::FromPointer(task.get()));
 
   std::pair<std::set<RefPtr<Task>, Task::PriorityCompare>::iterator, bool>
       insertion;
@@ -943,8 +1011,8 @@ bool TaskController::DoExecuteNextTaskOnlyMainThreadInternal(
 #ifdef MOZ_COLLECTING_RUNNABLE_TELEMETRY
           AutoSetMainThreadRunnableName nameGuard(name);
 #endif
-          AUTO_PROFILE_FOLLOWING_TASK(task);
-          result = task->Run() == Task::TaskResult::Complete;
+
+          result = RunTask(task) == Task::TaskResult::Complete;
         }
 
         // Task itself should keep manager alive.
