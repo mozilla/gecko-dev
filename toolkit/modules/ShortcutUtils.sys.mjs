@@ -21,6 +21,7 @@ ChromeUtils.defineLazyGetter(lazy, "Keys", function () {
 export var ShortcutUtils = {
   IS_VALID: "valid",
   INVALID_KEY: "invalid_key",
+  INVALID_KEY_IN_EXTENSION_MANIFEST: "invalid_key_in_extension_manifest",
   INVALID_MODIFIER: "invalid_modifier",
   INVALID_COMBINATION: "invalid_combination",
   DUPLICATE_MODIFIER: "duplicate_modifier",
@@ -224,13 +225,20 @@ export var ShortcutUtils = {
    * @param {string} string The shortcut string.
    * @returns {string} The code for the validation result.
    */
-  validate(string) {
+  validate(string, { extensionManifest = false } = {}) {
     // A valid shortcut key for a webextension manifest
     const MEDIA_KEYS =
       /^(MediaNextTrack|MediaPlayPause|MediaPrevTrack|MediaStop)$/;
     const BASIC_KEYS =
       /^([A-Z0-9]|Comma|Period|Home|End|PageUp|PageDown|Space|Insert|Delete|Up|Down|Left|Right)$/;
-    const FUNCTION_KEYS = /^(F[1-9]|F1[0-9])$/;
+    // NOTE: only allow F1-F12 keys when validating shortcuts defined in extension manifests,
+    // but allow F13-19 to be assigned to user-customized shortcut keys (assigned by users
+    // through the about:addons "Manage Shortcuts" view).
+    const FUNCTION_KEYS_BASIC = /^(F[1-9]|F1[0-2])$/;
+    const FUNCTION_KEYS_EXTENDED = /^(F[1-9]|F1[0-9])$/;
+    const FUNCTION_KEYS = extensionManifest
+      ? FUNCTION_KEYS_BASIC
+      : FUNCTION_KEYS_EXTENDED;
 
     if (MEDIA_KEYS.test(string.trim())) {
       return this.IS_VALID;
@@ -245,6 +253,14 @@ export var ShortcutUtils = {
     // If the modifier wasn't found it will be undefined.
     if (chromeModifiers.some(modifier => !modifier)) {
       return this.INVALID_MODIFIER;
+    }
+
+    if (
+      FUNCTION_KEYS === FUNCTION_KEYS_BASIC &&
+      !FUNCTION_KEYS_BASIC.test(key) &&
+      FUNCTION_KEYS_EXTENDED.test(key)
+    ) {
+      return this.INVALID_KEY_IN_EXTENSION_MANIFEST;
     }
 
     switch (modifiers.length) {

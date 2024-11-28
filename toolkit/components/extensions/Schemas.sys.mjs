@@ -1262,21 +1262,41 @@ const FORMATS = {
     return string;
   },
 
-  manifestShortcutKey(string) {
-    if (lazy.ShortcutUtils.validate(string) == lazy.ShortcutUtils.IS_VALID) {
+  manifestShortcutKey(string, { extensionManifest = true } = {}) {
+    const result = lazy.ShortcutUtils.validate(string, { extensionManifest });
+    if (result == lazy.ShortcutUtils.IS_VALID) {
       return string;
     }
-    let errorMessage =
-      `Value "${string}" must consist of ` +
-      `either a combination of one or two modifiers, including ` +
-      `a mandatory primary modifier and a key, separated by '+', ` +
-      `or a media key. For details see: ` +
+
+    const SEE_DETAILS =
+      `For details see: ` +
       `https://developer.mozilla.org/en-US/Add-ons/WebExtensions/manifest.json/commands#Key_combinations`;
+    let errorMessage;
+
+    switch (result) {
+      case lazy.ShortcutUtils.INVALID_KEY_IN_EXTENSION_MANIFEST:
+        errorMessage =
+          `Value "${string}" must not include extended F13-F19 keys. ` +
+          `F13-F19 keys can only be used for user-defined keyboard shortcuts in about:addons ` +
+          `"Manage Extension Shortcuts". ${SEE_DETAILS}`;
+        break;
+      default:
+        errorMessage =
+          `Value "${string}" must consist of ` +
+          `either a combination of one or two modifiers, including ` +
+          `a mandatory primary modifier and a key, separated by '+', ` +
+          `or a media key. ${SEE_DETAILS}`;
+    }
     throw new Error(errorMessage);
   },
 
   manifestShortcutKeyOrEmpty(string) {
-    return string === "" ? "" : FORMATS.manifestShortcutKey(string);
+    // manifestShortcutKey is the formatter applied to the manifest keys assigned
+    // through the manifest, while manifestShortcutKeyOrEmpty is the formatter
+    // used by the commands.update API method JSONSchema.
+    return string === ""
+      ? ""
+      : FORMATS.manifestShortcutKey(string, { extensionManifest: false });
   },
 
   versionString(string, context) {
