@@ -131,7 +131,7 @@ static int sVerticalResizeMargin = 0;
 
 // See nsWindow::NonClientSizeMargin()
 static Margin NonClientSizeMargin() {
-  return Margin{sCaptionHeight - sNonClientOffset.top,
+  return Margin{sCaptionHeight + sVerticalResizeMargin - sNonClientOffset.top,
                 sHorizontalResizeMargin - sNonClientOffset.right,
                 sVerticalResizeMargin - sNonClientOffset.bottom,
                 sHorizontalResizeMargin - sNonClientOffset.left};
@@ -1992,19 +1992,18 @@ static Result<Ok, PreXULSkeletonUIError> CreateAndStorePreXULSkeletonUIImpl(
                             sGetSystemMetricsForDpi(SM_CXPADDEDBORDER, sDpi);
   sVerticalResizeMargin = sGetSystemMetricsForDpi(SM_CYFRAME, sDpi) +
                           sGetSystemMetricsForDpi(SM_CXPADDEDBORDER, sDpi);
-  sCaptionHeight =
-      sVerticalResizeMargin + sGetSystemMetricsForDpi(SM_CYCAPTION, sDpi);
+  sCaptionHeight = sGetSystemMetricsForDpi(SM_CYCAPTION, sDpi);
 
   // These match the offsets that we get with default prefs. We don't use the
   // skeleton ui if tabsInTitlebar is disabled, see bug 1673092.
   if (sMaximized) {
-    sNonClientOffset.top = sCaptionHeight - sVerticalResizeMargin;
+    sNonClientOffset.top = sCaptionHeight;
   } else {
     // See nsWindow::NormalWindowNonClientOffset()
-    sNonClientOffset.top = sCaptionHeight;
-    sNonClientOffset.bottom = sVerticalResizeMargin;
-    sNonClientOffset.left = sHorizontalResizeMargin;
-    sNonClientOffset.right = sHorizontalResizeMargin;
+    sNonClientOffset.top = sCaptionHeight + sVerticalResizeMargin;
+    sNonClientOffset.bottom = 0;
+    sNonClientOffset.left = 0;
+    sNonClientOffset.right = 0;
   }
 
   if (sMaximized) {
