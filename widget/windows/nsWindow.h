@@ -811,14 +811,14 @@ class nsWindow final : public nsBaseWidget {
 
   // Indicates custom frames are enabled
   bool mCustomNonClient = false;
-  // Indicates custom resize margins are in effect
-  bool mUseResizeMarginOverrides = false;
   // Width of the left and right portions of the resize region
   mozilla::LayoutDeviceIntCoord mHorResizeMargin;
   // Height of the top and bottom portions of the resize region
   mozilla::LayoutDeviceIntCoord mVertResizeMargin;
   // Height of the caption plus border
   mozilla::LayoutDeviceIntCoord mCaptionHeight;
+  // Custom extra resize margin width.
+  mozilla::LayoutDeviceIntCoord mCustomResizeMargin{0};
 
   // not yet set, will be calculated on first use
   double mDefaultScale = -1.0;
