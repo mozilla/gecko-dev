@@ -40,7 +40,7 @@ var CustomTitlebar = {
   },
 
   get enabled() {
-    return document.documentElement.getAttribute("customtitlebar") == "true";
+    return document.documentElement.hasAttribute("customtitlebar");
   },
 
   observe(subject, topic) {
@@ -67,16 +67,10 @@ var CustomTitlebar = {
       this.systemSupported &&
       !window.fullScreen &&
       !Object.keys(this._disallowed).length;
-    if (allowed) {
-      document.documentElement.setAttribute("customtitlebar", "true");
-      if (AppConstants.platform == "macosx") {
-        document.documentElement.removeAttribute("drawtitle");
-      }
-    } else {
-      document.documentElement.removeAttribute("customtitlebar");
-      if (AppConstants.platform == "macosx") {
-        document.documentElement.setAttribute("drawtitle", "true");
-      }
+
+    document.documentElement.toggleAttribute("customtitlebar", allowed);
+    if (AppConstants.platform == "macosx") {
+      document.documentElement.toggleAttribute("drawtitle", !allowed);
     }
 
     ToolbarIconColor.inferFromText("customtitlebar", allowed);
