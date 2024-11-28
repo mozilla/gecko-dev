@@ -861,6 +861,7 @@
 }
 
 .tab-group-label {
+  -moz-window-dragging: no-drag;
   text-align: center;
   font-weight: var(--font-weight-bold);
   text-overflow: ellipsis;
