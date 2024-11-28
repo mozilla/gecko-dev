@@ -128,16 +128,6 @@ nsresult ThirdPartyUtil::IsThirdPartyInternal(const nsCString& aFirstDomain,
   return NS_OK;
 }
 
-nsCString ThirdPartyUtil::GetBaseDomainFromWindow(nsPIDOMWindowOuter* aWindow) {
-  mozilla::dom::Document* doc = aWindow ? aWindow->GetExtantDoc() : nullptr;
-
-  if (!doc) {
-    return ""_ns;
-  }
-
-  return doc->GetBaseDomain();
-}
-
 NS_IMETHODIMP
 ThirdPartyUtil::GetPrincipalFromWindow(mozIDOMWindowProxy* aWin,
                                        nsIPrincipal** result) {

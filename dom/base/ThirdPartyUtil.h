@@ -49,8 +49,6 @@ class ThirdPartyUtil final : public mozIThirdPartyUtil {
   nsresult IsThirdPartyInternal(const nsCString& aFirstDomain,
                                 nsIURI* aSecondURI, bool* aResult);
 
-  nsCString GetBaseDomainFromWindow(nsPIDOMWindowOuter* aWindow);
-
   RefPtr<nsEffectiveTLDService> mTLDService;
 };
 
