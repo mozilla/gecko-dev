@@ -193,7 +193,7 @@ body {
   @media (-moz-platform: macos) and (-moz-bool-pref: "browser.theme.native-theme") {
     /* Don't make the toolbox vibrant when in full-screen. macOS fullscreen has a
      * native titlebar outside of the window (revealed on hover) anyways. */
-    :root[customtitlebar]:not([lwtheme], [macOSNativeFullscreen]) & {
+    :root[tabsintitlebar]:not([lwtheme], [macOSNativeFullscreen]) & {
       background-color: transparent;
 
       /* This is conceptually a background, but putting this on a
@@ -233,8 +233,8 @@ body {
 .browser-titlebar {
   -moz-window-dragging: drag;
 
-  :root[customtitlebar] &,
-  :root[customtitlebar] & #urlbar:popover-open {
+  :root[tabsintitlebar] &,
+  :root[tabsintitlebar] & #urlbar:popover-open {
     will-change: opacity;
     transition: opacity var(--inactive-window-transition);
 
@@ -263,14 +263,14 @@ body {
     visibility: hidden;
   }
 
-  :root:not([customtitlebar], [inFullscreen]) & {
+  :root:not([chromemargin], [inFullscreen]) & {
     display: none;
   }
 }
 
 .titlebar-spacer {
   :root[inFullscreen] &,
-  :root:not([customtitlebar]) & {
+  :root:not([tabsintitlebar]) & {
     display: none;
   }
 
@@ -317,7 +317,7 @@ body {
   -moz-default-appearance: -moz-window-button-box;
   position: relative;
 
-  :root:not([customtitlebar], [sizemode=fullscreen]) & {
+  :root:not([tabsintitlebar], [sizemode=fullscreen]) & {
     display: none;
   }
 }
@@ -332,12 +332,12 @@ body {
        as tall as the tab toolbar such that the window controls don't appear to move up.
        For MacOS, autohide is never true on the menubar.
     */
-    :root[customtitlebar] #navigator-toolbox:not([tabs-hidden]) > & {
+    :root[tabsintitlebar] #navigator-toolbox:not([tabs-hidden]) > & {
       min-height: var(--tabstrip-min-height);
     }
     /* adjust the height of the auto-hiding toolbar menubar when the tabstrip is
        hidden and we need to match the height of the nav-bar. */
-    :root[customtitlebar] #navigator-toolbox[tabs-hidden] > & {
+    :root[tabsintitlebar] #navigator-toolbox[tabs-hidden] > & {
       min-height: calc(var(--urlbar-min-height) + 2 * var(--urlbar-padding-block));
     }
 

@@ -344,7 +344,7 @@
       // When the tabbar has an unified appearance with the titlebar
       // and menubar, a double-click in it should have the same behavior
       // as double-clicking the titlebar
-      if (CustomTitlebar.enabled && !this.verticalMode) {
+      if (TabsInTitlebar.enabled && !this.verticalMode) {
         return;
       }
 

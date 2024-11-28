@@ -16,6 +16,9 @@ with Files("unit/*macwebapputils*"):
 with Files("unit/*taskbar_jumplistitems*"):
     BUG_COMPONENT = ("Core", "Widget: Win32")
 
+with Files("TestChromeMargin.cpp"):
+    BUG_COMPONENT = ("Core", "Widget: Win32")
+
 with Files("*413277*"):
     BUG_COMPONENT = ("Core", "Widget: Cocoa")
 
@@ -114,3 +117,9 @@ XPCSHELL_TESTS_MANIFESTS += ["unit/xpcshell.toml"]
 MOCHITEST_MANIFESTS += ["mochitest.toml"]
 MOCHITEST_CHROME_MANIFESTS += ["chrome.toml"]
 BROWSER_CHROME_MANIFESTS += ["browser/browser.toml"]
+
+# if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'windows':
+#
+#     Test disabled because it requires the internal API. Re-enabling this test
+#     is bug 652123.
+#     CPP_UNIT_TESTS += ['TestChromeMargin']

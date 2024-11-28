@@ -143,6 +143,10 @@ skip-if = [
 
 ["test_button.xhtml"]
 
+["test_chromemargin.xhtml"]
+support-files = "window_chromemargin.xhtml"
+skip-if = ["apple_catalina"]
+
 ["test_closemenu_attribute.xhtml"]
 
 ["test_contextmenu_list.xhtml"]

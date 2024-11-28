@@ -46,13 +46,13 @@ function getExpectedElements(win, tabstripOrientation = "horizontal") {
   const sizeMode = win.document.documentElement.getAttribute("sizemode");
   let selectors;
 
-  // NOTE: CustomTitlebar behaviour isn't under test here. We just want to assert on
+  // NOTE: TabsInTitlebar behaviour isn't under test here. We just want to assert on
   // the right stuff being visible whatever the case for the given window.
 
   if (tabstripOrientation == "horizontal") {
     selectors = ["#TabsToolbar"];
 
-    if (win.CustomTitlebar.enabled) {
+    if (win.TabsInTitlebar.enabled) {
       selectors.push("#TabsToolbar .titlebar-buttonbox-container");
       if (sizeMode == "normal") {
         selectors.push("#TabsToolbar .titlebar-spacer");
@@ -62,7 +62,7 @@ function getExpectedElements(win, tabstripOrientation = "horizontal") {
   }
 
   selectors = ["#vertical-tabs"];
-  if (win.CustomTitlebar.enabled) {
+  if (win.TabsInTitlebar.enabled) {
     selectors.push("#nav-bar .titlebar-buttonbox-container");
     if (sizeMode == "normal") {
       selectors.push("#nav-bar .titlebar-spacer[type='post-tabs']");
@@ -89,7 +89,7 @@ add_task(async function test_toggle_vertical_tabs() {
   );
   info(`sizemode: ${document.documentElement.getAttribute("sizemode")}`);
   info(
-    `customtitlebar: ${document.documentElement.getAttribute("customtitlebar")}`
+    `tabsintitlebar: ${document.documentElement.getAttribute("tabsintitlebar")}`
   );
 
   const expectedElementsWhenHorizontal = getExpectedElements(

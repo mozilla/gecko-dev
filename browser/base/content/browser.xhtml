@@ -17,7 +17,12 @@
 #endif
         data-l10n-args="{&quot;content-title&quot;:&quot;CONTENTTITLE&quot;}"
         data-l10n-attrs="data-content-title-default, data-content-title-private, data-title-default, data-title-private"
-        customtitlebar="true"
+#ifdef XP_WIN
+        chromemargin="0,2,2,2"
+#else
+        chromemargin="0,-1,-1,-1"
+#endif
+        tabsintitlebar="true"
         windowtype="navigator:browser"
         macanimationtype="document"
         macnativefullscreen="true"
@@ -113,7 +118,7 @@
   }
   Services.scriptloader.loadSubScript("chrome://browser/content/browser-pageActions.js", this);
   Services.scriptloader.loadSubScript("chrome://browser/content/sidebar/browser-sidebar.js", this);
-  Services.scriptloader.loadSubScript("chrome://browser/content/browser-customtitlebar.js", this);
+  Services.scriptloader.loadSubScript("chrome://browser/content/browser-tabsintitlebar.js", this);
   Services.scriptloader.loadSubScript("chrome://browser/content/browser-unified-extensions.js", this);
   Services.scriptloader.loadSubScript("chrome://browser/content/tabbrowser/tab.js", this);
   Services.scriptloader.loadSubScript("chrome://browser/content/tabbrowser/tabbrowser.js", this);

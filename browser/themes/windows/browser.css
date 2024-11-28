@@ -26,7 +26,7 @@
 }
 
 @media (-moz-windows-accent-color-in-titlebar) or (-moz-windows-mica) {
-  :root[customtitlebar] {
+  :root[tabsintitlebar] {
     @media (-moz-windows-mica) {
       &:not([lwtheme]) {
         background-color: transparent;

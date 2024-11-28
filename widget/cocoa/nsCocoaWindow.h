@@ -283,7 +283,8 @@ class nsCocoaWindow final : public nsBaseWidget {
   void SetSupportsNativeFullscreen(bool aShow) override;
   void SetWindowAnimationType(WindowAnimationType aType) override;
   void SetDrawsTitle(bool aDrawTitle) override;
-  void SetCustomTitlebar(bool) override;
+  nsresult SetNonClientMargins(const LayoutDeviceIntMargin&) override;
+  void SetDrawsInTitlebar(bool aState);
   void UpdateThemeGeometries(
       const nsTArray<ThemeGeometry>& aThemeGeometries) override;
   nsresult SynthesizeNativeMouseEvent(LayoutDeviceIntPoint aPoint,

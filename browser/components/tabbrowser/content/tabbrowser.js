@@ -8089,28 +8089,28 @@ var TabBarVisibility = {
     }
 
     if (nonPopupWithVerticalTabs) {
-      // CustomTitlebar decides if we can draw within the titlebar area.
+      // TabsInTitlebar decides if we can draw within the titlebar area.
       // In vertical tabs mode, the toolbar with the horizontal tabstrip gets hidden
-      // and the navbar becomes a titlebar. This makes CustomTitlebar a bit of a misnomer.
+      // and the navbar becomes a titlebar. This makes TabsInTitlebar a bit of a misnomer.
       // We'll fix this in Bug 1921034.
       hideTabstrip = true;
-      CustomTitlebar.allowedBy("tabs-visible", true);
+      TabsInTitlebar.allowedBy("tabs-visible", true);
     } else {
-      CustomTitlebar.allowedBy("tabs-visible", !hideTabstrip);
+      TabsInTitlebar.allowedBy("tabs-visible", !hideTabstrip);
     }
 
     gNavToolbox.toggleAttribute("tabs-hidden", hideTabstrip);
     // Should the nav-bar look and function like a titlebar?
     navbar.classList.toggle(
       "browser-titlebar",
-      CustomTitlebar.enabled && hideTabstrip
+      TabsInTitlebar.enabled && hideTabstrip
     );
 
     document
       .getElementById("browser")
       .classList.toggle(
         "browser-toolbox-background",
-        CustomTitlebar.enabled && nonPopupWithVerticalTabs
+        TabsInTitlebar.enabled && nonPopupWithVerticalTabs
       );
 
     if (

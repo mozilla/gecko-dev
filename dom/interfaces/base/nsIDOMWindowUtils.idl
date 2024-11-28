@@ -2053,11 +2053,14 @@ interface nsIDOMWindowUtils : nsISupports {
   readonly attribute boolean refreshDriverHasPendingTick;
 
   /**
-   * Controls whether we paint to the titlebar of the window.
-   * Works like the customtitlebar xul:window attribute.
+   * Controls the amount of chrome that should be visible on each side of
+   * the window. Works like the chromemargin xul:window attribute.
    * This should only be used with non-XUL windows.
    */
-  void setCustomTitlebar(in boolean aCustomTitlebar);
+  void setChromeMargin(in int32_t aTop,
+                       in int32_t aRight,
+                       in int32_t aBottom,
+                       in int32_t aLeft);
 
   /**
    * Controls the amount of space on each edge of the window that can be

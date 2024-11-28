@@ -1501,7 +1501,7 @@ void AppWindow::SyncAttributesToWidget() {
 
   nsAutoString attr;
 
-  // Some attributes can change the client size (e.g. customtitlebar on Windows
+  // Some attributes can change the client size (e.g. chromemargin on Windows
   // and MacOS). But we might want to keep it.
   const LayoutDeviceIntSize oldClientSize = mWindow->GetClientSize();
   // We have to check now whether we want to restore the client size, as any
@@ -1509,16 +1509,19 @@ void AppWindow::SyncAttributesToWidget() {
   bool maintainClientSize = mDominantClientSize;
 
   // "hidechrome" attribute
-  mWindow->HideWindowChrome(windowElement->GetBoolAttr(nsGkAtoms::hidechrome));
+  if (windowElement->AttrValueIs(kNameSpaceID_None, nsGkAtoms::hidechrome,
+                                 nsGkAtoms::_true, eCaseMatters)) {
+    mWindow->HideWindowChrome(true);
+  }
+
   NS_ENSURE_TRUE_VOID(mWindow);
 
-  // "customtitlebar" attribute
-  // FIXME(emilio): This should arguably be
-  // SetCustomTitlebar(windowElement->GetBoolAttr(...)), but that breaks with
-  // the early blank window which sets the custom titlebar via
-  // nsIDOMWindowUtils...
-  if (windowElement->GetBoolAttr(nsGkAtoms::customtitlebar)) {
-    mWindow->SetCustomTitlebar(true);
+  // "chromemargin" attribute
+  nsIntMargin margins;
+  windowElement->GetAttribute(u"chromemargin"_ns, attr);
+  if (nsContentUtils::ParseIntMarginValue(attr, margins)) {
+    mWindow->SetNonClientMargins(
+        LayoutDeviceIntMargin::FromUnknownMargin(margins));
   }
 
   NS_ENSURE_TRUE_VOID(mWindow);
@@ -1547,17 +1550,18 @@ void AppWindow::SyncAttributesToWidget() {
   }
 
   // "drawtitle" attribute
-  mWindow->SetDrawsTitle(windowElement->GetBoolAttr(nsGkAtoms::drawtitle));
+  windowElement->GetAttribute(u"drawtitle"_ns, attr);
+  mWindow->SetDrawsTitle(attr.LowerCaseEqualsLiteral("true"));
   NS_ENSURE_TRUE_VOID(mWindow);
 
   // "toggletoolbar" attribute
-  mWindow->SetShowsToolbarButton(
-      windowElement->HasAttribute(u"toggletoolbar"_ns));
+  windowElement->GetAttribute(u"toggletoolbar"_ns, attr);
+  mWindow->SetShowsToolbarButton(attr.LowerCaseEqualsLiteral("true"));
   NS_ENSURE_TRUE_VOID(mWindow);
 
   // "macnativefullscreen" attribute
-  mWindow->SetSupportsNativeFullscreen(
-      windowElement->HasAttribute(u"macnativefullscreen"_ns));
+  windowElement->GetAttribute(u"macnativefullscreen"_ns, attr);
+  mWindow->SetSupportsNativeFullscreen(attr.LowerCaseEqualsLiteral("true"));
   NS_ENSURE_TRUE_VOID(mWindow);
 
   // "macanimationtype" attribute
@@ -2342,7 +2346,7 @@ NS_IMETHODIMP
 AppWindow::BeforeStartLayout() {
   ApplyChromeFlags();
   // Ordering here is important, loading width/height values in
-  // LoadPersistentWindowState() depends on the customtitlebar attribute (since
+  // LoadPersistentWindowState() depends on the chromemargin attribute (since
   // we need to translate outer to inner sizes).
   SyncAttributesToWidget();
   LoadPersistentWindowState();

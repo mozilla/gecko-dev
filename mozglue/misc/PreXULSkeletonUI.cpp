@@ -131,7 +131,7 @@ static int sVerticalResizeMargin = 0;
 
 // See nsWindow::NonClientSizeMargin()
 static Margin NonClientSizeMargin() {
-  return Margin{sCaptionHeight + sVerticalResizeMargin - sNonClientOffset.top,
+  return Margin{sCaptionHeight - sNonClientOffset.top,
                 sHorizontalResizeMargin - sNonClientOffset.right,
                 sVerticalResizeMargin - sNonClientOffset.bottom,
                 sHorizontalResizeMargin - sNonClientOffset.left};
@@ -1365,7 +1365,7 @@ ThemeColors GetTheme(ThemeMode themeId) {
       theme.tabColor = 0xf9f9fb;
       theme.toolbarForegroundColor = 0xdddde1;
       theme.tabOutlineColor = 0xdddde1;
-      // found in browser-aero.css ":root[customtitlebar]:not(:-moz-lwtheme)"
+      // found in browser-aero.css ":root[tabsintitlebar]:not(:-moz-lwtheme)"
       // (set to "hsl(235,33%,19%)")
       theme.titlebarColor = 0xf0f0f4;
       // --chrome-content-separator-color in browser.css
@@ -1992,15 +1992,25 @@ static Result<Ok, PreXULSkeletonUIError> CreateAndStorePreXULSkeletonUIImpl(
                             sGetSystemMetricsForDpi(SM_CXPADDEDBORDER, sDpi);
   sVerticalResizeMargin = sGetSystemMetricsForDpi(SM_CYFRAME, sDpi) +
                           sGetSystemMetricsForDpi(SM_CXPADDEDBORDER, sDpi);
-  sCaptionHeight = sGetSystemMetricsForDpi(SM_CYCAPTION, sDpi);
+  sCaptionHeight =
+      sVerticalResizeMargin + sGetSystemMetricsForDpi(SM_CYCAPTION, sDpi);
 
-  // These match the offsets that we get with default prefs. We don't use the
-  // skeleton ui if tabsInTitlebar is disabled, see bug 1673092.
+  // These match the margins set in browser-tabsintitlebar.js with default prefs
+  // on Windows. We don't use the skeleton ui if tabsInTitlebar is disabled, see
+  // bug 1673092.
+  const Margin nonClientMargin{0, 2, 2, 2};
+
   if (sMaximized) {
-    sNonClientOffset = Margin{sCaptionHeight, 0, 0, 0};
+    sNonClientOffset.top = sCaptionHeight - sVerticalResizeMargin;
   } else {
     // See nsWindow::NormalWindowNonClientOffset()
-    sNonClientOffset = Margin{sCaptionHeight + sVerticalResizeMargin, 0, 0, 0};
+    sNonClientOffset.top = sCaptionHeight;
+    sNonClientOffset.bottom =
+        std::min(sVerticalResizeMargin, nonClientMargin.bottom);
+    sNonClientOffset.left =
+        std::min(sHorizontalResizeMargin, nonClientMargin.left);
+    sNonClientOffset.right =
+        std::min(sHorizontalResizeMargin, nonClientMargin.right);
   }
 
   if (sMaximized) {

@@ -1822,7 +1822,7 @@ BrowserGlue.prototype = {
     // Hide the titlebar if the actual browser window will draw in it.
     let hiddenTitlebar = Services.appinfo.drawInTitlebar;
     if (hiddenTitlebar) {
-      win.windowUtils.setCustomTitlebar(true);
+      win.windowUtils.setChromeMargin(0, 2, 2, 2);
     }
 
     let docElt = win.document.documentElement;
