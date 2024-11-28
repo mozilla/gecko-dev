@@ -105,7 +105,8 @@ var gBrowserInit = {
     // Run menubar initialization first, to avoid TabsInTitlebar code picking
     // up mutations from it and causing a reflow.
     AutoHideMenubar.init();
-    // Update the chromemargin attribute so the window can be sized correctly.
+    // Update the customtitlebar attribute so the window can be sized
+    // correctly.
     window.TabBarVisibility.update();
     TabsInTitlebar.init();
 

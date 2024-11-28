@@ -1747,12 +1747,6 @@ LayoutDeviceIntPoint nsBaseWidget::GetClientOffset() {
   return LayoutDeviceIntPoint(0, 0);
 }
 
-nsresult nsBaseWidget::SetNonClientMargins(const LayoutDeviceIntMargin&) {
-  return NS_ERROR_NOT_IMPLEMENTED;
-}
-
-void nsBaseWidget::SetResizeMargin(LayoutDeviceIntCoord aResizeMargin) {}
-
 uint32_t nsBaseWidget::GetMaxTouchPoints() const { return 0; }
 
 bool nsBaseWidget::HasPendingInputEvent() { return false; }

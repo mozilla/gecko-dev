@@ -235,7 +235,7 @@ STATIC_ATOMS = [
     Atom("childList", "childList"),
     Atom("child_item_count", "child-item-count"),
     Atom("choose", "choose"),
-    Atom("chromemargin", "chromemargin"),
+    Atom("customtitlebar", "customtitlebar"),
     Atom("exposeToUntrustedContent", "exposeToUntrustedContent"),
     Atom("circ", "circ"),
     Atom("circle", "circle"),

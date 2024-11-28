@@ -875,17 +875,6 @@ class nsContentUtils {
 
  public:
   /**
-   * Parse a margin string of format 'top, right, bottom, left' into
-   * an nsIntMargin.
-   *
-   * @param aString the string to parse
-   * @param aResult the resulting integer
-   * @return whether the value could be parsed
-   */
-  static bool ParseIntMarginValue(const nsAString& aString,
-                                  nsIntMargin& aResult);
-
-  /**
    * Parse the value of the <font size=""> attribute according to the HTML5
    * spec as of April 16, 2012.
    *

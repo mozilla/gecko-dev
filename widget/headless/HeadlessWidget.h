@@ -39,7 +39,7 @@ namespace mozilla {
 enum class NativeKeyBindingsType : uint8_t;
 namespace widget {
 
-class HeadlessWidget : public nsBaseWidget {
+class HeadlessWidget final : public nsBaseWidget {
  public:
   HeadlessWidget();
 
@@ -75,10 +75,6 @@ class HeadlessWidget : public nsBaseWidget {
   }
   nsresult SetTitle(const nsAString& title) override {
     // Headless widgets have no title, so just ignore it.
-    return NS_OK;
-  }
-  nsresult SetNonClientMargins(const LayoutDeviceIntMargin& margins) override {
-    // Headless widgets have no chrome margins, so just ignore the call.
     return NS_OK;
   }
   LayoutDeviceIntPoint WidgetToScreenOffset() override;
