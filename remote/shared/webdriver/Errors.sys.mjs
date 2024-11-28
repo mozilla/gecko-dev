@@ -889,10 +889,9 @@ const STATUSES = new Map([
   ["webdriver error", WebDriverError],
 ]);
 
-// Errors must be expored on the local this scope so that the
-// EXPORTED_SYMBOLS and the ChromeUtils.import("foo") machinery sees them.
-// We could assign each error definition directly to |this|, but
-// because they are Error prototypes this would mess up their names.
+// Errors must be exported as part of the `error` object.
+// We could declare each error as global variable, but because they are Error
+// prototypes this would mess up their names.
 for (let cls of STATUSES.values()) {
   error[cls.name] = cls;
 }
