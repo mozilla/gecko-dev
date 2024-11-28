@@ -43,7 +43,7 @@ private fun OnboardingCardData.isCardEnabled(
     OnboardingCardType.DEFAULT_BROWSER -> enabled && showDefaultBrowserPage
     OnboardingCardType.NOTIFICATION_PERMISSION -> enabled && showNotificationPage
     OnboardingCardType.ADD_SEARCH_WIDGET -> enabled && showAddWidgetPage
-    OnboardingCardType.ADD_ONS -> extraData.let { it != null && it.addOnsData.isNotEmpty() }
+    OnboardingCardType.ADD_ONS -> extraData?.addOnsData?.isNotEmpty() == true
     OnboardingCardType.TOOLBAR_PLACEMENT -> extraData?.customizationToolbarData?.isNotEmpty() == true
     else -> enabled
 }
@@ -103,13 +103,7 @@ private fun OnboardingCardData.toPageUiData(privacyCaption: Caption?) = Onboardi
     primaryButtonLabel = primaryButtonLabel,
     secondaryButtonLabel = secondaryButtonLabel.ifEmpty { null },
     privacyCaption = privacyCaption,
-    addOns = extraData?.let {
-        if (it.addOnsData.isEmpty()) {
-            null
-        } else {
-            it.addOnsData.toOnboardingAddOns()
-        }
-    },
+    addOns = extraData?.addOnsData?.takeIf { it.isNotEmpty() }?.toOnboardingAddOns(),
     toolbarOptions = extraData?.customizationToolbarData
         ?.takeIf { it.isNotEmpty() }
         ?.toOnboardingToolbarOptions(),
