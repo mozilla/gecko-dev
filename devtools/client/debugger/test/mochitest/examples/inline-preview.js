@@ -49,6 +49,15 @@ function classProperties() {
   foo.breakFn();
 }
 
+function explicitResourceManagement() {
+  using erm = {
+    [Symbol.dispose]() {},
+    foo: 42
+  };
+  console.log(erm);
+  debugger;
+}
+
 function btnClick() {
   const btn = document.querySelector("button");
   debugger;

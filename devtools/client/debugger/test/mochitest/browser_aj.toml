@@ -20,6 +20,7 @@ support-files = [
 prefs = [
  "dom.ipc.processPrelaunch.enabled=false", # Disable randomly spawning processes during tests. After enabling windowless service workers, a process spawning will trigger an update of the service workers list which can fail the test if it occurs during shutdown (unhandled promise rejection).
  "devtools.debugger.features.javascript-tracing=true", # This pref has to be set before the process starts
+ "javascript.options.experimental.explicit_resource_management=true", # This pref has to be set before the process starts
 ]
 
 ["browser_dbg-async-stepping.js"]

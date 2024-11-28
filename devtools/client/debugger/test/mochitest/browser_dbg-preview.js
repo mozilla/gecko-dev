@@ -104,6 +104,12 @@ add_task(async function () {
     },
   ]);
 
+  await testPreviews(dbg, "explicitResourceManagement", [
+    // assignment
+    { line: 106, column: 10, expression: "erm", result: "Object" },
+    { line: 110, column: 20, expression: "foo", result: "42" },
+  ]);
+
   await testHoveringInvalidTargetTokens(dbg);
 
   info(
