@@ -15,6 +15,7 @@ import androidx.core.content.ContextCompat
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.fragment.navArgs
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import mozilla.components.support.ktx.android.view.setNavigationBarColorCompat
@@ -29,6 +30,8 @@ import org.mozilla.fenix.theme.FirefoxTheme
  * A bottom sheet dialog fragment displaying the unified trust panel.
  */
 class TrustPanelFragment : BottomSheetDialogFragment() {
+
+    private val args by navArgs<TrustPanelFragmentArgs>()
 
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog =
         super.onCreateDialog(savedInstanceState).apply {
@@ -74,6 +77,9 @@ class TrustPanelFragment : BottomSheetDialogFragment() {
                     ) {
                         composable(route = PROTECTION_PANEL_ROUTE) {
                             ProtectionPanel(
+                                url = args.url,
+                                title = args.title,
+                                isSecured = args.isSecured,
                                 onClearSiteDataMenuClick = {},
                             )
                         }
