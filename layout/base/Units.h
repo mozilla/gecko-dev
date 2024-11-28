@@ -228,6 +228,8 @@ typedef gfx::ScaleFactor<DesktopPixel, LayoutDevicePixel>
     DesktopToLayoutDeviceScale;
 typedef gfx::ScaleFactor<LayoutDevicePixel, DesktopPixel>
     LayoutDeviceToDesktopScale;
+typedef gfx::ScaleFactor<gfx::UnknownUnits, gfx::UnknownUnits>
+    UnknownScaleFactor;
 
 typedef gfx::ScaleFactors2D<CSSPixel, LayoutDevicePixel>
     CSSToLayoutDeviceScale2D;

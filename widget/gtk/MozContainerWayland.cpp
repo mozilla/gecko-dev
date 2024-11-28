@@ -85,7 +85,7 @@ static bool moz_container_wayland_surface_create_locked(
     const MutexAutoLock& aProofOfLock, MozContainer* container);
 static void moz_container_wayland_set_opaque_region_locked(
     const MutexAutoLock& aProofOfLock, MozContainer* container,
-    const LayoutDeviceIntRegion&);
+    nsWindow* aWindow);
 
 // Invalidate gtk wl_surface to commit changes to wl_subsurface.
 // wl_subsurface changes are effective when parent surface is commited.
@@ -400,8 +400,7 @@ gboolean moz_container_wayland_map_event(GtkWidget* widget,
   moz_container_wayland_set_scale_factor_locked(lock, MOZ_CONTAINER(widget),
                                                 window->GdkCeiledScaleFactor());
   if (container->data.wl_container.opaque_region_needs_updates) {
-    moz_container_wayland_set_opaque_region_locked(lock, container,
-                                                   window->GetOpaqueRegion());
+    moz_container_wayland_set_opaque_region_locked(lock, container, window);
   }
   moz_container_clear_input_region(MOZ_CONTAINER(widget));
   moz_container_wayland_invalidate(MOZ_CONTAINER(widget));
@@ -446,8 +445,7 @@ void moz_container_wayland_size_allocate(GtkWidget* widget,
     moz_container_wayland_set_scale_factor_locked(
         lock, container, window->GdkCeiledScaleFactor());
     if (container->data.wl_container.opaque_region_needs_updates) {
-      moz_container_wayland_set_opaque_region_locked(lock, container,
-                                                     window->GetOpaqueRegion());
+      moz_container_wayland_set_opaque_region_locked(lock, container, window);
     }
     moz_container_wayland_move_locked(lock, container, allocation->x,
                                       allocation->y);
@@ -459,7 +457,7 @@ void moz_container_wayland_size_allocate(GtkWidget* widget,
 
 static void moz_container_wayland_set_opaque_region_locked(
     const MutexAutoLock& aProofOfLock, MozContainer* container,
-    const LayoutDeviceIntRegion& aRegion) {
+    nsWindow* aWindow) {
   MozContainerWayland* wl_container = &container->data.wl_container;
   MOZ_ASSERT(wl_container->opaque_region_needs_updates);
   if (!wl_container->surface) {
@@ -473,9 +471,15 @@ static void moz_container_wayland_set_opaque_region_locked(
 
   wl_region* region =
       wl_compositor_create_region(WaylandDisplayGet()->GetCompositor());
-  for (auto iter = aRegion.RectIter(); !iter.Done(); iter.Next()) {
-    const auto& rect = iter.Get();
-    wl_region_add(region, rect.x, rect.y, rect.Width(), rect.Height());
+  // Region should be in surface-logical coordinates, so we need to divide by
+  // the buffer scale. We use round-in in order to be safe with subpixels.
+  UnknownScaleFactor scale(aWindow->FractionalScaleFactor());
+  LayoutDeviceIntRegion geckoRegion = aWindow->GetOpaqueRegion();
+  for (auto iter = geckoRegion.RectIter(); !iter.Done(); iter.Next()) {
+    const auto surfaceLocalRect =
+        gfx::RoundedIn(iter.Get().ToUnknownRect() / scale);
+    wl_region_add(region, surfaceLocalRect.x, surfaceLocalRect.y,
+                  surfaceLocalRect.Width(), surfaceLocalRect.Height());
   }
   wl_surface_set_opaque_region(wl_container->surface, region);
   wl_region_destroy(region);
@@ -733,8 +737,7 @@ void moz_container_wayland_update_opaque_region(MozContainer* container) {
   // is created or resized so update opaque region now.
   if (moz_container_wayland_has_egl_window(container)) {
     nsWindow* window = moz_container_get_nsWindow(container);
-    moz_container_wayland_set_opaque_region_locked(lock, container,
-                                                   window->GetOpaqueRegion());
+    moz_container_wayland_set_opaque_region_locked(lock, container, window);
   }
 }
 
