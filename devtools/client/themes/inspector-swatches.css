@@ -93,6 +93,17 @@
 .inspector-swatch {
   background-size: var(--swatch-size);
   border-radius: 50%;
+  box-shadow: 0 0 0 1px light-dark(#c4c4c4, #818181);
+
+  :root[forced-colors-active] &:not(:focus-visible) {
+    /* The box-shadow isn't rendered in High Contrast Mode, and we do want to have a "border"
+       for those without impacting the size of the elements */
+    outline: 1px solid var(--theme-icon-color);
+
+    &:hover {
+      outline-color: var(--theme-icon-hover-color);
+    }
+  }
 }
 
 /* Create a stacking context for the color swatch so its before pseudo element can be
