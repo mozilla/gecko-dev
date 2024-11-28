@@ -37,6 +37,8 @@
 #include "mozilla/dom/RangeBinding.h"
 #include "mozilla/dom/Selection.h"
 #include "mozilla/dom/Text.h"
+#include "mozilla/dom/TrustedTypeUtils.h"
+#include "mozilla/dom/TrustedTypesConstants.h"
 #include "mozilla/Logging.h"
 #include "mozilla/Maybe.h"
 #include "mozilla/PresShell.h"
@@ -2731,6 +2733,29 @@ already_AddRefed<DocumentFragment> nsRange::CreateContextualFragment(
 
   return nsContentUtils::CreateContextualFragment(mStart.Container(), aFragment,
                                                   false, aRv);
+}
+
+already_AddRefed<DocumentFragment> nsRange::CreateContextualFragment(
+    const TrustedHTMLOrString& aFragment, ErrorResult& aRv) const {
+  if (!mIsPositioned) {
+    aRv.Throw(NS_ERROR_FAILURE);
+    return nullptr;
+  }
+  MOZ_ASSERT(mStart.Container());
+
+  constexpr nsLiteralString sink = u"Range createContextualFragment"_ns;
+  Maybe<nsAutoString> compliantStringHolder;
+  nsCOMPtr<nsINode> node = mStart.Container();
+  const nsAString* compliantString =
+      TrustedTypeUtils::GetTrustedTypesCompliantString(
+          aFragment, sink, kTrustedTypesOnlySinkGroup, *node,
+          compliantStringHolder, aRv);
+  if (aRv.Failed()) {
+    return nullptr;
+  }
+
+  return nsContentUtils::CreateContextualFragment(mStart.Container(),
+                                                  *compliantString, false, aRv);
 }
 
 static void ExtractRectFromOffset(nsIFrame* aFrame, const int32_t aOffset,
