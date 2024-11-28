@@ -235,6 +235,7 @@ class Grid;
 class OwningTrustedHTMLOrNullIsEmptyString;
 class TrustedHTML;
 class TrustedHTMLOrNullIsEmptyString;
+class TrustedHTMLOrTrustedScriptOrTrustedScriptURLOrString;
 
 // IID for the dom::Element interface
 #define NS_ELEMENT_IID                               \
@@ -1253,6 +1254,22 @@ class Element : public FragmentOrElement {
                     ErrorResult& aError) {
     SetAttribute(aName, aValue, nullptr, aError);
   }
+
+  MOZ_CAN_RUN_SCRIPT void SetAttribute(
+      const nsAString& aName,
+      const TrustedHTMLOrTrustedScriptOrTrustedScriptURLOrString& aValue,
+      nsIPrincipal* aTriggeringPrincipal, ErrorResult& aError);
+  MOZ_CAN_RUN_SCRIPT void SetAttributeNS(
+      const nsAString& aNamespaceURI, const nsAString& aLocalName,
+      const TrustedHTMLOrTrustedScriptOrTrustedScriptURLOrString& aValue,
+      nsIPrincipal* aTriggeringPrincipal, ErrorResult& aError);
+  MOZ_CAN_RUN_SCRIPT void SetAttribute(
+      const nsAString& aName,
+      const TrustedHTMLOrTrustedScriptOrTrustedScriptURLOrString& aValue,
+      ErrorResult& aError) {
+    SetAttribute(aName, aValue, nullptr, aError);
+  }
+
   /**
    * This method creates a principal that subsumes this element's NodePrincipal
    * and which has flags set for elevated permissions that devtools needs to

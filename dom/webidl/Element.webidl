@@ -50,9 +50,9 @@ interface Element : Node {
   [CEReactions, NeedsSubjectPrincipal=NonSystem, Throws]
   boolean toggleAttribute(DOMString name, optional boolean force);
   [CEReactions, NeedsSubjectPrincipal=NonSystem, Throws]
-  undefined setAttribute(DOMString name, DOMString value);
+  undefined setAttribute(DOMString name, (TrustedType or DOMString) value);
   [CEReactions, NeedsSubjectPrincipal=NonSystem, Throws]
-  undefined setAttributeNS(DOMString? namespace, DOMString name, DOMString value);
+  undefined setAttributeNS(DOMString? namespace, DOMString name, (TrustedType or DOMString) value);
   [CEReactions, Throws]
   undefined removeAttribute(DOMString name);
   [CEReactions, Throws]
@@ -417,3 +417,6 @@ partial interface Element {
   [Pref="dom.webcomponents.shadowdom.declarative.enabled"]
   DOMString getHTML(optional GetHTMLOptions options = {});
 };
+
+// https://w3c.github.io/trusted-types/dist/spec/#integrations
+typedef (TrustedHTML or TrustedScript or TrustedScriptURL) TrustedType;
