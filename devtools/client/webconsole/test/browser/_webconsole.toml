@@ -407,6 +407,8 @@ fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and
 
 ["browser_webconsole_errors_after_page_reload.js"]
 
+["browser_webconsole_errors.js"]
+
 ["browser_webconsole_eval_error.js"]
 fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and/or labeled
 
