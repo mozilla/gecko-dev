@@ -18,6 +18,7 @@ work directly top-down)
 -  ☐ Import the test262 test cases for the feature, or enable them if they're
   already imported.  (See `js/src/test/Readme.txt` for guidance)
 -  ☐ Add the `fuzzing:needed` label to the proposal epic in the FFXP project in JIRA to request fuzzing for the feature.
+    -  ☐ If the feature introduces a new syntax, it may require a lot of work in the fuzzing engine to support it. Notify the fuzzing team early with the details.
 -  ☐ Add shell option to `js/src/shell/fuzz-flags.txt`. This signals to other
   fuzzers as well that the feature is ready for fuzzing.
 -  ☐ Send an Intent to Ship Email to `dev-platform`.  This is also part of the
