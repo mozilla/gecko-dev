@@ -199,6 +199,7 @@ class SupportMeasurements {
     this.context.log.info("Finalizing power usage measurements");
     if (this.isAndroid) {
       await usbPowerProfiler.stopSampling();
+      await usbPowerProfiler.resetPowerData();
     } else if (this.isWindows11) {
       await stopWindowsPowerProfiling();
 
