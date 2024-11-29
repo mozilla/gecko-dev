@@ -70,6 +70,10 @@
     <string name="mozac_feature_addons_permissions_tab_hide_description">Afficher ou masquer les onglets du navigateur</string>
     <!-- Description for top_sites permission. -->
     <string name="mozac_feature_addons_permissions_top_sites_description">Accéder à l’historique de navigation</string>
+    <!-- Description for trialML permission. -->
+    <string name="mozac_feature_addons_permissions_trial_ml_description">Télécharger et exécuter des modèles d’IA sur votre appareil</string>
+    <!-- Description for userScripts permission. -->
+    <string name="mozac_feature_addons_permissions_user_scripts_description">Autoriser les scripts tiers non vérifiés à accéder à vos données</string>
     <!-- Description for devtools permission. -->
     <string name="mozac_feature_addons_permissions_devtools_description">Ouvrir les outils de développement afin d’accéder à vos données dans les onglets ouverts</string>
     <!-- The version on of add-on. -->

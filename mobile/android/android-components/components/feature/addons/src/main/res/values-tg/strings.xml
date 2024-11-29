@@ -70,6 +70,10 @@
     <string name="mozac_feature_addons_permissions_tab_hide_description">Намоиш ва пинҳон кардани варақаҳои браузер</string>
     <!-- Description for top_sites permission. -->
     <string name="mozac_feature_addons_permissions_top_sites_description">Дастрас кардани таърихи тамошо</string>
+    <!-- Description for trialML permission. -->
+    <string name="mozac_feature_addons_permissions_trial_ml_description">Моделҳои зеҳни сунъӣ «AI»-ро боргирӣ кунед ва дар дастгоҳи худ иҷро намоед</string>
+    <!-- Description for userScripts permission. -->
+    <string name="mozac_feature_addons_permissions_user_scripts_description">Ба скриптҳои тасдиқнашудаи тарафи сеюм иҷозат диҳед, ки ба маълумоти шумо дастрасӣ пайдо намоянд</string>
     <!-- Description for devtools permission. -->
     <string name="mozac_feature_addons_permissions_devtools_description">Васеъкунии абзорҳои барномасозӣ барои дастрас кардани маълумоти шумо дар варақаҳои кушодашуда</string>
     <!-- The version on of add-on. -->

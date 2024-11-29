@@ -853,6 +853,33 @@
     <!-- Preference to enable remote debugging of the app via USB or Wi-Fi -->
     <string name="preference_remote_debugging">Ujosq\'ixik chi najal chi rumal USB/Wi-Fi</string>
 
+    <!-- Text Button for show biometric prompt -->
+    <string name="show_biometric_button_text">Utzoqopixik</string>
+
+    <!-- Title text for biometric prompt pop-up -->
+    <string name="biometric_prompt_title">Usuk\'ub\'axik ub\'ixik uya\'ik uwi\' q\'ab\'aj</string>
+
+    <!-- Subtitle text for biometric prompt pop-up -->
+    <string name="biometric_prompt_subtitle">Utz kaya\' le uwi\' aq\'ab\' chech k\'olem na pa le kojkemchak.</string>
+
+    <!-- Button for the fingerprint authentication dialog box that is shown to the user when sharing a link to the app
+    while the user has biometric authentication enabled. When pressed, the user's previous session is cleared, and the shared link is opened. -->
+    <string name="biometric_auth_open_link_new_session">Ujaqik kemwiqb\'al pa jun chi kemchak </string>
+
+    <!-- Description for the fingerprint authentication image. Used for accessibility purposes. -->
+    <string name="biometric_auth_image_description">Retno\'jib\'al rech uwi\' q\'ab\'aj</string>
+
+    <!-- Error text displayed when the user's fingerprint cannot be recognized upon re-entering the app.
+     This is displayed during the authentication flow as the app launches. -->
+    <string name="biometric_auth_not_recognized_error">Man kch\'ob\' ta uwach le uwi\' q\'ab\'aj. Chaya\' chi jumul.</string>
+
+    <!-- Error text displayed when the user's fingerprint moved too quickly upon re-entering the app
+    This is displayed during the authentication flow as the app launches.-->
+    <string name="biometric_auth_moved_too_quickly">Sib\'alaj aninaq xsilab\'ax le uwi\' q\'ab\'aj. Chaya\' chi jumul.</string>
+
+    <!-- Title for the prompt to enable search suggestions -->
+    <string name="enable_search_suggestion_title2">Uk\'utunisaxik taq no\'jib\'al rech tzukunem?</string>
+
     <!-- Description for the prompt to enable search suggestions
         %1$s will be replaced by the app name (e.g. Firefox Focus) -->
     <string name="enable_search_suggestion_description">Chech uriqik taq no\'jib\'al %1$s rajawaxik kataq le ktzib\'ax pa le q\'etb\'al rech kemriqonib\'al chech le ch\'ich\' rech tzukunem.</string>
@@ -892,6 +919,9 @@
     <!-- Tip displayed on home view explaining how to add a custom autocomplete URL
     The new line here must be kept as the second half of the string is clickable for the user. -->
     <string name="tip_open_in_new_tab">Chajaqa\' jun kemwiqb\'al pa jun k\'ak\' k\'utjaqb\'al\n Naj-upitz\'ik apachike kemwiqb\'al pa jun uxaq web\'</string>
+
+    <!-- Tip displayed on home view explaining how to add a custom autocomplete URL -->
+    <string name="tip_disable_tips2">Chachupu\' taq no\'jib\'al pa le umajib\'al kemwach</string>
 
     <!-- Label for the snackbar when a user opens a new tab -->
     <string name="new_tab_opened_snackbar">Jaqatal K\'ak\' k\'utjaqb\'al </string>
