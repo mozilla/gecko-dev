@@ -447,9 +447,6 @@ support-files = ["dummy_page.html"]
 
 ["browser_searchModeSwitcher_basic.js"]
 
-["browser_searchModeSwitcher_dynamicUSB.js"]
-support-files = ["has-a-link.html"]
-
 ["browser_searchModeSwitcher_keyNavigation.js"]
 
 ["browser_searchMode_alias_replacement.js"]
