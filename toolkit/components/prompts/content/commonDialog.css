@@ -4,7 +4,6 @@
 
 :root {
   min-width: 29em;
-  width: min-content;
 }
 
 dialog[insecureauth] {
@@ -69,6 +68,8 @@ dialog[insecureauth] {
 }
 
 :root[subdialog] {
+  /* Ensure we don't crop stuff */
+  width: min-content;
 
   /* use flexbox instead of grid: */
   dialog,
