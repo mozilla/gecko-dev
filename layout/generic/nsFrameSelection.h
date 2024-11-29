@@ -456,6 +456,13 @@ class nsFrameSelection final {
       mozilla::SelectionType aSelectionType) const;
 
   /**
+   * Convenience method to access the `eNormal` Selection.
+   */
+  mozilla::dom::Selection& NormalSelection() const {
+    return *GetSelection(mozilla::SelectionType::eNormal);
+  }
+
+  /**
    * @brief Adds a highlight selection for `aHighlight`.
    */
   MOZ_CAN_RUN_SCRIPT void AddHighlightSelection(
