@@ -43,6 +43,8 @@ class OnboardingMapperTest {
             onAddOnsButtonClick = {},
             onCustomizeToolbarButtonClick = {},
             onCustomizeToolbarSkipClick = {},
+            onThemeSelectionButtonClick = {},
+            onThemeSelectionSkipClick = {},
             onTermsOfServiceButtonClick = {},
         )
 
@@ -81,6 +83,8 @@ class OnboardingMapperTest {
             onAddOnsButtonClick = {},
             onCustomizeToolbarButtonClick = {},
             onCustomizeToolbarSkipClick = {},
+            onThemeSelectionButtonClick = {},
+            onThemeSelectionSkipClick = {},
             onTermsOfServiceButtonClick = {},
         )
 
@@ -119,6 +123,8 @@ class OnboardingMapperTest {
             onAddOnsButtonClick = {},
             onCustomizeToolbarButtonClick = {},
             onCustomizeToolbarSkipClick = {},
+            onThemeSelectionButtonClick = {},
+            onThemeSelectionSkipClick = {},
             onTermsOfServiceButtonClick = {},
         )
 
@@ -157,6 +163,8 @@ class OnboardingMapperTest {
             onAddOnsButtonClick = {},
             onCustomizeToolbarButtonClick = {},
             onCustomizeToolbarSkipClick = {},
+            onThemeSelectionButtonClick = {},
+            onThemeSelectionSkipClick = {},
             onTermsOfServiceButtonClick = {},
         )
 
@@ -227,6 +235,8 @@ class OnboardingMapperTest {
             onAddOnsButtonClick = unitLambda,
             onCustomizeToolbarButtonClick = {},
             onCustomizeToolbarSkipClick = {},
+            onThemeSelectionButtonClick = {},
+            onThemeSelectionSkipClick = {},
             onTermsOfServiceButtonClick = {},
         )
 
@@ -279,10 +289,79 @@ class OnboardingMapperTest {
             onAddOnsButtonClick = {},
             onCustomizeToolbarButtonClick = unitLambda,
             onCustomizeToolbarSkipClick = unitLambda,
-            onTermsOfServiceButtonClick = unitLambda,
+            onThemeSelectionButtonClick = {},
+            onThemeSelectionSkipClick = {},
+            onTermsOfServiceButtonClick = {},
         )
 
         assertEquals(expected, actual)
+    }
+
+    @Test
+    fun `GIVEN a customize theme page UI data WHEN mapping function is called THEN equivalent page state is created`() {
+        // Page UI values
+        val imageRes = R.drawable.ic_pick_a_theme
+        val title = "Pick a theme"
+        val description = "See the web in the best light."
+        val primaryButtonLabel = "Save and continue"
+        val secondaryButtonLabel = "Skip"
+
+        // Theming options
+        val themeOptionSystem = ThemeOption(
+            label = "System auto",
+            imageRes = R.drawable.ic_pick_a_theme_system_auto,
+            themeType = ThemeOptionType.THEME_SYSTEM,
+        )
+        val themeOptionLight = ThemeOption(
+            label = "Light",
+            imageRes = R.drawable.ic_pick_a_theme_light,
+            themeType = ThemeOptionType.THEME_LIGHT,
+        )
+        val themeOptionDark = ThemeOption(
+            label = "Dark",
+            imageRes = R.drawable.ic_pick_a_theme_dark,
+            themeType = ThemeOptionType.THEME_DARK,
+        )
+        val themeOptions = listOf(themeOptionSystem, themeOptionLight, themeOptionDark)
+
+        val pageUiData = OnboardingPageUiData(
+            type = OnboardingPageUiData.Type.THEME_SELECTION,
+            imageRes = imageRes,
+            title = title,
+            description = description,
+            primaryButtonLabel = primaryButtonLabel,
+            secondaryButtonLabel = secondaryButtonLabel,
+            themeOptions = themeOptions,
+        )
+
+        val expectedPageState = OnboardingPageState(
+            imageRes = imageRes,
+            title = title,
+            description = description,
+            primaryButton = Action(primaryButtonLabel, unitLambda),
+            secondaryButton = Action(secondaryButtonLabel, unitLambda),
+            themeOptions = themeOptions,
+        )
+
+        val actualPageState = mapToOnboardingPageState(
+            onboardingPageUiData = pageUiData,
+            onMakeFirefoxDefaultClick = {},
+            onMakeFirefoxDefaultSkipClick = {},
+            onSignInButtonClick = {},
+            onSignInSkipClick = {},
+            onNotificationPermissionButtonClick = {},
+            onNotificationPermissionSkipClick = {},
+            onAddFirefoxWidgetClick = {},
+            onAddFirefoxWidgetSkipClick = {},
+            onAddOnsButtonClick = {},
+            onCustomizeToolbarButtonClick = {},
+            onCustomizeToolbarSkipClick = {},
+            onThemeSelectionButtonClick = unitLambda,
+            onThemeSelectionSkipClick = unitLambda,
+            onTermsOfServiceButtonClick = {},
+        )
+
+        assertEquals(expectedPageState, actualPageState)
     }
 }
 

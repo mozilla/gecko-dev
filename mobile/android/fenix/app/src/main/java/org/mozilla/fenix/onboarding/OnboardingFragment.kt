@@ -136,7 +136,7 @@ class OnboardingFragment : Fragment() {
 
     @RequiresApi(Build.VERSION_CODES.TIRAMISU)
     @Composable
-    @Suppress("LongMethod")
+    @Suppress("LongMethod", "ThrowsCount")
     private fun ScreenContent() {
         OnboardingScreen(
             pagesToDisplay = pagesToDisplay,
@@ -200,6 +200,14 @@ class OnboardingFragment : Fragment() {
                     pagesToDisplay.telemetrySequenceId(),
                     pagesToDisplay.sequencePosition(OnboardingPageUiData.Type.ADD_ONS),
                 )
+            },
+            onThemeSelectionButtonClick = {
+                // Todo as part of https://bugzilla.mozilla.org/show_bug.cgi?id=1918350
+                throw NotImplementedError()
+            },
+            onThemeSelectionSkipClick = {
+                // Todo as part of https://bugzilla.mozilla.org/show_bug.cgi?id=1918350
+                throw NotImplementedError()
             },
             onFinish = {
                 onFinish(it)

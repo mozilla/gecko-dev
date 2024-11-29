@@ -18,6 +18,7 @@ import org.mozilla.fenix.onboarding.store.OnboardingAddonStatus
  * @property primaryButton [Action] for the primary button.
  * @property secondaryButton Optional [Action] for the secondary button.
  * @property addOns Optional list of add-ons to install during onboarding.
+ * @property themeOptions Optional list of theme customizing options during onboarding.
  * @property termsOfService Optional term of service page data.
  * @property onRecordImpressionEvent Callback for recording impression event.
  */
@@ -29,6 +30,7 @@ data class OnboardingPageState(
     val primaryButton: Action,
     val secondaryButton: Action? = null,
     val addOns: List<OnboardingAddOn>? = null,
+    val themeOptions: List<ThemeOption>? = null,
     val termsOfService: OnboardingTermsOfService? = null,
     val onRecordImpressionEvent: () -> Unit = {},
 )
@@ -85,6 +87,35 @@ enum class ToolbarOptionType {
      * Sets the toolbar placement to the bottom.
      */
     TOOLBAR_BOTTOM,
+}
+
+/**
+ * Model containing data for theme customizing during onboarding.
+ */
+data class ThemeOption(
+    val label: String,
+    val imageRes: Int,
+    val themeType: ThemeOptionType,
+)
+
+/**
+ * Types of theming options available.
+ */
+enum class ThemeOptionType {
+    /**
+     * Sets the theme to dark mode.
+     */
+    THEME_DARK,
+
+    /**
+     * Sets the theme to light mode.
+     */
+    THEME_LIGHT,
+
+    /**
+     * Adapts the theme to match the device's system setting.
+     */
+    THEME_SYSTEM,
 }
 
 /**

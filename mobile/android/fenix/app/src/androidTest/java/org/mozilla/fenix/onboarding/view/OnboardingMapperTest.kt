@@ -16,12 +16,14 @@ import org.mozilla.experiments.nimbus.StringHolder
 import org.mozilla.fenix.R
 import org.mozilla.fenix.helpers.HomeActivityIntentTestRule
 import org.mozilla.fenix.nimbus.AddOnData
+import org.mozilla.fenix.nimbus.CustomizationThemeData
 import org.mozilla.fenix.nimbus.ExtraCardData
 import org.mozilla.fenix.nimbus.FxNimbus
 import org.mozilla.fenix.nimbus.JunoOnboarding
 import org.mozilla.fenix.nimbus.OnboardingCardData
 import org.mozilla.fenix.nimbus.OnboardingCardType
 import org.mozilla.fenix.nimbus.TermsOfServiceData
+import org.mozilla.fenix.nimbus.ThemeType
 import org.mozilla.fenix.onboarding.store.OnboardingAddonStatus
 
 class OnboardingMapperTest {
@@ -176,6 +178,94 @@ class OnboardingMapperTest {
                 jexlConditions = jexlConditions,
                 func = evalFunction,
             ),
+        )
+    }
+
+    @Test
+    fun themeSelectionCardHasExtraData_toPageUiData_returnsConvertedPage() {
+        // Page UI values
+        val imageRes = R.drawable.ic_pick_a_theme
+        val title = "Pick a theme"
+        val description = "See the web in the best light."
+        val primaryButtonLabel = "Save and continue"
+        val secondaryButtonLabel = "Skip"
+
+        // Theme data values
+        val themeLabel = "System auto"
+        val themeImage = R.drawable.ic_pick_a_theme_system_auto
+
+        // The onboarding card data object containing extraData.
+        val themeSelectionCardData = OnboardingCardData(
+            cardType = OnboardingCardType.THEME_SELECTION,
+            imageRes = imageRes,
+            title = StringHolder(null, title),
+            body = StringHolder(null, description),
+            primaryButtonLabel = StringHolder(null, primaryButtonLabel),
+            secondaryButtonLabel = StringHolder(null, secondaryButtonLabel),
+            ordering = 45,
+            extraData = ExtraCardData(
+                customizationThemeData = listOf(
+                    CustomizationThemeData(
+                        label = StringHolder(null, themeLabel),
+                        imageRes = themeImage,
+                        themeType = ThemeType.THEME_SYSTEM,
+                    ),
+                ),
+            ),
+        )
+
+        // Expected converted page UI data, matching the themeSelectionCardData object
+        val expected = OnboardingPageUiData(
+            type = OnboardingPageUiData.Type.THEME_SELECTION,
+            imageRes = imageRes,
+            title = title,
+            description = description,
+            primaryButtonLabel = primaryButtonLabel,
+            secondaryButtonLabel = secondaryButtonLabel,
+            themeOptions = listOf(
+                ThemeOption(
+                    label = themeLabel,
+                    imageRes = themeImage,
+                    themeType = ThemeOptionType.THEME_SYSTEM,
+                ),
+            ),
+        )
+
+        assertEquals(
+            expected,
+            listOf(defaultBrowserCardData, themeSelectionCardData).toPageUiData(
+                privacyCaption = privacyCaption,
+                showDefaultBrowserPage = true,
+                showNotificationPage = false,
+                showAddWidgetPage = false,
+                jexlConditions = jexlConditions,
+                func = evalFunction,
+            ).last(),
+        )
+    }
+
+    @Test
+    fun themeSelectedCardNoExtraData_toPageUiData_convertedPageDoesNotIncludeThemeSelectedCard() {
+        val themeSelectionCardData = OnboardingCardData(
+            cardType = OnboardingCardType.THEME_SELECTION,
+            imageRes = R.drawable.ic_pick_a_theme,
+            title = StringHolder(null, "Pick a theme"),
+            body = StringHolder(null, "See the web in the best light."),
+            primaryButtonLabel = StringHolder(null, "Save and continue"),
+            secondaryButtonLabel = StringHolder(null, "Skip"),
+            ordering = 45,
+        )
+
+        assertEquals(
+            defaultBrowserPageUiDataWithPrivacyCaption,
+            listOf(defaultBrowserCardData, themeSelectionCardData).toPageUiData(
+                privacyCaption = privacyCaption,
+                showDefaultBrowserPage = true,
+                showNotificationPage = false,
+                showAddWidgetPage = false,
+                jexlConditions = jexlConditions,
+                func = evalFunction,
+            ).last(),
         )
     }
 

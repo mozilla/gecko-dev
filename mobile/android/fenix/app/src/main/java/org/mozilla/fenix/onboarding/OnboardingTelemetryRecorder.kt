@@ -105,6 +105,11 @@ class OnboardingTelemetryRecorder {
                 throw NotImplementedError()
             }
 
+            OnboardingPageUiData.Type.THEME_SELECTION -> {
+                // Todo as part of https://bugzilla.mozilla.org/show_bug.cgi?id=1926955
+                throw NotImplementedError()
+            }
+
             OnboardingPageUiData.Type.TERMS_OF_SERVICE -> {
                 Onboarding.termsOfServiceCard.record(
                     Onboarding.TermsOfServiceCardExtra(
