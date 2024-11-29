@@ -29,228 +29,228 @@ wasm32-wasi-compiler-rt-8.0:
         toolchain:
             - linux64-clang-8.0-raw
 
-android-aarch64-compiler-rt-18:
-    description: "android aarch64 Compiler-rt for Clang 18 toolchain build"
+android-aarch64-compiler-rt-19:
+    description: "android aarch64 Compiler-rt for Clang 19 toolchain build"
     treeherder:
-        symbol: TA(aarch64-crt-18)
+        symbol: TA(aarch64-crt-19)
     run:
         arguments:
-            - build/build-clang/clang-18.json
+            - build/build-clang/clang-19.json
         resources:
-            - build/build-clang/clang-18.json
+            - build/build-clang/clang-19.json
             - taskcluster/scripts/misc/build-llvm-common.sh
         toolchain-artifact: public/build/compiler-rt-aarch64-linux-android.tar.zst
     fetches:
         fetch:
-            - clang-18
+            - clang-19
         toolchain:
-            - linux64-clang-18-stage1
+            - linux64-clang-19-stage1
             - linux64-android-ndk-linux-repack
 
-android-arm-compiler-rt-18:
-    description: "android arm Compiler-rt for Clang 18 toolchain build"
+android-arm-compiler-rt-19:
+    description: "android arm Compiler-rt for Clang 19 toolchain build"
     treeherder:
-        symbol: TA(arm-crt-18)
+        symbol: TA(arm-crt-19)
     run:
         arguments:
-            - build/build-clang/clang-18.json
+            - build/build-clang/clang-19.json
         resources:
-            - build/build-clang/clang-18.json
+            - build/build-clang/clang-19.json
             - taskcluster/scripts/misc/build-llvm-common.sh
         toolchain-artifact: public/build/compiler-rt-armv7-linux-android.tar.zst
     fetches:
         fetch:
-            - clang-18
+            - clang-19
         toolchain:
-            - linux64-clang-18-stage1
+            - linux64-clang-19-stage1
             - linux64-android-ndk-linux-repack
 
-android-x86-compiler-rt-18:
-    description: "android x86 Compiler-rt for Clang 18 toolchain build"
+android-x86-compiler-rt-19:
+    description: "android x86 Compiler-rt for Clang 19 toolchain build"
     treeherder:
-        symbol: TA(x86-crt-18)
+        symbol: TA(x86-crt-19)
     run:
         arguments:
-            - build/build-clang/clang-18.json
+            - build/build-clang/clang-19.json
         resources:
-            - build/build-clang/clang-18.json
+            - build/build-clang/clang-19.json
             - taskcluster/scripts/misc/build-llvm-common.sh
         toolchain-artifact: public/build/compiler-rt-i686-linux-android.tar.zst
     fetches:
         fetch:
-            - clang-18
+            - clang-19
         toolchain:
-            - linux64-clang-18-stage1
+            - linux64-clang-19-stage1
             - linux64-android-ndk-linux-repack
 
-android-x64-compiler-rt-18:
-    description: "android x64 Compiler-rt for Clang 18 toolchain build"
+android-x64-compiler-rt-19:
+    description: "android x64 Compiler-rt for Clang 19 toolchain build"
     treeherder:
-        symbol: TA(x64-crt-18)
+        symbol: TA(x64-crt-19)
     run:
         arguments:
-            - build/build-clang/clang-18.json
+            - build/build-clang/clang-19.json
         resources:
-            - build/build-clang/clang-18.json
+            - build/build-clang/clang-19.json
             - taskcluster/scripts/misc/build-llvm-common.sh
         toolchain-artifact: public/build/compiler-rt-x86_64-linux-android.tar.zst
     fetches:
         fetch:
-            - clang-18
+            - clang-19
         toolchain:
-            - linux64-clang-18-stage1
+            - linux64-clang-19-stage1
             - linux64-android-ndk-linux-repack
 
-linux64-x86-compiler-rt-18:
-    description: "Linux x86 Compiler-rt for Clang 18 toolchain build"
+linux64-x86-compiler-rt-19:
+    description: "Linux x86 Compiler-rt for Clang 19 toolchain build"
     treeherder:
-        symbol: TL32(crt-18)
+        symbol: TL32(crt-19)
     run:
         arguments:
-            - build/build-clang/clang-18.json
+            - build/build-clang/clang-19.json
         resources:
-            - build/build-clang/clang-18.json
+            - build/build-clang/clang-19.json
             - taskcluster/scripts/misc/build-llvm-common.sh
         toolchain-artifact: public/build/compiler-rt-i686-unknown-linux-gnu.tar.zst
     fetches:
         fetch:
-            - clang-18
+            - clang-19
         toolchain:
-            - linux64-clang-18-stage1
+            - linux64-clang-19-stage1
             - sysroot-i686-linux-gnu
 
-linux64-x64-compiler-rt-18:
-    description: "Linux x64 Compiler-rt for Clang 18 toolchain build"
+linux64-x64-compiler-rt-19:
+    description: "Linux x64 Compiler-rt for Clang 19 toolchain build"
     treeherder:
-        symbol: TL(crt-18)
+        symbol: TL(crt-19)
     run:
         arguments:
-            - build/build-clang/clang-18.json
+            - build/build-clang/clang-19.json
         resources:
-            - build/build-clang/clang-18.json
+            - build/build-clang/clang-19.json
             - taskcluster/scripts/misc/build-llvm-common.sh
         toolchain-artifact: public/build/compiler-rt-x86_64-unknown-linux-gnu.tar.zst
     fetches:
         fetch:
-            - clang-18
+            - clang-19
         toolchain:
-            - linux64-clang-18-stage1
+            - linux64-clang-19-stage1
             - sysroot-x86_64-linux-gnu
 
-linux64-aarch64-compiler-rt-18:
-    description: "Linux aarch64 Compiler-rt for Clang 18 toolchain build"
+linux64-aarch64-compiler-rt-19:
+    description: "Linux aarch64 Compiler-rt for Clang 19 toolchain build"
     treeherder:
-        symbol: TLA64(crt-18)
+        symbol: TLA64(crt-19)
     run:
         arguments:
-            - build/build-clang/clang-18.json
+            - build/build-clang/clang-19.json
         resources:
-            - build/build-clang/clang-18.json
+            - build/build-clang/clang-19.json
             - taskcluster/scripts/misc/build-llvm-common.sh
         toolchain-artifact: public/build/compiler-rt-aarch64-unknown-linux-gnu.tar.zst
     fetches:
         fetch:
-            - clang-18
+            - clang-19
         toolchain:
-            - linux64-clang-18-stage1
+            - linux64-clang-19-stage1
             - sysroot-aarch64-linux-gnu
 
-macosx64-x64-compiler-rt-18:
-    description: "macOS x64 Compiler-rt for Clang 18 toolchain build"
+macosx64-x64-compiler-rt-19:
+    description: "macOS x64 Compiler-rt for Clang 19 toolchain build"
     treeherder:
-        symbol: TM(crt-18)
+        symbol: TM(crt-19)
     run:
         arguments:
-            - build/build-clang/clang-18.json
+            - build/build-clang/clang-19.json
         resources:
-            - build/build-clang/clang-18.json
+            - build/build-clang/clang-19.json
             - taskcluster/scripts/misc/build-llvm-common.sh
         toolchain-artifact: public/build/compiler-rt-x86_64-apple-darwin.tar.zst
     fetches:
         fetch:
-            - clang-18
+            - clang-19
         toolchain:
-            - linux64-clang-18-stage1
+            - linux64-clang-19-stage1
             - macosx64-sdk-toolchain
 
-macosx64-aarch64-compiler-rt-18:
-    description: "macOS aarch64 Compiler-rt for Clang 18 toolchain build"
+macosx64-aarch64-compiler-rt-19:
+    description: "macOS aarch64 Compiler-rt for Clang 19 toolchain build"
     treeherder:
-        symbol: TMA64(crt-18)
+        symbol: TMA64(crt-19)
     run:
         arguments:
-            - build/build-clang/clang-18.json
+            - build/build-clang/clang-19.json
         resources:
-            - build/build-clang/clang-18.json
+            - build/build-clang/clang-19.json
             - taskcluster/scripts/misc/build-llvm-common.sh
         toolchain-artifact: public/build/compiler-rt-aarch64-apple-darwin.tar.zst
     fetches:
         fetch:
-            - clang-18
+            - clang-19
         toolchain:
-            - linux64-clang-18-stage1
+            - linux64-clang-19-stage1
             - macosx64-sdk-toolchain
 
-win32-compiler-rt-18:
-    description: "win32 x86 Compiler-rt for Clang 18 toolchain build"
+win32-compiler-rt-19:
+    description: "win32 x86 Compiler-rt for Clang 19 toolchain build"
     treeherder:
-        symbol: TW32(crt-18)
+        symbol: TW32(crt-19)
     run:
         arguments:
-            - build/build-clang/clang-18.json
+            - build/build-clang/clang-19.json
         resources:
-            - build/build-clang/clang-18.json
+            - build/build-clang/clang-19.json
             - taskcluster/scripts/misc/build-llvm-common.sh
         toolchain-artifact: public/build/compiler-rt-i686-pc-windows-msvc.tar.zst
     fetches:
         fetch:
-            - clang-18
+            - clang-19
         toolchain:
-            - linux64-clang-18-stage1
+            - linux64-clang-19-stage1
             - vs-toolchain
 
-win64-compiler-rt-18:
-    description: "win64 x64 Compiler-rt for Clang 18 toolchain build"
+win64-compiler-rt-19:
+    description: "win64 x64 Compiler-rt for Clang 19 toolchain build"
     treeherder:
-        symbol: TW64(crt-18)
+        symbol: TW64(crt-19)
     run:
         arguments:
-            - build/build-clang/clang-18.json
-            - build/build-clang/compiler-rt-18.json
+            - build/build-clang/clang-19.json
+            - build/build-clang/compiler-rt-19.json
         resources:
-            - build/build-clang/clang-18.json
-            - build/build-clang/compiler-rt-18.json
+            - build/build-clang/clang-19.json
+            - build/build-clang/compiler-rt-19.json
             - taskcluster/scripts/misc/build-llvm-common.sh
         toolchain-artifact: public/build/compiler-rt-x86_64-pc-windows-msvc.tar.zst
     fetches:
         fetch:
-            - clang-18
+            - clang-19
         toolchain:
-            - linux64-clang-18-stage1
+            - linux64-clang-19-stage1
             - vs-toolchain
 
-win64-aarch64-compiler-rt-18:
-    description: "Win64 Aarch64 Compiler-rt for Clang 18 toolchain build"
+win64-aarch64-compiler-rt-19:
+    description: "Win64 Aarch64 Compiler-rt for Clang 19 toolchain build"
     treeherder:
-        symbol: TWA64(crt-18)
+        symbol: TWA64(crt-19)
     run:
         arguments:
-            - build/build-clang/clang-18.json
+            - build/build-clang/clang-19.json
         resources:
-            - build/build-clang/clang-18.json
+            - build/build-clang/clang-19.json
             - taskcluster/scripts/misc/build-llvm-common.sh
         toolchain-artifact: public/build/compiler-rt-aarch64-pc-windows-msvc.tar.zst
     fetches:
         fetch:
-            - clang-18
+            - clang-19
         toolchain:
-            - linux64-clang-18-stage1
+            - linux64-clang-19-stage1
             - vs-toolchain
 
-wasm32-wasi-compiler-rt-18:
-    description: "wasm32-wasi Compiler-rt for Clang 18 toolchain build"
+wasm32-wasi-compiler-rt-19:
+    description: "wasm32-wasi Compiler-rt for Clang 19 toolchain build"
     treeherder:
-        symbol: TL(wasi-crt-18)
+        symbol: TL(wasi-crt-19)
     worker-type: b-linux-xlarge-gcp
     run:
         script: build-compiler-rt-wasi.sh
@@ -261,10 +261,10 @@ wasm32-wasi-compiler-rt-18:
         toolchain-artifact: public/build/compiler-rt-wasm32-wasi.tar.zst
     fetches:
         fetch:
-            - clang-18
+            - clang-19
             - wasi-sdk
         toolchain:
-            - linux64-clang-18-stage1
+            - linux64-clang-19-stage1
 
 android-aarch64-compiler-rt-trunk:
     description: "android aarch64 Compiler-rt for Clang trunk toolchain build"
