@@ -774,6 +774,7 @@ export class TelemetryFeed {
           firstVisibleTimestamp,
           feature,
           scheduled_corpus_item_id,
+          corpus_item_id,
           received_rank,
           recommended_at,
           matches_selected_topic,
@@ -813,9 +814,11 @@ export class TelemetryFeed {
             is_list_card,
             position: action.data.action_position,
             tile_id,
-            ...(scheduled_corpus_item_id
+            // We conditionally add in a few props.
+            ...(corpus_item_id ? { corpus_item_id } : {}),
+            ...(scheduled_corpus_item_id ? { scheduled_corpus_item_id } : {}),
+            ...(corpus_item_id || scheduled_corpus_item_id
               ? {
-                  scheduled_corpus_item_id,
                   received_rank,
                   recommended_at,
                 }
@@ -852,6 +855,7 @@ export class TelemetryFeed {
           tile_id,
           recommendation_id,
           scheduled_corpus_item_id,
+          corpus_item_id,
           received_rank,
           recommended_at,
           thumbs_up,
@@ -861,9 +865,11 @@ export class TelemetryFeed {
         Glean.pocket.thumbVotingInteraction.record({
           newtab_visit_id: session.session_id,
           tile_id,
-          ...(scheduled_corpus_item_id
+          // We conditionally add in a few props.
+          ...(corpus_item_id ? { corpus_item_id } : {}),
+          ...(scheduled_corpus_item_id ? { scheduled_corpus_item_id } : {}),
+          ...(corpus_item_id || scheduled_corpus_item_id
             ? {
-                scheduled_corpus_item_id,
                 received_rank,
                 recommended_at,
               }
@@ -885,6 +891,7 @@ export class TelemetryFeed {
           shim,
           card_type,
           scheduled_corpus_item_id,
+          corpus_item_id,
           received_rank,
           recommended_at,
           topic,
@@ -911,9 +918,11 @@ export class TelemetryFeed {
           position: action.data.action_position,
           tile_id,
           is_list_card,
-          ...(scheduled_corpus_item_id
+          // We conditionally add in a few props.
+          ...(corpus_item_id ? { corpus_item_id } : {}),
+          ...(scheduled_corpus_item_id ? { scheduled_corpus_item_id } : {}),
+          ...(corpus_item_id || scheduled_corpus_item_id
             ? {
-                scheduled_corpus_item_id,
                 received_rank,
                 recommended_at,
               }
@@ -1331,6 +1340,7 @@ export class TelemetryFeed {
     // it can be applied to multiple topsites simultaneously.
     const { data } = action;
     for (const datum of data) {
+      const { corpus_item_id, scheduled_corpus_item_id } = datum;
       if (datum.is_pocket_card) {
         Glean.pocket.dismiss.record({
           newtab_visit_id: session.session_id,
@@ -1345,9 +1355,11 @@ export class TelemetryFeed {
                 section_position: datum.section_position,
               }
             : {}),
-          ...(datum.scheduled_corpus_item_id
+          // We conditionally add in a few props.
+          ...(corpus_item_id ? { corpus_item_id } : {}),
+          ...(scheduled_corpus_item_id ? { scheduled_corpus_item_id } : {}),
+          ...(corpus_item_id || scheduled_corpus_item_id
             ? {
-                scheduled_corpus_item_id: datum.scheduled_corpus_item_id,
                 received_rank: datum.received_rank,
                 recommended_at: datum.recommended_at,
               }
@@ -1408,6 +1420,7 @@ export class TelemetryFeed {
           category: tile.category,
         });
       } else {
+        const { corpus_item_id, scheduled_corpus_item_id } = tile;
         Glean.pocket.impression.record({
           newtab_visit_id: session.session_id,
           is_sponsored: tile.type === "spoc",
@@ -1423,9 +1436,11 @@ export class TelemetryFeed {
           topic: tile.topic,
           selected_topics: tile.selectedTopics,
           is_list_card: tile.is_list_card,
-          ...(tile.scheduled_corpus_item_id
+          // We conditionally add in a few props.
+          ...(corpus_item_id ? { corpus_item_id } : {}),
+          ...(scheduled_corpus_item_id ? { scheduled_corpus_item_id } : {}),
+          ...(corpus_item_id || scheduled_corpus_item_id
             ? {
-                scheduled_corpus_item_id: tile.scheduled_corpus_item_id,
                 received_rank: tile.received_rank,
                 recommended_at: tile.recommended_at,
               }

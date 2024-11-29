@@ -120,6 +120,8 @@ for (const type of [
   "DISCOVERY_STREAM_CONFIG_RESET_DEFAULTS",
   "DISCOVERY_STREAM_CONFIG_SETUP",
   "DISCOVERY_STREAM_CONFIG_SET_VALUE",
+  "DISCOVERY_STREAM_DEV_BLOCKS",
+  "DISCOVERY_STREAM_DEV_BLOCKS_RESET",
   "DISCOVERY_STREAM_DEV_EXPIRE_CACHE",
   "DISCOVERY_STREAM_DEV_IDLE_DAILY",
   "DISCOVERY_STREAM_DEV_IMPRESSIONS",
@@ -693,6 +695,7 @@ class DiscoveryStreamAdminUI extends (external_React_default()).PureComponent {
     this.onStoryToggle = this.onStoryToggle.bind(this);
     this.handleWeatherSubmit = this.handleWeatherSubmit.bind(this);
     this.handleWeatherUpdate = this.handleWeatherUpdate.bind(this);
+    this.resetBlocks = this.resetBlocks.bind(this);
     this.refreshTopicSelectionCache = this.refreshTopicSelectionCache.bind(this);
     this.toggleTBRFeed = this.toggleTBRFeed.bind(this);
     this.handleSectionsToggle = this.handleSectionsToggle.bind(this);
@@ -731,6 +734,11 @@ class DiscoveryStreamAdminUI extends (external_React_default()).PureComponent {
   dispatchSimpleAction(type) {
     this.props.dispatch(actionCreators.OnlyToMain({
       type
+    }));
+  }
+  resetBlocks() {
+    this.props.dispatch(actionCreators.OnlyToMain({
+      type: actionTypes.DISCOVERY_STREAM_DEV_BLOCKS_RESET
     }));
   }
   systemTick() {
@@ -835,6 +843,21 @@ class DiscoveryStreamAdminUI extends (external_React_default()).PureComponent {
       }, /*#__PURE__*/external_React_default().createElement("td", {
         className: "min"
       }, key), /*#__PURE__*/external_React_default().createElement("td", null, relativeTime(impressions.feed[key]) || "(no data)"));
+    }))));
+  }
+  renderBlocksData() {
+    const {
+      blocks
+    } = this.props.state.DiscoveryStream;
+    return /*#__PURE__*/external_React_default().createElement((external_React_default()).Fragment, null, /*#__PURE__*/external_React_default().createElement("h4", null, "Blocks"), /*#__PURE__*/external_React_default().createElement("button", {
+      className: "button",
+      onClick: this.resetBlocks
+    }, "Reset Blocks"), " ", /*#__PURE__*/external_React_default().createElement("table", null, /*#__PURE__*/external_React_default().createElement("tbody", null, Object.keys(blocks).map(key => {
+      return /*#__PURE__*/external_React_default().createElement(Row, {
+        key: key
+      }, /*#__PURE__*/external_React_default().createElement("td", {
+        className: "min"
+      }, key));
     }))));
   }
   renderSpocs() {
@@ -963,7 +986,9 @@ class DiscoveryStreamAdminUI extends (external_React_default()).PureComponent {
       className: "large-data-container"
     }, this.renderFeedsData()), /*#__PURE__*/external_React_default().createElement("h3", null, "Impressions Data"), /*#__PURE__*/external_React_default().createElement("div", {
       className: "large-data-container"
-    }, this.renderImpressionsData()), /*#__PURE__*/external_React_default().createElement("h3", null, "Weather Data"), this.renderWeatherData());
+    }, this.renderImpressionsData()), /*#__PURE__*/external_React_default().createElement("h3", null, "Blocked Data"), /*#__PURE__*/external_React_default().createElement("div", {
+      className: "large-data-container"
+    }, this.renderBlocksData()), /*#__PURE__*/external_React_default().createElement("h3", null, "Weather Data"), this.renderWeatherData());
   }
 }
 class DiscoveryStreamAdminInner extends (external_React_default()).PureComponent {
@@ -1631,6 +1656,7 @@ const LinkMenuOptions = {
         ...(site.block_key ? { block_key: site.block_key } : {}),
         recommendation_id: site.recommendation_id,
         scheduled_corpus_item_id: site.scheduled_corpus_item_id,
+        corpus_item_id: site.corpus_item_id,
         received_rank: site.received_rank,
         recommended_at: site.recommended_at,
         // used by PlacesFeed and TopSitesFeed for sponsored top sites blocking.
@@ -2168,6 +2194,7 @@ class DSLinkMenu extends (external_React_default()).PureComponent {
         flight_id: this.props.flightId,
         tile_id: this.props.tile_id,
         recommendation_id: this.props.recommendation_id,
+        corpus_item_id: this.props.corpus_item_id,
         scheduled_corpus_item_id: this.props.scheduled_corpus_item_id,
         recommended_at: this.props.recommended_at,
         received_rank: this.props.received_rank,
@@ -2332,6 +2359,7 @@ class ImpressionStats_ImpressionStats extends (external_React_default()).PureCom
             } : {}),
             recommendation_id: link.recommendation_id,
             fetchTimestamp: link.fetchTimestamp,
+            corpus_item_id: link.corpus_item_id,
             scheduled_corpus_item_id: link.scheduled_corpus_item_id,
             recommended_at: link.recommended_at,
             received_rank: link.received_rank,
@@ -3153,6 +3181,7 @@ class _DSCard extends (external_React_default()).PureComponent {
             } : {}),
             fetchTimestamp: this.props.fetchTimestamp,
             firstVisibleTimestamp: this.props.firstVisibleTimestamp,
+            corpus_item_id: this.props.corpus_item_id,
             scheduled_corpus_item_id: this.props.scheduled_corpus_item_id,
             recommended_at: this.props.recommended_at,
             received_rank: this.props.received_rank,
@@ -3222,6 +3251,7 @@ class _DSCard extends (external_React_default()).PureComponent {
           } : {}),
           fetchTimestamp: this.props.fetchTimestamp,
           firstVisibleTimestamp: this.props.firstVisibleTimestamp,
+          corpus_item_id: this.props.corpus_item_id,
           scheduled_corpus_item_id: this.props.scheduled_corpus_item_id,
           recommended_at: this.props.recommended_at,
           received_rank: this.props.received_rank,
@@ -3281,6 +3311,7 @@ class _DSCard extends (external_React_default()).PureComponent {
       value: {
         recommendation_id: this.props.recommendation_id,
         tile_id: this.props.id,
+        corpus_item_id: this.props.corpus_item_id,
         scheduled_corpus_item_id: this.props.scheduled_corpus_item_id,
         recommended_at: this.props.recommended_at,
         received_rank: this.props.received_rank,
@@ -3317,6 +3348,7 @@ class _DSCard extends (external_React_default()).PureComponent {
         card_type: "organic",
         recommendation_id: this.props.recommendation_id,
         tile_id: this.props.id,
+        corpus_item_id: this.props.corpus_item_id,
         scheduled_corpus_item_id: this.props.scheduled_corpus_item_id,
         recommended_at: this.props.recommended_at,
         received_rank: this.props.received_rank
@@ -3346,6 +3378,7 @@ class _DSCard extends (external_React_default()).PureComponent {
         value: {
           recommendation_id: this.props.recommendation_id,
           tile_id: this.props.id,
+          corpus_item_id: this.props.corpus_item_id,
           scheduled_corpus_item_id: this.props.scheduled_corpus_item_id,
           recommended_at: this.props.recommended_at,
           received_rank: this.props.received_rank,
@@ -3555,6 +3588,7 @@ class _DSCard extends (external_React_default()).PureComponent {
         } : {}),
         recommendation_id: this.props.recommendation_id,
         fetchTimestamp: this.props.fetchTimestamp,
+        corpus_item_id: this.props.corpus_item_id,
         scheduled_corpus_item_id: this.props.scheduled_corpus_item_id,
         recommended_at: this.props.recommended_at,
         received_rank: this.props.received_rank,
@@ -3632,6 +3666,7 @@ class _DSCard extends (external_React_default()).PureComponent {
       recommendation_id: this.props.recommendation_id,
       tile_id: this.props.id,
       block_key: this.props.id,
+      corpus_item_id: this.props.corpus_item_id,
       scheduled_corpus_item_id: this.props.scheduled_corpus_item_id,
       recommended_at: this.props.recommended_at,
       received_rank: this.props.received_rank,
@@ -4034,6 +4069,7 @@ function ListFeed({
       context_type: rec.context_type,
       bookmarkGuid: rec.bookmarkGuid,
       firstVisibleTimestamp: firstVisibleTimestamp,
+      corpus_item_id: rec.corpus_item_id,
       scheduled_corpus_item_id: rec.scheduled_corpus_item_id,
       recommended_at: rec.recommended_at,
       received_rank: rec.received_rank,
@@ -4403,6 +4439,7 @@ class _CardGrid extends (external_React_default()).PureComponent {
         firstVisibleTimestamp: this.props.firstVisibleTimestamp,
         mayHaveThumbsUpDown: mayHaveThumbsUpDown,
         mayHaveSectionsCards: mayHaveSectionsCards,
+        corpus_item_id: rec.corpus_item_id,
         scheduled_corpus_item_id: rec.scheduled_corpus_item_id,
         recommended_at: rec.recommended_at,
         received_rank: rec.received_rank,
@@ -6338,6 +6375,8 @@ const INITIAL_STATE = {
     impressions: {
       feed: {},
     },
+    // Used to show blocks in newtab devtools.
+    blocks: {},
     spocs: {
       spocs_endpoint: "",
       lastUpdated: null,
@@ -7014,7 +7053,11 @@ function DiscoveryStream(prevState = INITIAL_STATE.DiscoveryStream, action) {
           feed: action.data,
         },
       };
-
+    case actionTypes.DISCOVERY_STREAM_DEV_BLOCKS:
+      return {
+        ...prevState,
+        blocks: action.data,
+      };
     case actionTypes.DISCOVERY_STREAM_SPOCS_CAPS:
       return {
         ...prevState,
@@ -9732,6 +9775,7 @@ function CardSections({
         bookmarkGuid: rec.bookmarkGuid,
         recommendation_id: rec.recommendation_id,
         firstVisibleTimestamp: firstVisibleTimestamp,
+        corpus_item_id: rec.corpus_item_id,
         scheduled_corpus_item_id: rec.scheduled_corpus_item_id,
         recommended_at: rec.recommended_at,
         received_rank: rec.received_rank,

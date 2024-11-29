@@ -60,6 +60,7 @@ describe("DiscoveryStreamAdmin", () => {
         feeds: {
           data: {},
         },
+        blocks: {},
         impressions: {
           feed: {},
         },

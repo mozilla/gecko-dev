@@ -71,6 +71,8 @@ export const INITIAL_STATE = {
     impressions: {
       feed: {},
     },
+    // Used to show blocks in newtab devtools.
+    blocks: {},
     spocs: {
       spocs_endpoint: "",
       lastUpdated: null,
@@ -747,7 +749,11 @@ function DiscoveryStream(prevState = INITIAL_STATE.DiscoveryStream, action) {
           feed: action.data,
         },
       };
-
+    case at.DISCOVERY_STREAM_DEV_BLOCKS:
+      return {
+        ...prevState,
+        blocks: action.data,
+      };
     case at.DISCOVERY_STREAM_SPOCS_CAPS:
       return {
         ...prevState,

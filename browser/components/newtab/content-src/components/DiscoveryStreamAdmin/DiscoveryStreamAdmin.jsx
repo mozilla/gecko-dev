@@ -129,6 +129,7 @@ export class DiscoveryStreamAdminUI extends React.PureComponent {
     this.onStoryToggle = this.onStoryToggle.bind(this);
     this.handleWeatherSubmit = this.handleWeatherSubmit.bind(this);
     this.handleWeatherUpdate = this.handleWeatherUpdate.bind(this);
+    this.resetBlocks = this.resetBlocks.bind(this);
     this.refreshTopicSelectionCache =
       this.refreshTopicSelectionCache.bind(this);
     this.toggleTBRFeed = this.toggleTBRFeed.bind(this);
@@ -179,6 +180,14 @@ export class DiscoveryStreamAdminUI extends React.PureComponent {
     this.props.dispatch(
       ac.OnlyToMain({
         type,
+      })
+    );
+  }
+
+  resetBlocks() {
+    this.props.dispatch(
+      ac.OnlyToMain({
+        type: at.DISCOVERY_STREAM_DEV_BLOCKS_RESET,
       })
     );
   }
@@ -326,6 +335,29 @@ export class DiscoveryStreamAdminUI extends React.PureComponent {
                 <Row key={key}>
                   <td className="min">{key}</td>
                   <td>{relativeTime(impressions.feed[key]) || "(no data)"}</td>
+                </Row>
+              );
+            })}
+          </tbody>
+        </table>
+      </>
+    );
+  }
+
+  renderBlocksData() {
+    const { blocks } = this.props.state.DiscoveryStream;
+    return (
+      <>
+        <h4>Blocks</h4>
+        <button className="button" onClick={this.resetBlocks}>
+          Reset Blocks
+        </button>{" "}
+        <table>
+          <tbody>
+            {Object.keys(blocks).map(key => {
+              return (
+                <Row key={key}>
+                  <td className="min">{key}</td>
                 </Row>
               );
             })}
@@ -542,6 +574,8 @@ export class DiscoveryStreamAdminUI extends React.PureComponent {
         <div className="large-data-container">
           {this.renderImpressionsData()}
         </div>
+        <h3>Blocked Data</h3>
+        <div className="large-data-container">{this.renderBlocksData()}</div>
         <h3>Weather Data</h3>
         {this.renderWeatherData()}
       </div>

@@ -719,7 +719,7 @@ describe("DiscoveryStreamFeed", () => {
         .stub(feed, "scoreItems")
         .callsFake(val => ({ data: val, filtered: [], personalized: false }));
       sandbox.stub(feed, "fetchFromEndpoint").resolves({
-        recommendations: "data",
+        recommendations: ["data"],
         settings: {
           recsExpireTime: 1,
         },
@@ -733,7 +733,7 @@ describe("DiscoveryStreamFeed", () => {
       const fakeCache = { feeds: { "foo.com": { lastUpdated: Date.now() } } };
       sandbox.stub(feed.cache, "get").returns(Promise.resolve(fakeCache));
       sandbox.stub(feed, "fetchFromEndpoint").resolves({
-        recommendations: "data",
+        recommendations: ["data"],
         settings: {
           recsExpireTime: 1,
         },
@@ -1428,7 +1428,6 @@ describe("DiscoveryStreamFeed", () => {
     });
     it("should properly call clearSpocs when sponsored content is changed", async () => {
       sandbox.stub(feed, "clearSpocs").returns(Promise.resolve());
-      // sandbox.stub(feed, "updatePlacements").returns();
       sandbox.stub(feed, "loadSpocs").returns();
 
       await feed.onAction({
@@ -1540,7 +1539,7 @@ describe("DiscoveryStreamFeed", () => {
   });
 
   describe("#scoreItems", () => {
-    it("should return initial data if spocs are empty", async () => {
+    it("should return initial data from scoreItems if spocs are empty", async () => {
       const { data: result } = await feed.scoreItems([]);
 
       assert.equal(result.length, 0);
@@ -1616,24 +1615,54 @@ describe("DiscoveryStreamFeed", () => {
   });
 
   describe("#filterBlocked", () => {
-    it("should return initial data if spocs are empty", () => {
-      const { data: result } = feed.filterBlocked([]);
+    it("should return initial data from filterBlocked if spocs are empty", async () => {
+      const { data: result } = await feed.filterBlocked([]);
 
       assert.equal(result.length, 0);
     });
-    it("should return initial data if links are not blocked", () => {
-      const { data: result } = feed.filterBlocked([
+    it("should return initial data if links are not blocked", async () => {
+      const { data: result } = await feed.filterBlocked([
         { url: "https://foo.com" },
         { url: "test.com" },
       ]);
       assert.equal(result.length, 2);
     });
-    it("should return initial recommendations data if links are not blocked", () => {
-      const { data: result } = feed.filterBlocked([
-        { url: "https://foo.com" },
-        { url: "test.com" },
+    it("should return filtered data if links are blocked", async () => {
+      const fakeBlocks = {
+        flight_id_3: 1,
+      };
+      sandbox.stub(feed, "readDataPref").returns(fakeBlocks);
+      sandbox
+        .stub(fakeNewTabUtils.blockedLinks, "isBlocked")
+        .callsFake(({ url }) => url === "https://blocked_url.com");
+      const cache = {
+        recsBlocks: {
+          id_4: 1,
+        },
+      };
+      sandbox.stub(feed.cache, "get").returns(Promise.resolve());
+      sandbox.stub(feed.cache, "set");
+      feed.cache.get.resolves(cache);
+      const { data: result } = await feed.filterBlocked([
+        {
+          url: "https://not_blocked.com",
+          flight_id: "flight_id_1",
+          id: "id_1",
+        },
+        {
+          url: "https://blocked_url.com",
+          flight_id: "flight_id_2",
+          id: "id_2",
+        },
+        {
+          url: "https://blocked_flight.com",
+          flight_id: "flight_id_3",
+          id: "id_3",
+        },
+        { url: "https://blocked_id.com", flight_id: "flight_id_4", id: "id_4" },
       ]);
-      assert.equal(result.length, 2);
+      assert.equal(result.length, 1);
+      assert.equal(result[0].url, "https://not_blocked.com");
     });
     it("filterRecommendations based on blockedlist by passing feed data", () => {
       fakeNewTabUtils.blockedLinks.links = [{ url: "https://foo.com" }];
@@ -1829,13 +1858,11 @@ describe("DiscoveryStreamFeed", () => {
   describe("#retryFeed", () => {
     it("should retry a feed fetch", async () => {
       sandbox.stub(feed, "getComponentFeed").returns(Promise.resolve({}));
-      sandbox.stub(feed, "filterRecommendations").returns({});
       sandbox.spy(feed.store, "dispatch");
 
       await feed.retryFeed({ url: "https://feed.com" });
 
       assert.calledOnce(feed.getComponentFeed);
-      assert.calledOnce(feed.filterRecommendations);
       assert.calledOnce(feed.store.dispatch);
       assert.equal(
         feed.store.dispatch.firstCall.args[0].type,
@@ -2245,32 +2272,35 @@ describe("DiscoveryStreamFeed", () => {
 
   describe("#onAction: PLACES_LINK_BLOCKED", () => {
     beforeEach(() => {
-      const data = {
-        spocs: {
-          items: [
-            {
-              id: 1,
-              flight_id: "foo",
-              url: "foo.com",
-            },
-            {
-              id: 2,
-              flight_id: "bar",
-              url: "bar.com",
-            },
-          ],
+      const spocsData = {
+        data: {
+          spocs: {
+            items: [
+              {
+                id: 1,
+                flight_id: "foo",
+                url: "foo.com",
+              },
+              {
+                id: 2,
+                flight_id: "bar",
+                url: "bar.com",
+              },
+            ],
+          },
         },
+        placements: [{ name: "spocs" }],
+      };
+      const feedsData = {
+        data: {},
       };
       sandbox.stub(feed.store, "getState").returns({
         DiscoveryStream: {
-          spocs: {
-            data,
-            placements: [{ name: "spocs" }],
-          },
+          spocs: spocsData,
+          feeds: feedsData,
         },
       });
     });
-
     it("should call dispatch if found a blocked spoc", async () => {
       Object.defineProperty(feed, "showSpocs", { get: () => true });
 
@@ -2971,14 +3001,15 @@ describe("DiscoveryStreamFeed", () => {
         sandbox
           .stub(feed, "scoreItems")
           .callsFake(val => ({ data: val, filtered: [], personalized: false }));
+        sandbox.stub(feed, "filterBlocked").callsFake(val => ({ data: val }));
 
         const fakeCache = {
-          feeds: { "foo.com": { lastUpdated: Date.now(), data: "data" } },
+          feeds: { "foo.com": { lastUpdated: Date.now(), data: ["data"] } },
         };
         sandbox.stub(feed.cache, "get").resolves(fakeCache);
         clock.tick(THIRTY_MINUTES + 1);
         sandbox.stub(feed, "fetchFromEndpoint").resolves({
-          recommendations: "data",
+          recommendations: ["data"],
           settings: {
             recsExpireTime: 1,
           },
@@ -2988,8 +3019,8 @@ describe("DiscoveryStreamFeed", () => {
 
         assert.calledOnce(feed.fetchFromEndpoint);
         // Once from cache, once to update the feed, once to update that all
-        // feeds are done.
-        assert.calledThrice(feed.store.dispatch);
+        // feeds are done, and once to update scores.
+        assert.callCount(feed.store.dispatch, 4);
         assert.equal(
           feed.store.dispatch.secondCall.args[0].type,
           at.DISCOVERY_STREAM_FEEDS_UPDATE

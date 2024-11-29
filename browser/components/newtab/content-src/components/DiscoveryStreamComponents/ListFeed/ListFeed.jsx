@@ -148,6 +148,7 @@ function ListFeed({ type, firstVisibleTimestamp, recs, categories, dispatch }) {
                   context_type={rec.context_type}
                   bookmarkGuid={rec.bookmarkGuid}
                   firstVisibleTimestamp={firstVisibleTimestamp}
+                  corpus_item_id={rec.corpus_item_id}
                   scheduled_corpus_item_id={rec.scheduled_corpus_item_id}
                   recommended_at={rec.recommended_at}
                   received_rank={rec.received_rank}

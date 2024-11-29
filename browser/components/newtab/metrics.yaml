@@ -1147,10 +1147,17 @@ pocket:
       scheduled_corpus_item_id: &scheduled_corpus_item_id
         description: >
           A content identifier.
-          For organic Pocket recommendations it is an opaque id produced by
-          Pocket's recommendation systems.
-          For sponsored Pocket content it is Kevel's "ad ID".
+          For organic Newtab recommendations it is an opaque id produced by
+          Newtab's recommendation systems that corresponds uniquely to
+          a piece of content scheduled for a specific day on a specific surface.
           This is the replacement for tile_id.
+        type: string
+      corpus_item_id: &corpus_item_id
+        description: >
+          A content identifier.
+          For organic Newtab recommendations it is an opaque id produced by
+          Newtab's recommendation systems that corresponds uniquely to the URL.
+          This is the replacement for tile_id and scheduled_corpus_item_id.
         type: string
       received_rank: &received_rank
         description: The rank or order of the recommendation at the time it was sent to the client.
@@ -1213,6 +1220,7 @@ pocket:
       recommendation_id: *recommendation_id
       tile_id: *pocket_tile_id
       scheduled_corpus_item_id: *scheduled_corpus_item_id
+      corpus_item_id: *corpus_item_id
       received_rank: *received_rank
       recommended_at: *recommended_at
       matches_selected_topic:
@@ -1263,6 +1271,7 @@ pocket:
       recommendation_id: *recommendation_id
       tile_id: *pocket_tile_id
       scheduled_corpus_item_id: *scheduled_corpus_item_id
+      corpus_item_id: *corpus_item_id
       received_rank: *received_rank
       recommended_at: *recommended_at
       is_list_card:
@@ -1314,6 +1323,7 @@ pocket:
       recommendation_id: *recommendation_id
       tile_id: *pocket_tile_id
       scheduled_corpus_item_id: *scheduled_corpus_item_id
+      corpus_item_id: *corpus_item_id
       received_rank: *received_rank
       recommended_at: *recommended_at
       topic:
@@ -1463,6 +1473,7 @@ pocket:
           If the user clicked thumbs down.
         type: boolean
       scheduled_corpus_item_id: *scheduled_corpus_item_id
+      corpus_item_id: *corpus_item_id
       received_rank: *received_rank
       recommended_at: *recommended_at
       topic:

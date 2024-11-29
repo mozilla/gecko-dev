@@ -325,6 +325,7 @@ export class _DSCard extends React.PureComponent {
                 : {}),
               fetchTimestamp: this.props.fetchTimestamp,
               firstVisibleTimestamp: this.props.firstVisibleTimestamp,
+              corpus_item_id: this.props.corpus_item_id,
               scheduled_corpus_item_id: this.props.scheduled_corpus_item_id,
               recommended_at: this.props.recommended_at,
               received_rank: this.props.received_rank,
@@ -400,6 +401,7 @@ export class _DSCard extends React.PureComponent {
               : {}),
             fetchTimestamp: this.props.fetchTimestamp,
             firstVisibleTimestamp: this.props.firstVisibleTimestamp,
+            corpus_item_id: this.props.corpus_item_id,
             scheduled_corpus_item_id: this.props.scheduled_corpus_item_id,
             recommended_at: this.props.recommended_at,
             received_rank: this.props.received_rank,
@@ -466,6 +468,7 @@ export class _DSCard extends React.PureComponent {
         value: {
           recommendation_id: this.props.recommendation_id,
           tile_id: this.props.id,
+          corpus_item_id: this.props.corpus_item_id,
           scheduled_corpus_item_id: this.props.scheduled_corpus_item_id,
           recommended_at: this.props.recommended_at,
           received_rank: this.props.received_rank,
@@ -512,6 +515,7 @@ export class _DSCard extends React.PureComponent {
         card_type: "organic",
         recommendation_id: this.props.recommendation_id,
         tile_id: this.props.id,
+        corpus_item_id: this.props.corpus_item_id,
         scheduled_corpus_item_id: this.props.scheduled_corpus_item_id,
         recommended_at: this.props.recommended_at,
         received_rank: this.props.received_rank,
@@ -544,6 +548,7 @@ export class _DSCard extends React.PureComponent {
           value: {
             recommendation_id: this.props.recommendation_id,
             tile_id: this.props.id,
+            corpus_item_id: this.props.corpus_item_id,
             scheduled_corpus_item_id: this.props.scheduled_corpus_item_id,
             recommended_at: this.props.recommended_at,
             received_rank: this.props.received_rank,
@@ -810,6 +815,7 @@ export class _DSCard extends React.PureComponent {
                   : {}),
                 recommendation_id: this.props.recommendation_id,
                 fetchTimestamp: this.props.fetchTimestamp,
+                corpus_item_id: this.props.corpus_item_id,
                 scheduled_corpus_item_id: this.props.scheduled_corpus_item_id,
                 recommended_at: this.props.recommended_at,
                 received_rank: this.props.received_rank,
@@ -903,6 +909,7 @@ export class _DSCard extends React.PureComponent {
                 recommendation_id={this.props.recommendation_id}
                 tile_id={this.props.id}
                 block_key={this.props.id}
+                corpus_item_id={this.props.corpus_item_id}
                 scheduled_corpus_item_id={this.props.scheduled_corpus_item_id}
                 recommended_at={this.props.recommended_at}
                 received_rank={this.props.received_rank}

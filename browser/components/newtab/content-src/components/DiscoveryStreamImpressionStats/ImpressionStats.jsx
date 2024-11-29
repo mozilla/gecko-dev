@@ -113,6 +113,7 @@ export class ImpressionStats extends React.PureComponent {
               ...(link.shim ? { shim: link.shim } : {}),
               recommendation_id: link.recommendation_id,
               fetchTimestamp: link.fetchTimestamp,
+              corpus_item_id: link.corpus_item_id,
               scheduled_corpus_item_id: link.scheduled_corpus_item_id,
               recommended_at: link.recommended_at,
               received_rank: link.received_rank,

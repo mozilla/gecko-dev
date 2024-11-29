@@ -170,6 +170,7 @@ function CardSections({
                     bookmarkGuid={rec.bookmarkGuid}
                     recommendation_id={rec.recommendation_id}
                     firstVisibleTimestamp={firstVisibleTimestamp}
+                    corpus_item_id={rec.corpus_item_id}
                     scheduled_corpus_item_id={rec.scheduled_corpus_item_id}
                     recommended_at={rec.recommended_at}
                     received_rank={rec.received_rank}
