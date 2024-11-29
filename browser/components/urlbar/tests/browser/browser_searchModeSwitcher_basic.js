@@ -243,38 +243,6 @@ async function setDefaultEngine(name) {
 }
 
 add_task(async function test_search_icon_change() {
-  const defaultEngine = await Services.search.getDefault();
-  const engineName = "DuckDuckGo";
-  await setDefaultEngine(engineName);
-  let newWin = await BrowserTestUtils.openNewBrowserWindow();
-
-  let searchModeSwitcherButton = window.document.getElementById(
-    "searchmode-switcher-icon"
-  );
-
-  // match and capture the URL inside `url("...")`
-  let regex = /url\("([^"]+)"\)/;
-  let searchModeSwitcherIconUrl =
-    searchModeSwitcherButton.style.listStyleImage.match(regex);
-
-  const defaultSearchEngineIconUrl = await Services.search
-    .getEngineByName(engineName)
-    .getIconURL();
-
-  Assert.equal(
-    searchModeSwitcherIconUrl[1],
-    defaultSearchEngineIconUrl,
-    "The search mode switcher should have the same icon as the default search engine"
-  );
-
-  await Services.search.setDefault(
-    defaultEngine,
-    Ci.nsISearchService.CHANGE_REASON_UNKNOWN
-  );
-  await BrowserTestUtils.closeWindow(newWin);
-});
-
-add_task(async function test_search_icon_change_without_keyword_enabled() {
   await SpecialPowers.pushPrefEnv({
     set: [["keyword.enabled", false]],
   });
@@ -285,8 +253,9 @@ add_task(async function test_search_icon_change_without_keyword_enabled() {
   );
 
   let regex = /url\("([^"]+)"\)/;
-  let searchModeSwitcherIconUrl =
-    searchModeSwitcherButton.style.listStyleImage.match(regex);
+  let searchModeSwitcherIconUrl = newWin
+    .getComputedStyle(searchModeSwitcherButton)
+    .listStyleImage.match(regex);
 
   const searchGlassIconUrl = UrlbarUtils.ICON.SEARCH_GLASS;
 
@@ -294,7 +263,7 @@ add_task(async function test_search_icon_change_without_keyword_enabled() {
     searchModeSwitcherIconUrl[1],
     searchGlassIconUrl,
     "The search mode switcher should have the search glass icon url since \
-     keyword.enabled is false and we are not in search mode."
+     we are not in search mode."
   );
 
   let popup = UrlbarTestUtils.searchModeSwitcherPopup(newWin);
@@ -314,8 +283,9 @@ add_task(async function test_search_icon_change_without_keyword_enabled() {
     .getEngineByName(engineName)
     .getIconURL();
 
-  searchModeSwitcherIconUrl =
-    searchModeSwitcherButton.style.listStyleImage.match(regex);
+  searchModeSwitcherIconUrl = newWin
+    .getComputedStyle(searchModeSwitcherButton)
+    .listStyleImage.match(regex);
 
   Assert.equal(
     searchModeSwitcherIconUrl[1],
@@ -334,7 +304,10 @@ add_task(async function test_search_icon_change_without_keyword_enabled() {
   await UrlbarTestUtils.assertSearchMode(newWin, null);
 
   searchModeSwitcherIconUrl = await BrowserTestUtils.waitForCondition(
-    () => searchModeSwitcherButton.style.listStyleImage.match(regex),
+    () =>
+      newWin
+        .getComputedStyle(searchModeSwitcherButton)
+        .listStyleImage.match(regex),
     "Waiting for the search mode switcher icon to update after exiting search mode."
   );
 
@@ -762,7 +735,10 @@ add_task(async function test_search_service_fail() {
   // match and capture the URL inside `url("...")`
   let regex = /url\("([^"]+)"\)/;
   let searchModeSwitcherIconUrl = await BrowserTestUtils.waitForCondition(
-    () => searchModeSwitcherButton.style.listStyleImage.match(regex),
+    () =>
+      newWin
+        .getComputedStyle(searchModeSwitcherButton)
+        .listStyleImage.match(regex),
     "Waiting for the search mode switcher icon to update after exiting search mode."
   );
 

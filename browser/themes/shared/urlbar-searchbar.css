@@ -1114,19 +1114,27 @@ moz-input-box > menupopup .context-menu-add-engine > .menu-iconic-left::after {
 
 #urlbar-searchmode-switcher {
   appearance: none;
-  background-color: var(--urlbar-box-bgcolor);
   border-radius: var(--urlbar-icon-border-radius);
   margin: 0;
   margin-inline-end: var(--urlbar-icon-padding);
   padding-inline: var(--urlbar-searchmodeswitcher-spacing);
 
+  &:focus-visible {
+    outline: var(--focus-outline);
+    outline-offset: var(--focus-outline-inset);
+  }
+
+  &[open] {
+    background-color: var(--urlbar-box-focus-bgcolor);
+  }
+
   #urlbar[focused] & {
     background-color: var(--urlbar-box-focus-bgcolor);
   }
 
-  &:focus-visible {
-    outline: var(--focus-outline);
-    outline-offset: var(--focus-outline-inset);
+  /* No need space if page information icons such as lock and shield is shown */
+  #urlbar[pageproxystate=valid] & {
+    margin-inline-end: 0;
   }
 
   #urlbar[searchmode] & {
@@ -1149,6 +1157,7 @@ moz-input-box > menupopup .context-menu-add-engine > .menu-iconic-left::after {
   border-radius: var(--urlbar-icon-border-radius);
   -moz-context-properties: fill;
   fill: var(--text-color-deemphasized);
+  list-style-image: url("chrome://global/skin/icons/search-glass.svg");
 }
 
 #searchmode-switcher-chicklet {
@@ -1192,8 +1201,6 @@ moz-input-box > menupopup .context-menu-add-engine > .menu-iconic-left::after {
 }
 
 #searchmode-switcher-dropmarker {
-  margin-inline-start: var(--urlbar-searchmodeswitcher-spacing);
-
   #urlbar[searchmode] & {
     display: none;
   }
