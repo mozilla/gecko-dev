@@ -104,6 +104,7 @@ fun SyncedTabsList(
                                         url = syncedTab.displayURL,
                                         description = syncedTab.displayURL,
                                         onClick = { onTabClick(syncedTab.tab) },
+                                        iconDescription = stringResource(R.string.close_tab),
                                         iconPainter = painterResource(R.drawable.ic_close),
                                         onIconClick = { onTabCloseClick(syncedTab.action.deviceId, syncedTab.tab) },
                                     )
