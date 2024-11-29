@@ -18,6 +18,7 @@ SOURCES += [
     "xdg-activation-v1-protocol.c",
     "xdg-dbus-annotation-v1-protocol.c",
     "xdg-output-unstable-v1-protocol.c",
+    "xx-color-management-v4.c",
 ]
 
 EXPORTS.mozilla.widget += [
@@ -31,6 +32,7 @@ EXPORTS.mozilla.widget += [
     "xdg-activation-v1-client-protocol.h",
     "xdg-dbus-annotation-v1-client-protocol.h",
     "xdg-output-unstable-v1-client-protocol.h",
+    "xx-color-management-v4.h",
 ]
 
 include("/ipc/chromium/chromium-config.mozbuild")
