@@ -15,6 +15,7 @@ lint.ignore = [
   "E741",      # ambiguous-variable-name
   "PLR09",     # too-many-return-statements, too-many-branches, too-many-arguments, too-many-statements
   "PLR2004",   # magic-value-comparison
+  "PLC0206",   # dict-index-missing-items
 
   # These are handled by black.
   "E1", "E4", "E5", "W2", "W5"
