@@ -544,3 +544,65 @@ customElements.define("custom-listbox",
     await onReorder;
   }
 );
+
+/**
+ * Test insertion of relocated by ID child after initial load
+ */
+addAccessibleTask(
+  `<div id='a' aria-owns='b'></div>`,
+  async function (browser, accDoc) {
+    const a = findAccessibleChildByID(accDoc, "a");
+    is(a.children.length, 0, "'a' has no children");
+    const waitFor = {
+      expected: [
+        [EVENT_SHOW, "b"],
+        [EVENT_INNER_REORDER, a],
+        [EVENT_REORDER, accDoc],
+      ],
+    };
+    await contentSpawnMutation(browser, waitFor, function () {
+      const b = content.document.createElement("div");
+      b.id = "b";
+      content.document.body.appendChild(b);
+    });
+    is(getAccessibleDOMNodeID(a.firstChild), "b", "'a' owns relocated child");
+  }
+);
+
+/**
+ * Test insertion of relocated by child element reflection after initial load
+ */
+addAccessibleTask(`<div id='a'></div>`, async function (browser, accDoc) {
+  const a = findAccessibleChildByID(accDoc, "a");
+  is(a.children.length, 0, "'a' has no children");
+
+  // Create div and add it to a's ariaOwnsElements.
+  // The refresh ticks called in contentSpawnMutation
+  // will cause a relocation to be scheduled and performed.
+  // Nothing will happen because 'b' is not parented yet.
+  let waitFor = {
+    unexpected: [
+      [EVENT_SHOW, "b"],
+      [EVENT_INNER_REORDER, a],
+      [EVENT_REORDER, accDoc],
+    ],
+  };
+  await contentSpawnMutation(browser, waitFor, function () {
+    content.b = content.document.createElement("div");
+    content.b.id = "b";
+    content.document.getElementById("a").ariaOwnsElements = [content.b];
+  });
+
+  // Parent 'b'. It should relocate into 'a'.
+  waitFor = {
+    expected: [
+      [EVENT_SHOW, "b"],
+      [EVENT_INNER_REORDER, a],
+      [EVENT_REORDER, accDoc],
+    ],
+  };
+  await contentSpawnMutation(browser, waitFor, function () {
+    content.document.body.appendChild(content.b);
+  });
+  is(getAccessibleDOMNodeID(a.firstChild), "b", "'a' owns relocated child");
+});
