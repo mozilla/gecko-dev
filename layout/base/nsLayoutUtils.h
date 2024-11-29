@@ -32,6 +32,7 @@
 #include "nsBoundingMetrics.h"
 #include "nsCSSPropertyIDSet.h"
 #include "nsFrameList.h"
+#include "nsPoint.h"
 #include "nsThreadUtils.h"
 #include "Units.h"
 // If you're thinking of adding a new include here, please try hard to not.
@@ -1047,6 +1048,10 @@ class nsLayoutUtils {
   static nsPoint TransformAncestorPointToFrame(RelativeTo aFrame,
                                                const nsPoint& aPoint,
                                                RelativeTo aAncestor);
+
+  static nsPoint TransformFramePointToRoot(ViewportType aToType,
+                                           RelativeTo aFromFrame,
+                                           const nsPoint& aPoint);
 
   /**
    * Helper function that, given a rectangle and a matrix, returns the smallest

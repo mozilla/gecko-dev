@@ -48,25 +48,25 @@
 
       let childMessagePromise = new Promise(resolve => {
         window.addEventListener("message", event => {
-
-          let data = JSON.parse(event.data);
-          if ("type" in data && data.type == "clicked") {
-            let coordinates = {
-              offsetX: data.coords.offsetX,
-              offsetY: data.coords.offsetY
-            };
-            resolve(coordinates);
+          if (typeof event.data === 'string') {
+            let data = JSON.parse(event.data);
+            if ("type" in data && data.type == "clicked") {
+              let coordinates = {
+                offsetX: data.coords.offsetX,
+                offsetY: data.coords.offsetY
+              };
+              resolve(coordinates);
+            }
           }
         });
       });
 
-      await synthesizeNativeTap(document.body, 400, 400, function () {
+      await synthesizeNativeTap(document.body, 200, 200, function () {
         dump("Finished synthesizing click, waiting for OOPIF message...\n");
       });
 
       let clickCoordsInChild = await childMessagePromise;
-
-      let expected_coord = 200 / Math.sqrt(2); // because the iframe is rotated 45 deg
+      let expected_coord = 100 / Math.sqrt(2); // because the iframe is rotated 45 deg
       ok(Math.abs(clickCoordsInChild.offsetX - expected_coord) < 3,
         `x-coord ${clickCoordsInChild.offsetX} landed near expected value ${expected_coord}`);
       ok(Math.abs(clickCoordsInChild.offsetY - expected_coord) < 3,
@@ -86,13 +86,13 @@
 
     div {
       transform-origin: top left;
-      transform: translateX(400px) scale(2) rotate(45deg);
-      width: 500px;
+      transform: translateX(200px) scale(2) rotate(45deg);
+      width: 250px;
     }
 
     iframe {
-      width: 400px;
-      height: 300px;
+      width: 200px;
+      height: 150px;
       border: solid 1px black;
     }
   </style>

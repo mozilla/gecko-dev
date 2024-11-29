@@ -28,6 +28,10 @@
     var subtests = [
       { "file": "helper_fission_setResolution.html", "prefs": prefs },
       {
+        "file": "helper_fission_tap.html",
+        "prefs": [["apz.max_tap_time", 10000]],
+      },
+      {
         "file": "helper_fission_tap_on_zoomed.html",
         "prefs": [["apz.max_tap_time", 10000]],
       },
@@ -60,11 +64,6 @@
         { // Skip on Android because of missing native wheel event support
           "file": "helper_fission_scroll_handoff.html",
           "prefs": prefs
-        },
-        { // Fails on try runs for Android
-          // https://bugzilla.mozilla.org/show_bug.cgi?id=1914368
-          "file": "helper_fission_tap.html",
-          "prefs": [["apz.max_tap_time", 10000]],
         }
       );
 

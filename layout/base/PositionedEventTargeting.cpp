@@ -614,13 +614,20 @@ nsIFrame* FindFrameTargetedByInputEvent(
   }
   // Now we basically undo the operations in GetEventCoordinatesRelativeTo, to
   // get back the (now-clamped) coordinates in the event's widget's space.
-  nsView* view = aRootFrame.mFrame->GetView();
+  nsRootPresContext* rootPresContext =
+      aRootFrame.mFrame->PresContext()->GetRootPresContext();
+  nsView* view = rootPresContext->PresShell()->GetRootFrame()->GetView();
   if (!view) {
     return target;
   }
+  // TODO: Consider adding an optimization similar to the one in
+  // GetEventCoordinatesRelativeTo, where we detect cases where
+  // there is no transform to apply and avoid calling
+  // TransformFramePointToRoot() in those cases.
+  point = nsLayoutUtils::TransformFramePointToRoot(ViewportType::Visual,
+                                                   aRootFrame, point);
   LayoutDeviceIntPoint widgetPoint = nsLayoutUtils::TranslateViewToWidget(
-      aRootFrame.mFrame->PresContext(), view, point, aRootFrame.mViewportType,
-      aEvent->mWidget);
+      rootPresContext, view, point, ViewportType::Visual, aEvent->mWidget);
   if (widgetPoint.x != NS_UNCONSTRAINEDSIZE) {
     // If that succeeded, we update the point in the event
     aEvent->mRefPoint = widgetPoint;
