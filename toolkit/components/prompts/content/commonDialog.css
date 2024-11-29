@@ -68,58 +68,62 @@ dialog[insecureauth] {
   text-align: match-parent;
 }
 
-/* use flexbox instead of grid: */
-dialog[subdialog],
-dialog[subdialog] #dialogGrid,
-dialog[subdialog] #infoContainer,
-dialog[subdialog] .dialogRow:not([hidden]) {
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-}
+:root[subdialog] {
 
-dialog[subdialog] #iconContainer {
-  display: none;
-}
+  /* use flexbox instead of grid: */
+  dialog,
+  #dialogGrid,
+  #infoContainer,
+  .dialogRow:not([hidden]) {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+  }
 
-/* Fix padding/spacing */
-dialog[subdialog] {
-  --grid-padding: 16px;
-  /* All the inner items should have 4px inline margin, leading to 1.16em spacing
-   * between the dialog and its contents, and 8px horizontal spacing between items. */
-  padding: var(--grid-padding) calc(var(--grid-padding) - 4px);
-}
+  #iconContainer {
+    display: none;
+  }
 
-/* Use an ID selector for the dialog to win on specificity... */
-#commonDialog[subdialog] description,
-#commonDialog[subdialog] checkbox {
-  margin: 0 4px;
-}
+  /* Fix padding/spacing */
+  dialog {
+    --grid-padding: 16px;
+    /* All the inner items should have 4px inline margin, leading to 1.16em spacing
+     * between the dialog and its contents, and 8px horizontal spacing between items. */
+    padding: var(--grid-padding) calc(var(--grid-padding) - 4px);
 
-#commonDialog[subdialog] label {
-  margin: 4px; /* Labels for input boxes should get block as well as the regular inline margin. */
-}
+    &::part(dialog-button) {
+      /* Adjust vertical margins for buttons in subdialogs. */
+      margin: 0 4px;
+      min-width: auto;
+    }
+  }
 
-#commonDialog[subdialog] .checkbox-label {
-  /* The checkbox already has the horizontal margin, so override the rule
-   * above. */
-  margin: 0;
-}
+  description,
+  checkbox {
+    margin: 0 4px;
+  }
 
-#commonDialog[subdialog] input {
-  margin: 0 4px 4px;
-}
+  label {
+    margin: 4px; /* Labels for input boxes should get block as well as the regular inline margin. */
+  }
 
-/* Add vertical spaces between rows: */
-dialog[subdialog] .dialogRow {
-  margin-block: 0 var(--grid-padding);
-}
+  .checkbox-label {
+    /* The checkbox already has the horizontal margin, so override the rule
+     * above. */
+    margin: 0;
+  }
 
-/* Fix spacing in the `prompt()` case: */
-dialog[subdialog] #loginLabel[value=""] {
-  display: none;
-}
+  input {
+    margin: 0 4px 4px;
+  }
 
-dialog[subdialog][windowtype="prompt:prompt"] #infoRow {
-  margin-bottom: 4px;
+  /* Add vertical spaces between rows: */
+  .dialogRow {
+    margin-block: 0 var(--grid-padding);
+  }
+
+  /* Fix spacing in the `prompt()` case: */
+  #loginLabel[value=""] {
+    display: none;
+  }
 }

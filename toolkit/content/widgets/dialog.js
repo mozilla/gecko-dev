@@ -12,6 +12,8 @@
   );
 
   class MozDialog extends MozXULElement {
+    #subDialogObserver = null;
+
     constructor() {
       super();
     }
@@ -23,19 +25,17 @@
       );
     }
 
+    #onSubDialogEnabled() {
+      console.assert(
+        document.documentElement.hasAttribute("subdialog"),
+        `Turning off subdialog style is not supported`
+      );
+      this.shadowRoot.appendChild(
+        MozXULElement.parseXULToFragment(this.inContentStyle)
+      );
+    }
+
     attributeChangedCallback(name, oldValue, newValue) {
-      if (name == "subdialog") {
-        console.assert(
-          newValue,
-          `Turning off subdialog style is not supported`
-        );
-        if (this.isConnectedAndReady && !oldValue && newValue) {
-          this.shadowRoot.appendChild(
-            MozXULElement.parseXULToFragment(this.inContentStyle)
-          );
-        }
-        return;
-      }
       // Only move the button on UNIX, since it's already in the correct spot on Windows
       if (name === "extra1-is-secondary" && AppConstants.XP_UNIX) {
         this.getButton("cancel").after(this.getButton("extra1"));
@@ -61,27 +61,31 @@
       let buttons = AppConstants.XP_UNIX
         ? `
       <hbox class="dialog-button-box">
-        <button dlgtype="disclosure" hidden="true"/>
-        <button dlgtype="extra2" hidden="true"/>
-        <button dlgtype="extra1" hidden="true"/>
-        <spacer class="button-spacer" part="button-spacer" flex="1"/>
-        <button dlgtype="cancel"/>
-        <button dlgtype="accept"/>
+        <button part="dialog-button" dlgtype="disclosure" hidden="true"/>
+        <button part="dialog-button" dlgtype="extra2" hidden="true"/>
+        <button part="dialog-button" dlgtype="extra1" hidden="true"/>
+        <spacer part="button-spacer" class="button-spacer" flex="1"/>
+        <button part="dialog-button" dlgtype="cancel"/>
+        <button part="dialog-button" dlgtype="accept"/>
       </hbox>`
         : `
       <hbox class="dialog-button-box" pack="end">
-        <button dlgtype="extra2" hidden="true"/>
-        <spacer class="button-spacer" part="button-spacer" flex="1" hidden="true"/>
-        <button dlgtype="accept"/>
-        <button dlgtype="extra1" hidden="true"/>
-        <button dlgtype="cancel"/>
-        <button dlgtype="disclosure" hidden="true"/>
+        <button part="dialog-button" dlgtype="extra2" hidden="true"/>
+        <spacer part="button-spacer" class="button-spacer" flex="1" hidden="true"/>
+        <button part="dialog-button" dlgtype="accept"/>
+        <button part="dialog-button" dlgtype="extra1" hidden="true"/>
+        <button part="dialog-button" dlgtype="cancel"/>
+        <button part="dialog-button" dlgtype="disclosure" hidden="true"/>
       </hbox>`;
 
       return `
       <html:link rel="stylesheet" href="chrome://global/skin/button.css"/>
       <html:link rel="stylesheet" href="chrome://global/skin/dialog.css"/>
-      ${this.hasAttribute("subdialog") ? this.inContentStyle : ""}
+      ${
+        document.documentElement.hasAttribute("subdialog")
+          ? this.inContentStyle
+          : ""
+      }
       <vbox class="box-inherit" part="content-box">
         <html:slot></html:slot>
       </vbox>
@@ -98,7 +102,19 @@
       this.hasConnected = true;
       this.attachShadow({ mode: "open" });
 
-      document.documentElement.setAttribute("role", "dialog");
+      let docRoot = document.documentElement;
+      docRoot.setAttribute("role", "dialog");
+      if (!docRoot.hasAttribute("subdialog")) {
+        this.#subDialogObserver = new MutationObserver(() => {
+          this.#onSubDialogEnabled();
+          this.#subDialogObserver.disconnect();
+          this.#subDialogObserver = null;
+        });
+        this.#subDialogObserver.observe(docRoot, {
+          attributes: true,
+          attributeFilter: ["subdialog"],
+        });
+      }
       document.l10n?.connectRoot(this.shadowRoot);
 
       this.shadowRoot.textContent = "";
