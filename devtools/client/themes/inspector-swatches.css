@@ -153,6 +153,9 @@
 
 .inspector-filterswatch {
   background-image: url("chrome://devtools/skin/images/filter-swatch.svg");
+  -moz-context-properties: stroke, fill;
+  fill: #fff;
+  stroke: #aeb0b1;
 }
 
 .inspector-angleswatch {
@@ -168,7 +171,8 @@
 
 :root[forced-colors-active] :is(
   .inspector-bezierswatch,
-  .inspector-lineareasingswatch
+  .inspector-lineareasingswatch,
+  .inspector-filterswatch
 ) {
   fill: ButtonFace;
   stroke: var(--theme-icon-color);
