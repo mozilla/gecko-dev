@@ -16,19 +16,6 @@ FINAL_TARGET_FILES.features["formautofill@mozilla.org"] += [
     "schema.json",
 ]
 
-if CONFIG["MOZ_WIDGET_TOOLKIT"] == "gtk":
-    FINAL_TARGET_FILES.features["formautofill@mozilla.org"].chrome.content.skin += [
-        "skin/linux/editDialog.css",
-    ]
-elif CONFIG["MOZ_WIDGET_TOOLKIT"] == "cocoa":
-    FINAL_TARGET_FILES.features["formautofill@mozilla.org"].chrome.content.skin += [
-        "skin/osx/editDialog.css",
-    ]
-elif CONFIG["MOZ_WIDGET_TOOLKIT"] == "windows":
-    FINAL_TARGET_FILES.features["formautofill@mozilla.org"].chrome.content.skin += [
-        "skin/windows/editDialog.css",
-    ]
-
 BROWSER_CHROME_MANIFESTS += [
     "test/browser/address/browser.toml",
     "test/browser/browser.toml",

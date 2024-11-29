@@ -9,11 +9,6 @@
   --animation-easing-function: cubic-bezier(.07,.95,0,1);
 }
 
-dialog[subdialog] form {
-  /* Add extra space to ensure invalid input box is displayed properly */
-  padding: 2px;
-}
-
 /* The overly specific input attributes are required to override
    padding from common.css */
 form input[type="email"],
@@ -90,13 +85,6 @@ form :is(label, div)[required] .label-text::after {
   flex-direction: row;
   align-items: center;
   margin-block: var(--grid-column-row-gap);
-}
-
-dialog[subdialog] form {
-  /* Match the margin-inline-start of the #controls-container buttons
-     and provide enough padding at the top of the form so button outlines
-     don't get clipped. */
-  padding: 4px 4px 0;
 }
 
 #controls-container {

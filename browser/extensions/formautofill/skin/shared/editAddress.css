@@ -9,10 +9,6 @@
   justify-content: space-between;
 }
 
-dialog:not([subdialog]) .editAddressForm {
-  margin-inline: calc(var(--grid-column-row-gap) / -2);
-}
-
 .editAddressForm .container {
   /* !important is needed to override preferences.css's generic label rule. */
   margin-top: var(--grid-column-row-gap) !important;
@@ -53,11 +49,7 @@ dialog:not([subdialog]) .editAddressForm {
   flex: 1;
 }
 
-dialog:not([subdialog]) #country-warning-message {
-  display: none;
-}
-
-moz-button-group{
+moz-button-group {
   margin-inline: 4px;
   margin-block-end: 4px;
 }
