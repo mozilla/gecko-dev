@@ -350,6 +350,24 @@ ul.children + .tag-line::before {
   background-color: var(--markup-overflow-causing-background-color);
 }
 
+/* Also display a small dot next to the overflow badge with the color of the
+   scroll badge. This makes us not rely solely on color to convey a state change,
+   as well as handle High Contrast Mode where the distinct background isn't visible */
+.tag-state.overflow-causing-highlighted ~ .editor .inspector-badge.overflow-badge::before {
+  content: "";
+  display: inline-block;
+  width: 1ch;
+  aspect-ratio: 1 / 1;
+  margin-inline-end: 4px;
+  border-radius: 50%;
+  background-color: var(--badge-scrollable-active-background-color);
+  /* Use an outline to avoid impacting the layout more */
+  outline: 1px solid var(--badge-scrollable-active-color);
+  /* Opt out of forced colors so the dot is visible in High Contrast Mode */
+  forced-color-adjust: none;
+}
+
+
 .closing-bracket {
   pointer-events: none;
 }
