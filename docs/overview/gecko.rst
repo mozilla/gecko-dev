@@ -26,14 +26,6 @@ Firefox and Thunderbird.
 
 :ref:`Read more <SpiderMonkey>`
 
-JavaScript modules
-##################
-
-SpiderMonkey supports a proprietary type of JavaScript modules that was developed before the
-EcmaScript module standard and even before commonjs was popular. These modules define exports using
-an EXPORTED_SYMBOLS array containing a list of symbol names to be exported. This kind of module is
-being replaced with standard EcmaScript modules.
-
 XPCOM
 -----
 
