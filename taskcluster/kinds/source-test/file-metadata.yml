@@ -34,6 +34,7 @@ bugzilla-components:
 
 test-info-xorigin:
     description: Generate test manifest metadata for tests disabled on cross-origin
+    use-python: "3.11"
     treeherder:
         symbol: test-info(xorigin)
         tier: 2
@@ -63,6 +64,7 @@ test-info-xorigin:
 
 test-info-disabled-by-os:
     description: Generate test manifest metadata for tests disabled on each operating system
+    use-python: "3.11"
     treeherder:
         symbol: test-info(disabled-by-os)
         tier: 2
@@ -116,7 +118,7 @@ test-info-all:
             - linux64-pkgconf
             - sysroot-x86_64-linux-gnu
             - sysroot-wasm32-wasi
-    use-python: system
+    use-python: "3.11"
     run:
         using: run-task
         cwd: '{checkout}'
