@@ -112,7 +112,9 @@ def lint(paths, config, binary=None, fix=None, rules=[], setup=None, **lintargs)
     cmd_args = (
         [
             binary,
-            os.path.join(module_path, "node_modules", "prettier", "bin-prettier.js"),
+            os.path.join(
+                module_path, "node_modules", "prettier", "bin", "prettier.cjs"
+            ),
             "--list-different",
             "--no-error-on-unmatched-pattern",
         ]

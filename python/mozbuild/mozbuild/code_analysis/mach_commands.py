@@ -1098,7 +1098,7 @@ def prettier_format(command_context, path, assume_filename):
 
     binary, _ = find_node_executable()
     prettier = os.path.join(
-        command_context.topsrcdir, "node_modules", "prettier", "bin-prettier.js"
+        command_context.topsrcdir, "node_modules", "prettier", "bin", "prettier.cjs"
     )
     path = os.path.join(command_context.topsrcdir, path[0])
 
