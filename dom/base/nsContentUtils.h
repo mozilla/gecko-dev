@@ -194,6 +194,7 @@ class Selection;
 enum class ShadowRootMode : uint8_t;
 class ShadowRoot;
 struct StructuredSerializeOptions;
+class TrustedHTMLOrString;
 class WorkerPrivate;
 enum class ElementCallbackType;
 enum class ReferrerPolicy : uint8_t;
@@ -1870,7 +1871,9 @@ class nsContentUtils {
 
   MOZ_CAN_RUN_SCRIPT
   static void SetHTMLUnsafe(mozilla::dom::FragmentOrElement* aTarget,
-                            Element* aContext, const nsAString& aSource);
+                            Element* aContext,
+                            const mozilla::dom::TrustedHTMLOrString& aSource,
+                            bool aIsShadowRoot, mozilla::ErrorResult& aError);
   /**
    * Invoke the fragment parsing algorithm (innerHTML) using the HTML parser.
    *

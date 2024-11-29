@@ -199,6 +199,9 @@
 #include "mozilla/dom/Selection.h"
 #include "mozilla/dom/ShadowRoot.h"
 #include "mozilla/dom/Text.h"
+#include "mozilla/dom/TrustedHTML.h"
+#include "mozilla/dom/TrustedTypesConstants.h"
+#include "mozilla/dom/TrustedTypeUtils.h"
 #include "mozilla/dom/UserActivation.h"
 #include "mozilla/dom/ViewTransition.h"
 #include "mozilla/dom/WindowContext.h"
@@ -5488,7 +5491,19 @@ uint32_t computeSanitizationFlags(nsIPrincipal* aPrincipal, int32_t aFlags) {
 /* static */
 void nsContentUtils::SetHTMLUnsafe(FragmentOrElement* aTarget,
                                    Element* aContext,
-                                   const nsAString& aSource) {
+                                   const TrustedHTMLOrString& aSource,
+                                   bool aIsShadowRoot, ErrorResult& aError) {
+  constexpr nsLiteralString elementSink = u"Element setHTMLUnsafe "_ns;
+  constexpr nsLiteralString shadowRootSink = u"ShadowRoot setHTMLUnsafe "_ns;
+  Maybe<nsAutoString> compliantStringHolder;
+  const nsAString* compliantString =
+      TrustedTypeUtils::GetTrustedTypesCompliantString(
+          aSource, aIsShadowRoot ? shadowRootSink : elementSink,
+          kTrustedTypesOnlySinkGroup, *aContext, compliantStringHolder, aError);
+  if (aError.Failed()) {
+    return;
+  }
+
   RefPtr<DocumentFragment> fragment;
   {
     MOZ_ASSERT(!sFragmentParsingActive,
@@ -5505,8 +5520,9 @@ void nsContentUtils::SetHTMLUnsafe(FragmentOrElement* aTarget,
 
     RefPtr<Document> doc = aTarget->OwnerDoc();
     fragment = doc->CreateDocumentFragment();
+
     nsresult rv = sHTMLFragmentParser->ParseFragment(
-        aSource, fragment, contextLocalName, contextNameSpaceID,
+        *compliantString, fragment, contextLocalName, contextNameSpaceID,
         fragment->OwnerDoc()->GetCompatibilityMode() ==
             eCompatibility_NavQuirks,
         true, true);

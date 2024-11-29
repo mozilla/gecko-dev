@@ -5487,8 +5487,10 @@ EditorBase* Element::GetEditorWithoutCreation() const {
   return docShell ? docShell->GetHTMLEditorInternal() : nullptr;
 }
 
-void Element::SetHTMLUnsafe(const nsAString& aHTML) {
-  nsContentUtils::SetHTMLUnsafe(this, this, aHTML);
+void Element::SetHTMLUnsafe(const TrustedHTMLOrString& aHTML,
+                            ErrorResult& aError) {
+  nsContentUtils::SetHTMLUnsafe(this, this, aHTML, false /*aIsShadowRoot*/,
+                                aError);
 }
 
 bool Element::BlockingContainsRender() const {

@@ -62,8 +62,8 @@ interface ShadowRoot : DocumentFragment
 
 partial interface ShadowRoot {
   // https://html.spec.whatwg.org/#dom-shadowroot-sethtmlunsafe
-  [Pref="dom.webcomponents.shadowdom.declarative.enabled"]
-  undefined setHTMLUnsafe(DOMString html);
+  [Pref="dom.webcomponents.shadowdom.declarative.enabled", Throws]
+  undefined setHTMLUnsafe((TrustedHTML or DOMString) html);
   [Pref="dom.webcomponents.shadowdom.declarative.enabled"]
   DOMString getHTML(optional GetHTMLOptions options = {});
 };

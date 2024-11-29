@@ -73,7 +73,8 @@ class HTMLTemplateElement final : public nsGenericHTMLElement {
   }
 
   MOZ_CAN_RUN_SCRIPT
-  void SetHTMLUnsafe(const nsAString& aHTML) final;
+  void SetHTMLUnsafe(const TrustedHTMLOrString& aHTML,
+                     ErrorResult& aError) final;
 
  protected:
   virtual ~HTMLTemplateElement();

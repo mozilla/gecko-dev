@@ -38,6 +38,7 @@ namespace dom {
 class CSSImportRule;
 class Element;
 class HTMLInputElement;
+class TrustedHTMLOrString;
 
 class ShadowRoot final : public DocumentFragment, public DocumentOrShadowRoot {
   friend class DocumentOrShadowRoot;
@@ -247,7 +248,7 @@ class ShadowRoot final : public DocumentFragment, public DocumentOrShadowRoot {
   }
 
   MOZ_CAN_RUN_SCRIPT
-  void SetHTMLUnsafe(const nsAString& aHTML);
+  void SetHTMLUnsafe(const TrustedHTMLOrString& aHTML, ErrorResult& aError);
 
   void GetHTML(const GetHTMLOptions& aOptions, nsAString& aResult);
 
