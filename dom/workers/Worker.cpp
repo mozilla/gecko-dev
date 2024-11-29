@@ -21,6 +21,8 @@
 #include "nsDebug.h"
 #include "mozilla/dom/WorkerStatus.h"
 #include "mozilla/RefPtr.h"
+#include "mozilla/dom/TrustedTypeUtils.h"
+#include "mozilla/dom/TrustedTypesConstants.h"
 
 #ifdef XP_WIN
 #  undef PostMessage
@@ -29,10 +31,9 @@
 namespace mozilla::dom {
 
 /* static */
-already_AddRefed<Worker> Worker::Constructor(const GlobalObject& aGlobal,
-                                             const nsAString& aScriptURL,
-                                             const WorkerOptions& aOptions,
-                                             ErrorResult& aRv) {
+already_AddRefed<Worker> Worker::Constructor(
+    const GlobalObject& aGlobal, const TrustedScriptURLOrUSVString& aScriptURL,
+    const WorkerOptions& aOptions, ErrorResult& aRv) {
   JSContext* cx = aGlobal.Context();
 
   nsCOMPtr<nsIGlobalObject> globalObject =
@@ -45,8 +46,18 @@ already_AddRefed<Worker> Worker::Constructor(const GlobalObject& aGlobal,
     return nullptr;
   }
 
+  constexpr nsLiteralString sink = u"Worker constructor"_ns;
+  Maybe<nsAutoString> compliantStringHolder;
+  const nsAString* compliantString =
+      TrustedTypeUtils::GetTrustedTypesCompliantString(
+          aScriptURL, sink, kTrustedTypesOnlySinkGroup, *globalObject,
+          compliantStringHolder, aRv);
+  if (aRv.Failed()) {
+    return nullptr;
+  }
+
   RefPtr<WorkerPrivate> workerPrivate = WorkerPrivate::Constructor(
-      cx, aScriptURL, false /* aIsChromeWorker */, WorkerKindDedicated,
+      cx, *compliantString, false /* aIsChromeWorker */, WorkerKindDedicated,
       aOptions.mCredentials, aOptions.mType, aOptions.mName, VoidCString(),
       nullptr /*aLoadInfo */, aRv);
   if (NS_WARN_IF(aRv.Failed())) {

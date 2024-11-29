@@ -7,7 +7,7 @@
 [Exposed=Window]
 interface SharedWorker : EventTarget {
     [Throws]
-    constructor(USVString scriptURL,
+    constructor((TrustedScriptURL or USVString) scriptURL,
                 optional (DOMString or WorkerOptions) options = {});
 
     readonly attribute MessagePort port;

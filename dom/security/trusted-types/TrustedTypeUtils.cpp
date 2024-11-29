@@ -239,6 +239,10 @@ MOZ_CAN_RUN_SCRIPT inline const nsAString* GetTrustedTypesCompliantString(
                                  TrustedScriptOrNullIsEmptyString>) {
       return aInput.IsNullIsEmptyString();
     }
+    if constexpr (std::is_same_v<TrustedTypeOrStringArg,
+                                 TrustedScriptURLOrUSVString>) {
+      return aInput.IsUSVString();
+    }
     if constexpr (std::is_same_v<TrustedTypeOrStringArg, const nsAString*>) {
       Unused << aInput;
       return true;
@@ -262,6 +266,10 @@ MOZ_CAN_RUN_SCRIPT inline const nsAString* GetTrustedTypesCompliantString(
                                  TrustedScriptOrNullIsEmptyString>) {
       return &aInput.GetAsNullIsEmptyString();
     }
+    if constexpr (std::is_same_v<TrustedTypeOrStringArg,
+                                 TrustedScriptURLOrUSVString>) {
+      return &aInput.GetAsUSVString();
+    }
     if constexpr (std::is_same_v<TrustedTypeOrStringArg, const nsAString*>) {
       return aInput;
     }
@@ -283,7 +291,9 @@ MOZ_CAN_RUN_SCRIPT inline const nsAString* GetTrustedTypesCompliantString(
       return aInput.IsTrustedScript();
     }
     if constexpr (std::is_same_v<TrustedTypeOrStringArg,
-                                 TrustedScriptURLOrString>) {
+                                 TrustedScriptURLOrString> ||
+                  std::is_same_v<TrustedTypeOrStringArg,
+                                 TrustedScriptURLOrUSVString>) {
       return aInput.IsTrustedScriptURL();
     }
     if constexpr (std::is_same_v<TrustedTypeOrStringArg, const nsAString*>) {
@@ -308,7 +318,9 @@ MOZ_CAN_RUN_SCRIPT inline const nsAString* GetTrustedTypesCompliantString(
       return &aInput.GetAsTrustedScript().mData;
     }
     if constexpr (std::is_same_v<TrustedTypeOrStringArg,
-                                 TrustedScriptURLOrString>) {
+                                 TrustedScriptURLOrString> ||
+                  std::is_same_v<TrustedTypeOrStringArg,
+                                 TrustedScriptURLOrUSVString>) {
       return &aInput.GetAsTrustedScriptURL().mData;
     }
     Unused << aInput;
@@ -433,6 +445,8 @@ IMPL_GET_TRUSTED_TYPES_COMPLIANT_STRING(FunctionOrTrustedScriptOrString,
                                         TrustedScript, nsIGlobalObject);
 IMPL_GET_TRUSTED_TYPES_COMPLIANT_STRING(TrustedScriptURLOrString,
                                         TrustedScriptURL, const nsINode);
+IMPL_GET_TRUSTED_TYPES_COMPLIANT_STRING(TrustedScriptURLOrUSVString,
+                                        TrustedScriptURL, nsIGlobalObject);
 
 MOZ_CAN_RUN_SCRIPT const nsAString*
 GetTrustedTypesCompliantStringForTrustedHTML(const nsAString& aInput,

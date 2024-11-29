@@ -15,7 +15,7 @@
 [Exposed=(Window,DedicatedWorker,SharedWorker)]
 interface Worker : EventTarget {
   [Throws]
-  constructor(USVString scriptURL, optional WorkerOptions options = {});
+  constructor((TrustedScriptURL or USVString) scriptURL, optional WorkerOptions options = {});
 
   undefined terminate();
 

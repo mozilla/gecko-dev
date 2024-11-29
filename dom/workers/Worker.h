@@ -24,15 +24,18 @@ struct StructuredSerializeOptions;
 struct WorkerOptions;
 class WorkerPrivate;
 
+class TrustedScriptURLOrUSVString;
+
 class Worker : public DOMEventTargetHelper, public SupportsWeakPtr {
  public:
   NS_DECL_ISUPPORTS_INHERITED
   NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS_INHERITED(Worker,
                                                          DOMEventTargetHelper)
-  static already_AddRefed<Worker> Constructor(const GlobalObject& aGlobal,
-                                              const nsAString& aScriptURL,
-                                              const WorkerOptions& aOptions,
-                                              ErrorResult& aRv);
+  // TODO(bug 1749042): Mark as MOZ_CAN_RUN_SCRIPT when IDL constructors can be.
+  MOZ_CAN_RUN_SCRIPT_BOUNDARY static already_AddRefed<Worker> Constructor(
+      const GlobalObject& aGlobal,
+      const TrustedScriptURLOrUSVString& aScriptURL,
+      const WorkerOptions& aOptions, ErrorResult& aRv);
 
   JSObject* WrapObject(JSContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
