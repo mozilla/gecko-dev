@@ -1451,33 +1451,33 @@ static const AttrCharacteristics gWAIUnivAttrMap[] = {
   {nsGkAtoms::aria_checked,           ATTR_BYPASSOBJ | ATTR_VALTOKEN               }, /* exposes checkable obj attr */
   {nsGkAtoms::aria_colcount,          ATTR_VALINT                                  },
   {nsGkAtoms::aria_colindex,          ATTR_VALINT                                  },
-  {nsGkAtoms::aria_controls,          ATTR_BYPASSOBJ                 | ATTR_GLOBAL },
+  {nsGkAtoms::aria_controls,          ATTR_BYPASSOBJ                 | ATTR_GLOBAL | ATTR_REFLECT_ELEMENTS },
   {nsGkAtoms::aria_current,  ATTR_BYPASSOBJ_IF_FALSE | ATTR_VALTOKEN | ATTR_GLOBAL },
-  {nsGkAtoms::aria_describedby,       ATTR_BYPASSOBJ                 | ATTR_GLOBAL },
+  {nsGkAtoms::aria_describedby,       ATTR_BYPASSOBJ                 | ATTR_GLOBAL | ATTR_REFLECT_ELEMENTS },
   // XXX Ideally, aria-description shouldn't expose a description object
   // attribute (i.e. it should have ATTR_BYPASSOBJ). However, until the
   // description-from attribute is implemented (bug 1726087), clients such as
   // NVDA depend on the description object attribute to work out whether the
   // accDescription originated from aria-description.
   {nsGkAtoms::aria_description,                                        ATTR_GLOBAL },
-  {nsGkAtoms::aria_details,           ATTR_BYPASSOBJ                 | ATTR_GLOBAL },
+  {nsGkAtoms::aria_details,           ATTR_BYPASSOBJ                 | ATTR_GLOBAL | ATTR_REFLECT_ELEMENTS },
   {nsGkAtoms::aria_disabled,          ATTR_BYPASSOBJ | ATTR_VALTOKEN | ATTR_GLOBAL },
   {nsGkAtoms::aria_dropeffect,                         ATTR_VALTOKEN | ATTR_GLOBAL },
-  {nsGkAtoms::aria_errormessage,      ATTR_BYPASSOBJ                 | ATTR_GLOBAL },
+  {nsGkAtoms::aria_errormessage,      ATTR_BYPASSOBJ                 | ATTR_GLOBAL | ATTR_REFLECT_ELEMENTS },
   {nsGkAtoms::aria_expanded,          ATTR_BYPASSOBJ | ATTR_VALTOKEN               },
-  {nsGkAtoms::aria_flowto,            ATTR_BYPASSOBJ                 | ATTR_GLOBAL },
+  {nsGkAtoms::aria_flowto,            ATTR_BYPASSOBJ                 | ATTR_GLOBAL | ATTR_REFLECT_ELEMENTS },
   {nsGkAtoms::aria_grabbed,                            ATTR_VALTOKEN | ATTR_GLOBAL },
   {nsGkAtoms::aria_haspopup,          ATTR_BYPASSOBJ_IF_FALSE | ATTR_VALTOKEN | ATTR_GLOBAL },
   {nsGkAtoms::aria_hidden,            ATTR_BYPASSOBJ | ATTR_VALTOKEN | ATTR_GLOBAL }, /* handled special way */
   {nsGkAtoms::aria_invalid,           ATTR_BYPASSOBJ | ATTR_VALTOKEN | ATTR_GLOBAL },
   {nsGkAtoms::aria_label,             ATTR_BYPASSOBJ                 | ATTR_GLOBAL },
-  {nsGkAtoms::aria_labelledby,        ATTR_BYPASSOBJ                 | ATTR_GLOBAL },
+  {nsGkAtoms::aria_labelledby,        ATTR_BYPASSOBJ                 | ATTR_GLOBAL | ATTR_REFLECT_ELEMENTS },
   {nsGkAtoms::aria_level,             ATTR_BYPASSOBJ                               }, /* handled via groupPosition */
   {nsGkAtoms::aria_live,                               ATTR_VALTOKEN | ATTR_GLOBAL },
   {nsGkAtoms::aria_modal,             ATTR_BYPASSOBJ | ATTR_VALTOKEN | ATTR_GLOBAL },
   {nsGkAtoms::aria_multiline,         ATTR_BYPASSOBJ | ATTR_VALTOKEN               },
   {nsGkAtoms::aria_multiselectable,   ATTR_BYPASSOBJ | ATTR_VALTOKEN               },
-  {nsGkAtoms::aria_owns,              ATTR_BYPASSOBJ                 | ATTR_GLOBAL },
+  {nsGkAtoms::aria_owns,              ATTR_BYPASSOBJ                 | ATTR_GLOBAL | ATTR_REFLECT_ELEMENTS },
   {nsGkAtoms::aria_orientation,                        ATTR_VALTOKEN               },
   {nsGkAtoms::aria_posinset,          ATTR_BYPASSOBJ                               }, /* handled via groupPosition */
   {nsGkAtoms::aria_pressed,           ATTR_BYPASSOBJ | ATTR_VALTOKEN               },
@@ -1736,4 +1736,23 @@ bool AttrIterator::ExposeAttr(AccAttributes* aTargetAttrs) const {
     return true;
   }
   return false;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// AttrWithCharacteristicsIterator class
+bool AttrWithCharacteristicsIterator::Next() {
+  for (mIdx++; mIdx < static_cast<int32_t>(std::size(gWAIUnivAttrMap));
+       mIdx++) {
+    if (gWAIUnivAttrMap[mIdx].characteristics & mCharacteristics) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+nsStaticAtom* AttrWithCharacteristicsIterator::AttrName() const {
+  return mIdx >= 0
+             ? const_cast<nsStaticAtom*>(gWAIUnivAttrMap[mIdx].attributeName)
+             : nullptr;
 }

@@ -16,6 +16,10 @@
 class nsITreeView;
 
 namespace mozilla {
+namespace dom {
+class Element;
+}
+
 namespace a11y {
 class DocAccessibleParent;
 
@@ -202,9 +206,10 @@ class XULDescriptionIterator : public AccIterable {
 };
 
 /**
- * Used to iterate through IDs, elements or accessibles pointed by IDRefs
- * attribute. Note, any method used to iterate through IDs, elements, or
- * accessibles moves iterator to next position.
+ * Used to iterate through elements referenced through explicitly set
+ * attr-elements or IDs listed in a content attribute. Note, any method used to
+ * iterate through IDs, elements, or accessibles moves iterator to next
+ * position.
  */
 class IDRefsIterator : public AccIterable {
  public:
@@ -240,6 +245,8 @@ class IDRefsIterator : public AccIterable {
   nsIContent* mContent;
   DocAccessible* mDoc;
   nsAString::index_type mCurrIdx;
+  nsTArray<dom::Element*> mElements;
+  uint32_t mElemIdx;
 };
 
 /**
