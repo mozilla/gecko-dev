@@ -320,6 +320,15 @@ add_task(async function () {
         );
       },
     },
+    {
+      desc: `SuppressedError`,
+      expression: `throw new SuppressedError(
+          new Error("foo"),
+          new Error("bar"),
+          "the suppressed error message"
+        )`,
+      expected: `Uncaught SuppressedError: the suppressed error message`,
+    },
   ];
 
   for (const { desc, expression, expected, assert } of TEST_DATA) {
