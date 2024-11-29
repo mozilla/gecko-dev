@@ -19,9 +19,8 @@ const { TYPES } = ChromeUtils.importESModule(
 var { Toolbox } = require("resource://devtools/client/framework/toolbox.js");
 
 add_task(async function () {
-  const { inspector, highlighterTestFront } = await openInspectorForURL(
-    TEST_URL
-  );
+  const { inspector, highlighterTestFront } =
+    await openInspectorForURL(TEST_URL);
   const front = inspector.inspectorFront;
 
   const highlighter = await front.getHighlighterByType(TYPES.VIEWPORT_SIZE);

@@ -11,9 +11,8 @@ const TEST_URI =
   '<div style="width: 100px; height: 100px; background:yellow;"></div>';
 
 add_task(async function () {
-  const { inspector, highlighterTestFront } = await openInspectorForURL(
-    TEST_URI
-  );
+  const { inspector, highlighterTestFront } =
+    await openInspectorForURL(TEST_URI);
   const divFront = await getNodeFront("div", inspector);
 
   info("Waiting for highlighter to activate");

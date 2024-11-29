@@ -71,29 +71,26 @@ add_task(async function test() {
   };
 
   let promiseRestoringTabs = new Promise(resolve => {
-    gProgressListener.setCallback(function (
-      aBrowser,
-      aNeedRestore,
-      aRestoring,
-      aRestored
-    ) {
-      // get the tab
-      let tab;
-      for (let i = 0; i < window.gBrowser.tabs.length; i++) {
-        if (!tab && window.gBrowser.tabs[i].linkedBrowser == aBrowser) {
-          tab = window.gBrowser.tabs[i];
+    gProgressListener.setCallback(
+      function (aBrowser, aNeedRestore, aRestoring, aRestored) {
+        // get the tab
+        let tab;
+        for (let i = 0; i < window.gBrowser.tabs.length; i++) {
+          if (!tab && window.gBrowser.tabs[i].linkedBrowser == aBrowser) {
+            tab = window.gBrowser.tabs[i];
+          }
         }
+
+        // Check that the load only comes from the selected tab.
+        ok(tab.selected, "load came from selected tab");
+        is(aNeedRestore, 6, "six tabs left to restore");
+        is(aRestoring, 1, "one tab is restoring");
+        is(aRestored, 0, "no tabs have been restored, yet");
+
+        gProgressListener.unsetCallback();
+        resolve();
       }
-
-      // Check that the load only comes from the selected tab.
-      ok(tab.selected, "load came from selected tab");
-      is(aNeedRestore, 6, "six tabs left to restore");
-      is(aRestoring, 1, "one tab is restoring");
-      is(aRestored, 0, "no tabs have been restored, yet");
-
-      gProgressListener.unsetCallback();
-      resolve();
-    });
+    );
   });
 
   let backupState = ss.getBrowserState();

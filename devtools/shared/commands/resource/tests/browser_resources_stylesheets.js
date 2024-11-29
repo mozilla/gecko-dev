@@ -148,9 +148,8 @@ async function testResourceAvailableDestroyedFeature() {
     "Should have two entires for resource timing"
   );
 
-  const { client, resourceCommand, targetCommand } = await initResourceCommand(
-    tab
-  );
+  const { client, resourceCommand, targetCommand } =
+    await initResourceCommand(tab);
 
   info("Check whether ResourceCommand gets existing stylesheet");
   const availableResources = [];
@@ -222,9 +221,8 @@ async function testResourceAvailableDestroyedFeature() {
   info(
     "Check whether ResourceCommand gets additonal stylesheet which is added by DevTools"
   );
-  const styleSheetsFront = await targetCommand.targetFront.getFront(
-    "stylesheets"
-  );
+  const styleSheetsFront =
+    await targetCommand.targetFront.getFront("stylesheets");
   await styleSheetsFront.addStyleSheet(
     ADDITIONAL_FROM_ACTOR_RESOURCE.styleText
   );
@@ -311,9 +309,8 @@ async function testResourceUpdateFeature() {
 
   const tab = await addTab(STYLE_TEST_URL);
 
-  const { client, resourceCommand, targetCommand } = await initResourceCommand(
-    tab
-  );
+  const { client, resourceCommand, targetCommand } =
+    await initResourceCommand(tab);
 
   info("Setup the watcher");
   const availableResources = [];
@@ -447,9 +444,8 @@ async function testNestedResourceUpdateFeature() {
     tab.ownerGlobal.resizeTo(originalWindowWidth, originalWindowHeight);
   });
 
-  const { client, resourceCommand, targetCommand } = await initResourceCommand(
-    tab
-  );
+  const { client, resourceCommand, targetCommand } =
+    await initResourceCommand(tab);
 
   info("Setup the watcher");
   const availableResources = [];

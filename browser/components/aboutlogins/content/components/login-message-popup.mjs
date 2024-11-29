@@ -5,10 +5,11 @@
 import { html, ifDefined } from "chrome://global/content/vendor/lit.all.mjs";
 import { MozLitElement } from "chrome://global/content/lit-utils.mjs";
 
-const stylesTemplate = () => html` <link
-  rel="stylesheet"
-  href="chrome://browser/content/aboutlogins/components/login-message-popup.css"
-/>`;
+const stylesTemplate = () =>
+  html` <link
+    rel="stylesheet"
+    href="chrome://browser/content/aboutlogins/components/login-message-popup.css"
+  />`;
 
 export const MessagePopup = ({ l10nid, message, webTitle = "" }) => {
   return html` <div class="tooltip-container">

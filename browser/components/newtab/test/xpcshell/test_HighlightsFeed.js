@@ -931,9 +931,8 @@ add_task(
     );
     let sandbox = sinon.createSandbox();
     let feed = getHighlightsFeedForTest(sandbox);
-    feed.store.state.Prefs.values[
-      "section.highlights.includeBookmarks"
-    ] = false;
+    feed.store.state.Prefs.values["section.highlights.includeBookmarks"] =
+      false;
 
     let links = [
       {

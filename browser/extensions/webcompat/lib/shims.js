@@ -831,9 +831,8 @@ class Shims {
           // Only get the dFPI state for the first shim which requires it.
           if (isDFPIActive === null) {
             const tabIsPB = (await browser.tabs.get(tabId)).incognito;
-            isDFPIActive = await browser.trackingProtection.isDFPIActive(
-              tabIsPB
-            );
+            isDFPIActive =
+              await browser.trackingProtection.isDFPIActive(tabIsPB);
           }
           if (!isDFPIActive) {
             return;
@@ -1093,9 +1092,8 @@ class Shims {
 
     // We need to base our checks not on the frame's host, but the tab's.
     const topHost = new URL((await browser.tabs.get(tabId)).url).hostname;
-    const unblocked = await browser.trackingProtection.wasRequestUnblocked(
-      requestId
-    );
+    const unblocked =
+      await browser.trackingProtection.wasRequestUnblocked(requestId);
 
     let match;
     let shimToApply;

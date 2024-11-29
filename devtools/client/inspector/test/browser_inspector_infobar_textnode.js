@@ -9,9 +9,8 @@
 const TEST_URI = URL_ROOT + "doc_inspector_infobar_textnode.html";
 
 add_task(async function () {
-  const { inspector, highlighterTestFront } = await openInspectorForURL(
-    TEST_URI
-  );
+  const { inspector, highlighterTestFront } =
+    await openInspectorForURL(TEST_URI);
   const { walker } = inspector;
 
   info("Retrieve the children of #textnode-container");

@@ -7,9 +7,8 @@
 
 add_task(async () => {
   const tab = await addTab(`${URL_ROOT_SSL}empty.html`);
-  const { client, resourceCommand, targetCommand } = await initResourceCommand(
-    tab
-  );
+  const { client, resourceCommand, targetCommand } =
+    await initResourceCommand(tab);
 
   info("Assert the initial no of resources");
   assertNoOfResources(resourceCommand, 0, 0);

@@ -512,9 +512,8 @@ async function testDomCompleteWithOverloadedConsole() {
     "data:text/html,<script>window.console = {};</script>"
   );
 
-  const { client, resourceCommand, targetCommand } = await initResourceCommand(
-    tab
-  );
+  const { client, resourceCommand, targetCommand } =
+    await initResourceCommand(tab);
 
   info("Check that all DOCUMENT_EVENTS are fired for the already loaded page");
   const documentEvents = [];

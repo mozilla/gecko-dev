@@ -69,9 +69,8 @@ export class AddonRolloutAction extends BaseAction {
 
     const existingRollout = await lazy.AddonRollouts.get(slug);
     const eventName = existingRollout ? "update" : "enroll";
-    const extensionDetails = await lazy.NormandyApi.fetchExtensionDetails(
-      extensionApiId
-    );
+    const extensionDetails =
+      await lazy.NormandyApi.fetchExtensionDetails(extensionApiId);
 
     // Check if the existing rollout matches the current rollout
     if (

@@ -9,9 +9,8 @@
 const TEST_PAGE = URL_ROOT + "doc_inspector_highlighter-comments.html";
 
 add_task(async function () {
-  const { inspector, highlighterTestFront } = await openInspectorForURL(
-    TEST_PAGE
-  );
+  const { inspector, highlighterTestFront } =
+    await openInspectorForURL(TEST_PAGE);
   const { waitForHighlighterTypeShown } = getHighlighterTestHelpers(inspector);
   const markupView = inspector.markup;
   await selectNode("p", inspector);

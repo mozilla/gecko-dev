@@ -14,14 +14,14 @@ export const MediaUtils = {
       duration: aElement.duration,
       seekable: !!aElement.seekable,
       audioTrackCount:
-        aElement.audioTracks?.length ??
+        (aElement.audioTracks?.length ??
         aElement.mozHasAudio ??
         aElement.webkitAudioDecodedByteCount ??
-        MediaUtils.isAudioElement(aElement)
+        MediaUtils.isAudioElement(aElement))
           ? 1
           : 0,
       videoTrackCount:
-        aElement.videoTracks?.length ?? MediaUtils.isVideoElement(aElement)
+        (aElement.videoTracks?.length ?? MediaUtils.isVideoElement(aElement))
           ? 1
           : 0,
     };

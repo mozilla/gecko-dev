@@ -77,9 +77,10 @@ function tabWithRequest(
               "Should call the legacy callback with the permission state"
             );
           }
-          let perm = await content.window.Notification.requestPermission(
-            requestCallback
-          );
+          let perm =
+            await content.window.Notification.requestPermission(
+              requestCallback
+            );
           is(
             perm,
             permission,

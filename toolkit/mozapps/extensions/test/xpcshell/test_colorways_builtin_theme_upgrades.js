@@ -472,9 +472,8 @@ add_task(
 
     info("Verify addon update on disabled builtin colorway theme");
 
-    const updatedRetainedTheme = await AddonManager.getAddonByID(
-      ADDON_ID_RETAINED
-    );
+    const updatedRetainedTheme =
+      await AddonManager.getAddonByID(ADDON_ID_RETAINED);
     assertAddonWrapperProperties(updatedRetainedTheme, {
       id: ADDON_ID_RETAINED,
       version: "3.0.0",
@@ -555,9 +554,8 @@ add_task(
     );
     await AddonTestUtils.promiseRestartManager();
 
-    const defaultThemeAfterRestart = await AddonManager.getAddonByID(
-      DEFAULT_THEME_ID
-    );
+    const defaultThemeAfterRestart =
+      await AddonManager.getAddonByID(DEFAULT_THEME_ID);
     ok(
       defaultThemeAfterRestart.isActive,
       "Expect the default theme to be active"

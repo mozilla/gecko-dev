@@ -999,9 +999,8 @@ function recordClickTelemetry(e) {
 }
 
 function initCertErrorPageActions() {
-  document.getElementById(
-    "certErrorAndCaptivePortalButtonContainer"
-  ).hidden = false;
+  document.getElementById("certErrorAndCaptivePortalButtonContainer").hidden =
+    false;
   document
     .getElementById("returnButton")
     .addEventListener("click", onReturnButtonClick);

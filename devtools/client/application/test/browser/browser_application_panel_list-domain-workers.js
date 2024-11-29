@@ -18,9 +18,8 @@ const EMPTY_URL = (URL_ROOT + "resources/service-workers/empty.html").replace(
 add_task(async function () {
   await enableApplicationPanel();
 
-  const { panel, commands, tab } = await openNewTabAndApplicationPanel(
-    SIMPLE_URL
-  );
+  const { panel, commands, tab } =
+    await openNewTabAndApplicationPanel(SIMPLE_URL);
   const doc = panel.panelWin.document;
 
   selectPage(panel, "service-workers");

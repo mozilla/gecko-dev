@@ -27,9 +27,8 @@ add_task(async () => {
   Assert.equal(Services.cookies.countCookiesFromHost("e.com"), 1);
 
   CookieXPCShellUtils.createServer({ hosts: ["e.com"] });
-  const cookies = await CookieXPCShellUtils.getCookieStringFromDocument(
-    "http://e.com/"
-  );
+  const cookies =
+    await CookieXPCShellUtils.getCookieStringFromDocument("http://e.com/");
   Assert.equal(cookies, "foo=bar");
   Services.prefs.clearUserPref("dom.security.https_first");
 });

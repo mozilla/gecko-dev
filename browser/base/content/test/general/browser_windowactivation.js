@@ -102,9 +102,12 @@ function getBackgroundColor(browser, expectedActive) {
       await ContentTaskUtils.waitForCondition(() => {
         return area;
       }, "Page has loaded");
-      await ContentTaskUtils.waitForCondition(() => {
-        return area.matches(":-moz-window-inactive") == hasPseudoClass;
-      }, `Window is considered ${hasPseudoClass ? "inactive" : "active"}`);
+      await ContentTaskUtils.waitForCondition(
+        () => {
+          return area.matches(":-moz-window-inactive") == hasPseudoClass;
+        },
+        `Window is considered ${hasPseudoClass ? "inactive" : "active"}`
+      );
 
       return content.getComputedStyle(area).backgroundColor;
     }

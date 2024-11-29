@@ -18,9 +18,8 @@ add_task(async function () {
   await enableApplicationPanel();
 
   info("Open a page that runs in the parent process");
-  const { panel, commands, tab } = await openNewTabAndApplicationPanel(
-    PARENT_PROCESS_URI
-  );
+  const { panel, commands, tab } =
+    await openNewTabAndApplicationPanel(PARENT_PROCESS_URI);
   const doc = panel.panelWin.document;
 
   info("Check for non-existing service worker");
@@ -45,9 +44,8 @@ add_task(async function () {
   await enableApplicationPanel();
 
   info("Open a page that runs in the parent process");
-  const { panel, tab } = await openNewTabAndApplicationPanel(
-    PARENT_PROCESS_URI
-  );
+  const { panel, tab } =
+    await openNewTabAndApplicationPanel(PARENT_PROCESS_URI);
   const doc = panel.panelWin.document;
 
   info("Waiting for the 'no manifest' message to appear");

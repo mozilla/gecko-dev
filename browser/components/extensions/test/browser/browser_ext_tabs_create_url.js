@@ -97,16 +97,17 @@ add_task(async function default_url() {
     background() {
       function promiseNonBlankTab() {
         return new Promise(resolve => {
-          browser.tabs.onUpdated.addListener(function listener(
-            tabId,
-            changeInfo,
-            tab
-          ) {
-            if (changeInfo.status === "complete" && tab.url !== "about:blank") {
-              browser.tabs.onUpdated.removeListener(listener);
-              resolve(tab);
+          browser.tabs.onUpdated.addListener(
+            function listener(tabId, changeInfo, tab) {
+              if (
+                changeInfo.status === "complete" &&
+                tab.url !== "about:blank"
+              ) {
+                browser.tabs.onUpdated.removeListener(listener);
+                resolve(tab);
+              }
             }
-          });
+          );
         });
       }
 

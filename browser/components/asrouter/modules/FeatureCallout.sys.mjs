@@ -263,9 +263,8 @@ export class FeatureCallout {
         this._removePanelConflictListeners();
         this.doc.querySelector(`[src="${BUNDLE_SRC}"]`)?.remove();
         if (nextMessage) {
-          const isMessageUnblocked = await lazy.ASRouter.isUnblockedMessage(
-            nextMessage
-          );
+          const isMessageUnblocked =
+            await lazy.ASRouter.isUnblockedMessage(nextMessage);
           if (!isMessageUnblocked) {
             this.endTour();
             return;

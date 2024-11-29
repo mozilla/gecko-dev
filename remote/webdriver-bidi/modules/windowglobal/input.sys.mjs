@@ -234,9 +234,8 @@ class InputModule extends WindowGlobalBiDiModule {
   async setFiles(options) {
     const { element: sharedReference, files } = options;
 
-    const element = await this.#deserializeElementSharedReference(
-      sharedReference
-    );
+    const element =
+      await this.#deserializeElementSharedReference(sharedReference);
 
     if (
       !HTMLInputElement.isInstance(element) ||

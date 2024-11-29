@@ -962,9 +962,8 @@ var focusSearchBoxUsingShortcut = async function (panelWin, callback) {
 
   panelWin.focus();
 
-  const shortcut = await panelWin.document.l10n.formatValue(
-    "storage-filter-key"
-  );
+  const shortcut =
+    await panelWin.document.l10n.formatValue("storage-filter-key");
   synthesizeKeyShortcut(shortcut);
 
   await focused;

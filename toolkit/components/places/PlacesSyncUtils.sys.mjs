@@ -1357,9 +1357,8 @@ PlacesSyncUtils.test.bookmarks = Object.freeze({
         insertInfo = await updateTagQueryFolder(db, insertInfo);
 
         let bookmarkInfo = syncBookmarkToPlacesBookmark(insertInfo);
-        let bookmarkItem = await lazy.PlacesUtils.bookmarks.insert(
-          bookmarkInfo
-        );
+        let bookmarkItem =
+          await lazy.PlacesUtils.bookmarks.insert(bookmarkInfo);
         let newItem = await insertBookmarkMetadata(
           db,
           bookmarkItem,

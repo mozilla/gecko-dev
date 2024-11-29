@@ -104,9 +104,8 @@ class MessagePayload extends Component {
 
     getMessagePayload(selectedMessage.payload, connector.getLongString).then(
       async payload => {
-        const { formattedData, formattedDataTitle } = await this.parsePayload(
-          payload
-        );
+        const { formattedData, formattedDataTitle } =
+          await this.parsePayload(payload);
         this.setState({
           payload,
           isFormattedData: !!formattedData,

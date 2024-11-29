@@ -207,9 +207,8 @@ async function prettyPrintHtmlFile({
 
   // `getSourceMap` allow us to collect the computed source map resulting of the calls
   // to `prettyPrint` with the same taskId.
-  prettyPrintWorkerResult.sourceMap = await prettyPrintWorker.getSourceMap(
-    prettyPrintTaskId
-  );
+  prettyPrintWorkerResult.sourceMap =
+    await prettyPrintWorker.getSourceMap(prettyPrintTaskId);
 
   // Sort replacement in reverse order so we can replace code in the HTML file more easily
   replacements.sort((a, b) => a.startIndex < b.startIndex);

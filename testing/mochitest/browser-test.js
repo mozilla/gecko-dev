@@ -413,8 +413,8 @@ Tester.prototype = {
     let baseMsg = timedOut
       ? "Found a {elt} after previous test timed out"
       : this.currentTest
-      ? "Found an unexpected {elt} at the end of test run"
-      : "Found an unexpected {elt}";
+        ? "Found an unexpected {elt} at the end of test run"
+        : "Found an unexpected {elt}";
 
     // Remove stale tabs
     if (

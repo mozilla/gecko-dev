@@ -1920,9 +1920,8 @@ class SERPCategorizer {
     for (let domain of domains) {
       domainsCount++;
 
-      let categoryCandidates = await SearchSERPDomainToCategoriesMap.get(
-        domain
-      );
+      let categoryCandidates =
+        await SearchSERPDomainToCategoriesMap.get(domain);
 
       if (!categoryCandidates.length) {
         unknownsCount++;

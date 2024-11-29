@@ -1212,15 +1212,14 @@ this.AntiTracking = {
           });
 
           let windowClosed = new content.Promise(resolve => {
-            Services.ww.registerNotification(function notification(
-              aSubject,
-              aTopic
-            ) {
-              if (aTopic == "domwindowclosed") {
-                Services.ww.unregisterNotification(notification);
-                resolve();
+            Services.ww.registerNotification(
+              function notification(aSubject, aTopic) {
+                if (aTopic == "domwindowclosed") {
+                  Services.ww.unregisterNotification(notification);
+                  resolve();
+                }
               }
-            });
+            );
           });
 
           info("Opening a window from the iframe.");
@@ -1316,15 +1315,14 @@ this.AntiTracking = {
           await loading;
 
           let windowClosed = new content.Promise(resolve => {
-            Services.ww.registerNotification(function notification(
-              aSubject,
-              aTopic
-            ) {
-              if (aTopic == "domwindowclosed") {
-                Services.ww.unregisterNotification(notification);
-                resolve();
+            Services.ww.registerNotification(
+              function notification(aSubject, aTopic) {
+                if (aTopic == "domwindowclosed") {
+                  Services.ww.unregisterNotification(notification);
+                  resolve();
+                }
               }
-            });
+            );
           });
 
           info("Opening a window from the iframe.");

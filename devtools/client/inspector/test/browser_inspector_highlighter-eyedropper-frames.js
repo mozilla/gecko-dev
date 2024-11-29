@@ -37,9 +37,8 @@ const TEST_URI = `https://example.com/document-builder.sjs?html=${encodeURICompo
 )}`;
 
 add_task(async function () {
-  const { inspector, highlighterTestFront } = await openInspectorForURL(
-    TEST_URI
-  );
+  const { inspector, highlighterTestFront } =
+    await openInspectorForURL(TEST_URI);
 
   const toggleButton = inspector.panelDoc.querySelector(
     "#inspector-eyedropper-toggle"

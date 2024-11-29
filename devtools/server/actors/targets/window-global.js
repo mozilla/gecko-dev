@@ -2004,6 +2004,5 @@ class DebuggerProgressListener {
         this._targetActor._navigate(window);
       }
     }
-  },
-  "DebuggerProgressListener.prototype.onStateChange");
+  }, "DebuggerProgressListener.prototype.onStateChange");
 }

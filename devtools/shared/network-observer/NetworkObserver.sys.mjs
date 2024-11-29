@@ -776,83 +776,85 @@ export class NetworkObserver {
    * @param number extraSizeData
    * @param string extraStringData
    */
-  observeActivity = DevToolsInfaillibleUtils.makeInfallible(function (
-    channel,
-    activityType,
-    activitySubtype,
-    timestamp,
-    extraSizeData,
-    extraStringData
-  ) {
-    if (
-      this.#isDestroyed ||
-      (activityType != gActivityDistributor.ACTIVITY_TYPE_HTTP_TRANSACTION &&
-        activityType != gActivityDistributor.ACTIVITY_TYPE_SOCKET_TRANSPORT)
+  observeActivity = DevToolsInfaillibleUtils.makeInfallible(
+    function (
+      channel,
+      activityType,
+      activitySubtype,
+      timestamp,
+      extraSizeData,
+      extraStringData
     ) {
-      return;
-    }
+      if (
+        this.#isDestroyed ||
+        (activityType != gActivityDistributor.ACTIVITY_TYPE_HTTP_TRANSACTION &&
+          activityType != gActivityDistributor.ACTIVITY_TYPE_SOCKET_TRANSPORT)
+      ) {
+        return;
+      }
 
-    if (
-      !(channel instanceof Ci.nsIHttpChannel) ||
-      !(channel instanceof Ci.nsIClassifiedChannel)
-    ) {
-      return;
-    }
+      if (
+        !(channel instanceof Ci.nsIHttpChannel) ||
+        !(channel instanceof Ci.nsIClassifiedChannel)
+      ) {
+        return;
+      }
 
-    channel = channel.QueryInterface(Ci.nsIHttpChannel);
-    channel = channel.QueryInterface(Ci.nsIClassifiedChannel);
+      channel = channel.QueryInterface(Ci.nsIHttpChannel);
+      channel = channel.QueryInterface(Ci.nsIClassifiedChannel);
 
-    if (DEBUG_PLATFORM_EVENTS) {
-      logPlatformEvent(
-        this.getActivityTypeString(activityType, activitySubtype),
-        channel
-      );
-    }
+      if (DEBUG_PLATFORM_EVENTS) {
+        logPlatformEvent(
+          this.getActivityTypeString(activityType, activitySubtype),
+          channel
+        );
+      }
 
-    if (
-      activitySubtype == gActivityDistributor.ACTIVITY_SUBTYPE_REQUEST_HEADER
-    ) {
-      this.#onRequestHeader(channel, timestamp, extraStringData);
-      return;
-    }
+      if (
+        activitySubtype == gActivityDistributor.ACTIVITY_SUBTYPE_REQUEST_HEADER
+      ) {
+        this.#onRequestHeader(channel, timestamp, extraStringData);
+        return;
+      }
 
-    // Iterate over all currently ongoing requests. If channel can't
-    // be found within them, then exit this function.
-    const httpActivity = this.#findActivityObject(channel);
-    if (!httpActivity) {
-      return;
-    }
+      // Iterate over all currently ongoing requests. If channel can't
+      // be found within them, then exit this function.
+      const httpActivity = this.#findActivityObject(channel);
+      if (!httpActivity) {
+        return;
+      }
 
-    // If we're throttling, we must not report events as they arrive
-    // from platform, but instead let the throttler emit the events
-    // after some time has elapsed.
-    if (
-      httpActivity.downloadThrottle &&
-      HTTP_DOWNLOAD_ACTIVITIES.includes(activitySubtype)
-    ) {
-      const callback = this.#dispatchActivity.bind(this);
-      httpActivity.downloadThrottle.addActivityCallback(
-        callback,
-        httpActivity,
-        channel,
-        activityType,
-        activitySubtype,
-        timestamp,
-        extraSizeData,
-        extraStringData
-      );
-    } else {
-      this.#dispatchActivity(
-        httpActivity,
-        channel,
-        activityType,
-        activitySubtype,
-        timestamp,
-        extraSizeData,
-        extraStringData
-      );
+      // If we're throttling, we must not report events as they arrive
+      // from platform, but instead let the throttler emit the events
+      // after some time has elapsed.
+      if (
+        httpActivity.downloadThrottle &&
+        HTTP_DOWNLOAD_ACTIVITIES.includes(activitySubtype)
+      ) {
+        const callback = this.#dispatchActivity.bind(this);
+        httpActivity.downloadThrottle.addActivityCallback(
+          callback,
+          httpActivity,
+          channel,
+          activityType,
+          activitySubtype,
+          timestamp,
+          extraSizeData,
+          extraStringData
+        );
+      } else {
+        this.#dispatchActivity(
+          httpActivity,
+          channel,
+          activityType,
+          activitySubtype,
+          timestamp,
+          extraSizeData,
+          extraStringData
+        );
+      }
     }
-  });
+  );
 
   /**
    * Craft the "event" object passed to the Watcher class in order

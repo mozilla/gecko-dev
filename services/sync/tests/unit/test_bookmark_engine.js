@@ -337,90 +337,90 @@ add_bookmark_test(async function test_delete_invalid_roots_from_server(engine) {
   }
 });
 
-add_bookmark_test(async function test_processIncoming_error_orderChildren(
-  engine
-) {
-  _(
-    "Ensure that _orderChildren() is called even when _processIncoming() throws an error."
-  );
+add_bookmark_test(
+  async function test_processIncoming_error_orderChildren(engine) {
+    _(
+      "Ensure that _orderChildren() is called even when _processIncoming() throws an error."
+    );
 
-  let store = engine._store;
-  let server = await serverForFoo(engine);
-  await SyncTestingInfrastructure(server);
+    let store = engine._store;
+    let server = await serverForFoo(engine);
+    await SyncTestingInfrastructure(server);
 
-  let collection = server.user("foo").collection("bookmarks");
+    let collection = server.user("foo").collection("bookmarks");
 
-  try {
-    let folder1 = await PlacesUtils.bookmarks.insert({
-      parentGuid: PlacesUtils.bookmarks.toolbarGuid,
-      type: PlacesUtils.bookmarks.TYPE_FOLDER,
-      title: "Folder 1",
-    });
-
-    let bmk1 = await PlacesUtils.bookmarks.insert({
-      parentGuid: folder1.guid,
-      url: "http://getfirefox.com/",
-      title: "Get Firefox!",
-    });
-    let bmk2 = await PlacesUtils.bookmarks.insert({
-      parentGuid: folder1.guid,
-      url: "http://getthunderbird.com/",
-      title: "Get Thunderbird!",
-    });
-
-    let toolbar_record = await store.createRecord("toolbar");
-    collection.insert("toolbar", encryptPayload(toolbar_record.cleartext));
-
-    let bmk1_record = await store.createRecord(bmk1.guid);
-    collection.insert(bmk1.guid, encryptPayload(bmk1_record.cleartext));
-
-    let bmk2_record = await store.createRecord(bmk2.guid);
-    collection.insert(bmk2.guid, encryptPayload(bmk2_record.cleartext));
-
-    // Create a server record for folder1 where we flip the order of
-    // the children.
-    let folder1_record = await store.createRecord(folder1.guid);
-    let folder1_payload = folder1_record.cleartext;
-    folder1_payload.children.reverse();
-    collection.insert(folder1.guid, encryptPayload(folder1_payload));
-
-    // Create a bogus record that when synced down will provoke a
-    // network error which in turn provokes an exception in _processIncoming.
-    const BOGUS_GUID = "zzzzzzzzzzzz";
-    let bogus_record = collection.insert(BOGUS_GUID, "I'm a bogus record!");
-    bogus_record.get = function get() {
-      throw new Error("Sync this!");
-    };
-
-    // Make the 10 minutes old so it will only be synced in the toFetch phase.
-    bogus_record.modified = new_timestamp() - 60 * 10;
-    await engine.setLastSync(new_timestamp() - 60);
-    engine.toFetch = new SerializableSet([BOGUS_GUID]);
-
-    let error;
     try {
-      await sync_engine_and_validate_telem(engine, true);
-    } catch (ex) {
-      error = ex;
+      let folder1 = await PlacesUtils.bookmarks.insert({
+        parentGuid: PlacesUtils.bookmarks.toolbarGuid,
+        type: PlacesUtils.bookmarks.TYPE_FOLDER,
+        title: "Folder 1",
+      });
+
+      let bmk1 = await PlacesUtils.bookmarks.insert({
+        parentGuid: folder1.guid,
+        url: "http://getfirefox.com/",
+        title: "Get Firefox!",
+      });
+      let bmk2 = await PlacesUtils.bookmarks.insert({
+        parentGuid: folder1.guid,
+        url: "http://getthunderbird.com/",
+        title: "Get Thunderbird!",
+      });
+
+      let toolbar_record = await store.createRecord("toolbar");
+      collection.insert("toolbar", encryptPayload(toolbar_record.cleartext));
+
+      let bmk1_record = await store.createRecord(bmk1.guid);
+      collection.insert(bmk1.guid, encryptPayload(bmk1_record.cleartext));
+
+      let bmk2_record = await store.createRecord(bmk2.guid);
+      collection.insert(bmk2.guid, encryptPayload(bmk2_record.cleartext));
+
+      // Create a server record for folder1 where we flip the order of
+      // the children.
+      let folder1_record = await store.createRecord(folder1.guid);
+      let folder1_payload = folder1_record.cleartext;
+      folder1_payload.children.reverse();
+      collection.insert(folder1.guid, encryptPayload(folder1_payload));
+
+      // Create a bogus record that when synced down will provoke a
+      // network error which in turn provokes an exception in _processIncoming.
+      const BOGUS_GUID = "zzzzzzzzzzzz";
+      let bogus_record = collection.insert(BOGUS_GUID, "I'm a bogus record!");
+      bogus_record.get = function get() {
+        throw new Error("Sync this!");
+      };
+
+      // Make the 10 minutes old so it will only be synced in the toFetch phase.
+      bogus_record.modified = new_timestamp() - 60 * 10;
+      await engine.setLastSync(new_timestamp() - 60);
+      engine.toFetch = new SerializableSet([BOGUS_GUID]);
+
+      let error;
+      try {
+        await sync_engine_and_validate_telem(engine, true);
+      } catch (ex) {
+        error = ex;
+      }
+      ok(!!error);
+
+      // Verify that the bookmark order has been applied.
+      folder1_record = await store.createRecord(folder1.guid);
+      let new_children = folder1_record.children;
+      Assert.deepEqual(
+        new_children.sort(),
+        [folder1_payload.children[0], folder1_payload.children[1]].sort()
+      );
+
+      let localChildIds = await PlacesSyncUtils.bookmarks.fetchChildRecordIds(
+        folder1.guid
+      );
+      Assert.deepEqual(localChildIds.sort(), [bmk2.guid, bmk1.guid].sort());
+    } finally {
+      await cleanup(engine, server);
     }
-    ok(!!error);
-
-    // Verify that the bookmark order has been applied.
-    folder1_record = await store.createRecord(folder1.guid);
-    let new_children = folder1_record.children;
-    Assert.deepEqual(
-      new_children.sort(),
-      [folder1_payload.children[0], folder1_payload.children[1]].sort()
-    );
-
-    let localChildIds = await PlacesSyncUtils.bookmarks.fetchChildRecordIds(
-      folder1.guid
-    );
-    Assert.deepEqual(localChildIds.sort(), [bmk2.guid, bmk1.guid].sort());
-  } finally {
-    await cleanup(engine, server);
   }
-});
+);
 
 add_bookmark_test(async function test_restorePromptsReupload(engine) {
   await test_restoreOrImport(engine, { replace: true });

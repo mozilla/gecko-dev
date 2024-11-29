@@ -463,9 +463,8 @@ add_task(
 
     ok(!webProgress.isLoadingDocument, "Document is not loading");
 
-    const { currentURI, targetURI } = await waitForInitialNavigationCompleted(
-      webProgress
-    );
+    const { currentURI, targetURI } =
+      await waitForInitialNavigationCompleted(webProgress);
 
     ok(!webProgress.isLoadingDocument, "Document is not loading");
     ok(

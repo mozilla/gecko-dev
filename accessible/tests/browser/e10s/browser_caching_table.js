@@ -252,9 +252,8 @@ addAccessibleTask(
     info("mutate: Adding new table");
     let shown = waitForEvent(EVENT_SHOW, "newTable");
     await invokeContentTask(browser, [], () => {
-      content.document.getElementById(
-        "newTableContainer"
-      ).innerHTML = `<table id="newTable"><tr><th>a</th></tr></table>`;
+      content.document.getElementById("newTableContainer").innerHTML =
+        `<table id="newTable"><tr><th>a</th></tr></table>`;
     });
     let newTable = (await shown).accessible;
     testAbsentAttrs(newTable, { "layout-guess": "true" });

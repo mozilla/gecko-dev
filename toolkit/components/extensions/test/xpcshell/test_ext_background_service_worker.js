@@ -57,9 +57,8 @@ add_task(
     });
 
     const testWorkerWatcher = new TestWorkerWatcher();
-    let watcher = await testWorkerWatcher.watchExtensionServiceWorker(
-      extension
-    );
+    let watcher =
+      await testWorkerWatcher.watchExtensionServiceWorker(extension);
 
     await extension.startup();
 

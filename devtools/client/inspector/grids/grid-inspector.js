@@ -396,9 +396,8 @@ class GridInspector {
         let parentGridNodeFront;
 
         try {
-          parentGridNodeFront = await nodeFront.walkerFront.getParentGridNode(
-            nodeFront
-          );
+          parentGridNodeFront =
+            await nodeFront.walkerFront.getParentGridNode(nodeFront);
         } catch (e) {
           // This call might fail if called asynchrously after the toolbox is finished
           // closing.

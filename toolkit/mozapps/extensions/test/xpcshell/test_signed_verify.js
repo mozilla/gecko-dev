@@ -150,9 +150,8 @@ async function testWeakSignatureXPIUpdate({
   let resetWeakSignaturePref =
     AddonTestUtils.setWeakSignatureInstallAllowed(true);
 
-  const { addon: addonFirstInstall } = await promiseInstallFile(
-    currentAddonXPI
-  );
+  const { addon: addonFirstInstall } =
+    await promiseInstallFile(currentAddonXPI);
   const addonId = addonFirstInstall.id;
   const initialAddonVersion = addonFirstInstall.version;
 
@@ -363,9 +362,8 @@ add_task(async function test_signedTypes_stored_in_addonDB() {
 
   // Expect the signedTypes property to be undefined because of the
   // AddonDB data being tampered earlier in this test.
-  const addonAfterUpdateCompatibility = await AddonManager.getAddonByID(
-    addonId
-  );
+  const addonAfterUpdateCompatibility =
+    await AddonManager.getAddonByID(addonId);
   Assert.deepEqual(
     addonAfterUpdateCompatibility.signedTypes,
     undefined,

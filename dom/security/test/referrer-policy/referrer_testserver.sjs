@@ -295,8 +295,8 @@ function createImgTestCase(aParams, aAttributePolicy, aRedirect) {
           </head>
           <body>
           <img id="testImg" src="${imgUrl}" ${
-    aAttributePolicy ? ` referrerpolicy="${aAttributePolicy}"` : ""
-  }>
+            aAttributePolicy ? ` referrerpolicy="${aAttributePolicy}"` : ""
+          }>
           <script>
             window.addEventListener("load", function() {
               parent.postMessage("childLoadComplete", "http://mochi.test:8888");

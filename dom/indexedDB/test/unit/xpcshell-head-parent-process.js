@@ -699,11 +699,11 @@ var SpecialPowers = {
         outStream.close();
       }
       promises.push(
-        File.createFromFileName(testFile.path, request.options).then(function (
-          file
-        ) {
-          filePaths.push(file);
-        })
+        File.createFromFileName(testFile.path, request.options).then(
+          function (file) {
+            filePaths.push(file);
+          }
+        )
       );
       createdFiles.push(testFile);
     });

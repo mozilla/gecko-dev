@@ -36,9 +36,8 @@ function isValidRestartFrame(frame) {
 function copyStackTrace() {
   return async ({ getState }) => {
     const frames = getCurrentThreadFrames(getState());
-    const shouldDisplayOriginalLocation = getShouldSelectOriginalLocation(
-      getState()
-    );
+    const shouldDisplayOriginalLocation =
+      getShouldSelectOriginalLocation(getState());
 
     const framesToCopy = frames
       .map(frame => formatCopyName(frame, L10N, shouldDisplayOriginalLocation))

@@ -500,9 +500,8 @@ let ShellServiceInternal = {
   async pinToStartMenu() {
     if (await this.doesAppNeedStartMenuPin()) {
       try {
-        let pinSuccess = await this.shellService.pinCurrentAppToStartMenuAsync(
-          false
-        );
+        let pinSuccess =
+          await this.shellService.pinCurrentAppToStartMenuAsync(false);
         Services.prefs.setBoolPref(MSIX_PREVIOUSLY_PINNED_PREF, pinSuccess);
         return pinSuccess;
       } catch (err) {

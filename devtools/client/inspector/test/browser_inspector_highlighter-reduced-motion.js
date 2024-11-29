@@ -17,9 +17,8 @@ add_task(async function () {
   info("Enable simple highlighters");
   await pushPref("devtools.inspector.simple-highlighters-reduced-motion", true);
 
-  const { highlighterTestFront, inspector } = await openInspectorForURL(
-    TEST_URL
-  );
+  const { highlighterTestFront, inspector } =
+    await openInspectorForURL(TEST_URL);
   const HIGHLIGHTER_TYPE = inspector.highlighters.TYPES.BOXMODEL;
 
   const front = inspector.inspectorFront;

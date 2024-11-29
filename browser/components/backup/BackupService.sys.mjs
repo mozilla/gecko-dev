@@ -1277,18 +1277,16 @@ export class BackupService extends EventTarget {
           await IOUtils.writeJSON(manifestPath, manifest);
 
           currentStep = STEPS.CREATE_BACKUP_FINALIZE_STAGING;
-          let renamedStagingPath = await this.#finalizeStagingFolder(
-            stagingPath
-          );
+          let renamedStagingPath =
+            await this.#finalizeStagingFolder(stagingPath);
           lazy.logConsole.log(
             "Wrote backup to staging directory at ",
             renamedStagingPath
           );
 
           // Record the total size of the backup staging directory
-          let totalSizeKilobytes = await BackupResource.getDirectorySize(
-            renamedStagingPath
-          );
+          let totalSizeKilobytes =
+            await BackupResource.getDirectorySize(renamedStagingPath);
           let totalSizeBytesNearestMebibyte = MeasurementUtils.fuzzByteSize(
             totalSizeKilobytes * BYTES_IN_KILOBYTE,
             1 * BYTES_IN_MEBIBYTE
@@ -1330,9 +1328,8 @@ export class BackupService extends EventTarget {
           });
 
           // Record the size of the complete single-file archive
-          let archiveSizeKilobytes = await BackupResource.getFileSize(
-            archiveTmpPath
-          );
+          let archiveSizeKilobytes =
+            await BackupResource.getFileSize(archiveTmpPath);
           let archiveSizeBytesNearestMebibyte = MeasurementUtils.fuzzByteSize(
             archiveSizeKilobytes * BYTES_IN_KILOBYTE,
             1 * BYTES_IN_MEBIBYTE
@@ -2466,9 +2463,8 @@ export class BackupService extends EventTarget {
         // that the backup was encrypted, and the recovery code was the correct
         // one to decrypt it. We now generate a new ArchiveEncryptionState with
         // that recovery code to write into the recovered profile.
-        ({ instance: encState } = await lazy.ArchiveEncryptionState.initialize(
-          recoveryCode
-        ));
+        ({ instance: encState } =
+          await lazy.ArchiveEncryptionState.initialize(recoveryCode));
       }
 
       const RECOVERY_FOLDER_DEST_PATH = PathUtils.join(
@@ -3058,9 +3054,8 @@ export class BackupService extends EventTarget {
 
     // TODO: Enforce other password rules here, such as ensuring that the
     // password is not considered common.
-    ({ instance: encState } = await lazy.ArchiveEncryptionState.initialize(
-      password
-    ));
+    ({ instance: encState } =
+      await lazy.ArchiveEncryptionState.initialize(password));
     if (!encState) {
       throw new BackupError(
         "Failed to construct ArchiveEncryptionState",

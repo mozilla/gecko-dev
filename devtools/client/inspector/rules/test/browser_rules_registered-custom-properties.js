@@ -352,9 +352,8 @@ add_task(async function () {
   info("Check that updating property does update rules view");
   onRuleViewRefreshed = view.once("ruleview-refreshed");
   await SpecialPowers.spawn(gBrowser.selectedBrowser, [], () => {
-    content.wrappedJSObject.document.querySelector(
-      "style#added"
-    ).textContent = `
+    content.wrappedJSObject.document.querySelector("style#added").textContent =
+      `
       @property --css-dynamic-registered {
         syntax: "<color>";
         inherits: true;

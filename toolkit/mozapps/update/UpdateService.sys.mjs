@@ -5393,9 +5393,8 @@ export class CheckerService {
     request.channel.loadFlags |= Ci.nsIRequest.INHIBIT_CACHING;
     // Disable cutting edge features, like TLS 1.3, where middleboxes might
     // brick us
-    request.channel.QueryInterface(
-      Ci.nsIHttpChannelInternal
-    ).beConservative = true;
+    request.channel.QueryInterface(Ci.nsIHttpChannelInternal).beConservative =
+      true;
 
     request.overrideMimeType("text/xml");
     // The Cache-Control header is only interpreted by proxies and the

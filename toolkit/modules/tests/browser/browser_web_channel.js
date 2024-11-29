@@ -171,31 +171,29 @@ var gTests = [
       let promiseTestDone = new Promise(function (resolve, reject) {
         preRedirectChannel.listen(function (id, message, preRedirectSender) {
           if (message.command === "redirecting") {
-            postRedirectChannel.listen(function (
-              aId,
-              aMessage,
-              aPostRedirectSender
-            ) {
-              is(aId, "post_redirect");
-              isnot(aMessage.command, "no_response_expected");
+            postRedirectChannel.listen(
+              function (aId, aMessage, aPostRedirectSender) {
+                is(aId, "post_redirect");
+                isnot(aMessage.command, "no_response_expected");
 
-              if (aMessage.command === "loaded") {
-                // The message should not be received on the preRedirectChannel
-                // because the target window has redirected.
-                preRedirectChannel.send(
-                  { command: "no_response_expected" },
-                  preRedirectSender
-                );
-                postRedirectChannel.send(
-                  { command: "done" },
-                  aPostRedirectSender
-                );
-              } else if (aMessage.command === "done") {
-                resolve();
-              } else {
-                reject(new Error(`Unexpected command ${aMessage.command}`));
+                if (aMessage.command === "loaded") {
+                  // The message should not be received on the preRedirectChannel
+                  // because the target window has redirected.
+                  preRedirectChannel.send(
+                    { command: "no_response_expected" },
+                    preRedirectSender
+                  );
+                  postRedirectChannel.send(
+                    { command: "done" },
+                    aPostRedirectSender
+                  );
+                } else if (aMessage.command === "done") {
+                  resolve();
+                } else {
+                  reject(new Error(`Unexpected command ${aMessage.command}`));
+                }
               }
-            });
+            );
           } else {
             reject(new Error(`Unexpected command ${message.command}`));
           }

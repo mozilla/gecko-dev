@@ -43,15 +43,16 @@ const notificationShell = ({
     >
       ${when(
         link,
-        () => html`<a
-          slot="support-link"
-          data-l10n-id=${link.dataL10nId}
-          href=${link.url}
-          @click=${e => {
-            e.preventDefault();
-            messageHandler(link.onClick);
-          }}
-        ></a>`,
+        () =>
+          html`<a
+            slot="support-link"
+            data-l10n-id=${link.dataL10nId}
+            href=${link.url}
+            @click=${e => {
+              e.preventDefault();
+              messageHandler(link.onClick);
+            }}
+          ></a>`,
         () => nothing
       )}
       ${when(

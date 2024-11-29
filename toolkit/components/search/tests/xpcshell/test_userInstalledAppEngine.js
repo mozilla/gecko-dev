@@ -65,9 +65,8 @@ add_task(async () => {
   let initialEngines = await Services.search.getVisibleEngines();
   Assert.ok(initialEngines.length, "There are initial engines installed");
 
-  let engine = await Services.search.findContextualSearchEngineByHost(
-    "example.net"
-  );
+  let engine =
+    await Services.search.findContextualSearchEngineByHost("example.net");
   let settingsFileWritten = promiseAfterSettings();
   await Services.search.addSearchEngine(engine);
   await settingsFileWritten;

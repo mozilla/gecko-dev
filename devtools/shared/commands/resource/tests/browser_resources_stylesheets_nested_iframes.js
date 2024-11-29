@@ -10,9 +10,8 @@ const TEST_URI = URL_ROOT_SSL + "stylesheets-nested-iframes.html";
 add_task(async function () {
   const tab = await addTab(TEST_URI);
 
-  const { client, resourceCommand, targetCommand } = await initResourceCommand(
-    tab
-  );
+  const { client, resourceCommand, targetCommand } =
+    await initResourceCommand(tab);
 
   info("Check whether ResourceCommand gets existing stylesheet");
   const availableResources = [];

@@ -89,9 +89,8 @@ add_task(async function test_merged_item_chunking() {
     "Should leave unfiled with new remote structure unmerged"
   );
 
-  let localChildRecordIds = await PlacesSyncUtils.bookmarks.fetchChildRecordIds(
-    "toolbar"
-  );
+  let localChildRecordIds =
+    await PlacesSyncUtils.bookmarks.fetchChildRecordIds("toolbar");
   deepEqual(
     localChildRecordIds,
     toolbarRecord.children,
@@ -150,9 +149,8 @@ add_task(async function test_deletion_chunking() {
   let tombstones = await PlacesTestUtils.fetchSyncTombstones();
   deepEqual(tombstones, [], "Shouldn't store tombstones for remote deletions");
 
-  let localChildRecordIds = await PlacesSyncUtils.bookmarks.fetchChildRecordIds(
-    "unfiled"
-  );
+  let localChildRecordIds =
+    await PlacesSyncUtils.bookmarks.fetchChildRecordIds("unfiled");
   deepEqual(
     localChildRecordIds,
     [],

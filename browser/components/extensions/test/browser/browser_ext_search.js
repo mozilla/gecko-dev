@@ -168,9 +168,8 @@ add_task(async function test_search_default_engine() {
   let tabId = await extensionWithObserver.awaitMessage("ready");
 
   extension.sendMessage("search", tabId);
-  let requestDetails = await extensionWithObserver.awaitMessage(
-    "detectedSearch"
-  );
+  let requestDetails =
+    await extensionWithObserver.awaitMessage("detectedSearch");
   await extension.unload();
   await extensionWithObserver.unload();
 

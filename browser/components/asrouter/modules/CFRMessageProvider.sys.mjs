@@ -142,8 +142,8 @@ const CFR_MESSAGES = [
       (${JSON.stringify(
         FACEBOOK_CONTAINER_PARAMS.open_urls
       )} intersect topFrecentSites[.frecency >= ${
-      FACEBOOK_CONTAINER_PARAMS.min_frecency
-    }]|mapToProperty('host'))|length > 0`,
+        FACEBOOK_CONTAINER_PARAMS.min_frecency
+      }]|mapToProperty('host'))|length > 0`,
     trigger: { id: "openURL", params: FACEBOOK_CONTAINER_PARAMS.open_urls },
   },
   {
@@ -213,8 +213,8 @@ const CFR_MESSAGES = [
       (${JSON.stringify(
         GOOGLE_TRANSLATE_PARAMS.open_urls
       )} intersect topFrecentSites[.frecency >= ${
-      GOOGLE_TRANSLATE_PARAMS.min_frecency
-    }]|mapToProperty('host'))|length > 0`,
+        GOOGLE_TRANSLATE_PARAMS.min_frecency
+      }]|mapToProperty('host'))|length > 0`,
     trigger: { id: "openURL", params: GOOGLE_TRANSLATE_PARAMS.open_urls },
   },
   {
@@ -284,8 +284,8 @@ const CFR_MESSAGES = [
       (${JSON.stringify(
         YOUTUBE_ENHANCE_PARAMS.open_urls
       )} intersect topFrecentSites[.frecency >= ${
-      YOUTUBE_ENHANCE_PARAMS.min_frecency
-    }]|mapToProperty('host'))|length > 0`,
+        YOUTUBE_ENHANCE_PARAMS.min_frecency
+      }]|mapToProperty('host'))|length > 0`,
     trigger: { id: "openURL", params: YOUTUBE_ENHANCE_PARAMS.open_urls },
   },
   {
@@ -356,8 +356,8 @@ const CFR_MESSAGES = [
       (${JSON.stringify(
         WIKIPEDIA_CONTEXT_MENU_SEARCH_PARAMS.open_urls
       )} intersect topFrecentSites[.frecency >= ${
-      WIKIPEDIA_CONTEXT_MENU_SEARCH_PARAMS.min_frecency
-    }]|mapToProperty('host'))|length > 0`,
+        WIKIPEDIA_CONTEXT_MENU_SEARCH_PARAMS.min_frecency
+      }]|mapToProperty('host'))|length > 0`,
     trigger: {
       id: "openURL",
       params: WIKIPEDIA_CONTEXT_MENU_SEARCH_PARAMS.open_urls,
@@ -431,8 +431,8 @@ const CFR_MESSAGES = [
       (${JSON.stringify(
         REDDIT_ENHANCEMENT_PARAMS.open_urls
       )} intersect topFrecentSites[.frecency >= ${
-      REDDIT_ENHANCEMENT_PARAMS.min_frecency
-    }]|mapToProperty('host'))|length > 0`,
+        REDDIT_ENHANCEMENT_PARAMS.min_frecency
+      }]|mapToProperty('host'))|length > 0`,
     trigger: { id: "openURL", params: REDDIT_ENHANCEMENT_PARAMS.open_urls },
   },
   {

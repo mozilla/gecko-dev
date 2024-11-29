@@ -1461,9 +1461,10 @@ class DefaultEngineDropDown {
     ) {
       return;
     }
-    let defaultEngine = await Services.search[
-      this.#type == "normal" ? "getDefault" : "getDefaultPrivate"
-    ]();
+    let defaultEngine =
+      await Services.search[
+        this.#type == "normal" ? "getDefault" : "getDefaultPrivate"
+      ]();
 
     this.#element.removeAllItems();
     for (let engine of enginesList) {

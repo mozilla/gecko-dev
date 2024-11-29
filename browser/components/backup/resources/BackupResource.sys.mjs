@@ -143,9 +143,8 @@ export class BackupResource {
 
     let size = 0;
     for (const childFilePath of children) {
-      let { size: childSize, type: childType } = await IOUtils.stat(
-        childFilePath
-      );
+      let { size: childSize, type: childType } =
+        await IOUtils.stat(childFilePath);
 
       if (shouldExclude(childFilePath, childType, directoryPath)) {
         continue;

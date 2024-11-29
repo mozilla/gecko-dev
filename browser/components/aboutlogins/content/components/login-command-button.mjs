@@ -15,14 +15,15 @@ import {
 } from "chrome://global/content/vendor/lit.all.mjs";
 import { MozLitElement } from "chrome://global/content/lit-utils.mjs";
 
-export const stylesTemplate = () => html`<link
-    rel="stylesheet"
-    href="chrome://global/skin/in-content/common.css"
-  />
-  <link
-    rel="stylesheet"
-    href="chrome://browser/content/aboutlogins/components/login-command-button.css"
-  />`;
+export const stylesTemplate = () =>
+  html`<link
+      rel="stylesheet"
+      href="chrome://global/skin/in-content/common.css"
+    />
+    <link
+      rel="stylesheet"
+      href="chrome://browser/content/aboutlogins/components/login-command-button.css"
+    />`;
 
 export const LoginCommandButton = ({
   onClick,
@@ -31,16 +32,17 @@ export const LoginCommandButton = ({
   variant,
   disabled,
   buttonText,
-}) => html`<button
-  class=${variant}
-  data-l10n-id=${ifDefined(l10nId)}
-  ?disabled=${disabled}
-  @click=${ifDefined(onClick)}
->
-  <img src=${ifDefined(icon)} role="presentation" />
+}) =>
+  html`<button
+    class=${variant}
+    data-l10n-id=${ifDefined(l10nId)}
+    ?disabled=${disabled}
+    @click=${ifDefined(onClick)}
+  >
+    <img src=${ifDefined(icon)} role="presentation" />
 
-  <span data-l10n-id=${ifDefined(buttonText)}></span>
-</button>`;
+    <span data-l10n-id=${ifDefined(buttonText)}></span>
+  </button>`;
 
 export class CreateLoginButton extends MozLitElement {
   static get properties() {

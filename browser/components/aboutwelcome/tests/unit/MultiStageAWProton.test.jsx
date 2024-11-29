@@ -570,9 +570,8 @@ describe("MultiStageAboutWelcomeProton module", () => {
     };
     it("should not set url for default qrcode svg", async () => {
       sandbox.stub(global.AppConstants, "isChinaRepack").returns(false);
-      const data = await AboutWelcomeDefaults.prepareContentForReact(
-        TEST_CONTENT
-      );
+      const data =
+        await AboutWelcomeDefaults.prepareContentForReact(TEST_CONTENT);
       assert.propertyVal(
         data.screens[0].content.hero_image,
         "url",
@@ -581,9 +580,8 @@ describe("MultiStageAboutWelcomeProton module", () => {
     });
     it("should set url for cn qrcode svg", async () => {
       sandbox.stub(global.AppConstants, "isChinaRepack").returns(true);
-      const data = await AboutWelcomeDefaults.prepareContentForReact(
-        TEST_CONTENT
-      );
+      const data =
+        await AboutWelcomeDefaults.prepareContentForReact(TEST_CONTENT);
       assert.propertyVal(
         data.screens[0].content.hero_image,
         "url",
@@ -617,9 +615,8 @@ describe("MultiStageAboutWelcomeProton module", () => {
           },
         ],
       };
-      const data = await AboutWelcomeDefaults.prepareContentForReact(
-        TEST_CONTENT
-      );
+      const data =
+        await AboutWelcomeDefaults.prepareContentForReact(TEST_CONTENT);
       assert.propertyVal(data, "ua", "test");
       assert.propertyVal(
         data.screens[0].content.primary_button.action.data,
@@ -644,9 +641,8 @@ describe("MultiStageAboutWelcomeProton module", () => {
           },
         ],
       };
-      const data = await AboutWelcomeDefaults.prepareContentForReact(
-        TEST_CONTENT
-      );
+      const data =
+        await AboutWelcomeDefaults.prepareContentForReact(TEST_CONTENT);
       assert.propertyVal(data, "ua", "test");
       assert.notPropertyVal(
         data.screens[0].content.primary_button.action.data,

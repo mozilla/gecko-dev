@@ -142,8 +142,8 @@ class RecommendedAd extends MozLitElement {
         <a id="recommended-ad-wrapper" slot="content" href=${
           this.product.url
         } target="_blank" title="${this.product.name}" @click=${
-      this.handleClick
-    } @auxclick=${this.handleClick}>
+          this.handleClick
+        } @auxclick=${this.handleClick}>
           <div id="ad-content">
             <img id="ad-preview-image" src=${this.imageUrl}></img>
             <span id="ad-title" lang="en">${this.product.name}</span>

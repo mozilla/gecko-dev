@@ -1549,12 +1549,10 @@ var gPrivacyPane = {
 
       // Hide all cookie options first, until we learn which one should be showing.
       document.querySelector(selector + " .all-cookies-option").hidden = true;
-      document.querySelector(
-        selector + " .unvisited-cookies-option"
-      ).hidden = true;
-      document.querySelector(
-        selector + " .cross-site-cookies-option"
-      ).hidden = true;
+      document.querySelector(selector + " .unvisited-cookies-option").hidden =
+        true;
+      document.querySelector(selector + " .cross-site-cookies-option").hidden =
+        true;
       document.querySelector(
         selector + " .third-party-tracking-cookies-option"
       ).hidden = true;
@@ -1570,24 +1568,20 @@ var gPrivacyPane = {
         // Note "cookieBehavior0", will result in no UI changes, so is not listed here.
         switch (item) {
           case "tp":
-            document.querySelector(
-              selector + " .trackers-option"
-            ).hidden = false;
+            document.querySelector(selector + " .trackers-option").hidden =
+              false;
             break;
           case "-tp":
-            document.querySelector(
-              selector + " .trackers-option"
-            ).hidden = true;
+            document.querySelector(selector + " .trackers-option").hidden =
+              true;
             break;
           case "tpPrivate":
-            document.querySelector(
-              selector + " .pb-trackers-option"
-            ).hidden = false;
+            document.querySelector(selector + " .pb-trackers-option").hidden =
+              false;
             break;
           case "-tpPrivate":
-            document.querySelector(
-              selector + " .pb-trackers-option"
-            ).hidden = true;
+            document.querySelector(selector + " .pb-trackers-option").hidden =
+              true;
             break;
           case "fp":
             document.querySelector(
@@ -1600,14 +1594,12 @@ var gPrivacyPane = {
             ).hidden = true;
             break;
           case "cm":
-            document.querySelector(
-              selector + " .cryptominers-option"
-            ).hidden = false;
+            document.querySelector(selector + " .cryptominers-option").hidden =
+              false;
             break;
           case "-cm":
-            document.querySelector(
-              selector + " .cryptominers-option"
-            ).hidden = true;
+            document.querySelector(selector + " .cryptominers-option").hidden =
+              true;
             break;
           case "stp":
             // Store social tracking cookies pref
@@ -1622,9 +1614,8 @@ var gPrivacyPane = {
             break;
           case "-stp":
             // Store social tracking cookies pref
-            document.querySelector(
-              selector + " .social-media-option"
-            ).hidden = true;
+            document.querySelector(selector + " .social-media-option").hidden =
+              true;
             break;
           case "cookieBehavior1":
             document.querySelector(
@@ -1632,9 +1623,8 @@ var gPrivacyPane = {
             ).hidden = false;
             break;
           case "cookieBehavior2":
-            document.querySelector(
-              selector + " .all-cookies-option"
-            ).hidden = false;
+            document.querySelector(selector + " .all-cookies-option").hidden =
+              false;
             break;
           case "cookieBehavior3":
             document.querySelector(

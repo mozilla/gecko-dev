@@ -1547,8 +1547,7 @@ function promiseTopic(aTopic) {
         SpecialPowers.Services.obs.removeObserver(observer, topic);
         reject(ex);
       }
-    },
-    aTopic);
+    }, aTopic);
   });
 }
 

@@ -68,9 +68,8 @@ async function getControllingExtension() {
     return undefined;
   }
   // Is this proxied by an extension that set proxy prefs?
-  let setting = await lazy.ExtensionPreferencesManager.getSetting(
-    "proxy.settings"
-  );
+  let setting =
+    await lazy.ExtensionPreferencesManager.getSetting("proxy.settings");
   return setting?.id;
 }
 

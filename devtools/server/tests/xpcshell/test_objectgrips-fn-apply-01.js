@@ -72,9 +72,8 @@ add_task(
     // In order to cover pausing from getPropertyValue we have to first resume
     // as pausing while already paused will be ignored.
     // So we have to have the pausingProp in a global object and access it while not paused.
-    const { result: secondObjectFront } = await commands.scriptCommand.execute(
-      "obj"
-    );
+    const { result: secondObjectFront } =
+      await commands.scriptCommand.execute("obj");
 
     const onPropertyResumed = secondObjectFront.getPropertyValue(
       "pausingProp",

@@ -79,44 +79,56 @@ function check_PointerEvent(event, testNamePrefix) {
     var value = attr[3];
 
     // existence check
-    test(function () {
-      assert_true(
-        name in event,
-        name + " attribute in " + event.type + " event"
-      );
-    }, pointerTestName + "." + name + " attribute exists");
+    test(
+      function () {
+        assert_true(
+          name in event,
+          name + " attribute in " + event.type + " event"
+        );
+      },
+      pointerTestName + "." + name + " attribute exists"
+    );
 
     // readonly check
     if (readonly === "readonly") {
-      test(function () {
-        assert_readonly(
-          event.type,
-          name,
-          event.type + "." + name + " cannot be changed"
-        );
-      }, pointerTestName + "." + name + " is readonly");
+      test(
+        function () {
+          assert_readonly(
+            event.type,
+            name,
+            event.type + "." + name + " cannot be changed"
+          );
+        },
+        pointerTestName + "." + name + " is readonly"
+      );
     }
 
     // type check
-    test(function () {
-      assert_true(
-        idl_type_check[type](event[name]),
-        name + " attribute of type " + type
-      );
-    }, pointerTestName +
-      "." +
-      name +
-      " IDL type " +
-      type +
-      " (JS type was " +
-      typeof event[name] +
-      ")");
+    test(
+      function () {
+        assert_true(
+          idl_type_check[type](event[name]),
+          name + " attribute of type " + type
+        );
+      },
+      pointerTestName +
+        "." +
+        name +
+        " IDL type " +
+        type +
+        " (JS type was " +
+        typeof event[name] +
+        ")"
+    );
 
     // value check if defined
     if (value != undefined) {
-      test(function () {
-        assert_equals(event[name], value, name + " attribute value");
-      }, pointerTestName + "." + name + " value is " + value + ".");
+      test(
+        function () {
+          assert_equals(event[name], value, name + " attribute value");
+        },
+        pointerTestName + "." + name + " value is " + value + "."
+      );
     }
   });
 

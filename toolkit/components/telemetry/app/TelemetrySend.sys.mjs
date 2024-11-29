@@ -660,9 +660,8 @@ export var SendScheduler = {
           nextSendDelay
       );
       this._sendTaskState = "wait on next send opportunity";
-      const cancelled = await CancellableTimeout.promiseWaitOnTimeout(
-        nextSendDelay
-      );
+      const cancelled =
+        await CancellableTimeout.promiseWaitOnTimeout(nextSendDelay);
       if (cancelled) {
         this._log.trace(
           "_doSendTask - batch send wait was cancelled, resetting backoff timer"

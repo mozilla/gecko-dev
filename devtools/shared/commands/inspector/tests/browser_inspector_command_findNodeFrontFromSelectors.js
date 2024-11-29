@@ -41,9 +41,8 @@ add_task(async () => {
   );
 
   info("Check that it returns null when a string is passed");
-  nodeFront = await commands.inspectorCommand.findNodeFrontFromSelectors(
-    "body main"
-  );
+  nodeFront =
+    await commands.inspectorCommand.findNodeFrontFromSelectors("body main");
   is(
     nodeFront,
     null,

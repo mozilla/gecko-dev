@@ -251,9 +251,8 @@ add_task(async function tabhistory_searchmode_non_default() {
 
 add_task(async function tabhistory_searchmode_default_engine() {
   info("Load a search with a default search provider.");
-  let { tab, expectedSearchUrl: defaultSearchUrl } = await searchWithTab(
-    SEARCH_STRING
-  );
+  let { tab, expectedSearchUrl: defaultSearchUrl } =
+    await searchWithTab(SEARCH_STRING);
 
   info("Load a search with a non-default search provider.");
   let { expectedSearchUrl: searchModeUrl } =

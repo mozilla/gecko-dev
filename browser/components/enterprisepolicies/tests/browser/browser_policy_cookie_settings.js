@@ -49,9 +49,8 @@ async function test_cookie_settings({
     uri: firstPartyURI,
     loadUsingSystemPrincipal: true,
   });
-  channel.QueryInterface(
-    Ci.nsIHttpChannelInternal
-  ).forceAllowThirdPartyCookie = true;
+  channel.QueryInterface(Ci.nsIHttpChannelInternal).forceAllowThirdPartyCookie =
+    true;
   Services.cookies.removeAll();
   Services.cookies.setCookieStringFromHttp(
     firstPartyURI,

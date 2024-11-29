@@ -31,9 +31,8 @@ async function testTabDescriptorWithURL(url) {
   info(
     "Calling a second time createCommandsForTab with the same tab, will return the same commands"
   );
-  const secondCommands = await LocalTabCommandsFactory.createCommandsForTab(
-    tab
-  );
+  const secondCommands =
+    await LocalTabCommandsFactory.createCommandsForTab(tab);
   is(commands, secondCommands, "second commands is the same");
 
   // We have to involve TargetCommand in order to have a function TabDescriptor.getTarget.

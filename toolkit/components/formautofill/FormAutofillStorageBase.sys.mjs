@@ -1028,9 +1028,8 @@ class AutofillRecords {
       } else {
         // Merge conflict. Fork the local record, then replace the original
         // with the merged record.
-        let forkedLocalRecord = await this._forkLocalRecord(
-          strippedLocalRecord
-        );
+        let forkedLocalRecord =
+          await this._forkLocalRecord(strippedLocalRecord);
         forkedGUID = forkedLocalRecord.guid;
         await this._replaceRecordAt(localIndex, remoteRecord, {
           keepSyncMetadata: false,

@@ -29,9 +29,8 @@ add_task(async function test_network_markers_early_cancel() {
     () => Services.appinfo.processID
   );
   await loadPromise;
-  const { parentThread, contentThread } = await stopProfilerNowAndGetThreads(
-    contentPid
-  );
+  const { parentThread, contentThread } =
+    await stopProfilerNowAndGetThreads(contentPid);
   BrowserTestUtils.removeTab(tab);
 
   const parentNetworkMarkers = getInflatedNetworkMarkers(parentThread);

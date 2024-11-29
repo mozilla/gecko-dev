@@ -36,8 +36,7 @@ add_task(async function test_inject_srcdoc() {
             arg
           ) {
             resolve(arg);
-          },
-          content);
+          }, content);
         });
       }).then(
         r => {

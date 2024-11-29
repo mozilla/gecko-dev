@@ -278,8 +278,8 @@ function sendMouseEvent(aEvent, aTarget, aWindow) {
       aEvent.type == "mouseup"
         ? 1
         : aEvent.type == "dblclick"
-        ? 2
-        : 0),
+          ? 2
+          : 0),
     screenX: aEvent.screenX || 0,
     screenY: aEvent.screenY || 0,
     clientX: aEvent.clientX || 0,
@@ -888,8 +888,8 @@ function synthesizeTouchAtPoint(aLeft, aTop, aEvent = {}, aWindow = window) {
   const arrayLength = Array.isArray(aLeft)
     ? aLeft.length
     : Array.isArray(aTop)
-    ? aTop.length
-    : 1;
+      ? aTop.length
+      : 1;
 
   function throwExceptionIfDifferentLengthArray(aArray, aName) {
     if (Array.isArray(aArray) && arrayLength !== aArray.length) {
@@ -1061,15 +1061,15 @@ function synthesizeWheelAtPoint(aLeft, aTop, aEvent, aWindow = window) {
     aEvent.lineOrPageDeltaX != null
       ? aEvent.lineOrPageDeltaX
       : aEvent.deltaX > 0
-      ? Math.floor(aEvent.deltaX)
-      : Math.ceil(aEvent.deltaX);
+        ? Math.floor(aEvent.deltaX)
+        : Math.ceil(aEvent.deltaX);
   var lineOrPageDeltaY =
     // eslint-disable-next-line no-nested-ternary
     aEvent.lineOrPageDeltaY != null
       ? aEvent.lineOrPageDeltaY
       : aEvent.deltaY > 0
-      ? Math.floor(aEvent.deltaY)
-      : Math.ceil(aEvent.deltaY);
+        ? Math.floor(aEvent.deltaY)
+        : Math.ceil(aEvent.deltaY);
   utils.sendWheelEvent(
     aLeft,
     aTop,
@@ -2625,8 +2625,8 @@ function synthesizeComposition(aEvent, aWindow = window, aCallback) {
       aEvent.key.type === "keydown"
         ? "keydown"
         : aEvent.key.type === "keyup"
-        ? "keyup"
-        : "",
+          ? "keyup"
+          : "",
       keyEventDict.dictionary
     );
   } else if (aEvent.key === undefined) {
@@ -2775,8 +2775,8 @@ function synthesizeCompositionChange(aEvent, aWindow = window, aCallback) {
         aEvent.key.type === "keydown"
           ? "keydown"
           : aEvent.key.type === "keyup"
-          ? "keyup"
-          : "",
+            ? "keyup"
+            : "",
         keyEventDict.dictionary
       );
     } else if (aEvent.key === undefined) {

@@ -49,9 +49,8 @@ const TEST_DATA = [
     options: {},
     async checkHighlighter(highlighterTestFront) {
       for (const region of ["margin", "border", "padding", "content"]) {
-        const { d } = await highlighterTestFront.getHighlighterRegionPath(
-          region
-        );
+        const { d } =
+          await highlighterTestFront.getHighlighterRegionPath(region);
         ok(d, "Region " + region + " has set coordinates");
       }
     },
@@ -135,9 +134,8 @@ const TEST_DATA = [
         "x1"
       );
 
-      let { points } = await highlighterTestFront.getHighlighterRegionPath(
-        "padding"
-      );
+      let { points } =
+        await highlighterTestFront.getHighlighterRegionPath("padding");
       points = points[0];
 
       is(topY1, points[0][1], "Top guide's y1 is correct");
@@ -175,9 +173,8 @@ const TEST_DATA = [
         "x1"
       );
 
-      let { points } = await highlighterTestFront.getHighlighterRegionPath(
-        "margin"
-      );
+      let { points } =
+        await highlighterTestFront.getHighlighterRegionPath("margin");
       points = points[0];
 
       is(topY1, points[0][1], "Top guide's y1 is correct");
@@ -199,9 +196,8 @@ const TEST_DATA = [
     options: { showOnly: "margin", onlyRegionArea: true },
     async checkHighlighter(highlighterTestFront) {
       for (const region of ["margin", "border", "padding", "content"]) {
-        const { d } = await highlighterTestFront.getHighlighterRegionPath(
-          region
-        );
+        const { d } =
+          await highlighterTestFront.getHighlighterRegionPath(region);
         ok(d, "Region " + region + " is shown (it has a d attribute)");
 
         const faded = await highlighterTestFront.getHighlighterNodeAttribute(
@@ -221,9 +217,8 @@ const TEST_DATA = [
     options: { showOnly: "padding", onlyRegionArea: true },
     async checkHighlighter(highlighterTestFront) {
       for (const region of ["margin", "border", "padding", "content"]) {
-        const { d } = await highlighterTestFront.getHighlighterRegionPath(
-          region
-        );
+        const { d } =
+          await highlighterTestFront.getHighlighterRegionPath(region);
         ok(d, "Region " + region + " is shown (it has a d attribute)");
 
         const faded = await highlighterTestFront.getHighlighterNodeAttribute(

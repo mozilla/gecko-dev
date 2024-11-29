@@ -11,15 +11,15 @@ testFile.append("prefs.js");
 
 addMessageListener("file.open", function () {
   File.createFromNsIFile(testFile).then(function (file) {
-    File.createFromNsIFile(testFile, { lastModified: 123 }).then(function (
-      fileWithDate
-    ) {
-      sendAsyncMessage("file.opened", {
-        file,
-        mtime: testFile.lastModifiedTime,
-        fileWithDate,
-        fileDate: 123,
-      });
-    });
+    File.createFromNsIFile(testFile, { lastModified: 123 }).then(
+      function (fileWithDate) {
+        sendAsyncMessage("file.opened", {
+          file,
+          mtime: testFile.lastModifiedTime,
+          fileWithDate,
+          fileDate: 123,
+        });
+      }
+    );
   });
 });

@@ -199,9 +199,8 @@ BoxModel.prototype = {
       });
 
       // Update the redux store with the latest offset parent DOM node
-      const offsetParent = await inspectorFront.walker.getOffsetParent(
-        nodeFront
-      );
+      const offsetParent =
+        await inspectorFront.walker.getOffsetParent(nodeFront);
       this.store.dispatch(updateOffsetParent(offsetParent));
 
       // Update the redux store with the latest layout properties and update the box

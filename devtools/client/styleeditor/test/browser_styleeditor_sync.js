@@ -57,9 +57,8 @@ add_task(async function () {
   let ruleEditor = getRuleViewRuleEditor(view, 1);
 
   // Disable the "font-size" property.
-  let { onResourceUpdated } = await waitForNextStyleSheetResourceUpdate(
-    inspector
-  );
+  let { onResourceUpdated } =
+    await waitForNextStyleSheetResourceUpdate(inspector);
   let propEditor = ruleEditor.rule.textProps[0].editor;
   let onModification = view.once("ruleview-changed");
   propEditor.enable.click();
@@ -70,9 +69,8 @@ add_task(async function () {
   // rule that also contains a non-inherited property -- so this test
   // is also testing that property editing works properly in this
   // situation.
-  ({ onResourceUpdated } = await waitForNextStyleSheetResourceUpdate(
-    inspector
-  ));
+  ({ onResourceUpdated } =
+    await waitForNextStyleSheetResourceUpdate(inspector));
   ruleEditor = getRuleViewRuleEditor(view, 3);
   propEditor = ruleEditor.rule.textProps[1].editor;
   onModification = view.once("ruleview-changed");

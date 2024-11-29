@@ -134,35 +134,35 @@ add_storage_task(async function test_add_tombstone(storage, _record) {
   do_check_tombstone_record(tombstoneInDisk);
 });
 
-add_storage_task(async function test_add_tombstone_without_guid(
-  storage,
-  _record
-) {
-  info("Should not be able to add a new tombstone without specifying the guid");
-  await Assert.rejects(storage.add({ deleted: true }), /Record missing GUID/);
-  Assert.equal((await storage.getAll({ includeDeleted: true })).length, 0);
-});
+add_storage_task(
+  async function test_add_tombstone_without_guid(storage, _record) {
+    info(
+      "Should not be able to add a new tombstone without specifying the guid"
+    );
+    await Assert.rejects(storage.add({ deleted: true }), /Record missing GUID/);
+    Assert.equal((await storage.getAll({ includeDeleted: true })).length, 0);
+  }
+);
 
-add_storage_task(async function test_add_tombstone_existing_guid(
-  storage,
-  record
-) {
-  info(
-    "Should not be able to add a new tombstone when a record with that ID exists"
-  );
-  let guid = await storage.add(record);
-  await Assert.rejects(
-    storage.add({ guid, deleted: true }),
-    /a record with this GUID already exists/
-  );
+add_storage_task(
+  async function test_add_tombstone_existing_guid(storage, record) {
+    info(
+      "Should not be able to add a new tombstone when a record with that ID exists"
+    );
+    let guid = await storage.add(record);
+    await Assert.rejects(
+      storage.add({ guid, deleted: true }),
+      /a record with this GUID already exists/
+    );
 
-  // same if the existing item is already a tombstone.
-  await storage.add({ guid: "test-guid-1", deleted: true });
-  await Assert.rejects(
-    storage.add({ guid: "test-guid-1", deleted: true }),
-    /a record with this GUID already exists/
-  );
-});
+    // same if the existing item is already a tombstone.
+    await storage.add({ guid: "test-guid-1", deleted: true });
+    await Assert.rejects(
+      storage.add({ guid: "test-guid-1", deleted: true }),
+      /a record with this GUID already exists/
+    );
+  }
+);
 
 add_storage_task(async function test_update_tombstone(storage, _record) {
   info("Updating a tombstone should fail");
@@ -170,21 +170,20 @@ add_storage_task(async function test_update_tombstone(storage, _record) {
   await Assert.rejects(storage.update(guid, {}), /No matching record./);
 });
 
-add_storage_task(async function test_remove_existing_tombstone(
-  storage,
-  _record
-) {
-  info("Removing a record that's already a tombstone should be a no-op");
-  let guid = await storage.add({
-    guid: "test-guid-1",
-    deleted: true,
-    timeLastModified: 1234,
-  });
+add_storage_task(
+  async function test_remove_existing_tombstone(storage, _record) {
+    info("Removing a record that's already a tombstone should be a no-op");
+    let guid = await storage.add({
+      guid: "test-guid-1",
+      deleted: true,
+      timeLastModified: 1234,
+    });
 
-  storage.remove(guid);
-  let all = await storage.getAll({ rawData: true, includeDeleted: true });
-  Assert.equal(all.length, 1);
+    storage.remove(guid);
+    let all = await storage.getAll({ rawData: true, includeDeleted: true });
+    Assert.equal(all.length, 1);
 
-  do_check_tombstone_record(all[0]);
-  equal(all[0].timeLastModified, 1234); // should not be updated to now().
-});
+    do_check_tombstone_record(all[0]);
+    equal(all[0].timeLastModified, 1234); // should not be updated to now().
+  }
+);

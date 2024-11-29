@@ -1588,18 +1588,27 @@ add_task(async function test_migrate_startupData_to_new_format() {
         { fromCustomParam1: "value2" },
         ["fromCustomParam2Other"],
       ];
-      browser.nonStartupBlocking.onEvent3.addListener(function listener1(arg) {
-        browser.test.log("listener1 called on nonStartupBlocking.onEvent3");
-        browser.test.sendMessage("listener1", arg);
-      }, ...eventParams);
-      browser.nonStartupBlocking.onEvent3.addListener(function listener2(arg) {
-        browser.test.log("listener2 called on nonStartupBlocking.onEvent3");
-        browser.test.sendMessage("listener2", arg);
-      }, ...eventParams);
-      browser.nonStartupBlocking.onEvent3.addListener(function listener3(arg) {
-        browser.test.log("listener3 called on nonStartupBlocking.onEvent3");
-        browser.test.sendMessage("listener3", arg);
-      }, ...otherEventParams);
+      browser.nonStartupBlocking.onEvent3.addListener(
+        function listener1(arg) {
+          browser.test.log("listener1 called on nonStartupBlocking.onEvent3");
+          browser.test.sendMessage("listener1", arg);
+        },
+        ...eventParams
+      );
+      browser.nonStartupBlocking.onEvent3.addListener(
+        function listener2(arg) {
+          browser.test.log("listener2 called on nonStartupBlocking.onEvent3");
+          browser.test.sendMessage("listener2", arg);
+        },
+        ...eventParams
+      );
+      browser.nonStartupBlocking.onEvent3.addListener(
+        function listener3(arg) {
+          browser.test.log("listener3 called on nonStartupBlocking.onEvent3");
+          browser.test.sendMessage("listener3", arg);
+        },
+        ...otherEventParams
+      );
       browser.test.sendMessage("ready");
     },
   });

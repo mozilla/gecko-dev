@@ -27,15 +27,17 @@ add_task(async function () {
       }
       resetLoad();
 
-      browser.tabs.onUpdated.addListener(function listener(
-        tabId_,
-        changed,
-        tab
-      ) {
-        if (tabId == tabId_ && changed.status == "complete" && tab.url == URL) {
-          resolveLoad();
+      browser.tabs.onUpdated.addListener(
+        function listener(tabId_, changed, tab) {
+          if (
+            tabId == tabId_ &&
+            changed.status == "complete" &&
+            tab.url == URL
+          ) {
+            resolveLoad();
+          }
         }
-      });
+      );
 
       try {
         let tab = await browser.tabs.create({ url: URL });

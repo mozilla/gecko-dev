@@ -535,8 +535,8 @@ add_task(async function checkAddonsInfo() {
     "service",
   ]);
 
-  const { addons: asRouterAddons, isFullData } = await ASRouterTargeting
-    .Environment.addonsInfo;
+  const { addons: asRouterAddons, isFullData } =
+    await ASRouterTargeting.Environment.addonsInfo;
 
   ok(
     addons.every(({ id }) => asRouterAddons[id]),

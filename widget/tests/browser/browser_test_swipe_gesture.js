@@ -1124,8 +1124,7 @@ add_task(async () => {
           SpecialPowers.Services.obs.removeObserver(observer, topic);
           reject(ex);
         }
-      },
-      "APZ:TransformEnd");
+      }, "APZ:TransformEnd");
     });
   });
 

@@ -9,9 +9,8 @@ add_task(async function () {
   const TEST_URL = "data:text/html;charset=utf-8,<!DOCTYPE html>foo";
   const tab = await addTab(TEST_URL);
 
-  const { client, resourceCommand, targetCommand } = await initResourceCommand(
-    tab
-  );
+  const { client, resourceCommand, targetCommand } =
+    await initResourceCommand(tab);
 
   let resources = [];
   const onAvailable = _resources => {

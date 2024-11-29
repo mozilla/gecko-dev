@@ -121,14 +121,16 @@ export class LoginListItem extends MozLitElement {
           <span class="title" dir="auto">${this.title}</span>
           ${when(
             this.username,
-            () => html` <span class="subtitle" dir="auto">
-              ${this.username}
-            </span>`,
-            () => html`<span
-              class="subtitle"
-              dir="auto"
-              data-l10n-id="login-list-item-subtitle-missing-username"
-            ></span>`
+            () =>
+              html` <span class="subtitle" dir="auto">
+                ${this.username}
+              </span>`,
+            () =>
+              html`<span
+                class="subtitle"
+                dir="auto"
+                data-l10n-id="login-list-item-subtitle-missing-username"
+              ></span>`
           )}
         </div>
         <div slot="notificationIcon">

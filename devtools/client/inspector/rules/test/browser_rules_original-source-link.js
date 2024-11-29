@@ -33,9 +33,8 @@ add_task(async function () {
   Services.prefs.setBoolPref(PREF, true);
 
   await testClickingLink(toolbox, view);
-  const selectedEditor = await waitForOriginalStyleSheetEditorSelection(
-    toolbox
-  );
+  const selectedEditor =
+    await waitForOriginalStyleSheetEditorSelection(toolbox);
 
   const href = selectedEditor.styleSheet.href;
   ok(

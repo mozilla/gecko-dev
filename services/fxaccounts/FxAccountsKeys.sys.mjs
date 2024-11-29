@@ -428,9 +428,8 @@ export class FxAccountsKeys {
     // We fetch this first, before fetching the actual key material, because the
     // keyFetchToken is single-use and we don't want to do a potentially-fallible
     // operation after consuming it.
-    const scopedKeysMetadata = await this._fetchScopedKeysMetadata(
-      sessionToken
-    );
+    const scopedKeysMetadata =
+      await this._fetchScopedKeysMetadata(sessionToken);
 
     // Fetch the wrapped keys.
     // It would be nice to be able to fetch this in a single operation with fetching

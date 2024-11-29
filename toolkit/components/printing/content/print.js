@@ -455,9 +455,8 @@ var PrintEventHandler = {
     this.currentPrinterName = printerName;
     let currentPrinter;
     try {
-      currentPrinter = await PrintSettingsViewProxy.resolvePropertiesForPrinter(
-        printerName
-      );
+      currentPrinter =
+        await PrintSettingsViewProxy.resolvePropertiesForPrinter(printerName);
     } catch (e) {
       this.reportPrintingError("PRINTER_PROPERTIES");
       throw e;

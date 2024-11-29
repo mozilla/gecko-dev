@@ -27,9 +27,8 @@ add_task(async function () {
 
 async function testWebsocketResources(target) {
   const tab = await addTab(URL_ROOT_SSL + "websocket_frontend.html");
-  const { client, resourceCommand, targetCommand } = await initResourceCommand(
-    tab
-  );
+  const { client, resourceCommand, targetCommand } =
+    await initResourceCommand(tab);
 
   const availableResources = [];
   function onResourceAvailable(resources) {

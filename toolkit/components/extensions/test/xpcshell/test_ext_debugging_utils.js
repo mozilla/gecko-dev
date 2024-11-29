@@ -251,9 +251,8 @@ add_task(async function testExtensionDebuggingUtilsWithMultipleAddons() {
   };
 
   const { DebugUtils } = ExtensionParent;
-  const debugBrowser = await DebugUtils.getExtensionProcessBrowser(
-    fakeAddonActor
-  );
+  const debugBrowser =
+    await DebugUtils.getExtensionProcessBrowser(fakeAddonActor);
   const anotherDebugBrowser = await DebugUtils.getExtensionProcessBrowser(
     anotherFakeAddonActor
   );

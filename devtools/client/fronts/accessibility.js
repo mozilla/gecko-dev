@@ -169,9 +169,8 @@ class AccessibleFront extends FrontClassWithSpec(accessibleSpec) {
       return super.children();
     }
 
-    const { walker: domWalkerFront } = await this.targetFront.getFront(
-      "inspector"
-    );
+    const { walker: domWalkerFront } =
+      await this.targetFront.getFront("inspector");
     const node = await domWalkerFront.getNodeFromActor(this.actorID, [
       "rawAccessible",
       "DOMNode",
@@ -184,9 +183,8 @@ class AccessibleFront extends FrontClassWithSpec(accessibleSpec) {
     const {
       nodes: [documentNodeFront],
     } = await domWalkerFront.children(node);
-    const accessibilityFront = await documentNodeFront.targetFront.getFront(
-      "accessibility"
-    );
+    const accessibilityFront =
+      await documentNodeFront.targetFront.getFront("accessibility");
 
     return accessibilityFront.accessibleWalkerFront.children();
   }
@@ -237,9 +235,8 @@ class AccessibleFront extends FrontClassWithSpec(accessibleSpec) {
 
     // Remote frame lives in the same process as the current accessible
     // front we can retrieve the accessible front directly.
-    const frameAccessibleFront = await this.parentFront.getAccessibleFor(
-      frameNodeFront
-    );
+    const frameAccessibleFront =
+      await this.parentFront.getAccessibleFor(frameNodeFront);
     if (!frameAccessibleFront) {
       return snapshot;
     }
@@ -314,15 +311,13 @@ class AccessibleWalkerFront extends FrontClassWithSpec(accessibleWalkerSpec) {
     // Get an accessible front for the parent frame. We go through the
     // inspector's walker to keep both inspector and accessibility trees in
     // sync.
-    const { walker: domWalkerFront } = await this.targetFront.getFront(
-      "inspector"
-    );
+    const { walker: domWalkerFront } =
+      await this.targetFront.getFront("inspector");
     const frameNodeFront = (await domWalkerFront.getRootNode()).parentNode();
     const accessibilityFront = await parentTarget.getFront("accessibility");
     const { accessibleWalkerFront } = accessibilityFront;
-    const frameAccessibleFront = await accessibleWalkerFront.getAccessibleFor(
-      frameNodeFront
-    );
+    const frameAccessibleFront =
+      await accessibleWalkerFront.getAccessibleFor(frameNodeFront);
 
     if (!frameAccessibleFront) {
       // Most likely we are inside a hidden frame.
@@ -442,9 +437,10 @@ class AccessibleWalkerFront extends FrontClassWithSpec(accessibleWalkerSpec) {
     let elm;
     if (contentDOMReference) {
       const inspectorFront = await this.targetFront.getFront("inspector");
-      elm = await inspectorFront.getNodeActorFromContentDomReference(
-        contentDOMReference
-      );
+      elm =
+        await inspectorFront.getNodeActorFromContentDomReference(
+          contentDOMReference
+        );
     }
 
     return { elm, index };

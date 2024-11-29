@@ -824,9 +824,8 @@ class AboutLoginsInternal {
     // by other more Sync-specific pages.
     const loggedIn = state.status != lazy.UIState.STATUS_NOT_CONFIGURED;
     const passwordSyncEnabled = state.syncEnabled && lazy.PASSWORD_SYNC_ENABLED;
-    const accountURL = await lazy.FxAccounts.config.promiseManageURI(
-      "password-manager"
-    );
+    const accountURL =
+      await lazy.FxAccounts.config.promiseManageURI("password-manager");
 
     return {
       loggedIn,

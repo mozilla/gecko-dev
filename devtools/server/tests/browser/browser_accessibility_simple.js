@@ -86,9 +86,8 @@ add_task(async function () {
   });
 
   const rootNode = await domWalker.getRootNode();
-  const a11yDoc = await accessibility.accessibleWalkerFront.getAccessibleFor(
-    rootNode
-  );
+  const a11yDoc =
+    await accessibility.accessibleWalkerFront.getAccessibleFor(rootNode);
   ok(a11yDoc, "Accessible document actor is created");
 
   info("Shutdown accessibility service");

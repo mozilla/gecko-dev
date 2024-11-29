@@ -40,9 +40,8 @@ add_task(async function test_network_markers_redirect_simple() {
       () => Services.appinfo.processID
     );
 
-    const { parentThread, contentThread } = await stopProfilerNowAndGetThreads(
-      contentPid
-    );
+    const { parentThread, contentThread } =
+      await stopProfilerNowAndGetThreads(contentPid);
 
     const parentNetworkMarkers = getInflatedNetworkMarkers(parentThread);
     const contentNetworkMarkers = getInflatedNetworkMarkers(contentThread);
@@ -164,9 +163,8 @@ add_task(async function test_network_markers_redirect_resources() {
       () => Services.appinfo.processID
     );
 
-    const { parentThread, contentThread } = await stopProfilerNowAndGetThreads(
-      contentPid
-    );
+    const { parentThread, contentThread } =
+      await stopProfilerNowAndGetThreads(contentPid);
 
     const parentNetworkMarkers = getInflatedNetworkMarkers(parentThread);
     const contentNetworkMarkers = getInflatedNetworkMarkers(contentThread);

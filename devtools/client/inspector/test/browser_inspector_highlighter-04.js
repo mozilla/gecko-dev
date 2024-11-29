@@ -29,9 +29,8 @@ const ELEMENTS = [
 ];
 
 add_task(async function () {
-  const { inspector, highlighterTestFront } = await openInspectorForURL(
-    TEST_URL
-  );
+  const { inspector, highlighterTestFront } =
+    await openInspectorForURL(TEST_URL);
 
   info("Show the box-model highlighter");
   const divFront = await getNodeFront("div", inspector);

@@ -41,8 +41,8 @@ add_setup(async function () {
 });
 
 async function getQueryMetricsLabels() {
-  const suggestionTypes = await QuickSuggest.rustBackend
-    ._test_enabledSuggestionTypes;
+  const suggestionTypes =
+    await QuickSuggest.rustBackend._test_enabledSuggestionTypes;
   return suggestionTypes.map(t => t.type.toLowerCase());
 }
 

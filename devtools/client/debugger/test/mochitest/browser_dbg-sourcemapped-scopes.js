@@ -357,8 +357,8 @@ async function testShadowedVars(dbg) {
         isParcel
           ? "Outer()"
           : rollupOptimized
-          ? ["Outer", rollupOptimized]
-          : "Outer:_Outer()",
+            ? ["Outer", rollupOptimized]
+            : "Outer:_Outer()",
         "Function Body",
         ["aConst", rollupOptimized || '"const1"'],
         ["aLet", rollupOptimized || '"let1"'],
@@ -366,8 +366,8 @@ async function testShadowedVars(dbg) {
         rollupOptimized
           ? ["Outer", rollupOptimized]
           : isParcel
-          ? "class Outer"
-          : "Outer()",
+            ? "class Outer"
+            : "Outer()",
         "default",
         ["aVar", rollupOptimized || '"var3"'],
       ]

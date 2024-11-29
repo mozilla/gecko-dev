@@ -113,9 +113,8 @@ add_task(async function test_popup_title() {
   await extensionWithTabsPermission.startup();
   await extensionWithImplicitHostPermission.startup();
 
-  const windowData = await extensionWithImplicitHostPermission.awaitMessage(
-    "windowData"
-  );
+  const windowData =
+    await extensionWithImplicitHostPermission.awaitMessage("windowData");
 
   extensionWithoutPermissions.sendMessage(windowData);
   extensionWithTabsPermission.sendMessage(windowData);

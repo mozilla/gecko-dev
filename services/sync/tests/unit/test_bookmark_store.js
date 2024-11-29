@@ -355,9 +355,8 @@ add_bookmark_test(async function test_move_order(engine) {
     });
 
     _("Verify order.");
-    let childIds = await PlacesSyncUtils.bookmarks.fetchChildRecordIds(
-      "toolbar"
-    );
+    let childIds =
+      await PlacesSyncUtils.bookmarks.fetchChildRecordIds("toolbar");
     Assert.deepEqual(childIds, [bmk1.guid, bmk2.guid]);
     let toolbar = await store.createRecord("toolbar");
     Assert.deepEqual(toolbar.children, [bmk1.guid, bmk2.guid]);
@@ -373,9 +372,8 @@ add_bookmark_test(async function test_move_order(engine) {
     delete store._childrenToOrder;
 
     _("Verify new order.");
-    let newChildIds = await PlacesSyncUtils.bookmarks.fetchChildRecordIds(
-      "toolbar"
-    );
+    let newChildIds =
+      await PlacesSyncUtils.bookmarks.fetchChildRecordIds("toolbar");
     Assert.deepEqual(newChildIds, [bmk2.guid, bmk1.guid]);
   } finally {
     await tracker.stop();

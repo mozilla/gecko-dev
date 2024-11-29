@@ -56,9 +56,8 @@ add_task(async function () {
     function () {
       const remote_frame1 = content.document.getElementById("remote_frame1");
       return SpecialPowers.spawn(remote_frame1, [], function () {
-        return content.document.getElementById(
-          "nested_same_process_frame"
-        ).browsingContext;
+        return content.document.getElementById("nested_same_process_frame")
+          .browsingContext;
       });
     }
   );
@@ -90,9 +89,8 @@ add_task(async function () {
     function () {
       const remote_frame2 = content.document.getElementById("remote_frame2");
       return SpecialPowers.spawn(remote_frame2, [], function () {
-        return content.document.getElementById(
-          "nested_remote_frame"
-        ).browsingContext;
+        return content.document.getElementById("nested_remote_frame")
+          .browsingContext;
       });
     }
   );

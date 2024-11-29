@@ -334,21 +334,20 @@ add_task(async function testTelemetryForUserInteractionHeuristic() {
       info("Opening a window from the iframe.");
       await SpecialPowers.spawn(ifr, [obj.popup], async popup => {
         let windowClosed = new content.Promise(resolve => {
-          Services.ww.registerNotification(function notification(
-            aSubject,
-            aTopic
-          ) {
-            // We need to check the document URI here as well for the same
-            // reason above.
-            if (
-              aTopic == "domwindowclosed" &&
-              aSubject.document.documentURI ==
-                "https://tracking.example.org/browser/toolkit/components/antitracking/test/browser/3rdPartyOpenUI.html"
-            ) {
-              Services.ww.unregisterNotification(notification);
-              resolve();
+          Services.ww.registerNotification(
+            function notification(aSubject, aTopic) {
+              // We need to check the document URI here as well for the same
+              // reason above.
+              if (
+                aTopic == "domwindowclosed" &&
+                aSubject.document.documentURI ==
+                  "https://tracking.example.org/browser/toolkit/components/antitracking/test/browser/3rdPartyOpenUI.html"
+              ) {
+                Services.ww.unregisterNotification(notification);
+                resolve();
+              }
             }
-          });
+          );
         });
 
         content.open(popup);

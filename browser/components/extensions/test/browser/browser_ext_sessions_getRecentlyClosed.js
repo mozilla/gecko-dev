@@ -51,9 +51,8 @@ add_task(async function test_sessions_get_recently_closed() {
 
   await extension.startup();
 
-  let { recentlyClosed, currentWindowId } = await extension.awaitMessage(
-    "initialData"
-  );
+  let { recentlyClosed, currentWindowId } =
+    await extension.awaitMessage("initialData");
   recordInitialTimestamps(recentlyClosed.map(item => item.lastModified));
 
   await openAndCloseWindow();

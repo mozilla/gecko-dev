@@ -426,9 +426,8 @@ export class FxAccounts {
     const ONE_DAY = 24 * 60 * 60 * 1000;
 
     return this._withSessionToken(async sessionToken => {
-      const response = await this._internal.fxAccountsClient.attachedClients(
-        sessionToken
-      );
+      const response =
+        await this._internal.fxAccountsClient.attachedClients(sessionToken);
       const attachedClients = response.body;
       const timestamp = response.headers["x-timestamp"];
       const now =
@@ -767,9 +766,8 @@ FxAccountsInternal.prototype = {
   // to help with our mocking story.
   initialize() {
     ChromeUtils.defineLazyGetter(this, "fxaPushService", function () {
-      return Cc["@mozilla.org/fxaccounts/push;1"].getService(
-        Ci.nsISupports
-      ).wrappedJSObject;
+      return Cc["@mozilla.org/fxaccounts/push;1"].getService(Ci.nsISupports)
+        .wrappedJSObject;
     });
 
     this.keys = new lazy.FxAccountsKeys(this);

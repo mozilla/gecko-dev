@@ -20,9 +20,8 @@ const getAlertsRenderedPromise = megalist => {
     async () => {
       const passwordsList = megalist.querySelector(".passwords-list");
       const logins = await Services.logins.getAllLogins();
-      const breaches = await LoginBreaches.getPotentialBreachesByLoginGUID(
-        logins
-      );
+      const breaches =
+        await LoginBreaches.getPotentialBreachesByLoginGUID(logins);
       return (
         passwordsList?.querySelectorAll("password-card").length ===
         breaches.size

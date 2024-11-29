@@ -22,9 +22,8 @@ const expectedStyle = (w, h, z) =>
   "overflow: hidden;";
 
 add_task(async function () {
-  const { inspector, highlighterTestFront } = await openInspectorForURL(
-    TEST_URL
-  );
+  const { inspector, highlighterTestFront } =
+    await openInspectorForURL(TEST_URL);
 
   const div = await getNodeFront("div", inspector);
 

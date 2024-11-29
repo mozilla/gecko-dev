@@ -78,33 +78,35 @@ test_upgrade(function (testWindow, testElement, msg) {
   );
 
   SimpleTest.is(uncaughtError.name, "TypeError", msg);
-}, "Upgrading must report an TypeError when the top of the " +
-  "construction stack is marked AlreadyConstructed");
+}, "Upgrading must report an TypeError when the top of the " + "construction stack is marked AlreadyConstructed");
 
-test_upgrade(function (testWindow, testElement, msg) {
-  class InstantiatesItselfBeforeSuper extends testWindow.HTMLElement {
-    constructor(doNotCreateItself) {
-      if (!doNotCreateItself) {
-        new InstantiatesItselfBeforeSuper(true);
+test_upgrade(
+  function (testWindow, testElement, msg) {
+    class InstantiatesItselfBeforeSuper extends testWindow.HTMLElement {
+      constructor(doNotCreateItself) {
+        if (!doNotCreateItself) {
+          new InstantiatesItselfBeforeSuper(true);
+        }
+        super();
       }
-      super();
     }
-  }
 
-  let uncaughtError;
-  window.onerror = function (message, url, lineNumber, columnNumber, error) {
-    uncaughtError = error;
-    return true;
-  };
-  testWindow.customElements.define(
-    "unresolved-element",
-    InstantiatesItselfBeforeSuper
-  );
+    let uncaughtError;
+    window.onerror = function (message, url, lineNumber, columnNumber, error) {
+      uncaughtError = error;
+      return true;
+    };
+    testWindow.customElements.define(
+      "unresolved-element",
+      InstantiatesItselfBeforeSuper
+    );
 
-  SimpleTest.is(uncaughtError.name, "TypeError", msg);
-}, "Upgrading must report an TypeError when the top of the " +
-  "construction stack is marked AlreadyConstructed due to a custom element " +
-  "constructor constructing itself before super() call");
+    SimpleTest.is(uncaughtError.name, "TypeError", msg);
+  },
+  "Upgrading must report an TypeError when the top of the " +
+    "construction stack is marked AlreadyConstructed due to a custom element " +
+    "constructor constructing itself before super() call"
+);
 
 test_upgrade(function (testWindow, testElement, msg) {
   class MyOtherElement extends testWindow.HTMLElement {
@@ -124,5 +126,4 @@ test_upgrade(function (testWindow, testElement, msg) {
   testWindow.customElements.define("unresolved-element", MyOtherElement);
 
   SimpleTest.is(uncaughtError.name, "TypeError", msg);
-}, "Upgrading must report an TypeError when the returned element is " +
-  "not SameValue as the upgraded element");
+}, "Upgrading must report an TypeError when the returned element is " + "not SameValue as the upgraded element");

@@ -373,9 +373,8 @@ Bookmarks.prototype = {
   },
 
   async _migrateFolder(aSourceFolder, aDestFolderGuid) {
-    let { bookmarks, favicons } = await this._getBookmarksInFolder(
-      aSourceFolder
-    );
+    let { bookmarks, favicons } =
+      await this._getBookmarksInFolder(aSourceFolder);
     if (!bookmarks.length) {
       return;
     }

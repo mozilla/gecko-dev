@@ -143,9 +143,8 @@ async function triggerNetworkRequests(browser, commands) {
  * @returns Promise<String>
  */
 async function getStyleSheetResourceText(styleSheetResource) {
-  const styleSheetsFront = await styleSheetResource.targetFront.getFront(
-    "stylesheets"
-  );
+  const styleSheetsFront =
+    await styleSheetResource.targetFront.getFront("stylesheets");
   const res = await styleSheetsFront.getText(styleSheetResource.resourceId);
   return res.string();
 }

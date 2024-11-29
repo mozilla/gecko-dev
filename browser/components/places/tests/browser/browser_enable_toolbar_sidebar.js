@@ -16,10 +16,13 @@ registerCleanupFunction(async () => {
 
 async function selectAppMenuView(buttonId, viewId) {
   let btn;
-  await TestUtils.waitForCondition(() => {
-    btn = document.getElementById(buttonId);
-    return btn;
-  }, "Should have the " + buttonId + " button");
+  await TestUtils.waitForCondition(
+    () => {
+      btn = document.getElementById(buttonId);
+      return btn;
+    },
+    "Should have the " + buttonId + " button"
+  );
   btn.click();
   let view = document.getElementById(viewId);
   let viewPromise = BrowserTestUtils.waitForEvent(view, "ViewShown");

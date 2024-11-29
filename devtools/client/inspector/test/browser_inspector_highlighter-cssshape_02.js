@@ -13,9 +13,8 @@ const { TYPES } = ChromeUtils.importESModule(
 const HIGHLIGHTER_TYPE = TYPES.SHAPES;
 
 add_task(async function () {
-  const { inspector, highlighterTestFront } = await openInspectorForURL(
-    TEST_URL
-  );
+  const { inspector, highlighterTestFront } =
+    await openInspectorForURL(TEST_URL);
   const front = inspector.inspectorFront;
   const highlighter = await front.getHighlighterByType(HIGHLIGHTER_TYPE);
 

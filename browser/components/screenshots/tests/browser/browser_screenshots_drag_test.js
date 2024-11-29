@@ -90,9 +90,8 @@ add_task(async function dragTest1Point5Zoom() {
 
       result.zoom = zoom;
       result.devicePixelRatio = window.devicePixelRatio;
-      result.contentDevicePixelRatio = await getContentDevicePixelRatio(
-        browser
-      );
+      result.contentDevicePixelRatio =
+        await getContentDevicePixelRatio(browser);
 
       info("result: " + JSON.stringify(result, null, 2));
 

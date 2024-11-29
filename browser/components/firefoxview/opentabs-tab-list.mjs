@@ -487,22 +487,23 @@ export class OpenTabsTabRow extends FxviewTabRowBase {
     return html`${when(
       this.indicators?.includes("soundplaying") ||
         this.indicators?.includes("muted"),
-      () => html`<moz-button
-        type="icon ghost"
-        class="fxview-tab-row-button"
-        id="fxview-tab-row-media-button"
-        data-l10n-id=${this.indicators?.includes("muted")
-          ? "fxviewtabrow-unmute-tab-button-no-context"
-          : "fxviewtabrow-mute-tab-button-no-context"}
-        muted=${this.indicators?.includes("muted")}
-        soundplaying=${this.indicators?.includes("soundplaying") &&
-        !this.indicators?.includes("muted")}
-        @click=${this.muteOrUnmuteTab}
-        tabindex="${this.active &&
-        this.currentActiveElementId === "fxview-tab-row-media-button"
-          ? "0"
-          : "-1"}"
-      ></moz-button>`,
+      () =>
+        html`<moz-button
+          type="icon ghost"
+          class="fxview-tab-row-button"
+          id="fxview-tab-row-media-button"
+          data-l10n-id=${this.indicators?.includes("muted")
+            ? "fxviewtabrow-unmute-tab-button-no-context"
+            : "fxviewtabrow-mute-tab-button-no-context"}
+          muted=${this.indicators?.includes("muted")}
+          soundplaying=${this.indicators?.includes("soundplaying") &&
+          !this.indicators?.includes("muted")}
+          @click=${this.muteOrUnmuteTab}
+          tabindex="${this.active &&
+          this.currentActiveElementId === "fxview-tab-row-media-button"
+            ? "0"
+            : "-1"}"
+        ></moz-button>`,
       () => html`<span></span>`
     )}`;
   }
@@ -558,8 +559,9 @@ export class OpenTabsTabRow extends FxviewTabRowBase {
         ${this.#faviconTemplate()} ${this.titleTemplate()}
         ${when(
           !this.compact,
-          () => html`${this.#containerIndicatorTemplate()} ${this.urlTemplate()}
-          ${this.dateTemplate()} ${this.timeTemplate()}`
+          () =>
+            html`${this.#containerIndicatorTemplate()} ${this.urlTemplate()}
+            ${this.dateTemplate()} ${this.timeTemplate()}`
         )}
       </a>
       ${this.#mediaButtonTemplate()} ${this.secondaryButtonTemplate()}

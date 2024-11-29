@@ -333,7 +333,7 @@ function applyRegexSubstitution(uri, matchedRule) {
 
   let redirectUrl = regexSubstitution.replace(/\\(.)/g, (_, char) => {
     // #checkActionRedirect ensures that every \ is followed by a \ or digit.
-    return char === "\\" ? char : matches[char] ?? "";
+    return char === "\\" ? char : (matches[char] ?? "");
   });
 
   // Throws if the URL is invalid:

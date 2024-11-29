@@ -295,22 +295,21 @@ async function runTestUserInteractionHeuristic(disableHeuristics) {
       info("Opening a window from the iframe.");
       await SpecialPowers.spawn(ifr, [obj.popup], async popup => {
         let windowClosed = new content.Promise(resolve => {
-          Services.ww.registerNotification(function notification(
-            aSubject,
-            aTopic
-          ) {
-            // We need to check the document URI for Fission. It's because the
-            // 'domwindowclosed' would be triggered twice, one for the
-            // 'about:blank' page and another for the tracker page.
-            if (
-              aTopic == "domwindowclosed" &&
-              aSubject.document.documentURI ==
-                "https://tracking.example.org/browser/toolkit/components/antitracking/test/browser/3rdPartyOpenUI.html"
-            ) {
-              Services.ww.unregisterNotification(notification);
-              resolve();
+          Services.ww.registerNotification(
+            function notification(aSubject, aTopic) {
+              // We need to check the document URI for Fission. It's because the
+              // 'domwindowclosed' would be triggered twice, one for the
+              // 'about:blank' page and another for the tracker page.
+              if (
+                aTopic == "domwindowclosed" &&
+                aSubject.document.documentURI ==
+                  "https://tracking.example.org/browser/toolkit/components/antitracking/test/browser/3rdPartyOpenUI.html"
+              ) {
+                Services.ww.unregisterNotification(notification);
+                resolve();
+              }
             }
-          });
+          );
         });
 
         content.open(popup);
@@ -416,21 +415,20 @@ async function runTestUserInteractionHeuristic(disableHeuristics) {
       info("Opening a window from the iframe.");
       await SpecialPowers.spawn(ifr, [obj.popup], async popup => {
         let windowClosed = new content.Promise(resolve => {
-          Services.ww.registerNotification(function notification(
-            aSubject,
-            aTopic
-          ) {
-            // We need to check the document URI here as well for the same
-            // reason above.
-            if (
-              aTopic == "domwindowclosed" &&
-              aSubject.document.documentURI ==
-                "https://tracking.example.org/browser/toolkit/components/antitracking/test/browser/3rdPartyOpenUI.html"
-            ) {
-              Services.ww.unregisterNotification(notification);
-              resolve();
+          Services.ww.registerNotification(
+            function notification(aSubject, aTopic) {
+              // We need to check the document URI here as well for the same
+              // reason above.
+              if (
+                aTopic == "domwindowclosed" &&
+                aSubject.document.documentURI ==
+                  "https://tracking.example.org/browser/toolkit/components/antitracking/test/browser/3rdPartyOpenUI.html"
+              ) {
+                Services.ww.unregisterNotification(notification);
+                resolve();
+              }
             }
-          });
+          );
         });
 
         content.open(popup);
@@ -561,15 +559,14 @@ add_task(async function testDoublyNestedUserInteractionHeuristic() {
       });
 
       let windowClosed = new content.Promise(resolve => {
-        Services.ww.registerNotification(function notification(
-          aSubject,
-          aTopic
-        ) {
-          if (aTopic == "domwindowclosed") {
-            Services.ww.unregisterNotification(notification);
-            resolve();
+        Services.ww.registerNotification(
+          function notification(aSubject, aTopic) {
+            if (aTopic == "domwindowclosed") {
+              Services.ww.unregisterNotification(notification);
+              resolve();
+            }
           }
-        });
+        );
       });
 
       info("Opening a window from the iframe.");
@@ -670,15 +667,14 @@ add_task(async function testDoublyNestedUserInteractionHeuristic() {
       });
 
       let windowClosed = new content.Promise(resolve => {
-        Services.ww.registerNotification(function notification(
-          aSubject,
-          aTopic
-        ) {
-          if (aTopic == "domwindowclosed") {
-            Services.ww.unregisterNotification(notification);
-            resolve();
+        Services.ww.registerNotification(
+          function notification(aSubject, aTopic) {
+            if (aTopic == "domwindowclosed") {
+              Services.ww.unregisterNotification(notification);
+              resolve();
+            }
           }
-        });
+        );
       });
 
       info("Opening a window from the iframe.");

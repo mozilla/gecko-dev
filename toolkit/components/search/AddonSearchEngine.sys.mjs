@@ -72,9 +72,8 @@ export class AddonSearchEngine extends SearchEngine {
    *   The saved settings for the user.
    */
   async init({ extension, settings } = {}) {
-    let { baseURI, manifest } = await this.#getExtensionDetailsForLocale(
-      extension
-    );
+    let { baseURI, manifest } =
+      await this.#getExtensionDetailsForLocale(extension);
 
     this.#initFromManifest(baseURI, manifest);
     this._loadSettings(settings);
@@ -89,9 +88,8 @@ export class AddonSearchEngine extends SearchEngine {
    *   The extension associated with this search engine, if known.
    */
   async update({ extension } = {}) {
-    let { baseURI, manifest } = await this.#getExtensionDetailsForLocale(
-      extension
-    );
+    let { baseURI, manifest } =
+      await this.#getExtensionDetailsForLocale(extension);
 
     let originalName = this.name;
     let name = manifest.chrome_settings_overrides.search_provider.name.trim();

@@ -148,10 +148,13 @@ add_task(async function test_tabs() {
         // Simulate clicking the dismiss button
         EventUtils.synthesizeMouseAtCenter(dismissButton, {}, content);
 
-        await TestUtils.waitForCondition(() => {
-          const undoButton = row.renderRoot.querySelector(".undo-button");
-          return undoButton && undoButton.style.display !== "none";
-        }, `Undo button is shown after dismissing tab ${j + 1}.`);
+        await TestUtils.waitForCondition(
+          () => {
+            const undoButton = row.renderRoot.querySelector(".undo-button");
+            return undoButton && undoButton.style.display !== "none";
+          },
+          `Undo button is shown after dismissing tab ${j + 1}.`
+        );
 
         // Simulate clicking the undo button
         const undoButton = row.renderRoot.querySelector(".undo-button");
@@ -161,12 +164,15 @@ add_task(async function test_tabs() {
           content
         );
         EventUtils.synthesizeMouseAtCenter(undoButton, {}, content);
-        await TestUtils.waitForCondition(() => {
-          return (
-            row.renderRoot.querySelector(".dismiss-button") &&
-            !row.renderRoot.querySelector(".undo-button")
-          );
-        }, `Dismiss button is restored after undoing tab ${j + 1}.`);
+        await TestUtils.waitForCondition(
+          () => {
+            return (
+              row.renderRoot.querySelector(".dismiss-button") &&
+              !row.renderRoot.querySelector(".undo-button")
+            );
+          },
+          `Dismiss button is restored after undoing tab ${j + 1}.`
+        );
       }
     }
   }

@@ -272,9 +272,8 @@ export var UpdateUtils = {
 
         Services.prefs.addObserver(prefName, async () => {
           let config = { ...gUpdateConfigCache };
-          config[prefName] = await UpdateUtils.readUpdateConfigSetting(
-            prefName
-          );
+          config[prefName] =
+            await UpdateUtils.readUpdateConfigSetting(prefName);
           maybeUpdateConfigChanged(config);
         });
       }

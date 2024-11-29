@@ -250,9 +250,8 @@ export class StyleEditorUI extends EventEmitter {
       el.addEventListener(
         "click",
         async () => {
-          const stylesheetsFront = await this.currentTarget.getFront(
-            "stylesheets"
-          );
+          const stylesheetsFront =
+            await this.currentTarget.getFront("stylesheets");
           stylesheetsFront.addStyleSheet(null);
           this.#clearFilterInput();
         },
@@ -567,9 +566,8 @@ export class StyleEditorUI extends EventEmitter {
       const promise = (async () => {
         // When the StyleSheet is mapped to one or many original sources,
         // do not create an editor for the minified StyleSheet.
-        const hasValidOriginalSource = await this.#tryAddingOriginalStyleSheets(
-          resource
-        );
+        const hasValidOriginalSource =
+          await this.#tryAddingOriginalStyleSheets(resource);
         if (hasValidOriginalSource) {
           return null;
         }
@@ -764,9 +762,8 @@ export class StyleEditorUI extends EventEmitter {
           );
           stream.close();
 
-          const stylesheetsFront = await this.currentTarget.getFront(
-            "stylesheets"
-          );
+          const stylesheetsFront =
+            await this.currentTarget.getFront("stylesheets");
           stylesheetsFront.addStyleSheet(source, selectedFile.path);
         }
       );

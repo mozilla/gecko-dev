@@ -9,12 +9,14 @@ const os = require("os");
 const path = require("path");
 const fs = require("fs");
 
-const usbPowerProfiler = require(path.join(
-  process.env.BROWSERTIME_ROOT,
-  "node_modules",
-  "usb-power-profiling",
-  "usb-power-profiling.js"
-));
+const usbPowerProfiler = require(
+  path.join(
+    process.env.BROWSERTIME_ROOT,
+    "node_modules",
+    "usb-power-profiling",
+    "usb-power-profiling.js"
+  )
+);
 
 const {
   gatherWindowsPowerUsage,

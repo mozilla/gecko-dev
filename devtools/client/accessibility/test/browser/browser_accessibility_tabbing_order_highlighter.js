@@ -19,9 +19,8 @@ const TEST_URI = `https://example.com/document-builder.sjs?html=
 add_task(async () => {
   const { doc, store, tab, toolbox } = await addTestTab(TEST_URI);
 
-  const topLevelFrameHighlighterTestFront = await toolbox.target.getFront(
-    "highlighterTest"
-  );
+  const topLevelFrameHighlighterTestFront =
+    await toolbox.target.getFront("highlighterTest");
 
   const frameTargets = toolbox.commands.targetCommand.getAllTargets([
     toolbox.commands.targetCommand.TYPES.FRAME,

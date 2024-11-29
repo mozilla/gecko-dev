@@ -207,10 +207,14 @@ async function waitForBookmarksToolbarVisibility({
   visible,
   message,
 }) {
-  let result = await TestUtils.waitForCondition(() => {
-    let toolbar = win.document.getElementById("PersonalToolbar");
-    return toolbar && (visible ? !toolbar.collapsed : toolbar.collapsed);
-  }, message || "waiting for toolbar to become " + (visible ? "visible" : "hidden"));
+  let result = await TestUtils.waitForCondition(
+    () => {
+      let toolbar = win.document.getElementById("PersonalToolbar");
+      return toolbar && (visible ? !toolbar.collapsed : toolbar.collapsed);
+    },
+    message ||
+      "waiting for toolbar to become " + (visible ? "visible" : "hidden")
+  );
   ok(result, message);
   return result;
 }

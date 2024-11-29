@@ -123,9 +123,8 @@ async function checkScreenProps2(ui) {
 }
 
 async function checkSubframeProps(ui) {
-  const { outerWidth, matchesMedia, screen } = await grabContentSubframeInfo(
-    ui
-  );
+  const { outerWidth, matchesMedia, screen } =
+    await grabContentSubframeInfo(ui);
   is(outerWidth, 90, "subframe outerWidth should be 90px");
   ok(matchesMedia, "subframe media query should match");
   is(screen.width, 90, "subframe screen.width should be the page width");

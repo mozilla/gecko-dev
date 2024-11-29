@@ -426,9 +426,12 @@ async function waitForTestMsg(browser, type) {
   );
 
   let donePromise = SpecialPowers.spawn(browser, [type], async childType => {
-    await ContentTaskUtils.waitForCondition(() => {
-      return !!content.eventDetails;
-    }, "Expected " + childType + " event");
+    await ContentTaskUtils.waitForCondition(
+      () => {
+        return !!content.eventDetails;
+      },
+      "Expected " + childType + " event"
+    );
     return content.eventDetails;
   });
 

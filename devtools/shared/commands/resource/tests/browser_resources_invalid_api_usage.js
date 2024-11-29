@@ -10,9 +10,8 @@ const TEST_URI = "data:text/html;charset=utf-8,invalid api usage test";
 add_task(async function () {
   const tab = await addTab(TEST_URI);
 
-  const { client, resourceCommand, targetCommand } = await initResourceCommand(
-    tab
-  );
+  const { client, resourceCommand, targetCommand } =
+    await initResourceCommand(tab);
 
   const onAvailable = function () {};
 

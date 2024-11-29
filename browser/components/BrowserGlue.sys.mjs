@@ -5338,14 +5338,12 @@ var ContentBlockingCategoriesPrefs = {
     for (let item of rulesArray) {
       switch (item) {
         case "tp":
-          this.CATEGORY_PREFS[type][
-            "privacy.trackingprotection.enabled"
-          ] = true;
+          this.CATEGORY_PREFS[type]["privacy.trackingprotection.enabled"] =
+            true;
           break;
         case "-tp":
-          this.CATEGORY_PREFS[type][
-            "privacy.trackingprotection.enabled"
-          ] = false;
+          this.CATEGORY_PREFS[type]["privacy.trackingprotection.enabled"] =
+            false;
           break;
         case "tpPrivate":
           this.CATEGORY_PREFS[type][
@@ -5454,14 +5452,12 @@ var ContentBlockingCategoriesPrefs = {
           this.CATEGORY_PREFS[type]["privacy.query_stripping.enabled"] = false;
           break;
         case "qpsPBM":
-          this.CATEGORY_PREFS[type][
-            "privacy.query_stripping.enabled.pbmode"
-          ] = true;
+          this.CATEGORY_PREFS[type]["privacy.query_stripping.enabled.pbmode"] =
+            true;
           break;
         case "-qpsPBM":
-          this.CATEGORY_PREFS[type][
-            "privacy.query_stripping.enabled.pbmode"
-          ] = false;
+          this.CATEGORY_PREFS[type]["privacy.query_stripping.enabled.pbmode"] =
+            false;
           break;
         case "fpp":
           this.CATEGORY_PREFS[type]["privacy.fingerprintingProtection"] = true;
@@ -5470,14 +5466,12 @@ var ContentBlockingCategoriesPrefs = {
           this.CATEGORY_PREFS[type]["privacy.fingerprintingProtection"] = false;
           break;
         case "fppPrivate":
-          this.CATEGORY_PREFS[type][
-            "privacy.fingerprintingProtection.pbmode"
-          ] = true;
+          this.CATEGORY_PREFS[type]["privacy.fingerprintingProtection.pbmode"] =
+            true;
           break;
         case "-fppPrivate":
-          this.CATEGORY_PREFS[type][
-            "privacy.fingerprintingProtection.pbmode"
-          ] = false;
+          this.CATEGORY_PREFS[type]["privacy.fingerprintingProtection.pbmode"] =
+            false;
           break;
         case "cookieBehavior0":
           this.CATEGORY_PREFS[type]["network.cookie.cookieBehavior"] =

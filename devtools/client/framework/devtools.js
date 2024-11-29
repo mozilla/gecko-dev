@@ -614,9 +614,8 @@ DevTools.prototype = {
       const openerTab = tab.ownerGlobal.gBrowser.getTabForBrowser(
         tab.linkedBrowser.browsingContext.opener.embedderElement
       );
-      const openerCommands = await LocalTabCommandsFactory.getCommandsForTab(
-        openerTab
-      );
+      const openerCommands =
+        await LocalTabCommandsFactory.getCommandsForTab(openerTab);
       if (this.getToolboxForCommands(openerCommands)) {
         console.log(
           "Can't open a toolbox for this document as this is debugged from its opener tab"
@@ -901,9 +900,8 @@ DevTools.prototype = {
       startTime,
     });
     const inspectorFront = await toolbox.target.getFront("inspector");
-    const nodeFront = await inspectorFront.getNodeActorFromContentDomReference(
-      domReference
-    );
+    const nodeFront =
+      await inspectorFront.getNodeActorFromContentDomReference(domReference);
     if (!nodeFront) {
       return;
     }

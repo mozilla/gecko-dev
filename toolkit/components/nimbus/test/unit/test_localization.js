@@ -227,9 +227,8 @@ add_task(async function test_getLocalizedValue() {
     localizations: LOCALIZATIONS,
   });
 
-  const doExperimentCleanup = await ExperimentFakes.enrollmentHelper(
-    experiment
-  );
+  const doExperimentCleanup =
+    await ExperimentFakes.enrollmentHelper(experiment);
 
   const enrollment = manager.store.getExperimentForFeature(FEATURE_ID);
 
@@ -450,9 +449,8 @@ add_task(async function test_getVariables() {
     localizations: LOCALIZATIONS,
   });
 
-  const doExperimentCleanup = await ExperimentFakes.enrollmentHelper(
-    experiment
-  );
+  const doExperimentCleanup =
+    await ExperimentFakes.enrollmentHelper(experiment);
 
   Assert.deepEqual(
     FEATURE.getAllVariables(),

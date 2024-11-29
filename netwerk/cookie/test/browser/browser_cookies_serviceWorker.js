@@ -20,9 +20,8 @@ add_setup(async function () {
 
 function registerSW(browser) {
   return SpecialPowers.spawn(browser, [], async _ => {
-    let reg = await content.navigator.serviceWorker.register(
-      "serviceWorker.js"
-    );
+    let reg =
+      await content.navigator.serviceWorker.register("serviceWorker.js");
 
     await ContentTaskUtils.waitForCondition(() => {
       return reg.active && reg.active.state === "activated";

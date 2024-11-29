@@ -29,10 +29,13 @@ registerCleanupFunction(async () => {
 });
 
 function getTelemetryScalars(names) {
-  return TestUtils.waitForCondition(() => {
-    const scalars = TelemetryTestUtils.getProcessScalars("parent");
-    return names.every(name => Object.hasOwn(scalars, name)) && scalars;
-  }, `Scalars are present in Telemetry data: ${names.join(", ")}`);
+  return TestUtils.waitForCondition(
+    () => {
+      const scalars = TelemetryTestUtils.getProcessScalars("parent");
+      return names.every(name => Object.hasOwn(scalars, name)) && scalars;
+    },
+    `Scalars are present in Telemetry data: ${names.join(", ")}`
+  );
 }
 
 function checkTelemetryScalar(name, value) {

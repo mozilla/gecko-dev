@@ -25,9 +25,8 @@ const REQUEST_STUB = {
 add_task(async function () {
   info("Test network stacktraces events");
   const tab = await addTab(TEST_URI);
-  const { client, resourceCommand, targetCommand } = await initResourceCommand(
-    tab
-  );
+  const { client, resourceCommand, targetCommand } =
+    await initResourceCommand(tab);
 
   const networkEvents = new Map();
   const stackTraces = new Map();

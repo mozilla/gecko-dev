@@ -42,8 +42,8 @@ function handleRequest(request, response) {
     <body>
       <h1>Top-level document</h1>
       <iframe src='${iframeOrigin}/document-builder.sjs?html=${encodeURI(
-    IFRAME_HTML
-  )}'></iframe>
+        IFRAME_HTML
+      )}'></iframe>
     </body>
   </html>`;
 

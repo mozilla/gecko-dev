@@ -46,12 +46,15 @@ add_task(async function test_tools_prefs() {
   for (const toolInput of customizeComponent.toolInputs) {
     let toolDisabledInitialState = !toolInput.checked;
     toolInput.click();
-    await BrowserTestUtils.waitForCondition(() => {
-      let toggledTool = win.SidebarController.toolsAndExtensions.get(
-        toolInput.name
-      );
-      return toggledTool.disabled === !toolDisabledInitialState;
-    }, `The entrypoint for ${toolInput.name} has been ${toolDisabledInitialState ? "enabled" : "disabled"} in the sidebar.`);
+    await BrowserTestUtils.waitForCondition(
+      () => {
+        let toggledTool = win.SidebarController.toolsAndExtensions.get(
+          toolInput.name
+        );
+        return toggledTool.disabled === !toolDisabledInitialState;
+      },
+      `The entrypoint for ${toolInput.name} has been ${toolDisabledInitialState ? "enabled" : "disabled"} in the sidebar.`
+    );
     toolEntrypointsCount = sidebar.toolButtons.length;
     checkedInputs = Array.from(customizeComponent.toolInputs).filter(
       input => input.checked

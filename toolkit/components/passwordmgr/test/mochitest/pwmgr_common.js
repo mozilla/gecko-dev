@@ -633,28 +633,26 @@ function registerRunTests(existingPasswordFieldsCount = 0, callback) {
       form.appendChild(password);
 
       let foundForcer = false;
-      var observer = SpecialPowers.wrapCallback(function (
-        _subject,
-        _topic,
-        data
-      ) {
-        if (data === "observerforcer") {
-          foundForcer = true;
-        } else {
-          existingPasswordFieldsCount--;
-        }
+      var observer = SpecialPowers.wrapCallback(
+        function (_subject, _topic, data) {
+          if (data === "observerforcer") {
+            foundForcer = true;
+          } else {
+            existingPasswordFieldsCount--;
+          }
 
-        if (!foundForcer || existingPasswordFieldsCount > 0) {
-          return;
-        }
+          if (!foundForcer || existingPasswordFieldsCount > 0) {
+            return;
+          }
 
-        SpecialPowers.removeObserver(observer, "passwordmgr-processed-form");
-        form.remove();
-        SimpleTest.executeSoon(() => {
-          callback?.();
-          resolve();
-        });
-      });
+          SpecialPowers.removeObserver(observer, "passwordmgr-processed-form");
+          form.remove();
+          SimpleTest.executeSoon(() => {
+            callback?.();
+            resolve();
+          });
+        }
+      );
       SpecialPowers.addObserver(observer, "passwordmgr-processed-form");
 
       document.body.appendChild(form);

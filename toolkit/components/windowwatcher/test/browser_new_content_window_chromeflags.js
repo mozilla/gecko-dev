@@ -108,9 +108,8 @@ function getContentChromeFlags(win) {
         .QueryInterface(Ci.nsIWebBrowserChrome).chromeFlags;
     } catch (e) {
       // This must be a non-remote browser...
-      return docShell.treeOwner.QueryInterface(
-        Ci.nsIWebBrowserChrome
-      ).chromeFlags;
+      return docShell.treeOwner.QueryInterface(Ci.nsIWebBrowserChrome)
+        .chromeFlags;
     }
   });
 }

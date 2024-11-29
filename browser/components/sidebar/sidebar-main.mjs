@@ -398,13 +398,14 @@ export default class SidebarMain extends MozLitElement {
         </button-group>
         ${when(
           !window.SidebarController.sidebarVerticalTabsEnabled,
-          () => html` <div class="bottom-actions actions-list">
-            ${repeat(
-              this.bottomActions,
-              action => action.view,
-              action => this.entrypointTemplate(action)
-            )}
-          </div>`
+          () =>
+            html` <div class="bottom-actions actions-list">
+              ${repeat(
+                this.bottomActions,
+                action => action.view,
+                action => this.entrypointTemplate(action)
+              )}
+            </div>`
         )}
       </div>
     `;

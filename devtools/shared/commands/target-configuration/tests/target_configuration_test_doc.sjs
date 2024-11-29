@@ -91,8 +91,8 @@ function handleRequest(request, response) {
       <h1>Test color-scheme simulation</h1>
       <button>Target</button>
       <iframe src='${iframeOrigin}/document-builder.sjs?html=${encodeURI(
-    IFRAME_HTML
-  )}'></iframe>
+        IFRAME_HTML
+      )}'></iframe>
     </body>
   </html>`;
 

@@ -106,9 +106,8 @@ add_task(async function dnr_ignores_css_import_at_restrictedDomains() {
   // indeed being restricted as expected, confirm that none of the stylesheet
   // requests are blocked by the DNR extension.
   let extension = await startDNRExtension();
-  let contentPage = await ExtensionTestUtils.loadContentPage(
-    "http://restricted/"
-  );
+  let contentPage =
+    await ExtensionTestUtils.loadContentPage("http://restricted/");
   await contentPage.spawn([], async () => {
     // Use wrappedJSObject so that all operations below are with the principal
     // of the content instead of the system principal (from this ContentTask).
@@ -217,9 +216,8 @@ add_task(
     // - It is an about:-URL that resolves across all builds (part of toolkit/).
     // - It does not have a CSP (intentional - bug 1587417). That enables us to
     //   send a fetch() request below.
-    let contentPage = await ExtensionTestUtils.loadContentPage(
-      "about:logo?blockme"
-    );
+    let contentPage =
+      await ExtensionTestUtils.loadContentPage("about:logo?blockme");
     await contentPage.spawn([], async () => {
       const { document } = content;
       // To make sure that the test does not pass trivially, we verify that it

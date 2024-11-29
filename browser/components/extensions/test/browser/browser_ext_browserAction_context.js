@@ -29,9 +29,8 @@ async function runTests(options) {
         "expected value from getBadge"
       );
 
-      let badgeBackgroundColor = await browser[action].getBadgeBackgroundColor(
-        details
-      );
+      let badgeBackgroundColor =
+        await browser[action].getBadgeBackgroundColor(details);
       browser.test.assertEq(
         String(expecting.badgeBackgroundColor),
         String(badgeBackgroundColor),

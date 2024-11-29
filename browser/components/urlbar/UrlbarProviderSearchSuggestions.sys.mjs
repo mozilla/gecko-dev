@@ -575,9 +575,8 @@ class ProviderSearchSuggestions extends UrlbarProvider {
     }
 
     // Check if the user entered an engine alias directly.
-    let engineMatch = await lazy.UrlbarSearchUtils.engineForAlias(
-      possibleAlias
-    );
+    let engineMatch =
+      await lazy.UrlbarSearchUtils.engineForAlias(possibleAlias);
     if (engineMatch) {
       return {
         engine: engineMatch,

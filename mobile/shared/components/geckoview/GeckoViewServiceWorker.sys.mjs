@@ -14,9 +14,8 @@ export async function openWindow(uri, aOpenWindowInfo) {
     type: "GeckoView:ServiceWorkerOpenWindow",
     url: uri.spec,
   };
-  const info = await lazy.EventDispatcher.instance.sendRequestForResult(
-    message
-  );
+  const info =
+    await lazy.EventDispatcher.instance.sendRequestForResult(message);
   if (!info) {
     throw Components.Exception("", Cr.NS_ERROR_FAILURE);
   }

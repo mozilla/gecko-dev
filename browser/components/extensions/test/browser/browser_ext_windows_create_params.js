@@ -46,21 +46,21 @@ add_task(async function testWindowCreateFocused() {
     async background() {
       async function doWaitForWindow(createOpts, resolve) {
         let created;
-        browser.windows.onFocusChanged.addListener(async function listener(
-          wid
-        ) {
-          if (wid == browser.windows.WINDOW_ID_NONE) {
-            return;
+        browser.windows.onFocusChanged.addListener(
+          async function listener(wid) {
+            if (wid == browser.windows.WINDOW_ID_NONE) {
+              return;
+            }
+            let win = await created;
+            if (win.id !== wid) {
+              return;
+            }
+            browser.windows.onFocusChanged.removeListener(listener);
+            // update the window object
+            let window = await browser.windows.get(wid);
+            resolve(window);
           }
-          let win = await created;
-          if (win.id !== wid) {
-            return;
-          }
-          browser.windows.onFocusChanged.removeListener(listener);
-          // update the window object
-          let window = await browser.windows.get(wid);
-          resolve(window);
-        });
+        );
         created = browser.windows.create(createOpts);
       }
       async function awaitNewFocusedWindow(createOpts) {

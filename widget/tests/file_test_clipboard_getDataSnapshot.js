@@ -47,11 +47,11 @@ clipboardTypes.forEach(function (type) {
             "nsIClipboardGetDataSnapshotCallback",
           ]),
           // nsIClipboardGetDataSnapshotCallback
-          onSuccess: SpecialPowers.wrapCallback(function (
-            aAsyncGetClipboardData
-          ) {
-            resolve(aAsyncGetClipboardData);
-          }),
+          onSuccess: SpecialPowers.wrapCallback(
+            function (aAsyncGetClipboardData) {
+              resolve(aAsyncGetClipboardData);
+            }
+          ),
         }
       );
     });

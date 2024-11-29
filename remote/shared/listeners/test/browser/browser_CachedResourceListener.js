@@ -58,9 +58,8 @@ add_task(async function test_stylesheet() {
       `[${type}] No new event for the top context`
     );
 
-    let iframeCachedEventCount = await getCachedResourceEventCount(
-      iframeContext
-    );
+    let iframeCachedEventCount =
+      await getCachedResourceEventCount(iframeContext);
 
     if (type === "image") {
       // For images, loading an image already cached in the parent document

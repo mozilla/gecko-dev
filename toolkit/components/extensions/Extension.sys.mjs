@@ -1185,7 +1185,7 @@ export class ExtensionData {
     return {
       page,
       open_in_tab: this.manifest.options_ui
-        ? this.manifest.options_ui.open_in_tab ?? false
+        ? (this.manifest.options_ui.open_in_tab ?? false)
         : true,
       // `options_ui.browser_style` is assigned the proper default value
       // (true for MV2 and false for MV3 when not explicitly set),

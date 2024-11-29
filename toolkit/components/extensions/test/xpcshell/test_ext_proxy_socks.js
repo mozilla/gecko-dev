@@ -608,9 +608,8 @@ add_task(async function test_webRequest_socks_proxy() {
   await handlingExt.startup();
   ExtensionTestUtils.failOnSchemaWarnings(true);
 
-  let contentPage = await ExtensionTestUtils.loadContentPage(
-    `http://localhost/`
-  );
+  let contentPage =
+    await ExtensionTestUtils.loadContentPage(`http://localhost/`);
 
   await handlingExt.awaitMessage("done");
   await contentPage.close();

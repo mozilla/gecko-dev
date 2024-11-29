@@ -433,7 +433,7 @@ export class ManageCreditCards extends ManageRecords {
     const typeL10nId = lazy.CreditCard.getNetworkL10nId(type);
     const typeName = typeL10nId
       ? await document.l10n.formatValue(typeL10nId)
-      : type ?? ""; // Unknown card type
+      : (type ?? ""); // Unknown card type
     return lazy.CreditCard.getLabelInfo({
       name: creditCard["cc-name"],
       number: creditCard["cc-number"],

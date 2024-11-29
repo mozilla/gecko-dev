@@ -567,9 +567,8 @@ async function populateMediaCapabilities() {
       for (const level of levels) {
         const mimeType = `video/mp4; codecs=${profile}${level}`;
         videoConfig.video.contentType = mimeType;
-        const capability = await navigator.mediaCapabilities.decodingInfo(
-          videoConfig
-        );
+        const capability =
+          await navigator.mediaCapabilities.decodingInfo(videoConfig);
 
         if (capability.supported) {
           supportLevels[profile] = level;
@@ -590,9 +589,8 @@ async function populateMediaCapabilities() {
 
     for (const mime of mimeTypes) {
       videoConfig.video.contentType = mime;
-      const capability = await navigator.mediaCapabilities.decodingInfo(
-        videoConfig
-      );
+      const capability =
+        await navigator.mediaCapabilities.decodingInfo(videoConfig);
       const shortMime = mime.split("=")[1];
       if (!capability.supported) {
         capabilities.unsupported.push(shortMime);

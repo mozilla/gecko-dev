@@ -157,9 +157,8 @@ async function mayBeSelectMappedSource(location, keepContext, thunkArgs) {
   // If the currently selected source is original, we will
   // automatically map `location` to refer to the original source,
   // even if that used to refer only to the generated source.
-  let shouldSelectOriginalLocation = getShouldSelectOriginalLocation(
-    getState()
-  );
+  let shouldSelectOriginalLocation =
+    getShouldSelectOriginalLocation(getState());
   if (keepContext) {
     // Pretty print source may not be registered yet and getRelatedMapLocation may not return it.
     // Wait for the pretty print source to be fully processed.

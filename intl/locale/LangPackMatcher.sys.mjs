@@ -375,9 +375,8 @@ async function getAvailableLocales() {
   // for lastFallbackLocale for it to be useful.
   if (defaultLocale != lastFallbackLocale) {
     let lastFallbackId = `langpack-${lastFallbackLocale}@firefox.mozilla.org`;
-    let lastFallbackInstalled = await lazy.AddonManager.getAddonByID(
-      lastFallbackId
-    );
+    let lastFallbackInstalled =
+      await lazy.AddonManager.getAddonByID(lastFallbackId);
     if (!lastFallbackInstalled) {
       return availableLocales.filter(locale => locale != lastFallbackLocale);
     }

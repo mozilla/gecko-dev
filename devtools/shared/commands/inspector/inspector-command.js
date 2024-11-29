@@ -197,9 +197,8 @@ class InspectorCommand {
       return null;
     }
 
-    const { walker } = await this.commands.targetCommand.targetFront.getFront(
-      "inspector"
-    );
+    const { walker } =
+      await this.commands.targetCommand.targetFront.getFront("inspector");
     // Copy the array as we will mutate it
     nodeSelectors = [...nodeSelectors];
     const querySelectors = async nodeFront => {

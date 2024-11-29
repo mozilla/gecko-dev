@@ -116,11 +116,11 @@ function advance_clock(milliseconds) {
     }
   }
 
-  [new_div, new_element, listen, check_events, done_element].forEach(function (
-    fn
-  ) {
-    window[fn.name] = fn;
-  });
+  [new_div, new_element, listen, check_events, done_element].forEach(
+    function (fn) {
+      window[fn.name] = fn;
+    }
+  );
   window.done_div = done_element;
 })();
 

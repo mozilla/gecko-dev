@@ -8,9 +8,8 @@
 // without waiting for the former ones to complete, still works well.
 add_task(async function () {
   info("Loading the test document and opening the inspector");
-  const { inspector, highlighterTestFront } = await openInspectorForURL(
-    "data:text/html,"
-  );
+  const { inspector, highlighterTestFront } =
+    await openInspectorForURL("data:text/html,");
   const html = await getNodeFront("html", inspector);
   const body = await getNodeFront("body", inspector);
   const type = inspector.highlighters.TYPES.BOXMODEL;

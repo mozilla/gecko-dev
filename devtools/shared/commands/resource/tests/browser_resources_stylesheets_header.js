@@ -50,9 +50,8 @@ add_task(async function () {
   info("Check resource available feature of the ResourceCommand");
   const tab = await addTab(TEST_URL);
 
-  const { client, resourceCommand, targetCommand } = await initResourceCommand(
-    tab
-  );
+  const { client, resourceCommand, targetCommand } =
+    await initResourceCommand(tab);
 
   info("Check whether ResourceCommand gets existing stylesheet");
   const availableResources = [];

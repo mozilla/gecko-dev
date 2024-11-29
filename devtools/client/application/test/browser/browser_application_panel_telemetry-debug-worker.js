@@ -9,9 +9,8 @@ const TAB_URL = URL_ROOT + "resources/service-workers/simple.html";
 add_task(async function () {
   await enableApplicationPanel();
 
-  const { panel, tab, toolbox, commands } = await openNewTabAndApplicationPanel(
-    TAB_URL
-  );
+  const { panel, tab, toolbox, commands } =
+    await openNewTabAndApplicationPanel(TAB_URL);
 
   const doc = panel.panelWin.document;
 

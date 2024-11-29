@@ -392,14 +392,14 @@ function reflectLimitedEnumerated(aParameters) {
     aParameters.defaultValue === undefined
       ? ""
       : typeof aParameters.defaultValue === "string"
-      ? aParameters.defaultValue
-      : aParameters.defaultValue.invalid;
+        ? aParameters.defaultValue
+        : aParameters.defaultValue.invalid;
   var defaultValueMissing =
     aParameters.defaultValue === undefined
       ? ""
       : typeof aParameters.defaultValue === "string"
-      ? aParameters.defaultValue
-      : aParameters.defaultValue.missing;
+        ? aParameters.defaultValue
+        : aParameters.defaultValue.missing;
   var unsupportedValues =
     aParameters.unsupportedValues !== undefined
       ? aParameters.unsupportedValues
@@ -830,8 +830,8 @@ function reflectInt(aParameters) {
     aParameters.defaultValue !== undefined
       ? aParameters.defaultValue
       : nonNegative
-      ? -1
-      : 0;
+        ? -1
+        : 0;
 
   ok(attr in element, attr + " should be an IDL attribute of this element");
   is(

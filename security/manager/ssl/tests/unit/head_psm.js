@@ -822,15 +822,15 @@ function startOCSPResponder(
   expectedResponseTypes,
   responseHeaderPairs = []
 ) {
-  let ocspResponseGenerationArgs = expectedCertNames.map(function (
-    expectedNick
-  ) {
-    let responseType = "good";
-    if (expectedResponseTypes && expectedResponseTypes.length >= 1) {
-      responseType = expectedResponseTypes.shift();
+  let ocspResponseGenerationArgs = expectedCertNames.map(
+    function (expectedNick) {
+      let responseType = "good";
+      if (expectedResponseTypes && expectedResponseTypes.length >= 1) {
+        responseType = expectedResponseTypes.shift();
+      }
+      return [responseType, expectedNick, "unused", 0];
     }
-    return [responseType, expectedNick, "unused", 0];
-  });
+  );
   let ocspResponses = generateOCSPResponses(
     ocspResponseGenerationArgs,
     nssDBLocation

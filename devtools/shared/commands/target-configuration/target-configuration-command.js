@@ -48,9 +48,8 @@ class TargetConfigurationCommand {
   async updateConfiguration(configuration) {
     if (this._hasTargetWatcherSupport()) {
       const front = await this.getFront();
-      const updatedConfiguration = await front.updateConfiguration(
-        configuration
-      );
+      const updatedConfiguration =
+        await front.updateConfiguration(configuration);
       // Update the client-side copy of the DevTools configuration
       this._configuration = updatedConfiguration;
     } else {

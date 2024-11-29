@@ -28,8 +28,8 @@ function handleRequest(request, response) {
               </head>
               <body>
               <a id='testlink' href='${linkUrl}' ${referrerPolicy} ${
-    rel ? ` rel='${rel}'` : ""
-  }>
+                rel ? ` rel='${rel}'` : ""
+              }>
               referrer test link</a>
               </body>
               </html>`;

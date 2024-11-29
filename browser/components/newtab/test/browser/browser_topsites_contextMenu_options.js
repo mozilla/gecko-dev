@@ -19,9 +19,8 @@ test_newtab({
       "Topsite tippytop icon not found"
     );
 
-    const contextMenuItems = await content.openContextMenuAndGetOptions(
-      siteSelector
-    );
+    const contextMenuItems =
+      await content.openContextMenuAndGetOptions(siteSelector);
 
     Assert.equal(contextMenuItems.length, 5, "Number of options is correct");
 
@@ -62,9 +61,8 @@ test_newtab({
       .querySelectorAll(siteSelector)[1]
       .getAttribute("href");
 
-    const contextMenuItems = await content.openContextMenuAndGetOptions(
-      siteSelector
-    );
+    const contextMenuItems =
+      await content.openContextMenuAndGetOptions(siteSelector);
     await ContentTaskUtils.waitForCondition(
       () => contextMenuItems[4].textContent === "Dismiss",
       "'Dismiss' is the 5th item in the context menu list"
@@ -99,9 +97,8 @@ test_newtab({
       "1 search topsites is loaded by default"
     );
 
-    const contextMenuItems = await content.openContextMenuAndGetOptions(
-      siteSelector
-    );
+    const contextMenuItems =
+      await content.openContextMenuAndGetOptions(siteSelector);
     is(
       contextMenuItems.length,
       2,

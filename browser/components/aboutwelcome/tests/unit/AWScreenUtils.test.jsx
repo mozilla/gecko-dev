@@ -43,9 +43,8 @@ describe("AWScreenUtils", () => {
           result: false,
         },
       });
-      const result = await AWScreenUtils.evaluateScreenTargeting(
-        "test expression"
-      );
+      const result =
+        await AWScreenUtils.evaluateScreenTargeting("test expression");
       assert.calledOnce(evalStub);
       assert.equal(result, false);
     });
@@ -56,9 +55,8 @@ describe("AWScreenUtils", () => {
           result: false,
         },
       });
-      const result = await AWScreenUtils.evaluateScreenTargeting(
-        "test expression"
-      );
+      const result =
+        await AWScreenUtils.evaluateScreenTargeting("test expression");
       assert.calledOnce(evalStub);
       assert.equal(result, true);
     });

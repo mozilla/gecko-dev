@@ -61,9 +61,8 @@ add_task(async function () {
   await pushPref("layout.css.properties-and-values.enabled", true);
   const tab = await addTab(TEST_URL);
 
-  const { client, resourceCommand, targetCommand } = await initResourceCommand(
-    tab
-  );
+  const { client, resourceCommand, targetCommand } =
+    await initResourceCommand(tab);
 
   // Wait for targets
   await targetCommand.startListening();

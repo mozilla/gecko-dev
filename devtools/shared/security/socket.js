@@ -518,8 +518,7 @@ SocketListener.prototype = {
   ) {
     const connection = new ServerSocketConnection(this, socketTransport);
     connection.once("allowed", this.onAllowedConnection.bind(this));
-  },
-  "SocketListener.onSocketAccepted"),
+  }, "SocketListener.onSocketAccepted"),
 
   onStopListening(socket, status) {
     dumpn("onStopListening, status: " + status);

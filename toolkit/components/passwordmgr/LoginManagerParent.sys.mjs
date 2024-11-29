@@ -170,9 +170,8 @@ async function getImportableLogins(formOrigin) {
     lazy.LoginHelper.showAutoCompleteImport;
   return state
     ? {
-        browsers: await lazy.ChromeMigrationUtils.getImportableLogins(
-          formOrigin
-        ),
+        browsers:
+          await lazy.ChromeMigrationUtils.getImportableLogins(formOrigin),
         state,
       }
     : null;

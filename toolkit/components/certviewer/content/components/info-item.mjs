@@ -58,8 +58,7 @@ export class InfoItem extends HTMLElement {
             );
             observer.unobserve(info);
           }
-        },
-        {});
+        }, {});
 
         observer.observe(info);
       }

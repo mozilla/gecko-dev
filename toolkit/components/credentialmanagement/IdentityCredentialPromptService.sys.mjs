@@ -462,18 +462,14 @@ export class IdentityCredentialPromptService {
 
         // Show the popup
         let ownerDocument = browser.ownerDocument;
-        ownerDocument.getElementById(
-          "identity-credential-provider"
-        ).hidden = true;
-        ownerDocument.getElementById(
-          "identity-credential-policy"
-        ).hidden = false;
-        ownerDocument.getElementById(
-          "identity-credential-account"
-        ).hidden = true;
-        ownerDocument.getElementById(
-          "identity-credential-header"
-        ).hidden = false;
+        ownerDocument.getElementById("identity-credential-provider").hidden =
+          true;
+        ownerDocument.getElementById("identity-credential-policy").hidden =
+          false;
+        ownerDocument.getElementById("identity-credential-account").hidden =
+          true;
+        ownerDocument.getElementById("identity-credential-header").hidden =
+          false;
         browser.ownerGlobal.PopupNotifications.show(
           browser,
           "identity-credential",

@@ -51,21 +51,23 @@ async function set_breakpoints(packet, threadFront) {
   return new Promise(resolve => {
     let first, second;
 
-    source
-      .setBreakpoint(firstLocation)
-      .then(function ([{ actualLocation }, breakpointClient]) {
+    source.setBreakpoint(firstLocation).then(function ([
+      { actualLocation },
+      breakpointClient,
+    ]) {
+      Assert.ok(!actualLocation, "Should not get an actualLocation");
+      first = breakpointClient;
+
+      source.setBreakpoint(secondLocation).then(function ([
+        { actualLocation },
+        breakpointClient,
+      ]) {
         Assert.ok(!actualLocation, "Should not get an actualLocation");
-        first = breakpointClient;
+        second = breakpointClient;
 
-        source
-          .setBreakpoint(secondLocation)
-          .then(function ([{ actualLocation }, breakpointClient]) {
-            Assert.ok(!actualLocation, "Should not get an actualLocation");
-            second = breakpointClient;
-
-            resolve([first, second]);
-          });
+        resolve([first, second]);
       });
+    });
   });
 }
 

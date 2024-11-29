@@ -110,9 +110,8 @@ const TEST_DATA = [
     async validate({ pageNodeFront, selectedNodeFront }) {
       is(pageNodeFront, selectedNodeFront, "Original element is selected");
 
-      const num = await getNumberOfMatchingElementsInContentPage(
-        "#badMarkup5 div"
-      );
+      const num =
+        await getNumberOfMatchingElementsInContentPage("#badMarkup5 div");
 
       const pText = await getContentPageElementProperty(
         "#badMarkup5",

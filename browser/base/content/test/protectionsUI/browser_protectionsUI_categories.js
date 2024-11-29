@@ -136,9 +136,12 @@ let detectedStateFlags = [
 ];
 
 async function waitForClass(item, className, shouldBePresent = true) {
-  await TestUtils.waitForCondition(() => {
-    return item.classList.contains(className) == shouldBePresent;
-  }, `Target class ${className} should be ${shouldBePresent ? "present" : "not present"} on item ${item.id}`);
+  await TestUtils.waitForCondition(
+    () => {
+      return item.classList.contains(className) == shouldBePresent;
+    },
+    `Target class ${className} should be ${shouldBePresent ? "present" : "not present"} on item ${item.id}`
+  );
 
   Assert.equal(
     item.classList.contains(className),

@@ -987,9 +987,8 @@ add_task(async function modifyHeaders_multiple_extensions() {
     unloadTestAtEnd: false,
   });
 
-  let contentPage = await ExtensionTestUtils.loadContentPage(
-    "http://dummy/empty"
-  );
+  let contentPage =
+    await ExtensionTestUtils.loadContentPage("http://dummy/empty");
   async function checkHeaderActionResult(query, expectedHeaders, description) {
     const url = `/responseheadersFixture?${query}`;
     const result = await contentPage.spawn([url], async url => {

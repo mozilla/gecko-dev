@@ -2265,10 +2265,8 @@ function comparePdfs(pathToTestPdf, pathToRefPdf, callback) {
                       passed,
                       description,
                     });
-                  },
-                  reject);
-                },
-                reject);
+                  }, reject);
+                }, reject);
               })
             );
           }

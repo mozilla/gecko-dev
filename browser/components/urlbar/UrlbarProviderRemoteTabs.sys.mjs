@@ -32,9 +32,8 @@ const RECENT_REMOTE_TAB_THRESHOLD_MS = 72 * 60 * 60 * 1000; // 72 hours.
 
 ChromeUtils.defineLazyGetter(lazy, "weaveXPCService", function () {
   try {
-    return Cc["@mozilla.org/weave/service;1"].getService(
-      Ci.nsISupports
-    ).wrappedJSObject;
+    return Cc["@mozilla.org/weave/service;1"].getService(Ci.nsISupports)
+      .wrappedJSObject;
   } catch (ex) {
     // The app didn't build Sync.
   }

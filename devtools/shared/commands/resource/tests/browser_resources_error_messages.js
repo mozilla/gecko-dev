@@ -28,9 +28,8 @@ async function testErrorMessagesResources() {
   // Open a test tab
   const tab = await addTab(TEST_URI);
 
-  const { client, resourceCommand, targetCommand } = await initResourceCommand(
-    tab
-  );
+  const { client, resourceCommand, targetCommand } =
+    await initResourceCommand(tab);
 
   const receivedMessages = [];
   // The expected messages are the errors, twice (once for cached messages, once for live messages)
@@ -109,9 +108,8 @@ async function testErrorMessagesResourcesWithIgnoreExistingResources() {
   info("Test ignoreExistingResources option for ERROR_MESSAGE");
   const tab = await addTab(TEST_URI);
 
-  const { client, resourceCommand, targetCommand } = await initResourceCommand(
-    tab
-  );
+  const { client, resourceCommand, targetCommand } =
+    await initResourceCommand(tab);
 
   info(
     "Check whether onAvailable will not be called with existing error messages"

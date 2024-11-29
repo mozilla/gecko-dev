@@ -44,9 +44,8 @@ class CreditCards extends CreditCardsBase {
           // full number if the number is invalid on this version.
           creditCard["cc-number"] = "*".repeat(ccNumber.length);
         }
-        creditCard["cc-number-encrypted"] = await lazy.OSKeyStore.encrypt(
-          ccNumber
-        );
+        creditCard["cc-number-encrypted"] =
+          await lazy.OSKeyStore.encrypt(ccNumber);
       } else {
         creditCard["cc-number-encrypted"] = "";
       }

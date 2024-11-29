@@ -16,9 +16,8 @@ ChromeUtils.defineESModuleGetters(lazy, {
 
 // The Sync XPCOM service
 ChromeUtils.defineLazyGetter(lazy, "weaveXPCService", function () {
-  return Cc["@mozilla.org/weave/service;1"].getService(
-    Ci.nsISupports
-  ).wrappedJSObject;
+  return Cc["@mozilla.org/weave/service;1"].getService(Ci.nsISupports)
+    .wrappedJSObject;
 });
 
 ChromeUtils.defineLazyGetter(lazy, "fxAccounts", () => {

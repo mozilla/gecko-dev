@@ -38,9 +38,8 @@ add_task(async function () {
     `styleSheetChangeEventsEnabled is false at the beginning`
   );
 
-  const { client, resourceCommand, targetCommand } = await initResourceCommand(
-    tab
-  );
+  const { client, resourceCommand, targetCommand } =
+    await initResourceCommand(tab);
 
   let availableResources = [];
   await resourceCommand.watchResources([resourceCommand.TYPES.STYLESHEET], {

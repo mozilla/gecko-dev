@@ -187,10 +187,13 @@ export class UrlbarEventBufferer {
     if (!this._deferringTimeout) {
       let elapsed = Cu.now() - this._lastQuery.startDate;
       let remaining = UrlbarEventBufferer.DEFERRING_TIMEOUT_MS - elapsed;
-      this._deferringTimeout = lazy.setTimeout(() => {
-        this.replayDeferredEvents(false);
-        this._deferringTimeout = null;
-      }, Math.max(0, remaining));
+      this._deferringTimeout = lazy.setTimeout(
+        () => {
+          this.replayDeferredEvents(false);
+          this._deferringTimeout = null;
+        },
+        Math.max(0, remaining)
+      );
     }
   }
 

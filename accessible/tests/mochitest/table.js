@@ -142,8 +142,8 @@ function testTableStruct(
             aTableType == kMathTable
               ? ROLE_MATHML_CELL
               : isGrid
-              ? ROLE_GRID_CELL
-              : ROLE_CELL;
+                ? ROLE_GRID_CELL
+                : ROLE_CELL;
           break;
         case kRowHeaderCell:
           role = ROLE_ROWHEADER;

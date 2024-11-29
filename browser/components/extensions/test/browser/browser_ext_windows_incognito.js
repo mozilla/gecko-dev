@@ -13,12 +13,12 @@ add_task(async function test_window_incognito() {
     background() {
       let lastFocusedWindowId = null;
       // Catch focus change events to power the test below.
-      browser.windows.onFocusChanged.addListener(function listener(
-        eventWindowId
-      ) {
-        lastFocusedWindowId = eventWindowId;
-        browser.windows.onFocusChanged.removeListener(listener);
-      });
+      browser.windows.onFocusChanged.addListener(
+        function listener(eventWindowId) {
+          lastFocusedWindowId = eventWindowId;
+          browser.windows.onFocusChanged.removeListener(listener);
+        }
+      );
 
       browser.test.onMessage.addListener(async pbw => {
         browser.test.assertEq(

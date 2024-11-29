@@ -27,9 +27,8 @@ var UAHelpers = {
         const RunningAndroidVersion =
           userAgent.match(/Android [0-9.]+/) || "Android 6.0";
         if (androidDevice) {
-          UAHelpers._deviceAppropriateChromeUAs[
-            key
-          ] = `Mozilla/5.0 (Linux; ${RunningAndroidVersion}; ${androidDevice}) ${fxQuantum}AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${version} Mobile Safari/537.36`;
+          UAHelpers._deviceAppropriateChromeUAs[key] =
+            `Mozilla/5.0 (Linux; ${RunningAndroidVersion}; ${androidDevice}) ${fxQuantum}AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${version} Mobile Safari/537.36`;
         } else {
           const ChromePhoneUA = `Mozilla/5.0 (Linux; ${RunningAndroidVersion}; Nexus 5 Build/MRA58N) ${fxQuantum}AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${version} Mobile Safari/537.36`;
           const ChromeTabletUA = `Mozilla/5.0 (Linux; ${RunningAndroidVersion}; Nexus 7 Build/JSS15Q) ${fxQuantum}AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${version} Safari/537.36`;
@@ -50,9 +49,8 @@ var UAHelpers = {
           osSegment = "X11; Ubuntu; Linux x86_64";
         }
 
-        UAHelpers._deviceAppropriateChromeUAs[
-          key
-        ] = `Mozilla/5.0 (${osSegment}) ${fxQuantum}AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${version} Safari/537.36`;
+        UAHelpers._deviceAppropriateChromeUAs[key] =
+          `Mozilla/5.0 (${osSegment}) ${fxQuantum}AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${version} Safari/537.36`;
       }
     }
     return UAHelpers._deviceAppropriateChromeUAs[key];

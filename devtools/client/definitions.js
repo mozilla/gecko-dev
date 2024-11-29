@@ -781,9 +781,8 @@ function createHighlightButton(highlighters, id) {
 
       await Promise.all(
         highlighters.map(async name => {
-          const highlighter = await inspectorFront.getOrCreateHighlighterByType(
-            name
-          );
+          const highlighter =
+            await inspectorFront.getOrCreateHighlighterByType(name);
 
           if (highlighter.isShown()) {
             await highlighter.hide();

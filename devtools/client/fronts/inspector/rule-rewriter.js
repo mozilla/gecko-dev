@@ -495,9 +495,8 @@ RuleRewriter.prototype = {
       return indentWithTabs ? "\t" : " ".repeat(indentUnit);
     }
 
-    const styleSheetsFront = await this.rule.targetFront.getFront(
-      "stylesheets"
-    );
+    const styleSheetsFront =
+      await this.rule.targetFront.getFront("stylesheets");
 
     if (!this.rule.parentStyleSheet) {
       // See Bug 1899341, due to resource throttling, the parentStyleSheet for

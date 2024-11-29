@@ -12,9 +12,8 @@ add_task(async () => {
   const commands = await CommandsFactory.forTab(tab);
   await commands.targetCommand.startListening();
 
-  const evaluationResponse = await commands.scriptCommand.execute(
-    "document.__proto__"
-  );
+  const evaluationResponse =
+    await commands.scriptCommand.execute("document.__proto__");
   checkObject(evaluationResponse, {
     input: "document.__proto__",
     result: {

@@ -80,9 +80,8 @@ add_task(async function test_addon_update() {
     "Got the expected telemetry info on balrog system addon installed addon"
   );
 
-  const updatedSystemAddon = await AddonManager.getAddonByID(
-    updatedSystemAddonId
-  );
+  const updatedSystemAddon =
+    await AddonManager.getAddonByID(updatedSystemAddonId);
   Assert.deepEqual(
     updatedSystemAddon.installTelemetryInfo,
     // For addons that are distributed in Firefox, then updated through the product

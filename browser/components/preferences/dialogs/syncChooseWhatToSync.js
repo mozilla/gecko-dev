@@ -30,9 +30,8 @@ let gSyncChooseWhatToSync = {
       });
     } else {
       // Hide the 'Disconnect' button if not applicable
-      document
-        .getElementById("syncChooseOptions")
-        .getButton("extra2").hidden = true;
+      document.getElementById("syncChooseOptions").getButton("extra2").hidden =
+        true;
     }
   },
 

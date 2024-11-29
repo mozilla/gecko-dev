@@ -36,9 +36,8 @@ export async function getTopFrecentUrls(
     topsiteFrecency: frecencyThreshold,
     numItems: maxUrls,
   };
-  const records = await lazy.NewTabUtils.activityStreamLinks.getTopSites(
-    options
-  );
+  const records =
+    await lazy.NewTabUtils.activityStreamLinks.getTopSites(options);
 
   return records.map(site => site.url);
 }
@@ -68,9 +67,8 @@ export async function getMostRecentUrls(maxUrls) {
     withFavicons: false,
     numItems: maxUrls,
   };
-  const records = await lazy.NewTabUtils.activityStreamLinks.getHighlights(
-    options
-  );
+  const records =
+    await lazy.NewTabUtils.activityStreamLinks.getHighlights(options);
 
   return records.map(site => site.url);
 }

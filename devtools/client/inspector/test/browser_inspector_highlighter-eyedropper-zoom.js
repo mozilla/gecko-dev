@@ -29,9 +29,8 @@ const TEST_URI = `http://example.com/document-builder.sjs?html=${encodeURICompon
 )}`;
 
 add_task(async function () {
-  const { inspector, highlighterTestFront } = await openInspectorForURL(
-    TEST_URI
-  );
+  const { inspector, highlighterTestFront } =
+    await openInspectorForURL(TEST_URI);
 
   info("Zoom in the page");
   setContentPageZoomLevel(2);

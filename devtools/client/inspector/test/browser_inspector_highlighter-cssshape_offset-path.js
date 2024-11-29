@@ -54,9 +54,8 @@ add_task(async function () {
     "Check that highlighter is drawn relatively to the selected node parent node"
   );
 
-  const wrapperQuads = await getAllAdjustedQuadsForContentPageElement(
-    ".wrapper"
-  );
+  const wrapperQuads =
+    await getAllAdjustedQuadsForContentPageElement(".wrapper");
   const {
     width: wrapperWidth,
     height: wrapperHeight,

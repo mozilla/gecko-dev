@@ -188,9 +188,8 @@ add_task(async function test_getting_file_in_subdir() {
     urlTemplate: FAKE_URL_TEMPLATE,
   });
 
-  let [array, metadata] = await hub.getModelFileAsArrayBuffer(
-    FAKE_ONNX_MODEL_ARGS
-  );
+  let [array, metadata] =
+    await hub.getModelFileAsArrayBuffer(FAKE_ONNX_MODEL_ARGS);
 
   Assert.equal(metadata["Content-Type"], "application/json");
 

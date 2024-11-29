@@ -67,9 +67,8 @@ add_task(async function test_network_markers_service_worker_use() {
       () => Services.appinfo.processID
     );
 
-    const { parentThread, contentThread } = await stopProfilerNowAndGetThreads(
-      contentPid
-    );
+    const { parentThread, contentThread } =
+      await stopProfilerNowAndGetThreads(contentPid);
 
     // By logging a few information about the threads we make debugging easier.
     logInformationForThread("parentThread information", parentThread);

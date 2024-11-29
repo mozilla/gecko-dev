@@ -210,17 +210,18 @@ export class SidebarCustomize extends SidebarPage {
         </moz-fieldset>
         ${when(
           extensions.length,
-          () => html`<div class="customize-group">
-            <h4
-              class="customize-extensions-heading"
-              data-l10n-id="sidebar-customize-extensions-header"
-            ></h4>
-            <div role="list" class="extensions">
-              ${extensions.map((extension, index) =>
-                this.extensionTemplate(extension, index)
-              )}
-            </div>
-          </div>`
+          () =>
+            html`<div class="customize-group">
+              <h4
+                class="customize-extensions-heading"
+                data-l10n-id="sidebar-customize-extensions-header"
+              ></h4>
+              <div role="list" class="extensions">
+                ${extensions.map((extension, index) =>
+                  this.extensionTemplate(extension, index)
+                )}
+              </div>
+            </div>`
         )}
         <div class="customize-group">
           <moz-radio-group

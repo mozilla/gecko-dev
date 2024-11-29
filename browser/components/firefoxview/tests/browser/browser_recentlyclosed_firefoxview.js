@@ -217,9 +217,8 @@ add_task(async function test_list_ordering() {
     const { document } = browser.contentWindow;
     await clearAllParentTelemetryEvents();
     await navigateToViewAndWait(document, "recentlyclosed");
-    let [cardMainSlotNode, listItems] = await waitForRecentlyClosedTabsList(
-      document
-    );
+    let [cardMainSlotNode, listItems] =
+      await waitForRecentlyClosedTabsList(document);
 
     is(
       cardMainSlotNode.tagName.toLowerCase(),

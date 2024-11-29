@@ -93,9 +93,8 @@ async function test(context, commands) {
       await commands.navigate(rootUrl);
       await commands.measure.stop();
       let last = commands.measure.result.length - 1;
-      commands.measure.result[
-        last
-      ].browserScripts.pageinfo.url = `LucasQUIC (r=${combos[combo][0]}, p=${combos[combo][1]})`;
+      commands.measure.result[last].browserScripts.pageinfo.url =
+        `LucasQUIC (r=${combos[combo][0]}, p=${combos[combo][1]})`;
 
       // Set the input fields
       await commands.js.runAndWait(`

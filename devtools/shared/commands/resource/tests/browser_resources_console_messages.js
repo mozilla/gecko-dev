@@ -25,9 +25,8 @@ add_task(async function () {
 async function testTabConsoleMessagesResources(executeInIframe) {
   const tab = await addTab(FISSION_TEST_URL);
 
-  const { client, resourceCommand, targetCommand } = await initResourceCommand(
-    tab
-  );
+  const { client, resourceCommand, targetCommand } =
+    await initResourceCommand(tab);
 
   info(
     "Log some messages *before* calling ResourceCommand.watchResources in order to " +
@@ -103,9 +102,8 @@ async function testTabConsoleMessagesResourcesWithIgnoreExistingResources(
   info("Test ignoreExistingResources option for console messages");
   const tab = await addTab(FISSION_TEST_URL);
 
-  const { client, resourceCommand, targetCommand } = await initResourceCommand(
-    tab
-  );
+  const { client, resourceCommand, targetCommand } =
+    await initResourceCommand(tab);
 
   info(
     "Check whether onAvailable will not be called with existing console messages"

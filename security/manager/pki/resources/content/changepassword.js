@@ -200,9 +200,8 @@ function checkPasswords() {
       // was called with the intention to change the password.
       // The token currently uses an empty password.
       // We will not allow changing the password from empty to empty.
-      document
-        .getElementById("set_password")
-        .getButton("accept").disabled = true;
+      document.getElementById("set_password").getButton("accept").disabled =
+        true;
       return;
     }
   }

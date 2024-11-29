@@ -133,9 +133,8 @@ registerCleanupFunction(async () => {
 // make sure post_big runs first to test race condition in restarting
 // a stalled stream when a SETTINGS frame arrives
 add_task(async function do_test_http2_post_big() {
-  const { httpProxyConnectResponseCode } = await test_http2_post_big(
-    serverPort
-  );
+  const { httpProxyConnectResponseCode } =
+    await test_http2_post_big(serverPort);
   Assert.equal(httpProxyConnectResponseCode, -1);
 });
 
@@ -161,9 +160,8 @@ add_task(async function do_test_http2_concurrent_post() {
 });
 
 add_task(async function do_test_http2_basic_unblocked_dep() {
-  const { httpProxyConnectResponseCode } = await test_http2_basic_unblocked_dep(
-    serverPort
-  );
+  const { httpProxyConnectResponseCode } =
+    await test_http2_basic_unblocked_dep(serverPort);
   Assert.equal(httpProxyConnectResponseCode, -1);
 });
 
@@ -230,9 +228,8 @@ add_task(async function do_test_http2_altsvc() {
 });
 
 add_task(async function do_test_http2_doubleheader() {
-  const { httpProxyConnectResponseCode } = await test_http2_doubleheader(
-    serverPort
-  );
+  const { httpProxyConnectResponseCode } =
+    await test_http2_doubleheader(serverPort);
   Assert.equal(httpProxyConnectResponseCode, -1);
 });
 
@@ -277,9 +274,8 @@ add_task(async function do_test_http2_invalid_response_header_value_null() {
 });
 
 add_task(async function do_test_http2_cookie_crumbling() {
-  const { httpProxyConnectResponseCode } = await test_http2_cookie_crumbling(
-    serverPort
-  );
+  const { httpProxyConnectResponseCode } =
+    await test_http2_cookie_crumbling(serverPort);
   Assert.equal(httpProxyConnectResponseCode, -1);
 });
 
@@ -296,9 +292,8 @@ add_task(async function do_test_http2_big() {
 });
 
 add_task(async function do_test_http2_huge_suspended() {
-  const { httpProxyConnectResponseCode } = await test_http2_huge_suspended(
-    serverPort
-  );
+  const { httpProxyConnectResponseCode } =
+    await test_http2_huge_suspended(serverPort);
   Assert.equal(httpProxyConnectResponseCode, -1);
 });
 
@@ -308,9 +303,8 @@ add_task(async function do_test_http2_post() {
 });
 
 add_task(async function do_test_http2_empty_post() {
-  const { httpProxyConnectResponseCode } = await test_http2_empty_post(
-    serverPort
-  );
+  const { httpProxyConnectResponseCode } =
+    await test_http2_empty_post(serverPort);
   Assert.equal(httpProxyConnectResponseCode, -1);
 });
 
@@ -336,23 +330,20 @@ add_task(async function do_test_http2_continuations() {
 });
 
 add_task(async function do_test_http2_blocking_download() {
-  const { httpProxyConnectResponseCode } = await test_http2_blocking_download(
-    serverPort
-  );
+  const { httpProxyConnectResponseCode } =
+    await test_http2_blocking_download(serverPort);
   Assert.equal(httpProxyConnectResponseCode, -1);
 });
 
 add_task(async function do_test_http2_illegalhpacksoft() {
-  const { httpProxyConnectResponseCode } = await test_http2_illegalhpacksoft(
-    serverPort
-  );
+  const { httpProxyConnectResponseCode } =
+    await test_http2_illegalhpacksoft(serverPort);
   Assert.equal(httpProxyConnectResponseCode, -1);
 });
 
 add_task(async function do_test_http2_illegalhpackhard() {
-  const { httpProxyConnectResponseCode } = await test_http2_illegalhpackhard(
-    serverPort
-  );
+  const { httpProxyConnectResponseCode } =
+    await test_http2_illegalhpackhard(serverPort);
   Assert.equal(httpProxyConnectResponseCode, -1);
 });
 
@@ -365,16 +356,14 @@ add_task(async function do_test_http2_folded_header() {
 });
 
 add_task(async function do_test_http2_empty_data() {
-  const { httpProxyConnectResponseCode } = await test_http2_empty_data(
-    serverPort
-  );
+  const { httpProxyConnectResponseCode } =
+    await test_http2_empty_data(serverPort);
   Assert.equal(httpProxyConnectResponseCode, -1);
 });
 
 add_task(async function do_test_http2_status_phrase() {
-  const { httpProxyConnectResponseCode } = await test_http2_status_phrase(
-    serverPort
-  );
+  const { httpProxyConnectResponseCode } =
+    await test_http2_status_phrase(serverPort);
   Assert.equal(httpProxyConnectResponseCode, -1);
 });
 
@@ -398,37 +387,32 @@ add_task(async function do_test_http2_h11required_stream() {
   // Add new tests above here - best to add new tests before h1
   // streams get too involved
   // These next two must always come in this order
-  const { httpProxyConnectResponseCode } = await test_http2_h11required_stream(
-    serverPort
-  );
+  const { httpProxyConnectResponseCode } =
+    await test_http2_h11required_stream(serverPort);
   Assert.equal(httpProxyConnectResponseCode, -1);
 });
 
 add_task(async function do_test_http2_h11required_session() {
-  const { httpProxyConnectResponseCode } = await test_http2_h11required_session(
-    serverPort
-  );
+  const { httpProxyConnectResponseCode } =
+    await test_http2_h11required_session(serverPort);
   Assert.equal(httpProxyConnectResponseCode, -1);
 });
 
 add_task(async function do_test_http2_retry_rst() {
-  const { httpProxyConnectResponseCode } = await test_http2_retry_rst(
-    serverPort
-  );
+  const { httpProxyConnectResponseCode } =
+    await test_http2_retry_rst(serverPort);
   Assert.equal(httpProxyConnectResponseCode, -1);
 });
 
 add_task(async function do_test_http2_wrongsuite_tls12() {
-  const { httpProxyConnectResponseCode } = await test_http2_wrongsuite_tls12(
-    serverPort
-  );
+  const { httpProxyConnectResponseCode } =
+    await test_http2_wrongsuite_tls12(serverPort);
   Assert.equal(httpProxyConnectResponseCode, -1);
 });
 
 add_task(async function do_test_http2_wrongsuite_tls13() {
-  const { httpProxyConnectResponseCode } = await test_http2_wrongsuite_tls13(
-    serverPort
-  );
+  const { httpProxyConnectResponseCode } =
+    await test_http2_wrongsuite_tls13(serverPort);
   Assert.equal(httpProxyConnectResponseCode, -1);
 });
 

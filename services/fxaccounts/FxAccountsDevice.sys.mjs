@@ -540,9 +540,8 @@ export class FxAccountsDevice {
       "device session conflict, attempting to ascertain the correct device id"
     );
     try {
-      const devices = await this._fxai.fxAccountsClient.getDeviceList(
-        sessionToken
-      );
+      const devices =
+        await this._fxai.fxAccountsClient.getDeviceList(sessionToken);
       const matchingDevices = devices.filter(device => device.isCurrentDevice);
       const length = matchingDevices.length;
       if (length === 1) {

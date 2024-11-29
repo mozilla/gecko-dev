@@ -13,9 +13,8 @@ add_task(async function () {
   const START_URL = "data:text/html;charset=utf-8,foo";
   const tab = await addTab(START_URL);
 
-  const { client, resourceCommand, targetCommand } = await initResourceCommand(
-    tab
-  );
+  const { client, resourceCommand, targetCommand } =
+    await initResourceCommand(tab);
 
   await testCrossProcessTabNavigation(tab.linkedBrowser, resourceCommand);
   await testCrossProcessIframeNavigation(tab.linkedBrowser, resourceCommand);

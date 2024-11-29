@@ -22,9 +22,8 @@ add_task(async function () {
   await simulateNodeDrag(inspector, "div");
 
   info("Now check that the src attribute of the image isn't a valid target");
-  const isValid = await markup.imagePreviewTooltip._toggle.isValidHoverTarget(
-    target
-  );
+  const isValid =
+    await markup.imagePreviewTooltip._toggle.isValidHoverTarget(target);
   ok(!isValid, "The element is not a valid tooltip target");
 
   info("Stop dragging the test div");

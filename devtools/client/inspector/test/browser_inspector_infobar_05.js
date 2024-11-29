@@ -77,9 +77,8 @@ const TEST_TEXT_DATA = [
 ];
 
 add_task(async function () {
-  const { inspector, highlighterTestFront } = await openInspectorForURL(
-    TEST_URI
-  );
+  const { inspector, highlighterTestFront } =
+    await openInspectorForURL(TEST_URI);
 
   for (const currentTest of TEST_DATA) {
     info("Testing " + currentTest.selector);
@@ -99,12 +98,10 @@ async function testTextContent(
 ) {
   await selectAndHighlightNode(selector, inspector);
 
-  const gridType = await highlighterTestFront.getHighlighterNodeTextContent(
-    CLASS_GRID_TYPE
-  );
-  const flexType = await highlighterTestFront.getHighlighterNodeTextContent(
-    CLASS_FLEX_TYPE
-  );
+  const gridType =
+    await highlighterTestFront.getHighlighterNodeTextContent(CLASS_GRID_TYPE);
+  const flexType =
+    await highlighterTestFront.getHighlighterNodeTextContent(CLASS_FLEX_TYPE);
 
   is(gridType, gridText, "node " + selector + ": grid type matches.");
   is(flexType, flexText, "node " + selector + ": flex type matches.");

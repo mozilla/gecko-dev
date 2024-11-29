@@ -71,16 +71,14 @@ add_task(async function testIncognitoPopup() {
       const testPrivateWindow = async () => {
         const URL = "https://example.com/incognito";
         const windowReady = new Promise(resolve => {
-          browser.tabs.onUpdated.addListener(function listener(
-            tabId,
-            changed,
-            tab
-          ) {
-            if (changed.status == "complete" && tab.url == URL) {
-              browser.tabs.onUpdated.removeListener(listener);
-              resolve();
+          browser.tabs.onUpdated.addListener(
+            function listener(tabId, changed, tab) {
+              if (changed.status == "complete" && tab.url == URL) {
+                browser.tabs.onUpdated.removeListener(listener);
+                resolve();
+              }
             }
-          });
+          );
         });
 
         const window = await browser.windows.create({

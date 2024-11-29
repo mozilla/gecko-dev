@@ -113,19 +113,20 @@ class FxviewEmptyState extends MozLitElement {
               ${repeat(
                 this.descriptionLabels,
                 descLabel => descLabel,
-                (descLabel, index) => html`<p
-                  class=${classMap({
-                    description: true,
-                    secondary: index !== 0,
-                  })}
-                  data-l10n-id="${descLabel}"
-                  @click=${this.openLinkInParentWindow &&
-                  this.linkActionHandler}
-                  @keydown=${this.openLinkInParentWindow &&
-                  this.linkActionHandler}
-                >
-                  ${this.linkTemplate(this.descriptionLink)}
-                </p>`
+                (descLabel, index) =>
+                  html`<p
+                    class=${classMap({
+                      description: true,
+                      secondary: index !== 0,
+                    })}
+                    data-l10n-id="${descLabel}"
+                    @click=${this.openLinkInParentWindow &&
+                    this.linkActionHandler}
+                    @keydown=${this.openLinkInParentWindow &&
+                    this.linkActionHandler}
+                  >
+                    ${this.linkTemplate(this.descriptionLink)}
+                  </p>`
               )}
             </span>
             <slot name="primary-action"></slot>

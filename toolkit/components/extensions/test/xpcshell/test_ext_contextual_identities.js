@@ -394,9 +394,8 @@ add_task(async function test_contextualIdentity_extensions_enable_containers() {
     });
   }
   async function testSetting(expect, message) {
-    let setting = await ExtensionPreferencesManager.getSetting(
-      "privacy.containers"
-    );
+    let setting =
+      await ExtensionPreferencesManager.getSetting("privacy.containers");
     if (expect === null) {
       equal(setting, null, message);
     } else {

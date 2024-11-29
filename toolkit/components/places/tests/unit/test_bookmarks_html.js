@@ -232,9 +232,8 @@ add_task(async function test_import_chromefavicon() {
   });
 
   info("Set favicon");
-  let dataURL = await PlacesTestUtils.getFaviconDataURLFromNetwork(
-    CHROME_FAVICON_URI
-  );
+  let dataURL =
+    await PlacesTestUtils.getFaviconDataURLFromNetwork(CHROME_FAVICON_URI);
   await PlacesTestUtils.setFaviconForPage(
     PAGE_URI,
     CHROME_FAVICON_URI,
@@ -264,9 +263,8 @@ add_task(async function test_import_chromefavicon() {
 
   info("Set favicon");
   // Change the favicon to check it's really imported again later.
-  let dataURL_2 = await PlacesTestUtils.getFaviconDataURLFromNetwork(
-    CHROME_FAVICON_URI_2
-  );
+  let dataURL_2 =
+    await PlacesTestUtils.getFaviconDataURLFromNetwork(CHROME_FAVICON_URI_2);
   await PlacesTestUtils.setFaviconForPage(
     PAGE_URI,
     CHROME_FAVICON_URI_2,

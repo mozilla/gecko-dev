@@ -77,9 +77,8 @@ async function captureScreenshot(targetFront, args) {
     await new Promise(res => setTimeout(res, args.delay * 1000));
   }
 
-  const screenshotContentFront = await targetFront.getFront(
-    "screenshot-content"
-  );
+  const screenshotContentFront =
+    await targetFront.getFront("screenshot-content");
 
   // Call the content-process on the server to retrieve informations that will be needed
   // by the parent process.

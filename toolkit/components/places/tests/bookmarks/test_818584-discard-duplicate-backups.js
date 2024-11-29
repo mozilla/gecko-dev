@@ -13,9 +13,8 @@ add_task(async function () {
   dateObj.setDate(dateObj.getDate() - 1);
   let oldBackupName = PlacesBackups.getFilenameForDate(dateObj);
   let oldBackup = PathUtils.join(backupFolder, oldBackupName);
-  let { count: count, hash: hash } = await BookmarkJSONUtils.exportToFile(
-    oldBackup
-  );
+  let { count: count, hash: hash } =
+    await BookmarkJSONUtils.exportToFile(oldBackup);
   Assert.ok(count > 0);
   Assert.equal(hash.length, 44);
   oldBackupName = oldBackupName.replace(

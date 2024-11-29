@@ -264,9 +264,8 @@ add_task(async function test_open_import_one_item_from_csv() {
       ]);
       await CsvImportHelper.waitForImportToComplete();
 
-      let summary = await CsvImportHelper.getCsvImportSuccessDialogData(
-        browser
-      );
+      let summary =
+        await CsvImportHelper.getCsvImportSuccessDialogData(browser);
       Assert.equal(summary.added, "1", "It should have one item as added");
       Assert.equal(
         summary.l10nFocused,
@@ -304,9 +303,8 @@ add_task(async function test_open_import_all_four_categories() {
       await CsvImportHelper.clickImportFromCsvMenu(browser, updatedCsvData);
       await CsvImportHelper.waitForImportToComplete();
 
-      let summary = await CsvImportHelper.getCsvImportSuccessDialogData(
-        browser
-      );
+      let summary =
+        await CsvImportHelper.getCsvImportSuccessDialogData(browser);
       Assert.equal(summary.added, "1", "It should have one item as added");
       Assert.equal(
         summary.modified,
@@ -380,9 +378,8 @@ add_task(async function test_open_import_from_csv_with_invalid_file() {
       ]);
 
       info("Waiting for the import error dialog");
-      const errorDialog = await CsvImportHelper.getCsvImportErrorDialogData(
-        browser
-      );
+      const errorDialog =
+        await CsvImportHelper.getCsvImportErrorDialogData(browser);
       Assert.equal(errorDialog.hidden, false, "Dialog should not be hidden");
       Assert.equal(
         errorDialog.l10nTitle,

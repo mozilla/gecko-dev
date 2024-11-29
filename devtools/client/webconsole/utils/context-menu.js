@@ -226,9 +226,8 @@ function createContextMenu(event, message, webConsoleWrapper) {
       accesskey: l10n.getStr("webconsole.menu.copyAllMessages.accesskey"),
       disabled: false,
       async click() {
-        const outputText = await getUnvirtualizedConsoleOutputText(
-          webConsoleWrapper
-        );
+        const outputText =
+          await getUnvirtualizedConsoleOutputText(webConsoleWrapper);
         clipboardHelper.copyString(outputText);
       },
     })
@@ -248,9 +247,8 @@ function createContextMenu(event, message, webConsoleWrapper) {
           `console-export-${date.getFullYear()}-` +
           `${date.getMonth() + 1}-${date.getDate()}_${date.getHours()}-` +
           `${date.getMinutes()}-${date.getSeconds()}.txt`;
-        const outputText = await getUnvirtualizedConsoleOutputText(
-          webConsoleWrapper
-        );
+        const outputText =
+          await getUnvirtualizedConsoleOutputText(webConsoleWrapper);
         const data = new TextEncoder().encode(outputText);
         saveAs(window, data, suggestedName);
       },

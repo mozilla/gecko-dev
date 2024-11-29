@@ -45,9 +45,8 @@ export class ChromeWindowsLoginCrypto {
       let keyData;
       try {
         // NB: For testing, allow directory service to be faked before getting.
-        const localState = await ChromeMigrationUtils.getLocalState(
-          userDataPathSuffix
-        );
+        const localState =
+          await ChromeMigrationUtils.getLocalState(userDataPathSuffix);
         const withHeader = atob(localState.os_crypt.encrypted_key);
         if (!withHeader.startsWith(DPAPI_KEY_PREFIX)) {
           throw new Error("Invalid key format");

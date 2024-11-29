@@ -38,20 +38,18 @@ add_task(async function testFind() {
   async function background() {
     function awaitLoad(tabId, url) {
       return new Promise(resolve => {
-        browser.tabs.onUpdated.addListener(function listener(
-          tabId_,
-          changed,
-          tab
-        ) {
-          if (
-            tabId == tabId_ &&
-            changed.status == "complete" &&
-            tab.url == url
-          ) {
-            browser.tabs.onUpdated.removeListener(listener);
-            resolve();
+        browser.tabs.onUpdated.addListener(
+          function listener(tabId_, changed, tab) {
+            if (
+              tabId == tabId_ &&
+              changed.status == "complete" &&
+              tab.url == url
+            ) {
+              browser.tabs.onUpdated.removeListener(listener);
+              resolve();
+            }
           }
-        });
+        );
       });
     }
 
@@ -297,20 +295,18 @@ add_task(async function testRemoveHighlighting() {
   async function background() {
     function awaitLoad(tabId, url) {
       return new Promise(resolve => {
-        browser.tabs.onUpdated.addListener(function listener(
-          tabId_,
-          changed,
-          tab
-        ) {
-          if (
-            tabId == tabId_ &&
-            changed.status == "complete" &&
-            tab.url == url
-          ) {
-            browser.tabs.onUpdated.removeListener(listener);
-            resolve();
+        browser.tabs.onUpdated.addListener(
+          function listener(tabId_, changed, tab) {
+            if (
+              tabId == tabId_ &&
+              changed.status == "complete" &&
+              tab.url == url
+            ) {
+              browser.tabs.onUpdated.removeListener(listener);
+              resolve();
+            }
           }
-        });
+        );
       });
     }
 

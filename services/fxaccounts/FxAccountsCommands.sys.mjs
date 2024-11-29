@@ -142,9 +142,8 @@ export class FxAccountsCommands {
       if (notifiedIndex > 0 && notifiedIndex < lastCommandIndex) {
         return;
       }
-      const { index, messages } = await this._fetchDeviceCommands(
-        lastCommandIndex
-      );
+      const { index, messages } =
+        await this._fetchDeviceCommands(lastCommandIndex);
       if (messages.length) {
         await state.updateUserAccountData({
           device: { ...device, lastCommandIndex: index },

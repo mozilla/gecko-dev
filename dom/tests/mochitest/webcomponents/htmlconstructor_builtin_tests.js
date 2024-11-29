@@ -137,16 +137,24 @@
       // Use window from iframe to isolate the test.
       // Test calling the HTML*Element constructor.
       (() => {
-        SimpleTest.doesThrow(() => {
-          testWindow[interfaceName]();
-        }, "calling the " + interfaceName + " constructor should throw a TypeError");
+        SimpleTest.doesThrow(
+          () => {
+            testWindow[interfaceName]();
+          },
+          "calling the " +
+            interfaceName +
+            " constructor should throw a TypeError"
+        );
       })();
 
       // Test constructing a HTML*ELement.
       (() => {
-        SimpleTest.doesThrow(() => {
-          new testWindow[interfaceName]();
-        }, "constructing a " + interfaceName + " should throw a TypeError");
+        SimpleTest.doesThrow(
+          () => {
+            new testWindow[interfaceName]();
+          },
+          "constructing a " + interfaceName + " should throw a TypeError"
+        );
       })();
 
       // Test constructing a custom element with defining HTML*Element as entry.
@@ -155,9 +163,14 @@
           "x-defining-" + tagName,
           testWindow[interfaceName]
         );
-        SimpleTest.doesThrow(() => {
-          new testWindow[interfaceName]();
-        }, "constructing a custom element with defining " + interfaceName + " as registry entry should throw a TypeError");
+        SimpleTest.doesThrow(
+          () => {
+            new testWindow[interfaceName]();
+          },
+          "constructing a custom element with defining " +
+            interfaceName +
+            " as registry entry should throw a TypeError"
+        );
       })();
 
       // Since HTMLElement can be registered without specifying "extends", skip
@@ -168,9 +181,15 @@
         (() => {
           class X extends testWindow[interfaceName] {}
           testWindow.customElements.define("x-defining-invalid-" + tagName, X);
-          SimpleTest.doesThrow(() => {
-            new X();
-          }, "constructing a customized " + interfaceName + " with defining a " + 'registry entry without specifying "extends" should throw a TypeError');
+          SimpleTest.doesThrow(
+            () => {
+              new X();
+            },
+            "constructing a customized " +
+              interfaceName +
+              " with defining a " +
+              'registry entry without specifying "extends" should throw a TypeError'
+          );
         })();
       }
 
@@ -181,9 +200,15 @@
         testWindow.customElements.define("x-defining-incorrect-" + tagName, X, {
           extends: tagName === "img" ? "p" : "img",
         });
-        SimpleTest.doesThrow(() => {
-          new X();
-        }, "constructing a customized " + interfaceName + " with defining a " + 'registry entry with incorrect "extends" should throw a TypeError');
+        SimpleTest.doesThrow(
+          () => {
+            new X();
+          },
+          "constructing a customized " +
+            interfaceName +
+            " with defining a " +
+            'registry entry with incorrect "extends" should throw a TypeError'
+        );
       })();
 
       // Test calling a custom element constructor and constructing a built-in
@@ -199,9 +224,14 @@
         testWindow.customElements.define("x-" + tagName, X, {
           extends: tagName,
         });
-        SimpleTest.doesThrow(() => {
-          X();
-        }, "calling a customized " + interfaceName + " constructor should throw a TypeError");
+        SimpleTest.doesThrow(
+          () => {
+            X();
+          },
+          "calling a customized " +
+            interfaceName +
+            " constructor should throw a TypeError"
+        );
 
         let element = new X();
 

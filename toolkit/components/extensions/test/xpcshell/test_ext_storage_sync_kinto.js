@@ -615,9 +615,8 @@ const assertExtensionRecord = async function (
   const hashedId =
     "id-" +
     (await cryptoCollection.hashWithExtensionSalt(keyToId(key), extensionId));
-  const collectionId = await cryptoCollection.extensionIdToCollectionId(
-    extensionId
-  );
+  const collectionId =
+    await cryptoCollection.extensionIdToCollectionId(extensionId);
   const transformer = new CollectionKeyEncryptionRemoteTransformer(
     cryptoCollection,
     await cryptoCollection.getKeyRing(),
@@ -1522,9 +1521,8 @@ add_task(async function checkSyncKeyRing_flushes_on_uuid_change() {
           let collectionKeys = await extensionStorageSync.ensureCanSync([
             extensionId,
           ]);
-          const collectionId = await cryptoCollection.extensionIdToCollectionId(
-            extensionId
-          );
+          const collectionId =
+            await cryptoCollection.extensionIdToCollectionId(extensionId);
           server.installCollection(collectionId);
 
           ok(
@@ -1669,9 +1667,8 @@ add_task(async function test_storage_sync_pulls_changes() {
         );
 
         await extensionStorageSync.ensureCanSync([extensionId]);
-        const collectionId = await cryptoCollection.extensionIdToCollectionId(
-          extensionId
-        );
+        const collectionId =
+          await cryptoCollection.extensionIdToCollectionId(extensionId);
         let transformer = new CollectionKeyEncryptionRemoteTransformer(
           cryptoCollection,
           await cryptoCollection.getKeyRing(),
@@ -1783,9 +1780,8 @@ add_task(async function test_storage_sync_on_no_active_context() {
         server.installCollection("storage-sync-crypto");
 
         await extensionStorageSync.ensureCanSync([extensionId]);
-        const collectionId = await cryptoCollection.extensionIdToCollectionId(
-          extensionId
-        );
+        const collectionId =
+          await cryptoCollection.extensionIdToCollectionId(extensionId);
         let transformer = new CollectionKeyEncryptionRemoteTransformer(
           cryptoCollection,
           await cryptoCollection.getKeyRing(),
@@ -1831,9 +1827,8 @@ add_task(async function test_storage_sync_pushes_changes() {
       loggedInUser,
       async function (extensionStorageSync, fxaService) {
         const cryptoCollection = new CryptoCollection(fxaService);
-        const collectionId = await cryptoCollection.extensionIdToCollectionId(
-          extensionId
-        );
+        const collectionId =
+          await cryptoCollection.extensionIdToCollectionId(extensionId);
         server.installCollection(collectionId);
         server.installCollection("storage-sync-crypto");
         server.etag = 1000;
@@ -1964,9 +1959,8 @@ add_task(async function test_storage_sync_retries_failed_auth() {
 
         await extensionStorageSync.ensureCanSync([extensionId]);
         await extensionStorageSync.set(extension, { "my-key": 5 }, context);
-        const collectionId = await cryptoCollection.extensionIdToCollectionId(
-          extensionId
-        );
+        const collectionId =
+          await cryptoCollection.extensionIdToCollectionId(extensionId);
         let transformer = new CollectionKeyEncryptionRemoteTransformer(
           cryptoCollection,
           await cryptoCollection.getKeyRing(),
@@ -2047,9 +2041,8 @@ add_task(async function test_storage_sync_pulls_conflicts() {
         server.installCollection("storage-sync-crypto");
 
         await extensionStorageSync.ensureCanSync([extensionId]);
-        const collectionId = await cryptoCollection.extensionIdToCollectionId(
-          extensionId
-        );
+        const collectionId =
+          await cryptoCollection.extensionIdToCollectionId(extensionId);
         let transformer = new CollectionKeyEncryptionRemoteTransformer(
           cryptoCollection,
           await cryptoCollection.getKeyRing(),
@@ -2132,9 +2125,8 @@ add_task(async function test_storage_sync_pulls_deletes() {
       loggedInUser,
       async function (extensionStorageSync, fxaService) {
         const cryptoCollection = new CryptoCollection(fxaService);
-        const collectionId = await cryptoCollection.extensionIdToCollectionId(
-          defaultExtensionId
-        );
+        const collectionId =
+          await cryptoCollection.extensionIdToCollectionId(defaultExtensionId);
         server.installCollection(collectionId);
         server.installCollection("storage-sync-crypto");
 
@@ -2212,9 +2204,8 @@ add_task(async function test_storage_sync_pushes_deletes() {
           extensionId,
           cryptoCollection.getNewSalt()
         );
-        const collectionId = await cryptoCollection.extensionIdToCollectionId(
-          extensionId
-        );
+        const collectionId =
+          await cryptoCollection.extensionIdToCollectionId(extensionId);
 
         server.installCollection(collectionId);
         server.installCollection("storage-sync-crypto");

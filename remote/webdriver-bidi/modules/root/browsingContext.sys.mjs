@@ -1013,15 +1013,16 @@ class BrowsingContextModule extends RootBiDiModule {
       lazy.setDefaultAndAssertSerializationOptions(serializationOptions);
 
     if (startNodes != null) {
-      lazy.assert.that(startNodes => {
-        lazy.assert.array(
-          startNodes,
-          lazy.pprint`Expected "startNodes" to be an array, got ${startNodes}`
-        );
-        return !!startNodes.length;
-      }, lazy.pprint`Expected "startNodes" to have at least one element, got ${startNodes}`)(
-        startNodes
-      );
+      lazy.assert.that(
+        startNodes => {
+          lazy.assert.array(
+            startNodes,
+            lazy.pprint`Expected "startNodes" to be an array, got ${startNodes}`
+          );
+          return !!startNodes.length;
+        },
+        lazy.pprint`Expected "startNodes" to have at least one element, got ${startNodes}`
+      )(startNodes);
     }
 
     const result = await this._forwardToWindowGlobal(

@@ -330,9 +330,8 @@ function openBrowserWindow(
       win.document.documentElement.removeAttribute("windowtype");
 
       if (forcePrivate) {
-        win.docShell.QueryInterface(
-          Ci.nsILoadContext
-        ).usePrivateBrowsing = true;
+        win.docShell.QueryInterface(Ci.nsILoadContext).usePrivateBrowsing =
+          true;
 
         if (
           AppConstants.platform == "win" &&
@@ -654,9 +653,8 @@ nsBrowserContentHandler.prototype = {
       if (cmdLine.state == Ci.nsICommandLine.STATE_INITIAL_LAUNCH) {
         let win = Services.wm.getMostRecentWindow("navigator:blank");
         if (win) {
-          win.docShell.QueryInterface(
-            Ci.nsILoadContext
-          ).usePrivateBrowsing = true;
+          win.docShell.QueryInterface(Ci.nsILoadContext).usePrivateBrowsing =
+            true;
         }
       }
     }

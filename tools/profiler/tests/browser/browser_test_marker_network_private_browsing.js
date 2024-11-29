@@ -28,9 +28,8 @@ add_task(async function test_network_markers() {
       () => Services.appinfo.processID
     );
 
-    const { parentThread, contentThread } = await stopProfilerNowAndGetThreads(
-      contentPid
-    );
+    const { parentThread, contentThread } =
+      await stopProfilerNowAndGetThreads(contentPid);
 
     const parentNetworkMarkers = getInflatedNetworkMarkers(parentThread);
     const contentNetworkMarkers = getInflatedNetworkMarkers(contentThread);

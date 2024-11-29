@@ -201,9 +201,8 @@ add_task(async function test_delete() {
   );
 
   extension.sendMessage("delete-all");
-  [historyClearedCount, removedUrls] = await extension.awaitMessage(
-    "history-cleared"
-  );
+  [historyClearedCount, removedUrls] =
+    await extension.awaitMessage("history-cleared");
   equal(
     historyClearedCount,
     2,

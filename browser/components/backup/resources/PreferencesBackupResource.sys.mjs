@@ -176,9 +176,8 @@ export class PreferencesBackupResource extends BackupResource {
     }
 
     const chromeDirectoryPath = PathUtils.join(profilePath, "chrome");
-    let chromeDirectorySize = await BackupResource.getDirectorySize(
-      chromeDirectoryPath
-    );
+    let chromeDirectorySize =
+      await BackupResource.getDirectorySize(chromeDirectoryPath);
     if (Number.isInteger(chromeDirectorySize)) {
       fullSize += chromeDirectorySize;
     }

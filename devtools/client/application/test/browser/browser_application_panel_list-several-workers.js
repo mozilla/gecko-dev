@@ -14,9 +14,8 @@ const OTHER_SCOPE_URL = URL_ROOT + "resources/service-workers/scope-page.html";
 add_task(async function () {
   await enableApplicationPanel();
 
-  const { panel, commands, tab } = await openNewTabAndApplicationPanel(
-    SIMPLE_URL
-  );
+  const { panel, commands, tab } =
+    await openNewTabAndApplicationPanel(SIMPLE_URL);
   const doc = panel.panelWin.document;
 
   selectPage(panel, "service-workers");

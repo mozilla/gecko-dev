@@ -271,22 +271,21 @@ class OpenTabsInView extends ViewPage {
       >
         ${when(
           currentWindowIndex && currentWindowTabs,
-          () =>
-            html`
-              <view-opentabs-card
-                class=${cardClasses}
-                .tabs=${currentWindowTabs}
-                .paused=${this.paused}
-                data-inner-id="${this.currentWindow.windowGlobalChild
-                  .innerWindowId}"
-                data-l10n-id="firefoxview-opentabs-current-window-header"
-                data-l10n-args="${JSON.stringify({
-                  winID: currentWindowIndex,
-                })}"
-                .searchQuery=${this.searchQuery}
-                .bookmarkList=${this.bookmarkList}
-              ></view-opentabs-card>
-            `
+          () => html`
+            <view-opentabs-card
+              class=${cardClasses}
+              .tabs=${currentWindowTabs}
+              .paused=${this.paused}
+              data-inner-id="${this.currentWindow.windowGlobalChild
+                .innerWindowId}"
+              data-l10n-id="firefoxview-opentabs-current-window-header"
+              data-l10n-args="${JSON.stringify({
+                winID: currentWindowIndex,
+              })}"
+              .searchQuery=${this.searchQuery}
+              .bookmarkList=${this.bookmarkList}
+            ></view-opentabs-card>
+          `
         )}
         ${map(
           otherWindows,
@@ -542,10 +541,11 @@ class OpenTabsInViewCard extends ViewPageContent {
       >
         ${when(
           this.recentBrowsing,
-          () => html`<h3
-            slot="header"
-            data-l10n-id="firefoxview-opentabs-header"
-          ></h3>`,
+          () =>
+            html`<h3
+              slot="header"
+              data-l10n-id="firefoxview-opentabs-header"
+            ></h3>`,
           () => html`<h3 slot="header">${this.title}</h3>`
         )}
         <div class="fxview-tab-list-container" slot="main">
@@ -567,15 +567,16 @@ class OpenTabsInViewCard extends ViewPageContent {
         </div>
         ${when(
           this.recentBrowsing,
-          () => html` <div
-            @click=${this.enableShowAll}
-            @keydown=${this.enableShowAll}
-            data-l10n-id="firefoxview-show-all"
-            ?hidden=${!this.isShowAllLinkVisible()}
-            slot="footer"
-            tabindex="0"
-            role="link"
-          ></div>`,
+          () =>
+            html` <div
+              @click=${this.enableShowAll}
+              @keydown=${this.enableShowAll}
+              data-l10n-id="firefoxview-show-all"
+              ?hidden=${!this.isShowAllLinkVisible()}
+              slot="footer"
+              tabindex="0"
+              role="link"
+            ></div>`,
           () =>
             html` <div
               @click=${this.toggleShowMore}

@@ -489,12 +489,10 @@ add_task(async function test_iframe_navigate() {
   // process load" part. Additionally, it ensures that the process for the
   // initial iframe page doesn't shut down once we navigate away from it,
   // which will also affect its prioritization.
-  let { tab: iframe1Tab, childID: iframe1TabChildID } = await loadKeepAliveTab(
-    iframe1Host
-  );
-  let { tab: iframe2Tab, childID: iframe2TabChildID } = await loadKeepAliveTab(
-    iframe2Host
-  );
+  let { tab: iframe1Tab, childID: iframe1TabChildID } =
+    await loadKeepAliveTab(iframe1Host);
+  let { tab: iframe2Tab, childID: iframe2TabChildID } =
+    await loadKeepAliveTab(iframe2Host);
 
   await BrowserTestUtils.withNewTab(
     topHost + "/browser/dom/ipc/tests/file_cross_frame.html",

@@ -16,13 +16,13 @@ var testReady = new Promise(resolve => {
 self.addEventListener("install", function (event) {
   var request = new Request(prefix + "notify_loaded.js", { mode: "no-cors" });
   event.waitUntil(
-    Promise.all([caches.open(name), fetch(request), testReady]).then(function (
-      results
-    ) {
-      var cache = results[0];
-      var response = results[1];
-      return cache.put("./sw_clients/does_not_exist.js", response);
-    })
+    Promise.all([caches.open(name), fetch(request), testReady]).then(
+      function (results) {
+        var cache = results[0];
+        var response = results[1];
+        return cache.put("./sw_clients/does_not_exist.js", response);
+      }
+    )
   );
 });
 

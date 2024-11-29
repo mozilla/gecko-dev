@@ -113,9 +113,8 @@ add_task(async function test_score() {
 
   ContentRelevancyManager.init(gFakeRustRelevancyStore);
 
-  const scoreSingleHit = await ContentRelevancyManager.score(
-    SINGLE_INTEREST_HIT
-  );
+  const scoreSingleHit =
+    await ContentRelevancyManager.score(SINGLE_INTEREST_HIT);
 
   Assert.greater(
     scoreSingleHit,
@@ -123,9 +122,8 @@ add_task(async function test_score() {
     "Single interest hit should yield a positive score"
   );
 
-  const scoreMultiHits = await ContentRelevancyManager.score(
-    MULTI_INTEREST_HITS
-  );
+  const scoreMultiHits =
+    await ContentRelevancyManager.score(MULTI_INTEREST_HITS);
 
   Assert.greater(
     scoreMultiHits,

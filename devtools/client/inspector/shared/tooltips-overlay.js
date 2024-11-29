@@ -384,9 +384,8 @@ TooltipsOverlay.prototype = {
    */
   async onInteractiveTooltipTargetHover(target) {
     if (target.classList.contains("ruleview-compatibility-warning")) {
-      const nodeCompatibilityInfo = await this.view.getNodeCompatibilityInfo(
-        target
-      );
+      const nodeCompatibilityInfo =
+        await this.view.getNodeCompatibilityInfo(target);
 
       await this.compatibilityTooltipHelper.setContent(
         nodeCompatibilityInfo,

@@ -568,8 +568,7 @@ BrowserTabList.prototype.handleEvent = DevToolsUtils.makeInfallible(function (
       break;
     }
   }
-},
-"BrowserTabList.prototype.handleEvent");
+}, "BrowserTabList.prototype.handleEvent");
 
 /*
  * If |shouldListen| is true, ensure we've registered a listener with the
@@ -633,8 +632,7 @@ BrowserTabList.prototype.onOpenWindow = DevToolsUtils.makeInfallible(function (
     .getInterface(Ci.nsIDOMWindow);
 
   window.addEventListener("load", handleLoad);
-},
-"BrowserTabList.prototype.onOpenWindow");
+}, "BrowserTabList.prototype.onOpenWindow");
 
 BrowserTabList.prototype.onCloseWindow = DevToolsUtils.makeInfallible(function (
   window
@@ -666,8 +664,7 @@ BrowserTabList.prototype.onCloseWindow = DevToolsUtils.makeInfallible(function (
       }
     }, "BrowserTabList.prototype.onCloseWindow's delayed body")
   );
-},
-"BrowserTabList.prototype.onCloseWindow");
+}, "BrowserTabList.prototype.onCloseWindow");
 
 exports.BrowserTabList = BrowserTabList;
 

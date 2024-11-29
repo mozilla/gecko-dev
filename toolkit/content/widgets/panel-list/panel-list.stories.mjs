@@ -52,85 +52,84 @@ const Template = ({
   hasSubMenu,
   showAccesskeys,
   accesskeys,
-}) =>
-  html`
-    <style>
-      panel-item[icon="passwords"]::part(button) {
-        background-image: url("chrome://browser/skin/login.svg");
-      }
-      panel-item[icon="settings"]::part(button) {
-        background-image: url("chrome://global/skin/icons/settings.svg");
-      }
-      button {
-        position: absolute;
-        background-image: url("chrome://global/skin/icons/more.svg");
-      }
-      button[wide] {
-        width: 400px !important;
-      }
-      .end {
-        inset-inline-end: 30px;
-      }
+}) => html`
+  <style>
+    panel-item[icon="passwords"]::part(button) {
+      background-image: url("chrome://browser/skin/login.svg");
+    }
+    panel-item[icon="settings"]::part(button) {
+      background-image: url("chrome://global/skin/icons/settings.svg");
+    }
+    button {
+      position: absolute;
+      background-image: url("chrome://global/skin/icons/more.svg");
+    }
+    button[wide] {
+      width: 400px !important;
+    }
+    .end {
+      inset-inline-end: 30px;
+    }
 
-      .bottom {
-        inset-block-end: 30px;
-      }
-    </style>
-    ${isOpen
-      ? ""
-      : html`
-          <button
-            class="ghost-button icon-button"
-            @click=${openMenu}
-            @mousedown=${openMenu}
-            ?wide="${wideAnchor}"
-          ></button>
-          <button
-            class="ghost-button icon-button end"
-            @click=${openMenu}
-            @mousedown=${openMenu}
-            ?wide="${wideAnchor}"
-          ></button>
-          <button
-            class="ghost-button icon-button bottom"
-            @click=${openMenu}
-            @mousedown=${openMenu}
-            ?wide="${wideAnchor}"
-          ></button>
-          <button
-            class="ghost-button icon-button bottom end"
-            @click=${openMenu}
-            @mousedown=${openMenu}
-            ?wide="${wideAnchor}"
-          ></button>
-        `}
-    <panel-list
-      ?stay-open=${isOpen}
-      ?open=${isOpen}
-      ?min-width-from-anchor=${wideAnchor}
-    >
-      ${items.map((item, index) => {
-        // Always showing submenu on the first item for simplicity.
-        let showSubMenu = hasSubMenu && index == 0;
-        let subMenuId = showSubMenu ? "example-sub-menu" : undefined;
-        return item == "<hr>"
-          ? html` <hr /> `
-          : html`
-              <panel-item
-                icon=${item.icon ?? ""}
-                ?checked=${item.checked}
-                type=${ifDefined(item.checked ? "checkbox" : undefined)}
-                ?badged=${item.badged}
-                data-l10n-id=${item.l10nId ?? item}
-                submenu=${ifDefined(subMenuId)}
-                accesskey=${ifDefined(showAccesskeys ? accesskeys[index] : "")}
-              >
-                ${showSubMenu ? subMenuTemplate() : ""}
-              </panel-item>
-            `;
-      })}
-    </panel-list>
-  `;
+    .bottom {
+      inset-block-end: 30px;
+    }
+  </style>
+  ${isOpen
+    ? ""
+    : html`
+        <button
+          class="ghost-button icon-button"
+          @click=${openMenu}
+          @mousedown=${openMenu}
+          ?wide="${wideAnchor}"
+        ></button>
+        <button
+          class="ghost-button icon-button end"
+          @click=${openMenu}
+          @mousedown=${openMenu}
+          ?wide="${wideAnchor}"
+        ></button>
+        <button
+          class="ghost-button icon-button bottom"
+          @click=${openMenu}
+          @mousedown=${openMenu}
+          ?wide="${wideAnchor}"
+        ></button>
+        <button
+          class="ghost-button icon-button bottom end"
+          @click=${openMenu}
+          @mousedown=${openMenu}
+          ?wide="${wideAnchor}"
+        ></button>
+      `}
+  <panel-list
+    ?stay-open=${isOpen}
+    ?open=${isOpen}
+    ?min-width-from-anchor=${wideAnchor}
+  >
+    ${items.map((item, index) => {
+      // Always showing submenu on the first item for simplicity.
+      let showSubMenu = hasSubMenu && index == 0;
+      let subMenuId = showSubMenu ? "example-sub-menu" : undefined;
+      return item == "<hr>"
+        ? html` <hr /> `
+        : html`
+            <panel-item
+              icon=${item.icon ?? ""}
+              ?checked=${item.checked}
+              type=${ifDefined(item.checked ? "checkbox" : undefined)}
+              ?badged=${item.badged}
+              data-l10n-id=${item.l10nId ?? item}
+              submenu=${ifDefined(subMenuId)}
+              accesskey=${ifDefined(showAccesskeys ? accesskeys[index] : "")}
+            >
+              ${showSubMenu ? subMenuTemplate() : ""}
+            </panel-item>
+          `;
+    })}
+  </panel-list>
+`;
 
 const subMenuTemplate = () => html`
   <panel-list slot="submenu" id="example-sub-menu">

@@ -34,8 +34,7 @@ function promiseTopicObserved(aTopic) {
     ) {
       Services.obs.removeObserver(observe, aObsTopic);
       resolve([aObsSubject, aObsData]);
-    },
-    aTopic);
+    }, aTopic);
   });
 }
 

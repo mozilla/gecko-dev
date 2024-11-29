@@ -180,11 +180,11 @@ function getClipboardDataSnapshot(
             "nsIClipboardGetDataSnapshotCallback",
           ]),
           // nsIClipboardGetDataSnapshotCallback
-          onSuccess: SpecialPowers.wrapCallback(function (
-            aAsyncGetClipboardData
-          ) {
-            resolve(aAsyncGetClipboardData);
-          }),
+          onSuccess: SpecialPowers.wrapCallback(
+            function (aAsyncGetClipboardData) {
+              resolve(aAsyncGetClipboardData);
+            }
+          ),
           onError: SpecialPowers.wrapCallback(function (aResult) {
             reject(aResult);
           }),

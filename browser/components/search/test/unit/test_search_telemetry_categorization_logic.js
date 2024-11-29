@@ -136,9 +136,8 @@ add_task(async function test_categorization_simple() {
     "test10.com",
   ]);
 
-  let resultsToReport = await SearchSERPCategorization.applyCategorizationLogic(
-    domains
-  );
+  let resultsToReport =
+    await SearchSERPCategorization.applyCategorizationLogic(domains);
 
   Assert.deepEqual(
     resultsToReport,
@@ -165,9 +164,8 @@ add_task(async function test_categorization_inconclusive() {
     "test20.com",
   ]);
 
-  let resultsToReport = await SearchSERPCategorization.applyCategorizationLogic(
-    domains
-  );
+  let resultsToReport =
+    await SearchSERPCategorization.applyCategorizationLogic(domains);
 
   Assert.deepEqual(
     resultsToReport,
@@ -201,9 +199,8 @@ add_task(async function test_categorization_unknown() {
     "test30.com",
   ]);
 
-  let resultsToReport = await SearchSERPCategorization.applyCategorizationLogic(
-    domains
-  );
+  let resultsToReport =
+    await SearchSERPCategorization.applyCategorizationLogic(domains);
 
   Assert.deepEqual(
     resultsToReport,
@@ -235,9 +232,8 @@ add_task(async function test_categorization_unknown_and_inconclusive() {
     "test40.com",
   ]);
 
-  let resultsToReport = await SearchSERPCategorization.applyCategorizationLogic(
-    domains
-  );
+  let resultsToReport =
+    await SearchSERPCategorization.applyCategorizationLogic(domains);
 
   Assert.deepEqual(
     resultsToReport,
@@ -272,9 +268,8 @@ add_task(async function test_categorization_all_types() {
     "test60.com",
   ]);
 
-  let resultsToReport = await SearchSERPCategorization.applyCategorizationLogic(
-    domains
-  );
+  let resultsToReport =
+    await SearchSERPCategorization.applyCategorizationLogic(domains);
 
   Assert.deepEqual(
     resultsToReport,
@@ -306,9 +301,8 @@ add_task(async function test_categorization_tie() {
     "test50.com",
   ]);
 
-  let resultsToReport = await SearchSERPCategorization.applyCategorizationLogic(
-    domains
-  );
+  let resultsToReport =
+    await SearchSERPCategorization.applyCategorizationLogic(domains);
 
   Assert.equal(
     [1, 2].includes(resultsToReport.category),
@@ -345,9 +339,8 @@ add_task(async function test_rank_penalization_equal_scores() {
     "test60.com",
   ]);
 
-  let resultsToReport = await SearchSERPCategorization.applyCategorizationLogic(
-    domains
-  );
+  let resultsToReport =
+    await SearchSERPCategorization.applyCategorizationLogic(domains);
 
   Assert.deepEqual(
     resultsToReport,
@@ -363,9 +356,8 @@ add_task(async function test_rank_penalization_highest_score_lower_on_page() {
 
   let domains = new Set(["test61.com", "test62.com"]);
 
-  let resultsToReport = await SearchSERPCategorization.applyCategorizationLogic(
-    domains
-  );
+  let resultsToReport =
+    await SearchSERPCategorization.applyCategorizationLogic(domains);
 
   Assert.deepEqual(
     resultsToReport,

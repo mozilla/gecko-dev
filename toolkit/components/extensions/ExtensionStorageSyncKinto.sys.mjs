@@ -908,9 +908,8 @@ export class ExtensionStorageSyncKinto {
         // Our token might have expired. Refresh and retry.
         log.info("Token might have expired");
         await this._fxaService.removeCachedOAuthToken({ token: fxaToken });
-        const newToken = await this._fxaService.getOAuthToken(
-          FXA_OAUTH_OPTIONS
-        );
+        const newToken =
+          await this._fxaService.getOAuthToken(FXA_OAUTH_OPTIONS);
 
         // If this fails too, let it go.
         return f(newToken);

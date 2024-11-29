@@ -421,9 +421,8 @@ export class SearchService {
   async findContextualSearchEngineByHost(host) {
     await this.init();
     let settings = await this._settings.get();
-    let config = await this.#engineSelector.findContextualSearchEngineByHost(
-      host
-    );
+    let config =
+      await this.#engineSelector.findContextualSearchEngineByHost(host);
     if (config) {
       return new lazy.UserInstalledAppEngine({ config, settings });
     }
@@ -1642,16 +1641,14 @@ export class SearchService {
     // `loadEnginesFromSettings` loads the engines and their settings together.
     // If loading the settings caused the default engine to change because of an
     // override, then we don't want to show the notification box.
-    let skipDefaultChangedNotification = await this.#loadEnginesFromSettings(
-      settings
-    );
+    let skipDefaultChangedNotification =
+      await this.#loadEnginesFromSettings(settings);
 
     // If #loadEnginesFromSettings changed the default engine, then we don't
     // need to call #checkOpenSearchOverrides as we know that the overrides have
     // only just been applied.
-    skipDefaultChangedNotification ||= await this.#checkOpenSearchOverrides(
-      settings
-    );
+    skipDefaultChangedNotification ||=
+      await this.#checkOpenSearchOverrides(settings);
 
     // Settings file version 6 and below will need a migration to store the
     // engine ids rather than engine names.

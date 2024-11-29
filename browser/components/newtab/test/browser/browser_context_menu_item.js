@@ -9,9 +9,8 @@ test_newtab({
       () => content.document.querySelector(siteSelector),
       "Topsites have loaded"
     );
-    const contextMenuItems = await content.openContextMenuAndGetOptions(
-      siteSelector
-    );
+    const contextMenuItems =
+      await content.openContextMenuAndGetOptions(siteSelector);
     let icon = contextMenuItems[0].querySelector(".icon");
     ok(!icon, "icon was not rendered");
   },

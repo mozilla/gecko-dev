@@ -1004,9 +1004,8 @@ function isEveryFrameTargetEnabled() {
  */
 async function openInspectorForURL(url, hostType) {
   const tab = await addTab(url);
-  const { inspector, toolbox, highlighterTestFront } = await openInspector(
-    hostType
-  );
+  const { inspector, toolbox, highlighterTestFront } =
+    await openInspector(hostType);
   return { tab, inspector, toolbox, highlighterTestFront };
 }
 

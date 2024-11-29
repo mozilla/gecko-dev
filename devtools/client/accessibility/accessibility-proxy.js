@@ -138,9 +138,8 @@ class AccessibilityProxy {
 
   async toggleDisplayTabbingOrder(displayTabbingOrder) {
     if (displayTabbingOrder) {
-      const { walker: domWalkerFront } = await this.currentTarget.getFront(
-        "inspector"
-      );
+      const { walker: domWalkerFront } =
+        await this.currentTarget.getFront("inspector");
       await this.accessibilityFront.accessibleWalkerFront.showTabbingOrder(
         await domWalkerFront.getRootNode(),
         0

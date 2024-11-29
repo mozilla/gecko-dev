@@ -85,9 +85,8 @@ export var ChromeMigrationUtils = {
       manifestPath = PathUtils.join(manifestPath, extensionId);
       // If there are multiple sub-directories in the extension directory,
       // read the files in the latest directory.
-      let directories = await this._getSortedByVersionSubDirectoryNames(
-        manifestPath
-      );
+      let directories =
+        await this._getSortedByVersionSubDirectoryNames(manifestPath);
       if (!directories[0]) {
         return null;
       }
@@ -165,9 +164,8 @@ export var ChromeMigrationUtils = {
         }
         let localeFilePath = await this.getExtensionPath(profileId);
         localeFilePath = PathUtils.join(localeFilePath, extensionId);
-        let directories = await this._getSortedByVersionSubDirectoryNames(
-          localeFilePath
-        );
+        let directories =
+          await this._getSortedByVersionSubDirectoryNames(localeFilePath);
         // If there are multiple sub-directories in the extension directory,
         // read the files in the latest directory.
         localeFilePath = PathUtils.join(

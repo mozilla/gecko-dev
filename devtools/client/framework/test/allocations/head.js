@@ -133,9 +133,8 @@ async function stopRecordingAllocations(
   ok(!tracker.overflowed, "Allocation were all recorded in the parent process");
 
   // And finally, retrieve the record *after* having ran the test
-  const parentProcessData = await tracker.stopRecordingAllocations(
-    DEBUG_ALLOCATIONS
-  );
+  const parentProcessData =
+    await tracker.stopRecordingAllocations(DEBUG_ALLOCATIONS);
 
   const objectNodeIds = TrackedObjects.getAllNodeIds();
   if (objectNodeIds.length) {

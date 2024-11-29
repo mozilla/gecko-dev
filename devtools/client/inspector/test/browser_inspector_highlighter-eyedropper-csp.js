@@ -8,9 +8,8 @@
 const TEST_URI = URL_ROOT + "doc_inspector_csp.html";
 
 add_task(async function () {
-  const { inspector, highlighterTestFront } = await openInspectorForURL(
-    TEST_URI
-  );
+  const { inspector, highlighterTestFront } =
+    await openInspectorForURL(TEST_URI);
 
   const toggleButton = inspector.panelDoc.querySelector(
     "#inspector-eyedropper-toggle"

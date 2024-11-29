@@ -267,9 +267,10 @@ export let HomePage = {
             return;
           }
           // getSetting does not need the module to be loaded.
-          const item = await lazy.ExtensionPreferencesManager.getSetting(
-            "homepage_override"
-          );
+          const item =
+            await lazy.ExtensionPreferencesManager.getSetting(
+              "homepage_override"
+            );
           if (item && item.id) {
             // During startup some modules may not be loaded yet, so we load
             // the setting we need prior to removal.

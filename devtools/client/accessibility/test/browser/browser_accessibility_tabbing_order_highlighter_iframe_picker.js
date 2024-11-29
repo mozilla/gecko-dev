@@ -17,9 +17,8 @@ add_task(async () => {
   const env = await addTestTab(TEST_URI);
   const { doc, panel, store, toolbox, win } = env;
 
-  const topLevelFrameHighlighterTestFront = await toolbox.target.getFront(
-    "highlighterTest"
-  );
+  const topLevelFrameHighlighterTestFront =
+    await toolbox.target.getFront("highlighterTest");
 
   const iframeTarget = toolbox.commands.targetCommand
     .getAllTargets([toolbox.commands.targetCommand.TYPES.FRAME])

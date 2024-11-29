@@ -14,9 +14,8 @@ add_task(async function () {
     "https://example.com/document-builder.sjs?html=<h1>Test reflow resources</h1>"
   );
 
-  const { client, resourceCommand, targetCommand } = await initResourceCommand(
-    tab
-  );
+  const { client, resourceCommand, targetCommand } =
+    await initResourceCommand(tab);
 
   const resources = [];
   const onAvailable = _resources => {
