@@ -149,15 +149,6 @@
   -moz-context-properties: stroke, fill;
   fill: #fff;
   stroke: #808080;
-
-  :root[forced-colors-active] & {
-    fill: ButtonFace;
-    stroke: var(--theme-icon-color);
-
-    &:hover {
-      stroke: var(--theme-icon-hover-color);
-    }
-  }
 }
 
 .inspector-filterswatch {
@@ -170,4 +161,19 @@
 
 .inspector-lineareasingswatch {
   background-image: url("chrome://devtools/skin/images/linear-easing-swatch.svg");
+  -moz-context-properties: stroke, fill;
+  fill: #fff;
+  stroke: #808080;
+}
+
+:root[forced-colors-active] :is(
+  .inspector-bezierswatch,
+  .inspector-lineareasingswatch
+) {
+  fill: ButtonFace;
+  stroke: var(--theme-icon-color);
+
+  &:hover {
+    stroke: var(--theme-icon-hover-color);
+  }
 }
