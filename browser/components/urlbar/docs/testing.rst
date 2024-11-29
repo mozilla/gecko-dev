@@ -152,7 +152,7 @@ any variables and functions it defines will be available in the scope of
 each test. This file is small because most of our Utils are actually in other
 `.sys.mjs` files.
 
-The ``XPCOMUtils.defineLazyModuleGetters`` method within ``head.js`` sets up
+The ``ChromeUtils.defineESModuleGetters`` method within ``head.js`` sets up
 modules names to where they can be found, their paths. ``Lazy`` means the files
 are only imported if or when it is used. Any tests in this directory can use
 these modules without importing it themselves in their own file.
