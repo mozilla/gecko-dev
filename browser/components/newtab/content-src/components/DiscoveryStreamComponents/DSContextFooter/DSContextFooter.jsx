@@ -121,7 +121,7 @@ export class DSContextFooter extends React.PureComponent {
       );
     }
 
-    if (sponsorLabel || dsMessageLabel) {
+    if (sponsorLabel || (dsMessageLabel && context_type !== "pocket")) {
       return (
         <div className="story-footer">
           {sponsorLabel}

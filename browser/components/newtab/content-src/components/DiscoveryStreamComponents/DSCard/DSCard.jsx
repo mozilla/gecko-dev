@@ -721,6 +721,12 @@ export class _DSCard extends React.PureComponent {
     const isMediumRectangle = format === "rectangle";
     const spocFormatClassName = isMediumRectangle ? `ds-spoc-rectangle` : ``;
 
+    // Only update the "Saved" Pocket button UI for the Sections experiment.
+    const compactPocketSavedButtonClassName =
+      mayHaveSectionsCards && this.props.context_type === "pocket"
+        ? `ds-compact-pocket-saved-button`
+        : ``;
+
     let sizes = [];
     if (!isMediumRectangle) {
       sizes = isListCard ? this.listCardImageSizes : this.dsImageSizes;
@@ -738,7 +744,10 @@ export class _DSCard extends React.PureComponent {
                 role="img"
                 className="story-badge-icon icon icon-pocket"
               />
-              <span data-l10n-id="newtab-pocket-saved" />
+              <span
+                data-l10n-id="newtab-pocket-saved"
+                className="pocket-saved-copy"
+              />
             </>
           ) : (
             <>
@@ -862,7 +871,9 @@ export class _DSCard extends React.PureComponent {
           />
         )}
 
-        <div className="card-stp-button-hover-background">
+        <div
+          className={`card-stp-button-hover-background ${compactPocketSavedButtonClassName}`}
+        >
           <div className="card-stp-button-position-wrapper">
             {saveToPocketCard && !isListCard && (
               <>{!this.props.flightId && stpButton()}</>

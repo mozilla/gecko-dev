@@ -5244,6 +5244,39 @@ main section {
   }
 }
 
+.ds-card.sections-card-ui .ds-compact-pocket-saved-button {
+  opacity: 1;
+}
+.ds-card.sections-card-ui .ds-compact-pocket-saved-button .icon-pocket-save,
+.ds-card.sections-card-ui .ds-compact-pocket-saved-button .icon-pocket {
+  margin-inline-end: 0;
+}
+.ds-card.sections-card-ui .ds-compact-pocket-saved-button .context-menu-position-container {
+  display: none;
+}
+.ds-card.sections-card-ui .ds-compact-pocket-saved-button .card-stp-button {
+  margin-inline-end: 0;
+}
+.ds-card.sections-card-ui .ds-compact-pocket-saved-button .pocket-saved-copy {
+  display: none;
+}
+.ds-card.sections-card-ui .ds-compact-pocket-saved-button:hover .icon-pocket-save,
+.ds-card.sections-card-ui .ds-compact-pocket-saved-button:hover .icon-pocket, .ds-card.sections-card-ui .ds-compact-pocket-saved-button:focus-within .icon-pocket-save,
+.ds-card.sections-card-ui .ds-compact-pocket-saved-button:focus-within .icon-pocket, .ds-card.sections-card-ui .ds-compact-pocket-saved-button:active .icon-pocket-save,
+.ds-card.sections-card-ui .ds-compact-pocket-saved-button:active .icon-pocket {
+  margin-inline-end: 4px;
+}
+.ds-card.sections-card-ui .ds-compact-pocket-saved-button:hover .context-menu-position-container, .ds-card.sections-card-ui .ds-compact-pocket-saved-button:focus-within .context-menu-position-container, .ds-card.sections-card-ui .ds-compact-pocket-saved-button:active .context-menu-position-container {
+  display: revert;
+}
+.ds-card.sections-card-ui .ds-compact-pocket-saved-button:hover .card-stp-button, .ds-card.sections-card-ui .ds-compact-pocket-saved-button:focus-within .card-stp-button, .ds-card.sections-card-ui .ds-compact-pocket-saved-button:active .card-stp-button {
+  margin-inline-end: 7px;
+  display: revert;
+}
+.ds-card.sections-card-ui .ds-compact-pocket-saved-button:hover .pocket-saved-copy, .ds-card.sections-card-ui .ds-compact-pocket-saved-button:focus-within .pocket-saved-copy, .ds-card.sections-card-ui .ds-compact-pocket-saved-button:active .pocket-saved-copy {
+  display: revert;
+}
+
 .ds-dismiss.ds-dismiss-ds-collection .ds-dismiss-button {
   margin: 15px 0 0;
   inset-inline-end: 25px;

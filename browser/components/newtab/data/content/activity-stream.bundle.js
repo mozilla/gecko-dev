@@ -2838,7 +2838,7 @@ class DSContextFooter extends (external_React_default()).PureComponent {
         className: "source clamp cta-footer-source"
       }, source));
     }
-    if (sponsorLabel || dsMessageLabel) {
+    if (sponsorLabel || dsMessageLabel && context_type !== "pocket") {
       return /*#__PURE__*/external_React_default().createElement("div", {
         className: "story-footer"
       }, sponsorLabel, sponsorLabel && spocMessageVariant === "variant-b" && /*#__PURE__*/external_React_default().createElement(SponsoredContentHighlight, {
@@ -3489,6 +3489,9 @@ class _DSCard extends (external_React_default()).PureComponent {
     const descLinesClassName = `ds-card-desc-lines-${descLines}`;
     const isMediumRectangle = format === "rectangle";
     const spocFormatClassName = isMediumRectangle ? `ds-spoc-rectangle` : ``;
+
+    // Only update the "Saved" Pocket button UI for the Sections experiment.
+    const compactPocketSavedButtonClassName = mayHaveSectionsCards && this.props.context_type === "pocket" ? `ds-compact-pocket-saved-button` : ``;
     let sizes = [];
     if (!isMediumRectangle) {
       sizes = isListCard ? this.listCardImageSizes : this.dsImageSizes;
@@ -3505,7 +3508,8 @@ class _DSCard extends (external_React_default()).PureComponent {
         role: "img",
         className: "story-badge-icon icon icon-pocket"
       }), /*#__PURE__*/external_React_default().createElement("span", {
-        "data-l10n-id": "newtab-pocket-saved"
+        "data-l10n-id": "newtab-pocket-saved",
+        className: "pocket-saved-copy"
       })) : /*#__PURE__*/external_React_default().createElement((external_React_default()).Fragment, null, /*#__PURE__*/external_React_default().createElement("span", {
         "data-l10n-id": "newtab-pocket-image",
         role: "img",
@@ -3603,7 +3607,7 @@ class _DSCard extends (external_React_default()).PureComponent {
       format: format,
       topic: this.props.topic
     }), /*#__PURE__*/external_React_default().createElement("div", {
-      className: "card-stp-button-hover-background"
+      className: `card-stp-button-hover-background ${compactPocketSavedButtonClassName}`
     }, /*#__PURE__*/external_React_default().createElement("div", {
       className: "card-stp-button-position-wrapper"
     }, saveToPocketCard && !isListCard && /*#__PURE__*/external_React_default().createElement((external_React_default()).Fragment, null, !this.props.flightId && stpButton()), !isFakespot && /*#__PURE__*/external_React_default().createElement(DSLinkMenu, {
