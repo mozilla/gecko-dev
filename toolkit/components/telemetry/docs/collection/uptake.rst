@@ -25,7 +25,7 @@ Usage
 
 .. code-block:: js
 
-   const { UptakeTelemetry } = ChromeUtils.import("resource://services-common/uptake-telemetry.js", {});
+   const { UptakeTelemetry } = ChromeUtils.importESModule("resource://services-common/uptake-telemetry.sys.mjs", {});
 
    UptakeTelemetry.report(component, status, { source });
 
