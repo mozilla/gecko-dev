@@ -48,11 +48,18 @@ addRDMTask(TEST_COM_URL, async function ({ ui }) {
   let waitForOrientationChangeEvent = isOrientationChangeEventEmitted(
     ui.getViewportBrowser()
   );
+  let waitForScreenOrientationChangeEvent =
+    isWindowScreenOrientationChangeEventEmitted(ui.getViewportBrowser());
   rotateViewport(ui);
   is(
     await waitForOrientationChangeEvent,
     true,
     "'orientationchange' event fired"
+  );
+  is(
+    await waitForScreenOrientationChangeEvent,
+    true,
+    "'change' event fired on window.screen.orientation"
   );
 
   is(
@@ -137,12 +144,19 @@ addRDMTask(TEST_COM_URL, async function ({ ui }) {
   waitForOrientationChangeEvent = isOrientationChangeEventEmitted(
     ui.getViewportBrowser()
   );
+  waitForScreenOrientationChangeEvent =
+    isWindowScreenOrientationChangeEventEmitted(ui.getViewportBrowser());
 
   await selectDevice(ui, testDevice.name);
   is(
     await waitForOrientationChangeEvent,
     false,
     "orientationchange event was not dispatched when changing devices"
+  );
+  is(
+    await waitForScreenOrientationChangeEvent,
+    false,
+    "on window.screen.orientation, change event was not dispatched when changing devices"
   );
 
   info("Check the new orientation values after selecting device.");
@@ -164,6 +178,8 @@ addRDMTask(TEST_COM_URL, async function ({ ui }) {
   waitForOrientationChangeEvent = isOrientationChangeEventEmitted(
     ui.getViewportBrowser()
   );
+  waitForScreenOrientationChangeEvent =
+    isWindowScreenOrientationChangeEventEmitted(ui.getViewportBrowser());
 
   // We're directly calling the command here as there's no way to do such action from the UI.
   await ui.commands.targetConfigurationCommand.updateConfiguration({
@@ -177,6 +193,11 @@ addRDMTask(TEST_COM_URL, async function ({ ui }) {
     await waitForOrientationChangeEvent,
     false,
     "orientationchange event was not dispatched after trying to set the same orientation again"
+  );
+  is(
+    await waitForScreenOrientationChangeEvent,
+    false,
+    "on window.screen.orientation, change event was not dispatched after trying to set the same orientation again"
   );
 });
 
@@ -238,6 +259,43 @@ async function isOrientationChangeEventEmitted(browserOrBrowsingContext) {
   await SpecialPowers.spawn(browserOrBrowsingContext, [], () => {
     content.eventController.abort();
     delete content.eventController;
+  });
+
+  return result !== "TIMEOUT";
+}
+
+async function isWindowScreenOrientationChangeEventEmitted(
+  browserOrBrowsingContext
+) {
+  const onTimeout = wait(1000).then(() => "TIMEOUT");
+
+  const onScreenOrientationChangeEvent = SpecialPowers.spawn(
+    browserOrBrowsingContext,
+    [],
+    () => {
+      content.eventController4ScreenOrientationChange =
+        new content.AbortController();
+      return new Promise(resolve => {
+        content.window.screen.orientation.addEventListener(
+          "change",
+          () => resolve(),
+          {
+            signal: content.eventController4ScreenOrientationChange.signal,
+            once: true,
+          }
+        );
+      });
+    }
+  );
+
+  const result = await Promise.race([
+    onTimeout,
+    onScreenOrientationChangeEvent,
+  ]);
+
+  await SpecialPowers.spawn(browserOrBrowsingContext, [], () => {
+    content.eventController4ScreenOrientationChange.abort();
+    delete content.eventController4ScreenOrientationChange;
   });
 
   return result !== "TIMEOUT";

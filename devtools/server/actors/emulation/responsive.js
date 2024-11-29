@@ -71,12 +71,14 @@ class ResponsiveActor extends Actor {
   }
 
   /**
-   * Dispatches an "orientationchange" event.
+   * Dispatches an "orientationchange" event and an "change" event
+   * on `window.screen.orientation`.
    */
   async dispatchOrientationChangeEvent() {
     const { CustomEvent } = this.win;
     const orientationChangeEvent = new CustomEvent("orientationchange");
     this.win.dispatchEvent(orientationChangeEvent);
+    this.win.screen.orientation.dispatchEvent(new CustomEvent("change"));
   }
 }
 
