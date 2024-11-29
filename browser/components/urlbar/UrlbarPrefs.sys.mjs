@@ -542,6 +542,9 @@ const PREF_URLBAR_DEFAULTS = new Map([
   // Note: This pref will be removed once the feature is stable.
   ["untrimOnUserInteraction.featureGate", false],
 
+  // Enable displaying dynamic Unified Search Button.
+  ["usb.dynamic", false],
+
   // Feature gate pref for weather suggestions in the urlbar.
   ["weather.featureGate", false],
 
