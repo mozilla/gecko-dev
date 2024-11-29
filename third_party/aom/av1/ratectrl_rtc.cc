@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, Alliance for Open Media. All rights reserved
+ * Copyright (c) 2021, Alliance for Open Media. All rights reserved.
  *
  * This source code is subject to the terms of the BSD 2 Clause License and
  * the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
@@ -17,6 +17,7 @@
 #include "aom/aomcx.h"
 #include "aom/aom_encoder.h"
 #include "aom_mem/aom_mem.h"
+#include "aom_dsp/aom_dsp_common.h"
 #include "av1/encoder/encoder.h"
 #include "av1/encoder/encoder_utils.h"
 #include "av1/encoder/pickcdef.h"
@@ -40,7 +41,7 @@ AV1RateControlRtcConfig::AV1RateControlRtcConfig() {
   max_intra_bitrate_pct = 50;
   max_inter_bitrate_pct = 0;
   frame_drop_thresh = 0;
-  max_consec_drop = 0;
+  max_consec_drop_ms = 0;
   framerate = 30.0;
   ss_number_layers = 1;
   ts_number_layers = 1;
@@ -127,7 +128,10 @@ bool AV1RateControlRTC::InitRateControl(const AV1RateControlRtcConfig &rc_cfg) {
   oxcf->q_cfg.aq_mode = rc_cfg.aq_mode ? CYCLIC_REFRESH_AQ : NO_AQ;
   oxcf->tune_cfg.content = AOM_CONTENT_DEFAULT;
   oxcf->rc_cfg.drop_frames_water_mark = rc_cfg.frame_drop_thresh;
-  rc->max_consec_drop = rc_cfg.max_consec_drop;
+  if (rc_cfg.max_consec_drop_ms > 0) {
+    rc->max_consec_drop = saturate_cast_double_to_int(
+        ceil(cpi_->framerate * rc_cfg.max_consec_drop_ms / 1000));
+  }
   cpi_->svc.framedrop_mode = AOM_FULL_SUPERFRAME_DROP;
   oxcf->tool_cfg.bit_depth = AOM_BITS_8;
   oxcf->tool_cfg.superblock_size = AOM_SUPERBLOCK_SIZE_DYNAMIC;
@@ -190,7 +194,10 @@ bool AV1RateControlRTC::UpdateRateControl(
   oxcf->rc_cfg.under_shoot_pct = rc_cfg.undershoot_pct;
   oxcf->rc_cfg.over_shoot_pct = rc_cfg.overshoot_pct;
   oxcf->rc_cfg.drop_frames_water_mark = rc_cfg.frame_drop_thresh;
-  rc->max_consec_drop = rc_cfg.max_consec_drop;
+  if (rc_cfg.max_consec_drop_ms > 0) {
+    rc->max_consec_drop = saturate_cast_double_to_int(
+        ceil(cpi_->framerate * rc_cfg.max_consec_drop_ms / 1000));
+  }
   oxcf->rc_cfg.max_intra_bitrate_pct = rc_cfg.max_intra_bitrate_pct;
   oxcf->rc_cfg.max_inter_bitrate_pct = rc_cfg.max_inter_bitrate_pct;
   cpi_->framerate = rc_cfg.framerate;
@@ -283,8 +290,6 @@ FrameDropDecision AV1RateControlRTC::ComputeQP(
       cpi_->svc.layer_context[layer].is_key_frame = 0;
     }
   }
-  if (cpi_->svc.spatial_layer_id == cpi_->svc.number_spatial_layers - 1)
-    cpi_->rc.frames_since_key++;
   if (cpi_->svc.number_spatial_layers > 1 ||
       cpi_->svc.number_temporal_layers > 1) {
     av1_update_temporal_layer_framerate(cpi_);
@@ -311,6 +316,12 @@ FrameDropDecision AV1RateControlRTC::ComputeQP(
       av1_rc_drop_frame(cpi_)) {
     cpi_->is_dropped_frame = true;
     av1_rc_postencode_update_drop_frame(cpi_);
+    if (cpi_->svc.spatial_layer_id == cpi_->svc.number_spatial_layers - 1)
+      cpi_->rc.frames_since_key++;
+    if (cpi_->svc.number_spatial_layers > 1 ||
+        cpi_->svc.number_temporal_layers > 1) {
+      av1_save_layer_context(cpi_);
+    }
     cpi_->frame_index_set.show_frame_count++;
     cpi_->common.current_frame.frame_number++;
     return FrameDropDecision::kDrop;
@@ -364,9 +375,11 @@ bool AV1RateControlRTC::GetSegmentationData(
 
 void AV1RateControlRTC::PostEncodeUpdate(uint64_t encoded_frame_size) {
   cpi_->common.current_frame.frame_number++;
-  if (cpi_->svc.spatial_layer_id == cpi_->svc.number_spatial_layers - 1)
-    cpi_->svc.prev_number_spatial_layers = cpi_->svc.number_spatial_layers;
   av1_rc_postencode_update(cpi_, encoded_frame_size);
+  if (cpi_->svc.spatial_layer_id == cpi_->svc.number_spatial_layers - 1) {
+    cpi_->svc.prev_number_spatial_layers = cpi_->svc.number_spatial_layers;
+    cpi_->rc.frames_since_key++;
+  }
   if (cpi_->svc.number_spatial_layers > 1 ||
       cpi_->svc.number_temporal_layers > 1)
     av1_save_layer_context(cpi_);

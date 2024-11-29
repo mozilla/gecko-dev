@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, Alliance for Open Media. All rights reserved
+ * Copyright (c) 2022, Alliance for Open Media. All rights reserved.
  *
  * This source code is subject to the terms of the BSD 2 Clause License and
  * the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
@@ -217,7 +217,7 @@ ImagePyramid *aom_alloc_pyramid(int width, int height, bool image_is_16bit) {
 // This must be called after the main image area is filled out.
 // `img_buf` should point to the first pixel in the image area,
 // ie. it should be pyr->level_buffer + pyr->level_loc[level].
-static INLINE void fill_border(uint8_t *img_buf, const int width,
+static inline void fill_border(uint8_t *img_buf, const int width,
                                const int height, const int stride) {
   // Fill left and right areas
   for (int row = 0; row < height; row++) {
@@ -254,7 +254,7 @@ static INLINE void fill_border(uint8_t *img_buf, const int width,
 // or -1 on error.
 //
 // This must only be called while holding frame_pyr->mutex
-static INLINE int fill_pyramid(const YV12_BUFFER_CONFIG *frame, int bit_depth,
+static inline int fill_pyramid(const YV12_BUFFER_CONFIG *frame, int bit_depth,
                                int n_levels, ImagePyramid *frame_pyr) {
   int already_filled_levels = frame_pyr->filled_levels;
 

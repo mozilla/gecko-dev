@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023, Alliance for Open Media. All rights reserved
+ * Copyright (c) 2023, Alliance for Open Media. All rights reserved.
  *
  * This source code is subject to the terms of the BSD 2 Clause License and
  * the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
@@ -768,13 +768,13 @@ static const float weights_layer_5[] = {
   0.565984f,  0.592690f,
 };
 
-static INLINE float32x4_t add_f32x4_x4(const float32x4_t a[4]) {
+static inline float32x4_t add_f32x4_x4(const float32x4_t a[4]) {
   float32x4_t sum01 = vaddq_f32(a[0], a[1]);
   float32x4_t sum23 = vaddq_f32(a[2], a[3]);
   return vaddq_f32(sum01, sum23);
 }
 
-static INLINE void av1_cnn_convolve_no_maxpool_padding_valid_2x2_large_neon(
+static inline void av1_cnn_convolve_no_maxpool_padding_valid_2x2_large_neon(
     const float **input, int in_width, int in_height, int in_stride,
     const float *bias, const int skip_width, const int skip_height,
     const int filter_width, const int filter_height, const int in_channels,
@@ -874,7 +874,7 @@ static INLINE void av1_cnn_convolve_no_maxpool_padding_valid_2x2_large_neon(
   } while (++start_idx < out_channels);
 }
 
-static INLINE void av1_cnn_convolve_no_maxpool_padding_valid_2x2_neon(
+static inline void av1_cnn_convolve_no_maxpool_padding_valid_2x2_neon(
     const float **input, int in_width, int in_height, int in_stride,
     const float *bias, const int skip_width, const int skip_height,
     const int filter_width, const int filter_height, const int in_channels,
@@ -951,7 +951,7 @@ static INLINE void av1_cnn_convolve_no_maxpool_padding_valid_2x2_neon(
   } while (++start_idx < out_channels);
 }
 
-static INLINE void av1_cnn_convolve_no_maxpool_padding_valid_5x5_neon(
+static inline void av1_cnn_convolve_no_maxpool_padding_valid_5x5_neon(
     const float **input, int in_width, int in_height, int in_stride,
     const float *bias, const int skip_width, const int skip_height,
     const int filter_width, const int filter_height, const int in_channels,

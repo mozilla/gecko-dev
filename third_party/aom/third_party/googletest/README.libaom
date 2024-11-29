@@ -16,12 +16,6 @@ Local Modifications:
   .clang-format
   CMakeLists.txt
   CONTRIBUTORS
-  googlemock/
-   cmake
-   CMakeLists.txt
-   include
-   README.md
-   src
   googletest/
    cmake
    CMakeLists.txt

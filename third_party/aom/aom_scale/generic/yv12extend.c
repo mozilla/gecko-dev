@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Alliance for Open Media. All rights reserved
+ * Copyright (c) 2016, Alliance for Open Media. All rights reserved.
  *
  * This source code is subject to the terms of the BSD 2 Clause License and
  * the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
@@ -220,35 +220,6 @@ static void extend_frame(YV12_BUFFER_CONFIG *const ybf, int ext_size,
 
 void aom_extend_frame_borders_c(YV12_BUFFER_CONFIG *ybf, const int num_planes) {
   extend_frame(ybf, ybf->border, num_planes);
-}
-
-void aom_extend_frame_inner_borders_c(YV12_BUFFER_CONFIG *ybf,
-                                      const int num_planes) {
-  const int inner_bw = (ybf->border > AOMINNERBORDERINPIXELS)
-                           ? AOMINNERBORDERINPIXELS
-                           : ybf->border;
-  extend_frame(ybf, inner_bw, num_planes);
-}
-
-void aom_extend_frame_borders_y_c(YV12_BUFFER_CONFIG *ybf) {
-  int ext_size = ybf->border;
-  assert(ybf->y_height - ybf->y_crop_height < 16);
-  assert(ybf->y_width - ybf->y_crop_width < 16);
-  assert(ybf->y_height - ybf->y_crop_height >= 0);
-  assert(ybf->y_width - ybf->y_crop_width >= 0);
-#if CONFIG_AV1_HIGHBITDEPTH
-  if (ybf->flags & YV12_FLAG_HIGHBITDEPTH) {
-    extend_plane_high(
-        ybf->y_buffer, ybf->y_stride, ybf->y_crop_width, ybf->y_crop_height,
-        ext_size, ext_size, ext_size + ybf->y_height - ybf->y_crop_height,
-        ext_size + ybf->y_width - ybf->y_crop_width, 0, ybf->y_crop_height);
-    return;
-  }
-#endif
-  extend_plane(
-      ybf->y_buffer, ybf->y_stride, ybf->y_crop_width, ybf->y_crop_height,
-      ext_size, ext_size, ext_size + ybf->y_height - ybf->y_crop_height,
-      ext_size + ybf->y_width - ybf->y_crop_width, 0, ybf->y_crop_height);
 }
 
 #if CONFIG_AV1_HIGHBITDEPTH

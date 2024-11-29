@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Alliance for Open Media. All rights reserved
+ * Copyright (c) 2020, Alliance for Open Media. All rights reserved.
  *
  * This source code is subject to the terms of the BSD 2 Clause License and
  * the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
@@ -25,14 +25,14 @@
 extern "C" {
 #endif
 
-static AOM_INLINE void dealloc_context_buffers_ext(
+static inline void dealloc_context_buffers_ext(
     MBMIExtFrameBufferInfo *mbmi_ext_info) {
   aom_free(mbmi_ext_info->frame_base);
   mbmi_ext_info->frame_base = NULL;
   mbmi_ext_info->alloc_size = 0;
 }
 
-static AOM_INLINE void alloc_context_buffers_ext(
+static inline void alloc_context_buffers_ext(
     AV1_COMMON *cm, MBMIExtFrameBufferInfo *mbmi_ext_info) {
   const CommonModeInfoParams *const mi_params = &cm->mi_params;
 
@@ -55,7 +55,7 @@ static AOM_INLINE void alloc_context_buffers_ext(
   mbmi_ext_info->stride = mi_alloc_cols;
 }
 
-static AOM_INLINE void alloc_compressor_data(AV1_COMP *cpi) {
+static inline void alloc_compressor_data(AV1_COMP *cpi) {
   AV1_COMMON *cm = &cpi->common;
   CommonModeInfoParams *const mi_params = &cm->mi_params;
 
@@ -90,7 +90,7 @@ static AOM_INLINE void alloc_compressor_data(AV1_COMP *cpi) {
 
 // Allocate mbmi buffers which are used to store mode information at block
 // level.
-static AOM_INLINE void alloc_mb_mode_info_buffers(AV1_COMP *const cpi) {
+static inline void alloc_mb_mode_info_buffers(AV1_COMP *const cpi) {
   AV1_COMMON *const cm = &cpi->common;
   if (av1_alloc_context_buffers(cm, cm->width, cm->height,
                                 cpi->sf.part_sf.default_min_partition_size)) {
@@ -102,7 +102,7 @@ static AOM_INLINE void alloc_mb_mode_info_buffers(AV1_COMP *const cpi) {
     alloc_context_buffers_ext(cm, &cpi->mbmi_ext_info);
 }
 
-static AOM_INLINE void realloc_segmentation_maps(AV1_COMP *cpi) {
+static inline void realloc_segmentation_maps(AV1_COMP *cpi) {
   AV1_COMMON *const cm = &cpi->common;
   CommonModeInfoParams *const mi_params = &cm->mi_params;
 
@@ -123,8 +123,8 @@ static AOM_INLINE void realloc_segmentation_maps(AV1_COMP *cpi) {
                   aom_calloc(mi_params->mi_rows * mi_params->mi_cols, 1));
 }
 
-static AOM_INLINE void alloc_obmc_buffers(
-    OBMCBuffer *obmc_buffer, struct aom_internal_error_info *error) {
+static inline void alloc_obmc_buffers(OBMCBuffer *obmc_buffer,
+                                      struct aom_internal_error_info *error) {
   AOM_CHECK_MEM_ERROR(
       error, obmc_buffer->wsrc,
       (int32_t *)aom_memalign(16, MAX_SB_SQUARE * sizeof(*obmc_buffer->wsrc)));
@@ -141,7 +141,7 @@ static AOM_INLINE void alloc_obmc_buffers(
           16, MAX_MB_PLANE * MAX_SB_SQUARE * sizeof(*obmc_buffer->left_pred)));
 }
 
-static AOM_INLINE void release_obmc_buffers(OBMCBuffer *obmc_buffer) {
+static inline void release_obmc_buffers(OBMCBuffer *obmc_buffer) {
   aom_free(obmc_buffer->mask);
   aom_free(obmc_buffer->above_pred);
   aom_free(obmc_buffer->left_pred);
@@ -153,7 +153,7 @@ static AOM_INLINE void release_obmc_buffers(OBMCBuffer *obmc_buffer) {
   obmc_buffer->wsrc = NULL;
 }
 
-static AOM_INLINE void alloc_compound_type_rd_buffers(
+static inline void alloc_compound_type_rd_buffers(
     struct aom_internal_error_info *error, CompoundTypeRdBuffers *const bufs) {
   AOM_CHECK_MEM_ERROR(
       error, bufs->pred0,
@@ -172,7 +172,7 @@ static AOM_INLINE void alloc_compound_type_rd_buffers(
                                             sizeof(*bufs->tmp_best_mask_buf)));
 }
 
-static AOM_INLINE void release_compound_type_rd_buffers(
+static inline void release_compound_type_rd_buffers(
     CompoundTypeRdBuffers *const bufs) {
   aom_free(bufs->pred0);
   aom_free(bufs->pred1);
@@ -182,7 +182,7 @@ static AOM_INLINE void release_compound_type_rd_buffers(
   av1_zero(*bufs);  // Set all pointers to NULL for safety.
 }
 
-static AOM_INLINE void dealloc_compressor_data(AV1_COMP *cpi) {
+static inline void dealloc_compressor_data(AV1_COMP *cpi) {
   AV1_COMMON *const cm = &cpi->common;
   TokenInfo *token_info = &cpi->token_info;
   AV1EncRowMultiThreadInfo *const enc_row_mt = &cpi->mt_info.enc_row_mt;
@@ -338,17 +338,19 @@ static AOM_INLINE void dealloc_compressor_data(AV1_COMP *cpi) {
     aom_free(cpi->td.mb.tmp_pred_bufs[j]);
   }
 
-#if CONFIG_DENOISE
+#if CONFIG_DENOISE && !CONFIG_REALTIME_ONLY
   if (cpi->denoise_and_model) {
     aom_denoise_and_model_free(cpi->denoise_and_model);
     cpi->denoise_and_model = NULL;
   }
 #endif
+#if !CONFIG_REALTIME_ONLY
   if (cpi->film_grain_table) {
     aom_film_grain_table_free(cpi->film_grain_table);
     aom_free(cpi->film_grain_table);
     cpi->film_grain_table = NULL;
   }
+#endif
 
   if (cpi->ppi->use_svc) av1_free_svc_cyclic_refresh(cpi);
   aom_free(cpi->svc.layer_context);
@@ -376,7 +378,7 @@ static AOM_INLINE void dealloc_compressor_data(AV1_COMP *cpi) {
   cpi->mb_delta_q = NULL;
 }
 
-static AOM_INLINE void allocate_gradient_info_for_hog(AV1_COMP *cpi) {
+static inline void allocate_gradient_info_for_hog(AV1_COMP *cpi) {
   if (!is_gradient_caching_for_hog_enabled(cpi)) return;
 
   PixelLevelGradientInfo *pixel_gradient_info = cpi->td.pixel_gradient_info;
@@ -392,7 +394,7 @@ static AOM_INLINE void allocate_gradient_info_for_hog(AV1_COMP *cpi) {
   cpi->td.mb.pixel_gradient_info = pixel_gradient_info;
 }
 
-static AOM_INLINE void allocate_src_var_of_4x4_sub_block_buf(AV1_COMP *cpi) {
+static inline void allocate_src_var_of_4x4_sub_block_buf(AV1_COMP *cpi) {
   if (!is_src_var_for_4x4_sub_blocks_caching_enabled(cpi)) return;
 
   Block4x4VarInfo *source_variance_info =
@@ -409,7 +411,7 @@ static AOM_INLINE void allocate_src_var_of_4x4_sub_block_buf(AV1_COMP *cpi) {
   cpi->td.mb.src_var_info_of_4x4_sub_blocks = source_variance_info;
 }
 
-static AOM_INLINE void variance_partition_alloc(AV1_COMP *cpi) {
+static inline void variance_partition_alloc(AV1_COMP *cpi) {
   AV1_COMMON *const cm = &cpi->common;
   const int num_64x64_blocks = (cm->seq_params->sb_size == BLOCK_64X64) ? 1 : 4;
   if (cpi->td.vt64x64) {
@@ -425,8 +427,9 @@ static AOM_INLINE void variance_partition_alloc(AV1_COMP *cpi) {
   }
 }
 
-static AOM_INLINE YV12_BUFFER_CONFIG *realloc_and_scale_source(
-    AV1_COMP *cpi, int scaled_width, int scaled_height) {
+static inline YV12_BUFFER_CONFIG *realloc_and_scale_source(AV1_COMP *cpi,
+                                                           int scaled_width,
+                                                           int scaled_height) {
   AV1_COMMON *cm = &cpi->common;
   const int num_planes = av1_num_planes(cm);
 
@@ -453,7 +456,7 @@ static AOM_INLINE YV12_BUFFER_CONFIG *realloc_and_scale_source(
 }
 
 // Deallocate allocated thread_data.
-static AOM_INLINE void free_thread_data(AV1_PRIMARY *ppi) {
+static inline void free_thread_data(AV1_PRIMARY *ppi) {
   PrimaryMultiThreadInfo *const p_mt_info = &ppi->p_mt_info;
   const int num_tf_workers =
       AOMMIN(p_mt_info->num_mod_workers[MOD_TF], p_mt_info->num_workers);

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Alliance for Open Media. All rights reserved
+ * Copyright (c) 2016, Alliance for Open Media. All rights reserved.
  *
  * This source code is subject to the terms of the BSD 2 Clause License and
  * the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
@@ -117,8 +117,6 @@ void av1_write_tile_obu_mt(
     const FrameHeaderInfo *fh_info, int *const largest_tile_id,
     unsigned int *max_tile_size, uint32_t *const obu_header_size,
     uint8_t **tile_data_start, const int num_workers);
-
-int av1_compute_num_enc_workers(const AV1_COMP *cpi, int max_workers);
 
 int av1_compute_num_fp_contexts(AV1_PRIMARY *ppi, AV1EncoderConfig *oxcf);
 

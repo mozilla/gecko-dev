@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Alliance for Open Media. All rights reserved
+ * Copyright (c) 2024, Alliance for Open Media. All rights reserved.
  *
  * This source code is subject to the terms of the BSD 2 Clause License and
  * the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
@@ -211,7 +211,7 @@
   _mm_storeu_si128((__m128i *)&intbuf[(i + 1) * dst_stride + j / 2],           \
                    _mm_unpackhi_epi32(low_128, high_128));
 
-static INLINE void resize_convolve(const __m256i *const s,
+static inline void resize_convolve(const __m256i *const s,
                                    const __m256i *const coeffs,
                                    __m256i *res_out) {
   const __m256i res_0 = _mm256_maddubs_epi16(s[0], coeffs[0]);
@@ -234,7 +234,7 @@ static INLINE void resize_convolve(const __m256i *const s,
   res_out[1] = _mm256_add_epi32(dst_01, dst_11);
 }
 
-static INLINE void prepare_filter_coeffs(const int16_t *filter,
+static inline void prepare_filter_coeffs(const int16_t *filter,
                                          __m256i *const coeffs /* [4] */) {
   // f0 f1 f2 f3 x x x x
   const __m128i sym_even_filter = _mm_loadl_epi64((__m128i *)filter);

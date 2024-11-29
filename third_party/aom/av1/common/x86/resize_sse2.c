@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Alliance for Open Media. All rights reserved
+ * Copyright (c) 2024, Alliance for Open Media. All rights reserved.
  *
  * This source code is subject to the terms of the BSD 2 Clause License and
  * the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
@@ -69,7 +69,7 @@
   l5 = l7;                                                             \
   data += 2 * stride;
 
-static INLINE void prepare_filter_coeffs(const int16_t *filter,
+static inline void prepare_filter_coeffs(const int16_t *filter,
                                          __m128i *const coeffs /* [2] */) {
   // f0 f1 f2 f3 x x x x
   const __m128i sym_even_filter = _mm_loadl_epi64((__m128i *)filter);
@@ -168,7 +168,7 @@ bool av1_resize_vert_dir_sse2(uint8_t *intbuf, uint8_t *output, int out_stride,
 }
 
 // Blends a and b using mask and returns the result.
-static INLINE __m128i blend(__m128i a, __m128i b, __m128i mask) {
+static inline __m128i blend(__m128i a, __m128i b, __m128i mask) {
   const __m128i masked_b = _mm_and_si128(mask, b);
   const __m128i masked_a = _mm_andnot_si128(mask, a);
   return (_mm_or_si128(masked_a, masked_b));

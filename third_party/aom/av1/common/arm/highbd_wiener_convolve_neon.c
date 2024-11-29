@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023, Alliance for Open Media. All rights reserved
+ * Copyright (c) 2023, Alliance for Open Media. All rights reserved.
  *
  * This source code is subject to the terms of the BSD 2 Clause License and
  * the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
@@ -18,7 +18,7 @@
 #include "config/av1_rtcd.h"
 
 #define HBD_WIENER_5TAP_HORIZ(name, shift)                              \
-  static INLINE uint16x8_t name##_wiener_convolve5_8_2d_h(              \
+  static inline uint16x8_t name##_wiener_convolve5_8_2d_h(              \
       const int16x8_t s0, const int16x8_t s1, const int16x8_t s2,       \
       const int16x8_t s3, const int16x8_t s4, const int16x4_t x_filter, \
       const int32x4_t round_vec, const uint16x8_t im_max_val) {         \
@@ -43,7 +43,7 @@
     return vminq_u16(vcombine_u16(res_lo, res_hi), im_max_val);         \
   }                                                                     \
                                                                         \
-  static INLINE void name##_convolve_add_src_5tap_horiz(                \
+  static inline void name##_convolve_add_src_5tap_horiz(                \
       const uint16_t *src_ptr, ptrdiff_t src_stride, uint16_t *dst_ptr, \
       ptrdiff_t dst_stride, int w, int h, const int16x4_t x_filter,     \
       const int32x4_t round_vec, const uint16x8_t im_max_val) {         \
@@ -76,7 +76,7 @@ HBD_WIENER_5TAP_HORIZ(highbd_12, WIENER_ROUND0_BITS + 2)
 #undef HBD_WIENER_5TAP_HORIZ
 
 #define HBD_WIENER_7TAP_HORIZ(name, shift)                                     \
-  static INLINE uint16x8_t name##_wiener_convolve7_8_2d_h(                     \
+  static inline uint16x8_t name##_wiener_convolve7_8_2d_h(                     \
       const int16x8_t s0, const int16x8_t s1, const int16x8_t s2,              \
       const int16x8_t s3, const int16x8_t s4, const int16x8_t s5,              \
       const int16x8_t s6, const int16x4_t x_filter, const int32x4_t round_vec, \
@@ -104,7 +104,7 @@ HBD_WIENER_5TAP_HORIZ(highbd_12, WIENER_ROUND0_BITS + 2)
     return vminq_u16(vcombine_u16(res_lo, res_hi), im_max_val);                \
   }                                                                            \
                                                                                \
-  static INLINE void name##_convolve_add_src_7tap_horiz(                       \
+  static inline void name##_convolve_add_src_7tap_horiz(                       \
       const uint16_t *src_ptr, ptrdiff_t src_stride, uint16_t *dst_ptr,        \
       ptrdiff_t dst_stride, int w, int h, const int16x4_t x_filter,            \
       const int32x4_t round_vec, const uint16x8_t im_max_val) {                \
@@ -137,7 +137,7 @@ HBD_WIENER_7TAP_HORIZ(highbd_12, WIENER_ROUND0_BITS + 2)
 #undef HBD_WIENER_7TAP_HORIZ
 
 #define HBD_WIENER_5TAP_VERT(name, shift)                                     \
-  static INLINE uint16x8_t name##_wiener_convolve5_8_2d_v(                    \
+  static inline uint16x8_t name##_wiener_convolve5_8_2d_v(                    \
       const int16x8_t s0, const int16x8_t s1, const int16x8_t s2,             \
       const int16x8_t s3, const int16x8_t s4, const int16x4_t y_filter,       \
       const int32x4_t round_vec, const uint16x8_t res_max_val) {              \
@@ -167,7 +167,7 @@ HBD_WIENER_7TAP_HORIZ(highbd_12, WIENER_ROUND0_BITS + 2)
     return vminq_u16(vcombine_u16(res_lo, res_hi), res_max_val);              \
   }                                                                           \
                                                                               \
-  static INLINE void name##_convolve_add_src_5tap_vert(                       \
+  static inline void name##_convolve_add_src_5tap_vert(                       \
       const uint16_t *src_ptr, ptrdiff_t src_stride, uint16_t *dst_ptr,       \
       ptrdiff_t dst_stride, int w, int h, const int16x4_t y_filter,           \
       const int32x4_t round_vec, const uint16x8_t res_max_val) {              \
@@ -221,7 +221,7 @@ HBD_WIENER_5TAP_VERT(highbd_12, 2 * FILTER_BITS - WIENER_ROUND0_BITS - 2)
 #undef HBD_WIENER_5TAP_VERT
 
 #define HBD_WIENER_7TAP_VERT(name, shift)                                      \
-  static INLINE uint16x8_t name##_wiener_convolve7_8_2d_v(                     \
+  static inline uint16x8_t name##_wiener_convolve7_8_2d_v(                     \
       const int16x8_t s0, const int16x8_t s1, const int16x8_t s2,              \
       const int16x8_t s3, const int16x8_t s4, const int16x8_t s5,              \
       const int16x8_t s6, const int16x4_t y_filter, const int32x4_t round_vec, \
@@ -255,7 +255,7 @@ HBD_WIENER_5TAP_VERT(highbd_12, 2 * FILTER_BITS - WIENER_ROUND0_BITS - 2)
     return vminq_u16(vcombine_u16(res_lo, res_hi), res_max_val);               \
   }                                                                            \
                                                                                \
-  static INLINE void name##_convolve_add_src_7tap_vert(                        \
+  static inline void name##_convolve_add_src_7tap_vert(                        \
       const uint16_t *src_ptr, ptrdiff_t src_stride, uint16_t *dst_ptr,        \
       ptrdiff_t dst_stride, int w, int h, const int16x4_t y_filter,            \
       const int32x4_t round_vec, const uint16x8_t res_max_val) {               \
@@ -309,7 +309,7 @@ HBD_WIENER_7TAP_VERT(highbd_12, 2 * FILTER_BITS - WIENER_ROUND0_BITS - 2)
 
 #undef HBD_WIENER_7TAP_VERT
 
-static AOM_INLINE int get_wiener_filter_taps(const int16_t *filter) {
+static inline int get_wiener_filter_taps(const int16_t *filter) {
   assert(filter[7] == 0);
   if (filter[0] == 0 && filter[6] == 0) {
     return WIENER_WIN_REDUCED;

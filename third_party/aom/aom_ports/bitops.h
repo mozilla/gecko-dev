@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Alliance for Open Media. All rights reserved
+ * Copyright (c) 2016, Alliance for Open Media. All rights reserved.
  *
  * This source code is subject to the terms of the BSD 2 Clause License and
  * the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
@@ -39,21 +39,21 @@ extern "C" {
 // use GNU builtins where available.
 #if defined(__GNUC__) && \
     ((__GNUC__ == 3 && __GNUC_MINOR__ >= 4) || __GNUC__ >= 4)
-static INLINE int get_msb(unsigned int n) {
+static inline int get_msb(unsigned int n) {
   assert(n != 0);
   return 31 ^ __builtin_clz(n);
 }
 #elif defined(USE_MSC_INTRINSICS)
 #pragma intrinsic(_BitScanReverse)
 
-static INLINE int get_msb(unsigned int n) {
+static inline int get_msb(unsigned int n) {
   unsigned long first_set_bit;
   assert(n != 0);
   _BitScanReverse(&first_set_bit, n);
   return first_set_bit;
 }
 #else
-static INLINE int get_msb(unsigned int n) {
+static inline int get_msb(unsigned int n) {
   int log = 0;
   unsigned int value = n;
 
@@ -72,13 +72,13 @@ static INLINE int get_msb(unsigned int n) {
 
 #if defined(__GNUC__) && \
     ((__GNUC__ == 3 && __GNUC_MINOR__ >= 4) || __GNUC__ >= 4)
-static INLINE int aom_clzll(uint64_t n) { return __builtin_clzll(n); }
+static inline int aom_clzll(uint64_t n) { return __builtin_clzll(n); }
 #elif defined(USE_MSC_INTRINSICS)
 #if defined(_M_X64) || defined(_M_ARM64)
 #pragma intrinsic(_BitScanReverse64)
 #endif
 
-static INLINE int aom_clzll(uint64_t n) {
+static inline int aom_clzll(uint64_t n) {
   assert(n != 0);
   unsigned long first_set_bit;  // NOLINT(runtime/int)
 #if defined(_M_X64) || defined(_M_ARM64)
@@ -101,7 +101,7 @@ static INLINE int aom_clzll(uint64_t n) {
 }
 #undef USE_MSC_INTRINSICS
 #else
-static INLINE int aom_clzll(uint64_t n) {
+static inline int aom_clzll(uint64_t n) {
   assert(n != 0);
 
   int res = 0;

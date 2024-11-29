@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Alliance for Open Media. All rights reserved
+ * Copyright (c) 2020, Alliance for Open Media. All rights reserved.
  *
  * This source code is subject to the terms of the BSD 2 Clause License and
  * the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
@@ -45,7 +45,8 @@ void av1_set_ssim_rdmult(const AV1_COMP *const cpi, int *errorperbit,
   // BLOCK_4X4 (minimum possible block size), geom_mean_of_scale can go up
   // to 4.8323^1024 and exceed DBL_MAX, resulting in data overflow.
   assert(bsize_base >= BLOCK_8X8);
-  assert(cpi->oxcf.tune_cfg.tuning == AOM_TUNE_SSIM);
+  assert(cpi->oxcf.tune_cfg.tuning == AOM_TUNE_SSIM ||
+         cpi->oxcf.tune_cfg.tuning == AOM_TUNE_SSIMULACRA2);
 
   for (row = mi_row / num_mi_w;
        row < num_rows && row < mi_row / num_mi_w + num_brows; ++row) {
@@ -83,28 +84,8 @@ void av1_set_saliency_map_vmaf_rdmult(const AV1_COMP *const cpi,
 }
 #endif
 
-// TODO(angiebird): Move these function to tpl_model.c
+// TODO(angiebird): Move this function to tpl_model.c
 #if !CONFIG_REALTIME_ONLY
-// Return the end column for the current superblock, in unit of TPL blocks.
-static int get_superblock_tpl_column_end(const AV1_COMMON *const cm, int mi_col,
-                                         int num_mi_w) {
-  // Find the start column of this superblock.
-  const int sb_mi_col_start = (mi_col >> cm->seq_params->mib_size_log2)
-                              << cm->seq_params->mib_size_log2;
-  // Same but in superres upscaled dimension.
-  const int sb_mi_col_start_sr =
-      coded_to_superres_mi(sb_mi_col_start, cm->superres_scale_denominator);
-  // Width of this superblock in mi units.
-  const int sb_mi_width = mi_size_wide[cm->seq_params->sb_size];
-  // Same but in superres upscaled dimension.
-  const int sb_mi_width_sr =
-      coded_to_superres_mi(sb_mi_width, cm->superres_scale_denominator);
-  // Superblock end in mi units.
-  const int sb_mi_end = sb_mi_col_start_sr + sb_mi_width_sr;
-  // Superblock end in TPL units.
-  return (sb_mi_end + num_mi_w - 1) / num_mi_w;
-}
-
 int av1_get_cb_rdmult(const AV1_COMP *const cpi, MACROBLOCK *const x,
                       const BLOCK_SIZE bsize, const int mi_row,
                       const int mi_col) {
@@ -157,69 +138,11 @@ int av1_get_cb_rdmult(const AV1_COMP *const cpi, MACROBLOCK *const x,
 
   return AOMMAX(deltaq_rdmult, 1);
 }
-
-int av1_get_hier_tpl_rdmult(const AV1_COMP *const cpi, MACROBLOCK *const x,
-                            const BLOCK_SIZE bsize, const int mi_row,
-                            const int mi_col, int orig_rdmult) {
-  const AV1_COMMON *const cm = &cpi->common;
-  const GF_GROUP *const gf_group = &cpi->ppi->gf_group;
-  assert(IMPLIES(cpi->ppi->gf_group.size > 0,
-                 cpi->gf_frame_index < cpi->ppi->gf_group.size));
-  const int tpl_idx = cpi->gf_frame_index;
-  const int deltaq_rdmult = set_rdmult(cpi, x, -1);
-  if (!av1_tpl_stats_ready(&cpi->ppi->tpl_data, tpl_idx)) return deltaq_rdmult;
-  if (!is_frame_tpl_eligible(gf_group, cpi->gf_frame_index))
-    return deltaq_rdmult;
-  if (cpi->oxcf.q_cfg.aq_mode != NO_AQ) return deltaq_rdmult;
-
-  const int mi_col_sr =
-      coded_to_superres_mi(mi_col, cm->superres_scale_denominator);
-  const int mi_cols_sr = av1_pixels_to_mi(cm->superres_upscaled_width);
-  const int block_mi_width_sr =
-      coded_to_superres_mi(mi_size_wide[bsize], cm->superres_scale_denominator);
-
-  const BLOCK_SIZE bsize_base = BLOCK_16X16;
-  const int num_mi_w = mi_size_wide[bsize_base];
-  const int num_mi_h = mi_size_high[bsize_base];
-  const int num_cols = (mi_cols_sr + num_mi_w - 1) / num_mi_w;
-  const int num_rows = (cm->mi_params.mi_rows + num_mi_h - 1) / num_mi_h;
-  const int num_bcols = (block_mi_width_sr + num_mi_w - 1) / num_mi_w;
-  const int num_brows = (mi_size_high[bsize] + num_mi_h - 1) / num_mi_h;
-  // This is required because the end col of superblock may be off by 1 in case
-  // of superres.
-  const int sb_bcol_end = get_superblock_tpl_column_end(cm, mi_col, num_mi_w);
-  int row, col;
-  double base_block_count = 0.0;
-  double geom_mean_of_scale = 0.0;
-  for (row = mi_row / num_mi_w;
-       row < num_rows && row < mi_row / num_mi_w + num_brows; ++row) {
-    for (col = mi_col_sr / num_mi_h;
-         col < num_cols && col < mi_col_sr / num_mi_h + num_bcols &&
-         col < sb_bcol_end;
-         ++col) {
-      const int index = row * num_cols + col;
-      geom_mean_of_scale += log(cpi->ppi->tpl_sb_rdmult_scaling_factors[index]);
-      base_block_count += 1.0;
-    }
-  }
-  geom_mean_of_scale = exp(geom_mean_of_scale / base_block_count);
-  int rdmult = (int)((double)orig_rdmult * geom_mean_of_scale + 0.5);
-  rdmult = AOMMAX(rdmult, 0);
-  av1_set_error_per_bit(&x->errorperbit, rdmult);
-#if !CONFIG_RD_COMMAND
-  if (bsize == cm->seq_params->sb_size) {
-    const int rdmult_sb = set_rdmult(cpi, x, -1);
-    assert(rdmult_sb == rdmult);
-    (void)rdmult_sb;
-  }
-#endif  // !CONFIG_RD_COMMAND
-  return rdmult;
-}
 #endif  // !CONFIG_REALTIME_ONLY
 
-static AOM_INLINE void update_filter_type_count(FRAME_COUNTS *counts,
-                                                const MACROBLOCKD *xd,
-                                                const MB_MODE_INFO *mbmi) {
+static inline void update_filter_type_count(FRAME_COUNTS *counts,
+                                            const MACROBLOCKD *xd,
+                                            const MB_MODE_INFO *mbmi) {
   int dir;
   for (dir = 0; dir < 2; ++dir) {
     const int ctx = av1_get_pred_context_switchable_interp(xd, dir);
@@ -233,7 +156,7 @@ static AOM_INLINE void update_filter_type_count(FRAME_COUNTS *counts,
 
 // This function will copy the best reference mode information from
 // MB_MODE_INFO_EXT_FRAME to MB_MODE_INFO_EXT.
-static INLINE void copy_mbmi_ext_frame_to_mbmi_ext(
+static inline void copy_mbmi_ext_frame_to_mbmi_ext(
     MB_MODE_INFO_EXT *mbmi_ext,
     const MB_MODE_INFO_EXT_FRAME *const mbmi_ext_best, uint8_t ref_frame_type) {
   memcpy(mbmi_ext->ref_mv_stack[ref_frame_type], mbmi_ext_best->ref_mv_stack,

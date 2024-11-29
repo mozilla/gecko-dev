@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023, Alliance for Open Media. All rights reserved
+ * Copyright (c) 2023, Alliance for Open Media. All rights reserved.
  *
  * This source code is subject to the terms of the BSD 2 Clause License and
  * the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
@@ -35,6 +35,12 @@ static AOM_FORCE_INLINE int16x8_t horizontal_filter_4x1_f1(const uint8x16_t in,
 
 static AOM_FORCE_INLINE int16x8_t horizontal_filter_8x1_f1(const uint8x16_t in,
                                                            int sx);
+
+static AOM_FORCE_INLINE int16x8_t
+horizontal_filter_4x1_f1_beta0(const uint8x16_t in, int16x8_t f_s16);
+
+static AOM_FORCE_INLINE int16x8_t
+horizontal_filter_8x1_f1_beta0(const uint8x16_t in, int16x8_t f_s16);
 
 static AOM_FORCE_INLINE void vertical_filter_4x1_f1(const int16x8_t *src,
                                                     int32x4_t *res, int sy);
@@ -169,7 +175,9 @@ static AOM_FORCE_INLINE void warp_affine_horizontal(
   if (p_width == 4) {
     if (beta == 0) {
       if (alpha == 0) {
-        APPLY_HORIZONTAL_SHIFT(horizontal_filter_4x1_f1, sx4);
+        int16x8_t f_s16 = vld1q_s16(
+            (int16_t *)(av1_warped_filter + (sx4 >> WARPEDDIFF_PREC_BITS)));
+        APPLY_HORIZONTAL_SHIFT(horizontal_filter_4x1_f1_beta0, f_s16);
       } else {
         APPLY_HORIZONTAL_SHIFT(horizontal_filter_4x1_f4, sx4, alpha);
       }
@@ -185,7 +193,9 @@ static AOM_FORCE_INLINE void warp_affine_horizontal(
   } else {
     if (beta == 0) {
       if (alpha == 0) {
-        APPLY_HORIZONTAL_SHIFT(horizontal_filter_8x1_f1, sx4);
+        int16x8_t f_s16 = vld1q_s16(
+            (int16_t *)(av1_warped_filter + (sx4 >> WARPEDDIFF_PREC_BITS)));
+        APPLY_HORIZONTAL_SHIFT(horizontal_filter_8x1_f1_beta0, f_s16);
       } else {
         APPLY_HORIZONTAL_SHIFT(horizontal_filter_8x1_f8, sx4, alpha);
       }

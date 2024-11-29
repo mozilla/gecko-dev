@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Alliance for Open Media. All rights reserved
+ * Copyright (c) 2016, Alliance for Open Media. All rights reserved.
  *
  * This source code is subject to the terms of the BSD 2 Clause License and
  * the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
@@ -10,6 +10,7 @@
  */
 
 #include <math.h>
+#include <stdlib.h>
 
 #include "aom_ports/mem.h"
 
@@ -20,7 +21,9 @@
 #include "av1/encoder/rd.h"
 #include "av1/encoder/segmentation.h"
 #include "av1/encoder/dwt.h"
+#include "config/aom_config.h"
 
+#if !CONFIG_REALTIME_ONLY
 static const double rate_ratio[MAX_SEGMENTS] = { 2.2, 1.7, 1.3, 1.0,
                                                  0.9, .8,  .7,  .6 };
 
@@ -31,11 +34,6 @@ static const double deltaq_rate_ratio[MAX_SEGMENTS] = { 2.5,  2.0, 1.5, 1.0,
 #define ENERGY_SPAN (ENERGY_MAX - ENERGY_MIN + 1)
 #define ENERGY_IN_BOUNDS(energy) \
   assert((energy) >= ENERGY_MIN && (energy) <= ENERGY_MAX)
-
-DECLARE_ALIGNED(16, static const uint8_t, av1_all_zeros[MAX_SB_SIZE]) = { 0 };
-
-DECLARE_ALIGNED(16, static const uint16_t,
-                av1_highbd_all_zeros[MAX_SB_SIZE]) = { 0 };
 
 static const int segment_id[ENERGY_SPAN] = { 0, 1, 1, 2, 3, 4 };
 
@@ -92,53 +90,7 @@ void av1_vaq_frame_setup(AV1_COMP *cpi) {
   }
 }
 
-int av1_log_block_var(const AV1_COMP *cpi, MACROBLOCK *x, BLOCK_SIZE bs) {
-  // This functions returns a score for the blocks local variance as calculated
-  // by: sum of the log of the (4x4 variances) of each subblock to the current
-  // block (x,bs)
-  // * 32 / number of pixels in the block_size.
-  // This is used for segmentation because to avoid situations in which a large
-  // block with a gentle gradient gets marked high variance even though each
-  // subblock has a low variance.   This allows us to assign the same segment
-  // number for the same sorts of area regardless of how the partitioning goes.
-
-  MACROBLOCKD *xd = &x->e_mbd;
-  double var = 0;
-  unsigned int sse;
-  int i, j;
-
-  int right_overflow =
-      (xd->mb_to_right_edge < 0) ? ((-xd->mb_to_right_edge) >> 3) : 0;
-  int bottom_overflow =
-      (xd->mb_to_bottom_edge < 0) ? ((-xd->mb_to_bottom_edge) >> 3) : 0;
-
-  const int bw = MI_SIZE * mi_size_wide[bs] - right_overflow;
-  const int bh = MI_SIZE * mi_size_high[bs] - bottom_overflow;
-
-  for (i = 0; i < bh; i += 4) {
-    for (j = 0; j < bw; j += 4) {
-      if (is_cur_buf_hbd(xd)) {
-        var += log1p(cpi->ppi->fn_ptr[BLOCK_4X4].vf(
-                         x->plane[0].src.buf + i * x->plane[0].src.stride + j,
-                         x->plane[0].src.stride,
-                         CONVERT_TO_BYTEPTR(av1_highbd_all_zeros), 0, &sse) /
-                     16.0);
-      } else {
-        var += log1p(cpi->ppi->fn_ptr[BLOCK_4X4].vf(
-                         x->plane[0].src.buf + i * x->plane[0].src.stride + j,
-                         x->plane[0].src.stride, av1_all_zeros, 0, &sse) /
-                     16.0);
-      }
-    }
-  }
-  // Use average of 4x4 log variance. The range for 8 bit 0 - 9.704121561.
-  var /= (bw / 4 * bh / 4);
-  if (var > 7) var = 7;
-
-  return (int)(var);
-}
-
-int av1_log_block_avg(const AV1_COMP *cpi, MACROBLOCK *x, BLOCK_SIZE bs,
+int av1_log_block_avg(const AV1_COMP *cpi, const MACROBLOCK *x, BLOCK_SIZE bs,
                       int mi_row, int mi_col) {
   // This functions returns the block average of luma block
   unsigned int sum, avg, num_pix;
@@ -168,10 +120,10 @@ int av1_log_block_avg(const AV1_COMP *cpi, MACROBLOCK *x, BLOCK_SIZE bs,
 
 #define DEFAULT_E_MIDPOINT 10.0
 
-static unsigned int haar_ac_energy(MACROBLOCK *x, BLOCK_SIZE bs) {
-  MACROBLOCKD *xd = &x->e_mbd;
+static unsigned int haar_ac_energy(const MACROBLOCK *x, BLOCK_SIZE bs) {
+  const MACROBLOCKD *xd = &x->e_mbd;
   int stride = x->plane[0].src.stride;
-  uint8_t *buf = x->plane[0].src.buf;
+  const uint8_t *buf = x->plane[0].src.buf;
   const int num_8x8_cols = block_size_wide[bs] / 8;
   const int num_8x8_rows = block_size_high[bs] / 8;
   const int hbd = is_cur_buf_hbd(xd);
@@ -182,12 +134,12 @@ static unsigned int haar_ac_energy(MACROBLOCK *x, BLOCK_SIZE bs) {
   return (unsigned int)((uint64_t)var * 256) >> num_pels_log2_lookup[bs];
 }
 
-static double log_block_wavelet_energy(MACROBLOCK *x, BLOCK_SIZE bs) {
+static double log_block_wavelet_energy(const MACROBLOCK *x, BLOCK_SIZE bs) {
   unsigned int haar_sad = haar_ac_energy(x, bs);
   return log1p(haar_sad);
 }
 
-int av1_block_wavelet_energy_level(const AV1_COMP *cpi, MACROBLOCK *x,
+int av1_block_wavelet_energy_level(const AV1_COMP *cpi, const MACROBLOCK *x,
                                    BLOCK_SIZE bs) {
   double energy, energy_midpoint;
   energy_midpoint = (is_stat_consumption_stage_twopass(cpi))
@@ -217,4 +169,114 @@ int av1_compute_q_from_energy_level_deltaq_mode(const AV1_COMP *const cpi,
     qindex_delta = -base_qindex + 1;
   }
   return base_qindex + qindex_delta;
+}
+
+// Comparer used by qsort() to order an array of unsigned int from smallest to
+// largest.
+static int comp_unsigned_int(const void *a, const void *b) {
+  unsigned int arg1 = *(const unsigned int *)a;
+  unsigned int arg2 = *(const unsigned int *)b;
+
+  return (arg1 > arg2) - (arg1 < arg2);
+}
+
+unsigned int av1_get_variance_boost_block_variance(const AV1_COMP *cpi,
+                                                   const MACROBLOCK *x) {
+#define SUBBLOCKS_IN_SB_DIM 8
+#define SUBBLOCKS_IN_SB 64
+#define SUBBLOCK_SIZE 8
+  DECLARE_ALIGNED(16, static const uint16_t,
+                  av1_highbd_all_zeros[SUBBLOCK_SIZE]) = { 0 };
+  DECLARE_ALIGNED(16, static const uint8_t,
+                  av1_all_zeros[SUBBLOCK_SIZE]) = { 0 };
+
+  const MACROBLOCKD *xd = &x->e_mbd;
+  unsigned int sse;
+  // Octile is currently hard-coded and optimized for still pictures. In the
+  // future, we might want to expose this as a parameter that can be fine-tuned
+  // by the caller.
+  // An octile of 5 was chosen because it was found to strike the best balance
+  // between quality and consistency. Lower octiles tend to score lower in
+  // SSIMU2, while higher octiles tend to harm subjective quality consistency,
+  // especially in <1 MP images.
+  const int octile = 5;
+  const uint8_t *all_zeros = is_cur_buf_hbd(xd)
+                                 ? CONVERT_TO_BYTEPTR(av1_highbd_all_zeros)
+                                 : av1_all_zeros;
+  unsigned int variances[SUBBLOCKS_IN_SB];
+
+  // TODO: bug https://crbug.com/aomedia/375221136 - the current implementation
+  // truncates variances to integers during normalization, similar to SVT-AV1's
+  // counterpart. A possible improvement would be to use rounding: `(n + 32) /
+  // 64`, or just return variances as doubles.
+  aom_variance_fn_t vf = cpi->ppi->fn_ptr[BLOCK_8X8].vf;
+  for (int subb_i = 0; subb_i < SUBBLOCKS_IN_SB_DIM; subb_i++) {
+    int i = subb_i * SUBBLOCK_SIZE;
+    for (int subb_j = 0; subb_j < SUBBLOCKS_IN_SB_DIM; subb_j++) {
+      int j = subb_j * SUBBLOCK_SIZE;
+      variances[subb_i * SUBBLOCKS_IN_SB_DIM + subb_j] =
+          vf(x->plane[0].src.buf + i * x->plane[0].src.stride + j,
+             x->plane[0].src.stride, all_zeros, 0, &sse) /
+          64;
+    }
+  }
+
+  // Order the 8x8 SB values from smallest to largest variance.
+  qsort(variances, SUBBLOCKS_IN_SB, sizeof(unsigned int), comp_unsigned_int);
+
+  // Take the 8x8 variance value in the specified octile.
+  assert(octile >= 1 && octile <= 8);
+  const unsigned int variance = variances[octile * (SUBBLOCKS_IN_SB / 8) - 1];
+
+  return variance;
+}
+#endif  // !CONFIG_REALTIME_ONLY
+
+int av1_log_block_var(const AV1_COMP *cpi, const MACROBLOCK *x, BLOCK_SIZE bs) {
+  DECLARE_ALIGNED(16, static const uint16_t,
+                  av1_highbd_all_zeros[MAX_SB_SIZE]) = { 0 };
+  DECLARE_ALIGNED(16, static const uint8_t, av1_all_zeros[MAX_SB_SIZE]) = { 0 };
+
+  // This function returns a score for the blocks local variance as calculated
+  // by: sum of the log of the (4x4 variances) of each subblock to the current
+  // block (x,bs)
+  // * 32 / number of pixels in the block_size.
+  // This is used for segmentation because to avoid situations in which a large
+  // block with a gentle gradient gets marked high variance even though each
+  // subblock has a low variance.   This allows us to assign the same segment
+  // number for the same sorts of area regardless of how the partitioning goes.
+
+  const MACROBLOCKD *xd = &x->e_mbd;
+  double var = 0;
+  unsigned int sse;
+  int i, j;
+
+  int right_overflow =
+      (xd->mb_to_right_edge < 0) ? ((-xd->mb_to_right_edge) >> 3) : 0;
+  int bottom_overflow =
+      (xd->mb_to_bottom_edge < 0) ? ((-xd->mb_to_bottom_edge) >> 3) : 0;
+
+  const int bw = MI_SIZE * mi_size_wide[bs] - right_overflow;
+  const int bh = MI_SIZE * mi_size_high[bs] - bottom_overflow;
+
+  aom_variance_fn_t vf = cpi->ppi->fn_ptr[BLOCK_4X4].vf;
+  for (i = 0; i < bh; i += 4) {
+    for (j = 0; j < bw; j += 4) {
+      if (is_cur_buf_hbd(xd)) {
+        var += log1p(vf(x->plane[0].src.buf + i * x->plane[0].src.stride + j,
+                        x->plane[0].src.stride,
+                        CONVERT_TO_BYTEPTR(av1_highbd_all_zeros), 0, &sse) /
+                     16.0);
+      } else {
+        var += log1p(vf(x->plane[0].src.buf + i * x->plane[0].src.stride + j,
+                        x->plane[0].src.stride, av1_all_zeros, 0, &sse) /
+                     16.0);
+      }
+    }
+  }
+  // Use average of 4x4 log variance. The range for 8 bit 0 - 9.704121561.
+  var /= (bw / 4 * bh / 4);
+  if (var > 7) var = 7;
+
+  return (int)(var);
 }

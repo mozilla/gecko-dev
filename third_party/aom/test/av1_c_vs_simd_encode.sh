@@ -1,5 +1,5 @@
 #!/bin/sh
-## Copyright (c) 2023, Alliance for Open Media. All rights reserved
+## Copyright (c) 2023, Alliance for Open Media. All rights reserved.
 ##
 ## This source code is subject to the terms of the BSD 2 Clause License and
 ## the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
@@ -299,7 +299,7 @@ av1_enc_build() {
   mkdir -p $tmp_build_dir
   cd $tmp_build_dir
 
-  local cmake_common_args="-DCONFIG_EXCLUDE_SIMD_MISMATCH=1 \
+  local cmake_common_args="--fresh -DCONFIG_EXCLUDE_SIMD_MISMATCH=1 \
            -DCMAKE_BUILD_TYPE=Release \
            -DENABLE_CCACHE=1 \
            '-DCMAKE_C_FLAGS_RELEASE=-O3 -g' \
@@ -350,18 +350,28 @@ av1_enc_test() {
   local target="$3"
   local preset="$4"
   if [ -z "$(av1_enc_tool_path "${target}"  "${preset}")" ]; then
-    elog "aomenc_{preset} not found. It must exist in ${AOM_TEST_OUTPUT_DIR}/build_target_${target} path"
+    elog "aomenc_${preset} not found. It must exist in ${AOM_TEST_OUTPUT_DIR}/build_target_${target} path"
     return 1
   fi
 
   if [ "${preset}" = "good" ]; then
-    if [ "${arch}" = "x86_64" ]; then
-      local min_cpu_used=0
-      local max_cpu_used=6
-    elif [ "${arch}" = "x86" ]; then
-      local min_cpu_used=2
-      local max_cpu_used=3
-    fi
+    case "${arch}" in
+      arm64)
+        # Speed 0 is not tested as arm64 is run under emulation.
+        local min_cpu_used=1
+        local max_cpu_used=6
+        ;;
+      x86)
+        # x86 has a good amount of overlap with x86-64. Only a few values are
+        # tested to improve the runtime of the script.
+        local min_cpu_used=2
+        local max_cpu_used=3
+        ;;
+      *)
+        local min_cpu_used=0
+        local max_cpu_used=6
+        ;;
+    esac
     local test_params=av1_encode_good_params
   elif [ "${preset}" = "rt" ]; then
     local min_cpu_used=5
@@ -374,7 +384,7 @@ av1_enc_test() {
 
   for cpu in $(seq $min_cpu_used $max_cpu_used); do
     if [ "${preset}" = "good" ]; then
-      if [ "${arch}" = "x86_64" ]; then
+      if [ "${arch}" = "x86_64" -o "${arch}" = "arm64" ]; then
         if [ "${cpu}" -lt 2 ]; then
           local test_clips="${LOWBD_CIF_CLIP} ${HIGHBD_CLIP}"
         elif [ "${cpu}" -lt 5 ]; then
@@ -384,8 +394,9 @@ av1_enc_test() {
         fi
       elif [ "${arch}" = "x86" ]; then
         local test_clips="${LOWBD_CIF_CLIP} ${HIGHBD_CLIP}"
-      elif [ "${arch}" = "arm64" ]; then
-        local test_clips="${LOWBD_CIF_CLIP} ${HIGHBD_CLIP}"
+      else
+        elog "Unknown architecture: ${arch}"
+        return 1
       fi
     elif [ "${preset}" = "rt" ]; then
       if [ "${cpu}" -lt 8 ]; then

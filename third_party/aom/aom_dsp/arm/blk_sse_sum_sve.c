@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023, Alliance for Open Media. All rights reserved
+ * Copyright (c) 2023, Alliance for Open Media. All rights reserved.
  *
  * This source code is subject to the terms of the BSD 2 Clause License and
  * the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
@@ -18,7 +18,7 @@
 #include "aom_dsp/arm/aom_neon_sve_bridge.h"
 #include "aom_dsp/arm/mem_neon.h"
 
-static INLINE void get_blk_sse_sum_4xh_sve(const int16_t *data, int stride,
+static inline void get_blk_sse_sum_4xh_sve(const int16_t *data, int stride,
                                            int bh, int *x_sum,
                                            int64_t *x2_sum) {
   int32x4_t sum = vdupq_n_s32(0);
@@ -39,7 +39,7 @@ static INLINE void get_blk_sse_sum_4xh_sve(const int16_t *data, int stride,
   *x2_sum = vaddvq_s64(sse);
 }
 
-static INLINE void get_blk_sse_sum_8xh_sve(const int16_t *data, int stride,
+static inline void get_blk_sse_sum_8xh_sve(const int16_t *data, int stride,
                                            int bh, int *x_sum,
                                            int64_t *x2_sum) {
   int32x4_t sum[2] = { vdupq_n_s32(0), vdupq_n_s32(0) };
@@ -63,7 +63,7 @@ static INLINE void get_blk_sse_sum_8xh_sve(const int16_t *data, int stride,
   *x2_sum = vaddvq_s64(vaddq_s64(sse[0], sse[1]));
 }
 
-static INLINE void get_blk_sse_sum_large_sve(const int16_t *data, int stride,
+static inline void get_blk_sse_sum_large_sve(const int16_t *data, int stride,
                                              int bw, int bh, int *x_sum,
                                              int64_t *x2_sum) {
   int32x4_t sum[2] = { vdupq_n_s32(0), vdupq_n_s32(0) };

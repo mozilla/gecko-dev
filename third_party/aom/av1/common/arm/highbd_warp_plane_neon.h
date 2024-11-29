@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023, Alliance for Open Media. All rights reserved
+ * Copyright (c) 2023, Alliance for Open Media. All rights reserved.
  *
  * This source code is subject to the terms of the BSD 2 Clause License and
  * the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
@@ -165,7 +165,12 @@ static AOM_FORCE_INLINE void warp_affine_horizontal(const uint16_t *ref,
     if (out_of_boundary_left >= 0 || out_of_boundary_right >= 0) {         \
       for (int k = 0; k < 15; ++k) {                                       \
         const int iy = clamp(iy4 + k - 7, 0, height - 1);                  \
-        uint16x8x2_t src_1 = vld1q_u16_x2(ref + iy * stride + ix4 - 7);    \
+        const uint16_t *idx = ref + iy * stride + ix4 - 7;                 \
+        /* We don't use vld1q_u16_x2 here as LLVM generates an incorrect   \
+         * alignment hint for this intrinsic that causes a SIGBUS on Armv7 \
+         * targets when alignment checks are enabled.                      \
+         * (See bug: b/349455146) */                                       \
+        uint16x8x2_t src_1 = { { vld1q_u16(idx), vld1q_u16(idx + 8) } };   \
         src_1 = clamp_horizontal(src_1, out_of_boundary_left,              \
                                  out_of_boundary_right, ref, iy, stride,   \
                                  width, indx0, indx1);                     \
@@ -197,7 +202,12 @@ static AOM_FORCE_INLINE void warp_affine_horizontal(const uint16_t *ref,
     if (out_of_boundary_left >= 0 || out_of_boundary_right >= 0) {          \
       for (int k = 0; k < 15; ++k) {                                        \
         const int iy = clamp(iy4 + k - 7, 0, height - 1);                   \
-        uint16x8x2_t src_1 = vld1q_u16_x2(ref + iy * stride + ix4 - 7);     \
+        const uint16_t *idx = ref + iy * stride + ix4 - 7;                  \
+        /* We don't use vld1q_u16_x2 here as LLVM generates an incorrect    \
+         * alignment hint for this intrinsic that causes a SIGBUS on Armv7  \
+         * targets when alignment checks are enabled.                       \
+         * (See bug: b/349455146) */                                        \
+        uint16x8x2_t src_1 = { { vld1q_u16(idx), vld1q_u16(idx + 8) } };    \
         src_1 = clamp_horizontal(src_1, out_of_boundary_left,               \
                                  out_of_boundary_right, ref, iy, stride,    \
                                  width, indx0, indx1);                      \

@@ -1,3 +1,168 @@
+2024-10-24 v3.11.0
+  This release includes perceptual quality improvements, binary size reduction
+  under certain configurations and many bug fixes. This release changes the
+  default encoder configuration for the AOM_USAGE_REALTIME mode. This release
+  is ABI compatible with the last release.
+
+  - Perceptual Quality Improvements
+    * Visual quality improvements for RTC screen content
+      * Higher quality on scene or slide changes
+      * Faster quality ramp-up for static content after scene change
+      * Quality improvements for screen content with active maps
+
+  - Speedup
+    * Added and improved Neon SIMD paths for dynamic frame scaling with ~1.5%
+      overall encoding speedup.
+
+  - Other Improvements
+    * Binary size reduction: 10% compared with last release, with
+      CONFIG_REALTIME_ONLY enabled, CONFIG_AV1_DECODER and
+      CONFIG_AV1_HIGHBITDEPTH disabled.
+    * Update default_extra_cfg for CONFIG_REALTIME_ONLY to provide proper RTC
+      defaults settings
+    * Change the default valuess of the following encoder config options in the
+      AOM_USAGE_REALTIME mode:
+      *  rc_overshoot_pct and rc_undershoot_pct are changed from 25 to 50
+      *  rc_buf_sz is changed from 6000 to 1000
+      *  rc_buf_initial_sz is changed from 4000 to 600
+      *  rc_buf_optimal_sz is changed from 5000 to 600
+
+  - Bug Fixes
+    * aomedia:363016123: rtc: Fix setting of intra-only frame for
+      set_ref_frame_config and add checks
+    * aomedia:42302583: rtc: Fix for artifacts for screen with active_maps
+    * b:365088425: rtc: Allow for lower-QP on scene/slide changes
+    * b:367285382: Fix to encoder quality max-out too early for screen
+    * b:362936830: rtc: Allow QP to decrease more aggressively for static
+      content
+    * b:361617762: Clamp the calculation of sb64_target_rate to INT_MAX
+    * chromium:362123224: rtc-svc: Reset ref_map_idx for references not used
+    * chromium:367892770: Fix to possible integer overflow in reset_rc
+    * webrtc:369633254: rtc-svc: Fix to reset ref_idx for svc
+    * Fix exit condition in rate correction update
+
+2024-08-27 v3.10.0
+  This release includes new codec interfaces, compression efficiency and
+  perceptual improvements, speedup and memory optimizations and many bug
+  fixes. This release is ABI compatible with the last release.
+
+  The definitions of the internal macros AOM_INLINE and AOM_FORCE_INLINE
+  have been removed from the public header aom/aom_integer.h.
+
+  - New Features
+    * New codec controls:
+      * AV1E_SET_AUTO_TILES
+      * AV1E_GET_HIGH_MOTION_CONTENT_SCREEN_RTC
+      * AV1E_SET_POSTENCODE_DROP_RTC: Post encode frame drop feature.
+      * AV1E_SET_MAX_CONSEC_FRAME_DROP_MS_CBR
+    * New key-value pair for aom_codec_set_option():
+      * "auto-tiles": equivalent to the new codec control
+        AV1E_SET_AUTO_TILES.
+
+  - Deprecated Features
+    * Deprecated codec control:
+      * AV1E_SET_MAX_CONSEC_FRAME_DROP_CBR: Use the new codec control
+        AV1E_SET_MAX_CONSEC_FRAME_DROP_MS_CBR instead.
+    * The sframe_mode field in the aom_codec_enc_cfg_t struct is not
+      implemented.
+
+  - Compression Efficiency Improvements
+    * BD-rate gain of 0.7 - 1.3% (by enabling global motion tool) for
+      speed 5 and speed 6 with ~5% encode time increase.
+    * RTC speed 11 video: ~3-5% BD-rate gain for VGA and QVGA.
+
+  - Perceptual Quality Improvements
+    * RTC quality improvements for slide changes and scrolling content.
+
+  - Speedup and Memory Optimizations
+    * RTC screen content speedups:
+      * ~2x speedup for high motion content for speed 11.
+      * ~2x speedup on key frame coding for speed >= 10.
+    * Arm: Significant uplifts in speed in this release (vs v3.9.1) have
+      come from tuning the various convolutions according to filter size
+      (doing 8-tap when only 2-tap is required is inefficient) and also
+      deploying Armv8.6 USMMLA instructions in 6-tap and 12-tap standard
+      bitdepth convolutions.
+      * Standard bitdepth RTC:
+        * speed 5: +5%
+        * speed 6: +4%
+        * speed 7: +5%
+        * speed 8: +4%
+        * speed 9: +6%
+        * speed 10: +6%
+      * Standard bitdepth VoD:
+        * speed 0: +9%
+        * speed 1: +12%
+        * speed 2: +9%
+        * speed 3: +3%
+        * speed 4: +3%
+        * speed 5: -9% (expected due to global motion changes)
+        * speed 6: -3% (expected due to global motion changes)
+      * High bitdepth VoD:
+        * speed 0: +4%
+        * speed 1: +19%
+        * speed 2: +23%
+        * speed 3: +1%
+        * speed 4: +1%
+        * speed 5: -8% (expected due to global motion changes)
+        * speed 6: -3% (expected due to global motion changes)
+      * Standard bitdepth 2x1 horizontal super-resolution/scaling
+        encoding: +101%
+
+  - Other Improvements
+    * Reduce bit rate overshoot on slide content.
+
+  - Bug Fixes
+    * rtc: Bug fix for active_maps with sb_size=128.
+    * b:343429036: rtc: Fix source_sad setting near boundary.
+    * Fix to QP for temporal enhancement after key frame.
+    * b:343429192: rtc: Condition QP adjustment on rc->q_1/2_frame > 0.
+
+2024-06-07 v3.8.3
+  This release includes several bug fixes. This release is ABI
+  compatible with the last release. See
+  https://aomedia.googlesource.com/aom/+log/v3.8.2..v3.8.3 for all the
+  commits in this release.
+
+  - Bug Fixes
+    * aomedia:2754, aomedia:3567: Ensure thread stack size is at least
+      256 KB
+    * aomedia:3382, chromium:339877165: update codec config after
+      svc/scale controls (CVE-2024-5493)
+    * aomedia:3561: libaom-3.8.2 armv7 Android build failed
+    * aomedia:3580: Allow g_timebase.num to be greater than
+      g_timebase.den
+    * Arm SVE build fixes.
+    * av1_block_error_lp_neon: fix block_size param type
+
+2024-06-05 v3.9.1
+  This release includes several bug fixes. This release is ABI
+  compatible with the last release. See
+  https://aomedia.googlesource.com/aom/+log/v3.9.0..v3.9.1 for all the
+  commits in this release.
+
+  - Bug Fixes
+    * aomedia:2754, aomedia:3567: Ensure thread stack size is at least
+      256 KB
+    * b:330639949, oss-fuzz:68195: Increase scaling in linsolve_wiener
+    * Fix high target data rate overflow.
+    * aomedia:3509: Fix two UBSan errors in av1_rc_update_framerate()
+    * aomedia:3382, chromium:339877165: update codec config after
+      svc/scale controls (CVE-2024-5493)
+    * aomedia:3561: libaom-3.8.2 armv7 Android build failed
+    * aomedia:3571: {,highbd_}intrapred_neon.c: Avoid over-reads in z1
+      and z3 preds
+    * aomedia:3578: libaom-3.9.0 undefined reference to
+      `aom_sub_pixel_variance16xh_ssse3'
+    * aomedia:3579: Use round for RC calculations in cyclic_refresh
+    * aomedia:3580: Allow g_timebase.num to be greater than
+      g_timebase.den
+    * oss-fuzz:68774: libaom:av1_dec_fuzzer: Segv on unknown address in
+      od_ec_dec_init
+    * Arm SVE build fixes.
+    * av1_block_error_lp_neon: fix block_size param type
+    * av1_block_error_lp_sve: fix block_size param type
+
 2024-04-09 v3.9.0
   This release includes new codec interfaces, compression efficiency and
   perceptual improvements, speedup for RTC for both video and screen content,

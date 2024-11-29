@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023, Alliance for Open Media. All rights reserved
+ * Copyright (c) 2023, Alliance for Open Media. All rights reserved.
  *
  * This source code is subject to the terms of the BSD 2 Clause License and
  * the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
@@ -27,7 +27,7 @@ DECLARE_ALIGNED(16, static const uint16_t, kDotProdMergeBlockTbl[24]) = {
 };
 // clang-format on
 
-static INLINE void transpose_concat_4x4(int16x4_t s0, int16x4_t s1,
+static inline void transpose_concat_4x4(int16x4_t s0, int16x4_t s1,
                                         int16x4_t s2, int16x4_t s3,
                                         int16x8_t res[2]) {
   // Transpose 16-bit elements and concatenate result rows as follows:
@@ -53,7 +53,7 @@ static INLINE void transpose_concat_4x4(int16x4_t s0, int16x4_t s1,
   res[1] = vreinterpretq_s16_s32(s0123.val[1]);
 }
 
-static INLINE void transpose_concat_8x4(int16x8_t s0, int16x8_t s1,
+static inline void transpose_concat_8x4(int16x8_t s0, int16x8_t s1,
                                         int16x8_t s2, int16x8_t s3,
                                         int16x8_t res[4]) {
   // Transpose 16-bit elements and concatenate result rows as follows:
@@ -80,7 +80,7 @@ static INLINE void transpose_concat_8x4(int16x8_t s0, int16x8_t s1,
   res[3] = vreinterpretq_s16_s32(tr23_32.val[1]);
 }
 
-static INLINE void aom_tbl2x4_s16(int16x8_t t0[4], int16x8_t t1[4],
+static inline void aom_tbl2x4_s16(int16x8_t t0[4], int16x8_t t1[4],
                                   uint16x8_t tbl, int16x8_t res[4]) {
   res[0] = aom_tbl2_s16(t0[0], t1[0], tbl);
   res[1] = aom_tbl2_s16(t0[1], t1[1], tbl);
@@ -88,7 +88,7 @@ static INLINE void aom_tbl2x4_s16(int16x8_t t0[4], int16x8_t t1[4],
   res[3] = aom_tbl2_s16(t0[3], t1[3], tbl);
 }
 
-static INLINE void aom_tbl2x2_s16(int16x8_t t0[2], int16x8_t t1[2],
+static inline void aom_tbl2x2_s16(int16x8_t t0[2], int16x8_t t1[2],
                                   uint16x8_t tbl, int16x8_t res[2]) {
   res[0] = aom_tbl2_s16(t0[0], t1[0], tbl);
   res[1] = aom_tbl2_s16(t0[1], t1[1], tbl);

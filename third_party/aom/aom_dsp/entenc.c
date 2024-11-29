@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001-2016, Alliance for Open Media. All rights reserved
+ * Copyright (c) 2001-2016, Alliance for Open Media. All rights reserved.
  *
  * This source code is subject to the terms of the BSD 2 Clause License and
  * the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
@@ -226,41 +226,6 @@ void od_ec_encode_cdf_q15(od_ec_enc *enc, int s, const uint16_t *icdf,
   assert(s < nsyms);
   assert(icdf[nsyms - 1] == OD_ICDF(CDF_PROB_TOP));
   od_ec_encode_q15(enc, s > 0 ? icdf[s - 1] : OD_ICDF(0), icdf[s], s, nsyms);
-}
-
-/*Overwrites a few bits at the very start of an existing stream, after they
-   have already been encoded.
-  This makes it possible to have a few flags up front, where it is easy for
-   decoders to access them without parsing the whole stream, even if their
-   values are not determined until late in the encoding process, without having
-   to buffer all the intermediate symbols in the encoder.
-  In order for this to work, at least nbits bits must have already been encoded
-   using probabilities that are an exact power of two.
-  The encoder can verify the number of encoded bits is sufficient, but cannot
-   check this latter condition.
-  val: The bits to encode (in the least nbits significant bits).
-       They will be decoded in order from most-significant to least.
-  nbits: The number of bits to overwrite.
-         This must be no more than 8.*/
-void od_ec_enc_patch_initial_bits(od_ec_enc *enc, unsigned val, int nbits) {
-  int shift;
-  unsigned mask;
-  assert(nbits >= 0);
-  assert(nbits <= 8);
-  assert(val < 1U << nbits);
-  shift = 8 - nbits;
-  mask = ((1U << nbits) - 1) << shift;
-  if (enc->offs > 0) {
-    /*The first byte has been finalized.*/
-    enc->buf[0] = (unsigned char)((enc->buf[0] & ~mask) | val << shift);
-  } else if (9 + enc->cnt + (enc->rng == 0x8000) > nbits) {
-    /*The first byte has yet to be output.*/
-    enc->low = (enc->low & ~((od_ec_enc_window)mask << (16 + enc->cnt))) |
-               (od_ec_enc_window)val << (16 + enc->cnt + shift);
-  } else {
-    /*The encoder hasn't even encoded _nbits of data yet.*/
-    enc->error = -1;
-  }
 }
 
 #if OD_MEASURE_EC_OVERHEAD

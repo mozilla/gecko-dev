@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Alliance for Open Media. All rights reserved
+ * Copyright (c) 2020, Alliance for Open Media. All rights reserved.
  *
  * This source code is subject to the terms of the BSD 2 Clause License and
  * the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
@@ -130,6 +130,7 @@ static void compute_avg_log_variance(const AV1_COMP *const cpi, MACROBLOCK *x,
   const int bh = (MI_SIZE * mi_size_high[bs] - bottom_overflow);
   const int is_hbd = is_cur_buf_hbd(xd);
 
+  aom_variance_fn_t vf = cpi->ppi->fn_ptr[BLOCK_4X4].vf;
   for (int i = 0; i < bh; i += MI_SIZE) {
     const int r = mi_row_in_sb + (i >> MI_SIZE_LOG2);
     for (int j = 0; j < bw; j += MI_SIZE) {
@@ -146,8 +147,7 @@ static void compute_avg_log_variance(const AV1_COMP *const cpi, MACROBLOCK *x,
       // available with valid values.
       if (src_var < 0) {
         src_var = av1_calc_normalized_variance(
-            cpi->ppi->fn_ptr[BLOCK_4X4].vf,
-            x->plane[0].src.buf + i * x->plane[0].src.stride + j,
+            vf, x->plane[0].src.buf + i * x->plane[0].src.stride + j,
             x->plane[0].src.stride, is_hbd);
         block_4x4_var_info->var = src_var;
         log_src_var = log1p(src_var / 16.0);
@@ -165,8 +165,7 @@ static void compute_avg_log_variance(const AV1_COMP *const cpi, MACROBLOCK *x,
       *avg_log_src_variance += log_src_var;
 
       const int recon_var = av1_calc_normalized_variance(
-          cpi->ppi->fn_ptr[BLOCK_4X4].vf,
-          xd->plane[0].dst.buf + i * xd->plane[0].dst.stride + j,
+          vf, xd->plane[0].dst.buf + i * xd->plane[0].dst.stride + j,
           xd->plane[0].dst.stride, is_hbd);
       *avg_log_recon_variance += log1p(recon_var / 16.0);
     }
@@ -399,7 +398,7 @@ void set_y_mode_and_delta_angle(const int mode_idx, MB_MODE_INFO *const mbmi,
   }
 }
 
-static AOM_INLINE int get_model_rd_index_for_pruning(
+static inline int get_model_rd_index_for_pruning(
     const MACROBLOCK *const x,
     const INTRA_MODE_SPEED_FEATURES *const intra_sf) {
   const int top_intra_model_count_allowed =
@@ -432,9 +431,21 @@ static AOM_INLINE int get_model_rd_index_for_pruning(
   return model_rd_index_for_pruning;
 }
 
-int prune_intra_y_mode(int64_t this_model_rd, int64_t *best_model_rd,
-                       int64_t top_intra_model_rd[], int max_model_cnt_allowed,
-                       int model_rd_index_for_pruning) {
+/*! \brief prune luma intra mode based on the model rd.
+ * \param[in]    this_model_rd              model rd for current mode.
+ * \param[in]    best_model_rd              Best model RD seen for this block so
+ *                                          far.
+ * \param[in]    top_intra_model_rd         Top intra model RD seen for this
+ *                                          block so far.
+ * \param[in]    max_model_cnt_allowed      The maximum number of top intra
+ *                                          model RD allowed.
+ * \param[in]    model_rd_index_for_pruning Index of the candidate used for
+ *                                          pruning based on model rd.
+ */
+static int prune_intra_y_mode(int64_t this_model_rd, int64_t *best_model_rd,
+                              int64_t top_intra_model_rd[],
+                              int max_model_cnt_allowed,
+                              int model_rd_index_for_pruning) {
   const double thresh_best = 1.50;
   const double thresh_top = 1.00;
   for (int i = 0; i < max_model_cnt_allowed; i++) {
@@ -641,8 +652,8 @@ static int cfl_pick_plane_parameter(const AV1_COMP *const cpi, MACROBLOCK *x,
   return est_best_cfl_idx;
 }
 
-static AOM_INLINE void set_invalid_cfl_parameters(
-    uint8_t *best_cfl_alpha_idx, int8_t *best_cfl_alpha_signs) {
+static inline void set_invalid_cfl_parameters(uint8_t *best_cfl_alpha_idx,
+                                              int8_t *best_cfl_alpha_signs) {
   *best_cfl_alpha_idx = 0;
   *best_cfl_alpha_signs = 0;
 }
@@ -1160,13 +1171,12 @@ void av1_search_palette_mode_luma(const AV1_COMP *cpi, MACROBLOCK *x,
  *
  * \return Returns whether the current mode is an improvement over best_rd.
  */
-static AOM_INLINE int intra_block_yrd(const AV1_COMP *const cpi, MACROBLOCK *x,
-                                      BLOCK_SIZE bsize, const int *bmode_costs,
-                                      int64_t *best_rd, int *rate,
-                                      int *rate_tokenonly, int64_t *distortion,
-                                      uint8_t *skippable,
-                                      MB_MODE_INFO *best_mbmi,
-                                      PICK_MODE_CONTEXT *ctx) {
+static inline int intra_block_yrd(const AV1_COMP *const cpi, MACROBLOCK *x,
+                                  BLOCK_SIZE bsize, const int *bmode_costs,
+                                  int64_t *best_rd, int *rate,
+                                  int *rate_tokenonly, int64_t *distortion,
+                                  uint8_t *skippable, MB_MODE_INFO *best_mbmi,
+                                  PICK_MODE_CONTEXT *ctx) {
   MACROBLOCKD *const xd = &x->e_mbd;
   MB_MODE_INFO *const mbmi = xd->mi[0];
   RD_STATS rd_stats;
@@ -1213,7 +1223,7 @@ static AOM_INLINE int intra_block_yrd(const AV1_COMP *const cpi, MACROBLOCK *x,
  *
  * \remark Returns nothing, but updates the mbmi and rd_stats.
  */
-static INLINE void handle_filter_intra_mode(const AV1_COMP *cpi, MACROBLOCK *x,
+static inline void handle_filter_intra_mode(const AV1_COMP *cpi, MACROBLOCK *x,
                                             BLOCK_SIZE bsize,
                                             const PICK_MODE_CONTEXT *ctx,
                                             RD_STATS *rd_stats_y, int mode_cost,
@@ -1436,7 +1446,7 @@ int av1_search_intra_uv_modes_in_interframe(
 
 // Checks if odd delta angles can be pruned based on rdcosts of even delta
 // angles of the corresponding directional mode.
-static AOM_INLINE int prune_luma_odd_delta_angles_using_rd_cost(
+static inline int prune_luma_odd_delta_angles_using_rd_cost(
     const MB_MODE_INFO *const mbmi, const int64_t *const intra_modes_rd_cost,
     int64_t best_rd, int prune_luma_odd_delta_angles_in_intra) {
   const int luma_delta_angle = mbmi->angle_delta[PLANE_TYPE_Y];

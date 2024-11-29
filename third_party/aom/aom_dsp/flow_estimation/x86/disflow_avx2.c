@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Alliance for Open Media. All rights reserved
+ * Copyright (c) 2024, Alliance for Open Media. All rights reserved.
  *
  * This source code is subject to the terms of the BSD 2 Clause License and
  * the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
@@ -30,7 +30,7 @@
 // This is chosen because it takes less work than fully separating the kernels,
 // but it is separated enough that we can pick out each coefficient pair in the
 // main compute_flow_at_point function
-static INLINE __m128i compute_cubic_kernels(double u, double v) {
+static inline __m128i compute_cubic_kernels(double u, double v) {
   const __m128d x = _mm_set_pd(v, u);
 
   const __m128d x2 = _mm_mul_pd(x, x);
@@ -81,7 +81,7 @@ static INLINE __m128i compute_cubic_kernels(double u, double v) {
 //
 // TODO(rachelbarker): Test speed/quality impact of using bilinear interpolation
 // instad of bicubic interpolation
-static INLINE void compute_flow_vector(const uint8_t *src, const uint8_t *ref,
+static inline void compute_flow_vector(const uint8_t *src, const uint8_t *ref,
                                        int width, int height, int stride, int x,
                                        int y, double u, double v,
                                        const int16_t *dx, const int16_t *dy,
@@ -267,7 +267,7 @@ static INLINE void compute_flow_vector(const uint8_t *src, const uint8_t *ref,
 
 // Compute the x and y gradients of the source patch in a single pass,
 // and store into dx and dy respectively.
-static INLINE void sobel_filter(const uint8_t *src, int src_stride, int16_t *dx,
+static inline void sobel_filter(const uint8_t *src, int src_stride, int16_t *dx,
                                 int16_t *dy) {
   const __m256i zero = _mm256_setzero_si256();
 
@@ -328,7 +328,7 @@ static INLINE void sobel_filter(const uint8_t *src, int src_stride, int16_t *dx,
   }
 }
 
-static INLINE void compute_flow_matrix(const int16_t *dx, int dx_stride,
+static inline void compute_flow_matrix(const int16_t *dx, int dx_stride,
                                        const int16_t *dy, int dy_stride,
                                        double *M) {
   __m256i acc[4] = { 0 };
@@ -371,7 +371,7 @@ static INLINE void compute_flow_matrix(const int16_t *dx, int dx_stride,
 // The regularization term `+ k * I` further ensures that det M >= k^2.
 // As mentioned in compute_flow_matrix(), here we use k = 1, so det M >= 1.
 // So we don't have to worry about non-invertible matrices here.
-static INLINE void invert_2x2(const double *M, double *M_inv) {
+static inline void invert_2x2(const double *M, double *M_inv) {
   double det = (M[0] * M[3]) - (M[1] * M[2]);
   assert(det >= 1);
   const double det_inv = 1 / det;

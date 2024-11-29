@@ -1,6 +1,6 @@
 /*
- * Copyright (c) 2014 The WebM project authors. All Rights Reserved.
- * Copyright (c) 2023, Alliance for Open Media. All rights reserved
+ * Copyright (c) 2014 The WebM project authors. All rights reserved.
+ * Copyright (c) 2023, Alliance for Open Media. All rights reserved.
  *
  * This source code is subject to the terms of the BSD 2 Clause License and
  * the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
@@ -44,7 +44,7 @@ DECLARE_ALIGNED(16, static const uint8_t, kDotProdMergeBlockTbl[48]) = {
   3, 16, 17, 18, 7, 20, 21, 22, 11, 24, 25, 26, 15, 28, 29, 30
 };
 
-static INLINE int16x4_t convolve8_4_h(const uint8x16_t samples,
+static inline int16x4_t convolve8_4_h(const uint8x16_t samples,
                                       const int8x8_t filters,
                                       const uint8x16x2_t permute_tbl) {
   // Transform sample range to [-128, 127] for 8-bit signed dot product.
@@ -66,7 +66,7 @@ static INLINE int16x4_t convolve8_4_h(const uint8x16_t samples,
   return vqmovn_s32(sum);
 }
 
-static INLINE uint8x8_t convolve8_8_h(const uint8x16_t samples,
+static inline uint8x8_t convolve8_8_h(const uint8x16_t samples,
                                       const int8x8_t filters,
                                       const uint8x16x3_t permute_tbl) {
   // Transform sample range to [-128, 127] for 8-bit signed dot product.
@@ -95,7 +95,7 @@ static INLINE uint8x8_t convolve8_8_h(const uint8x16_t samples,
   return vqrshrun_n_s16(sum, FILTER_BITS);
 }
 
-static INLINE void convolve8_horiz_8tap_neon_dotprod(
+static inline void convolve8_horiz_8tap_neon_dotprod(
     const uint8_t *src, ptrdiff_t src_stride, uint8_t *dst,
     ptrdiff_t dst_stride, const int16_t *filter_x, int w, int h) {
   const int8x8_t filter = vmovn_s16(vld1q_s16(filter_x));
@@ -149,7 +149,7 @@ static INLINE void convolve8_horiz_8tap_neon_dotprod(
   }
 }
 
-static INLINE int16x4_t convolve4_4_h(const uint8x16_t samples,
+static inline int16x4_t convolve4_4_h(const uint8x16_t samples,
                                       const int8x8_t filters,
                                       const uint8x16_t permute_tbl) {
   // Transform sample range to [-128, 127] for 8-bit signed dot product.
@@ -169,7 +169,7 @@ static INLINE int16x4_t convolve4_4_h(const uint8x16_t samples,
   return vmovn_s32(sum);
 }
 
-static INLINE uint8x8_t convolve4_8_h(const uint8x16_t samples,
+static inline uint8x8_t convolve4_8_h(const uint8x16_t samples,
                                       const int8x8_t filters,
                                       const uint8x16x2_t permute_tbl) {
   // Transform sample range to [-128, 127] for 8-bit signed dot product.
@@ -196,7 +196,7 @@ static INLINE uint8x8_t convolve4_8_h(const uint8x16_t samples,
   return vqrshrun_n_s16(sum, FILTER_BITS - 1);
 }
 
-static INLINE void convolve8_horiz_4tap_neon_dotprod(
+static inline void convolve8_horiz_4tap_neon_dotprod(
     const uint8_t *src, ptrdiff_t src_stride, uint8_t *dst,
     ptrdiff_t dst_stride, const int16_t *filter_x, int width, int height) {
   const int16x4_t x_filter = vld1_s16(filter_x + 2);
@@ -284,7 +284,7 @@ void aom_convolve8_horiz_neon_dotprod(const uint8_t *src, ptrdiff_t src_stride,
   }
 }
 
-static INLINE void transpose_concat_4x4(int8x8_t a0, int8x8_t a1, int8x8_t a2,
+static inline void transpose_concat_4x4(int8x8_t a0, int8x8_t a1, int8x8_t a2,
                                         int8x8_t a3, int8x16_t *b) {
   // Transpose 8-bit elements and concatenate result rows as follows:
   // a0: 00, 01, 02, 03, XX, XX, XX, XX
@@ -308,7 +308,7 @@ static INLINE void transpose_concat_4x4(int8x8_t a0, int8x8_t a1, int8x8_t a2,
   *b = vreinterpretq_s8_s16(a0123);
 }
 
-static INLINE void transpose_concat_8x4(int8x8_t a0, int8x8_t a1, int8x8_t a2,
+static inline void transpose_concat_8x4(int8x8_t a0, int8x8_t a1, int8x8_t a2,
                                         int8x8_t a3, int8x16_t *b0,
                                         int8x16_t *b1) {
   // Transpose 8-bit elements and concatenate result rows as follows:
@@ -335,7 +335,7 @@ static INLINE void transpose_concat_8x4(int8x8_t a0, int8x8_t a1, int8x8_t a2,
   *b1 = vreinterpretq_s8_s16(a0123.val[1]);
 }
 
-static INLINE int16x4_t convolve8_4_v(const int8x16_t samples_lo,
+static inline int16x4_t convolve8_4_v(const int8x16_t samples_lo,
                                       const int8x16_t samples_hi,
                                       const int8x8_t filters) {
   // The sample range transform and permutation are performed by the caller.
@@ -349,7 +349,7 @@ static INLINE int16x4_t convolve8_4_v(const int8x16_t samples_lo,
   return vqmovn_s32(sum);
 }
 
-static INLINE uint8x8_t convolve8_8_v(const int8x16_t samples0_lo,
+static inline uint8x8_t convolve8_8_v(const int8x16_t samples0_lo,
                                       const int8x16_t samples0_hi,
                                       const int8x16_t samples1_lo,
                                       const int8x16_t samples1_hi,
@@ -370,7 +370,7 @@ static INLINE uint8x8_t convolve8_8_v(const int8x16_t samples0_lo,
   return vqrshrun_n_s16(sum, FILTER_BITS);
 }
 
-static INLINE void convolve8_vert_8tap_neon_dotprod(
+static inline void convolve8_vert_8tap_neon_dotprod(
     const uint8_t *src, ptrdiff_t src_stride, uint8_t *dst,
     ptrdiff_t dst_stride, const int16_t *filter_y, int w, int h) {
   const int8x8_t filter = vmovn_s16(vld1q_s16(filter_y));

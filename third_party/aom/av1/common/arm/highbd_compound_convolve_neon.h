@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Alliance for Open Media. All rights reserved
+ * Copyright (c) 2024, Alliance for Open Media. All rights reserved.
  *
  * This source code is subject to the terms of the BSD 2 Clause License and
  * the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
@@ -21,7 +21,7 @@
 
 #define ROUND_SHIFT 2 * FILTER_BITS - ROUND0_BITS - COMPOUND_ROUND1_BITS
 
-static INLINE void highbd_12_comp_avg_neon(const uint16_t *src_ptr,
+static inline void highbd_12_comp_avg_neon(const uint16_t *src_ptr,
                                            int src_stride, uint16_t *dst_ptr,
                                            int dst_stride, int w, int h,
                                            ConvolveParams *conv_params) {
@@ -85,7 +85,7 @@ static INLINE void highbd_12_comp_avg_neon(const uint16_t *src_ptr,
   }
 }
 
-static INLINE void highbd_comp_avg_neon(const uint16_t *src_ptr, int src_stride,
+static inline void highbd_comp_avg_neon(const uint16_t *src_ptr, int src_stride,
                                         uint16_t *dst_ptr, int dst_stride,
                                         int w, int h,
                                         ConvolveParams *conv_params,
@@ -150,7 +150,7 @@ static INLINE void highbd_comp_avg_neon(const uint16_t *src_ptr, int src_stride,
   }
 }
 
-static INLINE void highbd_12_dist_wtd_comp_avg_neon(
+static inline void highbd_12_dist_wtd_comp_avg_neon(
     const uint16_t *src_ptr, int src_stride, uint16_t *dst_ptr, int dst_stride,
     int w, int h, ConvolveParams *conv_params) {
   const int offset_bits = 12 + 2 * FILTER_BITS - ROUND0_BITS - 2;
@@ -221,7 +221,7 @@ static INLINE void highbd_12_dist_wtd_comp_avg_neon(
   }
 }
 
-static INLINE void highbd_dist_wtd_comp_avg_neon(
+static inline void highbd_dist_wtd_comp_avg_neon(
     const uint16_t *src_ptr, int src_stride, uint16_t *dst_ptr, int dst_stride,
     int w, int h, ConvolveParams *conv_params, const int bd) {
   const int offset_bits = bd + 2 * FILTER_BITS - ROUND0_BITS;

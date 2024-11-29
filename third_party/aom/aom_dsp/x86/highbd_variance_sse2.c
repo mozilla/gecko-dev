@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Alliance for Open Media. All rights reserved
+ * Copyright (c) 2016, Alliance for Open Media. All rights reserved.
  *
  * This source code is subject to the terms of the BSD 2 Clause License and
  * the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
@@ -152,10 +152,13 @@ VAR_FN(16, 16, 16, 8)
 VAR_FN(16, 8, 8, 7)
 VAR_FN(8, 16, 8, 7)
 VAR_FN(8, 8, 8, 6)
+
+#if !CONFIG_REALTIME_ONLY
 VAR_FN(8, 32, 8, 8)
 VAR_FN(32, 8, 8, 8)
 VAR_FN(16, 64, 16, 10)
 VAR_FN(64, 16, 16, 10)
+#endif  // !CONFIG_REALTIME_ONLY
 
 #undef VAR_FN
 
@@ -382,6 +385,23 @@ DECLS(sse2)
     return (var >= 0) ? (uint32_t)var : 0;                                     \
   }
 
+#if CONFIG_REALTIME_ONLY
+#define FNS(opt)                         \
+  FN(128, 128, 16, 7, 7, opt, (int64_t)) \
+  FN(128, 64, 16, 7, 6, opt, (int64_t))  \
+  FN(64, 128, 16, 6, 7, opt, (int64_t))  \
+  FN(64, 64, 16, 6, 6, opt, (int64_t))   \
+  FN(64, 32, 16, 6, 5, opt, (int64_t))   \
+  FN(32, 64, 16, 5, 6, opt, (int64_t))   \
+  FN(32, 32, 16, 5, 5, opt, (int64_t))   \
+  FN(32, 16, 16, 5, 4, opt, (int64_t))   \
+  FN(16, 32, 16, 4, 5, opt, (int64_t))   \
+  FN(16, 16, 16, 4, 4, opt, (int64_t))   \
+  FN(16, 8, 16, 4, 3, opt, (int64_t))    \
+  FN(8, 16, 8, 3, 4, opt, (int64_t))     \
+  FN(8, 8, 8, 3, 3, opt, (int64_t))      \
+  FN(8, 4, 8, 3, 2, opt, (int64_t))
+#else  // !CONFIG_REALTIME_ONLY
 #define FNS(opt)                         \
   FN(128, 128, 16, 7, 7, opt, (int64_t)) \
   FN(128, 64, 16, 7, 6, opt, (int64_t))  \
@@ -402,6 +422,7 @@ DECLS(sse2)
   FN(32, 8, 16, 5, 3, opt, (int64_t))    \
   FN(16, 64, 16, 4, 6, opt, (int64_t))   \
   FN(64, 16, 16, 6, 4, opt, (int64_t))
+#endif  // CONFIG_REALTIME_ONLY
 
 FNS(sse2)
 
@@ -549,6 +570,20 @@ DECLS(sse2)
     return (var >= 0) ? (uint32_t)var : 0;                                     \
   }
 
+#if CONFIG_REALTIME_ONLY
+#define FNS(opt)                       \
+  FN(64, 64, 16, 6, 6, opt, (int64_t)) \
+  FN(64, 32, 16, 6, 5, opt, (int64_t)) \
+  FN(32, 64, 16, 5, 6, opt, (int64_t)) \
+  FN(32, 32, 16, 5, 5, opt, (int64_t)) \
+  FN(32, 16, 16, 5, 4, opt, (int64_t)) \
+  FN(16, 32, 16, 4, 5, opt, (int64_t)) \
+  FN(16, 16, 16, 4, 4, opt, (int64_t)) \
+  FN(16, 8, 16, 4, 3, opt, (int64_t))  \
+  FN(8, 16, 8, 3, 4, opt, (int64_t))   \
+  FN(8, 8, 8, 3, 3, opt, (int64_t))    \
+  FN(8, 4, 8, 3, 2, opt, (int64_t))
+#else  // !CONFIG_REALTIME_ONLY
 #define FNS(opt)                       \
   FN(64, 64, 16, 6, 6, opt, (int64_t)) \
   FN(64, 32, 16, 6, 5, opt, (int64_t)) \
@@ -566,76 +601,12 @@ DECLS(sse2)
   FN(32, 8, 16, 5, 3, opt, (int64_t))  \
   FN(16, 64, 16, 4, 6, opt, (int64_t)) \
   FN(64, 16, 16, 6, 4, opt, (int64_t))
+#endif  // CONFIG_REALTIME_ONLY
 
 FNS(sse2)
 
 #undef FNS
 #undef FN
-
-static INLINE void highbd_compute_dist_wtd_comp_avg(__m128i *p0, __m128i *p1,
-                                                    const __m128i *w0,
-                                                    const __m128i *w1,
-                                                    const __m128i *r,
-                                                    void *const result) {
-  assert(DIST_PRECISION_BITS <= 4);
-  __m128i mult0 = _mm_mullo_epi16(*p0, *w0);
-  __m128i mult1 = _mm_mullo_epi16(*p1, *w1);
-  __m128i sum = _mm_adds_epu16(mult0, mult1);
-  __m128i round = _mm_adds_epu16(sum, *r);
-  __m128i shift = _mm_srli_epi16(round, DIST_PRECISION_BITS);
-
-  xx_storeu_128(result, shift);
-}
-
-void aom_highbd_dist_wtd_comp_avg_pred_sse2(
-    uint8_t *comp_pred8, const uint8_t *pred8, int width, int height,
-    const uint8_t *ref8, int ref_stride,
-    const DIST_WTD_COMP_PARAMS *jcp_param) {
-  int i;
-  const int16_t wt0 = (int16_t)jcp_param->fwd_offset;
-  const int16_t wt1 = (int16_t)jcp_param->bck_offset;
-  const __m128i w0 = _mm_set1_epi16(wt0);
-  const __m128i w1 = _mm_set1_epi16(wt1);
-  const int16_t round = (int16_t)((1 << DIST_PRECISION_BITS) >> 1);
-  const __m128i r = _mm_set1_epi16(round);
-  uint16_t *pred = CONVERT_TO_SHORTPTR(pred8);
-  uint16_t *ref = CONVERT_TO_SHORTPTR(ref8);
-  uint16_t *comp_pred = CONVERT_TO_SHORTPTR(comp_pred8);
-
-  if (width >= 8) {
-    // Read 8 pixels one row at a time
-    assert(!(width & 7));
-    for (i = 0; i < height; ++i) {
-      int j;
-      for (j = 0; j < width; j += 8) {
-        __m128i p0 = xx_loadu_128(ref);
-        __m128i p1 = xx_loadu_128(pred);
-
-        highbd_compute_dist_wtd_comp_avg(&p0, &p1, &w0, &w1, &r, comp_pred);
-
-        comp_pred += 8;
-        pred += 8;
-        ref += 8;
-      }
-      ref += ref_stride - width;
-    }
-  } else {
-    // Read 4 pixels two rows at a time
-    assert(!(width & 3));
-    for (i = 0; i < height; i += 2) {
-      __m128i p0_0 = xx_loadl_64(ref + 0 * ref_stride);
-      __m128i p0_1 = xx_loadl_64(ref + 1 * ref_stride);
-      __m128i p0 = _mm_unpacklo_epi64(p0_0, p0_1);
-      __m128i p1 = xx_loadu_128(pred);
-
-      highbd_compute_dist_wtd_comp_avg(&p0, &p1, &w0, &w1, &r, comp_pred);
-
-      comp_pred += 8;
-      pred += 8;
-      ref += 2 * ref_stride;
-    }
-  }
-}
 
 static uint64_t mse_4xh_16bit_highbd_sse2(uint16_t *dst, int dstride,
                                           uint16_t *src, int sstride, int h) {

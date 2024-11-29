@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Alliance for Open Media. All rights reserved
+ * Copyright (c) 2016, Alliance for Open Media. All rights reserved.
  *
  * This source code is subject to the terms of the BSD 2 Clause License and
  * the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
@@ -87,8 +87,8 @@ extern "C" {
   (RESTORATION_UNITPELS_HORZ_MAX * RESTORATION_UNITPELS_VERT_MAX)
 
 // Two 32-bit buffers needed for the restored versions from two filters
-// TODO(debargha, rupert): Refactor to not need the large tilesize to be stored
-// on the decoder side.
+// TODO(debargha, rupert): Refactor to not need the large tile size to be
+// stored on the decoder side.
 #define SGRPROJ_TMPBUF_SIZE (RESTORATION_UNITPELS_MAX * 2 * sizeof(int32_t))
 
 #define SGRPROJ_EXTBUF_SIZE (0)
@@ -294,12 +294,12 @@ typedef struct {
 
 /*!\cond */
 
-static INLINE void set_default_sgrproj(SgrprojInfo *sgrproj_info) {
+static inline void set_default_sgrproj(SgrprojInfo *sgrproj_info) {
   sgrproj_info->xqd[0] = (SGRPROJ_PRJ_MIN0 + SGRPROJ_PRJ_MAX0) / 2;
   sgrproj_info->xqd[1] = (SGRPROJ_PRJ_MIN1 + SGRPROJ_PRJ_MAX1) / 2;
 }
 
-static INLINE void set_default_wiener(WienerInfo *wiener_info) {
+static inline void set_default_wiener(WienerInfo *wiener_info) {
   wiener_info->vfilter[0] = wiener_info->hfilter[0] = WIENER_FILT_TAP0_MIDV;
   wiener_info->vfilter[1] = wiener_info->hfilter[1] = WIENER_FILT_TAP1_MIDV;
   wiener_info->vfilter[2] = wiener_info->hfilter[2] = WIENER_FILT_TAP2_MIDV;
@@ -419,12 +419,6 @@ typedef void (*sync_read_fn_t)(void *const lr_sync, int r, int c, int plane);
 typedef void (*sync_write_fn_t)(void *const lr_sync, int r, int c,
                                 const int sb_cols, int plane);
 
-// Call on_rest_unit for each loop restoration unit in the plane.
-void av1_foreach_rest_unit_in_plane(const struct AV1Common *cm, int plane,
-                                    rest_unit_visitor_t on_rest_unit,
-                                    void *priv, int32_t *tmpbuf,
-                                    RestorationLineBuffers *rlbs);
-
 // Return 1 iff the block at mi_row, mi_col with size bsize is a
 // top-level superblock containing the top-left corner of at least one
 // loop restoration unit.
@@ -445,8 +439,6 @@ void av1_loop_restoration_filter_frame_init(AV1LrStruct *lr_ctxt,
                                             YV12_BUFFER_CONFIG *frame,
                                             struct AV1Common *cm,
                                             int optimized_lr, int num_planes);
-void av1_loop_restoration_copy_planes(AV1LrStruct *loop_rest_ctxt,
-                                      struct AV1Common *cm, int num_planes);
 void av1_foreach_rest_unit_in_row(
     RestorationTileLimits *limits, int plane_w,
     rest_unit_visitor_t on_rest_unit, int row_number, int unit_size,

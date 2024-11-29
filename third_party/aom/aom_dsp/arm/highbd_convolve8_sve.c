@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Alliance for Open Media. All rights reserved
+ * Copyright (c) 2024, Alliance for Open Media. All rights reserved.
  *
  * This source code is subject to the terms of the BSD 2 Clause License and
  * the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
@@ -21,7 +21,7 @@
 #include "aom_dsp/arm/highbd_convolve8_neon.h"
 #include "aom_dsp/arm/mem_neon.h"
 
-static INLINE uint16x4_t highbd_convolve8_4_h(int16x8_t s[4], int16x8_t filter,
+static inline uint16x4_t highbd_convolve8_4_h(int16x8_t s[4], int16x8_t filter,
                                               uint16x4_t max) {
   int64x2_t sum[4];
 
@@ -39,7 +39,7 @@ static INLINE uint16x4_t highbd_convolve8_4_h(int16x8_t s[4], int16x8_t filter,
   return vmin_u16(res, max);
 }
 
-static INLINE uint16x8_t highbd_convolve8_8_h(int16x8_t s[8], int16x8_t filter,
+static inline uint16x8_t highbd_convolve8_8_h(int16x8_t s[8], int16x8_t filter,
                                               uint16x8_t max) {
   int64x2_t sum[8];
 
@@ -65,7 +65,7 @@ static INLINE uint16x8_t highbd_convolve8_8_h(int16x8_t s[8], int16x8_t filter,
   return vminq_u16(res, max);
 }
 
-static INLINE void highbd_convolve8_horiz_8tap_sve(
+static inline void highbd_convolve8_horiz_8tap_sve(
     const uint16_t *src, ptrdiff_t src_stride, uint16_t *dst,
     ptrdiff_t dst_stride, const int16_t *filter_x, int width, int height,
     int bd) {
@@ -140,7 +140,7 @@ DECLARE_ALIGNED(16, static const uint16_t, kDeinterleaveTbl[8]) = {
 };
 // clang-format on
 
-static INLINE uint16x4_t highbd_convolve4_4_h(int16x8_t s, int16x8_t filter,
+static inline uint16x4_t highbd_convolve4_4_h(int16x8_t s, int16x8_t filter,
                                               uint16x8x2_t permute_tbl,
                                               uint16x4_t max) {
   int16x8_t permuted_samples0 = aom_tbl_s16(s, permute_tbl.val[0]);
@@ -157,7 +157,7 @@ static INLINE uint16x4_t highbd_convolve4_4_h(int16x8_t s, int16x8_t filter,
   return vmin_u16(res, max);
 }
 
-static INLINE uint16x8_t highbd_convolve4_8_h(int16x8_t s[4], int16x8_t filter,
+static inline uint16x8_t highbd_convolve4_8_h(int16x8_t s[4], int16x8_t filter,
                                               uint16x8_t idx, uint16x8_t max) {
   int64x2_t sum04 = aom_svdot_lane_s16(vdupq_n_s64(0), s[0], filter, 0);
   int64x2_t sum15 = aom_svdot_lane_s16(vdupq_n_s64(0), s[1], filter, 0);
@@ -175,7 +175,7 @@ static INLINE uint16x8_t highbd_convolve4_8_h(int16x8_t s[4], int16x8_t filter,
   return vminq_u16(res, max);
 }
 
-static INLINE void highbd_convolve8_horiz_4tap_sve(
+static inline void highbd_convolve8_horiz_4tap_sve(
     const uint16_t *src, ptrdiff_t src_stride, uint16_t *dst,
     ptrdiff_t dst_stride, const int16_t *filter_x, int width, int height,
     int bd) {
@@ -276,7 +276,7 @@ DECLARE_ALIGNED(16, static const uint8_t, kDotProdMergeBlockTbl[48]) = {
   6, 7, 16, 17, 18, 19, 20, 21, 14, 15, 24, 25, 26, 27, 28, 29
 };
 
-static INLINE void transpose_concat_4x4(int16x4_t s0, int16x4_t s1,
+static inline void transpose_concat_4x4(int16x4_t s0, int16x4_t s1,
                                         int16x4_t s2, int16x4_t s3,
                                         int16x8_t res[2]) {
   // Transpose 16-bit elements and concatenate result rows as follows:
@@ -302,7 +302,7 @@ static INLINE void transpose_concat_4x4(int16x4_t s0, int16x4_t s1,
   res[1] = vreinterpretq_s16_s32(s0123.val[1]);
 }
 
-static INLINE void transpose_concat_8x4(int16x8_t s0, int16x8_t s1,
+static inline void transpose_concat_8x4(int16x8_t s0, int16x8_t s1,
                                         int16x8_t s2, int16x8_t s3,
                                         int16x8_t res[4]) {
   // Transpose 16-bit elements and concatenate result rows as follows:
@@ -330,7 +330,7 @@ static INLINE void transpose_concat_8x4(int16x8_t s0, int16x8_t s1,
   res[3] = vreinterpretq_s16_s32(tr23_32.val[1]);
 }
 
-static INLINE void aom_tbl2x4_s16(int16x8_t t0[4], int16x8_t t1[4],
+static inline void aom_tbl2x4_s16(int16x8_t t0[4], int16x8_t t1[4],
                                   uint8x16_t tbl, int16x8_t res[4]) {
   int8x16x2_t samples0 = { vreinterpretq_s8_s16(t0[0]),
                            vreinterpretq_s8_s16(t1[0]) };
@@ -347,7 +347,7 @@ static INLINE void aom_tbl2x4_s16(int16x8_t t0[4], int16x8_t t1[4],
   res[3] = vreinterpretq_s16_s8(vqtbl2q_s8(samples3, tbl));
 }
 
-static INLINE void aom_tbl2x2_s16(int16x8_t t0[2], int16x8_t t1[2],
+static inline void aom_tbl2x2_s16(int16x8_t t0[2], int16x8_t t1[2],
                                   uint8x16_t tbl, int16x8_t res[2]) {
   int8x16x2_t samples0 = { vreinterpretq_s8_s16(t0[0]),
                            vreinterpretq_s8_s16(t1[0]) };
@@ -358,7 +358,7 @@ static INLINE void aom_tbl2x2_s16(int16x8_t t0[2], int16x8_t t1[2],
   res[1] = vreinterpretq_s16_s8(vqtbl2q_s8(samples1, tbl));
 }
 
-static INLINE uint16x4_t highbd_convolve8_4_v(int16x8_t samples_lo[2],
+static inline uint16x4_t highbd_convolve8_4_v(int16x8_t samples_lo[2],
                                               int16x8_t samples_hi[2],
                                               int16x8_t filter,
                                               uint16x4_t max) {
@@ -377,7 +377,7 @@ static INLINE uint16x4_t highbd_convolve8_4_v(int16x8_t samples_lo[2],
   return vmin_u16(res, max);
 }
 
-static INLINE uint16x8_t highbd_convolve8_8_v(int16x8_t samples_lo[4],
+static inline uint16x8_t highbd_convolve8_8_v(int16x8_t samples_lo[4],
                                               int16x8_t samples_hi[4],
                                               int16x8_t filter,
                                               uint16x8_t max) {
@@ -404,7 +404,7 @@ static INLINE uint16x8_t highbd_convolve8_8_v(int16x8_t samples_lo[4],
   return vminq_u16(res, max);
 }
 
-static INLINE void highbd_convolve8_vert_8tap_sve(
+static inline void highbd_convolve8_vert_8tap_sve(
     const uint16_t *src, ptrdiff_t src_stride, uint16_t *dst,
     ptrdiff_t dst_stride, const int16_t *filter_y, int width, int height,
     int bd) {

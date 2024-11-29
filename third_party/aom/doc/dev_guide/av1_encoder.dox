@@ -587,8 +587,13 @@ The command line for libaom does allow 1 Pass VBR, but this has not been
 properly optimised and behaves much like 1 pass CBR in most regards, with bits
 allocated to frames by the following functions:
 
-- \ref av1_calc_iframe_target_size_one_pass_vbr()
-- \ref av1_calc_pframe_target_size_one_pass_vbr()
+- \ref av1_calc_iframe_target_size_one_pass_vbr(
+           const struct AV1_COMP *const cpi)
+       "av1_calc_iframe_target_size_one_pass_vbr()"
+- \ref av1_calc_pframe_target_size_one_pass_vbr(
+           const struct AV1_COMP *const cpi,
+           FRAME_UPDATE_TYPE frame_update_type)
+       "av1_calc_pframe_target_size_one_pass_vbr()"
 
 \subsubsection architecture_enc_2pass_vbr 2 Pass VBR Encoding
 
@@ -701,7 +706,10 @@ time, for the two pass encoding pipeline are:
 
 - \ref rc_pick_q_and_bounds()
     - \ref get_q()
-        - \ref av1_rc_regulate_q()
+        - \ref av1_rc_regulate_q(
+                   const struct AV1_COMP *cpi, int target_bits_per_frame,
+                   int active_best_quality, int active_worst_quality,
+                   int width, int height) "av1_rc_regulate_q()"
         - \ref get_rate_correction_factor()
         - \ref set_rate_correction_factor()
         - \ref find_closest_qindex_by_rate()
@@ -1299,7 +1307,7 @@ to estimate the entropy cost of a transform block. Note that
 Related functions:
 - \ref av1_cost_coeffs_txb()
 - \ref av1_cost_coeffs_txb_laplacian()
-- \ref av1_cost_coeffs_txb_estimate()
+- av1_cost_coeffs_txb_estimate() (see av1/encoder/txb_rdopt.c)
 
 \paragraph architecture_entropy_coef_opt Quantized level optimization
 Beside computing entropy cost, the encoder also uses \ref av1_optimize_txb()

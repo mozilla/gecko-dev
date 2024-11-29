@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Alliance for Open Media. All rights reserved
+ * Copyright (c) 2024, Alliance for Open Media. All rights reserved.
  *
  * This source code is subject to the terms of the BSD 2 Clause License and
  * the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
@@ -62,31 +62,31 @@ typedef CONDITION_VARIABLE pthread_cond_t;
 #endif
 #define THREAD_EXIT_SUCCESS 0
 
-static INLINE int pthread_attr_init(pthread_attr_t *attr) {
+static inline int pthread_attr_init(pthread_attr_t *attr) {
   (void)attr;
   return 0;
 }
 
-static INLINE int pthread_attr_destroy(pthread_attr_t *attr) {
+static inline int pthread_attr_destroy(pthread_attr_t *attr) {
   (void)attr;
   return 0;
 }
 
-static INLINE int pthread_attr_getstacksize(const pthread_attr_t *attr,
+static inline int pthread_attr_getstacksize(const pthread_attr_t *attr,
                                             size_t *stacksize) {
   (void)attr;
   (void)stacksize;
   return EINVAL;
 }
 
-static INLINE int pthread_attr_setstacksize(pthread_attr_t *attr,
+static inline int pthread_attr_setstacksize(pthread_attr_t *attr,
                                             size_t stacksize) {
   (void)attr;
   (void)stacksize;
   return EINVAL;
 }
 
-static INLINE int pthread_create(pthread_t *const thread,
+static inline int pthread_create(pthread_t *const thread,
                                  const pthread_attr_t *attr,
                                  unsigned int(__stdcall *start)(void *),
                                  void *arg) {
@@ -107,7 +107,7 @@ static INLINE int pthread_create(pthread_t *const thread,
   return 0;
 }
 
-static INLINE int pthread_join(pthread_t thread, void **value_ptr) {
+static inline int pthread_join(pthread_t thread, void **value_ptr) {
   (void)value_ptr;
   return (WaitForSingleObjectEx(thread, INFINITE, FALSE /*bAlertable*/) !=
               WAIT_OBJECT_0 ||
@@ -115,56 +115,56 @@ static INLINE int pthread_join(pthread_t thread, void **value_ptr) {
 }
 
 // Mutex
-static INLINE int pthread_mutex_init(pthread_mutex_t *const mutex,
+static inline int pthread_mutex_init(pthread_mutex_t *const mutex,
                                      void *mutexattr) {
   (void)mutexattr;
   InitializeCriticalSectionEx(mutex, 0 /*dwSpinCount*/, 0 /*Flags*/);
   return 0;
 }
 
-static INLINE int pthread_mutex_trylock(pthread_mutex_t *const mutex) {
+static inline int pthread_mutex_trylock(pthread_mutex_t *const mutex) {
   return TryEnterCriticalSection(mutex) ? 0 : EBUSY;
 }
 
-static INLINE int pthread_mutex_lock(pthread_mutex_t *const mutex) {
+static inline int pthread_mutex_lock(pthread_mutex_t *const mutex) {
   EnterCriticalSection(mutex);
   return 0;
 }
 
-static INLINE int pthread_mutex_unlock(pthread_mutex_t *const mutex) {
+static inline int pthread_mutex_unlock(pthread_mutex_t *const mutex) {
   LeaveCriticalSection(mutex);
   return 0;
 }
 
-static INLINE int pthread_mutex_destroy(pthread_mutex_t *const mutex) {
+static inline int pthread_mutex_destroy(pthread_mutex_t *const mutex) {
   DeleteCriticalSection(mutex);
   return 0;
 }
 
 // Condition
-static INLINE int pthread_cond_destroy(pthread_cond_t *const condition) {
+static inline int pthread_cond_destroy(pthread_cond_t *const condition) {
   (void)condition;
   return 0;
 }
 
-static INLINE int pthread_cond_init(pthread_cond_t *const condition,
+static inline int pthread_cond_init(pthread_cond_t *const condition,
                                     void *cond_attr) {
   (void)cond_attr;
   InitializeConditionVariable(condition);
   return 0;
 }
 
-static INLINE int pthread_cond_signal(pthread_cond_t *const condition) {
+static inline int pthread_cond_signal(pthread_cond_t *const condition) {
   WakeConditionVariable(condition);
   return 0;
 }
 
-static INLINE int pthread_cond_broadcast(pthread_cond_t *const condition) {
+static inline int pthread_cond_broadcast(pthread_cond_t *const condition) {
   WakeAllConditionVariable(condition);
   return 0;
 }
 
-static INLINE int pthread_cond_wait(pthread_cond_t *const condition,
+static inline int pthread_cond_wait(pthread_cond_t *const condition,
                                     pthread_mutex_t *const mutex) {
   int ok;
   ok = SleepConditionVariableCS(condition, mutex, INFINITE);

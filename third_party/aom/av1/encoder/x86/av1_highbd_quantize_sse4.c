@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Alliance for Open Media. All rights reserved
+ * Copyright (c) 2016, Alliance for Open Media. All rights reserved.
  *
  * This source code is subject to the terms of the BSD 2 Clause License and
  * the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
@@ -19,7 +19,7 @@
 
 // Coefficient quantization phase 1
 // param[0-2] : rounding/quan/dequan constants
-static INLINE void quantize_coeff_phase1(__m128i *coeff, const __m128i *param,
+static inline void quantize_coeff_phase1(__m128i *coeff, const __m128i *param,
                                          const int shift, const int scale,
                                          __m128i *qcoeff, __m128i *dquan,
                                          __m128i *sign) {
@@ -43,7 +43,7 @@ static INLINE void quantize_coeff_phase1(__m128i *coeff, const __m128i *param,
 }
 
 // Coefficient quantization phase 2
-static INLINE void quantize_coeff_phase2(__m128i *qcoeff, __m128i *dquan,
+static inline void quantize_coeff_phase2(__m128i *qcoeff, __m128i *dquan,
                                          const __m128i *sign,
                                          const __m128i *param, const int shift,
                                          const int scale, tran_low_t *qAddr,
@@ -80,7 +80,7 @@ static INLINE void quantize_coeff_phase2(__m128i *qcoeff, __m128i *dquan,
   _mm_storeu_si128((__m128i *)dqAddr, dquan[0]);
 }
 
-static INLINE void find_eob(tran_low_t *qcoeff_ptr, const int16_t *iscan,
+static inline void find_eob(tran_low_t *qcoeff_ptr, const int16_t *iscan,
                             __m128i *eob) {
   const __m128i zero = _mm_setzero_si128();
   __m128i mask, iscanIdx;
@@ -99,7 +99,7 @@ static INLINE void find_eob(tran_low_t *qcoeff_ptr, const int16_t *iscan,
   *eob = _mm_max_epi16(*eob, iscanIdx);
 }
 
-static INLINE uint16_t get_accumulated_eob(__m128i *eob) {
+static inline uint16_t get_accumulated_eob(__m128i *eob) {
   __m128i eob_shuffled;
   uint16_t eobValue;
   eob_shuffled = _mm_shuffle_epi32(*eob, 0xe);

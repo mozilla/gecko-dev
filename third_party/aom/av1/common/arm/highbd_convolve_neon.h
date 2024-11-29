@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023, Alliance for Open Media. All rights reserved
+ * Copyright (c) 2023, Alliance for Open Media. All rights reserved.
  *
  * This source code is subject to the terms of the BSD 2 Clause License and
  * the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
@@ -18,7 +18,7 @@
 #include "aom_dsp/arm/transpose_neon.h"
 #include "av1/common/convolve.h"
 
-static INLINE int32x4_t highbd_convolve8_4_s32(
+static inline int32x4_t highbd_convolve8_4_s32(
     const int16x4_t s0, const int16x4_t s1, const int16x4_t s2,
     const int16x4_t s3, const int16x4_t s4, const int16x4_t s5,
     const int16x4_t s6, const int16x4_t s7, const int16x8_t y_filter,
@@ -38,7 +38,7 @@ static INLINE int32x4_t highbd_convolve8_4_s32(
   return sum;
 }
 
-static INLINE uint16x4_t highbd_convolve8_4_sr_s32_s16(
+static inline uint16x4_t highbd_convolve8_4_sr_s32_s16(
     const int16x4_t s0, const int16x4_t s1, const int16x4_t s2,
     const int16x4_t s3, const int16x4_t s4, const int16x4_t s5,
     const int16x4_t s6, const int16x4_t s7, const int16x8_t y_filter,
@@ -51,7 +51,7 @@ static INLINE uint16x4_t highbd_convolve8_4_sr_s32_s16(
 }
 
 // Like above but also perform round shifting and subtract correction term
-static INLINE uint16x4_t highbd_convolve8_4_srsub_s32_s16(
+static inline uint16x4_t highbd_convolve8_4_srsub_s32_s16(
     const int16x4_t s0, const int16x4_t s1, const int16x4_t s2,
     const int16x4_t s3, const int16x4_t s4, const int16x4_t s5,
     const int16x4_t s6, const int16x4_t s7, const int16x8_t y_filter,
@@ -64,7 +64,7 @@ static INLINE uint16x4_t highbd_convolve8_4_srsub_s32_s16(
   return vqmovun_s32(sum);
 }
 
-static INLINE void highbd_convolve8_8_s32(
+static inline void highbd_convolve8_8_s32(
     const int16x8_t s0, const int16x8_t s1, const int16x8_t s2,
     const int16x8_t s3, const int16x8_t s4, const int16x8_t s5,
     const int16x8_t s6, const int16x8_t s7, const int16x8_t y_filter,
@@ -92,7 +92,7 @@ static INLINE void highbd_convolve8_8_s32(
 }
 
 // Like above but also perform round shifting and subtract correction term
-static INLINE uint16x8_t highbd_convolve8_8_srsub_s32_s16(
+static inline uint16x8_t highbd_convolve8_8_srsub_s32_s16(
     const int16x8_t s0, const int16x8_t s1, const int16x8_t s2,
     const int16x8_t s3, const int16x8_t s4, const int16x8_t s5,
     const int16x8_t s6, const int16x8_t s7, const int16x8_t y_filter,
@@ -109,7 +109,7 @@ static INLINE uint16x8_t highbd_convolve8_8_srsub_s32_s16(
   return vcombine_u16(vqmovun_s32(sum0), vqmovun_s32(sum1));
 }
 
-static INLINE int32x4_t highbd_convolve8_2d_scale_horiz4x8_s32(
+static inline int32x4_t highbd_convolve8_2d_scale_horiz4x8_s32(
     const int16x8_t s0, const int16x8_t s1, const int16x8_t s2,
     const int16x8_t s3, const int16x4_t *filters_lo,
     const int16x4_t *filters_hi, const int32x4_t offset) {
@@ -133,7 +133,7 @@ static INLINE int32x4_t highbd_convolve8_2d_scale_horiz4x8_s32(
   return sum;
 }
 
-static INLINE uint16x4_t highbd_convolve8_2d_scale_horiz4x8_s32_s16(
+static inline uint16x4_t highbd_convolve8_2d_scale_horiz4x8_s32_s16(
     const int16x8_t s0, const int16x8_t s1, const int16x8_t s2,
     const int16x8_t s3, const int16x4_t *filters_lo,
     const int16x4_t *filters_hi, const int32x4_t shift_s32,

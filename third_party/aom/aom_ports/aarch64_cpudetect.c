@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023, Alliance for Open Media. All rights reserved
+ * Copyright (c) 2023, Alliance for Open Media. All rights reserved.
  *
  * This source code is subject to the terms of the BSD 2 Clause License and
  * the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
@@ -36,7 +36,7 @@ static int arm_get_cpu_caps(void) {
 
 // sysctlbyname() parameter documentation for instruction set characteristics:
 // https://developer.apple.com/documentation/kernel/1387446-sysctlbyname/determining_instruction_set_characteristics
-static INLINE bool have_feature(const char *feature) {
+static inline bool have_feature(const char *feature) {
   int64_t feature_present = 0;
   size_t size = sizeof(feature_present);
   if (sysctlbyname(feature, &feature_present, &size, NULL, 0) != 0) {
@@ -85,7 +85,35 @@ static int arm_get_cpu_caps(void) {
   }
 #endif  // defined(PF_ARM_V82_DP_INSTRUCTIONS_AVAILABLE)
 #endif  // HAVE_NEON_DOTPROD
-  // No I8MM or SVE feature detection available on Windows at time of writing.
+#if HAVE_NEON_I8MM
+// Support for PF_ARM_SVE_I8MM_INSTRUCTIONS_AVAILABLE was added in Windows SDK
+// 26100.
+#if defined(PF_ARM_SVE_I8MM_INSTRUCTIONS_AVAILABLE)
+  // There's no PF_* flag that indicates whether plain I8MM is available
+  // or not. But if SVE_I8MM is available, that also implies that
+  // regular I8MM is available.
+  if (IsProcessorFeaturePresent(PF_ARM_SVE_I8MM_INSTRUCTIONS_AVAILABLE)) {
+    flags |= HAS_NEON_I8MM;
+  }
+#endif  // defined(PF_ARM_SVE_I8MM_INSTRUCTIONS_AVAILABLE)
+#endif  // HAVE_NEON_I8MM
+#if HAVE_SVE
+// Support for PF_ARM_SVE_INSTRUCTIONS_AVAILABLE was added in Windows SDK 26100.
+#if defined(PF_ARM_SVE_INSTRUCTIONS_AVAILABLE)
+  if (IsProcessorFeaturePresent(PF_ARM_SVE_INSTRUCTIONS_AVAILABLE)) {
+    flags |= HAS_SVE;
+  }
+#endif  // defined(PF_ARM_SVE_INSTRUCTIONS_AVAILABLE)
+#endif  // HAVE_SVE
+#if HAVE_SVE2
+// Support for PF_ARM_SVE2_INSTRUCTIONS_AVAILABLE was added in Windows SDK
+// 26100.
+#if defined(PF_ARM_SVE2_INSTRUCTIONS_AVAILABLE)
+  if (IsProcessorFeaturePresent(PF_ARM_SVE2_INSTRUCTIONS_AVAILABLE)) {
+    flags |= HAS_SVE2;
+  }
+#endif  // defined(PF_ARM_SVE2_INSTRUCTIONS_AVAILABLE)
+#endif  // HAVE_SVE2
   return flags;
 }
 

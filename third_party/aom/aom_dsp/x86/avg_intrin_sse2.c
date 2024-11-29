@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Alliance for Open Media. All rights reserved
+ * Copyright (c) 2016, Alliance for Open Media. All rights reserved.
  *
  * This source code is subject to the terms of the BSD 2 Clause License and
  * the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
@@ -18,7 +18,7 @@
 #include "aom_dsp/x86/synonyms.h"
 #include "aom_ports/mem.h"
 
-static INLINE void sign_extend_16bit_to_32bit_sse2(__m128i in, __m128i zero,
+static inline void sign_extend_16bit_to_32bit_sse2(__m128i in, __m128i zero,
                                                    __m128i *out_lo,
                                                    __m128i *out_hi) {
   const __m128i sign_bits = _mm_cmplt_epi16(in, zero);
@@ -26,7 +26,7 @@ static INLINE void sign_extend_16bit_to_32bit_sse2(__m128i in, __m128i zero,
   *out_hi = _mm_unpackhi_epi16(in, sign_bits);
 }
 
-static INLINE __m128i invert_sign_32_sse2(__m128i a, __m128i sign) {
+static inline __m128i invert_sign_32_sse2(__m128i a, __m128i sign) {
   a = _mm_xor_si128(a, sign);
   return _mm_sub_epi32(a, sign);
 }
@@ -181,7 +181,7 @@ unsigned int aom_avg_4x4_sse2(const uint8_t *s, int p) {
   return (avg + 8) >> 4;
 }
 
-static INLINE void hadamard_col4_sse2(__m128i *in, int iter) {
+static inline void hadamard_col4_sse2(__m128i *in, int iter) {
   const __m128i a0 = in[0];
   const __m128i a1 = in[1];
   const __m128i a2 = in[2];
@@ -223,7 +223,7 @@ void aom_hadamard_4x4_sse2(const int16_t *src_diff, ptrdiff_t src_stride,
   store_tran_low(_mm_unpacklo_epi64(src[2], src[3]), coeff);
 }
 
-static INLINE void hadamard_col8_sse2(__m128i *in, int iter) {
+static inline void hadamard_col8_sse2(__m128i *in, int iter) {
   __m128i a0 = in[0];
   __m128i a1 = in[1];
   __m128i a2 = in[2];
@@ -299,7 +299,7 @@ static INLINE void hadamard_col8_sse2(__m128i *in, int iter) {
   }
 }
 
-static INLINE void hadamard_8x8_sse2(const int16_t *src_diff,
+static inline void hadamard_8x8_sse2(const int16_t *src_diff,
                                      ptrdiff_t src_stride, tran_low_t *coeff,
                                      int is_final) {
   __m128i src[8];
@@ -356,7 +356,7 @@ void aom_hadamard_8x8_sse2(const int16_t *src_diff, ptrdiff_t src_stride,
   hadamard_8x8_sse2(src_diff, src_stride, coeff, 1);
 }
 
-static INLINE void hadamard_lp_8x8_sse2(const int16_t *src_diff,
+static inline void hadamard_lp_8x8_sse2(const int16_t *src_diff,
                                         ptrdiff_t src_stride, int16_t *coeff) {
   __m128i src[8];
   src[0] = _mm_load_si128((const __m128i *)src_diff);
@@ -439,7 +439,7 @@ void aom_hadamard_lp_16x16_sse2(const int16_t *src_diff, ptrdiff_t src_stride,
   }
 }
 
-static INLINE void hadamard_16x16_sse2(const int16_t *src_diff,
+static inline void hadamard_16x16_sse2(const int16_t *src_diff,
                                        ptrdiff_t src_stride, tran_low_t *coeff,
                                        int is_final) {
   // For high bitdepths, it is unnecessary to store_tran_low

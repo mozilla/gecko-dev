@@ -1,5 +1,5 @@
 ;
-; Copyright (c) 2024, Alliance for Open Media. All rights reserved
+; Copyright (c) 2024, Alliance for Open Media. All rights reserved.
 ;
 ; This source code is subject to the terms of the BSD 2 Clause License and
 ; the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
@@ -29,6 +29,7 @@
 .equ CONFIG_COLLECT_PARTITION_STATS, 0
 .equ CONFIG_COLLECT_RD_STATS, 0
 .equ CONFIG_CWG_C013, 0
+.equ CONFIG_CWG_E050, 0
 .equ CONFIG_DEBUG, 0
 .equ CONFIG_DENOISE, 1
 .equ CONFIG_DISABLE_FULL_PIXEL_SPLIT_8X8, 1
@@ -63,8 +64,8 @@
 .equ CONFIG_SALIENCY_MAP, 0
 .equ CONFIG_SHARED, 0
 .equ CONFIG_SIZE_LIMIT, 0
-.equ CONFIG_SPATIAL_RESAMPLING, 1
 .equ CONFIG_SPEED_STATS, 0
+.equ CONFIG_SVT_AV1, 1
 .equ CONFIG_TFLITE, 0
 .equ CONFIG_THREE_PASS, 0
 .equ CONFIG_TUNE_BUTTERAUGLI, 0

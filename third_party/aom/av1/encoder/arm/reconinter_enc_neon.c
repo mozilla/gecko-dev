@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023, Alliance for Open Media. All rights reserved
+ * Copyright (c) 2023, Alliance for Open Media. All rights reserved.
  *
  * This source code is subject to the terms of the BSD 2 Clause License and
  * the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
@@ -138,19 +138,6 @@ void aom_comp_avg_upsampled_pred_neon(MACROBLOCKD *xd,
   aom_comp_avg_pred_neon(comp_pred, pred, width, height, comp_pred, width);
 }
 
-void aom_dist_wtd_comp_avg_upsampled_pred_neon(
-    MACROBLOCKD *xd, const AV1_COMMON *const cm, int mi_row, int mi_col,
-    const MV *const mv, uint8_t *comp_pred, const uint8_t *pred, int width,
-    int height, int subpel_x_q3, int subpel_y_q3, const uint8_t *ref,
-    int ref_stride, const DIST_WTD_COMP_PARAMS *jcp_param, int subpel_search) {
-  aom_upsampled_pred_neon(xd, cm, mi_row, mi_col, mv, comp_pred, width, height,
-                          subpel_x_q3, subpel_y_q3, ref, ref_stride,
-                          subpel_search);
-
-  aom_dist_wtd_comp_avg_pred_neon(comp_pred, pred, width, height, comp_pred,
-                                  width, jcp_param);
-}
-
 #if CONFIG_AV1_HIGHBITDEPTH
 void aom_highbd_upsampled_pred_neon(MACROBLOCKD *xd,
                                     const struct AV1Common *const cm,
@@ -269,20 +256,6 @@ void aom_highbd_comp_avg_upsampled_pred_neon(
 
   aom_highbd_comp_avg_pred_neon(comp_pred8, pred8, width, height, comp_pred8,
                                 width);
-}
-
-void aom_highbd_dist_wtd_comp_avg_upsampled_pred_neon(
-    MACROBLOCKD *xd, const struct AV1Common *const cm, int mi_row, int mi_col,
-    const MV *const mv, uint8_t *comp_pred8, const uint8_t *pred8, int width,
-    int height, int subpel_x_q3, int subpel_y_q3, const uint8_t *ref8,
-    int ref_stride, int bd, const DIST_WTD_COMP_PARAMS *jcp_param,
-    int subpel_search) {
-  aom_highbd_upsampled_pred_neon(xd, cm, mi_row, mi_col, mv, comp_pred8, width,
-                                 height, subpel_x_q3, subpel_y_q3, ref8,
-                                 ref_stride, bd, subpel_search);
-
-  aom_highbd_dist_wtd_comp_avg_pred_neon(comp_pred8, pred8, width, height,
-                                         comp_pred8, width, jcp_param);
 }
 
 #endif  // CONFIG_AV1_HIGHBITDEPTH

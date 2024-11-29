@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Alliance for Open Media. All rights reserved
+ * Copyright (c) 2016, Alliance for Open Media. All rights reserved.
  *
  * This source code is subject to the terms of the BSD 2 Clause License and
  * the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
@@ -660,7 +660,7 @@ static TX_SIZE Highbd_fwd_txfm_for_sse4_1[] = {
   TX_8X16, TX_16X8, TX_16X32, TX_32X16, TX_32X64, TX_64X32,
 #if !CONFIG_REALTIME_ONLY
   TX_4X16, TX_16X4, TX_8X32,  TX_32X8,  TX_16X64, TX_64X16,
-#endif
+#endif  // !CONFIG_REALTIME_ONLY
 };
 
 INSTANTIATE_TEST_SUITE_P(SSE4_1, AV1HighbdFwdTxfm2dTest,
@@ -679,8 +679,10 @@ INSTANTIATE_TEST_SUITE_P(AVX2, AV1HighbdFwdTxfm2dTest,
 #if HAVE_NEON
 static TX_SIZE Highbd_fwd_txfm_for_neon[] = {
   TX_4X4,  TX_8X8,  TX_16X16, TX_32X32, TX_64X64, TX_4X8,   TX_8X4,
-  TX_8X16, TX_16X8, TX_16X32, TX_32X16, TX_32X64, TX_64X32, TX_4X16,
-  TX_16X4, TX_8X32, TX_32X8,  TX_16X64, TX_64X16
+  TX_8X16, TX_16X8, TX_16X32, TX_32X16, TX_32X64, TX_64X32,
+#if !CONFIG_REALTIME_ONLY
+  TX_4X16, TX_16X4, TX_8X32,  TX_32X8,  TX_16X64, TX_64X16
+#endif  // !CONFIG_REALTIME_ONLY
 };
 
 INSTANTIATE_TEST_SUITE_P(NEON, AV1HighbdFwdTxfm2dTest,

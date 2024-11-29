@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Alliance for Open Media. All rights reserved
+ * Copyright (c) 2017, Alliance for Open Media. All rights reserved.
  *
  * This source code is subject to the terms of the BSD 2 Clause License and
  * the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
@@ -46,7 +46,7 @@ static const int kMaxLag = 4;
 GET_BLOCK_MEAN(uint8_t, lowbd)
 GET_BLOCK_MEAN(uint16_t, highbd)
 
-static INLINE double get_block_mean(const uint8_t *data, int w, int h,
+static inline double get_block_mean(const uint8_t *data, int w, int h,
                                     int stride, int x_o, int y_o,
                                     int block_size, int use_highbd) {
   if (use_highbd)
@@ -80,7 +80,7 @@ static INLINE double get_block_mean(const uint8_t *data, int w, int h,
 GET_NOISE_VAR(uint8_t, lowbd)
 GET_NOISE_VAR(uint16_t, highbd)
 
-static INLINE double get_noise_var(const uint8_t *data, const uint8_t *denoised,
+static inline double get_noise_var(const uint8_t *data, const uint8_t *denoised,
                                    int w, int h, int stride, int x_o, int y_o,
                                    int block_size_x, int block_size_y,
                                    int use_highbd) {

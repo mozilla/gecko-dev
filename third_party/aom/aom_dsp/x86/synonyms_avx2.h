@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Alliance for Open Media. All rights reserved
+ * Copyright (c) 2018, Alliance for Open Media. All rights reserved.
  *
  * This source code is subject to the terms of the BSD 2 Clause License and
  * the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
@@ -27,19 +27,19 @@
 
 // Loads and stores to do away with the tedium of casting the address
 // to the right type.
-static INLINE __m256i yy_load_256(const void *a) {
+static inline __m256i yy_load_256(const void *a) {
   return _mm256_load_si256((const __m256i *)a);
 }
 
-static INLINE __m256i yy_loadu_256(const void *a) {
+static inline __m256i yy_loadu_256(const void *a) {
   return _mm256_loadu_si256((const __m256i *)a);
 }
 
-static INLINE void yy_store_256(void *const a, const __m256i v) {
+static inline void yy_store_256(void *const a, const __m256i v) {
   _mm256_store_si256((__m256i *)a, v);
 }
 
-static INLINE void yy_storeu_256(void *const a, const __m256i v) {
+static inline void yy_storeu_256(void *const a, const __m256i v) {
   _mm256_storeu_si256((__m256i *)a, v);
 }
 
@@ -49,44 +49,45 @@ static INLINE void yy_storeu_256(void *const a, const __m256i v) {
 //
 // This is useful for rearranging filter kernels for use with the _mm_madd_epi16
 // instruction
-static INLINE __m256i yy_set2_epi16(int16_t a, int16_t b) {
+static inline __m256i yy_set2_epi16(int16_t a, int16_t b) {
   return _mm256_setr_epi16(a, b, a, b, a, b, a, b, a, b, a, b, a, b, a, b);
 }
 
 // Some compilers don't have _mm256_set_m128i defined in immintrin.h. We
 // therefore define an equivalent function using a different intrinsic.
 // ([ hi ], [ lo ]) -> [ hi ][ lo ]
-static INLINE __m256i yy_set_m128i(__m128i hi, __m128i lo) {
+static inline __m256i yy_set_m128i(__m128i hi, __m128i lo) {
   return _mm256_insertf128_si256(_mm256_castsi128_si256(lo), hi, 1);
 }
 
-#define GCC_VERSION (__GNUC__ * 10000 \
-                     + __GNUC_MINOR__ * 100 \
-                     + __GNUC_PATCHLEVEL__)
-
-// _mm256_loadu2_m128i has been introduced in GCC 10.1
-#if !defined(__clang__) && GCC_VERSION < 101000
-static INLINE __m256i yy_loadu2_128(const void *hi, const void *lo) {
-  __m128i mhi = _mm_loadu_si128((const __m128i *)(hi));
-  __m128i mlo = _mm_loadu_si128((const __m128i *)(lo));
-  return _mm256_set_m128i(mhi, mlo);
+// This behaves similarly to _mm256_set_epi64x(), but avoids undefined
+// sanitizer warnings when loading values from unaligned buffers using
+// `*(int64_t *)val`.
+static inline __m256i yy_loadu_4x64(const void *e3, const void *e2,
+                                    const void *e1, const void *e0) {
+  __m128d v0 = _mm_castsi128_pd(_mm_loadl_epi64((const __m128i *)e0));
+  __m128d v01 = _mm_loadh_pd(v0, (const double *)e1);
+  __m128d v2 = _mm_castsi128_pd(_mm_loadl_epi64((const __m128i *)e2));
+  __m128d v23 = _mm_loadh_pd(v2, (const double *)e3);
+  // Note this can be replaced with
+  // `_mm256_castpd_si256(_mm256_set_m128d(v23, v01))` if immintrin.h contains
+  // _mm256_set_m128d() with all supported compilers. This version is used to
+  // match the behavior with yy_set_m128i().
+  return yy_set_m128i(_mm_castpd_si128(v23), _mm_castpd_si128(v01));
 }
-#else
-static INLINE __m256i yy_loadu2_128(const void *hi, const void *lo) {
+
+static inline __m256i yy_loadu2_128(const void *hi, const void *lo) {
   __m128i mhi = _mm_loadu_si128((const __m128i *)(hi));
   __m128i mlo = _mm_loadu_si128((const __m128i *)(lo));
   return yy_set_m128i(mhi, mlo);
 }
-#endif
 
-#undef GCC_VERSION
-
-static INLINE void yy_storeu2_128(void *hi, void *lo, const __m256i a) {
+static inline void yy_storeu2_128(void *hi, void *lo, const __m256i a) {
   _mm_storeu_si128((__m128i *)hi, _mm256_extracti128_si256(a, 1));
   _mm_storeu_si128((__m128i *)lo, _mm256_castsi256_si128(a));
 }
 
-static INLINE __m256i yy_roundn_epu16(__m256i v_val_w, int bits) {
+static inline __m256i yy_roundn_epu16(__m256i v_val_w, int bits) {
   const __m256i v_s_w = _mm256_srli_epi16(v_val_w, bits - 1);
   return _mm256_avg_epu16(v_s_w, _mm256_setzero_si256());
 }

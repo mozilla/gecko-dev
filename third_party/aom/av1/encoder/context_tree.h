@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Alliance for Open Media. All rights reserved
+ * Copyright (c) 2016, Alliance for Open Media. All rights reserved.
  *
  * This source code is subject to the terms of the BSD 2 Clause License and
  * the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
@@ -123,8 +123,8 @@ static const BLOCK_SIZE square[MAX_SB_SIZE_LOG2 - 1] = {
   BLOCK_4X4, BLOCK_8X8, BLOCK_16X16, BLOCK_32X32, BLOCK_64X64, BLOCK_128X128,
 };
 
-static AOM_INLINE int av1_get_pc_tree_nodes(const int is_sb_size_128,
-                                            int stat_generation_stage) {
+static inline int av1_get_pc_tree_nodes(const int is_sb_size_128,
+                                        int stat_generation_stage) {
   const int tree_nodes_inc = is_sb_size_128 ? 1024 : 0;
   const int tree_nodes =
       stat_generation_stage ? 1 : (tree_nodes_inc + 256 + 64 + 16 + 4 + 1);

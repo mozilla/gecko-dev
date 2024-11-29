@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023, Alliance for Open Media. All rights reserved
+ * Copyright (c) 2023, Alliance for Open Media. All rights reserved.
  *
  * This source code is subject to the terms of the BSD 2 Clause License and
  * the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
@@ -24,7 +24,7 @@
 // (x, y) in src and the other at (x + u, y + v) in ref.
 // This function returns the sum of squared pixel differences between
 // the two regions.
-static INLINE void compute_flow_error(const uint8_t *src, const uint8_t *ref,
+static inline void compute_flow_error(const uint8_t *src, const uint8_t *ref,
                                       int width, int height, int stride, int x,
                                       int y, double u, double v, int16_t *dt) {
   // Split offset into integer and fractional parts, and compute cubic
@@ -160,7 +160,7 @@ static INLINE void compute_flow_error(const uint8_t *src, const uint8_t *ref,
 //
 //   b = |sum(dx * dt)|
 //       |sum(dy * dt)|
-static INLINE void compute_flow_matrix(const int16_t *dx, int dx_stride,
+static inline void compute_flow_matrix(const int16_t *dx, int dx_stride,
                                        const int16_t *dy, int dy_stride,
                                        double *M_inv) {
   int32x4_t sum[4] = { vdupq_n_s32(0), vdupq_n_s32(0), vdupq_n_s32(0),
@@ -208,7 +208,7 @@ static INLINE void compute_flow_matrix(const int16_t *dx, int dx_stride,
   M_inv[3] = M0 * det_inv;
 }
 
-static INLINE void compute_flow_vector(const int16_t *dx, int dx_stride,
+static inline void compute_flow_vector(const int16_t *dx, int dx_stride,
                                        const int16_t *dy, int dy_stride,
                                        const int16_t *dt, int dt_stride,
                                        int *b) {
