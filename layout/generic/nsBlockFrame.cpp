@@ -2561,16 +2561,7 @@ static RestrictPaddingInflation RestrictPaddingInflation(
   }
   MOZ_ASSERT(parent->IsScrollContainerOrSubclass(), "Not a scrolled frame?");
 
-  const auto* grandParent = parent->GetParent();
-  if (!grandParent) {
-    return RestrictPaddingInflation::No;
-  }
-  const auto* content = grandParent->GetContent();
-  if (!content) {
-    // Likely the viewport.
-    return RestrictPaddingInflation::No;
-  }
-  nsTextControlFrame* textControl = do_QueryFrame(content->GetPrimaryFrame());
+  nsTextControlFrame* textControl = do_QueryFrame(parent->GetParent());
   if (MOZ_LIKELY(!textControl)) {
     return RestrictPaddingInflation::No;
   }
