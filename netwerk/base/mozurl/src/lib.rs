@@ -14,7 +14,6 @@ extern crate nserror;
 use nserror::*;
 
 extern crate xpcom;
-use xpcom::interfaces::mozIThirdPartyUtil;
 use xpcom::{AtomicRefcnt, RefCounted, RefPtr};
 
 extern crate uuid;
@@ -317,73 +316,6 @@ pub extern "C" fn mozurl_origin(url: &MozURL, origin: &mut nsACString) {
     // ownership of the buffer to C++.
     let mut o = nsCString::from(origin_str);
     origin.take_from(&mut o);
-}
-
-fn get_base_domain(url: &MozURL) -> Result<Option<String>, nsresult> {
-    match url.scheme() {
-        "ftp" | "http" | "https" | "moz-extension" | "resource" => {
-            let third_party_util: RefPtr<mozIThirdPartyUtil> =
-                xpcom::components::ThirdPartyUtil::service()
-                    .map_err(|_| NS_ERROR_ILLEGAL_DURING_SHUTDOWN)?;
-
-            let scheme = nsCString::from(url.scheme());
-
-            let mut host_str = url.host_str().unwrap_or("");
-
-            if host_str.starts_with('[') && host_str.ends_with(']') {
-                host_str = &host_str[1..host_str.len() - 1];
-                // IPv6 is its own base domain, and GetBaseDomainFromSchemeHost
-                // does not work with the square brackets omitted.
-                return Ok(Some(host_str.to_string()))
-            }
-
-            let host = nsCString::from(host_str);
-
-            unsafe {
-                let mut string = nsCString::new();
-                third_party_util
-                    .GetBaseDomainFromSchemeHost(&*scheme, &*host, &mut *string)
-                    .to_result()?;
-
-                // We know that GetBaseDomainFromSchemeHost returns AUTF8String, so just
-                // use unwrap().
-                Ok(Some(String::from_utf8(string.to_vec()).unwrap()))
-            }
-        }
-        "ws" | "wss" => Ok(Some(url.as_ref().to_owned())),
-        "file" => {
-            if unsafe { Gecko_StrictFileOriginPolicy() } {
-                Ok(Some(url.path().to_owned()))
-            } else {
-                Ok(Some("UNIVERSAL_FILE_URI_ORIGIN".to_owned()))
-            }
-        }
-        "about" | "moz-safe-about" | "indexeddb" => Ok(Some(url.as_ref().to_owned())),
-        _ => Ok(None),
-    }
-}
-
-#[no_mangle]
-pub extern "C" fn mozurl_base_domain(url: &MozURL, base_domain: &mut nsACString) -> nsresult {
-    let base_domain_str = if !url.as_ref().starts_with("about:blank") {
-        match get_base_domain(url) {
-            Ok(domain) => domain,
-            Err(rv) => return rv,
-        }
-    } else {
-        None
-    };
-
-    let base_domain_str = base_domain_str.unwrap_or_else(|| {
-        // See the comment in mozurl_origin about why we return a new uuid for
-        // "moz-nullprincipals".
-        format!("{{{}}}", Uuid::new_v4())
-    });
-
-    let mut bd = nsCString::from(base_domain_str);
-    base_domain.take_from(&mut bd);
-
-    NS_OK
 }
 
 // Helper macro for debug asserting that we're the only reference to MozURL.

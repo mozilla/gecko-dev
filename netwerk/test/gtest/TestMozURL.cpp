@@ -191,43 +191,6 @@ TEST(TestMozURL, Origin)
   ASSERT_TRUE(out.EqualsLiteral("about:home"));
 }
 
-TEST(TestMozURL, BaseDomain)
-{
-  nsAutoCString href("https://user:pass@example.net:1234/path?query#ref");
-  RefPtr<MozURL> url;
-  ASSERT_EQ(MozURL::Init(getter_AddRefs(url), href), NS_OK);
-
-  nsAutoCString out;
-  ASSERT_EQ(url->BaseDomain(out), NS_OK);
-  ASSERT_TRUE(out.EqualsLiteral("example.net"));
-
-  RefPtr<MozURL> url2;
-  ASSERT_EQ(MozURL::Init(getter_AddRefs(url2), "file:///tmp/foo"_ns), NS_OK);
-  ASSERT_EQ(url2->BaseDomain(out), NS_OK);
-  ASSERT_TRUE(out.EqualsLiteral("/tmp/foo"));
-
-  RefPtr<MozURL> url3;
-  ASSERT_EQ(
-      MozURL::Init(getter_AddRefs(url3),
-                   nsLiteralCString(
-                       "moz-extension://53711a8f-65ed-e742-9671-1f02e267c0bc/"
-                       "foo/bar.html")),
-      NS_OK);
-  ASSERT_EQ(url3->BaseDomain(out), NS_OK);
-  ASSERT_TRUE(out.EqualsLiteral("53711a8f-65ed-e742-9671-1f02e267c0bc"));
-
-  RefPtr<MozURL> url4;
-  ASSERT_EQ(MozURL::Init(getter_AddRefs(url4), "resource://foo/bar.html"_ns),
-            NS_OK);
-  ASSERT_EQ(url4->BaseDomain(out), NS_OK);
-  ASSERT_TRUE(out.EqualsLiteral("foo"));
-
-  RefPtr<MozURL> url5;
-  ASSERT_EQ(MozURL::Init(getter_AddRefs(url5), "about:home"_ns), NS_OK);
-  ASSERT_EQ(url5->BaseDomain(out), NS_OK);
-  ASSERT_TRUE(out.EqualsLiteral("about:home"));
-}
-
 namespace {
 
 bool OriginMatchesExpectedOrigin(const nsACString& aOrigin,
@@ -237,25 +200,6 @@ bool OriginMatchesExpectedOrigin(const nsACString& aOrigin,
     return true;
   }
   return aOrigin == aExpectedOrigin;
-}
-
-bool IsUUID(const nsACString& aString) {
-  if (!IsAscii(aString)) {
-    return false;
-  }
-
-  std::regex pattern(
-      "^\\{[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-4[0-9A-Fa-f]{3}-[89ABab"
-      "][0-9A-Fa-f]{3}-[0-9A-Fa-f]{12}\\}$");
-  return regex_match(nsCString(aString).get(), pattern);
-}
-
-bool BaseDomainsEqual(const nsACString& aBaseDomain1,
-                      const nsACString& aBaseDomain2) {
-  if (IsUUID(aBaseDomain1) && IsUUID(aBaseDomain2)) {
-    return true;
-  }
-  return aBaseDomain1 == aBaseDomain2;
 }
 
 void CheckOrigin(const nsACString& aSpec, const nsACString& aBase,
@@ -283,8 +227,6 @@ void CheckOrigin(const nsACString& aSpec, const nsACString& aBase,
   nsCString baseDomain;
   rv = principal->GetBaseDomain(baseDomain);
 
-  bool baseDomainSucceeded = NS_SUCCEEDED(rv);
-
   RefPtr<MozURL> baseUrl;
   ASSERT_EQ(MozURL::Init(getter_AddRefs(baseUrl), aBase), NS_OK);
 
@@ -294,17 +236,6 @@ void CheckOrigin(const nsACString& aSpec, const nsACString& aBase,
   url->Origin(origin);
 
   EXPECT_TRUE(OriginMatchesExpectedOrigin(origin, aOrigin));
-
-  nsCString baseDomain2;
-  rv = url->BaseDomain(baseDomain2);
-
-  bool baseDomain2Succeeded = NS_SUCCEEDED(rv);
-
-  EXPECT_TRUE(baseDomainSucceeded == baseDomain2Succeeded);
-
-  if (baseDomainSucceeded) {
-    EXPECT_TRUE(BaseDomainsEqual(baseDomain, baseDomain2));
-  }
 }
 
 }  // namespace

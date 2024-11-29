@@ -441,48 +441,15 @@ ThirdPartyUtil::GetBaseDomain(nsIURI* aHostURI, nsACString& aBaseDomain) {
   }
 
   // aHostURI (and thus aBaseDomain) may be the string '.'. If so, fail.
-  if (aBaseDomain.Length() == 1 && aBaseDomain.Last() == '.')
+  if (aBaseDomain.Length() == 1 && aBaseDomain.Last() == '.') {
     return NS_ERROR_INVALID_ARG;
+  }
 
   // Reject any URIs without a host that aren't file:// URIs. This makes it the
   // only way we can get a base domain consisting of the empty string, which
   // means we can safely perform foreign tests on such URIs where "not foreign"
   // means "the involved URIs are all file://".
   if (aBaseDomain.IsEmpty() && !aHostURI->SchemeIs("file")) {
-    return NS_ERROR_INVALID_ARG;
-  }
-
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-ThirdPartyUtil::GetBaseDomainFromSchemeHost(const nsACString& aScheme,
-                                            const nsACString& aAsciiHost,
-                                            nsACString& aBaseDomain) {
-  MOZ_DIAGNOSTIC_ASSERT(IsAscii(aAsciiHost));
-
-  // Get the base domain. this will fail if the host contains a leading dot,
-  // more than one trailing dot, or is otherwise malformed.
-  nsresult rv = mTLDService->GetBaseDomainFromHost(aAsciiHost, 0, aBaseDomain);
-  if (rv == NS_ERROR_HOST_IS_IP_ADDRESS ||
-      rv == NS_ERROR_INSUFFICIENT_DOMAIN_LEVELS) {
-    // aMozURL is either an IP address, an alias such as 'localhost', an eTLD
-    // such as 'co.uk', or the empty string. Uses the normalized host in such
-    // cases.
-    aBaseDomain = aAsciiHost;
-    rv = NS_OK;
-  }
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  // aMozURL (and thus aBaseDomain) may be the string '.'. If so, fail.
-  if (aBaseDomain.Length() == 1 && aBaseDomain.Last() == '.')
-    return NS_ERROR_INVALID_ARG;
-
-  // Reject any URLs without a host that aren't file:// URLs. This makes it the
-  // only way we can get a base domain consisting of the empty string, which
-  // means we can safely perform foreign tests on such URLs where "not foreign"
-  // means "the involved URLs are all file://".
-  if (aBaseDomain.IsEmpty() && !aScheme.EqualsLiteral("file")) {
     return NS_ERROR_INVALID_ARG;
   }
 

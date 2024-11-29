@@ -73,9 +73,6 @@ class MozURL final {
   // See also TestMozURL.cpp which enumerates a huge pile of URIs and checks
   // that origin and base domain definitions are in sync.
   void Origin(nsACString& aOrigin) const { mozurl_origin(this, &aOrigin); }
-  nsresult BaseDomain(nsACString& aBaseDomain) const {
-    return mozurl_base_domain(this, &aBaseDomain);
-  }
   bool CannotBeABase() { return mozurl_cannot_be_a_base(this); }
 
   nsresult GetCommonBase(const MozURL* aOther, MozURL** aCommon) const {
