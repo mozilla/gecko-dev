@@ -38,7 +38,9 @@ namespace dom {
 class CSSImportRule;
 class Element;
 class HTMLInputElement;
+class OwningTrustedHTMLOrNullIsEmptyString;
 class TrustedHTMLOrString;
+class TrustedHTMLOrNullIsEmptyString;
 
 class ShadowRoot final : public DocumentFragment, public DocumentOrShadowRoot {
   friend class DocumentOrShadowRoot;
@@ -249,6 +251,12 @@ class ShadowRoot final : public DocumentFragment, public DocumentOrShadowRoot {
 
   MOZ_CAN_RUN_SCRIPT
   void SetHTMLUnsafe(const TrustedHTMLOrString& aHTML, ErrorResult& aError);
+
+  // @param aInnerHTML will always be of type `NullIsEmptyString`.
+  void GetInnerHTML(OwningTrustedHTMLOrNullIsEmptyString& aInnerHTML);
+
+  MOZ_CAN_RUN_SCRIPT void SetInnerHTML(
+      const TrustedHTMLOrNullIsEmptyString& aInnerHTML, ErrorResult& aError);
 
   void GetHTML(const GetHTMLOptions& aOptions, nsAString& aResult);
 
