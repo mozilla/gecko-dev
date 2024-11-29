@@ -132,7 +132,8 @@ add_task(async function test_register_success() {
   );
 
   await broadcastService.addListener("example-listener", "2018-03-01", {
-    moduleURI: "resource://gre/modules/not-real-example.jsm",
+    // NOTE: This file is non-existing.
+    moduleURI: "resource://gre/modules/not-real-example.sys.mjs",
     symbolName: "doesntExist",
   });
 
@@ -280,14 +281,16 @@ add_task(async function test_broadcast_unit() {
     abc: {
       version: "2018-03-04",
       sourceInfo: {
-        moduleURI: "resource://gre/modules/abc.jsm",
+        // NOTE: This file is non-existing.
+        moduleURI: "resource://gre/modules/abc.sys.mjs",
         symbolName: "getAbc",
       },
     },
     def: {
       version: "2018-04-05",
       sourceInfo: {
-        moduleURI: "resource://gre/modules/def.jsm",
+        // NOTE: This file is non-existing.
+        moduleURI: "resource://gre/modules/def.sys.mjs",
         symbolName: "getDef",
       },
     },
@@ -310,7 +313,8 @@ add_task(async function test_broadcast_unit() {
   });
 
   await mockBroadcastService.addListener("ghi", "2018-05-06", {
-    moduleURI: "resource://gre/modules/ghi.jsm",
+    // NOTE: This file is non-existing.
+    moduleURI: "resource://gre/modules/ghi.sys.mjs",
     symbolName: "getGhi",
   });
 
@@ -327,7 +331,8 @@ add_task(async function test_broadcast_unit() {
       ghi: {
         version: "2018-05-06",
         sourceInfo: {
-          moduleURI: "resource://gre/modules/ghi.jsm",
+          // NOTE: This file is non-existing.
+          moduleURI: "resource://gre/modules/ghi.sys.mjs",
           symbolName: "getGhi",
         },
       },
@@ -360,7 +365,8 @@ add_task(async function test_broadcast_initialize_sane() {
   );
 
   await mockBroadcastService.addListener("ghi", "2018-05-06", {
-    moduleURI: "resource://gre/modules/ghi.jsm",
+    // NOTE: This file is non-existing.
+    moduleURI: "resource://gre/modules/ghi.sys.mjs",
     symbolName: "getGhi",
   });
 
@@ -376,7 +382,8 @@ add_task(async function test_broadcast_initialize_sane() {
         ghi: {
           version: "2018-05-06",
           sourceInfo: {
-            moduleURI: "resource://gre/modules/ghi.jsm",
+            // NOTE: This file is non-existing.
+            moduleURI: "resource://gre/modules/ghi.sys.mjs",
             symbolName: "getGhi",
           },
         },
@@ -393,7 +400,8 @@ add_task(async function test_broadcast_reject_invalid_sourceinfo() {
 
   await assert.rejects(
     mockBroadcastService.addListener("ghi", "2018-05-06", {
-      moduleName: "resource://gre/modules/ghi.jsm",
+      // NOTE: This file is non-existing.
+      moduleName: "resource://gre/modules/ghi.sys.mjs",
       symbolName: "getGhi",
     }),
     /moduleURI must be a string/,
@@ -407,7 +415,8 @@ add_task(async function test_broadcast_reject_version_not_string() {
       "ghi",
       {},
       {
-        moduleURI: "resource://gre/modules/ghi.jsm",
+        // NOTE: This file is non-existing.
+        moduleURI: "resource://gre/modules/ghi.sys.mjs",
         symbolName: "getGhi",
       }
     ),
@@ -419,7 +428,8 @@ add_task(async function test_broadcast_reject_version_not_string() {
 add_task(async function test_broadcast_reject_version_empty_string() {
   await assert.rejects(
     broadcastService.addListener("ghi", "", {
-      moduleURI: "resource://gre/modules/ghi.jsm",
+      // NOTE: This file is non-existing.
+      moduleURI: "resource://gre/modules/ghi.sys.mjs",
       symbolName: "getGhi",
     }),
     /version should not be an empty string/,
