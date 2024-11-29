@@ -641,16 +641,15 @@ int32_t HyperTextAccessible::CaretLineNumber() {
   RefPtr<nsFrameSelection> frameSelection = FrameSelection();
   if (!frameSelection) return -1;
 
-  dom::Selection* domSel = frameSelection->GetSelection(SelectionType::eNormal);
-  if (!domSel) return -1;
+  dom::Selection& domSel = frameSelection->NormalSelection();
 
-  nsINode* caretNode = domSel->GetFocusNode();
+  nsINode* caretNode = domSel.GetFocusNode();
   if (!caretNode || !caretNode->IsContent()) return -1;
 
   nsIContent* caretContent = caretNode->AsContent();
   if (!nsCoreUtils::IsAncestorOf(GetNode(), caretContent)) return -1;
 
-  uint32_t caretOffset = domSel->FocusOffset();
+  uint32_t caretOffset = domSel.FocusOffset();
   CaretAssociationHint hint = frameSelection->GetHint();
   nsIFrame* caretFrame = SelectionMovementUtils::GetFrameForNodeOffset(
       caretContent, caretOffset, hint);

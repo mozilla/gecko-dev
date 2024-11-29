@@ -33,8 +33,7 @@ inline already_AddRefed<nsFrameSelection> HyperTextAccessible::FrameSelection()
 
 inline dom::Selection* HyperTextAccessible::DOMSelection() const {
   RefPtr<nsFrameSelection> frameSelection = FrameSelection();
-  return frameSelection ? frameSelection->GetSelection(SelectionType::eNormal)
-                        : nullptr;
+  return frameSelection ? &frameSelection->NormalSelection() : nullptr;
 }
 
 }  // namespace mozilla::a11y

@@ -805,7 +805,7 @@ Selection* AccessibleCaretManager::GetSelection() const {
   if (!fs) {
     return nullptr;
   }
-  return fs->GetSelection(SelectionType::eNormal);
+  return &fs->NormalSelection();
 }
 
 already_AddRefed<nsFrameSelection> AccessibleCaretManager::GetFrameSelection()

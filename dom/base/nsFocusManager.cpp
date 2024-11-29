@@ -3153,36 +3153,34 @@ void nsFocusManager::MoveCaretToFocus(PresShell* aPresShell,
   nsCOMPtr<Document> doc = aPresShell->GetDocument();
   if (doc) {
     RefPtr<nsFrameSelection> frameSelection = aPresShell->FrameSelection();
-    RefPtr<Selection> domSelection =
-        frameSelection->GetSelection(SelectionType::eNormal);
-    if (domSelection) {
-      // First clear the selection. This way, if there is no currently focused
-      // content, the selection will just be cleared.
-      domSelection->RemoveAllRanges(IgnoreErrors());
-      if (aContent) {
-        ErrorResult rv;
-        RefPtr<nsRange> newRange = doc->CreateRange(rv);
-        if (NS_WARN_IF(rv.Failed())) {
-          rv.SuppressException();
-          return;
-        }
+    RefPtr<Selection> domSelection = &frameSelection->NormalSelection();
+    MOZ_ASSERT(domSelection);
 
-        // Set the range to the start of the currently focused node
-        // Make sure it's collapsed
-        newRange->SelectNodeContents(*aContent, IgnoreErrors());
-
-        if (!aContent->GetFirstChild() ||
-            aContent->IsHTMLFormControlElement()) {
-          // If current focus node is a leaf, set range to before the
-          // node by using the parent as a container.
-          // This prevents it from appearing as selected.
-          newRange->SetStartBefore(*aContent, IgnoreErrors());
-          newRange->SetEndBefore(*aContent, IgnoreErrors());
-        }
-        domSelection->AddRangeAndSelectFramesAndNotifyListeners(*newRange,
-                                                                IgnoreErrors());
-        domSelection->CollapseToStart(IgnoreErrors());
+    // First clear the selection. This way, if there is no currently focused
+    // content, the selection will just be cleared.
+    domSelection->RemoveAllRanges(IgnoreErrors());
+    if (aContent) {
+      ErrorResult rv;
+      RefPtr<nsRange> newRange = doc->CreateRange(rv);
+      if (NS_WARN_IF(rv.Failed())) {
+        rv.SuppressException();
+        return;
       }
+
+      // Set the range to the start of the currently focused node
+      // Make sure it's collapsed
+      newRange->SelectNodeContents(*aContent, IgnoreErrors());
+
+      if (!aContent->GetFirstChild() || aContent->IsHTMLFormControlElement()) {
+        // If current focus node is a leaf, set range to before the
+        // node by using the parent as a container.
+        // This prevents it from appearing as selected.
+        newRange->SetStartBefore(*aContent, IgnoreErrors());
+        newRange->SetEndBefore(*aContent, IgnoreErrors());
+      }
+      domSelection->AddRangeAndSelectFramesAndNotifyListeners(*newRange,
+                                                              IgnoreErrors());
+      domSelection->CollapseToStart(IgnoreErrors());
     }
   }
 }
@@ -3216,23 +3214,21 @@ nsresult nsFocusManager::SetCaretVisible(PresShell* aPresShell, bool aVisible,
 
   if (docFrameSelection && caret &&
       (frameSelection == docFrameSelection || !aContent)) {
-    Selection* domSelection =
-        docFrameSelection->GetSelection(SelectionType::eNormal);
-    if (domSelection) {
-      // First, hide the caret to prevent attempting to show it in
-      // SetCaretDOMSelection
-      aPresShell->SetCaretEnabled(false);
+    Selection& domSelection = docFrameSelection->NormalSelection();
 
-      // Tell the caret which selection to use
-      caret->SetSelection(domSelection);
+    // First, hide the caret to prevent attempting to show it in
+    // SetCaretDOMSelection
+    aPresShell->SetCaretEnabled(false);
 
-      // In content, we need to set the caret. The only special case is edit
-      // fields, which have a different frame selection from the document.
-      // They will take care of making the caret visible themselves.
+    // Tell the caret which selection to use
+    caret->SetSelection(&domSelection);
 
-      aPresShell->SetCaretReadOnly(false);
-      aPresShell->SetCaretEnabled(aVisible);
-    }
+    // In content, we need to set the caret. The only special case is edit
+    // fields, which have a different frame selection from the document.
+    // They will take care of making the caret visible themselves.
+
+    aPresShell->SetCaretReadOnly(false);
+    aPresShell->SetCaretEnabled(aVisible);
   }
 
   return NS_OK;
@@ -3248,10 +3244,8 @@ void nsFocusManager::GetSelectionLocation(Document* aDocument,
   NS_ASSERTION(presContext, "mPresContent is null!!");
 
   RefPtr<Selection> domSelection =
-      aPresShell->ConstFrameSelection()->GetSelection(SelectionType::eNormal);
-  if (!domSelection) {
-    return;
-  }
+      &aPresShell->ConstFrameSelection()->NormalSelection();
+  MOZ_ASSERT(domSelection);
 
   const nsRange* domRange = domSelection->GetRangeAt(0);
   if (!domRange || !domRange->IsPositioned()) {

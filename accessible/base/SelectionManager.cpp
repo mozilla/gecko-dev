@@ -63,25 +63,25 @@ void SelectionManager::SetControlSelectionListener(dom::Element* aFocusedElm) {
   if (!frameSel) return;
 
   // Register 'this' as selection listener for the normal selection.
-  Selection* normalSel = frameSel->GetSelection(SelectionType::eNormal);
-  normalSel->AddSelectionListener(this);
-  mCurrCtrlNormalSel = normalSel;
+  Selection& normalSel = frameSel->NormalSelection();
+  normalSel.AddSelectionListener(this);
+  mCurrCtrlNormalSel = &normalSel;
 }
 
 void SelectionManager::AddDocSelectionListener(PresShell* aPresShell) {
   const nsFrameSelection* frameSel = aPresShell->ConstFrameSelection();
 
   // Register 'this' as selection listener for the normal selection.
-  Selection* normalSel = frameSel->GetSelection(SelectionType::eNormal);
-  normalSel->AddSelectionListener(this);
+  Selection& normalSel = frameSel->NormalSelection();
+  normalSel.AddSelectionListener(this);
 }
 
 void SelectionManager::RemoveDocSelectionListener(PresShell* aPresShell) {
   const nsFrameSelection* frameSel = aPresShell->ConstFrameSelection();
 
   // Remove 'this' registered as selection listener for the normal selection.
-  Selection* normalSel = frameSel->GetSelection(SelectionType::eNormal);
-  normalSel->RemoveSelectionListener(this);
+  Selection& normalSel = frameSel->NormalSelection();
+  normalSel.RemoveSelectionListener(this);
 
   if (mCurrCtrlNormalSel) {
     if (mCurrCtrlNormalSel->GetPresShell() == aPresShell) {

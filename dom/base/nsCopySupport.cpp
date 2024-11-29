@@ -681,7 +681,7 @@ already_AddRefed<Selection> nsCopySupport::GetSelectionForCopy(
     return nullptr;
   }
 
-  RefPtr<Selection> sel = frameSel->GetSelection(SelectionType::eNormal);
+  RefPtr<Selection> sel = &frameSel->NormalSelection();
   return sel.forget();
 }
 

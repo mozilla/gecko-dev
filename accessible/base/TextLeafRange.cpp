@@ -505,8 +505,7 @@ static dom::Selection* GetDOMSelection(const nsIContent* aStartContent,
     return nullptr;
   }
 
-  return startFrameSel ? startFrameSel->GetSelection(SelectionType::eNormal)
-                       : nullptr;
+  return startFrameSel ? &startFrameSel->NormalSelection() : nullptr;
 }
 
 std::pair<nsIContent*, int32_t> TextLeafPoint::ToDOMPoint(

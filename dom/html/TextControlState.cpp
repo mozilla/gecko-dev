@@ -550,10 +550,7 @@ TextInputSelectionController::SetCaretReadOnly(bool aReadOnly) {
     return NS_ERROR_FAILURE;
   }
 
-  Selection* selection = mFrameSelection->GetSelection(SelectionType::eNormal);
-  if (selection) {
-    caret->SetCaretReadOnly(aReadOnly);
-  }
+  caret->SetCaretReadOnly(aReadOnly);
   return NS_OK;
 }
 
@@ -595,10 +592,8 @@ TextInputSelectionController::SetCaretVisibilityDuringSelection(
   if (!caret) {
     return NS_ERROR_FAILURE;
   }
-  Selection* selection = mFrameSelection->GetSelection(SelectionType::eNormal);
-  if (selection) {
-    caret->SetVisibilityDuringSelection(aVisibility);
-  }
+
+  caret->SetVisibilityDuringSelection(aVisibility);
   return NS_OK;
 }
 
