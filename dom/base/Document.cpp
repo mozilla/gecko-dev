@@ -19758,19 +19758,32 @@ bool Document::AllowsDeclarativeShadowRoots() const {
 }
 
 /* static */
-already_AddRefed<Document> Document::ParseHTMLUnsafe(GlobalObject& aGlobal,
-                                                     const nsAString& aHTML) {
+already_AddRefed<Document> Document::ParseHTMLUnsafe(
+    GlobalObject& aGlobal, const TrustedHTMLOrString& aHTML,
+    ErrorResult& aError) {
   nsCOMPtr<nsIURI> uri;
   NS_NewURI(getter_AddRefs(uri), "about:blank");
   if (!uri) {
     return nullptr;
   }
 
+  nsCOMPtr<nsIGlobalObject> global = do_QueryInterface(aGlobal.GetAsSupports());
+
+  constexpr nsLiteralString sink = u"Document parseHTMLUnsafe "_ns;
+  Maybe<nsAutoString> compliantStringHolder;
+  const nsAString* compliantString =
+      TrustedTypeUtils::GetTrustedTypesCompliantString(
+          aHTML, sink, kTrustedTypesOnlySinkGroup, *global,
+          compliantStringHolder, aError);
+  if (aError.Failed()) {
+    return nullptr;
+  }
+
   nsCOMPtr<Document> doc;
-  nsresult rv =
+  aError =
       NS_NewHTMLDocument(getter_AddRefs(doc), aGlobal.GetSubjectPrincipal(),
                          aGlobal.GetSubjectPrincipal());
-  if (NS_WARN_IF(NS_FAILED(rv))) {
+  if (aError.Failed()) {
     return nullptr;
   }
 
@@ -19781,8 +19794,8 @@ already_AddRefed<Document> Document::ParseHTMLUnsafe(GlobalObject& aGlobal,
       do_QueryInterface(aGlobal.GetAsSupports());
   doc->SetScriptHandlingObject(scriptHandlingObject);
   doc->SetDocumentCharacterSet(UTF_8_ENCODING);
-  rv = nsContentUtils::ParseDocumentHTML(aHTML, doc, false);
-  if (NS_WARN_IF(NS_FAILED(rv))) {
+  aError = nsContentUtils::ParseDocumentHTML(*compliantString, doc, false);
+  if (aError.Failed()) {
     return nullptr;
   }
 

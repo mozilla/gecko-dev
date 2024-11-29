@@ -280,6 +280,7 @@ class ImageDocument;
 class Touch;
 class TouchList;
 class TreeWalker;
+class TrustedHTMLOrString;
 class OwningTrustedHTMLOrString;
 enum class ViewportFitType : uint8_t;
 class ViewTransition;
@@ -5486,8 +5487,9 @@ class Document : public nsINode,
 
   RadioGroupContainer& OwnedRadioGroupContainer();
 
-  static already_AddRefed<Document> ParseHTMLUnsafe(GlobalObject& aGlobal,
-                                                    const nsAString& aHTML);
+  MOZ_CAN_RUN_SCRIPT static already_AddRefed<Document> ParseHTMLUnsafe(
+      GlobalObject& aGlobal, const TrustedHTMLOrString& aHTML,
+      ErrorResult& aError);
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(Document, NS_IDOCUMENT_IID)

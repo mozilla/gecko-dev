@@ -72,6 +72,10 @@ MOZ_CAN_RUN_SCRIPT const nsAString* GetTrustedTypesCompliantString(
     const nsAString& aSinkGroup, const nsINode& aNode,
     Maybe<nsAutoString>& aResultHolder, ErrorResult& aError);
 MOZ_CAN_RUN_SCRIPT const nsAString* GetTrustedTypesCompliantString(
+    const TrustedHTMLOrString& aInput, const nsAString& aSink,
+    const nsAString& aSinkGroup, nsIGlobalObject& aGlobalObject,
+    Maybe<nsAutoString>& aResultHolder, ErrorResult& aError);
+MOZ_CAN_RUN_SCRIPT const nsAString* GetTrustedTypesCompliantString(
     const TrustedScriptOrString& aInput, const nsAString& aSink,
     const nsAString& aSinkGroup, const nsINode& aNode,
     Maybe<nsAutoString>& aResultHolder, ErrorResult& aError);
@@ -94,8 +98,8 @@ GetTrustedTypesCompliantStringForTrustedHTML(const nsAString& aInput,
 // https://w3c.github.io/trusted-types/dist/spec/#abstract-opdef-process-value-with-a-default-policy
 template <typename ExpectedType>
 MOZ_CAN_RUN_SCRIPT void ProcessValueWithADefaultPolicy(
-    const Document& aDocument, const nsAString& aInput, const nsAString& aSink,
-    ExpectedType** aResult, ErrorResult& aError);
+    nsIGlobalObject& aGlobalObject, const nsAString& aInput,
+    const nsAString& aSink, ExpectedType** aResult, ErrorResult& aError);
 
 // https://w3c.github.io/trusted-types/dist/spec/#get-trusted-type-data-for-attribute
 bool GetTrustedTypeDataForAttribute(const nsAtom* aElementName,
@@ -118,46 +122,46 @@ MOZ_CAN_RUN_SCRIPT const nsAString* GetTrustedTypesCompliantAttributeValue(
 
 }  // namespace mozilla
 
-#define DECL_TRUSTED_TYPE_CLASS(_class)                                \
-  class _class {                                                       \
-   public:                                                             \
-    NS_INLINE_DECL_CYCLE_COLLECTING_NATIVE_REFCOUNTING(_class)         \
-    NS_DECL_CYCLE_COLLECTION_NATIVE_CLASS(_class)                      \
-                                                                       \
-    /* Required for Web IDL binding. */                                \
-    bool WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto, \
-                    JS::MutableHandle<JSObject*> aObject);             \
-                                                                       \
-    void Stringify(DOMString& aResult) const {                         \
-      aResult.SetKnownLiveString(mData);                               \
-    }                                                                  \
-                                                                       \
-    void ToJSON(DOMString& aResult) const {                            \
-      aResult.SetKnownLiveString(mData);                               \
-    }                                                                  \
-                                                                       \
-    /* This is always unforged data, because it's only instantiated    \
-       from the befriended `TrustedType*` classes and other trusted    \
-       functions . */                                                  \
-    const nsString mData;                                              \
-                                                                       \
-   private:                                                            \
-    template <typename T, typename... Args>                            \
-    friend RefPtr<T> mozilla::MakeRefPtr(Args&&... aArgs);             \
-    friend mozilla::dom::TrustedTypePolicy;                            \
-    friend mozilla::dom::TrustedTypePolicyFactory;                     \
-    template <typename ExpectedType>                                   \
-    friend void                                                        \
-    mozilla::dom::TrustedTypeUtils::ProcessValueWithADefaultPolicy(    \
-        const Document& aDocument, const nsAString&, const nsAString&, \
-        ExpectedType**, ErrorResult&);                                 \
-                                                                       \
-    explicit _class(const nsAString& aData) : mData{aData} {           \
-      MOZ_ASSERT(!aData.IsVoid());                                     \
-    }                                                                  \
-                                                                       \
-    /* Required because the class is cycle-colleceted. */              \
-    ~_class() = default;                                               \
+#define DECL_TRUSTED_TYPE_CLASS(_class)                                     \
+  class _class {                                                            \
+   public:                                                                  \
+    NS_INLINE_DECL_CYCLE_COLLECTING_NATIVE_REFCOUNTING(_class)              \
+    NS_DECL_CYCLE_COLLECTION_NATIVE_CLASS(_class)                           \
+                                                                            \
+    /* Required for Web IDL binding. */                                     \
+    bool WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto,      \
+                    JS::MutableHandle<JSObject*> aObject);                  \
+                                                                            \
+    void Stringify(DOMString& aResult) const {                              \
+      aResult.SetKnownLiveString(mData);                                    \
+    }                                                                       \
+                                                                            \
+    void ToJSON(DOMString& aResult) const {                                 \
+      aResult.SetKnownLiveString(mData);                                    \
+    }                                                                       \
+                                                                            \
+    /* This is always unforged data, because it's only instantiated         \
+       from the befriended `TrustedType*` classes and other trusted         \
+       functions . */                                                       \
+    const nsString mData;                                                   \
+                                                                            \
+   private:                                                                 \
+    template <typename T, typename... Args>                                 \
+    friend RefPtr<T> mozilla::MakeRefPtr(Args&&... aArgs);                  \
+    friend mozilla::dom::TrustedTypePolicy;                                 \
+    friend mozilla::dom::TrustedTypePolicyFactory;                          \
+    template <typename ExpectedType>                                        \
+    friend void                                                             \
+    mozilla::dom::TrustedTypeUtils::ProcessValueWithADefaultPolicy(         \
+        nsIGlobalObject& aGlobalObject, const nsAString&, const nsAString&, \
+        ExpectedType**, ErrorResult&);                                      \
+                                                                            \
+    explicit _class(const nsAString& aData) : mData{aData} {                \
+      MOZ_ASSERT(!aData.IsVoid());                                          \
+    }                                                                       \
+                                                                            \
+    /* Required because the class is cycle-colleceted. */                   \
+    ~_class() = default;                                                    \
   };
 
 #define IMPL_TRUSTED_TYPE_CLASS(_class)                                      \

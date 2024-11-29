@@ -19,6 +19,7 @@
 #include "mozilla/dom/TrustedTypePolicy.h"
 #include "mozilla/dom/TrustedTypePolicyFactory.h"
 #include "mozilla/dom/TrustedTypesConstants.h"
+#include "mozilla/dom/WorkerCommon.h"
 #include "nsGlobalWindowInner.h"
 #include "nsLiteralString.h"
 #include "nsTArray.h"
@@ -130,38 +131,21 @@ static SinkTypeMismatch::Value ShouldSinkTypeMismatchViolationBeBlockedByCSP(
   return result;
 }
 
-static nsPIDOMWindowInner* GetScopeObjectAsInnerWindow(
-    const Document& aDocument, ErrorResult& aError) {
-  nsIGlobalObject* globalObject = aDocument.GetScopeObject();
-  if (!globalObject) {
-    aError.ThrowTypeError("No global object");
-    return nullptr;
-  }
-
-  nsPIDOMWindowInner* piDOMWindowInner = globalObject->GetAsInnerWindow();
-  if (!piDOMWindowInner) {
-    aError.ThrowTypeError("No inner window");
-    return nullptr;
-  }
-
-  return piDOMWindowInner;
-}
-
 constexpr size_t kNumArgumentsForDetermineTrustedTypePolicyValue = 2;
 
 template <typename ExpectedType>
-void ProcessValueWithADefaultPolicy(const Document& aDocument,
+void ProcessValueWithADefaultPolicy(nsIGlobalObject& aGlobalObject,
                                     const nsAString& aInput,
                                     const nsAString& aSink,
                                     ExpectedType** aResult,
                                     ErrorResult& aError) {
   *aResult = nullptr;
 
-  // TODO(bug 1928929): We should also be able to get the policy factory from
-  // a worker's global scope.
-  nsPIDOMWindowInner* piDOMWindowInner =
-      GetScopeObjectAsInnerWindow(aDocument, aError);
-  if (aError.Failed()) {
+  nsPIDOMWindowInner* piDOMWindowInner = aGlobalObject.GetAsInnerWindow();
+  if (!piDOMWindowInner) {
+    // TODO(bug 1928929): We should also be able to get the policy factory from
+    // a worker's global scope.
+    aError.Throw(NS_ERROR_NOT_IMPLEMENTED);
     return;
   }
   nsGlobalWindowInner* globalWindowInner =
@@ -230,10 +214,11 @@ void ProcessValueWithADefaultPolicy(const Document& aDocument,
   MakeRefPtr<ExpectedType>(policyValue).forget(aResult);
 }
 
-template <typename ExpectedType, typename TrustedTypeOrString>
+template <typename ExpectedType, typename TrustedTypeOrString,
+          typename NodeOrGlobalObject>
 MOZ_CAN_RUN_SCRIPT inline const nsAString* GetTrustedTypesCompliantString(
     const TrustedTypeOrString& aInput, const nsAString& aSink,
-    const nsAString& aSinkGroup, const nsINode& aNode,
+    const nsAString& aSinkGroup, NodeOrGlobalObject& aNodeOrGlobalObject,
     Maybe<nsAutoString>& aResultHolder, ErrorResult& aError) {
   using TrustedTypeOrStringArg =
       std::remove_const_t<std::remove_reference_t<decltype(aInput)>>;
@@ -336,33 +321,65 @@ MOZ_CAN_RUN_SCRIPT inline const nsAString* GetTrustedTypesCompliantString(
   // owner-document's one. E.g. when aDocument was created by
   // `document.implementation.createHTMLDocument` and it's not connected to a
   // browsing context.
-  Document* ownerDoc = aNode.OwnerDoc();
-  const bool ownerDocLoadedAsData = ownerDoc->IsLoadedAsData();
-  if (!ownerDoc->HasPolicyWithRequireTrustedTypesForDirective() &&
-      !ownerDocLoadedAsData) {
+  using NodeOrGlobalObjectArg = std::remove_const_t<
+      std::remove_reference_t<decltype(aNodeOrGlobalObject)>>;
+  nsIGlobalObject* globalObject = nullptr;
+  nsPIDOMWindowInner* piDOMWindowInner = nullptr;
+  if constexpr (std::is_same_v<NodeOrGlobalObjectArg, nsINode>) {
+    Document* ownerDoc = aNodeOrGlobalObject.OwnerDoc();
+    const bool ownerDocLoadedAsData = ownerDoc->IsLoadedAsData();
+    if (!ownerDoc->HasPolicyWithRequireTrustedTypesForDirective() &&
+        !ownerDocLoadedAsData) {
+      return getAsString();
+    }
+    globalObject = ownerDoc->GetScopeObject();
+    if (!globalObject) {
+      aError.ThrowTypeError("No global object");
+      return nullptr;
+    }
+    piDOMWindowInner = globalObject->GetAsInnerWindow();
+    if (!piDOMWindowInner) {
+      aError.ThrowTypeError("globalObject isn't an inner window");
+      return nullptr;
+    }
+    if (ownerDocLoadedAsData && piDOMWindowInner->GetExtantDoc() &&
+        !piDOMWindowInner->GetExtantDoc()
+             ->HasPolicyWithRequireTrustedTypesForDirective()) {
+      return getAsString();
+    }
+  } else if constexpr (std::is_same_v<NodeOrGlobalObjectArg, nsIGlobalObject>) {
+    piDOMWindowInner = aNodeOrGlobalObject.GetAsInnerWindow();
+    if (piDOMWindowInner) {
+      const Document* extantDoc = piDOMWindowInner->GetExtantDoc();
+      if (extantDoc &&
+          !extantDoc->HasPolicyWithRequireTrustedTypesForDirective()) {
+        return getAsString();
+      }
+    }
+    globalObject = &aNodeOrGlobalObject;
+  }
+  MOZ_ASSERT(globalObject);
+
+  // Now retrieve the CSP from the global object.
+  RefPtr<nsIContentSecurityPolicy> csp;
+  if (piDOMWindowInner) {
+    csp = piDOMWindowInner->GetCsp();
+  } else {
+    MOZ_ASSERT(IsWorkerGlobal(globalObject->GetGlobalJSObject()));
+    // TODO(1901492): For now we do the same as when dom.security.trusted_types
+    // is disabled and return the string without policy check.
     return getAsString();
   }
-  nsPIDOMWindowInner* piDOMWindowInner =
-      GetScopeObjectAsInnerWindow(*ownerDoc, aError);
-  if (aError.Failed()) {
-    return nullptr;
-  }
-  if (ownerDocLoadedAsData && piDOMWindowInner->GetExtantDoc() &&
-      !piDOMWindowInner->GetExtantDoc()
-           ->HasPolicyWithRequireTrustedTypesForDirective()) {
-    return getAsString();
-  }
-  RefPtr<nsIContentSecurityPolicy> csp = piDOMWindowInner->GetCsp();
 
   if (!DoesSinkTypeRequireTrustedTypes(csp, aSinkGroup)) {
     return getAsString();
   }
 
   RefPtr<ExpectedType> convertedInput;
-  RefPtr<const Document> pinnedDoc{ownerDoc};
+  nsCOMPtr<nsIGlobalObject> pinnedGlobalObject = globalObject;
   ProcessValueWithADefaultPolicy<ExpectedType>(
-      *pinnedDoc, *getAsString(), aSink, getter_AddRefs(convertedInput),
-      aError);
+      *pinnedGlobalObject, *getAsString(), aSink,
+      getter_AddRefs(convertedInput), aError);
 
   if (aError.Failed()) {
     return nullptr;
@@ -383,24 +400,28 @@ MOZ_CAN_RUN_SCRIPT inline const nsAString* GetTrustedTypesCompliantString(
   return aResultHolder.ptr();
 }
 
-#define IMPL_GET_TRUSTED_TYPES_COMPLIANT_STRING(_trustedTypeOrString, \
-                                                _expectedType)        \
-  const nsAString* GetTrustedTypesCompliantString(                    \
-      const _trustedTypeOrString& aInput, const nsAString& aSink,     \
-      const nsAString& aSinkGroup, const nsINode& aNode,              \
-      Maybe<nsAutoString>& aResultHolder, ErrorResult& aError) {      \
-    return GetTrustedTypesCompliantString<_expectedType>(             \
-        aInput, aSink, aSinkGroup, aNode, aResultHolder, aError);     \
+#define IMPL_GET_TRUSTED_TYPES_COMPLIANT_STRING(                          \
+    _trustedTypeOrString, _expectedType, _nodeOrGlobalObject)             \
+  const nsAString* GetTrustedTypesCompliantString(                        \
+      const _trustedTypeOrString& aInput, const nsAString& aSink,         \
+      const nsAString& aSinkGroup, _nodeOrGlobalObject& aNodeOrGlobal,    \
+      Maybe<nsAutoString>& aResultHolder, ErrorResult& aError) {          \
+    return GetTrustedTypesCompliantString<_expectedType>(                 \
+        aInput, aSink, aSinkGroup, aNodeOrGlobal, aResultHolder, aError); \
   }
 
-IMPL_GET_TRUSTED_TYPES_COMPLIANT_STRING(TrustedHTMLOrString, TrustedHTML);
+IMPL_GET_TRUSTED_TYPES_COMPLIANT_STRING(TrustedHTMLOrString, TrustedHTML,
+                                        const nsINode);
 IMPL_GET_TRUSTED_TYPES_COMPLIANT_STRING(TrustedHTMLOrNullIsEmptyString,
-                                        TrustedHTML);
-IMPL_GET_TRUSTED_TYPES_COMPLIANT_STRING(TrustedScriptOrString, TrustedScript);
+                                        TrustedHTML, const nsINode);
+IMPL_GET_TRUSTED_TYPES_COMPLIANT_STRING(TrustedHTMLOrString, TrustedHTML,
+                                        nsIGlobalObject);
+IMPL_GET_TRUSTED_TYPES_COMPLIANT_STRING(TrustedScriptOrString, TrustedScript,
+                                        const nsINode);
 IMPL_GET_TRUSTED_TYPES_COMPLIANT_STRING(TrustedScriptOrNullIsEmptyString,
-                                        TrustedScript);
+                                        TrustedScript, const nsINode);
 IMPL_GET_TRUSTED_TYPES_COMPLIANT_STRING(TrustedScriptURLOrString,
-                                        TrustedScriptURL);
+                                        TrustedScriptURL, const nsINode);
 
 MOZ_CAN_RUN_SCRIPT const nsAString*
 GetTrustedTypesCompliantStringForTrustedHTML(const nsAString& aInput,
