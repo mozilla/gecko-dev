@@ -10,7 +10,7 @@
  * https://w3c.github.io/ServiceWorker/#self-caches
  */
 
-typedef (Function or DOMString) TimerHandler;
+typedef (Function or TrustedScript or DOMString) TimerHandler;
 
 // https://html.spec.whatwg.org/multipage/webappapis.html#windoworworkerglobalscope-mixin
 [Exposed=(Window,Worker)]

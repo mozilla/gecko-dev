@@ -80,6 +80,8 @@
 #include "mozilla/dom/SimpleGlobalObject.h"
 #include "mozilla/dom/TimeoutHandler.h"
 #include "mozilla/dom/TestUtils.h"
+#include "mozilla/dom/TrustedTypeUtils.h"
+#include "mozilla/dom/TrustedTypesConstants.h"
 #include "mozilla/dom/WindowOrWorkerGlobalScopeBinding.h"
 #include "mozilla/dom/WorkerCommon.h"
 #include "mozilla/dom/WorkerDebuggerGlobalScopeBinding.h"
@@ -599,11 +601,10 @@ void WorkerGlobalScope::ImportScripts(JSContext* aCx,
   }
 }
 
-int32_t WorkerGlobalScope::SetTimeout(JSContext* aCx,
-                                      const FunctionOrString& aHandler,
-                                      const int32_t aTimeout,
-                                      const Sequence<JS::Value>& aArguments,
-                                      ErrorResult& aRv) {
+int32_t WorkerGlobalScope::SetTimeout(
+    JSContext* aCx, const FunctionOrTrustedScriptOrString& aHandler,
+    const int32_t aTimeout, const Sequence<JS::Value>& aArguments,
+    ErrorResult& aRv) {
   return SetTimeoutOrInterval(aCx, aHandler, aTimeout, aArguments, false, aRv);
 }
 
@@ -615,11 +616,10 @@ void WorkerGlobalScope::ClearTimeout(int32_t aHandle) {
   mWorkerPrivate->ClearTimeout(aHandle, Timeout::Reason::eTimeoutOrInterval);
 }
 
-int32_t WorkerGlobalScope::SetInterval(JSContext* aCx,
-                                       const FunctionOrString& aHandler,
-                                       const int32_t aTimeout,
-                                       const Sequence<JS::Value>& aArguments,
-                                       ErrorResult& aRv) {
+int32_t WorkerGlobalScope::SetInterval(
+    JSContext* aCx, const FunctionOrTrustedScriptOrString& aHandler,
+    const int32_t aTimeout, const Sequence<JS::Value>& aArguments,
+    ErrorResult& aRv) {
   return SetTimeoutOrInterval(aCx, aHandler, aTimeout, aArguments, true, aRv);
 }
 
@@ -632,8 +632,9 @@ void WorkerGlobalScope::ClearInterval(int32_t aHandle) {
 }
 
 int32_t WorkerGlobalScope::SetTimeoutOrInterval(
-    JSContext* aCx, const FunctionOrString& aHandler, const int32_t aTimeout,
-    const Sequence<JS::Value>& aArguments, bool aIsInterval, ErrorResult& aRv) {
+    JSContext* aCx, const FunctionOrTrustedScriptOrString& aHandler,
+    const int32_t aTimeout, const Sequence<JS::Value>& aArguments,
+    bool aIsInterval, ErrorResult& aRv) {
   AssertIsOnWorkerThread();
 
   DebuggerNotificationDispatch(
@@ -652,15 +653,29 @@ int32_t WorkerGlobalScope::SetTimeoutOrInterval(
                                       Timeout::Reason::eTimeoutOrInterval, aRv);
   }
 
+  constexpr nsLiteralString sinkSetTimeout = u"WorkerGlobalScope setTimeout"_ns;
+  constexpr nsLiteralString sinkSetInterval =
+      u"WorkerGlobalScope setInterval"_ns;
+  Maybe<nsAutoString> compliantStringHolder;
+  nsCOMPtr<nsIGlobalObject> pinnedGlobal = this;
+  const nsAString* compliantString =
+      TrustedTypeUtils::GetTrustedTypesCompliantString(
+          aHandler, aIsInterval ? sinkSetInterval : sinkSetTimeout,
+          kTrustedTypesOnlySinkGroup, *pinnedGlobal, compliantStringHolder,
+          aRv);
+  if (aRv.Failed()) {
+    return 0;
+  }
+
   bool allowEval = false;
-  aRv = CSPEvalChecker::CheckForWorker(aCx, mWorkerPrivate,
-                                       aHandler.GetAsString(), &allowEval);
+  aRv = CSPEvalChecker::CheckForWorker(aCx, mWorkerPrivate, *compliantString,
+                                       &allowEval);
   if (NS_WARN_IF(aRv.Failed()) || !allowEval) {
     return 0;
   }
 
   RefPtr<TimeoutHandler> handler =
-      new WorkerScriptTimeoutHandler(aCx, this, aHandler.GetAsString());
+      new WorkerScriptTimeoutHandler(aCx, this, *compliantString);
 
   return mWorkerPrivate->SetTimeout(aCx, handler, aTimeout, aIsInterval,
                                     Timeout::Reason::eTimeoutOrInterval, aRv);

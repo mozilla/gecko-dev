@@ -176,6 +176,8 @@
 #include "mozilla/dom/TimeoutManager.h"
 #include "mozilla/dom/ToJSValue.h"
 #include "mozilla/dom/TrustedTypePolicyFactory.h"
+#include "mozilla/dom/TrustedTypeUtils.h"
+#include "mozilla/dom/TrustedTypesConstants.h"
 #include "mozilla/dom/VRDisplay.h"
 #include "mozilla/dom/VRDisplayEvent.h"
 #include "mozilla/dom/VRDisplayEventBinding.h"
@@ -6142,27 +6144,25 @@ nsGlobalWindowInner* nsGlobalWindowInner::InnerForSetTimeoutOrInterval(
                              : nullptr;
 }
 
-int32_t nsGlobalWindowInner::SetTimeout(JSContext* aCx,
-                                        const FunctionOrString& aHandler,
-                                        int32_t aTimeout,
-                                        const Sequence<JS::Value>& aArguments,
-                                        ErrorResult& aError) {
+int32_t nsGlobalWindowInner::SetTimeout(
+    JSContext* aCx, const FunctionOrTrustedScriptOrString& aHandler,
+    int32_t aTimeout, const Sequence<JS::Value>& aArguments,
+    ErrorResult& aError) {
   return SetTimeoutOrInterval(aCx, aHandler, aTimeout, aArguments, false,
                               aError);
 }
 
-int32_t nsGlobalWindowInner::SetInterval(JSContext* aCx,
-                                         const FunctionOrString& aHandler,
-                                         const int32_t aTimeout,
-                                         const Sequence<JS::Value>& aArguments,
-                                         ErrorResult& aError) {
+int32_t nsGlobalWindowInner::SetInterval(
+    JSContext* aCx, const FunctionOrTrustedScriptOrString& aHandler,
+    const int32_t aTimeout, const Sequence<JS::Value>& aArguments,
+    ErrorResult& aError) {
   return SetTimeoutOrInterval(aCx, aHandler, aTimeout, aArguments, true,
                               aError);
 }
 
 int32_t nsGlobalWindowInner::SetTimeoutOrInterval(
-    JSContext* aCx, const FunctionOrString& aHandler, int32_t aTimeout,
-    const Sequence<JS::Value>& aArguments, bool aIsInterval,
+    JSContext* aCx, const FunctionOrTrustedScriptOrString& aHandler,
+    int32_t aTimeout, const Sequence<JS::Value>& aArguments, bool aIsInterval,
     ErrorResult& aError) {
   nsGlobalWindowInner* inner = InnerForSetTimeoutOrInterval(aError);
   if (!inner) {
@@ -6203,14 +6203,27 @@ int32_t nsGlobalWindowInner::SetTimeoutOrInterval(
     return result;
   }
 
+  constexpr nsLiteralString sinkSetTimeout = u"Window setTimeout"_ns;
+  constexpr nsLiteralString sinkSetInterval = u"Window setInterval"_ns;
+  Maybe<nsAutoString> compliantStringHolder;
+  nsCOMPtr<nsIGlobalObject> pinnedGlobal = this;
+  const nsAString* compliantString =
+      TrustedTypeUtils::GetTrustedTypesCompliantString(
+          aHandler, aIsInterval ? sinkSetInterval : sinkSetTimeout,
+          kTrustedTypesOnlySinkGroup, *pinnedGlobal, compliantStringHolder,
+          aError);
+  if (aError.Failed()) {
+    return 0;
+  }
+
   bool allowEval = false;
-  aError = CSPEvalChecker::CheckForWindow(aCx, this, aHandler.GetAsString(),
-                                          &allowEval);
+  aError =
+      CSPEvalChecker::CheckForWindow(aCx, this, *compliantString, &allowEval);
   if (NS_WARN_IF(aError.Failed()) || !allowEval) {
     return 0;
   }
   RefPtr<TimeoutHandler> handler =
-      new WindowScriptTimeoutHandler(aCx, this, aHandler.GetAsString());
+      new WindowScriptTimeoutHandler(aCx, this, *compliantString);
   int32_t result;
   aError =
       mTimeoutManager->SetTimeout(handler, aTimeout, aIsInterval,

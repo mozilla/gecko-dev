@@ -64,7 +64,7 @@ enum class EventCallbackDebuggerNotificationType : uint8_t;
 class EventHandlerNonNull;
 class FontFaceSet;
 class Function;
-class FunctionOrString;
+class FunctionOrTrustedScriptOrString;
 class IDBFactory;
 class OnErrorEventHandlerNonNull;
 template <typename T>
@@ -315,7 +315,8 @@ class WorkerGlobalScope : public WorkerGlobalScopeBase {
   bool CrossOriginIsolated() const final;
 
   MOZ_CAN_RUN_SCRIPT
-  int32_t SetTimeout(JSContext* aCx, const FunctionOrString& aHandler,
+  int32_t SetTimeout(JSContext* aCx,
+                     const FunctionOrTrustedScriptOrString& aHandler,
                      int32_t aTimeout, const Sequence<JS::Value>& aArguments,
                      ErrorResult& aRv);
 
@@ -323,7 +324,8 @@ class WorkerGlobalScope : public WorkerGlobalScopeBase {
   void ClearTimeout(int32_t aHandle);
 
   MOZ_CAN_RUN_SCRIPT
-  int32_t SetInterval(JSContext* aCx, const FunctionOrString& aHandler,
+  int32_t SetInterval(JSContext* aCx,
+                      const FunctionOrTrustedScriptOrString& aHandler,
                       int32_t aTimeout, const Sequence<JS::Value>& aArguments,
                       ErrorResult& aRv);
 
@@ -377,7 +379,8 @@ class WorkerGlobalScope : public WorkerGlobalScopeBase {
 
  private:
   MOZ_CAN_RUN_SCRIPT
-  int32_t SetTimeoutOrInterval(JSContext* aCx, const FunctionOrString& aHandler,
+  int32_t SetTimeoutOrInterval(JSContext* aCx,
+                               const FunctionOrTrustedScriptOrString& aHandler,
                                int32_t aTimeout,
                                const Sequence<JS::Value>& aArguments,
                                bool aIsInterval, ErrorResult& aRv);

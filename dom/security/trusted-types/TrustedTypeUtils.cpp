@@ -29,6 +29,7 @@
 #include "mozilla/dom/ElementBinding.h"
 #include "mozilla/dom/HTMLScriptElementBinding.h"
 #include "mozilla/dom/UnionTypes.h"
+#include "mozilla/dom/WindowOrWorkerGlobalScopeBinding.h"
 #include "mozilla/dom/nsCSPUtils.h"
 
 #include "nsContentUtils.h"
@@ -227,6 +228,8 @@ MOZ_CAN_RUN_SCRIPT inline const nsAString* GetTrustedTypesCompliantString(
                   std::is_same_v<TrustedTypeOrStringArg,
                                  TrustedScriptOrString> ||
                   std::is_same_v<TrustedTypeOrStringArg,
+                                 FunctionOrTrustedScriptOrString> ||
+                  std::is_same_v<TrustedTypeOrStringArg,
                                  TrustedScriptURLOrString>) {
       return aInput.IsString();
     }
@@ -247,6 +250,8 @@ MOZ_CAN_RUN_SCRIPT inline const nsAString* GetTrustedTypesCompliantString(
     if constexpr (std::is_same_v<TrustedTypeOrStringArg, TrustedHTMLOrString> ||
                   std::is_same_v<TrustedTypeOrStringArg,
                                  TrustedScriptOrString> ||
+                  std::is_same_v<TrustedTypeOrStringArg,
+                                 FunctionOrTrustedScriptOrString> ||
                   std::is_same_v<TrustedTypeOrStringArg,
                                  TrustedScriptURLOrString>) {
       return &aInput.GetAsString();
@@ -272,6 +277,8 @@ MOZ_CAN_RUN_SCRIPT inline const nsAString* GetTrustedTypesCompliantString(
     if constexpr (std::is_same_v<TrustedTypeOrStringArg,
                                  TrustedScriptOrString> ||
                   std::is_same_v<TrustedTypeOrStringArg,
+                                 FunctionOrTrustedScriptOrString> ||
+                  std::is_same_v<TrustedTypeOrStringArg,
                                  TrustedScriptOrNullIsEmptyString>) {
       return aInput.IsTrustedScript();
     }
@@ -294,6 +301,8 @@ MOZ_CAN_RUN_SCRIPT inline const nsAString* GetTrustedTypesCompliantString(
     }
     if constexpr (std::is_same_v<TrustedTypeOrStringArg,
                                  TrustedScriptOrString> ||
+                  std::is_same_v<TrustedTypeOrStringArg,
+                                 FunctionOrTrustedScriptOrString> ||
                   std::is_same_v<TrustedTypeOrStringArg,
                                  TrustedScriptOrNullIsEmptyString>) {
       return &aInput.GetAsTrustedScript().mData;
@@ -420,6 +429,8 @@ IMPL_GET_TRUSTED_TYPES_COMPLIANT_STRING(TrustedScriptOrString, TrustedScript,
                                         const nsINode);
 IMPL_GET_TRUSTED_TYPES_COMPLIANT_STRING(TrustedScriptOrNullIsEmptyString,
                                         TrustedScript, const nsINode);
+IMPL_GET_TRUSTED_TYPES_COMPLIANT_STRING(FunctionOrTrustedScriptOrString,
+                                        TrustedScript, nsIGlobalObject);
 IMPL_GET_TRUSTED_TYPES_COMPLIANT_STRING(TrustedScriptURLOrString,
                                         TrustedScriptURL, const nsINode);
 

@@ -31,6 +31,7 @@ class TrustedHTMLOrString;
 class TrustedScript;
 class TrustedScriptOrString;
 class TrustedScriptOrNullIsEmptyString;
+class FunctionOrTrustedScriptOrString;
 class TrustedScriptURL;
 class TrustedScriptURLOrString;
 class TrustedHTMLOrTrustedScriptOrTrustedScriptURLOrString;
@@ -82,6 +83,10 @@ MOZ_CAN_RUN_SCRIPT const nsAString* GetTrustedTypesCompliantString(
 MOZ_CAN_RUN_SCRIPT const nsAString* GetTrustedTypesCompliantString(
     const TrustedScriptOrNullIsEmptyString& aInput, const nsAString& aSink,
     const nsAString& aSinkGroup, const nsINode& aNode,
+    Maybe<nsAutoString>& aResultHolder, ErrorResult& aError);
+MOZ_CAN_RUN_SCRIPT const nsAString* GetTrustedTypesCompliantString(
+    const FunctionOrTrustedScriptOrString& aInput, const nsAString& aSink,
+    const nsAString& aSinkGroup, nsIGlobalObject& aGlobalObject,
     Maybe<nsAutoString>& aResultHolder, ErrorResult& aError);
 MOZ_CAN_RUN_SCRIPT const nsAString* GetTrustedTypesCompliantString(
     const TrustedScriptURLOrString& aInput, const nsAString& aSink,

@@ -111,7 +111,7 @@ class CustomElementRegistry;
 class DataTransfer;
 class DocGroup;
 class External;
-class FunctionOrString;
+class FunctionOrTrustedScriptOrString;
 class Gamepad;
 class ContentMediaController;
 enum class ImageBitmapFormat : uint8_t;
@@ -716,21 +716,22 @@ class nsGlobalWindowInner final : public mozilla::dom::EventTarget,
                       mozilla::ErrorResult& aError);
 
   MOZ_CAN_RUN_SCRIPT
-  int32_t SetTimeout(JSContext* aCx,
-                     const mozilla::dom::FunctionOrString& aHandler,
-                     int32_t aTimeout,
-                     const mozilla::dom::Sequence<JS::Value>& /* unused */,
-                     mozilla::ErrorResult& aError);
+  int32_t SetTimeout(
+      JSContext* aCx,
+      const mozilla::dom::FunctionOrTrustedScriptOrString& aHandler,
+      int32_t aTimeout, const mozilla::dom::Sequence<JS::Value>& /* unused */,
+      mozilla::ErrorResult& aError);
 
   MOZ_CAN_RUN_SCRIPT
   void ClearTimeout(int32_t aHandle);
 
   MOZ_CAN_RUN_SCRIPT
-  int32_t SetInterval(JSContext* aCx,
-                      const mozilla::dom::FunctionOrString& aHandler,
-                      const int32_t aTimeout,
-                      const mozilla::dom::Sequence<JS::Value>& /* unused */,
-                      mozilla::ErrorResult& aError);
+  int32_t SetInterval(
+      JSContext* aCx,
+      const mozilla::dom::FunctionOrTrustedScriptOrString& aHandler,
+      const int32_t aTimeout,
+      const mozilla::dom::Sequence<JS::Value>& /* unused */,
+      mozilla::ErrorResult& aError);
 
   MOZ_CAN_RUN_SCRIPT
   void ClearInterval(int32_t aHandle);
@@ -1068,7 +1069,8 @@ class nsGlobalWindowInner final : public mozilla::dom::EventTarget,
   // |interval| is in milliseconds.
   MOZ_CAN_RUN_SCRIPT
   int32_t SetTimeoutOrInterval(
-      JSContext* aCx, const mozilla::dom::FunctionOrString& aHandler,
+      JSContext* aCx,
+      const mozilla::dom::FunctionOrTrustedScriptOrString& aHandler,
       int32_t aTimeout, const mozilla::dom::Sequence<JS::Value>& aArguments,
       bool aIsInterval, mozilla::ErrorResult& aError);
 
