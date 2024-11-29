@@ -9,8 +9,8 @@
   <mask id="circle-mask">
     <circle cx="6" cy="6" r="6" fill="#fff"/>
   </mask>
-  <circle cx="6" cy="6" r="6" fill="#fff"/>
-  <circle cx="6" cy="6" r="6" mask="url(#angle-mask)" fill="#aeb0b1"/>
-  <line x1="6" y1="0" x2="6" y2="6" stroke-width="0.5" stroke="rgba(0,0,0,0.5)"></line>
-  <line x1="6" y1="6" x2="12" y2="12" stroke-width="0.5" stroke="rgba(0,0,0,0.5)" mask="url(#circle-mask)"></line>
+  <circle cx="6" cy="6" r="6" fill="context-fill"/>
+  <circle cx="6" cy="6" r="6" fill="context-stroke" mask="url(#angle-mask)"/>
+  <line x1="6" y1="0" x2="6" y2="6" stroke-width="0.5" stroke="context-stroke rgba(0,0,0,0.5)"></line>
+  <line x1="6" y1="6" x2="12" y2="12" stroke-width="0.5" stroke="context-stroke rgba(0,0,0,0.5)" mask="url(#circle-mask)"></line>
 </svg>
