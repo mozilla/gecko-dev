@@ -560,7 +560,7 @@ ContentPrefService2.prototype = {
     // Only execute if we have statements to run. stmts is empty for clearing
     // only private browsing data.
     let queryPromise = Promise.resolve([
-      Ci.nsIContentPrefService2.COMPLETE_OK,
+      Ci.nsIContentPrefCallback2.COMPLETE_OK,
       false,
     ]);
 
@@ -721,7 +721,7 @@ ContentPrefService2.prototype = {
     // Only execute if we have statements to run. stmts is empty for clearing
     // only private browsing data.
     let queryPromise = Promise.resolve([
-      Ci.nsIContentPrefService2.COMPLETE_OK,
+      Ci.nsIContentPrefCallback2.COMPLETE_OK,
       false,
     ]);
     if (stmts.length) {
@@ -829,7 +829,7 @@ ContentPrefService2.prototype = {
     // Only execute if we have statements to run. stmts is empty for clearing
     // only private browsing data.
     let queryPromise = Promise.resolve([
-      Ci.nsIContentPrefService2.COMPLETE_OK,
+      Ci.nsIContentPrefCallback2.COMPLETE_OK,
       false,
     ]);
 
@@ -962,7 +962,7 @@ ContentPrefService2.prototype = {
     // Only execute if we have statements to run. stmts is empty for clearing
     // only private browsing data.
     let queryPromise = Promise.resolve([
-      Ci.nsIContentPrefService2.COMPLETE_OK,
+      Ci.nsIContentPrefCallback2.COMPLETE_OK,
       false,
     ]);
 
