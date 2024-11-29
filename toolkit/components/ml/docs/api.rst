@@ -68,6 +68,8 @@ Below are the options available:
 - **processorRevision**: The revision for any processor required by the model, used for additional input processing.
 - **logLevel**: The log level used in the worker
 - **runtimeFilename**: Name of the runtime wasm file.
+- **dtype**: quantization level, can be `fp32`, `fp16`, `q8`, `int8`, `uint8`, `q4`, `bnb4`, `q4f16``. Defaults to `q8`
+- **device**: device to use (`wasm` or `gpu`). Defaults to `wasm`
 
 **taskName** and **modelId** are required, the others are optional and will be filled automatically
 using values pulled from Remote Settings when the task id is recognized.
