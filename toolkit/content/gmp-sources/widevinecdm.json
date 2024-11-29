@@ -7,6 +7,9 @@
       "platforms": {
         "Darwin_aarch64-gcc3": {
           "fileUrl": "https://edgedl.me.gvt1.com/edgedl/release2/chrome_component/dhuvyipbjqknanqk7f3zqnv4ku_4.10.2830.0/oimompecagnajdejgnnjijobebaeigek_4.10.2830.0_mac_arm64_lt3covpsgi3bctnfic74bafcxa.crx3",
+          "mirrorUrls": [
+            "https://www.google.com/dl/release2/chrome_component/dhuvyipbjqknanqk7f3zqnv4ku_4.10.2830.0/oimompecagnajdejgnnjijobebaeigek_4.10.2830.0_mac_arm64_lt3covpsgi3bctnfic74bafcxa.crx3"
+          ],
           "filesize": 14171021,
           "hashValue": "b960132db31c5ca04f678992a970d415deae3dc8f90b37c61d2d4b67e7a41588f69c08c59476f0a92c765f0d18733bc90ee0786eece936122007a51e609020d6"
         },
@@ -15,11 +18,17 @@
         },
         "Darwin_x86_64-gcc3-u-i386-x86_64": {
           "fileUrl": "https://edgedl.me.gvt1.com/edgedl/release2/chrome_component/huwtmpvskwwuqnqp6gacinr2pu_4.10.2830.0/oimompecagnajdejgnnjijobebaeigek_4.10.2830.0_mac64_ldaompc5meaw6wtyokr33tsf2u.crx3",
+          "mirrorUrls": [
+            "https://www.google.com/dl/release2/chrome_component/huwtmpvskwwuqnqp6gacinr2pu_4.10.2830.0/oimompecagnajdejgnnjijobebaeigek_4.10.2830.0_mac64_ldaompc5meaw6wtyokr33tsf2u.crx3"
+          ],
           "filesize": 14873746,
           "hashValue": "681cc2da76bdf84a3dd53aad1b93dd96dc9ce0e75d3297bfc82c09c336ccf022cefdcf327d27f60a514e1f71f373f18812bf632cedf40105dfa6821426853020"
         },
         "Linux_x86_64-gcc3": {
           "fileUrl": "https://edgedl.me.gvt1.com/edgedl/release2/chrome_component/pjnu5jyln4kujhcmwstuyyvyyu_4.10.2830.0/oimompecagnajdejgnnjijobebaeigek_4.10.2830.0_linux_ace35m3jiw32bj5wzzow5nia7yta.crx3",
+          "mirrorUrls": [
+            "https://www.google.com/dl/release2/chrome_component/pjnu5jyln4kujhcmwstuyyvyyu_4.10.2830.0/oimompecagnajdejgnnjijobebaeigek_4.10.2830.0_linux_ace35m3jiw32bj5wzzow5nia7yta.crx3"
+          ],
           "filesize": 14157618,
           "hashValue": "9f1fe2c912897bc644f936170eaa6a2cb13772e9456e377ebcb489ae58b85ce8095d7584c8e51658857e90e06b33f7e8005af58f6e91fe93bae752f3fe561ec6"
         },
@@ -28,11 +37,17 @@
         },
         "WINNT_aarch64-msvc-aarch64": {
           "fileUrl": "https://edgedl.me.gvt1.com/edgedl/release2/chrome_component/jglkcuy6uzlia2enwfqikazvyq_4.10.2830.0/oimompecagnajdejgnnjijobebaeigek_4.10.2830.0_win_arm64_hoeiownwxmiaevbnk2xz3nasri.crx3",
+          "mirrorUrls": [
+            "https://www.google.com/dl/release2/chrome_component/jglkcuy6uzlia2enwfqikazvyq_4.10.2830.0/oimompecagnajdejgnnjijobebaeigek_4.10.2830.0_win_arm64_hoeiownwxmiaevbnk2xz3nasri.crx3"
+          ],
           "filesize": 13934163,
           "hashValue": "2057c7cfe61b0a55a46db7895aa25fc9a69daed5b924590c6e89700dd41914f22adaa1fec284577e615b0af3da83986d5ee19d405aa2ca57bf13c0b6afabd03d"
         },
         "WINNT_x86-msvc": {
           "fileUrl": "https://edgedl.me.gvt1.com/edgedl/release2/chrome_component/adwxj5t3i5sknzmzrdcts2ahocna_4.10.2830.0/oimompecagnajdejgnnjijobebaeigek_4.10.2830.0_win32_pi7fbtgomadufx37pziz5b3buy.crx3",
+          "mirrorUrls": [
+            "https://www.google.com/dl/release2/chrome_component/adwxj5t3i5sknzmzrdcts2ahocna_4.10.2830.0/oimompecagnajdejgnnjijobebaeigek_4.10.2830.0_win32_pi7fbtgomadufx37pziz5b3buy.crx3"
+          ],
           "filesize": 14087836,
           "hashValue": "986aa5c6e07e121176e05e1408241f8f3b7288c10ef154a270b0c327a8b0aeb867c963a5235bf80c244457a3e98833ef4a943a91e6bb9af7c52e13343738ac63"
         },
@@ -44,6 +59,9 @@
         },
         "WINNT_x86_64-msvc": {
           "fileUrl": "https://edgedl.me.gvt1.com/edgedl/release2/chrome_component/acccxbt6wwsvpxzpob4hojndwkqq_4.10.2830.0/oimompecagnajdejgnnjijobebaeigek_4.10.2830.0_win64_dldxogwi36sxwpr57ta4lg57z4.crx3",
+          "mirrorUrls": [
+            "https://www.google.com/dl/release2/chrome_component/acccxbt6wwsvpxzpob4hojndwkqq_4.10.2830.0/oimompecagnajdejgnnjijobebaeigek_4.10.2830.0_win64_dldxogwi36sxwpr57ta4lg57z4.crx3"
+          ],
           "filesize": 14507539,
           "hashValue": "03105dcf804e4713b6ed7c281ad0343ac6d6eb2aed57a897c6a09515a8c7f3e06b344563e224365dc9159cfd8ed3ef665d6aec18cc07aaad66eed0dc4957dde3"
         },
