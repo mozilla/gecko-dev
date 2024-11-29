@@ -1,13 +1,13 @@
 [tool.ruff]
 line-length = 99
 # See https://beta.ruff.rs/docs/rules/ for a full list of rules.
-select = [
+lint.select = [
   "E", "W",    # pycodestyle
   "F",         # pyflakes
   "I",         # isort
   "PL",        # pylint
 ]
-ignore = [
+lint.ignore = [
   # These should be triaged and either fixed or moved to the list below.
   "E713", "E714",
 
@@ -101,7 +101,7 @@ exclude = [
   ".ycm_extra_conf.py",
 ]
 
-[tool.ruff.per-file-ignores]
+[tool.ruff.lint.per-file-ignores]
 # These paths are intentionally excluded.
 "dom/bindings/Configuration.py" = ["PLC3002"]
 "ipc/ipdl/*" = ["F403", "F405"]
