@@ -38,27 +38,12 @@ class AnimationItem extends Component {
     };
   }
 
-  constructor(props) {
-    super(props);
-
-    this.state = {
-      isSelected: this.isSelected(props),
-    };
-  }
-
-  // FIXME: https://bugzilla.mozilla.org/show_bug.cgi?id=1774507
-  UNSAFE_componentWillReceiveProps(nextProps) {
-    this.setState({
-      isSelected: this.isSelected(nextProps),
-    });
-  }
-
-  shouldComponentUpdate(nextProps, nextState) {
+  shouldComponentUpdate(nextProps) {
     return (
       this.props.isDisplayable !== nextProps.isDisplayable ||
-      this.state.isSelected !== nextState.isSelected ||
       this.props.animation !== nextProps.animation ||
-      this.props.timeScale !== nextProps.timeScale
+      this.props.timeScale !== nextProps.timeScale ||
+      this.isSelected(this.props) !== this.isSelected(nextProps)
     );
   }
 
@@ -82,7 +67,7 @@ class AnimationItem extends Component {
       simulateAnimation,
       timeScale,
     } = this.props;
-    const { isSelected } = this.state;
+    const isSelected = this.isSelected(this.props);
 
     return dom.li(
       {
