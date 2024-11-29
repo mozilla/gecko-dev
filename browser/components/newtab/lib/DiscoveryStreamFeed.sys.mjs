@@ -1257,9 +1257,8 @@ export class DiscoveryStreamFeed {
 
               const { data: capResult } = this.frequencyCapSpocs(migratedSpocs);
 
-              const { data: blockedResults } = await this.filterBlocked(
-                capResult
-              );
+              const { data: blockedResults } =
+                await this.filterBlocked(capResult);
 
               const { data: spocsWithFetchTimestamp } = this.addFetchTimestamp(
                 blockedResults,
@@ -1731,9 +1730,8 @@ export class DiscoveryStreamFeed {
         await this.cleanUpTopRecImpressions();
         const rotatedItems = await this.rotate(scoredItems);
 
-        const { data: filteredResults } = await this.filterBlocked(
-          rotatedItems
-        );
+        const { data: filteredResults } =
+          await this.filterBlocked(rotatedItems);
         this.componentFeedFetched = true;
         feed = {
           lastUpdated: Date.now(),
