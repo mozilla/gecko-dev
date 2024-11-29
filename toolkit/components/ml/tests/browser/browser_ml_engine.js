@@ -946,6 +946,13 @@ const pipelineOptionsCases = [
     options: { modelRevision: "1.0.0" },
     expected: { modelRevision: "1.0.0" },
   },
+
+  // Valid engineID cases
+  {
+    description: "Valid engineID (qwen)",
+    options: { engineId: "SUM-ONNX-COMMUNITY_QWEN2_5-0_5B-INSTRUCT_BIG" },
+    expected: { engineId: "SUM-ONNX-COMMUNITY_QWEN2_5-0_5B-INSTRUCT_BIG" },
+  },
 ];
 
 /**

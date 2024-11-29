@@ -39,11 +39,18 @@ const articles = [
   { data: bigArticle, type: "big" },
 ];
 
+let numEngines = 0;
+
 for (const model of [distilBartModel, qwenModel]) {
   for (const article of articles) {
-    const engineId = `${model.modelId.replace(/\//g, "-")}_${article.type}`;
+    // Replace all non-alphabnumeric or dash or underscore by underscore
+    const perfName = `${model.modelId.replace(/\//g, "-")}_${article.type}`;
 
-    const options = { ...model, article: article.data, engineId };
+    const engineId = `engine-${numEngines}`;
+
+    const options = { ...model, article: article.data, engineId, perfName };
+
+    numEngines += 1;
 
     testData.push(options);
   }
@@ -321,6 +328,7 @@ async function run_summarizer_with_perf({
   article,
   dtype,
   engineId,
+  perfName,
 }) {
   let chatInput = article;
 
@@ -368,37 +376,37 @@ async function run_summarizer_with_perf({
     options: requestOptions,
   };
 
-  await perfTest(`sum-${engineId}`, options, request);
+  await perfTest(`sum-${perfName}`, options, request);
 }
 
-add_task(async function test_ml_falconsai_tiny_article() {
+add_task(async function test_ml_distilbart_tiny_article() {
   await run_summarizer_with_perf(testData[0]);
 });
 
-add_task(async function test_ml_falconsai_small_article() {
+add_task(async function test_ml_distilbart_small_article() {
   await run_summarizer_with_perf(testData[1]);
 });
 
-add_task(async function test_ml_falconsai_medium_article() {
+add_task(async function test_ml_distilbart_medium_article() {
   await run_summarizer_with_perf(testData[2]);
 });
 
-add_task(async function test_ml_falconsai_tiny_article() {
+add_task(async function test_ml_distilbart_big_article() {
   await run_summarizer_with_perf(testData[3]);
 });
 
-add_task(async function test_ml_falconsai_small_article() {
+add_task(async function test_ml_qwen_small_article() {
   await run_summarizer_with_perf(testData[4]);
 });
 
-add_task(async function test_ml_falconsai_medium_article() {
+add_task(async function test_ml_qwen_medium_article() {
   await run_summarizer_with_perf(testData[5]);
 });
 
-add_task(async function test_ml_falconsai_medium_article() {
+add_task(async function test_ml_qwen_medium_article() {
   await run_summarizer_with_perf(testData[6]);
 });
 
-add_task(async function test_ml_falconsai_medium_article() {
+add_task(async function test_ml_qwen_big_article() {
   await run_summarizer_with_perf(testData[7]);
 });
