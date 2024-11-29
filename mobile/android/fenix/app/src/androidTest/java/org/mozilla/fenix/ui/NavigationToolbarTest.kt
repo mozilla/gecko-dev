@@ -121,14 +121,15 @@ class NavigationToolbarTest : TestSetup() {
     @SmokeTest
     @Test
     fun verifyClearCookiesFromQuickSettingsTest() {
-        val helpPageUrl = "mozilla.org"
+        val loginPage = "https://mozilla-mobile.github.io/testapp/loginForm"
+        val originWebsite = "mozilla-mobile.github.io"
 
-        homeScreen {
-        }.openThreeDotMenu {
-        }.openHelp {
+        navigationToolbar {
+        }.enterURLAndEnterToBrowser(loginPage.toUri()) {
+            waitForPageToLoad(waitingTimeLong)
         }.openSiteSecuritySheet {
             clickQuickActionSheetClearSiteData()
-            verifyClearSiteDataPrompt(helpPageUrl)
+            verifyClearSiteDataPrompt(originWebsite)
         }
     }
 
