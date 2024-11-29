@@ -2539,34 +2539,50 @@ void nsBlockFrame::ComputeOverflowAreas(OverflowAreas& aOverflowAreas,
 #endif
 }
 
-// Is this scrolled frame part of textarea?
-// This assumes that the passed-in frame is a scrolled frame.
-static bool IsScrolledFrameForTextArea(const nsIFrame* aFrame) {
+enum class RestrictPaddingInflation {
+  No,
+  Block,
+  Inline,
+};
+
+// Depending on our ancestor, determine if we need to restrict padding
+// inflation. This assumes that the passed-in frame is a scrolled frame.
+// HACK(dshin): Reaching out and querying the type like this isn't ideal.
+static RestrictPaddingInflation RestrictPaddingInflation(
+    const nsIFrame* aFrame) {
   MOZ_ASSERT(aFrame && aFrame->Style()->GetPseudoType() ==
                            PseudoStyleType::scrolledContent,
              "expecting a scrolled frame");
-  // If we're `textarea`, our grandparent element must be the text control
-  // element that we can query.
+  // If we're `input` or `textarea`, our grandparent element must be the text
+  // control element that we can query.
   const auto* parent = aFrame->GetParent();
   if (!parent) {
-    return false;
+    return RestrictPaddingInflation::No;
   }
   MOZ_ASSERT(parent->IsScrollContainerOrSubclass(), "Not a scrolled frame?");
-  // `textarea` is guaranteed to have one of these pseudoelements:
-  // ::placeholder, the ::-moz-text-control-editing-root and the preview.
-  if (!parent->Style()->IsPseudoElement()) {
-    return false;
-  }
+
   const auto* grandParent = parent->GetParent();
   if (!grandParent) {
-    return false;
+    return RestrictPaddingInflation::No;
   }
-  const auto* textControlElement =
-      mozilla::TextControlElement::FromNodeOrNull(grandParent->GetContent());
-  if (!textControlElement) {
-    return false;
+  const auto* content = grandParent->GetContent();
+  if (!content) {
+    // Likely the viewport.
+    return RestrictPaddingInflation::No;
   }
-  return textControlElement->IsTextArea();
+  nsTextControlFrame* textControl = do_QueryFrame(content->GetPrimaryFrame());
+  if (MOZ_LIKELY(!textControl)) {
+    return RestrictPaddingInflation::No;
+  }
+
+  // We use `textarea` as a special case of a div, but based on
+  // web-platform-tests, different rules apply for it - namely, no inline
+  // padding inflation. See
+  // `textarea-padding-iend-overlaps-content-001.tentative.html`.
+  // Single-line text types do not padding-inflate in block direction -
+  // see bug 1932840.
+  return textControl->IsTextArea() ? RestrictPaddingInflation::Inline
+                                   : RestrictPaddingInflation::Block;
 }
 
 nsRect nsBlockFrame::ComputePaddingInflatedScrollableOverflow(
@@ -2578,13 +2594,16 @@ nsRect nsBlockFrame::ComputePaddingInflatedScrollableOverflow(
   auto padding = GetLogicalUsedPadding(wm);
   MOZ_ASSERT(GetLogicalUsedBorderAndPadding(wm) == padding,
              "A scrolled inner frame shouldn't have any border!");
-  // HACK(dshin): Reaching out and querying the type like this isn't ideal.
-  // However, we use `textarea` as a special case of a div, but based on
-  // web-platform-tests, different rules apply for it - namely, no inline
-  // padding inflation. See
-  // `textarea-padding-iend-overlaps-content-001.tentative.html`.
-  if (MOZ_UNLIKELY(IsScrolledFrameForTextArea(this))) {
-    padding.IStart(wm) = padding.IEnd(wm) = 0;
+  const auto restriction = RestrictPaddingInflation(this);
+  switch (restriction) {
+    case RestrictPaddingInflation::Block:
+      padding.BStart(wm) = padding.BEnd(wm) = 0;
+      break;
+    case RestrictPaddingInflation::Inline:
+      padding.IStart(wm) = padding.IEnd(wm) = 0;
+      break;
+    case RestrictPaddingInflation::No:
+      break;
   }
   result.Inflate(padding.GetPhysicalMargin(wm));
   return result;
