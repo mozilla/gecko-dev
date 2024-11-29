@@ -4,6 +4,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#include "nsFileChannel.h"
 #include "FileChannelParent.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/dom/ContentParent.h"
@@ -21,15 +22,6 @@ namespace mozilla {
 namespace net {
 
 NS_IMPL_ISUPPORTS(FileChannelParent, nsIParentChannel, nsIStreamListener)
-
-bool FileChannelParent::Init(const uint64_t& aChannelId) {
-  nsCOMPtr<nsIChannel> channel;
-
-  MOZ_ALWAYS_SUCCEEDS_FUZZING(
-      NS_LinkRedirectChannels(aChannelId, this, getter_AddRefs(channel)));
-
-  return true;
-}
 
 NS_IMETHODIMP
 FileChannelParent::SetParentListener(ParentChannelListener* aListener) {
@@ -81,7 +73,7 @@ void FileChannelParent::ActorDestroy(ActorDestroyReason why) {}
 NS_IMETHODIMP
 FileChannelParent::OnStartRequest(nsIRequest* aRequest) {
   // We don't have a way to prevent nsBaseChannel from calling AsyncOpen on
-  // the created nsDataChannel. We don't have anywhere to send the data in the
+  // the created nsFileChannel. We don't have anywhere to send the data in the
   // parent, so abort the binding.
   return NS_BINDING_ABORTED;
 }
@@ -99,6 +91,54 @@ FileChannelParent::OnDataAvailable(nsIRequest* aRequest,
                                    uint64_t aOffset, uint32_t aCount) {
   // See above.
   MOZ_CRASH("Should never be called");
+}
+mozilla::ipc::IPCResult FileChannelParent::RecvNotifyListeners(
+    const FileChannelInfo& aFileChannelInfo) {
+  nsCOMPtr<nsIObserverService> obsService = services::GetObserverService();
+  if (!obsService) {
+    return IPC_OK();
+  }
+
+  nsAutoCString remoteType;
+  nsresult rv = GetRemoteType(remoteType);
+  if (NS_FAILED(rv)) {
+    return IPC_FAIL(this, "Failed to get remote type");
+  }
+
+  nsCOMPtr<nsILoadInfo> loadInfo;
+  rv = mozilla::ipc::LoadInfoArgsToLoadInfo(
+      aFileChannelInfo.loadInfo(), remoteType, getter_AddRefs(loadInfo));
+  if (NS_FAILED(rv)) {
+    return IPC_FAIL(this, "Failed to deserialize LoadInfo");
+  }
+
+  // Re-create a file channel in the parent process to notify
+  // file-channel-opened observers.
+  RefPtr<nsFileChannel> channel;
+  channel = new nsFileChannel(aFileChannelInfo.uri());
+  channel->SetURI(aFileChannelInfo.uri());
+  channel->SetOriginalURI(aFileChannelInfo.originalURI());
+  channel->SetLoadFlags(aFileChannelInfo.loadFlags());
+  channel->SetLoadInfo(loadInfo);
+  channel->SetContentType(aFileChannelInfo.contentType());
+
+  rv = channel->SetChannelId(aFileChannelInfo.channelId());
+  if (NS_FAILED(rv)) {
+    return IPC_FAIL(this, "Failed to set channel id");
+  }
+  obsService->NotifyObservers(static_cast<nsIIdentChannel*>(channel),
+                              "file-channel-opened", nullptr);
+  return IPC_OK();
+}
+
+mozilla::ipc::IPCResult FileChannelParent::RecvSetChannelIdForRedirect(
+    const uint64_t& aChannelId) {
+  nsCOMPtr<nsIChannel> channel;
+
+  MOZ_ALWAYS_SUCCEEDS_FUZZING(
+      NS_LinkRedirectChannels(aChannelId, this, getter_AddRefs(channel)));
+
+  return IPC_OK();
 }
 
 }  // namespace net

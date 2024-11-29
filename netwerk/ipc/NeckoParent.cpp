@@ -390,17 +390,13 @@ mozilla::ipc::IPCResult NeckoParent::RecvPSimpleChannelConstructor(
   return IPC_OK();
 }
 
-already_AddRefed<PFileChannelParent> NeckoParent::AllocPFileChannelParent(
-    const uint32_t& channelId) {
+already_AddRefed<PFileChannelParent> NeckoParent::AllocPFileChannelParent() {
   RefPtr<FileChannelParent> p = new FileChannelParent();
   return p.forget();
 }
 
 mozilla::ipc::IPCResult NeckoParent::RecvPFileChannelConstructor(
-    PFileChannelParent* actor, const uint32_t& channelId) {
-  FileChannelParent* p = static_cast<FileChannelParent*>(actor);
-  DebugOnly<bool> rv = p->Init(channelId);
-  MOZ_ASSERT(rv);
+    PFileChannelParent* actor) {
   return IPC_OK();
 }
 

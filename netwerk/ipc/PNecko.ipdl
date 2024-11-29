@@ -114,7 +114,7 @@ parent:
   async PGIOChannel(nullable PBrowser browser, SerializedLoadContext loadContext, GIOChannelCreationArgs args);
 #endif
   async PSimpleChannel(uint32_t channelId);
-  async PFileChannel(uint32_t channelId);
+  async PFileChannel();
 
   async RequestContextLoadBegin(uint64_t rcid);
   async RequestContextAfterDOMContentLoaded(uint64_t rcid);
