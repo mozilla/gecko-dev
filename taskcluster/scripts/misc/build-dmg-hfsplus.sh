@@ -23,6 +23,9 @@ cmake \
 
 make VERBOSE=1 -j$(nproc)
 
+# Assert that lzma compression was built
+./dmg/dmg | grep -q lzma
+
 # We only need the dmg and hfsplus tools.
 strip dmg/dmg hfs/hfsplus
 cp dmg/dmg hfs/hfsplus $STAGE

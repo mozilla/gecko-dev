@@ -183,3 +183,5 @@ linux64-toolchain-sysroot:
             - libbz2-dev
             # For msix-package
             - libicu-dev
+            # For libdmg-hfsplus
+            - liblzma-dev
