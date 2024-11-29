@@ -219,69 +219,79 @@ impl ComponentMixOutcome {
     }
 }
 
-/// Calculate the flags that should be carried forward a color before converting
-/// it to the interpolation color space according to:
-/// <https://drafts.csswg.org/css-color-4/#interpolation-missing>
-fn carry_forward_analogous_missing_components(
-    from: ColorSpace,
-    to: ColorSpace,
-    flags: ColorFlags,
-) -> ColorFlags {
-    use ColorFlags as F;
-    use ColorSpace as S;
+impl AbsoluteColor {
+    /// Calculate the flags that should be carried forward a color before converting
+    /// it to the interpolation color space according to:
+    /// <https://drafts.csswg.org/css-color-4/#interpolation-missing>
+    fn carry_forward_analogous_missing_components(&mut self, source: &AbsoluteColor) {
+        use ColorFlags as F;
+        use ColorSpace as S;
 
-    if from == to {
-        return flags;
-    }
-
-    // Reds             r, x
-    // Greens           g, y
-    // Blues            b, z
-    if from.is_rgb_or_xyz_like() && to.is_rgb_or_xyz_like() {
-        return flags;
-    }
-
-    let mut result = flags;
-
-    // Lightness        L
-    if matches!(from, S::Lab | S::Lch | S::Oklab | S::Oklch) {
-        if matches!(to, S::Lab | S::Lch | S::Oklab | S::Oklch) {
-            result.set(F::C0_IS_NONE, flags.contains(F::C0_IS_NONE));
-        } else if matches!(to, S::Hsl) {
-            result.set(F::C2_IS_NONE, flags.contains(F::C0_IS_NONE));
+        if source.color_space == self.color_space {
+            return;
         }
-    } else if matches!(from, S::Hsl) && matches!(to, S::Lab | S::Lch | S::Oklab | S::Oklch) {
-        result.set(F::C0_IS_NONE, flags.contains(F::C2_IS_NONE));
-    }
 
-    // Colorfulness     C, S
-    if matches!(from, S::Hsl | S::Lch | S::Oklch) && matches!(to, S::Hsl | S::Lch | S::Oklch) {
-        result.set(F::C1_IS_NONE, flags.contains(F::C1_IS_NONE));
-    }
-
-    // Hue              H
-    if matches!(from, S::Hsl | S::Hwb) {
-        if matches!(to, S::Hsl | S::Hwb) {
-            result.set(F::C0_IS_NONE, flags.contains(F::C0_IS_NONE));
-        } else if matches!(to, S::Lch | S::Oklch) {
-            result.set(F::C2_IS_NONE, flags.contains(F::C0_IS_NONE));
+        // Reds             r, x
+        // Greens           g, y
+        // Blues            b, z
+        if source.color_space.is_rgb_or_xyz_like() && self.color_space.is_rgb_or_xyz_like() {
+            return;
         }
-    } else if matches!(from, S::Lch | S::Oklch) {
-        if matches!(to, S::Hsl | S::Hwb) {
-            result.set(F::C0_IS_NONE, flags.contains(F::C2_IS_NONE));
-        } else if matches!(to, S::Lch | S::Oklch) {
-            result.set(F::C2_IS_NONE, flags.contains(F::C2_IS_NONE));
+
+        // Lightness        L
+        if matches!(source.color_space, S::Lab | S::Lch | S::Oklab | S::Oklch) {
+            if matches!(self.color_space, S::Lab | S::Lch | S::Oklab | S::Oklch) {
+                self.flags
+                    .set(F::C0_IS_NONE, source.flags.contains(F::C0_IS_NONE));
+            } else if matches!(self.color_space, S::Hsl) {
+                self.flags
+                    .set(F::C2_IS_NONE, source.flags.contains(F::C0_IS_NONE));
+            }
+        } else if matches!(source.color_space, S::Hsl) &&
+            matches!(self.color_space, S::Lab | S::Lch | S::Oklab | S::Oklch)
+        {
+            self.flags
+                .set(F::C0_IS_NONE, source.flags.contains(F::C2_IS_NONE));
+        }
+
+        // Colorfulness     C, S
+        if matches!(source.color_space, S::Hsl | S::Lch | S::Oklch) &&
+            matches!(self.color_space, S::Hsl | S::Lch | S::Oklch)
+        {
+            self.flags
+                .set(F::C1_IS_NONE, source.flags.contains(F::C1_IS_NONE));
+        }
+
+        // Hue              H
+        if matches!(source.color_space, S::Hsl | S::Hwb) {
+            if matches!(self.color_space, S::Hsl | S::Hwb) {
+                self.flags
+                    .set(F::C0_IS_NONE, source.flags.contains(F::C0_IS_NONE));
+            } else if matches!(self.color_space, S::Lch | S::Oklch) {
+                self.flags
+                    .set(F::C2_IS_NONE, source.flags.contains(F::C0_IS_NONE));
+            }
+        } else if matches!(source.color_space, S::Lch | S::Oklch) {
+            if matches!(self.color_space, S::Hsl | S::Hwb) {
+                self.flags
+                    .set(F::C0_IS_NONE, source.flags.contains(F::C2_IS_NONE));
+            } else if matches!(self.color_space, S::Lch | S::Oklch) {
+                self.flags
+                    .set(F::C2_IS_NONE, source.flags.contains(F::C2_IS_NONE));
+            }
+        }
+
+        // Opponent         a, a
+        // Opponent         b, b
+        if matches!(source.color_space, S::Lab | S::Oklab) &&
+            matches!(self.color_space, S::Lab | S::Oklab)
+        {
+            self.flags
+                .set(F::C1_IS_NONE, source.flags.contains(F::C1_IS_NONE));
+            self.flags
+                .set(F::C2_IS_NONE, source.flags.contains(F::C2_IS_NONE));
         }
     }
-
-    // Opponent         a, a
-    // Opponent         b, b
-    if matches!(from, S::Lab | S::Oklab) && matches!(to, S::Lab | S::Oklab) {
-        result.set(F::C1_IS_NONE, flags.contains(F::C1_IS_NONE));
-        result.set(F::C2_IS_NONE, flags.contains(F::C2_IS_NONE));
-    }
-
-    result
 }
 
 fn mix_in(
@@ -295,14 +305,9 @@ fn mix_in(
 ) -> AbsoluteColor {
     // Convert both colors into the interpolation color space.
     let mut left = left_color.to_color_space(color_space);
-    left.flags =
-        carry_forward_analogous_missing_components(left_color.color_space, color_space, left.flags);
+    left.carry_forward_analogous_missing_components(&left_color);
     let mut right = right_color.to_color_space(color_space);
-    right.flags = carry_forward_analogous_missing_components(
-        right_color.color_space,
-        color_space,
-        right.flags,
-    );
+    right.carry_forward_analogous_missing_components(&right_color);
 
     let outcomes = [
         ComponentMixOutcome::from_colors(&left, &right, ColorFlags::C0_IS_NONE),
