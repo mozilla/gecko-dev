@@ -111,7 +111,7 @@ class CustomElementRegistry;
 class DataTransfer;
 class DocGroup;
 class External;
-class Function;
+class FunctionOrString;
 class Gamepad;
 class ContentMediaController;
 enum class ImageBitmapFormat : uint8_t;
@@ -716,13 +716,8 @@ class nsGlobalWindowInner final : public mozilla::dom::EventTarget,
                       mozilla::ErrorResult& aError);
 
   MOZ_CAN_RUN_SCRIPT
-  int32_t SetTimeout(JSContext* aCx, mozilla::dom::Function& aFunction,
-                     int32_t aTimeout,
-                     const mozilla::dom::Sequence<JS::Value>& aArguments,
-                     mozilla::ErrorResult& aError);
-
-  MOZ_CAN_RUN_SCRIPT
-  int32_t SetTimeout(JSContext* aCx, const nsAString& aHandler,
+  int32_t SetTimeout(JSContext* aCx,
+                     const mozilla::dom::FunctionOrString& aHandler,
                      int32_t aTimeout,
                      const mozilla::dom::Sequence<JS::Value>& /* unused */,
                      mozilla::ErrorResult& aError);
@@ -731,13 +726,8 @@ class nsGlobalWindowInner final : public mozilla::dom::EventTarget,
   void ClearTimeout(int32_t aHandle);
 
   MOZ_CAN_RUN_SCRIPT
-  int32_t SetInterval(JSContext* aCx, mozilla::dom::Function& aFunction,
-                      const int32_t aTimeout,
-                      const mozilla::dom::Sequence<JS::Value>& aArguments,
-                      mozilla::ErrorResult& aError);
-
-  MOZ_CAN_RUN_SCRIPT
-  int32_t SetInterval(JSContext* aCx, const nsAString& aHandler,
+  int32_t SetInterval(JSContext* aCx,
+                      const mozilla::dom::FunctionOrString& aHandler,
                       const int32_t aTimeout,
                       const mozilla::dom::Sequence<JS::Value>& /* unused */,
                       mozilla::ErrorResult& aError);
@@ -1078,14 +1068,9 @@ class nsGlobalWindowInner final : public mozilla::dom::EventTarget,
   // |interval| is in milliseconds.
   MOZ_CAN_RUN_SCRIPT
   int32_t SetTimeoutOrInterval(
-      JSContext* aCx, mozilla::dom::Function& aFunction, int32_t aTimeout,
-      const mozilla::dom::Sequence<JS::Value>& aArguments, bool aIsInterval,
-      mozilla::ErrorResult& aError);
-
-  MOZ_CAN_RUN_SCRIPT
-  int32_t SetTimeoutOrInterval(JSContext* aCx, const nsAString& aHandler,
-                               int32_t aTimeout, bool aIsInterval,
-                               mozilla::ErrorResult& aError);
+      JSContext* aCx, const mozilla::dom::FunctionOrString& aHandler,
+      int32_t aTimeout, const mozilla::dom::Sequence<JS::Value>& aArguments,
+      bool aIsInterval, mozilla::ErrorResult& aError);
 
   // Return true if |aTimeout| was cleared while its handler ran.
   MOZ_CAN_RUN_SCRIPT

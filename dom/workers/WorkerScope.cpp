@@ -80,6 +80,7 @@
 #include "mozilla/dom/SimpleGlobalObject.h"
 #include "mozilla/dom/TimeoutHandler.h"
 #include "mozilla/dom/TestUtils.h"
+#include "mozilla/dom/WindowOrWorkerGlobalScopeBinding.h"
 #include "mozilla/dom/WorkerCommon.h"
 #include "mozilla/dom/WorkerDebuggerGlobalScopeBinding.h"
 #include "mozilla/dom/WorkerGlobalScopeBinding.h"
@@ -598,18 +599,12 @@ void WorkerGlobalScope::ImportScripts(JSContext* aCx,
   }
 }
 
-int32_t WorkerGlobalScope::SetTimeout(JSContext* aCx, Function& aHandler,
+int32_t WorkerGlobalScope::SetTimeout(JSContext* aCx,
+                                      const FunctionOrString& aHandler,
                                       const int32_t aTimeout,
                                       const Sequence<JS::Value>& aArguments,
                                       ErrorResult& aRv) {
   return SetTimeoutOrInterval(aCx, aHandler, aTimeout, aArguments, false, aRv);
-}
-
-int32_t WorkerGlobalScope::SetTimeout(JSContext* aCx, const nsAString& aHandler,
-                                      const int32_t aTimeout,
-                                      const Sequence<JS::Value>& /* unused */,
-                                      ErrorResult& aRv) {
-  return SetTimeoutOrInterval(aCx, aHandler, aTimeout, false, aRv);
 }
 
 void WorkerGlobalScope::ClearTimeout(int32_t aHandle) {
@@ -620,19 +615,12 @@ void WorkerGlobalScope::ClearTimeout(int32_t aHandle) {
   mWorkerPrivate->ClearTimeout(aHandle, Timeout::Reason::eTimeoutOrInterval);
 }
 
-int32_t WorkerGlobalScope::SetInterval(JSContext* aCx, Function& aHandler,
+int32_t WorkerGlobalScope::SetInterval(JSContext* aCx,
+                                       const FunctionOrString& aHandler,
                                        const int32_t aTimeout,
                                        const Sequence<JS::Value>& aArguments,
                                        ErrorResult& aRv) {
   return SetTimeoutOrInterval(aCx, aHandler, aTimeout, aArguments, true, aRv);
-}
-
-int32_t WorkerGlobalScope::SetInterval(JSContext* aCx,
-                                       const nsAString& aHandler,
-                                       const int32_t aTimeout,
-                                       const Sequence<JS::Value>& /* unused */,
-                                       ErrorResult& aRv) {
-  return SetTimeoutOrInterval(aCx, aHandler, aTimeout, true, aRv);
 }
 
 void WorkerGlobalScope::ClearInterval(int32_t aHandle) {
@@ -644,7 +632,7 @@ void WorkerGlobalScope::ClearInterval(int32_t aHandle) {
 }
 
 int32_t WorkerGlobalScope::SetTimeoutOrInterval(
-    JSContext* aCx, Function& aHandler, const int32_t aTimeout,
+    JSContext* aCx, const FunctionOrString& aHandler, const int32_t aTimeout,
     const Sequence<JS::Value>& aArguments, bool aIsInterval, ErrorResult& aRv) {
   AssertIsOnWorkerThread();
 
@@ -652,39 +640,27 @@ int32_t WorkerGlobalScope::SetTimeoutOrInterval(
       this, aIsInterval ? DebuggerNotificationType::SetInterval
                         : DebuggerNotificationType::SetTimeout);
 
-  nsTArray<JS::Heap<JS::Value>> args;
-  if (!args.AppendElements(aArguments, fallible)) {
-    aRv.Throw(NS_ERROR_OUT_OF_MEMORY);
-    return 0;
+  if (aHandler.IsFunction()) {
+    nsTArray<JS::Heap<JS::Value>> args;
+    if (!args.AppendElements(aArguments, fallible)) {
+      aRv.Throw(NS_ERROR_OUT_OF_MEMORY);
+      return 0;
+    }
+    RefPtr<TimeoutHandler> handler = new CallbackTimeoutHandler(
+        aCx, this, &aHandler.GetAsFunction(), std::move(args));
+    return mWorkerPrivate->SetTimeout(aCx, handler, aTimeout, aIsInterval,
+                                      Timeout::Reason::eTimeoutOrInterval, aRv);
   }
 
-  RefPtr<TimeoutHandler> handler =
-      new CallbackTimeoutHandler(aCx, this, &aHandler, std::move(args));
-
-  return mWorkerPrivate->SetTimeout(aCx, handler, aTimeout, aIsInterval,
-                                    Timeout::Reason::eTimeoutOrInterval, aRv);
-}
-
-int32_t WorkerGlobalScope::SetTimeoutOrInterval(JSContext* aCx,
-                                                const nsAString& aHandler,
-                                                const int32_t aTimeout,
-                                                bool aIsInterval,
-                                                ErrorResult& aRv) {
-  AssertIsOnWorkerThread();
-
-  DebuggerNotificationDispatch(
-      this, aIsInterval ? DebuggerNotificationType::SetInterval
-                        : DebuggerNotificationType::SetTimeout);
-
   bool allowEval = false;
-  aRv =
-      CSPEvalChecker::CheckForWorker(aCx, mWorkerPrivate, aHandler, &allowEval);
+  aRv = CSPEvalChecker::CheckForWorker(aCx, mWorkerPrivate,
+                                       aHandler.GetAsString(), &allowEval);
   if (NS_WARN_IF(aRv.Failed()) || !allowEval) {
     return 0;
   }
 
   RefPtr<TimeoutHandler> handler =
-      new WorkerScriptTimeoutHandler(aCx, this, aHandler);
+      new WorkerScriptTimeoutHandler(aCx, this, aHandler.GetAsString());
 
   return mWorkerPrivate->SetTimeout(aCx, handler, aTimeout, aIsInterval,
                                     Timeout::Reason::eTimeoutOrInterval, aRv);

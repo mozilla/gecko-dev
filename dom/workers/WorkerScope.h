@@ -64,6 +64,7 @@ enum class EventCallbackDebuggerNotificationType : uint8_t;
 class EventHandlerNonNull;
 class FontFaceSet;
 class Function;
+class FunctionOrString;
 class IDBFactory;
 class OnErrorEventHandlerNonNull;
 template <typename T>
@@ -314,23 +315,16 @@ class WorkerGlobalScope : public WorkerGlobalScopeBase {
   bool CrossOriginIsolated() const final;
 
   MOZ_CAN_RUN_SCRIPT
-  int32_t SetTimeout(JSContext* aCx, Function& aHandler, int32_t aTimeout,
-                     const Sequence<JS::Value>& aArguments, ErrorResult& aRv);
-
-  MOZ_CAN_RUN_SCRIPT
-  int32_t SetTimeout(JSContext* aCx, const nsAString& aHandler,
-                     int32_t aTimeout, const Sequence<JS::Value>&,
+  int32_t SetTimeout(JSContext* aCx, const FunctionOrString& aHandler,
+                     int32_t aTimeout, const Sequence<JS::Value>& aArguments,
                      ErrorResult& aRv);
 
   MOZ_CAN_RUN_SCRIPT
   void ClearTimeout(int32_t aHandle);
 
   MOZ_CAN_RUN_SCRIPT
-  int32_t SetInterval(JSContext* aCx, Function& aHandler, int32_t aTimeout,
-                      const Sequence<JS::Value>& aArguments, ErrorResult& aRv);
-  MOZ_CAN_RUN_SCRIPT
-  int32_t SetInterval(JSContext* aCx, const nsAString& aHandler,
-                      int32_t aTimeout, const Sequence<JS::Value>&,
+  int32_t SetInterval(JSContext* aCx, const FunctionOrString& aHandler,
+                      int32_t aTimeout, const Sequence<JS::Value>& aArguments,
                       ErrorResult& aRv);
 
   MOZ_CAN_RUN_SCRIPT
@@ -383,15 +377,10 @@ class WorkerGlobalScope : public WorkerGlobalScopeBase {
 
  private:
   MOZ_CAN_RUN_SCRIPT
-  int32_t SetTimeoutOrInterval(JSContext* aCx, Function& aHandler,
+  int32_t SetTimeoutOrInterval(JSContext* aCx, const FunctionOrString& aHandler,
                                int32_t aTimeout,
                                const Sequence<JS::Value>& aArguments,
                                bool aIsInterval, ErrorResult& aRv);
-
-  MOZ_CAN_RUN_SCRIPT
-  int32_t SetTimeoutOrInterval(JSContext* aCx, const nsAString& aHandler,
-                               int32_t aTimeout, bool aIsInterval,
-                               ErrorResult& aRv);
 
   RefPtr<Crypto> mCrypto;
   RefPtr<WorkerLocation> mLocation;

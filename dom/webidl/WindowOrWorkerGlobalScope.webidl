@@ -10,6 +10,8 @@
  * https://w3c.github.io/ServiceWorker/#self-caches
  */
 
+typedef (Function or DOMString) TimerHandler;
+
 // https://html.spec.whatwg.org/multipage/webappapis.html#windoworworkerglobalscope-mixin
 [Exposed=(Window,Worker)]
 interface mixin WindowOrWorkerGlobalScope {
@@ -26,17 +28,11 @@ interface mixin WindowOrWorkerGlobalScope {
   DOMString atob(DOMString atob);
 
   // timers
-  // NOTE: We're using overloads where the spec uses a union.  Should
-  // be black-box the same.
   [Throws]
-  long setTimeout(Function handler, optional long timeout = 0, any... arguments);
-  [Throws]
-  long setTimeout(DOMString handler, optional long timeout = 0, any... unused);
+  long setTimeout(TimerHandler handler, optional long timeout = 0, any... arguments);
   undefined clearTimeout(optional long handle = 0);
   [Throws]
-  long setInterval(Function handler, optional long timeout = 0, any... arguments);
-  [Throws]
-  long setInterval(DOMString handler, optional long timeout = 0, any... unused);
+  long setInterval(TimerHandler handler, optional long timeout = 0, any... unused);
   undefined clearInterval(optional long handle = 0);
 
   // microtask queuing
