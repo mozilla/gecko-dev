@@ -367,7 +367,7 @@ In addition to the test head, other support files can be declared in the
 ``support-files`` declaration. These files will be made available
 through the url ``resource://test`` plus the name of the file. These
 files can then be loaded in using the
-``ChromeUtils.import`` function
+``ChromeUtils.importESModule`` function
 or other loaders. The support files can be located in other directory as
 well, and they will be made available by their filename.
 
@@ -398,8 +398,8 @@ well, and they will be made available by their filename.
    var globalValue = "A global value.";
 
    // Import support-files.
-   const { foo } = ChromeUtils.import("resource://test/module.mjs");
-   const { bar } = ChromeUtils.import("resource://test/file.mjs");
+   const { foo } = ChromeUtils.importESModule("resource://test/module.mjs");
+   const { bar } = ChromeUtils.importESModule("resource://test/file.mjs");
 
 .. code:: js
 
