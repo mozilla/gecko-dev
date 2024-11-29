@@ -267,11 +267,11 @@
     <!-- Status message below an add-on in the add-ons manager when this add-on has been blocklisted. %1$s is the add-on name. -->
     <string name="mozac_feature_addons_status_blocklisted_1">Esta extensión está bloqueada por infrinxir as políticas de Mozilla e desactivouse.</string>
     <!-- Status message below an add-on in the add-ons manager when this add-on has been soft-blocked. -->
-    <string name="mozac_feature_addons_status_softblocked" moz:removedIn="133" tools:ignore="UnusedResources">Esta extensión infrinxe as políticas de Mozilla e desactivouse. Podes activalo, pero isto pode ser arriscado.</string>
+    <string name="mozac_feature_addons_status_softblocked" moz:removedIn="133" tools:ignore="UnusedResources">Esta extensión infrinxe as políticas de Mozilla e desactivouse. Podes activala, pero isto pode ser arriscado.</string>
     <!-- Status message below an add-on in the add-ons manager when this add-on has been soft-blocked. -->
-    <string name="mozac_feature_addons_status_softblocked_1">Esta extensión está restrinxida por infrinxir as políticas de Mozilla e desactivouse. Podes activalo, pero isto pode ser arriscado.</string>
+    <string name="mozac_feature_addons_status_softblocked_1">Esta extensión está restrinxida por infrinxir as políticas de Mozilla e desactivouse. Podes activala, pero pode ser arriscado.</string>
     <!-- Status message below an add-on in the add-ons manager when this add-on has been soft-blocked but the user re-enabled it. -->
-    <string name="mozac_feature_addons_status_softblocked_re_enabled">Esta extensión infrinxe as políticas de Mozilla. Usalo pode ser arriscado.</string>
+    <string name="mozac_feature_addons_status_softblocked_re_enabled">Esta extensión infrinxe as políticas de Mozilla. Usala pode ser arriscado.</string>
     <!-- Status message below an add-on in the add-ons manager when this add-on hasn't been signed correctly. %1$s is the add-on name. -->
     <string name="mozac_feature_addons_status_unsigned">%1$s non se puido verificar como seguro e desactivouse.</string>
     <!-- Status message below an add-on in the add-ons manager when this add-on isn't compatible with the application version. %1$s is the add-on name, %2$s is the app name and %3$s is the app version. -->

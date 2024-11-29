@@ -70,6 +70,10 @@
     <string name="mozac_feature_addons_permissions_tab_hide_description">Piilota ja näytä selaimen välilehtiä</string>
     <!-- Description for top_sites permission. -->
     <string name="mozac_feature_addons_permissions_top_sites_description">Käytä selaushistoriaa</string>
+    <!-- Description for trialML permission. -->
+    <string name="mozac_feature_addons_permissions_trial_ml_description">Lataa ja suorita AI-malleja laitteellasi</string>
+    <!-- Description for userScripts permission. -->
+    <string name="mozac_feature_addons_permissions_user_scripts_description">Salli vahvistamattomien kolmannen osapuolen komentosarjojen pääsy tietoihisi</string>
     <!-- Description for devtools permission. -->
     <string name="mozac_feature_addons_permissions_devtools_description">Laajenna kehitystyökaluja käyttämään avoimissa välilehdissä olevia tietoja</string>
     <!-- The version on of add-on. -->

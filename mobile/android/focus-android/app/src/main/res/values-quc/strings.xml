@@ -926,10 +926,89 @@
     <!-- Label for the snackbar when a user opens a new tab -->
     <string name="new_tab_opened_snackbar">Jaqatal K\'ak\' k\'utjaqb\'al </string>
 
+    <!-- Label for the button in the snackbar that switches to the newly opened tab -->
+    <string name="open_new_tab_snackbar">Uk\'exik</string>
+
     <!-- Preference for switching to a new tab immediately after opening -->
     <string name="preference_open_new_tab">Aninaqil chak\'exa\' pa kemwiqb\'al pa jun k\'ak\' k\'utjaqb\'al </string>
 
+    <!-- Preference title for safe browsing which when enabled, blocks dangerous or deceptive webpages that may include phishing or malware -->
+    <string name="preference_safe_browsing_title">Chaq\'atej nim uchuq\'ab\'il k\'axk\'olil chi\'l taq uk\'olib\'al web\' rech k\'axk\'olil</string>
+    <!-- Preference summary for safe browsing which when enabled, blocks dangerous or deceptive webpages that may include phishing or malware -->
+    <string name="preference_safe_browsing_summary">Chaq\'atej taq uk\'olib\'al web\' le kkiq\'ol winaq xuquje\' kkib\'an k\'ax, uk\'olib\'al malware xuquje\' uk\'olib\'al software le b\'italik chi man ajawatal taj.</string>
+    <!-- Title of the preference to enable "HTTPS-Only" mode -->
+    <string name="preference_https_only_title">Xew kemub\'antajik HTTPS</string>
+
+    <!-- Description of the preference to enable "HTTPS-Only" mode. -->
+    <string name="preference_https_only_summary3">Kutij uq\'ij utiqik pa utukelam pa taq uk\'olib\'al web\' le kkikoj b\'olq\'otib\'al HTTPS chech nim ucholajil. chajinem.</string>
+
+    <!-- Preference for exceptions tracking protection -->
+    <string name="preference_exceptions">Man rachi\'l taj</string>
+    <!-- Description for the exceptions preference screen-->
+    <string name="preference_exceptions_description">Achupun le q\'ateb\'al rech upam chak chech taq we k\'olib\'al web\'.</string>
+    <!-- Menu item to remove existing exceptions. -->
+    <string name="preference_exceptions_menu_remove">Relesaxik</string>
+
+    <!-- Button to remove all websites from the exception list -->
+    <string name="preference_exceptions_remove_all_button_label">Che\'awelesaj ronojel taq uk\'olib\'al web\'</string>
+
+    <!-- Title for Preference screen for cookie blocking for exceptions tracking protection -->
+    <string name="preference_block_cookies_title">Uq\'atexik cookies</string>
+
+    <!-- Message for Preference screen for cookie blocking for exceptions tracking protection -->
+    <string name="preference_category_block_cookies">La kawaj ke\'aq\'atej cookies?</string>
+
+    <!-- Title for the tab crash report screen-->
+    <string name="tab_crash_report_title">Q\'atem k\'utjaqb\'al</string>
+    <!-- Headline for the tab crash report screen -->
+    <string name="tab_crash_report_headline">Chakuyu\'. K\'o uk\'axk\'olil qariqom ruk\' we k\'utjaqb\'al.</string>
+    <!-- Subtitle for the tab crash report screen -->
+    <string name="tab_crash_report_description">Pacha\' echeb\'alil tzukub\'al, man kqak\'ol taj xuquje\' man kojkopowin taj kqab\'an ub\'anik we k\'utjaqb\'al.</string>
+    <!-- Label for button to close the tab-->
+    <string name="tab_crash_report_close_tab_button_label">Chatz\'apij K\'utjaqb\'al</string>
+
+    <!-- Label for the checkbox to send the tab crash report to Mozilla -->
+    <string name="crash_report_send_crash_label">Utaqik uk\'axk\'olil chech Mozilla</string>
+
     <!-- Tracking protection bottom sheet -->
+
+     <!-- Label for the total number of trackers blocked. %s represents the app install date -->
+    <string name="trackers_count_note">Q\'atetal uterne\'xik rij majin loq %s</string>
+    <!-- Category of trackers (content) that can be blocked by Enhanced Tracking Protection -->
+    <string name="content">Upam chak</string>
+    <!-- Category of trackers (advertising) that can be blocked by Enhanced Tracking Protection -->
+    <string name="advertising">Nim ucholajil ub\'ixikil</string>
+    <!-- Category of trackers (social media) that can be blocked by Enhanced Tracking Protection -->
+    <string name="social">Komonil</string>
+
+     <!-- Category of trackers (analytics) that can be blocked by Enhanced Tracking Protection -->
+    <string name="analytics">Chomab\'al</string>
+    <!-- Preference title for enhanced tracking protection settings -->
+    <string name="enhanced_tracking_protection">Uchajixik k\'exsuk\'umam rech uterne\'xik </string>
+
+     <!-- Enhanced tracking protection preference description when the tracking protection is disabled for this site-->
+    <string name="enhanced_tracking_protection_state_off">Chupinaq le chajib\'al chech we k\'olib\'al web\'</string>
+    <!-- Enhanced tracking protection preference description when the tracking protection is enabled for this site-->
+    <string name="enhanced_tracking_protection_state_on">Tzijital le chajib\'al chech we k\'olib\'al web\'</string>
+    <!-- Label that indicates a site is using a secure connection -->
+    <string name="secure_connection">Uq\'alb\'al k\'u\'xaj le t\'iqonem</string>
+    <!-- Label that indicates a site is using a insecure connection -->
+    <string name="insecure_connection">Man uq\'alb\'al k\'uxaj ta le t\'iqonem</string>
+    <!-- Title for the list of trackers enhanced tracking ptotection can block-->
+    <string name="trackers_and_scripts">Terreneb\'al chi\'l taq tz\'ib\' chech q\'ateb\'al</string>
+
+    <!-- Content description (not visible, for screen readers etc.): Navigate back button description -->
+    <string name="go_back">B\'enam chi rij</string>
+
+    <!-- Top Sites -->
+    <!-- Text for the menu button to remove a top site -->
+    <string name="remove_top_site">Relesaxik</string>
+    <!-- Text for the menu item to remove a top site -->
+    <string name="rename_top_site_item">Ukojik chi jumul ub\'i\'</string>
+    <!-- Text for the dialog title for renaming a top site -->
+    <string name="rename_top_site">Ukojik chi jumul ub\'i\'</string>
+    <!-- Placeholder text for the input field of rename top site-->
+    <string name="placeholder_rename_top_site">Ub\'i\' suk\'um okib\'al</string>
 
      <!-- Promote SearchWidget Dialog -->
 
