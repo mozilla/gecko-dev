@@ -26,7 +26,8 @@
 #include <cassert>
 #include <pthread.h>
 #include <sched.h>
-#include <fstream> 
+#include <fstream>
+#include <ctime>
 
 #include "wayland-proxy.h"
 
@@ -110,7 +111,7 @@ class ProxiedConnection {
   // Process this connection (send/receive data).
   // Returns false if connection is broken and should be removed.
   bool Process();
-  void ProcessFailure();
+  bool ProcessFailure();
 
   void PrintConnectionInfo();
 
@@ -160,6 +161,13 @@ class ProxiedConnection {
   int mStatRecvFromClient = 0;
   int mStatSentToClient = 0;
   int mStatSentToClientLater = 0;
+
+
+  // Wait 0.5 sec before we disconnect client
+  // from compositor. It gives client time to
+  // process potential error messages from compositor.
+  constexpr static const double sFailureTimeout = CLOCKS_PER_SEC / 2;
+  clock_t mFailureTime = 0;
 };
 
 WaylandMessage::~WaylandMessage() {
@@ -502,12 +510,30 @@ void ProxiedConnection::PrintConnectionInfo() {
 }
 
 bool ProxiedConnection::Process() {
+  // If the connection already fails at ProxiedConnection::Process() somewhere,
+  // well finish processing all pending messages and flush queues to sockets.
+  // Then the connection becomes inactive (so we return early here) and we'll
+  // keep application socket opened for some time and then close
+  // the connection (disconnect application).
+  //
+  // It's because if we close application socket the app is instantly
+  // terminated by gtk event loop and there may be unprocessed messages
+  // pending in wayland client queues.
+  //
+  // That ensures we see actual wayland protocol error instead of
+  // 'application is terminated' error.
+  if (mApplicationFailed || mCompositorFailed) {
+    return false;
+  }
+
+  // If we hit any error (instead of compositor waiting to connect),
+  // we keep the code running and flush pending messages where it's possible.
+
   // Check if appplication is still listening
   if (mApplicationFlags & (POLLHUP | POLLERR)) {
     Print("ProxiedConnection::Process(): Client socket is not listening\n");
     WaylandProxy::AddState(WAYLAND_PROXY_APP_CONNECTION_FAILED);
     mApplicationFailed = true;
-    return false;
   }
 
   // Check if compositor is still listening
@@ -516,7 +542,6 @@ bool ProxiedConnection::Process() {
       Print("ProxiedConnection::Process(): Compositor socket is not listening\n");
       WaylandProxy::AddState(WAYLAND_PROXY_COMPOSITOR_CONNECTION_FAILED);
       mCompositorFailed = true;
-      return false;
     }
   } else {
     // Try to reconnect to compositor.
@@ -524,11 +549,9 @@ bool ProxiedConnection::Process() {
       Error("ProxiedConnection::Process(): Failed to connect to compositor\n");
       WaylandProxy::AddState(WAYLAND_PROXY_COMPOSITOR_CONNECTION_FAILED);
       mCompositorFailed = true;
-      return false;
-    }
-    // We're not connected yet but ConnectToCompositor() didn't return
-    // fatal error. Try again later.
-    if (!mCompositorConnected) {
+    } else if (!mCompositorConnected) {
+      // We're not connected yet but ConnectToCompositor() didn't return
+      // fatal error. Try again later.
       return true;
     }
   }
@@ -539,7 +562,6 @@ bool ProxiedConnection::Process() {
     Error("ProxiedConnection::Process(): Failed to read data from compositor!");
       WaylandProxy::AddState(WAYLAND_PROXY_COMPOSITOR_CONNECTION_FAILED);
     mCompositorFailed = true;
-    return false;
   }
   if (!TransferOrQueue(mApplicationSocket, mApplicationFlags, mCompositorSocket,
                        &mToCompositorQueue, mStatRecvFromClient,
@@ -547,32 +569,41 @@ bool ProxiedConnection::Process() {
     Error("ProxiedConnection::Process(): Failed to read data from client!");
     WaylandProxy::AddState(WAYLAND_PROXY_APP_CONNECTION_FAILED);
     mApplicationFailed = true;
-    return false;
   }
   if (!FlushQueue(mCompositorSocket, mCompositorFlags, mToCompositorQueue,
                   mStatSentToCompositorLater)) {
     Error("ProxiedConnection::Process(): Failed to flush queue to compositor!");
     WaylandProxy::AddState(WAYLAND_PROXY_COMPOSITOR_CONNECTION_FAILED);
     mCompositorFailed = true;
-    return false;
   }
   if (!FlushQueue(mApplicationSocket, mApplicationFlags, mToApplicationQueue,
                   mStatSentToClientLater)) {
     Error("ProxiedConnection::Process(): Failed to flush queue to client!");
     WaylandProxy::AddState(WAYLAND_PROXY_APP_CONNECTION_FAILED);
     mApplicationFailed = true;
-    return false;
   }
 
   if (sPrintInfo) {
     PrintConnectionInfo();
   }
 
-  return true;
+  if (mCompositorFailed) {
+    mFailureTime = clock();
+  }
+  return !mApplicationFailed && !mCompositorFailed;
 }
 
-void ProxiedConnection::ProcessFailure() {
+bool ProxiedConnection::ProcessFailure() {
+  if (!mCompositorFailed && !mApplicationFailed) {
+    return false;
+  }
+
   if (mCompositorFailed) {
+    double time = (double)(clock() - mFailureTime);
+    if (time < sFailureTimeout) {
+      return false;
+    }
+
     struct stat buffer;
     if (stat(mWaylandDisplay, &buffer) < 0) {
       Print("ProxiedConnection(): compositor crashed!\n");
@@ -583,8 +614,9 @@ void ProxiedConnection::ProcessFailure() {
   } else if (mApplicationFailed) {
     Print("ProxiedConnection(): application fails to read/write events!\n");
   }
-}
 
+  return true;
+}
 
 bool WaylandProxy::CheckWaylandDisplay(const char* aWaylandDisplay) {
   struct sockaddr_un addr = {};
@@ -839,12 +871,13 @@ bool WaylandProxy::ProcessConnections() {
   for (connection = mConnections.begin(); connection != mConnections.end();) {
     if (!(*connection)->Process()) {
       WaylandProxy::AddState(WAYLAND_PROXY_CONNECTION_REMOVED);
-      (*connection)->ProcessFailure();
-      connection = mConnections.erase(connection);
-      if (mConnections.empty()) {
-        // We removed last connection - quit.
-        Info("removed last connection, quit\n");
-        return false;
+      if ((*connection)->ProcessFailure()) {
+        connection = mConnections.erase(connection);
+        if (mConnections.empty()) {
+          // We removed last connection - quit.
+          Info("removed last connection, quit\n");
+          return false;
+        }
       }
     } else {
       connection++;
