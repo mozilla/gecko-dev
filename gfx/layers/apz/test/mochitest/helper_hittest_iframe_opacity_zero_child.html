@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<script>
+  window.addEventListener("mousedown", event => {
+    let data = JSON.stringify({
+      type: "got-mouse-down",
+      coords: {
+        offsetX: event.clientX,
+        offsetY: event.clientY
+      }
+    });
+    window.parent.postMessage(data, "*");
+  });
+</script>

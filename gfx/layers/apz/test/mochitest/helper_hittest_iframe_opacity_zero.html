@@ -1,0 +1,66 @@
+<head>
+  <meta name="viewport" content="width=device-width; initial-scale=1.0">
+  <title>Test that events are delivered with correct coordinates to an remote iframe inside opacity zero</title>
+  <script src="apz_test_native_event_utils.js"></script>
+  <script src="apz_test_utils.js"></script>
+  <script src="/tests/SimpleTest/paint_listener.js"></script>
+  <style>
+    iframe {
+      width: 300px;
+      height: 300px;
+      border: 0;
+    }
+
+    #container {
+      width: 300px;
+      height: 300px;
+      background-color: green;
+    }
+  </style>
+</head>
+<body>
+  <div id="container">
+    <div style="opacity: 0; z-index: 1;">
+      <iframe id="iframe" src="https://example.com/tests/gfx/layers/apz/test/mochitest/helper_hittest_iframe_perspective_child.html"></iframe>
+    </div>
+  </div>
+  <script type="application/javascript">
+async function test() {
+  // Wait for iframe to receive content transforms.
+  await SpecialPowers.spawn(iframe, [], async () => {
+    await SpecialPowers.contentTransformsReceived(content.window);
+  });
+
+  let clickCoordsInChild = {
+    offsetX: 0,
+    offsetY: 0
+  };
+  let childMessagePromise = new Promise(resolve => {
+    window.addEventListener("message", event => {
+      let data = JSON.parse(event.data);
+      if ("type" in data && data.type == "got-mouse-down") {
+        clickCoordsInChild = data.coords;
+        resolve();
+      }
+    })
+  });
+  await synthesizeNativeMouseEventWithAPZ({
+    type: "click",
+    target: container,
+    offsetX: 100,
+    offsetY: 100
+  });
+  await childMessagePromise;
+  // Need to use fuzzy comparisons because the combination of floating-point
+  // matrix multiplication and rounding to integer coordinates can result in
+  // small discrepancies.
+  isfuzzy(clickCoordsInChild.offsetX, 100, 1, "x coordinate is correct");
+  isfuzzy(clickCoordsInChild.offsetY, 100, 1, "y coordinate is correct");
+}
+
+waitUntilApzStable()
+.then(test)
+.then(subtestDone, subtestFailed);
+
+  </script>
+</body>
