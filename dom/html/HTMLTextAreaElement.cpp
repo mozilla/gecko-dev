@@ -799,8 +799,7 @@ void HTMLTextAreaElement::ContentWillBeRemoved(nsIContent* aChild) {
   if (mState->IsSelectionCached()) {
     // Collapse the selection when removing nodes if necessary, see bug 1818686.
     auto& props = mState->GetSelectionProperties();
-    props.SetStart(0);
-    props.SetEnd(0);
+    props.CollapseToStart();
   }
   nsContentUtils::AddScriptRunner(
       NewRunnableMethod("HTMLTextAreaElement::ResetIfUnchanged", this,
