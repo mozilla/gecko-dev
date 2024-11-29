@@ -529,6 +529,7 @@ parent:
     async OnLocationChange(WebProgressData aWebProgressData,
                            RequestData aRequestData, nullable nsIURI aLocation,
                            uint32_t aFlags, bool aCanGoBack,
+                           bool aCanGoBackIgnoringUserInteraction,
                            bool aCanGoForward,
                            WebProgressLocationChangeData? aLocationChangeData);
 

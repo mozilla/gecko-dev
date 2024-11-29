@@ -6,6 +6,7 @@ add_task(async function () {
   await BrowserTestUtils.openNewForegroundTab(gBrowser, "http://example.com");
 
   await SpecialPowers.spawn(gBrowser.selectedBrowser, [], async function () {
+    content.document.notifyUserGestureActivation();
     content.history.pushState({}, "2", "2.html");
   });
 

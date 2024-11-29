@@ -168,7 +168,7 @@ add_task(async function tabhistory() {
     tab.linkedBrowser,
     "pageshow"
   );
-  tab.linkedBrowser.goBack();
+  tab.linkedBrowser.goBack(false);
   await pageShowPromise;
 
   scalars = TelemetryTestUtils.getProcessScalars("parent", false, true);

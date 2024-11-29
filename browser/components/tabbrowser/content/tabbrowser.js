@@ -585,6 +585,10 @@
       return this.selectedBrowser.canGoBack;
     }
 
+    get canGoBackIgnoringUserInteraction() {
+      return this.selectedBrowser.canGoBackIgnoringUserInteraction;
+    }
+
     get canGoForward() {
       return this.selectedBrowser.canGoForward;
     }
