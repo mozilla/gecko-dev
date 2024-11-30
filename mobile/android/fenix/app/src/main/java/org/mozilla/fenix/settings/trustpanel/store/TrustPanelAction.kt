@@ -12,6 +12,11 @@ import mozilla.components.lib.state.Action
 sealed class TrustPanelAction : Action {
 
     /**
+     * [TrustPanelAction] dispatched when tracking protection is toggled.
+     */
+    data object ToggleTrackingProtection : TrustPanelAction()
+
+    /**
      * [TrustPanelAction] dispatched when a navigation event occurs for a specific destination.
      */
     sealed class Navigate : TrustPanelAction() {

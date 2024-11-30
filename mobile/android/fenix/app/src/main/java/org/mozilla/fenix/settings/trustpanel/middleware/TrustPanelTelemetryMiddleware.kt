@@ -6,6 +6,8 @@ package org.mozilla.fenix.settings.trustpanel.middleware
 
 import mozilla.components.lib.state.Middleware
 import mozilla.components.lib.state.MiddlewareContext
+import mozilla.telemetry.glean.private.NoExtras
+import org.mozilla.fenix.GleanMetrics.TrackingProtection
 import org.mozilla.fenix.settings.trustpanel.store.TrustPanelAction
 import org.mozilla.fenix.settings.trustpanel.store.TrustPanelState
 import org.mozilla.fenix.settings.trustpanel.store.TrustPanelStore
@@ -21,9 +23,15 @@ class TrustPanelTelemetryMiddleware : Middleware<TrustPanelState, TrustPanelActi
         next: (TrustPanelAction) -> Unit,
         action: TrustPanelAction,
     ) {
+        val currentState = context.state
+
         next(action)
 
         when (action) {
+            TrustPanelAction.ToggleTrackingProtection -> if (currentState.isTrackingProtectionEnabled) {
+                TrackingProtection.exceptionAdded.record(NoExtras())
+            }
+
             TrustPanelAction.Navigate.Back,
             TrustPanelAction.Navigate.TrackersPanel,
             -> Unit

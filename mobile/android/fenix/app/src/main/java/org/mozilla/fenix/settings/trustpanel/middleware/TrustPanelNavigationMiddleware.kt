@@ -40,6 +40,8 @@ class TrustPanelNavigationMiddleware(
                 is TrustPanelAction.Navigate.Back -> navHostController.popBackStack()
 
                 is TrustPanelAction.Navigate.TrackersPanel -> navHostController.navigate(route = TRACKERS_PANEL_ROUTE)
+
+                else -> Unit
             }
         }
     }

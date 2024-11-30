@@ -47,6 +47,7 @@ internal fun ProtectionPanel(
     isSecured: Boolean,
     isTrackingProtectionEnabled: Boolean,
     onTrackerBlockedMenuClick: () -> Unit,
+    onTrackingProtectionToggleClick: () -> Unit,
     onClearSiteDataMenuClick: () -> Unit,
 ) {
     MenuScaffold(
@@ -74,11 +75,15 @@ internal fun ProtectionPanel(
             Divider(color = FirefoxTheme.colors.borderSecondary)
 
             SwitchWithLabel(
-                label = "Enhanced Tracking Protection ",
-                checked = true,
+                label = stringResource(id = R.string.protection_panel_etp_toggle_label),
+                checked = isTrackingProtectionEnabled,
                 modifier = Modifier.padding(start = 16.dp, top = 6.dp, end = 9.dp, bottom = 14.dp),
-                description = "If something looks broken on this site, try turning off protections.",
-                onCheckedChange = {},
+                description = if (isTrackingProtectionEnabled) {
+                    stringResource(id = R.string.protection_panel_etp_toggle_enabled_description)
+                } else {
+                    stringResource(id = R.string.protection_panel_etp_toggle_disabled_description)
+                },
+                onCheckedChange = { onTrackingProtectionToggleClick() },
             )
         }
 
@@ -242,6 +247,7 @@ private fun ProtectionPanelPreview() {
                 isSecured = true,
                 isTrackingProtectionEnabled = true,
                 onTrackerBlockedMenuClick = {},
+                onTrackingProtectionToggleClick = {},
                 onClearSiteDataMenuClick = {},
             )
         }

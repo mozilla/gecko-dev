@@ -4,14 +4,21 @@
 
 package org.mozilla.fenix.settings.trustpanel
 
-import mozilla.components.support.test.rule.MainCoroutineRule
-import org.junit.Rule
-import org.junit.runner.RunWith
-import org.mozilla.fenix.helpers.FenixRobolectricTestRunner
+import kotlinx.coroutines.test.runTest
+import org.junit.Assert.assertFalse
+import org.junit.Test
+import org.mozilla.fenix.settings.trustpanel.store.TrustPanelAction
+import org.mozilla.fenix.settings.trustpanel.store.TrustPanelState
+import org.mozilla.fenix.settings.trustpanel.store.TrustPanelStore
 
-@RunWith(FenixRobolectricTestRunner::class)
 class TrustPanelStoreTest {
 
-    @get:Rule
-    val coroutinesTestRule = MainCoroutineRule()
+    @Test
+    fun `WHEN toggle tracking protection action is dispatched THEN tracking protection enabled state is updated`() = runTest {
+        val store = TrustPanelStore(initialState = TrustPanelState())
+
+        store.dispatch(TrustPanelAction.ToggleTrackingProtection).join()
+
+        assertFalse(store.state.isTrackingProtectionEnabled)
+    }
 }

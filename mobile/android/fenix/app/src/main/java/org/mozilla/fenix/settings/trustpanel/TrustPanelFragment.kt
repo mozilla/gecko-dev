@@ -9,6 +9,7 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.platform.ComposeView
@@ -20,9 +21,12 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.fragment.navArgs
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
+import mozilla.components.browser.state.selector.findTabOrCustomTab
+import mozilla.components.lib.state.ext.observeAsState
 import mozilla.components.support.ktx.android.view.setNavigationBarColorCompat
 import org.mozilla.fenix.HomeActivity
 import org.mozilla.fenix.R
+import org.mozilla.fenix.components.components
 import org.mozilla.fenix.components.menu.compose.MenuDialogBottomSheet
 import org.mozilla.fenix.settings.trustpanel.middleware.TrustPanelMiddleware
 import org.mozilla.fenix.settings.trustpanel.middleware.TrustPanelNavigationMiddleware
@@ -79,15 +83,22 @@ class TrustPanelFragment : BottomSheetDialogFragment() {
                     onRequestDismiss = ::dismiss,
                     handlebarContentDescription = "",
                 ) {
+                    val components = components
+
                     val navHostController = rememberNavController()
                     val coroutineScope = rememberCoroutineScope()
                     val store = remember {
                         TrustPanelStore(
                             initialState = TrustPanelState(
                                 isTrackingProtectionEnabled = args.isTrackingProtectionEnabled,
+                                sessionState = components.core.store.state.findTabOrCustomTab(args.sessionId),
                             ),
                             middleware = listOf(
-                                TrustPanelMiddleware(),
+                                TrustPanelMiddleware(
+                                    sessionUseCases = components.useCases.sessionUseCases,
+                                    trackingProtectionUseCases = components.useCases.trackingProtectionUseCases,
+                                    scope = coroutineScope,
+                                ),
                                 TrustPanelNavigationMiddleware(
                                     navHostController = navHostController,
                                     scope = coroutineScope,
@@ -95,6 +106,10 @@ class TrustPanelFragment : BottomSheetDialogFragment() {
                                 TrustPanelTelemetryMiddleware(),
                             ),
                         )
+                    }
+
+                    val isTrackingProtectionEnabled by store.observeAsState(initialValue = false) { state ->
+                        state.isTrackingProtectionEnabled
                     }
 
                     NavHost(
@@ -106,9 +121,12 @@ class TrustPanelFragment : BottomSheetDialogFragment() {
                                 url = args.url,
                                 title = args.title,
                                 isSecured = args.isSecured,
-                                isTrackingProtectionEnabled = true,
+                                isTrackingProtectionEnabled = isTrackingProtectionEnabled,
                                 onTrackerBlockedMenuClick = {
                                     store.dispatch(TrustPanelAction.Navigate.TrackersPanel)
+                                },
+                                onTrackingProtectionToggleClick = {
+                                    store.dispatch(TrustPanelAction.ToggleTrackingProtection)
                                 },
                                 onClearSiteDataMenuClick = {},
                             )

@@ -13,10 +13,17 @@ import mozilla.components.lib.state.Store
 class TrustPanelStore(
     initialState: TrustPanelState = TrustPanelState(),
     middleware: List<Middleware<TrustPanelState, TrustPanelAction>> = emptyList(),
-) : Store<TrustPanelState, TrustPanelAction>(initialState, ::reducer, middleware)
+) : Store<TrustPanelState, TrustPanelAction>(
+    initialState = initialState,
+    reducer = ::reducer,
+    middleware = middleware,
+)
 
 private fun reducer(state: TrustPanelState, action: TrustPanelAction): TrustPanelState {
     return when (action) {
         is TrustPanelAction.Navigate -> state
+        is TrustPanelAction.ToggleTrackingProtection -> state.copy(
+            isTrackingProtectionEnabled = !state.isTrackingProtectionEnabled,
+        )
     }
 }
