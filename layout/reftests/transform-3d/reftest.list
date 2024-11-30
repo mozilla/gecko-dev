@@ -98,7 +98,7 @@ fuzzy(0-50,0-22) == perspective-overflow-1.html perspective-overflow-1-ref.html
 == perspective-overflow-2.html perspective-overflow-2-ref.html
 == 1544995-1.html 1544995-1-ref.html
 == preserve3d-will-change-large-frame.html preserve3d-will-change-ref.html
-fuzzy(0-6,0-3117) fuzzy-if(useDrawSnapshot,4-4,13-13) == 1637067-1.html 1637067-1-ref.html
+fuzzy(0-6,0-3117) fuzzy-if(useDrawSnapshot,0-4,0-13) == 1637067-1.html 1637067-1-ref.html
 != 1927665-1.html about:blank
 # do not adjust fuzzy downwards, this is actually a not equal test, fuzzy is used to ensure that it is some minimum distance away from about:blank
 fuzzy(250-255,2900-5400) == 1927665-1.html about:blank

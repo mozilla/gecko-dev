@@ -391,7 +391,7 @@ class nsDisplayListBuilder {
   }
 
   bool BuildCompositorHitTestInfo() const {
-    return mBuildCompositorHitTestInfo;
+    return mAsyncPanZoomEnabled && mIsPaintingToWindow;
   }
 
   /**
@@ -1870,6 +1870,7 @@ class nsDisplayListBuilder {
   bool mIsInChromePresContext;
   bool mSyncDecodeImages;
   bool mIsPaintingToWindow;
+  bool mAsyncPanZoomEnabled;
   bool mUseHighQualityScaling;
   bool mIsPaintingForWebRender;
   bool mAncestorHasApzAwareEventHandler;
@@ -1881,11 +1882,9 @@ class nsDisplayListBuilder {
   bool mIsBuildingForPopup;
   bool mForceLayerForScrollParent;
   bool mContainsNonMinimalDisplayPort;
-  bool mAsyncPanZoomEnabled;
   bool mBuildingInvisibleItems;
   bool mIsBuilding;
   bool mInInvalidSubtree;
-  bool mBuildCompositorHitTestInfo;
   bool mDisablePartialUpdates;
   bool mPartialBuildFailed;
   bool mIsInActiveDocShell;
