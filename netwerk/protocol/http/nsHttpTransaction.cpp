@@ -1691,10 +1691,30 @@ void nsHttpTransaction::Close(nsresult reason) {
       case HttpVersion::v1_1:
         glean::networking::http_1_download_throughput.AccumulateSingleSample(
             mpbs);
+        if (mContentRead <= TELEMETRY_REQUEST_SIZE_50M) {
+          glean::networking::http_1_download_throughput_10_50
+              .AccumulateSingleSample(mpbs);
+        } else if (mContentRead <= TELEMETRY_REQUEST_SIZE_100M) {
+          glean::networking::http_1_download_throughput_50_100
+              .AccumulateSingleSample(mpbs);
+        } else {
+          glean::networking::http_1_download_throughput_100
+              .AccumulateSingleSample(mpbs);
+        }
         break;
       case HttpVersion::v2_0:
         glean::networking::http_2_download_throughput.AccumulateSingleSample(
             mpbs);
+        if (mContentRead <= TELEMETRY_REQUEST_SIZE_50M) {
+          glean::networking::http_2_download_throughput_10_50
+              .AccumulateSingleSample(mpbs);
+        } else if (mContentRead <= TELEMETRY_REQUEST_SIZE_100M) {
+          glean::networking::http_2_download_throughput_50_100
+              .AccumulateSingleSample(mpbs);
+        } else {
+          glean::networking::http_2_download_throughput_100
+              .AccumulateSingleSample(mpbs);
+        }
         break;
       case HttpVersion::v3_0:
         glean::networking::http_3_download_throughput.AccumulateSingleSample(
