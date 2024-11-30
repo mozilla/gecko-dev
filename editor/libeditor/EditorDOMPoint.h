@@ -1355,6 +1355,80 @@ class EditorDOMRangeBase final {
     mStart = std::move(aStart);
     mEnd = std::move(aEnd);
   }
+  template <typename PT, typename CT>
+  void MergeWith(const EditorDOMPointBase<PT, CT>& aPoint) {
+    MOZ_ASSERT(aPoint.IsSet());
+    if (!IsPositioned()) {
+      SetStartAndEnd(aPoint, aPoint);
+      return;
+    }
+    MOZ_ASSERT(nsContentUtils::GetClosestCommonInclusiveAncestor(
+        GetClosestCommonInclusiveAncestor(), aPoint.GetContainer()));
+    if (mEnd.EqualsOrIsBefore(aPoint)) {
+      SetEnd(aPoint);
+      return;
+    }
+    if (aPoint.IsBefore(mStart)) {
+      SetStart(aPoint);
+      return;
+    }
+  }
+  void MergeWith(PointType&& aPoint) {
+    MOZ_ASSERT(aPoint.IsSet());
+    if (!IsPositioned()) {
+      SetStartAndEnd(aPoint, aPoint);
+      return;
+    }
+    MOZ_ASSERT(GetClosestCommonInclusiveAncestor());
+    MOZ_ASSERT(nsContentUtils::GetClosestCommonInclusiveAncestor(
+        GetClosestCommonInclusiveAncestor(), aPoint.GetContainer()));
+    if (mEnd.EqualsOrIsBefore(aPoint)) {
+      SetEnd(std::move(aPoint));
+      return;
+    }
+    if (aPoint.IsBefore(mStart)) {
+      SetStart(std::move(aPoint));
+      return;
+    }
+  }
+  template <typename PT, typename CT>
+  void MergeWith(const EditorDOMRangeBase<EditorDOMPointBase<PT, CT>>& aRange) {
+    MOZ_ASSERT(aRange.IsPositioned());
+    MOZ_ASSERT(aRange.GetClosestCommonInclusiveAncestor());
+    if (!IsPositioned()) {
+      SetStartAndEnd(aRange.mStart, aRange.mEnd);
+      return;
+    }
+    MOZ_ASSERT(GetClosestCommonInclusiveAncestor());
+    MOZ_ASSERT(nsContentUtils::GetClosestCommonInclusiveAncestor(
+        GetClosestCommonInclusiveAncestor(),
+        aRange.GetClosestCommonInclusiveAncestor()));
+    if (mEnd.IsBefore(aRange.mEnd)) {
+      SetEnd(aRange.mEnd);
+    }
+    if (aRange.mStart.IsBefore(mStart)) {
+      SetStart(aRange.mStart);
+    }
+  }
+  void MergeWith(SelfType&& aRange) {
+    MOZ_ASSERT(aRange.IsPositioned());
+    MOZ_ASSERT(aRange.GetClosestCommonInclusiveAncestor());
+    if (!IsPositioned()) {
+      SetStartAndEnd(std::move(aRange.mStart), std::move(aRange.mEnd));
+      return;
+    }
+    MOZ_ASSERT(GetClosestCommonInclusiveAncestor());
+    MOZ_ASSERT(nsContentUtils::GetClosestCommonInclusiveAncestor(
+        GetClosestCommonInclusiveAncestor(),
+        aRange.GetClosestCommonInclusiveAncestor()));
+    if (mEnd.IsBefore(aRange.mEnd)) {
+      SetEnd(std::move(aRange.mEnd));
+    }
+    if (aRange.mStart.IsBefore(mStart)) {
+      SetStart(std::move(aRange.mStart));
+    }
+    aRange.Clear();
+  }
   void Clear() {
     mStart.Clear();
     mEnd.Clear();

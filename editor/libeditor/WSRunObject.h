@@ -1574,7 +1574,7 @@ class WhiteSpaceVisibilityKeeper final {
    *                            list element.
    * @param aEditingHost        The editing host.
    */
-  [[nodiscard]] MOZ_CAN_RUN_SCRIPT static Result<EditActionResult, nsresult>
+  [[nodiscard]] MOZ_CAN_RUN_SCRIPT static Result<MoveNodeResult, nsresult>
   MergeFirstLineOfRightBlockElementIntoDescendantLeftBlockElement(
       HTMLEditor& aHTMLEditor, Element& aLeftBlockElement,
       Element& aRightBlockElement, const EditorDOMPoint& aAtRightBlockChild,
@@ -1603,7 +1603,7 @@ class WhiteSpaceVisibilityKeeper final {
    *                            list element.
    * @param aEditingHost        The editing host.
    */
-  [[nodiscard]] MOZ_CAN_RUN_SCRIPT static Result<EditActionResult, nsresult>
+  [[nodiscard]] MOZ_CAN_RUN_SCRIPT static Result<MoveNodeResult, nsresult>
   MergeFirstLineOfRightBlockElementIntoAncestorLeftBlockElement(
       HTMLEditor& aHTMLEditor, Element& aLeftBlockElement,
       Element& aRightBlockElement, const EditorDOMPoint& aAtLeftBlockChild,
@@ -1627,7 +1627,7 @@ class WhiteSpaceVisibilityKeeper final {
    *                            element and its type needs to be changed.
    * @param aEditingHost        The editing host.
    */
-  [[nodiscard]] MOZ_CAN_RUN_SCRIPT static Result<EditActionResult, nsresult>
+  [[nodiscard]] MOZ_CAN_RUN_SCRIPT static Result<MoveNodeResult, nsresult>
   MergeFirstLineOfRightBlockElementIntoLeftBlockElement(
       HTMLEditor& aHTMLEditor, Element& aLeftBlockElement,
       Element& aRightBlockElement, const Maybe<nsAtom*>& aListElementTagName,

@@ -292,6 +292,9 @@ class MOZ_STACK_CLASS RangeUpdater final {
 class MOZ_STACK_CLASS AutoTrackDOMPoint final {
  public:
   AutoTrackDOMPoint() = delete;
+
+  AutoTrackDOMPoint(RangeUpdater& aRangeUpdater, CaretPoint* aCaretPoint);
+
   AutoTrackDOMPoint(RangeUpdater& aRangeUpdater, nsCOMPtr<nsINode>* aNode,
                     uint32_t* aOffset)
       : mRangeUpdater(aRangeUpdater),
@@ -498,6 +501,28 @@ class MOZ_STACK_CLASS AutoTrackDOMRange final {
   EditorDOMPoint mEndPoint;
   RefPtr<nsRange>* mRangeRefPtr;
   OwningNonNull<nsRange>* mRangeOwningNonNull;
+};
+
+class MOZ_STACK_CLASS AutoTrackDOMMoveNodeResult final {
+ public:
+  AutoTrackDOMMoveNodeResult(RangeUpdater& aRangeUpdater,
+                             MoveNodeResult* aMoveNodeResult);
+
+  void FlushAndStopTracking() {
+    mTrackCaretPoint.FlushAndStopTracking();
+    mTrackNextInsertionPoint.FlushAndStopTracking();
+    mTrackMovedContentRange.FlushAndStopTracking();
+  }
+  void StopTracking() {
+    mTrackCaretPoint.StopTracking();
+    mTrackNextInsertionPoint.StopTracking();
+    mTrackMovedContentRange.StopTracking();
+  }
+
+ private:
+  AutoTrackDOMPoint mTrackCaretPoint;
+  AutoTrackDOMPoint mTrackNextInsertionPoint;
+  AutoTrackDOMRange mTrackMovedContentRange;
 };
 
 /**

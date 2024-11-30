@@ -168,7 +168,7 @@ WhiteSpaceVisibilityKeeper::PrepareToSplitBlockElement(
 }
 
 // static
-Result<EditActionResult, nsresult> WhiteSpaceVisibilityKeeper::
+Result<MoveNodeResult, nsresult> WhiteSpaceVisibilityKeeper::
     MergeFirstLineOfRightBlockElementIntoDescendantLeftBlockElement(
         HTMLEditor& aHTMLEditor, Element& aLeftBlockElement,
         Element& aRightBlockElement, const EditorDOMPoint& aAtRightBlockChild,
@@ -274,7 +274,9 @@ Result<EditActionResult, nsresult> WhiteSpaceVisibilityKeeper::
   }
 
   // Do br adjustment.
-  RefPtr<HTMLBRElement> invisibleBRElementAtEndOfLeftBlockElement =
+  // XXX Why don't we delete the <br> first? If so, we can skip to track the
+  // MoveNodeResult at last.
+  const RefPtr<HTMLBRElement> invisibleBRElementAtEndOfLeftBlockElement =
       WSRunScanner::GetPrecedingBRElementUnlessVisibleContentFound(
           aHTMLEditor.ComputeEditingHost(),
           EditorDOMPoint::AtEndOf(aLeftBlockElement),
@@ -282,28 +284,31 @@ Result<EditActionResult, nsresult> WhiteSpaceVisibilityKeeper::
   NS_ASSERTION(
       aPrecedingInvisibleBRElement == invisibleBRElementAtEndOfLeftBlockElement,
       "The preceding invisible BR element computation was different");
-  auto ret = EditActionResult::IgnoredResult();
-  AutoTransactionsConserveSelection dontChangeMySelection(aHTMLEditor);
-  // NOTE: Keep syncing with CanMergeLeftAndRightBlockElements() of
-  //       AutoInclusiveAncestorBlockElementsJoiner.
-  if (NS_WARN_IF(aListElementTagName.isSome())) {
-    // Since 2002, here was the following comment:
-    // > The idea here is to take all children in rightListElement that are
-    // > past offset, and pull them into leftlistElement.
-    // However, this has never been performed because we are here only when
-    // neither left list nor right list is a descendant of the other but
-    // in such case, getting a list item in the right list node almost
-    // always failed since a variable for offset of
-    // rightListElement->GetChildAt() was not initialized.  So, it might be
-    // a bug, but we should keep this traditional behavior for now.  If you
-    // find when we get here, please remove this comment if we don't need to
-    // do it.  Otherwise, please move children of the right list node to the
-    // end of the left list node.
+  auto moveContentResult = [&]() MOZ_NEVER_INLINE_DEBUG MOZ_CAN_RUN_SCRIPT
+      -> Result<MoveNodeResult, nsresult> {
+    // NOTE: Keep syncing with CanMergeLeftAndRightBlockElements() of
+    //       AutoInclusiveAncestorBlockElementsJoiner.
+    if (NS_WARN_IF(aListElementTagName.isSome())) {
+      // Since 2002, here was the following comment:
+      // > The idea here is to take all children in rightListElement that are
+      // > past offset, and pull them into leftlistElement.
+      // However, this has never been performed because we are here only when
+      // neither left list nor right list is a descendant of the other but
+      // in such case, getting a list item in the right list node almost
+      // always failed since a variable for offset of
+      // rightListElement->GetChildAt() was not initialized.  So, it might be
+      // a bug, but we should keep this traditional behavior for now.  If you
+      // find when we get here, please remove this comment if we don't need to
+      // do it.  Otherwise, please move children of the right list node to the
+      // end of the left list node.
 
-    // XXX Although, we do nothing here, but for keeping traditional
-    //     behavior, we should mark as handled.
-    ret.MarkAsHandled();
-  } else {
+      // XXX Although, we do nothing here, but for keeping traditional
+      //     behavior, we should mark as handled.
+      return MoveNodeResult::HandledResult(
+          EditorDOMPoint::AtEndOf(aLeftBlockElement));
+    }
+
+    AutoTransactionsConserveSelection dontChangeMySelection(aHTMLEditor);
     // XXX Why do we ignore the result of AutoMoveOneLineHandler::Run()?
     NS_ASSERTION(rightBlockElement == afterRightBlockChild.GetContainer(),
                  "The relation is not guaranteed but assumed");
@@ -323,49 +328,63 @@ Result<EditActionResult, nsresult> WhiteSpaceVisibilityKeeper::
       NS_WARNING("AutoMoveOneLineHandler::Prepare() failed");
       return Err(rv);
     }
-    Result<MoveNodeResult, nsresult> moveNodeResult =
+    MoveNodeResult moveResult = MoveNodeResult::IgnoredResult(
+        EditorDOMPoint::AtEndOf(aLeftBlockElement));
+    AutoTrackDOMMoveNodeResult trackMoveResult(aHTMLEditor.RangeUpdaterRef(),
+                                               &moveResult);
+    Result<MoveNodeResult, nsresult> moveFirstLineResult =
         lineMoverToEndOfLeftBlock.Run(aHTMLEditor, aEditingHost);
-    if (MOZ_UNLIKELY(moveNodeResult.isErr())) {
+    if (MOZ_UNLIKELY(moveFirstLineResult.isErr())) {
       NS_WARNING("AutoMoveOneLineHandler::Run() failed");
-      return moveNodeResult.propagateErr();
+      return moveFirstLineResult.propagateErr();
     }
+    trackMoveResult.FlushAndStopTracking();
 
 #ifdef DEBUG
     MOZ_ASSERT(!firstLineHasContent.isErr());
     if (firstLineHasContent.inspect()) {
-      NS_ASSERTION(moveNodeResult.inspect().Handled(),
+      NS_ASSERTION(moveFirstLineResult.inspect().Handled(),
                    "Failed to consider whether moving or not something");
     } else {
-      NS_ASSERTION(moveNodeResult.inspect().Ignored(),
+      NS_ASSERTION(moveFirstLineResult.inspect().Ignored(),
                    "Failed to consider whether moving or not something");
     }
 #endif  // #ifdef DEBUG
 
-    // We don't need to update selection here because of dontChangeMySelection
-    // above.
-    moveNodeResult.inspect().IgnoreCaretPointSuggestion();
-    ret |= moveNodeResult.unwrap();
+    moveResult |= moveFirstLineResult.unwrap();
     // Now, all children of rightBlockElement were moved to leftBlockElement.
     // So, afterRightBlockChild is now invalid.
     afterRightBlockChild.Clear();
+
+    return std::move(moveResult);
+  }();
+  if (MOZ_UNLIKELY(moveContentResult.isErr())) {
+    return moveContentResult;
   }
 
   if (!invisibleBRElementAtEndOfLeftBlockElement ||
       !invisibleBRElementAtEndOfLeftBlockElement->IsInComposedDoc()) {
-    return ret;
+    return moveContentResult;
   }
 
-  nsresult rv = aHTMLEditor.DeleteNodeWithTransaction(
-      *invisibleBRElementAtEndOfLeftBlockElement);
-  if (NS_FAILED(rv)) {
-    NS_WARNING("EditorBase::DeleteNodeWithTransaction() failed, but ignored");
-    return Err(rv);
+  MoveNodeResult unwrappedMoveContentResult = moveContentResult.unwrap();
+  {
+    AutoTransactionsConserveSelection dontChangeMySelection(aHTMLEditor);
+    AutoTrackDOMMoveNodeResult trackMoveContentResult(
+        aHTMLEditor.RangeUpdaterRef(), &unwrappedMoveContentResult);
+    nsresult rv = aHTMLEditor.DeleteNodeWithTransaction(
+        *invisibleBRElementAtEndOfLeftBlockElement);
+    if (NS_FAILED(rv)) {
+      NS_WARNING("EditorBase::DeleteNodeWithTransaction() failed, but ignored");
+      unwrappedMoveContentResult.IgnoreCaretPointSuggestion();
+      return Err(rv);
+    }
   }
-  return EditActionResult::HandledResult();
+  return std::move(unwrappedMoveContentResult);
 }
 
 // static
-Result<EditActionResult, nsresult> WhiteSpaceVisibilityKeeper::
+Result<MoveNodeResult, nsresult> WhiteSpaceVisibilityKeeper::
     MergeFirstLineOfRightBlockElementIntoAncestorLeftBlockElement(
         HTMLEditor& aHTMLEditor, Element& aLeftBlockElement,
         Element& aRightBlockElement, const EditorDOMPoint& aAtLeftBlockChild,
@@ -480,69 +499,75 @@ Result<EditActionResult, nsresult> WhiteSpaceVisibilityKeeper::
   }
 
   // Do br adjustment.
-  RefPtr<HTMLBRElement> invisibleBRElementBeforeLeftBlockElement =
+  // XXX Why don't we delete the <br> first? If so, we can skip to track the
+  // MoveNodeResult at last.
+  const RefPtr<HTMLBRElement> invisibleBRElementBeforeLeftBlockElement =
       WSRunScanner::GetPrecedingBRElementUnlessVisibleContentFound(
           aHTMLEditor.ComputeEditingHost(), atLeftBlockChild,
           BlockInlineCheck::UseComputedDisplayStyle);
   NS_ASSERTION(
       aPrecedingInvisibleBRElement == invisibleBRElementBeforeLeftBlockElement,
       "The preceding invisible BR element computation was different");
-  auto ret = EditActionResult::IgnoredResult();
-  AutoTransactionsConserveSelection dontChangeMySelection(aHTMLEditor);
-  // NOTE: Keep syncing with CanMergeLeftAndRightBlockElements() of
-  //       AutoInclusiveAncestorBlockElementsJoiner.
-  if (aListElementTagName.isSome()) {
-    // XXX Why do we ignore the error from MoveChildrenWithTransaction()?
-    MOZ_ASSERT(originalLeftBlockElement == atLeftBlockChild.GetContainer(),
-               "This is not guaranteed, but assumed");
+  auto moveContentResult = [&]() MOZ_NEVER_INLINE_DEBUG MOZ_CAN_RUN_SCRIPT
+      -> Result<MoveNodeResult, nsresult> {
+    // NOTE: Keep syncing with CanMergeLeftAndRightBlockElements() of
+    //       AutoInclusiveAncestorBlockElementsJoiner.
+    if (aListElementTagName.isSome()) {
+      // XXX Why do we ignore the error from MoveChildrenWithTransaction()?
+      MOZ_ASSERT(originalLeftBlockElement == atLeftBlockChild.GetContainer(),
+                 "This is not guaranteed, but assumed");
 #ifdef DEBUG
-    Result<bool, nsresult> rightBlockHasContent =
-        aHTMLEditor.CanMoveChildren(aRightBlockElement, aLeftBlockElement);
+      Result<bool, nsresult> rightBlockHasContent =
+          aHTMLEditor.CanMoveChildren(aRightBlockElement, aLeftBlockElement);
 #endif  // #ifdef DEBUG
-    // TODO: Stop using HTMLEditor::PreserveWhiteSpaceStyle::No due to no tests.
-    Result<MoveNodeResult, nsresult> moveNodeResult =
-        aHTMLEditor.MoveChildrenWithTransaction(
-            aRightBlockElement,
-            EditorDOMPoint(atLeftBlockChild.GetContainer(),
-                           atLeftBlockChild.Offset()),
-            HTMLEditor::PreserveWhiteSpaceStyle::No,
-            HTMLEditor::RemoveIfCommentNode::Yes);
-    if (MOZ_UNLIKELY(moveNodeResult.isErr())) {
-      if (NS_WARN_IF(moveNodeResult.inspectErr() ==
-                     NS_ERROR_EDITOR_DESTROYED)) {
-        return Err(moveNodeResult.unwrapErr());
-      }
-      NS_WARNING(
-          "HTMLEditor::MoveChildrenWithTransaction() failed, but ignored");
-    } else {
-#ifdef DEBUG
-      MOZ_ASSERT(!rightBlockHasContent.isErr());
-      if (rightBlockHasContent.inspect()) {
-        NS_ASSERTION(moveNodeResult.inspect().Handled(),
-                     "Failed to consider whether moving or not children");
+      MoveNodeResult moveResult = MoveNodeResult::IgnoredResult(EditorDOMPoint(
+          atLeftBlockChild.GetContainer(), atLeftBlockChild.Offset()));
+      AutoTrackDOMMoveNodeResult trackMoveResult(aHTMLEditor.RangeUpdaterRef(),
+                                                 &moveResult);
+      // TODO: Stop using HTMLEditor::PreserveWhiteSpaceStyle::No due to no
+      // tests.
+      AutoTransactionsConserveSelection dontChangeMySelection(aHTMLEditor);
+      Result<MoveNodeResult, nsresult> moveChildrenResult =
+          aHTMLEditor.MoveChildrenWithTransaction(
+              aRightBlockElement, moveResult.NextInsertionPointRef(),
+              HTMLEditor::PreserveWhiteSpaceStyle::No,
+              HTMLEditor::RemoveIfCommentNode::Yes);
+      if (MOZ_UNLIKELY(moveChildrenResult.isErr())) {
+        if (NS_WARN_IF(moveChildrenResult.inspectErr() ==
+                       NS_ERROR_EDITOR_DESTROYED)) {
+          return moveChildrenResult;
+        }
+        NS_WARNING(
+            "HTMLEditor::MoveChildrenWithTransaction() failed, but ignored");
       } else {
-        NS_ASSERTION(moveNodeResult.inspect().Ignored(),
-                     "Failed to consider whether moving or not children");
-      }
+#ifdef DEBUG
+        MOZ_ASSERT(!rightBlockHasContent.isErr());
+        if (rightBlockHasContent.inspect()) {
+          NS_ASSERTION(moveChildrenResult.inspect().Handled(),
+                       "Failed to consider whether moving or not children");
+        } else {
+          NS_ASSERTION(moveChildrenResult.inspect().Ignored(),
+                       "Failed to consider whether moving or not children");
+        }
 #endif  // #ifdef DEBUG
-      // We don't need to update selection here because of dontChangeMySelection
-      // above.
-      moveNodeResult.inspect().IgnoreCaretPointSuggestion();
-      ret |= moveNodeResult.unwrap();
+        trackMoveResult.FlushAndStopTracking();
+        moveResult |= moveChildrenResult.unwrap();
+      }
+      // atLeftBlockChild was moved to rightListElement.  So, it's invalid now.
+      atLeftBlockChild.Clear();
+
+      return std::move(moveResult);
     }
-    // atLeftBlockChild was moved to rightListElement.  So, it's invalid now.
-    atLeftBlockChild.Clear();
-  } else {
+
     // Left block is a parent of right block, and the parent of the previous
     // visible content.  Right block is a child and contains the contents we
     // want to move.
-
     EditorDOMPoint pointToMoveFirstLineContent;
     if (&aLeftContentInBlock == leftBlockElement) {
-      // We are working with valid HTML, aLeftContentInBlock is a block element,
-      // and is therefore allowed to contain aRightBlockElement.  This is the
-      // simple case, we will simply move the content in aRightBlockElement
-      // out of its block.
+      // We are working with valid HTML, aLeftContentInBlock is a block
+      // element, and is therefore allowed to contain aRightBlockElement. This
+      // is the simple case, we will simply move the content in
+      // aRightBlockElement out of its block.
       pointToMoveFirstLineContent = atLeftBlockChild;
       MOZ_ASSERT(pointToMoveFirstLineContent.GetContainer() ==
                  &aLeftBlockElement);
@@ -594,8 +619,8 @@ Result<EditActionResult, nsresult> WhiteSpaceVisibilityKeeper::
         return Err(rv);
       }
       if (!unwrappedSplitNodeResult.DidSplit()) {
-        // If nothing was split, we should move the first line content to after
-        // the parent inline elements.
+        // If nothing was split, we should move the first line content to
+        // after the parent inline elements.
         for (EditorDOMPoint parentPoint = pointToMoveFirstLineContent;
              pointToMoveFirstLineContent.IsEndOfContainer() &&
              pointToMoveFirstLineContent.IsInContentNode();
@@ -612,8 +637,8 @@ Result<EditActionResult, nsresult> WhiteSpaceVisibilityKeeper::
           return Err(NS_ERROR_FAILURE);
         }
       } else if (unwrappedSplitNodeResult.Handled()) {
-        // If se split something, we should move the first line contents before
-        // the right elements.
+        // If se split something, we should move the first line contents
+        // before the right elements.
         if (nsIContent* nextContentAtSplitPoint =
                 unwrappedSplitNodeResult.GetNextContent()) {
           pointToMoveFirstLineContent.Set(nextContentAtSplitPoint);
@@ -631,6 +656,8 @@ Result<EditActionResult, nsresult> WhiteSpaceVisibilityKeeper::
       MOZ_DIAGNOSTIC_ASSERT(pointToMoveFirstLineContent.IsSetAndValid());
     }
 
+    MoveNodeResult moveResult =
+        MoveNodeResult::IgnoredResult(pointToMoveFirstLineContent);
     HTMLEditor::AutoMoveOneLineHandler lineMoverToPoint(
         pointToMoveFirstLineContent);
     nsresult rv = lineMoverToPoint.Prepare(
@@ -639,46 +666,58 @@ Result<EditActionResult, nsresult> WhiteSpaceVisibilityKeeper::
       NS_WARNING("AutoMoveOneLineHandler::Prepare() failed");
       return Err(rv);
     }
-    Result<MoveNodeResult, nsresult> moveNodeResult =
+    AutoTrackDOMMoveNodeResult trackMoveResult(aHTMLEditor.RangeUpdaterRef(),
+                                               &moveResult);
+    AutoTransactionsConserveSelection dontChangeMySelection(aHTMLEditor);
+    Result<MoveNodeResult, nsresult> moveFirstLineResult =
         lineMoverToPoint.Run(aHTMLEditor, aEditingHost);
-    if (moveNodeResult.isErr()) {
+    if (MOZ_UNLIKELY(moveFirstLineResult.isErr())) {
       NS_WARNING("AutoMoveOneLineHandler::Run() failed");
-      return moveNodeResult.propagateErr();
+      return moveFirstLineResult.propagateErr();
     }
 
 #ifdef DEBUG
     MOZ_ASSERT(!firstLineHasContent.isErr());
     if (firstLineHasContent.inspect()) {
-      NS_ASSERTION(moveNodeResult.inspect().Handled(),
+      NS_ASSERTION(moveFirstLineResult.inspect().Handled(),
                    "Failed to consider whether moving or not something");
     } else {
-      NS_ASSERTION(moveNodeResult.inspect().Ignored(),
+      NS_ASSERTION(moveFirstLineResult.inspect().Ignored(),
                    "Failed to consider whether moving or not something");
     }
 #endif  // #ifdef DEBUG
 
-    // We don't need to update selection here because of dontChangeMySelection
-    // above.
-    moveNodeResult.inspect().IgnoreCaretPointSuggestion();
-    ret |= moveNodeResult.unwrap();
+    trackMoveResult.FlushAndStopTracking();
+    moveResult |= moveFirstLineResult.unwrap();
+    return std::move(moveResult);
+  }();
+  if (MOZ_UNLIKELY(moveContentResult.isErr())) {
+    return moveContentResult;
   }
 
   if (!invisibleBRElementBeforeLeftBlockElement ||
       !invisibleBRElementBeforeLeftBlockElement->IsInComposedDoc()) {
-    return ret;
+    return moveContentResult;
   }
 
-  nsresult rv = aHTMLEditor.DeleteNodeWithTransaction(
-      *invisibleBRElementBeforeLeftBlockElement);
-  if (NS_FAILED(rv)) {
-    NS_WARNING("EditorBase::DeleteNodeWithTransaction() failed, but ignored");
-    return Err(rv);
+  MoveNodeResult unwrappedMoveContentResult = moveContentResult.unwrap();
+  {
+    AutoTrackDOMMoveNodeResult trackMoveContentResult(
+        aHTMLEditor.RangeUpdaterRef(), &unwrappedMoveContentResult);
+    AutoTransactionsConserveSelection dontChangeMySelection(aHTMLEditor);
+    nsresult rv = aHTMLEditor.DeleteNodeWithTransaction(
+        *invisibleBRElementBeforeLeftBlockElement);
+    if (NS_FAILED(rv)) {
+      NS_WARNING("EditorBase::DeleteNodeWithTransaction() failed, but ignored");
+      unwrappedMoveContentResult.IgnoreCaretPointSuggestion();
+      return Err(rv);
+    }
   }
-  return EditActionResult::HandledResult();
+  return std::move(unwrappedMoveContentResult);
 }
 
 // static
-Result<EditActionResult, nsresult> WhiteSpaceVisibilityKeeper::
+Result<MoveNodeResult, nsresult> WhiteSpaceVisibilityKeeper::
     MergeFirstLineOfRightBlockElementIntoLeftBlockElement(
         HTMLEditor& aHTMLEditor, Element& aLeftBlockElement,
         Element& aRightBlockElement, const Maybe<nsAtom*>& aListElementTagName,
@@ -715,7 +754,9 @@ Result<EditActionResult, nsresult> WhiteSpaceVisibilityKeeper::
     caretPointOrError.unwrap().IgnoreCaretPointSuggestion();
   }
   // Do br adjustment.
-  RefPtr<HTMLBRElement> invisibleBRElementAtEndOfLeftBlockElement =
+  // XXX Why don't we delete the <br> first? If so, we can skip to track the
+  // MoveNodeResult at last.
+  const RefPtr<HTMLBRElement> invisibleBRElementAtEndOfLeftBlockElement =
       WSRunScanner::GetPrecedingBRElementUnlessVisibleContentFound(
           aHTMLEditor.ComputeEditingHost(),
           EditorDOMPoint::AtEndOf(aLeftBlockElement),
@@ -723,52 +764,65 @@ Result<EditActionResult, nsresult> WhiteSpaceVisibilityKeeper::
   NS_ASSERTION(
       aPrecedingInvisibleBRElement == invisibleBRElementAtEndOfLeftBlockElement,
       "The preceding invisible BR element computation was different");
-  auto ret = EditActionResult::IgnoredResult();
-  AutoTransactionsConserveSelection dontChangeMySelection(aHTMLEditor);
-  if (aListElementTagName.isSome() ||
-      // TODO: We should stop merging entire blocks even if they have same
-      // white-space style because Chrome behave so.  However, it's risky to
-      // change our behavior in the major cases so that we should do it in
-      // a bug to manage only the change.
-      (aLeftBlockElement.NodeInfo()->NameAtom() ==
-           aRightBlockElement.NodeInfo()->NameAtom() &&
-       EditorUtils::GetComputedWhiteSpaceStyles(aLeftBlockElement) ==
-           EditorUtils::GetComputedWhiteSpaceStyles(aRightBlockElement))) {
-    // Nodes are same type.  merge them.
-    EditorDOMPoint atFirstChildOfRightNode;
-    nsresult rv = aHTMLEditor.JoinNearestEditableNodesWithTransaction(
-        aLeftBlockElement, aRightBlockElement, &atFirstChildOfRightNode);
-    if (NS_WARN_IF(rv == NS_ERROR_EDITOR_DESTROYED)) {
-      return Err(NS_ERROR_EDITOR_DESTROYED);
-    }
-    NS_WARNING_ASSERTION(NS_SUCCEEDED(rv),
-                         "HTMLEditor::JoinNearestEditableNodesWithTransaction()"
-                         " failed, but ignored");
-    if (aListElementTagName.isSome() && atFirstChildOfRightNode.IsSet()) {
-      Result<CreateElementResult, nsresult> convertListTypeResult =
-          aHTMLEditor.ChangeListElementType(
-              aRightBlockElement, MOZ_KnownLive(*aListElementTagName.ref()),
-              *nsGkAtoms::li);
-      if (MOZ_UNLIKELY(convertListTypeResult.isErr())) {
-        if (NS_WARN_IF(convertListTypeResult.inspectErr() ==
-                       NS_ERROR_EDITOR_DESTROYED)) {
-          return Err(NS_ERROR_EDITOR_DESTROYED);
-        }
-        NS_WARNING("HTMLEditor::ChangeListElementType() failed, but ignored");
-      } else {
-        // There is AutoTransactionConserveSelection above, therefore, we don't
-        // need to update selection here.
-        convertListTypeResult.inspect().IgnoreCaretPointSuggestion();
+  auto moveContentResult = [&]() MOZ_NEVER_INLINE_DEBUG MOZ_CAN_RUN_SCRIPT
+      -> Result<MoveNodeResult, nsresult> {
+    if (aListElementTagName.isSome() ||
+        // TODO: We should stop merging entire blocks even if they have same
+        // white-space style because Chrome behave so.  However, it's risky to
+        // change our behavior in the major cases so that we should do it in
+        // a bug to manage only the change.
+        (aLeftBlockElement.NodeInfo()->NameAtom() ==
+             aRightBlockElement.NodeInfo()->NameAtom() &&
+         EditorUtils::GetComputedWhiteSpaceStyles(aLeftBlockElement) ==
+             EditorUtils::GetComputedWhiteSpaceStyles(aRightBlockElement))) {
+      MoveNodeResult moveResult = MoveNodeResult::IgnoredResult(
+          EditorDOMPoint::AtEndOf(aLeftBlockElement));
+      AutoTrackDOMMoveNodeResult trackMoveResult(aHTMLEditor.RangeUpdaterRef(),
+                                                 &moveResult);
+      AutoTransactionsConserveSelection dontChangeMySelection(aHTMLEditor);
+      // Nodes are same type.  merge them.
+      EditorDOMPoint atFirstChildOfRightNode;
+      nsresult rv = aHTMLEditor.JoinNearestEditableNodesWithTransaction(
+          aLeftBlockElement, aRightBlockElement, &atFirstChildOfRightNode);
+      if (NS_WARN_IF(rv == NS_ERROR_EDITOR_DESTROYED)) {
+        return Err(NS_ERROR_EDITOR_DESTROYED);
       }
+      NS_WARNING_ASSERTION(
+          NS_SUCCEEDED(rv),
+          "HTMLEditor::JoinNearestEditableNodesWithTransaction()"
+          " failed, but ignored");
+      if (aListElementTagName.isSome() && atFirstChildOfRightNode.IsSet()) {
+        Result<CreateElementResult, nsresult> convertListTypeResult =
+            aHTMLEditor.ChangeListElementType(
+                // XXX Shouldn't be aLeftBlockElement here?
+                aRightBlockElement, MOZ_KnownLive(*aListElementTagName.ref()),
+                *nsGkAtoms::li);
+        if (MOZ_UNLIKELY(convertListTypeResult.isErr())) {
+          if (NS_WARN_IF(convertListTypeResult.inspectErr() ==
+                         NS_ERROR_EDITOR_DESTROYED)) {
+            return Err(NS_ERROR_EDITOR_DESTROYED);
+          }
+          NS_WARNING("HTMLEditor::ChangeListElementType() failed, but ignored");
+        } else {
+          // There is AutoTransactionConserveSelection above, therefore, we
+          // don't need to update selection here.
+          convertListTypeResult.inspect().IgnoreCaretPointSuggestion();
+        }
+      }
+      trackMoveResult.FlushAndStopTracking();
+      moveResult |= MoveNodeResult::HandledResult(
+          EditorDOMPoint::AtEndOf(aLeftBlockElement));
+      return std::move(moveResult);
     }
-    ret.MarkAsHandled();
-  } else {
+
 #ifdef DEBUG
     Result<bool, nsresult> firstLineHasContent =
         HTMLEditor::AutoMoveOneLineHandler::CanMoveOrDeleteSomethingInLine(
             EditorDOMPoint(&aRightBlockElement, 0u), aEditingHost);
 #endif  // #ifdef DEBUG
 
+    MoveNodeResult moveResult = MoveNodeResult::IgnoredResult(
+        EditorDOMPoint::AtEndOf(aLeftBlockElement));
     // Nodes are dissimilar types.
     HTMLEditor::AutoMoveOneLineHandler lineMoverToEndOfLeftBlock(
         aLeftBlockElement);
@@ -778,46 +832,58 @@ Result<EditActionResult, nsresult> WhiteSpaceVisibilityKeeper::
       NS_WARNING("AutoMoveOneLineHandler::Prepare() failed");
       return Err(rv);
     }
-    Result<MoveNodeResult, nsresult> moveNodeResult =
+    AutoTrackDOMMoveNodeResult trackMoveResult(aHTMLEditor.RangeUpdaterRef(),
+                                               &moveResult);
+    AutoTransactionsConserveSelection dontChangeMySelection(aHTMLEditor);
+    Result<MoveNodeResult, nsresult> moveFirstLineResult =
         lineMoverToEndOfLeftBlock.Run(aHTMLEditor, aEditingHost);
-    if (MOZ_UNLIKELY(moveNodeResult.isErr())) {
+    if (MOZ_UNLIKELY(moveFirstLineResult.isErr())) {
       NS_WARNING("AutoMoveOneLineHandler::Run() failed");
-      return moveNodeResult.propagateErr();
+      return moveFirstLineResult.propagateErr();
     }
 
 #ifdef DEBUG
     MOZ_ASSERT(!firstLineHasContent.isErr());
     if (firstLineHasContent.inspect()) {
-      NS_ASSERTION(moveNodeResult.inspect().Handled(),
+      NS_ASSERTION(moveFirstLineResult.inspect().Handled(),
                    "Failed to consider whether moving or not something");
     } else {
-      NS_ASSERTION(moveNodeResult.inspect().Ignored(),
+      NS_ASSERTION(moveFirstLineResult.inspect().Ignored(),
                    "Failed to consider whether moving or not something");
     }
 #endif  // #ifdef DEBUG
 
-    // We don't need to update selection here because of dontChangeMySelection
-    // above.
-    moveNodeResult.inspect().IgnoreCaretPointSuggestion();
-    ret |= moveNodeResult.unwrap();
+    trackMoveResult.FlushAndStopTracking();
+    moveResult |= moveFirstLineResult.unwrap();
+    return std::move(moveResult);
+  }();
+  if (MOZ_UNLIKELY(moveContentResult.isErr())) {
+    return moveContentResult;
   }
 
+  MoveNodeResult unwrappedMoveContentResult = moveContentResult.unwrap();
   if (!invisibleBRElementAtEndOfLeftBlockElement ||
       !invisibleBRElementAtEndOfLeftBlockElement->IsInComposedDoc()) {
-    ret.MarkAsHandled();
-    return ret;
+    unwrappedMoveContentResult.ForceToMarkAsHandled();
+    return std::move(unwrappedMoveContentResult);
   }
 
-  nsresult rv = aHTMLEditor.DeleteNodeWithTransaction(
-      *invisibleBRElementAtEndOfLeftBlockElement);
-  // XXX In other top level if blocks, the result of
-  //     DeleteNodeWithTransaction() is ignored.  Why does only this result
-  //     is respected?
-  if (NS_FAILED(rv)) {
-    NS_WARNING("EditorBase::DeleteNodeWithTransaction() failed");
-    return Err(rv);
+  {
+    AutoTrackDOMMoveNodeResult trackMoveContentResult(
+        aHTMLEditor.RangeUpdaterRef(), &unwrappedMoveContentResult);
+    AutoTransactionsConserveSelection dontChangeMySelection(aHTMLEditor);
+    nsresult rv = aHTMLEditor.DeleteNodeWithTransaction(
+        *invisibleBRElementAtEndOfLeftBlockElement);
+    // XXX In other top level if blocks, the result of
+    //     DeleteNodeWithTransaction() is ignored.  Why does only this result
+    //     is respected?
+    if (NS_FAILED(rv)) {
+      NS_WARNING("EditorBase::DeleteNodeWithTransaction() failed");
+      unwrappedMoveContentResult.IgnoreCaretPointSuggestion();
+      return Err(rv);
+    }
   }
-  return EditActionResult::HandledResult();
+  return std::move(unwrappedMoveContentResult);
 }
 
 // static

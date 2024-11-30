@@ -138,6 +138,8 @@ class MOZ_STACK_CLASS CaretPoint {
  private:
   EditorDOMPoint mCaretPoint;
   bool mutable mHandledCaretPoint = false;
+
+  friend class AutoTrackDOMPoint;
 };
 
 /***************************************************************************
