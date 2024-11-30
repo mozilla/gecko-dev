@@ -954,8 +954,9 @@ class MOZ_STACK_CLASS HTMLEditor::AutoDeleteRangesHandler final {
      * DeleteTextAtStartAndEndOfRange() removes text if start and/or end of
      * aRange is in a text node.
      */
-    [[nodiscard]] MOZ_CAN_RUN_SCRIPT nsresult
-    DeleteTextAtStartAndEndOfRange(HTMLEditor& aHTMLEditor, nsRange& aRange);
+    [[nodiscard]] MOZ_CAN_RUN_SCRIPT Result<DeleteRangeResult, nsresult>
+    DeleteTextAtStartAndEndOfRange(HTMLEditor& aHTMLEditor, nsRange& aRange,
+                                   PutCaretTo aPutCaretTo);
 
     /**
      * Return a block element which is an inclusive ancestor of the container of
@@ -4359,117 +4360,168 @@ bool HTMLEditor::AutoDeleteRangesHandler::AutoBlockElementsJoiner::
   return true;
 }
 
-nsresult HTMLEditor::AutoDeleteRangesHandler::AutoBlockElementsJoiner::
-    DeleteTextAtStartAndEndOfRange(HTMLEditor& aHTMLEditor, nsRange& aRange) {
-  EditorDOMPoint rangeStart(aRange.StartRef());
-  EditorDOMPoint rangeEnd(aRange.EndRef());
+Result<DeleteRangeResult, nsresult> HTMLEditor::AutoDeleteRangesHandler::
+    AutoBlockElementsJoiner::DeleteTextAtStartAndEndOfRange(
+        HTMLEditor& aHTMLEditor, nsRange& aRange, PutCaretTo aPutCaretTo) {
   if (MOZ_UNLIKELY(aRange.Collapsed())) {
-    return NS_OK;
+    return DeleteRangeResult::IgnoredResult();
   }
 
-  EditorDOMPoint pointToPutCaret;
+  const auto DeleteTextNode =
+      [&aHTMLEditor](const OwningNonNull<Text>& aTextNode)
+          MOZ_NEVER_INLINE_DEBUG MOZ_CAN_RUN_SCRIPT
+      -> Result<DeleteRangeResult, nsresult> {
+    const nsCOMPtr<nsINode> parentNode = aTextNode->GetParentNode();
+    if (NS_WARN_IF(!parentNode)) {
+      return Err(NS_ERROR_FAILURE);
+    }
+    const nsCOMPtr<nsIContent> nextSibling = aTextNode->GetNextSibling();
+    nsresult rv = aHTMLEditor.DeleteNodeWithTransaction(aTextNode);
+    if (NS_FAILED(rv)) {
+      NS_WARNING("EditorBase::DeleteNodeWithTransaction() failed");
+      return Err(rv);
+    }
+    if (NS_WARN_IF(nextSibling && nextSibling->GetParentNode() != parentNode) ||
+        NS_WARN_IF(!parentNode->IsInComposedDoc())) {
+      return Err(NS_ERROR_EDITOR_UNEXPECTED_DOM_TREE);
+    }
+    const auto atRemovedTextNode = nextSibling
+                                       ? EditorDOMPoint(nextSibling)
+                                       : EditorDOMPoint::AtEndOf(*parentNode);
+    return DeleteRangeResult(EditorDOMRange(atRemovedTextNode),
+                             atRemovedTextNode);
+  };
+
+  EditorDOMRange range(aRange);
   // If the range is in a text node, delete middle of the text or the text node
   // itself.
-  if (rangeStart.IsInTextNode() &&
-      rangeStart.ContainerAs<Text>() == rangeEnd.GetContainer()) {
-    OwningNonNull<Text> textNode = *rangeStart.ContainerAs<Text>();
-    if (rangeStart.IsStartOfContainer() && rangeEnd.IsEndOfContainer()) {
-      EditorDOMPoint pointToPutCaret(textNode);
-      AutoTrackDOMPoint trackTextNodePoint(aHTMLEditor.RangeUpdaterRef(),
-                                           &pointToPutCaret);
-      nsresult rv = aHTMLEditor.DeleteNodeWithTransaction(textNode);
-      if (NS_FAILED(rv)) {
-        NS_WARNING("EditorBase::DeleteNodeWithTransaction() failed");
-        return rv;
-      }
-    } else {
-      MOZ_ASSERT(rangeEnd.Offset() - rangeStart.Offset() > 0);
-      Result<CaretPoint, nsresult> caretPointOrError =
-          aHTMLEditor.DeleteTextWithTransaction(
-              textNode, rangeStart.Offset(),
-              rangeEnd.Offset() - rangeStart.Offset());
-      if (MOZ_UNLIKELY(caretPointOrError.isErr())) {
-        NS_WARNING("HTMLEditor::DeleteTextWithTransaction() failed");
-        return caretPointOrError.unwrapErr();
-      }
-      caretPointOrError.unwrap().MoveCaretPointTo(
-          pointToPutCaret, aHTMLEditor,
-          {SuggestCaret::OnlyIfHasSuggestion,
-           SuggestCaret::OnlyIfTransactionsAllowedToDoIt});
+  if (range.StartRef().IsInTextNode() && range.InSameContainer()) {
+    const OwningNonNull<Text> textNode = *range.StartRef().ContainerAs<Text>();
+    if (range.StartRef().IsStartOfContainer() &&
+        range.EndRef().IsEndOfContainer()) {
+      Result<DeleteRangeResult, nsresult> deleteTextNodeResult =
+          DeleteTextNode(textNode);
+      NS_WARNING_ASSERTION(
+          deleteTextNodeResult.isOk(),
+          "DeleteTextNode() failed to delete the selected Text node");
+      return deleteTextNodeResult;
     }
-  } else {
-    // If the range starts in a text node and ends in a different node, delete
-    // the text after the start boundary.
-    if (rangeStart.IsInTextNode() && !rangeStart.IsEndOfContainer()) {
-      OwningNonNull<Text> textNode = *rangeStart.ContainerAs<Text>();
-      if (rangeStart.IsStartOfContainer()) {
-        pointToPutCaret.Set(textNode);
-        AutoTrackDOMPoint trackTextNodePoint(aHTMLEditor.RangeUpdaterRef(),
-                                             &pointToPutCaret);
-        nsresult rv = aHTMLEditor.DeleteNodeWithTransaction(textNode);
-        if (NS_FAILED(rv)) {
-          NS_WARNING("EditorBase::DeleteNodeWithTransaction() failed");
-          return rv;
-        }
-      } else {
-        Result<CaretPoint, nsresult> caretPointOrError =
-            aHTMLEditor.DeleteTextWithTransaction(
-                textNode, rangeStart.Offset(),
-                rangeStart.GetContainer()->Length() - rangeStart.Offset());
-        if (MOZ_UNLIKELY(caretPointOrError.isErr())) {
-          NS_WARNING("HTMLEditor::DeleteTextWithTransaction() failed");
-          return caretPointOrError.unwrapErr();
-        }
-        caretPointOrError.unwrap().MoveCaretPointTo(
-            pointToPutCaret, aHTMLEditor,
-            {SuggestCaret::OnlyIfHasSuggestion,
-             SuggestCaret::OnlyIfTransactionsAllowedToDoIt});
-      }
+    MOZ_ASSERT(range.EndRef().Offset() - range.StartRef().Offset() > 0);
+    Result<CaretPoint, nsresult> caretPointOrError =
+        aHTMLEditor.DeleteTextWithTransaction(
+            textNode, range.StartRef().Offset(),
+            range.EndRef().Offset() - range.StartRef().Offset());
+    if (MOZ_UNLIKELY(caretPointOrError.isErr())) {
+      NS_WARNING("HTMLEditor::DeleteTextWithTransaction() failed");
+      return caretPointOrError.propagateErr();
     }
-
-    // If the range ends in a text node and starts from a different node, delete
-    // the text before the end boundary.
-    if (rangeEnd.IsInTextNode() && !rangeEnd.IsStartOfContainer()) {
-      OwningNonNull<Text> textNode = *rangeEnd.ContainerAs<Text>();
-      if (rangeEnd.IsEndOfContainer()) {
-        pointToPutCaret.Set(textNode);
-        AutoTrackDOMPoint trackTextNodePoint(aHTMLEditor.RangeUpdaterRef(),
-                                             &pointToPutCaret);
-        nsresult rv = aHTMLEditor.DeleteNodeWithTransaction(textNode);
-        if (NS_FAILED(rv)) {
-          NS_WARNING("EditorBase::DeleteNodeWithTransaction() failed");
-          return rv;
-        }
-      } else {
-        Result<CaretPoint, nsresult> caretPointOrError =
-            aHTMLEditor.DeleteTextWithTransaction(textNode, 0,
-                                                  rangeEnd.Offset());
-        if (MOZ_UNLIKELY(caretPointOrError.isErr())) {
-          NS_WARNING("HTMLEditor::DeleteTextWithTransaction() failed");
-          return caretPointOrError.unwrapErr();
-        }
-        caretPointOrError.unwrap().MoveCaretPointTo(
-            pointToPutCaret, aHTMLEditor,
-            {SuggestCaret::OnlyIfHasSuggestion,
-             SuggestCaret::OnlyIfTransactionsAllowedToDoIt});
-      }
+    const EditorDOMPoint atRemovedText =
+        caretPointOrError.unwrap().UnwrapCaretPoint();
+    if (NS_WARN_IF(!atRemovedText.IsSetAndValidInComposedDoc())) {
+      return Err(NS_ERROR_EDITOR_UNEXPECTED_DOM_TREE);
     }
+    return DeleteRangeResult(EditorDOMRange(atRemovedText), atRemovedText);
   }
 
+  // If the range starts in a text node and ends in a different node, delete
+  // the text after the start boundary.
+  auto deleteStartTextResultOrError =
+      [&]() MOZ_NEVER_INLINE_DEBUG MOZ_CAN_RUN_SCRIPT
+      -> Result<DeleteRangeResult, nsresult> {
+    if (!range.StartRef().IsInTextNode() ||
+        range.StartRef().IsEndOfContainer()) {
+      return DeleteRangeResult::IgnoredResult();
+    }
+    AutoTrackDOMRange trackRange(aHTMLEditor.RangeUpdaterRef(), &range);
+    const OwningNonNull<Text> textNode = *range.StartRef().ContainerAs<Text>();
+    if (range.StartRef().IsStartOfContainer()) {
+      Result<DeleteRangeResult, nsresult> deleteTextNodeResult =
+          DeleteTextNode(textNode);
+      NS_WARNING_ASSERTION(
+          deleteTextNodeResult.isOk(),
+          "DeleteTextNode() failed to delete the start Text node");
+      return deleteTextNodeResult;
+    }
+    Result<CaretPoint, nsresult> caretPointOrError =
+        aHTMLEditor.DeleteTextWithTransaction(
+            textNode, range.StartRef().Offset(),
+            textNode->TextDataLength() - range.StartRef().Offset());
+    if (MOZ_UNLIKELY(caretPointOrError.isErr())) {
+      NS_WARNING("HTMLEditor::DeleteTextWithTransaction() failed");
+      return caretPointOrError.propagateErr();
+    }
+    const EditorDOMPoint atRemovedText =
+        caretPointOrError.unwrap().UnwrapCaretPoint();
+    if (NS_WARN_IF(!atRemovedText.IsSetAndValidInComposedDoc())) {
+      return Err(NS_ERROR_EDITOR_UNEXPECTED_DOM_TREE);
+    }
+    return DeleteRangeResult(EditorDOMRange(atRemovedText), atRemovedText);
+  }();
+  if (MOZ_UNLIKELY(deleteStartTextResultOrError.isErr())) {
+    return deleteStartTextResultOrError.propagateErr();
+  }
+  DeleteRangeResult deleteStartTextResult =
+      deleteStartTextResultOrError.unwrap();
+
+  // If the range ends in a text node and starts from a different node, delete
+  // the text before the end boundary.
+  auto deleteEndTextResultOrError =
+      [&]() MOZ_NEVER_INLINE_DEBUG MOZ_CAN_RUN_SCRIPT
+      -> Result<DeleteRangeResult, nsresult> {
+    if (!range.EndRef().IsInTextNode() || range.EndRef().IsStartOfContainer()) {
+      return DeleteRangeResult::IgnoredResult();
+    }
+    AutoTrackDOMRange trackRange(aHTMLEditor.RangeUpdaterRef(), &range);
+    AutoTrackDOMDeleteRangeResult trackDeleteStartTextResult(
+        aHTMLEditor.RangeUpdaterRef(), &deleteStartTextResult);
+    const OwningNonNull<Text> textNode = *range.EndRef().ContainerAs<Text>();
+    if (range.EndRef().IsEndOfContainer()) {
+      Result<DeleteRangeResult, nsresult> deleteTextNodeResult =
+          DeleteTextNode(textNode);
+      NS_WARNING_ASSERTION(
+          deleteTextNodeResult.isOk(),
+          "DeleteTextNode() failed to delete the end Text node");
+      return deleteTextNodeResult;
+    }
+    Result<CaretPoint, nsresult> caretPointOrError =
+        aHTMLEditor.DeleteTextWithTransaction(textNode, 0,
+                                              range.EndRef().Offset());
+    if (MOZ_UNLIKELY(caretPointOrError.isErr())) {
+      NS_WARNING("HTMLEditor::DeleteTextWithTransaction() failed");
+      return caretPointOrError.propagateErr();
+    }
+    const EditorDOMPoint atRemovedText =
+        caretPointOrError.unwrap().UnwrapCaretPoint();
+    if (NS_WARN_IF(!atRemovedText.IsSetAndValidInComposedDoc())) {
+      return Err(NS_ERROR_EDITOR_UNEXPECTED_DOM_TREE);
+    }
+    return DeleteRangeResult(EditorDOMRange(atRemovedText), atRemovedText);
+  }();
+  if (MOZ_UNLIKELY(deleteEndTextResultOrError.isErr())) {
+    return deleteEndTextResultOrError.propagateErr();
+  }
+  DeleteRangeResult deleteEndTextResult = deleteEndTextResultOrError.unwrap();
+
+  if (!deleteStartTextResult.Handled() && !deleteEndTextResult.Handled()) {
+    deleteStartTextResult.IgnoreCaretPointSuggestion();
+    deleteEndTextResult.IgnoreCaretPointSuggestion();
+    return DeleteRangeResult::IgnoredResult();
+  }
+
+  EditorDOMPoint pointToPutCaret =
+      aPutCaretTo == PutCaretTo::EndOfRange
+          ? (deleteEndTextResult.Handled()
+                 ? deleteEndTextResult.UnwrapCaretPoint()
+                 : EditorDOMPoint())
+          : (deleteStartTextResult.Handled()
+                 ? deleteStartTextResult.UnwrapCaretPoint()
+                 : EditorDOMPoint());
+  deleteStartTextResult |= deleteEndTextResult;
+  deleteStartTextResult.ForgetCaretPointSuggestion();
   if (pointToPutCaret.IsSet()) {
-    CaretPoint caretPoint(std::move(pointToPutCaret));
-    nsresult rv = caretPoint.SuggestCaretPointTo(
-        aHTMLEditor, {SuggestCaret::OnlyIfTransactionsAllowedToDoIt,
-                      SuggestCaret::AndIgnoreTrivialError});
-    if (NS_FAILED(rv)) {
-      NS_WARNING("CaretPoint::SuggestCaretPointTo() failed");
-      return rv;
-    }
-    NS_WARNING_ASSERTION(
-        rv != NS_SUCCESS_EDITOR_BUT_IGNORED_TRIVIAL_ERROR,
-        "CaretPoint::SuggestCaretPointTo() failed, but ignored");
+    deleteStartTextResult |= CaretPoint(std::move(pointToPutCaret));
   }
-  return NS_OK;
+  return std::move(deleteStartTextResult);
 }
 
 // static
@@ -4803,6 +4855,8 @@ Result<EditActionResult, nsresult> HTMLEditor::AutoDeleteRangesHandler::
     AutoTrackDOMRange trackRangeToDelete(aHTMLEditor.RangeUpdaterRef(),
                                          &rangeToDelete);
 
+    // First, delete nodes which are entirely selected except table structure
+    // elements like <td>, <th>, <caption>.
     Result<DeleteRangeResult, nsresult> deleteResultOrError =
         DeleteNodesEntirelyInRangeButKeepTableStructure(
             aHTMLEditor, arrayOfTopChildren, putCaretTo);
@@ -4823,13 +4877,24 @@ Result<EditActionResult, nsresult> HTMLEditor::AutoDeleteRangesHandler::
     // node was already handled (we wouldn't be here)
     AutoTrackDOMDeleteRangeResult trackDeleteResult(
         aHTMLEditor.RangeUpdaterRef(), &deleteResult);
-    nsresult rv = DeleteTextAtStartAndEndOfRange(aHTMLEditor, rangeToDelete);
-    if (NS_FAILED(rv)) {
+    Result<DeleteRangeResult, nsresult> deleteSurroundingTextResultOrError =
+        DeleteTextAtStartAndEndOfRange(aHTMLEditor, rangeToDelete, putCaretTo);
+    if (MOZ_UNLIKELY(deleteSurroundingTextResultOrError.isErr())) {
       NS_WARNING(
           "AutoBlockElementsJoiner::DeleteTextAtStartAndEndOfRange() failed");
-      return Err(rv);
+      return deleteSurroundingTextResultOrError.propagateErr();
     }
     trackDeleteResult.FlushAndStopTracking();
+
+    DeleteRangeResult deleteSurroundingTextResult =
+        deleteSurroundingTextResultOrError.unwrap();
+    // We'll compute caret position below, so, we don't need the caret point
+    // suggestion of DeleteTextAtStartAndEndOfRange().
+    deleteSurroundingTextResult.ForgetCaretPointSuggestion();
+
+    // Merge the deleted range.
+    deleteResult |= deleteSurroundingTextResult;
+
     if (mRightContent && mMode == Mode::DeletePrecedingLinesAndContentInRange) {
       if (NS_WARN_IF(!mRightContent->IsInComposedDoc())) {
         return Err(NS_ERROR_EDITOR_UNEXPECTED_DOM_TREE);
@@ -4865,6 +4930,12 @@ Result<EditActionResult, nsresult> HTMLEditor::AutoDeleteRangesHandler::
     MOZ_ASSERT(mRightContent);
     MOZ_ASSERT(mRightContent->IsElement());
 
+    if (!joinInclusiveAncestorBlockElements) {
+      return DeleteRangeResult::IgnoredResult();
+    }
+
+    // Finally, join elements containing either mLeftContent or mRightContent.
+    // XXX This may join only inline elements despite its name.
     AutoInclusiveAncestorBlockElementsJoiner joiner(*mLeftContent,
                                                     *mRightContent);
     Result<bool, nsresult> canJoinThem =
@@ -4924,10 +4995,7 @@ Result<EditActionResult, nsresult> HTMLEditor::AutoDeleteRangesHandler::
       moveFirstLineResult.IgnoreCaretPointSuggestion();
     }
     if (deleteContentResult.HasCaretPointSuggestion()) {
-      if (mMode == Mode::DeletePrecedingLinesAndContentInRange) {
-        return deleteContentResult.UnwrapCaretPoint();
-      }
-      deleteContentResult.IgnoreCaretPointSuggestion();
+      return deleteContentResult.UnwrapCaretPoint();
     }
     return EditorDOMPoint(putCaretTo == PutCaretTo::StartOfRange
                               ? aRangeToDelete.StartRef()
