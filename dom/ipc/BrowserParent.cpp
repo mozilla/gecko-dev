@@ -2997,7 +2997,7 @@ mozilla::ipc::IPCResult BrowserParent::RecvOnProgressChange(
 mozilla::ipc::IPCResult BrowserParent::RecvOnLocationChange(
     const WebProgressData& aWebProgressData, const RequestData& aRequestData,
     nsIURI* aLocation, const uint32_t aFlags, const bool aCanGoBack,
-    const bool aCanGoBackIgnoringUserInteraction, const bool aCanGoForward,
+    const bool aCanGoForward,
     const Maybe<WebProgressLocationChangeData>& aLocationChangeData) {
   RefPtr<CanonicalBrowsingContext> browsingContext =
       BrowsingContextForWebProgress(aWebProgressData);
@@ -3017,8 +3017,8 @@ mozilla::ipc::IPCResult BrowserParent::RecvOnLocationChange(
 
   nsCOMPtr<nsIBrowser> browser = GetBrowser();
   if (!mozilla::SessionHistoryInParent() && browser) {
-    Unused << browser->UpdateWebNavigationForLocationChange(
-        aCanGoBack, aCanGoBackIgnoringUserInteraction, aCanGoForward);
+    Unused << browser->UpdateWebNavigationForLocationChange(aCanGoBack,
+                                                            aCanGoForward);
   }
 
   if (aLocationChangeData.isSome()) {

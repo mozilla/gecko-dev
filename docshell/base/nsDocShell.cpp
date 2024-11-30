@@ -3075,28 +3075,9 @@ nsDocShell::GetCanGoBack(bool* aCanGoBack) {
   }
   RefPtr<ChildSHistory> rootSH = GetRootSessionHistory();
   if (rootSH) {
-    *aCanGoBack = rootSH->CanGo(
-        -1, StaticPrefs::browser_navigation_requireUserInteraction());
+    *aCanGoBack = rootSH->CanGo(-1);
     MOZ_LOG(gSHLog, LogLevel::Verbose,
             ("nsDocShell %p CanGoBack()->%d", this, *aCanGoBack));
-
-    return NS_OK;
-  }
-  return NS_ERROR_FAILURE;
-}
-
-NS_IMETHODIMP
-nsDocShell::GetCanGoBackIgnoringUserInteraction(bool* aCanGoBack) {
-  *aCanGoBack = false;
-  if (!IsNavigationAllowed(false)) {
-    return NS_OK;  // JS may not handle returning of an error code
-  }
-  RefPtr<ChildSHistory> rootSH = GetRootSessionHistory();
-  if (rootSH) {
-    *aCanGoBack = rootSH->CanGo(-1, false);
-    MOZ_LOG(gSHLog, LogLevel::Verbose,
-            ("nsDocShell %p CanGoBackIgnoringUserInteraction()->%d", this,
-             *aCanGoBack));
 
     return NS_OK;
   }
@@ -3111,8 +3092,7 @@ nsDocShell::GetCanGoForward(bool* aCanGoForward) {
   }
   RefPtr<ChildSHistory> rootSH = GetRootSessionHistory();
   if (rootSH) {
-    *aCanGoForward = rootSH->CanGo(
-        1, StaticPrefs::browser_navigation_requireUserInteraction());
+    *aCanGoForward = rootSH->CanGo(1);
     MOZ_LOG(gSHLog, LogLevel::Verbose,
             ("nsDocShell %p CanGoForward()->%d", this, *aCanGoForward));
     return NS_OK;
