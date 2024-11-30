@@ -40,7 +40,7 @@ class MLEngineWorker {
    */
   async match(key) {
     // if the key starts with NO_LOCAL, we return null immediately to tell transformers.js
-    // we don't server local files, and it will do a second call with the full URL:w
+    // we don't server local files, and it will do a second call with the full URL
     if (key.startsWith("NO_LOCAL")) {
       return null;
     }

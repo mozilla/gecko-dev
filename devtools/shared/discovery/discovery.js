@@ -225,7 +225,7 @@ Discovery.prototype = {
   },
 
   /**
-   * Get a list of all remote devices currently offering some service.:w
+   * Get a list of all remote devices currently offering some service.
    */
   getRemoteDevices() {
     const devices = new Set();

@@ -20,7 +20,7 @@ interface nsINetworkPredictorVerifier : nsISupports
      *
      * @param uri - The URI that was prefetched
      * @param status - The request status code returned by the
-     *   prefetch attempt e.g. 200 (OK):w
+     *   prefetch attempt e.g. 200 (OK)
      */
     void onPredictPrefetch(in nsIURI uri, in uint32_t status);
 
