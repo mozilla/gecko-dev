@@ -82,6 +82,7 @@ class TrustPanelFragment : BottomSheetDialogFragment() {
                                 url = args.url,
                                 title = args.title,
                                 isSecured = args.isSecured,
+                                isTrackingProtectionEnabled = true,
                                 onTrackerBlockedMenuClick = {
                                     navHostController.navigate(route = TRACKERS_PANEL_ROUTE)
                                 },
