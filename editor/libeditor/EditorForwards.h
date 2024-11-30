@@ -96,6 +96,7 @@ class CSSEditUtils;                     // CSSEditUtils.h
 class DeleteContentTransactionBase;     // DeleteContentTransactionBase.h
 class DeleteMultipleRangesTransaction;  // DeleteMultipleRangesTransaction.h
 class DeleteNodeTransaction;            // DeleteNodeTransaction.h
+class DeleteRangeResult;                // HTMLEditHelpers.h
 class DeleteRangeTransaction;           // DeleteRangeTransaction.h
 class DeleteTextTransaction;            // DeleteTextTransaction.h
 class EditActionResult;                 // EditorUtils.h

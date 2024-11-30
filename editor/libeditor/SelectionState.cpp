@@ -5,10 +5,11 @@
 
 #include "SelectionState.h"
 
-#include "AutoRangeArray.h"  // for AutoRangeArray
-#include "EditorUtils.h"     // for EditorUtils, AutoRangeArray
-#include "ErrorList.h"
+#include "AutoRangeArray.h"   // for AutoRangeArray
+#include "EditorUtils.h"      // for EditorUtils, AutoRangeArray
+#include "HTMLEditHelpers.h"  // for DeleteRangeResult
 
+#include "ErrorList.h"
 #include "mozilla/Assertions.h"    // for MOZ_ASSERT, etc.
 #include "mozilla/IntegerRange.h"  // for IntegerRange
 #include "mozilla/Likely.h"        // For MOZ_LIKELY and MOZ_UNLIKELY
@@ -608,5 +609,15 @@ AutoTrackDOMMoveNodeResult::AutoTrackDOMMoveNodeResult(
                                &aMoveNodeResult->mNextInsertionPoint),
       mTrackMovedContentRange(aRangeUpdater,
                               &aMoveNodeResult->mMovedContentRange) {}
+
+/******************************************************************************
+ * mozilla::AutoTrackDeleteRangeResult
+ ******************************************************************************/
+
+AutoTrackDOMDeleteRangeResult::AutoTrackDOMDeleteRangeResult(
+    RangeUpdater& aRangeUpdater, DeleteRangeResult* aDeleteRangeResult)
+    : mTrackCaretPoint(aRangeUpdater,
+                       static_cast<CaretPoint*>(aDeleteRangeResult)),
+      mTrackDeleteRange(aRangeUpdater, &aDeleteRangeResult->mDeleteRange) {}
 
 }  // namespace mozilla

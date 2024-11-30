@@ -275,6 +275,136 @@ class MOZ_STACK_CLASS MoveNodeResult final : public CaretPoint,
 };
 
 /*****************************************************************************
+ * DeleteRangeResult is a simple class for various delete handlers of
+ * HTMLEditor.
+ *****************************************************************************/
+class MOZ_STACK_CLASS DeleteRangeResult final : public CaretPoint,
+                                                public EditActionResult {
+ public:
+  DeleteRangeResult() : CaretPoint(EditorDOMPoint()) {};
+  DeleteRangeResult(const EditorDOMPoint& aDeletePoint,
+                    const EditorDOMPoint& aCaretPoint)
+      : CaretPoint(aCaretPoint),
+        EditActionResult(false, true),
+        mDeleteRange(aDeletePoint) {
+    MOZ_ASSERT(aDeletePoint.IsSetAndValidInComposedDoc());
+    MOZ_ASSERT_IF(aCaretPoint.IsSet(),
+                  aCaretPoint.IsSetAndValidInComposedDoc());
+  }
+  DeleteRangeResult(const EditorDOMPoint& aDeletePoint,
+                    EditorDOMPoint&& aCaretPoint)
+      : CaretPoint(std::move(aCaretPoint)),
+        EditActionResult(false, true),
+        mDeleteRange(aDeletePoint) {
+    MOZ_ASSERT(aDeletePoint.IsSetAndValidInComposedDoc());
+    MOZ_ASSERT_IF(HasCaretPointSuggestion(),
+                  CaretPointRef().IsSetAndValidInComposedDoc());
+  }
+  DeleteRangeResult(const EditorDOMRange& aDeleteRange,
+                    const EditorDOMPoint& aCaretPoint)
+      : CaretPoint(aCaretPoint),
+        EditActionResult(false, true),
+        mDeleteRange(aDeleteRange) {
+    MOZ_ASSERT(aDeleteRange.IsPositionedAndValid());
+    MOZ_ASSERT_IF(aCaretPoint.IsSet(),
+                  aCaretPoint.IsSetAndValidInComposedDoc());
+  }
+  DeleteRangeResult(EditorDOMRange&& aDeleteRange,
+                    const EditorDOMPoint& aCaretPoint)
+      : CaretPoint(aCaretPoint),
+        EditActionResult(false, true),
+        mDeleteRange(std::move(aDeleteRange)) {
+    MOZ_ASSERT(mDeleteRange.IsPositionedAndValid());
+    MOZ_ASSERT_IF(aCaretPoint.IsSet(),
+                  aCaretPoint.IsSetAndValidInComposedDoc());
+  }
+  DeleteRangeResult(const EditorDOMRange& aDeleteRange,
+                    EditorDOMPoint&& aCaretPoint)
+      : CaretPoint(std::move(aCaretPoint)),
+        EditActionResult(false, true),
+        mDeleteRange(aDeleteRange) {
+    MOZ_ASSERT(aDeleteRange.IsPositionedAndValidInComposedDoc());
+    MOZ_ASSERT_IF(HasCaretPointSuggestion(),
+                  CaretPointRef().IsSetAndValidInComposedDoc());
+  }
+  DeleteRangeResult(EditorDOMRange&& aDeleteRange, EditorDOMPoint&& aCaretPoint)
+      : CaretPoint(std::move(aCaretPoint)),
+        EditActionResult(false, true),
+        mDeleteRange(std::move(aDeleteRange)) {
+    MOZ_ASSERT(mDeleteRange.IsPositionedAndValid());
+    MOZ_ASSERT_IF(HasCaretPointSuggestion(),
+                  CaretPointRef().IsSetAndValidInComposedDoc());
+  }
+
+  [[nodiscard]] static DeleteRangeResult IgnoredResult() {
+    return DeleteRangeResult(EditActionResult::IgnoredResult());
+  }
+  [[nodiscard]] static DeleteRangeResult CanceledResult() {
+    return DeleteRangeResult(EditActionResult::CanceledResult());
+  }
+
+  [[nodiscard]] EditorDOMRange&& UnwrapDeleteRange() {
+    return std::move(mDeleteRange);
+  }
+  [[nodiscard]] const EditorDOMRange& DeleteRangeRef() const {
+    return mDeleteRange;
+  }
+
+  template <typename EditorDOMPointType>
+  void SetDeleteRangeStart(const EditorDOMPointType& aPoint) {
+    MOZ_ASSERT(aPoint.IsSetAndValidInComposedDoc());
+    if (mDeleteRange.IsPositioned()) {
+      mDeleteRange.SetStart(aPoint);
+    } else {
+      mDeleteRange.SetStartAndEnd(aPoint, aPoint);
+    }
+  }
+
+  template <typename EditorDOMPointType>
+  void SetDeleteRangeEnd(const EditorDOMPointType& aPoint) {
+    MOZ_ASSERT(aPoint.IsSetAndValidInComposedDoc());
+    if (mDeleteRange.IsPositioned()) {
+      mDeleteRange.SetEnd(aPoint);
+    } else {
+      mDeleteRange.SetStartAndEnd(aPoint, aPoint);
+    }
+  }
+
+  DeleteRangeResult& operator|=(const DeleteRangeResult& aOtherResult) {
+    if (aOtherResult.Ignored() || aOtherResult.Canceled()) {
+      return *this;
+    }
+    MarkAsHandled();
+    UnmarkAsCanceled();
+    if (aOtherResult.mDeleteRange.IsPositioned()) {
+      mDeleteRange.MergeWith(aOtherResult.mDeleteRange);
+    }
+    return operator|=(static_cast<const CaretPoint&>(aOtherResult));
+  }
+
+  DeleteRangeResult& operator|=(const CaretPoint& aCaretPoint) {
+    if (MOZ_UNLIKELY(!aCaretPoint.HasCaretPointSuggestion())) {
+      return *this;
+    }
+    SetCaretPoint(aCaretPoint.CaretPointRef());
+    aCaretPoint.IgnoreCaretPointSuggestion();
+    return *this;
+  }
+
+ private:
+  explicit DeleteRangeResult(EditActionResult&& aEditActionResult)
+      : CaretPoint(EditorDOMPoint()),
+        EditActionResult(std::move(aEditActionResult)) {}
+
+  using EditActionResult::MarkAsCanceled;
+  using EditActionResult::MarkAsHandled;
+
+  EditorDOMRange mDeleteRange;
+
+  friend class AutoTrackDOMDeleteRangeResult;
+};
+
+/*****************************************************************************
  * SplitNodeResult is a simple class for
  * HTMLEditor::SplitNodeDeepWithTransaction().
  * This makes the callers' code easier to read.

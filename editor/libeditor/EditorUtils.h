@@ -100,6 +100,10 @@ class MOZ_STACK_CLASS CaretPoint {
     aPointToPutCaret = mCaretPoint;
     return true;
   }
+  bool CopyCaretPointTo(CaretPoint& aCaretPoint,
+                        const SuggestCaretOptions& aOptions) const {
+    return CopyCaretPointTo(aCaretPoint.mCaretPoint, aOptions);
+  }
   bool MoveCaretPointTo(EditorDOMPoint& aPointToPutCaret,
                         const SuggestCaretOptions& aOptions) {
     MOZ_ASSERT(!aOptions.contains(SuggestCaret::AndIgnoreTrivialError));
@@ -111,6 +115,10 @@ class MOZ_STACK_CLASS CaretPoint {
     }
     aPointToPutCaret = UnwrapCaretPoint();
     return true;
+  }
+  bool MoveCaretPointTo(CaretPoint& aCaretPoint,
+                        const SuggestCaretOptions& aOptions) {
+    return MoveCaretPointTo(aCaretPoint.mCaretPoint, aOptions);
   }
   bool CopyCaretPointTo(EditorDOMPoint& aPointToPutCaret,
                         const EditorBase& aEditorBase,

@@ -1446,6 +1446,9 @@ class EditorDOMRangeBase final {
     return mStart.IsSetAndValid() && mEnd.IsSetAndValid() &&
            mStart.EqualsOrIsBefore(mEnd);
   }
+  bool IsPositionedAndValidInComposedDoc() const {
+    return IsPositionedAndValid() && mStart.GetContainer()->IsInComposedDoc();
+  }
   template <typename OtherPointType>
   MOZ_NEVER_INLINE_DEBUG bool Contains(const OtherPointType& aPoint) const {
     MOZ_ASSERT(aPoint.IsSetAndValid());
