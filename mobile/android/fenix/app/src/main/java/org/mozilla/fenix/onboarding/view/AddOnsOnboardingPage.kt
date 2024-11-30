@@ -55,13 +55,16 @@ import org.mozilla.fenix.theme.FirefoxTheme
 
 private const val MINIMUM_SCREEN_HEIGHT_FOR_IMAGE = 640
 
+typealias AddOnID = String
+
 /**
  * A Composable for displaying Add-on onboarding page content.
  *
  * @param pageState The page content that's displayed.
+ * @param onInstallAddOnClicked Invoked when the button for installing an add-ons was clicked.
  */
 @Composable
-fun AddOnsOnboardingPage(pageState: OnboardingPageState) {
+fun AddOnsOnboardingPage(pageState: OnboardingPageState, onInstallAddOnClicked: (AddOnID) -> Unit) {
     // Base
     Column(
         modifier = Modifier
@@ -79,7 +82,7 @@ fun AddOnsOnboardingPage(pageState: OnboardingPageState) {
 
                 Spacer(Modifier.height(16.dp))
 
-                addOns?.let { AddOns(it) }
+                addOns?.let { AddOns(it, onInstallAddOnClicked) }
 
                 Spacer(Modifier.height(5.dp))
 
@@ -168,10 +171,11 @@ private fun HeaderImage(@DrawableRes imageRes: Int) {
 }
 
 @Composable
-private fun AddOns(addOnUiData: List<OnboardingAddOn>) = addOnUiData.forEach { AddOnItem(it) }
+private fun AddOns(addOnUiData: List<OnboardingAddOn>, onInstallAddonClicked: (AddOnID) -> Unit) =
+    addOnUiData.forEach { AddOnItem(it, onInstallAddonClicked) }
 
 @Composable
-private fun AddOnItem(addOnUiData: OnboardingAddOn) {
+private fun AddOnItem(addOnUiData: OnboardingAddOn, onInstallAddOnClicked: (AddOnID) -> Unit) {
     Row(
         modifier = Modifier
             .padding(vertical = 16.dp)
@@ -195,7 +199,7 @@ private fun AddOnItem(addOnUiData: OnboardingAddOn) {
             modifier = Modifier
                 .fillMaxHeight()
                 .align(Alignment.CenterVertically),
-        ) { AddAddOnButton() }
+        ) { AddAddOnButton(addOnUiData.installUrl, onInstallAddOnClicked) }
     }
 }
 
@@ -245,8 +249,12 @@ private fun AddOnIcon(iconRes: Int) {
 }
 
 @Composable
-private fun AddAddOnButton() {
-    IconButton(onClick = {}) {
+private fun AddAddOnButton(installationUrl: String, onInstallAddOnClicked: (AddOnID) -> Unit) {
+    IconButton(
+        onClick = {
+            onInstallAddOnClicked(installationUrl)
+        },
+    ) {
         Icon(
             painter = painterResource(R.drawable.mozac_ic_plus_24),
             contentDescription = stringResource(R.string.onboarding_add_on_add_button_content_description),
@@ -341,6 +349,7 @@ private fun OnboardingPagePreview() {
                 },
                 onRecordImpressionEvent = {},
             ),
+            onInstallAddOnClicked = {},
         )
     }
 }
@@ -351,6 +360,7 @@ private fun addOnItemUblock(context: Context) = OnboardingAddOn(
     context.getString(R.string.onboarding_add_on_ublock_description),
     "5",
     "18,347",
+    installUrl = "url",
 )
 
 private fun addOnItemPrivacyBadger(context: Context) = OnboardingAddOn(
@@ -359,6 +369,7 @@ private fun addOnItemPrivacyBadger(context: Context) = OnboardingAddOn(
     context.getString(R.string.onboarding_add_on_privacy_badger_description),
     "5",
     "2,500",
+    installUrl = "url",
 )
 
 private fun addOnItemSearchByImage(context: Context) = OnboardingAddOn(
@@ -367,4 +378,5 @@ private fun addOnItemSearchByImage(context: Context) = OnboardingAddOn(
     context.getString(R.string.onboarding_add_on_ublock_description),
     "4.5",
     "1,533",
+    installUrl = "url",
 )

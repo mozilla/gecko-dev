@@ -195,6 +195,14 @@ class OnboardingFragment : Fragment() {
                     sequencePosition = pagesToDisplay.sequencePosition(it.type),
                 )
             },
+            onInstallAddOnButtonClick = { installUrl ->
+                requireComponents.addonManager.installAddon(
+                    installUrl,
+                    onSuccess = { addon ->
+                        telemetryRecorder.onAddOnInstalled(addon.id)
+                    },
+                )
+            },
         )
     }
 

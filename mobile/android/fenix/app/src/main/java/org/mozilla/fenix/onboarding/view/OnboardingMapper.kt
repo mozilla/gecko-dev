@@ -124,6 +124,7 @@ private fun AddOnData.toOnboardingAddOn() = with(this) {
         description = description,
         averageRating = averageRating,
         reviewCount = reviewCount,
+        installUrl = installUrl,
     )
 }
 
