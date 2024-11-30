@@ -415,6 +415,85 @@ void nsWaylandDisplay::SetXdgDbusAnnotationManager(
   mXdgDbusAnnotationManager = aXdgDbusAnnotationManager;
 }
 
+void nsWaylandDisplay::SetCMSupportedFeature(uint32_t aFeature) {
+  switch (aFeature) {
+    case XX_COLOR_MANAGER_V4_FEATURE_ICC_V2_V4:
+      mColorManagerSupportedFeature.mICC = true;
+      break;
+    case XX_COLOR_MANAGER_V4_FEATURE_PARAMETRIC:
+      mColorManagerSupportedFeature.mParametric = true;
+      break;
+    case XX_COLOR_MANAGER_V4_FEATURE_SET_PRIMARIES:
+      mColorManagerSupportedFeature.mPrimaries = true;
+      break;
+    case XX_COLOR_MANAGER_V4_FEATURE_SET_TF_POWER:
+      mColorManagerSupportedFeature.mFTPower = true;
+      break;
+    case XX_COLOR_MANAGER_V4_FEATURE_SET_LUMINANCES:
+      mColorManagerSupportedFeature.mLuminances = true;
+      break;
+    case XX_COLOR_MANAGER_V4_FEATURE_SET_MASTERING_DISPLAY_PRIMARIES:
+      mColorManagerSupportedFeature.mDisplayPrimaries = true;
+      break;
+  }
+}
+
+void nsWaylandDisplay::SetCMSupportedTFNamed(uint32_t aTF) {
+  if (aTF < sColorTransfersNum) {
+    mSupportedTransfer[aTF] = aTF;
+  } else {
+    NS_WARNING("Unknow color transfer function!");
+  }
+}
+
+void nsWaylandDisplay::SetCMSupportedPrimariesNamed(uint32_t aPrimaries) {
+  if (aPrimaries < sColorPrimariesNum) {
+    mSupportedPrimaries[aPrimaries] = aPrimaries;
+  } else {
+    NS_WARNING("Unknown color primaries!");
+  }
+}
+
+static void supported_intent(void* data,
+                             struct xx_color_manager_v4* color_manager,
+                             uint32_t render_intent) {}
+
+static void supported_feature(void* data,
+                              struct xx_color_manager_v4* color_manager,
+                              uint32_t feature) {
+  auto* display = static_cast<nsWaylandDisplay*>(data);
+  display->SetCMSupportedFeature(feature);
+}
+
+static void supported_tf_named(void* data,
+                               struct xx_color_manager_v4* color_manager,
+                               uint32_t tf) {
+  auto* display = static_cast<nsWaylandDisplay*>(data);
+  display->SetCMSupportedTFNamed(tf);
+}
+
+static void supported_primaries_named(void* data,
+                                      struct xx_color_manager_v4* color_manager,
+                                      uint32_t primaries) {
+  auto* display = static_cast<nsWaylandDisplay*>(data);
+  display->SetCMSupportedPrimariesNamed(primaries);
+}
+
+static const struct xx_color_manager_v4_listener color_manager_listener = {
+    supported_intent,
+    supported_feature,
+    supported_tf_named,
+    supported_primaries_named,
+};
+
+void nsWaylandDisplay::SetColorManager(xx_color_manager_v4* aColorManager) {
+  mColorManager = aColorManager;
+  if (mColorManager) {
+    xx_color_manager_v4_add_listener(mColorManager, &color_manager_listener,
+                                     this);
+  }
+}
+
 static void global_registry_handler(void* data, wl_registry* registry,
                                     uint32_t id, const char* interface,
                                     uint32_t version) {
@@ -490,6 +569,11 @@ static void global_registry_handler(void* data, wl_registry* registry,
         registry, id, &zwp_pointer_gestures_v1_interface,
         ZWP_POINTER_GESTURES_V1_GET_HOLD_GESTURE_SINCE_VERSION);
     display->SetPointerGestures(gestures);
+  } else if (iface.EqualsLiteral("xx_color_manager_v4")) {
+    // initialize_color_maps(wl);
+    auto* colorManager = WaylandRegistryBind<xx_color_manager_v4>(
+        registry, id, &xx_color_manager_v4_interface, version);
+    display->SetColorManager(colorManager);
   }
 }
 
@@ -546,6 +630,13 @@ nsWaylandDisplay::nsWaylandDisplay(wl_display* aDisplay)
   wl_registry_add_listener(mRegistry, &registry_listener, this);
   wl_display_roundtrip(mDisplay);
   wl_display_roundtrip(mDisplay);
+
+  for (auto& e : mSupportedTransfer) {
+    e = -1;
+  };
+  for (auto& e : mSupportedPrimaries) {
+    e = -1;
+  };
 
   // Check we have critical Wayland interfaces.
   // Missing ones indicates a compositor bug and we can't continue.
