@@ -808,7 +808,7 @@
     <!-- Preference for enabling gecko engine logs -->
     <string name="preferences_enable_gecko_logs">啟用 Gecko 記錄</string>
     <!-- Message to indicate users that we are quitting the application to apply the changes -->
-    <string name="quit_application">結束應用程式讓變更生效…</string>
+    <string name="quit_application">即將結束應用程式讓變更生效…</string>
 
     <!-- Preference for extensions -->
     <string name="preferences_extensions">擴充套件</string>
@@ -2047,7 +2047,7 @@
     <!-- Preference for managing the settings for logins and passwords in Fenix -->
     <string name="preferences_passwords_logins_and_passwords_2">密碼</string>
     <!-- Preference for managing the saving of logins and passwords in Fenix -->
-    <string name="preferences_passwords_save_logins_2">已存密碼</string>
+    <string name="preferences_passwords_save_logins_2">儲存密碼</string>
     <!-- Preference option for asking to save passwords in Fenix -->
     <string name="preferences_passwords_save_logins_ask_to_save">詢問我是否儲存</string>
     <!-- Preference option for never saving passwords in Fenix -->
@@ -2069,7 +2069,7 @@
     <!-- Preference for syncing saved passwords in Fenix, when not signed in-->
     <string name="preferences_passwords_sync_logins_across_devices_2">在不同裝置間同步密碼</string>
     <!-- Preference to access list of saved passwords -->
-    <string name="preferences_passwords_saved_logins_2">已存密碼</string>
+    <string name="preferences_passwords_saved_logins_2">已儲存的密碼</string>
     <!-- Description of empty list of saved passwords. Placeholder is replaced with app name.  -->
     <string name="preferences_passwords_saved_logins_description_empty_text_2">您儲存或同步到 %s 的密碼將顯示於此處，所有儲存的密碼資訊都會被加密。</string>
     <!-- Clickable text for opening an external link for more information about Sync. -->

@@ -576,6 +576,14 @@ Tiktiwin tigejdanin yuzzlen ur nṣeḥḥi ara
     <!-- Content description for the star rating group. -->
     <string name="onboarding_add_on_star_rating_content_description">Yettwaezmel %1$s ɣef 5</string>
 
+    <!-- Title for the crash reporting option in the privacy preferences dialog shown during onboarding. -->
+    <string name="onboarding_preferences_dialog_crash_reporting_title" tools:ignore="UnusedResources">Azen s wudem awurman ineqqisen n truẓi</string>
+    <!-- Learn more link for the crash reporting option in the privacy preferences dialog shown during onboarding. -->
+    <string name="onboarding_preferences_dialog_crash_reporting_learn_more" tools:ignore="UnusedResources">Issin ugar ɣef yineqqisen yerrẓen</string>
+    <!-- Title for the usage data option in the privacy preferences dialog shown during onboarding. Note: The word "Mozilla" should NOT be translated. -->
+    <string name="onboarding_preferences_dialog_usage_data_title" tools:ignore="UnusedResources">Azen isefka itiknikanen d yimyigawen ɣer Mozilla</string>
+    <!-- Learn more link for the usage data option in the privacy preferences dialog shown during onboarding. -->
+    <string name="onboarding_preferences_dialog_usage_data_learn_more" tools:ignore="UnusedResources">Issin ugar ɣef yisefka n useqdec</string>
     <!-- Positive button label for the privacy preferences dialog shown during onboarding. -->
     <string name="onboarding_preferences_dialog_positive_button" tools:ignore="UnusedResources">Immed</string>
     <!-- Negative button label for the privacy preferences dialog shown during onboarding. -->
@@ -1290,6 +1298,8 @@ Tiktiwin tigejdanin yuzzlen ur nṣeḥḥi ara
     <!-- WebCompat Reporter -->
     <!-- The title of the Web Compat Reporter feature. This is displayed in the top app bar. -->
     <string name="webcompat_reporter_screen_title">Cegger asmel yerẓen</string>
+    <!-- The description of the Web Compat Reporter feature. This first parameter is the name of the application (For example: Fenix) -->
+    <string name="webcompat_reporter_description">Allel ad nerr %1$s igerrez i yal yiwen. Ixaddamen n Mozilla sseqdacen talɣut ara ak-n-aznen i ferru n wuguren n usmel web.</string>
     <!-- The text field label of the URL text field. This is displayed above the user-inputted URL. -->
     <string name="webcompat_reporter_label_url">URL</string>
     <!-- The error message of the URL text field when an invalid URL has been entered. -->

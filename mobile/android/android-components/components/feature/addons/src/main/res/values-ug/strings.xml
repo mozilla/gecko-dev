@@ -70,6 +70,10 @@
     <string name="mozac_feature_addons_permissions_tab_hide_description">توركۆرگۈ بەتكۈچىنى يوشۇرىدۇ ۋە كۆرسىتىدۇ</string>
     <!-- Description for top_sites permission. -->
     <string name="mozac_feature_addons_permissions_top_sites_description">توركۆرگۈ تارىخىغا ئېرىشىدۇ</string>
+    <!-- Description for trialML permission. -->
+    <string name="mozac_feature_addons_permissions_trial_ml_description">سۈنئىي ئەقىل مودېلىنى ئۈسكۈنىڭىزگە چۈشۈرۈپ ئىجرا قىلىڭ</string>
+    <!-- Description for userScripts permission. -->
+    <string name="mozac_feature_addons_permissions_user_scripts_description">دەلىللەنمىگەن ئۈچىنچى تەرەپ قوليازمىلىرىنىڭ سانلىق مەلۇماتلىرىڭىزنى زىيارەت قىلىشىغا يول قويىدۇ</string>
     <!-- Description for devtools permission. -->
     <string name="mozac_feature_addons_permissions_devtools_description">ئىجادكارلار قورالى سىز ئاچقان بەتكۈچتىكى سانلىق مەلۇماتلارنى زىيارەت قىلالايدۇ</string>
     <!-- The version on of add-on. -->

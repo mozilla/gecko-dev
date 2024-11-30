@@ -71,7 +71,7 @@
     <!-- Description for top_sites permission. -->
     <string name="mozac_feature_addons_permissions_top_sites_description">Mynd i’ch hanes pori</string>
     <!-- Description for trialML permission. -->
-    <string name="mozac_feature_addons_permissions_trial_ml_description">Dadlwythwch a rhedeg modelau AI ar eich dyfais</string>
+    <string name="mozac_feature_addons_permissions_trial_ml_description">Llwythwch i lawr a rhedeg modelau AI ar eich dyfais</string>
     <!-- Description for userScripts permission. -->
     <string name="mozac_feature_addons_permissions_user_scripts_description">Caniatáu i sgriptiau trydydd parti heb eu gwirio gael mynediad i\'ch data</string>
     <!-- Description for devtools permission. -->
