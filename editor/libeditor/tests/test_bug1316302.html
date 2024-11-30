@@ -41,7 +41,9 @@ SimpleTest.waitForFocus(() => {
   is(range.startContainer, blockquote, "range should be collapsed in the <blockquote>");
   is(range.startOffset, 0, "range should be collapsed at the start");
   synthesizeKey("KEY_Delete");
-  is(blockquote.innerHTML, "<p>b</p>", "Pressing Delete key at the start of <blockquote> should remove the first character in the <p>");
+  // FIXME: Chrome does not unwrap <p> if and only if the deleting range starts
+  // immediately after a block boundary.
+  is(blockquote.innerHTML, "b", "Pressing Delete key at the start of <blockquote> should remove the first character in the <p>");
 
   SimpleTest.finish();
 });

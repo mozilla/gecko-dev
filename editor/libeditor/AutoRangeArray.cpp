@@ -562,10 +562,10 @@ void AutoRangeArray::
  * NOTE: The result may be point of editing host.  I.e., the container may be
  *       outside of editing host.
  */
-static EditorDOMPoint
+MOZ_NEVER_INLINE_DEBUG static EditorDOMPoint
 GetPointAtFirstContentOfLineOrParentHTMLBlockIfFirstContentOfBlock(
     const EditorDOMPoint& aPointInLine, EditSubAction aEditSubAction,
-    BlockInlineCheck aBlockInlineCheck, const Element& aEditingHost) {
+    BlockInlineCheck aBlockInlineCheck, const Element& aAncestorLimiter) {
   // FYI: This was moved from
   // https://searchfox.org/mozilla-central/rev/3419858c997f422e3e70020a46baae7f0ec6dacc/editor/libeditor/HTMLEditSubActionHandler.cpp#6447
 
@@ -602,14 +602,14 @@ GetPointAtFirstContentOfLineOrParentHTMLBlockIfFirstContentOfBlock(
           HTMLEditUtils::WalkTreeOption::StopAtBlockBoundary};
   for (nsIContent* previousEditableContent = HTMLEditUtils::GetPreviousContent(
            point, ignoreNonEditableNodeAndStopAtBlockBoundary,
-           aBlockInlineCheck, &aEditingHost);
+           aBlockInlineCheck, &aAncestorLimiter);
        previousEditableContent && previousEditableContent->GetParentNode() &&
        !HTMLEditUtils::IsVisibleBRElement(*previousEditableContent) &&
        !HTMLEditUtils::IsBlockElement(*previousEditableContent,
                                       aBlockInlineCheck);
        previousEditableContent = HTMLEditUtils::GetPreviousContent(
            point, ignoreNonEditableNodeAndStopAtBlockBoundary,
-           aBlockInlineCheck, &aEditingHost)) {
+           aBlockInlineCheck, &aAncestorLimiter)) {
     EditorDOMPoint atLastPreformattedNewLine =
         HTMLEditUtils::GetPreviousPreformattedNewLineInTextNode<EditorDOMPoint>(
             EditorRawDOMPoint::AtEndOf(*previousEditableContent));
@@ -625,12 +625,12 @@ GetPointAtFirstContentOfLineOrParentHTMLBlockIfFirstContentOfBlock(
   // as we haven't hit the body node.
   for (nsIContent* nearContent = HTMLEditUtils::GetPreviousContent(
            point, ignoreNonEditableNodeAndStopAtBlockBoundary,
-           aBlockInlineCheck, &aEditingHost);
+           aBlockInlineCheck, &aAncestorLimiter);
        !nearContent && !point.IsContainerHTMLElement(nsGkAtoms::body) &&
        point.GetContainerParent();
        nearContent = HTMLEditUtils::GetPreviousContent(
            point, ignoreNonEditableNodeAndStopAtBlockBoundary,
-           aBlockInlineCheck, &aEditingHost)) {
+           aBlockInlineCheck, &aAncestorLimiter)) {
     // Don't keep looking up if we have found a blockquote element to act on
     // when we handle outdent.
     // XXX Sounds like this is hacky.  If possible, it should be check in
@@ -656,9 +656,10 @@ GetPointAtFirstContentOfLineOrParentHTMLBlockIfFirstContentOfBlock(
     // XXX So, does this check whether the container is removable or not? It
     //     seems that here can be rewritten as obviously what here tries to
     //     check.
-    if (!point.GetContainerParent()->IsInclusiveDescendantOf(&aEditingHost) &&
+    if (!point.GetContainerParent()->IsInclusiveDescendantOf(
+            &aAncestorLimiter) &&
         (blockLevelAction ||
-         !point.GetContainer()->IsInclusiveDescendantOf(&aEditingHost))) {
+         !point.GetContainer()->IsInclusiveDescendantOf(&aAncestorLimiter))) {
       break;
     }
 
@@ -689,9 +690,10 @@ GetPointAtFirstContentOfLineOrParentHTMLBlockIfFirstContentOfBlock(
  *                      If the line ends with a block boundary, returns the
  *                      point of the block.
  */
-static EditorDOMPoint GetPointAfterFollowingLineBreakOrAtFollowingHTMLBlock(
+MOZ_NEVER_INLINE_DEBUG static EditorDOMPoint
+GetPointAfterFollowingLineBreakOrAtFollowingHTMLBlock(
     const EditorDOMPoint& aPointInLine, EditSubAction aEditSubAction,
-    BlockInlineCheck aBlockInlineCheck, const Element& aEditingHost) {
+    BlockInlineCheck aBlockInlineCheck, const Element& aAncestorLimiter) {
   // FYI: This was moved from
   // https://searchfox.org/mozilla-central/rev/3419858c997f422e3e70020a46baae7f0ec6dacc/editor/libeditor/HTMLEditSubActionHandler.cpp#6541
 
@@ -721,10 +723,10 @@ static EditorDOMPoint GetPointAfterFollowingLineBreakOrAtFollowingHTMLBlock(
           maybeNonEditableBlockElement) {
         // If the block is a parent of the editing host, let's return end
         // of editing host.
-        if (maybeNonEditableBlockElement == &aEditingHost ||
+        if (maybeNonEditableBlockElement == &aAncestorLimiter ||
             !maybeNonEditableBlockElement->IsInclusiveDescendantOf(
-                &aEditingHost)) {
-          return EditorDOMPoint::AtEndOf(*maybeNonEditableBlockElement);
+                &aAncestorLimiter)) {
+          return EditorDOMPoint::AtEndOf(aAncestorLimiter);
         }
         // If it's invisible because of parent block boundary, return end
         // of the block.  Otherwise, i.e., it's followed by a child block,
@@ -764,14 +766,14 @@ static EditorDOMPoint GetPointAfterFollowingLineBreakOrAtFollowingHTMLBlock(
           HTMLEditUtils::WalkTreeOption::StopAtBlockBoundary};
   for (nsIContent* nextEditableContent = HTMLEditUtils::GetNextContent(
            point, ignoreNonEditableNodeAndStopAtBlockBoundary,
-           aBlockInlineCheck, &aEditingHost);
+           aBlockInlineCheck, &aAncestorLimiter);
        nextEditableContent &&
        !HTMLEditUtils::IsBlockElement(*nextEditableContent,
                                       aBlockInlineCheck) &&
        nextEditableContent->GetParent();
        nextEditableContent = HTMLEditUtils::GetNextContent(
            point, ignoreNonEditableNodeAndStopAtBlockBoundary,
-           aBlockInlineCheck, &aEditingHost)) {
+           aBlockInlineCheck, &aAncestorLimiter)) {
     EditorDOMPoint atFirstPreformattedNewLine =
         HTMLEditUtils::GetInclusiveNextPreformattedNewLineInTextNode<
             EditorDOMPoint>(EditorRawDOMPoint(nextEditableContent, 0));
@@ -785,10 +787,10 @@ static EditorDOMPoint GetPointAfterFollowingLineBreakOrAtFollowingHTMLBlock(
           maybeNonEditableBlockElement) {
         // If the block is a parent of the editing host, let's return end
         // of editing host.
-        if (maybeNonEditableBlockElement == &aEditingHost ||
+        if (maybeNonEditableBlockElement == &aAncestorLimiter ||
             !maybeNonEditableBlockElement->IsInclusiveDescendantOf(
-                &aEditingHost)) {
-          return EditorDOMPoint::AtEndOf(*maybeNonEditableBlockElement);
+                &aAncestorLimiter)) {
+          return EditorDOMPoint::AtEndOf(aAncestorLimiter);
         }
         // If it's invisible because of parent block boundary, return end
         // of the block.  Otherwise, i.e., it's followed by a child block,
@@ -817,20 +819,21 @@ static EditorDOMPoint GetPointAfterFollowingLineBreakOrAtFollowingHTMLBlock(
   // node.
   for (nsIContent* nearContent = HTMLEditUtils::GetNextContent(
            point, ignoreNonEditableNodeAndStopAtBlockBoundary,
-           aBlockInlineCheck, &aEditingHost);
+           aBlockInlineCheck, &aAncestorLimiter);
        !nearContent && !point.IsContainerHTMLElement(nsGkAtoms::body) &&
        point.GetContainerParent();
        nearContent = HTMLEditUtils::GetNextContent(
            point, ignoreNonEditableNodeAndStopAtBlockBoundary,
-           aBlockInlineCheck, &aEditingHost)) {
+           aBlockInlineCheck, &aAncestorLimiter)) {
     // Don't walk past the editable section. Note that we need to check before
     // walking up to a parent because we need to return the parent object, so
     // the parent itself might not be in the editable area, but it's OK.
     // XXX Maybe returning parent of editing host is really error prone since
     //     everybody need to check whether the end point is in editing host
     //     when they touch there.
-    if (!point.GetContainer()->IsInclusiveDescendantOf(&aEditingHost) &&
-        !point.GetContainerParent()->IsInclusiveDescendantOf(&aEditingHost)) {
+    if (!point.GetContainer()->IsInclusiveDescendantOf(&aAncestorLimiter) &&
+        !point.GetContainerParent()->IsInclusiveDescendantOf(
+            &aAncestorLimiter)) {
       break;
     }
 
@@ -854,7 +857,7 @@ static EditorDOMPoint GetPointAfterFollowingLineBreakOrAtFollowingHTMLBlock(
 
 void AutoRangeArray::ExtendRangesToWrapLines(EditSubAction aEditSubAction,
                                              BlockInlineCheck aBlockInlineCheck,
-                                             const Element& aEditingHost) {
+                                             const Element& aAncestorLimiter) {
   // FYI: This is originated in
   // https://searchfox.org/mozilla-central/rev/1739f1301d658c9bff544a0a095ab11fca2e549d/editor/libeditor/HTMLEditSubActionHandler.cpp#6712
 
@@ -886,7 +889,7 @@ void AutoRangeArray::ExtendRangesToWrapLines(EditSubAction aEditSubAction,
     }
     // Finally, extend the range.
     if (NS_FAILED(ExtendRangeToWrapStartAndEndLinesContainingBoundaries(
-            range, aEditSubAction, aBlockInlineCheck, aEditingHost))) {
+            range, aEditSubAction, aBlockInlineCheck, aAncestorLimiter))) {
       // If we failed to extend the range, we should use the original range
       // as-is unless the range is broken at setting the range.
       if (NS_WARN_IF(!range->IsPositioned())) {
