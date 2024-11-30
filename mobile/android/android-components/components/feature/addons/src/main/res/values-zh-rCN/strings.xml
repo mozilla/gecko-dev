@@ -70,6 +70,10 @@
     <string name="mozac_feature_addons_permissions_tab_hide_description">隐藏和显示浏览器标签页</string>
     <!-- Description for top_sites permission. -->
     <string name="mozac_feature_addons_permissions_top_sites_description">存取浏览历史</string>
+    <!-- Description for trialML permission. -->
+    <string name="mozac_feature_addons_permissions_trial_ml_description">下载 AI 模型到您的设备并运行</string>
+    <!-- Description for userScripts permission. -->
+    <string name="mozac_feature_addons_permissions_user_scripts_description">允许未经验证的第三方脚本访问您的数据</string>
     <!-- Description for devtools permission. -->
     <string name="mozac_feature_addons_permissions_devtools_description">让开发者工具可以存取您打开的标签页中的数据</string>
     <!-- The version on of add-on. -->
