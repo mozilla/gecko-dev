@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<script src="/tests/SimpleTest/SimpleTest.js"></script>
+<script src="/tests/SimpleTest/paint_listener.js"></script>
+<script src="/tests/gfx/layers/apz/test/mochitest/apz_test_utils.js"></script>
+<script src="/tests/gfx/layers/apz/test/mochitest/apz_test_native_event_utils.js"></script>
+<body>
+<div id="container">
+<iframe src="helper_oopif_reconstruct_nested_child.html"></iframe>
+</div>
+
+<script>
+  // Silence SimpleTest warning about missing assertions by having it wait
+  // indefinitely. We don't need to give it an explicit finish because the
+  // entire window this test runs in will be closed after the main browser test
+  // finished.
+  SimpleTest.waitForExplicitFinish();
+</script>
+
+<script>
+
+
+function toggle() {
+  let container = document.getElementById("container");
+  console.log(container.style.display);
+  if (container.style.position == "sticky") {
+    container.style.position = "fixed";
+  } else {
+    container.style.position = "sticky";
+  }
+  document.documentElement.offsetLeft;
+}
+
+async function doTest() {
+  setInterval(toggle, 40);
+}
+</script>
+</body>

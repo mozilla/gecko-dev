@@ -65,6 +65,17 @@ support-files = [
   "stylesheet_change_events.css"
 ]
 
+["browser_test_oopif_reconstruct.js"]
+support-files = [
+  "!/gfx/layers/apz/test/mochitest/apz_test_utils.js",
+  "!/gfx/layers/apz/test/mochitest/apz_test_native_event_utils.js",
+  "helper_oopif_reconstruct.html",
+  "helper_oopif_reconstruct_child.html",
+  "helper_oopif_reconstruct_nested.html",
+  "helper_oopif_reconstruct_nested_child.html",
+  "helper_oopif_reconstruct_nested_grandchild.html",
+]
+
 ["browser_visual_viewport_iframe.js"]
 support-files = [
   "test_visual_viewport_in_oopif.html",
