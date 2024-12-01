@@ -31,6 +31,12 @@ async function runTest(privilegedLoad) {
       gBrowser,
       TEST_PAGE + "?entry=0"
     );
+    let browser = tab.linkedBrowser;
+
+    // Add some user interaction to the initial entry
+    await SpecialPowers.spawn(browser, [], () => {
+      content.document.notifyUserGestureActivation();
+    });
 
     assertBackForwardState(false, false);
 

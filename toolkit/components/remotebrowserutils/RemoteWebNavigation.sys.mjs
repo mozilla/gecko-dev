@@ -15,6 +15,7 @@ export class RemoteWebNavigation {
     this._cancelContentJSEpoch = 1;
     this._currentURI = null;
     this._canGoBack = false;
+    this._canGoBackIgnoringUserInteraction = false;
     this._canGoForward = false;
     this.referringURI = null;
   }
@@ -34,9 +35,18 @@ export class RemoteWebNavigation {
 
   get canGoBack() {
     if (Services.appinfo.sessionHistoryInParent) {
-      return this._browser.browsingContext.sessionHistory?.index > 0;
+      const sessionHistory = this._browser.browsingContext.sessionHistory;
+      return sessionHistory?.canGoBackFromEntryAtIndex(sessionHistory?.index);
     }
     return this._canGoBack;
+  }
+
+  get canGoBackIgnoringUserInteraction() {
+    if (Services.appinfo.sessionHistoryInParent) {
+      const sessionHistory = this._browser.browsingContext.sessionHistory;
+      return sessionHistory?.index > 0;
+    }
+    return this._canGoBackIgnoringUserInteraction;
   }
 
   get canGoForward() {

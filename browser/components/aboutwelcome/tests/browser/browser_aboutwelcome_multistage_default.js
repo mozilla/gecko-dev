@@ -159,6 +159,10 @@ async function openAboutWelcome() {
     "about:welcome",
     true
   );
+  await ContentTask.spawn(gBrowser.selectedBrowser, {}, async function () {
+    // Mark the first entry as having been interacted with.
+    content.document.notifyUserGestureActivation();
+  });
   registerCleanupFunction(() => {
     BrowserTestUtils.removeTab(tab);
   });
