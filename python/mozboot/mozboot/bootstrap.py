@@ -842,7 +842,6 @@ def update_git_tools(git: Optional[Path], root_state_dir: Path):
         from urllib.request import urlopen
 
         import certifi
-        import ssl
 
         if not cinnabar_dir.exists():
             cinnabar_dir.mkdir()
@@ -850,9 +849,10 @@ def update_git_tools(git: Optional[Path], root_state_dir: Path):
         cinnabar_url = "https://github.com/glandium/git-cinnabar/"
         download_py = cinnabar_dir / "download.py"
         with open(download_py, "wb") as fh:
-            context = ssl.create_default_context(cafile=certifi.where())
             shutil.copyfileobj(
-                urlopen(f"{cinnabar_url}/raw/master/download.py", context=context),
+                urlopen(
+                    f"{cinnabar_url}/raw/master/download.py", cafile=certifi.where()
+                ),
                 fh,
             )
 
