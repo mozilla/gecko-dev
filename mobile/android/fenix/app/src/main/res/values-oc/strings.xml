@@ -322,6 +322,10 @@
     <string name="browser_menu_back_button_content_description">Tornar al menú principal</string>
     <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar main menu. -->
     <string name="browser_main_menu_handlebar_content_description">Tampar lo panèl del menú principal</string>
+    <!-- Content description (not visible, for screen readers etc.) for main menu help button. -->
+    <string name="browser_main_menu_content_description_help_button">Ajuda</string>
+    <!-- Content description (not visible, for screen readers etc.) for main menu settings button. -->
+    <string name="browser_main_menu_content_description_settings_button">Paramètres</string>
     <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar extensions menu. -->
     <string name="browser_extensions_menu_handlebar_content_description">Tampar lo panèl del menú de las extensions</string>
     <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar save menu. -->
@@ -331,9 +335,19 @@
     <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar custom tab menu. -->
     <string name="browser_custom_tab_menu_handlebar_content_description">Tampar lo panèl del menú dels onglets personalizats</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-    <string name="browser_menu_tools_description_with_translate" moz:removedIn="133" tools:ignore="UnusedResources">Mòde lectura, traduire, imprimir, partejar, dobrir dins una aplicacion</string>
+    <string name="browser_menu_tools_description_with_translate" moz:removedIn="134" tools:ignore="UnusedResources">Mòde lectura, traduire, imprimir, partejar, dobrir dins una aplicacion</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-    <string name="browser_menu_tools_description" moz:removedIn="133" tools:ignore="UnusedResources">Mòde lectura, imprimir, partejar, dobrir dins una aplicacion</string>
+    <string name="browser_menu_tools_description" moz:removedIn="134" tools:ignore="UnusedResources">Mòde lectura, imprimir, partejar, dobrir dins una aplicacion</string>
+    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu
+         The first parameter is the label of the report site issue (for example: Report Site issue) -->
+    <string name="browser_menu_tools_description_with_translate_with_report_site">Mòde lectura, traduire, %s, imprimir, partejar, dobrir dins una aplicacion</string>
+    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
+    <string name="browser_menu_tools_description_with_translate_without_report_site">Mòde lectura, traduire, imprimir, partejar, dobrir dins una aplicacion</string>
+    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu
+         The first parameter is the label of the report site issue (for example: Report Site issue) -->
+    <string name="browser_menu_tools_description_with_report_site">Mòde lectura, %s, imprimir, partejar, dobrir dins una aplicacion</string>
+    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
+    <string name="browser_menu_tools_description_without_report_site">Mòde lectura, imprimir, partejar, dobrir dins una aplicacion</string>
     <!-- Browser menu label that navigates to the save sub-menu, which contains various save related menu items such as
          bookmarking a page, saving to collection, shortcut or as a PDF, and adding to home screen -->
     <string name="browser_menu_save">Enregistrar</string>
@@ -539,6 +553,11 @@
     <string name="onboarding_add_on_add_button_content_description">Boton Apondre un modul complementari</string>
     <!-- Content description for the star rating group. -->
     <string name="onboarding_add_on_star_rating_content_description">Notat %1$s de 5</string>
+
+    <!-- Positive button label for the privacy preferences dialog shown during onboarding. -->
+    <string name="onboarding_preferences_dialog_positive_button" tools:ignore="UnusedResources">Acabat</string>
+    <!-- Negative button label for the privacy preferences dialog shown during onboarding. -->
+    <string name="onboarding_preferences_dialog_negative_button" tools:ignore="UnusedResources">Anullar</string>
 
     <!-- Search Widget -->
     <!-- Content description for searching with a widget. The first parameter is the name of the application.-->
@@ -942,12 +961,16 @@
 
     <!-- Preference switch for usage and technical data collection -->
     <string name="preference_usage_data" moz:removedIn="134" tools:ignore="UnusedResources">Donadas tecnicas e d’utilizacion</string>
+    <!-- Preference switch for usage and technical learn more link -->
+    <string name="preference_usage_data_learn_more" tools:ignore="UnusedResources">Ne saber mai</string>
     <!-- Preference description for usage and technical data collection -->
     <string name="preferences_usage_data_description">Parteja d’informacions sus las performàncias, lo material, l’utilizacion e las personalizacions a Mozilla per nos ajudar a melhorar %1$s</string>
     <!-- Preference switch for marketing data collection -->
     <string name="preferences_marketing_data">Donadas marketing</string>
     <!-- Preference description for marketing data collection -->
     <string name="preferences_marketing_data_description2">Parteja de donadas basicas d’utilizacion amb Adjust, nòstre prestatari de marketing mobil</string>
+    <!-- Preference switch title for automatically submitting crash reports -->
+    <string name="preferences_automatically_submit_crashes_title">Enviar automaticament los rapòrts de plantatge</string>
     <!-- Title for studies preferences -->
     <string name="preference_experiments_2">Estudis</string>
     <!-- Summary for studies preferences -->

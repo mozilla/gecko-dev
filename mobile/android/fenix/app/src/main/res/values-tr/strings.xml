@@ -348,9 +348,9 @@
     <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar custom tab menu. -->
     <string name="browser_custom_tab_menu_handlebar_content_description">Özel sekme menüsünü kapat</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-    <string name="browser_menu_tools_description_with_translate" moz:removedIn="133" tools:ignore="UnusedResources">Okuyucu görünümü, Çevir, Yazdır, Paylaş, Uygulamada aç</string>
+    <string name="browser_menu_tools_description_with_translate" moz:removedIn="134" tools:ignore="UnusedResources">Okuyucu görünümü, Çevir, Yazdır, Paylaş, Uygulamada aç</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-    <string name="browser_menu_tools_description" moz:removedIn="133" tools:ignore="UnusedResources">Okuyucu görünümü, Yazdır, Paylaş, Uygulamada aç</string>
+    <string name="browser_menu_tools_description" moz:removedIn="134" tools:ignore="UnusedResources">Okuyucu görünümü, Yazdır, Paylaş, Uygulamada aç</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu
          The first parameter is the label of the report site issue (for example: Report Site issue) -->
     <string name="browser_menu_tools_description_with_translate_with_report_site">Okuyucu görünümü, Çevir, %s, Yazdır, Paylaş, Uygulamada aç</string>
@@ -579,6 +579,26 @@
     <!-- Content description for the star rating group. -->
     <string name="onboarding_add_on_star_rating_content_description">5 üzerinden %1$s puan</string>
 
+    <!-- Title for the privacy preferences dialog shown during onboarding. Note: The word "Firefox" should NOT be translated. -->
+    <string name="onboarding_preferences_dialog_title" tools:ignore="BrandUsage,UnusedResources">Firefox’u iyileştirmemize yardım edin</string>
+    <!-- Title for the crash reporting option in the privacy preferences dialog shown during onboarding. -->
+    <string name="onboarding_preferences_dialog_crash_reporting_title" tools:ignore="UnusedResources">Çökme raporlarını otomatik olarak gönderin</string>
+    <!-- Description for the crash reporting option in the privacy preferences dialog shown during onboarding. -->
+    <string name="onboarding_preferences_dialog_crash_reporting_description" tools:ignore="UnusedResources">Çökme raporları tarayıcıyla ilgili sorunları tanılayıp düzeltmemizi sağlar. Raporlar kişisel veya hassas veriler içerebilir.</string>
+    <!-- Learn more link for the crash reporting option in the privacy preferences dialog shown during onboarding. -->
+    <string name="onboarding_preferences_dialog_crash_reporting_learn_more" tools:ignore="UnusedResources">Çökme raporları hakkında bilgi alın</string>
+    <!-- Title for the usage data option in the privacy preferences dialog shown during onboarding. Note: The word "Mozilla" should NOT be translated. -->
+    <string name="onboarding_preferences_dialog_usage_data_title" tools:ignore="UnusedResources">Teknik verileri ve etkileşim verilerini Mozilla’ya gönderin</string>
+    <!-- Description for the usage data option in the privacy preferences dialog shown during onboarding. Note: The word "Firefox" should NOT be translated. -->
+    <string name="onboarding_preferences_dialog_usage_data_description" tools:ignore="BrandUsage,UnusedResources">Cihazınız, donanım yapılandırmanız ve Firefox’u nasıl kullandığınızla ilgili veriler tüm Firefox kullanıcıları için özellikleri, performansı ve kararlılığı iyileştirilmemize yardımcı olur.</string>
+    <!-- Learn more link for the usage data option in the privacy preferences dialog shown during onboarding. -->
+    <string name="onboarding_preferences_dialog_usage_data_learn_more" tools:ignore="UnusedResources">Kullanım verileri hakkında bilgi alın</string>
+    <!-- Positive button label for the privacy preferences dialog shown during onboarding. -->
+    <string name="onboarding_preferences_dialog_positive_button" tools:ignore="UnusedResources">Tamam</string>
+
+    <!-- Negative button label for the privacy preferences dialog shown during onboarding. -->
+    <string name="onboarding_preferences_dialog_negative_button" tools:ignore="UnusedResources">İptal</string>
+
     <!-- Search Widget -->
     <!-- Content description for searching with a widget. The first parameter is the name of the application.-->
     <string name="search_widget_content_description_2">Yeni %1$s sekmesi aç</string>
@@ -655,7 +675,7 @@
     <!-- Text for indicating cookie banner handling is off this site, this is shown as part of the protections panel with the tracking protection toggle -->
     <string name="reduce_cookie_banner_off_for_site">Bu sitede kapalı</string>
     <!-- Text for cancel button indicating that cookie banner reduction is not supported for the current site, this is shown as part of the cookie banner details view. -->
-    <string name="cookie_banner_handling_details_site_is_not_supported_cancel_button">Vazgeç</string>
+    <string name="cookie_banner_handling_details_site_is_not_supported_cancel_button">İptal</string>
     <!-- Text for request support button indicating that cookie banner reduction is not supported for the current site, this is shown as part of the cookie banner details view. -->
     <string name="cookie_banner_handling_details_site_is_not_supported_request_support_button_2">İstek gönder</string>
     <!-- Text for title indicating that cookie banner reduction is not supported for the current site, this is shown as part of the cookie banner details view. -->
@@ -1068,7 +1088,7 @@
     <string name="open_all_warning_confirm">Sekmeleri aç</string>
 
     <!-- Dialog button text for canceling open all tabs -->
-    <string name="open_all_warning_cancel">Vazgeç</string>
+    <string name="open_all_warning_cancel">İptal</string>
 
     <!-- Text to show users they have one page in the history group section of the History fragment.
     %d is a placeholder for the number of pages in the group. -->
@@ -1293,7 +1313,7 @@
     <!-- The button text for navigating away from the feature to provide more information on the broken site's bug report. -->
     <string name="webcompat_reporter_send_more_info">Daha fazla bilgi gönder</string>
     <!-- The button text for the cancel button to leave the Web Compat Reporter feature. -->
-    <string name="webcompat_reporter_cancel">Vazgeç</string>
+    <string name="webcompat_reporter_cancel">İptal</string>
     <!-- The button text for the send button to submit the provided form data. -->
     <string name="webcompat_reporter_send">Gönder</string>
 
@@ -1339,7 +1359,7 @@
     <!-- Confirmation message for a dialog confirming if the user wants to delete multiple items including folders. Parameter will be replaced by app name. -->
     <string name="bookmark_delete_multiple_folders_confirmation_dialog">%s seçilen öğeleri silecek.</string>
     <!-- Text for the cancel button on delete bookmark dialog -->
-    <string name="bookmark_delete_negative">Vazgeç</string>
+    <string name="bookmark_delete_negative">İptal</string>
     <!-- Screen title for adding a bookmarks folder -->
     <string name="bookmark_add_folder">Klasör ekle</string>
     <!-- Snackbar title shown after a bookmark has been created. -->
@@ -1457,13 +1477,13 @@
     <!-- Text for the OK button on Clear permissions dialog -->
     <string name="clear_permissions_positive">Tamam</string>
     <!-- Text for the cancel button on Clear permissions dialog -->
-    <string name="clear_permissions_negative">Vazgeç</string>
+    <string name="clear_permissions_negative">İptal</string>
     <!-- Button label for clearing a site permission-->
     <string name="clear_permission">İzni temizle</string>
     <!-- Text for the OK button on Clear permission dialog -->
     <string name="clear_permission_positive">Tamam</string>
     <!-- Text for the cancel button on Clear permission dialog -->
-    <string name="clear_permission_negative">Vazgeç</string>
+    <string name="clear_permission_negative">İptal</string>
     <!-- Button label for clearing all the information on all sites-->
     <string name="clear_permissions_on_all_sites">Tüm sitelerdeki izinleri temizle</string>
     <!-- Preference for altering video and audio autoplay for all websites -->
@@ -1578,7 +1598,7 @@
     <!-- Text for the OK button from collection dialogs -->
     <string name="create_collection_positive">Tamam</string>
     <!-- Text for the cancel button from collection dialogs -->
-    <string name="create_collection_negative">Vazgeç</string>
+    <string name="create_collection_negative">İptal</string>
 
     <!-- Default name for a new collection in "name new collection" step of the collection creator. %d is a placeholder for the number of collections-->
     <string name="create_collection_default_name">Koleksiyon %d</string>
@@ -1797,7 +1817,7 @@
     <!-- Dialog message to the user asking to delete all history items inside the opened group. Parameter will be replaced by a history group name. -->
     <string name="delete_all_history_group_prompt_message">“%s” grubundaki tüm siteleri sil</string>
     <!-- Text for the cancel button for the history group deletion dialog -->
-    <string name="delete_history_group_prompt_cancel">Vazgeç</string>
+    <string name="delete_history_group_prompt_cancel">İptal</string>
     <!-- Text for the allow button for the history group dialog -->
     <string name="delete_history_group_prompt_allow">Sil</string>
     <!-- Text for the snackbar confirmation that the history group was deleted -->
@@ -2200,7 +2220,7 @@
     <!-- The text for the "Save" button for saving an address -->
     <string name="addresses_save_button">Kaydet</string>
     <!-- The text for the "Cancel" button for cancelling adding, updating or deleting an address -->
-    <string name="addresses_cancel_button">Vazgeç</string>
+    <string name="addresses_cancel_button">İptal</string>
     <!-- The text for the "Delete address" button for deleting an address -->
     <string name="addressess_delete_address_button">Adresi sil</string>
 
@@ -2307,7 +2327,7 @@
     <!-- Positive action of a dialog asking to delete  -->
     <string name="dialog_delete_positive">Sil</string>
     <!-- Negative action of a dialog asking to delete login -->
-    <string name="dialog_delete_negative">Vazgeç</string>
+    <string name="dialog_delete_negative">İptal</string>
     <!--  The saved password options menu description. -->
     <string name="login_options_menu_2">Parola seçenekleri</string>
     <!--  The editable text field for a website address. -->
@@ -2718,7 +2738,7 @@
     <!-- Title of the translation options dialog that allows a user to set their translation options for the site the user is currently on. -->
     <string name="translation_option_bottom_sheet_title_heading">Çeviri seçenekleri</string>
     <!-- Toggle switch label that allows a user to set the setting if they would like the browser to always offer or suggest translations when available. -->
-    <string name="translation_option_bottom_sheet_always_translate">Her zaman çevirmeyi teklif et</string>
+    <string name="translation_option_bottom_sheet_always_translate">Her zaman çevirmeyi öner</string>
     <!-- Toggle switch label that allows a user to set if they would like a given language to automatically translate or not. The first parameter is the language name, for example, "Spanish". -->
     <string name="translation_option_bottom_sheet_always_translate_in_language">%1$s dilini her zaman çevir</string>
     <!-- Toggle switch label that allows a user to set if they would like to never be offered a translation of the given language. The first parameter is the language name, for example, "Spanish". -->
@@ -2744,7 +2764,7 @@
     <!-- Title of the translation settings dialog that allows a user to set their preferred translation settings. -->
     <string name="translation_settings_toolbar_title">Çeviriler</string>
     <!-- Toggle switch label that indicates that the browser should signal or indicate when a translation is possible for any page. -->
-    <string name="translation_settings_offer_to_translate">Mümkün olduğunda çevirmeyi teklif et</string>
+    <string name="translation_settings_offer_to_translate">Mümkün olduğunda çevirmeyi öner</string>
 
     <!-- Toggle switch label that indicates that downloading files required for translating is permitted when using data saver mode in Android. -->
     <string name="translation_settings_always_download">Veri tasarrufu modundayken dilleri her zaman indir</string>
@@ -2857,7 +2877,7 @@
     <!-- Button text on the dialog used by the translations feature to confirm deleting a language. -->
     <string name="delete_language_file_dialog_positive_button_text">Sil</string>
     <!-- Button text on the dialog used by the translations feature to cancel deleting a language. -->
-    <string name="delete_language_file_dialog_negative_button_text">Vazgeç</string>
+    <string name="delete_language_file_dialog_negative_button_text">İptal</string>
 
     <!-- Title for the data saving mode warning dialog used by the translations feature.
     This dialog will be presented when the user attempts to download a language or perform
@@ -2873,7 +2893,7 @@
     <!-- Button text on the data saving mode warning dialog used by the translations feature to allow users to confirm they wish to continue and download the language file and perform a translation. -->
     <string name="download_language_file_dialog_positive_button_text_all_languages">İndir ve çevir</string>
     <!-- Button text on the data saving mode warning dialog used by the translations feature to allow users to cancel the action and not perform a download of the language file. -->
-    <string name="download_language_file_dialog_negative_button_text">Vazgeç</string>
+    <string name="download_language_file_dialog_negative_button_text">İptal</string>
 
     <!-- Debug drawer -->
     <!-- The user-facing title of the Debug Drawer feature. -->

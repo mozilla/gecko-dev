@@ -70,6 +70,10 @@
     <string name="mozac_feature_addons_permissions_tab_hide_description">Skrývat a zobrazovat panely prohlížeče</string>
     <!-- Description for top_sites permission. -->
     <string name="mozac_feature_addons_permissions_top_sites_description">Přistupovat k historii prohlížení</string>
+    <!-- Description for trialML permission. -->
+    <string name="mozac_feature_addons_permissions_trial_ml_description">Stahovat a spouštět modely AI na zařízení</string>
+    <!-- Description for userScripts permission. -->
+    <string name="mozac_feature_addons_permissions_user_scripts_description">Povolit neověřeným skriptům třetích stran přístup k vašim údajům</string>
     <!-- Description for devtools permission. -->
     <string name="mozac_feature_addons_permissions_devtools_description">Rozšířit nástroje pro vývojáře a získat přístup k vašim datům v otevřených panelech</string>
     <!-- The version on of add-on. -->

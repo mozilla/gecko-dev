@@ -70,6 +70,10 @@
     <string name="mozac_feature_addons_permissions_tab_hide_description">ਬਰਾਊਜ਼ਰ ਟੈਬਾਂ ਲੁਕਾਉਣ ਅਤੇ ਵੇਖਾਉਣ</string>
     <!-- Description for top_sites permission. -->
     <string name="mozac_feature_addons_permissions_top_sites_description">ਬਰਾਊਜ਼ਰ ਅਤੀਤ ਲਈ ਪਹੁੰਚ</string>
+    <!-- Description for trialML permission. -->
+    <string name="mozac_feature_addons_permissions_trial_ml_description">AI ਮਾਡਲਾਂ ਨੂੰ ਆਪਣੇ ਡਿਵਾਈਸ ਉੱਤੇ ਡਾਊਨਲੋਡ ਕਰਕੇ ਚਲਾਓ</string>
+    <!-- Description for userScripts permission. -->
+    <string name="mozac_feature_addons_permissions_user_scripts_description">ਗ਼ੈਰ-ਤਸਦੀਕ ਕੀਤੀਆਂ ਸੁਤੰਤਰ ਧਿਰ ਦੀਆਂ ਸਕ੍ਰਿਪਟਾਂ ਨੂੰ ਆਪਣੇ ਡਾਟੇ ਲਈ ਪਹੁੰਚ ਦੀ ਮਨਜ਼ੂਰੀ ਦਿਓ</string>
     <!-- Description for devtools permission. -->
     <string name="mozac_feature_addons_permissions_devtools_description">ਟੈਬਾਂ ਖੋਲ੍ਹਣ ਵਿੱਚ ਤੁਹਾਡੇ ਡਾਟਾ ਲਈ ਡਿਵੈਲਪਰ ਟੂਲਾਂ ਦੀ ਪਹੁੰਚ</string>
     <!-- The version on of add-on. -->
