@@ -229,8 +229,8 @@ web-platform-tests-reftest:
             .*-ccov.*/.*: 8
             linux.*64-tsan-qr/opt: 16
             linux1804-64(-asan)?-qr/.*: 6
-            macosx10.*-64/debug: 6
-            macosx10.*-64/opt: 3
+            macosx.*-64/debug: 6
+            macosx.*-64/opt: 3
             windows.*-(32|64)(-qr)?/debug: 5
             android.*: 6
             default: 4
@@ -622,7 +622,8 @@ web-platform-tests-crashtest:
                     android-em-7.0-x86_64-qr/debug: built-projects
                     .*-32.*/.*: []
                     linux.*64-qr/debug: built-projects
-                    macosx101.*64-qr/debug: built-projects
+                    macosx1015.*64-qr/debug: built-projects
+                    macosx1470.*64-qr/debug: built-projects
                     windows.*-qr/debug: built-projects
                     default: []
             webrender-sw+no-fission:

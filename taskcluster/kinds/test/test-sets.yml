@@ -33,16 +33,6 @@ web-platform-tests:
     - web-platform-tests-webcodecs
     - web-platform-tests-eme
 
-web-platform-tests-1015:
-    - web-platform-tests-crashtest
-    - web-platform-tests-privatebrowsing
-    - web-platform-tests-print-reftest
-    - web-platform-tests-reftest
-    - web-platform-tests-wdspec
-    - web-platform-tests-canvas
-    - web-platform-tests-webcodecs
-    - web-platform-tests-eme
-
 web-platform-tests-backlog:
     - web-platform-tests-backlog
     - web-platform-tests-reftest-backlog
@@ -411,8 +401,18 @@ macosx1100-aarch64-qr-tests:
     - cppunittest
     - mochitest-media
 
+web-platform-tests-1015:
+    - web-platform-tests-reftest
+
 macosx1470-64-tests:
     - web-platform-tests
+    - web-platform-tests-canvas
+    - web-platform-tests-crashtest
+    - web-platform-tests-eme
+    - web-platform-tests-print-reftest
+    - web-platform-tests-privatebrowsing
+    - web-platform-tests-wdspec
+    - web-platform-tests-webcodecs
 
 macosx1015-64-qr-tests:
     - cppunittest
