@@ -19,24 +19,17 @@
   assertEq(withMonthCode.equals(withMonth), true);
 }
 
-// Inconsistent eraYear and year are ignored when monthCode is present.
+// eraYear and year must be consistent when monthCode is present.
 {
-  let pmd = Temporal.PlainMonthDay.from({
+  let fields = {
     calendar: "gregory",
     era: "ce",
     eraYear: 2024,
     year: 2023,
     monthCode: "M01",
     day: 1,
-  });
-
-  let expected = Temporal.PlainMonthDay.from({
-    calendar: "gregory",
-    monthCode: "M01",
-    day: 1,
-  });
-
-  assertEq(pmd.equals(expected), true);
+  };
+  assertThrowsInstanceOf(() => Temporal.PlainMonthDay.from(fields), RangeError);
 }
 
 // eraYear and year must be consistent when month is present.
