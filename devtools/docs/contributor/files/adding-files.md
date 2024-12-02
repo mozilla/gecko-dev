@@ -36,11 +36,12 @@ Example:
   * `loader.lazyRequireGetter(this, "layout", "devtools/server/actors/layout")`
   * `require("devtools/server/actors/layout")`
 
-### `ChromeUtils.import()`
+### `ChromeUtils.importESModule()`
 
-Some older DevTools JS modules use the Gecko JavaScript code module format with the file extension `.jsm`. We are trying to move away from this format, so it's unlikely you would add a new one, but you might need to import an existing one in your code.
+Some DevTools modules use a variant of the standard ECMAScript module, with
+the file extension `.sys.mjs`.
 
-These modules are loaded using `ChromeUtils.import()`. To `import()` a file, you provide a `resource://` URL, which is exactly the source tree path.
+These modules are loaded using `ChromeUtils.importESModule()`. To `importESModule()` a file, you provide a `resource://` URL, which is exactly the source tree path.
 
 In more detail:
 
@@ -56,10 +57,10 @@ Example:
 
 Example:
 
-* File: `/toolkit/mozapps/extensions/AddonManager.jsm`
+* File: `/toolkit/mozapps/extensions/AddonManager.sys.mjs`
 * Usage (prefer lazy in most cases):
-  * `const lazy = {}; ChromeUtils.defineModuleGetter(lazy, "AddonManager", "resource://gre/modules/AddonManager.jsm")`
-  * `const { AddonManager } = ChromeUtils.import("resource://gre/modules/AddonManager.jsm")`
+  * `const lazy = {}; ChromeUtils.defineESModuleGetter(lazy, "AddonManager", "resource://gre/modules/AddonManager.sys.mjs")`
+  * `const { AddonManager } = ChromeUtils.importESModule("resource://gre/modules/AddonManager.sys.mjs")`
 
 ## Chrome Content
 
