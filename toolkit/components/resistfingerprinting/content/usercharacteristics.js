@@ -906,6 +906,9 @@ async function populateSensorInfo() {
     // First devicemotion event has accelerationIncludingGravity but not acceleration.
     const property =
       e.acceleration?.x || e.alpha || e.accelerationIncludingGravity?.x;
+    if (!property) {
+      return;
+    }
     const decPlaces = decimalPlaces(property);
     eventDecPlaces[eventName] =
       eventDecPlaces[eventName] > decPlaces
@@ -920,25 +923,29 @@ async function populateSensorInfo() {
     results.decPlaces[eventName] = eventDecPlaces[eventName];
   };
 
+  const listeners = [];
   for (const eventName in events) {
     eventStarts[eventName] = window.performance.now();
-    window.addEventListener(eventName, processEvent(eventName));
+    const listener = processEvent(eventName);
+    window.addEventListener(eventName, listener);
+    listeners.push([eventName, listener]);
     setTimeout(() => processResult(eventName), 10 * 1000);
   }
 
   // A whole extra second to process results
-  setTimeout(
-    () =>
-      resolve({
-        motionDecimals: results.decPlaces.devicemotion,
-        orientationDecimals: results.decPlaces.deviceorientation,
-        orientationabsDecimals: results.decPlaces.deviceorientationabsolute,
-        motionFreq: results.frequency.devicemotion,
-        orientationFreq: results.frequency.deviceorientation,
-        orientationabsFreq: results.frequency.deviceorientationabsolute,
-      }),
-    11 * 1000
-  );
+  setTimeout(() => {
+    for (const [eventName, listener] of listeners) {
+      window.removeEventListener(eventName, listener);
+    }
+    resolve({
+      motionDecimals: results.decPlaces.devicemotion,
+      orientationDecimals: results.decPlaces.deviceorientation,
+      orientationabsDecimals: results.decPlaces.deviceorientationabsolute,
+      motionFreq: results.frequency.devicemotion,
+      orientationFreq: results.frequency.deviceorientation,
+      orientationabsFreq: results.frequency.deviceorientationabsolute,
+    });
+  }, 11 * 1000);
 
   return promise;
 }
