@@ -5749,6 +5749,13 @@ export var DefaultBrowserCheck = {
     win.MozXULElement.insertFTLIfNeeded(
       "browser/defaultBrowserNotification.ftl"
     );
+    // Record default prompt impression
+    let now = Math.floor(Date.now() / 1000).toString();
+    Services.prefs.setCharPref(
+      "browser.shell.mostRecentDefaultPromptSeen",
+      now
+    );
+
     // Resolve the translations for the prompt elements and return only the
     // string values
 
@@ -5829,6 +5836,7 @@ export var DefaultBrowserCheck = {
     }
     if (checkboxState) {
       shellService.shouldCheckDefaultBrowser = false;
+      Services.prefs.setCharPref("browser.shell.userDisabledDefaultCheck", now);
     }
 
     try {

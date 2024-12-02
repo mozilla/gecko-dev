@@ -207,6 +207,35 @@ add_task(async function showDefaultPrompt() {
   await BrowserTestUtils.closeWindow(win2);
 });
 
+add_task(async function promptStoresImpressionAndDisableTimestamps() {
+  await showAndWaitForModal(win => {
+    const dialog = win.document.querySelector("dialog");
+    dialog.querySelector("checkbox").click();
+    dialog.getButton("cancel").click();
+  });
+
+  const impressionTimestamp = Services.prefs.getCharPref(
+    "browser.shell.mostRecentDefaultPromptSeen"
+  );
+  const disabledTimestamp = Services.prefs.getCharPref(
+    "browser.shell.userDisabledDefaultCheck"
+  );
+
+  const now = Math.floor(Date.now() / 1000);
+  const oneHourInMs = 60 * 60 * 1000;
+
+  Assert.ok(
+    impressionTimestamp &&
+      now - parseInt(impressionTimestamp, 10) <= oneHourInMs,
+    "Prompt impression timestamp is stored"
+  );
+
+  Assert.ok(
+    disabledTimestamp && now - parseInt(disabledTimestamp, 10) <= oneHourInMs,
+    "Selecting checkbox stores timestamp of when user disabled the prompt"
+  );
+});
+
 add_task(async function showPromptStyleSpotlight() {
   let sandbox = sinon.createSandbox();
 
