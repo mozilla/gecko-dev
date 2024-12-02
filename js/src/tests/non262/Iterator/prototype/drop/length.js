@@ -6,6 +6,7 @@ esid: pending
 description: "%Iterator.prototype%.drop length value and descriptor."
 info: >
   17 ECMAScript Standard Built-in Objects
+includes: [propertyHelper.js]
 features: [Symbol.iterator]
 ---*/
 

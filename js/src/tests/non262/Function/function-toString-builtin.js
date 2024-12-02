@@ -16,7 +16,7 @@ var propertyName = [
 ].join("|")
 
 var nativeCode = RegExp([
-    "^", "function", "(get|set)?", ("(" + propertyName + ")?"), "\\(", "\\)", "\\{", "\\[native code\\]", "\\}", "$"
+    "^", "function", ("(?:" + propertyName + ")?"), "\\(", "\\)", "\\{", "\\[native code\\]", "\\}", "$"
 ].join("\\s*"));
 
 

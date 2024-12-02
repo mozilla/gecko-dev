@@ -20,13 +20,12 @@ var propertyName = [
 ].join("|")
 
 var nativeCode = RegExp([
-    "^", "function", "(get|set)?", ("(" + propertyName + ")?"), "\\(", "\\)", "\\{", "\\[native code\\]", "\\}", "$"
+    "^", "function", ("(" + propertyName + ")?"), "\\(", "\\)", "\\{", "\\[native code\\]", "\\}", "$"
 ].join("\\s*"));
 
 function assertFunctionName(fun, expected) {
     var match = nativeCode.exec(fun.toString());
-    assertEq(match === null, false, "No match for " + expected);
-    assertEq(match[2], expected, "Incorrect match for " + expected);
+    assertEq(match[1], expected);
 }
 
 // Bound functions are considered built-ins.

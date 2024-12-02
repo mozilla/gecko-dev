@@ -2,11 +2,15 @@
  * http://creativecommons.org/licenses/publicdomain/ */
 
 function test(fn, thisv) {
-  assertThrowsInstanceOfWithMessageCheck(
-    () => fn.call(thisv),
-    TypeError,
-    message =>
-      /^\w+ method called on incompatible.+/.test(message) && !message.includes("std_"));
+  var message;
+  try {
+    fn.call(thisv);
+  } catch (e) {
+    message = e.message;
+  }
+
+  assertEq(/^\w+ method called on incompatible.+/.test(message), true);
+  assertEq(message.includes("std_"), false);
 }
 
 for (var thisv of [null, undefined, false, true, 0, ""]) {

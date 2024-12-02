@@ -8,11 +8,11 @@ description: >
 info: |
   8.2.3.4 %Tuple%.prototype [ @@toStringTag ]
 
-  The initial value of Tuple.prototype[@@toStringTag] is the String value "Tuple".
+The initial value of Tuple.prototype[@@toStringTag] is the String value "Tuple".
 
-  This property has the attributes { [[Writable]]: false, [[Enumerable]]: false, [[Configurable]]: true }.
+This property has the attributes { [[Writable]]: false, [[Enumerable]]: false, [[Configurable]]: true }.
 
-features: [Symbol.toStringTag]
+features: [Symbol.toStringTag, Tuple]
 ---*/
 
 var TuplePrototype = Tuple.prototype;

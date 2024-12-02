@@ -1,7 +1,3 @@
-/*---
-defines: [typedArrayConstructors, sharedTypedArrayConstructors, anyTypedArrayConstructors, isSharedConstructor, isFloatConstructor, isUnsignedConstructor]
-allow_unused: True
----*/
 (function(global) {
     "use strict";
 

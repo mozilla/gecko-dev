@@ -6,11 +6,15 @@ var expect = '';
 var actual = '';
 
 function test(s) {
-    assertThrowsInstanceOfWithMessageCheck(
-        () => eval(s),
-        Error,
-        message => message.indexOf('(intermediate value)') === -1,
-        `error message for ${s} should not contain '(intermediate value)'`);
+    var threw = false;
+    try {
+        eval(s);
+    } catch (e) {
+        assertEq(e.message.indexOf('(intermediate value)'), -1);
+        threw = true;
+    } finally {
+        assertEq(threw, true);
+    }
 }
 
 test("({p:1, q:2}).m()");

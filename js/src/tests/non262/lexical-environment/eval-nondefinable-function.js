@@ -1,6 +1,3 @@
-// SKIP test262 export
-// Pending review.
-
 try {
   eval("var shouldNotBeDefined1; function NaN(){}; var shouldNotBeDefined2;");
 } catch (e) {

@@ -1,6 +1,3 @@
-// SKIP test262 export
-// Pending review.
-
 // Strict assignment to the name of a property that's masked by @@unscopables
 // throws a ReferenceError.
 

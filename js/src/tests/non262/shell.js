@@ -4,19 +4,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-/*---
-defines: [completesNormally, raisesException, deepEqual, makeIterator, Permutations, assertThrowsValue, assertThrownErrorContains, assertThrowsInstanceOfWithMessageCheck, assertThrowsInstanceOf, assertThrowsInstanceOfWithMessage, assertThrowsInstanceOfWithMessageContains, assertDeepEq]
-allow_unused: True
----*/
-
-(function() {
+(function(global) {
   const undefined = void 0;
 
   /*
    * completesNormally(CODE) returns true if evaluating CODE (as eval
    * code) completes normally (rather than throwing an exception).
    */
-  globalThis.completesNormally = function completesNormally(code) {
+  global.completesNormally = function completesNormally(code) {
     try {
       eval(code);
       return true;
@@ -31,7 +26,7 @@ allow_unused: True
    * and returns false if it throws any other error or evaluates
    * successfully. For example: raises(TypeError)("0()") == true.
    */
-  globalThis.raisesException = function raisesException(exception) {
+  global.raisesException = function raisesException(exception) {
     return function (code) {
       try {
         eval(code);
@@ -48,7 +43,7 @@ allow_unused: True
    * of each property are deep_equal, and their 'length' properties are
    * equal. Equality on other types is ==.
    */
-  globalThis.deepEqual = function deepEqual(a, b) {
+    global.deepEqual = function deepEqual(a, b) {
     if (typeof a != typeof b)
       return false;
 
@@ -80,7 +75,7 @@ allow_unused: True
   }
 
   /** Make an iterator with a return method. */
-  globalThis.makeIterator = function makeIterator(overrides) {
+  global.makeIterator = function makeIterator(overrides) {
     var throwMethod;
     if (overrides && overrides.throw)
       throwMethod = overrides.throw;
@@ -102,7 +97,7 @@ allow_unused: True
   };
 
   /** Yield every permutation of the elements in some array. */
-  globalThis.Permutations = function* Permutations(items) {
+  global.Permutations = function* Permutations(items) {
     if (items.length == 0) {
       yield [];
     } else {
@@ -117,8 +112,8 @@ allow_unused: True
     }
   };
 
-  if (typeof globalThis.assertThrowsValue === 'undefined') {
-    globalThis.assertThrowsValue = function assertThrowsValue(f, val, msg) {
+  if (typeof global.assertThrowsValue === 'undefined') {
+    global.assertThrowsValue = function assertThrowsValue(f, val, msg) {
       var fullmsg;
       try {
         f();
@@ -135,8 +130,8 @@ allow_unused: True
     };
   }
 
-  if (typeof globalThis.assertThrownErrorContains === 'undefined') {
-    globalThis.assertThrownErrorContains = function assertThrownErrorContains(thunk, substr) {
+  if (typeof global.assertThrownErrorContains === 'undefined') {
+    global.assertThrownErrorContains = function assertThrownErrorContains(thunk, substr) {
       try {
         thunk();
       } catch (e) {
@@ -148,8 +143,8 @@ allow_unused: True
     };
   }
 
-  if (typeof globalThis.assertThrowsInstanceOfWithMessageCheck === 'undefined') {
-    globalThis.assertThrowsInstanceOfWithMessageCheck = function assertThrowsInstanceOfWithMessageCheck(f, ctor, check, msg) {
+  if (typeof global.assertThrowsInstanceOfWithMessageCheck === 'undefined') {
+    global.assertThrowsInstanceOfWithMessageCheck = function assertThrowsInstanceOfWithMessageCheck(f, ctor, check, msg) {
       var fullmsg;
       try {
         f();
@@ -174,25 +169,25 @@ allow_unused: True
     };
   }
 
-  if (typeof globalThis.assertThrowsInstanceOf === 'undefined') {
-    globalThis.assertThrowsInstanceOf = function assertThrowsInstanceOf(f, ctor, msg) {
+  if (typeof global.assertThrowsInstanceOf === 'undefined') {
+    global.assertThrowsInstanceOf = function assertThrowsInstanceOf(f, ctor, msg) {
       assertThrowsInstanceOfWithMessageCheck(f, ctor, _ => true, msg);
     };
   }
 
-  if (typeof globalThis.assertThrowsInstanceOfWithMessage === 'undefined') {
-    globalThis.assertThrowsInstanceOfWithMessage = function assertThrowsInstanceOfWithMessage(f, ctor, expected, msg) {
+  if (typeof global.assertThrowsInstanceOfWithMessage === 'undefined') {
+    global.assertThrowsInstanceOfWithMessage = function assertThrowsInstanceOfWithMessage(f, ctor, expected, msg) {
       assertThrowsInstanceOfWithMessageCheck(f, ctor, message => message === expected, msg);
     }
   }
 
-  if (typeof globalThis.assertThrowsInstanceOfWithMessageContains === 'undefined') {
-    globalThis.assertThrowsInstanceOfWithMessageContains = function assertThrowsInstanceOfWithMessageContains(f, ctor, substr, msg) {
+  if (typeof global.assertThrowsInstanceOfWithMessageContains === 'undefined') {
+    global.assertThrowsInstanceOfWithMessageContains = function assertThrowsInstanceOfWithMessageContains(f, ctor, substr, msg) {
       assertThrowsInstanceOfWithMessageCheck(f, ctor, message => message.indexOf(substr) !== -1, msg);
     }
   }
 
-  globalThis.assertDeepEq = (function(){
+  global.assertDeepEq = (function(){
     var call = Function.prototype.call,
       Array_isArray = Array.isArray,
       Array_includes = call.bind(Array.prototype.includes),
@@ -378,4 +373,4 @@ allow_unused: True
     };
   })();
 
-})();
+})(this);

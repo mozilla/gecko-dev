@@ -1,4 +1,5 @@
 const nativeErrors = [
+    InternalError,
     EvalError,
     RangeError,
     ReferenceError,

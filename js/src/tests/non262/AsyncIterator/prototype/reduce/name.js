@@ -1,6 +1,6 @@
-// |reftest| skip-if(!this.hasOwnProperty('AsyncIterator'))
+// |reftest| skip-if(!this.hasOwnProperty('AsyncIterator')) 
 /*---
-description: "`name` property of AsyncIterator.prototype.reduce."
+  `name` property of AsyncIterator.prototype.reduce.
 ---*/
 
 const propDesc = Reflect.getOwnPropertyDescriptor(AsyncIterator.prototype.reduce, 'name');

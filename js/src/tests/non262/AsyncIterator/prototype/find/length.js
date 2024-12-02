@@ -1,6 +1,6 @@
-// |reftest| skip-if(!this.hasOwnProperty('AsyncIterator'))
+// |reftest| skip-if(!this.hasOwnProperty('AsyncIterator')) 
 /*---
-description: The `length` property of AsyncIterator.prototype.find.
+  The `length` property of AsyncIterator.prototype.find.
 info: |
   ES7 section 17: Unless otherwise specified, the length property of a built-in
   Function object has the attributes { [[Writable]]: false, [[Enumerable]]:

@@ -1,7 +1,3 @@
-/*---
-defines: [testJSON]
-allow_unused: True
----*/
 function testJSON(str, expectSyntaxError)
 {
   // Leading and trailing whitespace never affect parsing, so test the string

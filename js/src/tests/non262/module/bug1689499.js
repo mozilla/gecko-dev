@@ -1,6 +1,4 @@
 // |reftest| skip-if(!xulRuntime.shell) async  -- needs drainJobQueue
-// SKIP test262 export
-// Test needs drainJobQueue.
 
 async function test() {
   try {
