@@ -14,6 +14,7 @@ import org.mozilla.fenix.components.appstate.reducer.FindInPageStateReducer
 import org.mozilla.fenix.components.appstate.shopping.ShoppingStateReducer
 import org.mozilla.fenix.components.appstate.snackbar.SnackbarState
 import org.mozilla.fenix.components.appstate.snackbar.SnackbarStateReducer
+import org.mozilla.fenix.components.appstate.webcompat.WebCompatReducer
 import org.mozilla.fenix.ext.filterOutTab
 import org.mozilla.fenix.home.recentsyncedtabs.RecentSyncedTabState
 import org.mozilla.fenix.home.recentvisits.RecentlyVisitedItem
@@ -206,6 +207,8 @@ internal object AppStoreReducer {
             state = state,
             action = action,
         )
+
+        is AppAction.WebCompatAction -> WebCompatReducer.reduce(state = state, action = action)
     }
 }
 

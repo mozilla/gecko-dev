@@ -24,7 +24,7 @@ class WebCompatReporterStoreTest {
         val expectedUrl = "https://www.mozilla.org/"
 
         store.dispatch(WebCompatReporterAction.BrokenSiteChanged(newUrl = expectedUrl))
-        assertEquals(expectedUrl, store.state.url)
+        assertEquals(expectedUrl, store.state.enteredUrl)
     }
 
     @Test

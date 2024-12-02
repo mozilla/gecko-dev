@@ -16,6 +16,7 @@ import org.mozilla.fenix.components.appstate.readerview.ReaderViewState
 import org.mozilla.fenix.components.appstate.recommendations.ContentRecommendationsState
 import org.mozilla.fenix.components.appstate.shopping.ShoppingState
 import org.mozilla.fenix.components.appstate.snackbar.SnackbarState
+import org.mozilla.fenix.components.appstate.webcompat.WebCompatState
 import org.mozilla.fenix.home.HomeFragment
 import org.mozilla.fenix.home.bookmarks.Bookmark
 import org.mozilla.fenix.home.recentsyncedtabs.RecentSyncedTabState
@@ -63,6 +64,7 @@ import org.mozilla.fenix.wallpapers.WallpaperState
  * @property wasLastTabClosedPrivate Whether the last remaining tab that was closed in private mode. This is used to
  * display an undo snackbar message relevant to the browsing mode. If null, no snackbar is shown.
  * @property wasNativeDefaultBrowserPromptShown Whether the native default browser prompt was shown to the user.
+ * @property webCompatState The [WebCompatState] when the feature was last used.
  */
 data class AppState(
     val isForeground: Boolean = true,
@@ -94,4 +96,5 @@ data class AppState(
     val crashState: CrashState = CrashState.Idle,
     val wasLastTabClosedPrivate: Boolean? = null,
     val wasNativeDefaultBrowserPromptShown: Boolean = false,
+    val webCompatState: WebCompatState? = null,
 ) : State

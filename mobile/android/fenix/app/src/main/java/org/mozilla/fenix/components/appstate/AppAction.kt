@@ -20,6 +20,7 @@ import org.mozilla.fenix.browser.StandardSnackbarError
 import org.mozilla.fenix.browser.browsingmode.BrowsingMode
 import org.mozilla.fenix.components.AppStore
 import org.mozilla.fenix.components.appstate.shopping.ShoppingState
+import org.mozilla.fenix.components.appstate.webcompat.WebCompatState
 import org.mozilla.fenix.home.bookmarks.Bookmark
 import org.mozilla.fenix.home.pocket.PocketRecommendedStoriesCategory
 import org.mozilla.fenix.home.pocket.PocketRecommendedStoriesSelectedCategory
@@ -553,5 +554,20 @@ sealed class AppAction : Action {
             val storiesCategories: List<PocketRecommendedStoriesCategory>,
             val categoriesSelected: List<PocketRecommendedStoriesSelectedCategory>,
         ) : ContentRecommendationsAction()
+    }
+
+    /**
+     * [AppAction]s related to the Web Compat feature.
+     */
+    sealed class WebCompatAction : AppAction() {
+        /**
+         * Dispatched then the [WebCompatState] has been updated.
+         */
+        data class WebCompatStateUpdated(val newState: WebCompatState) : WebCompatAction()
+
+        /**
+         * Dispatched then the [WebCompatState] has been cleared.
+         */
+        data object WebCompatStateReset : WebCompatAction()
     }
 }

@@ -90,7 +90,7 @@ fun WebCompatReporter(
             Spacer(modifier = Modifier.height(32.dp))
 
             TextField(
-                value = state.url,
+                value = state.enteredUrl,
                 onValueChange = {
                     store.dispatch(WebCompatReporterAction.BrokenSiteChanged(newUrl = it))
                 },
@@ -197,15 +197,15 @@ private class WebCompatPreviewParameterProvider : PreviewParameterProvider<WebCo
         get() = sequenceOf(
             // Initial feature opening
             WebCompatReporterState(
-                url = "www.example.com/url_parameters_that_break_the_page",
+                enteredUrl = "www.example.com/url_parameters_that_break_the_page",
             ),
             // Error in URL field
             WebCompatReporterState(
-                url = "",
+                enteredUrl = "",
             ),
             // Multi-line description
             WebCompatReporterState(
-                url = "www.example.com/url_parameters_that_break_the_page",
+                enteredUrl = "www.example.com/url_parameters_that_break_the_page",
                 reason = WebCompatReporterState.BrokenSiteReason.Slow,
                 problemDescription = "The site wouldn’t load and after I tried xyz it still wouldn’t " +
                     "load and then again site wouldn’t load and after I tried xyz it still wouldn’t " +
