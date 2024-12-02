@@ -61,6 +61,9 @@ support-files = [
 ]
 prefs = ["javascript.options.large_arraybuffers=true"]
 
+["test_pdf.html"]
+support-files = ["file_pdfjs_test.pdf", "file_pdfjs_test.pdf^headers^"]
+
 # test_1331680* fail with xorigin if 3pc are rejected by default (Bug 1873998).
 ["test_1331680.html"]
 skip-if = ["xorigin"]
