@@ -553,6 +553,9 @@ def updateMeta(
     if source.startswith((b'"use strict"', b"'use strict'")):
         frontmatter.setdefault("flags", []).append("onlyStrict")
 
+    if b"createIsHTMLDDA" in source:
+        frontmatter.setdefault("features", []).append("IsHTMLDDA")
+
     source, addincludes = translateHelpers(source)
     includes = includes + addincludes
 
