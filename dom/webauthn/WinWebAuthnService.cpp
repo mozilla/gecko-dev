@@ -299,9 +299,11 @@ WinWebAuthnService::MakeCredential(uint64_t aTransactionId,
         DWORD winUserVerificationReq =
             WEBAUTHN_USER_VERIFICATION_REQUIREMENT_ANY;
 
-        // Resident Key
-        BOOL winRequireResidentKey = FALSE;
-        BOOL winPreferResidentKey = FALSE;
+        // Resident Key Requirement.
+        BOOL winRequireResidentKey = FALSE;  // Will be set to TRUE if and only
+                                             // if residentKey = "required"
+        BOOL winPreferResidentKey = FALSE;   // Will be set to TRUE if and only
+                                             // if residentKey = "preferred"
 
         // AttestationConveyance
         DWORD winAttestation = WEBAUTHN_ATTESTATION_CONVEYANCE_PREFERENCE_ANY;
@@ -391,7 +393,7 @@ WinWebAuthnService::MakeCredential(uint64_t aTransactionId,
         if (residentKey.EqualsLiteral(
                 MOZ_WEBAUTHN_RESIDENT_KEY_REQUIREMENT_REQUIRED)) {
           winRequireResidentKey = TRUE;
-          winPreferResidentKey = TRUE;
+          winPreferResidentKey = FALSE;
         } else if (residentKey.EqualsLiteral(
                        MOZ_WEBAUTHN_RESIDENT_KEY_REQUIREMENT_PREFERRED)) {
           winRequireResidentKey = FALSE;
