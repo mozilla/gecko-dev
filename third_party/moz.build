@@ -49,6 +49,9 @@ with Files('webkit/**'):
 with Files('xsimd/**'):
     BUG_COMPONENT = ('Firefox Build System', 'General')
 
+with Files('frozen/**'):
+    BUG_COMPONENT = ('Firefox Build System', 'General')
+
 with Files('msgpack/**'):
     BUG_COMPONENT = ('Firefox Build System', 'General')
 
