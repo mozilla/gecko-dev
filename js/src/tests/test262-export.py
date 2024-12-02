@@ -399,12 +399,12 @@ def mergeMeta(
         error = reftest.error
         if "negative" not in frontmatter:
             frontmatter["negative"] = {
-                # This code is assuming error tags are early errors, but they
+                # This code is assuming error tags are parse errors, but they
                 # might be runtime errors as well.
                 # From this point, this code can also print a warning asking to
                 # specify the error phase in the generated code or fill the
                 # phase with an empty string.
-                "phase": "early",
+                "phase": "parse",
                 "type": error,
             }
         # Print a warning if the errors don't match
@@ -451,7 +451,7 @@ def cleanupMeta(meta: "dict[str, Any]") -> "dict[str, Any]":
 
     if "negative" in meta:
         # If the negative tag exists, phase needs to be present and set
-        if meta["negative"].get("phase") not in ("early", "runtime"):
+        if meta["negative"].get("phase") not in ["parse", "resolution", "runtime"]:
             print(
                 "Warning: the negative.phase is not properly set.\n"
                 + "Ref https://github.com/tc39/test262/blob/main/INTERPRETING.md#negative"
@@ -510,6 +510,9 @@ def insertMeta(source: bytes, frontmatter: "dict[str, Any]") -> bytes:
         source = source.replace(frontmattermatch.group(0), frontmatterstr)
     else:
         source = frontmatterstr + source
+
+    if frontmatter.get("negative", {}).get("phase", "") == "parse":
+        source += b"$DONOTEVALUATE();\n"
 
     return source
 

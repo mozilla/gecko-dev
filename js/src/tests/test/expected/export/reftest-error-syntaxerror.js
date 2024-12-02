@@ -9,10 +9,11 @@ description: |
 flags:
 - noStrict
 negative:
-  phase: early
+  phase: parse
   type: SyntaxError
 ---*/
 function f() {
     let
     await 0;
 }
+$DONOTEVALUATE();
