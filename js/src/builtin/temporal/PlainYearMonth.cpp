@@ -562,14 +562,12 @@ static bool DifferenceTemporalPlainYearMonth(JSContext* cx,
   return true;
 }
 
-enum class PlainYearMonthDuration { Add, Subtract };
-
 /**
- * AddDurationToOrSubtractDurationFromPlainYearMonth ( operation, yearMonth,
- * temporalDurationLike, options )
+ * AddDurationToYearMonth ( operation, yearMonth, temporalDurationLike, options
+ * )
  */
-static bool AddDurationToOrSubtractDurationFromPlainYearMonth(
-    JSContext* cx, PlainYearMonthDuration operation, const CallArgs& args) {
+static bool AddDurationToYearMonth(JSContext* cx, TemporalAddDuration operation,
+                                   const CallArgs& args) {
   Rooted<PlainYearMonthObject*> yearMonth(
       cx, &args.thisv().toObject().as<PlainYearMonthObject>());
 
@@ -580,7 +578,7 @@ static bool AddDurationToOrSubtractDurationFromPlainYearMonth(
   }
 
   // Step 2.
-  if (operation == PlainYearMonthDuration::Subtract) {
+  if (operation == TemporalAddDuration::Subtract) {
     duration = duration.negate();
   }
 
@@ -588,10 +586,8 @@ static bool AddDurationToOrSubtractDurationFromPlainYearMonth(
   auto overflow = TemporalOverflow::Constrain;
   if (args.hasDefined(1)) {
     // Step 3.
-    const char* name =
-        operation == PlainYearMonthDuration::Add ? "add" : "subtract";
-    Rooted<JSObject*> options(cx,
-                              RequireObjectArg(cx, "options", name, args[1]));
+    Rooted<JSObject*> options(
+        cx, RequireObjectArg(cx, "options", ToName(operation), args[1]));
     if (!options) {
       return false;
     }
@@ -602,27 +598,16 @@ static bool AddDurationToOrSubtractDurationFromPlainYearMonth(
     }
   }
 
+  // Steps 12. (Reordered)
+  auto durationToAdd = NormalizeDurationWithoutTime(duration);
+
   // Step 5.
-  auto timeDuration = NormalizeTimeDuration(duration);
-
-  // Step 6.
-  auto balancedTime = BalanceTimeDuration(timeDuration, TemporalUnit::Day);
-
-  // Steps 7 and 16. (Reordered)
-  auto durationToAdd = DateDuration{
-      int64_t(duration.years),
-      int64_t(duration.months),
-      int64_t(duration.weeks),
-      int64_t(duration.days) + balancedTime.days,
-  };
-
-  // Step 8.
   int32_t sign = DurationSign(durationToAdd);
 
-  // Step 9.
+  // Step 6.
   Rooted<CalendarValue> calendar(cx, yearMonth->calendar());
 
-  // Step 10.
+  // Step 7.
   Rooted<TemporalFields> fields(cx);
   if (!PrepareCalendarFieldsAndFieldNames(cx, calendar, yearMonth,
                                           {
@@ -633,24 +618,22 @@ static bool AddDurationToOrSubtractDurationFromPlainYearMonth(
     return false;
   }
 
-  // Remember field names of unmodified |fields|.
+  // TODO: (remove)
   auto fieldNames = fields.keys();
-
-  // Step 11.
   Rooted<TemporalFields> fieldsCopy(cx, TemporalFields{fields});
 
-  // Step 12.
+  // Step 8.
   MOZ_ASSERT(!fields.has(TemporalField::Day));
   fields.setDay(1);
 
-  // Step 13.
+  // Step 9.
   Rooted<PlainDateWithCalendar> intermediateDate(cx);
   if (!CalendarDateFromFields(cx, calendar, fields, TemporalOverflow::Constrain,
                               &intermediateDate)) {
     return false;
   }
 
-  // Steps 14-15.
+  // Steps 10-11.
   Rooted<PlainDateWithCalendar> date(cx);
   if (sign < 0) {
     // |intermediateDate| is initialized to the first day of |yearMonth|'s
@@ -667,50 +650,51 @@ static bool AddDurationToOrSubtractDurationFromPlainYearMonth(
     // some days are skipped, for example consider the Julian-to-Gregorian
     // calendar transition.
 
-    // Step 14.a.
+    // Step 10.a.
     auto oneMonthDuration = DateDuration{0, 1};
 
-    // Step 14.b.
+    // Step 10.b.
     PlainDate nextMonth;
     if (!CalendarDateAdd(cx, calendar, intermediateDate, oneMonthDuration,
                          TemporalOverflow::Constrain, &nextMonth)) {
       return false;
     }
 
-    // Step 14.c.
+    // Step 10.c.
     auto endOfMonthISO =
         BalanceISODate(nextMonth.year, nextMonth.month, nextMonth.day - 1);
 
-    // Step 14.d.
+    // Step 10.d.
+    MOZ_ASSERT(ISODateWithinLimits(endOfMonthISO));
+
+    // TODO: (remove)
+
     Rooted<PlainDateWithCalendar> endOfMonth(cx);
     if (!CreateTemporalDate(cx, endOfMonthISO, calendar, &endOfMonth)) {
       return false;
     }
 
-    // Step 14.e.
     Rooted<Value> day(cx);
     if (!CalendarDay(cx, calendar, endOfMonth.date(), &day)) {
       return false;
     }
     MOZ_ASSERT(day.isInt32());
 
-    // Step 14.f.
     MOZ_ASSERT(!fieldsCopy.has(TemporalField::Day));
     fieldsCopy.setDay(day.toInt32());
 
-    // Step 14.g.
     if (!CalendarDateFromFields(cx, calendar, fieldsCopy,
                                 TemporalOverflow::Constrain, &date)) {
       return false;
     }
   } else {
-    // Step 15.a.
+    // Step 11.a.
     date = intermediateDate;
   }
 
-  // Step 16. (Moved above)
+  // Step 12. (Moved above)
 
-  // Step 17.
+  // Step 13.
   PlainDate addedDate;
   if (!AddDate(cx, calendar, date, durationToAdd, overflow, &addedDate)) {
     return false;
@@ -724,19 +708,19 @@ static bool AddDurationToOrSubtractDurationFromPlainYearMonth(
     return false;
   }
 
-  // Step 18.
   Rooted<TemporalFields> addedDateFields(cx);
   if (!PrepareTemporalFields(cx, addedDateObj, fieldNames, &addedDateFields)) {
     return false;
   }
 
-  // Step 19.
+  // Step 15.
   Rooted<PlainYearMonthWithCalendar> result(cx);
   if (!CalendarYearMonthFromFields(cx, calendar, addedDateFields, overflow,
                                    &result)) {
     return false;
   }
 
+  // Step 16.
   auto* obj = CreateTemporalYearMonth(cx, result);
   if (!obj) {
     return false;
@@ -1162,8 +1146,7 @@ static bool PlainYearMonth_with(JSContext* cx, unsigned argc, Value* vp) {
  */
 static bool PlainYearMonth_add(JSContext* cx, const CallArgs& args) {
   // Step 3.
-  return AddDurationToOrSubtractDurationFromPlainYearMonth(
-      cx, PlainYearMonthDuration::Add, args);
+  return AddDurationToYearMonth(cx, TemporalAddDuration::Add, args);
 }
 
 /**
@@ -1181,8 +1164,7 @@ static bool PlainYearMonth_add(JSContext* cx, unsigned argc, Value* vp) {
  */
 static bool PlainYearMonth_subtract(JSContext* cx, const CallArgs& args) {
   // Step 3.
-  return AddDurationToOrSubtractDurationFromPlainYearMonth(
-      cx, PlainYearMonthDuration::Subtract, args);
+  return AddDurationToYearMonth(cx, TemporalAddDuration::Subtract, args);
 }
 
 /**

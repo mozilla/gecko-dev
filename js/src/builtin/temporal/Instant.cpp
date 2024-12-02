@@ -645,26 +645,26 @@ static bool DifferenceTemporalInstant(JSContext* cx,
   return true;
 }
 
-enum class InstantDuration { Add, Subtract };
-
 /**
- * AddDurationToOrSubtractDurationFromInstant ( operation, instant,
- * temporalDurationLike )
+ * AddDurationToInstant ( operation, instant, temporalDurationLike )
  */
-static bool AddDurationToOrSubtractDurationFromInstant(
-    JSContext* cx, InstantDuration operation, const CallArgs& args) {
+static bool AddDurationToInstant(JSContext* cx, TemporalAddDuration operation,
+                                 const CallArgs& args) {
   auto* instant = &args.thisv().toObject().as<InstantObject>();
   auto epochNanoseconds = ToInstant(instant);
 
-  // Step 1. (Not applicable in our implementation.)
-
-  // Step 2.
+  // Step 1.
   Duration duration;
   if (!ToTemporalDuration(cx, args.get(0), &duration)) {
     return false;
   }
 
-  // Steps 3-6.
+  // Step 2.
+  if (operation == TemporalAddDuration::Subtract) {
+    duration = duration.negate();
+  }
+
+  // Steps 3-4. (Inlined DefaultTemporalLargestUnit and TemporalUnitCategory.)
   if (duration.years != 0 || duration.months != 0 || duration.weeks != 0 ||
       duration.days != 0) {
     const char* part = duration.years != 0    ? "years"
@@ -676,19 +676,16 @@ static bool AddDurationToOrSubtractDurationFromInstant(
     return false;
   }
 
-  // Step 7.
-  if (operation == InstantDuration::Subtract) {
-    duration = duration.negate();
-  }
+  // Step 5. (Inlined NormalizeDurationWith24HourDays.)
   auto timeDuration = NormalizeTimeDuration(duration);
 
-  // Step 8.
+  // Step 6.
   Instant ns;
   if (!AddInstant(cx, epochNanoseconds, timeDuration, &ns)) {
     return false;
   }
 
-  // Step 9.
+  // Step 7.
   auto* result = CreateTemporalInstant(cx, ns);
   if (!result) {
     return false;
@@ -899,8 +896,7 @@ static bool Instant_epochNanoseconds(JSContext* cx, unsigned argc, Value* vp) {
  * Temporal.Instant.prototype.add ( temporalDurationLike )
  */
 static bool Instant_add(JSContext* cx, const CallArgs& args) {
-  return AddDurationToOrSubtractDurationFromInstant(cx, InstantDuration::Add,
-                                                    args);
+  return AddDurationToInstant(cx, TemporalAddDuration::Add, args);
 }
 
 /**
@@ -916,8 +912,7 @@ static bool Instant_add(JSContext* cx, unsigned argc, Value* vp) {
  * Temporal.Instant.prototype.subtract ( temporalDurationLike )
  */
 static bool Instant_subtract(JSContext* cx, const CallArgs& args) {
-  return AddDurationToOrSubtractDurationFromInstant(
-      cx, InstantDuration::Subtract, args);
+  return AddDurationToInstant(cx, TemporalAddDuration::Subtract, args);
 }
 
 /**

@@ -673,51 +673,6 @@ static int32_t CompareISODateTime(const PlainDateTime& one,
 }
 
 /**
- * AddDateTime ( year, month, day, hour, minute, second, millisecond,
- * microsecond, nanosecond, calendar, years, months, weeks, days, norm, overflow
- * )
- */
-static bool AddDateTime(JSContext* cx, const PlainDateTime& dateTime,
-                        Handle<CalendarValue> calendar,
-                        const NormalizedDuration& duration,
-                        TemporalOverflow overflow, PlainDateTime* result) {
-  MOZ_ASSERT(IsValidDuration(duration));
-
-  // Step 1.
-  MOZ_ASSERT(IsValidISODateTime(dateTime));
-
-  // Step 2.
-  MOZ_ASSERT(ISODateTimeWithinLimits(dateTime));
-
-  // Step 3.
-  auto timeResult = AddTime(dateTime.time, duration.time);
-
-  // Step 4.
-  const auto& datePart = dateTime.date;
-
-  // Step 5.
-  auto dateDuration = DateDuration{
-      duration.date.years,
-      duration.date.months,
-      duration.date.weeks,
-      duration.date.days + timeResult.days,
-  };
-  if (!ThrowIfInvalidDuration(cx, dateDuration)) {
-    return false;
-  }
-
-  // Step 6.
-  PlainDate addedDate;
-  if (!AddDate(cx, calendar, datePart, dateDuration, overflow, &addedDate)) {
-    return false;
-  }
-
-  // Step 7.
-  *result = {addedDate, timeResult.time};
-  return true;
-}
-
-/**
  * DifferenceISODateTime ( y1, mon1, d1, h1, min1, s1, ms1, mus1, ns1, y2, mon2,
  * d2, h2, min2, s2, ms2, mus2, ns2, calendar, largestUnit )
  */
@@ -1046,34 +1001,31 @@ static bool DifferenceTemporalPlainDateTime(JSContext* cx,
   return true;
 }
 
-enum class PlainDateTimeDuration { Add, Subtract };
-
 /**
- * AddDurationToOrSubtractDurationFromPlainDateTime ( operation, dateTime,
- * temporalDurationLike, options )
+ * AddDurationToDateTime ( operation, dateTime, temporalDurationLike, options )
  */
-static bool AddDurationToOrSubtractDurationFromPlainDateTime(
-    JSContext* cx, PlainDateTimeDuration operation, const CallArgs& args) {
+static bool AddDurationToDateTime(JSContext* cx, TemporalAddDuration operation,
+                                  const CallArgs& args) {
   Rooted<PlainDateTimeWithCalendar> dateTime(
       cx, &args.thisv().toObject().as<PlainDateTimeObject>());
 
-  // Step 1. (Not applicable in our implementation.)
-
-  // Step 2.
+  // Step 1.
   Duration duration;
   if (!ToTemporalDuration(cx, args.get(0), &duration)) {
     return false;
   }
 
+  // Step 2.
+  if (operation == TemporalAddDuration::Subtract) {
+    duration = duration.negate();
+  }
+
   // Steps 3-4.
   auto overflow = TemporalOverflow::Constrain;
   if (args.hasDefined(1)) {
-    const char* name =
-        operation == PlainDateTimeDuration::Add ? "add" : "subtract";
-
     // Step 3.
-    Rooted<JSObject*> options(cx,
-                              RequireObjectArg(cx, "options", name, args[1]));
+    Rooted<JSObject*> options(
+        cx, RequireObjectArg(cx, "options", ToName(operation), args[1]));
     if (!options) {
       return false;
     }
@@ -1085,22 +1037,37 @@ static bool AddDurationToOrSubtractDurationFromPlainDateTime(
   }
 
   // Step 5.
-  if (operation == PlainDateTimeDuration::Subtract) {
-    duration = duration.negate();
-  }
-  auto normalized = NormalizeDuration(duration);
+  auto normalized = NormalizeDurationWith24HourDays(duration);
 
-  // Step 6
-  PlainDateTime result;
-  if (!AddDateTime(cx, dateTime, dateTime.calendar(), normalized, overflow,
-                   &result)) {
+  // Step 6.
+  auto timeResult = AddTime(dateTime.time(), normalized.time);
+
+  // Step 7.
+  auto date = dateTime.date();
+
+  // Step 8. (Inlined AdjustDateDurationRecord)
+  auto dateDuration = DateDuration{
+      normalized.date.years,
+      normalized.date.months,
+      normalized.date.weeks,
+      timeResult.days,
+  };
+  if (!ThrowIfInvalidDuration(cx, dateDuration)) {
     return false;
   }
 
-  // Steps 7-8.
+  // Step 9.
+  PlainDate addedDate;
+  if (!CalendarDateAdd(cx, dateTime.calendar(), date, dateDuration, overflow,
+                       &addedDate)) {
+    return false;
+  }
+
+  // Step 10.
+  auto result = PlainDateTime{addedDate, timeResult.time};
   MOZ_ASSERT(IsValidISODateTime(result));
 
-  // Step 9.
+  // Step 11.
   auto* obj = CreateTemporalDateTime(cx, result, dateTime.calendar());
   if (!obj) {
     return false;
@@ -1896,8 +1863,7 @@ static bool PlainDateTime_withCalendar(JSContext* cx, unsigned argc,
  */
 static bool PlainDateTime_add(JSContext* cx, const CallArgs& args) {
   // Step 3.
-  return AddDurationToOrSubtractDurationFromPlainDateTime(
-      cx, PlainDateTimeDuration::Add, args);
+  return AddDurationToDateTime(cx, TemporalAddDuration::Add, args);
 }
 
 /**
@@ -1915,8 +1881,7 @@ static bool PlainDateTime_add(JSContext* cx, unsigned argc, Value* vp) {
  */
 static bool PlainDateTime_subtract(JSContext* cx, const CallArgs& args) {
   // Step 3.
-  return AddDurationToOrSubtractDurationFromPlainDateTime(
-      cx, PlainDateTimeDuration::Subtract, args);
+  return AddDurationToDateTime(cx, TemporalAddDuration::Subtract, args);
 }
 
 /**

@@ -412,9 +412,9 @@ PlainTimeObject* js::temporal::CreateTemporalTime(JSContext* cx,
  * BalanceTime ( hour, minute, second, millisecond, microsecond, nanosecond )
  */
 template <typename IntT>
-static BalancedTime BalanceTime(IntT hour, IntT minute, IntT second,
-                                IntT millisecond, IntT microsecond,
-                                IntT nanosecond) {
+static TimeRecord BalanceTime(IntT hour, IntT minute, IntT second,
+                              IntT millisecond, IntT microsecond,
+                              IntT nanosecond) {
   // Combined floor'ed division and modulo operation.
   auto divmod = [](IntT dividend, int32_t divisor, int32_t* remainder) {
     MOZ_ASSERT(divisor > 0);
@@ -450,7 +450,7 @@ static BalancedTime BalanceTime(IntT hour, IntT minute, IntT second,
   hour += divmod(minute, 60, &time.minute);
 
   // Steps 11-12.
-  int32_t days = divmod(hour, 24, &time.hour);
+  int64_t days = divmod(hour, 24, &time.hour);
 
   // Step 13.
   MOZ_ASSERT(IsValidTime(time));
@@ -460,9 +460,9 @@ static BalancedTime BalanceTime(IntT hour, IntT minute, IntT second,
 /**
  * BalanceTime ( hour, minute, second, millisecond, microsecond, nanosecond )
  */
-static BalancedTime BalanceTime(int32_t hour, int32_t minute, int32_t second,
-                                int32_t millisecond, int32_t microsecond,
-                                int32_t nanosecond) {
+static TimeRecord BalanceTime(int32_t hour, int32_t minute, int32_t second,
+                              int32_t millisecond, int32_t microsecond,
+                              int32_t nanosecond) {
   MOZ_ASSERT(-24 < hour && hour < 2 * 24);
   MOZ_ASSERT(-60 < minute && minute < 2 * 60);
   MOZ_ASSERT(-60 < second && second < 2 * 60);
@@ -477,8 +477,8 @@ static BalancedTime BalanceTime(int32_t hour, int32_t minute, int32_t second,
 /**
  * BalanceTime ( hour, minute, second, millisecond, microsecond, nanosecond )
  */
-BalancedTime js::temporal::BalanceTime(const PlainTime& time,
-                                       int64_t nanoseconds) {
+TimeRecord js::temporal::BalanceTime(const PlainTime& time,
+                                     int64_t nanoseconds) {
   MOZ_ASSERT(IsValidTime(time));
   MOZ_ASSERT(std::abs(nanoseconds) <= ToNanoseconds(TemporalUnit::Day));
 
@@ -791,9 +791,9 @@ static int64_t TimeToNanos(const PlainTime& time) {
  * RoundTime ( hour, minute, second, millisecond, microsecond, nanosecond,
  * increment, unit, roundingMode )
  */
-RoundedTime js::temporal::RoundTime(const PlainTime& time, Increment increment,
-                                    TemporalUnit unit,
-                                    TemporalRoundingMode roundingMode) {
+TimeRecord js::temporal::RoundTime(const PlainTime& time, Increment increment,
+                                   TemporalUnit unit,
+                                   TemporalRoundingMode roundingMode) {
   MOZ_ASSERT(IsValidTime(time));
   MOZ_ASSERT(unit >= TemporalUnit::Day);
   MOZ_ASSERT_IF(unit > TemporalUnit::Day,
@@ -881,16 +881,15 @@ RoundedTime js::temporal::RoundTime(const PlainTime& time, Increment increment,
   }
 
   // Steps 10-16.
-  auto balanced =
-      ::BalanceTime(hour, minute, second, millisecond, microsecond, nanosecond);
-  return {int64_t(balanced.days), balanced.time};
+  return ::BalanceTime(hour, minute, second, millisecond, microsecond,
+                       nanosecond);
 }
 
 /**
  * AddTime ( hour, minute, second, millisecond, microsecond, nanosecond, norm )
  */
-AddedTime js::temporal::AddTime(const PlainTime& time,
-                                const NormalizedTimeDuration& duration) {
+TimeRecord js::temporal::AddTime(const PlainTime& time,
+                                 const NormalizedTimeDuration& duration) {
   MOZ_ASSERT(IsValidTime(time));
   MOZ_ASSERT(IsValidNormalizedTimeDuration(duration));
 
@@ -904,10 +903,8 @@ AddedTime js::temporal::AddTime(const PlainTime& time,
   int32_t nanosecond = time.nanosecond + nanoseconds;
 
   // Step 3.
-  auto balanced =
-      ::BalanceTime<int64_t>(time.hour, time.minute, second, time.millisecond,
-                             time.microsecond, nanosecond);
-  return {balanced.days, balanced.time};
+  return ::BalanceTime<int64_t>(time.hour, time.minute, second,
+                                time.millisecond, time.microsecond, nanosecond);
 }
 
 /**
@@ -985,29 +982,26 @@ static bool DifferenceTemporalPlainTime(JSContext* cx,
   return true;
 }
 
-enum class PlainTimeDuration { Add, Subtract };
-
 /**
- * AddDurationToOrSubtractDurationFromPlainTime ( operation, temporalTime,
- * temporalDurationLike )
+ * AddDurationToTime ( operation, temporalTime, temporalDurationLike )
  */
-static bool AddDurationToOrSubtractDurationFromPlainTime(
-    JSContext* cx, PlainTimeDuration operation, const CallArgs& args) {
+static bool AddDurationToTime(JSContext* cx, TemporalAddDuration operation,
+                              const CallArgs& args) {
   auto* temporalTime = &args.thisv().toObject().as<PlainTimeObject>();
   auto time = ToPlainTime(temporalTime);
 
-  // Step 1. (Not applicable in our implementation.)
-
-  // Step 2.
+  // Step 1.
   Duration duration;
   if (!ToTemporalDuration(cx, args.get(0), &duration)) {
     return false;
   }
 
-  // Step 3.
-  if (operation == PlainTimeDuration::Subtract) {
+  // Step 2.
+  if (operation == TemporalAddDuration::Subtract) {
     duration = duration.negate();
   }
+
+  // Step 3. (Inlined NormalizeDuration)
   auto timeDuration = NormalizeTimeDuration(duration);
 
   // Step 4.
@@ -1259,8 +1253,7 @@ static bool PlainTime_nanosecond(JSContext* cx, unsigned argc, Value* vp) {
  */
 static bool PlainTime_add(JSContext* cx, const CallArgs& args) {
   // Step 3.
-  return AddDurationToOrSubtractDurationFromPlainTime(
-      cx, PlainTimeDuration::Add, args);
+  return AddDurationToTime(cx, TemporalAddDuration::Add, args);
 }
 
 /**
@@ -1277,8 +1270,7 @@ static bool PlainTime_add(JSContext* cx, unsigned argc, Value* vp) {
  */
 static bool PlainTime_subtract(JSContext* cx, const CallArgs& args) {
   // Step 3.
-  return AddDurationToOrSubtractDurationFromPlainTime(
-      cx, PlainTimeDuration::Subtract, args);
+  return AddDurationToTime(cx, TemporalAddDuration::Subtract, args);
 }
 
 /**

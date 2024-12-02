@@ -112,16 +112,16 @@ PlainTimeObject* CreateTemporalTime(JSContext* cx, const PlainTime& time);
 bool ToTemporalTime(JSContext* cx, JS::Handle<JS::Value> item,
                     PlainTime* result);
 
-struct AddedTime {
-  int32_t days = 0;
+struct TimeRecord final {
+  int64_t days = 0;
   PlainTime time;
 };
 
 /**
  * AddTime ( hour, minute, second, millisecond, microsecond, nanosecond, norm )
  */
-AddedTime AddTime(const PlainTime& time,
-                  const NormalizedTimeDuration& duration);
+TimeRecord AddTime(const PlainTime& time,
+                   const NormalizedTimeDuration& duration);
 
 /**
  * DifferenceTime ( h1, min1, s1, ms1, mus1, ns1, h2, min2, s2, ms2, mus2, ns2 )
@@ -151,27 +151,17 @@ bool RegulateTime(JSContext* cx, const TemporalTimeLike& time,
  */
 int32_t CompareTemporalTime(const PlainTime& one, const PlainTime& two);
 
-struct BalancedTime final {
-  int32_t days = 0;
-  PlainTime time;
-};
-
 /**
  * BalanceTime ( hour, minute, second, millisecond, microsecond, nanosecond )
  */
-BalancedTime BalanceTime(const PlainTime& time, int64_t nanoseconds);
-
-struct RoundedTime final {
-  int64_t days = 0;
-  PlainTime time;
-};
+TimeRecord BalanceTime(const PlainTime& time, int64_t nanoseconds);
 
 /**
  * RoundTime ( hour, minute, second, millisecond, microsecond, nanosecond,
  * increment, unit, roundingMode )
  */
-RoundedTime RoundTime(const PlainTime& time, Increment increment,
-                      TemporalUnit unit, TemporalRoundingMode roundingMode);
+TimeRecord RoundTime(const PlainTime& time, Increment increment,
+                     TemporalUnit unit, TemporalRoundingMode roundingMode);
 
 } /* namespace js::temporal */
 

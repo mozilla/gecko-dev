@@ -354,6 +354,12 @@ inline const char* ToName(TemporalDifference difference) {
   return difference == TemporalDifference::Since ? "since" : "until";
 }
 
+enum class TemporalAddDuration { Add, Subtract };
+
+inline const char* ToName(TemporalAddDuration addDuration) {
+  return addDuration == TemporalAddDuration::Add ? "add" : "subtract";
+}
+
 struct DifferenceSettings final {
   TemporalUnit smallestUnit = TemporalUnit::Auto;
   TemporalUnit largestUnit = TemporalUnit::Auto;

@@ -566,6 +566,35 @@ DateDuration js::temporal::NormalizeDurationWithoutTime(
 }
 
 /**
+ * UnnormalizeDuration ( normalizedDuration, largestUnit )
+ */
+bool js::temporal::UnnormalizeDuration(JSContext* cx,
+                                       const NormalizedDuration& duration,
+                                       TemporalUnit largestUnit,
+                                       Duration* result) {
+  MOZ_ASSERT(IsValidDuration(duration));
+
+  // Steps 1-11.
+  TimeDuration timeDuration;
+  if (!BalanceTimeDuration(cx, duration.time, largestUnit, &timeDuration)) {
+    return false;
+  }
+
+  // Step 12.
+  auto days = mozilla::CheckedInt64(duration.date.days) + timeDuration.days;
+  MOZ_ASSERT(days.isValid(), "valid normalized duration days can't overflow");
+
+  *result = {
+      double(duration.date.years),  double(duration.date.months),
+      double(duration.date.weeks),  double(days.value()),
+      double(timeDuration.hours),   double(timeDuration.minutes),
+      double(timeDuration.seconds), double(timeDuration.milliseconds),
+      timeDuration.microseconds,    timeDuration.nanoseconds,
+  };
+  return ThrowIfInvalidDuration(cx, *result);
+}
+
+/**
  * CombineDateAndNormalizedTimeDuration ( dateDurationRecord, norm )
  */
 bool js::temporal::CombineDateAndNormalizedTimeDuration(
@@ -3193,47 +3222,35 @@ bool js::temporal::RoundRelativeDuration(
   return true;
 }
 
-enum class DurationOperation { Add, Subtract };
-
 /**
  * AddDurations ( operation, duration, other )
  */
-static bool AddDurations(JSContext* cx, DurationOperation operation,
+static bool AddDurations(JSContext* cx, TemporalAddDuration operation,
                          const CallArgs& args) {
   auto* durationObj = &args.thisv().toObject().as<DurationObject>();
   auto duration = ToDuration(durationObj);
 
-  // Step 1. (Not applicable in our implementation.)
-
-  // Step 2.
+  // Step 1.
   Duration other;
   if (!ToTemporalDuration(cx, args.get(0), &other)) {
     return false;
   }
 
-  // Steps 3-12. (Not applicable in our implementation.)
-
-  // Steps 13-22.
-  if (operation == DurationOperation::Subtract) {
+  // Step 2.
+  if (operation == TemporalAddDuration::Subtract) {
     other = other.negate();
   }
 
-  // Step 23.
+  // Step 3.
   auto largestUnit1 = DefaultTemporalLargestUnit(duration);
 
-  // Step 24.
+  // Step 4.
   auto largestUnit2 = DefaultTemporalLargestUnit(other);
 
-  // Step 25.
+  // Step 5.
   auto largestUnit = std::min(largestUnit1, largestUnit2);
 
-  // Step 26.
-  auto normalized1 = NormalizeTimeDuration(duration);
-
-  // Step 27.
-  auto normalized2 = NormalizeTimeDuration(other);
-
-  // Step 28.
+  // Step 6.
   if (largestUnit <= TemporalUnit::Week) {
     JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
                               JSMSG_TEMPORAL_DURATION_UNCOMPARABLE,
@@ -3241,31 +3258,29 @@ static bool AddDurations(JSContext* cx, DurationOperation operation,
     return false;
   }
 
-  // Step 29.
+  // Step 7.
+  auto normalized1 = NormalizeDurationWith24HourDays(duration).time;
+
+  // Step 8.
+  auto normalized2 = NormalizeDurationWith24HourDays(other).time;
+
+  // Step 9.
   NormalizedTimeDuration normalized;
   if (!AddNormalizedTimeDuration(cx, normalized1, normalized2, &normalized)) {
     return false;
   }
 
-  // Step 30.
-  int64_t days1 = mozilla::AssertedCast<int64_t>(duration.days);
-  int64_t days2 = mozilla::AssertedCast<int64_t>(other.days);
-  auto totalDays = mozilla::CheckedInt64(days1) + days2;
-  MOZ_ASSERT(totalDays.isValid(), "adding two duration days can't overflow");
+  // Step 10. (Inlined CombineDateAndNormalizedTimeDuration)
+  auto result = NormalizedDuration{{}, normalized};
 
-  if (!Add24HourDaysToNormalizedTimeDuration(cx, normalized, totalDays.value(),
-                                             &normalized)) {
+  // Step 11.
+  Duration unnormalized;
+  if (!UnnormalizeDuration(cx, result, largestUnit, &unnormalized)) {
     return false;
   }
+  MOZ_ASSERT(IsValidDuration(unnormalized));
 
-  // Step 31.
-  TimeDuration balanced;
-  if (!temporal::BalanceTimeDuration(cx, normalized, largestUnit, &balanced)) {
-    return false;
-  }
-
-  // Step 32.
-  auto* obj = CreateTemporalDuration(cx, balanced.toDuration());
+  auto* obj = CreateTemporalDuration(cx, unnormalized);
   if (!obj) {
     return false;
   }
@@ -3835,7 +3850,7 @@ static bool Duration_abs(JSContext* cx, unsigned argc, Value* vp) {
  */
 static bool Duration_add(JSContext* cx, const CallArgs& args) {
   // Step 3.
-  return AddDurations(cx, DurationOperation::Add, args);
+  return AddDurations(cx, TemporalAddDuration::Add, args);
 }
 
 /**
@@ -3852,7 +3867,7 @@ static bool Duration_add(JSContext* cx, unsigned argc, Value* vp) {
  */
 static bool Duration_subtract(JSContext* cx, const CallArgs& args) {
   // Step 3.
-  return AddDurations(cx, DurationOperation::Subtract, args);
+  return AddDurations(cx, TemporalAddDuration::Subtract, args);
 }
 
 /**

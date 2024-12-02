@@ -210,6 +210,12 @@ NormalizedDuration NormalizeDurationWith24HourDays(const Duration& duration);
 DateDuration NormalizeDurationWithoutTime(const Duration& duration);
 
 /**
+ * UnnormalizeDuration ( normalizedDuration, largestUnit )
+ */
+bool UnnormalizeDuration(JSContext* cx, const NormalizedDuration& duration,
+                         TemporalUnit largestUnit, Duration* result);
+
+/**
  * CombineDateAndNormalizedTimeDuration ( dateDurationRecord, norm )
  */
 bool CombineDateAndNormalizedTimeDuration(JSContext* cx,
