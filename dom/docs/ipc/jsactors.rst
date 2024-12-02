@@ -65,7 +65,7 @@ A review of the pre-Fission Message Manager mechanism
 .. note::
    There are actually several types of Message Managers: Frame Message Managers, Window Message Managers, Group Message Managers and Process Message Managers. For the purposes of this documentation, it's simplest to refer to all of these mechanisms altogether as the "Message Manager mechanism". Most of the examples in this document will be operating on the assumption that the Message Manager is a Frame Message Manager, which is the most commonly used one.
 
-Currently, in the post `Electrolysis Project`_ Firefox codebase, we have code living in the parent process (UI) that is in plain JS (.js files) or in JS modules (.jsm files). In the child process (hosting the content), we use framescripts (.js) and also JS modules. The framescripts are instantiated once per top-level frame (or, in simpler terms, once per tab). This code has access to all of the DOM from the web content, including all iframes within it.
+Currently, in the post `Electrolysis Project`_ Firefox codebase, we have code living in the parent process (UI) that is in plain JS (.js files) or in ES modules (.sys.mjs files). In the child process (hosting the content), we use framescripts (.js) and also ES modules. The framescripts are instantiated once per top-level frame (or, in simpler terms, once per tab). This code has access to all of the DOM from the web content, including all iframes within it.
 
 The two processes communicate via the Frame Message Manager (mm) using the ``sendAsyncMessage`` / ``receiveMessage`` API, and any code in the parent can communicate with any code in the child (and vice versa), by just listening to the messages of interest.
 
@@ -373,7 +373,7 @@ Your best bet for storing state is in the parent process.
 .. hint::
     If each individual frame needs state, consider using a ``WeakMap`` in the parent process, mapping ``CanonicalBrowsingContext``'s with that state. That way, if the associates frames ever go away, you don't have to do any cleaning up yourself.
 
-If you have state that you want multiple ``JSWindowActorParent``'s to have access to, consider having a "manager" of those ``JSWindowActorParent``'s inside of the same .jsm file to hold that state.
+If you have state that you want multiple ``JSWindowActorParent``'s to have access to, consider having a "manager" of those ``JSWindowActorParent``'s inside of the same .sys.mjs file to hold that state.
 
 Registering a new actor
 -----------------------
@@ -422,7 +422,7 @@ Let's examine parent registration:
 Here, we're declaring that class ``PluginParent`` (here, a subclass of ``JSWindowActorParent``) is defined and exported from module ``PluginParent.sys.mjs``. That's all we have to say for the parent (main process) side of things.
 
 .. note::
-    It's not sufficient to just add a new .jsm file to the actors subdirectories. You also need to update the ``moz.build`` files in the same directory to get the ``resource://`` linkages set up correctly.
+    It's not sufficient to just add a new .sys.mjs file to the actors subdirectories. You also need to update the ``moz.build`` files in the same directory to get the ``resource://`` linkages set up correctly.
 
 Let's look at the second chunk:
 
@@ -459,7 +459,7 @@ Design considerations when adding a new actor
 
 A few things worth bearing in mind when adding your own actor registration:
 
-- Any ``child`` or ``parent`` side you register **must** have a ``moduleURI`` property.
+- Any ``child`` or ``parent`` side you register **must** have a ``esModuleURI`` property.
 - You do not need to have both ``child`` and ``parent`` modules, and should avoid having actor sides that do nothing but send messages. The process without a defined module will still get an actor, and you can send messages from that side, but cannot receive them via ``receiveMessage``. Note that you **can** also use ``sendQuery`` from this side, enabling you to handle a response from the other process despite not having a ``receiveMessage`` method.
 - If you are writing a JSWindowActor, consider whether you really need ``allFrames`` - it'll save memory and CPU time if we don't need to instantiate the actor for subframes.
 - When copying/moving "Legacy" :ref:`fission.message-manager-actors`, remove their ``messages`` properties. They are no longer necessary.
@@ -475,17 +475,15 @@ Get a JSWindowActor
 
 .. code-block:: javascript
 
-  // resource://testing-common/TestWindowParent.jsm
-  var EXPORTED_SYMBOLS = ["TestWindowParent"];
-  class TestParent extends JSWindowActorParent {
+  // resource://testing-common/TestWindowParent.sys.mjs
+  export class TestParent extends JSWindowActorParent {
     ...
   }
 
 .. code-block:: javascript
 
-  // resource://testing-common/TestWindowChild.jsm
-  var EXPORTED_SYMBOLS = ["TestWindowChild"];
-  class TestChild extends JSWindowActorChild {
+  // resource://testing-common/TestWindowChild.sys.mjs
+  export class TestChild extends JSWindowActorChild {
     ...
   }
 
@@ -507,17 +505,15 @@ Get a JSProcessActor
 
 .. code-block:: javascript
 
-  // resource://testing-common/TestProcessParent.jsm
-  var EXPORTED_SYMBOLS = ["TestProcessParent"];
-  class TestParent extends JSProcessActorParent {
+  // resource://testing-common/TestProcessParent.sys.mjs
+  export class TestParent extends JSProcessActorParent {
     ...
   }
 
 .. code-block:: javascript
 
-  // resource://testing-common/TestProcessChild.jsm
-  var EXPORTED_SYMBOLS = ["TestProcessChild"];
-  class TestChild extends JSProcessActorChild {
+  // resource://testing-common/TestProcessChild.sys.mjs
+  export class TestChild extends JSProcessActorChild {
     ...
   }
 
@@ -546,5 +542,5 @@ And more
 .. _Context Menu Fission Port: https://hg.mozilla.org/mozilla-central/rev/adc60720b7b8
 .. _JSProcessActor.webidl: https://searchfox.org/mozilla-central/source/dom/chrome-webidl/JSProcessActor.webidl
 .. _JSWindowActor.webidl: https://searchfox.org/mozilla-central/source/dom/chrome-webidl/JSWindowActor.webidl
-.. _BrowserElementParent.jsm: https://searchfox.org/mozilla-central/rev/ec806131cb7bcd1c26c254d25cd5ab8a61b2aeb6/toolkit/actors/BrowserElementParent.jsm
+.. _BrowserElementParent.sys.mjs: https://searchfox.org/mozilla-central/source/toolkit/actors/BrowserElementParent.sys.mjs
 .. _Transferable: https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API/Transferable_objects
