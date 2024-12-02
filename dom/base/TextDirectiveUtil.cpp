@@ -7,6 +7,7 @@
 #include "nsComputedDOMStyle.h"
 #include "nsDOMAttributeMap.h"
 #include "nsFind.h"
+#include "nsFrameSelection.h"
 #include "nsGkAtoms.h"
 #include "nsIFrame.h"
 #include "nsINode.h"
@@ -18,6 +19,7 @@
 #include "fragmentdirectives_ffi_generated.h"
 #include "Text.h"
 #include "mozilla/intl/WordBreaker.h"
+#include "mozilla/SelectionMovementUtils.h"
 
 namespace mozilla::dom {
 LazyLogModule sFragmentDirectiveLog("FragmentDirective");
@@ -67,73 +69,19 @@ LazyLogModule sFragmentDirectiveLog("FragmentDirective");
 /* static */ RangeBoundary TextDirectiveUtil::MoveRangeBoundaryOneWord(
     const RangeBoundary& aRangeBoundary, TextScanDirection aDirection) {
   MOZ_ASSERT(aRangeBoundary.IsSetAndValid());
-  RefPtr<nsINode> curNode = aRangeBoundary.Container();
-  uint32_t offset = *aRangeBoundary.Offset(
-      RangeBoundary::OffsetFilter::kValidOrInvalidOffsets);
-
-  const int offsetIncrement = int(aDirection);
-  // Get the text node of the start of the range and the offset.
-  // This is the current position of the start of the range.
-  nsAutoString textContent;
-  if (NodeIsVisibleTextNode(*curNode)) {
-    const Text* textNode = Text::FromNode(curNode);
-
-    // Assuming that the current position might not be at a word boundary,
-    // advance to the word boundary at word begin/end.
-    if (!IsWhitespaceAtPosition(textNode, offset)) {
-      textNode->GetData(textContent);
-      const intl::WordRange wordRange =
-          intl::WordBreaker::FindWord(textContent, offset);
-      if (aDirection == TextScanDirection::Right &&
-          offset != wordRange.mBegin) {
-        offset = wordRange.mEnd;
-      } else if (aDirection == TextScanDirection::Left &&
-                 offset != wordRange.mEnd) {
-        // The additional -1 is necessary to move to offset to *before* the
-        // start of the word.
-        offset = wordRange.mBegin - 1;
-      }
-    }
-  }
-  // Now, skip any whitespace, so that `offset` points to the word boundary of
-  // the next word (which is the one this algorithm actually aims to move over).
-  while (curNode) {
-    if (!NodeIsVisibleTextNode(*curNode) || NodeIsSearchInvisible(*curNode) ||
-        offset >= curNode->Length()) {
-      curNode = aDirection == TextScanDirection::Left ? curNode->GetPrevNode()
-                                                      : curNode->GetNextNode();
-      if (!curNode) {
-        break;
-      }
-      offset =
-          aDirection == TextScanDirection::Left ? curNode->Length() - 1 : 0;
-      continue;
-    }
-    const Text* textNode = Text::FromNode(curNode);
-    if (IsWhitespaceAtPosition(textNode, offset)) {
-      offset += offsetIncrement;
-      continue;
-    }
-
-    // At this point, the caret has been moved to the next non-whitespace
-    // position.
-    // find word boundaries at the current position
-    textNode->GetData(textContent);
-    const intl::WordRange wordRange =
-        intl::WordBreaker::FindWord(textContent, offset);
-    offset = aDirection == TextScanDirection::Left ? wordRange.mBegin
-                                                   : wordRange.mEnd;
-    bool allPunctuation = true;
-    for (uint32_t ch = wordRange.mBegin; ch != wordRange.mEnd && allPunctuation;
-         ++ch) {
-      allPunctuation = mozilla::IsPunctuationForWordSelect(textContent[ch]);
-    }
-    if (!allPunctuation) {
-      return {curNode, offset};
-    }
-    offset += int(aDirection);
-  }
-  return {};
+  PeekOffsetOptions options = {PeekOffsetOption::JumpLines,
+                               PeekOffsetOption::StopAtScroller,
+                               PeekOffsetOption::IsKeyboardSelect};
+  Result<RangeBoundary, nsresult> newBoundary =
+      SelectionMovementUtils::MoveRangeBoundaryToSomewhere(
+          aRangeBoundary,
+          aDirection == TextScanDirection::Left ? nsDirection::eDirPrevious
+                                                : nsDirection::eDirNext,
+          aDirection == TextScanDirection::Left ? CaretAssociationHint::Before
+                                                : CaretAssociationHint::After,
+          intl::BidiEmbeddingLevel::DefaultLTR(),
+          nsSelectionAmount::eSelectWord, options);
+  return newBoundary.unwrapOr({});
 }
 
 /* static */ bool TextDirectiveUtil::IsWhitespaceAtPosition(const Text* aText,
