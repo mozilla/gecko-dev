@@ -4,6 +4,7 @@
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 <androidx.preference.PreferenceScreen xmlns:tools="http://schemas.android.com/tools"
     xmlns:android="http://schemas.android.com/apk/res/android"
+    android:key="@string/pref_key_site_permissions_preference_screen"
     xmlns:app="http://schemas.android.com/apk/res-auto">
 
     <androidx.preference.PreferenceCategory
@@ -15,6 +16,7 @@
         tools:targetApi="o" />
 
     <androidx.preference.PreferenceCategory
+        android:key="@string/pref_key_category_content"
         android:layout="@layout/preference_category_no_icon_style"
         android:title="@string/preferences_category_content">
 

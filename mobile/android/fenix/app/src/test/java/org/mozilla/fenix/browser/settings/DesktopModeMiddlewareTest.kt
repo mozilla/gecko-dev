@@ -34,6 +34,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.mozilla.fenix.browser.desktopmode.DefaultDesktopModeFeatureFlag
 import org.mozilla.fenix.browser.desktopmode.DesktopModeMiddleware
 import org.mozilla.fenix.browser.desktopmode.DesktopModeRepository
 
@@ -48,7 +49,28 @@ class DesktopModeMiddlewareTest {
         val expected = true
         val middleware = createMiddleware(
             scope = this,
-            getDesktopBrowsingEnabled = { expected },
+            getDesktopBrowsingEnabled = { true },
+        )
+        val store = BrowserStore(
+            initialState = BrowserState(),
+            middleware = listOf(middleware),
+        )
+
+        advanceUntilIdle()
+        store.waitUntilIdle()
+
+        launch {
+            assertEquals(expected, store.state.desktopMode)
+        }
+    }
+
+    @Test
+    fun `GIVEN the feature is disabled WHEN the desktop mode is enabled and the Store is initialized THEN the middleware should set the correct value in the Store`() = runTestOnMain {
+        val expected = false
+        val middleware = createMiddleware(
+            scope = this,
+            getDesktopBrowsingEnabled = { true },
+            isDesktopModeFeatureEnabled = false,
         )
         val store = BrowserStore(
             initialState = BrowserState(),
@@ -213,6 +235,7 @@ class DesktopModeMiddlewareTest {
         scope: CoroutineScope,
         getDesktopBrowsingEnabled: () -> Boolean = { false },
         updateDesktopBrowsingEnabled: (Boolean) -> Boolean = { true },
+        isDesktopModeFeatureEnabled: Boolean = true,
         clearSpeculativeSession: () -> Unit = {},
     ) = DesktopModeMiddleware(
         scope = scope,
@@ -223,6 +246,9 @@ class DesktopModeMiddlewareTest {
         engine = createEngine(
             clearSpeculativeSession = clearSpeculativeSession,
         ),
+        desktopModeFeatureFlag = object : DefaultDesktopModeFeatureFlag {
+            override fun isDesktopModeEnabled(): Boolean = isDesktopModeFeatureEnabled
+        },
     )
 
     private fun createRepository(
