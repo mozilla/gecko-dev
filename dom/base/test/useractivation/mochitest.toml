@@ -20,6 +20,8 @@ support-files = ["file_self_close.html"]
 ["test_popup_blocker_link_target_blank.html"]
 support-files = ["file_self_close.html"]
 
+["test_popup_blocker_microtask.html"]
+
 ["test_popup_blocker_mouse_event.html"]
 
 ["test_popup_blocker_pointer_event.html"]
