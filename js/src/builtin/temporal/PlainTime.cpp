@@ -584,90 +584,152 @@ static bool ToTemporalTimeRecord(JSContext* cx,
   return true;
 }
 
+struct TimeOptions {
+  TemporalOverflow overflow = TemporalOverflow::Constrain;
+};
+
 /**
- * ToTemporalTime ( item [ , overflow ] )
+ * ToTemporalTime ( item [ , options ] )
  */
-static bool ToTemporalTime(JSContext* cx, Handle<Value> item,
-                           TemporalOverflow overflow, PlainTime* result) {
-  // Steps 1-2. (Not applicable in our implementation.)
-
-  // Steps 3-4.
-  if (item.isObject()) {
-    // Step 3.
-    Rooted<JSObject*> itemObj(cx, &item.toObject());
-
-    // Step 3.a.
-    if (auto* time = itemObj->maybeUnwrapIf<PlainTimeObject>()) {
-      *result = ToPlainTime(time);
-      return true;
-    }
-
-    // Step 3.b.
-    if (auto* zonedDateTime = itemObj->maybeUnwrapIf<ZonedDateTimeObject>()) {
-      auto epochInstant = ToInstant(zonedDateTime);
-      Rooted<TimeZoneValue> timeZone(cx, zonedDateTime->timeZone());
-
-      if (!timeZone.wrap(cx)) {
-        return false;
-      }
-
-      // Steps 3.b.i-iii.
-      PlainDateTime dateTime;
-      if (!GetISODateTimeFor(cx, timeZone, epochInstant, &dateTime)) {
-        return false;
-      }
-
-      // Step 3.b.iv.
-      *result = dateTime.time;
-      return true;
-    }
-
-    // Step 3.c.
-    if (auto* dateTime = itemObj->maybeUnwrapIf<PlainDateTimeObject>()) {
-      *result = ToPlainTime(dateTime);
-      return true;
-    }
-
-    // Step 3.d.
-    TemporalTimeLike timeResult{};
-    if (!ToTemporalTimeRecord(cx, itemObj, &timeResult)) {
-      return false;
-    }
-
-    // Step 3.e.
-    if (!RegulateTime(cx, timeResult, overflow, result)) {
-      return false;
-    }
-  } else {
-    // Step 4.
-
-    // Step 4.a.
-    if (!item.isString()) {
-      ReportValueError(cx, JSMSG_UNEXPECTED_TYPE, JSDVG_IGNORE_STACK, item,
-                       nullptr, "not a string");
-      return false;
-    }
-    Rooted<JSString*> string(cx, item.toString());
-
-    // Step 4.b.
-    if (!ParseTemporalTimeString(cx, string, result)) {
-      return false;
-    }
-
-    // Step 4.c.
-    MOZ_ASSERT(IsValidTime(*result));
+static bool ToTemporalTimeOptions(JSContext* cx, Handle<Value> options,
+                                  TimeOptions* result) {
+  if (options.isUndefined()) {
+    *result = {};
+    return true;
   }
 
-  // Step 5.
+  // NOTE: |options| are only passed from `Temporal.PlainTime.from`.
+
+  Rooted<JSObject*> resolvedOptions(
+      cx, RequireObjectArg(cx, "options", "from", options));
+  if (!resolvedOptions) {
+    return false;
+  }
+
+  auto overflow = TemporalOverflow::Constrain;
+  if (!GetTemporalOverflowOption(cx, resolvedOptions, &overflow)) {
+    return false;
+  }
+
+  *result = {overflow};
   return true;
 }
 
 /**
- * ToTemporalTime ( item [ , overflow ] )
+ * ToTemporalTime ( item [ , options ] )
+ */
+static bool ToTemporalTime(JSContext* cx, Handle<JSObject*> item,
+                           Handle<Value> options, PlainTime* result) {
+  // Step 2.a.
+  if (auto* time = item->maybeUnwrapIf<PlainTimeObject>()) {
+    // Steps 2.a.i-ii.
+    TimeOptions ignoredOptions;
+    if (!ToTemporalTimeOptions(cx, options, &ignoredOptions)) {
+      return false;
+    }
+
+    // Step 2.a.iii.
+    *result = ToPlainTime(time);
+    return true;
+  }
+  if (auto* dateTime = item->maybeUnwrapIf<PlainDateTimeObject>()) {
+    // Steps 2.a.i-ii.
+    TimeOptions ignoredOptions;
+    if (!ToTemporalTimeOptions(cx, options, &ignoredOptions)) {
+      return false;
+    }
+
+    // Step 2.a.iii.
+    *result = ToPlainTime(dateTime);
+    return true;
+  }
+
+  // Step 2.b.
+  if (auto* zonedDateTime = item->maybeUnwrapIf<ZonedDateTimeObject>()) {
+    auto epochInstant = ToInstant(zonedDateTime);
+    Rooted<TimeZoneValue> timeZone(cx, zonedDateTime->timeZone());
+
+    if (!timeZone.wrap(cx)) {
+      return false;
+    }
+
+    // Steps 2.b.i.
+    PlainDateTime dateTime;
+    if (!GetISODateTimeFor(cx, timeZone, epochInstant, &dateTime)) {
+      return false;
+    }
+
+    // Steps 2.b.ii-iii.
+    TimeOptions ignoredOptions;
+    if (!ToTemporalTimeOptions(cx, options, &ignoredOptions)) {
+      return false;
+    }
+
+    // Step 2.b.iv.
+    *result = dateTime.time;
+    return true;
+  }
+
+  // Step 2.c.
+  TemporalTimeLike timeResult{};
+  if (!ToTemporalTimeRecord(cx, item, &timeResult)) {
+    return false;
+  }
+
+  // Steps 2.d-e.
+  TimeOptions resolvedOptions;
+  if (!ToTemporalTimeOptions(cx, options, &resolvedOptions)) {
+    return false;
+  }
+  auto [overflow] = resolvedOptions;
+
+  // Step 2.f and 4.
+  return RegulateTime(cx, timeResult, overflow, result);
+}
+
+/**
+ * ToTemporalTime ( item [ , options ] )
+ */
+static bool ToTemporalTime(JSContext* cx, Handle<Value> item,
+                           Handle<Value> options, PlainTime* result) {
+  // Step 1. (Not applicable in our implementation.)
+
+  // Step 2.
+  if (item.isObject()) {
+    Rooted<JSObject*> itemObj(cx, &item.toObject());
+    return ToTemporalTime(cx, itemObj, options, result);
+  }
+
+  // Step 3.a.
+  if (!item.isString()) {
+    ReportValueError(cx, JSMSG_UNEXPECTED_TYPE, JSDVG_IGNORE_STACK, item,
+                     nullptr, "not a string");
+    return false;
+  }
+  Rooted<JSString*> string(cx, item.toString());
+
+  // Step 3.b.
+  if (!ParseTemporalTimeString(cx, string, result)) {
+    return false;
+  }
+  MOZ_ASSERT(IsValidTime(*result));
+
+  // Steps 3.c-d.
+  TimeOptions ignoredOptions;
+  if (!ToTemporalTimeOptions(cx, options, &ignoredOptions)) {
+    return false;
+  }
+
+  // Step 4.
+  return true;
+}
+
+/**
+ * ToTemporalTime ( item [ , options ] )
  */
 bool js::temporal::ToTemporalTime(JSContext* cx, Handle<Value> item,
                                   PlainTime* result) {
-  return ToTemporalTime(cx, item, TemporalOverflow::Constrain, result);
+  return ToTemporalTime(cx, item, UndefinedHandleValue, result);
 }
 
 /**
@@ -938,7 +1000,7 @@ static bool AddDurationToOrSubtractDurationFromPlainTime(
 
   // Step 2.
   Duration duration;
-  if (!ToTemporalDurationRecord(cx, args.get(0), &duration)) {
+  if (!ToTemporalDuration(cx, args.get(0), &duration)) {
     return false;
   }
 
@@ -1039,26 +1101,9 @@ static bool PlainTimeConstructor(JSContext* cx, unsigned argc, Value* vp) {
 static bool PlainTime_from(JSContext* cx, unsigned argc, Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
 
-  // Step 1. (Not applicable)
-
-  auto overflow = TemporalOverflow::Constrain;
-  if (args.hasDefined(1)) {
-    // Step 2.
-    Rooted<JSObject*> options(cx,
-                              RequireObjectArg(cx, "options", "from", args[1]));
-    if (!options) {
-      return false;
-    }
-
-    // Step 3.
-    if (!GetTemporalOverflowOption(cx, options, &overflow)) {
-      return false;
-    }
-  }
-
-  // Steps 4-5.
+  // Step 1.
   PlainTime result;
-  if (!ToTemporalTime(cx, args.get(0), overflow, &result)) {
+  if (!ToTemporalTime(cx, args.get(0), args.get(1), &result)) {
     return false;
   }
   MOZ_ASSERT(IsValidTime(result));

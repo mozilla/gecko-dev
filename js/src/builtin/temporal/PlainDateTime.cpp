@@ -514,11 +514,42 @@ bool js::temporal::InterpretTemporalDateTimeFields(
   return true;
 }
 
+struct DateTimeOptions {
+  TemporalOverflow overflow = TemporalOverflow::Constrain;
+};
+
 /**
- * ToTemporalDateTime ( item [ , overflow ] )
+ * ToTemporalDateTime ( item [ , options ] )
+ */
+static bool ToTemporalDateTimeOptions(JSContext* cx, Handle<Value> options,
+                                      DateTimeOptions* result) {
+  if (options.isUndefined()) {
+    *result = {};
+    return true;
+  }
+
+  // NOTE: |options| are only passed from `Temporal.PlainDateTime.from`.
+
+  Rooted<JSObject*> resolvedOptions(
+      cx, RequireObjectArg(cx, "options", "from", options));
+  if (!resolvedOptions) {
+    return false;
+  }
+
+  auto overflow = TemporalOverflow::Constrain;
+  if (!GetTemporalOverflowOption(cx, resolvedOptions, &overflow)) {
+    return false;
+  }
+
+  *result = {overflow};
+  return true;
+}
+
+/**
+ * ToTemporalDateTime ( item [ , options ] )
  */
 static bool ToTemporalDateTime(
-    JSContext* cx, Handle<JSObject*> item, TemporalOverflow overflow,
+    JSContext* cx, Handle<JSObject*> item, Handle<Value> options,
     MutableHandle<PlainDateTimeWithCalendar> result) {
   // Step 1. (Not applicable in our implementation.)
 
@@ -530,7 +561,13 @@ static bool ToTemporalDateTime(
       return false;
     }
 
-    // Step 2.a.i.
+    // Steps 2.a.i-ii.
+    DateTimeOptions ignoredOptions;
+    if (!ToTemporalDateTimeOptions(cx, options, &ignoredOptions)) {
+      return false;
+    }
+
+    // Step 2.a.iii.
     result.set(PlainDateTimeWithCalendar{dateTime, calendar});
     return true;
   }
@@ -548,12 +585,19 @@ static bool ToTemporalDateTime(
       return false;
     }
 
-    // Steps 2.b.i-ii.
+    // Step 2.b.i.
     PlainDateTime dateTime;
     if (!GetISODateTimeFor(cx, timeZone, epochInstant, &dateTime)) {
       return false;
     }
 
+    // Steps 2.b.ii-iii.
+    DateTimeOptions ignoredOptions;
+    if (!ToTemporalDateTimeOptions(cx, options, &ignoredOptions)) {
+      return false;
+    }
+
+    // Step 2.b.iv.
     result.set(PlainDateTimeWithCalendar{dateTime, calendar});
     return true;
   }
@@ -566,7 +610,13 @@ static bool ToTemporalDateTime(
       return false;
     }
 
-    // Step 2.c.i.
+    // Steps 2.c.i-ii.
+    DateTimeOptions ignoredOptions;
+    if (!ToTemporalDateTimeOptions(cx, options, &ignoredOptions)) {
+      return false;
+    }
+
+    // Step 2.c.iii.
     return CreateTemporalDateTime(cx, PlainDateTime{date}, calendar, result);
   }
 
@@ -597,7 +647,14 @@ static bool ToTemporalDateTime(
     return false;
   }
 
-  // Step 2.f.
+  // Steps 2.f-g.
+  DateTimeOptions resolvedOptions;
+  if (!ToTemporalDateTimeOptions(cx, options, &resolvedOptions)) {
+    return false;
+  }
+  auto [overflow] = resolvedOptions;
+
+  // Step 2.h.
   PlainDateTime dateTime;
   if (!InterpretTemporalDateTimeFields(cx, calendar, fields, overflow,
                                        &dateTime)) {
@@ -609,17 +666,17 @@ static bool ToTemporalDateTime(
 }
 
 /**
- * ToTemporalDateTime ( item [ , overflow ] )
+ * ToTemporalDateTime ( item [ , options ] )
  */
 static bool ToTemporalDateTime(
-    JSContext* cx, Handle<Value> item, TemporalOverflow overflow,
+    JSContext* cx, Handle<Value> item, Handle<Value> options,
     MutableHandle<PlainDateTimeWithCalendar> result) {
   // Step 1. (Not applicable)
 
   // Step 2.
   if (item.isObject()) {
     Rooted<JSObject*> itemObj(cx, &item.toObject());
-    return ToTemporalDateTime(cx, itemObj, overflow, result);
+    return ToTemporalDateTime(cx, itemObj, options, result);
   }
 
   // Step 3.a.
@@ -630,20 +687,20 @@ static bool ToTemporalDateTime(
   }
   Rooted<JSString*> string(cx, item.toString());
 
-  // Step 3.b.
+  // Steps 3.b-c.
   PlainDateTime dateTime;
   Rooted<JSString*> calendarString(cx);
   if (!ParseTemporalDateTimeString(cx, string, &dateTime, &calendarString)) {
     return false;
   }
 
-  // Step 3.c.
+  // Step 3.d.
   MOZ_ASSERT(IsValidISODate(dateTime.date));
 
-  // Step 3.d.
+  // Step 3.e.
   MOZ_ASSERT(IsValidTime(dateTime.time));
 
-  // Steps 3.e-h.
+  // Steps 3.f-h.
   Rooted<CalendarValue> calendar(cx, CalendarValue(CalendarId::ISO8601));
   if (calendarString) {
     if (!ToBuiltinCalendar(cx, calendarString, &calendar)) {
@@ -651,17 +708,23 @@ static bool ToTemporalDateTime(
     }
   }
 
+  // Steps 3.i-j.
+  DateTimeOptions ignoredOptions;
+  if (!ToTemporalDateTimeOptions(cx, options, &ignoredOptions)) {
+    return false;
+  }
+
   // Step 4.
   return CreateTemporalDateTime(cx, dateTime, calendar, result);
 }
 
 /**
- * ToTemporalDateTime ( item [ , overflow ] )
+ * ToTemporalDateTime ( item [ , options ] )
  */
 static bool ToTemporalDateTime(
     JSContext* cx, Handle<Value> item,
     MutableHandle<PlainDateTimeWithCalendar> result) {
-  return ToTemporalDateTime(cx, item, TemporalOverflow::Constrain, result);
+  return ToTemporalDateTime(cx, item, UndefinedHandleValue, result);
 }
 
 /**
@@ -1070,7 +1133,7 @@ static bool AddDurationToOrSubtractDurationFromPlainDateTime(
 
   // Step 2.
   Duration duration;
-  if (!ToTemporalDurationRecord(cx, args.get(0), &duration)) {
+  if (!ToTemporalDuration(cx, args.get(0), &duration)) {
     return false;
   }
 
@@ -1233,25 +1296,9 @@ static bool PlainDateTimeConstructor(JSContext* cx, unsigned argc, Value* vp) {
 static bool PlainDateTime_from(JSContext* cx, unsigned argc, Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
 
-  // Steps 1-2.
-  auto overflow = TemporalOverflow::Constrain;
-  if (args.hasDefined(1)) {
-    // Step 1.
-    Rooted<JSObject*> options(cx,
-                              RequireObjectArg(cx, "options", "from", args[1]));
-    if (!options) {
-      return false;
-    }
-
-    // Step 2.
-    if (!GetTemporalOverflowOption(cx, options, &overflow)) {
-      return false;
-    }
-  }
-
-  // Steps 3-4.
+  // Step 1.
   Rooted<PlainDateTimeWithCalendar> dateTime(cx);
-  if (!ToTemporalDateTime(cx, args.get(0), overflow, &dateTime)) {
+  if (!ToTemporalDateTime(cx, args.get(0), args.get(1), &dateTime)) {
     return false;
   }
 

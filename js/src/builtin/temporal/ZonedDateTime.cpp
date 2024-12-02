@@ -1063,7 +1063,7 @@ static bool AddDurationToOrSubtractDurationFromZonedDateTime(
 
   // Step 2.
   Duration duration;
-  if (!ToTemporalDurationRecord(cx, args.get(0), &duration)) {
+  if (!ToTemporalDuration(cx, args.get(0), &duration)) {
     return false;
   }
 

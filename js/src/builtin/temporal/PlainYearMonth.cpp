@@ -232,12 +232,45 @@ bool js::temporal::CreateTemporalYearMonth(
   return true;
 }
 
+struct YearMonthOptions {
+  TemporalOverflow overflow = TemporalOverflow::Constrain;
+};
+
 /**
- * ToTemporalYearMonth ( item [ , overflow ] )
+ * ToTemporalYearMonth ( item [ , options ] )
+ */
+static bool ToTemporalYearMonthOptions(JSContext* cx, Handle<Value> options,
+                                       YearMonthOptions* result) {
+  if (options.isUndefined()) {
+    *result = {};
+    return true;
+  }
+
+  // NOTE: |options| are only passed from `Temporal.PlainYearMonth.from`.
+
+  Rooted<JSObject*> resolvedOptions(
+      cx, RequireObjectArg(cx, "options", "from", options));
+  if (!resolvedOptions) {
+    return false;
+  }
+
+  auto overflow = TemporalOverflow::Constrain;
+  if (!GetTemporalOverflowOption(cx, resolvedOptions, &overflow)) {
+    return false;
+  }
+
+  *result = {overflow};
+  return true;
+}
+
+/**
+ * ToTemporalYearMonth ( item [ , options ] )
  */
 static bool ToTemporalYearMonth(
-    JSContext* cx, Handle<JSObject*> item, TemporalOverflow overflow,
+    JSContext* cx, Handle<JSObject*> item, Handle<Value> options,
     MutableHandle<PlainYearMonthWithCalendar> result) {
+  // Step 1. (Not applicable in our implementation.)
+
   // Step 2.a.
   if (auto* plainYearMonth = item->maybeUnwrapIf<PlainYearMonthObject>()) {
     auto date = ToPlainDate(plainYearMonth);
@@ -246,7 +279,13 @@ static bool ToTemporalYearMonth(
       return false;
     }
 
-    // Step 2.a.i.
+    // Steps 2.a.i-ii.
+    YearMonthOptions ignoredOptions;
+    if (!ToTemporalYearMonthOptions(cx, options, &ignoredOptions)) {
+      return false;
+    }
+
+    // Step 2.a.iii.
     result.set(PlainYearMonthWithCalendar{date, calendar});
     return true;
   }
@@ -269,22 +308,29 @@ static bool ToTemporalYearMonth(
     return false;
   }
 
-  // Step 2.d.
+  // Steps 2.d-e.
+  YearMonthOptions resolvedOptions;
+  if (!ToTemporalYearMonthOptions(cx, options, &resolvedOptions)) {
+    return false;
+  }
+  auto [overflow] = resolvedOptions;
+
+  // Steps 2.f-g.
   return CalendarYearMonthFromFields(cx, calendar, fields, overflow, result);
 }
 
 /**
- * ToTemporalYearMonth ( item [ , overflow ] )
+ * ToTemporalYearMonth ( item [ , options ] )
  */
 static bool ToTemporalYearMonth(
-    JSContext* cx, Handle<Value> item, TemporalOverflow overflow,
+    JSContext* cx, Handle<Value> item, Handle<Value> options,
     MutableHandle<PlainYearMonthWithCalendar> result) {
   // Step 1. (Not applicable in our implementation.)
 
   // Step 2.
   if (item.isObject()) {
     Rooted<JSObject*> itemObj(cx, &item.toObject());
-    return ToTemporalYearMonth(cx, itemObj, overflow, result);
+    return ToTemporalYearMonth(cx, itemObj, options, result);
   }
 
   // Step 3.
@@ -302,7 +348,7 @@ static bool ToTemporalYearMonth(
     return false;
   }
 
-  // Steps 5-8.
+  // Steps 5-7.
   Rooted<CalendarValue> calendar(cx, CalendarValue(CalendarId::ISO8601));
   if (calendarString) {
     if (!ToBuiltinCalendar(cx, calendarString, &calendar)) {
@@ -310,7 +356,7 @@ static bool ToTemporalYearMonth(
     }
   }
 
-  // Step 9.
+  // Steps 8-9.
   Rooted<PlainYearMonthObject*> obj(
       cx, CreateTemporalYearMonth(cx, date, calendar));
   if (!obj) {
@@ -320,17 +366,23 @@ static bool ToTemporalYearMonth(
   // FIXME: spec issue - |obj| should be unobservable.
 
   // Steps 10-11.
+  YearMonthOptions ignoredOptions;
+  if (!ToTemporalYearMonthOptions(cx, options, &ignoredOptions)) {
+    return false;
+  }
+
+  // Steps 12-14.
   return CalendarYearMonthFromFields(cx, calendar, obj,
                                      TemporalOverflow::Constrain, result);
 }
 
 /**
- * ToTemporalYearMonth ( item [ , overflow ] )
+ * ToTemporalYearMonth ( item [ , options ] )
  */
 static bool ToTemporalYearMonth(
     JSContext* cx, Handle<Value> item,
     MutableHandle<PlainYearMonthWithCalendar> result) {
-  return ToTemporalYearMonth(cx, item, TemporalOverflow::Constrain, result);
+  return ToTemporalYearMonth(cx, item, UndefinedHandleValue, result);
 }
 
 /**
@@ -523,7 +575,7 @@ static bool AddDurationToOrSubtractDurationFromPlainYearMonth(
 
   // Step 1.
   Duration duration;
-  if (!ToTemporalDurationRecord(cx, args.get(0), &duration)) {
+  if (!ToTemporalDuration(cx, args.get(0), &duration)) {
     return false;
   }
 
@@ -760,25 +812,9 @@ static bool PlainYearMonthConstructor(JSContext* cx, unsigned argc, Value* vp) {
 static bool PlainYearMonth_from(JSContext* cx, unsigned argc, Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
 
-  // Steps 1-2.
-  auto overflow = TemporalOverflow::Constrain;
-  if (args.hasDefined(1)) {
-    // Step 1.
-    Rooted<JSObject*> options(cx,
-                              RequireObjectArg(cx, "options", "from", args[1]));
-    if (!options) {
-      return false;
-    }
-
-    // Step 2.
-    if (!GetTemporalOverflowOption(cx, options, &overflow)) {
-      return false;
-    }
-  }
-
-  // Step 3.
+  // Step 1.
   Rooted<PlainYearMonthWithCalendar> yearMonth(cx);
-  if (!ToTemporalYearMonth(cx, args.get(0), overflow, &yearMonth)) {
+  if (!ToTemporalYearMonth(cx, args.get(0), args.get(1), &yearMonth)) {
     return false;
   }
 

@@ -438,14 +438,12 @@ static bool ToTemporalInstant(JSContext* cx, Handle<Value> item,
       *result = ToInstant(instant);
       return true;
     }
-
-    // Step 1.b.
     if (auto* zonedDateTime = itemObj->maybeUnwrapIf<ZonedDateTimeObject>()) {
       *result = ToInstant(zonedDateTime);
       return true;
     }
 
-    // Steps 1.c-d.
+    // Steps 1.b-c.
     if (!ToPrimitive(cx, JSTYPE_STRING, &primitiveValue)) {
       return false;
     }
@@ -461,7 +459,7 @@ static bool ToTemporalInstant(JSContext* cx, Handle<Value> item,
   }
   Rooted<JSString*> string(cx, primitiveValue.toString());
 
-  // Steps 3-4.
+  // Steps 3-4 and 6-7.
   PlainDateTime dateTime;
   int64_t offset;
   if (!ParseTemporalInstantString(cx, string, &dateTime, &offset)) {
@@ -469,25 +467,25 @@ static bool ToTemporalInstant(JSContext* cx, Handle<Value> item,
   }
   MOZ_ASSERT(std::abs(offset) < ToNanoseconds(TemporalUnit::Day));
 
-  // Steps 5-6. (Reordered)
+  // Step 5.
   if (!ISODateTimeWithinLimits(dateTime)) {
     JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
                               JSMSG_TEMPORAL_INSTANT_INVALID);
     return false;
   }
 
-  // Step 4.
+  // Step 8.
   auto epochNanoseconds =
       GetUTCEpochNanoseconds(dateTime, InstantSpan::fromNanoseconds(offset));
 
-  // Step 7.
+  // Step 9.
   if (!IsValidEpochInstant(epochNanoseconds)) {
     JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
                               JSMSG_TEMPORAL_INSTANT_INVALID);
     return false;
   }
 
-  // Step 8.
+  // Step 10.
   *result = epochNanoseconds;
   return true;
 }
@@ -662,7 +660,7 @@ static bool AddDurationToOrSubtractDurationFromInstant(
 
   // Step 2.
   Duration duration;
-  if (!ToTemporalDurationRecord(cx, args.get(0), &duration)) {
+  if (!ToTemporalDuration(cx, args.get(0), &duration)) {
     return false;
   }
 
@@ -740,7 +738,7 @@ static bool InstantConstructor(JSContext* cx, unsigned argc, Value* vp) {
 static bool Instant_from(JSContext* cx, unsigned argc, Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
 
-  // Steps 1-2.
+  // Step 1.
   Instant epochInstant;
   if (!ToTemporalInstant(cx, args.get(0), &epochInstant)) {
     return false;

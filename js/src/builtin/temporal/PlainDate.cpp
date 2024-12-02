@@ -396,11 +396,42 @@ bool js::temporal::CreateTemporalDate(
   return true;
 }
 
+struct DateOptions {
+  TemporalOverflow overflow = TemporalOverflow::Constrain;
+};
+
 /**
- * ToTemporalDate ( item [ , overflow ] )
+ * ToTemporalDate ( item [ , options ] )
+ */
+static bool ToTemporalDateOptions(JSContext* cx, Handle<Value> options,
+                                  DateOptions* result) {
+  if (options.isUndefined()) {
+    *result = {};
+    return true;
+  }
+
+  // NOTE: |options| are only passed from `Temporal.PlainDate.from`.
+
+  Rooted<JSObject*> resolvedOptions(
+      cx, RequireObjectArg(cx, "options", "from", options));
+  if (!resolvedOptions) {
+    return false;
+  }
+
+  auto overflow = TemporalOverflow::Constrain;
+  if (!GetTemporalOverflowOption(cx, resolvedOptions, &overflow)) {
+    return false;
+  }
+
+  *result = {overflow};
+  return true;
+}
+
+/**
+ * ToTemporalDate ( item [ , options ] )
  */
 static bool ToTemporalDate(JSContext* cx, Handle<JSObject*> item,
-                           TemporalOverflow overflow,
+                           Handle<Value> options,
                            MutableHandle<PlainDateWithCalendar> result) {
   // Step 1. (Not applicable in our implementation.)
 
@@ -412,7 +443,13 @@ static bool ToTemporalDate(JSContext* cx, Handle<JSObject*> item,
       return false;
     }
 
-    // Step 2.a.i.
+    // Steps 2.a.i-ii.
+    DateOptions ignoredOptions;
+    if (!ToTemporalDateOptions(cx, options, &ignoredOptions)) {
+      return false;
+    }
+
+    // Step 2.a.iii.
     result.set(PlainDateWithCalendar{date, calendar});
     return true;
   }
@@ -436,7 +473,13 @@ static bool ToTemporalDate(JSContext* cx, Handle<JSObject*> item,
       return false;
     }
 
-    // Step 2.b.iii.
+    // Steps 2.b.ii-iii.
+    DateOptions ignoredOptions;
+    if (!ToTemporalDateOptions(cx, options, &ignoredOptions)) {
+      return false;
+    }
+
+    // Step 2.b.iv.
     result.set(PlainDateWithCalendar{dateTime.date, calendar});
     return true;
   }
@@ -449,7 +492,13 @@ static bool ToTemporalDate(JSContext* cx, Handle<JSObject*> item,
       return false;
     }
 
-    // Step 2.c.i.
+    // Steps 2.c.i-ii.
+    DateOptions ignoredOptions;
+    if (!ToTemporalDateOptions(cx, options, &ignoredOptions)) {
+      return false;
+    }
+
+    // Step 2.c.iii.
     result.set(PlainDateWithCalendar{date, calendar});
     return true;
   }
@@ -473,22 +522,29 @@ static bool ToTemporalDate(JSContext* cx, Handle<JSObject*> item,
     return false;
   }
 
-  // Step 2.f
+  // Steps 2.f-g.
+  DateOptions resolvedOptions;
+  if (!ToTemporalDateOptions(cx, options, &resolvedOptions)) {
+    return false;
+  }
+  auto [overflow] = resolvedOptions;
+
+  // Step 2.h.
   return CalendarDateFromFields(cx, calendar, fields, overflow, result);
 }
 
 /**
- * ToTemporalDate ( item [ , overflow ] )
+ * ToTemporalDate ( item [ , options ] )
  */
 static bool ToTemporalDate(JSContext* cx, Handle<Value> item,
-                           TemporalOverflow overflow,
+                           Handle<Value> options,
                            MutableHandle<PlainDateWithCalendar> result) {
   // Step 1. (Not applicable in our implementation.)
 
   // Step 2.
   if (item.isObject()) {
     Rooted<JSObject*> itemObj(cx, &item.toObject());
-    return ToTemporalDate(cx, itemObj, overflow, result);
+    return ToTemporalDate(cx, itemObj, options, result);
   }
 
   // Step 3.
@@ -509,7 +565,7 @@ static bool ToTemporalDate(JSContext* cx, Handle<Value> item,
   // Step 5.
   MOZ_ASSERT(IsValidISODate(dateTime.date));
 
-  // Steps 6-9.
+  // Steps 6-8.
   Rooted<CalendarValue> calendar(cx, CalendarValue(CalendarId::ISO8601));
   if (calendarString) {
     if (!ToBuiltinCalendar(cx, calendarString, &calendar)) {
@@ -517,16 +573,22 @@ static bool ToTemporalDate(JSContext* cx, Handle<Value> item,
     }
   }
 
+  // Steps 9-10.
+  DateOptions ignoredOptions;
+  if (!ToTemporalDateOptions(cx, options, &ignoredOptions)) {
+    return false;
+  }
+
   // Step 10.
   return CreateTemporalDate(cx, dateTime.date, calendar, result);
 }
 
 /**
- * ToTemporalDate ( item [ , overflow ] )
+ * ToTemporalDate ( item [ , options ] )
  */
 static bool ToTemporalDate(JSContext* cx, Handle<Value> item,
                            MutableHandle<PlainDateWithCalendar> result) {
-  return ToTemporalDate(cx, item, TemporalOverflow::Constrain, result);
+  return ToTemporalDate(cx, item, UndefinedHandleValue, result);
 }
 
 /**
@@ -1358,25 +1420,9 @@ static bool PlainDateConstructor(JSContext* cx, unsigned argc, Value* vp) {
 static bool PlainDate_from(JSContext* cx, unsigned argc, Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
 
-  // Steps 1-2.
-  auto overflow = TemporalOverflow::Constrain;
-  if (args.hasDefined(1)) {
-    // Step 1.
-    Rooted<JSObject*> options(cx,
-                              RequireObjectArg(cx, "options", "from", args[1]));
-    if (!options) {
-      return false;
-    }
-
-    // Step 2.
-    if (!GetTemporalOverflowOption(cx, options, &overflow)) {
-      return false;
-    }
-  }
-
-  // Steps 3-4.
+  // Step 1.
   Rooted<PlainDateWithCalendar> date(cx);
-  if (!ToTemporalDate(cx, args.get(0), overflow, &date)) {
+  if (!ToTemporalDate(cx, args.get(0), args.get(1), &date)) {
     return false;
   }
 
@@ -1880,11 +1926,9 @@ static bool PlainDate_add(JSContext* cx, const CallArgs& args) {
   auto date = ToPlainDate(temporalDate);
   Rooted<CalendarValue> calendar(cx, temporalDate->calendar());
 
-  // FIXME: spec bug - must call ToTemporalDurationRecord
-
   // Step 3.
   Duration duration;
-  if (!ToTemporalDurationRecord(cx, args.get(0), &duration)) {
+  if (!ToTemporalDuration(cx, args.get(0), &duration)) {
     return false;
   }
 
@@ -1936,11 +1980,9 @@ static bool PlainDate_subtract(JSContext* cx, const CallArgs& args) {
   auto date = ToPlainDate(temporalDate);
   Rooted<CalendarValue> calendar(cx, temporalDate->calendar());
 
-  // FIXME: spec bug - must call ToTemporalDurationRecord
-
   // Step 3.
   Duration duration;
-  if (!ToTemporalDurationRecord(cx, args.get(0), &duration)) {
+  if (!ToTemporalDuration(cx, args.get(0), &duration)) {
     return false;
   }
 

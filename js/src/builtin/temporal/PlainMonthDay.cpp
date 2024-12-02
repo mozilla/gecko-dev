@@ -189,11 +189,42 @@ bool js::temporal::CreateTemporalMonthDay(
   return true;
 }
 
+struct MonthDayOptions {
+  TemporalOverflow overflow = TemporalOverflow::Constrain;
+};
+
 /**
- * ToTemporalMonthDay ( item [ , overflow ] )
+ * ToTemporalMonthDay ( item [ , options ] )
+ */
+static bool ToTemporalMonthDayOptions(JSContext* cx, Handle<Value> options,
+                                      MonthDayOptions* result) {
+  if (options.isUndefined()) {
+    *result = {};
+    return true;
+  }
+
+  // NOTE: |options| are only passed from `Temporal.PlainMonthDay.from`.
+
+  Rooted<JSObject*> resolvedOptions(
+      cx, RequireObjectArg(cx, "options", "from", options));
+  if (!resolvedOptions) {
+    return false;
+  }
+
+  auto overflow = TemporalOverflow::Constrain;
+  if (!GetTemporalOverflowOption(cx, resolvedOptions, &overflow)) {
+    return false;
+  }
+
+  *result = {overflow};
+  return true;
+}
+
+/**
+ * ToTemporalMonthDay ( item [ , options ] )
  */
 static bool ToTemporalMonthDay(
-    JSContext* cx, Handle<JSObject*> item, TemporalOverflow overflow,
+    JSContext* cx, Handle<JSObject*> item, Handle<Value> options,
     MutableHandle<PlainMonthDayWithCalendar> result) {
   // Step 2.a.
   if (auto* plainMonthDay = item->maybeUnwrapIf<PlainMonthDayObject>()) {
@@ -203,7 +234,13 @@ static bool ToTemporalMonthDay(
       return false;
     }
 
-    // Step 2.a.i.
+    // Steps 2.a.i-ii.
+    MonthDayOptions ignoredOptions;
+    if (!ToTemporalMonthDayOptions(cx, options, &ignoredOptions)) {
+      return false;
+    }
+
+    // Step 2.a.iii.
     result.set(PlainMonthDayWithCalendar{date, calendar});
     return true;
   }
@@ -227,22 +264,29 @@ static bool ToTemporalMonthDay(
     return false;
   }
 
-  // Step 2.d.
+  // Steps 2.d-e.
+  MonthDayOptions resolvedOptions;
+  if (!ToTemporalMonthDayOptions(cx, options, &resolvedOptions)) {
+    return false;
+  }
+  auto [overflow] = resolvedOptions;
+
+  // Steps 2.f-g.
   return CalendarMonthDayFromFields(cx, calendar, fields, overflow, result);
 }
 
 /**
- * ToTemporalMonthDay ( item [ , overflow ] )
+ * ToTemporalMonthDay ( item [ , options ] )
  */
 static bool ToTemporalMonthDay(
-    JSContext* cx, Handle<Value> item, TemporalOverflow overflow,
+    JSContext* cx, Handle<Value> item, Handle<Value> options,
     MutableHandle<PlainMonthDayWithCalendar> result) {
   // Step 1. (Not applicable in our implementation.)
 
   // Step 2.
   if (item.isObject()) {
     Rooted<JSObject*> itemObj(cx, &item.toObject());
-    return ToTemporalMonthDay(cx, itemObj, overflow, result);
+    return ToTemporalMonthDay(cx, itemObj, options, result);
   }
 
   // Step 3.
@@ -262,7 +306,7 @@ static bool ToTemporalMonthDay(
     return false;
   }
 
-  // Steps 5-8.
+  // Steps 5-7.
   Rooted<CalendarValue> calendar(cx, CalendarValue(CalendarId::ISO8601));
   if (calendarString) {
     if (!ToBuiltinCalendar(cx, calendarString, &calendar)) {
@@ -270,20 +314,26 @@ static bool ToTemporalMonthDay(
     }
   }
 
-  // Step 9.
+  // Steps 8-9.
+  MonthDayOptions ignoredOptions;
+  if (!ToTemporalMonthDayOptions(cx, options, &ignoredOptions)) {
+    return false;
+  }
+
+  // Step 10.
   if (!hasYear) {
-    // Step 9.a.
+    // Step 10.a.
     MOZ_ASSERT(calendar.identifier() == CalendarId::ISO8601);
 
-    // Step 9.b.
+    // Step 10.b.
     constexpr int32_t referenceISOYear = 1972;
 
-    // Step 9.c.
+    // Step 10.c.
     return CreateTemporalMonthDay(cx, {referenceISOYear, date.month, date.day},
                                   calendar, result);
   }
 
-  // Step 10.
+  // Step 11.
   Rooted<PlainMonthDayObject*> obj(cx,
                                    CreateTemporalMonthDay(cx, date, calendar));
   if (!obj) {
@@ -292,18 +342,18 @@ static bool ToTemporalMonthDay(
 
   // FIXME: spec issue - |obj| should be unobservable.
 
-  // Steps 11-12.
+  // Steps 12-15.
   return CalendarMonthDayFromFields(cx, calendar, obj,
                                     TemporalOverflow::Constrain, result);
 }
 
 /**
- * ToTemporalMonthDay ( item [ , overflow ] )
+ * ToTemporalMonthDay ( item [ , options ] )
  */
 static bool ToTemporalMonthDay(
     JSContext* cx, Handle<Value> item,
     MutableHandle<PlainMonthDayWithCalendar> result) {
-  return ToTemporalMonthDay(cx, item, TemporalOverflow::Constrain, result);
+  return ToTemporalMonthDay(cx, item, UndefinedHandleValue, result);
 }
 
 /**
@@ -372,25 +422,9 @@ static bool PlainMonthDayConstructor(JSContext* cx, unsigned argc, Value* vp) {
 static bool PlainMonthDay_from(JSContext* cx, unsigned argc, Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
 
-  // Steps 1-2.
-  auto overflow = TemporalOverflow::Constrain;
-  if (args.hasDefined(1)) {
-    // Step 1.
-    Rooted<JSObject*> options(cx,
-                              RequireObjectArg(cx, "options", "from", args[1]));
-    if (!options) {
-      return false;
-    }
-
-    // Step 2.
-    if (!GetTemporalOverflowOption(cx, options, &overflow)) {
-      return false;
-    }
-  }
-
-  // Steps 3-4.
+  // Step 1.
   Rooted<PlainMonthDayWithCalendar> monthDay(cx);
-  if (!ToTemporalMonthDay(cx, args.get(0), overflow, &monthDay)) {
+  if (!ToTemporalMonthDay(cx, args.get(0), args.get(1), &monthDay)) {
     return false;
   }
 
