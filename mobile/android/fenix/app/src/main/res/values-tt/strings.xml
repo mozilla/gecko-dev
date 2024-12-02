@@ -265,9 +265,9 @@
     <!-- Content description (not visible, for screen readers etc.) for main menu settings button. -->
     <string name="browser_main_menu_content_description_settings_button">Көйләүләр</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-    <string name="browser_menu_tools_description_with_translate" moz:removedIn="133" tools:ignore="UnusedResources">Уку режимы, Тәрҗемә итү, Бастыру, Уртаклашу, Кушымтаны ачу</string>
+    <string name="browser_menu_tools_description_with_translate" moz:removedIn="134" tools:ignore="UnusedResources">Уку режимы, Тәрҗемә итү, Бастыру, Уртаклашу, Кушымтаны ачу</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-    <string name="browser_menu_tools_description" moz:removedIn="133" tools:ignore="UnusedResources">Уку режимы, Бастыру, Уртаклашу, Кушымтаны ачу</string>
+    <string name="browser_menu_tools_description" moz:removedIn="134" tools:ignore="UnusedResources">Уку режимы, Бастыру, Уртаклашу, Кушымтаны ачу</string>
     <!-- Browser menu label that navigates to the save sub-menu, which contains various save related menu items such as
          bookmarking a page, saving to collection, shortcut or as a PDF, and adding to home screen -->
     <string name="browser_menu_save">Саклау</string>
@@ -434,6 +434,9 @@
     <!-- Label for the number of reviews for an add-on. The parameter is for the formatted number of reviews e.g. "1,234", "12,345", "123,456". -->
     <string name="onboarding_add_on_reviews_label">Бәяләмә: %1$s</string>
 
+    <!-- Positive button label for the privacy preferences dialog shown during onboarding. -->
+    <string name="onboarding_preferences_dialog_positive_button" tools:ignore="UnusedResources">Әзер</string>
+
     <!-- Search Widget -->
     <!-- Content description for searching with a widget. The first parameter is the name of the application.-->
     <string name="search_widget_content_description_2">Яңа %1$s табы ачу</string>
@@ -550,6 +553,8 @@
     <string name="preferences_override_sync_tokenserver">Үзгә Синхронлау серверы</string>
     <!-- Preference category for account information -->
     <string name="preferences_category_account">Хисап язмасы</string>
+    <!-- Preference for changing where the AddressBar is positioned -->
+    <string name="preferences_toolbar_2">Адрес юлының урнашуы</string>
     <!-- Preference for changing default theme to dark or light mode -->
     <string name="preferences_theme">Тема</string>
     <!-- Preference for customizing the home screen -->
@@ -594,6 +599,9 @@
     <string name="preferences_enable_autocomplete_urls">URL aдресларын автотәмамлау</string>
     <!-- Preference title for switch preference to show sponsored Firefox Suggest search suggestions -->
     <string name="preferences_show_sponsored_suggestions">Иганәчеләрдән тәкъдимнәр</string>
+    <!-- Preference title for switch preference to show Firefox Suggest search suggestions for web content.
+         The first parameter is the name of the application. -->
+    <string name="preferences_show_nonsponsored_suggestions">%1$s тәкъдимнәре</string>
     <!-- Preference for open links in third party apps -->
     <string name="preferences_open_links_in_apps">Сылтамаларны кушымталарда ачу</string>
     <!-- Preference for open links in third party apps always open in apps option -->
@@ -829,6 +837,18 @@
     <!-- Content description (not visible, for screen readers etc.): "Close button for library settings" -->
     <string name="content_description_close_button">Ябу</string>
 
+    <!-- Dialog button text for confirming open all tabs -->
+    <string name="open_all_warning_confirm">Табларны ачу</string>
+    <!-- Dialog button text for canceling open all tabs -->
+    <string name="open_all_warning_cancel">Баш тарту</string>
+
+    <!-- Text to show users they have one page in the history group section of the History fragment.
+    %d is a placeholder for the number of pages in the group. -->
+    <string name="history_search_group_site_1">%d бит</string>
+    <!-- Text to show users they have multiple pages in the history group section of the History fragment.
+    %d is a placeholder for the number of pages in the group. -->
+    <string name="history_search_group_sites_1">%d бит</string>
+
     <!-- Option in library for Recently Closed Tabs -->
     <string name="library_recently_closed_tabs">Күптән түгел ябылган таблар</string>
     <!-- Option in library to open Recently Closed Tabs page -->
@@ -885,6 +905,9 @@
     <string name="close_tabs_after_one_week_summary">Бер атнадан соң ябу</string>
     <!-- Summary for tabs preference when auto closing tabs setting is set to auto close tabs after one month-->
     <string name="close_tabs_after_one_month_summary">Бер айдан соң ябу</string>
+
+    <!-- Summary for homepage preference indicating always opening the homepage when re-opening the app -->
+    <string name="opening_screen_homepage_summary">Баш биттә ачу</string>
 
     <!-- Inactive tabs -->
     <!-- Category header of a preference that allows a user to enable or disable the inactive tabs feature -->
@@ -1042,17 +1065,26 @@
     <!-- Unsubmitted crash dialog title, The first parameter is the name of the app (e.g. Firefox)  -->
     <string name="unsubmitted_crash_dialog_title">%s кушымчасын сүндереп кабызырга туры килде</string>
 
+    <!-- Unsubmitted crash dialog positive button to submit crash report -->
+    <string name="unsubmitted_crash_dialog_positive_button">Ватылу турында хәбәр җибәрү</string>
+
     <!-- Bookmarks -->
     <!-- Confirmation message for a dialog confirming if the user wants to delete the selected folder -->
     <string name="bookmark_delete_folder_confirmation_dialog">Папка бетерүне раслыйсызмы?</string>
     <!-- Confirmation message for a dialog confirming if the user wants to delete multiple items including folders. Parameter will be replaced by app name. -->
     <string name="bookmark_delete_multiple_folders_confirmation_dialog">%s сайланган элементларны бетерәчәк.</string>
+    <!-- Text for the cancel button on delete bookmark dialog -->
+    <string name="bookmark_delete_negative">Баш тарту</string>
     <!-- Screen title for adding a bookmarks folder -->
     <string name="bookmark_add_folder">Папка өстәү</string>
     <!-- Snackbar title shown after a bookmark has been created. -->
     <string name="bookmark_saved_snackbar" moz:removedIn="132" tools:ignore="UnusedResources">Кыстыргыч cакланды!</string>
+    <!-- Snackbar title that confirms a bookmark was saved into a folder. Parameter will be replaced by the name of the folder the bookmark was saved into. -->
+    <string name="bookmark_saved_in_folder_snackbar">«%s» эчендә сакланды</string>
     <!-- Snackbar edit button shown after a bookmark has been created. -->
     <string name="edit_bookmark_snackbar_action">ҮЗГӘРТҮ</string>
+    <!-- Bookmark menu move button -->
+    <string name="bookmark_menu_move_button">Күчерү</string>
     <!-- Bookmark overflow menu edit button -->
     <string name="bookmark_menu_edit_button">Үзгәртү</string>
     <!-- Bookmark overflow menu copy button -->
@@ -1063,6 +1095,10 @@
     <string name="bookmark_menu_open_in_new_tab_button">Яңа табта ачу</string>
     <!-- Bookmark overflow menu open in private tab button -->
     <string name="bookmark_menu_open_in_private_tab_button">Хосусый табта ачу</string>
+    <!-- Bookmark overflow menu open all in tabs button -->
+    <string name="bookmark_menu_open_all_in_tabs_button">Барысын да яңа табларда ачу</string>
+    <!-- Bookmark overflow menu open all in private tabs button -->
+    <string name="bookmark_menu_open_all_in_private_tabs_button">Барысын да хосусый табларда ачу</string>
     <!-- Bookmark overflow menu delete button -->
     <string name="bookmark_menu_delete_button">Бетерү</string>
     <!--Bookmark overflow menu save button -->
@@ -1082,6 +1118,8 @@
     <string name="bookmark_folder_label">ПАПКА</string>
     <!-- Bookmark NAME editing field label -->
     <string name="bookmark_name_label">ИСЕМ</string>
+    <!-- Label for a text input field for a bookmark or folder name -->
+    <string name="bookmark_name_label_normal_case">Исем</string>
     <!-- Bookmark add folder screen title -->
     <string name="bookmark_add_folder_fragment_label">Папка өстәү</string>
     <!-- Bookmark select folder screen title -->
@@ -1102,6 +1140,13 @@
     <string name="bookmark_deletion_multiple_snackbar_message_3">Сайланган папкаларны бетерү</string>
     <!-- Bookmark undo button for deletion snackbar action -->
     <string name="bookmark_undo_deletion">КИРЕ АЛУ</string>
+
+    <!-- Bookmark snackbar message for deleting a single item. Parameter is the title of the item being deleted -->
+    <string name="bookmark_delete_single_item">%s бетерелде</string>
+    <!-- Text for the button to navigate to sync authentication -->
+    <string name="bookmark_empty_list_guest_cta">Синхронлауга керү</string>
+    <!-- Description for the add new folder button when selecting a folder. -->
+    <string name="bookmark_select_folder_new_folder_button_title">Яңа папка</string>
 
     <!-- Site Permissions -->
     <!-- Button label that take the user to the Android App setting -->
@@ -1186,6 +1231,13 @@
     <!-- Summary of studies data on quit preference if it is set to off -->
     <string name="studies_off">Сүнгән</string>
 
+    <!-- Category header of a preference that allows a user to alter settings related to web permissions. -->
+    <string name="preferences_category_permissions">Рөхсәтләр</string>
+    <!-- Category header of a preference that allows a user to alter settings related to web content. -->
+    <string name="preferences_category_content">Эчтәлек</string>
+    <!-- Preference for altering the default browsing mode. When enabled, the desktop site will always be requested. -->
+    <string name="preference_feature_desktop_mode_default">Һәрвакыт сайтның өстәл өсте версиясен сорау</string>
+
     <!-- Collections -->
     <!-- Collections header on home fragment -->
     <string name="collections_header">Җыентыклар</string>
@@ -1244,6 +1296,10 @@
     <string name="unable_to_save_to_pdf_error">PDF-ны төзеп булмады</string>
     <!-- Text for standard error snackbar dismiss button. -->
     <string name="standard_snackbar_error_dismiss">Ябу</string>
+    <!-- Text for error message when printing a page and it fails. -->
+    <string name="unable_to_print_page_error">Бу битне бастырып булмады</string>
+    <!-- Text for the print feature in the share and browser menu -->
+    <string name="menu_print">Бастыру</string>
     <!-- Sub-header in the dialog to share a link to another sync device -->
     <string name="share_device_subheader">Җиһазга җибәрү</string>
     <!-- Sub-header in the dialog to share a link to an app from the full list -->
@@ -2031,6 +2087,22 @@
     <string name="translations_bottom_sheet_negative_button_restore">Оригиналны күрсәтү</string>
 
 
+    <!-- Button text on the translations dialog when a translation error appears, used to dismiss the dialog and return to the browser. -->
+    <string name="translations_bottom_sheet_negative_button_error">Әзер</string>
+    <!-- Button text on the translations dialog to begin a translation of the website. -->
+    <string name="translations_bottom_sheet_positive_button">Тәрҗемә итү</string>
+    <!-- Button text on the translations dialog when a translation error appears. -->
+    <string name="translations_bottom_sheet_positive_button_error">Янәдән тырышып карау</string>
+    <!-- Inactive button text on the translations dialog that indicates a translation is currently in progress. This button will be accompanied by a loading icon. -->
+    <string name="translations_bottom_sheet_translating_in_progress">Тәрҗемә ителә</string>
+    <!-- Button content description (not visible, for screen readers etc.) for the translations dialog translate button that indicates a translation is currently in progress. -->
+    <string name="translations_bottom_sheet_translating_in_progress_content_description">Тәрҗемә дәвам итә</string>
+    <!-- Default dropdown option when initially selecting a language from the translations dialog language selection dropdown. -->
+    <string name="translations_bottom_sheet_default_dropdown_selection">Телне сайлау</string>
+    <!-- The title of the warning card informs the user that a translation could not be completed. -->
+    <string name="translation_error_could_not_translate_warning_text">Тәрҗемә итүдә хата килеп чыкты. Зинһар янәдән тырышып карагыз.</string>
+    <!-- The title of the warning card informs the user that the list of languages cannot be loaded. -->
+    <string name="translation_error_could_not_load_languages_warning_text">Телләрне йөкләп булмады. Интернетка бәйләнешегезне тикшереп, янәдән тырышып карагыз.</string>
     <!-- Snackbar title shown if the user closes the Translation Request dialogue and a translation is in progress. -->
     <string name="translation_in_progress_snackbar">Тәрҗемә ителә…</string>
 
@@ -2047,6 +2119,13 @@
     <!-- Toggle switch label that allows a user to set the setting if they would like the browser to never translate the site the user is currently visiting. -->
     <string name="translation_option_bottom_sheet_never_translate_site">Бу сайтны беркайчан да тәрҗемә итмә</string>
 
+    <!-- Button text for the button that will take the user to the translation settings dialog. -->
+    <string name="translation_option_bottom_sheet_translation_settings">Тәрҗемә көйләүләре</string>
+    <!-- Button text for the button that will take the user to a website to learn more about how translations works in the given app. The first parameter is the name of the application, for example, "Fenix". -->
+    <string name="translation_option_bottom_sheet_about_translations">%1$s эчендәге тәрҗемәләр турында</string>
+    <!-- Content description (not visible, for screen readers etc.) for closing the translations bottom sheet. -->
+    <string name="translation_option_bottom_sheet_close_content_description">Тәрҗемәләр битен ябу</string>
+
     <!-- Translation settings dialog -->
     <!-- Title of the translation settings dialog that allows a user to set their preferred translation settings. -->
     <string name="translation_settings_toolbar_title">Тәрҗемәләр</string>
@@ -2055,11 +2134,24 @@
     <!-- Button text for the button that will take the user to the automatic translations settings dialog. On the automatic translations settings dialog, the user can set if translations should occur automatically for a given language. -->
     <string name="translation_settings_automatic_translation">Автоматик тәрҗемә итү</string>
 
+    <!-- Button text for the button that will take the user to the download languages dialog. On the download languages dialog, the user can manage which languages they would like to download for translations. -->
+    <string name="translation_settings_download_language">Телләр иңдерү</string>
+
+    <!-- Automatic translation preference screen -->
+    <!-- Title of the automatic translation preference screen that will appear on the toolbar.-->
+    <string name="automatic_translation_toolbar_title_preference">Автоматик тәрҗемә</string>
+
     <!-- Preference option for always translate. Radio button title text. -->
     <string name="automatic_translation_option_always_translate_title_preference">Һәрвакыт тәрҗемә итү</string>
     <!-- Preference option for never translate. Radio button title text.-->
     <string name="automatic_translation_option_never_translate_title_preference">Беркайчан да тәрҗемә итмәү</string>
 
+    <!-- Content description (not visible, for screen readers etc.): For a never-translated site list item that is selected.
+             The first parameter is web site url (for example:"wikipedia.com") -->
+    <string name="never_translate_site_item_list_content_description_preference">%1$s сайтын бетерү</string>
+    <!-- The Delete site dialogue title will appear when the user clicks on a list item.
+             The first parameter is web site url (for example:"wikipedia.com") -->
+    <string name="never_translate_site_dialog_title_preference">%1$s бетерелсенме?</string>
     <!-- The Delete site dialogue positive button will appear when the user clicks on a list item. The site will be deleted. -->
     <string name="never_translate_site_dialog_confirm_delete_preference">Бетерү</string>
     <!-- The Delete site dialogue negative button will appear when the user clicks on a list item. The dialog will be dismissed. -->

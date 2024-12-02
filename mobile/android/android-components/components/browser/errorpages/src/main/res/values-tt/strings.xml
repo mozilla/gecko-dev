@@ -117,6 +117,15 @@
     <!-- The document title and heading of the error page shown when the browser gets stuck in an infinite loop when loading a website. -->
     <string name="mozac_browser_errorpages_redirect_loop_title">Сәхифә икенче сәхифәгә дөрес юнәлтми</string>
 
+    <!-- The error message shown when the browser gets stuck in an infinite loop when loading a website. -->
+    <string name="mozac_browser_errorpages_redirect_loop_message"><![CDATA[
+    <p>Браузер соралган элементны йөкләргә тырышудан ваз кичте, чөнки сайт сорауны беркайчан да бетми торган рәвештә башка җиргә юнәлтә.</p>
+    <ul>
+    <li>Сез бу сайт таләп иткән кукиларны сүндергән яки блокламагансыздыр бит?</li>
+    <li>Әгәр дә сайттан килгән кукиларны кабул итү проблеманы чишмәсә, димәк гаеп Сезнең җиһасыгызда түгел ә серверның үзендә .</li>
+    </ul>
+    ]]></string>
+
     <!-- The document title and heading of the error page shown when a website cannot be loaded because the browser is in offline mode. -->
     <string name="mozac_browser_errorpages_offline_title">Автоном эш режимы</string>
 
@@ -180,9 +189,10 @@
     <string name="mozac_browser_errorpages_unknown_host_title">Адрес табылмады</string>
 
     <!-- The document title and heading of an error page. -->
-    <string name="mozac_browser_errorpages_no_internet_title">Интернетка тоташу юк</string>
+    <string name="mozac_browser_errorpages_no_internet_title" moz:removedIn="133" tools:ignore="UnusedResources">Интернетка тоташу юк</string>
     <!-- The main body text of this error page. It will be shown beneath the title -->
-    <string name="mozac_browser_errorpages_no_internet_message">Челтәргә бәйләнешегезне тикшерегез яки бераздан битне яңадан йөкләп карагыз.</string>
+    <string name="mozac_browser_errorpages_no_internet_message" moz:removedIn="133" tools:ignore="UnusedResources">Челтәргә бәйләнешегезне тикшерегез яки бераздан битне яңадан йөкләп карагыз.</string>
+
     <!-- Text that will show up on the button at the bottom of the error page -->
     <string name="mozac_browser_errorpages_no_internet_refresh_button">Яңарту</string>
 
