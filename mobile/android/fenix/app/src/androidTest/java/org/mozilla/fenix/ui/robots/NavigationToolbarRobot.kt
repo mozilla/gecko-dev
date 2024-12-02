@@ -42,7 +42,6 @@ import org.mozilla.fenix.helpers.MatcherHelper.assertItemTextEquals
 import org.mozilla.fenix.helpers.MatcherHelper.assertUIObjectExists
 import org.mozilla.fenix.helpers.MatcherHelper.itemWithDescription
 import org.mozilla.fenix.helpers.MatcherHelper.itemWithResId
-import org.mozilla.fenix.helpers.MatcherHelper.itemWithResIdAndDescription
 import org.mozilla.fenix.helpers.MatcherHelper.itemWithResIdAndText
 import org.mozilla.fenix.helpers.MatcherHelper.itemWithResIdContainingText
 import org.mozilla.fenix.helpers.SessionLoadedIdlingResource
@@ -203,10 +202,7 @@ class NavigationToolbarRobot {
             itemWithDescription(getStringResource(R.string.browser_menu_back)),
             itemWithDescription(getStringResource(R.string.browser_menu_forward)),
             itemWithDescription(getStringResource(R.string.search_hint)),
-            itemWithResIdAndDescription(
-                "$packageName:id/icon",
-                getStringResource(R.string.mozac_browser_menu_button),
-            ),
+            itemWithDescription("More options"),
             itemWithResId("$packageName:id/counter_box"),
         )
     }

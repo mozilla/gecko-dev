@@ -1,3 +1,6 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 @file:Suppress("DEPRECATION")
 
 package org.mozilla.fenix.ui
@@ -41,6 +44,8 @@ class RedesignedNavigationToolbarSmokeTest : TestSetup() {
                 isNavigationToolbarEnabled = true,
                 isNavigationBarCFREnabled = false,
                 isSetAsDefaultBrowserPromptEnabled = false,
+                isMenuRedesignEnabled = true,
+                isMenuRedesignCFREnabled = false,
             ),
         ) { it.activity }
 
@@ -114,7 +119,7 @@ class RedesignedNavigationToolbarSmokeTest : TestSetup() {
         val helpPageUrl = "mozilla.org"
 
         homeScreen {
-        }.openThreeDotMenuFromRedesignedToolbar {
+        }.openThreeDotMenuFromRedesignedToolbar(composeTestRule) {
         }.openHelp {
         }.openSiteSecuritySheet {
             clickQuickActionSheetClearSiteData()
@@ -148,7 +153,7 @@ class RedesignedNavigationToolbarSmokeTest : TestSetup() {
         }.closeTabDrawer {
         }.goToHomescreenWithRedesignedToolbar {
             verifyExistingTopSitesList()
-        }.openThreeDotMenuFromRedesignedToolbar {
+        }.openThreeDotMenuFromRedesignedToolbar(composeTestRule) {
             verifySettingsButton()
         }
     }
@@ -254,11 +259,7 @@ class RedesignedNavigationToolbarSmokeTest : TestSetup() {
         customTabScreen {
             verifyCustomTabCloseButton()
         }.openMainMenuFromRedesignedToolbar {
-            verifyPoweredByTextIsDisplayed()
-            verifyCustomMenuItem(customMenuItem)
-            verifyDesktopSiteButtonExists()
-            verifyRequestDesktopSiteToggleState(isEnabled = false)
-            verifyFindInPageButtonExists()
+            verifyRedesignedCustomTabsMainMenuItems(customMenuItem)
         }
     }
 
@@ -287,7 +288,7 @@ class RedesignedNavigationToolbarSmokeTest : TestSetup() {
     @Test
     fun verifyToolbarWithAddressBarAtTheTopTest() {
         homeScreen {
-        }.openThreeDotMenuFromRedesignedToolbar {
+        }.openThreeDotMenuFromRedesignedToolbar(composeTestRule) {
         }.openSettings {
         }.openCustomizeSubMenu {
             verifyAddressBarPositionPreference("Top")
@@ -313,7 +314,7 @@ class RedesignedNavigationToolbarSmokeTest : TestSetup() {
         }
 
         homeScreen {
-        }.openThreeDotMenuFromRedesignedToolbar {
+        }.openThreeDotMenuFromRedesignedToolbar(composeTestRule) {
         }.openSettings {
         }.openCustomizeSubMenu {
             verifyAddressBarPositionPreference("Bottom")
@@ -344,7 +345,7 @@ class RedesignedNavigationToolbarSmokeTest : TestSetup() {
         }.enterURLAndEnterToBrowser(genericURL.url) {
         }.goToHomescreenWithRedesignedToolbar {
             verifyHomeScreen()
-        }.openThreeDotMenuFromRedesignedToolbar {
+        }.openThreeDotMenuFromRedesignedToolbar(composeTestRule) {
         }.openSettings {
         }.openCustomizeSubMenu {
             clickBottomToolbarToggle()

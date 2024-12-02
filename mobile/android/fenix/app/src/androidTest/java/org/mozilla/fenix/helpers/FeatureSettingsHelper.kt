@@ -89,6 +89,11 @@ interface FeatureSettingsHelper {
     var isMenuRedesignEnabled: Boolean
 
     /**
+     * Enable or disable the new main menu CFR.
+     */
+    var isMenuRedesignCFREnabled: Boolean
+
+    /**
      * Enable or disable the new microsurvey feature.
      */
     var isMicrosurveyEnabled: Boolean

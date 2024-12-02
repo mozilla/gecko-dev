@@ -21,7 +21,6 @@ import org.mozilla.fenix.helpers.MatcherHelper.assertUIObjectExists
 import org.mozilla.fenix.helpers.MatcherHelper.itemContainingText
 import org.mozilla.fenix.helpers.MatcherHelper.itemWithDescription
 import org.mozilla.fenix.helpers.MatcherHelper.itemWithResId
-import org.mozilla.fenix.helpers.MatcherHelper.itemWithResIdAndDescription
 import org.mozilla.fenix.helpers.MatcherHelper.itemWithResIdAndText
 import org.mozilla.fenix.helpers.MatcherHelper.itemWithResIdContainingText
 import org.mozilla.fenix.helpers.TestAssetHelper.waitingTime
@@ -163,6 +162,15 @@ class CustomTabRobot {
             itemWithResIdAndText("download", "Download"),
         )
 
+    fun verifyRedesignedCustomTabsMainMenuItems(customMenuItem: String) =
+        assertUIObjectExists(
+            itemWithDescription(getStringResource(R.string.browser_menu_switch_to_desktop_site)),
+            itemWithDescription(getStringResource(R.string.browser_menu_find_in_page_2)),
+            itemWithDescription("Open in $appName"),
+            itemWithDescription(getStringResource(R.string.browser_menu_share_2)),
+            itemContainingText(customMenuItem),
+        )
+
     class Transition {
         fun openMainMenu(interact: CustomTabRobot.() -> Unit): Transition {
             mainMenuButton().also {
@@ -229,10 +237,7 @@ fun customTabScreen(interact: CustomTabRobot.() -> Unit): CustomTabRobot.Transit
 private fun mainMenuButton() = itemWithResId("$packageName:id/mozac_browser_toolbar_menu")
 
 private fun mainMenuButtonFromRedesignedToolbar() =
-    itemWithResIdAndDescription(
-        "$packageName:id/icon",
-        getStringResource(R.string.mozac_browser_menu_button),
-    )
+    itemWithDescription(getStringResource(R.string.content_description_menu))
 
 private fun desktopSiteButton() = onView(withId(R.id.switch_widget))
 

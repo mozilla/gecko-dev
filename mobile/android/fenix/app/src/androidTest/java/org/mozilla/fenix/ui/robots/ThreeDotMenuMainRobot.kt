@@ -169,7 +169,7 @@ class ThreeDotMenuMainRobot {
             historyButton(),
             downloadsButton(),
             passwordsButton(),
-            addOnsButton(),
+            extensionsButton(),
             syncAndSaveDataButton(),
             findInPageButton(),
             translateButton(),
@@ -203,9 +203,8 @@ class ThreeDotMenuMainRobot {
             historyButton(),
             downloadsButton(),
             passwordsButton(),
-            addOnsButton(),
-            // Disabled step due to https://github.com/mozilla-mobile/fenix/issues/26788
-            // syncAndSaveDataButton,
+            extensionsButton(),
+            syncAndSaveDataButton(),
             whatsNewButton(),
             helpButton(),
             customizeHomeButton(),
@@ -743,7 +742,7 @@ private fun clickAddonsManagerButton() {
     onView(withId(R.id.mozac_browser_menu_menuView)).perform(swipeDown())
     Log.i(TAG, "clickAddonsManagerButton: Performed swipe down action on the three dot menu")
     Log.i(TAG, "clickAddonsManagerButton: Trying to click the \"Add-ons\" button")
-    addOnsButton().click()
+    extensionsButton().click()
     Log.i(TAG, "clickAddonsManagerButton: Clicked the \"Add-ons\" button")
 }
 
@@ -758,7 +757,7 @@ private fun downloadsButton() =
     itemContainingText(getStringResource(R.string.library_downloads))
 private fun passwordsButton() =
     itemContainingText(getStringResource(R.string.browser_menu_passwords))
-private fun addOnsButton() =
+private fun extensionsButton() =
     itemContainingText(getStringResource(R.string.browser_menu_extensions))
 private fun desktopSiteButton() =
     itemContainingText(getStringResource(R.string.browser_menu_desktop_site))

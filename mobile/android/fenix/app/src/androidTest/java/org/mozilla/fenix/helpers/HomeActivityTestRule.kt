@@ -66,6 +66,7 @@ class HomeActivityTestRule(
         isLocationPermissionEnabled: SitePermissionsRules.Action = getFeaturePermission(PhoneFeature.LOCATION, settings),
         isNavigationToolbarEnabled: Boolean = false,
         isMenuRedesignEnabled: Boolean = false,
+        isMenuRedesignCFREnabled: Boolean = false,
         isMicrosurveyEnabled: Boolean = settings.microsurveyFeatureEnabled,
         isSetAsDefaultBrowserPromptEnabled: Boolean = settings.setAsDefaultBrowserPromptForExistingUsersEnabled,
         shouldUseBottomToolbar: Boolean = settings.shouldUseBottomToolbar,
@@ -84,6 +85,7 @@ class HomeActivityTestRule(
         this.isLocationPermissionEnabled = isLocationPermissionEnabled
         this.isNavigationToolbarEnabled = isNavigationToolbarEnabled
         this.isMenuRedesignEnabled = isMenuRedesignEnabled
+        this.isMenuRedesignCFREnabled = isMenuRedesignCFREnabled
         this.isMicrosurveyEnabled = isMicrosurveyEnabled
         this.isSetAsDefaultBrowserPromptEnabled = isSetAsDefaultBrowserPromptEnabled
         this.shouldUseBottomToolbar = shouldUseBottomToolbar
@@ -187,6 +189,7 @@ class HomeActivityIntentTestRule internal constructor(
         isLocationPermissionEnabled: SitePermissionsRules.Action = getFeaturePermission(PhoneFeature.LOCATION, settings),
         isNavigationToolbarEnabled: Boolean = false,
         isMenuRedesignEnabled: Boolean = false,
+        isMenuRedesignCFREnabled: Boolean = false,
         isMicrosurveyEnabled: Boolean = settings.microsurveyFeatureEnabled,
         isSetAsDefaultBrowserPromptEnabled: Boolean = settings.setAsDefaultBrowserPromptForExistingUsersEnabled,
         shouldUseBottomToolbar: Boolean = settings.shouldUseBottomToolbar,
@@ -205,6 +208,7 @@ class HomeActivityIntentTestRule internal constructor(
         this.isLocationPermissionEnabled = isLocationPermissionEnabled
         this.isNavigationToolbarEnabled = isNavigationToolbarEnabled
         this.isMenuRedesignEnabled = isMenuRedesignEnabled
+        this.isMenuRedesignCFREnabled = isMenuRedesignCFREnabled
         this.isMicrosurveyEnabled = isMicrosurveyEnabled
         this.isSetAsDefaultBrowserPromptEnabled = isSetAsDefaultBrowserPromptEnabled
         this.shouldUseBottomToolbar = shouldUseBottomToolbar
@@ -277,6 +281,7 @@ class HomeActivityIntentTestRule internal constructor(
         isLocationPermissionEnabled = getFeaturePermission(PhoneFeature.LOCATION, settings)
         isNavigationToolbarEnabled = settings.navigationToolbarEnabled
         isMenuRedesignEnabled = settings.enableMenuRedesign
+        isMenuRedesignCFREnabled = settings.shouldShowMenuCFR
         isMicrosurveyEnabled = settings.microsurveyFeatureEnabled
         isSetAsDefaultBrowserPromptEnabled = settings.setAsDefaultBrowserPromptForExistingUsersEnabled
         shouldUseBottomToolbar = settings.shouldUseBottomToolbar

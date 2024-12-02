@@ -51,6 +51,7 @@ import org.hamcrest.CoreMatchers.instanceOf
 import org.hamcrest.Matchers
 import org.junit.Assert.assertTrue
 import org.mozilla.fenix.R
+import org.mozilla.fenix.components.toolbar.navbar.NavBarTestTags
 import org.mozilla.fenix.helpers.Constants.LISTS_MAXSWIPES
 import org.mozilla.fenix.helpers.Constants.RETRY_COUNT
 import org.mozilla.fenix.helpers.Constants.TAG
@@ -64,7 +65,6 @@ import org.mozilla.fenix.helpers.MatcherHelper.itemWithClassNameAndIndex
 import org.mozilla.fenix.helpers.MatcherHelper.itemWithDescription
 import org.mozilla.fenix.helpers.MatcherHelper.itemWithIndex
 import org.mozilla.fenix.helpers.MatcherHelper.itemWithResId
-import org.mozilla.fenix.helpers.MatcherHelper.itemWithResIdAndDescription
 import org.mozilla.fenix.helpers.MatcherHelper.itemWithResIdAndIndex
 import org.mozilla.fenix.helpers.MatcherHelper.itemWithResIdAndText
 import org.mozilla.fenix.helpers.MatcherHelper.itemWithResIdContainingText
@@ -741,13 +741,13 @@ class HomeScreenRobot {
             return ThreeDotMenuMainRobot.Transition()
         }
 
-        fun openThreeDotMenuFromRedesignedToolbar(interact: ThreeDotMenuMainRobot.() -> Unit): ThreeDotMenuMainRobot.Transition {
+        fun openThreeDotMenuFromRedesignedToolbar(composeTestRule: HomeActivityComposeTestRule, interact: RedesignedMainMenuRobot.() -> Unit): RedesignedMainMenuRobot.Transition {
             Log.i(TAG, "openThreeDotMenuFromRedesignedToolbar: Trying to click main menu button")
-            threeDotButtonFromRedesignedToolbar().click()
+            composeTestRule.onNodeWithTag(NavBarTestTags.menuButton).performClick()
             Log.i(TAG, "openThreeDotMenuFromRedesignedToolbar: Clicked main menu button")
 
-            ThreeDotMenuMainRobot().interact()
-            return ThreeDotMenuMainRobot.Transition()
+            RedesignedMainMenuRobot(composeTestRule).interact()
+            return RedesignedMainMenuRobot.Transition(composeTestRule)
         }
 
         fun openSearch(interact: SearchRobot.() -> Unit): SearchRobot.Transition {
@@ -1138,12 +1138,6 @@ private fun homeScreenList() =
     ).setAsVerticalList()
 
 private fun threeDotButton() = onView(allOf(withId(R.id.menuButton)))
-
-private fun threeDotButtonFromRedesignedToolbar() =
-    itemWithResIdAndDescription(
-        "$packageName:id/icon",
-        getStringResource(R.string.mozac_browser_menu_button),
-    )
 
 private fun saveTabsToCollectionButton() = onView(withId(R.id.add_tabs_to_collections_button))
 

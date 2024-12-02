@@ -44,6 +44,7 @@ class FeatureSettingsHelperDelegate() : FeatureSettingsHelper {
         isLocationPermissionEnabled = getFeaturePermission(PhoneFeature.LOCATION, settings),
         isNavigationToolbarEnabled = settings.navigationToolbarEnabled,
         isMenuRedesignEnabled = settings.enableMenuRedesign,
+        isMenuRedesignCFREnabled = settings.shouldShowMenuCFR,
         isMicrosurveyEnabled = settings.microsurveyFeatureEnabled,
         isSetAsDefaultBrowserPromptEnabled = settings.setAsDefaultBrowserPromptForExistingUsersEnabled,
         shouldUseBottomToolbar = settings.shouldUseBottomToolbar,
@@ -77,6 +78,7 @@ class FeatureSettingsHelperDelegate() : FeatureSettingsHelper {
     override var isLocationPermissionEnabled: SitePermissionsRules.Action by updatedFeatureFlags::isLocationPermissionEnabled
     override var isNavigationToolbarEnabled: Boolean by updatedFeatureFlags::isNavigationToolbarEnabled
     override var isMenuRedesignEnabled: Boolean by updatedFeatureFlags::isMenuRedesignEnabled
+    override var isMenuRedesignCFREnabled: Boolean by updatedFeatureFlags::isMenuRedesignCFREnabled
     override var isMicrosurveyEnabled: Boolean by updatedFeatureFlags::isMicrosurveyEnabled
     override var isSetAsDefaultBrowserPromptEnabled: Boolean by updatedFeatureFlags::isSetAsDefaultBrowserPromptEnabled
     override var shouldUseBottomToolbar: Boolean by updatedFeatureFlags::shouldUseBottomToolbar
@@ -109,6 +111,7 @@ class FeatureSettingsHelperDelegate() : FeatureSettingsHelper {
         settings.enableComposeTopSites = featureFlags.composeTopSitesEnabled
         settings.navigationToolbarEnabled = featureFlags.isNavigationToolbarEnabled
         settings.enableMenuRedesign = featureFlags.isMenuRedesignEnabled
+        settings.shouldShowMenuCFR = featureFlags.isMenuRedesignCFREnabled
         settings.microsurveyFeatureEnabled = featureFlags.isMicrosurveyEnabled
         settings.setAsDefaultBrowserPromptForExistingUsersEnabled = featureFlags.isSetAsDefaultBrowserPromptEnabled
         settings.shouldUseBottomToolbar = featureFlags.shouldUseBottomToolbar
@@ -133,6 +136,7 @@ private data class FeatureFlags(
     var isLocationPermissionEnabled: SitePermissionsRules.Action,
     var isNavigationToolbarEnabled: Boolean,
     var isMenuRedesignEnabled: Boolean,
+    var isMenuRedesignCFREnabled: Boolean,
     var isMicrosurveyEnabled: Boolean,
     var isSetAsDefaultBrowserPromptEnabled: Boolean,
     var shouldUseBottomToolbar: Boolean,
