@@ -389,6 +389,15 @@
         tools:layout="@layout/fragment_downloads" />
 
     <fragment
+        android:id="@+id/webCompatReporterFragment"
+        android:name="org.mozilla.fenix.webcompat.ui.WebCompatReporterFragment"
+        android:label="@string/webcompat_reporter_screen_title">
+        <argument
+            android:name="tabUrl"
+            app:argType="string" />
+    </fragment>
+
+    <fragment
         android:id="@+id/bookmarkFragment"
         android:name="org.mozilla.fenix.library.bookmarks.BookmarkFragment"
         tools:layout="@layout/fragment_bookmark">
@@ -1606,6 +1615,9 @@
             <action
                 android:id="@+id/action_menuDialogFragment_to_loginsListFragment"
                 app:destination="@id/savedLogins" />
+            <action
+                android:id="@+id/action_menuDialogFragment_to_webCompatReporterFragment"
+                app:destination="@id/webCompatReporterFragment" />
         </dialog>
     </navigation>
 

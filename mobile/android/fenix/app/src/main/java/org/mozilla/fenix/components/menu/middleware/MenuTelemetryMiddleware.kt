@@ -258,6 +258,10 @@ class MenuTelemetryMiddleware(
                 )
             }
 
+            is MenuAction.Navigate.WebCompatReporter -> {
+                // https://bugzilla.mozilla.org/show_bug.cgi?id=1932462
+            }
+
             MenuAction.ShowCFR -> Menu.showCfr.record(NoExtras())
 
             MenuAction.DismissCFR -> Menu.dismissCfr.record(NoExtras())
@@ -268,7 +272,6 @@ class MenuTelemetryMiddleware(
             is MenuAction.UpdateExtensionState,
             is MenuAction.UpdatePinnedState,
             is MenuAction.UpdateWebExtensionBrowserMenuItems,
-            is MenuAction.UpdateWebExtensionPageMenuItems,
             is MenuAction.InstallAddonFailed,
             is MenuAction.InstallAddonSuccess,
             is MenuAction.UpdateInstallAddonInProgress,

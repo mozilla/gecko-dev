@@ -34,9 +34,9 @@ import org.mozilla.fenix.theme.Theme
  * @param isDesktopMode Whether or not the desktop mode is enabled.
  * @param isPdf Whether or not the current tab is a PDF.
  * @param isTranslationSupported Whether or not translation is supported.
+ * @param isWebCompatReporterSupported Whether or not the report broken site feature is supported.
  * @param isExtensionsProcessDisabled Whether or not the extensions process is disabled due to extension errors.
  * @param extensionsMenuItemDescription The label of extensions menu item description.
- * @param reportSiteIssueLabel The label of report site issue web extension menu item.
  * @param onMozillaAccountButtonClick Invoked when the user clicks on Mozilla account button.
  * @param onHelpButtonClick Invoked when the user clicks on the help button.
  * @param onSettingsButtonClick Invoked when the user clicks on the settings button.
@@ -68,9 +68,9 @@ fun MainMenu(
     isDesktopMode: Boolean,
     isPdf: Boolean,
     isTranslationSupported: Boolean,
+    isWebCompatReporterSupported: Boolean,
     isExtensionsProcessDisabled: Boolean,
     extensionsMenuItemDescription: String,
-    reportSiteIssueLabel: String?,
     onMozillaAccountButtonClick: () -> Unit,
     onHelpButtonClick: () -> Unit,
     onSettingsButtonClick: () -> Unit,
@@ -112,9 +112,9 @@ fun MainMenu(
             isDesktopMode = isDesktopMode,
             isPdf = isPdf,
             isTranslationSupported = isTranslationSupported,
+            isWebCompatReporterSupported = isWebCompatReporterSupported,
             isExtensionsProcessDisabled = isExtensionsProcessDisabled,
             extensionsMenuItemDescription = extensionsMenuItemDescription,
-            reportSiteIssueLabel = reportSiteIssueLabel,
             onSwitchToDesktopSiteMenuClick = onSwitchToDesktopSiteMenuClick,
             onFindInPageMenuClick = onFindInPageMenuClick,
             onToolsMenuClick = onToolsMenuClick,
@@ -211,9 +211,9 @@ private fun ToolsAndActionsMenuGroup(
     isDesktopMode: Boolean,
     isPdf: Boolean,
     isTranslationSupported: Boolean,
+    isWebCompatReporterSupported: Boolean,
     isExtensionsProcessDisabled: Boolean,
     extensionsMenuItemDescription: String,
-    reportSiteIssueLabel: String?,
     onSwitchToDesktopSiteMenuClick: () -> Unit,
     onFindInPageMenuClick: () -> Unit,
     onToolsMenuClick: () -> Unit,
@@ -257,16 +257,14 @@ private fun ToolsAndActionsMenuGroup(
                 label = stringResource(id = R.string.browser_menu_tools),
                 beforeIconPainter = painterResource(id = R.drawable.mozac_ic_tool_24),
                 description = when {
-                    isTranslationSupported && reportSiteIssueLabel != null -> stringResource(
-                        R.string.browser_menu_tools_description_with_translate_with_report_site,
-                        reportSiteIssueLabel,
+                    isTranslationSupported && isWebCompatReporterSupported -> stringResource(
+                        R.string.browser_menu_tools_description_with_translate_with_report_site_2,
                     )
                     isTranslationSupported -> stringResource(
                         R.string.browser_menu_tools_description_with_translate_without_report_site,
                     )
-                    reportSiteIssueLabel != null -> stringResource(
-                        R.string.browser_menu_tools_description_with_report_site,
-                        reportSiteIssueLabel,
+                    isWebCompatReporterSupported -> stringResource(
+                        R.string.browser_menu_tools_description_with_report_site_2,
                     )
                     else -> stringResource(
                         R.string.browser_menu_tools_description_without_report_site,
@@ -389,10 +387,10 @@ private fun MenuDialogPreview() {
                 isDesktopMode = false,
                 isPdf = false,
                 isTranslationSupported = true,
+                isWebCompatReporterSupported = true,
                 showQuitMenu = true,
                 isExtensionsProcessDisabled = true,
                 extensionsMenuItemDescription = "No extensions enabled",
-                reportSiteIssueLabel = "Report Site Issue",
                 onMozillaAccountButtonClick = {},
                 onHelpButtonClick = {},
                 onSettingsButtonClick = {},
@@ -431,10 +429,10 @@ private fun MenuDialogPrivatePreview() {
                 isDesktopMode = false,
                 isPdf = false,
                 isTranslationSupported = true,
+                isWebCompatReporterSupported = true,
                 showQuitMenu = true,
                 isExtensionsProcessDisabled = false,
                 extensionsMenuItemDescription = "No extensions enabled",
-                reportSiteIssueLabel = "Report Site Issue",
                 onMozillaAccountButtonClick = {},
                 onHelpButtonClick = {},
                 onSettingsButtonClick = {},

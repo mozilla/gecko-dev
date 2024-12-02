@@ -20,6 +20,7 @@ import mozilla.components.service.fxa.manager.AccountState.Authenticated
 import mozilla.components.service.fxa.manager.AccountState.Authenticating
 import mozilla.components.service.fxa.manager.AccountState.AuthenticationProblem
 import mozilla.components.service.fxa.manager.AccountState.NotAuthenticated
+import org.mozilla.fenix.FeatureFlags
 import org.mozilla.fenix.R
 import org.mozilla.fenix.browser.BrowserFragmentDirections
 import org.mozilla.fenix.browser.browsingmode.BrowsingMode
@@ -36,6 +37,7 @@ import org.mozilla.fenix.settings.SupportUtils
 import org.mozilla.fenix.settings.SupportUtils.AMO_HOMEPAGE_FOR_ANDROID
 import org.mozilla.fenix.settings.SupportUtils.SumoTopic
 import org.mozilla.fenix.utils.Settings
+import org.mozilla.fenix.webcompat.WEB_COMPAT_REPORTER_URL
 
 /**
  * [Middleware] implementation for handling navigating events based on [MenuAction]s that are
@@ -247,6 +249,25 @@ class MenuNavigationMiddleware(
                         addon = action.addon,
                     ),
                 )
+
+                is MenuAction.Navigate.WebCompatReporter -> {
+                    val session = customTab ?: currentState.browserMenuState?.selectedTab
+                    session?.content?.url?.let { tabUrl ->
+                        if (FeatureFlags.webCompatReporter) {
+                            navController.nav(
+                                id = R.id.menuDialogFragment,
+                                directions = MenuDialogFragmentDirections
+                                    .actionMenuDialogFragmentToWebCompatReporterFragment(
+                                        tabUrl = tabUrl,
+                                    ),
+                            )
+                        } else {
+                            openToBrowser(
+                                BrowserNavigationParams(url = "$WEB_COMPAT_REPORTER_URL$tabUrl"),
+                            )
+                        }
+                    }
+                }
 
                 else -> Unit
             }

@@ -67,24 +67,13 @@ class WebExtensionsMenuBinding(
                     }
                     .sortedBy { it.name }
 
-                val pageWebExtensionMenuItems = eligibleExtensions.mapNotNull { extension ->
-                    extension.pageAction?.let { pageAction ->
-                        getWebExtensionMenuItem(
-                            extension = extension,
-                            webExtensionsFlowState = webExtensionsFlowState,
-                            globalAction = pageAction,
-                            isPageAction = true,
-                        ) as WebExtensionMenuItem.WebExtensionPageMenuItem?
-                    }
-                }
-
                 val browserWebExtensionMenuItems = eligibleExtensions.mapNotNull { extension ->
                     extension.browserAction?.let { browserAction ->
                         getWebExtensionMenuItem(
                             extension = extension,
                             webExtensionsFlowState = webExtensionsFlowState,
                             globalAction = browserAction,
-                        ) as WebExtensionMenuItem.WebExtensionBrowserMenuItem?
+                        )
                     }
                 }
 
@@ -99,9 +88,6 @@ class WebExtensionsMenuBinding(
                 menuStore.dispatch(
                     MenuAction.UpdateWebExtensionBrowserMenuItems(browserWebExtensionMenuItems),
                 )
-                menuStore.dispatch(
-                    MenuAction.UpdateWebExtensionPageMenuItems(pageWebExtensionMenuItems),
-                )
             }
     }
 
@@ -110,58 +96,34 @@ class WebExtensionsMenuBinding(
         extension: WebExtensionState,
         webExtensionsFlowState: WebExtensionsFlowState,
         globalAction: Action,
-        isPageAction: Boolean = false,
     ): WebExtensionMenuItem? {
         if (!extension.enabled) {
             return null
         }
 
-        val tabAction = if (isPageAction) {
-            webExtensionsFlowState.sessionState.extensionState[extension.id]?.pageAction
-        } else {
-            webExtensionsFlowState.sessionState.extensionState[extension.id]?.browserAction
-        }
+        val tabAction = webExtensionsFlowState.sessionState.extensionState[extension.id]?.browserAction
 
         // Apply tab-specific override of browser/page action
         val action = tabAction?.let {
             globalAction.copyWithOverride(it)
         } ?: globalAction
 
-        if (isPageAction && action.enabled == false) {
-            return null
-        }
-
         val title = action.title ?: return null
 
         val loadIcon = action.loadIcon?.invoke(iconSize)
 
-        return if (isPageAction) {
-            WebExtensionMenuItem.WebExtensionPageMenuItem(
-                label = title,
-                enabled = action.enabled,
-                icon = loadIcon,
-                badgeText = action.badgeText,
-                badgeTextColor = action.badgeTextColor,
-                badgeBackgroundColor = action.badgeBackgroundColor,
-                onClick = {
-                    onDismiss()
-                    action.onClick()
-                },
-            )
-        } else {
-            WebExtensionMenuItem.WebExtensionBrowserMenuItem(
-                label = title,
-                enabled = action.enabled,
-                icon = loadIcon,
-                badgeText = action.badgeText,
-                badgeTextColor = action.badgeTextColor,
-                badgeBackgroundColor = action.badgeBackgroundColor,
-                onClick = {
-                    onDismiss()
-                    action.onClick()
-                },
-            )
-        }
+        return WebExtensionMenuItem(
+            label = title,
+            enabled = action.enabled,
+            icon = loadIcon,
+            badgeText = action.badgeText,
+            badgeTextColor = action.badgeTextColor,
+            badgeBackgroundColor = action.badgeBackgroundColor,
+            onClick = {
+                onDismiss()
+                action.onClick()
+            },
+        )
     }
 }
 

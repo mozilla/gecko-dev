@@ -97,4 +97,9 @@ object FeatureFlags {
      * Enables the Unified Trust Panel.
      */
     const val unifiedTrustPanel = false
+
+    /**
+     * Enables native WebCompat Reporter.
+     */
+    val webCompatReporter = Config.channel.isDebug
 }

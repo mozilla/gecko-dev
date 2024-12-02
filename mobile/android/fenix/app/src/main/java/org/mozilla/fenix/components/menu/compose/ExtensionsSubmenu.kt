@@ -44,7 +44,7 @@ import org.mozilla.fenix.theme.Theme
 @Composable
 internal fun ExtensionsSubmenu(
     recommendedAddons: List<Addon>,
-    webExtensionMenuItems: List<WebExtensionMenuItem.WebExtensionBrowserMenuItem>,
+    webExtensionMenuItems: List<WebExtensionMenuItem>,
     showExtensionsOnboarding: Boolean,
     showDisabledExtensionsOnboarding: Boolean,
     showManageExtensions: Boolean,
@@ -228,7 +228,7 @@ private fun ExtensionsSubmenuPreview() {
                     translatableSummary = mapOf(Addon.DEFAULT_LOCALE to "summary"),
                 ),
                 webExtensionMenuItems = listOf(
-                    WebExtensionMenuItem.WebExtensionBrowserMenuItem(
+                    WebExtensionMenuItem(
                         label = "label",
                         enabled = true,
                         icon = BitmapFactory.decodeResource(
@@ -277,7 +277,7 @@ private fun ExtensionsSubmenuPrivatePreview() {
                     ),
                 ),
                 webExtensionMenuItems = listOf(
-                    WebExtensionMenuItem.WebExtensionBrowserMenuItem(
+                    WebExtensionMenuItem(
                         label = "label",
                         enabled = true,
                         icon = BitmapFactory.decodeResource(

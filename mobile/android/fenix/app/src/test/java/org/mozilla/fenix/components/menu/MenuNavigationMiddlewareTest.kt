@@ -16,6 +16,7 @@ import mozilla.components.browser.state.state.ContentState
 import mozilla.components.browser.state.state.CustomTabConfig
 import mozilla.components.browser.state.state.CustomTabSessionState
 import mozilla.components.browser.state.state.ReaderState
+import mozilla.components.browser.state.state.createCustomTab
 import mozilla.components.browser.state.state.createTab
 import mozilla.components.concept.engine.prompt.ShareData
 import mozilla.components.feature.addons.Addon
@@ -584,6 +585,44 @@ class MenuNavigationMiddlewareTest {
             navController.nav(
                 R.id.menuDialogFragment,
                 MenuDialogFragmentDirections.actionMenuDialogFragmenToAddonDetailsFragment(addon = addon),
+            )
+        }
+    }
+
+    @Test
+    fun `GIVEN the user is on a tab WHEN the user clicks on the web compat button THEN navigate to the web compat reporter feature`() = runTest {
+        val expectedTabUrl = "www.mozilla.org"
+        createStore(
+            menuState = MenuState(
+                browserMenuState = BrowserMenuState(
+                    selectedTab = createTab(
+                        url = expectedTabUrl,
+                    ),
+                ),
+            ),
+        ).dispatch(MenuAction.Navigate.WebCompatReporter)
+
+        verify {
+            navController.nav(
+                R.id.menuDialogFragment,
+                MenuDialogFragmentDirections.actionMenuDialogFragmentToWebCompatReporterFragment(tabUrl = expectedTabUrl),
+            )
+        }
+    }
+
+    @Test
+    fun `GIVEN the user is on a custom tab WHEN the user clicks on the web compat button THEN navigate to the web compat reporter feature`() = runTest {
+        val expectedTabUrl = "www.mozilla.org"
+        createStore(
+            customTab = createCustomTab(
+                url = expectedTabUrl,
+            ),
+        ).dispatch(MenuAction.Navigate.WebCompatReporter)
+
+        verify {
+            navController.nav(
+                R.id.menuDialogFragment,
+                MenuDialogFragmentDirections.actionMenuDialogFragmentToWebCompatReporterFragment(tabUrl = expectedTabUrl),
             )
         }
     }

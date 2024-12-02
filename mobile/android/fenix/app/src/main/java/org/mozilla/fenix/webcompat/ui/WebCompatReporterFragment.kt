@@ -6,9 +6,11 @@ package org.mozilla.fenix.webcompat.ui
 
 import androidx.compose.runtime.Composable
 import androidx.fragment.app.Fragment
+import androidx.navigation.fragment.navArgs
 import org.mozilla.fenix.components.lazyStore
 import org.mozilla.fenix.compose.ComposeFragment
 import org.mozilla.fenix.theme.FirefoxTheme
+import org.mozilla.fenix.webcompat.store.WebCompatReporterState
 import org.mozilla.fenix.webcompat.store.WebCompatReporterStore
 
 /**
@@ -16,8 +18,14 @@ import org.mozilla.fenix.webcompat.store.WebCompatReporterStore
  */
 class WebCompatReporterFragment : ComposeFragment() {
 
+    private val args by navArgs<WebCompatReporterFragmentArgs>()
+
     private val webCompatReporterStore by lazyStore {
-        WebCompatReporterStore()
+        WebCompatReporterStore(
+            initialState = WebCompatReporterState(
+                url = args.tabUrl,
+            ),
+        )
     }
 
     @Composable

@@ -301,7 +301,7 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                     val translateLanguageCode = selectedTab?.translationsState?.translationEngineState
                         ?.requestedTranslationPair?.toLanguage
                     val isExtensionsProcessDisabled = browserStore.state.extensionsProcessDisabled
-                    val isReportSiteIssueSupported =
+                    val isWebCompatReporterSupported =
                         FxNimbus.features.menuRedesign.value().reportSiteIssue
 
                     val isDesktopMode by store.observeAsState(initialValue = false) { state ->
@@ -345,10 +345,6 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
 
                     val browserWebExtensionMenuItem by store.observeAsState(initialValue = emptyList()) { state ->
                         state.extensionMenuState.browserWebExtensionMenuItem
-                    }
-
-                    val pageWebExtensionMenuItems by store.observeAsState(initialValue = emptyList()) { state ->
-                        state.toolsMenuState.pageWebExtensionMenuItem
                     }
 
                     val showExtensionsOnboarding by store.observeAsState(initialValue = false) { state ->
@@ -443,19 +439,13 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                                     isDesktopMode = isDesktopMode,
                                     isPdf = isPdf,
                                     isTranslationSupported = isTranslationSupported,
+                                    isWebCompatReporterSupported = isWebCompatReporterSupported,
                                     isExtensionsProcessDisabled = isExtensionsProcessDisabled,
                                     extensionsMenuItemDescription = getExtensionsMenuItemDescription(
                                         isExtensionsProcessDisabled = isExtensionsProcessDisabled,
                                         availableAddons = availableAddons,
                                         browserWebExtensionMenuItems = browserWebExtensionMenuItem,
                                     ),
-                                    reportSiteIssueLabel = if (
-                                        isReportSiteIssueSupported && pageWebExtensionMenuItems.isNotEmpty()
-                                    ) {
-                                        pageWebExtensionMenuItems[0].label.removeSuffix("…")
-                                    } else {
-                                        null
-                                    },
                                     onMozillaAccountButtonClick = {
                                         view?.slideDown {
                                             store.dispatch(
@@ -590,8 +580,7 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
 
                                 ToolsSubmenu(
                                     isPdf = isPdf,
-                                    webExtensionMenuItems = pageWebExtensionMenuItems,
-                                    isReportSiteIssueSupported = isReportSiteIssueSupported,
+                                    isWebCompatReporterSupported = isWebCompatReporterSupported,
                                     isReaderable = isReaderable,
                                     isReaderViewActive = isReaderViewActive,
                                     hasExternalApp = appLinksRedirect?.hasExternalApp() ?: false,
@@ -635,6 +624,9 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                                     },
                                     onOpenInAppMenuClick = {
                                         store.dispatch(MenuAction.OpenInApp)
+                                    },
+                                    onWebCompatReporterClick = {
+                                        store.dispatch(MenuAction.Navigate.WebCompatReporter)
                                     },
                                 )
                             }
@@ -732,7 +724,7 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
     private fun getExtensionsMenuItemDescription(
         isExtensionsProcessDisabled: Boolean,
         availableAddons: List<Addon>,
-        browserWebExtensionMenuItems: List<WebExtensionMenuItem.WebExtensionBrowserMenuItem>,
+        browserWebExtensionMenuItems: List<WebExtensionMenuItem>,
     ): String {
         return when {
             isExtensionsProcessDisabled -> {
