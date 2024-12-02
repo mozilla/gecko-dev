@@ -8,10 +8,9 @@
 
 #include <stdint.h>
 #include <inttypes.h>
+#include <unordered_map>
 
 #include "MPRISInterfaceDescription.h"
-#include "frozen/string.h"
-#include "frozen/unordered_map.h"
 #include "mozilla/dom/MediaControlUtils.h"
 #include "mozilla/GRefPtr.h"
 #include "mozilla/GUniquePtr.h"
@@ -43,19 +42,18 @@ static uint32_t gImageNumber = 0;
 
 static inline Maybe<dom::MediaControlKey> GetMediaControlKey(
     const gchar* aMethodName) {
-  static constexpr frozen::unordered_map<frozen::string, dom::MediaControlKey,
-                                         9>
-      map = {{"Raise", dom::MediaControlKey::Focus},
-             {"Next", dom::MediaControlKey::Nexttrack},
-             {"Previous", dom::MediaControlKey::Previoustrack},
-             {"Pause", dom::MediaControlKey::Pause},
-             {"PlayPause", dom::MediaControlKey::Playpause},
-             {"Stop", dom::MediaControlKey::Stop},
-             {"Play", dom::MediaControlKey::Play},
-             {"SetPosition", dom::MediaControlKey::Seekto},
-             {"Seek", dom::MediaControlKey::Seekforward}};
+  const std::unordered_map<std::string, dom::MediaControlKey> map = {
+      {"Raise", dom::MediaControlKey::Focus},
+      {"Next", dom::MediaControlKey::Nexttrack},
+      {"Previous", dom::MediaControlKey::Previoustrack},
+      {"Pause", dom::MediaControlKey::Pause},
+      {"PlayPause", dom::MediaControlKey::Playpause},
+      {"Stop", dom::MediaControlKey::Stop},
+      {"Play", dom::MediaControlKey::Play},
+      {"SetPosition", dom::MediaControlKey::Seekto},
+      {"Seek", dom::MediaControlKey::Seekforward}};
 
-  const auto it = map.find(frozen::string(aMethodName, strlen(aMethodName)));
+  auto it = map.find(aMethodName);
   return it == map.end() ? Nothing() : Some(it->second);
 }
 
@@ -152,7 +150,7 @@ static inline Maybe<dom::MediaControlKey> GetPairedKey(Property aProperty) {
 }
 
 static inline Maybe<Property> GetProperty(const gchar* aPropertyName) {
-  static constexpr frozen::unordered_map<frozen::string, Property, 16> map = {
+  const std::unordered_map<std::string, Property> map = {
       // org.mpris.MediaPlayer2 properties
       {"Identity", Property::eIdentity},
       {"DesktopEntry", Property::eDesktopEntry},
@@ -172,8 +170,7 @@ static inline Maybe<Property> GetProperty(const gchar* aPropertyName) {
       {"Metadata", Property::eGetMetadata},
       {"Position", Property::eGetPosition}};
 
-  const auto it =
-      map.find(frozen::string(aPropertyName, strlen(aPropertyName)));
+  auto it = map.find(aPropertyName);
   return (it == map.end() ? Nothing() : Some(it->second));
 }
 
@@ -876,22 +873,21 @@ void MPRISServiceHandler::EmitEvent(
   }
 }
 
-struct MediaControlKeyToInterfaceProperty {
-  dom::MediaControlKey key;
-  struct {
-    const char* interface;
-    const char* property;
-  } value;
+struct InterfaceProperty {
+  const char* interface;
+  const char* property;
 };
-
-static constexpr MediaControlKeyToInterfaceProperty gKeyProperty[] = {
-    {dom::MediaControlKey::Focus, {DBUS_MPRIS_INTERFACE, "CanRaise"}},
-    {dom::MediaControlKey::Nexttrack,
-     {DBUS_MPRIS_PLAYER_INTERFACE, "CanGoNext"}},
-    {dom::MediaControlKey::Previoustrack,
-     {DBUS_MPRIS_PLAYER_INTERFACE, "CanGoPrevious"}},
-    {dom::MediaControlKey::Play, {DBUS_MPRIS_PLAYER_INTERFACE, "CanPlay"}},
-    {dom::MediaControlKey::Pause, {DBUS_MPRIS_PLAYER_INTERFACE, "CanPause"}}};
+MOZ_RUNINIT static const std::unordered_map<dom::MediaControlKey,
+                                            InterfaceProperty>
+    gKeyProperty = {
+        {dom::MediaControlKey::Focus, {DBUS_MPRIS_INTERFACE, "CanRaise"}},
+        {dom::MediaControlKey::Nexttrack,
+         {DBUS_MPRIS_PLAYER_INTERFACE, "CanGoNext"}},
+        {dom::MediaControlKey::Previoustrack,
+         {DBUS_MPRIS_PLAYER_INTERFACE, "CanGoPrevious"}},
+        {dom::MediaControlKey::Play, {DBUS_MPRIS_PLAYER_INTERFACE, "CanPlay"}},
+        {dom::MediaControlKey::Pause,
+         {DBUS_MPRIS_PLAYER_INTERFACE, "CanPause"}}};
 
 void MPRISServiceHandler::SetSupportedMediaKeys(
     const MediaKeysArray& aSupportedKeys) {
@@ -910,12 +906,12 @@ void MPRISServiceHandler::SetSupportedMediaKeys(
 
   // Emit related property changes
   for (auto it : gKeyProperty) {
-    bool keyWasSupported = oldSupportedKeys & GetMediaKeyMask(it.key);
-    bool keyIsSupported = mSupportedKeys & GetMediaKeyMask(it.key);
+    bool keyWasSupported = oldSupportedKeys & GetMediaKeyMask(it.first);
+    bool keyIsSupported = mSupportedKeys & GetMediaKeyMask(it.first);
     if (keyWasSupported != keyIsSupported) {
-      LOGMPRIS("Emit PropertiesChanged signal: %s.%s=%s", it.value.interface,
-               it.value.property, keyIsSupported ? "true" : "false");
-      EmitSupportedKeyChanged(it.key, keyIsSupported);
+      LOGMPRIS("Emit PropertiesChanged signal: %s.%s=%s", it.second.interface,
+               it.second.property, keyIsSupported ? "true" : "false");
+      EmitSupportedKeyChanged(it.first, keyIsSupported);
     }
   }
 }
@@ -938,10 +934,8 @@ bool MPRISServiceHandler::IsMediaKeySupported(dom::MediaControlKey aKey) const {
 
 bool MPRISServiceHandler::EmitSupportedKeyChanged(dom::MediaControlKey aKey,
                                                   bool aSupported) const {
-  auto it =
-      std::find_if(std::begin(gKeyProperty), std::end(gKeyProperty),
-                   [aKey](const auto& aPair) { return aPair.key == aKey; });
-  if (it == std::end(gKeyProperty)) {
+  auto it = gKeyProperty.find(aKey);
+  if (it == gKeyProperty.end()) {
     LOGMPRIS("No property for %s", dom::GetEnumString(aKey).get());
     return false;
   }
@@ -949,15 +943,15 @@ bool MPRISServiceHandler::EmitSupportedKeyChanged(dom::MediaControlKey aKey,
   GVariantBuilder builder;
   g_variant_builder_init(&builder, G_VARIANT_TYPE("a{sv}"));
   g_variant_builder_add(&builder, "{sv}",
-                        static_cast<const gchar*>(it->value.property),
+                        static_cast<const gchar*>(it->second.property),
                         g_variant_new_boolean(aSupported));
 
   GVariant* parameters = g_variant_new(
-      "(sa{sv}as)", static_cast<const gchar*>(it->value.interface), &builder,
+      "(sa{sv}as)", static_cast<const gchar*>(it->second.interface), &builder,
       nullptr);
 
-  LOGMPRIS("Emit MPRIS property changes for '%s.%s'", it->value.interface,
-           it->value.property);
+  LOGMPRIS("Emit MPRIS property changes for '%s.%s'", it->second.interface,
+           it->second.property);
   return EmitPropertiesChangedSignal(parameters);
 }
 

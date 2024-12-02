@@ -3,6 +3,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
 #include "CubebUtils.h"
 
 #include "audio_thread_priority.h"
@@ -39,9 +40,6 @@
 #include <thread>
 #include "CallbackThreadRegistry.h"
 #include "mozilla/StaticPrefs_media.h"
-
-#include "frozen/string.h"
-#include "frozen/unordered_map.h"
 
 #define AUDIOIPC_STACK_SIZE_DEFAULT (64 * 4096)
 
@@ -123,7 +121,7 @@ int sInCommunicationCount = 0;
 
 const char kBrandBundleURL[] = "chrome://branding/locale/brand.properties";
 
-constexpr frozen::unordered_map<frozen::string, LABELS_MEDIA_AUDIO_BACKEND, 13>
+MOZ_RUNINIT std::unordered_map<std::string, LABELS_MEDIA_AUDIO_BACKEND>
     kTelemetryBackendLabel = {
         {"audiounit", LABELS_MEDIA_AUDIO_BACKEND::audiounit},
         {"audiounit-rust", LABELS_MEDIA_AUDIO_BACKEND::audiounit_rust},
@@ -634,9 +632,8 @@ void ReportCubebBackendUsed() {
   MOZ_RELEASE_ASSERT(handle.get());
 
   LABELS_MEDIA_AUDIO_BACKEND label = LABELS_MEDIA_AUDIO_BACKEND::unknown;
-  const char* backend_id = cubeb_get_backend_id(handle->Context());
-  auto backend = kTelemetryBackendLabel.find(
-      frozen::string(backend_id, strlen(backend_id)));
+  auto backend =
+      kTelemetryBackendLabel.find(cubeb_get_backend_id(handle->Context()));
   if (backend != kTelemetryBackendLabel.end()) {
     label = backend->second;
   }
