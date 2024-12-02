@@ -115,7 +115,7 @@ static constexpr bool IsSafeInteger(int64_t x) {
  * DurationSign ( years, months, weeks, days, hours, minutes, seconds,
  * milliseconds, microseconds, nanoseconds )
  */
-static int32_t DurationSign(const Duration& duration) {
+int32_t js::temporal::DurationSign(const Duration& duration) {
   MOZ_ASSERT(IsIntegerOrInfinityDuration(duration));
 
   const auto& [years, months, weeks, days, hours, minutes, seconds,
@@ -651,7 +651,7 @@ bool js::temporal::IsValidDuration(const Duration& duration) {
                milliseconds, microseconds, nanoseconds] = duration;
 
   // Step 1.
-  int32_t sign = ::DurationSign(duration);
+  int32_t sign = DurationSign(duration);
 
   // Step 2.
   for (auto v : {years, months, weeks, days, hours, minutes, seconds,
@@ -745,7 +745,7 @@ bool js::temporal::ThrowIfInvalidDuration(JSContext* cx,
                milliseconds, microseconds, nanoseconds] = duration;
 
   // Step 1.
-  int32_t sign = ::DurationSign(duration);
+  int32_t sign = DurationSign(duration);
 
   auto throwIfInvalid = [&](double v, const char* name) {
     // Step 2.a.
@@ -3193,6 +3193,8 @@ bool js::temporal::RoundRelativeDuration(
       return false;
     }
   }
+
+  // TODO: (Remove BalanceTimeDuration and return NormalizedDuration.)
 
   // Step 10.
   largestUnit = std::max(largestUnit, TemporalUnit::Hour);
