@@ -33,24 +33,11 @@ class PauseResumeButton extends PureComponent {
 
     this.onKeyDown = this.onKeyDown.bind(this);
     this.pauseResumeButtonRef = createRef();
-
-    this.state = {
-      isRunning: false,
-    };
-  }
-
-  // FIXME: https://bugzilla.mozilla.org/show_bug.cgi?id=1774507
-  UNSAFE_componentWillMount() {
-    this.updateState(this.props);
   }
 
   componentDidMount() {
     const targetEl = this.getKeyEventTarget();
     targetEl.addEventListener("keydown", this.onKeyDown);
-  }
-
-  componentDidUpdate() {
-    this.updateState();
   }
 
   componentWillUnount() {
@@ -64,8 +51,8 @@ class PauseResumeButton extends PureComponent {
 
   onToggleAnimationsPlayState(event) {
     event.stopPropagation();
-    const { setAnimationsPlayState } = this.props;
-    const { isRunning } = this.state;
+    const { setAnimationsPlayState, animations } = this.props;
+    const isRunning = hasRunningAnimation(animations);
 
     setAnimationsPlayState(!isRunning);
   }
@@ -80,14 +67,8 @@ class PauseResumeButton extends PureComponent {
     }
   }
 
-  updateState() {
-    const { animations } = this.props;
-    const isRunning = hasRunningAnimation(animations);
-    this.setState({ isRunning });
-  }
-
   render() {
-    const { isRunning } = this.state;
+    const isRunning = hasRunningAnimation(this.props.animations);
 
     return dom.button({
       className:
