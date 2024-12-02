@@ -1,13 +1,7 @@
 // Copyright (C) 2024 Igalia S.L. All rights reserved.
 // This code is governed by the BSD license found in the LICENSE file.
 
-/*---
-flags:
-- noStrict
-description: |
-  pending
-esid: pending
----*/
+'use strict';
 async function f() {
     let
     await 0;
