@@ -71,12 +71,6 @@ class VideoFrameSurface<LIBAV_VER> {
   void SetColorRange(mozilla::gfx::ColorRange aColorRange) {
     mSurface->GetAsDMABufSurfaceYUV()->SetColorRange(aColorRange);
   }
-  void SetColorPrimaries(mozilla::gfx::ColorSpace2 aColorPrimaries) {
-    mSurface->GetAsDMABufSurfaceYUV()->SetColorPrimaries(aColorPrimaries);
-  }
-  void SetTransferFunction(mozilla::gfx::TransferFunction aTransferFunction) {
-    mSurface->GetAsDMABufSurfaceYUV()->SetTransferFunction(aTransferFunction);
-  }
 
   RefPtr<DMABufSurfaceYUV> GetDMABufSurface() {
     return mSurface->GetAsDMABufSurfaceYUV();
