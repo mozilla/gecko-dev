@@ -1550,7 +1550,7 @@ toolbar:not(#TabsToolbar) #firefox-view-button {
   list-style-image: url("chrome://browser/skin/tabbrowser/tab-group-chicklet.svg");
   -moz-context-properties: fill, stroke;
   fill: light-dark(var(--tab-group-color), var(--tab-group-color-invert));
-  stroke: transparent;
+  stroke: light-dark(var(--tab-group-color), var(--tab-group-color-invert));
 }
 
 .menu-iconic.tab-group-icon-collapsed,
