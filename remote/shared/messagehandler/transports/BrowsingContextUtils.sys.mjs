@@ -5,6 +5,7 @@
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
+  error: "chrome://remote/content/shared/messagehandler/Errors.sys.mjs",
   PollPromise: "chrome://remote/content/shared/Sync.sys.mjs",
 });
 
@@ -110,7 +111,8 @@ export function isBrowsingContextCompatible(browsingContext, options = {}) {
  *
  * @returns {Promise}
  *     Promise which resolves when `currentWindowGlobal` is set on the browsing
- *     context or throws after 100ms.
+ *     context or throws a `DiscardedBrowsingContextError` error if it is still
+ *     not available after 100ms.
  */
 export async function waitForCurrentWindowGlobal(browsingContext) {
   await lazy.PollPromise(
@@ -122,8 +124,13 @@ export async function waitForCurrentWindowGlobal(browsingContext) {
       }
     },
     {
-      errorMessage: `currentWindowGlobal was not available for Browsing Context with id: ${browsingContext.id}`,
       timeout: 100,
     }
   );
+
+  if (!browsingContext.currentWindowGlobal) {
+    throw new lazy.error.DiscardedBrowsingContextError(
+      `BrowsingContext does no longer exist`
+    );
+  }
 }
