@@ -340,7 +340,12 @@ def extractMeta(source: bytes) -> "dict[str, Any]":
 
     unindented = re.sub(b"^%s" % indent, b"", frontmatter_lines)
 
-    return yaml.safe_load(unindented)
+    yamlresult = yaml.safe_load(unindented)
+    if isinstance(yamlresult, str):
+        result = {"info": yamlresult}
+    else:
+        result = yamlresult
+    return result
 
 
 ## updateMeta
