@@ -6637,13 +6637,6 @@ void nsGridContainerFrame::Tracks::ResolveIntrinsicSize(
   gfxContext* rc = &aState.mRenderingContext;
   WritingMode wm = aState.mWM;
 
-  // Data we accumulate when grouping similar sized spans together.
-  struct PerSpanData {
-    uint32_t mItemCountWithSameSpan = 0;
-    TrackSize::StateBits mStateBits = TrackSize::StateBits{0};
-  };
-  AutoTArray<PerSpanData, 16> perSpanData;
-
   nsTArray<SpanningItemData> spanningItems;
   uint32_t maxSpan = 0;  // max span of items in `spanningItems`.
 
@@ -6739,15 +6732,7 @@ void nsGridContainerFrame::Tracks::ResolveIntrinsicSize(
         gridItem.mState[mAxis] |= ItemState::eIsFlexing;
       } else if (state & (TrackSize::eIntrinsicMinSizing |
                           TrackSize::eIntrinsicMaxSizing)) {
-        // Collect data for Step 3.
         maxSpan = std::max(maxSpan, span);
-        if (span >= perSpanData.Length()) {
-          perSpanData.SetLength(2 * span);
-        }
-
-        perSpanData[span].mItemCountWithSameSpan++;
-        perSpanData[span].mStateBits |= state;
-
         CachedIntrinsicSizes cache;
 
         // Calculate data for "Automatic Minimum Size" clamping, if needed.
@@ -6792,6 +6777,7 @@ void nsGridContainerFrame::Tracks::ResolveIntrinsicSize(
                "clamping only applies to Automatic Minimum Size");
   }
 
+  MOZ_ASSERT(maxSpan != 1, "Should only count spans greater than 1");
   // Step 3 - Increase sizes to accommodate spanning items crossing
   // content-sized tracks.
   if (maxSpan) {
@@ -6824,10 +6810,19 @@ void nsGridContainerFrame::Tracks::ResolveIntrinsicSize(
     auto spanGroupStart = spanningItems.begin();
     auto spanGroupEnd = spanGroupStart;
     const auto end = spanningItems.end();
+
+    // spanningItems is sorted by span size. Each iteration will process one
+    // span size.
     for (; spanGroupStart != end; spanGroupStart = spanGroupEnd) {
       const uint32_t span = spanGroupStart->mSpan;
-      spanGroupEnd = spanGroupStart + perSpanData[span].mItemCountWithSameSpan;
-      TrackSize::StateBits stateBitsForSpan = perSpanData[span].mStateBits;
+      TrackSize::StateBits stateBitsForSpan{0};
+      MOZ_ASSERT(spanGroupEnd == spanGroupStart);
+      // Find the end of this group if items with the same span size.
+      // Accumulate state bits for the items with this span size to avoid
+      // calculations below that are not applicable to any of those items.
+      do {
+        stateBitsForSpan |= StateBitsForRange(spanGroupEnd->mLineRange);
+      } while (++spanGroupEnd != end && spanGroupEnd->mSpan == span);
       bool updatedBase = false;  // Did we update any mBase in step 3.1..3.3?
       TrackSize::StateBits selector(TrackSize::eIntrinsicMinSizing);
       if (stateBitsForSpan & selector) {
