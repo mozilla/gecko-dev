@@ -144,6 +144,27 @@ add_task(async function test_getBrowsingContextById() {
   is(TabManager.getBrowsingContextById(childContextId), contexts[1]);
 });
 
+add_task(async function test_getDiscardedBrowsingContextById() {
+  const tab = await TabManager.addTab();
+  const browser = tab.linkedBrowser;
+  const browsingContext = browser.browsingContext;
+  const contextId = TabManager.getIdForBrowsingContext(browsingContext);
+
+  is(
+    TabManager.getBrowsingContextById(contextId),
+    browsingContext,
+    "Browsing context is accessible by its ID"
+  );
+
+  gBrowser.removeTab(tab);
+
+  is(
+    TabManager.getBrowsingContextById(contextId),
+    null,
+    "Browsing context is no longer accessible after the tab is removed"
+  );
+});
+
 add_task(async function test_getIdForBrowsingContext() {
   const browser = gBrowser.selectedBrowser;
 

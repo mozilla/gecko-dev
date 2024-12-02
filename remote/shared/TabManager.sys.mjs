@@ -231,15 +231,22 @@ class TabManagerClass {
    * @param {string} id
    *     A browsing context unique id (created by getIdForBrowsingContext).
    * @returns {BrowsingContext=}
-   *     The browsing context found for this id, null if none was found.
+   *     The browsing context found for this id, null if none was found or
+   *     browsing context is discarded.
    */
   getBrowsingContextById(id) {
     const browser = this.getBrowserById(id);
+    let browsingContext;
     if (browser) {
-      return browser.browsingContext;
+      browsingContext = browser.browsingContext;
+    } else {
+      browsingContext = BrowsingContext.get(id);
     }
 
-    return BrowsingContext.get(id);
+    if (!browsingContext || browsingContext.isDiscarded) {
+      return null;
+    }
+    return browsingContext;
   }
 
   /**
