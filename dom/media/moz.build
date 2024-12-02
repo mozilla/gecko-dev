@@ -366,6 +366,7 @@ LOCAL_INCLUDES += [
     "/layout/xul",
     "/media/libyuv/libyuv/include",
     "/netwerk/base",
+    "/third_party/frozen/include",
     "/toolkit/content/tests/browser/",
 ]
 
