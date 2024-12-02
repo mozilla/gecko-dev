@@ -424,20 +424,30 @@ def cleanupMeta(meta: "dict[str, Any]") -> "dict[str, Any]":
     simple cleanup to remove trailing spaces and duplicate entries from lists.
     """
 
+    # Trim values on each string tag
+    for tag in ("description", "esid", "es5id", "es6id", "info", "author"):
+        if tag in meta:
+            if not meta[tag]:
+                del meta[tag]
+            else:
+                meta[tag] = meta[tag].strip()
+                if not len(meta[tag]):
+                    del meta[tag]
+
     # Populate required tags
     for tag in ("description", "esid"):
         meta.setdefault(tag, "pending")
 
-    # Trim values on each string tag
-    for tag in ("description", "esid", "es5id", "es6id", "info", "author"):
-        if tag in meta:
-            meta[tag] = meta[tag].strip()
-
     # Remove duplicate entries on each list tag
     for tag in ("features", "flags", "includes"):
         if tag in meta:
-            # We need the list back for the yaml dump
-            meta[tag] = list(set(meta[tag]))
+            if not meta[tag]:
+                del meta[tag]
+            else:
+                # We need the list back for the yaml dump
+                meta[tag] = sorted(set(meta[tag]))
+                if not len(meta[tag]):
+                    del meta[tag]
 
     if "negative" in meta:
         # If the negative tag exists, phase needs to be present and set
