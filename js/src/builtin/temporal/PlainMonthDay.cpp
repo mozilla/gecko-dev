@@ -346,7 +346,7 @@ static bool ToTemporalMonthDay(
 
   // Step 12.
   Rooted<CalendarFields> fields(cx);
-  if (!TemporalObjectToFields(cx, monthDay, &fields)) {
+  if (!ISODateToFields(cx, monthDay, &fields)) {
     return false;
   }
 
@@ -535,7 +535,7 @@ static bool PlainMonthDay_with(JSContext* cx, const CallArgs& args) {
 
   // Step 5.
   Rooted<CalendarFields> fields(cx);
-  if (!TemporalObjectToFields(cx, monthDay, &fields)) {
+  if (!ISODateToFields(cx, monthDay, &fields)) {
     return false;
   }
 
@@ -753,7 +753,7 @@ static bool PlainMonthDay_toPlainDate(JSContext* cx, const CallArgs& args) {
 
   // Step 5.
   Rooted<CalendarFields> fields(cx);
-  if (!TemporalObjectToFields(cx, monthDay, &fields)) {
+  if (!ISODateToFields(cx, monthDay, &fields)) {
     return false;
   }
 

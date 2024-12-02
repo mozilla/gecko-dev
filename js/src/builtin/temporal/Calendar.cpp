@@ -2299,60 +2299,6 @@ static bool CalendarMonthDayToISOReferenceDate(JSContext* cx,
   return true;
 }
 
-/**
- * CalendarFieldKeysToIgnore ( calendar, keys )
- */
-static auto CalendarFieldKeysToIgnore(CalendarId calendar,
-                                      mozilla::EnumSet<CalendarField> keys) {
-  MOZ_ASSERT(calendar != CalendarId::ISO8601);
-
-  static constexpr auto eraOrEraYear = mozilla::EnumSet{
-      CalendarField::Era,
-      CalendarField::EraYear,
-  };
-
-  static constexpr auto eraOrAnyYear = mozilla::EnumSet{
-      CalendarField::Era,
-      CalendarField::EraYear,
-      CalendarField::Year,
-  };
-
-  static constexpr auto monthOrMonthCode = mozilla::EnumSet{
-      CalendarField::Month,
-      CalendarField::MonthCode,
-  };
-
-  static constexpr auto dayOrAnyMonth = mozilla::EnumSet{
-      CalendarField::Day,
-      CalendarField::Month,
-      CalendarField::MonthCode,
-  };
-
-  // A field always invalidates at least itself, so start with ignoring all
-  // input fields.
-  auto result = keys;
-
-  // "month" and "monthCode" are mutually exclusive.
-  if (!(keys & monthOrMonthCode).isEmpty()) {
-    result += monthOrMonthCode;
-  }
-
-  // "era", "eraYear", and "year" are mutually exclusive in non-single era
-  // calendar systems.
-  if (CalendarEraRelevant(calendar) && !(keys & eraOrAnyYear).isEmpty()) {
-    result += eraOrAnyYear;
-  }
-
-  // If eras don't start at year boundaries, we have to ignore "era" and
-  // "eraYear" if any of "day", "month", or "monthCode" is present.
-  if (!CalendarEraStartsAtYearBoundary(calendar) &&
-      !(keys & dayOrAnyMonth).isEmpty()) {
-    result += eraOrEraYear;
-  }
-
-  return result;
-}
-
 enum class FieldType { Date, YearMonth, MonthDay };
 
 /**
@@ -3087,6 +3033,117 @@ bool js::temporal::CalendarInLeapYear(JSContext* cx,
   return true;
 }
 
+enum class DateFieldType { Date, YearMonth, MonthDay };
+
+/**
+ * ISODateToFields ( calendar, isoDate, type )
+ */
+static bool ISODateToFields(JSContext* cx, Handle<CalendarValue> calendar,
+                            const PlainDate& date, DateFieldType type,
+                            MutableHandle<CalendarFields> result) {
+  auto calendarId = calendar.identifier();
+
+  // Step 1.
+  result.set(CalendarFields{});
+
+  // Steps 2-6. (Optimization for the ISO 8601 calendar.)
+  if (calendarId == CalendarId::ISO8601) {
+    // Step 2. (Not applicable in our implementation.)
+
+    // Step 3.
+    result.setMonthCode(MonthCode{date.month});
+
+    // Step 4.
+    if (type == DateFieldType::MonthDay || type == DateFieldType::Date) {
+      result.setDay(date.day);
+    }
+
+    // Step 5.
+    if (type == DateFieldType::YearMonth || type == DateFieldType::Date) {
+      result.setYear(date.year);
+    }
+
+    // Step 6.
+    return true;
+  }
+
+  // Step 2.
+  auto cal = CreateICU4XCalendar(cx, calendarId);
+  if (!cal) {
+    return false;
+  }
+
+  auto dt = CreateICU4XDate(cx, date, cal.get());
+  if (!dt) {
+    return false;
+  }
+
+  // Step 3.
+  MonthCode monthCode;
+  if (!CalendarDateMonthCode(cx, calendarId, dt.get(), &monthCode)) {
+    return false;
+  }
+  result.setMonthCode(monthCode);
+
+  // Step 4.
+  if (type == DateFieldType::MonthDay || type == DateFieldType::Date) {
+    int32_t day = capi::ICU4XDate_day_of_month(dt.get());
+    result.setDay(day);
+  }
+
+  // Step 5.
+  if (type == DateFieldType::YearMonth || type == DateFieldType::Date) {
+    int32_t year;
+    if (!CalendarDateYear(cx, calendarId, dt.get(), &year)) {
+      return false;
+    }
+    result.setYear(year);
+  }
+
+  // Step 6.
+  return true;
+}
+
+/**
+ * ISODateToFields ( calendar, isoDate, type )
+ */
+bool js::temporal::ISODateToFields(JSContext* cx,
+                                   Handle<PlainDateWithCalendar> date,
+                                   MutableHandle<CalendarFields> result) {
+  return ISODateToFields(cx, date.calendar(), date, DateFieldType::Date,
+                         result);
+}
+
+/**
+ * ISODateToFields ( calendar, isoDate, type )
+ */
+bool js::temporal::ISODateToFields(JSContext* cx,
+                                   Handle<PlainDateTimeWithCalendar> dateTime,
+                                   MutableHandle<CalendarFields> result) {
+  return ISODateToFields(cx, dateTime.calendar(), dateTime.date(),
+                         DateFieldType::Date, result);
+}
+
+/**
+ * ISODateToFields ( calendar, isoDate, type )
+ */
+bool js::temporal::ISODateToFields(JSContext* cx,
+                                   Handle<PlainMonthDayWithCalendar> monthDay,
+                                   MutableHandle<CalendarFields> result) {
+  return ISODateToFields(cx, monthDay.calendar(), monthDay.date(),
+                         DateFieldType::MonthDay, result);
+}
+
+/**
+ * ISODateToFields ( calendar, isoDate, type )
+ */
+bool js::temporal::ISODateToFields(JSContext* cx,
+                                   Handle<PlainYearMonthWithCalendar> yearMonth,
+                                   MutableHandle<CalendarFields> result) {
+  return ISODateToFields(cx, yearMonth.calendar(), yearMonth.date(),
+                         DateFieldType::YearMonth, result);
+}
+
 /**
  * ISOResolveMonth ( fields )
  */
@@ -3445,67 +3502,6 @@ bool js::temporal::CalendarMonthDayFromFields(
 
   // Step 4.
   return CreateTemporalMonthDay(cx, date, calendar, result);
-}
-
-/**
- * ISOFieldKeysToIgnore ( keys )
- */
-static auto ISOFieldKeysToIgnore(mozilla::EnumSet<CalendarField> keys) {
-  // Steps 1 and 2.a.
-  auto ignoredKeys = keys;
-
-  // Step 2.b.
-  if (keys.contains(CalendarField::Month)) {
-    ignoredKeys += CalendarField::MonthCode;
-  }
-
-  // Step 2.c.
-  else if (keys.contains(CalendarField::MonthCode)) {
-    ignoredKeys += CalendarField::Month;
-  }
-
-  // Steps 3-4.
-  return ignoredKeys;
-}
-
-/**
- * CalendarMergeFields ( calendar, fields, additionalFields )
- */
-CalendarFields js::temporal::CalendarMergeFields(
-    const CalendarValue& calendar, const CalendarFields& fields,
-    const CalendarFields& additionalFields) {
-  auto calendarId = calendar.identifier();
-
-  // Steps 1.
-  auto additionalKeys = additionalFields.keys();
-
-  // Steps 2-3.
-  mozilla::EnumSet<CalendarField> overriddenKeys;
-  if (calendarId == CalendarId::ISO8601) {
-    overriddenKeys = ISOFieldKeysToIgnore(additionalKeys);
-  } else {
-    overriddenKeys = CalendarFieldKeysToIgnore(calendarId, additionalKeys);
-  }
-  MOZ_ASSERT(overriddenKeys.contains(additionalKeys));
-
-  // Step 4.
-  auto merged = CalendarFields{};
-
-  // Step 5.
-  auto fieldsKeys = fields.keys();
-
-  // Step 6.b.
-  for (auto key : (fieldsKeys - overriddenKeys)) {
-    merged.setFrom(key, fields);
-  }
-
-  // Step 6.c.
-  for (auto key : additionalKeys) {
-    merged.setFrom(key, additionalFields);
-  }
-
-  // Step 7.
-  return merged;
 }
 
 /**

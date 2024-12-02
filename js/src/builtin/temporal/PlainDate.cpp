@@ -1896,7 +1896,7 @@ static bool PlainDate_toPlainYearMonth(JSContext* cx, const CallArgs& args) {
 
   // Step 4.
   Rooted<CalendarFields> fields(cx);
-  if (!TemporalObjectToFields(cx, temporalDate, &fields)) {
+  if (!ISODateToFields(cx, temporalDate, &fields)) {
     return false;
   }
 
@@ -1940,7 +1940,7 @@ static bool PlainDate_toPlainMonthDay(JSContext* cx, const CallArgs& args) {
 
   // Step 4.
   Rooted<CalendarFields> fields(cx);
-  if (!TemporalObjectToFields(cx, temporalDate, &fields)) {
+  if (!ISODateToFields(cx, temporalDate, &fields)) {
     return false;
   }
 
@@ -2062,7 +2062,7 @@ static bool PlainDate_with(JSContext* cx, const CallArgs& args) {
 
   // Step 5.
   Rooted<CalendarFields> fields(cx);
-  if (!TemporalObjectToFields(cx, temporalDate, &fields)) {
+  if (!ISODateToFields(cx, temporalDate, &fields)) {
     return false;
   }
 

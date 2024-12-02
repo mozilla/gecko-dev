@@ -1675,7 +1675,7 @@ static bool PlainDateTime_with(JSContext* cx, const CallArgs& args) {
 
   // Step 5.
   Rooted<CalendarFields> fields(cx);
-  if (!TemporalObjectToFields(cx, dateTime, &fields)) {
+  if (!ISODateToFields(cx, dateTime, &fields)) {
     return false;
   }
 

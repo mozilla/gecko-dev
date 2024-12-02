@@ -2090,7 +2090,7 @@ static bool ZonedDateTime_with(JSContext* cx, const CallArgs& args) {
 
   // Step 10.
   Rooted<CalendarFields> fields(cx);
-  if (!TemporalObjectToFields(cx, date, &fields)) {
+  if (!ISODateToFields(cx, date, &fields)) {
     return false;
   }
 

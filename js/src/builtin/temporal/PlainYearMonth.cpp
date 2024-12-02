@@ -376,7 +376,7 @@ static bool ToTemporalYearMonth(
 
   // Step 9.
   Rooted<CalendarFields> fields(cx);
-  if (!TemporalObjectToFields(cx, yearMonth, &fields)) {
+  if (!ISODateToFields(cx, yearMonth, &fields)) {
     return false;
   }
 
@@ -461,7 +461,7 @@ static bool DifferenceTemporalPlainYearMonth(JSContext* cx,
 
   // Step 7.
   Rooted<CalendarFields> thisFields(cx);
-  if (!TemporalObjectToFields(cx, yearMonth, &thisFields)) {
+  if (!ISODateToFields(cx, yearMonth, &thisFields)) {
     return false;
   }
 
@@ -478,7 +478,7 @@ static bool DifferenceTemporalPlainYearMonth(JSContext* cx,
 
   // Step 10.
   Rooted<CalendarFields> otherFields(cx);
-  if (!TemporalObjectToFields(cx, other, &otherFields)) {
+  if (!ISODateToFields(cx, other, &otherFields)) {
     return false;
   }
 
@@ -596,7 +596,7 @@ static bool AddDurationToYearMonth(JSContext* cx, TemporalAddDuration operation,
 
   // Step 7.
   Rooted<CalendarFields> fields(cx);
-  if (!TemporalObjectToFields(cx, yearMonth, &fields)) {
+  if (!ISODateToFields(cx, yearMonth, &fields)) {
     return false;
   }
 
@@ -664,7 +664,7 @@ static bool AddDurationToYearMonth(JSContext* cx, TemporalAddDuration operation,
 
   // Step 14.
   Rooted<CalendarFields> addedDateFields(cx);
-  if (!TemporalObjectToFields(cx, addedYearMonth, &addedDateFields)) {
+  if (!ISODateToFields(cx, addedYearMonth, &addedDateFields)) {
     return false;
   }
 
@@ -1028,7 +1028,7 @@ static bool PlainYearMonth_with(JSContext* cx, const CallArgs& args) {
 
   // Step 5.
   Rooted<CalendarFields> fields(cx);
-  if (!TemporalObjectToFields(cx, yearMonth, &fields)) {
+  if (!ISODateToFields(cx, yearMonth, &fields)) {
     return false;
   }
 
@@ -1320,7 +1320,7 @@ static bool PlainYearMonth_toPlainDate(JSContext* cx, const CallArgs& args) {
 
   // Step 5.
   Rooted<CalendarFields> fields(cx);
-  if (!TemporalObjectToFields(cx, yearMonth, &fields)) {
+  if (!ISODateToFields(cx, yearMonth, &fields)) {
     return false;
   }
 
