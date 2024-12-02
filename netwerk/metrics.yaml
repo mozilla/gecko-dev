@@ -1470,7 +1470,7 @@ networking:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1848542
     notification_emails:
       - vgosu@mozilla.com
-    expires: 136
+    expires: 146
 
   residual_cache_folder_removal:
     type: labeled_counter
@@ -1483,7 +1483,7 @@ networking:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1848542
     notification_emails:
       - vgosu@mozilla.com
-    expires: 136
+    expires: 146
     labels:
       - success
       - failure
