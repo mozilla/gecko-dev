@@ -1,4 +1,0 @@
-[DEFAULT]
-subsuite = "nimbus"
-
-["test_targeting_context_metrics.py"]
