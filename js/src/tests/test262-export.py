@@ -122,7 +122,7 @@ def skipTest(source: bytes) -> Optional[bytes]:
 MODELINE_PATTERN = re.compile(rb"/(/|\*) -\*- .* -\*-( \*/)?[\r\n]+")
 
 
-def convertTestFile(source: bytes, includes: "list[str]") -> bytes:
+def convertTestFile(source: bytes, includes: "list[str]") -> Optional[bytes]:
     """
     Convert a jstest test to a compatible Test262 test file.
     """
@@ -131,6 +131,8 @@ def convertTestFile(source: bytes, includes: "list[str]") -> bytes:
 
     # Extract the reftest data from the source
     source, reftest = parseHeader(source)
+    if reftest and "record-tuple" in reftest.features:
+        return None
 
     # Add copyright, if needed.
     copyright, source = insertCopyrightLines(source)
@@ -683,6 +685,10 @@ def exportTest262(
 
                 try:
                     newSource = convertTestFile(testSource, includes)
+                    if newSource is None:
+                        print(f"SKIPPED {testName} due to disabled features")
+                        skipped += 1
+                        continue
                 except Exception as e:
                     print(f"SKIPPED {testName} due to error {e}")
                     traceback.print_exc(file=sys.stdout)
