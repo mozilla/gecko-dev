@@ -17,6 +17,7 @@ using mozilla::gfx::ChromaSubsampling from "mozilla/gfx/Types.h";
 using mozilla::gfx::ColorDepth from "mozilla/gfx/Types.h";
 using mozilla::gfx::ColorRange from "mozilla/gfx/Types.h";
 using mozilla::gfx::ColorSpace2 from "mozilla/gfx/Types.h";
+using mozilla::gfx::TransferFunction from "mozilla/gfx/Types.h";
 using mozilla::gfx::SurfaceFormat from "mozilla/gfx/Types.h";
 using mozilla::gfx::IntRect from "mozilla/gfx/Rect.h";
 using mozilla::gfx::IntSize from "mozilla/gfx/Point.h";
@@ -82,6 +83,8 @@ namespace layers {
   uint32_t[] offsets;
   YUVColorSpace yUVColorSpace;
   ColorRange colorRange;
+  ColorSpace2 colorPrimaries;
+  TransferFunction transferFunction;
   FileHandleWrapper[] fence;
   uint32_t uid;
   FileDescriptor[] refCount;
