@@ -8,6 +8,7 @@ import base64
 import io
 import json
 import os
+import subprocess
 import sys
 import tempfile
 import time
@@ -27,13 +28,26 @@ from selenium.webdriver.support.ui import WebDriverWait
 
 
 class SnapTestsBase:
+    _INSTANCE = None
+
     def __init__(self, exp):
+        self._INSTANCE = os.environ.get("TEST_SNAP_INSTANCE", "firefox")
+
+        self._PROFILE_PATH = "~/snap/{}/common/.mozilla/firefox/".format(self._INSTANCE)
+        self._EXE_PATH = r"/snap/{}/current/usr/lib/firefox/geckodriver".format(
+            self._INSTANCE
+        )
+        self._LIB_PATH = r"/snap/{}/current/usr/lib/firefox/libxul.so".format(
+            self._INSTANCE
+        )
+        self._BIN_PATH = r"/snap/bin/{}".format(self._INSTANCE)
+
         snap_profile_path = tempfile.mkdtemp(
             prefix="snap-tests",
-            dir=os.path.expanduser("~/snap/firefox/common/.mozilla/firefox/"),
+            dir=os.path.expanduser(self._PROFILE_PATH),
         )
         driver_service = Service(
-            executable_path=r"/snap/firefox/current/usr/lib/firefox/geckodriver",
+            executable_path=self._EXE_PATH,
             log_output=os.path.join(
                 os.environ.get("ARTIFACT_DIR", ""), "geckodriver.log"
             ),
@@ -41,7 +55,7 @@ class SnapTestsBase:
         options = Options()
         if "TEST_GECKODRIVER_TRACE" in os.environ.keys():
             options.log.level = "trace"
-        options.binary_location = r"/snap/bin/firefox"
+        options.binary_location = self._BIN_PATH
         if not "TEST_NO_HEADLESS" in os.environ.keys():
             options.add_argument("--headless")
         if "MOZ_AUTOMATION" in os.environ.keys():
@@ -73,6 +87,12 @@ class SnapTestsBase:
 
         self._update_channel = None
         self._version_major = None
+
+        self._is_debug_build = None
+        if self.is_debug_build():
+            self._logger.info("Running against a DEBUG build")
+        else:
+            self._logger.info("Running against a OPT build")
 
         self._wait = WebDriverWait(self._driver, self.get_timeout())
         self._longwait = WebDriverWait(self._driver, 60)
@@ -175,9 +195,6 @@ class SnapTestsBase:
         else:
             return 5
 
-    def is_debug_build(self):
-        return "BUILD_IS_DEBUG" in os.environ.keys()
-
     def maybe_collect_reference(self):
         return "TEST_COLLECT_REFERENCE" in os.environ.keys()
 
@@ -189,6 +206,14 @@ class SnapTestsBase:
         self._driver.get(url)
 
         return self._driver.current_window_handle
+
+    def is_debug_build(self):
+        if self._is_debug_build is None:
+            self._is_debug_build = (
+                "with debug_info"
+                in subprocess.check_output(["file", self._LIB_PATH]).decode()
+            )
+        return self._is_debug_build
 
     def update_channel(self):
         if self._update_channel is None:

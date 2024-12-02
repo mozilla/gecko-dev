@@ -68,8 +68,9 @@ class QATests(SnapTestsBase):
 
         # Mostly for Google Drive video, click()/play() seems not to really
         # work to trigger, but 'k' is required
-        if click_to_play:
+        if not click_to_play:
             self._driver.execute_script("arguments[0].click();", video)
+        else:
             video.send_keys("k")
 
         ref_volume = video.get_property("volume")
@@ -164,7 +165,7 @@ class QATests(SnapTestsBase):
 
         fullscreen_button = self._wait.until(
             EC.presence_of_element_located(
-                (By.CSS_SELECTOR, "button[aria-label*='Full screen']")
+                (By.CSS_SELECTOR, "button[aria-label*='(f)']")
             )
         )
         self._driver.execute_script("return arguments[0].click();", fullscreen_button)
@@ -186,33 +187,20 @@ class QATests(SnapTestsBase):
         self._driver.execute_script("arguments[0].pause();", video)
         self._driver.execute_script("document.exitFullscreen()")
 
-    def _set_language(self, lang):
-        self._driver.set_context("chrome")
-        accept_lang = self._driver.execute_script(
-            "return Services.prefs.getStringPref('intl.accept_languages');"
-        )
-        self._logger.info("Changing lang from '{}'".format(accept_lang))
-        self._driver.execute_script(
-            "return Services.prefs.setStringPref('intl.accept_languages', '{}');".format(
-                accept_lang
-            )
-        )
-        self._driver.set_context("content")
-
-        return accept_lang
-
     def test_h264_mov(self, exp):
         """
         C95233
         """
 
-        langs = self._set_language("en")
+        if self.version_major() == "134" and self.is_debug_build():
+            self._logger.info(
+                "Skip test due to https://bugzilla.mozilla.org/show_bug.cgi?id=1934358"
+            )
+            return True
 
         self._test_audio_video_playback(
             "https://drive.google.com/file/d/0BwxFVkl63-lEY3l3ODJReDg3RzQ/view?resourcekey=0-5kDw2QbFk9eLrWE1N9M1rQ&hl=en-US"
         )
-
-        self._set_language(langs)
 
         return True
 
