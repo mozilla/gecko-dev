@@ -125,11 +125,15 @@ add_task(async function test_updateRecipes() {
   ok(loader.updateRecipes.calledOnce, "should call .updateRecipes");
   equal(
     loader.manager.onRecipe.callCount,
-    1,
-    "should call .onRecipe only for recipes that pass"
+    2,
+    "should call .onRecipe only for all recipes"
   );
   ok(
-    loader.manager.onRecipe.calledWith(PASS_FILTER_RECIPE, "rs-loader"),
+    loader.manager.onRecipe.calledWith(PASS_FILTER_RECIPE, "rs-loader", true),
+    "should call .onRecipe with argument data"
+  );
+  ok(
+    loader.manager.onRecipe.calledWith(FAIL_FILTER_RECIPE, "rs-loader", false),
     "should call .onRecipe with argument data"
   );
 });
@@ -157,8 +161,8 @@ add_task(async function test_updateRecipes_someMismatch() {
   ok(loader.updateRecipes.calledOnce, "should call .updateRecipes");
   equal(
     loader.manager.onRecipe.callCount,
-    1,
-    "should call .onRecipe only for recipes that pass"
+    2,
+    "should call .onRecipe only for all recipes"
   );
   ok(loader.manager.onFinalize.calledOnce, "Should call onFinalize.");
   ok(
@@ -213,7 +217,10 @@ add_task(async function test_updateRecipes_forNoneFirstStartup() {
   Services.prefs.setBoolPref(ENABLED_PREF, true);
   await loader.init({ isFirstStartup: true });
 
-  ok(loader.manager.onRecipe.notCalled, "should not pass the targeting filter");
+  ok(
+    loader.manager.onRecipe.calledOnce,
+    "should call onRecipe once regardless of targetting match"
+  );
 });
 
 add_task(async function test_checkTargeting() {

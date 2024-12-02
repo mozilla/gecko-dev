@@ -936,7 +936,10 @@ async function test_updateRecipes_missingLocale({
     .resolves([recipe]);
   await loader.updateRecipes();
 
-  Assert.ok(!manager.onRecipe.called, "Did not enroll in the recipe");
+  Assert.ok(
+    manager.onRecipe.calledOnceWith(recipe, "rs-loader", false),
+    "should call .onRecipe with recipe and isTargettingMatch=false"
+  );
   Assert.ok(
     onFinalizeCalled(manager.onFinalize, "rs-loader", {
       recipeMismatches: [],
@@ -1025,7 +1028,10 @@ add_task(async function test_updateRecipes_missingEntry() {
     .resolves([recipe]);
   await loader.updateRecipes();
 
-  Assert.ok(!manager.onRecipe.called, "Did not enroll in the recipe");
+  Assert.ok(
+    manager.onRecipe.calledOnceWith(recipe, "rs-loader", false),
+    "should call .onRecipe with recipe and isTargettingMatch=false"
+  );
   Assert.ok(
     onFinalizeCalled(manager.onFinalize, "rs-loader", {
       recipeMismatches: [],

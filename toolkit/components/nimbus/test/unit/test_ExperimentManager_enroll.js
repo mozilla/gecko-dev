@@ -21,6 +21,9 @@ const { TelemetryEnvironment } = ChromeUtils.importESModule(
 const { TelemetryEvents } = ChromeUtils.importESModule(
   "resource://normandy/lib/TelemetryEvents.sys.mjs"
 );
+const { RemoteSettingsExperimentLoader } = ChromeUtils.importESModule(
+  "resource://nimbus/lib/RemoteSettingsExperimentLoader.sys.mjs"
+);
 
 const { SYNC_DATA_PREF_BRANCH, SYNC_DEFAULTS_PREF_BRANCH } = ExperimentStore;
 
@@ -103,6 +106,58 @@ add_task(async function test_add_rollout_to_store() {
   Assert.equal(experiment.isRollout, true, "should have .isRollout");
 
   manager.unenroll("rollout-slug", "test-cleanup");
+
+  await assertEmptyStore(manager.store);
+});
+
+/**
+ * Tests the logic arms (if/else) when enrolling an opt-in recipe
+ */
+add_task(async function test_enroll_optin_recipe_branch_selection() {
+  const sandbox = sinon.createSandbox();
+  const manager = ExperimentFakes.manager();
+
+  // stubbing this to return true since we don't want to actually enroll
+  // just assert on the call
+  let enrollStub = sandbox.stub(manager, "_enroll").returns(true);
+
+  await manager.onStartup();
+
+  const optInRecipe = ExperimentFakes.recipe("opt-in-recipe", {
+    isFirefoxLabsOptIn: true,
+    branches: [
+      {
+        slug: "opt-in-recipe-branch-slug",
+        ratio: 1,
+        features: [{ featureId: "optin", value: {} }],
+      },
+    ],
+  });
+
+  // Call with missing optInRecipeBranchSlug argument
+  await Assert.rejects(
+    manager.enroll(optInRecipe, "test"),
+    /Branch slug not provided for Firefox Labs opt in recipe: "opt-in-recipe"/,
+    "Should not enroll an opt-in recipe with missing optInBranchSlug"
+  );
+
+  // Call with incorrect optInRecipeBranchSlug for the optin recipe
+  await Assert.rejects(
+    manager.enroll(optInRecipe, "test", {
+      optInRecipeBranchSlug: "invalid-slug",
+    }),
+    /Invalid branch slug provided for Firefox Labs opt in recipe: "opt-in-recipe"/,
+    "Should not enroll an opt-in recipe with invalid branch slug"
+  );
+
+  // Call with the correct branch slug
+  await manager.enroll(optInRecipe, "test", {
+    optInRecipeBranchSlug: optInRecipe.branches[0].slug,
+  });
+  Assert.ok(
+    enrollStub.calledOnceWith(optInRecipe, optInRecipe.branches[0], "test"),
+    "should call ._enroll() with the correct arguments"
+  );
 
   await assertEmptyStore(manager.store);
 });
@@ -1125,4 +1180,123 @@ add_task(async function test_group_enrollment() {
 
   manager2.unenroll("group_enroll", "test-cleanup");
   await assertEmptyStore(manager2.store);
+});
+
+add_task(async function test_getSingleOptInRecipe() {
+  const sandbox = sinon.createSandbox();
+  const manager = ExperimentFakes.manager();
+  const optInRecipes = [
+    ExperimentFakes.recipe("opt-in-one", { isFirefoxLabsOptIn: true }),
+    ExperimentFakes.recipe("opt-in-two", { isFirefoxLabsOptIn: true }),
+  ];
+
+  manager.optInRecipes = optInRecipes;
+
+  sandbox.stub(RemoteSettingsExperimentLoader, "updatingRecipes").resolves();
+
+  Assert.equal(
+    await manager.getSingleOptInRecipe(optInRecipes[0].slug),
+    optInRecipes[0],
+    "should return the correct opt in recipe with the slug opt-in-one"
+  );
+
+  Assert.equal(
+    await manager.getSingleOptInRecipe("non-existent"),
+    undefined,
+    "should return undefined if no opt in recipe exists with the slug non-existent"
+  );
+
+  await Assert.rejects(
+    manager.getSingleOptInRecipe(),
+    /Slug required for .getSingleOptInRecipe/,
+    "Should throw when .getSingleOptInRecipe is called without a slug argument"
+  );
+
+  sandbox.restore();
+  await assertEmptyStore(manager.store);
+});
+
+add_task(async function test_getAllOptInRecipes() {
+  const sandbox = sinon.createSandbox();
+  const manager = ExperimentFakes.manager();
+
+  const optInRecipesWithTargetMatchingAndBucketing = [
+    ExperimentFakes.recipe("opt-in-one", {
+      targeting: "true",
+      isFirefoxLabsOptIn: true,
+      bucketConfig: {
+        ...ExperimentFakes.recipe.bucketConfig,
+        count: 1000,
+      },
+    }),
+    ExperimentFakes.recipe("opt-in-two", {
+      targeting: "true",
+      isFirefoxLabsOptIn: true,
+      bucketConfig: {
+        ...ExperimentFakes.recipe.bucketConfig,
+        count: 1000,
+      },
+    }),
+  ];
+
+  const optInRecipesWithTargetMatchingOnly = [
+    ExperimentFakes.recipe("opt-in-one", {
+      targeting: "true",
+      isFirefoxLabsOptIn: true,
+      bucketConfig: {},
+    }),
+    ExperimentFakes.recipe("opt-in-two", {
+      targeting: "true",
+      isFirefoxLabsOptIn: true,
+      bucketConfig: {},
+    }),
+  ];
+
+  const optInRecipesWithBucketingMatchingOnly = [
+    ExperimentFakes.recipe("opt-in-one", {
+      targeting: "false",
+      isFirefoxLabsOptIn: true,
+      bucketConfig: {
+        ...ExperimentFakes.recipe.bucketConfig,
+        count: 1000,
+      },
+    }),
+    ExperimentFakes.recipe("opt-in-two", {
+      targeting: "false",
+      isFirefoxLabsOptIn: true,
+      bucketConfig: {
+        ...ExperimentFakes.recipe.bucketConfig,
+        count: 1000,
+      },
+    }),
+  ];
+
+  sandbox.stub(RemoteSettingsExperimentLoader, "updatingRecipes").resolves();
+
+  // Happy path, opt in recipes meet targeting and bucketing criteria.
+  manager.optInRecipes = optInRecipesWithTargetMatchingAndBucketing;
+  Assert.deepEqual(
+    await manager.getAllOptInRecipes(),
+    optInRecipesWithTargetMatchingAndBucketing,
+    "should return the correct opt in recipes with targeting and bucketing match"
+  );
+
+  // Unhappy path, opt in recipes meet only targeting criteria.
+  manager.optInRecipes = optInRecipesWithTargetMatchingOnly;
+  Assert.deepEqual(
+    await manager.getAllOptInRecipes(),
+    [],
+    "should return an empty array for recipes with a targeting match only"
+  );
+
+  // Unhappy path, opt in recipes meet only bucketing criteria.
+  manager.optInRecipes = optInRecipesWithBucketingMatchingOnly;
+  Assert.deepEqual(
+    await manager.getAllOptInRecipes(),
+    [],
+    "should return an empty array for recipes with a bucketing match only"
+  );
+
+  sandbox.restore();
+  await assertEmptyStore(manager.store);
 });

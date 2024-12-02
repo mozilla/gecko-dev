@@ -265,6 +265,55 @@ export const ExperimentAPI = {
     );
   },
 
+  /**
+   * Get all of the Firfox Labs opt-in recipes that match targeting and bucketing.
+   *
+   * @returns opt in recipes
+   */
+  async getFirefoxLabsOptInRecipes() {
+    if (!IS_MAIN_PROCESS) {
+      throw new Error(
+        "ExperimentAPI.getFirefoxLabsOptInRecipes() should not be called from the main process"
+      );
+    }
+    return await this._manager.getAllOptInRecipes();
+  },
+
+  /**
+   * Enrolls an opt in recipe.
+   *
+   * @param slug {String} Recipe slug
+   * @param optInRecipeBranchSlug {String} Branch slug for that opt in recipe
+   */
+  async enrollInFirefoxLabsOptInRecipe(slug, optInRecipeBranchSlug) {
+    if (!slug || !optInRecipeBranchSlug) {
+      throw new Error(
+        "ExperimentAPI.enrollInFirefoxLabsOptInRecipe must be called with slug and optInRecipeBranchSlug."
+      );
+    }
+
+    // get the opt in recipe to enroll in
+    const recipe = await this._manager.getSingleOptInRecipe(slug);
+
+    if (!recipe) {
+      console.error(
+        `ExperimentAPI: Opt in recipe not found for slug: ${slug}, branchSlug: ${optInRecipeBranchSlug}.`
+      );
+      return;
+    }
+
+    try {
+      await this._manager.enroll(recipe, "rs-loader", {
+        optInRecipeBranchSlug,
+      });
+    } catch (e) {
+      console.error(
+        `ExperimentAPI: failed to enroll in opt-in recipe ${slug} and branch ${optInRecipeBranchSlug}`,
+        e
+      );
+    }
+  },
+
   recordExposureEvent({ featureId, experimentSlug, branchSlug }) {
     Glean.normandy.exposeNimbusExperiment.record({
       value: experimentSlug,

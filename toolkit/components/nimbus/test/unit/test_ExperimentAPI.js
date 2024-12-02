@@ -9,6 +9,9 @@ const { ExperimentFakes } = ChromeUtils.importESModule(
 const { TestUtils } = ChromeUtils.importESModule(
   "resource://testing-common/TestUtils.sys.mjs"
 );
+const { RemoteSettingsExperimentLoader } = ChromeUtils.importESModule(
+  "resource://nimbus/lib/RemoteSettingsExperimentLoader.sys.mjs"
+);
 const COLLECTION_ID_PREF = "messaging-system.rsexperimentloader.collection_id";
 
 /**
@@ -585,5 +588,122 @@ add_task(async function test_getActiveBranch_noActivationEvent() {
   ExperimentAPI.getActiveBranch({ featureId: "green" });
 
   Assert.equal(stub.callCount, 0, "Not called: sendExposureEvent is false");
+  sandbox.restore();
+});
+
+/**
+ * #getFirefoxLabsOptInRecipes
+ */
+add_task(async function test_getFirefoxLabsOptInRecipes() {
+  const sandbox = sinon.createSandbox();
+  const manager = ExperimentFakes.manager();
+  sandbox.stub(RemoteSettingsExperimentLoader, "updatingRecipes").resolves();
+  sandbox.stub(ExperimentAPI, "_manager").get(() => manager);
+
+  const actualRecipes = [
+    ExperimentFakes.recipe("opt-in-one", {
+      targeting: "true",
+      isFirefoxLabsOptIn: true,
+      bucketConfig: {
+        ...ExperimentFakes.recipe.bucketConfig,
+        count: 1000,
+      },
+    }),
+    ExperimentFakes.recipe("opt-in-two", {
+      targeting: "true",
+      isFirefoxLabsOptIn: true,
+      bucketConfig: {
+        ...ExperimentFakes.recipe.bucketConfig,
+        count: 1000,
+      },
+    }),
+  ];
+
+  manager.optInRecipes = actualRecipes;
+
+  const expectedRecipes = await ExperimentAPI.getFirefoxLabsOptInRecipes();
+
+  Assert.deepEqual(
+    expectedRecipes,
+    actualRecipes,
+    "Should return all opt in recipes that match targeting and bucketing"
+  );
+
+  sandbox.restore();
+});
+
+/**
+ * #enrollInFirefoxLabsOptInRecipe
+ */
+add_task(async function test_enrollInFirefoxLabsOptInRecipe() {
+  const sandbox = sinon.createSandbox();
+  const manager = ExperimentFakes.manager();
+  const managerEnrollStub = sandbox.stub(manager, "enroll").resolves(true);
+  sandbox.stub(RemoteSettingsExperimentLoader, "updatingRecipes").resolves();
+  sandbox.stub(ExperimentAPI, "_manager").get(() => manager);
+
+  const optInRecipes = [
+    ExperimentFakes.recipe("opt-in-one", {
+      targeting: "true",
+      isFirefoxLabsOptIn: true,
+      branches: [
+        {
+          slug: "branch-slug-one",
+          ratio: 1,
+          features: [{ featureId: "pink", value: {} }],
+        },
+      ],
+    }),
+    ExperimentFakes.recipe("opt-in-two", {
+      targeting: "true",
+      isFirefoxLabsOptIn: true,
+      branches: [
+        {
+          slug: "branch-slug-two",
+          ratio: 1,
+          features: [{ featureId: "pink", value: {} }],
+        },
+      ],
+    }),
+  ];
+
+  manager.optInRecipes = optInRecipes;
+
+  await Assert.rejects(
+    ExperimentAPI.enrollInFirefoxLabsOptInRecipe(),
+    /ExperimentAPI.enrollInFirefoxLabsOptInRecipe must be called with slug and optInRecipeBranchSlug./,
+    "Should throw when .enrollInFirefoxLabsOptInRecipe is called without a slug or optInRecipeBranchSlug argument"
+  );
+
+  await Assert.rejects(
+    ExperimentAPI.enrollInFirefoxLabsOptInRecipe("opt-in-one"),
+    /ExperimentAPI.enrollInFirefoxLabsOptInRecipe must be called with slug and optInRecipeBranchSlug./,
+    "Should throw when .enrollInFirefoxLabsOptInRecipe is called without a optInRecipeBranchSlug argument"
+  );
+
+  await ExperimentAPI.enrollInFirefoxLabsOptInRecipe(
+    "opt-in-one",
+    "branch-slug-one"
+  );
+  Assert.ok(
+    managerEnrollStub.calledOnceWith(optInRecipes[0], "rs-loader", {
+      optInRecipeBranchSlug: "branch-slug-one",
+    })
+  );
+
+  managerEnrollStub.reset();
+
+  // The ExperimentAPI._manager.getSingleOptInRecipe(slug) made inside this call
+  // should not return a recipe, hence the below enroll call won't be executed.
+  await ExperimentAPI.enrollInFirefoxLabsOptInRecipe(
+    "slug-non-existent",
+    "branch-slug-one"
+  );
+  Assert.equal(
+    managerEnrollStub.callCount,
+    0,
+    "Should not call the enroll function when no recipe is returned"
+  );
+
   sandbox.restore();
 });
