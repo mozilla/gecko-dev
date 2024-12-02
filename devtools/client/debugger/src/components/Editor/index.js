@@ -24,7 +24,6 @@ import {
   getSelectedSourceTextContent,
   getSelectedBreakableLines,
   getConditionalPanelLocation,
-  getSymbols,
   getIsCurrentThreadPaused,
   getSkipPausing,
   getInlinePreview,
@@ -113,7 +112,6 @@ class Editor extends PureComponent {
       updateCursorPosition: PropTypes.func.isRequired,
       jumpToMappedLocation: PropTypes.func.isRequired,
       selectedLocation: PropTypes.object,
-      symbols: PropTypes.object,
       startPanelSize: PropTypes.number.isRequired,
       endPanelSize: PropTypes.number.isRequired,
       searchInFileEnabled: PropTypes.bool.isRequired,
@@ -140,6 +138,7 @@ class Editor extends PureComponent {
   // FIXME: https://bugzilla.mozilla.org/show_bug.cgi?id=1774507
   UNSAFE_componentWillReceiveProps(nextProps) {
     let { editor } = this.state;
+    const prevEditor = editor;
 
     if (!editor) {
       // See Bug 1913061
@@ -158,7 +157,7 @@ class Editor extends PureComponent {
       if (shouldUpdateSize) {
         editor.codeMirror.setSize();
       }
-      this.setTextContent(nextProps, editor);
+      this.setTextContent(nextProps, editor, prevEditor);
       endOperation();
 
       if (this.props.selectedSource != nextProps.selectedSource) {
@@ -168,16 +167,17 @@ class Editor extends PureComponent {
       }
     } else {
       // For codemirror 6
-      this.setTextContent(nextProps, editor);
+      this.setTextContent(nextProps, editor, prevEditor);
     }
   }
 
-  async setTextContent(nextProps, editor) {
+  async setTextContent(nextProps, editor, prevEditor) {
     const shouldUpdateText =
       nextProps.selectedSource !== this.props.selectedSource ||
       nextProps.selectedSourceTextContent?.value !==
         this.props.selectedSourceTextContent?.value ||
-      nextProps.symbols !== this.props.symbols;
+      // If the selectedSource gets set before the editor get selected, make sure we update the text
+      prevEditor !== editor;
 
     const shouldScroll =
       nextProps.selectedLocation &&
@@ -727,9 +727,8 @@ class Editor extends PureComponent {
       !selectedSourceTextContent?.value &&
       nextProps.selectedSourceTextContent?.value;
     const locationChanged = selectedLocation !== nextProps.selectedLocation;
-    const symbolsChanged = nextProps.symbols != this.props.symbols;
 
-    return contentChanged || locationChanged || symbolsChanged;
+    return contentChanged || locationChanged;
   }
 
   scrollToLocation(nextProps, editor) {
@@ -746,7 +745,7 @@ class Editor extends PureComponent {
   }
 
   async setText(props, editor) {
-    const { selectedSource, selectedSourceTextContent, symbols } = props;
+    const { selectedSource, selectedSourceTextContent } = props;
 
     if (!editor) {
       return;
@@ -776,12 +775,7 @@ class Editor extends PureComponent {
     }
 
     if (!features.codemirrorNext) {
-      showSourceText(
-        editor,
-        selectedSource,
-        selectedSourceTextContent,
-        symbols
-      );
+      showSourceText(editor, selectedSource, selectedSourceTextContent);
     } else {
       await editor.setText(
         selectedSourceTextContent.value.value,
@@ -1038,7 +1032,6 @@ const mapStateToProps = state => {
       isSourceOnSourceMapIgnoreList(state, selectedSource),
     searchInFileEnabled: getActiveSearch(state) === "file",
     conditionalPanelLocation: getConditionalPanelLocation(state),
-    symbols: getSymbols(state, selectedLocation),
     isPaused: getIsCurrentThreadPaused(state),
     isTraceSelected: getSelectedTraceIndex(state) != null,
     skipPausing: getSkipPausing(state),

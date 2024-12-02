@@ -39088,14 +39088,6 @@ Please specify the "importAttributesKeyword" generator option, whose value can b
         extractFunctionSymbol(path, state, symbols);
       }
 
-      if (libExports$2.isJSXElement(path)) {
-        symbols.hasJsx = true;
-      }
-
-      if (libExports$2.isGenericTypeAnnotation(path)) {
-        symbols.hasTypes = true;
-      }
-
       if (libExports$2.isClassDeclaration(path)) {
         symbols.classes.push(getClassDeclarationSymbol(path.node));
       }
@@ -39132,6 +39124,27 @@ Please specify the "importAttributesKeyword" generator option, whose value can b
     }
 
     function extractSymbols(sourceId) {
+      // This is used in the main thread by:
+      // * The `getFunctionSymbols` function which is used by the Outline, QuickOpen panels.
+      // * The `getClosestFunctionName` function used in the mapping of frame function names.
+      // * The `findOutOfScopeLocations` function use to determine in scope lines.
+      // functions: symbols.functions,
+      // The three following attributes are only used by `findBestMatchExpression` within the worker thread
+      // `memberExpressions`, `literals`, `identifiers`
+      //
+      // These three memberExpressions, literals and identifiers attributes are arrays containing objects whose attributes are:
+      // * name: string
+      // * location: object {start: number, end: number}
+      // * expression: string
+      // * computed: boolean (only for memberExpressions)
+      //
+      // `findBestMatchExpression` uses `location`, `computed` and `expression` (not name).
+      //    `expression` isn't used from the worker thread implementation of `findBestMatchExpression`.
+      //    The main thread only uses `expression` and `location`.
+      // This is used by the `getClassSymbols` function in the Outline panel
+      // `classes`
+      // This is only used by `findOutOfScopeLocations`:
+      // `comments`
       const symbols = {
         functions: [],
         memberExpressions: [],
@@ -39142,8 +39155,6 @@ Please specify the "importAttributesKeyword" generator option, whose value can b
         identifiersKeys: new Set(),
         classes: [],
         literals: [],
-        hasJsx: false,
-        hasTypes: false,
         importsReact: false,
       };
 
@@ -39431,38 +39442,10 @@ Please specify the "importAttributesKeyword" generator option, whose value can b
     }
 
     // This is only called from the main thread and we return a subset of attributes
+    // Note: This is now used just to trigger the parser
     function getSymbols(sourceId) {
-      const symbols = getInternalSymbols(sourceId);
-      return {
-        // This is used in the main thread by:
-        // * The `getFunctionSymbols` function which is used by the Outline, QuickOpen panels.
-        // * The `getClosestFunctionName` function used in the mapping of frame function names.
-        // * The `findOutOfScopeLocations` function use to determine in scope lines.
-        // functions: symbols.functions,
-
-        // The three following attributes are only used by `findBestMatchExpression` within the worker thread
-        // `memberExpressions`, `literals`, `identifiers`
-        //
-        // These three memberExpressions, literals and identifiers attributes are arrays containing objects whose attributes are:
-        // * name: string
-        // * location: object {start: number, end: number}
-        // * expression: string
-        // * computed: boolean (only for memberExpressions)
-        //
-        // `findBestMatchExpression` uses `location`, `computed` and `expression` (not name).
-        //    `expression` isn't used from the worker thread implementation of `findBestMatchExpression`.
-        //    The main thread only uses `expression` and `location`.
-
-        // This is used by the `getClassSymbols` function in the Outline panel
-        // `classes`
-
-        // The two following are only used by the main thread for computing CodeMirror "mode"
-        hasJsx: symbols.hasJsx,
-        hasTypes: symbols.hasTypes,
-
-        // This is only used by `findOutOfScopeLocations`:
-        // `comments`
-      };
+      getInternalSymbols(sourceId);
+      return {};
     }
 
     function getMemberExpressionSymbol(path) {

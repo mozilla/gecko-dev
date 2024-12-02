@@ -9,18 +9,6 @@ import {
   makeMockWasmSourceWithContent,
 } from "../../test-mockup";
 
-const defaultSymbolDeclarations = {
-  classes: [],
-  functions: [],
-  memberExpressions: [],
-  objectProperties: [],
-  identifiers: [],
-  comments: [],
-  literals: [],
-  hasJsx: false,
-  hasTypes: false,
-};
-
 describe("source-documents", () => {
   describe("getMode", () => {
     it("//", () => {
@@ -77,21 +65,6 @@ describe("source-documents", () => {
         "<h1></h1>"
       );
       expect(getMode(source, source.content)).toEqual({ name: "jsx" });
-    });
-
-    it("returns jsx if sourceMetaData says it's a react component", () => {
-      const source = makeMockSourceWithContent(
-        undefined,
-        undefined,
-        "",
-        "<h1></h1>"
-      );
-      expect(
-        getMode(source, source.content, {
-          ...defaultSymbolDeclarations,
-          hasJsx: true,
-        })
-      ).toEqual({ name: "jsx" });
     });
 
     it("returns jsx if the fileExtension is .jsx", () => {
