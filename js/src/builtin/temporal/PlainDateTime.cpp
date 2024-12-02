@@ -863,8 +863,8 @@ static bool DifferenceISODateTime(JSContext* cx, const PlainDateTime& one,
   }
 
   // Step 14.
-  return CreateNormalizedDurationRecord(cx, dateDifference, timeDuration,
-                                        result);
+  return CombineDateAndNormalizedTimeDuration(cx, dateDifference, timeDuration,
+                                              result);
 }
 
 /**
@@ -1160,7 +1160,7 @@ static bool AddDurationToOrSubtractDurationFromPlainDateTime(
   if (operation == PlainDateTimeDuration::Subtract) {
     duration = duration.negate();
   }
-  auto normalized = CreateNormalizedDurationRecord(duration);
+  auto normalized = NormalizeDuration(duration);
 
   // Step 6
   PlainDateTime result;

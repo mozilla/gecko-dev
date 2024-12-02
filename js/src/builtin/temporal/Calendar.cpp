@@ -3931,7 +3931,7 @@ bool js::temporal::CalendarDateAdd(
   MOZ_ASSERT(IsValidDuration(duration));
 
   // Step 1.
-  auto normalized = CreateNormalizedDurationRecord(duration);
+  auto normalized = NormalizeDuration(duration);
 
   // Step 2.
   auto balanceResult = BalanceTimeDuration(normalized.time, TemporalUnit::Day);

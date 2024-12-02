@@ -190,30 +190,24 @@ bool Add24HourDaysToNormalizedTimeDuration(JSContext* cx,
                                            NormalizedTimeDuration* result);
 
 /**
- * CreateNormalizedDurationRecord ( years, months, weeks, days, norm )
+ * NormalizeDuration ( duration )
  */
-inline NormalizedDuration CreateNormalizedDurationRecord(
-    const DateDuration& date, const NormalizedTimeDuration& time) {
-  MOZ_ASSERT(IsValidDuration(date));
-  MOZ_ASSERT(IsValidNormalizedTimeDuration(time));
-#ifdef DEBUG
-  int64_t dateValues = date.years | date.months | date.weeks | date.days;
-  int32_t dateSign = dateValues ? dateValues < 0 ? -1 : 1 : 0;
-  int32_t timeSign = NormalizedTimeDurationSign(time);
-  MOZ_ASSERT((dateSign * timeSign) >= 0);
-#endif
+inline NormalizedDuration NormalizeDuration(const Duration& duration) {
+  MOZ_ASSERT(IsValidDuration(duration));
 
-  return {date, time};
+  // Steps 1-3.
+  return {duration.toDateDuration(), NormalizeTimeDuration(duration)};
 }
 
 /**
- * CreateNormalizedDurationRecord ( years, months, weeks, days, norm )
+ * NormalizeDurationWith24HourDays ( duration )
  */
-inline NormalizedDuration CreateNormalizedDurationRecord(
-    const Duration& duration) {
-  return CreateNormalizedDurationRecord(duration.toDateDuration(),
-                                        NormalizeTimeDuration(duration));
-}
+NormalizedDuration NormalizeDurationWith24HourDays(const Duration& duration);
+
+/**
+ * NormalizeDurationWithoutTime ( duration )
+ */
+DateDuration NormalizeDurationWithoutTime(const Duration& duration);
 
 /**
  * CombineDateAndNormalizedTimeDuration ( dateDurationRecord, norm )
@@ -222,16 +216,6 @@ bool CombineDateAndNormalizedTimeDuration(JSContext* cx,
                                           const DateDuration& date,
                                           const NormalizedTimeDuration& time,
                                           NormalizedDuration* result);
-
-/**
- * CreateNormalizedDurationRecord ( years, months, weeks, days, norm )
- */
-inline bool CreateNormalizedDurationRecord(JSContext* cx,
-                                           const DateDuration& date,
-                                           const NormalizedTimeDuration& time,
-                                           NormalizedDuration* result) {
-  return CombineDateAndNormalizedTimeDuration(cx, date, time, result);
-}
 
 /**
  * NormalizedTimeDurationFromEpochNanosecondsDifference ( one, two )
