@@ -2610,8 +2610,10 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
    * **expected**: pass
    * **expose browser profiler**: true
    * **gather cpuTime**: true
+   * **gecko profile features**: stackwalk,js,cpu,processcpu,ipcmessages,nomarkerstacks
    * **gecko profile interval**: 1
-   * **link searchfox**: `<https://searchfox.org/mozilla-central/source/testing/raptor/raptor/tests/benchmarks/speedometer-desktop.toml#17>`__
+   * **gecko profile threads**: GeckoMain,Compositor,Renderer,TaskController,StyleThread
+   * **link searchfox**: `<https://searchfox.org/mozilla-central/source/testing/raptor/raptor/tests/benchmarks/speedometer-desktop.toml#19>`__
    * **lower is better**: false
    * **page cycles**: 5
    * **page timeout**: 600000
@@ -3029,8 +3031,10 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
    * **expected**: pass
    * **expose browser profiler**: true
    * **gather cpuTime**: true
+   * **gecko profile features**: stackwalk,js,cpu,processcpu,ipcmessages,nomarkerstacks
    * **gecko profile interval**: 1
-   * **link searchfox**: `<https://searchfox.org/mozilla-central/source/testing/raptor/raptor/tests/benchmarks/speedometer-mobile.toml#17>`__
+   * **gecko profile threads**: GeckoMain,Compositor,Renderer,TaskController,StyleThread
+   * **link searchfox**: `<https://searchfox.org/mozilla-central/source/testing/raptor/raptor/tests/benchmarks/speedometer-mobile.toml#19>`__
    * **lower is better**: false
    * **page cycles**: 5
    * **page timeout**: 420000
@@ -3460,9 +3464,11 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
    * **expected**: pass
    * **expose browser profiler**: true
    * **gather cpuTime**: true
+   * **gecko profile features**: stackwalk,js,cpu,processcpu,ipcmessages,nomarkerstacks
    * **gecko profile interval**: 1
+   * **gecko profile threads**: GeckoMain,Compositor,Renderer,TaskController,StyleThread
    * **host from parent**: false
-   * **link searchfox**: `<https://searchfox.org/mozilla-central/source/testing/raptor/raptor/tests/benchmarks/speedometer-desktop.toml#19>`__
+   * **link searchfox**: `<https://searchfox.org/mozilla-central/source/testing/raptor/raptor/tests/benchmarks/speedometer-desktop.toml#21>`__
    * **lower is better**: false
    * **page cycles**: 5
    * **page timeout**: 600000
@@ -3952,9 +3958,11 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
    * **expected**: pass
    * **expose browser profiler**: true
    * **gather cpuTime**: true
+   * **gecko profile features**: stackwalk,js,cpu,processcpu,ipcmessages,nomarkerstacks
    * **gecko profile interval**: 1
+   * **gecko profile threads**: GeckoMain,Compositor,Renderer,TaskController,StyleThread
    * **host from parent**: false
-   * **link searchfox**: `<https://searchfox.org/mozilla-central/source/testing/raptor/raptor/tests/benchmarks/speedometer-mobile.toml#19>`__
+   * **link searchfox**: `<https://searchfox.org/mozilla-central/source/testing/raptor/raptor/tests/benchmarks/speedometer-mobile.toml#21>`__
    * **lower is better**: false
    * **page cycles**: 5
    * **page timeout**: 420000
