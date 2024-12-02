@@ -5,6 +5,7 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+import math
 import os
 import re
 import shutil
@@ -468,13 +469,22 @@ def insertMeta(source: bytes, frontmatter: "dict[str, Any]") -> bytes:
         if key in ("description", "info"):
             lines.append(b"%s: |" % key.encode("ascii"))
             lines.append(
-                b"  "
-                + yaml.dump(
+                yaml.dump(
                     value,
                     encoding="utf8",
+                    default_style="|",
+                    default_flow_style=False,
+                    allow_unicode=True,
                 )
                 .strip()
-                .replace(b"\n...", b"")
+                .replace(b"|-\n", b"")
+            )
+        elif key == "includes":
+            lines.append(
+                b"includes: "
+                + yaml.dump(
+                    value, encoding="utf8", default_flow_style=True, width=math.inf
+                ).strip()
             )
         else:
             lines.append(
