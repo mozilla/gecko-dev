@@ -144,6 +144,14 @@ skip-if = [
 
 ["browser_toolbox_browsertoolbox_host.js"]
 
+["browser_toolbox_connecting_with_frozen_process.js"]
+skip-if = [
+  "debug",
+  "tsan",
+  "asan",
+  "ccov",
+]
+
 ["browser_toolbox_contentpage_contextmenu.js"]
 
 ["browser_toolbox_disable_f12.js"]

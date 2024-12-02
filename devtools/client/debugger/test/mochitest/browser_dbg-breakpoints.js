@@ -139,8 +139,21 @@ async function enableBreakpoint(dbg, index) {
 }
 
 async function cleanupBreakpoints(dbg) {
+  ok(
+    findBreakpoint(dbg, "simple2.js", 3),
+    "Breakpoint on line 3 exists before trying to remove it"
+  );
+  let dispatched = waitForDispatch(dbg.store, "REMOVE_BREAKPOINT");
   clickElement(dbg, "gutterElement", 3);
-  clickElement(dbg, "gutterElement", 5);
+  await dispatched;
   await waitForBreakpointRemoved(dbg, "simple2.js", 3);
+
+  // Breakpoint on line 5 doesn't always exists
+  if (!findBreakpoint(dbg, "simple2.js", 5)) {
+    return;
+  }
+  dispatched = waitForDispatch(dbg.store, "REMOVE_BREAKPOINT");
+  clickElement(dbg, "gutterElement", 5);
+  await dispatched;
   await waitForBreakpointRemoved(dbg, "simple2.js", 5);
 }
