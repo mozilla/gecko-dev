@@ -4,7 +4,7 @@
 
 export const Census = {};
 function dumpn(msg) {
-  dump("DBG-TEST: Census.jsm: " + msg + "\n");
+  dump("DBG-TEST: Census.sys.mjs: " + msg + "\n");
 }
 
 // Census.walkCensus(subject, name, walker)
