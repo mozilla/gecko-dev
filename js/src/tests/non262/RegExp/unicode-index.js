@@ -1,3 +1,6 @@
+// SKIP test262 export
+// Test does not match the current specification.
+
 var BUGNUMBER = 1135377;
 var summary = "Implement RegExp unicode flag -- Pattern match should start from lead surrogate when lastIndex points corresponding trail surrogate.";
 

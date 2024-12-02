@@ -1,3 +1,6 @@
+// SKIP test262 export
+// Pending review.
+
 // Test scope lookups are executed in the correct order.
 
 function createScope() {

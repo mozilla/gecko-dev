@@ -1,3 +1,6 @@
+// SKIP test262 export
+// Pending review.
+
 // Test when a declarative binding is deleted.
 
 // ES2020, 8.1.1.1.5 SetMutableBinding ( N, V, S )

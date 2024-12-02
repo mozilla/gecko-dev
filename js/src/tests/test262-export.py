@@ -65,6 +65,64 @@ def findAndCopyIncludes(dirPath: str, baseDir: str, includeDir: str) -> "list[st
     return includes
 
 
+UNSUPPORTED_CODE: list[bytes] = [
+    b"// SKIP test262 export",
+    b"inTimeZone(",
+    b"getTimeZone(",
+    b"setTimeZone(",
+    b"getAvailableLocalesOf(",
+    b"uneval(",
+    b"Debugger",
+    b"SpecialPowers",
+    b"evalcx(",
+    b"evaluate(",
+    b"drainJobQueue(",
+    b"getPromiseResult(",
+    b"assertEventuallyEq(",
+    b"assertEventuallyThrows(",
+    b"settlePromiseNow(",
+    b"setPromiseRejectionTrackerCallback",
+    b"displayName(",
+    b"InternalError",
+    b"toSource(",
+    b"toSource.call(",
+    b"isRope(",
+    b"isSameCompartment(",
+    b"isCCW",
+    b"nukeCCW",
+    b"representativeStringArray(",
+    b"largeArrayBufferSupported(",
+    b"helperThreadCount(",
+    b"serialize(",
+    b"deserialize(",
+    b"clone_object_check",
+    b"grayRoot(",
+    b"blackRoot(",
+    b"gczeal",
+    b"getSelfHostedValue(",
+    b"oomTest(",
+    b"assertLineAndColumn(",
+    b"wrapWithProto(",
+    b"Reflect.parse(",
+    b"relazifyFunctions(",
+    b"ignoreUnhandledRejections",
+    b".lineNumber",
+    b"expectExitCode",
+    b"loadRelativeToScript",
+    b"XorShiftGenerator",
+]
+
+
+def skipTest(source: bytes) -> Optional[bytes]:
+    if b"This Source Code Form is subject to the terms of the Mozilla Public" in source:
+        return b"MPL license"
+    for c in UNSUPPORTED_CODE:
+        if c in source:
+            return c
+
+    return None
+
+
 def convertTestFile(source: bytes, includes: "list[str]") -> bytes:
     """
     Convert a jstest test to a compatible Test262 test file.
@@ -465,6 +523,13 @@ def exportTest262(
 
                 if not testSource:
                     print("SKIPPED %s" % testName)
+                    continue
+
+                skip = skipTest(testSource)
+                if skip is not None:
+                    print(
+                        f"SKIPPED {testName} because file contains {skip.decode('ascii')}"
+                    )
                     continue
 
                 newSource = convertTestFile(testSource, includes)

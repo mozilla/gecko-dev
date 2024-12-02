@@ -1,3 +1,6 @@
+// SKIP test262 export
+// Behavior is not currently specified.
+
 let dates = [
     "0217-09-23", "+000217-09-23", "-000217-09-23",
     "2017-09-23", "+002017-09-23", "-002017-09-23",

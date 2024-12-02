@@ -3,6 +3,9 @@
  * http://creativecommons.org/licenses/publicdomain/
  */
 
+// SKIP test262 export
+// columnNumber is not specified.
+
 var BUGNUMBER = 568142;
 var summary = 'error reporting blames column as well as line';
 

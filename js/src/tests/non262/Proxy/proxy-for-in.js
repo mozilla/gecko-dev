@@ -1,5 +1,9 @@
 // Any copyright is dedicated to the Public Domain.
 // http://creativecommons.org/licenses/publicdomain/
+
+// SKIP test262 export
+// Pending review.
+
 "use strict";
 
 let steps = [];
