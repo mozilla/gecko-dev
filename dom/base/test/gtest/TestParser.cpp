@@ -29,7 +29,7 @@ TEST(TestParser, TestParserMain)
     RefPtr<mozilla::dom::DOMParser> parser =
         mozilla::dom::DOMParser::CreateWithoutGlobal(rv2);
     if (rv2.Failed()) break;
-    nsCOMPtr<mozilla::dom::Document> document = parser->ParseFromString(
+    nsCOMPtr<mozilla::dom::Document> document = parser->ParseFromStringInternal(
         htmlInput, mozilla::dom::SupportedType::Text_html, rv2);
     if (rv2.Failed()) break;
 

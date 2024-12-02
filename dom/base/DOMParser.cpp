@@ -25,6 +25,8 @@
 #include "mozilla/dom/BindingUtils.h"
 #include "mozilla/dom/Document.h"
 #include "mozilla/dom/ScriptSettings.h"
+#include "mozilla/dom/TrustedTypeUtils.h"
+#include "mozilla/dom/TrustedTypesConstants.h"
 
 using namespace mozilla;
 using namespace mozilla::dom;
@@ -53,9 +55,8 @@ NS_IMPL_CYCLE_COLLECTION_WRAPPERCACHE(DOMParser, mOwner)
 NS_IMPL_CYCLE_COLLECTING_ADDREF(DOMParser)
 NS_IMPL_CYCLE_COLLECTING_RELEASE(DOMParser)
 
-already_AddRefed<Document> DOMParser::ParseFromString(const nsAString& aStr,
-                                                      SupportedType aType,
-                                                      ErrorResult& aRv) {
+already_AddRefed<Document> DOMParser::ParseFromStringInternal(
+    const nsAString& aStr, SupportedType aType, ErrorResult& aRv) {
   if (aType == SupportedType::Text_html) {
     nsCOMPtr<Document> document = SetUpDocument(DocumentFlavorHTML, aRv);
     if (NS_WARN_IF(aRv.Failed())) {
@@ -99,6 +100,24 @@ already_AddRefed<Document> DOMParser::ParseFromString(const nsAString& aStr,
   return ParseFromStream(stream, u"UTF-8"_ns, utf8str.Length(), aType, aRv);
 }
 
+already_AddRefed<Document> DOMParser::ParseFromString(
+    const TrustedHTMLOrString& aStr, SupportedType aType, ErrorResult& aRv) {
+  constexpr nsLiteralString sink = u"DOMParser parseFromString"_ns;
+
+  MOZ_ASSERT(mOwner);
+  nsCOMPtr<nsIGlobalObject> pinnedOwner = mOwner;
+  Maybe<nsAutoString> compliantStringHolder;
+  const nsAString* compliantString =
+      TrustedTypeUtils::GetTrustedTypesCompliantString(
+          aStr, sink, kTrustedTypesOnlySinkGroup, *pinnedOwner,
+          compliantStringHolder, aRv);
+  if (aRv.Failed()) {
+    return nullptr;
+  }
+
+  return ParseFromStringInternal(*compliantString, aType, aRv);
+}
+
 already_AddRefed<Document> DOMParser::ParseFromSafeString(const nsAString& aStr,
                                                           SupportedType aType,
                                                           ErrorResult& aRv) {
@@ -111,7 +130,7 @@ already_AddRefed<Document> DOMParser::ParseFromSafeString(const nsAString& aStr,
     mPrincipal = mOwner->PrincipalOrNull();
   }
 
-  RefPtr<Document> ret = ParseFromString(aStr, aType, aRv);
+  RefPtr<Document> ret = ParseFromStringInternal(aStr, aType, aRv);
   mPrincipal = docPrincipal;
   return ret.forget();
 }

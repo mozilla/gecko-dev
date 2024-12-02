@@ -37,7 +37,8 @@ TEST(TestXMLSerializerNoBreakLink, TestXMLSerializerNoBreakLinkMain)
     IgnoredErrorResult rv;
     RefPtr<DOMParser> parser = DOMParser::CreateWithoutGlobal(rv);
     ASSERT_FALSE(rv.Failed());
-    document = parser->ParseFromString(htmlInput, SupportedType::Text_html, rv);
+    document = parser->ParseFromStringInternal(htmlInput,
+                                               SupportedType::Text_html, rv);
     ASSERT_FALSE(rv.Failed());
   }
 
