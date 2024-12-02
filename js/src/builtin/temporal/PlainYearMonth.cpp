@@ -823,7 +823,7 @@ static bool PlainYearMonth_era(JSContext* cx, const CallArgs& args) {
   auto* yearMonth = &args.thisv().toObject().as<PlainYearMonthObject>();
   Rooted<CalendarValue> calendar(cx, yearMonth->calendar());
 
-  // Steps 3-4.
+  // Step 3.
   return CalendarEra(cx, calendar, ToPlainDate(yearMonth), args.rval());
 }
 
@@ -843,7 +843,7 @@ static bool PlainYearMonth_eraYear(JSContext* cx, const CallArgs& args) {
   auto* yearMonth = &args.thisv().toObject().as<PlainYearMonthObject>();
   Rooted<CalendarValue> calendar(cx, yearMonth->calendar());
 
-  // Steps 3-6.
+  // Steps 3-5.
   return CalendarEraYear(cx, calendar, ToPlainDate(yearMonth), args.rval());
 }
 
@@ -864,7 +864,7 @@ static bool PlainYearMonth_year(JSContext* cx, const CallArgs& args) {
   auto* yearMonth = &args.thisv().toObject().as<PlainYearMonthObject>();
   Rooted<CalendarValue> calendar(cx, yearMonth->calendar());
 
-  // Steps 3-4.
+  // Step 3.
   return CalendarYear(cx, calendar, ToPlainDate(yearMonth), args.rval());
 }
 
@@ -884,7 +884,7 @@ static bool PlainYearMonth_month(JSContext* cx, const CallArgs& args) {
   auto* yearMonth = &args.thisv().toObject().as<PlainYearMonthObject>();
   Rooted<CalendarValue> calendar(cx, yearMonth->calendar());
 
-  // Steps 3-4.
+  // Step 3.
   return CalendarMonth(cx, calendar, ToPlainDate(yearMonth), args.rval());
 }
 
@@ -904,7 +904,7 @@ static bool PlainYearMonth_monthCode(JSContext* cx, const CallArgs& args) {
   auto* yearMonth = &args.thisv().toObject().as<PlainYearMonthObject>();
   Rooted<CalendarValue> calendar(cx, yearMonth->calendar());
 
-  // Steps 3-4.
+  // Step 3.
   return CalendarMonthCode(cx, calendar, ToPlainDate(yearMonth), args.rval());
 }
 
@@ -925,7 +925,7 @@ static bool PlainYearMonth_daysInYear(JSContext* cx, const CallArgs& args) {
   auto* yearMonth = &args.thisv().toObject().as<PlainYearMonthObject>();
   Rooted<CalendarValue> calendar(cx, yearMonth->calendar());
 
-  // Steps 3-4.
+  // Step 3.
   return CalendarDaysInYear(cx, calendar, ToPlainDate(yearMonth), args.rval());
 }
 
@@ -946,7 +946,7 @@ static bool PlainYearMonth_daysInMonth(JSContext* cx, const CallArgs& args) {
   auto* yearMonth = &args.thisv().toObject().as<PlainYearMonthObject>();
   Rooted<CalendarValue> calendar(cx, yearMonth->calendar());
 
-  // Steps 3-4.
+  // Step 3.
   return CalendarDaysInMonth(cx, calendar, ToPlainDate(yearMonth), args.rval());
 }
 
@@ -968,7 +968,7 @@ static bool PlainYearMonth_monthsInYear(JSContext* cx, const CallArgs& args) {
   auto* yearMonth = &args.thisv().toObject().as<PlainYearMonthObject>();
   Rooted<CalendarValue> calendar(cx, yearMonth->calendar());
 
-  // Steps 3-4.
+  // Step 3.
   return CalendarMonthsInYear(cx, calendar, ToPlainDate(yearMonth),
                               args.rval());
 }
@@ -991,7 +991,7 @@ static bool PlainYearMonth_inLeapYear(JSContext* cx, const CallArgs& args) {
   auto* yearMonth = &args.thisv().toObject().as<PlainYearMonthObject>();
   Rooted<CalendarValue> calendar(cx, yearMonth->calendar());
 
-  // Steps 3-4.
+  // Step 3.
   return CalendarInLeapYear(cx, calendar, ToPlainDate(yearMonth), args.rval());
 }
 

@@ -269,100 +269,132 @@ bool CalendarDateUntil(JSContext* cx, JS::Handle<CalendarValue> calendar,
                        TemporalUnit largestUnit, DateDuration* result);
 
 /**
- * CalendarEra ( dateLike )
+ * CalendarISOToDate ( calendar, isoDate )
+ *
+ * When accessing the [[Era]] of the returned Calendar Date Record.
  */
 bool CalendarEra(JSContext* cx, JS::Handle<CalendarValue> calendar,
                  const PlainDate& date, JS::MutableHandle<JS::Value> result);
 
 /**
- * CalendarEraYear ( dateLike )
+ * CalendarISOToDate ( calendar, isoDate )
+ *
+ * When accessing the [[EraYear]] of the returned Calendar Date Record.
  */
 bool CalendarEraYear(JSContext* cx, JS::Handle<CalendarValue> calendar,
                      const PlainDate& date,
                      JS::MutableHandle<JS::Value> result);
 /**
- * CalendarYear ( dateLike )
+ * CalendarISOToDate ( calendar, isoDate )
+ *
+ * When accessing the [[Year]] of the returned Calendar Date Record.
  */
 bool CalendarYear(JSContext* cx, JS::Handle<CalendarValue> calendar,
                   const PlainDate& date, JS::MutableHandle<JS::Value> result);
 
 /**
- * CalendarMonth ( dateLike )
+ * CalendarISOToDate ( calendar, isoDate )
+ *
+ * When accessing the [[Month]] of the returned Calendar Date Record.
  */
 bool CalendarMonth(JSContext* cx, JS::Handle<CalendarValue> calendar,
                    const PlainDate& date, JS::MutableHandle<JS::Value> result);
 
 /**
- * CalendarMonthCode ( dateLike )
+ * CalendarISOToDate ( calendar, isoDate )
+ *
+ * When accessing the [[MonthCode]] of the returned Calendar Date Record.
  */
 bool CalendarMonthCode(JSContext* cx, JS::Handle<CalendarValue> calendar,
                        const PlainDate& date,
                        JS::MutableHandle<JS::Value> result);
 
 /**
- * CalendarDay ( dateLike )
+ * CalendarISOToDate ( calendar, isoDate )
+ *
+ * When accessing the [[Day]] of the returned Calendar Date Record.
  */
 bool CalendarDay(JSContext* cx, JS::Handle<CalendarValue> calendar,
                  const PlainDate& date, JS::MutableHandle<JS::Value> result);
 
 /**
- * CalendarDayOfWeek ( dateLike )
+ * CalendarISOToDate ( calendar, isoDate )
+ *
+ * When accessing the [[DayOfWeek]] of the returned Calendar Date Record.
  */
 bool CalendarDayOfWeek(JSContext* cx, JS::Handle<CalendarValue> calendar,
                        const PlainDate& date,
                        JS::MutableHandle<JS::Value> result);
 
 /**
- * CalendarDayOfYear ( dateLike )
+ * CalendarISOToDate ( calendar, isoDate )
+ *
+ * When accessing the [[DayOfYear]] of the returned Calendar Date Record.
  */
 bool CalendarDayOfYear(JSContext* cx, JS::Handle<CalendarValue> calendar,
                        const PlainDate& date,
                        JS::MutableHandle<JS::Value> result);
 
 /**
- * CalendarWeekOfYear ( dateLike )
+ * CalendarISOToDate ( calendar, isoDate )
+ *
+ * When accessing the [[Week]] field of the [[WeekOfYear]] of the returned
+ * Calendar Date Record.
  */
 bool CalendarWeekOfYear(JSContext* cx, JS::Handle<CalendarValue> calendar,
                         const PlainDate& date,
                         JS::MutableHandle<JS::Value> result);
 
 /**
- * CalendarYearOfWeek ( dateLike )
+ * CalendarISOToDate ( calendar, isoDate )
+ *
+ * When accessing the [[Year]] field of the [[WeekOfYear]] of the returned
+ * Calendar Date Record.
  */
 bool CalendarYearOfWeek(JSContext* cx, JS::Handle<CalendarValue> calendar,
                         const PlainDate& date,
                         JS::MutableHandle<JS::Value> result);
 
 /**
- * CalendarDaysInWeek ( dateLike )
+ * * CalendarISOToDate ( calendar, isoDate )
+ *
+ * When accessing the [[DaysInWeek]] of the returned Calendar Date Record.
  */
 bool CalendarDaysInWeek(JSContext* cx, JS::Handle<CalendarValue> calendar,
                         const PlainDate& date,
                         JS::MutableHandle<JS::Value> result);
 
 /**
- * CalendarDaysInMonth ( dateLike )
+ * * CalendarISOToDate ( calendar, isoDate )
+ *
+ * When accessing the [[DaysInMonth]] of the returned Calendar Date Record.
  */
 bool CalendarDaysInMonth(JSContext* cx, JS::Handle<CalendarValue> calendar,
                          const PlainDate& date,
                          JS::MutableHandle<JS::Value> result);
 
 /**
- * CalendarDaysInYear ( dateLike )
+ * CalendarISOToDate ( calendar, isoDate )
+ *
+ * When accessing the [[DaysInYear]] of the returned Calendar Date Record.
  */
 bool CalendarDaysInYear(JSContext* cx, JS::Handle<CalendarValue> calendar,
                         const PlainDate& date,
                         JS::MutableHandle<JS::Value> result);
 
 /**
- * CalendarMonthsInYear ( dateLike )
+ * * CalendarISOToDate ( calendar, isoDate )
+ *
+ * When accessing the [[MonthsInYear]] of the returned Calendar Date Record.
  */
 bool CalendarMonthsInYear(JSContext* cx, JS::Handle<CalendarValue> calendar,
                           const PlainDate& date,
                           JS::MutableHandle<JS::Value> result);
 
 /**
- * CalendarInLeapYear ( dateLike )
+ * CalendarISOToDate ( calendar, isoDate )
+ *
+ * When accessing the [[InLeapYear]] of the returned Calendar Date Record.
  */
 bool CalendarInLeapYear(JSContext* cx, JS::Handle<CalendarValue> calendar,
                         const PlainDate& date,

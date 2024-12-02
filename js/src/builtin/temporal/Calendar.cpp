@@ -407,17 +407,6 @@ static YearWeek ToISOWeekOfYear(const PlainDate& date) {
 }
 
 /**
- * ISOMonthCode ( month )
- */
-static JSString* ISOMonthCode(JSContext* cx, int32_t month) {
-  MOZ_ASSERT(1 <= month && month <= 12);
-
-  // Steps 1-2.
-  char monthCode[3] = {'M', char('0' + (month / 10)), char('0' + (month % 10))};
-  return NewStringCopyN<CanGC>(cx, monthCode, std::size(monthCode));
-}
-
-/**
  * Return the BCP-47 string for the given calendar id.
  */
 static std::string_view CalendarIdToBcp47(CalendarId id) {
@@ -1567,7 +1556,8 @@ static constexpr size_t ICUEraNameMaxLength() {
 }
 
 /**
- * CalendarDateEra ( calendar, date )
+ * Retrieve the era code from |date| and then map the returned ICU4X era code to
+ * the corresponding |EraCode| member.
  */
 static bool CalendarDateEra(JSContext* cx, CalendarId calendar,
                             const capi::ICU4XDate* date, EraCode* result) {
@@ -1606,7 +1596,7 @@ static bool CalendarDateEra(JSContext* cx, CalendarId calendar,
 }
 
 /**
- * CalendarDateYear ( calendar, date )
+ * Return the extended (non-era) year from |date|.
  */
 static bool CalendarDateYear(JSContext* cx, CalendarId calendar,
                              const capi::ICU4XDate* date, int32_t* result) {
@@ -1664,7 +1654,8 @@ static bool CalendarDateYear(JSContext* cx, CalendarId calendar,
 }
 
 /**
- * CalendarDateMonthCode ( calendar, date )
+ * Retrieve the month code from |date| and then map the returned ICU4X month
+ * code to the corresponding |MonthCode| member.
  */
 static bool CalendarDateMonthCode(JSContext* cx, CalendarId calendar,
                                   const capi::ICU4XDate* date,
@@ -1717,530 +1708,6 @@ static bool CalendarDateMonthCode(JSContext* cx, CalendarId calendar,
   MOZ_ASSERT(CalendarMonthCodes(calendar).contains(monthCode));
 
   *result = monthCode;
-  return true;
-}
-
-/**
- * CalendarDateEra ( calendar, date )
- */
-static bool CalendarDateEra(JSContext* cx, CalendarId calendar,
-                            const PlainDate& date,
-                            MutableHandle<Value> result) {
-  MOZ_ASSERT(calendar != CalendarId::ISO8601);
-
-  if (!CalendarEraRelevant(calendar)) {
-    result.setUndefined();
-    return true;
-  }
-
-  auto cal = CreateICU4XCalendar(cx, calendar);
-  if (!cal) {
-    return false;
-  }
-
-  auto dt = CreateICU4XDate(cx, date, cal.get());
-  if (!dt) {
-    return false;
-  }
-
-  EraCode era;
-  if (!CalendarDateEra(cx, calendar, dt.get(), &era)) {
-    return false;
-  }
-
-  auto* str = NewStringCopy<CanGC>(cx, CalendarEraName(calendar, era));
-  if (!str) {
-    return false;
-  }
-
-  result.setString(str);
-  return true;
-}
-
-/**
- * CalendarDateEraYear ( calendar, date )
- */
-static bool CalendarDateEraYear(JSContext* cx, CalendarId calendar,
-                                const PlainDate& date,
-                                MutableHandle<Value> result) {
-  MOZ_ASSERT(calendar != CalendarId::ISO8601);
-
-  if (!CalendarEraRelevant(calendar)) {
-    result.setUndefined();
-    return true;
-  }
-
-  auto cal = CreateICU4XCalendar(cx, calendar);
-  if (!cal) {
-    return false;
-  }
-
-  auto dt = CreateICU4XDate(cx, date, cal.get());
-  if (!dt) {
-    return false;
-  }
-
-  int32_t year = capi::ICU4XDate_year_in_era(dt.get());
-  result.setInt32(year);
-  return true;
-}
-
-/**
- * CalendarDateYear ( calendar, date )
- */
-static bool CalendarDateYear(JSContext* cx, CalendarId calendar,
-                             const PlainDate& date,
-                             MutableHandle<Value> result) {
-  MOZ_ASSERT(calendar != CalendarId::ISO8601);
-
-  auto cal = CreateICU4XCalendar(cx, calendar);
-  if (!cal) {
-    return false;
-  }
-
-  auto dt = CreateICU4XDate(cx, date, cal.get());
-  if (!dt) {
-    return false;
-  }
-
-  int32_t year;
-  if (!CalendarDateYear(cx, calendar, dt.get(), &year)) {
-    return false;
-  }
-
-  result.setInt32(year);
-  return true;
-}
-
-/**
- * CalendarDateMonth ( calendar, date )
- */
-static bool CalendarDateMonth(JSContext* cx, CalendarId calendar,
-                              const PlainDate& date,
-                              MutableHandle<Value> result) {
-  MOZ_ASSERT(calendar != CalendarId::ISO8601);
-
-  auto cal = CreateICU4XCalendar(cx, calendar);
-  if (!cal) {
-    return false;
-  }
-
-  auto dt = CreateICU4XDate(cx, date, cal.get());
-  if (!dt) {
-    return false;
-  }
-
-  int32_t month = capi::ICU4XDate_ordinal_month(dt.get());
-  result.setInt32(month);
-  return true;
-}
-
-/**
- * CalendarDateMonthCode ( calendar, date )
- */
-static bool CalendarDateMonthCode(JSContext* cx, CalendarId calendar,
-                                  const PlainDate& date,
-                                  MutableHandle<Value> result) {
-  MOZ_ASSERT(calendar != CalendarId::ISO8601);
-
-  auto cal = CreateICU4XCalendar(cx, calendar);
-  if (!cal) {
-    return false;
-  }
-
-  auto dt = CreateICU4XDate(cx, date, cal.get());
-  if (!dt) {
-    return false;
-  }
-
-  MonthCode monthCode;
-  if (!CalendarDateMonthCode(cx, calendar, dt.get(), &monthCode)) {
-    return false;
-  }
-
-  auto* str = NewStringCopy<CanGC>(cx, std::string_view{monthCode});
-  if (!str) {
-    return false;
-  }
-
-  result.setString(str);
-  return true;
-}
-
-/**
- * CalendarDateDay ( calendar, date )
- */
-static bool CalendarDateDay(JSContext* cx, CalendarId calendar,
-                            const PlainDate& date,
-                            MutableHandle<Value> result) {
-  MOZ_ASSERT(calendar != CalendarId::ISO8601);
-
-  auto cal = CreateICU4XCalendar(cx, calendar);
-  if (!cal) {
-    return false;
-  }
-
-  auto dt = CreateICU4XDate(cx, date, cal.get());
-  if (!dt) {
-    return false;
-  }
-
-  int32_t day = capi::ICU4XDate_day_of_month(dt.get());
-  result.setInt32(day);
-  return true;
-}
-
-/**
- * CalendarDateDayOfWeek ( calendar, date )
- */
-static bool CalendarDateDayOfWeek(JSContext* cx, CalendarId calendar,
-                                  const PlainDate& date,
-                                  MutableHandle<Value> result) {
-  MOZ_ASSERT(calendar != CalendarId::ISO8601);
-
-  auto cal = CreateICU4XCalendar(cx, calendar);
-  if (!cal) {
-    return false;
-  }
-
-  auto dt = CreateICU4XDate(cx, date, cal.get());
-  if (!dt) {
-    return false;
-  }
-
-  // Week day codes are correctly ordered.
-  static_assert(capi::ICU4XIsoWeekday_Monday == 1);
-  static_assert(capi::ICU4XIsoWeekday_Tuesday == 2);
-  static_assert(capi::ICU4XIsoWeekday_Wednesday == 3);
-  static_assert(capi::ICU4XIsoWeekday_Thursday == 4);
-  static_assert(capi::ICU4XIsoWeekday_Friday == 5);
-  static_assert(capi::ICU4XIsoWeekday_Saturday == 6);
-  static_assert(capi::ICU4XIsoWeekday_Sunday == 7);
-
-  capi::ICU4XIsoWeekday day = capi::ICU4XDate_day_of_week(dt.get());
-  result.setInt32(static_cast<int32_t>(day));
-  return true;
-}
-
-/**
- * CalendarDateDayOfYear ( calendar, date )
- */
-static bool CalendarDateDayOfYear(JSContext* cx, CalendarId calendar,
-                                  const PlainDate& date,
-                                  MutableHandle<Value> result) {
-  MOZ_ASSERT(calendar != CalendarId::ISO8601);
-
-  // FIXME: Not supported in ICU4X FFI.
-  // https://github.com/unicode-org/icu4x/issues/4891
-
-  auto cal = CreateICU4XCalendar(cx, calendar);
-  if (!cal) {
-    return false;
-  }
-
-  auto dt = CreateICU4XDate(cx, date, cal.get());
-  if (!dt) {
-    return false;
-  }
-
-  // Use the extended year instead of the era year to correctly handle the case
-  // when the era changes in the current year. This can happen in the Japanese
-  // calendar.
-  int32_t year;
-  if (!CalendarDateYear(cx, calendar, dt.get(), &year)) {
-    return false;
-  }
-  auto eraYear = CalendarEraYear(calendar, year);
-
-  int32_t dayOfYear = capi::ICU4XDate_day_of_month(dt.get());
-  int32_t month = capi::ICU4XDate_ordinal_month(dt.get());
-
-  // Add the number of days of all preceding months to compute the overall day
-  // of the year.
-  while (month > 1) {
-    auto previousMonth = CreateDateFrom(cx, calendar, cal.get(), eraYear,
-                                        --month, 1, TemporalOverflow::Reject);
-    if (!previousMonth) {
-      return false;
-    }
-
-    dayOfYear += capi::ICU4XDate_days_in_month(previousMonth.get());
-  }
-
-  MOZ_ASSERT(dayOfYear <= capi::ICU4XDate_days_in_year(dt.get()));
-
-  result.setInt32(dayOfYear);
-  return true;
-}
-
-/**
- * CalendarDateWeekOfYear ( calendar, date )
- */
-static bool CalendarDateWeekOfYear(JSContext* cx, CalendarId calendar,
-                                   const PlainDate& date,
-                                   MutableHandle<Value> result) {
-  MOZ_ASSERT(calendar != CalendarId::ISO8601);
-
-  // Non-Gregorian calendars don't get week-of-year support for now.
-  //
-  // https://github.com/tc39/proposal-intl-era-monthcode/issues/15
-  if (calendar != CalendarId::Gregorian) {
-    result.setUndefined();
-    return true;
-  }
-
-  auto cal = CreateICU4XCalendar(cx, calendar);
-  if (!cal) {
-    return false;
-  }
-
-  auto dt = CreateICU4XDate(cx, date, cal.get());
-  if (!dt) {
-    return false;
-  }
-
-  auto weekCal = CreateICU4WeekCalculator(cx, calendar);
-  if (!weekCal) {
-    return false;
-  }
-
-  auto week = capi::ICU4XDate_week_of_year(dt.get(), weekCal.get());
-  if (!week.is_ok) {
-    JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
-                              JSMSG_TEMPORAL_CALENDAR_INTERNAL_ERROR);
-    return false;
-  }
-
-  result.setInt32(week.ok.week);
-  return true;
-}
-
-/**
- * CalendarDateWeekOfYear ( calendar, date )
- */
-static bool CalendarDateYearOfWeek(JSContext* cx, CalendarId calendar,
-                                   const PlainDate& date,
-                                   MutableHandle<Value> result) {
-  MOZ_ASSERT(calendar != CalendarId::ISO8601);
-
-  // Non-Gregorian calendars don't get week-of-year support for now.
-  //
-  // https://github.com/tc39/proposal-intl-era-monthcode/issues/15
-  if (calendar != CalendarId::Gregorian) {
-    result.setUndefined();
-    return true;
-  }
-
-  auto cal = CreateICU4XCalendar(cx, calendar);
-  if (!cal) {
-    return false;
-  }
-
-  auto dt = CreateICU4XDate(cx, date, cal.get());
-  if (!dt) {
-    return false;
-  }
-
-  auto weekCal = CreateICU4WeekCalculator(cx, calendar);
-  if (!weekCal) {
-    return false;
-  }
-
-  auto week = capi::ICU4XDate_week_of_year(dt.get(), weekCal.get());
-  if (!week.is_ok) {
-    JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
-                              JSMSG_TEMPORAL_CALENDAR_INTERNAL_ERROR);
-    return false;
-  }
-
-  int32_t relative = 0;
-  switch (week.ok.unit) {
-    case capi::ICU4XWeekRelativeUnit_Previous:
-      relative = -1;
-      break;
-    case capi::ICU4XWeekRelativeUnit_Current:
-      relative = 0;
-      break;
-    case capi::ICU4XWeekRelativeUnit_Next:
-      relative = 1;
-      break;
-  }
-
-  int32_t calendarYear;
-  if (!CalendarDateYear(cx, calendar, dt.get(), &calendarYear)) {
-    return false;
-  }
-
-  result.setInt32(calendarYear + relative);
-  return true;
-}
-
-/**
- * CalendarDateDaysInWeek ( calendar, date )
- */
-static bool CalendarDateDaysInWeek(JSContext* cx, CalendarId calendar,
-                                   const PlainDate& date,
-                                   MutableHandle<Value> result) {
-  MOZ_ASSERT(calendar != CalendarId::ISO8601);
-
-  // All supported ICU4X calendars use a 7-day week.
-  //
-  // This function isn't supported through the ICU4X FFI, so we have to
-  // hardcode the result.
-  result.setInt32(7);
-  return true;
-}
-
-/**
- * CalendarDateDaysInMonth ( calendar, date )
- */
-static bool CalendarDateDaysInMonth(JSContext* cx, CalendarId calendar,
-                                    const PlainDate& date,
-                                    MutableHandle<Value> result) {
-  MOZ_ASSERT(calendar != CalendarId::ISO8601);
-
-  auto cal = CreateICU4XCalendar(cx, calendar);
-  if (!cal) {
-    return false;
-  }
-
-  auto dt = CreateICU4XDate(cx, date, cal.get());
-  if (!dt) {
-    return false;
-  }
-
-  int32_t days = capi::ICU4XDate_days_in_month(dt.get());
-  result.setInt32(days);
-  return true;
-}
-
-/**
- * CalendarDateDaysInYear ( calendar, date )
- */
-static bool CalendarDateDaysInYear(JSContext* cx, CalendarId calendar,
-                                   const PlainDate& date,
-                                   MutableHandle<Value> result) {
-  MOZ_ASSERT(calendar != CalendarId::ISO8601);
-
-  auto cal = CreateICU4XCalendar(cx, calendar);
-  if (!cal) {
-    return false;
-  }
-
-  auto dt = CreateICU4XDate(cx, date, cal.get());
-  if (!dt) {
-    return false;
-  }
-
-  int32_t days = capi::ICU4XDate_days_in_year(dt.get());
-  result.setInt32(days);
-  return true;
-}
-
-/**
- * CalendarDateMonthsInYear ( calendar, date )
- */
-static bool CalendarDateMonthsInYear(JSContext* cx, CalendarId calendar,
-                                     const PlainDate& date,
-                                     MutableHandle<Value> result) {
-  MOZ_ASSERT(calendar != CalendarId::ISO8601);
-
-  auto cal = CreateICU4XCalendar(cx, calendar);
-  if (!cal) {
-    return false;
-  }
-
-  auto dt = CreateICU4XDate(cx, date, cal.get());
-  if (!dt) {
-    return false;
-  }
-
-  int32_t months = capi::ICU4XDate_months_in_year(dt.get());
-  result.setInt32(months);
-  return true;
-}
-
-/**
- * CalendarDateInLeapYear ( calendar, date )
- */
-static bool CalendarDateInLeapYear(JSContext* cx, CalendarId calendar,
-                                   const PlainDate& date,
-                                   MutableHandle<Value> result) {
-  MOZ_ASSERT(calendar != CalendarId::ISO8601);
-
-  // FIXME: Not supported in ICU4X.
-  //
-  // https://github.com/unicode-org/icu4x/issues/5654
-
-  auto cal = CreateICU4XCalendar(cx, calendar);
-  if (!cal) {
-    return false;
-  }
-
-  auto dt = CreateICU4XDate(cx, date, cal.get());
-  if (!dt) {
-    return false;
-  }
-
-  bool inLeapYear = false;
-  switch (calendar) {
-    case CalendarId::ISO8601:
-    case CalendarId::Buddhist:
-    case CalendarId::Gregorian:
-    case CalendarId::Japanese:
-    case CalendarId::Coptic:
-    case CalendarId::Ethiopian:
-    case CalendarId::EthiopianAmeteAlem:
-    case CalendarId::Indian:
-    case CalendarId::Persian:
-    case CalendarId::ROC: {
-      MOZ_ASSERT(!CalendarHasLeapMonths(calendar));
-
-      // Solar calendars have either 365 or 366 days per year.
-      int32_t days = capi::ICU4XDate_days_in_year(dt.get());
-      MOZ_ASSERT(days == 365 || days == 366);
-
-      // Leap years have 366 days.
-      inLeapYear = days == 366;
-      break;
-    }
-
-    case CalendarId::Islamic:
-    case CalendarId::IslamicCivil:
-    case CalendarId::IslamicRGSA:
-    case CalendarId::IslamicTabular:
-    case CalendarId::IslamicUmmAlQura: {
-      MOZ_ASSERT(!CalendarHasLeapMonths(calendar));
-
-      // Lunar Islamic calendars have either 354 or 355 days per year.
-      //
-      // Allow 353 days to workaround
-      // <https://github.com/unicode-org/icu4x/issues/4930>.
-      int32_t days = capi::ICU4XDate_days_in_year(dt.get());
-      MOZ_ASSERT(days == 353 || days == 354 || days == 355);
-
-      // Leap years have 355 days.
-      inLeapYear = days == 355;
-      break;
-    }
-
-    case CalendarId::Chinese:
-    case CalendarId::Dangi:
-    case CalendarId::Hebrew: {
-      MOZ_ASSERT(CalendarHasLeapMonths(calendar));
-
-      // Calendars with separate leap months have either 12 or 13 months per
-      // year.
-      int32_t months = capi::ICU4XDate_months_in_year(dt.get());
-      MOZ_ASSERT(months == 12 || months == 13);
-
-      // Leap years have 13 months.
-      inLeapYear = months == 13;
-      break;
-    }
-  }
-
-  result.setBoolean(inLeapYear);
   return true;
 }
 
@@ -2943,7 +2410,9 @@ static bool CalendarResolveFields(JSContext* cx, CalendarId calendar,
 }
 
 /**
- * CalendarEra ( dateLike )
+ * CalendarISOToDate ( calendar, isoDate )
+ *
+ * Return the Calendar Date Record's [[Era]] field.
  */
 bool js::temporal::CalendarEra(JSContext* cx, Handle<CalendarValue> calendar,
                                const PlainDate& date,
@@ -2957,11 +2426,39 @@ bool js::temporal::CalendarEra(JSContext* cx, Handle<CalendarValue> calendar,
   }
 
   // Step 2.
-  return CalendarDateEra(cx, calendarId, date, result);
+  if (!CalendarEraRelevant(calendarId)) {
+    result.setUndefined();
+    return true;
+  }
+
+  auto cal = CreateICU4XCalendar(cx, calendarId);
+  if (!cal) {
+    return false;
+  }
+
+  auto dt = CreateICU4XDate(cx, date, cal.get());
+  if (!dt) {
+    return false;
+  }
+
+  EraCode era;
+  if (!CalendarDateEra(cx, calendarId, dt.get(), &era)) {
+    return false;
+  }
+
+  auto* str = NewStringCopy<CanGC>(cx, CalendarEraName(calendarId, era));
+  if (!str) {
+    return false;
+  }
+
+  result.setString(str);
+  return true;
 }
 
 /**
- * CalendarEraYear ( dateLike )
+ * CalendarISOToDate ( calendar, isoDate )
+ *
+ * Return the Calendar Date Record's [[EraYear]] field.
  */
 bool js::temporal::CalendarEraYear(JSContext* cx,
                                    Handle<CalendarValue> calendar,
@@ -2976,11 +2473,30 @@ bool js::temporal::CalendarEraYear(JSContext* cx,
   }
 
   // Step 2.
-  return CalendarDateEraYear(cx, calendarId, date, result);
+  if (!CalendarEraRelevant(calendarId)) {
+    result.setUndefined();
+    return true;
+  }
+
+  auto cal = CreateICU4XCalendar(cx, calendarId);
+  if (!cal) {
+    return false;
+  }
+
+  auto dt = CreateICU4XDate(cx, date, cal.get());
+  if (!dt) {
+    return false;
+  }
+
+  int32_t year = capi::ICU4XDate_year_in_era(dt.get());
+  result.setInt32(year);
+  return true;
 }
 
 /**
- * CalendarYear ( dateLike )
+ * CalendarISOToDate ( calendar, isoDate )
+ *
+ * Return the Calendar Date Record's [[Year]] field.
  */
 bool js::temporal::CalendarYear(JSContext* cx, Handle<CalendarValue> calendar,
                                 const PlainDate& date,
@@ -2994,11 +2510,29 @@ bool js::temporal::CalendarYear(JSContext* cx, Handle<CalendarValue> calendar,
   }
 
   // Step 2.
-  return CalendarDateYear(cx, calendarId, date, result);
+  auto cal = CreateICU4XCalendar(cx, calendarId);
+  if (!cal) {
+    return false;
+  }
+
+  auto dt = CreateICU4XDate(cx, date, cal.get());
+  if (!dt) {
+    return false;
+  }
+
+  int32_t year;
+  if (!CalendarDateYear(cx, calendarId, dt.get(), &year)) {
+    return false;
+  }
+
+  result.setInt32(year);
+  return true;
 }
 
 /**
- * CalendarMonth ( dateLike )
+ * CalendarISOToDate ( calendar, isoDate )
+ *
+ * Return the Calendar Date Record's [[Month]] field.
  */
 bool js::temporal::CalendarMonth(JSContext* cx, Handle<CalendarValue> calendar,
                                  const PlainDate& date,
@@ -3012,11 +2546,25 @@ bool js::temporal::CalendarMonth(JSContext* cx, Handle<CalendarValue> calendar,
   }
 
   // Step 2.
-  return CalendarDateMonth(cx, calendarId, date, result);
+  auto cal = CreateICU4XCalendar(cx, calendarId);
+  if (!cal) {
+    return false;
+  }
+
+  auto dt = CreateICU4XDate(cx, date, cal.get());
+  if (!dt) {
+    return false;
+  }
+
+  int32_t month = capi::ICU4XDate_ordinal_month(dt.get());
+  result.setInt32(month);
+  return true;
 }
 
 /**
- * CalendarMonthCode ( dateLike )
+ * CalendarISOToDate ( calendar, isoDate )
+ *
+ * Return the Calendar Date Record's [[MonthCode]] field.
  */
 bool js::temporal::CalendarMonthCode(JSContext* cx,
                                      Handle<CalendarValue> calendar,
@@ -3026,7 +2574,9 @@ bool js::temporal::CalendarMonthCode(JSContext* cx,
 
   // Step 1.
   if (calendarId == CalendarId::ISO8601) {
-    JSString* str = ISOMonthCode(cx, date.month);
+    // Steps 1.a-b.
+    auto monthCode = MonthCode{date.month};
+    JSString* str = NewStringCopy<CanGC>(cx, std::string_view{monthCode});
     if (!str) {
       return false;
     }
@@ -3036,11 +2586,34 @@ bool js::temporal::CalendarMonthCode(JSContext* cx,
   }
 
   // Step 2.
-  return CalendarDateMonthCode(cx, calendarId, date, result);
+  auto cal = CreateICU4XCalendar(cx, calendarId);
+  if (!cal) {
+    return false;
+  }
+
+  auto dt = CreateICU4XDate(cx, date, cal.get());
+  if (!dt) {
+    return false;
+  }
+
+  MonthCode monthCode;
+  if (!CalendarDateMonthCode(cx, calendarId, dt.get(), &monthCode)) {
+    return false;
+  }
+
+  auto* str = NewStringCopy<CanGC>(cx, std::string_view{monthCode});
+  if (!str) {
+    return false;
+  }
+
+  result.setString(str);
+  return true;
 }
 
 /**
- * CalendarDay ( dateLike )
+ * CalendarISOToDate ( calendar, isoDate )
+ *
+ * Return the Calendar Date Record's [[Day]] field.
  */
 bool js::temporal::CalendarDay(JSContext* cx, Handle<CalendarValue> calendar,
                                const PlainDate& date,
@@ -3054,11 +2627,25 @@ bool js::temporal::CalendarDay(JSContext* cx, Handle<CalendarValue> calendar,
   }
 
   // Step 2.
-  return CalendarDateDay(cx, calendarId, date, result);
+  auto cal = CreateICU4XCalendar(cx, calendarId);
+  if (!cal) {
+    return false;
+  }
+
+  auto dt = CreateICU4XDate(cx, date, cal.get());
+  if (!dt) {
+    return false;
+  }
+
+  int32_t day = capi::ICU4XDate_day_of_month(dt.get());
+  result.setInt32(day);
+  return true;
 }
 
 /**
- * CalendarDayOfWeek ( dateLike )
+ * CalendarISOToDate ( calendar, isoDate )
+ *
+ * Return the Calendar Date Record's [[DayOfWeek]] field.
  */
 bool js::temporal::CalendarDayOfWeek(JSContext* cx,
                                      Handle<CalendarValue> calendar,
@@ -3073,11 +2660,34 @@ bool js::temporal::CalendarDayOfWeek(JSContext* cx,
   }
 
   // Step 2.
-  return CalendarDateDayOfWeek(cx, calendarId, date, result);
+  auto cal = CreateICU4XCalendar(cx, calendarId);
+  if (!cal) {
+    return false;
+  }
+
+  auto dt = CreateICU4XDate(cx, date, cal.get());
+  if (!dt) {
+    return false;
+  }
+
+  // Week day codes are correctly ordered.
+  static_assert(capi::ICU4XIsoWeekday_Monday == 1);
+  static_assert(capi::ICU4XIsoWeekday_Tuesday == 2);
+  static_assert(capi::ICU4XIsoWeekday_Wednesday == 3);
+  static_assert(capi::ICU4XIsoWeekday_Thursday == 4);
+  static_assert(capi::ICU4XIsoWeekday_Friday == 5);
+  static_assert(capi::ICU4XIsoWeekday_Saturday == 6);
+  static_assert(capi::ICU4XIsoWeekday_Sunday == 7);
+
+  capi::ICU4XIsoWeekday day = capi::ICU4XDate_day_of_week(dt.get());
+  result.setInt32(static_cast<int32_t>(day));
+  return true;
 }
 
 /**
- * CalendarDayOfYear ( dateLike )
+ * CalendarISOToDate ( calendar, isoDate )
+ *
+ * Return the Calendar Date Record's [[DayOfYear]] field.
  */
 bool js::temporal::CalendarDayOfYear(JSContext* cx,
                                      Handle<CalendarValue> calendar,
@@ -3092,11 +2702,57 @@ bool js::temporal::CalendarDayOfYear(JSContext* cx,
   }
 
   // Step 2.
-  return CalendarDateDayOfYear(cx, calendarId, date, result);
+  auto cal = CreateICU4XCalendar(cx, calendarId);
+  if (!cal) {
+    return false;
+  }
+
+  auto dt = CreateICU4XDate(cx, date, cal.get());
+  if (!dt) {
+    return false;
+  }
+
+  // Workaround for https://github.com/unicode-org/icu4x/issues/5655
+  if (calendarId == CalendarId::Japanese) {
+    // Use the extended year instead of the era year to correctly handle the
+    // case when the era changes in the current year. This can happen in the
+    // Japanese calendar.
+    int32_t year;
+    if (!CalendarDateYear(cx, calendarId, dt.get(), &year)) {
+      return false;
+    }
+    auto eraYear = CalendarEraYear(calendarId, year);
+
+    int32_t dayOfYear = capi::ICU4XDate_day_of_month(dt.get());
+    int32_t month = capi::ICU4XDate_ordinal_month(dt.get());
+
+    // Add the number of days of all preceding months to compute the overall day
+    // of the year.
+    while (month > 1) {
+      auto previousMonth = CreateDateFrom(cx, calendarId, cal.get(), eraYear,
+                                          --month, 1, TemporalOverflow::Reject);
+      if (!previousMonth) {
+        return false;
+      }
+
+      dayOfYear += capi::ICU4XDate_days_in_month(previousMonth.get());
+    }
+
+    MOZ_ASSERT(dayOfYear <= capi::ICU4XDate_days_in_year(dt.get()));
+
+    result.setInt32(dayOfYear);
+    return true;
+  }
+
+  int32_t day = capi::ICU4XDate_day_of_year(dt.get());
+  result.setInt32(day);
+  return true;
 }
 
 /**
- * CalendarWeekOfYear ( dateLike )
+ * CalendarISOToDate ( calendar, isoDate )
+ *
+ * Return the Calendar Date Record's [[WeekOfYear]].[[Week]] field.
  */
 bool js::temporal::CalendarWeekOfYear(JSContext* cx,
                                       Handle<CalendarValue> calendar,
@@ -3111,11 +2767,45 @@ bool js::temporal::CalendarWeekOfYear(JSContext* cx,
   }
 
   // Step 2.
-  return CalendarDateWeekOfYear(cx, calendarId, date, result);
+
+  // Non-Gregorian calendars don't get week-of-year support for now.
+  //
+  // https://github.com/tc39/proposal-intl-era-monthcode/issues/15
+  if (calendarId != CalendarId::Gregorian) {
+    result.setUndefined();
+    return true;
+  }
+
+  auto cal = CreateICU4XCalendar(cx, calendarId);
+  if (!cal) {
+    return false;
+  }
+
+  auto dt = CreateICU4XDate(cx, date, cal.get());
+  if (!dt) {
+    return false;
+  }
+
+  auto weekCal = CreateICU4WeekCalculator(cx, calendarId);
+  if (!weekCal) {
+    return false;
+  }
+
+  auto week = capi::ICU4XDate_week_of_year(dt.get(), weekCal.get());
+  if (!week.is_ok) {
+    JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
+                              JSMSG_TEMPORAL_CALENDAR_INTERNAL_ERROR);
+    return false;
+  }
+
+  result.setInt32(week.ok.week);
+  return true;
 }
 
 /**
- * CalendarYearOfWeek ( dateLike )
+ * CalendarISOToDate ( calendar, isoDate )
+ *
+ * Return the Calendar Date Record's [[WeekOfYear]].[[Year]] field.
  */
 bool js::temporal::CalendarYearOfWeek(JSContext* cx,
                                       Handle<CalendarValue> calendar,
@@ -3130,30 +2820,83 @@ bool js::temporal::CalendarYearOfWeek(JSContext* cx,
   }
 
   // Step 2.
-  return CalendarDateYearOfWeek(cx, calendarId, date, result);
+
+  // Non-Gregorian calendars don't get week-of-year support for now.
+  //
+  // https://github.com/tc39/proposal-intl-era-monthcode/issues/15
+  if (calendarId != CalendarId::Gregorian) {
+    result.setUndefined();
+    return true;
+  }
+
+  auto cal = CreateICU4XCalendar(cx, calendarId);
+  if (!cal) {
+    return false;
+  }
+
+  auto dt = CreateICU4XDate(cx, date, cal.get());
+  if (!dt) {
+    return false;
+  }
+
+  auto weekCal = CreateICU4WeekCalculator(cx, calendarId);
+  if (!weekCal) {
+    return false;
+  }
+
+  auto week = capi::ICU4XDate_week_of_year(dt.get(), weekCal.get());
+  if (!week.is_ok) {
+    JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
+                              JSMSG_TEMPORAL_CALENDAR_INTERNAL_ERROR);
+    return false;
+  }
+
+  int32_t relative = 0;
+  switch (week.ok.unit) {
+    case capi::ICU4XWeekRelativeUnit_Previous:
+      relative = -1;
+      break;
+    case capi::ICU4XWeekRelativeUnit_Current:
+      relative = 0;
+      break;
+    case capi::ICU4XWeekRelativeUnit_Next:
+      relative = 1;
+      break;
+  }
+
+  int32_t calendarYear;
+  if (!CalendarDateYear(cx, calendarId, dt.get(), &calendarYear)) {
+    return false;
+  }
+
+  result.setInt32(calendarYear + relative);
+  return true;
 }
 
 /**
- * CalendarDaysInWeek ( dateLike )
+ * CalendarISOToDate ( calendar, isoDate )
+ *
+ * Return the Calendar Date Record's [[DaysInWeek]] field.
  */
 bool js::temporal::CalendarDaysInWeek(JSContext* cx,
                                       Handle<CalendarValue> calendar,
                                       const PlainDate& date,
                                       MutableHandle<Value> result) {
-  auto calendarId = calendar.identifier();
+  // All supported ICU4X calendars use a 7-day week and so does the ISO 8601
+  // calendar.
+  //
+  // This function isn't supported through the ICU4X FFI, so we have to
+  // hardcode the result.
 
-  // Step 1.
-  if (calendarId == CalendarId::ISO8601) {
-    result.setInt32(7);
-    return true;
-  }
-
-  // Step 2.
-  return CalendarDateDaysInWeek(cx, calendarId, date, result);
+  // Step 1-2.
+  result.setInt32(7);
+  return true;
 }
 
 /**
- * CalendarDaysInMonth ( dateLike )
+ * CalendarISOToDate ( calendar, isoDate )
+ *
+ * Return the Calendar Date Record's [[DaysInMonth]] field.
  */
 bool js::temporal::CalendarDaysInMonth(JSContext* cx,
                                        Handle<CalendarValue> calendar,
@@ -3168,11 +2911,25 @@ bool js::temporal::CalendarDaysInMonth(JSContext* cx,
   }
 
   // Step 2.
-  return CalendarDateDaysInMonth(cx, calendarId, date, result);
+  auto cal = CreateICU4XCalendar(cx, calendarId);
+  if (!cal) {
+    return false;
+  }
+
+  auto dt = CreateICU4XDate(cx, date, cal.get());
+  if (!dt) {
+    return false;
+  }
+
+  int32_t days = capi::ICU4XDate_days_in_month(dt.get());
+  result.setInt32(days);
+  return true;
 }
 
 /**
- * CalendarDaysInYear ( dateLike )
+ * CalendarISOToDate ( calendar, isoDate )
+ *
+ * Return the Calendar Date Record's [[DaysInYear]] field.
  */
 bool js::temporal::CalendarDaysInYear(JSContext* cx,
                                       Handle<CalendarValue> calendar,
@@ -3187,11 +2944,25 @@ bool js::temporal::CalendarDaysInYear(JSContext* cx,
   }
 
   // Step 2.
-  return CalendarDateDaysInYear(cx, calendarId, date, result);
+  auto cal = CreateICU4XCalendar(cx, calendarId);
+  if (!cal) {
+    return false;
+  }
+
+  auto dt = CreateICU4XDate(cx, date, cal.get());
+  if (!dt) {
+    return false;
+  }
+
+  int32_t days = capi::ICU4XDate_days_in_year(dt.get());
+  result.setInt32(days);
+  return true;
 }
 
 /**
- * CalendarMonthsInYear ( dateLike )
+ * CalendarISOToDate ( calendar, isoDate )
+ *
+ * Return the Calendar Date Record's [[MonthsInYear]] field.
  */
 bool js::temporal::CalendarMonthsInYear(JSContext* cx,
                                         Handle<CalendarValue> calendar,
@@ -3206,11 +2977,25 @@ bool js::temporal::CalendarMonthsInYear(JSContext* cx,
   }
 
   // Step 2
-  return CalendarDateMonthsInYear(cx, calendarId, date, result);
+  auto cal = CreateICU4XCalendar(cx, calendarId);
+  if (!cal) {
+    return false;
+  }
+
+  auto dt = CreateICU4XDate(cx, date, cal.get());
+  if (!dt) {
+    return false;
+  }
+
+  int32_t months = capi::ICU4XDate_months_in_year(dt.get());
+  result.setInt32(months);
+  return true;
 }
 
 /**
- * CalendarInLeapYear ( calendar, dateLike )
+ * CalendarISOToDate ( calendar, isoDate )
+ *
+ * Return the Calendar Date Record's [[InLeapYear]] field.
  */
 bool js::temporal::CalendarInLeapYear(JSContext* cx,
                                       Handle<CalendarValue> calendar,
@@ -3225,7 +3010,81 @@ bool js::temporal::CalendarInLeapYear(JSContext* cx,
   }
 
   // Step 2.
-  return CalendarDateInLeapYear(cx, calendarId, date, result);
+
+  // FIXME: Not supported in ICU4X.
+  //
+  // https://github.com/unicode-org/icu4x/issues/5654
+
+  auto cal = CreateICU4XCalendar(cx, calendarId);
+  if (!cal) {
+    return false;
+  }
+
+  auto dt = CreateICU4XDate(cx, date, cal.get());
+  if (!dt) {
+    return false;
+  }
+
+  bool inLeapYear = false;
+  switch (calendarId) {
+    case CalendarId::ISO8601:
+    case CalendarId::Buddhist:
+    case CalendarId::Gregorian:
+    case CalendarId::Japanese:
+    case CalendarId::Coptic:
+    case CalendarId::Ethiopian:
+    case CalendarId::EthiopianAmeteAlem:
+    case CalendarId::Indian:
+    case CalendarId::Persian:
+    case CalendarId::ROC: {
+      MOZ_ASSERT(!CalendarHasLeapMonths(calendarId));
+
+      // Solar calendars have either 365 or 366 days per year.
+      int32_t days = capi::ICU4XDate_days_in_year(dt.get());
+      MOZ_ASSERT(days == 365 || days == 366);
+
+      // Leap years have 366 days.
+      inLeapYear = days == 366;
+      break;
+    }
+
+    case CalendarId::Islamic:
+    case CalendarId::IslamicCivil:
+    case CalendarId::IslamicRGSA:
+    case CalendarId::IslamicTabular:
+    case CalendarId::IslamicUmmAlQura: {
+      MOZ_ASSERT(!CalendarHasLeapMonths(calendarId));
+
+      // Lunar Islamic calendars have either 354 or 355 days per year.
+      //
+      // Allow 353 days to workaround
+      // <https://github.com/unicode-org/icu4x/issues/4930>.
+      int32_t days = capi::ICU4XDate_days_in_year(dt.get());
+      MOZ_ASSERT(days == 353 || days == 354 || days == 355);
+
+      // Leap years have 355 days.
+      inLeapYear = days == 355;
+      break;
+    }
+
+    case CalendarId::Chinese:
+    case CalendarId::Dangi:
+    case CalendarId::Hebrew: {
+      MOZ_ASSERT(CalendarHasLeapMonths(calendarId));
+
+      // Calendars with separate leap months have either 12 or 13 months per
+      // year.
+      int32_t months = capi::ICU4XDate_months_in_year(dt.get());
+      MOZ_ASSERT(months == 12 || months == 13);
+
+      // Leap years have 13 months.
+      inLeapYear = months == 13;
+      break;
+    }
+  }
+
+  result.setBoolean(inLeapYear);
+  return true;
 }
 
 /**
