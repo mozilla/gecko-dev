@@ -1649,7 +1649,8 @@ void Statistics::maybePrintProfileHeaders() {
   _("Reason", 20, "%-20.20s", reason)                 \
   _("States", 6, "%6s", formatGCStates(slice))        \
   _("FSNR", 4, "%4s", formatGCFlags(slice))           \
-  _("SizeKB", 8, "%8zu", sizeKB)                      \
+  _("SizeKB", 8, "%8zu", gcSizeKB)                    \
+  _("MllcKB", 8, "%8zu", mallocSizeKB)                \
   _("Zs", 3, "%3zu", zoneCount)                       \
   _("Cs", 3, "%3zu", compartmentCount)                \
   _("Rs", 3, "%3zu", realmCount)                      \
@@ -1715,7 +1716,8 @@ void Statistics::printSliceProfile() {
   JSRuntime* runtime = gc->rt;
   TimeDuration timestamp = TimeBetween(creationTime(), slice.end);
   const char* reason = ExplainGCReason(slice.reason);
-  size_t sizeKB = gc->heapSize.bytes() / 1024;
+  size_t gcSizeKB = gc->heapSize.bytes() / 1024;
+  size_t mallocSizeKB = getMallocHeapSize() / 1024;
   size_t zoneCount = zoneStats.zoneCount;
   size_t compartmentCount = zoneStats.compartmentCount;
   size_t realmCount = zoneStats.realmCount;
@@ -1733,6 +1735,14 @@ void Statistics::printSliceProfile() {
     return;
   }
   fputs(str.get(), profileFile());
+}
+
+size_t Statistics::getMallocHeapSize() {
+  size_t bytes = 0;
+  for (AllZonesIter zone(gc); !zone.done(); zone.next()) {
+    bytes += zone->mallocHeapSize.bytes();
+  }
+  return bytes;
 }
 
 Statistics::ProfileDurations Statistics::getProfileTimes(

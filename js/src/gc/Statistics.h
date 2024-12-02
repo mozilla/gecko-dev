@@ -501,6 +501,9 @@ struct Statistics {
   const char* formatGCFlags(const SliceData& slice);
   const char* formatBudget(const SliceData& slice);
   const char* formatTotalSlices();
+
+  size_t getMallocHeapSize();
+
   static void printProfileTimes(const ProfileDurations& times,
                                 Sprinter& sprinter);
 };
