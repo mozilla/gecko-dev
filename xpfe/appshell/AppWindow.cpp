@@ -1148,11 +1148,14 @@ static Maybe<int32_t> ReadIntAttribute(const Element& aElement,
 // to fit to the screen when staggering windows; if they're negative,
 // we use the window's current size instead.
 bool AppWindow::LoadPositionFromXUL(int32_t aSpecWidth, int32_t aSpecHeight) {
-  bool gotPosition = false;
-
   // if we're the hidden window, don't try to validate our size/position. We're
   // special.
   if (mIsHiddenWindow) {
+    return false;
+  }
+
+  // If we're not in the normal sizemode, don't move the window around.
+  if (mWindow->SizeMode() != nsSizeMode_Normal) {
     return false;
   }
 
@@ -1181,6 +1184,7 @@ bool AppWindow::LoadPositionFromXUL(int32_t aSpecWidth, int32_t aSpecHeight) {
 
   // Obtain the position information from the <xul:window> element.
   DesktopIntPoint specPoint = curPoint;
+  bool gotPosition = false;
 
   // Also read lowercase screenx/y because the front-end sometimes sets these
   // via setAttribute on HTML documents like about:blank, and stuff gets
@@ -1216,7 +1220,6 @@ bool AppWindow::LoadPositionFromXUL(int32_t aSpecWidth, int32_t aSpecHeight) {
   if (specPoint != curPoint) {
     SetPositionDesktopPix(specPoint.x, specPoint.y);
   }
-
   return gotPosition;
 }
 
