@@ -1,3 +1,4 @@
+// SKIP test262 export
 loadRelativeToScript('PatternAsserts.js');
 
 // various combinations of identifiers and destructuring patterns:
