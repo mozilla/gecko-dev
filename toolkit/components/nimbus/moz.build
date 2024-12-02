@@ -24,6 +24,10 @@ BROWSER_CHROME_MANIFESTS += [
     "test/browser/browser.toml",
 ]
 
+PYTHON_UNITTEST_MANIFESTS += [
+    "test/python/python.toml",
+]
+
 XPCSHELL_TESTS_MANIFESTS += ["test/unit/xpcshell.toml"]
 
 SPHINX_TREES["docs"] = "docs"

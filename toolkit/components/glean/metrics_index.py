@@ -178,6 +178,7 @@ gecko_pings = [
 # Order is lexicographical, enforced by t/c/glean/tests/pytest/test_yaml_indices.py
 firefox_desktop_pings = [
     "browser/components/newtab/pings.yaml",
+    "toolkit/components/nimbus/pings.yaml",
     "browser/components/pocket/pings.yaml",
     "browser/components/search/pings.yaml",
     "browser/components/urlbar/pings.yaml",
@@ -200,6 +201,7 @@ background_update_pings = [
 background_tasks_pings = [
     "toolkit/components/backgroundtasks/pings.yaml",
     "toolkit/components/crashes/pings.yaml",
+    "toolkit/components/nimbus/pings.yaml",
     "toolkit/mozapps/defaultagent/pings.yaml",
 ]
 
