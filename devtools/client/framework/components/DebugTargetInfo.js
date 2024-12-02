@@ -37,6 +37,7 @@ class DebugTargetInfo extends PureComponent {
         }).isRequired,
         descriptorType: PropTypes.oneOf(Object.values(DESCRIPTOR_TYPES))
           .isRequired,
+        descriptorName: PropTypes.string.isRequired,
       }).isRequired,
       L10N: PropTypes.object.isRequired,
       toolbox: PropTypes.object.isRequired,
@@ -234,18 +235,21 @@ class DebugTargetInfo extends PureComponent {
     );
   }
 
-  renderTargetTitle() {
-    const title = this.props.toolbox.target.name;
+  renderDescriptorName() {
+    const name = this.props.debugTargetData.descriptorName;
 
     const { image, l10nId } = this.getAssetsForDebugDescriptorType();
 
     return dom.span(
       {
-        className: "iconized-label debug-target-title",
+        className: "iconized-label debug-descriptor-title",
       },
       dom.img({ src: image, alt: this.props.L10N.getStr(l10nId) }),
-      title
-        ? dom.b({ className: "devtools-ellipsis-text qa-target-title" }, title)
+      name
+        ? dom.b(
+            { className: "devtools-ellipsis-text qa-descriptor-title" },
+            name
+          )
         : null
     );
   }
@@ -401,7 +405,7 @@ class DebugTargetInfo extends PureComponent {
       },
       this.shallRenderConnection() ? this.renderConnection() : null,
       this.renderRuntime(),
-      this.renderTargetTitle(),
+      this.renderDescriptorName(),
       this.renderNavigation(),
       this.renderTargetURI(),
       ...this.renderAlwaysOnTopButton()

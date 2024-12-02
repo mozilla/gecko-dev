@@ -61,6 +61,15 @@ add_task(async function testOpenDebuggerReload() {
     "isWebExtension flag in sourcesTree is true"
   );
 
+  const descriptorTitle = devtoolsWindow.document.querySelector(
+    ".qa-descriptor-title"
+  );
+  is(
+    descriptorTitle.textContent,
+    EXTENSION_NAME,
+    "The add-on name is displayed in the toolbox header"
+  );
+
   info("Check whether the element displays correctly");
   let sourceList = panelWin.document.querySelector(".sources-list");
   ok(sourceList, "Source list element displays correctly");
@@ -131,6 +140,24 @@ add_task(async function testAddAndRemoveBreakpoint() {
   );
   const toolbox = getToolbox(devtoolsWindow);
   const dbg = createDebuggerContext(toolbox);
+
+  info("Assert the threads displayed in Source Tree as well as Threads pane");
+  const sourceTreeThreads = findAllElements(dbg, "sourceTreeThreads");
+  is(
+    sourceTreeThreads.length,
+    1,
+    "There is only one thread with source in the Source Tree"
+  );
+  is(
+    sourceTreeThreads[0].textContent,
+    "/_generated_background_page.html",
+    "That thread is the background page"
+  );
+
+  const threadLabels = findAllElements(dbg, "threadsPaneItems");
+  is(threadLabels.length, 2, "But there are two threads in the thread panel");
+  is(threadLabels[0].textContent, "Main Thread");
+  is(threadLabels[1].textContent, "/_generated_background_page.html");
 
   info("Select the source and add a breakpoint");
   // Note: the background script filename is dynamically generated id, so we

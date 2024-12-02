@@ -86,6 +86,7 @@ const USB_TARGET_INFO = {
     connectionType: CONNECTION_TYPES.USB,
     runtimeInfo: USB_DEVICE_DESCRIPTION,
     descriptorType: DESCRIPTOR_TYPES.TAB,
+    descriptorName: "Usb debugging context",
   },
   toolbox: TEST_TOOLBOX,
   L10N: stubL10N,
@@ -96,6 +97,7 @@ const THIS_FIREFOX_TARGET_INFO = {
     connectionType: CONNECTION_TYPES.THIS_FIREFOX,
     runtimeInfo: THIS_FIREFOX_DEVICE_DESCRIPTION,
     descriptorType: DESCRIPTOR_TYPES.TAB,
+    descriptorName: "This firefox first tab",
   },
   toolbox: TEST_TOOLBOX,
   L10N: stubL10N,
@@ -106,6 +108,7 @@ const THIS_FIREFOX_NO_NAME_TARGET_INFO = {
     connectionType: CONNECTION_TYPES.THIS_FIREFOX,
     runtimeInfo: THIS_FIREFOX_DEVICE_DESCRIPTION,
     descriptorType: DESCRIPTOR_TYPES.TAB,
+    /* Avoid passing a name via 'descriptorName' attribute */
   },
   toolbox: TEST_TOOLBOX_NO_NAME,
   L10N: stubL10N,
@@ -140,9 +143,9 @@ describe("DebugTargetInfo component", () => {
       const component = renderer.create(
         DebugTargetInfo(THIS_FIREFOX_TARGET_INFO)
       );
-      expect(findByClassName(component.root, "qa-target-title").length).toEqual(
-        1
-      );
+      expect(
+        findByClassName(component.root, "qa-descriptor-title").length
+      ).toEqual(1);
     });
 
     it("renders the expected snapshot for This Firefox target", () => {
@@ -156,9 +159,9 @@ describe("DebugTargetInfo component", () => {
       const component = renderer.create(
         DebugTargetInfo(THIS_FIREFOX_NO_NAME_TARGET_INFO)
       );
-      expect(findByClassName(component.root, "qa-target-title").length).toEqual(
-        0
-      );
+      expect(
+        findByClassName(component.root, "qa-descriptor-title").length
+      ).toEqual(0);
     });
 
     it("renders the expected snapshot for a Toolbox with an unnamed target", () => {

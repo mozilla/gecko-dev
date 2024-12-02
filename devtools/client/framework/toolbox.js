@@ -1416,6 +1416,7 @@ Toolbox.prototype = {
       connectionType,
       runtimeInfo,
       descriptorType: this._descriptorFront.descriptorType,
+      descriptorName: this._descriptorFront.name,
     };
   },
 
@@ -3338,16 +3339,23 @@ Toolbox.prototype = {
       selectedTargetFront.name &&
       selectedTargetFront.name != selectedTargetFront.url
     ) {
-      // Only display the target `URL` when it isn't already the target `name`
-      // For Web Extension, we remove the `moz-extension://${addon-uid}` from the URL
-      const url = this._descriptorFront.isWebExtensionDescriptor
-        ? this.getExtensionPathName(selectedTargetFront.url)
-        : getUnicodeUrl(selectedTargetFront.url);
-      title = L10N.getFormatStr(
-        "toolbox.titleTemplate2",
-        selectedTargetFront.name,
-        url
-      );
+      // For Web Extensions, the target name may only be the pathname of the target URL.
+      // In such case, only print the absolute target url.
+      if (
+        this._descriptorFront.isWebExtensionDescriptor &&
+        selectedTargetFront.url.includes(selectedTargetFront.name)
+      ) {
+        title = L10N.getFormatStr(
+          "toolbox.titleTemplate1",
+          getUnicodeUrl(selectedTargetFront.url)
+        );
+      } else {
+        title = L10N.getFormatStr(
+          "toolbox.titleTemplate2",
+          selectedTargetFront.name,
+          getUnicodeUrl(selectedTargetFront.url)
+        );
+      }
     } else {
       title = L10N.getFormatStr(
         "toolbox.titleTemplate1",

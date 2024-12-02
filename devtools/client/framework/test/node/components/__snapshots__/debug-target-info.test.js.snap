@@ -32,16 +32,16 @@ exports[`DebugTargetInfo component Connection info renders the expected snapshot
     </span>
   </span>
   <span
-    className="iconized-label debug-target-title"
+    className="iconized-label debug-descriptor-title"
   >
     <img
       alt="toolbox.debugTargetInfo.targetType.tab"
       src="chrome://devtools/skin/images/globe.svg"
     />
     <b
-      className="devtools-ellipsis-text qa-target-title"
+      className="devtools-ellipsis-text qa-descriptor-title"
     >
-      Test Tab Name
+      Usb debugging context
     </b>
   </span>
   <div
@@ -128,16 +128,16 @@ exports[`DebugTargetInfo component Target icon renders the expected snapshot for
     </span>
   </span>
   <span
-    className="iconized-label debug-target-title"
+    className="iconized-label debug-descriptor-title"
   >
     <img
       alt="toolbox.debugTargetInfo.targetType.process"
       src="chrome://devtools/skin/images/settings.svg"
     />
     <b
-      className="devtools-ellipsis-text qa-target-title"
+      className="devtools-ellipsis-text qa-descriptor-title"
     >
-      Test Tab Name
+      Usb debugging context
     </b>
   </span>
   <span
@@ -184,16 +184,16 @@ exports[`DebugTargetInfo component Target icon renders the expected snapshot for
     </span>
   </span>
   <span
-    className="iconized-label debug-target-title"
+    className="iconized-label debug-descriptor-title"
   >
     <img
       alt="toolbox.debugTargetInfo.targetType.tab"
       src="chrome://devtools/skin/images/globe.svg"
     />
     <b
-      className="devtools-ellipsis-text qa-target-title"
+      className="devtools-ellipsis-text qa-descriptor-title"
     >
-      Test Tab Name
+      Usb debugging context
     </b>
   </span>
   <div
@@ -280,16 +280,16 @@ exports[`DebugTargetInfo component Target icon renders the expected snapshot for
     </span>
   </span>
   <span
-    className="iconized-label debug-target-title"
+    className="iconized-label debug-descriptor-title"
   >
     <img
       alt="toolbox.debugTargetInfo.targetType.worker"
       src="chrome://devtools/skin/images/debugging-workers.svg"
     />
     <b
-      className="devtools-ellipsis-text qa-target-title"
+      className="devtools-ellipsis-text qa-descriptor-title"
     >
-      Test Tab Name
+      Usb debugging context
     </b>
   </span>
   <span
@@ -336,16 +336,16 @@ exports[`DebugTargetInfo component Target icon renders the expected snapshot for
     </span>
   </span>
   <span
-    className="iconized-label debug-target-title"
+    className="iconized-label debug-descriptor-title"
   >
     <img
       alt="toolbox.debugTargetInfo.targetType.extension"
       src="chrome://devtools/skin/images/debugging-addons.svg"
     />
     <b
-      className="devtools-ellipsis-text qa-target-title"
+      className="devtools-ellipsis-text qa-descriptor-title"
     >
-      Test Tab Name
+      Usb debugging context
     </b>
   </span>
   <div
@@ -373,16 +373,16 @@ exports[`DebugTargetInfo component Target icon renders the expected snapshot for
   className="debug-target-info qa-debug-target-info"
 >
   <span
-    className="iconized-label debug-target-title"
+    className="iconized-label debug-descriptor-title"
   >
     <img
       alt="toolbox.debugTargetInfo.targetType.extension"
       src="chrome://devtools/skin/images/debugging-addons.svg"
     />
     <b
-      className="devtools-ellipsis-text qa-target-title"
+      className="devtools-ellipsis-text qa-descriptor-title"
     >
-      Test Tab Name
+      This firefox first tab
     </b>
   </span>
   <div
@@ -429,16 +429,16 @@ exports[`DebugTargetInfo component Target title renders the expected snapshot fo
     />
   </span>
   <span
-    className="iconized-label debug-target-title"
+    className="iconized-label debug-descriptor-title"
   >
     <img
       alt="toolbox.debugTargetInfo.targetType.tab"
       src="chrome://devtools/skin/images/globe.svg"
     />
     <b
-      className="devtools-ellipsis-text qa-target-title"
+      className="devtools-ellipsis-text qa-descriptor-title"
     >
-      Test Tab Name
+      This firefox first tab
     </b>
   </span>
   <div
@@ -514,7 +514,7 @@ exports[`DebugTargetInfo component Target title renders the expected snapshot fo
     />
   </span>
   <span
-    className="iconized-label debug-target-title"
+    className="iconized-label debug-descriptor-title"
   >
     <img
       alt="toolbox.debugTargetInfo.targetType.tab"

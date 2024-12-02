@@ -162,6 +162,13 @@ add_task(async function testWebExtensionsToolboxWebConsole() {
   clickOnAddonWidget(ADDON_ID);
   await onPopupMessage;
 
+  info("Assert the context of the evaluation context selector");
+  const contextLabels = getContextLabels(toolbox);
+  is(contextLabels.length, 3);
+  is(contextLabels[0], "Top");
+  is(contextLabels[1], "/_generated_background_page.html");
+  is(contextLabels[2], "/popup.html");
+
   info("Wait a bit to catch unexpected duplicates or mixed up messages");
   await wait(1000);
 
@@ -463,3 +470,12 @@ add_task(async function testWebExtensionTwoReloads() {
   await removeTemporaryExtension(BACKGROUND_ADDON_NAME, document);
   await removeTab(tab);
 });
+
+function getContextLabels(toolbox) {
+  // Note that the context menu is in the top level chrome document (toolbox.xhtml)
+  // instead of webconsole.xhtml.
+  const labels = toolbox.doc.querySelectorAll(
+    "#webconsole-console-evaluation-context-selector-menu-list li .label"
+  );
+  return Array.from(labels).map(item => item.textContent);
+}
