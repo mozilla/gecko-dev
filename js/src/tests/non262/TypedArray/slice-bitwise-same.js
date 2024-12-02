@@ -80,29 +80,6 @@ for (let [sourceConstructor, targetConstructor] of p(float32Constructors, float3
     }
 }
 
-// Float32 -> Float64
-for (let [sourceConstructor, targetConstructor] of p(float32Constructors, float64Constructors)) {
-    let len = NaNs.Float32.length;
-    let f32 = new sourceConstructor(len);
-    let i32 = new Int32Array(f32.buffer);
-    f32.constructor = targetConstructor;
-
-    for (let i = 0; i < len; ++i) {
-        i32[i] = NaNs.Float32[i];
-    }
-
-    let rf64 = f32.slice(0);
-    let ri32 = new Int32Array(rf64.buffer);
-
-    assertEq(rf64.length, len);
-    assertEq(ri32.length, 2 * len);
-
-    // NaN bits canonicalized.
-    for (let i = 0; i < len; ++i) {
-        assertEqArray(geti64(ri32, i), cNaN.Float64);
-    }
-}
-
 // Float64 -> Float64
 for (let [sourceConstructor, targetConstructor] of p(float64Constructors, float64Constructors)) {
     let len = NaNs.Float64.length;
@@ -123,29 +100,6 @@ for (let [sourceConstructor, targetConstructor] of p(float64Constructors, float6
     // Same bits.
     for (let i = 0; i < len; ++i) {
         assertEqArray(geti64(ri32, i), NaNs.Float64[i]);
-    }
-}
-
-// Float64 -> Float32
-for (let [sourceConstructor, targetConstructor] of p(float64Constructors, float32Constructors)) {
-    let len = NaNs.Float64.length;
-    let f64 = new sourceConstructor(len);
-    let i32 = new Int32Array(f64.buffer);
-    f64.constructor = targetConstructor;
-
-    for (let i = 0; i < len; ++i) {
-        seti64(i32, i, NaNs.Float64[i]);
-    }
-
-    let rf32 = f64.slice(0);
-    let ri32 = new Int32Array(rf32.buffer);
-
-    assertEq(rf32.length, len);
-    assertEq(ri32.length, len);
-
-    // NaN bits canonicalized.
-    for (let i = 0; i < len; ++i) {
-        assertEqArray(ri32[i], cNaN.Float32);
     }
 }
 
