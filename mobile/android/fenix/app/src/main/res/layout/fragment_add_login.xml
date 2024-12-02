@@ -14,7 +14,8 @@
     android:layout_marginEnd="20dp"
     android:layout_marginTop="16dp"
     android:clickable="true"
-    android:focusable="true" >
+    android:focusable="true"
+    tools:ignore="RtlSymmetry" >
 
     <TextView
         android:id="@+id/hostnameHeaderText"
@@ -51,6 +52,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:minHeight="48dp"
+            android:paddingEnd="48dp"
             android:textSize="16sp"
             android:fontFamily="sans-serif"
             android:textStyle="normal"
@@ -123,6 +125,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:minHeight="48dp"
+            android:paddingEnd="48dp"
             android:textSize="16sp"
             android:fontFamily="sans-serif"
             android:textStyle="normal"
@@ -194,6 +197,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:minHeight="48dp"
+            android:paddingEnd="48dp"
             android:clickable="true"
             android:colorControlActivated="?attr/textPrimary"
             android:colorControlHighlight="?attr/textPrimary"
