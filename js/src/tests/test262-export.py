@@ -281,7 +281,7 @@ def insertCopyrightLines(source: bytes) -> tuple[bytes, bytes]:
 ## extractMeta
 
 FRONTMATTER_WRAPPER_PATTERN = re.compile(
-    rb"/\*\---\n([\s]*)((?:\s|\S)*)[\n\s*]---\*/", flags=re.DOTALL
+    rb"/\*\---\n([\s]*)((?:\s|\S)*)[\n\s*]---\*/[\r\n]{1,2}", flags=re.DOTALL
 )
 
 
@@ -437,14 +437,15 @@ def insertMeta(source: bytes, frontmatter: "dict[str, Any]") -> bytes:
                 ).strip()
             )
 
-    lines.append(b"---*/")
+    lines.append(b"---*/\n")
+    frontmatterstr = b"\n".join(lines)
 
-    match = FRONTMATTER_WRAPPER_PATTERN.search(source)
-
-    if match:
-        return source.replace(match.group(0), b"\n".join(lines))
+    if frontmattermatch := FRONTMATTER_WRAPPER_PATTERN.search(source):
+        source = source.replace(frontmattermatch.group(0), frontmatterstr)
     else:
-        return b"\n".join(lines) + source
+        source = frontmatterstr + source
+
+    return source
 
 
 def updateMeta(

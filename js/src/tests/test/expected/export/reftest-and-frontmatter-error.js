@@ -14,7 +14,6 @@ flags:
 - noStrict
 features: []
 ---*/
-
 eval(`
     function f() {
         let
