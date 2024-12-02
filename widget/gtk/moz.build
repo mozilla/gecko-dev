@@ -153,6 +153,7 @@ LOCAL_INCLUDES += [
     "/layout/xul",
     "/other-licenses/atk-1.0",
     "/third_party/cups/include",
+    "/third_party/frozen/include",
     "/widget",
     "/widget/headless",
     "/widget/x11",
