@@ -4,22 +4,18 @@
 
 .shortcut.card {
   margin-bottom: 16px;
-}
 
-.shortcut.card:first-of-type {
-  margin-top: 8px;
-}
+  .card-heading-icon {
+    width: 24px;
+    height: 24px;
+    margin-inline-end: 16px;
+    -moz-context-properties: fill;
+    fill: currentColor;
+  }
 
-.shortcut.card:hover {
-  box-shadow: var(--card-shadow);
-}
-
-.shortcut.card .card-heading-icon {
-  width: 24px;
-  height: 24px;
-  margin-inline-end: 16px;
-  -moz-context-properties: fill;
-  fill: currentColor;
+  &:not([expanded]) > .shortcut-row[hide-before-expand] {
+    display: none;
+  }
 }
 
 .card-heading {
@@ -27,18 +23,10 @@
   font-weight: 600;
 }
 
-.shortcuts-empty-label {
-  margin-top: 16px;
-}
-
 .shortcut-row {
   display: flex;
   align-items: center;
   margin-top: 10px;
-}
-
-.shortcut.card:not([expanded]) > .shortcut-row[hide-before-expand] {
-  display: none;
 }
 
 .shortcut-label {
@@ -54,10 +42,6 @@
   min-width: 32px;
 }
 
-.shortcut-input[shortcut=""] + .shortcut-remove-button {
-  visibility: hidden;
-}
-
 .expand-row {
   display: flex;
   justify-content: center;
@@ -65,22 +49,22 @@
 
 .expand-button {
   margin: 8px 0 0;
-}
 
-.expand-button[warning]:not(:focus) {
-  outline: 2px solid var(--yellow-60);
-  outline-offset: -1px;
-  box-shadow: 0 0 0 4px var(--yellow-60-a30);
+  &[warning]:not(:focus) {
+    outline: 2px solid var(--yellow-60);
+    outline-offset: -1px;
+    box-shadow: 0 0 0 4px var(--yellow-60-a30);
+  }
 }
 
 .shortcut-input {
   /* Shortcuts should always be left-to-right. */
   direction: ltr;
   text-align: match-parent;
-}
 
-.extension-heading {
-  display: flex;
+  &[shortcut=""] + .shortcut-remove-button {
+    visibility: hidden;
+  }
 }
 
 .error-message {
@@ -92,6 +76,16 @@
   flex-direction: column;
   position: absolute;
   visibility: hidden;
+
+  &[type="warning"] > .error-message-icon {
+    fill: var(--warning-background);
+    stroke: var(--warning-background);
+  }
+
+  &[type="warning"] > .error-message-label {
+    background-color: var(--warning-background);
+    color: var(--warning-text-color);
+  }
 }
 
 .error-message-icon {
@@ -103,11 +97,6 @@
   -moz-context-properties: fill, stroke;
 }
 
-.error-message[type="warning"] > .error-message-icon {
-  fill: var(--warning-background);
-  stroke: var(--warning-background);
-}
-
 .error-message-label {
   background-color: var(--error-background);
   border-radius: 2px;
@@ -116,20 +105,6 @@
   max-width: 300px;
   padding: 5px 10px;
   word-wrap: break-word;
-}
-
-.error-message[type="warning"] > .error-message-label {
-  background-color: var(--warning-background);
-  color: var(--warning-text-color);
-}
-
-.error-message-arrow {
-  background-color: var(--error-background);
-  content: "";
-  max-height: 8px;
-  width: 8px;
-  transform: translate(4px, -6px) rotate(45deg);
-  position: absolute;
 }
 
 /* The margin between message bars. */
