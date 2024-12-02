@@ -605,115 +605,45 @@ static auto* CreateTemporalZonedDateTime(JSContext* cx,
 }
 
 /**
- * AddDaysToZonedDateTime ( instant, dateTime, timeZone, calendar, days [ ,
- * overflow ] )
- */
-static bool AddDaysToZonedDateTime(JSContext* cx, const Instant& instant,
-                                   const PlainDateTime& dateTime,
-                                   Handle<TimeZoneValue> timeZone,
-                                   Handle<CalendarValue> calendar, int64_t days,
-                                   TemporalOverflow overflow, Instant* result) {
-  // FIXME: spec issue - always called with `overflow`, so no need for optional
-  // FIXME: spec issue - return type can be simplified, `dateTime` not used
-  // FIXME: spec issue - inline into AddZonedDateTime to share more steps
-
-  // Step 1. (Not applicable in our implementation.)
-
-  // Step 2.
-  if (days == 0) {
-    *result = instant;
-    return true;
-  }
-
-  // Step 3.
-  PlainDate addedDate;
-  if (!AddISODate(cx, dateTime.date, {0, 0, 0, days}, overflow, &addedDate)) {
-    return false;
-  }
-
-  // Step 4.
-  PlainDateTime dateTimeResult;
-  if (!CreateTemporalDateTime(cx, addedDate, dateTime.time, &dateTimeResult)) {
-    return false;
-  }
-
-  // Steps 5-6.
-  return GetInstantFor(cx, timeZone, dateTimeResult,
-                       TemporalDisambiguation::Compatible, result);
-}
-
-/**
- * AddZonedDateTime ( epochNanoseconds, timeZone, calendar, years, months,
- * weeks, days, norm [ , precalculatedPlainDateTime [ , overflow ] ] )
+ * AddZonedDateTime ( epochNanoseconds, timeZone, calendar, duration, overflow )
  */
 static bool AddZonedDateTime(JSContext* cx, const Instant& epochNanoseconds,
                              Handle<TimeZoneValue> timeZone,
                              Handle<CalendarValue> calendar,
                              const NormalizedDuration& duration,
-                             mozilla::Maybe<const PlainDateTime&> dateTime,
                              TemporalOverflow overflow, Instant* result) {
   MOZ_ASSERT(IsValidEpochInstant(epochNanoseconds));
   MOZ_ASSERT(IsValidDuration(duration));
 
-  // Steps 1-2. (Not applicable in our implementation)
-
-  // Step 3.
+  // Step 1.
   if (duration.date == DateDuration{}) {
-    // Step 3.a.
+    // Step 1.a.
     return AddInstant(cx, epochNanoseconds, duration.time, result);
   }
 
-  // Step 4. (Not applicable in our implementation)
-
-  // Steps 5-6.
-  PlainDateTime temporalDateTime;
-  if (dateTime) {
-    // Step 5.a.
-    temporalDateTime = *dateTime;
-  } else {
-    // Step 6.a.
-    if (!GetPlainDateTimeFor(cx, timeZone, epochNanoseconds,
-                             &temporalDateTime)) {
-      return false;
-    }
-  }
-  const auto& [date, time] = temporalDateTime;
-
-  // Step 7.
-  if (duration.date.years == 0 && duration.date.months == 0 &&
-      duration.date.weeks == 0) {
-    // Step 7.b.
-    Instant intermediate;
-    if (!AddDaysToZonedDateTime(cx, epochNanoseconds, temporalDateTime,
-                                timeZone, calendar, duration.date.days,
-                                overflow, &intermediate)) {
-      return false;
-    }
-
-    // Step 7.c.
-    return AddInstant(cx, intermediate, duration.time, result);
+  // Step 2.
+  PlainDateTime dateTime;
+  if (!GetISODateTimeFor(cx, timeZone, epochNanoseconds, &dateTime)) {
+    return false;
   }
 
-  // Step 8.
-  const auto& datePart = date;
+  // Step 3.
+  const auto& [date, time] = dateTime;
 
-  // Step 9.
-  const auto& dateDuration = duration.date;
-
-  // Step 10.
+  // Step 4.
   PlainDate addedDate;
-  if (!CalendarDateAdd(cx, calendar, datePart, dateDuration, overflow,
+  if (!CalendarDateAdd(cx, calendar, date, duration.date, overflow,
                        &addedDate)) {
     return false;
   }
 
-  // Step 11.
+  // Steps 5-6.
   PlainDateTime intermediateDateTime;
   if (!CreateTemporalDateTime(cx, addedDate, time, &intermediateDateTime)) {
     return false;
   }
 
-  // Step 12.
+  // Step 7.
   Instant intermediateInstant;
   if (!GetInstantFor(cx, timeZone, intermediateDateTime,
                      TemporalDisambiguation::Compatible,
@@ -721,26 +651,12 @@ static bool AddZonedDateTime(JSContext* cx, const Instant& epochNanoseconds,
     return false;
   }
 
-  // Step 13.
+  // Step 8.
   return AddInstant(cx, intermediateInstant, duration.time, result);
 }
 
 /**
- * AddZonedDateTime ( epochNanoseconds, timeZone, calendar, years, months,
- * weeks, days, norm [ , precalculatedPlainDateTime [ , overflow ] ] )
- */
-static bool AddZonedDateTime(JSContext* cx, const Instant& epochNanoseconds,
-                             Handle<TimeZoneValue> timeZone,
-                             Handle<CalendarValue> calendar,
-                             const NormalizedDuration& duration,
-                             TemporalOverflow overflow, Instant* result) {
-  return ::AddZonedDateTime(cx, epochNanoseconds, timeZone, calendar, duration,
-                            mozilla::Nothing(), overflow, result);
-}
-
-/**
- * AddZonedDateTime ( epochNanoseconds, timeZone, calendar, years, months,
- * weeks, days, norm [ , precalculatedPlainDateTime [ , overflow ] ] )
+ * AddZonedDateTime ( epochNanoseconds, timeZone, calendar, duration, overflow )
  */
 bool js::temporal::AddZonedDateTime(JSContext* cx,
                                     const Instant& epochNanoseconds,
@@ -749,36 +665,17 @@ bool js::temporal::AddZonedDateTime(JSContext* cx,
                                     const NormalizedDuration& duration,
                                     Instant* result) {
   return ::AddZonedDateTime(cx, epochNanoseconds, timeZone, calendar, duration,
-                            mozilla::Nothing(), TemporalOverflow::Constrain,
-                            result);
-}
-
-/**
- * AddZonedDateTime ( epochNanoseconds, timeZone, calendar, years, months,
- * weeks, days, norm [ , precalculatedPlainDateTime [ , overflow ] ] )
- */
-bool js::temporal::AddZonedDateTime(JSContext* cx,
-                                    const Instant& epochNanoseconds,
-                                    Handle<TimeZoneValue> timeZone,
-                                    Handle<CalendarValue> calendar,
-                                    const NormalizedDuration& duration,
-                                    const PlainDateTime& dateTime,
-                                    Instant* result) {
-  return ::AddZonedDateTime(cx, epochNanoseconds, timeZone, calendar, duration,
-                            mozilla::SomeRef(dateTime),
                             TemporalOverflow::Constrain, result);
 }
 
 /**
- * DifferenceZonedDateTime ( ns1, ns2, timeZone, calendar, largestUnit,
- * startDateTime )
+ * DifferenceZonedDateTime ( ns1, ns2, timeZone, calendar, largestUnit )
  */
 static bool DifferenceZonedDateTime(JSContext* cx, const Instant& ns1,
                                     const Instant& ns2,
                                     Handle<TimeZoneValue> timeZone,
                                     Handle<CalendarValue> calendar,
                                     TemporalUnit largestUnit,
-                                    const PlainDateTime& startDateTime,
                                     NormalizedDuration* result) {
   MOZ_ASSERT(IsValidEpochInstant(ns1));
   MOZ_ASSERT(IsValidEpochInstant(ns2));
@@ -789,9 +686,15 @@ static bool DifferenceZonedDateTime(JSContext* cx, const Instant& ns1,
     return true;
   }
 
+  // Step 2.
+  PlainDateTime startDateTime;
+  if (!GetISODateTimeFor(cx, timeZone, ns1, &startDateTime)) {
+    return false;
+  }
+
   // Steps 2-3.
   PlainDateTime endDateTime;
-  if (!GetPlainDateTimeFor(cx, timeZone, ns2, &endDateTime)) {
+  if (!GetISODateTimeFor(cx, timeZone, ns2, &endDateTime)) {
     return false;
   }
 
@@ -880,52 +783,46 @@ static bool DifferenceZonedDateTime(JSContext* cx, const Instant& ns1,
 }
 
 /**
- * DifferenceZonedDateTimeWithRounding ( ns1, ns2, calendar, timeZone,
- * precalculatedPlainDateTime, largestUnit, roundingIncrement, smallestUnit,
- * roundingMode )
+ * DifferenceZonedDateTimeWithRounding ( ns1, ns2, timeZone, calendar,
+ * largestUnit, roundingIncrement, smallestUnit, roundingMode )
  */
 bool js::temporal::DifferenceZonedDateTimeWithRounding(
     JSContext* cx, const Instant& ns1, const Instant& ns2,
     Handle<TimeZoneValue> timeZone, Handle<CalendarValue> calendar,
-    const PlainDateTime& precalculatedPlainDateTime,
     const DifferenceSettings& settings, Duration* result) {
-  // FIXME: spec issue - calendar and timeZone arguments should be switched to
-  // follow other zoned-datetime operations.
-
-  // FIXME: spec issue - align testing for largest unit being larger than "day".
-  // DifferenceTemporalZonedDateTime lists every unit, whereas this operation
-  // uses IsCalendarUnit with special case for "day".
-
-  // FIXME: spec issue - try to share duplicate steps for computing the diff
-  // when unit larger than "day" with DifferenceTemporalZonedDateTime.
-
-  // FIXME: spec issue - DifferenceZonedDateTimeWithRounding can be called
-  // with precalculatedPlainDateTime = undefined from Duration.round.
+  MOZ_ASSERT(settings.smallestUnit >= settings.largestUnit);
 
   // Step 1.
   if (settings.largestUnit > TemporalUnit::Day) {
-    return DifferenceZonedDateTimeWithRounding(cx, ns1, ns2, settings, result);
+    // Step 1.a.
+    auto difference =
+        DifferenceInstant(ns1, ns2, settings.roundingIncrement,
+                          settings.smallestUnit, settings.roundingMode);
+
+    // Step 1.c. (TODO: remove)
+    TimeDuration balancedTime;
+    if (!BalanceTimeDuration(cx, difference, settings.largestUnit,
+                             &balancedTime)) {
+      return false;
+    }
+    MOZ_ASSERT(balancedTime.days == 0);
+
+    // Steps 1.d-e.
+    *result = balancedTime.toDuration();
+    return true;
   }
 
   // Step 2.
   NormalizedDuration difference;
   if (!DifferenceZonedDateTime(cx, ns1, ns2, timeZone, calendar,
-                               settings.largestUnit, precalculatedPlainDateTime,
-                               &difference)) {
+                               settings.largestUnit, &difference)) {
     return false;
   }
 
-  // FIXME: spec issue - inline roundingGranularityIsNoop to match with similar
-  // step in DifferencePlainDateTimeWithRounding
-
   // Step 3.
-  bool roundingGranularityIsNoop =
-      settings.smallestUnit == TemporalUnit::Nanosecond &&
-      settings.roundingIncrement == Increment{1};
-
-  // Step 4.
-  if (roundingGranularityIsNoop) {
-    // Step 4.a.
+  if (settings.smallestUnit == TemporalUnit::Nanosecond &&
+      settings.roundingIncrement == Increment{1}) {
+    // Step 4.a. (TODO: remove)
     auto timeDuration =
         BalanceTimeDuration(difference.time, TemporalUnit::Hour);
 
@@ -942,12 +839,18 @@ bool js::temporal::DifferenceZonedDateTimeWithRounding(
     return true;
   }
 
-  // Steps 5-6.
+  // Step 4.
+  PlainDateTime dateTime;
+  if (!GetISODateTimeFor(cx, timeZone, ns1, &dateTime)) {
+    return false;
+  }
+
+  // Step 5.
   RoundedRelativeDuration relative;
-  if (!RoundRelativeDuration(cx, difference, ns2, precalculatedPlainDateTime,
-                             calendar, timeZone, settings.largestUnit,
-                             settings.roundingIncrement, settings.smallestUnit,
-                             settings.roundingMode, &relative)) {
+  if (!RoundRelativeDuration(cx, difference, ns2, dateTime, calendar, timeZone,
+                             settings.largestUnit, settings.roundingIncrement,
+                             settings.smallestUnit, settings.roundingMode,
+                             &relative)) {
     return false;
   }
   MOZ_ASSERT(IsValidDuration(relative.duration));
@@ -957,63 +860,50 @@ bool js::temporal::DifferenceZonedDateTimeWithRounding(
 }
 
 /**
- * DifferenceZonedDateTimeWithRounding ( ns1, ns2, calendar, timeZone,
- * precalculatedPlainDateTime, largestUnit, roundingIncrement, smallestUnit,
- * roundingMode )
- */
-bool js::temporal::DifferenceZonedDateTimeWithRounding(
-    JSContext* cx, const Instant& ns1, const Instant& ns2,
-    const DifferenceSettings& settings, Duration* result) {
-  MOZ_ASSERT(settings.largestUnit > TemporalUnit::Day);
-  MOZ_ASSERT(settings.smallestUnit >= settings.largestUnit);
-
-  // Steps 1.a-b.
-  auto difference =
-      DifferenceInstant(ns1, ns2, settings.roundingIncrement,
-                        settings.smallestUnit, settings.roundingMode);
-
-  // Step 1.c.
-  TimeDuration balancedTime;
-  if (!BalanceTimeDuration(cx, difference, settings.largestUnit,
-                           &balancedTime)) {
-    return false;
-  }
-  MOZ_ASSERT(balancedTime.days == 0);
-
-  // Steps 1.d-e.
-  *result = balancedTime.toDuration();
-  return true;
-}
-
-/**
- * DifferenceZonedDateTimeWithRounding ( ns1, ns2, calendar, timeZone,
- * precalculatedPlainDateTime, largestUnit, roundingIncrement, smallestUnit,
- * roundingMode )
+ * DifferenceZonedDateTimeWithRounding ( ns1, ns2, timeZone, calendar,
+ * largestUnit, roundingIncrement, smallestUnit, roundingMode )
  */
 bool js::temporal::DifferenceZonedDateTimeWithRounding(
     JSContext* cx, const Instant& ns1, const Instant& ns2,
     Handle<TimeZoneValue> timeZone, Handle<CalendarValue> calendar,
-    const PlainDateTime& precalculatedPlainDateTime, TemporalUnit unit,
-    double* result) {
+    TemporalUnit unit, double* result) {
+  MOZ_ASSERT(IsValidEpochInstant(ns1));
+  MOZ_ASSERT(IsValidEpochInstant(ns2));
+
   // Step 1.
   if (unit > TemporalUnit::Day) {
-    *result = DifferenceZonedDateTimeWithRounding(ns1, ns2, unit);
+    // Step 1.a. (Inlined DifferenceInstant)
+    //
+    // DifferenceInstant, step 1.
+    auto diff = NormalizedTimeDurationFromEpochNanosecondsDifference(ns2, ns1);
+    MOZ_ASSERT(IsValidInstantSpan(diff.to<InstantSpan>()));
+
+    // DifferenceInstant, step 2. (Inlined RoundTimeDuration)
+    //
+    // RoundTimeDuration, step 3.c.
+    *result = DivideNormalizedTimeDuration(diff, unit);
     return true;
   }
 
   // Step 2.
   NormalizedDuration difference;
   if (!DifferenceZonedDateTime(cx, ns1, ns2, timeZone, calendar, unit,
-                               precalculatedPlainDateTime, &difference)) {
+                               &difference)) {
     return false;
   }
 
-  // Steps 3-4. (Not applicable)
+  // Step 3. (Not applicable)
 
-  // Steps 5-6.
+  // Step 4.
+  PlainDateTime dateTime;
+  if (!GetISODateTimeFor(cx, timeZone, ns1, &dateTime)) {
+    return false;
+  }
+
+  // Step 5.
   RoundedRelativeDuration rounded;
-  if (!RoundRelativeDuration(cx, difference, ns2, precalculatedPlainDateTime,
-                             calendar, timeZone, unit, Increment{1}, unit,
+  if (!RoundRelativeDuration(cx, difference, ns2, dateTime, calendar, timeZone,
+                             unit, Increment{1}, unit,
                              TemporalRoundingMode::Trunc, &rounded)) {
     return false;
   }
@@ -1021,30 +911,6 @@ bool js::temporal::DifferenceZonedDateTimeWithRounding(
 
   *result = rounded.total;
   return true;
-}
-
-/**
- * DifferenceZonedDateTimeWithRounding ( ns1, ns2, calendar, timeZone,
- * precalculatedPlainDateTime, largestUnit, roundingIncrement, smallestUnit,
- * roundingMode )
- */
-double js::temporal::DifferenceZonedDateTimeWithRounding(const Instant& ns1,
-                                                         const Instant& ns2,
-                                                         TemporalUnit unit) {
-  MOZ_ASSERT(IsValidEpochInstant(ns1));
-  MOZ_ASSERT(IsValidEpochInstant(ns2));
-  MOZ_ASSERT(unit > TemporalUnit::Day);
-
-  // Step 1.a. (Inlined DifferenceInstant)
-  //
-  // DifferenceInstant, step 1.
-  auto diff = NormalizedTimeDurationFromEpochNanosecondsDifference(ns1, ns2);
-  MOZ_ASSERT(IsValidInstantSpan(diff.to<InstantSpan>()));
-
-  // DifferenceInstant, step 2. (Inlined RoundTimeDuration)
-  //
-  // RoundTimeDuration, step 3.c.
-  return DivideNormalizedTimeDuration(diff, unit);
 }
 
 /**
@@ -1159,18 +1025,11 @@ static bool DifferenceTemporalZonedDateTime(JSContext* cx,
   // Step 11.
   auto calendar = zonedDateTime.calendar();
 
-  // Steps 12-13.
-  PlainDateTime precalculatedPlainDateTime;
-  if (!GetPlainDateTimeFor(cx, timeZone, zonedDateTime.instant(),
-                           &precalculatedPlainDateTime)) {
-    return false;
-  }
-
   // Steps 14-15.
   Duration duration;
-  if (!DifferenceZonedDateTimeWithRounding(
-          cx, zonedDateTime.instant(), other.instant(), timeZone, calendar,
-          precalculatedPlainDateTime, settings, &duration)) {
+  if (!DifferenceZonedDateTimeWithRounding(cx, zonedDateTime.instant(),
+                                           other.instant(), timeZone, calendar,
+                                           settings, &duration)) {
     return false;
   }
   MOZ_ASSERT(IsValidDuration(duration));
@@ -1431,14 +1290,14 @@ static bool ZonedDateTime_era(JSContext* cx, const CallArgs& args) {
   Rooted<ZonedDateTime> zonedDateTime(
       cx, ZonedDateTime{&args.thisv().toObject().as<ZonedDateTimeObject>()});
 
-  // Steps 3-5.
+  // Step 3.
   PlainDateTime dateTime;
-  if (!GetPlainDateTimeFor(cx, zonedDateTime.timeZone(),
-                           zonedDateTime.instant(), &dateTime)) {
+  if (!GetISODateTimeFor(cx, zonedDateTime.timeZone(), zonedDateTime.instant(),
+                         &dateTime)) {
     return false;
   }
 
-  // Step 6.
+  // Step 4.
   return CalendarEra(cx, zonedDateTime.calendar(), dateTime.date, args.rval());
 }
 
@@ -1458,14 +1317,14 @@ static bool ZonedDateTime_eraYear(JSContext* cx, const CallArgs& args) {
   Rooted<ZonedDateTime> zonedDateTime(
       cx, ZonedDateTime{&args.thisv().toObject().as<ZonedDateTimeObject>()});
 
-  // Steps 3-5.
+  // Step 3.
   PlainDateTime dateTime;
-  if (!GetPlainDateTimeFor(cx, zonedDateTime.timeZone(),
-                           zonedDateTime.instant(), &dateTime)) {
+  if (!GetISODateTimeFor(cx, zonedDateTime.timeZone(), zonedDateTime.instant(),
+                         &dateTime)) {
     return false;
   }
 
-  // Steps 6-8.
+  // Steps 4-6.
   return CalendarEraYear(cx, zonedDateTime.calendar(), dateTime.date,
                          args.rval());
 }
@@ -1486,14 +1345,14 @@ static bool ZonedDateTime_year(JSContext* cx, const CallArgs& args) {
   Rooted<ZonedDateTime> zonedDateTime(
       cx, ZonedDateTime{&args.thisv().toObject().as<ZonedDateTimeObject>()});
 
-  // Steps 3-5.
+  // Step 3.
   PlainDateTime dateTime;
-  if (!GetPlainDateTimeFor(cx, zonedDateTime.timeZone(),
-                           zonedDateTime.instant(), &dateTime)) {
+  if (!GetISODateTimeFor(cx, zonedDateTime.timeZone(), zonedDateTime.instant(),
+                         &dateTime)) {
     return false;
   }
 
-  // Step 6.
+  // Step 4.
   return CalendarYear(cx, zonedDateTime.calendar(), dateTime.date, args.rval());
 }
 
@@ -1513,14 +1372,14 @@ static bool ZonedDateTime_month(JSContext* cx, const CallArgs& args) {
   Rooted<ZonedDateTime> zonedDateTime(
       cx, ZonedDateTime{&args.thisv().toObject().as<ZonedDateTimeObject>()});
 
-  // Steps 3-5.
+  // Step 3.
   PlainDateTime dateTime;
-  if (!GetPlainDateTimeFor(cx, zonedDateTime.timeZone(),
-                           zonedDateTime.instant(), &dateTime)) {
+  if (!GetISODateTimeFor(cx, zonedDateTime.timeZone(), zonedDateTime.instant(),
+                         &dateTime)) {
     return false;
   }
 
-  // Step 6.
+  // Step 4.
   return CalendarMonth(cx, zonedDateTime.calendar(), dateTime.date,
                        args.rval());
 }
@@ -1541,14 +1400,14 @@ static bool ZonedDateTime_monthCode(JSContext* cx, const CallArgs& args) {
   Rooted<ZonedDateTime> zonedDateTime(
       cx, ZonedDateTime{&args.thisv().toObject().as<ZonedDateTimeObject>()});
 
-  // Steps 3-5.
+  // Step 3.
   PlainDateTime dateTime;
-  if (!GetPlainDateTimeFor(cx, zonedDateTime.timeZone(),
-                           zonedDateTime.instant(), &dateTime)) {
+  if (!GetISODateTimeFor(cx, zonedDateTime.timeZone(), zonedDateTime.instant(),
+                         &dateTime)) {
     return false;
   }
 
-  // Step 6.
+  // Step 4.
   return CalendarMonthCode(cx, zonedDateTime.calendar(), dateTime.date,
                            args.rval());
 }
@@ -1570,14 +1429,14 @@ static bool ZonedDateTime_day(JSContext* cx, const CallArgs& args) {
   Rooted<ZonedDateTime> zonedDateTime(
       cx, ZonedDateTime{&args.thisv().toObject().as<ZonedDateTimeObject>()});
 
-  // Steps 3-5.
+  // Step 3.
   PlainDateTime dateTime;
-  if (!GetPlainDateTimeFor(cx, zonedDateTime.timeZone(),
-                           zonedDateTime.instant(), &dateTime)) {
+  if (!GetISODateTimeFor(cx, zonedDateTime.timeZone(), zonedDateTime.instant(),
+                         &dateTime)) {
     return false;
   }
 
-  // Step 6.
+  // Step 4.
   return CalendarDay(cx, zonedDateTime.calendar(), dateTime.date, args.rval());
 }
 
@@ -1597,14 +1456,14 @@ static bool ZonedDateTime_hour(JSContext* cx, const CallArgs& args) {
   Rooted<ZonedDateTime> zonedDateTime(
       cx, ZonedDateTime{&args.thisv().toObject().as<ZonedDateTimeObject>()});
 
-  // Steps 3-5.
+  // Step 3.
   PlainDateTime dateTime;
-  if (!GetPlainDateTimeFor(cx, zonedDateTime.timeZone(),
-                           zonedDateTime.instant(), &dateTime)) {
+  if (!GetISODateTimeFor(cx, zonedDateTime.timeZone(), zonedDateTime.instant(),
+                         &dateTime)) {
     return false;
   }
 
-  // Step 6.
+  // Step 4.
   args.rval().setInt32(dateTime.time.hour);
   return true;
 }
@@ -1625,14 +1484,14 @@ static bool ZonedDateTime_minute(JSContext* cx, const CallArgs& args) {
   Rooted<ZonedDateTime> zonedDateTime(
       cx, ZonedDateTime{&args.thisv().toObject().as<ZonedDateTimeObject>()});
 
-  // Steps 3-5.
+  // Step 3.
   PlainDateTime dateTime;
-  if (!GetPlainDateTimeFor(cx, zonedDateTime.timeZone(),
-                           zonedDateTime.instant(), &dateTime)) {
+  if (!GetISODateTimeFor(cx, zonedDateTime.timeZone(), zonedDateTime.instant(),
+                         &dateTime)) {
     return false;
   }
 
-  // Step 6.
+  // Step 4.
   args.rval().setInt32(dateTime.time.minute);
   return true;
 }
@@ -1653,14 +1512,14 @@ static bool ZonedDateTime_second(JSContext* cx, const CallArgs& args) {
   Rooted<ZonedDateTime> zonedDateTime(
       cx, ZonedDateTime{&args.thisv().toObject().as<ZonedDateTimeObject>()});
 
-  // Steps 3-5.
+  // Step 3.
   PlainDateTime dateTime;
-  if (!GetPlainDateTimeFor(cx, zonedDateTime.timeZone(),
-                           zonedDateTime.instant(), &dateTime)) {
+  if (!GetISODateTimeFor(cx, zonedDateTime.timeZone(), zonedDateTime.instant(),
+                         &dateTime)) {
     return false;
   }
 
-  // Step 6.
+  // Step 4.
   args.rval().setInt32(dateTime.time.second);
   return true;
 }
@@ -1681,14 +1540,14 @@ static bool ZonedDateTime_millisecond(JSContext* cx, const CallArgs& args) {
   Rooted<ZonedDateTime> zonedDateTime(
       cx, ZonedDateTime{&args.thisv().toObject().as<ZonedDateTimeObject>()});
 
-  // Steps 3-5.
+  // Step 3.
   PlainDateTime dateTime;
-  if (!GetPlainDateTimeFor(cx, zonedDateTime.timeZone(),
-                           zonedDateTime.instant(), &dateTime)) {
+  if (!GetISODateTimeFor(cx, zonedDateTime.timeZone(), zonedDateTime.instant(),
+                         &dateTime)) {
     return false;
   }
 
-  // Step 6.
+  // Step 4.
   args.rval().setInt32(dateTime.time.millisecond);
   return true;
 }
@@ -1710,14 +1569,14 @@ static bool ZonedDateTime_microsecond(JSContext* cx, const CallArgs& args) {
   Rooted<ZonedDateTime> zonedDateTime(
       cx, ZonedDateTime{&args.thisv().toObject().as<ZonedDateTimeObject>()});
 
-  // Steps 3-5.
+  // Step 3.
   PlainDateTime dateTime;
-  if (!GetPlainDateTimeFor(cx, zonedDateTime.timeZone(),
-                           zonedDateTime.instant(), &dateTime)) {
+  if (!GetISODateTimeFor(cx, zonedDateTime.timeZone(), zonedDateTime.instant(),
+                         &dateTime)) {
     return false;
   }
 
-  // Step 6.
+  // Step 4.
   args.rval().setInt32(dateTime.time.microsecond);
   return true;
 }
@@ -1739,14 +1598,14 @@ static bool ZonedDateTime_nanosecond(JSContext* cx, const CallArgs& args) {
   Rooted<ZonedDateTime> zonedDateTime(
       cx, ZonedDateTime{&args.thisv().toObject().as<ZonedDateTimeObject>()});
 
-  // Steps 3-5.
+  // Step 3.
   PlainDateTime dateTime;
-  if (!GetPlainDateTimeFor(cx, zonedDateTime.timeZone(),
-                           zonedDateTime.instant(), &dateTime)) {
+  if (!GetISODateTimeFor(cx, zonedDateTime.timeZone(), zonedDateTime.instant(),
+                         &dateTime)) {
     return false;
   }
 
-  // Step 6.
+  // Step 4.
   args.rval().setInt32(dateTime.time.nanosecond);
   return true;
 }
@@ -1822,14 +1681,14 @@ static bool ZonedDateTime_dayOfWeek(JSContext* cx, const CallArgs& args) {
   Rooted<ZonedDateTime> zonedDateTime(
       cx, ZonedDateTime{&args.thisv().toObject().as<ZonedDateTimeObject>()});
 
-  // Steps 3-5.
+  // Step 3.
   PlainDateTime dateTime;
-  if (!GetPlainDateTimeFor(cx, zonedDateTime.timeZone(),
-                           zonedDateTime.instant(), &dateTime)) {
+  if (!GetISODateTimeFor(cx, zonedDateTime.timeZone(), zonedDateTime.instant(),
+                         &dateTime)) {
     return false;
   }
 
-  // Step 6.
+  // Step 4.
   return CalendarDayOfWeek(cx, zonedDateTime.calendar(), dateTime.date,
                            args.rval());
 }
@@ -1851,14 +1710,14 @@ static bool ZonedDateTime_dayOfYear(JSContext* cx, const CallArgs& args) {
   Rooted<ZonedDateTime> zonedDateTime(
       cx, ZonedDateTime{&args.thisv().toObject().as<ZonedDateTimeObject>()});
 
-  // Steps 3-5.
+  // Step 3.
   PlainDateTime dateTime;
-  if (!GetPlainDateTimeFor(cx, zonedDateTime.timeZone(),
-                           zonedDateTime.instant(), &dateTime)) {
+  if (!GetISODateTimeFor(cx, zonedDateTime.timeZone(), zonedDateTime.instant(),
+                         &dateTime)) {
     return false;
   }
 
-  // Step 6.
+  // Step 4.
   return CalendarDayOfYear(cx, zonedDateTime.calendar(), dateTime.date,
                            args.rval());
 }
@@ -1880,14 +1739,14 @@ static bool ZonedDateTime_weekOfYear(JSContext* cx, const CallArgs& args) {
   Rooted<ZonedDateTime> zonedDateTime(
       cx, ZonedDateTime{&args.thisv().toObject().as<ZonedDateTimeObject>()});
 
-  // Steps 3-5.
+  // Step 3.
   PlainDateTime dateTime;
-  if (!GetPlainDateTimeFor(cx, zonedDateTime.timeZone(),
-                           zonedDateTime.instant(), &dateTime)) {
+  if (!GetISODateTimeFor(cx, zonedDateTime.timeZone(), zonedDateTime.instant(),
+                         &dateTime)) {
     return false;
   }
 
-  // Steps 6-8.
+  // Steps 4-6.
   return CalendarWeekOfYear(cx, zonedDateTime.calendar(), dateTime.date,
                             args.rval());
 }
@@ -1909,14 +1768,14 @@ static bool ZonedDateTime_yearOfWeek(JSContext* cx, const CallArgs& args) {
   Rooted<ZonedDateTime> zonedDateTime(
       cx, ZonedDateTime{&args.thisv().toObject().as<ZonedDateTimeObject>()});
 
-  // Steps 3-5.
+  // Step 3.
   PlainDateTime dateTime;
-  if (!GetPlainDateTimeFor(cx, zonedDateTime.timeZone(),
-                           zonedDateTime.instant(), &dateTime)) {
+  if (!GetISODateTimeFor(cx, zonedDateTime.timeZone(), zonedDateTime.instant(),
+                         &dateTime)) {
     return false;
   }
 
-  // Steps 6-8.
+  // Steps 4-6.
   return CalendarYearOfWeek(cx, zonedDateTime.calendar(), dateTime.date,
                             args.rval());
 }
@@ -1943,7 +1802,7 @@ static bool ZonedDateTime_hoursInDay(JSContext* cx, const CallArgs& args) {
 
   // Step 4.
   PlainDateTime dateTime;
-  if (!GetPlainDateTimeFor(cx, timeZone, zonedDateTime.instant(), &dateTime)) {
+  if (!GetISODateTimeFor(cx, timeZone, zonedDateTime.instant(), &dateTime)) {
     return false;
   }
 
@@ -1994,14 +1853,14 @@ static bool ZonedDateTime_daysInWeek(JSContext* cx, const CallArgs& args) {
   Rooted<ZonedDateTime> zonedDateTime(
       cx, ZonedDateTime{&args.thisv().toObject().as<ZonedDateTimeObject>()});
 
-  // Steps 3-5.
+  // Step 3.
   PlainDateTime dateTime;
-  if (!GetPlainDateTimeFor(cx, zonedDateTime.timeZone(),
-                           zonedDateTime.instant(), &dateTime)) {
+  if (!GetISODateTimeFor(cx, zonedDateTime.timeZone(), zonedDateTime.instant(),
+                         &dateTime)) {
     return false;
   }
 
-  // Step 6.
+  // Step 4.
   return CalendarDaysInWeek(cx, zonedDateTime.calendar(), dateTime.date,
                             args.rval());
 }
@@ -2023,14 +1882,14 @@ static bool ZonedDateTime_daysInMonth(JSContext* cx, const CallArgs& args) {
   Rooted<ZonedDateTime> zonedDateTime(
       cx, ZonedDateTime{&args.thisv().toObject().as<ZonedDateTimeObject>()});
 
-  // Steps 3-5.
+  // Step 3.
   PlainDateTime dateTime;
-  if (!GetPlainDateTimeFor(cx, zonedDateTime.timeZone(),
-                           zonedDateTime.instant(), &dateTime)) {
+  if (!GetISODateTimeFor(cx, zonedDateTime.timeZone(), zonedDateTime.instant(),
+                         &dateTime)) {
     return false;
   }
 
-  // Step 6.
+  // Step 4.
   return CalendarDaysInMonth(cx, zonedDateTime.calendar(), dateTime.date,
                              args.rval());
 }
@@ -2052,14 +1911,14 @@ static bool ZonedDateTime_daysInYear(JSContext* cx, const CallArgs& args) {
   Rooted<ZonedDateTime> zonedDateTime(
       cx, ZonedDateTime{&args.thisv().toObject().as<ZonedDateTimeObject>()});
 
-  // Steps 3-5.
+  // Step 3.
   PlainDateTime dateTime;
-  if (!GetPlainDateTimeFor(cx, zonedDateTime.timeZone(),
-                           zonedDateTime.instant(), &dateTime)) {
+  if (!GetISODateTimeFor(cx, zonedDateTime.timeZone(), zonedDateTime.instant(),
+                         &dateTime)) {
     return false;
   }
 
-  // Step 6.
+  // Step 4.
   return CalendarDaysInYear(cx, zonedDateTime.calendar(), dateTime.date,
                             args.rval());
 }
@@ -2081,14 +1940,14 @@ static bool ZonedDateTime_monthsInYear(JSContext* cx, const CallArgs& args) {
   Rooted<ZonedDateTime> zonedDateTime(
       cx, ZonedDateTime{&args.thisv().toObject().as<ZonedDateTimeObject>()});
 
-  // Steps 3-5.
+  // Step 3.
   PlainDateTime dateTime;
-  if (!GetPlainDateTimeFor(cx, zonedDateTime.timeZone(),
-                           zonedDateTime.instant(), &dateTime)) {
+  if (!GetISODateTimeFor(cx, zonedDateTime.timeZone(), zonedDateTime.instant(),
+                         &dateTime)) {
     return false;
   }
 
-  // Step 6.
+  // Step 4.
   return CalendarMonthsInYear(cx, zonedDateTime.calendar(), dateTime.date,
                               args.rval());
 }
@@ -2111,14 +1970,14 @@ static bool ZonedDateTime_inLeapYear(JSContext* cx, const CallArgs& args) {
   Rooted<ZonedDateTime> zonedDateTime(
       cx, ZonedDateTime{&args.thisv().toObject().as<ZonedDateTimeObject>()});
 
-  // Steps 3-5.
+  // Step 3.
   PlainDateTime dateTime;
-  if (!GetPlainDateTimeFor(cx, zonedDateTime.timeZone(),
-                           zonedDateTime.instant(), &dateTime)) {
+  if (!GetISODateTimeFor(cx, zonedDateTime.timeZone(), zonedDateTime.instant(),
+                         &dateTime)) {
     return false;
   }
 
-  // Step 6.
+  // Step 4.
   return CalendarInLeapYear(cx, zonedDateTime.calendar(), dateTime.date,
                             args.rval());
 }
@@ -2142,14 +2001,9 @@ static bool ZonedDateTime_offsetNanoseconds(JSContext* cx,
       cx, ZonedDateTime{&args.thisv().toObject().as<ZonedDateTimeObject>()});
 
   // Step 3.
-  auto timeZone = zonedDateTime.timeZone();
-
-  // Step 4.
-  const auto& instant = zonedDateTime.instant();
-
-  // Step 5.
   int64_t offsetNanoseconds;
-  if (!GetOffsetNanosecondsFor(cx, timeZone, instant, &offsetNanoseconds)) {
+  if (!GetOffsetNanosecondsFor(cx, zonedDateTime.timeZone(),
+                               zonedDateTime.instant(), &offsetNanoseconds)) {
     return false;
   }
   MOZ_ASSERT(std::abs(offsetNanoseconds) < ToNanoseconds(TemporalUnit::Day));
@@ -2177,13 +2031,15 @@ static bool ZonedDateTime_offset(JSContext* cx, const CallArgs& args) {
       cx, ZonedDateTime{&args.thisv().toObject().as<ZonedDateTimeObject>()});
 
   // Step 3.
-  auto timeZone = zonedDateTime.timeZone();
+  int64_t offsetNanoseconds;
+  if (!GetOffsetNanosecondsFor(cx, zonedDateTime.timeZone(),
+                               zonedDateTime.instant(), &offsetNanoseconds)) {
+    return false;
+  }
+  MOZ_ASSERT(std::abs(offsetNanoseconds) < ToNanoseconds(TemporalUnit::Day));
 
   // Step 4.
-  const auto& instant = zonedDateTime.instant();
-
-  // Step 5.
-  JSString* str = GetOffsetStringFor(cx, timeZone, instant);
+  JSString* str = FormatUTCOffsetNanoseconds(cx, offsetNanoseconds);
   if (!str) {
     return false;
   }
@@ -2249,7 +2105,7 @@ static bool ZonedDateTime_with(JSContext* cx, const CallArgs& args) {
   // FIXME: spec issue - make |dateTimeObj| unobservable.
 
   // Step 9.
-  auto dateTime = GetPlainDateTimeFor(instant, offsetNanoseconds);
+  auto dateTime = GetISODateTimeFor(instant, offsetNanoseconds);
   MOZ_ASSERT(ISODateTimeWithinLimits(dateTime));
   Rooted<PlainDateTimeObject*> dateTimeObj(
       cx, CreateTemporalDateTime(cx, dateTime, calendar));
@@ -2386,7 +2242,7 @@ static bool ZonedDateTime_withPlainTime(JSContext* cx, const CallArgs& args) {
 
   // Step 5.
   PlainDateTime dateTime;
-  if (!GetPlainDateTimeFor(cx, timeZone, zonedDateTime.instant(), &dateTime)) {
+  if (!GetISODateTimeFor(cx, timeZone, zonedDateTime.instant(), &dateTime)) {
     return false;
   }
 
@@ -2683,7 +2539,7 @@ static bool ZonedDateTime_round(JSContext* cx, const CallArgs& args) {
 
   // Step 17.
   PlainDateTime dateTime;
-  if (!GetPlainDateTimeFor(cx, timeZone, thisNs, &dateTime)) {
+  if (!GetISODateTimeFor(cx, timeZone, thisNs, &dateTime)) {
     return false;
   }
 
@@ -2985,7 +2841,7 @@ static bool ZonedDateTime_startOfDay(JSContext* cx, const CallArgs& args) {
 
   // Step 5.
   PlainDateTime dateTime;
-  if (!GetPlainDateTimeFor(cx, timeZone, zonedDateTime.instant(), &dateTime)) {
+  if (!GetISODateTimeFor(cx, timeZone, zonedDateTime.instant(), &dateTime)) {
     return false;
   }
 
@@ -3145,8 +3001,8 @@ static bool ZonedDateTime_toPlainDate(JSContext* cx, const CallArgs& args) {
 
   // Steps 3-6.
   PlainDateTime temporalDateTime;
-  if (!GetPlainDateTimeFor(cx, zonedDateTime.timeZone(),
-                           zonedDateTime.instant(), &temporalDateTime)) {
+  if (!GetISODateTimeFor(cx, zonedDateTime.timeZone(), zonedDateTime.instant(),
+                         &temporalDateTime)) {
     return false;
   }
 
@@ -3180,8 +3036,8 @@ static bool ZonedDateTime_toPlainTime(JSContext* cx, const CallArgs& args) {
 
   // Steps 3-6.
   PlainDateTime temporalDateTime;
-  if (!GetPlainDateTimeFor(cx, zonedDateTime.timeZone(),
-                           zonedDateTime.instant(), &temporalDateTime)) {
+  if (!GetISODateTimeFor(cx, zonedDateTime.timeZone(), zonedDateTime.instant(),
+                         &temporalDateTime)) {
     return false;
   }
 
@@ -3214,8 +3070,8 @@ static bool ZonedDateTime_toPlainDateTime(JSContext* cx, const CallArgs& args) {
 
   // Steps 3-4.
   PlainDateTime dateTime;
-  if (!GetPlainDateTimeFor(cx, zonedDateTime.timeZone(),
-                           zonedDateTime.instant(), &dateTime)) {
+  if (!GetISODateTimeFor(cx, zonedDateTime.timeZone(), zonedDateTime.instant(),
+                         &dateTime)) {
     return false;
   }
   MOZ_ASSERT(ISODateTimeWithinLimits(dateTime));

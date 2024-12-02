@@ -550,7 +550,7 @@ static bool ToTemporalDateTime(
 
     // Steps 2.b.i-ii.
     PlainDateTime dateTime;
-    if (!GetPlainDateTimeFor(cx, timeZone, epochInstant, &dateTime)) {
+    if (!GetISODateTimeFor(cx, timeZone, epochInstant, &dateTime)) {
       return false;
     }
 

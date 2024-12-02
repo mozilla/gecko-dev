@@ -432,7 +432,7 @@ static bool ToTemporalDate(JSContext* cx, Handle<JSObject*> item,
 
     // Steps 2.b.ii.
     PlainDateTime dateTime;
-    if (!GetPlainDateTimeFor(cx, timeZone, epochInstant, &dateTime)) {
+    if (!GetISODateTimeFor(cx, timeZone, epochInstant, &dateTime)) {
       return false;
     }
 
