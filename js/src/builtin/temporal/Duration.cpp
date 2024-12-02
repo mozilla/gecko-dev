@@ -2597,15 +2597,15 @@ static bool NudgeToCalendarUnit(
 
   // Steps 7-8.
   PlainDate start;
-  if (!AddDate(cx, calendar, dateTime.date, startDuration,
-               TemporalOverflow::Constrain, &start)) {
+  if (!CalendarDateAdd(cx, calendar, dateTime.date, startDuration,
+                       TemporalOverflow::Constrain, &start)) {
     return false;
   }
 
   // Steps 9-10.
   PlainDate end;
-  if (!AddDate(cx, calendar, dateTime.date, endDuration,
-               TemporalOverflow::Constrain, &end)) {
+  if (!CalendarDateAdd(cx, calendar, dateTime.date, endDuration,
+                       TemporalOverflow::Constrain, &end)) {
     return false;
   }
 
@@ -2768,8 +2768,8 @@ static bool NudgeToZonedTime(JSContext* cx, const NormalizedDuration& duration,
 
   // Steps 2-3.
   PlainDate start;
-  if (!AddDate(cx, calendar, dateTime.date, duration.date,
-               TemporalOverflow::Constrain, &start)) {
+  if (!CalendarDateAdd(cx, calendar, dateTime.date, duration.date,
+                       TemporalOverflow::Constrain, &start)) {
     return false;
   }
 
@@ -4104,8 +4104,9 @@ static bool Duration_round(JSContext* cx, const CallArgs& args) {
 
     // Step 36.c.
     PlainDate targetDate;
-    if (!AddDate(cx, plainRelativeTo.calendar(), plainRelativeTo, dateDuration,
-                 TemporalOverflow::Constrain, &targetDate)) {
+    if (!CalendarDateAdd(cx, plainRelativeTo.calendar(), plainRelativeTo,
+                         dateDuration, TemporalOverflow::Constrain,
+                         &targetDate)) {
       return false;
     }
 
@@ -4280,8 +4281,9 @@ static bool Duration_total(JSContext* cx, const CallArgs& args) {
 
     // Step 15.c.
     PlainDate targetDate;
-    if (!AddDate(cx, plainRelativeTo.calendar(), plainRelativeTo, dateDuration,
-                 TemporalOverflow::Constrain, &targetDate)) {
+    if (!CalendarDateAdd(cx, plainRelativeTo.calendar(), plainRelativeTo,
+                         dateDuration, TemporalOverflow::Constrain,
+                         &targetDate)) {
       return false;
     }
 

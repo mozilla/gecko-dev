@@ -724,10 +724,7 @@ static bool CanBalanceISODay(int64_t day) {
   static_assert(maximumDayDifference <= INT32_MAX);
 
   // When the day difference exceeds the maximum valid day difference, the
-  // overall result won't be a valid date. Detect this early so we don't have to
-  // struggle with floating point precision issues in BalanceISODate.
-  //
-  // This also means BalanceISODate, step 1 doesn't apply to our implementation.
+  // overall result won't be a valid date.
   return std::abs(day) <= maximumDayDifference;
 }
 
@@ -766,8 +763,18 @@ bool js::temporal::BalanceISODate(JSContext* cx, const PlainDate& date,
     return false;
   }
 
-  *result = BalanceISODate(date.year, date.month, int32_t(day));
+  *result = BalanceISODate(date, days);
   return true;
+}
+
+/**
+ * BalanceISODate ( year, month, day )
+ */
+PlainDate js::temporal::BalanceISODate(const PlainDate& date, int32_t days) {
+  MOZ_ASSERT(IsValidISODate(date));
+  MOZ_ASSERT(ISODateWithinLimits(date));
+  MOZ_ASSERT(CanBalanceISODay(int64_t(date.day) + days));
+  return BalanceISODate(date.year, date.month, date.day + days);
 }
 
 /**
@@ -775,10 +782,6 @@ bool js::temporal::BalanceISODate(JSContext* cx, const PlainDate& date,
  */
 PlainDate js::temporal::BalanceISODate(int32_t year, int32_t month,
                                        int32_t day) {
-  // Check no inputs can lead to floating point precision issues below. This
-  // also ensures all loops can finish in reasonable time, so we don't need to
-  // worry about interrupts here. And it ensures there won't be overflows when
-  // using int32_t values.
   MOZ_ASSERT(CanBalanceISOYear(year));
   MOZ_ASSERT(1 <= month && month <= 12);
   MOZ_ASSERT(CanBalanceISODay(day));
@@ -872,11 +875,6 @@ bool js::temporal::AddISODate(JSContext* cx, const PlainDate& date,
                               TemporalOverflow overflow, PlainDate* result) {
   MOZ_ASSERT(IsValidISODate(date));
   MOZ_ASSERT(ISODateWithinLimits(date));
-
-  // TODO: Not quite sure if this holds for all callers. But if it does hold,
-  // then we can directly reject any numbers which can't be represented with
-  // int32_t. That in turn avoids the precision loss issue noted in
-  // BalanceISODate.
   MOZ_ASSERT(IsValidDuration(duration));
 
   // Steps 1-2. (Not applicable in our implementation.)
@@ -927,11 +925,9 @@ bool js::temporal::AddISODate(JSContext* cx, const PlainDate& date,
     return false;
   }
 
-  // NB: BalanceISODate will reject too large days, so we don't have to worry
-  // about imprecise number arithmetic here.
-
   // Steps 5-6.
-  int64_t d = regulated.day + (duration.days + duration.weeks * 7);
+  int64_t days = (duration.days + duration.weeks * 7);
+  int64_t d = regulated.day + days;
 
   // Just as with |yearMonth.year|, also directly throw an error if the |days|
   // value is too large.
@@ -942,15 +938,8 @@ bool js::temporal::AddISODate(JSContext* cx, const PlainDate& date,
   }
 
   // Step 7.
-  auto balanced = BalanceISODate(regulated.year, regulated.month, int32_t(d));
+  auto balanced = BalanceISODate(regulated, days);
   MOZ_ASSERT(IsValidISODate(balanced));
-
-  // Directly validate the result is within the valid limits.
-  if (!ISODateWithinLimits(balanced)) {
-    JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
-                              JSMSG_TEMPORAL_PLAIN_DATE_INVALID);
-    return false;
-  }
 
   *result = balanced;
   return true;
@@ -1003,30 +992,6 @@ static PlainDate AddISODate(const PlainDate& date,
 
   // Steps 4-7.
   return ::ConstrainISODate({year, month, date.day});
-}
-
-static bool HasYearsMonthsOrWeeks(const DateDuration& duration) {
-  return duration.years != 0 || duration.months != 0 || duration.weeks != 0;
-}
-
-/**
- * AddDate ( plainDate, duration, overflow )
- */
-bool js::temporal::AddDate(JSContext* cx, Handle<CalendarValue> calendar,
-                           const PlainDate& date, const DateDuration& duration,
-                           TemporalOverflow overflow, PlainDate* result) {
-  MOZ_ASSERT(ISODateWithinLimits(date));
-  MOZ_ASSERT(IsValidDuration(duration));
-
-  // Step 1.
-  if (HasYearsMonthsOrWeeks(duration)) {
-    return CalendarDateAdd(cx, calendar, date, duration, overflow, result);
-  }
-
-  // Steps 2-4. (Not applicable)
-
-  // Steps 5-6.
-  return AddISODate(cx, date, duration, overflow, result);
 }
 
 /**

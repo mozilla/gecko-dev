@@ -639,7 +639,7 @@ static bool AddDurationToYearMonth(JSContext* cx, TemporalAddDuration operation,
     }
 
     // Step 10.c.
-    date = BalanceISODate(nextMonth.year, nextMonth.month, nextMonth.day - 1);
+    date = BalanceISODate(nextMonth, -1);
 
     // Step 10.d.
     MOZ_ASSERT(ISODateWithinLimits(date));

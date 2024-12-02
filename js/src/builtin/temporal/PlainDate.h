@@ -169,13 +169,6 @@ bool AddISODate(JSContext* cx, const PlainDate& date,
                 PlainDate* result);
 
 /**
- * AddDate ( plainDate, duration, overflow )
- */
-bool AddDate(JSContext* cx, JS::Handle<CalendarValue> calendar,
-             const PlainDate& date, const DateDuration& duration,
-             TemporalOverflow overflow, PlainDate* result);
-
-/**
  * DifferenceISODate ( y1, m1, d1, y2, m2, d2, largestUnit )
  */
 DateDuration DifferenceISODate(const PlainDate& start, const PlainDate& end,
@@ -191,6 +184,11 @@ int32_t CompareISODate(const PlainDate& one, const PlainDate& two);
  */
 bool BalanceISODate(JSContext* cx, const PlainDate& date, int64_t days,
                     PlainDate* result);
+
+/**
+ * BalanceISODate ( year, month, day )
+ */
+PlainDate BalanceISODate(const PlainDate& date, int32_t days);
 
 /**
  * BalanceISODate ( year, month, day )

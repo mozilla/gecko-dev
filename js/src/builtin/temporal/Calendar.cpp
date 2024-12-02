@@ -1711,39 +1711,6 @@ static bool CalendarDateMonthCode(JSContext* cx, CalendarId calendar,
   return true;
 }
 
-/**
- * CalendarDateAddition ( calendar, date, duration, overflow )
- */
-static bool CalendarDateAddition(JSContext* cx, CalendarId calendar,
-                                 const PlainDate& date,
-                                 const DateDuration& duration,
-                                 TemporalOverflow overflow, PlainDate* result) {
-  MOZ_ASSERT(calendar != CalendarId::ISO8601);
-
-  // FIXME: Not supported in ICU4X. Use the ISO8601 calendar code for now.
-  //
-  // https://github.com/unicode-org/icu4x/issues/3964
-
-  return AddISODate(cx, date, duration, overflow, result);
-}
-
-/**
- * CalendarDateDifference ( calendar, one, two, largestUnit )
- */
-static bool CalendarDateDifference(JSContext* cx, CalendarId calendar,
-                                   const PlainDate& one, const PlainDate& two,
-                                   TemporalUnit largestUnit,
-                                   DateDuration* result) {
-  MOZ_ASSERT(calendar != CalendarId::ISO8601);
-
-  // FIXME: Not supported in ICU4X. Use the ISO8601 calendar code for now.
-  //
-  // https://github.com/unicode-org/icu4x/issues/3964
-
-  *result = DifferenceISODate(one, two, largestUnit);
-  return true;
-}
-
 class MonthCodeString {
   // Zero-terminated month code string.
   char str_[4 + 1];
@@ -3355,17 +3322,24 @@ bool js::temporal::CalendarDateAdd(JSContext* cx,
   MOZ_ASSERT(IsValidISODate(date));
   MOZ_ASSERT(IsValidDuration(duration));
 
-  auto calendarId = calendar.identifier();
+  // FIXME: Not supported in ICU4X. Use the ISO8601 calendar code for now.
+  //
+  // https://github.com/unicode-org/icu4x/issues/3964
 
-  // Steps 1-2. (Not applicable)
-
-  // Steps 3 and 5.
-  if (calendarId == CalendarId::ISO8601) {
-    return AddISODate(cx, date, duration, overflow, result);
+  // Steps 1-2.
+  if (!AddISODate(cx, date, duration, overflow, result)) {
+    return false;
   }
 
-  // Steps 4-5.
-  return CalendarDateAddition(cx, calendarId, date, duration, overflow, result);
+  // Step 3.
+  if (!ISODateWithinLimits(*result)) {
+    JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
+                              JSMSG_TEMPORAL_PLAIN_DATE_INVALID);
+    return false;
+  }
+
+  // Step 4.
+  return true;
 }
 
 /**
@@ -3378,16 +3352,11 @@ bool js::temporal::CalendarDateUntil(JSContext* cx,
                                      DateDuration* result) {
   MOZ_ASSERT(largestUnit <= TemporalUnit::Day);
 
-  auto calendarId = calendar.identifier();
+  // FIXME: Not supported in ICU4X. Use the ISO8601 calendar code for now.
+  //
+  // https://github.com/unicode-org/icu4x/issues/3964
 
-  // Step 1. (Not applicable in our implementation)
-
-  // Step 2 and 4.
-  if (calendarId == CalendarId::ISO8601) {
-    *result = DifferenceISODate(one, two, largestUnit);
-    return true;
-  }
-
-  // Steps 3-4.
-  return CalendarDateDifference(cx, calendarId, one, two, largestUnit, result);
+  // Steps 1-2.
+  *result = DifferenceISODate(one, two, largestUnit);
+  return true;
 }

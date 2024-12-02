@@ -711,8 +711,7 @@ static bool DifferenceZonedDateTime(JSContext* cx, const Instant& ns1,
   while (dayCorrection <= maxDayCorrection) {
     // Step 10.a.
     auto intermediateDate =
-        BalanceISODate(endDateTime.date.year, endDateTime.date.month,
-                       endDateTime.date.day - dayCorrection * sign);
+        BalanceISODate(endDateTime.date, -dayCorrection * sign);
 
     // FIXME: spec issue - CreateTemporalDateTime is fallible
     // https://github.com/tc39/proposal-temporal/issues/2824
@@ -1801,7 +1800,7 @@ static bool ZonedDateTime_hoursInDay(JSContext* cx, const CallArgs& args) {
   // TODO: Date outside of valid limits?
 
   // Step 6.
-  auto tomorrow = BalanceISODate(today.year, today.month, today.day + 1);
+  auto tomorrow = BalanceISODate(today, 1);
 
   // Step 7.
   Instant todayNs;
@@ -2520,8 +2519,7 @@ static bool ZonedDateTime_round(JSContext* cx, const CallArgs& args) {
     // TODO: Date outside of valid limits?
 
     // Step 18.b.
-    auto dateEnd =
-        BalanceISODate(dateStart.year, dateStart.month, dateStart.day + 1);
+    auto dateEnd = BalanceISODate(dateStart, 1);
 
     // Step 18.c.
     Instant startNs;

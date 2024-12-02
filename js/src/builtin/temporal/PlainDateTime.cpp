@@ -671,8 +671,7 @@ static bool DifferenceISODateTime(JSContext* cx, const PlainDateTime& one,
   // Step 7.
   if (timeSign == -dateSign) {
     // Step 7.a.
-    adjustedDate = BalanceISODate(adjustedDate.year, adjustedDate.month,
-                                  adjustedDate.day + timeSign);
+    adjustedDate = BalanceISODate(adjustedDate, timeSign);
 
     // Step 7.b.
     if (!Add24HourDaysToNormalizedTimeDuration(cx, timeDuration, -timeSign,
@@ -739,8 +738,7 @@ PlainDateTime js::temporal::RoundISODateTime(
   MOZ_ASSERT(0 <= roundedTime.days && roundedTime.days <= 1);
 
   // Step 4.
-  auto balanceResult = BalanceISODate(date.year, date.month,
-                                      date.day + int32_t(roundedTime.days));
+  auto balanceResult = BalanceISODate(date, roundedTime.days);
 
   // Step 5.
   return {balanceResult, roundedTime.time};
