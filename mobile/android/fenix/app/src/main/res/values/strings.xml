@@ -2913,35 +2913,4 @@
     <!-- Beta Label Component !-->
     <!-- Text shown as a label or tag to indicate a feature or area is still undergoing active development. Note that here "Beta" should not be translated, as it is used as an icon styled element. -->
     <string name="beta_feature">BETA</string>
-
-    <!-- Root certificate expiration warnings -->
-    <!-- These strings for homepage cards and push notifications to be pushed to users running outdated versions of Firefox. We want to encourage these users to update to the latest version so their extensions and other features don't stop working when Firefox's old root certificate expires on 2025-03-14. For more information, see this SUMO article: https://support.mozilla.org/kb/root-certificate-expiration !-->
-    <!-- Homepage card button to open Google Play Store. "Update" is a verb. -->
-    <string name="certificate_warning_homepage_card_update_now_button" tools:ignore="UnusedResources">Update now</string>
-    <!-- Homepage card title about old Firefox version. "Update" is a verb. -->
-    <string name="certificate_warning_homepage_card_hca1_title" tools:ignore="UnusedResources">Update your Firefox browser</string>
-    <!-- Homepage card message about old Firefox version -->
-    <string name="certificate_warning_homepage_card_hca1_message" tools:ignore="UnusedResources">A root certificate will expire, causing some features to stop working on March 14.</string>
-    <!-- Homepage card title about old Firefox version. "Update" is a verb. -->
-    <string name="certificate_warning_homepage_card_hcr1_title" tools:ignore="UnusedResources">Update before March 14</string>
-    <!-- Homepage card message about old Firefox version -->
-    <string name="certificate_warning_homepage_card_hcr1_message" tools:ignore="UnusedResources">A root certificate will expire, causing your version of Firefox to stop working properly.</string>
-    <!-- Homepage card title about old Firefox version -->
-    <string name="certificate_warning_homepage_card_hcw2_title" tools:ignore="UnusedResources">Less than 7 days to left to update</string>
-    <!-- Homepage card message about old Firefox version -->
-    <string name="certificate_warning_homepage_card_hcw2_message" tools:ignore="UnusedResources">On March 14, add-ons and other Firefox features will stop working because a root certificate is expiring.</string>
-    <!-- Homepage card title about old Firefox version -->
-    <string name="certificate_warning_homepage_card_hcw3_title" tools:ignore="UnusedResources">Last chance to keep your Firefox</string>
-    <!-- Homepage card message about old Firefox version -->
-    <string name="certificate_warning_homepage_card_hcw3_message" tools:ignore="UnusedResources">Your version of Firefox will stop working properly on March 14 because a root certificate is expiring.</string>
-    <!-- Push notification title about old Firefox version. "Update" is a noun. -->
-    <string name="certificate_warning_push_notification_update_recommended_title" tools:ignore="UnusedResources">Update recommended</string>
-    <!-- Push notification message about old Firefox version -->
-    <string name="certificate_warning_push_notification_pnr1_message" tools:ignore="UnusedResources">Add-ons and some features will stop working on March 14.</string>
-    <!-- Push notification title about old Firefox version -->
-    <string name="certificate_warning_push_notification_pnw2_title" tools:ignore="UnusedResources">You’re on an older version of Firefox</string>
-    <!-- Push notification message about old Firefox version. "Update" is a verb. -->
-    <string name="certificate_warning_push_notification_pnw2_message" tools:ignore="UnusedResources">Update before March 14 to keep using add-ons and other features.</string>
-    <!-- Push notification message about old Firefox version -->
-    <string name="certificate_warning_push_notification_pnw3_message" tools:ignore="UnusedResources">Some features will stop working tomorrow.</string>
 </resources>
