@@ -1491,17 +1491,6 @@ bool nsContentSecurityUtils::ValidateScriptFilename(JSContext* cx,
     }
   }
 
-  auto kAllowedFilenamesExact = {
-      // Allow through the injection provided by about:sync addon
-      "data:,new function() {\n  const { AboutSyncRedirector } = ChromeUtils.import(\"chrome://aboutsync/content/AboutSyncRedirector.js\");\n  AboutSyncRedirector.register();\n}"_ns,
-  };
-
-  for (auto allowedFilename : kAllowedFilenamesExact) {
-    if (filename == allowedFilename) {
-      return true;
-    }
-  }
-
   auto kAllowedFilenamesPrefix = {
       // Until 371900 is fixed, we need to do something about about:downloads
       // and this is the most reasonable. See 1727770
