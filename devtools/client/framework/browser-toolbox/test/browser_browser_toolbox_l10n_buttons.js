@@ -19,7 +19,7 @@ requestLongerTimeout(4);
  */
 add_task(async function () {
   const ToolboxTask = await initBrowserToolboxTask();
-  await ToolboxTask.importFunctions({ clickMeatballItem });
+  await ToolboxTask.importFunctions({ waitUntil, clickMeatballItem });
 
   is(getPseudoLocale(), "", "Starts out as empty");
 
@@ -61,28 +61,25 @@ function getPseudoLocale() {
  *
  * @param {"accented" | "bidi"} type
  */
-function clickMeatballItem(type) {
-  return new Promise(resolve => {
-    /* global gToolbox */
+async function clickMeatballItem(type) {
+  /* global gToolbox */
 
-    dump(`Opening the meatball menu in the browser toolbox.\n`);
-    gToolbox.doc.getElementById("toolbox-meatball-menu-button").click();
-
-    gToolbox.doc.addEventListener(
-      "popupshown",
-      async () => {
-        const menuItem = gToolbox.doc.getElementById(
-          "toolbox-meatball-menu-pseudo-locale-" + type
-        );
-        dump(`Clicking the meatball menu item: "${type}".\n`);
-        menuItem.click();
-
-        // Request the pseudo-locale so that we know the preference actor is fully
-        // done setting the debuggee browser.
-        await gToolbox.getPseudoLocale();
-        resolve();
-      },
-      { once: true }
-    );
+  const onPopupShown = new Promise(resolve => {
+    gToolbox.doc.addEventListener("popupshown", resolve, { once: true });
   });
+  dump(`Opening the meatball menu in the browser toolbox.\n`);
+  gToolbox.doc.getElementById("toolbox-meatball-menu-button").click();
+  await onPopupShown;
+
+  const menuItem = gToolbox.doc.getElementById(
+    "toolbox-meatball-menu-pseudo-locale-" + type
+  );
+  dump(`Clicking the meatball menu item: "${type}".\n`);
+  const checked = menuItem.getAttribute("aria-checked");
+  menuItem.click();
+
+  dump(
+    "Wait for the new setting to be applied by waiting for the UI to be updated after the action is done\n"
+  );
+  await waitUntil(() => menuItem.getAttribute("aria-checked") != checked);
 }
