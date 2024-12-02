@@ -351,7 +351,7 @@ static bool ToTemporalYearMonth(
   // Steps 5-7.
   Rooted<CalendarValue> calendar(cx, CalendarValue(CalendarId::ISO8601));
   if (calendarString) {
-    if (!ToBuiltinCalendar(cx, calendarString, &calendar)) {
+    if (!CanonicalizeCalendar(cx, calendarString, &calendar)) {
       return false;
     }
   }
@@ -754,7 +754,7 @@ static bool PlainYearMonthConstructor(JSContext* cx, unsigned argc, Value* vp) {
     return false;
   }
 
-  // Steps 5-8.
+  // Steps 5-7.
   Rooted<CalendarValue> calendar(cx, CalendarValue(CalendarId::ISO8601));
   if (args.hasDefined(2)) {
     // Step 6.
@@ -764,14 +764,14 @@ static bool PlainYearMonthConstructor(JSContext* cx, unsigned argc, Value* vp) {
       return false;
     }
 
-    // Steps 7-8.
+    // Step 7.
     Rooted<JSString*> calendarString(cx, args[2].toString());
-    if (!ToBuiltinCalendar(cx, calendarString, &calendar)) {
+    if (!CanonicalizeCalendar(cx, calendarString, &calendar)) {
       return false;
     }
   }
 
-  // Steps 2 and 9.
+  // Steps 2 and 8.
   double isoDay = 1;
   if (args.hasDefined(3)) {
     if (!ToIntegerWithTruncation(cx, args[3], "day", &isoDay)) {
@@ -779,7 +779,7 @@ static bool PlainYearMonthConstructor(JSContext* cx, unsigned argc, Value* vp) {
     }
   }
 
-  // Step 10.
+  // Step 9.
   auto* yearMonth =
       CreateTemporalYearMonth(cx, args, isoYear, isoMonth, isoDay, calendar);
   if (!yearMonth) {

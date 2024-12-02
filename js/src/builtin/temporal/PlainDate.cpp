@@ -629,19 +629,17 @@ static bool ToTemporalDate(JSContext* cx, Handle<Value> item,
   if (!ParseTemporalDateTimeString(cx, string, &dateTime, &calendarString)) {
     return false;
   }
-
-  // Step 5.
   MOZ_ASSERT(IsValidISODate(dateTime.date));
 
-  // Steps 6-8.
+  // Steps 5-7.
   Rooted<CalendarValue> calendar(cx, CalendarValue(CalendarId::ISO8601));
   if (calendarString) {
-    if (!ToBuiltinCalendar(cx, calendarString, &calendar)) {
+    if (!CanonicalizeCalendar(cx, calendarString, &calendar)) {
       return false;
     }
   }
 
-  // Steps 9-10.
+  // Steps 8-9.
   DateOptions ignoredOptions;
   if (!ToTemporalDateOptions(cx, options, &ignoredOptions)) {
     return false;
@@ -1478,7 +1476,7 @@ static bool PlainDateConstructor(JSContext* cx, unsigned argc, Value* vp) {
     return false;
   }
 
-  // Steps 5-8.
+  // Steps 5-7.
   Rooted<CalendarValue> calendar(cx, CalendarValue(CalendarId::ISO8601));
   if (args.hasDefined(3)) {
     // Step 6.
@@ -1488,14 +1486,14 @@ static bool PlainDateConstructor(JSContext* cx, unsigned argc, Value* vp) {
       return false;
     }
 
-    // Steps 7-8.
+    // Step 7.
     Rooted<JSString*> calendarString(cx, args[3].toString());
-    if (!ToBuiltinCalendar(cx, calendarString, &calendar)) {
+    if (!CanonicalizeCalendar(cx, calendarString, &calendar)) {
       return false;
     }
   }
 
-  // Step 9.
+  // Step 8.
   auto* temporalDate =
       CreateTemporalDate(cx, args, isoYear, isoMonth, isoDay, calendar);
   if (!temporalDate) {

@@ -215,11 +215,13 @@ int64_t MakeDate(const PlainDateTime& dateTime);
 int64_t MakeDate(int32_t year, int32_t month, int32_t day);
 
 /**
+ * CanonicalizeCalendar ( id )
+ *
  * Return the case-normalized calendar identifier if |id| is a built-in calendar
  * identifier. Otherwise throws a RangeError.
  */
-bool ToBuiltinCalendar(JSContext* cx, JS::Handle<JSString*> id,
-                       JS::MutableHandle<CalendarValue> result);
+bool CanonicalizeCalendar(JSContext* cx, JS::Handle<JSString*> id,
+                          JS::MutableHandle<CalendarValue> result);
 
 /**
  * ToTemporalCalendarSlotValue ( temporalCalendarLike )

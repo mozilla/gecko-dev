@@ -462,20 +462,18 @@ static bool ToTemporalZonedDateTime(JSContext* cx, Handle<Value> item,
     offsetBehaviour = OffsetBehaviour::Wall;
   }
 
-  // Steps 5.i-l.
-  Rooted<CalendarValue> calendar(cx);
+  // Steps 5.i-k.
+  Rooted<CalendarValue> calendar(cx, CalendarValue(CalendarId::ISO8601));
   if (parsed.calendar()) {
-    if (!ToBuiltinCalendar(cx, parsed.calendar(), &calendar)) {
+    if (!CanonicalizeCalendar(cx, parsed.calendar(), &calendar)) {
       return false;
     }
-  } else {
-    calendar.set(CalendarValue(CalendarId::ISO8601));
   }
 
-  // Step 5.m.
+  // Step 5.l.
   matchBehaviour = MatchBehaviour::MatchMinutes;
 
-  // Steps 5.n-q.
+  // Steps 5.m-p.
   ZonedDateTimeOptions resolvedOptions;
   if (!ToTemporalZonedDateTimeOptions(cx, options, &resolvedOptions)) {
     return false;
@@ -1158,7 +1156,7 @@ static bool ZonedDateTimeConstructor(JSContext* cx, unsigned argc, Value* vp) {
     return false;
   }
 
-  // Steps 8-11.
+  // Steps 8-10.
   Rooted<CalendarValue> calendar(cx, CalendarValue(CalendarId::ISO8601));
   if (args.hasDefined(2)) {
     // Step 9.
@@ -1168,14 +1166,14 @@ static bool ZonedDateTimeConstructor(JSContext* cx, unsigned argc, Value* vp) {
       return false;
     }
 
-    // Steps 10-11.
+    // Step 10.
     Rooted<JSString*> calendarString(cx, args[2].toString());
-    if (!ToBuiltinCalendar(cx, calendarString, &calendar)) {
+    if (!CanonicalizeCalendar(cx, calendarString, &calendar)) {
       return false;
     }
   }
 
-  // Step 6.
+  // Step 11.
   auto* obj = CreateTemporalZonedDateTime(cx, args, epochNanoseconds, timeZone,
                                           calendar);
   if (!obj) {

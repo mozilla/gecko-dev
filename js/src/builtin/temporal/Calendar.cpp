@@ -510,14 +510,6 @@ static bool ParseMonthCode(JSContext* cx, CalendarId calendarId,
   return true;
 }
 
-#ifdef DEBUG
-static bool StringIsAsciiLowerCase(mozilla::Span<const char> str) {
-  return std::all_of(str.begin(), str.end(), [](char ch) {
-    return mozilla::IsAscii(ch) && !mozilla::IsAsciiUppercaseAlpha(ch);
-  });
-}
-#endif
-
 /**
  * Return the BCP-47 string for the given calendar id.
  */
@@ -592,81 +584,56 @@ class MOZ_STACK_CLASS AsciiLowerCaseChars final {
 };
 
 /**
- * IsBuiltinCalendar ( id )
+ * CanonicalizeCalendar ( id )
  */
-static mozilla::Maybe<CalendarId> IsBuiltinCalendar(
-    mozilla::Span<const char> id) {
-  // Callers must convert to lower case.
-  MOZ_ASSERT(StringIsAsciiLowerCase(id));
-  MOZ_ASSERT(id.size() > 0);
-
-  // Reject invalid types before trying to resolve aliases.
-  if (mozilla::intl::LocaleParser::CanParseUnicodeExtensionType(id).isErr()) {
-    return mozilla::Nothing();
-  }
-
-  // Resolve calendar aliases.
-  static constexpr auto key = mozilla::MakeStringSpan("ca");
-  if (const char* replacement =
-          mozilla::intl::Locale::ReplaceUnicodeExtensionType(key, id)) {
-    id = mozilla::MakeStringSpan(replacement);
-  }
-
-  // Step 1.
-  static constexpr auto& calendars = AvailableCalendars();
-
-  // Step 2.
-  for (auto identifier : calendars) {
-    if (id == mozilla::Span{CalendarIdToBcp47(identifier)}) {
-      return mozilla::Some(identifier);
-    }
-  }
-
-  // Step 3.
-  return mozilla::Nothing();
-}
-
-static bool ToBuiltinCalendar(JSContext* cx, Handle<JSLinearString*> id,
-                              CalendarId* result) {
-  if (!StringIsAscii(id) || id->empty()) {
-    if (auto chars = QuoteString(cx, id)) {
-      JS_ReportErrorNumberUTF8(cx, GetErrorMessage, nullptr,
-                               JSMSG_TEMPORAL_CALENDAR_INVALID_ID, chars.get());
-    }
-    return false;
-  }
-
-  AsciiLowerCaseChars lowerCaseChars(cx);
-  if (!lowerCaseChars.init(id)) {
-    return false;
-  }
-
-  if (auto builtin = IsBuiltinCalendar(lowerCaseChars)) {
-    *result = *builtin;
-    return true;
-  }
-
-  if (auto chars = QuoteString(cx, id)) {
-    JS_ReportErrorNumberUTF8(cx, GetErrorMessage, nullptr,
-                             JSMSG_TEMPORAL_CALENDAR_INVALID_ID, chars.get());
-  }
-  return false;
-}
-
-bool js::temporal::ToBuiltinCalendar(JSContext* cx, Handle<JSString*> id,
-                                     MutableHandle<CalendarValue> result) {
+bool js::temporal::CanonicalizeCalendar(JSContext* cx, Handle<JSString*> id,
+                                        MutableHandle<CalendarValue> result) {
   Rooted<JSLinearString*> linear(cx, id->ensureLinear(cx));
   if (!linear) {
     return false;
   }
 
-  CalendarId identifier;
-  if (!::ToBuiltinCalendar(cx, linear, &identifier)) {
-    return false;
-  }
+  // Steps 1-3.
+  do {
+    if (!StringIsAscii(linear) || linear->empty()) {
+      break;
+    }
 
-  result.set(CalendarValue(identifier));
-  return true;
+    AsciiLowerCaseChars lowerCaseChars(cx);
+    if (!lowerCaseChars.init(linear)) {
+      return false;
+    }
+    mozilla::Span<const char> id = lowerCaseChars;
+
+    // Reject invalid types before trying to resolve aliases.
+    if (mozilla::intl::LocaleParser::CanParseUnicodeExtensionType(id).isErr()) {
+      break;
+    }
+
+    // Resolve calendar aliases.
+    static constexpr auto key = mozilla::MakeStringSpan("ca");
+    if (const char* replacement =
+            mozilla::intl::Locale::ReplaceUnicodeExtensionType(key, id)) {
+      id = mozilla::MakeStringSpan(replacement);
+    }
+
+    // Step 1.
+    static constexpr auto& calendars = AvailableCalendars();
+
+    // Steps 2-3.
+    for (auto identifier : calendars) {
+      if (id == mozilla::Span{CalendarIdToBcp47(identifier)}) {
+        result.set(CalendarValue(identifier));
+        return true;
+      }
+    }
+  } while (false);
+
+  if (auto chars = QuoteString(cx, linear)) {
+    JS_ReportErrorNumberUTF8(cx, GetErrorMessage, nullptr,
+                             JSMSG_TEMPORAL_CALENDAR_INVALID_ID, chars.get());
+  }
+  return false;
 }
 
 template <typename T, typename... Ts>
@@ -723,14 +690,7 @@ bool js::temporal::ToTemporalCalendar(JSContext* cx,
   }
 
   // Step 4.
-  CalendarId identifier;
-  if (!::ToBuiltinCalendar(cx, id, &identifier)) {
-    return false;
-  }
-
-  // Step 5.
-  result.set(CalendarValue(identifier));
-  return true;
+  return CanonicalizeCalendar(cx, id, result);
 }
 
 /**

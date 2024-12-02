@@ -621,22 +621,18 @@ static bool ToTemporalDateTime(
   if (!ParseTemporalDateTimeString(cx, string, &dateTime, &calendarString)) {
     return false;
   }
-
-  // Step 3.d.
   MOZ_ASSERT(IsValidISODate(dateTime.date));
-
-  // Step 3.e.
   MOZ_ASSERT(IsValidTime(dateTime.time));
 
-  // Steps 3.f-h.
+  // Steps 3.d-f.
   Rooted<CalendarValue> calendar(cx, CalendarValue(CalendarId::ISO8601));
   if (calendarString) {
-    if (!ToBuiltinCalendar(cx, calendarString, &calendar)) {
+    if (!CanonicalizeCalendar(cx, calendarString, &calendar)) {
       return false;
     }
   }
 
-  // Steps 3.i-j.
+  // Steps 3.g-h.
   DateTimeOptions ignoredOptions;
   if (!ToTemporalDateTimeOptions(cx, options, &ignoredOptions)) {
     return false;
@@ -1156,7 +1152,7 @@ static bool PlainDateTimeConstructor(JSContext* cx, unsigned argc, Value* vp) {
     }
   }
 
-  // Steps 11-14.
+  // Steps 11-13.
   Rooted<CalendarValue> calendar(cx, CalendarValue(CalendarId::ISO8601));
   if (args.hasDefined(9)) {
     // Step 12.
@@ -1166,14 +1162,14 @@ static bool PlainDateTimeConstructor(JSContext* cx, unsigned argc, Value* vp) {
       return false;
     }
 
-    // Steps 13-14.
+    // Step 13.
     Rooted<JSString*> calendarString(cx, args[9].toString());
-    if (!ToBuiltinCalendar(cx, calendarString, &calendar)) {
+    if (!CanonicalizeCalendar(cx, calendarString, &calendar)) {
       return false;
     }
   }
 
-  // Step 15.
+  // Step 14.
   auto* temporalDateTime = CreateTemporalDateTime(
       cx, args, isoYear, isoMonth, isoDay, hour, minute, second, millisecond,
       microsecond, nanosecond, calendar);

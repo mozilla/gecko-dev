@@ -2083,9 +2083,9 @@ static bool GetTemporalRelativeToOption(
       MOZ_ASSERT(!timeZone);
     }
 
-    // Steps 6.g-j.
+    // Steps 6.g-i.
     if (parsed.calendar()) {
-      if (!ToBuiltinCalendar(cx, parsed.calendar(), &calendar)) {
+      if (!CanonicalizeCalendar(cx, parsed.calendar(), &calendar)) {
         return false;
       }
     } else {
