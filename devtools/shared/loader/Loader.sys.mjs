@@ -32,7 +32,7 @@ var gNextLoaderID = 0;
  *        If true, the modules will be forced to be loaded in a distinct
  *        compartment. It is typically used to load the modules in a distinct
  *        system compartment, different from the main one, which is shared by
- *        all JSMs, XPCOMs and modules loaded with this flag set to true.
+ *        all ESMs, XPCOMs and modules loaded with this flag set to true.
  *        We use this in order to debug modules loaded in this shared system
  *        compartment. The debugger actor has to be running in a distinct
  *        compartment than the context it is debugging.
@@ -166,7 +166,7 @@ export function DevToolsLoader({
   );
 
   // Define the loader id for these two usecases:
-  // * access via the JSM (this.id)
+  // * access via the ESM (this.id)
   // let { loader } = ChromeUtils.importESModule("resource://devtools/shared/loader/Loader.sys.mjs");
   // loader.id
   this.id = gNextLoaderID++;
@@ -176,7 +176,7 @@ export function DevToolsLoader({
   globals.loader.invisibleToDebugger = invisibleToDebugger;
 
   // Expose lazy helpers on `loader`
-  // ie. when you use it like that from a JSM:
+  // ie. when you use it like that from a ESM:
   // let { loader } = ChromeUtils.importESModule("resource://devtools/shared/loader/Loader.sys.mjs");
   // loader.lazyGetter(...);
   this.lazyGetter = globals.loader.lazyGetter;
