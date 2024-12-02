@@ -352,9 +352,10 @@ FSMultipartFormData::FSMultipartFormData(nsIURI* aActionURL,
 
   mTotalLength = 0;
 
-  mBoundary.AssignLiteral("----GeckoFormBoundary");
-  mBoundary.AppendInt(static_cast<uint64_t>(mozilla::RandomUint64OrDie()), 16);
-  mBoundary.AppendInt(static_cast<uint64_t>(mozilla::RandomUint64OrDie()), 16);
+  mBoundary.AssignLiteral("---------------------------");
+  mBoundary.AppendInt(static_cast<uint32_t>(mozilla::RandomUint64OrDie()));
+  mBoundary.AppendInt(static_cast<uint32_t>(mozilla::RandomUint64OrDie()));
+  mBoundary.AppendInt(static_cast<uint32_t>(mozilla::RandomUint64OrDie()));
 }
 
 FSMultipartFormData::~FSMultipartFormData() {
