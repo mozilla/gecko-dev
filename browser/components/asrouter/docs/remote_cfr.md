@@ -1,16 +1,85 @@
 # Remote CFR Messages
-Starting in Firefox 68, CFR messages will be defined using [Remote Settings](https://remote-settings.readthedocs.io/en/latest/index.html). In this document, we'll cover how to set up a dev environment.
+Starting in Firefox 68, CFR messages will be defined using [Remote Settings](https://remote-settings.readthedocs.io/en/latest/index.html).
 
-## Using a dev server for Remote CFR
 
-> Note: Since Novembre 2021, Remote Settings has a proper DEV instance, which is
-> reachable without VPN, but has the same config (openid, multi-signoff, ...)
-> and collections as STAGE/PROD.
+## Environments
+There are three environments available for Remote Settings:
+* DEV - `https://remote-settings-dev.allizom.org/v1/`
+* STAGING - `https://remote-settings.allizom.org/v1/`
+* PROD - `https://remote-settings.mozilla.org/v1/`
+
+DEV is primarily used for testing the Remote Settings API and exploring new use cases. Messaging validation and QA are conducted in the STAGING environment, while finalized and validated messages are delivered in the PROD environment. Both STAGING and PROD follow the [Multi Signoff Workflow](https://remote-settings.readthedocs.io/en/latest/tutorial-multi-signoff.html). During the review process, messages are served in the `main-preview` bucket. Once reviewed, they are moved to the `main` bucket.
+
+Access to STAGING and PROD environments requires VPN (using "Viscosity VPN," which can be requested via the Jira Service Desk). However, the DEV environment is accessible without VPN.
+
+To switch between environments more easily, you can use the [remote-settings-devtools](https://github.com/mozilla-extensions/remote-settings-devtools) extension. After installation, click on the extension in your browser to open its UI. The devtools provide a dropdown menu to switch between environments (`prod`, `prod-preview`, `staging`, `staging-preview`, `dev`, and `dev-preview`) and automatically update the necessary preferences for each environment.
+
+To easily change between these environments, the [remote-settings-devtools](https://github.com/mozilla-extensions/remote-settings-devtools) extension is available. Once installed, you can click on the extensions list in the browser, select `remote-settings-devtools` to interact with the devtools UI. The devtools allows you to switch between environments on your profile through the drop-down menu and will take care of correctly flipping all the required prefs. Specifically, it will allow you to point to `prod`, `prod-preview`, `staging`, `staging-preview`, `dev` and `dev-preview`.
+
+Alternatively, it is possible to switch between environments by updating the following prefs in `about:config`:
+* `services.settings.default_bucket`: `main` or `main-preview`
+* `services.settings.server`: the applicable environment URL
+
+For release and ESR, for security reasons, you will also need to run the application through the command line with `MOZ_REMOTE_SETTINGS_DEVTOOLS=1` environment variable for the preferences to be taken into account. Note that toggling the preference won’t have any effect until restart.
+
+## Add Message using Remote Settings Admin UI
+
+1. **Log in to the Remote Settings Admin UI**
+   - Use your LDAP identity to log in and start testing in [STAGING](https://remote-settings.allizom.org/v1/admin/#/).
+
+2. **Add Messaging System JSON**
+   - On the left-hand side, under the **Workspace** bucket, click on the `cfr` collection.
+   - Select `Create record` to open a text field.
+   - Paste valid [Messaging System JSON](https://firefox-source-docs.mozilla.org/toolkit/components/messaging-system/docs/index.html) into the text field.
+   - Ensure the following fields are accurate:
+     - `id`: Unique identifier for the message.
+     - `last_modified`: Current date and time in milliseconds.
+   - These fields will be visible in the **Records** column.
+
+3. **Preview testing**
+   - Follow the [Multi Signoff Workflow](https://remote-settings.readthedocs.io/en/latest/tutorial-multi-signoff.html), add the message into preview by putting into review, it will be served in the `main-preview` bucket.
+   - Install the [Remote Settings DevTools](https://github.com/mozilla-extensions/remote-settings-devtools).
+   - Use the dev tools to point to `staging-preview`.
+   - In `about:config`, enable the following preference:
+     ```
+     browser.newtabpage.activity-stream.asrouter.devtoolsEnabled
+     ```
+   - Go to `about:asrouter`.
+   - Under the **Message** tab:
+     - Filter the **Providers** for `cfr` to view the message in ASRouter.
+
+4. **Main testing**
+   - If the message looks good, switch to the **Review** tab in Remote Settings.
+   - Have a peer review the changes.
+   - Once the review has been approved, we can test the message again, pointing to `staging` instead of `staging-preview`.
+
+5. **Deploy to PROD**
+   - Follow the same steps for the [PROD Environment](https://remote-settings.mozilla.org/v1/admin/#/).
+   - Use the `prod-preview` and `prod` buckets for final testing and deployment.
+
+## Remote l10n
+By default, all CFR messages are localized with the remote Fluent files hosted in `ms-language-packs` collection on Remote Settings using the [ms-language-packs script](https://github.com/mozilla-services/ms-language-packs?tab=readme-ov-file#messaging-system-language-packs-for-remote-settings).
+
+We can check which components of the messages are hooked up to RemoteL10n with the following [Searchfox regex query](https://searchfox.org/mozilla-central/search?q=lazy%5C.RemoteL10n%5C.%28formatLocalizableText%7CcreateElement%29&path=&case=false&regexp=true). For example Infobar buttons are currently not Remotel10n configurable, see [Bug 1933819](https://bugzilla.mozilla.org/show_bug.cgi?id=1933819).
+
+For local testing and development, we can force ASRouter to use the local Fluent files by flipping the pref `browser.newtabpage.activity-stream.asrouter.useRemoteL10n` in `about:config`. A note that [RemoteL10n uses the `main` bucket](https://searchfox.org/mozilla-central/source/browser/components/asrouter/modules/ASRouter.sys.mjs#297) so we cannot test using `main-preview`.
+
+## The following are steps on how to authenticate and add messages manually
 
 **1. Obtain your Bearer Token**
+This can be done through browser-based authentication or through the Admin portal.
 
-Until [Bug 1630651](https://bugzilla.mozilla.org/show_bug.cgi?id=1630651) happens, the easiest way to obtain your OpenID credentials is to use the admin interface.
+### Browser-based authentication
+1. Ensure you have [kinto-http](https://pypi.org/project/kinto-http/) python library installed
+2. In your terminal, run `python` with the following:
+```python
+>>> import kinto_http
+>>> c = kinto_http.Client(server_url='https://remote-settings-dev.allizom.org/v1', auth=kinto_http.BrowserOAuth())
+>>> c.server_info()["user"]
+```
+3. This will open the browser with a login successful page with your credentials in the terminal
 
+### Admin portal
 1. [Login on the Admin UI](https://remote-settings-dev.allizom.org/v1/admin/) using your LDAP identity
 2. Copy the authentication header (📋 icon in the top bar)
 3. Test your credentials with ``curl``. When reaching out the server root URL with this bearer token you should see a ``user`` entry whose ``id`` field is ``ldap:<you>@mozilla.com``.
@@ -23,8 +92,6 @@ curl -s ${SERVER}/ -H "Authorization:${BEARER_TOKEN}" | jq .user
 ```
 
 **2. Create/Update/Delete CFR entries**
-
-> The messages can also be created manually using the [admin interface](https://settings.dev.mozaws.net/v1/admin/).
 
 In following example, we will create a new entry using the REST API (reusing `SERVER` and `BEARER_TOKEN` from previous step).
 
@@ -72,11 +139,3 @@ Services.prefs.setBoolPref("browser.newtabpage.activity-stream.asrouter.devtools
 
 **4. Go to `about:asrouter`**
 There should be a "cfr-remote" provider listed.
-
-## Using the staging server for Remote CFR
-
-If your message is published in the staging environment the easiest way to test is using the [Remote Settings Devtools](https://github.com/mozilla/remote-settings-devtools/releases) addon. You can install this by going to `about:debugging` and using the `Load Temporary Addon` feature.
-The devtools allow you to switch your profile between production and staging and takes care of correctly flipping all the required preferences.
-
-## Remote l10n
-By default, all CFR messages are localized with the remote Fluent files hosted in `ms-language-packs` on Remote Settings. For local test and development, you can force ASRouter to use the local Fluent files by flipping the pref `browser.newtabpage.activity-stream.asrouter.useRemoteL10n`.
