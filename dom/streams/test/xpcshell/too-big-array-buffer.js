@@ -1,9 +1,9 @@
 add_task(async function helper() {
   // Note: this test assumes the largest possible ArrayBuffer is
-  // smaller than 10GB -- if that changes, this test will fail.
+  // smaller than 20GB -- if that changes, this test will fail.
   let rs = new ReadableStream({
     type: "bytes",
-    autoAllocateChunkSize: 10 * 1024 * 1024 * 1024,
+    autoAllocateChunkSize: 20 * 1024 * 1024 * 1024,
   });
   let reader = rs.getReader();
   try {
