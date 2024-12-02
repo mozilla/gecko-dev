@@ -388,7 +388,7 @@ UniqueChars Statistics::formatCompactSummaryMessage() const {
                  zoneStats.collectedZoneCount, zoneStats.zoneCount,
                  zoneStats.sweptZoneCount, zoneStats.collectedCompartmentCount,
                  zoneStats.compartmentCount, zoneStats.sweptCompartmentCount,
-                 double(preTotalHeapBytes) / BYTES_PER_MB,
+                 double(preTotalGCHeapBytes) / BYTES_PER_MB,
                  int32_t(counts[COUNT_NEW_CHUNK] - counts[COUNT_DESTROY_CHUNK]),
                  counts[COUNT_NEW_CHUNK] + counts[COUNT_DESTROY_CHUNK]);
   if (!fragments.append(DuplicateString(buffer))) {
@@ -500,7 +500,7 @@ UniqueChars Statistics::formatDetailedDescription() const {
       zoneStats.compartmentCount, zoneStats.sweptCompartmentCount,
       getCount(COUNT_MINOR_GC), getCount(COUNT_STOREBUFFER_OVERFLOW),
       mmu20 * 100., mmu50 * 100., t(sccTotal), t(sccLongest),
-      double(preTotalHeapBytes) / BYTES_PER_MB,
+      double(preTotalGCHeapBytes) / BYTES_PER_MB,
       getCount(COUNT_NEW_CHUNK) - getCount(COUNT_DESTROY_CHUNK),
       getCount(COUNT_NEW_CHUNK) + getCount(COUNT_DESTROY_CHUNK),
       double(ArenaSize * getCount(COUNT_ARENA_RELOCATED)) / BYTES_PER_MB);
@@ -716,8 +716,11 @@ void Statistics::formatJsonDescription(JSONPrinter& json) const {
     json.property("nonincremental_reason",
                   ExplainAbortReason(nonincrementalReason_));
   }
-  json.property("allocated_bytes", preTotalHeapBytes);
-  json.property("post_heap_size", postTotalHeapBytes);
+  json.property("allocated_bytes", preTotalGCHeapBytes);
+  json.property("post_heap_size", postTotalGCHeapBytes);
+
+  json.property("pre_malloc_heap_size", preTotalMallocHeapBytes);
+  json.property("post_malloc_heap_size", postTotalMallocHeapBytes);
 
   uint32_t addedChunks = getCount(COUNT_NEW_CHUNK);
   if (addedChunks) {
@@ -780,9 +783,11 @@ Statistics::Statistics(GCRuntime* gc)
       nonincrementalReason_(GCAbortReason::None),
       creationTime_(TimeStamp::Now()),
       tenuredAllocsSinceMinorGC(0),
-      preTotalHeapBytes(0),
-      postTotalHeapBytes(0),
-      preCollectedHeapBytes(0),
+      preTotalGCHeapBytes(0),
+      postTotalGCHeapBytes(0),
+      preCollectedGCHeapBytes(0),
+      preTotalMallocHeapBytes(0),
+      postTotalMallocHeapBytes(0),
       startingMinorGCNumber(0),
       startingMajorGCNumber(0),
       startingSliceNumber(0),
@@ -988,10 +993,6 @@ void Statistics::beginGC(JS::GCOptions options, const TimeStamp& currentTime) {
   gcOptions = options;
   nonincrementalReason_ = GCAbortReason::None;
 
-  preTotalHeapBytes = gc->heapSize.bytes();
-
-  preCollectedHeapBytes = 0;
-
   startingMajorGCNumber = gc->majorGCCount();
   startingSliceNumber = gc->gcNumber();
 
@@ -1000,17 +1001,37 @@ void Statistics::beginGC(JS::GCOptions options, const TimeStamp& currentTime) {
   }
 
   totalGCTime_ = TimeDuration::Zero();
+
+  preTotalGCHeapBytes = 0;
+  postTotalGCHeapBytes = 0;
+  preCollectedGCHeapBytes = 0;
+  preTotalMallocHeapBytes = 0;
+  postTotalMallocHeapBytes = 0;
 }
 
-void Statistics::measureInitialHeapSize() {
-  MOZ_ASSERT(preCollectedHeapBytes == 0);
-  for (GCZonesIter zone(gc); !zone.done(); zone.next()) {
-    preCollectedHeapBytes += zone->gcHeapSize.bytes();
+void Statistics::measureInitialHeapSizes() {
+  MOZ_ASSERT(preTotalGCHeapBytes == 0);
+  MOZ_ASSERT(preCollectedGCHeapBytes == 0);
+  MOZ_ASSERT(preTotalMallocHeapBytes == 0);
+
+  preTotalGCHeapBytes = gc->heapSize.bytes();
+
+  for (AllZonesIter zone(gc); !zone.done(); zone.next()) {
+    preTotalMallocHeapBytes += zone->mallocHeapSize.bytes();
+    if (zone->wasGCStarted()) {
+      preCollectedGCHeapBytes += zone->gcHeapSize.bytes();
+    }
   }
 }
 
 void Statistics::endGC() {
-  postTotalHeapBytes = gc->heapSize.bytes();
+  MOZ_ASSERT(postTotalGCHeapBytes == 0);
+  MOZ_ASSERT(postTotalMallocHeapBytes == 0);
+
+  postTotalGCHeapBytes = gc->heapSize.bytes();
+  for (AllZonesIter zone(gc); !zone.done(); zone.next()) {
+    postTotalMallocHeapBytes += zone->mallocHeapSize.bytes();
+  }
 
   sendGCTelemetry();
 }
@@ -1099,7 +1120,7 @@ void Statistics::sendGCTelemetry() {
     }
   }
 
-  if (!lastSlice.wasReset() && preCollectedHeapBytes != 0) {
+  if (!lastSlice.wasReset() && preCollectedGCHeapBytes != 0) {
     size_t bytesSurvived = 0;
     for (ZonesIter zone(runtime, WithAtoms); !zone.done(); zone.next()) {
       if (zone->wasCollected()) {
@@ -1107,14 +1128,14 @@ void Statistics::sendGCTelemetry() {
       }
     }
 
-    MOZ_ASSERT(preCollectedHeapBytes >= bytesSurvived);
+    MOZ_ASSERT(preCollectedGCHeapBytes >= bytesSurvived);
     double survivalRate =
-        100.0 * double(bytesSurvived) / double(preCollectedHeapBytes);
+        100.0 * double(bytesSurvived) / double(preCollectedGCHeapBytes);
     runtime->metrics().GC_TENURED_SURVIVAL_RATE(survivalRate);
 
     // Calculate 'effectiveness' in MB / second, on main thread only for now.
     if (!runtime->parentRuntime) {
-      size_t bytesFreed = preCollectedHeapBytes - bytesSurvived;
+      size_t bytesFreed = preCollectedGCHeapBytes - bytesSurvived;
       TimeDuration clampedTotal =
           TimeDuration::Max(total, TimeDuration::FromMilliseconds(1));
       double effectiveness =

@@ -3042,7 +3042,7 @@ void GCRuntime::beginMarkPhase(AutoGCSession& session) {
   }
 
   updateSchedulingStateOnGCStart();
-  stats().measureInitialHeapSize();
+  stats().measureInitialHeapSizes();
 
   useParallelMarking = SingleThreadedMarking;
   if (canMarkInParallel() && initParallelMarking()) {
