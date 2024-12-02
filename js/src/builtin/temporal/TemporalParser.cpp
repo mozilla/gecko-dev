@@ -13,6 +13,7 @@
 #include "mozilla/Result.h"
 #include "mozilla/Span.h"
 #include "mozilla/TextUtils.h"
+#include "mozilla/Try.h"
 
 #include <algorithm>
 #include <cstdlib>
@@ -262,6 +263,7 @@ struct ZonedDateTimeString final {
   PlainTime time;
   TimeZoneString timeZone;
   CalendarName calendar;
+  bool startOfDay;
 };
 
 template <typename CharT>
@@ -287,7 +289,7 @@ static constexpr int32_t AbsentYear = INT32_MAX;
  */
 static bool ParseISODateTime(JSContext* cx, const ZonedDateTimeString& parsed,
                              PlainDateTime* result) {
-  // Steps 1-6, 8, 10-13 (Not applicable here).
+  // Steps 1-7, 9, 11-16 (Not applicable here).
 
   PlainDateTime dateTime = {parsed.date, parsed.time};
 
@@ -296,38 +298,45 @@ static bool ParseISODateTime(JSContext* cx, const ZonedDateTimeString& parsed,
     dateTime.date.year = 0;
   }
 
-  // Step 7.
+  // Step 8.
   if (dateTime.date.month == 0) {
     dateTime.date.month = 1;
   }
 
-  // Step 9.
+  // Step 10.
   if (dateTime.date.day == 0) {
     dateTime.date.day = 1;
   }
 
-  // Step 14.
+  // Step 17.b.
   if (dateTime.time.second == 60) {
     dateTime.time.second = 59;
   }
 
-  // ParseISODateTime, steps 15-16 (Not applicable in our implementation).
+  // ParseISODateTime, steps 18-19 (Not applicable in our implementation).
 
-  // Call ThrowIfInvalidISODate to report an error if |days| exceeds the number
-  // of days in the month. All other values are already in-bounds.
+  // Perform early error checks now that absent |day| and |month| values were
+  // handled:
+  // `IsValidDate(DateSpec)` and `IsValidMonthDay(DateSpecMonthDay)` validate
+  // that |day| doesn't exceed the number of days in |month|. This check can be
+  // implemented by calling `ThrowIfInvalidISODate`.
+  //
+  // All other values are already in-bounds.
   MOZ_ASSERT(std::abs(dateTime.date.year) <= 999'999);
   MOZ_ASSERT(1 <= dateTime.date.month && dateTime.date.month <= 12);
   MOZ_ASSERT(1 <= dateTime.date.day && dateTime.date.day <= 31);
 
-  // ParseISODateTime, step 17.
   if (!ThrowIfInvalidISODate(cx, dateTime.date)) {
     return false;
   }
 
-  // ParseISODateTime, step 18.
+  // Step 20.
+  MOZ_ASSERT(IsValidISODate(dateTime.date));
+
+  // Step 21.
   MOZ_ASSERT(IsValidTime(dateTime.time));
 
-  // Steps 19-25. (Handled in caller.)
+  // Steps 22-28. (Handled in caller.)
 
   *result = dateTime;
   return true;
@@ -544,11 +553,8 @@ class TemporalParser final {
     return mozilla::Some(num);
   }
 
-  // TimeFractionalPart :::
-  //   Digit{1, 9}
-  //
-  // Fraction :::
-  //   DecimalSeparator TimeFractionalPart
+  // TemporalDecimalFraction :::
+  //   TemporalDecimalSeparator DecimalDigit{1,9}
   mozilla::Maybe<int32_t> fraction() {
     if (!reader_.hasMore(2)) {
       return mozilla::Nothing();
@@ -694,7 +700,19 @@ class TemporalParser final {
     return plus ? 1 : -1;
   }
 
-  // DecimalSeparator ::: one of
+  // DateSeparator[Extended] :::
+  //   [+Extended] -
+  //   [~Extended] [empty]
+  bool dateSeparator() { return character('-'); }
+
+  // TimeSeparator[Extended] :::
+  //   [+Extended] :
+  //   [~Extended] [empty]
+  bool hasTimeSeparator() const { return hasCharacter(':'); }
+
+  bool timeSeparator() { return character(':'); }
+
+  // TemporalDecimalSeparator ::: one of
   //   . ,
   bool hasDecimalSeparator() const { return hasOneOf({'.', ','}); }
 
@@ -818,17 +836,30 @@ class TemporalParser final {
     return min <= x && x <= max;
   }
 
-  mozilla::Result<ZonedDateTimeString, ParserError> dateTime();
+  static auto err(JSErrNum error) {
+    // Explicitly create |ParserError| when JSErrNum is auto-convertible to the
+    // success type.
+    return mozilla::Err(ParserError{error});
+  }
+
+  mozilla::Result<int32_t, ParserError> dateYear();
+  mozilla::Result<int32_t, ParserError> dateMonth();
+  mozilla::Result<int32_t, ParserError> dateDay();
+  mozilla::Result<int32_t, ParserError> hour();
+  mozilla::Result<mozilla::Maybe<int32_t>, ParserError> minute(bool required);
+  mozilla::Result<mozilla::Maybe<int32_t>, ParserError> second(bool required);
+  mozilla::Result<mozilla::Maybe<int32_t>, ParserError> timeSecond(
+      bool required);
 
   mozilla::Result<PlainDate, ParserError> date();
+
+  mozilla::Result<PlainTime, ParserError> time();
+
+  mozilla::Result<ZonedDateTimeString, ParserError> dateTime(bool allowZ);
 
   mozilla::Result<PlainDate, ParserError> dateSpecYearMonth();
 
   mozilla::Result<PlainDate, ParserError> dateSpecMonthDay();
-
-  mozilla::Result<PlainDate, ParserError> validMonthDay();
-
-  mozilla::Result<PlainTime, ParserError> timeSpec();
 
   // Return true when |Annotation| can start at the current position.
   bool hasAnnotationStart() const { return hasCharacter('['); }
@@ -856,7 +887,7 @@ class TemporalParser final {
   // Return true when |DateTimeUTCOffset| can start at the current position.
   bool hasDateTimeUTCOffsetStart() { return hasOneOf({'Z', 'z', '+', '-'}); }
 
-  mozilla::Result<TimeZoneString, ParserError> dateTimeUTCOffset();
+  mozilla::Result<TimeZoneString, ParserError> dateTimeUTCOffset(bool allowZ);
 
   mozilla::Result<DateTimeUTCOffset, ParserError> utcOffsetSubMinutePrecision();
 
@@ -884,6 +915,15 @@ class TemporalParser final {
 
   mozilla::Result<ZonedDateTimeString, ParserError> annotatedMonthDay();
 
+  mozilla::Result<double, ParserError> durationDigits(JSContext* cx);
+
+  template <typename T>
+  mozilla::Result<T, ParserError> parse(
+      mozilla::Result<T, ParserError>&& result) const;
+
+  template <typename T>
+  mozilla::Result<T, ParserError> complete(const T& value) const;
+
  public:
   explicit TemporalParser(mozilla::Span<const CharT> str) : reader_(str) {}
 
@@ -894,8 +934,6 @@ class TemporalParser final {
   parseTemporalTimeZoneString();
 
   mozilla::Result<TimeZoneAnnotation, ParserError> parseTimeZoneIdentifier();
-
-  mozilla::Result<TimeZoneUTCOffset, ParserError> parseTimeZoneOffsetString();
 
   mozilla::Result<DateTimeUTCOffset, ParserError> parseDateTimeUTCOffset();
 
@@ -918,92 +956,73 @@ class TemporalParser final {
 
   mozilla::Result<ZonedDateTimeString, ParserError>
   parseTemporalZonedDateTimeString();
+
+  mozilla::Result<ZonedDateTimeString, ParserError>
+  parseTemporalRelativeToString();
 };
 
 template <typename CharT>
-mozilla::Result<ZonedDateTimeString, ParserError>
-TemporalParser<CharT>::dateTime() {
-  // DateTime :::
-  //   Date
-  //   Date DateTimeSeparator TimeSpec DateTimeUTCOffset?
-  ZonedDateTimeString result = {};
-
-  auto dt = date();
-  if (dt.isErr()) {
-    return dt.propagateErr();
+template <typename T>
+mozilla::Result<T, ParserError> TemporalParser<CharT>::parse(
+    mozilla::Result<T, ParserError>&& result) const {
+  if (result.isOk() && !reader_.atEnd()) {
+    return mozilla::Err(JSMSG_TEMPORAL_PARSER_GARBAGE_AFTER_INPUT);
   }
-  result.date = dt.unwrap();
+  return std::move(result);
+}
 
-  if (dateTimeSeparator()) {
-    auto time = timeSpec();
-    if (time.isErr()) {
-      return time.propagateErr();
-    }
-    result.time = time.unwrap();
-
-    if (hasDateTimeUTCOffsetStart()) {
-      auto tz = dateTimeUTCOffset();
-      if (tz.isErr()) {
-        return tz.propagateErr();
-      }
-      result.timeZone = tz.unwrap();
-    }
+template <typename CharT>
+template <typename T>
+mozilla::Result<T, ParserError> TemporalParser<CharT>::complete(
+    const T& result) const {
+  if (!reader_.atEnd()) {
+    return mozilla::Err(JSMSG_TEMPORAL_PARSER_GARBAGE_AFTER_INPUT);
   }
-
   return result;
 }
 
 template <typename CharT>
-mozilla::Result<PlainDate, ParserError> TemporalParser<CharT>::date() {
-  // Date :::
-  //   DateYear - DateMonth - DateDay
-  //   DateYear DateMonth DateDay
-  PlainDate result = {};
-
+mozilla::Result<int32_t, ParserError> TemporalParser<CharT>::dateYear() {
   // DateYear :::
   //  DecimalDigit{4}
   //  ASCIISign DecimalDigit{6}
+
   if (auto year = digits(4)) {
-    result.year = year.value();
-  } else if (hasSign()) {
+    return year.value();
+  }
+  if (hasSign()) {
     int32_t yearSign = sign();
     if (auto year = digits(6)) {
-      result.year = yearSign * year.value();
-      if (yearSign < 0 && result.year == 0) {
-        return mozilla::Err(JSMSG_TEMPORAL_PARSER_NEGATIVE_ZERO_YEAR);
+      int32_t result = yearSign * year.value();
+      if (yearSign < 0 && result == 0) {
+        return err(JSMSG_TEMPORAL_PARSER_NEGATIVE_ZERO_YEAR);
       }
-    } else {
-      return mozilla::Err(JSMSG_TEMPORAL_PARSER_MISSING_EXTENDED_YEAR);
+      return result;
     }
-  } else {
-    return mozilla::Err(JSMSG_TEMPORAL_PARSER_MISSING_YEAR);
+    return err(JSMSG_TEMPORAL_PARSER_MISSING_EXTENDED_YEAR);
   }
+  return err(JSMSG_TEMPORAL_PARSER_MISSING_YEAR);
+}
 
-  // Optional: -
-  bool hasMonthSeparator = character('-');
-
+template <typename CharT>
+mozilla::Result<int32_t, ParserError> TemporalParser<CharT>::dateMonth() {
   // DateMonth :::
   //   0 NonzeroDigit
   //   10
   //   11
   //   12
   if (auto month = digits(2)) {
-    result.month = month.value();
-    if (!inBounds(result.month, 1, 12)) {
-      return mozilla::Err(JSMSG_TEMPORAL_PARSER_INVALID_MONTH);
+    int32_t result = month.value();
+    if (!inBounds(result, 1, 12)) {
+      return err(JSMSG_TEMPORAL_PARSER_INVALID_MONTH);
     }
-  } else {
-    return mozilla::Err(JSMSG_TEMPORAL_PARSER_MISSING_MONTH);
+    return result;
   }
+  return err(JSMSG_TEMPORAL_PARSER_MISSING_MONTH);
+}
 
-  // Optional: -
-  bool hasDaySeparator = character('-');
-
-  // Date separators must be consistent.
-  if (hasMonthSeparator != hasDaySeparator) {
-    return mozilla::Err(JSMSG_TEMPORAL_PARSER_INCONSISTENT_DATE_SEPARATOR);
-  }
-
+template <typename CharT>
+mozilla::Result<int32_t, ParserError> TemporalParser<CharT>::dateDay() {
   // DateDay :::
   //   0 NonzeroDigit
   //   1 DecimalDigit
@@ -1011,30 +1030,17 @@ mozilla::Result<PlainDate, ParserError> TemporalParser<CharT>::date() {
   //   30
   //   31
   if (auto day = digits(2)) {
-    result.day = day.value();
-    if (!inBounds(result.day, 1, 31)) {
-      return mozilla::Err(JSMSG_TEMPORAL_PARSER_INVALID_DAY);
+    int32_t result = day.value();
+    if (!inBounds(result, 1, 31)) {
+      return err(JSMSG_TEMPORAL_PARSER_INVALID_DAY);
     }
-  } else {
-    return mozilla::Err(JSMSG_TEMPORAL_PARSER_MISSING_DAY);
+    return result;
   }
-
-  return result;
+  return err(JSMSG_TEMPORAL_PARSER_MISSING_DAY);
 }
 
 template <typename CharT>
-mozilla::Result<PlainTime, ParserError> TemporalParser<CharT>::timeSpec() {
-  // TimeSpec :::
-  //   TimeHour
-  //   TimeHour : TimeMinute
-  //   TimeHour TimeMinute
-  //   TimeHour : TimeMinute : TimeSecond TimeFraction?
-  //   TimeHour TimeMinute TimeSecond TimeFraction?
-  PlainTime result = {};
-
-  // TimeHour :::
-  //   Hour
-  //
+mozilla::Result<int32_t, ParserError> TemporalParser<CharT>::hour() {
   // Hour :::
   //   0 DecimalDigit
   //   1 DecimalDigit
@@ -1043,19 +1049,65 @@ mozilla::Result<PlainTime, ParserError> TemporalParser<CharT>::timeSpec() {
   //   22
   //   23
   if (auto hour = digits(2)) {
-    result.hour = hour.value();
-    if (!inBounds(result.hour, 0, 23)) {
-      return mozilla::Err(JSMSG_TEMPORAL_PARSER_INVALID_HOUR);
+    int32_t result = hour.value();
+    if (!inBounds(result, 0, 23)) {
+      return err(JSMSG_TEMPORAL_PARSER_INVALID_HOUR);
     }
-  } else {
-    return mozilla::Err(JSMSG_TEMPORAL_PARSER_MISSING_HOUR);
+    return result;
   }
+  return err(JSMSG_TEMPORAL_PARSER_MISSING_HOUR);
+}
 
-  // Optional: :
-  bool hasMinuteSeparator = character(':');
+template <typename CharT>
+mozilla::Result<mozilla::Maybe<int32_t>, ParserError>
+TemporalParser<CharT>::minute(bool required) {
+  // MinuteSecond :::
+  //   0 DecimalDigit
+  //   1 DecimalDigit
+  //   2 DecimalDigit
+  //   3 DecimalDigit
+  //   4 DecimalDigit
+  //   5 DecimalDigit
+  if (auto minute = digits(2)) {
+    if (!inBounds(minute.value(), 0, 59)) {
+      return mozilla::Err(JSMSG_TEMPORAL_PARSER_INVALID_MINUTE);
+    }
+    return minute;
+  }
+  if (!required) {
+    return mozilla::Maybe<int32_t>{mozilla::Nothing{}};
+  }
+  return mozilla::Err(JSMSG_TEMPORAL_PARSER_MISSING_MINUTE);
+}
 
-  // TimeMinute :::
+template <typename CharT>
+mozilla::Result<mozilla::Maybe<int32_t>, ParserError>
+TemporalParser<CharT>::second(bool required) {
+  // MinuteSecond :::
+  //   0 DecimalDigit
+  //   1 DecimalDigit
+  //   2 DecimalDigit
+  //   3 DecimalDigit
+  //   4 DecimalDigit
+  //   5 DecimalDigit
+  if (auto minute = digits(2)) {
+    if (!inBounds(minute.value(), 0, 59)) {
+      return mozilla::Err(JSMSG_TEMPORAL_PARSER_INVALID_SECOND);
+    }
+    return minute;
+  }
+  if (!required) {
+    return mozilla::Maybe<int32_t>{mozilla::Nothing{}};
+  }
+  return mozilla::Err(JSMSG_TEMPORAL_PARSER_MISSING_SECOND);
+}
+
+template <typename CharT>
+mozilla::Result<mozilla::Maybe<int32_t>, ParserError>
+TemporalParser<CharT>::timeSecond(bool required) {
+  // TimeSecond :::
   //   MinuteSecond
+  //   60
   //
   // MinuteSecond :::
   //   0 DecimalDigit
@@ -1065,41 +1117,127 @@ mozilla::Result<PlainTime, ParserError> TemporalParser<CharT>::timeSpec() {
   //   4 DecimalDigit
   //   5 DecimalDigit
   if (auto minute = digits(2)) {
-    result.minute = minute.value();
-    if (!inBounds(result.minute, 0, 59)) {
-      return mozilla::Err(JSMSG_TEMPORAL_PARSER_INVALID_MINUTE);
+    if (!inBounds(minute.value(), 0, 60)) {
+      return mozilla::Err(JSMSG_TEMPORAL_PARSER_INVALID_LEAPSECOND);
     }
+    return minute;
+  }
+  if (!required) {
+    return mozilla::Maybe<int32_t>{mozilla::Nothing{}};
+  }
+  return mozilla::Err(JSMSG_TEMPORAL_PARSER_MISSING_SECOND);
+}
 
-    // Optional: :
-    bool hasSecondSeparator = character(':');
+template <typename CharT>
+mozilla::Result<PlainDate, ParserError> TemporalParser<CharT>::date() {
+  // clang-format off
+  //
+  // Date :::
+  //   DateSpec[+Extended]
+  //   DateSpec[~Extended]
+  //
+  // DateSpec[Extended] :::
+  //   DateYear DateSeparator[?Extended] DateMonth DateSeparator[?Extended] DateDay
+  //
+  // clang-format on
 
-    // TimeSecond :::
-    //   MinuteSecond
-    //   60
-    if (auto second = digits(2)) {
-      result.second = second.value();
-      if (!inBounds(result.second, 0, 60)) {
-        return mozilla::Err(JSMSG_TEMPORAL_PARSER_INVALID_LEAPSECOND);
-      }
+  PlainDate result{};
+
+  MOZ_TRY_VAR(result.year, dateYear());
+
+  // Optional |DateSeparator|.
+  bool hasMonthSeparator = dateSeparator();
+
+  MOZ_TRY_VAR(result.month, dateMonth());
+
+  // Optional |DateSeparator|.
+  bool hasDaySeparator = dateSeparator();
+
+  // Date separators must be consistent.
+  if (hasMonthSeparator != hasDaySeparator) {
+    return mozilla::Err(JSMSG_TEMPORAL_PARSER_INCONSISTENT_DATE_SEPARATOR);
+  }
+
+  MOZ_TRY_VAR(result.day, dateDay());
+
+  return result;
+}
+
+template <typename CharT>
+mozilla::Result<PlainTime, ParserError> TemporalParser<CharT>::time() {
+  // clang-format off
+  //
+  // Time :::
+  //   TimeSpec[+Extended]
+  //   TimeSpec[~Extended]
+  //
+  // TimeSpec[Extended] :::
+  //   Hour
+  //   Hour TimeSeparator[?Extended] MinuteSecond
+  //   Hour TimeSeparator[?Extended] MinuteSecond TimeSeparator[?Extended] TimeSecond TemporalDecimalFraction?
+  //
+  // clang-format on
+
+  PlainTime result{};
+
+  MOZ_TRY_VAR(result.hour, hour());
+
+  // Optional |TimeSeparator|.
+  bool hasMinuteSeparator = timeSeparator();
+
+  mozilla::Maybe<int32_t> minutes;
+  MOZ_TRY_VAR(minutes, minute(hasMinuteSeparator));
+  if (minutes) {
+    result.minute = minutes.value();
+
+    // Optional |TimeSeparator|.
+    bool hasSecondSeparator = timeSeparator();
+
+    mozilla::Maybe<int32_t> seconds;
+    MOZ_TRY_VAR(seconds, timeSecond(hasSecondSeparator));
+    if (seconds) {
+      result.second = seconds.value();
 
       // Time separators must be consistent.
       if (hasMinuteSeparator != hasSecondSeparator) {
         return mozilla::Err(JSMSG_TEMPORAL_PARSER_INCONSISTENT_TIME_SEPARATOR);
       }
 
-      // TimeFraction :::
-      //   Fraction
+      // TemporalDecimalFraction :::
+      //   TemporalDecimalSeparator DecimalDigit{1,9}
       if (auto f = fraction()) {
         int32_t fractionalPart = f.value();
         result.millisecond = fractionalPart / 1'000'000;
         result.microsecond = (fractionalPart % 1'000'000) / 1'000;
         result.nanosecond = fractionalPart % 1'000;
       }
-    } else if (hasSecondSeparator) {
-      return mozilla::Err(JSMSG_TEMPORAL_PARSER_MISSING_SECOND);
     }
-  } else if (hasMinuteSeparator) {
-    return mozilla::Err(JSMSG_TEMPORAL_PARSER_MISSING_MINUTE);
+  }
+
+  return result;
+}
+
+template <typename CharT>
+mozilla::Result<ZonedDateTimeString, ParserError>
+TemporalParser<CharT>::dateTime(bool allowZ) {
+  // DateTime[Z, TimeRequired] :::
+  //   [~TimeRequired] Date
+  //   Date DateTimeSeparator Time DateTimeUTCOffset[?Z]?
+  //
+  // When called as `DateTime[?Z, ~TimeRequired]`.
+
+  ZonedDateTimeString result{};
+
+  MOZ_TRY_VAR(result.date, date());
+
+  if (dateTimeSeparator()) {
+    MOZ_TRY_VAR(result.time, time());
+
+    if (hasDateTimeUTCOffsetStart()) {
+      MOZ_TRY_VAR(result.timeZone, dateTimeUTCOffset(allowZ));
+    }
+  } else {
+    result.startOfDay = true;
   }
 
   return result;
@@ -1107,21 +1245,23 @@ mozilla::Result<PlainTime, ParserError> TemporalParser<CharT>::timeSpec() {
 
 template <typename CharT>
 mozilla::Result<TimeZoneString, ParserError>
-TemporalParser<CharT>::dateTimeUTCOffset() {
-  // DateTimeUTCOffset :::
-  //   UTCDesignator
-  //   UTCOffsetSubMinutePrecision
+TemporalParser<CharT>::dateTimeUTCOffset(bool allowZ) {
+  // DateTimeUTCOffset[Z] :::
+  //   [+Z] UTCDesignator
+  //   UTCOffset[+SubMinutePrecision]
 
   if (utcDesignator()) {
+    if (!allowZ) {
+      return mozilla::Err(JSMSG_TEMPORAL_PARSER_INVALID_UTC_DESIGNATOR);
+    }
     return TimeZoneString::UTC();
   }
 
   if (hasSign()) {
-    auto offset = utcOffsetSubMinutePrecision();
-    if (offset.isErr()) {
-      return offset.propagateErr();
-    }
-    return TimeZoneString::from(offset.unwrap());
+    DateTimeUTCOffset offset;
+    MOZ_TRY_VAR(offset, utcOffsetSubMinutePrecision());
+
+    return TimeZoneString::from(offset);
   }
 
   return mozilla::Err(JSMSG_TEMPORAL_PARSER_MISSING_TIMEZONE);
@@ -1130,60 +1270,39 @@ TemporalParser<CharT>::dateTimeUTCOffset() {
 template <typename CharT>
 mozilla::Result<TimeZoneUTCOffset, ParserError>
 TemporalParser<CharT>::timeZoneUTCOffsetName() {
-  // TimeZoneUTCOffsetName :::
-  //   UTCOffsetMinutePrecision
+  // clang-format off
   //
-  // UTCOffsetMinutePrecision :::
+  // UTCOffset[SubMinutePrecision] :::
   //   ASCIISign Hour
   //   ASCIISign Hour TimeSeparator[+Extended] MinuteSecond
   //   ASCIISign Hour TimeSeparator[~Extended] MinuteSecond
+  //   [+SubMinutePrecision] ASCIISign Hour TimeSeparator[+Extended] MinuteSecond TimeSeparator[+Extended] MinuteSecond TemporalDecimalFraction?
+  //   [+SubMinutePrecision] ASCIISign Hour TimeSeparator[~Extended] MinuteSecond TimeSeparator[~Extended] MinuteSecond TemporalDecimalFraction?
+  //
+  // When called as `UTCOffset[~SubMinutePrecision]`.
+  //
+  // clang-format on
 
-  TimeZoneUTCOffset result = {};
+  TimeZoneUTCOffset result{};
 
   if (!hasSign()) {
     return mozilla::Err(JSMSG_TEMPORAL_PARSER_MISSING_TIMEZONE_SIGN);
   }
   result.sign = sign();
 
-  // Hour :::
-  //   0 DecimalDigit
-  //   1 DecimalDigit
-  //   20
-  //   21
-  //   22
-  //   23
-  if (auto hour = digits(2)) {
-    result.hour = hour.value();
-    if (!inBounds(result.hour, 0, 23)) {
-      return mozilla::Err(JSMSG_TEMPORAL_PARSER_INVALID_HOUR);
-    }
-  } else {
-    return mozilla::Err(JSMSG_TEMPORAL_PARSER_MISSING_HOUR);
-  }
+  MOZ_TRY_VAR(result.hour, hour());
 
-  // TimeSeparator[Extended] :::
-  //   [+Extended] :
-  //   [~Extended] [empty]
-  bool needsMinutes = character(':');
+  // Optional |TimeSeparator|.
+  bool hasMinuteSeparator = timeSeparator();
 
-  // MinuteSecond :::
-  //   0 DecimalDigit
-  //   1 DecimalDigit
-  //   2 DecimalDigit
-  //   3 DecimalDigit
-  //   4 DecimalDigit
-  //   5 DecimalDigit
-  if (auto minute = digits(2)) {
-    result.minute = minute.value();
-    if (!inBounds(result.minute, 0, 59)) {
-      return mozilla::Err(JSMSG_TEMPORAL_PARSER_INVALID_MINUTE);
-    }
+  mozilla::Maybe<int32_t> minutes;
+  MOZ_TRY_VAR(minutes, minute(hasMinuteSeparator));
+  if (minutes) {
+    result.minute = minutes.value();
 
-    if (hasCharacter(':')) {
+    if (hasTimeSeparator()) {
       return mozilla::Err(JSMSG_TEMPORAL_PARSER_INVALID_SUBMINUTE_TIMEZONE);
     }
-  } else if (needsMinutes) {
-    return mozilla::Err(JSMSG_TEMPORAL_PARSER_MISSING_MINUTE);
   }
 
   return result;
@@ -1194,79 +1313,41 @@ mozilla::Result<DateTimeUTCOffset, ParserError>
 TemporalParser<CharT>::utcOffsetSubMinutePrecision() {
   // clang-format off
   //
-  // UTCOffsetSubMinutePrecision :::
-  //   UTCOffsetMinutePrecision
-  //   UTCOffsetWithSubMinuteComponents[+Extended]
-  //   UTCOffsetWithSubMinuteComponents[~Extended]
-  //
-  // UTCOffsetMinutePrecision :::
+  // UTCOffset[SubMinutePrecision] :::
   //   ASCIISign Hour
   //   ASCIISign Hour TimeSeparator[+Extended] MinuteSecond
   //   ASCIISign Hour TimeSeparator[~Extended] MinuteSecond
+  //   [+SubMinutePrecision] ASCIISign Hour TimeSeparator[+Extended] MinuteSecond TimeSeparator[+Extended] MinuteSecond TemporalDecimalFraction?
+  //   [+SubMinutePrecision] ASCIISign Hour TimeSeparator[~Extended] MinuteSecond TimeSeparator[~Extended] MinuteSecond TemporalDecimalFraction?
   //
-  // UTCOffsetWithSubMinuteComponents[Extended] :::
-  //   ASCIISign Hour TimeSeparator[?Extended] MinuteSecond TimeSeparator[?Extended] MinuteSecond Fraction?
+  // When called as `UTCOffset[+SubMinutePrecision]`.
   //
   // clang-format on
 
-  DateTimeUTCOffset result = {};
+  DateTimeUTCOffset result{};
 
   if (!hasSign()) {
     return mozilla::Err(JSMSG_TEMPORAL_PARSER_MISSING_TIMEZONE_SIGN);
   }
   result.sign = sign();
 
-  // Hour :::
-  //   0 DecimalDigit
-  //   1 DecimalDigit
-  //   20
-  //   21
-  //   22
-  //   23
-  if (auto hour = digits(2)) {
-    result.hour = hour.value();
-    if (!inBounds(result.hour, 0, 23)) {
-      return mozilla::Err(JSMSG_TEMPORAL_PARSER_INVALID_HOUR);
-    }
-  } else {
-    return mozilla::Err(JSMSG_TEMPORAL_PARSER_MISSING_HOUR);
-  }
+  MOZ_TRY_VAR(result.hour, hour());
 
-  // TimeSeparator[Extended] :::
-  //   [+Extended] :
-  //   [~Extended] [empty]
-  bool hasMinuteSeparator = character(':');
+  // Optional |TimeSeparator|.
+  bool hasMinuteSeparator = timeSeparator();
 
-  // MinuteSecond :::
-  //   0 DecimalDigit
-  //   1 DecimalDigit
-  //   2 DecimalDigit
-  //   3 DecimalDigit
-  //   4 DecimalDigit
-  //   5 DecimalDigit
-  if (auto minute = digits(2)) {
-    result.minute = minute.value();
-    if (!inBounds(result.minute, 0, 59)) {
-      return mozilla::Err(JSMSG_TEMPORAL_PARSER_INVALID_MINUTE);
-    }
+  mozilla::Maybe<int32_t> minutes;
+  MOZ_TRY_VAR(minutes, minute(hasMinuteSeparator));
+  if (minutes) {
+    result.minute = minutes.value();
 
-    // TimeSeparator[Extended] :::
-    //   [+Extended] :
-    //   [~Extended] [empty]
-    bool hasSecondSeparator = character(':');
+    // Optional |TimeSeparator|.
+    bool hasSecondSeparator = timeSeparator();
 
-    // MinuteSecond :::
-    //   0 DecimalDigit
-    //   1 DecimalDigit
-    //   2 DecimalDigit
-    //   3 DecimalDigit
-    //   4 DecimalDigit
-    //   5 DecimalDigit
-    if (auto second = digits(2)) {
-      result.second = second.value();
-      if (!inBounds(result.second, 0, 59)) {
-        return mozilla::Err(JSMSG_TEMPORAL_PARSER_INVALID_SECOND);
-      }
+    mozilla::Maybe<int32_t> seconds;
+    MOZ_TRY_VAR(seconds, second(hasSecondSeparator));
+    if (seconds) {
+      result.second = seconds.value();
 
       // Time separators must be consistent.
       if (hasMinuteSeparator != hasSecondSeparator) {
@@ -1278,11 +1359,7 @@ TemporalParser<CharT>::utcOffsetSubMinutePrecision() {
       }
 
       result.subMinutePrecision = true;
-    } else if (hasSecondSeparator) {
-      return mozilla::Err(JSMSG_TEMPORAL_PARSER_MISSING_SECOND);
     }
-  } else if (hasMinuteSeparator) {
-    return mozilla::Err(JSMSG_TEMPORAL_PARSER_MISSING_MINUTE);
   }
 
   return result;
@@ -1292,22 +1369,14 @@ template <typename CharT>
 mozilla::Result<TimeZoneAnnotation, ParserError>
 TemporalParser<CharT>::timeZoneIdentifier() {
   // TimeZoneIdentifier :::
-  //   TimeZoneUTCOffsetName
+  //   UTCOffset[~SubMinutePrecision]
   //   TimeZoneIANAName
 
-  TimeZoneAnnotation result = {};
+  TimeZoneAnnotation result{};
   if (hasSign()) {
-    auto offset = timeZoneUTCOffsetName();
-    if (offset.isErr()) {
-      return offset.propagateErr();
-    }
-    result.offset = offset.unwrap();
+    MOZ_TRY_VAR(result.offset, timeZoneUTCOffsetName());
   } else {
-    auto name = timeZoneIANAName();
-    if (name.isErr()) {
-      return name.propagateErr();
-    }
-    result.name = name.unwrap();
+    MOZ_TRY_VAR(result.name, timeZoneIANAName());
   }
 
   return result;
@@ -1387,56 +1456,34 @@ template <typename CharT>
 mozilla::Result<ZonedDateTimeString, ParserError>
 TemporalParser<CharT>::parseTemporalInstantString() {
   // Initialize all fields to zero.
-  ZonedDateTimeString result = {};
+  ZonedDateTimeString result{};
 
   // clang-format off
   //
   // TemporalInstantString :::
-  //   Date DateTimeSeparator TimeSpec DateTimeUTCOffset TimeZoneAnnotation? Annotations?
+  //   Date DateTimeSeparator Time DateTimeUTCOffset[+Z] TimeZoneAnnotation? Annotations?
   //
   // clang-format on
 
-  auto dt = date();
-  if (dt.isErr()) {
-    return dt.propagateErr();
-  }
-  result.date = dt.unwrap();
+  MOZ_TRY_VAR(result.date, date());
 
   if (!dateTimeSeparator()) {
     return mozilla::Err(JSMSG_TEMPORAL_PARSER_MISSING_DATE_TIME_SEPARATOR);
   }
 
-  auto time = timeSpec();
-  if (time.isErr()) {
-    return time.propagateErr();
-  }
-  result.time = time.unwrap();
+  MOZ_TRY_VAR(result.time, time());
 
-  auto tz = dateTimeUTCOffset();
-  if (tz.isErr()) {
-    return tz.propagateErr();
-  }
-  result.timeZone = tz.unwrap();
+  MOZ_TRY_VAR(result.timeZone, dateTimeUTCOffset(/* allowZ = */ true));
 
   if (hasTimeZoneAnnotationStart()) {
-    auto annotation = timeZoneAnnotation();
-    if (annotation.isErr()) {
-      return annotation.propagateErr();
-    }
-    result.timeZone.annotation = annotation.unwrap();
+    MOZ_TRY_VAR(result.timeZone.annotation, timeZoneAnnotation());
   }
 
   if (hasAnnotationStart()) {
-    if (auto cal = annotations(); cal.isErr()) {
-      return cal.propagateErr();
-    }
+    MOZ_TRY(annotations());
   }
 
-  if (!reader_.atEnd()) {
-    return mozilla::Err(JSMSG_TEMPORAL_PARSER_GARBAGE_AFTER_INPUT);
-  }
-
-  return result;
+  return complete(result);
 }
 
 /**
@@ -1498,23 +1545,18 @@ bool js::temporal::ParseTemporalInstantString(JSContext* cx,
 template <typename CharT>
 mozilla::Result<ZonedDateTimeString, ParserError>
 TemporalParser<CharT>::parseTemporalTimeZoneString() {
-  // TimeZoneIdentifier :::
-  //   TimeZoneUTCOffsetName
-  //   TimeZoneIANAName
+  // Handle the common case of a standalone time zone identifier first.
+  if (auto tz = parse(timeZoneIdentifier()); tz.isOk()) {
+    auto timeZone = tz.unwrap();
 
-  if (hasSign()) {
-    if (auto offset = timeZoneUTCOffsetName();
-        offset.isOk() && reader_.atEnd()) {
-      ZonedDateTimeString result = {};
-      result.timeZone = TimeZoneString::from(offset.unwrap());
-      return result;
+    ZonedDateTimeString result{};
+    if (timeZone.hasOffset()) {
+      result.timeZone = TimeZoneString::from(timeZone.offset);
+    } else {
+      MOZ_ASSERT(timeZone.hasName());
+      result.timeZone = TimeZoneString::from(timeZone.name);
     }
-  } else {
-    if (auto name = timeZoneIANAName(); name.isOk() && reader_.atEnd()) {
-      ZonedDateTimeString result = {};
-      result.timeZone = TimeZoneString::from(name.unwrap());
-      return result;
-    }
+    return result;
   }
 
   // Try all five parse goals from ParseISODateTime in order.
@@ -1650,14 +1692,7 @@ bool js::temporal::ParseTemporalTimeZoneString(
 template <typename CharT>
 mozilla::Result<TimeZoneAnnotation, ParserError>
 TemporalParser<CharT>::parseTimeZoneIdentifier() {
-  auto result = timeZoneIdentifier();
-  if (result.isErr()) {
-    return result.propagateErr();
-  }
-  if (!reader_.atEnd()) {
-    return mozilla::Err(JSMSG_TEMPORAL_PARSER_GARBAGE_AFTER_INPUT);
-  }
-  return result;
+  return parse(timeZoneIdentifier());
 }
 
 /**
@@ -1705,75 +1740,9 @@ bool js::temporal::ParseTimeZoneIdentifier(
 }
 
 template <typename CharT>
-mozilla::Result<TimeZoneUTCOffset, ParserError>
-TemporalParser<CharT>::parseTimeZoneOffsetString() {
-  auto offset = timeZoneUTCOffsetName();
-  if (offset.isErr()) {
-    return offset.propagateErr();
-  }
-  if (!reader_.atEnd()) {
-    return mozilla::Err(JSMSG_TEMPORAL_PARSER_GARBAGE_AFTER_INPUT);
-  }
-  return offset.unwrap();
-}
-
-/**
- * ParseTimeZoneOffsetString ( isoString )
- */
-template <typename CharT>
-static auto ParseTimeZoneOffsetString(mozilla::Span<const CharT> str) {
-  TemporalParser<CharT> parser(str);
-  return parser.parseTimeZoneOffsetString();
-}
-
-/**
- * ParseTimeZoneOffsetString ( isoString )
- */
-static auto ParseTimeZoneOffsetString(Handle<JSLinearString*> str) {
-  JS::AutoCheckCannotGC nogc;
-  if (str->hasLatin1Chars()) {
-    return ParseTimeZoneOffsetString<Latin1Char>(str->latin1Range(nogc));
-  }
-  return ParseTimeZoneOffsetString<char16_t>(str->twoByteRange(nogc));
-}
-
-/**
- * ParseTimeZoneOffsetString ( isoString )
- */
-bool js::temporal::ParseTimeZoneOffsetString(JSContext* cx,
-                                             Handle<JSString*> str,
-                                             int32_t* result) {
-  // Step 1. (Not applicable in our implementation.)
-
-  Rooted<JSLinearString*> linear(cx, str->ensureLinear(cx));
-  if (!linear) {
-    return false;
-  }
-
-  // Step 2.
-  auto parseResult = ::ParseTimeZoneOffsetString(linear);
-  if (parseResult.isErr()) {
-    JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
-                              parseResult.unwrapErr());
-    return false;
-  }
-
-  // Steps 3-13.
-  *result = ParseTimeZoneOffset(parseResult.unwrap());
-  return true;
-}
-
-template <typename CharT>
 mozilla::Result<DateTimeUTCOffset, ParserError>
 TemporalParser<CharT>::parseDateTimeUTCOffset() {
-  auto offset = utcOffsetSubMinutePrecision();
-  if (offset.isErr()) {
-    return offset.propagateErr();
-  }
-  if (!reader_.atEnd()) {
-    return mozilla::Err(JSMSG_TEMPORAL_PARSER_GARBAGE_AFTER_INPUT);
-  }
-  return offset.unwrap();
+  return parse(utcOffsetSubMinutePrecision());
 }
 
 /**
@@ -1820,10 +1789,20 @@ bool js::temporal::ParseDateTimeUTCOffset(JSContext* cx, Handle<JSString*> str,
 }
 
 template <typename CharT>
+mozilla::Result<double, ParserError> TemporalParser<CharT>::durationDigits(
+    JSContext* cx) {
+  auto d = digits(cx);
+  if (!d) {
+    return err(JSMSG_TEMPORAL_PARSER_MISSING_DURATION_DIGITS);
+  }
+  return *d;
+}
+
+template <typename CharT>
 mozilla::Result<TemporalDurationString, ParserError>
 TemporalParser<CharT>::parseTemporalDurationString(JSContext* cx) {
   // Initialize all fields to zero.
-  TemporalDurationString result = {};
+  TemporalDurationString result{};
 
   // TemporalDurationString :::
   //   Duration
@@ -1847,23 +1826,17 @@ TemporalParser<CharT>::parseTemporalDurationString(JSContext* cx) {
   //   DurationDaysPart DurationTime?
 
   do {
-    double num;
     if (hasTimeDesignator()) {
       break;
     }
-    if (auto d = digits(cx); !d) {
-      return mozilla::Err(JSMSG_TEMPORAL_PARSER_MISSING_DURATION_DIGITS);
-    } else {
-      num = *d;
-    }
+
+    double num;
+    MOZ_TRY_VAR(num, durationDigits(cx));
 
     // DurationYearsPart :::
-    //   DurationYears YearsDesignator DurationMonthsPart
-    //   DurationYears YearsDesignator DurationWeeksPart
-    //   DurationYears YearsDesignator DurationDaysPart?
-    //
-    // DurationYears :::
-    //   DecimalDigits[~Sep]
+    //   DecimalDigits[~Sep] YearsDesignator DurationMonthsPart
+    //   DecimalDigits[~Sep] YearsDesignator DurationWeeksPart
+    //   DecimalDigits[~Sep] YearsDesignator DurationDaysPart?
     if (yearsDesignator()) {
       result.years = num;
       if (reader_.atEnd()) {
@@ -1872,19 +1845,12 @@ TemporalParser<CharT>::parseTemporalDurationString(JSContext* cx) {
       if (hasTimeDesignator()) {
         break;
       }
-      if (auto d = digits(cx); !d) {
-        return mozilla::Err(JSMSG_TEMPORAL_PARSER_MISSING_DURATION_DIGITS);
-      } else {
-        num = *d;
-      }
+      MOZ_TRY_VAR(num, durationDigits(cx));
     }
 
     // DurationMonthsPart :::
-    //   DurationMonths MonthsDesignator DurationWeeksPart
-    //   DurationMonths MonthsDesignator DurationDaysPart?
-    //
-    // DurationMonths :::
-    //   DecimalDigits[~Sep]
+    //   DecimalDigits[~Sep] MonthsDesignator DurationWeeksPart
+    //   DecimalDigits[~Sep] MonthsDesignator DurationDaysPart?
     if (monthsDesignator()) {
       result.months = num;
       if (reader_.atEnd()) {
@@ -1893,18 +1859,11 @@ TemporalParser<CharT>::parseTemporalDurationString(JSContext* cx) {
       if (hasTimeDesignator()) {
         break;
       }
-      if (auto d = digits(cx); !d) {
-        return mozilla::Err(JSMSG_TEMPORAL_PARSER_MISSING_DURATION_DIGITS);
-      } else {
-        num = *d;
-      }
+      MOZ_TRY_VAR(num, durationDigits(cx));
     }
 
     // DurationWeeksPart :::
-    //   DurationWeeks WeeksDesignator DurationDaysPart?
-    //
-    // DurationWeeks :::
-    //   DecimalDigits[~Sep]
+    //   DecimalDigits[~Sep] WeeksDesignator DurationDaysPart?
     if (weeksDesignator()) {
       result.weeks = num;
       if (reader_.atEnd()) {
@@ -1913,18 +1872,11 @@ TemporalParser<CharT>::parseTemporalDurationString(JSContext* cx) {
       if (hasTimeDesignator()) {
         break;
       }
-      if (auto d = digits(cx); !d) {
-        return mozilla::Err(JSMSG_TEMPORAL_PARSER_MISSING_DURATION_DIGITS);
-      } else {
-        num = *d;
-      }
+      MOZ_TRY_VAR(num, durationDigits(cx));
     }
 
     // DurationDaysPart :::
-    //   DurationDays DaysDesignator
-    //
-    // DurationDays :::
-    //   DecimalDigits[~Sep]
+    //   DecimalDigits[~Sep] DaysDesignator
     if (daysDesignator()) {
       result.days = num;
       if (reader_.atEnd()) {
@@ -1939,46 +1891,22 @@ TemporalParser<CharT>::parseTemporalDurationString(JSContext* cx) {
   } while (false);
 
   // DurationTime :::
-  //   DurationTimeDesignator DurationHoursPart
-  //   DurationTimeDesignator DurationMinutesPart
-  //   DurationTimeDesignator DurationSecondsPart
+  //   TimeDesignator DurationHoursPart
+  //   TimeDesignator DurationMinutesPart
+  //   TimeDesignator DurationSecondsPart
   if (!timeDesignator()) {
     return mozilla::Err(JSMSG_TEMPORAL_PARSER_MISSING_TIME_DESIGNATOR);
   }
 
   double num;
-  mozilla::Maybe<int32_t> frac;
-  auto digitsAndFraction = [&]() {
-    auto d = digits(cx);
-    if (!d) {
-      return false;
-    }
-    num = *d;
-    frac = fraction();
-    return true;
-  };
+  MOZ_TRY_VAR(num, durationDigits(cx));
 
-  if (!digitsAndFraction()) {
-    return mozilla::Err(JSMSG_TEMPORAL_PARSER_MISSING_DURATION_DIGITS);
-  }
+  auto frac = fraction();
 
-  // clang-format off
-  //
   // DurationHoursPart :::
-  //   DurationWholeHours DurationHoursFraction HoursDesignator
-  //   DurationWholeHours HoursDesignator DurationMinutesPart
-  //   DurationWholeHours HoursDesignator DurationSecondsPart?
-  //
-  // DurationWholeHours :::
-  //   DecimalDigits[~Sep]
-  //
-  // DurationHoursFraction :::
-  //   TimeFraction
-  //
-  // TimeFraction :::
-  //   Fraction
-  //
-  // clang-format on
+  //   DecimalDigits[~Sep] TemporalDecimalFraction HoursDesignator
+  //   DecimalDigits[~Sep] HoursDesignator DurationMinutesPart
+  //   DecimalDigits[~Sep] HoursDesignator DurationSecondsPart?
   bool hasHoursFraction = false;
   if (hoursDesignator()) {
     hasHoursFraction = bool(frac);
@@ -1987,27 +1915,14 @@ TemporalParser<CharT>::parseTemporalDurationString(JSContext* cx) {
     if (reader_.atEnd()) {
       return result;
     }
-    if (!digitsAndFraction()) {
-      return mozilla::Err(JSMSG_TEMPORAL_PARSER_MISSING_DURATION_DIGITS);
-    }
+
+    MOZ_TRY_VAR(num, durationDigits(cx));
+    frac = fraction();
   }
 
-  // clang-format off
-  //
   // DurationMinutesPart :::
-  //   DurationWholeMinutes DurationMinutesFraction MinutesDesignator
-  //   DurationWholeMinutes MinutesDesignator DurationSecondsPart?
-  //
-  // DurationWholeMinutes :::
-  //   DecimalDigits[~Sep]
-  //
-  // DurationMinutesFraction :::
-  //   TimeFraction
-  //
-  // TimeFraction :::
-  //   Fraction
-  //
-  // clang-format on
+  //   DecimalDigits[~Sep] TemporalDecimalFraction MinutesDesignator
+  //   DecimalDigits[~Sep] MinutesDesignator DurationSecondsPart?
   bool hasMinutesFraction = false;
   if (minutesDesignator()) {
     if (hasHoursFraction) {
@@ -2019,22 +1934,13 @@ TemporalParser<CharT>::parseTemporalDurationString(JSContext* cx) {
     if (reader_.atEnd()) {
       return result;
     }
-    if (!digitsAndFraction()) {
-      return mozilla::Err(JSMSG_TEMPORAL_PARSER_MISSING_DURATION_DIGITS);
-    }
+
+    MOZ_TRY_VAR(num, durationDigits(cx));
+    frac = fraction();
   }
 
   // DurationSecondsPart :::
-  //   DurationWholeSeconds DurationSecondsFraction? SecondsDesignator
-  //
-  // DurationWholeSeconds :::
-  //   DecimalDigits[~Sep]
-  //
-  // DurationSecondsFraction :::
-  //   TimeFraction
-  //
-  // TimeFraction :::
-  //   Fraction
+  //   DecimalDigits[~Sep] TemporalDecimalFraction? SecondsDesignator
   if (secondsDesignator()) {
     if (hasHoursFraction || hasMinutesFraction) {
       return mozilla::Err(JSMSG_TEMPORAL_PARSER_INVALID_DURATION_SECONDS);
@@ -2234,27 +2140,23 @@ mozilla::Result<Annotation, ParserError> TemporalParser<CharT>::annotation() {
     return mozilla::Err(JSMSG_TEMPORAL_PARSER_BRACKET_BEFORE_ANNOTATION);
   }
 
-  bool critical = annotationCriticalFlag();
+  Annotation result{};
 
-  auto key = annotationKey();
-  if (key.isErr()) {
-    return key.propagateErr();
-  }
+  result.critical = annotationCriticalFlag();
+
+  MOZ_TRY_VAR(result.key, annotationKey());
 
   if (!character('=')) {
     return mozilla::Err(JSMSG_TEMPORAL_PARSER_ASSIGNMENT_IN_ANNOTATION);
   }
 
-  auto value = annotationValue();
-  if (value.isErr()) {
-    return value.propagateErr();
-  }
+  MOZ_TRY_VAR(result.value, annotationValue());
 
   if (!character(']')) {
     return mozilla::Err(JSMSG_TEMPORAL_PARSER_BRACKET_AFTER_ANNOTATION);
   }
 
-  return Annotation{key.unwrap(), value.unwrap(), critical};
+  return result;
 }
 
 template <typename CharT>
@@ -2268,11 +2170,10 @@ TemporalParser<CharT>::annotations() {
   CalendarName calendar;
   bool calendarWasCritical = false;
   while (hasAnnotationStart()) {
-    auto anno = annotation();
-    if (anno.isErr()) {
-      return anno.propagateErr();
-    }
-    auto [key, value, critical] = anno.unwrap();
+    Annotation anno;
+    MOZ_TRY_VAR(anno, annotation());
+
+    auto [key, value, critical] = anno;
 
     static constexpr std::string_view ca = "u-ca";
 
@@ -2298,109 +2199,64 @@ TemporalParser<CharT>::annotatedTime() {
   // clang-format off
   //
   // AnnotatedTime :::
-  //   TimeDesignator TimeSpec DateTimeUTCOffset? TimeZoneAnnotation? Annotations?
-  //   TimeSpecWithOptionalOffsetNotAmbiguous TimeZoneAnnotation? Annotations?
+  //   TimeDesignator Time DateTimeUTCOffset[~Z]? TimeZoneAnnotation? Annotations?
+  //   Time DateTimeUTCOffset[~Z]? TimeZoneAnnotation? Annotations?
   //
   // clang-format on
 
-  if (timeDesignator()) {
-    ZonedDateTimeString result = {};
-
-    auto time = timeSpec();
-    if (time.isErr()) {
-      return time.propagateErr();
-    }
-    result.time = time.unwrap();
-
-    if (hasDateTimeUTCOffsetStart()) {
-      auto tz = dateTimeUTCOffset();
-      if (tz.isErr()) {
-        return tz.propagateErr();
-      }
-      result.timeZone = tz.unwrap();
-    }
-
-    if (hasTimeZoneAnnotationStart()) {
-      auto annotation = timeZoneAnnotation();
-      if (annotation.isErr()) {
-        return annotation.propagateErr();
-      }
-      result.timeZone.annotation = annotation.unwrap();
-    }
-
-    if (hasAnnotationStart()) {
-      auto cal = annotations();
-      if (cal.isErr()) {
-        return cal.propagateErr();
-      }
-      result.calendar = cal.unwrap();
-    }
-
-    return result;
-  }
-
-  // clang-format off
-  //
-  // TimeSpecWithOptionalOffsetNotAmbiguous :::
-  //   TimeSpec DateTimeUTCOffset? but not one of ValidMonthDay or DateSpecYearMonth
-  //
-  // clang-format on
+  ZonedDateTimeString result{};
 
   size_t start = reader_.index();
+  bool hasTimeDesignator = timeDesignator();
 
-  ZonedDateTimeString result = {};
-
-  auto time = timeSpec();
-  if (time.isErr()) {
-    return time.propagateErr();
-  }
-  result.time = time.unwrap();
+  MOZ_TRY_VAR(result.time, time());
 
   if (hasDateTimeUTCOffsetStart()) {
-    auto tz = dateTimeUTCOffset();
-    if (tz.isErr()) {
-      return tz.propagateErr();
-    }
-    result.timeZone = tz.unwrap();
+    MOZ_TRY_VAR(result.timeZone, dateTimeUTCOffset(/* allowZ = */ false));
   }
 
-  size_t end = reader_.index();
+  // Early error if `Time DateTimeUTCOffset[~Z]` can be parsed as either
+  // `DateSpecMonthDay` or `DateSpecYearMonth`.
+  if (!hasTimeDesignator) {
+    size_t end = reader_.index();
 
-  // Reset and check if the input can also be parsed as ValidMonthDay.
-  reader_.reset(start);
+    auto isValidMonthDay = [](const PlainDate& date) {
+      MOZ_ASSERT(date.year == AbsentYear);
+      MOZ_ASSERT(1 <= date.month && date.month <= 12);
+      MOZ_ASSERT(1 <= date.day && date.day <= 31);
 
-  if (validMonthDay().isOk()) {
-    if (reader_.index() == end) {
-      return mozilla::Err(JSMSG_TEMPORAL_PARSER_AMBIGUOUS_TIME_MONTH_DAY);
+      constexpr int32_t leapYear = 0;
+      return date.day <= ISODaysInMonth(leapYear, date.month);
+    };
+
+    // Reset and check if the input can also be parsed as DateSpecMonthDay.
+    reader_.reset(start);
+
+    if (auto monthDay = dateSpecMonthDay(); monthDay.isOk()) {
+      if (reader_.index() == end && isValidMonthDay(monthDay.unwrap())) {
+        return mozilla::Err(JSMSG_TEMPORAL_PARSER_AMBIGUOUS_TIME_MONTH_DAY);
+      }
     }
-  }
 
-  // Reset and check if the input can also be parsed as DateSpecYearMonth.
-  reader_.reset(start);
+    // Reset and check if the input can also be parsed as DateSpecYearMonth.
+    reader_.reset(start);
 
-  if (dateSpecYearMonth().isOk()) {
-    if (reader_.index() == end) {
-      return mozilla::Err(JSMSG_TEMPORAL_PARSER_AMBIGUOUS_TIME_YEAR_MONTH);
+    if (dateSpecYearMonth().isOk()) {
+      if (reader_.index() == end) {
+        return mozilla::Err(JSMSG_TEMPORAL_PARSER_AMBIGUOUS_TIME_YEAR_MONTH);
+      }
     }
-  }
 
-  // Input can neither be parsed as ValidMonthDay nor DateSpecYearMonth.
-  reader_.reset(end);
+    // Input can neither be parsed as DateSpecMonthDay nor DateSpecYearMonth.
+    reader_.reset(end);
+  }
 
   if (hasTimeZoneAnnotationStart()) {
-    auto annotation = timeZoneAnnotation();
-    if (annotation.isErr()) {
-      return annotation.propagateErr();
-    }
-    result.timeZone.annotation = annotation.unwrap();
+    MOZ_TRY_VAR(result.timeZone.annotation, timeZoneAnnotation());
   }
 
   if (hasAnnotationStart()) {
-    auto cal = annotations();
-    if (cal.isErr()) {
-      return cal.propagateErr();
-    }
-    result.calendar = cal.unwrap();
+    MOZ_TRY_VAR(result.calendar, annotations());
   }
 
   return result;
@@ -2409,30 +2265,21 @@ TemporalParser<CharT>::annotatedTime() {
 template <typename CharT>
 mozilla::Result<ZonedDateTimeString, ParserError>
 TemporalParser<CharT>::annotatedDateTime() {
-  // AnnotatedDateTime[Zoned] :::
-  //   [~Zoned] DateTime TimeZoneAnnotation? Annotations?
-  //   [+Zoned] DateTime TimeZoneAnnotation Annotations?
+  // AnnotatedDateTime[Zoned, TimeRequired] :::
+  //  [~Zoned] DateTime[~Z, ?TimeRequired] TimeZoneAnnotation? Annotations?
+  //  [+Zoned] DateTime[+Z, ?TimeRequired] TimeZoneAnnotation Annotations?
+  //
+  // When called as `AnnotatedDateTime[~Zoned, ~TimeRequired]`.
 
-  auto dt = dateTime();
-  if (dt.isErr()) {
-    return dt.propagateErr();
-  }
-  auto result = dt.unwrap();
+  ZonedDateTimeString result;
+  MOZ_TRY_VAR(result, dateTime(/* allowZ = */ false));
 
   if (hasTimeZoneAnnotationStart()) {
-    auto annotation = timeZoneAnnotation();
-    if (annotation.isErr()) {
-      return annotation.propagateErr();
-    }
-    result.timeZone.annotation = annotation.unwrap();
+    MOZ_TRY_VAR(result.timeZone.annotation, timeZoneAnnotation());
   }
 
   if (hasAnnotationStart()) {
-    auto cal = annotations();
-    if (cal.isErr()) {
-      return cal.propagateErr();
-    }
-    result.calendar = cal.unwrap();
+    MOZ_TRY_VAR(result.calendar, annotations());
   }
 
   return result;
@@ -2441,53 +2288,36 @@ TemporalParser<CharT>::annotatedDateTime() {
 template <typename CharT>
 mozilla::Result<ZonedDateTimeString, ParserError>
 TemporalParser<CharT>::annotatedDateTimeTimeRequired() {
-  // clang-format off
+  // AnnotatedDateTime[Zoned, TimeRequired] :::
+  //  [~Zoned] DateTime[~Z, ?TimeRequired] TimeZoneAnnotation? Annotations?
+  //  [+Zoned] DateTime[+Z, ?TimeRequired] TimeZoneAnnotation Annotations?
   //
-  // AnnotatedDateTimeTimeRequired :::
-  //   Date DateTimeSeparator TimeSpec DateTimeUTCOffset? TimeZoneAnnotation? Annotations?
+  // DateTime[Z, TimeRequired] :::
+  //   [~TimeRequired] Date
+  //   Date DateTimeSeparator Time DateTimeUTCOffset[?Z]?
   //
-  // clang-format on
+  // When called as `AnnotatedDateTime[~Zoned, +TimeRequired]`.
 
-  ZonedDateTimeString result = {};
+  ZonedDateTimeString result{};
 
-  auto dt = date();
-  if (dt.isErr()) {
-    return dt.propagateErr();
-  }
-  result.date = dt.unwrap();
+  MOZ_TRY_VAR(result.date, date());
 
   if (!dateTimeSeparator()) {
     return mozilla::Err(JSMSG_TEMPORAL_PARSER_MISSING_DATE_TIME_SEPARATOR);
   }
 
-  auto time = timeSpec();
-  if (time.isErr()) {
-    return time.propagateErr();
-  }
-  result.time = time.unwrap();
+  MOZ_TRY_VAR(result.time, time());
 
   if (hasDateTimeUTCOffsetStart()) {
-    auto tz = dateTimeUTCOffset();
-    if (tz.isErr()) {
-      return tz.propagateErr();
-    }
-    result.timeZone = tz.unwrap();
+    MOZ_TRY_VAR(result.timeZone, dateTimeUTCOffset(/* allowZ = */ false));
   }
 
   if (hasTimeZoneAnnotationStart()) {
-    auto annotation = timeZoneAnnotation();
-    if (annotation.isErr()) {
-      return annotation.propagateErr();
-    }
-    result.timeZone.annotation = annotation.unwrap();
+    MOZ_TRY_VAR(result.timeZone.annotation, timeZoneAnnotation());
   }
 
   if (hasAnnotationStart()) {
-    auto cal = annotations();
-    if (cal.isErr()) {
-      return cal.propagateErr();
-    }
-    result.calendar = cal.unwrap();
+    MOZ_TRY_VAR(result.calendar, annotations());
   }
 
   return result;
@@ -2499,28 +2329,16 @@ TemporalParser<CharT>::annotatedYearMonth() {
   // AnnotatedYearMonth :::
   //   DateSpecYearMonth TimeZoneAnnotation? Annotations?
 
-  ZonedDateTimeString result = {};
+  ZonedDateTimeString result{};
 
-  auto yearMonth = dateSpecYearMonth();
-  if (yearMonth.isErr()) {
-    return yearMonth.propagateErr();
-  }
-  result.date = yearMonth.unwrap();
+  MOZ_TRY_VAR(result.date, dateSpecYearMonth());
 
   if (hasTimeZoneAnnotationStart()) {
-    auto annotation = timeZoneAnnotation();
-    if (annotation.isErr()) {
-      return annotation.propagateErr();
-    }
-    result.timeZone.annotation = annotation.unwrap();
+    MOZ_TRY_VAR(result.timeZone.annotation, timeZoneAnnotation());
   }
 
   if (hasAnnotationStart()) {
-    auto cal = annotations();
-    if (cal.isErr()) {
-      return cal.propagateErr();
-    }
-    result.calendar = cal.unwrap();
+    MOZ_TRY_VAR(result.calendar, annotations());
   }
 
   return result;
@@ -2532,28 +2350,16 @@ TemporalParser<CharT>::annotatedMonthDay() {
   // AnnotatedMonthDay :::
   //   DateSpecMonthDay TimeZoneAnnotation? Annotations?
 
-  ZonedDateTimeString result = {};
+  ZonedDateTimeString result{};
 
-  auto monthDay = dateSpecMonthDay();
-  if (monthDay.isErr()) {
-    return monthDay.propagateErr();
-  }
-  result.date = monthDay.unwrap();
+  MOZ_TRY_VAR(result.date, dateSpecMonthDay());
 
   if (hasTimeZoneAnnotationStart()) {
-    auto annotation = timeZoneAnnotation();
-    if (annotation.isErr()) {
-      return annotation.propagateErr();
-    }
-    result.timeZone.annotation = annotation.unwrap();
+    MOZ_TRY_VAR(result.timeZone.annotation, timeZoneAnnotation());
   }
 
   if (hasAnnotationStart()) {
-    auto cal = annotations();
-    if (cal.isErr()) {
-      return cal.propagateErr();
-    }
-    result.calendar = cal.unwrap();
+    MOZ_TRY_VAR(result.calendar, annotations());
   }
 
   return result;
@@ -2563,46 +2369,17 @@ template <typename CharT>
 mozilla::Result<PlainDate, ParserError>
 TemporalParser<CharT>::dateSpecYearMonth() {
   // DateSpecYearMonth :::
-  //   DateYear -? DateMonth
-  PlainDate result = {};
+  //   DateYear DateSeparator[+Extended] DateMonth
+  //   DateYear DateSeparator[~Extended] DateMonth
 
-  // DateYear :::
-  //  DecimalDigit{4}
-  //  ASCIISign DecimalDigit{6}
-  if (auto year = digits(4)) {
-    result.year = year.value();
-  } else if (hasSign()) {
-    int32_t yearSign = sign();
-    if (auto year = digits(6)) {
-      result.year = yearSign * year.value();
-      if (yearSign < 0 && result.year == 0) {
-        return mozilla::Err(JSMSG_TEMPORAL_PARSER_NEGATIVE_ZERO_YEAR);
-      }
-    } else {
-      return mozilla::Err(JSMSG_TEMPORAL_PARSER_MISSING_EXTENDED_YEAR);
-    }
-  } else {
-    return mozilla::Err(JSMSG_TEMPORAL_PARSER_MISSING_YEAR);
-  }
+  PlainDate result{};
 
-  character('-');
+  MOZ_TRY_VAR(result.year, dateYear());
 
-  // DateMonth :::
-  //   0 NonzeroDigit
-  //   10
-  //   11
-  //   12
-  if (auto month = digits(2)) {
-    result.month = month.value();
-    if (!inBounds(result.month, 1, 12)) {
-      return mozilla::Err(JSMSG_TEMPORAL_PARSER_INVALID_MONTH);
-    }
-  } else {
-    return mozilla::Err(JSMSG_TEMPORAL_PARSER_MISSING_MONTH);
-  }
+  // Optional |DateSeparator|.
+  dateSeparator();
 
-  // Absent days default to 1, cf. ParseISODateTime.
-  result.day = 1;
+  MOZ_TRY_VAR(result.month, dateMonth());
 
   return result;
 }
@@ -2611,107 +2388,22 @@ template <typename CharT>
 mozilla::Result<PlainDate, ParserError>
 TemporalParser<CharT>::dateSpecMonthDay() {
   // DateSpecMonthDay :::
-  //   -- DateMonth -? DateDay
-  //   DateMonth -? DateDay
-  PlainDate result = {};
+  //   --? DateMonth DateSeparator[+Extended] DateDay
+  //   --? DateMonth DateSeparator[~Extended] DateDay
+
+  PlainDate result{};
 
   // Optional: --
   string("--");
 
   result.year = AbsentYear;
 
-  // DateMonth :::
-  //   0 NonzeroDigit
-  //   10
-  //   11
-  //   12
-  if (auto month = digits(2)) {
-    result.month = month.value();
-    if (!inBounds(result.month, 1, 12)) {
-      return mozilla::Err(JSMSG_TEMPORAL_PARSER_INVALID_MONTH);
-    }
-  } else {
-    return mozilla::Err(JSMSG_TEMPORAL_PARSER_MISSING_MONTH);
-  }
+  MOZ_TRY_VAR(result.month, dateMonth());
 
-  // Optional: -
-  character('-');
+  // Optional |DateSeparator|.
+  dateSeparator();
 
-  // DateDay :::
-  //   0 NonzeroDigit
-  //   1 DecimalDigit
-  //   2 DecimalDigit
-  //   30
-  //   31
-  if (auto day = digits(2)) {
-    result.day = day.value();
-    if (!inBounds(result.day, 1, 31)) {
-      return mozilla::Err(JSMSG_TEMPORAL_PARSER_INVALID_DAY);
-    }
-  } else {
-    return mozilla::Err(JSMSG_TEMPORAL_PARSER_MISSING_DAY);
-  }
-
-  return result;
-}
-
-template <typename CharT>
-mozilla::Result<PlainDate, ParserError> TemporalParser<CharT>::validMonthDay() {
-  // ValidMonthDay :::
-  //   DateMonth -? 0 NonZeroDigit
-  //   DateMonth -? 1 DecimalDigit
-  //   DateMonth -? 2 DecimalDigit
-  //   DateMonth -? 30 but not one of 0230 or 02-30
-  //   DateMonthWithThirtyOneDays -? 31
-  //
-  // DateMonthWithThirtyOneDays ::: one of
-  //   01 03 05 07 08 10 12
-
-  PlainDate result = {};
-
-  // DateMonth :::
-  //   0 NonzeroDigit
-  //   10
-  //   11
-  //   12
-  if (auto month = digits(2)) {
-    result.month = month.value();
-    if (!inBounds(result.month, 1, 12)) {
-      return mozilla::Err(JSMSG_TEMPORAL_PARSER_INVALID_MONTH);
-    }
-  } else {
-    return mozilla::Err(JSMSG_TEMPORAL_PARSER_MISSING_MONTH);
-  }
-
-  // Optional: -
-  character('-');
-
-  if (auto day = digits(2)) {
-    result.day = day.value();
-    if (!inBounds(result.day, 1, 31)) {
-      return mozilla::Err(JSMSG_TEMPORAL_PARSER_INVALID_DAY);
-    }
-  } else {
-    return mozilla::Err(JSMSG_TEMPORAL_PARSER_MISSING_DAY);
-  }
-
-  if (result.month == 2 && result.day > 29) {
-    return mozilla::Err(JSMSG_TEMPORAL_PARSER_INVALID_DAY);
-  }
-
-  if (result.day > 30) {
-    MOZ_ASSERT(result.day == 31);
-
-    static constexpr int32_t monthsWithThirtyOneDays[] = {
-        1, 3, 5, 7, 8, 10, 12,
-    };
-
-    if (std::find(std::begin(monthsWithThirtyOneDays),
-                  std::end(monthsWithThirtyOneDays),
-                  result.month) == std::end(monthsWithThirtyOneDays)) {
-      return mozilla::Err(JSMSG_TEMPORAL_PARSER_INVALID_DAY);
-    }
-  }
+  MOZ_TRY_VAR(result.day, dateDay());
 
   return result;
 }
@@ -2726,16 +2418,10 @@ TemporalParser<CharT>::parseTemporalCalendarString() {
   // TemporalTimeString can start with 'T', so we can't only check the first
   // character.
   if (hasTwoAsciiAlpha()) {
-    auto cal = annotationValue();
-    if (cal.isErr()) {
-      return cal.propagateErr();
-    }
-    if (!reader_.atEnd()) {
-      return mozilla::Err(JSMSG_TEMPORAL_PARSER_GARBAGE_AFTER_INPUT);
-    }
+    ZonedDateTimeString result{};
 
-    ZonedDateTimeString result = {};
-    result.calendar = cal.unwrap();
+    MOZ_TRY_VAR(result.calendar, parse(annotationValue()));
+
     return result;
   }
 
@@ -2744,7 +2430,6 @@ TemporalParser<CharT>::parseTemporalCalendarString() {
   // TemporalDateTimeString
   // TemporalInstantString
   // TemporalTimeString
-  // TemporalZonedDateTimeString
   // TemporalMonthDayString
   // TemporalYearMonthString
 
@@ -2813,7 +2498,7 @@ JSLinearString* js::temporal::ParseTemporalCalendarString(
     return nullptr;
   }
 
-  // Steps 1-3.
+  // Steps 1 and 3.a.
   auto parseResult = ::ParseTemporalCalendarString(linear);
   if (parseResult.isErr()) {
     JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
@@ -2841,23 +2526,16 @@ mozilla::Result<ZonedDateTimeString, ParserError>
 TemporalParser<CharT>::parseTemporalTimeString() {
   // TemporalTimeString :::
   //   AnnotatedTime
-  //   AnnotatedDateTimeTimeRequired
+  //   AnnotatedDateTime[~Zoned, +TimeRequired]
 
-  if (auto time = annotatedTime(); time.isOk() && reader_.atEnd()) {
-    return time.unwrap();
+  if (auto time = parse(annotatedTime()); time.isOk()) {
+    return time;
   }
 
   // Reset and try the next option.
   reader_.reset();
 
-  auto dt = annotatedDateTimeTimeRequired();
-  if (dt.isErr()) {
-    return dt.propagateErr();
-  }
-  if (!reader_.atEnd()) {
-    return mozilla::Err(JSMSG_TEMPORAL_PARSER_GARBAGE_AFTER_INPUT);
-  }
-  return dt.unwrap();
+  return parse(annotatedDateTimeTimeRequired());
 }
 
 /**
@@ -2900,18 +2578,14 @@ bool js::temporal::ParseTemporalTimeString(JSContext* cx, Handle<JSString*> str,
   ZonedDateTimeString parsed = parseResult.unwrap();
 
   // Step 3.
-  if (parsed.timeZone.isUTC()) {
-    JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
-                              JSMSG_TEMPORAL_PARSER_INVALID_UTC_DESIGNATOR);
-    return false;
-  }
-
-  // Step 4.
   PlainDateTime dateTime;
   if (!ParseISODateTime(cx, parsed, &dateTime)) {
     return false;
   }
   *result = dateTime.time;
+
+  // Step 4.
+  MOZ_ASSERT(!parsed.startOfDay);
 
   // Step 5.
   return true;
@@ -2922,9 +2596,9 @@ mozilla::Result<ZonedDateTimeString, ParserError>
 TemporalParser<CharT>::parseTemporalMonthDayString() {
   // TemporalMonthDayString :::
   //   AnnotatedMonthDay
-  //   AnnotatedDateTime[~Zoned]
+  //   AnnotatedDateTime[~Zoned, ~TimeRequired]
 
-  if (auto monthDay = annotatedMonthDay(); monthDay.isOk() && reader_.atEnd()) {
+  if (auto monthDay = parse(annotatedMonthDay()); monthDay.isOk()) {
     auto result = monthDay.unwrap();
 
     // ParseISODateTime, step 3.
@@ -2938,14 +2612,7 @@ TemporalParser<CharT>::parseTemporalMonthDayString() {
   // Reset and try the next option.
   reader_.reset();
 
-  auto dt = annotatedDateTime();
-  if (dt.isErr()) {
-    return dt.propagateErr();
-  }
-  if (!reader_.atEnd()) {
-    return mozilla::Err(JSMSG_TEMPORAL_PARSER_GARBAGE_AFTER_INPUT);
-  }
-  return dt.unwrap();
+  return parse(annotatedDateTime());
 }
 
 /**
@@ -2989,20 +2656,13 @@ bool js::temporal::ParseTemporalMonthDayString(
   ZonedDateTimeString parsed = parseResult.unwrap();
 
   // Step 3.
-  if (parsed.timeZone.isUTC()) {
-    JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
-                              JSMSG_TEMPORAL_PARSER_INVALID_UTC_DESIGNATOR);
-    return false;
-  }
-
-  // Step 4.
   PlainDateTime dateTime;
   if (!ParseISODateTime(cx, parsed, &dateTime)) {
     return false;
   }
   *result = dateTime.date;
 
-  // Steps 5-6.
+  // Steps 4-5.
   *hasYear = parsed.date.year != AbsentYear;
 
   if (parsed.calendar.present()) {
@@ -3012,7 +2672,7 @@ bool js::temporal::ParseTemporalMonthDayString(
     }
   }
 
-  // Step 7.
+  // Step 6.
   return true;
 }
 
@@ -3021,10 +2681,9 @@ mozilla::Result<ZonedDateTimeString, ParserError>
 TemporalParser<CharT>::parseTemporalYearMonthString() {
   // TemporalYearMonthString :::
   //   AnnotatedYearMonth
-  //   AnnotatedDateTime[~Zoned]
+  //   AnnotatedDateTime[~Zoned, ~TimeRequired]
 
-  if (auto yearMonth = annotatedYearMonth();
-      yearMonth.isOk() && reader_.atEnd()) {
+  if (auto yearMonth = parse(annotatedYearMonth()); yearMonth.isOk()) {
     auto result = yearMonth.unwrap();
 
     // ParseISODateTime, step 3.
@@ -3039,14 +2698,7 @@ TemporalParser<CharT>::parseTemporalYearMonthString() {
   // Reset and try the next option.
   reader_.reset();
 
-  auto dt = annotatedDateTime();
-  if (dt.isErr()) {
-    return dt.propagateErr();
-  }
-  if (!reader_.atEnd()) {
-    return mozilla::Err(JSMSG_TEMPORAL_PARSER_GARBAGE_AFTER_INPUT);
-  }
-  return dt.unwrap();
+  return parse(annotatedDateTime());
 }
 
 /**
@@ -3090,13 +2742,6 @@ bool js::temporal::ParseTemporalYearMonthString(
   ZonedDateTimeString parsed = parseResult.unwrap();
 
   // Step 3.
-  if (parsed.timeZone.isUTC()) {
-    JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
-                              JSMSG_TEMPORAL_PARSER_INVALID_UTC_DESIGNATOR);
-    return false;
-  }
-
-  // Step 4.
   PlainDateTime dateTime;
   if (!ParseISODateTime(cx, parsed, &dateTime)) {
     return false;
@@ -3110,7 +2755,6 @@ bool js::temporal::ParseTemporalYearMonthString(
     }
   }
 
-  // Step 5.
   return true;
 }
 
@@ -3118,16 +2762,9 @@ template <typename CharT>
 mozilla::Result<ZonedDateTimeString, ParserError>
 TemporalParser<CharT>::parseTemporalDateTimeString() {
   // TemporalDateTimeString[Zoned] :::
-  //   AnnotatedDateTime[?Zoned]
+  //   AnnotatedDateTime[?Zoned, ~TimeRequired]
 
-  auto dateTime = annotatedDateTime();
-  if (dateTime.isErr()) {
-    return dateTime.propagateErr();
-  }
-  if (!reader_.atEnd()) {
-    return mozilla::Err(JSMSG_TEMPORAL_PARSER_GARBAGE_AFTER_INPUT);
-  }
-  return dateTime.unwrap();
+  return parse(annotatedDateTime());
 }
 
 /**
@@ -3171,13 +2808,6 @@ bool js::temporal::ParseTemporalDateTimeString(
   ZonedDateTimeString parsed = parseResult.unwrap();
 
   // Step 3.
-  if (parsed.timeZone.isUTC()) {
-    JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
-                              JSMSG_TEMPORAL_PARSER_INVALID_UTC_DESIGNATOR);
-    return false;
-  }
-
-  // Step 4.
   if (!ParseISODateTime(cx, parsed, result)) {
     return false;
   }
@@ -3192,60 +2822,29 @@ bool js::temporal::ParseTemporalDateTimeString(
   return true;
 }
 
-/**
- * ParseTemporalDateString ( isoString )
- */
-bool js::temporal::ParseTemporalDateString(JSContext* cx, Handle<JSString*> str,
-                                           PlainDate* result,
-                                           MutableHandle<JSString*> calendar) {
-  // Step 1.
-  PlainDateTime dateTime;
-  if (!ParseTemporalDateTimeString(cx, str, &dateTime, calendar)) {
-    return false;
-  }
-
-  // Step 2.
-  *result = dateTime.date;
-  return true;
-}
-
 template <typename CharT>
 mozilla::Result<ZonedDateTimeString, ParserError>
 TemporalParser<CharT>::parseTemporalZonedDateTimeString() {
   // Parse goal: TemporalDateTimeString[+Zoned]
   //
   // TemporalDateTimeString[Zoned] :::
-  //   AnnotatedDateTime[?Zoned]
+  //   AnnotatedDateTime[?Zoned, ~TimeRequired]
   //
-  // AnnotatedDateTime[Zoned] :::
-  //   [~Zoned] DateTime TimeZoneAnnotation? Annotations?
-  //   [+Zoned] DateTime TimeZoneAnnotation Annotations?
+  // AnnotatedDateTime[Zoned, TimeRequired] :::
+  //   [~Zoned] DateTime[~Z, ?TimeRequired] TimeZoneAnnotation? Annotations?
+  //   [+Zoned] DateTime[+Z, ?TimeRequired] TimeZoneAnnotation Annotations?
 
-  auto dt = dateTime();
-  if (dt.isErr()) {
-    return dt.propagateErr();
-  }
-  auto result = dt.unwrap();
+  ZonedDateTimeString result{};
 
-  auto annotation = timeZoneAnnotation();
-  if (annotation.isErr()) {
-    return annotation.propagateErr();
-  }
-  result.timeZone.annotation = annotation.unwrap();
+  MOZ_TRY_VAR(result, dateTime(/* allowZ = */ true));
+
+  MOZ_TRY_VAR(result.timeZone.annotation, timeZoneAnnotation());
 
   if (hasAnnotationStart()) {
-    auto cal = annotations();
-    if (cal.isErr()) {
-      return cal.propagateErr();
-    }
-    result.calendar = cal.unwrap();
+    MOZ_TRY_VAR(result.calendar, annotations());
   }
 
-  if (!reader_.atEnd()) {
-    return mozilla::Err(JSMSG_TEMPORAL_PARSER_GARBAGE_AFTER_INPUT);
-  }
-
-  return result;
+  return complete(result);
 }
 
 /**
@@ -3272,10 +2871,8 @@ static auto ParseTemporalZonedDateTimeString(Handle<JSLinearString*> str) {
  * ParseTemporalZonedDateTimeString ( isoString )
  */
 bool js::temporal::ParseTemporalZonedDateTimeString(
-    JSContext* cx, Handle<JSString*> str, PlainDateTime* dateTime, bool* isUTC,
-    bool* hasOffset, int64_t* timeZoneOffset,
-    MutableHandle<ParsedTimeZone> timeZoneAnnotation,
-    MutableHandle<JSString*> calendar) {
+    JSContext* cx, Handle<JSString*> str,
+    JS::MutableHandle<ParsedZonedDateTime> result) {
   Rooted<JSLinearString*> linear(cx, str->ensureLinear(cx));
   if (!linear) {
     return false;
@@ -3290,12 +2887,29 @@ bool js::temporal::ParseTemporalZonedDateTimeString(
   }
   ZonedDateTimeString parsed = parseResult.unwrap();
 
-  // Step 2. (ParseISODateTime, steps 1-18.)
-  if (!ParseISODateTime(cx, parsed, dateTime)) {
+  // Step 2. (ParseISODateTime, steps 2-3.)
+  Rooted<JSLinearString*> calendar(cx);
+  if (parsed.calendar.present()) {
+    calendar = ToString(cx, linear, parsed.calendar);
+    if (!calendar) {
+      return false;
+    }
+  }
+
+  // Step 2. (ParseISODateTime, steps 4-21.)
+  PlainDateTime dateTime;
+  if (!ParseISODateTime(cx, parsed, &dateTime)) {
     return false;
   }
 
-  // Step 2. (ParseISODateTime, steps 19-21.)
+  // Step 2. (ParseISODateTime, steps 22-23.)
+  bool isStartOfDay = parsed.startOfDay;
+
+  // Step 2. (ParseISODateTime, steps 24-27.)
+  bool isUTC;
+  bool hasOffset;
+  int64_t timeZoneOffset;
+  Rooted<ParsedTimeZone> timeZoneAnnotation(cx);
   {
     MOZ_ASSERT(parsed.timeZone.hasAnnotation());
 
@@ -3318,35 +2932,64 @@ bool js::temporal::ParseTemporalZonedDateTimeString(
     // { [[Z]]: false, [[OffsetString]]: undefined, [[Name]]: "Europe/Berlin" }
 
     const auto& annotation = parsed.timeZone.annotation;
-    if (!ParseTimeZoneAnnotation(cx, annotation, linear, timeZoneAnnotation)) {
+    if (!ParseTimeZoneAnnotation(cx, annotation, linear, &timeZoneAnnotation)) {
       return false;
     }
 
     if (parsed.timeZone.isUTC()) {
-      *isUTC = true;
-      *hasOffset = false;
-      *timeZoneOffset = 0;
+      isUTC = true;
+      hasOffset = false;
+      timeZoneOffset = 0;
     } else if (parsed.timeZone.hasOffset()) {
-      *isUTC = false;
-      *hasOffset = true;
-      *timeZoneOffset = ParseDateTimeUTCOffset(parsed.timeZone.offset);
+      isUTC = false;
+      hasOffset = true;
+      timeZoneOffset = ParseDateTimeUTCOffset(parsed.timeZone.offset);
     } else {
-      *isUTC = false;
-      *hasOffset = false;
-      *timeZoneOffset = 0;
+      isUTC = false;
+      hasOffset = false;
+      timeZoneOffset = 0;
     }
   }
 
-  // Step 2. (ParseISODateTime, steps 23-24.)
-  if (parsed.calendar.present()) {
-    calendar.set(ToString(cx, linear, parsed.calendar));
-    if (!calendar) {
-      return false;
-    }
-  }
-
-  // Step 2. (ParseISODateTime, step 25.)
+  // Step 2. (ParseISODateTime, step 28.)
+  result.set(ParsedZonedDateTime{
+      dateTime,
+      calendar,
+      timeZoneAnnotation.get(),
+      timeZoneOffset,
+      isUTC,
+      hasOffset,
+      isStartOfDay,
+  });
   return true;
+}
+
+template <typename CharT>
+mozilla::Result<ZonedDateTimeString, ParserError>
+TemporalParser<CharT>::parseTemporalRelativeToString() {
+  // Parse goals:
+  // TemporalDateTimeString[+Zoned] and TemporalDateTimeString[~Zoned]
+  //
+  // TemporalDateTimeString[Zoned] :::
+  //   AnnotatedDateTime[?Zoned, ~TimeRequired]
+  //
+  // AnnotatedDateTime[Zoned, TimeRequired] :::
+  //   [~Zoned] DateTime[~Z, ?TimeRequired] TimeZoneAnnotation? Annotations?
+  //   [+Zoned] DateTime[+Z, ?TimeRequired] TimeZoneAnnotation Annotations?
+
+  ZonedDateTimeString result{};
+
+  MOZ_TRY_VAR(result, dateTime(/* allowZ = */ true));
+
+  if (hasTimeZoneAnnotationStart()) {
+    MOZ_TRY_VAR(result.timeZone.annotation, timeZoneAnnotation());
+  }
+
+  if (hasAnnotationStart()) {
+    MOZ_TRY_VAR(result.calendar, annotations());
+  }
+
+  return complete(result);
 }
 
 /**
@@ -3355,7 +2998,7 @@ bool js::temporal::ParseTemporalZonedDateTimeString(
 template <typename CharT>
 static auto ParseTemporalRelativeToString(mozilla::Span<const CharT> str) {
   TemporalParser<CharT> parser(str);
-  return parser.parseTemporalDateTimeString();
+  return parser.parseTemporalRelativeToString();
 }
 
 /**
@@ -3373,10 +3016,8 @@ static auto ParseTemporalRelativeToString(Handle<JSLinearString*> str) {
  * ParseTemporalRelativeToString ( isoString )
  */
 bool js::temporal::ParseTemporalRelativeToString(
-    JSContext* cx, Handle<JSString*> str, PlainDateTime* dateTime, bool* isUTC,
-    bool* hasOffset, int64_t* timeZoneOffset,
-    MutableHandle<ParsedTimeZone> timeZoneAnnotation,
-    MutableHandle<JSString*> calendar) {
+    JSContext* cx, Handle<JSString*> str,
+    MutableHandle<ParsedZonedDateTime> result) {
   Rooted<JSLinearString*> linear(cx, str->ensureLinear(cx));
   if (!linear) {
     return false;
@@ -3400,11 +3041,17 @@ bool js::temporal::ParseTemporalRelativeToString(
   }
 
   // Step 4. (ParseISODateTime, steps 1-18.)
-  if (!ParseISODateTime(cx, parsed, dateTime)) {
+  PlainDateTime dateTime;
+  if (!ParseISODateTime(cx, parsed, &dateTime)) {
     return false;
   }
+  bool isStartOfDay = parsed.startOfDay;
 
   // Step 4. (ParseISODateTime, steps 19-22.)
+  bool isUTC;
+  bool hasOffset;
+  int64_t timeZoneOffset;
+  Rooted<ParsedTimeZone> timeZoneAnnotation(cx);
   if (parsed.timeZone.hasAnnotation()) {
     // Case 1: 19700101Z[+02:00]
     // { [[Z]]: true, [[OffsetString]]: undefined, [[Name]]: "+02:00" }
@@ -3425,45 +3072,60 @@ bool js::temporal::ParseTemporalRelativeToString(
     // { [[Z]]: false, [[OffsetString]]: undefined, [[Name]]: "Europe/Berlin" }
 
     const auto& annotation = parsed.timeZone.annotation;
-    if (!ParseTimeZoneAnnotation(cx, annotation, linear, timeZoneAnnotation)) {
+    if (!ParseTimeZoneAnnotation(cx, annotation, linear, &timeZoneAnnotation)) {
       return false;
     }
 
     if (parsed.timeZone.isUTC()) {
-      *isUTC = true;
-      *hasOffset = false;
-      *timeZoneOffset = 0;
+      isUTC = true;
+      hasOffset = false;
+      timeZoneOffset = 0;
     } else if (parsed.timeZone.hasOffset()) {
-      *isUTC = false;
-      *hasOffset = true;
-      *timeZoneOffset = ParseDateTimeUTCOffset(parsed.timeZone.offset);
+      isUTC = false;
+      hasOffset = true;
+      timeZoneOffset = ParseDateTimeUTCOffset(parsed.timeZone.offset);
     } else {
-      *isUTC = false;
-      *hasOffset = false;
-      *timeZoneOffset = 0;
+      isUTC = false;
+      hasOffset = false;
+      timeZoneOffset = 0;
     }
   } else {
     // GetTemporalRelativeToOption ignores any other time zone information when
     // no bracketed time zone annotation is present.
 
-    *isUTC = false;
-    *hasOffset = false;
-    *timeZoneOffset = 0;
+    isUTC = false;
+    hasOffset = false;
+    timeZoneOffset = 0;
     timeZoneAnnotation.set(ParsedTimeZone{});
   }
 
   // Step 4. (ParseISODateTime, steps 23-24.)
+  JSLinearString* calendar = nullptr;
   if (parsed.calendar.present()) {
-    calendar.set(ToString(cx, linear, parsed.calendar));
+    calendar = ToString(cx, linear, parsed.calendar);
     if (!calendar) {
       return false;
     }
   }
 
   // Step 4. (Return)
+  result.set(ParsedZonedDateTime{
+      dateTime,
+      calendar,
+      timeZoneAnnotation.get(),
+      timeZoneOffset,
+      isUTC,
+      hasOffset,
+      isStartOfDay,
+  });
   return true;
 }
 
 void js::temporal::ParsedTimeZone::trace(JSTracer* trc) {
   TraceNullableRoot(trc, &name, "ParsedTimeZone::name");
+}
+
+void js::temporal::ParsedZonedDateTime::trace(JSTracer* trc) {
+  TraceNullableRoot(trc, &calendar, "ParsedZonedDateTime::calendar");
+  timeZoneAnnotation.trace(trc);
 }

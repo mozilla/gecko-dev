@@ -1972,30 +1972,24 @@ static bool GetTemporalRelativeToOption(
     Rooted<JSString*> string(cx, value.toString());
 
     // Step 6.b.
-    bool isUTC;
-    bool hasOffset;
-    int64_t timeZoneOffset;
-    Rooted<ParsedTimeZone> timeZoneAnnotation(cx);
-    Rooted<JSString*> calendarString(cx);
-    if (!ParseTemporalRelativeToString(cx, string, &dateTime, &isUTC,
-                                       &hasOffset, &timeZoneOffset,
-                                       &timeZoneAnnotation, &calendarString)) {
+    Rooted<ParsedZonedDateTime> parsed(cx);
+    if (!ParseTemporalRelativeToString(cx, string, &parsed)) {
       return false;
     }
 
     // Step 6.c. (Not applicable in our implementation.)
 
     // Steps 6.e-f.
-    if (timeZoneAnnotation) {
+    if (parsed.timeZoneAnnotation()) {
       // Step 6.f.i.
-      if (!ToTemporalTimeZone(cx, timeZoneAnnotation, &timeZone)) {
+      if (!ToTemporalTimeZone(cx, parsed.timeZoneAnnotation(), &timeZone)) {
         return false;
       }
 
       // Steps 6.f.ii-iii.
-      if (isUTC) {
+      if (parsed.isUTC()) {
         offsetBehaviour = OffsetBehaviour::Exact;
-      } else if (!hasOffset) {
+      } else if (!parsed.hasOffset()) {
         offsetBehaviour = OffsetBehaviour::Wall;
       }
 
@@ -2006,21 +2000,28 @@ static bool GetTemporalRelativeToOption(
     }
 
     // Steps 6.g-j.
-    if (calendarString) {
-      if (!ToBuiltinCalendar(cx, calendarString, &calendar)) {
+    if (parsed.calendar()) {
+      if (!ToBuiltinCalendar(cx, parsed.calendar(), &calendar)) {
         return false;
       }
     } else {
       calendar.set(CalendarValue(CalendarId::ISO8601));
     }
 
+    // Step 7.
+    if (!timeZone) {
+      // Steps 7.a-b.
+      return CreateTemporalDate(cx, parsed.dateTime().date, calendar,
+                                plainRelativeTo);
+    }
+
     // Steps 8-9.
     if (timeZone) {
       if (offsetBehaviour == OffsetBehaviour::Option) {
-        MOZ_ASSERT(hasOffset);
+        MOZ_ASSERT(parsed.hasOffset());
 
         // Step 8.a.
-        offsetNs = timeZoneOffset;
+        offsetNs = parsed.timeZoneOffset();
       } else {
         // Step 9.
         offsetNs = 0;
