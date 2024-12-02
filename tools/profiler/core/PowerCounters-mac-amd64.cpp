@@ -350,7 +350,10 @@ class RAPL {
     }
   }
 
-  ~RAPL() { free(mPkes); }
+  ~RAPL() {
+    free(mPkes);
+    mPkes = nullptr;
+  }
 
   void Sample() {
     constexpr uint64_t kSupportedVersion = 1;
