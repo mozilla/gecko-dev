@@ -158,6 +158,20 @@ class ReftestEntry:
         self.info: Optional[str] = info
 
 
+def featureFromReftest(reftest: str) -> Optional[str]:
+    if reftest in ("Record", "Tuple"):
+        return "record-tuple"
+    if reftest == "Iterator":
+        return "iterator-helpers"
+    if reftest == "AsyncIterator":
+        return "async-iteration"
+    if reftest == "Temporal":
+        return "Temporal"
+    if reftest in ("Intl", "addIntlExtras", "ReadableStream"):
+        return None
+    raise Exception(f"Unexpected feature {reftest}")
+
+
 def fetchReftestEntries(reftest: str) -> ReftestEntry:
     """
     Collects and stores the entries from the reftest header.
@@ -180,7 +194,8 @@ def fetchReftestEntries(reftest: str) -> ReftestEntry:
                 r"!this.hasOwnProperty\([\'\"](.*?)[\'\"]\)", match
             )
             if dependsOnProp:
-                features.append(dependsOnProp.group(1))
+                if feature := featureFromReftest(dependsOnProp.group(1)):
+                    features.append(feature)
             else:
                 print("# Can't parse the following skip-if rule: %s" % match)
 
