@@ -14,7 +14,7 @@ from mach.decorators import Command, CommandArgument
     "args", nargs=argparse.REMAINDER, help="Arguments to provide to xpcshell"
 )
 def xpcshell(command_context, args):
-    dist_bin = Path(command_context._topobjdir, "dist", "bin")
+    dist_bin = Path(command_context.topobjdir, "dist", "bin")
     browser_dir = dist_bin / "browser"
 
     if sys.platform == "win32":
