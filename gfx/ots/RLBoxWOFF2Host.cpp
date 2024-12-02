@@ -128,6 +128,13 @@ static uint32_t ComputeWOFF2FinalSize(const uint8_t* aData, size_t aLength,
   std::memcpy(&decompressedSize, location, sizeof(decompressedSize));
   decompressedSize = ots_ntohl(decompressedSize);
 
+  // We bump the decompressedSize slightly because it seems that some fonts
+  // have an incorrectly-set value that results in decompression failure.
+  // (See https://bugzilla.mozilla.org/show_bug.cgi?id=1934606, and original
+  // discussion in https://github.com/harfbuzz/harfbuzz/issues/4962.)
+  decompressedSize =
+      std::max(decompressedSize, decompressedSize + (decompressedSize >> 4));
+
   if (!Woff2SizeValidator(aLength, decompressedSize, aLimit)) {
     return 0;
   }
