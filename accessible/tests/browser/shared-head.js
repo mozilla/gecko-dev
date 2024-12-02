@@ -463,7 +463,7 @@ const CacheDomain = {
 };
 
 function accessibleTask(doc, task, options = {}) {
-  return async function () {
+  const wrapped = async function () {
     let cacheDomains;
     if (!("cacheDomains" in options)) {
       cacheDomains = CacheDomain.All;
@@ -615,6 +615,16 @@ function accessibleTask(doc, task, options = {}) {
       await runPython(`__reset__`);
     }
   };
+  // Propagate the name of the task function to our wrapper function so it shows
+  // up in test run output. For example:
+  // 0:39.16 INFO Entering test bound testProtected
+  // Even if the name is empty, we still propagate it here to override the
+  // implicit "wrapped" name derived from the assignment at the top of this
+  // function.
+  // The "name" property of functions is not writable, but we can override that
+  // using Object.defineProperty.
+  Object.defineProperty(wrapped, "name", { value: task.name });
+  return wrapped;
 }
 
 /**
