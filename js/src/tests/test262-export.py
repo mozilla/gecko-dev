@@ -9,6 +9,7 @@ import os
 import re
 import shutil
 import sys
+import traceback
 from typing import Any, Optional
 
 import yaml
@@ -532,7 +533,12 @@ def exportTest262(
                     )
                     continue
 
-                newSource = convertTestFile(testSource, includes)
+                try:
+                    newSource = convertTestFile(testSource, includes)
+                except Exception as e:
+                    print(f"SKIPPED {testName} due to error {e}")
+                    traceback.print_exc(file=sys.stdout)
+                    continue
 
                 with open(os.path.join(currentOutDir, fileName), "wb") as output:
                     output.write(newSource)
