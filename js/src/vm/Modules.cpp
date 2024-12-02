@@ -46,9 +46,9 @@ using mozilla::Utf8Unit;
 
 static bool ModuleLink(JSContext* cx, Handle<ModuleObject*> module);
 static bool ModuleEvaluate(JSContext* cx, Handle<ModuleObject*> module,
-                           MutableHandle<Value> rval);
+                           MutableHandle<Value> result);
 static bool SyntheticModuleEvaluate(JSContext* cx, Handle<ModuleObject*> module,
-                                    MutableHandle<Value> rval);
+                                    MutableHandle<Value> result);
 
 ////////////////////////////////////////////////////////////////////////////////
 // Public API
@@ -1493,8 +1493,8 @@ static bool InnerModuleLinking(JSContext* cx, Handle<ModuleObject*> module,
 
 static bool SyntheticModuleEvaluate(JSContext* cx,
                                     Handle<ModuleObject*> moduleArg,
-                                    MutableHandle<Value> rval) {
-  // Steps 1-12 happen elsewhere in the engine.
+                                    MutableHandle<Value> result) {
+  // Steps 1-12 happens elsewhere in the engine.
 
   // Step 13. Let pc be ! NewPromiseCapability(%Promise%).
   Rooted<PromiseObject*> resultPromise(cx, CreatePromiseObjectForAsync(cx));
@@ -1502,18 +1502,15 @@ static bool SyntheticModuleEvaluate(JSContext* cx,
     return false;
   }
 
-  // Since the only synthetic modules we support are JSON modules, result is
-  // always |undefined|.
-
   // Step 14. IfAbruptRejectPromise(result, pc) (Skipped)
 
   // 15. Perform ! pc.[[Resolve]](result).
-  if (!AsyncFunctionReturned(cx, resultPromise, JS::UndefinedHandleValue)) {
+  if (!AsyncFunctionReturned(cx, resultPromise, result)) {
     return false;
   }
 
   // 16. Return pc.[[Promise]].
-  rval.set(ObjectValue(*resultPromise));
+  result.set(ObjectValue(*resultPromise));
   return true;
 }
 
