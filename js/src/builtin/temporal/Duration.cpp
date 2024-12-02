@@ -3824,7 +3824,7 @@ static bool Duration_round(JSContext* cx, const CallArgs& args) {
   // Step 17. (Reordered)
   auto existingLargestUnit = DefaultTemporalLargestUnit(duration);
 
-  // Steps 3-24.
+  // Steps 3-25.
   auto smallestUnit = TemporalUnit::Auto;
   TemporalUnit largestUnit;
   auto roundingMode = TemporalRoundingMode::HalfExpand;
@@ -3858,7 +3858,7 @@ static bool Duration_round(JSContext* cx, const CallArgs& args) {
     // Step 19.b.
     largestUnit = defaultLargestUnit;
 
-    // Steps 20-24. (Not applicable)
+    // Steps 20-25. (Not applicable)
   } else {
     // Steps 3 and 5.
     Rooted<JSObject*> options(
@@ -3971,6 +3971,19 @@ static bool Duration_round(JSContext* cx, const CallArgs& args) {
                                              false)) {
         return false;
       }
+    }
+
+    // Step 25.
+    if (roundingIncrement > Increment{1} && largestUnit != smallestUnit &&
+        smallestUnit <= TemporalUnit::Day) {
+      Int32ToCStringBuf cbuf;
+      const char* numStr =
+          Int32ToCString(&cbuf, int32_t(roundingIncrement.value()));
+
+      JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
+                                JSMSG_INVALID_OPTION_VALUE, "roundingIncrement",
+                                numStr);
+      return false;
     }
   }
 
