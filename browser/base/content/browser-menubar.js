@@ -134,16 +134,17 @@ document.addEventListener(
       BookmarksEventHandler.onMouseUp(event);
     });
 
-    mainMenuBar.addEventListener("dragover", event =>
+    const bookmarksMenu = document.getElementById("bookmarksMenu");
+    bookmarksMenu.addEventListener("dragover", event =>
       PlacesMenuDNDHandler.onDragOver(event)
     );
-    mainMenuBar.addEventListener("dragenter", event =>
+    bookmarksMenu.addEventListener("dragenter", event =>
       PlacesMenuDNDHandler.onDragEnter(event)
     );
-    mainMenuBar.addEventListener("dragleave", event =>
+    bookmarksMenu.addEventListener("dragleave", event =>
       PlacesMenuDNDHandler.onDragLeave(event)
     );
-    mainMenuBar.addEventListener("drop", event =>
+    bookmarksMenu.addEventListener("drop", event =>
       PlacesMenuDNDHandler.onDrop(event)
     );
 
