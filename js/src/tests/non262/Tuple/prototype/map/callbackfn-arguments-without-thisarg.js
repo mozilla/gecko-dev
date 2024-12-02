@@ -9,9 +9,9 @@ info: |
   8.2.3.20 %Tuple%.prototype.map ( callbackfn [ , thisArg ] )
 
   ...
-7. Repeat, while k < len,
-a. Let kValue be list[k].
-b. Let mappedValue be ? Call(callbackfn, thisArg, « kValue, k, T »).
+  7. Repeat, while k < len,
+  a. Let kValue be list[k].
+  b. Let mappedValue be ? Call(callbackfn, thisArg, « kValue, k, T »).
   ...
 features: [Tuple]
 ---*/

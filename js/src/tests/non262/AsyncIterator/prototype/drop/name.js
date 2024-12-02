@@ -2,7 +2,7 @@
 
 /*---
 esid: pending
-description: %AsyncIterator.prototype%.drop.name value and descriptor.
+description: "%AsyncIterator.prototype%.drop.name value and descriptor."
 info: >
   17 ECMAScript Standard Built-in Objects
 features: [iterator-helpers]

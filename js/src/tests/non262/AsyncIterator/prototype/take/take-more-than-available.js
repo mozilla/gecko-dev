@@ -4,7 +4,7 @@
 //
 /*---
 esid: pending
-description: %AsyncIterator.prototype%.take returns if the iterator is done.
+description: "%AsyncIterator.prototype%.take returns if the iterator is done."
 info: >
   Iterator Helpers proposal 2.1.6.4
   2. Repeat,

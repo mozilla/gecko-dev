@@ -1,7 +1,7 @@
 // |reftest| skip-if(!this.hasOwnProperty('AsyncIterator'))
 /*---
 esid: pending
-description: %AsyncIterator.prototype%.filter.name value and descriptor.
+description: "%AsyncIterator.prototype%.filter.name value and descriptor."
 info: >
   17 ECMAScript Standard Built-in Objects
 features: [iterator-helpers]

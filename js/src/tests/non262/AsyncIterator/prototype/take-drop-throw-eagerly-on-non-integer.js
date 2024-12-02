@@ -4,7 +4,7 @@
 //
 /*---
 esid: pending
-description: `take` and `drop` throw eagerly when passed values that can't be converted to numbers.
+description: "`take` and `drop` throw eagerly when passed values that can't be converted to numbers."
 info: >
   Iterator Helpers proposal 2.1.6.4 and 2.1.6.5
 features: [iterator-helpers]
