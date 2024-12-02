@@ -303,6 +303,12 @@ pub enum CompositorConfig {
         /// Required if webrender must query the backbuffer's age.
         partial_present: Option<Box<dyn PartialPresentCompositor>>,
     },
+    Layer {
+        /// If supplied, composite the frame using the new experimental compositing
+        /// interface. If this is set, it overrides `compositor_config`. These will
+        /// be unified as the interface stabilises.
+        compositor: Box<dyn LayerCompositor>,
+    },
     /// Use a native OS compositor to draw tiles. This requires clients to implement
     /// the Compositor trait, but can be significantly more power efficient on operating
     /// systems that support it.
@@ -318,7 +324,7 @@ impl CompositorConfig {
             CompositorConfig::Native { ref mut compositor, .. } => {
                 Some(compositor)
             }
-            CompositorConfig::Draw { .. } => {
+            CompositorConfig::Draw { .. } | CompositorConfig::Layer { .. } => {
                 None
             }
         }
@@ -332,9 +338,25 @@ impl CompositorConfig {
             CompositorConfig::Draw { ref mut partial_present, .. } => {
                 partial_present.as_mut()
             }
+            CompositorConfig::Layer { .. } => {
+                None
+            }
         }
     }
 
+    pub fn layer_compositor(&mut self) -> Option<&mut Box<dyn LayerCompositor>> {
+        match self {
+            CompositorConfig::Native { .. } => {
+                None
+            }
+            CompositorConfig::Draw { .. } => {
+                None
+            }
+            CompositorConfig::Layer { ref mut compositor } => {
+                Some(compositor)
+            }
+        }
+    }
 }
 
 impl Default for CompositorConfig {
@@ -362,6 +384,9 @@ pub enum CompositorKind {
         /// Draw previous regions when doing partial present.
         draw_previous_partial_present_regions: bool,
     },
+    Layer {
+
+    },
     /// Native OS compositor.
     Native {
         /// The capabilities of the underlying platform.
@@ -382,7 +407,7 @@ impl Default for CompositorKind {
 impl CompositorKind {
     pub fn get_virtual_surface_size(&self) -> i32 {
         match self {
-            CompositorKind::Draw { .. } => 0,
+            CompositorKind::Draw { .. } | CompositorKind::Layer {  .. }=> 0,
             CompositorKind::Native { capabilities, .. } => capabilities.virtual_surface_size,
         }
     }
@@ -393,6 +418,7 @@ impl CompositorKind {
                 // When partial present is enabled, we need to force redraw.
                 *max_partial_present_rects > 0
             }
+            CompositorKind::Layer {  } => false,    // TODO(gwc): Is this correct?
             CompositorKind::Native { capabilities, .. } => capabilities.redraw_on_invalidation,
         }
     }
@@ -1323,11 +1349,9 @@ pub struct CompositorInputConfig<'a> {
     pub framebuffer_size: DeviceIntSize,
 }
 
-// Skeleton trait for implementors of swapchain based compositing. For now
-// the implementation simply binds a framebuffer-sized surface that can
-// be presented by the native compositor.
+// Trait for implementors of swapchain based compositing.
 // TODO(gw): Extend to handle external surfaces, layers, swgl, etc.
-pub trait Compositor2 {
+pub trait LayerCompositor {
     // Prepare to composite a frame. Ensure that layers are constructed
     // to match the input config
     fn begin_frame(
