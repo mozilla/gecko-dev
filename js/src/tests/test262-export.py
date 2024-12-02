@@ -257,6 +257,31 @@ LICENSE_PATTERN = re.compile(
     re.IGNORECASE,
 )
 
+PD_PATTERN1 = re.compile(
+    rb"/\*[\r\n]{1,2}"
+    + rb" \* Any copyright is dedicated to the Public Domain\.[\r\n]{1,2}"
+    + rb" \* (http://creativecommons\.org/licenses/publicdomain/|https://creativecommons\.org/publicdomain/zero/1\.0/)[\r\n]{1,2}"
+    + rb"( \* Contributors?:"
+    + rb"(( [^\r\n]*[\r\n]{1,2})|"
+    + rb"([\r\n]{1,2}( \* [^\r\n]*[\r\n]{1,2})+)))?"
+    + rb" \*/[\r\n]{1,2}",
+    re.IGNORECASE,
+)
+
+PD_PATTERN2 = re.compile(
+    rb"// Any copyright is dedicated to the Public Domain\.[\r\n]{1,2}"
+    + rb"// (http://creativecommons\.org/licenses/publicdomain/|https://creativecommons\.org/publicdomain/zero/1\.0/)[\r\n]{1,2}"
+    + rb"(// Contributors?: [^\r\n]*[\r\n]{1,2})?",
+    re.IGNORECASE,
+)
+
+PD_PATTERN3 = re.compile(
+    rb"/\* Any copyright is dedicated to the Public Domain\.[\r\n]{1,2}"
+    + rb" \* (http://creativecommons\.org/licenses/publicdomain/|https://creativecommons\.org/publicdomain/zero/1\.0/) \*/[\r\n]{1,2}",
+    re.IGNORECASE,
+)
+
+
 BSD_TEMPLATE = (
     b"""\
 // Copyright (C) %d Mozilla Corporation. All rights reserved.
@@ -266,6 +291,14 @@ BSD_TEMPLATE = (
     % date.today().year
 )
 
+PD_TEMPLATE = b"""\
+/*
+ * Any copyright is dedicated to the Public Domain.
+ * http://creativecommons.org/licenses/publicdomain/
+ */
+
+"""
+
 
 def insertCopyrightLines(source: bytes) -> tuple[bytes, bytes]:
     """
@@ -274,6 +307,14 @@ def insertCopyrightLines(source: bytes) -> tuple[bytes, bytes]:
     if match := LICENSE_PATTERN.search(source):
         start, end = match.span()
         return source[start:end], source[:start] + source[end:]
+
+    if (
+        match := PD_PATTERN1.search(source)
+        or PD_PATTERN2.search(source)
+        or PD_PATTERN3.search(source)
+    ):
+        start, end = match.span()
+        return PD_TEMPLATE, source[:start] + source[end:]
 
     return BSD_TEMPLATE, source
 
