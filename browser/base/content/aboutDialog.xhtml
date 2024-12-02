@@ -8,9 +8,6 @@
         xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
         id="aboutDialog"
         windowtype="Browser:About"
-#ifdef MOZ_UPDATER
-        onunload="onUnload(event);"
-#endif
 #ifndef XP_MACOSX
         data-l10n-id="aboutDialog-title"
 #endif
@@ -65,18 +62,14 @@
               <deck id="updateDeck" orient="vertical">
                 <description id="checkForUpdates">
                   <button id="checkForUpdatesButton"
-                          data-l10n-id="update-checkForUpdatesButton"
-                          oncommand="gAppUpdater.checkForUpdates();"/>
+                          data-l10n-id="update-checkForUpdatesButton"/>
                 </description>
                 <description id="downloadAndInstall">
-                  <button id="downloadAndInstallButton"
-                          oncommand="gAppUpdater.startDownload();"/>
-                          <!-- label and accesskey will be filled by JS -->
+                  <button id="downloadAndInstallButton"/>
                 </description>
                 <description id="apply">
                   <button id="updateButton"
-                          data-l10n-id="update-updateButton"
-                          oncommand="gAppUpdater.buttonRestartAfterDownload();"/>
+                          data-l10n-id="update-updateButton"/>
                 </description>
                 <description id="checkingForUpdates" data-l10n-id="update-checkingForUpdates"/>
                 <description id="downloading" data-l10n-id="aboutdialog-update-downloading" data-l10n-args='{"transfer":""}'>
@@ -108,8 +101,8 @@
                 <label id="releasenotes" is="text-link" hidden="true" data-l10n-id="releaseNotes-link"/>
               </hbox>
               <description class="text-blurb">
-                <label is="text-link" onclick="openHelpLink('firefox-help')" data-l10n-id="aboutdialog-help-user"/>
-                <label id="submit-feedback" is="text-link" onclick="openFeedbackPage()" data-l10n-id="aboutdialog-submit-feedback"/>
+                <label id="aboutDialogHelpLink" is="text-link" data-l10n-id="aboutdialog-help-user"/>
+                <label id="submit-feedback" is="text-link" data-l10n-id="aboutdialog-submit-feedback"/>
               </description>
             </vbox>
 #endif
@@ -151,7 +144,7 @@
   </html:div>
 
   <keyset>
-    <key keycode="VK_ESCAPE" oncommand="window.close();"/>
+    <key id="aboutDialogEscapeKey" keycode="VK_ESCAPE"/>
   </keyset>
 
   <script src="chrome://browser/content/aboutDialog.js"/>

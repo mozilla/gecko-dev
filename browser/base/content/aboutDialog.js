@@ -5,6 +5,7 @@
 "use strict";
 
 /* import-globals-from aboutDialog-appUpdater.js */
+/* import-globals-from utilityOverlay.js */
 
 // Services = object with smart getters for common XPCOM services
 var { AppConstants } = ChromeUtils.importESModule(
@@ -116,6 +117,38 @@ function init() {
 
   if (AppConstants.IS_ESR) {
     document.getElementById("release").hidden = false;
+  }
+
+  document
+    .getElementById("aboutDialogEscapeKey")
+    .addEventListener("command", () => {
+      window.close();
+    });
+  if (AppConstants.MOZ_UPDATER) {
+    document
+      .getElementById("aboutDialogHelpLink")
+      .addEventListener("click", () => {
+        openHelpLink("firefox-help");
+      });
+    document
+      .getElementById("submit-feedback")
+      .addEventListener("click", openFeedbackPage);
+    document
+      .getElementById("checkForUpdatesButton")
+      .addEventListener("command", () => {
+        gAppUpdater.checkForUpdates();
+      });
+    document
+      .getElementById("downloadAndInstallButton")
+      .addEventListener("command", () => {
+        gAppUpdater.startDownload();
+      });
+    document.getElementById("updateButton").addEventListener("command", () => {
+      gAppUpdater.buttonRestartAfterDownload();
+    });
+    window.addEventListener("unload", e => {
+      onUnload(e);
+    });
   }
 }
 
