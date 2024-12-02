@@ -22,11 +22,14 @@ import mozilla.components.lib.state.MiddlewareContext
  * @param scope [CoroutineScope] used for writing settings changes to disk.
  * @param repository [DesktopModeRepository] used to interact with the desktop mode preference.
  * @param engine [Engine] used to clear any relevant browsing data after a desktop mode preference update.
+ * @param desktopModeFeatureFlag [DefaultDesktopModeFeatureFlag] used to determine if the desktop mode
+ * feature is enabled.
  */
 class DesktopModeMiddleware(
     private val scope: CoroutineScope = CoroutineScope(Dispatchers.IO),
     private val repository: DesktopModeRepository,
     private val engine: Engine,
+    private val desktopModeFeatureFlag: DefaultDesktopModeFeatureFlag = DefaultDesktopModeFeatureFlagImpl(),
 ) : Middleware<BrowserState, BrowserAction> {
 
     override fun invoke(
@@ -35,6 +38,11 @@ class DesktopModeMiddleware(
         action: BrowserAction,
     ) {
         next(action)
+
+        if (!desktopModeFeatureFlag.isDesktopModeEnabled()) {
+            return
+        }
+
         when (action) {
             InitAction -> {
                 scope.launch {
@@ -45,6 +53,7 @@ class DesktopModeMiddleware(
                     )
                 }
             }
+
             DefaultDesktopModeAction.ToggleDesktopMode -> {
                 scope.launch {
                     val updatedDesktopMode = context.state.desktopMode
