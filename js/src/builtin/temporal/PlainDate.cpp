@@ -2196,7 +2196,7 @@ static bool PlainDate_toZonedDateTime(JSContext* cx, const CallArgs& args) {
 
   // Steps 3-4
   Rooted<TimeZoneValue> timeZone(cx);
-  PlainTime time = {};
+  Rooted<Value> temporalTime(cx);
   if (args.get(0).isObject()) {
     Rooted<JSObject*> item(cx, &args[0].toObject());
 
@@ -2221,16 +2221,8 @@ static bool PlainDate_toZonedDateTime(JSContext* cx, const CallArgs& args) {
       }
 
       // Step 3.c.ii.
-      Rooted<Value> temporalTime(cx);
       if (!GetProperty(cx, item, item, cx->names().plainTime, &temporalTime)) {
         return false;
-      }
-
-      // Step 5. (Inlined ToTemporalTimeOrMidnight)
-      if (!temporalTime.isUndefined()) {
-        if (!ToTemporalTime(cx, temporalTime, &time)) {
-          return false;
-        }
       }
     }
   } else {
@@ -2242,22 +2234,34 @@ static bool PlainDate_toZonedDateTime(JSContext* cx, const CallArgs& args) {
     // Step 4.b. (Not applicable in our implementation.)
   }
 
-  // Step 5. (Moved next to step 3.c.ii.)
+  // Steps 5-6.
+  Instant instant;
+  if (temporalTime.isUndefined()) {
+    // Steps 5.a-b.
+    if (!GetStartOfDay(cx, timeZone, date, &instant)) {
+      return false;
+    }
+  } else {
+    // Step 6.a.
+    PlainTime time = {};
+    if (!ToTemporalTime(cx, temporalTime, &time)) {
+      return false;
+    }
 
-  // Step 6.
-  PlainDateTime temporalDateTime;
-  if (!CreateTemporalDateTime(cx, date, time, &temporalDateTime)) {
-    return false;
+    // Steps 6.b-c.
+    PlainDateTime temporalDateTime;
+    if (!CreateTemporalDateTime(cx, date, time, &temporalDateTime)) {
+      return false;
+    }
+
+    // Step 6.d.
+    if (!GetInstantFor(cx, timeZone, temporalDateTime,
+                       TemporalDisambiguation::Compatible, &instant)) {
+      return false;
+    }
   }
 
   // Step 7.
-  Instant instant;
-  if (!GetInstantFor(cx, timeZone, temporalDateTime,
-                     TemporalDisambiguation::Compatible, &instant)) {
-    return false;
-  }
-
-  // Step 8.
   auto* result = CreateTemporalZonedDateTime(cx, instant, timeZone, calendar);
   if (!result) {
     return false;

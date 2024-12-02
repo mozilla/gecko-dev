@@ -1846,10 +1846,9 @@ static bool GetTemporalRelativeToOption(
   auto matchBehaviour = MatchBehaviour::MatchExactly;
 
   // Steps 5-6.
-  PlainDateTime dateTime;
-  Rooted<CalendarValue> calendar(cx);
+  Instant epochNanoseconds;
   Rooted<TimeZoneValue> timeZone(cx);
-  int64_t offsetNs;
+  Rooted<CalendarValue> calendar(cx);
   if (value.isObject()) {
     Rooted<JSObject*> obj(cx, &value.toObject());
 
@@ -1927,6 +1926,7 @@ static bool GetTemporalRelativeToOption(
     }
 
     // Step 5.f.
+    PlainDateTime dateTime;
     if (!InterpretTemporalDateTimeFields(
             cx, calendar, fields, TemporalOverflow::Constrain, &dateTime)) {
       return false;
@@ -1950,17 +1950,30 @@ static bool GetTemporalRelativeToOption(
       offsetBehaviour = OffsetBehaviour::Wall;
     }
 
+    // Step 7.
+    if (!timeZone) {
+      // Steps 7.a-b.
+      return CreateTemporalDate(cx, dateTime.date, calendar, plainRelativeTo);
+    }
+
     // Steps 8-9.
-    if (timeZone) {
-      if (offsetBehaviour == OffsetBehaviour::Option) {
-        // Step 8.a.
-        if (!ParseDateTimeUTCOffset(cx, offset, &offsetNs)) {
-          return false;
-        }
-      } else {
-        // Step 9.
-        offsetNs = 0;
+    int64_t offsetNs;
+    if (offsetBehaviour == OffsetBehaviour::Option) {
+      // Step 8.a.
+      if (!ParseDateTimeUTCOffset(cx, offset, &offsetNs)) {
+        return false;
       }
+    } else {
+      // Step 9.
+      offsetNs = 0;
+    }
+
+    // Step 10.
+    if (!InterpretISODateTimeOffset(
+            cx, dateTime, offsetBehaviour, offsetNs, timeZone,
+            TemporalDisambiguation::Compatible, TemporalOffset::Reject,
+            matchBehaviour, &epochNanoseconds)) {
+      return false;
     }
   } else {
     // Step 6.a.
@@ -2016,34 +2029,33 @@ static bool GetTemporalRelativeToOption(
     }
 
     // Steps 8-9.
-    if (timeZone) {
-      if (offsetBehaviour == OffsetBehaviour::Option) {
-        MOZ_ASSERT(parsed.hasOffset());
+    int64_t offsetNs;
+    if (offsetBehaviour == OffsetBehaviour::Option) {
+      MOZ_ASSERT(parsed.hasOffset());
 
-        // Step 8.a.
-        offsetNs = parsed.timeZoneOffset();
-      } else {
-        // Step 9.
-        offsetNs = 0;
+      // Step 8.a.
+      offsetNs = parsed.timeZoneOffset();
+    } else {
+      // Step 9.
+      offsetNs = 0;
+    }
+
+    // Step 10.
+    if (parsed.isStartOfDay()) {
+      if (!InterpretISODateTimeOffset(
+              cx, parsed.dateTime().date, offsetBehaviour, offsetNs, timeZone,
+              TemporalDisambiguation::Compatible, TemporalOffset::Reject,
+              matchBehaviour, &epochNanoseconds)) {
+        return false;
+      }
+    } else {
+      if (!InterpretISODateTimeOffset(
+              cx, parsed.dateTime(), offsetBehaviour, offsetNs, timeZone,
+              TemporalDisambiguation::Compatible, TemporalOffset::Reject,
+              matchBehaviour, &epochNanoseconds)) {
+        return false;
       }
     }
-  }
-
-  // Step 7.
-  if (!timeZone) {
-    // Steps 7.a-b.
-    return CreateTemporalDate(cx, dateTime.date, calendar, plainRelativeTo);
-  }
-
-  // Steps 8-9. (Moved above)
-
-  // Step 10.
-  Instant epochNanoseconds;
-  if (!InterpretISODateTimeOffset(cx, dateTime, offsetBehaviour, offsetNs,
-                                  timeZone, TemporalDisambiguation::Compatible,
-                                  TemporalOffset::Reject, matchBehaviour,
-                                  &epochNanoseconds)) {
-    return false;
   }
   MOZ_ASSERT(IsValidEpochInstant(epochNanoseconds));
 

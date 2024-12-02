@@ -185,11 +185,22 @@ enum class OffsetBehaviour { Option, Exact, Wall };
 enum class MatchBehaviour { MatchExactly, MatchMinutes };
 
 /**
- * InterpretISODateTimeOffset ( year, month, day, hour, minute, second,
- * millisecond, microsecond, nanosecond, offsetBehaviour, offsetNanoseconds,
- * timeZoneRec, disambiguation, offsetOption, matchBehaviour )
+ * InterpretISODateTimeOffset ( year, month, day, time, offsetBehaviour,
+ * offsetNanoseconds, timeZone, disambiguation, offsetOption, matchBehaviour )
  */
 bool InterpretISODateTimeOffset(JSContext* cx, const PlainDateTime& dateTime,
+                                OffsetBehaviour offsetBehaviour,
+                                int64_t offsetNanoseconds,
+                                JS::Handle<TimeZoneValue> timeZone,
+                                TemporalDisambiguation disambiguation,
+                                TemporalOffset offsetOption,
+                                MatchBehaviour matchBehaviour, Instant* result);
+
+/**
+ * InterpretISODateTimeOffset ( year, month, day, time, offsetBehaviour,
+ * offsetNanoseconds, timeZone, disambiguation, offsetOption, matchBehaviour )
+ */
+bool InterpretISODateTimeOffset(JSContext* cx, const PlainDate& date,
                                 OffsetBehaviour offsetBehaviour,
                                 int64_t offsetNanoseconds,
                                 JS::Handle<TimeZoneValue> timeZone,

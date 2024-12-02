@@ -449,6 +449,48 @@ bool js::temporal::GetNamedTimeZonePreviousTransition(
 }
 
 /**
+ * GetStartOfDay ( timeZone, isoDate )
+ */
+bool js::temporal::GetStartOfDay(JSContext* cx, Handle<TimeZoneValue> timeZone,
+                                 const PlainDate& date, Instant* result) {
+  // Step 1.
+  auto dateTime = PlainDateTime{date, {}};
+
+  // Step 2.
+  PossibleInstants possibleInstants;
+  if (!GetPossibleInstantsFor(cx, timeZone, dateTime, &possibleInstants)) {
+    return false;
+  }
+
+  // Step 3.
+  if (!possibleInstants.empty()) {
+    *result = possibleInstants[0];
+    return true;
+  }
+
+  // Step 4.
+  MOZ_ASSERT(!timeZone.isOffset());
+
+  constexpr auto oneDay =
+      InstantSpan::fromNanoseconds(ToNanoseconds(TemporalUnit::Day));
+
+  // Step 5.
+  auto previousDayEpochNs = GetUTCEpochNanoseconds(dateTime) - oneDay;
+  mozilla::Maybe<Instant> transition{};
+  if (!GetNamedTimeZoneNextTransition(cx, timeZone, previousDayEpochNs,
+                                      &transition)) {
+    return false;
+  }
+
+  // Step 6.
+  MOZ_ASSERT(transition, "time zone transition not found");
+
+  // Step 7.
+  *result = *transition;
+  return true;
+}
+
+/**
  * FormatOffsetTimeZoneIdentifier ( offsetMinutes [ , style ] )
  */
 static JSLinearString* FormatOffsetTimeZoneIdentifier(JSContext* cx,
@@ -896,6 +938,13 @@ bool js::temporal::GetPossibleInstantsFor(JSContext* cx,
                                           Handle<TimeZoneValue> timeZone,
                                           const PlainDateTime& dateTime,
                                           PossibleInstants* result) {
+  // TODO: https://github.com/tc39/proposal-temporal/pull/3014
+  if (!ISODateTimeWithinLimits(dateTime)) {
+    JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
+                              JSMSG_TEMPORAL_PLAIN_DATE_TIME_INVALID);
+    return false;
+  }
+
   // Step 1. (Not applicable)
 
   // Step 2.
