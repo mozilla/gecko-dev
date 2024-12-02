@@ -124,18 +124,6 @@ bool IsValidISODateTime(const PlainDateTime& dateTime);
  */
 bool ISODateTimeWithinLimits(const PlainDateTime& dateTime);
 
-/**
- * ISODateTimeWithinLimits ( year, month, day, hour, minute, second,
- * millisecond, microsecond, nanosecond )
- */
-bool ISODateTimeWithinLimits(const PlainDate& date);
-
-/**
- * ISODateTimeWithinLimits ( year, month, day, hour, minute, second,
- * millisecond, microsecond, nanosecond )
- */
-bool ISODateTimeWithinLimits(double year, double month, double day);
-
 class MOZ_STACK_CLASS PlainDateTimeWithCalendar final {
   PlainDateTime dateTime_;
   CalendarValue calendar_;

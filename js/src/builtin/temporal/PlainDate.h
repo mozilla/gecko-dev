@@ -59,31 +59,6 @@ class PlainDateObject : public NativeObject {
   static const ClassSpec classSpec_;
 };
 
-class MOZ_STACK_CLASS PlainDateWithCalendar final {
-  PlainDate date_;
-  CalendarValue calendar_;
-
- public:
-  PlainDateWithCalendar() = default;
-
-  PlainDateWithCalendar(const PlainDate& date, const CalendarValue& calendar)
-      : date_(date), calendar_(calendar) {
-    MOZ_ASSERT(ISODateTimeWithinLimits(date));
-  }
-
-  const auto& date() const { return date_; }
-  const auto& calendar() const { return calendar_; }
-
-  // Allow implicit conversion to a calendar-less PlainDate.
-  operator const PlainDate&() const { return date(); }
-
-  explicit operator bool() const { return !!calendar_; }
-
-  void trace(JSTracer* trc) { calendar_.trace(trc); }
-
-  const auto* calendarDoNotUse() const { return &calendar_; }
-};
-
 /**
  * Extract the date fields from the PlainDate object.
  */
@@ -116,6 +91,41 @@ bool ThrowIfInvalidISODate(JSContext* cx, const PlainDate& date);
  */
 bool ThrowIfInvalidISODate(JSContext* cx, double year, double month,
                            double day);
+
+/**
+ * ISODateWithinLimits ( year, month, day )
+ */
+bool ISODateWithinLimits(const PlainDate& date);
+
+/**
+ * ISODateWithinLimits ( year, month, day )
+ */
+bool ISODateWithinLimits(double year, double month, double day);
+
+class MOZ_STACK_CLASS PlainDateWithCalendar final {
+  PlainDate date_;
+  CalendarValue calendar_;
+
+ public:
+  PlainDateWithCalendar() = default;
+
+  PlainDateWithCalendar(const PlainDate& date, const CalendarValue& calendar)
+      : date_(date), calendar_(calendar) {
+    MOZ_ASSERT(ISODateWithinLimits(date));
+  }
+
+  const auto& date() const { return date_; }
+  const auto& calendar() const { return calendar_; }
+
+  // Allow implicit conversion to a calendar-less PlainDate.
+  operator const PlainDate&() const { return date(); }
+
+  explicit operator bool() const { return !!calendar_; }
+
+  void trace(JSTracer* trc) { calendar_.trace(trc); }
+
+  const auto* calendarDoNotUse() const { return &calendar_; }
+};
 
 /**
  * CreateTemporalDate ( isoYear, isoMonth, isoDay, calendar [ , newTarget ] )

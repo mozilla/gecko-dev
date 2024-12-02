@@ -60,7 +60,7 @@ class MOZ_STACK_CLASS PlainMonthDayWithCalendar final {
   PlainMonthDayWithCalendar(const PlainDate& date,
                             const CalendarValue& calendar)
       : date_(date), calendar_(calendar) {
-    MOZ_ASSERT(ISODateTimeWithinLimits(date));
+    MOZ_ASSERT(ISODateWithinLimits(date));
   }
 
   const auto& date() const { return date_; }

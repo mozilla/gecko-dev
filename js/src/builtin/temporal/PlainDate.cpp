@@ -119,6 +119,74 @@ bool js::temporal::IsValidISODate(double year, double month, double day) {
 }
 #endif
 
+/**
+ * ISODateWithinLimits ( year, month, day )
+ */
+template <typename T>
+static bool ISODateWithinLimits(T year, T month, T day) {
+  static_assert(std::is_same_v<T, int32_t> || std::is_same_v<T, double>);
+
+  MOZ_ASSERT(IsValidISODate(year, month, day));
+
+  // js> new Date(-8_64000_00000_00000).toISOString()
+  // "-271821-04-20T00:00:00.000Z"
+  //
+  // js> new Date(+8_64000_00000_00000).toISOString()
+  // "+275760-09-13T00:00:00.000Z"
+
+  constexpr int32_t minYear = -271821;
+  constexpr int32_t maxYear = 275760;
+
+  // ISODateTimeWithinLimits is called with hour=12 and the remaining time
+  // components set to zero. That means the maximum value is exclusive, whereas
+  // the minimum value is inclusive.
+
+  // Definitely in range.
+  if (minYear < year && year < maxYear) {
+    return true;
+  }
+
+  // -271821 April, 20
+  if (year < 0) {
+    if (year != minYear) {
+      return false;
+    }
+    if (month != 4) {
+      return month > 4;
+    }
+    if (day < (20 - 1)) {
+      return false;
+    }
+    return true;
+  }
+
+  // 275760 September, 13
+  if (year != maxYear) {
+    return false;
+  }
+  if (month != 9) {
+    return month < 9;
+  }
+  if (day > 13) {
+    return false;
+  }
+  return true;
+}
+
+/**
+ * ISODateWithinLimits ( year, month, day )
+ */
+bool js::temporal::ISODateWithinLimits(const PlainDate& date) {
+  return ::ISODateWithinLimits(date.year, date.month, date.day);
+}
+
+/**
+ * ISODateWithinLimits ( year, month, day )
+ */
+bool js::temporal::ISODateWithinLimits(double year, double month, double day) {
+  return ::ISODateWithinLimits(year, month, day);
+}
+
 static void ReportInvalidDateValue(JSContext* cx, const char* name, int32_t min,
                                    int32_t max, double num) {
   Int32ToCStringBuf minCbuf;
@@ -286,7 +354,7 @@ static PlainDateObject* CreateTemporalDate(JSContext* cx, const CallArgs& args,
   }
 
   // Step 2.
-  if (!ISODateTimeWithinLimits(isoYear, isoMonth, isoDay)) {
+  if (!ISODateWithinLimits(isoYear, isoMonth, isoDay)) {
     JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
                               JSMSG_TEMPORAL_PLAIN_DATE_INVALID);
     return nullptr;
@@ -336,7 +404,7 @@ PlainDateObject* js::temporal::CreateTemporalDate(
   }
 
   // Step 2.
-  if (!ISODateTimeWithinLimits(date)) {
+  if (!ISODateWithinLimits(date)) {
     JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
                               JSMSG_TEMPORAL_PLAIN_DATE_INVALID);
     return nullptr;
@@ -369,7 +437,7 @@ PlainDateObject* js::temporal::CreateTemporalDate(
  */
 PlainDateObject* js::temporal::CreateTemporalDate(
     JSContext* cx, Handle<PlainDateWithCalendar> date) {
-  MOZ_ASSERT(ISODateTimeWithinLimits(date));
+  MOZ_ASSERT(ISODateWithinLimits(date));
   return CreateTemporalDate(cx, date, date.calendar());
 }
 
@@ -385,7 +453,7 @@ bool js::temporal::CreateTemporalDate(
   }
 
   // Step 2.
-  if (!ISODateTimeWithinLimits(date)) {
+  if (!ISODateWithinLimits(date)) {
     JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
                               JSMSG_TEMPORAL_PLAIN_DATE_INVALID);
     return false;
@@ -691,7 +759,7 @@ PlainDate js::temporal::BalanceISODateNew(int32_t year, int32_t month,
 bool js::temporal::BalanceISODate(JSContext* cx, const PlainDate& date,
                                   int64_t days, PlainDate* result) {
   MOZ_ASSERT(IsValidISODate(date));
-  MOZ_ASSERT(ISODateTimeWithinLimits(date));
+  MOZ_ASSERT(ISODateWithinLimits(date));
 
   int64_t day = int64_t(date.day) + days;
   if (!CanBalanceISODay(day)) {
@@ -805,7 +873,7 @@ bool js::temporal::AddISODate(JSContext* cx, const PlainDate& date,
                               const DateDuration& duration,
                               TemporalOverflow overflow, PlainDate* result) {
   MOZ_ASSERT(IsValidISODate(date));
-  MOZ_ASSERT(ISODateTimeWithinLimits(date));
+  MOZ_ASSERT(ISODateWithinLimits(date));
 
   // TODO: Not quite sure if this holds for all callers. But if it does hold,
   // then we can directly reject any numbers which can't be represented with
@@ -880,7 +948,7 @@ bool js::temporal::AddISODate(JSContext* cx, const PlainDate& date,
   MOZ_ASSERT(IsValidISODate(balanced));
 
   // Directly validate the result is within the valid limits.
-  if (!ISODateTimeWithinLimits(balanced)) {
+  if (!ISODateWithinLimits(balanced)) {
     JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
                               JSMSG_TEMPORAL_PLAIN_DATE_INVALID);
     return false;
@@ -903,7 +971,7 @@ struct YearMonthDuration {
 static PlainDate AddISODate(const PlainDate& date,
                             const YearMonthDuration& duration) {
   MOZ_ASSERT(IsValidISODate(date));
-  MOZ_ASSERT(ISODateTimeWithinLimits(date));
+  MOZ_ASSERT(ISODateWithinLimits(date));
 
   MOZ_ASSERT_IF(duration.years < 0, duration.months <= 0);
   MOZ_ASSERT_IF(duration.years > 0, duration.months >= 0);
@@ -952,7 +1020,7 @@ static bool HasYearsMonthsOrWeeks(const DateDuration& duration) {
 static bool AddDate(JSContext* cx, Handle<CalendarValue> calendar,
                     const PlainDate& date, const Duration& duration,
                     TemporalOverflow overflow, PlainDate* result) {
-  MOZ_ASSERT(ISODateTimeWithinLimits(date));
+  MOZ_ASSERT(ISODateWithinLimits(date));
   MOZ_ASSERT(IsValidDuration(duration));
 
   // FIXME: spec issue - move balancing time duration here, so it doesn't need
@@ -984,7 +1052,7 @@ static bool AddDate(JSContext* cx, Handle<CalendarValue> calendar,
 bool js::temporal::AddDate(JSContext* cx, Handle<CalendarValue> calendar,
                            const PlainDate& date, const DateDuration& duration,
                            TemporalOverflow overflow, PlainDate* result) {
-  MOZ_ASSERT(ISODateTimeWithinLimits(date));
+  MOZ_ASSERT(ISODateWithinLimits(date));
   MOZ_ASSERT(IsValidDuration(duration));
 
   // Step 1.
@@ -1042,9 +1110,9 @@ DateDuration js::temporal::DifferenceISODate(const PlainDate& start,
   MOZ_ASSERT(IsValidISODate(start));
   MOZ_ASSERT(IsValidISODate(end));
 
-  // Both inputs are also within the date-time limits.
-  MOZ_ASSERT(ISODateTimeWithinLimits(start));
-  MOZ_ASSERT(ISODateTimeWithinLimits(end));
+  // Both inputs are also within the date limits.
+  MOZ_ASSERT(ISODateWithinLimits(start));
+  MOZ_ASSERT(ISODateWithinLimits(end));
 
   // Because both inputs are valid dates, we don't need to worry about integer
   // overflow in any of the computations below.

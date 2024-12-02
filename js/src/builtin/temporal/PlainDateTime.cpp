@@ -158,83 +158,11 @@ static bool ISODateTimeWithinLimits(T year, T month, T day, T hour, T minute,
  * ISODateTimeWithinLimits ( year, month, day, hour, minute, second,
  * millisecond, microsecond, nanosecond )
  */
-template <typename T>
-static bool ISODateTimeWithinLimits(T year, T month, T day) {
-  static_assert(std::is_same_v<T, int32_t> || std::is_same_v<T, double>);
-
-  MOZ_ASSERT(IsValidISODate(year, month, day));
-
-  // js> new Date(-8_64000_00000_00000).toISOString()
-  // "-271821-04-20T00:00:00.000Z"
-  //
-  // js> new Date(+8_64000_00000_00000).toISOString()
-  // "+275760-09-13T00:00:00.000Z"
-
-  constexpr int32_t minYear = -271821;
-  constexpr int32_t maxYear = 275760;
-
-  // ISODateTimeWithinLimits is called with hour=12 and the remaining time
-  // components set to zero. That means the maximum value is exclusive, whereas
-  // the minimum value is inclusive.
-
-  // Definitely in range.
-  if (minYear < year && year < maxYear) {
-    return true;
-  }
-
-  // -271821 April, 20
-  if (year < 0) {
-    if (year != minYear) {
-      return false;
-    }
-    if (month != 4) {
-      return month > 4;
-    }
-    if (day < (20 - 1)) {
-      return false;
-    }
-    return true;
-  }
-
-  // 275760 September, 13
-  if (year != maxYear) {
-    return false;
-  }
-  if (month != 9) {
-    return month < 9;
-  }
-  if (day > 13) {
-    return false;
-  }
-  return true;
-}
-
-/**
- * ISODateTimeWithinLimits ( year, month, day, hour, minute, second,
- * millisecond, microsecond, nanosecond )
- */
-bool js::temporal::ISODateTimeWithinLimits(double year, double month,
-                                           double day) {
-  return ::ISODateTimeWithinLimits(year, month, day);
-}
-
-/**
- * ISODateTimeWithinLimits ( year, month, day, hour, minute, second,
- * millisecond, microsecond, nanosecond )
- */
 bool js::temporal::ISODateTimeWithinLimits(const PlainDateTime& dateTime) {
   const auto& [date, time] = dateTime;
   return ::ISODateTimeWithinLimits(date.year, date.month, date.day, time.hour,
                                    time.minute, time.second, time.millisecond,
                                    time.microsecond, time.nanosecond);
-}
-
-/**
- * ISODateTimeWithinLimits ( year, month, day, hour, minute, second,
- * millisecond, microsecond, nanosecond )
- */
-bool js::temporal::ISODateTimeWithinLimits(const PlainDate& date) {
-  return ::ISODateTimeWithinLimits(date.year, date.month, date.day);
 }
 
 /**
@@ -830,7 +758,7 @@ static bool DifferenceISODateTime(JSContext* cx, const PlainDateTime& one,
   }
 
   MOZ_ASSERT(IsValidISODate(adjustedDate));
-  MOZ_ASSERT(ISODateTimeWithinLimits(adjustedDate));
+  MOZ_ASSERT(ISODateWithinLimits(adjustedDate));
 
   // Step 8.
   const auto& date1 = one.date;

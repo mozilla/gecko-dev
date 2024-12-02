@@ -76,7 +76,7 @@ static PlainMonthDayObject* CreateTemporalMonthDay(
   }
 
   // Step 2.
-  if (!ISODateTimeWithinLimits(isoYear, isoMonth, isoDay)) {
+  if (!ISODateWithinLimits(isoYear, isoMonth, isoDay)) {
     JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
                               JSMSG_TEMPORAL_PLAIN_MONTH_DAY_INVALID);
     return nullptr;
@@ -127,7 +127,7 @@ static PlainMonthDayObject* CreateTemporalMonthDay(
   }
 
   // Step 2.
-  if (!ISODateTimeWithinLimits(date)) {
+  if (!ISODateWithinLimits(date)) {
     JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
                               JSMSG_TEMPORAL_PLAIN_MONTH_DAY_INVALID);
     return nullptr;
@@ -161,7 +161,7 @@ static PlainMonthDayObject* CreateTemporalMonthDay(
  */
 PlainMonthDayObject* js::temporal::CreateTemporalMonthDay(
     JSContext* cx, Handle<PlainMonthDayWithCalendar> monthDay) {
-  MOZ_ASSERT(ISODateTimeWithinLimits(monthDay));
+  MOZ_ASSERT(ISODateWithinLimits(monthDay));
   return CreateTemporalMonthDay(cx, monthDay, monthDay.calendar());
 }
 
@@ -178,7 +178,7 @@ bool js::temporal::CreateTemporalMonthDay(
   }
 
   // Step 2.
-  if (!ISODateTimeWithinLimits(date)) {
+  if (!ISODateWithinLimits(date)) {
     JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
                               JSMSG_TEMPORAL_PLAIN_MONTH_DAY_INVALID);
     return false;
