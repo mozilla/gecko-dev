@@ -2778,10 +2778,7 @@ static bool NudgeToZonedTime(JSContext* cx, const NormalizedDuration& duration,
   MOZ_ASSERT(ISODateTimeWithinLimits(startDateTime));
 
   // Step 5.
-  PlainDate end;
-  if (!BalanceISODate(cx, start, sign, &end)) {
-    return false;
-  }
+  auto end = BalanceISODate(start, sign);
 
   // Step 6.
   PlainDateTime endDateTime;

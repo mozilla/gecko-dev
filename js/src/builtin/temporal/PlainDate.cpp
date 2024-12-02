@@ -8,6 +8,7 @@
 
 #include "mozilla/Assertions.h"
 #include "mozilla/Casting.h"
+#include "mozilla/CheckedInt.h"
 #include "mozilla/FloatingPoint.h"
 #include "mozilla/Maybe.h"
 
@@ -19,6 +20,7 @@
 #include <type_traits>
 #include <utility>
 
+#include "jsdate.h"
 #include "jsnum.h"
 #include "jspubtd.h"
 #include "jstypes.h"
@@ -699,53 +701,16 @@ static BalancedYearMonth BalanceISOYearMonth(int64_t year, int64_t month) {
   return {balancedYear, balancedMonth};
 }
 
-static bool CanBalanceISOYear(int64_t year) {
-  // TODO: Export these values somewhere.
-  constexpr int32_t minYear = -271821;
-  constexpr int32_t maxYear = 275760;
+static bool IsValidPlainDateEpochMilliseconds(int64_t epochMilliseconds) {
+  // Epoch nanoseconds limits, adjusted to the range supported by PlainDate.
+  constexpr auto oneDay =
+      InstantSpan::fromSeconds(ToSeconds(TemporalUnit::Day));
+  constexpr auto min = Instant::min() - oneDay;
+  constexpr auto max = Instant::max() + oneDay;
 
-  // If the year is below resp. above the min-/max-year, no value of |day| will
-  // make the resulting date valid.
-  return minYear <= year && year <= maxYear;
-}
-
-static bool CanBalanceISODay(int64_t day) {
-  // The maximum number of seconds from the epoch is 8.64 * 10^12.
-  constexpr int64_t maxInstantSeconds = 8'640'000'000'000;
-
-  // In days that makes 10^8.
-  constexpr int64_t maxInstantDays = maxInstantSeconds / 60 / 60 / 24;
-
-  // Multiply by two to take both directions into account and add twenty to
-  // account for the day number of the minimum date "-271821-02-20".
-  constexpr int64_t maximumDayDifference = 2 * maxInstantDays + 20;
-
-  // When |day| is below |maximumDayDifference|, it can be represented as int32.
-  static_assert(maximumDayDifference <= INT32_MAX);
-
-  // When the day difference exceeds the maximum valid day difference, the
-  // overall result won't be a valid date.
-  return std::abs(day) <= maximumDayDifference;
-}
-
-/**
- * BalanceISODate ( year, month, day )
- */
-PlainDate js::temporal::BalanceISODateNew(int32_t year, int32_t month,
-                                          int32_t day) {
-  MOZ_ASSERT(1 <= month && month <= 12);
-
-  // Steps 1-3.
-  double ms = double(MakeDate(year, month, day));
-
-  // TODO: Add ISODateToEpochDays & friends which handle larger inputs.
-
-  // TODO: This approach isn't efficient, because MonthFromTime and DayFromTime
-  // both recompute YearFromTime.
-
-  // Step 4.
-  return {int32_t(JS::YearFromTime(ms)), int32_t(JS::MonthFromTime(ms) + 1),
-          int32_t(JS::DayFromTime(ms))};
+  // NB: Minimum limit is inclusive, whereas maximim limit is exclusive.
+  auto instant = Instant::fromMilliseconds(epochMilliseconds);
+  return min <= instant && instant < max;
 }
 
 /**
@@ -756,14 +721,25 @@ bool js::temporal::BalanceISODate(JSContext* cx, const PlainDate& date,
   MOZ_ASSERT(IsValidISODate(date));
   MOZ_ASSERT(ISODateWithinLimits(date));
 
-  int64_t day = int64_t(date.day) + days;
-  if (!CanBalanceISODay(day)) {
+  // Step 1.
+  auto epochDays = MakeDay(date) + mozilla::CheckedInt64{days};
+
+  // Step 2.
+  auto epochMilliseconds = epochDays * ToMilliseconds(TemporalUnit::Day);
+  if (!epochMilliseconds.isValid() ||
+      !IsValidPlainDateEpochMilliseconds(epochMilliseconds.value())) {
     JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
                               JSMSG_TEMPORAL_PLAIN_DATE_INVALID);
     return false;
   }
 
-  *result = BalanceISODate(date, days);
+  // Step 3.
+  auto [year, month, day] = ToYearMonthDay(epochMilliseconds.value());
+
+  *result = PlainDate{year, month + 1, day};
+  MOZ_ASSERT(IsValidISODate(*result));
+  MOZ_ASSERT(ISODateWithinLimits(*result));
+
   return true;
 }
 
@@ -773,98 +749,32 @@ bool js::temporal::BalanceISODate(JSContext* cx, const PlainDate& date,
 PlainDate js::temporal::BalanceISODate(const PlainDate& date, int32_t days) {
   MOZ_ASSERT(IsValidISODate(date));
   MOZ_ASSERT(ISODateWithinLimits(date));
-  MOZ_ASSERT(CanBalanceISODay(int64_t(date.day) + days));
-  return BalanceISODate(date.year, date.month, date.day + days);
+  MOZ_ASSERT(std::abs(days) <= 400'000'000, "days limit for ToYearMonthDay");
+
+  // Step 1.
+  int32_t epochDays = MakeDay(date) + days;
+
+  // Step 2.
+  int64_t epochMilliseconds = epochDays * ToMilliseconds(TemporalUnit::Day);
+
+  // Step 3.
+  auto [year, month, day] = ToYearMonthDay(epochMilliseconds);
+
+  // NB: The returned date is possibly outside the valid limits!
+  auto result = PlainDate{year, month + 1, day};
+  MOZ_ASSERT(IsValidISODate(result));
+
+  return result;
 }
 
-/**
- * BalanceISODate ( year, month, day )
- */
-PlainDate js::temporal::BalanceISODate(int32_t year, int32_t month,
-                                       int32_t day) {
-  MOZ_ASSERT(CanBalanceISOYear(year));
-  MOZ_ASSERT(1 <= month && month <= 12);
-  MOZ_ASSERT(CanBalanceISODay(day));
+static bool CanBalanceISOYear(int64_t year) {
+  // TODO: Export these values somewhere.
+  constexpr int32_t minYear = -271821;
+  constexpr int32_t maxYear = 275760;
 
-  // TODO: BalanceISODate now works using ISODateToEpochDays & friends.
-  // TODO: Can't use JS::MakeDate, because it expects valid month/day values.
-
-  // Step 1. (Not applicable in our implementation.)
-
-  // Steps 3-4. (Not applicable in our implementation.)
-
-  constexpr int32_t daysInNonLeapYear = 365;
-
-  // Skip steps 5-11 for the common case when abs(day) doesn't exceed 365.
-  if (std::abs(day) > daysInNonLeapYear) {
-    // Step 5. (Note)
-
-    // Steps 6-7.
-    int32_t testYear = month > 2 ? year : year - 1;
-
-    // Step 8.
-    while (day < -ISODaysInYear(testYear)) {
-      // Step 8.a.
-      day += ISODaysInYear(testYear);
-
-      // Step 8.b.
-      year -= 1;
-
-      // Step 8.c.
-      testYear -= 1;
-    }
-
-    // Step 9. (Note)
-
-    // Step 10.
-    testYear += 1;
-
-    // Step 11.
-    while (day > ISODaysInYear(testYear)) {
-      // Step 11.a.
-      day -= ISODaysInYear(testYear);
-
-      // Step 11.b.
-      year += 1;
-
-      // Step 11.c.
-      testYear += 1;
-    }
-  }
-
-  // Step 12. (Note)
-
-  // Step 13.
-  while (day < 1) {
-    // Steps 13.a-b. (Inlined call to BalanceISOYearMonth.)
-    if (--month == 0) {
-      month = 12;
-      year -= 1;
-    }
-
-    // Step 13.d
-    day += ISODaysInMonth(year, month);
-  }
-
-  // Step 14. (Note)
-
-  // Step 15.
-  while (day > ISODaysInMonth(year, month)) {
-    // Step 15.a.
-    day -= ISODaysInMonth(year, month);
-
-    // Steps 15.b-d. (Inlined call to BalanceISOYearMonth.)
-    if (++month == 13) {
-      month = 1;
-      year += 1;
-    }
-  }
-
-  MOZ_ASSERT(1 <= month && month <= 12);
-  MOZ_ASSERT(1 <= day && day <= 31);
-
-  // Step 16.
-  return {year, month, day};
+  // If the year is below resp. above the min-/max-year, no value of |day| will
+  // make the resulting date valid.
+  return minYear <= year && year <= maxYear;
 }
 
 /**
@@ -924,21 +834,20 @@ bool js::temporal::AddISODate(JSContext* cx, const PlainDate& date,
                        overflow, &regulated)) {
     return false;
   }
-
-  // Steps 5-6.
-  int64_t days = (duration.days + duration.weeks * 7);
-  int64_t d = regulated.day + days;
-
-  // Just as with |yearMonth.year|, also directly throw an error if the |days|
-  // value is too large.
-  if (!CanBalanceISODay(d)) {
+  if (!ISODateWithinLimits(regulated)) {
     JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
                               JSMSG_TEMPORAL_PLAIN_DATE_INVALID);
     return false;
   }
 
+  // Steps 5-6.
+  int64_t days = duration.days + duration.weeks * 7;
+
   // Step 7.
-  auto balanced = BalanceISODate(regulated, days);
+  PlainDate balanced;
+  if (!BalanceISODate(cx, regulated, days, &balanced)) {
+    return false;
+  }
   MOZ_ASSERT(IsValidISODate(balanced));
 
   *result = balanced;

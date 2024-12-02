@@ -322,6 +322,21 @@ int32_t js::temporal::MakeDay(const PlainDate& date) {
 /**
  * 21.4.1.13 MakeDate ( day, time )
  */
+int64_t js::temporal::MakeDate(const PlainDate& date) {
+  MOZ_ASSERT(ISODateWithinLimits(date));
+
+  // Step 1 (Not applicable).
+
+  // Steps 2-3.
+  int64_t tv = MakeDay(date) * ToMilliseconds(TemporalUnit::Day);
+
+  // Step 4.
+  return tv;
+}
+
+/**
+ * 21.4.1.13 MakeDate ( day, time )
+ */
 int64_t js::temporal::MakeDate(const PlainDateTime& dateTime) {
   MOZ_ASSERT(ISODateTimeWithinLimits(dateTime));
 
@@ -330,32 +345,6 @@ int64_t js::temporal::MakeDate(const PlainDateTime& dateTime) {
   // Steps 2-3.
   int64_t tv = MakeDay(dateTime.date) * ToMilliseconds(TemporalUnit::Day) +
                MakeTime(dateTime.time);
-
-  // Step 4.
-  return tv;
-}
-
-/**
- * 21.4.1.12 MakeDay ( year, month, date )
- */
-static int32_t MakeDay(int32_t year, int32_t month, int32_t day) {
-  MOZ_ASSERT(1 <= month && month <= 12);
-
-  // FIXME: spec issue - what should happen for invalid years/days?
-  return DayFromYear(year) + ::ToISODayOfYear(year, month, day) - 1;
-}
-
-/**
- * 21.4.1.13 MakeDate ( day, time )
- */
-int64_t js::temporal::MakeDate(int32_t year, int32_t month, int32_t day) {
-  // NOTE: This version accepts values outside the valid date-time limits.
-  MOZ_ASSERT(1 <= month && month <= 12);
-
-  // Step 1 (Not applicable).
-
-  // Steps 2-3.
-  int64_t tv = ::MakeDay(year, month, day) * ToMilliseconds(TemporalUnit::Day);
 
   // Step 4.
   return tv;

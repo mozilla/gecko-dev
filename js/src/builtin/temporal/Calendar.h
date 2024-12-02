@@ -206,12 +206,12 @@ int32_t MakeDay(const PlainDate& date);
 /**
  * 21.4.1.13 MakeDate ( day, time )
  */
-int64_t MakeDate(const PlainDateTime& dateTime);
+int64_t MakeDate(const PlainDate& date);
 
 /**
  * 21.4.1.13 MakeDate ( day, time )
  */
-int64_t MakeDate(int32_t year, int32_t month, int32_t day);
+int64_t MakeDate(const PlainDateTime& dateTime);
 
 /**
  * CanonicalizeCalendar ( id )
