@@ -2,7 +2,10 @@
 
 // Test that the customization menu is rendered.
 test_newtab({
-  test: async function test_render_customizeMenu() {
+  async before() {
+    gBrowser.selectedBrowser.focus();
+  },
+  test: async function test_open_customizeMenu() {
     await ContentTaskUtils.waitForCondition(
       () => content.document.querySelector(".personalize-button"),
       "Wait for personalize button to load on the newtab page"
@@ -18,7 +21,8 @@ test_newtab({
     );
 
     let customizeButton = content.document.querySelector(".personalize-button");
-    customizeButton.click();
+    customizeButton.focus();
+    await EventUtils.synthesizeKey("KEY_Enter", {}, content.window);
 
     await ContentTaskUtils.waitForCondition(
       () => content.document.querySelector(".customize-animate-enter-done"),

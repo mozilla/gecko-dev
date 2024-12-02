@@ -10772,7 +10772,7 @@ class _CustomizeMenu extends (external_React_default()).PureComponent {
       className: "icon icon-settings personalize-button",
       onClick: () => this.props.onOpen(),
       onKeyDown: e => {
-        if (e.key === 13) {
+        if (e.key === "Enter") {
           this.props.onOpen();
         }
       },
