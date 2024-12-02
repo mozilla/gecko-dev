@@ -115,6 +115,8 @@ assertEq(log, "sp");
 // When calling a cross-compartment wrapper, receiver is rewrapped for the
 // target compartment.
 var g = newGlobal();
+if (!("assert" in g) && "assert" in globalThis)
+    g.assert = assert;  // necessary when exporting to test262
 if (!("assertEq" in g))
     g.assertEq = assertEq;  // necessary in the browser
 g.eval(`
