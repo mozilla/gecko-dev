@@ -1362,7 +1362,7 @@ static bool DifferenceTemporalPlainDate(JSContext* cx,
     Rooted<TimeZoneValue> timeZone(cx, TimeZoneValue{});
     RoundedRelativeDuration relative;
     if (!RoundRelativeDuration(
-            cx, duration, destEpochNs, dateTime, calendar, timeZone,
+            cx, duration, destEpochNs, dateTime, timeZone, calendar,
             settings.largestUnit, settings.roundingIncrement,
             settings.smallestUnit, settings.roundingMode, &relative)) {
       return false;

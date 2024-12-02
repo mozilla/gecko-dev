@@ -840,7 +840,7 @@ bool js::temporal::DifferenceZonedDateTimeWithRounding(
 
   // Step 5.
   RoundedRelativeDuration relative;
-  if (!RoundRelativeDuration(cx, difference, ns2, dateTime, calendar, timeZone,
+  if (!RoundRelativeDuration(cx, difference, ns2, dateTime, timeZone, calendar,
                              settings.largestUnit, settings.roundingIncrement,
                              settings.smallestUnit, settings.roundingMode,
                              &relative)) {
@@ -895,7 +895,7 @@ bool js::temporal::DifferenceZonedDateTimeWithRounding(
 
   // Step 5.
   RoundedRelativeDuration rounded;
-  if (!RoundRelativeDuration(cx, difference, ns2, dateTime, calendar, timeZone,
+  if (!RoundRelativeDuration(cx, difference, ns2, dateTime, timeZone, calendar,
                              unit, Increment{1}, unit,
                              TemporalRoundingMode::Trunc, &rounded)) {
     return false;

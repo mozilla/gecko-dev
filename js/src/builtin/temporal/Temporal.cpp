@@ -103,53 +103,32 @@ static bool GetStringOption(JSContext* cx, Handle<JSObject*> options,
 }
 
 /**
- * GetOption ( options, property, type, values, default )
- */
-static bool GetNumberOption(JSContext* cx, Handle<JSObject*> options,
-                            Handle<PropertyName*> property, double* number) {
-  // Step 1.
-  Rooted<Value> value(cx);
-  if (!GetProperty(cx, options, options, property, &value)) {
-    return false;
-  }
-
-  // Step 2. (Caller should fill in the fallback.)
-  if (value.isUndefined()) {
-    return true;
-  }
-
-  // Steps 3 and 5. (Not applicable in our implementation)
-
-  // Step 4.a.
-  if (!JS::ToNumber(cx, value, number)) {
-    return false;
-  }
-
-  // Step 4.b. (Caller must check for NaN values.)
-
-  // Step 7. (Not applicable in our implementation)
-
-  // Step 8.
-  return true;
-}
-
-/**
  * GetRoundingIncrementOption ( normalizedOptions, dividend, inclusive )
  */
 bool js::temporal::GetRoundingIncrementOption(JSContext* cx,
                                               Handle<JSObject*> options,
                                               Increment* increment) {
-  // Steps 1-3.
-  double number = 1;
-  if (!GetNumberOption(cx, options, cx->names().roundingIncrement, &number)) {
+  // Step 1.
+  Rooted<Value> value(cx);
+  if (!GetProperty(cx, options, options, cx->names().roundingIncrement,
+                   &value)) {
     return false;
   }
 
-  // Step 5. (Reordered)
-  number = std::trunc(number);
+  // Step 2.
+  if (value.isUndefined()) {
+    *increment = Increment{1};
+    return true;
+  }
 
-  // Steps 4 and 6.
-  if (!std::isfinite(number) || number < 1 || number > 1'000'000'000) {
+  // Step 3.
+  double number;
+  if (!ToIntegerWithTruncation(cx, value, "roundingIncrement", &number)) {
+    return false;
+  }
+
+  // Step 4.
+  if (number < 1 || number > 1'000'000'000) {
     ToCStringBuf cbuf;
     const char* numStr = NumberToCString(&cbuf, number);
 
@@ -159,7 +138,7 @@ bool js::temporal::GetRoundingIncrementOption(JSContext* cx,
     return false;
   }
 
-  // Step 7.
+  // Step 5.
   *increment = Increment{uint32_t(number)};
   return true;
 }

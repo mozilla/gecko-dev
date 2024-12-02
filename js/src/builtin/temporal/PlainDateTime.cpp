@@ -812,8 +812,8 @@ bool js::temporal::DifferencePlainDateTimeWithRounding(
   // Step 8.
   Rooted<TimeZoneValue> timeZone(cx, TimeZoneValue{});
   RoundedRelativeDuration relative;
-  if (!RoundRelativeDuration(cx, diff, destEpochNs, dateTime, calendar,
-                             timeZone, settings.largestUnit,
+  if (!RoundRelativeDuration(cx, diff, destEpochNs, dateTime, timeZone,
+                             calendar, settings.largestUnit,
                              settings.roundingIncrement, settings.smallestUnit,
                              settings.roundingMode, &relative)) {
     return false;
@@ -874,8 +874,8 @@ bool js::temporal::DifferencePlainDateTimeWithRounding(
   // Step 8.
   Rooted<TimeZoneValue> timeZone(cx, TimeZoneValue{});
   RoundedRelativeDuration relative;
-  if (!RoundRelativeDuration(cx, diff, destEpochNs, dateTime, calendar,
-                             timeZone, unit, Increment{1}, unit,
+  if (!RoundRelativeDuration(cx, diff, destEpochNs, dateTime, timeZone,
+                             calendar, unit, Increment{1}, unit,
                              TemporalRoundingMode::Trunc, &relative)) {
     return false;
   }
