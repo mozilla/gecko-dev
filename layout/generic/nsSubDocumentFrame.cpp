@@ -1280,21 +1280,19 @@ bool nsSubDocumentFrame::ContentReactsToPointerEvents() const {
   return true;
 }
 
-// Return true iff |aManager| is a "temporary layer manager".  They're
-// used for small software rendering tasks, like drawWindow.  That's
-// currently implemented by a BasicLayerManager without a backing
-// widget, and hence in non-retained mode.
 nsDisplayRemote::nsDisplayRemote(nsDisplayListBuilder* aBuilder,
                                  nsSubDocumentFrame* aFrame)
     : nsPaintedDisplayItem(aBuilder, aFrame),
       mEventRegionsOverride(EventRegionsOverride::NoOverride) {
-  if (aBuilder->IsInsidePointerEventsNoneDoc() ||
-      !aFrame->ContentReactsToPointerEvents()) {
-    mEventRegionsOverride |= EventRegionsOverride::ForceEmptyHitRegion;
-  }
-  if (nsLayoutUtils::HasDocumentLevelListenersForApzAwareEvents(
-          aFrame->PresShell())) {
-    mEventRegionsOverride |= EventRegionsOverride::ForceDispatchToContent;
+  if (aBuilder->BuildCompositorHitTestInfo()) {
+    if (aBuilder->IsInsidePointerEventsNoneDoc() ||
+        !aFrame->ContentReactsToPointerEvents()) {
+      mEventRegionsOverride |= EventRegionsOverride::ForceEmptyHitRegion;
+    }
+    if (nsLayoutUtils::HasDocumentLevelListenersForApzAwareEvents(
+            aFrame->PresShell())) {
+      mEventRegionsOverride |= EventRegionsOverride::ForceDispatchToContent;
+    }
   }
 
   mPaintData = aFrame->GetRemotePaintData();

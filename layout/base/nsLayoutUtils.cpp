@@ -3131,7 +3131,7 @@ void nsLayoutUtils::PaintFrame(gfxContext* aRenderingContext, nsIFrame* aFrame,
     builder->SetVisibleRect(visibleRect);
     builder->SetIsBuilding(true);
     builder->SetAncestorHasApzAwareEventHandler(
-        gfxPlatform::AsyncPanZoomEnabled() &&
+        builder->BuildCompositorHitTestInfo() &&
         nsLayoutUtils::HasDocumentLevelListenersForApzAwareEvents(presShell));
 
     // If a pref is toggled that adds or removes display list items,
