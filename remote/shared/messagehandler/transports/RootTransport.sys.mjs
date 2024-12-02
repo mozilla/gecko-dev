@@ -122,7 +122,7 @@ export class RootTransport {
     // If a top-level browsing context was replaced and retrying is allowed,
     // retrieve the new one for the current browser.
     if (
-      browsingContext.isReplaced &&
+      browsingContext?.isReplaced &&
       browsingContext.top === browsingContext &&
       retryOnAbort
     ) {
@@ -131,14 +131,15 @@ export class RootTransport {
       );
     }
 
+    if (!browsingContext || browsingContext.isDiscarded) {
+      throw new lazy.error.DiscardedBrowsingContextError(
+        `BrowsingContext does no longer exist`
+      );
+    }
+
     // Keep a reference to the webProgress, which will persist, and always use
     // it to retrieve the currently valid browsing context.
     const webProgress = browsingContext.webProgress;
-    if (!webProgress) {
-      throw new lazy.error.DiscardedBrowsingContextError(
-        `BrowsingContext with id "${browsingContext.id}" does no longer exist`
-      );
-    }
 
     let attempts = 0;
     while (true) {

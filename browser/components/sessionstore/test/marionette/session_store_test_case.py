@@ -209,14 +209,14 @@ class SessionStoreTestCase(WindowManagerMixin, MarionetteTestCase):
 
         return opened_windows
 
-    def _close_tab_shortcut(self):
-        self.marionette.actions.sequence("key", "keyboard_id").key_down(
-            self.accelKey
-        ).key_down("w").key_up("w").key_up(self.accelKey).perform()
+    def _close_last_tab(self):
+        # "self.marionette.close" cannot be used because it doesn't
+        # allow closing the very last tab.
+        self.marionette.execute_script("window.close()")
 
     def close_all_tabs_and_restart(self):
         self.close_all_tabs()
-        self.marionette.quit(callback=self._close_tab_shortcut)
+        self.marionette.quit(callback=self._close_last_tab)
         self.marionette.start_session()
 
     def simulate_os_shutdown(self):

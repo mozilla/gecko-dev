@@ -397,15 +397,13 @@ export function getMarionetteCommandsActorProxy(browsingContextFn) {
               );
             }
 
-            if (!browsingContext) {
-              throw new lazy.error.UnknownError(
+            if (!browsingContext || browsingContext.isDiscarded) {
+              throw new lazy.error.NoSuchWindowError(
                 `BrowsingContext does no longer exist`
               );
             }
 
             try {
-              // TODO: Scenarios where the window/tab got closed and
-              // currentWindowGlobal is null will be handled in Bug 1662808.
               const actor =
                 browsingContext.currentWindowGlobal.getActor(
                   "MarionetteCommands"

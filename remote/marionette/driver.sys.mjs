@@ -178,7 +178,7 @@ class ActionsHelper {
    *     Promise that resolves when the finalization is done.
    */
   finalizeAction(browsingContext) {
-    this.#getActor(browsingContext).finalizeAction();
+    return this.#getActor(browsingContext).finalizeAction();
   }
 
   /**

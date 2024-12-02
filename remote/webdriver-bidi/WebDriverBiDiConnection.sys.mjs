@@ -92,7 +92,15 @@ export class WebDriverBiDiConnection extends WebSocketConnection {
    *     Error object with `status`, `message` and `stack` attributes.
    */
   sendError(id, err) {
-    const webDriverError = lazy.error.wrap(err);
+    // Convert specific MessageHandler errors to WebDriver errors
+    let webDriverError;
+    switch (err.name) {
+      case "DiscardedBrowsingContextError":
+        webDriverError = lazy.error.wrap(err, lazy.error.NoSuchFrameError);
+        break;
+      default:
+        webDriverError = lazy.error.wrap(err);
+    }
 
     this.send({
       type: "error",

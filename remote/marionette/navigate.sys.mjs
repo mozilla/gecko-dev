@@ -283,8 +283,9 @@ navigate.waitForNavigationCompleted = async function waitForNavigationCompleted(
     // For the command "Element Click" we want to detect a potential navigation
     // as early as possible. The `beforeunload` event is an indication for that
     // but could still cause the navigation to get aborted by the user. As such
-    // wait a bit longer for the `unload` event to happen, which usually will
-    // occur pretty soon after `beforeunload`.
+    // wait a bit longer for the `unload` event to happen (only when the page
+    // load strategy is `none`), which usually will occur pretty soon after
+    // `beforeunload`.
     //
     // Note that with WebDriver BiDi enabled the `beforeunload` prompts might
     // not get implicitly accepted, so lets keep the timer around until we know
