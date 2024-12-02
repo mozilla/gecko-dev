@@ -202,8 +202,6 @@ var g${i} = function* foo(${pattern}) {};
   var CHAR_LBRACKET = '[';
   var CHAR_RBRACKET = ']';
   var CHAR_QT_DBL = '"';
-  var CHAR_QT = "'";
-  var CHAR_NL = '\n';
   var CHAR_COMMA = ',';
   var CHAR_SPACE = ' ';
   var TYPE_STRING = typeof 'abc';
@@ -283,11 +281,4 @@ var g${i} = function* foo(${pattern}) {};
   {
     return CHAR_QT_DBL + text + CHAR_QT_DBL;
   }
-
-
-  function singleQuote(text)
-  {
-    return CHAR_QT + text + CHAR_QT;
-  }
-
 })(this);
