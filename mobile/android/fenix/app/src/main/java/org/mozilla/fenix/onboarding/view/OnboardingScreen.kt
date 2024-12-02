@@ -44,6 +44,8 @@ import org.mozilla.fenix.compose.annotation.LightDarkPreview
 import org.mozilla.fenix.onboarding.WidgetPinnedReceiver.WidgetPinnedState
 import org.mozilla.fenix.onboarding.store.OnboardingAddOnsAction
 import org.mozilla.fenix.onboarding.store.OnboardingAddOnsStore
+import org.mozilla.fenix.onboarding.store.OnboardingToolbarAction
+import org.mozilla.fenix.onboarding.store.OnboardingToolbarStore
 import org.mozilla.fenix.theme.FirefoxTheme
 
 /**
@@ -275,6 +277,7 @@ private fun OnboardingPageForType(
     type: OnboardingPageUiData.Type,
     state: OnboardingPageState,
     onboardingAddOnsStore: OnboardingAddOnsStore? = null,
+    onboardingToolbarStore: OnboardingToolbarStore? = null,
     termsOfServiceEventHandler: OnboardingTermsOfServiceEventHandler,
     onInstallAddOnButtonClick: (AddOn) -> Unit,
 ) {
@@ -283,9 +286,19 @@ private fun OnboardingPageForType(
         OnboardingPageUiData.Type.SYNC_SIGN_IN,
         OnboardingPageUiData.Type.ADD_SEARCH_WIDGET,
         OnboardingPageUiData.Type.NOTIFICATION_PERMISSION,
-        OnboardingPageUiData.Type.TOOLBAR_PLACEMENT,
         OnboardingPageUiData.Type.THEME_SELECTION,
         -> OnboardingPage(state)
+
+        OnboardingPageUiData.Type.TOOLBAR_PLACEMENT,
+        -> onboardingToolbarStore?.let {
+            ToolbarOnboardingPage(
+                store = onboardingToolbarStore,
+                pageState = state,
+                onToolbarSelectionClicked = {
+                    onboardingToolbarStore.dispatch(OnboardingToolbarAction.UpdateSelected(it))
+                },
+            )
+        }
 
         OnboardingPageUiData.Type.ADD_ONS,
         -> onboardingAddOnsStore?.let {
