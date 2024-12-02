@@ -10,8 +10,6 @@ info: |
   1. Let T be ? thisTupleValue(this value).
   2. Let size be the length of T.[[Sequence]].
   3. Return size.
-
-features: [Tuple]
 ---*/
 
 /* Section 8.2.3.2 */
