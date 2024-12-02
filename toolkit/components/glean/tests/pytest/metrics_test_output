@@ -583,6 +583,20 @@ pub mod test_nested {
     });
 
     #[allow(non_upper_case_globals)]
+    /// generated from test.nested.optimizable_disabled_counter_metric
+    ///
+    /// A multi-line
+    /// description
+    pub static optimizable_disabled_counter_metric: Lazy<CounterMetric> = Lazy::new(|| {
+        CounterMetric::codegen_disabled_new(
+            24,
+            "test.nested",
+            "optimizable_disabled_counter_metric",
+            "metrics"
+        )
+    });
+
+    #[allow(non_upper_case_globals)]
     /// generated from test.nested.quantity_metric
     ///
     /// A multi-line
@@ -597,7 +611,7 @@ pub mod test_nested {
                 disabled: false,
                 ..Default::default()
             };
-        QuantityMetric::new(24.into(), meta)
+        QuantityMetric::new(25.into(), meta)
     });
 
     #[allow(non_upper_case_globals)]
@@ -615,7 +629,7 @@ pub mod test_nested {
                 disabled: false,
                 ..Default::default()
             };
-        RateMetric::new(25.into(), meta)
+        RateMetric::new(26.into(), meta)
     });
 
     #[allow(non_upper_case_globals)]
@@ -633,7 +647,7 @@ pub mod test_nested {
                 disabled: false,
                 ..Default::default()
             };
-        NumeratorMetric::new(26.into(), meta)
+        NumeratorMetric::new(27.into(), meta)
     });
 
     #[allow(non_upper_case_globals)]
@@ -651,7 +665,7 @@ pub mod test_nested {
                 disabled: false,
                 ..Default::default()
             };
-        UuidMetric::new(27.into(), meta)
+        UuidMetric::new(28.into(), meta)
     });
 
 }
@@ -673,9 +687,10 @@ pub(crate) mod __glean_metric_maps {
     });
 
     pub static COUNTER_MAP: Lazy<HashMap<MetricId, &Lazy<CounterMetric>>> = Lazy::new(|| {
-        let mut map = HashMap::with_capacity(2);
+        let mut map = HashMap::with_capacity(3);
         map.insert(2.into(), &super::test::counter_metric);
         map.insert(23.into(), &super::test_nested::optimizable_counter_metric);
+        map.insert(24.into(), &super::test_nested::optimizable_disabled_counter_metric);
         map
     });
 
@@ -735,25 +750,25 @@ pub(crate) mod __glean_metric_maps {
 
     pub static QUANTITY_MAP: Lazy<HashMap<MetricId, &Lazy<QuantityMetric>>> = Lazy::new(|| {
         let mut map = HashMap::with_capacity(1);
-        map.insert(24.into(), &super::test_nested::quantity_metric);
+        map.insert(25.into(), &super::test_nested::quantity_metric);
         map
     });
 
     pub static RATE_MAP: Lazy<HashMap<MetricId, &Lazy<RateMetric>>> = Lazy::new(|| {
         let mut map = HashMap::with_capacity(1);
-        map.insert(25.into(), &super::test_nested::rate_metric);
+        map.insert(26.into(), &super::test_nested::rate_metric);
         map
     });
 
     pub static NUMERATOR_MAP: Lazy<HashMap<MetricId, &Lazy<NumeratorMetric>>> = Lazy::new(|| {
         let mut map = HashMap::with_capacity(1);
-        map.insert(26.into(), &super::test_nested::rate_with_external_denominator);
+        map.insert(27.into(), &super::test_nested::rate_with_external_denominator);
         map
     });
 
     pub static UUID_MAP: Lazy<HashMap<MetricId, &Lazy<UuidMetric>>> = Lazy::new(|| {
         let mut map = HashMap::with_capacity(1);
-        map.insert(27.into(), &super::test_nested::uuid_metric);
+        map.insert(28.into(), &super::test_nested::uuid_metric);
         map
     });
 

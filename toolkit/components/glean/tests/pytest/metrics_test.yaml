@@ -441,6 +441,21 @@ test.nested:
     data_reviews:
       - https://example.com
 
+  optimizable_disabled_counter_metric:
+    type: counter
+    disabled: true
+    expires: never
+    description: |
+      A multi-line
+      description
+    lifetime: ping
+    notification_emails:
+      - glean-team@mozilla.com
+    bugs:
+      - https://bugzilla.mozilla.org/1635260/
+    data_reviews:
+      - https://example.com
+
   an_object:
     type: object
     description: An example object

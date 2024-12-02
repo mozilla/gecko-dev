@@ -147,10 +147,10 @@ pub mod {{ category_name|snake_case }} {
     /// generated from {{ category_name }}.{{ obj.name }}
     ///
     /// {{ obj.description|wordwrap() | replace('\n', '\n    /// ') }}
-    {% if obj.type == "counter" and obj.send_in_pings|length == 1 and not obj.disabled and obj.lifetime|rust == "Lifetime::Ping" %}
+    {% if obj.type == "counter" and obj.send_in_pings|length == 1 and obj.lifetime|rust == "Lifetime::Ping" %}
     {# Use optimized CounterMetric ctor in a common case (esp. for Use Counters) #}
     pub static {{ obj.name|snake_case }}: Lazy<{{ obj|type_name }}> = Lazy::new(|| {
-        CounterMetric::codegen_new(
+        CounterMetric::codegen_{{ "disabled_" if obj.disabled }}new(
             {{obj|metric_id}},
             "{{obj.category}}",
             "{{obj.name}}",

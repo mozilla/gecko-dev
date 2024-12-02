@@ -103,6 +103,29 @@ impl CounterMetric {
         }
     }
 
+    /// Special-purpose ctor for use by codegen.
+    /// Only useful if the metric is:
+    ///   * disabled
+    ///   * lifetime: ping
+    ///   * and is sent in precisely one ping.
+    pub fn codegen_disabled_new(id: u32, category: &str, name: &str, ping: &str) -> Self {
+        if need_ipc() {
+            CounterMetric::Child(CounterMetricIpc(id.into()))
+        } else {
+            let inner = Arc::new(glean::private::CounterMetric::new(CommonMetricData {
+                category: category.into(),
+                name: name.into(),
+                send_in_pings: vec![ping.into()],
+                disabled: true,
+                ..Default::default()
+            }));
+            CounterMetric::Parent {
+                id: id.into(),
+                inner,
+            }
+        }
+    }
+
     #[cfg(test)]
     pub(crate) fn metric_id(&self) -> MetricId {
         match self {
