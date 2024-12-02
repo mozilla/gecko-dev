@@ -72,6 +72,10 @@ class MOZ_STACK_CLASS PlainYearMonthWithCalendar final {
     MOZ_ASSERT(ISOYearMonthWithinLimits(date.year, date.month));
   }
 
+  explicit PlainYearMonthWithCalendar(const PlainYearMonthObject* yearMonth)
+      : PlainYearMonthWithCalendar(ToPlainDate(yearMonth),
+                                   yearMonth->calendar()) {}
+
   const auto& date() const { return date_; }
   const auto& calendar() const { return calendar_; }
 

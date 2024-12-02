@@ -50,6 +50,13 @@ class PlainMonthDayObject : public NativeObject {
   static const ClassSpec classSpec_;
 };
 
+/**
+ * Extract the date fields from the PlainMonthDay object.
+ */
+inline PlainDate ToPlainDate(const PlainMonthDayObject* monthDay) {
+  return {monthDay->isoYear(), monthDay->isoMonth(), monthDay->isoDay()};
+}
+
 class MOZ_STACK_CLASS PlainMonthDayWithCalendar final {
   PlainDate date_;
   CalendarValue calendar_;
@@ -63,6 +70,10 @@ class MOZ_STACK_CLASS PlainMonthDayWithCalendar final {
     MOZ_ASSERT(ISODateWithinLimits(date));
   }
 
+  explicit PlainMonthDayWithCalendar(const PlainMonthDayObject* monthDay)
+      : PlainMonthDayWithCalendar(ToPlainDate(monthDay), monthDay->calendar()) {
+  }
+
   const auto& date() const { return date_; }
   const auto& calendar() const { return calendar_; }
 
@@ -73,13 +84,6 @@ class MOZ_STACK_CLASS PlainMonthDayWithCalendar final {
 
   const auto* calendarDoNotUse() const { return &calendar_; }
 };
-
-/**
- * Extract the date fields from the PlainMonthDay object.
- */
-inline PlainDate ToPlainDate(const PlainMonthDayObject* monthDay) {
-  return {monthDay->isoYear(), monthDay->isoMonth(), monthDay->isoDay()};
-}
 
 /**
  * CreateTemporalMonthDay ( isoMonth, isoDay, calendar, referenceISOYear [ ,

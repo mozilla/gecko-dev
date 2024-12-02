@@ -26,13 +26,13 @@
 #include "NamespaceImports.h"
 
 #include "builtin/temporal/Calendar.h"
+#include "builtin/temporal/CalendarFields.h"
 #include "builtin/temporal/Instant.h"
 #include "builtin/temporal/Int128.h"
 #include "builtin/temporal/Int96.h"
 #include "builtin/temporal/PlainDate.h"
 #include "builtin/temporal/PlainDateTime.h"
 #include "builtin/temporal/Temporal.h"
-#include "builtin/temporal/TemporalFields.h"
 #include "builtin/temporal/TemporalParser.h"
 #include "builtin/temporal/TemporalRoundingMode.h"
 #include "builtin/temporal/TemporalTypes.h"
@@ -1974,23 +1974,21 @@ static bool GetTemporalRelativeToOption(
     }
 
     // Step 5.e.
-    Rooted<TemporalFields> fields(cx);
+    Rooted<CalendarFields> fields(cx);
     if (!PrepareCalendarFields(cx, calendar, obj,
                                {
-                                   CalendarField::Day,
+                                   CalendarField::Year,
                                    CalendarField::Month,
                                    CalendarField::MonthCode,
-                                   CalendarField::Year,
-                               },
-                               {
-                                   TemporalField::Hour,
-                                   TemporalField::Microsecond,
-                                   TemporalField::Millisecond,
-                                   TemporalField::Minute,
-                                   TemporalField::Nanosecond,
-                                   TemporalField::Offset,
-                                   TemporalField::Second,
-                                   TemporalField::TimeZone,
+                                   CalendarField::Day,
+                                   CalendarField::Hour,
+                                   CalendarField::Minute,
+                                   CalendarField::Second,
+                                   CalendarField::Millisecond,
+                                   CalendarField::Microsecond,
+                                   CalendarField::Nanosecond,
+                                   CalendarField::Offset,
+                                   CalendarField::TimeZone,
                                },
                                &fields)) {
       return false;
@@ -2004,20 +2002,13 @@ static bool GetTemporalRelativeToOption(
     }
 
     // Step 5.g.
-    Handle<JSString*> offset = fields.offset();
+    timeZone = fields.timeZone();
 
     // Step 5.h.
-    Handle<Value> timeZoneValue = fields.timeZone();
-
-    // Step 5.i.
-    if (!timeZoneValue.isUndefined()) {
-      if (!ToTemporalTimeZone(cx, timeZoneValue, &timeZone)) {
-        return false;
-      }
-    }
+    auto offset = fields.offset();
 
     // Step 5.j.
-    if (!offset) {
+    if (!fields.has(CalendarField::Offset)) {
       offsetBehaviour = OffsetBehaviour::Wall;
     }
 
@@ -2028,15 +2019,12 @@ static bool GetTemporalRelativeToOption(
     }
 
     // Steps 8-9.
-    int64_t offsetNs;
+    int64_t offsetNs = 0;
     if (offsetBehaviour == OffsetBehaviour::Option) {
+      // FIXME: spec issue - ParseDateTimeUTCOffset is infallible
+
       // Step 8.a.
-      if (!ParseDateTimeUTCOffset(cx, offset, &offsetNs)) {
-        return false;
-      }
-    } else {
-      // Step 9.
-      offsetNs = 0;
+      offsetNs = int64_t(offset);
     }
 
     // Step 10.

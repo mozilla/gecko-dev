@@ -25,7 +25,6 @@
 #include "builtin/temporal/PlainDate.h"
 #include "builtin/temporal/PlainDateTime.h"
 #include "builtin/temporal/Temporal.h"
-#include "builtin/temporal/TemporalFields.h"
 #include "builtin/temporal/TemporalParser.h"
 #include "builtin/temporal/TemporalRoundingMode.h"
 #include "builtin/temporal/TemporalTypes.h"
@@ -531,56 +530,70 @@ NormalizedTimeDuration js::temporal::DifferenceTime(const PlainTime& time1,
 static bool ToTemporalTimeRecord(JSContext* cx,
                                  Handle<JSObject*> temporalTimeLike,
                                  TemporalTimeLike* result) {
-  // Step 1. (Not applicable in our implementation.)
+  // Steps 1-3. (Not applicable in our implementation.)
 
-  // Step 2.
-  Rooted<TemporalFields> partial(cx);
-  if (!PreparePartialTemporalFields(cx, temporalTimeLike,
-                                    {
-                                        TemporalField::Hour,
-                                        TemporalField::Minute,
-                                        TemporalField::Second,
-                                        TemporalField::Millisecond,
-                                        TemporalField::Microsecond,
-                                        TemporalField::Nanosecond,
-                                    },
-                                    &partial)) {
+  // Step 4.
+  bool any = false;
+
+  Rooted<Value> value(cx);
+  auto getTimeProperty = [&](Handle<PropertyName*> property, const char* name,
+                             double* num) {
+    if (!GetProperty(cx, temporalTimeLike, temporalTimeLike, property,
+                     &value)) {
+      return false;
+    }
+
+    if (!value.isUndefined()) {
+      any = true;
+
+      if (!ToIntegerWithTruncation(cx, value, name, num)) {
+        return false;
+      }
+    }
+    return true;
+  };
+
+  // Steps 5-6.
+  if (!getTimeProperty(cx->names().hour, "hour", &result->hour)) {
     return false;
   }
 
-  // Steps 3-4. (Not applicable in our implementation.)
-
-  // Steps 5-6.
-  if (partial.has(TemporalField::Hour)) {
-    result->hour = partial.hour();
-  }
-
   // Steps 7-8.
-  if (partial.has(TemporalField::Minute)) {
-    result->minute = partial.minute();
+  if (!getTimeProperty(cx->names().microsecond, "microsecond",
+                       &result->microsecond)) {
+    return false;
   }
 
   // Steps 9-10.
-  if (partial.has(TemporalField::Second)) {
-    result->second = partial.second();
+  if (!getTimeProperty(cx->names().millisecond, "millisecond",
+                       &result->millisecond)) {
+    return false;
   }
 
   // Steps 11-12.
-  if (partial.has(TemporalField::Millisecond)) {
-    result->millisecond = partial.millisecond();
+  if (!getTimeProperty(cx->names().minute, "minute", &result->minute)) {
+    return false;
   }
 
   // Steps 13-14.
-  if (partial.has(TemporalField::Microsecond)) {
-    result->microsecond = partial.microsecond();
+  if (!getTimeProperty(cx->names().nanosecond, "nanosecond",
+                       &result->nanosecond)) {
+    return false;
   }
 
   // Steps 15-16.
-  if (partial.has(TemporalField::Nanosecond)) {
-    result->nanosecond = partial.nanosecond();
+  if (!getTimeProperty(cx->names().second, "second", &result->second)) {
+    return false;
   }
 
   // Step 17.
+  if (!any) {
+    JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
+                              JSMSG_TEMPORAL_PLAIN_TIME_MISSING_UNIT);
+    return false;
+  }
+
+  // Step 18.
   return true;
 }
 

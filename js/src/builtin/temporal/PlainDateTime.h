@@ -105,7 +105,7 @@ inline PlainDateTime ToPlainDateTime(const PlainDateTimeObject* dateTime) {
 
 struct DifferenceSettings;
 class Increment;
-class TemporalFields;
+class CalendarFields;
 enum class TemporalOverflow;
 enum class TemporalRoundingMode;
 enum class TemporalUnit;
@@ -181,7 +181,7 @@ bool CreateTemporalDateTime(JSContext* cx, const PlainDate& date,
  */
 bool InterpretTemporalDateTimeFields(JSContext* cx,
                                      JS::Handle<CalendarValue> calendar,
-                                     JS::Handle<TemporalFields> fields,
+                                     JS::Handle<CalendarFields> fields,
                                      TemporalOverflow overflow,
                                      PlainDateTime* result);
 

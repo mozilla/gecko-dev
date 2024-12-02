@@ -17,13 +17,13 @@
 #include "NamespaceImports.h"
 
 #include "builtin/temporal/Calendar.h"
+#include "builtin/temporal/CalendarFields.h"
 #include "builtin/temporal/Duration.h"
 #include "builtin/temporal/PlainDate.h"
 #include "builtin/temporal/PlainMonthDay.h"
 #include "builtin/temporal/PlainTime.h"
 #include "builtin/temporal/PlainYearMonth.h"
 #include "builtin/temporal/Temporal.h"
-#include "builtin/temporal/TemporalFields.h"
 #include "builtin/temporal/TemporalParser.h"
 #include "builtin/temporal/TemporalRoundingMode.h"
 #include "builtin/temporal/TemporalTypes.h"
@@ -389,51 +389,26 @@ bool js::temporal::CreateTemporalDateTime(JSContext* cx, const PlainDate& date,
   return true;
 }
 
-#ifdef DEBUG
-static bool IsPositiveInteger(double value) {
-  return IsInteger(value) && value >= 0;
-}
-#endif
-
-/**
- * ToTemporalTimeRecord ( temporalTimeLike [ , completeness ] )
- */
-static auto ToTemporalTimeRecord(const TemporalFields& temporalTimeLike) {
-  MOZ_ASSERT(IsPositiveInteger(temporalTimeLike.hour()));
-  MOZ_ASSERT(IsPositiveInteger(temporalTimeLike.minute()));
-  MOZ_ASSERT(IsPositiveInteger(temporalTimeLike.second()));
-  MOZ_ASSERT(IsPositiveInteger(temporalTimeLike.millisecond()));
-  MOZ_ASSERT(IsPositiveInteger(temporalTimeLike.microsecond()));
-  MOZ_ASSERT(IsPositiveInteger(temporalTimeLike.nanosecond()));
-
-  return TemporalTimeLike{
-      temporalTimeLike.hour(),        temporalTimeLike.minute(),
-      temporalTimeLike.second(),      temporalTimeLike.millisecond(),
-      temporalTimeLike.microsecond(), temporalTimeLike.nanosecond(),
-  };
-}
-
 /**
  * InterpretTemporalDateTimeFields ( calendar, fields, overflow )
  */
 bool js::temporal::InterpretTemporalDateTimeFields(
     JSContext* cx, Handle<CalendarValue> calendar,
-    Handle<TemporalFields> fields, TemporalOverflow overflow,
+    Handle<CalendarFields> fields, TemporalOverflow overflow,
     PlainDateTime* result) {
-  // FIXME: spec issue - ToTemporalTimeRecord is infallible
-
   // Step 1.
-  auto timeResult = ::ToTemporalTimeRecord(fields);
-
-  // Step 2.
   Rooted<PlainDateWithCalendar> temporalDate(cx);
   if (!CalendarDateFromFields(cx, calendar, fields, overflow, &temporalDate)) {
     return false;
   }
 
   // Step 3.
+  auto timeLike = TemporalTimeLike{
+      fields.hour(),        fields.minute(),      fields.second(),
+      fields.millisecond(), fields.microsecond(), fields.nanosecond(),
+  };
   PlainTime time;
-  if (!RegulateTime(cx, timeResult, overflow, &time)) {
+  if (!RegulateTime(cx, timeLike, overflow, &time)) {
     return false;
   }
 
@@ -555,21 +530,19 @@ static bool ToTemporalDateTime(
   }
 
   // Step 2.e.
-  Rooted<TemporalFields> fields(cx);
+  Rooted<CalendarFields> fields(cx);
   if (!PrepareCalendarFields(cx, calendar, item,
                              {
-                                 CalendarField::Day,
+                                 CalendarField::Year,
                                  CalendarField::Month,
                                  CalendarField::MonthCode,
-                                 CalendarField::Year,
-                             },
-                             {
-                                 TemporalField::Hour,
-                                 TemporalField::Microsecond,
-                                 TemporalField::Millisecond,
-                                 TemporalField::Minute,
-                                 TemporalField::Nanosecond,
-                                 TemporalField::Second,
+                                 CalendarField::Day,
+                                 CalendarField::Hour,
+                                 CalendarField::Minute,
+                                 CalendarField::Second,
+                                 CalendarField::Millisecond,
+                                 CalendarField::Microsecond,
+                                 CalendarField::Nanosecond,
                              },
                              &fields)) {
     return false;
@@ -1684,7 +1657,7 @@ static bool PlainDateTime_inLeapYear(JSContext* cx, unsigned argc, Value* vp) {
  * Temporal.PlainDateTime.prototype.with ( temporalDateTimeLike [ , options ] )
  */
 static bool PlainDateTime_with(JSContext* cx, const CallArgs& args) {
-  Rooted<PlainDateTimeObject*> dateTime(
+  Rooted<PlainDateTimeWithCalendar> dateTime(
       cx, &args.thisv().toObject().as<PlainDateTimeObject>());
 
   // Step 3.
@@ -1697,71 +1670,72 @@ static bool PlainDateTime_with(JSContext* cx, const CallArgs& args) {
     return false;
   }
 
-  // Steps 4-5.
+  // Step 4.
+  auto calendar = dateTime.calendar();
+
+  // Step 5.
+  Rooted<CalendarFields> fields(cx);
+  if (!TemporalObjectToFields(cx, dateTime, &fields)) {
+    return false;
+  }
+
+  // Steps 6-11.
+  fields.setHour(dateTime.time().hour);
+  fields.setMinute(dateTime.time().minute);
+  fields.setSecond(dateTime.time().second);
+  fields.setMillisecond(dateTime.time().millisecond);
+  fields.setMicrosecond(dateTime.time().microsecond);
+  fields.setNanosecond(dateTime.time().nanosecond);
+
+  // Step 12.
+  Rooted<CalendarFields> partialDateTime(cx);
+  if (!PreparePartialCalendarFields(cx, calendar, temporalDateTimeLike,
+                                    {
+                                        CalendarField::Year,
+                                        CalendarField::Month,
+                                        CalendarField::MonthCode,
+                                        CalendarField::Day,
+                                        CalendarField::Hour,
+                                        CalendarField::Minute,
+                                        CalendarField::Second,
+                                        CalendarField::Millisecond,
+                                        CalendarField::Microsecond,
+                                        CalendarField::Nanosecond,
+                                    },
+                                    &partialDateTime)) {
+    return false;
+  }
+  MOZ_ASSERT(!partialDateTime.keys().isEmpty());
+
+  // Step 13.
+  fields = CalendarMergeFields(calendar, fields, partialDateTime);
+
+  // Steps 14-15.
   auto overflow = TemporalOverflow::Constrain;
   if (args.hasDefined(1)) {
-    // Step 4.
+    // Step 14.
     Rooted<JSObject*> options(cx,
                               RequireObjectArg(cx, "options", "with", args[1]));
     if (!options) {
       return false;
     }
 
-    // Step 5.
+    // Step 15.
     if (!GetTemporalOverflowOption(cx, options, &overflow)) {
       return false;
     }
   }
 
-  // Step 6.
-  Rooted<CalendarValue> calendar(cx, dateTime->calendar());
-
-  // Step 7.
-  Rooted<TemporalFields> fields(cx);
-  if (!PrepareCalendarFieldsAndFieldNames(cx, calendar, dateTime,
-                                          {
-                                              CalendarField::Day,
-                                              CalendarField::Month,
-                                              CalendarField::MonthCode,
-                                              CalendarField::Year,
-                                          },
-                                          &fields)) {
-    return false;
-  }
-
-  // Steps 8-14.
-  fields.setHour(dateTime->isoHour());
-  fields.setMinute(dateTime->isoMinute());
-  fields.setSecond(dateTime->isoSecond());
-  fields.setMillisecond(dateTime->isoMillisecond());
-  fields.setMicrosecond(dateTime->isoMicrosecond());
-  fields.setNanosecond(dateTime->isoNanosecond());
-
-  // Step 15.
-  Rooted<TemporalFields> partialDateTime(cx);
-  if (!PreparePartialTemporalFields(cx, temporalDateTimeLike, fields.keys(),
-                                    &partialDateTime)) {
-    return false;
-  }
-  MOZ_ASSERT(!partialDateTime.keys().isEmpty());
-
   // Step 16.
-  Rooted<TemporalFields> mergedFields(
-      cx, CalendarMergeFields(calendar, fields, partialDateTime));
-
-  // Step 17.
-  if (!PrepareTemporalFields(cx, mergedFields, fields.keys(), &fields)) {
-    return false;
-  }
-
-  // Step 18.
   PlainDateTime result;
   if (!InterpretTemporalDateTimeFields(cx, calendar, fields, overflow,
                                        &result)) {
     return false;
   }
 
-  // Steps 19-20.
+  // FIXME: spec bug - `result.[[Time]]` is never `START-OF-DAY`.
+
+  // Steps 17-20.
   MOZ_ASSERT(IsValidISODateTime(result));
 
   // Step 21.

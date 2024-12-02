@@ -114,6 +114,9 @@ class MOZ_STACK_CLASS PlainDateWithCalendar final {
     MOZ_ASSERT(ISODateWithinLimits(date));
   }
 
+  explicit PlainDateWithCalendar(const PlainDateObject* date)
+      : PlainDateWithCalendar(ToPlainDate(date), date->calendar()) {}
+
   const auto& date() const { return date_; }
   const auto& calendar() const { return calendar_; }
 
