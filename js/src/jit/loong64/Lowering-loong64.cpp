@@ -561,7 +561,9 @@ void LIRGenerator::visitCopySign(MCopySign* ins) {
   lir->setTemp(1, temp());
 
   lir->setOperand(0, useRegisterAtStart(lhs));
-  lir->setOperand(1, useRegister(rhs));
+  lir->setOperand(1, willHaveDifferentLIRNodes(lhs, rhs)
+                         ? useRegister(rhs)
+                         : useRegisterAtStart(rhs));
   defineReuseInput(lir, ins, 0);
 }
 
@@ -915,9 +917,9 @@ void LIRGenerator::visitWasmCompareExchangeHeap(MWasmCompareExchangeHeap* ins) {
   MDefinition* base = ins->base();
   // See comment in visitWasmLoad re the type of 'base'.
   MOZ_ASSERT(base->type() == MIRType::Int32 || base->type() == MIRType::Int64);
-  LAllocation memoryBase =
-      ins->hasMemoryBase() ? LAllocation(useRegisterAtStart(ins->memoryBase()))
-                           : LGeneralReg(HeapReg);
+  LAllocation memoryBase = ins->hasMemoryBase()
+                               ? LAllocation(useRegister(ins->memoryBase()))
+                               : LGeneralReg(HeapReg);
 
   if (ins->access().type() == Scalar::Int64) {
     auto* lir = new (alloc()) LWasmCompareExchangeI64(
@@ -949,9 +951,9 @@ void LIRGenerator::visitWasmAtomicExchangeHeap(MWasmAtomicExchangeHeap* ins) {
   MDefinition* base = ins->base();
   // See comment in visitWasmLoad re the type of 'base'.
   MOZ_ASSERT(base->type() == MIRType::Int32 || base->type() == MIRType::Int64);
-  LAllocation memoryBase =
-      ins->hasMemoryBase() ? LAllocation(useRegisterAtStart(ins->memoryBase()))
-                           : LGeneralReg(HeapReg);
+  LAllocation memoryBase = ins->hasMemoryBase()
+                               ? LAllocation(useRegister(ins->memoryBase()))
+                               : LGeneralReg(HeapReg);
 
   if (ins->access().type() == Scalar::Int64) {
     auto* lir = new (alloc()) LWasmAtomicExchangeI64(
@@ -980,9 +982,9 @@ void LIRGenerator::visitWasmAtomicBinopHeap(MWasmAtomicBinopHeap* ins) {
   MDefinition* base = ins->base();
   // See comment in visitWasmLoad re the type of 'base'.
   MOZ_ASSERT(base->type() == MIRType::Int32 || base->type() == MIRType::Int64);
-  LAllocation memoryBase =
-      ins->hasMemoryBase() ? LAllocation(useRegisterAtStart(ins->memoryBase()))
-                           : LGeneralReg(HeapReg);
+  LAllocation memoryBase = ins->hasMemoryBase()
+                               ? LAllocation(useRegister(ins->memoryBase()))
+                               : LGeneralReg(HeapReg);
 
   if (ins->access().type() == Scalar::Int64) {
     auto* lir = new (alloc()) LWasmAtomicBinopI64(
