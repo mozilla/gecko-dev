@@ -1,4 +1,4 @@
-// |reftest| skip-if(!this.hasOwnProperty('AsyncIterator')) 
+// |reftest| skip-if(!this.hasOwnProperty('AsyncIterator'))
 /*---
 description: The `length` property of AsyncIterator.prototype.toArray.
 info: |
