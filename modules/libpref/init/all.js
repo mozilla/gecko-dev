@@ -3783,9 +3783,9 @@ pref("browser.ml.modelCacheTimeout", 120000);
 // Minimal Physical RAM required in GiB
 pref("browser.ml.minimumPhysicalMemory", 4);
 // Default memory usage for a model in GiB
-pref("browser.ml.defaultModelMemoryUsage", 2);
+pref("browser.ml.defaultModelMemoryUsage", 1);
 // Check for memory before running
-pref("browser.ml.checkForMemory", false);
+pref("browser.ml.checkForMemory", true);
 // Maximum memory pressure (%)
 pref("browser.ml.maximumMemoryPressure", 80);
 // Queue wait timeout in seconds
