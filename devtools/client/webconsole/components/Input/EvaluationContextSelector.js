@@ -110,9 +110,13 @@ class EvaluationContextSelector extends Component {
   renderMenuItem(target) {
     const { selectTarget, selectedTarget } = this.props;
 
-    const label = target.isTopLevel
-      ? l10n.getStr("webconsole.input.selector.top")
-      : target.name;
+    // When debugging a Web Extension, the top level target is always the fallback document.
+    // It isn't really a top level document as it won't be the parent of any other.
+    // So only print its name.
+    const label =
+      target.isTopLevel && !target.commands.descriptorFront.isWebExtension
+        ? l10n.getStr("webconsole.input.selector.top")
+        : target.name;
 
     return MenuItem({
       key: `webconsole-evaluation-selector-item-${target.actorID}`,
@@ -227,7 +231,14 @@ class EvaluationContextSelector extends Component {
   getLabel() {
     const { selectedTarget } = this.props;
 
-    if (!selectedTarget || selectedTarget.isTopLevel) {
+    // When debugging a Web Extension, the top level target is always the fallback document.
+    // It isn't really a top level document as it won't be the parent of any other.
+    // So only print its name.
+    if (
+      !selectedTarget ||
+      (selectedTarget.isTopLevel &&
+        !selectedTarget.commands.descriptorFront.isWebExtension)
+    ) {
       return l10n.getStr("webconsole.input.selector.top");
     }
 

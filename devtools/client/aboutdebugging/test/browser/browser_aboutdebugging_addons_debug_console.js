@@ -165,7 +165,7 @@ add_task(async function testWebExtensionsToolboxWebConsole() {
   info("Assert the context of the evaluation context selector");
   const contextLabels = getContextLabels(toolbox);
   is(contextLabels.length, 3);
-  is(contextLabels[0], "Top");
+  is(contextLabels[0], "Web Extension Fallback Document");
   is(contextLabels[1], "/_generated_background_page.html");
   is(contextLabels[2], "/popup.html");
 

@@ -156,7 +156,7 @@ add_task(async function testAddAndRemoveBreakpoint() {
 
   const threadLabels = findAllElements(dbg, "threadsPaneItems");
   is(threadLabels.length, 2, "But there are two threads in the thread panel");
-  is(threadLabels[0].textContent, "Main Thread");
+  is(threadLabels[0].textContent, "Web Extension Fallback Document");
   is(threadLabels[1].textContent, "/_generated_background_page.html");
 
   info("Select the source and add a breakpoint");

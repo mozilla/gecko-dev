@@ -390,9 +390,14 @@ export async function createPause(threadActorID, pausedThreadState) {
 }
 
 export function createThread(targetFront) {
-  const name = targetFront.isTopLevel
-    ? L10N.getStr("mainThread")
-    : targetFront.name;
+  // When debugging a Web Extension, the top level target is always the fallback document.
+  // It isn't really a top level document as it won't be the parent of any other.
+  // So only print its name.
+  const name =
+    targetFront.isTopLevel &&
+    !targetFront.commands.descriptorFront.isWebExtension
+      ? L10N.getStr("mainThread")
+      : targetFront.name;
 
   return {
     actor: targetFront.targetForm.threadActor,

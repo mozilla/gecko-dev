@@ -50,7 +50,11 @@ add_task(async function testWebExtensionsToolboxNoBackgroundPage() {
     "Toolbox is debugging an addon"
   );
   const targetName = toolbox.target.name;
-  is(targetName, ADDON_NOBG_NAME, "Toolbox has the expected target");
+  is(
+    targetName,
+    "Web Extension Fallback Document",
+    "Toolbox has the expected target"
+  );
 
   const inspector = await toolbox.selectTool("inspector");
 
