@@ -2093,10 +2093,9 @@ class Settings(private val appContext: Context) : PreferencesHolder {
     /**
      * Indicates if the user is shown the new navigation toolbar.
      */
-    var navigationToolbarEnabled by lazyFeatureFlagPreference(
+    var navigationToolbarEnabled by booleanPreference(
         key = appContext.getPreferenceKey(R.string.pref_key_toolbar_show_navigation_toolbar),
-        default = { FxNimbus.features.navigationToolbar.value().enabled },
-        featureFlag = FeatureFlags.navigationToolbarEnabled,
+        default = FxNimbus.features.navigationToolbar.value().enabled,
     )
 
     /**
