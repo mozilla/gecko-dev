@@ -8,12 +8,9 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
-import mozilla.components.feature.addons.Addon
-import mozilla.components.feature.addons.ui.displayName
 import mozilla.components.service.fxa.manager.AccountState
 import mozilla.components.service.fxa.manager.AccountState.NotAuthenticated
 import mozilla.components.service.fxa.store.Account
@@ -31,7 +28,6 @@ import org.mozilla.fenix.theme.Theme
  * @param accessPoint The [MenuAccessPoint] that was used to navigate to the menu dialog.
  * @param account [Account] information available for a synced account.
  * @param accountState The [AccountState] of a Mozilla account.
- * @param availableAddons A list of installed and enabled [Addon]s to be shown.
  * @param showQuitMenu Whether or not the button to delete browsing data and quit
  * should be visible.
  * @param isPrivate Whether or not the browsing mode is in private mode.
@@ -39,6 +35,7 @@ import org.mozilla.fenix.theme.Theme
  * @param isPdf Whether or not the current tab is a PDF.
  * @param isTranslationSupported Whether or not translation is supported.
  * @param isExtensionsProcessDisabled Whether or not the extensions process is disabled due to extension errors.
+ * @param extensionsMenuItemDescription The label of extensions menu item description.
  * @param reportSiteIssueLabel The label of report site issue web extension menu item.
  * @param onMozillaAccountButtonClick Invoked when the user clicks on Mozilla account button.
  * @param onHelpButtonClick Invoked when the user clicks on the help button.
@@ -66,13 +63,13 @@ fun MainMenu(
     accessPoint: MenuAccessPoint,
     account: Account?,
     accountState: AccountState,
-    availableAddons: List<Addon>,
     showQuitMenu: Boolean,
     isPrivate: Boolean,
     isDesktopMode: Boolean,
     isPdf: Boolean,
     isTranslationSupported: Boolean,
     isExtensionsProcessDisabled: Boolean,
+    extensionsMenuItemDescription: String,
     reportSiteIssueLabel: String?,
     onMozillaAccountButtonClick: () -> Unit,
     onHelpButtonClick: () -> Unit,
@@ -112,11 +109,11 @@ fun MainMenu(
 
         ToolsAndActionsMenuGroup(
             accessPoint = accessPoint,
-            availableAddons = availableAddons,
             isDesktopMode = isDesktopMode,
             isPdf = isPdf,
             isTranslationSupported = isTranslationSupported,
             isExtensionsProcessDisabled = isExtensionsProcessDisabled,
+            extensionsMenuItemDescription = extensionsMenuItemDescription,
             reportSiteIssueLabel = reportSiteIssueLabel,
             onSwitchToDesktopSiteMenuClick = onSwitchToDesktopSiteMenuClick,
             onFindInPageMenuClick = onFindInPageMenuClick,
@@ -211,11 +208,11 @@ private fun NewTabsMenuGroup(
 @Composable
 private fun ToolsAndActionsMenuGroup(
     accessPoint: MenuAccessPoint,
-    availableAddons: List<Addon>,
     isDesktopMode: Boolean,
     isPdf: Boolean,
     isTranslationSupported: Boolean,
     isExtensionsProcessDisabled: Boolean,
+    extensionsMenuItemDescription: String,
     reportSiteIssueLabel: String?,
     onSwitchToDesktopSiteMenuClick: () -> Unit,
     onFindInPageMenuClick: () -> Unit,
@@ -294,16 +291,7 @@ private fun ToolsAndActionsMenuGroup(
 
         MenuItem(
             label = stringResource(id = R.string.browser_menu_extensions),
-            description = if (isExtensionsProcessDisabled) {
-                stringResource(R.string.browser_menu_extensions_disabled_description)
-            } else {
-                if (availableAddons.isEmpty()) {
-                    stringResource(R.string.browser_menu_no_extensions_installed_description)
-                } else {
-                    val context = LocalContext.current
-                    availableAddons.joinToString(separator = ", ") { it.displayName(context) }
-                }
-            },
+            description = extensionsMenuItemDescription,
             descriptionState = if (isExtensionsProcessDisabled) {
                 MenuItemState.WARNING
             } else {
@@ -397,13 +385,13 @@ private fun MenuDialogPreview() {
                 accessPoint = MenuAccessPoint.Browser,
                 account = null,
                 accountState = NotAuthenticated,
-                availableAddons = emptyList(),
                 isPrivate = false,
                 isDesktopMode = false,
                 isPdf = false,
                 isTranslationSupported = true,
                 showQuitMenu = true,
                 isExtensionsProcessDisabled = true,
+                extensionsMenuItemDescription = "No extensions enabled",
                 reportSiteIssueLabel = "Report Site Issue",
                 onMozillaAccountButtonClick = {},
                 onHelpButtonClick = {},
@@ -439,13 +427,13 @@ private fun MenuDialogPrivatePreview() {
                 accessPoint = MenuAccessPoint.Home,
                 account = null,
                 accountState = NotAuthenticated,
-                availableAddons = emptyList(),
                 isPrivate = false,
                 isDesktopMode = false,
                 isPdf = false,
                 isTranslationSupported = true,
                 showQuitMenu = true,
                 isExtensionsProcessDisabled = false,
+                extensionsMenuItemDescription = "No extensions enabled",
                 reportSiteIssueLabel = "Report Site Issue",
                 onMozillaAccountButtonClick = {},
                 onHelpButtonClick = {},
