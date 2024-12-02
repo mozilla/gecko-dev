@@ -63,9 +63,6 @@ const BASE_METRICS = [
   PIPELINE_READY_LATENCY,
   INITIALIZATION_LATENCY,
   MODEL_RUN_LATENCY,
-  PIPELINE_READY_MEMORY,
-  INITIALIZATION_MEMORY,
-  MODEL_RUN_MEMORY,
 ];
 
 // Generate prefixed metrics for each engine
@@ -101,9 +98,6 @@ const perfMetadata = {
           shouldAlert: true,
         },
         { name: `intent-model-run-latency`, unit: "ms", shouldAlert: true },
-        { name: `intent-pipeline-ready-memory`, unit: "MB", shouldAlert: true },
-        { name: `intent-initialization-memory`, unit: "MB", shouldAlert: true },
-        { name: `intent-model-run-memory`, unit: "MB", shouldAlert: true },
         { name: `intent-total-memory-usage`, unit: "MB", shouldAlert: true },
         {
           name: `suggest-pipeline-ready-latency`,
@@ -116,18 +110,6 @@ const perfMetadata = {
           shouldAlert: true,
         },
         { name: `suggest-model-run-latency`, unit: "ms", shouldAlert: true },
-        {
-          name: `suggest-pipeline-ready-memory`,
-          unit: "MB",
-          shouldAlert: true,
-        },
-        {
-          name: `suggest-initialization-memory`,
-          unit: "MB",
-          shouldAlert: true,
-        },
-        { name: `suggest-model-run-memory`, unit: "MB", shouldAlert: true },
-
         { name: `suggest-total-memory-usage`, unit: "MB", shouldAlert: true },
         {
           name: `engine3-pipeline-ready-latency`,
@@ -141,18 +123,6 @@ const perfMetadata = {
           shouldAlert: true,
         },
         { name: `engine3-model-run-latency`, unit: "ms", shouldAlert: true },
-        {
-          name: `engine3-pipeline-ready-memory`,
-          unit: "MB",
-          shouldAlert: true,
-        },
-        {
-          name: `engine3-initialization-memory`,
-          unit: "MB",
-          shouldAlert: true,
-        },
-        { name: `engine3-model-run-memory`, unit: "MB", shouldAlert: true },
-
         { name: `engine3-total-memory-usage`, unit: "MB", shouldAlert: true },
         {
           name: `engine4-pipeline-ready-latency`,
@@ -165,17 +135,6 @@ const perfMetadata = {
           shouldAlert: true,
         },
         { name: `engine4-model-run-latency`, unit: "ms", shouldAlert: true },
-        {
-          name: `engine4-pipeline-ready-memory`,
-          unit: "MB",
-          shouldAlert: true,
-        },
-        {
-          name: `engine4-initialization-memory`,
-          unit: "MB",
-          shouldAlert: true,
-        },
-        { name: `engine4-model-run-memory`, unit: "MB", shouldAlert: true },
         { name: `engine4-total-memory-usage`, unit: "MB", shouldAlert: true },
       ],
       verbose: true,

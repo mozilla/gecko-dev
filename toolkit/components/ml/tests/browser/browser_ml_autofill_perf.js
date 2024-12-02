@@ -21,17 +21,6 @@ const perfMetadata = {
           shouldAlert: true,
         },
         { name: "AUTOFILL-model-run-latency", unit: "ms", shouldAlert: true },
-        {
-          name: "AUTOFILL-pipeline-ready-memory",
-          unit: "MB",
-          shouldAlert: true,
-        },
-        {
-          name: "AUTOFILL-initialization-memory",
-          unit: "MB",
-          shouldAlert: true,
-        },
-        { name: "AUTOFILL-model-run-memory", unit: "MB", shouldAlert: true },
         { name: "AUTOFILL-total-memory-usage", unit: "MB", shouldAlert: true },
       ],
       verbose: true,

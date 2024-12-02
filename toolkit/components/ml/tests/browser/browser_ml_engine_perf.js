@@ -26,21 +26,6 @@ const perfMetadata = {
           shouldAlert: true,
         },
         {
-          name: "EXAMPLE-cold-start-pipeline-ready-memory",
-          unit: "MB",
-          shouldAlert: true,
-        },
-        {
-          name: "EXAMPLE-cold-start-initialization-memory",
-          unit: "MB",
-          shouldAlert: true,
-        },
-        {
-          name: "EXAMPLE-cold-start-model-run-memory",
-          unit: "MB",
-          shouldAlert: true,
-        },
-        {
           name: "EXAMPLE-cold-start-total-memory-usage",
           unit: "MB",
           shouldAlert: true,
@@ -56,17 +41,6 @@ const perfMetadata = {
           shouldAlert: true,
         },
         { name: "EXAMPLE-model-run-latency", unit: "ms", shouldAlert: true },
-        {
-          name: "EXAMPLE-pipeline-ready-memory",
-          unit: "MB",
-          shouldAlert: true,
-        },
-        {
-          name: "EXAMPLE-initialization-memory",
-          unit: "MB",
-          shouldAlert: true,
-        },
-        { name: "EXAMPLE-model-run-memory", unit: "MB", shouldAlert: true },
         { name: "EXAMPLE-total-memory-usage", unit: "MB", shouldAlert: true },
       ],
       verbose: true,

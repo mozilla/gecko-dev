@@ -7,9 +7,7 @@ const METRICS = [
   `${PREFIX}-${PIPELINE_READY_LATENCY}`,
   `${PREFIX}-${INITIALIZATION_LATENCY}`,
   `${PREFIX}-${MODEL_RUN_LATENCY}`,
-  `${PREFIX}-${PIPELINE_READY_MEMORY}`,
-  `${PREFIX}-${INITIALIZATION_MEMORY}`,
-  `${PREFIX}-${MODEL_RUN_MEMORY}`,
+  `${PREFIX}-${TOTAL_MEMORY_USAGE}`,
 ];
 const journal = {};
 for (let metric of METRICS) {
@@ -35,17 +33,7 @@ const perfMetadata = {
           shouldAlert: true,
         },
         { name: "inference-model-run-latency", unit: "ms", shouldAlert: true },
-        {
-          name: "inference-pipeline-ready-memory",
-          unit: "MB",
-          shouldAlert: true,
-        },
-        {
-          name: "inference-initialization-memory",
-          unit: "MB",
-          shouldAlert: true,
-        },
-        { name: "inference-model-run-memory", unit: "MB", shouldAlert: true },
+        { name: "inference-total-memory-usage", unit: "ms", shouldAlert: true },
       ],
       verbose: true,
       manifest: "perftest.toml",

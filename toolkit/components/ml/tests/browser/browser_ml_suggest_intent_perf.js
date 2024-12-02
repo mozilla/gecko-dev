@@ -21,9 +21,6 @@ const perfMetadata = {
           shouldAlert: true,
         },
         { name: "INTENT-model-run-latency", unit: "ms", shouldAlert: true },
-        { name: "INTENT-pipeline-ready-memory", unit: "MB", shouldAlert: true },
-        { name: "INTENT-initialization-memory", unit: "MB", shouldAlert: true },
-        { name: "INTENT-model-run-memory", unit: "MB", shouldAlert: true },
         {
           name: "INTENT-total-memory-usage",
           unit: "MB",

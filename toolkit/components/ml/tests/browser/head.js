@@ -196,9 +196,6 @@ const PIPELINE_READY_END = "ensurePipelineIsReadyEnd";
 const PIPELINE_READY_LATENCY = "pipeline-ready-latency";
 const INITIALIZATION_LATENCY = "initialization-latency";
 const MODEL_RUN_LATENCY = "model-run-latency";
-const PIPELINE_READY_MEMORY = "pipeline-ready-memory";
-const INITIALIZATION_MEMORY = "initialization-memory";
-const MODEL_RUN_MEMORY = "model-run-memory";
 const TOTAL_MEMORY_USAGE = "total-memory-usage";
 const COLD_START_PREFIX = "cold-start-";
 const ITERATIONS = 10;
@@ -287,30 +284,9 @@ function fetchLatencyMetrics(metrics, isFirstRun) {
   };
 }
 
-function fetchMemoryMetrics(metrics, isFirstRun) {
-  const pipelineMemory =
-    fetchMLMetric(metrics, PIPELINE_READY_END, MEMORY) -
-    fetchMLMetric(metrics, PIPELINE_READY_START, MEMORY);
-  const initMemory =
-    fetchMLMetric(metrics, INIT_END, MEMORY) -
-    fetchMLMetric(metrics, INIT_START, MEMORY);
-  const runMemory =
-    fetchMLMetric(metrics, RUN_END, MEMORY) -
-    fetchMLMetric(metrics, RUN_START, MEMORY);
-  return {
-    [`${isFirstRun ? COLD_START_PREFIX : ""}${PIPELINE_READY_MEMORY}`]:
-      pipelineMemory / MB_TO_BYTES,
-    [`${isFirstRun ? COLD_START_PREFIX : ""}${INITIALIZATION_MEMORY}`]:
-      initMemory / MB_TO_BYTES,
-    [`${isFirstRun ? COLD_START_PREFIX : ""}${MODEL_RUN_MEMORY}`]:
-      runMemory / MB_TO_BYTES,
-  };
-}
-
 function fetchMetrics(metrics, isFirstRun) {
   return {
     ...fetchLatencyMetrics(metrics, isFirstRun),
-    ...fetchMemoryMetrics(metrics, isFirstRun),
   };
 }
 
@@ -519,18 +495,12 @@ async function perfTest(
     `${name}-${PIPELINE_READY_LATENCY}`,
     `${name}-${INITIALIZATION_LATENCY}`,
     `${name}-${MODEL_RUN_LATENCY}`,
-    `${name}-${PIPELINE_READY_MEMORY}`,
-    `${name}-${INITIALIZATION_MEMORY}`,
-    `${name}-${MODEL_RUN_MEMORY}`,
     `${name}-${TOTAL_MEMORY_USAGE}`,
     ...(addColdStart
       ? [
           `${name}-${COLD_START_PREFIX}${PIPELINE_READY_LATENCY}`,
           `${name}-${COLD_START_PREFIX}${INITIALIZATION_LATENCY}`,
           `${name}-${COLD_START_PREFIX}${MODEL_RUN_LATENCY}`,
-          `${name}-${COLD_START_PREFIX}${PIPELINE_READY_MEMORY}`,
-          `${name}-${COLD_START_PREFIX}${INITIALIZATION_MEMORY}`,
-          `${name}-${COLD_START_PREFIX}${MODEL_RUN_MEMORY}`,
           `${name}-${COLD_START_PREFIX}${TOTAL_MEMORY_USAGE}`,
         ]
       : []),
