@@ -246,8 +246,12 @@
     <string name="browser_menu_open_in_regular_tab">Dobrir dins un onglet classic</string>
     <!-- Browser menu toggle that adds a shortcut to the site on the device home screen. -->
     <string name="browser_menu_add_to_homescreen">Apondre a l’ecran d’acuèlh</string>
+    <!-- Browser menu toggle that adds a PWA of the site on the device home screen. -->
+    <string name="browser_menu_add_app_to_homescreen">Apondre l’aplicacion a l’ecran d’acuèlh</string>
     <!-- Browser menu toggle that adds a shortcut to the site on the device home screen. -->
     <string name="browser_menu_add_to_homescreen_2">Apondre a l’ecran d’acuèlh…</string>
+    <!-- Browser menu toggle that adds a PWA of the site on the device home screen. -->
+    <string name="browser_menu_add_app_to_homescreen_2">Apondre l’aplicacion a l’ecran d’acuèlh…</string>
     <!-- Text for notifying users that Xiaomi devices require additional permissions to add to home screen -->
     <string name="browser_menu_add_to_homescreen_xiaomi">Los aparelhs Xiaomi pòdon aver besonh d\'autorizacions suplementàrias per apondre d\'acorchis a l\'ecran d\'acuèlh. Verificatz vòstres paramètres.</string>
     <!-- Content description (not visible, for screen readers etc.) for the Resync tabs button -->
@@ -539,6 +543,8 @@
     <string name="onboarding_add_on_ublock_description" tools:ignore="UnusedResources">Blocatz las publicitats amb eficacitat.</string>
     <!-- Privacy Badger name for the onboarding add-ons card, used by Nimbus experiments. Note: The word "Privacy Badger" is a brand name should NOT be translated -->
     <string name="onboarding_add_on_privacy_badger_name" tools:ignore="UnusedResources">Privacy Badger</string>
+    <!-- Privacy Badger description for the onboarding add-ons card, used by Nimbus experiments. -->
+    <string name="onboarding_add_on_privacy_badger_description" tools:ignore="UnusedResources">Una jòia de proteccion contra lo seguiment. Blocatz los elements de seguiment invisibles e las publicitats que vos espian.</string>
     <!-- Search by Image name for the onboarding add-ons card, used by Nimbus experiments. Note: The word "Search by Image" is a brand name should NOT be translated -->
     <string name="onboarding_add_on_search_by_image_name" tools:ignore="UnusedResources">Cercar per imatge</string>
 
@@ -554,6 +560,8 @@
     <!-- Content description for the star rating group. -->
     <string name="onboarding_add_on_star_rating_content_description">Notat %1$s de 5</string>
 
+    <!-- Learn more link for the usage data option in the privacy preferences dialog shown during onboarding. -->
+    <string name="onboarding_preferences_dialog_usage_data_learn_more" tools:ignore="UnusedResources">Ne saber mai tocant las donadas d’utilizacion</string>
     <!-- Positive button label for the privacy preferences dialog shown during onboarding. -->
     <string name="onboarding_preferences_dialog_positive_button" tools:ignore="UnusedResources">Acabat</string>
     <!-- Negative button label for the privacy preferences dialog shown during onboarding. -->
@@ -961,6 +969,8 @@
 
     <!-- Preference switch for usage and technical data collection -->
     <string name="preference_usage_data" moz:removedIn="134" tools:ignore="UnusedResources">Donadas tecnicas e d’utilizacion</string>
+    <!-- Preference switch for usage and technical data collection -->
+    <string name="preference_usage_data_1">Donadas tecnicas e d’interaccion</string>
     <!-- Preference switch for usage and technical learn more link -->
     <string name="preference_usage_data_learn_more" tools:ignore="UnusedResources">Ne saber mai</string>
     <!-- Preference description for usage and technical data collection -->
@@ -1257,6 +1267,9 @@
     <string name="download_delete_item_1">Suprimir</string>
 
 
+    <!-- WebCompat Reporter -->
+    <!-- The title of the Web Compat Reporter feature. This is displayed in the top app bar. -->
+    <string name="webcompat_reporter_screen_title">Senhalar un site copat</string>
     <!-- The text field label of the URL text field. This is displayed above the user-inputted URL. -->
     <string name="webcompat_reporter_label_url">URL</string>
     <!-- The error message of the URL text field when an invalid URL has been entered. -->
