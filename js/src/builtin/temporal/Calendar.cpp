@@ -686,18 +686,16 @@ static bool ToTemporalCalendar(JSContext* cx, Handle<JSObject*> object,
 }
 
 /**
- * ToTemporalCalendarSlotValue ( temporalCalendarLike [ , default ] )
+ * ToTemporalCalendarSlotValue ( temporalCalendarLike )
  */
 bool js::temporal::ToTemporalCalendar(JSContext* cx,
                                       Handle<Value> temporalCalendarLike,
                                       MutableHandle<CalendarValue> result) {
-  // Step 1. (Not applicable)
-
-  // Step 2.
+  // Step 1.
   if (temporalCalendarLike.isObject()) {
     Rooted<JSObject*> obj(cx, &temporalCalendarLike.toObject());
 
-    // Step 2.a.
+    // Step 1.a.
     Rooted<CalendarValue> calendar(cx);
     if (!::ToTemporalCalendar<PlainDateObject, PlainDateTimeObject,
                               PlainMonthDayObject, PlainYearMonthObject,
@@ -710,7 +708,7 @@ bool js::temporal::ToTemporalCalendar(JSContext* cx,
     }
   }
 
-  // Step 3.
+  // Step 2.
   if (!temporalCalendarLike.isString()) {
     ReportValueError(cx, JSMSG_UNEXPECTED_TYPE, JSDVG_IGNORE_STACK,
                      temporalCalendarLike, nullptr, "not a string");
@@ -718,19 +716,19 @@ bool js::temporal::ToTemporalCalendar(JSContext* cx,
   }
   Rooted<JSString*> str(cx, temporalCalendarLike.toString());
 
-  // Step 4.
+  // Step 3.
   Rooted<JSLinearString*> id(cx, ParseTemporalCalendarString(cx, str));
   if (!id) {
     return false;
   }
 
-  // Step 5.
+  // Step 4.
   CalendarId identifier;
   if (!::ToBuiltinCalendar(cx, id, &identifier)) {
     return false;
   }
 
-  // Step 6.
+  // Step 5.
   result.set(CalendarValue(identifier));
   return true;
 }
@@ -759,16 +757,13 @@ bool js::temporal::GetTemporalCalendarWithISODefault(
     return false;
   }
 
-  // FIXME: spec issue - handle `undefined` case here and then remove optional
-  // `default` parameter from ToTemporalCalendarSlotValue.
-  //
-  // https://github.com/tc39/proposal-temporal/pull/2913
-
   // Step 3.
   if (calendarValue.isUndefined()) {
     result.set(CalendarValue(CalendarId::ISO8601));
     return true;
   }
+
+  // Step 4.
   return ToTemporalCalendar(cx, calendarValue, result);
 }
 

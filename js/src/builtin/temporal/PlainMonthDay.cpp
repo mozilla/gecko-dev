@@ -208,17 +208,13 @@ static bool ToTemporalMonthDay(
     return true;
   }
 
-  // FIXME: spec issue - call GetTemporalCalendarSlotValueWithISODefault here
-  //
-  // https://github.com/tc39/proposal-temporal/pull/2913
-
-  // Steps 2.b-c.
+  // Step 2.b.
   Rooted<CalendarValue> calendar(cx);
   if (!GetTemporalCalendarWithISODefault(cx, item, &calendar)) {
     return false;
   }
 
-  // Step 2.d.
+  // Step 2.c.
   Rooted<TemporalFields> fields(cx);
   if (!PrepareCalendarFields(cx, calendar, item,
                              {
@@ -231,7 +227,7 @@ static bool ToTemporalMonthDay(
     return false;
   }
 
-  // Step 2.e.
+  // Step 2.d.
   return CalendarMonthDayFromFields(cx, calendar, fields, overflow, result);
 }
 

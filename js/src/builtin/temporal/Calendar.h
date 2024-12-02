@@ -223,7 +223,7 @@ bool ToBuiltinCalendar(JSContext* cx, JS::Handle<JSString*> id,
                        JS::MutableHandle<CalendarValue> result);
 
 /**
- * ToTemporalCalendarSlotValue ( temporalCalendarLike [ , default ] )
+ * ToTemporalCalendarSlotValue ( temporalCalendarLike )
  */
 bool ToTemporalCalendar(JSContext* cx,
                         JS::Handle<JS::Value> temporalCalendarLike,
