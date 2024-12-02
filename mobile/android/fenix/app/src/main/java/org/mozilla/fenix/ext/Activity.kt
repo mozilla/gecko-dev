@@ -57,6 +57,7 @@ import org.mozilla.fenix.tabstray.TabsTrayFragmentDirections
 import org.mozilla.fenix.trackingprotection.TrackingProtectionPanelDialogFragmentDirections
 import org.mozilla.fenix.translations.TranslationsDialogFragmentDirections
 import org.mozilla.fenix.translations.preferences.downloadlanguages.DownloadLanguagesPreferenceFragmentDirections
+import org.mozilla.fenix.webcompat.ui.WebCompatReporterFragmentDirections
 import java.security.InvalidParameterException
 
 /**
@@ -331,6 +332,9 @@ private fun getHomeNavDirections(
 
     BrowserDirection.FromDownloadLanguagesPreferenceFragment ->
         DownloadLanguagesPreferenceFragmentDirections.actionGlobalBrowser()
+
+    BrowserDirection.FromWebCompatReporterFragment ->
+        WebCompatReporterFragmentDirections.actionGlobalBrowser()
 }
 
 const val REQUEST_CODE_BROWSER_ROLE = 1
