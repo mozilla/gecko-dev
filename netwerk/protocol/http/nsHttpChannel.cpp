@@ -7887,14 +7887,11 @@ nsHttpChannel::OnStartRequest(nsIRequest* request) {
 
     bool isTrr;
     bool echConfigUsed;
-
-    if (!StaticPrefs::network_dns_use_override_as_peer_address()) {
-      mTransaction->GetNetworkAddresses(mSelfAddr, mPeerAddr, isTrr,
-                                        mEffectiveTRRMode, mTRRSkipReason,
-                                        echConfigUsed);
-      StoreResolvedByTRR(isTrr);
-      StoreEchConfigUsed(echConfigUsed);
-    }
+    mTransaction->GetNetworkAddresses(mSelfAddr, mPeerAddr, isTrr,
+                                      mEffectiveTRRMode, mTRRSkipReason,
+                                      echConfigUsed);
+    StoreResolvedByTRR(isTrr);
+    StoreEchConfigUsed(echConfigUsed);
   }
 
   // don't enter this block if we're reading from the cache...
@@ -8158,13 +8155,7 @@ nsresult nsHttpChannel::LogConsoleError(const char* aTag) {
   return NS_OK;
 }
 
-static void RecordHTTPSUpgradeTelemetry(bool aLoadSuccess, nsIURI* aURI,
-                                        nsILoadInfo* aLoadInfo) {
-  // if the load was not successful, then there is nothing to record here
-  if (!aLoadSuccess) {
-    return;
-  }
-
+static void RecordHTTPSUpgradeTelemetry(nsIURI* aURI, nsILoadInfo* aLoadInfo) {
   // we record https telemetry only for top-level loads
   if (aLoadInfo->GetExternalContentPolicyType() !=
       ExtContentPolicy::TYPE_DOCUMENT) {
@@ -8285,40 +8276,6 @@ static void RecordHTTPSUpgradeTelemetry(bool aLoadSuccess, nsIURI* aURI,
       break;
     default:
       MOZ_ASSERT(false, "what telemetry flag is set to end up here?");
-  }
-}
-
-static void RecordIPAddressSpaceTelemetry(bool aLoadSuccess, nsIURI* aURI,
-                                          nsILoadInfo* aLoadInfo,
-                                          NetAddr& aPeerAddr) {
-  // if the load was not successful, then there is nothing to record here
-  if (!aLoadSuccess &&
-      !StaticPrefs::network_dns_use_override_as_peer_address()) {
-    return;
-  }
-
-  // we record https telemetry only for top-level loads
-  if (aLoadInfo->GetExternalContentPolicyType() !=
-      ExtContentPolicy::TYPE_DOCUMENT) {
-    return;
-  }
-
-  if (aURI->SchemeIs("https")) {
-    mozilla::glean::networking::https_http_or_local.Get("load_is_https"_ns)
-        .Add(1);
-    return;
-  }
-
-  if (aURI->SchemeIs("http")) {
-    if (aPeerAddr.IsIPAddrLocal() || aPeerAddr.IsLoopbackAddr()) {
-      mozilla::glean::networking::https_http_or_local
-          .Get("load_is_http_for_local_domain"_ns)
-          .Add(1);
-    } else {
-      mozilla::glean::networking::https_http_or_local.Get("load_is_http"_ns)
-          .Add(1);
-    }
-    return;
   }
 }
 
@@ -8467,10 +8424,7 @@ nsHttpChannel::OnStopRequest(nsIRequest* request, nsresult status) {
     mTransferSize = mTransaction->GetTransferSize();
     mRequestSize = mTransaction->GetRequestSize();
 
-    RecordHTTPSUpgradeTelemetry(NS_SUCCEEDED(mStatus), mURI, mLoadInfo);
-
-    RecordIPAddressSpaceTelemetry(NS_SUCCEEDED(mStatus), mURI, mLoadInfo,
-                                  mPeerAddr);
+    RecordHTTPSUpgradeTelemetry(mURI, mLoadInfo);
 
     // If we are using the transaction to serve content, we also save the
     // time since async open in the cache entry so we can compare telemetry
@@ -9213,18 +9167,14 @@ nsHttpChannel::OnTransportStatus(nsITransport* trans, nsresult status,
     bool isTrr = false;
     bool echConfigUsed = false;
     if (mTransaction) {
-      if (!StaticPrefs::network_dns_use_override_as_peer_address()) {
-        mTransaction->GetNetworkAddresses(mSelfAddr, mPeerAddr, isTrr,
-                                          mEffectiveTRRMode, mTRRSkipReason,
-                                          echConfigUsed);
-      }
+      mTransaction->GetNetworkAddresses(mSelfAddr, mPeerAddr, isTrr,
+                                        mEffectiveTRRMode, mTRRSkipReason,
+                                        echConfigUsed);
     } else {
       nsCOMPtr<nsISocketTransport> socketTransport = do_QueryInterface(trans);
       if (socketTransport) {
-        if (!StaticPrefs::network_dns_use_override_as_peer_address()) {
-          socketTransport->GetPeerAddr(&mPeerAddr);
-        }
         socketTransport->GetSelfAddr(&mSelfAddr);
+        socketTransport->GetPeerAddr(&mPeerAddr);
         socketTransport->ResolvedByTRR(&isTrr);
         socketTransport->GetEffectiveTRRMode(&mEffectiveTRRMode);
         socketTransport->GetEchConfigUsed(&echConfigUsed);
@@ -9770,15 +9720,6 @@ nsHttpChannel::OnLookupComplete(nsICancelable* request, nsIDNSRecord* rec,
     mCaps &= ~NS_HTTP_REFRESH_DNS;
     if (mTransaction) {
       mTransaction->SetDNSWasRefreshed();
-    }
-  }
-
-  if (StaticPrefs::network_dns_use_override_as_peer_address()) {
-    nsTArray<NetAddr> addresses;
-    nsCOMPtr<nsIDNSAddrRecord> record = do_QueryInterface(rec);
-    Unused << record->GetAddresses(addresses);
-    if (addresses.Length()) {
-      mPeerAddr = addresses[0];
     }
   }
 
