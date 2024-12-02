@@ -15924,7 +15924,11 @@
 # 3: Consult CRLite and enforce "Not Revoked" results, but defer to OCSP for "Revoked".
 - name: security.pki.crlite_mode
   type: RelaxedAtomicUint32
+#ifdef NIGHTLY_BUILD
+  value: 2
+#else
   value: 3
+#endif
   mirror: always
 
 # The CRLite filter channel to which the user is subscribed.
