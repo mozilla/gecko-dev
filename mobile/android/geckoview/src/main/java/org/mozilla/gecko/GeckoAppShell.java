@@ -917,6 +917,33 @@ public class GeckoAppShell {
   }
 
   @WrapForJNI(calledFrom = "gecko")
+  private static boolean hasHDRScreen() {
+    if (Build.VERSION.SDK_INT < 24) {
+      return false;
+    }
+    final WindowManager wm =
+        (WindowManager) getApplicationContext().getSystemService(Context.WINDOW_SERVICE);
+    final Display display = wm.getDefaultDisplay();
+    if (Build.VERSION.SDK_INT >= 26) {
+      return display.isHdr();
+    }
+    final Display.HdrCapabilities hdrCapabilities = display.getHdrCapabilities();
+    if (hdrCapabilities == null) {
+      return false;
+    }
+    final int[] supportedHdrTypes = hdrCapabilities.getSupportedHdrTypes();
+    for (final int type : supportedHdrTypes) {
+      if (type == Display.HdrCapabilities.HDR_TYPE_HDR10
+          || type == Display.HdrCapabilities.HDR_TYPE_HDR10_PLUS
+          || type == Display.HdrCapabilities.HDR_TYPE_HLG
+          || type == Display.HdrCapabilities.HDR_TYPE_DOLBY_VISION) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  @WrapForJNI(calledFrom = "gecko")
   private static void performHapticFeedback(final boolean aIsLongPress) {
     // Don't perform haptic feedback if a vibration is currently playing,
     // because the haptic feedback will nuke the vibration.
