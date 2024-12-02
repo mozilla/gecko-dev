@@ -839,6 +839,7 @@ def update_git_tools(git: Optional[Path], root_state_dir: Path):
     # git-cinnabar 0.6.0rc1 self-update had a bug that could leave an empty
     # file. If that happens, install from scratch.
     if not exists or cinnabar_exe.stat().st_size == 0:
+        import ssl
         from urllib.request import urlopen
 
         import certifi
@@ -849,10 +850,9 @@ def update_git_tools(git: Optional[Path], root_state_dir: Path):
         cinnabar_url = "https://github.com/glandium/git-cinnabar/"
         download_py = cinnabar_dir / "download.py"
         with open(download_py, "wb") as fh:
+            context = ssl.create_default_context(cafile=certifi.where())
             shutil.copyfileobj(
-                urlopen(
-                    f"{cinnabar_url}/raw/master/download.py", cafile=certifi.where()
-                ),
+                urlopen(f"{cinnabar_url}/raw/master/download.py", context=context),
                 fh,
             )
 
