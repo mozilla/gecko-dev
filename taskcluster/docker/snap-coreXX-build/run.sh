@@ -150,7 +150,7 @@ else
     INDEX_NAME=nightly
   fi;
 
-  if [ "${DEBUG}" = "1" ]; then
+  if [ "${DEBUG}" = "--debug" ]; then
     INDEX_NAME="${INDEX_NAME}-debug"
   fi;
 
