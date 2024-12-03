@@ -204,6 +204,7 @@ def push_to_try(
     push_to_vcs=False,
 ):
     push = not stage_changes and not dry_run
+    push_to_vcs |= MACH_TRY_PUSH_TO_VCS
     check_working_directory(push)
 
     if try_task_config and method not in ("auto", "empty"):
@@ -256,7 +257,7 @@ def push_to_try(
         print("Note: Use `--push-to-vcs` to push changes to try directly.")
 
     try:
-        if push_to_vcs or MACH_TRY_PUSH_TO_VCS:
+        if push_to_vcs:
             vcs.push_to_try(
                 commit_message,
                 changed_files=changed_files,
