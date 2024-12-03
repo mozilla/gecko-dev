@@ -372,17 +372,18 @@ class _MLSuggest {
     }
 
     // Remove the city and state values from the query
-    let locValues = Object.values(location).filter(v => !!v);
+    let locValues = Object.values(location)
+      .map(loc => loc?.replace(/\W+/g, " "))
+      .filter(loc => loc?.trim());
 
     // Regular expression to remove locations
     // This handles single & multi-worded cities/states
-    let locPattern = locValues
-      .map(loc => `\\b${loc.replace(/[-/\\^$*+?.()|[\]{}]'/g, "\\$&")}\\b`)
-      .join("|");
+    let locPattern = locValues.map(loc => `\\b${loc}\\b`).join("|");
     let locRegex = new RegExp(locPattern, "g");
 
     // Remove locations, trim whitespace, and split words
     let words = query
+      .replace(/\W+/g, " ")
       .replace(locRegex, "")
       .split(/\W+/)
       .filter(word => !!word.length);
