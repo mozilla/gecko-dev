@@ -449,12 +449,10 @@ JSString* js::temporal::TemporalDateTimeToString(JSContext* cx,
 }
 
 /**
- * TemporalTimeToString ( hour, minute, second, millisecond, microsecond,
- * nanosecond, precision )
+ * TimeRecordToString ( time, precision )
  */
-JSString* js::temporal::TemporalTimeToString(JSContext* cx,
-                                             const PlainTime& time,
-                                             Precision precision) {
+JSString* js::temporal::TimeRecordToString(JSContext* cx, const PlainTime& time,
+                                           Precision precision) {
   TemporalStringBuilder result(cx, TemporalStringFormat::Time);
   if (!result.reserve()) {
     return nullptr;

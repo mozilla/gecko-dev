@@ -638,7 +638,7 @@ static int32_t CompareISODateTime(const PlainDateTime& one,
   }
 
   // Steps 4.
-  return CompareTemporalTime(one.time, two.time);
+  return CompareTimeRecord(one.time, two.time);
 }
 
 /**

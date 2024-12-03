@@ -31,31 +31,29 @@ class PlainTimeObject : public NativeObject {
   // needed to store a time value in a single int64. 47 bits can be stored as
   // raw bits in a JS::Value.
 
-  static constexpr uint32_t ISO_HOUR_SLOT = 0;
-  static constexpr uint32_t ISO_MINUTE_SLOT = 1;
-  static constexpr uint32_t ISO_SECOND_SLOT = 2;
-  static constexpr uint32_t ISO_MILLISECOND_SLOT = 3;
-  static constexpr uint32_t ISO_MICROSECOND_SLOT = 4;
-  static constexpr uint32_t ISO_NANOSECOND_SLOT = 5;
+  static constexpr uint32_t HOUR_SLOT = 0;
+  static constexpr uint32_t MINUTE_SLOT = 1;
+  static constexpr uint32_t SECOND_SLOT = 2;
+  static constexpr uint32_t MILLISECOND_SLOT = 3;
+  static constexpr uint32_t MICROSECOND_SLOT = 4;
+  static constexpr uint32_t NANOSECOND_SLOT = 5;
   static constexpr uint32_t SLOT_COUNT = 6;
 
-  int32_t isoHour() const { return getFixedSlot(ISO_HOUR_SLOT).toInt32(); }
+  int32_t hour() const { return getFixedSlot(HOUR_SLOT).toInt32(); }
 
-  int32_t isoMinute() const { return getFixedSlot(ISO_MINUTE_SLOT).toInt32(); }
+  int32_t minute() const { return getFixedSlot(MINUTE_SLOT).toInt32(); }
 
-  int32_t isoSecond() const { return getFixedSlot(ISO_SECOND_SLOT).toInt32(); }
+  int32_t second() const { return getFixedSlot(SECOND_SLOT).toInt32(); }
 
-  int32_t isoMillisecond() const {
-    return getFixedSlot(ISO_MILLISECOND_SLOT).toInt32();
+  int32_t millisecond() const {
+    return getFixedSlot(MILLISECOND_SLOT).toInt32();
   }
 
-  int32_t isoMicrosecond() const {
-    return getFixedSlot(ISO_MICROSECOND_SLOT).toInt32();
+  int32_t microsecond() const {
+    return getFixedSlot(MICROSECOND_SLOT).toInt32();
   }
 
-  int32_t isoNanosecond() const {
-    return getFixedSlot(ISO_NANOSECOND_SLOT).toInt32();
-  }
+  int32_t nanosecond() const { return getFixedSlot(NANOSECOND_SLOT).toInt32(); }
 
  private:
   static const ClassSpec classSpec_;
@@ -65,9 +63,8 @@ class PlainTimeObject : public NativeObject {
  * Extract the time fields from the PlainTime object.
  */
 inline PlainTime ToPlainTime(const PlainTimeObject* time) {
-  return {time->isoHour(),        time->isoMinute(),
-          time->isoSecond(),      time->isoMillisecond(),
-          time->isoMicrosecond(), time->isoNanosecond()};
+  return {time->hour(),        time->minute(),      time->second(),
+          time->millisecond(), time->microsecond(), time->nanosecond()};
 }
 
 class Increment;
@@ -118,13 +115,13 @@ struct TimeRecord final {
 };
 
 /**
- * AddTime ( hour, minute, second, millisecond, microsecond, nanosecond, norm )
+ * AddTime ( time, timeDuration )
  */
 TimeRecord AddTime(const PlainTime& time,
                    const NormalizedTimeDuration& duration);
 
 /**
- * DifferenceTime ( h1, min1, s1, ms1, mus1, ns1, h2, min2, s2, ms2, mus2, ns2 )
+ * DifferenceTime ( time1, time2 )
  */
 NormalizedTimeDuration DifferenceTime(const PlainTime& time1,
                                       const PlainTime& time2);
@@ -146,10 +143,9 @@ bool RegulateTime(JSContext* cx, const TemporalTimeLike& time,
                   TemporalOverflow overflow, PlainTime* result);
 
 /**
- * CompareTemporalTime ( h1, min1, s1, ms1, mus1, ns1, h2, min2, s2, ms2, mus2,
- * ns2 )
+ * CompareTimeRecord ( time1, time2 )
  */
-int32_t CompareTemporalTime(const PlainTime& one, const PlainTime& two);
+int32_t CompareTimeRecord(const PlainTime& one, const PlainTime& two);
 
 /**
  * BalanceTime ( hour, minute, second, millisecond, microsecond, nanosecond )
@@ -157,8 +153,7 @@ int32_t CompareTemporalTime(const PlainTime& one, const PlainTime& two);
 TimeRecord BalanceTime(const PlainTime& time, int64_t nanoseconds);
 
 /**
- * RoundTime ( hour, minute, second, millisecond, microsecond, nanosecond,
- * increment, unit, roundingMode )
+ * RoundTime ( time, increment, unit, roundingMode )
  */
 TimeRecord RoundTime(const PlainTime& time, Increment increment,
                      TemporalUnit unit, TemporalRoundingMode roundingMode);

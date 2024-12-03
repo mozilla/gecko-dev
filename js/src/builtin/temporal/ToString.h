@@ -49,11 +49,10 @@ JSString* TemporalDateTimeToString(JSContext* cx, const PlainDateTime& dateTime,
                                    ShowCalendar showCalendar);
 
 /**
- * TemporalTimeToString ( hour, minute, second, millisecond, microsecond,
- * nanosecond, precision )
+ * TimeRecordToString ( time, precision )
  */
-JSString* TemporalTimeToString(JSContext* cx, const PlainTime& time,
-                               Precision precision);
+JSString* TimeRecordToString(JSContext* cx, const PlainTime& time,
+                             Precision precision);
 
 /**
  * TemporalMonthDayToString ( monthDay, showCalendar )
