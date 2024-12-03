@@ -511,6 +511,7 @@ os-integration:
         $eval: >-
             "debug" in task["test-platform"]
             && !("macosx" in task["test-platform"])
+            && !("android-hw" in task["test-platform"])
     merge:
         worker:
             env:
