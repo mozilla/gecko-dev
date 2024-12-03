@@ -101,6 +101,7 @@ add_task(async function test_tabGroupUniqueColors() {
 
 add_task(async function test_tabGroupCollapseAndExpand() {
   let tab1 = BrowserTestUtils.addTab(gBrowser, "about:blank");
+  let tab2 = BrowserTestUtils.addTab(gBrowser, "about:blank");
   let group = gBrowser.addTabGroup([tab1]);
 
   Assert.ok(!group.collapsed, "group is expanded by default");
@@ -115,6 +116,11 @@ add_task(async function test_tabGroupCollapseAndExpand() {
   Assert.ok(group.collapsed, "group is collapsed via API");
   gBrowser.selectedTab = group.tabs[0];
   Assert.ok(!group.collapsed, "group is expanded after selecting tab");
+
+  group.collapsed = true;
+  Assert.ok(group.collapsed, "group is collapsed via API");
+  gBrowser.moveTabToGroup(tab2, group);
+  Assert.ok(!group.collapsed, "group is expanded after moving tab into group");
 
   await removeTabGroup(group);
 });

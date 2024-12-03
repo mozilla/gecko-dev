@@ -5660,8 +5660,10 @@
         return;
       }
 
+      aGroup.collapsed = false;
       this._handleTabMove(aTab, () => aGroup.appendChild(aTab));
       this.removeFromMultiSelectedTabs(aTab);
+      this.tabContainer._notifyBackgroundTab(aTab);
     }
 
     /**

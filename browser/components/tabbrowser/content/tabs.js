@@ -329,6 +329,9 @@
       if (tab.hasAttribute("fadein")) {
         if (tab._fullyOpen) {
           this._updateCloseButtons();
+          if (tab.group && tab == tab.group.lastChild) {
+            this._notifyBackgroundTab(tab);
+          }
         } else {
           this._handleNewTab(tab);
         }
