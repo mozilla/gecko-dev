@@ -2284,9 +2284,7 @@ class nsDisplayItem {
     }
   }
 
-  virtual ~nsDisplayItem() {
-    MOZ_COUNT_DTOR(nsDisplayItem);
-  }
+  virtual ~nsDisplayItem() { MOZ_COUNT_DTOR(nsDisplayItem); }
 
   void SetType(const DisplayItemType aType) { mType = aType; }
 
