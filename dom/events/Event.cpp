@@ -589,13 +589,7 @@ Maybe<CSSIntPoint> Event::GetScreenCoords(nsPresContext* aPresContext,
     return Some(EventStateManager::sLastScreenPoint);
   }
 
-  if (!aEvent || (aEvent->mClass != eMouseEventClass &&
-                  aEvent->mClass != eMouseScrollEventClass &&
-                  aEvent->mClass != eWheelEventClass &&
-                  aEvent->mClass != ePointerEventClass &&
-                  aEvent->mClass != eTouchEventClass &&
-                  aEvent->mClass != eDragEventClass &&
-                  aEvent->mClass != eSimpleGestureEventClass)) {
+  if (!aEvent || !aEvent->DOMEventSupportsCoords()) {
     return Nothing();
   }
 
@@ -655,15 +649,8 @@ CSSIntPoint Event::GetClientCoords(nsPresContext* aPresContext,
     return EventStateManager::sLastClientPoint;
   }
 
-  if (!aEvent ||
-      (aEvent->mClass != eMouseEventClass &&
-       aEvent->mClass != eMouseScrollEventClass &&
-       aEvent->mClass != eWheelEventClass &&
-       aEvent->mClass != eTouchEventClass &&
-       aEvent->mClass != eDragEventClass &&
-       aEvent->mClass != ePointerEventClass &&
-       aEvent->mClass != eSimpleGestureEventClass) ||
-      !aPresContext || !aEvent->AsGUIEvent()->mWidget) {
+  if (!aPresContext || !aEvent || !aEvent->DOMEventSupportsCoords() ||
+      !aEvent->AsGUIEvent()->mWidget) {
     return aDefaultPoint;
   }
 
