@@ -61,9 +61,11 @@ impl RateMetric {
 #[inherent]
 impl Rate for RateMetric {
     pub fn add_to_numerator(&self, amount: i32) {
-        match self {
-            RateMetric::Parent { inner, .. } => {
+        #[allow(unused)]
+        let id = match self {
+            RateMetric::Parent { id, inner } => {
                 inner.add_to_numerator(amount);
+                *id
             }
             RateMetric::Child(c) => {
                 with_ipc_payload(move |payload| {
@@ -73,14 +75,28 @@ impl Rate for RateMetric {
                         payload.rates.insert(c.0, (amount, 0));
                     }
                 });
+                c.0
             }
+        };
+
+        #[cfg(feature = "with_gecko")]
+        if gecko_profiler::can_accept_markers() {
+            use gecko_profiler::gecko_profiler_category;
+            gecko_profiler::add_marker(
+                "Rate::addToNumerator",
+                gecko_profiler_category!(Telemetry),
+                Default::default(),
+                super::profiler_utils::IntLikeMetricMarker::new(id, None, amount),
+            );
         }
     }
 
     pub fn add_to_denominator(&self, amount: i32) {
-        match self {
-            RateMetric::Parent { inner, .. } => {
+        #[allow(unused)]
+        let id = match self {
+            RateMetric::Parent { id, inner } => {
                 inner.add_to_denominator(amount);
+                *id
             }
             RateMetric::Child(c) => {
                 with_ipc_payload(move |payload| {
@@ -90,7 +106,19 @@ impl Rate for RateMetric {
                         payload.rates.insert(c.0, (0, amount));
                     }
                 });
+                c.0
             }
+        };
+
+        #[cfg(feature = "with_gecko")]
+        if gecko_profiler::can_accept_markers() {
+            use gecko_profiler::gecko_profiler_category;
+            gecko_profiler::add_marker(
+                "Rate::addToDenominator",
+                gecko_profiler_category!(Telemetry),
+                Default::default(),
+                super::profiler_utils::IntLikeMetricMarker::new(id, None, amount),
+            );
         }
     }
 

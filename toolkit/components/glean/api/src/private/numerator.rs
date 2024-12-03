@@ -62,9 +62,11 @@ impl NumeratorMetric {
 #[inherent]
 impl Numerator for NumeratorMetric {
     pub fn add_to_numerator(&self, amount: i32) {
-        match self {
-            NumeratorMetric::Parent { inner, .. } => {
+        #[allow(unused)]
+        let id = match self {
+            NumeratorMetric::Parent { id, inner } => {
                 inner.add_to_numerator(amount);
+                *id
             }
             NumeratorMetric::Child(c) => {
                 with_ipc_payload(move |payload| {
@@ -74,7 +76,19 @@ impl Numerator for NumeratorMetric {
                         payload.numerators.insert(c.0, amount);
                     }
                 });
+                c.0
             }
+        };
+
+        #[cfg(feature = "with_gecko")]
+        if gecko_profiler::can_accept_markers() {
+            use gecko_profiler::gecko_profiler_category;
+            gecko_profiler::add_marker(
+                "Rate::addToNumerator",
+                gecko_profiler_category!(Telemetry),
+                Default::default(),
+                super::profiler_utils::IntLikeMetricMarker::new(id, None, amount),
+            );
         }
     }
 

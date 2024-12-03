@@ -288,6 +288,68 @@ pub(crate) mod profiler_utils {
             json_writer.string_property("value", self.value.as_str());
         }
     }
+
+    #[derive(serde::Serialize, serde::Deserialize, Debug)]
+    pub(crate) struct IntLikeMetricMarker<T>
+    where
+        T: Into<i64>,
+    {
+        id: super::MetricId,
+        label: Option<String>,
+        value: T,
+    }
+
+    impl<T> IntLikeMetricMarker<T>
+    where
+        T: Into<i64>,
+    {
+        pub fn new(id: super::MetricId, label: Option<String>, value: T) -> IntLikeMetricMarker<T> {
+            IntLikeMetricMarker { id, label, value }
+        }
+    }
+
+    impl<T> gecko_profiler::ProfilerMarker for IntLikeMetricMarker<T>
+    where
+        T: serde::Serialize + serde::de::DeserializeOwned + Into<i64> + Copy,
+    {
+        fn marker_type_name() -> &'static str {
+            "IntLikeMetric"
+        }
+
+        fn marker_type_display() -> gecko_profiler::MarkerSchema {
+            use gecko_profiler::schema::*;
+            let mut schema = MarkerSchema::new(&[Location::MarkerChart, Location::MarkerTable]);
+            schema.set_tooltip_label("{marker.data.id} {marker.data.label} {marker.data.value}");
+            schema.set_table_label(
+                "{marker.name} - {marker.data.id} {marker.data.label}: {marker.data.value}",
+            );
+            schema.add_key_label_format_searchable(
+                "id",
+                "Metric",
+                Format::UniqueString,
+                Searchable::Searchable,
+            );
+            schema.add_key_label_format("value", "Value", Format::Integer);
+            schema.add_key_label_format_searchable(
+                "label",
+                "Label",
+                Format::String,
+                Searchable::Searchable,
+            );
+            schema
+        }
+
+        fn stream_json_marker_data(&self, json_writer: &mut gecko_profiler::JSONWriter) {
+            json_writer.unique_string_property(
+                "id",
+                lookup_canonical_metric_name(&self.id).unwrap_or_else(LookupError::as_str),
+            );
+            json_writer.int_property("value", self.value.clone().into());
+            if let Some(l) = &self.label {
+                json_writer.string_property("label", &l);
+            };
+        }
+    }
 }
 
 // These two methods, and the constant function, "live" within profiler_utils,
