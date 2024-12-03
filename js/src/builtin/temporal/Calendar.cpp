@@ -128,21 +128,9 @@ static constexpr bool IsISOLeapYear(int32_t year) {
 }
 
 /**
- * IsISOLeapYear ( year )
- */
-static bool IsISOLeapYear(double year) {
-  // Step 1.
-  MOZ_ASSERT(IsInteger(year));
-
-  // Steps 2-5.
-  return std::fmod(year, 4) == 0 &&
-         (std::fmod(year, 100) != 0 || std::fmod(year, 400) == 0);
-}
-
-/**
  * ISODaysInYear ( year )
  */
-int32_t js::temporal::ISODaysInYear(int32_t year) {
+static int32_t ISODaysInYear(int32_t year) {
   // Steps 1-3.
   return IsISOLeapYear(year) ? 366 : 365;
 }
@@ -166,20 +154,6 @@ static constexpr int32_t ISODaysInMonth(int32_t year, int32_t month) {
  */
 int32_t js::temporal::ISODaysInMonth(int32_t year, int32_t month) {
   return ::ISODaysInMonth(year, month);
-}
-
-/**
- * ISODaysInMonth ( year, month )
- */
-int32_t js::temporal::ISODaysInMonth(double year, int32_t month) {
-  MOZ_ASSERT(1 <= month && month <= 12);
-
-  static constexpr uint8_t daysInMonth[2][13] = {
-      {0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31},
-      {0, 31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31}};
-
-  // Steps 1-4.
-  return daysInMonth[IsISOLeapYear(year)][month];
 }
 
 /**
@@ -257,7 +231,7 @@ static int32_t ToISODayOfYear(int32_t year, int32_t month, int32_t day) {
 /**
  * ToISODayOfYear ( year, month, day )
  */
-int32_t js::temporal::ToISODayOfYear(const PlainDate& date) {
+static int32_t ToISODayOfYear(const PlainDate& date) {
   MOZ_ASSERT(ISODateWithinLimits(date));
 
   // Steps 1-5.
@@ -317,21 +291,6 @@ int32_t js::temporal::MakeDay(const PlainDate& date) {
   MOZ_ASSERT(ISODateWithinLimits(date));
 
   return DayFromYear(date.year) + ToISODayOfYear(date) - 1;
-}
-
-/**
- * 21.4.1.13 MakeDate ( day, time )
- */
-int64_t js::temporal::MakeDate(const PlainDate& date) {
-  MOZ_ASSERT(ISODateWithinLimits(date));
-
-  // Step 1 (Not applicable).
-
-  // Steps 2-3.
-  int64_t tv = MakeDay(date) * ToMilliseconds(TemporalUnit::Day);
-
-  // Step 4.
-  return tv;
 }
 
 /**
@@ -2106,22 +2065,15 @@ static bool CalendarDateToISO(JSContext* cx, CalendarId calendar,
       return false;
     }
 
-    // Step 1.b.
-    RegulatedISODate regulated;
-    if (!RegulateISODate(cx, fields.year(), month, fields.day(), overflow,
-                         &regulated)) {
-      return false;
-    }
-
     int32_t intYear;
-    if (!mozilla::NumberEqualsInt32(regulated.year, &intYear)) {
+    if (!mozilla::NumberEqualsInt32(fields.year(), &intYear)) {
       JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
                                 JSMSG_TEMPORAL_PLAIN_DATE_INVALID);
       return false;
     }
 
-    *result = PlainDate{intYear, regulated.month, regulated.day};
-    return true;
+    // Step 1.b.
+    return RegulateISODate(cx, intYear, month, fields.day(), overflow, result);
   }
 
   // Step 2.
@@ -2184,9 +2136,16 @@ static bool CalendarMonthDayToISOReferenceDate(JSContext* cx,
     double year =
         !fields.has(CalendarField::Year) ? referenceISOYear : fields.year();
 
+    int32_t intYear;
+    if (!mozilla::NumberEqualsInt32(year, &intYear)) {
+      // Calendar cycles repeat every 400 years in the Gregorian calendar.
+      intYear = int32_t(std::fmod(year, 400));
+    }
+
     // Step 1.d.
-    RegulatedISODate regulated;
-    if (!RegulateISODate(cx, year, month, fields.day(), overflow, &regulated)) {
+    PlainDate regulated;
+    if (!RegulateISODate(cx, intYear, month, fields.day(), overflow,
+                         &regulated)) {
       return false;
     }
 

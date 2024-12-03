@@ -60,132 +60,89 @@ static inline bool IsPlainMonthDay(Handle<Value> v) {
 }
 
 /**
- * CreateTemporalMonthDay ( isoMonth, isoDay, calendar, referenceISOYear [ ,
- * newTarget ] )
+ * CreateTemporalMonthDay ( isoDate, calendar [ , newTarget ] )
  */
 static PlainMonthDayObject* CreateTemporalMonthDay(
-    JSContext* cx, const CallArgs& args, double isoYear, double isoMonth,
-    double isoDay, Handle<CalendarValue> calendar) {
-  MOZ_ASSERT(IsInteger(isoYear));
-  MOZ_ASSERT(IsInteger(isoMonth));
-  MOZ_ASSERT(IsInteger(isoDay));
-
+    JSContext* cx, const CallArgs& args, const PlainDate& isoDate,
+    Handle<CalendarValue> calendar) {
   // Step 1.
-  if (!ThrowIfInvalidISODate(cx, isoYear, isoMonth, isoDay)) {
-    return nullptr;
-  }
-
-  // Step 2.
-  if (!ISODateWithinLimits(isoYear, isoMonth, isoDay)) {
+  if (!ISODateWithinLimits(isoDate)) {
     JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
                               JSMSG_TEMPORAL_PLAIN_MONTH_DAY_INVALID);
     return nullptr;
   }
 
-  // Steps 3-4.
+  // Steps 2-3.
   Rooted<JSObject*> proto(cx);
   if (!GetPrototypeFromBuiltinConstructor(cx, args, JSProto_PlainMonthDay,
                                           &proto)) {
     return nullptr;
   }
 
-  auto* obj = NewObjectWithClassProto<PlainMonthDayObject>(cx, proto);
-  if (!obj) {
+  auto* object = NewObjectWithClassProto<PlainMonthDayObject>(cx, proto);
+  if (!object) {
     return nullptr;
   }
 
+  // Step 4.
+  auto packedDate = PackedDate::pack(isoDate);
+  object->setFixedSlot(PlainMonthDayObject::PACKED_DATE_SLOT,
+                       PrivateUint32Value(packedDate.value));
+
   // Step 5.
-  obj->setFixedSlot(PlainMonthDayObject::ISO_MONTH_SLOT,
-                    Int32Value(int32_t(isoMonth)));
+  object->setFixedSlot(PlainMonthDayObject::CALENDAR_SLOT,
+                       calendar.toSlotValue());
 
   // Step 6.
-  obj->setFixedSlot(PlainMonthDayObject::ISO_DAY_SLOT,
-                    Int32Value(int32_t(isoDay)));
-
-  // Step 7.
-  obj->setFixedSlot(PlainMonthDayObject::CALENDAR_SLOT, calendar.toSlotValue());
-
-  // Step 8.
-  obj->setFixedSlot(PlainMonthDayObject::ISO_YEAR_SLOT,
-                    Int32Value(int32_t(isoYear)));
-
-  // Step 9.
-  return obj;
+  return object;
 }
 
 /**
- * CreateTemporalMonthDay ( isoMonth, isoDay, calendar, referenceISOYear [ ,
- * newTarget ] )
- */
-static PlainMonthDayObject* CreateTemporalMonthDay(
-    JSContext* cx, const PlainDate& date, Handle<CalendarValue> calendar) {
-  const auto& [isoYear, isoMonth, isoDay] = date;
-
-  // Step 1.
-  if (!ThrowIfInvalidISODate(cx, date)) {
-    return nullptr;
-  }
-
-  // Step 2.
-  if (!ISODateWithinLimits(date)) {
-    JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
-                              JSMSG_TEMPORAL_PLAIN_MONTH_DAY_INVALID);
-    return nullptr;
-  }
-
-  // Steps 3-4.
-  auto* obj = NewBuiltinClassInstance<PlainMonthDayObject>(cx);
-  if (!obj) {
-    return nullptr;
-  }
-
-  // Step 5.
-  obj->setFixedSlot(PlainMonthDayObject::ISO_MONTH_SLOT, Int32Value(isoMonth));
-
-  // Step 6.
-  obj->setFixedSlot(PlainMonthDayObject::ISO_DAY_SLOT, Int32Value(isoDay));
-
-  // Step 7.
-  obj->setFixedSlot(PlainMonthDayObject::CALENDAR_SLOT, calendar.toSlotValue());
-
-  // Step 8.
-  obj->setFixedSlot(PlainMonthDayObject::ISO_YEAR_SLOT, Int32Value(isoYear));
-
-  // Step 9.
-  return obj;
-}
-
-/**
- * CreateTemporalMonthDay ( isoMonth, isoDay, calendar, referenceISOYear [ ,
- * newTarget ] )
+ * CreateTemporalMonthDay ( isoDate, calendar [ , newTarget ] )
  */
 PlainMonthDayObject* js::temporal::CreateTemporalMonthDay(
     JSContext* cx, Handle<PlainMonthDayWithCalendar> monthDay) {
+  MOZ_ASSERT(IsValidISODate(monthDay));
+
+  // Step 1.
   MOZ_ASSERT(ISODateWithinLimits(monthDay));
-  return CreateTemporalMonthDay(cx, monthDay, monthDay.calendar());
+
+  // Steps 2-3.
+  auto* object = NewBuiltinClassInstance<PlainMonthDayObject>(cx);
+  if (!object) {
+    return nullptr;
+  }
+
+  // Step 4.
+  auto packedDate = PackedDate::pack(monthDay);
+  object->setFixedSlot(PlainMonthDayObject::PACKED_DATE_SLOT,
+                       PrivateUint32Value(packedDate.value));
+
+  // Step 5.
+  object->setFixedSlot(PlainMonthDayObject::CALENDAR_SLOT,
+                       monthDay.calendar().toSlotValue());
+
+  // Step 6.
+  return object;
 }
 
 /**
- * CreateTemporalMonthDay ( isoMonth, isoDay, calendar, referenceISOYear [ ,
- * newTarget ] )
+ * CreateTemporalMonthDay ( isoDate, calendar [ , newTarget ] )
  */
 bool js::temporal::CreateTemporalMonthDay(
-    JSContext* cx, const PlainDate& date, Handle<CalendarValue> calendar,
+    JSContext* cx, const PlainDate& isoDate, Handle<CalendarValue> calendar,
     MutableHandle<PlainMonthDayWithCalendar> result) {
-  // Step 1.
-  if (!ThrowIfInvalidISODate(cx, date)) {
-    return false;
-  }
+  MOZ_ASSERT(IsValidISODate(isoDate));
 
-  // Step 2.
-  if (!ISODateWithinLimits(date)) {
+  // Step 1.
+  if (!ISODateWithinLimits(isoDate)) {
     JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
                               JSMSG_TEMPORAL_PLAIN_MONTH_DAY_INVALID);
     return false;
   }
 
-  // Steps 3-9.
-  result.set(PlainMonthDayWithCalendar{date, calendar});
+  // Steps 2-6.
+  result.set(PlainMonthDayWithCalendar{isoDate, calendar});
   return true;
 }
 
@@ -228,7 +185,7 @@ static bool ToTemporalMonthDay(
     MutableHandle<PlainMonthDayWithCalendar> result) {
   // Step 2.a.
   if (auto* plainMonthDay = item->maybeUnwrapIf<PlainMonthDayObject>()) {
-    auto date = ToPlainDate(plainMonthDay);
+    auto date = plainMonthDay->date();
     Rooted<CalendarValue> calendar(cx, plainMonthDay->calendar());
     if (!calendar.wrap(cx)) {
       return false;
@@ -365,8 +322,8 @@ static bool ToTemporalMonthDay(
 }
 
 /**
- * Temporal.PlainMonthDay ( isoMonth, isoDay [ , calendarLike [ ,
- * referenceISOYear ] ] )
+ * Temporal.PlainMonthDay ( isoMonth, isoDay [ , calendar [ , referenceISOYear ]
+ * ] )
  */
 static bool PlainMonthDayConstructor(JSContext* cx, unsigned argc, Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
@@ -414,8 +371,16 @@ static bool PlainMonthDayConstructor(JSContext* cx, unsigned argc, Value* vp) {
   }
 
   // Step 9.
-  auto* monthDay =
-      CreateTemporalMonthDay(cx, args, isoYear, isoMonth, isoDay, calendar);
+  if (!ThrowIfInvalidISODate(cx, isoYear, isoMonth, isoDay)) {
+    return false;
+  }
+
+  // Step 10.
+  auto isoDate =
+      PlainDate{int32_t(isoYear), int32_t(isoMonth), int32_t(isoDay)};
+
+  // Step 9.
+  auto* monthDay = CreateTemporalMonthDay(cx, args, isoDate, calendar);
   if (!monthDay) {
     return false;
   }
@@ -480,7 +445,7 @@ static bool PlainMonthDay_monthCode(JSContext* cx, const CallArgs& args) {
   Rooted<CalendarValue> calendar(cx, monthDay->calendar());
 
   // Step 3.
-  return CalendarMonthCode(cx, calendar, ToPlainDate(monthDay), args.rval());
+  return CalendarMonthCode(cx, calendar, monthDay->date(), args.rval());
 }
 
 /**
@@ -501,7 +466,7 @@ static bool PlainMonthDay_day(JSContext* cx, const CallArgs& args) {
   Rooted<CalendarValue> calendar(cx, monthDay->calendar());
 
   // Step 3.
-  return CalendarDay(cx, calendar, ToPlainDate(monthDay), args.rval());
+  return CalendarDay(cx, calendar, monthDay->date(), args.rval());
 }
 
 /**
@@ -603,7 +568,7 @@ static bool PlainMonthDay_with(JSContext* cx, unsigned argc, Value* vp) {
  */
 static bool PlainMonthDay_equals(JSContext* cx, const CallArgs& args) {
   auto* monthDay = &args.thisv().toObject().as<PlainMonthDayObject>();
-  auto date = ToPlainDate(monthDay);
+  auto date = monthDay->date();
   Rooted<CalendarValue> calendar(cx, monthDay->calendar());
 
   // Step 3.

@@ -34,22 +34,17 @@ class PlainDateObject : public NativeObject {
   static const JSClass class_;
   static const JSClass& protoClass_;
 
-  // TODO: Consider compacting fields to reduce object size.
-  //
-  // ceil(log2(271821)) + ceil(log2(12)) + ceil(log2(31)) = 28 bits are
-  // needed to store a date value in a single int32.
+  static constexpr uint32_t PACKED_DATE_SLOT = 0;
+  static constexpr uint32_t CALENDAR_SLOT = 1;
+  static constexpr uint32_t SLOT_COUNT = 2;
 
-  static constexpr uint32_t ISO_YEAR_SLOT = 0;
-  static constexpr uint32_t ISO_MONTH_SLOT = 1;
-  static constexpr uint32_t ISO_DAY_SLOT = 2;
-  static constexpr uint32_t CALENDAR_SLOT = 3;
-  static constexpr uint32_t SLOT_COUNT = 4;
-
-  int32_t isoYear() const { return getFixedSlot(ISO_YEAR_SLOT).toInt32(); }
-
-  int32_t isoMonth() const { return getFixedSlot(ISO_MONTH_SLOT).toInt32(); }
-
-  int32_t isoDay() const { return getFixedSlot(ISO_DAY_SLOT).toInt32(); }
+  /**
+   * Extract the date fields from this PlainDate object.
+   */
+  PlainDate date() const {
+    auto packed = PackedDate{getFixedSlot(PACKED_DATE_SLOT).toPrivateUint32()};
+    return PackedDate::unpack(packed);
+  }
 
   CalendarValue calendar() const {
     return CalendarValue(getFixedSlot(CALENDAR_SLOT));
@@ -59,13 +54,6 @@ class PlainDateObject : public NativeObject {
   static const ClassSpec classSpec_;
 };
 
-/**
- * Extract the date fields from the PlainDate object.
- */
-inline PlainDate ToPlainDate(const PlainDateObject* date) {
-  return {date->isoYear(), date->isoMonth(), date->isoDay()};
-}
-
 enum class TemporalOverflow;
 enum class TemporalUnit;
 
@@ -74,11 +62,6 @@ enum class TemporalUnit;
  * IsValidISODate ( year, month, day )
  */
 bool IsValidISODate(const PlainDate& date);
-
-/**
- * IsValidISODate ( year, month, day )
- */
-bool IsValidISODate(double year, double month, double day);
 #endif
 
 /**
@@ -93,14 +76,9 @@ bool ThrowIfInvalidISODate(JSContext* cx, double year, double month,
                            double day);
 
 /**
- * ISODateWithinLimits ( year, month, day )
+ * ISODateWithinLimits ( isoDate )
  */
-bool ISODateWithinLimits(const PlainDate& date);
-
-/**
- * ISODateWithinLimits ( year, month, day )
- */
-bool ISODateWithinLimits(double year, double month, double day);
+bool ISODateWithinLimits(const PlainDate& isoDate);
 
 class MOZ_STACK_CLASS PlainDateWithCalendar final {
   PlainDate date_;
@@ -115,7 +93,7 @@ class MOZ_STACK_CLASS PlainDateWithCalendar final {
   }
 
   explicit PlainDateWithCalendar(const PlainDateObject* date)
-      : PlainDateWithCalendar(ToPlainDate(date), date->calendar()) {}
+      : PlainDateWithCalendar(date->date(), date->calendar()) {}
 
   const auto& date() const { return date_; }
   const auto& calendar() const { return calendar_; }
@@ -131,35 +109,29 @@ class MOZ_STACK_CLASS PlainDateWithCalendar final {
 };
 
 /**
- * CreateTemporalDate ( isoYear, isoMonth, isoDay, calendar [ , newTarget ] )
+ * CreateTemporalDate ( isoDate, calendar [ , newTarget ] )
  */
-PlainDateObject* CreateTemporalDate(JSContext* cx, const PlainDate& date,
+PlainDateObject* CreateTemporalDate(JSContext* cx, const PlainDate& isoDate,
                                     JS::Handle<CalendarValue> calendar);
 
 /**
- * CreateTemporalDate ( isoYear, isoMonth, isoDay, calendar [ , newTarget ] )
+ * CreateTemporalDate ( isoDate, calendar [ , newTarget ] )
  */
 PlainDateObject* CreateTemporalDate(JSContext* cx,
                                     JS::Handle<PlainDateWithCalendar> date);
 
 /**
- * CreateTemporalDate ( isoYear, isoMonth, isoDay, calendar [ , newTarget ] )
+ * CreateTemporalDate ( isoDate, calendar [ , newTarget ] )
  */
-bool CreateTemporalDate(JSContext* cx, const PlainDate& date,
+bool CreateTemporalDate(JSContext* cx, const PlainDate& isoDate,
                         JS::Handle<CalendarValue> calendar,
                         JS::MutableHandle<PlainDateWithCalendar> result);
-
-struct RegulatedISODate final {
-  double year = 0;
-  int32_t month = 0;
-  int32_t day = 0;
-};
 
 /**
  * RegulateISODate ( year, month, day, overflow )
  */
-bool RegulateISODate(JSContext* cx, double year, double month, double day,
-                     TemporalOverflow overflow, RegulatedISODate* result);
+bool RegulateISODate(JSContext* cx, int32_t year, double month, double day,
+                     TemporalOverflow overflow, PlainDate* result);
 
 /**
  * AddISODate ( year, month, day, years, months, weeks, days, overflow )

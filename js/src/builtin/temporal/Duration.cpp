@@ -1939,7 +1939,7 @@ static bool GetTemporalRelativeToOption(
 
     // Step 5.b.
     if (auto* plainDate = obj->maybeUnwrapIf<PlainDateObject>()) {
-      auto date = ToPlainDate(plainDate);
+      auto date = plainDate->date();
 
       Rooted<CalendarValue> calendar(cx, plainDate->calendar());
       if (!calendar.wrap(cx)) {
@@ -1952,7 +1952,7 @@ static bool GetTemporalRelativeToOption(
 
     // Step 5.c.
     if (auto* dateTime = obj->maybeUnwrapIf<PlainDateTimeObject>()) {
-      auto date = ToPlainDate(dateTime);
+      auto date = dateTime->date();
 
       Rooted<CalendarValue> calendar(cx, dateTime->calendar());
       if (!calendar.wrap(cx)) {

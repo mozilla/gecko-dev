@@ -179,34 +179,14 @@ enum class TemporalOverflow;
 enum class TemporalUnit;
 
 /**
- * ISODaysInYear ( year )
- */
-int32_t ISODaysInYear(int32_t year);
-
-/**
  * ISODaysInMonth ( year, month )
  */
 int32_t ISODaysInMonth(int32_t year, int32_t month);
 
 /**
- * ISODaysInMonth ( year, month )
- */
-int32_t ISODaysInMonth(double year, int32_t month);
-
-/**
- * ToISODayOfYear ( year, month, day )
- */
-int32_t ToISODayOfYear(const PlainDate& date);
-
-/**
  * 21.4.1.12 MakeDay ( year, month, date )
  */
 int32_t MakeDay(const PlainDate& date);
-
-/**
- * 21.4.1.13 MakeDate ( day, time )
- */
-int64_t MakeDate(const PlainDate& date);
 
 /**
  * 21.4.1.13 MakeDate ( day, time )

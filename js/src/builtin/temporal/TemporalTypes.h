@@ -482,6 +482,72 @@ struct PlainDateTime final {
   }
 };
 
+// 32-bit packed date to store an ISO date within PrivateUint32Value.
+struct PackedDate final {
+  static constexpr uint32_t DayBits = 8;
+  static constexpr uint32_t MonthBits = 4;
+  static constexpr uint32_t YearBits = 20;
+
+  static constexpr uint32_t DayShift = 0;
+  static constexpr uint32_t MonthShift = DayShift + DayBits;
+  static constexpr uint32_t YearShift = MonthShift + MonthBits;
+
+  uint32_t value = 0;
+
+  static constexpr PackedDate pack(const PlainDate& date) {
+    return {uint32_t((date.year << YearShift) | (date.month << MonthShift) |
+                     (date.day << DayShift))};
+  }
+
+  static constexpr PlainDate unpack(const PackedDate& date) {
+    return {
+        int32_t(date.value) >> YearShift,
+        int32_t((date.value >> MonthShift) & BitMask(MonthBits)),
+        int32_t((date.value >> DayShift) & BitMask(DayBits)),
+    };
+  }
+};
+
+// 47-bit packed time to store a time within DoubleValue.
+struct PackedTime final {
+  static constexpr uint32_t NanosecondBits = 10;
+  static constexpr uint32_t MicrosecondBits = 10;
+  static constexpr uint32_t MillisecondBits = 10;
+  static constexpr uint32_t SecondBits = 6;
+  static constexpr uint32_t MinuteBits = 6;
+  static constexpr uint32_t HourBits = 5;
+
+  static constexpr uint32_t NanosecondShift = 0;
+  static constexpr uint32_t MicrosecondShift = NanosecondShift + NanosecondBits;
+  static constexpr uint32_t MillisecondShift =
+      MicrosecondShift + MicrosecondBits;
+  static constexpr uint32_t SecondShift = MillisecondShift + MillisecondBits;
+  static constexpr uint32_t MinuteShift = SecondShift + SecondBits;
+  static constexpr uint32_t HourShift = MinuteShift + MinuteBits;
+
+  uint64_t value = 0;
+
+  static constexpr PackedTime pack(const PlainTime& time) {
+    return {uint64_t(time.hour) << HourShift |
+            uint64_t(time.minute) << MinuteShift |
+            uint64_t(time.second) << SecondShift |
+            uint64_t(time.millisecond) << MillisecondShift |
+            uint64_t(time.microsecond) << MicrosecondShift |
+            uint64_t(time.nanosecond) << NanosecondShift};
+  }
+
+  static constexpr PlainTime unpack(const PackedTime& time) {
+    return {
+        int32_t((time.value >> HourShift) & BitMask(HourBits)),
+        int32_t((time.value >> MinuteShift) & BitMask(MinuteBits)),
+        int32_t((time.value >> SecondShift) & BitMask(SecondBits)),
+        int32_t((time.value >> MillisecondShift) & BitMask(MillisecondBits)),
+        int32_t((time.value >> MicrosecondShift) & BitMask(MicrosecondBits)),
+        int32_t((time.value >> NanosecondShift) & BitMask(NanosecondBits)),
+    };
+  }
+};
+
 struct DateDuration;
 struct TimeDuration;
 

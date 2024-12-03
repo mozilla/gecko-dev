@@ -303,15 +303,10 @@ static PlainTimeObject* CreateTemporalTime(JSContext* cx, const CallArgs& args,
   }
 
   // Step 3.
-  object->setFixedSlot(PlainTimeObject::HOUR_SLOT, Int32Value(time.hour));
-  object->setFixedSlot(PlainTimeObject::MINUTE_SLOT, Int32Value(time.minute));
-  object->setFixedSlot(PlainTimeObject::SECOND_SLOT, Int32Value(time.second));
-  object->setFixedSlot(PlainTimeObject::MILLISECOND_SLOT,
-                       Int32Value(time.millisecond));
-  object->setFixedSlot(PlainTimeObject::MICROSECOND_SLOT,
-                       Int32Value(time.microsecond));
-  object->setFixedSlot(PlainTimeObject::NANOSECOND_SLOT,
-                       Int32Value(time.nanosecond));
+  auto packedTime = PackedTime::pack(time);
+  object->setFixedSlot(
+      PlainTimeObject::PACKED_TIME_SLOT,
+      DoubleValue(mozilla::BitwiseCast<double>(packedTime.value)));
 
   // Step 4.
   return object;
@@ -331,15 +326,10 @@ PlainTimeObject* js::temporal::CreateTemporalTime(JSContext* cx,
   }
 
   // Step 3.
-  object->setFixedSlot(PlainTimeObject::HOUR_SLOT, Int32Value(time.hour));
-  object->setFixedSlot(PlainTimeObject::MINUTE_SLOT, Int32Value(time.minute));
-  object->setFixedSlot(PlainTimeObject::SECOND_SLOT, Int32Value(time.second));
-  object->setFixedSlot(PlainTimeObject::MILLISECOND_SLOT,
-                       Int32Value(time.millisecond));
-  object->setFixedSlot(PlainTimeObject::MICROSECOND_SLOT,
-                       Int32Value(time.microsecond));
-  object->setFixedSlot(PlainTimeObject::NANOSECOND_SLOT,
-                       Int32Value(time.nanosecond));
+  auto packedTime = PackedTime::pack(time);
+  object->setFixedSlot(
+      PlainTimeObject::PACKED_TIME_SLOT,
+      DoubleValue(mozilla::BitwiseCast<double>(packedTime.value)));
 
   // Step 4.
   return object;
@@ -580,7 +570,7 @@ static bool ToTemporalTime(JSContext* cx, Handle<JSObject*> item,
     }
 
     // Step 2.a.iii.
-    *result = ToPlainTime(time);
+    *result = time->time();
     return true;
   }
 
@@ -593,7 +583,7 @@ static bool ToTemporalTime(JSContext* cx, Handle<JSObject*> item,
     }
 
     // Step 2.b.iii.
-    *result = ToPlainTime(dateTime);
+    *result = dateTime->time();
     return true;
   }
 
@@ -859,8 +849,7 @@ TimeRecord js::temporal::AddTime(const PlainTime& time,
 static bool DifferenceTemporalPlainTime(JSContext* cx,
                                         TemporalDifference operation,
                                         const CallArgs& args) {
-  auto temporalTime =
-      ToPlainTime(&args.thisv().toObject().as<PlainTimeObject>());
+  auto temporalTime = args.thisv().toObject().as<PlainTimeObject>().time();
 
   // Step 1.
   PlainTime other;
@@ -934,7 +923,7 @@ static bool DifferenceTemporalPlainTime(JSContext* cx,
 static bool AddDurationToTime(JSContext* cx, TemporalAddDuration operation,
                               const CallArgs& args) {
   auto* temporalTime = &args.thisv().toObject().as<PlainTimeObject>();
-  auto time = ToPlainTime(temporalTime);
+  auto time = temporalTime->time();
 
   // Step 1.
   Duration duration;
@@ -1100,7 +1089,7 @@ static bool PlainTime_compare(JSContext* cx, unsigned argc, Value* vp) {
 static bool PlainTime_hour(JSContext* cx, const CallArgs& args) {
   // Step 3.
   auto* temporalTime = &args.thisv().toObject().as<PlainTimeObject>();
-  args.rval().setInt32(temporalTime->hour());
+  args.rval().setInt32(temporalTime->time().hour);
   return true;
 }
 
@@ -1119,7 +1108,7 @@ static bool PlainTime_hour(JSContext* cx, unsigned argc, Value* vp) {
 static bool PlainTime_minute(JSContext* cx, const CallArgs& args) {
   // Step 3.
   auto* temporalTime = &args.thisv().toObject().as<PlainTimeObject>();
-  args.rval().setInt32(temporalTime->minute());
+  args.rval().setInt32(temporalTime->time().minute);
   return true;
 }
 
@@ -1138,7 +1127,7 @@ static bool PlainTime_minute(JSContext* cx, unsigned argc, Value* vp) {
 static bool PlainTime_second(JSContext* cx, const CallArgs& args) {
   // Step 3.
   auto* temporalTime = &args.thisv().toObject().as<PlainTimeObject>();
-  args.rval().setInt32(temporalTime->second());
+  args.rval().setInt32(temporalTime->time().second);
   return true;
 }
 
@@ -1157,7 +1146,7 @@ static bool PlainTime_second(JSContext* cx, unsigned argc, Value* vp) {
 static bool PlainTime_millisecond(JSContext* cx, const CallArgs& args) {
   // Step 3.
   auto* temporalTime = &args.thisv().toObject().as<PlainTimeObject>();
-  args.rval().setInt32(temporalTime->millisecond());
+  args.rval().setInt32(temporalTime->time().millisecond);
   return true;
 }
 
@@ -1176,7 +1165,7 @@ static bool PlainTime_millisecond(JSContext* cx, unsigned argc, Value* vp) {
 static bool PlainTime_microsecond(JSContext* cx, const CallArgs& args) {
   // Step 3.
   auto* temporalTime = &args.thisv().toObject().as<PlainTimeObject>();
-  args.rval().setInt32(temporalTime->microsecond());
+  args.rval().setInt32(temporalTime->time().microsecond);
   return true;
 }
 
@@ -1195,7 +1184,7 @@ static bool PlainTime_microsecond(JSContext* cx, unsigned argc, Value* vp) {
 static bool PlainTime_nanosecond(JSContext* cx, const CallArgs& args) {
   // Step 3.
   auto* temporalTime = &args.thisv().toObject().as<PlainTimeObject>();
-  args.rval().setInt32(temporalTime->nanosecond());
+  args.rval().setInt32(temporalTime->time().nanosecond);
   return true;
 }
 
@@ -1247,7 +1236,7 @@ static bool PlainTime_subtract(JSContext* cx, unsigned argc, Value* vp) {
  */
 static bool PlainTime_with(JSContext* cx, const CallArgs& args) {
   auto* temporalTime = &args.thisv().toObject().as<PlainTimeObject>();
-  auto time = ToPlainTime(temporalTime);
+  auto time = temporalTime->time();
 
   // Step 3.
   Rooted<JSObject*> temporalTimeLike(
@@ -1349,7 +1338,7 @@ static bool PlainTime_since(JSContext* cx, unsigned argc, Value* vp) {
  */
 static bool PlainTime_round(JSContext* cx, const CallArgs& args) {
   auto* temporalTime = &args.thisv().toObject().as<PlainTimeObject>();
-  auto time = ToPlainTime(temporalTime);
+  auto time = temporalTime->time();
 
   // Steps 3-12.
   auto smallestUnit = TemporalUnit::Auto;
@@ -1433,8 +1422,7 @@ static bool PlainTime_round(JSContext* cx, unsigned argc, Value* vp) {
  * Temporal.PlainTime.prototype.equals ( other )
  */
 static bool PlainTime_equals(JSContext* cx, const CallArgs& args) {
-  auto temporalTime =
-      ToPlainTime(&args.thisv().toObject().as<PlainTimeObject>());
+  auto temporalTime = args.thisv().toObject().as<PlainTimeObject>().time();
 
   // Step 3.
   PlainTime other;
@@ -1461,7 +1449,7 @@ static bool PlainTime_equals(JSContext* cx, unsigned argc, Value* vp) {
  */
 static bool PlainTime_toString(JSContext* cx, const CallArgs& args) {
   auto* temporalTime = &args.thisv().toObject().as<PlainTimeObject>();
-  auto time = ToPlainTime(temporalTime);
+  auto time = temporalTime->time();
 
   SecondsStringPrecision precision = {Precision::Auto(),
                                       TemporalUnit::Nanosecond, Increment{1}};
@@ -1532,7 +1520,7 @@ static bool PlainTime_toString(JSContext* cx, unsigned argc, Value* vp) {
  */
 static bool PlainTime_toLocaleString(JSContext* cx, const CallArgs& args) {
   auto* temporalTime = &args.thisv().toObject().as<PlainTimeObject>();
-  auto time = ToPlainTime(temporalTime);
+  auto time = temporalTime->time();
 
   // Step 3.
   JSString* str = TimeRecordToString(cx, time, Precision::Auto());
@@ -1558,7 +1546,7 @@ static bool PlainTime_toLocaleString(JSContext* cx, unsigned argc, Value* vp) {
  */
 static bool PlainTime_toJSON(JSContext* cx, const CallArgs& args) {
   auto* temporalTime = &args.thisv().toObject().as<PlainTimeObject>();
-  auto time = ToPlainTime(temporalTime);
+  auto time = temporalTime->time();
 
   // Step 3.
   JSString* str = TimeRecordToString(cx, time, Precision::Auto());

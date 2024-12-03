@@ -399,7 +399,7 @@ JSString* js::temporal::TemporalInstantToString(JSContext* cx,
 JSString* js::temporal::TemporalDateToString(
     JSContext* cx, Handle<PlainDateObject*> temporalDate,
     ShowCalendar showCalendar) {
-  auto date = ToPlainDate(temporalDate);
+  auto date = temporalDate->date();
 
   TemporalStringBuilder result(cx, TemporalStringFormat::Date);
   if (!result.reserve()) {
@@ -476,7 +476,7 @@ JSString* js::temporal::TemporalMonthDayToString(
   }
 
   // Steps 1-4.
-  auto date = ToPlainDate(monthDay);
+  auto date = monthDay->date();
   if (showCalendar == ShowCalendar::Always ||
       showCalendar == ShowCalendar::Critical ||
       monthDay->calendar().identifier() != CalendarId::ISO8601) {
@@ -508,7 +508,7 @@ JSString* js::temporal::TemporalYearMonthToString(
   }
 
   // Steps 1-4.
-  auto date = ToPlainDate(yearMonth);
+  auto date = yearMonth->date();
   if (showCalendar == ShowCalendar::Always ||
       showCalendar == ShowCalendar::Critical ||
       yearMonth->calendar().identifier() != CalendarId::ISO8601) {
