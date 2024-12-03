@@ -246,12 +246,12 @@ int32_t PointerEvent::PointerId() {
              : mEvent->AsPointerEvent()->pointerId;
 }
 
-int32_t PointerEvent::Width() {
-  return ShouldResistFingerprinting() ? 1 : mEvent->AsPointerEvent()->mWidth;
+double PointerEvent::Width() const {
+  return ShouldResistFingerprinting() ? 1.0 : mEvent->AsPointerEvent()->mWidth;
 }
 
-int32_t PointerEvent::Height() {
-  return ShouldResistFingerprinting() ? 1 : mEvent->AsPointerEvent()->mHeight;
+double PointerEvent::Height() const {
+  return ShouldResistFingerprinting() ? 1.0 : mEvent->AsPointerEvent()->mHeight;
 }
 
 float PointerEvent::Pressure() {

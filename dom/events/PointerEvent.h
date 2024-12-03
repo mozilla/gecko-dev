@@ -41,8 +41,8 @@ class PointerEvent : public MouseEvent {
   PointerEvent* AsPointerEvent() final { return this; }
 
   int32_t PointerId();
-  int32_t Width();
-  int32_t Height();
+  double Width() const;
+  double Height() const;
   float Pressure();
   float TangentialPressure();
   int32_t TiltX();
