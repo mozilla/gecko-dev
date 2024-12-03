@@ -202,7 +202,7 @@ def vendor_rust(command_context, **kwargs):
     if ok:
         sys.exit(0)
     else:
-        print("Errors occured; new rust crates were not vendored.")
+        print("Errors occurred; new rust crates were not vendored.")
         sys.exit(1)
 
 
