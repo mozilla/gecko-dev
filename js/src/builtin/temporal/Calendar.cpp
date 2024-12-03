@@ -2085,6 +2085,16 @@ static ISODate ToISODate(const capi::ICU4XDate* date) {
   MOZ_ASSERT(1 <= isoMonth && isoMonth <= 12);
 
   int32_t isoDay = capi::ICU4XIsoDate_day_of_month(isoDate.get());
+
+  // TODO: Workaround for <https://github.com/unicode-org/icu4x/issues/5070>.
+  if (isoDay == 0) {
+    MOZ_ASSERT(capi::ICU4XCalendar_kind(capi::ICU4XDate_calendar(date)) ==
+               capi::ICU4XAnyCalendarKind_Indian);
+    isoDay = 31;
+    isoMonth = 12;
+    isoYear -= 1;
+  }
+
   MOZ_ASSERT(1 <= isoDay && isoDay <= ::ISODaysInMonth(isoYear, isoMonth));
 
   return {isoYear, isoMonth, isoDay};
