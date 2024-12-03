@@ -23,6 +23,8 @@ skip-if = ["os == 'win' && msix"] #  Attribution code cannot be written for MSIX
 
 ["browser_aboutwelcome_configurable_ui.js"]
 
+["browser_aboutwelcome_embedded_browser.js"]
+
 ["browser_aboutwelcome_fxa_signin_flow.js"]
 
 ["browser_aboutwelcome_glean.js"]

@@ -49,6 +49,24 @@ async function openMRAboutWelcome() {
   };
 }
 
+async function openAboutWelcome(json) {
+  await setAboutWelcomePref(true);
+
+  if (json) {
+    await setAboutWelcomeMultiStage(json);
+  }
+
+  let tab = await BrowserTestUtils.openNewForegroundTab(
+    gBrowser,
+    "about:welcome",
+    true
+  );
+  registerCleanupFunction(() => {
+    BrowserTestUtils.removeTab(tab);
+  });
+  return tab.linkedBrowser;
+}
+
 async function onButtonClick(browser, elementId) {
   await ContentTask.spawn(
     browser,

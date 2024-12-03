@@ -34,7 +34,7 @@ add_task(async function test_specialAction() {
     m => m.id === "MULTISTAGE_SPOTLIGHT_MESSAGE"
   );
   let dispatchStub = sandbox.stub();
-  let browser = BrowserWindowTracker.getTopWindow().gBrowser.selectedBrowser;
+  let browser = gBrowser.selectedBrowser;
   let specialActionStub = sandbox.stub(SpecialMessageActions, "handleAction");
 
   let win = await showDialog({ message, browser, dispatchStub });
@@ -62,7 +62,7 @@ add_task(async function test_embedded_import() {
   let message = (await PanelTestProvider.getMessages()).find(
     m => m.id === "IMPORT_SETTINGS_EMBEDDED"
   );
-  let browser = BrowserWindowTracker.getTopWindow().gBrowser.selectedBrowser;
+  let browser = gBrowser.selectedBrowser;
   let win = await showDialog({ message, browser });
   let migrationWizardReady = BrowserTestUtils.waitForEvent(
     win,
@@ -84,6 +84,64 @@ add_task(async function test_embedded_import() {
     .openOrClosedShadowRoot.querySelector("panel-list");
   Assert.equal(panelList.tagName, "PANEL-LIST");
   Assert.equal(panelList.firstChild.tagName, "PANEL-ITEM");
+
+  win.close();
+  await SpecialPowers.popPrefEnv();
+});
+
+add_task(async function test_embedded_browser() {
+  const TEST_SCREEN = {
+    id: "EMBEDDED_BROWSER",
+    content: {
+      tiles: {
+        type: "embedded_browser",
+        data: {
+          style: {
+            width: "100%",
+            height: "200px",
+          },
+          url: "https://example.com/",
+        },
+      },
+    },
+  };
+  let message = (await PanelTestProvider.getMessages()).find(
+    m => m.id === "MULTISTAGE_SPOTLIGHT_MESSAGE"
+  );
+  message.content.screens[0] = TEST_SCREEN;
+
+  let browser = gBrowser.selectedBrowser;
+  let win = await showDialog({ message, browser });
+
+  await TestUtils.waitForCondition(() =>
+    win.document.querySelector("div.embedded-browser-container")
+  );
+
+  const embeddedBrowser = win.document.querySelector(
+    "div.embedded-browser-container browser"
+  );
+  Assert.ok(embeddedBrowser, "Embedded browser rendered");
+
+  await TestUtils.waitForCondition(
+    () => !embeddedBrowser.browsingContext.webProgress.isLoadingDocument
+  );
+  Assert.ok(embeddedBrowser.currentURI, "Should have a currentURI set.");
+
+  Assert.equal(
+    embeddedBrowser.currentURI.spec,
+    TEST_SCREEN.content.tiles.data.url,
+    "Embedded browser rendered with configured URL"
+  );
+  Assert.equal(
+    embeddedBrowser.style.height,
+    TEST_SCREEN.content.tiles.data.style.height,
+    "Embedded browser rendered with configured height"
+  );
+  Assert.equal(
+    embeddedBrowser.style.width,
+    TEST_SCREEN.content.tiles.data.style.width,
+    "Embedded browser rendered with configured width"
+  );
 
   win.close();
   await SpecialPowers.popPrefEnv();

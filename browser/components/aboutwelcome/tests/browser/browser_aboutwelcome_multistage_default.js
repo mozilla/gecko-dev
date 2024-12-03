@@ -293,7 +293,7 @@ add_task(async function test_multistage_aboutwelcome_default() {
  * Test navigating back/forward between screens
  */
 add_task(async function test_Multistage_About_Welcome_navigation() {
-  let browser = await openAboutWelcome();
+  let browser = await openAboutWelcome(TEST_DEFAULT_JSON);
 
   await onButtonClick(browser, "button.primary");
   await TestUtils.waitForCondition(() => browser.canGoBack);

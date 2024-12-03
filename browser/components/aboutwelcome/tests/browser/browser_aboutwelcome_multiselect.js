@@ -47,22 +47,6 @@ const BASE_CONTENT = {
  * browser_aboutwelcome_multistage_mr.js
  */
 
-async function openAboutWelcome(json) {
-  if (json) {
-    await setAboutWelcomeMultiStage(json);
-  }
-
-  let tab = await BrowserTestUtils.openNewForegroundTab(
-    gBrowser,
-    "about:welcome",
-    true
-  );
-  registerCleanupFunction(() => {
-    BrowserTestUtils.removeTab(tab);
-  });
-  return tab.linkedBrowser;
-}
-
 /**
  * Test rendering a screen with the MultiSelect checklist including an item with
  * a description.
