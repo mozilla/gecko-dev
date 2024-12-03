@@ -359,6 +359,7 @@ async function perfSetup({ disabled = false, prefs = [] } = {}) {
       ["browser.ml.enable", !disabled],
       ["browser.ml.logLevel", "Error"],
       ["browser.ml.modelCacheTimeout", 1000],
+      ["browser.ml.checkForMemory", false],
       ["javascript.options.wasm_lazy_tiering", true],
       ...prefs,
     ],
