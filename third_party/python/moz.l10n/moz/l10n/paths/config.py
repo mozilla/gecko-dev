@@ -190,8 +190,7 @@ class L10nConfigPaths:
     @base.setter
     def base(self, base: str) -> None:
         for incl in self._includes:
-            rel_base = relpath(incl._base, self._base)
-            incl.base = join(base, rel_base)
+            incl.base = base
         self._base = base
 
     @property

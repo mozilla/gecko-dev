@@ -8,7 +8,7 @@ moz/l10n/bin/compare.py,sha256=zq96sPVC9sFhxcw9ZepF-GriKGquKAV6CEMY1q8MSXU,5938
 moz/l10n/bin/fix.py,sha256=YsJYYTpQ9lcKEoENKMUhbm_HqDXIZN6sBwEfISUZXFg,5791
 moz/l10n/paths/__init__.py,sha256=14RHYUkaE1xgmA-Lpl5BYdjUBCK6-nkNwlqpwYRt71A,326
 moz/l10n/paths/android_locale.py,sha256=z1erMS6euRmQhJ68jM6BTnI8DfoiDsf0NgzfrpkwcIw,1652
-moz/l10n/paths/config.py,sha256=Sj7XUwNqYo6ymmv0ojW6W-ygafi5jxoJEg774-43pRo,12284
+moz/l10n/paths/config.py,sha256=KcTiFZ4QmA-b8Z3Y_Qe9ikZTshQKhblXv4ttGJPVIzI,12213
 moz/l10n/paths/discover.py,sha256=yLfwF1GvMWyDUdYU1SjfkAd6dZehZYlf5K12BbVOhq8,10045
 moz/l10n/resource/__init__.py,sha256=2cf02eVES-_lUpf0JQvY6kOTZqnO32NKXvVTthrKMAM,481
 moz/l10n/resource/add_entries.py,sha256=4vcqDu4MOSpaNNHHtrQseQDp7xpso_lQDd-ViiUmMFw,4153
@@ -52,9 +52,9 @@ moz/l10n/resource/xliff/parse_xcode.py,sha256=URmMpBwi1SzrhQKKYM5HKN6-e7eJbXdr8q
 moz/l10n/resource/xliff/serialize.py,sha256=aPWTu6N8K3-oU6bOIg1BIDPTDIYu6o9XPxjOMf3_WZo,13248
 moz/l10n/util/__init__.py,sha256=pOy5qLlt_9672xRi-kS6gKp2fBGoQaJW4_Rdnq852yk,68
 moz/l10n/util/walk_files.py,sha256=v6AcJtpc4Ob7DWRZLIJql1Ez5QE31ZUZKMCJks_ZlIY,2413
-moz.l10n-0.5.5.dist-info/LICENSE,sha256=z8d0m5b2O9McPEK1xHG_dWgUBT6EfBDz6wA0F7xSPTA,11358
-moz.l10n-0.5.5.dist-info/METADATA,sha256=Yrpg03Gt4q730qAJvsEX1GBUI7YbrPowb6xf0_6As2U,7761
-moz.l10n-0.5.5.dist-info/WHEEL,sha256=PZUExdf71Ui_so67QXpySuHtCi3-J3wvF4ORK6k_S8U,91
-moz.l10n-0.5.5.dist-info/entry_points.txt,sha256=_oINhCdl88kDVU8BoEYJNJNcCJ_mJOMa-b5R3e0Wac8,172
-moz.l10n-0.5.5.dist-info/top_level.txt,sha256=UB_i1Kf-Sdrdhj4PU-iSAlSXxxkEW8hTT9okw5S1SNE,4
-moz.l10n-0.5.5.dist-info/RECORD,,
+moz.l10n-0.5.6.dist-info/LICENSE,sha256=z8d0m5b2O9McPEK1xHG_dWgUBT6EfBDz6wA0F7xSPTA,11358
+moz.l10n-0.5.6.dist-info/METADATA,sha256=1sJLACeECEf9VXsWHZPJnPuQpxEB4VwfV7pD-VAW0fk,7761
+moz.l10n-0.5.6.dist-info/WHEEL,sha256=PZUExdf71Ui_so67QXpySuHtCi3-J3wvF4ORK6k_S8U,91
+moz.l10n-0.5.6.dist-info/entry_points.txt,sha256=_oINhCdl88kDVU8BoEYJNJNcCJ_mJOMa-b5R3e0Wac8,172
+moz.l10n-0.5.6.dist-info/top_level.txt,sha256=UB_i1Kf-Sdrdhj4PU-iSAlSXxxkEW8hTT9okw5S1SNE,4
+moz.l10n-0.5.6.dist-info/RECORD,,
