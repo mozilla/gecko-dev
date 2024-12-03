@@ -4,12 +4,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#include "mozilla/dom/DragEvent.h"
+#include "DragEvent.h"
+
 #include "mozilla/dom/MouseEventBinding.h"
 #include "mozilla/ImageInputTelemetry.h"
 #include "mozilla/MouseEvents.h"
 #include "nsContentUtils.h"
-#include "prtime.h"
 
 namespace mozilla::dom {
 
@@ -28,20 +28,18 @@ DragEvent::DragEvent(EventTarget* aOwner, nsPresContext* aPresContext,
   }
 }
 
-void DragEvent::InitDragEvent(const nsAString& aType, bool aCanBubble,
-                              bool aCancelable, nsGlobalWindowInner* aView,
-                              int32_t aDetail, int32_t aScreenX,
-                              int32_t aScreenY, int32_t aClientX,
-                              int32_t aClientY, bool aCtrlKey, bool aAltKey,
-                              bool aShiftKey, bool aMetaKey, uint16_t aButton,
-                              EventTarget* aRelatedTarget,
-                              DataTransfer* aDataTransfer) {
+void DragEvent::InitDragEventInternal(
+    const nsAString& aType, bool aCanBubble, bool aCancelable,
+    nsGlobalWindowInner* aView, int32_t aDetail, double aScreenX,
+    double aScreenY, double aClientX, double aClientY, bool aCtrlKey,
+    bool aAltKey, bool aShiftKey, bool aMetaKey, uint16_t aButton,
+    EventTarget* aRelatedTarget, DataTransfer* aDataTransfer) {
   NS_ENSURE_TRUE_VOID(!mEvent->mFlags.mIsBeingDispatched);
 
-  MouseEvent::InitMouseEvent(aType, aCanBubble, aCancelable, aView, aDetail,
-                             aScreenX, aScreenY, aClientX, aClientY, aCtrlKey,
-                             aAltKey, aShiftKey, aMetaKey, aButton,
-                             aRelatedTarget);
+  MouseEvent::InitMouseEventInternal(aType, aCanBubble, aCancelable, aView,
+                                     aDetail, aScreenX, aScreenY, aClientX,
+                                     aClientY, aCtrlKey, aAltKey, aShiftKey,
+                                     aMetaKey, aButton, aRelatedTarget);
   if (mEventIsInternal) {
     mEvent->AsDragEvent()->mDataTransfer = aDataTransfer;
   }
@@ -86,11 +84,11 @@ already_AddRefed<DragEvent> DragEvent::Constructor(
   nsCOMPtr<EventTarget> t = do_QueryInterface(aGlobal.GetAsSupports());
   RefPtr<DragEvent> e = new DragEvent(t, nullptr, nullptr);
   bool trusted = e->Init(t);
-  e->InitDragEvent(aType, aParam.mBubbles, aParam.mCancelable, aParam.mView,
-                   aParam.mDetail, aParam.mScreenX, aParam.mScreenY,
-                   aParam.mClientX, aParam.mClientY, aParam.mCtrlKey,
-                   aParam.mAltKey, aParam.mShiftKey, aParam.mMetaKey,
-                   aParam.mButton, aParam.mRelatedTarget, aParam.mDataTransfer);
+  e->InitDragEventInternal(
+      aType, aParam.mBubbles, aParam.mCancelable, aParam.mView, aParam.mDetail,
+      aParam.mScreenX, aParam.mScreenY, aParam.mClientX, aParam.mClientY,
+      aParam.mCtrlKey, aParam.mAltKey, aParam.mShiftKey, aParam.mMetaKey,
+      aParam.mButton, aParam.mRelatedTarget, aParam.mDataTransfer);
   e->InitializeExtraMouseEventDictionaryMembers(aParam);
   e->SetTrusted(trusted);
   e->SetComposed(aParam.mComposed);

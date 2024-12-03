@@ -39,26 +39,26 @@ class MouseEvent : public UIEvent {
 
   // In CSS coords.
   CSSIntPoint ScreenPoint(CallerType) const;
-  int32_t ScreenX(CallerType aCallerType) const {
+  double ScreenX(CallerType aCallerType) const {
     return ScreenPoint(aCallerType).x;
   }
-  int32_t ScreenY(CallerType aCallerType) const {
+  double ScreenY(CallerType aCallerType) const {
     return ScreenPoint(aCallerType).y;
   }
   LayoutDeviceIntPoint ScreenPointLayoutDevicePix() const;
   DesktopIntPoint ScreenPointDesktopPix() const;
 
   CSSIntPoint PagePoint() const;
-  int32_t PageX() const { return PagePoint().x; }
-  int32_t PageY() const { return PagePoint().y; }
+  double PageX() const { return PagePoint().x; }
+  double PageY() const { return PagePoint().y; }
 
   CSSIntPoint ClientPoint() const;
-  int32_t ClientX() const { return ClientPoint().x; }
-  int32_t ClientY() const { return ClientPoint().y; }
+  double ClientX() const { return ClientPoint().x; }
+  double ClientY() const { return ClientPoint().y; }
 
   CSSIntPoint OffsetPoint() const;
-  int32_t OffsetX() const { return OffsetPoint().x; }
-  int32_t OffsetY() const { return OffsetPoint().y; }
+  double OffsetX() const { return OffsetPoint().x; }
+  double OffsetY() const { return OffsetPoint().y; }
 
   bool CtrlKey();
   bool ShiftKey();
@@ -72,7 +72,12 @@ class MouseEvent : public UIEvent {
                       int32_t aScreenX, int32_t aScreenY, int32_t aClientX,
                       int32_t aClientY, bool aCtrlKey, bool aAltKey,
                       bool aShiftKey, bool aMetaKey, uint16_t aButton,
-                      EventTarget* aRelatedTarget);
+                      EventTarget* aRelatedTarget) {
+    InitMouseEventInternal(aType, aCanBubble, aCancelable, aView, aDetail,
+                           aScreenX, aScreenY, aClientX, aClientY, aCtrlKey,
+                           aAltKey, aShiftKey, aMetaKey, aButton,
+                           aRelatedTarget);
+  }
 
   void InitializeExtraMouseEventDictionaryMembers(const MouseEventInit& aParam);
 
@@ -101,12 +106,19 @@ class MouseEvent : public UIEvent {
 
   nsIntPoint GetMovementPoint() const;
 
-  void InitMouseEvent(const nsAString& aType, bool aCanBubble, bool aCancelable,
-                      nsGlobalWindowInner* aView, int32_t aDetail,
-                      int32_t aScreenX, int32_t aScreenY, int32_t aClientX,
-                      int32_t aClientY, int16_t aButton,
-                      EventTarget* aRelatedTarget,
-                      const nsAString& aModifiersList);
+  void InitMouseEventInternal(const nsAString& aType, bool aCanBubble,
+                              bool aCancelable, nsGlobalWindowInner* aView,
+                              int32_t aDetail, double aScreenX, double aScreenY,
+                              double aClientX, double aClientY, bool aCtrlKey,
+                              bool aAltKey, bool aShiftKey, bool aMetaKey,
+                              uint16_t aButton, EventTarget* aRelatedTarget);
+
+  void InitMouseEventInternal(const nsAString& aType, bool aCanBubble,
+                              bool aCancelable, nsGlobalWindowInner* aView,
+                              int32_t aDetail, double aScreenX, double aScreenY,
+                              double aClientX, double aClientY, int16_t aButton,
+                              EventTarget* aRelatedTarget,
+                              const nsAString& aModifiersList);
 
   CSSIntPoint mDefaultClientPoint;
   CSSIntPoint mPagePoint;

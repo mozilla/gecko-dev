@@ -578,8 +578,7 @@ nsresult nsBaseDragSession::InitWithSelection(
   mDragStartData = nullptr;
   mRegion = Nothing();
 
-  mScreenPosition.x = aDragEvent->ScreenX(CallerType::System);
-  mScreenPosition.y = aDragEvent->ScreenY(CallerType::System);
+  mScreenPosition = aDragEvent->ScreenPoint(CallerType::System);
   mInputSource = aDragEvent->InputSource(CallerType::System);
 
   // XXXndeakin this should actually be the deepest node that contains both

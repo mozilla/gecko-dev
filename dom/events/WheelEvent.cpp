@@ -4,10 +4,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#include "WheelEvent.h"
+
 #include "mozilla/dom/MouseEventBinding.h"
-#include "mozilla/dom/WheelEvent.h"
 #include "mozilla/MouseEvents.h"
-#include "prtime.h"
 
 namespace mozilla::dom {
 
@@ -35,17 +35,17 @@ WheelEvent::WheelEvent(EventTarget* aOwner, nsPresContext* aPresContext,
   }
 }
 
-void WheelEvent::InitWheelEvent(
+void WheelEvent::InitWheelEventInternal(
     const nsAString& aType, bool aCanBubble, bool aCancelable,
-    nsGlobalWindowInner* aView, int32_t aDetail, int32_t aScreenX,
-    int32_t aScreenY, int32_t aClientX, int32_t aClientY, uint16_t aButton,
+    nsGlobalWindowInner* aView, int32_t aDetail, double aScreenX,
+    double aScreenY, double aClientX, double aClientY, uint16_t aButton,
     EventTarget* aRelatedTarget, const nsAString& aModifiersList,
     double aDeltaX, double aDeltaY, double aDeltaZ, uint32_t aDeltaMode) {
   NS_ENSURE_TRUE_VOID(!mEvent->mFlags.mIsBeingDispatched);
 
-  MouseEvent::InitMouseEvent(aType, aCanBubble, aCancelable, aView, aDetail,
-                             aScreenX, aScreenY, aClientX, aClientY, aButton,
-                             aRelatedTarget, aModifiersList);
+  MouseEvent::InitMouseEventInternal(
+      aType, aCanBubble, aCancelable, aView, aDetail, aScreenX, aScreenY,
+      aClientX, aClientY, aButton, aRelatedTarget, aModifiersList);
 
   WidgetWheelEvent* wheelEvent = mEvent->AsWheelEvent();
   // When specified by the caller (for JS-created events), don't mess with the
@@ -154,11 +154,11 @@ already_AddRefed<WheelEvent> WheelEvent::Constructor(
   nsCOMPtr<EventTarget> t = do_QueryInterface(aGlobal.GetAsSupports());
   RefPtr<WheelEvent> e = new WheelEvent(t, nullptr, nullptr);
   bool trusted = e->Init(t);
-  e->InitWheelEvent(aType, aParam.mBubbles, aParam.mCancelable, aParam.mView,
-                    aParam.mDetail, aParam.mScreenX, aParam.mScreenY,
-                    aParam.mClientX, aParam.mClientY, aParam.mButton,
-                    aParam.mRelatedTarget, u""_ns, aParam.mDeltaX,
-                    aParam.mDeltaY, aParam.mDeltaZ, aParam.mDeltaMode);
+  e->InitWheelEventInternal(
+      aType, aParam.mBubbles, aParam.mCancelable, aParam.mView, aParam.mDetail,
+      aParam.mScreenX, aParam.mScreenY, aParam.mClientX, aParam.mClientY,
+      aParam.mButton, aParam.mRelatedTarget, u""_ns, aParam.mDeltaX,
+      aParam.mDeltaY, aParam.mDeltaZ, aParam.mDeltaMode);
   e->InitializeExtraMouseEventDictionaryMembers(aParam);
   e->SetTrusted(trusted);
   e->SetComposed(aParam.mComposed);

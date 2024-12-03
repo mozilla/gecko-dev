@@ -32,10 +32,24 @@ class MouseScrollEvent : public MouseEvent {
                             int32_t aClientX, int32_t aClientY, bool aCtrlKey,
                             bool aAltKey, bool aShiftKey, bool aMetaKey,
                             uint16_t aButton, EventTarget* aRelatedTarget,
-                            int32_t aAxis);
+                            int32_t aAxis) {
+    InitMouseScrollEventInternal(aType, aCanBubble, aCancelable, aView, aDetail,
+                                 aScreenX, aScreenY, aClientX, aClientY,
+                                 aCtrlKey, aAltKey, aShiftKey, aMetaKey,
+                                 aButton, aRelatedTarget, aAxis);
+  }
 
  protected:
   ~MouseScrollEvent() = default;
+
+  void InitMouseScrollEventInternal(const nsAString& aType, bool aCanBubble,
+                                    bool aCancelable,
+                                    nsGlobalWindowInner* aView, int32_t aDetail,
+                                    double aScreenX, double aScreenY,
+                                    double aClientX, double aClientY,
+                                    bool aCtrlKey, bool aAltKey, bool aShiftKey,
+                                    bool aMetaKey, uint16_t aButton,
+                                    EventTarget* aRelatedTarget, int32_t aAxis);
 };
 
 }  // namespace mozilla::dom

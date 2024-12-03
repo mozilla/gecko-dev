@@ -4,10 +4,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#include "SimpleGestureEvent.h"
+
 #include "mozilla/dom/MouseEventBinding.h"
-#include "mozilla/dom/SimpleGestureEvent.h"
 #include "mozilla/TouchEvents.h"
-#include "prtime.h"
 
 namespace mozilla::dom {
 
@@ -51,19 +51,19 @@ uint32_t SimpleGestureEvent::ClickCount() const {
   return mEvent->AsSimpleGestureEvent()->mClickCount;
 }
 
-void SimpleGestureEvent::InitSimpleGestureEvent(
+void SimpleGestureEvent::InitSimpleGestureEventInternal(
     const nsAString& aTypeArg, bool aCanBubbleArg, bool aCancelableArg,
-    nsGlobalWindowInner* aViewArg, int32_t aDetailArg, int32_t aScreenX,
-    int32_t aScreenY, int32_t aClientX, int32_t aClientY, bool aCtrlKeyArg,
+    nsGlobalWindowInner* aViewArg, int32_t aDetailArg, double aScreenX,
+    double aScreenY, double aClientX, double aClientY, bool aCtrlKeyArg,
     bool aAltKeyArg, bool aShiftKeyArg, bool aMetaKeyArg, uint16_t aButton,
     EventTarget* aRelatedTarget, uint32_t aAllowedDirectionsArg,
     uint32_t aDirectionArg, double aDeltaArg, uint32_t aClickCountArg) {
   NS_ENSURE_TRUE_VOID(!mEvent->mFlags.mIsBeingDispatched);
 
-  MouseEvent::InitMouseEvent(aTypeArg, aCanBubbleArg, aCancelableArg, aViewArg,
-                             aDetailArg, aScreenX, aScreenY, aClientX, aClientY,
-                             aCtrlKeyArg, aAltKeyArg, aShiftKeyArg, aMetaKeyArg,
-                             aButton, aRelatedTarget);
+  MouseEvent::InitMouseEventInternal(
+      aTypeArg, aCanBubbleArg, aCancelableArg, aViewArg, aDetailArg, aScreenX,
+      aScreenY, aClientX, aClientY, aCtrlKeyArg, aAltKeyArg, aShiftKeyArg,
+      aMetaKeyArg, aButton, aRelatedTarget);
 
   WidgetSimpleGestureEvent* simpleGestureEvent = mEvent->AsSimpleGestureEvent();
   simpleGestureEvent->mAllowedDirections = aAllowedDirectionsArg;

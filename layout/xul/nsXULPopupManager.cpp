@@ -146,7 +146,7 @@ void PendingPopup::InitMousePoint() {
         !event->AsGUIEvent()->mWidget) {
       // no widget, so just use the client point if available
       MouseEvent* mouseEvent = mEvent->AsMouseEvent();
-      nsIntPoint clientPt(mouseEvent->ClientX(), mouseEvent->ClientY());
+      CSSIntPoint clientPt(mouseEvent->ClientPoint());
 
       // XXX this doesn't handle IFRAMEs in transforms
       nsPoint thisDocToRootDocOffset =

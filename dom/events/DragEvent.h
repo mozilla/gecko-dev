@@ -36,7 +36,12 @@ class DragEvent : public MouseEvent {
                      int32_t aScreenX, int32_t aScreenY, int32_t aClientX,
                      int32_t aClientY, bool aCtrlKey, bool aAltKey,
                      bool aShiftKey, bool aMetaKey, uint16_t aButton,
-                     EventTarget* aRelatedTarget, DataTransfer* aDataTransfer);
+                     EventTarget* aRelatedTarget, DataTransfer* aDataTransfer) {
+    InitDragEventInternal(aType, aCanBubble, aCancelable, aView, aDetail,
+                          aScreenX, aScreenY, aClientX, aClientY, aCtrlKey,
+                          aAltKey, aShiftKey, aMetaKey, aButton, aRelatedTarget,
+                          aDataTransfer);
+  }
 
   static already_AddRefed<DragEvent> Constructor(const GlobalObject& aGlobal,
                                                  const nsAString& aType,
@@ -47,6 +52,14 @@ class DragEvent : public MouseEvent {
 
  protected:
   ~DragEvent() = default;
+
+  void InitDragEventInternal(const nsAString& aType, bool aCanBubble,
+                             bool aCancelable, nsGlobalWindowInner* aView,
+                             int32_t aDetail, double aScreenX, double aScreenY,
+                             double aClientX, double aClientY, bool aCtrlKey,
+                             bool aAltKey, bool aShiftKey, bool aMetaKey,
+                             uint16_t aButton, EventTarget* aRelatedTarget,
+                             DataTransfer* aDataTransfer);
 };
 
 }  // namespace mozilla::dom

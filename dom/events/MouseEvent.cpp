@@ -4,13 +4,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#include "mozilla/dom/MouseEvent.h"
-#include "mozilla/MouseEvents.h"
+#include "MouseEvent.h"
+
 #include "mozilla/BasePrincipal.h"
+#include "mozilla/MouseEvents.h"
 #include "nsContentUtils.h"
 #include "nsIContent.h"
 #include "nsIScreenManager.h"
-#include "prtime.h"
 
 namespace mozilla::dom {
 
@@ -46,13 +46,12 @@ MouseEvent::MouseEvent(EventTarget* aOwner, nsPresContext* aPresContext,
   }
 }
 
-void MouseEvent::InitMouseEvent(const nsAString& aType, bool aCanBubble,
-                                bool aCancelable, nsGlobalWindowInner* aView,
-                                int32_t aDetail, int32_t aScreenX,
-                                int32_t aScreenY, int32_t aClientX,
-                                int32_t aClientY, bool aCtrlKey, bool aAltKey,
-                                bool aShiftKey, bool aMetaKey, uint16_t aButton,
-                                EventTarget* aRelatedTarget) {
+void MouseEvent::InitMouseEventInternal(
+    const nsAString& aType, bool aCanBubble, bool aCancelable,
+    nsGlobalWindowInner* aView, int32_t aDetail, double aScreenX,
+    double aScreenY, double aClientX, double aClientY, bool aCtrlKey,
+    bool aAltKey, bool aShiftKey, bool aMetaKey, uint16_t aButton,
+    EventTarget* aRelatedTarget) {
   NS_ENSURE_TRUE_VOID(!mEvent->mFlags.mIsBeingDispatched);
 
   UIEvent::InitUIEvent(aType, aCanBubble, aCancelable, aView, aDetail);
@@ -69,10 +68,10 @@ void MouseEvent::InitMouseEvent(const nsAString& aType, bool aCanBubble,
       mouseEventBase->mButton = aButton;
       mouseEventBase->InitBasicModifiers(aCtrlKey, aAltKey, aShiftKey,
                                          aMetaKey);
-      mDefaultClientPoint.x = aClientX;
-      mDefaultClientPoint.y = aClientY;
-      mouseEventBase->mRefPoint.x = aScreenX;
-      mouseEventBase->mRefPoint.y = aScreenY;
+      mDefaultClientPoint.x = static_cast<int32_t>(aClientX);
+      mDefaultClientPoint.y = static_cast<int32_t>(aClientY);
+      mouseEventBase->mRefPoint.x = static_cast<int32_t>(aScreenX);
+      mouseEventBase->mRefPoint.y = static_cast<int32_t>(aScreenY);
 
       WidgetMouseEvent* mouseEvent = mEvent->AsMouseEvent();
       if (mouseEvent) {
@@ -85,18 +84,16 @@ void MouseEvent::InitMouseEvent(const nsAString& aType, bool aCanBubble,
   }
 }
 
-void MouseEvent::InitMouseEvent(const nsAString& aType, bool aCanBubble,
-                                bool aCancelable, nsGlobalWindowInner* aView,
-                                int32_t aDetail, int32_t aScreenX,
-                                int32_t aScreenY, int32_t aClientX,
-                                int32_t aClientY, int16_t aButton,
-                                EventTarget* aRelatedTarget,
-                                const nsAString& aModifiersList) {
+void MouseEvent::InitMouseEventInternal(
+    const nsAString& aType, bool aCanBubble, bool aCancelable,
+    nsGlobalWindowInner* aView, int32_t aDetail, double aScreenX,
+    double aScreenY, double aClientX, double aClientY, int16_t aButton,
+    EventTarget* aRelatedTarget, const nsAString& aModifiersList) {
   NS_ENSURE_TRUE_VOID(!mEvent->mFlags.mIsBeingDispatched);
 
   Modifiers modifiers = ComputeModifierState(aModifiersList);
 
-  InitMouseEvent(
+  InitMouseEventInternal(
       aType, aCanBubble, aCancelable, aView, aDetail, aScreenX, aScreenY,
       aClientX, aClientY, (modifiers & MODIFIER_CONTROL) != 0,
       (modifiers & MODIFIER_ALT) != 0, (modifiers & MODIFIER_SHIFT) != 0,
@@ -130,11 +127,11 @@ already_AddRefed<MouseEvent> MouseEvent::Constructor(
   nsCOMPtr<EventTarget> t = do_QueryInterface(aGlobal.GetAsSupports());
   RefPtr<MouseEvent> e = new MouseEvent(t, nullptr, nullptr);
   bool trusted = e->Init(t);
-  e->InitMouseEvent(aType, aParam.mBubbles, aParam.mCancelable, aParam.mView,
-                    aParam.mDetail, aParam.mScreenX, aParam.mScreenY,
-                    aParam.mClientX, aParam.mClientY, aParam.mCtrlKey,
-                    aParam.mAltKey, aParam.mShiftKey, aParam.mMetaKey,
-                    aParam.mButton, aParam.mRelatedTarget);
+  e->InitMouseEventInternal(
+      aType, aParam.mBubbles, aParam.mCancelable, aParam.mView, aParam.mDetail,
+      aParam.mScreenX, aParam.mScreenY, aParam.mClientX, aParam.mClientY,
+      aParam.mCtrlKey, aParam.mAltKey, aParam.mShiftKey, aParam.mMetaKey,
+      aParam.mButton, aParam.mRelatedTarget);
   e->InitializeExtraMouseEventDictionaryMembers(aParam);
   e->SetTrusted(trusted);
   e->SetComposed(aParam.mComposed);
@@ -153,10 +150,9 @@ void MouseEvent::InitNSMouseEvent(const nsAString& aType, bool aCanBubble,
                                   float aPressure, uint16_t aInputSource) {
   NS_ENSURE_TRUE_VOID(!mEvent->mFlags.mIsBeingDispatched);
 
-  MouseEvent::InitMouseEvent(aType, aCanBubble, aCancelable, aView, aDetail,
-                             aScreenX, aScreenY, aClientX, aClientY, aCtrlKey,
-                             aAltKey, aShiftKey, aMetaKey, aButton,
-                             aRelatedTarget);
+  InitMouseEventInternal(aType, aCanBubble, aCancelable, aView, aDetail,
+                         aScreenX, aScreenY, aClientX, aClientY, aCtrlKey,
+                         aAltKey, aShiftKey, aMetaKey, aButton, aRelatedTarget);
 
   WidgetMouseEventBase* mouseEventBase = mEvent->AsMouseEventBase();
   mouseEventBase->mPressure = aPressure;

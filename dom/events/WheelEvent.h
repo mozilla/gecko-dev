@@ -61,10 +61,24 @@ class WheelEvent : public MouseEvent {
                       int32_t aClientY, uint16_t aButton,
                       EventTarget* aRelatedTarget,
                       const nsAString& aModifiersList, double aDeltaX,
-                      double aDeltaY, double aDeltaZ, uint32_t aDeltaMode);
+                      double aDeltaY, double aDeltaZ, uint32_t aDeltaMode) {
+    InitWheelEventInternal(aType, aCanBubble, aCancelable, aView, aDetail,
+                           aScreenX, aScreenY, aClientX, aClientY, aButton,
+                           aRelatedTarget, aModifiersList, aDeltaX, aDeltaY,
+                           aDeltaZ, aDeltaMode);
+  }
 
  protected:
   ~WheelEvent() = default;
+
+  void InitWheelEventInternal(const nsAString& aType, bool aCanBubble,
+                              bool aCancelable, nsGlobalWindowInner* aView,
+                              int32_t aDetail, double aScreenX, double aScreenY,
+                              double aClientX, double aClientY,
+                              uint16_t aButton, EventTarget* aRelatedTarget,
+                              const nsAString& aModifiersList, double aDeltaX,
+                              double aDeltaY, double aDeltaZ,
+                              uint32_t aDeltaMode);
 
   double ToWebExposedDelta(WidgetWheelEvent&, double aDelta,
                            nscoord aLineOrPageAmount, CallerType);

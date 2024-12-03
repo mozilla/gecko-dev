@@ -41,10 +41,23 @@ class SimpleGestureEvent : public MouseEvent {
                               bool aShiftKey, bool aMetaKey, uint16_t aButton,
                               EventTarget* aRelatedTarget,
                               uint32_t aAllowedDirections, uint32_t aDirection,
-                              double aDelta, uint32_t aClickCount);
+                              double aDelta, uint32_t aClickCount) {
+    InitSimpleGestureEventInternal(
+        aType, aCanBubble, aCancelable, aView, aDetail, aScreenX, aScreenY,
+        aClientX, aClientY, aCtrlKey, aAltKey, aShiftKey, aMetaKey, aButton,
+        aRelatedTarget, aAllowedDirections, aDirection, aDelta, aClickCount);
+  }
 
  protected:
   ~SimpleGestureEvent() = default;
+
+  void InitSimpleGestureEventInternal(
+      const nsAString& aType, bool aCanBubble, bool aCancelable,
+      nsGlobalWindowInner* aView, int32_t aDetail, double aScreenX,
+      double aScreenY, double aClientX, double aClientY, bool aCtrlKey,
+      bool aAltKey, bool aShiftKey, bool aMetaKey, uint16_t aButton,
+      EventTarget* aRelatedTarget, uint32_t aAllowedDirections,
+      uint32_t aDirection, double aDelta, uint32_t aClickCount);
 };
 
 }  // namespace mozilla::dom

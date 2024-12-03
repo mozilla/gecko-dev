@@ -117,10 +117,10 @@ already_AddRefed<PointerEvent> PointerEvent::Constructor(
   RefPtr<PointerEvent> e = new PointerEvent(aOwner, nullptr, nullptr);
   bool trusted = e->Init(aOwner);
 
-  e->InitMouseEvent(aType, aParam.mBubbles, aParam.mCancelable, aParam.mView,
-                    aParam.mDetail, aParam.mScreenX, aParam.mScreenY,
-                    aParam.mClientX, aParam.mClientY, false, false, false,
-                    false, aParam.mButton, aParam.mRelatedTarget);
+  e->InitMouseEventInternal(
+      aType, aParam.mBubbles, aParam.mCancelable, aParam.mView, aParam.mDetail,
+      aParam.mScreenX, aParam.mScreenY, aParam.mClientX, aParam.mClientY, false,
+      false, false, false, aParam.mButton, aParam.mRelatedTarget);
   e->InitializeExtraMouseEventDictionaryMembers(aParam);
   e->mPointerType = Some(aParam.mPointerType);
 
