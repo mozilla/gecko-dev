@@ -34,6 +34,34 @@ jobs:
                   - {hour: 10, minute: 0}
                   - {hour: 22, minute: 0}
 
+    - name: merge-beta-to-release-dry-run
+      job:
+          type: trigger-action
+          action-name: merge-automation
+          include-cron-input: false
+          extra-input:
+              force-dry-run: true
+              behavior: beta-to-release
+              push: true
+      run-on-projects:
+          - mozilla-beta
+      when:
+          - {weekday: "Friday", hour: 7, minute: 0}
+
+    - name: merge-central-to-beta-dry-run
+      job:
+          type: trigger-action
+          action-name: merge-automation
+          include-cron-input: false
+          extra-input:
+              force-dry-run: true
+              behavior: central-to-beta
+              push: true
+      run-on-projects:
+          - mozilla-central
+      when:
+          - {weekday: "Friday", hour: 7, minute: 0}
+
     - name: nightly-desktop
       job:
           type: decision-task
