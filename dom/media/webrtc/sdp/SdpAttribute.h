@@ -1234,13 +1234,13 @@ class SdpFmtpAttributeList : public SdpAttribute {
 
     virtual ~Parameters() = default;
     virtual Parameters* Clone() const = 0;
+    virtual bool ShouldSerialize() const { return true; }
     virtual void Serialize(std::ostream& os) const = 0;
     virtual bool CompareEq(const Parameters& other) const = 0;
 
     bool operator==(const Parameters& other) const {
       return codec_type == other.codec_type && CompareEq(other);
     }
-
     SdpRtpmapAttributeList::CodecType codec_type;
   };
 
@@ -1294,6 +1294,10 @@ class SdpFmtpAttributeList : public SdpAttribute {
     }
     // Returns the tier parameter if set, or the spec mandated default of 0.
     auto tierValue() const -> uint8_t { return tier.valueOr(kDefaultTier); }
+
+    virtual bool ShouldSerialize() const override {
+      return profile.isSome() || levelIdx.isSome() || tier.isSome();
+    };
 
     virtual void Serialize(std::ostream& os) const override {
       bool first = true;

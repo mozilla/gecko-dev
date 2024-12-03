@@ -1,0 +1,53 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <script type="application/javascript" src="pc.js"></script>
+</head>
+<body>
+<pre id="test">
+<script type="application/javascript">
+  createHTML({
+    bug: "1933728",
+    title: "Verify SDP FMTP is non-empty"
+  });
+
+  var test;
+  runNetworkTest(async function (options) {
+    await pushPrefs(["media.webrtc.codec.video.av1.enabled", true]);
+
+    test = new PeerConnectionTest(options);
+    test.setMediaConstraints([{audio: true}, {video: true}],
+                             [{audio: true}, {video: true}]);
+
+    const checkFmtp = sdp => {
+      sdp.split("\r\n").forEach(line => {
+        if (line.startsWith("a=fmtp:")) {
+          let parts = line.split(" ");
+          parts.forEach(token => {
+            ok(token.length, `FMTP parameter "${token}" in line "${line}" is non-empty`);
+          });
+        }
+      });
+    };
+
+    test.chain.insertAfter('PC_LOCAL_SET_LOCAL_DESCRIPTION', [
+      async function PC_LOCAL_CHECK_SDP_OFFER_FMTP() {
+        info("Checking FMTP parameters in offer SDP");
+        checkFmtp(test.originalOffer.sdp);
+      },
+    ]);
+
+    test.chain.removeAfter('PC_REMOTE_SET_LOCAL_DESCRIPTION');
+    test.chain.append([
+      async function PC_LOCAL_CHECK_SDP_ANSWER_FMTP() {
+        info("Checking FMTP parameters in answer SDP");
+        checkFmtp(test.originalAnswer.sdp);
+      }
+    ]);
+
+    await test.run();
+  });
+</script>
+</pre>
+</body>
+</html>

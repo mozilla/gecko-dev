@@ -160,7 +160,7 @@ bool SdpFmtpAttributeList::operator==(const SdpFmtpAttributeList& other) const {
 
 void SdpFmtpAttributeList::Serialize(std::ostream& os) const {
   for (auto i = mFmtps.begin(); i != mFmtps.end(); ++i) {
-    if (i->parameters) {
+    if (i->parameters && i->parameters->ShouldSerialize()) {
       os << "a=" << mType << ":" << i->format << " ";
       i->parameters->Serialize(os);
       os << CRLF;

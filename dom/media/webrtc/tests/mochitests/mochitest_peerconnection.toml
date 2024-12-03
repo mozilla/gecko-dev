@@ -111,6 +111,9 @@ scheme = "http"
 
 ["test_peerConnection_basicAudioRequireEOC.html"]
 
+["test_peerConnection_verifyNonEmptyFmtp.html"]
+skip-if = ["os == 'android'"]
+
 ["test_peerConnection_basicAudioVerifyRtpHeaderExtensions.html"]
 
 ["test_peerConnection_basicAudioVideo.html"]
