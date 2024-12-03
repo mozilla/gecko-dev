@@ -638,7 +638,10 @@ already_AddRefed<Promise> CookieStore::GetInternal(
 
           if (NS_IsMainThread()) {
             nsCOMPtr<nsPIDOMWindowInner> window = self->GetOwnerWindow();
-            MOZ_ASSERT(window);
+            if (NS_WARN_IF(!window)) {
+              promise->MaybeReject(NS_ERROR_DOM_SECURITY_ERR);
+              return;
+            }
 
             nsCOMPtr<Document> document = window->GetExtantDoc();
             if (NS_WARN_IF(!document)) {
