@@ -260,7 +260,7 @@ async function testAdUrlClicked(serpUrl, adUrl, expectedAdKey) {
 
 do_get_profile();
 
-add_task(async function setup() {
+add_setup(async function () {
   await SearchSERPTelemetry.init();
   sinon.stub(BrowserSearchTelemetry, "shouldRecordSearchCount").returns(true);
 });
