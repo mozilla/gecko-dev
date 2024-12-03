@@ -2046,6 +2046,44 @@ static UniqueICU4XDate CreateDateFrom(JSContext* cx, CalendarId calendar,
 }
 
 /**
+ * RegulateISODate ( year, month, day, overflow )
+ */
+static bool RegulateISODate(JSContext* cx, int32_t year, double month,
+                            double day, TemporalOverflow overflow,
+                            ISODate* result) {
+  MOZ_ASSERT(IsInteger(month));
+  MOZ_ASSERT(IsInteger(day));
+
+  // Step 1.
+  if (overflow == TemporalOverflow::Constrain) {
+    // Step 1.a.
+    int32_t m = int32_t(std::clamp(month, 1.0, 12.0));
+
+    // Step 1.b.
+    double daysInMonth = double(::ISODaysInMonth(year, m));
+
+    // Step 1.c.
+    int32_t d = int32_t(std::clamp(day, 1.0, daysInMonth));
+
+    // Step 1.d.
+    *result = {year, m, d};
+    return true;
+  }
+
+  // Step 2.a.
+  MOZ_ASSERT(overflow == TemporalOverflow::Reject);
+
+  // Step 2.b.
+  if (!ThrowIfInvalidISODate(cx, year, month, day)) {
+    return false;
+  }
+
+  // Step 2.b. (Inlined call to CreateISODateRecord.)
+  *result = {year, int32_t(month), int32_t(day)};
+  return true;
+}
+
+/**
  * CalendarDateToISO ( calendar, fields, overflow )
  */
 static bool CalendarDateToISO(JSContext* cx, CalendarId calendar,
@@ -3272,7 +3310,138 @@ bool js::temporal::CalendarMonthDayFromFields(
 }
 
 /**
- * CalendarDateAdd ( date, duration, overflow )
+ * Mathematical Operations, "modulo" notation.
+ */
+static int32_t NonNegativeModulo(int64_t x, int32_t y) {
+  MOZ_ASSERT(y > 0);
+
+  int32_t result = mozilla::AssertedCast<int32_t>(x % y);
+  return (result < 0) ? (result + y) : result;
+}
+
+/**
+ * RegulateISODate ( year, month, day, overflow )
+ *
+ * With |overflow = "constrain"|.
+ */
+static ISODate ConstrainISODate(const ISODate& date) {
+  const auto& [year, month, day] = date;
+
+  // Step 1.a.
+  int32_t m = std::clamp(month, 1, 12);
+
+  // Step 1.b.
+  int32_t daysInMonth = ::ISODaysInMonth(year, m);
+
+  // Step 1.c.
+  int32_t d = std::clamp(day, 1, daysInMonth);
+
+  // Step 3.
+  return {year, m, d};
+}
+
+/**
+ * RegulateISODate ( year, month, day, overflow )
+ */
+static bool RegulateISODate(JSContext* cx, const ISODate& date,
+                            TemporalOverflow overflow, ISODate* result) {
+  // Step 1.
+  if (overflow == TemporalOverflow::Constrain) {
+    // Steps 1.a-c and 3.
+    *result = ConstrainISODate(date);
+    return true;
+  }
+
+  // Step 2.a.
+  MOZ_ASSERT(overflow == TemporalOverflow::Reject);
+
+  // Step 2.b.
+  if (!ThrowIfInvalidISODate(cx, date)) {
+    return false;
+  }
+
+  // Step 3. (Inlined call to CreateISODateRecord.)
+  *result = date;
+  return true;
+}
+
+struct BalancedYearMonth final {
+  int64_t year = 0;
+  int32_t month = 0;
+};
+
+/**
+ * BalanceISOYearMonth ( year, month )
+ */
+static BalancedYearMonth BalanceISOYearMonth(int64_t year, int64_t month) {
+  MOZ_ASSERT(std::abs(year) < (int64_t(1) << 33),
+             "year is the addition of plain-date year with duration years");
+  MOZ_ASSERT(std::abs(month) < (int64_t(1) << 33),
+             "month is the addition of plain-date month with duration months");
+
+  // Step 1. (Not applicable in our implementation.)
+
+  // Step 2.
+  int64_t balancedYear = year + temporal::FloorDiv(month - 1, 12);
+
+  // Step 3.
+  int32_t balancedMonth = NonNegativeModulo(month - 1, 12) + 1;
+  MOZ_ASSERT(1 <= balancedMonth && balancedMonth <= 12);
+
+  // Step 4.
+  return {balancedYear, balancedMonth};
+}
+
+/**
+ * CalendarDateAdd ( calendar, isoDate, duration, overflow )
+ */
+static bool AddISODate(JSContext* cx, const ISODate& isoDate,
+                       const DateDuration& duration, TemporalOverflow overflow,
+                       ISODate* result) {
+  MOZ_ASSERT(IsValidISODate(isoDate));
+  MOZ_ASSERT(ISODateWithinLimits(isoDate));
+  MOZ_ASSERT(IsValidDuration(duration));
+
+  // Step 1.a.
+  auto yearMonth = BalanceISOYearMonth(isoDate.year + duration.years,
+                                       isoDate.month + duration.months);
+  MOZ_ASSERT(1 <= yearMonth.month && yearMonth.month <= 12);
+
+  auto balancedYear = mozilla::CheckedInt<int32_t>(yearMonth.year);
+  if (!balancedYear.isValid()) {
+    JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
+                              JSMSG_TEMPORAL_PLAIN_DATE_INVALID);
+    return false;
+  }
+
+  // Step 1.b.
+  ISODate regulated;
+  if (!RegulateISODate(cx, {balancedYear.value(), yearMonth.month, isoDate.day},
+                       overflow, &regulated)) {
+    return false;
+  }
+  if (!ISODateWithinLimits(regulated)) {
+    JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
+                              JSMSG_TEMPORAL_PLAIN_DATE_INVALID);
+    return false;
+  }
+
+  // Step 1.c.
+  int64_t days = duration.days + duration.weeks * 7;
+
+  // Step 1.d.
+  ISODate balanced;
+  if (!BalanceISODate(cx, regulated, days, &balanced)) {
+    return false;
+  }
+  MOZ_ASSERT(IsValidISODate(balanced));
+
+  *result = balanced;
+  return true;
+}
+
+/**
+ * CalendarDateAdd ( calendar, isoDate, duration, overflow )
  */
 bool js::temporal::CalendarDateAdd(JSContext* cx,
                                    Handle<CalendarValue> calendar,
@@ -3303,7 +3472,95 @@ bool js::temporal::CalendarDateAdd(JSContext* cx,
 }
 
 /**
- * CalendarDateUntil ( one, two, largestUnit )
+ * CalendarDateUntil ( calendar, one, two, largestUnit )
+ */
+static DateDuration DifferenceISODate(const ISODate& one, const ISODate& two,
+                                      TemporalUnit largestUnit) {
+  MOZ_ASSERT(IsValidISODate(one));
+  MOZ_ASSERT(IsValidISODate(two));
+
+  // Both inputs are also within the date limits.
+  MOZ_ASSERT(ISODateWithinLimits(one));
+  MOZ_ASSERT(ISODateWithinLimits(two));
+
+  MOZ_ASSERT(TemporalUnit::Year <= largestUnit &&
+             largestUnit <= TemporalUnit::Day);
+
+  // Step 1.a.
+  int32_t sign = -CompareISODate(one, two);
+
+  // Step 1.b.
+  if (sign == 0) {
+    return {};
+  }
+
+  // Step 1.c.
+  int32_t years = 0;
+
+  // Step 1.e. (Reordered)
+  int32_t months = 0;
+
+  // Steps 1.d and 1.f.
+  if (largestUnit == TemporalUnit::Year || largestUnit == TemporalUnit::Month) {
+    years = two.year - one.year;
+    months = two.month - one.month;
+
+    auto intermediate = ISODate{one.year + years, one.month, one.day};
+    if (CompareISODate(intermediate, two) * sign > 0) {
+      years -= sign;
+      months += 12 * sign;
+    }
+
+    intermediate = ISODate{one.year + years, one.month + months, one.day};
+    if (intermediate.month > 12) {
+      intermediate.month -= 12;
+      intermediate.year += 1;
+    } else if (intermediate.month < 1) {
+      intermediate.month += 12;
+      intermediate.year -= 1;
+    }
+    if (CompareISODate(intermediate, two) * sign > 0) {
+      months -= sign;
+    }
+
+    if (largestUnit == TemporalUnit::Month) {
+      months += years * 12;
+      years = 0;
+    }
+  }
+
+  // Step 1.g.
+  auto intermediate = BalanceISOYearMonth(one.year + years, one.month + months);
+
+  // Step 1.h.
+  auto constrained = ConstrainISODate(
+      ISODate{int32_t(intermediate.year), intermediate.month, one.day});
+
+  // Step 1.i.
+  int64_t weeks = 0;
+
+  // Steps 1.k-n.
+  int64_t days = MakeDay(two) - MakeDay(constrained);
+
+  // Step 1.j. (Reordered)
+  if (largestUnit == TemporalUnit::Week) {
+    weeks = days / 7;
+    days %= 7;
+  }
+
+  // Step 1.o.
+  auto result = DateDuration{
+      int64_t(years),
+      int64_t(months),
+      int64_t(weeks),
+      int64_t(days),
+  };
+  MOZ_ASSERT(IsValidDuration(result));
+  return result;
+}
+
+/**
+ * CalendarDateUntil ( calendar, one, two, largestUnit )
  */
 bool js::temporal::CalendarDateUntil(JSContext* cx,
                                      Handle<CalendarValue> calendar,

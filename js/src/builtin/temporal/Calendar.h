@@ -228,14 +228,14 @@ JSLinearString* ToTemporalCalendarIdentifier(
     JSContext* cx, JS::Handle<CalendarValue> calendar);
 
 /**
- * CalendarDateAdd ( date, duration, overflow )
+ * CalendarDateAdd ( calendar, isoDate, duration, overflow )
  */
 bool CalendarDateAdd(JSContext* cx, JS::Handle<CalendarValue> calendar,
                      const ISODate& date, const DateDuration& duration,
                      TemporalOverflow overflow, ISODate* result);
 
 /**
- * CalendarDateUntil ( one, two, largestUnit )
+ * CalendarDateUntil ( calendar, one, two, largestUnit )
  */
 bool CalendarDateUntil(JSContext* cx, JS::Handle<CalendarValue> calendar,
                        const ISODate& one, const ISODate& two,

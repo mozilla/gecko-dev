@@ -127,25 +127,6 @@ bool CreateTemporalDate(JSContext* cx, const ISODate& isoDate,
                         JS::MutableHandle<PlainDate> result);
 
 /**
- * RegulateISODate ( year, month, day, overflow )
- */
-bool RegulateISODate(JSContext* cx, int32_t year, double month, double day,
-                     TemporalOverflow overflow, ISODate* result);
-
-/**
- * AddISODate ( year, month, day, years, months, weeks, days, overflow )
- */
-bool AddISODate(JSContext* cx, const ISODate& date,
-                const DateDuration& duration, TemporalOverflow overflow,
-                ISODate* result);
-
-/**
- * DifferenceISODate ( y1, m1, d1, y2, m2, d2, largestUnit )
- */
-DateDuration DifferenceISODate(const ISODate& start, const ISODate& end,
-                               TemporalUnit largestUnit);
-
-/**
  * CompareISODate ( y1, m1, d1, y2, m2, d2 )
  */
 int32_t CompareISODate(const ISODate& one, const ISODate& two);
