@@ -414,6 +414,7 @@ browser.searchinit:
       - https://bugzil.la/1832463
       - https://bugzil.la/1871199
       - https://bugzil.la/1897049
+      - https://bugzil.la/1933859
     data_reviews:
       - https://bugzil.la/1665938
       - https://bugzil.la/1691050
@@ -423,10 +424,11 @@ browser.searchinit:
       - https://bugzil.la/1832463
       - https://bugzil.la/1871199
       - https://bugzil.la/1897049
+      - https://bugzil.la/1933859
     notification_emails:
       - fx-search-telemetry@mozilla.com
       - mbanner@mozilla.com
-    expires: 136
+    expires: 143
     unit: custom enum value
     telemetry_mirror: BROWSER_SEARCHINIT_ENGINE_INVALID_WEBEXTENSION
 
