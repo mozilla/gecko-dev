@@ -32,6 +32,9 @@ support-files = ["file_self_close.html"]
 
 ["test_useractivation_key_events.html"]
 
+["test_useractivation_open_new_window.html"]
+support-files = ["file_self_close.html"]
+
 ["test_useractivation_sandbox_transient.html"]
 support-files = ["file_useractivation_sandbox_transient_popup.html"]
 

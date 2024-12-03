@@ -1,0 +1,109 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <title>User activation test: consume user activation when opending a new window</title>
+  <script src="/tests/SimpleTest/SimpleTest.js"></script>
+  <script src="/tests/SimpleTest/EventUtils.js"></script>
+  <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css" />
+</head>
+<body>
+<a href="file_self_close.html" target="_blank">link</a>
+<script>
+
+const ALLOW_ACTION = SpecialPowers.Ci.nsIPermissionManager.ALLOW_ACTION;
+const DENY_ACTION = SpecialPowers.Ci.nsIPermissionManager.DENY_ACTION;
+const UNKNOWN_ACTION = SpecialPowers.Ci.nsIPermissionManager.UNKNOWN_ACTION;
+
+async function test_useractivation_window_open() {
+  info("Test user activation after calling window.open()")
+  SpecialPowers.wrap(document).notifyUserGestureActivation();
+  // Open a new window
+  ok(navigator.userActivation.isActive, `has user activation`);
+  let w = window.open("file_empty.html", "testWindow");
+  ok(!navigator.userActivation.isActive, `user activation should be consumed after opening a new window`);
+
+  SpecialPowers.wrap(document).notifyUserGestureActivation();
+  ok(navigator.userActivation.isActive, `has user activation`);
+  let w2 = window.open("file_empty.html", "testWindow");
+  ok(w2 == w, "should use the existing window");
+  ok(navigator.userActivation.isActive, `user activation should not be consumed if window is existed`);
+
+  if (w2 && w2 !== w) {
+    w2.close();
+  }
+  if (w) {
+    w.close();
+  }
+}
+
+async function test_useractivation_anchor_blank() {
+  info("Test user activation after calling window.open()")
+  let link = document.querySelector("a");
+  link.addEventListener("click", () => {
+    ok(navigator.userActivation.isActive, `has user activation`);
+  });
+  synthesizeMouseAtCenter(link, {});
+  await new Promise(resolve => SimpleTest.executeSoon(resolve));
+  ok(!navigator.userActivation.isActive, `user activation should be consumed`);
+}
+
+async function test_useractivation() {
+  await test_useractivation_window_open();
+  await test_useractivation_anchor_blank();
+}
+
+add_task(async function testPopupBlockerDisabled() {
+  await SpecialPowers.pushPrefEnv({
+    set: [
+      // Disable popup blocker
+      ["dom.disable_open_during_load", false],
+    ],
+  });
+  await test_useractivation();
+  await SpecialPowers.popPrefEnv();
+});
+
+add_task(async function testPopupBlockerEnabled() {
+  await SpecialPowers.pushPrefEnv({
+    set: [
+      // Enable popup blocker
+      ["dom.disable_open_during_load", true],
+    ],
+  });
+
+  await test_useractivation();
+  await SpecialPowers.popPrefEnv();
+});
+
+add_task(async function testUnknownPermission() {
+  await SpecialPowers.pushPermissions([
+    {'type': 'popup', 'remove': true, 'context': document}
+  ]);
+  ok(await SpecialPowers.testPermission('popup', UNKNOWN_ACTION, document),
+     'popup value should have UNKNOWN permission');
+  await test_useractivation();
+  await SpecialPowers.popPermissions();
+});
+
+add_task(async function testAllowPermission() {
+  await SpecialPowers.pushPermissions([
+    {'type': 'popup', 'allow': ALLOW_ACTION, 'context': document}
+  ]);
+  ok(await SpecialPowers.testPermission('popup', ALLOW_ACTION, document),
+     'popup value should have ALLOW permission');
+  await test_useractivation();
+  await SpecialPowers.popPermissions();
+});
+
+add_task(async function testDenyPermission() {
+  await SpecialPowers.pushPermissions([
+    {'type': 'popup', 'allow': DENY_ACTION, 'context': document}
+  ]);
+  ok(await SpecialPowers.testPermission('popup', DENY_ACTION, document),
+     'popup value should have ALLOW permission');
+  await test_useractivation();
+  await SpecialPowers.popPermissions();
+});
+
+</script>
+</body>

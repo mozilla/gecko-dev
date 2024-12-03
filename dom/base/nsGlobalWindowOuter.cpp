@@ -6838,6 +6838,13 @@ nsresult nsGlobalWindowOuter::OpenInternal(
     }
   }
 
+  // Per https://github.com/whatwg/html/pull/10547, we should always consume
+  // user activation when opening a new window, even if the popup blocker is
+  // disabled or the website has popup permission.
+  if (!windowExists && mDoc) {
+    mDoc->ConsumeTransientUserGestureActivation();
+  }
+
   RefPtr<BrowsingContext> domReturn;
 
   nsresult rv = NS_OK;
