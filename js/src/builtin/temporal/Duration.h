@@ -231,7 +231,7 @@ bool CombineDateAndNormalizedTimeDuration(JSContext* cx,
  * NormalizedTimeDurationFromEpochNanosecondsDifference ( one, two )
  */
 NormalizedTimeDuration NormalizedTimeDurationFromEpochNanosecondsDifference(
-    const Instant& one, const Instant& two);
+    const EpochNanoseconds& one, const EpochNanoseconds& two);
 
 /**
  * CreateTemporalDuration ( years, months, weeks, days, hours, minutes, seconds,
@@ -275,7 +275,7 @@ struct RoundedRelativeDuration {
  */
 bool RoundRelativeDuration(
     JSContext* cx, const NormalizedDuration& duration,
-    const Instant& destEpochNs, const ISODateTime& dateTime,
+    const EpochNanoseconds& destEpochNs, const ISODateTime& dateTime,
     JS::Handle<TimeZoneValue> timeZone, JS::Handle<CalendarValue> calendar,
     TemporalUnit largestUnit, Increment increment, TemporalUnit smallestUnit,
     TemporalRoundingMode roundingMode, RoundedRelativeDuration* result);

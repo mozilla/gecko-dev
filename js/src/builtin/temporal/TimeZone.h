@@ -198,18 +198,20 @@ class PossibleEpochNanoseconds final {
   // GetPossibleEpochNanoseconds can return up-to two elements.
   static constexpr size_t MaxLength = 2;
 
-  std::array<Instant, MaxLength> array_ = {};
+  std::array<EpochNanoseconds, MaxLength> array_ = {};
   size_t length_ = 0;
 
-  void append(const Instant& instant) { array_[length_++] = instant; }
+  void append(const EpochNanoseconds& epochNs) { array_[length_++] = epochNs; }
 
  public:
   PossibleEpochNanoseconds() = default;
 
-  explicit PossibleEpochNanoseconds(const Instant& instant) { append(instant); }
+  explicit PossibleEpochNanoseconds(const EpochNanoseconds& epochNs) {
+    append(epochNs);
+  }
 
-  explicit PossibleEpochNanoseconds(const Instant& earlier,
-                                    const Instant& later) {
+  explicit PossibleEpochNanoseconds(const EpochNanoseconds& earlier,
+                                    const EpochNanoseconds& later) {
     MOZ_ASSERT(earlier <= later);
     append(earlier);
     append(later);
@@ -268,14 +270,14 @@ bool TimeZoneEquals(const TimeZoneValue& one, const TimeZoneValue& two);
 /**
  * GetISODateTimeFor ( timeZone, epochNs )
  */
-ISODateTime GetISODateTimeFor(const Instant& instant,
+ISODateTime GetISODateTimeFor(const EpochNanoseconds& epochNs,
                               int64_t offsetNanoseconds);
 
 /**
  * GetISODateTimeFor ( timeZone, epochNs )
  */
 bool GetISODateTimeFor(JSContext* cx, JS::Handle<TimeZoneValue> timeZone,
-                       const Instant& instant, ISODateTime* result);
+                       const EpochNanoseconds& epochNs, ISODateTime* result);
 
 /**
  * GetEpochNanosecondsFor ( timeZone, isoDateTime, disambiguation )
@@ -283,7 +285,7 @@ bool GetISODateTimeFor(JSContext* cx, JS::Handle<TimeZoneValue> timeZone,
 bool GetEpochNanosecondsFor(JSContext* cx, JS::Handle<TimeZoneValue> timeZone,
                             const ISODateTime& isoDateTime,
                             TemporalDisambiguation disambiguation,
-                            Instant* result);
+                            EpochNanoseconds* result);
 
 /**
  * FormatUTCOffsetNanoseconds ( offsetNanoseconds )
@@ -294,7 +296,7 @@ JSString* FormatUTCOffsetNanoseconds(JSContext* cx, int64_t offsetNanoseconds);
  * GetOffsetNanosecondsFor ( timeZone, epochNs )
  */
 bool GetOffsetNanosecondsFor(JSContext* cx, JS::Handle<TimeZoneValue> timeZone,
-                             const Instant& instant,
+                             const EpochNanoseconds& epochNs,
                              int64_t* offsetNanoseconds);
 
 /**
@@ -312,29 +314,29 @@ bool GetPossibleEpochNanoseconds(JSContext* cx,
 bool DisambiguatePossibleEpochNanoseconds(
     JSContext* cx, const PossibleEpochNanoseconds& possibleEpochNs,
     JS::Handle<TimeZoneValue> timeZone, const ISODateTime& isoDateTime,
-    TemporalDisambiguation disambiguation, Instant* result);
+    TemporalDisambiguation disambiguation, EpochNanoseconds* result);
 
 /**
  * GetNamedTimeZoneNextTransition ( timeZoneIdentifier, epochNanoseconds )
  */
 bool GetNamedTimeZoneNextTransition(JSContext* cx,
                                     JS::Handle<TimeZoneValue> timeZone,
-                                    const Instant& epochInstant,
-                                    mozilla::Maybe<Instant>* result);
+                                    const EpochNanoseconds& epochNanoseconds,
+                                    mozilla::Maybe<EpochNanoseconds>* result);
 
 /**
  * GetNamedTimeZonePreviousTransition ( timeZoneIdentifier, epochNanoseconds )
  */
-bool GetNamedTimeZonePreviousTransition(JSContext* cx,
-                                        JS::Handle<TimeZoneValue> timeZone,
-                                        const Instant& epochInstant,
-                                        mozilla::Maybe<Instant>* result);
+bool GetNamedTimeZonePreviousTransition(
+    JSContext* cx, JS::Handle<TimeZoneValue> timeZone,
+    const EpochNanoseconds& epochNanoseconds,
+    mozilla::Maybe<EpochNanoseconds>* result);
 
 /**
  * GetStartOfDay ( timeZone, isoDate )
  */
 bool GetStartOfDay(JSContext* cx, JS::Handle<TimeZoneValue> timeZone,
-                   const ISODate& isoDate, Instant* result);
+                   const ISODate& isoDate, EpochNanoseconds* result);
 
 // Helper for MutableWrappedPtrOperations.
 bool WrapTimeZoneValueObject(JSContext* cx,

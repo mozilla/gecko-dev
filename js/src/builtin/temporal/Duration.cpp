@@ -623,15 +623,15 @@ bool js::temporal::CombineDateAndNormalizedTimeDuration(
  */
 NormalizedTimeDuration
 js::temporal::NormalizedTimeDurationFromEpochNanosecondsDifference(
-    const Instant& one, const Instant& two) {
-  MOZ_ASSERT(IsValidEpochInstant(one));
-  MOZ_ASSERT(IsValidEpochInstant(two));
+    const EpochNanoseconds& one, const EpochNanoseconds& two) {
+  MOZ_ASSERT(IsValidEpochNanoseconds(one));
+  MOZ_ASSERT(IsValidEpochNanoseconds(two));
 
   // Step 1.
   auto result = one - two;
 
   // Step 2.
-  MOZ_ASSERT(IsValidInstantSpan(result));
+  MOZ_ASSERT(IsValidEpochDuration(result));
 
   // Step 3.
   return result.to<NormalizedTimeDuration>();
@@ -1913,7 +1913,7 @@ static bool GetTemporalRelativeToOption(
   auto matchBehaviour = MatchBehaviour::MatchExactly;
 
   // Steps 5-6.
-  Instant epochNanoseconds;
+  EpochNanoseconds epochNanoseconds;
   Rooted<TimeZoneValue> timeZone(cx);
   Rooted<CalendarValue> calendar(cx);
   if (value.isObject()) {
@@ -1921,7 +1921,7 @@ static bool GetTemporalRelativeToOption(
 
     // Step 5.a.
     if (auto* zonedDateTime = obj->maybeUnwrapIf<ZonedDateTimeObject>()) {
-      auto instant = ToInstant(zonedDateTime);
+      auto epochNs = zonedDateTime->epochNanoseconds();
       Rooted<TimeZoneValue> timeZone(cx, zonedDateTime->timeZone());
       Rooted<CalendarValue> calendar(cx, zonedDateTime->calendar());
 
@@ -1933,7 +1933,7 @@ static bool GetTemporalRelativeToOption(
       }
 
       // Step 5.a.ii.
-      zonedRelativeTo.set(ZonedDateTime{instant, timeZone, calendar});
+      zonedRelativeTo.set(ZonedDateTime{epochNs, timeZone, calendar});
       return true;
     }
 
@@ -2112,7 +2112,7 @@ static bool GetTemporalRelativeToOption(
       }
     }
   }
-  MOZ_ASSERT(IsValidEpochInstant(epochNanoseconds));
+  MOZ_ASSERT(IsValidEpochNanoseconds(epochNanoseconds));
 
   // Steps 11-12.
   zonedRelativeTo.set(ZonedDateTime{epochNanoseconds, timeZone, calendar});
@@ -2460,7 +2460,7 @@ static UnsignedRoundingMode GetUnsignedRoundingMode(
 
 struct DurationNudge {
   NormalizedDuration duration;
-  Instant epochNs;
+  EpochNanoseconds epochNs;
   double total = 0;
   bool didExpandCalendarUnit = false;
 };
@@ -2471,12 +2471,12 @@ struct DurationNudge {
  */
 static bool NudgeToCalendarUnit(
     JSContext* cx, const NormalizedDuration& duration,
-    const Instant& destEpochNs, const ISODateTime& dateTime,
+    const EpochNanoseconds& destEpochNs, const ISODateTime& dateTime,
     Handle<TimeZoneValue> timeZone, Handle<CalendarValue> calendar,
     Increment increment, TemporalUnit unit, TemporalRoundingMode roundingMode,
     DurationNudge* result) {
   MOZ_ASSERT(IsValidDuration(duration));
-  MOZ_ASSERT(IsValidEpochInstant(destEpochNs));
+  MOZ_ASSERT(IsValidEpochNanoseconds(destEpochNs));
   MOZ_ASSERT(ISODateTimeWithinLimits(dateTime));
   MOZ_ASSERT(unit <= TemporalUnit::Day);
 
@@ -2607,8 +2607,8 @@ static bool NudgeToCalendarUnit(
   }
 
   // Steps 11-12.
-  Instant startEpochNs;
-  Instant endEpochNs;
+  EpochNanoseconds startEpochNs;
+  EpochNanoseconds endEpochNs;
   if (!timeZone) {
     // Step 11.a.
     startEpochNs = GetUTCEpochNanoseconds({start, dateTime.time});
@@ -2786,7 +2786,7 @@ static bool NudgeToZonedTime(JSContext* cx, const NormalizedDuration& duration,
   }
 
   // Steps 7-8.
-  Instant startEpochNs;
+  EpochNanoseconds startEpochNs;
   if (!GetEpochNanosecondsFor(cx, timeZone, startDateTime,
                               TemporalDisambiguation::Compatible,
                               &startEpochNs)) {
@@ -2794,7 +2794,7 @@ static bool NudgeToZonedTime(JSContext* cx, const NormalizedDuration& duration,
   }
 
   // Steps 9-10.
-  Instant endEpochNs;
+  EpochNanoseconds endEpochNs;
   if (!GetEpochNanosecondsFor(cx, timeZone, endDateTime,
                               TemporalDisambiguation::Compatible,
                               &endEpochNs)) {
@@ -2831,7 +2831,7 @@ static bool NudgeToZonedTime(JSContext* cx, const NormalizedDuration& duration,
   // Steps 16-17.
   bool didRoundBeyondDay;
   int32_t dayDelta;
-  Instant nudgedEpochNs;
+  EpochNanoseconds nudgedEpochNs;
   if (TimeDurationSign(beyondDaySpan) != -sign) {
     // Step 16.a.
     didRoundBeyondDay = true;
@@ -2846,7 +2846,7 @@ static bool NudgeToZonedTime(JSContext* cx, const NormalizedDuration& duration,
     }
 
     // Step 16.d. (Inlined AddNormalizedTimeDurationToEpochNanoseconds)
-    nudgedEpochNs = endEpochNs + roundedTime.to<InstantSpan>();
+    nudgedEpochNs = endEpochNs + roundedTime.to<EpochDuration>();
   } else {
     // Step 17.a.
     didRoundBeyondDay = false;
@@ -2855,7 +2855,7 @@ static bool NudgeToZonedTime(JSContext* cx, const NormalizedDuration& duration,
     dayDelta = 0;
 
     // Step 17.c. (Inlined AddNormalizedTimeDurationToEpochNanoseconds)
-    nudgedEpochNs = startEpochNs + roundedTime.to<InstantSpan>();
+    nudgedEpochNs = startEpochNs + roundedTime.to<EpochDuration>();
   }
 
   // Step 18.
@@ -2886,13 +2886,13 @@ static bool NudgeToZonedTime(JSContext* cx, const NormalizedDuration& duration,
  * smallestUnit, roundingMode )
  */
 static bool NudgeToDayOrTime(JSContext* cx, const NormalizedDuration& duration,
-                             const Instant& destEpochNs,
+                             const EpochNanoseconds& destEpochNs,
                              TemporalUnit largestUnit, Increment increment,
                              TemporalUnit smallestUnit,
                              TemporalRoundingMode roundingMode,
                              DurationNudge* result) {
   MOZ_ASSERT(IsValidDuration(duration));
-  MOZ_ASSERT(IsValidEpochInstant(destEpochNs));
+  MOZ_ASSERT(IsValidEpochNanoseconds(destEpochNs));
 
   // FIXME: spec bug - incorrect assertion
   // https://github.com/tc39/proposal-temporal/issues/2897
@@ -2939,7 +2939,7 @@ static bool NudgeToDayOrTime(JSContext* cx, const NormalizedDuration& duration,
   bool didExpandDays = dayDeltaSign == TimeDurationSign(withDays);
 
   // Step 13. (Inlined AddNormalizedTimeDurationToEpochNanoseconds)
-  auto nudgedEpochNs = destEpochNs + diffTime.to<InstantSpan>();
+  auto nudgedEpochNs = destEpochNs + diffTime.to<EpochDuration>();
 
   // Step 14.
   int64_t days = 0;
@@ -3056,7 +3056,7 @@ static bool BubbleRelativeDuration(
       MOZ_ASSERT(ISODateTimeWithinLimits(endDateTime));
 
       // Steps 6.b.vi-vii.
-      Instant endEpochNs;
+      EpochNanoseconds endEpochNs;
       if (!timeZone) {
         endEpochNs = GetUTCEpochNanoseconds(endDateTime);
       } else {
@@ -3073,9 +3073,9 @@ static bool BubbleRelativeDuration(
       auto beyondEnd = nudge.epochNs - endEpochNs;
 
       // Step 6.b.ix.
-      int32_t beyondEndSign = beyondEnd < InstantSpan{}   ? -1
-                              : beyondEnd > InstantSpan{} ? 1
-                                                          : 0;
+      int32_t beyondEndSign = beyondEnd < EpochDuration{}   ? -1
+                              : beyondEnd > EpochDuration{} ? 1
+                                                            : 0;
 
       // Steps 6.b.x-xi.
       if (beyondEndSign != -sign) {
@@ -3100,12 +3100,12 @@ static bool BubbleRelativeDuration(
  */
 bool js::temporal::RoundRelativeDuration(
     JSContext* cx, const NormalizedDuration& duration,
-    const Instant& destEpochNs, const ISODateTime& dateTime,
+    const EpochNanoseconds& destEpochNs, const ISODateTime& dateTime,
     Handle<TimeZoneValue> timeZone, Handle<CalendarValue> calendar,
     TemporalUnit largestUnit, Increment increment, TemporalUnit smallestUnit,
     TemporalRoundingMode roundingMode, RoundedRelativeDuration* result) {
   MOZ_ASSERT(IsValidDuration(duration));
-  MOZ_ASSERT(IsValidEpochInstant(destEpochNs));
+  MOZ_ASSERT(IsValidEpochNanoseconds(destEpochNs));
   MOZ_ASSERT(ISODateTimeWithinLimits(dateTime));
   MOZ_ASSERT(largestUnit <= smallestUnit);
 
@@ -3424,13 +3424,13 @@ static bool Duration_compare(JSContext* cx, unsigned argc, Value* vp) {
     // Steps 12.a-b. (Not applicable in our implementation.)
 
     // Step 12.c.
-    Instant after1;
+    EpochNanoseconds after1;
     if (!AddZonedDateTime(cx, zonedRelativeTo, duration1, &after1)) {
       return false;
     }
 
     // Step 12.d.
-    Instant after2;
+    EpochNanoseconds after2;
     if (!AddZonedDateTime(cx, zonedRelativeTo, duration2, &after2)) {
       return false;
     }
@@ -4042,7 +4042,7 @@ static bool Duration_round(JSContext* cx, const CallArgs& args) {
     // Steps 35.a-d. (Not applicable in our implementation.)
 
     // Step 35.e.
-    Instant targetEpochNs;
+    EpochNanoseconds targetEpochNs;
     if (!AddZonedDateTime(cx, zonedRelativeTo, normDuration, &targetEpochNs)) {
       return false;
     }
@@ -4222,7 +4222,7 @@ static bool Duration_total(JSContext* cx, const CallArgs& args) {
     // Steps 15.a-d. (Not applicable in our implementation.)
 
     // Step 15.e.
-    Instant targetEpochNs;
+    EpochNanoseconds targetEpochNs;
     if (!AddZonedDateTime(cx, zonedRelativeTo, normDuration, &targetEpochNs)) {
       return false;
     }

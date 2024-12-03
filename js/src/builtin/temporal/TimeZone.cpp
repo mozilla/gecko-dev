@@ -477,9 +477,9 @@ static bool GetNamedTimeZoneEpochNanoseconds(JSContext* cx,
   }
 
   if (formerOffset == latterOffset) {
-    auto instant = GetUTCEpochNanoseconds(
-        isoDateTime, InstantSpan::fromMilliseconds(formerOffset));
-    *result = PossibleEpochNanoseconds{instant};
+    auto epochNs = GetUTCEpochNanoseconds(isoDateTime) -
+                   EpochDuration::fromMilliseconds(formerOffset);
+    *result = PossibleEpochNanoseconds{epochNs};
     return true;
   }
 
@@ -495,12 +495,12 @@ static bool GetNamedTimeZoneEpochNanoseconds(JSContext* cx,
   }
 
   // Repeated time.
-  auto formerInstant = GetUTCEpochNanoseconds(
-      isoDateTime, InstantSpan::fromMilliseconds(formerOffset));
-  auto latterInstant = GetUTCEpochNanoseconds(
-      isoDateTime, InstantSpan::fromMilliseconds(latterOffset));
+  auto formerInstant = GetUTCEpochNanoseconds(isoDateTime) -
+                       EpochDuration::fromMilliseconds(formerOffset);
+  auto latterInstant = GetUTCEpochNanoseconds(isoDateTime) -
+                       EpochDuration::fromMilliseconds(latterOffset);
 
-  // Ensure the returned instants are sorted in numerical order.
+  // Ensure the returned epoch nanoseconds are sorted in numerical order.
   if (formerInstant > latterInstant) {
     std::swap(formerInstant, latterInstant);
   }
@@ -512,14 +512,13 @@ static bool GetNamedTimeZoneEpochNanoseconds(JSContext* cx,
 /**
  * GetNamedTimeZoneOffsetNanoseconds ( timeZoneIdentifier, epochNanoseconds )
  */
-static bool GetNamedTimeZoneOffsetNanoseconds(JSContext* cx,
-                                              Handle<TimeZoneValue> timeZone,
-                                              const Instant& epochInstant,
-                                              int64_t* offset) {
+static bool GetNamedTimeZoneOffsetNanoseconds(
+    JSContext* cx, Handle<TimeZoneValue> timeZone,
+    const EpochNanoseconds& epochNanoseconds, int64_t* offset) {
   MOZ_ASSERT(!timeZone.isOffset());
 
   // Round down (floor) to the previous full milliseconds.
-  int64_t millis = epochInstant.floorToMilliseconds();
+  int64_t millis = epochNanoseconds.floorToMilliseconds();
 
   auto* tz = GetOrCreateIntlTimeZone(cx, timeZone);
   if (!tz) {
@@ -544,8 +543,9 @@ static bool GetNamedTimeZoneOffsetNanoseconds(JSContext* cx,
  * GetNamedTimeZoneNextTransition ( timeZoneIdentifier, epochNanoseconds )
  */
 bool js::temporal::GetNamedTimeZoneNextTransition(
-    JSContext* cx, Handle<TimeZoneValue> timeZone, const Instant& epochInstant,
-    mozilla::Maybe<Instant>* result) {
+    JSContext* cx, Handle<TimeZoneValue> timeZone,
+    const EpochNanoseconds& epochNanoseconds,
+    mozilla::Maybe<EpochNanoseconds>* result) {
   MOZ_ASSERT(!timeZone.isOffset());
 
   // Round down (floor) to the previous full millisecond.
@@ -554,7 +554,7 @@ bool js::temporal::GetNamedTimeZoneNextTransition(
   // the default configuration doesn't enable it, therefore it's safe to round
   // to milliseconds here. In addition to that, ICU also only supports
   // transitions at millisecond precision.
-  int64_t millis = epochInstant.floorToMilliseconds();
+  int64_t millis = epochNanoseconds.floorToMilliseconds();
 
   auto* tz = GetOrCreateIntlTimeZone(cx, timeZone);
   if (!tz) {
@@ -573,8 +573,8 @@ bool js::temporal::GetNamedTimeZoneNextTransition(
     return true;
   }
 
-  auto transitionInstant = Instant::fromMilliseconds(*transition);
-  if (!IsValidEpochInstant(transitionInstant)) {
+  auto transitionInstant = EpochNanoseconds::fromMilliseconds(*transition);
+  if (!IsValidEpochNanoseconds(transitionInstant)) {
     *result = mozilla::Nothing();
     return true;
   }
@@ -587,8 +587,9 @@ bool js::temporal::GetNamedTimeZoneNextTransition(
  * GetNamedTimeZonePreviousTransition ( timeZoneIdentifier, epochNanoseconds )
  */
 bool js::temporal::GetNamedTimeZonePreviousTransition(
-    JSContext* cx, Handle<TimeZoneValue> timeZone, const Instant& epochInstant,
-    mozilla::Maybe<Instant>* result) {
+    JSContext* cx, Handle<TimeZoneValue> timeZone,
+    const EpochNanoseconds& epochNanoseconds,
+    mozilla::Maybe<EpochNanoseconds>* result) {
   MOZ_ASSERT(!timeZone.isOffset());
 
   // Round up (ceil) to the next full millisecond.
@@ -597,7 +598,7 @@ bool js::temporal::GetNamedTimeZonePreviousTransition(
   // the default configuration doesn't enable it, therefore it's safe to round
   // to milliseconds here. In addition to that, ICU also only supports
   // transitions at millisecond precision.
-  int64_t millis = epochInstant.ceilToMilliseconds();
+  int64_t millis = epochNanoseconds.ceilToMilliseconds();
 
   auto* tz = GetOrCreateIntlTimeZone(cx, timeZone);
   if (!tz) {
@@ -616,8 +617,8 @@ bool js::temporal::GetNamedTimeZonePreviousTransition(
     return true;
   }
 
-  auto transitionInstant = Instant::fromMilliseconds(*transition);
-  if (!IsValidEpochInstant(transitionInstant)) {
+  auto transitionInstant = EpochNanoseconds::fromMilliseconds(*transition);
+  if (!IsValidEpochNanoseconds(transitionInstant)) {
     *result = mozilla::Nothing();
     return true;
   }
@@ -630,7 +631,8 @@ bool js::temporal::GetNamedTimeZonePreviousTransition(
  * GetStartOfDay ( timeZone, isoDate )
  */
 bool js::temporal::GetStartOfDay(JSContext* cx, Handle<TimeZoneValue> timeZone,
-                                 const ISODate& isoDate, Instant* result) {
+                                 const ISODate& isoDate,
+                                 EpochNanoseconds* result) {
   MOZ_ASSERT(IsValidISODate(isoDate));
 
   // Step 1.
@@ -654,11 +656,11 @@ bool js::temporal::GetStartOfDay(JSContext* cx, Handle<TimeZoneValue> timeZone,
   MOZ_ASSERT(!timeZone.isOffset());
 
   constexpr auto oneDay =
-      InstantSpan::fromNanoseconds(ToNanoseconds(TemporalUnit::Day));
+      EpochDuration::fromNanoseconds(ToNanoseconds(TemporalUnit::Day));
 
   // Step 5.
   auto previousDayEpochNs = GetUTCEpochNanoseconds(isoDateTime) - oneDay;
-  mozilla::Maybe<Instant> transition{};
+  mozilla::Maybe<EpochNanoseconds> transition{};
   if (!GetNamedTimeZoneNextTransition(cx, timeZone, previousDayEpochNs,
                                       &transition)) {
     return false;
@@ -748,7 +750,7 @@ bool js::temporal::ToTemporalTimeZone(JSContext* cx,
  */
 bool js::temporal::GetOffsetNanosecondsFor(JSContext* cx,
                                            Handle<TimeZoneValue> timeZone,
-                                           const Instant& instant,
+                                           const EpochNanoseconds& epochNs,
                                            int64_t* offsetNanoseconds) {
   // Step 1. (Not applicable)
 
@@ -763,7 +765,7 @@ bool js::temporal::GetOffsetNanosecondsFor(JSContext* cx,
 
   // Step 3.
   int64_t offset;
-  if (!GetNamedTimeZoneOffsetNanoseconds(cx, timeZone, instant, &offset)) {
+  if (!GetNamedTimeZoneOffsetNanoseconds(cx, timeZone, epochNs, &offset)) {
     return false;
   }
   MOZ_ASSERT(std::abs(offset) < ToNanoseconds(TemporalUnit::Day));
@@ -863,20 +865,21 @@ bool js::temporal::TimeZoneEquals(const TimeZoneValue& one,
 /**
  * GetISOPartsFromEpoch ( epochNanoseconds )
  */
-static ISODateTime GetISOPartsFromEpoch(const Instant& instant) {
+static ISODateTime GetISOPartsFromEpoch(
+    const EpochNanoseconds& epochNanoseconds) {
   // Step 1.
-  MOZ_ASSERT(IsValidEpochInstant(instant));
+  MOZ_ASSERT(IsValidEpochNanoseconds(epochNanoseconds));
 
   // Step 2.
-  int32_t remainderNs = instant.nanoseconds % 1'000'000;
+  int32_t remainderNs = epochNanoseconds.nanoseconds % 1'000'000;
 
   // Step 10. (Reordered)
   //
   // Reordered so the compiler can merge the divisons in steps 2, 3, and 10.
-  int32_t millisecond = instant.nanoseconds / 1'000'000;
+  int32_t millisecond = epochNanoseconds.nanoseconds / 1'000'000;
 
   // Step 3.
-  int64_t epochMilliseconds = instant.floorToMilliseconds();
+  int64_t epochMilliseconds = epochNanoseconds.floorToMilliseconds();
 
   // Steps 4-6.
   auto [year, month, day] = ToYearMonthDay(epochMilliseconds);
@@ -935,9 +938,9 @@ static ISODateTime BalanceISODateTime(const ISODateTime& dateTime,
 /**
  * GetISODateTimeFor ( timeZone, epochNs )
  */
-ISODateTime js::temporal::GetISODateTimeFor(const Instant& instant,
+ISODateTime js::temporal::GetISODateTimeFor(const EpochNanoseconds& epochNs,
                                             int64_t offsetNanoseconds) {
-  MOZ_ASSERT(IsValidEpochInstant(instant));
+  MOZ_ASSERT(IsValidEpochNanoseconds(epochNs));
   MOZ_ASSERT(std::abs(offsetNanoseconds) < ToNanoseconds(TemporalUnit::Day));
 
   // Step 1. (Not applicable)
@@ -945,7 +948,7 @@ ISODateTime js::temporal::GetISODateTimeFor(const Instant& instant,
   // TODO: Steps 2-3 can be combined into a single operation to improve perf.
 
   // Step 2.
-  ISODateTime dateTime = GetISOPartsFromEpoch(instant);
+  ISODateTime dateTime = GetISOPartsFromEpoch(epochNs);
 
   // Step 3.
   auto balanced = BalanceISODateTime(dateTime, offsetNanoseconds);
@@ -959,19 +962,19 @@ ISODateTime js::temporal::GetISODateTimeFor(const Instant& instant,
  */
 bool js::temporal::GetISODateTimeFor(JSContext* cx,
                                      Handle<TimeZoneValue> timeZone,
-                                     const Instant& instant,
+                                     const EpochNanoseconds& epochNs,
                                      ISODateTime* result) {
-  MOZ_ASSERT(IsValidEpochInstant(instant));
+  MOZ_ASSERT(IsValidEpochNanoseconds(epochNs));
 
   // Step 1.
   int64_t offsetNanoseconds;
-  if (!GetOffsetNanosecondsFor(cx, timeZone, instant, &offsetNanoseconds)) {
+  if (!GetOffsetNanosecondsFor(cx, timeZone, epochNs, &offsetNanoseconds)) {
     return false;
   }
   MOZ_ASSERT(std::abs(offsetNanoseconds) < ToNanoseconds(TemporalUnit::Day));
 
   // Steps 2-3.
-  *result = GetISODateTimeFor(instant, offsetNanoseconds);
+  *result = GetISODateTimeFor(epochNs, offsetNanoseconds);
   return true;
 }
 
@@ -997,8 +1000,8 @@ bool js::temporal::GetPossibleEpochNanoseconds(
     MOZ_ASSERT(std::abs(offsetMin) < UnitsPerDay(TemporalUnit::Minute));
 
     // Step 2.a.
-    auto epochInstant = GetUTCEpochNanoseconds(
-        isoDateTime, InstantSpan::fromMinutes(offsetMin));
+    auto epochInstant = GetUTCEpochNanoseconds(isoDateTime) -
+                        EpochDuration::fromMinutes(offsetMin);
 
     // Step 2.b.
     possibleEpochNanoseconds = PossibleEpochNanoseconds{epochInstant};
@@ -1014,7 +1017,7 @@ bool js::temporal::GetPossibleEpochNanoseconds(
 
   // Step 4.
   for (const auto& epochInstant : possibleEpochNanoseconds) {
-    if (!IsValidEpochInstant(epochInstant)) {
+    if (!IsValidEpochNanoseconds(epochInstant)) {
       JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
                                 JSMSG_TEMPORAL_INSTANT_INVALID);
       return false;
@@ -1044,7 +1047,7 @@ static auto AddTime(const Time& time, int64_t nanoseconds) {
 bool js::temporal::DisambiguatePossibleEpochNanoseconds(
     JSContext* cx, const PossibleEpochNanoseconds& possibleEpochNs,
     Handle<TimeZoneValue> timeZone, const ISODateTime& isoDateTime,
-    TemporalDisambiguation disambiguation, Instant* result) {
+    TemporalDisambiguation disambiguation, EpochNanoseconds* result) {
   MOZ_ASSERT(IsValidISODateTime(isoDateTime));
 
   // Steps 1-2.
@@ -1086,17 +1089,17 @@ bool js::temporal::DisambiguatePossibleEpochNanoseconds(
   }
 
   constexpr auto oneDay =
-      InstantSpan::fromNanoseconds(ToNanoseconds(TemporalUnit::Day));
+      EpochDuration::fromNanoseconds(ToNanoseconds(TemporalUnit::Day));
 
   auto epochNanoseconds = GetUTCEpochNanoseconds(isoDateTime);
 
   // Step 6 and 8-9.
   auto dayBefore = epochNanoseconds - oneDay;
-  MOZ_ASSERT(IsValidEpochInstant(dayBefore));
+  MOZ_ASSERT(IsValidEpochNanoseconds(dayBefore));
 
   // Step 7 and 10-11.
   auto dayAfter = epochNanoseconds + oneDay;
-  MOZ_ASSERT(IsValidEpochInstant(dayAfter));
+  MOZ_ASSERT(IsValidEpochNanoseconds(dayAfter));
 
   // Step 12.
   int64_t offsetBefore;
@@ -1183,7 +1186,7 @@ bool js::temporal::GetEpochNanosecondsFor(JSContext* cx,
                                           Handle<TimeZoneValue> timeZone,
                                           const ISODateTime& isoDateTime,
                                           TemporalDisambiguation disambiguation,
-                                          Instant* result) {
+                                          EpochNanoseconds* result) {
   // Step 1.
   PossibleEpochNanoseconds possibleEpochNs;
   if (!GetPossibleEpochNanoseconds(cx, timeZone, isoDateTime,

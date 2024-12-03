@@ -469,7 +469,7 @@ static bool ToTemporalDate(JSContext* cx, Handle<JSObject*> item,
 
   // Step 2.b.
   if (auto* zonedDateTime = item->maybeUnwrapIf<ZonedDateTimeObject>()) {
-    auto epochInstant = ToInstant(zonedDateTime);
+    auto epochNs = zonedDateTime->epochNanoseconds();
     Rooted<TimeZoneValue> timeZone(cx, zonedDateTime->timeZone());
     Rooted<CalendarValue> calendar(cx, zonedDateTime->calendar());
 
@@ -482,7 +482,7 @@ static bool ToTemporalDate(JSContext* cx, Handle<JSObject*> item,
 
     // Steps 2.b.ii.
     ISODateTime dateTime;
-    if (!GetISODateTimeFor(cx, timeZone, epochInstant, &dateTime)) {
+    if (!GetISODateTimeFor(cx, timeZone, epochNs, &dateTime)) {
       return false;
     }
 
@@ -647,13 +647,13 @@ static BalancedYearMonth BalanceISOYearMonth(int64_t year, int64_t month) {
 static bool IsValidISODateEpochMilliseconds(int64_t epochMilliseconds) {
   // Epoch nanoseconds limits, adjusted to the range supported by ISODate.
   constexpr auto oneDay =
-      InstantSpan::fromSeconds(ToSeconds(TemporalUnit::Day));
-  constexpr auto min = Instant::min() - oneDay;
-  constexpr auto max = Instant::max() + oneDay;
+      EpochDuration::fromSeconds(ToSeconds(TemporalUnit::Day));
+  constexpr auto min = EpochNanoseconds::min() - oneDay;
+  constexpr auto max = EpochNanoseconds::max() + oneDay;
 
   // NB: Minimum limit is inclusive, whereas maximim limit is exclusive.
-  auto instant = Instant::fromMilliseconds(epochMilliseconds);
-  return min <= instant && instant < max;
+  auto epochNs = EpochNanoseconds::fromMilliseconds(epochMilliseconds);
+  return min <= epochNs && epochNs < max;
 }
 
 /**
@@ -2095,10 +2095,10 @@ static bool PlainDate_toZonedDateTime(JSContext* cx, const CallArgs& args) {
   }
 
   // Steps 5-6.
-  Instant instant;
+  EpochNanoseconds epochNs;
   if (temporalTime.isUndefined()) {
     // Steps 5.a-b.
-    if (!GetStartOfDay(cx, timeZone, date, &instant)) {
+    if (!GetStartOfDay(cx, timeZone, date, &epochNs)) {
       return false;
     }
   } else {
@@ -2116,13 +2116,13 @@ static bool PlainDate_toZonedDateTime(JSContext* cx, const CallArgs& args) {
 
     // Step 6.d.
     if (!GetEpochNanosecondsFor(cx, timeZone, temporalDateTime,
-                                TemporalDisambiguation::Compatible, &instant)) {
+                                TemporalDisambiguation::Compatible, &epochNs)) {
       return false;
     }
   }
 
   // Step 7.
-  auto* result = CreateTemporalZonedDateTime(cx, instant, timeZone, calendar);
+  auto* result = CreateTemporalZonedDateTime(cx, epochNs, timeZone, calendar);
   if (!result) {
     return false;
   }

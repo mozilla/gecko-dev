@@ -53,7 +53,7 @@ using namespace js::temporal;
 /**
  * SystemUTCEpochNanoseconds ( )
  */
-static bool SystemUTCEpochNanoseconds(JSContext* cx, Instant* result) {
+static bool SystemUTCEpochNanoseconds(JSContext* cx, EpochNanoseconds* result) {
   // Steps 1-2.
   JS::ClippedTime nowMillis = DateNow(cx);
   MOZ_ASSERT(nowMillis.isValid());
@@ -61,7 +61,7 @@ static bool SystemUTCEpochNanoseconds(JSContext* cx, Instant* result) {
   MOZ_ASSERT(nowMillis.toDouble() <= js::EndOfTime);
 
   // Step 3.
-  *result = Instant::fromMilliseconds(int64_t(nowMillis.toDouble()));
+  *result = EpochNanoseconds::fromMilliseconds(int64_t(nowMillis.toDouble()));
   return true;
 }
 
@@ -83,13 +83,13 @@ static bool SystemDateTime(JSContext* cx, Handle<Value> temporalTimeZoneLike,
   }
 
   // Step 3.
-  Instant instant;
-  if (!SystemUTCEpochNanoseconds(cx, &instant)) {
+  EpochNanoseconds epochNs;
+  if (!SystemUTCEpochNanoseconds(cx, &epochNs)) {
     return false;
   }
 
   // Step 4.
-  return GetISODateTimeFor(cx, timeZone, instant, dateTime);
+  return GetISODateTimeFor(cx, timeZone, epochNs, dateTime);
 }
 
 /**
@@ -115,13 +115,13 @@ static bool Temporal_Now_instant(JSContext* cx, unsigned argc, Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
 
   // Step 1.
-  Instant instant;
-  if (!SystemUTCEpochNanoseconds(cx, &instant)) {
+  EpochNanoseconds epochNs;
+  if (!SystemUTCEpochNanoseconds(cx, &epochNs)) {
     return false;
   }
 
   // Step 2.
-  auto* result = CreateTemporalInstant(cx, instant);
+  auto* result = CreateTemporalInstant(cx, epochNs);
   if (!result) {
     return false;
   }
@@ -174,14 +174,14 @@ static bool Temporal_Now_zonedDateTimeISO(JSContext* cx, unsigned argc,
   }
 
   // Step 3.
-  Instant instant;
-  if (!SystemUTCEpochNanoseconds(cx, &instant)) {
+  EpochNanoseconds epochNs;
+  if (!SystemUTCEpochNanoseconds(cx, &epochNs)) {
     return false;
   }
 
   // Step 4.
   Rooted<CalendarValue> calendar(cx, CalendarValue(CalendarId::ISO8601));
-  auto* result = CreateTemporalZonedDateTime(cx, instant, timeZone, calendar);
+  auto* result = CreateTemporalZonedDateTime(cx, epochNs, timeZone, calendar);
   if (!result) {
     return false;
   }

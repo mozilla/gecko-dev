@@ -28,7 +28,8 @@ struct Time;
 /**
  * TemporalInstantToString ( instant, timeZone, precision )
  */
-JSString* TemporalInstantToString(JSContext* cx, const Instant& instant,
+JSString* TemporalInstantToString(JSContext* cx,
+                                  const EpochNanoseconds& epochNs,
                                   JS::Handle<TimeZoneValue> timeZone,
                                   Precision precision);
 
