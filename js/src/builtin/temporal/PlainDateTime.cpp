@@ -83,52 +83,26 @@ bool js::temporal::IsValidISODateTime(const ISODateTime& isoDateTime) {
 bool js::temporal::ISODateTimeWithinLimits(const ISODateTime& isoDateTime) {
   MOZ_ASSERT(IsValidISODateTime(isoDateTime));
 
-  const auto& [date, time] = isoDateTime;
-  const auto& [year, month, day] = date;
-  const auto& [hour, minute, second, millisecond, microsecond, nanosecond] =
-      time;
+  constexpr auto min = ISODate::min();
+  constexpr auto max = ISODate::max();
 
-  // js> new Date(-8_64000_00000_00000).toISOString()
-  // "-271821-04-20T00:00:00.000Z"
-  //
-  // js> new Date(+8_64000_00000_00000).toISOString()
-  // "+275760-09-13T00:00:00.000Z"
+  const auto& year = isoDateTime.date.year;
 
-  constexpr int32_t minYear = -271821;
-  constexpr int32_t maxYear = 275760;
-
-  // Definitely in range.
-  if (minYear < year && year < maxYear) {
+  // Fast-path when the input is definitely in range.
+  if (min.year < year && year < max.year) {
     return true;
   }
 
-  // -271821 April, 20
+  // Check |isoDateTime| is within the valid limits.
   if (year < 0) {
-    if (year != minYear) {
-      return false;
+    if (isoDateTime.date != min) {
+      return isoDateTime.date > min;
     }
-    if (month != 4) {
-      return month > 4;
-    }
-    if (day != (20 - 1)) {
-      return day > (20 - 1);
-    }
-    // Needs to be past midnight on April, 19.
-    return !(hour == 0 && minute == 0 && second == 0 && millisecond == 0 &&
-             microsecond == 0 && nanosecond == 0);
-  }
 
-  // 275760 September, 13
-  if (year != maxYear) {
-    return false;
+    // Needs to be past midnight.
+    return isoDateTime.time != Time{};
   }
-  if (month != 9) {
-    return month < 9;
-  }
-  if (day > 13) {
-    return false;
-  }
-  return true;
+  return isoDateTime.date <= max;
 }
 
 /**

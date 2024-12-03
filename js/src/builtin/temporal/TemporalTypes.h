@@ -431,11 +431,43 @@ struct ISODate final {
   // [1, 31]
   int32_t day = 0;
 
-  bool operator==(const ISODate& other) const {
+  constexpr bool operator==(const ISODate& other) const {
     return year == other.year && month == other.month && day == other.day;
   }
 
-  bool operator!=(const ISODate& other) const { return !(*this == other); }
+  constexpr bool operator!=(const ISODate& other) const {
+    return !(*this == other);
+  }
+
+  constexpr bool operator<(const ISODate& other) const {
+    if (year != other.year) {
+      return year < other.year;
+    }
+    if (month != other.month) {
+      return month < other.month;
+    }
+    return day < other.day;
+  }
+
+  constexpr bool operator>(const ISODate& other) const { return other < *this; }
+
+  constexpr bool operator<=(const ISODate& other) const {
+    return !(other < *this);
+  }
+
+  constexpr bool operator>=(const ISODate& other) const {
+    return !(*this < other);
+  }
+
+  /**
+   * The minimum ISODate within the valid limits is -271821 April, 19.
+   */
+  static constexpr ISODate min() { return {-271821, 4, 19}; }
+
+  /**
+   * The maximum ISODate within the valid limits is 275760 September, 13.
+   */
+  static constexpr ISODate max() { return {275760, 9, 13}; }
 };
 
 /**
@@ -461,13 +493,44 @@ struct Time final {
   // [0, 999]
   int32_t nanosecond = 0;
 
-  bool operator==(const Time& other) const {
+  constexpr bool operator==(const Time& other) const {
     return hour == other.hour && minute == other.minute &&
            second == other.second && millisecond == other.millisecond &&
            microsecond == other.microsecond && nanosecond == other.nanosecond;
   }
 
-  bool operator!=(const Time& other) const { return !(*this == other); }
+  constexpr bool operator!=(const Time& other) const {
+    return !(*this == other);
+  }
+
+  constexpr bool operator<(const Time& other) const {
+    if (hour != other.hour) {
+      return hour < other.hour;
+    }
+    if (minute != other.minute) {
+      return minute < other.minute;
+    }
+    if (second != other.second) {
+      return second < other.second;
+    }
+    if (millisecond != other.millisecond) {
+      return millisecond < other.millisecond;
+    }
+    if (microsecond != other.microsecond) {
+      return microsecond < other.microsecond;
+    }
+    return nanosecond < other.nanosecond;
+  }
+
+  constexpr bool operator>(const Time& other) const { return other < *this; }
+
+  constexpr bool operator<=(const Time& other) const {
+    return !(other < *this);
+  }
+
+  constexpr bool operator>=(const Time& other) const {
+    return !(*this < other);
+  }
 };
 
 /**
@@ -482,6 +545,25 @@ struct ISODateTime final {
   }
 
   bool operator!=(const ISODateTime& other) const { return !(*this == other); }
+
+  constexpr bool operator<(const ISODateTime& other) const {
+    if (date != other.date) {
+      return date < other.date;
+    }
+    return time < other.time;
+  }
+
+  constexpr bool operator>(const ISODateTime& other) const {
+    return other < *this;
+  }
+
+  constexpr bool operator<=(const ISODateTime& other) const {
+    return !(other < *this);
+  }
+
+  constexpr bool operator>=(const ISODateTime& other) const {
+    return !(*this < other);
+  }
 };
 
 // 32-bit packed date to store an ISO date within PrivateUint32Value.
