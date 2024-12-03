@@ -86,8 +86,8 @@ import org.mozilla.fenix.components.Components
 import org.mozilla.fenix.components.Core
 import org.mozilla.fenix.components.appstate.AppAction
 import org.mozilla.fenix.components.initializeGlean
-import org.mozilla.fenix.components.metrics.MetricServiceType
 import org.mozilla.fenix.components.metrics.MozillaProductDetector
+import org.mozilla.fenix.components.startMetricsIfEnabled
 import org.mozilla.fenix.distributions.getDistributionId
 import org.mozilla.fenix.experiments.maybeFetchExperiments
 import org.mozilla.fenix.ext.components
@@ -226,7 +226,6 @@ open class FenixApplication : LocaleAwareApplication(), Provider {
                 components.core.engine.warmUp()
             }
 
-            // We need to always initialize Glean and do it early here.
             initializeGlean()
 
             // Attention: Do not invoke any code from a-s in this scope.
@@ -260,7 +259,14 @@ open class FenixApplication : LocaleAwareApplication(), Provider {
         }
 
         setupLeakCanary()
-        startMetricsIfEnabled()
+        if (components.fenixOnboarding.userHasBeenOnboarded()) {
+            startMetricsIfEnabled(
+                logger = logger,
+                analytics = components.analytics,
+                isTelemetryEnabled = settings().isTelemetryEnabled,
+                isMarketingTelemetryEnabled = settings().isMarketingTelemetryEnabled,
+            )
+        }
         setupPush()
 
         GlobalFxSuggestDependencyProvider.initialize(components.fxSuggest.storage)
@@ -450,17 +456,6 @@ open class FenixApplication : LocaleAwareApplication(), Provider {
             GlobalScope.launch(IO) {
                 ApplicationExitInfoMetrics.recordProcessExits(applicationContext)
             }
-        }
-    }
-
-    private fun startMetricsIfEnabled() {
-        if (settings().isTelemetryEnabled) {
-            components.analytics.metrics.start(MetricServiceType.Data)
-            components.analytics.crashFactCollector.start()
-        }
-
-        if (settings().isMarketingTelemetryEnabled) {
-            components.analytics.metrics.start(MetricServiceType.Marketing)
         }
     }
 

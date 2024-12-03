@@ -31,6 +31,7 @@ import org.mozilla.fenix.R
 import org.mozilla.fenix.components.accounts.FenixFxAEntryPoint
 import org.mozilla.fenix.components.initializeGlean
 import org.mozilla.fenix.components.lazyStore
+import org.mozilla.fenix.components.startMetricsIfEnabled
 import org.mozilla.fenix.compose.LinkTextState
 import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.ext.hideToolbar
@@ -278,11 +279,19 @@ class OnboardingFragment : Fragment() {
 
         requireComponents.fenixOnboarding.finish()
 
+        val settings = requireContext().settings()
         initializeGlean(
             requireContext().applicationContext,
             logger,
-            requireContext().settings().isTelemetryEnabled,
+            settings.isTelemetryEnabled,
             requireComponents.core.client,
+        )
+
+        startMetricsIfEnabled(
+            logger = logger,
+            analytics = requireComponents.analytics,
+            isTelemetryEnabled = settings.isTelemetryEnabled,
+            isMarketingTelemetryEnabled = settings.isMarketingTelemetryEnabled,
         )
 
         findNavController().nav(
