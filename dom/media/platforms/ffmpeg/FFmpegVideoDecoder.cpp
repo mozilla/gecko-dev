@@ -1574,8 +1574,15 @@ MediaResult FFmpegVideoDecoder<LIBAV_VER>::CreateImageVAAPI(
     return MediaResult(NS_ERROR_DOM_MEDIA_DECODE_ERR,
                        RESULT_DETAIL("VAAPI dmabuf allocation error"));
   }
+
   surface->SetYUVColorSpace(GetFrameColorSpace());
   surface->SetColorRange(GetFrameColorRange());
+  if (mInfo.mColorPrimaries) {
+    surface->SetColorPrimaries(mInfo.mColorPrimaries.value());
+  }
+  if (mInfo.mTransferFunction) {
+    surface->SetTransferFunction(mInfo.mTransferFunction.value());
+  }
 
   RefPtr<VideoData> vp = VideoData::CreateFromImage(
       mInfo.mDisplay, aOffset, TimeUnit::FromMicroseconds(aPts),
