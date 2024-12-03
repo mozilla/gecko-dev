@@ -22,6 +22,9 @@ import org.mozilla.fenix.ext.nav
 import org.mozilla.fenix.ext.requireComponents
 import org.mozilla.fenix.ext.settings
 import org.mozilla.fenix.ext.showToolbar
+import org.mozilla.fenix.nimbus.FxNimbus
+import org.mozilla.fenix.nimbus.OnboardingCardData
+import org.mozilla.fenix.nimbus.OnboardingCardType
 import kotlin.system.exitProcess
 
 /**
@@ -91,13 +94,39 @@ class DataChoicesFragment : PreferenceFragmentCompat() {
         requirePreference<SwitchPreference>(R.string.pref_key_marketing_telemetry).apply {
             isChecked = (context.settings().isMarketingTelemetryEnabled) && (!Config.channel.isMozillaOnline)
             onPreferenceChangeListener = SharedPreferenceUpdater()
-            isVisible = false
+            isVisible = !Config.channel.isMozillaOnline && shouldShowMarketingTelemetryPreference()
         }
 
         requirePreference<SwitchPreference>(R.string.pref_key_crash_reporting_always_report).apply {
             isChecked = context.settings().crashReportAlwaysSend
             onPreferenceChangeListener = SharedPreferenceUpdater()
         }
+    }
+
+    @VisibleForTesting
+    internal fun shouldShowMarketingTelemetryPreference(
+        cards: Collection<OnboardingCardData> = FxNimbus.features.junoOnboarding.value().cards.values,
+        hasValidTermsOfServiceData: (OnboardingCardData) -> Boolean = { it.hasValidTermsOfServiceData() },
+    ) = cards.any {
+        it.cardType == OnboardingCardType.TERMS_OF_SERVICE && hasValidTermsOfServiceData(it)
+    }
+
+    override fun onPreferenceTreeClick(preference: Preference): Boolean {
+        when (preference.key) {
+            getPreferenceKey(R.string.pref_key_learn_about_marketing_telemetry) ->
+                openLearnMoreUrlInSandboxedTab()
+        }
+
+        return super.onPreferenceTreeClick(preference)
+    }
+
+    private fun openLearnMoreUrlInSandboxedTab() {
+        startActivity(
+            SupportUtils.createSandboxCustomTabIntent(
+                context = requireContext(),
+                url = SupportUtils.getGenericSumoURLForTopic(SupportUtils.SumoTopic.HELP),
+            ),
+        )
     }
 
     private fun updateStudiesSection() {
@@ -130,3 +159,6 @@ class DataChoicesFragment : PreferenceFragmentCompat() {
         var SHOULD_EXIT_APP_AFTER_TURNING_OFF_STUDIES = true
     }
 }
+
+@VisibleForTesting
+internal fun OnboardingCardData.hasValidTermsOfServiceData() = extraData?.termOfServiceData != null

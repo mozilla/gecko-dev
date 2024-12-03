@@ -7,10 +7,16 @@
         android:key="@string/pref_key_telemetry"
         android:summary="@string/preferences_usage_data_description"
         android:title="@string/preference_usage_data_1" />
+
     <SwitchPreference
         android:key="@string/pref_key_marketing_telemetry"
-        android:summary="@string/preferences_marketing_data_description2"
+        android:summary="@string/preferences_marketing_data_description_3"
         android:title="@string/preferences_marketing_data" />
+
+    <Preference
+        android:key="@string/pref_key_learn_about_marketing_telemetry"
+        android:title="@string/preferences_marketing_data_learn_more" />
+
     <SwitchPreference
         android:key="@string/pref_key_crash_reporting_always_report"
         android:summary="@string/preferences_automatically_submit_crashes_description"
