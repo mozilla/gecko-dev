@@ -58,7 +58,7 @@ use crate::composite::{CompositeState, CompositeTileSurface, CompositorInputLaye
 use crate::composite::{CompositorKind, Compositor, NativeTileId, CompositeFeatures, CompositeSurfaceFormat, ResolvedExternalSurfaceColorData};
 use crate::composite::{CompositorConfig, NativeSurfaceOperationDetails, NativeSurfaceId, NativeSurfaceOperation};
 use crate::composite::TileKind;
-use crate::{debug_colors, CompositorInputConfig, CompositorSurfaceUsage};
+use crate::{debug_colors, Compositor2, CompositorInputConfig, CompositorSurfaceUsage};
 use crate::device::{DepthFunction, Device, DrawTarget, ExternalTexture, GpuFrameId, UploadPBOPool};
 use crate::device::{ReadTarget, ShaderError, Texture, TextureFilter, TextureFlags, TextureSlot, Texel};
 use crate::device::query::{GpuSampler, GpuTimer};
@@ -873,6 +873,7 @@ pub struct Renderer {
     /// The compositing config, affecting how WR composites into the final scene.
     compositor_config: CompositorConfig,
     current_compositor_kind: CompositorKind,
+    compositor2: Option<Box<dyn Compositor2>>,
 
     /// Maintains a set of allocated native composite surfaces. This allows any
     /// currently allocated surfaces to be cleaned up as soon as deinit() is
@@ -1705,7 +1706,7 @@ impl Renderer {
             //           with the (non-compositor) surface y-flip options.
             let surface_origin_is_top_left = match self.current_compositor_kind {
                 CompositorKind::Native { .. } => true,
-                CompositorKind::Draw { .. } | CompositorKind::Layer { .. } => self.device.surface_origin_is_top_left(),
+                CompositorKind::Draw { .. } => self.device.surface_origin_is_top_left(),
             };
             // If there is a debug overlay, render it. Otherwise, just clear
             // the debug renderer.
@@ -3335,7 +3336,7 @@ impl Renderer {
         }
     }
 
-    // Composite tiles in a swapchain. When using LayerCompositor, we may
+    // Composite tiles in a swapchain. When using Compositor2, we may
     // split the compositing in to multiple swapchains.
     fn composite_pass(
         &mut self,
@@ -3537,11 +3538,8 @@ impl Renderer {
                         (CompositorSurfaceUsage::Content, CompositorSurfaceUsage::External) |
                         (CompositorSurfaceUsage::External, CompositorSurfaceUsage::Content) |
                         (CompositorSurfaceUsage::External, CompositorSurfaceUsage::External) => {
-                            // Only create a new layer if we're using LayerCompositor
-                            match self.compositor_config {
-                                CompositorConfig::Draw { .. } | CompositorConfig::Native { .. } => None,
-                                CompositorConfig::Layer { .. } => Some(usage),
-                            }
+                            // Only create a new layer if we're using Compositor2
+                            self.compositor2.as_ref().map(|_| usage)
                         }
                     }
                 }
@@ -3610,7 +3608,7 @@ impl Renderer {
         }
 
         // Start compositing if using OS compositor
-        if let Some(ref mut compositor) = self.compositor_config.layer_compositor() {
+        if let Some(ref mut compositor) = self.compositor2 {
             let input = CompositorInputConfig {
                 layers: &input_layers,
                 framebuffer_size: fb_draw_target.dimensions(),
@@ -3628,8 +3626,8 @@ impl Renderer {
                 ColorF::TRANSPARENT
             };
 
-            let draw_target = match self.compositor_config {
-                CompositorConfig::Layer { ref mut compositor } => {
+            let draw_target = match self.compositor2 {
+                Some(ref mut compositor) => {
                     compositor.bind_layer(layer_index);
 
                     DrawTarget::NativeSurface {
@@ -3638,11 +3636,8 @@ impl Renderer {
                         dimensions: fb_draw_target.dimensions(),
                     }
                 }
-                CompositorConfig::Draw { .. } => {
+                None => {
                     fb_draw_target
-                }
-                CompositorConfig::Native { .. } => {
-                    unreachable!();
                 }
             };
 
@@ -3660,13 +3655,13 @@ impl Renderer {
                 swapchain_layer,
             );
 
-            if let Some(ref mut compositor) = self.compositor_config.layer_compositor() {
+            if let Some(ref mut compositor) = self.compositor2 {
                 compositor.present_layer(layer_index);
             }
         }
 
         // End frame notify for experimental compositor
-        if let Some(ref mut compositor) = self.compositor_config.layer_compositor() {
+        if let Some(ref mut compositor) = self.compositor2 {
             for (layer_index, layer) in input_layers.iter().enumerate() {
                 compositor.add_surface(
                     layer_index,
@@ -4419,9 +4414,6 @@ impl Renderer {
             CompositorKind::Draw { draw_previous_partial_present_regions, max_partial_present_rects } => {
                 (max_partial_present_rects, draw_previous_partial_present_regions)
             }
-            CompositorKind::Layer { .. } => {
-                (0, false)
-            }
         };
 
         if max_partial_present_rects > 0 {
@@ -4576,7 +4568,7 @@ impl Renderer {
                     }
                 }
             }
-            CompositorConfig::Draw { .. } | CompositorConfig::Layer { .. } => {
+            CompositorConfig::Draw { .. } => {
                 // Ensure nothing is added in simple composite mode, since otherwise
                 // memory will leak as this doesn't get drained
                 debug_assert!(self.pending_native_surface_updates.is_empty());
@@ -4783,7 +4775,7 @@ impl Renderer {
                                         picture_target.valid_rect,
                                     )
                                 }
-                                CompositorKind::Draw { .. } | CompositorKind::Layer { .. } => {
+                                CompositorKind::Draw { .. } => {
                                     unreachable!();
                                 }
                             };
@@ -4820,7 +4812,7 @@ impl Renderer {
                                 let compositor = self.compositor_config.compositor().unwrap();
                                 compositor.unbind(&mut self.device);
                             }
-                            CompositorKind::Draw { .. } | CompositorKind::Layer { .. } => {
+                            CompositorKind::Draw { .. } => {
                                 unreachable!();
                             }
                         }
@@ -4940,7 +4932,7 @@ impl Renderer {
                         results,
                     );
                 }
-                CompositorKind::Draw { .. } | CompositorKind::Layer { .. } => {
+                CompositorKind::Draw { .. } => {
                     self.composite_simple(
                         &frame.composite_state,
                         draw_target,
