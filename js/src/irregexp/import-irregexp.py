@@ -52,9 +52,9 @@ def copy_and_update_includes(src_path, dst_path):
     dst = open(str(dst_path), "w")
 
     # 1. Rewrite includes of V8 regexp headers:
-    #    Note that we exclude regexp-flags.h and regexp-utils.h,
-    #    and provide our own definitions.
-    regexp_include = re.compile('#include "src/regexp(?!/regexp-(flags|utils).h)')
+    #    Note that we exclude several headers and provide our own definitions.
+    excluded = "|".join(["flags", "utils", "result-vector"])
+    regexp_include = re.compile(f'#include "src/regexp(?!/regexp-({excluded}).h)')
     regexp_include_new = '#include "irregexp/imported'
 
     # 2. Remove includes of other V8 headers
@@ -92,6 +92,8 @@ def import_from(srcdir, dstdir):
         "OWNERS",
         "regexp.cc",
         "regexp-flags.h",
+        "regexp-result-vector.cc",
+        "regexp-result-vector.h",
         "regexp-utils.cc",
         "regexp-utils.h",
         "regexp-macro-assembler-arch.h",
