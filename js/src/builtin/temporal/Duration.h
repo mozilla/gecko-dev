@@ -79,16 +79,14 @@ enum class TemporalRoundingMode;
 enum class TemporalUnit;
 
 /**
- * DurationSign ( years, months, weeks, days, hours, minutes, seconds,
- * milliseconds, microseconds, nanoseconds )
+ * DurationSign ( duration )
  */
 int32_t DurationSign(const Duration& duration);
 
 /**
- * DurationSign ( years, months, weeks, days, hours, minutes, seconds,
- * milliseconds, microseconds, nanoseconds )
+ * DateDurationSign ( dateDuration )
  */
-int32_t DurationSign(const DateDuration& duration);
+int32_t DateDurationSign(const DateDuration& duration);
 
 /**
  * IsValidDuration ( years, months, weeks, days, hours, minutes, seconds,

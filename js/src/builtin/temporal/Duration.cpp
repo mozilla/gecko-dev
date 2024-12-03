@@ -112,8 +112,7 @@ static constexpr bool IsSafeInteger(int64_t x) {
 }
 
 /**
- * DurationSign ( years, months, weeks, days, hours, minutes, seconds,
- * milliseconds, microseconds, nanoseconds )
+ * DurationSign ( duration )
  */
 int32_t js::temporal::DurationSign(const Duration& duration) {
   MOZ_ASSERT(IsIntegerOrInfinityDuration(duration));
@@ -140,10 +139,9 @@ int32_t js::temporal::DurationSign(const Duration& duration) {
 }
 
 /**
- * DurationSign ( years, months, weeks, days, hours, minutes, seconds,
- * milliseconds, microseconds, nanoseconds )
+ * DateDurationSign ( dateDuration )
  */
-int32_t js::temporal::DurationSign(const DateDuration& duration) {
+int32_t js::temporal::DateDurationSign(const DateDuration& duration) {
   const auto& [years, months, weeks, days] = duration;
 
   // Step 1.
@@ -164,13 +162,12 @@ int32_t js::temporal::DurationSign(const DateDuration& duration) {
 }
 
 /**
- * DurationSign ( years, months, weeks, days, hours, minutes, seconds,
- * milliseconds, microseconds, nanoseconds )
+ * NormalizedDurationSign ( internalDuration )
  */
-static int32_t DurationSign(const NormalizedDuration& duration) {
+static int32_t NormalizedDurationSign(const NormalizedDuration& duration) {
   MOZ_ASSERT(IsValidDuration(duration));
 
-  if (int32_t sign = DurationSign(duration.date)) {
+  if (int32_t sign = DateDurationSign(duration.date)) {
     return sign;
   }
   return NormalizedTimeDurationSign(duration.time);
@@ -604,7 +601,7 @@ bool js::temporal::CombineDateAndNormalizedTimeDuration(
   MOZ_ASSERT(IsValidNormalizedTimeDuration(time));
 
   // Step 1.
-  int32_t dateSign = DurationSign(date);
+  int32_t dateSign = DateDurationSign(date);
 
   // Step 2.
   int32_t timeSign = NormalizedTimeDurationSign(time);
@@ -651,7 +648,7 @@ bool js::temporal::IsValidDuration(const Duration& duration) {
                milliseconds, microseconds, nanoseconds] = duration;
 
   // Step 1.
-  int32_t sign = DurationSign(duration);
+  int32_t sign = 0;
 
   // Step 2.
   for (auto v : {years, months, weeks, days, hours, minutes, seconds,
@@ -662,13 +659,25 @@ bool js::temporal::IsValidDuration(const Duration& duration) {
     }
 
     // Step 2.b.
-    if (v < 0 && sign > 0) {
-      return false;
+    if (v < 0) {
+      // Step 2.b.i.
+      if (sign > 0) {
+        return false;
+      }
+
+      // Step 2.b.ii.
+      sign = -1;
     }
 
     // Step 2.c.
-    if (v > 0 && sign < 0) {
-      return false;
+    else if (v > 0) {
+      // Step 2.c.i.
+      if (sign < 0) {
+        return false;
+      }
+
+      // Step 2.c.ii.
+      sign = 1;
     }
   }
 
@@ -840,7 +849,7 @@ bool js::temporal::ThrowIfInvalidDuration(JSContext* cx,
   const auto& [years, months, weeks, days] = duration;
 
   // Step 1.
-  int32_t sign = DurationSign(duration);
+  int32_t sign = DateDurationSign(duration);
 
   auto throwIfInvalid = [&](int64_t v, const char* name) {
     // Step 2.a. (Not applicable)
@@ -1613,7 +1622,7 @@ bool js::temporal::BalanceTimeDuration(JSContext* cx,
 }
 
 /**
- * UnbalanceDateDurationRelative ( years, months, weeks, days, plainRelativeTo )
+ * UnbalanceDateDurationRelative ( dateDuration, plainRelativeTo )
  */
 static bool UnbalanceDateDurationRelative(
     JSContext* cx, const DateDuration& duration,
@@ -1623,7 +1632,10 @@ static bool UnbalanceDateDurationRelative(
   auto [years, months, weeks, days] = duration;
 
   // Step 1.
-  if (years == 0 && months == 0 && weeks == 0) {
+  auto yearsMonthsWeeksDuration = DateDuration{years, months, weeks};
+
+  // Step 2.
+  if (yearsMonthsWeeksDuration == DateDuration{}) {
     *result = days;
     return true;
   }
@@ -1635,9 +1647,6 @@ static bool UnbalanceDateDurationRelative(
                               "relativeTo");
     return false;
   }
-
-  // Step 2.
-  auto yearsMonthsWeeksDuration = DateDuration{years, months, weeks};
 
   // Step 3.
   PlainDate later;
@@ -1735,8 +1744,7 @@ static Duration AbsoluteDuration(const Duration& duration) {
 }
 
 /**
- * TemporalDurationToString ( years, months, weeks, days, hours, minutes,
- * normSeconds, precision )
+ * TemporalDurationToString ( duration, precision )
  */
 static JSString* TemporalDurationToString(JSContext* cx,
                                           const Duration& duration,
@@ -1765,23 +1773,20 @@ static JSString* TemporalDurationToString(JSContext* cx,
   MOZ_ASSERT(minutes < DOUBLE_INTEGRAL_PRECISION_LIMIT);
   MOZ_ASSERT(seconds < DOUBLE_INTEGRAL_PRECISION_LIMIT);
 
-  auto secondsDuration = NormalizeTimeDuration(0.0, 0.0, seconds, milliseconds,
-                                               microseconds, nanoseconds);
-
   // Step 1.
   int32_t sign = DurationSign(duration);
 
   // Steps 2 and 7.
   JSStringBuilder result(cx);
 
-  // Step 13. (Reordered)
+  // Step 14. (Reordered)
   if (sign < 0) {
     if (!result.append('-')) {
       return nullptr;
     }
   }
 
-  // Step 14. (Reordered)
+  // Step 15. (Reordered)
   if (!result.append('P')) {
     return nullptr;
   }
@@ -1832,11 +1837,15 @@ static JSString* TemporalDurationToString(JSContext* cx,
   bool zeroMinutesAndHigher = years == 0 && months == 0 && weeks == 0 &&
                               days == 0 && hours == 0 && minutes == 0;
 
-  // Steps 8-9, 12, and 15.
+  // Step 12.
+  auto secondsDuration = NormalizeTimeDuration(0.0, 0.0, seconds, milliseconds,
+                                               microseconds, nanoseconds);
+
+  // Steps 8-9, 13, and 16.
   bool hasSecondsPart = (secondsDuration != NormalizedTimeDuration{}) ||
                         zeroMinutesAndHigher || precision != Precision::Auto();
   if (hours != 0 || minutes != 0 || hasSecondsPart) {
-    // Step 15. (Reordered)
+    // Step 16. (Reordered)
     if (!result.append('T')) {
       return nullptr;
     }
@@ -1861,29 +1870,29 @@ static JSString* TemporalDurationToString(JSContext* cx,
       }
     }
 
-    // Step 12.
+    // Step 13.
     if (hasSecondsPart) {
-      // Step 12.a.
+      // Step 13.a.
       if (!NumberToStringBuilder(cx, double(secondsDuration.seconds), result)) {
         return nullptr;
       }
 
-      // Step 12.b.
+      // Step 13.b.
       if (!FormatFractionalSeconds(result, secondsDuration.nanoseconds,
                                    precision)) {
         return nullptr;
       }
 
-      // Step 12.c.
+      // Step 13.c.
       if (!result.append('S')) {
         return nullptr;
       }
     }
   }
 
-  // Steps 13-15. (Moved above)
+  // Steps 14-16. (Moved above)
 
-  // Step 16.
+  // Step 17.
   return result.finishString();
 }
 
@@ -2483,7 +2492,7 @@ static bool NudgeToCalendarUnit(
   MOZ_ASSERT(ISODateTimeWithinLimits(dateTime));
   MOZ_ASSERT(unit <= TemporalUnit::Day);
 
-  int32_t sign = DurationSign(duration) < 0 ? -1 : 1;
+  int32_t sign = NormalizedDurationSign(duration) < 0 ? -1 : 1;
 
   // Steps 1-4.
   int64_t r1;
@@ -2759,7 +2768,7 @@ static bool NudgeToZonedTime(JSContext* cx, const NormalizedDuration& duration,
   MOZ_ASSERT(IsValidDuration(duration));
   MOZ_ASSERT(ISODateTimeWithinLimits(dateTime));
 
-  int32_t sign = DurationSign(duration) < 0 ? -1 : 1;
+  int32_t sign = NormalizedDurationSign(duration) < 0 ? -1 : 1;
 
   // Step 1.
   MOZ_ASSERT(unit >= TemporalUnit::Hour);
@@ -2991,7 +3000,7 @@ static bool BubbleRelativeDuration(
   MOZ_ASSERT(smallestUnit <= TemporalUnit::Day);
   MOZ_ASSERT(largestUnit <= smallestUnit);
 
-  int32_t sign = DurationSign(duration) < 0 ? -1 : 1;
+  int32_t sign = NormalizedDurationSign(duration) < 0 ? -1 : 1;
 
   // Step 1.
   if (smallestUnit == largestUnit) {
@@ -3703,7 +3712,7 @@ static bool Duration_sign(JSContext* cx, unsigned argc, Value* vp) {
 static bool Duration_blank(JSContext* cx, const CallArgs& args) {
   auto duration = ToDuration(&args.thisv().toObject().as<DurationObject>());
 
-  // Steps 3-5.
+  // Steps 3-4.
   args.rval().setBoolean(duration == Duration{});
   return true;
 }
@@ -4391,29 +4400,31 @@ static bool Duration_toString(JSContext* cx, const CallArgs& args) {
     precision = ToSecondsStringPrecision(smallestUnit, digits);
   }
 
-  // Steps 10-11.
-  Duration result;
+  // FIXME: spec bug - Step 10 should check "unit == nanos && increment == 1".
+
+  // Steps 10-15.
+  auto roundedDuration = duration;
   if (precision.unit != TemporalUnit::Nanosecond ||
       precision.increment != Increment{1}) {
-    // Step 10.a.
-    auto timeDuration = NormalizeTimeDuration(duration);
-
-    // Step 10.b.
+    // Step 11.
     auto largestUnit = DefaultTemporalLargestUnit(duration);
 
-    // Steps 10.c-d.
+    // Step 12.
+    auto timeDuration = NormalizeTimeDuration(duration);
+
+    // Step 13.
     NormalizedTimeDuration rounded;
     if (!RoundTimeDuration(cx, timeDuration, precision.increment,
                            precision.unit, roundingMode, &rounded)) {
       return false;
     }
 
-    // Step 10.e.
-    auto balanced = BalanceTimeDuration(
-        rounded, std::min(largestUnit, TemporalUnit::Second));
+    // Step 14.
+    auto roundedLargestUnit = std::min(largestUnit, TemporalUnit::Second);
 
-    // Step 10.f.
-    result = {
+    // Step 15.
+    auto balanced = BalanceTimeDuration(rounded, roundedLargestUnit);
+    roundedDuration = {
         duration.years,           duration.months,
         duration.weeks,           duration.days + double(balanced.days),
         double(balanced.hours),   double(balanced.minutes),
@@ -4421,13 +4432,11 @@ static bool Duration_toString(JSContext* cx, const CallArgs& args) {
         balanced.microseconds,    balanced.nanoseconds,
     };
     MOZ_ASSERT(IsValidDuration(duration));
-  } else {
-    // Step 11.
-    result = duration;
   }
 
-  // Steps 12-13.
-  JSString* str = TemporalDurationToString(cx, result, precision.precision);
+  // Steps 10.a. and 16.
+  JSString* str =
+      TemporalDurationToString(cx, roundedDuration, precision.precision);
   if (!str) {
     return false;
   }
@@ -4451,7 +4460,7 @@ static bool Duration_toString(JSContext* cx, unsigned argc, Value* vp) {
 static bool Duration_toJSON(JSContext* cx, const CallArgs& args) {
   auto duration = ToDuration(&args.thisv().toObject().as<DurationObject>());
 
-  // Steps 3-4.
+  // Step 3.
   JSString* str = TemporalDurationToString(cx, duration, Precision::Auto());
   if (!str) {
     return false;
@@ -4476,7 +4485,7 @@ static bool Duration_toJSON(JSContext* cx, unsigned argc, Value* vp) {
 static bool Duration_toLocaleString(JSContext* cx, const CallArgs& args) {
   auto duration = ToDuration(&args.thisv().toObject().as<DurationObject>());
 
-  // Steps 3-4.
+  // Step 4.
   JSString* str = TemporalDurationToString(cx, duration, Precision::Auto());
   if (!str) {
     return false;
