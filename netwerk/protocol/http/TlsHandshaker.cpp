@@ -103,7 +103,6 @@ void TlsHandshaker::SetupSSL(bool aInSpdyTunnel, bool aForcePlainText) {
     bool usingHttpsProxy = mConnInfo->UsingHttpsProxy();
     rv = InitSSLParams(usingHttpsProxy, usingHttpsProxy);
   }
-  MOZ_ASSERT(NS_SUCCEEDED(rv));
 }
 
 nsresult TlsHandshaker::InitSSLParams(bool connectingToProxy,
@@ -119,6 +118,7 @@ nsresult TlsHandshaker::InitSSLParams(bool connectingToProxy,
   nsCOMPtr<nsITLSSocketControl> ssl;
   mOwner->GetTLSSocketControl(getter_AddRefs(ssl));
   if (!ssl) {
+    LOG(("Can't find tls socket control"));
     return NS_ERROR_FAILURE;
   }
 
