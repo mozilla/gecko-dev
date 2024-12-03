@@ -64,6 +64,10 @@ skip-if = [
 ["browser_iframe_autofill_cc_number.js"]
 
 ["browser_iframe_autofill_sandbox.js"]
+skip-if = [
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && asan", # Bug 1916287
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && debug", # Bug 1916287
+]
 
 ["browser_iframe_capture.js"]
 
