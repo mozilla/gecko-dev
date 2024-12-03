@@ -124,10 +124,15 @@ def skipTest(source: bytes) -> Optional[bytes]:
     return None
 
 
+MODELINE_PATTERN = re.compile(rb"/(/|\*) -\*- .* -\*-( \*/)?[\r\n]+")
+
+
 def convertTestFile(source: bytes, includes: "list[str]") -> bytes:
     """
     Convert a jstest test to a compatible Test262 test file.
     """
+
+    source = MODELINE_PATTERN.sub(b"", source)
 
     source = convertReportCompare(source)
     source = updateMeta(source, includes)
