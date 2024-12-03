@@ -5461,39 +5461,6 @@ void JS::StencilRelease(JS::Stencil* stencil) {
 }
 
 template <typename CharT>
-static already_AddRefed<JS::Stencil> CompileGlobalScriptToStencilImpl(
-    JSContext* cx, const JS::ReadOnlyCompileOptions& options,
-    JS::SourceText<CharT>& srcBuf) {
-  ScopeKind scopeKind =
-      options.nonSyntacticScope ? ScopeKind::NonSyntactic : ScopeKind::Global;
-
-  AutoReportFrontendContext fc(cx);
-  NoScopeBindingCache scopeCache;
-  Rooted<CompilationInput> input(cx, CompilationInput(options));
-  RefPtr<JS::Stencil> stencil = js::frontend::CompileGlobalScriptToStencil(
-      cx, &fc, cx->tempLifoAlloc(), input.get(), &scopeCache, srcBuf,
-      scopeKind);
-  if (!stencil) {
-    return nullptr;
-  }
-
-  // Convert the UniquePtr to a RefPtr and increment the count (to 1).
-  return stencil.forget();
-}
-
-already_AddRefed<JS::Stencil> JS::CompileGlobalScriptToStencil(
-    JSContext* cx, const JS::ReadOnlyCompileOptions& options,
-    JS::SourceText<mozilla::Utf8Unit>& srcBuf) {
-  return CompileGlobalScriptToStencilImpl(cx, options, srcBuf);
-}
-
-already_AddRefed<JS::Stencil> JS::CompileGlobalScriptToStencil(
-    JSContext* cx, const JS::ReadOnlyCompileOptions& options,
-    JS::SourceText<char16_t>& srcBuf) {
-  return CompileGlobalScriptToStencilImpl(cx, options, srcBuf);
-}
-
-template <typename CharT>
 static already_AddRefed<JS::Stencil> CompileModuleScriptToStencilImpl(
     JSContext* cx, const JS::ReadOnlyCompileOptions& optionsInput,
     JS::SourceText<CharT>& srcBuf) {

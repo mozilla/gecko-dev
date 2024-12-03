@@ -30,6 +30,7 @@
 #include "js/ColumnNumber.h"       // JS::ColumnNumberOneOrigin
 #include "js/EnvironmentChain.h"   // JS::SupportUnscopables
 #include "js/ErrorReport.h"        // JS_ReportErrorASCII
+#include "js/experimental/CompileScript.h"  // JS::CompileGlobalScriptToStencil
 #include "js/experimental/JSStencil.h"
 #include "js/GCVector.h"    // JS::StackGCVector
 #include "js/Id.h"          // JS::PropertyKey
@@ -415,6 +416,74 @@ already_AddRefed<CompilationStencil> frontend::CompileGlobalScriptToStencil(
     JS::SourceText<Utf8Unit>& srcBuf, ScopeKind scopeKind) {
   return CompileGlobalScriptToStencilImpl(cx, fc, tempLifoAlloc, input,
                                           scopeCache, srcBuf, scopeKind);
+}
+
+template <typename CharT>
+static already_AddRefed<JS::Stencil> CompileGlobalScriptToStencilImpl(
+    JSContext* cx, const JS::ReadOnlyCompileOptions& options,
+    JS::SourceText<CharT>& srcBuf) {
+  ScopeKind scopeKind =
+      options.nonSyntacticScope ? ScopeKind::NonSyntactic : ScopeKind::Global;
+
+  AutoReportFrontendContext fc(cx);
+
+  NoScopeBindingCache scopeCache;
+  Rooted<CompilationInput> input(cx, CompilationInput(options));
+  RefPtr<JS::Stencil> stencil = CompileGlobalScriptToStencilImpl(
+      cx, &fc, cx->tempLifoAlloc(), input.get(), &scopeCache, srcBuf,
+      scopeKind);
+  return stencil.forget();
+}
+
+already_AddRefed<JS::Stencil> JS::CompileGlobalScriptToStencil(
+    JSContext* cx, const JS::ReadOnlyCompileOptions& options,
+    JS::SourceText<mozilla::Utf8Unit>& srcBuf) {
+  return CompileGlobalScriptToStencilImpl(cx, options, srcBuf);
+}
+
+already_AddRefed<JS::Stencil> JS::CompileGlobalScriptToStencil(
+    JSContext* cx, const JS::ReadOnlyCompileOptions& options,
+    JS::SourceText<char16_t>& srcBuf) {
+  return CompileGlobalScriptToStencilImpl(cx, options, srcBuf);
+}
+
+template <typename CharT>
+static already_AddRefed<JS::Stencil> CompileGlobalScriptToStencilImpl(
+    JS::FrontendContext* fc, const JS::ReadOnlyCompileOptions& options,
+    JS::SourceText<CharT>& srcBuf) {
+  ScopeKind scopeKind =
+      options.nonSyntacticScope ? ScopeKind::NonSyntactic : ScopeKind::Global;
+
+  NoScopeBindingCache scopeCache;
+  js::LifoAlloc tempLifoAlloc(JSContext::TEMP_LIFO_ALLOC_PRIMARY_CHUNK_SIZE,
+                              js::BackgroundMallocArena);
+  CompilationInput compilationInput(options);
+  RefPtr<JS::Stencil> stencil = CompileGlobalScriptToStencilImpl(
+      nullptr, fc, tempLifoAlloc, compilationInput, &scopeCache, srcBuf,
+      scopeKind);
+  // CompilationInput initialized with CompileGlobalScriptToStencil only
+  // references information from the JS::Stencil context and the
+  // ref-counted ScriptSource, which are both GC-free.
+  JS_HAZ_VALUE_IS_GC_SAFE(compilationInput);
+  return stencil.forget();
+}
+
+already_AddRefed<JS::Stencil> JS::CompileGlobalScriptToStencil(
+    JS::FrontendContext* fc, const JS::ReadOnlyCompileOptions& options,
+    JS::SourceText<mozilla::Utf8Unit>& srcBuf) {
+#ifdef DEBUG
+  fc->assertNativeStackLimitThread();
+#endif
+  return CompileGlobalScriptToStencilImpl(fc, options, srcBuf);
+}
+
+already_AddRefed<JS::Stencil> JS::CompileGlobalScriptToStencil(
+    JS::FrontendContext* fc, const JS::ReadOnlyCompileOptions& options,
+    JS::SourceText<char16_t>& srcBuf) {
+#ifdef DEBUG
+  fc->assertNativeStackLimitThread();
+#endif
+  return CompileGlobalScriptToStencilImpl(fc, options, srcBuf);
 }
 
 static void FireOnNewScript(JSContext* cx,

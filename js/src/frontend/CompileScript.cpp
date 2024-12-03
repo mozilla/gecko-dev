@@ -6,7 +6,7 @@
 
 #include "js/experimental/CompileScript.h"
 
-#include "frontend/BytecodeCompiler.h"  // frontend::{CompileGlobalScriptToStencil, ParseModuleToStencil}
+#include "frontend/BytecodeCompiler.h"  // frontend::ParseModuleToStencil
 #include "frontend/CompilationStencil.h"  // frontend::{CompilationStencil,CompilationInput}
 #include "frontend/FrontendContext.h"    // frontend::FrontendContext
 #include "frontend/ScopeBindingCache.h"  // frontend::NoScopeBindingCache
@@ -88,30 +88,6 @@ JS_PUBLIC_API const JSErrorReport* JS::GetFrontendWarningAt(
 }
 
 template <typename CharT>
-static already_AddRefed<JS::Stencil> CompileGlobalScriptToStencilImpl(
-    JS::FrontendContext* fc, const JS::ReadOnlyCompileOptions& options,
-    JS::SourceText<CharT>& srcBuf) {
-  ScopeKind scopeKind =
-      options.nonSyntacticScope ? ScopeKind::NonSyntactic : ScopeKind::Global;
-
-  JS::SourceText<CharT> data(std::move(srcBuf));
-
-  frontend::CompilationInput compilationInput(options);
-
-  frontend::NoScopeBindingCache scopeCache;
-  LifoAlloc tempLifoAlloc(JSContext::TEMP_LIFO_ALLOC_PRIMARY_CHUNK_SIZE,
-                          js::BackgroundMallocArena);
-  RefPtr<JS::Stencil> stencil_ = frontend::CompileGlobalScriptToStencil(
-      nullptr, fc, tempLifoAlloc, compilationInput, &scopeCache, data,
-      scopeKind);
-  // CompilationInput initialized with CompileGlobalScriptToStencil only
-  // references information from the JS::Stencil context and the
-  // ref-counted ScriptSource, which are both GC-free.
-  JS_HAZ_VALUE_IS_GC_SAFE(compilationInput);
-  return stencil_.forget();
-}
-
-template <typename CharT>
 static already_AddRefed<JS::Stencil> CompileModuleScriptToStencilImpl(
     JS::FrontendContext* fc, const JS::ReadOnlyCompileOptions& optionsInput,
     JS::SourceText<CharT>& srcBuf) {
@@ -135,24 +111,6 @@ static already_AddRefed<JS::Stencil> CompileModuleScriptToStencilImpl(
 
   // Convert the UniquePtr to a RefPtr and increment the count (to 1).
   return stencil.forget();
-}
-
-already_AddRefed<JS::Stencil> JS::CompileGlobalScriptToStencil(
-    JS::FrontendContext* fc, const JS::ReadOnlyCompileOptions& options,
-    JS::SourceText<mozilla::Utf8Unit>& srcBuf) {
-#ifdef DEBUG
-  fc->assertNativeStackLimitThread();
-#endif
-  return CompileGlobalScriptToStencilImpl(fc, options, srcBuf);
-}
-
-already_AddRefed<JS::Stencil> JS::CompileGlobalScriptToStencil(
-    JS::FrontendContext* fc, const JS::ReadOnlyCompileOptions& options,
-    JS::SourceText<char16_t>& srcBuf) {
-#ifdef DEBUG
-  fc->assertNativeStackLimitThread();
-#endif
-  return CompileGlobalScriptToStencilImpl(fc, options, srcBuf);
 }
 
 already_AddRefed<JS::Stencil> JS::CompileModuleScriptToStencil(
