@@ -1349,6 +1349,9 @@ class Code : public HeapObject {
 // (NativeRegExpMacroAssembler::CheckStackGuardState)
 class InstructionStream {};
 
+// Only used in the definition of RegExpGlobalExecRunner, which we don't use.
+class RegExpResultVectorScope {};
+
 // Origin: https://github.com/v8/v8/blob/master/src/codegen/label.h
 class Label {
  public:
