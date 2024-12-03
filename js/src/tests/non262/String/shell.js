@@ -1,3 +1,8 @@
+/*---
+defines: [runNormalizeTest]
+allow_unused: True
+---*/
+
 function runNormalizeTest(test) {
   function codePointsToString(points) {
     return points.map(x => String.fromCodePoint(x)).join("");

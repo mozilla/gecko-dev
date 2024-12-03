@@ -4,6 +4,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+/*---
+defines: [completesNormally, raisesException, deepEqual, makeIterator, Permutations, assertThrowsValue, assertThrownErrorContains, assertThrowsInstanceOfWithMessageCheck, assertThrowsInstanceOf, assertThrowsInstanceOfWithMessage, assertThrowsInstanceOfWithMessageContains, assertDeepEq]
+allow_unused: True
+---*/
+
 (function() {
   const undefined = void 0;
 
