@@ -1290,7 +1290,8 @@ RegExpParserState* RegExpParserImpl<CharT>::ParseOpenParenthesis(
   Advance();
   if (current() == '?') {
     do {
-      switch (Next()) {
+      base::uc32 next = Next();
+      switch (next) {
         case '-':
           if (!v8_flags.js_regexp_modifiers) {
             ReportError(RegExpError::kInvalidGroup);
@@ -1313,7 +1314,7 @@ RegExpParserState* RegExpParserImpl<CharT>::ParseOpenParenthesis(
           }
           Advance();
           parsing_modifiers = true;
-          RegExpFlag flag = TryRegExpFlagFromChar(current()).value();
+          RegExpFlag flag = TryRegExpFlagFromChar(next).value();
           if ((modifiers & flag) != 0) {
             ReportError(RegExpError::kRepeatedFlag);
             return nullptr;
