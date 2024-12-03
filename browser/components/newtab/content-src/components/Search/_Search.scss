@@ -167,9 +167,17 @@ $glyph-forward: url('chrome://browser/skin/forward.svg');
   }
 
   .logo-and-wordmark {
-    position: fixed;
+    position: absolute;
     inset-inline-start: 40px;
     inset-block-start: 40px;
+
+    @media (min-width: $break-point-layout-variant) {
+      inset-inline-start: 20px;
+    }
+
+    @media (min-width: $break-point-large) {
+      inset-inline-start: 40px;
+    }
   }
 
   &.no-search {
@@ -185,6 +193,31 @@ $glyph-forward: url('chrome://browser/skin/forward.svg');
         margin-block-start: 0;
       }
     }
+  }
+
+  &.no-search.has-sections-grid {
+    .body-wrapper {
+      @media (min-width: $break-point-sections-variant) {
+        margin-block-start: 0;
+      }
+    }
+
+    .logo-and-wordmark {
+      inset-inline-start: 20px;
+
+      @media (min-width: $break-point-small) {
+        inset-inline-start: 40px;
+      }
+
+      @media (min-width: $break-point-layout-variant) {
+        inset-inline-start: 20px;
+      }
+
+      @media (min-width: $break-point-large) {
+        inset-inline-start: 40px;
+      }
+    }
+
   }
 
   .search-inner-wrapper {

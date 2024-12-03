@@ -651,7 +651,7 @@ main section {
 }
 @media (min-width: 866px) {
   .no-search .no-sections .wallpaper-attribution, .only-search .wallpaper-attribution, .only-topsites .wallpaper-attribution {
-    position: fixed;
+    position: absolute;
     inset-block-end: var(--space-large);
     inset-inline-start: 0;
   }
@@ -1588,9 +1588,19 @@ main section {
   margin-block-start: 16px;
 }
 .layout-variant-b.has-recommended-stories .logo-and-wordmark {
-  position: fixed;
+  position: absolute;
   inset-inline-start: 40px;
   inset-block-start: 40px;
+}
+@media (min-width: 724px) {
+  .layout-variant-b.has-recommended-stories .logo-and-wordmark {
+    inset-inline-start: 20px;
+  }
+}
+@media (min-width: 866px) {
+  .layout-variant-b.has-recommended-stories .logo-and-wordmark {
+    inset-inline-start: 40px;
+  }
 }
 .layout-variant-b.has-recommended-stories.no-search .body-wrapper {
   margin-block-start: 0;
@@ -1603,6 +1613,29 @@ main section {
 @media (min-width: 1698px) {
   .layout-variant-b.has-recommended-stories.no-search .body-wrapper {
     margin-block-start: 0;
+  }
+}
+@media (min-width: 1390px) {
+  .layout-variant-b.has-recommended-stories.no-search.has-sections-grid .body-wrapper {
+    margin-block-start: 0;
+  }
+}
+.layout-variant-b.has-recommended-stories.no-search.has-sections-grid .logo-and-wordmark {
+  inset-inline-start: 20px;
+}
+@media (min-width: 510px) {
+  .layout-variant-b.has-recommended-stories.no-search.has-sections-grid .logo-and-wordmark {
+    inset-inline-start: 40px;
+  }
+}
+@media (min-width: 724px) {
+  .layout-variant-b.has-recommended-stories.no-search.has-sections-grid .logo-and-wordmark {
+    inset-inline-start: 20px;
+  }
+}
+@media (min-width: 866px) {
+  .layout-variant-b.has-recommended-stories.no-search.has-sections-grid .logo-and-wordmark {
+    inset-inline-start: 40px;
   }
 }
 .layout-variant-b.has-recommended-stories .search-inner-wrapper {
@@ -2477,6 +2510,18 @@ main section {
   inset-block-start: 40px;
   margin-block-start: 0;
 }
+@media (min-width: 724px) {
+  .no-search.layout-variant-b .weather,
+.layout-variant-b .weather {
+    inset-inline-end: 20px;
+  }
+}
+@media (min-width: 866px) {
+  .no-search.layout-variant-b .weather,
+.layout-variant-b .weather {
+    inset-inline-end: 40px;
+  }
+}
 .no-search.layout-variant-b .weather .weatherSponsorText,
 .layout-variant-b .weather .weatherSponsorText {
   float: inline-end;
@@ -2490,6 +2535,25 @@ main section {
   inset-inline-end: 100%;
   inset-inline-start: auto;
   margin-inline-end: 5px;
+}
+
+.no-search.layout-variant-b .weather {
+  inset-inline-end: 20px;
+}
+@media (min-width: 510px) {
+  .no-search.layout-variant-b .weather {
+    inset-inline-end: 40px;
+  }
+}
+@media (min-width: 724px) {
+  .no-search.layout-variant-b .weather {
+    inset-inline-end: 20px;
+  }
+}
+@media (min-width: 866px) {
+  .no-search.layout-variant-b .weather {
+    inset-inline-end: 40px;
+  }
 }
 
 .has-weather.has-search .outer-wrapper:not(.only-search) {
@@ -6595,6 +6659,9 @@ main section {
 }
 .thumbs-ui-compact .search-wrapper .logo-and-wordmark-wrapper {
   margin-block-end: var(--space-xxlarge);
+}
+.layout-variant-b .thumbs-ui-compact .search-wrapper .logo-and-wordmark-wrapper {
+  margin-block-end: 0;
 }
 @media (height <= 700px) {
   .thumbs-ui-compact .search-wrapper {
