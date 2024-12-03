@@ -2485,8 +2485,10 @@ static bool NudgeToZonedTime(JSContext* cx, const InternalDuration& duration,
   auto end = BalanceISODate(start, sign);
 
   // Step 6.
-  ISODateTime endDateTime;
-  if (!CreateTemporalDateTime(cx, end, dateTime.time, &endDateTime)) {
+  auto endDateTime = ISODateTime{end, dateTime.time};
+  if (!ISODateTimeWithinLimits(endDateTime)) {
+    JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
+                              JSMSG_TEMPORAL_PLAIN_DATE_TIME_INVALID);
     return false;
   }
 

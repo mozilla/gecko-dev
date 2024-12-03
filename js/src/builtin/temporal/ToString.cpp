@@ -542,25 +542,25 @@ JSString* js::temporal::TemporalZonedDateTimeToString(
 
   // Steps 1-3. (Not applicable in our implementation.)
 
-  // Step 4.
-  auto ns = RoundTemporalInstant(zonedDateTime.epochNanoseconds(), increment,
-                                 unit, roundingMode);
+  // Steps 4-5.
+  auto epochNs = RoundTemporalInstant(zonedDateTime.epochNanoseconds(),
+                                      increment, unit, roundingMode);
 
-  // Step 5.
+  // Step 6.
   auto timeZone = zonedDateTime.timeZone();
 
-  // Steps 6-8.
+  // Step 7.
   int64_t offsetNanoseconds;
-  if (!GetOffsetNanosecondsFor(cx, timeZone, ns, &offsetNanoseconds)) {
+  if (!GetOffsetNanosecondsFor(cx, timeZone, epochNs, &offsetNanoseconds)) {
     return nullptr;
   }
   MOZ_ASSERT(std::abs(offsetNanoseconds) < ToNanoseconds(TemporalUnit::Day));
 
   // Step 8.
-  auto temporalDateTime = GetISODateTimeFor(ns, offsetNanoseconds);
+  auto isoDateTime = GetISODateTimeFor(epochNs, offsetNanoseconds);
 
   // Step 9. (Inlined ISODateTimeToString)
-  FormatDateTimeString(result, temporalDateTime, precision);
+  FormatDateTimeString(result, isoDateTime, precision);
 
   // Steps 10-11.
   if (showOffset != ShowOffset::Never) {

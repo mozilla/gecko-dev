@@ -329,14 +329,6 @@ struct EpochNanoseconds final : SecondsAndNanoseconds<EpochNanoseconds> {
   constexpr EpochNanoseconds operator-() const { return negate(*this); }
 
   /**
-   * Return this epoch nanoseconds as microseconds from the start of the epoch.
-   * (Rounds towards negative infinity.)
-   */
-  constexpr int64_t floorToMicroseconds() const {
-    return (seconds * 1'000'000) + (nanoseconds / 1'000);
-  }
-
-  /**
    * Return this epoch nanoseconds as milliseconds from the start of the epoch.
    * (Rounds towards negative infinity.)
    */
