@@ -12832,7 +12832,7 @@ Browsertime tests that use a custom pageload test script. These use the pageload
    * **alert threshold**: 2.0
    * **apps**: firefox, chrome, custom-car
    * **browser cycles**: 1
-   * **browsertime args**: --browsertime.download_iterations=10 --firefox.preference=network.http.http3.enable:true
+   * **browsertime args**: --browsertime.test_type=h3_download --browsertime.iterations=10 --firefox.preference=network.http.http3.enable:true
    * **custom data**: true
    * **expected**: pass
    * **gecko profile interval**: 1
@@ -12845,7 +12845,7 @@ Browsertime tests that use a custom pageload test script. These use the pageload
    * **subtest name filters**: tests/,iterations/
    * **subtest unit**: mbps
    * **support class**: network_bench.py
-   * **test script**: download.js
+   * **test script**: network_bench.js
    * **test url**: `<None>`__
    * **type**: pageload
    * **unit**: mbps
@@ -13227,7 +13227,7 @@ Browsertime tests that use a custom pageload test script. These use the pageload
    * **alert threshold**: 2.0
    * **apps**: firefox, chrome, custom-car
    * **browser cycles**: 1
-   * **browsertime args**: --browsertime.upload_iterations=10 --firefox.preference=network.http.http3.enable:true
+   * **browsertime args**: --browsertime.test_type=h3_upload --browsertime.iterations=10 --firefox.preference=network.http.http3.enable:true
    * **custom data**: true
    * **expected**: pass
    * **gecko profile interval**: 1
@@ -13240,7 +13240,7 @@ Browsertime tests that use a custom pageload test script. These use the pageload
    * **subtest name filters**: tests/,iterations/
    * **subtest unit**: mbps
    * **support class**: network_bench.py
-   * **test script**: upload.js
+   * **test script**: network_bench.js
    * **test url**: `<None>`__
    * **type**: pageload
    * **unit**: mbps
@@ -14916,7 +14916,7 @@ Browsertime tests that use a custom pageload test script. These use the pageload
    * **alert threshold**: 2.0
    * **apps**: firefox, chrome, safari
    * **browser cycles**: 1
-   * **browsertime args**: --browsertime.upload_iterations=10 --browsertime.server_url=https://uploadtest-381620.uc.r.appspot.com --firefox.preference=network.http.http3.enable:false --chrome.args disable-quic
+   * **browsertime args**: --browsertime.test_type=h2_upload --browsertime.iterations=10 --browsertime.server_url=https://uploadtest-381620.uc.r.appspot.com --firefox.preference=network.http.http3.enable:false --chrome.args disable-quic
    * **custom data**: true
    * **expected**: pass
    * **gecko profile interval**: 1
@@ -14928,7 +14928,7 @@ Browsertime tests that use a custom pageload test script. These use the pageload
    * **subtest lower is better**: false
    * **subtest name filters**: tests/,iterations/
    * **subtest unit**: mbps
-   * **test script**: upload.js
+   * **test script**: network_bench.js
    * **test url**: `<None>`__
    * **type**: pageload
    * **unit**: mbps
@@ -15111,7 +15111,7 @@ Browsertime tests that use a custom pageload test script. These use the pageload
    * **alert threshold**: 2.0
    * **apps**: firefox, chrome, safari
    * **browser cycles**: 1
-   * **browsertime args**: --browsertime.upload_iterations=10 --browsertime.server_url=https://uploadtest-381620.uc.r.appspot.com --firefox.preference=network.http.http3.enable:true
+   * **browsertime args**: --browsertime.test_type=h3_upload --browsertime.iterations=10 --browsertime.server_url=https://uploadtest-381620.uc.r.appspot.com --firefox.preference=network.http.http3.enable:true
    * **custom data**: true
    * **expected**: pass
    * **gecko profile interval**: 1
@@ -15123,7 +15123,7 @@ Browsertime tests that use a custom pageload test script. These use the pageload
    * **subtest lower is better**: false
    * **subtest name filters**: tests/,iterations/
    * **subtest unit**: mbps
-   * **test script**: upload.js
+   * **test script**: network_bench.js
    * **test url**: `<None>`__
    * **type**: pageload
    * **unit**: mbps

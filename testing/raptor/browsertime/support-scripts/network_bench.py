@@ -195,7 +195,7 @@ class NetworkBench(BasePythonSupport):
                     "servers": {
                         "server1": {
                             "listen": [port_str],
-                            "protocols": ["h1", "h2", "h3"],
+                            "protocols": ["h3"],
                             "routes": routes,
                             "tls_connection_policies": [
                                 {"certificate_selection": {"any_tag": ["cert1"]}}
@@ -406,6 +406,8 @@ class NetworkBench(BasePythonSupport):
                     f"network.http.http3.alt-svc-mapping-for-testing:localhost;h3=:{self.caddy_port}",
                     "--firefox.preference",
                     "network.http.http3.force-use-alt-svc-mapping-for-testing:true",
+                    "--firefox.preference",
+                    "network.http.http3.disable_when_third_party_roots_found:false",
                 ]
             else:
                 spki = "VCIlmPM9NkgFQtrs4Oa5TeFcDu6MWRTKSNdePEhOgD8="

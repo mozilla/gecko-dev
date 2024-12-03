@@ -18,21 +18,21 @@ use_live_sites = true
 # http/2
 
 ["upload"]
-browsertime_args = "--browsertime.upload_iterations=10 --browsertime.server_url=https://uploadtest-381620.uc.r.appspot.com --firefox.preference=network.http.http3.enable:false --chrome.args disable-quic"
+browsertime_args = "--browsertime.test_type=h2_upload --browsertime.iterations=10 --browsertime.server_url=https://uploadtest-381620.uc.r.appspot.com --firefox.preference=network.http.http3.enable:false --chrome.args disable-quic"
 custom_data = true
 unit = "mbps"
 lower_is_better = false
 subtest_name_filters = "tests/,iterations/"
-test_script = "upload.js"
+test_script = "network_bench.js"
 test_url = "None"
 
 # http/3
 
 ["upload-h3"]
-browsertime_args = "--browsertime.upload_iterations=10 --browsertime.server_url=https://uploadtest-381620.uc.r.appspot.com --firefox.preference=network.http.http3.enable:true"
+browsertime_args = "--browsertime.test_type=h3_upload --browsertime.iterations=10 --browsertime.server_url=https://uploadtest-381620.uc.r.appspot.com --firefox.preference=network.http.http3.enable:true"
 custom_data = true
 unit = "mbps"
 lower_is_better = false
 subtest_name_filters = "tests/,iterations/"
-test_script = "upload.js"
+test_script = "network_bench.js"
 test_url = "None"

@@ -1,0 +1,216 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+/* eslint-env node */
+
+const { logTest, logTask } = require("./utils/profiling");
+
+const path = require("path");
+
+async function waitForH3(maxRetries, browser, url, commands, context) {
+  let attempt = 0;
+  while (attempt < maxRetries) {
+    await commands.navigate(url);
+
+    // Get performance entries to check the protocol
+    let protocolInfo = await commands.js.run(
+      `
+      // Get all performance entries
+      const entries = performance.getEntries();
+
+      // Create an array to store the results
+      const protocolInfo = entries.map(entry => ({
+          name: entry.name,
+          protocol: entry.nextHopProtocol,
+      }));
+
+      return protocolInfo;
+      `
+    );
+
+    // Log the protocol information
+    context.log.info("protocolInfo: " + JSON.stringify(protocolInfo));
+
+    // Check if the main document is using h3 protocol
+    const isH3 = protocolInfo.some(
+      entry => entry.name === url && entry.protocol === "h3"
+    );
+
+    if (isH3) {
+      context.log.info("Protocol h3 detected!");
+      return; // Exit the function if h3 is found
+    }
+
+    // Increment the attempt counter and retry
+    attempt++;
+    context.log.info(
+      `Retry attempt ${attempt} - Protocol is not h3. Retrying...`
+    );
+    if (browser === "firefox") {
+      const script = `
+      Services.obs.notifyObservers(null, "net:cancel-all-connections");
+      Services.obs.notifyObservers(null, "network:reset-http3-excluded-list");
+    `;
+      commands.js.runPrivileged(script);
+    }
+    context.log.info("Waiting 3s to close connection...");
+    await commands.wait.byTime(3000);
+  }
+}
+
+async function waitForComplete(timeout, commands, context, id) {
+  let starttime = await commands.js.run(`return performance.now();`);
+  let status = "";
+
+  while (
+    (await commands.js.run(`return performance.now();`)) - starttime <
+      timeout &&
+    status != "error" &&
+    status != "success"
+  ) {
+    await commands.wait.byTime(10);
+
+    status = await commands.js.run(
+      `return document.getElementById('${id}').innerHTML;`
+    );
+
+    if (status.startsWith("success")) {
+      status = "success";
+    }
+
+    context.log.info("context.log test: " + status);
+    console.log("test: " + status);
+  }
+
+  let endtime = await commands.js.run(`return performance.now();`);
+
+  return {
+    start: starttime,
+    end: endtime,
+    status,
+  };
+}
+
+module.exports = logTest(
+  "download/upload test",
+  async function (context, commands) {
+    let serverUrl = `${context.options.browsertime.server_url}`;
+    let iterations = `${context.options.browsertime.iterations}`;
+    const [protocol, testType] =
+      `${context.options.browsertime.test_type}`.split("_");
+
+    await commands.measure.start(serverUrl);
+    let accumulatedResults = [];
+    let browserName = "";
+    for (let iteration = 0; iteration < iterations; iteration++) {
+      await logTask(context, "cycle " + iteration, async function () {
+        const driver = context.selenium.driver;
+        const webdriver = context.selenium.webdriver;
+        let capabilities = await driver.getCapabilities();
+        browserName = capabilities.get("browserName");
+
+        if (protocol === "h3") {
+          await waitForH3(10, browserName, serverUrl, commands, context);
+        } else {
+          await commands.navigate(serverUrl);
+        }
+
+        if (testType === "download") {
+          const downloadItem = await driver.findElement(
+            webdriver.By.id("downloadBtn")
+          );
+
+          const actions = driver.actions({ async: true });
+          await actions.move({ origin: downloadItem }).click().perform();
+
+          // Start the test and wait for the upload to complete
+          let results = await waitForComplete(
+            1200000,
+            commands,
+            context,
+            "download_status"
+          );
+          let downloadTime = results.end - results.start;
+
+          // Store result in megabit/seconds
+          let downloadBandwidth = (32 * 8) / (downloadTime / 1000.0);
+          context.log.info(
+            "download results: " +
+              results.status +
+              " duration: " +
+              downloadTime +
+              "ms, downloadBandwidth: " +
+              downloadBandwidth +
+              "Mbit/s"
+          );
+          accumulatedResults.push(downloadBandwidth);
+        } else if (testType === "upload") {
+          const uploadItem = await driver.findElement(
+            webdriver.By.id("fileUpload")
+          );
+
+          if (context.options.browsertime.moz_fetch_dir == "None") {
+            context.log.error(
+              "This test depends on the fetch task. Download the file, 'https://github.com/mozilla/perf-automation/raw/master/test_files/upload-test-32MB.dat' and set the os environment variable MOZ_FETCHES_DIR to that directory."
+            );
+          }
+
+          let localFilePath = path.join(
+            `${context.options.browsertime.moz_fetch_dir}`,
+            "upload-test-32MB.dat"
+          );
+
+          context.log.info("Sending file path: " + localFilePath);
+          await uploadItem.sendKeys(localFilePath);
+
+          // Start the test and wait for the upload to complete
+          let results = await waitForComplete(
+            1200000,
+            commands,
+            context,
+            "upload_status"
+          );
+          let uploadTime = results.end - results.start;
+
+          // Store result in megabit/seconds, (Upload is a 32 MB file)
+          let uploadBandwidth = (32 * 8) / (uploadTime / 1000.0);
+          context.log.info(
+            "upload results: " +
+              results.status +
+              " duration: " +
+              uploadTime +
+              "ms, uploadBandwidth: " +
+              uploadBandwidth +
+              "Mbit/s"
+          );
+          accumulatedResults.push(uploadBandwidth);
+        } else {
+          context.log.error("Unsupported test type:" + testType);
+        }
+      });
+
+      if (browserName === "firefox") {
+        const script = `
+      Services.obs.notifyObservers(null, "net:cancel-all-connections");
+    `;
+        commands.js.runPrivileged(script);
+        context.log.info("Waiting 3s to close connection...");
+        await commands.wait.byTime(3000);
+      } else {
+        context.log.info("Waiting 35s to close connection...");
+        await commands.wait.byTime(35000);
+      }
+    }
+
+    if (testType === "download") {
+      commands.measure.addObject({
+        custom_data: { "download-bandwidth": accumulatedResults },
+      });
+    } else if (testType === "upload") {
+      commands.measure.addObject({
+        custom_data: { "upload-bandwidth": accumulatedResults },
+      });
+    }
+  }
+);
