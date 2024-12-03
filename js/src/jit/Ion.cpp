@@ -1659,22 +1659,59 @@ static AbortReasonOr<WarpSnapshot*> CreateWarpSnapshot(JSContext* cx,
   return result;
 }
 
+UniquePtr<LifoAlloc> JitRuntime::tryReuseIonLifoAlloc() {
+  // Try to reuse the LifoAlloc of a finished Ion compilation task for a new
+  // Ion compilation. If there are multiple tasks, we pick the one with the
+  // largest LifoAlloc.
+
+  auto& batch = ionFreeTaskBatch_.ref();
+  IonCompileTask* bestTask = nullptr;
+  size_t bestTaskIndex = 0;
+  size_t bestTaskSize = 0;
+
+  for (size_t i = 0, len = batch.length(); i < len; i++) {
+    IonCompileTask* task = batch[i];
+    if (task->alloc().lifoAlloc()->isHuge()) {
+      // Ignore 'huge' LifoAllocs. This avoids keeping a lot of memory alive and
+      // also avoids freeing all LifoAlloc memory (instead of reusing it) in
+      // freeAllIfHugeAndUnused.
+      continue;
+    }
+    size_t taskSize = task->alloc().lifoAlloc()->computedSizeOfExcludingThis();
+    if (!bestTask || taskSize >= bestTaskSize) {
+      bestTask = task;
+      bestTaskIndex = i;
+      bestTaskSize = taskSize;
+    }
+  }
+
+  if (bestTask) {
+    batch.erase(&batch[bestTaskIndex]);
+    return FreeIonCompileTaskAndReuseLifoAlloc(bestTask);
+  }
+
+  return nullptr;
+}
+
 static AbortReason IonCompile(JSContext* cx, HandleScript script,
                               jsbytecode* osrPc) {
   cx->check(script);
 
-  auto alloc = cx->make_unique<LifoAlloc>(TempAllocator::PreferredLifoChunkSize,
-                                          js::MallocArena);
-  if (!alloc) {
-    return AbortReason::Error;
-  }
-
   if (!cx->zone()->ensureJitZoneExists(cx)) {
     return AbortReason::Error;
   }
-
   if (!cx->zone()->jitZone()->ensureIonStubsExist(cx)) {
     return AbortReason::Error;
+  }
+
+  UniquePtr<LifoAlloc> alloc =
+      cx->runtime()->jitRuntime()->tryReuseIonLifoAlloc();
+  if (!alloc) {
+    alloc = cx->make_unique<LifoAlloc>(TempAllocator::PreferredLifoChunkSize,
+                                       js::MallocArena);
+    if (!alloc) {
+      return AbortReason::Error;
+    }
   }
 
   TempAllocator* temp = alloc->new_<TempAllocator>(alloc.get());

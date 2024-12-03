@@ -812,9 +812,8 @@ class LifoAlloc {
   // Frees all held memory.
   void freeAll();
 
-  static const unsigned HUGE_ALLOCATION = 50 * 1024 * 1024;
   void freeAllIfHugeAndUnused() {
-    if (markCount == 0 && curSize_ > HUGE_ALLOCATION) {
+    if (markCount == 0 && isHuge()) {
       freeAll();
     }
   }
@@ -999,6 +998,9 @@ class LifoAlloc {
     MOZ_ASSERT_IF(!oversize_.empty(), !oversize_.last()->empty());
     return empty && oversize_.empty();
   }
+
+  static const unsigned HUGE_ALLOCATION = 50 * 1024 * 1024;
+  bool isHuge() const { return curSize_ > HUGE_ALLOCATION; }
 
   // Return the number of bytes remaining to allocate in the current chunk.
   // e.g. How many bytes we can allocate before needing a new block.

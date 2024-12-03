@@ -89,6 +89,7 @@ void AttachFinishedCompilations(JSContext* cx);
 void FinishOffThreadTask(JSRuntime* runtime, AutoStartIonFreeTask& freeTask,
                          IonCompileTask* task);
 void FreeIonCompileTasks(const IonFreeCompileTasks& tasks);
+UniquePtr<LifoAlloc> FreeIonCompileTaskAndReuseLifoAlloc(IonCompileTask* task);
 
 }  // namespace jit
 }  // namespace js

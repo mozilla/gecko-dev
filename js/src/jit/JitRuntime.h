@@ -337,6 +337,8 @@ class JitRuntime {
   }
   void maybeStartIonFreeTask(bool force);
 
+  UniquePtr<LifoAlloc> tryReuseIonLifoAlloc();
+
 #ifdef DEBUG
   bool disallowArbitraryCode() const { return disallowArbitraryCode_; }
   void clearDisallowArbitraryCode() { disallowArbitraryCode_ = false; }
