@@ -4,6 +4,9 @@
  * Contributor: Jason Orendorff <jorendorff@mozilla.com>
  */
 
+// SKIP test262 export
+// Behavior is not currently specified.
+
 // Decompile destructuring argument named `arguments` correctly.
 var actual = "" + function ([arguments]) {return arguments;};
 compareSource('function ([arguments]) {return arguments;}', actual, "part 1");

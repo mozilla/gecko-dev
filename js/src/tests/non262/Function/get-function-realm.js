@@ -1,3 +1,6 @@
+// SKIP test262 export
+// Pending review.
+
 var g1 = newGlobal();
 var g1Fun = g1.eval("function Fun() {}; Fun");
 

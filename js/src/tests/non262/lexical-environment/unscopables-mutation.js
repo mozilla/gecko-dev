@@ -1,3 +1,6 @@
+// SKIP test262 export
+// Pending review.
+
 // When obj[@@unscopables].x changes, bindings appear and disappear accordingly.
 
 let x = "global";

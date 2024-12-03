@@ -1,3 +1,6 @@
+// SKIP test262 export
+// Pending review.
+
 // Test that we can't confuse %ArrayIteratorPrototype% for an
 // ArrayIterator object.
 function TestArrayIteratorPrototypeConfusion() {
