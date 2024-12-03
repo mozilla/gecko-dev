@@ -74,7 +74,7 @@ if is_asm_enabled
     elif host_machine.cpu_family().startswith('x86')
         checkasm_asm_objs += nasm_gen.process(files('checkasm/x86/checkasm.asm'))
     elif host_machine.cpu_family().startswith('loongarch')
-        checkasm_asm_objs += files('checkasm/loongarch/checkasm.S')
+        checkasm_asm_sources += files('checkasm/loongarch/checkasm.S')
     endif
 
     if use_gaspp

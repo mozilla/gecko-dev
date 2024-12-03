@@ -105,160 +105,17 @@ static void wiener_filter_neon(pixel *const dst, const ptrdiff_t stride,
 }
 #endif
 
-#if ARCH_ARM
-void BF(dav1d_sgr_box3_h, neon)(int32_t *sumsq, int16_t *sum,
-                                const pixel (*left)[4],
-                                const pixel *src, const ptrdiff_t stride,
-                                const int w, const int h,
-                                const enum LrEdgeFlags edges);
-void dav1d_sgr_box3_v_neon(int32_t *sumsq, int16_t *sum,
-                           const int w, const int h,
-                           const enum LrEdgeFlags edges);
-void dav1d_sgr_calc_ab1_neon(int32_t *a, int16_t *b,
-                             const int w, const int h, const int strength,
-                             const int bitdepth_max);
-void BF(dav1d_sgr_finish_filter1, neon)(int16_t *tmp,
-                                        const pixel *src, const ptrdiff_t stride,
-                                        const int32_t *a, const int16_t *b,
-                                        const int w, const int h);
-
-/* filter with a 3x3 box (radius=1) */
-static void dav1d_sgr_filter1_neon(int16_t *tmp,
-                                   const pixel *src, const ptrdiff_t stride,
-                                   const pixel (*left)[4], const pixel *lpf,
-                                   const int w, const int h, const int strength,
-                                   const enum LrEdgeFlags edges
-                                   HIGHBD_DECL_SUFFIX)
-{
-    ALIGN_STK_16(int32_t, sumsq_mem, (384 + 16) * 68 + 8,);
-    int32_t *const sumsq = &sumsq_mem[(384 + 16) * 2 + 8], *const a = sumsq;
-    ALIGN_STK_16(int16_t, sum_mem, (384 + 16) * 68 + 16,);
-    int16_t *const sum = &sum_mem[(384 + 16) * 2 + 16], *const b = sum;
-
-    BF(dav1d_sgr_box3_h, neon)(sumsq, sum, left, src, stride, w, h, edges);
-    if (edges & LR_HAVE_TOP)
-        BF(dav1d_sgr_box3_h, neon)(&sumsq[-2 * (384 + 16)], &sum[-2 * (384 + 16)],
-                                   NULL, lpf, stride, w, 2, edges);
-
-    if (edges & LR_HAVE_BOTTOM)
-        BF(dav1d_sgr_box3_h, neon)(&sumsq[h * (384 + 16)], &sum[h * (384 + 16)],
-                                   NULL, lpf + 6 * PXSTRIDE(stride),
-                                   stride, w, 2, edges);
-
-    dav1d_sgr_box3_v_neon(sumsq, sum, w, h, edges);
-    dav1d_sgr_calc_ab1_neon(a, b, w, h, strength, BITDEPTH_MAX);
-    BF(dav1d_sgr_finish_filter1, neon)(tmp, src, stride, a, b, w, h);
-}
-
-void BF(dav1d_sgr_box5_h, neon)(int32_t *sumsq, int16_t *sum,
-                                const pixel (*left)[4],
-                                const pixel *src, const ptrdiff_t stride,
-                                const int w, const int h,
-                                const enum LrEdgeFlags edges);
-void dav1d_sgr_box5_v_neon(int32_t *sumsq, int16_t *sum,
-                           const int w, const int h,
-                           const enum LrEdgeFlags edges);
-void dav1d_sgr_calc_ab2_neon(int32_t *a, int16_t *b,
-                             const int w, const int h, const int strength,
-                             const int bitdepth_max);
-void BF(dav1d_sgr_finish_filter2, neon)(int16_t *tmp,
-                                        const pixel *src, const ptrdiff_t stride,
-                                        const int32_t *a, const int16_t *b,
-                                        const int w, const int h);
-
-/* filter with a 5x5 box (radius=2) */
-static void dav1d_sgr_filter2_neon(int16_t *tmp,
-                                   const pixel *src, const ptrdiff_t stride,
-                                   const pixel (*left)[4], const pixel *lpf,
-                                   const int w, const int h, const int strength,
-                                   const enum LrEdgeFlags edges
-                                   HIGHBD_DECL_SUFFIX)
-{
-    ALIGN_STK_16(int32_t, sumsq_mem, (384 + 16) * 68 + 8,);
-    int32_t *const sumsq = &sumsq_mem[(384 + 16) * 2 + 8], *const a = sumsq;
-    ALIGN_STK_16(int16_t, sum_mem, (384 + 16) * 68 + 16,);
-    int16_t *const sum = &sum_mem[(384 + 16) * 2 + 16], *const b = sum;
-
-    BF(dav1d_sgr_box5_h, neon)(sumsq, sum, left, src, stride, w, h, edges);
-    if (edges & LR_HAVE_TOP)
-        BF(dav1d_sgr_box5_h, neon)(&sumsq[-2 * (384 + 16)], &sum[-2 * (384 + 16)],
-                                   NULL, lpf, stride, w, 2, edges);
-
-    if (edges & LR_HAVE_BOTTOM)
-        BF(dav1d_sgr_box5_h, neon)(&sumsq[h * (384 + 16)], &sum[h * (384 + 16)],
-                                   NULL, lpf + 6 * PXSTRIDE(stride),
-                                   stride, w, 2, edges);
-
-    dav1d_sgr_box5_v_neon(sumsq, sum, w, h, edges);
-    dav1d_sgr_calc_ab2_neon(a, b, w, h, strength, BITDEPTH_MAX);
-    BF(dav1d_sgr_finish_filter2, neon)(tmp, src, stride, a, b, w, h);
-}
-
-void BF(dav1d_sgr_weighted1, neon)(pixel *dst, const ptrdiff_t dst_stride,
-                                   const pixel *src, const ptrdiff_t src_stride,
-                                   const int16_t *t1, const int w, const int h,
-                                   const int wt HIGHBD_DECL_SUFFIX);
-void BF(dav1d_sgr_weighted2, neon)(pixel *dst, const ptrdiff_t dst_stride,
-                                   const pixel *src, const ptrdiff_t src_stride,
-                                   const int16_t *t1, const int16_t *t2,
-                                   const int w, const int h,
-                                   const int16_t wt[2] HIGHBD_DECL_SUFFIX);
-
-static void sgr_filter_5x5_neon(pixel *const dst, const ptrdiff_t stride,
-                                const pixel (*const left)[4], const pixel *lpf,
-                                const int w, const int h,
-                                const LooprestorationParams *const params,
-                                const enum LrEdgeFlags edges HIGHBD_DECL_SUFFIX)
-{
-    ALIGN_STK_16(int16_t, tmp, 64 * 384,);
-    dav1d_sgr_filter2_neon(tmp, dst, stride, left, lpf,
-                           w, h, params->sgr.s0, edges HIGHBD_TAIL_SUFFIX);
-    BF(dav1d_sgr_weighted1, neon)(dst, stride, dst, stride,
-                                  tmp, w, h, params->sgr.w0 HIGHBD_TAIL_SUFFIX);
-}
-
-static void sgr_filter_3x3_neon(pixel *const dst, const ptrdiff_t stride,
-                                const pixel (*const left)[4], const pixel *lpf,
-                                const int w, const int h,
-                                const LooprestorationParams *const params,
-                                const enum LrEdgeFlags edges HIGHBD_DECL_SUFFIX)
-{
-    ALIGN_STK_16(int16_t, tmp, 64 * 384,);
-    dav1d_sgr_filter1_neon(tmp, dst, stride, left, lpf,
-                           w, h, params->sgr.s1, edges HIGHBD_TAIL_SUFFIX);
-    BF(dav1d_sgr_weighted1, neon)(dst, stride, dst, stride,
-                                  tmp, w, h, params->sgr.w1 HIGHBD_TAIL_SUFFIX);
-}
-
-static void sgr_filter_mix_neon(pixel *const dst, const ptrdiff_t stride,
-                                const pixel (*const left)[4], const pixel *lpf,
-                                const int w, const int h,
-                                const LooprestorationParams *const params,
-                                const enum LrEdgeFlags edges HIGHBD_DECL_SUFFIX)
-{
-    ALIGN_STK_16(int16_t, tmp1, 64 * 384,);
-    ALIGN_STK_16(int16_t, tmp2, 64 * 384,);
-    dav1d_sgr_filter2_neon(tmp1, dst, stride, left, lpf,
-                           w, h, params->sgr.s0, edges HIGHBD_TAIL_SUFFIX);
-    dav1d_sgr_filter1_neon(tmp2, dst, stride, left, lpf,
-                           w, h, params->sgr.s1, edges HIGHBD_TAIL_SUFFIX);
-    const int16_t wt[2] = { params->sgr.w0, params->sgr.w1 };
-    BF(dav1d_sgr_weighted2, neon)(dst, stride, dst, stride,
-                                  tmp1, tmp2, w, h, wt HIGHBD_TAIL_SUFFIX);
-}
-
-#else
-static void rotate(int32_t **sumsq_ptrs, int16_t **sum_ptrs, int n) {
+static void rotate_neon(int32_t **sumsq_ptrs, int16_t **sum_ptrs, int n) {
     int32_t *tmp32 = sumsq_ptrs[0];
     int16_t *tmp16 = sum_ptrs[0];
     for (int i = 0; i < n - 1; i++) {
-        sumsq_ptrs[i] = sumsq_ptrs[i+1];
-        sum_ptrs[i] = sum_ptrs[i+1];
+        sumsq_ptrs[i] = sumsq_ptrs[i + 1];
+        sum_ptrs[i] = sum_ptrs[i + 1];
     }
     sumsq_ptrs[n - 1] = tmp32;
     sum_ptrs[n - 1] = tmp16;
 }
-static void rotate5_x2(int32_t **sumsq_ptrs, int16_t **sum_ptrs) {
+static void rotate5_x2_neon(int32_t **sumsq_ptrs, int16_t **sum_ptrs) {
     int32_t *tmp32[2];
     int16_t *tmp16[2];
     for (int i = 0; i < 2; i++) {
@@ -266,25 +123,13 @@ static void rotate5_x2(int32_t **sumsq_ptrs, int16_t **sum_ptrs) {
         tmp16[i] = sum_ptrs[i];
     }
     for (int i = 0; i < 3; i++) {
-        sumsq_ptrs[i] = sumsq_ptrs[i+2];
-        sum_ptrs[i] = sum_ptrs[i+2];
+        sumsq_ptrs[i] = sumsq_ptrs[i + 2];
+        sum_ptrs[i] = sum_ptrs[i + 2];
     }
     for (int i = 0; i < 2; i++) {
         sumsq_ptrs[3 + i] = tmp32[i];
         sum_ptrs[3 + i] = tmp16[i];
     }
-}
-
-static void rotate_ab_3(int32_t **A_ptrs, int16_t **B_ptrs) {
-    rotate(A_ptrs, B_ptrs, 3);
-}
-
-static void rotate_ab_2(int32_t **A_ptrs, int16_t **B_ptrs) {
-    rotate(A_ptrs, B_ptrs, 2);
-}
-
-static void rotate_ab_4(int32_t **A_ptrs, int16_t **B_ptrs) {
-    rotate(A_ptrs, B_ptrs, 4);
 }
 
 void BF(dav1d_sgr_box3_row_h, neon)(int32_t *sumsq, int16_t *sum,
@@ -301,6 +146,24 @@ void BF(dav1d_sgr_box35_row_h, neon)(int32_t *sumsq3, int16_t *sum3,
                                      const pixel *src, const int w,
                                      const enum LrEdgeFlags edges);
 
+#if ARCH_ARM
+void dav1d_sgr_box3_row_v_neon(int32_t **sumsq, int16_t **sum,
+                               int32_t *sumsq_out, int16_t *sum_out,
+                               const int w);
+void dav1d_sgr_box5_row_v_neon(int32_t **sumsq, int16_t **sum,
+                               int32_t *sumsq_out, int16_t *sum_out,
+                               const int w);
+void dav1d_sgr_calc_row_ab1_neon(int32_t *AA, int16_t *BB, int w, int s,
+                                 int bitdepth_max);
+void dav1d_sgr_calc_row_ab2_neon(int32_t *AA, int16_t *BB, int w, int s,
+                                 int bitdepth_max);
+void BF(dav1d_sgr_finish_filter_row1, neon)(int16_t *tmp, const pixel *src,
+                                            int32_t **A_ptrs, int16_t **B_ptrs,
+                                            const int w);
+void BF(dav1d_sgr_weighted_row1, neon)(pixel *dst, const int16_t *t1,
+                                       const int w, const int wt
+                                       HIGHBD_DECL_SUFFIX);
+#else
 void dav1d_sgr_box3_vert_neon(int32_t **sumsq, int16_t **sum,
                               int32_t *AA, int16_t *BB,
                               const int w, const int s,
@@ -324,30 +187,40 @@ void BF(dav1d_sgr_finish_filter1_2rows, neon)(int16_t *tmp, const pixel *src,
                                               int32_t **A_ptrs,
                                               int16_t **B_ptrs,
                                               const int w, const int h);
+#endif
 void BF(dav1d_sgr_finish_filter2_2rows, neon)(int16_t *tmp, const pixel *src,
                                               const ptrdiff_t src_stride,
                                               int32_t **A_ptrs, int16_t **B_ptrs,
                                               const int w, const int h);
 void BF(dav1d_sgr_weighted2, neon)(pixel *dst, const ptrdiff_t dst_stride,
-                                   const pixel *src, const ptrdiff_t src_stride,
                                    const int16_t *t1, const int16_t *t2,
                                    const int w, const int h,
                                    const int16_t wt[2] HIGHBD_DECL_SUFFIX);
 
 static void sgr_box3_vert_neon(int32_t **sumsq, int16_t **sum,
                                int32_t *sumsq_out, int16_t *sum_out,
-                               const int w, int s, int bitdepth_max) {
+                               const int w, const int s, const int bitdepth_max) {
+#if ARCH_ARM
+    dav1d_sgr_box3_row_v_neon(sumsq, sum, sumsq_out, sum_out, w);
+    dav1d_sgr_calc_row_ab1_neon(sumsq_out, sum_out, w, s, bitdepth_max);
+#else
     // box3_v + calc_ab1
     dav1d_sgr_box3_vert_neon(sumsq, sum, sumsq_out, sum_out, w, s, bitdepth_max);
-    rotate(sumsq, sum, 3);
+#endif
+    rotate_neon(sumsq, sum, 3);
 }
 
 static void sgr_box5_vert_neon(int32_t **sumsq, int16_t **sum,
                                int32_t *sumsq_out, int16_t *sum_out,
-                               const int w, int s, int bitdepth_max) {
+                               const int w, const int s, const int bitdepth_max) {
+#if ARCH_ARM
+    dav1d_sgr_box5_row_v_neon(sumsq, sum, sumsq_out, sum_out, w);
+    dav1d_sgr_calc_row_ab2_neon(sumsq_out, sum_out, w, s, bitdepth_max);
+#else
     // box5_v + calc_ab2
     dav1d_sgr_box5_vert_neon(sumsq, sum, sumsq_out, sum_out, w, s, bitdepth_max);
-    rotate5_x2(sumsq, sum);
+#endif
+    rotate5_x2_neon(sumsq, sum);
 }
 
 static void sgr_box3_hv_neon(int32_t **sumsq, int16_t **sum,
@@ -365,20 +238,41 @@ static void sgr_box3_hv_neon(int32_t **sumsq, int16_t **sum,
 static void sgr_finish1_neon(pixel **dst, const ptrdiff_t stride,
                              int32_t **A_ptrs, int16_t **B_ptrs, const int w,
                              const int w1 HIGHBD_DECL_SUFFIX) {
+#if ARCH_ARM
+    ALIGN_STK_16(int16_t, tmp, 384,);
+
+    BF(dav1d_sgr_finish_filter_row1, neon)(tmp, *dst, A_ptrs, B_ptrs, w);
+    BF(dav1d_sgr_weighted_row1, neon)(*dst, tmp, w, w1 HIGHBD_TAIL_SUFFIX);
+#else
     BF(dav1d_sgr_finish_weighted1, neon)(*dst, A_ptrs, B_ptrs,
                                          w, w1 HIGHBD_TAIL_SUFFIX);
+#endif
     *dst += PXSTRIDE(stride);
-    rotate_ab_3(A_ptrs, B_ptrs);
+    rotate_neon(A_ptrs, B_ptrs, 3);
 }
+
+#define ARM_FILTER_OUT_STRIDE 384
 
 static void sgr_finish2_neon(pixel **dst, const ptrdiff_t stride,
                              int32_t **A_ptrs, int16_t **B_ptrs,
                              const int w, const int h, const int w1
                              HIGHBD_DECL_SUFFIX) {
+#if ARCH_ARM
+    ALIGN_STK_16(int16_t, tmp, 2*ARM_FILTER_OUT_STRIDE,);
+
+    BF(dav1d_sgr_finish_filter2_2rows, neon)(tmp, *dst, stride, A_ptrs, B_ptrs, w, h);
+    BF(dav1d_sgr_weighted_row1, neon)(*dst, tmp, w, w1 HIGHBD_TAIL_SUFFIX);
+    *dst += PXSTRIDE(stride);
+    if (h > 1) {
+        BF(dav1d_sgr_weighted_row1, neon)(*dst, tmp + FILTER_OUT_STRIDE, w, w1 HIGHBD_TAIL_SUFFIX);
+        *dst += PXSTRIDE(stride);
+    }
+#else
     BF(dav1d_sgr_finish_weighted2, neon)(*dst, stride, A_ptrs, B_ptrs,
                                          w, h, w1 HIGHBD_TAIL_SUFFIX);
     *dst += 2*PXSTRIDE(stride);
-    rotate_ab_2(A_ptrs, B_ptrs);
+#endif
+    rotate_neon(A_ptrs, B_ptrs, 2);
 }
 
 static void sgr_finish_mix_neon(pixel **dst, const ptrdiff_t stride,
@@ -386,20 +280,26 @@ static void sgr_finish_mix_neon(pixel **dst, const ptrdiff_t stride,
                                 int32_t **A3_ptrs, int16_t **B3_ptrs,
                                 const int w, const int h,
                                 const int w0, const int w1 HIGHBD_DECL_SUFFIX) {
-#define FILTER_OUT_STRIDE 384
-    ALIGN_STK_16(int16_t, tmp5, 2*FILTER_OUT_STRIDE,);
-    ALIGN_STK_16(int16_t, tmp3, 2*FILTER_OUT_STRIDE,);
+    ALIGN_STK_16(int16_t, tmp5, 2*ARM_FILTER_OUT_STRIDE,);
+    ALIGN_STK_16(int16_t, tmp3, 2*ARM_FILTER_OUT_STRIDE,);
 
     BF(dav1d_sgr_finish_filter2_2rows, neon)(tmp5, *dst, stride,
                                              A5_ptrs, B5_ptrs, w, h);
+#if ARCH_ARM
+    BF(dav1d_sgr_finish_filter_row1, neon)(tmp3, *dst, A3_ptrs, B3_ptrs, w);
+    BF(dav1d_sgr_finish_filter_row1, neon)(tmp3 + FILTER_OUT_STRIDE,
+                                           *dst + PXSTRIDE(stride),
+                                           &A3_ptrs[1], &B3_ptrs[1], w);
+#else
     BF(dav1d_sgr_finish_filter1_2rows, neon)(tmp3, *dst, stride,
                                              A3_ptrs, B3_ptrs, w, h);
+#endif
     const int16_t wt[2] = { w0, w1 };
-    BF(dav1d_sgr_weighted2, neon)(*dst, stride, *dst, stride,
+    BF(dav1d_sgr_weighted2, neon)(*dst, stride,
                                   tmp5, tmp3, w, h, wt HIGHBD_TAIL_SUFFIX);
     *dst += h*PXSTRIDE(stride);
-    rotate_ab_2(A5_ptrs, B5_ptrs);
-    rotate_ab_4(A3_ptrs, B3_ptrs);
+    rotate_neon(A5_ptrs, B5_ptrs, 2);
+    rotate_neon(A3_ptrs, B3_ptrs, 4);
 }
 
 
@@ -409,23 +309,23 @@ static void sgr_filter_3x3_neon(pixel *dst, const ptrdiff_t stride,
                                 const LooprestorationParams *const params,
                                 const enum LrEdgeFlags edges HIGHBD_DECL_SUFFIX)
 {
-#define BUF_STRIDE (384 + 16)
-    ALIGN_STK_16(int32_t, sumsq_buf, BUF_STRIDE * 3 + 16,);
-    ALIGN_STK_16(int16_t, sum_buf, BUF_STRIDE * 3 + 16,);
+#define ARM_BUF_STRIDE (384 + 16)
+    ALIGN_STK_16(int32_t, sumsq_buf, ARM_BUF_STRIDE * 3 + 16,);
+    ALIGN_STK_16(int16_t, sum_buf, ARM_BUF_STRIDE * 3 + 16,);
     int32_t *sumsq_ptrs[3], *sumsq_rows[3];
     int16_t *sum_ptrs[3], *sum_rows[3];
     for (int i = 0; i < 3; i++) {
-        sumsq_rows[i] = &sumsq_buf[i * BUF_STRIDE];
-        sum_rows[i] = &sum_buf[i * BUF_STRIDE];
+        sumsq_rows[i] = &sumsq_buf[i * ARM_BUF_STRIDE];
+        sum_rows[i] = &sum_buf[i * ARM_BUF_STRIDE];
     }
 
-    ALIGN_STK_16(int32_t, A_buf, BUF_STRIDE * 3 + 16,);
-    ALIGN_STK_16(int16_t, B_buf, BUF_STRIDE * 3 + 16,);
+    ALIGN_STK_16(int32_t, A_buf, ARM_BUF_STRIDE * 3 + 16,);
+    ALIGN_STK_16(int16_t, B_buf, ARM_BUF_STRIDE * 3 + 16,);
     int32_t *A_ptrs[3];
     int16_t *B_ptrs[3];
     for (int i = 0; i < 3; i++) {
-        A_ptrs[i] = &A_buf[i * BUF_STRIDE];
-        B_ptrs[i] = &B_buf[i * BUF_STRIDE];
+        A_ptrs[i] = &A_buf[i * ARM_BUF_STRIDE];
+        B_ptrs[i] = &B_buf[i * ARM_BUF_STRIDE];
     }
     const pixel *src = dst;
     const pixel *lpf_bottom = lpf + 6*PXSTRIDE(stride);
@@ -448,15 +348,16 @@ static void sgr_filter_3x3_neon(pixel *dst, const ptrdiff_t stride,
                          left, src, w, params->sgr.s1, edges, BITDEPTH_MAX);
         left++;
         src += PXSTRIDE(stride);
-        rotate_ab_3(A_ptrs, B_ptrs);
+        rotate_neon(A_ptrs, B_ptrs, 3);
 
         if (--h <= 0)
             goto vert_1;
 
-        sgr_box3_hv_neon(sumsq_ptrs, sum_ptrs, A_ptrs[2], B_ptrs[2], left, src, w, params->sgr.s1, edges, BITDEPTH_MAX);
+        sgr_box3_hv_neon(sumsq_ptrs, sum_ptrs, A_ptrs[2], B_ptrs[2],
+                         left, src, w, params->sgr.s1, edges, BITDEPTH_MAX);
         left++;
         src += PXSTRIDE(stride);
-        rotate_ab_3(A_ptrs, B_ptrs);
+        rotate_neon(A_ptrs, B_ptrs, 3);
 
         if (--h <= 0)
             goto vert_2;
@@ -475,7 +376,7 @@ static void sgr_filter_3x3_neon(pixel *dst, const ptrdiff_t stride,
 
         sgr_box3_vert_neon(sumsq_ptrs, sum_ptrs, A_ptrs[2], B_ptrs[2],
                            w, params->sgr.s1, BITDEPTH_MAX);
-        rotate_ab_3(A_ptrs, B_ptrs);
+        rotate_neon(A_ptrs, B_ptrs, 3);
 
         if (--h <= 0)
             goto vert_1;
@@ -487,7 +388,7 @@ static void sgr_filter_3x3_neon(pixel *dst, const ptrdiff_t stride,
                          left, src, w, params->sgr.s1, edges, BITDEPTH_MAX);
         left++;
         src += PXSTRIDE(stride);
-        rotate_ab_3(A_ptrs, B_ptrs);
+        rotate_neon(A_ptrs, B_ptrs, 3);
 
         if (--h <= 0)
             goto vert_2;
@@ -547,7 +448,7 @@ vert_1:
     sum_ptrs[2] = sum_ptrs[1];
     sgr_box3_vert_neon(sumsq_ptrs, sum_ptrs, A_ptrs[2], B_ptrs[2],
                        w, params->sgr.s1, BITDEPTH_MAX);
-    rotate_ab_3(A_ptrs, B_ptrs);
+    rotate_neon(A_ptrs, B_ptrs, 3);
     goto output_1;
 }
 
@@ -557,22 +458,22 @@ static void sgr_filter_5x5_neon(pixel *dst, const ptrdiff_t stride,
                                 const LooprestorationParams *const params,
                                 const enum LrEdgeFlags edges HIGHBD_DECL_SUFFIX)
 {
-    ALIGN_STK_16(int32_t, sumsq_buf, BUF_STRIDE * 5 + 16,);
-    ALIGN_STK_16(int16_t, sum_buf, BUF_STRIDE * 5 + 16,);
+    ALIGN_STK_16(int32_t, sumsq_buf, ARM_BUF_STRIDE * 5 + 16,);
+    ALIGN_STK_16(int16_t, sum_buf, ARM_BUF_STRIDE * 5 + 16,);
     int32_t *sumsq_ptrs[5], *sumsq_rows[5];
     int16_t *sum_ptrs[5], *sum_rows[5];
     for (int i = 0; i < 5; i++) {
-        sumsq_rows[i] = &sumsq_buf[i * BUF_STRIDE];
-        sum_rows[i] = &sum_buf[i * BUF_STRIDE];
+        sumsq_rows[i] = &sumsq_buf[i * ARM_BUF_STRIDE];
+        sum_rows[i] = &sum_buf[i * ARM_BUF_STRIDE];
     }
 
-    ALIGN_STK_16(int32_t, A_buf, BUF_STRIDE * 2 + 16,);
-    ALIGN_STK_16(int16_t, B_buf, BUF_STRIDE * 2 + 16,);
+    ALIGN_STK_16(int32_t, A_buf, ARM_BUF_STRIDE * 2 + 16,);
+    ALIGN_STK_16(int16_t, B_buf, ARM_BUF_STRIDE * 2 + 16,);
     int32_t *A_ptrs[2];
     int16_t *B_ptrs[2];
     for (int i = 0; i < 2; i++) {
-        A_ptrs[i] = &A_buf[i * BUF_STRIDE];
-        B_ptrs[i] = &B_buf[i * BUF_STRIDE];
+        A_ptrs[i] = &A_buf[i * ARM_BUF_STRIDE];
+        B_ptrs[i] = &B_buf[i * ARM_BUF_STRIDE];
     }
     const pixel *src = dst;
     const pixel *lpf_bottom = lpf + 6*PXSTRIDE(stride);
@@ -609,7 +510,7 @@ static void sgr_filter_5x5_neon(pixel *dst, const ptrdiff_t stride,
         src += PXSTRIDE(stride);
         sgr_box5_vert_neon(sumsq_ptrs, sum_ptrs, A_ptrs[1], B_ptrs[1],
                            w, params->sgr.s0, BITDEPTH_MAX);
-        rotate_ab_2(A_ptrs, B_ptrs);
+        rotate_neon(A_ptrs, B_ptrs, 2);
 
         if (--h <= 0)
             goto vert_2;
@@ -648,7 +549,7 @@ static void sgr_filter_5x5_neon(pixel *dst, const ptrdiff_t stride,
 
         sgr_box5_vert_neon(sumsq_ptrs, sum_ptrs, A_ptrs[1], B_ptrs[1],
                            w, params->sgr.s0, BITDEPTH_MAX);
-        rotate_ab_2(A_ptrs, B_ptrs);
+        rotate_neon(A_ptrs, B_ptrs, 2);
 
         if (--h <= 0)
             goto vert_2;
@@ -760,7 +661,7 @@ vert_1:
 
     sgr_box5_vert_neon(sumsq_ptrs, sum_ptrs, A_ptrs[1], B_ptrs[1],
                        w, params->sgr.s0, BITDEPTH_MAX);
-    rotate_ab_2(A_ptrs, B_ptrs);
+    rotate_neon(A_ptrs, B_ptrs, 2);
 
     goto output_1;
 }
@@ -771,38 +672,38 @@ static void sgr_filter_mix_neon(pixel *dst, const ptrdiff_t stride,
                                 const LooprestorationParams *const params,
                                 const enum LrEdgeFlags edges HIGHBD_DECL_SUFFIX)
 {
-    ALIGN_STK_16(int32_t, sumsq5_buf, BUF_STRIDE * 5 + 16,);
-    ALIGN_STK_16(int16_t, sum5_buf, BUF_STRIDE * 5 + 16,);
+    ALIGN_STK_16(int32_t, sumsq5_buf, ARM_BUF_STRIDE * 5 + 16,);
+    ALIGN_STK_16(int16_t, sum5_buf, ARM_BUF_STRIDE * 5 + 16,);
     int32_t *sumsq5_ptrs[5], *sumsq5_rows[5];
     int16_t *sum5_ptrs[5], *sum5_rows[5];
     for (int i = 0; i < 5; i++) {
-        sumsq5_rows[i] = &sumsq5_buf[i * BUF_STRIDE];
-        sum5_rows[i] = &sum5_buf[i * BUF_STRIDE];
+        sumsq5_rows[i] = &sumsq5_buf[i * ARM_BUF_STRIDE];
+        sum5_rows[i] = &sum5_buf[i * ARM_BUF_STRIDE];
     }
-    ALIGN_STK_16(int32_t, sumsq3_buf, BUF_STRIDE * 3 + 16,);
-    ALIGN_STK_16(int16_t, sum3_buf, BUF_STRIDE * 3 + 16,);
+    ALIGN_STK_16(int32_t, sumsq3_buf, ARM_BUF_STRIDE * 3 + 16,);
+    ALIGN_STK_16(int16_t, sum3_buf, ARM_BUF_STRIDE * 3 + 16,);
     int32_t *sumsq3_ptrs[3], *sumsq3_rows[3];
     int16_t *sum3_ptrs[3], *sum3_rows[3];
     for (int i = 0; i < 3; i++) {
-        sumsq3_rows[i] = &sumsq3_buf[i * BUF_STRIDE];
-        sum3_rows[i] = &sum3_buf[i * BUF_STRIDE];
+        sumsq3_rows[i] = &sumsq3_buf[i * ARM_BUF_STRIDE];
+        sum3_rows[i] = &sum3_buf[i * ARM_BUF_STRIDE];
     }
 
-    ALIGN_STK_16(int32_t, A5_buf, BUF_STRIDE * 2 + 16,);
-    ALIGN_STK_16(int16_t, B5_buf, BUF_STRIDE * 2 + 16,);
+    ALIGN_STK_16(int32_t, A5_buf, ARM_BUF_STRIDE * 2 + 16,);
+    ALIGN_STK_16(int16_t, B5_buf, ARM_BUF_STRIDE * 2 + 16,);
     int32_t *A5_ptrs[2];
     int16_t *B5_ptrs[2];
     for (int i = 0; i < 2; i++) {
-        A5_ptrs[i] = &A5_buf[i * BUF_STRIDE];
-        B5_ptrs[i] = &B5_buf[i * BUF_STRIDE];
+        A5_ptrs[i] = &A5_buf[i * ARM_BUF_STRIDE];
+        B5_ptrs[i] = &B5_buf[i * ARM_BUF_STRIDE];
     }
-    ALIGN_STK_16(int32_t, A3_buf, BUF_STRIDE * 4 + 16,);
-    ALIGN_STK_16(int16_t, B3_buf, BUF_STRIDE * 4 + 16,);
+    ALIGN_STK_16(int32_t, A3_buf, ARM_BUF_STRIDE * 4 + 16,);
+    ALIGN_STK_16(int16_t, B3_buf, ARM_BUF_STRIDE * 4 + 16,);
     int32_t *A3_ptrs[4];
     int16_t *B3_ptrs[4];
     for (int i = 0; i < 4; i++) {
-        A3_ptrs[i] = &A3_buf[i * BUF_STRIDE];
-        B3_ptrs[i] = &B3_buf[i * BUF_STRIDE];
+        A3_ptrs[i] = &A3_buf[i * ARM_BUF_STRIDE];
+        B3_ptrs[i] = &B3_buf[i * ARM_BUF_STRIDE];
     }
     const pixel *src = dst;
     const pixel *lpf_bottom = lpf + 6*PXSTRIDE(stride);
@@ -842,7 +743,7 @@ static void sgr_filter_mix_neon(pixel *dst, const ptrdiff_t stride,
 
         sgr_box3_vert_neon(sumsq3_ptrs, sum3_ptrs, A3_ptrs[3], B3_ptrs[3],
                            w, params->sgr.s1, BITDEPTH_MAX);
-        rotate_ab_4(A3_ptrs, B3_ptrs);
+        rotate_neon(A3_ptrs, B3_ptrs, 4);
 
         if (--h <= 0)
             goto vert_1;
@@ -854,10 +755,10 @@ static void sgr_filter_mix_neon(pixel *dst, const ptrdiff_t stride,
         src += PXSTRIDE(stride);
         sgr_box5_vert_neon(sumsq5_ptrs, sum5_ptrs, A5_ptrs[1], B5_ptrs[1],
                            w, params->sgr.s0, BITDEPTH_MAX);
-        rotate_ab_2(A5_ptrs, B5_ptrs);
+        rotate_neon(A5_ptrs, B5_ptrs, 2);
         sgr_box3_vert_neon(sumsq3_ptrs, sum3_ptrs, A3_ptrs[3], B3_ptrs[3],
                            w, params->sgr.s1, BITDEPTH_MAX);
-        rotate_ab_4(A3_ptrs, B3_ptrs);
+        rotate_neon(A3_ptrs, B3_ptrs, 4);
 
         if (--h <= 0)
             goto vert_2;
@@ -893,7 +794,7 @@ static void sgr_filter_mix_neon(pixel *dst, const ptrdiff_t stride,
 
         sgr_box3_vert_neon(sumsq3_ptrs, sum3_ptrs, A3_ptrs[3], B3_ptrs[3],
                            w, params->sgr.s1, BITDEPTH_MAX);
-        rotate_ab_4(A3_ptrs, B3_ptrs);
+        rotate_neon(A3_ptrs, B3_ptrs, 4);
 
         if (--h <= 0)
             goto vert_1;
@@ -912,10 +813,10 @@ static void sgr_filter_mix_neon(pixel *dst, const ptrdiff_t stride,
 
         sgr_box5_vert_neon(sumsq5_ptrs, sum5_ptrs, A5_ptrs[1], B5_ptrs[1],
                            w, params->sgr.s0, BITDEPTH_MAX);
-        rotate_ab_2(A5_ptrs, B5_ptrs);
+        rotate_neon(A5_ptrs, B5_ptrs, 2);
         sgr_box3_vert_neon(sumsq3_ptrs, sum3_ptrs, A3_ptrs[3], B3_ptrs[3],
                            w, params->sgr.s1, BITDEPTH_MAX);
-        rotate_ab_4(A3_ptrs, B3_ptrs);
+        rotate_neon(A3_ptrs, B3_ptrs, 4);
 
         if (--h <= 0)
             goto vert_2;
@@ -936,7 +837,7 @@ static void sgr_filter_mix_neon(pixel *dst, const ptrdiff_t stride,
 
         sgr_box3_vert_neon(sumsq3_ptrs, sum3_ptrs, A3_ptrs[3], B3_ptrs[3],
                            w, params->sgr.s1, BITDEPTH_MAX);
-        rotate_ab_4(A3_ptrs, B3_ptrs);
+        rotate_neon(A3_ptrs, B3_ptrs, 4);
 
         if (--h <= 0)
             goto odd;
@@ -973,7 +874,7 @@ static void sgr_filter_mix_neon(pixel *dst, const ptrdiff_t stride,
 
         sgr_box3_vert_neon(sumsq3_ptrs, sum3_ptrs, A3_ptrs[3], B3_ptrs[3],
                            w, params->sgr.s1, BITDEPTH_MAX);
-        rotate_ab_4(A3_ptrs, B3_ptrs);
+        rotate_neon(A3_ptrs, B3_ptrs, 4);
 
         if (--h <= 0)
             goto odd;
@@ -1002,7 +903,7 @@ static void sgr_filter_mix_neon(pixel *dst, const ptrdiff_t stride,
     lpf_bottom += PXSTRIDE(stride);
     sgr_box3_vert_neon(sumsq3_ptrs, sum3_ptrs, A3_ptrs[3], B3_ptrs[3],
                        w, params->sgr.s1, BITDEPTH_MAX);
-    rotate_ab_4(A3_ptrs, B3_ptrs);
+    rotate_neon(A3_ptrs, B3_ptrs, 4);
 
     BF(dav1d_sgr_box35_row_h, neon)(sumsq3_ptrs[2], sum3_ptrs[2],
                                     sumsq5_ptrs[4], sum5_ptrs[4],
@@ -1029,7 +930,7 @@ vert_2:
     sum3_ptrs[2] = sum3_ptrs[1];
     sgr_box3_vert_neon(sumsq3_ptrs, sum3_ptrs, A3_ptrs[3], B3_ptrs[3],
                        w, params->sgr.s1, BITDEPTH_MAX);
-    rotate_ab_4(A3_ptrs, B3_ptrs);
+    rotate_neon(A3_ptrs, B3_ptrs, 4);
 
     sumsq3_ptrs[2] = sumsq3_ptrs[1];
     sum3_ptrs[2] = sum3_ptrs[1];
@@ -1066,7 +967,7 @@ output_1:
                        w, params->sgr.s0, BITDEPTH_MAX);
     sgr_box3_vert_neon(sumsq3_ptrs, sum3_ptrs, A3_ptrs[3], B3_ptrs[3],
                        w, params->sgr.s1, BITDEPTH_MAX);
-    rotate_ab_4(A3_ptrs, B3_ptrs);
+    rotate_neon(A3_ptrs, B3_ptrs, 4);
     // Output only one row
     sgr_finish_mix_neon(&dst, stride, A5_ptrs, B5_ptrs, A3_ptrs, B3_ptrs,
                         w, 1, params->sgr.w0, params->sgr.w1
@@ -1083,15 +984,13 @@ vert_1:
 
     sgr_box5_vert_neon(sumsq5_ptrs, sum5_ptrs, A5_ptrs[1], B5_ptrs[1],
                        w, params->sgr.s0, BITDEPTH_MAX);
-    rotate_ab_2(A5_ptrs, B5_ptrs);
+    rotate_neon(A5_ptrs, B5_ptrs, 2);
     sgr_box3_vert_neon(sumsq3_ptrs, sum3_ptrs, A3_ptrs[3], B3_ptrs[3],
                        w, params->sgr.s1, BITDEPTH_MAX);
-    rotate_ab_4(A3_ptrs, B3_ptrs);
+    rotate_neon(A3_ptrs, B3_ptrs, 4);
 
     goto output_1;
 }
-
-#endif
 
 
 static ALWAYS_INLINE void loop_restoration_dsp_init_arm(Dav1dLoopRestorationDSPContext *const c, int bpc) {

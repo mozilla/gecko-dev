@@ -436,366 +436,324 @@ function wiener_filter_v_16bpc_neon, export=1
 .purgem filter
 endfunc
 
-#define SUM_STRIDE (384+16)
-
 #include "looprestoration_tmpl.S"
 
-// void dav1d_sgr_box3_h_16bpc_neon(int32_t *sumsq, int16_t *sum,
-//                                  const pixel (*left)[4],
-//                                  const pixel *src, const ptrdiff_t stride,
-//                                  const int w, const int h,
-//                                  const enum LrEdgeFlags edges);
-function sgr_box3_h_16bpc_neon, export=1
-        push            {r4-r11,lr}
-        vpush           {q4-q7}
-        ldrd            r4,  r5,  [sp, #100]
-        ldrd            r6,  r7,  [sp, #108]
-        add             r5,  r5,  #2 // w += 2
+// void dav1d_sgr_box3_row_h_16bpc_neon(int32_t *sumsq, int16_t *sum,
+//                                      const pixel (*left)[4],
+//                                      const pixel *src, const int w,
+//                                      const enum LrEdgeFlags edges);
+function sgr_box3_row_h_16bpc_neon, export=1
+        push            {r4-r5,lr}
+        ldrd            r4,  r5,  [sp, #12]
+        add             r4,  r4,  #2 // w += 2
 
-        // Set up pointers for reading/writing alternate rows
-        add             r10, r0,  #(4*SUM_STRIDE)   // sumsq
-        add             r11, r1,  #(2*SUM_STRIDE)   // sum
-        add             r12, r3,  r4                // src
-        lsl             r4,  r4,  #1
-        mov             r9,       #(2*2*SUM_STRIDE) // double sum stride
-
-        // Subtract the aligned width from the output stride.
-        add             lr,  r5,  #7
-        bic             lr,  lr,  #7
-        sub             r9,  r9,  lr, lsl #1
-
-        // Store the width for the vertical loop
-        mov             r8,  r5
-
-        // Subtract the number of pixels read from the input from the stride
-        add             lr,  lr,  #8
-        sub             r4,  r4,  lr, lsl #1
-
-        // Set up the src pointers to include the left edge, for LR_HAVE_LEFT, left == NULL
-        tst             r7,  #1 // LR_HAVE_LEFT
-        beq             2f
-        // LR_HAVE_LEFT
+        tst             r5,  #1 // LR_HAVE_LEFT
+        beq             1f
         cmp             r2,  #0
         bne             0f
-        // left == NULL
+
+        // LR_HAVE_LEFT && left == NULL
         sub             r3,  r3,  #4
-        sub             r12, r12, #4
-        b               1f
-0:      // LR_HAVE_LEFT, left != NULL
-2:      // !LR_HAVE_LEFT, increase the stride.
-        // For this case we don't read the left 2 pixels from the src pointer,
-        // but shift it as if we had done that.
-        add             r4,  r4,  #4
+        vld1.8          {q0, q1}, [r3]!
+        b               2f
 
-
-1:      // Loop vertically
-        vld1.16         {q0, q1}, [r3]!
-        vld1.16         {q4, q5}, [r12]!
-
-        tst             r7,  #1 // LR_HAVE_LEFT
-        beq             0f
-        cmp             r2,  #0
-        beq             2f
+0:
         // LR_HAVE_LEFT, left != NULL
-        vld1.16         {d5}, [r2]!
-        // Move r3/r12 back to account for the last 2 pixels we loaded earlier,
+        vld1.8          {q0, q1}, [r3]!
+        vld1.16         {d5},     [r2]
+        // Move r3 back to account for the last 2 pixels we loaded earlier,
         // which we'll shift out.
         sub             r3,  r3,  #4
-        sub             r12, r12, #4
-        vld1.16         {d13}, [r2]!
         vext.8          q1,  q0,  q1,  #12
         vext.8          q0,  q2,  q0,  #12
-        vext.8          q5,  q4,  q5,  #12
-        vext.8          q4,  q6,  q4,  #12
         b               2f
-0:
-        // !LR_HAVE_LEFT, fill q2 with the leftmost pixel
-        // and shift q0 to have 2x the first byte at the front.
+
+1:
+        vld1.8          {q0, q1}, [r3]!
+        // !LR_HAVE_LEFT, fill q1 with the leftmost pixel
+        // and shift q0/q1 to have 2x the first pixel at the front.
         vdup.16         q2,  d0[0]
-        vdup.16         q6,  d8[0]
         // Move r3 back to account for the last 2 pixels we loaded before,
         // which we shifted out.
         sub             r3,  r3,  #4
-        sub             r12, r12, #4
         vext.8          q1,  q0,  q1,  #12
         vext.8          q0,  q2,  q0,  #12
-        vext.8          q5,  q4,  q5,  #12
-        vext.8          q4,  q6,  q4,  #12
 
 2:
-        tst             r7,  #2 // LR_HAVE_RIGHT
+        tst             r5,  #2 // LR_HAVE_RIGHT
         bne             4f
         // If we'll need to pad the right edge, load that pixel to pad with
         // here since we can find it pretty easily from here.
-        sub             lr,  r5,  #(2 + 16 - 2 + 1)
+        sub             lr,  r4,  #(2 + 16 - 2 + 1)
         lsl             lr,  lr,  #1
-        ldrh            r11, [r3,  lr]
-        ldrh            lr,  [r12, lr]
-        // Fill q14/q15 with the right padding pixel
-        vdup.16         q14, r11
-        vdup.16         q15, lr
-        // Restore r11 after using it for a temporary value
-        add             r11, r1,  #(2*SUM_STRIDE)
+        ldrh            lr,  [r3,  lr]
+        // Fill q14 with the right padding pixel
+        vdup.16         q14, lr
 3:      // !LR_HAVE_RIGHT
 
         // Check whether we need to pad the right edge
-        cmp             r5,  #10
+        cmp             r4,  #10
         bge             4f   // If w >= 10, all used input pixels are valid
 
         // 1 <= w < 10, w pixels valid in q0-q1. For w=9, this ends up called
         // again; it's not strictly needed in those cases (we pad enough here),
         // but keeping the code as simple as possible.
 
-        // Insert padding in q0/1.h[w] onwards
+        // Insert padding in q0.h[w] onwards
         movrel_local    lr,  right_ext_mask
-        sub             lr,  lr,  r5,  lsl #1
+        sub             lr,  lr,  r4,  lsl #1
         vld1.8          {q12, q13}, [lr]
 
         vbit            q0,  q14, q12
         vbit            q1,  q14, q13
-        vbit            q4,  q15, q12
-        vbit            q5,  q15, q13
 
 4:      // Loop horizontally
         vext.8          q8,  q0,  q1,  #2
-        vext.8          q10, q4,  q5,  #2
         vext.8          q9,  q0,  q1,  #4
-        vext.8          q11, q4,  q5,  #4
-        vadd.i16        q2,  q0,  q8
-        vadd.i16        q3,  q4,  q10
-        vadd.i16        q2,  q2,  q9
-        vadd.i16        q3,  q3,  q11
 
-        vmull.u16       q6,  d0,  d0
-        vmlal.u16       q6,  d16, d16
-        vmlal.u16       q6,  d18, d18
-        vmull.u16       q12, d8,  d8
-        vmlal.u16       q12, d20, d20
-        vmlal.u16       q12, d22, d22
-        vmull.u16       q7,  d1,  d1
-        vmlal.u16       q7,  d17, d17
-        vmlal.u16       q7,  d19, d19
-        vmull.u16       q13, d9,  d9
-        vmlal.u16       q13, d21, d21
-        vmlal.u16       q13, d23, d23
-        subs            r5,  r5,  #8
+        vadd.i16        q2,  q0,  q8
+        vmull.u16       q12, d0,  d0
+        vmlal.u16       q12, d16, d16
+        vmlal.u16       q12, d18, d18
+        vadd.i16        q2,  q2,  q9
+        vmull.u16       q13, d1,  d1
+        vmlal.u16       q13, d17, d17
+        vmlal.u16       q13, d19, d19
+        subs            r4,  r4,  #8
         vst1.16         {q2},       [r1,  :128]!
-        vst1.16         {q3},       [r11, :128]!
-        vst1.32         {q6,  q7},  [r0,  :128]!
-        vst1.32         {q12, q13}, [r10, :128]!
+        vst1.32         {q12, q13}, [r0,  :128]!
 
         ble             9f
-        tst             r7,  #2 // LR_HAVE_RIGHT
+        tst             r5,  #2 // LR_HAVE_RIGHT
         vmov            q0,  q1
-        vmov            q4,  q5
         vld1.16         {q1}, [r3]!
-        vld1.16         {q5}, [r12]!
 
         bne             4b // If we don't need to pad, just keep summing.
         b               3b // If we need to pad, check how many pixels we have left.
 
 9:
-        subs            r6,  r6,  #2
-        ble             0f
-        // Jump to the next row and loop horizontally
-        add             r0,  r0,  r9, lsl #1
-        add             r10, r10, r9, lsl #1
-        add             r1,  r1,  r9
-        add             r11, r11, r9
-        add             r3,  r3,  r4
-        add             r12, r12, r4
-        mov             r5,  r8
-        b               1b
-0:
-        vpop            {q4-q7}
-        pop             {r4-r11,pc}
+        pop             {r4-r5,pc}
 endfunc
 
-// void dav1d_sgr_box5_h_16bpc_neon(int32_t *sumsq, int16_t *sum,
-//                                  const pixel (*left)[4],
-//                                  const pixel *src, const ptrdiff_t stride,
-//                                  const int w, const int h,
-//                                  const enum LrEdgeFlags edges);
-function sgr_box5_h_16bpc_neon, export=1
-        push            {r4-r11,lr}
-        vpush           {q4-q7}
-        ldrd            r4,  r5,  [sp, #100]
-        ldrd            r6,  r7,  [sp, #108]
-        add             r5,  r5,  #2 // w += 2
+// void dav1d_sgr_box5_row_h_16bpc_neon(int32_t *sumsq, int16_t *sum,
+//                                      const pixel (*left)[4],
+//                                      const pixel *src, const int w,
+//                                      const enum LrEdgeFlags edges);
+function sgr_box5_row_h_16bpc_neon, export=1
+        push            {r4-r5,lr}
+        ldrd            r4,  r5,  [sp, #12]
+        add             r4,  r4,  #2 // w += 2
 
-        // Set up pointers for reading/writing alternate rows
-        add             r10, r0,  #(4*SUM_STRIDE)   // sumsq
-        add             r11, r1,  #(2*SUM_STRIDE)   // sum
-        add             r12, r3,  r4                // src
-        lsl             r4,  r4,  #1
-        mov             r9,       #(2*2*SUM_STRIDE) // double sum stride
-
-        // Subtract the aligned width from the output stride.
-        add             lr,  r5,  #7
-        bic             lr,  lr,  #7
-        sub             r9,  r9,  lr, lsl #1
-        add             lr,  lr,  #8
-        sub             r4,  r4,  lr, lsl #1
-
-        // Store the width for the vertical loop
-        mov             r8,  r5
-
-        // Set up the src pointers to include the left edge, for LR_HAVE_LEFT, left == NULL
-        tst             r7,  #1 // LR_HAVE_LEFT
-        beq             2f
-        // LR_HAVE_LEFT
+        tst             r5,  #1 // LR_HAVE_LEFT
+        beq             1f
         cmp             r2,  #0
         bne             0f
-        // left == NULL
+
+        // LR_HAVE_LEFT && left == NULL
         sub             r3,  r3,  #6
-        sub             r12, r12, #6
-        b               1f
-0:      // LR_HAVE_LEFT, left != NULL
-2:      // !LR_HAVE_LEFT, increase the stride.
-        // For this case we don't read the left 3 pixels from the src pointer,
-        // but shift it as if we had done that.
-        add             r4,  r4,  #6
+        vld1.8          {q0, q1}, [r3]!
+        b               2f
 
-1:      // Loop vertically
-        vld1.16         {q0, q1}, [r3]!
-        vld1.16         {q4, q5}, [r12]!
-
-        tst             r7,  #1 // LR_HAVE_LEFT
-        beq             0f
-        cmp             r2,  #0
-        beq             2f
+0:
         // LR_HAVE_LEFT, left != NULL
-        vld1.16         {d5}, [r2]!
-        // Move r3/r12 back to account for the last 3 pixels we loaded earlier,
+        vld1.8          {q0, q1}, [r3]!
+        vld1.16         {d5},     [r2]
+        // Move r3 back to account for the last 2 pixels we loaded earlier,
         // which we'll shift out.
         sub             r3,  r3,  #6
-        sub             r12, r12, #6
-        vld1.16         {d13}, [r2]!
         vext.8          q1,  q0,  q1,  #10
         vext.8          q0,  q2,  q0,  #10
-        vext.8          q5,  q4,  q5,  #10
-        vext.8          q4,  q6,  q4,  #10
         b               2f
-0:
-        // !LR_HAVE_LEFT, fill q2 with the leftmost pixel
-        // and shift q0 to have 3x the first pixel at the front.
+
+1:
+        vld1.8          {q0, q1}, [r3]!
+        // !LR_HAVE_LEFT, fill q1 with the leftmost pixel
+        // and shift q0/q1 to have 3x the first pixel at the front.
         vdup.16         q2,  d0[0]
-        vdup.16         q6,  d8[0]
         // Move r3 back to account for the last 3 pixels we loaded before,
         // which we shifted out.
         sub             r3,  r3,  #6
-        sub             r12, r12, #6
         vext.8          q1,  q0,  q1,  #10
         vext.8          q0,  q2,  q0,  #10
-        vext.8          q5,  q4,  q5,  #10
-        vext.8          q4,  q6,  q4,  #10
 
 2:
-        tst             r7,  #2 // LR_HAVE_RIGHT
+        tst             r5,  #2 // LR_HAVE_RIGHT
         bne             4f
         // If we'll need to pad the right edge, load that pixel to pad with
         // here since we can find it pretty easily from here.
-        sub             lr,  r5,  #(2 + 16 - 3 + 1)
+        sub             lr,  r4,  #(2 + 16 - 3 + 1)
         lsl             lr,  lr,  #1
-        ldrh            r11, [r3,  lr]
-        ldrh            lr,  [r12, lr]
-        // Fill q14/q15 with the right padding pixel
-        vdup.16         q14, r11
-        vdup.16         q15, lr
-        // Restore r11 after using it for a temporary value
-        add             r11, r1,  #(2*SUM_STRIDE)
+        ldrh            lr,  [r3,  lr]
+        // Fill q14 with the right padding pixel
+        vdup.16         q14, lr
 3:      // !LR_HAVE_RIGHT
 
         // Check whether we need to pad the right edge
-        cmp             r5,  #11
+        cmp             r4,  #11
         bge             4f   // If w >= 11, all used input pixels are valid
 
         // 1 <= w < 11, w+1 pixels valid in q0-q1. For w=9 or w=10,
         // this ends up called again; it's not strictly needed in those
         // cases (we pad enough here), but keeping the code as simple as possible.
 
-        // Insert padding in q0/1.h[w+1] onwards; fuse the +1 into the
+        // Insert padding in q0.h[w+1] onwards; fuse the +1 into the
         // buffer pointer.
         movrel_local    lr,  right_ext_mask, -2
-        sub             lr,  lr,  r5,  lsl #1
+        sub             lr,  lr,  r4,  lsl #1
         vld1.8          {q12, q13}, [lr]
 
         vbit            q0,  q14, q12
         vbit            q1,  q14, q13
-        vbit            q4,  q15, q12
-        vbit            q5,  q15, q13
 
 4:      // Loop horizontally
         vext.8          q8,  q0,  q1,  #2
-        vext.8          q10, q4,  q5,  #2
         vext.8          q9,  q0,  q1,  #4
-        vext.8          q11, q4,  q5,  #4
-        vadd.i16        q2,  q0,  q8
-        vadd.i16        q3,  q4,  q10
-        vadd.i16        q2,  q2,  q9
-        vadd.i16        q3,  q3,  q11
 
-        vmull.u16       q6,  d0,  d0
-        vmlal.u16       q6,  d16, d16
-        vmlal.u16       q6,  d18, d18
-        vmull.u16       q12, d8,  d8
-        vmlal.u16       q12, d20, d20
-        vmlal.u16       q12, d22, d22
-        vmull.u16       q7,  d1,  d1
-        vmlal.u16       q7,  d17, d17
-        vmlal.u16       q7,  d19, d19
-        vmull.u16       q13, d9,  d9
-        vmlal.u16       q13, d21, d21
-        vmlal.u16       q13, d23, d23
+        vadd.i16        q2,  q0,  q8
+        vmull.u16       q12, d0,  d0
+        vmlal.u16       q12, d16, d16
+        vmlal.u16       q12, d18, d18
+        vadd.i16        q2,  q2,  q9
+        vmull.u16       q13, d1,  d1
+        vmlal.u16       q13, d17, d17
+        vmlal.u16       q13, d19, d19
 
         vext.8          q8,  q0,  q1,  #6
-        vext.8          q10, q4,  q5,  #6
         vext.8          q9,  q0,  q1,  #8
-        vext.8          q11, q4,  q5,  #8
+
         vadd.i16        q2,  q2,  q8
-        vadd.i16        q3,  q3,  q10
+        vmlal.u16       q12, d16, d16
+        vmlal.u16       q12, d1,  d1
         vadd.i16        q2,  q2,  q9
-        vadd.i16        q3,  q3,  q11
+        vmlal.u16       q13, d17, d17
+        vmlal.u16       q13, d19, d19
 
-        vmlal.u16       q6,  d16, d16
-        vmlal.u16       q6,  d1,  d1
-        vmlal.u16       q12, d20, d20
-        vmlal.u16       q12, d9,  d9
-        vmlal.u16       q7,  d17, d17
-        vmlal.u16       q7,  d19, d19
-        vmlal.u16       q13, d21, d21
-        vmlal.u16       q13, d23, d23
-
-        subs            r5,  r5,  #8
+        subs            r4,  r4,  #8
         vst1.16         {q2},       [r1,  :128]!
-        vst1.16         {q3},       [r11, :128]!
-        vst1.32         {q6,  q7},  [r0,  :128]!
-        vst1.32         {q12, q13}, [r10, :128]!
+        vst1.32         {q12, q13}, [r0,  :128]!
 
         ble             9f
-        tst             r7,  #2 // LR_HAVE_RIGHT
+        tst             r5,  #2 // LR_HAVE_RIGHT
         vmov            q0,  q1
-        vmov            q4,  q5
         vld1.16         {q1}, [r3]!
-        vld1.16         {q5}, [r12]!
         bne             4b // If we don't need to pad, just keep summing.
         b               3b // If we need to pad, check how many pixels we have left.
 
 9:
-        subs            r6,  r6,  #2
-        ble             0f
-        // Jump to the next row and loop horizontally
-        add             r0,  r0,  r9, lsl #1
-        add             r10, r10, r9, lsl #1
-        add             r1,  r1,  r9
-        add             r11, r11, r9
-        add             r3,  r3,  r4
-        add             r12, r12, r4
-        mov             r5,  r8
-        b               1b
+        pop             {r4-r5,pc}
+endfunc
+
+// void dav1d_sgr_box35_row_h_16bpc_neon(int32_t *sumsq3, int16_t *sum3,
+//                                       int32_t *sumsq5, int16_t *sum5,
+//                                       const pixel (*left)[4],
+//                                       const pixel *src, const int w,
+//                                       const enum LrEdgeFlags edges);
+function sgr_box35_row_h_16bpc_neon, export=1
+        push            {r4-r7,lr}
+        ldrd            r4,  r5,  [sp, #20]
+        ldrd            r6,  r7,  [sp, #28]
+        add             r6,  r6,  #2 // w += 2
+
+        tst             r7,  #1 // LR_HAVE_LEFT
+        beq             1f
+        cmp             r4,  #0
+        bne             0f
+
+        // LR_HAVE_LEFT && left == NULL
+        sub             r5,  r5,  #6
+        vld1.8          {q0, q1}, [r5]!
+        b               2f
+
 0:
-        vpop            {q4-q7}
-        pop             {r4-r11,pc}
+        // LR_HAVE_LEFT, left != NULL
+        vld1.8          {q0, q1}, [r5]!
+        vld1.16         {d5},     [r4]
+        // Move r3 back to account for the last 2 pixels we loaded earlier,
+        // which we'll shift out.
+        sub             r5,  r5,  #6
+        vext.8          q1,  q0,  q1,  #10
+        vext.8          q0,  q2,  q0,  #10
+        b               2f
+
+1:
+        vld1.8          {q0, q1}, [r5]!
+        // !LR_HAVE_LEFT, fill q1 with the leftmost pixel
+        // and shift q0/q1 to have 3x the first pixel at the front.
+        vdup.16         q2,  d0[0]
+        // Move r3 back to account for the last 3 pixels we loaded before,
+        // which we shifted out.
+        sub             r5,  r5,  #6
+        vext.8          q1,  q0,  q1,  #10
+        vext.8          q0,  q2,  q0,  #10
+
+2:
+        tst             r7,  #2 // LR_HAVE_RIGHT
+        bne             4f
+        // If we'll need to pad the right edge, load that pixel to pad with
+        // here since we can find it pretty easily from here.
+        sub             lr,  r6,  #(2 + 16 - 3 + 1)
+        lsl             lr,  lr,  #1
+        ldrh            lr,  [r5,  lr]
+        // Fill q14 with the right padding pixel
+        vdup.16         q14, lr
+3:      // !LR_HAVE_RIGHT
+
+        // Check whether we need to pad the right edge
+        cmp             r6,  #11
+        bge             4f   // If w >= 11, all used input pixels are valid
+
+        // 1 <= w < 11, w+1 pixels valid in q0-q1. For w=9 or w=10,
+        // this ends up called again; it's not strictly needed in those
+        // cases (we pad enough here), but keeping the code as simple as possible.
+
+        // Insert padding in q0.h[w+1] onwards; fuse the +1 into the
+        // buffer pointer.
+        movrel_local    lr,  right_ext_mask, -2
+        sub             lr,  lr,  r6,  lsl #1
+        vld1.8          {q12, q13}, [lr]
+
+        vbit            q0,  q14, q12
+        vbit            q1,  q14, q13
+
+4:      // Loop horizontally
+        vext.8          q8,  q0,  q1,  #2
+        vext.8          q9,  q0,  q1,  #4
+        vext.8          q10, q0,  q1,  #6
+        vext.8          q11, q0,  q1,  #8
+
+        vadd.i16        q2,  q8,  q9
+        vadd.i16        q3,  q0,  q11
+        vadd.i16        q2,  q2,  q10
+
+        vmull.u16       q12, d16, d16
+        vmlal.u16       q12, d18, d18
+        vmlal.u16       q12, d20, d20
+        vmull.u16       q13, d17, d17
+        vmlal.u16       q13, d19, d19
+        vmlal.u16       q13, d21, d21
+
+        vadd.i16        q3,  q3,  q2
+        vst1.16         {q2},       [r1,  :128]!
+        vst1.32         {q12, q13}, [r0,  :128]!
+
+        vmlal.u16       q12, d0,  d0
+        vmlal.u16       q12, d22, d22
+        vmlal.u16       q13, d1,  d1
+        vmlal.u16       q13, d23, d23
+
+        subs            r6,  r6,  #8
+        vst1.16         {q3},       [r3,  :128]!
+        vst1.32         {q12, q13}, [r2,  :128]!
+
+        ble             9f
+        tst             r7,  #2 // LR_HAVE_RIGHT
+        vmov            q0,  q1
+        vld1.16         {q1}, [r5]!
+        bne             4b // If we don't need to pad, just keep summing.
+        b               3b // If we need to pad, check how many pixels we have left.
+
+9:
+        pop             {r4-r7,pc}
 endfunc
 
 sgr_funcs 16

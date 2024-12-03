@@ -1129,7 +1129,7 @@ function sgr_box3_row_h_16bpc_neon, export=1
         // again; it's not strictly needed in those cases (we pad enough here),
         // but keeping the code as simple as possible.
 
-        // Insert padding in v0.b[w] onwards
+        // Insert padding in v0.h[w] onwards
         movrel          x13, right_ext_mask
         sub             x13, x13, w4,  uxtw #1
         ld1             {v28.16b, v29.16b}, [x13]
@@ -1224,7 +1224,7 @@ function sgr_box5_row_h_16bpc_neon, export=1
         // this ends up called again; it's not strictly needed in those
         // cases (we pad enough here), but keeping the code as simple as possible.
 
-        // Insert padding in v0.b[w+1] onwards; fuse the +1 into the
+        // Insert padding in v0.h[w+1] onwards; fuse the +1 into the
         // buffer pointer.
         movrel          x13, right_ext_mask, -1
         sub             x13, x13, w4,  uxtw #1

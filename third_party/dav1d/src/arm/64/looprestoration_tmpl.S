@@ -174,10 +174,10 @@ function sgr_finish_filter1_2rows_\bpc\()bpc_neon, export=1
         mla             v14.4s,  v19.4s,  v31.4s      // * 3 -> b
         mla             v15.4s,  v20.4s,  v31.4s
 
-        umlal           v8.4s,   v4.4h,   v25.4h      // b + a * src
-        umlal2          v9.4s,   v4.8h,   v25.8h
-        umlal           v14.4s,  v0.4h,   v26.4h      // b + a * src
-        umlal2          v15.4s,  v0.8h,   v26.8h
+        umlsl           v8.4s,   v4.4h,   v25.4h      // b - a * src
+        umlsl2          v9.4s,   v4.8h,   v25.8h
+        umlsl           v14.4s,  v0.4h,   v26.4h      // b - a * src
+        umlsl2          v15.4s,  v0.8h,   v26.8h
         mov             v0.16b,  v1.16b
         rshrn           v8.4h,   v8.4s,   #9
         rshrn2          v8.8h,   v9.4s,   #9
@@ -292,8 +292,8 @@ function sgr_finish_weighted1_\bpc\()bpc_neon, export=1
         uxtl            v19.8h,  v19.8b               // src
 .endif
         mov             v0.16b,  v1.16b
-        umlal           v25.4s,  v2.4h,   v19.4h      // b + a * src
-        umlal2          v26.4s,  v2.8h,   v19.8h
+        umlsl           v25.4s,  v2.4h,   v19.4h      // b - a * src
+        umlsl2          v26.4s,  v2.8h,   v19.8h
         mov             v2.16b,  v3.16b
         rshrn           v25.4h,  v25.4s,  #9
         rshrn2          v25.8h,  v26.4s,  #9
@@ -301,30 +301,25 @@ function sgr_finish_weighted1_\bpc\()bpc_neon, export=1
         subs            w3,  w3,  #8
 
         // weighted1
-        shl             v19.8h,  v19.8h,  #4   // u
         mov             v4.16b,  v5.16b
 
-        sub             v25.8h,  v25.8h,  v19.8h // t1 - u
         ld1             {v1.8h}, [x9],  #16
-        ushll           v26.4s,  v19.4h,  #7     // u << 7
-        ushll2          v27.4s,  v19.8h,  #7     // u << 7
         ld1             {v3.8h}, [x10], #16
-        smlal           v26.4s,  v25.4h,  v31.4h // v
-        smlal2          v27.4s,  v25.8h,  v31.8h // v
+        smull           v26.4s,  v25.4h,  v31.4h // v = t1 * w1
+        smull2          v27.4s,  v25.8h,  v31.8h
         ld1             {v5.8h}, [x2],  #16
-.if \bpc == 8
         rshrn           v26.4h,  v26.4s,  #11
         rshrn2          v26.8h,  v27.4s,  #11
+        usqadd          v19.8h,  v26.8h
+.if \bpc == 8
         mov             v16.16b, v18.16b
-        sqxtun          v26.8b,  v26.8h
+        sqxtun          v26.8b,  v19.8h
         mov             v19.16b, v21.16b
         mov             v22.16b, v24.16b
         st1             {v26.8b}, [x0], #8
 .else
-        sqrshrun        v26.4h,  v26.4s,  #11
-        sqrshrun2       v26.8h,  v27.4s,  #11
         mov             v16.16b, v18.16b
-        umin            v26.8h,  v26.8h,  v30.8h
+        umin            v26.8h,  v19.8h,  v30.8h
         mov             v19.16b, v21.16b
         mov             v22.16b, v24.16b
         st1             {v26.8h}, [x0], #16
@@ -424,10 +419,10 @@ function sgr_finish_filter2_2rows_\bpc\()bpc_neon, export=1
         uxtl            v31.8h,  v31.8b
         uxtl            v30.8h,  v30.8b
 .endif
-        umlal           v16.4s,  v0.4h,   v31.4h      // b + a * src
-        umlal2          v17.4s,  v0.8h,   v31.8h
-        umlal           v9.4s,   v8.4h,   v30.4h      // b + a * src
-        umlal2          v10.4s,  v8.8h,   v30.8h
+        umlsl           v16.4s,  v0.4h,   v31.4h      // b - a * src
+        umlsl2          v17.4s,  v0.8h,   v31.8h
+        umlsl           v9.4s,   v8.4h,   v30.4h      // b - a * src
+        umlsl2          v10.4s,  v8.8h,   v30.8h
         mov             v0.16b,  v1.16b
         rshrn           v16.4h,  v16.4s,  #9
         rshrn2          v16.8h,  v17.4s,  #9
@@ -541,10 +536,10 @@ function sgr_finish_weighted2_\bpc\()bpc_neon, export=1
         uxtl            v31.8h,  v31.8b
         uxtl            v30.8h,  v30.8b
 .endif
-        umlal           v16.4s,  v0.4h,   v31.4h      // b + a * src
-        umlal2          v17.4s,  v0.8h,   v31.8h
-        umlal           v9.4s,   v8.4h,   v30.4h      // b + a * src
-        umlal2          v10.4s,  v8.8h,   v30.8h
+        umlsl           v16.4s,  v0.4h,   v31.4h      // b - a * src
+        umlsl2          v17.4s,  v0.8h,   v31.8h
+        umlsl           v9.4s,   v8.4h,   v30.4h      // b - a * src
+        umlsl2          v10.4s,  v8.8h,   v30.8h
         mov             v0.16b,  v1.16b
         rshrn           v16.4h,  v16.4s,  #9
         rshrn2          v16.8h,  v17.4s,  #9
@@ -554,40 +549,30 @@ function sgr_finish_weighted2_\bpc\()bpc_neon, export=1
         subs            w4,  w4,  #8
 
         // weighted1
-        shl             v31.8h,  v31.8h,  #4     // u
-        shl             v30.8h,  v30.8h,  #4
         mov             v2.16b,  v3.16b
 
-        sub             v16.8h,  v16.8h,  v31.8h // t1 - u
-        sub             v9.8h,   v9.8h,   v30.8h
         ld1             {v1.8h}, [x3], #16
-        ushll           v22.4s,  v31.4h,  #7     // u << 7
-        ushll2          v23.4s,  v31.8h,  #7
-        ushll           v24.4s,  v30.4h,  #7
-        ushll2          v25.4s,  v30.8h,  #7
         ld1             {v3.8h}, [x8], #16
-        smlal           v22.4s,  v16.4h,  v14.4h // v
-        smlal2          v23.4s,  v16.8h,  v14.8h
+        smull           v22.4s,  v16.4h,  v14.4h // v
+        smull2          v23.4s,  v16.8h,  v14.8h
         mov             v16.16b, v18.16b
-        smlal           v24.4s,  v9.4h,   v14.4h
-        smlal2          v25.4s,  v9.8h,   v14.8h
+        smull           v24.4s,  v9.4h,   v14.4h
+        smull2          v25.4s,  v9.8h,   v14.8h
         mov             v19.16b, v21.16b
-.if \bpc == 8
         rshrn           v22.4h,  v22.4s,  #11
         rshrn2          v22.8h,  v23.4s,  #11
         rshrn           v23.4h,  v24.4s,  #11
         rshrn2          v23.8h,  v25.4s,  #11
-        sqxtun          v22.8b,  v22.8h
-        sqxtun          v23.8b,  v23.8h
+        usqadd          v31.8h,  v22.8h
+        usqadd          v30.8h,  v23.8h
+.if \bpc == 8
+        sqxtun          v22.8b,  v31.8h
+        sqxtun          v23.8b,  v30.8h
         st1             {v22.8b}, [x0], #8
         st1             {v23.8b}, [x1], #8
 .else
-        sqrshrun        v22.4h,  v22.4s,  #11
-        sqrshrun2       v22.8h,  v23.4s,  #11
-        sqrshrun        v23.4h,  v24.4s,  #11
-        sqrshrun2       v23.8h,  v25.4s,  #11
-        umin            v22.8h,  v22.8h,  v15.8h
-        umin            v23.8h,  v23.8h,  v15.8h
+        umin            v22.8h,  v31.8h,  v15.8h
+        umin            v23.8h,  v30.8h,  v15.8h
         st1             {v22.8h}, [x0], #16
         st1             {v23.8h}, [x1], #16
 .endif
@@ -605,146 +590,114 @@ function sgr_finish_weighted2_\bpc\()bpc_neon, export=1
 endfunc
 
 // void dav1d_sgr_weighted2_Xbpc_neon(pixel *dst, const ptrdiff_t stride,
-//                                    const pixel *src, const ptrdiff_t src_stride,
 //                                    const int16_t *t1, const int16_t *t2,
 //                                    const int w, const int h,
 //                                    const int16_t wt[2], const int bitdepth_max);
 function sgr_weighted2_\bpc\()bpc_neon, export=1
-.if \bpc == 8
-        ldr             x8,  [sp]
-.else
-        ldp             x8,  x9,  [sp]
-.endif
-        cmp             w7,  #2
+        cmp             w5,  #2
         add             x10, x0,  x1
-        add             x11, x2,  x3
-        add             x12, x4,  #2*FILTER_OUT_STRIDE
-        add             x13, x5,  #2*FILTER_OUT_STRIDE
-        ld2r            {v30.8h, v31.8h}, [x8] // wt[0], wt[1]
+        add             x12, x2,  #2*FILTER_OUT_STRIDE
+        add             x13, x3,  #2*FILTER_OUT_STRIDE
+        ld2r            {v30.8h, v31.8h}, [x6] // wt[0], wt[1]
 .if \bpc == 16
-        dup             v29.8h,  w9
+        dup             v29.8h,  w7
 .endif
         mov             x8,  #4*FILTER_OUT_STRIDE
         lsl             x1,  x1,  #1
-        lsl             x3,  x3,  #1
-        add             x9,  x6,  #7
+        add             w9,  w4,  #7
         bic             x9,  x9,  #7 // Aligned width
 .if \bpc == 8
         sub             x1,  x1,  x9
-        sub             x3,  x3,  x9
 .else
         sub             x1,  x1,  x9, lsl #1
-        sub             x3,  x3,  x9, lsl #1
 .endif
         sub             x8,  x8,  x9, lsl #1
-        mov             w9,  w6
+        mov             w9,  w4
         b.lt            2f
 1:
 .if \bpc == 8
-        ld1             {v0.8b},  [x2],  #8
-        ld1             {v16.8b}, [x11], #8
+        ld1             {v0.8b},  [x0]
+        ld1             {v16.8b}, [x10]
 .else
-        ld1             {v0.8h},  [x2],  #16
-        ld1             {v16.8h}, [x11], #16
+        ld1             {v0.8h},  [x0]
+        ld1             {v16.8h}, [x10]
 .endif
-        ld1             {v1.8h},  [x4],  #16
+        ld1             {v1.8h},  [x2],  #16
         ld1             {v17.8h}, [x12], #16
-        ld1             {v2.8h},  [x5],  #16
+        ld1             {v2.8h},  [x3],  #16
         ld1             {v18.8h}, [x13], #16
-        subs            w6,  w6,  #8
+        subs            w4,  w4,  #8
 .if \bpc == 8
-        ushll           v0.8h,  v0.8b,  #4     // u
-        ushll           v16.8h, v16.8b, #4     // u
-.else
-        shl             v0.8h,  v0.8h,  #4     // u
-        shl             v16.8h, v16.8h, #4     // u
+        uxtl            v0.8h,  v0.8b
+        uxtl            v16.8h, v16.8b
 .endif
-        sub             v1.8h,  v1.8h,  v0.8h  // t1 - u
-        sub             v2.8h,  v2.8h,  v0.8h  // t2 - u
-        sub             v17.8h, v17.8h, v16.8h // t1 - u
-        sub             v18.8h, v18.8h, v16.8h // t2 - u
-        ushll           v3.4s,  v0.4h,  #7     // u << 7
-        ushll2          v4.4s,  v0.8h,  #7     // u << 7
-        ushll           v19.4s, v16.4h, #7     // u << 7
-        ushll2          v20.4s, v16.8h, #7     // u << 7
-        smlal           v3.4s,  v1.4h,  v30.4h // wt[0] * (t1 - u)
-        smlal           v3.4s,  v2.4h,  v31.4h // wt[1] * (t2 - u)
-        smlal2          v4.4s,  v1.8h,  v30.8h // wt[0] * (t1 - u)
-        smlal2          v4.4s,  v2.8h,  v31.8h // wt[1] * (t2 - u)
-        smlal           v19.4s, v17.4h, v30.4h // wt[0] * (t1 - u)
-        smlal           v19.4s, v18.4h, v31.4h // wt[1] * (t2 - u)
-        smlal2          v20.4s, v17.8h, v30.8h // wt[0] * (t1 - u)
-        smlal2          v20.4s, v18.8h, v31.8h // wt[1] * (t2 - u)
-.if \bpc == 8
+        smull           v3.4s,  v1.4h,  v30.4h // wt[0] * t1
+        smlal           v3.4s,  v2.4h,  v31.4h // wt[1] * t2
+        smull2          v4.4s,  v1.8h,  v30.8h // wt[0] * t1
+        smlal2          v4.4s,  v2.8h,  v31.8h // wt[1] * t2
+        smull           v19.4s, v17.4h, v30.4h // wt[0] * t1
+        smlal           v19.4s, v18.4h, v31.4h // wt[1] * t2
+        smull2          v20.4s, v17.8h, v30.8h // wt[0] * t1
+        smlal2          v20.4s, v18.8h, v31.8h // wt[1] * t2
         rshrn           v3.4h,  v3.4s,  #11
         rshrn2          v3.8h,  v4.4s,  #11
         rshrn           v19.4h, v19.4s, #11
         rshrn2          v19.8h, v20.4s, #11
-        sqxtun          v3.8b,  v3.8h
-        sqxtun          v19.8b, v19.8h
+        usqadd          v0.8h,  v3.8h
+        usqadd          v16.8h, v19.8h
+.if \bpc == 8
+        sqxtun          v3.8b,  v0.8h
+        sqxtun          v19.8b, v16.8h
         st1             {v3.8b},  [x0],  #8
         st1             {v19.8b}, [x10], #8
 .else
-        sqrshrun        v3.4h,  v3.4s,  #11
-        sqrshrun2       v3.8h,  v4.4s,  #11
-        sqrshrun        v19.4h, v19.4s, #11
-        sqrshrun2       v19.8h, v20.4s, #11
-        umin            v3.8h,  v3.8h,  v29.8h
-        umin            v19.8h, v19.8h, v29.8h
+        umin            v3.8h,  v0.8h,  v29.8h
+        umin            v19.8h, v16.8h, v29.8h
         st1             {v3.8h},  [x0],  #16
         st1             {v19.8h}, [x10], #16
 .endif
         b.gt            1b
 
-        subs            w7,  w7,  #2
-        cmp             w7,  #1
+        subs            w5,  w5,  #2
+        cmp             w5,  #1
         b.lt            0f
-        mov             w6,  w9
+        mov             w4,  w9
         add             x0,  x0,  x1
         add             x10, x10, x1
-        add             x2,  x2,  x3
-        add             x11, x11, x3
-        add             x4,  x4,  x8
+        add             x2,  x2,  x8
         add             x12, x12, x8
-        add             x5,  x5,  x8
+        add             x3,  x3,  x8
         add             x13, x13, x8
         b.eq            2f
         b               1b
 
 2:
 .if \bpc == 8
-        ld1             {v0.8b}, [x2], #8
+        ld1             {v0.8b}, [x0]
 .else
-        ld1             {v0.8h}, [x2], #16
+        ld1             {v0.8h}, [x0]
 .endif
-        ld1             {v1.8h}, [x4], #16
-        ld1             {v2.8h}, [x5], #16
-        subs            w6,  w6,  #8
+        ld1             {v1.8h}, [x2], #16
+        ld1             {v2.8h}, [x3], #16
+        subs            w4,  w4,  #8
 .if \bpc == 8
-        ushll           v0.8h,  v0.8b,  #4     // u
-.else
-        shl             v0.8h,  v0.8h,  #4     // u
+        uxtl            v0.8h,  v0.8b
 .endif
-        sub             v1.8h,  v1.8h,  v0.8h  // t1 - u
-        sub             v2.8h,  v2.8h,  v0.8h  // t2 - u
-        ushll           v3.4s,  v0.4h,  #7     // u << 7
-        ushll2          v4.4s,  v0.8h,  #7     // u << 7
-        smlal           v3.4s,  v1.4h,  v30.4h // wt[0] * (t1 - u)
-        smlal           v3.4s,  v2.4h,  v31.4h // wt[1] * (t2 - u)
-        smlal2          v4.4s,  v1.8h,  v30.8h // wt[0] * (t1 - u)
-        smlal2          v4.4s,  v2.8h,  v31.8h // wt[1] * (t2 - u)
-.if \bpc == 8
+        smull           v3.4s,  v1.4h,  v30.4h // wt[0] * t1
+        smlal           v3.4s,  v2.4h,  v31.4h // wt[1] * t2
+        smull2          v4.4s,  v1.8h,  v30.8h // wt[0] * t1
+        smlal2          v4.4s,  v2.8h,  v31.8h // wt[1] * t2
         rshrn           v3.4h,  v3.4s,  #11
         rshrn2          v3.8h,  v4.4s,  #11
-        sqxtun          v3.8b,  v3.8h
+        usqadd          v0.8h,  v3.8h
+.if \bpc == 8
+        sqxtun          v3.8b,  v0.8h
         st1             {v3.8b}, [x0], #8
 .else
-        sqrshrun        v3.4h,  v3.4s,  #11
-        sqrshrun2       v3.8h,  v4.4s,  #11
-        umin            v3.8h,  v3.8h,  v29.8h
+        umin            v3.8h,  v0.8h,  v29.8h
         st1             {v3.8h}, [x0], #16
 .endif
-        b.gt            1b
+        b.gt            2b
 0:
         ret
 endfunc

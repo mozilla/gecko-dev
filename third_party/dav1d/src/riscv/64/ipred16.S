@@ -28,7 +28,7 @@
 #include "src/riscv/asm.S"
 
 function dc_gen_16bpc_rvv, export=1, ext="v,zba,zbb"
-    .variant_cc dav1d_dc_gen_8bpc_rvv
+    .variant_cc dav1d_dc_gen_16bpc_rvv
     add t1, a1, a2
     srli t5, t1, 1
     mv t1, a1

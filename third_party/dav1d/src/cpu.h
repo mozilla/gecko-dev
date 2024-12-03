@@ -53,6 +53,7 @@ EXTERN unsigned dav1d_cpu_flags_mask;
 void dav1d_init_cpu(void);
 DAV1D_API void dav1d_set_cpu_flags_mask(unsigned mask);
 int dav1d_num_logical_processors(Dav1dContext *c);
+unsigned long dav1d_getauxval(unsigned long);
 
 static ALWAYS_INLINE unsigned dav1d_get_default_cpu_flags(void) {
     unsigned flags = 0;

@@ -40,7 +40,7 @@
 COLD unsigned dav1d_get_cpu_flags_loongarch(void) {
     unsigned flags = dav1d_get_default_cpu_flags();
 #if HAVE_GETAUXVAL
-    unsigned long hw_cap = getauxval(AT_HWCAP);
+    unsigned long hw_cap = dav1d_getauxval(AT_HWCAP);
     flags |= (hw_cap & LA_HWCAP_LSX) ? DAV1D_LOONGARCH_CPU_FLAG_LSX : 0;
     flags |= (hw_cap & LA_HWCAP_LASX) ? DAV1D_LOONGARCH_CPU_FLAG_LASX : 0;
 #endif

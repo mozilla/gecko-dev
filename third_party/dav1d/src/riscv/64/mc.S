@@ -149,7 +149,9 @@ function blend_v_8bpc_rvv, export=1, ext="v,zbb"
   addi t0, t0, 0xc4
 L(blend_v_epilog):
   andi t0, t0, 0xc7
-  vsetvl zero, a3, t0
+  srai t1, a3, 2
+  sub t1, a3, t1
+  vsetvl zero, t1, t0
   csrw vxrm, zero
   la t1, dav1d_obmc_masks
   add t1, t1, a3

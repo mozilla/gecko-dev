@@ -262,6 +262,7 @@ if is_asm_enabled
         libdav1d_arch_tmpl_sources += {'pwr9': files(
             'ppc/itx_tmpl.c',
             'ppc/loopfilter_tmpl.c',
+            'ppc/mc_tmpl.c',
         )}
     elif host_machine.cpu_family().startswith('riscv')
         libdav1d_sources += files(
@@ -269,17 +270,16 @@ if is_asm_enabled
         )
         if host_machine.cpu_family() == 'riscv64'
             libdav1d_sources += files(
-                'riscv/64/cdef.S',
                 'riscv/64/cpu.S',
-                'riscv/64/itx.S',
                 'riscv/64/pal.S',
-                'riscv/64/mc.S',
             )
 
             if dav1d_bitdepths.contains('8')
                 libdav1d_sources += files(
                     'riscv/64/cdef.S',
                     'riscv/64/ipred.S',
+                    'riscv/64/itx.S',
+                    'riscv/64/mc.S',
                 )
             endif
 
@@ -287,6 +287,7 @@ if is_asm_enabled
                 libdav1d_sources += files(
                     'riscv/64/cdef16.S',
                     'riscv/64/ipred16.S',
+                    'riscv/64/mc16.S',
                 )
             endif
         endif

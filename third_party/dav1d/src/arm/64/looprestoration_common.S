@@ -119,7 +119,6 @@ function sgr_box3_vert_neon, export=1
         ldr             q23, [x12, #64] //RefLo
         dup             v6.8h,    w9   // -bitdepth_min_8
         saddl           v7.4s,    v6.4h,   v6.4h  // -2*bitdepth_min_8
-        movi            v29.8h,   #1, lsl #8
         dup             v30.4s,   w13  // one_by_x
 
         ld1             {v8.4s,  v9.4s,  v10.4s, v11.4s}, [x5], #64
@@ -198,8 +197,6 @@ function sgr_box3_vert_neon, export=1
         umull2          v3.4s,   v0.8h,   v4.8h // x * BB[i]
         umull           v4.4s,   v1.4h,   v5.4h // x * BB[i]
         umull2          v5.4s,   v1.8h,   v5.8h // x * BB[i]
-        sub             v0.8h,   v29.8h,  v0.8h // 256 - x
-        sub             v1.8h,   v29.8h,  v1.8h // 256 - x
         mul             v2.4s,   v2.4s,  v30.4s // x * BB[i] * sgr_one_by_x
         mul             v3.4s,   v3.4s,  v30.4s // x * BB[i] * sgr_one_by_x
         mul             v4.4s,   v4.4s,  v30.4s // x * BB[i] * sgr_one_by_x
@@ -251,7 +248,6 @@ function sgr_box5_vert_neon, export=1
         movi            v19.8b,  #0x7
         ldr             q18, [x13, #64] // RefLo
         saddl           v7.4s,   v6.4h,   v6.4h  // -2*bitdepth_min_8
-        movi            v29.8h,  #1, lsl #8
 
         ld1             {v8.4s,  v9.4s},  [x5], #32
         ld1             {v10.4s, v11.4s}, [x6], #32
@@ -325,7 +321,6 @@ function sgr_box5_vert_neon, export=1
         mul             v4.4s,   v4.4s,   v30.4s // x * BB[i] * sgr_one_by_x
         srshr           v3.4s,   v3.4s,   #12    // AA[i]
         srshr           v4.4s,   v4.4s,   #12    // AA[i]
-        sub             v5.8h,   v29.8h,  v5.8h  // 256 - x
         ld1             {v2.8h},          [x1], #16
 
         st1             {v3.4s, v4.4s}, [x2], #32
