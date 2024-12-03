@@ -130,24 +130,26 @@ class SettingsFragment : PreferenceFragmentCompat() {
             requireComponents.backgroundServices.accountManager.accountProfile(),
         )
 
-        val booleanPreferenceTelemetryAllowList = listOf(
-            requireContext().getString(R.string.pref_key_show_search_suggestions),
-            requireContext().getString(R.string.pref_key_remote_debugging),
-            requireContext().getString(R.string.pref_key_telemetry),
-            requireContext().getString(R.string.pref_key_marketing_telemetry),
-            requireContext().getString(R.string.pref_key_learn_about_marketing_telemetry),
-            requireContext().getString(R.string.pref_key_tracking_protection),
-            requireContext().getString(R.string.pref_key_search_bookmarks),
-            requireContext().getString(R.string.pref_key_search_browsing_history),
-            requireContext().getString(R.string.pref_key_show_clipboard_suggestions),
-            requireContext().getString(R.string.pref_key_show_search_engine_shortcuts),
-            requireContext().getString(R.string.pref_key_open_links_in_a_private_tab),
-            requireContext().getString(R.string.pref_key_sync_logins),
-            requireContext().getString(R.string.pref_key_sync_bookmarks),
-            requireContext().getString(R.string.pref_key_sync_history),
-            requireContext().getString(R.string.pref_key_show_voice_search),
-            requireContext().getString(R.string.pref_key_show_search_suggestions_in_private),
-        )
+        val booleanPreferenceTelemetryAllowList = with(requireContext()) {
+            listOf(
+                getString(R.string.pref_key_show_search_suggestions),
+                getString(R.string.pref_key_remote_debugging),
+                getString(R.string.pref_key_telemetry),
+                getString(R.string.pref_key_marketing_telemetry),
+                getString(R.string.pref_key_learn_about_marketing_telemetry),
+                getString(R.string.pref_key_tracking_protection),
+                getString(R.string.pref_key_search_bookmarks),
+                getString(R.string.pref_key_search_browsing_history),
+                getString(R.string.pref_key_show_clipboard_suggestions),
+                getString(R.string.pref_key_show_search_engine_shortcuts),
+                getString(R.string.pref_key_open_links_in_a_private_tab),
+                getString(R.string.pref_key_sync_logins),
+                getString(R.string.pref_key_sync_bookmarks),
+                getString(R.string.pref_key_sync_history),
+                getString(R.string.pref_key_show_voice_search),
+                getString(R.string.pref_key_show_search_suggestions_in_private),
+            )
+        }
 
         preferenceManager?.sharedPreferences
             ?.registerOnSharedPreferenceChangeListener(this) { sharedPreferences, key ->
