@@ -136,7 +136,15 @@ def convertTestFile(source: bytes, includes: "list[str]") -> bytes:
     source = MODELINE_PATTERN.sub(b"", source)
 
     source = convertReportCompare(source)
-    source = updateMeta(source, includes)
+
+    # Extract the reftest data from the source
+    source, reftest = parseHeader(source)
+
+    # Extract the frontmatter data from the source
+    frontmatter = extractMeta(source)
+
+    source = updateMeta(source, reftest, frontmatter, includes)
+
     source = insertCopyrightLines(source)
 
     return source
@@ -414,17 +422,16 @@ def insertMeta(source: bytes, frontmatter: "dict[str, Any]") -> bytes:
         return b"\n".join(lines) + source
 
 
-def updateMeta(source: bytes, includes: "list[str]") -> bytes:
+def updateMeta(
+    source: bytes,
+    reftest: "Optional[ReftestEntry]",
+    frontmatter: "dict[str, Any]",
+    includes: "list[str]",
+) -> bytes:
     """
     Captures the reftest meta and a pre-existing meta if any and merge them
     into a single dict.
     """
-
-    # Extract the reftest data from the source
-    source, reftest = parseHeader(source)
-
-    # Extract the frontmatter data from the source
-    frontmatter = extractMeta(source)
 
     # Merge the reftest and frontmatter
     merged = mergeMeta(reftest, frontmatter, includes)
