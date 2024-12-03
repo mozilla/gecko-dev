@@ -1,2 +1,6 @@
 XRE_GetBootstrap
 uprofiler_get
+#ifdef XP_IOS
+MainProcessInit
+ChildProcessInit
+#endif

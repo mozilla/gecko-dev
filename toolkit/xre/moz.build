@@ -90,9 +90,16 @@ elif CONFIG["MOZ_WIDGET_TOOLKIT"] == "cocoa":
         "../components/printingui",
     ]
 elif CONFIG["MOZ_WIDGET_TOOLKIT"] == "uikit":
+    EXPORTS.GeckoView += [
+        "IOSBootstrap.h",
+    ]
     UNIFIED_SOURCES += [
+        "IOSBootstrap.mm",
         "nsNativeAppSupportDefault.cpp",
         "UIKitDirProvider.mm",
+    ]
+    LOCAL_INCLUDES += [
+        "!/build",
     ]
 elif CONFIG["MOZ_WIDGET_TOOLKIT"] == "gtk":
     UNIFIED_SOURCES += [

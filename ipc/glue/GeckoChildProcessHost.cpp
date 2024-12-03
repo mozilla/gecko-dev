@@ -1351,9 +1351,6 @@ RefPtr<ProcessHandlePromise> PosixProcessLauncher::DoLaunch() {
 
 #ifdef XP_IOS
 RefPtr<ProcessHandlePromise> IosProcessLauncher::DoLaunch() {
-  MOZ_RELEASE_ASSERT(mLaunchOptions->fds_to_remap.size() == 3,
-                     "Unexpected fds_to_remap on iOS");
-
   ExtensionKitProcess::Kind kind = ExtensionKitProcess::Kind::WebContent;
   if (mProcessType == GeckoProcessType_GPU) {
     kind = ExtensionKitProcess::Kind::Rendering;
@@ -1394,6 +1391,23 @@ RefPtr<ProcessHandlePromise> IosProcessLauncher::DoLaunch() {
   }
   MOZ_ASSERT(xpc_array_get_count(fdsArray.get()) == mChildArgs.mFiles.size());
   xpc_dictionary_set_value(bootstrapMessage.get(), "fds", fdsArray.get());
+
+  DarwinObjectPtr<xpc_object_t> sendRightsArray =
+      AdoptDarwinObject(xpc_array_create_empty());
+  for (auto& sendRight : mChildArgs.mSendRights) {
+    // NOTE: As iOS doesn't expose an xpc_array_set_mach_send function, send
+    // rights are wrapped with single-key dictionaries.
+    DarwinObjectPtr<xpc_object_t> sendRightWrapper =
+        AdoptDarwinObject(xpc_dictionary_create_empty());
+    xpc_dictionary_set_mach_send(sendRightWrapper.get(), "port",
+                                 sendRight.get());
+    xpc_array_set_value(sendRightsArray.get(), XPC_ARRAY_APPEND,
+                        sendRightWrapper.get());
+  }
+  MOZ_ASSERT(xpc_array_get_count(sendRightsArray.get()) ==
+             mChildArgs.mSendRights.size());
+  xpc_dictionary_set_value(bootstrapMessage.get(), "sendRights",
+                           sendRightsArray.get());
 
   auto promise = MakeRefPtr<ProcessHandlePromise::Private>(__func__);
   ExtensionKitProcess::StartProcess(kind, [self = RefPtr{this}, promise,
