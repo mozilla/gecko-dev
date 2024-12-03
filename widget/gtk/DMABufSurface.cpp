@@ -405,6 +405,26 @@ void DMABufSurface::CloseFileDescriptors(const MutexAutoLock& aProofOfLock,
   }
 }
 
+#ifdef MOZ_WAYLAND
+void DMABufSurface::ReleaseWlBuffer() {
+  LOGDMABUF(
+      ("DMABufSurface::ReleaseWlBuffer() [%p] UID %d", mWlBuffer, GetUID()));
+  MozClearPointer(mWlBuffer, wl_buffer_destroy);
+}
+#endif
+
+int32_t DMABufSurface::GetFOURCCFormat() {
+  switch (mSurfaceType) {
+    case SURFACE_RGBA:
+      return mDrmFormats[0];
+    case SURFACE_NV12:
+      return VA_FOURCC_NV12;
+    case SURFACE_YUV420:
+      return VA_FOURCC_YV12;
+  }
+  return mDrmFormats[0];
+}
+
 DMABufSurfaceRGBA::DMABufSurfaceRGBA()
     : DMABufSurface(SURFACE_RGBA),
       mSurfaceFlags(0),
@@ -713,7 +733,9 @@ bool DMABufSurfaceRGBA::Serialize(
   aOutDescriptor = SurfaceDescriptorDMABuf(
       mSurfaceType, modifiers, mGbmBufferFlags, fds, width, height, width,
       height, format, strides, offsets, GetYUVColorSpace(), mColorRange,
-      fenceFDs, mUID, refCountFDs, /* semaphoreFd */ nullptr);
+      mozilla::gfx::ColorSpace2::UNKNOWN,
+      mozilla::gfx::TransferFunction::Default, fenceFDs, mUID, refCountFDs,
+      /* semaphoreFd */ nullptr);
   return true;
 }
 
@@ -843,33 +865,46 @@ void DMABufSurfaceRGBA::ReleaseSurface() {
 
 #ifdef MOZ_WAYLAND
 bool DMABufSurfaceRGBA::CreateWlBuffer() {
-  MutexAutoLock lockFD(mSurfaceLock);
-  if (!OpenFileDescriptors(lockFD)) {
+  nsWaylandDisplay* waylandDisplay = widget::WaylandDisplayGet();
+  auto* dmabuf = waylandDisplay->GetDmabuf();
+  if (!dmabuf) {
     return false;
   }
 
-  nsWaylandDisplay* waylandDisplay = widget::WaylandDisplayGet();
-  if (!waylandDisplay->GetDmabuf()) {
-    CloseFileDescriptors(lockFD);
+  MutexAutoLock lockFD(mSurfaceLock);
+  LOGDMABUF(
+      ("DMABufSurfaceRGBA::CreateWlBuffer() UID %d format %s size [%d x %d]",
+       mUID, GetSurfaceTypeName(), GetWidth(), GetHeight()));
+
+  if (!OpenFileDescriptors(lockFD)) {
+    LOGDMABUF(("  failed to open dmabuf fd"));
     return false;
   }
 
   struct zwp_linux_buffer_params_v1* params =
-      zwp_linux_dmabuf_v1_create_params(waylandDisplay->GetDmabuf());
+      zwp_linux_dmabuf_v1_create_params(dmabuf);
+
+  LOGDMABUF(("  layer [0] modifier %" PRIx64, mBufferModifiers[0]));
   zwp_linux_buffer_params_v1_add(
       params, mDmabufFds[0]->GetHandle(), 0, mOffsets[0], mStrides[0],
       mBufferModifiers[0] >> 32, mBufferModifiers[0] & 0xffffffff);
 
+  LOGDMABUF(
+      ("  zwp_linux_buffer_params_v1_create_immed() [%d x %d], fourcc [%x]",
+       GetWidth(), GetHeight(), GetFOURCCFormat()));
   mWlBuffer = zwp_linux_buffer_params_v1_create_immed(
-      params, GetWidth(), GetHeight(), mDrmFormats[0], 0);
+      params, GetWidth(), GetHeight(), GetFOURCCFormat(), 0);
+  if (!mWlBuffer) {
+    LOGDMABUF(
+        ("  zwp_linux_buffer_params_v1_create_immed(): failed to create "
+         "wl_buffer!"));
+  } else {
+    LOGDMABUF(("  created wl_buffer [%p]", mWlBuffer));
+  }
 
   CloseFileDescriptors(lockFD);
 
   return mWlBuffer != nullptr;
-}
-
-void DMABufSurfaceRGBA::ReleaseWlBuffer() {
-  MozClearPointer(mWlBuffer, wl_buffer_destroy);
 }
 #endif
 
@@ -1122,7 +1157,12 @@ DMABufSurfaceYUV::DMABufSurfaceYUV()
   }
 }
 
-DMABufSurfaceYUV::~DMABufSurfaceYUV() { ReleaseSurface(); }
+DMABufSurfaceYUV::~DMABufSurfaceYUV() {
+#ifdef MOZ_WAYLAND
+  ReleaseWlBuffer();
+#endif
+  ReleaseSurface();
+}
 
 bool DMABufSurfaceYUV::OpenFileDescriptorForPlane(
     const MutexAutoLock& aProofOfLock, int aPlane) {
@@ -1423,6 +1463,8 @@ bool DMABufSurfaceYUV::ImportSurfaceDescriptor(
   mSurfaceType = (mBufferPlaneCount == 2) ? SURFACE_NV12 : SURFACE_YUV420;
   mColorSpace = aDesc.yUVColorSpace();
   mColorRange = aDesc.colorRange();
+  mColorPrimaries = aDesc.colorPrimaries();
+  mTransferFunction = aDesc.transferFunction();
   mUID = aDesc.uid();
 
   LOGDMABUF(("DMABufSurfaceYUV::ImportSurfaceDescriptor() UID %d", mUID));
@@ -1499,8 +1541,9 @@ bool DMABufSurfaceYUV::Serialize(
 
   aOutDescriptor = SurfaceDescriptorDMABuf(
       mSurfaceType, modifiers, 0, fds, width, height, widthBytes, heightBytes,
-      format, strides, offsets, GetYUVColorSpace(), mColorRange, fenceFDs, mUID,
-      refCountFDs, /* semaphoreFd */ nullptr);
+      format, strides, offsets, GetYUVColorSpace(), mColorRange,
+      mColorPrimaries, mTransferFunction, fenceFDs, mUID, refCountFDs,
+      /* semaphoreFd */ nullptr);
   return true;
 }
 
@@ -1798,6 +1841,52 @@ nsresult DMABufSurfaceYUV::BuildSurfaceDescriptorBuffer(
 
   return ReadIntoBuffer(buffer, stride, size, format);
 }
+
+#ifdef MOZ_WAYLAND
+bool DMABufSurfaceYUV::CreateWlBuffer() {
+  nsWaylandDisplay* waylandDisplay = widget::WaylandDisplayGet();
+  auto* dmabuf = waylandDisplay->GetDmabuf();
+  if (!dmabuf) {
+    return false;
+  }
+
+  MutexAutoLock lockFD(mSurfaceLock);
+  LOGDMABUF(
+      ("DMABufSurfaceYUV::CreateWlBuffer() UID %d format %s size [%d x %d]",
+       mUID, GetSurfaceTypeName(), GetWidth(), GetHeight()));
+
+  if (!OpenFileDescriptors(lockFD)) {
+    LOGDMABUF(("  failed to open dmabuf fd"));
+    return false;
+  }
+
+  struct zwp_linux_buffer_params_v1* params =
+      zwp_linux_dmabuf_v1_create_params(dmabuf);
+  for (int i = 0; i < GetTextureCount(); i++) {
+    LOGDMABUF(("  layer [%d] modifier %" PRIx64, i, mBufferModifiers[i]));
+    zwp_linux_buffer_params_v1_add(
+        params, mDmabufFds[i]->GetHandle(), i, mOffsets[i], mStrides[i],
+        mBufferModifiers[i] >> 32, mBufferModifiers[i] & 0xffffffff);
+  }
+
+  LOGDMABUF(
+      ("  zwp_linux_buffer_params_v1_create_immed() [%d x %d], fourcc [%x]",
+       GetWidth(), GetHeight(), GetFOURCCFormat()));
+  mWlBuffer = zwp_linux_buffer_params_v1_create_immed(
+      params, GetWidth(), GetHeight(), GetFOURCCFormat(), 0);
+  if (!mWlBuffer) {
+    LOGDMABUF(
+        ("  zwp_linux_buffer_params_v1_create_immed(): failed to create "
+         "wl_buffer!"));
+  } else {
+    LOGDMABUF(("  created wl_buffer [%p]", mWlBuffer));
+  }
+
+  CloseFileDescriptors(lockFD);
+
+  return mWlBuffer != nullptr;
+}
+#endif
 
 #if 0
 void DMABufSurfaceYUV::ClearPlane(int aPlane) {
