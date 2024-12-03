@@ -12496,6 +12496,11 @@
   value: false
   mirror: always
 
+- name: network.cookie.sameSite.laxByDefaultWarningsForBeta
+  type: RelaxedAtomicBool
+  value: false
+  mirror: always
+
 # lax-by-default 2 minutes tollerance for unsafe methods. The value is in seconds.
 - name: network.cookie.sameSite.laxPlusPOST.timeout
   type: uint32_t

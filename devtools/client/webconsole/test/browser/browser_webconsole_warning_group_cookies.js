@@ -11,6 +11,7 @@ const TEST_FILE =
 const COOKIE_GROUP = "Cookie warnings";
 
 pushPref("devtools.webconsole.groupWarningMessages", true);
+pushPref("network.cookie.sameSite.laxByDefaultWarningsForBeta", true);
 
 async function cleanUp() {
   await new Promise(resolve => {

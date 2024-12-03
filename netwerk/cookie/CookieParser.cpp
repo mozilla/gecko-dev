@@ -541,7 +541,8 @@ bool CookieParser::ParseAttributes(nsCString& aCookieHeader,
             mHostURI, "network.cookie.sameSite.laxByDefault.disabledHosts");
     if (laxByDefault) {
       mWarnings.mSameSiteLaxForced = true;
-    } else {
+    } else if (StaticPrefs::
+                   network_cookie_sameSite_laxByDefaultWarningsForBeta()) {
       mWarnings.mSameSiteLaxForcedForBeta = true;
     }
   }
