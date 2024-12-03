@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+import { setTimeout, clearTimeout } from "resource://gre/modules/Timer.sys.mjs";
 import { loader } from "resource://devtools/shared/loader/Loader.sys.mjs";
 import { EventEmitter } from "resource://gre/modules/EventEmitter.sys.mjs";
 
@@ -45,6 +46,10 @@ export class DevToolsProcessParent extends JSProcessActorParent {
 
     EventEmitter.decorate(this);
   }
+
+  // Boolean to indicate if the related content process is slow to respond
+  // and may be hanging or frozen. When true, we should avoid waiting for its replies.
+  #frozen = false;
 
   #destroyed = false;
   #connections = new Map();
@@ -262,15 +267,71 @@ export class DevToolsProcessParent extends JSProcessActorParent {
    * JsProcessActor API
    */
 
+  /**
+   * JS Actor override of `sendQuery` method, whose main goal is the ignore possibly freezing processes.
+   * This also prints a warning when the query failed to be sent, or when a process hangs.
+   *
+   * @param String msg
+   * @param Array<json> args
+   * @return Promise<undefined>
+   *   We only use sendQuery for two queries ("watchTargets" and "addOrSetSessionDataEntry") and
+   *   none of them use any returned value (except a promise to know when their processing is done).
+   */
   async sendQuery(msg, args) {
-    try {
-      const res = await super.sendQuery(msg, args);
-      return res;
-    } catch (e) {
-      console.error("Failed to sendQuery in DevToolsProcessParent", msg);
-      console.error(e.toString());
-      throw e;
+    // If any preview query timed out and did not reply yet, the process is considered frozen
+    // and are no longer waiting for the process response.
+    if (this.#frozen) {
+      this.sendAsyncMessage(msg, args);
+      return Promise.resolve();
     }
+
+    // Cache `osPid` and avoid querying `this.manager` attribute later as it may result into
+    // a `AssertReturnTypeMatchesJitinfo` assertion crash into GenericGetter .
+    const { osPid } = this.manager;
+
+    return new Promise((resolve, reject) => {
+      // The process may be slow to resolve the query, or even be completely frozen.
+      // Use a timeout to detect when it happens.
+      const timeout = setTimeout(() => {
+        this.#frozen = true;
+        console.error(
+          `Content process ${osPid} isn't responsive while sending "${msg}" request. DevTools will ignore this process for now.`
+        );
+        // Do not consider timeout as an error as it may easily break the frontend.
+        resolve();
+      }, 1000);
+
+      super.sendQuery(msg, args).then(
+        () => {
+          if (this.#frozen && !this.#destroyed) {
+            console.error(
+              `Content process ${osPid} is responsive again. DevTools resumes operations against it.`
+            );
+          }
+          clearTimeout(timeout);
+          // If any of the ongoing query resolved, consider the process as responsive again
+          this.#frozen = false;
+
+          resolve();
+        },
+        async e => {
+          // Ignore frozen processes when the JS Process Actor is destroyed.
+          // Either the process was shut down or DevTools unregistered the Actor.
+          if (this.#frozen && !this.#destroyed) {
+            console.error(
+              `Content process ${osPid} is responsive again. DevTools resumes operations against it.`
+            );
+          }
+          clearTimeout(timeout);
+          // If any of the ongoing query resolved, consider the process as responsive again
+          this.#frozen = false;
+
+          console.error("Failed to sendQuery in DevToolsProcessParent", msg);
+          console.error(e.toString());
+          reject(e);
+        }
+      );
+    });
   }
 
   /**
