@@ -4077,6 +4077,15 @@ static bool Duration_round(JSContext* cx, const CallArgs& args) {
     // Steps 36.d-e.
     auto sourceDateTime = PlainDateTime{plainRelativeTo, {}};
     auto targetDateTime = PlainDateTime{targetDate, targetTime.time};
+
+    // FIXME: spec bug - date-time can be out-of-range.
+    if (!ISODateTimeWithinLimits(sourceDateTime) ||
+        !ISODateTimeWithinLimits(targetDateTime)) {
+      JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
+                                JSMSG_TEMPORAL_PLAIN_DATE_TIME_INVALID);
+      return false;
+    }
+
     if (!DifferencePlainDateTimeWithRounding(cx, sourceDateTime, targetDateTime,
                                              plainRelativeTo.calendar(),
                                              {
@@ -4242,6 +4251,15 @@ static bool Duration_total(JSContext* cx, const CallArgs& args) {
     // Step 15.d.
     auto sourceDateTime = PlainDateTime{plainRelativeTo, {}};
     auto targetDateTime = PlainDateTime{targetDate, targetTime.time};
+
+    // FIXME: spec bug - date-time can be out-of-range.
+    if (!ISODateTimeWithinLimits(sourceDateTime) ||
+        !ISODateTimeWithinLimits(targetDateTime)) {
+      JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
+                                JSMSG_TEMPORAL_PLAIN_DATE_TIME_INVALID);
+      return false;
+    }
+
     if (!::DifferencePlainDateTimeWithRounding(
             cx, sourceDateTime, targetDateTime, plainRelativeTo.calendar(),
             unit, &total)) {
