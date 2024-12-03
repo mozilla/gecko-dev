@@ -650,6 +650,9 @@ def exportTest262(
                 if fileName == "browser.js" or fileName == "shell.js":
                     continue
 
+                if fileName.endswith("~"):
+                    continue
+
                 filePath = os.path.join(dirPath, fileName)
                 testName = os.path.join(
                     fullRelPath, fileName
