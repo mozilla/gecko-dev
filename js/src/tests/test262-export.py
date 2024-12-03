@@ -321,6 +321,10 @@ def mergeMeta(
     if includes:
         frontmatter["includes"] = list(includes)
 
+    flags: list[str] = frontmatter.get("flags", [])
+    if "noStrict" not in flags and "onlyStrict" not in flags:
+        frontmatter.setdefault("flags", []).append("noStrict")
+
     if not reftest:
         return frontmatter
 
@@ -329,6 +333,10 @@ def mergeMeta(
     # Only add the module flag if the value from reftest is truish
     if reftest.module:
         frontmatter.setdefault("flags", []).append("module")
+        if "noStrict" in frontmatter["flags"]:
+            frontmatter["flags"].remove("noStrict")
+        if "onlyStrict" in frontmatter["flags"]:
+            frontmatter["flags"].remove("onlyStrict")
 
     # Add any comments to the info tag
     if reftest.info:
@@ -449,6 +457,9 @@ def updateMeta(
     Captures the reftest meta and a pre-existing meta if any and merge them
     into a single dict.
     """
+
+    if source.startswith((b'"use strict"', b"'use strict'")):
+        frontmatter.setdefault("flags", []).append("onlyStrict")
 
     # Merge the reftest and frontmatter
     merged = mergeMeta(reftest, frontmatter, includes)

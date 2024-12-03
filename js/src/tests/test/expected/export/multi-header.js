@@ -11,10 +11,10 @@ description: |
 negative:
   phase: early
   type: SyntaxError
-features:
-- foobar
 flags:
 - module
+features:
+- foobar
 info: |
   foo bar  baz
 ---*/

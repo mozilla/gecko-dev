@@ -3,11 +3,11 @@
 
 /*---
 flags:
-- noStrict
+- onlyStrict
 description: |
   pending
 esid: pending
----*/
+---*/"use strict";
 async function f() {
     let
     await 0;
