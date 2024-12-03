@@ -42,6 +42,7 @@ fun createNimbus(context: Context, urlString: String?): NimbusApi {
     if (isAppFirstRun) {
         context.settings().isFirstNimbusRun = false
     }
+
     val recordedNimbusContext = RecordedNimbusContext.create(
         context = context,
         isFirstRun = isAppFirstRun,

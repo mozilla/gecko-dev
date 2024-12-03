@@ -12410,6 +12410,26 @@ nimbus_system:
         # Campaign content of the install referrer response
         install_referrer_response_utm_content:
           type: string
+        is_review_checker_enabled:
+          type: boolean
+        android_sdk_version:
+          type: string
+        app_version:
+          type: string
+        locale:
+          type: string
+        days_since_install:
+          type: number
+        days_since_update:
+          type: number
+        language:
+          type: string
+        region:
+          type: string
+        device_manufacturer:
+          type: string
+        device_model:
+          type: string
     description: |
       The Nimbus context object that is recorded to Glean
     bugs:

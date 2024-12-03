@@ -5,12 +5,18 @@
 package org.mozilla.fenix.experiments
 
 import android.content.Context
+import android.os.Build
 import androidx.annotation.VisibleForTesting
+import mozilla.components.support.utils.ext.getPackageInfoCompat
 import org.json.JSONObject
+import org.mozilla.experiments.nimbus.NIMBUS_DATA_DIR
+import org.mozilla.experiments.nimbus.NimbusDeviceInfo
 import org.mozilla.experiments.nimbus.internal.JsonObject
 import org.mozilla.experiments.nimbus.internal.RecordedContext
+import org.mozilla.experiments.nimbus.internal.getCalculatedAttributes
 import org.mozilla.fenix.GleanMetrics.NimbusSystem
 import org.mozilla.fenix.ext.settings
+import java.io.File
 
 /**
  * The following constants are string constants of the keys that appear in the [EVENT_QUERIES] map.
@@ -32,6 +38,7 @@ private val EVENT_QUERIES = mapOf(
  * The value recorded to Glean is used to automate population sizing. Any additions to this object
  * require a new data review for the `nimbus_system.recorded_nimbus_context` metric.
  */
+@Suppress("complexity:LongParameterList")
 class RecordedNimbusContext(
     val isFirstRun: Boolean,
     private val eventQueries: Map<String, String> = mapOf(),
@@ -41,6 +48,16 @@ class RecordedNimbusContext(
     val utmCampaign: String,
     val utmTerm: String,
     val utmContent: String,
+    val isReviewCheckerEnabled: Boolean,
+    val androidSdkVersion: String = Build.VERSION.SDK_INT.toString(),
+    val appVersion: String?,
+    val locale: String,
+    val daysSinceInstall: Int?,
+    val daysSinceUpdate: Int?,
+    val language: String?,
+    val region: String?,
+    val deviceManufacturer: String = Build.MANUFACTURER,
+    val deviceModel: String = Build.MODEL,
 ) : RecordedContext {
     /**
      * [getEventQueries] is called by the Nimbus SDK Rust code to retrieve the map of event
@@ -70,6 +87,16 @@ class RecordedNimbusContext(
                 installReferrerResponseUtmCampaign = utmCampaign,
                 installReferrerResponseUtmTerm = utmTerm,
                 installReferrerResponseUtmContent = utmContent,
+                isReviewCheckerEnabled = isReviewCheckerEnabled,
+                androidSdkVersion = androidSdkVersion,
+                appVersion = appVersion,
+                locale = locale,
+                daysSinceInstall = daysSinceInstall,
+                daysSinceUpdate = daysSinceUpdate,
+                language = language,
+                region = region,
+                deviceManufacturer = deviceManufacturer,
+                deviceModel = deviceModel,
             ),
         )
     }
@@ -103,6 +130,16 @@ class RecordedNimbusContext(
                 "install_referrer_response_utm_campaign" to utmCampaign,
                 "install_referrer_response_utm_term" to utmTerm,
                 "install_referrer_response_utm_content" to utmContent,
+                "is_review_checker_enabled" to isReviewCheckerEnabled,
+                "android_sdk_version" to androidSdkVersion,
+                "app_version" to appVersion,
+                "locale" to locale,
+                "days_since_install" to daysSinceInstall,
+                "days_since_update" to daysSinceUpdate,
+                "language" to language,
+                "region" to region,
+                "device_manufacturer" to deviceManufacturer,
+                "device_model" to deviceModel,
             ),
         )
         return obj
@@ -123,14 +160,32 @@ class RecordedNimbusContext(
             context: Context,
             isFirstRun: Boolean,
         ): RecordedNimbusContext {
+            val settings = context.settings()
+
+            val packageInfo = context.packageManager.getPackageInfoCompat(context.packageName, 0)
+            val deviceInfo = NimbusDeviceInfo.default()
+            val db = File(context.applicationInfo.dataDir, NIMBUS_DATA_DIR)
+            val calculatedAttributes = getCalculatedAttributes(
+                packageInfo.firstInstallTime,
+                db.path,
+                deviceInfo.localeTag,
+            )
+
             return RecordedNimbusContext(
                 isFirstRun = isFirstRun,
                 eventQueries = EVENT_QUERIES,
-                utmSource = context.settings().utmSource,
-                utmMedium = context.settings().utmMedium,
-                utmCampaign = context.settings().utmCampaign,
-                utmTerm = context.settings().utmTerm,
-                utmContent = context.settings().utmContent,
+                utmSource = settings.utmSource,
+                utmMedium = settings.utmMedium,
+                utmCampaign = settings.utmCampaign,
+                utmTerm = settings.utmTerm,
+                utmContent = settings.utmContent,
+                isReviewCheckerEnabled = settings.isReviewQualityCheckEnabled,
+                appVersion = packageInfo.versionName,
+                locale = deviceInfo.localeTag,
+                daysSinceInstall = calculatedAttributes.daysSinceInstall,
+                daysSinceUpdate = calculatedAttributes.daysSinceUpdate,
+                language = calculatedAttributes.language,
+                region = calculatedAttributes.region,
             )
         }
 
@@ -154,6 +209,13 @@ class RecordedNimbusContext(
                 utmCampaign = "",
                 utmTerm = "",
                 utmContent = "",
+                isReviewCheckerEnabled = false,
+                appVersion = "",
+                locale = "",
+                daysSinceInstall = 5,
+                daysSinceUpdate = 0,
+                language = "en",
+                region = "US",
             )
         }
     }

@@ -4,6 +4,7 @@
 
 package org.mozilla.fenix.experiments
 
+import android.os.Build
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonObject
@@ -57,6 +58,16 @@ class RecordedNimbusContextTest {
                 put("install_referrer_response_utm_campaign", "")
                 put("install_referrer_response_utm_term", "")
                 put("install_referrer_response_utm_content", "")
+                put("is_review_checker_enabled", false)
+                put("android_sdk_version", Build.VERSION.SDK_INT.toString())
+                put("app_version", "")
+                put("locale", "")
+                put("days_since_install", 5)
+                put("days_since_update", 0)
+                put("language", "en")
+                put("region", "US")
+                put("device_manufacturer", Build.MANUFACTURER)
+                put("device_model", Build.MODEL)
             },
             contextAsJson,
         )
@@ -77,6 +88,12 @@ class RecordedNimbusContextTest {
         assertNotNull(recordedValue)
         assertEquals(
             buildJsonObject {
+                put("androidSdkVersion", Build.VERSION.SDK_INT.toString())
+                put("appVersion", "")
+                put("daysSinceInstall", 5)
+                put("daysSinceUpdate", 0)
+                put("deviceManufacturer", Build.MANUFACTURER)
+                put("deviceModel", Build.MODEL)
                 putJsonObject("eventQueryValues") {
                     put("daysOpenedInLast28", 1)
                 }
@@ -86,6 +103,10 @@ class RecordedNimbusContextTest {
                 put("installReferrerResponseUtmTerm", "")
                 put("installReferrerResponseUtmContent", "")
                 put("isFirstRun", false)
+                put("isReviewCheckerEnabled", false)
+                put("language", "en")
+                put("locale", "")
+                put("region", "US")
             },
             recordedValue?.jsonObject,
         )
