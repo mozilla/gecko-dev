@@ -256,6 +256,11 @@ class WidgetMouseEventBase : public WidgetInputEvent {
    * Returns true if the input source supports hover state like a mouse.
    */
   [[nodiscard]] bool InputSourceSupportsHover() const;
+
+  /**
+   * Returns true if corresponding DOM event should use fractional coordinates.
+   */
+  [[nodiscard]] bool DOMEventShouldUseFractionalCoords() const;
 };
 
 /******************************************************************************

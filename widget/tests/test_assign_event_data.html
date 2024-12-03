@@ -260,7 +260,18 @@ const kTests = [
     },
     todoMismatch: [],
   },
-  { description: "WidgetMouseEvent (click of middle button with Shift)",
+  { description: "WidgetPointerEvent (pointerdown of left button without modifier)",
+    targetID: "button", eventType: "pointerdown",
+    dispatchEvent() {
+      synthesizeMouseAtCenter(document.getElementById(this.targetID),
+                              { button: 0 });
+    },
+    canRun() {
+      return true;
+    },
+    todoMismatch: [],
+  },
+  { description: "WidgetPointerEvent (click of middle button with Shift)",
     targetID: "button", eventType: "auxclick",
     dispatchEvent() {
       document.getElementById(this.targetID).value = "";
@@ -274,6 +285,18 @@ const kTests = [
   },
   { description: "WidgetMouseEvent (mouseup of right button with Alt)",
     targetID: "button", eventType: "mouseup",
+    dispatchEvent() {
+      document.getElementById(this.targetID).value = "";
+      synthesizeMouseAtCenter(document.getElementById(this.targetID),
+                              { button: 2, altKey: true });
+    },
+    canRun() {
+      return true;
+    },
+    todoMismatch: [],
+  },
+  { description: "WidgetPointerEvent (pointerup of right button with Alt)",
+    targetID: "button", eventType: "pointerup",
     dispatchEvent() {
       document.getElementById(this.targetID).value = "";
       synthesizeMouseAtCenter(document.getElementById(this.targetID),

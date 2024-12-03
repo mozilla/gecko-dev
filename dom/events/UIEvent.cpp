@@ -159,9 +159,9 @@ void UIEvent::DuplicatePrivateData() {
   mLayerPoint = GetLayerPoint();
 
   // GetScreenPoint converts mEvent->mRefPoint to right coordinates.
-  CSSIntPoint screenPoint =
+  const CSSIntPoint screenPoint = RoundedToInt(
       Event::GetScreenCoords(mPresContext, mEvent, mEvent->mRefPoint)
-          .valueOr(CSSIntPoint{0, 0});
+          .valueOr(CSSIntPoint{0, 0}));
 
   Event::DuplicatePrivateData();
 

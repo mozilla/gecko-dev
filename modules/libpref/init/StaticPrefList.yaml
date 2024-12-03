@@ -2610,6 +2610,36 @@
   value: @IS_NOT_EARLY_BETA_OR_EARLIER@
   mirror: always
 
+# Whether the result of screenX, screenY, clientX, clientY, offsetX, offsetY,
+# x and y of trusted MouseEvent and subclasses may be fractional values.
+# Enabling this may cause backward compatibility issues.
+# Note that this pref is referred only when
+# `dom.event.pointer.fractional_coordinates.enabled` is `true`.
+- name: dom.event.mouse.fractional_coordinates.trusted.enabled
+  type: bool
+  value: false
+  mirror: always
+
+# Whether the result of screenX, screenY, clientX, clientY, offsetX, offsetY,
+# x and y of untrusted MouseEvent and subclasses may be fractional values.
+# I.e., this allows web apps to use fractional values with their own DOM events
+# which have MouseEvent interface.  However, this might cause backward
+# compatibility issues if web apps initializes untrusted events with quotients.
+# Note that this pref is referred only when
+# `dom.event.pointer.fractional_coordinates.enabled` is `true`.
+- name: dom.event.mouse.fractional_coordinates.untrusted.enabled
+  type: bool
+  value: false
+  mirror: always
+
+# Whether the result of screenX, screenY, clientX, clientY, offsetX, offsetY,
+# x and y of PointerEvent may be fractional values (except `click`, `auxclick`
+# and `contextmenu`)
+- name: dom.event.pointer.fractional_coordinates.enabled
+  type: bool
+  value: @IS_NIGHTLY_BUILD@
+  mirror: always
+
 # Whether wheel event target's should be grouped. When enabled, all wheel
 # events that occur in a given wheel transaction have the same event target.
 - name: dom.event.wheel-event-groups.enabled

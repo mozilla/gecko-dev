@@ -1131,7 +1131,8 @@ nsresult ChromeTooltipListener::MouseMove(Event* aMouseEvent) {
   // within the timer callback. On win32, we'll get a MouseMove event even when
   // a popup goes away -- even when the mouse doesn't change position! To get
   // around this, we make sure the mouse has really moved before proceeding.
-  CSSIntPoint newMouseClientPoint = mouseEvent->ClientPoint();
+  const CSSIntPoint newMouseClientPoint =
+      RoundedToInt(mouseEvent->ClientPoint());
   if (mMouseClientPoint == newMouseClientPoint) {
     return NS_OK;
   }

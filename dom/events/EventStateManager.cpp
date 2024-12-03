@@ -942,11 +942,11 @@ nsresult EventStateManager::PreHandleEvent(nsPresContext* aPresContext,
     // XXX Probably doesn't matter much, but storing these in CSS pixels instead
     // of device pixels means behavior can be a bit odd if you zoom while
     // pointer-locked.
-    sLastScreenPoint =
+    sLastScreenPoint = RoundedToInt(
         Event::GetScreenCoords(aPresContext, aEvent, aEvent->mRefPoint)
-            .extract();
-    sLastClientPoint = Event::GetClientCoords(
-        aPresContext, aEvent, aEvent->mRefPoint, CSSIntPoint(0, 0));
+            .extract());
+    sLastClientPoint = RoundedToInt(Event::GetClientCoords(
+        aPresContext, aEvent, aEvent->mRefPoint, CSSDoublePoint{0, 0}));
   }
 
   *aStatus = nsEventStatus_eIgnore;
@@ -4420,9 +4420,9 @@ nsresult EventStateManager::PostHandleEvent(nsPresContext* aPresContext,
           // to set drag end point in such case (you hit assersion if you do
           // it).
           if (sourceWC) {
-            CSSIntPoint dropPointInScreen =
+            const CSSIntPoint dropPointInScreen = RoundedToInt(
                 Event::GetScreenCoords(aPresContext, aEvent, aEvent->mRefPoint)
-                    .extract();
+                    .extract());
             dragSession->SetDragEndPointForTests(dropPointInScreen.x,
                                                  dropPointInScreen.y);
           }

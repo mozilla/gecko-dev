@@ -174,22 +174,82 @@ class Event : public nsISupports, public nsWrapperCache {
   bool Init(EventTarget* aGlobal);
 
   static const char16_t* GetEventName(EventMessage aEventType);
-  static CSSIntPoint GetClientCoords(nsPresContext* aPresContext,
-                                     WidgetEvent* aEvent,
-                                     LayoutDeviceIntPoint aPoint,
-                                     CSSIntPoint aDefaultPoint);
-  static CSSIntPoint GetPageCoords(nsPresContext* aPresContext,
-                                   WidgetEvent* aEvent,
-                                   LayoutDeviceIntPoint aPoint,
-                                   CSSIntPoint aDefaultPoint);
-  static Maybe<CSSIntPoint> GetScreenCoords(nsPresContext* aPresContext,
-                                            WidgetEvent* aEvent,
-                                            LayoutDeviceIntPoint aPoint);
-  MOZ_CAN_RUN_SCRIPT_BOUNDARY
-  static CSSIntPoint GetOffsetCoords(nsPresContext* aPresContext,
-                                     WidgetEvent* aEvent,
-                                     LayoutDeviceIntPoint aPoint,
-                                     CSSIntPoint aDefaultPoint);
+
+  /**
+   * Return clientX and clientY values for aEvent fired at aWidgetRelativePoint.
+   * If you do not want fractional values as the result, you should floor
+   * aWidgetRelativePoint and aDefaultClientPoint before calling this method
+   * like defined by the Pointer Events spec.
+   * https://w3c.github.io/pointerevents/#event-coordinates
+   * And finally round the result to the integer.
+   * Note that if you want fractional values and the source of
+   * aWidgetRelativePoint and aDefaultClientPoint is an untrusted event, the
+   * result may not be representable with floats, i.e., CSSPoint.  However, if
+   * it's trusted point, the result is representable with floats because we use
+   * CSSPoint to convert to/from app units.
+   */
+  static CSSDoublePoint GetClientCoords(
+      nsPresContext* aPresContext, WidgetEvent* aEvent,
+      const LayoutDeviceDoublePoint& aWidgetRelativePoint,
+      const CSSDoublePoint& aDefaultClientPoint);
+
+  /**
+   * Return pageX and pageY values for aEvent fired at aWidgetRelativePoint,
+   * which are client point + scroll position of the root scrollable frame. If
+   * you do not want fractional values as the result, you should floor
+   * aWidgetRelativePoint and aDefaultClientPoint before calling this method
+   * like defined by the Pointer Events spec.
+   * https://w3c.github.io/pointerevents/#event-coordinates
+   * And finally round the result to the integer.
+   * Note that if you want fractional values and the source of
+   * aWidgetRelativePoint and aDefaultClientPoint is an untrusted event, the
+   * result may not be representable with floats, i.e., CSSPoint.  However, if
+   * it's trusted point, the result is representable with floats because we use
+   * CSSPoint to convert to/from app units.
+   */
+  static CSSDoublePoint GetPageCoords(
+      nsPresContext* aPresContext, WidgetEvent* aEvent,
+      const LayoutDeviceDoublePoint& aWidgetRelativePoint,
+      const CSSDoublePoint& aDefaultClientPoint);
+
+  /**
+   * Return screenX and screenY values for aEvent fired at aWidgetRelativePoint.
+   * If aEvent does not support exposing the ref point, this returns Nothing. If
+   * you do not want fractional values as the result, you should floor
+   * aWidgetRelativePoint and aDefaultClientPoint before calling this method
+   * like defined by the Pointer Events spec.
+   * https://w3c.github.io/pointerevents/#event-coordinates
+   * And finally round the result to the integer.
+   * Note that if you want fractional values and the source of
+   * aWidgetRelativePoint and aDefaultClientPoint is an untrusted event, the
+   * result may not be representable with floats, i.e., CSSPoint.  However, if
+   * it's trusted point, the result is representable with floats because we use
+   * CSSPoint to convert to/from app units.
+   */
+  static Maybe<CSSDoublePoint> GetScreenCoords(
+      nsPresContext* aPresContext, WidgetEvent* aEvent,
+      const LayoutDeviceDoublePoint& aWidgetRelativePoint);
+
+  /**
+   * Return offsetX and offsetY values for aEvent fired at aWidgetRelativePoint,
+   * which are offset in the target element. If you do not want fractional
+   * values as the result, you should floor aWidgetRelativePoint and
+   * aDefaultClientPoint before calling this method like defined by the Pointer
+   * Events spec. https://w3c.github.io/pointerevents/#event-coordinates
+   * And finally round the result to the integer. Note that if you want
+   * fractional values and the source of aWidgetRelativePoint and
+   * aDefaultClientPoint is an untrusted event, the result may not be
+   * representable with floats, i.e., CSSPoint. However, if it's trusted point,
+   * the result is representable with floats because we use CSSPoint to convert
+   * to/from app units.
+   *
+   * Be aware, this may flush the layout.
+   */
+  MOZ_CAN_RUN_SCRIPT
+  static CSSDoublePoint GetOffsetCoords(
+      nsPresContext* aPresContext, WidgetEvent* aEvent,
+      const LayoutDeviceDoublePoint& aWidgetRelativePoint,
+      const CSSDoublePoint& aDefaultClientPoint);
 
   static already_AddRefed<Event> Constructor(EventTarget* aEventTarget,
                                              const nsAString& aType,
@@ -340,6 +400,10 @@ class Event : public nsISupports, public nsWrapperCache {
 
   already_AddRefed<EventTarget> EnsureWebAccessibleRelatedTarget(
       EventTarget* aRelatedTarget);
+
+  [[nodiscard]] MOZ_CAN_RUN_SCRIPT static nsIFrame*
+  GetPrimaryFrameOfEventTarget(const nsPresContext& aPresContext,
+                               const WidgetEvent& aEvent);
 
   mozilla::WidgetEvent* mEvent;
   RefPtr<nsPresContext> mPresContext;

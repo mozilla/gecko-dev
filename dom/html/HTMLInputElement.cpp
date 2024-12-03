@@ -3361,7 +3361,7 @@ void HTMLInputElement::LegacyPreActivationBehavior(
 
     if (aVisitor.mDOMEvent) {
       if (auto* mouseEvent = aVisitor.mDOMEvent->AsMouseEvent()) {
-        CSSIntPoint pt = mouseEvent->OffsetPoint();
+        const CSSIntPoint pt = RoundedToInt(mouseEvent->OffsetPoint());
         if (auto* imageClickedPoint = static_cast<CSSIntPoint*>(
                 GetProperty(nsGkAtoms::imageClickedPoint))) {
           // Ensures that a dispatched event's clicked point is not the default

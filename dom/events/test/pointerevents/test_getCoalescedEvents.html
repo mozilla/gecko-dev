@@ -32,8 +32,24 @@ SimpleTest.waitForFocus(async () => {
       ok(length >= 1, "Coalesced events should >= 1, got " + length);
 
       let rect = target0.getBoundingClientRect();
-      let prevOffsetX = 0;
-      let prevOffsetY = 0;
+      let prevOffsetX = undefined;
+      let prevOffsetY = undefined;
+
+      function isExpectedOffset(aNewOffset, aPrevOffset) {
+        if (aPrevOffset === undefined) {
+          const roundedOffset = 5 * Math.max(Math.round(aNewOffset / 5), 1);
+          return aNewOffset >= roundedOffset - 1 && aNewOffset <= roundedOffset + 1;
+        }
+        let candidateOffset = aPrevOffset + 5;
+        while (candidateOffset < 25) {
+          // Allow rounding issue.
+          if (aNewOffset >= candidateOffset - 0.1 && aNewOffset <= candidateOffset + 0.1) {
+            return true;
+          }
+          candidateOffset += 5;
+        }
+        return false;
+      }
 
       for (let i = 0; i < length; ++i) {
         let coalescedEvent = ev.getCoalescedEvents()[i];
@@ -48,13 +64,18 @@ SimpleTest.waitForFocus(async () => {
         is(coalescedEvent.cancelable, false, "getCoalescedEvents()[" + i + "].cancelable");
         is(coalescedEvent.bubbles, false, "getCoalescedEvents()[" + i + "].bubbles");
 
-        ok(coalescedEvent.offsetX >= prevOffsetX, "getCoalescedEvents()[" + i + "].offsetX = " + coalescedEvent.offsetX);
-        ok(coalescedEvent.offsetX == 5 || coalescedEvent.offsetX == 10 ||
-            coalescedEvent.offsetX == 15 || coalescedEvent.offsetX == 20, "expected offsetX");
-
-        ok(coalescedEvent.offsetY >= prevOffsetY, "getCoalescedEvents()[" + i + "].offsetY = " + coalescedEvent.offsetY);
-        ok(coalescedEvent.offsetY == 5 || coalescedEvent.offsetY == 10 ||
-            coalescedEvent.offsetY == 15 || coalescedEvent.offsetY == 20, "expected offsetY");
+        ok(
+          isExpectedOffset(coalescedEvent.offsetX, prevOffsetX),
+          `getCoalescedEvents()[${i}].offsetX (${
+            coalescedEvent.offsetX
+          }) should be 5 * n + previous offsetX (${prevOffsetX})`
+        );
+        ok(
+          isExpectedOffset(coalescedEvent.offsetY, prevOffsetY),
+          `getCoalescedEvents()[${i}].offsetY (${
+            coalescedEvent.offsetY
+          }) should be 5 * n + previous offsetY (${prevOffsetY})`
+        );
 
         prevOffsetX = coalescedEvent.offsetX;
         prevOffsetY = coalescedEvent.offsetY;

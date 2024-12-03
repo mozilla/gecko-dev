@@ -329,7 +329,8 @@ void nsXULTooltipListener::CheckTreeBodyMove(MouseEvent* aMouseEvent) {
   RefPtr<XULTreeElement> tree = GetSourceTree();
   Element* root = doc ? doc->GetRootElement() : nullptr;
   if (root && root->GetPrimaryFrame() && tree) {
-    CSSIntPoint pos = aMouseEvent->ScreenPoint(CallerType::System);
+    CSSIntPoint pos =
+        RoundedToInt(aMouseEvent->ScreenPoint(CallerType::System));
 
     // subtract off the documentElement's position
     // XXX Isn't this just converting to client points?
