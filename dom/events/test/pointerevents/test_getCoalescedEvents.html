@@ -11,8 +11,7 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=1303957
   <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css"/>
 </head>
 <body>
-<a target="_blank" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1303957">Mozilla Bug 1303957</a>
-<p id="display"></p>
+<!-- DO NOT PUT any text before the test target to avoid fractional coordinates! -->
 <div id="target0" style="width: 50px; height: 50px; background: green"></div>
 <script type="text/javascript">
 /** Test for Bug 1303957 **/
@@ -69,6 +68,14 @@ SimpleTest.waitForFocus(async () => {
       resolve();
     }, { once: true });
   });
+
+  info(`mozInnerScreen={${SpecialPowers.wrap(window).mozInnerScreenX}, ${SpecialPowers.wrap(window).mozInnerScreenY}}`);
+  info(`devicePixelRatio=${window.devicePixelRatio}`);
+  try {
+    info(`top.mozInnerScreen={${SpecialPowers.wrap(window.top).mozInnerScreenX}, ${SpecialPowers.wrap(window.top).mozInnerScreenY}}`);
+    info(`top.getResolution()=${SpecialPowers.wrap(window.top).windowUtils.getResolution()}`);
+  } catch (e) {}
+  info(`target0.getBoundingClientRect()={${target0.getBoundingClientRect().x}, ${target0.getBoundingClientRect().y}}`);
 
   info("Synthesizing native mouse moves....");
   await promiseNativeMouseEvent({ type: "mousemove", target: target0, offsetX: 5, offsetY: 5 });
