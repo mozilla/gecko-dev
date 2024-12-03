@@ -13,7 +13,6 @@ info: |
   a. Let kValue be list[k].
   b. Let mappedValue be ? Call(callbackfn, thisArg, « kValue, k, T »).
   ...
-features: [Tuple]
 ---*/
 
 var sample = #[42,43,44];

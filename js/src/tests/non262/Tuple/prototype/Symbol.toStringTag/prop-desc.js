@@ -12,7 +12,7 @@ info: |
 
   This property has the attributes { [[Writable]]: false, [[Enumerable]]: false, [[Configurable]]: true }.
 
-features: [Symbol.toStringTag, Tuple]
+features: [Symbol.toStringTag]
 ---*/
 
 var TuplePrototype = Tuple.prototype;

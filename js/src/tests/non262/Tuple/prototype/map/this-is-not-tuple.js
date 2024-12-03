@@ -4,9 +4,6 @@
 /*---
 esid: sec-%typedarray%.prototype.map
 description: Throws a TypeError exception when `this` is not a Tuple
-info: |
-
-features: [Tuple]
 ---*/
 
 var map = Tuple.prototype.map;
