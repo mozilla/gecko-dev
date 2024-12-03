@@ -122,13 +122,13 @@ add_task(async function test_focus_on_switcher_by_tab() {
     value: input,
   });
 
-  info("Focus on Dedicated Search by tab");
+  info("Focus on Unified Search Button by tab");
   EventUtils.synthesizeKey("KEY_Tab", { shiftKey: true });
-
   await TestUtils.waitForCondition(
     () => document.activeElement.id == "urlbar-searchmode-switcher"
   );
-  Assert.ok(true, "Dedicated Search button gets the focus");
+  Assert.ok(true, "Unified Search Button gets the focus");
+
   let popup = UrlbarTestUtils.searchModeSwitcherPopup(window);
   Assert.equal(popup.state, "closed", "Switcher popup should not be opened");
   Assert.ok(gURLBar.view.isOpen, "Urlbar view panel has been opening");
@@ -313,4 +313,31 @@ add_task(async function test_focus_order_by_tab_with_no_selected_element() {
     }
     Assert.ok(ok, "Focus was moved to a component other than the urlbar");
   }
+});
+
+add_task(async function test_esc_on_usb() {
+  info("Open urlbar results");
+  await UrlbarTestUtils.promiseAutocompleteResultPopup({
+    window,
+    value: "abc",
+  });
+  Assert.equal(document.activeElement.id, "urlbar-input");
+
+  info("Focus on Unified Search Button by tab");
+  EventUtils.synthesizeKey("KEY_Tab", { shiftKey: true });
+  await TestUtils.waitForCondition(
+    () => document.activeElement.id == "urlbar-searchmode-switcher"
+  );
+  Assert.ok(true, "Unified Search Button gets the focus");
+
+  info("Press ESC key");
+  EventUtils.synthesizeKey("KEY_Escape");
+  await TestUtils.waitForCondition(
+    () => document.activeElement.id == "urlbar-input"
+  );
+  Assert.equal(
+    gURLBar.view.isOpen,
+    false,
+    "The urlbar result view should be closed"
+  );
 });
