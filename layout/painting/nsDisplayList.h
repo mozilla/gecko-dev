@@ -2075,6 +2075,10 @@ class nsDisplayItem {
       aBuilder->RemoveReusedDisplayItem(this);
     }
 
+    if (mFrame) {
+      mFrame->RemoveDisplayItem(this);
+    }
+
     this->~nsDisplayItem();
     aBuilder->Destroy(type, this);
   }
@@ -2276,9 +2280,6 @@ class nsDisplayItem {
 
   virtual ~nsDisplayItem() {
     MOZ_COUNT_DTOR(nsDisplayItem);
-    if (mFrame) {
-      mFrame->RemoveDisplayItem(this);
-    }
   }
 
   void SetType(const DisplayItemType aType) { mType = aType; }
@@ -3724,6 +3725,10 @@ class nsDisplayGeneric : public nsPaintedDisplayItem {
       aBuilder->RemoveReusedDisplayItem(this);
     }
 
+    if (mFrame) {
+      mFrame->RemoveDisplayItem(this);
+    }
+
     this->~nsDisplayGeneric();
     aBuilder->Destroy(DisplayItemType::TYPE_GENERIC, this);
   }
@@ -4124,6 +4129,8 @@ class nsDisplayBackgroundImage : public nsPaintedDisplayItem {
 
   NS_DISPLAY_DECL_NAME("Background", TYPE_BACKGROUND)
 
+  void Destroy(nsDisplayListBuilder* aBuilder) override;
+
   /**
    * This will create and append new items for all the layers of the
    * background. Returns the type of background that was appended.
@@ -4261,9 +4268,10 @@ class nsDisplayTableBackgroundImage : public nsDisplayBackgroundImage {
   nsDisplayTableBackgroundImage(nsDisplayListBuilder* aBuilder,
                                 nsIFrame* aFrame, const InitData& aData,
                                 nsIFrame* aCellFrame);
-  ~nsDisplayTableBackgroundImage() override;
 
   NS_DISPLAY_DECL_NAME("TableBackgroundImage", TYPE_TABLE_BACKGROUND_IMAGE)
+
+  void Destroy(nsDisplayListBuilder* aBuilder) override;
 
   bool IsInvalid(nsRect& aRect) const override;
 
@@ -4372,14 +4380,10 @@ class nsDisplayTableThemedBackground : public nsDisplayThemedBackground {
     }
   }
 
-  ~nsDisplayTableThemedBackground() override {
-    if (mAncestorFrame) {
-      mAncestorFrame->RemoveDisplayItem(this);
-    }
-  }
-
   NS_DISPLAY_DECL_NAME("TableThemedBackground",
                        TYPE_TABLE_THEMED_BACKGROUND_IMAGE)
+
+  void Destroy(nsDisplayListBuilder* aBuilder) override;
 
   nsIFrame* FrameForInvalidation() const override { return mAncestorFrame; }
 
@@ -4415,13 +4419,9 @@ class nsDisplayBackgroundColor : public nsPaintedDisplayItem {
     }
   }
 
-  ~nsDisplayBackgroundColor() override {
-    if (mDependentFrame) {
-      mDependentFrame->RemoveDisplayItem(this);
-    }
-  }
-
   NS_DISPLAY_DECL_NAME("BackgroundColor", TYPE_BACKGROUND_COLOR)
+
+  void Destroy(nsDisplayListBuilder* aBuilder) override;
 
   bool HasBackgroundClipText() const {
     MOZ_ASSERT(mHasStyle);
@@ -4528,13 +4528,9 @@ class nsDisplayTableBackgroundColor : public nsDisplayBackgroundColor {
     }
   }
 
-  ~nsDisplayTableBackgroundColor() override {
-    if (mAncestorFrame) {
-      mAncestorFrame->RemoveDisplayItem(this);
-    }
-  }
-
   NS_DISPLAY_DECL_NAME("TableBackgroundColor", TYPE_TABLE_BACKGROUND_COLOR)
+
+  void Destroy(nsDisplayListBuilder* aBuilder) override;
 
   nsIFrame* FrameForInvalidation() const override { return mAncestorFrame; }
 
@@ -5254,13 +5250,9 @@ class nsDisplayTableBlendMode : public nsDisplayBlendMode {
     }
   }
 
-  ~nsDisplayTableBlendMode() override {
-    if (mAncestorFrame) {
-      mAncestorFrame->RemoveDisplayItem(this);
-    }
-  }
-
   NS_DISPLAY_DECL_NAME("TableBlendMode", TYPE_TABLE_BLEND_MODE)
+
+  void Destroy(nsDisplayListBuilder* aBuilder) override;
 
   nsIFrame* FrameForInvalidation() const override { return mAncestorFrame; }
 
@@ -5351,6 +5343,8 @@ class nsDisplayTableBlendContainer : public nsDisplayBlendContainer {
     nsDisplayBlendContainer::RemoveFrame(aFrame);
   }
 
+  void Destroy(nsDisplayListBuilder* aBuilder) override;
+
  protected:
   nsDisplayTableBlendContainer(nsDisplayListBuilder* aBuilder, nsIFrame* aFrame,
                                nsDisplayList* aList,
@@ -5368,12 +5362,6 @@ class nsDisplayTableBlendContainer : public nsDisplayBlendContainer {
                                const nsDisplayTableBlendContainer& aOther)
       : nsDisplayBlendContainer(aBuilder, aOther),
         mAncestorFrame(aOther.mAncestorFrame) {}
-
-  ~nsDisplayTableBlendContainer() override {
-    if (mAncestorFrame) {
-      mAncestorFrame->RemoveDisplayItem(this);
-    }
-  }
 
   nsIFrame* mAncestorFrame;
 
@@ -5514,6 +5502,8 @@ class nsDisplaySubDocument : public nsDisplayOwnLayer {
   ~nsDisplaySubDocument() override;
 
   NS_DISPLAY_DECL_NAME("SubDocument", TYPE_SUBDOCUMENT)
+
+  void Destroy(nsDisplayListBuilder* aBuilder) override;
 
   nsRect GetBounds(nsDisplayListBuilder* aBuilder, bool* aSnap) const override;
 
@@ -5708,6 +5698,8 @@ class nsDisplayTableFixedPosition : public nsDisplayFixedPosition {
     nsDisplayFixedPosition::RemoveFrame(aFrame);
   }
 
+  void Destroy(nsDisplayListBuilder* aBuilder) override;
+
  protected:
   nsDisplayTableFixedPosition(nsDisplayListBuilder* aBuilder, nsIFrame* aFrame,
                               nsDisplayList* aList, nsIFrame* aAncestorFrame,
@@ -5717,12 +5709,6 @@ class nsDisplayTableFixedPosition : public nsDisplayFixedPosition {
                               const nsDisplayTableFixedPosition& aOther)
       : nsDisplayFixedPosition(aBuilder, aOther),
         mAncestorFrame(aOther.mAncestorFrame) {}
-
-  ~nsDisplayTableFixedPosition() override {
-    if (mAncestorFrame) {
-      mAncestorFrame->RemoveDisplayItem(this);
-    }
-  }
 
   nsIFrame* mAncestorFrame;
 
