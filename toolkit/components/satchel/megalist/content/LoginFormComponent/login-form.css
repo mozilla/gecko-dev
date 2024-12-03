@@ -14,13 +14,44 @@ login-origin-field, login-password-field {
 }
 
 origin-warning, password-warning {
-	display: none;
+  display: none;
 }
 
 origin-warning.invalid-input, password-warning.invalid-input {
-	display: block;
+  display: block;
 }
 
 .field-container {
-	position: relative;
+  position: relative;
+}
+
+.remove-login-card {
+  display: flex;
+  flex-direction: column;
+
+  > moz-button-group {
+    margin-block-start: var(--space-xxlarge);
+  }
+}
+
+.remove-card-back {
+  display: flex;
+  align-items: center;
+
+  > p {
+    margin-block: 0;
+    margin-inline: var(--space-xsmall);
+  }
+}
+
+.remove-card-text {
+  display: flex;
+  flex-direction: column;
+  margin: var(--space-medium);
+  row-gap: var(--space-small);
+
+  > h3,
+  > p {
+    margin-block: 0;
+  }
 }

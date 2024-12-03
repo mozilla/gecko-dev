@@ -343,6 +343,13 @@ export class MegalistAlpha extends MozLitElement {
             loginForm.guid = this.editingRecord.origin.guid;
             this.#sendCommand("UpdateLogin", { value: loginForm });
           }}
+          .onDeleteClick=${() => {
+            const login = {
+              origin: this.editingRecord.origin,
+              guid: this.editingRecord.origin.guid,
+            };
+            this.#sendCommand("DeleteLogin", { value: login });
+          }}
         >
         </login-form>`;
       default:

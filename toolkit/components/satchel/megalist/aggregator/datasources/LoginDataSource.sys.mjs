@@ -147,6 +147,7 @@ export class LoginDataSource extends DataSourceBase {
       this.#header.commands.push(
         { id: "AddLogin" },
         { id: "UpdateLogin" },
+        { id: "DeleteLogin" },
         {
           id: "ImportFromBrowser",
           label: "passwords-command-import-from-browser",
@@ -181,6 +182,7 @@ export class LoginDataSource extends DataSourceBase {
       this.#header.executeHelp = () => this.#openLink(SUPPORT_URL);
       this.#header.executeAddLogin = newLogin => this.#addLogin(newLogin);
       this.#header.executeUpdateLogin = login => this.#updateLogin(login);
+      this.#header.executeDeleteLogin = login => this.#deleteLogin(login);
 
       this.#exportPasswordsStrings = {
         OSReauthMessage: strings.exportPasswordsOSReauthMessage,
@@ -643,6 +645,21 @@ export class LoginDataSource extends DataSourceBase {
         guid: existingLoginGuid,
       });
     }
+  }
+
+  async #deleteLogin(login) {
+    const logins = await Services.logins.searchLoginsAsync({
+      origin: login.origin,
+      guid: login.guid,
+    });
+    if (logins.length != 1) {
+      return;
+    }
+    Services.logins.removeLogin(logins[0]);
+    this.setNotification({
+      id: "delete-login-success",
+      viewMode: VIEW_MODES.LIST,
+    });
   }
 
   /**

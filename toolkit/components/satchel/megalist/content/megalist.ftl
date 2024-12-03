@@ -216,6 +216,10 @@ passwords-update-password-success-heading =
   .heading = Password saved
 passwords-update-password-success-button = Done
 
+passwords-delete-password-success-heading =
+  .heading = Password removed
+passwords-delete-password-success-button = Done
+#
 # Radiobutton label to display total number of passwords
 #   $total (number) - Total number of passwords
 passwords-radiobutton-all = All ({ $total })
@@ -223,6 +227,17 @@ passwords-radiobutton-all = All ({ $total })
 # Radiobutton label to display total number of alerts
 #   $total (number) - Total number of alerts
 passwords-radiobutton-alerts = Alerts ({ $total })
+
+# This message is displayed to make sure that a user wants to delete an existing login.
+passwords-remove-login-card-title = Remove password?
+# This message warns the user that deleting a login is permanent.
+passwords-remove-login-card-message = You can’t undo this.
+# This message gives the user an option to go back to the edit login form.
+passwords-remove-login-card-back-message = Back
+# This message confirms that the user wants to remove an existing login.
+passwords-remove-login-card-remove-button = Remove
+# This message gives the user the option to cancel their attempt to remove a login.
+passwords-remove-login-card-cancel-button = Cancel
 
 ## Login Form
 

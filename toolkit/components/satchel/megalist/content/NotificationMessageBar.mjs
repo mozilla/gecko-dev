@@ -186,6 +186,23 @@ class NotificationMessageBar extends MozLitElement {
     `;
   }
 
+  #renderDeleteLoginSuccess() {
+    return html`
+      ${notificationShell({
+        onDismiss: this.onDismiss,
+        dataL10nId: "passwords-delete-password-success-heading",
+        dataL10nAttrs: "heading",
+        type: "success",
+        primaryAction: {
+          type: "primary",
+          slot: "actions",
+          dataL10nId: "passwords-delete-password-success-button",
+          onClick: this.onDismiss,
+        },
+      })}
+    `;
+  }
+
   render() {
     switch (this.notification?.id) {
       case "import-success":
@@ -198,6 +215,8 @@ class NotificationMessageBar extends MozLitElement {
         return this.#renderAddLoginAlreadyExistsWarning();
       case "update-login-success":
         return this.#renderUpdateLoginSuccess();
+      case "delete-login-success":
+        return this.#renderDeleteLoginSuccess();
       default:
         return "";
     }

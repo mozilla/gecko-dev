@@ -19,12 +19,14 @@ export class LoginForm extends MozLitElement {
   static properties = {
     type: { type: String, reflect: true },
     onSaveClick: { type: Function },
+    onDeleteClick: { type: Function },
     onClose: { type: Function },
     originValue: { type: String },
     usernameValue: { type: String },
     passwordValue: { type: String },
     passwordVisible: { type: Boolean },
     onPasswordRevealClick: { type: Function },
+    _showDeleteCard: { type: Boolean, state: true },
   };
 
   static queries = {
@@ -41,6 +43,7 @@ export class LoginForm extends MozLitElement {
     this.originValue = "";
     this.usernameValue = "";
     this.passwordValue = "";
+    this._showDeleteCard = false;
     this.onPasswordRevealClick = () => {
       this.passwordVisible = !this.passwordVisible;
     };
@@ -100,7 +103,50 @@ export class LoginForm extends MozLitElement {
     this.onSaveClick(loginForm);
   }
 
+  #toggleDeleteCard() {
+    this._showDeleteCard = !this._showDeleteCard;
+  }
+
+  #renderDeleteCard() {
+    return html` <link
+        rel="stylesheet"
+        href="chrome://global/content/megalist/LoginFormComponent/login-form.css"
+      />
+      <moz-card class="remove-login-card">
+        <div class="remove-card-back">
+          <moz-button
+            type="icon ghost"
+            iconSrc="chrome://browser/skin/back.svg"
+            @click=${this.#toggleDeleteCard}
+          >
+          </moz-button>
+          <p data-l10n-id="passwords-remove-login-card-back-message"></p>
+        </div>
+        <div class="remove-card-text">
+          <h3 data-l10n-id="passwords-remove-login-card-title"></h3>
+          <p data-l10n-id="passwords-remove-login-card-message"></p>
+        </div>
+        <moz-button-group>
+          <moz-button
+            data-l10n-id="passwords-remove-login-card-cancel-button"
+            @click=${this.#toggleDeleteCard}
+          >
+          </moz-button>
+          <moz-button
+            type="destructive"
+            data-l10n-id="passwords-remove-login-card-remove-button"
+            @click=${this.onDeleteClick}
+          >
+          </moz-button>
+        </moz-button-group>
+      </moz-card>`;
+  }
+
   render() {
+    if (this._showDeleteCard) {
+      return this.#renderDeleteCard();
+    }
+
     const heading =
       this.type !== "edit" ? "passwords-create-label" : "passwords-edit-label";
 
@@ -117,6 +163,7 @@ export class LoginForm extends MozLitElement {
                 class="delete-login-button"
                 type="icon"
                 iconSrc="chrome://global/skin/icons/delete.svg"
+                @click=${this.#toggleDeleteCard}
               ></moz-button>
             </div>
           `
