@@ -34,15 +34,16 @@
 #include "gc/Tracer.h"            // TraceNullableRoot
 #include "js/CallArgs.h"          // JSNative
 #include "js/CompileOptions.h"  // JS::DecodeOptions, JS::ReadOnlyDecodeOptions
-#include "js/experimental/JSStencil.h"  // JS::Stencil
-#include "js/GCAPI.h"                   // JS::AutoCheckCannotGC
-#include "js/Printer.h"                 // js::Fprinter
-#include "js/RealmOptions.h"            // JS::RealmBehaviors
-#include "js/RootingAPI.h"              // Rooted
-#include "js/Transcoding.h"             // JS::TranscodeBuffer
-#include "js/Utility.h"                 // js_malloc, js_calloc, js_free
-#include "js/Value.h"                   // ObjectValue
-#include "js/WasmModule.h"              // JS::WasmModule
+#include "js/experimental/CompileScript.h"  // JS::PrepareForInstantiate
+#include "js/experimental/JSStencil.h"      // JS::Stencil
+#include "js/GCAPI.h"                       // JS::AutoCheckCannotGC
+#include "js/Printer.h"                     // js::Fprinter
+#include "js/RealmOptions.h"                // JS::RealmBehaviors
+#include "js/RootingAPI.h"                  // Rooted
+#include "js/Transcoding.h"                 // JS::TranscodeBuffer
+#include "js/Utility.h"                     // js_malloc, js_calloc, js_free
+#include "js/Value.h"                       // ObjectValue
+#include "js/WasmModule.h"                  // JS::WasmModule
 #include "vm/BigIntType.h"   // ParseBigIntLiteral, BigInt::createFromInt64
 #include "vm/BindingKind.h"  // BindingKind
 #include "vm/EnvironmentObject.h"
@@ -2955,6 +2956,20 @@ bool CompilationStencil::prepareForInstantiate(
     PreallocatedCompilationGCOutput& gcOutput) {
   return gcOutput.allocate(fc, stencil.scriptData.size(),
                            stencil.scopeData.size());
+}
+
+bool JS::PrepareForInstantiate(JS::FrontendContext* fc, JS::Stencil& stencil,
+                               JS::InstantiationStorage& storage) {
+  if (!storage.gcOutput_) {
+    storage.gcOutput_ =
+        fc->getAllocator()
+            ->new_<js::frontend::PreallocatedCompilationGCOutput>();
+    if (!storage.gcOutput_) {
+      return false;
+    }
+  }
+  return CompilationStencil::prepareForInstantiate(fc, stencil,
+                                                   *storage.gcOutput_);
 }
 
 ExtensibleCompilationStencil::ExtensibleCompilationStencil(ScriptSource* source)

@@ -6,9 +6,8 @@
 
 #include "js/experimental/CompileScript.h"
 
-#include "frontend/CompilationStencil.h"  // frontend::CompilationStencil
-#include "frontend/FrontendContext.h"     // frontend::FrontendContext
-#include "js/friend/StackLimits.h"        // js::StackLimitMargin
+#include "frontend/FrontendContext.h"  // frontend::FrontendContext
+#include "js/friend/StackLimits.h"     // js::StackLimitMargin
 
 using namespace js;
 using namespace js::frontend;
@@ -82,18 +81,4 @@ JS_PUBLIC_API const JSErrorReport* JS::GetFrontendWarningAt(
     JS::FrontendContext* fc, size_t index,
     const JS::ReadOnlyCompileOptions& options) {
   return &fc->warnings()[index];
-}
-
-bool JS::PrepareForInstantiate(JS::FrontendContext* fc, JS::Stencil& stencil,
-                               JS::InstantiationStorage& storage) {
-  if (!storage.gcOutput_) {
-    storage.gcOutput_ =
-        fc->getAllocator()
-            ->new_<js::frontend::PreallocatedCompilationGCOutput>();
-    if (!storage.gcOutput_) {
-      return false;
-    }
-  }
-  return CompilationStencil::prepareForInstantiate(fc, stencil,
-                                                   *storage.gcOutput_);
 }
