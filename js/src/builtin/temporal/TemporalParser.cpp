@@ -102,7 +102,7 @@ struct Annotation final {
 };
 
 struct TimeSpec final {
-  PlainTime time;
+  Time time;
 };
 
 struct TimeZoneUTCOffset final {
@@ -259,8 +259,8 @@ struct TimeZoneString final {
  * Struct to hold the parsed date, time, time zone, and calendar components.
  */
 struct ZonedDateTimeString final {
-  PlainDate date;
-  PlainTime time;
+  ISODate date;
+  Time time;
   TimeZoneString timeZone;
   CalendarName calendar;
   bool startOfDay;
@@ -288,10 +288,10 @@ static constexpr int32_t AbsentYear = INT32_MAX;
  * ParseISODateTime ( isoString )
  */
 static bool ParseISODateTime(JSContext* cx, const ZonedDateTimeString& parsed,
-                             PlainDateTime* result) {
+                             ISODateTime* result) {
   // Steps 1-7, 9, 11-16 (Not applicable here).
 
-  PlainDateTime dateTime = {parsed.date, parsed.time};
+  ISODateTime dateTime = {parsed.date, parsed.time};
 
   // NOTE: ToIntegerOrInfinity("") is 0.
   if (dateTime.date.year == AbsentYear) {
@@ -851,15 +851,15 @@ class TemporalParser final {
   mozilla::Result<mozilla::Maybe<int32_t>, ParserError> timeSecond(
       bool required);
 
-  mozilla::Result<PlainDate, ParserError> date();
+  mozilla::Result<ISODate, ParserError> date();
 
-  mozilla::Result<PlainTime, ParserError> time();
+  mozilla::Result<Time, ParserError> time();
 
   mozilla::Result<ZonedDateTimeString, ParserError> dateTime(bool allowZ);
 
-  mozilla::Result<PlainDate, ParserError> dateSpecYearMonth();
+  mozilla::Result<ISODate, ParserError> dateSpecYearMonth();
 
-  mozilla::Result<PlainDate, ParserError> dateSpecMonthDay();
+  mozilla::Result<ISODate, ParserError> dateSpecMonthDay();
 
   // Return true when |Annotation| can start at the current position.
   bool hasAnnotationStart() const { return hasCharacter('['); }
@@ -1129,7 +1129,7 @@ TemporalParser<CharT>::timeSecond(bool required) {
 }
 
 template <typename CharT>
-mozilla::Result<PlainDate, ParserError> TemporalParser<CharT>::date() {
+mozilla::Result<ISODate, ParserError> TemporalParser<CharT>::date() {
   // clang-format off
   //
   // Date :::
@@ -1141,7 +1141,7 @@ mozilla::Result<PlainDate, ParserError> TemporalParser<CharT>::date() {
   //
   // clang-format on
 
-  PlainDate result{};
+  ISODate result{};
 
   MOZ_TRY_VAR(result.year, dateYear());
 
@@ -1164,7 +1164,7 @@ mozilla::Result<PlainDate, ParserError> TemporalParser<CharT>::date() {
 }
 
 template <typename CharT>
-mozilla::Result<PlainTime, ParserError> TemporalParser<CharT>::time() {
+mozilla::Result<Time, ParserError> TemporalParser<CharT>::time() {
   // clang-format off
   //
   // Time :::
@@ -1178,7 +1178,7 @@ mozilla::Result<PlainTime, ParserError> TemporalParser<CharT>::time() {
   //
   // clang-format on
 
-  PlainTime result{};
+  Time result{};
 
   MOZ_TRY_VAR(result.hour, hour());
 
@@ -1511,7 +1511,7 @@ static auto ParseTemporalInstantString(Handle<JSLinearString*> str) {
  */
 bool js::temporal::ParseTemporalInstantString(JSContext* cx,
                                               Handle<JSString*> str,
-                                              PlainDateTime* result,
+                                              ISODateTime* result,
                                               int64_t* offset) {
   Rooted<JSLinearString*> linear(cx, str->ensureLinear(cx));
   if (!linear) {
@@ -1647,7 +1647,7 @@ bool js::temporal::ParseTemporalTimeZoneString(
   const auto& timeZone = parsed.timeZone;
 
   // Step 3.
-  PlainDateTime unused;
+  ISODateTime unused;
   if (!ParseISODateTime(cx, parsed, &unused)) {
     return false;
   }
@@ -2220,7 +2220,7 @@ TemporalParser<CharT>::annotatedTime() {
   if (!hasTimeDesignator) {
     size_t end = reader_.index();
 
-    auto isValidMonthDay = [](const PlainDate& date) {
+    auto isValidMonthDay = [](const ISODate& date) {
       MOZ_ASSERT(date.year == AbsentYear);
       MOZ_ASSERT(1 <= date.month && date.month <= 12);
       MOZ_ASSERT(1 <= date.day && date.day <= 31);
@@ -2366,13 +2366,13 @@ TemporalParser<CharT>::annotatedMonthDay() {
 }
 
 template <typename CharT>
-mozilla::Result<PlainDate, ParserError>
+mozilla::Result<ISODate, ParserError>
 TemporalParser<CharT>::dateSpecYearMonth() {
   // DateSpecYearMonth :::
   //   DateYear DateSeparator[+Extended] DateMonth
   //   DateYear DateSeparator[~Extended] DateMonth
 
-  PlainDate result{};
+  ISODate result{};
 
   MOZ_TRY_VAR(result.year, dateYear());
 
@@ -2385,13 +2385,13 @@ TemporalParser<CharT>::dateSpecYearMonth() {
 }
 
 template <typename CharT>
-mozilla::Result<PlainDate, ParserError>
+mozilla::Result<ISODate, ParserError>
 TemporalParser<CharT>::dateSpecMonthDay() {
   // DateSpecMonthDay :::
   //   --? DateMonth DateSeparator[+Extended] DateDay
   //   --? DateMonth DateSeparator[~Extended] DateDay
 
-  PlainDate result{};
+  ISODate result{};
 
   // Optional: --
   string("--");
@@ -2507,7 +2507,7 @@ JSLinearString* js::temporal::ParseTemporalCalendarString(
   }
   ZonedDateTimeString parsed = parseResult.unwrap();
 
-  PlainDateTime unused;
+  ISODateTime unused;
   if (!ParseISODateTime(cx, parsed, &unused)) {
     return nullptr;
   }
@@ -2562,7 +2562,7 @@ static auto ParseTemporalTimeString(Handle<JSLinearString*> str) {
  * ParseTemporalTimeString ( isoString )
  */
 bool js::temporal::ParseTemporalTimeString(JSContext* cx, Handle<JSString*> str,
-                                           PlainTime* result) {
+                                           Time* result) {
   Rooted<JSLinearString*> linear(cx, str->ensureLinear(cx));
   if (!linear) {
     return false;
@@ -2578,7 +2578,7 @@ bool js::temporal::ParseTemporalTimeString(JSContext* cx, Handle<JSString*> str,
   ZonedDateTimeString parsed = parseResult.unwrap();
 
   // Step 3.
-  PlainDateTime dateTime;
+  ISODateTime dateTime;
   if (!ParseISODateTime(cx, parsed, &dateTime)) {
     return false;
   }
@@ -2639,7 +2639,7 @@ static auto ParseTemporalMonthDayString(Handle<JSLinearString*> str) {
  * ParseTemporalMonthDayString ( isoString )
  */
 bool js::temporal::ParseTemporalMonthDayString(
-    JSContext* cx, Handle<JSString*> str, PlainDate* result, bool* hasYear,
+    JSContext* cx, Handle<JSString*> str, ISODate* result, bool* hasYear,
     MutableHandle<JSString*> calendar) {
   Rooted<JSLinearString*> linear(cx, str->ensureLinear(cx));
   if (!linear) {
@@ -2656,7 +2656,7 @@ bool js::temporal::ParseTemporalMonthDayString(
   ZonedDateTimeString parsed = parseResult.unwrap();
 
   // Step 3.
-  PlainDateTime dateTime;
+  ISODateTime dateTime;
   if (!ParseISODateTime(cx, parsed, &dateTime)) {
     return false;
   }
@@ -2725,7 +2725,7 @@ static auto ParseTemporalYearMonthString(Handle<JSLinearString*> str) {
  * ParseTemporalYearMonthString ( isoString )
  */
 bool js::temporal::ParseTemporalYearMonthString(
-    JSContext* cx, Handle<JSString*> str, PlainDate* result,
+    JSContext* cx, Handle<JSString*> str, ISODate* result,
     MutableHandle<JSString*> calendar) {
   Rooted<JSLinearString*> linear(cx, str->ensureLinear(cx));
   if (!linear) {
@@ -2742,7 +2742,7 @@ bool js::temporal::ParseTemporalYearMonthString(
   ZonedDateTimeString parsed = parseResult.unwrap();
 
   // Step 3.
-  PlainDateTime dateTime;
+  ISODateTime dateTime;
   if (!ParseISODateTime(cx, parsed, &dateTime)) {
     return false;
   }
@@ -2791,7 +2791,7 @@ static auto ParseTemporalDateTimeString(Handle<JSLinearString*> str) {
  * ParseTemporalDateTimeString ( isoString )
  */
 bool js::temporal::ParseTemporalDateTimeString(
-    JSContext* cx, Handle<JSString*> str, PlainDateTime* result,
+    JSContext* cx, Handle<JSString*> str, ISODateTime* result,
     MutableHandle<JSString*> calendar) {
   Rooted<JSLinearString*> linear(cx, str->ensureLinear(cx));
   if (!linear) {
@@ -2897,7 +2897,7 @@ bool js::temporal::ParseTemporalZonedDateTimeString(
   }
 
   // Step 2. (ParseISODateTime, steps 4-21.)
-  PlainDateTime dateTime;
+  ISODateTime dateTime;
   if (!ParseISODateTime(cx, parsed, &dateTime)) {
     return false;
   }
@@ -3041,7 +3041,7 @@ bool js::temporal::ParseTemporalRelativeToString(
   }
 
   // Step 4. (ParseISODateTime, steps 1-18.)
-  PlainDateTime dateTime;
+  ISODateTime dateTime;
   if (!ParseISODateTime(cx, parsed, &dateTime)) {
     return false;
   }

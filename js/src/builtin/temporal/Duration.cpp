@@ -1605,7 +1605,7 @@ bool js::temporal::BalanceTimeDuration(JSContext* cx,
  * DateDurationDays ( dateDuration, plainRelativeTo )
  */
 static bool DateDurationDays(JSContext* cx, const DateDuration& duration,
-                             Handle<PlainDateWithCalendar> plainRelativeTo,
+                             Handle<PlainDate> plainRelativeTo,
                              int64_t* result) {
   MOZ_ASSERT(IsValidDuration(duration));
 
@@ -1629,7 +1629,7 @@ static bool DateDurationDays(JSContext* cx, const DateDuration& duration,
   }
 
   // Step 3.
-  PlainDate later;
+  ISODate later;
   if (!CalendarDateAdd(cx, plainRelativeTo.calendar(), plainRelativeTo,
                        yearsMonthsWeeksDuration, TemporalOverflow::Constrain,
                        &later)) {
@@ -1889,10 +1889,10 @@ static JSString* TemporalDurationToString(JSContext* cx,
  */
 static bool GetTemporalRelativeToOption(
     JSContext* cx, Handle<JSObject*> options,
-    MutableHandle<PlainDateWithCalendar> plainRelativeTo,
+    MutableHandle<PlainDate> plainRelativeTo,
     MutableHandle<ZonedDateTime> zonedRelativeTo) {
   // Default initialize both return values.
-  plainRelativeTo.set(PlainDateWithCalendar{});
+  plainRelativeTo.set(PlainDate{});
   zonedRelativeTo.set(ZonedDateTime{});
 
   // Step 1.
@@ -1946,7 +1946,7 @@ static bool GetTemporalRelativeToOption(
         return false;
       }
 
-      plainRelativeTo.set(PlainDateWithCalendar{date, calendar});
+      plainRelativeTo.set(PlainDate{date, calendar});
       return true;
     }
 
@@ -1960,7 +1960,7 @@ static bool GetTemporalRelativeToOption(
       }
 
       // Steps 5.c.i-ii.
-      plainRelativeTo.set(PlainDateWithCalendar{date, calendar});
+      plainRelativeTo.set(PlainDate{date, calendar});
       return true;
     }
 
@@ -1991,7 +1991,7 @@ static bool GetTemporalRelativeToOption(
     }
 
     // Step 5.f.
-    PlainDateTime dateTime;
+    ISODateTime dateTime;
     if (!InterpretTemporalDateTimeFields(
             cx, calendar, fields, TemporalOverflow::Constrain, &dateTime)) {
       return false;
@@ -2471,7 +2471,7 @@ struct DurationNudge {
  */
 static bool NudgeToCalendarUnit(
     JSContext* cx, const NormalizedDuration& duration,
-    const Instant& destEpochNs, const PlainDateTime& dateTime,
+    const Instant& destEpochNs, const ISODateTime& dateTime,
     Handle<TimeZoneValue> timeZone, Handle<CalendarValue> calendar,
     Increment increment, TemporalUnit unit, TemporalRoundingMode roundingMode,
     DurationNudge* result) {
@@ -2524,7 +2524,7 @@ static bool NudgeToCalendarUnit(
     auto yearsMonths = DateDuration{duration.date.years, duration.date.months};
 
     // Step 3.b.
-    PlainDate weeksStart;
+    ISODate weeksStart;
     if (!CalendarDateAdd(cx, calendar, dateTime.date, yearsMonths,
                          TemporalOverflow::Constrain, &weeksStart)) {
       return false;
@@ -2532,7 +2532,7 @@ static bool NudgeToCalendarUnit(
     MOZ_ASSERT(ISODateWithinLimits(weeksStart));
 
     // Step 3.c.
-    PlainDate weeksEnd;
+    ISODate weeksEnd;
     if (!BalanceISODate(cx, weeksStart, duration.date.days, &weeksEnd)) {
       return false;
     }
@@ -2593,14 +2593,14 @@ static bool NudgeToCalendarUnit(
   // FIXME: spec bug - missing `oveflow` parameter
 
   // Steps 7-8.
-  PlainDate start;
+  ISODate start;
   if (!CalendarDateAdd(cx, calendar, dateTime.date, startDuration,
                        TemporalOverflow::Constrain, &start)) {
     return false;
   }
 
   // Steps 9-10.
-  PlainDate end;
+  ISODate end;
   if (!CalendarDateAdd(cx, calendar, dateTime.date, endDuration,
                        TemporalOverflow::Constrain, &end)) {
     return false;
@@ -2617,7 +2617,7 @@ static bool NudgeToCalendarUnit(
     endEpochNs = GetUTCEpochNanoseconds({end, dateTime.time});
   } else {
     // Step 12.a.
-    auto startDateTime = PlainDateTime{start, dateTime.time};
+    auto startDateTime = ISODateTime{start, dateTime.time};
     MOZ_ASSERT(ISODateTimeWithinLimits(startDateTime));
 
     // Steps 12.b-c.
@@ -2627,7 +2627,7 @@ static bool NudgeToCalendarUnit(
     }
 
     // Step 12.d.
-    auto endDateTime = PlainDateTime{end, dateTime.time};
+    auto endDateTime = ISODateTime{end, dateTime.time};
     MOZ_ASSERT(ISODateTimeWithinLimits(endDateTime));
 
     // Steps 12.e-f.
@@ -2747,7 +2747,7 @@ static bool NudgeToCalendarUnit(
  * unit, roundingMode )
  */
 static bool NudgeToZonedTime(JSContext* cx, const NormalizedDuration& duration,
-                             const PlainDateTime& dateTime,
+                             const ISODateTime& dateTime,
                              Handle<TimeZoneValue> timeZone,
                              Handle<CalendarValue> calendar,
                              Increment increment, TemporalUnit unit,
@@ -2764,21 +2764,21 @@ static bool NudgeToZonedTime(JSContext* cx, const NormalizedDuration& duration,
   // FIXME: spec bug - missing `oveflow` parameter
 
   // Steps 2-3.
-  PlainDate start;
+  ISODate start;
   if (!CalendarDateAdd(cx, calendar, dateTime.date, duration.date,
                        TemporalOverflow::Constrain, &start)) {
     return false;
   }
 
   // Step 4.
-  auto startDateTime = PlainDateTime{start, dateTime.time};
+  auto startDateTime = ISODateTime{start, dateTime.time};
   MOZ_ASSERT(ISODateTimeWithinLimits(startDateTime));
 
   // Step 5.
   auto end = BalanceISODate(start, sign);
 
   // Step 6.
-  PlainDateTime endDateTime;
+  ISODateTime endDateTime;
   if (!CreateTemporalDateTime(cx, end, dateTime.time, &endDateTime)) {
     return false;
   }
@@ -2977,7 +2977,7 @@ static bool NudgeToDayOrTime(JSContext* cx, const NormalizedDuration& duration,
  */
 static bool BubbleRelativeDuration(
     JSContext* cx, const NormalizedDuration& duration,
-    const DurationNudge& nudge, const PlainDateTime& dateTime,
+    const DurationNudge& nudge, const ISODateTime& dateTime,
     Handle<TimeZoneValue> timeZone, Handle<CalendarValue> calendar,
     TemporalUnit largestUnit, TemporalUnit smallestUnit,
     NormalizedDuration* result) {
@@ -3041,14 +3041,14 @@ static bool BubbleRelativeDuration(
       MOZ_ASSERT(IsValidDuration(endDuration));
 
       // Steps 6.b.iv.
-      PlainDate end;
+      ISODate end;
       if (!CalendarDateAdd(cx, calendar, dateTime.date, endDuration,
                            TemporalOverflow::Constrain, &end)) {
         return false;
       }
 
       // Steps 6.b.v.
-      auto endDateTime = PlainDateTime{end, dateTime.time};
+      auto endDateTime = ISODateTime{end, dateTime.time};
       MOZ_ASSERT(ISODateTimeWithinLimits(endDateTime));
 
       // Steps 6.b.vi-vii.
@@ -3095,7 +3095,7 @@ static bool BubbleRelativeDuration(
  */
 bool js::temporal::RoundRelativeDuration(
     JSContext* cx, const NormalizedDuration& duration,
-    const Instant& destEpochNs, const PlainDateTime& dateTime,
+    const Instant& destEpochNs, const ISODateTime& dateTime,
     Handle<TimeZoneValue> timeZone, Handle<CalendarValue> calendar,
     TemporalUnit largestUnit, Increment increment, TemporalUnit smallestUnit,
     TemporalRoundingMode roundingMode, RoundedRelativeDuration* result) {
@@ -3381,7 +3381,7 @@ static bool Duration_compare(JSContext* cx, unsigned argc, Value* vp) {
   }
 
   // Steps 3-4.
-  Rooted<PlainDateWithCalendar> plainRelativeTo(cx);
+  Rooted<PlainDate> plainRelativeTo(cx);
   Rooted<ZonedDateTime> zonedRelativeTo(cx);
   if (args.hasDefined(2)) {
     // Step 3.
@@ -3832,7 +3832,7 @@ static bool Duration_round(JSContext* cx, const CallArgs& args) {
   TemporalUnit largestUnit;
   auto roundingMode = TemporalRoundingMode::HalfExpand;
   auto roundingIncrement = Increment{1};
-  Rooted<PlainDateWithCalendar> plainRelativeTo(cx);
+  Rooted<PlainDate> plainRelativeTo(cx);
   Rooted<ZonedDateTime> zonedRelativeTo(cx);
   if (args.get(0).isString()) {
     // Step 4. (Not applicable in our implementation.)
@@ -4055,7 +4055,7 @@ static bool Duration_round(JSContext* cx, const CallArgs& args) {
     }
   } else if (plainRelativeTo) {
     // Step 36.a.
-    auto targetTime = AddTime(PlainTime{}, normDuration.time);
+    auto targetTime = AddTime(Time{}, normDuration.time);
 
     // Step 36.b.
     auto dateDuration = DateDuration{
@@ -4067,7 +4067,7 @@ static bool Duration_round(JSContext* cx, const CallArgs& args) {
     MOZ_ASSERT(IsValidDuration(dateDuration));
 
     // Step 36.c.
-    PlainDate targetDate;
+    ISODate targetDate;
     if (!CalendarDateAdd(cx, plainRelativeTo.calendar(), plainRelativeTo,
                          dateDuration, TemporalOverflow::Constrain,
                          &targetDate)) {
@@ -4075,8 +4075,8 @@ static bool Duration_round(JSContext* cx, const CallArgs& args) {
     }
 
     // Steps 36.d-e.
-    auto sourceDateTime = PlainDateTime{plainRelativeTo, {}};
-    auto targetDateTime = PlainDateTime{targetDate, targetTime.time};
+    auto sourceDateTime = ISODateTime{plainRelativeTo, {}};
+    auto targetDateTime = ISODateTime{targetDate, targetTime.time};
 
     // FIXME: spec bug - date-time can be out-of-range.
     if (!ISODateTimeWithinLimits(sourceDateTime) ||
@@ -4165,7 +4165,7 @@ static bool Duration_total(JSContext* cx, const CallArgs& args) {
   auto duration = ToDuration(durationObj);
 
   // Steps 3-10.
-  Rooted<PlainDateWithCalendar> plainRelativeTo(cx);
+  Rooted<PlainDate> plainRelativeTo(cx);
   Rooted<ZonedDateTime> zonedRelativeTo(cx);
   auto unit = TemporalUnit::Auto;
   if (args.get(0).isString()) {
@@ -4229,7 +4229,7 @@ static bool Duration_total(JSContext* cx, const CallArgs& args) {
     }
   } else if (plainRelativeTo) {
     // Step 15.a.
-    auto targetTime = AddTime(PlainTime{}, normDuration.time);
+    auto targetTime = AddTime(Time{}, normDuration.time);
 
     // Step 15.b.
     auto dateDuration = DateDuration{
@@ -4241,7 +4241,7 @@ static bool Duration_total(JSContext* cx, const CallArgs& args) {
     MOZ_ASSERT(IsValidDuration(dateDuration));
 
     // Step 15.c.
-    PlainDate targetDate;
+    ISODate targetDate;
     if (!CalendarDateAdd(cx, plainRelativeTo.calendar(), plainRelativeTo,
                          dateDuration, TemporalOverflow::Constrain,
                          &targetDate)) {
@@ -4249,8 +4249,8 @@ static bool Duration_total(JSContext* cx, const CallArgs& args) {
     }
 
     // Step 15.d.
-    auto sourceDateTime = PlainDateTime{plainRelativeTo, {}};
-    auto targetDateTime = PlainDateTime{targetDate, targetTime.time};
+    auto sourceDateTime = ISODateTime{plainRelativeTo, {}};
+    auto targetDateTime = ISODateTime{targetDate, targetTime.time};
 
     // FIXME: spec bug - date-time can be out-of-range.
     if (!ISODateTimeWithinLimits(sourceDateTime) ||

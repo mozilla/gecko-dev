@@ -34,7 +34,7 @@ class PlainYearMonthObject : public NativeObject {
   /**
    * Extract the date fields from this PlainYearMonth object.
    */
-  PlainDate date() const {
+  ISODate date() const {
     auto packed = PackedDate{getFixedSlot(PACKED_DATE_SLOT).toPrivateUint32()};
     return PackedDate::unpack(packed);
   }
@@ -50,29 +50,28 @@ class PlainYearMonthObject : public NativeObject {
 /**
  * ISOYearMonthWithinLimits ( isoDate )
  */
-bool ISOYearMonthWithinLimits(const PlainDate& isoDate);
+bool ISOYearMonthWithinLimits(const ISODate& isoDate);
 
-class MOZ_STACK_CLASS PlainYearMonthWithCalendar final {
-  PlainDate date_;
+class MOZ_STACK_CLASS PlainYearMonth final {
+  ISODate date_;
   CalendarValue calendar_;
 
  public:
-  PlainYearMonthWithCalendar() = default;
+  PlainYearMonth() = default;
 
-  PlainYearMonthWithCalendar(const PlainDate& date,
-                             const CalendarValue& calendar)
+  PlainYearMonth(const ISODate& date, const CalendarValue& calendar)
       : date_(date), calendar_(calendar) {
     MOZ_ASSERT(ISOYearMonthWithinLimits(date));
   }
 
-  explicit PlainYearMonthWithCalendar(const PlainYearMonthObject* yearMonth)
-      : PlainYearMonthWithCalendar(yearMonth->date(), yearMonth->calendar()) {}
+  explicit PlainYearMonth(const PlainYearMonthObject* yearMonth)
+      : PlainYearMonth(yearMonth->date(), yearMonth->calendar()) {}
 
   const auto& date() const { return date_; }
   const auto& calendar() const { return calendar_; }
 
-  // Allow implicit conversion to a calendar-less PlainDate.
-  operator const PlainDate&() const { return date(); }
+  // Allow implicit conversion to an ISODate.
+  operator const ISODate&() const { return date(); }
 
   void trace(JSTracer* trc) { calendar_.trace(trc); }
 
@@ -83,21 +82,21 @@ class MOZ_STACK_CLASS PlainYearMonthWithCalendar final {
  * CreateTemporalYearMonth ( isoDate, calendar [ , newTarget ] )
  */
 PlainYearMonthObject* CreateTemporalYearMonth(
-    JSContext* cx, JS::Handle<PlainYearMonthWithCalendar> yearMonth);
+    JSContext* cx, JS::Handle<PlainYearMonth> yearMonth);
 
 /**
  * CreateTemporalYearMonth ( isoDate, calendar [ , newTarget ] )
  */
-bool CreateTemporalYearMonth(
-    JSContext* cx, const PlainDate& isoDate, JS::Handle<CalendarValue> calendar,
-    JS::MutableHandle<PlainYearMonthWithCalendar> result);
+bool CreateTemporalYearMonth(JSContext* cx, const ISODate& isoDate,
+                             JS::Handle<CalendarValue> calendar,
+                             JS::MutableHandle<PlainYearMonth> result);
 
 } /* namespace js::temporal */
 
 namespace js {
 
 template <typename Wrapper>
-class WrappedPtrOperations<temporal::PlainYearMonthWithCalendar, Wrapper> {
+class WrappedPtrOperations<temporal::PlainYearMonth, Wrapper> {
   const auto& container() const {
     return static_cast<const Wrapper*>(this)->get();
   }
@@ -110,8 +109,8 @@ class WrappedPtrOperations<temporal::PlainYearMonthWithCalendar, Wrapper> {
         container().calendarDoNotUse());
   }
 
-  // Allow implicit conversion to a calendar-less PlainDate.
-  operator const temporal::PlainDate&() const { return date(); }
+  // Allow implicit conversion to an ISODate.
+  operator const temporal::ISODate&() const { return date(); }
 };
 
 }  // namespace js

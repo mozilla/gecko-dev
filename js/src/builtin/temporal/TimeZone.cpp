@@ -254,7 +254,7 @@ static JSLinearString* ValidateAndCanonicalizeTimeZoneName(
  */
 static bool GetNamedTimeZoneEpochNanoseconds(JSContext* cx,
                                              Handle<TimeZoneValue> timeZone,
-                                             const PlainDateTime& dateTime,
+                                             const ISODateTime& dateTime,
                                              PossibleInstants* instants) {
   MOZ_ASSERT(!timeZone.isOffset());
   MOZ_ASSERT(IsValidISODateTime(dateTime));
@@ -452,9 +452,9 @@ bool js::temporal::GetNamedTimeZonePreviousTransition(
  * GetStartOfDay ( timeZone, isoDate )
  */
 bool js::temporal::GetStartOfDay(JSContext* cx, Handle<TimeZoneValue> timeZone,
-                                 const PlainDate& date, Instant* result) {
+                                 const ISODate& date, Instant* result) {
   // Step 1.
-  auto dateTime = PlainDateTime{date, {}};
+  auto dateTime = ISODateTime{date, {}};
 
   // Step 2.
   PossibleInstants possibleInstants;
@@ -803,7 +803,7 @@ bool js::temporal::TimeZoneEquals(const TimeZoneValue& one,
 /**
  * GetISOPartsFromEpoch ( epochNanoseconds )
  */
-static PlainDateTime GetISOPartsFromEpoch(const Instant& instant) {
+static ISODateTime GetISOPartsFromEpoch(const Instant& instant) {
   // Step 1.
   MOZ_ASSERT(IsValidEpochInstant(instant));
 
@@ -831,7 +831,7 @@ static PlainDateTime GetISOPartsFromEpoch(const Instant& instant) {
   int32_t nanosecond = remainderNs % 1000;
 
   // Step 13.
-  PlainDateTime result = {
+  ISODateTime result = {
       {year, month + 1, day},
       {hour, minute, second, millisecond, microsecond, nanosecond}};
 
@@ -846,8 +846,8 @@ static PlainDateTime GetISOPartsFromEpoch(const Instant& instant) {
  * BalanceISODateTime ( year, month, day, hour, minute, second, millisecond,
  * microsecond, nanosecond )
  */
-static PlainDateTime BalanceISODateTime(const PlainDateTime& dateTime,
-                                        int64_t nanoseconds) {
+static ISODateTime BalanceISODateTime(const ISODateTime& dateTime,
+                                      int64_t nanoseconds) {
   MOZ_ASSERT(IsValidISODateTime(dateTime));
   MOZ_ASSERT(ISODateTimeWithinLimits(dateTime));
   MOZ_ASSERT(std::abs(nanoseconds) < ToNanoseconds(TemporalUnit::Day));
@@ -868,8 +868,8 @@ static PlainDateTime BalanceISODateTime(const PlainDateTime& dateTime,
 /**
  * GetISODateTimeFor ( timeZone, epochNs )
  */
-PlainDateTime js::temporal::GetISODateTimeFor(const Instant& instant,
-                                              int64_t offsetNanoseconds) {
+ISODateTime js::temporal::GetISODateTimeFor(const Instant& instant,
+                                            int64_t offsetNanoseconds) {
   MOZ_ASSERT(IsValidEpochInstant(instant));
   MOZ_ASSERT(std::abs(offsetNanoseconds) < ToNanoseconds(TemporalUnit::Day));
 
@@ -878,7 +878,7 @@ PlainDateTime js::temporal::GetISODateTimeFor(const Instant& instant,
   // TODO: Steps 2-3 can be combined into a single operation to improve perf.
 
   // Step 2.
-  PlainDateTime dateTime = GetISOPartsFromEpoch(instant);
+  ISODateTime dateTime = GetISOPartsFromEpoch(instant);
 
   // Step 3.
   auto balanced = BalanceISODateTime(dateTime, offsetNanoseconds);
@@ -893,7 +893,7 @@ PlainDateTime js::temporal::GetISODateTimeFor(const Instant& instant,
 bool js::temporal::GetISODateTimeFor(JSContext* cx,
                                      Handle<TimeZoneValue> timeZone,
                                      const Instant& instant,
-                                     PlainDateTime* result) {
+                                     ISODateTime* result) {
   MOZ_ASSERT(IsValidEpochInstant(instant));
 
   // Step 1.
@@ -913,7 +913,7 @@ bool js::temporal::GetISODateTimeFor(JSContext* cx,
  */
 bool js::temporal::GetPossibleInstantsFor(JSContext* cx,
                                           Handle<TimeZoneValue> timeZone,
-                                          const PlainDateTime& dateTime,
+                                          const ISODateTime& dateTime,
                                           PossibleInstants* result) {
   // TODO: https://github.com/tc39/proposal-temporal/pull/3014
   if (!ISODateTimeWithinLimits(dateTime)) {
@@ -964,7 +964,7 @@ bool js::temporal::GetPossibleInstantsFor(JSContext* cx,
  * AddTime ( hour, minute, second, millisecond, microsecond, nanosecond, hours,
  * minutes, seconds, milliseconds, microseconds, nanoseconds )
  */
-static auto AddTime(const PlainTime& time, int64_t nanoseconds) {
+static auto AddTime(const Time& time, int64_t nanoseconds) {
   MOZ_ASSERT(IsValidTime(time));
   MOZ_ASSERT(std::abs(nanoseconds) <= ToNanoseconds(TemporalUnit::Day));
 
@@ -978,7 +978,7 @@ static auto AddTime(const PlainTime& time, int64_t nanoseconds) {
  */
 bool js::temporal::DisambiguatePossibleInstants(
     JSContext* cx, const PossibleInstants& possibleInstants,
-    Handle<TimeZoneValue> timeZone, const PlainDateTime& dateTime,
+    Handle<TimeZoneValue> timeZone, const ISODateTime& dateTime,
     TemporalDisambiguation disambiguation, Instant* result) {
   // Steps 3-4.
   if (possibleInstants.length() == 1) {
@@ -1079,7 +1079,7 @@ bool js::temporal::DisambiguatePossibleInstants(
     auto earlierDate = BalanceISODate(dateTime.date, earlierTime.days);
 
     // Step 19.d.
-    auto earlierDateTime = PlainDateTime{earlierDate, earlierTime.time};
+    auto earlierDateTime = ISODateTime{earlierDate, earlierTime.time};
 
     // Step 19.e.
     PossibleInstants earlierInstants;
@@ -1113,7 +1113,7 @@ bool js::temporal::DisambiguatePossibleInstants(
   auto laterDate = BalanceISODate(dateTime.date, laterTime.days);
 
   // Step 24.
-  auto laterDateTime = PlainDateTime{laterDate, laterTime.time};
+  auto laterDateTime = ISODateTime{laterDate, laterTime.time};
 
   // Step 25.
   PossibleInstants laterInstants;
@@ -1137,7 +1137,7 @@ bool js::temporal::DisambiguatePossibleInstants(
  * GetInstantFor ( timeZoneRec, dateTime, disambiguation )
  */
 bool js::temporal::GetInstantFor(JSContext* cx, Handle<TimeZoneValue> timeZone,
-                                 const PlainDateTime& dateTime,
+                                 const ISODateTime& dateTime,
                                  TemporalDisambiguation disambiguation,
                                  Instant* result) {
   // Step 1.

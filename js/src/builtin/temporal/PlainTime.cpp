@@ -117,7 +117,7 @@ static bool IsValidTime(T hour, T minute, T second, T millisecond,
 /**
  * IsValidTime ( hour, minute, second, millisecond, microsecond, nanosecond )
  */
-bool js::temporal::IsValidTime(const PlainTime& time) {
+bool js::temporal::IsValidTime(const Time& time) {
   const auto& [hour, minute, second, millisecond, microsecond, nanosecond] =
       time;
   return ::IsValidTime(hour, minute, second, millisecond, microsecond,
@@ -214,7 +214,7 @@ static bool ThrowIfInvalidTime(JSContext* cx, T hour, T minute, T second,
 /**
  * IsValidTime ( hour, minute, second, millisecond, microsecond, nanosecond )
  */
-bool js::temporal::ThrowIfInvalidTime(JSContext* cx, const PlainTime& time) {
+bool js::temporal::ThrowIfInvalidTime(JSContext* cx, const Time& time) {
   const auto& [hour, minute, second, millisecond, microsecond, nanosecond] =
       time;
   return ::ThrowIfInvalidTime(cx, hour, minute, second, millisecond,
@@ -236,7 +236,7 @@ bool js::temporal::ThrowIfInvalidTime(JSContext* cx, double hour, double minute,
  * overflow )
  */
 bool js::temporal::RegulateTime(JSContext* cx, const TemporalTimeLike& time,
-                                TemporalOverflow overflow, PlainTime* result) {
+                                TemporalOverflow overflow, Time* result) {
   auto [hour, minute, second, millisecond, microsecond, nanosecond] = time;
   MOZ_ASSERT(IsInteger(hour));
   MOZ_ASSERT(IsInteger(minute));
@@ -287,7 +287,7 @@ bool js::temporal::RegulateTime(JSContext* cx, const TemporalTimeLike& time,
  * CreateTemporalTime ( time [ , newTarget ] )
  */
 static PlainTimeObject* CreateTemporalTime(JSContext* cx, const CallArgs& args,
-                                           const PlainTime& time) {
+                                           const Time& time) {
   MOZ_ASSERT(IsValidTime(time));
 
   // Steps 1-2.
@@ -316,7 +316,7 @@ static PlainTimeObject* CreateTemporalTime(JSContext* cx, const CallArgs& args,
  * CreateTemporalTime ( time [ , newTarget ] )
  */
 PlainTimeObject* js::temporal::CreateTemporalTime(JSContext* cx,
-                                                  const PlainTime& time) {
+                                                  const Time& time) {
   MOZ_ASSERT(IsValidTime(time));
 
   // Steps 1-2.
@@ -359,7 +359,7 @@ static TimeRecord BalanceTime(IntT hour, IntT minute, IntT second,
     return quotient;
   };
 
-  PlainTime time = {};
+  Time time = {};
 
   // Steps 1-2.
   microsecond += divmod(nanosecond, 1000, &time.nanosecond);
@@ -404,8 +404,7 @@ static TimeRecord BalanceTime(int32_t hour, int32_t minute, int32_t second,
 /**
  * BalanceTime ( hour, minute, second, millisecond, microsecond, nanosecond )
  */
-TimeRecord js::temporal::BalanceTime(const PlainTime& time,
-                                     int64_t nanoseconds) {
+TimeRecord js::temporal::BalanceTime(const Time& time, int64_t nanoseconds) {
   MOZ_ASSERT(IsValidTime(time));
   MOZ_ASSERT(std::abs(nanoseconds) <= ToNanoseconds(TemporalUnit::Day));
 
@@ -417,8 +416,8 @@ TimeRecord js::temporal::BalanceTime(const PlainTime& time,
 /**
  * DifferenceTime ( time1, time2 )
  */
-NormalizedTimeDuration js::temporal::DifferenceTime(const PlainTime& time1,
-                                                    const PlainTime& time2) {
+NormalizedTimeDuration js::temporal::DifferenceTime(const Time& time1,
+                                                    const Time& time2) {
   MOZ_ASSERT(IsValidTime(time1));
   MOZ_ASSERT(IsValidTime(time2));
 
@@ -560,7 +559,7 @@ static bool ToTemporalTimeOptions(JSContext* cx, Handle<Value> options,
  * ToTemporalTime ( item [ , options ] )
  */
 static bool ToTemporalTime(JSContext* cx, Handle<JSObject*> item,
-                           Handle<Value> options, PlainTime* result) {
+                           Handle<Value> options, Time* result) {
   // Step 2.a.
   if (auto* time = item->maybeUnwrapIf<PlainTimeObject>()) {
     // Steps 2.a.i-ii.
@@ -597,7 +596,7 @@ static bool ToTemporalTime(JSContext* cx, Handle<JSObject*> item,
     }
 
     // Steps 2.c.i.
-    PlainDateTime dateTime;
+    ISODateTime dateTime;
     if (!GetISODateTimeFor(cx, timeZone, epochInstant, &dateTime)) {
       return false;
     }
@@ -634,7 +633,7 @@ static bool ToTemporalTime(JSContext* cx, Handle<JSObject*> item,
  * ToTemporalTime ( item [ , options ] )
  */
 static bool ToTemporalTime(JSContext* cx, Handle<Value> item,
-                           Handle<Value> options, PlainTime* result) {
+                           Handle<Value> options, Time* result) {
   // Step 1. (Not applicable in our implementation.)
 
   // Step 2.
@@ -671,15 +670,14 @@ static bool ToTemporalTime(JSContext* cx, Handle<Value> item,
  * ToTemporalTime ( item [ , options ] )
  */
 bool js::temporal::ToTemporalTime(JSContext* cx, Handle<Value> item,
-                                  PlainTime* result) {
+                                  Time* result) {
   return ToTemporalTime(cx, item, UndefinedHandleValue, result);
 }
 
 /**
  * CompareTimeRecord ( time1, time2 )
  */
-int32_t js::temporal::CompareTimeRecord(const PlainTime& one,
-                                        const PlainTime& two) {
+int32_t js::temporal::CompareTimeRecord(const Time& one, const Time& two) {
   // Steps 1-2.
   if (int32_t diff = one.hour - two.hour) {
     return diff < 0 ? -1 : 1;
@@ -714,7 +712,7 @@ int32_t js::temporal::CompareTimeRecord(const PlainTime& one,
   return 0;
 }
 
-static int64_t TimeToNanos(const PlainTime& time) {
+static int64_t TimeToNanos(const Time& time) {
   // No overflow possible because the input is a valid time.
   MOZ_ASSERT(IsValidTime(time));
 
@@ -732,7 +730,7 @@ static int64_t TimeToNanos(const PlainTime& time) {
 /**
  * RoundTime ( time, increment, unit, roundingMode )
  */
-TimeRecord js::temporal::RoundTime(const PlainTime& time, Increment increment,
+TimeRecord js::temporal::RoundTime(const Time& time, Increment increment,
                                    TemporalUnit unit,
                                    TemporalRoundingMode roundingMode) {
   MOZ_ASSERT(IsValidTime(time));
@@ -745,7 +743,7 @@ TimeRecord js::temporal::RoundTime(const PlainTime& time, Increment increment,
   auto [hour, minute, second, millisecond, microsecond, nanosecond] = time;
 
   // Steps 1-6.
-  PlainTime quantity;
+  Time quantity;
   int32_t* result;
   switch (unit) {
     case TemporalUnit::Day:
@@ -829,7 +827,7 @@ TimeRecord js::temporal::RoundTime(const PlainTime& time, Increment increment,
 /**
  * AddTime ( time, timeDuration )
  */
-TimeRecord js::temporal::AddTime(const PlainTime& time,
+TimeRecord js::temporal::AddTime(const Time& time,
                                  const NormalizedTimeDuration& duration) {
   MOZ_ASSERT(IsValidTime(time));
   MOZ_ASSERT(IsValidNormalizedTimeDuration(duration));
@@ -852,7 +850,7 @@ static bool DifferenceTemporalPlainTime(JSContext* cx,
   auto temporalTime = args.thisv().toObject().as<PlainTimeObject>().time();
 
   // Step 1.
-  PlainTime other;
+  Time other;
   if (!ToTemporalTime(cx, args.get(0), &other)) {
     return false;
   }
@@ -1014,7 +1012,7 @@ static bool PlainTimeConstructor(JSContext* cx, unsigned argc, Value* vp) {
   }
 
   // Steps 8-9.
-  PlainTime time;
+  Time time;
   if (!RegulateTime(cx,
                     {
                         hour,
@@ -1045,7 +1043,7 @@ static bool PlainTime_from(JSContext* cx, unsigned argc, Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
 
   // Step 1.
-  PlainTime result;
+  Time result;
   if (!ToTemporalTime(cx, args.get(0), args.get(1), &result)) {
     return false;
   }
@@ -1067,13 +1065,13 @@ static bool PlainTime_compare(JSContext* cx, unsigned argc, Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
 
   // Step 1.
-  PlainTime one;
+  Time one;
   if (!ToTemporalTime(cx, args.get(0), &one)) {
     return false;
   }
 
   // Step 2.
-  PlainTime two;
+  Time two;
   if (!ToTemporalTime(cx, args.get(1), &two)) {
     return false;
   }
@@ -1275,7 +1273,7 @@ static bool PlainTime_with(JSContext* cx, const CallArgs& args) {
   }
 
   // Step 19.
-  PlainTime result;
+  Time result;
   if (!RegulateTime(cx, partialTime, overflow, &result)) {
     return false;
   }
@@ -1425,7 +1423,7 @@ static bool PlainTime_equals(JSContext* cx, const CallArgs& args) {
   auto temporalTime = args.thisv().toObject().as<PlainTimeObject>().time();
 
   // Step 3.
-  PlainTime other;
+  Time other;
   if (!ToTemporalTime(cx, args.get(0), &other)) {
     return false;
   }

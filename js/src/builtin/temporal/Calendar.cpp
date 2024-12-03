@@ -181,7 +181,7 @@ static int32_t WeekDay(int32_t day) {
 /**
  * ToISODayOfWeek ( year, month, day )
  */
-static int32_t ToISODayOfWeek(const PlainDate& date) {
+static int32_t ToISODayOfWeek(const ISODate& date) {
   MOZ_ASSERT(ISODateWithinLimits(date));
 
   // Steps 1-3. (Not applicable in our implementation.)
@@ -231,7 +231,7 @@ static int32_t ToISODayOfYear(int32_t year, int32_t month, int32_t day) {
 /**
  * ToISODayOfYear ( year, month, day )
  */
-static int32_t ToISODayOfYear(const PlainDate& date) {
+static int32_t ToISODayOfYear(const ISODate& date) {
   MOZ_ASSERT(ISODateWithinLimits(date));
 
   // Steps 1-5.
@@ -261,7 +261,7 @@ static int32_t DayFromYear(int32_t year) {
 /**
  * 21.4.1.11 MakeTime ( hour, min, sec, ms )
  */
-static int64_t MakeTime(const PlainTime& time) {
+static int64_t MakeTime(const Time& time) {
   MOZ_ASSERT(IsValidTime(time));
 
   // Step 1 (Not applicable).
@@ -287,7 +287,7 @@ static int64_t MakeTime(const PlainTime& time) {
 /**
  * 21.4.1.12 MakeDay ( year, month, date )
  */
-int32_t js::temporal::MakeDay(const PlainDate& date) {
+int32_t js::temporal::MakeDay(const ISODate& date) {
   MOZ_ASSERT(ISODateWithinLimits(date));
 
   return DayFromYear(date.year) + ToISODayOfYear(date) - 1;
@@ -296,7 +296,7 @@ int32_t js::temporal::MakeDay(const PlainDate& date) {
 /**
  * 21.4.1.13 MakeDate ( day, time )
  */
-int64_t js::temporal::MakeDate(const PlainDateTime& dateTime) {
+int64_t js::temporal::MakeDate(const ISODateTime& dateTime) {
   MOZ_ASSERT(ISODateTimeWithinLimits(dateTime));
 
   // Step 1 (Not applicable).
@@ -317,7 +317,7 @@ struct YearWeek final {
 /**
  * ToISOWeekOfYear ( year, month, day )
  */
-static YearWeek ToISOWeekOfYear(const PlainDate& date) {
+static YearWeek ToISOWeekOfYear(const ISODate& date) {
   MOZ_ASSERT(ISODateWithinLimits(date));
 
   const auto& [year, month, day] = date;
@@ -659,7 +659,7 @@ class ICU4XDateDeleter {
 
 using UniqueICU4XDate = mozilla::UniquePtr<capi::ICU4XDate, ICU4XDateDeleter>;
 
-static UniqueICU4XDate CreateICU4XDate(JSContext* cx, const PlainDate& date,
+static UniqueICU4XDate CreateICU4XDate(JSContext* cx, const ISODate& date,
                                        const capi::ICU4XCalendar* calendar) {
   auto result = capi::ICU4XDate_create_from_iso_in_calendar(
       date.year, date.month, date.day, calendar);
@@ -1991,7 +1991,7 @@ static bool CalendarFieldMonthCodeMatchesMonth(JSContext* cx,
   return true;
 }
 
-static PlainDate ToPlainDate(const capi::ICU4XDate* date) {
+static ISODate ToISODate(const capi::ICU4XDate* date) {
   UniqueICU4XIsoDate isoDate{capi::ICU4XDate_to_iso(date)};
 
   int32_t isoYear = capi::ICU4XIsoDate_year(isoDate.get());
@@ -2050,7 +2050,7 @@ static UniqueICU4XDate CreateDateFrom(JSContext* cx, CalendarId calendar,
  */
 static bool CalendarDateToISO(JSContext* cx, CalendarId calendar,
                               Handle<CalendarFields> fields,
-                              TemporalOverflow overflow, PlainDate* result) {
+                              TemporalOverflow overflow, ISODate* result) {
   // Step 1.
   if (calendar == CalendarId::ISO8601) {
     // Step 1.a.
@@ -2104,7 +2104,7 @@ static bool CalendarDateToISO(JSContext* cx, CalendarId calendar,
     return false;
   }
 
-  *result = ToPlainDate(date.get());
+  *result = ToISODate(date.get());
   return true;
 }
 
@@ -2115,7 +2115,7 @@ static bool CalendarMonthDayToISOReferenceDate(JSContext* cx,
                                                CalendarId calendar,
                                                Handle<CalendarFields> fields,
                                                TemporalOverflow overflow,
-                                               PlainDate* result) {
+                                               ISODate* result) {
   // Step 1.
   if (calendar == CalendarId::ISO8601) {
     // Step 1.a.
@@ -2143,7 +2143,7 @@ static bool CalendarMonthDayToISOReferenceDate(JSContext* cx,
     }
 
     // Step 1.d.
-    PlainDate regulated;
+    ISODate regulated;
     if (!RegulateISODate(cx, intYear, month, fields.day(), overflow,
                          &regulated)) {
       return false;
@@ -2224,7 +2224,7 @@ static bool CalendarMonthDayToISOReferenceDate(JSContext* cx,
   }
 
   // Try years starting from 31 December, 1972.
-  constexpr auto isoReferenceDate = PlainDate{1972, 12, 31};
+  constexpr auto isoReferenceDate = ISODate{1972, 12, 31};
 
   auto fromIsoDate = CreateICU4XDate(cx, isoReferenceDate, cal.get());
   if (!fromIsoDate) {
@@ -2254,8 +2254,8 @@ static bool CalendarMonthDayToISOReferenceDate(JSContext* cx,
         CreateDateFromCodes(calendar, cal.get(), candidateYear, monthCode, day);
     if (result.isOk()) {
       // Make sure the resolved date is before December 31, 1972.
-      auto plainDate = ToPlainDate(result.inspect().get());
-      if (plainDate.year > isoReferenceDate.year) {
+      auto isoDate = ToISODate(result.inspect().get());
+      if (isoDate.year > isoReferenceDate.year) {
         calendarYear -= 1;
         continue;
       }
@@ -2321,7 +2321,7 @@ static bool CalendarMonthDayToISOReferenceDate(JSContext* cx,
     }
   }
 
-  *result = ToPlainDate(date.get());
+  *result = ToISODate(date.get());
   return true;
 }
 
@@ -2408,7 +2408,7 @@ static bool CalendarResolveFields(JSContext* cx, CalendarId calendar,
  * Return the Calendar Date Record's [[Era]] field.
  */
 bool js::temporal::CalendarEra(JSContext* cx, Handle<CalendarValue> calendar,
-                               const PlainDate& date,
+                               const ISODate& date,
                                MutableHandle<Value> result) {
   auto calendarId = calendar.identifier();
 
@@ -2455,7 +2455,7 @@ bool js::temporal::CalendarEra(JSContext* cx, Handle<CalendarValue> calendar,
  */
 bool js::temporal::CalendarEraYear(JSContext* cx,
                                    Handle<CalendarValue> calendar,
-                                   const PlainDate& date,
+                                   const ISODate& date,
                                    MutableHandle<Value> result) {
   auto calendarId = calendar.identifier();
 
@@ -2492,7 +2492,7 @@ bool js::temporal::CalendarEraYear(JSContext* cx,
  * Return the Calendar Date Record's [[Year]] field.
  */
 bool js::temporal::CalendarYear(JSContext* cx, Handle<CalendarValue> calendar,
-                                const PlainDate& date,
+                                const ISODate& date,
                                 MutableHandle<Value> result) {
   auto calendarId = calendar.identifier();
 
@@ -2528,7 +2528,7 @@ bool js::temporal::CalendarYear(JSContext* cx, Handle<CalendarValue> calendar,
  * Return the Calendar Date Record's [[Month]] field.
  */
 bool js::temporal::CalendarMonth(JSContext* cx, Handle<CalendarValue> calendar,
-                                 const PlainDate& date,
+                                 const ISODate& date,
                                  MutableHandle<Value> result) {
   auto calendarId = calendar.identifier();
 
@@ -2561,7 +2561,7 @@ bool js::temporal::CalendarMonth(JSContext* cx, Handle<CalendarValue> calendar,
  */
 bool js::temporal::CalendarMonthCode(JSContext* cx,
                                      Handle<CalendarValue> calendar,
-                                     const PlainDate& date,
+                                     const ISODate& date,
                                      MutableHandle<Value> result) {
   auto calendarId = calendar.identifier();
 
@@ -2609,7 +2609,7 @@ bool js::temporal::CalendarMonthCode(JSContext* cx,
  * Return the Calendar Date Record's [[Day]] field.
  */
 bool js::temporal::CalendarDay(JSContext* cx, Handle<CalendarValue> calendar,
-                               const PlainDate& date,
+                               const ISODate& date,
                                MutableHandle<Value> result) {
   auto calendarId = calendar.identifier();
 
@@ -2642,7 +2642,7 @@ bool js::temporal::CalendarDay(JSContext* cx, Handle<CalendarValue> calendar,
  */
 bool js::temporal::CalendarDayOfWeek(JSContext* cx,
                                      Handle<CalendarValue> calendar,
-                                     const PlainDate& date,
+                                     const ISODate& date,
                                      MutableHandle<Value> result) {
   auto calendarId = calendar.identifier();
 
@@ -2684,7 +2684,7 @@ bool js::temporal::CalendarDayOfWeek(JSContext* cx,
  */
 bool js::temporal::CalendarDayOfYear(JSContext* cx,
                                      Handle<CalendarValue> calendar,
-                                     const PlainDate& date,
+                                     const ISODate& date,
                                      MutableHandle<Value> result) {
   auto calendarId = calendar.identifier();
 
@@ -2749,7 +2749,7 @@ bool js::temporal::CalendarDayOfYear(JSContext* cx,
  */
 bool js::temporal::CalendarWeekOfYear(JSContext* cx,
                                       Handle<CalendarValue> calendar,
-                                      const PlainDate& date,
+                                      const ISODate& date,
                                       MutableHandle<Value> result) {
   auto calendarId = calendar.identifier();
 
@@ -2802,7 +2802,7 @@ bool js::temporal::CalendarWeekOfYear(JSContext* cx,
  */
 bool js::temporal::CalendarYearOfWeek(JSContext* cx,
                                       Handle<CalendarValue> calendar,
-                                      const PlainDate& date,
+                                      const ISODate& date,
                                       MutableHandle<Value> result) {
   auto calendarId = calendar.identifier();
 
@@ -2873,7 +2873,7 @@ bool js::temporal::CalendarYearOfWeek(JSContext* cx,
  */
 bool js::temporal::CalendarDaysInWeek(JSContext* cx,
                                       Handle<CalendarValue> calendar,
-                                      const PlainDate& date,
+                                      const ISODate& date,
                                       MutableHandle<Value> result) {
   // All supported ICU4X calendars use a 7-day week and so does the ISO 8601
   // calendar.
@@ -2893,7 +2893,7 @@ bool js::temporal::CalendarDaysInWeek(JSContext* cx,
  */
 bool js::temporal::CalendarDaysInMonth(JSContext* cx,
                                        Handle<CalendarValue> calendar,
-                                       const PlainDate& date,
+                                       const ISODate& date,
                                        MutableHandle<Value> result) {
   auto calendarId = calendar.identifier();
 
@@ -2926,7 +2926,7 @@ bool js::temporal::CalendarDaysInMonth(JSContext* cx,
  */
 bool js::temporal::CalendarDaysInYear(JSContext* cx,
                                       Handle<CalendarValue> calendar,
-                                      const PlainDate& date,
+                                      const ISODate& date,
                                       MutableHandle<Value> result) {
   auto calendarId = calendar.identifier();
 
@@ -2959,7 +2959,7 @@ bool js::temporal::CalendarDaysInYear(JSContext* cx,
  */
 bool js::temporal::CalendarMonthsInYear(JSContext* cx,
                                         Handle<CalendarValue> calendar,
-                                        const PlainDate& date,
+                                        const ISODate& date,
                                         MutableHandle<Value> result) {
   auto calendarId = calendar.identifier();
 
@@ -2992,7 +2992,7 @@ bool js::temporal::CalendarMonthsInYear(JSContext* cx,
  */
 bool js::temporal::CalendarInLeapYear(JSContext* cx,
                                       Handle<CalendarValue> calendar,
-                                      const PlainDate& date,
+                                      const ISODate& date,
                                       MutableHandle<Value> result) {
   auto calendarId = calendar.identifier();
 
@@ -3086,7 +3086,7 @@ enum class DateFieldType { Date, YearMonth, MonthDay };
  * ISODateToFields ( calendar, isoDate, type )
  */
 static bool ISODateToFields(JSContext* cx, Handle<CalendarValue> calendar,
-                            const PlainDate& date, DateFieldType type,
+                            const ISODate& date, DateFieldType type,
                             MutableHandle<CalendarFields> result) {
   auto calendarId = calendar.identifier();
 
@@ -3154,8 +3154,7 @@ static bool ISODateToFields(JSContext* cx, Handle<CalendarValue> calendar,
 /**
  * ISODateToFields ( calendar, isoDate, type )
  */
-bool js::temporal::ISODateToFields(JSContext* cx,
-                                   Handle<PlainDateWithCalendar> date,
+bool js::temporal::ISODateToFields(JSContext* cx, Handle<PlainDate> date,
                                    MutableHandle<CalendarFields> result) {
   return ISODateToFields(cx, date.calendar(), date, DateFieldType::Date,
                          result);
@@ -3165,7 +3164,7 @@ bool js::temporal::ISODateToFields(JSContext* cx,
  * ISODateToFields ( calendar, isoDate, type )
  */
 bool js::temporal::ISODateToFields(JSContext* cx,
-                                   Handle<PlainDateTimeWithCalendar> dateTime,
+                                   Handle<PlainDateTime> dateTime,
                                    MutableHandle<CalendarFields> result) {
   return ISODateToFields(cx, dateTime.calendar(), dateTime.date(),
                          DateFieldType::Date, result);
@@ -3175,7 +3174,7 @@ bool js::temporal::ISODateToFields(JSContext* cx,
  * ISODateToFields ( calendar, isoDate, type )
  */
 bool js::temporal::ISODateToFields(JSContext* cx,
-                                   Handle<PlainMonthDayWithCalendar> monthDay,
+                                   Handle<PlainMonthDay> monthDay,
                                    MutableHandle<CalendarFields> result) {
   return ISODateToFields(cx, monthDay.calendar(), monthDay.date(),
                          DateFieldType::MonthDay, result);
@@ -3185,7 +3184,7 @@ bool js::temporal::ISODateToFields(JSContext* cx,
  * ISODateToFields ( calendar, isoDate, type )
  */
 bool js::temporal::ISODateToFields(JSContext* cx,
-                                   Handle<PlainYearMonthWithCalendar> yearMonth,
+                                   Handle<PlainYearMonth> yearMonth,
                                    MutableHandle<CalendarFields> result) {
   return ISODateToFields(cx, yearMonth.calendar(), yearMonth.date(),
                          DateFieldType::YearMonth, result);
@@ -3194,10 +3193,11 @@ bool js::temporal::ISODateToFields(JSContext* cx,
 /**
  * CalendarDateFromFields ( calendar, fields, overflow )
  */
-bool js::temporal::CalendarDateFromFields(
-    JSContext* cx, Handle<CalendarValue> calendar,
-    Handle<CalendarFields> fields, TemporalOverflow overflow,
-    MutableHandle<PlainDateWithCalendar> result) {
+bool js::temporal::CalendarDateFromFields(JSContext* cx,
+                                          Handle<CalendarValue> calendar,
+                                          Handle<CalendarFields> fields,
+                                          TemporalOverflow overflow,
+                                          MutableHandle<PlainDate> result) {
   auto calendarId = calendar.identifier();
 
   // Step 1.
@@ -3206,7 +3206,7 @@ bool js::temporal::CalendarDateFromFields(
   }
 
   // Step 2.
-  PlainDate date;
+  ISODate date;
   if (!CalendarDateToISO(cx, calendarId, fields, overflow, &date)) {
     return false;
   }
@@ -3221,7 +3221,7 @@ bool js::temporal::CalendarDateFromFields(
 bool js::temporal::CalendarYearMonthFromFields(
     JSContext* cx, Handle<CalendarValue> calendar,
     Handle<CalendarFields> fields, TemporalOverflow overflow,
-    MutableHandle<PlainYearMonthWithCalendar> result) {
+    MutableHandle<PlainYearMonth> result) {
   auto calendarId = calendar.identifier();
 
   // Step 1.
@@ -3237,7 +3237,7 @@ bool js::temporal::CalendarYearMonthFromFields(
   resolvedFields.setDay(firstDayIndex);
 
   // Step 4.
-  PlainDate date;
+  ISODate date;
   if (!CalendarDateToISO(cx, calendarId, resolvedFields, overflow, &date)) {
     return false;
   }
@@ -3252,7 +3252,7 @@ bool js::temporal::CalendarYearMonthFromFields(
 bool js::temporal::CalendarMonthDayFromFields(
     JSContext* cx, Handle<CalendarValue> calendar,
     Handle<CalendarFields> fields, TemporalOverflow overflow,
-    MutableHandle<PlainMonthDayWithCalendar> result) {
+    MutableHandle<PlainMonthDay> result) {
   auto calendarId = calendar.identifier();
 
   // Step 1.
@@ -3261,7 +3261,7 @@ bool js::temporal::CalendarMonthDayFromFields(
   }
 
   // Step 2.
-  PlainDate date;
+  ISODate date;
   if (!CalendarMonthDayToISOReferenceDate(cx, calendarId, fields, overflow,
                                           &date)) {
     return false;
@@ -3276,10 +3276,9 @@ bool js::temporal::CalendarMonthDayFromFields(
  */
 bool js::temporal::CalendarDateAdd(JSContext* cx,
                                    Handle<CalendarValue> calendar,
-                                   const PlainDate& date,
+                                   const ISODate& date,
                                    const DateDuration& duration,
-                                   TemporalOverflow overflow,
-                                   PlainDate* result) {
+                                   TemporalOverflow overflow, ISODate* result) {
   MOZ_ASSERT(IsValidISODate(date));
   MOZ_ASSERT(IsValidDuration(duration));
 
@@ -3308,7 +3307,7 @@ bool js::temporal::CalendarDateAdd(JSContext* cx,
  */
 bool js::temporal::CalendarDateUntil(JSContext* cx,
                                      Handle<CalendarValue> calendar,
-                                     const PlainDate& one, const PlainDate& two,
+                                     const ISODate& one, const ISODate& two,
                                      TemporalUnit largestUnit,
                                      DateDuration* result) {
   MOZ_ASSERT(largestUnit <= TemporalUnit::Day);

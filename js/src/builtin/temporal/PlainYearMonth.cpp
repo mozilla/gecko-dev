@@ -63,7 +63,7 @@ static inline bool IsPlainYearMonth(Handle<Value> v) {
 /**
  * ISOYearMonthWithinLimits ( isoDate )
  */
-bool js::temporal::ISOYearMonthWithinLimits(const PlainDate& isoDate) {
+bool js::temporal::ISOYearMonthWithinLimits(const ISODate& isoDate) {
   MOZ_ASSERT(IsValidISODate(isoDate));
 
   const auto& [year, month, day] = isoDate;
@@ -91,7 +91,7 @@ bool js::temporal::ISOYearMonthWithinLimits(const PlainDate& isoDate) {
  * CreateTemporalYearMonth ( isoDate, calendar [ , newTarget ] )
  */
 static PlainYearMonthObject* CreateTemporalYearMonth(
-    JSContext* cx, const CallArgs& args, const PlainDate& isoDate,
+    JSContext* cx, const CallArgs& args, const ISODate& isoDate,
     Handle<CalendarValue> calendar) {
   // Step 1.
   if (!ISOYearMonthWithinLimits(isoDate)) {
@@ -129,7 +129,7 @@ static PlainYearMonthObject* CreateTemporalYearMonth(
  * CreateTemporalYearMonth ( isoDate, calendar [ , newTarget ] )
  */
 PlainYearMonthObject* js::temporal::CreateTemporalYearMonth(
-    JSContext* cx, Handle<PlainYearMonthWithCalendar> yearMonth) {
+    JSContext* cx, Handle<PlainYearMonth> yearMonth) {
   MOZ_ASSERT(IsValidISODate(yearMonth));
 
   // Step 1.
@@ -158,8 +158,8 @@ PlainYearMonthObject* js::temporal::CreateTemporalYearMonth(
  * CreateTemporalYearMonth ( isoDate, calendar [ , newTarget ] )
  */
 bool js::temporal::CreateTemporalYearMonth(
-    JSContext* cx, const PlainDate& isoDate, Handle<CalendarValue> calendar,
-    MutableHandle<PlainYearMonthWithCalendar> result) {
+    JSContext* cx, const ISODate& isoDate, Handle<CalendarValue> calendar,
+    MutableHandle<PlainYearMonth> result) {
   MOZ_ASSERT(IsValidISODate(isoDate));
 
   // Step 1.
@@ -170,7 +170,7 @@ bool js::temporal::CreateTemporalYearMonth(
   }
 
   // Steps 2-6.
-  result.set(PlainYearMonthWithCalendar{isoDate, calendar});
+  result.set(PlainYearMonth{isoDate, calendar});
   return true;
 }
 
@@ -208,9 +208,9 @@ static bool ToTemporalYearMonthOptions(JSContext* cx, Handle<Value> options,
 /**
  * ToTemporalYearMonth ( item [ , options ] )
  */
-static bool ToTemporalYearMonth(
-    JSContext* cx, Handle<JSObject*> item, Handle<Value> options,
-    MutableHandle<PlainYearMonthWithCalendar> result) {
+static bool ToTemporalYearMonth(JSContext* cx, Handle<JSObject*> item,
+                                Handle<Value> options,
+                                MutableHandle<PlainYearMonth> result) {
   // Step 1. (Not applicable in our implementation.)
 
   // Step 2.a.
@@ -228,7 +228,7 @@ static bool ToTemporalYearMonth(
     }
 
     // Step 2.a.iii.
-    result.set(PlainYearMonthWithCalendar{date, calendar});
+    result.set(PlainYearMonth{date, calendar});
     return true;
   }
 
@@ -264,9 +264,9 @@ static bool ToTemporalYearMonth(
 /**
  * ToTemporalYearMonth ( item [ , options ] )
  */
-static bool ToTemporalYearMonth(
-    JSContext* cx, Handle<Value> item, Handle<Value> options,
-    MutableHandle<PlainYearMonthWithCalendar> result) {
+static bool ToTemporalYearMonth(JSContext* cx, Handle<Value> item,
+                                Handle<Value> options,
+                                MutableHandle<PlainYearMonth> result) {
   // Step 1. (Not applicable in our implementation.)
 
   // Step 2.
@@ -284,7 +284,7 @@ static bool ToTemporalYearMonth(
   Rooted<JSString*> string(cx, item.toString());
 
   // Step 4.
-  PlainDate date;
+  ISODate date;
   Rooted<JSString*> calendarString(cx);
   if (!ParseTemporalYearMonthString(cx, string, &date, &calendarString)) {
     return false;
@@ -312,7 +312,7 @@ static bool ToTemporalYearMonth(
   // Step 8. (Reordered to throw exceptions in correct order)
   //
   // Call CreateTemporalYearMonth to reject too large dates early.
-  Rooted<PlainYearMonthWithCalendar> yearMonth(cx);
+  Rooted<PlainYearMonth> yearMonth(cx);
   if (!CreateTemporalYearMonth(cx, date, calendar, &yearMonth)) {
     return false;
   }
@@ -331,9 +331,8 @@ static bool ToTemporalYearMonth(
 /**
  * ToTemporalYearMonth ( item [ , options ] )
  */
-static bool ToTemporalYearMonth(
-    JSContext* cx, Handle<Value> item,
-    MutableHandle<PlainYearMonthWithCalendar> result) {
+static bool ToTemporalYearMonth(JSContext* cx, Handle<Value> item,
+                                MutableHandle<PlainYearMonth> result) {
   return ToTemporalYearMonth(cx, item, UndefinedHandleValue, result);
 }
 
@@ -343,11 +342,11 @@ static bool ToTemporalYearMonth(
 static bool DifferenceTemporalPlainYearMonth(JSContext* cx,
                                              TemporalDifference operation,
                                              const CallArgs& args) {
-  Rooted<PlainYearMonthWithCalendar> yearMonth(
+  Rooted<PlainYearMonth> yearMonth(
       cx, &args.thisv().toObject().as<PlainYearMonthObject>());
 
   // Step 1.
-  Rooted<PlainYearMonthWithCalendar> other(cx);
+  Rooted<PlainYearMonth> other(cx);
   if (!ToTemporalYearMonth(cx, args.get(0), &other)) {
     return false;
   }
@@ -413,7 +412,7 @@ static bool DifferenceTemporalPlainYearMonth(JSContext* cx,
   thisFields.setDay(1);
 
   // Step 9.
-  Rooted<PlainDateWithCalendar> thisDate(cx);
+  Rooted<PlainDate> thisDate(cx);
   if (!CalendarDateFromFields(cx, calendar, thisFields,
                               TemporalOverflow::Constrain, &thisDate)) {
     return false;
@@ -430,7 +429,7 @@ static bool DifferenceTemporalPlainYearMonth(JSContext* cx,
   otherFields.setDay(1);
 
   // Step 12.
-  Rooted<PlainDateWithCalendar> otherDate(cx);
+  Rooted<PlainDate> otherDate(cx);
   if (!CalendarDateFromFields(cx, calendar, otherFields,
                               TemporalOverflow::Constrain, &otherDate)) {
     return false;
@@ -457,10 +456,10 @@ static bool DifferenceTemporalPlainYearMonth(JSContext* cx,
     auto duration = NormalizedDuration{dateDuration, {}};
 
     // Step 16.a.
-    auto destEpochNs = GetUTCEpochNanoseconds(PlainDateTime{otherDate, {}});
+    auto destEpochNs = GetUTCEpochNanoseconds(ISODateTime{otherDate, {}});
 
     // Steps 16.b-c.
-    auto dateTime = PlainDateTime{thisDate, {}};
+    auto dateTime = ISODateTime{thisDate, {}};
 
     // Step 16.d.
     Rooted<TimeZoneValue> timeZone(cx, TimeZoneValue{});
@@ -501,7 +500,7 @@ static bool DifferenceTemporalPlainYearMonth(JSContext* cx,
  */
 static bool AddDurationToYearMonth(JSContext* cx, TemporalAddDuration operation,
                                    const CallArgs& args) {
-  Rooted<PlainYearMonthWithCalendar> yearMonth(
+  Rooted<PlainYearMonth> yearMonth(
       cx, &args.thisv().toObject().as<PlainYearMonthObject>());
 
   // Step 1.
@@ -548,14 +547,14 @@ static bool AddDurationToYearMonth(JSContext* cx, TemporalAddDuration operation,
   fields.setDay(1);
 
   // Step 9.
-  Rooted<PlainDateWithCalendar> intermediateDate(cx);
+  Rooted<PlainDate> intermediateDate(cx);
   if (!CalendarDateFromFields(cx, calendar, fields, TemporalOverflow::Constrain,
                               &intermediateDate)) {
     return false;
   }
 
   // Steps 10-11.
-  PlainDate date;
+  ISODate date;
   if (sign < 0) {
     // |intermediateDate| is initialized to the first day of |yearMonth|'s
     // month. Compute the last day of |yearMonth|'s month by first adding one
@@ -575,7 +574,7 @@ static bool AddDurationToYearMonth(JSContext* cx, TemporalAddDuration operation,
     auto oneMonthDuration = DateDuration{0, 1};
 
     // Step 10.b.
-    PlainDate nextMonth;
+    ISODate nextMonth;
     if (!CalendarDateAdd(cx, calendar, intermediateDate, oneMonthDuration,
                          TemporalOverflow::Constrain, &nextMonth)) {
       return false;
@@ -595,15 +594,15 @@ static bool AddDurationToYearMonth(JSContext* cx, TemporalAddDuration operation,
   auto durationToAdd = NormalizeDurationWithoutTime(duration);
 
   // Step 13.
-  PlainDate addedDate;
+  ISODate addedDate;
   if (!CalendarDateAdd(cx, calendar, date, durationToAdd, overflow,
                        &addedDate)) {
     return false;
   }
   MOZ_ASSERT(ISODateWithinLimits(addedDate));
 
-  Rooted<PlainYearMonthWithCalendar> addedYearMonth(
-      cx, PlainYearMonthWithCalendar{addedDate, calendar});
+  Rooted<PlainYearMonth> addedYearMonth(cx,
+                                        PlainYearMonth{addedDate, calendar});
 
   // Step 14.
   Rooted<CalendarFields> addedDateFields(cx);
@@ -612,7 +611,7 @@ static bool AddDurationToYearMonth(JSContext* cx, TemporalAddDuration operation,
   }
 
   // Step 15.
-  Rooted<PlainYearMonthWithCalendar> result(cx);
+  Rooted<PlainYearMonth> result(cx);
   if (!CalendarYearMonthFromFields(cx, calendar, addedDateFields, overflow,
                                    &result)) {
     return false;
@@ -683,8 +682,7 @@ static bool PlainYearMonthConstructor(JSContext* cx, unsigned argc, Value* vp) {
   }
 
   // Step 10.
-  auto isoDate =
-      PlainDate{int32_t(isoYear), int32_t(isoMonth), int32_t(isoDay)};
+  auto isoDate = ISODate{int32_t(isoYear), int32_t(isoMonth), int32_t(isoDay)};
 
   // Step 11.
   auto* yearMonth = CreateTemporalYearMonth(cx, args, isoDate, calendar);
@@ -703,7 +701,7 @@ static bool PlainYearMonth_from(JSContext* cx, unsigned argc, Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
 
   // Step 1.
-  Rooted<PlainYearMonthWithCalendar> yearMonth(cx);
+  Rooted<PlainYearMonth> yearMonth(cx);
   if (!ToTemporalYearMonth(cx, args.get(0), args.get(1), &yearMonth)) {
     return false;
   }
@@ -724,13 +722,13 @@ static bool PlainYearMonth_compare(JSContext* cx, unsigned argc, Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
 
   // Step 1.
-  Rooted<PlainYearMonthWithCalendar> one(cx);
+  Rooted<PlainYearMonth> one(cx);
   if (!ToTemporalYearMonth(cx, args.get(0), &one)) {
     return false;
   }
 
   // Step 2.
-  Rooted<PlainYearMonthWithCalendar> two(cx);
+  Rooted<PlainYearMonth> two(cx);
   if (!ToTemporalYearMonth(cx, args.get(1), &two)) {
     return false;
   }
@@ -960,7 +958,7 @@ static bool PlainYearMonth_inLeapYear(JSContext* cx, unsigned argc, Value* vp) {
  * )
  */
 static bool PlainYearMonth_with(JSContext* cx, const CallArgs& args) {
-  Rooted<PlainYearMonthWithCalendar> yearMonth(
+  Rooted<PlainYearMonth> yearMonth(
       cx, &args.thisv().toObject().as<PlainYearMonthObject>());
 
   // Step 3.
@@ -1015,7 +1013,7 @@ static bool PlainYearMonth_with(JSContext* cx, const CallArgs& args) {
   }
 
   // Step 10.
-  Rooted<PlainYearMonthWithCalendar> result(cx);
+  Rooted<PlainYearMonth> result(cx);
   if (!CalendarYearMonthFromFields(cx, calendar, fields, overflow, &result)) {
     return false;
   }
@@ -1120,7 +1118,7 @@ static bool PlainYearMonth_equals(JSContext* cx, const CallArgs& args) {
   Rooted<CalendarValue> calendar(cx, yearMonth->calendar());
 
   // Step 3.
-  Rooted<PlainYearMonthWithCalendar> other(cx);
+  Rooted<PlainYearMonth> other(cx);
   if (!ToTemporalYearMonth(cx, args.get(0), &other)) {
     return false;
   }
@@ -1255,7 +1253,7 @@ static bool PlainYearMonth_valueOf(JSContext* cx, unsigned argc, Value* vp) {
  * Temporal.PlainYearMonth.prototype.toPlainDate ( item )
  */
 static bool PlainYearMonth_toPlainDate(JSContext* cx, const CallArgs& args) {
-  Rooted<PlainYearMonthWithCalendar> yearMonth(
+  Rooted<PlainYearMonth> yearMonth(
       cx, &args.thisv().toObject().as<PlainYearMonthObject>());
 
   // Step 3.
@@ -1288,7 +1286,7 @@ static bool PlainYearMonth_toPlainDate(JSContext* cx, const CallArgs& args) {
   fields = CalendarMergeFields(calendar, fields, inputFields);
 
   // Step 8.
-  Rooted<PlainDateWithCalendar> result(cx);
+  Rooted<PlainDate> result(cx);
   if (!CalendarDateFromFields(cx, calendar, fields, TemporalOverflow::Constrain,
                               &result)) {
     return false;

@@ -23,9 +23,9 @@ class JS_PUBLIC_API JSTracer;
 namespace js::temporal {
 
 struct Duration;
-struct PlainDate;
-struct PlainDateTime;
-struct PlainTime;
+struct ISODate;
+struct ISODateTime;
+struct Time;
 
 struct MOZ_STACK_CLASS ParsedTimeZone final {
   JSLinearString* name = nullptr;
@@ -49,7 +49,7 @@ struct MOZ_STACK_CLASS ParsedTimeZone final {
 };
 
 struct MOZ_STACK_CLASS ParsedZonedDateTime final {
-  PlainDateTime dateTime = {};
+  ISODateTime dateTime = {};
   JSLinearString* calendar = nullptr;
   ParsedTimeZone timeZoneAnnotation{};
   int64_t timeZoneOffset = 0;
@@ -64,7 +64,7 @@ struct MOZ_STACK_CLASS ParsedZonedDateTime final {
  * ParseTemporalInstantString ( isoString )
  */
 bool ParseTemporalInstantString(JSContext* cx, JS::Handle<JSString*> str,
-                                PlainDateTime* result, int64_t* offset);
+                                ISODateTime* result, int64_t* offset);
 
 /**
  * ParseTemporalTimeZoneString ( timeZoneString )
@@ -100,27 +100,27 @@ JSLinearString* ParseTemporalCalendarString(JSContext* cx,
  * ParseTemporalTimeString ( isoString )
  */
 bool ParseTemporalTimeString(JSContext* cx, JS::Handle<JSString*> str,
-                             PlainTime* result);
+                             Time* result);
 
 /**
  * ParseTemporalMonthDayString ( isoString )
  */
 bool ParseTemporalMonthDayString(JSContext* cx, JS::Handle<JSString*> str,
-                                 PlainDate* result, bool* hasYear,
+                                 ISODate* result, bool* hasYear,
                                  JS::MutableHandle<JSString*> calendar);
 
 /**
  * ParseTemporalYearMonthString ( isoString )
  */
 bool ParseTemporalYearMonthString(JSContext* cx, JS::Handle<JSString*> str,
-                                  PlainDate* result,
+                                  ISODate* result,
                                   JS::MutableHandle<JSString*> calendar);
 
 /**
  * ParseTemporalDateTimeString ( isoString )
  */
 bool ParseTemporalDateTimeString(JSContext* cx, JS::Handle<JSString*> str,
-                                 PlainDateTime* result,
+                                 ISODateTime* result,
                                  JS::MutableHandle<JSString*> calendar);
 
 /**
@@ -164,7 +164,7 @@ class WrappedPtrOperations<temporal::ParsedZonedDateTime, Wrapper> {
   }
 
  public:
-  const temporal::PlainDateTime& dateTime() const { return object().dateTime; }
+  const temporal::ISODateTime& dateTime() const { return object().dateTime; }
 
   JS::Handle<JSLinearString*> calendar() const {
     return JS::Handle<JSLinearString*>::fromMarkedLocation(&object().calendar);

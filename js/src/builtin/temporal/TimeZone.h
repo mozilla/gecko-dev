@@ -233,7 +233,7 @@ class PossibleInstants final {
 };
 
 struct ParsedTimeZone;
-struct PlainDateTime;
+struct ISODateTime;
 enum class TemporalDisambiguation;
 
 /**
@@ -276,20 +276,20 @@ bool TimeZoneEquals(const TimeZoneValue& one, const TimeZoneValue& two);
 /**
  * GetISODateTimeFor ( timeZone, epochNs )
  */
-PlainDateTime GetISODateTimeFor(const Instant& instant,
-                                int64_t offsetNanoseconds);
+ISODateTime GetISODateTimeFor(const Instant& instant,
+                              int64_t offsetNanoseconds);
 
 /**
  * GetISODateTimeFor ( timeZone, epochNs )
  */
 bool GetISODateTimeFor(JSContext* cx, JS::Handle<TimeZoneValue> timeZone,
-                       const Instant& instant, PlainDateTime* result);
+                       const Instant& instant, ISODateTime* result);
 
 /**
  * GetInstantFor ( timeZoneRec, dateTime, disambiguation )
  */
 bool GetInstantFor(JSContext* cx, JS::Handle<TimeZoneValue> timeZone,
-                   const PlainDateTime& dateTime,
+                   const ISODateTime& dateTime,
                    TemporalDisambiguation disambiguation, Instant* result);
 
 /**
@@ -308,7 +308,7 @@ bool GetOffsetNanosecondsFor(JSContext* cx, JS::Handle<TimeZoneValue> timeZone,
  * GetPossibleInstantsFor ( timeZoneRec, dateTime )
  */
 bool GetPossibleInstantsFor(JSContext* cx, JS::Handle<TimeZoneValue> timeZone,
-                            const PlainDateTime& dateTime,
+                            const ISODateTime& dateTime,
                             PossibleInstants* result);
 
 /**
@@ -318,7 +318,7 @@ bool GetPossibleInstantsFor(JSContext* cx, JS::Handle<TimeZoneValue> timeZone,
 bool DisambiguatePossibleInstants(JSContext* cx,
                                   const PossibleInstants& possibleInstants,
                                   JS::Handle<TimeZoneValue> timeZone,
-                                  const PlainDateTime& dateTime,
+                                  const ISODateTime& dateTime,
                                   TemporalDisambiguation disambiguation,
                                   Instant* result);
 
@@ -342,7 +342,7 @@ bool GetNamedTimeZonePreviousTransition(JSContext* cx,
  * GetStartOfDay ( timeZone, isoDate )
  */
 bool GetStartOfDay(JSContext* cx, JS::Handle<TimeZoneValue> timeZone,
-                   const PlainDate& date, Instant* result);
+                   const ISODate& date, Instant* result);
 
 // Helper for MutableWrappedPtrOperations.
 bool WrapTimeZoneValueObject(

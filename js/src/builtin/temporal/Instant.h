@@ -95,13 +95,13 @@ InstantObject* CreateTemporalInstant(JSContext* cx, const Instant& instant);
  * GetUTCEpochNanoseconds ( year, month, day, hour, minute, second, millisecond,
  * microsecond, nanosecond [ , offsetNanoseconds ] )
  */
-Instant GetUTCEpochNanoseconds(const PlainDateTime& dateTime);
+Instant GetUTCEpochNanoseconds(const ISODateTime& dateTime);
 
 /**
  * GetUTCEpochNanoseconds ( year, month, day, hour, minute, second, millisecond,
  * microsecond, nanosecond [ , offsetNanoseconds ] )
  */
-Instant GetUTCEpochNanoseconds(const PlainDateTime& dateTime,
+Instant GetUTCEpochNanoseconds(const ISODateTime& dateTime,
                                const InstantSpan& offsetNanoseconds);
 
 /**

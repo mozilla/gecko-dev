@@ -411,9 +411,9 @@ static_assert(MaxEpochDay ==
 constexpr inline int32_t MaxEpochDaysDuration = MaxEpochDay - MinEpochDay;
 
 /**
- * Plain date represents a date in the ISO 8601 calendar.
+ * ISODate represents a date in the ISO 8601 calendar.
  */
-struct PlainDate final {
+struct ISODate final {
   // [-271821, 275760]
   //
   // Dates are limited to the range of ±100'000'000 days relative to midnight at
@@ -427,18 +427,18 @@ struct PlainDate final {
   // [1, 31]
   int32_t day = 0;
 
-  bool operator==(const PlainDate& other) const {
+  bool operator==(const ISODate& other) const {
     return year == other.year && month == other.month && day == other.day;
   }
 
-  bool operator!=(const PlainDate& other) const { return !(*this == other); }
+  bool operator!=(const ISODate& other) const { return !(*this == other); }
 };
 
 /**
- * Plain time represents a time value on a 24-hour clock. Leap seconds aren't
+ * Time represents a time value on a 24-hour clock. Leap seconds aren't
  * supported.
  */
-struct PlainTime final {
+struct Time final {
   // [0, 23]
   int32_t hour = 0;
 
@@ -457,29 +457,27 @@ struct PlainTime final {
   // [0, 999]
   int32_t nanosecond = 0;
 
-  bool operator==(const PlainTime& other) const {
+  bool operator==(const Time& other) const {
     return hour == other.hour && minute == other.minute &&
            second == other.second && millisecond == other.millisecond &&
            microsecond == other.microsecond && nanosecond == other.nanosecond;
   }
 
-  bool operator!=(const PlainTime& other) const { return !(*this == other); }
+  bool operator!=(const Time& other) const { return !(*this == other); }
 };
 
 /**
- * Plain date-time represents a date-time value in the ISO 8601 calendar.
+ * ISODateTime represents a date-time value in the ISO 8601 calendar.
  */
-struct PlainDateTime final {
-  PlainDate date;
-  PlainTime time;
+struct ISODateTime final {
+  ISODate date;
+  Time time;
 
-  bool operator==(const PlainDateTime& other) const {
+  bool operator==(const ISODateTime& other) const {
     return date == other.date && time == other.time;
   }
 
-  bool operator!=(const PlainDateTime& other) const {
-    return !(*this == other);
-  }
+  bool operator!=(const ISODateTime& other) const { return !(*this == other); }
 };
 
 // 32-bit packed date to store an ISO date within PrivateUint32Value.
@@ -494,12 +492,12 @@ struct PackedDate final {
 
   uint32_t value = 0;
 
-  static constexpr PackedDate pack(const PlainDate& date) {
+  static constexpr PackedDate pack(const ISODate& date) {
     return {uint32_t((date.year << YearShift) | (date.month << MonthShift) |
                      (date.day << DayShift))};
   }
 
-  static constexpr PlainDate unpack(const PackedDate& date) {
+  static constexpr ISODate unpack(const PackedDate& date) {
     return {
         int32_t(date.value) >> YearShift,
         int32_t((date.value >> MonthShift) & BitMask(MonthBits)),
@@ -527,7 +525,7 @@ struct PackedTime final {
 
   uint64_t value = 0;
 
-  static constexpr PackedTime pack(const PlainTime& time) {
+  static constexpr PackedTime pack(const Time& time) {
     return {uint64_t(time.hour) << HourShift |
             uint64_t(time.minute) << MinuteShift |
             uint64_t(time.second) << SecondShift |
@@ -536,7 +534,7 @@ struct PackedTime final {
             uint64_t(time.nanosecond) << NanosecondShift};
   }
 
-  static constexpr PlainTime unpack(const PackedTime& time) {
+  static constexpr Time unpack(const PackedTime& time) {
     return {
         int32_t((time.value >> HourShift) & BitMask(HourBits)),
         int32_t((time.value >> MinuteShift) & BitMask(MinuteBits)),

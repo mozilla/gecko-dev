@@ -211,8 +211,8 @@ static void FormatFractionalSeconds(TemporalStringBuilder& result,
 /**
  * FormatTimeString ( hour, minute, second, subSecondNanoseconds, precision )
  */
-static void FormatTimeString(TemporalStringBuilder& result,
-                             const PlainTime& time, Precision precision) {
+static void FormatTimeString(TemporalStringBuilder& result, const Time& time,
+                             Precision precision) {
   // Step 1.
   result.appendTwoDigit(time.hour);
 
@@ -232,7 +232,7 @@ static void FormatTimeString(TemporalStringBuilder& result,
 }
 
 static void FormatDateString(TemporalStringBuilder& result,
-                             const PlainDate& date) {
+                             const ISODate& date) {
   result.appendYear(date.year);
   result.append('-');
   result.appendTwoDigit(date.month);
@@ -241,7 +241,7 @@ static void FormatDateString(TemporalStringBuilder& result,
 }
 
 static void FormatDateTimeString(TemporalStringBuilder& result,
-                                 const PlainDateTime& dateTime,
+                                 const ISODateTime& dateTime,
                                  Precision precision) {
   FormatDateString(result, dateTime.date);
   result.append('T');
@@ -424,7 +424,7 @@ JSString* js::temporal::TemporalDateToString(
  * millisecond, microsecond, nanosecond, calendar, precision, showCalendar )
  */
 JSString* js::temporal::TemporalDateTimeToString(JSContext* cx,
-                                                 const PlainDateTime& dateTime,
+                                                 const ISODateTime& dateTime,
                                                  Handle<CalendarValue> calendar,
                                                  Precision precision,
                                                  ShowCalendar showCalendar) {
@@ -451,7 +451,7 @@ JSString* js::temporal::TemporalDateTimeToString(JSContext* cx,
 /**
  * TimeRecordToString ( time, precision )
  */
-JSString* js::temporal::TimeRecordToString(JSContext* cx, const PlainTime& time,
+JSString* js::temporal::TimeRecordToString(JSContext* cx, const Time& time,
                                            Precision precision) {
   TemporalStringBuilder result(cx, TemporalStringFormat::Time);
   if (!result.reserve()) {

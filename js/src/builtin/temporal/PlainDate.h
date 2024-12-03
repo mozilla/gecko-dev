@@ -41,7 +41,7 @@ class PlainDateObject : public NativeObject {
   /**
    * Extract the date fields from this PlainDate object.
    */
-  PlainDate date() const {
+  ISODate date() const {
     auto packed = PackedDate{getFixedSlot(PACKED_DATE_SLOT).toPrivateUint32()};
     return PackedDate::unpack(packed);
   }
@@ -61,13 +61,13 @@ enum class TemporalUnit;
 /**
  * IsValidISODate ( year, month, day )
  */
-bool IsValidISODate(const PlainDate& date);
+bool IsValidISODate(const ISODate& date);
 #endif
 
 /**
  * IsValidISODate ( year, month, day )
  */
-bool ThrowIfInvalidISODate(JSContext* cx, const PlainDate& date);
+bool ThrowIfInvalidISODate(JSContext* cx, const ISODate& date);
 
 /**
  * IsValidISODate ( year, month, day )
@@ -78,28 +78,28 @@ bool ThrowIfInvalidISODate(JSContext* cx, double year, double month,
 /**
  * ISODateWithinLimits ( isoDate )
  */
-bool ISODateWithinLimits(const PlainDate& isoDate);
+bool ISODateWithinLimits(const ISODate& isoDate);
 
-class MOZ_STACK_CLASS PlainDateWithCalendar final {
-  PlainDate date_;
+class MOZ_STACK_CLASS PlainDate final {
+  ISODate date_;
   CalendarValue calendar_;
 
  public:
-  PlainDateWithCalendar() = default;
+  PlainDate() = default;
 
-  PlainDateWithCalendar(const PlainDate& date, const CalendarValue& calendar)
+  PlainDate(const ISODate& date, const CalendarValue& calendar)
       : date_(date), calendar_(calendar) {
     MOZ_ASSERT(ISODateWithinLimits(date));
   }
 
-  explicit PlainDateWithCalendar(const PlainDateObject* date)
-      : PlainDateWithCalendar(date->date(), date->calendar()) {}
+  explicit PlainDate(const PlainDateObject* date)
+      : PlainDate(date->date(), date->calendar()) {}
 
   const auto& date() const { return date_; }
   const auto& calendar() const { return calendar_; }
 
-  // Allow implicit conversion to a calendar-less PlainDate.
-  operator const PlainDate&() const { return date(); }
+  // Allow implicit conversion to an ISODate.
+  operator const ISODate&() const { return date(); }
 
   explicit operator bool() const { return !!calendar_; }
 
@@ -111,63 +111,62 @@ class MOZ_STACK_CLASS PlainDateWithCalendar final {
 /**
  * CreateTemporalDate ( isoDate, calendar [ , newTarget ] )
  */
-PlainDateObject* CreateTemporalDate(JSContext* cx, const PlainDate& isoDate,
+PlainDateObject* CreateTemporalDate(JSContext* cx, const ISODate& isoDate,
                                     JS::Handle<CalendarValue> calendar);
 
 /**
  * CreateTemporalDate ( isoDate, calendar [ , newTarget ] )
  */
-PlainDateObject* CreateTemporalDate(JSContext* cx,
-                                    JS::Handle<PlainDateWithCalendar> date);
+PlainDateObject* CreateTemporalDate(JSContext* cx, JS::Handle<PlainDate> date);
 
 /**
  * CreateTemporalDate ( isoDate, calendar [ , newTarget ] )
  */
-bool CreateTemporalDate(JSContext* cx, const PlainDate& isoDate,
+bool CreateTemporalDate(JSContext* cx, const ISODate& isoDate,
                         JS::Handle<CalendarValue> calendar,
-                        JS::MutableHandle<PlainDateWithCalendar> result);
+                        JS::MutableHandle<PlainDate> result);
 
 /**
  * RegulateISODate ( year, month, day, overflow )
  */
 bool RegulateISODate(JSContext* cx, int32_t year, double month, double day,
-                     TemporalOverflow overflow, PlainDate* result);
+                     TemporalOverflow overflow, ISODate* result);
 
 /**
  * AddISODate ( year, month, day, years, months, weeks, days, overflow )
  */
-bool AddISODate(JSContext* cx, const PlainDate& date,
+bool AddISODate(JSContext* cx, const ISODate& date,
                 const DateDuration& duration, TemporalOverflow overflow,
-                PlainDate* result);
+                ISODate* result);
 
 /**
  * DifferenceISODate ( y1, m1, d1, y2, m2, d2, largestUnit )
  */
-DateDuration DifferenceISODate(const PlainDate& start, const PlainDate& end,
+DateDuration DifferenceISODate(const ISODate& start, const ISODate& end,
                                TemporalUnit largestUnit);
 
 /**
  * CompareISODate ( y1, m1, d1, y2, m2, d2 )
  */
-int32_t CompareISODate(const PlainDate& one, const PlainDate& two);
+int32_t CompareISODate(const ISODate& one, const ISODate& two);
 
 /**
  * BalanceISODate ( year, month, day )
  */
-bool BalanceISODate(JSContext* cx, const PlainDate& date, int64_t days,
-                    PlainDate* result);
+bool BalanceISODate(JSContext* cx, const ISODate& date, int64_t days,
+                    ISODate* result);
 
 /**
  * BalanceISODate ( year, month, day )
  */
-PlainDate BalanceISODate(const PlainDate& date, int32_t days);
+ISODate BalanceISODate(const ISODate& date, int32_t days);
 
 } /* namespace js::temporal */
 
 namespace js {
 
 template <typename Wrapper>
-class WrappedPtrOperations<temporal::PlainDateWithCalendar, Wrapper> {
+class WrappedPtrOperations<temporal::PlainDate, Wrapper> {
   const auto& container() const {
     return static_cast<const Wrapper*>(this)->get();
   }
@@ -182,8 +181,8 @@ class WrappedPtrOperations<temporal::PlainDateWithCalendar, Wrapper> {
         container().calendarDoNotUse());
   }
 
-  // Allow implicit conversion to a calendar-less PlainDate.
-  operator const temporal::PlainDate&() const { return date(); }
+  // Allow implicit conversion to an ISODate.
+  operator const temporal::ISODate&() const { return date(); }
 };
 
 }  // namespace js
