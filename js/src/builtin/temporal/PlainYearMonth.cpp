@@ -356,10 +356,10 @@ static bool DifferenceTemporalPlainYearMonth(JSContext* cx,
 
   // Step 3.
   if (!CalendarEquals(calendar, other.calendar())) {
-    JS_ReportErrorNumberASCII(
-        cx, GetErrorMessage, nullptr, JSMSG_TEMPORAL_CALENDAR_INCOMPATIBLE,
-        ToTemporalCalendarIdentifier(calendar).data(),
-        ToTemporalCalendarIdentifier(other.calendar()).data());
+    JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
+                              JSMSG_TEMPORAL_CALENDAR_INCOMPATIBLE,
+                              CalendarIdentifier(calendar).data(),
+                              CalendarIdentifier(other.calendar()).data());
     return false;
   }
 
@@ -742,15 +742,15 @@ static bool PlainYearMonth_compare(JSContext* cx, unsigned argc, Value* vp) {
  */
 static bool PlainYearMonth_calendarId(JSContext* cx, const CallArgs& args) {
   auto* yearMonth = &args.thisv().toObject().as<PlainYearMonthObject>();
-  Rooted<CalendarValue> calendar(cx, yearMonth->calendar());
 
   // Step 3.
-  auto* calendarId = ToTemporalCalendarIdentifier(cx, calendar);
-  if (!calendarId) {
+  auto* str =
+      NewStringCopy<CanGC>(cx, CalendarIdentifier(yearMonth->calendar()));
+  if (!str) {
     return false;
   }
 
-  args.rval().setString(calendarId);
+  args.rval().setString(str);
   return true;
 }
 

@@ -415,13 +415,13 @@ static bool PlainMonthDay_calendarId(JSContext* cx, const CallArgs& args) {
   auto* monthDay = &args.thisv().toObject().as<PlainMonthDayObject>();
 
   // Step 3.
-  Rooted<CalendarValue> calendar(cx, monthDay->calendar());
-  auto* calendarId = ToTemporalCalendarIdentifier(cx, calendar);
-  if (!calendarId) {
+  auto* str =
+      NewStringCopy<CanGC>(cx, CalendarIdentifier(monthDay->calendar()));
+  if (!str) {
     return false;
   }
 
-  args.rval().setString(calendarId);
+  args.rval().setString(str);
   return true;
 }
 

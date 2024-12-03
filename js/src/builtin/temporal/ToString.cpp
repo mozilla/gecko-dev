@@ -322,12 +322,12 @@ static bool FormatCalendarAnnotation(TemporalStringBuilder& result,
     }
 
     case ShowCalendar::Always: {
-      auto id = ToTemporalCalendarIdentifier(calendar);
+      auto id = CalendarIdentifier(calendar);
       return result.appendCalendarAnnnotation(id, Critical::No);
     }
 
     case ShowCalendar::Critical: {
-      auto id = ToTemporalCalendarIdentifier(calendar);
+      auto id = CalendarIdentifier(calendar);
       return result.appendCalendarAnnnotation(id, Critical::Yes);
     }
   }

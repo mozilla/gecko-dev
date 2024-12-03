@@ -574,17 +574,9 @@ bool js::temporal::GetTemporalCalendarWithISODefault(
 /**
  * ToTemporalCalendarIdentifier ( calendarSlotValue )
  */
-std::string_view js::temporal::ToTemporalCalendarIdentifier(
+std::string_view js::temporal::CalendarIdentifier(
     const CalendarValue& calendar) {
   return CalendarIdToBcp47(calendar.identifier());
-}
-
-/**
- * ToTemporalCalendarIdentifier ( calendarSlotValue )
- */
-JSLinearString* js::temporal::ToTemporalCalendarIdentifier(
-    JSContext* cx, Handle<CalendarValue> calendar) {
-  return NewStringCopy<CanGC>(cx, ToTemporalCalendarIdentifier(calendar));
 }
 
 static auto ToAnyCalendarKind(CalendarId id) {

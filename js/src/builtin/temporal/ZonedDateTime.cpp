@@ -881,8 +881,8 @@ static bool DifferenceTemporalZonedDateTime(JSContext* cx,
   if (!CalendarEquals(zonedDateTime.calendar(), other.calendar())) {
     JS_ReportErrorNumberASCII(
         cx, GetErrorMessage, nullptr, JSMSG_TEMPORAL_CALENDAR_INCOMPATIBLE,
-        ToTemporalCalendarIdentifier(zonedDateTime.calendar()).data(),
-        ToTemporalCalendarIdentifier(other.calendar()).data());
+        CalendarIdentifier(zonedDateTime.calendar()).data(),
+        CalendarIdentifier(other.calendar()).data());
     return false;
   }
 
@@ -1188,13 +1188,13 @@ static bool ZonedDateTime_calendarId(JSContext* cx, const CallArgs& args) {
   auto* zonedDateTime = &args.thisv().toObject().as<ZonedDateTimeObject>();
 
   // Step 3.
-  Rooted<CalendarValue> calendar(cx, zonedDateTime->calendar());
-  auto* calendarId = ToTemporalCalendarIdentifier(cx, calendar);
-  if (!calendarId) {
+  auto* str =
+      NewStringCopy<CanGC>(cx, CalendarIdentifier(zonedDateTime->calendar()));
+  if (!str) {
     return false;
   }
 
-  args.rval().setString(calendarId);
+  args.rval().setString(str);
   return true;
 }
 

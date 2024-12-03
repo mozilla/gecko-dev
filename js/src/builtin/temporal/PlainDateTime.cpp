@@ -735,10 +735,10 @@ static bool DifferenceTemporalPlainDateTime(JSContext* cx,
 
   // Step 2.
   if (!CalendarEquals(dateTime.calendar(), other.calendar())) {
-    JS_ReportErrorNumberASCII(
-        cx, GetErrorMessage, nullptr, JSMSG_TEMPORAL_CALENDAR_INCOMPATIBLE,
-        ToTemporalCalendarIdentifier(dateTime.calendar()).data(),
-        ToTemporalCalendarIdentifier(other.calendar()).data());
+    JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
+                              JSMSG_TEMPORAL_CALENDAR_INCOMPATIBLE,
+                              CalendarIdentifier(dateTime.calendar()).data(),
+                              CalendarIdentifier(other.calendar()).data());
     return false;
   }
 
@@ -1068,13 +1068,13 @@ static bool PlainDateTime_calendarId(JSContext* cx, const CallArgs& args) {
   auto* dateTime = &args.thisv().toObject().as<PlainDateTimeObject>();
 
   // Step 3.
-  Rooted<CalendarValue> calendar(cx, dateTime->calendar());
-  auto* calendarId = ToTemporalCalendarIdentifier(cx, calendar);
-  if (!calendarId) {
+  auto* str =
+      NewStringCopy<CanGC>(cx, CalendarIdentifier(dateTime->calendar()));
+  if (!str) {
     return false;
   }
 
-  args.rval().setString(calendarId);
+  args.rval().setString(str);
   return true;
 }
 

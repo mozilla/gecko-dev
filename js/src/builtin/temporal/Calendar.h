@@ -194,6 +194,11 @@ int32_t MakeDay(const ISODate& date);
 int64_t MakeDate(const ISODateTime& dateTime);
 
 /**
+ * Return the BCP 47 identifier of the calendar.
+ */
+std::string_view CalendarIdentifier(const CalendarValue& calendar);
+
+/**
  * CanonicalizeCalendar ( id )
  *
  * Return the case-normalized calendar identifier if |id| is a built-in calendar
@@ -215,17 +220,6 @@ bool ToTemporalCalendar(JSContext* cx,
 bool GetTemporalCalendarWithISODefault(JSContext* cx,
                                        JS::Handle<JSObject*> item,
                                        JS::MutableHandle<CalendarValue> result);
-
-/**
- * ToTemporalCalendarIdentifier ( calendarSlotValue )
- */
-std::string_view ToTemporalCalendarIdentifier(const CalendarValue& calendar);
-
-/**
- * ToTemporalCalendarIdentifier ( calendarSlotValue )
- */
-JSLinearString* ToTemporalCalendarIdentifier(
-    JSContext* cx, JS::Handle<CalendarValue> calendar);
 
 /**
  * CalendarDateAdd ( calendar, isoDate, duration, overflow )

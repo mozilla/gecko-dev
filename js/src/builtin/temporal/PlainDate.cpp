@@ -614,9 +614,8 @@ int32_t js::temporal::CompareISODate(const ISODate& one, const ISODate& two) {
 static bool DifferenceTemporalPlainDate(JSContext* cx,
                                         TemporalDifference operation,
                                         const CallArgs& args) {
-  Rooted<PlainDateObject*> temporalDate(
+  Rooted<PlainDate> temporalDate(
       cx, &args.thisv().toObject().as<PlainDateObject>());
-  Rooted<CalendarValue> calendar(cx, temporalDate->calendar());
 
   // Step 1.
   Rooted<PlainDate> other(cx);
@@ -625,11 +624,11 @@ static bool DifferenceTemporalPlainDate(JSContext* cx,
   }
 
   // Step 2.
-  if (!CalendarEquals(calendar, other.calendar())) {
+  if (!CalendarEquals(temporalDate.calendar(), other.calendar())) {
     JS_ReportErrorNumberASCII(
         cx, GetErrorMessage, nullptr, JSMSG_TEMPORAL_CALENDAR_INCOMPATIBLE,
-        ToTemporalCalendarIdentifier(calendar).data(),
-        ToTemporalCalendarIdentifier(other.calendar()).data());
+        CalendarIdentifier(temporalDate.calendar()).data(),
+        CalendarIdentifier(other.calendar()).data());
     return false;
   }
 
@@ -660,7 +659,7 @@ static bool DifferenceTemporalPlainDate(JSContext* cx,
   }
 
   // Step 5.
-  if (temporalDate->date() == other.date()) {
+  if (temporalDate.date() == other.date()) {
     auto* obj = CreateTemporalDuration(cx, {});
     if (!obj) {
       return false;
@@ -672,8 +671,8 @@ static bool DifferenceTemporalPlainDate(JSContext* cx,
 
   // Step 6.
   DateDuration dateDifference;
-  if (!CalendarDateUntil(cx, calendar, temporalDate->date(), other.date(),
-                         settings.largestUnit, &dateDifference)) {
+  if (!CalendarDateUntil(cx, temporalDate.calendar(), temporalDate.date(),
+                         other.date(), settings.largestUnit, &dateDifference)) {
     return false;
   }
 
@@ -684,7 +683,7 @@ static bool DifferenceTemporalPlainDate(JSContext* cx,
   if (settings.smallestUnit != TemporalUnit::Day ||
       settings.roundingIncrement != Increment{1}) {
     // Step 8.a.
-    auto isoDateTime = ISODateTime{temporalDate->date(), {}};
+    auto isoDateTime = ISODateTime{temporalDate.date(), {}};
 
     // Step 8.b.
     auto isoDateTimeOther = ISODateTime{other.date(), {}};
@@ -694,10 +693,11 @@ static bool DifferenceTemporalPlainDate(JSContext* cx,
 
     // Step 8.d.
     Rooted<TimeZoneValue> timeZone(cx, TimeZoneValue{});
-    if (!RoundRelativeDuration(
-            cx, duration, destEpochNs, isoDateTime, timeZone, calendar,
-            settings.largestUnit, settings.roundingIncrement,
-            settings.smallestUnit, settings.roundingMode, &duration)) {
+    if (!RoundRelativeDuration(cx, duration, destEpochNs, isoDateTime, timeZone,
+                               temporalDate.calendar(), settings.largestUnit,
+                               settings.roundingIncrement,
+                               settings.smallestUnit, settings.roundingMode,
+                               &duration)) {
       return false;
     }
   }
@@ -894,15 +894,15 @@ static bool PlainDate_compare(JSContext* cx, unsigned argc, Value* vp) {
  */
 static bool PlainDate_calendarId(JSContext* cx, const CallArgs& args) {
   auto* temporalDate = &args.thisv().toObject().as<PlainDateObject>();
-  Rooted<CalendarValue> calendar(cx, temporalDate->calendar());
 
   // Step 3.
-  auto* calendarId = ToTemporalCalendarIdentifier(cx, calendar);
-  if (!calendarId) {
+  auto* str =
+      NewStringCopy<CanGC>(cx, CalendarIdentifier(temporalDate->calendar()));
+  if (!str) {
     return false;
   }
 
-  args.rval().setString(calendarId);
+  args.rval().setString(str);
   return true;
 }
 
