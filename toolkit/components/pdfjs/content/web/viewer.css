@@ -1197,24 +1197,48 @@
   svg{
     transform:none;
 
-    &[data-main-rotation="90"]{
-      mask,
-      use:not(.clip, .mask){
-        transform:matrix(0, 1, -1, 0, 1, 0);
+    &.moving{
+      z-index:100000;
+    }
+
+    &.highlight,
+    &.highlightOutline{
+      &[data-main-rotation="90"]{
+        mask,
+        use:not(.clip, .mask){
+          transform:matrix(0, 1, -1, 0, 1, 0);
+        }
+      }
+
+      &[data-main-rotation="180"]{
+        mask,
+        use:not(.clip, .mask){
+          transform:matrix(-1, 0, 0, -1, 1, 1);
+        }
+      }
+
+      &[data-main-rotation="270"]{
+        mask,
+        use:not(.clip, .mask){
+          transform:matrix(0, -1, 1, 0, 0, 1);
+        }
       }
     }
 
-    &[data-main-rotation="180"]{
-      mask,
-      use:not(.clip, .mask){
-        transform:matrix(-1, 0, 0, -1, 1, 1);
-      }
-    }
+    &.draw{
+      position:absolute;
+      mix-blend-mode:normal;
 
-    &[data-main-rotation="270"]{
-      mask,
-      use:not(.clip, .mask){
-        transform:matrix(0, -1, 1, 0, 0, 1);
+      &[data-draw-rotation="90"]{
+        transform:rotate(90deg);
+      }
+
+      &[data-draw-rotation="180"]{
+        transform:rotate(180deg);
+      }
+
+      &[data-draw-rotation="270"]{
+        transform:rotate(270deg);
       }
     }
 
@@ -1527,19 +1551,21 @@
   font-size:0;
 }
 
-.textLayer.highlighting{
-  cursor:var(--editorFreeHighlight-editing-cursor);
+.textLayer{
+  &.highlighting{
+    cursor:var(--editorFreeHighlight-editing-cursor);
 
-  &:not(.free) span{
-    cursor:var(--editorHighlight-editing-cursor);
+    &:not(.free) span{
+      cursor:var(--editorHighlight-editing-cursor);
 
-    &[role="img"]{
+      &[role="img"]{
+        cursor:var(--editorFreeHighlight-editing-cursor);
+      }
+    }
+
+    &.free span{
       cursor:var(--editorFreeHighlight-editing-cursor);
     }
-  }
-
-  &.free span{
-    cursor:var(--editorFreeHighlight-editing-cursor);
   }
 }
 
@@ -1614,6 +1640,11 @@
 
 .annotationEditorLayer.inkEditing{
   cursor:var(--editorInk-editing-cursor);
+  touch-action:none;
+}
+
+.annotationEditorLayer .draw{
+  box-sizing:border-box;
 }
 
 .annotationEditorLayer :is(.freeTextEditor, .inkEditor, .stampEditor){
@@ -1628,10 +1659,6 @@
 
   &.draggable.selectedEditor{
     cursor:move;
-  }
-
-  &.moving{
-    touch-action:none;
   }
 
   &.selectedEditor{
@@ -1750,6 +1777,10 @@
       align-items:center;
       gap:0;
       height:100%;
+
+      button{
+        padding:0;
+      }
 
       .divider{
         width:0;
@@ -3978,6 +4009,7 @@ dialog :link{
   font:message-box;
   flex:none;
   position:relative;
+  padding:0;
 
   > span{
     display:inline-block;
