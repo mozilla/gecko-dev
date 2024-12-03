@@ -39,6 +39,7 @@ class OnboardingTelemetryRecorder {
      * @param pageType The page type for which the impression occurred.
      * @param sequencePosition The sequence position of the page for which the impression occurred.
      */
+    @Suppress("LongMethod")
     fun onImpression(
         sequenceId: String,
         pageType: OnboardingPageUiData.Type,
@@ -101,8 +102,14 @@ class OnboardingTelemetryRecorder {
             }
 
             OnboardingPageUiData.Type.TOOLBAR_PLACEMENT -> {
-                // Todo as part of https://bugzilla.mozilla.org/show_bug.cgi?id=1926956
-                throw NotImplementedError()
+                Onboarding.toolbarPlacementCard.record(
+                    Onboarding.ToolbarPlacementCardExtra(
+                        action = ACTION_IMPRESSION,
+                        elementType = ET_ONBOARDING_CARD,
+                        sequenceId = sequenceId,
+                        sequencePosition = sequencePosition,
+                    ),
+                )
             }
 
             OnboardingPageUiData.Type.THEME_SELECTION -> {
@@ -245,6 +252,38 @@ class OnboardingTelemetryRecorder {
             Onboarding.SkipTurnOnNotificationsExtra(
                 action = ACTION_CLICK,
                 elementType = ET_SECONDARY_BUTTON,
+                sequenceId = sequenceId,
+                sequencePosition = sequencePosition,
+            ),
+        )
+    }
+
+    /**
+     * Records select toolbar placement click event.
+     * @param sequenceId The identifier of the onboarding sequence shown to the user.
+     * @param sequencePosition The sequence position of the page for which the impression occurred.
+     */
+    fun onSelectToolbarPlacementClick(sequenceId: String, sequencePosition: String) {
+        Onboarding.selectToolbarPlacement.record(
+            Onboarding.SelectToolbarPlacementExtra(
+                action = ACTION_CLICK,
+                elementType = ET_PRIMARY_BUTTON,
+                sequenceId = sequenceId,
+                sequencePosition = sequencePosition,
+            ),
+        )
+    }
+
+    /**
+     * Records skip toolbar placement click event.
+     * @param sequenceId The identifier of the onboarding sequence shown to the user.
+     * @param sequencePosition The sequence position of the page for which the impression occurred.
+     */
+    fun onSkipToolbarPlacementClick(sequenceId: String, sequencePosition: String) {
+        Onboarding.skipToolbarPlacement.record(
+            Onboarding.SkipToolbarPlacementExtra(
+                action = ACTION_CLICK,
+                elementType = ET_PRIMARY_BUTTON,
                 sequenceId = sequenceId,
                 sequencePosition = sequencePosition,
             ),
