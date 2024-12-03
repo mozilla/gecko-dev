@@ -159,6 +159,19 @@ async function hitTestOOPIF(point, iframeElement) {
   let oldParentTestData = utils.getCompositorAPZTestData();
   let oldIframeTestData = await getIframeCompositorTestData(iframeElement);
 
+  let hittestPromise = SpecialPowers.spawnChrome([], () => {
+    return new Promise(resolve => {
+      browsingContext.topChromeWindow.addEventListener(
+        "MozMouseHittest",
+        () => {
+          resolve();
+        },
+        { once: true }
+      );
+    });
+  });
+  await SpecialPowers.executeAfterFlushingMessageQueue();
+
   // Now do the hit-test
   dump(`Hit-testing point (${point.x}, ${point.y}) in fission context\n`);
   utils.sendMouseEvent(
@@ -172,8 +185,10 @@ async function hitTestOOPIF(point, iframeElement) {
     0,
     0,
     true,
-    true
+    false /* aIsWidgetEventSynthesized */
   );
+
+  await hittestPromise;
 
   // Collect the new test data
   let newParentTestData = utils.getCompositorAPZTestData();
