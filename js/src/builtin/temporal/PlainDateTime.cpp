@@ -2099,6 +2099,13 @@ static bool PlainDateTime_toString(JSContext* cx, const CallArgs& args) {
       RoundISODateTime(dt, precision.increment, precision.unit, roundingMode);
 
   // Step 12.
+  if (!ISODateTimeWithinLimits(result)) {
+    JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
+                              JSMSG_TEMPORAL_PLAIN_DATE_TIME_INVALID);
+    return false;
+  }
+
+  // Step 13.
   JSString* str = ::TemporalDateTimeToString(cx, result, calendar,
                                              precision.precision, showCalendar);
   if (!str) {
