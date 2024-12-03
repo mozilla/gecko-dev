@@ -475,6 +475,8 @@ def exportTest262(
     if includeShell:
         os.makedirs(includeDir)
 
+    skipped = 0
+
     # Go through each source path
     for providedSrc in providedSrcs:
         src = os.path.abspath(providedSrc)
@@ -524,6 +526,7 @@ def exportTest262(
 
                 if not testSource:
                     print("SKIPPED %s" % testName)
+                    skipped += 1
                     continue
 
                 skip = skipTest(testSource)
@@ -531,6 +534,7 @@ def exportTest262(
                     print(
                         f"SKIPPED {testName} because file contains {skip.decode('ascii')}"
                     )
+                    skipped += 1
                     continue
 
                 try:
@@ -538,12 +542,15 @@ def exportTest262(
                 except Exception as e:
                     print(f"SKIPPED {testName} due to error {e}")
                     traceback.print_exc(file=sys.stdout)
+                    skipped += 1
                     continue
 
                 with open(os.path.join(currentOutDir, fileName), "wb") as output:
                     output.write(newSource)
 
                 print("SAVED %s" % testName)
+
+    print(f"Skipped {skipped} tests")
 
 
 if __name__ == "__main__":
