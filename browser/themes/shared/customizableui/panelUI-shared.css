@@ -1187,13 +1187,15 @@ panelview .toolbarbutton-1,
   }
 }
 
-#appMenu-profiles-button {
+#appMenu-profiles-button,
+#PanelUI-fxa-menu-profiles-button {
   justify-content: space-between;
 }
 
 /* Set the --appmenu-profiles-theme-bg and --appmenu-profiles-theme-fg
  * variables inline on the toolbarbutton */
 #appMenu-profiles-button.subviewbutton-iconic > .toolbarbutton-icon,
+#PanelUI-fxa-menu-profiles-button.subviewbutton-iconic > .toolbarbutton-icon,
 .subviewbutton-iconic.profile-item > .toolbarbutton-icon {
   -moz-context-properties: fill, stroke;
   fill: var(--appmenu-profiles-theme-bg);
@@ -2248,6 +2250,24 @@ radiogroup:focus-visible > .subviewradio[focused="true"] {
 
 #PanelUI-profiles > .panel-subview-body {
   padding-block-start: 0;
+}
+
+/* ----- Profiles FxA panel ----- */
+
+panelmultiview[mainViewId="PanelUI-fxa"]  {
+  #PanelUI-profiles-header {
+    padding-block-start: 0;
+    padding-block-end: 0;
+    padding-inline-end: 0;
+  }
+
+  #profiles-edit-this-profile-button {
+    padding-inline-start: 0;
+
+    &:hover {
+      background-color: inherit;
+    }
+  }
 }
 
 /* ----- Content Analysis indicator panel ----- */

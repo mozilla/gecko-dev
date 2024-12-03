@@ -13,6 +13,8 @@ var gProfiles = {
     this.manageProfiles = this.manageProfiles.bind(this);
     this.onAppMenuViewHiding = this.onAppMenuViewHiding.bind(this);
     this.onAppMenuViewShowing = this.onAppMenuViewShowing.bind(this);
+    this.onFxAMenuViewShowing = this.onFxAMenuViewShowing.bind(this);
+    this.onFxAMenuViewHiding = this.onFxAMenuViewHiding.bind(this);
     this.onPopupShowing = this.onPopupShowing.bind(this);
     this.toggleProfileMenus = this.toggleProfileMenus.bind(this);
     this.updateView = this.updateView.bind(this);
@@ -50,15 +52,20 @@ var gProfiles = {
       document,
       "appMenu-profiles-button"
     );
+    this.fxaMenuEmptyProfilesButton = PanelMultiView.getViewNode(
+      document,
+      "PanelUI-fxa-menu-empty-profiles-button"
+    );
+    this.fxaMenuProfilesButton = PanelMultiView.getViewNode(
+      document,
+      "PanelUI-fxa-menu-profiles-button"
+    );
     this.subview = PanelMultiView.getViewNode(document, "PanelUI-profiles");
 
     this.toggleAppMenuButton();
+    this.toggleFxAMenuButton();
   },
 
-  /**
-   * Toggles listeners for the profiles app menu button in response to changes
-   * in the profiles feature pref.
-   */
   toggleAppMenuButton() {
     if (!this.PROFILES_ENABLED) {
       PanelUI.mainView.removeEventListener(
@@ -76,20 +83,42 @@ var gProfiles = {
       );
       PanelUI.mainView.addEventListener("ViewHiding", this.onAppMenuViewHiding);
     }
-    this.onAppMenuViewShowing();
   },
 
-  /**
-   * Renders and shows the correct profiles app menu button in response to the
-   * main app menu ViewShowing event.
-   */
-  async onAppMenuViewShowing() {
+  toggleFxAMenuButton() {
+    let fxaPanelView = PanelMultiView.getViewNode(document, "PanelUI-fxa");
     if (!this.PROFILES_ENABLED) {
-      this.profilesButton.hidden = true;
-      this.emptyProfilesButton.hidden = true;
+      fxaPanelView.removeEventListener(
+        "ViewShowing",
+        this.onFxAMenuViewShowing
+      );
+      fxaPanelView.removeEventListener("ViewHiding", this.onFxAMenuViewHiding);
+      fxaPanelView.removeEventListener("command", this.handleCommand);
+    } else {
+      fxaPanelView.addEventListener("ViewShowing", this.onFxAMenuViewShowing);
+      fxaPanelView.addEventListener("ViewHiding", this.onFxAMenuViewHiding);
+      fxaPanelView.addEventListener("command", this.handleCommand);
+    }
+  },
+
+  onAppMenuViewShowing() {
+    this._onPanelShowing(this.profilesButton, this.emptyProfilesButton);
+  },
+
+  onFxAMenuViewShowing() {
+    this._onPanelShowing(
+      this.fxaMenuProfilesButton,
+      this.fxaMenuEmptyProfilesButton
+    );
+  },
+
+  async _onPanelShowing(profilesButton, emptyProfilesButton) {
+    if (!this.PROFILES_ENABLED) {
+      profilesButton.hidden = true;
+      emptyProfilesButton.hidden = true;
       return;
     }
-    this.profilesButton.addEventListener("command", this.handleCommand);
+    profilesButton.addEventListener("command", this.handleCommand);
     this.subview.addEventListener("command", this.handleCommand);
 
     // If the feature is preffed on, but we haven't created profiles yet, the
@@ -98,41 +127,56 @@ var gProfiles = {
       ? await SelectableProfileService.getAllProfiles()
       : [];
     if (profiles.length < 2) {
-      this.profilesButton.hidden = true;
-      this.emptyProfilesButton.hidden = false;
-      this.emptyProfilesButton.addEventListener("command", this.handleCommand);
+      profilesButton.hidden = true;
+      emptyProfilesButton.hidden = false;
+      emptyProfilesButton.addEventListener("command", this.handleCommand);
       return;
     }
-    this.emptyProfilesButton.hidden = true;
-    this.profilesButton.hidden = false;
-    this.profilesButton.addEventListener("command", this.handleCommand);
+    emptyProfilesButton.hidden = true;
+    profilesButton.hidden = false;
+    profilesButton.addEventListener("command", this.handleCommand);
     let { themeBg, themeFg } = SelectableProfileService.currentProfile.theme;
-    this.profilesButton.style.setProperty(
-      "--appmenu-profiles-theme-bg",
-      themeBg
-    );
-    this.profilesButton.style.setProperty(
-      "--appmenu-profiles-theme-fg",
-      themeFg
-    );
-    this.profilesButton.setAttribute(
+    profilesButton.style.setProperty("--appmenu-profiles-theme-bg", themeBg);
+    profilesButton.style.setProperty("--appmenu-profiles-theme-fg", themeFg);
+    profilesButton.setAttribute(
       "label",
       SelectableProfileService.currentProfile.name
     );
     let avatar = SelectableProfileService.currentProfile.avatar;
-    this.profilesButton.setAttribute(
+    profilesButton.setAttribute(
       "image",
       `chrome://browser/content/profiles/assets/16_${avatar}.svg`
     );
   },
 
-  /**
-   * Removes event listeners from the profiles app menu button in response to
-   * the main app menu ViewHiding event.
-   */
   onAppMenuViewHiding() {
     this.profilesButton.removeEventListener("command", this.handleCommand);
     this.emptyProfilesButton.removeEventListener("command", this.handleCommand);
+
+    // If the user closes the app menu by opening the FxA menu, the FxA showing
+    // handler will run before this code runs. To avoid disconnecting the
+    // subview handlers in the FxA panel, bail out if the FxA panel is visible.
+    if (document.getElementById("PanelUI-fxa")?.getAttribute("visible")) {
+      return;
+    }
+    this.subview.removeEventListener("command", this.handleCommand);
+  },
+
+  onFxAMenuViewHiding() {
+    this.fxaMenuProfilesButton.removeEventListener(
+      "command",
+      this.handleCommand
+    );
+    this.fxaMenuEmptyProfilesButton.removeEventListener(
+      "command",
+      this.handleCommand
+    );
+
+    // If the app menu is already open, don't disconnect the subview listeners.
+    // (See related comment inside `onAppMenuViewHiding`.)
+    if (PanelUI.mainView.getAttribute("visible")) {
+      return;
+    }
     this.subview.removeEventListener("command", this.handleCommand);
   },
 
@@ -220,9 +264,15 @@ var gProfiles = {
     SelectableProfileService.createNewProfile();
   },
 
-  async updateView(panel) {
+  async updateView(target) {
     await this.populateSubView();
-    PanelUI.showSubView("PanelUI-profiles", panel);
+    PanelUI.showSubView("PanelUI-profiles", target);
+  },
+
+  async updateFxAView() {
+    await this.populateSubView();
+    let fxaAnchor = document.getElementById("customizationui-widget-multiview");
+    PanelUI.showSubView("PanelUI-profiles", fxaAnchor);
   },
 
   launchProfile(aEvent) {
@@ -233,15 +283,24 @@ var gProfiles = {
     });
   },
 
-  handleCommand(aEvent) {
+  async handleCommand(aEvent) {
     switch (aEvent.target.id) {
-      /* Appmenu events */
+      /* App menu button events */
       case "appMenu-profiles-button":
       // deliberate fallthrough
       case "appMenu-empty-profiles-button": {
         this.updateView(aEvent.target);
         break;
       }
+      /* FxA menu button events */
+      case "PanelUI-fxa-menu-empty-profiles-button":
+      // deliberate fallthrough
+      case "PanelUI-fxa-menu-profiles-button": {
+        aEvent.stopPropagation();
+        this.updateFxAView();
+        break;
+      }
+      /* Subpanel events that may be triggered in FxA menu or app menu */
       case "profiles-appmenu-back-button": {
         aEvent.target.closest("panelview").panelMultiView.goBack();
         aEvent.target.blur();
@@ -260,7 +319,7 @@ var gProfiles = {
         break;
       }
 
-      /* Menubar events - separated out to simplify telemetry */
+      /* Menubar events */
       case "Profiles:CreateProfile": {
         this.createNewProfile();
         break;
@@ -274,14 +333,15 @@ var gProfiles = {
         break;
       }
     }
-    /* Appmenu */
+    /* Subpanel profile events that may be triggered in FxA menu or app menu */
     if (aEvent.target.classList.contains("profile-item")) {
       this.launchProfile(aEvent);
     }
   },
 
   /**
-   * Draws the subpanel contents for the app menu.
+   * Inserts the subpanel contents for the PanelUI subpanel, which may be shown
+   * either in the app menu or the FxA toolbar button menu.
    */
   async populateSubView() {
     let profiles = [];
