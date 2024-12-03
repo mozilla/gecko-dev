@@ -613,14 +613,13 @@ static bool DifferenceTemporalInstant(JSContext* cx,
       DifferenceInstant(epochNs, other, settings.roundingIncrement,
                         settings.smallestUnit, settings.roundingMode);
 
-  // Step 4.
-  TimeDuration balanced;
-  if (!BalanceTimeDuration(cx, difference, settings.largestUnit, &balanced)) {
+  // Step 5.
+  Duration duration;
+  if (!BalanceTimeDuration(cx, difference, settings.largestUnit, &duration)) {
     return false;
   }
 
   // Step 6.
-  auto duration = balanced.toDuration();
   if (operation == TemporalDifference::Since) {
     duration = duration.negate();
   }

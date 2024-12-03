@@ -147,22 +147,22 @@ ISODateTime RoundISODateTime(const ISODateTime& dateTime, Increment increment,
                              TemporalRoundingMode roundingMode);
 
 /**
- * DifferencePlainDateTimeWithRounding ( y1, mon1, d1, h1, min1, s1, ms1, mus1,
- * ns1, y2, mon2, d2, h2, min2, s2, ms2, mus2, ns2, calendar, largestUnit,
- * roundingIncrement, smallestUnit, roundingMode )
+ * DifferencePlainDateTimeWithRounding ( isoDateTime1, isoDateTime2, calendar,
+ * largestUnit, roundingIncrement, smallestUnit, roundingMode )
  */
-bool DifferencePlainDateTimeWithRounding(JSContext* cx, const ISODateTime& one,
-                                         const ISODateTime& two,
+bool DifferencePlainDateTimeWithRounding(JSContext* cx,
+                                         const ISODateTime& isoDateTime1,
+                                         const ISODateTime& isoDateTime2,
                                          JS::Handle<CalendarValue> calendar,
                                          const DifferenceSettings& settings,
                                          Duration* result);
 /**
- * DifferencePlainDateTimeWithRounding ( y1, mon1, d1, h1, min1, s1, ms1, mus1,
- * ns1, y2, mon2, d2, h2, min2, s2, ms2, mus2, ns2, calendar, largestUnit,
- * roundingIncrement, smallestUnit, roundingMode )
+ * DifferencePlainDateTimeWithRounding ( isoDateTime1, isoDateTime2, calendar,
+ * largestUnit, roundingIncrement, smallestUnit, roundingMode )
  */
-bool DifferencePlainDateTimeWithRounding(JSContext* cx, const ISODateTime& one,
-                                         const ISODateTime& two,
+bool DifferencePlainDateTimeWithRounding(JSContext* cx,
+                                         const ISODateTime& isoDateTime1,
+                                         const ISODateTime& isoDateTime2,
                                          JS::Handle<CalendarValue> calendar,
                                          TemporalUnit unit, double* result);
 

@@ -617,20 +617,19 @@ ISODateTime js::temporal::RoundISODateTime(const ISODateTime& dateTime,
 }
 
 /**
- * DifferencePlainDateTimeWithRounding ( y1, mon1, d1, h1, min1, s1, ms1, mus1,
- * ns1, y2, mon2, d2, h2, min2, s2, ms2, mus2, ns2, calendar, largestUnit,
- * roundingIncrement, smallestUnit, roundingMode )
+ * DifferencePlainDateTimeWithRounding ( isoDateTime1, isoDateTime2, calendar,
+ * largestUnit, roundingIncrement, smallestUnit, roundingMode )
  */
 bool js::temporal::DifferencePlainDateTimeWithRounding(
-    JSContext* cx, const ISODateTime& one, const ISODateTime& two,
-    Handle<CalendarValue> calendar, const DifferenceSettings& settings,
-    Duration* result) {
+    JSContext* cx, const ISODateTime& isoDateTime1,
+    const ISODateTime& isoDateTime2, Handle<CalendarValue> calendar,
+    const DifferenceSettings& settings, Duration* result) {
   // Steps 1-2.
-  MOZ_ASSERT(ISODateTimeWithinLimits(one));
-  MOZ_ASSERT(ISODateTimeWithinLimits(two));
+  MOZ_ASSERT(ISODateTimeWithinLimits(isoDateTime1));
+  MOZ_ASSERT(ISODateTimeWithinLimits(isoDateTime2));
 
   // Step 3.
-  if (one == two) {
+  if (isoDateTime1 == isoDateTime2) {
     // Steps 3.a-b.
     *result = {};
     return true;
@@ -638,8 +637,8 @@ bool js::temporal::DifferencePlainDateTimeWithRounding(
 
   // Step 4.
   NormalizedDuration diff;
-  if (!::DifferenceISODateTime(cx, one, two, calendar, settings.largestUnit,
-                               &diff)) {
+  if (!::DifferenceISODateTime(cx, isoDateTime1, isoDateTime2, calendar,
+                               settings.largestUnit, &diff)) {
     return false;
   }
 
@@ -653,9 +652,9 @@ bool js::temporal::DifferencePlainDateTimeWithRounding(
       return false;
     }
 
-    // Step 5.b.
-    TimeDuration timeResult;
-    if (!BalanceTimeDuration(cx, withDays, settings.largestUnit, &timeResult)) {
+    // Step 5.b. (TODO: remove)
+    Duration balanced;
+    if (!BalanceTimeDuration(cx, withDays, settings.largestUnit, &balanced)) {
       return false;
     }
 
@@ -663,21 +662,21 @@ bool js::temporal::DifferencePlainDateTimeWithRounding(
 
     // Steps 5.d-e.
     *result = {
-        double(diff.date.years),    double(diff.date.months),
-        double(diff.date.weeks),    double(timeResult.days),
-        double(timeResult.hours),   double(timeResult.minutes),
-        double(timeResult.seconds), double(timeResult.milliseconds),
-        timeResult.microseconds,    timeResult.nanoseconds,
+        double(diff.date.years), double(diff.date.months),
+        double(diff.date.weeks), balanced.days,
+        balanced.hours,          balanced.minutes,
+        balanced.seconds,        balanced.milliseconds,
+        balanced.microseconds,   balanced.nanoseconds,
     };
     MOZ_ASSERT(IsValidDuration(*result));
     return true;
   }
 
   // Step 6.
-  const auto& dateTime = one;
+  const auto& dateTime = isoDateTime1;
 
   // Step 7.
-  auto destEpochNs = GetUTCEpochNanoseconds(two);
+  auto destEpochNs = GetUTCEpochNanoseconds(isoDateTime2);
 
   // Step 8.
   Rooted<TimeZoneValue> timeZone(cx, TimeZoneValue{});
@@ -695,19 +694,19 @@ bool js::temporal::DifferencePlainDateTimeWithRounding(
 }
 
 /**
- * DifferencePlainDateTimeWithRounding ( y1, mon1, d1, h1, min1, s1, ms1, mus1,
- * ns1, y2, mon2, d2, h2, min2, s2, ms2, mus2, ns2, calendar, largestUnit,
- * roundingIncrement, smallestUnit, roundingMode )
+ * DifferencePlainDateTimeWithRounding ( isoDateTime1, isoDateTime2, calendar,
+ * largestUnit, roundingIncrement, smallestUnit, roundingMode )
  */
 bool js::temporal::DifferencePlainDateTimeWithRounding(
-    JSContext* cx, const ISODateTime& one, const ISODateTime& two,
-    Handle<CalendarValue> calendar, TemporalUnit unit, double* result) {
+    JSContext* cx, const ISODateTime& isoDateTime1,
+    const ISODateTime& isoDateTime2, Handle<CalendarValue> calendar,
+    TemporalUnit unit, double* result) {
   // Steps 1-2.
-  MOZ_ASSERT(ISODateTimeWithinLimits(one));
-  MOZ_ASSERT(ISODateTimeWithinLimits(two));
+  MOZ_ASSERT(ISODateTimeWithinLimits(isoDateTime1));
+  MOZ_ASSERT(ISODateTimeWithinLimits(isoDateTime2));
 
   // Step 3.
-  if (one == two) {
+  if (isoDateTime1 == isoDateTime2) {
     // Steps 3.a-b.
     *result = 0;
     return true;
@@ -715,7 +714,8 @@ bool js::temporal::DifferencePlainDateTimeWithRounding(
 
   // Step 4.
   NormalizedDuration diff;
-  if (!DifferenceISODateTime(cx, one, two, calendar, unit, &diff)) {
+  if (!DifferenceISODateTime(cx, isoDateTime1, isoDateTime2, calendar, unit,
+                             &diff)) {
     return false;
   }
 
@@ -736,10 +736,10 @@ bool js::temporal::DifferencePlainDateTimeWithRounding(
   }
 
   // Step 6.
-  const auto& dateTime = one;
+  const auto& dateTime = isoDateTime1;
 
   // Step 7.
-  auto destEpochNs = GetUTCEpochNanoseconds(two);
+  auto destEpochNs = GetUTCEpochNanoseconds(isoDateTime2);
 
   // Step 8.
   Rooted<TimeZoneValue> timeZone(cx, TimeZoneValue{});
