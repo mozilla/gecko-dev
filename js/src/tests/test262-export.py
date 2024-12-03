@@ -450,8 +450,8 @@ def convertReportCompare(source: bytes) -> bytes:
     """
 
     def replaceFn(matchobj: "re.Match[bytes]") -> bytes:
-        actual: bytes = matchobj.group(2)
-        expected: bytes = matchobj.group(3)
+        actual: bytes = matchobj.group(4)
+        expected: bytes = matchobj.group(5)
 
         if actual == expected and actual in [b"0", b"true", b"null"]:
             return b""
@@ -459,7 +459,7 @@ def convertReportCompare(source: bytes) -> bytes:
         return matchobj.group()
 
     newSource = re.sub(
-        rb".*(if \(typeof reportCompare === \"function\"\)\s*)?reportCompare\s*\(\s*(\w*)\s*,\s*(\w*)\s*(,\s*\S*)?\s*\)\s*;*\s*",
+        rb".*(if \(typeof reportCompare ===? (\"|')function(\"|')\)\s*)?reportCompare\s*\(\s*(\w*)\s*,\s*(\w*)\s*(,\s*\S*)?\s*\)\s*;*\s*",
         replaceFn,
         source,
     )

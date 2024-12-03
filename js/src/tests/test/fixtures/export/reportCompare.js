@@ -39,3 +39,12 @@ reportCompare(
 
 if (typeof reportCompare === "function")
   reportCompare(true, true);
+
+if (typeof reportCompare === 'function')
+  reportCompare(true, true);
+
+if (typeof reportCompare == "function")
+  reportCompare(true, true);
+
+if (typeof reportCompare == 'function')
+  reportCompare(true, true);
