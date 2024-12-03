@@ -1659,6 +1659,25 @@ networking:
       - upgrade_exception
       - skip_upgrade
 
+  https_http_or_local:
+    type: labeled_counter
+    description: >
+      Whether a top-level request is HTTPS, HTTP, or HTTP for local domain
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1933672
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1933672
+    notification_emails:
+      - ckerschb@mozilla.com
+      - kershaw@mozilla.com
+      - necko@mozilla.com
+      - seceng-telemetry@mozilla.com
+    expires: never
+    labels:
+      - load_is_https
+      - load_is_http
+      - load_is_http_for_local_domain
+
   http_channel_sub_open_to_first_sent_https_rr:
     type: timing_distribution
     time_unit: millisecond
