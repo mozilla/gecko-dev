@@ -10,6 +10,7 @@ import re
 import shutil
 import sys
 import traceback
+from datetime import date
 from typing import Any, Optional
 
 import yaml
@@ -232,25 +233,24 @@ def parseHeader(source: bytes) -> "tuple[bytes, Optional[ReftestEntry]]":
 ## insertCopyrightLines
 
 
+BSD_TEMPLATE = (
+    b"""\
+// Copyright (C) %d Mozilla Corporation. All rights reserved.
+// This code is governed by the BSD license found in the LICENSE file.
+
+"""
+    % date.today().year
+)
+
+
 def insertCopyrightLines(source: bytes) -> bytes:
     """
     Insert the copyright lines into the file.
     """
-    from datetime import date
+    if re.match(rb"\/\/\s+Copyright.*\. All rights reserved.", source):
+        return source
 
-    lines: list[bytes] = []
-
-    if not re.match(rb"\/\/\s+Copyright.*\. All rights reserved.", source):
-        year = date.today().year
-        lines.append(
-            b"// Copyright (C) %d Mozilla Corporation. All rights reserved." % year
-        )
-        lines.append(
-            b"// This code is governed by the BSD license found in the LICENSE file."
-        )
-        lines.append(b"\n")
-
-    return b"\n".join(lines) + source
+    return BSD_TEMPLATE + source
 
 
 ## extractMeta
