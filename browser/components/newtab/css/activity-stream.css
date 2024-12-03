@@ -4465,6 +4465,22 @@ main section {
     width: 1311px;
   }
 }
+.has-sections-grid.layout-variant-a .ds-outer-wrapper-breakpoint-override .ds-layout-topsites .hide-for-narrow,
+.has-sections-grid.layout-variant-b .ds-outer-wrapper-breakpoint-override .ds-layout-topsites .hide-for-narrow {
+  display: none;
+}
+@media (min-width: 866px) {
+  .has-sections-grid.layout-variant-a .ds-outer-wrapper-breakpoint-override .ds-layout-topsites .hide-for-narrow,
+.has-sections-grid.layout-variant-b .ds-outer-wrapper-breakpoint-override .ds-layout-topsites .hide-for-narrow {
+    display: none;
+  }
+}
+@media (min-width: 1122px) {
+  .has-sections-grid.layout-variant-a .ds-outer-wrapper-breakpoint-override .ds-layout-topsites .hide-for-narrow,
+.has-sections-grid.layout-variant-b .ds-outer-wrapper-breakpoint-override .ds-layout-topsites .hide-for-narrow {
+    display: inline-block;
+  }
+}
 
 .has-sections-grid .ds-outer-wrapper-breakpoint-override main {
   width: auto;
