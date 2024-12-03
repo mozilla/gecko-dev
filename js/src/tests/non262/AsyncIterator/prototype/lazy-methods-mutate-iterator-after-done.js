@@ -4,7 +4,7 @@
 
 /*---
 esid: pending
-description: %AsyncIterator.prototype% methods ignore iterator mutation if already done.
+description: "%AsyncIterator.prototype% methods ignore iterator mutation if already done."
 info: >
   Iterator Helpers proposal 2.1.6
 features: [iterator-helpers]

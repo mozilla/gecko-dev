@@ -4,7 +4,7 @@
 //
 /*---
 esid: pending
-description: %AsyncIterator.prototype%.flatMap closes the iterator when innerComplete throws.
+description: "%AsyncIterator.prototype%.flatMap closes the iterator when innerComplete throws."
 info: >
   Iterator Helpers proposal 2.1.6.7
   1. Repeat,

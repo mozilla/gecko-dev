@@ -3,7 +3,7 @@
 
 /*---
 esid: pending
-description: %AsyncIterator.prototype%.drop length value and descriptor.
+description: "%AsyncIterator.prototype%.drop length value and descriptor."
 info: >
 features: [iterator-helpers]
 ---*/

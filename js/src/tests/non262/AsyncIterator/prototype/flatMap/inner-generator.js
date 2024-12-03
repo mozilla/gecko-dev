@@ -4,7 +4,7 @@
 //
 /*---
 esid: pending
-description: %AsyncIterator.prototype%.flatMap innerIterator can be a generator.
+description: "%AsyncIterator.prototype%.flatMap innerIterator can be a generator."
 info: >
   Iterator Helpers proposal 2.1.6.7
 features: [iterator-helpers]

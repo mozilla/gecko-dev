@@ -4,7 +4,7 @@
 
 /*---
 esid: pending
-description: %AsyncIterator.prototype% methods work properly if the iterator has been mutated.
+description: "%AsyncIterator.prototype% methods work properly if the iterator has been mutated."
 info: >
   Iterator Helpers proposal 2.1.6
 features: [iterator-helpers]

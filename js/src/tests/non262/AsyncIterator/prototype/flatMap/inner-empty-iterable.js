@@ -4,7 +4,7 @@
 //
 /*---
 esid: pending
-description: %AsyncIterator.prototype%.flatMap skips empty inner iterables.
+description: "%AsyncIterator.prototype%.flatMap skips empty inner iterables."
 info: >
   Iterator Helpers proposal 2.1.6.7
   1. Repeat,

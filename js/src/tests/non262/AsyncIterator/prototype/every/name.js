@@ -1,6 +1,6 @@
 // |reftest| skip-if(!this.hasOwnProperty('AsyncIterator'))
 /*---
-  `name` property of AsyncIterator.prototype.every.
+description: "`name` property of AsyncIterator.prototype.every."
 ---*/
 
 const propDesc = Reflect.getOwnPropertyDescriptor(AsyncIterator.prototype.every, 'name');

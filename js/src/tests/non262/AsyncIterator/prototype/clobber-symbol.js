@@ -4,7 +4,7 @@
 
 /*---
 esid: pending
-description: %AsyncIterator.prototype% methods work even if the global Symbol has been clobbered.
+description: "%AsyncIterator.prototype% methods work even if the global Symbol has been clobbered."
 info: >
   Iterator Helpers proposal 2.1.6
 features: [iterator-helpers, Symbol.asyncIterator]
