@@ -8,6 +8,7 @@
 
 #include "mozilla/ArrayUtils.h"             // mozilla::ArrayEqual
 #include "mozilla/OperatorNewExtensions.h"  // mozilla::KnownNotNull
+#include "mozilla/RefPtr.h"                 // RefPtr
 #include "mozilla/ScopeExit.h"              // mozilla::MakeScopeExit
 #include "mozilla/Try.h"                    // MOZ_TRY
 
@@ -18,9 +19,14 @@
 
 #include "ds/LifoAlloc.h"                 // LifoAlloc
 #include "frontend/CompilationStencil.h"  // CompilationStencil, ExtensibleCompilationStencil
-#include "frontend/ScriptIndex.h"  // ScriptIndex
-#include "vm/Scope.h"              // SizeOfParserScopeData
-#include "vm/StencilEnums.h"       // js::ImmutableScriptFlagsEnum
+#include "frontend/FrontendContext.h"  // FrontendContext, AutoReportFrontendContext
+#include "frontend/ScriptIndex.h"      // ScriptIndex
+#include "js/CompileOptions.h"         // JS::ReadOnlyDecodeOptions
+#include "js/experimental/JSStencil.h"  // ScriptIndex
+#include "js/Transcoding.h"  // JS::TranscodeBuffer, JS::TranscodeRange, JS::TranscodeResult
+#include "vm/JSScript.h"      // ScriptSource
+#include "vm/Scope.h"         // SizeOfParserScopeData
+#include "vm/StencilEnums.h"  // js::ImmutableScriptFlagsEnum
 
 using namespace js;
 using namespace js::frontend;
@@ -1466,6 +1472,17 @@ XDRResult XDRStencilEncoder::codeStencil(
   return codeStencil(stencil.source, stencil);
 }
 
+JS::TranscodeResult JS::EncodeStencil(JSContext* cx, JS::Stencil* stencil,
+                                      JS::TranscodeBuffer& buffer) {
+  AutoReportFrontendContext fc(cx);
+  XDRStencilEncoder encoder(&fc, buffer);
+  XDRResult res = encoder.codeStencil(*stencil);
+  if (res.isErr()) {
+    return res.unwrapErr();
+  }
+  return JS::TranscodeResult::Ok;
+}
+
 void StencilIncrementalEncoderPtr::reset() {
   if (merger_) {
     js_delete(merger_);
@@ -1526,6 +1543,36 @@ XDRResult XDRStencilDecoder::codeStencil(
   MOZ_TRY(frontend::StencilXDR::codeCompilationStencil(this, stencil));
 
   return Ok();
+}
+
+JS::TranscodeResult JS::DecodeStencil(JSContext* cx,
+                                      const JS::ReadOnlyDecodeOptions& options,
+                                      const JS::TranscodeRange& range,
+                                      JS::Stencil** stencilOut) {
+  AutoReportFrontendContext fc(cx);
+  return JS::DecodeStencil(&fc, options, range, stencilOut);
+}
+
+JS::TranscodeResult JS::DecodeStencil(JS::FrontendContext* fc,
+                                      const JS::ReadOnlyDecodeOptions& options,
+                                      const JS::TranscodeRange& range,
+                                      JS::Stencil** stencilOut) {
+  RefPtr<ScriptSource> source = fc->getAllocator()->new_<ScriptSource>();
+  if (!source) {
+    return TranscodeResult::Throw;
+  }
+  RefPtr<JS::Stencil> stencil(
+      fc->getAllocator()->new_<CompilationStencil>(source));
+  if (!stencil) {
+    return TranscodeResult::Throw;
+  }
+  XDRStencilDecoder decoder(fc, range);
+  XDRResult res = decoder.codeStencil(options, *stencil);
+  if (res.isErr()) {
+    return res.unwrapErr();
+  }
+  *stencilOut = stencil.forget().take();
+  return TranscodeResult::Ok;
 }
 
 template /* static */ XDRResult StencilXDR::codeCompilationStencil(

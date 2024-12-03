@@ -5518,47 +5518,6 @@ JS_PUBLIC_API JSObject* JS::InstantiateModuleStencil(
   return gcOutput.get().module;
 }
 
-JS::TranscodeResult JS::EncodeStencil(JSContext* cx, JS::Stencil* stencil,
-                                      TranscodeBuffer& buffer) {
-  AutoReportFrontendContext fc(cx);
-  XDRStencilEncoder encoder(&fc, buffer);
-  XDRResult res = encoder.codeStencil(*stencil);
-  if (res.isErr()) {
-    return res.unwrapErr();
-  }
-  return TranscodeResult::Ok;
-}
-
-JS::TranscodeResult JS::DecodeStencil(JSContext* cx,
-                                      const JS::ReadOnlyDecodeOptions& options,
-                                      const JS::TranscodeRange& range,
-                                      JS::Stencil** stencilOut) {
-  AutoReportFrontendContext fc(cx);
-  return JS::DecodeStencil(&fc, options, range, stencilOut);
-}
-
-JS::TranscodeResult JS::DecodeStencil(JS::FrontendContext* fc,
-                                      const JS::ReadOnlyDecodeOptions& options,
-                                      const JS::TranscodeRange& range,
-                                      JS::Stencil** stencilOut) {
-  RefPtr<ScriptSource> source = fc->getAllocator()->new_<ScriptSource>();
-  if (!source) {
-    return TranscodeResult::Throw;
-  }
-  RefPtr<JS::Stencil> stencil(
-      fc->getAllocator()->new_<CompilationStencil>(source));
-  if (!stencil) {
-    return TranscodeResult::Throw;
-  }
-  XDRStencilDecoder decoder(fc, range);
-  XDRResult res = decoder.codeStencil(options, *stencil);
-  if (res.isErr()) {
-    return res.unwrapErr();
-  }
-  *stencilOut = stencil.forget().take();
-  return TranscodeResult::Ok;
-}
-
 JS_PUBLIC_API size_t JS::SizeOfStencil(Stencil* stencil,
                                        mozilla::MallocSizeOf mallocSizeOf) {
   return stencil->sizeOfIncludingThis(mallocSizeOf);
