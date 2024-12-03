@@ -1,3 +1,5 @@
+// SKIP test262 export
+
 // Return a promise that will resolve to `undefined` the next time jobs are
 // processed.
 //
