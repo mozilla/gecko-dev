@@ -2063,6 +2063,14 @@ class nsDisplayItem {
    */
   virtual bool CanMerge(const nsDisplayItem* aItem) const { return false; }
 
+  void RemoveDisplayItemFromFrame(nsDisplayListBuilder* aBuilder,
+                                  nsIFrame* aFrame) {
+    if (!aFrame || !aBuilder->IsRetainingDisplayList()) {
+      return;
+    }
+    aFrame->RemoveDisplayItem(this);
+  }
+
   /**
    * Frees the memory allocated for this display item.
    * The given display list builder must have allocated this display item.
@@ -2075,9 +2083,7 @@ class nsDisplayItem {
       aBuilder->RemoveReusedDisplayItem(this);
     }
 
-    if (mFrame) {
-      mFrame->RemoveDisplayItem(this);
-    }
+    RemoveDisplayItemFromFrame(aBuilder, mFrame);
 
     this->~nsDisplayItem();
     aBuilder->Destroy(type, this);

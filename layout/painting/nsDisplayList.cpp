@@ -2932,9 +2932,7 @@ nsDisplayBackgroundImage::~nsDisplayBackgroundImage() {
 }
 
 void nsDisplayBackgroundImage::Destroy(nsDisplayListBuilder* aBuilder) {
-  if (mDependentFrame) {
-    mDependentFrame->RemoveDisplayItem(this);
-  }
+  RemoveDisplayItemFromFrame(aBuilder, mDependentFrame);
   nsPaintedDisplayItem::Destroy(aBuilder);
 }
 
@@ -3634,9 +3632,7 @@ nsDisplayTableBackgroundImage::nsDisplayTableBackgroundImage(
 }
 
 void nsDisplayTableBackgroundImage::Destroy(nsDisplayListBuilder* aBuilder) {
-  if (mStyleFrame) {
-    mStyleFrame->RemoveDisplayItem(this);
-  }
+  RemoveDisplayItemFromFrame(aBuilder, mStyleFrame);
   nsDisplayBackgroundImage::Destroy(aBuilder);
 }
 
@@ -3781,9 +3777,7 @@ nsRect nsDisplayThemedBackground::GetBoundsInternal() {
 }
 
 void nsDisplayTableThemedBackground::Destroy(nsDisplayListBuilder* aBuilder) {
-  if (mAncestorFrame) {
-    mAncestorFrame->RemoveDisplayItem(this);
-  }
+  RemoveDisplayItemFromFrame(aBuilder, mAncestorFrame);
   nsDisplayThemedBackground::Destroy(aBuilder);
 }
 
@@ -3796,9 +3790,7 @@ void nsDisplayReflowCount::Paint(nsDisplayListBuilder* aBuilder,
 #endif
 
 void nsDisplayBackgroundColor::Destroy(nsDisplayListBuilder* aBuilder) {
-  if (mDependentFrame) {
-    mDependentFrame->RemoveDisplayItem(this);
-  }
+  RemoveDisplayItemFromFrame(aBuilder, mDependentFrame);
   nsPaintedDisplayItem::Destroy(aBuilder);
 }
 
@@ -5156,16 +5148,12 @@ bool nsDisplayBlendContainer::CreateWebRenderCommands(
 }
 
 void nsDisplayTableBlendContainer::Destroy(nsDisplayListBuilder* aBuilder) {
-  if (mAncestorFrame) {
-    mAncestorFrame->RemoveDisplayItem(this);
-  }
+  RemoveDisplayItemFromFrame(aBuilder, mAncestorFrame);
   nsDisplayBlendContainer::Destroy(aBuilder);
 }
 
 void nsDisplayTableBlendMode::Destroy(nsDisplayListBuilder* aBuilder) {
-  if (mAncestorFrame) {
-    mAncestorFrame->RemoveDisplayItem(this);
-  }
+  RemoveDisplayItemFromFrame(aBuilder, mAncestorFrame);
   nsDisplayBlendMode::Destroy(aBuilder);
 }
 
@@ -5351,9 +5339,7 @@ nsDisplaySubDocument::~nsDisplaySubDocument() {
 }
 
 void nsDisplaySubDocument::Destroy(nsDisplayListBuilder* aBuilder) {
-  if (mSubDocFrame) {
-    mSubDocFrame->RemoveDisplayItem(this);
-  }
+  RemoveDisplayItemFromFrame(aBuilder, mSubDocFrame);
   nsDisplayOwnLayer::Destroy(aBuilder);
 }
 
@@ -5539,9 +5525,7 @@ nsDisplayTableFixedPosition::nsDisplayTableFixedPosition(
 }
 
 void nsDisplayTableFixedPosition::Destroy(nsDisplayListBuilder* aBuilder) {
-  if (mAncestorFrame) {
-    mAncestorFrame->RemoveDisplayItem(this);
-  }
+  RemoveDisplayItemFromFrame(aBuilder, mAncestorFrame);
   nsDisplayFixedPosition::Destroy(aBuilder);
 }
 
@@ -6383,9 +6367,7 @@ bool nsDisplayBackgroundColor::CanUseAsyncAnimations(
 }
 
 void nsDisplayTableBackgroundColor::Destroy(nsDisplayListBuilder* aBuilder) {
-  if (mAncestorFrame) {
-    mAncestorFrame->RemoveDisplayItem(this);
-  }
+  RemoveDisplayItemFromFrame(aBuilder, mAncestorFrame);
   nsDisplayBackgroundColor::Destroy(aBuilder);
 }
 
