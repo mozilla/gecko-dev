@@ -127,12 +127,21 @@ bool ThrowIfInvalidDuration(JSContext* cx, const DateDuration& duration);
 inline bool IsValidTimeDuration(const TimeDuration& duration) {
   MOZ_ASSERT(0 <= duration.nanoseconds && duration.nanoseconds <= 999'999'999);
 
-  // Step 4.
-  //
   // The absolute value of the seconds part of a time duration must be
   // less-or-equal to `2**53 - 1` and the nanoseconds part must be less or equal
   // to `999'999'999`.
-  return TimeDuration::min() <= duration && duration <= TimeDuration::max();
+  //
+  // Add ±1 nanosecond to make the nanoseconds part zero, which enables faster
+  // codegen.
+
+  constexpr auto max = TimeDuration::max() + TimeDuration::fromNanoseconds(1);
+  static_assert(max.nanoseconds == 0);
+
+  constexpr auto min = TimeDuration::min() - TimeDuration::fromNanoseconds(1);
+  static_assert(min.nanoseconds == 0);
+
+  // Step 4.
+  return min < duration && duration < max;
 }
 
 /**
@@ -207,13 +216,6 @@ bool TemporalDurationFromInternal(JSContext* cx,
 bool TemporalDurationFromInternal(JSContext* cx,
                                   const InternalDuration& internalDuration,
                                   TemporalUnit largestUnit, Duration* result);
-
-/**
- * CombineDateAndTimeDuration ( dateDuration, timeDuration )
- */
-bool CombineDateAndTimeDuration(JSContext* cx, const DateDuration& date,
-                                const TimeDuration& time,
-                                InternalDuration* result);
 
 /**
  * TimeDurationFromEpochNanosecondsDifference ( one, two )
