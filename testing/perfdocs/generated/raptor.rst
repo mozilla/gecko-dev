@@ -12923,63 +12923,63 @@ Browsertime tests that use a custom pageload test script. These use the pageload
         - mozilla-release
         - mozilla-beta
       * - **browsertime-network-bench-chrome-h3-download**
-        - ❌
+        - ✅
         - ❌
         - ❌
         - ❌
       * - **browsertime-network-bench-chrome-h3-download-busy5G-0**
-        - ❌
+        - ✅
         - ❌
         - ❌
         - ❌
       * - **browsertime-network-bench-chrome-h3-download-fast5G-0**
-        - ❌
+        - ✅
         - ❌
         - ❌
         - ❌
       * - **browsertime-network-bench-chrome-h3-download-slow3G-0**
-        - ❌
+        - ✅
         - ❌
         - ❌
         - ❌
       * - **browsertime-network-bench-custom-car-h3-download**
-        - ❌
+        - ✅
         - ❌
         - ❌
         - ❌
       * - **browsertime-network-bench-custom-car-h3-download-busy5G-0**
-        - ❌
+        - ✅
         - ❌
         - ❌
         - ❌
       * - **browsertime-network-bench-custom-car-h3-download-fast5G-0**
-        - ❌
+        - ✅
         - ❌
         - ❌
         - ❌
       * - **browsertime-network-bench-custom-car-h3-download-slow3G-0**
-        - ❌
+        - ✅
         - ❌
         - ❌
         - ❌
       * - **browsertime-network-bench-firefox-h3-download**
-        - ❌
-        - ❌
+        - ✅
+        - ✅
         - ❌
         - ❌
       * - **browsertime-network-bench-firefox-h3-download-busy5G-0**
-        - ❌
-        - ❌
+        - ✅
+        - ✅
         - ❌
         - ❌
       * - **browsertime-network-bench-firefox-h3-download-fast5G-0**
-        - ❌
-        - ❌
+        - ✅
+        - ✅
         - ❌
         - ❌
       * - **browsertime-network-bench-firefox-h3-download-slow3G-0**
-        - ❌
-        - ❌
+        - ✅
+        - ✅
         - ❌
         - ❌
 
@@ -13428,228 +13428,228 @@ Browsertime tests that use a custom pageload test script. These use the pageload
         - mozilla-release
         - mozilla-beta
       * - **browsertime-network-bench-chrome-h3-upload**
-        - ❌
+        - ✅
         - ❌
         - ❌
         - ❌
       * - **browsertime-network-bench-chrome-h3-upload-busy5G-0**
-        - ❌
+        - ✅
         - ❌
         - ❌
         - ❌
       * - **browsertime-network-bench-chrome-h3-upload-busy5G-0.01**
-        - ❌
+        - ✅
         - ❌
         - ❌
         - ❌
       * - **browsertime-network-bench-chrome-h3-upload-busy5G-0.1**
-        - ❌
+        - ✅
         - ❌
         - ❌
         - ❌
       * - **browsertime-network-bench-chrome-h3-upload-busy5G-0.5**
-        - ❌
+        - ✅
         - ❌
         - ❌
         - ❌
       * - **browsertime-network-bench-chrome-h3-upload-busy5G-1**
-        - ❌
+        - ✅
         - ❌
         - ❌
         - ❌
       * - **browsertime-network-bench-chrome-h3-upload-fast5G-0**
-        - ❌
+        - ✅
         - ❌
         - ❌
         - ❌
       * - **browsertime-network-bench-chrome-h3-upload-fast5G-0.01**
-        - ❌
+        - ✅
         - ❌
         - ❌
         - ❌
       * - **browsertime-network-bench-chrome-h3-upload-fast5G-0.1**
-        - ❌
+        - ✅
         - ❌
         - ❌
         - ❌
       * - **browsertime-network-bench-chrome-h3-upload-fast5G-0.5**
-        - ❌
+        - ✅
         - ❌
         - ❌
         - ❌
       * - **browsertime-network-bench-chrome-h3-upload-fast5G-1**
-        - ❌
+        - ✅
         - ❌
         - ❌
         - ❌
       * - **browsertime-network-bench-chrome-h3-upload-slow3G-0**
-        - ❌
+        - ✅
         - ❌
         - ❌
         - ❌
       * - **browsertime-network-bench-chrome-h3-upload-slow3G-0.01**
-        - ❌
+        - ✅
         - ❌
         - ❌
         - ❌
       * - **browsertime-network-bench-chrome-h3-upload-slow3G-0.1**
-        - ❌
+        - ✅
         - ❌
         - ❌
         - ❌
       * - **browsertime-network-bench-chrome-h3-upload-slow3G-0.5**
-        - ❌
+        - ✅
         - ❌
         - ❌
         - ❌
       * - **browsertime-network-bench-custom-car-h3-upload**
-        - ❌
+        - ✅
         - ❌
         - ❌
         - ❌
       * - **browsertime-network-bench-custom-car-h3-upload-busy5G-0**
-        - ❌
+        - ✅
         - ❌
         - ❌
         - ❌
       * - **browsertime-network-bench-custom-car-h3-upload-busy5G-0.01**
-        - ❌
+        - ✅
         - ❌
         - ❌
         - ❌
       * - **browsertime-network-bench-custom-car-h3-upload-busy5G-0.1**
-        - ❌
+        - ✅
         - ❌
         - ❌
         - ❌
       * - **browsertime-network-bench-custom-car-h3-upload-busy5G-0.5**
-        - ❌
+        - ✅
         - ❌
         - ❌
         - ❌
       * - **browsertime-network-bench-custom-car-h3-upload-busy5G-1**
-        - ❌
+        - ✅
         - ❌
         - ❌
         - ❌
       * - **browsertime-network-bench-custom-car-h3-upload-fast5G-0**
-        - ❌
+        - ✅
         - ❌
         - ❌
         - ❌
       * - **browsertime-network-bench-custom-car-h3-upload-fast5G-0.01**
-        - ❌
+        - ✅
         - ❌
         - ❌
         - ❌
       * - **browsertime-network-bench-custom-car-h3-upload-fast5G-0.1**
-        - ❌
+        - ✅
         - ❌
         - ❌
         - ❌
       * - **browsertime-network-bench-custom-car-h3-upload-fast5G-0.5**
-        - ❌
+        - ✅
         - ❌
         - ❌
         - ❌
       * - **browsertime-network-bench-custom-car-h3-upload-fast5G-1**
-        - ❌
+        - ✅
         - ❌
         - ❌
         - ❌
       * - **browsertime-network-bench-custom-car-h3-upload-slow3G-0**
-        - ❌
+        - ✅
         - ❌
         - ❌
         - ❌
       * - **browsertime-network-bench-custom-car-h3-upload-slow3G-0.01**
-        - ❌
+        - ✅
         - ❌
         - ❌
         - ❌
       * - **browsertime-network-bench-custom-car-h3-upload-slow3G-0.1**
-        - ❌
+        - ✅
         - ❌
         - ❌
         - ❌
       * - **browsertime-network-bench-custom-car-h3-upload-slow3G-0.5**
-        - ❌
+        - ✅
         - ❌
         - ❌
         - ❌
       * - **browsertime-network-bench-firefox-h3-upload**
-        - ❌
-        - ❌
+        - ✅
+        - ✅
         - ❌
         - ❌
       * - **browsertime-network-bench-firefox-h3-upload-busy5G-0**
-        - ❌
-        - ❌
+        - ✅
+        - ✅
         - ❌
         - ❌
       * - **browsertime-network-bench-firefox-h3-upload-busy5G-0.01**
-        - ❌
-        - ❌
+        - ✅
+        - ✅
         - ❌
         - ❌
       * - **browsertime-network-bench-firefox-h3-upload-busy5G-0.1**
-        - ❌
-        - ❌
+        - ✅
+        - ✅
         - ❌
         - ❌
       * - **browsertime-network-bench-firefox-h3-upload-busy5G-0.5**
-        - ❌
-        - ❌
+        - ✅
+        - ✅
         - ❌
         - ❌
       * - **browsertime-network-bench-firefox-h3-upload-busy5G-1**
-        - ❌
-        - ❌
+        - ✅
+        - ✅
         - ❌
         - ❌
       * - **browsertime-network-bench-firefox-h3-upload-fast5G-0**
-        - ❌
-        - ❌
+        - ✅
+        - ✅
         - ❌
         - ❌
       * - **browsertime-network-bench-firefox-h3-upload-fast5G-0.01**
-        - ❌
-        - ❌
+        - ✅
+        - ✅
         - ❌
         - ❌
       * - **browsertime-network-bench-firefox-h3-upload-fast5G-0.1**
-        - ❌
-        - ❌
+        - ✅
+        - ✅
         - ❌
         - ❌
       * - **browsertime-network-bench-firefox-h3-upload-fast5G-0.5**
-        - ❌
-        - ❌
+        - ✅
+        - ✅
         - ❌
         - ❌
       * - **browsertime-network-bench-firefox-h3-upload-fast5G-1**
-        - ❌
-        - ❌
+        - ✅
+        - ✅
         - ❌
         - ❌
       * - **browsertime-network-bench-firefox-h3-upload-slow3G-0**
-        - ❌
-        - ❌
+        - ✅
+        - ✅
         - ❌
         - ❌
       * - **browsertime-network-bench-firefox-h3-upload-slow3G-0.01**
-        - ❌
-        - ❌
+        - ✅
+        - ✅
         - ❌
         - ❌
       * - **browsertime-network-bench-firefox-h3-upload-slow3G-0.1**
-        - ❌
-        - ❌
+        - ✅
+        - ✅
         - ❌
         - ❌
       * - **browsertime-network-bench-firefox-h3-upload-slow3G-0.5**
-        - ❌
-        - ❌
+        - ✅
+        - ✅
         - ❌
         - ❌
 

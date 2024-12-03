@@ -474,8 +474,9 @@ class NetworkBench(BasePythonSupport):
         if not bandwidth:
             return
 
-        LOG.info(f"Bandwidth: [{' '.join(map(str, bandwidth))}]")
-        bt_result["measurements"].setdefault(bandwidth_key, []).append(bandwidth)
+        LOG.info(f"Bandwidth: {bandwidth}")
+        for b in bandwidth:
+            bt_result["measurements"].setdefault(bandwidth_key, []).append(b)
 
     def _build_subtest(self, measurement_name, replicates, test):
         unit = test.get("unit", "Mbit/s")
@@ -488,7 +489,8 @@ class NetworkBench(BasePythonSupport):
             "alertThreshold": float(test.get("alert_threshold", 2.0)),
             "unit": unit,
             "replicates": replicates,
-            "value": round(filters.geometric_mean(replicates[0]), 3),
+            "shouldAlert": False,
+            "value": round(filters.mean(replicates), 3),
         }
 
     def summarize_test(self, test, suite, **kwargs):
