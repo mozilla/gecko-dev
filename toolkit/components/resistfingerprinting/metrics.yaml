@@ -10,14 +10,13 @@ $tags:
   - 'Core :: Privacy: Anti-Tracking'
 
 fingerprinting.protection:
-  canvas_noise_calculate_time_ns:
+  canvas_noise_calculate_time:
     type: timing_distribution
-    time_unit: nanosecond
+    time_unit: millisecond
     description: >
       Counts how long to generate canvas random noises.
     bugs:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1838856
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1933797
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1838856#c1
     notification_emails:
@@ -25,6 +24,7 @@ fingerprinting.protection:
       - tom@mozilla.com
       - tschuster@mozilla.com
     expires: never
+    telemetry_mirror: FINGERPRINTING_PROTECTION_CANVAS_NOISE_CALCULATE_TIME_MS
 
 
 characteristics:
