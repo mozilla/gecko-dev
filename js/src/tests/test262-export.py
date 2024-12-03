@@ -140,14 +140,15 @@ def convertTestFile(source: bytes, includes: "list[str]") -> bytes:
     # Extract the reftest data from the source
     source, reftest = parseHeader(source)
 
+    # Add copyright, if needed.
+    copyright, source = insertCopyrightLines(source)
+
     # Extract the frontmatter data from the source
     frontmatter = extractMeta(source)
 
     source = updateMeta(source, reftest, frontmatter, includes)
 
-    source = insertCopyrightLines(source)
-
-    return source
+    return copyright + source
 
 
 ## parseHeader
@@ -241,6 +242,21 @@ def parseHeader(source: bytes) -> "tuple[bytes, Optional[ReftestEntry]]":
 ## insertCopyrightLines
 
 
+LICENSE_PATTERN = re.compile(
+    rb"// Copyright( \([C]\))? (\w+) .+\. {1,2}All rights reserved\.[\r\n]{1,2}"
+    + rb"("
+    + rb"// This code is governed by the( BSD)? license found in the LICENSE file\."
+    + rb"|"
+    + rb"// See LICENSE for details."
+    + rb"|"
+    + rb"// Use of this source code is governed by a BSD-style license that can be[\r\n]{1,2}"
+    + rb"// found in the LICENSE file\."
+    + rb"|"
+    + rb"// See LICENSE or https://github\.com/tc39/test262/blob/HEAD/LICENSE"
+    + rb")[\r\n]{1,2}",
+    re.IGNORECASE,
+)
+
 BSD_TEMPLATE = (
     b"""\
 // Copyright (C) %d Mozilla Corporation. All rights reserved.
@@ -251,14 +267,15 @@ BSD_TEMPLATE = (
 )
 
 
-def insertCopyrightLines(source: bytes) -> bytes:
+def insertCopyrightLines(source: bytes) -> "tuple[bytes, bytes]":
     """
     Insert the copyright lines into the file.
     """
-    if re.match(rb"\/\/\s+Copyright.*\. All rights reserved.", source):
-        return source
+    if match := LICENSE_PATTERN.search(source):
+        start, end = match.span()
+        return source[start:end], source[:start] + source[end:]
 
-    return BSD_TEMPLATE + source
+    return BSD_TEMPLATE, source
 
 
 ## extractMeta
