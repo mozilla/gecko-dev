@@ -56,6 +56,20 @@ impl Counter for LabeledCounterMetric {
         match self {
             LabeledCounterMetric::Parent(p) => p.add(amount),
             LabeledCounterMetric::Child { id, label } => {
+                #[cfg(feature = "with_gecko")]
+                if gecko_profiler::can_accept_markers() {
+                    use gecko_profiler::gecko_profiler_category;
+                    gecko_profiler::add_marker(
+                        "LabeledCounter::add",
+                        gecko_profiler_category!(Telemetry),
+                        Default::default(),
+                        super::profiler_utils::IntLikeMetricMarker::new(
+                            *id,
+                            Some(label.clone()),
+                            amount,
+                        ),
+                    );
+                }
                 with_ipc_payload(move |payload| {
                     if let Some(map) = payload.labeled_counters.get_mut(id) {
                         if let Some(v) = map.get_mut(label) {
