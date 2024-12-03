@@ -31,3 +31,4 @@ This is the nascent documentation of the Toolkit code that is shared across Fire
    mozapps/update/docs/index
    components/antitracking/anti-tracking/index
    components/translations/index
+   components/sessionstore/index

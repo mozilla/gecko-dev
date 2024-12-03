@@ -49,3 +49,8 @@ FINAL_LIBRARY = "xul"
 
 with Files("**"):
     BUG_COMPONENT = ("Firefox", "Session Restore")
+
+SPHINX_TREES["/toolkit/components/sessionstore"] = "docs"
+
+with Files("docs/**"):
+    SCHEDULES.exclusive = ["docs"]
