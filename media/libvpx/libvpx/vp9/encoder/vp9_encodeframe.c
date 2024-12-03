@@ -965,6 +965,10 @@ static int copy_partitioning(VP9_COMP *cpi, MACROBLOCK *x, MACROBLOCKD *xd,
   return 0;
 }
 
+// Set the partition for mi_col/row_high (current resolution) based on
+// the previous spatial layer (mi_col/row). Returns 0 if partition is set,
+// returns 1 if no scale partitioning is done. Return 1 means the variance
+// partitioning will be used.
 static int scale_partitioning_svc(VP9_COMP *cpi, MACROBLOCK *x, MACROBLOCKD *xd,
                                   BLOCK_SIZE bsize, int mi_row, int mi_col,
                                   int mi_row_high, int mi_col_high) {
@@ -974,31 +978,29 @@ static int scale_partitioning_svc(VP9_COMP *cpi, MACROBLOCK *x, MACROBLOCKD *xd,
   // Variables with _high are for higher resolution.
   int bsize_high = 0;
   int subsize_high = 0;
-  const int bsl_high = b_width_log2_lookup[bsize];
-  const int bs_high = (1 << bsl_high) >> 2;
-  const int has_rows = (mi_row_high + bs_high) < cm->mi_rows;
-  const int has_cols = (mi_col_high + bs_high) < cm->mi_cols;
+  const int bsl = b_width_log2_lookup[bsize];
+  const int bs = (1 << bsl) >> 2;
+  const int has_rows = (mi_row_high + bs) < cm->mi_rows;
+  const int has_cols = (mi_col_high + bs) < cm->mi_cols;
 
-  const int row_boundary_block_scale_factor[BLOCK_SIZES] = { 13, 13, 13, 1, 0,
-                                                             1,  1,  0,  1, 1,
-                                                             0,  1,  0 };
-  const int col_boundary_block_scale_factor[BLOCK_SIZES] = { 13, 13, 13, 2, 2,
-                                                             0,  2,  2,  0, 2,
-                                                             2,  0,  0 };
   int start_pos;
   BLOCK_SIZE bsize_low;
   PARTITION_TYPE partition_high;
 
-  if (mi_row_high >= cm->mi_rows || mi_col_high >= cm->mi_cols) return 0;
+  // If the lower layer frame is outside the boundary (this can happen for
+  // odd size resolutions) then do not scale partitioning from the lower
+  // layer. Do variance based partitioning instead (return 1).
   if (mi_row >= svc->mi_rows[svc->spatial_layer_id - 1] ||
       mi_col >= svc->mi_cols[svc->spatial_layer_id - 1])
-    return 0;
+    return 1;
+
+  // Do not scale partitioning from lower layers on the boundary. Do
+  // variance based partitioning instead (return 1).
+  if (!has_rows || !has_cols) return 1;
 
   // Find corresponding (mi_col/mi_row) block down-scaled by 2x2.
   start_pos = mi_row * (svc->mi_stride[svc->spatial_layer_id - 1]) + mi_col;
   bsize_low = prev_part[start_pos];
-  // The block size is too big for boundaries. Do variance based partitioning.
-  if ((!has_rows || !has_cols) && bsize_low > BLOCK_16X16) return 1;
 
   // For reference frames: return 1 (do variance-based partitioning) if the
   // superblock is not low source sad and lower-resoln bsize is below 32x32.
@@ -1012,23 +1014,13 @@ static int scale_partitioning_svc(VP9_COMP *cpi, MACROBLOCK *x, MACROBLOCKD *xd,
   } else if (bsize_low >= BLOCK_32X32) {
     bsize_high = BLOCK_64X64;
   }
-  // Scale up blocks on boundary.
-  if (!has_cols && has_rows) {
-    bsize_high = bsize_low + row_boundary_block_scale_factor[bsize_low];
-  } else if (has_cols && !has_rows) {
-    bsize_high = bsize_low + col_boundary_block_scale_factor[bsize_low];
-  } else if (!has_cols && !has_rows) {
-    bsize_high = bsize_low;
-  }
 
-  partition_high = partition_lookup[bsl_high][bsize_high];
+  partition_high = partition_lookup[bsl][bsize_high];
   subsize_high = get_subsize(bsize, partition_high);
 
   if (subsize_high < BLOCK_8X8) {
     set_block_size(cpi, x, xd, mi_row_high, mi_col_high, bsize_high);
   } else {
-    const int bsl = b_width_log2_lookup[bsize];
-    const int bs = (1 << bsl) >> 2;
     switch (partition_high) {
       case PARTITION_NONE:
         set_block_size(cpi, x, xd, mi_row_high, mi_col_high, bsize_high);
@@ -1036,13 +1028,13 @@ static int scale_partitioning_svc(VP9_COMP *cpi, MACROBLOCK *x, MACROBLOCKD *xd,
       case PARTITION_HORZ:
         set_block_size(cpi, x, xd, mi_row_high, mi_col_high, subsize_high);
         if (subsize_high < BLOCK_64X64)
-          set_block_size(cpi, x, xd, mi_row_high + bs_high, mi_col_high,
+          set_block_size(cpi, x, xd, mi_row_high + bs, mi_col_high,
                          subsize_high);
         break;
       case PARTITION_VERT:
         set_block_size(cpi, x, xd, mi_row_high, mi_col_high, subsize_high);
         if (subsize_high < BLOCK_64X64)
-          set_block_size(cpi, x, xd, mi_row_high, mi_col_high + bs_high,
+          set_block_size(cpi, x, xd, mi_row_high, mi_col_high + bs,
                          subsize_high);
         break;
       default:
@@ -1051,15 +1043,15 @@ static int scale_partitioning_svc(VP9_COMP *cpi, MACROBLOCK *x, MACROBLOCKD *xd,
                                    mi_row_high, mi_col_high))
           return 1;
         if (scale_partitioning_svc(cpi, x, xd, subsize_high, mi_row + (bs >> 1),
-                                   mi_col, mi_row_high + bs_high, mi_col_high))
+                                   mi_col, mi_row_high + bs, mi_col_high))
           return 1;
         if (scale_partitioning_svc(cpi, x, xd, subsize_high, mi_row,
                                    mi_col + (bs >> 1), mi_row_high,
-                                   mi_col_high + bs_high))
+                                   mi_col_high + bs))
           return 1;
         if (scale_partitioning_svc(cpi, x, xd, subsize_high, mi_row + (bs >> 1),
-                                   mi_col + (bs >> 1), mi_row_high + bs_high,
-                                   mi_col_high + bs_high))
+                                   mi_col + (bs >> 1), mi_row_high + bs,
+                                   mi_col_high + bs))
           return 1;
         break;
     }

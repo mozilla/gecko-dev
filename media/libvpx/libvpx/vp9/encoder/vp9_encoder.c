@@ -78,6 +78,7 @@
 #include "vp9/encoder/vp9_multi_thread.h"
 #include "vp9/encoder/vp9_noise_estimate.h"
 #include "vp9/encoder/vp9_picklpf.h"
+#include "vp9/encoder/vp9_quantize.h"
 #include "vp9/encoder/vp9_ratectrl.h"
 #include "vp9/encoder/vp9_rd.h"
 #include "vp9/encoder/vp9_resize.h"
@@ -4216,7 +4217,7 @@ static int encode_without_recode_loop(VP9_COMP *cpi, size_t *size,
                                  cpi->oxcf.rc_mode == VPX_CBR &&
                                  cm->frame_type != KEY_FRAME;
 
-  vp9_set_quantizer(cpi, q);
+  vp9_set_quantizer(cpi, q, 0);
   vp9_set_variance_partition_thresholds(cpi, q, 0);
 
   setup_frame(cpi);
@@ -4245,7 +4246,7 @@ static int encode_without_recode_loop(VP9_COMP *cpi, size_t *size,
       (cpi->rc.high_source_sad ||
        (cpi->use_svc && svc->high_source_sad_superframe))) {
     if (vp9_encodedframe_overshoot(cpi, -1, &q)) {
-      vp9_set_quantizer(cpi, q);
+      vp9_set_quantizer(cpi, q, 0);
       vp9_set_variance_partition_thresholds(cpi, q, 0);
     }
   }
@@ -4306,7 +4307,7 @@ static int encode_without_recode_loop(VP9_COMP *cpi, size_t *size,
     // adjust some rate control parameters, and return to re-encode the frame.
     if (vp9_encodedframe_overshoot(cpi, frame_size, &q)) {
       vpx_clear_system_state();
-      vp9_set_quantizer(cpi, q);
+      vp9_set_quantizer(cpi, q, 0);
       vp9_set_variance_partition_thresholds(cpi, q, 0);
       suppress_active_map(cpi);
       // Turn-off cyclic refresh for re-encoded frame.
@@ -4641,6 +4642,7 @@ static void encode_with_recode_loop(VP9_COMP *cpi, size_t *size, uint8_t *dest,
     }
 #endif  // CONFIG_RATE_CTRL
     const GF_GROUP *gf_group = &cpi->twopass.gf_group;
+    int ext_rc_delta_q_uv = 0;
     if (cpi->ext_ratectrl.ready &&
         (cpi->ext_ratectrl.funcs.rc_type & VPX_RC_QP) != 0 &&
         cpi->ext_ratectrl.funcs.get_encodeframe_decision != NULL) {
@@ -4670,6 +4672,7 @@ static void encode_with_recode_loop(VP9_COMP *cpi, size_t *size, uint8_t *dest,
       if (encode_frame_decision.q_index != VPX_DEFAULT_Q) {
         q = encode_frame_decision.q_index;
       }
+      ext_rc_delta_q_uv = encode_frame_decision.delta_q_uv;
     }
 
     if (cpi->ext_ratectrl.ready && cpi->ext_ratectrl.log_file) {
@@ -4678,7 +4681,7 @@ static void encode_with_recode_loop(VP9_COMP *cpi, size_t *size, uint8_t *dest,
               gf_group->index, gf_group->update_type[gf_group->index], q);
     }
 
-    vp9_set_quantizer(cpi, q);
+    vp9_set_quantizer(cpi, q, ext_rc_delta_q_uv);
 
     if (loop_count == 0) setup_frame(cpi);
 

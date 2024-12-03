@@ -790,7 +790,7 @@ void vp9_highbd_apply_temporal_filter_c(
 static uint32_t temporal_filter_find_matching_mb_c(
     VP9_COMP *cpi, ThreadData *td, uint8_t *arf_frame_buf,
     uint8_t *frame_ptr_buf, int stride, MV *ref_mv, MV *blk_mvs,
-    int *blk_bestsme) {
+    int *blk_bestsme, int *is_dc_diff_large) {
   MACROBLOCK *const x = &td->mb;
   MACROBLOCKD *const xd = &x->e_mbd;
   MV_SPEED_FEATURES *const mv_sf = &cpi->sf.mv;
@@ -820,6 +820,7 @@ static uint32_t temporal_filter_find_matching_mb_c(
   x->plane[0].src.stride = stride;
   xd->plane[0].pre[0].buf = frame_ptr_buf;
   xd->plane[0].pre[0].stride = stride;
+  *is_dc_diff_large = 0;
 
   step_param = mv_sf->reduce_first_step_size;
   step_param = VPXMIN(step_param, MAX_MVSEARCH_STEPS - 2);
@@ -841,6 +842,7 @@ static uint32_t temporal_filter_find_matching_mb_c(
       x->errorperbit, &cpi->fn_ptr[TF_BLOCK], 0, mv_sf->subpel_search_level,
       cond_cost_list(cpi, cost_list), NULL, NULL, &distortion, &sse, NULL, BW,
       BH, USE_8_TAPS_SHARP);
+  *is_dc_diff_large = 50 * bestsme < sse;
 
   // DO motion search on 4 16x16 sub_blocks.
   best_ref_mv1.row = ref_mv->row;
@@ -994,12 +996,17 @@ void vp9_temporal_filter_iterate_row_c(VP9_COMP *cpi, ThreadData *td,
         const int thresh_low = 10000;
         const int thresh_high = 20000;
         int blk_bestsme[4] = { INT_MAX, INT_MAX, INT_MAX, INT_MAX };
+        int is_dc_diff_large = 0;
 
         // Find best match in this frame by MC
         int err = temporal_filter_find_matching_mb_c(
             cpi, td, frames[alt_ref_index]->y_buffer + mb_y_offset,
             frames[frame]->y_buffer + mb_y_offset, frames[frame]->y_stride,
-            &ref_mv, blk_mvs, blk_bestsme);
+            &ref_mv, blk_mvs, blk_bestsme, &is_dc_diff_large);
+
+        if (cpi->oxcf.enable_keyframe_filtering == 1 &&
+            cpi->common.frame_type == KEY_FRAME && is_dc_diff_large)
+          strength = VPXMIN(strength, 1);
 
         int err16 =
             blk_bestsme[0] + blk_bestsme[1] + blk_bestsme[2] + blk_bestsme[3];

@@ -457,7 +457,13 @@ void get_layer_resolution(const int width_org, const int height_org,
                           int *height_out) {
   int w, h;
 
-  if (width_out == NULL || height_out == NULL || den == 0) return;
+  if (width_out == NULL || height_out == NULL) return;
+
+  if (den == 0 || num == 0) {
+    *width_out = width_org;
+    *height_out = height_org;
+    return;
+  }
 
   w = width_org * num / den;
   h = height_org * num / den;
@@ -787,9 +793,6 @@ int vp9_one_pass_svc_start_layer(VP9_COMP *const cpi) {
     svc->use_partition_reuse = 1;
   }
   svc->force_zero_mode_spatial_ref = 1;
-  svc->mi_stride[svc->spatial_layer_id] = cpi->common.mi_stride;
-  svc->mi_rows[svc->spatial_layer_id] = cpi->common.mi_rows;
-  svc->mi_cols[svc->spatial_layer_id] = cpi->common.mi_cols;
 
   // For constrained_from_above drop mode: before encoding superframe (i.e.,
   // at SL0 frame) check all spatial layers (starting from top) for possible
@@ -991,6 +994,9 @@ int vp9_one_pass_svc_start_layer(VP9_COMP *const cpi) {
   if (vp9_set_size_literal(cpi, width, height) != 0)
     return VPX_CODEC_INVALID_PARAM;
 
+  svc->mi_stride[svc->spatial_layer_id] = cpi->common.mi_stride;
+  svc->mi_rows[svc->spatial_layer_id] = cpi->common.mi_rows;
+  svc->mi_cols[svc->spatial_layer_id] = cpi->common.mi_cols;
   return 0;
 }
 
