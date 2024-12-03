@@ -520,8 +520,6 @@ TimeDuration js::temporal::DifferenceInstant(
   MOZ_ASSERT(roundingIncrement <=
              MaximumTemporalDurationRoundingIncrement(smallestUnit));
 
-  // FIXME: spec issue - |smallestUnit| is always a "time unit", never DAY.
-
   // Step 1.
   auto diff = TimeDurationFromEpochNanosecondsDifference(ns2, ns1);
   MOZ_ASSERT(IsValidEpochDuration(diff.to<EpochDuration>()));

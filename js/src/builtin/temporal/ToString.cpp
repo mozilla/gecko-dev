@@ -310,8 +310,6 @@ static void FormatDateTimeUTCOffsetRounded(TemporalStringBuilder& result,
 static bool FormatCalendarAnnotation(TemporalStringBuilder& result,
                                      const CalendarValue& calendar,
                                      ShowCalendar showCalendar) {
-  // FIXME: spec issue - MaybeFormatCalendarAnnotation no longer needed
-
   switch (showCalendar) {
     case ShowCalendar::Never:
       return true;
@@ -380,7 +378,7 @@ JSString* js::temporal::TemporalInstantToString(JSContext* cx,
   // Step 4.
   auto dateTime = GetISODateTimeFor(epochNs, offsetNanoseconds);
 
-  // Step 5. (Inlined TemporalDateTimeToString)
+  // Step 5. (Inlined ISODateTimeToString)
   FormatDateTimeString(result, dateTime, precision);
 
   // Steps 6-7.
@@ -422,31 +420,29 @@ JSString* js::temporal::TemporalDateToString(
 }
 
 /**
- * TemporalDateTimeToString ( isoYear, isoMonth, isoDay, hour, minute, second,
- * millisecond, microsecond, nanosecond, calendar, precision, showCalendar )
+ * ISODateTimeToString ( isoDateTime, calendar, precision, showCalendar )
  */
-JSString* js::temporal::TemporalDateTimeToString(JSContext* cx,
-                                                 const ISODateTime& dateTime,
-                                                 Handle<CalendarValue> calendar,
-                                                 Precision precision,
-                                                 ShowCalendar showCalendar) {
-  // Step 1.
-  MOZ_ASSERT(IsValidISODateTime(dateTime));
+JSString* js::temporal::ISODateTimeToString(JSContext* cx,
+                                            const ISODateTime& isoDateTime,
+                                            Handle<CalendarValue> calendar,
+                                            Precision precision,
+                                            ShowCalendar showCalendar) {
+  MOZ_ASSERT(IsValidISODateTime(isoDateTime));
 
   TemporalStringBuilder result(cx, TemporalStringFormat::DateTime);
   if (!result.reserve()) {
     return nullptr;
   }
 
-  // Steps 1-6.
-  FormatDateTimeString(result, dateTime, precision);
+  // Steps 1-5.
+  FormatDateTimeString(result, isoDateTime, precision);
 
-  // Step 7.
+  // Step 6.
   if (!FormatCalendarAnnotation(result, calendar, showCalendar)) {
     return nullptr;
   }
 
-  // Step 8.
+  // Step 7.
   return result.finishString();
 }
 
@@ -563,7 +559,7 @@ JSString* js::temporal::TemporalZonedDateTimeToString(
   // Step 8.
   auto temporalDateTime = GetISODateTimeFor(ns, offsetNanoseconds);
 
-  // Step 9. (Inlined TemporalDateTimeToString)
+  // Step 9. (Inlined ISODateTimeToString)
   FormatDateTimeString(result, temporalDateTime, precision);
 
   // Steps 10-11.

@@ -921,20 +921,16 @@ static bool DifferenceTemporalPlainTime(JSContext* cx,
   }
 
   // Step 4.
-  auto diff = DifferenceTime(temporalTime, other);
+  auto timeDuration = DifferenceTime(temporalTime, other);
 
-  // Step 5. (Not applicable in our implementation.)
+  // Step 5.
+  timeDuration =
+      RoundTimeDuration(timeDuration, settings.roundingIncrement,
+                        settings.smallestUnit, settings.roundingMode);
 
-  // Step 6.
-  if (settings.smallestUnit != TemporalUnit::Nanosecond ||
-      settings.roundingIncrement != Increment{1}) {
-    diff = RoundTimeDuration(diff, settings.roundingIncrement,
-                             settings.smallestUnit, settings.roundingMode);
-  }
-
-  // Step 7.
+  // Steps 6-7.
   Duration duration;
-  if (!TemporalDurationFromInternal(cx, diff, settings.largestUnit,
+  if (!TemporalDurationFromInternal(cx, timeDuration, settings.largestUnit,
                                     &duration)) {
     return false;
   }
