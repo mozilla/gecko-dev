@@ -10,6 +10,14 @@ use crate::ipc::with_ipc_payload;
 use crate::private::{CustomDistributionMetric, DistributionData, MetricId};
 use std::collections::HashMap;
 
+#[cfg(feature = "with_gecko")]
+use super::profiler_utils::{
+    truncate_vector_for_marker, DistributionMetricMarker, DistributionValues,
+};
+
+#[cfg(feature = "with_gecko")]
+use gecko_profiler::{gecko_profiler_category, MarkerOptions};
+
 /// A custom_distribution metric that knows it's a labeled custom distribution's submetric.
 ///
 /// It has special work to do when in a non-parent process.
@@ -36,6 +44,19 @@ impl CustomDistribution for LabeledCustomDistributionMetric {
         match self {
             LabeledCustomDistributionMetric::Parent(p) => p.accumulate_samples_signed(samples),
             LabeledCustomDistributionMetric::Child { id, label } => {
+                #[cfg(feature = "with_gecko")]
+                if gecko_profiler::can_accept_markers() {
+                    gecko_profiler::add_marker(
+                        "CustomDistribution::accumulate",
+                        gecko_profiler_category!(Telemetry),
+                        MarkerOptions::default(),
+                        DistributionMetricMarker::new(
+                            *id,
+                            Some(label.clone()),
+                            DistributionValues::Samples(truncate_vector_for_marker(&samples)),
+                        ),
+                    );
+                }
                 with_ipc_payload(move |payload| {
                     if let Some(map) = payload.labeled_custom_samples.get_mut(id) {
                         if let Some(v) = map.get_mut(label) {
@@ -57,6 +78,19 @@ impl CustomDistribution for LabeledCustomDistributionMetric {
         match self {
             LabeledCustomDistributionMetric::Parent(p) => p.accumulate_single_sample_signed(sample),
             LabeledCustomDistributionMetric::Child { id, label } => {
+                #[cfg(feature = "with_gecko")]
+                if gecko_profiler::can_accept_markers() {
+                    gecko_profiler::add_marker(
+                        "CustomDistribution::accumulate",
+                        gecko_profiler_category!(Telemetry),
+                        MarkerOptions::default(),
+                        DistributionMetricMarker::new(
+                            *id,
+                            Some(label.clone()),
+                            DistributionValues::Sample(sample),
+                        ),
+                    );
+                }
                 with_ipc_payload(move |payload| {
                     if let Some(map) = payload.labeled_custom_samples.get_mut(id) {
                         if let Some(v) = map.get_mut(label) {

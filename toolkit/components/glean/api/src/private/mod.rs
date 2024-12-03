@@ -350,6 +350,98 @@ pub(crate) mod profiler_utils {
             };
         }
     }
+
+    // This might seem like overkill for discerning between a single element and
+    // a vector of elements. However, from the perspective of the profiler buffer
+    // this is quite reasonable, as it has a lower memory overhead. Doing the maths
+    // (and assuming a 64-bit system, so usize = 8 bytes):
+    // Enum: i64 value (8-bytes), enum discernment byte = 9 bytes,
+    // Vector: i64 values (at least 8 bytes), usize length, usize capacity, data
+    //     pointer = 32 bytes
+    #[derive(serde::Serialize, serde::Deserialize, Debug)]
+    pub(crate) enum DistributionValues<T> {
+        Sample(T),
+        Samples(Vec<T>),
+    }
+
+    #[derive(serde::Serialize, serde::Deserialize, Debug)]
+    pub(crate) struct DistributionMetricMarker<T> {
+        id: super::MetricId,
+        label: Option<String>,
+        value: DistributionValues<T>,
+    }
+
+    impl<T> DistributionMetricMarker<T> {
+        pub fn new(
+            id: super::MetricId,
+            label: Option<String>,
+            value: DistributionValues<T>,
+        ) -> DistributionMetricMarker<T> {
+            DistributionMetricMarker { id, label, value }
+        }
+    }
+
+    impl<T> gecko_profiler::ProfilerMarker for DistributionMetricMarker<T>
+    where
+        T: serde::Serialize + serde::de::DeserializeOwned + Copy + std::fmt::Display,
+    {
+        fn marker_type_name() -> &'static str {
+            "DistMetric"
+        }
+
+        fn marker_type_display() -> gecko_profiler::MarkerSchema {
+            use gecko_profiler::schema::*;
+            let mut schema = MarkerSchema::new(&[Location::MarkerChart, Location::MarkerTable]);
+            schema.set_tooltip_label("{marker.data.id} {marker.data.label} {marker.data.sample}");
+            schema.set_table_label(
+                "{marker.name} - {marker.data.id} {marker.data.label}: {marker.data.sample}{marker.data.samples}",
+            );
+            schema.set_chart_label("{marker.data.id}");
+            schema.add_key_label_format_searchable(
+                "id",
+                "Metric",
+                Format::UniqueString,
+                Searchable::Searchable,
+            );
+            schema.add_key_label_format_searchable(
+                "label",
+                "Label",
+                Format::String,
+                Searchable::Searchable,
+            );
+            schema.add_key_label_format("sample", "Sample", Format::String);
+            schema.add_key_label_format("samples", "Samples", Format::String);
+            schema
+        }
+
+        fn stream_json_marker_data(&self, json_writer: &mut gecko_profiler::JSONWriter) {
+            json_writer.unique_string_property(
+                "id",
+                lookup_canonical_metric_name(&self.id).unwrap_or_else(LookupError::as_str),
+            );
+
+            if let Some(l) = &self.label {
+                json_writer.string_property("label", l.as_str());
+            };
+
+            match &self.value {
+                DistributionValues::Sample(s) => {
+                    let s = format!("{}", s);
+                    json_writer.string_property("sample", s.as_str());
+                }
+                DistributionValues::Samples(s) => {
+                    let s = format!(
+                        "[{}]",
+                        s.iter()
+                            .map(|v| v.to_string())
+                            .collect::<Vec<_>>()
+                            .join(",")
+                    );
+                    json_writer.string_property("samples", s.as_str());
+                }
+            };
+        }
+    }
 }
 
 // These two methods, and the constant function, "live" within profiler_utils,

@@ -12,6 +12,14 @@ use glean::traits::MemoryDistribution;
 
 use crate::ipc::{need_ipc, with_ipc_payload};
 
+#[cfg(feature = "with_gecko")]
+use super::profiler_utils::{
+    truncate_vector_for_marker, DistributionMetricMarker, DistributionValues,
+};
+
+#[cfg(feature = "with_gecko")]
+use gecko_profiler::{gecko_profiler_category, MarkerOptions};
+
 /// A memory distribution metric.
 ///
 /// Memory distributions are used to accumulate and store memory measurements for analyzing distributions of the memory data.
@@ -64,9 +72,14 @@ impl MemoryDistributionMetric {
     }
 
     pub fn accumulate_samples(&self, samples: Vec<u64>) {
-        match self {
-            MemoryDistributionMetric::Parent { inner, .. } => {
+        #[cfg(feature = "with_gecko")]
+        let marker_samples = truncate_vector_for_marker(&samples);
+
+        #[allow(unused)]
+        let id = match self {
+            MemoryDistributionMetric::Parent { id, inner } => {
                 inner.accumulate_samples(samples.into_iter().map(|s| s as _).collect());
+                *id
             }
             MemoryDistributionMetric::Child(c) => {
                 with_ipc_payload(move |payload| {
@@ -76,7 +89,21 @@ impl MemoryDistributionMetric {
                         payload.memory_samples.insert(c.0, samples);
                     }
                 });
+                c.0
             }
+        };
+        #[cfg(feature = "with_gecko")]
+        if gecko_profiler::can_accept_markers() {
+            gecko_profiler::add_marker(
+                "MemoryDistribution::accumulate",
+                gecko_profiler_category!(Telemetry),
+                MarkerOptions::default(),
+                DistributionMetricMarker::new(
+                    id,
+                    None,
+                    DistributionValues::Samples(marker_samples),
+                ),
+            );
         }
     }
 
@@ -125,8 +152,9 @@ impl MemoryDistribution for MemoryDistributionMetric {
     /// Values bigger than 1 Terabyte (2<sup>40</sup> bytes) are truncated
     /// and an `ErrorType::InvalidValue` error is recorded.
     pub fn accumulate(&self, sample: u64) {
-        match self {
-            MemoryDistributionMetric::Parent { inner, .. } => {
+        #[allow(unused)]
+        let id = match self {
+            MemoryDistributionMetric::Parent { id, inner } => {
                 // values are capped at 2**40.
                 // If the value doesn't fit into `i64` it's definitely to large
                 // and cause an error.
@@ -138,6 +166,7 @@ impl MemoryDistribution for MemoryDistributionMetric {
                     i64::MAX
                 });
                 inner.accumulate(sample);
+                *id
             }
             MemoryDistributionMetric::Child(c) => {
                 with_ipc_payload(move |payload| {
@@ -147,7 +176,17 @@ impl MemoryDistribution for MemoryDistributionMetric {
                         payload.memory_samples.insert(c.0, vec![sample]);
                     }
                 });
+                c.0
             }
+        };
+        #[cfg(feature = "with_gecko")]
+        if gecko_profiler::can_accept_markers() {
+            gecko_profiler::add_marker(
+                "MemoryDistribution::accumulate",
+                gecko_profiler_category!(Telemetry),
+                MarkerOptions::default(),
+                DistributionMetricMarker::new(id, None, DistributionValues::Sample(sample)),
+            );
         }
     }
 
