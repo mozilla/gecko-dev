@@ -910,8 +910,12 @@ dictionary GPUCopyExternalImageDestInfo
     boolean premultipliedAlpha = false;
 };
 
+typedef (ImageBitmap or
+         HTMLCanvasElement or
+         OffscreenCanvas) GPUCopyExternalImageSource;
+
 dictionary GPUCopyExternalImageSourceInfo {
-    required (ImageBitmap or HTMLCanvasElement or OffscreenCanvas) source;
+    required GPUCopyExternalImageSource source;
     GPUOrigin2D origin = {};
     boolean flipY = false;
 };
