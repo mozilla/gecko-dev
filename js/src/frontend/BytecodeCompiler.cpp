@@ -388,7 +388,8 @@ template <typename Unit>
 }
 
 template <typename Unit>
-static already_AddRefed<CompilationStencil> CompileGlobalScriptToStencilImpl(
+static already_AddRefed<CompilationStencil>
+CompileGlobalScriptToStencilWithInputImpl(
     JSContext* maybeCx, FrontendContext* fc, js::LifoAlloc& tempLifoAlloc,
     CompilationInput& input, ScopeBindingCache* scopeCache,
     JS::SourceText<Unit>& srcBuf, ScopeKind scopeKind) {
@@ -402,20 +403,13 @@ static already_AddRefed<CompilationStencil> CompileGlobalScriptToStencilImpl(
   return output.as<OutputType>().forget();
 }
 
-already_AddRefed<CompilationStencil> frontend::CompileGlobalScriptToStencil(
-    JSContext* cx, FrontendContext* fc, js::LifoAlloc& tempLifoAlloc,
-    CompilationInput& input, ScopeBindingCache* scopeCache,
-    JS::SourceText<char16_t>& srcBuf, ScopeKind scopeKind) {
-  return CompileGlobalScriptToStencilImpl(cx, fc, tempLifoAlloc, input,
-                                          scopeCache, srcBuf, scopeKind);
-}
-
-already_AddRefed<CompilationStencil> frontend::CompileGlobalScriptToStencil(
+already_AddRefed<CompilationStencil>
+frontend::CompileGlobalScriptToStencilWithInput(
     JSContext* cx, FrontendContext* fc, js::LifoAlloc& tempLifoAlloc,
     CompilationInput& input, ScopeBindingCache* scopeCache,
     JS::SourceText<Utf8Unit>& srcBuf, ScopeKind scopeKind) {
-  return CompileGlobalScriptToStencilImpl(cx, fc, tempLifoAlloc, input,
-                                          scopeCache, srcBuf, scopeKind);
+  return CompileGlobalScriptToStencilWithInputImpl(
+      cx, fc, tempLifoAlloc, input, scopeCache, srcBuf, scopeKind);
 }
 
 template <typename CharT>
@@ -429,7 +423,7 @@ static already_AddRefed<JS::Stencil> CompileGlobalScriptToStencilImpl(
 
   NoScopeBindingCache scopeCache;
   Rooted<CompilationInput> input(cx, CompilationInput(options));
-  RefPtr<JS::Stencil> stencil = CompileGlobalScriptToStencilImpl(
+  RefPtr<JS::Stencil> stencil = CompileGlobalScriptToStencilWithInputImpl(
       cx, &fc, cx->tempLifoAlloc(), input.get(), &scopeCache, srcBuf,
       scopeKind);
   return stencil.forget();
@@ -458,7 +452,7 @@ static already_AddRefed<JS::Stencil> CompileGlobalScriptToStencilImpl(
   js::LifoAlloc tempLifoAlloc(JSContext::TEMP_LIFO_ALLOC_PRIMARY_CHUNK_SIZE,
                               js::BackgroundMallocArena);
   CompilationInput compilationInput(options);
-  RefPtr<JS::Stencil> stencil = CompileGlobalScriptToStencilImpl(
+  RefPtr<JS::Stencil> stencil = CompileGlobalScriptToStencilWithInputImpl(
       nullptr, fc, tempLifoAlloc, compilationInput, &scopeCache, srcBuf,
       scopeKind);
   // CompilationInput initialized with CompileGlobalScriptToStencil only
