@@ -11,37 +11,15 @@ const perfMetadata = {
       perfherder: true,
       perfherder_metrics: [
         {
-          name: "EXAMPLE-cold-start-pipeline-ready-latency",
+          name: "latency",
           unit: "ms",
           shouldAlert: true,
         },
         {
-          name: "EXAMPLE-cold-start-initialization-latency",
-          unit: "ms",
-          shouldAlert: true,
-        },
-        {
-          name: "EXAMPLE-cold-start-model-run-latency",
-          unit: "ms",
-          shouldAlert: true,
-        },
-        {
-          name: "EXAMPLE-cold-start-total-memory-usage",
+          name: "memory",
           unit: "MB",
           shouldAlert: true,
         },
-        {
-          name: "EXAMPLE-pipeline-ready-latency",
-          unit: "ms",
-          shouldAlert: true,
-        },
-        {
-          name: "EXAMPLE-initialization-latency",
-          unit: "ms",
-          shouldAlert: true,
-        },
-        { name: "EXAMPLE-model-run-latency", unit: "ms", shouldAlert: true },
-        { name: "EXAMPLE-total-memory-usage", unit: "MB", shouldAlert: true },
       ],
       verbose: true,
       manifest: "perftest.toml",

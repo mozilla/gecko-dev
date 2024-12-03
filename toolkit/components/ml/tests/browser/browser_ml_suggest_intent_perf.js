@@ -11,18 +11,12 @@ const perfMetadata = {
       perfherder: true,
       perfherder_metrics: [
         {
-          name: "INTENT-pipeline-ready-latency",
+          name: "latency",
           unit: "ms",
           shouldAlert: true,
         },
         {
-          name: "INTENT-initialization-latency",
-          unit: "ms",
-          shouldAlert: true,
-        },
-        { name: "INTENT-model-run-latency", unit: "ms", shouldAlert: true },
-        {
-          name: "INTENT-total-memory-usage",
+          name: "memory",
           unit: "MB",
           shouldAlert: true,
         },

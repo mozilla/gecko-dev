@@ -10,10 +10,8 @@ const perfMetadata = {
     default: {
       perfherder: true,
       perfherder_metrics: [
-        { name: "NER-pipeline-ready-latency", unit: "ms", shouldAlert: true },
-        { name: "NER-initialization-latency", unit: "ms", shouldAlert: true },
-        { name: "NER-model-run-latency", unit: "ms", shouldAlert: true },
-        { name: "NER-total-memory-usage", unit: "MB", shouldAlert: true },
+        { name: "latency", unit: "ms", shouldAlert: true },
+        { name: "memory", unit: "MB", shouldAlert: true },
       ],
       verbose: true,
       manifest: "perftest.toml",

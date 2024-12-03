@@ -88,54 +88,15 @@ const perfMetadata = {
       perfherder: true,
       perfherder_metrics: [
         {
-          name: `intent-pipeline-ready-latency`,
+          name: "latency",
           unit: "ms",
           shouldAlert: true,
         },
         {
-          name: `intent-initialization-latency`,
-          unit: "ms",
+          name: "memory",
+          unit: "MB",
           shouldAlert: true,
         },
-        { name: `intent-model-run-latency`, unit: "ms", shouldAlert: true },
-        { name: `intent-total-memory-usage`, unit: "MB", shouldAlert: true },
-        {
-          name: `suggest-pipeline-ready-latency`,
-          unit: "ms",
-          shouldAlert: true,
-        },
-        {
-          name: `suggest-initialization-latency`,
-          unit: "ms",
-          shouldAlert: true,
-        },
-        { name: `suggest-model-run-latency`, unit: "ms", shouldAlert: true },
-        { name: `suggest-total-memory-usage`, unit: "MB", shouldAlert: true },
-        {
-          name: `engine3-pipeline-ready-latency`,
-          unit: "ms",
-          shouldAlert: true,
-        },
-
-        {
-          name: `engine3-initialization-latency`,
-          unit: "ms",
-          shouldAlert: true,
-        },
-        { name: `engine3-model-run-latency`, unit: "ms", shouldAlert: true },
-        { name: `engine3-total-memory-usage`, unit: "MB", shouldAlert: true },
-        {
-          name: `engine4-pipeline-ready-latency`,
-          unit: "ms",
-          shouldAlert: true,
-        },
-        {
-          name: `engine4-initialization-latency`,
-          unit: "ms",
-          shouldAlert: true,
-        },
-        { name: `engine4-model-run-latency`, unit: "ms", shouldAlert: true },
-        { name: `engine4-total-memory-usage`, unit: "MB", shouldAlert: true },
       ],
       verbose: true,
       manifest: "perftest.toml",
