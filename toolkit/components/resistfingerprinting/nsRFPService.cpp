@@ -1640,13 +1640,13 @@ nsresult nsRFPService::RandomizePixels(nsICookieJarSettings* aCookieJarSettings,
   }
 
   auto timerId =
-      glean::fingerprinting_protection::canvas_noise_calculate_time.Start();
+      glean::fingerprinting_protection::canvas_noise_calculate_time_ns.Start();
 
   nsTArray<uint8_t> canvasKey;
   nsresult rv = GenerateCanvasKeyFromImageData(aCookieJarSettings, aData, aSize,
                                                canvasKey);
   if (NS_FAILED(rv)) {
-    glean::fingerprinting_protection::canvas_noise_calculate_time.Cancel(
+    glean::fingerprinting_protection::canvas_noise_calculate_time_ns.Cancel(
         std::move(timerId));
     return rv;
   }
@@ -1726,7 +1726,7 @@ nsresult nsRFPService::RandomizePixels(nsICookieJarSettings* aCookieJarSettings,
     aData[idx] = aData[idx] ^ (0x2 >> (bit & 0x1));
   }
 
-  glean::fingerprinting_protection::canvas_noise_calculate_time
+  glean::fingerprinting_protection::canvas_noise_calculate_time_ns
       .StopAndAccumulate(std::move(timerId));
 
   return NS_OK;
