@@ -21,8 +21,8 @@ namespace mozilla {
 // to not vary based off of any user settings for the initial toplevel window,
 // so we're safe here for now.
 static const DWORD kPreXULSkeletonUIWindowStyle =
-    WS_CLIPCHILDREN | WS_DLGFRAME | WS_BORDER | WS_MAXIMIZEBOX |
-    WS_MINIMIZEBOX | WS_SIZEBOX | WS_SYSMENU;
+    WS_OVERLAPPED | WS_CLIPCHILDREN | WS_DLGFRAME | WS_BORDER | WS_THICKFRAME |
+    WS_MAXIMIZEBOX | WS_MINIMIZEBOX | WS_SYSMENU;
 static const DWORD kPreXULSkeletonUIWindowStyleEx = WS_EX_WINDOWEDGE;
 
 struct CSSPixelSpan {

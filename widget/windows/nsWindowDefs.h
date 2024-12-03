@@ -24,10 +24,6 @@
 // ConstrainPosition window positioning slop value
 #define kWindowPositionSlop 20
 
-// Origin of the system context menu when displayed in full screen mode
-#define MOZ_SYSCONTEXT_X_POS 20
-#define MOZ_SYSCONTEXT_Y_POS 20
-
 // Don't put more than this many rects in the dirty region, just fluff
 // out to the bounding-box if there are more
 #define MAX_RECTS_IN_REGION 100
