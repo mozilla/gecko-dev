@@ -33,7 +33,7 @@ SUPPORT_FILES = set(
 # Run once per subdirectory
 def findAndCopyIncludes(dirPath: str, baseDir: str, includeDir: str) -> "list[str]":
     relPath = os.path.relpath(dirPath, baseDir)
-    includes: list[str] = []
+    includes: list[str] = ["sm/non262.js"]
     os.makedirs(os.path.join(includeDir, "sm"), exist_ok=True)
 
     # Recurse down all folders in the relative path until
