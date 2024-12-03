@@ -62,7 +62,7 @@ Messaging System Glossary
     Forced Enrollment
         Forced Enrollment is a method used in experiments to ensure that specific users are enrolled into an experiment or receive a particular message. Forced enrollment ignores :term:`advanced targeting` used for :term:`natural enrollment`. It is often used during testing phases to verify the correct functioning and impact of messages or features before broader deployment. Forced Enrollment can be initiated through specific URLs or browser configurations.
 
-    `Frequency Capping <https://experimenter.info/messaging/frequency-cap>`_
+    `Frequency Capping <frequency-caps.html>`_
         Frequency capping limits the number of times a message is shown to a user to avoid overexposure and annoyance. This ensures a better user experience.
 
     `Glean <https://docs.telemetry.mozilla.org/concepts/glean/glean.html>`_
