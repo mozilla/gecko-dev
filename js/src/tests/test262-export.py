@@ -389,8 +389,8 @@ def mergeMeta(
     if reftest.info:
         info = reftest.info
         # Open some space in an existing info text
-        if "info" in frontmatter:
-            frontmatter["info"] += "\n\n  \\%s" % info
+        if "info" in frontmatter and frontmatter["info"]:
+            frontmatter["info"] += "\n\n%s" % info
         else:
             frontmatter["info"] = info
 
