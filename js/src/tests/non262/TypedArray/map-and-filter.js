@@ -3,16 +3,16 @@ for (var constructor of anyTypedArrayConstructors) {
     assertEq(constructor.prototype.map.length, 1);
 
     // Basic tests.
-    assertDeepEq(new constructor([1, 3, 5]).map(v => v * 2), new constructor([2,6,10]));
-    assertDeepEq(new constructor([-1, 13, 5]).map(v => v - 2), new constructor([-3, 11, 3]));
-    assertDeepEq(new constructor(10).map(v => v), new constructor(10));
-    assertDeepEq(new constructor().map(v => v + 1), new constructor);
-    assertDeepEq(new constructor([1,2,3]).map(v => v), new constructor([1,2,3]));
+    assertEqArray(new constructor([1, 3, 5]).map(v => v * 2), new constructor([2,6,10]));
+    assertEqArray(new constructor([-1, 13, 5]).map(v => v - 2), new constructor([-3, 11, 3]));
+    assertEqArray(new constructor(10).map(v => v), new constructor(10));
+    assertEqArray(new constructor().map(v => v + 1), new constructor);
+    assertEqArray(new constructor([1,2,3]).map(v => v), new constructor([1,2,3]));
 
     var arr = new constructor([1, 2, 3, 4, 5]);
     var sum = 0;
     var count = 0;
-    assertDeepEq(arr.map((v, k, o) => {
+    assertEqArray(arr.map((v, k, o) => {
         count++;
         sum += v;
         assertEq(k, v - 1);
@@ -24,7 +24,7 @@ for (var constructor of anyTypedArrayConstructors) {
 
     // Test that changing elements that have been visited does not affect the result.
     var changeArr = new constructor([1,2,3,4,5]);
-    assertDeepEq(arr.map((v,k) => {
+    assertEqArray(arr.map((v,k) => {
         changeArr[k] = v + 1;
         return v;
     }), new constructor([1,2,3,4,5]));
@@ -32,13 +32,13 @@ for (var constructor of anyTypedArrayConstructors) {
     // Tests for `thisArg` argument.
     function assertThisArg(thisArg, thisValue) {
         // In sloppy mode, `this` could be global object or a wrapper of `thisArg`.
-        assertDeepEq(arr.map(function(v) {
+        assertEqArray(arr.map(function(v) {
             assertDeepEq(this, thisValue);
             return v;
         }, thisArg), arr);
 
         // In strict mode, `this` strictly equals `thisArg`.
-        assertDeepEq(arr.map(function(v) {
+        assertEqArray(arr.map(function(v) {
             "use strict";
             assertDeepEq(this, thisArg);
             return v;
@@ -46,7 +46,7 @@ for (var constructor of anyTypedArrayConstructors) {
 
         // Passing `thisArg` has no effect if callback is an arrow function.
         var self = this;
-        assertDeepEq(arr.map((v) => {
+        assertEqArray(arr.map((v) => {
             assertEq(this, self);
             return v;
         }, thisArg), arr);
@@ -102,7 +102,7 @@ for (var constructor of anyTypedArrayConstructors) {
     if (typeof newGlobal === "function") {
         var map = newGlobal()[constructor.name].prototype.map;
         var sum = 0;
-        assertDeepEq(map.call(new constructor([1, 2, 3]), v => sum += v), new constructor([1,3,6]));
+        assertEqArray(map.call(new constructor([1, 2, 3]), v => sum += v), new constructor([1,3,6]));
         assertEq(sum, 6);
     }
 
@@ -116,7 +116,7 @@ for (var constructor of anyTypedArrayConstructors) {
     });
 
     // Test that the length getter is never called.
-    assertDeepEq(Object.defineProperty(new constructor([1, 2, 3]), "length", {
+    assertEqArray(Object.defineProperty(new constructor([1, 2, 3]), "length", {
         get() {
             throw new Error("length accessor called");
         }
@@ -128,15 +128,15 @@ for (var constructor of anyTypedArrayConstructors) {
     assertEq(constructor.prototype.filter.length, 1)
 
     // Basic tests.
-    assertDeepEq(new constructor([1,2,3]).filter(x => x == x), new constructor([1,2,3]));
-    assertDeepEq(new constructor([1,2,3,4]).filter(x => x % 2 == 0), new constructor([2,4]));
-    assertDeepEq(new constructor([1,2,3,4,5]).filter(x => x < 4), new constructor([1,2,3]));
-    assertDeepEq(new constructor().filter(x => x * 2 == 4), new constructor());
+    assertEqArray(new constructor([1,2,3]).filter(x => x == x), new constructor([1,2,3]));
+    assertEqArray(new constructor([1,2,3,4]).filter(x => x % 2 == 0), new constructor([2,4]));
+    assertEqArray(new constructor([1,2,3,4,5]).filter(x => x < 4), new constructor([1,2,3]));
+    assertEqArray(new constructor().filter(x => x * 2 == 4), new constructor());
 
     var arr = new constructor([1,2,3,4,5]);
     var sum = 0;
     var count = 0;
-    assertDeepEq(arr.filter((v, k, o) => {
+    assertEqArray(arr.filter((v, k, o) => {
         count++;
         sum += v;
         assertEq(k, v - 1);
@@ -148,7 +148,7 @@ for (var constructor of anyTypedArrayConstructors) {
 
     // Test that changing elements that have been visited does not affect the result.
     var changeArr = new constructor([1,2,3,4,5]);
-    assertDeepEq(arr.filter((v,k) => {
+    assertEqArray(arr.filter((v,k) => {
         changeArr[k] = v + 1;
         return true;
     }), new constructor([1,2,3,4,5]));
@@ -156,13 +156,13 @@ for (var constructor of anyTypedArrayConstructors) {
     // Tests for `thisArg` argument.
     function assertThisArg(thisArg, thisValue) {
         // In sloppy mode, `this` could be global object or a wrapper of `thisArg`.
-        assertDeepEq(arr.filter(function(v) {
+        assertEqArray(arr.filter(function(v) {
             assertDeepEq(this, thisValue);
             return v;
         }, thisArg), arr);
 
         // In strict mode, `this` strictly equals `thisArg`.
-        assertDeepEq(arr.filter(function(v) {
+        assertEqArray(arr.filter(function(v) {
             "use strict";
             assertDeepEq(this, thisArg);
             return v;
@@ -170,7 +170,7 @@ for (var constructor of anyTypedArrayConstructors) {
 
         // Passing `thisArg` has no effect if callback is an arrow function.
         var self = this;
-        assertDeepEq(arr.filter((v) => {
+        assertEqArray(arr.filter((v) => {
             assertEq(this, self);
             return v;
         }, thisArg), arr);
@@ -226,7 +226,7 @@ for (var constructor of anyTypedArrayConstructors) {
     if (typeof newGlobal === "function") {
         var filter = newGlobal()[constructor.name].prototype.filter;
         var sum = 0;
-        assertDeepEq(filter.call(new constructor([1, 2, 3]), v => {sum += v; return true}),
+        assertEqArray(filter.call(new constructor([1, 2, 3]), v => {sum += v; return true}),
         new constructor([1,2,3]));
         assertEq(sum, 6);
     }
@@ -241,7 +241,7 @@ for (var constructor of anyTypedArrayConstructors) {
     });
 
     // Test that the length getter is never called.
-    assertDeepEq(Object.defineProperty(new constructor([1, 2, 3]), "length", {
+    assertEqArray(Object.defineProperty(new constructor([1, 2, 3]), "length", {
         get() {
             throw new Error("length accessor called");
         }
@@ -258,7 +258,7 @@ var arr = new Uint16Array([1,2,3]);
 var old = Array.prototype[Symbol.iterator];
 
 Array.prototype[Symbol.iterator] = () => { throw new Error("unreachable"); };
-assertDeepEq(arr.filter(v => true), arr);
+assertEqArray(arr.filter(v => true), arr);
 
 // restore
 Array.prototype[Symbol.iterator] = old;
@@ -267,7 +267,7 @@ Array.prototype[Symbol.iterator] = old;
 // of filter. See https://bugzilla.mozilla.org/show_bug.cgi?id=1121936#c18
 // for more details.
 Object.defineProperty(Array.prototype, 0, {configurable: true, get: function() { return 1; }, set: function() { this.b = 1; }});
-assertDeepEq(new Uint16Array([1,2,3]).filter(v => true), new Uint16Array([1,2,3]));
+assertEqArray(new Uint16Array([1,2,3]).filter(v => true), new Uint16Array([1,2,3]));
 delete Array.prototype[0];
 
 if (typeof reportCompare === "function")
