@@ -2,9 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-// This module does import many attributes from the global object
-/* eslint-disable mozilla/reject-global-this */
-
 // A CommonJS module loader that is designed to run inside a worker debugger.
 // We can't simply use the SDK module loader, because it relies heavily on
 // Components, which isn't available in workers.
@@ -368,7 +365,7 @@ var {
   loadSubScript,
   setImmediate,
   xpcInspector,
-} = function () {
+} = (function () {
   // Main thread
   if (typeof Components === "object") {
     const principal = Components.Constructor(
@@ -477,7 +474,7 @@ addDebuggerToGlobal(globalThis);
     setImmediate: globalThis.setImmediate,
     xpcInspector,
   };
-}.call(this);
+})();
 /* eslint-enable no-shadow */
 
 // Create the default instance of the worker loader, using the APIs we defined
