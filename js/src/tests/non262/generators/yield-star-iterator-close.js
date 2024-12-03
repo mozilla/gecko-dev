@@ -100,18 +100,11 @@ function test() {
     // IteratorClose expects iter.return to return an Object.
     var g6 = y();
     g6.next();
-    var exc;
-    try {
-        g6.throw("foo");
-    } catch (e) {
-        exc = e;
-    } finally {
-        assertEq(exc instanceof TypeError, true);
-        // The message test is here because instanceof TypeError doesn't
-        // distinguish the non-Object return TypeError and the
-        // throw-method-is-not-defined iterator protocol error.
-        assertEq(exc.toString().indexOf("non-object") > 0, true);
-    }
+    assertThrowsInstanceOfWithMessageContains(
+        () => g6.throw("foo"),
+        TypeError,
+        "non-object"
+    );
     assertEq(returnCalled, ++returnCalledExpected);
 
     // G.p.return passes its argument to "return".
