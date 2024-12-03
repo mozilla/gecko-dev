@@ -391,6 +391,7 @@ interface nsIClearDataService : nsISupports
    * offers site data clearing this is almost always what you want.
    * If you need more granular control please use more specific
    * flags like CLEAR_COOKIES and CLEAR_DOM_STORAGES.
+   * This flag does not clear caches.
    */
   const uint32_t CLEAR_COOKIES_AND_SITE_DATA =
     CLEAR_COOKIES | CLEAR_COOKIE_BANNER_EXECUTED_RECORD | CLEAR_DOM_STORAGES | CLEAR_HSTS |
