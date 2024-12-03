@@ -797,7 +797,10 @@
         offsetY: this.verticalMode
           ? event.screenY - window.screenY - tabOffset
           : event.screenY - window.screenY,
-        scrollPos: this.arrowScrollbox.scrollPosition,
+        scrollPos:
+          this.verticalMode && tab.pinned
+            ? this.verticalPinnedTabsContainer.scrollTop
+            : this.arrowScrollbox.scrollPosition,
         screenX: event.screenX,
         screenY: event.screenY,
         movingTabs: (tab.multiselected ? gBrowser.selectedTabs : [tab]).filter(
