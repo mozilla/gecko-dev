@@ -136,8 +136,6 @@ def convertTestFile(source: bytes, includes: "list[str]") -> bytes:
 
     source = MODELINE_PATTERN.sub(b"", source)
 
-    source = convertReportCompare(source)
-
     # Extract the reftest data from the source
     source, reftest = parseHeader(source)
 
@@ -145,9 +143,11 @@ def convertTestFile(source: bytes, includes: "list[str]") -> bytes:
     copyright, source = insertCopyrightLines(source)
 
     # Extract the frontmatter data from the source
-    frontmatter = extractMeta(source)
+    frontmatter, source = extractMeta(source)
 
     source = updateMeta(source, reftest, frontmatter, includes)
+
+    source = convertReportCompare(source)
 
     return copyright + source
 
@@ -327,7 +327,7 @@ FRONTMATTER_WRAPPER_PATTERN = re.compile(
 )
 
 
-def extractMeta(source: bytes) -> "dict[str, Any]":
+def extractMeta(source: bytes) -> "tuple[dict[str, Any], bytes]":
     """
     Capture the frontmatter metadata as yaml if it exists.
     Returns a new dict if it doesn't.
@@ -335,7 +335,7 @@ def extractMeta(source: bytes) -> "dict[str, Any]":
 
     match = FRONTMATTER_WRAPPER_PATTERN.search(source)
     if not match:
-        return {}
+        return {}, source
 
     indent, frontmatter_lines = match.groups()
 
@@ -346,7 +346,8 @@ def extractMeta(source: bytes) -> "dict[str, Any]":
         result = {"info": yamlresult}
     else:
         result = yamlresult
-    return result
+    start, end = match.span()
+    return result, source[:start] + source[end:]
 
 
 ## updateMeta
@@ -526,12 +527,7 @@ def insertMeta(source: bytes, frontmatter: "dict[str, Any]") -> bytes:
             )
 
     lines.append(b"---*/\n")
-    frontmatterstr = b"\n".join(lines)
-
-    if frontmattermatch := FRONTMATTER_WRAPPER_PATTERN.search(source):
-        source = source.replace(frontmattermatch.group(0), frontmatterstr)
-    else:
-        source = frontmatterstr + source
+    source = b"\n".join(lines) + source
 
     if frontmatter.get("negative", {}).get("phase", "") == "parse":
         source += b"$DONOTEVALUATE();\n"
