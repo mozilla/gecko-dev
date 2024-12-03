@@ -2450,14 +2450,20 @@ def repackage_deb_l10n(
 @CommandArgument(
     "--attribution_sentinel", type=str, required=False, help="DMGs with attribution."
 )
-def repackage_dmg(command_context, input, output, attribution_sentinel):
+@CommandArgument(
+    "--compression",
+    type=str,
+    required=False,
+    help="Use alternative compression algorithm",
+)
+def repackage_dmg(command_context, input, output, attribution_sentinel, compression):
     if not os.path.exists(input):
         print("Input file does not exist: %s" % input)
         return 1
 
     from mozbuild.repackaging.dmg import repackage_dmg
 
-    repackage_dmg(input, output, attribution_sentinel)
+    repackage_dmg(input, output, attribution_sentinel, compression)
 
 
 @SubCommand("repackage", "pkg", description="Repackage a tar file into a .pkg for OSX")

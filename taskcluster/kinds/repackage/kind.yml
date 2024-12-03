@@ -89,8 +89,14 @@ tasks:
                 macosx64\b.*:
                     by-build-type:
                         # Debug builds can't be attributable
-                        debug: [dmg, mar, pkg]
-                        default: [dmg-attrib, mar, pkg]
+                        debug:
+                            by-release-type:
+                                nightly: [dmg-lzma, mar, pkg]
+                                default: [dmg, mar, pkg]
+                        default:
+                            by-release-type:
+                                nightly: [dmg-attrib-lzma, mar, pkg]
+                                default: [dmg-attrib, mar, pkg]
                 linux.*: [mar, desktop-file]
                 win32\b.*: [mar, installer]
                 win64\b.*: [mar, installer]
