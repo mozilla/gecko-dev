@@ -3,4 +3,5 @@ uprofiler_get
 #ifdef XP_IOS
 MainProcessInit
 ChildProcessInit
+GeckoViewOpenWindow
 #endif

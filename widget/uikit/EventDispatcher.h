@@ -7,7 +7,10 @@
 #ifndef mozilla_widget_EventDispatcher_h
 #define mozilla_widget_EventDispatcher_h
 
+#include <objc/objc.h>
+
 #include "nsIGeckoViewBridge.h"
+#include "nsPIDOMWindow.h"
 
 namespace mozilla {
 namespace widget {
@@ -24,10 +27,17 @@ class EventDispatcher final : public nsIGeckoViewEventDispatcher {
 
   EventDispatcher() {}
 
+  void Attach(id aDispatcher);
+  void Detach();
+
   bool HasListener(const char16_t* aEvent);
 
  private:
   virtual ~EventDispatcher() {}
+
+  void Shutdown();
+
+  id mDispatcher = nullptr;
 };
 
 }  // namespace widget

@@ -8,6 +8,7 @@
 
 #include <CoreFoundation/CoreFoundation.h>
 
+#include "mozilla/widget/IOSView.h"
 #include "nsBaseWidget.h"
 #include "gfxPoint.h"
 
@@ -111,7 +112,13 @@ class nsWindow final : public nsBaseWidget {
 
   mozilla::widget::EventDispatcher* GetEventDispatcher() const;
 
+  static already_AddRefed<nsWindow> From(nsPIDOMWindowOuter* aDOMWindow);
   static already_AddRefed<nsWindow> From(nsIWidget* aWidget);
+
+  void SetIOSView(already_AddRefed<mozilla::widget::IOSView>&& aView) {
+    mIOSView = aView;
+  }
+  mozilla::widget::IOSView* GetIOSView() const { return mIOSView; }
 
  protected:
   virtual ~nsWindow();
@@ -131,6 +138,7 @@ class nsWindow final : public nsBaseWidget {
 
   mozilla::widget::InputContext mInputContext;
   RefPtr<mozilla::widget::TextInputHandler> mTextInputHandler;
+  RefPtr<mozilla::widget::IOSView> mIOSView;
 
   void OnSizeChanged(const mozilla::gfx::IntSize& aSize);
 

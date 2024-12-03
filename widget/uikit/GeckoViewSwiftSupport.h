@@ -11,6 +11,13 @@
 
 /* This header needs to stay valid Objective-C (not Objective-C++) when
  * built independently because it is used for Swift bridging too. */
+#ifdef MOZILLA_CLIENT
+#  include <mozilla/Types.h>
+#else
+#  define MOZ_EXPORT
+#  define MOZ_BEGIN_EXTERN_C
+#  define MOZ_END_EXTERN_C
+#endif
 
 #import <Foundation/NSObject.h>
 
@@ -18,5 +25,23 @@
 @end
 @protocol GeckoProcessExtension <NSObject>
 @end
+
+@protocol GeckoEventDispatcher <NSObject>
+@end
+
+@protocol SwiftEventDispatcher <NSObject>
+- (void)attach:(id<GeckoEventDispatcher>)geckoEventDispatcher;
+@end
+
+@protocol GeckoViewWindow <NSObject>
+@end
+
+MOZ_BEGIN_EXTERN_C
+
+MOZ_EXPORT id<GeckoViewWindow> GeckoViewOpenWindow(
+    NSString* aId, id<SwiftEventDispatcher> aDispatcher, id aInitData,
+    bool aPrivateMode);
+
+MOZ_END_EXTERN_C
 
 #endif /* GeckoView_GeckoViewSwiftSupport_h */
