@@ -644,6 +644,96 @@ static UniqueICU4XCalendar CreateICU4XCalendar(JSContext* cx, CalendarId id) {
   return UniqueICU4XCalendar{result.ok};
 }
 
+static uint32_t MaximumISOYear(CalendarId calendarId) {
+  switch (calendarId) {
+    case CalendarId::ISO8601:
+    case CalendarId::Buddhist:
+    case CalendarId::Coptic:
+    case CalendarId::Ethiopian:
+    case CalendarId::EthiopianAmeteAlem:
+    case CalendarId::Gregorian:
+    case CalendarId::Hebrew:
+    case CalendarId::Indian:
+    case CalendarId::IslamicCivil:
+    case CalendarId::IslamicTabular:
+    case CalendarId::Japanese:
+    case CalendarId::Persian:
+    case CalendarId::ROC: {
+      // Passing values near INT32_{MIN,MAX} triggers ICU4X assertions, so we
+      // have to handle large input years early.
+      return 300'000;
+    }
+
+    case CalendarId::Chinese:
+    case CalendarId::Dangi: {
+      // Lower limit for these calendars to avoid running into ICU4x assertions.
+      //
+      // https://github.com/unicode-org/icu4x/issues/4917
+      return 10'000;
+    }
+
+    case CalendarId::Islamic:
+    case CalendarId::IslamicRGSA:
+    case CalendarId::IslamicUmmAlQura: {
+      // Lower limit for these calendars to avoid running into ICU4x assertions.
+      //
+      // https://github.com/unicode-org/icu4x/issues/4917
+      return 5'000;
+    }
+  }
+  MOZ_CRASH("invalid calendar");
+}
+
+static uint32_t MaximumCalendarYear(CalendarId calendarId) {
+  switch (calendarId) {
+    case CalendarId::ISO8601:
+    case CalendarId::Buddhist:
+    case CalendarId::Coptic:
+    case CalendarId::Ethiopian:
+    case CalendarId::EthiopianAmeteAlem:
+    case CalendarId::Gregorian:
+    case CalendarId::Hebrew:
+    case CalendarId::Indian:
+    case CalendarId::IslamicCivil:
+    case CalendarId::IslamicTabular:
+    case CalendarId::Japanese:
+    case CalendarId::Persian:
+    case CalendarId::ROC: {
+      // Passing values near INT32_{MIN,MAX} triggers ICU4X assertions, so we
+      // have to handle large input years early.
+      return 300'000;
+    }
+
+    case CalendarId::Chinese:
+    case CalendarId::Dangi: {
+      // Lower limit for these calendars to avoid running into ICU4x assertions.
+      //
+      // https://github.com/unicode-org/icu4x/issues/4917
+      return 10'000;
+    }
+
+    case CalendarId::Islamic:
+    case CalendarId::IslamicRGSA:
+    case CalendarId::IslamicUmmAlQura: {
+      // Lower limit for these calendars to avoid running into ICU4x assertions.
+      //
+      // https://github.com/unicode-org/icu4x/issues/4917
+      return 5'000;
+    }
+  }
+  MOZ_CRASH("invalid calendar");
+}
+
+static void ReportCalendarFieldOverflow(JSContext* cx, const char* name,
+                                        double num) {
+  ToCStringBuf numCbuf;
+  const char* numStr = NumberToCString(&numCbuf, num);
+
+  JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
+                            JSMSG_TEMPORAL_CALENDAR_OVERFLOW_FIELD, name,
+                            numStr);
+}
+
 class ICU4XDateDeleter {
  public:
   void operator()(capi::ICU4XDate* ptr) { capi::ICU4XDate_destroy(ptr); }
@@ -652,7 +742,13 @@ class ICU4XDateDeleter {
 using UniqueICU4XDate = mozilla::UniquePtr<capi::ICU4XDate, ICU4XDateDeleter>;
 
 static UniqueICU4XDate CreateICU4XDate(JSContext* cx, const ISODate& date,
+                                       CalendarId calendarId,
                                        const capi::ICU4XCalendar* calendar) {
+  if (mozilla::Abs(date.year) > MaximumISOYear(calendarId)) {
+    ReportCalendarFieldOverflow(cx, "year", date.year);
+    return nullptr;
+  }
+
   auto result = capi::ICU4XDate_create_from_iso_in_calendar(
       date.year, date.month, date.day, calendar);
   if (!result.is_ok) {
@@ -870,6 +966,7 @@ static mozilla::Result<UniqueICU4XDate, CalendarError> CreateDateFromCodes(
   MOZ_ASSERT(mozilla::EnumSet<EraCode>(CalendarEras(calendarId))
                  .contains(eraYear.era));
   MOZ_ASSERT_IF(CalendarEraRelevant(calendarId), eraYear.year > 0);
+  MOZ_ASSERT(mozilla::Abs(eraYear.year) <= MaximumCalendarYear(calendarId));
   MOZ_ASSERT(CalendarMonthCodes(calendarId).contains(monthCode));
   MOZ_ASSERT(day > 0);
   MOZ_ASSERT(day <= CalendarDaysInMonth(calendarId).second);
@@ -1139,16 +1236,6 @@ CreateDateFromCodesConstrainToJapaneseEra(JSContext* cx, CalendarId calendarId,
   MOZ_CRASH("error constraining to end of era");
 }
 
-static void ReportCalendarFieldOverflow(JSContext* cx, const char* name,
-                                        double num) {
-  ToCStringBuf numCbuf;
-  const char* numStr = NumberToCString(&numCbuf, num);
-
-  JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
-                            JSMSG_TEMPORAL_CALENDAR_OVERFLOW_FIELD, name,
-                            numStr);
-}
-
 static UniqueICU4XDate CreateDateFromCodes(JSContext* cx, CalendarId calendarId,
                                            const capi::ICU4XCalendar* calendar,
                                            EraYear eraYear, MonthCode monthCode,
@@ -1172,6 +1259,12 @@ static UniqueICU4XDate CreateDateFromCodes(JSContext* cx, CalendarId calendarId,
       ReportCalendarFieldOverflow(cx, "day", day);
       return nullptr;
     }
+  }
+
+  // ICU4X doesn't support large dates, so we have to handle this case early.
+  if (mozilla::Abs(eraYear.year) > MaximumCalendarYear(calendarId)) {
+    ReportCalendarFieldOverflow(cx, "year", eraYear.year);
+    return nullptr;
   }
 
   auto result =
@@ -2256,7 +2349,7 @@ static bool CalendarMonthDayToISOReferenceDate(JSContext* cx,
   // Try years starting from 31 December, 1972.
   constexpr auto isoReferenceDate = ISODate{1972, 12, 31};
 
-  auto fromIsoDate = CreateICU4XDate(cx, isoReferenceDate, cal.get());
+  auto fromIsoDate = CreateICU4XDate(cx, isoReferenceDate, calendar, cal.get());
   if (!fromIsoDate) {
     return false;
   }
@@ -2459,7 +2552,7 @@ bool js::temporal::CalendarEra(JSContext* cx, Handle<CalendarValue> calendar,
     return false;
   }
 
-  auto dt = CreateICU4XDate(cx, date, cal.get());
+  auto dt = CreateICU4XDate(cx, date, calendarId, cal.get());
   if (!dt) {
     return false;
   }
@@ -2506,7 +2599,7 @@ bool js::temporal::CalendarEraYear(JSContext* cx,
     return false;
   }
 
-  auto dt = CreateICU4XDate(cx, date, cal.get());
+  auto dt = CreateICU4XDate(cx, date, calendarId, cal.get());
   if (!dt) {
     return false;
   }
@@ -2538,7 +2631,7 @@ bool js::temporal::CalendarYear(JSContext* cx, Handle<CalendarValue> calendar,
     return false;
   }
 
-  auto dt = CreateICU4XDate(cx, date, cal.get());
+  auto dt = CreateICU4XDate(cx, date, calendarId, cal.get());
   if (!dt) {
     return false;
   }
@@ -2574,7 +2667,7 @@ bool js::temporal::CalendarMonth(JSContext* cx, Handle<CalendarValue> calendar,
     return false;
   }
 
-  auto dt = CreateICU4XDate(cx, date, cal.get());
+  auto dt = CreateICU4XDate(cx, date, calendarId, cal.get());
   if (!dt) {
     return false;
   }
@@ -2614,7 +2707,7 @@ bool js::temporal::CalendarMonthCode(JSContext* cx,
     return false;
   }
 
-  auto dt = CreateICU4XDate(cx, date, cal.get());
+  auto dt = CreateICU4XDate(cx, date, calendarId, cal.get());
   if (!dt) {
     return false;
   }
@@ -2655,7 +2748,7 @@ bool js::temporal::CalendarDay(JSContext* cx, Handle<CalendarValue> calendar,
     return false;
   }
 
-  auto dt = CreateICU4XDate(cx, date, cal.get());
+  auto dt = CreateICU4XDate(cx, date, calendarId, cal.get());
   if (!dt) {
     return false;
   }
@@ -2688,7 +2781,7 @@ bool js::temporal::CalendarDayOfWeek(JSContext* cx,
     return false;
   }
 
-  auto dt = CreateICU4XDate(cx, date, cal.get());
+  auto dt = CreateICU4XDate(cx, date, calendarId, cal.get());
   if (!dt) {
     return false;
   }
@@ -2730,7 +2823,7 @@ bool js::temporal::CalendarDayOfYear(JSContext* cx,
     return false;
   }
 
-  auto dt = CreateICU4XDate(cx, date, cal.get());
+  auto dt = CreateICU4XDate(cx, date, calendarId, cal.get());
   if (!dt) {
     return false;
   }
@@ -2804,7 +2897,7 @@ bool js::temporal::CalendarWeekOfYear(JSContext* cx,
     return false;
   }
 
-  auto dt = CreateICU4XDate(cx, date, cal.get());
+  auto dt = CreateICU4XDate(cx, date, calendarId, cal.get());
   if (!dt) {
     return false;
   }
@@ -2857,7 +2950,7 @@ bool js::temporal::CalendarYearOfWeek(JSContext* cx,
     return false;
   }
 
-  auto dt = CreateICU4XDate(cx, date, cal.get());
+  auto dt = CreateICU4XDate(cx, date, calendarId, cal.get());
   if (!dt) {
     return false;
   }
@@ -2939,7 +3032,7 @@ bool js::temporal::CalendarDaysInMonth(JSContext* cx,
     return false;
   }
 
-  auto dt = CreateICU4XDate(cx, date, cal.get());
+  auto dt = CreateICU4XDate(cx, date, calendarId, cal.get());
   if (!dt) {
     return false;
   }
@@ -2972,7 +3065,7 @@ bool js::temporal::CalendarDaysInYear(JSContext* cx,
     return false;
   }
 
-  auto dt = CreateICU4XDate(cx, date, cal.get());
+  auto dt = CreateICU4XDate(cx, date, calendarId, cal.get());
   if (!dt) {
     return false;
   }
@@ -3005,7 +3098,7 @@ bool js::temporal::CalendarMonthsInYear(JSContext* cx,
     return false;
   }
 
-  auto dt = CreateICU4XDate(cx, date, cal.get());
+  auto dt = CreateICU4XDate(cx, date, calendarId, cal.get());
   if (!dt) {
     return false;
   }
@@ -3043,7 +3136,7 @@ bool js::temporal::CalendarInLeapYear(JSContext* cx,
     return false;
   }
 
-  auto dt = CreateICU4XDate(cx, date, cal.get());
+  auto dt = CreateICU4XDate(cx, date, calendarId, cal.get());
   if (!dt) {
     return false;
   }
@@ -3150,7 +3243,7 @@ static bool ISODateToFields(JSContext* cx, Handle<CalendarValue> calendar,
     return false;
   }
 
-  auto dt = CreateICU4XDate(cx, date, cal.get());
+  auto dt = CreateICU4XDate(cx, date, calendarId, cal.get());
   if (!dt) {
     return false;
   }
@@ -3622,7 +3715,7 @@ static bool AddNonISODate(JSContext* cx, CalendarId calendarId,
     return false;
   }
 
-  auto dt = CreateICU4XDate(cx, isoDate, cal.get());
+  auto dt = CreateICU4XDate(cx, isoDate, calendarId, cal.get());
   if (!dt) {
     return false;
   }
