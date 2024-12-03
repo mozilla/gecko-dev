@@ -12,7 +12,7 @@ negative:
 flags:
 - module
 features:
-- foobar
+- async-iteration
 info: |
   foo bar  baz
 ---*/
