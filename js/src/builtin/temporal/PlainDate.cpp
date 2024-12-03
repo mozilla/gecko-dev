@@ -368,8 +368,8 @@ static bool ToTemporalDate(JSContext* cx, Handle<JSObject*> item,
     }
 
     // Steps 2.b.ii.
-    ISODateTime dateTime;
-    if (!GetISODateTimeFor(cx, timeZone, epochNs, &dateTime)) {
+    ISODateTime isoDateTime;
+    if (!GetISODateTimeFor(cx, timeZone, epochNs, &isoDateTime)) {
       return false;
     }
 
@@ -380,7 +380,7 @@ static bool ToTemporalDate(JSContext* cx, Handle<JSObject*> item,
     }
 
     // Step 2.b.iv.
-    result.set(PlainDate{dateTime.date, calendar});
+    result.set(PlainDate{isoDateTime.date, calendar});
     return true;
   }
 
@@ -429,7 +429,7 @@ static bool ToTemporalDate(JSContext* cx, Handle<JSObject*> item,
   }
   auto [overflow] = resolvedOptions;
 
-  // Step 2.h.
+  // Steps 2.h-i.
   return CalendarDateFromFields(cx, calendar, fields, overflow, result);
 }
 
@@ -477,7 +477,7 @@ static bool ToTemporalDate(JSContext* cx, Handle<Value> item,
     return false;
   }
 
-  // Step 10.
+  // Steps 10-11.
   return CreateTemporalDate(cx, dateTime.date, calendar, result);
 }
 
@@ -677,12 +677,13 @@ static bool DifferenceTemporalPlainDate(JSContext* cx,
   // Step 9. (Inlined TemporalDurationFromInternal)
   auto result = duration.date.toDuration();
 
-  // Step 12.
+  // Step 10.
   if (operation == TemporalDifference::Since) {
     result = result.negate();
   }
   MOZ_ASSERT(IsValidDuration(result));
 
+  // Step 11.
   auto* obj = CreateTemporalDuration(cx, result);
   if (!obj) {
     return false;
@@ -697,26 +698,24 @@ static bool DifferenceTemporalPlainDate(JSContext* cx,
  */
 static bool AddDurationToDate(JSContext* cx, TemporalAddDuration operation,
                               const CallArgs& args) {
-  auto* temporalDate = &args.thisv().toObject().as<PlainDateObject>();
+  Rooted<PlainDate> temporalDate(
+      cx, &args.thisv().toObject().as<PlainDateObject>());
 
   // Step 1.
-  auto date = temporalDate->date();
+  auto calendar = temporalDate.calendar();
 
   // Step 2.
-  Rooted<CalendarValue> calendar(cx, temporalDate->calendar());
-
-  // Step 3.
   Duration duration;
   if (!ToTemporalDuration(cx, args.get(0), &duration)) {
     return false;
   }
 
-  // Step 4.
+  // Step 3.
   if (operation == TemporalAddDuration::Subtract) {
     duration = duration.negate();
   }
 
-  // Step 5.
+  // Step 4.
   auto dateDuration = ToDateDurationRecordWithoutTime(duration);
 
   // Steps 6-7.
@@ -737,7 +736,8 @@ static bool AddDurationToDate(JSContext* cx, TemporalAddDuration operation,
 
   // Step 8.
   ISODate result;
-  if (!CalendarDateAdd(cx, calendar, date, dateDuration, overflow, &result)) {
+  if (!CalendarDateAdd(cx, calendar, temporalDate.date(), dateDuration,
+                       overflow, &result)) {
     return false;
   }
 
@@ -752,7 +752,7 @@ static bool AddDurationToDate(JSContext* cx, TemporalAddDuration operation,
 }
 
 /**
- * Temporal.PlainDate ( isoYear, isoMonth, isoDay [ , calendarLike ] )
+ * Temporal.PlainDate ( isoYear, isoMonth, isoDay [ , calendar ] )
  */
 static bool PlainDateConstructor(JSContext* cx, unsigned argc, Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
@@ -1278,18 +1278,22 @@ static bool PlainDate_toPlainDateTime(JSContext* cx, const CallArgs& args) {
   auto* temporalDate = &args.thisv().toObject().as<PlainDateObject>();
   Rooted<CalendarValue> calendar(cx, temporalDate->calendar());
 
+  // Step 4. (Reordered)
+  //
   // Default initialize the time component to all zero.
-  ISODateTime dateTime = {temporalDate->date(), {}};
+  auto isoDateTime = ISODateTime{temporalDate->date(), {}};
 
   // Step 3. (Inlined ToTemporalTimeOrMidnight)
   if (args.hasDefined(0)) {
-    if (!ToTemporalTime(cx, args[0], &dateTime.time)) {
+    if (!ToTemporalTime(cx, args[0], &isoDateTime.time)) {
       return false;
     }
   }
 
-  // Step 4.
-  auto* obj = CreateTemporalDateTime(cx, dateTime, calendar);
+  // Step 4. (Moved above)
+
+  // Step 5.
+  auto* obj = CreateTemporalDateTime(cx, isoDateTime, calendar);
   if (!obj) {
     return false;
   }
@@ -1328,7 +1332,7 @@ static bool PlainDate_add(JSContext* cx, unsigned argc, Value* vp) {
  * Temporal.PlainDate.prototype.subtract ( temporalDurationLike [ , options ] )
  */
 static bool PlainDate_subtract(JSContext* cx, const CallArgs& args) {
-  // Step 4.
+  // Step 3.
   return AddDurationToDate(cx, TemporalAddDuration::Subtract, args);
 }
 
@@ -1505,7 +1509,7 @@ static bool PlainDate_equals(JSContext* cx, const CallArgs& args) {
     return false;
   }
 
-  // Steps 4-7.
+  // Steps 4-5.
   bool equals =
       date == other.date() && CalendarEquals(calendar, other.calendar());
 
@@ -1527,15 +1531,8 @@ static bool PlainDate_equals(JSContext* cx, unsigned argc, Value* vp) {
  *
  * The |item| argument represents either a time zone or an options object. The
  * following cases are supported:
- * - |item| is a `Temporal.TimeZone` object.
- * - |item| is a user-defined time zone object.
  * - |item| is an options object with `timeZone` and `plainTime` properties.
  * - |item| is a time zone identifier string.
- *
- * User-defined time zone objects are distinguished from options objects by the
- * `timeZone` property, i.e. if a `timeZone` property is present, the object is
- * treated as an options object, otherwise an object is treated as a
- * user-defined time zone.
  */
 static bool PlainDate_toZonedDateTime(JSContext* cx, const CallArgs& args) {
   auto* temporalDate = &args.thisv().toObject().as<PlainDateObject>();
@@ -1561,7 +1558,8 @@ static bool PlainDate_toZonedDateTime(JSContext* cx, const CallArgs& args) {
         return false;
       }
 
-      // Step 3.b.ii.  (Not applicable in our implementation.)
+      // Step 3.b.ii.
+      MOZ_ASSERT(temporalTime.isUndefined());
     } else {
       // Step 3.c.i.
       if (!ToTemporalTimeZone(cx, timeZoneLike, &timeZone)) {
@@ -1579,31 +1577,36 @@ static bool PlainDate_toZonedDateTime(JSContext* cx, const CallArgs& args) {
       return false;
     }
 
-    // Step 4.b. (Not applicable in our implementation.)
+    // Step 4.b.
+    MOZ_ASSERT(temporalTime.isUndefined());
   }
 
   // Steps 5-6.
   EpochNanoseconds epochNs;
   if (temporalTime.isUndefined()) {
-    // Steps 5.a-b.
+    // Step 5.a.
     if (!GetStartOfDay(cx, timeZone, date, &epochNs)) {
       return false;
     }
   } else {
     // Step 6.a.
-    Time time = {};
+    Time time;
     if (!ToTemporalTime(cx, temporalTime, &time)) {
       return false;
     }
 
-    // Steps 6.b-c.
-    ISODateTime temporalDateTime;
-    if (!CreateTemporalDateTime(cx, date, time, &temporalDateTime)) {
+    // Step 6.b.
+    auto isoDateTime = ISODateTime{date, time};
+
+    // Step 6.c.
+    if (!ISODateTimeWithinLimits(isoDateTime)) {
+      JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
+                                JSMSG_TEMPORAL_PLAIN_DATE_TIME_INVALID);
       return false;
     }
 
     // Step 6.d.
-    if (!GetEpochNanosecondsFor(cx, timeZone, temporalDateTime,
+    if (!GetEpochNanosecondsFor(cx, timeZone, isoDateTime,
                                 TemporalDisambiguation::Compatible, &epochNs)) {
       return false;
     }

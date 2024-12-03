@@ -2057,7 +2057,7 @@ static bool RegulateISODate(JSContext* cx, int32_t year, double month,
     // Step 1.c.
     int32_t d = int32_t(std::clamp(day, 1.0, daysInMonth));
 
-    // Step 1.d.
+    // Step 3. (Inlined call to CreateISODateRecord.)
     *result = {year, m, d};
     return true;
   }
@@ -2070,7 +2070,7 @@ static bool RegulateISODate(JSContext* cx, int32_t year, double month,
     return false;
   }
 
-  // Step 2.b. (Inlined call to CreateISODateRecord.)
+  // Step 3. (Inlined call to CreateISODateRecord.)
   *result = {year, int32_t(month), int32_t(day)};
   return true;
 }
