@@ -378,7 +378,7 @@ def mergeMeta(
 
     # Add the shell specific includes
     if includes:
-        frontmatter["includes"] = list(includes)
+        frontmatter["includes"] = frontmatter.get("includes", []) + list(includes)
 
     flags: list[str] = frontmatter.get("flags", [])
     if "noStrict" not in flags and "onlyStrict" not in flags:
