@@ -7,14 +7,6 @@ const { SUPPORT_URL, PREFERENCES_URL } = ChromeUtils.importESModule(
   "resource://gre/modules/megalist/aggregator/datasources/LoginDataSource.sys.mjs"
 );
 
-const { OSKeyStoreTestUtils } = ChromeUtils.importESModule(
-  "resource://testing-common/OSKeyStoreTestUtils.sys.mjs"
-);
-
-const { OSKeyStore } = ChromeUtils.importESModule(
-  "resource://gre/modules/OSKeyStore.sys.mjs"
-);
-
 const EXPECTED_PASSWORD_CARD_VALUES = [
   {
     originLine: { value: "example1.com" },

@@ -161,6 +161,7 @@ export class LoginForm extends MozLitElement {
             <div class="delete-login-button-container">
               <moz-button
                 class="delete-login-button"
+                data-l10n-id="passwords-remove-label"
                 type="icon"
                 iconSrc="chrome://global/skin/icons/delete.svg"
                 @click=${this.#toggleDeleteCard}

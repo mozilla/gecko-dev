@@ -15,6 +15,14 @@ const { RemoteSettings } = ChromeUtils.importESModule(
   "resource://services-settings/remote-settings.sys.mjs"
 );
 
+const { OSKeyStoreTestUtils } = ChromeUtils.importESModule(
+  "resource://testing-common/OSKeyStoreTestUtils.sys.mjs"
+);
+
+const { OSKeyStore } = ChromeUtils.importESModule(
+  "resource://gre/modules/OSKeyStore.sys.mjs"
+);
+
 const nsLoginInfo = new Components.Constructor(
   "@mozilla.org/login-manager/loginInfo;1",
   Ci.nsILoginInfo,
@@ -167,5 +175,28 @@ function setInputValue(loginForm, fieldElement, value) {
       composed: true,
       bubbles: true,
     })
+  );
+}
+
+function getMegalistParent() {
+  const megalistChromeWindow = gBrowser.ownerGlobal[0];
+  return megalistChromeWindow.browsingContext.currentWindowGlobal.getActor(
+    "Megalist"
+  );
+}
+
+async function openEditLoginForm(megalist, megalistParent, cardIndex) {
+  const passwordCard = megalist.querySelectorAll("password-card")[cardIndex];
+  const authExpirationTime = megalistParent.authExpirationTime();
+  let reauthObserved = Promise.resolve();
+
+  if (OSKeyStore.canReauth() && Date.now() > authExpirationTime) {
+    reauthObserved = OSKeyStoreTestUtils.waitForOSKeyStoreLogin(true);
+  }
+  passwordCard.editBtn.click();
+  await reauthObserved;
+  return BrowserTestUtils.waitForCondition(
+    () => megalist.querySelector("login-form"),
+    "Login form failed to render"
   );
 }

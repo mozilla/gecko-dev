@@ -1,13 +1,5 @@
 "use strict";
 
-const { OSKeyStoreTestUtils } = ChromeUtils.importESModule(
-  "resource://testing-common/OSKeyStoreTestUtils.sys.mjs"
-);
-
-const { OSKeyStore } = ChromeUtils.importESModule(
-  "resource://gre/modules/OSKeyStore.sys.mjs"
-);
-
 add_setup(async function () {
   await SpecialPowers.pushPrefEnv({
     set: [
@@ -17,29 +9,6 @@ add_setup(async function () {
   });
   registerCleanupFunction(LoginTestUtils.clearData);
 });
-
-function getMegalistParent() {
-  const megalistChromeWindow = gBrowser.ownerGlobal[0];
-  return megalistChromeWindow.browsingContext.currentWindowGlobal.getActor(
-    "Megalist"
-  );
-}
-
-async function openLoginForm(megalist, megalistParent) {
-  const passwordCard = megalist.querySelector("password-card");
-  const authExpirationTime = megalistParent.authExpirationTime();
-  let reauthObserved = Promise.resolve();
-
-  if (OSKeyStore.canReauth() && Date.now() > authExpirationTime) {
-    reauthObserved = OSKeyStoreTestUtils.waitForOSKeyStoreLogin(true);
-  }
-  passwordCard.editBtn.click();
-  await reauthObserved;
-  return BrowserTestUtils.waitForCondition(
-    () => megalist.querySelector("login-form"),
-    "Login form failed to render"
-  );
-}
 
 function waitForPasswordReveal(passwordLine) {
   const revealBtnPromise = BrowserTestUtils.waitForMutationCondition(
@@ -66,7 +35,7 @@ add_task(async function test_update_login_success() {
   const megalist = await openPasswordsSidebar();
   await checkAllLoginsRendered(megalist);
 
-  await openLoginForm(megalist, getMegalistParent());
+  await openEditLoginForm(megalist, getMegalistParent(), 0);
   const newUsername = "new_username";
   const newPassword = "new_password";
   const loginForm = megalist.querySelector("login-form");
@@ -114,7 +83,7 @@ add_task(async function test_update_login_duplicate() {
   const megalist = await openPasswordsSidebar();
   await checkAllLoginsRendered(megalist);
 
-  await openLoginForm(megalist, getMegalistParent());
+  await openEditLoginForm(megalist, getMegalistParent(), 0);
   const loginForm = megalist.querySelector("login-form");
   info(`updating login 1's username to login 2's username`);
   setInputValue(loginForm, "login-username-field", TEST_LOGIN_2.username);
