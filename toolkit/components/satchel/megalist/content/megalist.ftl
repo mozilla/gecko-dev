@@ -263,6 +263,10 @@ password-login-line =
   .title = Copy Password
 edit-login-button = Edit
   .tooltiptext = Edit Password
+view-alert-heading =
+  .heading = View alert
+view-alert-button =
+  .tooltiptext = Review alert
 
 show-password-button =
   .aria-label = Show Password

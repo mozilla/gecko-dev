@@ -53,9 +53,11 @@ export class PasswordCard extends MozLitElement {
 
   async firstUpdated() {
     this.#focusableElementsMap = new Map();
+    const buttons = this.shadowRoot.querySelectorAll("moz-button");
+    const lineItems = this.shadowRoot.querySelectorAll(".line-item");
 
     let index = 0;
-    for (const el of this.shadowRoot.querySelectorAll(".line-item")) {
+    for (const el of lineItems) {
       if (el === this.passwordLine) {
         await el.updateComplete;
         this.#focusableElementsMap.set(el.loginLine, index++);
@@ -65,7 +67,11 @@ export class PasswordCard extends MozLitElement {
       }
     }
 
-    this.#focusableElementsMap.set(this.editBtn.buttonEl, index);
+    for (const el of buttons) {
+      this.#focusableElementsMap.set(el.buttonEl, index);
+      index++;
+    }
+
     this.#focusableElementsList = Array.from(this.#focusableElementsMap.keys());
   }
 
@@ -124,6 +130,10 @@ export class PasswordCard extends MozLitElement {
     }
 
     this.handleEditButtonClick();
+  }
+
+  onViewAlertClick() {
+    // TODO: implement me
   }
 
   #onOriginLineClick(lineIndex) {
@@ -213,6 +223,31 @@ export class PasswordCard extends MozLitElement {
     </div>`;
   }
 
+  renderViewAlertField() {
+    const hasAlert =
+      this.origin.breached ||
+      !this.username.value.length ||
+      this.password.vulnerable;
+
+    if (!hasAlert) {
+      return "";
+    }
+
+    return html`
+      <moz-message-bar type="warning" data-l10n-id="view-alert-heading">
+        <moz-button
+          class="view-alert-button"
+          data-l10n-id="view-alert-button"
+          slot="actions"
+          type="icon"
+          iconSrc="chrome://browser/skin/forward.svg"
+          @click=${this.onViewAlertClick}
+        >
+        </moz-button>
+      </moz-message-bar>
+    `;
+  }
+
   render() {
     return html`
       <link
@@ -221,6 +256,7 @@ export class PasswordCard extends MozLitElement {
       />
       ${this.renderOriginField()} ${this.renderUsernameField()}
       ${this.renderPasswordField()} ${this.renderButton()}
+      ${this.renderViewAlertField()}
     `;
   }
 }
