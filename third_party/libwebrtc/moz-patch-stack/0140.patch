@@ -1,0 +1,21 @@
+From: Michael Froman <mfroman@mozilla.com>
+Date: Thu, 21 Nov 2024 13:57:00 -0600
+Subject: Bug 1928110 - (fix-d259a754a8) add missing include
+
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/250798952aa5b1f0c4996bcd95c77e917d44f738
+---
+ rtc_base/ssl_stream_adapter.h | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/rtc_base/ssl_stream_adapter.h b/rtc_base/ssl_stream_adapter.h
+index dcaaf3a0d1..1dca52b2a7 100644
+--- a/rtc_base/ssl_stream_adapter.h
++++ b/rtc_base/ssl_stream_adapter.h
+@@ -15,6 +15,7 @@
+ #include <stdint.h>
+ 
+ #include <memory>
++#include <optional>
+ #include <string>
+ #include <vector>
+ 

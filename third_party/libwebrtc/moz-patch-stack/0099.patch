@@ -1,39 +1,107 @@
-From: Andreas Pehrson <apehrson@mozilla.com>
-Date: Wed, 10 Apr 2024 21:54:00 +0000
-Subject: Bug 1888181 - (fix-52fec7d3) Limit scope of race checker in
- VideoCaptureModuleV4L2::StartCapture. r=mjf
+From: Michael Froman <mfroman@mozilla.com>
+Date: Mon, 18 Dec 2023 15:00:00 +0000
+Subject: Bug 1867099 - revert libwebrtc 8602f604e0. r=bwc
 
-TSAN detects a race between destroying the scoped race checker in StartCapture
-and creating the scoped race checker in CaptureProcess, because once the capture
-thread has been created (and given its run function) there is no synchronization
-before the run function starts to run.
+Upstream 8602f604e0 removed code sending BYEs which breaks some of
+our wpt.  They've opened a bug for a real fix here:
+https://bugs.chromium.org/p/webrtc/issues/detail?id=15664
 
-This patch avoids the race by destroying the StartCapture scoped race checker
-before creating the capture thread.
+I've opened Bug 1870643 to track the real fix and upstream bug.
 
-Differential Revision: https://phabricator.services.mozilla.com/D207203
-Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/b046a1446cee5ab485d4868b3ca9784b16b2d02f
+Differential Revision: https://phabricator.services.mozilla.com/D196729
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/d92a578327f524ec3e1c144c82492a4c76b8266f
 ---
- modules/video_capture/linux/video_capture_v4l2.cc | 2 ++
- 1 file changed, 2 insertions(+)
+ call/rtp_video_sender.cc                      |  1 +
+ modules/rtp_rtcp/source/rtcp_sender.cc        | 19 +++++++++++++++++--
+ .../rtp_rtcp/source/rtcp_sender_unittest.cc   |  5 +++--
+ modules/rtp_rtcp/source/rtp_rtcp_impl.cc      |  1 +
+ modules/rtp_rtcp/source/rtp_rtcp_interface.h  |  2 +-
+ 5 files changed, 23 insertions(+), 5 deletions(-)
 
-diff --git a/modules/video_capture/linux/video_capture_v4l2.cc b/modules/video_capture/linux/video_capture_v4l2.cc
-index 6d8a5e463f..db2450a2c7 100644
---- a/modules/video_capture/linux/video_capture_v4l2.cc
-+++ b/modules/video_capture/linux/video_capture_v4l2.cc
-@@ -129,6 +129,7 @@ int32_t VideoCaptureModuleV4L2::StartCapture(
-     }
+diff --git a/call/rtp_video_sender.cc b/call/rtp_video_sender.cc
+index be56eac626..6fcc4e3b0d 100644
+--- a/call/rtp_video_sender.cc
++++ b/call/rtp_video_sender.cc
+@@ -533,6 +533,7 @@ void RtpVideoSender::SetModuleIsActive(bool sending,
+     return;
    }
  
-+  {
-   // We don't want members above to be guarded by capture_checker_ as
-   // it's meant to be for members that are accessed on the API thread
-   // only when we are not capturing. The code above can be called many
-@@ -298,6 +299,7 @@ int32_t VideoCaptureModuleV4L2::StartCapture(
-   _requestedCapability = capability;
-   _captureStarted = true;
-   _streaming = true;
-+  }
++  // Sends a kRtcpByeCode when going from true to false.
+   rtp_module.SetSendingStatus(sending);
+   rtp_module.SetSendingMediaStatus(sending);
+   if (sending) {
+diff --git a/modules/rtp_rtcp/source/rtcp_sender.cc b/modules/rtp_rtcp/source/rtcp_sender.cc
+index 051d77c4f7..b545633f25 100644
+--- a/modules/rtp_rtcp/source/rtcp_sender.cc
++++ b/modules/rtp_rtcp/source/rtcp_sender.cc
+@@ -223,8 +223,23 @@ bool RTCPSender::Sending() const {
  
-   // start capture thread;
-   if (_captureThread.empty()) {
+ void RTCPSender::SetSendingStatus(const FeedbackState& feedback_state,
+                                   bool sending) {
+-  MutexLock lock(&mutex_rtcp_sender_);
+-  sending_ = sending;
++  bool sendRTCPBye = false;
++  {
++    MutexLock lock(&mutex_rtcp_sender_);
++
++    if (method_ != RtcpMode::kOff) {
++      if (sending == false && sending_ == true) {
++        // Trigger RTCP bye
++        sendRTCPBye = true;
++      }
++    }
++    sending_ = sending;
++  }
++  if (sendRTCPBye) {
++    if (SendRTCP(feedback_state, kRtcpBye) != 0) {
++      RTC_LOG(LS_WARNING) << "Failed to send RTCP BYE";
++    }
++  }
+ }
+ 
+ void RTCPSender::SetNonSenderRttMeasurement(bool enabled) {
+diff --git a/modules/rtp_rtcp/source/rtcp_sender_unittest.cc b/modules/rtp_rtcp/source/rtcp_sender_unittest.cc
+index 7485508dab..e1a7327ebf 100644
+--- a/modules/rtp_rtcp/source/rtcp_sender_unittest.cc
++++ b/modules/rtp_rtcp/source/rtcp_sender_unittest.cc
+@@ -346,12 +346,13 @@ TEST_F(RtcpSenderTest, SendBye) {
+   EXPECT_EQ(kSenderSsrc, parser()->bye()->sender_ssrc());
+ }
+ 
+-TEST_F(RtcpSenderTest, StopSendingDoesNotTriggersBye) {
++TEST_F(RtcpSenderTest, StopSendingTriggersBye) {
+   auto rtcp_sender = CreateRtcpSender(GetDefaultConfig());
+   rtcp_sender->SetRTCPStatus(RtcpMode::kReducedSize);
+   rtcp_sender->SetSendingStatus(feedback_state(), true);
+   rtcp_sender->SetSendingStatus(feedback_state(), false);
+-  EXPECT_EQ(0, parser()->bye()->num_packets());
++  EXPECT_EQ(1, parser()->bye()->num_packets());
++  EXPECT_EQ(kSenderSsrc, parser()->bye()->sender_ssrc());
+ }
+ 
+ TEST_F(RtcpSenderTest, SendFir) {
+diff --git a/modules/rtp_rtcp/source/rtp_rtcp_impl.cc b/modules/rtp_rtcp/source/rtp_rtcp_impl.cc
+index bb9553db31..9b35be8709 100644
+--- a/modules/rtp_rtcp/source/rtp_rtcp_impl.cc
++++ b/modules/rtp_rtcp/source/rtp_rtcp_impl.cc
+@@ -312,6 +312,7 @@ RTCPSender::FeedbackState ModuleRtpRtcpImpl::GetFeedbackState() {
+ 
+ int32_t ModuleRtpRtcpImpl::SetSendingStatus(const bool sending) {
+   if (rtcp_sender_.Sending() != sending) {
++    // Sends RTCP BYE when going from true to false
+     rtcp_sender_.SetSendingStatus(GetFeedbackState(), sending);
+   }
+   return 0;
+diff --git a/modules/rtp_rtcp/source/rtp_rtcp_interface.h b/modules/rtp_rtcp/source/rtp_rtcp_interface.h
+index 02828619a6..e3dc8d9248 100644
+--- a/modules/rtp_rtcp/source/rtp_rtcp_interface.h
++++ b/modules/rtp_rtcp/source/rtp_rtcp_interface.h
+@@ -278,7 +278,7 @@ class RtpRtcpInterface : public RtcpFeedbackSenderInterface {
+   // Returns the FlexFEC SSRC, if there is one.
+   virtual std::optional<uint32_t> FlexfecSsrc() const = 0;
+ 
+-  // Sets sending status.
++  // Sets sending status. Sends kRtcpByeCode when going from true to false.
+   // Returns -1 on failure else 0.
+   virtual int32_t SetSendingStatus(bool sending) = 0;
+ 

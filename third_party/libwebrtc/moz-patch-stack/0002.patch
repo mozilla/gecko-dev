@@ -1,43 +1,79 @@
-From: Nico Grunbaum <na-g@nostrum.com>
-Date: Sat, 13 Feb 2021 04:20:00 -0800
-Subject: Bug 1654112 - Add pid_t to desktop_capture_types.h; r=pehrsons
+From: =?UTF-8?q?Henrik=20Bostr=C3=B6m?= <hbos@webrtc.org>
+Date: Wed, 23 Oct 2024 13:14:40 +0200
+Subject: (cherry-pick-branch-heads/6778) [Merge-131] Allow not specifying
+ `requested_resolution` on inactive encodings.
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
 
-Upstreaming bug 1697385
+This fixes the bug where scaleResolutionDownTo must be specified even
+on inactive encodings (scaleResolutionDownTo is the JavaScript name for
+what is called requested_resolution inside WebRTC).
 
-Also includes:
-Bug 1654112 - Clarifying prev. rev that moved pid_t into the global namespace; r=dminor
+(cherry picked from commit 1c262bf5a4c2f2aaf226b24f11195ba8cae772f1)
 
-Differential Revision: https://phabricator.services.mozilla.com/D107897
-Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/539b69f0e21118a1898f1ef689577c7193ff7be7
+Bug: chromium:375048792
+Change-Id: I3206ef7de09eaba24a5b4305d888ec4904617e58
+Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/366522
+Auto-Submit: Henrik Boström <hbos@webrtc.org>
+Commit-Queue: Ilya Nikolaevskiy <ilnik@webrtc.org>
+Reviewed-by: Ilya Nikolaevskiy <ilnik@webrtc.org>
+Commit-Queue: Henrik Boström <hbos@webrtc.org>
+Cr-Original-Commit-Position: refs/heads/main@{#43292}
+Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/366661
+Cr-Commit-Position: refs/branch-heads/6778@{#2}
+Cr-Branched-From: 7b1b7a0f51593df7a1a802f489d6a2fb14195bcc-refs/heads/main@{#43221}
 ---
- modules/desktop_capture/desktop_capture_types.h | 4 ++++
- modules/video_capture/video_capture.h           | 1 +
- 2 files changed, 5 insertions(+)
+ media/base/media_engine.cc                      |  3 ++-
+ pc/peer_connection_encodings_integrationtest.cc | 12 ++++++++++--
+ 2 files changed, 12 insertions(+), 3 deletions(-)
 
-diff --git a/modules/desktop_capture/desktop_capture_types.h b/modules/desktop_capture/desktop_capture_types.h
-index a4e3e897fd..e777a45f92 100644
---- a/modules/desktop_capture/desktop_capture_types.h
-+++ b/modules/desktop_capture/desktop_capture_types.h
-@@ -13,6 +13,10 @@
+diff --git a/media/base/media_engine.cc b/media/base/media_engine.cc
+index c4b4f817ac..b4bce757b7 100644
+--- a/media/base/media_engine.cc
++++ b/media/base/media_engine.cc
+@@ -206,7 +206,8 @@ webrtc::RTCError CheckRtpParametersValues(
+   if (has_requested_resolution &&
+       absl::c_any_of(rtp_parameters.encodings,
+                      [](const webrtc::RtpEncodingParameters& encoding) {
+-                       return !encoding.requested_resolution.has_value();
++                       return encoding.active &&
++                              !encoding.requested_resolution.has_value();
+                      })) {
+     LOG_AND_RETURN_ERROR(RTCErrorType::INVALID_MODIFICATION,
+                          "If a resolution is specified on any encoding then "
+diff --git a/pc/peer_connection_encodings_integrationtest.cc b/pc/peer_connection_encodings_integrationtest.cc
+index d97e06b856..079dbbec73 100644
+--- a/pc/peer_connection_encodings_integrationtest.cc
++++ b/pc/peer_connection_encodings_integrationtest.cc
+@@ -2152,8 +2152,8 @@ TEST_F(PeerConnectionEncodingsIntegrationTest,
+       pc_wrapper->pc()->AddTransceiver(cricket::MEDIA_TYPE_VIDEO, init);
+   ASSERT_TRUE(transceiver_or_error.ok());
  
- #include <stdint.h>
+-  // SetParameters: If `requested_resolution` is specified on any encoding it
+-  // must be specified on all encodings.
++  // SetParameters: If `requested_resolution` is specified on any active
++  // encoding it must be specified on all active encodings.
+   auto sender = transceiver_or_error.value()->sender();
+   auto parameters = sender->GetParameters();
+   parameters.encodings[0].requested_resolution = {.width = 640, .height = 480};
+@@ -2161,11 +2161,19 @@ TEST_F(PeerConnectionEncodingsIntegrationTest,
+   auto error = sender->SetParameters(parameters);
+   EXPECT_FALSE(error.ok());
+   EXPECT_EQ(error.type(), RTCErrorType::INVALID_MODIFICATION);
++  // But it's OK not to specify `requested_resolution` on an inactive encoding.
++  parameters = sender->GetParameters();
++  parameters.encodings[0].requested_resolution = {.width = 640, .height = 480};
++  parameters.encodings[1].active = false;
++  parameters.encodings[1].requested_resolution = std::nullopt;
++  error = sender->SetParameters(parameters);
++  EXPECT_TRUE(error.ok());
  
-+#ifdef XP_WIN      // Moving this into the global namespace
-+typedef int pid_t; // matching what used to be in
-+#endif             // video_capture_defines.h
-+
- namespace webrtc {
- 
- enum class CaptureType { kWindow, kScreen, kAnyScreenContent };
-diff --git a/modules/video_capture/video_capture.h b/modules/video_capture/video_capture.h
-index f31b239c71..7279bed476 100644
---- a/modules/video_capture/video_capture.h
-+++ b/modules/video_capture/video_capture.h
-@@ -13,6 +13,7 @@
- 
- #include "api/video/video_rotation.h"
- #include "api/video/video_sink_interface.h"
-+#include "modules/desktop_capture/desktop_capture_types.h"
- #include "modules/video_capture/raw_video_sink_interface.h"
- #include "modules/video_capture/video_capture_defines.h"
- #include <set>
+   // SetParameters: Width and height must not be zero.
+   sender = transceiver_or_error.value()->sender();
+   parameters = sender->GetParameters();
+   parameters.encodings[0].requested_resolution = {.width = 1280, .height = 0};
++  parameters.encodings[1].active = true;
+   parameters.encodings[1].requested_resolution = {.width = 0, .height = 720};
+   error = sender->SetParameters(parameters);
+   EXPECT_FALSE(error.ok());

@@ -1,34 +1,56 @@
-From: Michael Froman <mfroman@mozilla.com>
-Date: Fri, 9 Jul 2021 18:14:00 -0500
-Subject: Bug 1654112 - mutex changes to fix tsan errors. r=ng
+From: Shunbo Li <lishunbo@shengwang.cn>
+Date: Thu, 24 Oct 2024 17:06:48 +0800
+Subject: (cherry-pick-branch-heads/6778) Fix regression caused by default
+ action changed for h264:Nalu:kFiller
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
 
-Differential Revision: https://phabricator.services.mozilla.com/D119674
-Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/3d5503acf9a4b22e02c4300f29e4fbfed406ea2c
+This commit fixes the issue of discontinuous RTP sequence numbers
+caused by improper discarding of these nalu types:
+kFiller/kEndofSequence/kEndOfStream.
+
+(cherry picked from commit 521b09bfb720eb9a32d53e90aaf6501249ec445b)
+
+Bug: webrtc:368335257
+PR: chromium:375352614
+Change-Id: Id7a2d34b22ee1c6e1523d8279d9838c57fdeb97f
+Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/366501
+Reviewed-by: Danil Chapovalov <danilchap@webrtc.org>
+Commit-Queue: Sergey Silkin <ssilkin@webrtc.org>
+Reviewed-by: Sergey Silkin <ssilkin@webrtc.org>
+Cr-Original-Commit-Position: refs/heads/main@{#43299}
+Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/366900
+Reviewed-by: Erik Språng <sprang@webrtc.org>
+Commit-Queue: Danil Chapovalov <danilchap@webrtc.org>
+Cr-Commit-Position: refs/branch-heads/6778@{#3}
+Cr-Branched-From: 7b1b7a0f51593df7a1a802f489d6a2fb14195bcc-refs/heads/main@{#43221}
 ---
- rtc_base/logging.cc | 5 ++++-
- 1 file changed, 4 insertions(+), 1 deletion(-)
+ AUTHORS                                                | 1 +
+ modules/rtp_rtcp/source/video_rtp_depacketizer_h264.cc | 1 +
+ 2 files changed, 2 insertions(+)
 
-diff --git a/rtc_base/logging.cc b/rtc_base/logging.cc
-index ad2303735e..9c2d3b0a39 100644
---- a/rtc_base/logging.cc
-+++ b/rtc_base/logging.cc
-@@ -275,8 +275,8 @@ void LogMessage::LogTimestamps(bool on) {
- }
- 
- void LogMessage::LogToDebug(LoggingSeverity min_sev) {
--  g_dbg_sev = min_sev;
-   webrtc::MutexLock lock(&GetLoggingLock());
-+  g_dbg_sev = min_sev;
-   UpdateMinLogSeverity();
- }
- 
-@@ -460,6 +460,9 @@ void LogMessage::OutputToDebug(const LogLineRef& log_line) {
- 
- // static
- bool LogMessage::IsNoop(LoggingSeverity severity) {
-+  // Added MutexLock to fix tsan warnings on accessing g_dbg_sev. (mjf)
-+  // See https://bugs.chromium.org/p/chromium/issues/detail?id=1228729
-+  webrtc::MutexLock lock(&GetLoggingLock());
-   if (severity >= g_dbg_sev || severity >= g_min_sev)
-     return false;
-   return streams_empty_.load(std::memory_order_relaxed);
+diff --git a/AUTHORS b/AUTHORS
+index d46a592950..6b1ba8e041 100644
+--- a/AUTHORS
++++ b/AUTHORS
+@@ -125,6 +125,7 @@ Sergio Garcia Murillo <sergio.garcia.murillo@gmail.com>
+ Shaofan Qi <vshaqi@gmail.com>
+ Shigemasa Watanabe <shigemasa7watanabe@gmail.com>
+ Shuhai Peng <shuhai.peng@intel.com>
++Shunbo Li <lishunbo@shengwang.cn>
+ Seija <doremylover123@gmail.com>
+ Silviu Caragea <silviu.cpp@gmail.com>
+ Stefan Gula <steweg@gmail.com>
+diff --git a/modules/rtp_rtcp/source/video_rtp_depacketizer_h264.cc b/modules/rtp_rtcp/source/video_rtp_depacketizer_h264.cc
+index 2439c6c16f..97bbe7db24 100644
+--- a/modules/rtp_rtcp/source/video_rtp_depacketizer_h264.cc
++++ b/modules/rtp_rtcp/source/video_rtp_depacketizer_h264.cc
+@@ -206,6 +206,7 @@ std::optional<VideoRtpDepacketizer::ParsedRtpPayload> ProcessStapAOrSingleNalu(
+       case H264::NaluType::kEndOfSequence:
+       case H264::NaluType::kEndOfStream:
+       case H264::NaluType::kFiller:
++        break;
+       case H264::NaluType::kStapA:
+       case H264::NaluType::kFuA:
+         RTC_LOG(LS_WARNING) << "Unexpected STAP-A or FU-A received.";
