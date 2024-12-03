@@ -352,6 +352,28 @@ def extractMeta(source: bytes) -> "dict[str, Any]":
 ## updateMeta
 
 
+def translateHelpers(source: bytes) -> "tuple[bytes, list[str]]":
+    """
+    Translate SpiderMonkey helper methods that have standard variants in test262.
+    This also returns a list of includes that are needed to use these variants in test262, if any.
+    """
+
+    includes: list[str] = []
+    source, n = re.subn(rb"\bassertDeepEq\b", b"assert.deepEqual", source)
+    if n:
+        includes.append("deepEqual.js")
+
+    source, n = re.subn(rb"\bassertEqArray\b", b"assert.compareArray", source)
+    if n:
+        includes.append("compareArray.js")
+
+    source = re.sub(rb"\bdetachArrayBuffer\b", b"$262.detachArrayBuffer", source)
+    source = re.sub(rb"\bnewGlobal\b", b"createNewGlobal", source)
+    source = re.sub(rb"\bassertEq\b", b"assert.sameValue", source)
+
+    return (source, includes)
+
+
 def mergeMeta(
     reftest: "Optional[ReftestEntry]",
     frontmatter: "dict[str, Any]",
@@ -530,6 +552,9 @@ def updateMeta(
 
     if source.startswith((b'"use strict"', b"'use strict'")):
         frontmatter.setdefault("flags", []).append("onlyStrict")
+
+    source, addincludes = translateHelpers(source)
+    includes = includes + addincludes
 
     # Merge the reftest and frontmatter
     merged = mergeMeta(reftest, frontmatter, includes)
