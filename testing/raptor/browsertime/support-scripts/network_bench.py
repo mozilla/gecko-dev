@@ -285,11 +285,13 @@ class NetworkBench(BasePythonSupport):
             return False
 
     def apply_network_throttling(self, interface, network_type, loss, port):
-        def calculate_bdp(bandwidth_mbit, delay_ms):
+        def calculate_bdp(bandwidth_mbit, rtt_ms):
             bandwidth_bps = bandwidth_mbit * 1_000_000
-            delay_sec = delay_ms / 1000
-            bdp_bits = bandwidth_bps * delay_sec
+            rtt_sec = rtt_ms / 1000
+            bdp_bits = bandwidth_bps * rtt_sec
             bdp_bytes = bdp_bits / 8
+            if bdp_bytes < 1500:
+                bdp_bytes = 1500
             return int(bdp_bytes)
 
         def network_type_to_bandwidth_delay(network_type):
@@ -309,7 +311,9 @@ class NetworkBench(BasePythonSupport):
 
         bandwidth_str, delay_ms = network_type_to_bandwidth_delay(network_type)
         bandwidth_mbit = float(bandwidth_str.replace("Mbit", ""))
-        bdp_bytes = calculate_bdp(bandwidth_mbit, delay_ms)
+        # The delay_ms used in netem delays packets before sending,
+        # so the actual RTT is delay_ms * 2.
+        bdp_bytes = calculate_bdp(bandwidth_mbit, delay_ms * 2)
 
         LOG.info(
             f"apply_network_throttling: bandwidth={bandwidth_str} delay={delay_ms}ms loss={loss}"
