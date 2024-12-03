@@ -869,7 +869,20 @@ newtabAdSizingExperiment:
         pref: browser.newtabpage.activity-stream.newtabAdSize.variant-b
       description: >-
         Variant B ad size and UI.
-
+    leaderboard:
+      type: boolean
+      setPref:
+        branch: user
+        pref: browser.newtabpage.activity-stream.newtabAdSize.leaderboard
+      description: >-
+        Leaderboard ad size and UI.
+    billboard:
+      type: boolean
+      setPref:
+        branch: user
+        pref: browser.newtabpage.activity-stream.newtabAdSize.billboard
+      description: >-
+        Billboard ad size and UI.
 newtabLayoutExperiment:
   description: >-
     Change the default layout of new tab by adjusting sizes and spacing of elements.

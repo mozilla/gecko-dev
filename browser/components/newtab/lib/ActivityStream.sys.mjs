@@ -423,6 +423,20 @@ export const PREFS_CONFIG = new Map([
     },
   ],
   [
+    "newtabAdSize.leaderboard",
+    {
+      title: "Boolean flag to turn the leaderboard ad size on and off",
+      value: false,
+    },
+  ],
+  [
+    "newtabAdSize.billboard",
+    {
+      title: "Boolean flag to turn the billboard ad size on and off",
+      value: false,
+    },
+  ],
+  [
     "newtabLayouts.variant-a",
     {
       title: "Boolean flag to turn layout variant A on and off",
