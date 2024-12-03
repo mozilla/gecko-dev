@@ -1226,14 +1226,6 @@ already_AddRefed<CompilationStencil> ParseModuleToStencilImpl(
   return output.as<OutputType>().forget();
 }
 
-already_AddRefed<CompilationStencil> frontend::ParseModuleToStencil(
-    JSContext* maybeCx, FrontendContext* fc, js::LifoAlloc& tempLifoAlloc,
-    CompilationInput& input, ScopeBindingCache* scopeCache,
-    SourceText<char16_t>& srcBuf) {
-  return ParseModuleToStencilImpl(maybeCx, fc, tempLifoAlloc, input, scopeCache,
-                                  srcBuf);
-}
-
 template <typename CharT>
 static already_AddRefed<JS::Stencil> CompileModuleScriptToStencilImpl(
     JSContext* cx, const JS::ReadOnlyCompileOptions& optionsInput,
@@ -1245,7 +1237,7 @@ static already_AddRefed<JS::Stencil> CompileModuleScriptToStencilImpl(
 
   NoScopeBindingCache scopeCache;
   Rooted<CompilationInput> input(cx, CompilationInput(options));
-  RefPtr<JS::Stencil> stencil = js::frontend::ParseModuleToStencil(
+  RefPtr<JS::Stencil> stencil = ParseModuleToStencilImpl(
       cx, &fc, cx->tempLifoAlloc(), input.get(), &scopeCache, srcBuf);
   return stencil.forget();
 }
@@ -1281,14 +1273,6 @@ static already_AddRefed<JS::Stencil> CompileModuleScriptToStencilImpl(
   // ref-counted ScriptSource, which are both GC-free.
   JS_HAZ_VALUE_IS_GC_SAFE(compilationInput);
   return stencil.forget();
-}
-
-already_AddRefed<CompilationStencil> frontend::ParseModuleToStencil(
-    JSContext* maybeCx, FrontendContext* fc, js::LifoAlloc& tempLifoAlloc,
-    CompilationInput& input, ScopeBindingCache* scopeCache,
-    SourceText<Utf8Unit>& srcBuf) {
-  return ParseModuleToStencilImpl(maybeCx, fc, tempLifoAlloc, input, scopeCache,
-                                  srcBuf);
 }
 
 already_AddRefed<JS::Stencil> JS::CompileModuleScriptToStencil(
