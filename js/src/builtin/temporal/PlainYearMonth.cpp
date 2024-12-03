@@ -447,14 +447,12 @@ static bool DifferenceTemporalPlainYearMonth(JSContext* cx,
   // We only care about years and months here, all other fields are set to zero.
   auto dateDuration = DateDuration{until.years, until.months};
 
-  // Step 15. (Moved below)
+  // Step 15.
+  auto duration = InternalDuration{dateDuration, {}};
 
   // Step 16.
   if (settings.smallestUnit != TemporalUnit::Month ||
       settings.roundingIncrement != Increment{1}) {
-    // Step 15. (Reordered) (Inlined CombineDateAndTimeDuration)
-    auto duration = InternalDuration{dateDuration, {}};
-
     // Step 16.a.
     auto destEpochNs = GetUTCEpochNanoseconds(ISODateTime{otherDate, {}});
 
@@ -463,29 +461,30 @@ static bool DifferenceTemporalPlainYearMonth(JSContext* cx,
 
     // Step 16.d.
     Rooted<TimeZoneValue> timeZone(cx, TimeZoneValue{});
-    RoundedRelativeDuration relative;
     if (!RoundRelativeDuration(
             cx, duration, destEpochNs, dateTime, timeZone, calendar,
             settings.largestUnit, settings.roundingIncrement,
-            settings.smallestUnit, settings.roundingMode, &relative)) {
+            settings.smallestUnit, settings.roundingMode, &duration)) {
       return false;
     }
-    MOZ_ASSERT(IsValidDuration(relative.duration));
-
-    dateDuration = relative.duration.toDateDuration();
   }
+  MOZ_ASSERT(IsValidDuration(duration));
+  MOZ_ASSERT(duration.date.weeks == 0);
+  MOZ_ASSERT(duration.date.days == 0);
+  MOZ_ASSERT(duration.time == TimeDuration{});
 
-  // Step 17. (TODO: Call UnnormalizeDuration)
+  // FIXME: spec issue - TemporalDurationFromInternal is infallible
+
+  // Step 17. (Inlined TemporalDurationFromInternal)
+  auto result = duration.date.toDuration();
 
   // Step 18.
-  auto duration =
-      Duration{double(dateDuration.years), double(dateDuration.months)};
   if (operation == TemporalDifference::Since) {
-    duration = duration.negate();
+    result = result.negate();
   }
 
   // Step 19.
-  auto* obj = CreateTemporalDuration(cx, duration);
+  auto* obj = CreateTemporalDuration(cx, result);
   if (!obj) {
     return false;
   }

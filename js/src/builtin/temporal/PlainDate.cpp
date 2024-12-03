@@ -618,15 +618,13 @@ static bool DifferenceTemporalPlainDate(JSContext* cx,
       cx, &args.thisv().toObject().as<PlainDateObject>());
   Rooted<CalendarValue> calendar(cx, temporalDate->calendar());
 
-  // Step 1. (Not applicable in our implementation)
-
-  // Step 2.
+  // Step 1.
   Rooted<PlainDate> other(cx);
   if (!ToTemporalDate(cx, args.get(0), &other)) {
     return false;
   }
 
-  // Step 3.
+  // Step 2.
   if (!CalendarEquals(calendar, other.calendar())) {
     JS_ReportErrorNumberASCII(
         cx, GetErrorMessage, nullptr, JSMSG_TEMPORAL_CALENDAR_INCOMPATIBLE,
@@ -635,23 +633,24 @@ static bool DifferenceTemporalPlainDate(JSContext* cx,
     return false;
   }
 
-  // Steps 4-5.
+  // Steps 3-4.
   DifferenceSettings settings;
   if (args.hasDefined(1)) {
+    // Step 3.
     Rooted<JSObject*> options(
         cx, RequireObjectArg(cx, "options", ToName(operation), args[1]));
     if (!options) {
       return false;
     }
 
-    // Step 5.
+    // Step 4.
     if (!GetDifferenceSettings(cx, operation, options, TemporalUnitGroup::Date,
                                TemporalUnit::Day, TemporalUnit::Day,
                                &settings)) {
       return false;
     }
   } else {
-    // Steps 4-5.
+    // Steps 3-4.
     settings = {
         TemporalUnit::Day,
         TemporalUnit::Day,
@@ -660,7 +659,7 @@ static bool DifferenceTemporalPlainDate(JSContext* cx,
     };
   }
 
-  // Step 6.
+  // Step 5.
   if (temporalDate->date() == other.date()) {
     auto* obj = CreateTemporalDuration(cx, {});
     if (!obj) {
@@ -671,53 +670,50 @@ static bool DifferenceTemporalPlainDate(JSContext* cx,
     return true;
   }
 
-  // Step 7.
-  DateDuration difference;
+  // Step 6.
+  DateDuration dateDifference;
   if (!CalendarDateUntil(cx, calendar, temporalDate->date(), other.date(),
-                         settings.largestUnit, &difference)) {
+                         settings.largestUnit, &dateDifference)) {
     return false;
   }
 
-  // Step 10. (Moved below)
+  // Step 7.
+  auto duration = InternalDuration{dateDifference, {}};
 
-  // Step 11.
-  bool roundingGranularityIsNoop = settings.smallestUnit == TemporalUnit::Day &&
-                                   settings.roundingIncrement == Increment{1};
+  // Step 8.
+  if (settings.smallestUnit != TemporalUnit::Day ||
+      settings.roundingIncrement != Increment{1}) {
+    // Step 8.a.
+    auto isoDateTime = ISODateTime{temporalDate->date(), {}};
 
-  // Step 12.
-  if (!roundingGranularityIsNoop) {
-    // Step 10. (Reordered)
-    auto duration = InternalDuration{difference, {}};
+    // Step 8.b.
+    auto isoDateTimeOther = ISODateTime{other.date(), {}};
 
-    // Step 12.a.
-    auto otherDateTime = ISODateTime{other.date(), {}};
-    auto destEpochNs = GetUTCEpochNanoseconds(otherDateTime);
+    // Step 8.c.
+    auto destEpochNs = GetUTCEpochNanoseconds(isoDateTimeOther);
 
-    // Step 12.b.
-    auto dateTime = ISODateTime{temporalDate->date(), {}};
-
-    // Step 12.c.
+    // Step 8.d.
     Rooted<TimeZoneValue> timeZone(cx, TimeZoneValue{});
-    RoundedRelativeDuration relative;
     if (!RoundRelativeDuration(
-            cx, duration, destEpochNs, dateTime, timeZone, calendar,
+            cx, duration, destEpochNs, isoDateTime, timeZone, calendar,
             settings.largestUnit, settings.roundingIncrement,
-            settings.smallestUnit, settings.roundingMode, &relative)) {
+            settings.smallestUnit, settings.roundingMode, &duration)) {
       return false;
     }
-    MOZ_ASSERT(IsValidDuration(relative.duration));
-
-    difference = relative.duration.toDateDuration();
-  }
-
-  // Step 12.
-  auto duration = difference.toDuration();
-  if (operation == TemporalDifference::Since) {
-    duration = duration.negate();
   }
   MOZ_ASSERT(IsValidDuration(duration));
+  MOZ_ASSERT(duration.time == TimeDuration{});
 
-  auto* obj = CreateTemporalDuration(cx, duration);
+  // Step 9. (Inlined TemporalDurationFromInternal)
+  auto result = duration.date.toDuration();
+
+  // Step 12.
+  if (operation == TemporalDifference::Since) {
+    result = result.negate();
+  }
+  MOZ_ASSERT(IsValidDuration(result));
+
+  auto* obj = CreateTemporalDuration(cx, result);
   if (!obj) {
     return false;
   }

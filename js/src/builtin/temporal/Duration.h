@@ -174,12 +174,6 @@ inline int32_t TimeDurationSign(const TimeDuration& d) {
 }
 
 /**
- * Add24HourDaysToTimeDuration ( d, days )
- */
-bool Add24HourDaysToTimeDuration(JSContext* cx, const TimeDuration& d,
-                                 int64_t days, TimeDuration* result);
-
-/**
  * ToInternalDurationRecord ( duration )
  */
 inline InternalDuration ToInternalDurationRecord(const Duration& duration) {
@@ -199,6 +193,20 @@ InternalDuration ToInternalDurationRecordWith24HourDays(
  * ToDateDurationRecordWithoutTime ( duration )
  */
 DateDuration ToDateDurationRecordWithoutTime(const Duration& duration);
+
+/**
+ * TemporalDurationFromInternal ( internalDuration, largestUnit )
+ */
+bool TemporalDurationFromInternal(JSContext* cx,
+                                  const TimeDuration& timeDuration,
+                                  TemporalUnit largestUnit, Duration* result);
+
+/**
+ * TemporalDurationFromInternal ( internalDuration, largestUnit )
+ */
+bool TemporalDurationFromInternal(JSContext* cx,
+                                  const InternalDuration& internalDuration,
+                                  TemporalUnit largestUnit, Duration* result);
 
 /**
  * CombineDateAndTimeDuration ( dateDuration, timeDuration )
@@ -226,44 +234,50 @@ bool ToTemporalDuration(JSContext* cx, JS::Handle<JS::Value> item,
                         Duration* result);
 
 /**
- * BalanceTimeDuration ( norm, largestUnit )
- */
-Duration BalanceTimeDuration(const TimeDuration& duration,
-                             TemporalUnit largestUnit);
-
-/**
- * BalanceTimeDuration ( norm, largestUnit )
- */
-bool BalanceTimeDuration(JSContext* cx, const TimeDuration& duration,
-                         TemporalUnit largestUnit, Duration* result);
-
-/**
- * RoundTimeDuration ( days, norm, increment, unit, roundingMode )
+ * RoundTimeDuration ( duration, increment, unit, roundingMode )
  */
 TimeDuration RoundTimeDuration(const TimeDuration& duration,
                                Increment increment, TemporalUnit unit,
                                TemporalRoundingMode roundingMode);
 
-struct RoundedRelativeDuration {
-  Duration duration;
-  double total = 0;
-};
-
 /**
- * RoundRelativeDuration ( duration, destEpochNs, dateTime, timeZone, calendar,
- * largestUnit, increment, smallestUnit, roundingMode )
+ * RoundRelativeDuration ( duration, destEpochNs, isoDateTime, timeZone,
+ * calendar, largestUnit, increment, smallestUnit, roundingMode )
  */
 bool RoundRelativeDuration(
     JSContext* cx, const InternalDuration& duration,
-    const EpochNanoseconds& destEpochNs, const ISODateTime& dateTime,
+    const EpochNanoseconds& destEpochNs, const ISODateTime& isoDateTime,
     JS::Handle<TimeZoneValue> timeZone, JS::Handle<CalendarValue> calendar,
     TemporalUnit largestUnit, Increment increment, TemporalUnit smallestUnit,
-    TemporalRoundingMode roundingMode, RoundedRelativeDuration* result);
+    TemporalRoundingMode roundingMode, InternalDuration* result);
+
+/**
+ * TotalRelativeDuration ( duration, destEpochNs, isoDateTime, timeZone,
+ * calendar, unit )
+ */
+bool TotalRelativeDuration(JSContext* cx, const InternalDuration& duration,
+                           const EpochNanoseconds& destEpochNs,
+                           const ISODateTime& isoDateTime,
+                           JS::Handle<TimeZoneValue> timeZone,
+                           JS::Handle<CalendarValue> calendar,
+                           TemporalUnit unit, double* result);
 
 /**
  * DivideTimeDuration ( d, divisor )
  */
 double DivideTimeDuration(const TimeDuration& duration, TemporalUnit unit);
+
+/**
+ * TotalTimeDuration ( timeDuration, unit )
+ */
+inline double TotalTimeDuration(const TimeDuration& duration,
+                                TemporalUnit unit) {
+  // FIXME: spec issue - TotalTimeDuration and DivideTimeDuration can be merged
+  // https://github.com/tc39/proposal-temporal/issues/3020
+
+  // Steps 1-2.
+  return DivideTimeDuration(duration, unit);
+}
 
 } /* namespace js::temporal */
 

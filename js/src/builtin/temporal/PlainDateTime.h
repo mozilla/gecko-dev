@@ -139,11 +139,10 @@ bool InterpretTemporalDateTimeFields(JSContext* cx,
                                      ISODateTime* result);
 
 /**
- * RoundISODateTime ( year, month, day, hour, minute, second, millisecond,
- * microsecond, nanosecond, increment, unit, roundingMode )
+ * RoundISODateTime ( isoDateTime, increment, unit, roundingMode )
  */
-ISODateTime RoundISODateTime(const ISODateTime& dateTime, Increment increment,
-                             TemporalUnit unit,
+ISODateTime RoundISODateTime(const ISODateTime& isoDateTime,
+                             Increment increment, TemporalUnit unit,
                              TemporalRoundingMode roundingMode);
 
 /**
@@ -155,16 +154,16 @@ bool DifferencePlainDateTimeWithRounding(JSContext* cx,
                                          const ISODateTime& isoDateTime2,
                                          JS::Handle<CalendarValue> calendar,
                                          const DifferenceSettings& settings,
-                                         Duration* result);
+                                         InternalDuration* result);
 /**
- * DifferencePlainDateTimeWithRounding ( isoDateTime1, isoDateTime2, calendar,
- * largestUnit, roundingIncrement, smallestUnit, roundingMode )
+ * DifferencePlainDateTimeWithTotal ( isoDateTime1, isoDateTime2, calendar, unit
+ * )
  */
-bool DifferencePlainDateTimeWithRounding(JSContext* cx,
-                                         const ISODateTime& isoDateTime1,
-                                         const ISODateTime& isoDateTime2,
-                                         JS::Handle<CalendarValue> calendar,
-                                         TemporalUnit unit, double* result);
+bool DifferencePlainDateTimeWithTotal(JSContext* cx,
+                                      const ISODateTime& isoDateTime1,
+                                      const ISODateTime& isoDateTime2,
+                                      JS::Handle<CalendarValue> calendar,
+                                      TemporalUnit unit, double* result);
 
 } /* namespace js::temporal */
 

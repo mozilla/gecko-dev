@@ -132,15 +132,15 @@ bool AddZonedDateTime(JSContext* cx, JS::Handle<ZonedDateTime> zonedDateTime,
 bool DifferenceZonedDateTimeWithRounding(
     JSContext* cx, JS::Handle<ZonedDateTime> zonedDateTime,
     const EpochNanoseconds& ns2, const DifferenceSettings& settings,
-    Duration* result);
+    InternalDuration* result);
 
 /**
- * DifferenceZonedDateTimeWithRounding ( ns1, ns2, timeZone, calendar,
- * largestUnit, roundingIncrement, smallestUnit, roundingMode )
+ * DifferenceZonedDateTimeWithTotal ( ns1, ns2, timeZone, calendar, unit )
  */
-bool DifferenceZonedDateTimeWithRounding(
-    JSContext* cx, JS::Handle<ZonedDateTime> zonedDateTime,
-    const EpochNanoseconds& ns2, TemporalUnit unit, double* result);
+bool DifferenceZonedDateTimeWithTotal(JSContext* cx,
+                                      JS::Handle<ZonedDateTime> zonedDateTime,
+                                      const EpochNanoseconds& ns2,
+                                      TemporalUnit unit, double* result);
 
 enum class OffsetBehaviour { Option, Exact, Wall };
 
