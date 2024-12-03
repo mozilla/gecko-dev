@@ -26,6 +26,7 @@ import {
   disableBreakpoint,
 } from "./modify";
 import { getOriginalLocation } from "../../utils/source-maps";
+import { setSkipPausing } from "../pause/skipPausing";
 
 export * from "./breakpointPositions";
 export * from "./modify";
@@ -203,7 +204,7 @@ export function updateBreakpointsForNewPrettyPrintedSource(source) {
 }
 
 export function toggleBreakpointAtLine(line) {
-  return ({ dispatch, getState }) => {
+  return async ({ dispatch, getState }) => {
     const state = getState();
     const selectedSource = getSelectedSource(state);
 
@@ -215,6 +216,10 @@ export function toggleBreakpointAtLine(line) {
     if (bp) {
       return dispatch(removeBreakpoint(bp));
     }
+
+    // Only if we re-enable a breakpoint, ensure re-enabling breakpoints globally
+    await dispatch(setSkipPausing(false));
+
     return dispatch(
       addBreakpoint(
         createLocation({
@@ -227,7 +232,7 @@ export function toggleBreakpointAtLine(line) {
 }
 
 export function addBreakpointAtLine(line, shouldLog = false, disabled = false) {
-  return ({ dispatch, getState }) => {
+  return async ({ dispatch, getState }) => {
     const state = getState();
     const source = getSelectedSource(state);
 
@@ -244,6 +249,9 @@ export function addBreakpointAtLine(line, shouldLog = false, disabled = false) {
     if (shouldLog) {
       options.logValue = "displayName";
     }
+
+    // Ensure re-enabling breakpoints globally
+    await dispatch(setSkipPausing(false));
 
     return dispatch(addBreakpoint(breakpointLocation, options, disabled));
   };

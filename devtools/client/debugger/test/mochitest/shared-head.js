@@ -1098,6 +1098,12 @@ async function addBreakpointViaGutter(dbg, line) {
   return waitForDispatch(dbg.store, "SET_BREAKPOINT");
 }
 
+async function removeBreakpointViaGutter(dbg, line) {
+  const onRemoved = waitForDispatch(dbg.store, "REMOVE_BREAKPOINT");
+  await clickGutter(dbg, line);
+  await onRemoved;
+}
+
 function disableBreakpoint(dbg, source, line, column) {
   if (column === 0) {
     throw new Error("disableBreakpoint expect a 1-based column argument");

@@ -46,6 +46,7 @@ class ColumnBreakpoints extends Component {
       selectedSource: PropTypes.object,
       addBreakpoint: PropTypes.func,
       removeBreakpoint: PropTypes.func,
+      setSkipPausing: PropTypes.func,
       toggleDisabledBreakpoint: PropTypes.func,
       showEditorCreateBreakpointContextMenu: PropTypes.func,
       showEditorEditBreakpointContextMenu: PropTypes.func,
@@ -112,8 +113,12 @@ class ColumnBreakpoints extends Component {
   onClick = (event, columnBreakpoint) => {
     event.stopPropagation();
     event.preventDefault();
-    const { toggleDisabledBreakpoint, removeBreakpoint, addBreakpoint } =
-      this.props;
+    const {
+      toggleDisabledBreakpoint,
+      removeBreakpoint,
+      addBreakpoint,
+      setSkipPausing,
+    } = this.props;
 
     // disable column breakpoint on shift-click.
     if (event.shiftKey) {
@@ -124,6 +129,7 @@ class ColumnBreakpoints extends Component {
     if (columnBreakpoint.breakpoint) {
       removeBreakpoint(columnBreakpoint.breakpoint);
     } else {
+      setSkipPausing(false);
       addBreakpoint(columnBreakpoint.location);
     }
   };
@@ -155,6 +161,7 @@ class ColumnBreakpoints extends Component {
       toggleDisabledBreakpoint,
       removeBreakpoint,
       addBreakpoint,
+      setSkipPausing,
     } = this.props;
 
     if (features.codemirrorNext) {
@@ -178,6 +185,7 @@ class ColumnBreakpoints extends Component {
           toggleDisabledBreakpoint,
           removeBreakpoint,
           addBreakpoint,
+          setSkipPausing,
         })
       );
     });
@@ -207,4 +215,5 @@ export default connect(mapStateToProps, {
   toggleDisabledBreakpoint: actions.toggleDisabledBreakpoint,
   removeBreakpoint: actions.removeBreakpoint,
   addBreakpoint: actions.addBreakpoint,
+  setSkipPausing: actions.setSkipPausing,
 })(ColumnBreakpoints);

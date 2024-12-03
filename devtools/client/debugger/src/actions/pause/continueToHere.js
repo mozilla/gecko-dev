@@ -11,6 +11,7 @@ import {
 import { createLocation } from "../../utils/location";
 import { addHiddenBreakpoint } from "../breakpoints/index";
 import { setBreakpointPositions } from "../breakpoints/breakpointPositions";
+import { setSkipPausing } from "./skipPausing";
 
 import { resume } from "./commands";
 
@@ -41,6 +42,9 @@ export function continueToHere(location) {
     }
 
     const pauseLocation = column && position ? position.location : location;
+
+    // Ensure that breakpoints are enabled while running this
+    await dispatch(setSkipPausing(false));
 
     // Set a hidden breakpoint if we do not already have a breakpoint
     // at the closest position

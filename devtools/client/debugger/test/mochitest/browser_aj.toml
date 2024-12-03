@@ -48,6 +48,7 @@ skip-if = ["debug"] # Window leaks: bug 1575332
 ["browser_dbg-breakpoint-skipping-console.js"]
 
 ["browser_dbg-breakpoint-skipping.js"]
+fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and/or labeled
 
 ["browser_dbg-breakpoints-actions.js"]
 

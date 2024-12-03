@@ -16,56 +16,37 @@ add_task(async function () {
   info("Adding a breakpoint should remove the skipped pausing state");
   await skipPausing(dbg);
   await waitForState(dbg, () => dbg.selectors.getSkipPausing());
-  await addBreakpoint(dbg, "simple3.js", 2);
+  await addBreakpointViaGutter(dbg, 2);
   await waitForState(dbg, () => !dbg.selectors.getSkipPausing());
   invokeInTab("simple");
   await waitForPaused(dbg);
   ok(true, "The breakpoint has been hit after a breakpoint was created");
   await resume(dbg);
 
-  info("Toggling a breakpoint should remove the skipped pausing state");
-  // First disable the breakpoint to ensure skip pausing gets turned off
-  // during a disable
+  info("Toggling off breakpoint should not remove the skipped pausing state");
   await skipPausing(dbg);
-  await disableBreakpoint(dbg, 0);
+  ok(dbg.selectors.getSkipPausing());
+  await removeBreakpointViaGutter(dbg, 2);
+  ok(dbg.selectors.getSkipPausing());
+
+  info("Toggling on breakpoint should remove the skipped pausing state");
+  await addBreakpointViaGutter(dbg, 2);
   await waitForState(dbg, () => !dbg.selectors.getSkipPausing());
-  // Then re-enable the breakpoint to ensure skip pausing gets turned off
-  // during an enable
-  await skipPausing(dbg);
-  await waitForState(dbg, () => dbg.selectors.getSkipPausing());
-  toggleBreakpoint(dbg, 0);
-  await waitForState(dbg, () => !dbg.selectors.getSkipPausing());
-  await waitForDispatch(dbg.store, "SET_BREAKPOINT");
   invokeInTab("simple");
   await waitForPaused(dbg);
-  ok(true, "The breakpoint has been hit after skip pausing was disabled");
+  ok(true, "The breakpoint has been hit after the breakpoint was re-enabled");
   await resume(dbg);
 
-  info("Disabling a breakpoint should remove the skipped pausing state");
-  await addBreakpoint(dbg, "simple3.js", 3);
+  info("Disabling a breakpoint should not remove the skipped pausing state");
   await skipPausing(dbg);
   await disableBreakpoint(dbg, 0);
-  await waitForState(dbg, () => !dbg.selectors.getSkipPausing());
+  ok(dbg.selectors.getSkipPausing());
   invokeInTab("simple");
-  await waitForPaused(dbg);
-  ok(true, "The breakpoint has been hit after skip pausing was disabled again");
-  await resume(dbg);
+  assertNotPaused(dbg);
 
-  info("Removing a breakpoint should remove the skipped pause state");
-  toggleBreakpoint(dbg, 0);
-  await skipPausing(dbg);
-  const source = findSource(dbg, "simple3.js");
-  removeBreakpoint(dbg, source.id, 3);
-  const wait = waitForDispatch(dbg.store, "TOGGLE_SKIP_PAUSING");
-  await waitForState(dbg, () => !dbg.selectors.getSkipPausing());
-  await wait;
-  invokeInTab("simple");
-  await waitForPaused(dbg);
-  // Unfortunately required as the test harness throws if preview doesn't
-  // complete before the end of the test.
-  await waitForDispatch(dbg.store, "ADD_INLINE_PREVIEW");
-  ok(true, "Breakpoint is hit after a breakpoint was removed");
-  await resume(dbg);
+  info("Skip pausing should not be reset on page reload");
+  await reload(dbg);
+  ok(dbg.selectors.getSkipPausing());
 });
 
 function skipPausing(dbg) {

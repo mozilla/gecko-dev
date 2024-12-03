@@ -79,6 +79,7 @@ export default class ColumnBreakpoint extends PureComponent {
       toggleDisabledBreakpoint,
       removeBreakpoint,
       addBreakpoint,
+      setSkipPausing,
     } = this.props;
 
     // disable column breakpoint on shift-click.
@@ -90,6 +91,7 @@ export default class ColumnBreakpoint extends PureComponent {
     if (columnBreakpoint.breakpoint) {
       removeBreakpoint(columnBreakpoint.breakpoint);
     } else {
+      setSkipPausing(false);
       addBreakpoint(columnBreakpoint.location);
     }
   };
