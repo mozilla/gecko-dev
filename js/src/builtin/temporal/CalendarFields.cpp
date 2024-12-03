@@ -12,13 +12,8 @@
 #include "mozilla/Range.h"
 #include "mozilla/RangedPtr.h"
 
-#include <algorithm>
-#include <array>
-#include <cstring>
-#include <iterator>
 #include <stdint.h>
-#include <type_traits>
-#include <utility>
+#include <string_view>
 
 #include "jsnum.h"
 #include "jspubtd.h"
@@ -117,68 +112,6 @@ void CalendarFields::setFrom(CalendarField field,
   MOZ_CRASH("invalid temporal field");
 }
 
-template <typename T, const auto& sorted>
-class SortedEnumSet {
-  mozilla::EnumSet<T> fields_;
-
- public:
-  explicit SortedEnumSet(mozilla::EnumSet<T> fields) : fields_(fields) {}
-
-  class Iterator {
-    mozilla::EnumSet<T> fields_;
-    size_t index_;
-
-    void findNext() {
-      while (index_ < sorted.size() && !fields_.contains(sorted[index_])) {
-        index_++;
-      }
-    }
-
-   public:
-    // Iterator traits.
-    using difference_type = ptrdiff_t;
-    using value_type = CalendarField;
-    using pointer = CalendarField*;
-    using reference = CalendarField&;
-    using iterator_category = std::forward_iterator_tag;
-
-    Iterator(mozilla::EnumSet<T> fields, size_t index)
-        : fields_(fields), index_(index) {
-      findNext();
-    }
-
-    bool operator==(const Iterator& other) const {
-      MOZ_ASSERT(fields_ == other.fields_);
-      return index_ == other.index_;
-    }
-
-    bool operator!=(const Iterator& other) const { return !(*this == other); }
-
-    auto operator*() const {
-      MOZ_ASSERT(index_ < sorted.size());
-      MOZ_ASSERT(fields_.contains(sorted[index_]));
-      return sorted[index_];
-    }
-
-    auto& operator++() {
-      MOZ_ASSERT(index_ < sorted.size());
-      index_++;
-      findNext();
-      return *this;
-    }
-
-    auto operator++(int) {
-      auto result = *this;
-      ++(*this);
-      return result;
-    }
-  };
-
-  Iterator begin() const { return Iterator{fields_, 0}; };
-
-  Iterator end() const { return Iterator{fields_, sorted.size()}; }
-};
-
 static PropertyName* ToPropertyName(JSContext* cx, CalendarField field) {
   switch (field) {
     case CalendarField::Era:
@@ -247,34 +180,23 @@ static constexpr const char* ToCString(CalendarField field) {
   JS_CONSTEXPR_CRASH("invalid temporal field name");
 }
 
-template <typename T, size_t N>
-static constexpr bool IsSorted(const std::array<T, N>& arr) {
-  for (size_t i = 1; i < arr.size(); i++) {
-    auto a = std::string_view{ToCString(arr[i - 1])};
-    auto b = std::string_view{ToCString(arr[i])};
+static constexpr bool CalendarFieldsAreSorted() {
+  constexpr auto min = mozilla::ContiguousEnumValues<CalendarField>::min;
+  constexpr auto max = mozilla::ContiguousEnumValues<CalendarField>::max;
+
+  auto field = min;
+  while (field != max) {
+    auto next = static_cast<CalendarField>(mozilla::UnderlyingValue(field) + 1);
+
+    auto a = std::string_view{ToCString(field)};
+    auto b = std::string_view{ToCString(next)};
     if (a.compare(b) >= 0) {
       return false;
     }
+    field = next;
   }
   return true;
 }
-
-static constexpr auto sortedTemporalFields = std::array{
-    CalendarField::Day,         CalendarField::Era,
-    CalendarField::EraYear,     CalendarField::Hour,
-    CalendarField::Microsecond, CalendarField::Millisecond,
-    CalendarField::Minute,      CalendarField::Month,
-    CalendarField::MonthCode,   CalendarField::Nanosecond,
-    CalendarField::Offset,      CalendarField::Second,
-    CalendarField::TimeZone,    CalendarField::Year,
-};
-
-static_assert(IsSorted(sortedTemporalFields));
-
-// TODO: Consider reordering TemporalField so we don't need this. Probably best
-// to decide after <https://github.com/tc39/proposal-temporal/issues/2826> has
-// landed.
-using SortedTemporalFields = SortedEnumSet<CalendarField, sortedTemporalFields>;
 
 /**
  * CalendarExtraFields ( calendar, fields )
@@ -447,11 +369,15 @@ static bool PrepareCalendarFields(
   // Default initialize the result.
   result.set(CalendarFields{});
 
-  // Steps 7-8. (Not applicable in our implementation.)
+  // Step 7. (Not applicable in our implementation.)
+
+  // Step 8.
+  static_assert(CalendarFieldsAreSorted(),
+                "EnumSet<CalendarField> iteration is sorted");
 
   // Step 9.
   Rooted<Value> value(cx);
-  for (auto fieldName : SortedTemporalFields{fieldNames}) {
+  for (auto fieldName : fieldNames) {
     auto* propertyName = ToPropertyName(cx, fieldName);
     const auto* cstr = ToCString(fieldName);
 

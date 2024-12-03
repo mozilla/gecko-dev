@@ -10,6 +10,7 @@
 #include "mozilla/Assertions.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/EnumSet.h"
+#include "mozilla/EnumTypeTraits.h"
 #include "mozilla/FloatingPoint.h"
 
 #include <cmath>
@@ -28,21 +29,22 @@ class JS_PUBLIC_API JSTracer;
 
 namespace js::temporal {
 
+// NB: The fields must be sorted alphabetically!
 enum class CalendarField {
-  Year,
-  Month,
-  MonthCode,
   Day,
-  Hour,
-  Minute,
-  Second,
-  Millisecond,
-  Microsecond,
-  Nanosecond,
-  Offset,
   Era,
   EraYear,
+  Hour,
+  Microsecond,
+  Millisecond,
+  Minute,
+  Month,
+  MonthCode,
+  Nanosecond,
+  Offset,
+  Second,
   TimeZone,
+  Year,
 };
 
 class MonthCodeField final {
@@ -375,5 +377,12 @@ bool ISODateToFields(JSContext* cx,
                      MutableHandle<CalendarFields> result);
 
 } /* namespace js::temporal */
+
+namespace mozilla {
+template <>
+struct MaxContiguousEnumValue<js::temporal::CalendarField> {
+  static constexpr auto value = js::temporal::CalendarField::Year;
+};
+}  // namespace mozilla
 
 #endif /* builtin_temporal_CalendarFields_h */
