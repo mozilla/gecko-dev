@@ -147,59 +147,6 @@ pub(crate) mod profiler_utils {
         }
     }
 
-    #[derive(serde::Serialize, serde::Deserialize, Debug)]
-    pub(crate) struct StringLikeMetricMarker {
-        id: super::MetricId,
-        value: String,
-    }
-
-    impl StringLikeMetricMarker {
-        pub fn new(id: super::MetricId, value: &String) -> StringLikeMetricMarker {
-            StringLikeMetricMarker {
-                id: id,
-                value: truncate_string_for_marker(value.clone()),
-            }
-        }
-
-        pub fn new_owned(id: super::MetricId, value: String) -> StringLikeMetricMarker {
-            StringLikeMetricMarker {
-                id: id,
-                value: truncate_string_for_marker(value),
-            }
-        }
-    }
-
-    impl gecko_profiler::ProfilerMarker for StringLikeMetricMarker {
-        fn marker_type_name() -> &'static str {
-            "StringLikeMetric"
-        }
-
-        fn marker_type_display() -> gecko_profiler::MarkerSchema {
-            use gecko_profiler::schema::*;
-            let mut schema = MarkerSchema::new(&[Location::MarkerChart, Location::MarkerTable]);
-            schema.set_tooltip_label("{marker.data.id}");
-            schema.set_table_label("{marker.name} - {marker.data.id}: {marker.data.value}");
-            schema.add_key_label_format_searchable(
-                "id",
-                "Metric",
-                Format::UniqueString,
-                Searchable::Searchable,
-            );
-            schema.add_key_label_format("value", "Value", Format::String);
-            schema
-        }
-
-        fn stream_json_marker_data(&self, json_writer: &mut gecko_profiler::JSONWriter) {
-            json_writer.unique_string_property(
-                "id",
-                lookup_canonical_metric_name(&self.id).unwrap_or_else(LookupError::as_str),
-            );
-
-            debug_assert!(self.value.len() <= max_string_byte_length());
-            json_writer.string_property("value", self.value.as_str());
-        }
-    }
-
     // Get the datetime *now*
     // From https://searchfox.org/mozilla-central/source/third_party/rust/glean-core/src/util.rs#51
     // This should be removed when Bug 1925313 is fixed.
@@ -269,6 +216,77 @@ pub(crate) mod profiler_utils {
                 .ymd_opt(gdt.year, gdt.month, gdt.day)
                 .and_hms_nano_opt(gdt.hour, gdt.minute, gdt.second, gdt.nanosecond),
         )
+    }
+
+    // Truncate a vector down to a maximum size.
+    // We want to avoid storing large vectors of values in the profiler buffer,
+    // so this helper method allows markers to explicitly limit the size of
+    // vectors of values that might originate from Glean
+    pub(crate) fn truncate_vector_for_marker<T>(vec: &Vec<T>) -> Vec<T>
+    where
+        T: Clone,
+    {
+        const MAX_VECTOR_LENGTH: usize = 1024;
+        if vec.len() > MAX_VECTOR_LENGTH {
+            vec[0..MAX_VECTOR_LENGTH - 1].to_vec()
+        } else {
+            vec.clone()
+        }
+    }
+
+    // Generic marker structs:
+
+    #[derive(serde::Serialize, serde::Deserialize, Debug)]
+    pub(crate) struct StringLikeMetricMarker {
+        id: super::MetricId,
+        value: String,
+    }
+
+    impl StringLikeMetricMarker {
+        pub fn new(id: super::MetricId, value: &String) -> StringLikeMetricMarker {
+            StringLikeMetricMarker {
+                id: id,
+                value: truncate_string_for_marker(value.clone()),
+            }
+        }
+
+        pub fn new_owned(id: super::MetricId, value: String) -> StringLikeMetricMarker {
+            StringLikeMetricMarker {
+                id: id,
+                value: truncate_string_for_marker(value),
+            }
+        }
+    }
+
+    impl gecko_profiler::ProfilerMarker for StringLikeMetricMarker {
+        fn marker_type_name() -> &'static str {
+            "StringLikeMetric"
+        }
+
+        fn marker_type_display() -> gecko_profiler::MarkerSchema {
+            use gecko_profiler::schema::*;
+            let mut schema = MarkerSchema::new(&[Location::MarkerChart, Location::MarkerTable]);
+            schema.set_tooltip_label("{marker.data.id}");
+            schema.set_table_label("{marker.name} - {marker.data.id}: {marker.data.value}");
+            schema.add_key_label_format_searchable(
+                "id",
+                "Metric",
+                Format::UniqueString,
+                Searchable::Searchable,
+            );
+            schema.add_key_label_format("value", "Value", Format::String);
+            schema
+        }
+
+        fn stream_json_marker_data(&self, json_writer: &mut gecko_profiler::JSONWriter) {
+            json_writer.unique_string_property(
+                "id",
+                lookup_canonical_metric_name(&self.id).unwrap_or_else(LookupError::as_str),
+            );
+
+            debug_assert!(self.value.len() <= max_string_byte_length());
+            json_writer.string_property("value", self.value.as_str());
+        }
     }
 }
 
