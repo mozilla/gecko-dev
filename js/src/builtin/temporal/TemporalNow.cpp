@@ -19,8 +19,6 @@
 #include "jstypes.h"
 #include "NamespaceImports.h"
 
-#include "builtin/intl/CommonFunctions.h"
-#include "builtin/intl/FormatBuffer.h"
 #include "builtin/temporal/Calendar.h"
 #include "builtin/temporal/Instant.h"
 #include "builtin/temporal/PlainDate.h"
@@ -51,109 +49,6 @@
 
 using namespace js;
 using namespace js::temporal;
-
-static bool SystemTimeZoneOffset(JSContext* cx, int32_t* offset) {
-  auto rawOffset =
-      DateTimeInfo::getRawOffsetMs(DateTimeInfo::forceUTC(cx->realm()));
-  if (rawOffset.isErr()) {
-    intl::ReportInternalError(cx);
-    return false;
-  }
-
-  *offset = rawOffset.unwrap();
-  return true;
-}
-
-/**
- * 6.4.3 DefaultTimeZone ()
- *
- * Returns the IANA time zone name for the host environment's current time zone.
- *
- * ES2017 Intl draft rev 4a23f407336d382ed5e3471200c690c9b020b5f3
- */
-static JSLinearString* SystemTimeZoneIdentifier(JSContext* cx) {
-  intl::FormatBuffer<char16_t, intl::INITIAL_CHAR_BUFFER_SIZE> formatBuffer(cx);
-  auto result = DateTimeInfo::timeZoneId(DateTimeInfo::forceUTC(cx->realm()),
-                                         formatBuffer);
-  if (result.isErr()) {
-    intl::ReportInternalError(cx, result.unwrapErr());
-    return nullptr;
-  }
-
-  Rooted<JSLinearString*> timeZone(cx, formatBuffer.toString(cx));
-  if (!timeZone) {
-    return nullptr;
-  }
-
-  Rooted<JSAtom*> validTimeZone(cx);
-  if (!IsValidTimeZoneName(cx, timeZone, &validTimeZone)) {
-    return nullptr;
-  }
-  if (validTimeZone) {
-    return CanonicalizeTimeZoneName(cx, validTimeZone);
-  }
-
-  // See DateTimeFormat.js for the JS implementation.
-  // TODO: Move the JS implementation into C++.
-
-  // Before defaulting to "UTC", try to represent the system time zone using
-  // the Etc/GMT + offset format. This format only accepts full hour offsets.
-  int32_t offset;
-  if (!SystemTimeZoneOffset(cx, &offset)) {
-    return nullptr;
-  }
-
-  constexpr int32_t msPerHour = 60 * 60 * 1000;
-  int32_t offsetHours = std::abs(offset / msPerHour);
-  int32_t offsetHoursFraction = offset % msPerHour;
-  if (offsetHoursFraction == 0 && offsetHours < 24) {
-    // Etc/GMT + offset uses POSIX-style signs, i.e. a positive offset
-    // means a location west of GMT.
-    constexpr std::string_view etcGMT = "Etc/GMT";
-
-    char offsetString[etcGMT.length() + 3];
-
-    size_t n = etcGMT.copy(offsetString, etcGMT.length());
-    offsetString[n++] = offset < 0 ? '+' : '-';
-    if (offsetHours >= 10) {
-      offsetString[n++] = char('0' + (offsetHours / 10));
-    }
-    offsetString[n++] = char('0' + (offsetHours % 10));
-
-    MOZ_ASSERT(n == etcGMT.length() + 2 || n == etcGMT.length() + 3);
-
-    timeZone = NewStringCopyN<CanGC>(cx, offsetString, n);
-    if (!timeZone) {
-      return nullptr;
-    }
-
-    // Check if the fallback is valid.
-    if (!IsValidTimeZoneName(cx, timeZone, &validTimeZone)) {
-      return nullptr;
-    }
-    if (validTimeZone) {
-      return CanonicalizeTimeZoneName(cx, validTimeZone);
-    }
-  }
-
-  // Fallback to "UTC" if everything else fails.
-  return cx->names().UTC;
-}
-
-static bool SystemTimeZone(JSContext* cx, MutableHandle<TimeZoneValue> result) {
-  Rooted<JSLinearString*> timeZoneIdentifier(cx, SystemTimeZoneIdentifier(cx));
-  if (!timeZoneIdentifier) {
-    return false;
-  }
-
-  auto* timeZone = CreateTemporalTimeZone(cx, timeZoneIdentifier);
-  if (!timeZone) {
-    return false;
-  }
-
-  result.set(TimeZoneValue(timeZone));
-  return true;
-}
 
 /**
  * SystemUTCEpochNanoseconds ( )

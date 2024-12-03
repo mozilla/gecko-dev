@@ -2621,8 +2621,9 @@ static bool NudgeToCalendarUnit(
     MOZ_ASSERT(ISODateTimeWithinLimits(startDateTime));
 
     // Steps 12.b-c.
-    if (!GetInstantFor(cx, timeZone, startDateTime,
-                       TemporalDisambiguation::Compatible, &startEpochNs)) {
+    if (!GetEpochNanosecondsFor(cx, timeZone, startDateTime,
+                                TemporalDisambiguation::Compatible,
+                                &startEpochNs)) {
       return false;
     }
 
@@ -2631,8 +2632,9 @@ static bool NudgeToCalendarUnit(
     MOZ_ASSERT(ISODateTimeWithinLimits(endDateTime));
 
     // Steps 12.e-f.
-    if (!GetInstantFor(cx, timeZone, endDateTime,
-                       TemporalDisambiguation::Compatible, &endEpochNs)) {
+    if (!GetEpochNanosecondsFor(cx, timeZone, endDateTime,
+                                TemporalDisambiguation::Compatible,
+                                &endEpochNs)) {
       return false;
     }
   }
@@ -2785,15 +2787,17 @@ static bool NudgeToZonedTime(JSContext* cx, const NormalizedDuration& duration,
 
   // Steps 7-8.
   Instant startEpochNs;
-  if (!GetInstantFor(cx, timeZone, startDateTime,
-                     TemporalDisambiguation::Compatible, &startEpochNs)) {
+  if (!GetEpochNanosecondsFor(cx, timeZone, startDateTime,
+                              TemporalDisambiguation::Compatible,
+                              &startEpochNs)) {
     return false;
   }
 
   // Steps 9-10.
   Instant endEpochNs;
-  if (!GetInstantFor(cx, timeZone, endDateTime,
-                     TemporalDisambiguation::Compatible, &endEpochNs)) {
+  if (!GetEpochNanosecondsFor(cx, timeZone, endDateTime,
+                              TemporalDisambiguation::Compatible,
+                              &endEpochNs)) {
     return false;
   }
 
@@ -3056,8 +3060,9 @@ static bool BubbleRelativeDuration(
       if (!timeZone) {
         endEpochNs = GetUTCEpochNanoseconds(endDateTime);
       } else {
-        if (!GetInstantFor(cx, timeZone, endDateTime,
-                           TemporalDisambiguation::Compatible, &endEpochNs)) {
+        if (!GetEpochNanosecondsFor(cx, timeZone, endDateTime,
+                                    TemporalDisambiguation::Compatible,
+                                    &endEpochNs)) {
           return false;
         }
       }

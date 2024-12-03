@@ -38,7 +38,7 @@ class TimeZone;
 
 namespace js::temporal {
 
-class BuiltinTimeZoneObject : public NativeObject {
+class TimeZoneObject : public NativeObject {
  public:
   static const JSClass class_;
 
@@ -112,7 +112,7 @@ namespace js::temporal {
  * Option 2 is a bit easier to implement, so we use this approach for now.
  */
 class MOZ_STACK_CLASS TimeZoneValue final {
-  BuiltinTimeZoneObject* object_ = nullptr;
+  TimeZoneObject* object_ = nullptr;
 
  public:
   /**
@@ -121,9 +121,9 @@ class MOZ_STACK_CLASS TimeZoneValue final {
   TimeZoneValue() = default;
 
   /**
-   * Initialize this TimeZoneValue with a built-in time zone object.
+   * Initialize this TimeZoneValue with a time zone object.
    */
-  explicit TimeZoneValue(BuiltinTimeZoneObject* timeZone) : object_(timeZone) {
+  explicit TimeZoneValue(TimeZoneObject* timeZone) : object_(timeZone) {
     MOZ_ASSERT(object_);
   }
 
@@ -131,7 +131,7 @@ class MOZ_STACK_CLASS TimeZoneValue final {
    * Initialize this TimeZoneValue from a slot Value.
    */
   explicit TimeZoneValue(const JS::Value& value)
-      : object_(&value.toObject().as<BuiltinTimeZoneObject>()) {}
+      : object_(&value.toObject().as<TimeZoneObject>()) {}
 
   /**
    * Return true if this TimeZoneValue is not null.
@@ -171,9 +171,9 @@ class MOZ_STACK_CLASS TimeZoneValue final {
   }
 
   /**
-   * Return the underlying BuiltinTimeZoneObject.
+   * Return the underlying TimeZoneObject.
    */
-  auto* toBuiltinTimeZoneObject() const {
+  auto* toTimeZoneObject() const {
     MOZ_ASSERT(object_);
     return object_;
   }
@@ -194,8 +194,8 @@ class MOZ_STACK_CLASS TimeZoneValue final {
   void trace(JSTracer* trc);
 };
 
-class PossibleInstants final {
-  // GetPossibleInstantsFor can return up-to two elements.
+class PossibleEpochNanoseconds final {
+  // GetPossibleEpochNanoseconds can return up-to two elements.
   static constexpr size_t MaxLength = 2;
 
   std::array<Instant, MaxLength> array_ = {};
@@ -204,11 +204,12 @@ class PossibleInstants final {
   void append(const Instant& instant) { array_[length_++] = instant; }
 
  public:
-  PossibleInstants() = default;
+  PossibleEpochNanoseconds() = default;
 
-  explicit PossibleInstants(const Instant& instant) { append(instant); }
+  explicit PossibleEpochNanoseconds(const Instant& instant) { append(instant); }
 
-  explicit PossibleInstants(const Instant& earlier, const Instant& later) {
+  explicit PossibleEpochNanoseconds(const Instant& earlier,
+                                    const Instant& later) {
     MOZ_ASSERT(earlier <= later);
     append(earlier);
     append(later);
@@ -237,33 +238,24 @@ struct ISODateTime;
 enum class TemporalDisambiguation;
 
 /**
- * IsValidTimeZoneName ( timeZone )
- * IsAvailableTimeZoneName ( timeZone )
+ * SystemTimeZoneIdentifier ( )
  */
-bool IsValidTimeZoneName(JSContext* cx, JS::Handle<JSLinearString*> timeZone,
-                         JS::MutableHandle<JSAtom*> validatedTimeZone);
+JSLinearString* SystemTimeZoneIdentifier(JSContext* cx);
 
 /**
- * CanonicalizeTimeZoneName ( timeZone )
+ * SystemTimeZoneIdentifier ( )
  */
-JSLinearString* CanonicalizeTimeZoneName(JSContext* cx,
-                                         JS::Handle<JSLinearString*> timeZone);
+bool SystemTimeZone(JSContext* cx, JS::MutableHandle<TimeZoneValue> result);
 
 /**
- * CreateTemporalTimeZone ( identifier [ , newTarget ] )
- */
-BuiltinTimeZoneObject* CreateTemporalTimeZone(
-    JSContext* cx, JS::Handle<JSLinearString*> identifier);
-
-/**
- * ToTemporalTimeZoneSlotValue ( temporalTimeZoneLike )
+ * ToTemporalTimeZoneIdentifier ( temporalTimeZoneLike )
  */
 bool ToTemporalTimeZone(JSContext* cx,
                         JS::Handle<JS::Value> temporalTimeZoneLike,
                         JS::MutableHandle<TimeZoneValue> result);
 
 /**
- * ToTemporalTimeZoneSlotValue ( temporalTimeZoneLike )
+ * ToTemporalTimeZoneIdentifier ( temporalTimeZoneLike )
  */
 bool ToTemporalTimeZone(JSContext* cx, JS::Handle<ParsedTimeZone> string,
                         JS::MutableHandle<TimeZoneValue> result);
@@ -286,11 +278,12 @@ bool GetISODateTimeFor(JSContext* cx, JS::Handle<TimeZoneValue> timeZone,
                        const Instant& instant, ISODateTime* result);
 
 /**
- * GetInstantFor ( timeZoneRec, dateTime, disambiguation )
+ * GetEpochNanosecondsFor ( timeZone, isoDateTime, disambiguation )
  */
-bool GetInstantFor(JSContext* cx, JS::Handle<TimeZoneValue> timeZone,
-                   const ISODateTime& dateTime,
-                   TemporalDisambiguation disambiguation, Instant* result);
+bool GetEpochNanosecondsFor(JSContext* cx, JS::Handle<TimeZoneValue> timeZone,
+                            const ISODateTime& isoDateTime,
+                            TemporalDisambiguation disambiguation,
+                            Instant* result);
 
 /**
  * FormatUTCOffsetNanoseconds ( offsetNanoseconds )
@@ -298,29 +291,28 @@ bool GetInstantFor(JSContext* cx, JS::Handle<TimeZoneValue> timeZone,
 JSString* FormatUTCOffsetNanoseconds(JSContext* cx, int64_t offsetNanoseconds);
 
 /**
- * GetOffsetNanosecondsFor ( timeZoneRec, instant )
+ * GetOffsetNanosecondsFor ( timeZone, epochNs )
  */
 bool GetOffsetNanosecondsFor(JSContext* cx, JS::Handle<TimeZoneValue> timeZone,
                              const Instant& instant,
                              int64_t* offsetNanoseconds);
 
 /**
- * GetPossibleInstantsFor ( timeZoneRec, dateTime )
+ * GetPossibleEpochNanoseconds ( timeZone, isoDateTime )
  */
-bool GetPossibleInstantsFor(JSContext* cx, JS::Handle<TimeZoneValue> timeZone,
-                            const ISODateTime& dateTime,
-                            PossibleInstants* result);
+bool GetPossibleEpochNanoseconds(JSContext* cx,
+                                 JS::Handle<TimeZoneValue> timeZone,
+                                 const ISODateTime& isoDateTime,
+                                 PossibleEpochNanoseconds* result);
 
 /**
- * DisambiguatePossibleInstants ( possibleInstants, timeZoneRec, dateTime,
- * disambiguation )
+ * DisambiguatePossibleEpochNanoseconds ( possibleEpochNs, timeZone,
+ * isoDateTime, disambiguation )
  */
-bool DisambiguatePossibleInstants(JSContext* cx,
-                                  const PossibleInstants& possibleInstants,
-                                  JS::Handle<TimeZoneValue> timeZone,
-                                  const ISODateTime& dateTime,
-                                  TemporalDisambiguation disambiguation,
-                                  Instant* result);
+bool DisambiguatePossibleEpochNanoseconds(
+    JSContext* cx, const PossibleEpochNanoseconds& possibleEpochNs,
+    JS::Handle<TimeZoneValue> timeZone, const ISODateTime& isoDateTime,
+    TemporalDisambiguation disambiguation, Instant* result);
 
 /**
  * GetNamedTimeZoneNextTransition ( timeZoneIdentifier, epochNanoseconds )
@@ -342,11 +334,11 @@ bool GetNamedTimeZonePreviousTransition(JSContext* cx,
  * GetStartOfDay ( timeZone, isoDate )
  */
 bool GetStartOfDay(JSContext* cx, JS::Handle<TimeZoneValue> timeZone,
-                   const ISODate& date, Instant* result);
+                   const ISODate& isoDate, Instant* result);
 
 // Helper for MutableWrappedPtrOperations.
-bool WrapTimeZoneValueObject(
-    JSContext* cx, JS::MutableHandle<BuiltinTimeZoneObject*> timeZone);
+bool WrapTimeZoneValueObject(JSContext* cx,
+                             JS::MutableHandle<TimeZoneObject*> timeZone);
 
 } /* namespace js::temporal */
 
@@ -383,9 +375,8 @@ class MutableWrappedPtrOperations<temporal::TimeZoneValue, Wrapper>
    */
   bool wrap(JSContext* cx) {
     MOZ_ASSERT(container());
-    auto mh =
-        JS::MutableHandle<temporal::BuiltinTimeZoneObject*>::fromMarkedLocation(
-            container().address());
+    auto mh = JS::MutableHandle<temporal::TimeZoneObject*>::fromMarkedLocation(
+        container().address());
     return temporal::WrapTimeZoneValueObject(cx, mh);
   }
 };
