@@ -225,7 +225,7 @@ bool GetTemporalCalendarWithISODefault(JSContext* cx,
  * CalendarDateAdd ( calendar, isoDate, duration, overflow )
  */
 bool CalendarDateAdd(JSContext* cx, JS::Handle<CalendarValue> calendar,
-                     const ISODate& date, const DateDuration& duration,
+                     const ISODate& isoDate, const DateDuration& duration,
                      TemporalOverflow overflow, ISODate* result);
 
 /**
