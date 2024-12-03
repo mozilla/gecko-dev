@@ -449,6 +449,8 @@ support-files = ["dummy_page.html"]
 
 ["browser_searchModeSwitcher_keyNavigation.js"]
 
+["browser_searchModeSwitcher_opensearchInstall.js"]
+
 ["browser_searchMode_alias_replacement.js"]
 support-files = [
   "searchSuggestionEngine.xml",
