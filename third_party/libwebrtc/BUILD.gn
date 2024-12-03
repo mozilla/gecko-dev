@@ -772,6 +772,7 @@ if (rtc_include_tests && !build_with_chromium) {
 
   # TODO(pbos): Rename test suite, this is no longer "just" for video targets.
   video_engine_tests_resources = [
+    "resources/ConferenceMotion_1280_720_50.yuv",
     "resources/foreman_cif_short.yuv",
     "resources/voice_engine/audio_long16.pcm",
   ]
