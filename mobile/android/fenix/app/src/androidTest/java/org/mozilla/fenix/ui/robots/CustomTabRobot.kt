@@ -226,6 +226,15 @@ class CustomTabRobot {
             ShareOverlayRobot().interact()
             return ShareOverlayRobot.Transition()
         }
+
+        fun clickShareButtonFromRedesignedMenu(interact: ShareOverlayRobot.() -> Unit): ShareOverlayRobot.Transition {
+            Log.i(TAG, "clickShareButtonFromRedesignedMenu: Trying to click the main menu share button")
+            itemWithDescription(getStringResource(R.string.browser_menu_share_2)).click()
+            Log.i(TAG, "clickShareButtonFromRedesignedMenu: Clicked the main menu share button")
+
+            ShareOverlayRobot().interact()
+            return ShareOverlayRobot.Transition()
+        }
     }
 }
 
