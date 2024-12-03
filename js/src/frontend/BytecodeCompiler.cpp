@@ -30,7 +30,7 @@
 #include "js/ColumnNumber.h"       // JS::ColumnNumberOneOrigin
 #include "js/EnvironmentChain.h"   // JS::SupportUnscopables
 #include "js/ErrorReport.h"        // JS_ReportErrorASCII
-#include "js/experimental/CompileScript.h"  // JS::CompileGlobalScriptToStencil
+#include "js/experimental/CompileScript.h"  // JS::CompileGlobalScriptToStencil, JS::CompileModuleScriptToStencil
 #include "js/experimental/JSStencil.h"
 #include "js/GCVector.h"    // JS::StackGCVector
 #include "js/Id.h"          // JS::PropertyKey
@@ -1234,12 +1234,79 @@ already_AddRefed<CompilationStencil> frontend::ParseModuleToStencil(
                                   srcBuf);
 }
 
+template <typename CharT>
+static already_AddRefed<JS::Stencil> CompileModuleScriptToStencilImpl(
+    JSContext* cx, const JS::ReadOnlyCompileOptions& optionsInput,
+    JS::SourceText<CharT>& srcBuf) {
+  JS::CompileOptions options(cx, optionsInput);
+  options.setModule();
+
+  AutoReportFrontendContext fc(cx);
+
+  NoScopeBindingCache scopeCache;
+  Rooted<CompilationInput> input(cx, CompilationInput(options));
+  RefPtr<JS::Stencil> stencil = js::frontend::ParseModuleToStencil(
+      cx, &fc, cx->tempLifoAlloc(), input.get(), &scopeCache, srcBuf);
+  return stencil.forget();
+}
+
+already_AddRefed<JS::Stencil> JS::CompileModuleScriptToStencil(
+    JSContext* cx, const JS::ReadOnlyCompileOptions& options,
+    JS::SourceText<mozilla::Utf8Unit>& srcBuf) {
+  return CompileModuleScriptToStencilImpl(cx, options, srcBuf);
+}
+
+already_AddRefed<JS::Stencil> JS::CompileModuleScriptToStencil(
+    JSContext* cx, const JS::ReadOnlyCompileOptions& options,
+    JS::SourceText<char16_t>& srcBuf) {
+  return CompileModuleScriptToStencilImpl(cx, options, srcBuf);
+}
+
+template <typename CharT>
+static already_AddRefed<JS::Stencil> CompileModuleScriptToStencilImpl(
+    JS::FrontendContext* fc, const JS::ReadOnlyCompileOptions& optionsInput,
+    JS::SourceText<CharT>& srcBuf) {
+  JS::CompileOptions options(nullptr, optionsInput);
+  options.setModule();
+
+  frontend::CompilationInput compilationInput(options);
+
+  NoScopeBindingCache scopeCache;
+  js::LifoAlloc tempLifoAlloc(JSContext::TEMP_LIFO_ALLOC_PRIMARY_CHUNK_SIZE,
+                              js::BackgroundMallocArena);
+  RefPtr<JS::Stencil> stencil = ParseModuleToStencilImpl(
+      nullptr, fc, tempLifoAlloc, compilationInput, &scopeCache, srcBuf);
+  // CompilationInput initialized with ParseModuleToStencil only
+  // references information from the JS::Stencil context and the
+  // ref-counted ScriptSource, which are both GC-free.
+  JS_HAZ_VALUE_IS_GC_SAFE(compilationInput);
+  return stencil.forget();
+}
+
 already_AddRefed<CompilationStencil> frontend::ParseModuleToStencil(
     JSContext* maybeCx, FrontendContext* fc, js::LifoAlloc& tempLifoAlloc,
     CompilationInput& input, ScopeBindingCache* scopeCache,
     SourceText<Utf8Unit>& srcBuf) {
   return ParseModuleToStencilImpl(maybeCx, fc, tempLifoAlloc, input, scopeCache,
                                   srcBuf);
+}
+
+already_AddRefed<JS::Stencil> JS::CompileModuleScriptToStencil(
+    JS::FrontendContext* fc, const JS::ReadOnlyCompileOptions& optionsInput,
+    JS::SourceText<mozilla::Utf8Unit>& srcBuf) {
+#ifdef DEBUG
+  fc->assertNativeStackLimitThread();
+#endif
+  return CompileModuleScriptToStencilImpl(fc, optionsInput, srcBuf);
+}
+
+already_AddRefed<JS::Stencil> JS::CompileModuleScriptToStencil(
+    JS::FrontendContext* fc, const JS::ReadOnlyCompileOptions& optionsInput,
+    JS::SourceText<char16_t>& srcBuf) {
+#ifdef DEBUG
+  fc->assertNativeStackLimitThread();
+#endif
+  return CompileModuleScriptToStencilImpl(fc, optionsInput, srcBuf);
 }
 
 template <typename Unit>

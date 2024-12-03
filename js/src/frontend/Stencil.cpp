@@ -5460,38 +5460,6 @@ void JS::StencilRelease(JS::Stencil* stencil) {
   }
 }
 
-template <typename CharT>
-static already_AddRefed<JS::Stencil> CompileModuleScriptToStencilImpl(
-    JSContext* cx, const JS::ReadOnlyCompileOptions& optionsInput,
-    JS::SourceText<CharT>& srcBuf) {
-  JS::CompileOptions options(cx, optionsInput);
-  options.setModule();
-
-  AutoReportFrontendContext fc(cx);
-  NoScopeBindingCache scopeCache;
-  Rooted<CompilationInput> input(cx, CompilationInput(options));
-  RefPtr<JS::Stencil> stencil = js::frontend::ParseModuleToStencil(
-      cx, &fc, cx->tempLifoAlloc(), input.get(), &scopeCache, srcBuf);
-  if (!stencil) {
-    return nullptr;
-  }
-
-  // Convert the UniquePtr to a RefPtr and increment the count (to 1).
-  return stencil.forget();
-}
-
-already_AddRefed<JS::Stencil> JS::CompileModuleScriptToStencil(
-    JSContext* cx, const JS::ReadOnlyCompileOptions& options,
-    JS::SourceText<mozilla::Utf8Unit>& srcBuf) {
-  return CompileModuleScriptToStencilImpl(cx, options, srcBuf);
-}
-
-already_AddRefed<JS::Stencil> JS::CompileModuleScriptToStencil(
-    JSContext* cx, const JS::ReadOnlyCompileOptions& options,
-    JS::SourceText<char16_t>& srcBuf) {
-  return CompileModuleScriptToStencilImpl(cx, options, srcBuf);
-}
-
 JS_PUBLIC_API JSScript* JS::InstantiateGlobalStencil(
     JSContext* cx, const JS::InstantiateOptions& options, JS::Stencil* stencil,
     JS::InstantiationStorage* storage) {
