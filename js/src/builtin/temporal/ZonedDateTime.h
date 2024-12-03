@@ -123,31 +123,24 @@ ZonedDateTimeObject* CreateTemporalZonedDateTime(
 /**
  * AddZonedDateTime ( epochNanoseconds, timeZone, calendar, duration, overflow )
  */
-bool AddZonedDateTime(JSContext* cx, const Instant& epochNanoseconds,
-                      JS::Handle<TimeZoneValue> timeZone,
-                      JS::Handle<CalendarValue> calendar,
+bool AddZonedDateTime(JSContext* cx, JS::Handle<ZonedDateTime> zonedDateTime,
                       const NormalizedDuration& duration, Instant* result);
 
 /**
  * DifferenceZonedDateTimeWithRounding ( ns1, ns2, timeZone, calendar,
  * largestUnit, roundingIncrement, smallestUnit, roundingMode )
  */
-bool DifferenceZonedDateTimeWithRounding(JSContext* cx, const Instant& ns1,
-                                         const Instant& ns2,
-                                         JS::Handle<TimeZoneValue> timeZone,
-                                         JS::Handle<CalendarValue> calendar,
-                                         const DifferenceSettings& settings,
-                                         Duration* result);
+bool DifferenceZonedDateTimeWithRounding(
+    JSContext* cx, JS::Handle<ZonedDateTime> zonedDateTime, const Instant& ns2,
+    const DifferenceSettings& settings, Duration* result);
 
 /**
  * DifferenceZonedDateTimeWithRounding ( ns1, ns2, timeZone, calendar,
  * largestUnit, roundingIncrement, smallestUnit, roundingMode )
  */
-bool DifferenceZonedDateTimeWithRounding(JSContext* cx, const Instant& ns1,
-                                         const Instant& ns2,
-                                         JS::Handle<TimeZoneValue> timeZone,
-                                         JS::Handle<CalendarValue> calendar,
-                                         TemporalUnit unit, double* result);
+bool DifferenceZonedDateTimeWithRounding(
+    JSContext* cx, JS::Handle<ZonedDateTime> zonedDateTime, const Instant& ns2,
+    TemporalUnit unit, double* result);
 
 enum class OffsetBehaviour { Option, Exact, Wall };
 

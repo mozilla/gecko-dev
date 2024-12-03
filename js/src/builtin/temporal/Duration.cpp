@@ -170,7 +170,7 @@ static int32_t NormalizedDurationSign(const NormalizedDuration& duration) {
   if (int32_t sign = DateDurationSign(duration.date)) {
     return sign;
   }
-  return NormalizedTimeDurationSign(duration.time);
+  return TimeDurationSign(duration.time);
 }
 
 /**
@@ -604,7 +604,7 @@ bool js::temporal::CombineDateAndNormalizedTimeDuration(
   int32_t dateSign = DateDurationSign(date);
 
   // Step 2.
-  int32_t timeSign = NormalizedTimeDurationSign(time);
+  int32_t timeSign = TimeDurationSign(time);
 
   // Step 3
   if ((dateSign * timeSign) < 0) {
@@ -1241,26 +1241,6 @@ bool js::temporal::ToTemporalDuration(JSContext* cx, Handle<Value> item,
 }
 
 /**
- * DaysUntil ( earlier, later )
- */
-static int32_t DaysUntil(const PlainDate& earlier, const PlainDate& later) {
-  MOZ_ASSERT(ISODateWithinLimits(earlier));
-  MOZ_ASSERT(ISODateWithinLimits(later));
-
-  // Steps 1-2.
-  int32_t epochDaysEarlier = MakeDay(earlier);
-  MOZ_ASSERT(MinEpochDay <= epochDaysEarlier &&
-             epochDaysEarlier <= MaxEpochDay);
-
-  // Steps 3-4.
-  int32_t epochDaysLater = MakeDay(later);
-  MOZ_ASSERT(MinEpochDay <= epochDaysLater && epochDaysLater <= MaxEpochDay);
-
-  // Step 5.
-  return epochDaysLater - epochDaysEarlier;
-}
-
-/**
  * CreateTimeDurationRecord ( days, hours, minutes, seconds, milliseconds,
  * microseconds, nanoseconds )
  */
@@ -1622,11 +1602,11 @@ bool js::temporal::BalanceTimeDuration(JSContext* cx,
 }
 
 /**
- * UnbalanceDateDurationRelative ( dateDuration, plainRelativeTo )
+ * DateDurationDays ( dateDuration, plainRelativeTo )
  */
-static bool UnbalanceDateDurationRelative(
-    JSContext* cx, const DateDuration& duration,
-    Handle<PlainDateWithCalendar> plainRelativeTo, int64_t* result) {
+static bool DateDurationDays(JSContext* cx, const DateDuration& duration,
+                             Handle<PlainDateWithCalendar> plainRelativeTo,
+                             int64_t* result) {
   MOZ_ASSERT(IsValidDuration(duration));
 
   auto [years, months, weeks, days] = duration;
@@ -1657,7 +1637,15 @@ static bool UnbalanceDateDurationRelative(
   }
 
   // Step 4.
-  int32_t yearsMonthsWeeksInDay = DaysUntil(plainRelativeTo, later);
+  int32_t epochDays1 = MakeDay(plainRelativeTo);
+  MOZ_ASSERT(MinEpochDay <= epochDays1 && epochDays1 <= MaxEpochDay);
+
+  // Step 5.
+  int32_t epochDays2 = MakeDay(later);
+  MOZ_ASSERT(MinEpochDay <= epochDays2 && epochDays2 <= MaxEpochDay);
+
+  // Step 4.
+  int32_t yearsMonthsWeeksInDay = epochDays2 - epochDays1;
 
   // Step 5.
   *result = days + yearsMonthsWeeksInDay;
@@ -2817,7 +2805,7 @@ static bool NudgeToZonedTime(JSContext* cx, const NormalizedDuration& duration,
   // https://github.com/tc39/proposal-temporal/issues/2888
 
   // Step 12.
-  MOZ_ASSERT(NormalizedTimeDurationSign(daySpan) == sign);
+  MOZ_ASSERT(TimeDurationSign(daySpan) == sign);
 
   // FIXME: spec issue - Use DifferenceInstant?
   // FIXME: spec issue - Is this call really fallible?
@@ -2840,7 +2828,7 @@ static bool NudgeToZonedTime(JSContext* cx, const NormalizedDuration& duration,
   bool didRoundBeyondDay;
   int32_t dayDelta;
   Instant nudgedEpochNs;
-  if (NormalizedTimeDurationSign(beyondDaySpan) != -sign) {
+  if (TimeDurationSign(beyondDaySpan) != -sign) {
     // Step 16.a.
     didRoundBeyondDay = true;
 
@@ -2944,7 +2932,7 @@ static bool NudgeToDayOrTime(JSContext* cx, const NormalizedDuration& duration,
   int32_t dayDeltaSign = dayDelta < 0 ? -1 : dayDelta > 0 ? 1 : 0;
 
   // Step 12.
-  bool didExpandDays = dayDeltaSign == NormalizedTimeDurationSign(withDays);
+  bool didExpandDays = dayDeltaSign == TimeDurationSign(withDays);
 
   // Step 13. (Inlined AddNormalizedTimeDurationToEpochNanoseconds)
   auto nudgedEpochNs = destEpochNs + diffTime.to<InstantSpan>();
@@ -3392,25 +3380,18 @@ static bool Duration_compare(JSContext* cx, unsigned argc, Value* vp) {
     return false;
   }
 
-  // Step 3.
-  Rooted<JSObject*> options(cx);
+  // Steps 3-4.
+  Rooted<PlainDateWithCalendar> plainRelativeTo(cx);
+  Rooted<ZonedDateTime> zonedRelativeTo(cx);
   if (args.hasDefined(2)) {
-    options = RequireObjectArg(cx, "options", "compare", args[2]);
+    // Step 3.
+    Rooted<JSObject*> options(
+        cx, RequireObjectArg(cx, "options", "compare", args[2]));
     if (!options) {
       return false;
     }
-  }
 
-  // Step 4.
-  if (one == two) {
-    args.rval().setInt32(0);
-    return true;
-  }
-
-  // Steps 5-7.
-  Rooted<PlainDateWithCalendar> plainRelativeTo(cx);
-  Rooted<ZonedDateTime> zonedRelativeTo(cx);
-  if (options) {
+    // Step 4.
     if (!GetTemporalRelativeToOption(cx, options, &plainRelativeTo,
                                      &zonedRelativeTo)) {
       return false;
@@ -3418,81 +3399,70 @@ static bool Duration_compare(JSContext* cx, unsigned argc, Value* vp) {
     MOZ_ASSERT(!plainRelativeTo || !zonedRelativeTo);
   }
 
-  // Steps 8-9.
-  auto normOne = NormalizeDuration(one);
-  auto normTwo = NormalizeDuration(two);
-  bool calendarUnitsOrDaysPresent =
-      normOne.date != DateDuration{} || normTwo.date != DateDuration{};
+  // Step 5.
+  if (one == two) {
+    args.rval().setInt32(0);
+    return true;
+  }
+
+  // Steps 8-9. (Not applicable in our implementation.)
 
   // Step 10.
-  if (zonedRelativeTo && calendarUnitsOrDaysPresent) {
-    // Step 10.a.
-    auto timeZone = zonedRelativeTo.timeZone();
+  auto duration1 = NormalizeDuration(one);
 
-    // Step 10.b.
-    auto calendar = zonedRelativeTo.calendar();
+  // Step 11.
+  auto duration2 = NormalizeDuration(two);
 
-    // Step 10.c.
-    const auto& instant = zonedRelativeTo.instant();
+  // Step 12.
+  if (zonedRelativeTo &&
+      (duration1.date != DateDuration{} || duration2.date != DateDuration{})) {
+    // Steps 12.a-b. (Not applicable in our implementation.)
 
-    // Step 10.e.
-    const auto& normalized1 = normOne;
-
-    // Step 10.f.
-    const auto& normalized2 = normTwo;
-
-    // Step 10.g.
+    // Step 12.c.
     Instant after1;
-    if (!AddZonedDateTime(cx, instant, timeZone, calendar, normalized1,
-                          &after1)) {
+    if (!AddZonedDateTime(cx, zonedRelativeTo, duration1, &after1)) {
       return false;
     }
 
-    // Step 10.h.
+    // Step 12.d.
     Instant after2;
-    if (!AddZonedDateTime(cx, instant, timeZone, calendar, normalized2,
-                          &after2)) {
+    if (!AddZonedDateTime(cx, zonedRelativeTo, duration2, &after2)) {
       return false;
     }
 
-    // Steps 10.i-k.
+    // Steps 12.e-g.
     args.rval().setInt32(after1 < after2 ? -1 : after1 > after2 ? 1 : 0);
     return true;
   }
 
-  // Steps 11-12.
+  // Steps 13.a-b and 14.a.
   int64_t days1;
-  if (!UnbalanceDateDurationRelative(cx, normOne.date, plainRelativeTo,
-                                     &days1)) {
+  if (!DateDurationDays(cx, duration1.date, plainRelativeTo, &days1)) {
     return false;
   }
 
+  // Steps 13.a, 13.c, and 14.b.
   int64_t days2;
-  if (!UnbalanceDateDurationRelative(cx, normTwo.date, plainRelativeTo,
-                                     &days2)) {
-    return false;
-  }
-
-  // Step 13.
-  auto normalized1 = normOne.time;
-
-  // Step 14.
-  if (!Add24HourDaysToNormalizedTimeDuration(cx, normalized1, days1,
-                                             &normalized1)) {
+  if (!DateDurationDays(cx, duration2.date, plainRelativeTo, &days2)) {
     return false;
   }
 
   // Step 15.
-  auto normalized2 = normTwo.time;
+  auto timeDuration1 = duration1.time;
+  if (!Add24HourDaysToNormalizedTimeDuration(cx, duration1.time, days1,
+                                             &timeDuration1)) {
+    return false;
+  }
 
   // Step 16.
-  if (!Add24HourDaysToNormalizedTimeDuration(cx, normalized2, days2,
-                                             &normalized2)) {
+  auto timeDuration2 = duration2.time;
+  if (!Add24HourDaysToNormalizedTimeDuration(cx, duration2.time, days2,
+                                             &timeDuration2)) {
     return false;
   }
 
   // Step 17.
-  args.rval().setInt32(CompareNormalizedTimeDuration(normalized1, normalized2));
+  args.rval().setInt32(CompareTimeDuration(timeDuration1, timeDuration2));
   return true;
 }
 
@@ -4064,28 +4034,16 @@ static bool Duration_round(JSContext* cx, const CallArgs& args) {
   // Steps 35-36.
   Duration roundResult;
   if (zonedRelativeTo) {
-    // Step 35.a.
-    auto timeZone = zonedRelativeTo.timeZone();
-
-    // Step 35.b.
-    auto calendar = zonedRelativeTo.calendar();
-
-    // Step 35.c.
-    const auto& relativeEpochNs = zonedRelativeTo.instant();
-
-    // Step 35.d.
-    const auto& relativeInstant = relativeEpochNs;
+    // Steps 35.a-d. (Not applicable in our implementation.)
 
     // Step 35.e.
     Instant targetEpochNs;
-    if (!AddZonedDateTime(cx, relativeInstant, timeZone, calendar, normDuration,
-                          &targetEpochNs)) {
+    if (!AddZonedDateTime(cx, zonedRelativeTo, normDuration, &targetEpochNs)) {
       return false;
     }
 
     // Steps 35.f-g.
-    if (!DifferenceZonedDateTimeWithRounding(cx, relativeEpochNs, targetEpochNs,
-                                             timeZone, calendar,
+    if (!DifferenceZonedDateTimeWithRounding(cx, zonedRelativeTo, targetEpochNs,
                                              {
                                                  smallestUnit,
                                                  largestUnit,
@@ -4247,29 +4205,17 @@ static bool Duration_total(JSContext* cx, const CallArgs& args) {
   // Steps 15-17.
   double total;
   if (zonedRelativeTo) {
-    // Step 15.a.
-    auto timeZone = zonedRelativeTo.timeZone();
-
-    // Step 15.b.
-    auto calendar = zonedRelativeTo.calendar();
-
-    // Step 15.c.
-    const auto& relativeEpochNs = zonedRelativeTo.instant();
-
-    // Step 15.d.
-    const auto& relativeInstant = relativeEpochNs;
+    // Steps 15.a-d. (Not applicable in our implementation.)
 
     // Step 15.e.
     Instant targetEpochNs;
-    if (!AddZonedDateTime(cx, relativeInstant, timeZone, calendar, normDuration,
-                          &targetEpochNs)) {
+    if (!AddZonedDateTime(cx, zonedRelativeTo, normDuration, &targetEpochNs)) {
       return false;
     }
 
     // Step 15.f.
-    if (!DifferenceZonedDateTimeWithRounding(cx, relativeEpochNs, targetEpochNs,
-                                             timeZone, calendar, unit,
-                                             &total)) {
+    if (!DifferenceZonedDateTimeWithRounding(cx, zonedRelativeTo, targetEpochNs,
+                                             unit, &total)) {
       return false;
     }
   } else if (plainRelativeTo) {

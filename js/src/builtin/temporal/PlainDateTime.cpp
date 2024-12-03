@@ -660,7 +660,7 @@ static bool DifferenceISODateTime(JSContext* cx, const PlainDateTime& one,
   auto timeDuration = DifferenceTime(one.time, two.time);
 
   // Step 4.
-  int32_t timeSign = NormalizedTimeDurationSign(timeDuration);
+  int32_t timeSign = TimeDurationSign(timeDuration);
 
   // Step 5.
   int32_t dateSign = CompareISODate(two.date, one.date);
