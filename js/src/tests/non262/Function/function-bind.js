@@ -253,9 +253,8 @@ function testBound(fun)
 testBound(strict);
 testBound(nonstrict);
 
-assertEq((function unbound(){"body"}).bind().toString(), `function() {
-    [native code]
-}`);
+var nativeFunctionRegex = /^function\s*\(\)\s*{\s*\[native code\]\s*}$/
+assertEq(nativeFunctionRegex.test((function unbound(){"body"}).bind().toString()), true);
 
 
 /* 22. Return F. */
