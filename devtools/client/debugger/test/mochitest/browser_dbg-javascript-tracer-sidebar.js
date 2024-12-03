@@ -193,11 +193,17 @@ add_task(async function () {
   });
   is(keyTrace.textContent, "DOM | global.keypress");
 
-  is(
-    tracerTree.querySelectorAll(".trace-line").length,
-    8,
-    "The key event adds two elements in the tree. The DOM Event and its top frame"
-  );
+  info("Wait for the key listener function to be displayed");
+  await waitFor(() => {
+    // Scroll to bottom to ensure rendering the last elements (otherwise they are not because of VirtualizedTree)
+    tracerTree.scrollTop = tracerTree.scrollHeight;
+    const elements = tracerTree.querySelectorAll(".trace-line");
+    // Wait for the expected element to be rendered
+    if (elements[elements.length - 1].textContent.includes("keyListener")) {
+      return true;
+    }
+    return false;
+  });
 
   info("Trigger a DOM Mutation");
   await SpecialPowers.spawn(gBrowser.selectedBrowser, [], async function () {
