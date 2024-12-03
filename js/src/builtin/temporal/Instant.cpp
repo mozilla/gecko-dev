@@ -487,12 +487,12 @@ static bool ToTemporalInstant(JSContext* cx, Handle<Value> item,
  */
 bool js::temporal::AddInstant(JSContext* cx,
                               const EpochNanoseconds& epochNanoseconds,
-                              const NormalizedTimeDuration& duration,
+                              const TimeDuration& duration,
                               EpochNanoseconds* result) {
   MOZ_ASSERT(IsValidEpochNanoseconds(epochNanoseconds));
-  MOZ_ASSERT(IsValidNormalizedTimeDuration(duration));
+  MOZ_ASSERT(IsValidTimeDuration(duration));
 
-  // Step 1. (Inlined AddNormalizedTimeDurationToEpochNanoseconds)
+  // Step 1. (Inlined AddTimeDurationToEpochNanoseconds)
   auto r = epochNanoseconds + duration.to<EpochDuration>();
 
   // Step 2.
@@ -510,7 +510,7 @@ bool js::temporal::AddInstant(JSContext* cx,
 /**
  * DifferenceInstant ( ns1, ns2, roundingIncrement, smallestUnit, roundingMode )
  */
-NormalizedTimeDuration js::temporal::DifferenceInstant(
+TimeDuration js::temporal::DifferenceInstant(
     const EpochNanoseconds& ns1, const EpochNanoseconds& ns2,
     Increment roundingIncrement, TemporalUnit smallestUnit,
     TemporalRoundingMode roundingMode) {
@@ -521,7 +521,7 @@ NormalizedTimeDuration js::temporal::DifferenceInstant(
              MaximumTemporalDurationRoundingIncrement(smallestUnit));
 
   // Step 1.
-  auto diff = NormalizedTimeDurationFromEpochNanosecondsDifference(ns2, ns1);
+  auto diff = TimeDurationFromEpochNanosecondsDifference(ns2, ns1);
   MOZ_ASSERT(IsValidEpochDuration(diff.to<EpochDuration>()));
 
   // Steps 2-3.
@@ -665,8 +665,8 @@ static bool AddDurationToInstant(JSContext* cx, TemporalAddDuration operation,
     return false;
   }
 
-  // Step 5. (Inlined NormalizeDurationWith24HourDays.)
-  auto timeDuration = NormalizeTimeDuration(duration);
+  // Step 5. (Inlined ToInternalDurationRecordWith24HourDays.)
+  auto timeDuration = TimeDurationFromComponents(duration);
 
   // Step 6.
   EpochNanoseconds ns;

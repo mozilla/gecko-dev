@@ -414,10 +414,49 @@ TimeRecord js::temporal::BalanceTime(const Time& time, int64_t nanoseconds) {
 }
 
 /**
+ * TimeDurationFromComponents ( hours, minutes, seconds, milliseconds,
+ * microseconds, nanoseconds )
+ */
+static TimeDuration TimeDurationFromComponents(int32_t hours, int32_t minutes,
+                                               int32_t seconds,
+                                               int32_t milliseconds,
+                                               int32_t microseconds,
+                                               int32_t nanoseconds) {
+  MOZ_ASSERT(std::abs(hours) <= 23);
+  MOZ_ASSERT(std::abs(minutes) <= 59);
+  MOZ_ASSERT(std::abs(seconds) <= 59);
+  MOZ_ASSERT(std::abs(milliseconds) <= 999);
+  MOZ_ASSERT(std::abs(microseconds) <= 999);
+  MOZ_ASSERT(std::abs(nanoseconds) <= 999);
+
+  // Steps 1-5.
+  int64_t nanos = int64_t(hours);
+  nanos *= 60;
+  nanos += int64_t(minutes);
+  nanos *= 60;
+  nanos += int64_t(seconds);
+  nanos *= 1000;
+  nanos += int64_t(milliseconds);
+  nanos *= 1000;
+  nanos += int64_t(microseconds);
+  nanos *= 1000;
+  nanos += int64_t(nanoseconds);
+  MOZ_ASSERT(std::abs(nanos) < ToNanoseconds(TemporalUnit::Day));
+
+  auto timeDuration = TimeDuration::fromNanoseconds(nanos);
+
+  // Step 6.
+  MOZ_ASSERT(IsValidTimeDuration(timeDuration));
+
+  // Step 7.
+  return timeDuration;
+}
+
+/**
  * DifferenceTime ( time1, time2 )
  */
-NormalizedTimeDuration js::temporal::DifferenceTime(const Time& time1,
-                                                    const Time& time2) {
+TimeDuration js::temporal::DifferenceTime(const Time& time1,
+                                          const Time& time2) {
   MOZ_ASSERT(IsValidTime(time1));
   MOZ_ASSERT(IsValidTime(time2));
 
@@ -440,8 +479,8 @@ NormalizedTimeDuration js::temporal::DifferenceTime(const Time& time1,
   int32_t nanoseconds = time2.nanosecond - time1.nanosecond;
 
   // Step 7.
-  auto result = NormalizeTimeDuration(hours, minutes, seconds, milliseconds,
-                                      microseconds, nanoseconds);
+  auto result = ::TimeDurationFromComponents(
+      hours, minutes, seconds, milliseconds, microseconds, nanoseconds);
 
   // Step 8.
   MOZ_ASSERT(result.abs().toNanoseconds() <
@@ -828,9 +867,9 @@ TimeRecord js::temporal::RoundTime(const Time& time, Increment increment,
  * AddTime ( time, timeDuration )
  */
 TimeRecord js::temporal::AddTime(const Time& time,
-                                 const NormalizedTimeDuration& duration) {
+                                 const TimeDuration& duration) {
   MOZ_ASSERT(IsValidTime(time));
-  MOZ_ASSERT(IsValidNormalizedTimeDuration(duration));
+  MOZ_ASSERT(IsValidTimeDuration(duration));
 
   auto [seconds, nanoseconds] = duration.denormalize();
   MOZ_ASSERT(std::abs(nanoseconds) <= 999'999'999);
@@ -933,8 +972,8 @@ static bool AddDurationToTime(JSContext* cx, TemporalAddDuration operation,
     duration = duration.negate();
   }
 
-  // Step 3. (Inlined NormalizeDuration)
-  auto timeDuration = NormalizeTimeDuration(duration);
+  // Step 3. (Inlined ToInternalDurationRecord)
+  auto timeDuration = TimeDurationFromComponents(duration);
 
   // Step 4.
   auto result = AddTime(time, timeDuration);

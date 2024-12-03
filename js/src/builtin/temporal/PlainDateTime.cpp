@@ -520,7 +520,7 @@ static bool DifferenceISODateTime(JSContext* cx, const ISODateTime& one,
                                   const ISODateTime& two,
                                   Handle<CalendarValue> calendar,
                                   TemporalUnit largestUnit,
-                                  NormalizedDuration* result) {
+                                  InternalDuration* result) {
   // Steps 1-2.
   MOZ_ASSERT(IsValidISODateTime(one));
   MOZ_ASSERT(IsValidISODateTime(two));
@@ -545,8 +545,8 @@ static bool DifferenceISODateTime(JSContext* cx, const ISODateTime& one,
     adjustedDate = BalanceISODate(adjustedDate, timeSign);
 
     // Step 7.b.
-    if (!Add24HourDaysToNormalizedTimeDuration(cx, timeDuration, -timeSign,
-                                               &timeDuration)) {
+    if (!Add24HourDaysToTimeDuration(cx, timeDuration, -timeSign,
+                                     &timeDuration)) {
       return false;
     }
   }
@@ -575,8 +575,8 @@ static bool DifferenceISODateTime(JSContext* cx, const ISODateTime& one,
   // Steps 13.
   if (largestUnit != dateLargestUnit) {
     // Step 13.a.
-    if (!Add24HourDaysToNormalizedTimeDuration(
-            cx, timeDuration, dateDifference.days, &timeDuration)) {
+    if (!Add24HourDaysToTimeDuration(cx, timeDuration, dateDifference.days,
+                                     &timeDuration)) {
       return false;
     }
 
@@ -585,8 +585,7 @@ static bool DifferenceISODateTime(JSContext* cx, const ISODateTime& one,
   }
 
   // Step 14.
-  return CombineDateAndNormalizedTimeDuration(cx, dateDifference, timeDuration,
-                                              result);
+  return CombineDateAndTimeDuration(cx, dateDifference, timeDuration, result);
 }
 
 /**
@@ -636,7 +635,7 @@ bool js::temporal::DifferencePlainDateTimeWithRounding(
   }
 
   // Step 4.
-  NormalizedDuration diff;
+  InternalDuration diff;
   if (!::DifferenceISODateTime(cx, isoDateTime1, isoDateTime2, calendar,
                                settings.largestUnit, &diff)) {
     return false;
@@ -646,9 +645,9 @@ bool js::temporal::DifferencePlainDateTimeWithRounding(
   if (settings.smallestUnit == TemporalUnit::Nanosecond &&
       settings.roundingIncrement == Increment{1}) {
     // Step 5.a.
-    NormalizedTimeDuration withDays;
-    if (!Add24HourDaysToNormalizedTimeDuration(cx, diff.time, diff.date.days,
-                                               &withDays)) {
+    TimeDuration withDays;
+    if (!Add24HourDaysToTimeDuration(cx, diff.time, diff.date.days,
+                                     &withDays)) {
       return false;
     }
 
@@ -713,7 +712,7 @@ bool js::temporal::DifferencePlainDateTimeWithRounding(
   }
 
   // Step 4.
-  NormalizedDuration diff;
+  InternalDuration diff;
   if (!DifferenceISODateTime(cx, isoDateTime1, isoDateTime2, calendar, unit,
                              &diff)) {
     return false;
@@ -722,9 +721,9 @@ bool js::temporal::DifferencePlainDateTimeWithRounding(
   // Step 5.
   if (unit == TemporalUnit::Nanosecond) {
     // Step 5.a.
-    NormalizedTimeDuration withDays;
-    if (!Add24HourDaysToNormalizedTimeDuration(cx, diff.time, diff.date.days,
-                                               &withDays)) {
+    TimeDuration withDays;
+    if (!Add24HourDaysToTimeDuration(cx, diff.time, diff.date.days,
+                                     &withDays)) {
       return false;
     }
 
@@ -876,19 +875,19 @@ static bool AddDurationToDateTime(JSContext* cx, TemporalAddDuration operation,
   }
 
   // Step 5.
-  auto normalized = NormalizeDurationWith24HourDays(duration);
+  auto internalDuration = ToInternalDurationRecordWith24HourDays(duration);
 
   // Step 6.
-  auto timeResult = AddTime(dateTime.time(), normalized.time);
+  auto timeResult = AddTime(dateTime.time(), internalDuration.time);
 
   // Step 7.
   auto date = dateTime.date();
 
   // Step 8. (Inlined AdjustDateDurationRecord)
   auto dateDuration = DateDuration{
-      normalized.date.years,
-      normalized.date.months,
-      normalized.date.weeks,
+      internalDuration.date.years,
+      internalDuration.date.months,
+      internalDuration.date.weeks,
       timeResult.days,
   };
   if (!ThrowIfInvalidDuration(cx, dateDuration)) {

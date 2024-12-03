@@ -452,8 +452,8 @@ static bool DifferenceTemporalPlainYearMonth(JSContext* cx,
   // Step 16.
   if (settings.smallestUnit != TemporalUnit::Month ||
       settings.roundingIncrement != Increment{1}) {
-    // Step 15. (Reordered) (Inlined CombineDateAndNormalizedTimeDuration)
-    auto duration = NormalizedDuration{dateDuration, {}};
+    // Step 15. (Reordered) (Inlined CombineDateAndTimeDuration)
+    auto duration = InternalDuration{dateDuration, {}};
 
     // Step 16.a.
     auto destEpochNs = GetUTCEpochNanoseconds(ISODateTime{otherDate, {}});
@@ -591,7 +591,7 @@ static bool AddDurationToYearMonth(JSContext* cx, TemporalAddDuration operation,
   }
 
   // Steps 12.
-  auto durationToAdd = NormalizeDurationWithoutTime(duration);
+  auto durationToAdd = ToDateDurationRecordWithoutTime(duration);
 
   // Step 13.
   ISODate addedDate;

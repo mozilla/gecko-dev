@@ -1165,7 +1165,7 @@ static bool DifferenceTemporalPlainDate(JSContext* cx,
   // Step 12.
   if (!roundingGranularityIsNoop) {
     // Step 10. (Reordered)
-    auto duration = NormalizedDuration{difference, {}};
+    auto duration = InternalDuration{difference, {}};
 
     // Step 12.a.
     auto otherDateTime = ISODateTime{other.date(), {}};
@@ -1229,7 +1229,7 @@ static bool AddDurationToDate(JSContext* cx, TemporalAddDuration operation,
   }
 
   // Step 5.
-  auto dateDuration = NormalizeDurationWithoutTime(duration);
+  auto dateDuration = ToDateDurationRecordWithoutTime(duration);
 
   // Steps 6-7.
   auto overflow = TemporalOverflow::Constrain;

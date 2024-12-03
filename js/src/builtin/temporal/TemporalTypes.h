@@ -660,64 +660,59 @@ inline DateDuration Duration::toDateDuration() const {
 }
 
 /**
- * Normalized time duration with a seconds value in the range
+ * Time duration with a seconds value in the range
  * [-9'007'199'254'740'991, +9'007'199'254'740'991] and a nanoseconds value in
  * the range [0, 999'999'999].
  */
-struct NormalizedTimeDuration final
-    : SecondsAndNanoseconds<NormalizedTimeDuration> {
-  constexpr NormalizedTimeDuration& operator+=(
-      const NormalizedTimeDuration& other) {
+struct TimeDuration final : SecondsAndNanoseconds<TimeDuration> {
+  constexpr TimeDuration& operator+=(const TimeDuration& other) {
     *this = add(*this, other);
     return *this;
   }
 
-  constexpr NormalizedTimeDuration& operator-=(
-      const NormalizedTimeDuration& other) {
+  constexpr TimeDuration& operator-=(const TimeDuration& other) {
     *this = subtract(*this, other);
     return *this;
   }
 
-  constexpr NormalizedTimeDuration operator+(
-      const NormalizedTimeDuration& other) const {
+  constexpr TimeDuration operator+(const TimeDuration& other) const {
     return add(*this, other);
   }
 
-  constexpr NormalizedTimeDuration operator-(
-      const NormalizedTimeDuration& other) const {
+  constexpr TimeDuration operator-(const TimeDuration& other) const {
     return subtract(*this, other);
   }
 
-  constexpr NormalizedTimeDuration operator-() const { return negate(*this); }
+  constexpr TimeDuration operator-() const { return negate(*this); }
 
   /**
-   * Returns the maximum normalized time duration value.
+   * Returns the maximum time duration value.
    */
-  static constexpr NormalizedTimeDuration max() {
+  static constexpr TimeDuration max() {
     constexpr int64_t seconds = 0x1f'ffff'ffff'ffff;
     constexpr int64_t nanos = 999'999'999;
     return {seconds, nanos};
   }
 
   /**
-   * Returns the minimum normalized time duration value.
+   * Returns the minimum time duration value.
    */
-  static constexpr NormalizedTimeDuration min() { return -max(); }
+  static constexpr TimeDuration min() { return -max(); }
 };
 
 /**
- * Duration represents the difference between dates or times. Each duration
- * component is an integer and all components must have the same sign.
+ * Internal duration represents the difference between dates or times. Each
+ * duration component is an integer and all components must have the same sign.
  */
-struct NormalizedDuration final {
+struct InternalDuration final {
   DateDuration date;
-  NormalizedTimeDuration time;
+  TimeDuration time;
 
-  constexpr bool operator==(const NormalizedDuration& other) const {
+  constexpr bool operator==(const InternalDuration& other) const {
     return date == other.date && time == other.time;
   }
 
-  constexpr bool operator!=(const NormalizedDuration& other) const {
+  constexpr bool operator!=(const InternalDuration& other) const {
     return !(*this == other);
   }
 };
