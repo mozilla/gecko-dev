@@ -2235,8 +2235,34 @@ static bool CalendarMonthDayToISOReferenceDate(JSContext* cx,
         return false;
       }
     }
+    MOZ_ASSERT(monthCode != MonthCode{});
+
+    if (overflow == TemporalOverflow::Constrain) {
+      // Call into ICU4X if `day` exceeds the minimum number of days.
+      int32_t minDaysInMonth = CalendarDaysInMonth(calendar, monthCode).first;
+      if (day > minDaysInMonth) {
+        day = capi::ICU4XDate_day_of_month(date.get());
+      }
+    } else {
+      MOZ_ASSERT(overflow == TemporalOverflow::Reject);
+      MOZ_ASSERT(day == int32_t(capi::ICU4XDate_day_of_month(date.get())));
+    }
+  } else {
+    MOZ_ASSERT(monthCode != MonthCode{});
+
+    // Constrain `day` to maximum possible day of the input month.
+    int32_t maxDaysInMonth = CalendarDaysInMonth(calendar, monthCode).second;
+    if (overflow == TemporalOverflow::Constrain) {
+      day = std::min(day, maxDaysInMonth);
+    } else {
+      MOZ_ASSERT(overflow == TemporalOverflow::Reject);
+
+      if (day > maxDaysInMonth) {
+        ReportCalendarFieldOverflow(cx, "day", day);
+        return false;
+      }
+    }
   }
-  MOZ_ASSERT(monthCode != MonthCode{});
 
   // Try years starting from 31 December, 1972.
   constexpr auto isoReferenceDate = PlainDate{1972, 12, 31};
@@ -2250,19 +2276,6 @@ static bool CalendarMonthDayToISOReferenceDate(JSContext* cx,
   int32_t calendarYear;
   if (!CalendarDateYear(cx, calendar, fromIsoDate.get(), &calendarYear)) {
     return false;
-  }
-
-  // Constrain day to maximum possible day for the input month.
-  int32_t daysInMonth = CalendarDaysInMonth(calendar, monthCode).second;
-  if (overflow == TemporalOverflow::Constrain) {
-    day = std::min(day, daysInMonth);
-  } else {
-    MOZ_ASSERT(overflow == TemporalOverflow::Reject);
-
-    if (day > daysInMonth) {
-      ReportCalendarFieldOverflow(cx, "day", day);
-      return false;
-    }
   }
 
   // 10'000 is sufficient to find all possible month-days, even for rare cases
