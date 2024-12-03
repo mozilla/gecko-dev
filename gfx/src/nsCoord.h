@@ -319,6 +319,11 @@ inline nscoord NSFloatPixelsToAppUnits(float aPixels, float aAppUnitsPerPixel) {
   return NSToCoordRoundWithClamp(aPixels * aAppUnitsPerPixel);
 }
 
+inline nscoord NSDoublePixelsToAppUnits(double aPixels,
+                                        double aAppUnitsPerPixel) {
+  return NSToCoordRoundWithClamp(aPixels * aAppUnitsPerPixel);
+}
+
 inline nscoord NSIntPixelsToAppUnits(int32_t aPixels,
                                      int32_t aAppUnitsPerPixel) {
   // The cast to nscoord makes sure we don't overflow if we ever change
