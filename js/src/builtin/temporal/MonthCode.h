@@ -78,14 +78,6 @@ class MonthCode final {
     code_ = static_cast<Code>(month + (isLeapMonth ? toLeapMonth : 0));
   }
 
-  constexpr bool operator==(const MonthCode& other) const {
-    return other.code_ == code_;
-  }
-
-  constexpr bool operator!=(const MonthCode& other) const {
-    return !(*this == other);
-  }
-
   constexpr auto code() const { return code_; }
 
   constexpr int32_t ordinal() const {
@@ -97,6 +89,33 @@ class MonthCode final {
   }
 
   constexpr bool isLeapMonth() const { return code_ >= Code::M01L; }
+
+  constexpr bool operator==(const MonthCode& other) const {
+    return other.code_ == code_;
+  }
+
+  constexpr bool operator!=(const MonthCode& other) const {
+    return !(*this == other);
+  }
+
+  constexpr bool operator<(const MonthCode& other) const {
+    if (ordinal() != other.ordinal()) {
+      return ordinal() < other.ordinal();
+    }
+    return code_ < other.code_;
+  }
+
+  constexpr bool operator>(const MonthCode& other) const {
+    return other < *this;
+  }
+
+  constexpr bool operator<=(const MonthCode& other) const {
+    return !(other < *this);
+  }
+
+  constexpr bool operator>=(const MonthCode& other) const {
+    return !(*this < other);
+  }
 
   constexpr explicit operator std::string_view() const {
     constexpr const char* name =
