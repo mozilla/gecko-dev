@@ -10,7 +10,6 @@ negative:
   type: SyntaxError
 flags:
 - noStrict
-features: []
 ---*/
 eval(`
     function f() {
