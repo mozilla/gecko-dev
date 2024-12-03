@@ -3720,6 +3720,10 @@ class nsDisplayGeneric : public nsPaintedDisplayItem {
   // This override is needed because GetType() for nsDisplayGeneric subclasses
   // does not match TYPE_GENERIC that was used to allocate the object.
   void Destroy(nsDisplayListBuilder* aBuilder) override {
+    if (IsReusedItem()) {
+      aBuilder->RemoveReusedDisplayItem(this);
+    }
+
     this->~nsDisplayGeneric();
     aBuilder->Destroy(DisplayItemType::TYPE_GENERIC, this);
   }
