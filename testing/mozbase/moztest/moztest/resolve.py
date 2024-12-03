@@ -392,13 +392,13 @@ TEST_SUITES = {
         "aliases": ("gv",),
         "build_flavor": "geckoview",
         "mach_command": "geckoview-junit",
-        "kwargs": {"no_install": "false", "mach_test": "true"},
+        "kwargs": {"no_install": False, "mach_test": True},
     },
     "junit": {
         "aliases": ("j",),
         "build_flavor": "geckoview",
         "mach_command": "geckoview-junit",
-        "kwargs": {"no_install": "false", "mach_test": "true"},
+        "kwargs": {"no_install": False, "mach_test": True},
     },
 }
 """Definitions of all test suites and the metadata needed to run and process
