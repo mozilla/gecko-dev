@@ -3645,15 +3645,17 @@ static bool DisassembleToSprinter(JSContext* cx, unsigned argc, Value* vp,
       RootedScript script(cx);
       RootedValue value(cx, p.argv[i]);
       if (value.isObject() && value.toObject().is<ShellModuleObjectWrapper>()) {
-        script = value.toObject()
-                     .as<ShellModuleObjectWrapper>()
-                     .get()
-                     ->maybeScript();
+        auto* module = value.toObject().as<ShellModuleObjectWrapper>().get();
+        script = module->maybeScript();
+        if (!script) {
+          JS_ReportErrorASCII(cx, "module does not have an associated script");
+          return false;
+        }
       } else {
         script = TestingFunctionArgumentToScript(cx, value, fun.address());
-      }
-      if (!script) {
-        return false;
+        if (!script) {
+          return false;
+        }
       }
 
       if (!JSScript::dump(cx, script, p.options, sp)) {
@@ -3897,12 +3899,15 @@ static bool CacheIRHealthReport(JSContext* cx, unsigned argc, Value* vp) {
     if (value.isObject() && value.toObject().is<ShellModuleObjectWrapper>()) {
       script =
           value.toObject().as<ShellModuleObjectWrapper>().get()->maybeScript();
+      if (!script) {
+        JS_ReportErrorASCII(cx, "module does not have an associated script");
+        return false;
+      }
     } else {
       script = TestingFunctionArgumentToScript(cx, args.get(0));
-    }
-
-    if (!script) {
-      return false;
+      if (!script) {
+        return false;
+      }
     }
 
     cih.healthReportForScript(cx, script, js::jit::SpewContext::Shell);
