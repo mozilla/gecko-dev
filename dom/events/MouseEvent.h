@@ -28,6 +28,8 @@ class MouseEvent : public UIEvent {
 
   virtual MouseEvent* AsMouseEvent() override { return this; }
 
+  void DuplicatePrivateData() override;
+
   // Web IDL binding methods
   virtual uint32_t Which(CallerType aCallerType) override {
     return Button() + 1;
@@ -97,12 +99,18 @@ class MouseEvent : public UIEvent {
  protected:
   ~MouseEvent() = default;
 
+  nsIntPoint GetMovementPoint() const;
+
   void InitMouseEvent(const nsAString& aType, bool aCanBubble, bool aCancelable,
                       nsGlobalWindowInner* aView, int32_t aDetail,
                       int32_t aScreenX, int32_t aScreenY, int32_t aClientX,
                       int32_t aClientY, int16_t aButton,
                       EventTarget* aRelatedTarget,
                       const nsAString& aModifiersList);
+
+  CSSIntPoint mDefaultClientPoint;
+  CSSIntPoint mPagePoint;
+  nsIntPoint mMovementPoint;
 };
 
 }  // namespace mozilla::dom

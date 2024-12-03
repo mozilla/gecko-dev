@@ -14,6 +14,12 @@
 
 namespace mozilla::dom {
 
+static nsIntPoint DevPixelsToCSSPixels(const LayoutDeviceIntPoint& aPoint,
+                                       nsPresContext* aContext) {
+  return nsIntPoint(aContext->DevPixelsToIntCSSPixels(aPoint.x),
+                    aContext->DevPixelsToIntCSSPixels(aPoint.y));
+}
+
 MouseEvent::MouseEvent(EventTarget* aOwner, nsPresContext* aPresContext,
                        WidgetMouseEventBase* aEvent)
     : UIEvent(aOwner, aPresContext,
@@ -157,6 +163,15 @@ void MouseEvent::InitNSMouseEvent(const nsAString& aType, bool aCanBubble,
   mouseEventBase->mInputSource = aInputSource;
 }
 
+void MouseEvent::DuplicatePrivateData() {
+  mDefaultClientPoint = Event::GetClientCoords(
+      mPresContext, mEvent, mEvent->mRefPoint, mDefaultClientPoint);
+  mMovementPoint = GetMovementPoint();
+  mPagePoint = Event::GetPageCoords(mPresContext, mEvent, mEvent->mRefPoint,
+                                    mDefaultClientPoint);
+  UIEvent::DuplicatePrivateData();
+}
+
 void MouseEvent::PreventClickEvent() {
   if (WidgetMouseEvent* mouseEvent = mEvent->AsMouseEvent()) {
     mouseEvent->mClickEventPrevented = true;
@@ -290,6 +305,28 @@ CSSIntPoint MouseEvent::OffsetPoint() const {
 
   return Event::GetOffsetCoords(mPresContext, mEvent, mEvent->mRefPoint,
                                 mDefaultClientPoint);
+}
+
+nsIntPoint MouseEvent::GetMovementPoint() const {
+  if (mEvent->mFlags.mIsPositionless) {
+    return nsIntPoint(0, 0);
+  }
+
+  if (mPrivateDataDuplicated || mEventIsInternal) {
+    return mMovementPoint;
+  }
+
+  if (!mEvent || !mEvent->AsGUIEvent()->mWidget ||
+      (mEvent->mMessage != eMouseMove && mEvent->mMessage != ePointerMove)) {
+    // Pointer Lock spec defines that movementX/Y must be zero for all mouse
+    // events except mousemove.
+    return nsIntPoint(0, 0);
+  }
+
+  // Calculate the delta between the last screen point and the current one.
+  nsIntPoint current = DevPixelsToCSSPixels(mEvent->mRefPoint, mPresContext);
+  nsIntPoint last = DevPixelsToCSSPixels(mEvent->mLastRefPoint, mPresContext);
+  return current - last;
 }
 
 bool MouseEvent::AltKey() { return mEvent->AsInputEvent()->IsAlt(); }
