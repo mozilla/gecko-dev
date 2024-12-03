@@ -18,7 +18,6 @@ features:
 info: |
   foo bar  baz
 ---*/
-
 function f() {
     let
     await 0;

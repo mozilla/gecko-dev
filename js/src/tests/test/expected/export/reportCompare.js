@@ -9,7 +9,6 @@ flags:
 esid: pending
 ---*/
 
-
 var a = 42;
 
 // comment
