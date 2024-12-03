@@ -490,10 +490,8 @@ static int32_t CompareISODateTime(const ISODateTime& isoDateTime1,
  */
 static TimeDuration Add24HourDaysToTimeDuration(const TimeDuration& d,
                                                 int32_t days) {
-  constexpr auto secPerDay = ToSeconds(TemporalUnit::Day);
-
   // Step 1.
-  auto result = d + TimeDuration::fromSeconds(int64_t(days) * secPerDay);
+  auto result = d + TimeDuration::fromDays(days);
 
   // Step 2.
   MOZ_ASSERT(result.abs() <= TimeDuration::max());
@@ -828,7 +826,7 @@ static bool AddDurationToDateTime(JSContext* cx, TemporalAddDuration operation,
   auto timeResult = AddTime(dateTime.time(), internalDuration.time);
 
   // Step 7. (Inlined AdjustDateDurationRecord)
-  if (std::abs(timeResult.days) > ((int64_t(1) << 53) / 86400)) {
+  if (std::abs(timeResult.days) > TimeDuration::max().toDays()) {
     JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
                               JSMSG_TEMPORAL_DURATION_INVALID_NORMALIZED_TIME);
     return false;

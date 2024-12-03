@@ -655,8 +655,7 @@ bool js::temporal::GetStartOfDay(JSContext* cx, Handle<TimeZoneValue> timeZone,
   // Step 4.
   MOZ_ASSERT(!timeZone.isOffset());
 
-  constexpr auto oneDay =
-      EpochDuration::fromNanoseconds(ToNanoseconds(TemporalUnit::Day));
+  constexpr auto oneDay = EpochDuration::fromDays(1);
 
   // Step 5.
   auto previousDayEpochNs = GetUTCEpochNanoseconds(isoDateTime) - oneDay;
@@ -1088,8 +1087,7 @@ bool js::temporal::DisambiguatePossibleEpochNanoseconds(
     return false;
   }
 
-  constexpr auto oneDay =
-      EpochDuration::fromNanoseconds(ToNanoseconds(TemporalUnit::Day));
+  constexpr auto oneDay = EpochDuration::fromDays(1);
 
   auto epochNanoseconds = GetUTCEpochNanoseconds(isoDateTime);
 

@@ -158,11 +158,11 @@ struct SecondsAndNanoseconds {
   }
 
   /**
-   * Return the seconds value, rounded towards zero.
+   * Return the 24-hour days value, rounded towards zero.
    */
-  constexpr int64_t toSeconds() const {
+  constexpr int64_t toDays() const {
     auto [sec, nanos] = denormalize();
-    return sec;
+    return sec / ToSeconds(TemporalUnit::Day);
   }
 
   /**
@@ -171,14 +171,6 @@ struct SecondsAndNanoseconds {
   constexpr int64_t toMilliseconds() const {
     auto [sec, nanos] = denormalize();
     return (sec * 1'000) + (nanos / 1'000'000);
-  }
-
-  /**
-   * Return the microseconds value, rounded towards zero.
-   */
-  constexpr int64_t toMicroseconds() const {
-    auto [sec, nanos] = denormalize();
-    return (sec * 1'000'000) + (nanos / 1'000);
   }
 
   /**
@@ -199,16 +191,18 @@ struct SecondsAndNanoseconds {
   }
 
   /**
-   * Create from a minutes value.
+   * Create from a days value.
    */
-  static constexpr Derived fromMinutes(int64_t minutes) {
-    return {minutes * 60, 0};
+  static constexpr Derived fromDays(int64_t days) {
+    return {days * ToSeconds(TemporalUnit::Day), 0};
   }
 
   /**
-   * Create from a seconds value.
+   * Create from a minutes value.
    */
-  static constexpr Derived fromSeconds(int64_t seconds) { return {seconds, 0}; }
+  static constexpr Derived fromMinutes(int64_t minutes) {
+    return {minutes * ToSeconds(TemporalUnit::Minute), 0};
+  }
 
   /**
    * Create from a milliseconds value.
@@ -221,19 +215,6 @@ struct SecondsAndNanoseconds {
       millis += 1'000;
     }
     return {seconds, millis * 1'000'000};
-  }
-
-  /**
-   * Create from a microseconds value.
-   */
-  static constexpr Derived fromMicroseconds(int64_t microseconds) {
-    int64_t seconds = microseconds / 1'000'000;
-    int32_t micros = int32_t(microseconds % 1'000'000);
-    if (micros < 0) {
-      seconds -= 1;
-      micros += 1'000'000;
-    }
-    return {seconds, micros * 1'000};
   }
 
   /**

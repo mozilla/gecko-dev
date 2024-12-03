@@ -2521,11 +2521,12 @@ static bool ZonedDateTime_round(JSContext* cx, const CallArgs& args) {
 
     MOZ_ASSERT(startNs <= thisNs && thisNs < endNs);
     MOZ_ASSERT(dayProgressNs < dayLengthNs);
+    MOZ_ASSERT(dayLengthNs < EpochDuration::fromDays(2));
 
     // Step 18.i. (Inlined RoundTimeDurationToIncrement)
-    auto rounded =
-        RoundNumberToIncrement(dayProgressNs.toNanoseconds(),
-                               dayLengthNs.toNanoseconds(), roundingMode);
+    auto rounded = RoundNumberToIncrement(
+        static_cast<int64_t>(dayProgressNs.toNanoseconds()),
+        static_cast<int64_t>(dayLengthNs.toNanoseconds()), roundingMode);
     auto roundedDaysNs = EpochDuration::fromNanoseconds(rounded);
     MOZ_ASSERT(roundedDaysNs == EpochDuration{} ||
                roundedDaysNs == dayLengthNs);

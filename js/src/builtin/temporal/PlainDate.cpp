@@ -491,8 +491,7 @@ static bool ToTemporalDate(JSContext* cx, Handle<Value> item,
 
 static bool IsValidISODateEpochMilliseconds(int64_t epochMilliseconds) {
   // Epoch nanoseconds limits, adjusted to the range supported by ISODate.
-  constexpr auto oneDay =
-      EpochDuration::fromSeconds(ToSeconds(TemporalUnit::Day));
+  constexpr auto oneDay = EpochDuration::fromDays(1);
   constexpr auto min = EpochNanoseconds::min() - oneDay;
   constexpr auto max = EpochNanoseconds::max() + oneDay;
 
