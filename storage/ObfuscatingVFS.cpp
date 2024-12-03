@@ -445,8 +445,11 @@ static int obfsSectorSize(sqlite3_file* pFile) {
 ** Return the device characteristic flags supported by an obfuscated file.
 */
 static int obfsDeviceCharacteristics(sqlite3_file* pFile) {
+  int dc;
   pFile = ORIGFILE(pFile);
-  return pFile->pMethods->xDeviceCharacteristics(pFile);
+  dc = pFile->pMethods->xDeviceCharacteristics(pFile);
+  return dc & ~SQLITE_IOCAP_SUBPAGE_READ; /* All except the
+                                            SQLITE_IOCAP_SUBPAGE_READ bit */
 }
 
 /* Create a shared memory file mapping */
