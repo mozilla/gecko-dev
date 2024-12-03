@@ -17,8 +17,6 @@ ChromeUtils.defineESModuleGetters(lazy, {
   NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
   RemoteSettings: "resource://services-settings/remote-settings.sys.mjs",
   TargetingContext: "resource://messaging-system/targeting/Targeting.sys.mjs",
-  recordTargetingContext:
-    "resource://nimbus/lib/TargetingContextRecorder.sys.mjs",
 });
 
 ChromeUtils.defineLazyGetter(lazy, "log", () => {
@@ -204,8 +202,6 @@ export class _RemoteSettingsExperimentLoader {
     if (this._hasUpdatedOnce) {
       this._updatingDeferred = Promise.withResolvers();
     }
-
-    lazy.recordTargetingContext();
 
     // Since this method is async, the enabled pref could change between await
     // points. We don't want to half validate experiments, so we cache this to
