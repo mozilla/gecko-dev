@@ -13,15 +13,24 @@ import android.content.Intent.ACTION_VIEW
 import android.content.Intent.ACTION_WEB_SEARCH
 import android.content.Intent.EXTRA_TEXT
 import android.nfc.NfcAdapter.ACTION_NDEF_DISCOVERED
+import kotlinx.coroutines.DelicateCoroutinesApi
+import kotlinx.coroutines.Dispatchers.IO
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
 import mozilla.components.browser.state.state.SessionState
 import mozilla.components.browser.state.state.externalPackage
 import mozilla.components.concept.engine.EngineSession.LoadUrlFlags
 import mozilla.components.feature.search.SearchUseCases
 import mozilla.components.feature.tabs.TabsUseCases
+import mozilla.components.support.base.log.logger.Logger
 import mozilla.components.support.ktx.kotlin.isUrl
 import mozilla.components.support.ktx.kotlin.toNormalizedUrl
 import mozilla.components.support.utils.SafeIntent
 import mozilla.components.support.utils.WebURLFinder
+import java.net.InetAddress
+import java.net.MalformedURLException
+import java.net.URL
+import java.net.UnknownHostException
 
 /**
  * Processor for intents which should trigger session-related actions.
@@ -37,6 +46,8 @@ class TabIntentProcessor(
     private val isPrivate: Boolean = false,
 ) : IntentProcessor {
 
+    private val logger = Logger("TabIntentProcessor")
+
     /**
      * Loads a URL from a view intent in a new session.
      */
@@ -46,6 +57,9 @@ class TabIntentProcessor(
         return if (url.isNullOrEmpty()) {
             false
         } else {
+            // Don't do app-link DNS warmup when DoH is enabled. See Bug 1929005.
+            warmupDNS(url.toNormalizedUrl())
+
             val caller = intent.externalPackage()
             tabsUseCases.selectOrAddTab(
                 url.toNormalizedUrl(),
@@ -54,6 +68,20 @@ class TabIntentProcessor(
                 flags = LoadUrlFlags.external(),
             )
             true
+        }
+    }
+
+    @OptIn(DelicateCoroutinesApi::class) // GlobalScope usage for DNS warmup in the background
+    private fun warmupDNS(normalizedUrl: String) {
+        GlobalScope.launch(IO) {
+            try {
+                val url = URL(normalizedUrl)
+                InetAddress.getByName(url.host)
+            } catch (e: MalformedURLException) {
+                logger.error("The normalized URL is malformed.")
+            } catch (e: UnknownHostException) {
+                logger.error("The IP address of a host could not be determined.")
+            }
         }
     }
 
