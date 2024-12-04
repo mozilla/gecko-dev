@@ -341,7 +341,15 @@ class InputScript {
   bool isStencil() const {
     return script_.match([](const BaseScript* ptr) { return false; },
                          [](const ScriptStencilRef&) { return true; });
-  };
+  }
+
+  ScriptSourceObject* sourceObject() const {
+    return script_.match(
+        [](const BaseScript* ptr) { return ptr->sourceObject(); },
+        [](const ScriptStencilRef&) {
+          return static_cast<ScriptSourceObject*>(nullptr);
+        });
+  }
 };
 
 // Iterator for walking the scope chain, this is identical to ScopeIter but

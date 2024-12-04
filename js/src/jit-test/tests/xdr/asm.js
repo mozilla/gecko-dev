@@ -15,5 +15,6 @@ try {
   evalWithCache(test, {});
 } catch (x) {
   assertEq(x.message.includes("Asm.js is not supported by XDR") ||
+           x.message.includes("Not collecting delazifications") ||
            x.message.includes("XDR encoding failure"), true);
 }

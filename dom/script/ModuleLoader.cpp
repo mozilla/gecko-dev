@@ -236,7 +236,7 @@ nsresult ModuleLoader::CompileJavaScriptModule(
     if (aRequest->IsTextSource() &&
         aRequest->PassedConditionForBytecodeEncoding()) {
       bool alreadyStarted;
-      if (!JS::StartIncrementalEncoding(aCx, std::move(stencil),
+      if (!JS::StartIncrementalEncoding(aCx, aModuleOut, stencil,
                                         alreadyStarted)) {
         return NS_ERROR_FAILURE;
       }
@@ -284,7 +284,7 @@ nsresult ModuleLoader::CompileJavaScriptModule(
   if (aRequest->IsTextSource() &&
       aRequest->PassedConditionForBytecodeEncoding()) {
     bool alreadyStarted;
-    if (!JS::StartIncrementalEncoding(aCx, std::move(stencil),
+    if (!JS::StartIncrementalEncoding(aCx, aModuleOut, stencil,
                                       alreadyStarted)) {
       return NS_ERROR_FAILURE;
     }

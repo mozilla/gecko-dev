@@ -4876,53 +4876,6 @@ JS_PUBLIC_API void JS::detail::AssertArgumentsAreSane(JSContext* cx,
 }
 #endif /* JS_DEBUG */
 
-JS_PUBLIC_API bool JS::FinishIncrementalEncoding(JSContext* cx,
-                                                 JS::HandleScript script,
-                                                 TranscodeBuffer& buffer) {
-  if (!script) {
-    return false;
-  }
-  if (!script->scriptSource()->xdrFinalizeEncoder(cx, buffer)) {
-    return false;
-  }
-  return true;
-}
-
-JS_PUBLIC_API bool JS::FinishIncrementalEncoding(JSContext* cx,
-                                                 JS::HandleScript script,
-                                                 JS::Stencil** stencilOut) {
-  if (!script) {
-    return false;
-  }
-  if (!script->scriptSource()->xdrFinalizeEncoder(cx, stencilOut)) {
-    return false;
-  }
-  return true;
-}
-
-JS_PUBLIC_API bool JS::FinishIncrementalEncoding(JSContext* cx,
-                                                 JS::Handle<JSObject*> module,
-                                                 TranscodeBuffer& buffer) {
-  if (!module->as<ModuleObject>()
-           .scriptSourceObject()
-           ->source()
-           ->xdrFinalizeEncoder(cx, buffer)) {
-    return false;
-  }
-  return true;
-}
-
-JS_PUBLIC_API void JS::AbortIncrementalEncoding(JS::HandleScript script) {
-  if (!script) {
-    return;
-  }
-  script->scriptSource()->xdrAbortEncoder();
-}
-
-JS_PUBLIC_API void JS::AbortIncrementalEncoding(JS::Handle<JSObject*> module) {
-  module->as<ModuleObject>().scriptSourceObject()->source()->xdrAbortEncoder();
-}
-
 bool JS::IsWasmModuleObject(HandleObject obj) {
   return obj->canUnwrapAs<WasmModuleObject>();
 }

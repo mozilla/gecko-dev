@@ -205,14 +205,20 @@ extern JS_PUBLIC_API TranscodeResult
 DecodeStencil(JS::FrontendContext* fc, const ReadOnlyDecodeOptions& options,
               const TranscodeRange& range, Stencil** stencilOut);
 
-// Register an encoder on its script source, such that all functions can be
-// encoded as they are delazified.
+// Start collecting delazifications for given script or module's source object.
 //
-// If the incremental encoding is already started for given stencil's script
-// source, alreadyStarted is set to true and returns true.
-// alreadyStarted is set to false otherwise.
+// If the source object is already collecting delazifications, alreadyStarted is
+// set to true and returns true. alreadyStarted is set to false otherwise.
+//
+// TODO: Rename public APIs.
 extern JS_PUBLIC_API bool StartIncrementalEncoding(JSContext* cx,
-                                                   RefPtr<Stencil>&& stencil,
+                                                   JS::Handle<JSScript*> script,
+                                                   Stencil* stencil,
+                                                   bool& alreadyStarted);
+
+extern JS_PUBLIC_API bool StartIncrementalEncoding(JSContext* cx,
+                                                   JS::Handle<JSObject*> module,
+                                                   Stencil* stencil,
                                                    bool& alreadyStarted);
 
 }  // namespace JS

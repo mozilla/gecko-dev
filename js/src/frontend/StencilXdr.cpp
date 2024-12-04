@@ -1483,35 +1483,6 @@ JS::TranscodeResult JS::EncodeStencil(JSContext* cx, JS::Stencil* stencil,
   return JS::TranscodeResult::Ok;
 }
 
-void StencilIncrementalEncoderPtr::reset() {
-  if (merger_) {
-    js_delete(merger_);
-  }
-  merger_ = nullptr;
-}
-
-bool StencilIncrementalEncoderPtr::setInitial(
-    JSContext* cx,
-    UniquePtr<frontend::ExtensibleCompilationStencil>&& initial) {
-  MOZ_ASSERT(!merger_);
-
-  AutoReportFrontendContext fc(cx);
-  merger_ = fc.getAllocator()->new_<frontend::CompilationStencilMerger>();
-  if (!merger_) {
-    return false;
-  }
-
-  return merger_->setInitial(
-      &fc,
-      std::forward<UniquePtr<frontend::ExtensibleCompilationStencil>>(initial));
-}
-
-bool StencilIncrementalEncoderPtr::addDelazification(
-    JSContext* cx, const frontend::CompilationStencil& delazification) {
-  AutoReportFrontendContext fc(cx);
-  return merger_->addDelazification(&fc, delazification);
-}
-
 XDRResult XDRStencilDecoder::codeStencil(
     const JS::ReadOnlyDecodeOptions& options,
     frontend::CompilationStencil& stencil) {

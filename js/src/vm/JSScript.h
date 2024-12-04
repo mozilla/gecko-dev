@@ -86,6 +86,7 @@ namespace frontend {
 struct CompilationStencil;
 struct ExtensibleCompilationStencil;
 struct CompilationGCOutput;
+struct InitialStencilAndDelazifications;
 struct CompilationStencilMerger;
 class StencilXDR;
 }  // namespace frontend
@@ -190,29 +191,6 @@ using ScriptFinalWarmUpCountMap =
     GCRekeyableHashMap<HeapPtr<BaseScript*>, ScriptFinalWarmUpCountEntry,
                        DefaultHasher<HeapPtr<BaseScript*>>, SystemAllocPolicy>;
 #endif
-
-// As we execute JS sources that used lazy parsing, we may generate additional
-// bytecode that we would like to include in caches if they are being used.
-// There is a dependency cycle between JSScript / ScriptSource /
-// CompilationStencil for this scenario so introduce this smart-ptr wrapper to
-// avoid needing the full details of the stencil-merger in this file.
-class StencilIncrementalEncoderPtr {
- public:
-  frontend::CompilationStencilMerger* merger_ = nullptr;
-
-  StencilIncrementalEncoderPtr() = default;
-  ~StencilIncrementalEncoderPtr() { reset(); }
-
-  bool hasEncoder() const { return bool(merger_); }
-
-  void reset();
-
-  bool setInitial(JSContext* cx,
-                  UniquePtr<frontend::ExtensibleCompilationStencil>&& initial);
-
-  bool addDelazification(JSContext* cx,
-                         const frontend::CompilationStencil& delazification);
-};
 
 struct ScriptSourceChunk {
   ScriptSource* ss = nullptr;
@@ -596,11 +574,6 @@ class ScriptSource {
 
   SharedImmutableTwoByteString displayURL_;
   SharedImmutableTwoByteString sourceMapURL_;
-
-  // The bytecode cache encoder is used to encode only the content of function
-  // which are delazified.  If this value is not nullptr, then each delazified
-  // function should be recorded before their first execution.
-  StencilIncrementalEncoderPtr xdrEncoder_;
 
   // A string indicating how this source code was introduced into the system.
   // This is a constant, statically allocated C string, so does not need memory
@@ -1079,27 +1052,6 @@ class ScriptSource {
     MOZ_ASSERT(offset <= (uint32_t)INT32_MAX);
     introductionOffset_.emplace(offset);
   }
-
-  // Return wether an XDR encoder is present or not.
-  bool hasEncoder() const { return xdrEncoder_.hasEncoder(); }
-
-  [[nodiscard]] bool startIncrementalEncoding(
-      JSContext* cx,
-      UniquePtr<frontend::ExtensibleCompilationStencil>&& initial,
-      bool& alreadyStarted);
-
-  [[nodiscard]] bool addDelazificationToIncrementalEncoding(
-      JSContext* cx, const frontend::CompilationStencil& stencil);
-
-  // Linearize the encoded content in the |buffer| provided as argument to
-  // |xdrEncodeTopLevel|, and free the XDR encoder.  In case of errors, the
-  // |buffer| is considered undefined.
-  bool xdrFinalizeEncoder(JSContext* cx, JS::TranscodeBuffer& buffer);
-
-  bool xdrFinalizeEncoder(JSContext* cx, JS::Stencil** stencilOut);
-
-  // Discard the incremental encoding data and free the XDR encoder.
-  void xdrAbortEncoder();
 };
 
 // [SMDOC] ScriptSourceObject
@@ -1176,8 +1128,28 @@ class ScriptSourceObject : public NativeObject {
     ELEMENT_PROPERTY_SLOT,
     INTRODUCTION_SCRIPT_SLOT,
     PRIVATE_SLOT,
+    STENCILS_SLOT,
     RESERVED_SLOTS
   };
+
+ public:
+  // Associate stencils to this ScriptSourceObject and start collecting the
+  // on-demand delazification result into the stencils.
+  void setStencils(
+      already_AddRefed<frontend::InitialStencilAndDelazifications> stencils);
+
+  // Return the associated stencils if any.
+  // Returns nullptr if stencils is not associated
+  frontend::InitialStencilAndDelazifications* maybeGetStencils();
+
+  // Return the associated stencils if any and stop collecting the on-demand
+  // delazifications.
+  // Returns nullptr if stencils is not associated
+  already_AddRefed<frontend::InitialStencilAndDelazifications>
+  maybeStealStencils();
+
+  // Stop collecting the on-demand delazifications.
+  void clearStencils();
 };
 
 // ScriptWarmUpData represents a pointer-sized field in BaseScript that stores

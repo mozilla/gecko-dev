@@ -1330,7 +1330,7 @@ ModuleObject* frontend::CompileModule(JSContext* cx, FrontendContext* fc,
 }
 
 static bool InstantiateLazyFunction(JSContext* cx, CompilationInput& input,
-                                    CompilationStencil& stencil,
+                                    const CompilationStencil& stencil,
                                     BytecodeCompilerOutput& output) {
   // We do check the type, but do not write anything to it as this is not
   // necessary for lazy function, as the script is patched inside the
@@ -1342,12 +1342,6 @@ static bool InstantiateLazyFunction(JSContext* cx, CompilationInput& input,
       static_cast<uint32_t>(input.immutableFlags());
 
   Rooted<CompilationGCOutput> gcOutput(cx);
-
-  if (input.source->hasEncoder()) {
-    if (!input.source->addDelazificationToIncrementalEncoding(cx, stencil)) {
-      return false;
-    }
-  }
 
   if (!CompilationStencil::instantiateStencils(cx, input, stencil,
                                                gcOutput.get())) {
@@ -1409,6 +1403,11 @@ static GetCachedResult GetCachedLazyFunctionStencilMaybeInstantiate(
   }
 
   MOZ_ASSERT(maybeCx);
+
+  // NOTE: The concurrent delazification case doesn't store the delazification
+  //       to the script source right now.  This will be changed once the
+  //       concurrent delazification is refactored to directly use the
+  //       InitialStencilAndDelazifications.
 
   if (!InstantiateLazyFunction(maybeCx, input, *stencil, output)) {
     return GetCachedResult::Error;
@@ -1539,9 +1538,35 @@ static bool CompileLazyFunctionToStencilMaybeInstantiate(
     output.as<RefPtr<CompilationStencil>>() = std::move(stencil);
   } else {
     MOZ_ASSERT(maybeCx);
-    BorrowingCompilationStencil borrowingStencil(compilationState);
-    if (!InstantiateLazyFunction(maybeCx, input, borrowingStencil, output)) {
-      return false;
+    if (input.lazyOuterScript().sourceObject() &&
+        input.lazyOuterScript().sourceObject()->maybeGetStencils()) {
+      RefPtr<frontend::InitialStencilAndDelazifications> stencils =
+          input.lazyOuterScript().sourceObject()->maybeGetStencils();
+
+      auto extensibleStencil =
+          maybeCx->make_unique<frontend::ExtensibleCompilationStencil>(
+              std::move(compilationState));
+      if (!extensibleStencil) {
+        return false;
+      }
+
+      RefPtr<CompilationStencil> stencil =
+          maybeCx->new_<CompilationStencil>(std::move(extensibleStencil));
+      if (!stencil) {
+        return false;
+      }
+
+      const CompilationStencil* borrowed =
+          stencils->storeDelazification(std::move(stencil));
+
+      if (!InstantiateLazyFunction(maybeCx, input, *borrowed, output)) {
+        return false;
+      }
+    } else {
+      BorrowingCompilationStencil borrowingStencil(compilationState);
+      if (!InstantiateLazyFunction(maybeCx, input, borrowingStencil, output)) {
+        return false;
+      }
     }
   }
 

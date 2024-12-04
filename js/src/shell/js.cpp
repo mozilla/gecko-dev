@@ -2900,8 +2900,7 @@ static bool Evaluate(JSContext* cx, unsigned argc, Value* vp) {
 
     if (saveIncrementalBytecode) {
       bool alreadyStarted;
-      if (!JS::StartIncrementalEncoding(cx, std::move(stencil),
-                                        alreadyStarted)) {
+      if (!JS::StartIncrementalEncoding(cx, script, stencil, alreadyStarted)) {
         return false;
       }
       MOZ_ASSERT(!alreadyStarted);

@@ -2762,7 +2762,7 @@ static void InstantiateStencil(
   }
 
   if (aEncodeBytecode) {
-    if (!JS::StartIncrementalEncoding(aCx, std::move(aStencil),
+    if (!JS::StartIncrementalEncoding(aCx, script, aStencil,
                                       incrementalEncodingAlreadyStarted)) {
       aRv.NoteJSContextException(aCx);
       return;

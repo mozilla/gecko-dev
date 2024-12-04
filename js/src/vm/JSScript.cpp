@@ -30,8 +30,8 @@
 #include "jstypes.h"
 
 #include "frontend/BytecodeSection.h"
-#include "frontend/CompilationStencil.h"  // frontend::CompilationStencil
-#include "frontend/FrontendContext.h"     // AutoReportFrontendContext
+#include "frontend/CompilationStencil.h"  // frontend::CompilationStencil, frontend::InitialStencilAndDelazifications
+#include "frontend/FrontendContext.h"  // AutoReportFrontendContext
 #include "frontend/ParseContext.h"
 #include "frontend/SourceNotes.h"  // SrcNote, SrcNoteType, SrcNoteIterator
 #include "frontend/Stencil.h"  // DumpFunctionFlagsItems, DumpImmutableScriptFlags
@@ -694,6 +694,8 @@ void ScriptSourceObject::finalize(JS::GCContext* gcx, JSObject* obj) {
 
   // Clear the private value, calling the release hook if necessary.
   sso->setPrivate(gcx->runtime(), UndefinedValue());
+
+  sso->clearStencils();
 }
 
 static const JSClassOps ScriptSourceObjectClassOps = {
@@ -730,6 +732,8 @@ ScriptSourceObject* ScriptSourceObject::create(JSContext* cx,
   // them.
   obj->initReservedSlot(ELEMENT_PROPERTY_SLOT, MagicValue(JS_GENERIC_MAGIC));
   obj->initReservedSlot(INTRODUCTION_SCRIPT_SLOT, MagicValue(JS_GENERIC_MAGIC));
+
+  obj->initReservedSlot(STENCILS_SLOT, UndefinedValue());
 
   return obj;
 }
@@ -1789,102 +1793,42 @@ void ScriptSource::addSizeOfIncludingThis(mozilla::MallocSizeOf mallocSizeOf,
   info->numScripts++;
 }
 
-bool ScriptSource::startIncrementalEncoding(
-    JSContext* cx, UniquePtr<frontend::ExtensibleCompilationStencil>&& initial,
-    bool& alreadyStarted) {
-  // We don't support asm.js in XDR.
-  // Encoding failures are reported by the xdrFinalizeEncoder function.
-  if (initial->asmJS) {
-    alreadyStarted = false;
-    return true;
+frontend::InitialStencilAndDelazifications*
+ScriptSourceObject::maybeGetStencils() {
+  Value stencilsVal = getReservedSlot(STENCILS_SLOT);
+  if (stencilsVal.isUndefined()) {
+    return nullptr;
   }
 
-  if (xdrEncoder_.hasEncoder()) {
-    alreadyStarted = true;
-    return true;
-  }
-  alreadyStarted = false;
-
-  // Remove the reference to the source, to avoid the circular reference.
-  initial->source = nullptr;
-
-  AutoIncrementalTimer timer(cx->realm()->timers.xdrEncodingTime);
-  auto failureCase = mozilla::MakeScopeExit([&] { xdrEncoder_.reset(); });
-
-  if (!xdrEncoder_.setInitial(
-          cx, std::forward<UniquePtr<frontend::ExtensibleCompilationStencil>>(
-                  initial))) {
-    // On encoding failure, let failureCase destroy encoder and return true
-    // to avoid failing any currently executing script.
-    return false;
-  }
-
-  failureCase.release();
-  return true;
+  return reinterpret_cast<frontend::InitialStencilAndDelazifications*>(
+      stencilsVal.toPrivate());
 }
 
-bool ScriptSource::addDelazificationToIncrementalEncoding(
-    JSContext* cx, const frontend::CompilationStencil& stencil) {
-  MOZ_ASSERT(hasEncoder());
-  AutoIncrementalTimer timer(cx->realm()->timers.xdrEncodingTime);
-  auto failureCase = mozilla::MakeScopeExit([&] { xdrEncoder_.reset(); });
-
-  if (!xdrEncoder_.addDelazification(cx, stencil)) {
-    // On encoding failure, let failureCase destroy encoder and return true
-    // to avoid failing any currently executing script.
-    return false;
+already_AddRefed<frontend::InitialStencilAndDelazifications>
+ScriptSourceObject::maybeStealStencils() {
+  auto* stencils = maybeGetStencils();
+  if (!stencils) {
+    return nullptr;
   }
 
-  failureCase.release();
-  return true;
+  setReservedSlot(STENCILS_SLOT, UndefinedValue());
+  return already_AddRefed(stencils);
 }
 
-bool ScriptSource::xdrFinalizeEncoder(JSContext* cx,
-                                      JS::TranscodeBuffer& buffer) {
-  if (!hasEncoder()) {
-    JS_ReportErrorASCII(cx, "XDR encoding failure");
-    return false;
+void ScriptSourceObject::clearStencils() {
+  auto* stencils = maybeGetStencils();
+  if (!stencils) {
+    return;
   }
 
-  auto cleanup = mozilla::MakeScopeExit([&] { xdrEncoder_.reset(); });
-
-  AutoReportFrontendContext fc(cx);
-  XDRStencilEncoder encoder(&fc, buffer);
-
-  frontend::BorrowingCompilationStencil borrowingStencil(
-      xdrEncoder_.merger_->getResult());
-  XDRResult res = encoder.codeStencil(this, borrowingStencil);
-  if (res.isErr()) {
-    if (JS::IsTranscodeFailureResult(res.unwrapErr())) {
-      fc.clearAutoReport();
-      JS_ReportErrorASCII(cx, "XDR encoding failure");
-    }
-    return false;
-  }
-  return true;
+  stencils->Release();
+  setReservedSlot(STENCILS_SLOT, UndefinedValue());
 }
 
-bool ScriptSource::xdrFinalizeEncoder(JSContext* cx, JS::Stencil** stencilOut) {
-  if (!hasEncoder()) {
-    JS_ReportErrorASCII(cx, "XDR encoding failure");
-    return false;
-  }
-
-  auto cleanup = mozilla::MakeScopeExit([&] { xdrEncoder_.reset(); });
-
-  UniquePtr<frontend::ExtensibleCompilationStencil> extensibleStencil =
-      xdrEncoder_.merger_->takeResult();
-  extensibleStencil->source = this;
-  RefPtr<frontend::CompilationStencil> stencil =
-      cx->new_<frontend::CompilationStencil>(std::move(extensibleStencil));
-  if (!stencil) {
-    return false;
-  }
-  stencil.forget(stencilOut);
-  return true;
+void ScriptSourceObject::setStencils(
+    already_AddRefed<frontend::InitialStencilAndDelazifications> stencils) {
+  initReservedSlot(STENCILS_SLOT, PrivateValue(stencils.take()));
 }
-
-void ScriptSource::xdrAbortEncoder() { xdrEncoder_.reset(); }
 
 template <typename Unit>
 [[nodiscard]] bool ScriptSource::initializeUnretrievableUncompressedSource(
