@@ -47,9 +47,7 @@ Cr-Branched-From: 7b1b7a0f51593df7a1a802f489d6a2fb14195bcc-refs/heads/main@{#432
  media/engine/webrtc_video_engine.cc          | 14 ++++----
  media/engine/webrtc_video_engine_unittest.cc | 38 ++++++++++++++++++++
  pc/peer_connection.cc                        |  7 ----
- video/receive_statistics_proxy.cc            | 29 ++++++++-------
- video/receive_statistics_proxy_unittest.cc   |  2 ++
- 5 files changed, 63 insertions(+), 27 deletions(-)
+ 3 files changed, 45 insertions(+), 14 deletions(-)
 
 diff --git a/media/engine/webrtc_video_engine.cc b/media/engine/webrtc_video_engine.cc
 index b9c6c61ddf..a57af55409 100644
@@ -157,58 +155,3 @@ index a6eda6f602..1171bc8929 100644
    config.transport_observer = this;
    config.rtcp_handler = InitializeRtcpCallback();
    config.un_demuxable_packet_handler = InitializeUnDemuxablePacketHandler();
-diff --git a/video/receive_statistics_proxy.cc b/video/receive_statistics_proxy.cc
-index e74968bdfd..671416a007 100644
---- a/video/receive_statistics_proxy.cc
-+++ b/video/receive_statistics_proxy.cc
-@@ -825,21 +825,24 @@ void ReceiveStatisticsProxy::OnRttUpdate(int64_t avg_rtt_ms) {
- 
- void ReceiveStatisticsProxy::OnCorruptionScore(double corruption_score,
-                                                VideoContentType content_type) {
--  RTC_DCHECK_RUN_ON(&main_thread_);
-+  worker_thread_->PostTask(SafeTask(task_safety_.flag(), [corruption_score,
-+                                                          content_type, this] {
-+    RTC_DCHECK_RUN_ON(&main_thread_);
- 
--  if (!stats_.corruption_score_sum.has_value()) {
--    RTC_DCHECK(!stats_.corruption_score_squared_sum.has_value());
--    RTC_DCHECK_EQ(stats_.corruption_score_count, 0);
--    stats_.corruption_score_sum = 0;
--    stats_.corruption_score_squared_sum = 0;
--  }
--  *stats_.corruption_score_sum += corruption_score;
--  *stats_.corruption_score_squared_sum += corruption_score * corruption_score;
--  ++stats_.corruption_score_count;
-+    if (!stats_.corruption_score_sum.has_value()) {
-+      RTC_DCHECK(!stats_.corruption_score_squared_sum.has_value());
-+      RTC_DCHECK_EQ(stats_.corruption_score_count, 0);
-+      stats_.corruption_score_sum = 0;
-+      stats_.corruption_score_squared_sum = 0;
-+    }
-+    *stats_.corruption_score_sum += corruption_score;
-+    *stats_.corruption_score_squared_sum += corruption_score * corruption_score;
-+    ++stats_.corruption_score_count;
- 
--  ContentSpecificStats* content_specific_stats =
--      &content_specific_stats_[content_type];
--  content_specific_stats->corruption_score.AddSample(corruption_score);
-+    ContentSpecificStats* content_specific_stats =
-+        &content_specific_stats_[content_type];
-+    content_specific_stats->corruption_score.AddSample(corruption_score);
-+  }));
- }
- 
- void ReceiveStatisticsProxy::DecoderThreadStarting() {
-diff --git a/video/receive_statistics_proxy_unittest.cc b/video/receive_statistics_proxy_unittest.cc
-index 22bed590ef..565d076fdb 100644
---- a/video/receive_statistics_proxy_unittest.cc
-+++ b/video/receive_statistics_proxy_unittest.cc
-@@ -555,6 +555,8 @@ TEST_F(ReceiveStatisticsProxyTest, GetStatsReportsOnCorruptionScore) {
-         VideoContentType::UNSPECIFIED);
-   }
- 
-+  time_controller_.AdvanceTime(TimeDelta::Zero());
-+
-   VideoReceiveStreamInterface::Stats stats = statistics_proxy_->GetStats();
-   EXPECT_THAT(kExpectedCorruptionScoreSum,
-               DoubleEq(*stats.corruption_score_sum));
