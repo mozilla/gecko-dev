@@ -228,7 +228,10 @@ class OnboardingFragment : Fragment() {
                 throw NotImplementedError()
             },
             onSkipCustomizeToolbarClick = {
-                throw NotImplementedError()
+                telemetryRecorder.onSkipToolbarPlacementClick(
+                    pagesToDisplay.telemetrySequenceId(),
+                    pagesToDisplay.sequencePosition(OnboardingPageUiData.Type.TOOLBAR_PLACEMENT),
+                )
             },
         )
     }
