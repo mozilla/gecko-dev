@@ -11,19 +11,25 @@ body {
 }
 
 #header {
+  align-items: center;
   background-color: var(--sidebar-background-color);
   display: flex;
   flex-direction: row;
+  padding-inline: var(--space-large);
 
   ::part(button),
   select {
-    border-radius: 0;
+    border-radius: var(--border-radius-small);
     margin: 0;
+  }
+
+  moz-button:first-of-type {
+    margin-inline-end: var(--space-xsmall);
   }
 
   select {
     --caret-anchor: left;
-    --caret-padding: var(--space-medium);
+    --caret-padding: var(--space-xsmall);
     --end-padding: 0px;
     --start-padding: calc(var(--caret-padding) + var(--background-image-width) + var(--space-xsmall));
     background-color: var(--sidebar-background-color);
@@ -31,6 +37,7 @@ body {
     color: var(--sidebar-text-color);
     flex: 1;
     height: var(--button-size-icon);
+    margin-block: var(--space-xsmall);
 
     &:hover {
       background-color: var(--button-background-color-ghost-hover);
