@@ -199,14 +199,20 @@ async function testLanguageList(
     `Language list empty in ${sectionName} Translate list`
   );
 
-  const menuOptions = menuPopup.children;
+  const menuItems = menuPopup.children;
 
   info(
     "Click each language on the menulist to add it into the Always/Never list."
   );
-  for (const option of menuOptions) {
-    let clickMenu = BrowserTestUtils.waitForEvent(option, "command");
-    option.doCommand();
+  for (const menuItem of menuItems) {
+    menuList.open = true;
+
+    let clickMenu = BrowserTestUtils.waitForEvent(
+      menuList.querySelector("menupopup"),
+      "popuphidden"
+    );
+    click(menuItem);
+    menuList.querySelector("menupopup").hidePopup();
     await clickMenu;
 
     /** Languages are always added on the top, so check the firstChild
@@ -215,7 +221,7 @@ async function testLanguageList(
      * which is compared with the menulist display name that is selected
      */
     let langElem = languageList.firstElementChild;
-    const displayName = getIntlDisplayName(option.value);
+    const displayName = getIntlDisplayName(menuItem.value);
     is(
       langElem.querySelector("label").innerText,
       displayName,

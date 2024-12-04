@@ -98,8 +98,14 @@ let gTranslationsPane = {
       }
     );
 
-    this.elements.alwaysTranslateMenuList.addEventListener("command", this);
-    this.elements.neverTranslateMenuList.addEventListener("command", this);
+    // Keyboard navigation support.
+    this.elements.alwaysTranslateMenuList.addEventListener("keydown", this);
+    this.elements.alwaysTranslateMenuPopup.addEventListener(
+      "popuphidden",
+      this
+    );
+    this.elements.neverTranslateMenuList.addEventListener("keydown", this);
+    this.elements.neverTranslateMenuPopup.addEventListener("popuphidden", this);
 
     // Get the settings from the preferences into the translations.js
     this.supportedLanguages = await TranslationsParent.getSupportedLanguages();
@@ -123,6 +129,10 @@ let gTranslationsPane = {
 
     // Build the HTML elements
     this.buildLanguageDropDowns();
+    // Keyboard navigation support.
+    this.elements.alwaysTranslateLanguageList.addEventListener("keydown", this);
+    this.elements.neverTranslateLanguageList.addEventListener("keydown", this);
+    this.elements.neverTranslateSiteList.addEventListener("keydown", this);
     this.populateLanguageList(ALWAYS_TRANSLATE_LANGS_PREF);
     this.populateLanguageList(NEVER_TRANSLATE_LANGS_PREF);
     this.populateSiteList();
@@ -236,7 +246,15 @@ let gTranslationsPane = {
     const allLangElement = downloadLanguageList.firstElementChild;
     let allLangButton = allLangElement.querySelector("moz-button");
 
+    // The first element is selected by default when keyboard navigation enters this list
+    downloadLanguageList.setAttribute(
+      "aria-activedescendant",
+      allLangElement.id
+    );
+    // Keyboard navigation support.
+    downloadLanguageList.addEventListener("keydown", this);
     allLangButton.addEventListener("click", this);
+    allLangElement.addEventListener("keydown", this);
 
     for (const language of this.supportedLanguageTagsNames) {
       const downloadSize = this.downloadPhases.get(language.langTag).size;
@@ -271,11 +289,10 @@ let gTranslationsPane = {
             language.displayName
           );
 
-      const languageElement = this.createLangElement([
-        mozButton,
-        languageLabel,
-        languageSize,
-      ]);
+      const languageElement = this.createLangElement(
+        [mozButton, languageLabel, languageSize],
+        "translations-settings-download-" + language.langTag + "-language-id"
+      );
       downloadLanguageList.appendChild(languageElement);
     }
 
@@ -305,15 +322,24 @@ let gTranslationsPane = {
     }
 
     switch (event.type) {
-      case "command":
+      case "keydown":
+        // Keyboard navigation support.
+        this.handleKeys(event);
+        break;
+      case "popuphidden":
+        // Handle Menulist selection through pointing device
         if (
-          eventNodeParent.id === "translations-settings-always-translate-popup"
+          eventNodeParent.id === "translations-settings-always-translate-list"
         ) {
-          this.handleAddAlwaysTranslateLanguage(event);
+          this.handleAddAlwaysTranslateLanguage(
+            event.target.parentNode.getAttribute("value")
+          );
         } else if (
-          eventNodeParent.id === "translations-settings-never-translate-popup"
+          eventNodeParent.id === "translations-settings-never-translate-list"
         ) {
-          this.handleAddNeverTranslateLanguage(event);
+          this.handleAddNeverTranslateLanguage(
+            event.target.parentNode.getAttribute("value")
+          );
         }
         break;
       case "click":
@@ -364,21 +390,86 @@ let gTranslationsPane = {
     }
   },
 
+  // Keyboard navigation support.
+  handleKeys(event) {
+    switch (event.key) {
+      case "Enter":
+        // Handle Menulist selection through keyboard
+        if (event.target.id === "translations-settings-always-translate-list") {
+          this.handleAddAlwaysTranslateLanguage(
+            event.target.getAttribute("value")
+          );
+        } else if (
+          event.target.id === "translations-settings-never-translate-list"
+        ) {
+          this.handleAddNeverTranslateLanguage(
+            event.target.getAttribute("value")
+          );
+        }
+        break;
+      case "ArrowUp":
+        if (
+          event.target.classList.contains("translations-settings-language-list")
+        ) {
+          event.target.children[0].querySelector("moz-button").focus();
+          // Update the selected element on the list according to the keyboard navigation by the user
+          event.target.setAttribute(
+            "aria-activedescendant",
+            event.target.children[0].id
+          );
+        } else if (event.target.tagName === "moz-button") {
+          if (event.target.parentNode.previousElementSibling) {
+            event.target.parentNode.previousElementSibling
+              .querySelector("moz-button")
+              .focus();
+            // Update the selected element on the list according to the keyboard navigation by the user
+            event.target.parentNode.parentNode.setAttribute(
+              "aria-activedescendant",
+              event.target.parentNode.previousElementSibling.id
+            );
+            event.preventDefault();
+          }
+        }
+        break;
+      case "ArrowDown":
+        if (
+          event.target.classList.contains("translations-settings-language-list")
+        ) {
+          event.target.children[0].querySelector("moz-button").focus();
+          // Update the selected element on the list according to the keyboard navigation by the user
+          event.target.setAttribute(
+            "aria-activedescendant",
+            event.target.children[0].id
+          );
+        } else if (event.target.tagName === "moz-button") {
+          if (event.target.parentNode.nextElementSibling) {
+            event.target.parentNode.nextElementSibling
+              .querySelector("moz-button")
+              .focus();
+            // Update the selected element on the list according to the keyboard navigation by the user
+            event.target.parentNode.parentNode.setAttribute(
+              "aria-activedescendant",
+              event.target.parentNode.nextElementSibling.id
+            );
+            event.preventDefault();
+          }
+        }
+        break;
+    }
+  },
+
   /**
    * Event handler when the user wants to add a language to
    * Always translate settings preferences list.
    * @param {Event} event
    */
-  async handleAddAlwaysTranslateLanguage(event) {
+  async handleAddAlwaysTranslateLanguage(langTag) {
     // After a language is selected the menulist button display will be set to the
     // selected langauge. After processing the button event the
     // data-l10n-id of the menulist button is restored to "Add Language"
 
     const { alwaysTranslateMenuList } = this.elements;
-    TranslationsParent.addLangTagToPref(
-      event.target.getAttribute("value"),
-      ALWAYS_TRANSLATE_LANGS_PREF
-    );
+    TranslationsParent.addLangTagToPref(langTag, ALWAYS_TRANSLATE_LANGS_PREF);
     await document.l10n.translateElements([alwaysTranslateMenuList]);
   },
 
@@ -387,17 +478,14 @@ let gTranslationsPane = {
    * Never translate settings preferences list.
    * @param {Event} event
    */
-  async handleAddNeverTranslateLanguage(event) {
+  async handleAddNeverTranslateLanguage(langTag) {
     // After a language is selected the menulist button display will be set to the
     // selected langauge. After processing the button event the
     // data-l10n-id of the menulist button is restored to "Add Language"
 
     const { neverTranslateMenuList } = this.elements;
 
-    TranslationsParent.addLangTagToPref(
-      event.target.getAttribute("value"),
-      NEVER_TRANSLATE_LANGS_PREF
-    );
+    TranslationsParent.addLangTagToPref(langTag, NEVER_TRANSLATE_LANGS_PREF);
     await document.l10n.translateElements([neverTranslateMenuList]);
   },
 
@@ -494,10 +582,19 @@ let gTranslationsPane = {
       site
     );
 
-    const languageElement = this.createLangElement([mozButton, languageLabel]);
+    // Create unique id using site name
+    const languageElement = this.createLangElement(
+      [mozButton, languageLabel],
+      "translations-settings-" + site + "-id"
+    );
     neverTranslateSiteList.insertBefore(
       languageElement,
       neverTranslateSiteList.firstElementChild
+    );
+    // The first element is selected by default when keyboard navigation enters this list
+    neverTranslateSiteList.setAttribute(
+      "aria-activedescendant",
+      languageElement.id
     );
     if (neverTranslateSiteList.childElementCount) {
       neverTranslateSiteList.parentNode.hidden = false;
@@ -544,7 +641,7 @@ let gTranslationsPane = {
       if (data === "cleared") {
         const { neverTranslateSiteList } = this.elements;
         this.neverTranslateSites = [];
-        for (const elem of neverTranslateSiteList) {
+        for (const elem of neverTranslateSiteList.children) {
           elem.remove();
         }
         if (!neverTranslateSiteList.childElementCount) {
@@ -598,9 +695,14 @@ let gTranslationsPane = {
    * @param {Array} langChildren
    * @returns {Element} div HTML element
    */
-  createLangElement(langChildren) {
+  createLangElement(langChildren, langId) {
     const languageElement = document.createElement("div");
     languageElement.classList.add("translations-settings-language");
+    // Keyboard navigation support
+    languageElement.setAttribute("role", "option");
+    languageElement.id = langId;
+    languageElement.addEventListener("keydown", this);
+
     for (const child of langChildren) {
       languageElement.appendChild(child);
     }
@@ -626,6 +728,9 @@ let gTranslationsPane = {
       name: accessibleName,
     });
     mozButton.addEventListener("click", this);
+    // Keyboard navigation support. Do not select the buttons on the list using tab.
+    // The buttons in the language lists are navigated using arrow buttons
+    mozButton.setAttribute("tabindex", "-1");
     return mozButton;
   },
 
@@ -656,9 +761,18 @@ let gTranslationsPane = {
       languageDisplayName
     );
 
-    const languageElement = this.createLangElement([mozButton, languageLabel]);
+    const languageElement = this.createLangElement(
+      [mozButton, languageLabel],
+      "translations-settings-language-" +
+        translatePrefix +
+        "-" +
+        langTag +
+        "-id"
+    );
     // Add the language after the Language Header
     languageList.insertBefore(languageElement, languageList.firstElementChild);
+    // The first element is selected by default when keyboard navigation enters this list
+    languageList.setAttribute("aria-activedescendant", languageElement.id);
     if (languageList.childElementCount) {
       languageList.parentNode.hidden = false;
     }

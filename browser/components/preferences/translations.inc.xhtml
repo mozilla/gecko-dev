@@ -32,7 +32,8 @@
     </div>
     <div id="translations-settings-always-translate-languages-card" class="translations-settings-languages-card" hidden="true">
       <h3 class="translations-settings-language-header" data-l10n-id="translations-settings-language-header"></h3>
-      <div id="translations-settings-always-translate-language-list" class="translations-settings-language-list">
+      <div id="translations-settings-always-translate-language-list" class="translations-settings-language-list"
+        tabindex="0" role="listbox">
       </div>
     </div>
   </moz-card>
@@ -50,7 +51,8 @@
     </div>
     <div id="translations-settings-never-translate-languages-card" class="translations-settings-languages-card" hidden="true">
       <h3 class="translations-settings-language-header" data-l10n-id="translations-settings-language-header"></h3>
-      <div id="translations-settings-never-translate-language-list" class="translations-settings-language-list">
+      <div id="translations-settings-never-translate-language-list" class="translations-settings-language-list"
+                tabindex="0" role="listbox">
       </div>
     </div>
   </moz-card>
@@ -65,7 +67,8 @@
     </div>
     <div id="translations-settings-never-translate-site-card" class="translations-settings-languages-card" hidden="true">
       <h3 class="translations-settings-language-header" data-l10n-id="translations-settings-language-header"></h3>
-      <div id="translations-settings-never-translate-site-list" class="translations-settings-language-list">
+      <div id="translations-settings-never-translate-site-list" class="translations-settings-language-list"
+              tabindex="0" role="listbox">
       </div>
     </div>
   </moz-card>
@@ -81,10 +84,11 @@
     </div>
     <div class="translations-settings-languages-card">
       <h3 class="translations-settings-language-header" data-l10n-id="translations-settings-language-header"></h3>
-      <div id="translations-settings-download-language-list" class="translations-settings-language-list">
-        <div class="translations-settings-language">
+      <div id="translations-settings-download-language-list" class="translations-settings-language-list" tabindex="0"
+        role="listbox">
+        <div id="translations-settings-download-all-languages-id" class="translations-settings-language" role="option">
           <moz-button class="translations-settings-download-icon translations-settings-manage-downloaded-language-button" type="ghost icon"
-                      data-l10n-id="translations-settings-download-all-button"></moz-button>
+                      data-l10n-id="translations-settings-download-all-button" tabindex="-1"></moz-button>
           <!--  The option to "All languages" is added here.
                 In translations.js the option to download individual languages is
                 added dynamically based on the supported language list -->

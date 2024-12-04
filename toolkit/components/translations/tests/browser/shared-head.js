@@ -1762,6 +1762,9 @@ async function setupAboutPreferences(
   }
 
   async function cleanup() {
+    Services.prefs.setCharPref(NEVER_TRANSLATE_LANGS_PREF, "");
+    Services.prefs.setCharPref(ALWAYS_TRANSLATE_LANGS_PREF, "");
+    Services.perms.removeAll();
     await closeAllOpenPanelsAndMenus();
     await loadBlankPage();
     await EngineProcess.destroyTranslationsEngine();
