@@ -10,6 +10,7 @@
 #include "rtc_base/physical_socket_server.h"
 
 #include <cstdint>
+#include <cstring>
 #include <utility>
 
 #if defined(_MSC_VER) && _MSC_VER < 1300
@@ -552,10 +553,11 @@ int PhysicalSocket::DoReadFromSocket(void* buffer,
         if (cmsg->cmsg_level != SOL_SOCKET)
           continue;
         if (timestamp && cmsg->cmsg_type == SCM_TIMESTAMP) {
-          timeval* ts = reinterpret_cast<timeval*>(CMSG_DATA(cmsg));
+          timeval ts;
+          std::memcpy(static_cast<void*>(&ts), CMSG_DATA(cmsg), sizeof(ts));
           *timestamp =
-              rtc::kNumMicrosecsPerSec * static_cast<int64_t>(ts->tv_sec) +
-              static_cast<int64_t>(ts->tv_usec);
+              rtc::kNumMicrosecsPerSec * static_cast<int64_t>(ts.tv_sec) +
+              static_cast<int64_t>(ts.tv_usec);
         }
       }
     }
