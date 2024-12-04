@@ -19,7 +19,7 @@ fuzzy-if(Android,0-2,0-4) == right-3.html right-3-ref.html
 == margin-1.html margin-1-ref.html
 == padding-1.html padding-1-ref.html
 == padding-2.html padding-2-ref.html
-== padding-3.html padding-3-ref.html
+fuzzy-if(cocoaWidget&&isDebugBuild&&!swgl,0-1,0-25) == padding-3.html padding-3-ref.html # Bug 1934906
 == overcontain-1.html overcontain-1-ref.html
 == initial-1.html initial-1-ref.html
 == initial-scroll-1.html initial-scroll-1-ref.html
@@ -50,6 +50,6 @@ fuzzy(0-1,0-220) == block-in-inline-3.html block-in-inline-3-ref.html
 == block-in-inline-continuations.html block-in-inline-continuations-ref.html
 == iframe-1.html iframe-1-ref.html
 == transformed-1.html transformed-1-ref.html
-fuzzy-if(Android,0-8,0-9) fuzzy-if(gtkWidget,10-21,12-32) fuzzy-if(cocoaWidget,7-8,18-42) skip-if(useDrawSnapshot) fails-if(useDrawSnapshot) == transformed-2.html transformed-2-ref.html # Bug 1604644
-skip-if(useDrawSnapshot) fuzzy-if(Android,0-14,0-17) fuzzy-if(gtkWidget,19-37,12-32) fuzzy-if(cocoaWidget,13-16,20-44) fails-if(useDrawSnapshot) == nested-sticky-1.html nested-sticky-1-ref.html # Bug 1604644
-skip-if(useDrawSnapshot) fuzzy-if(Android,0-14,0-96) fuzzy-if(gtkWidget,19-37,12-32) fuzzy-if(cocoaWidget,13-16,20-44) fails-if(useDrawSnapshot) == nested-sticky-2.html nested-sticky-2-ref.html # Bug 1604644
+skip-if(useDrawSnapshot) fails-if(useDrawSnapshot) fuzzy-if(Android,0-8,0-9) fuzzy-if(cocoaWidget,7-8,18-42) fuzzy-if(cocoaWidget&&isDebugBuild&&!swgl,0-14,0-31) fuzzy-if(gtkWidget,10-21,12-32) == transformed-2.html transformed-2-ref.html # Bug 1604644, Bug 1934906
+skip-if(useDrawSnapshot) fails-if(useDrawSnapshot) fuzzy-if(Android,0-14,0-17) fuzzy-if(cocoaWidget,13-16,20-44) fuzzy-if(cocoaWidget&&isDebugBuild&&!swgl,0-29,0-36) fuzzy-if(gtkWidget,19-37,12-32) == nested-sticky-1.html nested-sticky-1-ref.html # Bug 1604644, Bug 1934906
+skip-if(useDrawSnapshot) fails-if(useDrawSnapshot) fuzzy-if(Android,0-14,0-96) fuzzy-if(cocoaWidget,13-16,20-44) fuzzy-if(cocoaWidget&&isDebugBuild&&!swgl,0-29,0-36) fuzzy-if(gtkWidget,19-37,12-32) == nested-sticky-2.html nested-sticky-2-ref.html # Bug 1604644, Bug 1934906

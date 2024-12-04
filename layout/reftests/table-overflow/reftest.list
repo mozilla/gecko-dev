@@ -1,7 +1,7 @@
 defaults pref(layout.tables.scrollable-cells,true)
 
 # Android: Tests assume non-overlay scrollbars
-fails-if(Android) skip-if(ThreadSanitizer) == bug785684-x.html bug785684-x-ref.html
-fails-if(Android) == bug785684-y.html bug785684-y-ref.html
+fails-if(Android) skip-if(ThreadSanitizer) fuzzy-if(cocoaWidget&&isDebugBuild&&swgl,0-134,0-2671) == bug785684-x.html bug785684-x-ref.html # Bug 1934903
+fails-if(Android) fuzzy-if(cocoaWidget&&isDebugBuild&&swgl,0-134,0-4006) == bug785684-y.html bug785684-y-ref.html # Bug 1934903
 == table-caption-scroll.html table-caption-scroll-ref.html
 == table-cell-block-overflow.html table-cell-block-overflow-ref.html

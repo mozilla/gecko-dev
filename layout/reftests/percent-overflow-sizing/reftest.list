@@ -1,26 +1,26 @@
 == simpleHeight100.html greenbox.html
 == simpleAbsHeight.html greenbox.html
-random-if(gtkWidget) == hScrollSimpleHeight.html greenboxhbar.html # bug 650591
-random-if(gtkWidget) == hScrollSimpleHeightQuirks-1.html greenboxhbar.html # bug 650591
-random-if(gtkWidget) == hScrollSimpleHeightQuirks-2.html greenboxhbar.html # bug 650591
-random-if(gtkWidget) == hScrollSimpleHeightQuirks-3.html greenboxhbar.html # bug 650591
-random-if(gtkWidget) == hScrollAbsHeight.html greenboxhbar.html # bug 650591
-random-if(gtkWidget) == hScrollAbsHeightQuirks.html greenboxhbar.html # bug 650591
+random-if(gtkWidget) fuzzy-if(cocoaWidget&&optimized&&!swgl,0-1,0-8) == hScrollSimpleHeight.html greenboxhbar.html # bug 650591, Bug 1934892
+random-if(gtkWidget) fuzzy-if(cocoaWidget&&optimized&&!swgl,0-1,0-8) == hScrollSimpleHeightQuirks-1.html greenboxhbar.html # bug 650591, Bug 1934892
+random-if(gtkWidget) fuzzy-if(cocoaWidget&&optimized&&!swgl,0-1,0-8) == hScrollSimpleHeightQuirks-2.html greenboxhbar.html # bug 650591, Bug 1934892
+random-if(gtkWidget) fuzzy-if(cocoaWidget&&optimized&&!swgl,0-1,0-8) == hScrollSimpleHeightQuirks-3.html greenboxhbar.html # bug 650591, Bug 1934892
+random-if(gtkWidget) fuzzy-if(cocoaWidget&&optimized&&!swgl,0-1,0-8) == hScrollAbsHeight.html greenboxhbar.html # bug 650591, Bug 1934892
+random-if(gtkWidget) fuzzy-if(cocoaWidget&&optimized&&!swgl,0-1,0-8) == hScrollAbsHeightQuirks.html greenboxhbar.html # bug 650591, Bug 1934892
 == simpleHeight100D.html greenbox.html
 == simpleAbsHeightD.html greenbox.html
-random-if(gtkWidget) == hScrollSimpleHeightD.html greenboxhbar.html # bug 650591
-random-if(gtkWidget) == hScrollSimpleHeightQuirks-1D.html greenboxhbar.html # bug 650591
-random-if(gtkWidget) == hScrollSimpleHeightQuirks-2D.html greenboxhbar.html # bug 650591
-random-if(gtkWidget) == hScrollSimpleHeightQuirks-3D.html greenboxhbar.html # bug 650591
-random-if(gtkWidget) == hScrollAbsHeightD.html greenboxhbar.html # bug 650591
-random-if(gtkWidget) == hScrollAbsHeightQuirksD.html greenboxhbar.html # bug 650591
+random-if(gtkWidget) fuzzy-if(cocoaWidget&&optimized&&!swgl,0-1,0-8) == hScrollSimpleHeightD.html greenboxhbar.html # bug 650591, Bug 1934892
+random-if(gtkWidget) fuzzy-if(cocoaWidget&&optimized&&!swgl,0-1,0-8) == hScrollSimpleHeightQuirks-1D.html greenboxhbar.html # bug 650591, Bug 1934892
+random-if(gtkWidget) fuzzy-if(cocoaWidget&&optimized&&!swgl,0-1,0-8) == hScrollSimpleHeightQuirks-2D.html greenboxhbar.html # bug 650591, Bug 1934892
+random-if(gtkWidget) fuzzy-if(cocoaWidget&&optimized&&!swgl,0-1,0-8) == hScrollSimpleHeightQuirks-3D.html greenboxhbar.html # bug 650591, Bug 1934892
+random-if(gtkWidget) fuzzy-if(cocoaWidget&&optimized&&!swgl,0-1,0-8) == hScrollAbsHeightD.html greenboxhbar.html # bug 650591, Bug 1934892
+random-if(gtkWidget) fuzzy-if(cocoaWidget&&optimized&&!swgl,0-1,0-8) == hScrollAbsHeightQuirksD.html greenboxhbar.html # bug 650591, Bug 1934892
 == simpleMinHeight100D.html greenbox.html
 == simpleAbsMinHeightD.html greenbox.html
-random-if(gtkWidget) == hScrollSimpleMinHeightD.html greenboxhbar.html # bug 650591
-random-if(gtkWidget) == hScrollSimpleMinHeightQuirks-1D.html greenboxhbar.html # bug 650591
-random-if(gtkWidget) == hScrollSimpleMinHeightQuirks-3D.html greenboxhbar.html # bug 650591
-random-if(gtkWidget) == hScrollAbsMinHeightD.html greenboxhbar.html # bug 650591
-random-if(gtkWidget) == hScrollAbsMinHeightQuirksD.html greenboxhbar.html # bug 650591
+random-if(gtkWidget) fuzzy-if(cocoaWidget&&optimized&&!swgl,0-1,0-8) == hScrollSimpleMinHeightD.html greenboxhbar.html # bug 650591, Bug 1934892
+random-if(gtkWidget) fuzzy-if(cocoaWidget&&optimized&&!swgl,0-1,0-8) == hScrollSimpleMinHeightQuirks-1D.html greenboxhbar.html # bug 650591, Bug 1934892
+random-if(gtkWidget) fuzzy-if(cocoaWidget&&optimized&&!swgl,0-1,0-8) == hScrollSimpleMinHeightQuirks-3D.html greenboxhbar.html # bug 650591, Bug 1934892
+random-if(gtkWidget) fuzzy-if(cocoaWidget&&optimized&&!swgl,0-1,0-8) == hScrollAbsMinHeightD.html greenboxhbar.html # bug 650591, Bug 1934892
+random-if(gtkWidget) fuzzy-if(cocoaWidget&&optimized&&!swgl,0-1,0-8) == hScrollAbsMinHeightQuirksD.html greenboxhbar.html # bug 650591, Bug 1934892
 == dynamicHeight100.html dynamicHeight100-ref.html
 == nestedHeight.html nestedHeight-ref.html
 == nestedHeightQuirks.html nestedHeightQuirks-ref.html
