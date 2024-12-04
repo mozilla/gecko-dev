@@ -163,6 +163,31 @@ You can also find the profiles in the artifacts tab of the Raptor test:
 
 To generate the profiles locally, you can pass the flags ``--extra-profiler-run`` or ``--gecko-profile`` which repeat the test for an extra iteration with the profiler enabled, or run the test from the beginning with the profiler enabled for three iterations, respectively.
 
+Side-by-Side
+------------
+
+Side-by-Side is a job that compares the visual metrics provided by Browsertime for two consecutive pushes. This job is only applicable to pageload-type jobs, and both revisions must run on the same platform with identical configuration.
+
+Generate a Side-by-Side Job
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+To generate a side-by-side job, follow these steps:
+
+ * Select the desired job.
+ * Navigate to the "Performance" tab and press the "Generate side-by-side" button.
+
+ .. image:: ./generate-side-by-side.png
+   :alt: Generate side-by-side task
+   :scale: 50%
+   :align: center
+
+Once the process is initiated, a new job will appear in the format `side-by-side-*job-name*`.
+
+Viewing Results
+^^^^^^^^^^^^^^^
+Once the newly generated job is complete, you can view the result by selecting the job. This type of job provides two types of video (`cold and warm  <raptor-metrics.html#warm-pageload>`_). For each set, there are 2 viewing modes (normal and slow-motion).
+
+Each video includes an annotated description containing the visual metrics provided by Browsertime.
 
 Adding Performance Tests
 ------------------------
