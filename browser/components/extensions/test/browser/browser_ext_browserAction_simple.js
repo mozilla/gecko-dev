@@ -76,7 +76,10 @@ async function testAction(manifest_version) {
     clickBrowserAction(extension);
 
     let widget = widgetGroup.forWindow(window);
-    let image = getComputedStyle(widget.node.firstElementChild).listStyleImage;
+    let button = widget.node.querySelector(
+      ".unified-extensions-item-action-button"
+    );
+    let image = getComputedStyle(button).listStyleImage;
 
     ok(image.includes("/icon.png"), "The extension's icon is used");
     await extension.awaitMessage("popup");

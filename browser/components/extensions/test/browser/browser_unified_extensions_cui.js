@@ -100,7 +100,7 @@ add_task(async function test_extension_in_collapsed_area() {
   // because we are moving it to AREA_BOOKMARKS.
   let widget = getBrowserActionWidget(extensions[0]).forWindow(window);
   ok(widget, "Got a widget for the extension button overflowed into the panel");
-  widget.node.firstElementChild.click();
+  widget.node.querySelector(".unified-extensions-item-action-button").click();
 
   const promisePanelBrowser = AppUiTestDelegate.awaitExtensionPanel(
     window,

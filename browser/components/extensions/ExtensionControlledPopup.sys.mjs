@@ -300,7 +300,9 @@ export class ExtensionControlledPopup {
     if (action) {
       action =
         action.areaType == "toolbar" &&
-        action.forWindow(win).node.firstElementChild;
+        action
+          .forWindow(win)
+          .node.querySelector(".unified-extensions-item-action-button");
     }
 
     // Anchor to a toolbar browserAction if found, otherwise use the extensions

@@ -334,7 +334,9 @@ add_task(async function test_getViews_excludes_blocked_parsing_documents() {
     // to prevent intermittent failures that where often triggered in macos
     // PGO builds when this was using EventUtils.synthesizeMouseAtCenter).
     let mouseOverEvent = new MouseEvent("mouseover");
-    widget.node.firstElementChild.dispatchEvent(mouseOverEvent);
+    widget.node
+      .querySelector(".unified-extensions-item-action-button")
+      .dispatchEvent(mouseOverEvent);
 
     await TestUtils.waitForCondition(
       () => browserAction.pendingPopup?.browser,
