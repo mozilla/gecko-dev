@@ -2146,7 +2146,6 @@
       let shiftNumber = this.#maxTabsPerRow - movingTabs.length;
 
       let getTabShift = (tab, dropIndex) => {
-        const additionalShift = this.#maxTabsPerRow % 2 ? 0 : tabWidth / 2;
         if (tab._tPos < draggedTab._tPos && tab._tPos >= dropIndex) {
           // If tab is at the end of a row, shift back and down
           let tabRow = Math.ceil((tab._tPos + 1) / this.#maxTabsPerRow);
@@ -2155,9 +2154,7 @@
           );
           if (tab._tPos && tabRow != shiftedTabRow) {
             return [
-              RTL_UI
-                ? tabWidth * shiftNumber + additionalShift
-                : -tabWidth * shiftNumber - additionalShift,
+              RTL_UI ? tabWidth * shiftNumber : -tabWidth * shiftNumber,
               shiftSizeY,
             ];
           }
@@ -2171,9 +2168,7 @@
           );
           if (tab._tPos && tabRow != shiftedTabRow) {
             return [
-              RTL_UI
-                ? -tabWidth * shiftNumber - additionalShift
-                : tabWidth * shiftNumber + additionalShift,
+              RTL_UI ? -tabWidth * shiftNumber : tabWidth * shiftNumber,
               -shiftSizeY,
             ];
           }
