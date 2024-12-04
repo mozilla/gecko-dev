@@ -284,6 +284,9 @@ void FinalizationObservers::updateForRemovedRecord(
 
 void GCRuntime::nukeFinalizationRecordWrapper(
     JSObject* wrapper, FinalizationRecordObject* record) {
+  // The target of the nuked wrapper may be gray, and that's OK.
+  AutoTouchingGrayThings atgt;
+
   if (record->isInRecordMap()) {
     FinalizationRegistryObject::unregisterRecord(record);
     FinalizationObservers* observers = wrapper->zone()->finalizationObservers();
