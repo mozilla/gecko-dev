@@ -618,7 +618,33 @@ add_task(async function test_dismissed_flag_cleared_on_addon_updates() {
 });
 
 add_task(async function test_blocklist_attention_on_reenabled_softblock() {
-  const ext1 = await installTestExtension("@ext1");
+  async function assertExtensionBlocklistStatePropagated(addonId, msgSuffix) {
+    const addon = await AddonManager.getAddonByID(addonId);
+    Assert.equal(
+      addon.blocklistState,
+      WebExtensionPolicy.getByID(addonId).extension.blocklistState,
+      `Expect extension.blocklistState to match addon.blocklistState ${msgSuffix}`
+    );
+    Assert.equal(
+      WebExtensionPolicy.getByID(addonId).extension.isSoftBlocked,
+      addon.blocklistState === STATE_SOFTBLOCKED,
+      `Expect extension.isSoftBlocked to be false ${msgSuffix}`
+    );
+  }
+
+  const ADDON_ID = "@ext1";
+  const ext1 = await installTestExtension(ADDON_ID);
+  await assertExtensionBlocklistStatePropagated(
+    ADDON_ID,
+    "(not blocked extension)"
+  );
+
+  await promiseRestartManager();
+  await ext1.awaitStartup();
+  await assertExtensionBlocklistStatePropagated(
+    ADDON_ID,
+    "(not blocked extension - after startup)"
+  );
 
   await testBlocklistAttentionScenario({
     blocklistStashRecords: [createStashRecord({ softblocked: [ext1] })],
@@ -639,7 +665,7 @@ add_task(async function test_blocklist_attention_on_reenabled_softblock() {
     },
   });
 
-  const addon1 = await AddonManager.getAddonByID(ext1.id);
+  let addon1 = await AddonManager.getAddonByID(ext1.id);
   Assert.equal(
     addon1.softDisabled,
     true,
@@ -659,6 +685,19 @@ add_task(async function test_blocklist_attention_on_reenabled_softblock() {
     "Wait for onBlocklistAttentionUpdated Manager listeners to have been called"
   );
   await promiseBlocklistAttentionUpdated;
+
+  await assertExtensionBlocklistStatePropagated(
+    ADDON_ID,
+    "(softblocked extension re-enabled)"
+  );
+
+  info("Verify again after AOM restart");
+  await promiseRestartManager();
+  await ext1.awaitStartup();
+  await assertExtensionBlocklistStatePropagated(
+    ADDON_ID,
+    "(softblocked extension re-enabled - after startup)"
+  );
 
   info(
     "Verify blocklistAttentionInfo again after softblocked addon has been re-enabled"
@@ -681,7 +720,41 @@ add_task(async function test_blocklist_attention_on_reenabled_softblock() {
     },
   });
 
+  info(
+    "Verify onPropertyChanged call and extension.blocklistState update on softblock removal"
+  );
+
+  addon1 = await AddonManager.getAddonByID(ext1.id);
+  const promisePropertyChanged = AddonTestUtils.promiseAddonEvent(
+    "onPropertyChanged",
+    (addon, properties) =>
+      addon.id === addon1.id && properties.includes("blocklistState")
+  );
   await AddonTestUtils.loadBlocklistRawData({ extensionsMLBF: [] });
+  Assert.equal(
+    addon1.blocklistState,
+    STATE_NOT_BLOCKED,
+    "Expect addon.blocklistState to be STATE_NOT_BLOCKED (softblock lifted)"
+  );
+
+  info("Wait for onPropertyChanged Addon listeners to have been called");
+  await promisePropertyChanged;
+  await assertExtensionBlocklistStatePropagated(ADDON_ID, "(softblock lifted)");
+
+  info("Verify again after AOM restart");
+  await promiseRestartManager();
+  await ext1.awaitStartup();
+  addon1 = await AddonManager.getAddonByID(ext1.id);
+  Assert.equal(
+    addon1.blocklistState,
+    STATE_NOT_BLOCKED,
+    "Expect addon.blocklistState to be STATE_NOT_BLOCKED (softblock lifted)"
+  );
+  await assertExtensionBlocklistStatePropagated(
+    ADDON_ID,
+    "(softblocked lifted - after startup)"
+  );
+
   await ext1.unload();
 });
 

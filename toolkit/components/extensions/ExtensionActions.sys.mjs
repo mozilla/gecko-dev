@@ -546,6 +546,8 @@ export class BrowserActionBase extends PanelActionBase {
     extension.on("remove-permissions", () => this.updateOnChange());
     // eslint-disable-next-line mozilla/balanced-listeners
     extension.on("update-ignore-quarantine", () => this.updateOnChange());
+    // eslint-disable-next-line mozilla/balanced-listeners
+    extension.on("update-blocklist-state", () => this.updateOnChange());
   }
 
   async loadIconData() {
