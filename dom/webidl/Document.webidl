@@ -201,7 +201,7 @@ partial interface Document {
            attribute DOMString designMode;
   [CEReactions, Throws, NeedsSubjectPrincipal]
   boolean execCommand(DOMString commandId, optional boolean showUI = false,
-                      optional DOMString value = "");
+                      optional (TrustedHTML or DOMString) value = "");
   [Throws, NeedsSubjectPrincipal]
   boolean queryCommandEnabled(DOMString commandId);
   [Throws]
