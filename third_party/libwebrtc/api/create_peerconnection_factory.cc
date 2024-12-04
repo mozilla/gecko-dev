@@ -16,6 +16,7 @@
 #include "api/audio/audio_device.h"
 #include "api/audio/audio_mixer.h"
 #include "api/audio/audio_processing.h"
+#include "api/audio/builtin_audio_processing_factory.h"
 #include "api/audio_codecs/audio_decoder_factory.h"
 #include "api/audio_codecs/audio_encoder_factory.h"
 #include "api/enable_media.h"
@@ -60,7 +61,10 @@ rtc::scoped_refptr<PeerConnectionFactoryInterface> CreatePeerConnectionFactory(
   if (audio_processing) {
     dependencies.audio_processing = std::move(audio_processing);
   } else {
-    dependencies.audio_processing = AudioProcessingBuilder().Create();
+#ifndef WEBRTC_EXCLUDE_AUDIO_PROCESSING_MODULE
+    dependencies.audio_processing_factory =
+        std::make_unique<BuiltinAudioProcessingFactory>();
+#endif
   }
   dependencies.audio_mixer = std::move(audio_mixer);
   dependencies.video_encoder_factory = std::move(video_encoder_factory);

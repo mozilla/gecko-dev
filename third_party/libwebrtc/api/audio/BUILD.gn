@@ -85,6 +85,26 @@ rtc_source_set("audio_processing") {
   ]
 }
 
+rtc_library("builtin_audio_processing_factory") {
+  visibility = [ "*" ]
+  configs += [ "../../modules/audio_processing:apm_debug_dump" ]
+  sources = [
+    "builtin_audio_processing_factory.cc",
+    "builtin_audio_processing_factory.h",
+  ]
+  deps = [
+    ":audio_processing",
+    ":echo_control",
+    "..:make_ref_counted",
+    "..:scoped_refptr",
+    "../../modules/audio_processing",
+    "../../rtc_base:logging",
+    "../../rtc_base/system:rtc_export",
+    "../environment",
+    "//third_party/abseil-cpp/absl/base:nullability",
+  ]
+}
+
 rtc_source_set("audio_processing_statistics") {
   visibility = [ "*" ]
   sources = [
@@ -142,4 +162,20 @@ rtc_source_set("echo_detector_creator") {
     "../../api:scoped_refptr",
     "../../modules/audio_processing:residual_echo_detector",
   ]
+}
+
+if (rtc_include_tests) {
+  rtc_library("audio_api_unittests") {
+    testonly = true
+    sources = [ "builtin_audio_processing_factory_unittest.cc" ]
+    deps = [
+      ":audio_processing",
+      ":builtin_audio_processing_factory",
+      "..:scoped_refptr",
+      "../../test:test_support",
+      "../environment",
+      "../environment:environment_factory",
+      "test:audio_api_unittests",
+    ]
+  }
 }

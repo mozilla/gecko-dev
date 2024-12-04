@@ -771,6 +771,8 @@ class CustomProcessing {
   virtual ~CustomProcessing() {}
 };
 
+// TODO: bugs.webrtc.org/369904700 - Deprecate and remove in favor of the
+// BuiltinAudioProcessingFactory.
 class RTC_EXPORT AudioProcessingBuilder {
  public:
   AudioProcessingBuilder();

@@ -79,7 +79,7 @@ index e6aa410434..dfc532dad9 100644
  # The python interpreter to use by default. On Windows, this will look
  # for vpython3.exe and vpython3.bat.
 diff --git a/BUILD.gn b/BUILD.gn
-index 7ba2b42bc8..cfafd526cc 100644
+index 37d44bd85e..9ebf5bd2d6 100644
 --- a/BUILD.gn
 +++ b/BUILD.gn
 @@ -21,15 +21,15 @@
@@ -121,7 +121,7 @@ index 7ba2b42bc8..cfafd526cc 100644
    deps = [
      "net/dcsctp/public:factory",
 diff --git a/api/BUILD.gn b/api/BUILD.gn
-index 600fb6288d..698c54c770 100644
+index 316e6fcb0b..d8197861a1 100644
 --- a/api/BUILD.gn
 +++ b/api/BUILD.gn
 @@ -8,8 +8,8 @@
@@ -369,7 +369,7 @@ index a0ddf777db..cf15513e18 100644
      }
    }
 diff --git a/examples/BUILD.gn b/examples/BUILD.gn
-index a0dbdcc154..46492a4b2b 100644
+index c6bb616df4..45418ebf9b 100644
 --- a/examples/BUILD.gn
 +++ b/examples/BUILD.gn
 @@ -9,15 +9,15 @@
@@ -393,7 +393,7 @@ index a0dbdcc154..46492a4b2b 100644
  }
  
  group("examples") {
-@@ -636,7 +636,7 @@ if (is_ios || (is_mac && target_cpu != "x86")) {
+@@ -637,7 +637,7 @@ if (is_ios || (is_mac && target_cpu != "x86")) {
            "../sdk:mediaconstraints_objc",
            "../sdk:peerconnectionfactory_base_objc",
            "../sdk:videocapture_objc",
@@ -402,7 +402,7 @@ index a0dbdcc154..46492a4b2b 100644
            "//third_party/ocmock",
          ]
        }
-@@ -728,7 +728,7 @@ if (is_linux || is_chromeos || is_win) {
+@@ -729,7 +729,7 @@ if (is_linux || is_chromeos || is_win) {
          "peerconnection/client/main_wnd.cc",
          "peerconnection/client/main_wnd.h",
        ]
