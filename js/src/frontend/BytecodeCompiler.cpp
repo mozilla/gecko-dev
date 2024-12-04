@@ -1427,54 +1427,6 @@ static bool InstantiateLazyFunction(JSContext* cx, CompilationInput& input,
   return true;
 }
 
-enum class GetCachedResult {
-  // Similar to return false.
-  Error,
-
-  // We have not found any entry.
-  NotFound,
-
-  // We have found an entry, and set everything according to the desired
-  // BytecodeCompilerOutput out-param.
-  Found
-};
-
-// When we have a cache hit, the addPtr out-param would evaluate to a true-ish
-// value.
-static GetCachedResult GetCachedLazyFunctionStencilMaybeInstantiate(
-    JSContext* maybeCx, FrontendContext* fc, CompilationInput& input,
-    InitialStencilAndDelazifications* stencils,
-    BytecodeCompilerOutput& output) {
-  if (!stencils) {
-    return GetCachedResult::NotFound;
-  }
-
-  const CompilationStencil* stencil =
-      stencils->getDelazificationFor(input.extent());
-  if (!stencil) {
-    return GetCachedResult::NotFound;
-  }
-
-  if (output.is<RefPtr<CompilationStencil>>()) {
-    output.as<RefPtr<CompilationStencil>>() =
-        const_cast<CompilationStencil*>(stencil);
-    return GetCachedResult::Found;
-  }
-
-  MOZ_ASSERT(maybeCx);
-
-  // NOTE: The concurrent delazification case doesn't store the delazification
-  //       to the script source right now.  This will be changed once the
-  //       concurrent delazification is refactored to directly use the
-  //       InitialStencilAndDelazifications.
-
-  if (!InstantiateLazyFunction(maybeCx, input, *stencil, output)) {
-    return GetCachedResult::Error;
-  }
-
-  return GetCachedResult::Found;
-}
-
 template <typename Unit>
 static bool CompileLazyFunctionToStencilMaybeInstantiate(
     JSContext* maybeCx, FrontendContext* fc, js::LifoAlloc& tempLifoAlloc,
@@ -1485,16 +1437,23 @@ static bool CompileLazyFunctionToStencilMaybeInstantiate(
 
   AutoAssertReportedException assertException(maybeCx, fc);
   if (input.options.consumeDelazificationCache()) {
-    auto res = GetCachedLazyFunctionStencilMaybeInstantiate(maybeCx, fc, input,
-                                                            stencils, output);
-    switch (res) {
-      case GetCachedResult::Error:
-        return false;
-      case GetCachedResult::Found:
+    const CompilationStencil* cached =
+        stencils->getDelazificationFor(input.extent());
+    if (cached) {
+      if (output.is<RefPtr<CompilationStencil>>()) {
+        output.as<RefPtr<CompilationStencil>>() =
+            const_cast<CompilationStencil*>(cached);
         assertException.reset();
         return true;
-      case GetCachedResult::NotFound:
-        break;
+      }
+
+      MOZ_ASSERT(maybeCx);
+
+      if (!InstantiateLazyFunction(maybeCx, input, *cached, output)) {
+        return false;
+      }
+      assertException.reset();
+      return true;
     }
   }
 
@@ -1546,16 +1505,10 @@ static bool CompileLazyFunctionToStencilMaybeInstantiate(
   }
 
   if (input.options.checkDelazificationCache()) {
-    using OutputType = RefPtr<CompilationStencil>;
-    BytecodeCompilerOutput cached((OutputType()));
-    auto res = GetCachedLazyFunctionStencilMaybeInstantiate(nullptr, fc, input,
-                                                            stencils, cached);
-    if (res == GetCachedResult::Error) {
-      return false;
-    }
-    // Cached results might be removed by GCs.
-    if (res == GetCachedResult::Found) {
-      auto& concurrentSharedData = cached.as<OutputType>().get()->sharedData;
+    const CompilationStencil* cached =
+        stencils->getDelazificationFor(input.extent());
+    if (cached) {
+      auto& concurrentSharedData = cached->sharedData;
       auto concurrentData =
           concurrentSharedData.isSingle()
               ? concurrentSharedData.asSingle()->get()->immutableData()
