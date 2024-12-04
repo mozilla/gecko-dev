@@ -465,8 +465,9 @@ class TextEditor final : public EditorBase,
                    SelectionHandling aSelectionHandling) final;
 
   [[nodiscard]] MOZ_CAN_RUN_SCRIPT nsresult InsertDroppedDataTransferAsAction(
-      AutoEditActionDataSetter& aEditActionData, DataTransfer& aDataTransfer,
-      const EditorDOMPoint& aDroppedAt, nsIPrincipal* aSourcePrincipal) final;
+      AutoEditActionDataSetter& aEditActionData,
+      dom::DataTransfer& aDataTransfer, const EditorDOMPoint& aDroppedAt,
+      nsIPrincipal* aSourcePrincipal) final;
 
   /**
    * HandleDeleteSelectionInternal() is a helper method of
@@ -567,12 +568,10 @@ class TextEditor final : public EditorBase,
 
   [[nodiscard]] MOZ_CAN_RUN_SCRIPT nsresult
   HandlePaste(AutoEditActionDataSetter& aEditActionData,
-              nsIClipboard::ClipboardType aClipboardType,
-              DataTransfer* aDataTransfer) final;
+              nsIClipboard::ClipboardType aClipboardType) final;
   [[nodiscard]] MOZ_CAN_RUN_SCRIPT nsresult
   HandlePasteAsQuotation(AutoEditActionDataSetter& aEditActionData,
-                         nsIClipboard::ClipboardType aClipboardType,
-                         DataTransfer* aDataTransfer) final;
+                         nsIClipboard::ClipboardType aClipboardType) final;
   [[nodiscard]] MOZ_CAN_RUN_SCRIPT nsresult
   HandlePasteTransferable(AutoEditActionDataSetter& aEditActionData,
                           nsITransferable& aTransferable) final;

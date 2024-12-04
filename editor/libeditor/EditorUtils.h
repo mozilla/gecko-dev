@@ -12,7 +12,6 @@
 #include "mozilla/IntegerRange.h"       // for IntegerRange
 #include "mozilla/Maybe.h"              // for Maybe
 #include "mozilla/Result.h"             // for Result<>
-#include "mozilla/dom/DataTransfer.h"   // for dom::DataTransfer
 #include "mozilla/dom/Element.h"        // for dom::Element
 #include "mozilla/dom/HTMLBRElement.h"  // for dom::HTMLBRElement
 #include "mozilla/dom/Selection.h"      // for dom::Selection
@@ -342,43 +341,6 @@ class MOZ_STACK_CLASS AutoSelectionRangeArray final {
   }
 
   AutoTArray<mozilla::OwningNonNull<nsRange>, 8> mRanges;
-};
-
-/******************************************************************************
- * AutoTrackDataTransferForPaste keeps track of whether the paste event handler
- * in JS has modified the clipboard.
- *****************************************************************************/
-class MOZ_STACK_CLASS AutoTrackDataTransferForPaste {
- public:
-  MOZ_CAN_RUN_SCRIPT AutoTrackDataTransferForPaste(
-      const EditorBase& aEditorBase,
-      RefPtr<dom::DataTransfer>& aDataTransferForPaste)
-      : mEditorBase(aEditorBase),
-        mDataTransferForPaste(aDataTransferForPaste.get_address()) {
-    mEditorBase.GetDocument()->ClearClipboardCopyTriggered();
-  }
-
-  ~AutoTrackDataTransferForPaste() { FlushAndStopTracking(); }
-
- private:
-  void FlushAndStopTracking() {
-    if (!mDataTransferForPaste ||
-        !mEditorBase.GetDocument()->IsClipboardCopyTriggered()) {
-      return;
-    }
-    // The paste event copied new data to the clipboard, so we need to use
-    // that data to paste into the DOM element below.
-    if (*mDataTransferForPaste) {
-      (*mDataTransferForPaste)->ClearForPaste();
-    }
-    // Just null this out so this data won't be used and we will get it directly
-    // from the clipboard in the future.
-    *mDataTransferForPaste = nullptr;
-    mDataTransferForPaste = nullptr;
-  }
-
-  MOZ_KNOWN_LIVE const EditorBase& mEditorBase;
-  RefPtr<dom::DataTransfer>* mDataTransferForPaste;
 };
 
 class EditorUtils final {

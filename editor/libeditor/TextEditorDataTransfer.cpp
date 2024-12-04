@@ -11,7 +11,6 @@
 
 #include "mozilla/ArrayUtils.h"
 #include "mozilla/MouseEvents.h"
-#include "mozilla/dom/ContentParent.h"
 #include "mozilla/dom/DataTransfer.h"
 #include "mozilla/dom/Document.h"
 #include "mozilla/dom/DocumentInlines.h"
@@ -162,8 +161,7 @@ nsresult TextEditor::InsertDroppedDataTransferAsAction(
 }
 
 nsresult TextEditor::HandlePaste(AutoEditActionDataSetter& aEditActionData,
-                                 nsIClipboard::ClipboardType aClipboardType,
-                                 DataTransfer* aDataTransfer) {
+                                 nsIClipboard::ClipboardType aClipboardType) {
   if (NS_WARN_IF(!GetDocument())) {
     return NS_OK;
   }
@@ -195,13 +193,17 @@ nsresult TextEditor::HandlePaste(AutoEditActionDataSetter& aEditActionData,
     return NS_OK;  // XXX Why?
   }
   // Get the Data from the clipboard.
-  rv = GetDataFromDataTransferOrClipboard(aDataTransfer, transferable,
-                                          aClipboardType);
-  if (NS_FAILED(rv)) {
-    NS_WARNING("EditorBase::GetDataFromDataTransferOrClipboard() failed");
-    return rv;
+  auto* windowContext = GetDocument()->GetWindowContext();
+  if (!windowContext) {
+    NS_WARNING("Editor didn't have document window context");
+    return NS_ERROR_FAILURE;
   }
+  rv = clipboard->GetData(transferable, aClipboardType, windowContext);
 
+  if (NS_FAILED(rv)) {
+    NS_WARNING("nsIClipboard::GetData() failed, but ignored");
+    return NS_OK;  // XXX Why?
+  }
   // XXX Why don't we check this first?
   if (!IsModifiable()) {
     return NS_OK;

@@ -6191,25 +6191,11 @@ nsresult EventStateManager::HandleMiddleClickPaste(
     clipboardType = nsIClipboard::kSelectionClipboard;
   }
 
-  RefPtr<DataTransfer> dataTransfer;
-  if (aEditorBase) {
-    // Create the same DataTransfer object here so we can share it between
-    // the clipboard event and the call to HandlePaste below. This prevents
-    // race conditions with Content Analysis on like we see in bug 1918027.
-    dataTransfer =
-        aEditorBase->CreateDataTransferForPaste(ePaste, clipboardType);
-  }
-  const auto clearDataTransfer = MakeScopeExit([&] {
-    if (dataTransfer) {
-      dataTransfer->ClearForPaste();
-    }
-  });
-
   // Fire ePaste event by ourselves since we need to dispatch "paste" event
   // even if the middle click event was consumed for compatibility with
   // Chromium.
   if (!nsCopySupport::FireClipboardEvent(ePaste, Some(clipboardType),
-                                         aPresShell, selection, dataTransfer)) {
+                                         aPresShell, selection)) {
     *aStatus = nsEventStatus_eConsumeNoDefault;
     return NS_OK;
   }
@@ -6244,11 +6230,11 @@ nsresult EventStateManager::HandleMiddleClickPaste(
   // quotation.  Otherwise, paste it as is.
   if (aMouseEvent->IsControl()) {
     DebugOnly<nsresult> rv = aEditorBase->PasteAsQuotationAsAction(
-        clipboardType, EditorBase::DispatchPasteEvent::No, dataTransfer);
+        clipboardType, EditorBase::DispatchPasteEvent::No);
     NS_WARNING_ASSERTION(NS_SUCCEEDED(rv), "Failed to paste as quotation");
   } else {
     DebugOnly<nsresult> rv = aEditorBase->PasteAsAction(
-        clipboardType, EditorBase::DispatchPasteEvent::No, dataTransfer);
+        clipboardType, EditorBase::DispatchPasteEvent::No);
     NS_WARNING_ASSERTION(NS_SUCCEEDED(rv), "Failed to paste");
   }
   *aStatus = nsEventStatus_eConsumeNoDefault;

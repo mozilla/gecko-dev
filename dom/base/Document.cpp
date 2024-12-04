@@ -1414,7 +1414,6 @@ Document::Document(const char* aContentType)
       mForceLoadAtTop(false),
       mFireMutationEvents(true),
       mHasPolicyWithRequireTrustedTypesForDirective(false),
-      mClipboardCopyTriggered(false),
       mXMLDeclarationBits(0),
       mOnloadBlockCount(0),
       mWriteLevel(0),

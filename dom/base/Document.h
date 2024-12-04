@@ -3688,9 +3688,6 @@ class Document : public nsINode,
     mHasPolicyWithRequireTrustedTypesForDirective =
         aHasPolicyWithRequireTrustedTypesForDirective;
   }
-  bool IsClipboardCopyTriggered() const { return mClipboardCopyTriggered; }
-  void ClearClipboardCopyTriggered() { mClipboardCopyTriggered = false; }
-  void SetClipboardCopyTriggered() { mClipboardCopyTriggered = true; }
 
   // Even if mutation events are disabled by default,
   // dom.mutation_events.forceEnable can be used to enable them per site.
@@ -4968,10 +4965,6 @@ class Document : public nsINode,
 
   // Whether the document's CSP contains a require-trusted-types-for directive.
   bool mHasPolicyWithRequireTrustedTypesForDirective : 1;
-
-  // Whether a copy event happened. Used to detect when this happens
-  // while a paste event is being handled in JS.
-  bool mClipboardCopyTriggered : 1;
 
   Maybe<bool> mMutationEventsEnabled;
 
