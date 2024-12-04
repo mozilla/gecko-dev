@@ -494,21 +494,29 @@ static void FireOnNewScript(JSContext* cx,
   }
 }
 
-bool frontend::InstantiateStencils(JSContext* cx, CompilationInput& input,
-                                   const CompilationStencil& stencil,
-                                   CompilationGCOutput& gcOutput) {
+static inline ScriptSource* getSource(const CompilationStencil& stencil) {
+  return stencil.source;
+}
+
+static inline ScriptSource* getSource(
+    const InitialStencilAndDelazifications& stencils) {
+  return stencils.getInitial()->source;
+}
+
+template <typename T>
+bool InstantiateStencils(JSContext* cx, CompilationInput& input,
+                         const T& stencil, CompilationGCOutput& gcOutput) {
   {
     AutoGeckoProfilerEntry pseudoFrame(cx, "stencil instantiate",
                                        JS::ProfilingCategoryPair::JS_Parsing);
 
-    if (!CompilationStencil::instantiateStencils(cx, input, stencil,
-                                                 gcOutput)) {
+    if (!T::instantiateStencils(cx, input, stencil, gcOutput)) {
       return false;
     }
   }
 
   // Enqueue an off-thread source compression task after finishing parsing.
-  if (!stencil.source->tryCompressOffThread(cx)) {
+  if (!getSource(stencil)->tryCompressOffThread(cx)) {
     return false;
   }
 
@@ -517,6 +525,19 @@ bool frontend::InstantiateStencils(JSContext* cx, CompilationInput& input,
   FireOnNewScript(cx, instantiateOptions, script);
 
   return true;
+}
+
+bool frontend::InstantiateStencils(JSContext* cx, CompilationInput& input,
+                                   const CompilationStencil& stencil,
+                                   CompilationGCOutput& gcOutput) {
+  return ::InstantiateStencils(cx, input, stencil, gcOutput);
+}
+
+bool frontend::InstantiateStencils(
+    JSContext* cx, CompilationInput& input,
+    const InitialStencilAndDelazifications& stencils,
+    CompilationGCOutput& gcOutput) {
+  return ::InstantiateStencils(cx, input, stencils, gcOutput);
 }
 
 template <typename Unit>

@@ -118,6 +118,7 @@ namespace frontend {
 struct CompilationInput;
 struct CompilationStencil;
 struct ExtensibleCompilationStencil;
+struct InitialStencilAndDelazifications;
 struct CompilationGCOutput;
 class ScopeBindingCache;
 
@@ -134,6 +135,11 @@ CompileGlobalScriptToStencilWithInput(JSContext* maybeCx, FrontendContext* fc,
                                               CompilationInput& input,
                                               const CompilationStencil& stencil,
                                               CompilationGCOutput& gcOutput);
+
+[[nodiscard]] extern bool InstantiateStencils(
+    JSContext* cx, CompilationInput& input,
+    const InitialStencilAndDelazifications& stencils,
+    CompilationGCOutput& gcOutput);
 
 // Perform CompileGlobalScriptToStencil and InstantiateStencils at the
 // same time, skipping some extra copy.
