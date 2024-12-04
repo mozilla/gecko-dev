@@ -41,6 +41,9 @@ class SiteSettingsFragment : PreferenceFragmentCompat() {
 
         val preferenceDescription = requirePreference<Preference>(R.string.pref_key_site_permissions_description)
         preferenceDescription.isVisible = Config.channel.isMozillaOnline
+
+        // This should be setup in onCreatePreferences so we setup only once when the fragment is created
+        bindDesktopMode()
     }
 
     override fun onResume() {
@@ -50,7 +53,6 @@ class SiteSettingsFragment : PreferenceFragmentCompat() {
     }
 
     private fun setupPreferences() {
-        bindDesktopMode()
         bindCategoryPhoneFeatures()
         bindExceptions()
     }
