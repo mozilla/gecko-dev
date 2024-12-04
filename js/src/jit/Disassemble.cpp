@@ -34,7 +34,7 @@ namespace jit {
 
 bool HasDisassembler() { return true; }
 
-void Disassemble(const uint8_t* code, size_t length, InstrCallback callback) {
+void Disassemble(uint8_t* code, size_t length, InstrCallback callback) {
   zydisDisassemble(code, length, callback);
 }
 
