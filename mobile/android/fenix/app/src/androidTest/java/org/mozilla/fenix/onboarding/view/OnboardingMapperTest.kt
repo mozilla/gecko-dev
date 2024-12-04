@@ -17,6 +17,7 @@ import org.mozilla.fenix.R
 import org.mozilla.fenix.helpers.HomeActivityIntentTestRule
 import org.mozilla.fenix.nimbus.AddOnData
 import org.mozilla.fenix.nimbus.CustomizationThemeData
+import org.mozilla.fenix.nimbus.CustomizationThemesData
 import org.mozilla.fenix.nimbus.ExtraCardData
 import org.mozilla.fenix.nimbus.FxNimbus
 import org.mozilla.fenix.nimbus.JunoOnboarding
@@ -191,8 +192,12 @@ class OnboardingMapperTest {
         val secondaryButtonLabel = "Skip"
 
         // Theme data values
-        val themeLabel = "System auto"
-        val themeImage = R.drawable.ic_pick_a_theme_system_auto
+        val systemThemeLabel = "system"
+        val systemThemeImage = R.drawable.ic_pick_a_theme_system_auto
+        val lightThemeLabel = "light"
+        val lightThemeImage = R.drawable.ic_pick_a_theme_light
+        val darkThemeLabel = "dark"
+        val darkThemeImage = R.drawable.ic_pick_a_theme_dark
 
         // The onboarding card data object containing extraData.
         val themeSelectionCardData = OnboardingCardData(
@@ -204,11 +209,21 @@ class OnboardingMapperTest {
             secondaryButtonLabel = StringHolder(null, secondaryButtonLabel),
             ordering = 45,
             extraData = ExtraCardData(
-                customizationThemeData = listOf(
-                    CustomizationThemeData(
-                        label = StringHolder(null, themeLabel),
-                        imageRes = themeImage,
+                customizationThemeData = CustomizationThemesData(
+                    system = CustomizationThemeData(
+                        label = StringHolder(null, systemThemeLabel),
+                        imageRes = systemThemeImage,
                         themeType = ThemeType.THEME_SYSTEM,
+                    ),
+                    light = CustomizationThemeData(
+                        label = StringHolder(null, lightThemeLabel),
+                        imageRes = lightThemeImage,
+                        themeType = ThemeType.THEME_LIGHT,
+                    ),
+                    dark = CustomizationThemeData(
+                        label = StringHolder(null, darkThemeLabel),
+                        imageRes = darkThemeImage,
+                        themeType = ThemeType.THEME_DARK,
                     ),
                 ),
             ),
@@ -222,11 +237,21 @@ class OnboardingMapperTest {
             description = description,
             primaryButtonLabel = primaryButtonLabel,
             secondaryButtonLabel = secondaryButtonLabel,
-            themeOptions = listOf(
-                ThemeOption(
-                    label = themeLabel,
-                    imageRes = themeImage,
+            themeOptions = ThemeOptions(
+                system = ThemeOption(
+                    label = systemThemeLabel,
+                    imageRes = systemThemeImage,
                     themeType = ThemeOptionType.THEME_SYSTEM,
+                ),
+                light = ThemeOption(
+                    label = lightThemeLabel,
+                    imageRes = lightThemeImage,
+                    themeType = ThemeOptionType.THEME_LIGHT,
+                ),
+                dark = ThemeOption(
+                    label = darkThemeLabel,
+                    imageRes = darkThemeImage,
+                    themeType = ThemeOptionType.THEME_DARK,
                 ),
             ),
         )

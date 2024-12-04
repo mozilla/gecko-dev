@@ -322,7 +322,7 @@ class OnboardingMapperTest {
             imageRes = R.drawable.ic_pick_a_theme_dark,
             themeType = ThemeOptionType.THEME_DARK,
         )
-        val themeOptions = listOf(themeOptionSystem, themeOptionLight, themeOptionDark)
+        val themeOptions = ThemeOptions(themeOptionSystem, themeOptionLight, themeOptionDark)
 
         val pageUiData = OnboardingPageUiData(
             type = OnboardingPageUiData.Type.THEME_SELECTION,
