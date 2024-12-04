@@ -15,6 +15,7 @@ name = "types"
 version = "0.1.0"
 authors = ["Sync Team <sync-team@mozilla.com>"]
 build = false
+autolib = false
 autobins = false
 autoexamples = false
 autotests = false

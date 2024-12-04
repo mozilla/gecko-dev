@@ -16,6 +16,7 @@ name = "neqo-udp"
 version = "0.10.0"
 authors = ["The Neqo Authors <necko@mozilla.com>"]
 build = false
+autolib = false
 autobins = false
 autoexamples = false
 autotests = false

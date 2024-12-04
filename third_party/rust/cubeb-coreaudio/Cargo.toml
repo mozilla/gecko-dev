@@ -17,6 +17,7 @@ authors = [
     "Paul Adenot <paul@paul.cx>",
 ]
 build = false
+autolib = false
 autobins = false
 autoexamples = false
 autotests = false

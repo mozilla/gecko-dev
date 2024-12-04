@@ -15,6 +15,7 @@ name = "jsparagus-parser"
 version = "0.1.0"
 authors = ["Jason Orendorff <jason.orendorff@gmail.com>"]
 build = false
+autolib = false
 autobins = false
 autoexamples = false
 autotests = false

@@ -25,6 +25,7 @@ exclude = [
     "*.mp4",
     "*.avif",
 ]
+autolib = false
 autobins = false
 autoexamples = false
 autotests = false

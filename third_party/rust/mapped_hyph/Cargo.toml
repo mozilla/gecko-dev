@@ -15,6 +15,7 @@ name = "mapped_hyph"
 version = "0.4.3"
 authors = ["Jonathan Kew <jfkthame@gmail.com>"]
 build = false
+autolib = false
 autobins = false
 autoexamples = false
 autotests = false

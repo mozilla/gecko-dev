@@ -18,6 +18,7 @@ exclude = [
     "/android",
     "/ios",
 ]
+autolib = false
 autobins = false
 autoexamples = false
 autotests = false

@@ -16,6 +16,7 @@ name = "libz-rs-sys"
 version = "0.2.1"
 build = false
 publish = true
+autolib = false
 autobins = false
 autoexamples = false
 autotests = false

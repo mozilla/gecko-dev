@@ -16,6 +16,7 @@ name = "wgpu-core"
 version = "23.0.0"
 authors = ["gfx-rs developers"]
 build = "build.rs"
+autolib = false
 autobins = false
 autoexamples = false
 autotests = false

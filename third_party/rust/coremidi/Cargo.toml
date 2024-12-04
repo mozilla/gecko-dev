@@ -15,6 +15,7 @@ name = "coremidi"
 version = "0.6.0"
 authors = ["Christian Perez-Llamas"]
 build = false
+autolib = false
 autobins = false
 autoexamples = false
 autotests = false

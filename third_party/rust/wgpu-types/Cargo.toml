@@ -16,6 +16,7 @@ name = "wgpu-types"
 version = "23.0.0"
 authors = ["gfx-rs developers"]
 build = false
+autolib = false
 autobins = false
 autoexamples = false
 autotests = false

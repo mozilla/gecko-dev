@@ -15,6 +15,7 @@ name = "chardetng"
 version = "0.1.9"
 authors = ["Henri Sivonen <hsivonen@hsivonen.fi>"]
 build = false
+autolib = false
 autobins = false
 autoexamples = false
 autotests = false

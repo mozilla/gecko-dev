@@ -15,6 +15,7 @@ name = "sync-guid"
 version = "0.1.0"
 authors = ["Thom Chiovoloni <tchiovoloni@mozilla.com>"]
 build = false
+autolib = false
 autobins = false
 autoexamples = false
 autotests = false

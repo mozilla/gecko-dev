@@ -26,6 +26,7 @@ exclude = [
     "*.avif",
     "av1-avif/*",
 ]
+autolib = false
 autobins = false
 autoexamples = false
 autotests = false

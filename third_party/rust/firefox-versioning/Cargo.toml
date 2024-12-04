@@ -15,6 +15,7 @@ name = "firefox-versioning"
 version = "0.1.0"
 authors = ["Nimbus Team <project-nimbus@mozilla.com>"]
 build = false
+autolib = false
 autobins = false
 autoexamples = false
 autotests = false

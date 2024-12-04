@@ -17,6 +17,7 @@ authors = [
     "David Keeler <dkeeler@mozilla.com>",
 ]
 build = "build.rs"
+autolib = false
 autobins = false
 autoexamples = false
 autotests = false

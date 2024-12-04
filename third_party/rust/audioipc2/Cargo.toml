@@ -18,6 +18,7 @@ authors = [
     "Dan Glastonbury <dan.glastonbury@gmail.com>",
 ]
 build = "build.rs"
+autolib = false
 autobins = false
 autoexamples = false
 autotests = false

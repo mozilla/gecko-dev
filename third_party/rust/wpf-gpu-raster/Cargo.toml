@@ -19,6 +19,7 @@ include = [
     "LICENSE",
     "README.md",
 ]
+autolib = false
 autobins = false
 autoexamples = false
 autotests = false

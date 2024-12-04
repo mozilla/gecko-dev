@@ -14,6 +14,7 @@ name = "pulse-ffi"
 version = "0.1.0"
 authors = ["Dan Glastonbury <dglastonbury@mozilla.com>"]
 build = false
+autolib = false
 autobins = false
 autoexamples = false
 autotests = false

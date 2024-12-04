@@ -15,6 +15,7 @@ name = "any_all_workaround"
 version = "0.1.0"
 authors = ["Henri Sivonen <hsivonen@hsivonen.fi>"]
 build = "build.rs"
+autolib = false
 autobins = false
 autoexamples = false
 autotests = false

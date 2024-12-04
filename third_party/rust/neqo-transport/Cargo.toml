@@ -16,6 +16,7 @@ name = "neqo-transport"
 version = "0.10.0"
 authors = ["The Neqo Authors <necko@mozilla.com>"]
 build = "build.rs"
+autolib = false
 autobins = false
 autoexamples = false
 autotests = false

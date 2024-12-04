@@ -23,6 +23,7 @@ exclude = [
     "tests/**",
     "tools/**",
 ]
+autolib = false
 autobins = false
 autoexamples = false
 autotests = false

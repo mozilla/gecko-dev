@@ -15,6 +15,7 @@ name = "error-support-macros"
 version = "0.1.0"
 build = false
 publish = false
+autolib = false
 autobins = false
 autoexamples = false
 autotests = false

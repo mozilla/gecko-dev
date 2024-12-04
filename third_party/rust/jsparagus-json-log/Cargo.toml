@@ -15,6 +15,7 @@ name = "jsparagus-json-log"
 version = "0.1.0"
 authors = ["The jsparagus Project Developers"]
 build = false
+autolib = false
 autobins = false
 autoexamples = false
 autotests = false
