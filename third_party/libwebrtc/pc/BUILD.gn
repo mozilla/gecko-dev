@@ -1955,6 +1955,7 @@ if (rtc_include_tests && !build_with_chromium) {
     sources = [
       "audio_rtp_receiver_unittest.cc",
       "channel_unittest.cc",
+      "dtls_srtp_transport_integrationtest.cc",
       "dtls_srtp_transport_unittest.cc",
       "dtls_transport_unittest.cc",
       "ice_transport_unittest.cc",
