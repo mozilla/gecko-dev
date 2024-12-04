@@ -153,7 +153,7 @@ export namespace Bergamot {
     size(): number;
     getByteArrayView(): Uint8Array;
   }
-  
+
   /**
    * The response from the translation. This definition isn't complete, but just
    * contains a subset of the available methods.
@@ -164,7 +164,7 @@ export namespace Bergamot {
     getOriginalText(): string;
     getTranslatedText(): string;
   }
-  
+
   /**
    * The options to configure a translation response.
    *
@@ -204,8 +204,16 @@ interface LanguageTranslationModelFile {
 }
 
 /**
- * The files necessary to run the translations, these will be sent to the Bergamot
- * translation engine.
+ * The data required to construct a Bergamot Translation Model.
+ */
+interface TranslationModelPayload {
+  sourceLanguage: string,
+  targetLanguage: string,
+  languageModelFiles: LanguageTranslationModelFiles,
+};
+
+/**
+ * The files required to construct a Bergamot Translation Model's aligned memory.
  */
 interface LanguageTranslationModelFiles {
   // The machine learning language model.
@@ -238,7 +246,7 @@ type LanguageTranslationModelFilesAligned = {
  */
 interface TranslationsEnginePayload {
   bergamotWasmArrayBuffer: ArrayBuffer,
-  languageModelFiles: LanguageTranslationModelFiles[]
+  translationModelPayloads: TranslationModelPayload[]
   isMocked: boolean,
 }
 
