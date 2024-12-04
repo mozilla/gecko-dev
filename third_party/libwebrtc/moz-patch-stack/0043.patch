@@ -187,7 +187,7 @@ index eb4d1d019c..2bdfe53ab9 100644
  static constexpr size_t kNumMediaTypes = 5;
  enum class RtpPacketMediaType : size_t {
 diff --git a/modules/rtp_rtcp/source/rtcp_receiver.cc b/modules/rtp_rtcp/source/rtcp_receiver.cc
-index 32b3459ed2..7a582549b2 100644
+index 2fef1703a1..f690a5b4e4 100644
 --- a/modules/rtp_rtcp/source/rtcp_receiver.cc
 +++ b/modules/rtp_rtcp/source/rtcp_receiver.cc
 @@ -166,6 +166,7 @@ RTCPReceiver::RTCPReceiver(const Environment& env,
@@ -217,7 +217,7 @@ index 32b3459ed2..7a582549b2 100644
    // Clear our lists.
    rtts_.erase(bye.sender_ssrc());
    EraseIf(received_report_blocks_, [&](const auto& elem) {
-@@ -1247,12 +1253,20 @@ std::vector<rtcp::TmmbItem> RTCPReceiver::TmmbrReceived() {
+@@ -1248,12 +1254,20 @@ std::vector<rtcp::TmmbItem> RTCPReceiver::TmmbrReceived() {
  }
  
  bool RTCPReceiver::RtcpRrTimeoutLocked(Timestamp now) {

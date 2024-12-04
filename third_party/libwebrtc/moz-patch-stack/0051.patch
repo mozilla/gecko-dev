@@ -37,7 +37,7 @@ index 423f2d93d3..ea408827bb 100644
      // Timing frame info: all important timestamps for a full lifetime of a
      // single 'timing frame'.
 diff --git a/modules/rtp_rtcp/source/rtcp_receiver.cc b/modules/rtp_rtcp/source/rtcp_receiver.cc
-index 7a582549b2..ede2ebffe0 100644
+index f690a5b4e4..3e56e23089 100644
 --- a/modules/rtp_rtcp/source/rtcp_receiver.cc
 +++ b/modules/rtp_rtcp/source/rtcp_receiver.cc
 @@ -389,11 +389,13 @@ RTCPReceiver::ConsumeReceivedXrReferenceTimeInfo() {

@@ -1180,6 +1180,13 @@ void RTCPReceiver::TriggerCallbacksFromRtcpPacket(
           loss_notification->decodability_flag());
     }
   }
+  // Network state estimate should be applied before other feedback since it may
+  // affect how other feedback is handled.
+  if (network_state_estimate_observer_ &&
+      packet_information.network_state_estimate) {
+    network_state_estimate_observer_->OnRemoteNetworkEstimate(
+        *packet_information.network_state_estimate);
+  }
 
   if (network_link_rtcp_observer_) {
     Timestamp now = env_.clock().CurrentTime();
@@ -1209,12 +1216,6 @@ void RTCPReceiver::TriggerCallbacksFromRtcpPacket(
       (packet_information.packet_type_flags & kRtcpRr)) {
     rtp_rtcp_->OnReceivedRtcpReportBlocks(
         packet_information.report_block_datas);
-  }
-
-  if (network_state_estimate_observer_ &&
-      packet_information.network_state_estimate) {
-    network_state_estimate_observer_->OnRemoteNetworkEstimate(
-        *packet_information.network_state_estimate);
   }
 
   if (bitrate_allocation_observer_ &&
