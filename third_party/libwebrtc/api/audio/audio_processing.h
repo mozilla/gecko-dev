@@ -33,6 +33,7 @@
 #include "api/array_view.h"
 #include "api/audio/audio_processing_statistics.h"
 #include "api/audio/echo_control.h"
+#include "api/environment/environment.h"
 #include "api/ref_count.h"
 #include "api/scoped_refptr.h"
 #include "api/task_queue/task_queue_base.h"
@@ -731,6 +732,14 @@ class RTC_EXPORT AudioProcessing : public RefCountInterface {
   // clock drift effect which impacts the performance of (for example) echo
   // cancellation.
   static int GetFrameSize(int sample_rate_hz) { return sample_rate_hz / 100; }
+};
+
+class AudioProcessingFactory {
+ public:
+  virtual ~AudioProcessingFactory() = default;
+
+  virtual absl::Nullable<scoped_refptr<AudioProcessing>> Create(
+      const Environment& env) = 0;
 };
 
 // Experimental interface for a custom analysis submodule.

@@ -235,6 +235,10 @@ bool PeerConnectionIntegrationWrapper::Init(
     pc_factory_dependencies.video_decoder_factory.reset();
   }
 
+  // TODO: bugs.webrtc.org/369904700 - inject test specific
+  // audio_processing_factory right away when `EnableMediaWithDefault` would
+  // always keep audio_processing unchanged and thus can postpone
+  // AudioProcessing construction.
   if (!pc_factory_dependencies.audio_processing) {
     // If the standard Creation method for APM returns a null pointer, instead
     // use the builder for testing to create an APM object.

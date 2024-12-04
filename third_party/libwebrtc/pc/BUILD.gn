@@ -2379,6 +2379,7 @@ if (rtc_include_tests && !build_with_chromium) {
       "../media:rtc_data_sctp_transport_internal",
       "../media:rtc_media_config",
       "../media:stream_params",
+      "../modules/audio_processing:mocks",
       "../modules/rtp_rtcp:rtp_rtcp_format",
       "../p2p:basic_port_allocator",
       "../p2p:connection",

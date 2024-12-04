@@ -78,6 +78,7 @@ rtc_source_set("audio_processing") {
     "../../rtc_base/system:arch",
     "../../rtc_base/system:file_wrapper",
     "../../rtc_base/system:rtc_export",
+    "../environment",
     "../task_queue",
     "//third_party/abseil-cpp/absl/base:nullability",
     "//third_party/abseil-cpp/absl/strings:string_view",
