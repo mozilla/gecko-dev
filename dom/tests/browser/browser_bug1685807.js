@@ -36,9 +36,6 @@ add_task(async function doTests() {
       browser,
       [TEST_URI, testDocDomain],
       (aTestURI, aTestDocDomain) => {
-        // Mark the first entry as having been interacted with.
-        content.document.notifyUserGestureActivation();
-
         content.name = "Test";
 
         if (aTestDocDomain) {
@@ -68,7 +65,7 @@ add_task(async function doTests() {
       browser,
       "pageshow"
     );
-    browser.goBack(false);
+    browser.goBack();
     await awaitPageShow;
 
     // Check the window.name.

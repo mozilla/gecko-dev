@@ -1168,7 +1168,7 @@ GeckoDriver.prototype.goBack = async function () {
   await this._handleUserPrompts();
 
   // If there is no history, just return
-  if (!browsingContext.embedderElement?.canGoBackIgnoringUserInteraction) {
+  if (!browsingContext.embedderElement?.canGoBack) {
     return;
   }
 

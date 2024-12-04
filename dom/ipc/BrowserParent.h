@@ -302,7 +302,7 @@ class BrowserParent final : public PBrowserParent,
   mozilla::ipc::IPCResult RecvOnLocationChange(
       const WebProgressData& aWebProgressData, const RequestData& aRequestData,
       nsIURI* aLocation, const uint32_t aFlags, const bool aCanGoBack,
-      const bool aCanGoBackIgnoringUserInteraction, const bool aCanGoForward,
+      const bool aCanGoForward,
       const Maybe<WebProgressLocationChangeData>& aLocationChangeData);
 
   mozilla::ipc::IPCResult RecvOnStatusChange(const nsString& aMessage);

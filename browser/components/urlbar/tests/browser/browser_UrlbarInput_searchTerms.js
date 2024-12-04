@@ -38,7 +38,7 @@ add_task(async function go_back() {
     tab.linkedBrowser,
     "pageshow"
   );
-  tab.linkedBrowser.goBack(false);
+  tab.linkedBrowser.goBack();
   await pageShowPromise;
 
   assertSearchStringIsInUrlbar(SEARCH_STRING);

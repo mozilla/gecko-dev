@@ -282,10 +282,8 @@ add_task(async function testCorrectUrlBarAfterGoingBackDuringAnotherLoad() {
   );
 
   // Wait until we can go back
-  await TestUtils.waitForCondition(
-    () => tab.linkedBrowser.canGoBackIgnoringUserInteraction
-  );
-  ok(tab.linkedBrowser.canGoBackIgnoringUserInteraction, "can go back");
+  await TestUtils.waitForCondition(() => tab.linkedBrowser.canGoBack);
+  ok(tab.linkedBrowser.canGoBack, "can go back");
 
   // Navigate back from SLOW_PAGE. We should be taken to page 0 now.
   tab.linkedBrowser.goBack();
