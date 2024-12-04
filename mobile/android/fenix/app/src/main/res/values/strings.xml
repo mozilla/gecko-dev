@@ -558,17 +558,17 @@
     <string name="onboarding_welcome_to_firefox" tools:ignore="UnusedResources,BrandUsage">Welcome to Firefox</string>
     <!-- Terms of service onboarding page continue button label. -->
     <string name="onboarding_term_of_service_agree_and_continue_button_label" tools:ignore="UnusedResources">Agree and continue</string>
-    <!-- Terms of service onboarding page line one text. 'Firefox' intentionally hardcoded here-->
-    <string name="onboarding_term_of_service_line_one" tools:ignore="UnusedResources,BrandUsage">By continuing, you agree to the Firefox Terms of Service.</string>
-    <!-- Terms of service onboarding page line one text which should be displayed as a link. -->
+    <!-- Line one of the terms of service onboarding page. 'Firefox' is intentionally hardcoded. %1$s is replaced by an active link, using onboarding_term_of_service_line_one_link_text as text (“Terms of Service”). -->
+    <string name="onboarding_term_of_service_line_one" tools:ignore="UnusedResources,BrandUsage">By continuing, you agree to the Firefox %1$s.</string>
+    <!-- Used as text for the link in onboarding_term_of_service_line_one. -->
     <string name="onboarding_term_of_service_line_one_link_text" tools:ignore="UnusedResources,BrandUsage">Terms of Service</string>
-    <!-- Terms of service onboarding page line two text. 'Firefox' intentionally hardcoded here-->
-    <string name="onboarding_term_of_service_line_two" tools:ignore="UnusedResources,BrandUsage">Firefox cares about your privacy. Read more in our Privacy Notice.</string>
-    <!-- Terms of service onboarding page line two text which should be displayed as a link. -->
+    <!-- Line two of the terms of service onboarding page. 'Firefox' is intentionally hardcoded. %1$s is replaced by an active link, using onboarding_term_of_service_line_two_link_text as text (Privacy Notice”). -->
+    <string name="onboarding_term_of_service_line_two" tools:ignore="UnusedResources,BrandUsage">Firefox cares about your privacy. Read more in our %1$s.</string>
+    <!-- Used as text for the link in onboarding_term_of_service_line_two. -->
     <string name="onboarding_term_of_service_line_two_link_text" tools:ignore="UnusedResources,BrandUsage">Privacy Notice</string>
-    <!-- Terms of service onboarding page line three text. 'Firefox' intentionally hardcoded here-->
-    <string name="onboarding_term_of_service_line_three" tools:ignore="UnusedResources,BrandUsage">To help improve the browser, Firefox sends diagnostic and interaction data to Mozilla. Manage</string>
-    <!-- Terms of service onboarding page line three text which should be displayed as a link-->
+    <!-- Line three of the terms of service onboarding page. 'Firefox' and 'Mozilla' are intentionally hardcoded. %1$S is replaced by an active link, using onboarding_term_of_service_line_three_link_text as text (Manage”). -->
+    <string name="onboarding_term_of_service_line_three" tools:ignore="UnusedResources,BrandUsage">To help improve the browser, Firefox sends diagnostic and interaction data to Mozilla. %1$s</string>
+    <!-- Used as text for the link in onboarding_term_of_service_line_three. -->
     <string name="onboarding_term_of_service_line_three_link_text" tools:ignore="UnusedResources,BrandUsage">Manage</string>
     <!-- Onboarding header for the toolbar selection card, used by Nimbus experiments. -->
     <string name="onboarding_customize_toolbar_title" tools:ignore="UnusedResources">Pick a toolbar placement</string>

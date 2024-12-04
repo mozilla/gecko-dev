@@ -301,13 +301,13 @@ class OnboardingMapperTest {
         val description = "Terms of service card body"
         val primaryButtonLabel = "add-ons card primary button text"
 
-        val lineOneText = "By continuing, you agree to the Firefox Terms of Service."
+        val lineOneText = "By continuing, you agree to the Firefox %1\$s."
         val lineOneLinkText = "Terms of Service"
         val lineOneLinkUrl = "LinkOne"
-        val lineTwoText = "Firefox cares about your privacy. Read more in our Privacy Notice."
+        val lineTwoText = "Firefox cares about your privacy. Read more in our %1\$s."
         val lineTwoLinkText = "Privacy Notice"
         val lineTwoLinkUrl = "LinkTwo"
-        val lineThreeText = "To help improve the browser, Firefox sends diagnostic and interaction data to Mozilla. Manage"
+        val lineThreeText = "To help improve the browser, Firefox sends diagnostic and interaction data to Mozilla. %1\$s"
         val lineThreeLinkText = "Manage"
 
         val expected = OnboardingPageUiData(

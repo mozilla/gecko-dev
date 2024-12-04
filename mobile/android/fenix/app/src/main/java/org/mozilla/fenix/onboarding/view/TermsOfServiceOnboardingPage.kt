@@ -116,7 +116,7 @@ private fun BodyText(
                 onClick = { _ -> eventHandler.onManagePrivacyPreferencesLinkClicked() },
             )
             LinkText(
-                text = it.lineOneText,
+                text = it.lineOneText.updateFirstPlaceholder(it.lineOneLinkText),
                 linkTextStates = listOf(
                     lineOneState,
                 ),
@@ -127,7 +127,7 @@ private fun BodyText(
             )
             Spacer(Modifier.height(8.dp))
             LinkText(
-                text = it.lineTwoText,
+                text = it.lineTwoText.updateFirstPlaceholder(it.lineTwoLinkText),
                 linkTextStates = listOf(
                     lineTwoState,
                 ),
@@ -138,7 +138,7 @@ private fun BodyText(
             )
             Spacer(Modifier.height(8.dp))
             LinkText(
-                text = it.lineThreeText,
+                text = it.lineThreeText.updateFirstPlaceholder(it.lineThreeLinkText),
                 linkTextStates = listOf(
                     lineThreeState,
                 ),
@@ -163,6 +163,8 @@ private fun HeaderImage(@DrawableRes imageRes: Int) {
             .width(161.dp),
     )
 }
+
+private fun String.updateFirstPlaceholder(text: String) = replace("%1\$s", text)
 
 // *** Code below used for previews only *** //
 
