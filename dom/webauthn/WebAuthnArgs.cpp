@@ -82,7 +82,7 @@ WebAuthnRegisterArgs::GetCoseAlgs(nsTArray<int32_t>& aCoseAlgs) {
 
 NS_IMETHODIMP
 WebAuthnRegisterArgs::GetExcludeList(
-    nsTArray<nsTArray<uint8_t> >& aExcludeList) {
+    nsTArray<nsTArray<uint8_t>>& aExcludeList) {
   aExcludeList.Clear();
   for (const WebAuthnScopedCredential& cred : mInfo.ExcludeList()) {
     aExcludeList.AppendElement(cred.id().Clone());
@@ -112,6 +112,46 @@ WebAuthnRegisterArgs::GetHmacCreateSecret(bool* aHmacCreateSecret) {
   *aHmacCreateSecret = mHmacCreateSecret;
 
   return NS_OK;
+}
+
+NS_IMETHODIMP
+WebAuthnRegisterArgs::GetPrf(bool* aPrf) {
+  *aPrf = mPrf;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+WebAuthnRegisterArgs::GetPrfEvalFirst(nsTArray<uint8_t>& aEvalFirst) {
+  for (const WebAuthnExtension& ext : mInfo.Extensions()) {
+    if (ext.type() == WebAuthnExtension::TWebAuthnExtensionPrf) {
+      Maybe<WebAuthnExtensionPrfValues> eval =
+          ext.get_WebAuthnExtensionPrf().eval();
+      if (eval.isSome()) {
+        aEvalFirst.Assign(eval->first());
+        return NS_OK;
+      }
+      break;
+    }
+  }
+
+  return NS_ERROR_NOT_AVAILABLE;
+}
+
+NS_IMETHODIMP
+WebAuthnRegisterArgs::GetPrfEvalSecond(nsTArray<uint8_t>& aEvalSecond) {
+  for (const WebAuthnExtension& ext : mInfo.Extensions()) {
+    if (ext.type() == WebAuthnExtension::TWebAuthnExtensionPrf) {
+      Maybe<WebAuthnExtensionPrfValues> eval =
+          ext.get_WebAuthnExtensionPrf().eval();
+      if (eval.isSome() && eval->secondMaybe()) {
+        aEvalSecond.Assign(eval->second());
+        return NS_OK;
+      }
+      break;
+    }
+  }
+
+  return NS_ERROR_NOT_AVAILABLE;
 }
 
 NS_IMETHODIMP
@@ -207,7 +247,7 @@ WebAuthnSignArgs::GetClientDataHash(nsTArray<uint8_t>& aClientDataHash) {
 }
 
 NS_IMETHODIMP
-WebAuthnSignArgs::GetAllowList(nsTArray<nsTArray<uint8_t> >& aAllowList) {
+WebAuthnSignArgs::GetAllowList(nsTArray<nsTArray<uint8_t>>& aAllowList) {
   aAllowList.Clear();
   for (const WebAuthnScopedCredential& cred : mInfo.AllowList()) {
     aAllowList.AppendElement(cred.id().Clone());
@@ -245,6 +285,126 @@ WebAuthnSignArgs::GetAppId(nsAString& aAppId) {
   }
   aAppId = mAppId.ref();
   return NS_OK;
+}
+
+NS_IMETHODIMP
+WebAuthnSignArgs::GetPrf(bool* aPrf) {
+  *aPrf = mPrf;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+WebAuthnSignArgs::GetPrfEvalFirst(nsTArray<uint8_t>& aEvalFirst) {
+  for (const WebAuthnExtension& ext : mInfo.Extensions()) {
+    if (ext.type() == WebAuthnExtension::TWebAuthnExtensionPrf) {
+      Maybe<WebAuthnExtensionPrfValues> eval =
+          ext.get_WebAuthnExtensionPrf().eval();
+      if (eval.isSome()) {
+        aEvalFirst.Assign(eval->first());
+        return NS_OK;
+      }
+      break;
+    }
+  }
+
+  return NS_ERROR_NOT_AVAILABLE;
+}
+
+NS_IMETHODIMP
+WebAuthnSignArgs::GetPrfEvalSecond(nsTArray<uint8_t>& aEvalSecond) {
+  for (const WebAuthnExtension& ext : mInfo.Extensions()) {
+    if (ext.type() == WebAuthnExtension::TWebAuthnExtensionPrf) {
+      Maybe<WebAuthnExtensionPrfValues> eval =
+          ext.get_WebAuthnExtensionPrf().eval();
+      if (eval.isSome() && eval->secondMaybe()) {
+        aEvalSecond.Assign(eval->second());
+        return NS_OK;
+      }
+      break;
+    }
+  }
+
+  return NS_ERROR_NOT_AVAILABLE;
+}
+
+NS_IMETHODIMP
+WebAuthnSignArgs::GetPrfEvalByCredentialCredentialId(
+    nsTArray<nsTArray<uint8_t>>& aCredentialIds) {
+  for (const WebAuthnExtension& ext : mInfo.Extensions()) {
+    if (ext.type() == WebAuthnExtension::TWebAuthnExtensionPrf) {
+      if (ext.get_WebAuthnExtensionPrf().evalByCredentialMaybe()) {
+        for (const WebAuthnExtensionPrfEvalByCredentialEntry& entry :
+             ext.get_WebAuthnExtensionPrf().evalByCredential()) {
+          aCredentialIds.AppendElement(entry.credentialId().Clone());
+        }
+        return NS_OK;
+      }
+      break;
+    }
+  }
+
+  return NS_ERROR_NOT_AVAILABLE;
+}
+
+NS_IMETHODIMP
+WebAuthnSignArgs::GetPrfEvalByCredentialEvalFirst(
+    nsTArray<nsTArray<uint8_t>>& aEvalFirsts) {
+  for (const WebAuthnExtension& ext : mInfo.Extensions()) {
+    if (ext.type() == WebAuthnExtension::TWebAuthnExtensionPrf) {
+      if (ext.get_WebAuthnExtensionPrf().evalByCredentialMaybe()) {
+        for (const WebAuthnExtensionPrfEvalByCredentialEntry& entry :
+             ext.get_WebAuthnExtensionPrf().evalByCredential()) {
+          aEvalFirsts.AppendElement(entry.eval().first().Clone());
+        }
+        return NS_OK;
+      }
+      break;
+    }
+  }
+
+  return NS_ERROR_NOT_AVAILABLE;
+}
+
+NS_IMETHODIMP
+WebAuthnSignArgs::GetPrfEvalByCredentialEvalSecondMaybe(
+    nsTArray<bool>& aEvalSecondMaybes) {
+  for (const WebAuthnExtension& ext : mInfo.Extensions()) {
+    if (ext.type() == WebAuthnExtension::TWebAuthnExtensionPrf) {
+      if (ext.get_WebAuthnExtensionPrf().evalByCredentialMaybe()) {
+        for (const WebAuthnExtensionPrfEvalByCredentialEntry& entry :
+             ext.get_WebAuthnExtensionPrf().evalByCredential()) {
+          aEvalSecondMaybes.AppendElement(entry.eval().secondMaybe());
+        }
+        return NS_OK;
+      }
+      break;
+    }
+  }
+
+  return NS_ERROR_NOT_AVAILABLE;
+}
+
+NS_IMETHODIMP
+WebAuthnSignArgs::GetPrfEvalByCredentialEvalSecond(
+    nsTArray<nsTArray<uint8_t>>& aEvalSeconds) {
+  for (const WebAuthnExtension& ext : mInfo.Extensions()) {
+    if (ext.type() == WebAuthnExtension::TWebAuthnExtensionPrf) {
+      if (ext.get_WebAuthnExtensionPrf().evalByCredentialMaybe()) {
+        for (const WebAuthnExtensionPrfEvalByCredentialEntry& entry :
+             ext.get_WebAuthnExtensionPrf().evalByCredential()) {
+          if (entry.eval().secondMaybe()) {
+            aEvalSeconds.AppendElement(entry.eval().second().Clone());
+          } else {
+            aEvalSeconds.AppendElement(nsTArray<uint8_t>());
+          }
+        }
+        return NS_OK;
+      }
+      break;
+    }
+  }
+
+  return NS_ERROR_NOT_AVAILABLE;
 }
 
 NS_IMETHODIMP

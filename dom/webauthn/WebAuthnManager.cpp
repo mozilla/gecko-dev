@@ -405,6 +405,36 @@ already_AddRefed<Promise> WebAuthnManager::MakeCredential(
     }
   }
 
+  // <https://w3c.github.io/webauthn/#prf-extension>
+  if (aOptions.mExtensions.mPrf.WasPassed()) {
+    const AuthenticationExtensionsPRFInputs& prf =
+        aOptions.mExtensions.mPrf.Value();
+
+    Maybe<WebAuthnExtensionPrfValues> eval = Nothing();
+    if (prf.mEval.WasPassed()) {
+      CryptoBuffer first;
+      first.Assign(prf.mEval.Value().mFirst);
+      const bool secondMaybe = prf.mEval.Value().mSecond.WasPassed();
+      CryptoBuffer second;
+      if (secondMaybe) {
+        second.Assign(prf.mEval.Value().mSecond.Value());
+      }
+      eval = Some(WebAuthnExtensionPrfValues(first, secondMaybe, second));
+    }
+
+    const bool evalByCredentialMaybe = prf.mEvalByCredential.WasPassed();
+    nsTArray<WebAuthnExtensionPrfEvalByCredentialEntry> evalByCredential;
+    if (evalByCredentialMaybe) {
+      // evalByCredential is only allowed in GetAssertion.
+      // https://w3c.github.io/webauthn/#prf-extension
+      promise->MaybeReject(NS_ERROR_DOM_NOT_SUPPORTED_ERR);
+      return promise.forget();
+    }
+
+    extensions.AppendElement(
+        WebAuthnExtensionPrf(eval, evalByCredentialMaybe, evalByCredential));
+  }
+
   const auto& selection = aOptions.mAuthenticatorSelection;
   const auto& attachment = selection.mAuthenticatorAttachment;
   const nsString& attestation = aOptions.mAttestation;
@@ -630,6 +660,70 @@ already_AddRefed<Promise> WebAuthnManager::GetAssertion(
     extensions.AppendElement(WebAuthnExtensionAppId(appId));
   }
 
+  // <https://w3c.github.io/webauthn/#prf-extension>
+  if (aOptions.mExtensions.mPrf.WasPassed()) {
+    const AuthenticationExtensionsPRFInputs& prf =
+        aOptions.mExtensions.mPrf.Value();
+
+    Maybe<WebAuthnExtensionPrfValues> eval = Nothing();
+    if (prf.mEval.WasPassed()) {
+      CryptoBuffer first;
+      first.Assign(prf.mEval.Value().mFirst);
+      const bool secondMaybe = prf.mEval.Value().mSecond.WasPassed();
+      CryptoBuffer second;
+      if (secondMaybe) {
+        second.Assign(prf.mEval.Value().mSecond.Value());
+      }
+      eval = Some(WebAuthnExtensionPrfValues(first, secondMaybe, second));
+    }
+
+    const bool evalByCredentialMaybe = prf.mEvalByCredential.WasPassed();
+    nsTArray<WebAuthnExtensionPrfEvalByCredentialEntry> evalByCredential;
+    if (evalByCredentialMaybe) {
+      if (allowList.Length() == 0) {
+        promise->MaybeReject(NS_ERROR_DOM_NOT_SUPPORTED_ERR);
+        return promise.forget();
+      }
+
+      for (const auto& entry : prf.mEvalByCredential.Value().Entries()) {
+        FallibleTArray<uint8_t> evalByCredentialEntryId;
+        nsresult rv = Base64URLDecode(NS_ConvertUTF16toUTF8(entry.mKey),
+                                      Base64URLDecodePaddingPolicy::Ignore,
+                                      evalByCredentialEntryId);
+        if (NS_FAILED(rv)) {
+          promise->MaybeReject(NS_ERROR_DOM_SYNTAX_ERR);
+          return promise.forget();
+        }
+
+        bool foundMatchingAllowListEntry = false;
+        for (const auto& cred : allowList) {
+          if (evalByCredentialEntryId == cred.id()) {
+            foundMatchingAllowListEntry = true;
+          }
+        }
+        if (!foundMatchingAllowListEntry) {
+          promise->MaybeReject(NS_ERROR_DOM_SYNTAX_ERR);
+          return promise.forget();
+        }
+
+        CryptoBuffer first;
+        first.Assign(entry.mValue.mFirst);
+        const bool secondMaybe = entry.mValue.mSecond.WasPassed();
+        CryptoBuffer second;
+        if (secondMaybe) {
+          second.Assign(entry.mValue.mSecond.Value());
+        }
+        evalByCredential.AppendElement(
+            WebAuthnExtensionPrfEvalByCredentialEntry(
+                evalByCredentialEntryId,
+                WebAuthnExtensionPrfValues(first, secondMaybe, second)));
+      }
+    }
+
+    extensions.AppendElement(
+        WebAuthnExtensionPrf(eval, evalByCredentialMaybe, evalByCredential));
+  }
+
   BrowsingContext* context = mParent->GetBrowsingContext();
   if (!context) {
     promise->MaybeReject(NS_ERROR_DOM_OPERATION_ERR);
@@ -781,6 +875,24 @@ void WebAuthnManager::FinishMakeCredential(
           ext.get_WebAuthnExtensionResultHmacSecret().hmacCreateSecret();
       credential->SetClientExtensionResultHmacSecret(hmacCreateSecret);
     }
+    if (ext.type() == WebAuthnExtensionResult::TWebAuthnExtensionResultPrf) {
+      credential->InitClientExtensionResultPrf();
+      const Maybe<bool> prfEnabled =
+          ext.get_WebAuthnExtensionResultPrf().enabled();
+      if (prfEnabled.isSome()) {
+        credential->SetClientExtensionResultPrfEnabled(prfEnabled.value());
+      }
+      const Maybe<WebAuthnExtensionPrfValues> prfValues =
+          ext.get_WebAuthnExtensionResultPrf().results();
+      if (prfValues.isSome()) {
+        credential->SetClientExtensionResultPrfResultsFirst(
+            prfValues.value().first());
+        if (prfValues.value().secondMaybe()) {
+          credential->SetClientExtensionResultPrfResultsSecond(
+              prfValues.value().second());
+        }
+      }
+    }
   }
 
   ResolveTransaction(credential);
@@ -836,6 +948,19 @@ void WebAuthnManager::FinishGetAssertion(
     if (ext.type() == WebAuthnExtensionResult::TWebAuthnExtensionResultAppId) {
       bool appid = ext.get_WebAuthnExtensionResultAppId().AppId();
       credential->SetClientExtensionResultAppId(appid);
+    }
+    if (ext.type() == WebAuthnExtensionResult::TWebAuthnExtensionResultPrf) {
+      credential->InitClientExtensionResultPrf();
+      Maybe<WebAuthnExtensionPrfValues> prfResults =
+          ext.get_WebAuthnExtensionResultPrf().results();
+      if (prfResults.isSome()) {
+        credential->SetClientExtensionResultPrfResultsFirst(
+            prfResults.value().first());
+        if (prfResults.value().secondMaybe()) {
+          credential->SetClientExtensionResultPrfResultsSecond(
+              prfResults.value().second());
+        }
+      }
     }
   }
 

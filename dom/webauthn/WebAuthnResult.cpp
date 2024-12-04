@@ -91,6 +91,23 @@ WebAuthnRegisterResult::SetCredPropsRk(bool aCredPropsRk) {
 }
 
 NS_IMETHODIMP
+WebAuthnRegisterResult::GetPrfEnabled(bool* aPrfEnabled) {
+  return NS_ERROR_NOT_IMPLEMENTED;
+}
+
+NS_IMETHODIMP
+WebAuthnRegisterResult::GetPrfResultsFirst(
+    nsTArray<uint8_t>& aPrfResultsFirst) {
+  return NS_ERROR_NOT_IMPLEMENTED;
+}
+
+NS_IMETHODIMP
+WebAuthnRegisterResult::GetPrfResultsSecond(
+    nsTArray<uint8_t>& aPrfResultsSecond) {
+  return NS_ERROR_NOT_IMPLEMENTED;
+}
+
+NS_IMETHODIMP
 WebAuthnRegisterResult::GetAuthenticatorAttachment(
     nsAString& aAuthenticatorAttachment) {
   if (mAuthenticatorAttachment.isSome()) {
@@ -195,6 +212,21 @@ NS_IMETHODIMP
 WebAuthnSignResult::SetUsedAppId(bool aUsedAppId) {
   mUsedAppId = Some(aUsedAppId);
   return NS_OK;
+}
+
+NS_IMETHODIMP
+WebAuthnSignResult::GetPrfMaybe(bool* aPrfMaybe) {
+  return NS_ERROR_NOT_IMPLEMENTED;
+}
+
+NS_IMETHODIMP
+WebAuthnSignResult::GetPrfResultsFirst(nsTArray<uint8_t>& aPrfResultsFirst) {
+  return NS_ERROR_NOT_IMPLEMENTED;
+}
+
+NS_IMETHODIMP
+WebAuthnSignResult::GetPrfResultsSecond(nsTArray<uint8_t>& aPrfResultsSecond) {
+  return NS_ERROR_NOT_IMPLEMENTED;
 }
 
 NS_IMETHODIMP

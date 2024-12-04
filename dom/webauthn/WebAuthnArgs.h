@@ -22,7 +22,8 @@ class WebAuthnRegisterArgs final : public nsIWebAuthnRegisterArgs {
       : mInfo(aInfo),
         mCredProps(false),
         mHmacCreateSecret(false),
-        mMinPinLength(false) {
+        mMinPinLength(false),
+        mPrf(false) {
     for (const WebAuthnExtension& ext : mInfo.Extensions()) {
       switch (ext.type()) {
         case WebAuthnExtension::TWebAuthnExtensionCredProps:
@@ -37,6 +38,9 @@ class WebAuthnRegisterArgs final : public nsIWebAuthnRegisterArgs {
               ext.get_WebAuthnExtensionMinPinLength().minPinLength();
           break;
         case WebAuthnExtension::TWebAuthnExtensionAppId:
+          break;
+        case WebAuthnExtension::TWebAuthnExtensionPrf:
+          mPrf = true;
           break;
         case WebAuthnExtension::T__None:
           break;
@@ -53,6 +57,7 @@ class WebAuthnRegisterArgs final : public nsIWebAuthnRegisterArgs {
   bool mCredProps;
   bool mHmacCreateSecret;
   bool mMinPinLength;
+  bool mPrf;
 };
 
 class WebAuthnSignArgs final : public nsIWebAuthnSignArgs {
@@ -61,7 +66,7 @@ class WebAuthnSignArgs final : public nsIWebAuthnSignArgs {
   NS_DECL_NSIWEBAUTHNSIGNARGS
 
   explicit WebAuthnSignArgs(const WebAuthnGetAssertionInfo& aInfo)
-      : mInfo(aInfo) {
+      : mInfo(aInfo), mPrf(false) {
     for (const WebAuthnExtension& ext : mInfo.Extensions()) {
       switch (ext.type()) {
         case WebAuthnExtension::TWebAuthnExtensionAppId:
@@ -72,6 +77,10 @@ class WebAuthnSignArgs final : public nsIWebAuthnSignArgs {
         case WebAuthnExtension::TWebAuthnExtensionHmacSecret:
           break;
         case WebAuthnExtension::TWebAuthnExtensionMinPinLength:
+          break;
+        case WebAuthnExtension::TWebAuthnExtensionPrf:
+          mPrf = ext.get_WebAuthnExtensionPrf().eval().isSome() ||
+                 ext.get_WebAuthnExtensionPrf().evalByCredentialMaybe();
           break;
         case WebAuthnExtension::T__None:
           break;
@@ -84,6 +93,7 @@ class WebAuthnSignArgs final : public nsIWebAuthnSignArgs {
 
   const WebAuthnGetAssertionInfo mInfo;
   Maybe<nsString> mAppId;
+  bool mPrf;
 };
 
 }  // namespace mozilla::dom

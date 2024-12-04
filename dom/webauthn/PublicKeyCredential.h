@@ -61,7 +61,7 @@ class PublicKeyCredential final : public Credential {
       GlobalObject& aGlobal, ErrorResult& aError);
 
   void GetClientExtensionResults(
-      AuthenticationExtensionsClientOutputs& aResult);
+      JSContext* cx, AuthenticationExtensionsClientOutputs& aResult) const;
 
   void ToJSON(JSContext* aCx, JS::MutableHandle<JSObject*> aRetval,
               ErrorResult& aError);
@@ -71,6 +71,12 @@ class PublicKeyCredential final : public Credential {
   void SetClientExtensionResultCredPropsRk(bool aResult);
 
   void SetClientExtensionResultHmacSecret(bool aHmacCreateSecret);
+  void InitClientExtensionResultPrf();
+  void SetClientExtensionResultPrfEnabled(bool aPrfEnabled);
+  void SetClientExtensionResultPrfResultsFirst(
+      const nsTArray<uint8_t>& aPrfResultsFirst);
+  void SetClientExtensionResultPrfResultsSecond(
+      const nsTArray<uint8_t>& aPrfResultsSecond);
 
   static void ParseCreationOptionsFromJSON(
       GlobalObject& aGlobal,
@@ -89,6 +95,12 @@ class PublicKeyCredential final : public Credential {
   RefPtr<AuthenticatorAttestationResponse> mAttestationResponse;
   RefPtr<AuthenticatorAssertionResponse> mAssertionResponse;
   AuthenticationExtensionsClientOutputs mClientExtensionOutputs;
+
+  // We need a reference to JSContext in order to convert nsTArray to
+  // BufferSource, so we need to store these outside mClientExtensionOutputs and
+  // defer the conversion until the GetClientExtensionResults call.
+  Maybe<nsTArray<uint8_t>> mPrfResultsFirst;
+  Maybe<nsTArray<uint8_t>> mPrfResultsSecond;
 };
 
 }  // namespace mozilla::dom
