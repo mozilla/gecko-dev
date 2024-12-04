@@ -87,7 +87,7 @@ unified-extensions-item {
   }
 }
 
-.webextension-browser-action {
+.unified-extensions-item-action-button {
   list-style-image: var(--webextension-toolbar-image, inherit);
 
   toolbar[brighttext] & {
@@ -96,7 +96,7 @@ unified-extensions-item {
   :root[lwtheme] toolbar:not([brighttext]) & {
     list-style-image: var(--webextension-toolbar-image-dark, inherit);
   }
-  toolbaritem:is([overflowedItem="true"], [cui-areatype="panel"]) > & {
+  toolbaritem:is([overflowedItem="true"], [cui-areatype="panel"]) > .unified-extensions-item-row-wrapper > & {
     list-style-image: var(--webextension-menupanel-image, inherit);
     /* TODO: This feels a bit odd, why do we have three images? It feels we
      * should probably have only two (light/dark), and choose based on
