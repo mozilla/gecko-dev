@@ -20,12 +20,14 @@
 #include "mozilla/Casting.h"
 #include "mozilla/CheckedInt.h"
 #include "mozilla/EnumTypeTraits.h"
+#include "mozilla/IsEnumCase.h"
 #include "mozilla/MathAlgorithms.h"
 #include "mozilla/Range.h"
 #include "mozilla/RefCounted.h"
 #include "mozilla/Result.h"
 #include "mozilla/ResultVariant.h"
 #include "mozilla/Span.h"
+#include "mozilla/TiedFields.h"
 #include "mozilla/TypedEnumBits.h"
 #include "mozilla/gfx/2D.h"
 #include "mozilla/gfx/BuildConstants.h"
@@ -40,7 +42,6 @@
 #include "nsString.h"
 #include "mozilla/dom/WebGLRenderingContextBinding.h"
 #include "mozilla/ipc/SharedMemory.h"
-#include "TiedFields.h"
 
 // Manual reflection of WebIDL typedefs that are different from their
 // OpenGL counterparts.
@@ -131,19 +132,6 @@ class VRefCounted : public RefCounted<VRefCounted> {
   virtual size_t typeSize() const = 0;
 #endif
 };
-
-// -
-
-template <class T>
-bool IsEnumCase(T);
-
-template <class E>
-inline constexpr std::optional<E> AsEnumCase(
-    const std::underlying_type_t<E> raw) {
-  const auto ret = static_cast<E>(raw);
-  if (!IsEnumCase(ret)) return {};
-  return ret;
-}
 
 // -
 

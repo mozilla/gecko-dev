@@ -17,8 +17,8 @@
 // __STDC_WANT_LIB_EXT1__ required for memcpy_s
 #  include <stdlib.h>
 #  include <string.h>
+#  include "mozilla/TiedFields.h"
 #  include "mozilla/TypedEnumBits.h"
-#  include "mozilla/dom/TiedFields.h"
 #  include "mozilla/gfx/2D.h"
 #  include <stddef.h>
 #  include <stdint.h>
