@@ -354,16 +354,26 @@ std::unique_ptr<rtc::SSLCertChain> DtlsTransport::GetRemoteSSLCertChain()
   return dtls_->GetPeerSSLCertChain();
 }
 
+bool DtlsTransport::ExportSrtpKeyingMaterial(
+    rtc::ZeroOnFreeBuffer<unsigned char>& keying_material) {
+  return dtls_ ? dtls_->ExportSrtpKeyingMaterial(keying_material) : false;
+}
+
 bool DtlsTransport::ExportKeyingMaterial(absl::string_view label,
                                          const uint8_t* context,
                                          size_t context_len,
                                          bool use_context,
                                          uint8_t* result,
                                          size_t result_len) {
-  return (dtls_.get())
-             ? dtls_->ExportKeyingMaterial(label, context, context_len,
-                                           use_context, result, result_len)
-             : false;
+  RTC_DCHECK(!context);
+  RTC_DCHECK_EQ(context_len, 0u);
+  RTC_DCHECK_EQ(use_context, false);
+  rtc::ZeroOnFreeBuffer<unsigned char> temporary_result(result_len);
+  if (ExportSrtpKeyingMaterial(temporary_result)) {
+    std::memcpy(result, temporary_result.data(), result_len);
+    return true;
+  }
+  return false;
 }
 
 bool DtlsTransport::SetupDtls() {

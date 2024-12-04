@@ -458,6 +458,33 @@ TEST_F(DtlsTransportTest, TestTransferDtlsCombineRecords) {
   TestTransfer(500, 100, /*srtp=*/false);
 }
 
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+TEST_F(DtlsTransportTest, KeyingMaterialExporter) {
+  PrepareDtls(rtc::KT_DEFAULT);
+  ASSERT_TRUE(Connect());
+
+  int crypto_suite;
+  EXPECT_TRUE(client1_.dtls_transport()->GetSrtpCryptoSuite(&crypto_suite));
+  int key_len;
+  int salt_len;
+  EXPECT_TRUE(rtc::GetSrtpKeyAndSaltLengths(crypto_suite, &key_len, &salt_len));
+  rtc::ZeroOnFreeBuffer<unsigned char> client1_out(2 * (key_len + salt_len));
+  rtc::ZeroOnFreeBuffer<unsigned char> client2_out(2 * (key_len + salt_len));
+  EXPECT_TRUE(client1_.dtls_transport()->ExportSrtpKeyingMaterial(client1_out));
+  EXPECT_TRUE(client2_.dtls_transport()->ExportSrtpKeyingMaterial(client2_out));
+  EXPECT_EQ(client1_out, client2_out);
+
+  // Legacy variant using the deprecated API.
+  rtc::ZeroOnFreeBuffer<unsigned char> client1_out_legacy(2 *
+                                                          (key_len + salt_len));
+  EXPECT_TRUE(client1_.dtls_transport()->ExportKeyingMaterial(
+      "EXTRACTOR-dtls_srtp", nullptr, 0, false, client1_out_legacy.data(),
+      client1_out_legacy.size()));
+  EXPECT_EQ(client1_out, client1_out_legacy);
+}
+#pragma clang diagnostic pop
+
 class DtlsTransportVersionTest
     : public DtlsTransportTestBase,
       public ::testing::TestWithParam<

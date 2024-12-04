@@ -20,11 +20,6 @@
 #include "rtc_base/logging.h"
 #include "rtc_base/ssl_stream_adapter.h"
 
-namespace {
-// Value specified in RFC 5764.
-static const char kDtlsSrtpExporterLabel[] = "EXTRACTOR-dtls_srtp";
-}  // namespace
-
 namespace webrtc {
 
 DtlsSrtpTransport::DtlsSrtpTransport(bool rtcp_mux_enabled,
@@ -230,10 +225,8 @@ bool DtlsSrtpTransport::ExtractParams(
   rtc::ZeroOnFreeBuffer<unsigned char> dtls_buffer(key_len * 2 + salt_len * 2);
 
   // RFC 5705 exporter using the RFC 5764 parameters
-  if (!dtls_transport->ExportKeyingMaterial(kDtlsSrtpExporterLabel, NULL, 0,
-                                            false, &dtls_buffer[0],
-                                            dtls_buffer.size())) {
-    RTC_LOG(LS_WARNING) << "DTLS-SRTP key export failed";
+  if (!dtls_transport->ExportSrtpKeyingMaterial(dtls_buffer)) {
+    RTC_LOG(LS_ERROR) << "DTLS-SRTP key export failed";
     RTC_DCHECK_NOTREACHED();  // This should never happen
     return false;
   }

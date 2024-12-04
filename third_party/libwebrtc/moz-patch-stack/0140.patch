@@ -8,7 +8,7 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/250798952aa5b1f0c
  1 file changed, 1 insertion(+)
 
 diff --git a/rtc_base/ssl_stream_adapter.h b/rtc_base/ssl_stream_adapter.h
-index dcaaf3a0d1..1dca52b2a7 100644
+index f6a603a0e9..3d97765608 100644
 --- a/rtc_base/ssl_stream_adapter.h
 +++ b/rtc_base/ssl_stream_adapter.h
 @@ -15,6 +15,7 @@

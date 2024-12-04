@@ -11,6 +11,7 @@
 #ifndef P2P_BASE_FAKE_DTLS_TRANSPORT_H_
 #define P2P_BASE_FAKE_DTLS_TRANSPORT_H_
 
+#include <cstring>
 #include <memory>
 #include <string>
 #include <utility>
@@ -226,6 +227,13 @@ class FakeDtlsTransport : public DtlsTransportInternal {
       return nullptr;
     }
     return std::make_unique<rtc::SSLCertChain>(remote_cert_->Clone());
+  }
+  bool ExportSrtpKeyingMaterial(
+      rtc::ZeroOnFreeBuffer<unsigned char>& keying_material) override {
+    if (do_dtls_) {
+      std::memset(keying_material.data(), 0xff, keying_material.size());
+    }
+    return do_dtls_;
   }
   bool ExportKeyingMaterial(absl::string_view label,
                             const uint8_t* context,

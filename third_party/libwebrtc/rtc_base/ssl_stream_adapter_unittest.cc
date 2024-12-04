@@ -56,10 +56,6 @@ using ::testing::Values;
 using ::testing::WithParamInterface;
 using ::webrtc::SafeTask;
 
-static const char kExporterLabel[] = "label";
-static const unsigned char kExporterContext[] = "context";
-static int kExporterContextLen = sizeof(kExporterContext);
-
 // A private key used for testing, broken into pieces in order to avoid
 // issues with Git's checks for private keys in repos.
 // Generated using `openssl genrsa -out key.pem 2048`
@@ -818,21 +814,6 @@ class SSLStreamAdapterTestBase : public ::testing::Test,
       return server_ssl_->GetSslVersionBytes(version);
   }
 
-  bool ExportKeyingMaterial(absl::string_view label,
-                            const unsigned char* context,
-                            size_t context_len,
-                            bool use_context,
-                            bool client,
-                            unsigned char* result,
-                            size_t result_len) {
-    if (client)
-      return client_ssl_->ExportKeyingMaterial(label, context, context_len,
-                                               use_context, result, result_len);
-    else
-      return server_ssl_->ExportKeyingMaterial(label, context, context_len,
-                                               use_context, result, result_len);
-  }
-
   // To be implemented by subclasses.
   virtual void WriteData() = 0;
   virtual void ReadData(rtc::StreamInterface* stream) = 0;
@@ -1397,24 +1378,35 @@ TEST_F(SSLStreamAdapterTestDTLS, TestDTLSSrtpKeyAndSaltLengths) {
 }
 
 // Test an exporter
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
 TEST_F(SSLStreamAdapterTestDTLS, TestDTLSExporter) {
+  const std::vector<int> crypto_suites = {rtc::kSrtpAes128CmSha1_80};
+  SetDtlsSrtpCryptoSuites(crypto_suites, true);
+  SetDtlsSrtpCryptoSuites(crypto_suites, false);
+
   TestHandshake();
-  unsigned char client_out[EVP_MAX_MD_SIZE];
-  unsigned char server_out[EVP_MAX_MD_SIZE];
+  int selected_crypto_suite;
+  EXPECT_TRUE(GetDtlsSrtpCryptoSuite(/*client=*/false, &selected_crypto_suite));
+  int key_len;
+  int salt_len;
+  ASSERT_TRUE(rtc::GetSrtpKeyAndSaltLengths(selected_crypto_suite, &key_len,
+                                            &salt_len));
+  rtc::ZeroOnFreeBuffer<unsigned char> client_out(2 * (key_len + salt_len));
+  rtc::ZeroOnFreeBuffer<unsigned char> server_out(2 * (key_len + salt_len));
 
-  bool result;
-  result = ExportKeyingMaterial(kExporterLabel, kExporterContext,
-                                kExporterContextLen, true, true, client_out,
-                                sizeof(client_out));
-  ASSERT_TRUE(result);
+  EXPECT_TRUE(client_ssl_->ExportSrtpKeyingMaterial(client_out));
+  EXPECT_TRUE(server_ssl_->ExportSrtpKeyingMaterial(server_out));
+  EXPECT_EQ(client_out, server_out);
 
-  result = ExportKeyingMaterial(kExporterLabel, kExporterContext,
-                                kExporterContextLen, true, false, server_out,
-                                sizeof(server_out));
-  ASSERT_TRUE(result);
-
-  ASSERT_TRUE(!memcmp(client_out, server_out, sizeof(client_out)));
+  // Legacy variant.
+  rtc::ZeroOnFreeBuffer<unsigned char> legacy_out(2 * (key_len + salt_len));
+  EXPECT_TRUE(client_ssl_->ExportKeyingMaterial("EXTRACTOR-dtls_srtp", nullptr,
+                                                0, false, legacy_out.data(),
+                                                legacy_out.size()));
+  EXPECT_EQ(client_out, legacy_out);
 }
+#pragma clang diagnostic pop
 
 // Test not yet valid certificates are not rejected.
 TEST_F(SSLStreamAdapterTestDTLS, TestCertNotYetValid) {
