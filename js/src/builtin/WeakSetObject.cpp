@@ -191,16 +191,16 @@ bool WeakSetObject::construct(JSContext* cx, unsigned argc, Value* vp) {
   if (!args.get(0).isNullOrUndefined()) {
     Handle<Value> iterable = args[0];
     bool optimized = false;
-    if (!IsOptimizableInitForSet<JSProto_WeakSet>(cx, WeakSetObject::add, obj,
-                                                  iterable, &optimized)) {
+    if (!IsOptimizableInitForMapOrSet<JSProto_WeakSet>(
+            cx, WeakSetObject::add, obj, iterable, &optimized)) {
       return false;
     }
 
     if (optimized) {
       RootedValue keyVal(cx);
       Rooted<ArrayObject*> array(cx, &iterable.toObject().as<ArrayObject>());
-      for (uint32_t index = 0; index < array->getDenseInitializedLength();
-           ++index) {
+      uint32_t len = array->getDenseInitializedLength();
+      for (uint32_t index = 0; index < len; index++) {
         keyVal.set(array->getDenseElement(index));
         MOZ_ASSERT(!keyVal.isMagic(JS_ELEMENTS_HOLE));
 

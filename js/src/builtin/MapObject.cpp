@@ -768,13 +768,40 @@ bool MapObject::construct(JSContext* cx, unsigned argc, Value* vp) {
   }
 
   if (!args.get(0).isNullOrUndefined()) {
-    FixedInvokeArgs<1> args2(cx);
-    args2[0].set(args[0]);
-
-    RootedValue thisv(cx, ObjectValue(*obj));
-    if (!CallSelfHostedFunction(cx, cx->names().MapConstructorInit, thisv,
-                                args2, args2.rval())) {
+    Handle<Value> iterable = args[0];
+    bool optimized = false;
+    if (!IsOptimizableInitForMapOrSet<JSProto_Map>(cx, MapObject::set, obj,
+                                                   iterable, &optimized)) {
       return false;
+    }
+
+    if (optimized) {
+      ArrayObject* array = &iterable.toObject().as<ArrayObject>();
+      uint32_t len = array->getDenseInitializedLength();
+      for (uint32_t index = 0; index < len; index++) {
+        Value element = array->getDenseElement(index);
+        MOZ_ASSERT(IsPackedArray(&element.toObject()));
+
+        auto* elementArray = &element.toObject().as<ArrayObject>();
+        Value key = elementArray->getDenseElement(0);
+        Value value = elementArray->getDenseElement(1);
+
+        MOZ_ASSERT(!key.isMagic(JS_ELEMENTS_HOLE));
+        MOZ_ASSERT(!value.isMagic(JS_ELEMENTS_HOLE));
+
+        if (!obj->set(cx, key, value)) {
+          return false;
+        }
+      }
+    } else {
+      FixedInvokeArgs<1> args2(cx);
+      args2[0].set(iterable);
+
+      RootedValue thisv(cx, ObjectValue(*obj));
+      if (!CallSelfHostedFunction(cx, cx->names().MapConstructorInit, thisv,
+                                  args2, args2.rval())) {
+        return false;
+      }
     }
   }
 
@@ -1420,15 +1447,15 @@ bool SetObject::construct(JSContext* cx, unsigned argc, Value* vp) {
   if (!args.get(0).isNullOrUndefined()) {
     Handle<Value> iterable = args[0];
     bool optimized = false;
-    if (!IsOptimizableInitForSet<JSProto_Set>(cx, SetObject::add, obj, iterable,
-                                              &optimized)) {
+    if (!IsOptimizableInitForMapOrSet<JSProto_Set>(cx, SetObject::add, obj,
+                                                   iterable, &optimized)) {
       return false;
     }
 
     if (optimized) {
       ArrayObject* array = &iterable.toObject().as<ArrayObject>();
-      for (uint32_t index = 0; index < array->getDenseInitializedLength();
-           ++index) {
+      uint32_t len = array->getDenseInitializedLength();
+      for (uint32_t index = 0; index < len; index++) {
         Value keyVal = array->getDenseElement(index);
         MOZ_ASSERT(!keyVal.isMagic(JS_ELEMENTS_HOLE));
         if (!obj->add(cx, keyVal)) {
