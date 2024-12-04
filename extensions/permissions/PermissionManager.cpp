@@ -1707,6 +1707,68 @@ PermissionManager::AddFromPrincipalAndPersistInPrivateBrowsing(
 }
 
 NS_IMETHODIMP
+PermissionManager::AddDefaultFromPrincipal(nsIPrincipal* aPrincipal,
+                                           const nsACString& aType,
+                                           uint32_t aPermission) {
+  ENSURE_NOT_CHILD_PROCESS;
+  MOZ_ASSERT(mState == eReady);
+
+  bool isValidPermissionPrincipal = false;
+  nsresult rv = ShouldHandlePrincipalForPermission(aPrincipal,
+                                                   isValidPermissionPrincipal);
+  NS_ENSURE_SUCCESS(rv, rv);
+  if (!isValidPermissionPrincipal) {
+    // return early if the principal is invalid for permissions
+    return rv;
+  }
+
+  nsCString origin;
+  rv = GetOriginFromPrincipal(aPrincipal, IsOAForceStripPermission(aType),
+                              origin);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  DefaultEntry entry;
+  {
+    // Lock for mDefaultEntriesForImport
+    MonitorAutoLock lock(mMonitor);
+
+    // Try to update existing entry in mDefaultEntriesForImport, which will
+    // later be used to restore the default permissions when permissions are
+    // cleared
+    bool updatedExistingEntry = false;
+    nsTArray<DefaultEntry>::iterator defaultEntry =
+        mDefaultEntriesForImport.begin();
+    while (defaultEntry != mDefaultEntriesForImport.end()) {
+      if (defaultEntry->mType == aType && defaultEntry->mOrigin == origin) {
+        defaultEntry->mPermission = aPermission;
+        entry = *defaultEntry;
+        if (aPermission == nsIPermissionManager::UNKNOWN_ACTION) {
+          mDefaultEntriesForImport.RemoveElementAt(defaultEntry);
+        }
+        updatedExistingEntry = true;
+        break;
+      }
+      ++defaultEntry;
+    }
+
+    // Or add a new entry if there wasn't already one and we aren't deleting the
+    // default permission
+    if (!updatedExistingEntry) {
+      entry.mOrigin = origin;
+      entry.mPermission = aPermission;
+      entry.mType = aType;
+      if (aPermission != nsIPermissionManager::UNKNOWN_ACTION) {
+        mDefaultEntriesForImport.AppendElement(entry);
+      }
+    }
+  }
+
+  // So far, we have only updated mDefaultEntriesForImport for later recovery.
+  // Now, we actually need to import this change into the permission manager.
+  return ImportDefaultEntry(entry);
+}
+
+NS_IMETHODIMP
 PermissionManager::AddFromPrincipal(nsIPrincipal* aPrincipal,
                                     const nsACString& aType,
                                     uint32_t aPermission, uint32_t aExpireType,
