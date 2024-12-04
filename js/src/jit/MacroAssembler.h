@@ -196,9 +196,7 @@
 #endif
 
 #define DEFINED_ON_RESULT_crash \
-  {                             \
-    MOZ_CRASH();                \
-  }
+  { MOZ_CRASH(); }
 #define DEFINED_ON_RESULT_define
 #define DEFINED_ON_RESULT_ = delete
 

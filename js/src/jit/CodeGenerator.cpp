@@ -2579,9 +2579,7 @@ void CreateDependentString::generate(MacroAssembler& masm,
       masm.jump(&stringAllocated);
     }
     masm.bind(&fatInline);
-    {
-      newGCString(FallbackKind::FatInlineString);
-    }
+    { newGCString(FallbackKind::FatInlineString); }
     masm.bind(&stringAllocated);
 
     masm.store32(temp1_, Address(string_, JSString::offsetOfLength()));
@@ -2935,9 +2933,7 @@ static JitCode* GenerateRegExpMatchStubShared(JSContext* cx,
         masm.jump(&storeDone);
       }
       masm.bind(&isUndefined);
-      {
-        masm.storeValue(UndefinedValue(), objectMatchElement);
-      }
+      { masm.storeValue(UndefinedValue(), objectMatchElement); }
       masm.bind(&storeDone);
 
       masm.add32(Imm32(1), matchIndex);
