@@ -390,33 +390,31 @@ class StoreBuffer {
 
     bool operator!=(const SlotsEdge& other) const { return !(*this == other); }
 
-    // True if this SlotsEdge range overlaps with the other SlotsEdge range,
-    // false if they do not overlap.
-    bool overlaps(const SlotsEdge& other) const {
+    // True if this SlotsEdge range is adjacent to or overlaps with the other
+    // SlotsEdge range. The adjacency case will coalesce a series of increasing
+    // or decreasing single index writes 0, 1, 2, ..., N into a SlotsEdge range
+    // of elements [0, N].
+    bool touches(const SlotsEdge& other) const {
       if (objectAndKind_ != other.objectAndKind_) {
         return false;
       }
 
-      // Widen our range by one on each side so that we consider
-      // adjacent-but-not-actually-overlapping ranges as overlapping. This
-      // is particularly useful for coalescing a series of increasing or
-      // decreasing single index writes 0, 1, 2, ..., N into a SlotsEdge
-      // range of elements [0, N].
-      uint32_t end = start_ + count_ + 1;
-      uint32_t start = start_ > 0 ? start_ - 1 : 0;
-      MOZ_ASSERT(start < end);
+      if (other.start_ < start_) {
+        // If the other range starts before this one, then it touches if its
+        // (exclusive) end is at or after this range.
+        return other.start_ + other.count_ >= start_;
+      }
 
-      uint32_t otherEnd = other.start_ + other.count_;
-      MOZ_ASSERT(other.start_ <= otherEnd);
-      return (start <= other.start_ && other.start_ <= end) ||
-             (start <= otherEnd && otherEnd <= end);
+      // Otherwise, the other range touches if it starts before or at
+      // the exclusive end of this range.
+      return other.start_ <= start_ + count_;
     }
 
     // Destructively make this SlotsEdge range the union of the other
     // SlotsEdge range and this one. A precondition is that the ranges must
     // overlap.
     void merge(const SlotsEdge& other) {
-      MOZ_ASSERT(overlaps(other));
+      MOZ_ASSERT(touches(other));
       uint32_t end = std::max(start_ + count_, other.start_ + other.count_);
       start_ = std::min(start_, other.start_);
       count_ = end - start_;
@@ -582,7 +580,7 @@ class StoreBuffer {
 
   void putSlot(NativeObject* obj, int kind, uint32_t start, uint32_t count) {
     SlotsEdge edge(obj, kind, start, count);
-    if (bufferSlot.last_.overlaps(edge)) {
+    if (bufferSlot.last_.touches(edge)) {
       bufferSlot.last_.merge(edge);
     } else {
       put(bufferSlot, edge, JS::GCReason::FULL_SLOT_BUFFER);
