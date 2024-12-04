@@ -684,7 +684,7 @@ networking:
     notification_emails:
       - necko@mozilla.com
       - rjesup@mozilla.com
-    expires: 136
+    expires: 146
 
   http_content_onstop_delay:
     type: timing_distribution
@@ -702,7 +702,7 @@ networking:
     notification_emails:
       - necko@mozilla.com
       - rjesup@mozilla.com
-    expires: 136
+    expires: 146
 
   http_content_ondatafinished_delay:
     type: timing_distribution
@@ -721,7 +721,7 @@ networking:
     notification_emails:
       - necko@mozilla.com
       - rjesup@mozilla.com
-    expires: 136
+    expires: 146
 
   http_content_ondatafinished_delay_2:
     type: timing_distribution
@@ -741,7 +741,7 @@ networking:
     notification_emails:
       - necko@mozilla.com
       - jesup@mozilla.com
-    expires: 136
+    expires: 146
 
   http_content_ondatafinished_to_onstop_delay:
     type: timing_distribution
@@ -759,7 +759,7 @@ networking:
     notification_emails:
       - necko@mozilla.com
       - rjesup@mozilla.com
-    expires: 136
+    expires: 146
 
   http_content_html5parser_ondatafinished_to_onstop_delay:
     type: timing_distribution
@@ -777,7 +777,7 @@ networking:
     notification_emails:
       - necko@mozilla.com
       - rjesup@mozilla.com
-    expires: 136
+    expires: 146
 
   http_content_cssloader_ondatafinished_to_onstop_delay:
     type: timing_distribution
@@ -793,7 +793,7 @@ networking:
       - technical
     notification_emails:
       - necko@mozilla.com
-    expires: 136
+    expires: 146
 
   http_ip_addr_any_count:
     type: labeled_counter
