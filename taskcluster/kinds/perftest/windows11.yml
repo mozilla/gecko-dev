@@ -431,7 +431,7 @@ ml-perf-autofill:
     attributes:
         batch: false
         cron: false
-    run-on-projects: []
+    run-on-projects: [autoland, mozilla-central]
     run:
         command: >-
             mkdir -p $MOZ_FETCHES_DIR/../artifacts &&
