@@ -4026,8 +4026,8 @@ function initSandbox(params) {
 
 ;// ./src/pdf.scripting.js
 
-const pdfjsVersion = "4.9.135";
-const pdfjsBuild = "f8d11a3a3";
+const pdfjsVersion = "4.9.143";
+const pdfjsBuild = "11ce57ac2";
 globalThis.pdfjsScripting = {
   initSandbox: initSandbox
 };

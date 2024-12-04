@@ -1798,6 +1798,7 @@ class AnnotationEditorUIManager {
   #draggingEditors = null;
   #editorTypes = null;
   #editorsToRescale = new Set();
+  _editorUndoBar = null;
   #enableHighlightFloatingButton = false;
   #enableUpdatedAddImage = false;
   #enableNewAltTextWhenAddingImage = false;
@@ -1892,7 +1893,7 @@ class AnnotationEditorUIManager {
       checker: arrowChecker
     }]]));
   }
-  constructor(container, viewer, altTextManager, eventBus, pdfDocument, pageColors, highlightColors, enableHighlightFloatingButton, enableUpdatedAddImage, enableNewAltTextWhenAddingImage, mlManager) {
+  constructor(container, viewer, altTextManager, eventBus, pdfDocument, pageColors, highlightColors, enableHighlightFloatingButton, enableUpdatedAddImage, enableNewAltTextWhenAddingImage, mlManager, editorUndoBar) {
     const signal = this._signal = this.#abortController.signal;
     this.#container = container;
     this.#viewer = viewer;
@@ -1932,6 +1933,7 @@ class AnnotationEditorUIManager {
       rotation: 0
     };
     this.isShiftKeyDown = false;
+    this._editorUndoBar = editorUndoBar || null;
   }
   destroy() {
     this.#updateModeCapability?.resolve();
@@ -1959,6 +1961,7 @@ class AnnotationEditorUIManager {
       clearTimeout(this.#translationTimeoutId);
       this.#translationTimeoutId = null;
     }
+    this._editorUndoBar?.destroy();
   }
   combinedSignal(ac) {
     return AbortSignal.any([this._signal, ac.signal]);
@@ -2548,6 +2551,7 @@ class AnnotationEditorUIManager {
     if (mode === AnnotationEditorType.NONE) {
       this.setEditingState(false);
       this.#disableAll();
+      this._editorUndoBar?.hide();
       this.#updateModeCapability.resolve();
       return;
     }
@@ -2803,6 +2807,7 @@ class AnnotationEditorUIManager {
       hasSomethingToRedo: true,
       isEmpty: this.#isEmpty()
     });
+    this._editorUndoBar?.hide();
   }
   redo() {
     this.#commandManager.redo();
@@ -2842,6 +2847,7 @@ class AnnotationEditorUIManager {
     }
     const editors = drawingEditor ? [drawingEditor] : [...this.#selectedEditors];
     const cmd = () => {
+      this._editorUndoBar?.show(undo, editors.length === 1 ? editors[0].editorType : editors.length);
       for (const editor of editors) {
         editor.remove();
       }
@@ -4176,6 +4182,7 @@ class AnnotationEditor {
     const [tx, ty] = this.getInitialTranslation();
     this.translate(tx, ty);
     bindEvents(this, this.div, ["pointerdown"]);
+    this._uiManager._editorUndoBar?.hide();
     return this.div;
   }
   pointerdown(event) {
@@ -9941,7 +9948,7 @@ function getDocument(src = {}) {
   }
   const docParams = {
     docId,
-    apiVersion: "4.9.135",
+    apiVersion: "4.9.143",
     data,
     password,
     disableAutoFetch,
@@ -11603,8 +11610,8 @@ class InternalRenderTask {
     }
   }
 }
-const version = "4.9.135";
-const build = "f8d11a3a3";
+const version = "4.9.143";
+const build = "11ce57ac2";
 
 ;// ./src/shared/scripting_utils.js
 function makeColorComp(n) {
@@ -17312,6 +17319,7 @@ class DrawingEditor extends AnnotationEditor {
       signal
     });
     parent.toggleDrawing();
+    uiManager._editorUndoBar?.hide();
     if (this._currentDraw) {
       parent.drawLayer.updateProperties(this._currentDrawId, this._currentDraw.startNew(x, y, parentWidth, parentHeight, rotation));
       return;
@@ -19814,8 +19822,8 @@ class DrawLayer {
 
 
 
-const pdfjsVersion = "4.9.135";
-const pdfjsBuild = "f8d11a3a3";
+const pdfjsVersion = "4.9.143";
+const pdfjsBuild = "11ce57ac2";
 
 var __webpack_exports__AbortException = __webpack_exports__.AbortException;
 var __webpack_exports__AnnotationEditorLayer = __webpack_exports__.AnnotationEditorLayer;
