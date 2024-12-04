@@ -1648,10 +1648,10 @@ index 0a9226ef6f..620c1c02f3 100644
    vcm_ = nullptr;
  }
 diff --git a/webrtc.gni b/webrtc.gni
-index fe5e6a0d71..eef511bfc7 100644
+index c8da32a8d6..47e12e6c36 100644
 --- a/webrtc.gni
 +++ b/webrtc.gni
-@@ -126,7 +126,7 @@ declare_args() {
+@@ -123,7 +123,7 @@ declare_args() {
  
    # Selects whether debug dumps for the audio processing module
    # should be generated.

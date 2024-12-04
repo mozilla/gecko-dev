@@ -21,8 +21,6 @@
 #include "modules/audio_coding/codecs/g711/audio_encoder_pcm.h"
 #include "modules/audio_coding/codecs/g722/audio_decoder_g722.h"
 #include "modules/audio_coding/codecs/g722/audio_encoder_g722.h"
-#include "modules/audio_coding/codecs/ilbc/audio_decoder_ilbc.h"
-#include "modules/audio_coding/codecs/ilbc/audio_encoder_ilbc.h"
 #include "modules/audio_coding/codecs/opus/audio_decoder_opus.h"
 #include "modules/audio_coding/codecs/pcm16b/audio_decoder_pcm16b.h"
 #include "modules/audio_coding/codecs/pcm16b/audio_encoder_pcm16b.h"
@@ -313,40 +311,6 @@ class AudioDecoderPcm16BTest : public AudioDecoderTest {
   }
 };
 
-class AudioDecoderIlbcTest : public AudioDecoderTest {
- protected:
-  AudioDecoderIlbcTest() : AudioDecoderTest() {
-    codec_input_rate_hz_ = 8000;
-    frame_size_ = 240;
-    data_length_ = 10 * frame_size_;
-    decoder_ = new AudioDecoderIlbcImpl;
-    RTC_DCHECK(decoder_);
-    AudioEncoderIlbcConfig config;
-    config.frame_size_ms = 30;
-    audio_encoder_.reset(new AudioEncoderIlbcImpl(config, payload_type_));
-  }
-
-  // Overload the default test since iLBC's function WebRtcIlbcfix_NetEqPlc does
-  // not return any data. It simply resets a few states and returns 0.
-  void DecodePlcTest() {
-    InitEncoder();
-    std::unique_ptr<int16_t[]> input(new int16_t[frame_size_]);
-    ASSERT_TRUE(
-        input_audio_.Read(frame_size_, codec_input_rate_hz_, input.get()));
-    rtc::Buffer encoded;
-    size_t enc_len = EncodeFrame(input.get(), frame_size_, &encoded);
-    AudioDecoder::SpeechType speech_type;
-    decoder_->Reset();
-    std::unique_ptr<int16_t[]> output(new int16_t[frame_size_ * channels_]);
-    size_t dec_len = decoder_->Decode(
-        encoded.data(), enc_len, codec_input_rate_hz_,
-        frame_size_ * channels_ * sizeof(int16_t), output.get(), &speech_type);
-    EXPECT_EQ(frame_size_, dec_len);
-    // Simply call DecodePlc and verify that we get 0 as return value.
-    EXPECT_EQ(0U, decoder_->DecodePlc(1, output.get()));
-  }
-};
-
 class AudioDecoderG722Test : public AudioDecoderTest {
  protected:
   AudioDecoderG722Test() : AudioDecoderTest() {
@@ -458,25 +422,6 @@ TEST_F(AudioDecoderPcm16BTest, EncodeDecode) {
 TEST_F(AudioDecoderPcm16BTest, SetTargetBitrate) {
   TestSetAndGetTargetBitratesWithFixedCodec(audio_encoder_.get(),
                                             codec_input_rate_hz_ * 16);
-}
-
-// TODO(bugs.webrtc.org/345525069): Either fix/enable or remove iLBC.
-#if defined(__has_feature) && __has_feature(undefined_behavior_sanitizer)
-TEST_F(AudioDecoderIlbcTest, DISABLED_EncodeDecode) {
-#else
-TEST_F(AudioDecoderIlbcTest, EncodeDecode) {
-#endif
-  int tolerance = 6808;
-  double mse = 2.13e6;
-  int delay = 80;  // Delay from input to output.
-  EncodeDecodeTest(500, tolerance, mse, delay);
-  ReInitTest();
-  EXPECT_TRUE(decoder_->HasDecodePlc());
-  DecodePlcTest();
-}
-
-TEST_F(AudioDecoderIlbcTest, SetTargetBitrate) {
-  TestSetAndGetTargetBitratesWithFixedCodec(audio_encoder_.get(), 13333);
 }
 
 // TODO(bugs.webrtc.org/345525069): Either fix/enable or remove G722.

@@ -320,14 +320,6 @@ webrtc_fuzzer_test("audio_decoder_g722_fuzzer") {
   ]
 }
 
-webrtc_fuzzer_test("audio_decoder_ilbc_fuzzer") {
-  sources = [ "audio_decoder_ilbc_fuzzer.cc" ]
-  deps = [
-    ":audio_decoder_fuzzer",
-    "../../modules/audio_coding:ilbc",
-  ]
-}
-
 webrtc_fuzzer_test("audio_decoder_opus_fuzzer") {
   sources = [ "audio_decoder_opus_fuzzer.cc" ]
   deps = [
@@ -758,7 +750,6 @@ group("fuzzers") {
     ":agc_fuzzer",
     ":audio_decoder_fuzzer",
     ":audio_decoder_g722_fuzzer",
-    ":audio_decoder_ilbc_fuzzer",
     ":audio_decoder_multiopus_fuzzer",
     ":audio_decoder_opus_fuzzer",
     ":audio_decoder_opus_redundant_fuzzer",

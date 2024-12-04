@@ -109,9 +109,6 @@ declare_args() {
   # TLS-TURN server. In return disabling this saves around 100kb in the binary.
   rtc_builtin_ssl_root_certificates = true
 
-  # Include the iLBC audio codec?
-  rtc_include_ilbc = true
-
   # Disable this to avoid building the Opus audio codec.
   rtc_include_opus = true
 
