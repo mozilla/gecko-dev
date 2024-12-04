@@ -460,6 +460,8 @@ if (rtc_include_tests) {
       ":audio_processing",
       ":audioproc_test_utils",
       "../../api:array_view",
+      "../../api/audio:builtin_audio_processing_factory",
+      "../../api/environment:environment_factory",
       "../../api/numerics",
       "../../api/test/metrics:global_metrics_logger_and_exporter",
       "../../api/test/metrics:metric",
@@ -586,8 +588,6 @@ rtc_library("audioproc_test_utils") {
   sources = [
     "test/audio_buffer_tools.cc",
     "test/audio_buffer_tools.h",
-    "test/audio_processing_builder_for_testing.cc",
-    "test/audio_processing_builder_for_testing.h",
     "test/bitexactness_tools.cc",
     "test/bitexactness_tools.h",
     "test/performance_timer.cc",

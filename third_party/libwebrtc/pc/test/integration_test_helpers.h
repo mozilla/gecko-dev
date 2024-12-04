@@ -70,7 +70,6 @@
 #include "media/base/media_engine.h"
 #include "media/base/stream_params.h"
 #include "media/engine/fake_webrtc_video_engine.h"
-#include "modules/audio_processing/test/audio_processing_builder_for_testing.h"
 #include "p2p/base/fake_ice_transport.h"
 #include "p2p/base/ice_transport_internal.h"
 #include "p2p/base/p2p_constants.h"
