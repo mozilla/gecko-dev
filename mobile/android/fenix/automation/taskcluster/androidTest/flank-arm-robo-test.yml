@@ -12,6 +12,8 @@ gcloud:
   use-orchestrator: true
   environment-variables:
     clearPackageData: true
+  other-files:
+    /data/local/tmp/org.mozilla.fenix.debug-geckoview-config.yaml: ./automation/taskcluster/androidTest/geckoview-configs/org.mozilla.fenix.debug-geckoview-config.yaml
 
   device:
     - model: java
