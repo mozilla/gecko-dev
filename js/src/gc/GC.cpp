@@ -192,6 +192,7 @@
 
 #include "gc/GC-inl.h"
 
+#include "mozilla/glue/Debug.h"
 #include "mozilla/Range.h"
 #include "mozilla/ScopeExit.h"
 #include "mozilla/TextUtils.h"
@@ -3335,12 +3336,13 @@ GCRuntime::MarkQueueProgress GCRuntime::processTestMarkQueue() {
       }
 
       // Mark the object.
-      AutoEnterOOMUnsafeRegion oomUnsafe;
       if (!marker().markOneObjectForTest(obj)) {
         // If we overflowed the stack here and delayed marking, then we won't be
         // testing what we think we're testing.
         MOZ_ASSERT(obj->asTenured().arena()->onDelayedMarkingList());
-        oomUnsafe.crash("Overflowed stack while marking test queue");
+        printf_stderr(
+            "Hit mark stack limit while marking test queue; test results may "
+            "be invalid");
       }
     } else if (val.isString()) {
       JSLinearString* str = &val.toString()->asLinear();
