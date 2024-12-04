@@ -240,6 +240,78 @@ class SnackbarBehaviorTest {
     }
 
     @Test
+    fun `GIVEN the snackbar is anchored to the logins bar and a top toolbar is shown WHEN the logins bar is not shown anymore THEN place the snackbar to the bottom`() {
+        val loginsBar = View(testContext)
+            .apply { id = R.id.loginSelectBar }
+            .also { parent.addView(it) }
+        View(testContext)
+            .apply { id = R.id.toolbar }
+            .also { parent.addView(it) }
+        val behavior = SnackbarBehavior<ViewGroup>(testContext, ToolbarPosition.TOP)
+
+        behavior.layoutDependsOn(parent, snackbarContainer, dependency)
+        assertSnackbarPlacementAboveAnchor(loginsBar)
+
+        loginsBar.visibility = View.GONE
+        behavior.layoutDependsOn(parent, snackbarContainer, dependency)
+        assertSnackbarIsPlacedAtTheBottomOfTheScreen()
+    }
+
+    @Test
+    fun `GIVEN the snackbar is anchored to the password bar and a top toolbar is shown WHEN the password bar is not shown anymore THEN place the snackbar to the bottom`() {
+        val passwordBar = View(testContext)
+            .apply { id = R.id.suggestStrongPasswordBar }
+            .also { parent.addView(it) }
+        View(testContext)
+            .apply { id = R.id.toolbar }
+            .also { parent.addView(it) }
+        val behavior = SnackbarBehavior<ViewGroup>(testContext, ToolbarPosition.TOP)
+
+        behavior.layoutDependsOn(parent, snackbarContainer, dependency)
+        assertSnackbarPlacementAboveAnchor(passwordBar)
+
+        passwordBar.visibility = View.GONE
+        behavior.layoutDependsOn(parent, snackbarContainer, dependency)
+        assertSnackbarIsPlacedAtTheBottomOfTheScreen()
+    }
+
+    @Test
+    fun `GIVEN the snackbar is anchored to the logins bar and a bottom toolbar is shown WHEN the logins bar is not shown anymore THEN place the snackbar above the toolbar`() {
+        val loginsBar = View(testContext)
+            .apply { id = R.id.loginSelectBar }
+            .also { parent.addView(it) }
+        val toolbar = View(testContext)
+            .apply { id = R.id.toolbar }
+            .also { parent.addView(it) }
+        val behavior = SnackbarBehavior<ViewGroup>(testContext, ToolbarPosition.BOTTOM)
+
+        behavior.layoutDependsOn(parent, snackbarContainer, dependency)
+        assertSnackbarPlacementAboveAnchor(loginsBar)
+
+        loginsBar.visibility = View.GONE
+        behavior.layoutDependsOn(parent, snackbarContainer, dependency)
+        assertSnackbarPlacementAboveAnchor(toolbar)
+    }
+
+    @Test
+    fun `GIVEN the snackbar is anchored to the password bar and a bottom toolbar is shown WHEN the password bar is not shown anymore THEN place the snackbar above the toolbar`() {
+        val passwordBar = View(testContext)
+            .apply { id = R.id.suggestStrongPasswordBar }
+            .also { parent.addView(it) }
+        val toolbar = View(testContext)
+            .apply { id = R.id.toolbar }
+            .also { parent.addView(it) }
+        val behavior = SnackbarBehavior<ViewGroup>(testContext, ToolbarPosition.BOTTOM)
+
+        behavior.layoutDependsOn(parent, snackbarContainer, dependency)
+        assertSnackbarPlacementAboveAnchor(passwordBar)
+
+        passwordBar.visibility = View.GONE
+        behavior.layoutDependsOn(parent, snackbarContainer, dependency)
+        assertSnackbarPlacementAboveAnchor(toolbar)
+    }
+
+    @Test
     fun `GIVEN the snackbar is anchored based on a top toolbar WHEN the toolbar is not shown anymore THEN place the snackbar at the bottom`() {
         val toolbar = View(testContext)
             .apply { id = R.id.toolbar }
