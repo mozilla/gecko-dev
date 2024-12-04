@@ -5,17 +5,17 @@
 package mozilla.components.feature.prompts.creditcard
 
 import mozilla.components.concept.storage.CreditCardEntry
-import mozilla.components.feature.prompts.concept.SelectablePromptView
+import mozilla.components.feature.prompts.concept.AutocompletePrompt
 
 /**
  * Delegate for credit card picker and related callbacks
  */
 interface CreditCardDelegate {
     /**
-     * The [SelectablePromptView] used for [CreditCardPicker] to display a
-     * selectable prompt list of credit cards.
+     * The [AutocompletePrompt] used for [CreditCardPicker] to display a
+     * a prompt with a list of credit cards available for autocomplete.
      */
-    val creditCardPickerView: SelectablePromptView<CreditCardEntry>?
+    val creditCardPickerView: AutocompletePrompt<CreditCardEntry>?
         get() = null
 
     /**

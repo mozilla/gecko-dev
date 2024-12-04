@@ -8,6 +8,7 @@ import mozilla.components.browser.state.action.ContentAction
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.concept.engine.prompt.PromptRequest
 import mozilla.components.concept.storage.Address
+import mozilla.components.feature.prompts.concept.AutocompletePrompt
 import mozilla.components.feature.prompts.concept.SelectablePromptView
 import mozilla.components.feature.prompts.consumePromptFrom
 import mozilla.components.feature.prompts.facts.emitAddressAutofillDismissedFact
@@ -19,7 +20,7 @@ import mozilla.components.support.base.log.logger.Logger
  * the user performed in the address picker.
  *
  * @property store The [BrowserStore] this feature should subscribe to.
- * @property addressSelectBar The [SelectablePromptView] view into which the select address
+ * @property addressSelectBar The [AutocompletePrompt] view into which the select address
  * prompt will be inflated.
  * @property onManageAddresses Callback invoked when user clicks on "Manage adresses" button from
  * select address prompt.
@@ -27,13 +28,13 @@ import mozilla.components.support.base.log.logger.Logger
  */
 class AddressPicker(
     private val store: BrowserStore,
-    private val addressSelectBar: SelectablePromptView<Address>,
+    private val addressSelectBar: AutocompletePrompt<Address>,
     private val onManageAddresses: () -> Unit = {},
     private var sessionId: String? = null,
 ) : SelectablePromptView.Listener<Address> {
 
     init {
-        addressSelectBar.listener = this
+        addressSelectBar.selectablePromptListener = this
     }
 
     /**
@@ -43,7 +44,8 @@ class AddressPicker(
      */
     internal fun handleSelectAddressRequest(request: PromptRequest.SelectAddress) {
         emitAddressAutofillShownFact()
-        addressSelectBar.showPrompt(request.addresses)
+        addressSelectBar.showPrompt()
+        addressSelectBar.populate(request.addresses)
     }
 
     /**

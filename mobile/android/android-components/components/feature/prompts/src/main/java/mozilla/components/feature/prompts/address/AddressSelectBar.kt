@@ -19,19 +19,20 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import mozilla.components.concept.storage.Address
 import mozilla.components.feature.prompts.R
+import mozilla.components.feature.prompts.concept.AutocompletePrompt
 import mozilla.components.feature.prompts.concept.SelectablePromptView
 import mozilla.components.feature.prompts.facts.emitAddressAutofillExpandedFact
 import mozilla.components.feature.prompts.facts.emitSuccessfulAddressAutofillSuccessFact
 import mozilla.components.support.ktx.android.view.hideKeyboard
 
 /**
- * A customizable "Select addresses" bar implementing [SelectablePromptView].
+ * A customizable "Select addresses" bar.
  */
 class AddressSelectBar @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null,
     defStyleAttr: Int = 0,
-) : ConstraintLayout(context, attrs, defStyleAttr), SelectablePromptView<Address> {
+) : ConstraintLayout(context, attrs, defStyleAttr), AutocompletePrompt<Address> {
 
     private var view: View? = null
     private var recyclerView: RecyclerView? = null
@@ -39,15 +40,17 @@ class AddressSelectBar @JvmOverloads constructor(
     private var expanderView: AppCompatImageView? = null
     private var manageAddressesView: AppCompatTextView? = null
     private var headerTextStyle: Int? = null
+    override var isPromptDisplayed: Boolean = false
+        private set
 
     private val listAdapter = AddressAdapter { address ->
-        listener?.apply {
+        selectablePromptListener?.apply {
             onOptionSelect(address)
             emitSuccessfulAddressAutofillSuccessFact()
         }
     }
 
-    override var listener: SelectablePromptView.Listener<Address>? = null
+    override var selectablePromptListener: SelectablePromptView.Listener<Address>? = null
 
     init {
         context.withStyledAttributes(
@@ -76,16 +79,20 @@ class AddressSelectBar @JvmOverloads constructor(
         listAdapter.submitList(null)
 
         toggleSelectAddressHeader(shouldExpand = false)
+        isPromptDisplayed = false
     }
 
-    override fun showPrompt(options: List<Address>) {
+    override fun showPrompt() {
         if (view == null) {
             view = View.inflate(context, LAYOUT_ID, this)
             bindViews()
         }
-
-        listAdapter.submitList(options)
         view?.isVisible = true
+        isPromptDisplayed = true
+    }
+
+    override fun populate(options: List<Address>) {
+        listAdapter.submitList(options)
     }
 
     private fun bindViews() {
@@ -116,7 +123,7 @@ class AddressSelectBar @JvmOverloads constructor(
 
         manageAddressesView = findViewById<AppCompatTextView>(R.id.manage_addresses).apply {
             setOnClickListener {
-                listener?.onManageOptions()
+                selectablePromptListener?.onManageOptions()
             }
         }
     }

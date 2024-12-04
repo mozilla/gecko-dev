@@ -29,7 +29,7 @@ internal class StrongPasswordPromptViewListener(
     var onGeneratedPasswordPromptClick: () -> Unit = { }
 
     init {
-        suggestStrongPasswordBar.listener = this
+        suggestStrongPasswordBar.passwordPromptListener = this
     }
 
     internal fun handleSuggestStrongPasswordRequest() {

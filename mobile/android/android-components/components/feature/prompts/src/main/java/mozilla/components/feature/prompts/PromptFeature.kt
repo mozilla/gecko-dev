@@ -9,7 +9,6 @@ import android.content.Intent
 import android.net.Uri
 import androidx.annotation.VisibleForTesting
 import androidx.annotation.VisibleForTesting.Companion.PRIVATE
-import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentManager
 import kotlinx.coroutines.CoroutineScope
@@ -1223,14 +1222,14 @@ class PromptFeature private constructor(
 
         (activePromptRequest as? SelectLoginPrompt)?.let { selectLoginPrompt ->
             loginPicker?.let { loginPicker ->
-                if (loginDelegate.loginPickerView?.asView()?.isVisible == true) {
+                if (loginDelegate.loginPickerView?.isPromptDisplayed == true) {
                     loginPicker.dismissCurrentLoginSelect(selectLoginPrompt)
                     result = true
                 }
             }
 
             strongPasswordPromptViewListener?.let { strongPasswordPromptViewListener ->
-                if (suggestStrongPasswordDelegate.strongPasswordPromptViewListenerView?.isVisible() == true) {
+                if (suggestStrongPasswordDelegate.strongPasswordPromptViewListenerView?.isPromptDisplayed == true) {
                     strongPasswordPromptViewListener.dismissCurrentSuggestStrongPassword(
                         selectLoginPrompt,
                     )
@@ -1241,7 +1240,7 @@ class PromptFeature private constructor(
 
         (activePromptRequest as? SelectCreditCard)?.let { selectCreditCardPrompt ->
             creditCardPicker?.let { creditCardPicker ->
-                if (creditCardDelegate.creditCardPickerView?.asView()?.isVisible == true) {
+                if (creditCardDelegate.creditCardPickerView?.isPromptDisplayed == true) {
                     creditCardPicker.dismissSelectCreditCardRequest(selectCreditCardPrompt)
                     result = true
                 }
@@ -1250,7 +1249,7 @@ class PromptFeature private constructor(
 
         (activePromptRequest as? SelectAddress)?.let { selectAddressPrompt ->
             addressPicker?.let { addressPicker ->
-                if (addressDelegate.addressPickerView?.asView()?.isVisible == true) {
+                if (addressDelegate.addressPickerView?.isPromptDisplayed == true) {
                     addressPicker.dismissSelectAddressRequest(selectAddressPrompt)
                     result = true
                 }

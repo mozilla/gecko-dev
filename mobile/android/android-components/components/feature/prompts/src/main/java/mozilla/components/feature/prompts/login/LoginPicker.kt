@@ -8,6 +8,7 @@ import mozilla.components.browser.state.action.ContentAction
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.concept.engine.prompt.PromptRequest
 import mozilla.components.concept.storage.Login
+import mozilla.components.feature.prompts.concept.AutocompletePrompt
 import mozilla.components.feature.prompts.concept.SelectablePromptView
 import mozilla.components.feature.prompts.consumePromptFrom
 import mozilla.components.feature.prompts.facts.emitLoginAutofillDismissedFact
@@ -22,25 +23,26 @@ import mozilla.components.support.base.log.logger.Logger
  * or select an option to manage their logins.
  *
  * @property store The [BrowserStore] this feature should subscribe to.
- * @property loginSelectBar The [SelectablePromptView] view into which the select login "prompt" will be inflated.
+ * @property loginSelectBar The [AutocompletePrompt] view into which the select login "prompt" will be inflated.
  * @property manageLoginsCallback A callback invoked when a user selects "manage logins" from the
  * select login prompt.
  * @property sessionId This is the id of the session which requested the prompt.
  */
 internal class LoginPicker(
     private val store: BrowserStore,
-    private val loginSelectBar: SelectablePromptView<Login>,
+    private val loginSelectBar: AutocompletePrompt<Login>,
     private val manageLoginsCallback: () -> Unit = {},
     private var sessionId: String? = null,
 ) : SelectablePromptView.Listener<Login> {
 
     init {
-        loginSelectBar.listener = this
+        loginSelectBar.selectablePromptListener = this
     }
 
     internal fun handleSelectLoginRequest(request: PromptRequest.SelectLoginPrompt) {
         emitLoginAutofillShownFact()
-        loginSelectBar.showPrompt(request.logins)
+        loginSelectBar.showPrompt()
+        loginSelectBar.populate(request.logins)
     }
 
     override fun onOptionSelect(option: Login) {

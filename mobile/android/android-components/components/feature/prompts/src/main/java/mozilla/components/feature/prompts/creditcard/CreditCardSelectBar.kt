@@ -19,6 +19,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import mozilla.components.concept.storage.CreditCardEntry
 import mozilla.components.feature.prompts.R
+import mozilla.components.feature.prompts.concept.AutocompletePrompt
 import mozilla.components.feature.prompts.concept.SelectablePromptView
 import mozilla.components.feature.prompts.facts.emitCreditCardAutofillExpandedFact
 import mozilla.components.feature.prompts.facts.emitSuccessfulCreditCardAutofillSuccessFact
@@ -31,7 +32,7 @@ class CreditCardSelectBar @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null,
     defStyleAttr: Int = 0,
-) : ConstraintLayout(context, attrs, defStyleAttr), SelectablePromptView<CreditCardEntry> {
+) : ConstraintLayout(context, attrs, defStyleAttr), AutocompletePrompt<CreditCardEntry> {
 
     private var view: View? = null
     private var recyclerView: RecyclerView? = null
@@ -39,15 +40,17 @@ class CreditCardSelectBar @JvmOverloads constructor(
     private var expanderView: AppCompatImageView? = null
     private var manageCreditCardsButtonView: AppCompatTextView? = null
     private var headerTextStyle: Int? = null
+    override var isPromptDisplayed: Boolean = false
+        private set
 
     private val listAdapter = CreditCardsAdapter { creditCard ->
-        listener?.apply {
+        selectablePromptListener?.apply {
             onOptionSelect(creditCard)
             emitSuccessfulCreditCardAutofillSuccessFact()
         }
     }
 
-    override var listener: SelectablePromptView.Listener<CreditCardEntry>? = null
+    override var selectablePromptListener: SelectablePromptView.Listener<CreditCardEntry>? = null
 
     init {
         context.withStyledAttributes(
@@ -76,16 +79,21 @@ class CreditCardSelectBar @JvmOverloads constructor(
         listAdapter.submitList(null)
 
         toggleSelectCreditCardHeader(shouldExpand = false)
+        isPromptDisplayed = false
     }
 
-    override fun showPrompt(options: List<CreditCardEntry>) {
+    override fun showPrompt() {
         if (view == null) {
             view = View.inflate(context, LAYOUT_ID, this)
             bindViews()
         }
 
-        listAdapter.submitList(options)
         view?.isVisible = true
+        isPromptDisplayed = true
+    }
+
+    override fun populate(options: List<CreditCardEntry>) {
+        listAdapter.submitList(options)
     }
 
     private fun bindViews() {
@@ -117,7 +125,7 @@ class CreditCardSelectBar @JvmOverloads constructor(
         manageCreditCardsButtonView =
             findViewById<AppCompatTextView>(R.id.manage_credit_cards).apply {
                 setOnClickListener {
-                    listener?.onManageOptions()
+                    selectablePromptListener?.onManageOptions()
                 }
             }
     }

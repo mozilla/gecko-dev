@@ -9,6 +9,7 @@ import mozilla.components.browser.state.action.ContentAction
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.concept.engine.prompt.PromptRequest
 import mozilla.components.concept.storage.CreditCardEntry
+import mozilla.components.feature.prompts.concept.AutocompletePrompt
 import mozilla.components.feature.prompts.concept.SelectablePromptView
 import mozilla.components.feature.prompts.consumePromptFrom
 import mozilla.components.feature.prompts.facts.emitCreditCardAutofillDismissedFact
@@ -20,7 +21,7 @@ import mozilla.components.support.base.log.logger.Logger
  * the user performed in the credit card picker.
  *
  * @property store The [BrowserStore] this feature should subscribe to.
- * @property creditCardSelectBar The [SelectablePromptView] view into which the select credit card
+ * @property creditCardSelectBar The [AutocompletePrompt] view into which the select credit card
  * prompt will be inflated.
  * @property manageCreditCardsCallback A callback invoked when a user selects "Manage credit cards"
  * from the select credit card prompt.
@@ -30,14 +31,14 @@ import mozilla.components.support.base.log.logger.Logger
  */
 class CreditCardPicker(
     private val store: BrowserStore,
-    private val creditCardSelectBar: SelectablePromptView<CreditCardEntry>,
+    private val creditCardSelectBar: AutocompletePrompt<CreditCardEntry>,
     private val manageCreditCardsCallback: () -> Unit = {},
     private val selectCreditCardCallback: () -> Unit = {},
     private var sessionId: String? = null,
 ) : SelectablePromptView.Listener<CreditCardEntry> {
 
     init {
-        creditCardSelectBar.listener = this
+        creditCardSelectBar.selectablePromptListener = this
     }
 
     // The selected credit card option to confirm.
@@ -114,6 +115,7 @@ class CreditCardPicker(
      */
     internal fun handleSelectCreditCardRequest(request: PromptRequest.SelectCreditCard) {
         emitCreditCardAutofillShownFact()
-        creditCardSelectBar.showPrompt(request.creditCards)
+        creditCardSelectBar.showPrompt()
+        creditCardSelectBar.populate(request.creditCards)
     }
 }

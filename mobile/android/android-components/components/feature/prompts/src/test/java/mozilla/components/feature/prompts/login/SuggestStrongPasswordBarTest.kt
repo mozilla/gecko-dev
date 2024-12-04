@@ -5,7 +5,6 @@
 package mozilla.components.feature.prompts.login
 
 import android.view.View
-import androidx.core.view.isVisible
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import mozilla.components.feature.prompts.concept.PasswordPromptView
 import mozilla.components.support.test.ext.appCompatContext
@@ -29,11 +28,11 @@ class SuggestStrongPasswordBarTest {
     fun `show prompt updates visibility`() {
         val bar = SuggestStrongPasswordBar(appCompatContext)
         val listener: PasswordPromptView.Listener = mock()
-        Assert.assertNull(bar.listener)
-        bar.listener = listener
-        Assert.assertNotNull(bar.listener)
+        Assert.assertNull(bar.passwordPromptListener)
+        bar.passwordPromptListener = listener
+        Assert.assertNotNull(bar.passwordPromptListener)
 
         bar.showPrompt()
-        Assert.assertTrue(bar.isVisible)
+        Assert.assertTrue(bar.isPromptDisplayed)
     }
 }

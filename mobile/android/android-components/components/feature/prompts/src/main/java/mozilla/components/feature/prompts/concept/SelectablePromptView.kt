@@ -4,31 +4,15 @@
 
 package mozilla.components.feature.prompts.concept
 
-import android.view.View
-
 /**
- * An interface for views that can display an option selection prompt.
+ * A prompt that can display a set of options for the user to choose from.
  */
 interface SelectablePromptView<T> {
 
-    var listener: Listener<T>?
-
     /**
-     * Shows an option selection prompt with the provided options.
-     *
-     * @param options A list of options to display in the prompt.
+     * Listener for user interactions with the prompt.
      */
-    fun showPrompt(options: List<T>)
-
-    /**
-     * Hides the option selection prompt.
-     */
-    fun hidePrompt()
-
-    /**
-     * Casts this [SelectablePromptView] interface to an Android [View] object.
-     */
-    fun asView(): View = (this as View)
+    var selectablePromptListener: Listener<T>?
 
     /**
      * Interface to allow a class to listen to the option selection prompt events.

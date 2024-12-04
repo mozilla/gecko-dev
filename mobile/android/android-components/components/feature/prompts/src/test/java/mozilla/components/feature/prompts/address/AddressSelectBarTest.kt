@@ -56,20 +56,19 @@ class AddressSelectBarTest {
 
     @Test
     fun `WHEN showPrompt is called THEN the select bar is shown`() {
-        val addresses = listOf(address)
+        addressSelectBar.showPrompt()
 
-        addressSelectBar.showPrompt(addresses)
-
-        assertTrue(addressSelectBar.isVisible)
+        assertTrue(addressSelectBar.isPromptDisplayed)
     }
 
     @Test
     fun `WHEN hidePrompt is called THEN the select bar is hidden`() {
+        addressSelectBar.showPrompt()
         assertTrue(addressSelectBar.isVisible)
 
         addressSelectBar.hidePrompt()
 
-        assertFalse(addressSelectBar.isVisible)
+        assertFalse(addressSelectBar.isPromptDisplayed)
     }
 
     @Test
@@ -83,7 +82,8 @@ class AddressSelectBarTest {
             },
         )
 
-        addressSelectBar.showPrompt(listOf(address))
+        addressSelectBar.showPrompt()
+        addressSelectBar.populate(listOf(address))
 
         assertEquals(0, facts.size)
 
@@ -107,9 +107,9 @@ class AddressSelectBarTest {
     fun `GIVEN a listener WHEN an address is clicked THEN onOptionSelected is called`() {
         val listener: SelectablePromptView.Listener<Address> = mock()
 
-        assertNull(addressSelectBar.listener)
+        assertNull(addressSelectBar.selectablePromptListener)
 
-        addressSelectBar.listener = listener
+        addressSelectBar.selectablePromptListener = listener
 
         val facts = mutableListOf<Fact>()
         Facts.registerProcessor(
@@ -120,7 +120,8 @@ class AddressSelectBarTest {
             },
         )
 
-        addressSelectBar.showPrompt(listOf(address))
+        addressSelectBar.showPrompt()
+        addressSelectBar.populate(listOf(address))
         val adapter = addressSelectBar.findViewById<RecyclerView>(R.id.address_list).adapter as AddressAdapter
         val holder = adapter.onCreateViewHolder(LinearLayout(testContext), 0)
         adapter.bindViewHolder(holder, 0)

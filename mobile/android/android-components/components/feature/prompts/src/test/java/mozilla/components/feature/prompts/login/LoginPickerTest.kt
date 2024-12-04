@@ -62,7 +62,8 @@ class LoginPickerTest {
         whenever(state.customTabs).thenReturn(listOf(customTab))
         loginPicker = LoginPicker(store, loginSelectBar, onManageLogins, customTab.id)
         loginPicker.handleSelectLoginRequest(request)
-        verify(loginSelectBar).showPrompt(request.logins)
+        verify(loginSelectBar).showPrompt()
+        verify(loginSelectBar).populate(request.logins)
     }
 
     @Test
@@ -70,7 +71,8 @@ class LoginPickerTest {
         prepareSelectedSession(request)
         loginPicker = LoginPicker(store, loginSelectBar, onManageLogins)
         loginPicker.handleSelectLoginRequest(request)
-        verify(loginSelectBar).showPrompt(request.logins)
+        verify(loginSelectBar).showPrompt()
+        verify(loginSelectBar).populate(request.logins)
     }
 
     @Test

@@ -19,13 +19,14 @@ class SuggestStrongPasswordBar @JvmOverloads constructor(
     attrs: AttributeSet? = null,
     defStyleAttr: Int = 0,
 ) : AbstractComposeView(context, attrs, defStyleAttr), PasswordPromptView {
-    override var listener: PasswordPromptView.Listener? = null
+    override var passwordPromptListener: PasswordPromptView.Listener? = null
     private val colors = PasswordGeneratorPromptColors(context)
+    override val isPromptDisplayed = isVisible
 
     @Composable
     override fun Content() {
         PasswordGeneratorPrompt(
-            onGeneratedPasswordPromptClick = { listener?.onGeneratedPasswordPromptClick() },
+            onGeneratedPasswordPromptClick = { passwordPromptListener?.onGeneratedPasswordPromptClick() },
             colors = colors,
         )
     }
@@ -36,9 +37,5 @@ class SuggestStrongPasswordBar @JvmOverloads constructor(
 
     override fun hidePrompt() {
         isVisible = false
-    }
-
-    override fun isVisible(): Boolean {
-        return isVisible
     }
 }

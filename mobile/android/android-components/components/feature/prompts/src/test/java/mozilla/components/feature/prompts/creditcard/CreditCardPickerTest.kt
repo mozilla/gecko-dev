@@ -96,7 +96,8 @@ class CreditCardPickerTest {
     fun `GIVEN a prompt request WHEN handleSelectCreditCardRequest is called THEN the prompt is shown with the provided request credit cards`() {
         creditCardPicker.handleSelectCreditCardRequest(promptRequest)
 
-        verify(creditCardSelectBar).showPrompt(promptRequest.creditCards)
+        verify(creditCardSelectBar).showPrompt()
+        verify(creditCardSelectBar).populate(promptRequest.creditCards)
     }
 
     @Test
@@ -109,7 +110,8 @@ class CreditCardPickerTest {
 
         creditCardPicker.handleSelectCreditCardRequest(promptRequest)
 
-        verify(creditCardSelectBar).showPrompt(promptRequest.creditCards)
+        verify(creditCardSelectBar).showPrompt()
+        verify(creditCardSelectBar).populate(promptRequest.creditCards)
     }
 
     @Test

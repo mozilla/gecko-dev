@@ -5,17 +5,16 @@
 package mozilla.components.feature.prompts.login
 
 import mozilla.components.concept.storage.Login
-import mozilla.components.feature.prompts.concept.SelectablePromptView
+import mozilla.components.feature.prompts.concept.AutocompletePrompt
 
 /**
  * Delegate to display the login select prompt and related callbacks
  */
 interface LoginDelegate {
     /**
-     * The [SelectablePromptView] used for [LoginPicker] to display a
-     * selectable prompt list of logins.
+     * The [AutocompletePrompt] used for [LoginPicker] to display a list of logins available to autocomplete.
      */
-    val loginPickerView: SelectablePromptView<Login>?
+    val loginPickerView: AutocompletePrompt<Login>?
         get() = null
 
     /**

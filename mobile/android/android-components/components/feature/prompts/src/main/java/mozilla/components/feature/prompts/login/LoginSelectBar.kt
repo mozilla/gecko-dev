@@ -13,6 +13,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.AbstractComposeView
 import androidx.core.view.isVisible
 import mozilla.components.concept.storage.Login
+import mozilla.components.feature.prompts.concept.AutocompletePrompt
 import mozilla.components.feature.prompts.concept.SelectablePromptView
 
 /**
@@ -22,12 +23,14 @@ class LoginSelectBar @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null,
     defStyleAttr: Int = 0,
-) : AbstractComposeView(context, attrs, defStyleAttr), SelectablePromptView<Login> {
+) : AbstractComposeView(context, attrs, defStyleAttr), AutocompletePrompt<Login> {
     private var logins by mutableStateOf(listOf<Login>())
     private var isExpanded by mutableStateOf(false)
     private val loginPickerColors = LoginPickerColors(context)
+    override var isPromptDisplayed: Boolean = false
+        private set
 
-    override var listener: SelectablePromptView.Listener<Login>? = null
+    override var selectablePromptListener: SelectablePromptView.Listener<Login>? = null
 
     @Composable
     override fun Content() {
@@ -35,20 +38,25 @@ class LoginSelectBar @JvmOverloads constructor(
             logins = logins,
             isExpanded = isExpanded,
             onExpandToggleClick = { isExpanded = it },
-            onLoginSelected = { listener?.onOptionSelect(it) },
-            onManagePasswordClicked = { listener?.onManageOptions() },
+            onLoginSelected = { selectablePromptListener?.onOptionSelect(it) },
+            onManagePasswordClicked = { selectablePromptListener?.onManageOptions() },
             loginPickerColors = loginPickerColors,
         )
     }
 
-    override fun showPrompt(options: List<Login>) {
-        isVisible = true
+    override fun populate(options: List<Login>) {
         logins = options
+    }
+
+    override fun showPrompt() {
+        isVisible = true
+        isPromptDisplayed = true
     }
 
     override fun hidePrompt() {
         this.isVisible = false
         this.isExpanded = false
+        isPromptDisplayed = false
         logins = listOf()
     }
 }

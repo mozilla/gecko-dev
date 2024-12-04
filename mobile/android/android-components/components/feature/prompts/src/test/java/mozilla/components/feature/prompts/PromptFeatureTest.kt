@@ -13,7 +13,6 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
 import android.net.Uri
-import android.view.View
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentManager
 import androidx.fragment.app.FragmentTransaction
@@ -45,8 +44,8 @@ import mozilla.components.concept.storage.Login
 import mozilla.components.concept.storage.LoginEntry
 import mozilla.components.feature.prompts.address.AddressDelegate
 import mozilla.components.feature.prompts.address.AddressPicker
+import mozilla.components.feature.prompts.concept.AutocompletePrompt
 import mozilla.components.feature.prompts.concept.PasswordPromptView
-import mozilla.components.feature.prompts.concept.SelectablePromptView
 import mozilla.components.feature.prompts.creditcard.CreditCardDelegate
 import mozilla.components.feature.prompts.creditcard.CreditCardPicker
 import mozilla.components.feature.prompts.creditcard.CreditCardSaveDialogFragment
@@ -349,7 +348,7 @@ class PromptFeatureTest {
     @Test
     fun `GIVEN loginPickerView is visible WHEN dismissSelectPrompts THEN dismissCurrentLoginSelect called and true returned`() {
         // given
-        val loginPickerView: SelectablePromptView<Login> = mock()
+        val loginPickerView: AutocompletePrompt<Login> = mock()
         val feature = spy(
             PromptFeature(
                 mock<Activity>(),
@@ -366,8 +365,7 @@ class PromptFeatureTest {
             ),
         )
         val selectLoginPrompt = mock<PromptRequest.SelectLoginPrompt>()
-        whenever(loginPickerView.asView()).thenReturn(mock())
-        whenever(loginPickerView.asView().visibility).thenReturn(View.VISIBLE)
+        whenever(loginPickerView.isPromptDisplayed).thenReturn(true)
         feature.loginPicker = loginPicker
         feature.activePromptRequest = selectLoginPrompt
 
@@ -399,7 +397,7 @@ class PromptFeatureTest {
             ),
         )
         val selectLoginPrompt = mock<PromptRequest.SelectLoginPrompt>()
-        whenever(strongPasswordPromptViewListenerView.isVisible()).thenReturn(true)
+        whenever(strongPasswordPromptViewListenerView.isPromptDisplayed).thenReturn(true)
         feature.strongPasswordPromptViewListener = strongPasswordPromptViewListener
         feature.activePromptRequest = selectLoginPrompt
 
@@ -592,7 +590,7 @@ class PromptFeatureTest {
     @Test
     fun `GIVEN loginPickerView is not visible WHEN dismissSelectPrompts THEN dismissCurrentLoginSelect called and false returned`() {
         // given
-        val loginPickerView: SelectablePromptView<Login> = mock()
+        val loginPickerView: AutocompletePrompt<Login> = mock()
         val feature = spy(
             PromptFeature(
                 mock<Activity>(),
@@ -609,8 +607,7 @@ class PromptFeatureTest {
             ),
         )
         val selectLoginPrompt = mock<PromptRequest.SelectLoginPrompt>()
-        whenever(loginPickerView.asView()).thenReturn(mock())
-        whenever(loginPickerView.asView().visibility).thenReturn(View.GONE)
+        whenever(loginPickerView.isPromptDisplayed).thenReturn(false)
         feature.loginPicker = loginPicker
         feature.activePromptRequest = selectLoginPrompt
 
@@ -624,7 +621,7 @@ class PromptFeatureTest {
     @Test
     fun `GIVEN PromptFeature WHEN onBackPressed THEN dismissSelectPrompts is called`() {
         // given
-        val loginPickerView: SelectablePromptView<Login> = mock()
+        val loginPickerView: AutocompletePrompt<Login> = mock()
         val feature = spy(
             PromptFeature(
                 mock<Activity>(),
@@ -641,8 +638,7 @@ class PromptFeatureTest {
             ),
         )
         val selectLoginPrompt = mock<PromptRequest.SelectLoginPrompt>()
-        whenever(loginPickerView.asView()).thenReturn(mock())
-        whenever(loginPickerView.asView().visibility).thenReturn(View.VISIBLE)
+        whenever(loginPickerView.isPromptDisplayed).thenReturn(true)
         feature.loginPicker = loginPicker
         feature.activePromptRequest = selectLoginPrompt
 
@@ -656,7 +652,7 @@ class PromptFeatureTest {
 
     @Test
     fun `Calling dismissSelectPrompts should dismiss the login picker if the login prompt is active`() {
-        val loginPickerView: SelectablePromptView<Login> = mock()
+        val loginPickerView: AutocompletePrompt<Login> = mock()
         val feature = spy(
             PromptFeature(
                 mock<Activity>(),
@@ -673,8 +669,7 @@ class PromptFeatureTest {
             ),
         )
         val selectLoginPrompt = mock<PromptRequest.SelectLoginPrompt>()
-        whenever(loginPickerView.asView()).thenReturn(mock())
-        whenever(loginPickerView.asView().visibility).thenReturn(View.VISIBLE)
+        whenever(loginPickerView.isPromptDisplayed).thenReturn(true)
 
         feature.loginPicker = loginPicker
         feature.activePromptRequest = mock<SingleChoice>()
@@ -689,7 +684,7 @@ class PromptFeatureTest {
 
     @Test
     fun `GIVEN creditCardPickerView is visible WHEN dismissSelectPrompts is called THEN dismissSelectCreditCardRequest returns true`() {
-        val creditCardPickerView: SelectablePromptView<CreditCardEntry> = mock()
+        val creditCardPickerView: AutocompletePrompt<CreditCardEntry> = mock()
         val feature = spy(
             PromptFeature(
                 mock<Activity>(),
@@ -710,8 +705,7 @@ class PromptFeatureTest {
         feature.creditCardPicker = creditCardPicker
         feature.activePromptRequest = selectCreditCardRequest
 
-        whenever(creditCardPickerView.asView()).thenReturn(mock())
-        whenever(creditCardPickerView.asView().visibility).thenReturn(View.VISIBLE)
+        whenever(creditCardPickerView.isPromptDisplayed).thenReturn(true)
 
         val result = feature.dismissSelectPrompts()
 
@@ -721,7 +715,7 @@ class PromptFeatureTest {
 
     @Test
     fun `GIVEN creditCardPickerView is not visible WHEN dismissSelectPrompts is called THEN dismissSelectPrompt returns false`() {
-        val creditCardPickerView: SelectablePromptView<CreditCardEntry> = mock()
+        val creditCardPickerView: AutocompletePrompt<CreditCardEntry> = mock()
         val feature = spy(
             PromptFeature(
                 mock<Activity>(),
@@ -742,8 +736,7 @@ class PromptFeatureTest {
         feature.creditCardPicker = creditCardPicker
         feature.activePromptRequest = selectCreditCardRequest
 
-        whenever(creditCardPickerView.asView()).thenReturn(mock())
-        whenever(creditCardPickerView.asView().visibility).thenReturn(View.GONE)
+        whenever(creditCardPickerView.isPromptDisplayed).thenReturn(false)
 
         val result = feature.dismissSelectPrompts()
 
@@ -752,7 +745,7 @@ class PromptFeatureTest {
 
     @Test
     fun `GIVEN an active select credit card request WHEN onBackPressed is called THEN dismissSelectPrompts is called`() {
-        val creditCardPickerView: SelectablePromptView<CreditCardEntry> = mock()
+        val creditCardPickerView: AutocompletePrompt<CreditCardEntry> = mock()
         val feature = spy(
             PromptFeature(
                 mock<Activity>(),
@@ -773,8 +766,7 @@ class PromptFeatureTest {
         feature.creditCardPicker = creditCardPicker
         feature.activePromptRequest = selectCreditCardRequest
 
-        whenever(creditCardPickerView.asView()).thenReturn(mock())
-        whenever(creditCardPickerView.asView().visibility).thenReturn(View.VISIBLE)
+        whenever(creditCardPickerView.isPromptDisplayed).thenReturn(true)
 
         val result = feature.onBackPressed()
 
@@ -784,7 +776,7 @@ class PromptFeatureTest {
 
     @Test
     fun `WHEN dismissSelectPrompts is called THEN the active credit card picker should be dismissed`() {
-        val creditCardPickerView: SelectablePromptView<CreditCardEntry> = mock()
+        val creditCardPickerView: AutocompletePrompt<CreditCardEntry> = mock()
         val feature = spy(
             PromptFeature(
                 mock<Activity>(),
@@ -804,8 +796,7 @@ class PromptFeatureTest {
         feature.creditCardPicker = creditCardPicker
         feature.activePromptRequest = mock<SingleChoice>()
 
-        whenever(creditCardPickerView.asView()).thenReturn(mock())
-        whenever(creditCardPickerView.asView().visibility).thenReturn(View.VISIBLE)
+        whenever(creditCardPickerView.isPromptDisplayed).thenReturn(true)
 
         feature.dismissSelectPrompts()
         verify(feature.creditCardPicker!!, never()).dismissSelectCreditCardRequest(any())
@@ -820,7 +811,7 @@ class PromptFeatureTest {
 
     @Test
     fun `WHEN dismissSelectPrompts is called THEN the active addressPicker dismiss should be called`() {
-        val addressPickerView: SelectablePromptView<Address> = mock()
+        val addressPickerView: AutocompletePrompt<Address> = mock()
         val addressDelegate: AddressDelegate = mock()
         val feature = spy(
             PromptFeature(
@@ -838,8 +829,7 @@ class PromptFeatureTest {
         feature.activePromptRequest = mock<SingleChoice>()
 
         whenever(addressDelegate.addressPickerView).thenReturn(addressPickerView)
-        whenever(addressPickerView.asView()).thenReturn(mock())
-        whenever(addressPickerView.asView().visibility).thenReturn(View.VISIBLE)
+        whenever(addressPickerView.isPromptDisplayed).thenReturn(true)
 
         feature.dismissSelectPrompts()
         verify(feature.addressPicker!!, never()).dismissSelectAddressRequest(any())
@@ -857,7 +847,7 @@ class PromptFeatureTest {
 
     @Test
     fun `GIVEN addressPickerView is not visible WHEN dismissSelectPrompts is called THEN dismissSelectPrompts returns false`() {
-        val addressPickerView: SelectablePromptView<Address> = mock()
+        val addressPickerView: AutocompletePrompt<Address> = mock()
         val addressDelegate: AddressDelegate = mock()
         val feature = spy(
             PromptFeature(
@@ -876,8 +866,7 @@ class PromptFeatureTest {
         feature.activePromptRequest = selectAddressRequest
 
         whenever(addressDelegate.addressPickerView).thenReturn(addressPickerView)
-        whenever(addressPickerView.asView()).thenReturn(mock())
-        whenever(addressPickerView.asView().visibility).thenReturn(View.GONE)
+        whenever(addressPickerView.isPromptDisplayed).thenReturn(false)
 
         val result = feature.dismissSelectPrompts()
 
@@ -1307,7 +1296,7 @@ class PromptFeatureTest {
 
     @Test
     fun `WHEN onActivityResult is called with PIN_REQUEST and RESULT_OK THEN onAuthSuccess) is called`() {
-        val creditCardPickerView: SelectablePromptView<CreditCardEntry> = mock()
+        val creditCardPickerView: AutocompletePrompt<CreditCardEntry> = mock()
         val feature =
             PromptFeature(
                 activity = mock(),
@@ -1334,7 +1323,7 @@ class PromptFeatureTest {
 
     @Test
     fun `WHEN onActivityResult is called with PIN_REQUEST and RESULT_CANCELED THEN onAuthFailure is called`() {
-        val creditCardPickerView: SelectablePromptView<CreditCardEntry> = mock()
+        val creditCardPickerView: AutocompletePrompt<CreditCardEntry> = mock()
         val feature =
             PromptFeature(
                 activity = mock(),
@@ -1361,7 +1350,7 @@ class PromptFeatureTest {
 
     @Test
     fun `GIVEN user successfully authenticates by biometric prompt WHEN onBiometricResult is called THEN onAuthSuccess is called`() {
-        val creditCardPickerView: SelectablePromptView<CreditCardEntry> = mock()
+        val creditCardPickerView: AutocompletePrompt<CreditCardEntry> = mock()
         val feature =
             PromptFeature(
                 activity = mock(),
@@ -1387,7 +1376,7 @@ class PromptFeatureTest {
 
     @Test
     fun `GIVEN user fails to authenticate by biometric prompt WHEN onBiometricResult is called THEN onAuthFailure) is called`() {
-        val creditCardPickerView: SelectablePromptView<CreditCardEntry> = mock()
+        val creditCardPickerView: AutocompletePrompt<CreditCardEntry> = mock()
         val feature =
             PromptFeature(
                 activity = mock(),
@@ -1980,7 +1969,7 @@ class PromptFeatureTest {
 
     @Test
     fun `WHEN login autofill is enabled THEN the select login prompt is shown`() {
-        val loginPickerView: SelectablePromptView<Login> = mock()
+        val loginPickerView: AutocompletePrompt<Login> = mock()
 
         val login =
             Login(guid = "A", origin = "origin", username = "user123", password = "password123")
@@ -2016,7 +2005,7 @@ class PromptFeatureTest {
 
     @Test
     fun `WHEN login autofill is disabled THEN the select login prompt is not shown`() {
-        val loginPickerView: SelectablePromptView<Login> = mock()
+        val loginPickerView: AutocompletePrompt<Login> = mock()
 
         val login =
             Login(guid = "A", origin = "origin", username = "user123", password = "password123")
@@ -2050,7 +2039,7 @@ class PromptFeatureTest {
 
     @Test
     fun `When page is refreshed login dialog is dismissed`() {
-        val loginPickerView: SelectablePromptView<Login> = mock()
+        val loginPickerView: AutocompletePrompt<Login> = mock()
         val feature =
             PromptFeature(
                 activity = mock(),
@@ -2074,8 +2063,7 @@ class PromptFeatureTest {
         val selectLoginRequest =
             PromptRequest.SelectLoginPrompt(listOf(login), null, onLoginConfirm, onLoginDismiss)
 
-        whenever(loginPickerView.asView()).thenReturn(mock())
-        whenever(loginPickerView.asView().visibility).thenReturn(View.VISIBLE)
+        whenever(loginPickerView.isPromptDisplayed).thenReturn(true)
 
         feature.start()
         store.dispatch(ContentAction.UpdatePromptRequestAction(tabId, selectLoginRequest))
@@ -2091,7 +2079,7 @@ class PromptFeatureTest {
 
     @Test
     fun `WHEN page is refreshed THEN credit card prompt is dismissed`() {
-        val creditCardPickerView: SelectablePromptView<CreditCardEntry> = mock()
+        val creditCardPickerView: AutocompletePrompt<CreditCardEntry> = mock()
         val feature =
             PromptFeature(
                 activity = mock(),
@@ -2122,8 +2110,7 @@ class PromptFeatureTest {
         val selectCreditCardRequest =
             PromptRequest.SelectCreditCard(listOf(creditCard), onConfirm, onDismiss)
 
-        whenever(creditCardPickerView.asView()).thenReturn(mock())
-        whenever(creditCardPickerView.asView().visibility).thenReturn(View.VISIBLE)
+        whenever(creditCardPickerView.isPromptDisplayed).thenReturn(true)
 
         feature.start()
         store.dispatch(ContentAction.UpdatePromptRequestAction(tabId, selectCreditCardRequest))

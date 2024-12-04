@@ -103,7 +103,8 @@ class AddressPickerTest {
             assertEquals(AddressAutofillDialogFacts.Items.AUTOFILL_ADDRESS_PROMPT_SHOWN, item)
         }
 
-        verify(addressSelectBar).showPrompt(promptRequest.addresses)
+        verify(addressSelectBar).showPrompt()
+        verify(addressSelectBar).populate(promptRequest.addresses)
     }
 
     @Test
@@ -115,7 +116,8 @@ class AddressPickerTest {
 
         addressPicker.handleSelectAddressRequest(promptRequest)
 
-        verify(addressSelectBar).showPrompt(promptRequest.addresses)
+        verify(addressSelectBar).showPrompt()
+        verify(addressSelectBar).populate(promptRequest.addresses)
     }
 
     @Test
