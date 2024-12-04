@@ -2697,12 +2697,11 @@ bool WebRtcVoiceReceiveChannel::GetStats(VoiceMediaReceiveInfo* info,
         stats.relative_packet_arrival_delay_seconds;
     rinfo.interruption_count = stats.interruption_count;
     rinfo.total_interruption_duration_ms = stats.total_interruption_duration_ms;
-    rinfo.last_sender_report_timestamp_ms =
-        stats.last_sender_report_timestamp_ms;
-    rinfo.last_sender_report_utc_timestamp_ms =
-        stats.last_sender_report_utc_timestamp_ms;
-    rinfo.last_sender_report_remote_utc_timestamp_ms =
-        stats.last_sender_report_remote_utc_timestamp_ms;
+    rinfo.last_sender_report_timestamp = stats.last_sender_report_timestamp;
+    rinfo.last_sender_report_utc_timestamp =
+        stats.last_sender_report_utc_timestamp;
+    rinfo.last_sender_report_remote_utc_timestamp =
+        stats.last_sender_report_remote_utc_timestamp;
     rinfo.sender_reports_packets_sent = stats.sender_reports_packets_sent;
     rinfo.sender_reports_bytes_sent = stats.sender_reports_bytes_sent;
     rinfo.sender_reports_reports_count = stats.sender_reports_reports_count;

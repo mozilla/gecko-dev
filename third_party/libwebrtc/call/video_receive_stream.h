@@ -185,11 +185,11 @@ class VideoReceiveStreamInterface : public MediaReceiveStreamInterface {
 
     // Remote outbound stats derived by the received RTCP sender reports.
     // https://w3c.github.io/webrtc-stats/#remoteoutboundrtpstats-dict*
-    std::optional<int64_t> last_sender_report_timestamp_ms;
+    std::optional<Timestamp> last_sender_report_timestamp;
     // TODO: bugs.webrtc.org/370535296 - Remove the utc timestamp when linked
     // issue is fixed.
-    std::optional<int64_t> last_sender_report_utc_timestamp_ms;
-    std::optional<int64_t> last_sender_report_remote_utc_timestamp_ms;
+    std::optional<Timestamp> last_sender_report_utc_timestamp;
+    std::optional<Timestamp> last_sender_report_remote_utc_timestamp;
     uint32_t sender_reports_packets_sent = 0;
     uint64_t sender_reports_bytes_sent = 0;
     uint64_t sender_reports_reports_count = 0;

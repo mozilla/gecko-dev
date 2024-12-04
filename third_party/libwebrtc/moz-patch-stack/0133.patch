@@ -10,7 +10,7 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/90a6b254783eaa91d
  2 files changed, 2 insertions(+)
 
 diff --git a/call/video_receive_stream.h b/call/video_receive_stream.h
-index 6e9a0b1937..d4c59ab52b 100644
+index 574d8cea6d..50c27e7242 100644
 --- a/call/video_receive_stream.h
 +++ b/call/video_receive_stream.h
 @@ -25,6 +25,7 @@

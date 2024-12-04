@@ -437,7 +437,7 @@ index 0c4255a593..a17e89c490 100644
    deps = [
      ":audio_sender_interface",
 diff --git a/call/video_receive_stream.h b/call/video_receive_stream.h
-index 9de6f43156..4a2ebfb08b 100644
+index f13a006e1e..25bf070cb7 100644
 --- a/call/video_receive_stream.h
 +++ b/call/video_receive_stream.h
 @@ -235,6 +235,8 @@ class VideoReceiveStreamInterface : public MediaReceiveStreamInterface {

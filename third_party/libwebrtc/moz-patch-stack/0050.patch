@@ -20,7 +20,7 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/99267b6d193fbcb3e
  11 files changed, 32 insertions(+), 22 deletions(-)
 
 diff --git a/call/video_receive_stream.h b/call/video_receive_stream.h
-index 423f2d93d3..ea408827bb 100644
+index 574bf3166b..352d016dde 100644
 --- a/call/video_receive_stream.h
 +++ b/call/video_receive_stream.h
 @@ -170,10 +170,11 @@ class VideoReceiveStreamInterface : public MediaReceiveStreamInterface {
@@ -190,7 +190,7 @@ index 8da628695d..e5266ed337 100644
   private:
    // Implements RtpVideoFrameReceiver.
 diff --git a/video/video_receive_stream2.cc b/video/video_receive_stream2.cc
-index d87e383569..1a4401ca2b 100644
+index 08ab5d1cd3..8338f5eda0 100644
 --- a/video/video_receive_stream2.cc
 +++ b/video/video_receive_stream2.cc
 @@ -588,7 +588,8 @@ VideoReceiveStreamInterface::Stats VideoReceiveStream2::GetStats() const {

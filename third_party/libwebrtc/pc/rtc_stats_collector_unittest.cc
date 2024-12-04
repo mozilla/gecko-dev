@@ -145,8 +145,9 @@ const int64_t kGetStatsReportTimeoutMs = 1000;
 
 // Fake data used by `SetupExampleStatsVoiceGraph()` to fill in remote outbound
 // stats.
-constexpr int64_t kRemoteOutboundStatsTimestampMs = 123;
-constexpr int64_t kRemoteOutboundStatsRemoteTimestampMs = 456;
+constexpr Timestamp kRemoteOutboundStatsTimestamp = Timestamp::Millis(123);
+constexpr Timestamp kRemoteOutboundStatsRemoteTimestamp =
+    Timestamp::Millis(456);
 constexpr uint32_t kRemoteOutboundStatsPacketsSent = 7u;
 constexpr uint64_t kRemoteOutboundStatsBytesSent = 8u;
 constexpr uint64_t kRemoteOutboundStatsReportsCount = 9u;
@@ -844,10 +845,10 @@ class RTCStatsCollectorTest : public ::testing::Test {
     // remote-outbound-rtp
     if (add_remote_outbound_stats) {
       graph.remote_outbound_rtp_id = "ROA4";
-      media_info.receivers[0].last_sender_report_utc_timestamp_ms =
-          kRemoteOutboundStatsTimestampMs;
-      media_info.receivers[0].last_sender_report_remote_utc_timestamp_ms =
-          kRemoteOutboundStatsRemoteTimestampMs;
+      media_info.receivers[0].last_sender_report_utc_timestamp =
+          kRemoteOutboundStatsTimestamp;
+      media_info.receivers[0].last_sender_report_remote_utc_timestamp =
+          kRemoteOutboundStatsRemoteTimestamp;
       media_info.receivers[0].sender_reports_packets_sent =
           kRemoteOutboundStatsPacketsSent;
       media_info.receivers[0].sender_reports_bytes_sent =
@@ -3533,10 +3534,9 @@ TEST_F(RTCStatsCollectorTest, RTCRemoteOutboundRtpAudioStreamStatsCollected) {
   const auto& remote_outbound_rtp =
       graph.full_report->Get(graph.remote_outbound_rtp_id)
           ->cast_to<RTCRemoteOutboundRtpStreamStats>();
-  EXPECT_EQ(remote_outbound_rtp.timestamp(),
-            Timestamp::Millis(kRemoteOutboundStatsTimestampMs));
+  EXPECT_EQ(remote_outbound_rtp.timestamp(), kRemoteOutboundStatsTimestamp);
   EXPECT_FLOAT_EQ(*remote_outbound_rtp.remote_timestamp,
-                  static_cast<double>(kRemoteOutboundStatsRemoteTimestampMs));
+                  kRemoteOutboundStatsRemoteTimestamp.ms<double>());
   EXPECT_EQ(*remote_outbound_rtp.packets_sent, kRemoteOutboundStatsPacketsSent);
   EXPECT_EQ(*remote_outbound_rtp.bytes_sent, kRemoteOutboundStatsBytesSent);
   EXPECT_EQ(*remote_outbound_rtp.reports_sent,
