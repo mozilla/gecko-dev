@@ -50,18 +50,14 @@ add_task(async function test_translations_settings_download_languages() {
   info(
     "Open translations settings page by clicking on translations settings button."
   );
-  const { translateDownloadLanguagesList } =
+  const { downloadLanguageList } =
     await TranslationsSettingsTestUtils.openAboutPreferencesTranslationsSettingsPane(
       settingsButton
     );
 
-  let langList = translateDownloadLanguagesList.querySelector(
-    ".translations-settings-language-list"
-  );
-
   info("Test French language model install and uninstall function.");
 
-  let langFr = Array.from(langList.querySelectorAll("label")).find(
+  let langFr = Array.from(downloadLanguageList.querySelectorAll("label")).find(
     el => el.getAttribute("value") === "fr"
   );
 
@@ -98,7 +94,7 @@ add_task(async function test_translations_settings_download_languages() {
   info("Test 'All language' models install and uninstall function");
 
   // Download "All languages" is the first child
-  let langAll = langList.children[0];
+  let langAll = downloadLanguageList.children[0];
 
   let clickButtonAll = BrowserTestUtils.waitForEvent(
     langAll.querySelector("moz-button"),

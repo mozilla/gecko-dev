@@ -31,10 +31,16 @@
 }
 
 .translations-settings-languages-card {
-  display: flex;
   flex-direction: column;
-  max-height: calc( 7 * var(--space-xlarge));
+  max-height: calc( 14 * var(--space-xlarge));
   padding-inline: calc( 2 * var(--space-small));
+
+  &[hidden] {
+    display: none;
+  }
+  &:not([hidden]) {
+    display: flex;
+  }
 }
 
 .translations-settings-language-header {

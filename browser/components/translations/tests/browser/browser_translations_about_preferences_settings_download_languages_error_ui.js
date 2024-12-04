@@ -60,20 +60,16 @@ add_task(
     info(
       "Open translations settings page by clicking on translations settings button."
     );
-    const { translateDownloadLanguagesList } =
+    const { downloadLanguageList } =
       await TranslationsSettingsTestUtils.openAboutPreferencesTranslationsSettingsPane(
         settingsButton
       );
 
-    let langList = translateDownloadLanguagesList.querySelector(
-      ".translations-settings-language-list"
-    );
-
     info("Test French language model for download error");
 
-    let langFr = Array.from(langList.querySelectorAll("label")).find(
-      el => el.getAttribute("value") === "fr"
-    );
+    let langFr = Array.from(
+      downloadLanguageList.querySelectorAll("label")
+    ).find(el => el.getAttribute("value") === "fr");
 
     let clickButton = BrowserTestUtils.waitForEvent(
       langFr.parentNode.querySelector("moz-button"),
@@ -117,9 +113,9 @@ add_task(
 
     info("Download Spanish language model successfully.");
 
-    let langEs = Array.from(langList.querySelectorAll("label")).find(
-      el => el.getAttribute("value") === "es"
-    );
+    let langEs = Array.from(
+      downloadLanguageList.querySelectorAll("label")
+    ).find(el => el.getAttribute("value") === "es");
 
     clickButton = BrowserTestUtils.waitForEvent(
       langEs.parentNode.querySelector("moz-button"),
@@ -154,7 +150,7 @@ add_task(
 
     info("Test All language models download error");
     // Download "All languages" is the first child
-    let langAll = langList.children[0];
+    let langAll = downloadLanguageList.children[0];
 
     let clickButtonAll = BrowserTestUtils.waitForEvent(
       langAll.querySelector("moz-button"),

@@ -30,6 +30,11 @@
         <xul:menupopup id="translations-settings-always-translate-popup"/>
       </xul:menulist>
     </div>
+    <div id="translations-settings-always-translate-languages-card" class="translations-settings-languages-card" hidden="true">
+      <h3 class="translations-settings-language-header" data-l10n-id="translations-settings-language-header"></h3>
+      <div id="translations-settings-always-translate-language-list" class="translations-settings-language-list">
+      </div>
+    </div>
   </moz-card>
 
   <moz-card id="translations-settings-never-translate-section"
@@ -43,6 +48,11 @@
         <xul:menupopup id="translations-settings-never-translate-popup"/>
       </xul:menulist>
     </div>
+    <div id="translations-settings-never-translate-languages-card" class="translations-settings-languages-card" hidden="true">
+      <h3 class="translations-settings-language-header" data-l10n-id="translations-settings-language-header"></h3>
+      <div id="translations-settings-never-translate-language-list" class="translations-settings-language-list">
+      </div>
+    </div>
   </moz-card>
 
   <moz-card id="translations-settings-never-sites-section"
@@ -52,6 +62,11 @@
           data-l10n-id="translations-settings-never-sites-header"/>
       <p id="translations-settings-never-sites"
          data-l10n-id="translations-settings-never-sites-description"/>
+    </div>
+    <div id="translations-settings-never-translate-site-card" class="translations-settings-languages-card" hidden="true">
+      <h3 class="translations-settings-language-header" data-l10n-id="translations-settings-language-header"></h3>
+      <div id="translations-settings-never-translate-site-list" class="translations-settings-language-list">
+      </div>
     </div>
   </moz-card>
 
@@ -66,7 +81,7 @@
     </div>
     <div class="translations-settings-languages-card">
       <h3 class="translations-settings-language-header" data-l10n-id="translations-settings-language-header"></h3>
-      <div class="translations-settings-language-list">
+      <div id="translations-settings-download-language-list" class="translations-settings-language-list">
         <div class="translations-settings-language">
           <moz-button class="translations-settings-download-icon translations-settings-manage-downloaded-language-button" type="ghost icon"
                       data-l10n-id="translations-settings-download-all-button"></moz-button>

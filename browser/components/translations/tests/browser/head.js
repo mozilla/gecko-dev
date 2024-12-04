@@ -2951,6 +2951,8 @@ class TranslationsSettingsTestUtils {
   static async openAboutPreferencesTranslationsSettingsPane(settingsButton) {
     const document = gBrowser.selectedBrowser.contentDocument;
 
+    const translationsPane =
+      content.window.gCategoryModules.get("paneTranslations");
     const promise = BrowserTestUtils.waitForEvent(
       document,
       "paneshown",
@@ -2961,42 +2963,7 @@ class TranslationsSettingsTestUtils {
     click(settingsButton, "Click settings button");
     await promise;
 
-    const elements = {
-      backButton: document.getElementById("translations-settings-back-button"),
-      header: document.getElementById("translations-settings-header"),
-      translationsSettingsDescription: document.getElementById(
-        "translations-settings-description"
-      ),
-      translateAlwaysHeader: document.getElementById(
-        "translations-settings-always-translate"
-      ),
-      translateNeverHeader: document.getElementById(
-        "translations-settings-never-translate"
-      ),
-      translateAlwaysMenuList: document.getElementById(
-        "translations-settings-always-translate-list"
-      ),
-      translateNeverMenuList: document.getElementById(
-        "translations-settings-never-translate-list"
-      ),
-      translateNeverSiteHeader: document.getElementById(
-        "translations-settings-never-sites-header"
-      ),
-      translateNeverSiteDesc: document.getElementById(
-        "translations-settings-never-sites"
-      ),
-      translateDownloadLanguagesHeader: document
-        .getElementById("translations-settings-download-section")
-        .querySelector("h2"),
-      translateDownloadLanguagesLearnMore: document.getElementById(
-        "download-languages-learn-more"
-      ),
-      translateDownloadLanguagesList: document.getElementById(
-        "translations-settings-download-section"
-      ),
-    };
-
-    return elements;
+    return translationsPane.elements;
   }
 
   /**

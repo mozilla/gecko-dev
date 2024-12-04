@@ -20,35 +20,36 @@ add_task(async function test_translations_settings_pane_elements() {
     "Open translations settings page by clicking on translations settings button."
   );
   const {
-    backButton,
-    header,
+    translationsSettingsBackButton,
+    translationsSettingsHeader,
     translationsSettingsDescription,
     translateAlwaysHeader,
     translateNeverHeader,
-    translateAlwaysMenuList,
-    translateNeverMenuList,
+    alwaysTranslateMenuList,
+    neverTranslateMenuList,
     translateNeverSiteHeader,
     translateNeverSiteDesc,
-    translateDownloadLanguagesHeader,
+    downloadLanguageSection,
     translateDownloadLanguagesLearnMore,
   } =
     await TranslationsSettingsTestUtils.openAboutPreferencesTranslationsSettingsPane(
       settingsButton
     );
 
+  const translateDownloadLanguagesHeader =
+    downloadLanguageSection.querySelector("h2");
   assertVisibility({
     message: "Expect paneTranslations elements to be visible.",
     visible: {
-      backButton,
-      header,
+      translationsSettingsBackButton,
+      translationsSettingsHeader,
       translationsSettingsDescription,
       translateAlwaysHeader,
       translateNeverHeader,
-      translateAlwaysMenuList,
-      translateNeverMenuList,
+      alwaysTranslateMenuList,
+      neverTranslateMenuList,
       translateNeverSiteHeader,
       translateNeverSiteDesc,
-      translateDownloadLanguagesHeader,
       translateDownloadLanguagesLearnMore,
     },
     hidden: {
@@ -66,7 +67,7 @@ add_task(async function test_translations_settings_pane_elements() {
     event => event.detail.category === "paneGeneral"
   );
 
-  click(backButton);
+  click(translationsSettingsBackButton);
   await paneEvent;
 
   assertVisibility({
@@ -75,13 +76,13 @@ add_task(async function test_translations_settings_pane_elements() {
       settingsButton,
     },
     hidden: {
-      backButton,
-      header,
+      translationsSettingsBackButton,
+      translationsSettingsHeader,
       translationsSettingsDescription,
       translateAlwaysHeader,
       translateNeverHeader,
-      translateAlwaysMenuList,
-      translateNeverMenuList,
+      alwaysTranslateMenuList,
+      neverTranslateMenuList,
       translateNeverSiteHeader,
       translateNeverSiteDesc,
       translateDownloadLanguagesHeader,
@@ -99,8 +100,6 @@ add_task(async function test_translations_settings_always_translate() {
     prefs: [["browser.translations.newSettingsUI.enable", true]],
   });
 
-  const document = gBrowser.selectedBrowser.contentDocument;
-
   assertVisibility({
     message: "Expect paneGeneral elements to be visible.",
     visible: { settingsButton },
@@ -109,17 +108,28 @@ add_task(async function test_translations_settings_always_translate() {
   info(
     "Open translations settings page by clicking on translations settings button."
   );
-  const { translateAlwaysMenuList } =
+  const {
+    alwaysTranslateMenuList,
+    alwaysTranslateLanguageList,
+    alwaysTranslateMenuPopup,
+  } =
     await TranslationsSettingsTestUtils.openAboutPreferencesTranslationsSettingsPane(
       settingsButton
     );
 
   info("Testing the Always translate langauge settings");
-  let alwaysTranslateSection = document.getElementById(
-    "translations-settings-always-translate-section"
+  await testLanguageList(
+    alwaysTranslateLanguageList,
+    alwaysTranslateMenuList,
+    alwaysTranslateMenuPopup,
+    ALWAYS_TRANSLATE_LANGS_PREF,
+    "Always"
   );
-  await testLanguageList(alwaysTranslateSection, translateAlwaysMenuList);
-  await testLanguageListWithPref(alwaysTranslateSection);
+  await testLanguageListWithPref(
+    alwaysTranslateLanguageList,
+    ALWAYS_TRANSLATE_LANGS_PREF,
+    "Always"
+  );
 
   await cleanup();
 });
@@ -135,24 +145,34 @@ add_task(async function test_translations_settings_never_translate() {
   info(
     "Open translations settings page by clicking on translations settings button."
   );
-  const document = gBrowser.selectedBrowser.contentDocument;
+
   assertVisibility({
     message: "Expect paneGeneral elements to be visible.",
     visible: { settingsButton },
   });
 
-  const { translateNeverMenuList } =
+  const {
+    neverTranslateMenuList,
+    neverTranslateLanguageList,
+    neverTranslateMenuPopup,
+  } =
     await TranslationsSettingsTestUtils.openAboutPreferencesTranslationsSettingsPane(
       settingsButton
     );
 
-  let neverTranslateSection = document.getElementById(
-    "translations-settings-never-translate-section"
-  );
-
   info("Testing the Never translate langauge settings");
-  await testLanguageList(neverTranslateSection, translateNeverMenuList);
-  await testLanguageListWithPref(neverTranslateSection);
+  await testLanguageList(
+    neverTranslateLanguageList,
+    neverTranslateMenuList,
+    neverTranslateMenuPopup,
+    NEVER_TRANSLATE_LANGS_PREF,
+    "Never"
+  );
+  await testLanguageListWithPref(
+    neverTranslateLanguageList,
+    NEVER_TRANSLATE_LANGS_PREF,
+    "Never"
+  );
   await cleanup();
 });
 function getLangsFromPref(pref) {
@@ -164,21 +184,22 @@ function getLangsFromPref(pref) {
   return langArr;
 }
 
-async function testLanguageList(translateSection, menuList) {
-  const { sectionName, pref } =
-    translateSection.id === "translations-settings-always-translate-section"
-      ? { sectionName: "Always", pref: ALWAYS_TRANSLATE_LANGS_PREF }
-      : { sectionName: "Never", pref: NEVER_TRANSLATE_LANGS_PREF };
-
+async function testLanguageList(
+  languageList,
+  menuList,
+  menuPopup,
+  pref,
+  sectionName
+) {
   info("Ensure the Always/Never list is empty initially.");
 
   is(
-    translateSection.querySelector(".translations-settings-languages-card"),
-    null,
-    `Language list not present in ${sectionName} Translate list`
+    languageList.childElementCount,
+    0,
+    `Language list empty in ${sectionName} Translate list`
   );
 
-  const menuOptions = menuList.querySelector("menupopup").children;
+  const menuOptions = menuPopup.children;
 
   info(
     "Click each language on the menulist to add it into the Always/Never list."
@@ -193,9 +214,7 @@ async function testLanguageList(translateSection, menuList) {
      * the firstChild.querySelector("label").innerText is the language display name
      * which is compared with the menulist display name that is selected
      */
-    let langElem = translateSection.querySelector(
-      ".translations-settings-language-list"
-    ).firstChild;
+    let langElem = languageList.firstElementChild;
     const displayName = getIntlDisplayName(option.value);
     is(
       langElem.querySelector("label").innerText,
@@ -210,21 +229,15 @@ async function testLanguageList(translateSection, menuList) {
     );
   }
   /** The test cases has 4 languages, so check if 4 languages are added to the list */
-  let langNum = translateSection.querySelector(
-    ".translations-settings-language-list"
-  ).childElementCount;
+  let langNum = languageList.childElementCount;
   is(langNum, 4, "Number of languages added is 4");
-
-  const languagelist = translateSection.querySelector(
-    ".translations-settings-language-list"
-  );
 
   info(
     "Remove each language from the Always/Never list that we added initially."
   );
   for (let i = 0; i < langNum; i++) {
     // Delete the first language in the list
-    let langElem = languagelist.children[0];
+    let langElem = languageList.children[0];
     let langName = langElem.querySelector("label").innerText;
     const langTag = langElem.querySelector("label").getAttribute("value");
     let langButton = langElem.querySelector("moz-button");
@@ -237,26 +250,17 @@ async function testLanguageList(translateSection, menuList) {
       `Perferences does not contain ${langTag}`
     );
 
-    if (i < langNum - 1) {
+    if (i < langNum) {
       is(
-        languagelist.childElementCount,
+        languageList.childElementCount,
         langNum - i - 1,
         `${langName} removed from ${sectionName}  Translate`
-      );
-    } else {
-      info(
-        "Check if the language list card is removed after removing the last language from the Always/Never list"
-      );
-      is(
-        translateSection.querySelector(".translations-settings-languages-card"),
-        null,
-        `${langName} removed from ${sectionName} Translate`
       );
     }
   }
 }
 
-async function testLanguageListWithPref(translateSection) {
+async function testLanguageListWithPref(languageList, pref, sectionName) {
   const langs = [
     "fr",
     "de",
@@ -270,16 +274,13 @@ async function testLanguageListWithPref(translateSection) {
     "es,fr,en",
     "en,es,fr,de",
   ];
-  const { sectionName, pref } =
-    translateSection.id === "translations-settings-always-translate-section"
-      ? { sectionName: "Always", pref: ALWAYS_TRANSLATE_LANGS_PREF }
-      : { sectionName: "Never", pref: NEVER_TRANSLATE_LANGS_PREF };
 
   info("Ensure the Always/Never list is empty initially.");
+
   is(
-    translateSection.querySelector(".translations-settings-languages-card"),
-    null,
-    `Language list not present in ${sectionName} Translate list`
+    languageList.childElementCount,
+    0,
+    `Language list is empty in ${sectionName} Translate list`
   );
 
   info(
@@ -297,17 +298,12 @@ async function testLanguageListWithPref(translateSection) {
 
     const langsAdded = langOptions.split(",");
     is(
-      translateSection.querySelector(".translations-settings-language-list")
-        .childElementCount,
+      languageList.childElementCount,
       langsAdded.length,
       `Language list has ${langsAdded.length} elements `
     );
 
-    let langsAddedHtml = Array.from(
-      translateSection
-        .querySelector(".translations-settings-language-list")
-        .querySelectorAll("label")
-    );
+    let langsAddedHtml = Array.from(languageList.querySelectorAll("label"));
 
     for (const lang of langsAdded) {
       const langFind = langsAddedHtml
@@ -319,8 +315,8 @@ async function testLanguageListWithPref(translateSection) {
 
   Services.prefs.setCharPref(pref, "");
   is(
-    translateSection.querySelector(".translations-settings-languages-card"),
-    null,
+    languageList.childElementCount,
+    0,
     `All removed from ${sectionName} Translate`
   );
 }
@@ -337,21 +333,13 @@ add_task(async function test_translations_settings_never_translate_site() {
     prefs: [["browser.translations.newSettingsUI.enable", true]],
   });
 
-  const document = gBrowser.selectedBrowser.contentDocument;
-
   info(
     "Open translations settings page by clicking on translations settings button."
   );
-  await TranslationsSettingsTestUtils.openAboutPreferencesTranslationsSettingsPane(
-    settingsButton
-  );
-
-  let neverTranslateSitesSection = document.getElementById(
-    "translations-settings-never-sites-section"
-  );
-  let siteList = neverTranslateSitesSection.querySelector(
-    ".translations-settings-language-list"
-  );
+  const { neverTranslateSiteList } =
+    await TranslationsSettingsTestUtils.openAboutPreferencesTranslationsSettingsPane(
+      settingsButton
+    );
 
   info("Ensuring the list of never-translate sites is empty");
   is(
@@ -360,7 +348,11 @@ add_task(async function test_translations_settings_never_translate_site() {
     "The list of never-translate sites is empty"
   );
 
-  is(siteList, null, "The never-translate sites html list is empty");
+  is(
+    neverTranslateSiteList.childElementCount,
+    0,
+    "The never-translate sites html list is empty"
+  );
 
   info("Adding sites to the neverTranslateSites perms");
   await PermissionTestUtils.add(
@@ -385,12 +377,8 @@ add_task(async function test_translations_settings_never_translate_site() {
     "The list of never-translate sites has 3 elements"
   );
 
-  siteList = neverTranslateSitesSection.querySelector(
-    ".translations-settings-language-list"
-  );
-
   is(
-    siteList.childElementCount,
+    neverTranslateSiteList.childElementCount,
     3,
     "The never-translate sites html list has 3 elements"
   );
@@ -405,10 +393,10 @@ add_task(async function test_translations_settings_never_translate_site() {
     "Ensure that the Never translate sites in permissions settings are reflected in Never translate sites section of translations settings page"
   );
 
-  const siteNum = siteList.children.length;
+  const siteNum = neverTranslateSiteList.children.length;
   for (let i = siteNum; i > 0; i--) {
     is(
-      siteList.children[i - 1].querySelector("label").textContent,
+      neverTranslateSiteList.children[i - 1].querySelector("label").textContent,
       permissionsUrls[permissionsUrls.length - i],
       `Never translate URL ${
         permissionsUrls[permissionsUrls.length - i]
@@ -421,13 +409,13 @@ add_task(async function test_translations_settings_never_translate_site() {
   );
   for (let i = 0; i < siteNum; i++) {
     // Delete the first site in the list
-    let siteElem = siteList.children[0];
+    let siteElem = neverTranslateSiteList.children[0];
     // Delete the first language in the list
     let siteName = siteElem.querySelector("label").innerText;
     let siteButton = siteElem.querySelector("moz-button");
 
     ok(
-      siteList.querySelector(`label[value="${siteName}"]`),
+      neverTranslateSiteList.querySelector(`label[value="${siteName}"]`),
       `Site ${siteName} present in the Never transalate site list`
     );
 
@@ -441,7 +429,7 @@ add_task(async function test_translations_settings_never_translate_site() {
     await clickButton;
 
     ok(
-      !siteList.querySelector(`label[value="${siteName}"]`),
+      !neverTranslateSiteList.querySelector(`label[value="${siteName}"]`),
       `Site ${siteName} removed successfully from the Never transalate site list`
     );
 
@@ -450,21 +438,10 @@ add_task(async function test_translations_settings_never_translate_site() {
       `Site ${siteName} removed from successfully from the Never transalate site permissions list`
     );
 
-    if (i < siteNum - 1) {
+    if (i < siteNum) {
       is(
-        siteList.childElementCount,
+        neverTranslateSiteList.childElementCount,
         siteNum - i - 1,
-        `${siteName} removed from Never Translate Site`
-      );
-    } else {
-      info(
-        "Check if the language list card is removed after removing the last language."
-      );
-      is(
-        neverTranslateSitesSection.querySelector(
-          ".translations-settings-languages-card"
-        ),
-        null,
         `${siteName} removed from Never Translate Site`
       );
     }

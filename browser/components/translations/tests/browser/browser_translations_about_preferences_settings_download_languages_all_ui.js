@@ -47,21 +47,17 @@ add_task(async function test_translations_settings_download_languages_all() {
   info(
     "Open translations settings page by clicking on translations settings button."
   );
-  const { translateDownloadLanguagesList } =
+  const { downloadLanguageList } =
     await TranslationsSettingsTestUtils.openAboutPreferencesTranslationsSettingsPane(
       settingsButton
     );
-
-  let langList = translateDownloadLanguagesList.querySelector(
-    ".translations-settings-language-list"
-  );
 
   info(
     "Install each language French, Spanish and Ukrainian and check if All language state changes to 'all language downloaded' by changing the all language button icon to 'remove icon'"
   );
 
   info("Download French language model.");
-  let langFr = Array.from(langList.querySelectorAll("label")).find(
+  let langFr = Array.from(downloadLanguageList.querySelectorAll("label")).find(
     el => el.getAttribute("value") === "fr"
   );
 
@@ -88,7 +84,7 @@ add_task(async function test_translations_settings_download_languages_all() {
 
   info("Download Spanish language model.");
 
-  let langEs = Array.from(langList.querySelectorAll("label")).find(
+  let langEs = Array.from(downloadLanguageList.querySelectorAll("label")).find(
     el => el.getAttribute("value") === "es"
   );
 
@@ -115,7 +111,7 @@ add_task(async function test_translations_settings_download_languages_all() {
 
   info("Download Ukrainian language model.");
 
-  let langUk = Array.from(langList.querySelectorAll("label")).find(
+  let langUk = Array.from(downloadLanguageList.querySelectorAll("label")).find(
     el => el.getAttribute("value") === "uk"
   );
 
@@ -141,7 +137,7 @@ add_task(async function test_translations_settings_download_languages_all() {
   );
 
   // Download "All languages" is the first child
-  let langAll = langList.children[0];
+  let langAll = downloadLanguageList.children[0];
 
   ok(
     langAll
