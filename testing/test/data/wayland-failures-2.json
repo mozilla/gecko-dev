@@ -29,25 +29,25 @@
             "runs_total": 3
           },
           "browser/components/sessionstore/test/browser_firefoxView_selected_restore.js": {
-            "classification": "secondary",
+            "classification": "intermittent",
             "runs": {
               "X7r1q2xWSu-2bRAofEfeBw": {
-                "result": false
+                "result": true
               },
               "Y7r1q2xWSu-2bRAofEfeBw": {
                 "result": false
               },
               "Z7r1q2xWSu-2bRAofEfeBw": {
-                "result": false
+                "result": true
               }
             },
-            "runs_failed": 3,
+            "runs_failed": 1,
             "runs_total": 3
           }
         },
         "sum_by_label": {
           "disable_recommended": 1,
-          "secondary": 1
+          "intermittent": 1
         }
       }
     }

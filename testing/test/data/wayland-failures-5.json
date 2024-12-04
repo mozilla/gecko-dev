@@ -13,23 +13,23 @@
         "opt": false,
         "path": {
           "browser/components/places/tests/browser/browser_bookmarkProperties_addKeywordForThisSearch.js": {
-            "classification": "disable_recommended",
+            "classification": "intermittent",
             "runs": {
               "Bgc6We1sSjakIo3V9crldw": {
-                "result": false
+                "result": true
               },
               "EH0WPmGtQsGzu5K7OxFOyg": {
-                "result": false
+                "result": true
               },
               "bxDhZzsxQw65gn-veX1PHg": {
                 "result": false
               }
             },
-            "runs_failed": 3,
+            "runs_failed": 1,
             "runs_total": 3
           },
           "browser/components/places/tests/browser/browser_bookmark_popup.js": {
-            "classification": "secondary",
+            "classification": "disable_recommended",
             "runs": {
               "Bgc6We1sSjakIo3V9crldw": {
                 "result": false
@@ -47,7 +47,7 @@
         },
         "sum_by_label": {
           "disable_recommended": 1,
-          "secondary": 1
+          "intermittent": 1
         }
       }
     }
