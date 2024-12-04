@@ -647,12 +647,11 @@ class ScriptLoader final : public JS::loader::ScriptLoaderInterface {
   //   * text source
   //   * encoded bytecode
   //
-  // If keepStencil is true and this function is successful, aStencilDup will
-  // contain a copy of the compiled stencil for use by the caller.
+  // aStencilOut is set to the compiled stencil.
   void InstantiateClassicScriptFromMaybeEncodedSource(
       JSContext* aCx, JS::CompileOptions& aCompileOptions,
       ScriptLoadRequest* aRequest, JS::MutableHandle<JSScript*> aScript,
-      bool keepStencil, RefPtr<JS::Stencil>& aStencilDup,
+      RefPtr<JS::Stencil>& aStencilOut,
       JS::Handle<JS::Value> aDebuggerPrivateValue,
       JS::Handle<JSScript*> aDebuggerIntroductionScript, ErrorResult& aRv);
 
