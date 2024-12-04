@@ -47,10 +47,6 @@ MIDIPort::MIDIPort(nsPIDOMWindowInner* aWindow)
 }
 
 MIDIPort::~MIDIPort() {
-  if (mMIDIAccessParent) {
-    mMIDIAccessParent->RemovePortListener(this);
-    mMIDIAccessParent = nullptr;
-  }
   if (Port()) {
     // If the IPC port channel is still alive at this point, it means we're
     // probably CC'ing this port object. Send the shutdown message to also clean
@@ -184,13 +180,6 @@ already_AddRefed<Promise> MIDIPort::Close(ErrorResult& aError) {
   return p.forget();
 }
 
-void MIDIPort::Notify(const void_t& aVoid) {
-  LOG("MIDIPort::notify MIDIAccess shutting down, dropping reference.");
-  // If we're getting notified, it means the MIDIAccess parent object is dead.
-  // Nullify our copy.
-  mMIDIAccessParent = nullptr;
-}
-
 void MIDIPort::FireStateChangeEvent() {
   if (!GetOwnerWindow()) {
     return;  // Ignore changes once we've been disconnected from the owner
@@ -231,8 +220,8 @@ void MIDIPort::FireStateChangeEvent() {
 
   // Fire MIDIAccess events first so that the port is no longer in the port
   // maps.
-  if (mMIDIAccessParent) {
-    mMIDIAccessParent->FireConnectionEvent(this);
+  if (RefPtr<MIDIAccess> access = mMIDIAccessParent.get()) {
+    access->FireConnectionEvent(this);
   }
 
   MIDIConnectionEventInit init;
