@@ -6,7 +6,6 @@
 #![allow(clippy::not_unsafe_ptr_arg_deref)]
 
 use gleam::gl;
-use webrender::ChunkPool;
 use std::cell::RefCell;
 #[cfg(not(any(target_os = "macos", target_os = "ios")))]
 use std::ffi::OsString;
@@ -29,6 +28,7 @@ use std::time::Duration;
 use std::{env, mem, ptr, slice};
 use thin_vec::ThinVec;
 use webrender::glyph_rasterizer::GlyphRasterThread;
+use webrender::ChunkPool;
 
 use euclid::SideOffsets2D;
 use moz2d_renderer::Moz2dBlobImageHandler;
@@ -40,9 +40,9 @@ use webrender::{
     api::units::*, api::*, create_webrender_instance, render_api::*, set_profiler_hooks, AsyncPropertySampler,
     AsyncScreenshotHandle, Compositor, CompositorCapabilities, CompositorConfig, CompositorSurfaceTransform, Device,
     MappableCompositor, MappedTileInfo, NativeSurfaceId, NativeSurfaceInfo, NativeTileId, PartialPresentCompositor,
-    PipelineInfo, ProfilerHooks, RecordedFrameHandle, Renderer, RendererStats, SWGLCompositeSurfaceInfo,
-    SceneBuilderHooks, ShaderPrecacheFlags, Shaders, SharedShaders, TextureCacheConfig, UploadMethod, WebRenderOptions,
-    WindowVisibility, RenderBackendHooks, ONE_TIME_USAGE_HINT,
+    PipelineInfo, ProfilerHooks, RecordedFrameHandle, RenderBackendHooks, Renderer, RendererStats,
+    SWGLCompositeSurfaceInfo, SceneBuilderHooks, ShaderPrecacheFlags, Shaders, SharedShaders, TextureCacheConfig,
+    UploadMethod, WebRenderOptions, WindowVisibility, ONE_TIME_USAGE_HINT,
 };
 use wr_malloc_size_of::MallocSizeOfOps;
 
@@ -1141,7 +1141,9 @@ pub extern "C" fn wr_thread_pool_new(low_priority: bool) -> *mut WrThreadPool {
         .num_threads(num_threads)
         .start_handler(move |idx| {
             if use_thread_local_arena {
-                unsafe { wr_register_thread_local_arena(); }
+                unsafe {
+                    wr_register_thread_local_arena();
+                }
             }
             let name = format!("WRWorker{}#{}", priority_tag, idx);
             register_thread_with_profiler(name.clone());
@@ -2312,13 +2314,8 @@ pub extern "C" fn wr_resource_updates_delete_blob_image(txn: &mut Transaction, k
 }
 
 #[no_mangle]
-pub extern "C" fn wr_resource_updates_add_snapshot_image(
-    txn: &mut Transaction,
-    image_key: SnapshotImageKey,
-) {
-    txn.add_snapshot_image(
-        image_key,
-    );
+pub extern "C" fn wr_resource_updates_add_snapshot_image(txn: &mut Transaction, image_key: SnapshotImageKey) {
+    txn.add_snapshot_image(image_key);
 }
 
 #[no_mangle]

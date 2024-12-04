@@ -190,11 +190,7 @@ pub extern "C" fn crypto_hash_constructor(
 // 32 bytes will be written to `output` so it must point at a buffer
 // at least that big.
 #[no_mangle]
-pub extern "C" fn crypto_hash_sha256(
-    data: *const u8,
-    length: usize,
-    result: *mut u8,
-) {
+pub extern "C" fn crypto_hash_sha256(data: *const u8, length: usize, result: *mut u8) {
     let mut hasher = sha2::Sha256::new();
     // slice::from_raw_parts doesn't want a null pointer. We'll handle that here
     // so the caller doesn't have to worry about it.

@@ -393,10 +393,7 @@ mod test {
     /// that contains two text fragments, one of them being invalid.
     #[test]
     fn test_valid_and_invalid_text_directives() {
-        for url in [
-            ":~:text=start&text=,foo,",
-            ":~:text=foo,foo,foo&text=start",
-        ] {
+        for url in [":~:text=start&text=,foo,", ":~:text=foo,foo,foo&text=start"] {
             let (_, fragment_directive, text_directives) =
                 parse_fragment_directive_and_remove_it_from_hash(&url)
                     .expect("The parser must find a result.");
