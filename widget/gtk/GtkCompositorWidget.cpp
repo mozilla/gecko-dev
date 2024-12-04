@@ -153,7 +153,7 @@ GtkCompositorWidget::GetNativeLayerRoot() {
   if (gfx::gfxVars::UseWebRenderCompositor()) {
     if (!mNativeLayerRoot) {
       MOZ_ASSERT(mWidget && mWidget->GetMozContainer());
-      mNativeLayerRoot = NativeLayerRootWayland::CreateForMozContainer(
+      mNativeLayerRoot = layers::NativeLayerRootWayland::CreateForMozContainer(
           mWidget->GetMozContainer());
     }
     return mNativeLayerRoot;

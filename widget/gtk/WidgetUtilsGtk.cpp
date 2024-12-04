@@ -28,6 +28,10 @@
 #include <dlfcn.h>
 #include <glib.h>
 
+#ifdef MOZ_WAYLAND
+#  include "nsWaylandDisplay.h"
+#endif  // MOZ_WAYLAND
+
 #ifdef MOZ_X11
 #  include <X11/Xlib.h>
 #  include <X11/Xatom.h>

@@ -26,6 +26,10 @@
 #include <dlfcn.h>
 #include <gtk/gtk.h>
 
+#ifdef MOZ_WAYLAND
+#  include "nsWaylandDisplay.h"
+#endif  // MOZ_WAYLAND
+
 namespace mozilla::widget {
 
 using GtkMenuPopupAtRect = void (*)(GtkMenu* menu, GdkWindow* rect_window,
