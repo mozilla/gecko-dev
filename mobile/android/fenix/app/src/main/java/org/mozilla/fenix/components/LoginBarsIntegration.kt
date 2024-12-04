@@ -6,6 +6,7 @@ package org.mozilla.fenix.components
 
 import android.view.View
 import androidx.coordinatorlayout.widget.CoordinatorLayout
+import mozilla.components.feature.prompts.concept.ExpandablePrompt
 import mozilla.components.feature.prompts.concept.ToggleablePrompt
 import mozilla.components.feature.prompts.login.LoginSelectBar
 import mozilla.components.feature.prompts.login.SuggestStrongPasswordBar
@@ -26,18 +27,31 @@ class LoginBarsIntegration(
 ) {
     init {
         loginsBar.toggleablePromptListener = loginsBar.createToggleListener()
+        loginsBar.expandablePromptListener = loginsBar.createExpandedListener()
         passwordBar.toggleablePromptListener = passwordBar.createToggleListener()
     }
 
     var isVisible: Boolean = false
         private set
+    var isExpanded: Boolean = false
+        private set
+
+    private fun LoginSelectBar.createExpandedListener() = object : ExpandablePrompt.Listener {
+        override fun onExpanded() {
+            (behavior as? LoginSelectBarBehavior<*>)?.placeAtBottom(this@createExpandedListener)
+            // Remove the custom behavior to ensure the login bar stays fixed in place
+            behavior = null
+            isExpanded = true
+        }
+        override fun onCollapsed() {
+            behavior = createCustomLoginsBarBehavior()
+            isExpanded = false
+        }
+    }
 
     private fun <T : View> T.createToggleListener() = object : ToggleablePrompt.Listener {
         override fun onShown() {
-            behavior = LoginSelectBarBehavior<T>(
-                context = context,
-                toolbarPosition = settings.toolbarPosition,
-            )
+            behavior = createCustomLoginsBarBehavior()
             isVisible = true
             onLoginsBarShown()
         }
@@ -49,6 +63,11 @@ class LoginBarsIntegration(
             onLoginsBarHidden()
         }
     }
+
+    private fun <T : View> T.createCustomLoginsBarBehavior() = LoginSelectBarBehavior<T>(
+        context = context,
+        toolbarPosition = settings.toolbarPosition,
+    )
 
     private var View.behavior: CoordinatorLayout.Behavior<*>?
         get() = (layoutParams as? CoordinatorLayout.LayoutParams)?.behavior

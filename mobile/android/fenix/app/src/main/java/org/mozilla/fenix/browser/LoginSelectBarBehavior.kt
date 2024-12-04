@@ -54,22 +54,36 @@ class LoginSelectBarBehavior<V : View>(
 
     private fun positionLoginBar(loginBar: V, dependency: View?) {
         currentAnchorId = dependency?.id ?: View.NO_ID
-        val params = loginBar.layoutParams as CoordinatorLayout.LayoutParams
 
         loginBar.post {
-            if (dependency == null) {
-                // Position the login bar at the bottom of the screen.
-                params.anchorId = View.NO_ID
-                params.anchorGravity = Gravity.NO_GRAVITY
-                params.gravity = Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL
-                loginBar.layoutParams = params
-            } else {
-                // Position the login bar just above the anchor.
-                params.anchorId = dependency.id
-                params.anchorGravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
-                params.gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
-                loginBar.layoutParams = params
+            when (dependency == null) {
+                true -> placeAtBottom(loginBar)
+                false -> placeAboveAnchor(loginBar, dependency)
             }
         }
+    }
+
+    /**
+     * Place the login bar at the bottom of the screen.
+     */
+    fun placeAtBottom(loginBar: View) {
+        val params = loginBar.layoutParams as CoordinatorLayout.LayoutParams
+
+        params.anchorId = View.NO_ID
+        params.anchorGravity = Gravity.NO_GRAVITY
+        params.gravity = Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL
+        loginBar.layoutParams = params
+    }
+
+    /**
+     * Place the login bar above the given anchor.
+     */
+    fun placeAboveAnchor(loginBar: View, anchor: View) {
+        val params = loginBar.layoutParams as CoordinatorLayout.LayoutParams
+
+        params.anchorId = anchor.id
+        params.anchorGravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
+        params.gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
+        loginBar.layoutParams = params
     }
 }

@@ -81,7 +81,7 @@ abstract class StartDownloadDialog(
             layoutParams = params
 
             // Set a higher elevation than the toolbar sibling which we should cover.
-            elevation = activity.resources.getDimension(R.dimen.browser_fragment_download_dialog_elevation)
+            elevation = activity.resources.getDimension(R.dimen.browser_fragment_above_toolbar_panels_elevation)
             visibility = View.VISIBLE
         }
         return this

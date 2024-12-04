@@ -93,8 +93,8 @@
     <!--The size of the gap between the tab preview and content layout.-->
     <dimen name="browser_fragment_gesture_preview_offset">48dp</dimen>
     <dimen name="browser_fragment_toolbar_elevation">16dp</dimen>
-    <!-- The download dialogs are shown above the toolbar so they need a bigger elevation. -->
-    <dimen name="browser_fragment_download_dialog_elevation">17dp</dimen>
+    <!-- Panels shown above the toolbar need a bigger elevation. -->
+    <dimen name="browser_fragment_above_toolbar_panels_elevation">17dp</dimen>
 
     <!-- Display Toolbar -->
     <!-- The size of padding for the display toolbar. -->

@@ -56,7 +56,7 @@ class StartDownloadDialogTest {
                 (dialogContainer.layoutParams as CoordinatorLayout.LayoutParams).gravity,
             )
             assertEquals(
-                testContext.resources.getDimension(R.dimen.browser_fragment_download_dialog_elevation),
+                testContext.resources.getDimension(R.dimen.browser_fragment_above_toolbar_panels_elevation),
                 dialogContainer.elevation,
             )
             assertTrue(dialogContainer.isVisible)

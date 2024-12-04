@@ -4,10 +4,12 @@
 
 package org.mozilla.fenix.components
 
+import android.view.View
 import androidx.coordinatorlayout.widget.CoordinatorLayout
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.spyk
+import io.mockk.verify
 import mozilla.components.feature.prompts.login.LoginSelectBar
 import mozilla.components.feature.prompts.login.SuggestStrongPasswordBar
 import mozilla.components.support.test.robolectric.testContext
@@ -77,5 +79,27 @@ class LoginBarsIntegrationTest {
         assertFalse(integration.isVisible)
         assertFalse(visibilityInListener)
         assertNull((passwordBar.layoutParams as CoordinatorLayout.LayoutParams).behavior)
+    }
+
+    @Test
+    fun `GIVEN a logins bar WHEN it is expanded THEN fix it the bottom of the screen`() {
+        val initialBehavior = mockk<LoginSelectBarBehavior<View>>(relaxed = true)
+        (loginsBar.layoutParams as CoordinatorLayout.LayoutParams).behavior = initialBehavior
+
+        loginsBar.expandablePromptListener?.onExpanded()
+
+        assertTrue(integration.isExpanded)
+        assertNull((loginsBar.layoutParams as CoordinatorLayout.LayoutParams).behavior)
+        verify { initialBehavior.placeAtBottom(loginsBar) }
+    }
+
+    @Test
+    fun `GIVEN a logins bar WHEN it is collapsed THEN restore its original behavior`() {
+        (loginsBar.layoutParams as CoordinatorLayout.LayoutParams).behavior = null
+
+        loginsBar.expandablePromptListener?.onCollapsed()
+
+        assertFalse(integration.isExpanded)
+        assertTrue((loginsBar.layoutParams as CoordinatorLayout.LayoutParams).behavior is LoginSelectBarBehavior<*>)
     }
 }

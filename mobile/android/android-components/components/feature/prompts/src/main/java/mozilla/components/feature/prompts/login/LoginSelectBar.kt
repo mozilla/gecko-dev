@@ -14,6 +14,7 @@ import androidx.compose.ui.platform.AbstractComposeView
 import androidx.core.view.isVisible
 import mozilla.components.concept.storage.Login
 import mozilla.components.feature.prompts.concept.AutocompletePrompt
+import mozilla.components.feature.prompts.concept.ExpandablePrompt
 import mozilla.components.feature.prompts.concept.SelectablePromptView
 import mozilla.components.feature.prompts.concept.ToggleablePrompt
 
@@ -24,7 +25,10 @@ class LoginSelectBar @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null,
     defStyleAttr: Int = 0,
-) : AbstractComposeView(context, attrs, defStyleAttr), AutocompletePrompt<Login> {
+) : AbstractComposeView(context, attrs, defStyleAttr),
+    AutocompletePrompt<Login>,
+    ExpandablePrompt {
+
     private var logins by mutableStateOf(listOf<Login>())
     private var isExpanded by mutableStateOf(false)
     private val loginPickerColors = LoginPickerColors(context)
@@ -33,13 +37,20 @@ class LoginSelectBar @JvmOverloads constructor(
 
     override var toggleablePromptListener: ToggleablePrompt.Listener? = null
     override var selectablePromptListener: SelectablePromptView.Listener<Login>? = null
+    override var expandablePromptListener: ExpandablePrompt.Listener? = null
 
     @Composable
     override fun Content() {
         LoginPicker(
             logins = logins,
             isExpanded = isExpanded,
-            onExpandToggleClick = { isExpanded = it },
+            onExpandToggleClick = {
+                when (it) {
+                    true -> expandablePromptListener?.onExpanded()
+                    false -> expandablePromptListener?.onCollapsed()
+                }
+                isExpanded = it
+            },
             onLoginSelected = { selectablePromptListener?.onOptionSelect(it) },
             onManagePasswordClicked = { selectablePromptListener?.onManageOptions() },
             loginPickerColors = loginPickerColors,
@@ -62,5 +73,15 @@ class LoginSelectBar @JvmOverloads constructor(
         isPromptDisplayed = false
         toggleablePromptListener?.onHidden()
         logins = listOf()
+    }
+
+    override fun expand() {
+        isExpanded = true
+        expandablePromptListener?.onExpanded()
+    }
+
+    override fun collapse() {
+        isExpanded = false
+        expandablePromptListener?.onCollapsed()
     }
 }

@@ -5,6 +5,7 @@
 package mozilla.components.feature.prompts.login
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import mozilla.components.feature.prompts.concept.ExpandablePrompt
 import mozilla.components.feature.prompts.concept.ToggleablePrompt
 import mozilla.components.support.test.mock
 import mozilla.components.support.test.robolectric.testContext
@@ -16,9 +17,10 @@ import org.mockito.Mockito.verify
 
 @RunWith(AndroidJUnit4::class)
 class LoginSelectBarTest {
+    private val bar = LoginSelectBar(testContext)
+
     @Test
     fun `WHEN the prompt is shown THEN update state to reflect that and inform listeners about it`() {
-        val bar = LoginSelectBar(testContext)
         val listener: ToggleablePrompt.Listener = mock()
         bar.toggleablePromptListener = listener
 
@@ -30,7 +32,6 @@ class LoginSelectBarTest {
 
     @Test
     fun `WHEN the prompt is hidden THEN update state to reflect that and inform listeners about it`() {
-        val bar = LoginSelectBar(testContext)
         val listener: ToggleablePrompt.Listener = mock()
         bar.toggleablePromptListener = listener
 
@@ -38,5 +39,25 @@ class LoginSelectBarTest {
 
         assertFalse(bar.isPromptDisplayed)
         verify(listener).onHidden()
+    }
+
+    @Test
+    fun `WHEN the prompt is expanded THEN inform listeners about it`() {
+        val listener: ExpandablePrompt.Listener = mock()
+        bar.expandablePromptListener = listener
+
+        bar.expand()
+
+        verify(listener).onExpanded()
+    }
+
+    @Test
+    fun `WHEN the prompt is collapsed THEN inform listeners about it`() {
+        val listener: ExpandablePrompt.Listener = mock()
+        bar.expandablePromptListener = listener
+
+        bar.collapse()
+
+        verify(listener).onCollapsed()
     }
 }

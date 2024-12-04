@@ -147,6 +147,25 @@ class LoginSelectBarBehaviorTest {
         assertLoginsBarIsPlacedAtTheBottomOfTheScreen()
     }
 
+    @Test
+    fun `GIVEN a login bar WHEN asked to place it at bottom THEN anchor it to the bottom of the screen`() {
+        val behavior = LoginSelectBarBehavior<ViewGroup>(testContext, ToolbarPosition.BOTTOM)
+
+        behavior.placeAtBottom(loginsBar)
+
+        assertLoginsBarIsPlacedAtTheBottomOfTheScreen()
+    }
+
+    @Test
+    fun `GIVEN a login bar WHEN asked to place it above a certain anchor THEN anchor it to the indicated view`() {
+        val behavior = LoginSelectBarBehavior<ViewGroup>(testContext, ToolbarPosition.BOTTOM)
+        dependency.id = R.id.toolbar
+
+        behavior.placeAboveAnchor(loginsBar, dependency)
+
+        assertLoginsBarPlacementAboveAnchor()
+    }
+
     private fun assertLoginsBarPlacementAboveAnchor(anchor: View = dependency) {
         assertEquals(anchor.id, layoutParams.anchorId)
         assertEquals(Gravity.TOP or Gravity.CENTER_HORIZONTAL, layoutParams.anchorGravity)
