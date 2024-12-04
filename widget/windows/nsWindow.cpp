@@ -746,10 +746,6 @@ nsWindow::~nsWindow() {
  *
  **************************************************************/
 
-// Allow Derived classes to modify the height that is passed
-// when the window is created or resized.
-int32_t nsWindow::GetHeight(int32_t aProposedHeight) { return aProposedHeight; }
-
 void nsWindow::SendAnAPZEvent(InputData& aEvent) {
   LRESULT popupHandlingResult;
   if (DealWithPopups(mWnd, MOZ_WM_DMANIP, 0, 0, &popupHandlingResult)) {
@@ -816,14 +812,14 @@ void nsWindow::RecreateDirectManipulationIfNeeded() {
   mDmOwner = MakeUnique<DirectManipulationOwner>(this);
 
   LayoutDeviceIntRect bounds(mBounds.X(), mBounds.Y(), mBounds.Width(),
-                             GetHeight(mBounds.Height()));
+                             mBounds.Height());
   mDmOwner->Init(bounds);
 }
 
 void nsWindow::ResizeDirectManipulationViewport() {
   if (mDmOwner) {
     LayoutDeviceIntRect bounds(mBounds.X(), mBounds.Y(), mBounds.Width(),
-                               GetHeight(mBounds.Height()));
+                               mBounds.Height());
     mDmOwner->ResizeViewport(bounds);
   }
 }
@@ -960,7 +956,7 @@ nsresult nsWindow::Create(nsIWidget* aParent, const LayoutDeviceIntRect& aRect,
   if (!mWnd) {
     mWnd = ::CreateWindowExW(desiredStyles.ex, className, L"",
                              desiredStyles.style, aRect.X(), aRect.Y(),
-                             aRect.Width(), GetHeight(aRect.Height()), parent,
+                             aRect.Width(), aRect.Height(), parent,
                              nullptr, nsToolkit::mDllInstance, nullptr);
     if (!mWnd) {
       NS_WARNING("nsWindow CreateWindowEx failed.");
@@ -1979,7 +1975,7 @@ void nsWindow::Resize(double aWidth, double aHeight, bool aRepaint) {
     WINDOWPLACEMENT pl = {sizeof(WINDOWPLACEMENT)};
     VERIFY(::GetWindowPlacement(mWnd, &pl));
     pl.rcNormalPosition.right = pl.rcNormalPosition.left + width;
-    pl.rcNormalPosition.bottom = pl.rcNormalPosition.top + GetHeight(height);
+    pl.rcNormalPosition.bottom = pl.rcNormalPosition.top + height;
     mResizeState = RESIZING;
     VERIFY(::SetWindowPlacement(mWnd, &pl));
     mResizeState = NOT_RESIZING;
@@ -2001,7 +1997,7 @@ void nsWindow::Resize(double aWidth, double aHeight, bool aRepaint) {
     double oldScale = mDefaultScale;
     mResizeState = RESIZING;
     VERIFY(
-        ::SetWindowPos(mWnd, nullptr, 0, 0, width, GetHeight(height), flags));
+        ::SetWindowPos(mWnd, nullptr, 0, 0, width, height, flags));
     mResizeState = NOT_RESIZING;
     if (WinUtils::LogToPhysFactor(mWnd) != oldScale) {
       ChangedDPI();
@@ -2061,7 +2057,7 @@ void nsWindow::Resize(double aX, double aY, double aWidth, double aHeight,
     pl.rcNormalPosition.left += deltaX;
     pl.rcNormalPosition.right = pl.rcNormalPosition.left + width;
     pl.rcNormalPosition.top += deltaY;
-    pl.rcNormalPosition.bottom = pl.rcNormalPosition.top + GetHeight(height);
+    pl.rcNormalPosition.bottom = pl.rcNormalPosition.top + height;
     VERIFY(::SetWindowPlacement(mWnd, &pl));
     return;
   }
@@ -2078,7 +2074,7 @@ void nsWindow::Resize(double aX, double aY, double aWidth, double aHeight,
     double oldScale = mDefaultScale;
     mResizeState = RESIZING;
     VERIFY(
-        ::SetWindowPos(mWnd, nullptr, x, y, width, GetHeight(height), flags));
+        ::SetWindowPos(mWnd, nullptr, x, y, width, height, flags));
     mResizeState = NOT_RESIZING;
     if (WinUtils::LogToPhysFactor(mWnd) != oldScale) {
       ChangedDPI();

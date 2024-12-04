@@ -618,8 +618,6 @@ class nsWindow final : public nsBaseWidget {
    */
   void UserActivity();
 
-  int32_t GetHeight(int32_t aProposedHeight);
-
   DWORD WindowStyle();
   DWORD WindowExStyle();
 
