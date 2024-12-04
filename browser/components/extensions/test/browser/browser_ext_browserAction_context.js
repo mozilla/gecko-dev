@@ -152,7 +152,7 @@ async function runTests(options) {
     }
 
     let node = document.getElementById(browserActionId);
-    let button = node.querySelector(".unified-extensions-item-action-button");
+    let button = node.firstElementChild;
 
     ok(button, "button exists");
 
@@ -573,9 +573,7 @@ add_task(async function testBadgeColorPersistence() {
 
   function getBadgeForWindow(win) {
     const widget = getBrowserActionWidget(extension).forWindow(win).node;
-    return widget.querySelector(
-      ".unified-extensions-item-action-button"
-    ).badgeLabel;
+    return widget.firstElementChild.badgeLabel;
   }
 
   let badge = getBadgeForWindow(window);

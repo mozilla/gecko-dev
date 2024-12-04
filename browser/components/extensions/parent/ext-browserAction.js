@@ -267,17 +267,7 @@ this.browserAction = class extends ExtensionAPIPersistent {
         );
         node.setAttribute("view-button-id", viewId);
         node.setAttribute("data-extensionid", extension.id);
-
-        let rowWrapper = document.createXULElement("box");
-        rowWrapper.classList.add("unified-extensions-item-row-wrapper");
-        rowWrapper.append(button, menuButton);
-
-        let messagebarWrapper = document.createElement(
-          "unified-extensions-item-messagebar-wrapper"
-        );
-        messagebarWrapper.extensionId = extension.id;
-
-        node.append(rowWrapper, messagebarWrapper);
+        node.append(button, menuButton);
         node.viewButton = button;
 
         return node;
@@ -489,11 +479,7 @@ this.browserAction = class extends ExtensionAPIPersistent {
     // immediately triggers a popuphidden event)
     window.focus();
 
-    const toolbarButton = widgetForWindow.node.querySelector(
-      ".unified-extensions-item-action-button"
-    );
-
-    if (toolbarButton.open) {
+    if (widgetForWindow.node.firstElementChild.open) {
       return;
     }
 
@@ -515,7 +501,7 @@ this.browserAction = class extends ExtensionAPIPersistent {
         openPopupWithoutUserInteraction,
       },
     });
-    toolbarButton.dispatchEvent(event);
+    widgetForWindow.node.firstElementChild.dispatchEvent(event);
   }
 
   /**
@@ -882,17 +868,6 @@ this.browserAction = class extends ExtensionAPIPersistent {
 
       let style = this.iconData.get(tabData.icon);
       button.setAttribute("style", style);
-
-      // Refresh the unified extensions panel item messagebar
-      // (e.g. in response to blocklistState changes).
-      const messagebarWrapper = node.querySelector(
-        "unified-extensions-item-messagebar-wrapper"
-      );
-      // NOTE: if the refresh() method isn't found, that's because the
-      // custom element has not been loaded yet.  When the custom element
-      // is loaded and registered, connectedCallback() will call refresh()
-      // internally.
-      messagebarWrapper.refresh?.();
     };
     if (sync) {
       callback();

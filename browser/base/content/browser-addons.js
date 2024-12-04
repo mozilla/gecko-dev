@@ -498,75 +498,6 @@ customElements.define(
   }
 );
 
-// This custom element wraps the messagebar shown in the extensions panel
-// and used in both ext-browserAction.js and browser-unified-extensions.js
-customElements.define(
-  "unified-extensions-item-messagebar-wrapper",
-  class extends HTMLElement {
-    get extensionPolicy() {
-      return WebExtensionPolicy.getByID(this.extensionId);
-    }
-
-    get extensionName() {
-      return this.extensionPolicy?.name;
-    }
-
-    get isSoftBlocked() {
-      return this.extensionPolicy?.extension?.isSoftBlocked;
-    }
-
-    connectedCallback() {
-      this.messagebar = document.createElement("moz-message-bar");
-      this.messagebar.classList.add("unified-extensions-item-messagebar");
-      this.append(this.messagebar);
-      this.refresh();
-    }
-
-    disconnectedCallback() {
-      this.messagebar?.remove();
-    }
-
-    async refresh() {
-      if (!this.messagebar) {
-        // Nothing to refresh, the custom element has not been
-        // connected to the DOM yet.
-        return;
-      }
-      if (!customElements.get("moz-message-bar")) {
-        document.createElement("moz-message-bar");
-        await customElements.whenDefined("moz-message-bar");
-      }
-      const { messagebar } = this;
-      if (this.isSoftBlocked) {
-        const SOFTBLOCK_FLUENTID =
-          "unified-extensions-item-messagebar-softblocked";
-        if (
-          messagebar.messageL10nId === SOFTBLOCK_FLUENTID &&
-          messagebar.messageL10nArgs?.extensionName === this.extensionName
-        ) {
-          // nothing to refresh.
-          return;
-        }
-        messagebar.removeAttribute("hidden");
-        messagebar.setAttribute("type", "warning");
-        messagebar.messageL10nId = SOFTBLOCK_FLUENTID;
-        messagebar.messageL10nArgs = {
-          extensionName: this.extensionName,
-        };
-      } else {
-        if (messagebar.hasAttribute("hidden")) {
-          // nothing to refresh.
-          return;
-        }
-        messagebar.setAttribute("hidden", "true");
-        messagebar.messageL10nId = null;
-        messagebar.messageL10nArgs = null;
-      }
-      messagebar.requestUpdate();
-    }
-  }
-);
-
 // Removes a doorhanger notification if all of the installs it was notifying
 // about have ended in some way.
 function removeNotificationOnEnd(notification, installs) {
@@ -2178,9 +2109,7 @@ var gUnifiedExtensions = {
 
   _getExtensionId(menu) {
     const { triggerNode } = menu;
-    return triggerNode
-      .closest(".unified-extensions-item")
-      ?.querySelector("toolbarbutton")?.dataset.extensionid;
+    return triggerNode.dataset.extensionid;
   },
 
   _getWidgetId(menu) {

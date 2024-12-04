@@ -123,9 +123,8 @@ add_task(async function testDefaultDetails() {
 
     await promiseAnimationFrame();
 
-    let browserActionButton = document
-      .getElementById(browserActionId)
-      .querySelector(".unified-extensions-item-action-button");
+    let browserActionButton =
+      document.getElementById(browserActionId).firstElementChild;
     let image = getListStyleImage(browserActionButton);
 
     ok(

@@ -21,10 +21,6 @@ unified-extensions-item-open-menu =
 
 unified-extensions-item-message-manage = Manage extension
 
-# Variables:
-#   $extensionName (String) - Name of the user-enabled soft-blocked extension.
-unified-extensions-item-messagebar-softblocked = { $extensionName } violates Mozilla’s policies. Using it may be risky.
-
 ## Extension's context menu
 
 unified-extensions-context-menu-pin-to-toolbar =

@@ -50,13 +50,11 @@ add_task(async function testKeyBrowserAction() {
   await extension.startup();
   await extension.awaitMessage("ready");
 
-  let button = getBrowserActionWidget(extension)
-    .forWindow(window)
-    .node.querySelector(".unified-extensions-item-action-button");
+  let elem = getBrowserActionWidget(extension).forWindow(window).node;
 
   await promiseAnimationFrame(window);
   await showBrowserAction(extension, window);
-  await focusButtonAndPressKeyWithDelay(" ", button, {});
+  await focusButtonAndPressKeyWithDelay(" ", elem.firstElementChild, {});
 
   extension.sendMessage("checkCounter");
   let counter = await extension.awaitMessage("counter");

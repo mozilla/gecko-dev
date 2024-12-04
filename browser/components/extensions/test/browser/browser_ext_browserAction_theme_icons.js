@@ -20,10 +20,8 @@ const TOOLBAR_MAPPING = {
 async function testBrowserAction(extension, expectedIcon) {
   let browserActionWidget = getBrowserActionWidget(extension);
   await promiseAnimationFrame();
-  let browserActionButton = browserActionWidget
-    .forWindow(window)
-    .node.querySelector(".unified-extensions-item-action-button");
-  let image = getListStyleImage(browserActionButton);
+  let browserActionButton = browserActionWidget.forWindow(window).node;
+  let image = getListStyleImage(browserActionButton.firstElementChild);
   ok(
     image.includes(expectedIcon),
     `Expected browser action icon (${image}) to be ${expectedIcon}`

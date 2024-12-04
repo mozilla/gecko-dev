@@ -103,7 +103,7 @@ async function clickBrowserAction(window, extensionId, modifiers) {
     );
   } else {
     let widget = getBrowserActionWidget(extensionId).forWindow(window);
-    widget.node.querySelector(".unified-extensions-item-action-button").click();
+    widget.node.firstElementChild.click();
   }
 }
 

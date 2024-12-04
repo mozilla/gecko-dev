@@ -29,8 +29,9 @@
 /* Align extensions rendered with custom elements. */
 unified-extensions-item {
   display: flex;
+  align-items: center;
 
-  & > .unified-extensions-item-row-wrapper > .subviewbutton {
+  > .subviewbutton {
     flex-shrink: 1;
   }
 }
@@ -42,9 +43,7 @@ unified-extensions-item {
   margin-block: 2px !important; /* override panelUI-shared.css */
 }
 
-/* Override the margin for the subviewbutton wrapped inside
-* the row wrapper box */
-.unified-extensions-item > .unified-extensions-item-row-wrapper > .subviewbutton {
+.unified-extensions-item > .subviewbutton {
   margin: 0;
 }
 
@@ -56,22 +55,25 @@ unified-extensions-item {
 /* For extension widgets placed in a toolbar, we use the stack element
  * (containing the icon) of the action button to draw the attention dot.
  * Otherwise (in the extensions panel), we use the action button itself. */
-.unified-extensions-item[attention] > .unified-extensions-item-row-wrapper > .unified-extensions-item-action-button.toolbarbutton-1 > .toolbarbutton-badge-stack,
-.unified-extensions-item[attention] > .unified-extensions-item-row-wrapper > .unified-extensions-item-action-button.subviewbutton {
+.unified-extensions-item[attention] > .unified-extensions-item-action-button.toolbarbutton-1 > .toolbarbutton-badge-stack,
+.unified-extensions-item[attention] > .unified-extensions-item-action-button.subviewbutton {
   background-image: radial-gradient(circle, var(--uei-button-attention-dot-color), var(--uei-button-attention-dot-color) 2px, transparent 2px);
   background-size: var(--uei-attention-dot-size) var(--uei-attention-dot-size);
   background-repeat: no-repeat;
+}
 
-  /* Adjust attention dots position in the toolbar. */
+/* Adjust attention dots position in the toolbar. */
+#unified-extensions-button[attention] > .toolbarbutton-icon,
+.unified-extensions-item[attention] > .unified-extensions-item-action-button.toolbarbutton-1 > .toolbarbutton-badge-stack {
   background-position: center bottom calc(var(--toolbarbutton-inner-padding) / 2 - var(--uei-attention-dot-size) / 2);
+}
 
-  /* Adjust attention dots position in the unified extensions panel. */
-  &.subviewbutton {
-    background-position: left var(--uei-dot-horizontal-position-in-panel) bottom var(--uei-dot-vertical-position-in-panel);
+/* Adjust attention dots position in the unified extensions panel. */
+.unified-extensions-item[attention] > .unified-extensions-item-action-button.subviewbutton {
+  background-position: left var(--uei-dot-horizontal-position-in-panel) bottom var(--uei-dot-vertical-position-in-panel);
 
-    &:-moz-locale-dir(rtl) {
-      background-position-x: right var(--uei-dot-horizontal-position-in-panel);
-    }
+  &:-moz-locale-dir(rtl) {
+    background-position-x: right var(--uei-dot-horizontal-position-in-panel);
   }
 }
 
@@ -87,7 +89,7 @@ unified-extensions-item {
   }
 }
 
-.unified-extensions-item-action-button {
+.webextension-browser-action {
   list-style-image: var(--webextension-toolbar-image, inherit);
 
   toolbar[brighttext] & {
@@ -96,7 +98,7 @@ unified-extensions-item {
   :root[lwtheme] toolbar:not([brighttext]) & {
     list-style-image: var(--webextension-toolbar-image-dark, inherit);
   }
-  toolbaritem:is([overflowedItem="true"], [cui-areatype="panel"]) > .unified-extensions-item-row-wrapper > & {
+  toolbaritem:is([overflowedItem="true"], [cui-areatype="panel"]) > & {
     list-style-image: var(--webextension-menupanel-image, inherit);
     /* TODO: This feels a bit odd, why do we have three images? It feels we
      * should probably have only two (light/dark), and choose based on
@@ -199,41 +201,6 @@ unified-extensions-item {
 .unified-extensions-item-menu-button.toolbarbutton-1,
 .unified-extensions-item-action-button.toolbarbutton-1 > .unified-extensions-item-contents {
   display: none;
-}
-
-.unified-extensions-item-messagebar {
-  /* Keep the messagebar hidden when the extension item is placed
-   * in the toolbar */
-  display: none;
-
-  /* Show the messagebar when the item is placed into the panel unless it is
-   * explicitly hidden */
-  toolbaritem:is([overflowedItem="true"], [cui-areatype="panel"]).unified-extensions-item > unified-extensions-item-messagebar-wrapper > &,
-  unified-extensions-item > unified-extensions-item-messagebar-wrapper > & {
-    display: block;
-    margin-top: var(--space-xsmall);
-
-    &[hidden] {
-      display: none;
-    }
-  }
-}
-
-.unified-extensions-item-row-wrapper {
-  display: flex;
-  flex-direction: row;
-  flex: 1;
-}
-
-/* Override .toolbaritem-combined-buttons rules applied from panelUI-shared.css
- * to make sure the extensions panel item row (the one including extension icon,
-*  name, origin control message and gear menu button) and the messagebar that may
-*  follow it (e.g. when the extension is soft-blocked) are going to be rendered
-*  as two separate rows */
-toolbaritem:is([overflowedItem="true"], [cui-areatype="panel"]).unified-extensions-item,
-unified-extensions-item.unified-extensions-item {
-  flex-direction: column;
-  align-items: normal;
 }
 
 /* --- browser action CUI widget styles in the extensions panel --- */

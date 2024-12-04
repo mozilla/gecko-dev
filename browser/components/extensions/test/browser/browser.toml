@@ -702,8 +702,6 @@ skip-if = [
 
 ["browser_unified_extensions_doorhangers.js"]
 
-["browser_unified_extensions_item_messagebar.js"]
-
 ["browser_unified_extensions_messages.js"]
 
 ["browser_unified_extensions_overflowable_toolbar.js"]

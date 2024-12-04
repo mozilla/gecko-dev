@@ -55,10 +55,6 @@ customElements.define(
       this._messageDeck = this.querySelector(
         ".unified-extensions-item-message-deck"
       );
-      this._messageBarWrapper = this.querySelector(
-        "unified-extensions-item-messagebar-wrapper"
-      );
-      this._messageBarWrapper.extensionId = this.extension?.id;
 
       // Focus/blur events are fired on specific elements only.
       this._actionButton.addEventListener("blur", this);
@@ -205,8 +201,6 @@ customElements.define(
       );
 
       this.#setStateMessage();
-
-      this._messageBarWrapper?.refresh();
     }
   }
 );
