@@ -126,7 +126,8 @@ static bool StartCollectingDelazifications(JSContext* cx,
   alreadyStarted = false;
 
   // We don't support asm.js in XDR.
-  // Failures are reported by the FinishIncrementalEncoding function below.
+  // Failures are reported by the FinishCollectingDelazifications function
+  // below.
   if (stencil->getInitial()->asmJS) {
     return true;
   }
@@ -136,26 +137,24 @@ static bool StartCollectingDelazifications(JSContext* cx,
   return true;
 }
 
-JS_PUBLIC_API bool JS::StartIncrementalEncoding(JSContext* cx,
-                                                JS::Handle<JSScript*> script,
-                                                JS::Stencil* stencil,
-                                                bool& alreadyStarted) {
+JS_PUBLIC_API bool JS::StartCollectingDelazifications(
+    JSContext* cx, JS::Handle<JSScript*> script, JS::Stencil* stencil,
+    bool& alreadyStarted) {
   JS::Rooted<ScriptSourceObject*> sso(cx, script->sourceObject());
-  return StartCollectingDelazifications(cx, sso, stencil, alreadyStarted);
+  return ::StartCollectingDelazifications(cx, sso, stencil, alreadyStarted);
 }
 
-JS_PUBLIC_API bool JS::StartIncrementalEncoding(JSContext* cx,
-                                                JS::Handle<JSObject*> module,
-                                                JS::Stencil* stencil,
-                                                bool& alreadyStarted) {
+JS_PUBLIC_API bool JS::StartCollectingDelazifications(
+    JSContext* cx, JS::Handle<JSObject*> module, JS::Stencil* stencil,
+    bool& alreadyStarted) {
   JS::Rooted<ScriptSourceObject*> sso(
       cx, module->as<ModuleObject>().scriptSourceObject());
-  return StartCollectingDelazifications(cx, sso, stencil, alreadyStarted);
+  return ::StartCollectingDelazifications(cx, sso, stencil, alreadyStarted);
 }
 
-static bool FinishIncrementalEncoding(JSContext* cx,
-                                      JS::Handle<ScriptSourceObject*> sso,
-                                      JS::TranscodeBuffer& buffer) {
+static bool FinishCollectingDelazifications(JSContext* cx,
+                                            JS::Handle<ScriptSourceObject*> sso,
+                                            JS::TranscodeBuffer& buffer) {
   RefPtr<frontend::InitialStencilAndDelazifications> stencils =
       sso->maybeStealStencils();
   if (!stencils) {
@@ -189,9 +188,9 @@ static bool FinishIncrementalEncoding(JSContext* cx,
   return true;
 }
 
-static bool FinishIncrementalEncoding(JSContext* cx,
-                                      JS::Handle<ScriptSourceObject*> sso,
-                                      JS::Stencil** stencilOut) {
+static bool FinishCollectingDelazifications(JSContext* cx,
+                                            JS::Handle<ScriptSourceObject*> sso,
+                                            JS::Stencil** stencilOut) {
   RefPtr<frontend::InitialStencilAndDelazifications> stencils =
       sso->maybeStealStencils();
   if (!stencils) {
@@ -203,36 +202,34 @@ static bool FinishIncrementalEncoding(JSContext* cx,
   return true;
 }
 
-JS_PUBLIC_API bool JS::FinishIncrementalEncoding(JSContext* cx,
-                                                 JS::HandleScript script,
-                                                 JS::TranscodeBuffer& buffer) {
+JS_PUBLIC_API bool JS::FinishCollectingDelazifications(
+    JSContext* cx, JS::HandleScript script, JS::TranscodeBuffer& buffer) {
   JS::Rooted<ScriptSourceObject*> sso(cx, script->sourceObject());
-  return ::FinishIncrementalEncoding(cx, sso, buffer);
+  return ::FinishCollectingDelazifications(cx, sso, buffer);
 }
 
-JS_PUBLIC_API bool JS::FinishIncrementalEncoding(JSContext* cx,
-                                                 JS::HandleScript script,
-                                                 JS::Stencil** stencilOut) {
+JS_PUBLIC_API bool JS::FinishCollectingDelazifications(
+    JSContext* cx, JS::HandleScript script, JS::Stencil** stencilOut) {
   JS::Rooted<ScriptSourceObject*> sso(cx, script->sourceObject());
-  return ::FinishIncrementalEncoding(cx, sso, stencilOut);
+  return ::FinishCollectingDelazifications(cx, sso, stencilOut);
 }
 
-JS_PUBLIC_API bool JS::FinishIncrementalEncoding(JSContext* cx,
-                                                 JS::Handle<JSObject*> module,
-                                                 JS::TranscodeBuffer& buffer) {
+JS_PUBLIC_API bool JS::FinishCollectingDelazifications(
+    JSContext* cx, JS::Handle<JSObject*> module, JS::TranscodeBuffer& buffer) {
   JS::Rooted<ScriptSourceObject*> sso(
       cx, module->as<ModuleObject>().scriptSourceObject());
-  return ::FinishIncrementalEncoding(cx, sso, buffer);
+  return ::FinishCollectingDelazifications(cx, sso, buffer);
 }
 
-JS_PUBLIC_API void JS::AbortIncrementalEncoding(JS::HandleScript script) {
+JS_PUBLIC_API void JS::AbortCollectingDelazifications(JS::HandleScript script) {
   if (!script) {
     return;
   }
   script->sourceObject()->clearStencils();
 }
 
-JS_PUBLIC_API void JS::AbortIncrementalEncoding(JS::Handle<JSObject*> module) {
+JS_PUBLIC_API void JS::AbortCollectingDelazifications(
+    JS::Handle<JSObject*> module) {
   module->as<ModuleObject>().scriptSourceObject()->clearStencils();
 }
 

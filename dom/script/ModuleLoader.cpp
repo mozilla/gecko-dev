@@ -236,8 +236,8 @@ nsresult ModuleLoader::CompileJavaScriptModule(
     if (aRequest->IsTextSource() &&
         aRequest->PassedConditionForBytecodeEncoding()) {
       bool alreadyStarted;
-      if (!JS::StartIncrementalEncoding(aCx, aModuleOut, stencil,
-                                        alreadyStarted)) {
+      if (!JS::StartCollectingDelazifications(aCx, aModuleOut, stencil,
+                                              alreadyStarted)) {
         return NS_ERROR_FAILURE;
       }
       MOZ_ASSERT(!alreadyStarted);
@@ -284,8 +284,8 @@ nsresult ModuleLoader::CompileJavaScriptModule(
   if (aRequest->IsTextSource() &&
       aRequest->PassedConditionForBytecodeEncoding()) {
     bool alreadyStarted;
-    if (!JS::StartIncrementalEncoding(aCx, aModuleOut, stencil,
-                                      alreadyStarted)) {
+    if (!JS::StartCollectingDelazifications(aCx, aModuleOut, stencil,
+                                            alreadyStarted)) {
       return NS_ERROR_FAILURE;
     }
     MOZ_ASSERT(!alreadyStarted);

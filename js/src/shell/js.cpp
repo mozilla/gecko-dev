@@ -2900,7 +2900,8 @@ static bool Evaluate(JSContext* cx, unsigned argc, Value* vp) {
 
     if (saveIncrementalBytecode) {
       bool alreadyStarted;
-      if (!JS::StartIncrementalEncoding(cx, script, stencil, alreadyStarted)) {
+      if (!JS::StartCollectingDelazifications(cx, script, stencil,
+                                              alreadyStarted)) {
         return false;
       }
       MOZ_ASSERT(!alreadyStarted);
@@ -2931,7 +2932,7 @@ static bool Evaluate(JSContext* cx, unsigned argc, Value* vp) {
     // Serialize the encoded bytecode, recorded before the execution, into a
     // buffer which can be deserialized linearly.
     if (saveIncrementalBytecode) {
-      if (!FinishIncrementalEncoding(cx, script, saveBuffer)) {
+      if (!FinishCollectingDelazifications(cx, script, saveBuffer)) {
         return false;
       }
     }
@@ -9719,8 +9720,8 @@ static const JSFunctionSpecWithHelp shell_functions[] = {
 "         the bytecode would be loaded and decoded from the cache entry instead\n"
 "         of being parsed, then it would be executed as usual.\n"
 "      saveIncrementalBytecode: if true, and if the source is a\n"
-"         CacheEntryObject, the bytecode would be incrementally encoded and\n"
-"         saved into the cache entry.\n"
+"         CacheEntryObject, the delazifications are collected during the\n"
+"         execution, and encoded after that, and saved into the cache entry.\n"
 "      execute: if false, do not execute the script, but do parse and/or\n"
 "               transcode.\n"
 "      assertEqBytecode: if true, and if both loadBytecode and either\n"

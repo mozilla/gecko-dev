@@ -5477,20 +5477,20 @@ bool CompilationStencilMerger::addDelazification(
 
   if (destFun.hasSharedData()) {
     // If the function was already non-lazy, it means the following happened:
-    //   A. delazified twice within single incremental encoding
+    //   A. delazified twice within single collecting delazifications
     //     1. this function is lazily parsed
-    //     2. incremental encoding is started
+    //     2. collecting delazifications is started
     //     3. this function is delazified, encoded, and merged
     //     4. this function is relazified
     //     5. this function is delazified, encoded, and merged
     //
     //   B. delazified twice across decode
     //     1. this function is lazily parsed
-    //     2. incremental encoding is started
+    //     2. collecting delazifications is started
     //     3. this function is delazified, encoded, and merged
-    //     4. incremental encoding is finished
+    //     4. collecting delazifications is finished
     //     5. decoded
-    //     6. incremental encoding is started
+    //     6. collecting delazifications is started
     //        here, this function is non-lazy
     //     7. this function is relazified
     //     8. this function is delazified, encoded, and merged
@@ -5499,7 +5499,7 @@ bool CompilationStencilMerger::addDelazification(
     //
     // B cannot happen with public API, but can happen if incremental
     // encoding at step B.6 is explicitly started by internal function.
-    // See Evaluate and StartIncrementalEncoding in js/src/shell/js.cpp.
+    // See Evaluate and StartCollectingDelazifications in js/src/shell/js.cpp.
     return true;
   }
 

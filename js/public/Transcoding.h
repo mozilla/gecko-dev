@@ -86,60 +86,6 @@ inline bool IsTranscodingBytecodeAligned(const void* offset) {
   return IsTranscodingBytecodeOffsetAligned(size_t(offset));
 }
 
-// Finish incremental encoding started by JS::StartIncrementalEncoding.
-//
-//   * Regular script case
-//     the |script| argument must be the top-level script returned from
-//     |JS::InstantiateGlobalStencil| with the same stencil
-//
-//   * Module script case
-//     the |script| argument must be the script returned by
-//     |JS::GetModuleScript| called on the module returned by
-//     |JS::InstantiateModuleStencil| with the same stencil
-//
-//     NOTE: |JS::GetModuleScript| doesn't work after evaluating the
-//           module script.  For the case, use Handle<JSObject*> variant of
-//           this function below.
-//
-// The |buffer| argument of |FinishIncrementalEncoding| is used for appending
-// the encoded bytecode into the buffer. If any of these functions failed, the
-// content of |buffer| would be undefined.
-//
-// |buffer| contains encoded CompilationStencil.
-//
-// If the `buffer` isn't empty, the start of the `buffer` should meet
-// IsTranscodingBytecodeAligned, and the length should meet
-// IsTranscodingBytecodeOffsetAligned.
-//
-// NOTE: As long as IsTranscodingBytecodeOffsetAligned is met, that means
-//       there's JS::BytecodeOffsetAlignment+extra bytes in the buffer,
-//       IsTranscodingBytecodeAligned should be guaranteed to meet by
-//       malloc, used by MallocAllocPolicy in mozilla::Vector.
-extern JS_PUBLIC_API bool FinishIncrementalEncoding(JSContext* cx,
-                                                    Handle<JSScript*> script,
-                                                    TranscodeBuffer& buffer);
-
-// Similar to |JS::FinishIncrementalEncoding|, but receives module obect.
-//
-// The |module| argument must be the module returned by
-// |JS::InstantiateModuleStencil| with the same stencil that's passed to
-// |JS::StartIncrementalEncoding|.
-extern JS_PUBLIC_API bool FinishIncrementalEncoding(JSContext* cx,
-                                                    Handle<JSObject*> module,
-                                                    TranscodeBuffer& buffer);
-
-// Instead of transcoding to a buffer, return the JS::Stencil that reflects
-// the delazification from the execution.
-// The resulting stencil's ownership is passed to the consumer and the
-// ref count is 1.
-extern JS_PUBLIC_API bool FinishIncrementalEncoding(JSContext* cx,
-                                                    Handle<JSScript*> script,
-                                                    JS::Stencil** stencilOut);
-
-// Abort incremental encoding started by JS::StartIncrementalEncoding.
-extern JS_PUBLIC_API void AbortIncrementalEncoding(Handle<JSScript*> script);
-extern JS_PUBLIC_API void AbortIncrementalEncoding(Handle<JSObject*> module);
-
 // Check if the compile options and script's flag matches.
 //
 // JS::DecodeScript* and JS::DecodeOffThreadScript internally check this.
