@@ -128,15 +128,15 @@ class GeckoViewTest : BaseSessionTest() {
 
         val otherSession = sessionRule.createOpenSession()
 
-        // Need a dummy page to be able to get the PID from the session
-        otherSession.loadUri("https://example.com")
-        otherSession.waitForPageStop()
-
         // The process manager sets newly created processes to FOREGROUND priority until they
         // are de-prioritized, so we need to activate and deactivate the session to trigger
         // a setPriority call.
         otherSession.setActive(true)
         otherSession.setActive(false)
+
+        // Need a dummy page to be able to get the PID from the session
+        otherSession.loadUri("https://example.com")
+        otherSession.waitForPageStop()
 
         mainSession.loadTestPath(HELLO_HTML_PATH)
         mainSession.waitForPageStop()
@@ -242,7 +242,6 @@ class GeckoViewTest : BaseSessionTest() {
         )
     }
 
-    // Purpose of this test is to illustrate differences in setActive pre/post fission.
     @Test
     @NullDelegate(Autofill.Delegate::class)
     fun setActiveProcessPriorityTest() {
@@ -262,6 +261,7 @@ class GeckoViewTest : BaseSessionTest() {
         val initialPids = sessionRule.getAllSessionPids()
         assertTrue("Only one session PID detected on startup", initialPids.size == 1)
         val initialPid = initialPids.first()
+        val initialOomScore = getContentProcessesOomScore(listOf(initialPid)).first()
 
         mainSession.setActive(true)
         mainSession.setActive(false)
@@ -269,6 +269,7 @@ class GeckoViewTest : BaseSessionTest() {
         mainSession.loadTestPath(HELLO_HTML_PATH)
         mainSession.waitForPageStop()
         val loadedPid = sessionRule.getSessionPid(mainSession)
+        val loadedOomScore = getContentProcessesOomScore(listOf(loadedPid)).first()
 
         val isLoadedActive = sessionRule.getActive(mainSession)
         assertFalse("The session was set to inactive.", isLoadedActive)
@@ -276,19 +277,13 @@ class GeckoViewTest : BaseSessionTest() {
         if (env.isFission) {
             assertTrue("A process switch did occur for fission, so the PIDs are different.", initialPid != loadedPid)
 
-            waitUntilContentProcessPriorityByPid(highPids = listOf(loadedPid), lowPids = listOf(initialPid))
-            val initialOomScore = getContentProcessesOomScore(listOf(initialPid)).first()
-            val loadedOomScore = getContentProcessesOomScore(listOf(loadedPid)).first()
-
             // Note that higher oom score means less priority
             assertTrue(
-                "The initial oom score has less priority than the loaded oom score process at this point due to being backgrounded.",
-                loadedOomScore < initialOomScore,
+                "The initial oom score has more priority than the loaded oom score because it was backgrounded.",
+                loadedOomScore > initialOomScore,
             )
-            // setActive(false) occurred on this PID
-            assertTrue("The initial oom score indicates lower priority.", initialOomScore > 300)
-            // setActive(false) never occurred on this PID
-            assertTrue("The loaded oom score indicates higher priority.", loadedOomScore < 300)
+            assertTrue("The initial oom score indicates higher priority because it started in the foreground.", initialOomScore < 300)
+            assertTrue("The loaded oom score indicates lower priority because it is backgrounded.", loadedOomScore > 300)
         } else {
             assertTrue("A process switch did not occur.", initialPid == loadedPid)
 
