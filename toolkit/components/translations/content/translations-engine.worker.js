@@ -45,6 +45,81 @@ const MODEL_FILE_ALIGNMENTS = {
 };
 
 /**
+ * This regex matches the whitespace before and after a text, so that it is preserved.
+ */
+const WHITESPACE_REGEX = /^(\s*)(.*?)(\s*)$/s;
+//                                         /s  Include newlines in .*
+//                         (^^^)     (^^^)     Match the whitespace at the beginning and end.
+//                              (^^^)          Non-greedily match the text (including newlines).
+
+/**
+ * At the time of writing, the Intl.Segmenter has a less-than-ideal segmentation pattern when
+ * a Left Double Quotation Mark (U+201C) is preceded by a full-width punctuation mark, in which
+ * it fails to segment the quotation mark with the sentence it logically belongs to.
+ *
+ * Example Source Text:
+ *   - 这是第一句话。“这是第二句话。”
+ *
+ * Expected Segmentation:
+ *   - Object { index: 0, segment: 这是第一句话。 }
+ *   - Object { index: 7, segment: “这是第二句话。” }
+ *
+ * Actual Segmentation:
+ *   - Object { index: 0, segment: 这是第一句话。“ }
+ *   - Object { index: 8, segment: 这是第二句话。” }
+ *
+ * By inserting a space between the full-width punctuation and the Left Double Quotation Mark,
+ * we can trick the segmenter into breaking the sentence at the correct location.
+ *
+ * This code may be able to be removed with further upstream improvements to Intl.Segmenter.
+ * https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/Segmenter
+ */
+const FULL_WIDTH_PUNCTUATION_REGEX = /([。！？])“/g;
+
+/**
+ * A list of languages that utilize full-width punctuation as described by the regex above.
+ * https://www.unicode.org/charts/PDF/U3000.pdf
+ *
+ * @see {FULL_WIDTH_PUNCTUATION_REGEX}
+ */
+const FULL_WIDTH_PUNCTUATION_LANGUAGE_TAGS = ["ja", "ko", "zh"];
+
+/**
+ * Do any cleaning steps for the text that are required before sending it into
+ * the translation engine.
+ *
+ * @param {string} sourceLanguage - The BCP-47 language tag for the source language.
+ * @param {string} sourceText - The source text to be cleaned.
+ * @returns {{ whitespaceBefore: string, whitespaceAfter: string, cleanedSourceText: string }}
+ */
+function cleanText(sourceLanguage, sourceText) {
+  // Whitespace at the beginning or end can confuse translations, but can affect the
+  // presentation of the final result.
+  const result = WHITESPACE_REGEX.exec(sourceText);
+  if (!result) {
+    throw new Error("The whitespace regex should always return a result.");
+  }
+  const whitespaceBefore = result[1];
+  const whitespaceAfter = result[3];
+  let cleanedSourceText = result[2];
+
+  // Remove any soft hyphens, as they will break tokenization.
+  cleanedSourceText = cleanedSourceText.replaceAll("\u00AD", "");
+
+  if (FULL_WIDTH_PUNCTUATION_LANGUAGE_TAGS.includes(sourceLanguage)) {
+    // Add a space to full-width punctuation when it precedes a Left Double Quotation Mark
+    // (U+201C) to trick the Intl.Segmenter algorithm into breaking a sentence there.
+    /** @see {FULL_WIDTH_PUNCTUATION_REGEX} for a detailed description. */
+    cleanedSourceText = cleanedSourceText.replaceAll(
+      FULL_WIDTH_PUNCTUATION_REGEX,
+      "$1 “"
+    );
+  }
+
+  return { whitespaceBefore, whitespaceAfter, cleanedSourceText };
+}
+
+/**
  * Initialize the engine, and get it ready to handle translation requests.
  * The "initialize" message must be received before any other message handling
  * requests will be processed.
@@ -145,7 +220,7 @@ function handleMessages(engine) {
           }
           try {
             const { whitespaceBefore, whitespaceAfter, cleanedSourceText } =
-              cleanText(sourceText);
+              cleanText(engine.fromLanguage, sourceText);
 
             // Add a translation to the work queue, and when it returns, post the message
             // back. The translation may never return if the translations are discarded
@@ -780,36 +855,4 @@ class WorkQueue {
     await new Promise(resolve => setTimeout(resolve, 0));
     this.#isWorkCancelled = false;
   }
-}
-
-/**
- * This regex matches the whitespace before and after a text, so that it is preserved.
- */
-const whitespaceRegex = /^(\s*)(.*?)(\s*)$/s;
-//                                            Include newlines in .*
-//                        (^^^)     (^^^)     Match the whitespace at the beginning and end.
-//                             (^^^)      /s  Non-greedily match the text (including newlines.)
-
-/**
- * Do any cleaning steps for the text that are required before sending it into
- * the translation engine.
- *
- * @param {string} sourceText
- * @returns {{ whitespaceBefore: string, whitespaceAfter: string, cleanedSourceText: string }}
- */
-function cleanText(sourceText) {
-  // Whitespace at the beginning or end can confuse translations, but can affect the
-  // presentation of the final result.
-  const result = whitespaceRegex.exec(sourceText);
-  if (!result) {
-    throw new Error("The whitespace regex should always return a result.");
-  }
-  const whitespaceBefore = result[1];
-  const whitespaceAfter = result[3];
-  let cleanedSourceText = result[2];
-
-  // Remove any soft hyphens, as they will break tokenization.
-  cleanedSourceText = cleanedSourceText.replaceAll("\u00AD", "");
-
-  return { whitespaceBefore, whitespaceAfter, cleanedSourceText };
 }
