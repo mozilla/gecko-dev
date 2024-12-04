@@ -723,7 +723,7 @@ add_task(async function test_input_copypaste_dataTransfer_multiple() {
     try { cd.mozClearDataAt("text/plain", 1); } catch (ex) { exh = true; }
     ok(exh, "exception occured mozClearDataAt 1");
 
-    cd.setData("text/x-moz-url", "http://www.mozilla.org");
+    cd.setData("text/x-moz-url", "http://www.mozilla.org\nMozilla Page Title");
     SpecialPowers.wrap(cd).mozSetDataAt("text/x-custom", "Custom Text with \u0000 null", 0);
     is(SpecialPowers.wrap(cd).mozItemCount, 1, "mozItemCount after set multiple types");
     return false;
@@ -751,7 +751,7 @@ add_task(async function test_input_copypaste_dataTransfer_multiple() {
     // Firefox for Android's clipboard code doesn't handle x-moz-url. Therefore
     // disabling the following test. Enable this once bug #840101 is fixed.
     if (!navigator.appVersion.includes("Android")) {
-      is(cd.getData("text/x-moz-url"), "http://www.mozilla.org", "paste text/x-moz-url multiple types");
+      is(cd.getData("text/x-moz-url"), "http://www.mozilla.org\nMozilla Page Title", "paste text/x-moz-url multiple types");
       is(cd.getData("text/x-custom"), "Custom Text with \u0000 null", "paste text/custom multiple types");
     } else {
       is(cd.getData("text/x-custom"), "", "paste text/custom multiple types");
