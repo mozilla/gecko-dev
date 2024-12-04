@@ -191,6 +191,7 @@ CO01:
         - addon-install-error-hard-blocked
         - addon-install-error-soft-blocked
         # browser/locales/en-US/browser/unifiedExtensions.ftl
+        - unified-extensions-item-messagebar-softblocked
         - unified-extensions-mb-blocklist-error-multiple
         - unified-extensions-mb-blocklist-error-single
         - unified-extensions-mb-blocklist-warning-multiple

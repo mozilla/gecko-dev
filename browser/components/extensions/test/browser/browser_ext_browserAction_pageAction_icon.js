@@ -530,8 +530,9 @@ add_task(async function testDetailsObjects() {
 
   // The initial icon should be the default icon since no icon is in the manifest.
   const DEFAULT_ICON = "chrome://mozapps/skin/extensions/extensionGeneric.svg";
-  let browserActionButton =
-    browserActionWidget.forWindow(window).node.firstElementChild;
+  let browserActionButton = browserActionWidget
+    .forWindow(window)
+    .node.querySelector(".unified-extensions-item-action-button");
   let pageActionImage = document.getElementById(pageActionId);
   is(
     getListStyleImage(browserActionButton),

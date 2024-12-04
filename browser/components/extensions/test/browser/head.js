@@ -423,7 +423,9 @@ async function triggerBrowserActionWithKeyboard(
   await showBrowserAction(extension, win);
 
   let group = getBrowserActionWidget(extension);
-  let node = group.forWindow(win).node.firstElementChild;
+  let node = group
+    .forWindow(win)
+    .node.querySelector(".unified-extensions-item-action-button");
 
   if (group.areaType == CustomizableUI.TYPE_TOOLBAR) {
     await focusButtonAndPressKey(key, node, modifiers);

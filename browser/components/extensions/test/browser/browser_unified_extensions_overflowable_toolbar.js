@@ -333,11 +333,7 @@ async function verifyExtensionWidget(widget, win = window) {
     "expected no .toolbarbutton-1 CSS class on the action button in the panel"
   );
 
-  let menuButton = widget.lastElementChild;
-  Assert.ok(
-    menuButton.classList.contains("unified-extensions-item-menu-button"),
-    "expected class on the button"
-  );
+  let menuButton = widget.querySelector(".unified-extensions-item-menu-button");
   ok(
     menuButton.classList.contains("subviewbutton"),
     "expected the .subviewbutton CSS class on the menu button in the panel"
