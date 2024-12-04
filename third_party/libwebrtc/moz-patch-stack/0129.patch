@@ -35,7 +35,7 @@ index 52acee7e60..e6aa410434 100644
  # Normally, we'd use 'if (!build_with_mozilla)', but that flag isn't
  # available yet.
 diff --git a/media/BUILD.gn b/media/BUILD.gn
-index d9e8bd5591..3488f8806d 100644
+index b6218e97d9..1854fd0d5f 100644
 --- a/media/BUILD.gn
 +++ b/media/BUILD.gn
 @@ -7,7 +7,7 @@
@@ -48,7 +48,7 @@ index d9e8bd5591..3488f8806d 100644
  
  group("media") {
 diff --git a/modules/video_coding/BUILD.gn b/modules/video_coding/BUILD.gn
-index ae832adb64..938f957060 100644
+index 241de922a4..3bd2672efd 100644
 --- a/modules/video_coding/BUILD.gn
 +++ b/modules/video_coding/BUILD.gn
 @@ -7,7 +7,7 @@

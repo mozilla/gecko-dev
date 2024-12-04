@@ -319,7 +319,7 @@ if (rtc_include_tests) {
         "../../../api/units:data_size",
         "../../../api/units:time_delta",
         "../../../api/units:timestamp",
-        "../../../call:video_stream_api",
+        "../../../call:video_receive_stream_api",
         "../../../logging:mocks",
         "../../../logging:rtc_event_bwe",
         "../../../rtc_base:checks",

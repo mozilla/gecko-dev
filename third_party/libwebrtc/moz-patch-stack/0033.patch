@@ -470,10 +470,10 @@ index c84b71ed6e..30ba208ce1 100644
  if (rtc_include_tests) {
    rtc_source_set("test_feedback_generator_interface") {
 diff --git a/call/BUILD.gn b/call/BUILD.gn
-index 3464ba8f2f..8fb9bacedc 100644
+index a17e89c490..6022cb312e 100644
 --- a/call/BUILD.gn
 +++ b/call/BUILD.gn
-@@ -47,7 +47,7 @@ rtc_library("call_interfaces") {
+@@ -48,7 +48,7 @@ rtc_library("call_interfaces") {
      "../api:ref_count",
      "../api:rtp_headers",
      "../api:rtp_parameters",
@@ -482,7 +482,7 @@ index 3464ba8f2f..8fb9bacedc 100644
      "../api:scoped_refptr",
      "../api:transport_api",
      "../api/adaptation:resource_adaptation_api",
-@@ -377,6 +377,12 @@ rtc_library("call") {
+@@ -379,6 +379,12 @@ rtc_library("call") {
      "//third_party/abseil-cpp/absl/functional:bind_front",
      "//third_party/abseil-cpp/absl/strings:string_view",
    ]
@@ -495,7 +495,7 @@ index 3464ba8f2f..8fb9bacedc 100644
  }
  
  rtc_library("payload_type_picker") {
-@@ -431,7 +437,7 @@ rtc_library("video_stream_api") {
+@@ -436,7 +442,7 @@ rtc_library("video_stream_api") {
      "../api:frame_transformer_interface",
      "../api:rtp_headers",
      "../api:rtp_parameters",
@@ -577,7 +577,7 @@ index 0000000000..f6ff7f218f
 +  #endif
 +#endif
 diff --git a/media/BUILD.gn b/media/BUILD.gn
-index d6c3ba58e2..86b300b472 100644
+index 5126519d81..f211074146 100644
 --- a/media/BUILD.gn
 +++ b/media/BUILD.gn
 @@ -76,7 +76,7 @@ rtc_library("rtc_media_base") {
@@ -589,7 +589,7 @@ index d6c3ba58e2..86b300b472 100644
      "../api:scoped_refptr",
      "../api:sequence_checker",
      "../api:transport_api",
-@@ -127,6 +127,12 @@ rtc_library("rtc_media_base") {
+@@ -126,6 +126,12 @@ rtc_library("rtc_media_base") {
      "../rtc_base/third_party/sigslot",
      "../video/config:encoder_config",
    ]
@@ -602,7 +602,7 @@ index d6c3ba58e2..86b300b472 100644
  }
  
  rtc_library("adapted_video_track_source") {
-@@ -151,6 +157,9 @@ rtc_library("adapted_video_track_source") {
+@@ -150,6 +156,9 @@ rtc_library("adapted_video_track_source") {
  
  rtc_source_set("audio_source") {
    sources = [ "base/audio_source.h" ]
@@ -612,7 +612,7 @@ index d6c3ba58e2..86b300b472 100644
  }
  
  rtc_library("video_adapter") {
-@@ -252,9 +261,16 @@ rtc_library("media_engine") {
+@@ -251,9 +260,16 @@ rtc_library("media_engine") {
      "../rtc_base/system:file_wrapper",
      "//third_party/abseil-cpp/absl/algorithm:container",
    ]
@@ -629,7 +629,7 @@ index d6c3ba58e2..86b300b472 100644
    sources = [
      "base/media_channel_impl.cc",
      "base/media_channel_impl.h",
-@@ -301,6 +317,7 @@ rtc_library("media_channel_impl") {
+@@ -300,6 +316,7 @@ rtc_library("media_channel_impl") {
      "//third_party/abseil-cpp/absl/strings:string_view",
    ]
  }
@@ -637,7 +637,7 @@ index d6c3ba58e2..86b300b472 100644
  
  rtc_source_set("media_channel") {
    sources = [ "base/media_channel.h" ]
-@@ -381,6 +398,7 @@ rtc_library("codec") {
+@@ -379,6 +396,7 @@ rtc_library("codec") {
  }
  
  rtc_library("rtp_utils") {
@@ -645,7 +645,7 @@ index d6c3ba58e2..86b300b472 100644
    sources = [
      "base/rtp_utils.cc",
      "base/rtp_utils.h",
-@@ -397,8 +415,10 @@ rtc_library("rtp_utils") {
+@@ -395,8 +413,10 @@ rtc_library("rtp_utils") {
      "//third_party/abseil-cpp/absl/strings:string_view",
    ]
  }
@@ -656,7 +656,7 @@ index d6c3ba58e2..86b300b472 100644
    sources = [
      "base/stream_params.cc",
      "base/stream_params.h",
-@@ -411,6 +431,7 @@ rtc_library("stream_params") {
+@@ -409,6 +429,7 @@ rtc_library("stream_params") {
      "//third_party/abseil-cpp/absl/algorithm:container",
    ]
  }
@@ -664,7 +664,7 @@ index d6c3ba58e2..86b300b472 100644
  
  rtc_library("media_constants") {
    sources = [
-@@ -421,6 +442,7 @@ rtc_library("media_constants") {
+@@ -419,6 +440,7 @@ rtc_library("media_constants") {
  }
  
  rtc_library("turn_utils") {
@@ -672,7 +672,7 @@ index d6c3ba58e2..86b300b472 100644
    sources = [
      "base/turn_utils.cc",
      "base/turn_utils.h",
-@@ -431,14 +453,17 @@ rtc_library("turn_utils") {
+@@ -429,14 +451,17 @@ rtc_library("turn_utils") {
      "../rtc_base/system:rtc_export",
    ]
  }
@@ -690,7 +690,7 @@ index d6c3ba58e2..86b300b472 100644
  
  rtc_library("rtc_simulcast_encoder_adapter") {
    visibility = [ "*" ]
-@@ -519,6 +544,11 @@ rtc_library("rtc_internal_video_codecs") {
+@@ -515,6 +540,11 @@ rtc_library("rtc_internal_video_codecs") {
      "../test:fake_video_codecs",
      "//third_party/abseil-cpp/absl/strings",
    ]
@@ -702,7 +702,7 @@ index d6c3ba58e2..86b300b472 100644
  
    if (enable_libaom) {
      defines += [ "RTC_USE_LIBAOM_AV1_ENCODER" ]
-@@ -538,6 +568,13 @@ rtc_library("rtc_internal_video_codecs") {
+@@ -534,6 +564,13 @@ rtc_library("rtc_internal_video_codecs") {
      "engine/internal_encoder_factory.cc",
      "engine/internal_encoder_factory.h",
    ]
@@ -1232,7 +1232,7 @@ index b18114f107..3ca6994c81 100644
      deps += [
        "..:logging",
 diff --git a/test/BUILD.gn b/test/BUILD.gn
-index 33e920f8ba..ac80805821 100644
+index ed210b327b..4cf0672fa9 100644
 --- a/test/BUILD.gn
 +++ b/test/BUILD.gn
 @@ -229,6 +229,7 @@ rtc_library("audio_test_common") {
@@ -1274,7 +1274,7 @@ index 33e920f8ba..ac80805821 100644
      sources += [ "testsupport/jpeg_frame_writer.cc" ]
    } else {
      sources += [ "testsupport/jpeg_frame_writer_ios.cc" ]
-@@ -1288,6 +1296,7 @@ if (!build_with_chromium) {
+@@ -1289,6 +1297,7 @@ if (!build_with_chromium) {
    }
  }
  
@@ -1282,7 +1282,7 @@ index 33e920f8ba..ac80805821 100644
  if (!build_with_chromium && is_android) {
    rtc_android_library("native_test_java") {
      testonly = true
-@@ -1301,6 +1310,7 @@ if (!build_with_chromium && is_android) {
+@@ -1302,6 +1311,7 @@ if (!build_with_chromium && is_android) {
      ]
    }
  }
@@ -1291,7 +1291,7 @@ index 33e920f8ba..ac80805821 100644
  rtc_library("call_config_utils") {
    testonly = true
 diff --git a/video/BUILD.gn b/video/BUILD.gn
-index 0f81b79f2b..f4575482f3 100644
+index f384b93a55..c39affdefe 100644
 --- a/video/BUILD.gn
 +++ b/video/BUILD.gn
 @@ -17,7 +17,7 @@ rtc_library("video_stream_encoder_interface") {
@@ -1303,7 +1303,7 @@ index 0f81b79f2b..f4575482f3 100644
      "../api:scoped_refptr",
      "../api/adaptation:resource_adaptation_api",
      "../api/units:data_rate",
-@@ -407,7 +407,7 @@ rtc_library("video_stream_encoder_impl") {
+@@ -408,7 +408,7 @@ rtc_library("video_stream_encoder_impl") {
      ":video_stream_encoder_interface",
      "../api:field_trials_view",
      "../api:rtp_parameters",

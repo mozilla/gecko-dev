@@ -112,7 +112,6 @@ if (rtc_include_tests && !build_with_chromium) {
       "../../call",
       "../../call:call_interfaces",
       "../../call:rtp_sender",
-      "../../call:video_stream_api",
       "../../common_video",
       "../../media:media_constants",
       "../../media:rtc_audio_video",
