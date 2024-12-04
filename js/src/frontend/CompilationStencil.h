@@ -1164,7 +1164,8 @@ struct CompilationStencil {
   StorageType storageType = StorageType::Owned;
 
   // Value of CanLazilyParse(CompilationInput) on compilation.
-  // Used during instantiation.
+  // Used during instantiation, and also queried by
+  // InitialStencilAndDelazifications.
   bool canLazilyParse = false;
 
   // If this stencil is a delazification, this identifies location of the
@@ -1323,6 +1324,149 @@ struct CompilationStencil {
   void dumpFields(js::JSONPrinter& json) const;
 
   void dumpAtom(TaggedParserAtomIndex index) const;
+#endif
+};
+
+// A Map from a function key to the ScriptIndex in the initial stencil.
+class FunctionKeyToScriptIndexMap {
+  using FunctionKey = SourceExtent::FunctionKey;
+  mozilla::HashMap<FunctionKey, ScriptIndex,
+                   mozilla::DefaultHasher<FunctionKey>, js::SystemAllocPolicy>
+      map_;
+
+  template <typename T>
+  [[nodiscard]] bool init(FrontendContext* fc, const T& scriptExtra,
+                          size_t scriptExtraSize);
+
+ public:
+  FunctionKeyToScriptIndexMap() = default;
+
+  [[nodiscard]] bool init(FrontendContext* fc,
+                          const CompilationStencil* initial);
+  [[nodiscard]] bool init(FrontendContext* fc,
+                          const ExtensibleCompilationStencil* initial);
+
+  mozilla::Maybe<ScriptIndex> get(FunctionKey key) const;
+
+  size_t sizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf) const;
+  size_t sizeOfIncludingThis(mozilla::MallocSizeOf mallocSizeOf) const {
+    return mallocSizeOf(this) + sizeOfExcludingThis(mallocSizeOf);
+  }
+};
+
+// A class to Associate the initial stencil and the delazifications.
+//
+// This struct is initialized with the initial stencil, with an empty set of
+// delazifications.
+// The delazifications_ vector is fixed-size, pre-allocated for each script
+// stencil, excluding the top-level script.
+//
+// The delazifications_ vector elements are initialized with nullptr, and
+// monotonically populated with each delazification result.
+// Only the first delazification for the given function is used.
+//
+// This struct is supposed to be read/write from multiple threads, and all
+// operations, except init, are thread-safe.
+struct InitialStencilAndDelazifications {
+ private:
+  using FunctionKey = SourceExtent::FunctionKey;
+
+  // Shared reference to the initial stencil.
+  RefPtr<const CompilationStencil> initial_;
+
+  // Exclusively owning pointers for delazifications.
+  //
+  // The i-th element is for ScriptIndex(i-1).
+  //
+  // If the initial stencil is known to be fully-parsed, this vector is
+  // 0-sized and unused.
+  Vector<mozilla::Atomic<CompilationStencil*>, 0, js::SystemAllocPolicy>
+      delazifications_;
+
+  // A Map from a function key to the ScriptIndex in the initial stencil.
+  //
+  // If the initial stencil is known to be fully-parsed, this map is
+  // uninitialized and unused
+  FunctionKeyToScriptIndexMap functionKeyToInitialScriptIndex_;
+
+  mutable mozilla::Atomic<uintptr_t> refCount_{0};
+
+ public:
+  InitialStencilAndDelazifications() = default;
+  ~InitialStencilAndDelazifications();
+
+  void AddRef();
+  void Release();
+
+  [[nodiscard]] bool init(FrontendContext* fc,
+                          const CompilationStencil* initial);
+
+  // Get the initial stencil.
+  // As long as this instance is initialized, this returns non-null pointer.
+  const CompilationStencil* getInitial() const;
+
+  // Returns true if the initial stencil is compiled with
+  // CanLazilyParse(CompilationInput).
+  //
+  // If this returns false:
+  //   * the delazifications_ vector is not allocated
+  //   * the functionKeyToInitialScriptIndex_ is not initialized
+  //   * getDelazificationAt and storeDelazification shouldn't be called
+  //   * getMerged shouldn't be called, and getInitial should be used instead
+  bool canLazilyParse() const { return initial_->canLazilyParse; }
+
+  // Return the delazification stencil if it's already populated.
+  // Returns nullptr otherwise.
+  //
+  // The functionIndex parameter is the index of the corresponding script
+  // stencil (0-indexed, with the index 0 being the top-level script).
+  //
+  // if the extent is used instead, it calculates functionIndex and returns
+  // the delazification stencil if the functionIndex is found and it's already
+  // populated.
+  // Returns nullptr otherwise.
+  const CompilationStencil* getDelazificationAt(size_t functionIndex) const;
+  const CompilationStencil* getDelazificationFor(
+      const SourceExtent& extent) const;
+
+  // Try storing the delazification stencil.
+  //
+  // The `delazification` stencil should have only one ref count.
+  //
+  // If the function was not yet delazified and populated, the `delazification`
+  // is stored into the vector and the ownership is transferred to the vector,
+  // and the same `delazification`'s pointer is returned.
+  //
+  // If the function was already delazified and stored, the passed
+  // `delazification` is discared, and the already delazified stencil's pointer
+  // is returned.
+  //
+  // This function is infallible and never returns nullptr.
+  const CompilationStencil* storeDelazification(
+      RefPtr<CompilationStencil>&& delazification);
+
+  // Create single CompilationStencil that reflects the initial stencil
+  // and the all delazifications.
+  //
+  // Returns nullptr if any error happens, and sets exception on the
+  // FrontendContext.
+  CompilationStencil* getMerged(FrontendContext* fc) const;
+
+  // Instantiate the initial stencil and all delazifications populated so far.
+  [[nodiscard]] static bool instantiateStencils(
+      JSContext* cx, CompilationInput& input,
+      const InitialStencilAndDelazifications& stencils,
+      CompilationGCOutput& gcOutput);
+
+  size_t sizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf) const;
+  size_t sizeOfIncludingThis(mozilla::MallocSizeOf mallocSizeOf) const {
+    return mallocSizeOf(this) + sizeOfExcludingThis(mallocSizeOf);
+  }
+
+#if defined(DEBUG) || defined(JS_JITSPEW)
+  void dump() const;
+  void dump(js::JSONPrinter& json) const;
+  void dumpFields(js::JSONPrinter& json) const;
 #endif
 };
 
@@ -1957,14 +2101,7 @@ struct CompilationStencilMerger {
   // nullptr.
   UniquePtr<ExtensibleCompilationStencil> initial_;
 
-  // A Map from function key to the ScriptIndex in the initial stencil.
-  using FunctionKeyToScriptIndexMap =
-      mozilla::HashMap<FunctionKey, ScriptIndex,
-                       mozilla::DefaultHasher<FunctionKey>,
-                       js::SystemAllocPolicy>;
   FunctionKeyToScriptIndexMap functionKeyToInitialScriptIndex_;
-
-  [[nodiscard]] bool buildFunctionKeyToIndex(FrontendContext* fc);
 
   ScriptIndex getInitialScriptIndexFor(
       const CompilationStencil& delazification) const;
@@ -1986,6 +2123,14 @@ struct CompilationStencilMerger {
 
   // Merge the delazification stencil into the initial stencil.
   [[nodiscard]] bool addDelazification(
+      FrontendContext* fc, const CompilationStencil& delazification);
+
+  // Merge the delazification stencil into the initial stencil if the
+  // delazification stencil can be merged.
+  //
+  // If the delazification's enclosing function is not yet merged, this does
+  // do nothing.
+  [[nodiscard]] bool maybeAddDelazification(
       FrontendContext* fc, const CompilationStencil& delazification);
 
   ExtensibleCompilationStencil& getResult() const { return *initial_; }
@@ -2081,5 +2226,18 @@ const ScriptStencilExtra& ScriptStencilRef::scriptExtra() const {
 
 }  // namespace frontend
 }  // namespace js
+
+namespace mozilla {
+template <>
+struct RefPtrTraits<js::frontend::InitialStencilAndDelazifications> {
+  static void AddRef(js::frontend::InitialStencilAndDelazifications* stencils) {
+    stencils->AddRef();
+  }
+  static void Release(
+      js::frontend::InitialStencilAndDelazifications* stencils) {
+    stencils->Release();
+  }
+};
+}  // namespace mozilla
 
 #endif  // frontend_CompilationStencil_h

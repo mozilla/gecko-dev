@@ -3584,6 +3584,203 @@ bool ExtensibleCompilationStencil::isModule() const {
   return scriptExtra[CompilationStencil::TopLevelIndex].isModule();
 }
 
+InitialStencilAndDelazifications::~InitialStencilAndDelazifications() {
+  MOZ_ASSERT(refCount_ == 0);
+
+  for (size_t i = 0; i < delazifications_.length(); i++) {
+    CompilationStencil* delazification = delazifications_[i].exchange(nullptr);
+    if (delazification) {
+      JS::StencilRelease(delazification);
+    }
+  }
+}
+
+void InitialStencilAndDelazifications::AddRef() { refCount_++; }
+
+void InitialStencilAndDelazifications::Release() {
+  MOZ_RELEASE_ASSERT(refCount_ > 0);
+  if (--refCount_ == 0) {
+    js_delete(this);
+  }
+}
+
+bool InitialStencilAndDelazifications::init(FrontendContext* fc,
+                                            const CompilationStencil* initial) {
+  MOZ_ASSERT(initial->isInitialStencil());
+
+  initial_ = initial;
+
+  if (!canLazilyParse()) {
+    // If the initial stencil is known to be fully-parsed, delazification
+    // never happens, and the delazifications_ vector and the
+    // functionKeyToInitialScriptIndex_ map is never used.
+    return true;
+  }
+
+  if (!delazifications_.resize(initial_->scriptData.size())) {
+    ReportOutOfMemory(fc);
+    return false;
+  }
+
+  return functionKeyToInitialScriptIndex_.init(fc, initial_);
+}
+
+const CompilationStencil* InitialStencilAndDelazifications::getInitial() const {
+  return initial_.get();
+}
+
+const CompilationStencil* InitialStencilAndDelazifications::getDelazificationAt(
+    size_t functionIndex) const {
+  MOZ_ASSERT(canLazilyParse());
+  MOZ_ASSERT(functionIndex > 0);
+
+  return delazifications_[functionIndex - 1];
+}
+
+const CompilationStencil*
+InitialStencilAndDelazifications::getDelazificationFor(
+    const SourceExtent& extent) const {
+  MOZ_ASSERT(canLazilyParse());
+  auto maybeIndex =
+      functionKeyToInitialScriptIndex_.get(extent.toFunctionKey());
+  MOZ_ASSERT(maybeIndex,
+             "The extent parameter should be for a function inside the script");
+  return getDelazificationAt(*maybeIndex);
+}
+
+const CompilationStencil* InitialStencilAndDelazifications::storeDelazification(
+    RefPtr<CompilationStencil>&& delazification) {
+  MOZ_ASSERT(!delazification->hasMultipleReference());
+  MOZ_ASSERT(canLazilyParse());
+
+  auto maybeIndex =
+      functionKeyToInitialScriptIndex_.get(delazification->functionKey);
+  MOZ_ASSERT(maybeIndex);
+  size_t functionIndex = *maybeIndex;
+
+  CompilationStencil* raw = delazification.forget().take();
+  if (delazifications_[functionIndex - 1].compareExchange(nullptr, raw)) {
+    return raw;
+  }
+
+  JS::StencilRelease(raw);
+  return delazifications_[functionIndex - 1];
+}
+
+CompilationStencil* InitialStencilAndDelazifications::getMerged(
+    FrontendContext* fc) const {
+  MOZ_ASSERT(canLazilyParse());
+
+  UniquePtr<ExtensibleCompilationStencil> extensibleStencil(
+      fc->getAllocator()->new_<ExtensibleCompilationStencil>(initial_->source));
+  if (!extensibleStencil) {
+    return nullptr;
+  }
+
+  if (!extensibleStencil->cloneFrom(fc, *initial_)) {
+    return nullptr;
+  }
+
+  CompilationStencilMerger merger;
+  if (!merger.setInitial(fc, std::move(extensibleStencil))) {
+    return nullptr;
+  }
+
+  for (const auto& delazification : delazifications_) {
+    if (!delazification) {
+      continue;
+    }
+
+    // NOTE: The delazifications_ vector can be modified by other threads
+    //       during the iteration.
+    //       The enclosing delazification's is not guaranteed to be iterated
+    //       over in this iteration.
+    //       If the enclosing function wasn't merged, all inner functions are
+    //       ignored inside maybeAddDelazification.
+    if (!merger.maybeAddDelazification(fc, *delazification)) {
+      return nullptr;
+    }
+  }
+
+  UniquePtr<ExtensibleCompilationStencil> merged = merger.takeResult();
+  return fc->getAllocator()->new_<CompilationStencil>(std::move(merged));
+}
+
+/* static */
+bool InitialStencilAndDelazifications::instantiateStencils(
+    JSContext* cx, CompilationInput& input,
+    const InitialStencilAndDelazifications& stencils,
+    CompilationGCOutput& gcOutput) {
+  if (!CompilationStencil::instantiateStencils(cx, input, *stencils.initial_,
+                                               gcOutput)) {
+    return false;
+  }
+
+  // At this point, gcOutput.script contains the top-level script, and
+  // gcOutput.functions[i] contains i-th function, where 0-th item is
+  // always nullptr.
+  // gcOutput.functions[i]->baseScript() is either JSScript or lazy script.
+  for (size_t i = 0, length = stencils.delazifications_.length(); i < length;
+       i++) {
+    const auto& delazification = stencils.delazifications_[i];
+    if (!delazification) {
+      continue;
+    }
+
+    ScriptIndex scriptIndex = ScriptIndex(i + 1);
+    JS::Rooted<JSFunction*> fun(cx, gcOutput.functions[scriptIndex]);
+    if (!fun->baseScript()->isReadyForDelazification()) {
+      // NOTE: The delazifications_ vector can be modified by other threads
+      //       during the iteration.
+      //       The enclosing delazification's is not guaranteed to be iterated
+      //       over in this iteration.
+      //       If the enclosing function wasn't instantiated, ignore all inner
+      //       functions.
+      continue;
+    }
+
+    JS::Rooted<CompilationInput> inputForFunc(cx,
+                                              CompilationInput(input.options));
+    inputForFunc.get().initFromLazy(cx, fun->baseScript(), input.source);
+
+    // TODO: The preparation can be shared across iterations.
+    JS::Rooted<CompilationGCOutput> gcOutputForFunc(cx);
+    if (!CompilationStencil::instantiateStencils(
+            cx, inputForFunc.get(), *delazification, gcOutputForFunc.get())) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+size_t InitialStencilAndDelazifications::sizeOfExcludingThis(
+    mozilla::MallocSizeOf mallocSizeOf) const {
+  size_t size = 0;
+
+  if (initial_) {
+    // The initial stencil can be shared between multiple owners, but
+    // in most case this instance is considered as the main owner, in term
+    // of the memory reporting.
+    size += initial_->sizeOfExcludingThis(mallocSizeOf);
+  }
+
+  size += delazifications_.sizeOfExcludingThis(mallocSizeOf);
+
+  for (const auto& delazification : delazifications_) {
+    if (!delazification) {
+      continue;
+    }
+
+    // Delazifications are exclusively owned by this instance.
+    size += (*delazification).sizeOfExcludingThis(mallocSizeOf);
+  }
+
+  size += functionKeyToInitialScriptIndex_.sizeOfExcludingThis(mallocSizeOf);
+
+  return size;
+}
+
 mozilla::Span<TaggedScriptThingIndex> ScriptStencil::gcthings(
     const CompilationStencil& stencil) const {
   return stencil.gcThingData.Subspan(gcThingsOffset, gcThingsLength);
@@ -4853,6 +5050,44 @@ void ExtensibleCompilationStencil::dumpAtom(TaggedParserAtomIndex index) {
   borrowingStencil.dumpAtom(index);
 }
 
+void InitialStencilAndDelazifications::dump() const {
+  js::Fprinter out(stderr);
+  js::JSONPrinter json(out);
+  dump(json);
+  out.put("\n");
+}
+
+void InitialStencilAndDelazifications::dump(js::JSONPrinter& json) const {
+  json.beginObject();
+  dumpFields(json);
+  json.endObject();
+}
+
+void InitialStencilAndDelazifications::dumpFields(js::JSONPrinter& json) const {
+  if (initial_) {
+    json.beginObjectProperty("initial_");
+    initial_->dumpFields(json);
+    json.endObject();
+  } else {
+    json.nullProperty("initial_");
+  }
+
+  for (size_t i = 0; i < delazifications_.length(); i++) {
+    const CompilationStencil* delazification = delazifications_[i];
+
+    char index[64];
+    SprintfLiteral(index, "ScriptIndex(%zu)", i + 1);
+
+    if (delazification) {
+      json.beginObjectProperty(index);
+      delazification->dumpFields(json);
+      json.endObject();
+    } else {
+      json.nullProperty(index);
+    }
+  }
+}
+
 #endif  // defined(DEBUG) || defined(JS_JITSPEW)
 
 JSString* CompilationAtomCache::getExistingStringAt(
@@ -5068,15 +5303,25 @@ void CompilationState::markGhost(
   }
 }
 
-bool CompilationStencilMerger::buildFunctionKeyToIndex(FrontendContext* fc) {
-  if (!functionKeyToInitialScriptIndex_.reserve(initial_->scriptExtra.length() -
-                                                1)) {
+ScriptIndex CompilationStencilMerger::getInitialScriptIndexFor(
+    const CompilationStencil& delazification) const {
+  auto maybeIndex =
+      functionKeyToInitialScriptIndex_.get(delazification.functionKey);
+  MOZ_ASSERT(maybeIndex);
+  return *maybeIndex;
+}
+
+template <typename T>
+bool FunctionKeyToScriptIndexMap::init(FrontendContext* fc,
+                                       const T& scriptExtra,
+                                       size_t scriptExtraSize) {
+  if (!map_.reserve(scriptExtraSize - 1)) {
     ReportOutOfMemory(fc);
     return false;
   }
 
-  for (size_t i = 1; i < initial_->scriptExtra.length(); i++) {
-    const auto& extra = initial_->scriptExtra[i];
+  for (size_t i = 1; i < scriptExtraSize; i++) {
+    const auto& extra = scriptExtra[i];
     auto key = extra.extent.toFunctionKey();
 
     // There can be multiple ScriptStencilExtra with same extent if
@@ -5086,7 +5331,7 @@ bool CompilationStencilMerger::buildFunctionKeyToIndex(FrontendContext* fc) {
     //
     // Already reserved above, but OOMTest can hit failure mode in
     // HashTable::add.
-    if (!functionKeyToInitialScriptIndex_.put(key, ScriptIndex(i))) {
+    if (!map_.put(key, ScriptIndex(i))) {
       ReportOutOfMemory(fc);
       return false;
     }
@@ -5095,11 +5340,28 @@ bool CompilationStencilMerger::buildFunctionKeyToIndex(FrontendContext* fc) {
   return true;
 }
 
-ScriptIndex CompilationStencilMerger::getInitialScriptIndexFor(
-    const CompilationStencil& delazification) const {
-  auto p = functionKeyToInitialScriptIndex_.lookup(delazification.functionKey);
-  MOZ_ASSERT(p);
-  return p->value();
+bool FunctionKeyToScriptIndexMap::init(FrontendContext* fc,
+                                       const CompilationStencil* initial) {
+  return init(fc, initial->scriptExtra, initial->scriptExtra.size());
+}
+
+bool FunctionKeyToScriptIndexMap::init(
+    FrontendContext* fc, const ExtensibleCompilationStencil* initial) {
+  return init(fc, initial->scriptExtra, initial->scriptExtra.length());
+}
+
+mozilla::Maybe<ScriptIndex> FunctionKeyToScriptIndexMap::get(
+    FunctionKey key) const {
+  auto p = map_.readonlyThreadsafeLookup(key);
+  if (!p) {
+    return mozilla::Nothing();
+  }
+  return mozilla::Some(p->value());
+}
+
+size_t FunctionKeyToScriptIndexMap::sizeOfExcludingThis(
+    mozilla::MallocSizeOf mallocSizeOf) const {
+  return map_.shallowSizeOfExcludingThis(mallocSizeOf);
 }
 
 bool CompilationStencilMerger::buildAtomIndexMap(
@@ -5126,7 +5388,7 @@ bool CompilationStencilMerger::setInitial(
 
   initial_ = std::move(initial);
 
-  return buildFunctionKeyToIndex(fc);
+  return functionKeyToInitialScriptIndex_.init(fc, initial_.get());
 }
 
 template <typename GCThingIndexMapFunc, typename AtomIndexMapFunc,
@@ -5465,6 +5727,20 @@ bool CompilationStencilMerger::addDelazification(
 
   failureCase.release();
   return true;
+}
+
+bool CompilationStencilMerger::maybeAddDelazification(
+    FrontendContext* fc, const CompilationStencil& delazification) {
+  auto delazifiedFunctionIndex = getInitialScriptIndexFor(delazification);
+  auto& destFun = initial_->scriptData[delazifiedFunctionIndex];
+
+  if (!destFun.hasLazyFunctionEnclosingScopeIndex()) {
+    // The enclosing function is still lazy, and this inner function cannot
+    // be added.
+    return true;
+  }
+
+  return addDelazification(fc, delazification);
 }
 
 void JS::StencilAddRef(JS::Stencil* stencil) { stencil->refCount++; }
