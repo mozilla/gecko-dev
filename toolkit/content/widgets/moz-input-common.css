@@ -23,8 +23,9 @@
     display: block;
 
     &:has(+ a[is="moz-support-link"]),
-    :host(:has([slot="support-link"])) & {
+    :host(:not(:state(has-description)):state(has-support-link)) & {
       display: inline;
+      margin-inline-end: var(--space-xsmall);
     }
   }
 
@@ -64,10 +65,24 @@
   .description {
     margin-inline-start: var(--input-space-offset);
     margin-block-start: var(--space-xxsmall);
+
+    a[is="moz-support-link"],
+    ::slotted([slot="support-link"]) {
+      margin-inline-start: var(--space-xsmall);
+    }
   }
 
   .label-wrapper {
     display: block;
     padding-inline-start: var(--input-space-offset);
+  }
+
+  a[is="moz-support-link"],
+  ::slotted([slot="support-link"]) {
+    display: inline-block;
+  }
+
+  ::slotted([slot="description"]) {
+    display: inline;
   }
 }

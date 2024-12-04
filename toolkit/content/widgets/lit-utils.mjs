@@ -232,6 +232,9 @@ export class MozLitElement extends LitElement {
  * @property {string} supportPage - Name of the SUMO support page to link to.
  */
 export class MozBaseInputElement extends MozLitElement {
+  #internals;
+  #hasSlottedContent = new Map();
+
   static properties = {
     label: { type: String, fluent: true },
     name: { type: String },
@@ -247,11 +250,27 @@ export class MozBaseInputElement extends MozLitElement {
   constructor() {
     super();
     this.disabled = false;
+    this.#internals = this.attachInternals();
   }
 
   connectedCallback() {
     super.connectedCallback();
     this.setAttribute("inputlayout", this.constructor.inputLayout);
+  }
+
+  willUpdate(changedProperties) {
+    super.willUpdate(changedProperties);
+    this.#updateInternalState(this.description, "description");
+    this.#updateInternalState(this.supportPage, "support-link");
+  }
+
+  #updateInternalState(propVal, slotName) {
+    let stateKey = `has-${slotName}`;
+    if (propVal || this.#hasSlottedContent.get(slotName)) {
+      this.#internals.states.add(stateKey);
+    } else {
+      this.#internals.states.delete(stateKey);
+    }
   }
 
   get inputEl() {
@@ -268,6 +287,14 @@ export class MozBaseInputElement extends MozLitElement {
 
   get descriptionEl() {
     return this.renderRoot.getElementById("description");
+  }
+
+  get hasDescription() {
+    return this.#internals.states.has("has-description");
+  }
+
+  get hasSupportLink() {
+    return this.#internals.states.has("has-support-link");
   }
 
   click() {
@@ -300,7 +327,7 @@ export class MozBaseInputElement extends MozLitElement {
         >
           ${isInlineLayout ? this.inputTemplate() : ""}${this.labelTemplate()}
         </label>
-        ${this.supportLinkTemplate()}
+        ${this.hasDescription ? "" : this.supportLinkTemplate()}
       </span>
       ${this.descriptionTemplate()}
       ${!isInlineLayout ? this.inputTemplate() : ""}
@@ -317,7 +344,11 @@ export class MozBaseInputElement extends MozLitElement {
   descriptionTemplate() {
     return html`
       <div id="description" class="description text-deemphasized">
-        ${this.description ?? html`<slot name="description"></slot>`}
+        ${this.description ??
+        html`<slot
+          name="description"
+          @slotchange=${this.onSlotchange}
+        ></slot>`}${this.hasDescription ? this.supportLinkTemplate() : ""}
       </div>
     `;
   }
@@ -337,6 +368,23 @@ export class MozBaseInputElement extends MozLitElement {
         part="support-link"
       ></a>`;
     }
-    return html`<slot name="support-link"></slot>`;
+    return html`<slot
+      name="support-link"
+      @slotchange=${this.onSlotchange}
+    ></slot>`;
+  }
+
+  onSlotchange(e) {
+    let propName = e.target.name;
+    let hasSlottedContent = e.target
+      .assignedNodes()
+      .some(node => node.textContent.trim());
+
+    if (hasSlottedContent == this.#hasSlottedContent.get(propName)) {
+      return;
+    }
+
+    this.#hasSlottedContent.set(propName, hasSlottedContent);
+    this.requestUpdate();
   }
 }

@@ -53,6 +53,7 @@ const Template = ({
   hasSlottedDescription,
   useOtherOptions,
   options = useOtherOptions ? OTHER_OPTIONS : DEFAULT_OPTIONS,
+  hasSlottedSupportLink,
 }) => html`
   <moz-select
     name=${name}
@@ -65,6 +66,9 @@ const Template = ({
   >
     ${hasSlottedDescription
       ? html`<div slot="description">${description}</div>`
+      : ""}
+    ${hasSlottedSupportLink
+      ? html`<a slot="support-link" href="www.example.com">Click me!</a>`
       : ""}
     ${options.map(
       opt =>
@@ -85,6 +89,7 @@ Default.args = {
   accessKey: "",
   hasSlottedDescription: false,
   useOtherOptions: false,
+  hasSlottedSupportLink: false,
 };
 
 export const WithIcon = Template.bind({});
@@ -118,10 +123,17 @@ WithAccesskey.args = {
   accessKey: "s",
 };
 
-export const WithSupportPage = Template.bind({});
-WithSupportPage.args = {
+export const WithSupportLink = Template.bind({});
+WithSupportLink.args = {
   ...Default.args,
   supportPage: "support-page",
+  l10nId: "moz-select-description",
+};
+
+export const WithSlottedSupportLink = Template.bind({});
+WithSlottedSupportLink.args = {
+  ...Default.args,
+  hasSlottedSupportLink: true,
   l10nId: "moz-select-description",
 };
 

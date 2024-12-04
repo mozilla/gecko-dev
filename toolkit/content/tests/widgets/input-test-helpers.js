@@ -345,9 +345,9 @@ class InputTestHelpers {
     );
     let [firstInput, secondInput] = renderTarget.querySelectorAll(selector);
 
-    let supportLink = firstInput.shadowRoot.querySelector(
-      "a[is=moz-support-link]"
-    );
+    let getSupportLink = () =>
+      firstInput.shadowRoot.querySelector("a[is=moz-support-link]");
+    let supportLink = getSupportLink();
 
     await BrowserTestUtils.waitForMutationCondition(
       supportLink,
@@ -368,10 +368,27 @@ class InputTestHelpers {
       LEARN_MORE_TEXT,
       "Support link uses the default label text."
     );
+    is(
+      supportLink.previousElementSibling.localName,
+      "label",
+      "Support link is rendered next to the label by default."
+    );
 
-    let slottedSupportLink = secondInput.shadowRoot
-      .querySelector("slot[name=support-link]")
-      .assignedElements()[0];
+    firstInput.description = "some description text";
+    await firstInput.updateComplete;
+
+    is(
+      getSupportLink().parentElement.id,
+      "description",
+      "Support link is rendered in the description if a description is present."
+    );
+
+    let getSlottedSupportLink = () =>
+      secondInput.shadowRoot
+        .querySelector("slot[name=support-link]")
+        .assignedElements()[0];
+    let slottedSupportLink = getSlottedSupportLink();
+
     ok(
       slottedSupportLink,
       "Links can also be rendered using the support-link slot."
@@ -384,6 +401,32 @@ class InputTestHelpers {
       slottedSupportLink.innerText,
       "Help me!",
       "Slotted link uses non-default label text."
+    );
+    is(
+      slottedSupportLink.assignedSlot.previousElementSibling.localName,
+      "label",
+      "Slotted support link is rendered next to the label by default."
+    );
+
+    let slottedDescriptionPresent = BrowserTestUtils.waitForMutationCondition(
+      secondInput,
+      { childList: true, subtree: true },
+      () =>
+        secondInput.descriptionEl
+          .querySelector("slot[name='description']")
+          .assignedElements().length
+    );
+
+    let description = document.createElement("span");
+    description.textContent = "I'm a slotted description.";
+    description.slot = "description";
+    secondInput.append(description);
+    await slottedDescriptionPresent;
+
+    is(
+      getSlottedSupportLink().assignedSlot.parentElement.id,
+      "description",
+      "Support link is rendered in the slotted description if a slotted description is present."
     );
   }
 

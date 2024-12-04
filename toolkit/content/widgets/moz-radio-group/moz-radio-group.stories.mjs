@@ -94,6 +94,7 @@ const Template = ({
   showAccesskeys,
   accesskeys,
   supportPage,
+  hasSlottedSupportLinks,
 }) => html`
   <moz-radio-group
     name=${groupName}
@@ -113,6 +114,11 @@ const Template = ({
           accesskey=${ifDefined(showAccesskeys ? accesskeys[i] : "")}
           support-page=${ifDefined(supportPage)}
         >
+          ${hasSlottedSupportLinks
+            ? html`<a slot="support-link" href="www.example.com">
+                Click me!
+              </a>`
+            : ""}
         </moz-radio>
       `
     )}
@@ -132,6 +138,7 @@ Default.args = {
   showAccesskeys: false,
   accesskeys: accesskeyOptions,
   supportPage: "",
+  hasSlottedSupportLinks: false,
 };
 
 export const AllUnchecked = Template.bind({});
@@ -174,4 +181,10 @@ export const WithSupportLinks = Template.bind({});
 WithSupportLinks.args = {
   ...Default.args,
   supportPage: "test",
+};
+
+export const WithSlottedSupportLinks = Template.bind({});
+WithSlottedSupportLinks.args = {
+  ...Default.args,
+  hasSlottedSupportLinks: true,
 };

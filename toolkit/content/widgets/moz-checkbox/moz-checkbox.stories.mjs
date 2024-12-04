@@ -43,6 +43,7 @@ const Template = ({
   hasSlottedDescription,
   accesskey,
   supportPage,
+  hasSlottedSupportLink,
 }) => html`
   <moz-checkbox
     ?checked=${checked}
@@ -56,6 +57,9 @@ const Template = ({
   >
     ${hasSlottedDescription
       ? html`<div slot="description">test slot text</div>`
+      : ""}
+    ${hasSlottedSupportLink
+      ? html`<a slot="support-link" href="www.example.com">Click me!</a>`
       : ""}
   </moz-checkbox>
 `;
@@ -72,6 +76,7 @@ Default.args = {
   label: "",
   accesskey: "",
   supportPage: "",
+  hasSlottedSupportLink: false,
 };
 
 export const WithIcon = Template.bind({});
@@ -110,8 +115,14 @@ WithAccesskey.args = {
   accesskey: "c",
 };
 
-export const WithSupportPage = Template.bind({});
-WithSupportPage.args = {
+export const WithSupportLink = Template.bind({});
+WithSupportLink.args = {
   ...Default.args,
   supportPage: "test",
+};
+
+export const WithSlottedSupportLink = Template.bind({});
+WithSlottedSupportLink.args = {
+  ...Default.args,
+  hasSlottedSupportLink: true,
 };
