@@ -504,10 +504,6 @@ export class UrlbarController {
     if (!this.input || context.isPrivate || !context.results.length) {
       return;
     }
-    let { url } = lazy.UrlbarUtils.getUrlFromResult(result);
-    if (!url) {
-      return;
-    }
 
     switch (reason) {
       case "resultsadded": {
@@ -531,6 +527,11 @@ export class UrlbarController {
               );
             }
           } else if (result.autofill) {
+            const { url } = lazy.UrlbarUtils.getUrlFromResult(result);
+            if (!url) {
+              return;
+            }
+
             lazy.UrlbarUtils.setupSpeculativeConnection(
               url,
               this.browserWindow
@@ -540,6 +541,11 @@ export class UrlbarController {
         return;
       }
       case "mousedown": {
+        const { url } = lazy.UrlbarUtils.getUrlFromResult(result);
+        if (!url) {
+          return;
+        }
+
         // On mousedown, connect only to http/https urls.
         if (url.startsWith("http")) {
           lazy.UrlbarUtils.setupSpeculativeConnection(url, this.browserWindow);
