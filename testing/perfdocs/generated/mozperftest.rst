@@ -409,6 +409,24 @@ browser_ml_autofill_perf.js
 
 **Template test for latency for ML Autofill model**
 
+browser_ml_suggest_feature_perf.js
+==================================
+
+:owner: GenAI Team
+:name: ML Suggest Feature
+:Default options:
+
+::
+
+ --perfherder
+ --perfherder-metrics name:latency,unit:ms,shouldAlert:True, name:memory,unit:MB,shouldAlert:True
+ --verbose
+ --manifest perftest.toml
+ --manifest-flavor browser-chrome
+ --try-platform linux, mac, win
+
+**Template test for latency for ML suggest Feature**
+
 browser_ml_suggest_inference.js
 ===============================
 
@@ -426,42 +444,6 @@ browser_ml_suggest_inference.js
  --try-platform linux, mac, win
 
 **Template test for ML suggest Inference Model**
-
-browser_ml_suggest_intent_perf.js
-=================================
-
-:owner: GenAI Team
-:name: ML Suggest Intent Model
-:Default options:
-
-::
-
- --perfherder
- --perfherder-metrics name:latency,unit:ms,shouldAlert:True, name:memory,unit:MB,shouldAlert:True
- --verbose
- --manifest perftest.toml
- --manifest-flavor browser-chrome
- --try-platform linux, mac, win
-
-**Template test for latency for ML suggest Intent Model**
-
-browser_ml_suggest_ner_perf.js
-==============================
-
-:owner: GenAI Team
-:name: ML Suggest NER Model
-:Default options:
-
-::
-
- --perfherder
- --perfherder-metrics name:latency,unit:ms,shouldAlert:True, name:memory,unit:MB,shouldAlert:True
- --verbose
- --manifest perftest.toml
- --manifest-flavor browser-chrome
- --try-platform linux, mac, win
-
-**Template test for latency for ML suggest NER model**
 
 browser_ml_summarizer_perf.js
 =============================
