@@ -9144,6 +9144,13 @@
   mirror: always
   rust: true
 
+# Whether the `-moz-user-input` property is exposed to content.
+- name: layout.css.moz-user-input.enabled
+  type: RelaxedAtomicBool
+  value: false
+  mirror: always
+  rust: true
+
 # This pref controls whether the `prefers-color-scheme` value of iframes images
 # reacts to the embedder `color-scheme` in content.
 - name: layout.css.iframe-embedder-prefers-color-scheme.content.enabled

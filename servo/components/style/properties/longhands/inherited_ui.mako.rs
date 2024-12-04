@@ -44,8 +44,11 @@ ${helpers.predefined_type(
     engines="gecko",
     gecko_ffi_name="mUserInput",
     animation_type="discrete",
+    gecko_pref="layout.css.moz-user-input.enabled",
+    has_effect_on_gecko_scrollbars=False,
     spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/-moz-user-input)",
     affects="",
+    enabled_in="ua",
 )}
 
 ${helpers.predefined_type(

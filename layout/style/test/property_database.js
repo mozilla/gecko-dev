@@ -3972,14 +3972,6 @@ var gCSSProperties = {
     other_values: ["preserve-3d"],
     invalid_values: [],
   },
-  "-moz-user-input": {
-    domProp: "MozUserInput",
-    inherited: true,
-    type: CSS_TYPE_LONGHAND,
-    initial_values: ["auto"],
-    other_values: ["none"],
-    invalid_values: [],
-  },
   "-moz-user-select": {
     domProp: "MozUserSelect",
     inherited: false,
@@ -14295,6 +14287,19 @@ if (IsCSSPropertyPrefEnabled("layout.css.transition-behavior.enabled")) {
   if (IsCSSPropertyPrefEnabled("layout.css.prefixes.transitions")) {
     gCSSProperties["-moz-transition"].subproperties.push("transition-behavior");
   }
+}
+
+if (IsCSSPropertyPrefEnabled("layout.css.moz-user-input.enabled")) {
+  Object.assign(gCSSProperties, {
+    "-moz-user-input": {
+      domProp: "MozUserInput",
+      inherited: true,
+      type: CSS_TYPE_LONGHAND,
+      initial_values: ["auto"],
+      other_values: ["none"],
+      invalid_values: [],
+    },
+  });
 }
 
 if (IsCSSPropertyPrefEnabled("layout.css.field-sizing.enabled")) {
