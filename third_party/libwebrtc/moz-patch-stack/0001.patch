@@ -1,74 +1,79 @@
-From: =?UTF-8?q?Erik=20Spr=C3=A5ng?= <sprang@webrtc.org>
-Date: Wed, 23 Oct 2024 11:20:12 +0200
-Subject: (cherry-pick-branch-heads/6778) Merge corruption detection fixes to
- M131.
+From: =?UTF-8?q?Henrik=20Bostr=C3=B6m?= <hbos@webrtc.org>
+Date: Wed, 23 Oct 2024 13:14:40 +0200
+Subject: (cherry-pick-branch-heads/6778) [Merge-131] Allow not specifying
+ `requested_resolution` on inactive encodings.
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
 
-This CL comprises the following CLs:
+This fixes the bug where scaleResolutionDownTo must be specified even
+on inactive encodings (scaleResolutionDownTo is the JavaScript name for
+what is called requested_resolution inside WebRTC).
 
-Do not change crypto options in peer_connection.cc
+(cherry picked from commit 1c262bf5a4c2f2aaf226b24f11195ba8cae772f1)
 
-Bug: webrtc:358039777, chromium:374122158
-Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/365360
-Commit-Queue: Emil Vardar (xWF) <vardar@google.com>
-Reviewed-by: Henrik Boström <hbos@webrtc.org>
-Reviewed-by: Erik Språng <sprang@webrtc.org>
-Cr-Commit-Position: refs/heads/main@{#43245}
-
-Enable corruption detection when the encrypted extension is present
-
-Credit: https://webrtc-review.googlesource.com/c/src/+/365584 with ASAN issue solved.
-
-Bug: webrtc:358039777, chromium:374122158
-Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/365680
-Commit-Queue: Emil Vardar (xWF) <vardar@google.com>
-Reviewed-by: Erik Språng <sprang@webrtc.org>
+Bug: chromium:375048792
+Change-Id: I3206ef7de09eaba24a5b4305d888ec4904617e58
+Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/366522
+Auto-Submit: Henrik Boström <hbos@webrtc.org>
+Commit-Queue: Ilya Nikolaevskiy <ilnik@webrtc.org>
 Reviewed-by: Ilya Nikolaevskiy <ilnik@webrtc.org>
-Cr-Commit-Position: refs/heads/main@{#43244}
-
-Post corruption score aggregation to worker thread.
-
-Bug: webrtc:358039777, chromium:374122158
-Change-Id: Iff89c21657939557a10b6a183d632f251086379c
-Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/365600
-Reviewed-by: Erik Språng <sprang@webrtc.org>
-Commit-Queue: Åsa Persson <asapersson@webrtc.org>
-Auto-Submit: Emil Vardar (xWF) <vardar@google.com>
-Reviewed-by: Åsa Persson <asapersson@webrtc.org>
-Cr-Original-Commit-Position: refs/heads/main@{#43238}
-Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/366521
-Reviewed-by: Henrik Boström <hbos@webrtc.org>
-Commit-Queue: Erik Språng <sprang@webrtc.org>
-Cr-Commit-Position: refs/branch-heads/6778@{#1}
+Commit-Queue: Henrik Boström <hbos@webrtc.org>
+Cr-Original-Commit-Position: refs/heads/main@{#43292}
+Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/366661
+Cr-Commit-Position: refs/branch-heads/6778@{#2}
 Cr-Branched-From: 7b1b7a0f51593df7a1a802f489d6a2fb14195bcc-refs/heads/main@{#43221}
 ---
- pc/peer_connection.cc | 7 -------
- 1 file changed, 7 deletions(-)
+ media/base/media_engine.cc                      |  3 ++-
+ pc/peer_connection_encodings_integrationtest.cc | 12 ++++++++++--
+ 2 files changed, 12 insertions(+), 3 deletions(-)
 
-diff --git a/pc/peer_connection.cc b/pc/peer_connection.cc
-index a6eda6f602..1171bc8929 100644
---- a/pc/peer_connection.cc
-+++ b/pc/peer_connection.cc
-@@ -761,11 +761,6 @@ RTCError PeerConnection::Initialize(
+diff --git a/media/base/media_engine.cc b/media/base/media_engine.cc
+index c4b4f817ac..b4bce757b7 100644
+--- a/media/base/media_engine.cc
++++ b/media/base/media_engine.cc
+@@ -206,7 +206,8 @@ webrtc::RTCError CheckRtpParametersValues(
+   if (has_requested_resolution &&
+       absl::c_any_of(rtp_parameters.encodings,
+                      [](const webrtc::RtpEncodingParameters& encoding) {
+-                       return !encoding.requested_resolution.has_value();
++                       return encoding.active &&
++                              !encoding.requested_resolution.has_value();
+                      })) {
+     LOG_AND_RETURN_ERROR(RTCErrorType::INVALID_MODIFICATION,
+                          "If a resolution is specified on any encoding then "
+diff --git a/pc/peer_connection_encodings_integrationtest.cc b/pc/peer_connection_encodings_integrationtest.cc
+index d97e06b856..079dbbec73 100644
+--- a/pc/peer_connection_encodings_integrationtest.cc
++++ b/pc/peer_connection_encodings_integrationtest.cc
+@@ -2152,8 +2152,8 @@ TEST_F(PeerConnectionEncodingsIntegrationTest,
+       pc_wrapper->pc()->AddTransceiver(cricket::MEDIA_TYPE_VIDEO, init);
+   ASSERT_TRUE(transceiver_or_error.ok());
  
-   configuration_ = configuration;
+-  // SetParameters: If `requested_resolution` is specified on any encoding it
+-  // must be specified on all encodings.
++  // SetParameters: If `requested_resolution` is specified on any active
++  // encoding it must be specified on all active encodings.
+   auto sender = transceiver_or_error.value()->sender();
+   auto parameters = sender->GetParameters();
+   parameters.encodings[0].requested_resolution = {.width = 640, .height = 480};
+@@ -2161,11 +2161,19 @@ TEST_F(PeerConnectionEncodingsIntegrationTest,
+   auto error = sender->SetParameters(parameters);
+   EXPECT_FALSE(error.ok());
+   EXPECT_EQ(error.type(), RTCErrorType::INVALID_MODIFICATION);
++  // But it's OK not to specify `requested_resolution` on an inactive encoding.
++  parameters = sender->GetParameters();
++  parameters.encodings[0].requested_resolution = {.width = 640, .height = 480};
++  parameters.encodings[1].active = false;
++  parameters.encodings[1].requested_resolution = std::nullopt;
++  error = sender->SetParameters(parameters);
++  EXPECT_TRUE(error.ok());
  
--  if (configuration_.crypto_options) {
--    configuration_.crypto_options->srtp.enable_encrypted_rtp_header_extensions =
--        trials().IsEnabled("WebRTC-EncryptedRtpHeaderExtensions");
--  }
--
-   legacy_stats_ = std::make_unique<LegacyStatsCollector>(this);
-   stats_collector_ = RTCStatsCollector::Create(this, env_);
- 
-@@ -820,8 +815,6 @@ JsepTransportController* PeerConnection::InitializeTransportController_n(
-   config.crypto_options = configuration.crypto_options.has_value()
-                               ? *configuration.crypto_options
-                               : options_.crypto_options;
--  config.crypto_options.srtp.enable_encrypted_rtp_header_extensions =
--      trials().IsEnabled("WebRTC-EncryptedRtpHeaderExtensions");
-   config.transport_observer = this;
-   config.rtcp_handler = InitializeRtcpCallback();
-   config.un_demuxable_packet_handler = InitializeUnDemuxablePacketHandler();
+   // SetParameters: Width and height must not be zero.
+   sender = transceiver_or_error.value()->sender();
+   parameters = sender->GetParameters();
+   parameters.encodings[0].requested_resolution = {.width = 1280, .height = 0};
++  parameters.encodings[1].active = true;
+   parameters.encodings[1].requested_resolution = {.width = 0, .height = 720};
+   error = sender->SetParameters(parameters);
+   EXPECT_FALSE(error.ok());
