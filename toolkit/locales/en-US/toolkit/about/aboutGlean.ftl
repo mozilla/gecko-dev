@@ -17,6 +17,12 @@ about-glean-interface-description =
   This interface is designed to be used by developers and testers to manually
   <a data-l10n-name="fog-link">test instrumentation</a>.
 
+about-glean-category-about-glean = About { -glean-brand-name }
+about-glean-category-manual-testing = Manual Testing
+about-glean-category-adhoc-testing = Ad Hoc Testing
+about-glean-category-profiler = Using the Profiler
+about-glean-category-about-data = About Data
+
 about-glean-upload-enabled = Data upload is enabled.
 about-glean-upload-disabled = Data upload is disabled.
 about-glean-upload-enabled-local = Data upload is enabled only for sending to a local server.
@@ -46,7 +52,10 @@ about-glean-glean-android = <code>MOZ_GLEAN_ANDROID</code>: { $glean-android-def
 # Do not translate strings between <code> </code> tags.
 about-glean-moz-official =<code>MOZILLA_OFFICIAL</code>: { $moz-official-define-value }
 
-about-glean-about-testing-header = About Testing
+about-glean-additional-links =
+  For an explanation of different ways to record and find data, please reference the
+  <strong>About Data</strong> tab.
+
 # This message is followed by a numbered list.
 about-glean-manual-testing =
   Full instructions are documented in the
@@ -99,6 +108,16 @@ about-glean-adhoc-note =
   This means the metric category and metric name are formatted in
   <code>camelCase</code> unlike in the Rust and C++ APIs.
 
+about-glean-profiler-explanation =
+  To see a full view of all recorded metrics, you can use the { -profiler-brand-name }.
+  First you must <a data-l10n-name="firefox-profiler-link">capture a performance profile</a>.
+  Once you capture the profile, select <q>Marker Chart</q> and look at the markers under <q>Telemetry</q>.
+
+about-glean-profiler-explanation-profiler =
+  In the performance profile you can see all the metrics collected, when they were
+  collected, and exactly what values were collected. By hovering on individual markers,
+  you can verify that the correct value was collected and that collection happened at the right time.
+
 controls-button-label-verbose = Apply settings and submit ping
 
 about-glean-feedback-settings-only =
@@ -108,6 +127,23 @@ about-glean-feedback-settings-and-ping =
   .message = Settings applied and ping sent!
 
 about-glean-about-data-header = About Data
-about-glean-about-data-explanation =
-  To browse the list of collected data, please consult the
+about-glean-about-data-description =
+  There are a few different tools you can use to see your data, depending on
+  what you are looking for.
+about-glean-about-data-description-list-intro =
+  Please reference the list below for specific use
+  cases for each tool:
+
+about-glean-about-data-list-item-dictionary =
+  To browse the list of data collected by { -glean-brand-name } per application, please consult the
   <a data-l10n-name="glean-dictionary-link">{ -glean-brand-name } Dictionary</a>.
+about-glean-about-data-list-item-about-telemetry =
+  To browse the data being collected by legacy telemetry, please consult
+  <a data-l10n-name="about-telemetry-link">about:telemetry</a>.
+about-glean-about-data-list-item-debug-ping-viewer =
+  To browse debug tags, see full pings, see a live event stream, or view metric
+  visualizations, please consult the
+  <a data-l10n-name="glean-debug-ping-viewer">{ glean-debug-ping-viewer-brand-name }</a>.
+about-glean-about-data-list-item-firefox-profiler =
+  To record a performance profile and see all recorded metrics, please use the
+  <a data-l10n-name="about-glean-firefox-profiler">{ -profiler-brand-name }</a>.

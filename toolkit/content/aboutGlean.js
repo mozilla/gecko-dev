@@ -132,7 +132,31 @@ function fillDebugTag() {
   updateDebugTagValues();
 }
 
+function showTab(button) {
+  let current_tab = document.querySelector(".active");
+  let category = button.getAttribute("id").substring("category-".length);
+  let content = document.getElementById(category);
+  if (current_tab == content) {
+    return;
+  }
+  current_tab.classList.remove("active");
+  current_tab.hidden = true;
+  content.classList.add("active");
+  content.hidden = false;
+  let current_button = document.querySelector("[selected=true]");
+  current_button.removeAttribute("selected");
+  button.setAttribute("selected", "true");
+}
+
 function onLoad() {
+  let menu = document.getElementById("categories");
+  menu.addEventListener("click", function click(e) {
+    if (e.target && e.target.parentNode == menu) {
+      showTab(e.target);
+    }
+  });
+  showTab(document.getElementById("category-about-glean"));
+
   updatePrefsAndDefines();
   refillPingNames();
   fillDebugTag();

@@ -4,6 +4,26 @@
 
 @import url("chrome://global/skin/in-content/common.css");
 
+body {
+  display: flex;
+  align-items: stretch;
+  height: 100%;
+}
+
+.category .category-name {
+  pointer-events: none;
+}
+
+.category {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+}
+
+.main-content {
+  flex: 1;
+}
+
 #tag-pings:invalid + label > span {
   font-weight: var(--font-weight-bold);
   text-decoration: underline;

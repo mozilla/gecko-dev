@@ -15,11 +15,31 @@
     <script src="chrome://global/content/aboutGlean.js"></script>
     <link rel="localization" href="branding/brand.ftl"/>
     <link rel="localization" href="toolkit/about/aboutGlean.ftl"/>
+    <link rel="localization" href="toolkit/branding/brandings.ftl" />
   </head>
 
   <body>
-    <section class="main-content">
-      <div id="description">
+    <div id="categories">
+      <div class="category" selected="true" id="category-about-glean">
+        <span class="category-name" data-l10n-id="about-glean-category-about-glean"></span>
+      </div>
+      <div class="category" id="category-manual-testing">
+        <span class="category-name" data-l10n-id="about-glean-category-manual-testing"></span>
+      </div>
+      <div class="category" id="category-adhoc-testing">
+        <span class="category-name" data-l10n-id="about-glean-category-adhoc-testing"></span>
+      </div>
+      <div class="category" id="category-profiler">
+        <span class="category-name" data-l10n-id="about-glean-category-profiler"></span>
+      </div>
+      <div class="category" id="category-about-data">
+        <span class="category-name" data-l10n-id="about-glean-category-about-data"></span>
+      </div>
+    </div>
+
+    <div class="main-content">
+      <!-- about glean tab -->
+      <div id="about-glean" class="tab active">
         <h2 data-l10n-id="about-glean-header"></h2>
         <p data-l10n-id="about-glean-interface-description">
           <a data-l10n-name="glean-sdk-doc-link" href="https://mozilla.github.io/glean/book/index.html"></a>
@@ -37,7 +57,11 @@
             <li data-l10n-id="about-glean-moz-official" data-l10n-args='{"moz-official-define-value": "unknown"}'></li>
           </ul>
         </p>
-        <h2 data-l10n-id="about-glean-about-testing-header"></h2>
+        <p data-l10n-id="about-glean-additional-links"></p>
+      </div>
+      <!-- manual testing tab -->
+      <div id="manual-testing" class="tab" hidden="true">
+        <h2 data-l10n-id="about-glean-category-manual-testing"></h2>
         <p data-l10n-id="about-glean-manual-testing">
           <a data-l10n-name="fog-instrumentation-test-doc-link" href="https://firefox-source-docs.mozilla.org/toolkit/components/glean/user/instrumentation_tests.html"></a>
           <a data-l10n-name="glean-sdk-doc-link" href="https://mozilla.github.io/glean/book/index.html"></a>
@@ -69,14 +93,42 @@
             <a data-l10n-name="gdpv-tagged-pings-link" href="https://debug-ping-preview.firebaseapp.com/pings/"></a>
           </li>
         </ol>
+      </div>
+      <!-- ad hoc testing tab -->
+      <div id="adhoc-testing" class="tab" hidden="true">
+        <h2 data-l10n-id="about-glean-category-adhoc-testing"></h2>
         <p data-l10n-id="about-glean-adhoc-explanation2"></p>
         <p data-l10n-id="about-glean-adhoc-note"></p>
-        <h2 data-l10n-id="about-glean-about-data-header"></h2>
-        <p data-l10n-id="about-glean-about-data-explanation">
-          <a data-l10n-name="glean-dictionary-link" href="https://dictionary.telemetry.mozilla.org/"></a>
-        </p>
       </div>
-    </section>
+      <!-- profiler tab -->
+      <div id="profiler" class="tab" hidden="true">
+        <h2 data-l10n-id="about-glean-category-profiler"></h2>
+        <p data-l10n-id="about-glean-profiler-explanation">
+          <a data-l10n-name="firefox-profiler-link" href="https://profiler.firefox.com/"></a>
+        </p>
+        <p data-l10n-id="about-glean-profiler-explanation-profiler"></p>
+      </div>
+      <!-- about data tab -->
+      <div id="about-data" class="tab" hidden="true">
+        <h2 data-l10n-id="about-glean-about-data-header"></h2>
+        <p data-l10n-id="about-glean-about-data-description"></p>
+        <p data-l10n-id="about-glean-about-data-description-list-intro"></p>
+        <ul>
+          <li data-l10n-id="about-glean-about-data-list-item-dictionary">
+            <a data-l10n-name="glean-dictionary-link" href="https://dictionary.telemetry.mozilla.org/"></a>
+          </li>
+          <li data-l10n-id="about-glean-about-data-list-item-about-telemetry">
+            <a data-l10n-name="about-telemetry-link" href="about:telemetry"></a>
+          </li>
+          <li data-l10n-id="about-glean-about-data-list-item-debug-ping-viewer">
+            <a data-l10n-name="glean-debug-ping-viewer" href="https://debug-ping-preview.firebaseapp.com/"></a>
+          </li>
+          <li data-l10n-id="about-glean-about-data-list-item-firefox-profiler">
+            <a data-l10n-name="about-glean-firefox-profiler" href="https://profiler.firefox.com/"></a>
+          </li>
+        </ul>
+      </div>
+    </div>
     <moz-message-bar type="success" id="feedback" data-l10n-id="about-glean-feedback-settings-only"></moz-message-bar>
   </body>
 
