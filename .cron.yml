@@ -146,6 +146,18 @@ jobs:
           - {weekday: 'Wednesday', hour: 10, minute: 30}
           - {weekday: 'Friday', hour: 10, minute: 30}
 
+    - name: geckoview-perftest
+      job:
+          type: decision-task
+          treeherder-symbol: gve-perftests
+          target-tasks-method: geckoview-perftest
+          include-push-tasks: true
+      run-on-projects:
+          - mozilla-central
+      when:
+          - {weekday: 'Monday', hour: 10, minute: 30}
+          - {weekday: 'Thursday', hour: 10, minute: 30}
+
     - name: custom-car-perf-testing
       job:
           type: decision-task

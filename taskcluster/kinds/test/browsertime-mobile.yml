@@ -128,26 +128,7 @@ browsertime-tp6m:
             - youtube
     run-on-projects:
         by-app:
-            geckoview:
-                by-variant:
-                    geckoview-no-fission:
-                        by-test-platform:
-                            android-hw-a55.*shippable.*: [trunk-only]
-                            default: []
-                    default:
-                        by-subtest:
-                            wikipedia:
-                                by-test-platform:
-                                    android-hw-a55.*shippable.*: []
-                                    default: []
-                            google-search-restaurants:
-                                by-test-platform:
-                                    android-hw-a55.*shippable.*: []
-                                    default: []
-                            default:
-                                by-test-platform:
-                                    android-hw-a55.*shippable.*: []
-                                    default: []
+            geckoview: []
             fenix:
                 by-variant:
                     geckoview-no-fission:
@@ -174,16 +155,7 @@ browsertime-tp6m-essential:
             - [youtube-watch, youtube-w]
     run-on-projects:
         by-app:
-            geckoview:
-                by-subtest:
-                    allrecipes:
-                        by-test-platform:
-                            android-hw-a55.*shippable.*: [trunk]
-                            default: []
-                    default:
-                        by-test-platform:
-                            android-hw-a55.*shippable.*: [trunk-only]
-                            default: []
+            geckoview: []
             fenix:
                 by-test-platform:
                     android-hw-a55.*shippable.*: [trunk-only]
@@ -275,10 +247,7 @@ browsertime-youtube-playback-mobile:
                 by-test-platform:
                     android-hw-a55.*shippable.*: [mozilla-central]
                     default: []
-            geckoview:
-                by-test-platform:
-                    android-hw-a55.*shippable.*: [mozilla-central]
-                    default: []
+            geckoview: []
             default: []
     max-run-time: 3600
 
@@ -301,10 +270,7 @@ browsertime-youtube-playback-power-mobile:
                 by-test-platform:
                     android-hw-a55.*shippable.*: [autoland, mozilla-central]
                     default: []
-            geckoview:
-                by-test-platform:
-                    android-hw-a55.*shippable.*: [autoland, mozilla-central]
-                    default: []
+            geckoview: []
             default: []
     max-run-time: 1800
     mozharness:
@@ -366,10 +332,7 @@ browsertime-tp6m-live:
         by-subtest:
             cnn-ampstories:
                 by-app:
-                    geckoview:
-                        by-test-platform:
-                            android-hw-a55.*shippable.*: [autoland]
-                            default: []
+                    geckoview: []
                     default: []
             default: []
     tier: 3
@@ -414,6 +377,7 @@ browsertime-video-playback-latency-mobile:
     run-on-projects:
         by-app:
             chrome-m: []
+            geckoview: []
             default:
                 by-test-platform:
                     android-hw-a55.*shippable.*: [autoland, mozilla-central]
@@ -434,10 +398,7 @@ browsertime-benchmark-speedometer-mobile:
                 by-test-platform:
                     android-hw-a55.*shippable.*: [trunk]
                     default: []
-            geckoview:
-                by-test-platform:
-                    android-hw-a55.*shippable.*: [trunk]
-                    default: []
+            geckoview: []
             cstm-car-m:
                 by-test-platform:
                     android-hw-p6.*shippable.*: []
@@ -468,12 +429,7 @@ browsertime-benchmark-speedometer3-mobile:
                     android-hw-p6.*shippable.*: [mozilla-central]
                     android-hw-s24.*shippable.*: [mozilla-central]
                     default: []
-            geckoview:
-                by-test-platform:
-                    android-hw-a55.*shippable.*: [trunk-only]
-                    android-hw-p6.*shippable.*: [mozilla-central]
-                    android-hw-s24.*shippable.*: [mozilla-central]
-                    default: []
+            geckoview: []
             cstm-car-m: [mozilla-central]
             chrome-m:
                 by-test-platform:
@@ -496,6 +452,7 @@ browsertime-benchmark-motionmark-1-3:
     run-on-projects:
         by-app:
             chrome-m: []
+            geckoview: []
             default:
                 by-test-platform:
                     android-hw-a55.*shippable.*: [mozilla-central]
@@ -538,11 +495,7 @@ browsertime-benchmark-unity-webgl-mobile:
     run-on-projects:
         by-app:
             refbrow: []
-            geckoview:
-                by-test-platform:
-                    # Disabled on autoland due to bug 1720063, and bug 1795826
-                    android-hw-a55.*shippable.*: [mozilla-central]
-                    default: []
+            geckoview: []
             default:
                 by-test-platform:
                     android-hw-a55.*shippable.*: [mozilla-central]

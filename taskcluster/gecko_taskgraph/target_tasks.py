@@ -838,18 +838,9 @@ def target_tasks_general_perf_testing(full_task_graph, parameters, graph_config)
             if "fenix" in try_name:
                 if "-power" in try_name:
                     return True
-            # Select geckoview resource usage tests
+
             if "geckoview" in try_name:
-                # Run cpu+memory, and power tests
-                cpu_n_memory_task = "-cpu" in try_name and "-memory" in try_name
-                power_task = "-power" in try_name
-                # Ignore cpu+memory+power tests
-                if power_task and cpu_n_memory_task:
-                    return False
-                if cpu_n_memory_task:
-                    return False
-                if power_task:
-                    return "browsertime" in try_name
+                return False
             # Select browsertime-specific tests
             if "browsertime" in try_name:
                 # Don't run android CaR sp tests as we already have a cron for this.
@@ -864,6 +855,32 @@ def target_tasks_general_perf_testing(full_task_graph, parameters, graph_config)
                 if "motionmark" in try_name and "1-3" in try_name:
                     if "chrome-m" in try_name:
                         return True
+        return False
+
+    return [l for l, t in full_task_graph.tasks.items() if filter(t)]
+
+
+@register_target_task("geckoview-perftest")
+def target_tasks_geckoview_perftest(full_task_graph, parameters, graph_config):
+    """
+    Select tasks required for running geckoview tests 2 times a week.
+    """
+
+    def filter(task):
+        platform = task.attributes.get("test_platform")
+        attributes = task.attributes
+        if attributes.get("unittest_suite") != "raptor":
+            return False
+
+        if accept_raptor_android_build(platform):
+            try_name = attributes.get("raptor_try_name")
+            if "geckoview" in try_name and "browsertime" in try_name:
+                if "hw-s24" in platform and "speedometer" not in try_name:
+                    return False
+                if "live" in try_name and "cnn-amp" not in try_name:
+                    return False
+                return True
+
         return False
 
     return [l for l, t in full_task_graph.tasks.items() if filter(t)]
@@ -1338,22 +1355,8 @@ def target_tasks_daily_beta_perf(full_task_graph, parameters, graph_config):
                 if "benchmark" in try_name:
                     return True
         elif accept_raptor_android_build(platform):
-            # Select browsertime & geckoview specific tests
             if "browsertime" and "geckoview" in try_name:
-                if "power" in try_name:
-                    return False
-                if "cpu" in try_name:
-                    return False
-                if "profiling" in try_name:
-                    return False
-                if "-live" in try_name:
-                    return False
-                if "speedometer" in try_name:
-                    return True
-                if "webgl" in try_name:
-                    return True
-                if "tp6m" in try_name:
-                    return True
+                return False
 
         return False
 
@@ -1404,24 +1407,9 @@ def target_tasks_weekly_release_perf(full_task_graph, parameters, graph_config):
                 if "youtube-playback" in try_name:
                     return True
         elif accept_raptor_android_build(platform):
-            # Select browsertime & geckoview specific tests
+
             if "browsertime" and "geckoview" in try_name:
-                if "power" in try_name:
-                    return False
-                if "cpu" in try_name:
-                    return False
-                if "profiling" in try_name:
-                    return False
-                if "-live" in try_name:
-                    return False
-                if "speedometer" in try_name:
-                    return True
-                if "webgl" in try_name:
-                    return True
-                if "tp6m" in try_name:
-                    return True
-                if "youtube-playback" in try_name:
-                    return True
+                return False
 
         return False
 
