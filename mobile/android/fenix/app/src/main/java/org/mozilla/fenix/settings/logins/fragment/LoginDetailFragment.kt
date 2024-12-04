@@ -67,7 +67,7 @@ class LoginDetailFragment : SecureFragment(R.layout.fragment_login_detail), Menu
     private lateinit var savedLoginsStore: LoginsFragmentStore
     private lateinit var loginDetailsBindingDelegate: LoginDetailsBindingDelegate
     private lateinit var interactor: LoginDetailInteractor
-    private lateinit var menu: Menu
+    private var menu: Menu? = null
     private var deleteDialog: AlertDialog? = null
 
     private var _binding: FragmentLoginDetailBinding? = null
@@ -178,7 +178,7 @@ class LoginDetailFragment : SecureFragment(R.layout.fragment_login_detail), Menu
      */
     override fun onPause() {
         deleteDialog?.isShowing.run { deleteDialog?.dismiss() }
-        menu.close()
+        menu?.close()
         super.onPause()
     }
 
@@ -226,13 +226,23 @@ class LoginDetailFragment : SecureFragment(R.layout.fragment_login_detail), Menu
 
     override fun onMenuItemSelected(item: MenuItem): Boolean = when (item.itemId) {
         R.id.delete_login_button -> {
-            displayDeleteLoginDialog()
-            true
+            if (binding.loginDetailLayout.isVisible) {
+                displayDeleteLoginDialog()
+                true
+            } else {
+                false
+            }
         }
+
         R.id.edit_login_button -> {
-            editLogin()
-            true
+            if (binding.loginDetailLayout.isVisible) {
+                editLogin()
+                true
+            } else {
+                false
+            }
         }
+
         else -> false
     }
 
@@ -292,16 +302,18 @@ class LoginDetailFragment : SecureFragment(R.layout.fragment_login_detail), Menu
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
-        // If you've made it here you're already authenticated. Let's reset the values so we don't
+        // If you've made it here and you're authenticated, let's reset the values so we don't
         // prompt the user again when navigating back.
-        BiometricAuthenticationManager.biometricAuthenticationNeededInfo.shouldShowAuthenticationPrompt =
-            false
-        BiometricAuthenticationManager.biometricAuthenticationNeededInfo.authenticationStatus =
+        val authenticated = BiometricAuthenticationManager.biometricAuthenticationNeededInfo.authenticationStatus ==
             AuthenticationStatus.AUTHENTICATED
+        BiometricAuthenticationManager.biometricAuthenticationNeededInfo.shouldShowAuthenticationPrompt =
+            !authenticated
     }
 
     private fun setSecureContentVisibility(isVisible: Boolean) {
         binding.loginDetailLayout.isVisible = isVisible
+        menu?.findItem(R.id.edit_login_button)?.setEnabled(isVisible)
+        menu?.findItem(R.id.delete_login_button)?.setEnabled(isVisible)
     }
 
     companion object {

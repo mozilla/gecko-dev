@@ -380,12 +380,12 @@ class EditLoginFragment : Fragment(R.layout.fragment_edit_login), MenuProvider {
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
-        // If you've made it here you're already authenticated. Let's reset the values so we don't
+        // If you've made it here and you're authenticated, let's reset the values so we don't
         // prompt the user again when navigating back.
-        BiometricAuthenticationManager.biometricAuthenticationNeededInfo.shouldShowAuthenticationPrompt =
-            false
-        BiometricAuthenticationManager.biometricAuthenticationNeededInfo.authenticationStatus =
+        val authenticated = BiometricAuthenticationManager.biometricAuthenticationNeededInfo.authenticationStatus ==
             AuthenticationStatus.AUTHENTICATED
+        BiometricAuthenticationManager.biometricAuthenticationNeededInfo.shouldShowAuthenticationPrompt =
+            !authenticated
     }
 
     private fun setSecureContentVisibility(isVisible: Boolean) {
