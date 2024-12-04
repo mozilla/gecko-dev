@@ -128,7 +128,6 @@
 #include "vm/SavedStacks.h"
 #include "vm/ScopeKind.h"
 #include "vm/Stack.h"
-#include "vm/StencilCache.h"   // DelazificationCache
 #include "vm/StencilObject.h"  // StencilObject, StencilXDRBufferObject
 #include "vm/StringObject.h"
 #include "vm/StringType.h"
@@ -2398,7 +2397,8 @@ static bool IsRelazifiableFunction(JSContext* cx, unsigned argc, Value* vp) {
   return true;
 }
 
-static bool IsInStencilCache(JSContext* cx, unsigned argc, Value* vp) {
+static bool IsCollectingDelazifications(JSContext* cx, unsigned argc,
+                                        Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
   if (args.length() != 1) {
     JS_ReportErrorASCII(cx, "The function takes exactly one argument.");
@@ -2419,21 +2419,48 @@ static bool IsInStencilCache(JSContext* cx, unsigned argc, Value* vp) {
 
   JSFunction* fun = &args[0].toObject().as<JSFunction>();
   BaseScript* script = fun->baseScript();
-  RefPtr<ScriptSource> ss = script->scriptSource();
-  DelazificationCache& cache = DelazificationCache::getSingleton();
-  auto guard = cache.isSourceCached(ss);
-  if (!guard) {
+  RefPtr<frontend::InitialStencilAndDelazifications> stencils =
+      script->sourceObject()->maybeGetStencils();
+  args.rval().setBoolean(bool(stencils));
+  return true;
+}
+
+static bool IsDelazificationsPopulated(JSContext* cx, unsigned argc,
+                                       Value* vp) {
+  CallArgs args = CallArgsFromVp(argc, vp);
+  if (args.length() != 1) {
+    JS_ReportErrorASCII(cx, "The function takes exactly one argument.");
+    return false;
+  }
+
+  if (!args[0].isObject() || !args[0].toObject().is<JSFunction>()) {
+    JS_ReportErrorASCII(cx, "The first argument should be a function.");
+    return false;
+  }
+
+  if (fuzzingSafe) {
+    // When running code concurrently to fill-up the stencil cache, the content
+    // is not garanteed to be present.
     args.rval().setBoolean(false);
     return true;
   }
 
-  StencilContext key(ss, script->extent());
-  frontend::CompilationStencil* stencil = cache.lookup(guard, key);
+  JSFunction* fun = &args[0].toObject().as<JSFunction>();
+  BaseScript* script = fun->baseScript();
+  RefPtr<frontend::InitialStencilAndDelazifications> stencils =
+      script->sourceObject()->maybeGetStencils();
+  if (!stencils) {
+    args.rval().setBoolean(false);
+    return true;
+  }
+
+  const frontend::CompilationStencil* stencil =
+      stencils->getDelazificationFor(script->extent());
   args.rval().setBoolean(bool(stencil));
   return true;
 }
 
-static bool WaitForStencilCache(JSContext* cx, unsigned argc, Value* vp) {
+static bool WaitForDelazificationOf(JSContext* cx, unsigned argc, Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
   if (args.length() != 1) {
     JS_ReportErrorASCII(cx, "The function takes exactly one argument.");
@@ -2448,9 +2475,13 @@ static bool WaitForStencilCache(JSContext* cx, unsigned argc, Value* vp) {
 
   JSFunction* fun = &args[0].toObject().as<JSFunction>();
   BaseScript* script = fun->baseScript();
-  RefPtr<ScriptSource> ss = script->scriptSource();
-  DelazificationCache& cache = DelazificationCache::getSingleton();
-  StencilContext key(ss, script->extent());
+
+  RefPtr<frontend::InitialStencilAndDelazifications> stencils =
+      script->sourceObject()->maybeGetStencils();
+  if (!stencils) {
+    args.rval().setBoolean(false);
+    return true;
+  }
 
   AutoLockHelperThreadState lock;
   if (!HelperThreadState().isInitialized(lock)) {
@@ -2458,18 +2489,10 @@ static bool WaitForStencilCache(JSContext* cx, unsigned argc, Value* vp) {
   }
 
   while (true) {
-    {
-      // This capture a Mutex that we have to release before using the wait
-      // function.
-      auto guard = cache.isSourceCached(ss);
-      if (!guard) {
-        return true;
-      }
-
-      frontend::CompilationStencil* stencil = cache.lookup(guard, key);
-      if (stencil) {
-        break;
-      }
+    const frontend::CompilationStencil* stencil =
+        stencils->getDelazificationFor(script->extent());
+    if (stencil) {
+      break;
     }
 
     HelperThreadState().wait(lock);
@@ -10603,12 +10626,16 @@ JS_FN_HELP("setDefaultLocale", SetDefaultLocale, 1, 0,
 "  An empty string or undefined resets the runtime locale to its default value.\n"
 "  NOTE: The input string is not fully validated, it must be a valid BCP-47 language tag."),
 
-JS_FN_HELP("isInStencilCache", IsInStencilCache, 1, 0,
-"isInStencilCache(fun)",
+JS_FN_HELP("isCollectingDelazifications", IsCollectingDelazifications, 1, 0,
+"isCollectingDelazifications(fun)",
+"  True if script for the function is collecting delazifications."),
+
+JS_FN_HELP("isDelazificationPopulatedFor", IsDelazificationsPopulated, 1, 0,
+"isDelazificationPopulatedFor(fun)",
 "  True if fun is available in the stencil cache."),
 
-JS_FN_HELP("waitForStencilCache", WaitForStencilCache, 1, 0,
-"waitForStencilCache(fun)",
+JS_FN_HELP("waitForDelazificationOf", WaitForDelazificationOf, 1, 0,
+"waitForDelazificationOf(fun)",
 "  Block main thread execution until the function is made available in the cache."),
 
 JS_FN_HELP("getInnerMostEnvironmentObject", GetInnerMostEnvironmentObject, 0, 0,

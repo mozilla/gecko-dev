@@ -16,8 +16,9 @@
 #include "frontend/ScriptIndex.h"         // frontend::ScriptIndex
 #include "js/AllocPolicy.h"               // SystemAllocPolicy
 #include "js/CompileOptions.h"  // JS::PrefableCompileOptions, JS::ReadOnlyCompileOptions
-#include "js/UniquePtr.h"  // UniquePtr
-#include "js/Vector.h"     // Vector
+#include "js/experimental/JSStencil.h"  // RefPtrTraits for InitialStencilAndDelazifications
+#include "js/UniquePtr.h"               // UniquePtr
+#include "js/Vector.h"                  // Vector
 
 namespace js {
 
@@ -109,6 +110,8 @@ class DelazificationContext {
   // Every delazified function is merged back to provide context for delazifying
   // even more functions.
   frontend::CompilationStencilMerger merger_;
+
+  RefPtr<frontend::InitialStencilAndDelazifications> stencils_;
 
   // Record any errors happening while parsing or generating bytecode.
   FrontendContext fc_;

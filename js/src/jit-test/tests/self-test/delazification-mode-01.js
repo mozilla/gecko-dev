@@ -10,9 +10,9 @@ let source = `
     return "foo";
   }
 
-  waitForStencilCache(foo);
+  waitForDelazificationOf(foo);
   // false would be expected if threads are disabled.
-  assertEq(isInStencilCache(foo), true);
+  assertEq(isDelazificationPopulatedFor(foo), true);
 `;
 
 const options = {

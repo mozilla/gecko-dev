@@ -138,8 +138,7 @@ CompileGlobalScriptToStencilWithInput(JSContext* maybeCx, FrontendContext* fc,
 
 [[nodiscard]] extern bool InstantiateStencils(
     JSContext* cx, CompilationInput& input,
-    const InitialStencilAndDelazifications& stencils,
-    CompilationGCOutput& gcOutput);
+    InitialStencilAndDelazifications& stencils, CompilationGCOutput& gcOutput);
 
 // Perform CompileGlobalScriptToStencil and InstantiateStencils at the
 // same time, skipping some extra copy.
@@ -248,7 +247,8 @@ extern already_AddRefed<CompilationStencil> DelazifyCanonicalScriptedFunction(
     FrontendContext* fc, js::LifoAlloc& tempLifoAlloc,
     const JS::PrefableCompileOptions& prefableOptions,
     ScopeBindingCache* scopeCache, CompilationStencil& context,
-    ScriptIndex scriptIndex, DelazifyFailureReason* failureReason);
+    ScriptIndex scriptIndex, InitialStencilAndDelazifications* stencils,
+    DelazifyFailureReason* failureReason);
 
 // Certain compile options will disable the syntax parser entirely.
 inline bool CanLazilyParse(const JS::ReadOnlyCompileOptions& options) {

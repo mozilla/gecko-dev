@@ -1466,7 +1466,7 @@ struct InitialStencilAndDelazifications {
   // Instantiate the initial stencil and all delazifications populated so far.
   [[nodiscard]] static bool instantiateStencils(
       JSContext* cx, CompilationInput& input,
-      const InitialStencilAndDelazifications& stencils,
+      InitialStencilAndDelazifications& stencils,
       CompilationGCOutput& gcOutput);
 
   size_t sizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf) const;

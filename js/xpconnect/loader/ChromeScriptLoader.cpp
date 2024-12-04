@@ -517,8 +517,10 @@ PrecompiledScript::PrecompiledScript(nsISupports* aParent,
   MOZ_ASSERT(aParent);
   MOZ_ASSERT(aStencil);
 #ifdef DEBUG
+  // AsyncScriptCompiler::Start can call JS::CompileOptions::setForceFullParse,
+  // but it should be compatible with the default JS::InstantiateOptions.
   JS::InstantiateOptions options(aOptions);
-  options.assertDefault();
+  options.assertCompatibleWithDefault();
 #endif
 };
 

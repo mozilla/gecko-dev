@@ -215,10 +215,6 @@ void JSRuntime::destroyRuntime() {
 
   watchtowerTestingLog.ref().reset();
 
-  // Caches might hold on ScriptData which are saved in the ScriptDataTable.
-  // Clear all stencils from caches to remove ScriptDataTable entries.
-  caches().purgeStencils();
-
   if (gc.wasInitialized()) {
     /*
      * Finish any in-progress GCs first.

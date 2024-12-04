@@ -20,7 +20,6 @@
 #include "js/TypeDecls.h"
 #include "vm/JSScript.h"
 #include "vm/Shape.h"
-#include "vm/StencilCache.h"  // js::DelazificationCache
 #include "vm/StringType.h"
 
 namespace js {
@@ -649,15 +648,9 @@ class RuntimeCaches {
 #endif
   }
 
-  void purgeStencils() {
-    DelazificationCache& cache = DelazificationCache::getSingleton();
-    cache.clearAndDisable();
-  }
-
   void purge() {
     purgeForCompaction();
     uncompressedSourceCache.purge();
-    purgeStencils();
   }
 };
 

@@ -3710,11 +3710,19 @@ CompilationStencil* InitialStencilAndDelazifications::getMerged(
 /* static */
 bool InitialStencilAndDelazifications::instantiateStencils(
     JSContext* cx, CompilationInput& input,
-    const InitialStencilAndDelazifications& stencils,
-    CompilationGCOutput& gcOutput) {
+    InitialStencilAndDelazifications& stencils, CompilationGCOutput& gcOutput) {
   if (!CompilationStencil::instantiateStencils(cx, input, *stencils.initial_,
                                                gcOutput)) {
     return false;
+  }
+
+  if (input.options.populateDelazificationCache()) {
+    RefPtr<InitialStencilAndDelazifications> stencilsPtr = &stencils;
+    ScriptSourceObject* sso = gcOutput.script->sourceObject();
+    MOZ_ASSERT(!sso->maybeGetStencils());
+    if (!stencils.getInitial()->asmJS) {
+      sso->setStencils(stencilsPtr.forget());
+    }
   }
 
   // At this point, gcOutput.script contains the top-level script, and
