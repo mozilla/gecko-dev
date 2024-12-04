@@ -59,6 +59,8 @@ inactive-css-only-replaced-elements = <strong>{ $property }</strong> has no effe
 
 inactive-text-overflow-when-no-overflow = <strong>{ $property }</strong> has no effect on this element since <strong>overflow:hidden</strong> is not set.
 
+inactive-css-no-size-containment = <strong>{ $property }</strong> has no effect on this element since it has no size containment.
+
 inactive-css-not-for-internal-table-elements = <strong>{ $property }</strong> has no effect on internal table elements.
 
 inactive-css-not-for-internal-table-elements-except-table-cells = <strong>{ $property }</strong> has no effect on internal table elements except table cells.
@@ -137,6 +139,8 @@ inactive-css-position-property-on-unpositioned-box-fix = Try setting its <strong
 inactive-css-only-replaced-elements-fix = Ensure you are adding the property to a replaced element. { learn-more }
 
 inactive-text-overflow-when-no-overflow-fix = Try adding <strong>overflow:hidden</strong>. { learn-more }
+
+inactive-css-no-size-containment-fix = Try setting its <strong>display</strong> property to something else than <strong>none</strong>, <strong>contents</strong>, <strong>table</strong>, or <strong>inline-table</strong> and make sure it’s not within a table or ruby segment. { learn-more }
 
 inactive-css-not-for-internal-table-elements-fix = Try setting its <strong>display</strong> property to something else than <strong>table-cell</strong>, <strong>table-column</strong>, <strong>table-row</strong>, <strong>table-column-group</strong>, <strong>table-row-group</strong>, or <strong>table-footer-group</strong>. { learn-more }
 

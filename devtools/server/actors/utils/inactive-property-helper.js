@@ -453,6 +453,19 @@ class InactivePropertyHelper {
         fixId: "inactive-text-overflow-when-no-overflow-fix",
         msgId: "inactive-text-overflow-when-no-overflow",
       },
+      // content-visibility used on elements for which size containment doesn't apply.
+      {
+        invalidProperties: ["content-visibility"],
+        when: () =>
+          !this.hasPrincipalBox ||
+          this.table ||
+          this.internalTableElement ||
+          this.rubyContainer ||
+          this.internalRubyElement ||
+          this.nonAtomicInlineBox,
+        fixId: "inactive-css-no-size-containment-fix",
+        msgId: "inactive-css-no-size-containment",
+      },
       // margin properties used on table internal elements.
       {
         invalidProperties: [
@@ -1041,6 +1054,13 @@ class InactivePropertyHelper {
   }
 
   /**
+   * Check if the current node is a table.
+   */
+  get table() {
+    return this.checkComputedStyle("display", ["table", "inline-table"]);
+  }
+
+  /**
    * Check if the current node is a table row.
    */
   get tableRow() {
@@ -1156,6 +1176,25 @@ class InactivePropertyHelper {
   }
 
   /**
+   * Check if the current node is a ruby container.
+   */
+  get rubyContainer() {
+    return this.checkComputedStyle("display", ["ruby"]);
+  }
+
+  /**
+   * Check if the current node is an internal ruby element.
+   */
+  get internalRubyElement() {
+    return this.checkComputedStyle("display", [
+      "ruby-base",
+      "ruby-text",
+      "ruby-base-container",
+      "ruby-text-container",
+    ]);
+  }
+
+  /**
    * Returns whether this element uses CSS layout.
    */
   get hasCssLayout() {
@@ -1171,6 +1210,30 @@ class InactivePropertyHelper {
       this.nonReplaced &&
       this.style &&
       this.style.display === "inline"
+    );
+  }
+
+  /**
+   * Check if the current node is a non-atomic CSS inline box.
+   */
+  get nonAtomicInlineBox() {
+    return (
+      this.hasCssLayout &&
+      this.nonReplaced &&
+      this.style &&
+      this.checkComputedStyle("display", ["inline", "inline list-item"])
+    );
+  }
+
+  /**
+   * Check if the current node generates a principal box.
+   */
+  get hasPrincipalBox() {
+    return (
+      this.hasCssLayout &&
+      this.style &&
+      this.style.display !== "none" &&
+      this.style.display !== "contents"
     );
   }
 
