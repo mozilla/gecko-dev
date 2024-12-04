@@ -245,6 +245,10 @@ class nsBaseWidget : public nsIWidget, public nsSupportsWeakReference {
       override;
 
   void ConstrainPosition(DesktopIntPoint&) override {}
+  // Utility function for derived-class overrides of ConstrainPosition.
+  static DesktopIntPoint ConstrainPositionToBounds(
+      const DesktopIntPoint&, const mozilla::DesktopIntSize&,
+      const DesktopIntRect&);
   void MoveClient(const DesktopPoint& aOffset) override;
   void ResizeClient(const DesktopSize& aSize, bool aRepaint) override;
   void ResizeClient(const DesktopRect& aRect, bool aRepaint) override;

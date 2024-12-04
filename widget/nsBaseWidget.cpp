@@ -1644,6 +1644,32 @@ void nsBaseWidget::OnDestroy() {
   ReleaseContentController();
 }
 
+/* static */
+DesktopIntPoint nsBaseWidget::ConstrainPositionToBounds(
+    const DesktopIntPoint& aPoint, const DesktopIntSize& aSize,
+    const DesktopIntRect& aScreenRect) {
+  DesktopIntPoint point = aPoint;
+
+  // The maximum position to which the window can be moved while keeping its
+  // bottom-right corner within screenRect.
+  auto const maxX = aScreenRect.XMost() - aSize.Width();
+  auto const maxY = aScreenRect.YMost() - aSize.Height();
+
+  if (point.x < aScreenRect.x) {
+    point.x = aScreenRect.x;
+  } else if (point.x >= maxX) {
+    point.x = maxX;
+  }
+
+  if (point.y < aScreenRect.y) {
+    point.y = aScreenRect.y;
+  } else if (point.y >= maxY) {
+    point.y = maxY;
+  }
+
+  return point;
+}
+
 void nsBaseWidget::MoveClient(const DesktopPoint& aOffset) {
   LayoutDeviceIntPoint clientOffset(GetClientOffset());
 

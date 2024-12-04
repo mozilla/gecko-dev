@@ -908,7 +908,7 @@ void nsCocoaWindow::ConstrainPosition(DesktopIntPoint& aPoint) {
     return;
   }
 
-  nsIntRect screenBounds;
+  DesktopIntRect screenRect;
 
   int32_t width, height;
 
@@ -926,22 +926,11 @@ void nsCocoaWindow::ConstrainPosition(DesktopIntPoint& aPoint) {
                              getter_AddRefs(screen));
 
     if (screen) {
-      screen->GetRectDisplayPix(&(screenBounds.x), &(screenBounds.y),
-                                &(screenBounds.width), &(screenBounds.height));
+      screenRect = screen->GetRectDisplayPix();
     }
   }
 
-  if (aPoint.x < screenBounds.x) {
-    aPoint.x = screenBounds.x;
-  } else if (aPoint.x >= screenBounds.x + screenBounds.width - width) {
-    aPoint.x = screenBounds.x + screenBounds.width - width;
-  }
-
-  if (aPoint.y < screenBounds.y) {
-    aPoint.y = screenBounds.y;
-  } else if (aPoint.y >= screenBounds.y + screenBounds.height - height) {
-    aPoint.y = screenBounds.y + screenBounds.height - height;
-  }
+  aPoint = ConstrainPositionToBounds(aPoint, {width, height}, screenRect);
 
   NS_OBJC_END_TRY_IGNORE_BLOCK;
 }
