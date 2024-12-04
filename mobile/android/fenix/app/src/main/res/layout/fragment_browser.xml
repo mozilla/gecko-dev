@@ -88,6 +88,21 @@
                 android:layout_height="wrap_content"
                 android:elevation="@dimen/browser_fragment_toolbar_elevation"/>
 
+            <mozilla.components.feature.prompts.login.LoginSelectBar
+                android:id="@+id/loginSelectBar"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="?attr/layer1"
+                android:visibility="gone"
+                tools:ignore="MozMultipleConstraintLayoutsAndCustomViews" />
+
+            <mozilla.components.feature.prompts.login.SuggestStrongPasswordBar
+                android:id="@+id/suggestStrongPasswordBar"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="?attr/layer1"
+                android:visibility="gone" />
+
         </androidx.coordinatorlayout.widget.CoordinatorLayout>
 
         <mozilla.components.feature.prompts.address.AddressSelectBar
@@ -103,24 +118,8 @@
             android:id="@+id/creditCardSelectBar"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            app:layout_constraintBottom_toTopOf="@id/loginSelectBar"
+            app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintTop_toBottomOf="@id/addressSelectBar" />
-
-        <mozilla.components.feature.prompts.login.LoginSelectBar
-            android:visibility="gone"
-            android:id="@+id/loginSelectBar"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/creditCardSelectBar" />
-
-        <mozilla.components.feature.prompts.login.SuggestStrongPasswordBar
-            android:visibility="gone"
-            android:id="@+id/suggestStrongPasswordBar"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/loginSelectBar" />
     </androidx.constraintlayout.widget.ConstraintLayout>
 
     <org.mozilla.fenix.browser.TabPreview

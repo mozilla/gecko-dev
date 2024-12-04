@@ -106,6 +106,7 @@ import mozilla.components.feature.prompts.file.AndroidPhotoPicker
 import mozilla.components.feature.prompts.identitycredential.DialogColors
 import mozilla.components.feature.prompts.identitycredential.DialogColorsProvider
 import mozilla.components.feature.prompts.login.LoginDelegate
+import mozilla.components.feature.prompts.login.LoginSelectBar
 import mozilla.components.feature.prompts.login.PasswordGeneratorDialogColors
 import mozilla.components.feature.prompts.login.PasswordGeneratorDialogColorsProvider
 import mozilla.components.feature.prompts.login.SuggestStrongPasswordDelegate
@@ -905,6 +906,8 @@ abstract class BaseBrowserFragment :
                 description = ThemeManager.resolveAttributeColor(attribute = R.attr.textSecondary),
             )
         }
+
+        configureLoginsBars()
 
         promptsFeature.set(
             feature = PromptFeature(
@@ -2704,5 +2707,21 @@ abstract class BaseBrowserFragment :
                 // no-op
             }
         }
+    }
+
+    private fun configureLoginsBars() {
+        val safeContext = context ?: return
+
+        (binding.loginSelectBar.layoutParams as? CoordinatorLayout.LayoutParams)?.behavior =
+            LoginSelectBarBehavior<LoginSelectBar>(
+                context = safeContext,
+                toolbarPosition = requireContext().settings().toolbarPosition,
+            )
+
+        (binding.suggestStrongPasswordBar.layoutParams as? CoordinatorLayout.LayoutParams)?.behavior =
+            LoginSelectBarBehavior<LoginSelectBar>(
+                context = safeContext,
+                toolbarPosition = requireContext().settings().toolbarPosition,
+            )
     }
 }
