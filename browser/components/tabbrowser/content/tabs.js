@@ -1042,10 +1042,11 @@
             "animDropIndex" in draggedTab._dragData &&
             draggedTab._dragData.animDropIndex;
         }
-        let incrementDropIndex = true;
+        let directionForward = false;
+        let originalDropIndex = dropIndex;
         if (dropIndex && dropIndex > movingTabs[0]._tPos) {
           dropIndex--;
-          incrementDropIndex = false;
+          directionForward = true;
         }
 
         const { groupDropAction, groupDropIndex } = draggedTab._dragData;
@@ -1085,7 +1086,7 @@
                 this._finishAnimateTabMove();
                 if (dropIndex !== false) {
                   gBrowser.moveTabTo(tab, dropIndex);
-                  if (incrementDropIndex) {
+                  if (!directionForward) {
                     dropIndex++;
                   }
                 }
@@ -1115,21 +1116,32 @@
           if (groupDropAction == GROUP_DROP_ACTION_APPEND) {
             let groupTab = this.allTabs[groupDropIndex];
             groupTab.group.addTabs(movingTabs);
-          } else if (dropIndex !== false) {
-            for (let tab of movingTabs) {
-              gBrowser.moveTabTo(tab, dropIndex);
-              if (incrementDropIndex) {
-                dropIndex++;
-              }
-            }
-          }
-          if (groupDropAction == GROUP_DROP_ACTION_CREATE) {
+          } else if (groupDropAction == GROUP_DROP_ACTION_CREATE) {
             let groupTab = this.allTabs[groupDropIndex];
-            gBrowser.addTabGroup([groupTab, ...movingTabs], {
-              insertBefore: draggedTab,
+            // If dropping on the forward edge of the `groupTab`, create the
+            // tab group with `groupTab` as the first tab in the new tab group
+            // followed by the dragged tabs.
+            // If dropping on the backward edge of the `groupTab`, create the
+            // tab group with the dragged tabs followed by `groupTab` as the
+            // last tab in the new tab group.
+            // This makes the tab group contents reflect the visual order of
+            // the tabs right before dropping.
+            let tabsInGroup =
+              originalDropIndex <= groupTab._tPos
+                ? [...movingTabs, groupTab]
+                : [groupTab, ...movingTabs];
+            gBrowser.addTabGroup(tabsInGroup, {
+              insertBefore: groupTab,
               showCreateUI: true,
               color: draggedTab._dragData.tabGroupCreationColor,
             });
+          } else if (dropIndex !== false) {
+            for (let tab of movingTabs) {
+              gBrowser.moveTabTo(tab, dropIndex);
+              if (!directionForward) {
+                dropIndex++;
+              }
+            }
           }
         }
       } else if (draggedTab) {
