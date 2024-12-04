@@ -41,7 +41,7 @@ function f(
 debugger;
 `);
 
-  evaluate(cache, { global: g, saveIncrementalBytecode: true });
+  evaluate(cache, { global: g, saveBytecodeWithDelazifications: true });
   evaluate(cache, { global: g, loadBytecode: true });
 }
 

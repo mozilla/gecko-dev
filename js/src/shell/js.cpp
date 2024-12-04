@@ -2690,7 +2690,7 @@ static bool Evaluate(JSContext* cx, unsigned argc, Value* vp) {
   RootedString sourceMapURL(cx);
   bool catchTermination = false;
   bool loadBytecode = false;
-  bool saveIncrementalBytecode = false;
+  bool saveBytecodeWithDelazifications = false;
   bool execute = true;
   bool assertEqBytecode = false;
   JS::EnvironmentChain envChain(cx, JS::SupportUnscopables::No);
@@ -2729,11 +2729,11 @@ static bool Evaluate(JSContext* cx, unsigned argc, Value* vp) {
       loadBytecode = ToBoolean(v);
     }
 
-    if (!JS_GetProperty(cx, opts, "saveIncrementalBytecode", &v)) {
+    if (!JS_GetProperty(cx, opts, "saveBytecodeWithDelazifications", &v)) {
       return false;
     }
     if (!v.isUndefined()) {
-      saveIncrementalBytecode = ToBoolean(v);
+      saveBytecodeWithDelazifications = ToBoolean(v);
     }
 
     if (!JS_GetProperty(cx, opts, "execute", &v)) {
@@ -2790,7 +2790,7 @@ static bool Evaluate(JSContext* cx, unsigned argc, Value* vp) {
 
     // We cannot load or save the bytecode if we have no object where the
     // bytecode cache is stored.
-    if (loadBytecode || saveIncrementalBytecode) {
+    if (loadBytecode || saveBytecodeWithDelazifications) {
       if (!cacheEntry) {
         JS_ReportErrorNumberASCII(cx, my_GetErrorMessage, nullptr,
                                   JSSMSG_INVALID_ARGS, "evaluate");
@@ -2898,7 +2898,7 @@ static bool Evaluate(JSContext* cx, unsigned argc, Value* vp) {
       return false;
     }
 
-    if (saveIncrementalBytecode) {
+    if (saveBytecodeWithDelazifications) {
       bool alreadyStarted;
       if (!JS::StartCollectingDelazifications(cx, script, stencil,
                                               alreadyStarted)) {
@@ -2931,14 +2931,14 @@ static bool Evaluate(JSContext* cx, unsigned argc, Value* vp) {
 
     // Serialize the encoded bytecode, recorded before the execution, into a
     // buffer which can be deserialized linearly.
-    if (saveIncrementalBytecode) {
+    if (saveBytecodeWithDelazifications) {
       if (!FinishCollectingDelazifications(cx, script, saveBuffer)) {
         return false;
       }
     }
   }
 
-  if (saveIncrementalBytecode) {
+  if (saveBytecodeWithDelazifications) {
     // If we are both loading and saving, we assert that we are going to
     // replace the current bytecode by the same stream of bytes.
     if (loadBytecode && assertEqBytecode) {
@@ -9719,13 +9719,13 @@ static const JSFunctionSpecWithHelp shell_functions[] = {
 "      loadBytecode: if true, and if the source is a CacheEntryObject,\n"
 "         the bytecode would be loaded and decoded from the cache entry instead\n"
 "         of being parsed, then it would be executed as usual.\n"
-"      saveIncrementalBytecode: if true, and if the source is a\n"
+"      saveBytecodeWithDelazifications: if true, and if the source is a\n"
 "         CacheEntryObject, the delazifications are collected during the\n"
 "         execution, and encoded after that, and saved into the cache entry.\n"
 "      execute: if false, do not execute the script, but do parse and/or\n"
 "               transcode.\n"
 "      assertEqBytecode: if true, and if both loadBytecode and either\n"
-"         saveIncrementalBytecode is true, then the loaded\n"
+"         saveBytecodeWithDelazifications is true, then the loaded\n"
 "         bytecode and the encoded bytecode are compared.\n"
 "         and an assertion is raised if they differ.\n"
 "      envChainObject: object to put on the scope chain, with its fields added\n"
@@ -10150,7 +10150,7 @@ JS_FN_HELP("createUserArrayBuffer", CreateUserArrayBuffer, 1, 0,
 "  Return a new opaque object which emulates a cache entry of a script.  This\n"
 "  object encapsulates the code and its cached content. The cache entry is filled\n"
 "  and read by the \"evaluate\" function by using it in place of the source, and\n"
-"  by setting \"saveIncrementalBytecode\" and \"loadBytecode\" options."),
+"  by setting \"saveBytecodeWithDelazifications\" and \"loadBytecode\" options."),
 
     JS_FN_HELP("streamCacheEntry", StreamCacheEntryObject::construct, 1, 0,
 "streamCacheEntry(buffer)",

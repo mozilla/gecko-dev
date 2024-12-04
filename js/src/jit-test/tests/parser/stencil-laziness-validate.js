@@ -16,7 +16,7 @@ assertThrowsInstanceOf(() => gWithoutSource.evalStencilXDR(xdr), gWithoutSource.
 
 const code = cacheEntry("");
 
-evaluate(code, { global: gWithSource, saveIncrementalBytecode: true});
+evaluate(code, { global: gWithSource, saveBytecodeWithDelazifications: true});
 evaluate(code, { global: gWithSource, loadBytecode: true});
 assertThrowsInstanceOf(() => evaluate(code, { global: gWithoutSource, loadBytecode: true}), gWithoutSource.Error);
 

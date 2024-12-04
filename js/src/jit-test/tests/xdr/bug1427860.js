@@ -1,7 +1,7 @@
 // |jit-test| --code-coverage
 
 let x = cacheEntry("function inner() { return 3; }; inner()");
-evaluate(x, { saveIncrementalBytecode: true });
+evaluate(x, { saveBytecodeWithDelazifications: true });
 
 try {
     // Fail XDR decode with partial script

@@ -7,7 +7,7 @@ evalWithCache(test, {});
 function evalWithCache(code, ctx) {
   code = cacheEntry(code);
   ctx.global = newGlobal({ cloneSingletons: true });
-  var res1 = evaluate(code, Object.create(ctx, {saveIncrementalBytecode: { value: true } }));
+  var res1 = evaluate(code, Object.create(ctx, {saveBytecodeWithDelazifications: { value: true } }));
 }
 if (typeof assertThrowsInstanceOf === 'undefined') {
     var assertThrowsInstanceOf = function assertThrowsInstanceOf(f, ctor, msg) {};

@@ -67,4 +67,4 @@ func();
 result;
 `;
 
-evalWithCache(test, { incremental: true, oassertEqResult : true });
+evalWithCache(test, { collectDelazifications: true, oassertEqResult : true });

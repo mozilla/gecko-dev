@@ -10,5 +10,5 @@ assertEq(f3(), "Atom_f3");
 
 let c = cacheEntry(s);
 let g = newGlobal();
-evaluate(c, {saveIncrementalBytecode:true});
+evaluate(c, {saveBytecodeWithDelazifications:true});
 evaluate(c, {global:g, loadBytecode:true});

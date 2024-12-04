@@ -23,14 +23,14 @@ function check(before, after) {
 }
 
 
-check({ envChainObject: nonSyntacticEnvironment, saveIncrementalBytecode: true, },
+check({ envChainObject: nonSyntacticEnvironment, saveBytecodeWithDelazifications: true, },
     { envChainObject: nonSyntacticEnvironment, loadBytecode: true })
 
 
 try {
     var global = newGlobal();
     global.field = 10;
-    check({ envChainObject: nonSyntacticEnvironment, saveIncrementalBytecode: true, },
+    check({ envChainObject: nonSyntacticEnvironment, saveBytecodeWithDelazifications: true, },
         { global: global, loadBytecode: true })
 
     // Should have thrown
@@ -40,7 +40,7 @@ try {
 }
 
 try {
-    check({ global: global, saveIncrementalBytecode: true },
+    check({ global: global, saveBytecodeWithDelazifications: true },
         { envChainObject: nonSyntacticEnvironment, loadBytecode: true })
 
     // Should have thrown
@@ -51,5 +51,5 @@ try {
 
 
 var nonSyntacticEnvironmentTwo = { field: 10 };
-check({ envChainObject: nonSyntacticEnvironment, saveIncrementalBytecode: true, },
+check({ envChainObject: nonSyntacticEnvironment, saveBytecodeWithDelazifications: true, },
     { envChainObject: nonSyntacticEnvironmentTwo, loadBytecode: true })

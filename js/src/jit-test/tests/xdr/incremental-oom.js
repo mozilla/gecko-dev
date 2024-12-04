@@ -4,5 +4,5 @@ oomTest(() => {
                 function f() { }
                 f();
         `);
-        evaluate(code, { saveIncrementalBytecode: true });
+        evaluate(code, { saveBytecodeWithDelazifications: true });
 });

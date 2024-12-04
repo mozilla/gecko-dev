@@ -13,7 +13,7 @@ function evalWithCacheLoadOffThread(code, ctx) {
     ctx.global = newGlobal();
 
   var ctx_save = Object.create(ctx, {
-    saveIncrementalBytecode: { value: true }
+    saveBytecodeWithDelazifications: { value: true }
   });
 
   ctx.global.generation = 0;

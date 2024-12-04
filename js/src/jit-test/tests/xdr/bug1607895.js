@@ -4,4 +4,4 @@ code = cacheEntry(`
   };
   f()
   `);
-evaluate(code, { saveIncrementalBytecode: { value: true } });
+evaluate(code, { saveBytecodeWithDelazifications: { value: true } });

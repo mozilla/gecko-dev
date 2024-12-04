@@ -11,7 +11,7 @@ test = `
   assertEq(obj.a, 2);
 `;
 evalWithCache(test, {
-  incremental: true,
+  collectDelazifications: true,
   assertEqResult : true
 });
 
@@ -22,7 +22,7 @@ test = `
   1;
 `;
 evalWithCache(test, {
-  incremental: true,
+  collectDelazifications: true,
   assertEqResult : true
 });
 
@@ -33,7 +33,7 @@ test = `
   f();
 `;
 evalWithCache(test, {
-  incremental: true,
+  collectDelazifications: true,
   assertEqResult : true
 });
 
@@ -45,7 +45,7 @@ test = `
   g()();
 `;
 evalWithCache(test, {
-  incremental: true,
+  collectDelazifications: true,
   assertEqResult : true
 });
 
@@ -63,4 +63,4 @@ test = `
   relazifyFunctions(f);
   assertEq(isLazyFunction(f), expect);
 `;
-evalWithCache(test, { incremental: true });
+evalWithCache(test, { collectDelazifications: true });

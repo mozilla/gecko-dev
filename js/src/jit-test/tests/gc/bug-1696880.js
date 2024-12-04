@@ -5,7 +5,7 @@ gczeal(4);
 function a(b) {
   c = cacheEntry(b);
   evaluate(c, {
-    saveIncrementalBytecode: true
+    saveBytecodeWithDelazifications: true
   });
   return c;
 }

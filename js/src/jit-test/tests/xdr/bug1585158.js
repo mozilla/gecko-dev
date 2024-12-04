@@ -6,7 +6,7 @@ evalWithCache(`
 `);
 function evalWithCache(code) {
   code = cacheEntry(code);
-  ctx_save = Object.create({}, { saveIncrementalBytecode: { value: true } });
+  ctx_save = Object.create({}, { saveBytecodeWithDelazifications: { value: true } });
   var res1 = evaluate(code, ctx_save);
   var res2 = evaluate(code, Object.create(ctx_save, {}));
 }

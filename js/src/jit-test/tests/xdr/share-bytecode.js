@@ -5,7 +5,7 @@ let entry = cacheEntry(`
     f                   // Return function object
 `);
 
-let f1 = evaluate(entry, {saveIncrementalBytecode: true});
+let f1 = evaluate(entry, {saveBytecodeWithDelazifications: true});
 let f2 = evaluate(entry, {loadBytecode: true});
 
 // Reading from XDR should still deduplicate to same bytecode

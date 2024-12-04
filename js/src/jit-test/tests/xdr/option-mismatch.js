@@ -11,7 +11,7 @@ f()`
 var code = cacheEntry(source);
 
 
-var res = evaluate(code, { saveIncrementalBytecode: true, })
+var res = evaluate(code, { saveBytecodeWithDelazifications: true, })
 assertEq(res, 10)
 
 try {

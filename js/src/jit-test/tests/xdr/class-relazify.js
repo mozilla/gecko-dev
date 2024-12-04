@@ -11,5 +11,5 @@ function f() {
 f();
 `);
 
-evaluate(code, {saveIncrementalBytecode: { value: true } });
+evaluate(code, {saveBytecodeWithDelazifications: { value: true } });
 evaluate(code, {loadBytecode: { value: true } });

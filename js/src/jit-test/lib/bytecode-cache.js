@@ -7,14 +7,14 @@ function evalWithCache(code, ctx) {
   });
   code = code instanceof Object ? code : cacheEntry(code);
 
-  var incremental = ctx.incremental || false;
+  var collectDelazifications = ctx.collectDelazifications || false;
 
   // We create a new global ...
   if (!("global" in ctx))
       ctx.global = newGlobal({newCompartment: ctx.newCompartment});
 
   var ctx_save = Object.create(ctx, {
-    saveIncrementalBytecode: { value: true }
+    saveBytecodeWithDelazifications: { value: true }
   });
 
   // Fetch the verification function from the evaluation context.  This function

@@ -16,7 +16,7 @@ function encodeScript(source)
 {
     let entry = cacheEntry(source);
     let global = newGlobal({ cloneSingletons: true });
-    evaluate(entry, { global: global, saveIncrementalBytecode: true });
+    evaluate(entry, { global: global, saveBytecodeWithDelazifications: true });
     return entry;
 }
 

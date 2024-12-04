@@ -11,7 +11,7 @@ function getLogString(obj) {
 
 const entry = cacheEntry("");
 addWatchtowerTarget(entry);
-evaluate(entry, { "saveIncrementalBytecode": true });
+evaluate(entry, { "saveBytecodeWithDelazifications": true });
 let log = getLogString(entry);
 
 // Nothing is logged for the manipulation of reserved slots, as we

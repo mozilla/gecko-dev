@@ -5,7 +5,7 @@ gczeal(2);
     evaluate(cacheEntry((function() {
         return "(new String(\"\"))"
     })()), Object.create({ global: newGlobal({ cloneSingletons: true }) }, {
-        saveIncrementalBytecode: {
+        saveBytecodeWithDelazifications: {
             value: true
         }
     }))

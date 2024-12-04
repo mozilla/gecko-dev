@@ -38,7 +38,7 @@ function testOffThreadXDR(sourceIsLazy1, sourceIsLazy2,
   const t = cacheEntry(code);
   evaluate(t, { sourceIsLazy: sourceIsLazy1,
                 forceFullParse: forceFullParse1,
-                saveIncrementalBytecode: true });
+                saveBytecodeWithDelazifications: true });
 
   // The compile options are ignored when decoding, and no error is thrown.
   offThreadDecodeStencil(t, { sourceIsLazy: sourceIsLazy2,

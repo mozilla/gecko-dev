@@ -212,7 +212,7 @@ def main():
     if options.mode == "decode":
         encodeOpt = {}
         encodeOpt["execute"] = False
-        encodeOpt["saveIncrementalBytecode"] = True
+        encodeOpt["saveBytecodeWithDelazifications"] = True
         if not options.lazy:
             encodeOpt["forceFullParse"] = True
 
