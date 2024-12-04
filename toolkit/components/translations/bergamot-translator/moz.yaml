@@ -20,32 +20,14 @@ origin:
 
   # Human-readable identifier for this version/release
   # Generally "version NNN", "tag SSS", "bookmark SSS"
-  release: v0.4.5
+  release: v0.5.0
 
   # Revision to pull in
   # Must be a long or short commit SHA (long preferred)
-  revision: 60e8730b9a25a1a6ebc252124af981752a22a5ff
+  revision: f9010478a45cd40bf7ad3d0aecdd62dd281ec5d6
 
   # The package's license, where possible using the mnemonic from
   # https://spdx.org/licenses/
   # Multiple licenses can be specified (as a YAML list)
   # A "LICENSE" file must exist containing the full license text
   license: MPL-2.0
-
-  notes: >
-    The generated emscripten code contains many global variables. When updating
-    the code, paste it into the following function to protect the global scope.
-
-    ```
-    /* This Source Code Form is subject to the terms of the Mozilla Public
-     * License, v. 2.0. If a copy of the MPL was not distributed with this
-     * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
-
-    function loadBergamot(Module) {
-      {insertCodeHere}
-      return Module;
-    }
-    ```
-
-    Then replace `console.log()` calls with `log()` calls so that logging preferences
-    are respected.

@@ -40,7 +40,7 @@ import yaml
 # A minor version bump means that there is no breaking change. A major version
 # bump means that the upload is a breaking change. Firefox will only download
 # records that match the TranslationsParent.BERGAMOT_MAJOR_VERSION.
-REMOTE_SETTINGS_VERSION = "1.1"
+REMOTE_SETTINGS_VERSION = "2.0"
 
 COLLECTION_NAME = "translations-wasm"
 DEV_SERVER = "https://remote-settings-dev.allizom.org/v1"

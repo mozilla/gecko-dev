@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 function loadBergamot(Module) {
-  var BERGAMOT_VERSION_FULL = "v0.4.5+60e8730";
+  var BERGAMOT_VERSION_FULL = "v0.5.0+f901047";
   null;
 
   var Module = typeof Module != "undefined" ? Module : {};
@@ -123,6 +123,58 @@ function loadBergamot(Module) {
 
   if (typeof WebAssembly != "object") {
     abort("no native wasm support detected");
+  }
+
+  function setValue(ptr, value, type = "i8", noSafe) {
+    if (type.charAt(type.length - 1) === "*") {
+      type = "i32";
+    }
+    switch (type) {
+      case "i1":
+        HEAP8[ptr >> 0] = value;
+        break;
+
+      case "i8":
+        HEAP8[ptr >> 0] = value;
+        break;
+
+      case "i16":
+        HEAP16[ptr >> 1] = value;
+        break;
+
+      case "i32":
+        HEAP32[ptr >> 2] = value;
+        break;
+
+      case "i64":
+        (tempI64 = [
+          value >>> 0,
+          ((tempDouble = value),
+          +Math.abs(tempDouble) >= 1
+            ? tempDouble > 0
+              ? (Math.min(+Math.floor(tempDouble / 4294967296), 4294967295) |
+                  0) >>>
+                0
+              : ~~+Math.ceil(
+                  (tempDouble - +(~~tempDouble >>> 0)) / 4294967296
+                ) >>> 0
+            : 0),
+        ]),
+          (HEAP32[ptr >> 2] = tempI64[0]),
+          (HEAP32[(ptr + 4) >> 2] = tempI64[1]);
+        break;
+
+      case "float":
+        HEAPF32[ptr >> 2] = value;
+        break;
+
+      case "double":
+        HEAPF64[ptr >> 3] = value;
+        break;
+
+      default:
+        abort("invalid type for setValue: " + type);
+    }
   }
 
   var wasmMemory;
@@ -635,6 +687,51 @@ function loadBergamot(Module) {
     instantiateAsync();
     return {};
   }
+
+  var tempDouble;
+
+  var tempI64;
+
+  var ASM_CONSTS = {
+    1429732($0, $1, $2, $3, $4) {
+      if (!Module.getOrCreateSentenceSegmenter) {
+        Module.getOrCreateSentenceSegmenter = (function () {
+          let segmenters = new Map();
+          return function (lang) {
+            let segmenter = segmenters.get(lang);
+            if (!segmenter) {
+              segmenter = new Intl.Segmenter(lang, {
+                granularity: "sentence",
+              });
+              segmenters.set(lang, segmenter);
+            }
+            return segmenter;
+          };
+        })();
+      }
+      const inputUTF16 = UTF8ToString($0);
+      const lang = UTF8ToString($1);
+      const segmenter = Module.getOrCreateSentenceSegmenter(lang);
+      const sentencesUTF16 = Array.from(segmenter.segment(inputUTF16));
+      const sentenceCount = sentencesUTF16.length;
+      const bytesPerInt = 4;
+      const startsPtr = _malloc(sentenceCount * bytesPerInt);
+      const endsPtr = _malloc(sentenceCount * bytesPerInt);
+      if (!startsPtr || !endsPtr) {
+        throw new Error("Failed to allocate WASM memory for segmentation.");
+      }
+      let sentenceEndUTF8 = 0;
+      sentencesUTF16.forEach(({ segment: sentenceUTF16 }, index) => {
+        const sentenceStartUTF8 = sentenceEndUTF8;
+        sentenceEndUTF8 += lengthBytesUTF8(sentenceUTF16);
+        setValue(startsPtr + index * bytesPerInt, sentenceStartUTF8, "i32");
+        setValue(endsPtr + index * bytesPerInt, sentenceEndUTF8, "i32");
+      });
+      setValue($2, sentenceCount, "i32");
+      setValue($3, startsPtr, "i32");
+      setValue($4, endsPtr, "i32");
+    },
+  };
 
   function callRuntimeCallbacks(callbacks) {
     while (callbacks.length) {
@@ -2773,6 +2870,30 @@ function loadBergamot(Module) {
     abort("");
   }
 
+  var readAsmConstArgsArray = [];
+
+  function readAsmConstArgs(sigPtr, buf) {
+    readAsmConstArgsArray.length = 0;
+    var ch;
+    buf >>= 2;
+    while ((ch = HEAPU8[sigPtr++])) {
+      var readAsmConstArgsDouble = ch < 105;
+      if (readAsmConstArgsDouble && buf & 1) {
+        buf++;
+      }
+      readAsmConstArgsArray.push(
+        readAsmConstArgsDouble ? HEAPF64[buf++ >> 1] : HEAP32[buf]
+      );
+      ++buf;
+    }
+    return readAsmConstArgsArray;
+  }
+
+  function _emscripten_asm_const_int(code, sigPtr, argbuf) {
+    var args = readAsmConstArgs(sigPtr, argbuf);
+    return ASM_CONSTS[code].apply(null, args);
+  }
+
   function _emscripten_get_heap_max() {
     return 2147483648;
   }
@@ -3352,6 +3473,7 @@ function loadBergamot(Module) {
     _munmap_js: __munmap_js,
     _tzset_js: __tzset_js,
     abort: _abort,
+    emscripten_asm_const_int: _emscripten_asm_const_int,
     emscripten_get_heap_max: _emscripten_get_heap_max,
     emscripten_get_now: _emscripten_get_now,
     emscripten_memcpy_big: _emscripten_memcpy_big,

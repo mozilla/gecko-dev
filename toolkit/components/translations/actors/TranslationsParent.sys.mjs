@@ -309,7 +309,7 @@ export class TranslationsParent extends JSWindowActorParent {
    * Release docs:
    * https://firefox-source-docs.mozilla.org/toolkit/components/translations/resources/03_bergamot.html
    */
-  static BERGAMOT_MAJOR_VERSION = 1;
+  static BERGAMOT_MAJOR_VERSION = 2;
   static LANGUAGE_MODEL_MAJOR_VERSION = 1;
 
   /**
