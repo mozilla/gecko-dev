@@ -22,7 +22,7 @@ template <JSProtoKey ProtoKey>
     JSContext* cx, JSNative addOrSetNative,
     Handle<NativeObject*> mapOrSetObject, Handle<Value> iterable,
     bool* optimized) {
-  constexpr bool isMap = ProtoKey == JSProto_Map;
+  constexpr bool isMap = ProtoKey == JSProto_Map || ProtoKey == JSProto_WeakMap;
   constexpr bool isSet = ProtoKey == JSProto_Set || ProtoKey == JSProto_WeakSet;
   static_assert(isMap != isSet, "must be either a Map or a Set");
 
@@ -37,8 +37,8 @@ template <JSProtoKey ProtoKey>
   }
   Rooted<ArrayObject*> array(cx, &iterable.toObject().as<ArrayObject>());
 
-  // For the Map constructor, ensure the elements are also packed arrays with at
-  // least two elements (key and value).
+  // For the Map and WeakMap constructors, ensure the elements are also packed
+  // arrays with at least two elements (key and value).
   //
   // Limit this to relatively short arrays to avoid adding overhead for large
   // arrays in the worst case, when this check fails for one of the last

@@ -16,6 +16,7 @@
 #include "vm/JSContext.h"
 #include "vm/SelfHosting.h"
 
+#include "builtin/MapObject-inl.h"
 #include "gc/GCContext-inl.h"
 #include "gc/WeakMap-inl.h"
 #include "vm/NativeObject-inl.h"
@@ -117,21 +118,26 @@ bool WeakMapObject::delete_(JSContext* cx, unsigned argc, Value* vp) {
       cx, args);
 }
 
+static bool SetWeakMapEntryImpl(JSContext* cx, Handle<WeakMapObject*> mapObj,
+                                Handle<Value> keyVal, Handle<Value> value) {
+  if (MOZ_UNLIKELY(!CanBeHeldWeakly(cx, keyVal))) {
+    unsigned errorNum = GetErrorNumber(true);
+    ReportValueError(cx, errorNum, JSDVG_IGNORE_STACK, keyVal, nullptr);
+    return false;
+  }
+
+  return WeakCollectionPutEntryInternal(cx, mapObj, keyVal, value);
+}
+
 /* static */ MOZ_ALWAYS_INLINE bool WeakMapObject::set_impl(
     JSContext* cx, const CallArgs& args) {
   MOZ_ASSERT(WeakMapObject::is(args.thisv()));
 
-  if (!CanBeHeldWeakly(cx, args.get(0))) {
-    unsigned errorNum = GetErrorNumber(true);
-    ReportValueError(cx, errorNum, JSDVG_IGNORE_STACK, args.get(0), nullptr);
-    return false;
-  }
-
   Rooted<WeakMapObject*> map(cx, &args.thisv().toObject().as<WeakMapObject>());
-
-  if (!WeakCollectionPutEntryInternal(cx, map, args[0], args.get(1))) {
+  if (!SetWeakMapEntryImpl(cx, map, args.get(0), args.get(1))) {
     return false;
   }
+
   args.rval().set(args.thisv());
   return true;
 }
@@ -237,15 +243,7 @@ JS_PUBLIC_API bool JS::SetWeakMapEntry(JSContext* cx, HandleObject mapObj,
                                        HandleValue key, HandleValue val) {
   CHECK_THREAD(cx);
   cx->check(key, val);
-  if (!CanBeHeldWeakly(cx, key)) {
-    unsigned errorNum = GetErrorNumber(true);
-    ReportValueError(cx, errorNum, JSDVG_IGNORE_STACK, key, nullptr);
-    return false;
-  }
-
-  Handle<WeakMapObject*> rootedMap = mapObj.as<WeakMapObject>();
-
-  return WeakCollectionPutEntryInternal(cx, rootedMap, key, val);
+  return SetWeakMapEntryImpl(cx, mapObj.as<WeakMapObject>(), key, val);
 }
 
 /* static */
@@ -262,20 +260,49 @@ bool WeakMapObject::construct(JSContext* cx, unsigned argc, Value* vp) {
     return false;
   }
 
-  RootedObject obj(cx, NewObjectWithClassProto<WeakMapObject>(cx, proto));
+  Rooted<WeakMapObject*> obj(cx,
+                             NewObjectWithClassProto<WeakMapObject>(cx, proto));
   if (!obj) {
     return false;
   }
 
   // Steps 5-6, 11.
   if (!args.get(0).isNullOrUndefined()) {
-    FixedInvokeArgs<1> args2(cx);
-    args2[0].set(args[0]);
-
-    RootedValue thisv(cx, ObjectValue(*obj));
-    if (!CallSelfHostedFunction(cx, cx->names().WeakMapConstructorInit, thisv,
-                                args2, args2.rval())) {
+    Handle<Value> iterable = args[0];
+    bool optimized = false;
+    if (!IsOptimizableInitForMapOrSet<JSProto_WeakMap>(
+            cx, WeakMapObject::set, obj, iterable, &optimized)) {
       return false;
+    }
+
+    if (optimized) {
+      RootedValue keyVal(cx);
+      RootedValue value(cx);
+      Rooted<ArrayObject*> array(cx, &iterable.toObject().as<ArrayObject>());
+      uint32_t len = array->getDenseInitializedLength();
+      for (uint32_t index = 0; index < len; index++) {
+        Value element = array->getDenseElement(index);
+        MOZ_ASSERT(IsPackedArray(&element.toObject()));
+
+        auto* elementArray = &element.toObject().as<ArrayObject>();
+        keyVal.set(elementArray->getDenseElement(0));
+        value.set(elementArray->getDenseElement(1));
+        MOZ_ASSERT(!keyVal.isMagic(JS_ELEMENTS_HOLE));
+        MOZ_ASSERT(!value.isMagic(JS_ELEMENTS_HOLE));
+
+        if (!SetWeakMapEntryImpl(cx, obj, keyVal, value)) {
+          return false;
+        }
+      }
+    } else {
+      FixedInvokeArgs<1> args2(cx);
+      args2[0].set(iterable);
+
+      RootedValue thisv(cx, ObjectValue(*obj));
+      if (!CallSelfHostedFunction(cx, cx->names().WeakMapConstructorInit, thisv,
+                                  args2, args2.rval())) {
+        return false;
+      }
     }
   }
 
