@@ -5925,6 +5925,12 @@ static bool GetModuleEnvironmentNames(JSContext* cx, unsigned argc, Value* vp) {
 
   Rooted<ModuleObject*> module(
       cx, args[0].toObject().as<ShellModuleObjectWrapper>().get());
+  if (module->hasSyntheticModuleFields()) {
+    JS_ReportErrorASCII(cx,
+                        "Operation is not supported on JSON module objects.");
+    return false;
+  }
+
   if (module->hadEvaluationError()) {
     JS_ReportErrorASCII(cx, "Module environment unavailable");
     return false;
@@ -5977,6 +5983,12 @@ static bool GetModuleEnvironmentValue(JSContext* cx, unsigned argc, Value* vp) {
 
   Rooted<ModuleObject*> module(
       cx, args[0].toObject().as<ShellModuleObjectWrapper>().get());
+  if (module->hasSyntheticModuleFields()) {
+    JS_ReportErrorASCII(cx,
+                        "Operation is not supported on JSON module objects.");
+    return false;
+  }
+
   if (module->hadEvaluationError()) {
     JS_ReportErrorASCII(cx, "Module environment unavailable");
     return false;
