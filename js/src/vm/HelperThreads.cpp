@@ -1096,7 +1096,7 @@ void GlobalHelperThreadState::submitTask(
 
 void js::StartOffThreadDelazification(
     JSContext* maybeCx, const JS::ReadOnlyCompileOptions& options,
-    const frontend::CompilationStencil& stencil) {
+    frontend::InitialStencilAndDelazifications* stencils) {
   // Skip delazify tasks if we parse everything on-demand or ahead.
   auto strategy = options.eagerDelazificationStrategy();
   if (strategy == JS::DelazificationOption::OnDemandOnly ||
@@ -1115,7 +1115,7 @@ void js::StartOffThreadDelazification(
 
   JSRuntime* maybeRuntime = maybeCx ? maybeCx->runtime() : nullptr;
   UniquePtr<DelazifyTask> task;
-  task = DelazifyTask::Create(maybeRuntime, options, stencil);
+  task = DelazifyTask::Create(maybeRuntime, options, stencils);
   if (!task) {
     return;
   }
@@ -1129,14 +1129,14 @@ void js::StartOffThreadDelazification(
 
 UniquePtr<DelazifyTask> DelazifyTask::Create(
     JSRuntime* maybeRuntime, const JS::ReadOnlyCompileOptions& options,
-    const frontend::CompilationStencil& stencil) {
+    frontend::InitialStencilAndDelazifications* stencils) {
   UniquePtr<DelazifyTask> task;
   task.reset(js_new<DelazifyTask>(maybeRuntime, options.prefableOptions()));
   if (!task) {
     return nullptr;
   }
 
-  if (!task->init(options, stencil)) {
+  if (!task->init(options, stencils)) {
     // In case of errors, skip this and delazify on-demand.
     return nullptr;
   }
@@ -1158,8 +1158,8 @@ DelazifyTask::~DelazifyTask() {
 }
 
 bool DelazifyTask::init(const JS::ReadOnlyCompileOptions& options,
-                        const frontend::CompilationStencil& stencil) {
-  return delazificationCx.init(options, stencil);
+                        frontend::InitialStencilAndDelazifications* stencils) {
+  return delazificationCx.init(options, stencils);
 }
 
 size_t DelazifyTask::sizeOfExcludingThis(

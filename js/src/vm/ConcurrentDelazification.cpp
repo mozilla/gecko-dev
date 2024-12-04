@@ -142,9 +142,14 @@ bool LargeFirstDelazification::insert(ScriptIndex index,
   return true;
 }
 
-bool DelazificationContext::init(const JS::ReadOnlyCompileOptions& options,
-                                 const frontend::CompilationStencil& stencil) {
+bool DelazificationContext::init(
+    const JS::ReadOnlyCompileOptions& options,
+    frontend::InitialStencilAndDelazifications* stencils) {
   using namespace js::frontend;
+
+  // TODO: Rewrite ConcurrentDelazification with
+  //       InitialStencilAndDelazifications.
+  const CompilationStencil& stencil = *stencils->getInitial();
 
   RefPtr<ScriptSource> source(stencil.source);
   DelazificationCache& cache = DelazificationCache::getSingleton();

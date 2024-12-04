@@ -42,7 +42,7 @@ struct PromiseHelperTask;
 class SourceCompressionTask;
 
 namespace frontend {
-struct CompilationStencil;
+struct InitialStencilAndDelazifications;
 }
 
 namespace gc {
@@ -246,9 +246,9 @@ void WaitForAllDelazifyTasks(JSRuntime* rt);
 
 // Start off-thread delazification task, to race the delazification of inner
 // functions.
-void StartOffThreadDelazification(JSContext* maybeCx,
-                                  const JS::ReadOnlyCompileOptions& options,
-                                  const frontend::CompilationStencil& stencil);
+void StartOffThreadDelazification(
+    JSContext* maybeCx, const JS::ReadOnlyCompileOptions& options,
+    frontend::InitialStencilAndDelazifications* stencils);
 
 // Drain the task queues and wait for all helper threads to finish running.
 //

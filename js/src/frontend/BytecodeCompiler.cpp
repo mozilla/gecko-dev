@@ -245,10 +245,100 @@ class MOZ_STACK_CLASS ScriptCompiler : public SourceAwareCompiler<Unit> {
 }
 #endif  // JS_ENABLE_SMOOSH
 
+static already_AddRefed<JS::Stencil> CreateInitialStencilAndDelazifications(
+    FrontendContext* fc, CompilationStencil* initial) {
+  RefPtr stencils =
+      fc->getAllocator()->new_<frontend::InitialStencilAndDelazifications>();
+  if (!stencils) {
+    return nullptr;
+  }
+  if (!stencils->init(fc, initial)) {
+    return nullptr;
+  }
+  return stencils.forget();
+}
+
 using BytecodeCompilerOutput =
     mozilla::Variant<RefPtr<CompilationStencil>, CompilationGCOutput*>;
 
+static bool ConvertGlobalScriptStencilMaybeInstantiate(
+    JSContext* maybeCx, FrontendContext* fc, CompilationInput& input,
+    ExtensibleCompilationStencil&& extensibleStencil,
+    CompilationStencil** initialStencilOut,
+    InitialStencilAndDelazifications** stencilsOut,
+    CompilationGCOutput* gcOutput) {
+  RefPtr<CompilationStencil> initialStencil;
+  if (initialStencilOut || stencilsOut) {
+    auto extensibleStencilOnHeap =
+        fc->getAllocator()->make_unique<frontend::ExtensibleCompilationStencil>(
+            std::move(extensibleStencil));
+    if (!extensibleStencilOnHeap) {
+      return false;
+    }
+
+    initialStencil = fc->getAllocator()->new_<CompilationStencil>(
+        std::move(extensibleStencilOnHeap));
+    if (!initialStencil) {
+      return false;
+    }
+
+    if (initialStencilOut) {
+      *initialStencilOut = initialStencil.get();
+      (*initialStencilOut)->AddRef();
+    }
+  }
+
+  RefPtr<InitialStencilAndDelazifications> stencils;
+  if (input.options.populateDelazificationCache() || stencilsOut) {
+    stencils = CreateInitialStencilAndDelazifications(fc, initialStencil.get());
+    if (!stencils) {
+      return false;
+    }
+
+    if (stencilsOut) {
+      *stencilsOut = stencils.get();
+      (*stencilsOut)->AddRef();
+    }
+  }
+
+  if (input.options.populateDelazificationCache()) {
+    // NOTE: Delazification can be triggered from off-thread compilation.
+    StartOffThreadDelazification(maybeCx, input.options, stencils.get());
+
+    // When we are trying to validate whether on-demand delazification
+    // generate the same stencil as concurrent delazification, we want to
+    // parse everything eagerly off-thread ahead of re-parsing everything on
+    // demand, to compare the outcome.
+    //
+    // This option works only from main-thread compilation, to avoid
+    // dead-lock.
+    if (input.options.waitForDelazificationCache() && maybeCx) {
+      WaitForAllDelazifyTasks(maybeCx->runtime());
+    }
+  }
+
+  if (gcOutput) {
+    MOZ_ASSERT(maybeCx);
+    if (stencils) {
+      if (!InstantiateStencils(maybeCx, input, *stencils.get(), *gcOutput)) {
+        return false;
+      }
+    } else {
+      MOZ_ASSERT(!initialStencilOut);
+      BorrowingCompilationStencil borrowingStencil(extensibleStencil);
+      if (!InstantiateStencils(maybeCx, input, borrowingStencil, *gcOutput)) {
+        return false;
+      }
+    }
+  }
+
+  return true;
+}
+
 static constexpr ExtraBindingInfoVector* NoExtraBindings = nullptr;
+static constexpr CompilationStencil** NoInitialStencilOut = nullptr;
+static constexpr InitialStencilAndDelazifications** NoStencilsOut = nullptr;
+static constexpr CompilationGCOutput* NoGCOutput = nullptr;
 
 // Compile global script, and return it as one of:
 //   * ExtensibleCompilationStencil (without instantiation)
@@ -260,7 +350,9 @@ template <typename Unit>
     CompilationInput& input, ScopeBindingCache* scopeCache,
     JS::SourceText<Unit>& srcBuf, ScopeKind scopeKind,
     ExtraBindingInfoVector* maybeExtraBindings,
-    BytecodeCompilerOutput& output) {
+    CompilationStencil** initialStencilOut,
+    InitialStencilAndDelazifications** stencilsOut,
+    CompilationGCOutput* gcOutput) {
 #ifdef JS_ENABLE_SMOOSH
   if (maybeCx) {
     UniquePtr<ExtensibleCompilationStencil> extensibleStencil;
@@ -268,35 +360,9 @@ template <typename Unit>
       return false;
     }
     if (extensibleStencil) {
-      if (input.options.populateDelazificationCache()) {
-        BorrowingCompilationStencil borrowingStencil(*extensibleStencil);
-        StartOffThreadDelazification(maybeCx, input.options, borrowingStencil);
-
-        // When we are trying to validate whether on-demand delazification
-        // generate the same stencil as concurrent delazification, we want to
-        // parse everything eagerly off-thread ahead of re-parsing everything on
-        // demand, to compare the outcome.
-        if (input.options.waitForDelazificationCache()) {
-          WaitForAllDelazifyTasks(maybeCx->runtime());
-        }
-      }
-      if (output.is<RefPtr<CompilationStencil>>()) {
-        RefPtr<CompilationStencil> stencil =
-            fc->getAllocator()->new_<frontend::CompilationStencil>(
-                std::move(extensibleStencil));
-        if (!stencil) {
-          return false;
-        }
-
-        output.as<RefPtr<CompilationStencil>>() = std::move(stencil);
-      } else {
-        BorrowingCompilationStencil borrowingStencil(*extensibleStencil);
-        if (!InstantiateStencils(maybeCx, input, borrowingStencil,
-                                 *(output.as<CompilationGCOutput*>()))) {
-          return false;
-        }
-      }
-      return true;
+      return ConvertGlobalScriptStencilMaybeInstantiate(
+          maybeCx, fc, input, std::move(*extensibleStencil), initialStencilOut,
+          stencilsOut, gcOutput);
     }
   }
 #endif  // JS_ENABLE_SMOOSH
@@ -335,52 +401,10 @@ template <typename Unit>
     return false;
   }
 
-  if (input.options.populateDelazificationCache()) {
-    // NOTE: Delazification can be triggered from off-thread compilation.
-    BorrowingCompilationStencil borrowingStencil(compiler.stencil());
-    StartOffThreadDelazification(maybeCx, input.options, borrowingStencil);
-
-    // When we are trying to validate whether on-demand delazification
-    // generate the same stencil as concurrent delazification, we want to
-    // parse everything eagerly off-thread ahead of re-parsing everything on
-    // demand, to compare the outcome.
-    //
-    // This option works only from main-thread compilation, to avoid
-    // dead-lock.
-    if (input.options.waitForDelazificationCache() && maybeCx) {
-      WaitForAllDelazifyTasks(maybeCx->runtime());
-    }
-  }
-
-  if (output.is<RefPtr<CompilationStencil>>()) {
-    Maybe<AutoGeckoProfilerEntry> pseudoFrame;
-    if (maybeCx) {
-      pseudoFrame.emplace(maybeCx, "script emit",
-                          JS::ProfilingCategoryPair::JS_Parsing);
-    }
-
-    auto extensibleStencil =
-        fc->getAllocator()->make_unique<frontend::ExtensibleCompilationStencil>(
-            std::move(compiler.stencil()));
-    if (!extensibleStencil) {
-      return false;
-    }
-
-    RefPtr<CompilationStencil> stencil =
-        fc->getAllocator()->new_<CompilationStencil>(
-            std::move(extensibleStencil));
-    if (!stencil) {
-      return false;
-    }
-
-    output.as<RefPtr<CompilationStencil>>() = std::move(stencil);
-  } else {
-    MOZ_ASSERT(maybeCx);
-    BorrowingCompilationStencil borrowingStencil(compiler.stencil());
-    if (!InstantiateStencils(maybeCx, input, borrowingStencil,
-                             *(output.as<CompilationGCOutput*>()))) {
-      return false;
-    }
+  if (!ConvertGlobalScriptStencilMaybeInstantiate(
+          maybeCx, fc, input, std::move(compiler.stencil()), initialStencilOut,
+          stencilsOut, gcOutput)) {
+    return false;
   }
 
   assertException.reset();
@@ -393,14 +417,13 @@ CompileGlobalScriptToStencilWithInputImpl(
     JSContext* maybeCx, FrontendContext* fc, js::LifoAlloc& tempLifoAlloc,
     CompilationInput& input, ScopeBindingCache* scopeCache,
     JS::SourceText<Unit>& srcBuf, ScopeKind scopeKind) {
-  using OutputType = RefPtr<CompilationStencil>;
-  BytecodeCompilerOutput output((OutputType()));
+  RefPtr<CompilationStencil> stencil;
   if (!CompileGlobalScriptToStencilAndMaybeInstantiate(
           maybeCx, fc, tempLifoAlloc, input, scopeCache, srcBuf, scopeKind,
-          NoExtraBindings, output)) {
+          NoExtraBindings, getter_AddRefs(stencil), NoGCOutput)) {
     return nullptr;
   }
-  return output.as<OutputType>().forget();
+  return stencil.forget();
 }
 
 already_AddRefed<CompilationStencil>
@@ -408,21 +431,14 @@ frontend::CompileGlobalScriptToStencilWithInput(
     JSContext* cx, FrontendContext* fc, js::LifoAlloc& tempLifoAlloc,
     CompilationInput& input, ScopeBindingCache* scopeCache,
     JS::SourceText<Utf8Unit>& srcBuf, ScopeKind scopeKind) {
-  return CompileGlobalScriptToStencilWithInputImpl(
-      cx, fc, tempLifoAlloc, input, scopeCache, srcBuf, scopeKind);
-}
-
-static already_AddRefed<JS::Stencil> CreateInitialStencilAndDelazifications(
-    FrontendContext* fc, CompilationStencil* initial) {
-  RefPtr stencils =
-      fc->getAllocator()->new_<frontend::InitialStencilAndDelazifications>();
-  if (!stencils) {
+  RefPtr<CompilationStencil> stencil;
+  if (!CompileGlobalScriptToStencilAndMaybeInstantiate(
+          cx, fc, tempLifoAlloc, input, scopeCache, srcBuf, scopeKind,
+          NoExtraBindings, getter_AddRefs(stencil), NoStencilsOut,
+          NoGCOutput)) {
     return nullptr;
   }
-  if (!stencils->init(fc, initial)) {
-    return nullptr;
-  }
-  return stencils.forget();
+  return stencil.forget();
 }
 
 template <typename CharT>
@@ -436,14 +452,14 @@ static already_AddRefed<JS::Stencil> CompileGlobalScriptToStencilImpl(
 
   NoScopeBindingCache scopeCache;
   Rooted<CompilationInput> input(cx, CompilationInput(options));
-  RefPtr<CompilationStencil> stencil =
-      CompileGlobalScriptToStencilWithInputImpl(cx, &fc, cx->tempLifoAlloc(),
-                                                input.get(), &scopeCache,
-                                                srcBuf, scopeKind);
-  if (!stencil) {
+  RefPtr<InitialStencilAndDelazifications> stencils;
+  if (!CompileGlobalScriptToStencilAndMaybeInstantiate(
+          cx, &fc, cx->tempLifoAlloc(), input.get(), &scopeCache, srcBuf,
+          scopeKind, NoExtraBindings, NoInitialStencilOut,
+          getter_AddRefs(stencils), NoGCOutput)) {
     return nullptr;
   }
-  return CreateInitialStencilAndDelazifications(&fc, stencil.get());
+  return stencils.forget();
 }
 
 already_AddRefed<JS::Stencil> JS::CompileGlobalScriptToStencil(
@@ -469,11 +485,11 @@ static already_AddRefed<JS::Stencil> CompileGlobalScriptToStencilImpl(
   js::LifoAlloc tempLifoAlloc(JSContext::TEMP_LIFO_ALLOC_PRIMARY_CHUNK_SIZE,
                               js::BackgroundMallocArena);
   CompilationInput compilationInput(options);
-  RefPtr<CompilationStencil> stencil =
-      CompileGlobalScriptToStencilWithInputImpl(nullptr, fc, tempLifoAlloc,
-                                                compilationInput, &scopeCache,
-                                                srcBuf, scopeKind);
-  if (!stencil) {
+  RefPtr<InitialStencilAndDelazifications> stencils;
+  if (!CompileGlobalScriptToStencilAndMaybeInstantiate(
+          nullptr, fc, tempLifoAlloc, compilationInput, &scopeCache, srcBuf,
+          scopeKind, NoExtraBindings, NoInitialStencilOut,
+          getter_AddRefs(stencils), NoGCOutput)) {
     JS_HAZ_VALUE_IS_GC_SAFE(compilationInput);
     return nullptr;
   }
@@ -481,7 +497,7 @@ static already_AddRefed<JS::Stencil> CompileGlobalScriptToStencilImpl(
   // references information from the JS::Stencil context and the
   // ref-counted ScriptSource, which are both GC-free.
   JS_HAZ_VALUE_IS_GC_SAFE(compilationInput);
-  return CreateInitialStencilAndDelazifications(fc, stencil.get());
+  return stencils.forget();
 }
 
 already_AddRefed<JS::Stencil> JS::CompileGlobalScriptToStencil(
@@ -520,8 +536,8 @@ static inline ScriptSource* getSource(
 }
 
 template <typename T>
-bool InstantiateStencils(JSContext* cx, CompilationInput& input,
-                         const T& stencil, CompilationGCOutput& gcOutput) {
+bool InstantiateStencilsImpl(JSContext* cx, CompilationInput& input,
+                             const T& stencil, CompilationGCOutput& gcOutput) {
   {
     AutoGeckoProfilerEntry pseudoFrame(cx, "stencil instantiate",
                                        JS::ProfilingCategoryPair::JS_Parsing);
@@ -546,14 +562,14 @@ bool InstantiateStencils(JSContext* cx, CompilationInput& input,
 bool frontend::InstantiateStencils(JSContext* cx, CompilationInput& input,
                                    const CompilationStencil& stencil,
                                    CompilationGCOutput& gcOutput) {
-  return ::InstantiateStencils(cx, input, stencil, gcOutput);
+  return InstantiateStencilsImpl(cx, input, stencil, gcOutput);
 }
 
 bool frontend::InstantiateStencils(
     JSContext* cx, CompilationInput& input,
     const InitialStencilAndDelazifications& stencils,
     CompilationGCOutput& gcOutput) {
-  return ::InstantiateStencils(cx, input, stencils, gcOutput);
+  return InstantiateStencilsImpl(cx, input, stencils, gcOutput);
 }
 
 template <typename Unit>
@@ -563,11 +579,11 @@ static JSScript* CompileGlobalScriptImpl(
     ScopeKind scopeKind, ExtraBindingInfoVector* maybeExtraBindings) {
   Rooted<CompilationInput> input(cx, CompilationInput(options));
   Rooted<CompilationGCOutput> gcOutput(cx);
-  BytecodeCompilerOutput output(gcOutput.address());
   NoScopeBindingCache scopeCache;
   if (!CompileGlobalScriptToStencilAndMaybeInstantiate(
           cx, fc, cx->tempLifoAlloc(), input.get(), &scopeCache, srcBuf,
-          scopeKind, maybeExtraBindings, output)) {
+          scopeKind, maybeExtraBindings, NoInitialStencilOut, NoStencilsOut,
+          gcOutput.address())) {
     return nullptr;
   }
   return gcOutput.get().script;
