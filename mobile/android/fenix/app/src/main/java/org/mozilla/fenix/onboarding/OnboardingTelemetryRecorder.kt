@@ -113,8 +113,14 @@ class OnboardingTelemetryRecorder {
             }
 
             OnboardingPageUiData.Type.THEME_SELECTION -> {
-                // Todo as part of https://bugzilla.mozilla.org/show_bug.cgi?id=1926955
-                throw NotImplementedError()
+                Onboarding.themeSelectionCard.record(
+                    Onboarding.ThemeSelectionCardExtra(
+                        action = ACTION_IMPRESSION,
+                        elementType = ET_ONBOARDING_CARD,
+                        sequenceId = sequenceId,
+                        sequencePosition = sequencePosition,
+                    ),
+                )
             }
 
             OnboardingPageUiData.Type.TERMS_OF_SERVICE -> {
