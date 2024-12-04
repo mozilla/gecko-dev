@@ -1,5 +1,5 @@
 /*!
- * ONNX Runtime Web v1.20.0-dev.20240827-1d059b8702
+ * ONNX Runtime Web v1.20.1
  * Copyright (c) Microsoft Corporation. All rights reserved.
  * Licensed under the MIT License.
  */
@@ -153,7 +153,7 @@ var version;
 var init_version = __esm({
   "common/dist/esm/version.js"() {
     "use strict";
-    version = "1.20.0-dev.20240827-5d54dc1462";
+    version = "1.20.1";
   }
 });
 
@@ -362,7 +362,7 @@ var init_tensor_conversion_impl = __esm({
 });
 
 // common/dist/esm/tensor-factory-impl.js
-var bufferToTensor, tensorFromImage, tensorFromTexture, tensorFromGpuBuffer, tensorFromPinnedBuffer;
+var bufferToTensor, tensorFromImage, tensorFromTexture, tensorFromGpuBuffer, tensorFromMLTensor, tensorFromPinnedBuffer;
 var init_tensor_factory_impl = __esm({
   "common/dist/esm/tensor-factory-impl.js"() {
     "use strict";
@@ -443,7 +443,7 @@ var init_tensor_factory_impl = __esm({
         }
       };
       const createCanvasContext = (canvas) => {
-        if (canvas instanceof HTMLCanvasElement) {
+        if (typeof HTMLCanvasElement !== "undefined" && canvas instanceof HTMLCanvasElement) {
           return canvas.getContext("2d");
         } else if (canvas instanceof OffscreenCanvas) {
           return canvas.getContext("2d");
@@ -569,6 +569,10 @@ var init_tensor_factory_impl = __esm({
       const { dataType, dims, download, dispose } = options;
       return new Tensor({ location: "gpu-buffer", type: dataType ?? "float32", gpuBuffer, dims, download, dispose });
     };
+    tensorFromMLTensor = (mlTensor, options) => {
+      const { dataType, dims, download, dispose } = options;
+      return new Tensor({ location: "ml-tensor", type: dataType ?? "float32", mlTensor, dims, download, dispose });
+    };
     tensorFromPinnedBuffer = (type, buffer, dims) => new Tensor({ location: "cpu-pinned", type, data: buffer, dims: dims ?? [buffer.length] });
   }
 });
@@ -672,6 +676,13 @@ var init_tensor_utils_impl = __esm({
             type: tensor.type,
             dims
           });
+        case "ml-tensor":
+          return new Tensor({
+            location: "ml-tensor",
+            mlTensor: tensor.mlTensor,
+            type: tensor.type,
+            dims
+          });
         default:
           throw new Error(`tensorReshape: tensor location ${tensor.location} is not supported`);
       }
@@ -730,6 +741,15 @@ var init_tensor_impl = __esm({
               this.disposer = arg0.dispose;
               break;
             }
+            case "ml-tensor": {
+              if (type !== "float32" && type !== "float16" && type !== "int32" && type !== "int64" && type !== "uint32" && type !== "uint64" && type !== "int8" && type !== "uint8" && type !== "bool") {
+                throw new TypeError(`unsupported type "${type}" to create tensor from MLTensor`);
+              }
+              this.mlTensorData = arg0.mlTensor;
+              this.downloader = arg0.download;
+              this.disposer = arg0.dispose;
+              break;
+            }
             default:
               throw new Error(`Tensor constructor: unsupported location '${this.dataLocation}'`);
           }
@@ -759,6 +779,12 @@ var init_tensor_impl = __esm({
                 }
               } else if (arg1 instanceof typedArrayConstructor) {
                 data = arg1;
+              } else if (arg1 instanceof Uint8ClampedArray) {
+                if (arg0 === "uint8") {
+                  data = Uint8Array.from(arg1);
+                } else {
+                  throw new TypeError(`A Uint8ClampedArray tensor's data must be type of uint8`);
+                }
               } else {
                 throw new TypeError(`A ${type} tensor's data must be type of ${typedArrayConstructor}`);
               }
@@ -779,6 +805,9 @@ var init_tensor_impl = __esm({
               } else {
                 throw new TypeError(`Invalid element type of data array: ${firstElementType}.`);
               }
+            } else if (arg0 instanceof Uint8ClampedArray) {
+              type = "uint8";
+              data = Uint8Array.from(arg0);
             } else {
               const mappedType = NUMERIC_TENSOR_TYPEDARRAY_TO_TYPE_MAP.get(arg0.constructor);
               if (mappedType === void 0) {
@@ -819,6 +848,9 @@ var init_tensor_impl = __esm({
       static fromGpuBuffer(gpuBuffer, options) {
         return tensorFromGpuBuffer(gpuBuffer, options);
       }
+      static fromMLTensor(mlTensor, options) {
+        return tensorFromMLTensor(mlTensor, options);
+      }
       static fromPinnedBuffer(type, buffer, dims) {
         return tensorFromPinnedBuffer(type, buffer, dims);
       }
@@ -856,6 +888,13 @@ var init_tensor_impl = __esm({
         }
         return this.gpuBufferData;
       }
+      get mlTensor() {
+        this.ensureValid();
+        if (!this.mlTensorData) {
+          throw new Error("The data is not stored as a WebNN MLTensor.");
+        }
+        return this.mlTensorData;
+      }
       // #endregion
       // #region methods
       async getData(releaseData) {
@@ -865,7 +904,8 @@ var init_tensor_impl = __esm({
           case "cpu-pinned":
             return this.data;
           case "texture":
-          case "gpu-buffer": {
+          case "gpu-buffer":
+          case "ml-tensor": {
             if (!this.downloader) {
               throw new Error("The current tensor is not created with a specified data downloader.");
             }
@@ -902,6 +942,7 @@ var init_tensor_impl = __esm({
         this.cpuData = void 0;
         this.gpuTextureData = void 0;
         this.gpuBufferData = void 0;
+        this.mlTensorData = void 0;
         this.downloader = void 0;
         this.isDownloading = void 0;
         this.dataLocation = "none";
@@ -1597,13 +1638,13 @@ var init_wasm_utils_import = __esm({
     };
     embeddedWasmModule = false ? (
       // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
-      (false ? null : true ? null : null).default
+      (true ? null : null).default
     ) : void 0;
     importWasmModule = async (urlOverride, prefixOverride, isMultiThreaded) => {
       if (false) {
         return [void 0, embeddedWasmModule];
       } else {
-        const wasmModuleFilename = false ? "ort-training-wasm-simd-threaded.mjs" : true ? "ort-wasm-simd-threaded.jsep.mjs" : "ort-wasm-simd-threaded.mjs";
+        const wasmModuleFilename = true ? "ort-wasm-simd-threaded.jsep.mjs" : "ort-wasm-simd-threaded.mjs";
         const wasmModuleUrl = urlOverride ?? normalizeUrl(wasmModuleFilename, prefixOverride);
         const needPreload = !isNode && isMultiThreaded && wasmModuleUrl && !isSameOrigin(wasmModuleUrl, prefixOverride);
         const url = needPreload ? await preload(wasmModuleUrl) : wasmModuleUrl ?? fallbackUrl(wasmModuleFilename, prefixOverride);
@@ -2120,7 +2161,7 @@ var init_session_options = __esm({
 });
 
 // web/lib/wasm/wasm-common.ts
-var tensorDataTypeStringToEnum, tensorDataTypeEnumToString, calculateTensorSizeInBytes, tensorTypeToTypedArrayConstructor, logLevelStringToEnum, isGpuBufferSupportedType, dataLocationStringToEnum;
+var tensorDataTypeStringToEnum, tensorDataTypeEnumToString, calculateTensorSizeInBytes, tensorTypeToTypedArrayConstructor, logLevelStringToEnum, isGpuBufferSupportedType, isMLTensorSupportedType, dataLocationStringToEnum;
 var init_wasm_common = __esm({
   "web/lib/wasm/wasm-common.ts"() {
     "use strict";
@@ -2295,6 +2336,7 @@ var init_wasm_common = __esm({
       }
     };
     isGpuBufferSupportedType = (type) => type === "float32" || type === "float16" || type === "int32" || type === "int64" || type === "uint32" || type === "uint8" || type === "bool" || type === "uint4" || type === "int4";
+    isMLTensorSupportedType = (type) => type === "float32" || type === "float16" || type === "int32" || type === "int64" || type === "uint32" || type === "uint64" || type === "int8" || type === "uint8" || type === "bool";
     dataLocationStringToEnum = (location2) => {
       switch (location2) {
         case "none":
@@ -2307,6 +2349,8 @@ var init_wasm_common = __esm({
           return 3;
         case "gpu-buffer":
           return 4;
+        case "ml-tensor":
+          return 5;
         default:
           throw new Error(`unsupported data location: ${location2}`);
       }
@@ -2522,7 +2566,6 @@ var init_gpu_data_manager = __esm({
         this.freeUniformBuffers = /* @__PURE__ */ new Map();
         this.buffersForUploadingPending = [];
         this.buffersPending = [];
-        this.externalBuffers = /* @__PURE__ */ new Map();
         this.capturedPendingBuffers = /* @__PURE__ */ new Map();
         for (const [key] of bucketFreelist) {
           bucketArr.push(key);
@@ -2578,14 +2621,11 @@ var init_gpu_data_manager = __esm({
           size
         );
       }
-      registerExternalBuffer(buffer, originalSize, previousBuffer) {
+      registerExternalBuffer(buffer, originalSize, previous) {
         let id;
-        if (previousBuffer) {
-          id = this.externalBuffers.get(previousBuffer);
-          if (id === void 0) {
-            throw new Error("previous buffer is not registered");
-          }
-          if (buffer === previousBuffer) {
+        if (previous) {
+          id = previous[0];
+          if (buffer === previous[1]) {
             LOG_DEBUG(
               "verbose",
               () => `[WebGPU] GpuDataManager.registerExternalBuffer(size=${originalSize}) => id=${id}, buffer is the same, skip.`
@@ -2595,23 +2635,19 @@ var init_gpu_data_manager = __esm({
             throw new Error(`Registering a different external buffer under graph capture mode is not supported yet.
              Please use the previous external buffer!`);
           }
-          this.externalBuffers.delete(previousBuffer);
         } else {
           id = createNewGpuDataId();
         }
         this.storageCache.set(id, { gpuData: { id, type: 0 /* default */, buffer }, originalSize });
-        this.externalBuffers.set(buffer, id);
         LOG_DEBUG(
           "verbose",
           () => `[WebGPU] GpuDataManager.registerExternalBuffer(size=${originalSize}) => id=${id}, registered.`
         );
         return id;
       }
-      unregisterExternalBuffer(buffer) {
-        const id = this.externalBuffers.get(buffer);
+      unregisterExternalBuffer(id) {
         if (id !== void 0) {
           this.storageCache.delete(id);
-          this.externalBuffers.delete(buffer);
           LOG_DEBUG("verbose", () => `[WebGPU] GpuDataManager.unregisterExternalBuffer() => id=${id}`);
         }
       }
@@ -3608,13 +3644,16 @@ var init_common = __esm({
         const is1DimensionDispatch = this.normalizedDispatchGroup[1] === 1 && this.normalizedDispatchGroup[2] === 1;
         const paramList = is1DimensionDispatch ? `@builtin(global_invocation_id) global_id : vec3<u32>,
     @builtin(workgroup_id) workgroup_id : vec3<u32>,
+    @builtin(local_invocation_index) local_idx : u32,
     @builtin(local_invocation_id) local_id : vec3<u32>` : `@builtin(global_invocation_id) global_id : vec3<u32>,
                                              @builtin(local_invocation_id) local_id : vec3<u32>,
     @builtin(local_invocation_index) local_idx : u32,
     @builtin(workgroup_id) workgroup_id : vec3<u32>,
     @builtin(num_workgroups) num_workgroups : vec3<u32>`;
-        const globalIdxDefinition = is1DimensionDispatch ? "let global_idx = global_id.x; let local_idx = local_id.x;" : `let global_idx = (workgroup_id.z * num_workgroups[0] * num_workgroups[1] +
-          workgroup_id.y * num_workgroups[0] + workgroup_id.x) * ${workgroupSizeX * workgroupSizeY * workgroupSizeZ}u + local_idx;`;
+        const globalIdxDefinition = is1DimensionDispatch ? `let global_idx = global_id.x;
+         let workgroup_index = workgroup_id.x;` : `let workgroup_index = workgroup_id.z * num_workgroups[0] * num_workgroups[1] +
+             workgroup_id.y * num_workgroups[0] + workgroup_id.x;
+         let global_idx = workgroup_index * ${workgroupSizeX * workgroupSizeY * workgroupSizeZ}u + local_idx;`;
         return `@compute @workgroup_size(${workgroupSizeX}, ${workgroupSizeY}, ${workgroupSizeZ})
   fn main(${paramList}) {
     ${globalIdxDefinition}
@@ -3720,7 +3759,7 @@ var init_common = __esm({
 });
 
 // web/lib/wasm/jsep/webgpu/ops/transpose.ts
-var validateInputs, getAdjustedPerm, getOutputShape, permFunctionBody, createTransposeProgramInfo, transpose, parseTransposeAttributes;
+var validateInputs, getAdjustedPerm, getOutputShape, permFunctionBody, squeezeShape, createTransposeProgramInfo, transpose, parseTransposeAttributes;
 var init_transpose = __esm({
   "web/lib/wasm/jsep/webgpu/ops/transpose.ts"() {
     "use strict";
@@ -3736,42 +3775,64 @@ var init_transpose = __esm({
     getAdjustedPerm = (inputRank, perm) => perm && perm.length !== inputRank ? [...new Array(inputRank).keys()].reverse() : perm;
     getOutputShape = (inputShape, perm) => ShapeUtil.sortBasedOnPerm(inputShape, getAdjustedPerm(inputShape.length, perm));
     permFunctionBody = (perm, rank, input, output) => {
-      const reverseFunc = [];
-      reverseFunc.push(`fn perm(i: ${output.type.indices}) -> ${input.type.indices} {
-    var a: ${input.type.indices};`);
+      let reverseFunc = `fn perm(i: ${output.type.indices}) -> ${input.type.indices} {
+    var a: ${input.type.indices};`;
       for (let i = 0; i < rank; ++i) {
-        reverseFunc.push(input.indicesSet("a", perm[i], `i[${i}]`));
+        reverseFunc += input.indicesSet("a", perm[i], `i[${i}]`);
       }
-      reverseFunc.push("return a;}");
-      return reverseFunc.join("\n");
+      return reverseFunc += "return a;}";
+    };
+    squeezeShape = (shape, adjustedPerm) => {
+      const newShape = [];
+      const newPerm = [];
+      for (let i = 0; i < shape.length; ++i) {
+        if (shape[i] !== 1) {
+          newShape.push(shape[i]);
+        }
+        if (shape[adjustedPerm[i]] !== 1) {
+          newPerm.push(adjustedPerm[i]);
+        }
+      }
+      return { newShape, newPerm };
     };
     createTransposeProgramInfo = (inputTensor, permAttr) => {
       const inputDataType = inputTensor.dataType;
       const inputRank = inputTensor.dims.length;
       const perm = getAdjustedPerm(inputRank, permAttr);
       const outputShape = getOutputShape(inputTensor.dims, perm);
-      const output = outputVariable("output", inputDataType, outputShape.length);
-      const input = inputVariable("a", inputDataType, inputRank);
+      const { newShape, newPerm } = squeezeShape(inputTensor.dims, perm);
+      const channelsLast = ShapeUtil.areEqual(newPerm, [2, 3, 1]);
+      const channelsFirst = ShapeUtil.areEqual(newPerm, [3, 1, 2]);
+      const useShared = newShape.length === 2 && newPerm[0] > newPerm[1] || channelsLast || channelsFirst;
+      let newInputShape = useShared ? newShape : inputTensor.dims;
+      let newOutputShape = outputShape;
+      if (useShared) {
+        newInputShape = channelsLast ? [newShape[0], newShape[1] * newShape[2]] : channelsFirst ? [newShape[0] * newShape[1], newShape[2]] : newShape;
+        newOutputShape = [newInputShape[1], newInputShape[0]];
+      }
+      const input = inputVariable("a", inputDataType, newInputShape.length);
+      const output = outputVariable("output", inputDataType, newOutputShape.length);
+      const tileSize = 16;
       let getShaderSource;
-      if (perm.length === 2 && perm[0] === 1 && perm[1] === 0) {
-        const wgslType = output.type.value;
-        const workgroupSize = [16, 16, 1];
+      if (useShared) {
         getShaderSource = (shaderHelper) => `
   ${shaderHelper.registerUniform("output_size", "u32").declareVariables(input, output)}
-  var<workgroup> tile : array<array<${wgslType}, ${workgroupSize[0] + 1}>, ${workgroupSize[0]}>;
-  ${shaderHelper.mainStart(workgroupSize)}
-    var x = workgroup_id.x * ${workgroupSize[0]}u + local_id.x;
-    var y = workgroup_id.y * ${workgroupSize[0]}u + local_id.y;
-    let width = uniforms.output_shape[0];
-    let height = uniforms.output_shape[1];
-    if (x < width && y < height) {
-      tile[local_id.y][local_id.x] = ${input.getByOffset("y * width + x")};
+  var<workgroup> tile : array<array<${output.type.value}, ${tileSize + 1}>, ${tileSize}>;
+  ${shaderHelper.mainStart([tileSize, tileSize, 1])}
+    let stride = (uniforms.output_shape[1] - 1) / ${tileSize} + 1;
+    let workgroup_id_x = workgroup_index % stride;
+    let workgroup_id_y = workgroup_index / stride;
+    let input_col = workgroup_id_y * ${tileSize}u + local_id.x;
+    let input_row = workgroup_id_x * ${tileSize}u + local_id.y;
+    if (input_row < uniforms.a_shape[0] && input_col < uniforms.a_shape[1]) {
+      tile[local_id.y][local_id.x] = ${input.getByIndices(`${input.type.indices}(input_row, input_col)`)};
     }
     workgroupBarrier();
-    x = workgroup_id.y * ${workgroupSize[0]}u + local_id.x;
-    y = workgroup_id.x * ${workgroupSize[0]}u + local_id.y;
-    if (x < height && y < width) {
-      ${output.setByOffset("y * height + x", "tile[local_id.x][local_id.y]")}
+
+    let output_col = workgroup_id_x * ${tileSize}u + local_id.x;
+    let output_row = workgroup_id_y * ${tileSize}u + local_id.y;
+    if (output_row < uniforms.output_shape[0] && output_col < uniforms.output_shape[1]) {
+      ${output.setByIndices(`${output.type.indices}(output_row, output_col)`, "tile[local_id.x][local_id.y]")}
     }
   }`;
       } else {
@@ -3790,19 +3851,19 @@ var init_transpose = __esm({
   }`;
       }
       return {
-        name: "Transpose",
+        name: useShared ? "TransposeShared" : "Transpose",
         shaderCache: { hint: `${permAttr}`, inputDependencies: ["rank"] },
         getRunData: () => {
           const outputSize = ShapeUtil.size(outputShape);
           return {
             outputs: [{ dims: outputShape, dataType: inputTensor.dataType }],
-            dispatchGroup: { x: Math.ceil(
+            dispatchGroup: useShared ? { x: Math.ceil(newOutputShape[1] / tileSize), y: Math.ceil(newOutputShape[0] / tileSize) } : { x: Math.ceil(
               outputSize / 64
               /* workgroup size */
             ) },
             programUniforms: [
               { type: 12 /* uint32 */, data: outputSize },
-              ...createTensorShapeVariables(inputTensor.dims, outputShape)
+              ...createTensorShapeVariables(newInputShape, newOutputShape)
             ]
           };
         },
@@ -5325,7 +5386,7 @@ var init_unary_op = __esm({
     init_util();
     init_attribute_with_cache_key();
     init_common();
-    createElementwiseProgramShader = (shaderHelper, datasize, inputDataType, outputDataType, funcCall, additionalImplementation) => {
+    createElementwiseProgramShader = (shaderHelper, datasize, inputDataType, outputDataType, funcCall, additionalImplementation, additionalUniformsType) => {
       const vecSize = Math.ceil(datasize / 4);
       let expression = "";
       if (typeof funcCall === "string") {
@@ -5335,8 +5396,12 @@ var init_unary_op = __esm({
       }
       const input = inputVariable("inputData", inputDataType, [vecSize], 4);
       const output = outputVariable("outputData", outputDataType, [vecSize], 4);
+      const uniforms = [{ name: "vec_size", type: "u32" }];
+      if (additionalUniformsType) {
+        uniforms.push(...additionalUniformsType);
+      }
       return `
-      ${shaderHelper.registerUniform("vec_size", "u32").declareVariables(input, output)}
+      ${shaderHelper.registerUniforms(uniforms).declareVariables(input, output)}
 
   ${additionalImplementation ?? ""}
 
@@ -5347,26 +5412,37 @@ var init_unary_op = __esm({
     ${output.setByOffset("global_idx", expression)}
   }`;
     };
-    createElementwiseProgramInfo = (input, name, funcCall, additionalImplementation, cacheKey, outputDataType = input.dataType) => ({
-      name,
-      shaderCache: { hint: cacheKey, inputDependencies: ["type"] },
-      getShaderSource: (shaderHelper) => createElementwiseProgramShader(
-        shaderHelper,
-        ShapeUtil.size(input.dims),
-        input.dataType,
-        outputDataType,
-        funcCall,
-        additionalImplementation
-      ),
-      getRunData: (inputTensors) => ({
-        outputs: [{ dims: input.dims, dataType: outputDataType }],
-        dispatchGroup: { x: Math.ceil(
-          ShapeUtil.size(inputTensors[0].dims) / 64 / 4
-          /* vec size */
-        ) },
-        programUniforms: [{ type: 12 /* uint32 */, data: Math.ceil(ShapeUtil.size(input.dims) / 4) }]
-      })
-    });
+    createElementwiseProgramInfo = (input, name, funcCall, additionalImplementation, cacheKey, outputDataType = input.dataType, additionalUniforms, additionalUniformsType) => {
+      const programUniforms = [
+        { type: 12 /* uint32 */, data: Math.ceil(ShapeUtil.size(input.dims) / 4) }
+      ];
+      if (additionalUniforms) {
+        programUniforms.push(...additionalUniforms);
+      }
+      return {
+        name,
+        shaderCache: { hint: cacheKey, inputDependencies: ["type"] },
+        getShaderSource: (shaderHelper) => createElementwiseProgramShader(
+          shaderHelper,
+          ShapeUtil.size(input.dims),
+          input.dataType,
+          outputDataType,
+          funcCall,
+          additionalImplementation,
+          additionalUniformsType
+        ),
+        getRunData: (inputTensors) => ({
+          outputs: [{ dims: input.dims, dataType: outputDataType }],
+          dispatchGroup: {
+            x: Math.ceil(
+              ShapeUtil.size(inputTensors[0].dims) / 64 / 4
+              /* vec size */
+            )
+          },
+          programUniforms
+        })
+      };
+    };
     abs = (context) => {
       context.compute(createElementwiseProgramInfo(context.inputs[0], "Abs", "abs"));
     };
@@ -5415,23 +5491,43 @@ var init_unary_op = __esm({
       );
     };
     generateClipAttributesFromInputs = (inputs) => {
-      const min = inputs.length >= 2 && inputs[1].data !== 0 ? inputs[1].getFloat32Array()[0] : MIN_CLIP;
-      const max = inputs.length >= 3 && inputs[2].data !== 0 ? inputs[2].getFloat32Array()[0] : MAX_CLIP;
+      let min;
+      let max;
+      const hasMin = inputs.length >= 2 && inputs[1].data !== 0;
+      const hasMax = inputs.length >= 3 && inputs[2].data !== 0;
+      switch (inputs[0].dataType) {
+        case 1 /* float */:
+          min = hasMin ? inputs[1].getFloat32Array()[0] : -34028234663852886e22;
+          max = hasMax ? inputs[2].getFloat32Array()[0] : 34028234663852886e22;
+          break;
+        case 10 /* float16 */:
+          min = hasMin ? inputs[1].getUint16Array()[0] : 64511;
+          max = hasMax ? inputs[2].getUint16Array()[0] : 31743;
+          break;
+        default:
+          throw new Error("Unsupport data type");
+      }
       return createAttributeWithCacheKey({ min, max });
     };
     clip = (context, clipAttributes) => {
-      const attributes = context.inputs.length === 1 ? clipAttributes : generateClipAttributesFromInputs(context.inputs);
+      const attributes = clipAttributes ? clipAttributes : generateClipAttributesFromInputs(context.inputs);
       const dataType = tensorTypeToWsglValueType(context.inputs[0].dataType);
       context.compute(
         createElementwiseProgramInfo(
           context.inputs[0],
           "Clip",
-          (a) => `clamp(${a}, clip_min_, clip_max_)`,
-          `
-    const clip_min_: vec4<${dataType}> = vec4(${dataType}(${attributes.min}));
-    const clip_max_: vec4<${dataType}> = vec4(${dataType}(${attributes.max}));
-`,
-          attributes.cacheKey
+          (a) => `clamp(${a}, vec4<${dataType}>(uniforms.min), vec4<${dataType}>(uniforms.max))`,
+          void 0,
+          attributes.cacheKey,
+          void 0,
+          [
+            { type: context.inputs[0].dataType, data: attributes.min },
+            { type: context.inputs[0].dataType, data: attributes.max }
+          ],
+          [
+            { name: "min", type: dataType },
+            { name: "max", type: dataType }
+          ]
         ),
         { inputs: [0] }
       );
@@ -7297,24 +7393,17 @@ var init_conv_grouped = __esm({
     init_wasm_common();
     init_util();
     init_common();
-    init_conv();
     init_fuse_utils();
-    createGroupedConvProgramInfo = (inputs, attributes, squeezeOutputShapeFunction) => {
+    createGroupedConvProgramInfo = (inputs, attributes, outputShape, squeezeOutputShapeFunction) => {
       const hasBias = inputs.length > 2;
       const processBias = hasBias ? "value += b[output_channel];" : "";
       const xShape = inputs[0].dims;
       const wShape = inputs[1].dims;
-      const outputChannelsPerGroup = wShape[0] / attributes.group;
       const isChannelLast = attributes.format === "NHWC";
-      const outputShape = calculateOutputShape(
-        xShape,
-        wShape,
-        attributes.dilations,
-        attributes.pads,
-        attributes.strides,
-        isChannelLast
-      );
-      const outputSize = ShapeUtil.size(outputShape);
+      const outputChannels = isChannelLast ? outputShape[3] : outputShape[1];
+      const outputChannelsPerGroup = outputChannels / attributes.group;
+      const components = isChannelLast && outputChannelsPerGroup >= 4 ? getMaxComponents(outputChannels) : 1;
+      const outputSize = ShapeUtil.size(outputShape) / components;
       const programUniforms = [
         { type: 12 /* uint32 */, data: outputSize },
         { type: 12 /* uint32 */, data: attributes.dilations },
@@ -7323,22 +7412,22 @@ var init_conv_grouped = __esm({
         { type: 12 /* uint32 */, data: outputChannelsPerGroup }
       ];
       appendActivationUniformsData(attributes, programUniforms);
-      programUniforms.push(...createTensorShapeVariables(xShape, wShape));
-      const inputDependencies = ["rank", "rank"];
-      if (hasBias) {
-        programUniforms.push(...createTensorShapeVariables(inputs[2].dims));
-        inputDependencies.push("rank");
-      }
-      programUniforms.push(...createTensorShapeVariables(outputShape));
+      programUniforms.push(
+        ...createTensorShapeVariables(xShape, [wShape[0], wShape[1], wShape[2], wShape[3] / components])
+      );
+      const inputDependencies = hasBias ? ["rank", "rank", "rank"] : ["rank", "rank"];
+      programUniforms.push(
+        ...createTensorShapeVariables([outputShape[0], outputShape[1], outputShape[2], outputShape[3] / components])
+      );
       const getShaderSource = (shaderHelper) => {
-        const output = outputVariable("output", inputs[0].dataType, outputShape.length);
+        const output = outputVariable("output", inputs[0].dataType, outputShape.length, components);
         const baseType = tensorTypeToWsglStorageType(output.type.tensor);
         const applyActivation = getActivationSnippet(attributes, output.type.value, baseType);
         const x = inputVariable("x", inputs[0].dataType, xShape.length);
-        const w = inputVariable("w", inputs[1].dataType, wShape.length);
+        const w = inputVariable("w", inputs[1].dataType, wShape.length, components);
         const inputVars = [x, w];
         if (hasBias) {
-          inputVars.push(inputVariable("b", inputs[2].dataType, inputs[2].dims.length));
+          inputVars.push(inputVariable("b", inputs[2].dataType, inputs[2].dims, components));
         }
         const uniforms = [
           { name: "output_size", type: "u32" },
@@ -7348,6 +7437,51 @@ var init_conv_grouped = __esm({
           { name: "output_channels_per_group", type: "u32" }
         ];
         appendActivationUniforms(attributes, uniforms);
+        const calculateResult = isChannelLast ? `
+      for (var wHeight: u32 = 0u; wHeight < uniforms.w_shape[0]; wHeight++) {
+        let xHeight = xRCCorner.x + wHeight * uniforms.dilations[0];
+
+        if (xHeight < 0u || xHeight >= uniforms.x_shape[1]) {
+          continue;
+        }
+
+        for (var wWidth: u32 = 0u; wWidth < uniforms.w_shape[1]; wWidth++) {
+          let xWidth = xRCCorner.y + wWidth * uniforms.dilations[1];
+          if (xWidth < 0u || xWidth >= uniforms.x_shape[2]) {
+            continue;
+          }
+
+          for (var wInChannel: u32 = 0u; wInChannel < uniforms.w_shape[2]; wInChannel++) {
+            let input_channel = in_channel_offset + wInChannel;
+            let xVal = ${x.get("batch", "xHeight", "xWidth", "input_channel")};
+            let wVal = ${w.get("wHeight", "wWidth", "wInChannel", "output_channel")};
+            value += xVal * wVal;
+          }
+        }
+      }
+      ` : `
+      for (var wInChannel: u32 = 0u; wInChannel < uniforms.w_shape[1]; wInChannel++) {
+        let input_channel = in_channel_offset + wInChannel;
+        for (var wHeight: u32 = 0u; wHeight < uniforms.w_shape[2]; wHeight++) {
+          let xHeight = xRCCorner.x + wHeight * uniforms.dilations[0];
+
+          if (xHeight < 0u || xHeight >= uniforms.x_shape[2]) {
+            continue;
+          }
+
+          for (var wWidth: u32 = 0u; wWidth < uniforms.w_shape[3]; wWidth++) {
+            let xWidth = xRCCorner.y + wWidth * uniforms.dilations[1];
+            if (xWidth < 0u || xWidth >= uniforms.x_shape[3]) {
+              continue;
+            }
+
+            let xVal = ${x.get("batch", "input_channel", "xHeight", "xWidth")};
+            let wVal = ${w.get("output_channel", "wInChannel", "wHeight", "wWidth")};
+            value += xVal * wVal;
+          }
+        }
+      }
+      `;
         return `
   ${shaderHelper.registerUniforms(uniforms).declareVariables(...inputVars, output)}
 
@@ -7358,30 +7492,11 @@ var init_conv_grouped = __esm({
     let batch: u32 = outputIndices[0];
     let output_channel: u32 = outputIndices[${isChannelLast ? 3 : 1}];
     let xRCCorner: vec2<u32> = vec2<u32>(outputIndices[${isChannelLast ? 1 : 2}], outputIndices[${isChannelLast ? 2 : 3}]) * uniforms.strides - uniforms.pads;
-    let group_id: u32 = output_channel / uniforms.output_channels_per_group;
+    let group_id: u32 = output_channel * ${components} / uniforms.output_channels_per_group;
+    var in_channel_offset = group_id * uniforms.w_shape[${isChannelLast ? 2 : 1}];
 
     var value: ${output.type.value} = ${output.type.value}(0);
-    for (var wInChannel: u32 = 0u; wInChannel < uniforms.w_shape[1]; wInChannel++) {
-      let input_channel = group_id * uniforms.w_shape[1] + wInChannel;
-      for (var wHeight: u32 = 0u; wHeight < uniforms.w_shape[2]; wHeight++) {
-        let xHeight = xRCCorner.x + wHeight * uniforms.dilations[0];
-
-        if (xHeight < 0u || xHeight >= uniforms.x_shape[${isChannelLast ? 1 : 2}]) {
-          continue;
-        }
-
-        for (var wWidth: u32 = 0u; wWidth < uniforms.w_shape[3]; wWidth++) {
-          let xWidth = xRCCorner.y + wWidth * uniforms.dilations[1];
-          if (xWidth < 0u || xWidth >= uniforms.x_shape[${isChannelLast ? 2 : 3}]) {
-            continue;
-          }
-
-          let xVal = ${isChannelLast ? x.get("batch", "xHeight", "xWidth", "input_channel") : x.get("batch", "input_channel", "xHeight", "xWidth")};
-          let wVal = ${w.get("output_channel", "wInChannel", "wHeight", "wWidth")};
-          value += xVal*wVal;
-        }
-      }
-    }
+    ${calculateResult}
     ${processBias}
     ${applyActivation}
     ${output.setByOffset("global_idx", "value")}
@@ -7389,7 +7504,7 @@ var init_conv_grouped = __esm({
       };
       return {
         name: "GroupedConv",
-        shaderCache: { hint: attributes.cacheKey, inputDependencies },
+        shaderCache: { hint: `${attributes.cacheKey}_${components}`, inputDependencies },
         getRunData: () => ({
           outputs: [
             {
@@ -7748,6 +7863,9 @@ var init_conv = __esm({
     };
     getAdjustedConvAttributes = (attributes, inputs) => {
       const kernelShape = attributes.kernelShape.slice();
+      if (kernelShape.length < inputs[1].dims.length - 2) {
+        kernelShape.push(...Array(inputs[1].dims.length - 2 - kernelShape.length).fill(0));
+      }
       for (let i = 2; i < inputs[1].dims.length; ++i) {
         if (kernelShape[i - 2] === 0) {
           kernelShape[i - 2] = inputs[1].dims[i];
@@ -7792,17 +7910,17 @@ var init_conv = __esm({
     };
     conv2d = (context, inputs, attributes, squeezeOutputShapeFunction) => {
       const isChannelsLast = attributes.format === "NHWC";
+      const outputShape = calculateOutputShape(
+        inputs[0].dims,
+        inputs[1].dims,
+        attributes.dilations,
+        attributes.pads,
+        attributes.strides,
+        isChannelsLast
+      );
       if (attributes.group !== 1) {
-        const enableGroupedConvVectorize = !context.adapterInfo.isArchitecture("ampere");
-        if (enableGroupedConvVectorize && isChannelsLast && inputs[1].dims[0] === attributes.group && inputs[1].dims[1] === 1 && attributes.dilations[0] === 1 && attributes.dilations[1] === 1) {
-          const outputShape2 = calculateOutputShape(
-            inputs[0].dims,
-            inputs[1].dims,
-            attributes.dilations,
-            attributes.pads,
-            attributes.strides,
-            isChannelsLast
-          );
+        const convInputs2 = [inputs[0]];
+        if (isChannelsLast) {
           const transposedWeight2 = context.kernelCustomData.wT ?? context.compute(createTransposeProgramInfo(inputs[1], weightTransposeAttribute), {
             inputs: [1],
             outputs: [attributes.wIsConst ? -2 : -1]
@@ -7810,16 +7928,23 @@ var init_conv = __esm({
           if (attributes.wIsConst && !context.kernelCustomData.wT) {
             context.kernelCustomData.wT = transposedWeight2;
           }
-          const convInputs2 = [inputs[0], transposedWeight2];
-          if (inputs.length === 3) {
-            convInputs2.push(inputs[2]);
-          }
+          convInputs2.push(transposedWeight2);
+        } else {
+          convInputs2.push(inputs[1]);
+        }
+        if (inputs.length === 3) {
+          convInputs2.push(inputs[2]);
+        }
+        const enableGroupedConvVectorize = !context.adapterInfo.isArchitecture("ampere");
+        if (enableGroupedConvVectorize && isChannelsLast && inputs[1].dims[0] === attributes.group && inputs[1].dims[1] === 1 && attributes.dilations[0] === 1 && attributes.dilations[1] === 1) {
           context.compute(
-            createGroupedConvVectorizeProgramInfo(convInputs2, attributes, outputShape2, squeezeOutputShapeFunction),
+            createGroupedConvVectorizeProgramInfo(convInputs2, attributes, outputShape, squeezeOutputShapeFunction),
             { inputs: convInputs2 }
           );
         } else {
-          context.compute(createGroupedConvProgramInfo(inputs, attributes, squeezeOutputShapeFunction));
+          context.compute(createGroupedConvProgramInfo(convInputs2, attributes, outputShape, squeezeOutputShapeFunction), {
+            inputs: convInputs2
+          });
         }
         return;
       }
@@ -7829,14 +7954,6 @@ var init_conv = __esm({
       const inputChannels = inputs[0].dims[isChannelsLast ? 3 : 1];
       const weightHeight = inputs[1].dims[2];
       const weightWidth = inputs[1].dims[3];
-      const outputShape = calculateOutputShape(
-        inputs[0].dims,
-        inputs[1].dims,
-        attributes.dilations,
-        attributes.pads,
-        attributes.strides,
-        isChannelsLast
-      );
       const outHeight = outputShape[isChannelsLast ? 1 : 2];
       const outWidth = outputShape[isChannelsLast ? 2 : 3];
       const outChannels = outputShape[isChannelsLast ? 3 : 1];
@@ -8542,10 +8659,8 @@ var init_conv_transpose = __esm({
     calculateOutputShapeAndPads = (inputShape, kernelShape, dilations, autoPad, group, pads, strides, isChannelLast, outputPadding, outputShape) => {
       const spatialRank = inputShape.length - 2;
       const updateOutputShape = outputShape.length === 0;
-      if (outputPadding.length === 0) {
-        for (let i = 0; i < spatialRank; ++i) {
-          outputPadding.push(0);
-        }
+      if (outputPadding.length < spatialRank) {
+        outputPadding.push(...Array(spatialRank - outputPadding.length).fill(0));
       }
       const batchSize = inputShape[0];
       const outChannels = kernelShape[isChannelLast ? 3 : 1] * group;
@@ -10096,6 +10211,9 @@ var init_multihead_attention = __esm({
         if (input.dims.length === 3) {
           reshapedInput = input.reshape([batchSize, sequenceLength, numHeads, headSize]);
         }
+        if (numHeads === 1 || sequenceLength === 1) {
+          return reshapedInput;
+        }
         return context.compute(createTransposeProgramInfo(reshapedInput, weightTransposeAttribute2.perm), {
           inputs: [reshapedInput],
           outputs: [-1]
@@ -10114,6 +10232,9 @@ var init_multihead_attention = __esm({
             biasOffset
           );
           reshapedInput = reshapedInput.reshape([batchSize, sequenceLength, numHeads, headSize]);
+          if (numHeads === 1 || sequenceLength === 1) {
+            return reshapedInput;
+          }
           return context.compute(createTransposeProgramInfo(reshapedInput, weightTransposeAttribute2.perm), {
             inputs: [reshapedInput],
             outputs: [-1]
@@ -10573,209 +10694,65 @@ var init_group_query_attention = __esm({
 });
 
 // web/lib/wasm/jsep/webgpu/ops/instance-norm.ts
-var createInstanceNormProgramInfo, computeMean, createInstanceNormNHWCProgramInfo, instanceNorm;
+var computeChannelScaleShift, createInstanceNormProgramInfo, createInstanceNormNHWCProgramInfo, instanceNorm;
 var init_instance_norm = __esm({
   "web/lib/wasm/jsep/webgpu/ops/instance-norm.ts"() {
     "use strict";
     init_wasm_common();
     init_util();
+    init_transpose();
     init_common();
-    createInstanceNormProgramInfo = (inputs, attributes) => {
-      const xShape = inputs[0].dims;
-      const outputShape = xShape;
-      const axis = 2;
-      const normCount = ShapeUtil.sizeToDimension(xShape, axis);
-      const normSize = ShapeUtil.sizeFromDimension(xShape, axis);
-      const components = getMaxComponents(normSize);
-      const normPackedSize = normSize / components;
-      const inputShape = [xShape[0], xShape[1], normPackedSize];
+    computeChannelScaleShift = (context, input, scale, bias, n, h, c, epsilon) => {
+      const components = getMaxComponents(h);
+      const f32Type = components === 1 ? "f32" : `vec${components}f`;
+      const wgType = components === 1 ? "vec2f" : `mat2x${components}f`;
+      const unitsOfWork = n * c;
+      const inputShape = [n, c, h / components];
+      const outputShape = [n, c, 2];
       const inputDependencies = ["rank", "type", "type"];
-      const programUniforms = [
-        { type: 12 /* uint32 */, data: normSize },
-        { type: 12 /* uint32 */, data: normPackedSize }
-      ];
-      programUniforms.push(...createTensorShapeVariables(inputShape, inputShape));
+      const programUniforms = [];
+      programUniforms.push(...createTensorShapeVariables(inputShape, outputShape));
       const getShaderSource = (shaderHelper) => {
-        const x = inputVariable("x", inputs[0].dataType, inputShape.length, components);
-        const scale = inputVariable("scale", inputs[1].dataType, inputs[1].dims);
-        const bias = inputVariable("bias", inputs[2].dataType, inputs[2].dims);
-        const output = outputVariable("output", inputs[0].dataType, inputShape.length, components);
-        const variables = [x, scale, bias, output];
-        const dataType = x.type.value;
-        const f32Type = components === 1 ? "f32" : `vec${components}<f32>`;
+        const x = inputVariable("x", input.dataType, 3, components);
+        const s = inputVariable("scale", scale.dataType, scale.dims);
+        const b = inputVariable("bias", bias.dataType, bias.dims);
+        const output = outputVariable("output", 1 /* float */, 3, 2);
+        const variables = [x, s, b, output];
         const workgroupSize = 64;
-        const uniforms = [
-          { name: "normSize", type: "u32" },
-          { name: "normPackedSize", type: "u32" }
-        ];
         return `
-  var<workgroup> meanShared : f32;
-  var<workgroup> squaredNormShared : f32;
-  var<workgroup> workgroupShared : array<${f32Type}, ${workgroupSize}>;
-  const workgroupSize = ${workgroupSize}u;
-  ${shaderHelper.registerUniforms(uniforms).declareVariables(...variables)}
+  var<workgroup> workgroup_shared : array<${wgType}, ${workgroupSize}>;
+  const workgroup_size = ${workgroupSize}u;
+  ${shaderHelper.declareVariables(...variables)}
   ${shaderHelper.mainStart(workgroupSize)}
-    let norm = global_idx / workgroupSize;
-    let batch = norm / uniforms.x_shape[1];
-    let channel = norm % uniforms.x_shape[1];
-    let localIndex = local_id.x;
-
+    let batch = workgroup_index / uniforms.x_shape[1];
+    let channel = workgroup_index % uniforms.x_shape[1];
+    let hight = uniforms.x_shape[2];
     // initialize workgroup memory
-    var initial = ${f32Type}(0);
-    for (var h = localIndex; h < uniforms.normPackedSize; h += workgroupSize) {
-      initial = initial + ${f32Type}(${x.get("batch", "channel", "h")});
+    var sum = ${f32Type}(0);
+    var squared_sum = ${f32Type}(0);
+    for (var h = local_idx; h < hight; h += workgroup_size) {
+      let value = ${f32Type}(${x.get("batch", "channel", "h")});
+      sum += value;
+      squared_sum += value * value;
     }
-    workgroupShared[localIndex] = initial;
+    workgroup_shared[local_idx] = ${wgType}(sum, squared_sum);
     workgroupBarrier();
 
-    // Calculate the mean of current channel data.
-    for (var currSize = workgroupSize >> 1;  currSize > 0; currSize = currSize >> 1) {
-      if (localIndex < currSize) {
-        workgroupShared[localIndex] = workgroupShared[localIndex] + workgroupShared[localIndex + currSize];
+    for (var currSize = workgroup_size >> 1;  currSize > 0; currSize = currSize >> 1) {
+      if (local_idx < currSize) {
+        workgroup_shared[local_idx] = workgroup_shared[local_idx] + workgroup_shared[local_idx + currSize];
       }
       workgroupBarrier();
     }
-    if (localIndex == 0) {
-      meanShared = ${sumVector("workgroupShared[0]", components)} / f32(uniforms.normSize);
-    }
-    workgroupBarrier();
+    if (local_idx == 0) {
+      let sum_final = ${sumVector("workgroup_shared[0][0]", components)} / f32(hight * ${components});
+      let squared_sum_final = ${sumVector("workgroup_shared[0][1]", components)} / f32(hight * ${components});
 
-    // reinitialize workgroup memory.
-    initial = ${f32Type}(0);
-    for (var h = localIndex; h < uniforms.normPackedSize; h += workgroupSize) {
-      let deviation =  ${f32Type}(${x.get("batch", "channel", "h")}) - ${f32Type}(meanShared);
-      initial = initial + deviation * deviation;
+      let inv_std_dev = inverseSqrt(squared_sum_final - sum_final * sum_final + f32(${epsilon}));
+      let channel_scale = inv_std_dev * f32(scale[channel]);
+      let channel_shift = f32(bias[channel]) - sum_final * channel_scale;
+      output[workgroup_index] = vec2f(channel_scale, channel_shift);
     }
-    workgroupShared[localIndex] = initial;
-    workgroupBarrier();
-
-    // Calculate the sum of square of deviation of current channel data.
-    for (var currSize = workgroupSize >> 1;  currSize > 0; currSize = currSize >> 1) {
-      if (localIndex < currSize) {
-        workgroupShared[localIndex] = workgroupShared[localIndex] + workgroupShared[localIndex + currSize];
-      }
-      workgroupBarrier();
-    }
-    if (localIndex == 0) {
-      squaredNormShared = ${sumVector("workgroupShared[0]", components)};
-    }
-    workgroupBarrier();
-
-    let invStdDev = inverseSqrt(squaredNormShared / f32(uniforms.normSize) + f32(${attributes.epsilon}));
-    let channelScale = invStdDev * f32(${scale.getByOffset("channel")});
-    let channelShift = f32(${bias.getByOffset("channel")}) - meanShared * channelScale;
-    for (var h = localIndex; h < uniforms.normPackedSize; h += workgroupSize) {
-      let value = ${x.get("batch", "channel", "h")} * ${dataType}(${f32Type}(channelScale)) + ${dataType}(${f32Type}(channelShift));
-      ${output.set("batch", "channel", "h", "value")};
-    }
-  }`;
-      };
-      return {
-        ...{ name: "InstanceNormalization" },
-        // TODO: use epsilon as uniform. Currently epsilon as uniform fails test_instancenorm_epsilon.
-        shaderCache: { hint: `${attributes.epsilon};${components}`, inputDependencies },
-        getRunData: () => ({
-          outputs: [{ dims: outputShape, dataType: inputs[0].dataType }],
-          dispatchGroup: { x: normCount },
-          programUniforms
-        }),
-        getShaderSource
-      };
-    };
-    computeMean = (context, input, scale, bias, n, h, c, epsilon) => {
-      const components = getMaxComponents(c);
-      const WG = 64;
-      const outputType = components === 1 ? "vec2f" : `mat2x${components}f`;
-      const sumCastType = components === 1 ? "f32" : `vec${components}f`;
-      const setOutputValue = (var1, var2) => `${outputType}(${var1}, ${var2})`;
-      const unitsOfWork = n * c / components;
-      const wgSize = Math.ceil(h / WG);
-      const meanInputDependencies = ["type"];
-      const meanProgramUniforms = [
-        { type: 12 /* uint32 */, data: wgSize },
-        { type: 12 /* uint32 */, data: h },
-        { type: 12 /* uint32 */, data: Math.floor(c / components) },
-        { type: 12 /* uint32 */, data: Math.floor(h * c / components) }
-      ];
-      const getMeanShaderSource = (shaderHelper) => {
-        const inputHelper = inputVariable("input", input.dataType, input.dims, components);
-        return `
-  ${shaderHelper.declareVariables(inputHelper)}
-  @group(0) @binding(1) var<storage, read_write> output : array<${outputType}>;
-  struct Uniforms {wg_size:u32, H:u32, C:u32, image_size:u32};
-  @group(0) @binding(2) var<uniform> uniforms: Uniforms;
-
-  ${shaderHelper.mainStart(WG)}
-    let currentImageNumber = global_idx / ${WG} / uniforms.C;
-    let currentChannelNumber = (global_idx / ${WG}) % uniforms.C;
-    let wgOffset = local_id.x * uniforms.wg_size;
-    if (wgOffset >= uniforms.H) {
-        return;
-    }
-    let wgMax = min(wgOffset + uniforms.wg_size, uniforms.H);
-
-    let offset = currentImageNumber * uniforms.image_size + currentChannelNumber;
-    var sum = ${fillVector("f32", components)};
-    var squaredSum = ${fillVector("f32", components)};
-    for (var i: u32 = wgOffset; i < wgMax; i++) {
-        let value = ${sumCastType}(input[offset + i * uniforms.C]);
-        sum += value;
-        squaredSum += value * value;
-    }
-    output[global_idx] = ${setOutputValue("sum", "squaredSum")};
-  }`;
-      };
-      const meanValues = context.compute(
-        {
-          name: "InstanceNormComputeMean",
-          shaderCache: { hint: `${components}`, inputDependencies: meanInputDependencies },
-          getRunData: () => ({
-            outputs: [{ dims: [n, c, WG, 2], dataType: 1 /* float */ }],
-            dispatchGroup: { x: n * c / components },
-            programUniforms: meanProgramUniforms
-          }),
-          getShaderSource: getMeanShaderSource
-        },
-        { inputs: [input], outputs: [-1] }
-      )[0];
-      const programUniforms = [
-        { type: 12 /* uint32 */, data: unitsOfWork },
-        { type: 12 /* uint32 */, data: h },
-        { type: 12 /* uint32 */, data: Math.floor(c / components) },
-        { type: 12 /* uint32 */, data: Math.floor(WG * c / components) }
-      ];
-      const inputDependencies = ["type", "type", "type"];
-      const getShaderSource = (shaderHelper) => {
-        const scaleHelper = inputVariable("scale", scale.dataType, scale.dims, components);
-        const biasHelper = inputVariable("bias", bias.dataType, bias.dims, components);
-        return `
-  @group(0) @binding(0) var<storage, read> input : array<${outputType}>;
-  @group(0) @binding(1) var<storage, read> scale : array<${scaleHelper.type.storage}>;
-  @group(0) @binding(2) var<storage, read> bias : array<${biasHelper.type.storage}>;
-  @group(0) @binding(3) var<storage, read_write> output : array<${outputType}>;
-  struct Uniforms {units_of_work : u32, H: u32, C : u32, image_size : u32};
-  @group(0) @binding(4) var<uniform> uniforms: Uniforms;
-
-  ${shaderHelper.mainStart()}
-    ${shaderHelper.guardAgainstOutOfBoundsWorkgroupSizes("uniforms.units_of_work")}
-    let currentImageNumber = global_idx / uniforms.C;
-    let currentChannelNumber = global_idx % uniforms.C;
-
-    let offset = currentImageNumber * uniforms.image_size;
-    var sum = ${fillVector("f32", components)};
-    var squaredSum = ${fillVector("f32", components)};
-    for (var i: u32 = 0; i < min(${WG}, uniforms.H); i++) {
-        let value = input[offset + i + currentChannelNumber * ${WG}];
-        sum += value[0];
-        squaredSum += value[1];
-    }
-    sum = sum / f32(uniforms.H);
-    squaredSum = squaredSum / f32(uniforms.H);
-    let invStdDev = inverseSqrt(squaredSum - sum * sum + f32(${epsilon}));
-    let channelScale = invStdDev * ${sumCastType}(scale[currentChannelNumber]);
-    let channelShift = ${sumCastType}(bias[currentChannelNumber]) - sum * channelScale;
-
-    output[global_idx] = ${setOutputValue("channelScale", "channelShift")};
   }`;
       };
       return context.compute(
@@ -10784,17 +10761,73 @@ var init_instance_norm = __esm({
           // TODO: use epsilon as uniform. Currently epsilon as uniform fails test_instancenorm_epsilon.
           shaderCache: { hint: `${components};${epsilon}`, inputDependencies },
           getRunData: () => ({
-            outputs: [{ dims: [n, c, 2], dataType: 1 /* float */ }],
-            dispatchGroup: { x: Math.ceil(
-              unitsOfWork / 64
-              /* workgroup size */
-            ) },
+            outputs: [{ dims: outputShape, dataType: 1 /* float */ }],
+            dispatchGroup: { x: unitsOfWork },
             programUniforms
           }),
           getShaderSource
         },
-        { inputs: [meanValues, scale, bias], outputs: [-1] }
+        { inputs: [input, scale, bias], outputs: [-1] }
       )[0];
+    };
+    createInstanceNormProgramInfo = (context, inputs, attributes) => {
+      const xShape = inputs[0].dims;
+      const outputShape = xShape;
+      const axis = 2;
+      const N = xShape[0];
+      const C = xShape[1];
+      const H = ShapeUtil.sizeFromDimension(xShape, axis);
+      const components = getMaxComponents(H);
+      const outputSize = ShapeUtil.size(outputShape) / components;
+      const channelScaleShift = computeChannelScaleShift(
+        context,
+        inputs[0],
+        inputs[1],
+        inputs[2],
+        N,
+        H,
+        C,
+        attributes.epsilon
+      );
+      const inputShape = [N, C, H / components];
+      const scaleShape = [N, C];
+      const inputDependencies = ["type", "none"];
+      const getShaderSource = (shaderHelper) => {
+        const x = inputVariable("x", inputs[0].dataType, inputShape.length, components);
+        const scale = inputVariable("scale_shift", 1 /* float */, scaleShape.length, 2);
+        const output = outputVariable("output", inputs[0].dataType, inputShape.length, components);
+        const variables = [x, scale, output];
+        return `
+  ${shaderHelper.registerUniform("output_size", "u32").declareVariables(...variables)}
+  ${shaderHelper.mainStart()}
+  ${shaderHelper.guardAgainstOutOfBoundsWorkgroupSizes("uniforms.output_size")}
+      let outputIndices = ${output.offsetToIndices("global_idx")};
+      let batch = outputIndices[0];
+      let channel = outputIndices[1];
+      let scale_shift = ${scale.getByIndices("vec2<u32>(batch, channel)")};
+      let value = ${x.getByOffset("global_idx")} * ${output.type.value}(scale_shift.x) + ${output.type.value}(scale_shift.y);
+      ${output.setByOffset("global_idx", "value")};
+  }`;
+      };
+      context.compute(
+        {
+          name: "InstanceNormalization",
+          shaderCache: { hint: `${components}`, inputDependencies },
+          getRunData: () => ({
+            outputs: [{ dims: outputShape, dataType: inputs[0].dataType }],
+            dispatchGroup: { x: Math.ceil(
+              outputSize / 64
+              /* workgroup size */
+            ) },
+            programUniforms: [
+              { type: 12 /* uint32 */, data: outputSize },
+              ...createTensorShapeVariables(inputShape, scaleShape, inputShape)
+            ]
+          }),
+          getShaderSource
+        },
+        { inputs: [inputs[0], channelScaleShift] }
+      );
     };
     createInstanceNormNHWCProgramInfo = (context, inputs, attributes) => {
       const xShape = inputs[0].dims;
@@ -10809,27 +10842,57 @@ var init_instance_norm = __esm({
         { type: 12 /* uint32 */, data: Math.floor(C / components) }
       ];
       const inputDependencies = ["type", "type"];
-      const channelScaleShift = computeMean(context, inputs[0], inputs[1], inputs[2], N, H, C, attributes.epsilon);
+      const transposedXPerm = [0, xShape.length - 1];
+      for (let i = 0; i < xShape.length - 2; i++) {
+        transposedXPerm.push(i + 1);
+      }
+      const transposedX = context.compute(createTransposeProgramInfo(context.inputs[0], transposedXPerm), {
+        inputs: [context.inputs[0]],
+        outputs: [-1]
+      })[0];
+      const channelScaleShift = computeChannelScaleShift(
+        context,
+        transposedX,
+        inputs[1],
+        inputs[2],
+        N,
+        H,
+        C,
+        attributes.epsilon
+      );
       const getShaderSource = (shaderHelper) => {
         const dataType = tensorTypeToWsglStorageType(inputs[0].dataType);
-        const scaleType = components === 1 ? "vec2f" : `mat2x${components}f`;
-        const scaleCastType = components === 1 ? dataType : `vec${components}<${dataType}>`;
+        const scaleType = components === 1 ? "vec2f" : `mat${components}x2f`;
+        const scaleData = (num) => {
+          const index = num === 0 ? "x" : "y";
+          const f32Type = components === 1 ? "f32" : `vec${components}f`;
+          switch (components) {
+            case 1:
+              return `${dataType}(${f32Type}(scale.${index}))`;
+            case 2:
+              return `vec2<${dataType}>(${f32Type}(scale[0].${index}, scale[1].${index}))`;
+            case 4:
+              return `vec4<${dataType}>(${f32Type}(scale[0].${index}, scale[1].${index}, scale[2].${index}, scale[3].${index}))`;
+            default:
+              throw new Error(`Not supported compoents ${components}`);
+          }
+        };
         const inputHelper = inputVariable("input", inputs[0].dataType, inputs[0].dims, components);
         const outputHelper = outputVariable("output", inputs[0].dataType, outputShape, components);
         return `
   @group(0) @binding(0) var<storage, read> input : array<${inputHelper.type.storage}>;
-  @group(0) @binding(1) var<storage, read> scaleInput : array<${scaleType}>;
+  @group(0) @binding(1) var<storage, read> scale_input : array<${scaleType}>;
   @group(0) @binding(2) var<storage, read_write> output : array<${outputHelper.type.storage}>;
   struct Uniforms {H: u32, C : u32};
   @group(0) @binding(3) var<uniform> uniforms: Uniforms;
 
   ${shaderHelper.mainStart()}
-    let currentImageNumber = global_idx / (uniforms.C * uniforms.H);
-    let currentChannelNumber = global_idx % uniforms.C;
+    let current_image_number = global_idx / (uniforms.C * uniforms.H);
+    let current_channel_number = global_idx % uniforms.C;
 
-    let scaleOffset = currentImageNumber * uniforms.C + currentChannelNumber;
-    let scale = scaleInput[scaleOffset];
-    output[global_idx] = fma(input[global_idx], ${scaleCastType}(scale[0]), ${scaleCastType}(scale[1]));
+    let scale_offset = current_image_number * uniforms.C + current_channel_number;
+    let scale = scale_input[scale_offset];
+    output[global_idx] = fma(input[global_idx], ${scaleData(0)}, ${scaleData(1)});
   }`;
       };
       context.compute(
@@ -10853,7 +10916,7 @@ var init_instance_norm = __esm({
       if (attributes.format === "NHWC") {
         createInstanceNormNHWCProgramInfo(context, context.inputs, attributes);
       } else {
-        context.compute(createInstanceNormProgramInfo(context.inputs, attributes));
+        createInstanceNormProgramInfo(context, context.inputs, attributes);
       }
     };
   }
@@ -10988,7 +11051,7 @@ var init_layer_norm = __esm({
 });
 
 // web/lib/wasm/jsep/webgpu/ops/matmulnbits.ts
-var validateInputs21, createMatMulNBitsProgramInfo, matMulNBits, parseMatMulNBitsAttributes;
+var validateInputs21, createMatMulNBitsProgramInfo, createMatMulNBitsBlockSize32ProgramInfo, matMulNBits, parseMatMulNBitsAttributes;
 var init_matmulnbits = __esm({
   "web/lib/wasm/jsep/webgpu/ops/matmulnbits.ts"() {
     "use strict";
@@ -11210,9 +11273,167 @@ var init_matmulnbits = __esm({
         getShaderSource
       };
     };
+    createMatMulNBitsBlockSize32ProgramInfo = (inputs, attributes) => {
+      const inputShape = inputs[0].dims;
+      const aRank = inputShape.length;
+      const dimAOuter = inputShape[aRank - 2];
+      const dimInner = attributes.k;
+      const dimBOuter = attributes.n;
+      const batchDims = inputShape.slice(0, aRank - 2);
+      const batchSize = ShapeUtil.size(batchDims);
+      const blobSize = inputs[1].dims[2];
+      const blobSizeInWords = blobSize / 4;
+      const dataType = inputs[0].dataType;
+      const aComponents = getMaxComponents(attributes.k);
+      const bComponents = getMaxComponents(blobSizeInWords);
+      const outputShape = batchDims.concat([dimAOuter, dimBOuter]);
+      const workgroupSize = 128;
+      const workgroupY = dimBOuter % 8 === 0 ? 8 : dimBOuter % 4 === 0 ? 4 : 1;
+      const workgroupX = workgroupSize / workgroupY;
+      const tileSize = workgroupX * bComponents * 8;
+      const aLengthPerTile = tileSize / aComponents;
+      const blocksPerTile = tileSize / attributes.blockSize;
+      const dispatchSize = ShapeUtil.size(outputShape) / workgroupY;
+      const programUniforms = [];
+      const inputShapeTemp = [batchSize, dimAOuter, dimInner / aComponents];
+      const bShape = ShapeUtil.convertShape(inputs[1].dims).slice();
+      bShape.splice(-1, 1, blobSizeInWords / bComponents);
+      programUniforms.push(...createTensorShapeVariables(inputShapeTemp));
+      programUniforms.push(...createTensorShapeVariables(bShape));
+      programUniforms.push(...createTensorShapeVariables(inputs[2].dims));
+      if (inputs.length === 4) {
+        programUniforms.push(...createTensorShapeVariables(ShapeUtil.convertShape(inputs[3].dims)));
+      }
+      const outputShapeTemp = [batchSize, dimAOuter, dimBOuter];
+      programUniforms.push(...createTensorShapeVariables(outputShapeTemp));
+      const getShaderSource = (shaderHelper) => {
+        const inputRank = inputShapeTemp.length;
+        const a = inputVariable("a", inputs[0].dataType, inputRank, aComponents);
+        const b = inputVariable("b", 12 /* uint32 */, bShape.length, bComponents);
+        const scales = inputVariable("scales", inputs[2].dataType, inputs[2].dims.length);
+        const inputVariables = [a, b, scales];
+        const zeroPoints = inputs.length === 4 ? inputVariable("zero_points", 12 /* uint32 */, inputs[3].dims.length) : void 0;
+        if (zeroPoints) {
+          inputVariables.push(zeroPoints);
+        }
+        const outputRank = outputShapeTemp.length;
+        const output = outputVariable("output", inputs[0].dataType, outputRank);
+        const dataType2 = tensorTypeToWsglStorageType(inputs[0].dataType);
+        const readA = () => {
+          switch (aComponents) {
+            case 1:
+              return `
+          let a_data0 = vec4<${dataType2}>(sub_a[word_offset], sub_a[word_offset + 1], sub_a[word_offset + 2], sub_a[word_offset + 3]);
+          let a_data1 = vec4<${dataType2}>(sub_a[word_offset + 4], sub_a[word_offset + 5], sub_a[word_offset + 6], sub_a[word_offset + 7]);`;
+            case 2:
+              return `
+          let a_data0 = vec4<${dataType2}>(sub_a[word_offset], sub_a[word_offset + 1]);
+          let a_data1 = vec4<${dataType2}>(sub_a[word_offset + 2], sub_a[word_offset + 3]);`;
+            case 4:
+              return `
+          let a_data0 = sub_a[word_offset];
+          let a_data1 = sub_a[word_offset + 1];`;
+            default:
+              throw new Error(`${aComponents}-component is not supported.`);
+          }
+        };
+        return `
+        var<workgroup> sub_a: array<${a.type.value}, ${aLengthPerTile}>;
+        var<workgroup> inter_results: array<array<${output.type.value}, ${workgroupX}>, ${workgroupY}>;
+        ${shaderHelper.declareVariables(...inputVariables, output)}
+        ${shaderHelper.mainStart([workgroupX, workgroupY, 1])}
+          let output_indices = ${output.offsetToIndices(`workgroup_index * ${workgroupY}`)};
+          let col = output_indices[2];
+          let row = output_indices[1];
+          let batch = output_indices[0];
+          let n_blocks_per_col = uniforms.b_shape[1];
+          let num_tiles =  (n_blocks_per_col - 1) / ${blocksPerTile} + 1;
+
+          // Loop over shared dimension.
+          for (var tile: u32 = 0; tile < num_tiles; tile += 1) {
+            let a_col_start = tile * ${aLengthPerTile};
+            // load one tile A data into shared memory.
+            for (var a_offset = local_idx; a_offset < ${aLengthPerTile}; a_offset += ${workgroupSize})
+            {
+              let a_col = a_col_start + a_offset;
+              if (a_col < uniforms.a_shape[2])
+              {
+                sub_a[a_offset] = ${a.getByIndices(`${a.type.indices}(batch, row, a_col)`)};
+              } else {
+                sub_a[a_offset] = ${a.type.value}(0);
+              }
+            }
+            workgroupBarrier();
+
+            // each thread process one block
+            let b_row = col + local_id.y;
+            let block = tile * ${blocksPerTile} + local_id.x;
+            ${zeroPoints ? `
+            let zero_point_bytes_per_col = (n_blocks_per_col + 1) / 2;
+            let zero_point_byte_count = b_row * zero_point_bytes_per_col + (block >> 0x1u);
+            let zero_point_word_index = zero_point_byte_count >> 0x2u;
+            let zero_point_byte_offset = zero_point_byte_count & 0x3u;
+            let zero_point_nibble_offset: u32 = block & 0x1u;
+            let zero_point_bits_offset = (zero_point_byte_offset << 3) + (zero_point_nibble_offset << 2);
+            let zero_point_word = ${zeroPoints.getByOffset("zero_point_word_index")} >> zero_point_bits_offset;
+            let zero_point = ${dataType2}((zero_point_word) & 0xFu);` : `
+            // The default zero point is 8 for unsigned 4-bit quantization.
+            let zero_point = ${dataType2}(${8});`}
+            let scale = ${scales.getByOffset(`b_row * n_blocks_per_col + block`)};
+            let b_data = ${b.getByIndices(`${b.type.indices}(b_row, block, 0)`)};
+            var word_offset = local_id.x * ${attributes.blockSize / aComponents};
+            for (var i: u32 = 0; i < ${bComponents}; i++) {
+              ${readA()}
+              let b_value = ${bComponents === 1 ? `b_data` : `b_data[i]`};
+              let b_value_lower = unpack4xU8(b_value & 0x0F0F0F0Fu);
+              let b_value_upper = unpack4xU8((b_value >> 4) & 0x0F0F0F0Fu);
+              let b_quantized_values = mat2x4<${dataType2}>(${Array.from(
+          { length: 4 },
+          (_, i) => `${dataType2}(b_value_lower[${i}]), ${dataType2}(b_value_upper[${i}])`
+        ).join(", ")});
+              let b_dequantized_values = (b_quantized_values - mat2x4<${dataType2}>(${Array(8).fill("zero_point").join(",")})) * scale;
+              inter_results[local_id.y][local_id.x] += ${Array.from(
+          { length: 2 },
+          (_, i) => `${`dot(a_data${i}, b_dequantized_values[${i}])`}`
+        ).join(" + ")};
+              word_offset += ${8 / aComponents};
+            }
+            workgroupBarrier();
+          }
+
+          if (local_idx < ${workgroupY}) {
+            var output_value: ${output.type.value} = ${output.type.value}(0);
+            for (var b = 0u; b < ${workgroupX}; b++) {
+              output_value += inter_results[local_idx][b];
+            }
+            if (col + local_idx < uniforms.output_shape[2])
+            {
+              ${output.setByIndices(`${output.type.indices}(batch, row, col + local_idx)`, "output_value")}
+            }
+          }
+        }`;
+      };
+      return {
+        name: "BlockwiseMatMulNBits32",
+        shaderCache: {
+          hint: `${attributes.blockSize};${aComponents};${bComponents};${workgroupX};${workgroupY}`,
+          inputDependencies: Array(inputs.length).fill("rank")
+        },
+        getRunData: () => ({
+          outputs: [{ dims: outputShape, dataType }],
+          dispatchGroup: { x: dispatchSize },
+          programUniforms
+        }),
+        getShaderSource
+      };
+    };
     matMulNBits = (context, attributes) => {
       validateInputs21(context.inputs, attributes);
-      context.compute(createMatMulNBitsProgramInfo(context.inputs, attributes));
+      if (attributes.blockSize === 32 && context.adapterInfo.isVendor("intel") && context.adapterInfo.isArchitecture("gen-12lp")) {
+        context.compute(createMatMulNBitsBlockSize32ProgramInfo(context.inputs, attributes));
+      } else {
+        context.compute(createMatMulNBitsProgramInfo(context.inputs, attributes));
+      }
     };
     parseMatMulNBitsAttributes = (attributes) => createAttributeWithCacheKey(attributes);
   }
@@ -12166,7 +12387,7 @@ var init_resize = __esm({
       } else if (attributes.coordinateTransformMode === "tf_crop_and_resize") {
         throw new Error("Resize requires RoI input to be specified when coordinateTransformMode is tfCropAndResize");
       }
-      if (scalesInputIndex > 0 && inputs.length > scalesInputIndex && inputs[scalesInputIndex].dims.length > 0) {
+      if (scalesInputIndex > 0 && inputs.length > scalesInputIndex && inputs[scalesInputIndex].dims.length === 1 && inputs[scalesInputIndex].dims[0] > 0) {
         inputs[scalesInputIndex].getFloat32Array().forEach((value) => scales.push(value));
         if (scales.length !== 0 && scales.length !== rank && opsetVersion >= 18 && scales.length !== attributes.axes.length) {
           throw new Error("Resize requires scales input size to be same as input rank or axes size for opset 18 and up");
@@ -12176,17 +12397,17 @@ var init_resize = __esm({
           updateScales(scales, attributes.axes, rank).forEach((value, index) => scales[index] = value);
         }
       }
-      if (sizesInputIndex > 0 && inputs.length > sizesInputIndex) {
+      if (sizesInputIndex > 0 && inputs.length > sizesInputIndex && inputs[sizesInputIndex].dims.length === 1 && inputs[sizesInputIndex].dims[0] > 0) {
         inputs[sizesInputIndex].getBigInt64Array().forEach((value) => sizes.push(Number(value)));
-        if (sizes.length !== rank || opsetVersion >= 18 && sizes.length === attributes.axes.length) {
+        if (sizes.length !== 0 && sizes.length !== rank && opsetVersion >= 18 && sizes.length !== attributes.axes.length) {
           throw new Error("Resize requires sizes input size to be same as input rank or axes size for opset 18 and up");
         }
       }
       if (attributes.axes.length > 0) {
-        if (scales.length !== attributes.axes.length) {
+        if (scales.length !== 0 && scales.length !== attributes.axes.length) {
           throw new Error('Resize requires "scales" input size to be of axes rank when axes attributes is specified');
         }
-        if (sizes.length !== attributes.axes.length) {
+        if (sizes.length !== 0 && sizes.length !== attributes.axes.length) {
           throw new Error('Resize requires "sizes" input size to be of rank axes rank when axes attributes is specified');
         }
       }
@@ -13263,24 +13484,36 @@ var init_softmax = __esm({
     init_wasm_common();
     init_util();
     init_attribute_with_cache_key();
+    init_transpose();
     init_common();
     validateInputs29 = (inputs) => {
       if (!inputs || inputs.length !== 1) {
         throw new Error("Softmax op requires 1 input.");
       }
     };
-    createSoftmaxProgramInfo = (input, attributes) => {
-      const shape = input.dims;
-      const outputSize = ShapeUtil.size(shape);
+    createSoftmaxProgramInfo = (context, attributes) => {
+      const input = context.inputs[0];
+      const inputShape = input.dims;
+      const outputSize = ShapeUtil.size(inputShape);
       const WG = 64;
-      let axis = attributes.axis;
-      if (axis < 0) {
-        axis = shape.length + axis;
+      const inputRank = inputShape.length;
+      const axis = ShapeUtil.normalizeAxis(attributes.axis, inputRank);
+      const isTransposeRequired = axis < inputShape.length - 1;
+      let transposedInput;
+      let perm = [];
+      if (isTransposeRequired) {
+        perm = Array.from({ length: inputRank }, (_, i) => i);
+        perm[axis] = inputRank - 1;
+        perm[inputRank - 1] = axis;
+        transposedInput = context.compute(createTransposeProgramInfo(input, perm), {
+          inputs: [input],
+          outputs: [-1]
+        })[0];
+      } else {
+        transposedInput = input;
       }
-      if (axis < shape.length - 1) {
-        throw new Error("softmax only supports last axis for now.");
-      }
-      const cols = shape[axis];
+      const transposedInputShape = transposedInput.dims;
+      const cols = transposedInputShape[inputRank - 1];
       const rows = outputSize / cols;
       const components = getMaxComponents(cols);
       const packedCols = cols / components;
@@ -13294,10 +13527,10 @@ var init_softmax = __esm({
         }
         return name;
       };
-      const x = inputVariable("x", input.dataType, input.dims, components);
-      const output = outputVariable("result", input.dataType, input.dims, components);
+      const x = inputVariable("x", transposedInput.dataType, transposedInput.dims, components);
+      const output = outputVariable("result", transposedInput.dataType, transposedInput.dims, components);
       const valueType = x.type.value;
-      const threadMaxDecl = tensorTypeToWsglStorageType(input.dataType) === "f32" ? `var threadMax = ${valueType}(-3.402823e+38f);` : `var threadMax = ${valueType}(-65504.0h);`;
+      const threadMaxDecl = tensorTypeToWsglStorageType(transposedInput.dataType) === "f32" ? `var threadMax = ${valueType}(-3.402823e+38f);` : `var threadMax = ${valueType}(-65504.0h);`;
       const getShaderSource = (shaderHelper) => `
       var<workgroup> rowMaxShared : ${valueType};
       var<workgroup> rowSumShared : ${valueType};
@@ -13371,20 +13604,31 @@ var init_softmax = __esm({
           setValue(row, col, row_stride, value);
         }
       }`;
-      return {
-        name: "Softmax",
-        shaderCache: { hint: `${components}`, inputDependencies: ["type"] },
-        getRunData: () => ({
-          outputs: [{ dims: shape, dataType: input.dataType }],
-          dispatchGroup: { x: rows },
-          programUniforms: [{ type: 6 /* int32 */, data: packedCols }]
-        }),
-        getShaderSource
-      };
+      const result = context.compute(
+        {
+          name: "Softmax",
+          shaderCache: { hint: `${components}`, inputDependencies: ["type"] },
+          getRunData: () => ({
+            outputs: [{ dims: transposedInputShape, dataType: transposedInput.dataType }],
+            dispatchGroup: { x: rows },
+            programUniforms: [{ type: 6 /* int32 */, data: packedCols }]
+          }),
+          getShaderSource
+        },
+        {
+          inputs: [transposedInput],
+          outputs: [isTransposeRequired ? -1 : 0]
+        }
+      )[0];
+      if (isTransposeRequired) {
+        context.compute(createTransposeProgramInfo(result, perm), {
+          inputs: [result]
+        });
+      }
     };
     softmax = (context, attributes) => {
       validateInputs29(context.inputs);
-      context.compute(createSoftmaxProgramInfo(context.inputs[0], attributes));
+      createSoftmaxProgramInfo(context, attributes);
     };
     parseSoftmaxAttributes = (attributes) => createAttributeWithCacheKey({ axis: attributes.axis });
   }
@@ -14434,14 +14678,14 @@ var init_backend_webgpu = __esm({
           this.sessionExternalDataMapping.set(sessionId, sessionInputOutputMapping);
         }
         const previousBuffer = sessionInputOutputMapping.get(index);
-        const id = this.gpuDataManager.registerExternalBuffer(buffer, size, previousBuffer?.[1]);
+        const id = this.gpuDataManager.registerExternalBuffer(buffer, size, previousBuffer);
         sessionInputOutputMapping.set(index, [id, buffer]);
         return id;
       }
       unregisterBuffers(sessionId) {
         const sessionInputOutputMapping = this.sessionExternalDataMapping.get(sessionId);
         if (sessionInputOutputMapping) {
-          sessionInputOutputMapping.forEach((bufferInfo) => this.gpuDataManager.unregisterExternalBuffer(bufferInfo[1]));
+          sessionInputOutputMapping.forEach((bufferInfo) => this.gpuDataManager.unregisterExternalBuffer(bufferInfo[0]));
           this.sessionExternalDataMapping.delete(sessionId);
         }
       }
@@ -14548,6 +14792,334 @@ var init_backend_webgpu = __esm({
   }
 });
 
+// web/lib/wasm/jsep/webnn/tensor-manager.ts
+var tensorGuid, createNewTensorId, TensorTracker, TensorManagerImpl, createTensorManager;
+var init_tensor_manager = __esm({
+  "web/lib/wasm/jsep/webnn/tensor-manager.ts"() {
+    "use strict";
+    init_log();
+    tensorGuid = 1;
+    createNewTensorId = () => tensorGuid++;
+    TensorTracker = class {
+      constructor(mlContext, tensorEntry) {
+        this.mlContext = mlContext;
+        this.tensorEntry = tensorEntry;
+        this.tensorCache = tensorEntry ? [tensorEntry] : [];
+      }
+      get tensor() {
+        return this.tensorEntry?.[0];
+      }
+      get context() {
+        if (!this.mlContext) {
+          throw new Error("MLContext has not been set.");
+        }
+        return this.mlContext;
+      }
+      set context(mlContext) {
+        if (this.mlContext && this.mlContext !== mlContext) {
+          throw new Error("MLTensor in use in a different MLContext.");
+        }
+        this.mlContext = mlContext;
+      }
+      destroy() {
+        for (const [mlTensor] of this.tensorCache) {
+          mlTensor.destroy();
+        }
+        this.tensorCache = [];
+        this.tensorEntry = void 0;
+      }
+      trySelectTensor(context, tryMLTensor) {
+        for (const [mlTensor, dataType, shape] of this.tensorCache) {
+          if (tryMLTensor === mlTensor) {
+            if (this.context !== context) {
+              throw new Error("MLTensor cannot be registered with a different MLContext.");
+            }
+            this.tensorEntry = [mlTensor, dataType, shape];
+            return true;
+          }
+        }
+        return false;
+      }
+      async ensureTensor(dataType, shape, copyOld) {
+        if (this.tensorEntry) {
+          const [mlTensor, existingDataType, existingShape] = this.tensorEntry;
+          if (existingDataType === dataType && existingShape.every((v, i) => v === shape[i])) {
+            return mlTensor;
+          }
+        }
+        for (const [mlTensor, existingDataType, existingShape] of this.tensorCache) {
+          if (existingDataType === dataType && existingShape.every((v, i) => v === shape[i])) {
+            if (copyOld && this.tensorEntry) {
+              LOG_DEBUG(
+                "verbose",
+                () => `[WebNN] Slowdown may occur, having to copy existing tensor {dataType: ${dataType}, shape: ${shape}}`
+              );
+              const data = await this.context.readTensor(this.tensorEntry[0]);
+              this.context.writeTensor(mlTensor, data);
+            }
+            this.tensorEntry = [mlTensor, existingDataType, existingShape];
+            return mlTensor;
+          }
+        }
+        LOG_DEBUG("verbose", () => `[WebNN] MLContext.createTensor {dataType: ${dataType}, shape: ${shape}}`);
+        const usage = MLTensorUsage.READ | MLTensorUsage.WRITE;
+        const tensor = await this.context.createTensor({
+          dataType,
+          shape,
+          // Assign both shape and dimensions while transitioning to new API.
+          dimensions: shape,
+          usage
+        });
+        this.tensorEntry = [tensor, dataType, shape];
+        this.tensorCache.push(this.tensorEntry);
+        if (this.activeUpload) {
+          this.mlContext?.writeTensor(tensor, this.activeUpload);
+          this.activeUpload = void 0;
+        }
+        return tensor;
+      }
+      upload(data) {
+        if (!this.tensorEntry) {
+          this.activeUpload = new Uint8Array(data);
+          return;
+        }
+        this.mlContext?.writeTensor(this.tensorEntry[0], data);
+      }
+      async download(dstBuffer) {
+        if (this.activeUpload) {
+          if (dstBuffer) {
+            if (dstBuffer instanceof ArrayBuffer) {
+              new Uint8Array(dstBuffer).set(this.activeUpload);
+            } else {
+              new Uint8Array(dstBuffer.buffer, dstBuffer.byteOffset, dstBuffer.byteLength).set(this.activeUpload);
+            }
+            return;
+          } else {
+            return this.activeUpload.buffer;
+          }
+        }
+        if (!this.tensorEntry) {
+          throw new Error("Tensor has not been created.");
+        }
+        if (dstBuffer) {
+          return this.context.readTensor(this.tensorEntry[0], dstBuffer);
+        }
+        return this.context.readTensor(this.tensorEntry[0]);
+      }
+    };
+    TensorManagerImpl = class {
+      constructor(backend) {
+        this.backend = backend;
+        this.tensorsById = /* @__PURE__ */ new Map();
+        this.tensorIdsByContext = /* @__PURE__ */ new Map();
+      }
+      reserveTensorId() {
+        const tensorId = createNewTensorId();
+        this.tensorsById.set(tensorId, new TensorTracker());
+        return tensorId;
+      }
+      releaseTensorId(tensorId) {
+        const tensorTracker = this.tensorsById.get(tensorId);
+        if (!tensorTracker) {
+          return;
+        }
+        tensorTracker.destroy();
+        this.tensorsById.delete(tensorId);
+        for (const [mlContext, tensors] of this.tensorIdsByContext) {
+          if (tensors.has(tensorId)) {
+            tensors.delete(tensorId);
+            if (tensors.size === 0) {
+              this.tensorIdsByContext.delete(mlContext);
+            }
+            break;
+          }
+        }
+      }
+      async ensureTensor(tensorId, dataType, shape, copyOld) {
+        LOG_DEBUG(
+          "verbose",
+          () => `[WebNN] TensorManager.ensureTensor {tensorId: ${tensorId}, dataType: ${dataType}, shape: ${shape}, copyOld: ${copyOld}}`
+        );
+        const tensor = this.tensorsById.get(tensorId);
+        if (!tensor) {
+          throw new Error("Tensor not found.");
+        }
+        tensor.context = this.backend.currentContext;
+        if (!this.tensorIdsByContext.has(this.backend.currentContext)) {
+          this.tensorIdsByContext.set(this.backend.currentContext, /* @__PURE__ */ new Set());
+        }
+        this.tensorIdsByContext.get(this.backend.currentContext)?.add(tensorId);
+        return tensor.ensureTensor(dataType, shape, copyOld);
+      }
+      upload(tensorId, data) {
+        this.tensorsById.get(tensorId).upload(data);
+      }
+      async download(tensorId, dstBuffer) {
+        LOG_DEBUG(
+          "verbose",
+          () => `[WebNN] TensorManager.download {tensorId: ${tensorId}, dstBuffer: ${dstBuffer?.byteLength}}`
+        );
+        return this.tensorsById.get(tensorId).download(dstBuffer);
+      }
+      releaseTensorsForContext(mlContext) {
+        const tensors = this.tensorIdsByContext.get(mlContext);
+        if (!tensors) {
+          return;
+        }
+        for (const tensorId of tensors) {
+          this.tensorsById.get(tensorId).destroy();
+          this.tensorsById.delete(tensorId);
+        }
+        this.tensorIdsByContext.delete(mlContext);
+      }
+      registerTensor(mlContext, mlTensor, dataType, shape) {
+        for (const [tensorId2, tensorTracker] of this.tensorsById) {
+          if (tensorTracker.trySelectTensor(mlContext, mlTensor)) {
+            return tensorId2;
+          }
+        }
+        const tensorId = createNewTensorId();
+        this.tensorsById.set(tensorId, new TensorTracker(mlContext, [mlTensor, dataType, shape]));
+        let tensors = this.tensorIdsByContext.get(mlContext);
+        if (!tensors) {
+          tensors = /* @__PURE__ */ new Set();
+          this.tensorIdsByContext.set(mlContext, tensors);
+        }
+        tensors.add(tensorId);
+        return tensorId;
+      }
+    };
+    createTensorManager = (...args) => new TensorManagerImpl(...args);
+  }
+});
+
+// web/lib/wasm/jsep/backend-webnn.ts
+var onnxDataTypeToWebnnDataType, WebNNBackend;
+var init_backend_webnn = __esm({
+  "web/lib/wasm/jsep/backend-webnn.ts"() {
+    "use strict";
+    init_wasm_common();
+    init_wasm_factory();
+    init_tensor_view();
+    init_tensor_manager();
+    init_log();
+    onnxDataTypeToWebnnDataType = /* @__PURE__ */ new Map([
+      [1 /* float */, "float32"],
+      [10 /* float16 */, "float16"],
+      [6 /* int32 */, "int32"],
+      [12 /* uint32 */, "uint32"],
+      [7 /* int64 */, "int64"],
+      [13 /* uint64 */, "uint64"],
+      [3 /* int8 */, "int8"],
+      [2 /* uint8 */, "uint8"],
+      [9 /* bool */, "uint8"]
+    ]);
+    WebNNBackend = class {
+      constructor(env3) {
+        /**
+         * Tensor managers for each session.
+         */
+        this.tensorManager = createTensorManager(this);
+        /**
+         * Maps from session id to MLContexts.
+         */
+        this.mlContextBySessionId = /* @__PURE__ */ new Map();
+        /**
+         * Maps from MLContext to session ids.
+         */
+        this.sessionIdsByMLContext = /* @__PURE__ */ new Map();
+        configureLogger(env3.logLevel, !!env3.debug);
+      }
+      get currentSessionId() {
+        if (this.activeSessionId === void 0) {
+          throw new Error("No active session");
+        }
+        return this.activeSessionId;
+      }
+      onRunStart(sessionId) {
+        this.activeSessionId = sessionId;
+      }
+      get currentContext() {
+        const mlContext = this.getMLContext(this.currentSessionId);
+        if (!mlContext) {
+          throw new Error(`No MLContext found for session ${this.currentSessionId}`);
+        }
+        return mlContext;
+      }
+      registerMLContext(sessionId, mlContext) {
+        this.mlContextBySessionId.set(sessionId, mlContext);
+        let sessionIds = this.sessionIdsByMLContext.get(mlContext);
+        if (!sessionIds) {
+          sessionIds = /* @__PURE__ */ new Set();
+          this.sessionIdsByMLContext.set(mlContext, sessionIds);
+        }
+        sessionIds.add(sessionId);
+      }
+      onReleaseSession(sessionId) {
+        const mlContext = this.mlContextBySessionId.get(sessionId);
+        if (!mlContext) {
+          return;
+        }
+        this.mlContextBySessionId.delete(sessionId);
+        const sessionIds = this.sessionIdsByMLContext.get(mlContext);
+        sessionIds.delete(sessionId);
+        if (sessionIds.size === 0) {
+          this.sessionIdsByMLContext.delete(mlContext);
+          this.tensorManager.releaseTensorsForContext(mlContext);
+        }
+      }
+      getMLContext(sessionId) {
+        return this.mlContextBySessionId.get(sessionId);
+      }
+      reserveTensorId() {
+        return this.tensorManager.reserveTensorId();
+      }
+      releaseTensorId(tensorId) {
+        LOG_DEBUG("verbose", () => `[WebNN] releaseTensorId {tensorId: ${tensorId}}`);
+        this.tensorManager.releaseTensorId(tensorId);
+      }
+      async ensureTensor(tensorId, onnxDataType, dimensions, copyOld) {
+        const webnnDataType = onnxDataTypeToWebnnDataType.get(onnxDataType);
+        if (!webnnDataType) {
+          throw new Error(`Unsupported ONNX data type: ${onnxDataType}`);
+        }
+        return this.tensorManager.ensureTensor(tensorId, webnnDataType, dimensions, copyOld);
+      }
+      uploadTensor(tensorId, data) {
+        const wasm2 = getInstance();
+        if (!wasm2.shouldTransferToMLTensor) {
+          throw new Error("Trying to upload to a MLTensor while shouldTransferToMLTensor is false");
+        }
+        LOG_DEBUG("verbose", () => `[WebNN] uploadTensor {tensorId: ${tensorId}, data: ${data.byteLength}}`);
+        this.tensorManager.upload(tensorId, data);
+      }
+      async downloadTensor(tensorId, dstBuffer) {
+        return this.tensorManager.download(tensorId, dstBuffer);
+      }
+      createMLTensorDownloader(tensorId, type) {
+        return async () => {
+          const data = await this.tensorManager.download(tensorId);
+          return createView(data, type);
+        };
+      }
+      registerMLTensor(tensor, onnxDataType, dimensions) {
+        const webnnDataType = onnxDataTypeToWebnnDataType.get(onnxDataType);
+        if (!webnnDataType) {
+          throw new Error(`Unsupported ONNX data type: ${onnxDataType}`);
+        }
+        const id = this.tensorManager.registerTensor(this.currentContext, tensor, webnnDataType, dimensions);
+        LOG_DEBUG(
+          "verbose",
+          () => `[WebNN] registerMLTensor {tensor: ${tensor}, dataType: ${webnnDataType}, dimensions: ${dimensions}} -> {tensorId: ${id}}`
+        );
+        return id;
+      }
+      flush() {
+      }
+    };
+  }
+});
+
 // web/lib/wasm/jsep/init.ts
 var init_exports = {};
 __export(init_exports, {
@@ -14561,19 +15133,13 @@ var init_init = __esm({
     init_backend_webgpu();
     init_log();
     init_util();
+    init_backend_webnn();
     TensorViewImpl = class _TensorViewImpl {
       constructor(module, dataType, data, dims) {
         this.module = module;
         this.dataType = dataType;
         this.data = data;
         this.dims = dims;
-      }
-      getUint16Array() {
-        if (this.dataType !== 10 /* float16 */ && this.dataType !== 4 /* uint16 */) {
-          throw new Error("Invalid data type");
-        }
-        const elementCount = ShapeUtil.size(this.dims);
-        return elementCount === 0 ? new Uint16Array() : new Uint16Array(this.module.HEAP8.buffer, this.data, elementCount);
       }
       getFloat32Array() {
         if (this.dataType !== 1 /* float */) {
@@ -14595,6 +15161,13 @@ var init_init = __esm({
         }
         const elementCount = ShapeUtil.size(this.dims);
         return elementCount === 0 ? new Int32Array() : new Int32Array(this.module.HEAP8.buffer, this.data, elementCount);
+      }
+      getUint16Array() {
+        if (this.dataType !== 10 /* float16 */ && this.dataType !== 4 /* uint16 */) {
+          throw new Error("Invalid data type");
+        }
+        const elementCount = ShapeUtil.size(this.dims);
+        return elementCount === 0 ? new Uint16Array() : new Uint16Array(this.module.HEAP8.buffer, this.data, elementCount);
       }
       reshape(newDims) {
         if (ShapeUtil.size(newDims) !== ShapeUtil.size(this.dims)) {
@@ -14744,7 +15317,22 @@ var init_init = __esm({
           () => backend.replay()
         ]);
       } else {
-        jsepInit("webnn");
+        const backend = new WebNNBackend(env3);
+        jsepInit("webnn", [
+          backend,
+          // jsepReserveTensorId
+          () => backend.reserveTensorId(),
+          // jsepReleaseTensorId,
+          (tensorId) => backend.releaseTensorId(tensorId),
+          // jsepEnsureTensor
+          async (tensorId, onnxDataType, shape, copyOld) => backend.ensureTensor(tensorId, onnxDataType, shape, copyOld),
+          // jsepUploadTensor
+          (tensorId, data) => {
+            backend.uploadTensor(tensorId, data);
+          },
+          // jsepDownloadTensor
+          async (tensorId, dstBuffer) => backend.downloadTensor(tensorId, dstBuffer)
+        ]);
       }
     };
   }
@@ -14865,6 +15453,7 @@ var init_wasm_core_impl = __esm({
         for (const provider of options?.executionProviders ?? []) {
           const providerName = typeof provider === "string" ? provider : provider.name;
           if (providerName === "webnn") {
+            wasm2.shouldTransferToMLTensor = false;
             if (wasm2.currentContext) {
               throw new Error("WebNN execution provider is already set.");
             }
@@ -14893,7 +15482,9 @@ var init_wasm_core_impl = __esm({
           checkLastError("Can't create a session.");
         }
         if (wasm2.currentContext) {
+          wasm2.jsepRegisterMLContext(sessionHandle, wasm2.currentContext);
           wasm2.currentContext = void 0;
+          wasm2.shouldTransferToMLTensor = true;
         }
         const [inputCount, outputCount] = getSessionInputOutputCount(sessionHandle);
         const enableGraphCapture = !!options?.enableGraphCapture;
@@ -14922,7 +15513,7 @@ var init_wasm_core_impl = __esm({
               continue;
             }
             const location2 = typeof options?.preferredOutputLocation === "string" ? options.preferredOutputLocation : options?.preferredOutputLocation?.[nameString] ?? "cpu";
-            if (location2 !== "cpu" && location2 !== "cpu-pinned" && location2 !== "gpu-buffer") {
+            if (location2 !== "cpu" && location2 !== "cpu-pinned" && location2 !== "gpu-buffer" && location2 !== "ml-tensor") {
               throw new Error(`Not supported preferred output location: ${location2}.`);
             }
             if (enableGraphCapture && location2 !== "gpu-buffer") {
@@ -14934,7 +15525,7 @@ var init_wasm_core_impl = __esm({
           }
         }
         let bindingState = null;
-        if (outputPreferredLocations.some((l) => l === "gpu-buffer")) {
+        if (outputPreferredLocations.some((l) => l === "gpu-buffer" || l === "ml-tensor")) {
           ioBindingHandle = wasm2._OrtCreateBinding(sessionHandle);
           if (ioBindingHandle === 0) {
             checkLastError("Can't create IO binding.");
@@ -15003,7 +15594,7 @@ var init_wasm_core_impl = __esm({
       const location2 = tensor[3];
       let rawData;
       let dataByteLength;
-      if (dataType === "string" && location2 === "gpu-buffer") {
+      if (dataType === "string" && (location2 === "gpu-buffer" || location2 === "ml-tensor")) {
         throw new Error("String tensor is not supported on GPU.");
       }
       if (enableGraphCapture && location2 !== "gpu-buffer") {
@@ -15019,6 +15610,14 @@ var init_wasm_core_impl = __esm({
           throw new Error('Tensor location "gpu-buffer" is not supported without using WebGPU.');
         }
         rawData = registerBuffer(sessionId, index, gpuBuffer, dataByteLength);
+      } else if (location2 === "ml-tensor") {
+        const mlTensor = tensor[2].mlTensor;
+        dataByteLength = calculateTensorSizeInBytes(tensorDataTypeStringToEnum(dataType), dims);
+        const registerMLTensor = wasm2.jsepRegisterMLTensor;
+        if (!registerMLTensor) {
+          throw new Error('Tensor location "ml-tensor" is not supported without using WebNN.');
+        }
+        rawData = registerMLTensor(mlTensor, tensorDataTypeStringToEnum(dataType), dims);
       } else {
         const data = tensor[2];
         if (Array.isArray(data)) {
@@ -15085,6 +15684,7 @@ var init_wasm_core_impl = __esm({
       const outputValuesOffset = wasm2.stackAlloc(outputCount * 4);
       const outputNamesOffset = wasm2.stackAlloc(outputCount * 4);
       try {
+        wasm2.jsepOnRunStart?.(sessionHandle);
         [runOptionsHandle, runOptionsAllocs] = setRunOptions(options);
         for (let i = 0; i < inputCount; i++) {
           prepareInputOutputTensor(
@@ -15161,7 +15761,6 @@ var init_wasm_core_impl = __esm({
             true
           ]);
         }
-        wasm2.jsepOnRunStart?.(sessionHandle);
         let errorCode;
         if (ioBindingState) {
           errorCode = await wasm2._OrtRunWithBinding(
@@ -15222,7 +15821,7 @@ var init_wasm_core_impl = __esm({
             type = tensorDataTypeEnumToString(dataType);
             const preferredLocation = ioBindingState?.outputPreferredLocations[outputIndices[i]];
             if (type === "string") {
-              if (preferredLocation === "gpu-buffer") {
+              if (preferredLocation === "gpu-buffer" || preferredLocation === "ml-tensor") {
                 throw new Error("String tensor is not supported on GPU.");
               }
               const stringData = [];
@@ -15256,6 +15855,30 @@ var init_wasm_core_impl = __esm({
                     }
                   },
                   "gpu-buffer"
+                ]);
+              } else if (preferredLocation === "ml-tensor" && size > 0) {
+                const ensureTensor = wasm2.jsepEnsureTensor;
+                if (!ensureTensor) {
+                  throw new Error('preferredLocation "ml-tensor" is not supported without using WebNN.');
+                }
+                const tensorSize = calculateTensorSizeInBytes(dataType, size);
+                if (tensorSize === void 0 || !isMLTensorSupportedType(type)) {
+                  throw new Error(`Unsupported data type: ${type}`);
+                }
+                const mlTensor = await ensureTensor(dataOffset, dataType, dims, false);
+                keepOutputTensor = true;
+                output.push([
+                  type,
+                  dims,
+                  {
+                    mlTensor,
+                    download: wasm2.jsepCreateMLTensorDownloader(dataOffset, type),
+                    dispose: () => {
+                      wasm2.jsepReleaseTensorId(dataOffset);
+                      wasm2._OrtReleaseTensor(tensor);
+                    }
+                  },
+                  "ml-tensor"
                 ]);
               } else {
                 const typedArrayConstructor = tensorTypeToTypedArrayConstructor(type);
@@ -15534,6 +16157,8 @@ var init_session_handler_inference = __esm({
           return [tensor.type, tensor.dims, tensor.data, "cpu"];
         case "gpu-buffer":
           return [tensor.type, tensor.dims, { gpuBuffer: tensor.gpuBuffer }, "gpu-buffer"];
+        case "ml-tensor":
+          return [tensor.type, tensor.dims, { mlTensor: tensor.mlTensor }, "ml-tensor"];
         default:
           throw new Error(`invalid data location: ${tensor.location} for ${getName()}`);
       }
@@ -15549,6 +16174,14 @@ var init_session_handler_inference = __esm({
           }
           const { gpuBuffer, download, dispose } = tensor[2];
           return Tensor2.fromGpuBuffer(gpuBuffer, { dataType, dims: tensor[1], download, dispose });
+        }
+        case "ml-tensor": {
+          const dataType = tensor[0];
+          if (!isMLTensorSupportedType(dataType)) {
+            throw new Error(`not supported data type: ${dataType} for deserializing MLTensor tensor`);
+          }
+          const { mlTensor, download, dispose } = tensor[2];
+          return Tensor2.fromMLTensor(mlTensor, { dataType, dims: tensor[1], download, dispose });
         }
         default:
           throw new Error(`invalid data location: ${tensor[3]}`);
@@ -15626,7 +16259,13 @@ var init_session_handler_inference = __esm({
 });
 
 // web/lib/backend-wasm.ts
-var initializeFlags, OnnxruntimeWebAssemblyBackend;
+var backend_wasm_exports = {};
+__export(backend_wasm_exports, {
+  OnnxruntimeWebAssemblyBackend: () => OnnxruntimeWebAssemblyBackend,
+  initializeFlags: () => initializeFlags,
+  wasmBackend: () => wasmBackend
+});
+var initializeFlags, OnnxruntimeWebAssemblyBackend, wasmBackend;
 var init_backend_wasm = __esm({
   "web/lib/backend-wasm.ts"() {
     "use strict";
@@ -15683,19 +16322,6 @@ var init_backend_wasm = __esm({
         return Promise.resolve(handler);
       }
     };
-  }
-});
-
-// web/lib/backend-wasm-inference.ts
-var backend_wasm_inference_exports = {};
-__export(backend_wasm_inference_exports, {
-  wasmBackend: () => wasmBackend
-});
-var wasmBackend;
-var init_backend_wasm_inference = __esm({
-  "web/lib/backend-wasm-inference.ts"() {
-    "use strict";
-    init_backend_wasm();
     wasmBackend = new OnnxruntimeWebAssemblyBackend();
   }
 });
@@ -15706,7 +16332,7 @@ init_esm();
 init_esm();
 
 // web/lib/version.ts
-var version2 = "1.20.0-dev.20240827-1d059b8702";
+var version2 = "1.20.1";
 
 // web/lib/index.ts
 var lib_default = esm_exports;
@@ -15715,7 +16341,7 @@ if (false) {
   registerBackend("webgl", onnxjsBackend, -10);
 }
 if (true) {
-  const wasmBackend2 = true ? (init_backend_wasm_inference(), __toCommonJS(backend_wasm_inference_exports)).wasmBackend : null.wasmBackend;
+  const wasmBackend2 = (init_backend_wasm(), __toCommonJS(backend_wasm_exports)).wasmBackend;
   if (true) {
     registerBackend("webgpu", wasmBackend2, 5);
     registerBackend("webnn", wasmBackend2, 5);

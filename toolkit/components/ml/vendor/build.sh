@@ -1,14 +1,16 @@
 # !/bin/bash
 set -xe
 
+# To build go to the directory of this file (toolkit/components/ml/vendor) and run
+# `build.sh`
 # grabbing and patching transformers.js for gecko
 rm -rf tmp
 mkdir tmp
 pushd tmp
 # pin to a specific commit on the v3 branch
-git clone --branch v3 https://github.com/xenova/transformers.js
+git clone --branch main https://github.com/huggingface/transformers.js
 cd transformers.js
-git checkout 682c7d0588e1ea65090adb5be50877b8d8bc0968
+git checkout 3.1.0
 git apply ../../gecko.patch
 npm install
 npm install typescript@latest
@@ -22,7 +24,7 @@ rm -rf tmp
 # grabbing and patching onnxruntime-web for gecko.
 
 # fetch the tarball URL from npm
-TARBALL_URL=$(npm view onnxruntime-web@1.20.0-dev.20240827-1d059b8702 dist.tarball)
+TARBALL_URL=$(npm view onnxruntime-web@1.20.1 dist.tarball)
 wget "${TARBALL_URL}" -O dist.tgz
 
 # grab the two files we need

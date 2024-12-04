@@ -1,5 +1,5 @@
 /*!
- * ONNX Runtime Web v1.20.0-dev.20240827-1d059b8702
+ * ONNX Runtime Web v1.20.1
  * Copyright (c) Microsoft Corporation. All rights reserved.
  * Licensed under the MIT License.
  */
@@ -166,7 +166,7 @@ var version;
 var init_version = __esm({
   "common/dist/esm/version.js"() {
     "use strict";
-    version = "1.20.0-dev.20240827-5d54dc1462";
+    version = "1.20.1";
   }
 });
 
@@ -375,7 +375,7 @@ var init_tensor_conversion_impl = __esm({
 });
 
 // common/dist/esm/tensor-factory-impl.js
-var bufferToTensor, tensorFromImage, tensorFromTexture, tensorFromGpuBuffer, tensorFromPinnedBuffer;
+var bufferToTensor, tensorFromImage, tensorFromTexture, tensorFromGpuBuffer, tensorFromMLTensor, tensorFromPinnedBuffer;
 var init_tensor_factory_impl = __esm({
   "common/dist/esm/tensor-factory-impl.js"() {
     "use strict";
@@ -456,7 +456,7 @@ var init_tensor_factory_impl = __esm({
         }
       };
       const createCanvasContext = (canvas) => {
-        if (canvas instanceof HTMLCanvasElement) {
+        if (typeof HTMLCanvasElement !== "undefined" && canvas instanceof HTMLCanvasElement) {
           return canvas.getContext("2d");
         } else if (canvas instanceof OffscreenCanvas) {
           return canvas.getContext("2d");
@@ -582,6 +582,10 @@ var init_tensor_factory_impl = __esm({
       const { dataType, dims, download, dispose } = options;
       return new Tensor({ location: "gpu-buffer", type: dataType ?? "float32", gpuBuffer, dims, download, dispose });
     };
+    tensorFromMLTensor = (mlTensor, options) => {
+      const { dataType, dims, download, dispose } = options;
+      return new Tensor({ location: "ml-tensor", type: dataType ?? "float32", mlTensor, dims, download, dispose });
+    };
     tensorFromPinnedBuffer = (type, buffer, dims) => new Tensor({ location: "cpu-pinned", type, data: buffer, dims: dims ?? [buffer.length] });
   }
 });
@@ -685,6 +689,13 @@ var init_tensor_utils_impl = __esm({
             type: tensor.type,
             dims
           });
+        case "ml-tensor":
+          return new Tensor({
+            location: "ml-tensor",
+            mlTensor: tensor.mlTensor,
+            type: tensor.type,
+            dims
+          });
         default:
           throw new Error(`tensorReshape: tensor location ${tensor.location} is not supported`);
       }
@@ -743,6 +754,15 @@ var init_tensor_impl = __esm({
               this.disposer = arg0.dispose;
               break;
             }
+            case "ml-tensor": {
+              if (type !== "float32" && type !== "float16" && type !== "int32" && type !== "int64" && type !== "uint32" && type !== "uint64" && type !== "int8" && type !== "uint8" && type !== "bool") {
+                throw new TypeError(`unsupported type "${type}" to create tensor from MLTensor`);
+              }
+              this.mlTensorData = arg0.mlTensor;
+              this.downloader = arg0.download;
+              this.disposer = arg0.dispose;
+              break;
+            }
             default:
               throw new Error(`Tensor constructor: unsupported location '${this.dataLocation}'`);
           }
@@ -772,6 +792,12 @@ var init_tensor_impl = __esm({
                 }
               } else if (arg1 instanceof typedArrayConstructor) {
                 data = arg1;
+              } else if (arg1 instanceof Uint8ClampedArray) {
+                if (arg0 === "uint8") {
+                  data = Uint8Array.from(arg1);
+                } else {
+                  throw new TypeError(`A Uint8ClampedArray tensor's data must be type of uint8`);
+                }
               } else {
                 throw new TypeError(`A ${type} tensor's data must be type of ${typedArrayConstructor}`);
               }
@@ -792,6 +818,9 @@ var init_tensor_impl = __esm({
               } else {
                 throw new TypeError(`Invalid element type of data array: ${firstElementType}.`);
               }
+            } else if (arg0 instanceof Uint8ClampedArray) {
+              type = "uint8";
+              data = Uint8Array.from(arg0);
             } else {
               const mappedType = NUMERIC_TENSOR_TYPEDARRAY_TO_TYPE_MAP.get(arg0.constructor);
               if (mappedType === void 0) {
@@ -832,6 +861,9 @@ var init_tensor_impl = __esm({
       static fromGpuBuffer(gpuBuffer, options) {
         return tensorFromGpuBuffer(gpuBuffer, options);
       }
+      static fromMLTensor(mlTensor, options) {
+        return tensorFromMLTensor(mlTensor, options);
+      }
       static fromPinnedBuffer(type, buffer, dims) {
         return tensorFromPinnedBuffer(type, buffer, dims);
       }
@@ -869,6 +901,13 @@ var init_tensor_impl = __esm({
         }
         return this.gpuBufferData;
       }
+      get mlTensor() {
+        this.ensureValid();
+        if (!this.mlTensorData) {
+          throw new Error("The data is not stored as a WebNN MLTensor.");
+        }
+        return this.mlTensorData;
+      }
       // #endregion
       // #region methods
       async getData(releaseData) {
@@ -878,7 +917,8 @@ var init_tensor_impl = __esm({
           case "cpu-pinned":
             return this.data;
           case "texture":
-          case "gpu-buffer": {
+          case "gpu-buffer":
+          case "ml-tensor": {
             if (!this.downloader) {
               throw new Error("The current tensor is not created with a specified data downloader.");
             }
@@ -915,6 +955,7 @@ var init_tensor_impl = __esm({
         this.cpuData = void 0;
         this.gpuTextureData = void 0;
         this.gpuBufferData = void 0;
+        this.mlTensorData = void 0;
         this.downloader = void 0;
         this.isDownloading = void 0;
         this.dataLocation = "none";
@@ -24465,13 +24506,13 @@ var init_wasm_utils_import = __esm({
     };
     embeddedWasmModule = false ? (
       // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
-      (false ? null : false ? null : null).default
+      (false ? null : null).default
     ) : void 0;
     importWasmModule = async (urlOverride, prefixOverride, isMultiThreaded) => {
       if (false) {
         return [void 0, embeddedWasmModule];
       } else {
-        const wasmModuleFilename = false ? "ort-training-wasm-simd-threaded.mjs" : false ? "ort-wasm-simd-threaded.jsep.mjs" : "ort-wasm-simd-threaded.mjs";
+        const wasmModuleFilename = false ? "ort-wasm-simd-threaded.jsep.mjs" : "ort-wasm-simd-threaded.mjs";
         const wasmModuleUrl = urlOverride ?? normalizeUrl(wasmModuleFilename, prefixOverride);
         const needPreload = !isNode && isMultiThreaded && wasmModuleUrl && !isSameOrigin(wasmModuleUrl, prefixOverride);
         const url = needPreload ? await preload(wasmModuleUrl) : wasmModuleUrl ?? fallbackUrl(wasmModuleFilename, prefixOverride);
@@ -24988,7 +25029,7 @@ var init_session_options = __esm({
 });
 
 // web/lib/wasm/wasm-common.ts
-var tensorDataTypeStringToEnum, tensorDataTypeEnumToString, calculateTensorSizeInBytes, tensorTypeToTypedArrayConstructor, logLevelStringToEnum, isGpuBufferSupportedType, dataLocationStringToEnum;
+var tensorDataTypeStringToEnum, tensorDataTypeEnumToString, calculateTensorSizeInBytes, tensorTypeToTypedArrayConstructor, logLevelStringToEnum, isGpuBufferSupportedType, isMLTensorSupportedType, dataLocationStringToEnum;
 var init_wasm_common = __esm({
   "web/lib/wasm/wasm-common.ts"() {
     "use strict";
@@ -25163,6 +25204,7 @@ var init_wasm_common = __esm({
       }
     };
     isGpuBufferSupportedType = (type) => type === "float32" || type === "float16" || type === "int32" || type === "int64" || type === "uint32" || type === "uint8" || type === "bool" || type === "uint4" || type === "int4";
+    isMLTensorSupportedType = (type) => type === "float32" || type === "float16" || type === "int32" || type === "int64" || type === "uint32" || type === "uint64" || type === "int8" || type === "uint8" || type === "bool";
     dataLocationStringToEnum = (location2) => {
       switch (location2) {
         case "none":
@@ -25175,6 +25217,8 @@ var init_wasm_common = __esm({
           return 3;
         case "gpu-buffer":
           return 4;
+        case "ml-tensor":
+          return 5;
         default:
           throw new Error(`unsupported data location: ${location2}`);
       }
@@ -25371,6 +25415,7 @@ var init_wasm_core_impl = __esm({
         for (const provider of options?.executionProviders ?? []) {
           const providerName = typeof provider === "string" ? provider : provider.name;
           if (providerName === "webnn") {
+            wasm3.shouldTransferToMLTensor = false;
             if (wasm3.currentContext) {
               throw new Error("WebNN execution provider is already set.");
             }
@@ -25399,7 +25444,9 @@ var init_wasm_core_impl = __esm({
           checkLastError("Can't create a session.");
         }
         if (wasm3.currentContext) {
+          wasm3.jsepRegisterMLContext(sessionHandle, wasm3.currentContext);
           wasm3.currentContext = void 0;
+          wasm3.shouldTransferToMLTensor = true;
         }
         const [inputCount, outputCount] = getSessionInputOutputCount(sessionHandle);
         const enableGraphCapture = !!options?.enableGraphCapture;
@@ -25428,7 +25475,7 @@ var init_wasm_core_impl = __esm({
               continue;
             }
             const location2 = typeof options?.preferredOutputLocation === "string" ? options.preferredOutputLocation : options?.preferredOutputLocation?.[nameString] ?? "cpu";
-            if (location2 !== "cpu" && location2 !== "cpu-pinned" && location2 !== "gpu-buffer") {
+            if (location2 !== "cpu" && location2 !== "cpu-pinned" && location2 !== "gpu-buffer" && location2 !== "ml-tensor") {
               throw new Error(`Not supported preferred output location: ${location2}.`);
             }
             if (enableGraphCapture && location2 !== "gpu-buffer") {
@@ -25509,7 +25556,7 @@ var init_wasm_core_impl = __esm({
       const location2 = tensor[3];
       let rawData;
       let dataByteLength;
-      if (dataType === "string" && location2 === "gpu-buffer") {
+      if (dataType === "string" && (location2 === "gpu-buffer" || location2 === "ml-tensor")) {
         throw new Error("String tensor is not supported on GPU.");
       }
       if (enableGraphCapture && location2 !== "gpu-buffer") {
@@ -25525,6 +25572,14 @@ var init_wasm_core_impl = __esm({
           throw new Error('Tensor location "gpu-buffer" is not supported without using WebGPU.');
         }
         rawData = registerBuffer(sessionId, index, gpuBuffer, dataByteLength);
+      } else if (location2 === "ml-tensor") {
+        const mlTensor = tensor[2].mlTensor;
+        dataByteLength = calculateTensorSizeInBytes(tensorDataTypeStringToEnum(dataType), dims);
+        const registerMLTensor = wasm3.jsepRegisterMLTensor;
+        if (!registerMLTensor) {
+          throw new Error('Tensor location "ml-tensor" is not supported without using WebNN.');
+        }
+        rawData = registerMLTensor(mlTensor, tensorDataTypeStringToEnum(dataType), dims);
       } else {
         const data = tensor[2];
         if (Array.isArray(data)) {
@@ -25591,6 +25646,7 @@ var init_wasm_core_impl = __esm({
       const outputValuesOffset = wasm3.stackAlloc(outputCount * 4);
       const outputNamesOffset = wasm3.stackAlloc(outputCount * 4);
       try {
+        wasm3.jsepOnRunStart?.(sessionHandle);
         [runOptionsHandle, runOptionsAllocs] = setRunOptions(options);
         for (let i = 0; i < inputCount; i++) {
           prepareInputOutputTensor(
@@ -25667,7 +25723,6 @@ var init_wasm_core_impl = __esm({
             true
           ]);
         }
-        wasm3.jsepOnRunStart?.(sessionHandle);
         let errorCode;
         if (false) {
           errorCode = await wasm3._OrtRunWithBinding(
@@ -25728,7 +25783,7 @@ var init_wasm_core_impl = __esm({
             type = tensorDataTypeEnumToString(dataType);
             const preferredLocation = ioBindingState?.outputPreferredLocations[outputIndices[i]];
             if (type === "string") {
-              if (preferredLocation === "gpu-buffer") {
+              if (preferredLocation === "gpu-buffer" || preferredLocation === "ml-tensor") {
                 throw new Error("String tensor is not supported on GPU.");
               }
               const stringData = [];
@@ -25762,6 +25817,30 @@ var init_wasm_core_impl = __esm({
                     }
                   },
                   "gpu-buffer"
+                ]);
+              } else if (preferredLocation === "ml-tensor" && size > 0) {
+                const ensureTensor = wasm3.jsepEnsureTensor;
+                if (!ensureTensor) {
+                  throw new Error('preferredLocation "ml-tensor" is not supported without using WebNN.');
+                }
+                const tensorSize = calculateTensorSizeInBytes(dataType, size);
+                if (tensorSize === void 0 || !isMLTensorSupportedType(type)) {
+                  throw new Error(`Unsupported data type: ${type}`);
+                }
+                const mlTensor = await ensureTensor(dataOffset, dataType, dims, false);
+                keepOutputTensor = true;
+                output.push([
+                  type,
+                  dims,
+                  {
+                    mlTensor,
+                    download: wasm3.jsepCreateMLTensorDownloader(dataOffset, type),
+                    dispose: () => {
+                      wasm3.jsepReleaseTensorId(dataOffset);
+                      wasm3._OrtReleaseTensor(tensor);
+                    }
+                  },
+                  "ml-tensor"
                 ]);
               } else {
                 const typedArrayConstructor = tensorTypeToTypedArrayConstructor(type);
@@ -26040,6 +26119,8 @@ var init_session_handler_inference2 = __esm({
           return [tensor.type, tensor.dims, tensor.data, "cpu"];
         case "gpu-buffer":
           return [tensor.type, tensor.dims, { gpuBuffer: tensor.gpuBuffer }, "gpu-buffer"];
+        case "ml-tensor":
+          return [tensor.type, tensor.dims, { mlTensor: tensor.mlTensor }, "ml-tensor"];
         default:
           throw new Error(`invalid data location: ${tensor.location} for ${getName()}`);
       }
@@ -26055,6 +26136,14 @@ var init_session_handler_inference2 = __esm({
           }
           const { gpuBuffer, download, dispose } = tensor[2];
           return Tensor2.fromGpuBuffer(gpuBuffer, { dataType, dims: tensor[1], download, dispose });
+        }
+        case "ml-tensor": {
+          const dataType = tensor[0];
+          if (!isMLTensorSupportedType(dataType)) {
+            throw new Error(`not supported data type: ${dataType} for deserializing MLTensor tensor`);
+          }
+          const { mlTensor, download, dispose } = tensor[2];
+          return Tensor2.fromMLTensor(mlTensor, { dataType, dims: tensor[1], download, dispose });
         }
         default:
           throw new Error(`invalid data location: ${tensor[3]}`);
@@ -26132,7 +26221,13 @@ var init_session_handler_inference2 = __esm({
 });
 
 // web/lib/backend-wasm.ts
-var initializeFlags, OnnxruntimeWebAssemblyBackend;
+var backend_wasm_exports = {};
+__export(backend_wasm_exports, {
+  OnnxruntimeWebAssemblyBackend: () => OnnxruntimeWebAssemblyBackend,
+  initializeFlags: () => initializeFlags,
+  wasmBackend: () => wasmBackend
+});
+var initializeFlags, OnnxruntimeWebAssemblyBackend, wasmBackend;
 var init_backend_wasm = __esm({
   "web/lib/backend-wasm.ts"() {
     "use strict";
@@ -26189,19 +26284,6 @@ var init_backend_wasm = __esm({
         return Promise.resolve(handler);
       }
     };
-  }
-});
-
-// web/lib/backend-wasm-inference.ts
-var backend_wasm_inference_exports = {};
-__export(backend_wasm_inference_exports, {
-  wasmBackend: () => wasmBackend
-});
-var wasmBackend;
-var init_backend_wasm_inference = __esm({
-  "web/lib/backend-wasm-inference.ts"() {
-    "use strict";
-    init_backend_wasm();
     wasmBackend = new OnnxruntimeWebAssemblyBackend();
   }
 });
@@ -26212,7 +26294,7 @@ init_esm();
 init_esm();
 
 // web/lib/version.ts
-var version2 = "1.20.0-dev.20240827-1d059b8702";
+var version2 = "1.20.1";
 
 // web/lib/index.ts
 var lib_default = esm_exports;
@@ -26221,7 +26303,7 @@ if (true) {
   registerBackend("webgl", onnxjsBackend2, -10);
 }
 if (true) {
-  const wasmBackend2 = true ? (init_backend_wasm_inference(), __toCommonJS(backend_wasm_inference_exports)).wasmBackend : null.wasmBackend;
+  const wasmBackend2 = (init_backend_wasm(), __toCommonJS(backend_wasm_exports)).wasmBackend;
   if (false) {
     registerBackend("webgpu", wasmBackend2, 5);
     registerBackend("webnn", wasmBackend2, 5);

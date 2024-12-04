@@ -12,15 +12,15 @@ index c7584c6..aca0441 100644
      "build": "webpack && npm run typegen",
      "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js --verbose",
 @@ -62,6 +62,7 @@
-   "homepage": "https://github.com/xenova/transformers.js#readme",
+   "homepage": "https://github.com/huggingface/transformers.js#readme",
    "dependencies": {
-     "@huggingface/jinja": "^0.3.0",
+     "@huggingface/jinja": "^0.3.2",
 +    "@types/node": "^22.5.5",
-     "onnxruntime-node": "1.19.2",
-     "onnxruntime-web": "1.20.0-dev.20240908-de7a02beef",
+     "onnxruntime-node": "1.20.1",
+     "onnxruntime-web": "1.20.1",
      "sharp": "^0.33.5"
 @@ -74,7 +75,7 @@
-     "jest-environment-node": "^29.5.0",
+     "jest-environment-node": "^30.0.0-alpha.6",
      "jsdoc-to-markdown": "^8.0.1",
      "prettier": "3.3.3",
 -    "typescript": "^5.2.2",
@@ -72,18 +72,112 @@ diff --git a/webpack.config.js b/webpack.config.js
 index 2182492..ef2540c 100644
 --- a/webpack.config.js
 +++ b/webpack.config.js
-@@ -20,6 +20,7 @@ function buildConfig({
-   type = "module", // 'module' | 'commonjs'
-   ignoreModules = [],
-   externalModules = [],
-+  entry,
- } = {}) {
-   const outputModule = type === "module";
+@@ -4,113 +4,106 @@ import path from "path";
  
-@@ -84,33 +85,26 @@ function buildConfig({
-   return config;
- }
+ const __dirname = path.dirname(fileURLToPath(import.meta.url));
  
+-/**
+- * Helper function to create webpack configurations.
+- * @param {Object} options Options for creating a webpack target.
+- * @param {string} options.name Name of output file.
+- * @param {string} options.suffix Suffix of output file.
+- * @param {string} options.type Type of library.
+- * @param {string} options.ignoreModules The list of modules to ignore.
+- * @param {string} options.externalModules The list of modules to set as external.
+- * @returns {import('webpack').Configuration} One webpack target.
+- */
+-function buildConfig({
+-  name = "",
+-  suffix = ".js",
+-  type = "module", // 'module' | 'commonjs'
+-  ignoreModules = [],
+-  externalModules = [],
+-} = {}) {
+-  const outputModule = type === "module";
+-
+-  const alias = Object.fromEntries(
+-    ignoreModules.map((module) => {
+-      return [module, false];
+-    }),
+-  );
+-
+-  /** @type {import('webpack').Configuration} */
+-  const config = {
++/** @type {import('webpack').Configuration[]} */
++const configs = [
++  {
+     mode: 'development',
+     devtool: 'source-map',
+     entry: {
+-      [`transformers${name}`]: './src/transformers.js',
+-      [`transformers${name}.min`]: './src/transformers.js',
++      'transformers.min': './src/transformers.js',
+     },
+     output: {
+-      filename: `[name]${suffix}`,
++      filename: '[name].js',
+       path: path.join(__dirname, 'dist'),
+       library: {
+-        type,
++        type: 'module',
+       },
+       assetModuleFilename: '[name][ext]',
+       chunkFormat: 'module',
+     },
+     optimization: {
+       minimize: true,
+-      minimizer: [new TerserPlugin({
+-        test: new RegExp(`\\.min\\${suffix}$`),
+-        extractComments: false,
+-      })],
++      minimizer: [
++        new TerserPlugin({
++          test: /\.min\.js$/,
++          extractComments: false,
++        }),
++      ],
+     },
+     experiments: {
+-      outputModule,
++      outputModule: true,
++    },
++    resolve: {
++      alias: {
++        '#onnxruntime-webgpu': false,
++      },
++    },
++    externals: {
++      '#onnxruntime-webgpu': 'chrome://global/content/ml/ort.webgpu.mjs',
+     },
+-    resolve: { alias },
+-
+-    externals: externalModules,
+-
+-    // Development server
+     devServer: {
+       static: {
+         directory: __dirname,
+       },
+       port: 8080,
+     },
+-  };
+-
+-  if (outputModule) {
+-    config.module = {
++    module: {
+       parser: {
+         javascript: {
+-          importMeta: false
+-        }
+-      }
+-    }
+-  } else {
+-    config.externalsType = 'commonjs';
+-  }
+-
+-  return config;
+-}
+-
 -// Do not bundle onnxruntime-web when packaging for Node.js.
 -// Instead, we use the native library (onnxruntime-node).
 -const NODE_IGNORE_MODULES = ["onnxruntime-web", "onnxruntime-web/webgpu"];
@@ -94,24 +188,16 @@ index 2182492..ef2540c 100644
 -const NODE_EXTERNAL_MODULES = ["onnxruntime-node", "sharp", "fs", "path", "url"];
 -
 -
- export default [
+-export default [
 -  // Web-only build
-+  // minified
-   buildConfig({
-     type: "module",
-+    entry: {
-+        'dist/transformers.min': './src/transformers.js',
-+    },
-+    externalModules: {
-+        '#onnxruntime-webgpu': 'chrome://global/content/ml/ort.webgpu.mjs',
-+    },
-   }),
- 
+-  buildConfig({
+-    type: "module",
+-  }),
+-
 -  // Node-compatible builds
-+  // non-minified
-   buildConfig({
+-  buildConfig({
 -    suffix: ".mjs",
-     type: "module",
+-    type: "module",
 -    ignoreModules: NODE_IGNORE_MODULES,
 -    externalModules: NODE_EXTERNAL_MODULES,
 -  }),
@@ -120,11 +206,61 @@ index 2182492..ef2540c 100644
 -    type: "commonjs",
 -    ignoreModules: NODE_IGNORE_MODULES,
 -    externalModules: NODE_EXTERNAL_MODULES,
+-  }),
++          importMeta: false,
++        },
++      },
++    },
++  },
++  {
++    mode: 'development',
++    devtool: 'source-map',
 +    entry: {
-+        'dist/transformers': './src/transformers.js',
++      transformers: './src/transformers.js',
 +    },
-+    externalModules: {
-+        '#onnxruntime-webgpu': 'chrome://global/content/ml/ort.webgpu-dev.mjs',
++    output: {
++      filename: '[name].js',
++      path: path.join(__dirname, 'dist'),
++      library: {
++        type: 'module',
++      },
++      assetModuleFilename: '[name][ext]',
++      chunkFormat: 'module',
 +    },
-   }),
++    optimization: {
++      minimize: true,
++      minimizer: [
++        new TerserPlugin({
++          test: /\.min\.js$/,
++          extractComments: false,
++        }),
++      ],
++    },
++    experiments: {
++      outputModule: true,
++    },
++    resolve: {
++      alias: {
++        '#onnxruntime-webgpu': false,
++      },
++    },
++    externals: {
++      '#onnxruntime-webgpu': 'chrome://global/content/ml/ort.webgpu-dev.mjs',
++    },
++    devServer: {
++      static: {
++        directory: __dirname,
++      },
++      port: 8080,
++    },
++    module: {
++      parser: {
++        javascript: {
++          importMeta: false,
++        },
++      },
++    },
++  },
  ];
++
++export default configs;

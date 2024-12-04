@@ -77,7 +77,7 @@ export class MLEngineParent extends JSWindowActorParent {
    * of "1", assets can be downloaded for "1.0", "1.2", "1.3beta", but assets marked
    * as "2.0", "2.1", etc will not be downloaded.
    */
-  static WASM_MAJOR_VERSION = 2;
+  static WASM_MAJOR_VERSION = 3;
 
   /**
    * This wasm file supports CPU, WebGPU and WebNN.
