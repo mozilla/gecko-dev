@@ -21,7 +21,7 @@ let ignoreList = [
   },
   {
     sourceName:
-      /\b(scrollbars|xul|html|mathml|ua|forms|svg|manageDialog|formautofill)\.css$/i,
+      /\b(scrollbars|xul|html|mathml|ua|EditorOverride|contenteditable|forms|svg|manageDialog|formautofill)\.css$/i,
     errorMessage: /Unknown property.*-moz-/i,
     isFromDevTools: false,
   },
