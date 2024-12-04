@@ -210,6 +210,7 @@ DataTransfer::DataTransfer(
     const uint32_t aEffectAllowed, bool aCursorState, bool aIsExternal,
     bool aUserCancelled, bool aIsCrossDomainSubFrameDrop,
     mozilla::Maybe<nsIClipboard::ClipboardType> aClipboardType,
+    nsCOMPtr<nsIClipboardDataSnapshot> aClipboardDataSnapshot,
     DataTransferItemList* aItems, Element* aDragImage, uint32_t aDragImageX,
     uint32_t aDragImageY, bool aShowFailAnimation)
     : mParent(aParent),
@@ -222,6 +223,7 @@ DataTransfer::DataTransfer(
       mUserCancelled(aUserCancelled),
       mIsCrossDomainSubFrameDrop(aIsCrossDomainSubFrameDrop),
       mClipboardType(aClipboardType),
+      mClipboardDataSnapshot(std::move(aClipboardDataSnapshot)),
       mDragImage(aDragImage),
       mDragImageX(aDragImageX),
       mDragImageY(aDragImageY),
@@ -727,9 +729,18 @@ void DataTransfer::GetExternalClipboardFormats(const bool& aPlainTextOnly,
           formats, *mClipboardType, wc, getter_AddRefs(clipboardDataSnapshot));
     }
   } else {
-    AutoTArray<nsCString, std::size(kNonPlainTextExternalFormats)> formats;
+    AutoTArray<nsCString, std::size(kNonPlainTextExternalFormats) + 4> formats;
     formats.AppendElements(
         Span<const nsLiteralCString>(kNonPlainTextExternalFormats));
+    // We will be using this snapshot to provide the data to paste in
+    // EditorBase, so add a few extra formats here to make sure we have
+    // everything. Note that these extra formats will not be returned in aResult
+    // because of the checks below.
+    formats.AppendElement(kNativeHTMLMime);
+    formats.AppendElement(kJPEGImageMime);
+    formats.AppendElement(kGIFImageMime);
+    formats.AppendElement(kMozTextInternal);
+
     if (doContentAnalysis) {
       rv = GetClipboardDataSnapshotWithContentAnalysisSync(
           formats, *mClipboardType, wc, getter_AddRefs(clipboardDataSnapshot));
@@ -925,8 +936,9 @@ nsresult DataTransfer::Clone(nsISupports* aParent, EventMessage aEventMessage,
                              DataTransfer** aNewDataTransfer) {
   RefPtr<DataTransfer> newDataTransfer = new DataTransfer(
       aParent, aEventMessage, mEffectAllowed, mCursorState, mIsExternal,
-      aUserCancelled, aIsCrossDomainSubFrameDrop, mClipboardType, mItems,
-      mDragImage, mDragImageX, mDragImageY, mShowFailAnimation);
+      aUserCancelled, aIsCrossDomainSubFrameDrop, mClipboardType,
+      mClipboardDataSnapshot, mItems, mDragImage, mDragImageX, mDragImageY,
+      mShowFailAnimation);
 
   newDataTransfer.forget(aNewDataTransfer);
   return NS_OK;
@@ -1641,6 +1653,19 @@ nsIDragSession* DataTransfer::GetOwnerDragSession() {
   auto* widget = GetOwnerWidget();
   nsCOMPtr<nsIDragSession> dragSession = nsContentUtils::GetDragSession(widget);
   return dragSession;
+}
+
+void DataTransfer::ClearForPaste() {
+  MOZ_ASSERT(mEventMessage == ePaste,
+             "ClearForPaste() should only be called on ePaste messages");
+  Disconnect();
+
+  // NOTE: Disconnect may not actually clear the DataTransfer if the
+  // dom.events.dataTransfer.protected.enabled pref is not on, so we make
+  // sure we clear here, as not clearing could provide the DataTransfer
+  // access to information from the system clipboard at an arbitrary point
+  // in the future.
+  ClearAll();
 }
 
 }  // namespace mozilla::dom

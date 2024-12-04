@@ -87,6 +87,7 @@ class DataTransfer final : public nsISupports, public nsWrapperCache {
                bool aIsExternal, bool aUserCancelled,
                bool aIsCrossDomainSubFrameDrop,
                mozilla::Maybe<nsIClipboard::ClipboardType> aClipboardType,
+               nsCOMPtr<nsIClipboardDataSnapshot> aClipboardDataSnapshot,
                DataTransferItemList* aItems, Element* aDragImage,
                uint32_t aDragImageX, uint32_t aDragImageY,
                bool aShowFailAnimation);
@@ -442,6 +443,9 @@ class DataTransfer final : public nsISupports, public nsWrapperCache {
   static void ParseExternalCustomTypesString(
       mozilla::Span<const char> aString,
       std::function<void(ParseExternalCustomTypesStringData&&)>&& aCallback);
+
+  // Clears this DataTransfer that was used for paste
+  void ClearForPaste();
 
  protected:
   // Retrieve a list of clipboard formats supported
