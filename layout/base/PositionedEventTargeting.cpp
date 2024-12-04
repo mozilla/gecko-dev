@@ -503,6 +503,7 @@ nsIFrame* FindFrameTargetedByInputEvent(
   }
   nsIFrame* target = nsLayoutUtils::GetFrameForPoint(
       aRootFrame, aPointRelativeToRootFrame, options);
+  nsIFrame* initialTarget = target;
   PET_LOG(
       "Found initial target %p for event class %s message %s point %s "
       "relative to root frame %s\n",
@@ -595,7 +596,7 @@ nsIFrame* FindFrameTargetedByInputEvent(
   }
 #endif
 
-  if (!target || !prefs.mReposition) {
+  if (!target || !prefs.mReposition || target == initialTarget) {
     // No repositioning required for this event
     return target;
   }
