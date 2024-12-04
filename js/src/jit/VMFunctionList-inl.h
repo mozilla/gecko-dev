@@ -248,6 +248,7 @@ namespace jit {
   _(LinearizeForCharAccess, js::jit::LinearizeForCharAccess)                   \
   _(LoadAliasedDebugVar, js::LoadAliasedDebugVar)                              \
   _(MapObjectCreate, js::MapObject::create)                                    \
+  _(MapObjectCreateFromIterable, js::MapObject::createFromIterable)            \
   _(MapObjectDelete, js::jit::MapObjectDelete)                                 \
   _(MapObjectGet, js::jit::MapObjectGet)                                       \
   _(MapObjectHas, js::jit::MapObjectHas)                                       \
@@ -310,6 +311,7 @@ namespace jit {
   _(SetObjectAdd, js::jit::SetObjectAdd)                                       \
   _(SetObjectAddFromIC, js::jit::SetObjectAddFromIC)                           \
   _(SetObjectCreate, js::SetObject::create)                                    \
+  _(SetObjectCreateFromIterable, js::SetObject::createFromIterable)            \
   _(SetObjectDelete, js::jit::SetObjectDelete)                                 \
   _(SetObjectHas, js::jit::SetObjectHas)                                       \
   _(SetPropertyMegamorphicNoCache, js::jit::SetPropertyMegamorphic<false>)     \

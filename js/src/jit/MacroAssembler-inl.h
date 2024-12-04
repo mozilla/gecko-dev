@@ -428,6 +428,16 @@ void MacroAssembler::branchIfTrueBool(Register reg, Label* label) {
   branchTest32(Assembler::NonZero, reg, Imm32(0xFF), label);
 }
 
+void MacroAssembler::branchIfNotNullOrUndefined(ValueOperand val,
+                                                Label* label) {
+  Label nullOrUndefined;
+  ScratchTagScope tag(*this, val);
+  splitTagForTest(val, tag);
+  branchTestNull(Assembler::Equal, tag, &nullOrUndefined);
+  branchTestUndefined(Assembler::NotEqual, tag, label);
+  bind(&nullOrUndefined);
+}
+
 void MacroAssembler::branchIfRope(Register str, Label* label) {
   Address flags(str, JSString::offsetOfFlags());
   branchTest32(Assembler::Zero, flags, Imm32(JSString::LINEAR_BIT), label);

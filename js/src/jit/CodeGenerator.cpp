@@ -2579,7 +2579,9 @@ void CreateDependentString::generate(MacroAssembler& masm,
       masm.jump(&stringAllocated);
     }
     masm.bind(&fatInline);
-    { newGCString(FallbackKind::FatInlineString); }
+    {
+      newGCString(FallbackKind::FatInlineString);
+    }
     masm.bind(&stringAllocated);
 
     masm.store32(temp1_, Address(string_, JSString::offsetOfLength()));
@@ -2933,7 +2935,9 @@ static JitCode* GenerateRegExpMatchStubShared(JSContext* cx,
         masm.jump(&storeDone);
       }
       masm.bind(&isUndefined);
-      { masm.storeValue(UndefinedValue(), objectMatchElement); }
+      {
+        masm.storeValue(UndefinedValue(), objectMatchElement);
+      }
       masm.bind(&storeDone);
 
       masm.add32(Imm32(1), matchIndex);
@@ -8750,6 +8754,78 @@ void CodeGenerator::visitNewSetObject(LNewSetObject* lir) {
   masm.createGCObject(output, temp, templateObject, gc::Heap::Default,
                       ool->entry());
   masm.bind(ool->rejoin());
+}
+
+void CodeGenerator::visitNewMapObjectFromIterable(
+    LNewMapObjectFromIterable* lir) {
+  ValueOperand iterable =
+      ToValue(lir, LNewMapObjectFromIterable::IterableIndex);
+  Register output = ToRegister(lir->output());
+  Register temp1 = ToRegister(lir->temp0());
+  Register temp2 = ToRegister(lir->temp1());
+
+  // Allocate a new MapObject. If this fails we pass nullptr for
+  // allocatedFromJit.
+  Label failedAlloc, vmCall, done;
+  TemplateObject templateObject(lir->mir()->templateObject());
+  masm.createGCObject(temp1, temp2, templateObject, gc::Heap::Default,
+                      &failedAlloc);
+
+  // We're done if |iterable| is null or undefined.
+  masm.branchIfNotNullOrUndefined(iterable, &vmCall);
+  masm.movePtr(temp1, output);
+  masm.jump(&done);
+
+  masm.bind(&failedAlloc);
+  masm.movePtr(ImmPtr(nullptr), temp1);
+
+  masm.bind(&vmCall);
+
+  pushArg(temp1);  // allocatedFromJit
+  pushArg(iterable);
+  pushArg(ImmPtr(nullptr));  // proto
+
+  using Fn = MapObject* (*)(JSContext*, Handle<JSObject*>, Handle<Value>,
+                            Handle<MapObject*>);
+  callVM<Fn, MapObject::createFromIterable>(lir);
+
+  masm.bind(&done);
+}
+
+void CodeGenerator::visitNewSetObjectFromIterable(
+    LNewSetObjectFromIterable* lir) {
+  ValueOperand iterable =
+      ToValue(lir, LNewSetObjectFromIterable::IterableIndex);
+  Register output = ToRegister(lir->output());
+  Register temp1 = ToRegister(lir->temp0());
+  Register temp2 = ToRegister(lir->temp1());
+
+  // Allocate a new SetObject. If this fails we pass nullptr for
+  // allocatedFromJit.
+  Label failedAlloc, vmCall, done;
+  TemplateObject templateObject(lir->mir()->templateObject());
+  masm.createGCObject(temp1, temp2, templateObject, gc::Heap::Default,
+                      &failedAlloc);
+
+  // We're done if |iterable| is null or undefined.
+  masm.branchIfNotNullOrUndefined(iterable, &vmCall);
+  masm.movePtr(temp1, output);
+  masm.jump(&done);
+
+  masm.bind(&failedAlloc);
+  masm.movePtr(ImmPtr(nullptr), temp1);
+
+  masm.bind(&vmCall);
+
+  pushArg(temp1);  // allocatedFromJit
+  pushArg(iterable);
+  pushArg(ImmPtr(nullptr));  // proto
+
+  using Fn = SetObject* (*)(JSContext*, Handle<JSObject*>, Handle<Value>,
+                            Handle<SetObject*>);
+  callVM<Fn, SetObject::createFromIterable>(lir);
+
+  masm.bind(&done);
 }
 
 void CodeGenerator::visitNewStringObject(LNewStringObject* lir) {

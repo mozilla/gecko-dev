@@ -11460,8 +11460,8 @@ AttachDecision InlinableNativeIRGenerator::tryAttachMapSetConstructor(
              native == InlinableNative::SetConstructor);
   MOZ_ASSERT(flags_.isConstructing());
 
-  // We don't support the |iterable| argument yet.
-  if (argc_ != 0) {
+  // Must have either no arguments or a single (iterable) argument.
+  if (argc_ > 1) {
     return AttachDecision::NoAction;
   }
 
@@ -11487,10 +11487,20 @@ AttachDecision InlinableNativeIRGenerator::tryAttachMapSetConstructor(
   // Guard callee and newTarget are this Map/Set constructor function.
   emitNativeCalleeGuard();
 
-  if (native == InlinableNative::MapConstructor) {
-    writer.newMapObjectResult(templateObj);
+  if (argc_ == 1) {
+    ValOperandId iterableId =
+        writer.loadArgumentFixedSlot(ArgumentKind::Arg0, argc_, flags_);
+    if (native == InlinableNative::MapConstructor) {
+      writer.newMapObjectFromIterableResult(templateObj, iterableId);
+    } else {
+      writer.newSetObjectFromIterableResult(templateObj, iterableId);
+    }
   } else {
-    writer.newSetObjectResult(templateObj);
+    if (native == InlinableNative::MapConstructor) {
+      writer.newMapObjectResult(templateObj);
+    } else {
+      writer.newSetObjectResult(templateObj);
+    }
   }
   writer.returnFromIC();
 

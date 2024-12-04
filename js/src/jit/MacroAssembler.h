@@ -196,7 +196,9 @@
 #endif
 
 #define DEFINED_ON_RESULT_crash \
-  { MOZ_CRASH(); }
+  {                             \
+    MOZ_CRASH();                \
+  }
 #define DEFINED_ON_RESULT_define
 #define DEFINED_ON_RESULT_ = delete
 
@@ -1763,6 +1765,8 @@ class MacroAssembler : public MacroAssemblerSpecific {
 
   // Branches to |label| if |reg| is true. |reg| should be a C++ bool.
   inline void branchIfTrueBool(Register reg, Label* label);
+
+  inline void branchIfNotNullOrUndefined(ValueOperand val, Label* label);
 
   inline void branchIfRope(Register str, Label* label);
   inline void branchIfNotRope(Register str, Label* label);

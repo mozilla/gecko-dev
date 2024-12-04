@@ -272,6 +272,22 @@
   num_temps: 1
   mir_op: true
 
+- name: NewMapObjectFromIterable
+  operands:
+    iterable: BoxedValue
+  result_type: WordSized
+  num_temps: 2
+  call_instruction: true
+  mir_op: true
+
+- name: NewSetObjectFromIterable
+  operands:
+    iterable: BoxedValue
+  result_type: WordSized
+  num_temps: 2
+  call_instruction: true
+  mir_op: true
+
 - name: NewStringObject
   result_type: WordSized
   operands:

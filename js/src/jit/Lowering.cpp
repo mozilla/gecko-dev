@@ -263,6 +263,26 @@ void LIRGenerator::visitNewSetObject(MNewSetObject* ins) {
   assignSafepoint(lir, ins);
 }
 
+void LIRGenerator::visitNewMapObjectFromIterable(
+    MNewMapObjectFromIterable* ins) {
+  MOZ_ASSERT(ins->iterable()->type() == MIRType::Value);
+  auto* lir = new (alloc()) LNewMapObjectFromIterable(
+      useBoxFixedAtStart(ins->iterable(), CallTempReg0, CallTempReg1),
+      tempFixed(CallTempReg2), tempFixed(CallTempReg3));
+  defineReturn(lir, ins);
+  assignSafepoint(lir, ins);
+}
+
+void LIRGenerator::visitNewSetObjectFromIterable(
+    MNewSetObjectFromIterable* ins) {
+  MOZ_ASSERT(ins->iterable()->type() == MIRType::Value);
+  auto* lir = new (alloc()) LNewSetObjectFromIterable(
+      useBoxFixedAtStart(ins->iterable(), CallTempReg0, CallTempReg1),
+      tempFixed(CallTempReg2), tempFixed(CallTempReg3));
+  defineReturn(lir, ins);
+  assignSafepoint(lir, ins);
+}
+
 void LIRGenerator::visitNewStringObject(MNewStringObject* ins) {
   MOZ_ASSERT(ins->input()->type() == MIRType::String);
 

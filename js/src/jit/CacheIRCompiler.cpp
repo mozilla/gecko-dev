@@ -4693,6 +4693,42 @@ bool CacheIRCompiler::emitNewSetObjectResult(uint32_t templateObjectOffset) {
   return true;
 }
 
+bool CacheIRCompiler::emitNewMapObjectFromIterableResult(
+    uint32_t templateObjectOffset, ValOperandId iterableId) {
+  JitSpew(JitSpew_Codegen, "%s", __FUNCTION__);
+
+  AutoCallVM callvm(masm, this, allocator);
+  ValueOperand iterable = allocator.useValueRegister(masm, iterableId);
+
+  callvm.prepare();
+  masm.Push(ImmPtr(nullptr));  // allocatedFromJit
+  masm.Push(iterable);
+  masm.Push(ImmPtr(nullptr));  // proto
+
+  using Fn = MapObject* (*)(JSContext*, Handle<JSObject*>, Handle<Value>,
+                            Handle<MapObject*>);
+  callvm.call<Fn, MapObject::createFromIterable>();
+  return true;
+}
+
+bool CacheIRCompiler::emitNewSetObjectFromIterableResult(
+    uint32_t templateObjectOffset, ValOperandId iterableId) {
+  JitSpew(JitSpew_Codegen, "%s", __FUNCTION__);
+
+  AutoCallVM callvm(masm, this, allocator);
+  ValueOperand iterable = allocator.useValueRegister(masm, iterableId);
+
+  callvm.prepare();
+  masm.Push(ImmPtr(nullptr));  // allocatedFromJit
+  masm.Push(iterable);
+  masm.Push(ImmPtr(nullptr));  // proto
+
+  using Fn = SetObject* (*)(JSContext*, Handle<JSObject*>, Handle<Value>,
+                            Handle<SetObject*>);
+  callvm.call<Fn, SetObject::createFromIterable>();
+  return true;
+}
+
 bool CacheIRCompiler::emitNewStringObjectResult(uint32_t templateObjectOffset,
                                                 StringOperandId strId) {
   JitSpew(JitSpew_Codegen, "%s", __FUNCTION__);

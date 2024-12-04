@@ -315,6 +315,22 @@
   result_type: Object
   possibly_calls: true
 
+- name: NewMapObjectFromIterable
+  operands:
+    iterable: Value
+  arguments:
+    templateObject: JSObject*
+  result_type: Object
+  possibly_calls: true
+
+- name: NewSetObjectFromIterable
+  operands:
+    iterable: Value
+  arguments:
+    templateObject: JSObject*
+  result_type: Object
+  possibly_calls: true
+
 - name: NewObject
   gen_boilerplate: false
 

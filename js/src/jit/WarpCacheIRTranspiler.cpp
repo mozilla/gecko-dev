@@ -2529,6 +2529,30 @@ bool WarpCacheIRTranspiler::emitNewSetObjectResult(
   return resumeAfter(obj);
 }
 
+bool WarpCacheIRTranspiler::emitNewMapObjectFromIterableResult(
+    uint32_t templateObjectOffset, ValOperandId iterableId) {
+  JSObject* templateObj = tenuredObjectStubField(templateObjectOffset);
+  MDefinition* iterable = getOperand(iterableId);
+
+  auto* obj = MNewMapObjectFromIterable::New(alloc(), iterable, templateObj);
+  addEffectful(obj);
+
+  pushResult(obj);
+  return resumeAfter(obj);
+}
+
+bool WarpCacheIRTranspiler::emitNewSetObjectFromIterableResult(
+    uint32_t templateObjectOffset, ValOperandId iterableId) {
+  JSObject* templateObj = tenuredObjectStubField(templateObjectOffset);
+  MDefinition* iterable = getOperand(iterableId);
+
+  auto* obj = MNewSetObjectFromIterable::New(alloc(), iterable, templateObj);
+  addEffectful(obj);
+
+  pushResult(obj);
+  return resumeAfter(obj);
+}
+
 bool WarpCacheIRTranspiler::emitNewStringObjectResult(
     uint32_t templateObjectOffset, StringOperandId strId) {
   JSObject* templateObj = tenuredObjectStubField(templateObjectOffset);

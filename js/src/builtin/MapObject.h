@@ -144,9 +144,13 @@ class MapObject : public OrderedHashMapObject {
   [[nodiscard]] bool getKeysAndValuesInterleaved(
       JS::MutableHandle<GCVector<JS::Value>> entries);
   [[nodiscard]] static bool entries(JSContext* cx, unsigned argc, Value* vp);
+
   static MapObject* createWithProto(JSContext* cx, HandleObject proto,
                                     NewObjectKind newKind);
   static MapObject* create(JSContext* cx, HandleObject proto = nullptr);
+  static MapObject* createFromIterable(
+      JSContext* cx, Handle<JSObject*> proto, Handle<Value> iterable,
+      Handle<MapObject*> allocatedFromJit = nullptr);
 
   // Publicly exposed Map calls for JSAPI access (webidl maplike/setlike
   // interfaces, etc.)
@@ -278,6 +282,10 @@ class SetObject : public OrderedHashSetObject {
   static SetObject* createWithProto(JSContext* cx, HandleObject proto,
                                     NewObjectKind newKind);
   static SetObject* create(JSContext* cx, HandleObject proto = nullptr);
+  static SetObject* createFromIterable(
+      JSContext* cx, Handle<JSObject*> proto, Handle<Value> iterable,
+      Handle<SetObject*> allocatedFromJit = nullptr);
+
   uint32_t size();
   [[nodiscard]] static bool size(JSContext* cx, unsigned argc, Value* vp);
   [[nodiscard]] static bool add(JSContext* cx, unsigned argc, Value* vp);
