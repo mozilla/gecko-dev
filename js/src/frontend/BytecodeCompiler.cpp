@@ -1395,14 +1395,7 @@ ModuleObject* frontend::CompileModule(JSContext* cx, FrontendContext* fc,
 }
 
 static bool InstantiateLazyFunction(JSContext* cx, CompilationInput& input,
-                                    const CompilationStencil& stencil,
-                                    BytecodeCompilerOutput& output) {
-  // We do check the type, but do not write anything to it as this is not
-  // necessary for lazy function, as the script is patched inside the
-  // JSFunction when instantiating.
-  MOZ_ASSERT(output.is<CompilationGCOutput*>());
-  MOZ_ASSERT(!output.as<CompilationGCOutput*>());
-
+                                    const CompilationStencil& stencil) {
   mozilla::DebugOnly<uint32_t> lazyFlags =
       static_cast<uint32_t>(input.immutableFlags());
 
@@ -1427,12 +1420,22 @@ static bool InstantiateLazyFunction(JSContext* cx, CompilationInput& input,
   return true;
 }
 
+// Compile lazy functinn specified by a pair of `units` + `length`, and
+// optionally instantiate.
+//
+// If `stencils` is provided, the result of delazification is stored into it.
+//
+// If `borrowOut` is provided, a borrowing pointer is returned.
+//
+// If `borrowOut` is not provided, the function is instantiated.
+// In this case, `maybeCx` should be provided and `input` should be initialized
+// with a BaseScript.
 template <typename Unit>
 static bool CompileLazyFunctionToStencilMaybeInstantiate(
     JSContext* maybeCx, FrontendContext* fc, js::LifoAlloc& tempLifoAlloc,
     CompilationInput& input, ScopeBindingCache* scopeCache, const Unit* units,
     size_t length, InitialStencilAndDelazifications* stencils,
-    BytecodeCompilerOutput& output) {
+    const CompilationStencil** borrowOut) {
   MOZ_ASSERT(input.source);
 
   AutoAssertReportedException assertException(maybeCx, fc);
@@ -1507,7 +1510,7 @@ static bool CompileLazyFunctionToStencilMaybeInstantiate(
     }
   }
 
-  if (output.is<RefPtr<CompilationStencil>>()) {
+  if (borrowOut) {
     auto extensibleStencil =
         fc->getAllocator()->make_unique<frontend::ExtensibleCompilationStencil>(
             std::move(compilationState));
@@ -1522,7 +1525,7 @@ static bool CompileLazyFunctionToStencilMaybeInstantiate(
       return false;
     }
 
-    output.as<RefPtr<CompilationStencil>>() = std::move(stencil);
+    *borrowOut = stencils->storeDelazification(std::move(stencil));
   } else {
     MOZ_ASSERT(maybeCx);
     if (stencils) {
@@ -1542,12 +1545,12 @@ static bool CompileLazyFunctionToStencilMaybeInstantiate(
       const CompilationStencil* borrowed =
           stencils->storeDelazification(std::move(stencil));
 
-      if (!InstantiateLazyFunction(maybeCx, input, *borrowed, output)) {
+      if (!InstantiateLazyFunction(maybeCx, input, *borrowed)) {
         return false;
       }
     } else {
       BorrowingCompilationStencil borrowingStencil(compilationState);
-      if (!InstantiateLazyFunction(maybeCx, input, borrowingStencil, output)) {
+      if (!InstantiateLazyFunction(maybeCx, input, borrowingStencil)) {
         return false;
       }
     }
@@ -1590,9 +1593,7 @@ static bool DelazifyCanonicalScriptedFunctionImpl(JSContext* cx,
     const CompilationStencil* cached =
         stencils->getDelazificationFor(input.get().extent());
     if (cached) {
-      CompilationGCOutput* unusedGcOutput = nullptr;
-      BytecodeCompilerOutput output(unusedGcOutput);
-      return InstantiateLazyFunction(cx, input.get(), *cached, output);
+      return InstantiateLazyFunction(cx, input.get(), *cached);
     }
   }
 
@@ -1612,11 +1613,9 @@ static bool DelazifyCanonicalScriptedFunctionImpl(JSContext* cx,
     return false;
   }
 
-  CompilationGCOutput* unusedGcOutput = nullptr;
-  BytecodeCompilerOutput output(unusedGcOutput);
   return CompileLazyFunctionToStencilMaybeInstantiate(
       cx, fc, cx->tempLifoAlloc(), input.get(), scopeCache, units.get(),
-      sourceLength, stencils, output);
+      sourceLength, stencils, nullptr);
 }
 
 bool frontend::DelazifyCanonicalScriptedFunction(JSContext* cx,
@@ -1646,8 +1645,7 @@ bool frontend::DelazifyCanonicalScriptedFunction(JSContext* cx,
 }
 
 template <typename Unit>
-static already_AddRefed<CompilationStencil>
-DelazifyCanonicalScriptedFunctionImpl(
+static const CompilationStencil* DelazifyCanonicalScriptedFunctionImpl(
     FrontendContext* fc, js::LifoAlloc& tempLifoAlloc,
     const JS::PrefableCompileOptions& prefableOptions,
     ScopeBindingCache* scopeCache, CompilationStencil& context,
@@ -1657,9 +1655,7 @@ DelazifyCanonicalScriptedFunctionImpl(
 
   const CompilationStencil* cached = stencils->getDelazificationAt(scriptIndex);
   if (cached) {
-    RefPtr<CompilationStencil> stencil =
-        const_cast<CompilationStencil*>(cached);
-    return stencil.forget();
+    return cached;
   }
 
   ScriptStencilRef script{context, scriptIndex};
@@ -1700,19 +1696,18 @@ DelazifyCanonicalScriptedFunctionImpl(
   JS_HAZ_NON_GC_POINTER CompilationInput input(options);
   input.initFromStencil(context, scriptIndex, ss);
 
-  using OutputType = RefPtr<CompilationStencil>;
-  BytecodeCompilerOutput output((OutputType()));
+  const CompilationStencil* borrow;
   if (!CompileLazyFunctionToStencilMaybeInstantiate(
           nullptr, fc, tempLifoAlloc, input, scopeCache, units.get(),
-          sourceLength, stencils, output)) {
+          sourceLength, stencils, &borrow)) {
     *failureReason = DelazifyFailureReason::Other;
     return nullptr;
   }
-  return output.as<OutputType>().forget();
+
+  return borrow;
 }
 
-already_AddRefed<CompilationStencil>
-frontend::DelazifyCanonicalScriptedFunction(
+const CompilationStencil* frontend::DelazifyCanonicalScriptedFunction(
     FrontendContext* fc, js::LifoAlloc& tempLifoAlloc,
     const JS::PrefableCompileOptions& prefableOptions,
     ScopeBindingCache* scopeCache, CompilationStencil& context,

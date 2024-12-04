@@ -220,7 +220,7 @@ bool DelazificationContext::delazify() {
       isInterrupted_ = false;
       break;
     }
-    RefPtr<CompilationStencil> innerStencil;
+    const CompilationStencil* innerStencil;
     ScriptIndex scriptIndex = strategy_->next();
     {
       BorrowingCompilationStencil borrow(merger_.getResult());
@@ -244,13 +244,10 @@ bool DelazificationContext::delazify() {
       }
     }
 
-    const CompilationStencil* innerStencilPtr =
-        stencils_->storeDelazification(std::move(innerStencil));
-
     // We are merging the delazification now, while this could be post-poned
     // until we have to look at inner functions, this is simpler to do it now
     // than querying the cache for every enclosing script.
-    if (!merger_.addDelazification(&fc_, *innerStencilPtr)) {
+    if (!merger_.addDelazification(&fc_, *innerStencil)) {
       strategy_->clear();
       return false;
     }
