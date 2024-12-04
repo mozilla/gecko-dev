@@ -2225,6 +2225,15 @@ void nsWindow::ConstrainPosition(DesktopIntPoint& aPoint) {
     return;
   }
 
+  // If the window is already at (0, 0), nothing we do to it here can help.
+  // Leave it alone.
+  //
+  // (This also happens to cover the case where the window was Aero Snapped into
+  // the upper-left corner.)
+  if (aPoint == DesktopIntPoint{0, 0}) {
+    return;
+  }
+
   double dpiScale = GetDesktopToDeviceScale().scale;
 
   // We need to use the window size in the kind of pixels used for window-
@@ -2253,6 +2262,34 @@ void nsWindow::ConstrainPosition(DesktopIntPoint& aPoint) {
   } else {
     // For full screen windows, use the desktop.
     screenRect = screen->GetRectDisplayPix();
+  }
+
+  // Check for the case where the window was Aero Snapped to the right. (The
+  // window will extend off the right and bottom of the screen in this case by a
+  // small but DPI-dependent value.)
+  //
+  // We do not check WINDOWPLACEMENT for a position mismatch. That would catch
+  // whether the window is _currently_ Aero Snapped to the right, but we may be
+  // restoring the window. (We can't guarantee a restore into a snapped state:
+  // there is no known API to do so. Fortunately, the shell seems to detect this
+  // case anyway, and treats the window as snapped.)
+  //
+  // Note that this _is_ a heuristic. False positives are possible; but they
+  // seem unlikely (it would require manually positioning a window to extend
+  // just barely offscreen to the lower right), and anyway are probably
+  // harmless: the effect will simply be that we leave the window exactly where
+  // the user put it, instead of nudging it slightly.
+  if (aPoint.y == 0) {
+    auto const xMax = aPoint.x + logWidth;
+    auto const yMax = aPoint.y + logHeight;
+    auto const deltaX = xMax - screenRect.XMost();
+    auto const deltaY = yMax - screenRect.YMost();
+    if (deltaX == deltaY) {
+      if (8 <= deltaX && deltaX <= 16) {
+        // If so, don't try to fix the position; Windows will (probably) deal with it.
+        return;
+      }
+    }
   }
 
   aPoint = ConstrainPositionToBounds(aPoint, {logWidth, logHeight}, screenRect);
