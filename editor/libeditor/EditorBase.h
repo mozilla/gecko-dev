@@ -108,6 +108,7 @@ class EditorBase : public nsIEditor,
    *       method to edit the DOM tree, you can make your new method public.
    ****************************************************************************/
 
+  using DataTransfer = dom::DataTransfer;
   using Document = dom::Document;
   using Element = dom::Element;
   using InterlinePosition = dom::Selection::InterlinePosition;
@@ -240,6 +241,14 @@ class EditorBase : public nsIEditor,
     Selection* selection = GetSelection(SelectionType::eNormal);
     return selection ? selection->GetAncestorLimiter() : nullptr;
   }
+
+  /**
+   * Create a DataTransfer object that can be shared between the paste event
+   * and pasting into a DOM element.
+   */
+  already_AddRefed<DataTransfer> CreateDataTransferForPaste(
+      EventMessage aEventMessage,
+      nsIClipboard::ClipboardType aClipboardType) const;
 
   /**
    * Fast non-refcounting editor root element accessor
@@ -752,6 +761,9 @@ class EditorBase : public nsIEditor,
    *                            nsIClipboard::kSelectionClipboard.
    * @param aDispatchPasteEvent Yes if this should dispatch ePaste event
    *                            before pasting.  Otherwise, No.
+   * @param aDataTransfer       The object containing the data to use for the
+   *                            paste operation. May be nullptr, in which case
+   *                            this will just get the data from the clipboard.
    * @param aPrincipal          Set subject principal if it may be called by
    *                            JS.  If set to nullptr, will be treated as
    *                            called by system.
@@ -760,6 +772,7 @@ class EditorBase : public nsIEditor,
   MOZ_CAN_RUN_SCRIPT nsresult
   PasteAsAction(nsIClipboard::ClipboardType aClipboardType,
                 DispatchPasteEvent aDispatchPasteEvent,
+                DataTransfer* aDataTransfer = nullptr,
                 nsIPrincipal* aPrincipal = nullptr);
 
   /**
@@ -787,6 +800,9 @@ class EditorBase : public nsIEditor,
    *                            nsIClipboard::kSelectionClipboard.
    * @param aDispatchPasteEvent Yes if this should dispatch ePaste event
    *                            before pasting.  Otherwise, No.
+   * @param aDataTransfer       The object containing the data to use for the
+   *                            paste operation. May be nullptr, in which case
+   *                            this will just get the data from the clipboard.
    * @param aPrincipal          Set subject principal if it may be called by
    *                            JS.  If set to nullptr, will be treated as
    *                            called by system.
@@ -794,6 +810,7 @@ class EditorBase : public nsIEditor,
   MOZ_CAN_RUN_SCRIPT nsresult
   PasteAsQuotationAsAction(nsIClipboard::ClipboardType aClipboardType,
                            DispatchPasteEvent aDispatchPasteEvent,
+                           DataTransfer* aDataTransfer = nullptr,
                            nsIPrincipal* aPrincipal = nullptr);
 
   /**
@@ -1151,7 +1168,7 @@ class EditorBase : public nsIEditor,
      * because it'll be set to InputEvent.dataTransfer and which should be
      * read-only.
      */
-    void InitializeDataTransfer(dom::DataTransfer* aDataTransfer);
+    void InitializeDataTransfer(DataTransfer* aDataTransfer);
     /**
      * InitializeDataTransfer(nsITransferable*) creates new DataTransfer
      * instance, initializes it with aTransferable and sets mDataTransfer to
@@ -1168,9 +1185,9 @@ class EditorBase : public nsIEditor,
      * initializes it with clipboard and sets mDataTransfer to it.
      */
     void InitializeDataTransferWithClipboard(
-        SettingDataTransfer aSettingDataTransfer,
+        SettingDataTransfer aSettingDataTransfer, DataTransfer* aDataTransfer,
         nsIClipboard::ClipboardType aClipboardType);
-    dom::DataTransfer* GetDataTransfer() const { return mDataTransfer; }
+    DataTransfer* GetDataTransfer() const { return mDataTransfer; }
 
     /**
      * AppendTargetRange() appends aTargetRange to target ranges.  This should
@@ -1420,7 +1437,7 @@ class EditorBase : public nsIEditor,
     nsString mData;
 
     // The dataTransfer should be set to InputEvent.dataTransfer.
-    RefPtr<dom::DataTransfer> mDataTransfer;
+    RefPtr<DataTransfer> mDataTransfer;
 
     // They are used for result of InputEvent.getTargetRanges() of beforeinput.
     OwningNonNullStaticRangeArray mTargetRanges;
@@ -1541,6 +1558,10 @@ class EditorBase : public nsIEditor,
     return mEditActionData->IsAborted();
   }
 
+  nsresult GetDataFromDataTransferOrClipboard(
+      DataTransfer* aDataTransfer, nsITransferable* aTransferable,
+      nsIClipboard::ClipboardType aClipboardType) const;
+
   /**
    * SelectionRef() returns cached normal Selection.  This is pretty faster than
    * EditorBase::GetSelection() if available.
@@ -1582,7 +1603,7 @@ class EditorBase : public nsIEditor,
    * content with current edit action.  The result is proper for
    * InputEvent.dataTransfer value.
    */
-  dom::DataTransfer* GetInputEventDataTransfer() const {
+  DataTransfer* GetInputEventDataTransfer() const {
     return mEditActionData ? mEditActionData->GetDataTransfer() : nullptr;
   }
 
@@ -2558,7 +2579,7 @@ class EditorBase : public nsIEditor,
    */
   [[nodiscard]] MOZ_CAN_RUN_SCRIPT virtual nsresult
   InsertDroppedDataTransferAsAction(AutoEditActionDataSetter& aEditActionData,
-                                    dom::DataTransfer& aDataTransfer,
+                                    DataTransfer& aDataTransfer,
                                     const EditorDOMPoint& aDroppedAt,
                                     nsIPrincipal* aSourcePrincipal) = 0;
 
@@ -2718,7 +2739,8 @@ class EditorBase : public nsIEditor,
   [[nodiscard]] MOZ_CAN_RUN_SCRIPT Result<ClipboardEventResult, nsresult>
   DispatchClipboardEventAndUpdateClipboard(
       EventMessage aEventMessage,
-      mozilla::Maybe<nsIClipboard::ClipboardType> aClipboardType);
+      mozilla::Maybe<nsIClipboard::ClipboardType> aClipboardType,
+      DataTransfer* aDataTransfer = nullptr);
 
   /**
    * Called after PasteAsAction() dispatches "paste" event and it's not
@@ -2726,7 +2748,8 @@ class EditorBase : public nsIEditor,
    */
   [[nodiscard]] MOZ_CAN_RUN_SCRIPT virtual nsresult HandlePaste(
       AutoEditActionDataSetter& aEditActionData,
-      nsIClipboard::ClipboardType aClipboardType) = 0;
+      nsIClipboard::ClipboardType aClipboardType,
+      DataTransfer* aDataTransfer) = 0;
 
   /**
    * Called after PasteAsQuotationAsAction() dispatches "paste" event and it's
@@ -2734,11 +2757,12 @@ class EditorBase : public nsIEditor,
    */
   [[nodiscard]] MOZ_CAN_RUN_SCRIPT virtual nsresult HandlePasteAsQuotation(
       AutoEditActionDataSetter& aEditActionData,
-      nsIClipboard::ClipboardType aClipboardType) = 0;
+      nsIClipboard::ClipboardType aClipboardType,
+      DataTransfer* aDataTransfer) = 0;
 
   /**
-   * Called after PasteTransferableAsAction() dispatches "paste" event and it's
-   * not canceled.
+   * Called after PasteTransferableAsAction() dispatches "paste" event and
+   * it's not canceled.
    */
   [[nodiscard]] MOZ_CAN_RUN_SCRIPT virtual nsresult HandlePasteTransferable(
       AutoEditActionDataSetter& aEditActionData,
@@ -2759,17 +2783,17 @@ class EditorBase : public nsIEditor,
 
  protected:  // helper classes which may be used by friends
   /**
-   * Stack based helper class for batching a collection of transactions inside
-   * a placeholder transaction.  Different from AutoTransactionBatch, this
-   * notifies editor observers of before/end edit action handling, and
+   * Stack based helper class for batching a collection of transactions
+   * inside a placeholder transaction.  Different from AutoTransactionBatch,
+   * this notifies editor observers of before/end edit action handling, and
    * dispatches "input" event if it's necessary.
    */
   class MOZ_RAII AutoPlaceholderBatch final {
    public:
     /**
      * @param aRequesterFuncName function name which wants to end the batch.
-     * This won't be stored nor exposed to selection listeners etc, used only
-     * for logging. This MUST be alive when the destructor runs.
+     * This won't be stored nor exposed to selection listeners etc, used
+     * only for logging. This MUST be alive when the destructor runs.
      */
     AutoPlaceholderBatch(EditorBase& aEditorBase,
                          ScrollSelectionIntoView aScrollSelectionIntoView,
@@ -2813,8 +2837,10 @@ class EditorBase : public nsIEditor,
         EditorBase& aEditorBase, EditSubAction aEditSubAction,
         nsIEditor::EDirection aDirection, ErrorResult& aRv)
         : mEditorBase(aEditorBase), mIsTopLevel(true) {
-      // The top level edit sub action has already be set if this is nested call
-      // XXX Looks like that this is not aware of unexpected nested edit action
+      // The top level edit sub action has already be set if this is nested
+      // call
+      // XXX Looks like that this is not aware of unexpected nested edit
+      // action
       //     handling via selectionchange event listener or mutation event
       //     listener.
       if (!mEditorBase.GetTopLevelEditSubAction()) {
@@ -2869,8 +2895,8 @@ class EditorBase : public nsIEditor,
    public:
     /**
      * @param aRequesterFuncName function name which wants to end the batch.
-     * This won't be stored nor exposed to selection listeners etc, used only
-     * for logging. This MUST be alive when the destructor runs.
+     * This won't be stored nor exposed to selection listeners etc, used
+     * only for logging. This MUST be alive when the destructor runs.
      */
     MOZ_CAN_RUN_SCRIPT explicit AutoUpdateViewBatch(
         EditorBase& aEditorBase, const char* aRequesterFuncName)
@@ -2925,8 +2951,8 @@ class EditorBase : public nsIEditor,
   mutable nsString mCachedDocumentEncoderType;
 
   // Listens to all low level actions on the doc.
-  // Edit action listener is currently used by highlighter of the findbar and
-  // the spellchecker.  So, we should reserve only 2 items.
+  // Edit action listener is currently used by highlighter of the findbar
+  // and the spellchecker.  So, we should reserve only 2 items.
   using AutoActionListenerArray =
       AutoTArray<OwningNonNull<nsIEditActionListener>, 2>;
   AutoActionListenerArray mActionListeners;
@@ -2981,9 +3007,10 @@ class EditorBase : public nsIEditor,
   friend class AutoSelectionRestorer;   // RangeUpdaterRef, SavedSelectionRef
   friend class CaretPoint;              // AllowsTransactionsToChangeSelection,
                                         // CollapseSelectionTo
-  friend class CompositionTransaction;  // CollapseSelectionTo, DoDeleteText,
-                                        // DoInsertText, DoReplaceText,
-                                        // HideCaret, RangeupdaterRef
+  friend class CompositionTransaction;  // CollapseSelectionTo,
+                                        // DoDeleteText, DoInsertText,
+                                        // DoReplaceText, HideCaret,
+                                        // RangeupdaterRef
   friend class DeleteNodeTransaction;   // RangeUpdaterRef
   friend class DeleteRangeTransaction;  // AllowsTransactionsToChangeSelection,
                                         // CollapseSelectionTo

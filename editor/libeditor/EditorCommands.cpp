@@ -468,7 +468,7 @@ nsresult PasteCommand::DoCommand(Command aCommand, EditorBase& aEditorBase,
                                  nsIPrincipal* aPrincipal) const {
   nsresult rv = aEditorBase.PasteAsAction(nsIClipboard::kGlobalClipboard,
                                           EditorBase::DispatchPasteEvent::Yes,
-                                          aPrincipal);
+                                          nullptr, aPrincipal);
   NS_WARNING_ASSERTION(NS_SUCCEEDED(rv),
                        "EditorBase::PasteAsAction(nsIClipboard::"
                        "kGlobalClipboard, DispatchPasteEvent::Yes) failed");
@@ -963,7 +963,7 @@ nsresult PasteQuotationCommand::DoCommand(Command aCommand,
                                           nsIPrincipal* aPrincipal) const {
   nsresult rv = aEditorBase.PasteAsQuotationAsAction(
       nsIClipboard::kGlobalClipboard, EditorBase::DispatchPasteEvent::Yes,
-      aPrincipal);
+      nullptr, aPrincipal);
   NS_WARNING_ASSERTION(NS_SUCCEEDED(rv),
                        "EditorBase::PasteAsQuotationAsAction(nsIClipboard::"
                        "kGlobalClipboard, DispatchPasteEvent::Yes) failed");

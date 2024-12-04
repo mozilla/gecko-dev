@@ -447,6 +447,8 @@ class DataTransfer final : public nsISupports, public nsWrapperCache {
   // Clears this DataTransfer that was used for paste
   void ClearForPaste();
 
+  bool HasPrivateHTMLFlavor() const;
+
  protected:
   // Retrieve a list of clipboard formats supported
   //

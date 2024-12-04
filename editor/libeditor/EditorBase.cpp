@@ -76,6 +76,7 @@
 #include "mozilla/dom/BorrowedAttrInfo.h"  // for BorrowedAttrInfo
 #include "mozilla/dom/BrowsingContext.h"   // for BrowsingContext
 #include "mozilla/dom/CharacterData.h"     // for CharacterData
+#include "mozilla/dom/ContentParent.h"     // for ContentParent
 #include "mozilla/dom/DataTransfer.h"      // for DataTransfer
 #include "mozilla/dom/Document.h"          // for Document
 #include "mozilla/dom/DocumentInlines.h"   // for GetObservingPresShell
@@ -1584,10 +1585,26 @@ bool EditorBase::CheckForClipboardCommandListener(
   return false;
 }
 
+already_AddRefed<DataTransfer> EditorBase::CreateDataTransferForPaste(
+    EventMessage aEventMessage,
+    nsIClipboard::ClipboardType aClipboardType) const {
+  nsIGlobalObject* scopeObject = nullptr;
+  if (PresShell* presShell = GetPresShell()) {
+    if (Document* doc = presShell->GetDocument()) {
+      scopeObject = doc->GetScopeObject();
+    }
+  }
+
+  auto dataTransfer = MakeRefPtr<DataTransfer>(scopeObject, aEventMessage, true,
+                                               Some(aClipboardType));
+  return dataTransfer.forget();
+}
+
 Result<EditorBase::ClipboardEventResult, nsresult>
 EditorBase::DispatchClipboardEventAndUpdateClipboard(
     EventMessage aEventMessage,
-    Maybe<nsIClipboard::ClipboardType> aClipboardType) {
+    Maybe<nsIClipboard::ClipboardType> aClipboardType,
+    DataTransfer* aDataTransfer /* = nullptr */) {
   MOZ_ASSERT(IsEditActionDataAvailable());
 
   const bool isPasting =
@@ -1617,7 +1634,8 @@ EditorBase::DispatchClipboardEventAndUpdateClipboard(
 
   bool actionTaken = false;
   const bool doDefault = nsCopySupport::FireClipboardEvent(
-      aEventMessage, aClipboardType, presShell, sel, &actionTaken);
+      aEventMessage, aClipboardType, presShell, sel, aDataTransfer,
+      &actionTaken);
   NotifyOfDispatchingClipboardEvent();
 
   if (NS_WARN_IF(Destroyed())) {
@@ -1812,13 +1830,33 @@ NS_IMETHODIMP EditorBase::Paste(nsIClipboard::ClipboardType aClipboardType) {
 
 nsresult EditorBase::PasteAsAction(nsIClipboard::ClipboardType aClipboardType,
                                    DispatchPasteEvent aDispatchPasteEvent,
+                                   DataTransfer* aDataTransfer /* = nullptr */,
                                    nsIPrincipal* aPrincipal /* = nullptr */) {
   if (IsHTMLEditor() && IsReadonly()) {
     return NS_OK;
   }
 
+  // Create the same DataTransfer object here so we can share it between
+  // the clipboard event and the call to HandlePaste below. This prevents
+  // race conditions with Content Analysis on like we see in bug 1918027.
+  // Note that this is not needed if we're not going to dispatch the paste
+  // event.
+  RefPtr<DataTransfer> dataTransfer;
+  if (aDispatchPasteEvent == DispatchPasteEvent::Yes) {
+    dataTransfer = aDataTransfer
+                       ? aDataTransfer
+                       : RefPtr<DataTransfer>(CreateDataTransferForPaste(
+                             ePaste, aClipboardType));
+  }
   AutoEditActionDataSetter editActionData(*this, EditAction::ePaste,
                                           aPrincipal);
+  const auto clearDataTransfer = MakeScopeExit([&] {
+    // If the caller passed in aDataTransfer, they are responsible for clearing
+    // this.
+    if (!aDataTransfer && dataTransfer) {
+      dataTransfer->ClearForPaste();
+    }
+  });
   if (NS_WARN_IF(!editActionData.CanHandle())) {
     return NS_ERROR_NOT_INITIALIZED;
   }
@@ -1830,13 +1868,22 @@ nsresult EditorBase::PasteAsAction(nsIClipboard::ClipboardType aClipboardType,
     }
     const RefPtr<Element> focusedElement = focusManager->GetFocusedElement();
 
-    Result<ClipboardEventResult, nsresult> ret =
-        DispatchClipboardEventAndUpdateClipboard(ePaste, Some(aClipboardType));
-    if (MOZ_UNLIKELY(ret.isErr())) {
-      NS_WARNING(
-          "EditorBase::DispatchClipboardEventAndUpdateClipboard(ePaste) "
-          "failed");
-      return EditorBase::ToGenericNSResult(ret.unwrapErr());
+    Result<ClipboardEventResult, nsresult> ret = Err(NS_ERROR_FAILURE);
+    {
+      // This method is not set up to pass back the new aDataTransfer
+      // if it changes. If we need this in the future, we can change
+      // aDataTransfer to be a RefPtr<DataTransfer>*.
+      MOZ_ASSERT(!aDataTransfer);
+      AutoTrackDataTransferForPaste trackDataTransfer(*this, dataTransfer);
+
+      ret = DispatchClipboardEventAndUpdateClipboard(
+          ePaste, Some(aClipboardType), dataTransfer);
+      if (MOZ_UNLIKELY(ret.isErr())) {
+        NS_WARNING(
+            "EditorBase::DispatchClipboardEventAndUpdateClipboard(ePaste) "
+            "failed");
+        return EditorBase::ToGenericNSResult(ret.unwrapErr());
+      }
     }
     switch (ret.inspect()) {
       case ClipboardEventResult::DoDefault:
@@ -1865,7 +1912,7 @@ nsresult EditorBase::PasteAsAction(nsIClipboard::ClipboardType aClipboardType,
       }
       if (editorBase != this) {
         nsresult rv = editorBase->PasteAsAction(
-            aClipboardType, DispatchPasteEvent::No, aPrincipal);
+            aClipboardType, DispatchPasteEvent::No, dataTransfer, aPrincipal);
         NS_WARNING_ASSERTION(
             NS_SUCCEEDED(rv),
             "EditorBase::PasteAsAction(DispatchPasteEvent::No) failed");
@@ -1876,8 +1923,7 @@ nsresult EditorBase::PasteAsAction(nsIClipboard::ClipboardType aClipboardType,
     // The caller must already have dispatched a "paste" event.
     editActionData.NotifyOfDispatchingClipboardEvent();
   }
-
-  nsresult rv = HandlePaste(editActionData, aClipboardType);
+  nsresult rv = HandlePaste(editActionData, aClipboardType, dataTransfer);
   NS_WARNING_ASSERTION(NS_SUCCEEDED(rv), "EditorBase::HandlePaste() failed");
   return EditorBase::ToGenericNSResult(rv);
 }
@@ -1885,6 +1931,7 @@ nsresult EditorBase::PasteAsAction(nsIClipboard::ClipboardType aClipboardType,
 nsresult EditorBase::PasteAsQuotationAsAction(
     nsIClipboard::ClipboardType aClipboardType,
     DispatchPasteEvent aDispatchPasteEvent,
+    DataTransfer* aDataTransfer /* = nullptr */,
     nsIPrincipal* aPrincipal /* = nullptr */) {
   MOZ_ASSERT(aClipboardType == nsIClipboard::kGlobalClipboard ||
              aClipboardType == nsIClipboard::kSelectionClipboard);
@@ -1893,6 +1940,26 @@ nsresult EditorBase::PasteAsQuotationAsAction(
     return NS_OK;
   }
 
+  // Create the same DataTransfer object here so we can share it between
+  // the clipboard event and the call to HandlePasteAsQuotation below. This
+  // prevents race conditions with Content Analysis on like we see in bug
+  // 1918027.
+  // Note that this is not needed if we're not going to dispatch the paste
+  // event.
+  RefPtr<DataTransfer> dataTransfer;
+  if (aDispatchPasteEvent == DispatchPasteEvent::Yes) {
+    dataTransfer = aDataTransfer
+                       ? aDataTransfer
+                       : RefPtr<DataTransfer>(CreateDataTransferForPaste(
+                             ePaste, aClipboardType));
+  }
+  const auto clearDataTransfer = MakeScopeExit([&] {
+    // If the caller passed in aDataTransfer, they are responsible for clearing
+    // this.
+    if (!aDataTransfer && dataTransfer) {
+      dataTransfer->ClearForPaste();
+    }
+  });
   AutoEditActionDataSetter editActionData(*this, EditAction::ePasteAsQuotation,
                                           aPrincipal);
   if (NS_WARN_IF(!editActionData.CanHandle())) {
@@ -1906,13 +1973,22 @@ nsresult EditorBase::PasteAsQuotationAsAction(
     }
     const RefPtr<Element> focusedElement = focusManager->GetFocusedElement();
 
-    Result<ClipboardEventResult, nsresult> ret =
-        DispatchClipboardEventAndUpdateClipboard(ePaste, Some(aClipboardType));
-    if (MOZ_UNLIKELY(ret.isErr())) {
-      NS_WARNING(
-          "EditorBase::DispatchClipboardEventAndUpdateClipboard(ePaste) "
-          "failed");
-      return EditorBase::ToGenericNSResult(ret.unwrapErr());
+    Result<ClipboardEventResult, nsresult> ret = Err(NS_ERROR_FAILURE);
+    {
+      // This method is not set up to pass back the new aDataTransfer
+      // if it changes. If we need this in the future, we can change
+      // aDataTransfer to be a RefPtr<DataTransfer>*.
+      MOZ_ASSERT(!aDataTransfer);
+      AutoTrackDataTransferForPaste trackDataTransfer(*this, dataTransfer);
+
+      ret = DispatchClipboardEventAndUpdateClipboard(
+          ePaste, Some(aClipboardType), dataTransfer);
+      if (MOZ_UNLIKELY(ret.isErr())) {
+        NS_WARNING(
+            "EditorBase::DispatchClipboardEventAndUpdateClipboard(ePaste) "
+            "failed");
+        return EditorBase::ToGenericNSResult(ret.unwrapErr());
+      }
     }
     switch (ret.inspect()) {
       case ClipboardEventResult::DoDefault:
@@ -1941,7 +2017,7 @@ nsresult EditorBase::PasteAsQuotationAsAction(
       }
       if (editorBase != this) {
         nsresult rv = editorBase->PasteAsQuotationAsAction(
-            aClipboardType, DispatchPasteEvent::No, aPrincipal);
+            aClipboardType, DispatchPasteEvent::No, dataTransfer, aPrincipal);
         NS_WARNING_ASSERTION(NS_SUCCEEDED(rv),
                              "EditorBase::PasteAsQuotationAsAction("
                              "DispatchPasteEvent::No) failed");
@@ -1953,7 +2029,8 @@ nsresult EditorBase::PasteAsQuotationAsAction(
     editActionData.NotifyOfDispatchingClipboardEvent();
   }
 
-  nsresult rv = HandlePasteAsQuotation(editActionData, aClipboardType);
+  nsresult rv =
+      HandlePasteAsQuotation(editActionData, aClipboardType, dataTransfer);
   NS_WARNING_ASSERTION(NS_SUCCEEDED(rv),
                        "EditorBase::HandlePasteAsQuotation() failed");
   return EditorBase::ToGenericNSResult(rv);
@@ -6568,7 +6645,7 @@ void EditorBase::AutoEditActionDataSetter::InitializeDataTransfer(
 }
 
 void EditorBase::AutoEditActionDataSetter::InitializeDataTransferWithClipboard(
-    SettingDataTransfer aSettingDataTransfer,
+    SettingDataTransfer aSettingDataTransfer, DataTransfer* aDataTransfer,
     nsIClipboard::ClipboardType aClipboardType) {
   MOZ_ASSERT(!HasTriedToDispatchBeforeInputEvent(),
              "It's too late to set dataTransfer since this may have already "
@@ -6580,12 +6657,22 @@ void EditorBase::AutoEditActionDataSetter::InitializeDataTransferWithClipboard(
   // mDataTransfer will be used for eEditorInput event, but we can keep
   // using ePaste and ePasteNoFormatting here.  If we need to use eEditorInput,
   // we need to create eEditorInputNoFormatting or something...
-  mDataTransfer =
-      new DataTransfer(scopeObject,
-                       aSettingDataTransfer == SettingDataTransfer::eWithFormat
-                           ? ePaste
-                           : ePasteNoFormatting,
-                       true /* is external */, Some(aClipboardType));
+  EventMessage message =
+      (aSettingDataTransfer == SettingDataTransfer::eWithFormat)
+          ? ePaste
+          : ePasteNoFormatting;
+  if (aDataTransfer) {
+    // The DataTransfer being passed in will be used in a paste event, which
+    // means it will be cleared after that event is done firing. We don't want
+    // that for "input" and "beforeinput" events, so make a copy of its data.
+    aDataTransfer->Clone(scopeObject, message,
+                         /* aUserCancelled = */ false,
+                         /* aIsCrossDomainSubFrameDrop = */ false,
+                         getter_AddRefs(mDataTransfer));
+  } else {
+    mDataTransfer = MakeRefPtr<DataTransfer>(
+        scopeObject, message, true /* is external */, Some(aClipboardType));
+  }
 }
 
 void EditorBase::AutoEditActionDataSetter::AppendTargetRange(
@@ -7165,4 +7252,102 @@ void EditorBase::StopPreservingSelection() {
   SavedSelectionRef().RemoveAllRanges();
 }
 
+nsresult EditorBase::GetDataFromDataTransferOrClipboard(
+    DataTransfer* aDataTransfer, nsITransferable* aTransferable,
+    nsIClipboard::ClipboardType aClipboardType) const {
+  MOZ_ASSERT(aTransferable);
+  if (aDataTransfer) {
+    MOZ_ASSERT(aDataTransfer->ClipboardType() == Some(aClipboardType));
+    nsresult rv = [aDataTransfer, aTransferable]() -> nsresult {
+      nsIClipboardDataSnapshot* snapshot =
+          aDataTransfer->GetClipboardDataSnapshot();
+      MOZ_ASSERT(snapshot);
+      bool snapshotIsValid = false;
+      snapshot->GetValid(&snapshotIsValid);
+      if (!snapshotIsValid) {
+        NS_WARNING("DataTransfer::GetClipboardDataSnapshot() is not valid");
+        return NS_ERROR_FAILURE;
+      }
+      AutoTArray<nsCString, 10> transferableFlavors;
+      nsresult rv =
+          aTransferable->FlavorsTransferableCanImport(transferableFlavors);
+      if (NS_FAILED(rv)) {
+        NS_WARNING("nsITransferable::FlavorsTransferableCanImport() failed");
+        return rv;
+      }
+      if (transferableFlavors.Length() == 1) {
+        // avoid creating unneeded temporary transferables
+        rv = snapshot->GetDataSync(aTransferable);
+        NS_WARNING_ASSERTION(NS_SUCCEEDED(rv),
+                             "nsIClipboardDataSnapshot::GetDataSync() failed");
+        return rv;
+      }
+      AutoTArray<nsCString, 5> snapshotFlavors;
+      rv = snapshot->GetFlavorList(snapshotFlavors);
+      if (NS_FAILED(rv)) {
+        NS_WARNING("nsIClipboardDataSnapshot::GetFlavorList() failed");
+        return rv;
+      }
+      for (const auto& transferableFlavor : transferableFlavors) {
+        if (snapshotFlavors.Contains(transferableFlavor)) {
+          AutoTArray<nsCString, 1> singleTypeArray{transferableFlavor};
+          auto singleTransferableToCheck =
+              ContentParent::CreateClipboardTransferable(singleTypeArray);
+          if (singleTransferableToCheck.isErr()) {
+            NS_WARNING("Failed to CreateClipboardTransferable()");
+            return singleTransferableToCheck.unwrapErr();
+          }
+          nsCOMPtr<nsITransferable> singleTransferable =
+              singleTransferableToCheck.unwrap();
+          rv = snapshot->GetDataSync(singleTransferable);
+          if (NS_FAILED(rv)) {
+            NS_WARNING("nsIClipboardDataSnapshot::GetDataSync() failed");
+            return rv;
+          }
+          nsCOMPtr<nsISupports> data;
+          rv = singleTransferable->GetTransferData(transferableFlavor.get(),
+                                                   getter_AddRefs(data));
+          if (NS_FAILED(rv)) {
+            NS_WARNING("nsITransferable::GetTransferData() failed");
+            return rv;
+          }
+          rv = aTransferable->SetTransferData(transferableFlavor.get(), data);
+          if (NS_FAILED(rv)) {
+            NS_WARNING("nsITransferable::SetTransferData() failed");
+            return rv;
+          }
+          return NS_OK;
+        }
+      }
+      // Couldn't find any data so return an error so we try the fallback.
+      return NS_ERROR_FAILURE;
+    }();
+    if (NS_SUCCEEDED(rv)) {
+      return NS_OK;
+    }
+    // If this fails, the snapshot may have become invalidated. Fall back
+    // to getting data from the clipboard.
+  }
+
+  // Get Clipboard Service
+  nsresult rv;
+  nsCOMPtr<nsIClipboard> clipboard =
+      do_GetService("@mozilla.org/widget/clipboard;1", &rv);
+  if (NS_FAILED(rv)) {
+    NS_WARNING("Failed to get nsIClipboard service");
+    return rv;
+  }
+
+  auto* windowContext = GetDocument()->GetWindowContext();
+  if (!windowContext) {
+    NS_WARNING("No window context");
+    return NS_ERROR_FAILURE;
+  }
+  rv = clipboard->GetData(aTransferable, aClipboardType, windowContext);
+  if (NS_FAILED(rv)) {
+    NS_WARNING("nsIClipboard::GetData() failed");
+    return rv;
+  }
+  return NS_OK;
+}
 }  // namespace mozilla

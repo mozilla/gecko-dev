@@ -1486,6 +1486,8 @@ void HTMLEditor::HTMLTransferablePreparer::AddDataFlavorsInBestOrder(
   // Create the desired DataFlavor for the type of data
   // we want to get out of the transferable
   // This should only happen in html editors, not plaintext
+  // Note that if you add more flavors here you will need to add them
+  // to DataTransfer::GetExternalClipboardFormats as well.
   if (!mHTMLEditor.IsPlaintextMailComposer() &&
       !(mEditingHost && mEditingHost->IsContentEditablePlainTextOnly())) {
     DebugOnly<nsresult> rvIgnored =
@@ -2346,8 +2348,15 @@ nsresult HTMLEditor::InsertFromDataTransfer(
 }
 
 // static
-HTMLEditor::HavePrivateHTMLFlavor HTMLEditor::ClipboardHasPrivateHTMLFlavor(
-    nsIClipboard* aClipboard) {
+HTMLEditor::HavePrivateHTMLFlavor
+HTMLEditor::DataTransferOrClipboardHasPrivateHTMLFlavor(
+    DataTransfer* aDataTransfer, nsIClipboard* aClipboard) {
+  nsresult rv;
+  if (aDataTransfer) {
+    return aDataTransfer->HasPrivateHTMLFlavor() ? HavePrivateHTMLFlavor::Yes
+                                                 : HavePrivateHTMLFlavor::No;
+  }
+  // otherwise, fall back to clipboard
   if (NS_WARN_IF(!aClipboard)) {
     return HavePrivateHTMLFlavor::No;
   }
@@ -2356,7 +2365,7 @@ HTMLEditor::HavePrivateHTMLFlavor HTMLEditor::ClipboardHasPrivateHTMLFlavor(
   // we know we have our own internal html format on clipboard.
   bool hasPrivateHTMLFlavor = false;
   AutoTArray<nsCString, 1> flavArray = {nsDependentCString(kHTMLContext)};
-  nsresult rv = aClipboard->HasDataMatchingFlavors(
+  rv = aClipboard->HasDataMatchingFlavors(
       flavArray, nsIClipboard::kGlobalClipboard, &hasPrivateHTMLFlavor);
   NS_WARNING_ASSERTION(NS_SUCCEEDED(rv),
                        "nsIClipboard::HasDataMatchingFlavors(nsIClipboard::"
@@ -2366,9 +2375,10 @@ HTMLEditor::HavePrivateHTMLFlavor HTMLEditor::ClipboardHasPrivateHTMLFlavor(
 }
 
 nsresult HTMLEditor::HandlePaste(AutoEditActionDataSetter& aEditActionData,
-                                 nsIClipboard::ClipboardType aClipboardType) {
+                                 nsIClipboard::ClipboardType aClipboardType,
+                                 DataTransfer* aDataTransfer) {
   aEditActionData.InitializeDataTransferWithClipboard(
-      SettingDataTransfer::eWithFormat, aClipboardType);
+      SettingDataTransfer::eWithFormat, aDataTransfer, aClipboardType);
   nsresult rv = aEditActionData.CanHandleAndMaybeDispatchBeforeInputEvent();
   if (NS_FAILED(rv)) {
     NS_WARNING_ASSERTION(rv == NS_ERROR_EDITOR_ACTION_CANCELED,
@@ -2380,12 +2390,13 @@ nsresult HTMLEditor::HandlePaste(AutoEditActionDataSetter& aEditActionData,
   if (NS_WARN_IF(!editingHost)) {
     return NS_ERROR_FAILURE;
   }
-  rv = PasteInternal(aClipboardType, *editingHost);
+  rv = PasteInternal(aClipboardType, aDataTransfer, *editingHost);
   NS_WARNING_ASSERTION(NS_SUCCEEDED(rv), "HTMLEditor::PasteInternal() failed");
   return rv;
 }
 
 nsresult HTMLEditor::PasteInternal(nsIClipboard::ClipboardType aClipboardType,
+                                   DataTransfer* aDataTransfer,
                                    const Element& aEditingHost) {
   MOZ_ASSERT(IsEditActionDataAvailable());
 
@@ -2414,14 +2425,10 @@ nsresult HTMLEditor::PasteInternal(nsIClipboard::ClipboardType aClipboardType,
     return NS_ERROR_FAILURE;
   }
   // Get the Data from the clipboard
-  auto* windowContext = GetDocument()->GetWindowContext();
-  if (!windowContext) {
-    NS_WARNING("No window context");
-    return NS_ERROR_FAILURE;
-  }
-  rv = clipboard->GetData(transferable, aClipboardType, windowContext);
+  rv = GetDataFromDataTransferOrClipboard(aDataTransfer, transferable,
+                                          aClipboardType);
   if (NS_FAILED(rv)) {
-    NS_WARNING("nsIClipboard::GetData() failed");
+    NS_WARNING("EditorBase::GetDataFromDataTransferOrClipboard() failed");
     return rv;
   }
 
@@ -2431,7 +2438,7 @@ nsresult HTMLEditor::PasteInternal(nsIClipboard::ClipboardType aClipboardType,
   // If we have our internal html flavor on the clipboard, there is special
   // context to use instead of cfhtml context.
   const HavePrivateHTMLFlavor clipboardHasPrivateHTMLFlavor =
-      ClipboardHasPrivateHTMLFlavor(clipboard);
+      DataTransferOrClipboardHasPrivateHTMLFlavor(aDataTransfer, clipboard);
   if (clipboardHasPrivateHTMLFlavor == HavePrivateHTMLFlavor::Yes) {
     nsCOMPtr<nsITransferable> contextTransferable =
         do_CreateInstance("@mozilla.org/widget/transferable;1");
@@ -2448,10 +2455,8 @@ nsresult HTMLEditor::PasteInternal(nsIClipboard::ClipboardType aClipboardType,
     NS_WARNING_ASSERTION(
         NS_SUCCEEDED(rvIgnored),
         "nsITransferable::AddDataFlavor(kHTMLContext) failed, but ignored");
-    rvIgnored =
-        clipboard->GetData(contextTransferable, aClipboardType, windowContext);
-    NS_WARNING_ASSERTION(NS_SUCCEEDED(rvIgnored),
-                         "nsIClipboard::GetData() failed, but ignored");
+    GetDataFromDataTransferOrClipboard(aDataTransfer, contextTransferable,
+                                       aClipboardType);
     nsCOMPtr<nsISupports> contextDataObj;
     rv = contextTransferable->GetTransferData(kHTMLContext,
                                               getter_AddRefs(contextDataObj));
@@ -2480,10 +2485,8 @@ nsresult HTMLEditor::PasteInternal(nsIClipboard::ClipboardType aClipboardType,
         NS_SUCCEEDED(rvIgnored),
         "nsITransferable::AddDataFlavor(kHTMLInfo) failed, but ignored");
 
-    rvIgnored =
-        clipboard->GetData(infoTransferable, aClipboardType, windowContext);
-    NS_WARNING_ASSERTION(NS_SUCCEEDED(rvIgnored),
-                         "nsIClipboard::GetData() failed, but ignored");
+    GetDataFromDataTransferOrClipboard(aDataTransfer, infoTransferable,
+                                       aClipboardType);
     nsCOMPtr<nsISupports> infoDataObj;
     rv = infoTransferable->GetTransferData(kHTMLInfo,
                                            getter_AddRefs(infoDataObj));
@@ -2551,10 +2554,28 @@ nsresult HTMLEditor::HandlePasteTransferable(
 
 nsresult HTMLEditor::PasteNoFormattingAsAction(
     nsIClipboard::ClipboardType aClipboardType,
-    DispatchPasteEvent aDispatchPasteEvent, nsIPrincipal* aPrincipal) {
+    DispatchPasteEvent aDispatchPasteEvent,
+    DataTransfer* aDataTransfer /* = nullptr */,
+    nsIPrincipal* aPrincipal /* = nullptr */) {
   if (IsReadonly()) {
     return NS_OK;
   }
+  // Create the same DataTransfer object here so we can share it between
+  // the clipboard event and its data with the call to
+  // InsertFromTransferableWithSelection below. This prevents
+  // race conditions with Content Analysis on like we see in bug 1918027.
+  RefPtr<DataTransfer> dataTransfer =
+      aDataTransfer ? aDataTransfer
+                    : RefPtr<DataTransfer>(CreateDataTransferForPaste(
+                          ePasteNoFormatting, aClipboardType));
+
+  auto clearDataTransfer = MakeScopeExit([&] {
+    // If the caller passed in aDataTransfer, they are responsible for clearing
+    // this.
+    if (!aDataTransfer && dataTransfer) {
+      dataTransfer->ClearForPaste();
+    }
+  });
 
   AutoEditActionDataSetter editActionData(*this, EditAction::ePaste,
                                           aPrincipal);
@@ -2562,7 +2583,7 @@ nsresult HTMLEditor::PasteNoFormattingAsAction(
     return NS_ERROR_NOT_INITIALIZED;
   }
   editActionData.InitializeDataTransferWithClipboard(
-      SettingDataTransfer::eWithoutFormat, aClipboardType);
+      SettingDataTransfer::eWithoutFormat, dataTransfer, aClipboardType);
 
   if (aDispatchPasteEvent == DispatchPasteEvent::Yes) {
     RefPtr<nsFocusManager> focusManager = nsFocusManager::GetFocusManager();
@@ -2571,14 +2592,22 @@ nsresult HTMLEditor::PasteNoFormattingAsAction(
     }
     const RefPtr<Element> focusedElement = focusManager->GetFocusedElement();
 
-    Result<ClipboardEventResult, nsresult> ret =
-        DispatchClipboardEventAndUpdateClipboard(ePasteNoFormatting,
-                                                 Some(aClipboardType));
-    if (MOZ_UNLIKELY(ret.isErr())) {
-      NS_WARNING(
-          "EditorBase::DispatchClipboardEventAndUpdateClipboard("
-          "ePasteNoFormatting) failed");
-      return EditorBase::ToGenericNSResult(ret.unwrapErr());
+    Result<ClipboardEventResult, nsresult> ret = Err(NS_ERROR_FAILURE);
+    {
+      // This method is not set up to pass back the new aDataTransfer
+      // if it changes. If we need this in the future, we can change
+      // aDataTransfer to be a RefPtr<DataTransfer>*.
+      MOZ_ASSERT(!aDataTransfer);
+      AutoTrackDataTransferForPaste trackDataTransfer(*this, dataTransfer);
+
+      ret = DispatchClipboardEventAndUpdateClipboard(
+          ePasteNoFormatting, Some(aClipboardType), dataTransfer);
+      if (MOZ_UNLIKELY(ret.isErr())) {
+        NS_WARNING(
+            "EditorBase::DispatchClipboardEventAndUpdateClipboard("
+            "ePasteNoFormatting) failed");
+        return EditorBase::ToGenericNSResult(ret.unwrapErr());
+      }
     }
     switch (ret.inspect()) {
       case ClipboardEventResult::DoDefault:
@@ -2607,17 +2636,17 @@ nsresult HTMLEditor::PasteNoFormattingAsAction(
       }
       if (editorBase != this) {
         if (editorBase->IsHTMLEditor()) {
-          nsresult rv =
-              MOZ_KnownLive(editorBase->AsHTMLEditor())
-                  ->PasteNoFormattingAsAction(
-                      aClipboardType, DispatchPasteEvent::No, aPrincipal);
+          nsresult rv = MOZ_KnownLive(editorBase->AsHTMLEditor())
+                            ->PasteNoFormattingAsAction(
+                                aClipboardType, DispatchPasteEvent::No,
+                                dataTransfer, aPrincipal);
           NS_WARNING_ASSERTION(NS_SUCCEEDED(rv),
                                "HTMLEditor::PasteNoFormattingAsAction("
                                "DispatchPasteEvent::No) failed");
           return EditorBase::ToGenericNSResult(rv);
         }
         nsresult rv = editorBase->PasteAsAction(
-            aClipboardType, DispatchPasteEvent::No, aPrincipal);
+            aClipboardType, DispatchPasteEvent::No, dataTransfer, aPrincipal);
         NS_WARNING_ASSERTION(
             NS_SUCCEEDED(rv),
             "EditorBase::PasteAsAction(DispatchPasteEvent::No) failed");
@@ -2652,24 +2681,6 @@ nsresult HTMLEditor::PasteNoFormattingAsAction(
     return NS_OK;
   }
 
-  // Get Clipboard Service
-  nsCOMPtr<nsIClipboard> clipboard(
-      do_GetService("@mozilla.org/widget/clipboard;1", &rv));
-  if (NS_FAILED(rv)) {
-    NS_WARNING("Failed to get nsIClipboard service");
-    return rv;
-  }
-
-  if (!GetDocument()) {
-    NS_WARNING("Editor didn't have document, but ignored");
-    return NS_OK;
-  }
-  auto* windowContext = GetDocument()->GetWindowContext();
-  if (!windowContext) {
-    NS_WARNING("Editor didn't have document window context, but ignored");
-    return NS_OK;
-  }
-
   Result<nsCOMPtr<nsITransferable>, nsresult> maybeTransferable =
       EditorUtils::CreateTransferableForPlainText(*GetDocument());
   if (maybeTransferable.isErr()) {
@@ -2683,11 +2694,10 @@ nsresult HTMLEditor::PasteNoFormattingAsAction(
         "ignored");
     return NS_OK;
   }
-
-  // Get the Data from the clipboard
-  rv = clipboard->GetData(transferable, aClipboardType, windowContext);
+  rv = GetDataFromDataTransferOrClipboard(dataTransfer, transferable,
+                                          aClipboardType);
   if (NS_FAILED(rv)) {
-    NS_WARNING("nsIClipboard::GetData() failed");
+    NS_WARNING("EditorBase::GetDataFromDataTransferOrClipboard() failed");
     return rv;
   }
 
@@ -2798,11 +2808,11 @@ bool HTMLEditor::CanPasteTransferable(nsITransferable* aTransferable) {
 
 nsresult HTMLEditor::HandlePasteAsQuotation(
     AutoEditActionDataSetter& aEditActionData,
-    nsIClipboard::ClipboardType aClipboardType) {
+    nsIClipboard::ClipboardType aClipboardType, DataTransfer* aDataTransfer) {
   MOZ_ASSERT(aClipboardType == nsIClipboard::kGlobalClipboard ||
              aClipboardType == nsIClipboard::kSelectionClipboard);
   aEditActionData.InitializeDataTransferWithClipboard(
-      SettingDataTransfer::eWithFormat, aClipboardType);
+      SettingDataTransfer::eWithFormat, aDataTransfer, aClipboardType);
   if (NS_WARN_IF(!aEditActionData.CanHandle())) {
     return NS_ERROR_NOT_INITIALIZED;
   }
@@ -2822,7 +2832,8 @@ nsresult HTMLEditor::HandlePasteAsQuotation(
 
   if (IsPlaintextMailComposer() ||
       editingHost->IsContentEditablePlainTextOnly()) {
-    nsresult rv = PasteAsPlaintextQuotation(aClipboardType, *editingHost);
+    nsresult rv =
+        PasteAsPlaintextQuotation(aClipboardType, aDataTransfer, *editingHost);
     NS_WARNING_ASSERTION(NS_SUCCEEDED(rv),
                          "HTMLEditor::PasteAsPlaintextQuotation() failed");
     return rv;
@@ -2923,22 +2934,15 @@ nsresult HTMLEditor::HandlePasteAsQuotation(
     return rv;
   }
 
-  rv = PasteInternal(aClipboardType, *editingHost);
+  rv = PasteInternal(aClipboardType, aDataTransfer, *editingHost);
   NS_WARNING_ASSERTION(NS_SUCCEEDED(rv), "HTMLEditor::PasteInternal() failed");
   return rv;
 }
 
 nsresult HTMLEditor::PasteAsPlaintextQuotation(
-    nsIClipboard::ClipboardType aSelectionType, const Element& aEditingHost) {
-  // Get Clipboard Service
+    nsIClipboard::ClipboardType aSelectionType, DataTransfer* aDataTransfer,
+    const Element& aEditingHost) {
   nsresult rv;
-  nsCOMPtr<nsIClipboard> clipboard =
-      do_GetService("@mozilla.org/widget/clipboard;1", &rv);
-  if (NS_FAILED(rv)) {
-    NS_WARNING("Failed to get nsIClipboard service");
-    return rv;
-  }
-
   // Create generic Transferable for getting the data
   nsCOMPtr<nsITransferable> transferable =
       do_CreateInstance("@mozilla.org/widget/transferable;1", &rv);
@@ -2970,9 +2974,8 @@ nsresult HTMLEditor::PasteAsPlaintextQuotation(
       "nsITransferable::AddDataFlavor(kTextMime) failed, but ignored");
 
   // Get the Data from the clipboard
-  rvIgnored = clipboard->GetData(transferable, aSelectionType, windowContext);
-  NS_WARNING_ASSERTION(NS_SUCCEEDED(rvIgnored),
-                       "nsIClipboard::GetData() failed, but ignored");
+  GetDataFromDataTransferOrClipboard(aDataTransfer, transferable,
+                                     aSelectionType);
 
   // Now we ask the transferable for the data
   // it still owns the data, we just have a pointer to it.
