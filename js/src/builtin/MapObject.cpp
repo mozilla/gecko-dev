@@ -29,6 +29,7 @@
 #  include "vm/TupleType.h"
 #endif
 
+#include "builtin/MapObject-inl.h"
 #include "builtin/OrderedHashTableObject-inl.h"
 #include "gc/GCContext-inl.h"
 #include "gc/Marking-inl.h"
@@ -1398,10 +1399,6 @@ SetObject* SetObject::sweepAfterMinorGC(JS::GCContext* gcx, SetObject* setobj) {
   return hasNurseryIterators ? setobj : nullptr;
 }
 
-bool SetObject::isBuiltinAdd(HandleValue add) {
-  return IsNativeFunction(add, SetObject::add);
-}
-
 bool SetObject::construct(JSContext* cx, unsigned argc, Value* vp) {
   AutoJSConstructorProfilerEntry pseudoFrame(cx, "Set");
   CallArgs args = CallArgsFromVp(argc, vp);
@@ -1421,10 +1418,10 @@ bool SetObject::construct(JSContext* cx, unsigned argc, Value* vp) {
   }
 
   if (!args.get(0).isNullOrUndefined()) {
-    RootedValue iterable(cx, args[0]);
+    Handle<Value> iterable = args[0];
     bool optimized = false;
-    if (!IsOptimizableInitForSet<GlobalObject::getOrCreateSetPrototype,
-                                 isBuiltinAdd>(cx, obj, iterable, &optimized)) {
+    if (!IsOptimizableInitForSet<JSProto_Set>(cx, SetObject::add, obj, iterable,
+                                              &optimized)) {
       return false;
     }
 
@@ -1440,7 +1437,7 @@ bool SetObject::construct(JSContext* cx, unsigned argc, Value* vp) {
       }
     } else {
       FixedInvokeArgs<1> args2(cx);
-      args2[0].set(args[0]);
+      args2[0].set(iterable);
 
       RootedValue thisv(cx, ObjectValue(*obj));
       if (!CallSelfHostedFunction(cx, cx->names().SetConstructorInit, thisv,

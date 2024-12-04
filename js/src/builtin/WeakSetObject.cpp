@@ -13,6 +13,7 @@
 #include "vm/JSContext.h"
 #include "vm/SelfHosting.h"
 
+#include "builtin/MapObject-inl.h"
 #include "builtin/WeakMapObject-inl.h"
 #include "vm/JSObject-inl.h"
 #include "vm/NativeObject-inl.h"
@@ -169,10 +170,6 @@ WeakSetObject* WeakSetObject::create(JSContext* cx,
   return NewObjectWithClassProto<WeakSetObject>(cx, proto);
 }
 
-bool WeakSetObject::isBuiltinAdd(HandleValue add) {
-  return IsNativeFunction(add, WeakSetObject::add);
-}
-
 bool WeakSetObject::construct(JSContext* cx, unsigned argc, Value* vp) {
   // Based on our "Set" implementation instead of the more general ES6 steps.
   CallArgs args = CallArgsFromVp(argc, vp);
@@ -192,10 +189,10 @@ bool WeakSetObject::construct(JSContext* cx, unsigned argc, Value* vp) {
   }
 
   if (!args.get(0).isNullOrUndefined()) {
-    RootedValue iterable(cx, args[0]);
+    Handle<Value> iterable = args[0];
     bool optimized = false;
-    if (!IsOptimizableInitForSet<GlobalObject::getOrCreateWeakSetPrototype,
-                                 isBuiltinAdd>(cx, obj, iterable, &optimized)) {
+    if (!IsOptimizableInitForSet<JSProto_WeakSet>(cx, WeakSetObject::add, obj,
+                                                  iterable, &optimized)) {
       return false;
     }
 
@@ -220,7 +217,7 @@ bool WeakSetObject::construct(JSContext* cx, unsigned argc, Value* vp) {
       }
     } else {
       FixedInvokeArgs<1> args2(cx);
-      args2[0].set(args[0]);
+      args2[0].set(iterable);
 
       RootedValue thisv(cx, ObjectValue(*obj));
       if (!CallSelfHostedFunction(cx, cx->names().WeakSetConstructorInit, thisv,

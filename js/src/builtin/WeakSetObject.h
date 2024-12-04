@@ -36,8 +36,6 @@ class WeakSetObject : public WeakCollectionObject {
   [[nodiscard]] static MOZ_ALWAYS_INLINE bool has_impl(JSContext* cx,
                                                        const CallArgs& args);
   [[nodiscard]] static bool has(JSContext* cx, unsigned argc, Value* vp);
-
-  static bool isBuiltinAdd(HandleValue add);
 };
 
 }  // namespace js
