@@ -3,13 +3,13 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 ---
 translations.inference:
-    description: The bergamot-translator WASM artifact (version 1.1)
+    description: The bergamot-translator WASM artifact (version 2.0)
     fetch:
         artifact-name: bergamot-translator
         type: static-url
-        url: https://firefox-settings-attachments.cdn.mozilla.net/main-workspace/translations-wasm/76ec99f8-04d5-47df-8c52-a3a38d864141.wasm
-        sha256: 9bfb4cc9dc176c7cbaa6b2890d9f6868c0ada6f44168a0bb0903dbfb88278d92
-        size: 5188872
+        url: https://firefox-settings-attachments.cdn.mozilla.net/main-workspace/translations-wasm/95f4c7df-7cd2-4851-be11-6414679c1089.wasm
+        sha256: 5430dd7f41709620b403e4628f357304c26120c9be634c732827c2ba9164d16c
+        size: 4956240
 
 translations.esen.lex:
     description: The Spanish to English translation lex artifact (version 1.0)
