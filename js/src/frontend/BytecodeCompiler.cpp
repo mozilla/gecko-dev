@@ -1508,12 +1508,6 @@ static bool CompileLazyFunctionToStencilMaybeInstantiate(
   }
 
   if (output.is<RefPtr<CompilationStencil>>()) {
-    Maybe<AutoGeckoProfilerEntry> pseudoFrame;
-    if (maybeCx) {
-      pseudoFrame.emplace(maybeCx, "script emit",
-                          JS::ProfilingCategoryPair::JS_Parsing);
-    }
-
     auto extensibleStencil =
         fc->getAllocator()->make_unique<frontend::ExtensibleCompilationStencil>(
             std::move(compilationState));
