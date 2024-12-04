@@ -38,6 +38,7 @@ struct CompilationStencil;
 struct CompilationGCOutput;
 struct CompilationInput;
 struct PreallocatedCompilationGCOutput;
+struct InitialStencilAndDelazifications;
 }  // namespace frontend
 }  // namespace js
 
@@ -47,7 +48,7 @@ struct PreallocatedCompilationGCOutput;
 
 namespace JS {
 
-using Stencil = js::frontend::CompilationStencil;
+using Stencil = js::frontend::InitialStencilAndDelazifications;
 using FrontendContext = js::FrontendContext;
 
 // Temporary storage used during instantiating Stencil.

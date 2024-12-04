@@ -2876,7 +2876,7 @@ static bool Evaluate(JSContext* cx, unsigned argc, Value* vp) {
       }
     }
 
-    if (!js::ValidateLazinessOfStencilAndGlobal(cx, *stencil)) {
+    if (!js::ValidateLazinessOfStencilAndGlobal(cx, stencil.get())) {
       return false;
     }
 
@@ -5655,7 +5655,7 @@ static bool InstantiateModuleStencil(JSContext* cx, uint32_t argc, Value* vp) {
     return false;
   }
 
-  if (!stencilObj->stencil()->isModule()) {
+  if (!stencilObj->stencil()->getInitial()->isModule()) {
     JS_ReportErrorASCII(cx,
                         "instantiateModuleStencil: Module stencil expected");
     return false;
@@ -5676,7 +5676,7 @@ static bool InstantiateModuleStencil(JSContext* cx, uint32_t argc, Value* vp) {
     }
   }
 
-  if (!js::ValidateLazinessOfStencilAndGlobal(cx, *stencilObj->stencil())) {
+  if (!js::ValidateLazinessOfStencilAndGlobal(cx, stencilObj->stencil())) {
     return false;
   }
 
@@ -5750,13 +5750,13 @@ static bool InstantiateModuleStencilXDR(JSContext* cx, uint32_t argc,
     return false;
   }
 
-  if (!stencil->isModule()) {
+  if (!stencil->getInitial()->isModule()) {
     JS_ReportErrorASCII(cx,
                         "instantiateModuleStencilXDR: Module stencil expected");
     return false;
   }
 
-  if (!js::ValidateLazinessOfStencilAndGlobal(cx, *stencil)) {
+  if (!js::ValidateLazinessOfStencilAndGlobal(cx, stencil.get())) {
     return false;
   }
 

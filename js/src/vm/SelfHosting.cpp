@@ -53,6 +53,7 @@
 #include "frontend/BytecodeCompiler.h"    // CompileGlobalScriptToStencil
 #include "frontend/CompilationStencil.h"  // js::frontend::CompilationStencil
 #include "frontend/FrontendContext.h"     // AutoReportFrontendContext
+#include "frontend/StencilXdr.h"  // js::EncodeStencil, js::DecodeStencil
 #include "jit/AtomicOperations.h"
 #include "jit/InlinableNatives.h"
 #include "jit/TrampolineNatives.h"
@@ -2676,9 +2677,8 @@ bool JSRuntime::initSelfHostingStencil(JSContext* cx,
 
     JS::DecodeOptions decodeOption(options);
     RefPtr<frontend::CompilationStencil> stencil;
-    // NOTE: JS::Stencil => frontend::CompilationStencil.
     JS::TranscodeResult result =
-        JS::DecodeStencil(&fc, decodeOption, xdrCache, getter_AddRefs(stencil));
+        js::DecodeStencil(&fc, decodeOption, xdrCache, getter_AddRefs(stencil));
     if (result == JS::TranscodeResult::Ok) {
       MOZ_ASSERT(input->atomCache.empty());
 
@@ -2727,8 +2727,7 @@ bool JSRuntime::initSelfHostingStencil(JSContext* cx,
   // Serialize the stencil to XDR.
   if (xdrWriter) {
     JS::TranscodeBuffer xdrBuffer;
-    // NOTE: frontend::CompilationStencil => JS::Stencil.
-    JS::TranscodeResult result = JS::EncodeStencil(cx, stencil, xdrBuffer);
+    JS::TranscodeResult result = js::EncodeStencil(cx, stencil, xdrBuffer);
     if (result != JS::TranscodeResult::Ok) {
       JS_ReportErrorASCII(cx, "Encoding failure");
       return false;

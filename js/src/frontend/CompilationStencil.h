@@ -2240,13 +2240,12 @@ const ScriptStencilExtra& ScriptStencilRef::scriptExtra() const {
 
 namespace mozilla {
 template <>
-struct RefPtrTraits<js::frontend::InitialStencilAndDelazifications> {
-  static void AddRef(js::frontend::InitialStencilAndDelazifications* stencils) {
-    stencils->AddRef();
+struct RefPtrTraits<js::frontend::CompilationStencil> {
+  static void AddRef(js::frontend::CompilationStencil* stencil) {
+    stencil->AddRef();
   }
-  static void Release(
-      js::frontend::InitialStencilAndDelazifications* stencils) {
-    stencils->Release();
+  static void Release(js::frontend::CompilationStencil* stencil) {
+    stencil->Release();
   }
 };
 }  // namespace mozilla

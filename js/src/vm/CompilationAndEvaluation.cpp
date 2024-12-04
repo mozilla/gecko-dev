@@ -114,24 +114,9 @@ JSScript* JS::Compile(JSContext* cx, const ReadOnlyCompileOptions& options,
   return CompileSourceBuffer(cx, options, srcBuf);
 }
 
-static already_AddRefed<frontend::InitialStencilAndDelazifications>
-CreateInitialStencilAndDelazifications(JSContext* cx, JS::Stencil* initial) {
-  RefPtr stencils = cx->new_<frontend::InitialStencilAndDelazifications>();
-  if (!stencils) {
-    return nullptr;
-  }
-
-  AutoReportFrontendContext fc(cx);
-  if (!stencils->init(&fc, initial)) {
-    return nullptr;
-  }
-
-  return stencils.forget();
-}
-
 static bool StartCollectingDelazifications(JSContext* cx,
                                            JS::Handle<ScriptSourceObject*> sso,
-                                           JS::Stencil* initial,
+                                           JS::Stencil* stencil,
                                            bool& alreadyStarted) {
   if (sso->maybeGetStencils()) {
     alreadyStarted = true;
@@ -142,17 +127,11 @@ static bool StartCollectingDelazifications(JSContext* cx,
 
   // We don't support asm.js in XDR.
   // Failures are reported by the FinishIncrementalEncoding function below.
-  if (initial->asmJS) {
+  if (stencil->getInitial()->asmJS) {
     return true;
   }
 
-  // TODO: The entire public API should be converted to take
-  //       InitialStencilAndDelazifications.
-  RefPtr stencils = CreateInitialStencilAndDelazifications(cx, initial);
-  if (!stencils) {
-    return false;
-  }
-
+  RefPtr stencils = stencil;
   sso->setStencils(stencils.forget());
   return true;
 }
@@ -220,23 +199,7 @@ static bool FinishIncrementalEncoding(JSContext* cx,
     return false;
   }
 
-  if (stencils->canLazilyParse()) {
-    // TODO: Remove the cast once JS::Stencils becomes an alias to
-    //       InitialStencilAndDelazifications.
-    // NOTE: frontend::CompilationStencil => JS::Stencil.
-    RefPtr initial =
-        const_cast<frontend::CompilationStencil*>(stencils->getInitial());
-    initial.forget(stencilOut);
-    return true;
-  }
-
-  AutoReportFrontendContext fc(cx);
-  RefPtr<frontend::CompilationStencil> stencil = stencils->getMerged(&fc);
-  if (!stencil) {
-    return false;
-  }
-
-  stencil.forget(stencilOut);
+  stencils.forget(stencilOut);
   return true;
 }
 

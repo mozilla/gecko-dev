@@ -21,12 +21,12 @@
 
 // Underlying opaque type.
 namespace js::frontend {
-struct CompilationStencil;
+struct InitialStencilAndDelazifications;
 }  // namespace js::frontend
 
 namespace JS {
 
-using Stencil = js::frontend::CompilationStencil;
+using Stencil = js::frontend::InitialStencilAndDelazifications;
 
 class JS_PUBLIC_API ReadOnlyCompileOptions;
 
