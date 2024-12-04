@@ -33,6 +33,7 @@
 
 #include "mozilla/Attributes.h"
 #include "mozilla/dom/BrowsingContextGroup.h"
+#include "mozilla/dom/BrowserParent.h"
 #include "mozilla/dom/CanonicalBrowsingContext.h"
 #include "mozilla/dom/ContentParent.h"
 #include "mozilla/dom/Element.h"
@@ -1281,11 +1282,11 @@ static void FinishRestore(CanonicalBrowsingContext* aBrowsingContext,
       }
     }
 
-    if (aBrowsingContext->IsActive()) {
-      loadingBC->PreOrderWalk([&](BrowsingContext* aContext) {
-        if (BrowserParent* bp = aContext->Canonical()->GetBrowserParent()) {
-          ProcessPriorityManager::BrowserPriorityChanged(bp, true);
-        }
+    // Ensure browser priority to matches `IsPriorityActive` after restoring.
+    if (BrowserParent* bp = loadingBC->GetBrowserParent()) {
+      bp->VisitAll([&](BrowserParent* aBp) {
+        ProcessPriorityManager::BrowserPriorityChanged(
+            aBp, aBrowsingContext->IsPriorityActive());
       });
     }
 

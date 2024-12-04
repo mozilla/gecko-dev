@@ -1493,11 +1493,9 @@ void SessionHistoryEntry::SetFrameLoader(nsFrameLoader* aFrameLoader) {
   SharedInfo()->SetFrameLoader(aFrameLoader);
   if (aFrameLoader) {
     if (BrowsingContext* bc = aFrameLoader->GetMaybePendingBrowsingContext()) {
-      bc->PreOrderWalk([&](BrowsingContext* aContext) {
-        if (BrowserParent* bp = aContext->Canonical()->GetBrowserParent()) {
-          bp->Deactivated();
-        }
-      });
+      if (BrowserParent* bp = bc->Canonical()->GetBrowserParent()) {
+        bp->VisitAll([&](BrowserParent* aBp) { aBp->Deactivated(); });
+      }
     }
 
     // When a new frameloader is stored, try to evict some older
