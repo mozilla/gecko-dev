@@ -573,9 +573,8 @@ add_task(async function testBadgeColorPersistence() {
 
   function getBadgeForWindow(win) {
     const widget = getBrowserActionWidget(extension).forWindow(win).node;
-    return widget.querySelector(
-      ".unified-extensions-item-action-button"
-    ).badgeLabel;
+    return widget.querySelector(".unified-extensions-item-action-button")
+      .badgeLabel;
   }
 
   let badge = getBadgeForWindow(window);
