@@ -13,6 +13,7 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.painter.BitmapPainter
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -20,6 +21,8 @@ import mozilla.components.feature.addons.Addon
 import mozilla.components.feature.addons.ui.displayName
 import mozilla.components.feature.addons.ui.summary
 import org.mozilla.fenix.R
+import org.mozilla.fenix.components.menu.MenuDialogTestTag.RECOMMENDED_ADDON_ITEM
+import org.mozilla.fenix.components.menu.MenuDialogTestTag.RECOMMENDED_ADDON_ITEM_TITLE
 import org.mozilla.fenix.compose.annotation.LightDarkPreview
 import org.mozilla.fenix.compose.list.FaviconListItem
 import org.mozilla.fenix.theme.FirefoxTheme
@@ -50,6 +53,8 @@ internal fun AddonMenuItem(
         FaviconListItem(
             label = label,
             url = addon.iconUrl,
+            modifier = Modifier.testTag(RECOMMENDED_ADDON_ITEM),
+            labelModifier = Modifier.testTag(RECOMMENDED_ADDON_ITEM_TITLE),
             description = description,
             faviconPainter = BitmapPainter(image = addonIcon.asImageBitmap()),
             onClick = onClick,
@@ -82,6 +87,8 @@ internal fun AddonMenuItem(
                 R.string.browser_menu_extension_plus_icon_content_description_2,
                 label,
             ),
+            modifier = Modifier.testTag(RECOMMENDED_ADDON_ITEM),
+            labelModifier = Modifier.testTag(RECOMMENDED_ADDON_ITEM_TITLE),
             onAfterIconClick = onIconClick,
         )
     }

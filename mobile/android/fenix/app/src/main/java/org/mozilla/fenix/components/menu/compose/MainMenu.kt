@@ -8,6 +8,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
@@ -16,6 +17,7 @@ import mozilla.components.service.fxa.manager.AccountState.NotAuthenticated
 import mozilla.components.service.fxa.store.Account
 import org.mozilla.fenix.R
 import org.mozilla.fenix.components.menu.MenuAccessPoint
+import org.mozilla.fenix.components.menu.MenuDialogTestTag
 import org.mozilla.fenix.components.menu.compose.header.MenuHeader
 import org.mozilla.fenix.compose.Divider
 import org.mozilla.fenix.compose.annotation.LightDarkPreview
@@ -271,6 +273,7 @@ private fun ToolsAndActionsMenuGroup(
                     )
                 },
                 onClick = onToolsMenuClick,
+                modifier = Modifier.testTag(MenuDialogTestTag.TOOLS),
                 afterIconPainter = painterResource(id = R.drawable.mozac_ic_chevron_right_24),
             )
 
@@ -281,6 +284,7 @@ private fun ToolsAndActionsMenuGroup(
                 beforeIconPainter = painterResource(id = R.drawable.mozac_ic_save_24),
                 description = stringResource(id = R.string.browser_menu_save_description),
                 onClick = onSaveMenuClick,
+                modifier = Modifier.testTag(MenuDialogTestTag.SAVE),
                 afterIconPainter = painterResource(id = R.drawable.mozac_ic_chevron_right_24),
             )
 
@@ -297,6 +301,7 @@ private fun ToolsAndActionsMenuGroup(
             },
             beforeIconPainter = painterResource(id = R.drawable.mozac_ic_extension_24),
             onClick = onExtensionsMenuClick,
+            modifier = Modifier.testTag(MenuDialogTestTag.EXTENSIONS),
             afterIconPainter = if (accessPoint != MenuAccessPoint.Home) {
                 painterResource(id = R.drawable.mozac_ic_chevron_right_24)
             } else {

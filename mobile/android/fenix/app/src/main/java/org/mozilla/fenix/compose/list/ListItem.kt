@@ -185,6 +185,7 @@ fun TextListItem(
  * @param label The label in the list item.
  * @param url Website [url] for which the favicon will be shown.
  * @param modifier [Modifier] to be applied to the layout.
+ * @param labelModifier [Modifier] to be applied to the label.
  * @param description An optional description text below the label.
  * @param faviconPainter Optional painter to use when fetching a new favicon is unnecessary.
  * @param onClick Called when the user clicks on the item.
@@ -201,6 +202,7 @@ fun FaviconListItem(
     label: String,
     url: String,
     modifier: Modifier = Modifier,
+    labelModifier: Modifier = Modifier,
     description: String? = null,
     faviconPainter: Painter? = null,
     onClick: (() -> Unit)? = null,
@@ -214,6 +216,7 @@ fun FaviconListItem(
     ListItem(
         label = label,
         modifier = modifier,
+        labelModifier = labelModifier,
         description = description,
         onClick = onClick,
         onLongClick = onLongClick,
@@ -275,6 +278,7 @@ fun FaviconListItem(
  *
  * @param label The label in the list item.
  * @param modifier [Modifier] to be applied to the layout.
+ * @param labelModifier [Modifier] to be applied to the label.
  * @param labelTextColor [Color] to be applied to the label.
  * @param descriptionTextColor [Color] to be applied to the description.
  * @param maxLabelLines An optional maximum number of lines for the label text to span.
@@ -299,6 +303,7 @@ fun FaviconListItem(
 fun IconListItem(
     label: String,
     modifier: Modifier = Modifier,
+    labelModifier: Modifier = Modifier,
     labelTextColor: Color = FirefoxTheme.colors.textPrimary,
     descriptionTextColor: Color = FirefoxTheme.colors.textSecondary,
     maxLabelLines: Int = 1,
@@ -319,6 +324,7 @@ fun IconListItem(
     ListItem(
         label = label,
         modifier = modifier,
+        labelModifier = labelModifier,
         labelTextColor = labelTextColor,
         descriptionTextColor = descriptionTextColor,
         maxLabelLines = maxLabelLines,
@@ -738,6 +744,7 @@ private fun SelectableItemIcon(
  *
  * @param label The label in the list item.
  * @param modifier [Modifier] to be applied to the layout.
+ * @param labelModifier [Modifier] to be applied to the label.
  * @param labelTextColor [Color] to be applied to the label.
  * @param descriptionTextColor [Color] to be applied to the description.
  * @param maxLabelLines An optional maximum number of lines for the label text to span.
@@ -756,6 +763,7 @@ private fun SelectableItemIcon(
 private fun ListItem(
     label: String,
     modifier: Modifier = Modifier,
+    labelModifier: Modifier = Modifier,
     labelTextColor: Color = FirefoxTheme.colors.textPrimary,
     descriptionTextColor: Color = FirefoxTheme.colors.textSecondary,
     maxLabelLines: Int = 1,
@@ -795,6 +803,7 @@ private fun ListItem(
         ) {
             Text(
                 text = label,
+                modifier = labelModifier,
                 color = if (enabled) labelTextColor else FirefoxTheme.colors.textDisabled,
                 overflow = TextOverflow.Ellipsis,
                 style = FirefoxTheme.typography.subtitle1,
