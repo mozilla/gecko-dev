@@ -173,6 +173,7 @@ const VERIFY_SIGNATURES_FROM_FS = false;
 /**
  * @typedef {import("../translations").TranslationModelRecord} TranslationModelRecord
  * @typedef {import("../translations").RemoteSettingsClient} RemoteSettingsClient
+ * @typedef {import("../translations").TranslationModelPayload} TranslationModelPayload
  * @typedef {import("../translations").LanguageTranslationModelFiles} LanguageTranslationModelFiles
  * @typedef {import("../translations").WasmRecord} WasmRecord
  * @typedef {import("../translations").LangTags} LangTags
@@ -1106,32 +1107,34 @@ export class TranslationsParent extends JSWindowActorParent {
       });
 
     const modelStartTime = Cu.now();
-    let files = await TranslationsParent.getLanguageTranslationModelFiles(
+
+    let translationModelPayloads;
+    const nonPivotPayload = await TranslationsParent.getTranslationModelPayload(
       fromLanguage,
       toLanguage
     );
 
-    let languageModelFiles;
-    if (files) {
-      languageModelFiles = [files];
+    if (nonPivotPayload) {
+      // A direct translation model was found for the language pair.
+      translationModelPayloads = [nonPivotPayload];
     } else {
       // No matching model was found, try to pivot between English.
-      const [files1, files2] = await Promise.all([
-        TranslationsParent.getLanguageTranslationModelFiles(
+      const [payload1, payload2] = await Promise.all([
+        TranslationsParent.getTranslationModelPayload(
           fromLanguage,
           PIVOT_LANGUAGE
         ),
-        TranslationsParent.getLanguageTranslationModelFiles(
+        TranslationsParent.getTranslationModelPayload(
           PIVOT_LANGUAGE,
           toLanguage
         ),
       ]);
-      if (!files1 || !files2) {
+      if (!payload1 || !payload2) {
         throw new Error(
           `No language models were found for ${fromLanguage} to ${toLanguage}`
         );
       }
-      languageModelFiles = [files1, files2];
+      translationModelPayloads = [payload1, payload2];
     }
 
     ChromeUtils.addProfilerMarker(
@@ -1144,7 +1147,7 @@ export class TranslationsParent extends JSWindowActorParent {
 
     return {
       bergamotWasmArrayBuffer,
-      languageModelFiles,
+      translationModelPayloads,
       isMocked: TranslationsParent.#isTranslationsEngineMocked,
     };
   }
@@ -2260,9 +2263,9 @@ export class TranslationsParent extends JSWindowActorParent {
    * @param {string} fromLanguage
    * @param {string} toLanguage
    * @param {boolean} withQualityEstimation
-   * @returns {null | LanguageTranslationModelFiles}
+   * @returns {null | TranslationModelPayload}
    */
-  static async getLanguageTranslationModelFiles(
+  static async getTranslationModelPayload(
     fromLanguage,
     toLanguage,
     withQualityEstimation = false
@@ -2359,13 +2362,18 @@ export class TranslationsParent extends JSWindowActorParent {
           `A trgvocab and vocab file were both included for "${fromLanguage}" to "${toLanguage}." Only one is needed.`
         );
       }
-    } else if (!results.srcvocab || !results.srcvocab) {
+    } else if (!results.srcvocab || !results.trgvocab) {
       throw new Error(
         `No vocab files were provided for "${fromLanguage}" to "${toLanguage}."`
       );
     }
 
-    return results;
+    /** @type {TranslationModelPayload} */
+    return {
+      sourceLanguage: fromLanguage,
+      targetLanguage: toLanguage,
+      languageModelFiles: results,
+    };
   }
 
   static async getLanguageSize(language) {

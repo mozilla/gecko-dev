@@ -289,8 +289,9 @@ export class TranslationsEngine {
     const transferables = [];
     if (enginePayload) {
       transferables.push(enginePayload.bergamotWasmArrayBuffer);
-      for (const files of enginePayload.languageModelFiles) {
-        for (const { buffer } of Object.values(files)) {
+      for (const translationModelPayload of enginePayload.translationModelPayloads) {
+        const { languageModelFiles } = translationModelPayload;
+        for (const { buffer } of Object.values(languageModelFiles)) {
           transferables.push(buffer);
         }
       }
