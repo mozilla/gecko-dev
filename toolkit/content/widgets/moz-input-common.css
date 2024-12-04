@@ -19,6 +19,13 @@
     --input-margin-block-adjust: var(--space-xsmall) 0;
   }
 
+  /* Label text */
+
+  .label-wrapper {
+    display: block;
+    padding-inline-start: var(--input-space-offset);
+  }
+
   label {
     display: block;
 
@@ -28,6 +35,12 @@
       margin-inline-end: var(--space-xsmall);
     }
   }
+
+  .label-content {
+    position: relative;
+  }
+
+  /* Input */
 
   #input {
     -moz-theme: non-native;
@@ -44,9 +57,7 @@
     margin-inline-start: var(--input-margin-inline-start-adjust);
   }
 
-  .label-content {
-    position: relative;
-  }
+  /* Icon */
 
   .icon {
     position: absolute;
@@ -62,6 +73,8 @@
     }
   }
 
+  /* Description */
+
   .description {
     margin-inline-start: var(--input-space-offset);
     margin-block-start: var(--space-xxsmall);
@@ -72,17 +85,14 @@
     }
   }
 
-  .label-wrapper {
-    display: block;
-    padding-inline-start: var(--input-space-offset);
+  ::slotted([slot="description"]) {
+    display: inline;
   }
+
+  /* Support link */
 
   a[is="moz-support-link"],
   ::slotted([slot="support-link"]) {
     display: inline-block;
-  }
-
-  ::slotted([slot="description"]) {
-    display: inline;
   }
 }
