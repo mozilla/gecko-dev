@@ -77,6 +77,8 @@ skip-if = ["os == 'android'"] # Android doesn't use places
 
 ["test_permmanager_oa_strip.js"]
 
+["test_permmanager_remote.js"]
+
 ["test_permmanager_removeAllExceptTypes.js"]
 
 ["test_permmanager_removeAllSinceWithTypeExceptions.js"]
