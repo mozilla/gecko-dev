@@ -18,14 +18,14 @@ skip-if = [
 
 ["bug_100.js"]
 skip-if = [
-  "debug", # Bug 100
   "apple_catalina", # Bug 200
+  "debug", # Bug 100
 ]
 
 ["test_bar.html"]
 skip-if = [
-  "os == 'mac'", #     Bug 111
   "os == 'linux'", #   Bug 222
+  "os == 'mac'", #     Bug 111
   "os == 'win'", #     Bug 333
   "tsan", # Bug 444
 ]

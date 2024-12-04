@@ -297,13 +297,14 @@ def add_skip_if(manifest, filename, condition, bug=None):
         skip_if = {"skip-if": mp_array}
         keyvals.update(skip_if)
     else:
+        # We store the conditions in a regular python array so we can sort them before
+        # dumping them in the TOML
+        conditions_array = []
         if first is not None:
             if first == condition:
                 existing = True
             if first_comment is not None and _should_keep_condition(first, condition):
-                mp_array.add_line(
-                    first, indent="  ", comment=_simplify_comment(first_comment)
-                )
+                conditions_array.append([first, _simplify_comment(first_comment)])
         if len(skip_if) > 1:
             e_condition = None
             e_comment = None
@@ -311,9 +312,7 @@ def add_skip_if(manifest, filename, condition, bug=None):
                 if isinstance(e, String):
                     if e_condition is not None:
                         if _should_keep_condition(e_condition, condition):
-                            mp_array.add_line(
-                                e_condition, indent="  ", comment=e_comment
-                            )
+                            conditions_array.append([e_condition, e_comment])
                         e_comment = None
                         e_condition = None
                     if len(e) > 0:
@@ -325,9 +324,12 @@ def add_skip_if(manifest, filename, condition, bug=None):
             if e_condition is not None and _should_keep_condition(
                 e_condition, condition
             ):
-                mp_array.add_line(e_condition, indent="  ", comment=e_comment)
+                conditions_array.append([e_condition, e_comment])
         if not existing:
-            mp_array.add_line(condition, indent="  ", comment=bug)
+            conditions_array.append([condition, bug])
+        conditions_array.sort()
+        for c in conditions_array:
+            mp_array.add_line(c[0], indent="  ", comment=c[1])
         mp_array.add_line("", indent="")  # fixed in write_toml_str
         skip_if = {"skip-if": mp_array}
         del keyvals["skip-if"]
