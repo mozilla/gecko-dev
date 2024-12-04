@@ -453,11 +453,11 @@ dump-syms:
         revision: ca31661882b190c97a6869c0add73b27000c92c5
 
 rust-minidump:
-    description: rust-minidump 0.19.1 source code (for minidump-stackwalk)
+    description: rust-minidump 0.23.0 source code (for minidump-stackwalk)
     fetch:
         type: git
         repo: https://github.com/rust-minidump/rust-minidump/
-        revision: c3de84b061339c686a572fb9f059e7ba3fad38d6
+        revision: fdb2c98a659a54b0077e5bad7f7dfa28a55c5f1d
 
 fix-stacks:
     description: fix-stacks source code
