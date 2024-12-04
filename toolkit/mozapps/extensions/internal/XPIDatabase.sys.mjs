@@ -739,6 +739,19 @@ export class AddonInternal {
         this.softDisabled = softDisabled;
       }
     }
+
+    if (oldState != newState) {
+      lazy.AddonManagerPrivate.callAddonListeners(
+        "onPropertyChanged",
+        this.wrapper,
+        ["blocklistState"]
+      );
+      if (this.active) {
+        // Make sure to sync the XPIState with the blocklistState
+        // set in the AddonDB if the addon is active.
+        XPIDatabase.updateXPIStates(this);
+      }
+    }
   }
 
   recordAddonBlockChangeTelemetry(reason) {

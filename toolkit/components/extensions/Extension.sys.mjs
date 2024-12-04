@@ -697,7 +697,11 @@ var ExtensionAddonObserver = {
 
   onPropertyChanged(addon, properties) {
     let extension = GlobalManager.extensionMap.get(addon.id);
-    if (extension && properties.includes("quarantineIgnoredByUser")) {
+    if (!extension) {
+      return;
+    }
+
+    if (properties.includes("quarantineIgnoredByUser")) {
       extension.ignoreQuarantine = addon.quarantineIgnoredByUser;
       extension.policy.ignoreQuarantine = addon.quarantineIgnoredByUser;
 
@@ -709,6 +713,11 @@ var ExtensionAddonObserver = {
         id: extension.id,
         ignoreQuarantine: addon.quarantineIgnoredByUser,
       });
+    }
+
+    if (properties.includes("blocklistState")) {
+      extension.blocklistState = addon.blocklistState;
+      extension.emit("update-blocklist-state");
     }
   },
 };
@@ -3043,6 +3052,7 @@ export class Extension extends ExtensionData {
 
     this.addonData = addonData;
     this.startupData = addonData.startupData || {};
+    this.blocklistState = addonData.blocklistState;
     this.startupReason = startupReason;
     this.updateReason = updateReason;
     this.temporarilyInstalled = !!addonData.temporarilyInstalled;
@@ -3201,6 +3211,10 @@ export class Extension extends ExtensionData {
       }
     }
     return undefined;
+  }
+
+  get isSoftBlocked() {
+    return this.blocklistState === Ci.nsIBlocklistService.STATE_SOFTBLOCKED;
   }
 
   on(hook, f) {

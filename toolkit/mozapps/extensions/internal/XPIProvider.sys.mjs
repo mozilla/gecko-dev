@@ -435,6 +435,7 @@ function migrateAddonLoader(addon) {
  * as stored in the addonStartup.json file.
  */
 const JSON_FIELDS = Object.freeze([
+  "blocklistState",
   "dependencies",
   "enabled",
   "file",
@@ -529,6 +530,7 @@ class XPIState {
    */
   toJSON() {
     let json = {
+      blocklistState: this.blocklistState,
       dependencies: this.dependencies,
       enabled: this.enabled,
       lastModifiedTime: this.lastModifiedTime,
@@ -639,6 +641,7 @@ class XPIState {
     this.file = aDBAddon._sourceBundle;
     this.rootURI = aDBAddon.rootURI;
     this.recommendationState = aDBAddon.recommendationState;
+    this.blocklistState = aDBAddon.blocklistState;
 
     if ((aUpdated || mustGetMod) && this.file) {
       this.getModTime(this.file);
@@ -1807,6 +1810,13 @@ class BootstrapScope {
         }
       }
 
+      // NOTE: Make sure the properties meant to be consistently passed to
+      // the bootstrap startup method to be part of the XPIStates JSON_FIELDS
+      // and to have been propagated from the db properties stored in the DB
+      // to the startupCache XPIStates by the syncWithDB method (because of
+      // browser startup the properties for the already installed addons
+      // are going to be retrieved from the XPIStates before the addonDB
+      // has been fully loaded).
       let params = {
         id: addon.id,
         version: addon.version,
@@ -1819,6 +1829,7 @@ class BootstrapScope {
         isPrivileged: addon.isPrivileged,
         locationHidden: addon.location.hidden,
         recommendationState: addon.recommendationState,
+        blocklistState: addon.blocklistState,
       };
 
       if (aMethod == "startup" && addon.startupData) {
