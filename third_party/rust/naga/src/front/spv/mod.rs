@@ -561,7 +561,7 @@ struct BlockContext<'function> {
     parameter_sampling: &'function mut [image::SamplingFlags],
 }
 
-impl BlockContext<'_> {
+impl<'a> BlockContext<'a> {
     /// Descend into the expression with the given handle, locating a contained
     /// global variable.
     ///

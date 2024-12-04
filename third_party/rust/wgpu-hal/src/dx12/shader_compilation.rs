@@ -1,7 +1,6 @@
 use crate::auxil::dxgi::result::HResult;
-use std::ffi::CStr;
 use std::path::PathBuf;
-use thiserror::Error;
+use std::{error::Error, ffi::CStr};
 use windows::{
     core::{Interface, PCSTR, PCWSTR},
     Win32::Graphics::Direct3D::{Dxc, Fxc},
@@ -98,118 +97,85 @@ struct DxcLib {
 }
 
 impl DxcLib {
-    fn new_dynamic(lib_path: PathBuf) -> Result<Self, libloading::Error> {
+    fn new(lib_path: Option<PathBuf>, lib_name: &'static str) -> Result<Self, libloading::Error> {
+        let lib_path = if let Some(lib_path) = lib_path {
+            if lib_path.is_file() {
+                lib_path
+            } else {
+                lib_path.join(lib_name)
+            }
+        } else {
+            PathBuf::from(lib_name)
+        };
         unsafe { crate::dx12::DynLib::new(lib_path).map(|lib| Self { lib }) }
     }
 
     pub fn create_instance<T: DxcObj>(&self) -> Result<T, crate::DeviceError> {
-        unsafe {
-            type DxcCreateInstanceFn = unsafe extern "system" fn(
-                rclsid: *const windows_core::GUID,
-                riid: *const windows_core::GUID,
-                ppv: *mut *mut core::ffi::c_void,
-            )
-                -> windows_core::HRESULT;
+        type Fun = extern "system" fn(
+            rclsid: *const windows_core::GUID,
+            riid: *const windows_core::GUID,
+            ppv: *mut *mut core::ffi::c_void,
+        ) -> windows_core::HRESULT;
+        let func: libloading::Symbol<Fun> = unsafe { self.lib.get(b"DxcCreateInstance\0") }?;
 
-            let func: libloading::Symbol<DxcCreateInstanceFn> =
-                self.lib.get(b"DxcCreateInstance\0")?;
-            dxc_create_instance::<T>(|clsid, iid, ppv| func(clsid, iid, ppv))
-        }
+        let mut result__ = None;
+        (func)(&T::CLSID, &T::IID, <*mut _>::cast(&mut result__))
+            .ok()
+            .into_device_result("DxcCreateInstance")?;
+        result__.ok_or(crate::DeviceError::Unexpected)
     }
-}
-
-/// Invokes the provided library function to create a DXC object.
-unsafe fn dxc_create_instance<T: DxcObj>(
-    f: impl Fn(
-        *const windows_core::GUID,
-        *const windows_core::GUID,
-        *mut *mut core::ffi::c_void,
-    ) -> windows_core::HRESULT,
-) -> Result<T, crate::DeviceError> {
-    let mut result__ = None;
-    f(&T::CLSID, &T::IID, <*mut _>::cast(&mut result__))
-        .ok()
-        .into_device_result("DxcCreateInstance")?;
-    result__.ok_or(crate::DeviceError::Unexpected)
 }
 
 // Destructor order should be fine since _dxil and _dxc don't rely on each other.
 pub(super) struct DxcContainer {
     compiler: Dxc::IDxcCompiler3,
     utils: Dxc::IDxcUtils,
-    validator: Option<Dxc::IDxcValidator>,
+    validator: Dxc::IDxcValidator,
     // Has to be held onto for the lifetime of the device otherwise shaders will fail to compile.
-    // Only needed when using dynamic linking.
-    _dxc: Option<DxcLib>,
+    _dxc: DxcLib,
     // Also Has to be held onto for the lifetime of the device otherwise shaders will fail to validate.
-    // Only needed when using dynamic linking.
-    _dxil: Option<DxcLib>,
+    _dxil: DxcLib,
 }
 
-#[derive(Debug, Error)]
-pub(super) enum GetDynamicDXCContainerError {
-    #[error(transparent)]
-    Device(#[from] crate::DeviceError),
-    #[error("Failed to load {0}: {1}")]
-    FailedToLoad(&'static str, libloading::Error),
-}
+pub(super) fn get_dxc_container(
+    dxc_path: Option<PathBuf>,
+    dxil_path: Option<PathBuf>,
+) -> Result<Option<DxcContainer>, crate::DeviceError> {
+    let dxc = match DxcLib::new(dxc_path, "dxcompiler.dll") {
+        Ok(dxc) => dxc,
+        Err(e) => {
+            log::warn!(
+                "Failed to load dxcompiler.dll. Defaulting to FXC instead: {}: {:?}",
+                e,
+                e.source()
+            );
+            return Ok(None);
+        }
+    };
 
-pub(super) fn get_dynamic_dxc_container(
-    dxc_path: PathBuf,
-    dxil_path: PathBuf,
-) -> Result<DxcContainer, GetDynamicDXCContainerError> {
-    let dxc = DxcLib::new_dynamic(dxc_path)
-        .map_err(|e| GetDynamicDXCContainerError::FailedToLoad("dxcompiler.dll", e))?;
-
-    let dxil = DxcLib::new_dynamic(dxil_path)
-        .map_err(|e| GetDynamicDXCContainerError::FailedToLoad("dxil.dll", e))?;
+    let dxil = match DxcLib::new(dxil_path, "dxil.dll") {
+        Ok(dxil) => dxil,
+        Err(e) => {
+            log::warn!(
+                "Failed to load dxil.dll. Defaulting to FXC instead: {}: {:?}",
+                e,
+                e.source()
+            );
+            return Ok(None);
+        }
+    };
 
     let compiler = dxc.create_instance::<Dxc::IDxcCompiler3>()?;
     let utils = dxc.create_instance::<Dxc::IDxcUtils>()?;
     let validator = dxil.create_instance::<Dxc::IDxcValidator>()?;
 
-    Ok(DxcContainer {
+    Ok(Some(DxcContainer {
         compiler,
         utils,
-        validator: Some(validator),
-        _dxc: Some(dxc),
-        _dxil: Some(dxil),
-    })
-}
-
-/// Creates a [`DxcContainer`] that delegates to the statically-linked version of DXC.
-pub(super) fn get_static_dxc_container() -> Result<DxcContainer, crate::DeviceError> {
-    #[cfg(feature = "static-dxc")]
-    {
-        unsafe {
-            let compiler = dxc_create_instance::<Dxc::IDxcCompiler3>(|clsid, iid, ppv| {
-                windows_core::HRESULT(mach_dxcompiler_rs::DxcCreateInstance(
-                    clsid.cast(),
-                    iid.cast(),
-                    ppv,
-                ))
-            })?;
-            let utils = dxc_create_instance::<Dxc::IDxcUtils>(|clsid, iid, ppv| {
-                windows_core::HRESULT(mach_dxcompiler_rs::DxcCreateInstance(
-                    clsid.cast(),
-                    iid.cast(),
-                    ppv,
-                ))
-            })?;
-
-            Ok(DxcContainer {
-                compiler,
-                utils,
-                validator: None,
-                _dxc: None,
-                _dxil: None,
-            })
-        }
-    }
-    #[cfg(not(feature = "static-dxc"))]
-    {
-        panic!("Attempted to create a static DXC shader compiler, but the static-dxc feature was not enabled")
-    }
+        validator,
+        _dxc: dxc,
+        _dxil: dxil,
+    }))
 }
 
 /// Owned PCWSTR
@@ -279,11 +245,8 @@ pub(super) fn compile_dxc(
         windows::core::w!("2018"), // Use HLSL 2018, Naga doesn't supported 2021 yet.
         windows::core::w!("-no-warnings"),
         Dxc::DXC_ARG_ENABLE_STRICTNESS,
+        Dxc::DXC_ARG_SKIP_VALIDATION, // Disable implicit validation to work around bugs when dxil.dll isn't in the local directory.
     ]);
-
-    if dxc_container.validator.is_some() {
-        compile_args.push(Dxc::DXC_ARG_SKIP_VALIDATION); // Disable implicit validation to work around bugs when dxil.dll isn't in the local directory.)
-    }
 
     if device
         .private_caps
@@ -325,24 +288,26 @@ pub(super) fn compile_dxc(
 
     let blob = get_output::<Dxc::IDxcBlob>(&compile_res, Dxc::DXC_OUT_OBJECT)?;
 
-    if let Some(validator) = &dxc_container.validator {
-        let err_blob = {
-            let res = unsafe { validator.Validate(&blob, Dxc::DxcValidatorFlags_InPlaceEdit) }
-                .into_device_result("Validate")?;
-
-            unsafe { res.GetErrorBuffer() }.into_device_result("GetErrorBuffer")?
-        };
-
-        let size = unsafe { err_blob.GetBufferSize() };
-        if size != 0 {
-            let err_blob = unsafe { dxc_container.utils.GetBlobAsUtf8(&err_blob) }
-                .into_device_result("GetBlobAsUtf8")?;
-            let err = as_err_str(&err_blob)?;
-            return Err(crate::PipelineError::Linkage(
-                stage_bit,
-                format!("DXC validation error: {err}"),
-            ));
+    let err_blob = {
+        let res = unsafe {
+            dxc_container
+                .validator
+                .Validate(&blob, Dxc::DxcValidatorFlags_InPlaceEdit)
         }
+        .into_device_result("Validate")?;
+
+        unsafe { res.GetErrorBuffer() }.into_device_result("GetErrorBuffer")?
+    };
+
+    let size = unsafe { err_blob.GetBufferSize() };
+    if size != 0 {
+        let err_blob = unsafe { dxc_container.utils.GetBlobAsUtf8(&err_blob) }
+            .into_device_result("GetBlobAsUtf8")?;
+        let err = as_err_str(&err_blob)?;
+        return Err(crate::PipelineError::Linkage(
+            stage_bit,
+            format!("DXC validation error: {err}"),
+        ));
     }
 
     Ok(crate::dx12::CompiledShader::Dxc(blob))

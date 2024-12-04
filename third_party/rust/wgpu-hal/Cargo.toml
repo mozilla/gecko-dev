@@ -13,7 +13,7 @@
 edition = "2021"
 rust-version = "1.76"
 name = "wgpu-hal"
-version = "23.0.1"
+version = "23.0.0"
 authors = ["gfx-rs developers"]
 build = "build.rs"
 autolib = false
@@ -72,7 +72,7 @@ version = "0.7"
 version = "2.6"
 
 [dependencies.bytemuck]
-version = "1.20"
+version = "1.19"
 optional = true
 
 [dependencies.glow]
@@ -177,7 +177,6 @@ renderdoc = [
     "dep:libloading",
     "dep:renderdoc-sys",
 ]
-static-dxc = ["dep:mach-dxcompiler-rs"]
 vulkan = [
     "naga/spv-out",
     "dep:ash",
@@ -192,10 +191,10 @@ vulkan = [
 version = "0.3.70"
 
 [target.'cfg(all(target_arch = "wasm32", not(target_os = "emscripten")))'.dependencies.wasm-bindgen]
-version = "0.2.97"
+version = "0.2.95"
 
 [target.'cfg(all(target_arch = "wasm32", not(target_os = "emscripten")))'.dependencies.web-sys]
-version = "0.3.74"
+version = "0.3.72"
 features = [
     "Window",
     "HtmlCanvasElement",
@@ -211,7 +210,7 @@ optional = true
 version = "0.1"
 
 [target.'cfg(any(target_os="macos", target_os="ios"))'.dependencies.metal]
-version = "0.30.0"
+version = "0.29.0"
 
 [target.'cfg(any(target_os="macos", target_os="ios"))'.dependencies.objc]
 version = "0.2.5"
@@ -309,11 +308,6 @@ optional = true
 
 [target."cfg(windows)".dependencies.gpu-allocator]
 version = "0.27"
-optional = true
-default-features = false
-
-[target."cfg(windows)".dependencies.mach-dxcompiler-rs]
-version = "0.1.3"
 optional = true
 default-features = false
 

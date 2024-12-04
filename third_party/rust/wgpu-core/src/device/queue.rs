@@ -5,7 +5,7 @@ use crate::{
     command::{
         extract_texture_selector, validate_linear_texture_data, validate_texture_copy_range,
         ClearError, CommandAllocator, CommandBuffer, CommandEncoderError, CopySide,
-        TexelCopyTextureInfo, TransferError,
+        ImageCopyTexture, TransferError,
     },
     conv,
     device::{DeviceError, WaitIdleError},
@@ -240,10 +240,61 @@ impl Drop for Queue {
     }
 }
 
+#[repr(C)]
+pub struct SubmittedWorkDoneClosureC {
+    pub callback: unsafe extern "C" fn(user_data: *mut u8),
+    pub user_data: *mut u8,
+}
+
 #[cfg(send_sync)]
-pub type SubmittedWorkDoneClosure = Box<dyn FnOnce() + Send + 'static>;
+unsafe impl Send for SubmittedWorkDoneClosureC {}
+
+pub struct SubmittedWorkDoneClosure {
+    // We wrap this so creating the enum in the C variant can be unsafe,
+    // allowing our call function to be safe.
+    inner: SubmittedWorkDoneClosureInner,
+}
+
+#[cfg(send_sync)]
+type SubmittedWorkDoneCallback = Box<dyn FnOnce() + Send + 'static>;
 #[cfg(not(send_sync))]
-pub type SubmittedWorkDoneClosure = Box<dyn FnOnce() + 'static>;
+type SubmittedWorkDoneCallback = Box<dyn FnOnce() + 'static>;
+
+enum SubmittedWorkDoneClosureInner {
+    Rust { callback: SubmittedWorkDoneCallback },
+    C { inner: SubmittedWorkDoneClosureC },
+}
+
+impl SubmittedWorkDoneClosure {
+    pub fn from_rust(callback: SubmittedWorkDoneCallback) -> Self {
+        Self {
+            inner: SubmittedWorkDoneClosureInner::Rust { callback },
+        }
+    }
+
+    /// # Safety
+    ///
+    /// - The callback pointer must be valid to call with the provided `user_data`
+    ///   pointer.
+    ///
+    /// - Both pointers must point to `'static` data, as the callback may happen at
+    ///   an unspecified time.
+    pub unsafe fn from_c(inner: SubmittedWorkDoneClosureC) -> Self {
+        Self {
+            inner: SubmittedWorkDoneClosureInner::C { inner },
+        }
+    }
+
+    pub(crate) fn call(self) {
+        match self.inner {
+            SubmittedWorkDoneClosureInner::Rust { callback } => callback(),
+            // SAFETY: the contract of the call to from_c says that this unsafe is sound.
+            SubmittedWorkDoneClosureInner::C { inner } => unsafe {
+                (inner.callback)(inner.user_data)
+            },
+        }
+    }
+}
 
 /// A texture or buffer to be freed soon.
 ///
@@ -680,9 +731,9 @@ impl Queue {
 
     pub fn write_texture(
         &self,
-        destination: wgt::TexelCopyTextureInfo<Fallible<Texture>>,
+        destination: wgt::ImageCopyTexture<Fallible<Texture>>,
         data: &[u8],
-        data_layout: &wgt::TexelCopyBufferLayout,
+        data_layout: &wgt::ImageDataLayout,
         size: &wgt::Extent3d,
     ) -> Result<(), QueueWriteError> {
         profiling::scope!("Queue::write_texture");
@@ -694,7 +745,7 @@ impl Queue {
         }
 
         let dst = destination.texture.get()?;
-        let destination = wgt::TexelCopyTextureInfo {
+        let destination = wgt::ImageCopyTexture {
             texture: (),
             mip_level: destination.mip_level,
             origin: destination.origin,
@@ -857,7 +908,7 @@ impl Queue {
                 let mut texture_base = dst_base.clone();
                 texture_base.array_layer += array_layer_offset;
                 hal::BufferTextureCopy {
-                    buffer_layout: wgt::TexelCopyBufferLayout {
+                    buffer_layout: wgt::ImageDataLayout {
                         offset: array_layer_offset as u64
                             * rows_per_image as u64
                             * stage_bytes_per_row as u64,
@@ -901,8 +952,8 @@ impl Queue {
     #[cfg(webgl)]
     pub fn copy_external_image_to_texture(
         &self,
-        source: &wgt::CopyExternalImageSourceInfo,
-        destination: wgt::CopyExternalImageDestInfo<Fallible<Texture>>,
+        source: &wgt::ImageCopyExternalImage,
+        destination: wgt::ImageCopyTextureTagged<Fallible<Texture>>,
         size: wgt::Extent3d,
     ) -> Result<(), QueueWriteError> {
         profiling::scope!("Queue::copy_external_image_to_texture");
@@ -933,7 +984,7 @@ impl Queue {
 
         let dst = destination.texture.get()?;
         let premultiplied_alpha = destination.premultiplied_alpha;
-        let destination = wgt::TexelCopyTextureInfo {
+        let destination = wgt::ImageCopyTexture {
             texture: (),
             mip_level: destination.mip_level,
             origin: destination.origin,
@@ -1396,7 +1447,6 @@ impl Queue {
         unsafe { self.raw().get_timestamp_period() }
     }
 
-    /// `closure` is guaranteed to be called.
     pub fn on_submitted_work_done(
         &self,
         closure: SubmittedWorkDoneClosure,
@@ -1475,9 +1525,9 @@ impl Global {
     pub fn queue_write_texture(
         &self,
         queue_id: QueueId,
-        destination: &TexelCopyTextureInfo,
+        destination: &ImageCopyTexture,
         data: &[u8],
-        data_layout: &wgt::TexelCopyBufferLayout,
+        data_layout: &wgt::ImageDataLayout,
         size: &wgt::Extent3d,
     ) -> Result<(), QueueWriteError> {
         let queue = self.hub.queues.get(queue_id);
@@ -1493,7 +1543,7 @@ impl Global {
             });
         }
 
-        let destination = wgt::TexelCopyTextureInfo {
+        let destination = wgt::ImageCopyTexture {
             texture: self.hub.textures.get(destination.texture),
             mip_level: destination.mip_level,
             origin: destination.origin,
@@ -1506,12 +1556,12 @@ impl Global {
     pub fn queue_copy_external_image_to_texture(
         &self,
         queue_id: QueueId,
-        source: &wgt::CopyExternalImageSourceInfo,
-        destination: crate::command::CopyExternalImageDestInfo,
+        source: &wgt::ImageCopyExternalImage,
+        destination: crate::command::ImageCopyTextureTagged,
         size: wgt::Extent3d,
     ) -> Result<(), QueueWriteError> {
         let queue = self.hub.queues.get(queue_id);
-        let destination = wgt::CopyExternalImageDestInfo {
+        let destination = wgt::ImageCopyTextureTagged {
             texture: self.hub.textures.get(destination.texture),
             mip_level: destination.mip_level,
             origin: destination.origin,

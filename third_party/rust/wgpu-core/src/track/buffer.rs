@@ -134,7 +134,10 @@ impl BufferUsageScope {
             let index = resource.tracker_index().as_usize();
 
             unsafe {
-                self.insert_or_merge(
+                insert_or_merge(
+                    None,
+                    &mut self.state,
+                    &mut self.metadata,
                     index as _,
                     index,
                     BufferStateProvider::Direct { state },
@@ -167,7 +170,10 @@ impl BufferUsageScope {
             scope.tracker_assert_in_bounds(index);
 
             unsafe {
-                self.insert_or_merge(
+                insert_or_merge(
+                    None,
+                    &mut self.state,
+                    &mut self.metadata,
                     index as u32,
                     index,
                     BufferStateProvider::Indirect {
@@ -202,7 +208,10 @@ impl BufferUsageScope {
         self.tracker_assert_in_bounds(index);
 
         unsafe {
-            self.insert_or_merge(
+            insert_or_merge(
+                None,
+                &mut self.state,
+                &mut self.metadata,
                 index as _,
                 index,
                 BufferStateProvider::Direct { state: new_state },
@@ -211,51 +220,6 @@ impl BufferUsageScope {
         }
 
         Ok(())
-    }
-
-    /// Does an insertion operation if the index isn't tracked
-    /// in the current metadata, otherwise merges the given state
-    /// with the current state. If the merging would cause
-    /// a conflict, returns that usage conflict.
-    ///
-    /// # Safety
-    ///
-    /// Indexes must be valid indexes into all arrays passed in
-    /// to this function, either directly or via metadata or provider structs.
-    #[inline(always)]
-    unsafe fn insert_or_merge(
-        &mut self,
-        index32: u32,
-        index: usize,
-        state_provider: BufferStateProvider<'_>,
-        metadata_provider: ResourceMetadataProvider<'_, Arc<Buffer>>,
-    ) -> Result<(), ResourceUsageCompatibilityError> {
-        let currently_owned = unsafe { self.metadata.contains_unchecked(index) };
-
-        if !currently_owned {
-            unsafe {
-                insert(
-                    None,
-                    &mut self.state,
-                    &mut self.metadata,
-                    index,
-                    state_provider,
-                    None,
-                    metadata_provider,
-                )
-            };
-            return Ok(());
-        }
-
-        unsafe {
-            merge(
-                &mut self.state,
-                index32,
-                index,
-                state_provider,
-                metadata_provider,
-            )
-        }
     }
 }
 
@@ -346,11 +310,15 @@ impl BufferTracker {
         self.tracker_assert_in_bounds(index);
 
         unsafe {
-            self.insert_or_barrier_update(
+            insert_or_barrier_update(
+                Some(&mut self.start),
+                &mut self.end,
+                &mut self.metadata,
                 index,
                 BufferStateProvider::Direct { state },
                 None,
                 ResourceMetadataProvider::Direct { resource: buffer },
+                &mut self.temp,
             )
         };
 
@@ -377,7 +345,10 @@ impl BufferTracker {
             self.tracker_assert_in_bounds(index);
             tracker.tracker_assert_in_bounds(index);
             unsafe {
-                self.insert_or_barrier_update(
+                insert_or_barrier_update(
+                    Some(&mut self.start),
+                    &mut self.end,
+                    &mut self.metadata,
                     index,
                     BufferStateProvider::Indirect {
                         state: &tracker.start,
@@ -388,6 +359,7 @@ impl BufferTracker {
                     ResourceMetadataProvider::Indirect {
                         metadata: &tracker.metadata,
                     },
+                    &mut self.temp,
                 )
             }
         }
@@ -411,7 +383,10 @@ impl BufferTracker {
             self.tracker_assert_in_bounds(index);
             scope.tracker_assert_in_bounds(index);
             unsafe {
-                self.insert_or_barrier_update(
+                insert_or_barrier_update(
+                    Some(&mut self.start),
+                    &mut self.end,
+                    &mut self.metadata,
                     index,
                     BufferStateProvider::Indirect {
                         state: &scope.state,
@@ -420,6 +395,7 @@ impl BufferTracker {
                     ResourceMetadataProvider::Indirect {
                         metadata: &scope.metadata,
                     },
+                    &mut self.temp,
                 )
             }
         }
@@ -462,7 +438,10 @@ impl BufferTracker {
                 continue;
             }
             unsafe {
-                self.insert_or_barrier_update(
+                insert_or_barrier_update(
+                    Some(&mut self.start),
+                    &mut self.end,
+                    &mut self.metadata,
                     index,
                     BufferStateProvider::Indirect {
                         state: &scope.state,
@@ -471,61 +450,12 @@ impl BufferTracker {
                     ResourceMetadataProvider::Indirect {
                         metadata: &scope.metadata,
                     },
+                    &mut self.temp,
                 )
             };
 
             unsafe { scope.metadata.remove(index) };
         }
-    }
-
-    /// If the resource isn't tracked
-    /// - Inserts the given resource.
-    /// - Uses the `start_state_provider` to populate `start_states`
-    /// - Uses either `end_state_provider` or `start_state_provider`
-    ///   to populate `current_states`.
-    ///
-    /// If the resource is tracked
-    /// - Inserts barriers from the state in `current_states`
-    ///   to the state provided by `start_state_provider`.
-    /// - Updates the `current_states` with either the state from
-    ///   `end_state_provider` or `start_state_provider`.
-    ///
-    /// Any barriers are added to the barrier vector.
-    ///
-    /// # Safety
-    ///
-    /// Indexes must be valid indexes into all arrays passed in
-    /// to this function, either directly or via metadata or provider structs.
-    #[inline(always)]
-    unsafe fn insert_or_barrier_update(
-        &mut self,
-        index: usize,
-        start_state_provider: BufferStateProvider<'_>,
-        end_state_provider: Option<BufferStateProvider<'_>>,
-        metadata_provider: ResourceMetadataProvider<'_, Arc<Buffer>>,
-    ) {
-        let currently_owned = unsafe { self.metadata.contains_unchecked(index) };
-
-        if !currently_owned {
-            unsafe {
-                insert(
-                    Some(&mut self.start),
-                    &mut self.end,
-                    &mut self.metadata,
-                    index,
-                    start_state_provider,
-                    end_state_provider,
-                    metadata_provider,
-                )
-            };
-            return;
-        }
-
-        let update_state_provider =
-            end_state_provider.unwrap_or_else(|| start_state_provider.clone());
-        unsafe { barrier(&mut self.end, index, start_state_provider, &mut self.temp) };
-
-        unsafe { update(&mut self.end, index, update_state_provider) };
     }
 }
 
@@ -678,6 +608,105 @@ impl BufferStateProvider<'_> {
             }
         }
     }
+}
+
+/// Does an insertion operation if the index isn't tracked
+/// in the current metadata, otherwise merges the given state
+/// with the current state. If the merging would cause
+/// a conflict, returns that usage conflict.
+///
+/// # Safety
+///
+/// Indexes must be valid indexes into all arrays passed in
+/// to this function, either directly or via metadata or provider structs.
+#[inline(always)]
+unsafe fn insert_or_merge(
+    start_states: Option<&mut [BufferUses]>,
+    current_states: &mut [BufferUses],
+    resource_metadata: &mut ResourceMetadata<Arc<Buffer>>,
+    index32: u32,
+    index: usize,
+    state_provider: BufferStateProvider<'_>,
+    metadata_provider: ResourceMetadataProvider<'_, Arc<Buffer>>,
+) -> Result<(), ResourceUsageCompatibilityError> {
+    let currently_owned = unsafe { resource_metadata.contains_unchecked(index) };
+
+    if !currently_owned {
+        unsafe {
+            insert(
+                start_states,
+                current_states,
+                resource_metadata,
+                index,
+                state_provider,
+                None,
+                metadata_provider,
+            )
+        };
+        return Ok(());
+    }
+
+    unsafe {
+        merge(
+            current_states,
+            index32,
+            index,
+            state_provider,
+            metadata_provider,
+        )
+    }
+}
+
+/// If the resource isn't tracked
+/// - Inserts the given resource.
+/// - Uses the `start_state_provider` to populate `start_states`
+/// - Uses either `end_state_provider` or `start_state_provider`
+///   to populate `current_states`.
+///
+/// If the resource is tracked
+/// - Inserts barriers from the state in `current_states`
+///   to the state provided by `start_state_provider`.
+/// - Updates the `current_states` with either the state from
+///   `end_state_provider` or `start_state_provider`.
+///
+/// Any barriers are added to the barrier vector.
+///
+/// # Safety
+///
+/// Indexes must be valid indexes into all arrays passed in
+/// to this function, either directly or via metadata or provider structs.
+#[inline(always)]
+unsafe fn insert_or_barrier_update(
+    start_states: Option<&mut [BufferUses]>,
+    current_states: &mut [BufferUses],
+    resource_metadata: &mut ResourceMetadata<Arc<Buffer>>,
+    index: usize,
+    start_state_provider: BufferStateProvider<'_>,
+    end_state_provider: Option<BufferStateProvider<'_>>,
+    metadata_provider: ResourceMetadataProvider<'_, Arc<Buffer>>,
+    barriers: &mut Vec<PendingTransition<BufferUses>>,
+) {
+    let currently_owned = unsafe { resource_metadata.contains_unchecked(index) };
+
+    if !currently_owned {
+        unsafe {
+            insert(
+                start_states,
+                current_states,
+                resource_metadata,
+                index,
+                start_state_provider,
+                end_state_provider,
+                metadata_provider,
+            )
+        };
+        return;
+    }
+
+    let update_state_provider = end_state_provider.unwrap_or_else(|| start_state_provider.clone());
+    unsafe { barrier(current_states, index, start_state_provider, barriers) };
+
+    unsafe { update(current_states, index, update_state_provider) };
 }
 
 #[inline(always)]

@@ -259,7 +259,7 @@ impl Writer {
     }
 }
 
-impl BlockContext<'_> {
+impl<'w> BlockContext<'w> {
     /// Cache an expression for a value.
     pub(super) fn cache_expression_value(
         &mut self,
@@ -1736,7 +1736,10 @@ impl BlockContext<'_> {
             }
             crate::Expression::ArrayLength(expr) => self.write_runtime_array_length(expr, block)?,
             crate::Expression::RayQueryGetIntersection { query, committed } => {
-                self.write_ray_query_get_intersection(query, block, committed)
+                if !committed {
+                    return Err(Error::FeatureNotImplemented("candidate intersection"));
+                }
+                self.write_ray_query_get_intersection(query, block)
             }
         };
 

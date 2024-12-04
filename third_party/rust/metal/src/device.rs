@@ -1461,7 +1461,7 @@ pub struct MTLAccelerationStructureSizes {
 #[cfg_attr(feature = "link", link(name = "Metal", kind = "framework"))]
 extern "C" {
     fn MTLCreateSystemDefaultDevice() -> *mut MTLDevice;
-    #[cfg(not(any(target_os = "ios", target_os = "visionos")))]
+    #[cfg(not(target_os = "ios"))]
     fn MTLCopyAllDevices() -> *mut Object; //TODO: Array
 }
 
@@ -1475,11 +1475,11 @@ type dispatch_block_t = *const Block<(), ()>;
 const DISPATCH_DATA_DESTRUCTOR_DEFAULT: dispatch_block_t = ptr::null();
 
 #[cfg_attr(
-    all(feature = "link", any(target_os = "macos", target_os = "ios", target_os = "visionos")),
+    all(feature = "link", any(target_os = "macos", target_os = "ios")),
     link(name = "System", kind = "dylib")
 )]
 #[cfg_attr(
-    all(feature = "link", not(any(target_os = "macos", target_os = "ios", target_os = "visionos"))),
+    all(feature = "link", not(any(target_os = "macos", target_os = "ios"))),
     link(name = "dispatch", kind = "dylib")
 )]
 #[allow(improper_ctypes)]
@@ -1520,11 +1520,11 @@ impl Device {
     }
 
     pub fn all() -> Vec<Self> {
-        #[cfg(any(target_os = "ios", target_os = "visionos"))]
+        #[cfg(target_os = "ios")]
         {
             Self::system_default().into_iter().collect()
         }
-        #[cfg(not(any(target_os = "ios", target_os = "visionos")))]
+        #[cfg(not(target_os = "ios"))]
         unsafe {
             let array = MTLCopyAllDevices();
             let count: NSUInteger = msg_send![array, count];

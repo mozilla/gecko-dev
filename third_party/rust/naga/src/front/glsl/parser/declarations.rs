@@ -64,7 +64,7 @@ fn element_or_member_type(
     }
 }
 
-impl ParsingContext<'_> {
+impl<'source> ParsingContext<'source> {
     pub fn parse_external_declaration(
         &mut self,
         frontend: &mut Frontend,

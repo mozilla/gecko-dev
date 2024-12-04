@@ -38,7 +38,7 @@ impl<'a> Lexer<'a> {
     }
 }
 
-impl Iterator for Lexer<'_> {
+impl<'a> Iterator for Lexer<'a> {
     type Item = LexerResult;
     fn next(&mut self) -> Option<Self::Item> {
         let pp_token = match self.pp.next()? {

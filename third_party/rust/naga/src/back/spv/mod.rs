@@ -847,7 +847,7 @@ pub struct Options<'a> {
     pub debug_info: Option<DebugInfo<'a>>,
 }
 
-impl Default for Options<'_> {
+impl<'a> Default for Options<'a> {
     fn default() -> Self {
         let mut flags = WriterFlags::ADJUST_COORDINATE_SPACE
             | WriterFlags::LABEL_VARYINGS

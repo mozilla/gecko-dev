@@ -282,7 +282,7 @@ impl FeaturesManager {
     }
 }
 
-impl<W> Writer<'_, W> {
+impl<'a, W> Writer<'a, W> {
     /// Helper method that searches the module for all the needed [`Features`]
     ///
     /// # Errors

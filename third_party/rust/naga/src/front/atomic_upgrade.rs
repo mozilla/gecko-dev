@@ -90,7 +90,7 @@ struct UpgradeState<'a> {
     module: &'a mut Module,
 }
 
-impl UpgradeState<'_> {
+impl<'a> UpgradeState<'a> {
     fn inc_padding(&self) -> Padding {
         self.padding.inc_padding()
     }

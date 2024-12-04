@@ -228,7 +228,7 @@ impl Access for Store {
     fn out_of_bounds_value(&self, _ctx: &mut BlockContext<'_>) {}
 }
 
-impl BlockContext<'_> {
+impl<'w> BlockContext<'w> {
     /// Extend image coordinates with an array index, if necessary.
     ///
     /// Whereas [`Expression::ImageLoad`] and [`ImageSample`] treat the array

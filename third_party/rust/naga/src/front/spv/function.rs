@@ -576,7 +576,7 @@ impl<I: Iterator<Item = u32>> super::Frontend<I> {
     }
 }
 
-impl BlockContext<'_> {
+impl<'function> BlockContext<'function> {
     pub(super) fn gctx(&self) -> crate::proc::GlobalCtx {
         crate::proc::GlobalCtx {
             types: self.type_arena,

@@ -20,37 +20,6 @@ enum ResourceType {
     AccelerationStructure,
 }
 
-#[derive(Clone, Debug)]
-pub enum BindingTypeName {
-    Buffer,
-    Texture,
-    Sampler,
-    AccelerationStructure,
-}
-
-impl From<&ResourceType> for BindingTypeName {
-    fn from(ty: &ResourceType) -> BindingTypeName {
-        match ty {
-            ResourceType::Buffer { .. } => BindingTypeName::Buffer,
-            ResourceType::Texture { .. } => BindingTypeName::Texture,
-            ResourceType::Sampler { .. } => BindingTypeName::Sampler,
-            ResourceType::AccelerationStructure { .. } => BindingTypeName::AccelerationStructure,
-        }
-    }
-}
-
-impl From<&BindingType> for BindingTypeName {
-    fn from(ty: &BindingType) -> BindingTypeName {
-        match ty {
-            BindingType::Buffer { .. } => BindingTypeName::Buffer,
-            BindingType::Texture { .. } => BindingTypeName::Texture,
-            BindingType::StorageTexture { .. } => BindingTypeName::Texture,
-            BindingType::Sampler { .. } => BindingTypeName::Sampler,
-            BindingType::AccelerationStructure { .. } => BindingTypeName::AccelerationStructure,
-        }
-    }
-}
-
 #[derive(Debug)]
 struct Resource {
     #[allow(unused)]
@@ -171,20 +140,13 @@ pub enum BindingError {
     Missing,
     #[error("Visibility flags don't include the shader stage")]
     Invisible,
-    #[error(
-        "Type on the shader side ({shader:?}) does not match the pipeline binding ({binding:?})"
-    )]
-    WrongType {
-        binding: BindingTypeName,
-        shader: BindingTypeName,
-    },
+    #[error("Type on the shader side does not match the pipeline binding")]
+    WrongType,
     #[error("Storage class {binding:?} doesn't match the shader {shader:?}")]
     WrongAddressSpace {
         binding: naga::AddressSpace,
         shader: naga::AddressSpace,
     },
-    #[error("Address space {space:?} is not a valid Buffer address space")]
-    WrongBufferAddressSpace { space: naga::AddressSpace },
     #[error("Buffer structure size {buffer_size}, added to one element of an unbound array, if it's the last field, ended up greater than the given `min_binding_size`, which is {min_binding_size}")]
     WrongBufferSize {
         buffer_size: wgt::BufferSize,
@@ -416,12 +378,7 @@ impl Resource {
                         }
                         min_binding_size
                     }
-                    _ => {
-                        return Err(BindingError::WrongType {
-                            binding: (&entry.ty).into(),
-                            shader: (&self.ty).into(),
-                        })
-                    }
+                    _ => return Err(BindingError::WrongType),
                 };
                 match min_size {
                     Some(non_zero) if non_zero < size => {
@@ -439,12 +396,7 @@ impl Resource {
                         return Err(BindingError::WrongSamplerComparison);
                     }
                 }
-                _ => {
-                    return Err(BindingError::WrongType {
-                        binding: (&entry.ty).into(),
-                        shader: (&self.ty).into(),
-                    })
-                }
+                _ => return Err(BindingError::WrongType),
             },
             ResourceType::Texture {
                 dim,
@@ -526,12 +478,7 @@ impl Resource {
                             access: naga_access,
                         }
                     }
-                    _ => {
-                        return Err(BindingError::WrongType {
-                            binding: (&entry.ty).into(),
-                            shader: (&self.ty).into(),
-                        })
-                    }
+                    _ => return Err(BindingError::WrongType),
                 };
                 if class != expected_class {
                     return Err(BindingError::WrongTextureClass {
@@ -540,15 +487,7 @@ impl Resource {
                     });
                 }
             }
-            ResourceType::AccelerationStructure => match entry.ty {
-                BindingType::AccelerationStructure => (),
-                _ => {
-                    return Err(BindingError::WrongType {
-                        binding: (&entry.ty).into(),
-                        shader: (&self.ty).into(),
-                    })
-                }
-            },
+            ResourceType::AccelerationStructure => (),
         };
 
         Ok(())
@@ -565,7 +504,7 @@ impl Resource {
                     naga::AddressSpace::Storage { access } => wgt::BufferBindingType::Storage {
                         read_only: access == naga::StorageAccess::LOAD,
                     },
-                    _ => return Err(BindingError::WrongBufferAddressSpace { space: self.class }),
+                    _ => return Err(BindingError::WrongType),
                 },
                 has_dynamic_offset: false,
                 min_binding_size: Some(size),

@@ -132,7 +132,7 @@ struct TypeContext<'a> {
     first_time: bool,
 }
 
-impl TypeContext<'_> {
+impl<'a> TypeContext<'a> {
     fn scalar(&self) -> Option<crate::Scalar> {
         let ty = &self.gctx.types[self.handle];
         ty.inner.scalar()
@@ -148,7 +148,7 @@ impl TypeContext<'_> {
     }
 }
 
-impl Display for TypeContext<'_> {
+impl<'a> Display for TypeContext<'a> {
     fn fmt(&self, out: &mut Formatter<'_>) -> Result<(), FmtError> {
         let ty = &self.gctx.types[self.handle];
         if ty.needs_alias() && !self.first_time {
@@ -307,7 +307,7 @@ struct TypedGlobalVariable<'a> {
     reference: bool,
 }
 
-impl TypedGlobalVariable<'_> {
+impl<'a> TypedGlobalVariable<'a> {
     fn try_fmt<W: Write>(&self, out: &mut W) -> BackendResult {
         let var = &self.module.global_variables[self.handle];
         let name = &self.names[&NameKey::GlobalVariable(self.handle)];
@@ -2254,14 +2254,14 @@ impl<W: Write> Writer<W> {
                     write!(self.out, ")")?;
                 }
             }
-            crate::Expression::RayQueryGetIntersection {
-                query,
-                committed: _,
-            } => {
+            crate::Expression::RayQueryGetIntersection { query, committed } => {
                 if context.lang_version < (2, 4) {
                     return Err(Error::UnsupportedRayTracing);
                 }
 
+                if !committed {
+                    unimplemented!()
+                }
                 let ty = context.module.special_types.ray_intersection.unwrap();
                 let type_name = &self.names[&NameKey::Type(ty)];
                 write!(self.out, "{type_name} {{{RAY_QUERY_FUN_MAP_INTERSECTION}(")?;

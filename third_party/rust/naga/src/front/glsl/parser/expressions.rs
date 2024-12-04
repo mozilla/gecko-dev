@@ -12,7 +12,7 @@ use crate::{
     ArraySize, BinaryOperator, Handle, Literal, Type, TypeInner, UnaryOperator,
 };
 
-impl ParsingContext<'_> {
+impl<'source> ParsingContext<'source> {
     pub fn parse_primary(
         &mut self,
         frontend: &mut Frontend,

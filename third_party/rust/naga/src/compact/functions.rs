@@ -13,7 +13,7 @@ pub struct FunctionTracer<'a> {
     pub expressions_used: HandleSet<crate::Expression>,
 }
 
-impl FunctionTracer<'_> {
+impl<'a> FunctionTracer<'a> {
     pub fn trace(&mut self) {
         for argument in self.function.arguments.iter() {
             self.types_used.insert(argument.ty);

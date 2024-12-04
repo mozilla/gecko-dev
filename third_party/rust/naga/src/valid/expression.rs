@@ -168,7 +168,7 @@ struct ExpressionTypeResolver<'a> {
     info: &'a FunctionInfo,
 }
 
-impl std::ops::Index<Handle<crate::Expression>> for ExpressionTypeResolver<'_> {
+impl<'a> std::ops::Index<Handle<crate::Expression>> for ExpressionTypeResolver<'a> {
     type Output = crate::TypeInner;
 
     #[allow(clippy::panic)]
