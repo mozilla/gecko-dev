@@ -520,7 +520,7 @@ featuregates:
 skip-fails:
     description: testing/skip-fails unit tests
     always-target: false
-    python-version: [3]
+    use-python: "3.11"
     treeherder:
         symbol: sf
     run:
