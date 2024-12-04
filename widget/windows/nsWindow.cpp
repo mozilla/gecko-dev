@@ -954,10 +954,10 @@ nsresult nsWindow::Create(nsIWidget* aParent, const LayoutDeviceIntRect& aRect,
   }
 
   if (!mWnd) {
-    mWnd = ::CreateWindowExW(desiredStyles.ex, className, L"",
-                             desiredStyles.style, aRect.X(), aRect.Y(),
-                             aRect.Width(), aRect.Height(), parent,
-                             nullptr, nsToolkit::mDllInstance, nullptr);
+    mWnd =
+        ::CreateWindowExW(desiredStyles.ex, className, L"", desiredStyles.style,
+                          aRect.X(), aRect.Y(), aRect.Width(), aRect.Height(),
+                          parent, nullptr, nsToolkit::mDllInstance, nullptr);
     if (!mWnd) {
       NS_WARNING("nsWindow CreateWindowEx failed.");
       return NS_ERROR_FAILURE;
@@ -1996,8 +1996,7 @@ void nsWindow::Resize(double aWidth, double aHeight, bool aRepaint) {
     }
     double oldScale = mDefaultScale;
     mResizeState = RESIZING;
-    VERIFY(
-        ::SetWindowPos(mWnd, nullptr, 0, 0, width, height, flags));
+    VERIFY(::SetWindowPos(mWnd, nullptr, 0, 0, width, height, flags));
     mResizeState = NOT_RESIZING;
     if (WinUtils::LogToPhysFactor(mWnd) != oldScale) {
       ChangedDPI();
@@ -2073,8 +2072,7 @@ void nsWindow::Resize(double aX, double aY, double aWidth, double aHeight,
 
     double oldScale = mDefaultScale;
     mResizeState = RESIZING;
-    VERIFY(
-        ::SetWindowPos(mWnd, nullptr, x, y, width, height, flags));
+    VERIFY(::SetWindowPos(mWnd, nullptr, x, y, width, height, flags));
     mResizeState = NOT_RESIZING;
     if (WinUtils::LogToPhysFactor(mWnd) != oldScale) {
       ChangedDPI();
@@ -2286,14 +2284,14 @@ void nsWindow::ConstrainPosition(DesktopIntPoint& aPoint) {
     auto const deltaY = yMax - screenRect.YMost();
     if (deltaX == deltaY) {
       if (8 <= deltaX && deltaX <= 16) {
-        // If so, don't try to fix the position; Windows will (probably) deal with it.
+        // If so, don't try to fix the position; Windows will (probably) deal
+        // with it.
         return;
       }
     }
   }
 
   aPoint = ConstrainPositionToBounds(aPoint, {logWidth, logHeight}, screenRect);
-
 }
 
 /**************************************************************
