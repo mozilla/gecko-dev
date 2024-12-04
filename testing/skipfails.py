@@ -1208,6 +1208,68 @@ class Skipfails(object):
         extra = self.get_extra(task_id)
         return extra["opt"]
 
+    def _get_list_skip_if(self, extra):
+        aa = "&&"
+        nn = "!"
+
+        os = extra.get("os")
+        build_types = extra.get("build_types", [])
+        runtimes = extra.get("runtimes", [])
+
+        skip_if = None
+        if os == "linux":
+            skip_if = "gtkWidget"
+        elif os == "win":
+            skip_if = "winWidget"
+        elif os == "mac":
+            skip_if = "cocoaWidget"
+        elif os == "android":
+            skip_if = "Android"
+        else:
+            self.error(f"cannot calculate skip-if for unknown OS: '{os}'")
+        os = extra.get("os")
+        if skip_if is not None:
+            debug = "debug" in build_types
+            ccov = "ccov" in build_types
+            asan = "asan" in build_types
+            tsan = "tsan" in build_types
+            optimized = (not debug) and (not ccov) and (not asan) and (not tsan)
+            skip_if += aa
+            if optimized:
+                skip_if += "optimized"
+            elif debug:
+                skip_if += "isDebugBuild"
+            elif ccov:
+                skip_if += "isCoverageBuild"
+            elif asan:
+                skip_if += "AddressSanitizer"
+            elif tsan:
+                skip_if += "ThreadSanitizer"
+            # See implicit VARIANT_DEFAULTS in
+            # https://searchfox.org/mozilla-central/source/layout/tools/reftest/manifest.sys.mjs#30
+            fission = "no-fission" not in runtimes
+            snapshot = "snapshot" in runtimes
+            swgl = "swgl" in runtimes
+            if not self.implicit_vars and fission:
+                skip_if += aa + "fission"
+            elif not fission:  # implicit default: fission
+                skip_if += aa + nn + "fission"
+            if extra.get("bits") is not None:
+                if extra["bits"] == "32":
+                    skip_if += aa + nn + "is64Bit"  # override implicit is64Bit
+                elif not self.implicit_vars and os == "winWidget":
+                    skip_if += aa + "is64Bit"
+            if not self.implicit_vars and not swgl:
+                skip_if += aa + nn + "swgl"
+            elif swgl:  # implicit default: !swgl
+                skip_if += aa + "swgl"
+            if os == "gtkWidget":
+                if not self.implicit_vars and not snapshot:
+                    skip_if += aa + nn + "useDrawSnapshot"
+                elif snapshot:  # implicit default: !useDrawSnapshot
+                    skip_if += aa + "useDrawSnapshot"
+        return skip_if
+
     def task_to_skip_if(self, task_id, kind):
         """Calculate the skip-if condition for failing task task_id"""
 
@@ -1215,91 +1277,41 @@ class Skipfails(object):
             qq = '"'
             aa = " and "
             nn = "not "
-        elif kind == Kind.LIST:
-            qq = "'"
-            aa = "&&"
-            nn = "!"
         else:
             qq = "'"
             aa = " && "
             nn = "!"
         eq = " == "
-        arch = "processor"
-        version = "os_version"
         extra = self.get_extra(task_id)
         skip_if = None
         os = extra.get("os")
         if os is not None:
             if kind == Kind.LIST:
-                if os == "linux":
-                    skip_if = "gtkWidget"
-                elif os == "win":
-                    skip_if = "winWidget"
-                elif os == "mac":
-                    skip_if = "cocoaWidget"
-                elif os == "android":
-                    skip_if = "Android"
-                else:
-                    self.error(f"cannot calculate skip-if for unknown OS: '{os}'")
-                    return None
+                skip_if = self._get_list_skip_if(extra)
+            elif (
+                extra.get("os_version") is not None
+                and extra.get("build") is not None
+                and os == "win"
+                and extra["os_version"] == "11"
+                and extra["build"] == "2009"
+            ):
+                skip_if = "win11_2009"  # mozinfo.py:137
             elif extra.get("os_version") is not None:
-                if (
-                    extra.get("build") is not None
-                    and os == "win"
-                    and extra["os_version"] == "11"
-                    and extra["build"] == "2009"
-                ):
-                    skip_if = "win11_2009"  # mozinfo.py:137
-                else:
-                    skip_if = "os" + eq + qq + os + qq
-                    skip_if += aa + version + eq + qq + extra["os_version"] + qq
-            if kind != Kind.LIST and extra.get("arch") is not None:
-                skip_if += aa + arch + eq + qq + extra["arch"] + qq
-            # since we always give arch/processor, bits are not required
-            # if extra["bits"] is not None:
-            #     skip_if += aa + "bits" + eq + extra["bits"]
-            debug = extra.get("debug", False)
-            runtimes = extra.get("runtimes", [])
-            fission = "no-fission" not in runtimes
-            snapshot = "snapshot" in runtimes
-            swgl = "swgl" in runtimes
+                skip_if = "os" + eq + qq + os + qq
+                skip_if += aa + "os_version" + eq + qq + extra["os_version"] + qq
+
+        if skip_if is not None and kind != Kind.LIST:
+            if extra.get("arch") is not None:
+                skip_if += aa + "processor" + eq + qq + extra["arch"] + qq
+
             build_types = extra.get("build_types", [])
-            asan = "asan" in build_types
+            debug = "debug" in build_types
             ccov = "ccov" in build_types
+            asan = "asan" in build_types
             tsan = "tsan" in build_types
             optimized = (not debug) and (not ccov) and (not asan) and (not tsan)
-            skip_if += aa
-            if kind == Kind.LIST:
-                if optimized:
-                    skip_if += "optimized"
-                elif debug:
-                    skip_if += "isDebugBuild"
-                elif ccov:
-                    skip_if += "isCoverageBuild"
-                elif asan:
-                    skip_if += "AddressSanitizer"
-                elif tsan:
-                    skip_if += "ThreadSanitizer"
-                # See implicit VARIANT_DEFAULTS in
-                # https://searchfox.org/mozilla-central/source/layout/tools/reftest/manifest.sys.mjs#30
-                if not self.implicit_vars and fission:
-                    skip_if += aa + "fission"
-                elif not fission:  # implicit default: fission
-                    skip_if += aa + nn + "fission"
-                if extra.get("bits") is not None:
-                    if extra["bits"] == "32":
-                        skip_if += aa + nn + "is64Bit"  # override implicit is64Bit
-                    elif not self.implicit_vars and os == "winWidget":
-                        skip_if += aa + "is64Bit"
-                if not self.implicit_vars and not swgl:
-                    skip_if += aa + nn + "swgl"
-                elif swgl:  # implicit default: !swgl
-                    skip_if += aa + "swgl"
-                if os == "gtkWidget":
-                    if not self.implicit_vars and not snapshot:
-                        skip_if += aa + nn + "useDrawSnapshot"
-                    elif snapshot:  # implicit default: !useDrawSnapshot
-                        skip_if += aa + "useDrawSnapshot"
+            if optimized:
+                skip_if += aa + "opt"
             else:
                 if not debug:
                     skip_if += nn
@@ -1308,7 +1320,7 @@ class Skipfails(object):
                     skip_if += aa + "display" + eq + qq + extra["display"] + qq
                 for runtime in extra.get("runtimes", []):
                     skip_if += aa + runtime
-                for build_type in extra.get("build_types", []):
+                for build_type in build_types:
                     # note: lite will not evaluate on non-android platforms
                     if build_type not in ["debug", "lite", "opt", "shippable"]:
                         skip_if += aa + build_type
