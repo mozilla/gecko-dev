@@ -1436,26 +1436,6 @@ static bool CompileLazyFunctionToStencilMaybeInstantiate(
   MOZ_ASSERT(input.source);
 
   AutoAssertReportedException assertException(maybeCx, fc);
-  if (input.options.consumeDelazificationCache()) {
-    const CompilationStencil* cached =
-        stencils->getDelazificationFor(input.extent());
-    if (cached) {
-      if (output.is<RefPtr<CompilationStencil>>()) {
-        output.as<RefPtr<CompilationStencil>>() =
-            const_cast<CompilationStencil*>(cached);
-        assertException.reset();
-        return true;
-      }
-
-      MOZ_ASSERT(maybeCx);
-
-      if (!InstantiateLazyFunction(maybeCx, input, *cached, output)) {
-        return false;
-      }
-      assertException.reset();
-      return true;
-    }
-  }
 
   InheritThis inheritThis =
       input.functionFlags().isArrow() ? InheritThis::Yes : InheritThis::No;
@@ -1597,6 +1577,31 @@ static bool DelazifyCanonicalScriptedFunctionImpl(JSContext* cx,
 
   AutoIncrementalTimer timer(cx->realm()->timers.delazificationTime);
 
+  JS::CompileOptions options(cx);
+  options.setMutedErrors(lazy->mutedErrors())
+      .setFileAndLine(lazy->filename(), lazy->lineno())
+      .setColumn(JS::ColumnNumberOneOrigin(lazy->column()))
+      .setScriptSourceOffset(lazy->sourceStart())
+      .setNoScriptRval(false)
+      .setSelfHostingMode(false)
+      .setEagerDelazificationStrategy(lazy->delazificationMode());
+
+  Rooted<CompilationInput> input(cx, CompilationInput(options));
+  input.get().initFromLazy(cx, lazy, ss);
+
+  RefPtr<InitialStencilAndDelazifications> stencils =
+      lazy->sourceObject()->maybeGetStencils();
+
+  if (stencils && input.get().options.consumeDelazificationCache()) {
+    const CompilationStencil* cached =
+        stencils->getDelazificationFor(input.get().extent());
+    if (cached) {
+      CompilationGCOutput* unusedGcOutput = nullptr;
+      BytecodeCompilerOutput output(unusedGcOutput);
+      return InstantiateLazyFunction(cx, input.get(), *cached, output);
+    }
+  }
+
   size_t sourceStart = lazy->sourceStart();
   size_t sourceLength = lazy->sourceEnd() - lazy->sourceStart();
 
@@ -1612,21 +1617,6 @@ static bool DelazifyCanonicalScriptedFunctionImpl(JSContext* cx,
   if (!units.get()) {
     return false;
   }
-
-  JS::CompileOptions options(cx);
-  options.setMutedErrors(lazy->mutedErrors())
-      .setFileAndLine(lazy->filename(), lazy->lineno())
-      .setColumn(JS::ColumnNumberOneOrigin(lazy->column()))
-      .setScriptSourceOffset(lazy->sourceStart())
-      .setNoScriptRval(false)
-      .setSelfHostingMode(false)
-      .setEagerDelazificationStrategy(lazy->delazificationMode());
-
-  Rooted<CompilationInput> input(cx, CompilationInput(options));
-  input.get().initFromLazy(cx, lazy, ss);
-
-  RefPtr<InitialStencilAndDelazifications> stencils =
-      lazy->sourceObject()->maybeGetStencils();
 
   CompilationGCOutput* unusedGcOutput = nullptr;
   BytecodeCompilerOutput output(unusedGcOutput);
@@ -1669,6 +1659,15 @@ DelazifyCanonicalScriptedFunctionImpl(
     ScopeBindingCache* scopeCache, CompilationStencil& context,
     ScriptIndex scriptIndex, InitialStencilAndDelazifications* stencils,
     DelazifyFailureReason* failureReason) {
+  MOZ_ASSERT(stencils);
+
+  const CompilationStencil* cached = stencils->getDelazificationAt(scriptIndex);
+  if (cached) {
+    RefPtr<CompilationStencil> stencil =
+        const_cast<CompilationStencil*>(cached);
+    return stencil.forget();
+  }
+
   ScriptStencilRef script{context, scriptIndex};
   const ScriptStencilExtra& extra = script.scriptExtra();
 
