@@ -21,6 +21,7 @@ import mozilla.components.concept.storage.CreditCardEntry
 import mozilla.components.feature.prompts.R
 import mozilla.components.feature.prompts.concept.AutocompletePrompt
 import mozilla.components.feature.prompts.concept.SelectablePromptView
+import mozilla.components.feature.prompts.concept.ToggleablePrompt
 import mozilla.components.feature.prompts.facts.emitCreditCardAutofillExpandedFact
 import mozilla.components.feature.prompts.facts.emitSuccessfulCreditCardAutofillSuccessFact
 import mozilla.components.support.ktx.android.view.hideKeyboard
@@ -50,6 +51,7 @@ class CreditCardSelectBar @JvmOverloads constructor(
         }
     }
 
+    override var toggleablePromptListener: ToggleablePrompt.Listener? = null
     override var selectablePromptListener: SelectablePromptView.Listener<CreditCardEntry>? = null
 
     init {
@@ -80,6 +82,7 @@ class CreditCardSelectBar @JvmOverloads constructor(
 
         toggleSelectCreditCardHeader(shouldExpand = false)
         isPromptDisplayed = false
+        toggleablePromptListener?.onHidden()
     }
 
     override fun showPrompt() {
@@ -90,6 +93,7 @@ class CreditCardSelectBar @JvmOverloads constructor(
 
         view?.isVisible = true
         isPromptDisplayed = true
+        toggleablePromptListener?.onShown()
     }
 
     override fun populate(options: List<CreditCardEntry>) {

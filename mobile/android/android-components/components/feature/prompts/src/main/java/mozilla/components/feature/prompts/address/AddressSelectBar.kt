@@ -21,6 +21,7 @@ import mozilla.components.concept.storage.Address
 import mozilla.components.feature.prompts.R
 import mozilla.components.feature.prompts.concept.AutocompletePrompt
 import mozilla.components.feature.prompts.concept.SelectablePromptView
+import mozilla.components.feature.prompts.concept.ToggleablePrompt
 import mozilla.components.feature.prompts.facts.emitAddressAutofillExpandedFact
 import mozilla.components.feature.prompts.facts.emitSuccessfulAddressAutofillSuccessFact
 import mozilla.components.support.ktx.android.view.hideKeyboard
@@ -50,6 +51,7 @@ class AddressSelectBar @JvmOverloads constructor(
         }
     }
 
+    override var toggleablePromptListener: ToggleablePrompt.Listener? = null
     override var selectablePromptListener: SelectablePromptView.Listener<Address>? = null
 
     init {
@@ -80,6 +82,7 @@ class AddressSelectBar @JvmOverloads constructor(
 
         toggleSelectAddressHeader(shouldExpand = false)
         isPromptDisplayed = false
+        toggleablePromptListener?.onHidden()
     }
 
     override fun showPrompt() {
@@ -89,6 +92,7 @@ class AddressSelectBar @JvmOverloads constructor(
         }
         view?.isVisible = true
         isPromptDisplayed = true
+        toggleablePromptListener?.onShown()
     }
 
     override fun populate(options: List<Address>) {

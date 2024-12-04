@@ -12,6 +12,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import mozilla.components.concept.storage.Address
 import mozilla.components.feature.prompts.R
 import mozilla.components.feature.prompts.concept.SelectablePromptView
+import mozilla.components.feature.prompts.concept.ToggleablePrompt
 import mozilla.components.feature.prompts.facts.AddressAutofillDialogFacts
 import mozilla.components.support.base.Component
 import mozilla.components.support.base.facts.Action
@@ -138,5 +139,29 @@ class AddressSelectBarTest {
         }
 
         verify(listener).onOptionSelect(address)
+    }
+
+    @Test
+    fun `WHEN the prompt is shown THEN update state to reflect that and inform listeners about it`() {
+        val bar = AddressSelectBar(testContext)
+        val listener: ToggleablePrompt.Listener = mock()
+        bar.toggleablePromptListener = listener
+
+        bar.showPrompt()
+
+        assertTrue(bar.isPromptDisplayed)
+        verify(listener).onShown()
+    }
+
+    @Test
+    fun `WHEN the prompt is hidden THEN update state to reflect that and inform listeners about it`() {
+        val bar = AddressSelectBar(testContext)
+        val listener: ToggleablePrompt.Listener = mock()
+        bar.toggleablePromptListener = listener
+
+        bar.hidePrompt()
+
+        assertFalse(bar.isPromptDisplayed)
+        verify(listener).onHidden()
     }
 }

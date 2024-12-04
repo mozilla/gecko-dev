@@ -106,7 +106,6 @@ import mozilla.components.feature.prompts.file.AndroidPhotoPicker
 import mozilla.components.feature.prompts.identitycredential.DialogColors
 import mozilla.components.feature.prompts.identitycredential.DialogColorsProvider
 import mozilla.components.feature.prompts.login.LoginDelegate
-import mozilla.components.feature.prompts.login.LoginSelectBar
 import mozilla.components.feature.prompts.login.PasswordGeneratorDialogColors
 import mozilla.components.feature.prompts.login.PasswordGeneratorDialogColorsProvider
 import mozilla.components.feature.prompts.login.SuggestStrongPasswordDelegate
@@ -161,6 +160,7 @@ import org.mozilla.fenix.browser.tabstrip.TabStrip
 import org.mozilla.fenix.browser.tabstrip.isTabStripEnabled
 import org.mozilla.fenix.components.Components
 import org.mozilla.fenix.components.FindInPageIntegration
+import org.mozilla.fenix.components.LoginBarsIntegration
 import org.mozilla.fenix.components.StoreProvider
 import org.mozilla.fenix.components.accounts.FxaWebChannelIntegration
 import org.mozilla.fenix.components.appstate.AppAction
@@ -301,6 +301,7 @@ abstract class BaseBrowserFragment :
     private val shareDownloadsFeature = ViewBoundFeatureWrapper<ShareDownloadFeature>()
     private val copyDownloadsFeature = ViewBoundFeatureWrapper<CopyDownloadFeature>()
     private val promptsFeature = ViewBoundFeatureWrapper<PromptFeature>()
+    private lateinit var loginBarsIntegration: LoginBarsIntegration
 
     @VisibleForTesting
     internal val findInPageIntegration = ViewBoundFeatureWrapper<FindInPageIntegration>()
@@ -592,6 +593,14 @@ abstract class BaseBrowserFragment :
                     )
                 }
             },
+        )
+
+        loginBarsIntegration = LoginBarsIntegration(
+            loginsBar = binding.loginSelectBar,
+            passwordBar = binding.suggestStrongPasswordBar,
+            settings = requireContext().settings(),
+            onLoginsBarShown = { removeBottomToolbarDivider(browserToolbarView.view) },
+            onLoginsBarHidden = { restoreBottomToolbarDivider(browserToolbarView.view) },
         )
 
         val shouldAddNavigationBar = context.shouldAddNavigationBar() && webAppToolbarShouldBeVisible
@@ -906,8 +915,6 @@ abstract class BaseBrowserFragment :
                 description = ThemeManager.resolveAttributeColor(attribute = R.attr.textSecondary),
             )
         }
-
-        configureLoginsBars()
 
         promptsFeature.set(
             feature = PromptFeature(
@@ -1482,6 +1489,8 @@ abstract class BaseBrowserFragment :
             parent = binding.browserLayout,
             hideOnScroll = isToolbarDynamic(context),
             content = {
+                val areLoginBarsShown by remember { mutableStateOf(loginBarsIntegration.isVisible) }
+
                 FirefoxTheme {
                     Column(
                         modifier = Modifier.background(FirefoxTheme.colors.layer1),
@@ -1489,7 +1498,7 @@ abstract class BaseBrowserFragment :
                         if (!activity.isMicrosurveyPromptDismissed.value) {
                             currentMicrosurvey?.let {
                                 if (isToolbarAtBottom) {
-                                    updateBrowserToolbarForMicrosurveyPrompt(browserToolbar)
+                                    removeBottomToolbarDivider(browserToolbar)
                                 }
 
                                 Divider()
@@ -1521,12 +1530,14 @@ abstract class BaseBrowserFragment :
                                 )
                             }
                         } else {
-                            restoreBrowserToolbarAfterMicrosurveyPrompt(browserToolbar)
+                            restoreBottomToolbarDivider(browserToolbar)
                         }
 
                         if (isToolbarAtBottom) {
                             AndroidView(factory = { _ -> browserToolbar })
-                        } else if (currentMicrosurvey == null || activity.isMicrosurveyPromptDismissed.value) {
+                        } else if (!areLoginBarsShown &&
+                            (currentMicrosurvey == null || activity.isMicrosurveyPromptDismissed.value)
+                        ) {
                             Divider()
                         }
 
@@ -1756,7 +1767,7 @@ abstract class BaseBrowserFragment :
                         if (!activity.isMicrosurveyPromptDismissed.value) {
                             currentMicrosurvey?.let {
                                 if (isToolbarAtBottom) {
-                                    updateBrowserToolbarForMicrosurveyPrompt(browserToolbar)
+                                    removeBottomToolbarDivider(browserToolbar)
                                 }
 
                                 Divider()
@@ -1788,7 +1799,7 @@ abstract class BaseBrowserFragment :
                                 )
                             }
                         } else {
-                            restoreBrowserToolbarAfterMicrosurveyPrompt(browserToolbar)
+                            restoreBottomToolbarDivider(browserToolbar)
                         }
 
                         if (isToolbarAtBottom) {
@@ -1819,25 +1830,45 @@ abstract class BaseBrowserFragment :
         reinitializeEngineView()
     }
 
-    private fun updateBrowserToolbarForMicrosurveyPrompt(browserToolbar: BrowserToolbar) {
-        val drawable = ResourcesCompat.getDrawable(
-            resources,
-            R.drawable.toolbar_background_no_divider,
-            null,
-        )
-        browserToolbar.background = drawable
-        browserToolbar.elevation = 0.0f
+    private fun removeBottomToolbarDivider(browserToolbar: BrowserToolbar) {
+        val safeContext = context ?: return
+        if (safeContext.isToolbarAtBottom()) {
+            val drawable = ResourcesCompat.getDrawable(
+                resources,
+                R.drawable.toolbar_background_no_divider,
+                null,
+            )
+            browserToolbar.background = drawable
+            browserToolbar.elevation = 0.0f
+        } else {
+            resetNavbar()
+        }
     }
 
-    private fun restoreBrowserToolbarAfterMicrosurveyPrompt(browserToolbar: BrowserToolbar) {
-        if (context?.isToolbarAtBottom() == true) {
+    private fun restoreBottomToolbarDivider(browserToolbar: BrowserToolbar) {
+        val safeContext = context ?: return
+        if (safeContext.isToolbarAtBottom()) {
             val defaultBackground = ResourcesCompat.getDrawable(
                 resources,
                 R.drawable.toolbar_background,
                 context?.theme,
             )
             browserToolbar.background = defaultBackground
+        } else {
+            resetNavbar()
         }
+    }
+
+    /**
+     * Build and show a new navbar.
+     * Useful when needed to force an update of it's layout.
+     */
+    private fun resetNavbar() {
+        if (context?.shouldAddNavigationBar() != true) return
+
+        // Prevent showing two navigation bars at the same time.
+        binding.browserLayout.removeView(bottomToolbarContainerView.toolbarContainerView)
+        reinitializeNavBar()
     }
 
     private var currentMicrosurvey: MicrosurveyUIData? = null
@@ -2707,21 +2738,5 @@ abstract class BaseBrowserFragment :
                 // no-op
             }
         }
-    }
-
-    private fun configureLoginsBars() {
-        val safeContext = context ?: return
-
-        (binding.loginSelectBar.layoutParams as? CoordinatorLayout.LayoutParams)?.behavior =
-            LoginSelectBarBehavior<LoginSelectBar>(
-                context = safeContext,
-                toolbarPosition = requireContext().settings().toolbarPosition,
-            )
-
-        (binding.suggestStrongPasswordBar.layoutParams as? CoordinatorLayout.LayoutParams)?.behavior =
-            LoginSelectBarBehavior<LoginSelectBar>(
-                context = safeContext,
-                toolbarPosition = requireContext().settings().toolbarPosition,
-            )
     }
 }

@@ -13,6 +13,7 @@ import kotlinx.coroutines.test.runTest
 import mozilla.components.concept.storage.CreditCardEntry
 import mozilla.components.feature.prompts.R
 import mozilla.components.feature.prompts.concept.SelectablePromptView
+import mozilla.components.feature.prompts.concept.ToggleablePrompt
 import mozilla.components.feature.prompts.facts.CreditCardAutofillDialogFacts
 import mozilla.components.support.base.Component
 import mozilla.components.support.base.facts.Action
@@ -143,5 +144,29 @@ class CreditCardSelectBarTest {
 
         assertFalse(creditCardSelectBar.findViewById<RecyclerView>(R.id.credit_cards_list).isVisible)
         assertFalse(creditCardSelectBar.findViewById<AppCompatTextView>(R.id.manage_credit_cards).isVisible)
+    }
+
+    @Test
+    fun `WHEN the prompt is shown THEN update state to reflect that and inform listeners about it`() {
+        val bar = CreditCardSelectBar(testContext)
+        val listener: ToggleablePrompt.Listener = mock()
+        bar.toggleablePromptListener = listener
+
+        bar.showPrompt()
+
+        assertTrue(bar.isPromptDisplayed)
+        verify(listener).onShown()
+    }
+
+    @Test
+    fun `WHEN the prompt is hidden THEN update state to reflect that and inform listeners about it`() {
+        val bar = CreditCardSelectBar(testContext)
+        val listener: ToggleablePrompt.Listener = mock()
+        bar.toggleablePromptListener = listener
+
+        bar.hidePrompt()
+
+        assertFalse(bar.isPromptDisplayed)
+        verify(listener).onHidden()
     }
 }

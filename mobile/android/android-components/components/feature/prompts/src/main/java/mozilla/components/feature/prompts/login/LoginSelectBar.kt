@@ -15,6 +15,7 @@ import androidx.core.view.isVisible
 import mozilla.components.concept.storage.Login
 import mozilla.components.feature.prompts.concept.AutocompletePrompt
 import mozilla.components.feature.prompts.concept.SelectablePromptView
+import mozilla.components.feature.prompts.concept.ToggleablePrompt
 
 /**
  * A customizable multiple login selection bar implementing [SelectablePromptView].
@@ -30,6 +31,7 @@ class LoginSelectBar @JvmOverloads constructor(
     override var isPromptDisplayed: Boolean = false
         private set
 
+    override var toggleablePromptListener: ToggleablePrompt.Listener? = null
     override var selectablePromptListener: SelectablePromptView.Listener<Login>? = null
 
     @Composable
@@ -51,12 +53,14 @@ class LoginSelectBar @JvmOverloads constructor(
     override fun showPrompt() {
         isVisible = true
         isPromptDisplayed = true
+        toggleablePromptListener?.onShown()
     }
 
     override fun hidePrompt() {
         this.isVisible = false
         this.isExpanded = false
         isPromptDisplayed = false
+        toggleablePromptListener?.onHidden()
         logins = listOf()
     }
 }

@@ -9,6 +9,11 @@ package mozilla.components.feature.prompts.concept
  */
 interface ToggleablePrompt {
     /**
+     * Listener for when this prompt is shown or hidden.
+     */
+    var toggleablePromptListener: Listener?
+
+    /**
      * Whether the prompt is currently visible.
      */
     val isPromptDisplayed: Boolean
@@ -22,4 +27,19 @@ interface ToggleablePrompt {
      * Hide this prompt.
      */
     fun hidePrompt()
+
+    /**
+     * Listener for when this prompt is shown or hidden.
+     */
+    interface Listener {
+        /**
+         * Informs when the prompt has changed from hidden to visible.
+         */
+        fun onShown()
+
+        /**
+         * Informs when the prompt has changed from visible to hidden.
+         */
+        fun onHidden()
+    }
 }
