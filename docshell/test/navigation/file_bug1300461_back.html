@@ -24,7 +24,7 @@
             opener.is(index, -1, "check requestedIndex");
           }
 
-          opener.ok(webNav.canGoBack, "check canGoBack");
+          opener.ok(webNav.canGoBackIgnoringUserInteraction, "check canGoBackIgnoringUserInteraction");
           if (opener.testCount == 1) {
             opener.info("replaceState to redirect.html");
             window.history.replaceState({}, "", "file_bug1300461_redirect.html");

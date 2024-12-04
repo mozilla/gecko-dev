@@ -163,7 +163,7 @@ var FullZoomHelper = {
       });
 
       if (direction == this.BACK) {
-        gBrowser.goBack();
+        gBrowser.goBack(false);
       } else if (direction == this.FORWARD) {
         gBrowser.goForward();
       }

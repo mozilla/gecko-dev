@@ -280,6 +280,8 @@ skip-if = ["os == 'mac'"]
 ["browser_history_triggeringprincipal_viewsource.js"]
 https_first_disabled = true
 
+["browser_initial_entry_without_interaction.js"]
+
 ["browser_isInitialDocument.js"]
 https_first_disabled = true
 

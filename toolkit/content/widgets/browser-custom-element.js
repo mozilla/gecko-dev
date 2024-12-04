@@ -486,6 +486,10 @@
       return this.webNavigation.canGoBack;
     }
 
+    get canGoBackIgnoringUserInteraction() {
+      return this.webNavigation.canGoBackIgnoringUserInteraction;
+    }
+
     get canGoForward() {
       return this.webNavigation.canGoForward;
     }
@@ -908,7 +912,11 @@
         .navigationRequireUserInteraction
     ) {
       var webNavigation = this.webNavigation;
-      if (webNavigation.canGoBack) {
+      if (
+        requireUserInteraction
+          ? webNavigation.canGoBack
+          : webNavigation.canGoBackIgnoringUserInteraction
+      ) {
         this._wrapURIChangeCall(() =>
           webNavigation.goBack(requireUserInteraction)
         );
@@ -1262,13 +1270,19 @@
       }
     }
 
-    updateWebNavigationForLocationChange(aCanGoBack, aCanGoForward) {
+    updateWebNavigationForLocationChange(
+      aCanGoBack,
+      aCanGoBackIgnoringUserInteraction,
+      aCanGoForward
+    ) {
       if (
         this.isRemoteBrowser &&
         this.messageManager &&
         !Services.appinfo.sessionHistoryInParent
       ) {
         this._remoteWebNavigation._canGoBack = aCanGoBack;
+        this._remoteWebNavigation._canGoBackIgnoringUserInteraction =
+          aCanGoBackIgnoringUserInteraction;
         this._remoteWebNavigation._canGoForward = aCanGoForward;
       }
     }
@@ -1315,6 +1329,7 @@
     purgeSessionHistory() {
       if (this.isRemoteBrowser && !Services.appinfo.sessionHistoryInParent) {
         this._remoteWebNavigation._canGoBack = false;
+        this._remoteWebNavigation._canGoBackIgnoringUserInteraction = false;
         this._remoteWebNavigation._canGoForward = false;
       }
 

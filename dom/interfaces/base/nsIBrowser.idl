@@ -89,10 +89,14 @@ interface nsIBrowser : nsISupports
    *
    * @param aCanGoBack whether or not the nsIWebNavigation can go backwards in
    *                   history
+   * @param aCanGoBackIgnoringUserInteraction whether or not the nsIWebNavigation
+   *                                          can go backwards in history regardless
+   *                                          of user interactions
    * @param aCanGoForward whether or not the nsIWebNavigation can go
    *                      forward in history
    */
   void updateWebNavigationForLocationChange(in boolean aCanGoBack,
+                                            in boolean aCanGoBackIgnoringUserInteraction,
                                             in boolean aCanGoForward);
 
   /**

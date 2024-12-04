@@ -3732,9 +3732,12 @@ NS_IMETHODIMP BrowserChild::OnLocationChange(nsIWebProgress* aWebProgress,
   Maybe<WebProgressLocationChangeData> locationChangeData;
 
   bool canGoBack = false;
+  bool canGoBackIgnoringUserInteraction = false;
   bool canGoForward = false;
   if (!mozilla::SessionHistoryInParent()) {
     MOZ_TRY(WebNavigation()->GetCanGoBack(&canGoBack));
+    MOZ_TRY(WebNavigation()->GetCanGoBackIgnoringUserInteraction(
+        &canGoBackIgnoringUserInteraction));
     MOZ_TRY(WebNavigation()->GetCanGoForward(&canGoForward));
   }
 
@@ -3785,9 +3788,9 @@ NS_IMETHODIMP BrowserChild::OnLocationChange(nsIWebProgress* aWebProgress,
 #endif
   }
 
-  Unused << SendOnLocationChange(webProgressData, requestData, aLocation,
-                                 aFlags, canGoBack, canGoForward,
-                                 locationChangeData);
+  Unused << SendOnLocationChange(
+      webProgressData, requestData, aLocation, aFlags, canGoBack,
+      canGoBackIgnoringUserInteraction, canGoForward, locationChangeData);
 
   return NS_OK;
 }

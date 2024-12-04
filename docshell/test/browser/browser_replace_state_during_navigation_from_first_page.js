@@ -18,8 +18,13 @@ add_task(async () => {
     await BrowserTestUtils.synthesizeMouseAtCenter("body", {}, browser);
 
     // Navigate, causing a hashchange event to fire and call history.replaceState
+    let loaded = BrowserTestUtils.waitForLocationChange(
+      gBrowser,
+      TEST_URI + "#1"
+    );
     await BrowserTestUtils.synthesizeMouseAtCenter("#link", {}, browser);
+    await loaded;
 
-    await assertMenulist([TEST_URI + "#1", TEST_URI + "#inject", TEST_URI]);
+    await assertMenulist([TEST_URI + "#1", TEST_URI]);
   });
 });
