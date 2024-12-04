@@ -12030,6 +12030,84 @@ navigation_bar:
     notification_emails:
       - android-probes@mozilla.com
     expires: never
+  custom_back_tapped:
+    type: event
+    description: |
+      When custom tab's navigation bar's back button is tapped by the user.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1886270
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1889484
+    data_sensitivity:
+      - interaction
+    notification_emails:
+      - android-probes@mozilla.com
+    expires: never
+  custom_back_long_tapped:
+    type: event
+    description: |
+      When custom tab's navigation bar's back button is long tapped by the user.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1886270
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1889484
+    data_sensitivity:
+      - interaction
+    notification_emails:
+      - android-probes@mozilla.com
+    expires: never
+  custom_forward_tapped:
+    type: event
+    description: |
+      When custom tab's navigation bar's forward button is tapped by the user.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1886270
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1889484
+    data_sensitivity:
+      - interaction
+    notification_emails:
+      - android-probes@mozilla.com
+    expires: never
+  custom_forward_long_tapped:
+    type: event
+    description: |
+      When custom tab's navigation bar's forward button is long tapped by the user.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1886270
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1889484
+    data_sensitivity:
+      - interaction
+    notification_emails:
+      - android-probes@mozilla.com
+    expires: never
+  custom_menu_tapped:
+    type: event
+    description: |
+      When custom tab's navigation bar's menu button is tapped by the user.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1886270
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1889484
+    data_sensitivity:
+      - interaction
+    notification_emails:
+      - android-probes@mozilla.com
+    expires: never
+  custom_open_in_fenix_tapped:
+    type: event
+    description: |
+      When custom tab's navigation bar's open in fenix button is tapped by the user.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1886270
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1889484
+    data_sensitivity:
+      - interaction
+    notification_emails:
+      - android-probes@mozilla.com
+    expires: never
 
   os_navigation_uses_gestures:
     type: boolean
