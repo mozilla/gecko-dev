@@ -41,7 +41,9 @@ run-if = ["os == 'mac'"] # Mac only feature.
 tags = "os_integration"
 
 ["test_image_recognition_unsupported.html"]
-skip-if = ["os == 'mac'"]
+skip-if = [
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'", # Bug 1929419
+]
 
 ["test_image_recognition_zh.html"]
 run-if = ["os == 'mac' && os_version != '10.15'"] # Mac only feature, requires > 10.15 to support multilingual results.
@@ -71,8 +73,10 @@ support-files = [
 ["test_videocontrols.html"]
 tags = "fullscreen os_integration"
 skip-if = [
-  "os == 'android'", #TIMED_OUT #Bug 1484210
-  "os == 'linux'",   #TIMED_OUT #Bug 1511256
+  "os == 'android'", # TIMED_OUT #Bug 1484210
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64'", # TIMED_OUT #Bug 1511256 # Bug 1929419 (secondary)
+  "os == 'linux' && os_version == '22.04' && processor == 'x86_64'", # TIMED_OUT #Bug 1511256 # Bug 1929419 (secondary)
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'", # Bug 1929419 (secondary)
 ]
 
 ["test_videocontrols_audio.html"]
@@ -95,7 +99,6 @@ skip-if = ["os == 'android'"] # bug 1272646
 ["test_videocontrols_keyhandler.html"]
 skip-if = [
   "os == 'android'", #Bug 1366957
-  "os == 'linux'",   #Bug 1366957
 ]
 
 ["test_videocontrols_scrubber_position.html"]
@@ -108,8 +111,10 @@ skip-if = [
 
 ["test_videocontrols_standalone.html"]
 skip-if = [
-  "os == 'linux'", # bug 1804621
   "os == 'android'", # bug 1075573
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64'", # bug 1804621 # Bug 1929419 (secondary)
+  "os == 'linux' && os_version == '22.04' && processor == 'x86_64'", # bug 1804621 # Bug 1929419 (secondary)
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'", # Bug 1929419 (secondary)
 ]
 
 ["test_videocontrols_video_direction.html"]
