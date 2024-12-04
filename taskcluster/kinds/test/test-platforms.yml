@@ -350,6 +350,7 @@ macosx1470-64/opt:
     build-platform: macosx64/opt
     test-sets:
         - macosx1470-64-tests
+        - web-platform-tests-backlog
 
 macosx1470-64/debug:
     build-platform: macosx64/debug
@@ -367,7 +368,6 @@ macosx1015-64-shippable-qr/opt:
         - macosx64-talos
         - talos-profiling
         - web-platform-tests-1015
-        - web-platform-tests-backlog
         - webgpu
 
 macosx1015-64-nightlyasrelease-qr/opt:
@@ -388,7 +388,6 @@ macosx1015-64-qr/opt:
         - desktop-screenshot-capture
         - macosx1015-64-qr-tests
         - web-platform-tests-1015
-        - web-platform-tests-backlog
         - webgpu
         - browsertime
 

@@ -405,12 +405,16 @@ web-platform-tests-1015:
     - web-platform-tests-reftest
 
 macosx1470-64-tests:
+    - marionette
+    - marionette-unittest
+    - telemetry-tests-client
     - web-platform-tests
     - web-platform-tests-canvas
     - web-platform-tests-crashtest
     - web-platform-tests-eme
     - web-platform-tests-print-reftest
     - web-platform-tests-privatebrowsing
+    - web-platform-tests-reftest
     - web-platform-tests-wdspec
     - web-platform-tests-webcodecs
 
@@ -421,8 +425,6 @@ macosx1015-64-qr-tests:
     - gtest
     - jittest
     - jsreftest
-    - marionette
-    - marionette-unittest
     - mochitest-a11y
     - mochitest-browser-a11y
     - mochitest-browser-chrome
@@ -440,7 +442,6 @@ macosx1015-64-qr-tests:
     - mochitest-webgl2-core
     - mochitest-webgl2-ext
     - reftest
-    - telemetry-tests-client
     - test-verify
     - test-verify-gpu
     - test-verify-wpt

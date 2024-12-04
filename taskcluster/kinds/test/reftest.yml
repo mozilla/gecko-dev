@@ -56,7 +56,7 @@ crashtest:
                     default: []
             webrender-sw:
                 by-test-platform:
-                    macosx101.*64-qr/debug: built-projects
+                    macosx.*64(-qr)?/debug: built-projects
                     linux.*-64-qr/debug: built-projects
                     linux.*-64(-tsan|-asan)-qr/opt: built-projects
                     windows.*-asan-qr/opt: built-projects
@@ -124,7 +124,6 @@ jsreftest:
             linux1804-64-qr/opt: 4
             linux.*/debug: 5
             .*-tsan-qr/opt: 8
-            macosx.*-64-ccov.*/.*: 5
             macosx.*-64(-shippable)?/opt: 2
             default: 3
     max-run-time:
@@ -166,13 +165,11 @@ reftest:
             android-em-7.*: 6
             linux1804-64(-shippable|-devedition|-qr)?/opt: 5
             linux.*64-tsan-qr/opt: 16
-            macosx101.*-64-shippable(-qr)?/opt: 3
-            macosx101.*-64/debug: 4
-            macosx101.*-64(-ccov.*|-qr)/debug: 6
+            macosx.*-64-shippable/opt: 3
+            macosx.*-64/debug: 6
             windows.*64.*/debug: 4
             windows.*32.*/debug: 6
             windows.*-ccov-qr/opt: 9
-            windows10.*asan.*: 3
             windows10.*/opt: 2
             windows11.*/opt: 3
             default: 8
@@ -203,7 +200,7 @@ reftest:
                 by-test-platform:
                     linux1804-64-qr/debug: built-projects
                     linux1804-64(-asan|-tsan)-qr/opt: built-projects
-                    macosx101.*64-qr/debug: built-projects
+                    macosx.*64(-qr)?/debug: built-projects
                     windows.*-asan-qr/opt: built-projects
                     default: []
             no-fission:
@@ -229,7 +226,6 @@ reftest:
             windows.*-32-mingwclang-qr/debug: 5400
             windows.*-ccov.*/.*: 5400
             windows.*-asan-qr/opt: 5400
-            macosx.*64-ccov.*/.*: 5400
             default: 3600
     mozharness:
         chunked:
