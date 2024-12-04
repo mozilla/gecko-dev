@@ -1941,3 +1941,57 @@ add_task(async function test_updateRecipes_secure() {
     }
   }
 });
+
+add_task(async function test_updateRecipesClearsOptIns() {
+  const now = new Date().getTime();
+  const recipes = [
+    ExperimentFakes.recipe("opt-in-1", {
+      bucketConfig: {
+        ...ExperimentFakes.recipe.bucketConfig,
+        count: 1000,
+      },
+      isFirefoxLabsOptIn: true,
+      firefoxLabsTitle: "opt-in-1-title",
+      firefoxLabsDescription: "opt-in-1-desc",
+      isRollout: true,
+      branches: [ExperimentFakes.recipe.branches[0]],
+      targeting: "true",
+      publishedDate: new Date(now),
+    }),
+    ExperimentFakes.recipe("opt-in-2", {
+      bucketConfig: {
+        ...ExperimentFakes.recipe.bucketConfig,
+        count: 1000,
+      },
+      isFirefoxLabsOptIn: true,
+      firefoxLabsTitle: "opt-in-2-title",
+      firefoxLabsDescription: "opt-in-2-desc",
+      isRollout: true,
+      branches: [ExperimentFakes.recipe.branches[0]],
+      targeting: "false",
+      publishedDate: new Date(now + 10000),
+    }),
+  ];
+
+  const sandbox = sinon.createSandbox();
+
+  const loader = ExperimentFakes.rsLoader();
+  const manager = loader.manager;
+
+  sandbox.stub(loader, "setTimer");
+  await loader.init();
+  await manager.onStartup();
+  await manager.store.ready();
+
+  sandbox
+    .stub(loader.remoteSettingsClients.experiments, "get")
+    .resolves(recipes);
+
+  await loader.updateRecipes();
+
+  Assert.deepEqual(manager.optInRecipes, recipes);
+
+  await loader.updateRecipes();
+
+  Assert.deepEqual(manager.optInRecipes, recipes);
+});

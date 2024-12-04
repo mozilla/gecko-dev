@@ -196,6 +196,7 @@ export class _RemoteSettingsExperimentLoader {
     }
 
     this._updating = true;
+    this.manager.optInRecipes = [];
 
     // If recipes have been updated once, replace the promise with a new one
     // such that we reset the resolved state of it from the previous .updateRecipes call.
