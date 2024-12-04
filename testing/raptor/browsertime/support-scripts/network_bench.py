@@ -112,7 +112,7 @@ class NetworkBench(BasePythonSupport):
             s.bind(("localhost", 0))
             return s.getsockname()[1]
 
-    def start_caddy(self):
+    def start_caddy(self, test_file_path):
         if not self.check_caddy_installed():
             return None
         if self.caddy_port is None or not (1 <= self.caddy_port <= 65535):
@@ -150,19 +150,74 @@ class NetworkBench(BasePythonSupport):
             fetches_dir = Path(os.environ.get("MOZ_FETCHES_DIR", "None"))
             if not fetches_dir.exists():
                 return None
+
+            def generate_download_test_html(fetches_dir, test_file_name):
+                html_content = """
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Download test</title>
+  </head>
+  <body>
+    <section>Download test</section>
+    <button id='downloadBtn'>Download Test</button>
+    <p id='download_status'></p>
+    <script>
+      let download_status = '';
+
+      function set_status(status) {{
+        download_status = status;
+        console.log('download_status:' + status);
+        document.getElementById('download_status').textContent = status;
+      }}
+
+      set_status('not_started');
+
+      const handleDownloadTest = () => {{
+        set_status('started');
+        const startTime = performance.now();
+        console.log('start');
+        fetch('/{test_file_name}')
+          .then((response) => response.blob())
+          .then((_) => {{
+            console.log('done');
+            const endTime = performance.now();
+            const downloadTime = endTime - startTime;
+            set_status('success time:' + downloadTime);
+          }})
+          .catch((error) => {{
+            console.error(error);
+            set_status('error');
+          }});
+      }};
+      document
+        .querySelector('#downloadBtn')
+        .addEventListener('click', handleDownloadTest);
+    </script>
+  </body>
+</html>
+                """.format(
+                    test_file_name=test_file_name
+                )
+                html_file_path = fetches_dir / "download_test.html"
+                with html_file_path.open("w", encoding="utf-8") as html_file:
+                    html_file.write(html_content)
+                self.cleanup.append(lambda: html_file_path.unlink())
+
+            generate_download_test_html(fetches_dir, test_file_path.name)
             routes = [
                 {
                     "match": [{"path": ["/download_test.html"]}],
                     "handle": [
                         {
                             "handler": "file_server",
-                            "root": str(utils_path),
+                            "root": str(fetches_dir),
                             "browse": {},
                         }
                     ],
                 },
                 {
-                    "match": [{"path": ["/upload-test-32MB.dat"]}],
+                    "match": [{"path": [f"/{test_file_path.name}"]}],
                     "handle": [
                         {
                             "handler": "headers",
@@ -284,36 +339,38 @@ class NetworkBench(BasePythonSupport):
             LOG.info(f"Error: {e.stderr.decode()}")
             return False
 
+    def network_type_to_bandwidth_rtt(self, network_type):
+        # Define the mapping of network types
+        network_mapping = {
+            "1M_400ms": {"bandwidth": "1Mbit", "rtt_ms": 400},
+            "300M_40ms": {"bandwidth": "300Mbit", "rtt_ms": 40},
+            "300M_80ms": {"bandwidth": "300Mbit", "rtt_ms": 80},
+            "10M_40ms": {"bandwidth": "10Mbit", "rtt_ms": 40},
+            "100M_40ms": {"bandwidth": "100Mbit", "rtt_ms": 40},
+        }
+
+        # Look up the network type in the mapping
+        result = network_mapping.get(network_type)
+
+        if result is None:
+            raise Exception(f"Unknown network type: {network_type}")
+        return result["bandwidth"], result["rtt_ms"]
+
     def apply_network_throttling(self, interface, network_type, loss, port):
         def calculate_bdp(bandwidth_mbit, rtt_ms):
-            bandwidth_bps = bandwidth_mbit * 1_000_000
-            rtt_sec = rtt_ms / 1000
-            bdp_bits = bandwidth_bps * rtt_sec
+            bandwidth_kbps = bandwidth_mbit * 1_000
+            bdp_bits = bandwidth_kbps * rtt_ms
             bdp_bytes = bdp_bits / 8
             if bdp_bytes < 1500:
                 bdp_bytes = 1500
             return int(bdp_bytes)
 
-        def network_type_to_bandwidth_delay(network_type):
-            # Define the mapping of network types
-            network_mapping = {
-                "slow3G": {"bandwidth": "1Mbit", "delay_ms": 200},
-                "fast5G": {"bandwidth": "300Mbit", "delay_ms": 20},
-                "busy5G": {"bandwidth": "300Mbit", "delay_ms": 200},
-            }
-
-            # Look up the network type in the mapping
-            result = network_mapping.get(network_type)
-
-            if result is None:
-                raise Exception(f"Unknown network type: {network_type}")
-            return result["bandwidth"], result["delay_ms"]
-
-        bandwidth_str, delay_ms = network_type_to_bandwidth_delay(network_type)
+        bandwidth_str, rtt_ms = self.network_type_to_bandwidth_rtt(network_type)
+        # The delay used in netem is applied before sending,
+        # so the delay value should be rtt_ms / 2.
+        delay_ms = rtt_ms / 2
         bandwidth_mbit = float(bandwidth_str.replace("Mbit", ""))
-        # The delay_ms used in netem delays packets before sending,
-        # so the actual RTT is delay_ms * 2.
-        bdp_bytes = calculate_bdp(bandwidth_mbit, delay_ms * 2)
+        bdp_bytes = calculate_bdp(bandwidth_mbit, rtt_ms)
 
         LOG.info(
             f"apply_network_throttling: bandwidth={bandwidth_str} delay={delay_ms}ms loss={loss}"
@@ -392,6 +449,41 @@ class NetworkBench(BasePythonSupport):
         except Exception:
             raise Exception("failed to get network condition")
 
+    def network_type_to_temp_file(self, network_type):
+        def calculate_file_size(bandwidth_mbps):
+            time_seconds = 60
+            # Calculate transfer size in bits
+            transfer_size_bits = bandwidth_mbps * 1e6 * time_seconds
+            transfer_size_bytes = int(transfer_size_bits / 8)
+            return transfer_size_bytes
+
+        def generate_temp_file(file_size_in_bytes, target_dir):
+            # Create a unique file name with the size in MB
+            temp_file_path = target_dir / f"temp_file_{file_size_in_bytes}B.bin"
+            try:
+                with open(temp_file_path, "wb") as temp_file:
+                    # Write random data to the file
+                    temp_file.write(os.urandom(file_size_in_bytes))
+                LOG.info(f"Temporary file created in MOZ_FETCHES_DIR: {temp_file_path}")
+                return temp_file_path
+            except Exception as e:
+                LOG.error(f"Failed to create temporary file: {e}")
+                return None
+
+        fetches_dir = Path(os.environ.get("MOZ_FETCHES_DIR", "None"))
+        if not fetches_dir.exists():
+            raise Exception("Missing MOZ_FETCHES_DIR")
+
+        if network_type == "unthrottled":
+            bandwidth_str = "1000Mbit"
+        else:
+            bandwidth_str, _ = self.network_type_to_bandwidth_rtt(network_type)
+        bandwidth_mbit = float(bandwidth_str.replace("Mbit", ""))
+
+        file_size = calculate_file_size(bandwidth_mbit)
+        temp_file_path = generate_temp_file(file_size, fetches_dir)
+        return temp_file_path, file_size
+
     def modify_command(self, cmd, test):
         if not self._is_chrome:
             cmd += [
@@ -418,18 +510,29 @@ class NetworkBench(BasePythonSupport):
         else:
             self.caddy_port = self.find_free_port(socket.SOCK_STREAM)
 
+        self.get_network_conditions(cmd)
+
+        temp_file_path, file_size = self.network_type_to_temp_file(self.network_type)
+        if not temp_file_path:
+            raise Exception("Failed to generate temporary file")
+        self.cleanup.append(lambda: temp_file_path.unlink())
+
         if self.transfer_type == "upload":
             cmd += [
                 "--browsertime.server_url",
                 f"https://localhost:{self.caddy_port}",
+                "--browsertime.test_file_name",
+                temp_file_path.name,
+                "--browsertime.test_file_size",
+                str(file_size),
             ]
         elif self.transfer_type == "download":
             cmd += [
                 "--browsertime.server_url",
                 f"https://localhost:{self.caddy_port}/download_test.html",
+                "--browsertime.test_file_size",
+                str(file_size),
             ]
-
-        self.get_network_conditions(cmd)
 
         LOG.info("modify_command: %s" % cmd)
 
@@ -437,7 +540,7 @@ class NetworkBench(BasePythonSupport):
         self.browsertime_node = Path(cmd[0])
         self.backend_server = self.start_backend_server("benchmark_backend_server.js")
         if self.backend_server:
-            self.caddy_server = self.start_caddy()
+            self.caddy_server = self.start_caddy(temp_file_path)
         if self.caddy_server is None:
             raise Exception("Failed to start test servers")
 

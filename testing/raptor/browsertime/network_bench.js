@@ -6,6 +6,7 @@
 
 const { logTest, logTask } = require("./utils/profiling");
 
+const fs = require("fs");
 const path = require("path");
 
 async function waitForH3(maxRetries, browser, url, commands, context) {
@@ -33,8 +34,11 @@ async function waitForH3(maxRetries, browser, url, commands, context) {
     context.log.info("protocolInfo: " + JSON.stringify(protocolInfo));
 
     // Check if the main document is using h3 protocol
+    const normalizeUrl = url => url.replace(/\/+$/, "");
     const isH3 = protocolInfo.some(
-      entry => entry.name === url && entry.protocol === "h3"
+      entry =>
+        normalizeUrl(entry.name) === normalizeUrl(url) &&
+        entry.protocol === "h3"
     );
 
     if (isH3) {
@@ -103,6 +107,11 @@ module.exports = logTest(
     await commands.measure.start(serverUrl);
     let accumulatedResults = [];
     let browserName = "";
+    let file_size = parseInt(context.options.browsertime.test_file_size, 10);
+    if (Number.isNaN(file_size)) {
+      // default is 32MB
+      file_size = 32000000;
+    }
     for (let iteration = 0; iteration < iterations; iteration++) {
       await logTask(context, "cycle " + iteration, async function () {
         const driver = context.selenium.driver;
@@ -132,9 +141,9 @@ module.exports = logTest(
             "download_status"
           );
           let downloadTime = results.end - results.start;
-
           // Store result in megabit/seconds
-          let downloadBandwidth = (32 * 8) / (downloadTime / 1000.0);
+          let downloadBandwidth =
+            (file_size * 8) / ((downloadTime / 1000) * 1e6);
           context.log.info(
             "download results: " +
               results.status +
@@ -158,8 +167,14 @@ module.exports = logTest(
 
           let localFilePath = path.join(
             `${context.options.browsertime.moz_fetch_dir}`,
-            "upload-test-32MB.dat"
+            `${context.options.browsertime.test_file_name}`
           );
+          if (!fs.existsSync(localFilePath)) {
+            localFilePath = path.join(
+              `${context.options.browsertime.moz_fetch_dir}`,
+              "upload-test-32MB.dat"
+            );
+          }
 
           context.log.info("Sending file path: " + localFilePath);
           await uploadItem.sendKeys(localFilePath);
@@ -173,8 +188,8 @@ module.exports = logTest(
           );
           let uploadTime = results.end - results.start;
 
-          // Store result in megabit/seconds, (Upload is a 32 MB file)
-          let uploadBandwidth = (32 * 8) / (uploadTime / 1000.0);
+          // Store result in megabit/seconds
+          let uploadBandwidth = (file_size * 8) / ((uploadTime / 1000) * 1e6);
           context.log.info(
             "upload results: " +
               results.status +

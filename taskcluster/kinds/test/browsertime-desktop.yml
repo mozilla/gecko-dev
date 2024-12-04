@@ -863,24 +863,37 @@ browsertime-network-bench:
         network-conditions:
             by-subtest:
                 h3-upload:
-                    - [slow3G, "0"]
-                    - [slow3G, "0.01"]
-                    - [slow3G, "0.1"]
-                    - [slow3G, "0.5"]
-                    - [fast5G, "0"]
-                    - [fast5G, "0.01"]
-                    - [fast5G, "0.1"]
-                    - [fast5G, "0.5"]
-                    - [fast5G, "1"]
-                    - [busy5G, "0"]
-                    - [busy5G, "0.01"]
-                    - [busy5G, "0.1"]
-                    - [busy5G, "0.5"]
-                    - [busy5G, "1"]
+                    - [1M_400ms, "0"]
+                    - [1M_400ms, "0.01"]
+                    - [1M_400ms, "0.1"]
+                    - [1M_400ms, "0.5"]
+                    - [1M_400ms, "1"]
+                    - [300M_40ms, "0"]
+                    - [300M_40ms, "0.01"]
+                    - [300M_40ms, "0.1"]
+                    - [300M_40ms, "0.5"]
+                    - [300M_40ms, "1"]
+                    - [300M_80ms, "0"]
+                    - [300M_80ms, "0.01"]
+                    - [300M_80ms, "0.1"]
+                    - [300M_80ms, "0.5"]
+                    - [300M_80ms, "1"]
+                    - [10M_40ms, "0"]
+                    - [10M_40ms, "0.01"]
+                    - [10M_40ms, "0.1"]
+                    - [10M_40ms, "0.5"]
+                    - [10M_40ms, "1"]
+                    - [100M_40ms, "0"]
+                    - [100M_40ms, "0.01"]
+                    - [100M_40ms, "0.1"]
+                    - [100M_40ms, "0.5"]
+                    - [100M_40ms, "1"]
                 h3-download:
-                    - [slow3G, "0"]
-                    - [fast5G, "0"]
-                    - [busy5G, "0"]
+                    - [1M_400ms, "0"]
+                    - [300M_40ms, "0"]
+                    - [300M_80ms, "0"]
+                    - [10M_40ms, "0"]
+                    - [100M_40ms, "0"]
                 default: []
     description: Raptor (browsertime) networking download/upload performance test
     max-run-time: 15000
@@ -888,7 +901,7 @@ browsertime-network-bench:
         by-app:
             firefox:
                 by-test-platform:
-                    linux.*shippable-qr.*: [autoland, mozilla-central]
+                    linux.*shippable-qr.*: [mozilla-central]
                     default: []
             chrome:
                 by-test-platform:
