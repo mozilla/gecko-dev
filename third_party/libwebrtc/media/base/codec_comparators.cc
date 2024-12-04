@@ -15,6 +15,7 @@
 #include <vector>
 
 #include "absl/algorithm/container.h"
+#include "absl/functional/any_invocable.h"
 #include "absl/strings/match.h"
 #include "absl/strings/string_view.h"
 #include "api/rtp_parameters.h"
@@ -136,6 +137,84 @@ bool ReferencedCodecsMatch(const std::vector<Codec>& codecs1,
   return codec1 != nullptr && codec2 != nullptr && codec1->Matches(*codec2);
 }
 
+bool MatchesWithReferenceAttributesAndComparator(
+    const Codec& codec_to_match,
+    const Codec& potential_match,
+    absl::AnyInvocable<bool(int, int)> reference_comparator) {
+  if (!MatchesWithCodecRules(codec_to_match, potential_match)) {
+    return false;
+  }
+  Codec::ResiliencyType resiliency_type = codec_to_match.GetResiliencyType();
+  if (resiliency_type == Codec::ResiliencyType::kRtx) {
+    int apt_value_1 = 0;
+    int apt_value_2 = 0;
+    if (!codec_to_match.GetParam(cricket::kCodecParamAssociatedPayloadType,
+                                 &apt_value_1) ||
+        !potential_match.GetParam(cricket::kCodecParamAssociatedPayloadType,
+                                  &apt_value_2)) {
+      RTC_LOG(LS_WARNING) << "RTX missing associated payload type.";
+      return false;
+    }
+    if (reference_comparator(apt_value_1, apt_value_2)) {
+      return true;
+    }
+    return false;
+  }
+  if (resiliency_type == Codec::ResiliencyType::kRed) {
+    auto red_parameters_1 =
+        codec_to_match.params.find(cricket::kCodecParamNotInNameValueFormat);
+    auto red_parameters_2 =
+        potential_match.params.find(cricket::kCodecParamNotInNameValueFormat);
+    bool has_parameters_1 = red_parameters_1 != codec_to_match.params.end();
+    bool has_parameters_2 = red_parameters_2 != potential_match.params.end();
+    // If codec_to_match has unassigned PT and no parameter,
+    // we assume that it'll be assigned later and return a match.
+    // Note - this should be deleted. It's untidy.
+    if (potential_match.id == Codec::kIdNotSet && !has_parameters_2) {
+      return true;
+    }
+    if (codec_to_match.id == Codec::kIdNotSet && !has_parameters_1) {
+      return true;
+    }
+    if (has_parameters_1 && has_parameters_2) {
+      // Different levels of redundancy between offer and answer are
+      // since RED is considered to be declarative.
+      std::vector<absl::string_view> redundant_payloads_1 =
+          rtc::split(red_parameters_1->second, '/');
+      std::vector<absl::string_view> redundant_payloads_2 =
+          rtc::split(red_parameters_2->second, '/');
+      if (redundant_payloads_1.size() > 0 && redundant_payloads_2.size() > 0) {
+        // Mixed reference codecs (i.e. 111/112) are not supported.
+        for (size_t i = 1; i < redundant_payloads_1.size(); i++) {
+          if (redundant_payloads_1[i] != redundant_payloads_1[0]) {
+            return false;
+          }
+        }
+        for (size_t i = 1; i < redundant_payloads_2.size(); i++) {
+          if (redundant_payloads_2[i] != redundant_payloads_2[0]) {
+            return false;
+          }
+        }
+        int red_value_1;
+        int red_value_2;
+        if (rtc::FromString(redundant_payloads_1[0], &red_value_1) &&
+            rtc::FromString(redundant_payloads_2[0], &red_value_2)) {
+          if (reference_comparator(red_value_1, red_value_2)) {
+            return true;
+          }
+        }
+        return false;
+      }
+    }
+    if (!has_parameters_1 && !has_parameters_2) {
+      // Both parameters are missing. Happens for video RED.
+      return true;
+    }
+    return false;
+  }
+  return true;  // Not a codec with a PT-valued reference.
+}
+
 }  // namespace
 
 bool MatchesWithCodecRules(const Codec& left_codec, const Codec& right_codec) {
@@ -212,79 +291,11 @@ std::optional<Codec> FindMatchingCodec(const std::vector<Codec>& codecs1,
     return &codec == &codec_to_match;
   }));
   for (const Codec& potential_match : codecs2) {
-    if (potential_match.Matches(codec_to_match)) {
-      if (codec_to_match.GetResiliencyType() == Codec::ResiliencyType::kRtx) {
-        int apt_value_1 = 0;
-        int apt_value_2 = 0;
-        if (!codec_to_match.GetParam(cricket::kCodecParamAssociatedPayloadType,
-                                     &apt_value_1) ||
-            !potential_match.GetParam(cricket::kCodecParamAssociatedPayloadType,
-                                      &apt_value_2)) {
-          RTC_LOG(LS_WARNING) << "RTX missing associated payload type.";
-          continue;
-        }
-        if (!ReferencedCodecsMatch(codecs1, apt_value_1, codecs2,
-                                   apt_value_2)) {
-          continue;
-        }
-      } else if (codec_to_match.GetResiliencyType() ==
-                 Codec::ResiliencyType::kRed) {
-        auto red_parameters_1 = codec_to_match.params.find(
-            cricket::kCodecParamNotInNameValueFormat);
-        auto red_parameters_2 = potential_match.params.find(
-            cricket::kCodecParamNotInNameValueFormat);
-        bool has_parameters_1 = red_parameters_1 != codec_to_match.params.end();
-        bool has_parameters_2 =
-            red_parameters_2 != potential_match.params.end();
-        // If codec_to_match has unassigned PT and no parameter,
-        // we assume that it'll be assigned later and return a match.
-        if (potential_match.id == Codec::kIdNotSet && !has_parameters_2) {
-          return potential_match;
-        }
-        if (codec_to_match.id == Codec::kIdNotSet && !has_parameters_1) {
-          return potential_match;
-        }
-        if (has_parameters_1 && has_parameters_2) {
-          // Mixed reference codecs (i.e. 111/112) are not supported.
-          // Different levels of redundancy between offer and answer are
-          // since RED is considered to be declarative.
-          std::vector<absl::string_view> redundant_payloads_1 =
-              rtc::split(red_parameters_1->second, '/');
-          std::vector<absl::string_view> redundant_payloads_2 =
-              rtc::split(red_parameters_2->second, '/');
-          if (redundant_payloads_1.size() > 0 &&
-              redundant_payloads_2.size() > 0) {
-            bool consistent = true;
-            for (size_t i = 1; i < redundant_payloads_1.size(); i++) {
-              if (redundant_payloads_1[i] != redundant_payloads_1[0]) {
-                consistent = false;
-                break;
-              }
-            }
-            for (size_t i = 1; i < redundant_payloads_2.size(); i++) {
-              if (redundant_payloads_2[i] != redundant_payloads_2[0]) {
-                consistent = false;
-                break;
-              }
-            }
-            if (!consistent) {
-              continue;
-            }
-
-            int red_value_1;
-            int red_value_2;
-            if (rtc::FromString(redundant_payloads_1[0], &red_value_1) &&
-                rtc::FromString(redundant_payloads_2[0], &red_value_2)) {
-              if (!ReferencedCodecsMatch(codecs1, red_value_1, codecs2,
-                                         red_value_2)) {
-                continue;
-              }
-            }
-          }
-        } else if (has_parameters_1 != has_parameters_2) {
-          continue;
-        }
-      }
+    if (MatchesWithReferenceAttributesAndComparator(
+            codec_to_match, potential_match,
+            [&codecs1, &codecs2](int a, int b) {
+              return ReferencedCodecsMatch(codecs1, a, codecs2, b);
+            })) {
       return potential_match;
     }
   }

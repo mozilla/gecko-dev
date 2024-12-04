@@ -38,7 +38,7 @@ index 0b5728deee..271dd0b2a5 100644
        ]
        # Added when we removed deps in other places to avoid building
 diff --git a/media/BUILD.gn b/media/BUILD.gn
-index 8599c42c0e..614652e501 100644
+index 56409252af..07c3d11284 100644
 --- a/media/BUILD.gn
 +++ b/media/BUILD.gn
 @@ -12,12 +12,10 @@ import("../webrtc.gni")
@@ -68,7 +68,7 @@ index 8599c42c0e..614652e501 100644
    }
  }
  
-@@ -401,6 +402,7 @@ rtc_library("codec") {
+@@ -402,6 +403,7 @@ rtc_library("codec") {
    ]
  }
  
@@ -76,7 +76,7 @@ index 8599c42c0e..614652e501 100644
  rtc_library("rtp_utils") {
  if (!build_with_mozilla) {
    sources = [
-@@ -446,7 +448,6 @@ rtc_library("media_constants") {
+@@ -447,7 +449,6 @@ rtc_library("media_constants") {
  }
  
  rtc_library("turn_utils") {
@@ -84,7 +84,7 @@ index 8599c42c0e..614652e501 100644
    sources = [
      "base/turn_utils.cc",
      "base/turn_utils.h",
-@@ -457,17 +458,14 @@ if (!build_with_mozilla) {
+@@ -458,17 +459,14 @@ if (!build_with_mozilla) {
      "../rtc_base/system:rtc_export",
    ]
  }
@@ -102,7 +102,7 @@ index 8599c42c0e..614652e501 100644
  
  rtc_library("rtc_simulcast_encoder_adapter") {
    visibility = [ "*" ]
-@@ -713,6 +711,12 @@ rtc_library("rtc_audio_video") {
+@@ -714,6 +712,12 @@ rtc_library("rtc_audio_video") {
      "engine/webrtc_voice_engine.cc",
      "engine/webrtc_voice_engine.h",
    ]
