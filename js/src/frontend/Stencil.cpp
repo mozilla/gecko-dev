@@ -3463,7 +3463,7 @@ bool ExtensibleCompilationStencil::steal(FrontendContext* fc,
   MOZ_ASSERT(alloc.isEmpty());
   using StorageType = CompilationStencil::StorageType;
   StorageType storageType = other->storageType;
-  if (other->refCount > 1) {
+  if (other->hasMultipleReference()) {
     storageType = StorageType::Borrowed;
   }
 
@@ -3511,7 +3511,7 @@ bool ExtensibleCompilationStencil::steal(FrontendContext* fc,
 
 #ifdef DEBUG
   other->assertNoExternalDependency();
-  MOZ_ASSERT(other->refCount == 1);
+  MOZ_ASSERT(!other->hasMultipleReference());
 #endif
 
   // If CompilationStencil has no external dependency,
@@ -3590,7 +3590,7 @@ InitialStencilAndDelazifications::~InitialStencilAndDelazifications() {
   for (size_t i = 0; i < delazifications_.length(); i++) {
     CompilationStencil* delazification = delazifications_[i].exchange(nullptr);
     if (delazification) {
-      JS::StencilRelease(delazification);
+      delazification->Release();
     }
   }
 }
@@ -3663,7 +3663,7 @@ const CompilationStencil* InitialStencilAndDelazifications::storeDelazification(
     return raw;
   }
 
-  JS::StencilRelease(raw);
+  raw->Release();
   return delazifications_[functionIndex - 1];
 }
 
@@ -5743,13 +5743,16 @@ bool CompilationStencilMerger::maybeAddDelazification(
   return addDelazification(fc, delazification);
 }
 
-void JS::StencilAddRef(JS::Stencil* stencil) { stencil->refCount++; }
-void JS::StencilRelease(JS::Stencil* stencil) {
-  MOZ_RELEASE_ASSERT(stencil->refCount > 0);
-  if (--stencil->refCount == 0) {
-    js_delete(stencil);
+void CompilationStencil::AddRef() { refCount_++; }
+void CompilationStencil::Release() {
+  MOZ_RELEASE_ASSERT(refCount_ > 0);
+  if (--refCount_ == 0) {
+    js_delete(this);
   }
 }
+
+void JS::StencilAddRef(JS::Stencil* stencil) { stencil->AddRef(); }
+void JS::StencilRelease(JS::Stencil* stencil) { stencil->Release(); }
 
 JS_PUBLIC_API JSScript* JS::InstantiateGlobalStencil(
     JSContext* cx, const JS::InstantiateOptions& options, JS::Stencil* stencil,

@@ -1150,7 +1150,7 @@ struct CompilationStencil {
   //       modes.
   //
   // See: JS::StencilAddRef/Release
-  mutable mozilla::Atomic<uintptr_t> refCount{0};
+  mutable mozilla::Atomic<uintptr_t> refCount_{0};
 
  private:
   // On-heap ExtensibleCompilationStencil that this CompilationStencil owns,
@@ -1239,6 +1239,9 @@ struct CompilationStencil {
   explicit CompilationStencil(
       UniquePtr<ExtensibleCompilationStencil>&& extensibleStencil);
 
+  void AddRef();
+  void Release();
+
  protected:
   void borrowFromExtensibleCompilationStencil(
       ExtensibleCompilationStencil& extensibleStencil);
@@ -1290,7 +1293,7 @@ struct CompilationStencil {
   ~CompilationStencil() {
     // We can mix UniquePtr<..> and RefPtr<..>. This asserts that a UniquePtr
     // does not delete a reference-counted stencil.
-    MOZ_ASSERT(!refCount);
+    MOZ_ASSERT(!refCount_);
   }
 #endif
 
@@ -1310,7 +1313,7 @@ struct CompilationStencil {
 
   bool isModule() const;
 
-  bool hasMultipleReference() const { return refCount > 1; }
+  bool hasMultipleReference() const { return refCount_ > 1; }
 
   bool hasOwnedBorrow() const {
     return storageType == StorageType::OwnedExtensible;

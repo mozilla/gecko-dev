@@ -2775,7 +2775,7 @@ void JSRuntime::finishSelfHosting() {
       // instance.
       RefPtr<frontend::CompilationStencil> stencil;
       *getter_AddRefs(stencil) = selfHostStencil_;
-      MOZ_ASSERT(stencil->refCount == 1);
+      MOZ_ASSERT(!stencil->hasMultipleReference());
     }
   }
 
