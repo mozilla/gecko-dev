@@ -2134,6 +2134,7 @@ void MediaFormatReader::HandleDemuxedSamples(
         // We're going to be using a new decoder following the change of content
         // We can attempt to use hardware decoding again.
         decoder.mHardwareDecodingDisabled = false;
+        decoder.mFirstFrameTime = Some(sample->mTime);
       } else if (decoder.HasWaitingPromise()) {
         decoder.Flush();
       }
