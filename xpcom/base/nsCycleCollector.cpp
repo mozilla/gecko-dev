@@ -2930,10 +2930,7 @@ void nsCycleCollector::ScanWeakMaps() {
     }
   } while (anyChanged);
 
-  if (failed) {
-    MOZ_ASSERT(false, "Ran out of memory in ScanWeakMaps");
-    CC_TELEMETRY(_OOM, true);
-  }
+  MOZ_ASSERT(!failed, "Ran out of memory in ScanWeakMaps");
 }
 
 // Flood black from any objects in the purple buffer that are in the CC graph.
@@ -3068,11 +3065,7 @@ void nsCycleCollector::ScanIncrementalRoots() {
   }
 
   timeLog.Checkpoint("ScanIncrementalRoots::fix nodes");
-
-  if (failed) {
-    NS_ASSERTION(false, "Ran out of memory in ScanIncrementalRoots");
-    CC_TELEMETRY(_OOM, true);
-  }
+  NS_ASSERTION(!failed, "Ran out of memory in ScanIncrementalRoots");
 }
 
 // Mark nodes white and make sure their refcounts are ok.
@@ -3127,11 +3120,7 @@ void nsCycleCollector::ScanBlackNodes() {
       FloodBlackNode(mWhiteNodeCount, failed, pi);
     }
   }
-
-  if (failed) {
-    NS_ASSERTION(false, "Ran out of memory in ScanBlackNodes");
-    CC_TELEMETRY(_OOM, true);
-  }
+  NS_ASSERTION(!failed, "Ran out of memory in ScanBlackNodes");
 }
 
 void nsCycleCollector::ScanRoots(bool aFullySynchGraphBuild) {
