@@ -20,10 +20,10 @@ use std::mem;
 // based on C++
 #[repr(C)]
 #[derive(Debug)]
-pub struct position(cty::c_float, cty::c_float);
+pub struct position(std::ffi::c_float, std::ffi::c_float);
 #[repr(C)]
 #[derive(Debug)]
-pub struct color(cty::c_float, cty::c_float, cty::c_float);
+pub struct color(std::ffi::c_float, std::ffi::c_float, std::ffi::c_float);
 #[repr(C)]
 #[derive(Debug)]
 pub struct AAPLVertex {

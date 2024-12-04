@@ -129,9 +129,9 @@ void Queue::WriteTexture(const dom::GPUTexelCopyTextureInfo& aDestination,
                          const dom::ArrayBufferViewOrArrayBuffer& aData,
                          const dom::GPUTexelCopyBufferLayout& aDataLayout,
                          const dom::GPUExtent3D& aSize, ErrorResult& aRv) {
-  ffi::WGPUImageCopyTexture copyView = {};
+  ffi::WGPUTexelCopyTextureInfo copyView = {};
   CommandEncoder::ConvertTextureCopyViewToFFI(aDestination, &copyView);
-  ffi::WGPUImageDataLayout dataLayout = {};
+  ffi::WGPUTexelCopyBufferLayout dataLayout = {};
   CommandEncoder::ConvertTextureDataLayoutToFFI(aDataLayout, &dataLayout);
   dataLayout.offset = 0;  // our Shmem has the contents starting from 0.
   ffi::WGPUExtent3d extent = {};
@@ -420,8 +420,8 @@ void Queue::CopyExternalImageToTexture(
     return;
   }
 
-  ffi::WGPUImageDataLayout dataLayout = {0, &dstStrideVal, &dstHeight};
-  ffi::WGPUImageCopyTexture copyView = {};
+  ffi::WGPUTexelCopyBufferLayout dataLayout = {0, &dstStrideVal, &dstHeight};
+  ffi::WGPUTexelCopyTextureInfo copyView = {};
   CommandEncoder::ConvertTextureCopyViewToFFI(aDestination, &copyView);
   ipc::ByteBuf bb;
   ffi::wgpu_queue_write_texture(copyView, dataLayout, extent, ToFFI(&bb));

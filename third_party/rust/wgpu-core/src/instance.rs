@@ -512,7 +512,7 @@ impl Adapter {
         );
         allowed_usages.set(
             wgt::TextureUsages::STORAGE_BINDING,
-            caps.contains(Tfc::STORAGE),
+            caps.contains(Tfc::STORAGE_WRITE),
         );
         allowed_usages.set(
             wgt::TextureUsages::RENDER_ATTACHMENT,
@@ -521,7 +521,7 @@ impl Adapter {
 
         let mut flags = wgt::TextureFormatFeatureFlags::empty();
         flags.set(
-            wgt::TextureFormatFeatureFlags::STORAGE_READ_WRITE,
+            wgt::TextureFormatFeatureFlags::STORAGE_WRITE,
             caps.contains(Tfc::STORAGE_READ_WRITE),
         );
 
@@ -653,7 +653,7 @@ pub enum GetSurfaceSupportError {
 
 #[derive(Clone, Debug, Error)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-/// Error when requesting a device from the adaptor
+/// Error when requesting a device from the adapter
 #[non_exhaustive]
 pub enum RequestDeviceError {
     #[error(transparent)]

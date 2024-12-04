@@ -191,9 +191,7 @@ ipc::IPCResult WebGPUChild::RecvDeviceLost(RawId aDeviceId,
                                            Maybe<uint8_t> aReason,
                                            const nsACString& aMessage) {
   auto message = NS_ConvertUTF8toUTF16(aMessage);
-  DebugOnly<bool> success = ResolveLostForDeviceId(aDeviceId, aReason, message);
-  MOZ_ASSERT(success,
-             "Shouldn't receive device lost on an unregistered device.");
+  ResolveLostForDeviceId(aDeviceId, aReason, message);
   return IPC_OK();
 }
 

@@ -52,10 +52,10 @@ class CommandEncoder final : public ObjectBase, public ChildOf<Device> {
 
   static void ConvertTextureDataLayoutToFFI(
       const dom::GPUTexelCopyBufferLayout& aLayout,
-      ffi::WGPUImageDataLayout* aLayoutFFI);
+      ffi::WGPUTexelCopyBufferLayout* aLayoutFFI);
   static void ConvertTextureCopyViewToFFI(
       const dom::GPUTexelCopyTextureInfo& aCopy,
-      ffi::WGPUImageCopyTexture_TextureId* aViewFFI);
+      ffi::WGPUTexelCopyTextureInfo_TextureId* aViewFFI);
 
  private:
   ~CommandEncoder();

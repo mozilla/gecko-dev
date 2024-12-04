@@ -301,13 +301,7 @@ WebGPUParent::WebGPUParent() : mContext(ffi::wgpu_server_new(this)) {
                &WebGPUParent::MaintainDevices);
 }
 
-WebGPUParent::~WebGPUParent() {
-  // All devices should have been dropped, but maybe they weren't. To
-  // ensure we don't leak memory, clear the mDeviceLostRequests.
-  MOZ_ASSERT(mDeviceLostRequests.empty(),
-             "All device lost callbacks should have been called by now.");
-  mDeviceLostRequests.clear();
-}
+WebGPUParent::~WebGPUParent() {}
 
 void WebGPUParent::MaintainDevices() {
   ffi::wgpu_server_poll_all_devices(mContext.get(), false);
@@ -421,10 +415,21 @@ ipc::IPCResult WebGPUParent::RecvInstanceRequestAdapter(
   return IPC_OK();
 }
 
+struct OnDeviceLostRequest {
+  WeakPtr<WebGPUParent> mParent;
+  RawId mDeviceId;
+};
+
+static void DeviceLostCleanupCallback(uint8_t* aUserData) {
+  auto req = std::unique_ptr<OnDeviceLostRequest>(
+      reinterpret_cast<OnDeviceLostRequest*>(aUserData));
+}
+
 /* static */ void WebGPUParent::DeviceLostCallback(uint8_t* aUserData,
                                                    uint8_t aReason,
                                                    const char* aMessage) {
-  DeviceLostRequest* req = reinterpret_cast<DeviceLostRequest*>(aUserData);
+  auto req = std::unique_ptr<OnDeviceLostRequest>(
+      reinterpret_cast<OnDeviceLostRequest*>(aUserData));
   if (!req->mParent) {
     // Parent is dead, never mind.
     return;
@@ -434,26 +439,17 @@ ipc::IPCResult WebGPUParent::RecvInstanceRequestAdapter(
 
   // If aReason is 0, that corresponds to the unknown reason, which we
   // treat as a Nothing() value. aReason of 1 corresponds to destroyed.
-  // Any other value is an unreportable outcome that wgpu sends for us to
-  // keep our data straight for the lost callback. We don't report those
-  // values.
-  if (aReason <= 1) {
-    Maybe<uint8_t> reason;  // default to GPUDeviceLostReason::unknown
-    if (aReason == 1) {
-      reason = Some(uint8_t(0));  // this is GPUDeviceLostReason::destroyed
-    }
-    nsAutoCString message(aMessage);
-    req->mParent->LoseDevice(deviceId, reason, message);
+  Maybe<uint8_t> reason;  // default to GPUDeviceLostReason::unknown
+  if (aReason == 1) {
+    reason = Some(uint8_t(0));  // this is GPUDeviceLostReason::destroyed
   }
+  nsAutoCString message(aMessage);
+  req->mParent->LoseDevice(deviceId, reason, message);
 
   auto it = req->mParent->mDeviceFenceHandles.find(deviceId);
   if (it != req->mParent->mDeviceFenceHandles.end()) {
     req->mParent->mDeviceFenceHandles.erase(it);
   }
-
-  // We're no longer tracking the memory for this callback, so erase
-  // it to ensure we don't leak memory.
-  req->mParent->mDeviceLostRequests.erase(deviceId);
 }
 
 ipc::IPCResult WebGPUParent::RecvAdapterRequestDevice(
@@ -474,17 +470,12 @@ ipc::IPCResult WebGPUParent::RecvAdapterRequestDevice(
 
   mErrorScopeStackByDevice.insert({aDeviceId, {}});
 
-  // Setup the device lost callback.
-  std::unique_ptr<DeviceLostRequest> req(
-      new DeviceLostRequest{this, aDeviceId});
-  auto iter = mDeviceLostRequests.insert({aDeviceId, std::move(req)});
-  MOZ_ASSERT(iter.second, "Should be able to insert DeviceLostRequest.");
-  auto record = iter.first;
-  DeviceLostRequest* req_shadow = (record->second).get();
-  ffi::WGPUDeviceLostClosureC callback = {
-      &DeviceLostCallback, reinterpret_cast<uint8_t*>(req_shadow)};
-  ffi::wgpu_server_set_device_lost_callback(mContext.get(), aDeviceId,
-                                            callback);
+  std::unique_ptr<OnDeviceLostRequest> request(
+      new OnDeviceLostRequest{this, aDeviceId});
+  ffi::WGPUDeviceLostClosure closure = {
+      &DeviceLostCallback, &DeviceLostCleanupCallback,
+      reinterpret_cast<uint8_t*>(request.release())};
+  ffi::wgpu_server_set_device_lost_callback(mContext.get(), aDeviceId, closure);
 
   resolver(true);
 
@@ -512,9 +503,6 @@ ipc::IPCResult WebGPUParent::RecvDeviceDestroy(RawId aDeviceId) {
 }
 
 ipc::IPCResult WebGPUParent::RecvDeviceDrop(RawId aDeviceId) {
-  ffi::wgpu_server_unregister_device_lost_callback(mContext.get(), aDeviceId);
-  mDeviceLostRequests.erase(aDeviceId);
-
   ffi::wgpu_server_device_drop(mContext.get(), aDeviceId);
 
   mErrorScopeStackByDevice.erase(aDeviceId);
@@ -608,12 +596,12 @@ static const char* MapStatusString(ffi::WGPUBufferMapAsyncStatus status) {
   MOZ_CRASH("Bad ffi::WGPUBufferMapAsyncStatus");
 }
 
-void WebGPUParent::MapCallback(ffi::WGPUBufferMapAsyncStatus aStatus,
-                               uint8_t* aUserData) {
-  auto* req = reinterpret_cast<MapRequest*>(aUserData);
+void WebGPUParent::MapCallback(uint8_t* aUserData,
+                               ffi::WGPUBufferMapAsyncStatus aStatus) {
+  auto req =
+      std::unique_ptr<MapRequest>(reinterpret_cast<MapRequest*>(aUserData));
 
   if (!req->mParent->CanSend()) {
-    delete req;
     return;
   }
 
@@ -661,7 +649,6 @@ void WebGPUParent::MapCallback(ffi::WGPUBufferMapAsyncStatus aStatus,
   }
 
   req->mResolver(result);
-  delete req;
 }
 
 ipc::IPCResult WebGPUParent::RecvBufferMap(RawId aDeviceId, RawId aBufferId,
@@ -697,15 +684,15 @@ ipc::IPCResult WebGPUParent::RecvBufferMap(RawId aDeviceId, RawId aBufferId,
     return IPC_OK();
   }
 
-  auto* request =
-      new MapRequest{this,    mContext.get(), aBufferId,           mode,
-                     aOffset, aSize,          std::move(aResolver)};
+  std::unique_ptr<MapRequest> request(
+      new MapRequest{this, mContext.get(), aBufferId, mode, aOffset, aSize,
+                     std::move(aResolver)});
 
-  ffi::WGPUBufferMapCallbackC callback = {&MapCallback,
-                                          reinterpret_cast<uint8_t*>(request)};
+  ffi::WGPUBufferMapClosure closure = {
+      &MapCallback, reinterpret_cast<uint8_t*>(request.release())};
   ErrorBuffer mapError;
   ffi::wgpu_server_buffer_map(mContext.get(), aBufferId, aOffset, aSize, mode,
-                              callback, mapError.ToFFI());
+                              closure, mapError.ToFFI());
   ForwardError(aDeviceId, mapError);
 
   return IPC_OK();
@@ -881,10 +868,10 @@ ipc::IPCResult WebGPUParent::RecvQueueOnSubmittedWorkDone(
   std::unique_ptr<OnSubmittedWorkDoneRequest> request(
       new OnSubmittedWorkDoneRequest{this, std::move(aResolver)});
 
-  ffi::WGPUSubmittedWorkDoneClosureC callback = {
+  ffi::WGPUSubmittedWorkDoneClosure closure = {
       &OnSubmittedWorkDoneCallback,
       reinterpret_cast<uint8_t*>(request.release())};
-  ffi::wgpu_server_on_submitted_work_done(mContext.get(), aQueueId, callback);
+  ffi::wgpu_server_on_submitted_work_done(mContext.get(), aQueueId, closure);
   return IPC_OK();
 }
 
@@ -1047,8 +1034,8 @@ struct ReadbackPresentRequest {
   const layers::RemoteTextureOwnerId mOwnerId;
 };
 
-static void ReadbackPresentCallback(ffi::WGPUBufferMapAsyncStatus status,
-                                    uint8_t* userdata) {
+static void ReadbackPresentCallback(uint8_t* userdata,
+                                    ffi::WGPUBufferMapAsyncStatus status) {
   UniquePtr<ReadbackPresentRequest> req(
       reinterpret_cast<ReadbackPresentRequest*>(userdata));
 
@@ -1290,10 +1277,10 @@ ipc::IPCResult WebGPUParent::RecvSwapChainPresent(
     }
   }
 
-  const ffi::WGPUImageCopyTexture texView = {
+  const ffi::WGPUTexelCopyTextureInfo texView = {
       aTextureId,
   };
-  const ffi::WGPUImageDataLayout bufLayout = {
+  const ffi::WGPUTexelCopyBufferLayout bufLayout = {
       0,
       &data->mSourcePitch,
       nullptr,
@@ -1347,13 +1334,13 @@ ipc::IPCResult WebGPUParent::RecvSwapChainPresent(
   auto presentRequest = MakeUnique<ReadbackPresentRequest>(
       mContext.get(), data, mRemoteTextureOwner, aRemoteTextureId, aOwnerId);
 
-  ffi::WGPUBufferMapCallbackC callback = {
+  ffi::WGPUBufferMapClosure closure = {
       &ReadbackPresentCallback,
       reinterpret_cast<uint8_t*>(presentRequest.release())};
 
   ErrorBuffer error;
   ffi::wgpu_server_buffer_map(mContext.get(), bufferId, 0, bufferSize,
-                              ffi::WGPUHostMap_Read, callback, error.ToFFI());
+                              ffi::WGPUHostMap_Read, closure, error.ToFFI());
   if (ForwardError(data->mDeviceId, error)) {
     return IPC_OK();
   }
