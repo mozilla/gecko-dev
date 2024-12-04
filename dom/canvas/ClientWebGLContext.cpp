@@ -35,6 +35,7 @@
 #include "nsContentUtils.h"
 #include "nsDisplayList.h"
 #include "TexUnpackBlob.h"
+#include "WebGLFormats.h"
 #include "WebGLMethodDispatcher.h"
 #include "WebGLChild.h"
 #include "WebGLTextureUpload.h"

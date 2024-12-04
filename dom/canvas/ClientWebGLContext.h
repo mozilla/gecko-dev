@@ -18,7 +18,6 @@
 #include "mozilla/dom/WebGL2RenderingContextBinding.h"
 #include "mozilla/layers/LayersSurfaces.h"
 #include "mozilla/StaticPrefs_webgl.h"
-#include "WebGLFormats.h"
 #include "WebGLStrongTypes.h"
 #include "WebGLTypes.h"
 
