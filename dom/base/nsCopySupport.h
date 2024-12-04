@@ -23,6 +23,7 @@ class nsILoadContext;
 namespace mozilla {
 class PresShell;
 namespace dom {
+class DataTransfer;
 class Document;
 class Selection;
 class WindowContext;
@@ -104,6 +105,10 @@ class nsCopySupport {
    *
    * aClipboardType specifies which clipboard to use, from nsIClipboard.
    *
+   * If aDataTransfer is non-NULL, that data will be used to fire the clipboard
+   * event, and the caller is responsible for calling Disconnect(). (and
+   * possibly ClearAll())
+   *
    * If aActionTaken is non-NULL, it will be set to true if an action was
    * taken, whether it be the default action or the default being prevented.
    *
@@ -114,7 +119,7 @@ class nsCopySupport {
       mozilla::EventMessage aEventMessage,
       mozilla::Maybe<nsIClipboard::ClipboardType> aClipboardType,
       mozilla::PresShell* aPresShell, mozilla::dom::Selection* aSelection,
-      bool* aActionTaken = nullptr);
+      mozilla::dom::DataTransfer* aDataTransfer, bool* aActionTaken = nullptr);
 };
 
 #endif

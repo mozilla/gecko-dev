@@ -241,6 +241,9 @@ class HTMLEditor final : public EditorBase,
    *                            nsIClipboard::kSelectionClipboard.
    * @param aDispatchPasteEvent Yes if this should dispatch ePaste event
    *                            before pasting.  Otherwise, No.
+   * @param aDataTransfer       The object containing the data to use for the
+   *                            paste operation. May be nullptr, in which case
+   *                            this will just get the data from the clipboard.
    * @param aPrincipal          Set subject principal if it may be called by
    *                            JS.  If set to nullptr, will be treated as
    *                            called by system.
@@ -248,6 +251,7 @@ class HTMLEditor final : public EditorBase,
   MOZ_CAN_RUN_SCRIPT nsresult
   PasteNoFormattingAsAction(nsIClipboard::ClipboardType aClipboardType,
                             DispatchPasteEvent aDispatchPasteEvent,
+                            DataTransfer* aDataTransfer = nullptr,
                             nsIPrincipal* aPrincipal = nullptr);
 
   bool CanPasteTransferable(nsITransferable* aTransferable) final;
@@ -1096,9 +1100,8 @@ class HTMLEditor final : public EditorBase,
                    SelectionHandling aSelectionHandling) final;
 
   [[nodiscard]] MOZ_CAN_RUN_SCRIPT nsresult InsertDroppedDataTransferAsAction(
-      AutoEditActionDataSetter& aEditActionData,
-      dom::DataTransfer& aDataTransfer, const EditorDOMPoint& aDroppedAt,
-      nsIPrincipal* aSourcePrincipal) final;
+      AutoEditActionDataSetter& aEditActionData, DataTransfer& aDataTransfer,
+      const EditorDOMPoint& aDroppedAt, nsIPrincipal* aSourcePrincipal) final;
 
   /**
    * GetInlineStyles() retrieves the style of aElement and modifies each item of
@@ -3135,10 +3138,12 @@ class HTMLEditor final : public EditorBase,
 
   [[nodiscard]] MOZ_CAN_RUN_SCRIPT nsresult
   HandlePaste(AutoEditActionDataSetter& aEditActionData,
-              nsIClipboard::ClipboardType aClipboardType) final;
+              nsIClipboard::ClipboardType aClipboardType,
+              DataTransfer* aDataTransfer) final;
   [[nodiscard]] MOZ_CAN_RUN_SCRIPT nsresult
   HandlePasteAsQuotation(AutoEditActionDataSetter& aEditActionData,
-                         nsIClipboard::ClipboardType aClipboardType) final;
+                         nsIClipboard::ClipboardType aClipboardType,
+                         DataTransfer* aDataTransfer) final;
   [[nodiscard]] MOZ_CAN_RUN_SCRIPT nsresult
   HandlePasteTransferable(AutoEditActionDataSetter& aEditActionData,
                           nsITransferable& aTransferable) final;
@@ -3152,8 +3157,9 @@ class HTMLEditor final : public EditorBase,
    *                            nsIClipboard::kSelectionClipboard.
    * @param aEditingHost        The editing host.
    */
-  MOZ_CAN_RUN_SCRIPT nsresult PasteInternal(
-      nsIClipboard::ClipboardType aClipboardType, const Element& aEditingHost);
+  MOZ_CAN_RUN_SCRIPT nsresult
+  PasteInternal(nsIClipboard::ClipboardType aClipboardType,
+                DataTransfer* aDataTransfer, const Element& aEditingHost);
 
   [[nodiscard]] MOZ_CAN_RUN_SCRIPT nsresult
   InsertWithQuotationsAsSubAction(const nsAString& aQuotedText) final;
@@ -3433,7 +3439,7 @@ class HTMLEditor final : public EditorBase,
     RefPtr<dom::BlobImpl> mBlob;
     RefPtr<HTMLEditor> mHTMLEditor;
     RefPtr<const Element> mEditingHost;
-    RefPtr<dom::DataTransfer> mDataTransfer;
+    RefPtr<DataTransfer> mDataTransfer;
     EditorDOMPoint mPointToInsert;
     EditAction mEditAction;
     SafeToInsertData mSafeToInsertData;
@@ -3735,7 +3741,8 @@ class HTMLEditor final : public EditorBase,
 
   // Methods for handling plaintext quotations
   MOZ_CAN_RUN_SCRIPT nsresult PasteAsPlaintextQuotation(
-      nsIClipboard::ClipboardType aSelectionType, const Element& aEditingHost);
+      nsIClipboard::ClipboardType aSelectionType, DataTransfer* aDataTransfer,
+      const Element& aEditingHost);
 
   enum class AddCites { No, Yes };
   /**
@@ -3781,13 +3788,13 @@ class HTMLEditor final : public EditorBase,
    * @param aIndex index of aDataTransfer's item to insert.
    */
   MOZ_CAN_RUN_SCRIPT nsresult InsertFromDataTransfer(
-      const dom::DataTransfer* aDataTransfer, uint32_t aIndex,
+      const DataTransfer* aDataTransfer, uint32_t aIndex,
       nsIPrincipal* aSourcePrincipal, const EditorDOMPoint& aDroppedAt,
       DeleteSelectedContent aDeleteSelectedContent,
       const Element& aEditingHost);
 
-  static HavePrivateHTMLFlavor ClipboardHasPrivateHTMLFlavor(
-      nsIClipboard* clipboard);
+  static HavePrivateHTMLFlavor DataTransferOrClipboardHasPrivateHTMLFlavor(
+      DataTransfer* aDataTransfer, nsIClipboard* clipboard);
 
   /**
    * CF_HTML:

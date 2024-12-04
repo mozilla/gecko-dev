@@ -1668,4 +1668,21 @@ void DataTransfer::ClearForPaste() {
   ClearAll();
 }
 
+bool DataTransfer::HasPrivateHTMLFlavor() const {
+  MOZ_ASSERT(mEventMessage == ePaste,
+             "Only works for ePaste messages, where the mClipboardDataSnapshot "
+             "is available.");
+  nsIClipboardDataSnapshot* snapshot = GetClipboardDataSnapshot();
+  if (!snapshot) {
+    NS_WARNING("DataTransfer::GetClipboardDataSnapshot() returned null");
+    return false;
+  }
+  nsTArray<nsCString> snapshotFlavors;
+  if (NS_FAILED(snapshot->GetFlavorList(snapshotFlavors))) {
+    NS_WARNING("nsIClipboardDataSnapshot::GetFlavorList() failed");
+    return false;
+  }
+  return snapshotFlavors.Contains(kHTMLContext);
+}
+
 }  // namespace mozilla::dom
