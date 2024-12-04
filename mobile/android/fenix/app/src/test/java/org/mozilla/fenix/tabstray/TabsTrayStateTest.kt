@@ -6,13 +6,15 @@ package org.mozilla.fenix.tabstray
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import mozilla.components.support.test.libstate.ext.waitUntilIdle
-import mozilla.components.support.test.robolectric.testContext
-import org.junit.Assert
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mozilla.fenix.R
-import org.mozilla.fenix.compose.MenuItem
+import org.mozilla.fenix.compose.menu.MenuItem
+import org.mozilla.fenix.compose.text.Text
 import org.mozilla.fenix.tabstray.ext.getMenuItems
 import org.mozilla.fenix.tabstray.ext.isSelect
 
@@ -31,7 +33,7 @@ class TabsTrayStateTest {
         store.dispatch(TabsTrayAction.EnterSelectMode)
         store.waitUntilIdle()
 
-        Assert.assertTrue(store.state.mode.isSelect())
+        assertTrue(store.state.mode.isSelect())
     }
 
     @Test
@@ -39,7 +41,7 @@ class TabsTrayStateTest {
         store.dispatch(TabsTrayAction.ExitSelectMode)
         store.waitUntilIdle()
 
-        Assert.assertFalse(store.state.mode.isSelect())
+        assertFalse(store.state.mode.isSelect())
     }
 
     @Test
@@ -48,18 +50,14 @@ class TabsTrayStateTest {
             mode = TabsTrayState.Mode.Select(emptySet()),
             shouldShowInactiveButton = true,
         )
-        Assert.assertEquals(menuItems.size, 3)
-        Assert.assertEquals(
-            menuItems[0].title,
-            testContext.getString(R.string.tab_tray_multiselect_menu_item_bookmark),
-        )
-        Assert.assertEquals(
-            menuItems[1].title,
-            testContext.getString(R.string.tab_tray_multiselect_menu_item_close),
-        )
-        Assert.assertEquals(
-            menuItems[2].title,
-            testContext.getString(R.string.inactive_tabs_menu_item),
+        assertEquals(menuItems.size, 3)
+        assertEquals(
+            listOf(
+                Text.Resource(R.string.tab_tray_multiselect_menu_item_bookmark),
+                Text.Resource(R.string.tab_tray_multiselect_menu_item_close),
+                Text.Resource(R.string.inactive_tabs_menu_item),
+            ),
+            menuItems.map { (it as MenuItem.TextItem).text },
         )
     }
 
@@ -68,14 +66,14 @@ class TabsTrayStateTest {
         val menuItems = initMenuItems(
             mode = TabsTrayState.Mode.Select(emptySet()),
         )
-        Assert.assertEquals(menuItems.size, 2)
-        Assert.assertEquals(
-            menuItems[0].title,
-            testContext.getString(R.string.tab_tray_multiselect_menu_item_bookmark),
+        assertEquals(menuItems.size, 2)
+        assertEquals(
+            (menuItems[0] as MenuItem.TextItem).text,
+            Text.Resource(R.string.tab_tray_multiselect_menu_item_bookmark),
         )
-        Assert.assertEquals(
-            menuItems[1].title,
-            testContext.getString(R.string.tab_tray_multiselect_menu_item_close),
+        assertEquals(
+            (menuItems[1] as MenuItem.TextItem).text,
+            Text.Resource(R.string.tab_tray_multiselect_menu_item_close),
         )
     }
 
@@ -84,14 +82,14 @@ class TabsTrayStateTest {
         val menuItems = initMenuItems(
             mode = TabsTrayState.Mode.Normal,
         )
-        Assert.assertEquals(menuItems.size, 2)
-        Assert.assertEquals(
-            menuItems[0].title,
-            testContext.getString(R.string.tab_tray_menu_tab_settings),
+        assertEquals(menuItems.size, 2)
+        assertEquals(
+            (menuItems[0] as MenuItem.TextItem).text,
+            Text.Resource(R.string.tab_tray_menu_tab_settings),
         )
-        Assert.assertEquals(
-            menuItems[1].title,
-            testContext.getString(R.string.tab_tray_menu_recently_closed),
+        assertEquals(
+            (menuItems[1] as MenuItem.TextItem).text,
+            Text.Resource(R.string.tab_tray_menu_recently_closed),
         )
     }
 
@@ -101,26 +99,26 @@ class TabsTrayStateTest {
             mode = TabsTrayState.Mode.Normal,
             normalTabCount = 3,
         )
-        Assert.assertEquals(menuItems.size, 5)
-        Assert.assertEquals(
-            menuItems[0].title,
-            testContext.getString(R.string.tabs_tray_select_tabs),
+        assertEquals(menuItems.size, 5)
+        assertEquals(
+            (menuItems[0] as MenuItem.TextItem).text,
+            Text.Resource(R.string.tabs_tray_select_tabs),
         )
-        Assert.assertEquals(
-            menuItems[1].title,
-            testContext.getString(R.string.tab_tray_menu_item_share),
+        assertEquals(
+            (menuItems[1] as MenuItem.TextItem).text,
+            Text.Resource(R.string.tab_tray_menu_item_share),
         )
-        Assert.assertEquals(
-            menuItems[2].title,
-            testContext.getString(R.string.tab_tray_menu_tab_settings),
+        assertEquals(
+            (menuItems[2] as MenuItem.TextItem).text,
+            Text.Resource(R.string.tab_tray_menu_tab_settings),
         )
-        Assert.assertEquals(
-            menuItems[3].title,
-            testContext.getString(R.string.tab_tray_menu_recently_closed),
+        assertEquals(
+            (menuItems[3] as MenuItem.TextItem).text,
+            Text.Resource(R.string.tab_tray_menu_recently_closed),
         )
-        Assert.assertEquals(
-            menuItems[4].title,
-            testContext.getString(R.string.tab_tray_menu_item_close),
+        assertEquals(
+            (menuItems[4] as MenuItem.TextItem).text,
+            Text.Resource(R.string.tab_tray_menu_item_close),
         )
     }
 
@@ -130,14 +128,14 @@ class TabsTrayStateTest {
             mode = TabsTrayState.Mode.Normal,
             selectedPage = Page.PrivateTabs,
         )
-        Assert.assertEquals(menuItems.size, 2)
-        Assert.assertEquals(
-            menuItems[0].title,
-            testContext.getString(R.string.tab_tray_menu_tab_settings),
+        assertEquals(menuItems.size, 2)
+        assertEquals(
+            (menuItems[0] as MenuItem.TextItem).text,
+            Text.Resource(R.string.tab_tray_menu_tab_settings),
         )
-        Assert.assertEquals(
-            menuItems[1].title,
-            testContext.getString(R.string.tab_tray_menu_recently_closed),
+        assertEquals(
+            (menuItems[1] as MenuItem.TextItem).text,
+            Text.Resource(R.string.tab_tray_menu_recently_closed),
         )
     }
 
@@ -148,18 +146,18 @@ class TabsTrayStateTest {
             selectedPage = Page.PrivateTabs,
             privateTabCount = 6,
         )
-        Assert.assertEquals(menuItems.size, 3)
-        Assert.assertEquals(
-            menuItems[0].title,
-            testContext.getString(R.string.tab_tray_menu_tab_settings),
+        assertEquals(menuItems.size, 3)
+        assertEquals(
+            (menuItems[0] as MenuItem.TextItem).text,
+            Text.Resource(R.string.tab_tray_menu_tab_settings),
         )
-        Assert.assertEquals(
-            menuItems[1].title,
-            testContext.getString(R.string.tab_tray_menu_recently_closed),
+        assertEquals(
+            (menuItems[1] as MenuItem.TextItem).text,
+            Text.Resource(R.string.tab_tray_menu_recently_closed),
         )
-        Assert.assertEquals(
-            menuItems[2].title,
-            testContext.getString(R.string.tab_tray_menu_item_close),
+        assertEquals(
+            (menuItems[2] as MenuItem.TextItem).text,
+            Text.Resource(R.string.tab_tray_menu_item_close),
         )
     }
 
@@ -169,14 +167,14 @@ class TabsTrayStateTest {
             mode = TabsTrayState.Mode.Normal,
             selectedPage = Page.SyncedTabs,
         )
-        Assert.assertEquals(menuItems.size, 2)
-        Assert.assertEquals(
-            menuItems[0].title,
-            testContext.getString(R.string.tab_tray_menu_account_settings),
+        assertEquals(menuItems.size, 2)
+        assertEquals(
+            (menuItems[0] as MenuItem.TextItem).text,
+            Text.Resource(R.string.tab_tray_menu_account_settings),
         )
-        Assert.assertEquals(
-            menuItems[1].title,
-            testContext.getString(R.string.tab_tray_menu_recently_closed),
+        assertEquals(
+            (menuItems[1] as MenuItem.TextItem).text,
+            Text.Resource(R.string.tab_tray_menu_recently_closed),
         )
     }
 
@@ -188,7 +186,6 @@ class TabsTrayStateTest {
         privateTabCount: Int = 0,
     ): List<MenuItem> =
         mode.getMenuItems(
-            resources = testContext.resources,
             shouldShowInactiveButton = shouldShowInactiveButton,
             selectedPage = selectedPage,
             normalTabCount = normalTabCount,

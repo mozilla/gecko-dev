@@ -32,7 +32,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.painterResource
@@ -44,11 +43,11 @@ import mozilla.components.browser.state.state.TabSessionState
 import org.mozilla.fenix.R
 import org.mozilla.fenix.compose.Banner
 import org.mozilla.fenix.compose.BottomSheetHandle
-import org.mozilla.fenix.compose.ContextualMenu
 import org.mozilla.fenix.compose.Divider
-import org.mozilla.fenix.compose.MenuItem
 import org.mozilla.fenix.compose.TabCounter
 import org.mozilla.fenix.compose.annotation.LightDarkPreview
+import org.mozilla.fenix.compose.menu.DropdownMenu
+import org.mozilla.fenix.compose.menu.MenuItem
 import org.mozilla.fenix.tabstray.ext.getMenuItems
 import org.mozilla.fenix.theme.FirefoxTheme
 import kotlin.math.max
@@ -126,7 +125,6 @@ fun TabsTrayBanner(
     var hasAcknowledgedBanner by remember { mutableStateOf(false) }
 
     val menuItems = selectionMode.getMenuItems(
-        resources = LocalContext.current.resources,
         shouldShowInactiveButton = isInDebugMode,
         onBookmarkSelectedTabsClick = onBookmarkSelectedTabsClick,
         onCloseSelectedTabsClick = onDeleteSelectedTabsClick,
@@ -280,11 +278,14 @@ private fun TabPageBanner(
                     .align(Alignment.CenterVertically)
                     .testTag(TabsTrayTestTag.threeDotButton),
             ) {
-                ContextualMenu(
+                DropdownMenu(
                     menuItems = menuItems,
-                    showMenu = showMenu,
+                    expanded = showMenu,
                     offset = DpOffset(x = 0.dp, y = -ICON_SIZE),
-                    onDismissRequest = { showMenu = false },
+                    onDismissRequest = {
+                        showMenu = false
+                    },
+
                 )
                 Icon(
                     painter = painterResource(R.drawable.ic_menu),
@@ -387,9 +388,9 @@ private fun MultiSelectBanner(
                 tint = buttonTint,
             )
 
-            ContextualMenu(
+            DropdownMenu(
                 menuItems = menuItems,
-                showMenu = showMenu,
+                expanded = showMenu,
                 offset = DpOffset(x = 0.dp, y = -ICON_SIZE),
                 onDismissRequest = { showMenu = false },
             )

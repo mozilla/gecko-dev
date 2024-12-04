@@ -23,11 +23,13 @@ sealed interface MenuItem {
      *
      * @property text The text to be displayed in the menu item.
      * @property level The level of the menu item. This is used to determine the style of the menu.
+     * @property testTag Tag used to identify the item in automated tests.
      * @property onClick The action to be performed when the menu item is clicked.
      */
     sealed class FixedItem(
         open val text: Text,
         open val level: Level,
+        open val testTag: String,
         open val onClick: () -> Unit,
     ) : MenuItem {
 
@@ -52,15 +54,18 @@ sealed interface MenuItem {
      *
      * @property text [Text] to be displayed in the menu item.
      * @property level The level of the menu item. This is used to determine the style of the menu.
+     * @property testTag Tag used to identify the item in automated tests.
      * @property onClick The action to be performed when the menu item is clicked.
      */
     data class TextItem(
         override val text: Text,
         override val level: Level = Level.Default,
+        override val testTag: String = "",
         override val onClick: () -> Unit,
     ) : FixedItem(
         text = text,
         level = level,
+        testTag = testTag,
         onClick = onClick,
     )
 
@@ -70,16 +75,19 @@ sealed interface MenuItem {
      * @property text [Text] to be displayed in the menu item.
      * @property isChecked The state of the checkable item.
      * @property level The level of the menu item. This is used to determine the style of the menu.
+     * @property testTag Tag used to identify the item in automated tests.
      * @property onClick The action to be performed when the menu item is clicked.
      */
     data class CheckableItem(
         override val text: Text,
         val isChecked: Boolean,
         override val level: Level = Level.Default,
+        override val testTag: String = "",
         override val onClick: () -> Unit,
     ) : FixedItem(
         text = text,
         level = level,
+        testTag = testTag,
         onClick = onClick,
     )
 
@@ -89,16 +97,19 @@ sealed interface MenuItem {
      * @property text [Text] to be displayed in the menu item.
      * @property drawableRes The drawable resource to be displayed in the menu item.
      * @property level The level of the menu item. This is used to determine the style of the menu.
+     * @property testTag Tag used to identify the item in automated tests.
      * @property onClick The action to be performed when the menu item is clicked.
      */
     data class IconItem(
         override val text: Text,
         @DrawableRes val drawableRes: Int,
         override val level: Level = Level.Default,
+        override val testTag: String = "",
         override val onClick: () -> Unit,
     ) : FixedItem(
         text = text,
         level = level,
+        testTag = testTag,
         onClick = onClick,
     )
 

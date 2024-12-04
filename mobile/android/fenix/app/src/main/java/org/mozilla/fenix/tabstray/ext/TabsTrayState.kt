@@ -4,9 +4,9 @@
 
 package org.mozilla.fenix.tabstray.ext
 
-import android.content.res.Resources
 import org.mozilla.fenix.R
-import org.mozilla.fenix.compose.MenuItem
+import org.mozilla.fenix.compose.menu.MenuItem
+import org.mozilla.fenix.compose.text.Text
 import org.mozilla.fenix.tabstray.Page
 import org.mozilla.fenix.tabstray.TabsTrayState.Mode
 import org.mozilla.fenix.tabstray.TabsTrayTestTag
@@ -19,7 +19,6 @@ fun Mode.isSelect() = this is Mode.Select
 /**
  * Returns the list of menu items corresponding to the selected mode
  *
- * @param resources The resources used to provide the strings for the menu item titles.
  * @param shouldShowInactiveButton Whether or not to show the inactive tabs menu item.
  * @param selectedPage The currently selected page.
  * @param normalTabCount The normal tabs number.
@@ -36,7 +35,6 @@ fun Mode.isSelect() = this is Mode.Select
  */
 @Suppress("LongParameterList")
 fun Mode.getMenuItems(
-    resources: Resources,
     shouldShowInactiveButton: Boolean,
     selectedPage: Page,
     normalTabCount: Int,
@@ -53,7 +51,6 @@ fun Mode.getMenuItems(
 ): List<MenuItem> {
     return if (this.isSelect()) {
         generateMultiSelectBannerMenuItems(
-            resources = resources,
             shouldShowInactiveButton = shouldShowInactiveButton,
             onBookmarkSelectedTabsClick = onBookmarkSelectedTabsClick,
             onCloseSelectedTabsClick = onCloseSelectedTabsClick,
@@ -61,7 +58,6 @@ fun Mode.getMenuItems(
         )
     } else {
         generateTabPageBannerMenuItems(
-            resources = resources,
             selectedPage = selectedPage,
             normalTabCount = normalTabCount,
             privateTabCount = privateTabCount,
@@ -79,31 +75,29 @@ fun Mode.getMenuItems(
  *  Builds the menu items list when in multiselect mode
  */
 private fun generateMultiSelectBannerMenuItems(
-    resources: Resources,
     shouldShowInactiveButton: Boolean,
     onBookmarkSelectedTabsClick: () -> Unit,
     onCloseSelectedTabsClick: () -> Unit,
     onMakeSelectedTabsInactive: () -> Unit,
 ): List<MenuItem> {
     val menuItems = mutableListOf(
-        MenuItem(
-            title = resources.getString(R.string.tab_tray_multiselect_menu_item_bookmark),
+        MenuItem.TextItem(
+            text = Text.Resource(R.string.tab_tray_multiselect_menu_item_bookmark),
             onClick = onBookmarkSelectedTabsClick,
         ),
-        MenuItem(
-            title = resources.getString(R.string.tab_tray_multiselect_menu_item_close),
+        MenuItem.TextItem(
+            text = Text.Resource(R.string.tab_tray_multiselect_menu_item_close),
             onClick = onCloseSelectedTabsClick,
         ),
     )
     if (shouldShowInactiveButton) {
         menuItems.add(
-            MenuItem(
-                title = resources.getString(R.string.inactive_tabs_menu_item),
+            MenuItem.TextItem(
+                text = Text.Resource(R.string.inactive_tabs_menu_item),
                 onClick = onMakeSelectedTabsInactive,
             ),
         )
     }
-
     return menuItems
 }
 
@@ -112,7 +106,6 @@ private fun generateMultiSelectBannerMenuItems(
  */
 @Suppress("LongParameterList")
 private fun generateTabPageBannerMenuItems(
-    resources: Resources,
     selectedPage: Page,
     normalTabCount: Int,
     privateTabCount: Int,
@@ -123,33 +116,33 @@ private fun generateTabPageBannerMenuItems(
     onDeleteAllTabsClick: () -> Unit,
     onAccountSettingsClick: () -> Unit,
 ): List<MenuItem> {
-    val tabSettingsItem = MenuItem(
-        title = resources.getString(R.string.tab_tray_menu_tab_settings),
+    val tabSettingsItem = MenuItem.TextItem(
+        text = Text.Resource(R.string.tab_tray_menu_tab_settings),
         testTag = TabsTrayTestTag.tabSettings,
         onClick = onTabSettingsClick,
     )
-    val recentlyClosedTabsItem = MenuItem(
-        title = resources.getString(R.string.tab_tray_menu_recently_closed),
+    val recentlyClosedTabsItem = MenuItem.TextItem(
+        text = Text.Resource(R.string.tab_tray_menu_recently_closed),
         testTag = TabsTrayTestTag.recentlyClosedTabs,
         onClick = onRecentlyClosedClick,
     )
-    val enterSelectModeItem = MenuItem(
-        title = resources.getString(R.string.tabs_tray_select_tabs),
+    val enterSelectModeItem = MenuItem.TextItem(
+        text = Text.Resource(R.string.tabs_tray_select_tabs),
         testTag = TabsTrayTestTag.selectTabs,
         onClick = onEnterMultiselectModeClick,
     )
-    val shareAllTabsItem = MenuItem(
-        title = resources.getString(R.string.tab_tray_menu_item_share),
+    val shareAllTabsItem = MenuItem.TextItem(
+        text = Text.Resource(R.string.tab_tray_menu_item_share),
         testTag = TabsTrayTestTag.shareAllTabs,
         onClick = onShareAllTabsClick,
     )
-    val deleteAllTabsItem = MenuItem(
-        title = resources.getString(R.string.tab_tray_menu_item_close),
+    val deleteAllTabsItem = MenuItem.TextItem(
+        text = Text.Resource(R.string.tab_tray_menu_item_close),
         testTag = TabsTrayTestTag.closeAllTabs,
         onClick = onDeleteAllTabsClick,
     )
-    val accountSettingsItem = MenuItem(
-        title = resources.getString(R.string.tab_tray_menu_account_settings),
+    val accountSettingsItem = MenuItem.TextItem(
+        text = Text.Resource(R.string.tab_tray_menu_account_settings),
         testTag = TabsTrayTestTag.accountSettings,
         onClick = onAccountSettingsClick,
     )
