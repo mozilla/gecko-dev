@@ -1995,7 +1995,8 @@ void WebRtcVideoSendChannel::WebRtcVideoSendStream::SetCodec(
       stream_config.raw_payload =
           cs.codec.packetization == kPacketizationParamRaw;
       if (i < parameters_.config.rtp.rtx.ssrcs.size()) {
-        auto& rtx = stream_config.rtx.emplace();
+        auto& rtx = stream_config.rtx.emplace(
+            decltype(stream_config.rtx)::value_type());
         rtx.ssrc = parameters_.config.rtp.rtx.ssrcs[i];
         rtx.payload_type = cs.rtx_payload_type;
       }

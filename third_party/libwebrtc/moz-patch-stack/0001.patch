@@ -52,7 +52,7 @@ Cr-Branched-From: 7b1b7a0f51593df7a1a802f489d6a2fb14195bcc-refs/heads/main@{#432
  5 files changed, 63 insertions(+), 27 deletions(-)
 
 diff --git a/media/engine/webrtc_video_engine.cc b/media/engine/webrtc_video_engine.cc
-index dc978a7830..d6b53ffa6b 100644
+index b9c6c61ddf..a57af55409 100644
 --- a/media/engine/webrtc_video_engine.cc
 +++ b/media/engine/webrtc_video_engine.cc
 @@ -1532,13 +1532,6 @@ bool WebRtcVideoSendChannel::AddSendStream(const StreamParams& sp) {
@@ -69,7 +69,7 @@ index dc978a7830..d6b53ffa6b 100644
    config.crypto_options = crypto_options_;
    config.rtp.extmap_allow_mixed = ExtmapAllowMixed();
    config.rtcp_report_interval_ms = video_config_.rtcp_report_interval_ms;
-@@ -2620,6 +2613,13 @@ void WebRtcVideoSendChannel::WebRtcVideoSendStream::RecreateWebRtcStream() {
+@@ -2621,6 +2614,13 @@ void WebRtcVideoSendChannel::WebRtcVideoSendStream::RecreateWebRtcStream() {
        }
      }
    }
