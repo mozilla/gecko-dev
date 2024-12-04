@@ -319,6 +319,11 @@ typedef void (*StructuredCloneErrorOp)(JSContext* cx, uint32_t errorid,
  * If this readTransfer() hook is called and produces an object, then the
  * read() hook will *not* be called for the same object, since the main data
  * will only contain a backreference to the already-read object.
+ *
+ * The clone buffer will relinquish ownership of this Transferable if and only
+ * if this hook returns true -- as in, the freeTransfer hook will not be called
+ * on this entry if this hook returns true, but it will still be called if it
+ * returns false.
  */
 typedef bool (*ReadTransferStructuredCloneOp)(
     JSContext* cx, JSStructuredCloneReader* r,
@@ -359,11 +364,13 @@ typedef bool (*TransferStructuredCloneOp)(JSContext* cx,
  *    encountered later and the incomplete serialization is discarded.
  *
  * 2. During deserialization: before an object is Transferred to, an error
- *    is encountered and the incompletely deserialized clone is discarded.
+ *    is encountered and the incompletely deserialized clone is discarded. This
+ *    will happen with internally-implemented Transferables as well as those
+ *    where the readTransfer hook returns false.
  *
  * 3. Serialized data that includes Transferring is never deserialized (eg when
  *    the receiver disappears before reading in the message), and the clone data
- * is destroyed.
+ *    is destroyed.
  *
  */
 typedef void (*FreeTransferStructuredCloneOp)(
