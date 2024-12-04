@@ -4904,7 +4904,7 @@ void nsFlexContainerFrame::UnionInFlowChildOverflow(
     if (useMozBoxCollapseBehavior && f->StyleVisibility()->IsCollapse()) {
       continue;
     }
-    ConsiderChildOverflow(aOverflowAreas, f);
+    ConsiderChildOverflow(aOverflowAreas, f, aAsIfScrolled);
     if (!isScrolledContent) {
       continue;
     }
