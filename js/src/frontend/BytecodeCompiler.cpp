@@ -1551,11 +1551,7 @@ static bool CompileLazyFunctionToStencilMaybeInstantiate(
     output.as<RefPtr<CompilationStencil>>() = std::move(stencil);
   } else {
     MOZ_ASSERT(maybeCx);
-    if (input.lazyOuterScript().sourceObject() &&
-        input.lazyOuterScript().sourceObject()->maybeGetStencils()) {
-      RefPtr<frontend::InitialStencilAndDelazifications> stencils =
-          input.lazyOuterScript().sourceObject()->maybeGetStencils();
-
+    if (stencils) {
       auto extensibleStencil =
           maybeCx->make_unique<frontend::ExtensibleCompilationStencil>(
               std::move(compilationState));
