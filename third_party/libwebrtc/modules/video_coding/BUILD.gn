@@ -300,6 +300,7 @@ rtc_library("video_codec_interface") {
     "../../common_video",
     "../../common_video:frame_instrumentation_data",
     "../../common_video/generic_frame_descriptor",
+    "../../rtc_base:checks",
     "../../rtc_base/system:rtc_export",
     "//third_party/abseil-cpp/absl/types:variant",
   ]
