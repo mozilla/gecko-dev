@@ -2968,6 +2968,8 @@ bool JS::PrepareForInstantiate(JS::FrontendContext* fc, JS::Stencil& stencil,
       return false;
     }
   }
+
+  // NOTE: JS::Stencil to frontend::CompilationStencil.
   return CompilationStencil::prepareForInstantiate(fc, stencil,
                                                    *storage.gcOutput_);
 }
@@ -5767,13 +5769,15 @@ JS_PUBLIC_API JSScript* JS::InstantiateGlobalStencil(
     gcOutput.get().steal(std::move(*storage->gcOutput_));
   }
 
+  // NOTE: JS::Stencil => frontend::CompilationStencil.
   if (!InstantiateStencils(cx, input.get(), *stencil, gcOutput.get())) {
     return nullptr;
   }
   return gcOutput.get().script;
 }
 
-JS_PUBLIC_API bool JS::StencilIsBorrowed(Stencil* stencil) {
+JS_PUBLIC_API bool JS::StencilIsBorrowed(JS::Stencil* stencil) {
+  // NOTE: JS::Stencil => frontend::CompilationStencil.
   return stencil->storageType == CompilationStencil::StorageType::Borrowed;
 }
 
@@ -5791,6 +5795,7 @@ JS_PUBLIC_API JSObject* JS::InstantiateModuleStencil(
     gcOutput.get().steal(std::move(*storage->gcOutput_));
   }
 
+  // NOTE: JS::Stencil => frontend::CompilationStencil.
   if (!InstantiateStencils(cx, input.get(), *stencil, gcOutput.get())) {
     return nullptr;
   }

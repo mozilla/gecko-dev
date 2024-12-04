@@ -423,9 +423,12 @@ static already_AddRefed<JS::Stencil> CompileGlobalScriptToStencilImpl(
 
   NoScopeBindingCache scopeCache;
   Rooted<CompilationInput> input(cx, CompilationInput(options));
-  RefPtr<JS::Stencil> stencil = CompileGlobalScriptToStencilWithInputImpl(
-      cx, &fc, cx->tempLifoAlloc(), input.get(), &scopeCache, srcBuf,
-      scopeKind);
+  RefPtr<CompilationStencil> stencil =
+      CompileGlobalScriptToStencilWithInputImpl(cx, &fc, cx->tempLifoAlloc(),
+                                                input.get(), &scopeCache,
+                                                srcBuf, scopeKind);
+
+  // NOTE: frontend::CompilationStencil => JS::Stencil.
   return stencil.forget();
 }
 
@@ -452,13 +455,16 @@ static already_AddRefed<JS::Stencil> CompileGlobalScriptToStencilImpl(
   js::LifoAlloc tempLifoAlloc(JSContext::TEMP_LIFO_ALLOC_PRIMARY_CHUNK_SIZE,
                               js::BackgroundMallocArena);
   CompilationInput compilationInput(options);
-  RefPtr<JS::Stencil> stencil = CompileGlobalScriptToStencilWithInputImpl(
-      nullptr, fc, tempLifoAlloc, compilationInput, &scopeCache, srcBuf,
-      scopeKind);
+  RefPtr<CompilationStencil> stencil =
+      CompileGlobalScriptToStencilWithInputImpl(nullptr, fc, tempLifoAlloc,
+                                                compilationInput, &scopeCache,
+                                                srcBuf, scopeKind);
   // CompilationInput initialized with CompileGlobalScriptToStencil only
   // references information from the JS::Stencil context and the
   // ref-counted ScriptSource, which are both GC-free.
   JS_HAZ_VALUE_IS_GC_SAFE(compilationInput);
+
+  // NOTE: frontend::CompilationStencil => JS::Stencil.
   return stencil.forget();
 }
 
@@ -1237,8 +1243,10 @@ static already_AddRefed<JS::Stencil> CompileModuleScriptToStencilImpl(
 
   NoScopeBindingCache scopeCache;
   Rooted<CompilationInput> input(cx, CompilationInput(options));
-  RefPtr<JS::Stencil> stencil = ParseModuleToStencilImpl(
+  RefPtr<CompilationStencil> stencil = ParseModuleToStencilImpl(
       cx, &fc, cx->tempLifoAlloc(), input.get(), &scopeCache, srcBuf);
+
+  // NOTE: frontend::CompilationStencil => JS::Stencil.
   return stencil.forget();
 }
 
@@ -1266,12 +1274,14 @@ static already_AddRefed<JS::Stencil> CompileModuleScriptToStencilImpl(
   NoScopeBindingCache scopeCache;
   js::LifoAlloc tempLifoAlloc(JSContext::TEMP_LIFO_ALLOC_PRIMARY_CHUNK_SIZE,
                               js::BackgroundMallocArena);
-  RefPtr<JS::Stencil> stencil = ParseModuleToStencilImpl(
+  RefPtr<CompilationStencil> stencil = ParseModuleToStencilImpl(
       nullptr, fc, tempLifoAlloc, compilationInput, &scopeCache, srcBuf);
   // CompilationInput initialized with ParseModuleToStencil only
   // references information from the JS::Stencil context and the
   // ref-counted ScriptSource, which are both GC-free.
   JS_HAZ_VALUE_IS_GC_SAFE(compilationInput);
+
+  // NOTE: frontend::CompilationStencil => JS::Stencil.
   return stencil.forget();
 }
 
