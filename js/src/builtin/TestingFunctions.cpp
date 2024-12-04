@@ -2419,9 +2419,8 @@ static bool IsCollectingDelazifications(JSContext* cx, unsigned argc,
 
   JSFunction* fun = &args[0].toObject().as<JSFunction>();
   BaseScript* script = fun->baseScript();
-  RefPtr<frontend::InitialStencilAndDelazifications> stencils =
-      script->sourceObject()->maybeGetStencils();
-  args.rval().setBoolean(bool(stencils));
+  args.rval().setBoolean(
+      bool(script->sourceObject()->isCollectingDelazifications()));
   return true;
 }
 
@@ -2476,12 +2475,12 @@ static bool WaitForDelazificationOf(JSContext* cx, unsigned argc, Value* vp) {
   JSFunction* fun = &args[0].toObject().as<JSFunction>();
   BaseScript* script = fun->baseScript();
 
-  RefPtr<frontend::InitialStencilAndDelazifications> stencils =
-      script->sourceObject()->maybeGetStencils();
-  if (!stencils) {
-    args.rval().setBoolean(false);
+  if (!script->sourceObject()->isSharingDelazifications()) {
     return true;
   }
+
+  RefPtr<frontend::InitialStencilAndDelazifications> stencils =
+      script->sourceObject()->maybeGetStencils();
 
   AutoLockHelperThreadState lock;
   if (!HelperThreadState().isInitialized(lock)) {
@@ -10632,11 +10631,12 @@ JS_FN_HELP("isCollectingDelazifications", IsCollectingDelazifications, 1, 0,
 
 JS_FN_HELP("isDelazificationPopulatedFor", IsDelazificationsPopulated, 1, 0,
 "isDelazificationPopulatedFor(fun)",
-"  True if fun is available in the stencil cache."),
+"  True if fun is available in the shared stencils."),
 
 JS_FN_HELP("waitForDelazificationOf", WaitForDelazificationOf, 1, 0,
 "waitForDelazificationOf(fun)",
-"  Block main thread execution until the function is made available in the cache."),
+"  Block main thread execution until the function is made available in the\n"
+"  shared stencils. If this function isn't sharing stencils, return immediately."),
 
 JS_FN_HELP("getInnerMostEnvironmentObject", GetInnerMostEnvironmentObject, 0, 0,
 "getInnerMostEnvironmentObject()",

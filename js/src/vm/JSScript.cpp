@@ -1801,18 +1801,7 @@ ScriptSourceObject::maybeGetStencils() {
   }
 
   return reinterpret_cast<frontend::InitialStencilAndDelazifications*>(
-      stencilsVal.toPrivate());
-}
-
-already_AddRefed<frontend::InitialStencilAndDelazifications>
-ScriptSourceObject::maybeStealStencils() {
-  auto* stencils = maybeGetStencils();
-  if (!stencils) {
-    return nullptr;
-  }
-
-  setReservedSlot(STENCILS_SLOT, UndefinedValue());
-  return already_AddRefed(stencils);
+      uintptr_t(stencilsVal.toPrivate()) & ~STENCILS_MASK);
 }
 
 void ScriptSourceObject::clearStencils() {
@@ -1825,9 +1814,65 @@ void ScriptSourceObject::clearStencils() {
   setReservedSlot(STENCILS_SLOT, UndefinedValue());
 }
 
+template <uintptr_t flag>
+void ScriptSourceObject::setStencilsFlag() {
+  JS::Value stencilsVal = getReservedSlot(STENCILS_SLOT);
+  MOZ_ASSERT(!stencilsVal.isUndefined(),
+             "This should be called after setStencils");
+  uintptr_t raw = uintptr_t(stencilsVal.toPrivate());
+  MOZ_ASSERT((raw & flag) == 0);
+  raw |= flag;
+  setReservedSlot(STENCILS_SLOT, PrivateValue(raw));
+}
+
+template <uintptr_t flag>
+void ScriptSourceObject::unsetStencilsFlag() {
+  JS::Value stencilsVal = getReservedSlot(STENCILS_SLOT);
+  MOZ_ASSERT(!stencilsVal.isUndefined(),
+             "This should be called after setStencils");
+  uintptr_t raw = uintptr_t(stencilsVal.toPrivate());
+  raw &= ~flag;
+  if (raw & STENCILS_MASK) {
+    setReservedSlot(STENCILS_SLOT, PrivateValue(raw));
+  } else {
+    clearStencils();
+  }
+}
+
+template <uintptr_t flag>
+bool ScriptSourceObject::isStencilsFlagSet() const {
+  JS::Value stencilsVal = getReservedSlot(STENCILS_SLOT);
+  if (stencilsVal.isUndefined()) {
+    return false;
+  }
+  uintptr_t raw = uintptr_t(stencilsVal.toPrivate());
+  return bool(raw & flag);
+}
+
 void ScriptSourceObject::setStencils(
     already_AddRefed<frontend::InitialStencilAndDelazifications> stencils) {
-  initReservedSlot(STENCILS_SLOT, PrivateValue(stencils.take()));
+  MOZ_ASSERT(!maybeGetStencils());
+  setReservedSlot(STENCILS_SLOT, PrivateValue(stencils.take()));
+}
+
+void ScriptSourceObject::setCollectingDelazifications() {
+  setStencilsFlag<STENCILS_COLLECTING_DELAZIFICATIONS_FLAG>();
+}
+
+void ScriptSourceObject::unsetCollectingDelazifications() {
+  unsetStencilsFlag<STENCILS_COLLECTING_DELAZIFICATIONS_FLAG>();
+}
+
+bool ScriptSourceObject::isCollectingDelazifications() const {
+  return isStencilsFlagSet<STENCILS_COLLECTING_DELAZIFICATIONS_FLAG>();
+}
+
+void ScriptSourceObject::setSharingDelazifications() {
+  setStencilsFlag<STENCILS_SHARING_DELAZIFICATIONS_FLAG>();
+}
+
+bool ScriptSourceObject::isSharingDelazifications() const {
+  return isStencilsFlagSet<STENCILS_SHARING_DELAZIFICATIONS_FLAG>();
 }
 
 template <typename Unit>

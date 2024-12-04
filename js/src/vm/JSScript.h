@@ -1132,24 +1132,67 @@ class ScriptSourceObject : public NativeObject {
     RESERVED_SLOTS
   };
 
+  // Delazification stencils can be aggregated in
+  // InitialStencilAndDelazification, this structure might be used for
+  // different purposes.
+  //  - Collecting: The goal is to aggregate all delazified functions in order
+  //    to aggregate them for serialization.
+  //  - Sharing: The goal is to use the InitialStencilAndDelazification as a way
+  //    to share multiple threads efforts towards parsing a Script Source
+  //    content.
+  //
+  // See setCollectingDelazifications and setSharingDelazifications for details.
+  static constexpr uintptr_t STENCILS_COLLECTING_DELAZIFICATIONS_FLAG = 0x1;
+  static constexpr uintptr_t STENCILS_SHARING_DELAZIFICATIONS_FLAG = 0x2;
+  static constexpr uintptr_t STENCILS_MASK = 0x3;
+
+  void clearStencils();
+
+  template <uintptr_t flag>
+  void setStencilsFlag();
+
+  template <uintptr_t flag>
+  void unsetStencilsFlag();
+
+  template <uintptr_t flag>
+  bool isStencilsFlagSet() const;
+
  public:
-  // Associate stencils to this ScriptSourceObject and start collecting the
-  // on-demand delazification result into the stencils.
+  // Associate stencils to this ScriptSourceObject.
+  // The consumer should call setCollectingDelazifications or
+  // setSharingDelazifications after this.
   void setStencils(
       already_AddRefed<frontend::InitialStencilAndDelazifications> stencils);
+
+  // Start collecting delazifications.
+  // This is a temporary state until unsetCollectingDelazifications is called,
+  // and this expects a pair of set/unset call.
+  //
+  // The caller should check isCollectingDelazifications before calling this.
+  void setCollectingDelazifications();
+
+  // Clear the flag for collecting delazifications.
+  //
+  // If setSharingDelazifications wasn't called, this clears the association
+  // with the stencils.
+  void unsetCollectingDelazifications();
+
+  // Returns true if setCollectingDelazifications was called and
+  // unsetCollectingDelazifications is not yet called.
+  bool isCollectingDelazifications() const;
+
+  // Start sharing delazifications with others.
+  // This is a permanent state.
+  //
+  // The flag is orthogonal to setCollectingDelazifications.
+  void setSharingDelazifications();
+
+  // Returns true if setSharingDelazifications was called.
+  bool isSharingDelazifications() const;
 
   // Return the associated stencils if any.
   // Returns nullptr if stencils is not associated
   frontend::InitialStencilAndDelazifications* maybeGetStencils();
-
-  // Return the associated stencils if any and stop collecting the on-demand
-  // delazifications.
-  // Returns nullptr if stencils is not associated
-  already_AddRefed<frontend::InitialStencilAndDelazifications>
-  maybeStealStencils();
-
-  // Stop collecting the on-demand delazifications.
-  void clearStencils();
 };
 
 // ScriptWarmUpData represents a pointer-sized field in BaseScript that stores

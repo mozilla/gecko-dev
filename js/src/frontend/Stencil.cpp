@@ -3722,6 +3722,7 @@ bool InitialStencilAndDelazifications::instantiateStencils(
     MOZ_ASSERT(!sso->maybeGetStencils());
     if (!stencils.getInitial()->asmJS) {
       sso->setStencils(stencilsPtr.forget());
+      sso->setSharingDelazifications();
     }
   }
 
@@ -4818,9 +4819,7 @@ struct DumpOptionsFields {
 
 static void DumpOptionsFields(js::JSONPrinter& json,
                               const JS::ReadOnlyCompileOptions& options) {
-  struct DumpOptionsFields printer {
-    json
-  };
+  struct DumpOptionsFields printer{json};
   options.dumpWith(printer);
 }
 

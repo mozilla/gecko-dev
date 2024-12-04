@@ -118,7 +118,7 @@ static bool StartCollectingDelazifications(JSContext* cx,
                                            JS::Handle<ScriptSourceObject*> sso,
                                            JS::Stencil* stencil,
                                            bool& alreadyStarted) {
-  if (sso->maybeGetStencils()) {
+  if (sso->isCollectingDelazifications()) {
     alreadyStarted = true;
     return true;
   }
@@ -132,8 +132,13 @@ static bool StartCollectingDelazifications(JSContext* cx,
     return true;
   }
 
-  RefPtr stencils = stencil;
-  sso->setStencils(stencils.forget());
+  if (!sso->maybeGetStencils()) {
+    RefPtr stencils = stencil;
+    sso->setStencils(stencils.forget());
+  } else {
+    MOZ_ASSERT(sso->maybeGetStencils() == stencil);
+  }
+  sso->setCollectingDelazifications();
   return true;
 }
 
@@ -155,12 +160,14 @@ JS_PUBLIC_API bool JS::StartCollectingDelazifications(
 static bool FinishCollectingDelazifications(JSContext* cx,
                                             JS::Handle<ScriptSourceObject*> sso,
                                             JS::TranscodeBuffer& buffer) {
-  RefPtr<frontend::InitialStencilAndDelazifications> stencils =
-      sso->maybeStealStencils();
-  if (!stencils) {
+  if (!sso->isCollectingDelazifications()) {
     JS_ReportErrorASCII(cx, "Not collecting delazifications");
     return false;
   }
+
+  RefPtr<frontend::InitialStencilAndDelazifications> stencils =
+      sso->maybeGetStencils();
+  sso->unsetCollectingDelazifications();
 
   AutoReportFrontendContext fc(cx);
   UniquePtr<frontend::CompilationStencil> stencilHolder;
@@ -191,12 +198,14 @@ static bool FinishCollectingDelazifications(JSContext* cx,
 static bool FinishCollectingDelazifications(JSContext* cx,
                                             JS::Handle<ScriptSourceObject*> sso,
                                             JS::Stencil** stencilOut) {
-  RefPtr<frontend::InitialStencilAndDelazifications> stencils =
-      sso->maybeStealStencils();
-  if (!stencils) {
+  if (!sso->isCollectingDelazifications()) {
     JS_ReportErrorASCII(cx, "Not collecting delazifications");
     return false;
   }
+
+  RefPtr<frontend::InitialStencilAndDelazifications> stencils =
+      sso->maybeGetStencils();
+  sso->unsetCollectingDelazifications();
 
   stencils.forget(stencilOut);
   return true;
@@ -225,12 +234,14 @@ JS_PUBLIC_API void JS::AbortCollectingDelazifications(JS::HandleScript script) {
   if (!script) {
     return;
   }
-  script->sourceObject()->clearStencils();
+  script->sourceObject()->unsetCollectingDelazifications();
 }
 
 JS_PUBLIC_API void JS::AbortCollectingDelazifications(
     JS::Handle<JSObject*> module) {
-  module->as<ModuleObject>().scriptSourceObject()->clearStencils();
+  module->as<ModuleObject>()
+      .scriptSourceObject()
+      ->unsetCollectingDelazifications();
 }
 
 JSScript* JS::CompileUtf8File(JSContext* cx,
