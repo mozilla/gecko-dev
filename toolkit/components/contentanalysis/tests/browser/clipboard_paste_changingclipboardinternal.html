@@ -1,0 +1,44 @@
+<html>
+<body>
+
+<div id="content">
+  <div
+    id="testDiv"
+    contenteditable="true"
+    onpaste="handlePaste(event)"></div>
+    <input id="testInput" type="text" onpaste="handlePaste(event)">
+</div>
+<script class="testbody" type="application/javascript">
+function is(a, b, msg) {
+  if (!Object.is(a, b)) {
+    throw new Error(`FAIL: expected ${b} got ${a} - ${msg}`);
+  }
+}
+
+function checkPasteHelper(event) {
+  is(event.clipboardData.getData('text/plain'), "Original text",  "getData(text/plain) should return Original text");
+  is(event.clipboardData.types.length, 1, "Correct number of types");
+  document.execCommand("copy");
+}
+
+document.addEventListener("copy", e => {
+  e.preventDefault();
+  e.clipboardData.setData("text/plain", "New text");
+});
+
+function handlePaste(e) {
+  let result = null;
+  try {
+    result = checkPasteHelper(e);
+  } catch (e) {
+    result = e.toString();
+  }
+
+  document.dispatchEvent(new CustomEvent('testresult', {
+    detail: { result }
+  }));
+}
+</script>
+
+</body>
+</html>
