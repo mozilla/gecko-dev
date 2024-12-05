@@ -70,6 +70,10 @@
     <string name="mozac_feature_addons_permissions_tab_hide_description">Zuppentar e mussar ils tabs dal navigatur</string>
     <!-- Description for top_sites permission. -->
     <string name="mozac_feature_addons_permissions_top_sites_description">Acceder a la cronologia da navigaziun</string>
+    <!-- Description for trialML permission. -->
+    <string name="mozac_feature_addons_permissions_trial_ml_description">Telechargiar ed exequir models IA sin l’apparat</string>
+    <!-- Description for userScripts permission. -->
+    <string name="mozac_feature_addons_permissions_user_scripts_description">Permetter a scripts betg verifitgads da terzas partidas l’access a tias datas</string>
     <!-- Description for devtools permission. -->
     <string name="mozac_feature_addons_permissions_devtools_description">Extender ils utensils per sviluppaders per acceder a tias datas en ils tabs averts</string>
     <!-- The version on of add-on. -->

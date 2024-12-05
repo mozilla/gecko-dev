@@ -70,6 +70,10 @@
     <string name="mozac_feature_addons_permissions_tab_hide_description">ᱵᱽᱨᱟᱣᱩᱡᱚᱨ ᱴᱮᱵᱽ ᱠᱚ ᱩᱠᱩ ᱟᱨ ᱩᱫᱩᱜ ᱢᱮ</string>
     <!-- Description for top_sites permission. -->
     <string name="mozac_feature_addons_permissions_top_sites_description">ᱵᱽᱨᱟᱣᱩᱡᱤᱝ ᱦᱤᱛᱟᱹᱞ ᱟᱹᱛᱩᱨ ᱢᱮ</string>
+    <!-- Description for trialML permission. -->
+    <string name="mozac_feature_addons_permissions_trial_ml_description">ᱟᱢᱟᱜ ᱥᱟᱫᱷᱚᱱ ᱨᱮ AI ᱢᱚᱰᱮᱞ ᱠᱚ ᱰᱟᱣᱱᱞᱳᱰ ᱢᱮ ᱟᱨ ᱪᱟᱹᱞᱩᱭ ᱢᱮ</string>
+    <!-- Description for userScripts permission. -->
+    <string name="mozac_feature_addons_permissions_user_scripts_description">ᱵᱤᱱ ᱯᱩᱥᱴᱟᱹᱣ ᱟᱠᱟᱱ ᱛᱮᱥᱟᱨ ᱯᱟᱨᱴᱤ ᱥᱠᱨᱤᱯᱴ ᱠᱚ ᱟᱢᱟᱜ ᱰᱟᱴᱟ ᱮᱠᱥᱮᱥ ᱞᱟᱹᱜᱤᱫ ᱟᱫᱮᱨ ᱮᱢᱚᱜ ᱢᱮ</string>
     <!-- Description for devtools permission. -->
     <string name="mozac_feature_addons_permissions_devtools_description">ᱟᱢᱟᱜ ᱰᱟᱴᱟ ᱠᱷᱩᱞᱟᱹ ᱴᱮᱵᱽ ᱠᱚᱨᱮ ᱟᱹᱛᱩᱨ ᱞᱟᱹᱜᱤᱫ ᱛᱮ ᱵᱟᱲᱦᱟᱣᱟᱜ ᱴᱩᱞ ᱚᱥᱟᱨ ᱢᱮ</string>
     <!-- The version on of add-on. -->
