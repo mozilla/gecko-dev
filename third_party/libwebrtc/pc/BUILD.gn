@@ -392,7 +392,6 @@ rtc_source_set("media_session") {
     "../rtc_base:stringutils",
     "../rtc_base:unique_id_generator",
     "../rtc_base/memory:always_valid_pointer",
-    "../rtc_base/third_party/base64",
     "//third_party/abseil-cpp/absl/algorithm:container",
     "//third_party/abseil-cpp/absl/strings",
     "//third_party/abseil-cpp/absl/strings:string_view",
@@ -638,7 +637,6 @@ rtc_source_set("srtp_transport") {
     "../rtc_base:safe_conversions",
     "../rtc_base:ssl_adapter",
     "../rtc_base:zero_memory",
-    "../rtc_base/third_party/base64",
     "//third_party/abseil-cpp/absl/strings",
   ]
 }
@@ -2637,7 +2635,6 @@ if (rtc_include_tests && !build_with_chromium) {
       "../rtc_base:timeutils",
       "../rtc_base/synchronization:mutex",
       "../rtc_base/task_utils:repeating_task",
-      "../rtc_base/third_party/base64",
       "../rtc_base/third_party/sigslot",
       "../system_wrappers:metrics",
       "../test:explicit_key_value_config",
