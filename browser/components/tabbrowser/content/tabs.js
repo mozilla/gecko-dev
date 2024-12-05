@@ -314,7 +314,10 @@
       const group = event.target;
       if (gBrowser.selectedTab.group === group) {
         gBrowser.selectedTab =
-          gBrowser._findTabToBlurTo(gBrowser.selectedTab, group.tabs) ||
+          gBrowser._findTabToBlurTo(
+            gBrowser.selectedTab,
+            gBrowser.tabsInCollapsedTabGroups
+          ) ||
           gBrowser.addTrustedTab(BROWSER_NEW_TAB_URL, { skipAnimation: true });
       }
     }

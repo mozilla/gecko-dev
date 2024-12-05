@@ -237,6 +237,37 @@ add_task(async function test_tabGroupCollapseCreatesNewTabIfAllTabsInGroup() {
   await BrowserTestUtils.closeWindow(fgWindow);
 });
 
+add_task(async function test_collapseAllGroups() {
+  // When collapsing a group and no tabs exist outside of collapsed groups, a
+  // new tab should be opened.
+  let fgWindow = await BrowserTestUtils.openNewBrowserWindow();
+
+  Assert.equal(fgWindow.gBrowser.tabs.length, 1, "only one tab exists");
+  let [tab1] = fgWindow.gBrowser.tabs;
+  let tab2 = BrowserTestUtils.addTab(fgWindow.gBrowser, "about:blank", {
+    skipAnimation: true,
+  });
+  let group1 = fgWindow.gBrowser.addTabGroup([tab1]);
+  let group2 = fgWindow.gBrowser.addTabGroup([tab2]);
+
+  Assert.ok(tab1.selected, "tab1 is selected initially");
+  group1.collapsed = true;
+  Assert.ok(tab2.selected, "tab2 is selected after collapsing group1");
+
+  let newTabPromise = BrowserTestUtils.waitForEvent(fgWindow, "TabOpen");
+  group2.collapsed = true;
+  info("Waiting for new tab to open");
+  let { target: newTab } = await newTabPromise;
+  Assert.ok(group2.collapsed, "successfully collapsed group2");
+  Assert.ok(group1.collapsed, "group1 is still collapsed");
+  Assert.ok(
+    newTab.selected,
+    "opened a new tab and selected it after collapsing group2"
+  );
+
+  await BrowserTestUtils.closeWindow(fgWindow);
+});
+
 add_task(async function test_closingLastTabBeforeCollapsedTabGroup() {
   // If there is one standalone tab that's active and there is a collapsed
   // tab group, and the user closes the standalone tab, the first tab of
