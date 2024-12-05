@@ -160,10 +160,6 @@ export class MegalistViewModel {
     this.#messageToView("SetNotification", notification);
   }
 
-  discardChangesConfirmed() {
-    this.#messageToView("DiscardChangesConfirmed");
-  }
-
   async receiveCommand({ commandId, snapshotId, value } = {}) {
     const dotIndex = commandId?.indexOf(".");
     const index = snapshotId;

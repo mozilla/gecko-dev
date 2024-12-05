@@ -148,8 +148,6 @@ export class LoginDataSource extends DataSourceBase {
         { id: "AddLogin" },
         { id: "UpdateLogin" },
         { id: "DeleteLogin" },
-        { id: "DiscardChanges" },
-        { id: "ConfirmDiscardChanges" },
         {
           id: "ImportFromBrowser",
           label: "passwords-command-import-from-browser",
@@ -185,9 +183,6 @@ export class LoginDataSource extends DataSourceBase {
       this.#header.executeAddLogin = newLogin => this.#addLogin(newLogin);
       this.#header.executeUpdateLogin = login => this.#updateLogin(login);
       this.#header.executeDeleteLogin = login => this.#deleteLogin(login);
-      this.#header.executeDiscardChanges = options => this.#cancelEdit(options);
-      this.#header.executeConfirmDiscardChanges = options =>
-        this.#discardChangesConfirmed(options);
 
       this.#exportPasswordsStrings = {
         OSReauthMessage: strings.exportPasswordsOSReauthMessage,
@@ -638,25 +633,6 @@ export class LoginDataSource extends DataSourceBase {
       });
     } catch (error) {
       this.#handleLoginStorageErrors(modifiedLogin.origin, error);
-    }
-  }
-
-  #cancelEdit(options = {}) {
-    this.setNotification({
-      id: "discard-changes",
-      fromSidebar: options.fromSidebar,
-    });
-  }
-
-  #discardChangesConfirmed(options = {}) {
-    if (options.fromSidebar) {
-      const { BrowserWindowTracker } = ChromeUtils.importESModule(
-        "resource:///modules/BrowserWindowTracker.sys.mjs"
-      );
-      const window = BrowserWindowTracker.getTopWindow();
-      window.SidebarController.hide();
-    } else {
-      this.discardChangesConfirmed();
     }
   }
 

@@ -197,27 +197,6 @@ class NotificationMessageBar extends MozLitElement {
           type: "primary",
           slot: "actions",
           dataL10nId: "passwords-delete-password-success-button",
-        },
-      })}
-    `;
-  }
-
-  #renderDiscardChanges() {
-    return html`
-      ${notificationShell({
-        onDismiss: this.onDismiss,
-        dataL10nId: "passwords-discard-changes-heading-and-message",
-        type: "warning",
-        primaryAction: {
-          type: "destructive",
-          dataL10nId: "passwords-discard-changes-confirm-button",
-          onClick: () =>
-            this.messageHandler("ConfirmDiscardChanges", {
-              value: { fromSidebar: this.notification.fromSidebar },
-            }),
-        },
-        secondaryAction: {
-          dataL10nId: "passwords-discard-changes-go-back-button",
           onClick: this.onDismiss,
         },
       })}
@@ -238,8 +217,6 @@ class NotificationMessageBar extends MozLitElement {
         return this.#renderUpdateLoginSuccess();
       case "delete-login-success":
         return this.#renderDeleteLoginSuccess();
-      case "discard-changes":
-        return this.#renderDiscardChanges();
       default:
         return "";
     }

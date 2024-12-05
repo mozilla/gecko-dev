@@ -93,10 +93,6 @@ export class Aggregator {
       setNotification(notification) {
         aggregator.forEachViewModel(vm => vm.setNotification(notification));
       },
-
-      discardChangesConfirmed() {
-        aggregator.forEachViewModel(vm => vm.discardChangesConfirmed());
-      },
     };
   }
 }
