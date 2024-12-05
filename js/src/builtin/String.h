@@ -90,9 +90,9 @@ extern bool StringStartsWith(JSContext* cx, HandleString string,
 extern bool StringEndsWith(JSContext* cx, HandleString string,
                            HandleString searchString, bool* result);
 
-extern JSLinearString* StringToLowerCase(JSContext* cx, HandleString string);
+extern JSLinearString* StringToLowerCase(JSContext* cx, JSString* string);
 
-extern JSLinearString* StringToUpperCase(JSContext* cx, HandleString string);
+extern JSLinearString* StringToUpperCase(JSContext* cx, JSString* string);
 
 extern JSString* StringTrim(JSContext* cx, HandleString string);
 

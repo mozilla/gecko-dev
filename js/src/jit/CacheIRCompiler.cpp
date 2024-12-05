@@ -4845,7 +4845,7 @@ bool CacheIRCompiler::emitStringToLowerCaseResult(StringOperandId strId) {
   callvm.prepare();
   masm.Push(str);
 
-  using Fn = JSLinearString* (*)(JSContext*, HandleString);
+  using Fn = JSLinearString* (*)(JSContext*, JSString*);
   callvm.call<Fn, js::StringToLowerCase>();
   return true;
 }
@@ -4860,7 +4860,7 @@ bool CacheIRCompiler::emitStringToUpperCaseResult(StringOperandId strId) {
   callvm.prepare();
   masm.Push(str);
 
-  using Fn = JSLinearString* (*)(JSContext*, HandleString);
+  using Fn = JSLinearString* (*)(JSContext*, JSString*);
   callvm.call<Fn, js::StringToUpperCase>();
   return true;
 }

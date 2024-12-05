@@ -913,7 +913,7 @@ static JSLinearString* ToLowerCase(JSContext* cx, JSLinearString* str) {
   return newChars.toStringDontDeflate(cx, resultLength);
 }
 
-JSLinearString* js::StringToLowerCase(JSContext* cx, HandleString string) {
+JSLinearString* js::StringToLowerCase(JSContext* cx, JSString* string) {
   JSLinearString* linear = string->ensureLinear(cx);
   if (!linear) {
     return nullptr;
@@ -929,8 +929,7 @@ static bool str_toLowerCase(JSContext* cx, unsigned argc, Value* vp) {
   AutoJSMethodProfilerEntry pseudoFrame(cx, "String.prototype", "toLowerCase");
   CallArgs args = CallArgsFromVp(argc, vp);
 
-  RootedString str(cx,
-                   ToStringForStringFunction(cx, "toLowerCase", args.thisv()));
+  JSString* str = ToStringForStringFunction(cx, "toLowerCase", args.thisv());
   if (!str) {
     return false;
   }
@@ -1330,7 +1329,7 @@ static JSLinearString* ToUpperCase(JSContext* cx, JSLinearString* str) {
   return newChars.mapNonEmpty(toString);
 }
 
-JSLinearString* js::StringToUpperCase(JSContext* cx, HandleString string) {
+JSLinearString* js::StringToUpperCase(JSContext* cx, JSString* string) {
   JSLinearString* linear = string->ensureLinear(cx);
   if (!linear) {
     return nullptr;
@@ -1346,8 +1345,7 @@ static bool str_toUpperCase(JSContext* cx, unsigned argc, Value* vp) {
   AutoJSMethodProfilerEntry pseudoFrame(cx, "String.prototype", "toUpperCase");
   CallArgs args = CallArgsFromVp(argc, vp);
 
-  RootedString str(cx,
-                   ToStringForStringFunction(cx, "toUpperCase", args.thisv()));
+  JSString* str = ToStringForStringFunction(cx, "toUpperCase", args.thisv());
   if (!str) {
     return false;
   }
