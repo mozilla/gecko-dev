@@ -15,13 +15,18 @@
 #include <cstdint>
 #include <cstdlib>
 #include <limits>
+#include <numeric>
 #include <optional>
+#include <string>
 #include <utility>
 
+#include "api/video/resolution.h"
+#include "api/video/video_source_interface.h"
 #include "media/base/video_common.h"
 #include "rtc_base/checks.h"
 #include "rtc_base/logging.h"
 #include "rtc_base/strings/string_builder.h"
+#include "rtc_base/synchronization/mutex.h"
 #include "rtc_base/time_utils.h"
 
 namespace {
@@ -31,7 +36,7 @@ struct Fraction {
   int denominator;
 
   void DivideByGcd() {
-    int g = cricket::GreatestCommonDivisor(numerator, denominator);
+    int g = std::gcd(numerator, denominator);
     numerator /= g;
     denominator /= g;
   }
@@ -369,8 +374,8 @@ void VideoAdapter::OnSinkWants(const rtc::VideoSinkWants& sink_wants) {
       sink_wants.target_pixel_count.value_or(
           resolution_request_max_pixel_count_);
   max_framerate_request_ = sink_wants.max_framerate_fps;
-  resolution_alignment_ = cricket::LeastCommonMultiple(
-      source_resolution_alignment_, sink_wants.resolution_alignment);
+  resolution_alignment_ =
+      std::lcm(source_resolution_alignment_, sink_wants.resolution_alignment);
   // Convert from std::optional<rtc::VideoSinkWants::FrameSize> to
   // std::optional<webrtc::Resolution>. Both are {int,int}.
   scale_resolution_down_to_ = std::nullopt;

@@ -38,7 +38,7 @@ index f11d86d211..6f75ecbbf5 100644
        ]
        # Added when we removed deps in other places to avoid building
 diff --git a/media/BUILD.gn b/media/BUILD.gn
-index deb14287d4..8cbb477fb7 100644
+index 76f45d7045..aa6ea24934 100644
 --- a/media/BUILD.gn
 +++ b/media/BUILD.gn
 @@ -12,12 +12,10 @@ import("../webrtc.gni")
@@ -58,7 +58,7 @@ index deb14287d4..8cbb477fb7 100644
  }
  
  config("rtc_media_defines_config") {
-@@ -270,6 +268,9 @@ rtc_library("media_engine") {
+@@ -273,6 +271,9 @@ rtc_library("media_engine") {
        "base/media_engine.cc",
        "base/media_engine.h",
      ]
@@ -68,7 +68,7 @@ index deb14287d4..8cbb477fb7 100644
    }
  }
  
-@@ -400,6 +401,7 @@ rtc_library("codec") {
+@@ -403,6 +404,7 @@ rtc_library("codec") {
    ]
  }
  
@@ -76,7 +76,7 @@ index deb14287d4..8cbb477fb7 100644
  rtc_library("rtp_utils") {
  if (!build_with_mozilla) {
    sources = [
-@@ -445,7 +447,6 @@ rtc_library("media_constants") {
+@@ -448,7 +450,6 @@ rtc_library("media_constants") {
  }
  
  rtc_library("turn_utils") {
@@ -84,7 +84,7 @@ index deb14287d4..8cbb477fb7 100644
    sources = [
      "base/turn_utils.cc",
      "base/turn_utils.h",
-@@ -456,17 +457,14 @@ if (!build_with_mozilla) {
+@@ -459,17 +460,14 @@ if (!build_with_mozilla) {
      "../rtc_base/system:rtc_export",
    ]
  }
@@ -102,7 +102,7 @@ index deb14287d4..8cbb477fb7 100644
  
  rtc_library("rtc_simulcast_encoder_adapter") {
    visibility = [ "*" ]
-@@ -712,6 +710,12 @@ rtc_library("rtc_audio_video") {
+@@ -715,6 +713,12 @@ rtc_library("rtc_audio_video") {
      "engine/webrtc_voice_engine.cc",
      "engine/webrtc_voice_engine.h",
    ]

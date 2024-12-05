@@ -11,14 +11,22 @@
 #include "media/base/video_broadcaster.h"
 
 #include <algorithm>
+#include <numeric>
 #include <optional>
 #include <vector>
 
+#include "api/scoped_refptr.h"
 #include "api/video/i420_buffer.h"
+#include "api/video/video_frame.h"
+#include "api/video/video_frame_buffer.h"
 #include "api/video/video_rotation.h"
-#include "media/base/video_common.h"
+#include "api/video/video_sink_interface.h"
+#include "api/video/video_source_interface.h"
+#include "api/video_track_source_constraints.h"
+#include "media/base/video_source_base.h"
 #include "rtc_base/checks.h"
 #include "rtc_base/logging.h"
+#include "rtc_base/synchronization/mutex.h"
 
 namespace rtc {
 
@@ -168,8 +176,8 @@ void VideoBroadcaster::UpdateWants() {
     if (sink.wants.max_framerate_fps < wants.max_framerate_fps) {
       wants.max_framerate_fps = sink.wants.max_framerate_fps;
     }
-    wants.resolution_alignment = cricket::LeastCommonMultiple(
-        wants.resolution_alignment, sink.wants.resolution_alignment);
+    wants.resolution_alignment =
+        std::lcm(wants.resolution_alignment, sink.wants.resolution_alignment);
 
     // Pick MAX(requested_resolution) since the actual can be downscaled in
     // encoder instead.

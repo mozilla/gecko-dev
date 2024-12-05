@@ -13,6 +13,7 @@
 #include <cstring>
 #include <map>
 #include <memory>
+#include <numeric>
 #include <optional>
 #include <set>
 #include <string>
@@ -61,7 +62,6 @@
 #include "call/fake_network_pipe.h"
 #include "call/video_receive_stream.h"
 #include "call/video_send_stream.h"
-#include "media/base/video_common.h"
 #include "media/engine/internal_encoder_factory.h"
 #include "media/engine/simulcast_encoder_adapter.h"
 #include "media/engine/webrtc_video_engine.h"
@@ -3505,8 +3505,8 @@ void VideoSendStreamTest::TestVp9NonFlexMode(
           GetScalabilityConfig();
       int required_divisibility = 1;
       for (int sl_idx = 0; sl_idx < config.num_spatial_layers; ++sl_idx) {
-        required_divisibility = cricket::LeastCommonMultiple(
-            required_divisibility, config.scaling_factor_den[sl_idx]);
+        required_divisibility =
+            std::lcm(required_divisibility, config.scaling_factor_den[sl_idx]);
       }
       return required_divisibility;
     }

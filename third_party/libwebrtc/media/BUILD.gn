@@ -128,6 +128,7 @@ rtc_library("rtc_media_base") {
     "../rtc_base/system:rtc_export",
     "../rtc_base/third_party/sigslot",
     "../video/config:encoder_config",
+    "//third_party/abseil-cpp/absl/base:core_headers",
   ]
 }
 
@@ -210,6 +211,7 @@ rtc_library("video_broadcaster") {
     "../api:media_stream_interface",
     "../api:scoped_refptr",
     "../api:sequence_checker",
+    "../api:video_track_source_constraints",
     "../api/video:video_frame",
     "../api/video:video_rtp_headers",
     "../rtc_base:checks",
@@ -231,6 +233,7 @@ rtc_library("video_common") {
     "../rtc_base:stringutils",
     "../rtc_base:timeutils",
     "../rtc_base/system:rtc_export",
+    "//third_party/abseil-cpp/absl/base:core_headers",
   ]
 }
 
