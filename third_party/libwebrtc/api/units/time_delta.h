@@ -94,9 +94,6 @@ class TimeDelta final : public rtc_units_impl::RelativeUnit<TimeDelta> {
 };
 
 RTC_EXPORT std::string ToString(TimeDelta value);
-inline std::string ToLogString(TimeDelta value) {
-  return ToString(value);
-}
 
 template <typename Sink>
 void AbslStringify(Sink& sink, TimeDelta value) {

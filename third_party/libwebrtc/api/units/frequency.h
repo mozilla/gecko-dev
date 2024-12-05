@@ -87,9 +87,6 @@ inline constexpr double operator*(TimeDelta time_delta, Frequency frequency) {
 }
 
 RTC_EXPORT std::string ToString(Frequency value);
-inline std::string ToLogString(Frequency value) {
-  return ToString(value);
-}
 
 template <typename Sink>
 void AbslStringify(Sink& sink, Frequency value) {
