@@ -27,55 +27,10 @@ namespace mozilla {
 struct SVGMark;
 enum class StyleStrokeLinecap : uint8_t;
 
-/**
- * ATTENTION! WARNING! WATCH OUT!!
- *
- * Consumers that modify objects of this type absolutely MUST keep the DOM
- * wrappers for those lists (if any) in sync!! That's why this class is so
- * locked down.
- *
- * The DOM wrapper class for this class is DOMSVGPathSegList.
- *
- * This class is not called |class SVGPathSegList| for one very good reason;
- * this class does not provide a list of "SVGPathSeg" items, it provides an
- * array of floats into which path segments are encoded. See the paragraphs
- * that follow for why. Note that the Length() method returns the number of
- * floats in our array, not the number of encoded segments, and the index
- * operator indexes floats in the array, not segments. If this class were
- * called SVGPathSegList the names of these methods would be very misleading.
- *
- * The reason this class is designed in this way is because there are many
- * different types of path segment, each taking a different numbers of
- * arguments. We want to store the segments in an nsTArray to avoid individual
- * allocations for each item, but the different size of segments means we can't
- * have one single segment type for the nsTArray (not without using a space
- * wasteful union or something similar). Since the internal code does not need
- * to index into the list (the DOM wrapper does, but it handles that itself)
- * the obvious solution is to have the items in this class take up variable
- * width and have the internal code iterate over these lists rather than index
- * into them.
- *
- * Implementing indexing to segments with O(1) performance would require us to
- * allocate and maintain a separate segment index table (keeping that table in
- * sync when items are inserted or removed from the list). So long as the
- * internal code doesn't require indexing to segments, we can avoid that
- * overhead and additional complexity.
- *
- * Segment encoding: the first float in the encoding of a segment contains the
- * segment's type. The segment's type is encoded to/decoded from this float
- * using the static methods SVGPathSegUtils::EncodeType(uint32_t)/
- * SVGPathSegUtils::DecodeType(float). If the path segment type in question
- * takes any arguments then these follow the first float, and are in the same
- * order as they are given in a <path> element's 'd' attribute (NOT in the
- * order of the createSVGPathSegXxx() methods' arguments from the SVG DOM
- * interface SVGPathElement, which are different...grr). Consumers can use
- * SVGPathSegUtils::ArgCountForType(type) to determine how many arguments
- * there are (if any), and thus where the current encoded segment ends, and
- * where the next segment (if any) begins.
- */
 class SVGPathData {
   friend class SVGAnimatedPathSegList;
   friend class SVGPathDataAndInfo;
+  friend class SVGPathSegListSMILType;
 
   using DrawTarget = gfx::DrawTarget;
   using Path = gfx::Path;
@@ -109,7 +64,6 @@ class SVGPathData {
   Span<const StylePathCommand> AsSpan() const { return mData._0.AsSpan(); }
   bool IsEmpty() const { return AsSpan().IsEmpty(); }
 
-  StyleSVGPathData& RawData() { return mData; }
   const StyleSVGPathData& RawData() const { return mData; }
 
   void GetMarkerPositioningData(float aZoom, nsTArray<SVGMark>* aMarks) const;
@@ -166,27 +120,12 @@ class SVGPathData {
   size_t SizeOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf) const;
   size_t SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const;
 
-  // Access to methods that can modify objects of this type is deliberately
-  // limited. This is to reduce the chances of someone modifying objects of
-  // this type without taking the necessary steps to keep DOM wrappers in sync.
-  // If you need wider access to these methods, consider adding a method to
-  // SVGAnimatedPathSegList and having that class act as an intermediary so it
-  // can take care of keeping DOM wrappers in sync.
-
  protected:
   nsresult SetValueFromString(const nsACString& aValue);
 
   void Clear() { mData = {}; }
 
-  // Our DOM wrappers have direct access to our mData, so they directly
-  // manipulate it rather than us implementing:
-  //
-  // * InsertItem(uint32_t aDataIndex, uint32_t aType, const float *aArgs);
-  // * ReplaceItem(uint32_t aDataIndex, uint32_t aType, const float *aArgs);
-  // * RemoveItem(uint32_t aDataIndex);
-  // * bool AppendItem(uint32_t aType, const float *aArgs);
-
-  nsresult AppendSeg(uint32_t aType, ...);  // variable number of float args
+  StyleSVGPathData& RawData() { return mData; }
 
   mozilla::StyleSVGPathData mData;
 };
