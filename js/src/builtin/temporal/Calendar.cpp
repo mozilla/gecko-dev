@@ -946,14 +946,25 @@ enum class CalendarError {
   UnknownMonthCode,
 };
 
+#ifdef DEBUG
+static auto CalendarErasAsEnumSet(CalendarId calendarId) {
+  // `mozilla::EnumSet<EraCode>(CalendarEras(calendarId))` doesn't work in old
+  // GCC versions, so add all era codes manually to the enum set.
+  mozilla::EnumSet<EraCode> eras{};
+  for (auto era : CalendarEras(calendarId)) {
+    eras += era;
+  }
+  return eras;
+}
+#endif
+
 static mozilla::Result<UniqueICU4XDate, CalendarError> CreateDateFromCodes(
     CalendarId calendarId, const capi::ICU4XCalendar* calendar, EraYear eraYear,
     MonthCode monthCode, int32_t day) {
   MOZ_ASSERT(calendarId != CalendarId::ISO8601);
   MOZ_ASSERT(capi::ICU4XCalendar_kind(calendar) ==
              ToAnyCalendarKind(calendarId));
-  MOZ_ASSERT(mozilla::EnumSet<EraCode>(CalendarEras(calendarId))
-                 .contains(eraYear.era));
+  MOZ_ASSERT(CalendarErasAsEnumSet(calendarId).contains(eraYear.era));
   MOZ_ASSERT_IF(CalendarEraRelevant(calendarId), eraYear.year > 0);
   MOZ_ASSERT(mozilla::Abs(eraYear.year) <= MaximumCalendarYear(calendarId));
   MOZ_ASSERT(CalendarMonthCodes(calendarId).contains(monthCode));
