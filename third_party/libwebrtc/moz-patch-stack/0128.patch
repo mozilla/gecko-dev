@@ -369,7 +369,7 @@ index a0ddf777db..cf15513e18 100644
      }
    }
 diff --git a/examples/BUILD.gn b/examples/BUILD.gn
-index b793c8bff8..3be59b5e07 100644
+index 2f731ced22..9ce5156a29 100644
 --- a/examples/BUILD.gn
 +++ b/examples/BUILD.gn
 @@ -9,15 +9,15 @@
@@ -402,7 +402,7 @@ index b793c8bff8..3be59b5e07 100644
            "//third_party/ocmock",
          ]
        }
-@@ -729,7 +729,7 @@ if (is_linux || is_chromeos || is_win) {
+@@ -741,7 +741,7 @@ if (is_linux || is_chromeos || is_win) {
          "peerconnection/client/main_wnd.cc",
          "peerconnection/client/main_wnd.h",
        ]
