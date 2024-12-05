@@ -2500,12 +2500,6 @@ void nsBlockFrame::ComputeOverflowAreas(OverflowAreas& aOverflowAreas,
       continue;
     }
 
-    if (line.IsInline()) {
-      // This is the maximum contribution for inline line-participating frames -
-      // See `GetLineFrameInFlowBounds`.
-      inFlowChildBounds =
-          inFlowChildBounds.UnionEdges(line.GetPhysicalBounds());
-    }
     auto lineInFlowChildBounds = line.GetInFlowChildBounds();
     if (lineInFlowChildBounds) {
       inFlowChildBounds = inFlowChildBounds.UnionEdges(*lineInFlowChildBounds);
@@ -2545,37 +2539,44 @@ void nsBlockFrame::ComputeOverflowAreas(OverflowAreas& aOverflowAreas,
 #endif
 }
 
-// Depending on our ancestor, determine if we need to restrict padding inflation
-// in inline direction. This assumes that the passed-in frame is a scrolled
-// frame. HACK(dshin): Reaching out and querying the type like this isn't ideal.
-static bool RestrictPaddingInflationInInline(const nsIFrame* aFrame) {
+enum class RestrictPaddingInflation {
+  No,
+  Block,
+  Inline,
+};
+
+// Depending on our ancestor, determine if we need to restrict padding
+// inflation. This assumes that the passed-in frame is a scrolled frame.
+// HACK(dshin): Reaching out and querying the type like this isn't ideal.
+static RestrictPaddingInflation RestrictPaddingInflation(
+    const nsIFrame* aFrame) {
   MOZ_ASSERT(aFrame);
   if (aFrame->Style()->GetPseudoType() != PseudoStyleType::scrolledContent) {
     // This can only happen when computing scrollable overflow for overflow:
     // visible frames (for scroll{Width,Height}).
-    return false;
+    return RestrictPaddingInflation::No;
   }
   // If we're `input` or `textarea`, our grandparent element must be the text
   // control element that we can query.
   const auto* parent = aFrame->GetParent();
   if (!parent) {
-    return false;
+    return RestrictPaddingInflation::No;
   }
   MOZ_ASSERT(parent->IsScrollContainerOrSubclass(), "Not a scrolled frame?");
 
   nsTextControlFrame* textControl = do_QueryFrame(parent->GetParent());
   if (MOZ_LIKELY(!textControl)) {
-    return false;
+    return RestrictPaddingInflation::No;
   }
 
-  // We implement `textarea` as a special case of a div, but based on
+  // We use `textarea` as a special case of a div, but based on
   // web-platform-tests, different rules apply for it - namely, no inline
   // padding inflation. See
   // `textarea-padding-iend-overlaps-content-001.tentative.html`.
-  if (!textControl->IsTextArea()) {
-    return false;
-  }
-  return true;
+  // Single-line text types do not padding-inflate in block direction -
+  // see bug 1932840.
+  return textControl->IsTextArea() ? RestrictPaddingInflation::Inline
+                                   : RestrictPaddingInflation::Block;
 }
 
 nsRect nsBlockFrame::ComputePaddingInflatedScrollableOverflow(
@@ -2583,8 +2584,16 @@ nsRect nsBlockFrame::ComputePaddingInflatedScrollableOverflow(
   auto result = aInFlowChildBounds;
   const auto wm = GetWritingMode();
   auto padding = GetLogicalUsedPadding(wm);
-  if (RestrictPaddingInflationInInline(this)) {
-    padding.IStart(wm) = padding.IEnd(wm) = 0;
+  const auto restriction = RestrictPaddingInflation(this);
+  switch (restriction) {
+    case RestrictPaddingInflation::Block:
+      padding.BStart(wm) = padding.BEnd(wm) = 0;
+      break;
+    case RestrictPaddingInflation::Inline:
+      padding.IStart(wm) = padding.IEnd(wm) = 0;
+      break;
+    case RestrictPaddingInflation::No:
+      break;
   }
   result.Inflate(padding.GetPhysicalMargin(wm));
   return result;
@@ -2594,12 +2603,7 @@ Maybe<nsRect> nsBlockFrame::GetLineFrameInFlowBounds(
     const nsLineBox& aLine, const nsIFrame& aLineChildFrame) const {
   MOZ_ASSERT(aLineChildFrame.GetParent() == this,
              "Line's frame doesn't belong to this block frame?");
-  // Line participants are considered in-flow for content within the line
-  // bounds, which should be accounted for from the line bounds. This is
-  // consistent with e.g. inline element's `margin-bottom` not affecting the
-  // placement of the next line.
-  if (aLineChildFrame.IsPlaceholderFrame() ||
-      aLineChildFrame.IsLineParticipant()) {
+  if (aLineChildFrame.IsPlaceholderFrame()) {
     return Nothing{};
   }
   if (aLine.IsInline()) {
