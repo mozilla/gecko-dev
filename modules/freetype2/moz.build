@@ -6,8 +6,6 @@
 
 DEFINES['FT2_BUILD_LIBRARY'] = True
 
-CFLAGS += ['-std=c99']
-
 LOCAL_INCLUDES += [
     'include',
 ]

@@ -94,8 +94,6 @@ COMPILE_FLAGS["OS_CFLAGS"] = [
     "-Xclang",
     "-verify",
     "-ferror-limit=0",
-    "-Xclang",
-    "-std=c11",
     "-Wno-invalid-noreturn",
 ]
 
