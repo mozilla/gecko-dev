@@ -362,8 +362,6 @@ skip-if = [
 
 ["browser_unified_extensions_reset.js"]
 
-["browser_vertical_tabs_customize_navbar.js"]
-
 ["browser_widget_animation.js"]
 
 ["browser_widget_recreate_events.js"]
