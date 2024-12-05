@@ -47,6 +47,7 @@ rtc_library("network_control") {
   ]
 
   deps = [
+    ":ecn_marking",
     "../../api:field_trials_view",
     "../../rtc_base/system:rtc_export",
     "../environment",

@@ -48,6 +48,7 @@
 #include "modules/pacing/task_queue_paced_sender.h"
 #include "modules/rtp_rtcp/include/report_block_data.h"
 #include "modules/rtp_rtcp/include/rtp_rtcp_defines.h"
+#include "modules/rtp_rtcp/source/rtcp_packet/congestion_control_feedback.h"
 #include "rtc_base/experiments/field_trial_parser.h"
 #include "rtc_base/network_route.h"
 #include "rtc_base/rate_limiter.h"
@@ -129,6 +130,9 @@ class RtpTransportControllerSend final
   void OnRttUpdate(Timestamp receive_time, TimeDelta rtt) override;
   void OnTransportFeedback(Timestamp receive_time,
                            const rtcp::TransportFeedback& feedback) override;
+  void OnCongestionControlFeedback(
+      Timestamp receive_time,
+      const rtcp::CongestionControlFeedback& feedback) override;
 
   // Implements NetworkStateEstimateObserver interface
   void OnRemoteNetworkEstimate(NetworkStateEstimate estimate) override;

@@ -13,17 +13,25 @@
 #include <stdlib.h>
 
 #include <algorithm>
+#include <cstdint>
 #include <optional>
 #include <utility>
 #include <vector>
 
+#include "absl/algorithm/container.h"
 #include "api/transport/network_types.h"
+#include "api/units/data_size.h"
+#include "api/units/time_delta.h"
 #include "api/units/timestamp.h"
 #include "modules/rtp_rtcp/include/rtp_rtcp_defines.h"
+#include "modules/rtp_rtcp/source/ntp_time_util.h"
+#include "modules/rtp_rtcp/source/rtcp_packet/congestion_control_feedback.h"
 #include "modules/rtp_rtcp/source/rtcp_packet/transport_feedback.h"
 #include "modules/rtp_rtcp/source/rtp_packet_to_send.h"
 #include "rtc_base/checks.h"
 #include "rtc_base/logging.h"
+#include "rtc_base/network/sent_packet.h"
+#include "rtc_base/network_route.h"
 
 namespace webrtc {
 
@@ -114,9 +122,21 @@ void TransportFeedbackAdapter::AddPacket(const RtpPacketToSend& packet_to_send,
     // TODO(sprang): Warn if erasing (too many) old items?
     if (history_.begin()->second.sent.sequence_number > last_ack_seq_num_)
       in_flight_.RemoveInFlightPacketBytes(history_.begin()->second);
+
+    const PacketFeedback& packet = history_.begin()->second;
+    rtp_to_transport_sequence_number_.erase(
+        {.ssrc = packet.ssrc,
+         .rtp_sequence_number = packet.rtp_sequence_number});
     history_.erase(history_.begin());
   }
-  history_.insert(std::make_pair(feedback.sent.sequence_number, feedback));
+  // Note that it can happen that the same SSRC and sequence number is sent
+  // again. e.g, audio retransmission.
+  rtp_to_transport_sequence_number_.emplace(
+      SsrcAndRtpSequencenumber(
+          {.ssrc = feedback.ssrc,
+           .rtp_sequence_number = feedback.rtp_sequence_number}),
+      feedback.sent.sequence_number);
+  history_.emplace(feedback.sent.sequence_number, feedback);
 }
 
 std::optional<SentPacket> TransportFeedbackAdapter::ProcessSentPacket(
@@ -170,12 +190,13 @@ TransportFeedbackAdapter::ProcessTransportFeedback(
   // Add timestamp deltas to a local time base selected on first packet arrival.
   // This won't be the true time base, but makes it easier to manually inspect
   // time stamps.
-  if (last_timestamp_.IsInfinite()) {
+  if (last_transport_feedback_base_time_.IsInfinite()) {
     current_offset_ = feedback_receive_time;
   } else {
     // TODO(srte): We shouldn't need to do rounding here.
-    const TimeDelta delta = feedback.GetBaseDelta(last_timestamp_)
-                                .RoundDownTo(TimeDelta::Millis(1));
+    const TimeDelta delta =
+        feedback.GetBaseDelta(last_transport_feedback_base_time_)
+            .RoundDownTo(TimeDelta::Millis(1));
     // Protect against assigning current_offset_ negative value.
     if (delta < Timestamp::Zero() - current_offset_) {
       RTC_LOG(LS_WARNING) << "Unexpected feedback timestamp received.";
@@ -184,7 +205,7 @@ TransportFeedbackAdapter::ProcessTransportFeedback(
       current_offset_ += delta;
     }
   }
-  last_timestamp_ = feedback.BaseTime();
+  last_transport_feedback_base_time_ = feedback.BaseTime();
 
   std::vector<PacketResult> packet_result_vector;
   packet_result_vector.reserve(feedback.GetPacketStatusCount());
@@ -230,6 +251,77 @@ TransportFeedbackAdapter::ProcessTransportFeedback(
 }
 
 std::optional<TransportPacketsFeedback>
+TransportFeedbackAdapter::ProcessCongestionControlFeedback(
+    const rtcp::CongestionControlFeedback& feedback,
+    Timestamp feedback_receive_time) {
+  if (feedback.packets().empty()) {
+    RTC_LOG(LS_INFO) << "Empty congestion control feedback packet received.";
+    return std::nullopt;
+  }
+  if (current_offset_.IsInfinite()) {
+    current_offset_ = feedback_receive_time;
+  }
+  TimeDelta feedback_delta = last_feedback_compact_ntp_time_
+                                 ? CompactNtpIntervalToTimeDelta(
+                                       feedback.report_timestamp_compact_ntp() -
+                                       *last_feedback_compact_ntp_time_)
+                                 : TimeDelta::Zero();
+  last_feedback_compact_ntp_time_ = feedback.report_timestamp_compact_ntp();
+  if (feedback_delta < TimeDelta::Zero()) {
+    RTC_LOG(LS_WARNING) << "Unexpected feedback ntp time delta "
+                        << feedback_delta << ".";
+    current_offset_ = feedback_receive_time;
+  } else {
+    current_offset_ += feedback_delta;
+  }
+
+  int ignored_packets = 0;
+  int failed_lookups = 0;
+  std::vector<PacketResult> packet_result_vector;
+  for (const rtcp::CongestionControlFeedback::PacketInfo& packet_info :
+       feedback.packets()) {
+    std::optional<PacketFeedback> packet_feedback = RetrievePacketFeedback(
+        {.ssrc = packet_info.ssrc,
+         .rtp_sequence_number = packet_info.sequence_number},
+        /*received=*/packet_info.arrival_time_offset.IsFinite());
+    if (!packet_feedback) {
+      ++failed_lookups;
+      continue;
+    }
+    if (packet_feedback->network_route != network_route_) {
+      ++ignored_packets;
+      continue;
+    }
+    PacketResult result;
+    result.sent_packet = packet_feedback->sent;
+    if (packet_info.arrival_time_offset.IsFinite()) {
+      result.receive_time = current_offset_ - packet_info.arrival_time_offset;
+    }
+    result.ecn = packet_info.ecn;
+    packet_result_vector.push_back(result);
+  }
+
+  if (failed_lookups > 0) {
+    RTC_LOG(LS_WARNING)
+        << "Failed to lookup send time for " << failed_lookups << " packet"
+        << (failed_lookups > 1 ? "s" : "")
+        << ". Packets reordered or send time history too small?";
+  }
+  if (ignored_packets > 0) {
+    RTC_LOG(LS_INFO) << "Ignoring " << ignored_packets
+                     << " packets because they were sent on a different route.";
+  }
+
+  // Feedback is expected to be sorted in send order.
+  absl::c_sort(packet_result_vector, [](const PacketResult& lhs,
+                                        const PacketResult& rhs) {
+    return lhs.sent_packet.sequence_number < rhs.sent_packet.sequence_number;
+  });
+  return ToTransportFeedback(std::move(packet_result_vector),
+                             feedback_receive_time);
+}
+
+std::optional<TransportPacketsFeedback>
 TransportFeedbackAdapter::ToTransportFeedback(
     std::vector<PacketResult> packet_results,
     Timestamp feedback_receive_time) {
@@ -254,22 +346,33 @@ DataSize TransportFeedbackAdapter::GetOutstandingData() const {
 }
 
 std::optional<PacketFeedback> TransportFeedbackAdapter::RetrievePacketFeedback(
-    int64_t seq_num,
+    const SsrcAndRtpSequencenumber& key,
     bool received) {
-  if (seq_num > last_ack_seq_num_) {
+  auto it = rtp_to_transport_sequence_number_.find(key);
+  if (it == rtp_to_transport_sequence_number_.end()) {
+    return std::nullopt;
+  }
+  return RetrievePacketFeedback(it->second, received);
+}
+
+std::optional<PacketFeedback> TransportFeedbackAdapter::RetrievePacketFeedback(
+    int64_t transport_seq_num,
+    bool received) {
+  if (transport_seq_num > last_ack_seq_num_) {
     // Starts at history_.begin() if last_ack_seq_num_ < 0, since any
     // valid sequence number is >= 0.
     for (auto it = history_.upper_bound(last_ack_seq_num_);
-         it != history_.upper_bound(seq_num); ++it) {
+         it != history_.upper_bound(transport_seq_num); ++it) {
       in_flight_.RemoveInFlightPacketBytes(it->second);
     }
-    last_ack_seq_num_ = seq_num;
+    last_ack_seq_num_ = transport_seq_num;
   }
 
-  auto it = history_.find(seq_num);
+  auto it = history_.find(transport_seq_num);
   if (it == history_.end()) {
     RTC_LOG(LS_WARNING) << "Failed to lookup send time for packet with "
-                        << seq_num << ". Send time history too small?";
+                        << transport_seq_num
+                        << ". Send time history too small?";
     return std::nullopt;
   }
 
@@ -285,6 +388,9 @@ std::optional<PacketFeedback> TransportFeedbackAdapter::RetrievePacketFeedback(
   if (received) {
     // Note: Lost packets are not removed from history because they might
     // be reported as received by a later feedback.
+    rtp_to_transport_sequence_number_.erase(
+        {.ssrc = packet_feedback.ssrc,
+         .rtp_sequence_number = packet_feedback.rtp_sequence_number});
     history_.erase(it);
   }
   return packet_feedback;
