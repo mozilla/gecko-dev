@@ -504,10 +504,10 @@ class JSString : public js::gc::CellWithLengthAndFlags {
    * representable by a JSString. An allocation overflow is reported if false
    * is returned.
    */
-  static inline bool validateLength(JSContext* maybecx, size_t length);
+  static inline bool validateLength(JSContext* cx, size_t length);
 
   template <js::AllowGC allowGC>
-  static inline bool validateLengthInternal(JSContext* maybecx, size_t length);
+  static inline bool validateLengthInternal(JSContext* cx, size_t length);
 
   static constexpr size_t offsetOfFlags() { return offsetOfHeaderFlags(); }
   static constexpr size_t offsetOfLength() { return offsetOfHeaderLength(); }
