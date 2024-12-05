@@ -35,7 +35,7 @@ class MockTransformableFrame : public TransformableFrameInterface {
   MOCK_METHOD(uint32_t, GetTimestamp, (), (const, override));
   MOCK_METHOD(void, SetRTPTimestamp, (uint32_t), (override));
   MOCK_METHOD(std::optional<webrtc::Timestamp>,
-              GetCaptureTimeIdentifier,
+              GetPresentationTimestamp,
               (),
               (const, override));
   MOCK_METHOD(std::string, GetMimeType, (), (const, override));

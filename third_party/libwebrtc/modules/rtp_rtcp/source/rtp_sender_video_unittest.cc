@@ -1743,7 +1743,7 @@ TEST_F(RtpSenderVideoWithFrameTransformerTest,
   std::unique_ptr<RTPSenderVideo> rtp_sender_video =
       CreateSenderWithFrameTransformer(mock_frame_transformer);
   auto encoded_image = CreateDefaultEncodedImage();
-  encoded_image->SetCaptureTimeIdentifier(Timestamp::Millis(1));
+  encoded_image->SetPresentationTimestamp(Timestamp::Millis(1));
   RTPVideoHeader video_header;
 
   EXPECT_CALL(*mock_frame_transformer, Transform)
@@ -1752,8 +1752,8 @@ TEST_F(RtpSenderVideoWithFrameTransformerTest,
         auto* frame = static_cast<TransformableVideoFrameInterface*>(
             transformable_frame.get());
         ASSERT_TRUE(frame);
-        EXPECT_EQ(frame->GetCaptureTimeIdentifier(),
-                  encoded_image->CaptureTimeIdentifier());
+        EXPECT_EQ(frame->GetPresentationTimestamp(),
+                  encoded_image->PresentationTimestamp());
       });
   rtp_sender_video->SendEncodedImage(kPayload, kType, kTimestamp,
                                      *encoded_image, video_header,

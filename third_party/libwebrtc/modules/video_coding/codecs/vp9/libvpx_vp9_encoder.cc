@@ -1783,8 +1783,8 @@ void LibvpxVp9Encoder::GetEncodedLayerFrame(const vpx_codec_cx_pkt* pkt) {
 
   TRACE_COUNTER1("webrtc", "EncodedFrameSize", encoded_image_.size());
   encoded_image_.SetRtpTimestamp(input_image_->rtp_timestamp());
-  encoded_image_.SetCaptureTimeIdentifier(
-      input_image_->capture_time_identifier());
+  encoded_image_.SetPresentationTimestamp(
+      input_image_->presentation_timestamp());
   encoded_image_.SetColorSpace(input_image_->color_space());
   encoded_image_._encodedHeight =
       pkt->data.frame.height[layer_id.spatial_layer_id];

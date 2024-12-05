@@ -1532,8 +1532,8 @@ void VideoStreamEncoder::OnFrame(Timestamp post_time,
 
   // Identifier should remain the same for newly produced incoming frame and the
   // received |video_frame|.
-  incoming_frame.set_capture_time_identifier(
-      video_frame.capture_time_identifier());
+  incoming_frame.set_presentation_timestamp(
+      video_frame.presentation_timestamp());
 
   if (incoming_frame.ntp_time_ms() <= last_captured_timestamp_) {
     // We don't allow the same capture time for two frames, drop this one.
@@ -1987,8 +1987,7 @@ void VideoStreamEncoder::EncodeVideoFrame(const VideoFrame& video_frame,
     out_frame.set_video_frame_buffer(cropped_buffer);
     out_frame.set_update_rect(update_rect);
     out_frame.set_ntp_time_ms(video_frame.ntp_time_ms());
-    out_frame.set_capture_time_identifier(
-        video_frame.capture_time_identifier());
+    out_frame.set_presentation_timestamp(video_frame.presentation_timestamp());
     // Since accumulated_update_rect_ is constructed before cropping,
     // we can't trust it. If any changes were pending, we invalidate whole
     // frame here.

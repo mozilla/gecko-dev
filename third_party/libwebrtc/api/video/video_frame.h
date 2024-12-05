@@ -109,7 +109,9 @@ class RTC_EXPORT VideoFrame {
     Builder& set_timestamp_ms(int64_t timestamp_ms);
     Builder& set_timestamp_us(int64_t timestamp_us);
     Builder& set_capture_time_identifier(
-        const std::optional<Timestamp>& capture_time_identifier);
+        const std::optional<Timestamp>& presentation_timestamp);
+    Builder& set_presentation_timestamp(
+        const std::optional<Timestamp>& presentation_timestamp);
     Builder& set_reference_time(const std::optional<Timestamp>& reference_time);
     Builder& set_rtp_timestamp(uint32_t rtp_timestamp);
     // TODO(https://bugs.webrtc.org/13756): Deprecate and use set_rtp_timestamp.
@@ -126,7 +128,7 @@ class RTC_EXPORT VideoFrame {
     uint16_t id_ = kNotSetId;
     rtc::scoped_refptr<webrtc::VideoFrameBuffer> video_frame_buffer_;
     int64_t timestamp_us_ = 0;
-    std::optional<Timestamp> capture_time_identifier_;
+    std::optional<Timestamp> presentation_timestamp_;
     std::optional<Timestamp> reference_time_;
     uint32_t timestamp_rtp_ = 0;
     int64_t ntp_time_ms_ = 0;
@@ -174,12 +176,18 @@ class RTC_EXPORT VideoFrame {
   int64_t timestamp_us() const { return timestamp_us_; }
   void set_timestamp_us(int64_t timestamp_us) { timestamp_us_ = timestamp_us; }
 
+  // TODO(https://bugs.webrtc.org/373365537): Remove this once its usage is
+  // removed from blink.
   const std::optional<Timestamp>& capture_time_identifier() const {
-    return capture_time_identifier_;
+    return presentation_timestamp_;
   }
-  void set_capture_time_identifier(
-      const std::optional<Timestamp>& capture_time_identifier) {
-    capture_time_identifier_ = capture_time_identifier;
+
+  const std::optional<Timestamp>& presentation_timestamp() const {
+    return presentation_timestamp_;
+  }
+  void set_presentation_timestamp(
+      const std::optional<Timestamp>& presentation_timestamp) {
+    presentation_timestamp_ = presentation_timestamp;
   }
 
   const std::optional<Timestamp>& reference_time() const {
@@ -279,7 +287,7 @@ class RTC_EXPORT VideoFrame {
   VideoFrame(uint16_t id,
              const rtc::scoped_refptr<VideoFrameBuffer>& buffer,
              int64_t timestamp_us,
-             const std::optional<Timestamp>& capture_time_identifier,
+             const std::optional<Timestamp>& presentation_timestamp,
              const std::optional<Timestamp>& reference_time,
              uint32_t timestamp_rtp,
              int64_t ntp_time_ms,
@@ -295,7 +303,7 @@ class RTC_EXPORT VideoFrame {
   uint32_t timestamp_rtp_;
   int64_t ntp_time_ms_;
   int64_t timestamp_us_;
-  std::optional<Timestamp> capture_time_identifier_;
+  std::optional<Timestamp> presentation_timestamp_;
   // Contains a monotonically increasing clock time and represents the time
   // when the frame was captured. Not all platforms provide the "true" sample
   // capture time in |reference_time| but might instead use a somewhat delayed

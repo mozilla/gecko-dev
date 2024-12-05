@@ -67,7 +67,7 @@ class TransformableVideoSenderFrame : public TransformableVideoFrameInterface {
         codec_type_(codec_type),
         timestamp_(rtp_timestamp),
         capture_time_(encoded_image.CaptureTime()),
-        capture_time_identifier_(encoded_image.CaptureTimeIdentifier()),
+        presentation_timestamp_(encoded_image.PresentationTimestamp()),
         expected_retransmission_time_(expected_retransmission_time),
         ssrc_(ssrc),
         csrcs_(csrcs),
@@ -118,7 +118,10 @@ class TransformableVideoSenderFrame : public TransformableVideoFrameInterface {
   std::optional<VideoCodecType> GetCodecType() const { return codec_type_; }
   Timestamp GetCaptureTime() const { return capture_time_; }
   std::optional<Timestamp> GetCaptureTimeIdentifier() const override {
-    return capture_time_identifier_;
+    return presentation_timestamp_;
+  }
+  std::optional<Timestamp> GetPresentationTimestamp() const override {
+    return presentation_timestamp_;
   }
 
   TimeDelta GetExpectedRetransmissionTime() const {
@@ -145,7 +148,7 @@ class TransformableVideoSenderFrame : public TransformableVideoFrameInterface {
   const std::optional<VideoCodecType> codec_type_ = std::nullopt;
   uint32_t timestamp_;
   const Timestamp capture_time_;
-  const std::optional<Timestamp> capture_time_identifier_;
+  const std::optional<Timestamp> presentation_timestamp_;
   const TimeDelta expected_retransmission_time_;
 
   uint32_t ssrc_;
