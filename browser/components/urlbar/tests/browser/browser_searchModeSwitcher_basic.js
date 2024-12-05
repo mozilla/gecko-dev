@@ -7,6 +7,71 @@ add_setup(async function setup() {
   });
 });
 
+add_task(async function open_settings() {
+  let popup = UrlbarTestUtils.searchModeSwitcherPopup(window);
+  let promiseMenuOpen = BrowserTestUtils.waitForEvent(popup, "popupshown");
+
+  info("Open the urlbar and open the switcher via Enter key");
+  await focusSwitcher();
+  EventUtils.synthesizeKey("KEY_Enter");
+  await promiseMenuOpen;
+
+  let pageLoaded = BrowserTestUtils.browserLoaded(window);
+  EventUtils.synthesizeKey("KEY_ArrowUp");
+  EventUtils.synthesizeKey("KEY_Enter");
+  await pageLoaded;
+
+  Assert.equal(
+    window.gBrowser.selectedBrowser.currentURI.spec,
+    "about:preferences#search",
+    "Opened settings page"
+  );
+
+  // Clean up.
+  let onLoaded = BrowserTestUtils.browserLoaded(gBrowser.selectedBrowser);
+  gBrowser.selectedBrowser.loadURI(Services.io.newURI("about:newtab"), {
+    triggeringPrincipal: Services.scriptSecurityManager.getSystemPrincipal(),
+  });
+  await onLoaded;
+});
+
+add_task(async function open_settings_with_there_is_already_opened_settings() {
+  info("Open settings page in a tab");
+  let startTab = gBrowser.selectedTab;
+  let preferencesTab = await BrowserTestUtils.openNewForegroundTab(
+    gBrowser,
+    "about:preferences#search"
+  );
+  gBrowser.selectedTab = startTab;
+
+  info("Open new window");
+  let newWin = await BrowserTestUtils.openNewBrowserWindow();
+  let popup = UrlbarTestUtils.searchModeSwitcherPopup(newWin);
+  let promiseMenuOpen = BrowserTestUtils.waitForEvent(popup, "popupshown");
+
+  info("Open the urlbar and open the switcher via keyboard in the new window");
+  await focusSwitcher(newWin);
+  EventUtils.synthesizeKey("KEY_Enter", {}, newWin);
+  await promiseMenuOpen;
+
+  info(
+    "Choose open settings item and wait until the window having perference page will get focus"
+  );
+  let onFocus = BrowserTestUtils.waitForEvent(window, "focus", true);
+  EventUtils.synthesizeKey("KEY_ArrowUp", {}, newWin);
+  EventUtils.synthesizeKey("KEY_Enter", {}, newWin);
+  await onFocus;
+  Assert.ok(true, "The window that has perference page got focus");
+
+  await BrowserTestUtils.waitForCondition(
+    () => window.gBrowser.selectedTab == preferencesTab
+  );
+  Assert.ok(true, "Focus opened settings page");
+
+  BrowserTestUtils.removeTab(preferencesTab);
+  await BrowserTestUtils.closeWindow(newWin);
+});
+
 add_task(async function disabled_unified_button() {
   await SpecialPowers.pushPrefEnv({
     set: [["browser.urlbar.scotchBonnet.enableOverride", false]],
@@ -166,71 +231,6 @@ add_task(async function detect_searchmode_changes() {
       ""
     );
   }, "The searchMode name has been removed when we exit search mode");
-});
-
-add_task(async function open_settings() {
-  let popup = UrlbarTestUtils.searchModeSwitcherPopup(window);
-  let promiseMenuOpen = BrowserTestUtils.waitForEvent(popup, "popupshown");
-
-  info("Open the urlbar and open the switcher via Enter key");
-  await focusSwitcher();
-  EventUtils.synthesizeKey("KEY_Enter");
-  await promiseMenuOpen;
-
-  let pageLoaded = BrowserTestUtils.browserLoaded(window);
-  EventUtils.synthesizeKey("KEY_ArrowUp");
-  EventUtils.synthesizeKey("KEY_Enter");
-  await pageLoaded;
-
-  Assert.equal(
-    window.gBrowser.selectedBrowser.currentURI.spec,
-    "about:preferences#search",
-    "Opened settings page"
-  );
-
-  // Clean up.
-  let onLoaded = BrowserTestUtils.browserLoaded(gBrowser.selectedBrowser);
-  gBrowser.selectedBrowser.loadURI(Services.io.newURI("about:newtab"), {
-    triggeringPrincipal: Services.scriptSecurityManager.getSystemPrincipal(),
-  });
-  await onLoaded;
-});
-
-add_task(async function open_settings_with_there_is_already_opened_settings() {
-  info("Open settings page in a tab");
-  let startTab = gBrowser.selectedTab;
-  let preferencesTab = await BrowserTestUtils.openNewForegroundTab(
-    gBrowser,
-    "about:preferences#search"
-  );
-  gBrowser.selectedTab = startTab;
-
-  info("Open new window");
-  let newWin = await BrowserTestUtils.openNewBrowserWindow();
-  let popup = UrlbarTestUtils.searchModeSwitcherPopup(newWin);
-  let promiseMenuOpen = BrowserTestUtils.waitForEvent(popup, "popupshown");
-
-  info("Open the urlbar and open the switcher via keyboard in the new window");
-  await focusSwitcher(newWin);
-  EventUtils.synthesizeKey("KEY_Enter", {}, newWin);
-  await promiseMenuOpen;
-
-  info(
-    "Choose open settings item and wait until the window having perference page will get focus"
-  );
-  let onFocus = BrowserTestUtils.waitForEvent(window, "focus", true);
-  EventUtils.synthesizeKey("KEY_ArrowUp", {}, newWin);
-  EventUtils.synthesizeKey("KEY_Enter", {}, newWin);
-  await onFocus;
-  Assert.ok(true, "The window that has perference page got focus");
-
-  await BrowserTestUtils.waitForCondition(
-    () => window.gBrowser.selectedTab == preferencesTab
-  );
-  Assert.ok(true, "Focus opened settings page");
-
-  BrowserTestUtils.removeTab(preferencesTab);
-  await BrowserTestUtils.closeWindow(newWin);
 });
 
 async function setDefaultEngine(name) {

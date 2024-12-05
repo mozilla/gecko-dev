@@ -453,6 +453,9 @@ pref("browser.urlbar.scotchBonnet.enableOverride", true);
 pref("browser.urlbar.scotchBonnet.enableOverride", false);
 #endif
 
+// Enable displaying dynamic Unified Search Button.
+pref("browser.urlbar.usb.dynamic", true);
+
 // Enable trending suggestions and recent searches.
 pref("browser.urlbar.trending.featureGate", true);
 pref("browser.urlbar.trending.requireSearchMode", false);

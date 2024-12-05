@@ -289,7 +289,7 @@ async function test_focus_order_with_no_results({ input, shiftKey }) {
 
 add_task(async function test_focus_order_by_tab_with_no_selected_element() {
   for (const shiftKey of [false, true]) {
-    info(`Test for shifrKey:${shiftKey}`);
+    info(`Test for shiftKey:${shiftKey}`);
 
     info("Open urlbar results");
     await UrlbarTestUtils.promiseAutocompleteResultPopup({
