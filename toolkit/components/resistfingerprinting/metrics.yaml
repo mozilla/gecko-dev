@@ -1281,6 +1281,78 @@ characteristics:
     data_sensitivity:
       - technical
 
+  canvasdata3avif:
+    type: string
+    description: >
+      The sha1 hash of an image rendered on a canvas. The image is a stretched photographic image, used to test image operations.
+    lifetime: application
+    send_in_pings:
+      - user-characteristics
+    notification_emails:
+      - tom@mozilla.com
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1879151
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935231
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935231#c0
+    expires: never
+    data_sensitivity:
+      - technical
+
+  canvasdata3webp:
+    type: string
+    description: >
+      The sha1 hash of an image rendered on a canvas. The image is a stretched photographic image, used to test image operations.
+    lifetime: application
+    send_in_pings:
+      - user-characteristics
+    notification_emails:
+      - tom@mozilla.com
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1879151
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935231
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935231#c0
+    expires: never
+    data_sensitivity:
+      - technical
+
+  canvasdata3png:
+    type: string
+    description: >
+      The sha1 hash of an image rendered on a canvas. The image is a stretched photographic image, used to test image operations.
+    lifetime: application
+    send_in_pings:
+      - user-characteristics
+    notification_emails:
+      - tom@mozilla.com
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1879151
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935231
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935231#c0
+    expires: never
+    data_sensitivity:
+      - technical
+
+  canvasdata3cspsafe:
+    type: string
+    description: >
+      The sha1 hash of an image rendered on a canvas. The image is a stretched photographic image, used to test image operations.
+    lifetime: application
+    send_in_pings:
+      - user-characteristics
+    notification_emails:
+      - tom@mozilla.com
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1879151
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935231
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935231#c0
+    expires: never
+    data_sensitivity:
+      - technical
+
   canvasdata1software:
     type: string
     description: >
@@ -1511,6 +1583,78 @@ characteristics:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1900828
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1900828#c4
+    expires: never
+    data_sensitivity:
+      - technical
+
+  canvasdata3avifsoftware:
+    type: string
+    description: >
+      The sha1 hash of an image rendered on a canvas. The image is a stretched photographic image, used to test image operations.
+    lifetime: application
+    send_in_pings:
+      - user-characteristics
+    notification_emails:
+      - tom@mozilla.com
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1879151
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935231
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935231#c0
+    expires: never
+    data_sensitivity:
+      - technical
+
+  canvasdata3webpsoftware:
+    type: string
+    description: >
+      The sha1 hash of an image rendered on a canvas. The image is a stretched photographic image, used to test image operations.
+    lifetime: application
+    send_in_pings:
+      - user-characteristics
+    notification_emails:
+      - tom@mozilla.com
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1879151
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935231
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935231#c0
+    expires: never
+    data_sensitivity:
+      - technical
+
+  canvasdata3pngsoftware:
+    type: string
+    description: >
+      The sha1 hash of an image rendered on a canvas. The image is a stretched photographic image, used to test image operations.
+    lifetime: application
+    send_in_pings:
+      - user-characteristics
+    notification_emails:
+      - tom@mozilla.com
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1879151
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935231
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935231#c0
+    expires: never
+    data_sensitivity:
+      - technical
+
+  canvasdata3cspsafesoftware:
+    type: string
+    description: >
+      The sha1 hash of an image rendered on a canvas. The image is a stretched photographic image, used to test image operations.
+    lifetime: application
+    send_in_pings:
+      - user-characteristics
+    notification_emails:
+      - tom@mozilla.com
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1879151
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935231
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935231#c0
     expires: never
     data_sensitivity:
       - technical
