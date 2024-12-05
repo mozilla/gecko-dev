@@ -747,8 +747,21 @@ export class UrlbarController {
     this.input.addEventListener("blur", this.input);
     switcher.addEventListener(
       "blur",
-      () => {
+      e => {
         switcher.removeAttribute("tabindex");
+        if (
+          this.input.hasAttribute("focused") &&
+          !e.relatedTarget?.closest("#urlbar")
+        ) {
+          // If the focus is not back to urlbar, fire blur event explicitly to
+          // clear the urlbar. Because the input field has been losing an
+          // opportunity to lose the focus since we removed blur listener once.
+          this.input.inputField.dispatchEvent(
+            new FocusEvent("blur", {
+              relatedTarget: e.relatedTarget,
+            })
+          );
+        }
       },
       { once: true }
     );

@@ -315,6 +315,43 @@ add_task(async function test_focus_order_by_tab_with_no_selected_element() {
   }
 });
 
+add_task(async function test_urlbar_focus_after_switcher_lost() {
+  info("Open the urlbar");
+  await UrlbarTestUtils.promiseAutocompleteResultPopup({
+    window,
+    value: "abc",
+  });
+  Assert.ok(
+    BrowserTestUtils.isVisible(gURLBar.view.panel),
+    "The UrlbarView is opened"
+  );
+  Assert.ok(
+    gURLBar.hasAttribute("focused"),
+    "The #urlbar element has 'focused' attribute"
+  );
+
+  info("Move the focus to the switcher button");
+  await focusSwitcher();
+  Assert.ok(
+    gURLBar.hasAttribute("focused"),
+    "The #urlbar element still has 'focused' attribute"
+  );
+
+  info("Move the focus to browser element");
+  // We intentionally turn off this a11y check, because the following click is
+  // purposefully targeting a non-interactive element.
+  AccessibilityUtils.setEnv({ mustHaveAccessibleRule: false });
+  EventUtils.synthesizeMouseAtCenter(document.getElementById("browser"), {});
+  AccessibilityUtils.resetEnv();
+  Assert.ok(
+    !gURLBar.hasAttribute("focused"),
+    "The #urlbar element does not have 'focused' attribute"
+  );
+
+  info("Clean up");
+  gURLBar.handleRevert();
+});
+
 add_task(async function test_esc_on_usb() {
   info("Open urlbar results");
   await UrlbarTestUtils.promiseAutocompleteResultPopup({
