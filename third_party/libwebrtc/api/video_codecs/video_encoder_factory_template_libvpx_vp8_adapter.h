@@ -36,7 +36,7 @@ struct LibvpxVp8EncoderTemplateAdapter {
 
   static std::unique_ptr<VideoEncoder> CreateEncoder(
       const Environment& env,
-      const SdpVideoFormat& format) {
+      const SdpVideoFormat& /* format */) {
     return CreateVp8Encoder(env);
   }
 

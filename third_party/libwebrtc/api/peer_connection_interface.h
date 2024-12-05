@@ -1041,15 +1041,17 @@ class RTC_EXPORT PeerConnectionInterface : public webrtc::RefCountInterface {
   // The observer is invoked as soon as the operation completes, which could be
   // before or after the SetLocalDescription() method has exited.
   virtual void SetLocalDescription(
-      std::unique_ptr<SessionDescriptionInterface> desc,
-      rtc::scoped_refptr<SetLocalDescriptionObserverInterface> observer) {}
+      std::unique_ptr<SessionDescriptionInterface> /* desc */,
+      rtc::scoped_refptr<SetLocalDescriptionObserverInterface> /* observer */) {
+  }
   // Creates an offer or answer (depending on current signaling state) and sets
   // it as the local session description.
   //
   // The observer is invoked as soon as the operation completes, which could be
   // before or after the SetLocalDescription() method has exited.
   virtual void SetLocalDescription(
-      rtc::scoped_refptr<SetLocalDescriptionObserverInterface> observer) {}
+      rtc::scoped_refptr<SetLocalDescriptionObserverInterface> /* observer */) {
+  }
   // Like SetLocalDescription() above, but the observer is invoked with a delay
   // after the operation completes. This helps avoid recursive calls by the
   // observer but also makes it possible for states to change in-between the
@@ -1059,7 +1061,8 @@ class RTC_EXPORT PeerConnectionInterface : public webrtc::RefCountInterface {
   // ones taking SetLocalDescriptionObserverInterface as argument.
   virtual void SetLocalDescription(SetSessionDescriptionObserver* observer,
                                    SessionDescriptionInterface* desc) = 0;
-  virtual void SetLocalDescription(SetSessionDescriptionObserver* observer) {}
+  virtual void SetLocalDescription(
+      SetSessionDescriptionObserver* /* observer */) {}
 
   // Sets the remote session description.
   //
@@ -1078,8 +1081,9 @@ class RTC_EXPORT PeerConnectionInterface : public webrtc::RefCountInterface {
   // for synchronizing peer connection states to the application.
   // TODO(https://crbug.com/webrtc/11798): Delete this method in favor of the
   // ones taking SetRemoteDescriptionObserverInterface as argument.
-  virtual void SetRemoteDescription(SetSessionDescriptionObserver* observer,
-                                    SessionDescriptionInterface* desc) {}
+  virtual void SetRemoteDescription(
+      SetSessionDescriptionObserver* /* observer */,
+      SessionDescriptionInterface* /* desc */) {}
 
   // According to spec, we must only fire "negotiationneeded" if the Operations
   // Chain is empty. This method takes care of validating an event previously
@@ -1124,8 +1128,9 @@ class RTC_EXPORT PeerConnectionInterface : public webrtc::RefCountInterface {
   virtual bool AddIceCandidate(const IceCandidateInterface* candidate) = 0;
   // TODO(hbos): Remove default implementation once implemented by downstream
   // projects.
-  virtual void AddIceCandidate(std::unique_ptr<IceCandidateInterface> candidate,
-                               std::function<void(RTCError)> callback) {}
+  virtual void AddIceCandidate(
+      std::unique_ptr<IceCandidateInterface> /* candidate */,
+      std::function<void(RTCError)> /* callback */) {}
 
   // Removes a group of remote candidates from the ICE agent. Needed mainly for
   // continual gathering, to avoid an ever-growing list of candidates as

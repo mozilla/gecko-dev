@@ -55,13 +55,13 @@ AudioEndToEndTest::CreateRenderer() {
 
 void AudioEndToEndTest::OnFakeAudioDevicesCreated(
     AudioDeviceModule* send_audio_device,
-    AudioDeviceModule* recv_audio_device) {
+    AudioDeviceModule* /* recv_audio_device */) {
   send_audio_device_ = send_audio_device;
 }
 
 void AudioEndToEndTest::ModifyAudioConfigs(
     AudioSendStream::Config* send_config,
-    std::vector<AudioReceiveStreamInterface::Config>* receive_configs) {
+    std::vector<AudioReceiveStreamInterface::Config>* /* receive_configs */) {
   // Large bitrate by default.
   const webrtc::SdpAudioFormat kDefaultFormat("opus", 48000, 2,
                                               {{"stereo", "1"}});

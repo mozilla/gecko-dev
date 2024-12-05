@@ -686,7 +686,7 @@ Adaptation VideoStreamAdapter::GetAdaptationTo(
 }
 
 void VideoStreamAdapter::BroadcastVideoRestrictionsUpdate(
-    const VideoStreamInputState& input_state,
+    const VideoStreamInputState& /* input_state */,
     const rtc::scoped_refptr<Resource>& resource) {
   RTC_DCHECK_RUN_ON(&sequence_checker_);
   VideoSourceRestrictions filtered = FilterRestrictionsByDegradationPreference(

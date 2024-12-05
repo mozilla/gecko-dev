@@ -97,7 +97,7 @@ AudioReceiveStreamImpl::AudioReceiveStreamImpl(
 }
 
 AudioReceiveStreamImpl::AudioReceiveStreamImpl(
-    const Environment& env,
+    const Environment& /* env */,
     PacketRouter* packet_router,
     const webrtc::AudioReceiveStreamInterface::Config& config,
     const rtc::scoped_refptr<webrtc::AudioState>& audio_state,

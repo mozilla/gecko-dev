@@ -25,7 +25,7 @@ struct Dav1dDecoderTemplateAdapter {
   }
 
   static std::unique_ptr<VideoDecoder> CreateDecoder(
-      const SdpVideoFormat& format) {
+      const SdpVideoFormat& /* format */) {
     return CreateDav1dDecoder();
   }
 };

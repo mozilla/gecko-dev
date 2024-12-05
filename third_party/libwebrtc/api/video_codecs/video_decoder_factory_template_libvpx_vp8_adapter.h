@@ -27,7 +27,7 @@ struct LibvpxVp8DecoderTemplateAdapter {
 
   static std::unique_ptr<VideoDecoder> CreateDecoder(
       const Environment& env,
-      const SdpVideoFormat& format) {
+      const SdpVideoFormat& /* format */) {
     return CreateVp8Decoder(env);
   }
 };

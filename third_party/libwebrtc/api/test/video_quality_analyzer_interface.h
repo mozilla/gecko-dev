@@ -127,45 +127,47 @@ class VideoQualityAnalyzerInterface
   // Will be called when frame will be obtained from PeerConnection stack.
   // `peer_name` is name of the peer on which side frame was rendered.
   virtual void OnFrameRendered(absl::string_view /* peer_name */,
-                               const VideoFrame& frame) {}
+                               const VideoFrame& /* frame */) {}
   // Will be called if encoder return not WEBRTC_VIDEO_CODEC_OK.
   // All available codes are listed in
   // modules/video_coding/include/video_error_codes.h
   // `peer_name` is name of the peer on which side error acquired.
-  virtual void OnEncoderError(absl::string_view peer_name,
-                              const VideoFrame& frame,
-                              int32_t error_code) {}
+  virtual void OnEncoderError(absl::string_view /* peer_name */,
+                              const VideoFrame& /* frame */,
+                              int32_t /* error_code */) {}
   // Will be called if decoder return not WEBRTC_VIDEO_CODEC_OK.
   // All available codes are listed in
   // modules/video_coding/include/video_error_codes.h
   // `peer_name` is name of the peer on which side error acquired.
-  virtual void OnDecoderError(absl::string_view peer_name,
-                              uint16_t frame_id,
-                              int32_t error_code,
-                              const DecoderStats& stats) {}
+  virtual void OnDecoderError(absl::string_view /* peer_name */,
+                              uint16_t /* frame_id */,
+                              int32_t /* error_code */,
+                              const DecoderStats& /* stats */) {}
   // Will be called every time new stats reports are available for the
   // Peer Connection identified by `pc_label`.
   void OnStatsReports(
-      absl::string_view pc_label,
-      const rtc::scoped_refptr<const RTCStatsReport>& report) override {}
+      absl::string_view /* pc_label */,
+      const rtc::scoped_refptr<const RTCStatsReport>& /* report */) override {}
 
   // Will be called before test adds new participant in the middle of a call.
-  virtual void RegisterParticipantInCall(absl::string_view peer_name) {}
+  virtual void RegisterParticipantInCall(absl::string_view /* peer_name */) {}
   // Will be called after test removed existing participant in the middle of the
   // call.
-  virtual void UnregisterParticipantInCall(absl::string_view peer_name) {}
+  virtual void UnregisterParticipantInCall(absl::string_view /* peer_name */) {}
 
   // Informs analyzer that peer `receiver_peer_name` should not receive any
   // stream from sender `sender_peer_name`.
   // This method is a no-op if the sender or the receiver does not exist.
-  virtual void OnPauseAllStreamsFrom(absl::string_view sender_peer_name,
-                                     absl::string_view receiver_peer_name) {}
+  virtual void OnPauseAllStreamsFrom(
+      absl::string_view /* sender_peer_name */,
+      absl::string_view /* receiver_peer_name */) {}
 
   // Informs analyzer that peer `receiver_peer_name` is expected to receive all
   // streams from `sender_peer_name`.
   // This method is a no-op if the sender or the receiver does not exist.
-  virtual void OnResumeAllStreamsFrom(absl::string_view sender_peer_name,
-                                      absl::string_view receiver_peer_name) {}
+  virtual void OnResumeAllStreamsFrom(
+      absl::string_view /* sender_peer_name */,
+      absl::string_view /* receiver_peer_name */) {}
 
   // Tells analyzer that analysis complete and it should calculate final
   // statistics.
@@ -179,7 +181,7 @@ class VideoQualityAnalyzerInterface
   // Returns the sender peer name of the last stream where this frame was
   // captured. The sender for this frame id may change when the frame ids wrap
   // around. Also it will crash, if the specified `frame_id` wasn't captured.
-  virtual std::string GetSenderPeerName(uint16_t frame_id) const {
+  virtual std::string GetSenderPeerName(uint16_t /* frame_id */) const {
     RTC_CHECK(false) << "Not implemented.";
   }
 };

@@ -153,7 +153,7 @@ TEST_F(ChannelSendTest, IncreaseRtpTimestampByPauseDuration) {
   uint32_t timestamp;
   int sent_packets = 0;
   auto send_rtp = [&](rtc::ArrayView<const uint8_t> data,
-                      const PacketOptions& options) {
+                      const PacketOptions& /* options */) {
     ++sent_packets;
     RtpPacketReceived packet;
     packet.Parse(data);
