@@ -61,25 +61,35 @@ TEST(WindowFinderTest, FindConsoleWindow) {
   // Ensures that current console window is visible.
   ShowWindow(console_window, SW_MAXIMIZE);
   // Moves the window to the top-left of the display.
-  MoveWindow(console_window, 0, 0, kMaxSize, kMaxSize, true);
+  if (!MoveWindow(console_window, 0, 0, kMaxSize, kMaxSize, true)) {
+    FAIL() << "Failed to move window. Error code: " << GetLastError();
+  }
 
   bool should_restore_notopmost =
       (GetWindowLong(console_window, GWL_EXSTYLE) & WS_EX_TOPMOST) == 0;
 
   // Brings console window to top.
-  SetWindowPos(console_window, HWND_TOPMOST, 0, 0, 0, 0,
-               SWP_NOMOVE | SWP_NOSIZE);
-  BringWindowToTop(console_window);
+  if (!SetWindowPos(console_window, HWND_TOPMOST, 0, 0, 0, 0,
+                    SWP_NOMOVE | SWP_NOSIZE)) {
+    FAIL() << "Failed to bring window to top. Error code: " << GetLastError();
+  }
+  if (!BringWindowToTop(console_window)) {
+    FAIL() << "Failed second attempt to bring window to top. Error code: "
+           << GetLastError();
+  }
 
   bool success = false;
   WindowFinderWin finder;
   for (int i = 0; i < kMaxSize; i++) {
     const DesktopVector spot(i, i);
     const HWND id = reinterpret_cast<HWND>(finder.GetWindowUnderPoint(spot));
+
     if (id == console_window) {
       success = true;
       break;
     }
+    RTC_LOG(LS_INFO) << "Expected window " << console_window
+                     << ". Found window " << id;
   }
   if (should_restore_notopmost)
     SetWindowPos(console_window, HWND_NOTOPMOST, 0, 0, 0, 0,
