@@ -243,15 +243,19 @@ PeerConnectionFactoryDependencies CreatePCFDependencies(
 // from InjectableComponents::PeerConnectionComponents.
 PeerConnectionDependencies CreatePCDependencies(
     MockPeerConnectionObserver* observer,
-    uint32_t port_allocator_extra_flags,
+    std::optional<uint32_t> port_allocator_flags,
     std::unique_ptr<PeerConnectionComponents> pc_dependencies) {
   PeerConnectionDependencies pc_deps(observer);
 
   auto port_allocator = std::make_unique<cricket::BasicPortAllocator>(
       pc_dependencies->network_manager, pc_dependencies->packet_socket_factory);
 
-  // This test does not support TCP
-  int flags = port_allocator_extra_flags | cricket::PORTALLOCATOR_DISABLE_TCP;
+  // This test does not support TCP by default.
+  int flags =
+      cricket::kDefaultPortAllocatorFlags | cricket::PORTALLOCATOR_DISABLE_TCP;
+  if (port_allocator_flags.has_value()) {
+    flags = *port_allocator_flags;
+  }
   port_allocator->set_flags(port_allocator->flags() | flags);
 
   pc_deps.allocator = std::move(port_allocator);
@@ -339,7 +343,7 @@ std::unique_ptr<TestPeer> TestPeerFactory::CreateTestPeer(
 
   // Create peer connection.
   PeerConnectionDependencies pc_deps =
-      CreatePCDependencies(observer.get(), params->port_allocator_extra_flags,
+      CreatePCDependencies(observer.get(), params->port_allocator_flags,
                            std::move(components->pc_dependencies));
   rtc::scoped_refptr<PeerConnectionInterface> peer_connection =
       peer_connection_factory

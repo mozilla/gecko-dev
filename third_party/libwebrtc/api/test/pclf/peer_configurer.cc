@@ -240,9 +240,17 @@ PeerConfigurer* PeerConfigurer::SetFieldTrials(
 
 PeerConfigurer* PeerConfigurer::SetPortAllocatorExtraFlags(
     uint32_t extra_flags) {
-  params_->port_allocator_extra_flags = extra_flags;
+  params_->port_allocator_flags = cricket::kDefaultPortAllocatorFlags |
+                                  cricket::PORTALLOCATOR_DISABLE_TCP |
+                                  extra_flags;
   return this;
 }
+
+PeerConfigurer* PeerConfigurer::SetPortAllocatorFlags(uint32_t flags) {
+  params_->port_allocator_flags = flags;
+  return this;
+}
+
 std::unique_ptr<InjectableComponents> PeerConfigurer::ReleaseComponents() {
   RTC_CHECK(components_);
   auto components = std::move(components_);

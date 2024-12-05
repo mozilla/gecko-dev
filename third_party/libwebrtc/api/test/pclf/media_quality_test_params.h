@@ -128,9 +128,14 @@ struct Params {
   std::optional<std::string> name;
   // If `audio_config` is set audio stream will be configured
   std::optional<AudioConfig> audio_config;
-  // Flags to set on `cricket::PortAllocator`. These flags will be added
-  // to the default ones that are presented on the port allocator.
-  uint32_t port_allocator_extra_flags = cricket::kDefaultPortAllocatorFlags;
+  // Flags to set on `cricket::PortAllocator`. If not set,
+  // cricket::kDefaultPortAllocatorFlags will be used and
+  // cricket::PORTALLOCATOR_DISABLE_TCP will be disabled.
+  //
+  // IMPORTANT: if you use WebRTC Network Emulation
+  // (api/test/network_emulation_manager.h) and set this field, remember to set
+  // cricket::PORTALLOCATOR_DISABLE_TCP to 0.
+  std::optional<uint32_t> port_allocator_flags = std::nullopt;
   // If `rtc_event_log_path` is set, an RTCEventLog will be saved in that
   // location and it will be available for further analysis.
   std::optional<std::string> rtc_event_log_path;

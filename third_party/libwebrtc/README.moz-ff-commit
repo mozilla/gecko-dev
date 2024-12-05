@@ -33552,3 +33552,6 @@ db1c618fa1
 # MOZ_LIBWEBRTC_SRC=/Users/mfroman/no_tm_backup/elm/.moz-fast-forward/moz-libwebrtc MOZ_LIBWEBRTC_BRANCH=mozpatches bash dom/media/webrtc/third_party_build/fast-forward-libwebrtc.sh
 # base of lastest vendoring
 049b43bd02
+# MOZ_LIBWEBRTC_SRC=/Users/mfroman/no_tm_backup/elm/.moz-fast-forward/moz-libwebrtc MOZ_LIBWEBRTC_BRANCH=mozpatches bash dom/media/webrtc/third_party_build/fast-forward-libwebrtc.sh
+# base of lastest vendoring
+e8d27c7092
