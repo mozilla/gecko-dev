@@ -134,8 +134,8 @@ class StunRequest {
   StunMessage* mutable_msg() { return msg_.get(); }
 
   // Called when the message receives a response or times out.
-  virtual void OnResponse(StunMessage* response) {}
-  virtual void OnErrorResponse(StunMessage* response) {}
+  virtual void OnResponse(StunMessage* /* response */) {}
+  virtual void OnErrorResponse(StunMessage* /* response */) {}
   virtual void OnTimeout() {}
   // Called when the message is sent.
   virtual void OnSent();

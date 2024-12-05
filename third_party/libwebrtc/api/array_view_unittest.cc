@@ -36,7 +36,7 @@ size_t Call(ArrayView<T> av) {
 }
 
 template <typename T, size_t N>
-void CallFixed(ArrayView<T, N> av) {}
+void CallFixed(ArrayView<T, N> /* av */) {}
 
 }  // namespace
 

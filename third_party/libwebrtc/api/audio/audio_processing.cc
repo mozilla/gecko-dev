@@ -58,7 +58,7 @@ std::string GainController1ModeToString(const Agc1Config::Mode& mode) {
 constexpr int AudioProcessing::kNativeSampleRatesHz[];
 
 void CustomProcessing::SetRuntimeSetting(
-    AudioProcessing::RuntimeSetting setting) {}
+    AudioProcessing::RuntimeSetting /* setting */) {}
 
 bool Agc1Config::operator==(const Agc1Config& rhs) const {
   const auto& analog_lhs = analog_gain_controller;

@@ -102,7 +102,7 @@ index ed7c75996f..be49d1b9e1 100644
  #include <endian.h>
  #else
 diff --git a/rtc_base/physical_socket_server.cc b/rtc_base/physical_socket_server.cc
-index af133b8529..29b9a35c56 100644
+index 5f9959a8df..79e63c50fd 100644
 --- a/rtc_base/physical_socket_server.cc
 +++ b/rtc_base/physical_socket_server.cc
 @@ -75,7 +75,10 @@ typedef void* SockOptArg;
