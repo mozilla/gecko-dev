@@ -114,6 +114,7 @@
 #include "gc/GCContext-inl.h"
 #include "gc/Nursery-inl.h"
 #include "vm/JSContext-inl.h"
+#include "vm/StringType-inl.h"
 
 using namespace js;
 
@@ -1201,6 +1202,71 @@ size_t BigInt::calculateMaximumCharactersRequired(HandleBigInt x,
   return AssertedCast<size_t>(maximumCharactersRequired);
 }
 
+// Similar to InlineCharBuffer, except that characters are nursery allocated if
+// possible.
+template <typename CharT>
+class StringChars {
+  static constexpr size_t InlineLength =
+      std::is_same_v<CharT, JS::Latin1Char>
+          ? JSFatInlineString::MAX_LENGTH_LATIN1
+          : JSFatInlineString::MAX_LENGTH_TWO_BYTE;
+
+  CharT inlineChars_[InlineLength];
+  Rooted<JSString::OwnedChars<CharT>> ownedChars_;
+
+ public:
+  explicit StringChars(JSContext* cx) : ownedChars_(cx) {}
+
+  CharT* data(const JS::AutoRequireNoGC& nogc) {
+    return ownedChars_ ? ownedChars_.data() : inlineChars_;
+  }
+
+  bool maybeAlloc(JSContext* cx, size_t length) {
+    MOZ_ASSERT(length <= JSString::MAX_LENGTH);
+
+    if (JSInlineString::lengthFits<CharT>(length)) {
+      return true;
+    }
+
+    if (cx->zone()->allocNurseryStrings()) {
+      MOZ_ASSERT(cx->nursery().isEnabled());
+      void* buffer = cx->nursery().tryAllocateNurseryBuffer(
+          cx->zone(), length * sizeof(CharT), js::StringBufferArena);
+      if (buffer) {
+        using Kind = typename JSString::OwnedChars<CharT>::Kind;
+        ownedChars_.set({static_cast<CharT*>(buffer), length, Kind::Nursery});
+        return true;
+      }
+    }
+
+    auto buffer =
+        cx->make_pod_arena_array<CharT>(js::StringBufferArena, length);
+    if (!buffer) {
+      return false;
+    }
+    ownedChars_.set({std::move(buffer), length});
+    return true;
+  }
+
+  template <AllowGC allowGC>
+  JSLinearString* toStringDontDeflateNonStatic(JSContext* cx, size_t length) {
+    MOZ_ASSERT(length <= JSString::MAX_LENGTH);
+
+    if (JSInlineString::lengthFits<CharT>(length)) {
+      MOZ_ASSERT(!ownedChars_,
+                 "unexpected OwnedChars allocation for inline strings");
+      return NewInlineString<allowGC>(cx, inlineChars_, length);
+    }
+
+    MOZ_ASSERT(ownedChars_,
+               "missing OwnedChars allocation for non-inline strings");
+    MOZ_ASSERT(length == ownedChars_.length(),
+               "requested length doesn't match allocation");
+    return JSLinearString::newValidLength<allowGC, CharT>(cx, &ownedChars_,
+                                                          gc::Heap::Default);
+  }
+};
+
 template <AllowGC allowGC>
 JSLinearString* BigInt::toStringBasePowerOfTwo(JSContext* cx, HandleBigInt x,
                                                unsigned radix) {
@@ -1227,64 +1293,69 @@ JSLinearString* BigInt::toStringBasePowerOfTwo(JSContext* cx, HandleBigInt x,
     return nullptr;
   }
 
-  auto resultChars = cx->make_pod_array<char>(charsRequired);
-  if (!resultChars) {
+  StringChars<JS::Latin1Char> stringChars(cx);
+  if (!stringChars.maybeAlloc(cx, charsRequired)) {
     if constexpr (!allowGC) {
       cx->recoverFromOutOfMemory();
     }
     return nullptr;
   }
 
-  Digit digit = 0;
-  // Keeps track of how many unprocessed bits there are in |digit|.
-  unsigned availableBits = 0;
-  size_t pos = charsRequired;
-  for (unsigned i = 0; i < length - 1; i++) {
-    Digit newDigit = x->digit(i);
-    // Take any leftover bits from the last iteration into account.
-    unsigned current = (digit | (newDigit << availableBits)) & charMask;
+  {
+    JS::AutoCheckCannotGC nogc;
+    auto* resultChars = stringChars.data(nogc);
+
+    Digit digit = 0;
+    // Keeps track of how many unprocessed bits there are in |digit|.
+    unsigned availableBits = 0;
+    size_t pos = charsRequired;
+    for (unsigned i = 0; i < length - 1; i++) {
+      Digit newDigit = x->digit(i);
+      // Take any leftover bits from the last iteration into account.
+      unsigned current = (digit | (newDigit << availableBits)) & charMask;
+      MOZ_ASSERT(pos);
+      resultChars[--pos] = radixDigits[current];
+      unsigned consumedBits = bitsPerChar - availableBits;
+      digit = newDigit >> consumedBits;
+      availableBits = DigitBits - consumedBits;
+      while (availableBits >= bitsPerChar) {
+        MOZ_ASSERT(pos);
+        resultChars[--pos] = radixDigits[digit & charMask];
+        digit >>= bitsPerChar;
+        availableBits -= bitsPerChar;
+      }
+    }
+
+    // Write out the character containing the lowest-order bit of |msd|.
+    //
+    // This character may include leftover bits from the Digit below |msd|.  For
+    // example, if |x === 2n**64n| and |radix == 32|: the preceding loop writes
+    // twelve zeroes for low-order bits 0-59 in |x->digit(0)| (and |x->digit(1)|
+    // on 32-bit); then the highest 4 bits of of |x->digit(0)| (or |x->digit(1)|
+    // on 32-bit) and bit 0 of |x->digit(1)| (|x->digit(2)| on 32-bit) will
+    // comprise the |current == 0b1'0000| computed below for the high-order 'g'
+    // character.
+    unsigned current = (digit | (msd << availableBits)) & charMask;
     MOZ_ASSERT(pos);
     resultChars[--pos] = radixDigits[current];
-    unsigned consumedBits = bitsPerChar - availableBits;
-    digit = newDigit >> consumedBits;
-    availableBits = DigitBits - consumedBits;
-    while (availableBits >= bitsPerChar) {
+
+    // Write out remaining characters represented by |msd|.  (There may be none,
+    // as in the example above.)
+    digit = msd >> (bitsPerChar - availableBits);
+    while (digit != 0) {
       MOZ_ASSERT(pos);
       resultChars[--pos] = radixDigits[digit & charMask];
       digit >>= bitsPerChar;
-      availableBits -= bitsPerChar;
     }
+
+    if (sign) {
+      MOZ_ASSERT(pos);
+      resultChars[--pos] = '-';
+    }
+    MOZ_ASSERT(pos == 0);
   }
 
-  // Write out the character containing the lowest-order bit of |msd|.
-  //
-  // This character may include leftover bits from the Digit below |msd|.  For
-  // example, if |x === 2n**64n| and |radix == 32|: the preceding loop writes
-  // twelve zeroes for low-order bits 0-59 in |x->digit(0)| (and |x->digit(1)|
-  // on 32-bit); then the highest 4 bits of of |x->digit(0)| (or |x->digit(1)|
-  // on 32-bit) and bit 0 of |x->digit(1)| (|x->digit(2)| on 32-bit) will
-  // comprise the |current == 0b1'0000| computed below for the high-order 'g'
-  // character.
-  unsigned current = (digit | (msd << availableBits)) & charMask;
-  MOZ_ASSERT(pos);
-  resultChars[--pos] = radixDigits[current];
-
-  // Write out remaining characters represented by |msd|.  (There may be none,
-  // as in the example above.)
-  digit = msd >> (bitsPerChar - availableBits);
-  while (digit != 0) {
-    MOZ_ASSERT(pos);
-    resultChars[--pos] = radixDigits[digit & charMask];
-    digit >>= bitsPerChar;
-  }
-
-  if (sign) {
-    MOZ_ASSERT(pos);
-    resultChars[--pos] = '-';
-  }
-
-  MOZ_ASSERT(pos == 0);
-  return NewStringCopyN<allowGC>(cx, resultChars.get(), charsRequired);
+  return stringChars.toStringDontDeflateNonStatic<allowGC>(cx, charsRequired);
 }
 
 template <AllowGC allowGC>
