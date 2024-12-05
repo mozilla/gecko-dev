@@ -78,9 +78,7 @@ class OpenSSLAdapter final : public SSLAdapter {
   // OpenSSLAdapterFactory will call this method to create its own internal
   // SSL_CTX, and OpenSSLAdapter will also call this when used without a
   // factory.
-  static SSL_CTX* CreateContext(SSLMode mode,
-                                bool enable_cache,
-                                bool permute_extension);
+  static SSL_CTX* CreateContext(SSLMode mode, bool enable_cache);
 
  protected:
   void OnConnectEvent(Socket* socket) override;
@@ -172,9 +170,6 @@ class OpenSSLAdapter final : public SSLAdapter {
   std::vector<std::string> alpn_protocols_;
   // List of elliptic curves to be used in the TLS elliptic curves extension.
   std::vector<std::string> elliptic_curves_;
-#ifdef OPENSSL_IS_BORINGSSL
-  const bool permute_extension_;
-#endif
   // Holds the result of the call to run of the ssl_cert_verify_->Verify()
   bool custom_cert_verifier_status_;
   // Flag to cancel pending timeout task.
@@ -211,11 +206,7 @@ class OpenSSLAdapterFactory : public SSLAdapterFactory {
   // Constructs a new socket using the shared OpenSSLSessionCache. This means
   // existing SSLSessions already in the cache will be reused instead of
   // re-created for improved performance.
-  OpenSSLAdapter* CreateAdapter(Socket* socket,
-                                bool permute_extensions) override;
-  OpenSSLAdapter* CreateAdapter(Socket* socket) override {
-    return CreateAdapter(socket, /*permute_extensions=*/true);
-  }
+  OpenSSLAdapter* CreateAdapter(Socket* socket) override;
 
  private:
   // Holds the SSLMode (DTLS,TLS) that will be used to set the session cache.

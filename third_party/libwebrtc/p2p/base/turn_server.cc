@@ -140,8 +140,8 @@ void TurnServer::AcceptConnection(rtc::Socket* server_socket) {
   if (accepted_socket != NULL) {
     const ServerSocketInfo& info = server_listen_sockets_[server_socket];
     if (info.ssl_adapter_factory) {
-      rtc::SSLAdapter* ssl_adapter = info.ssl_adapter_factory->CreateAdapter(
-          accepted_socket, /*permute_extensions=*/true);
+      rtc::SSLAdapter* ssl_adapter =
+          info.ssl_adapter_factory->CreateAdapter(accepted_socket);
       ssl_adapter->StartSSL("");
       accepted_socket = ssl_adapter;
     }
