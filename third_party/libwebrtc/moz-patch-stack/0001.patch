@@ -230,7 +230,7 @@ index 994dddb026..5126519d81 100644
        "../call:payload_type",
        "../call:payload_type_picker",
 diff --git a/media/DEPS b/media/DEPS
-index 85b9c7ef3e..414e08f206 100644
+index 736601df27..12cad68da6 100644
 --- a/media/DEPS
 +++ b/media/DEPS
 @@ -25,9 +25,6 @@ specific_include_rules = {
