@@ -507,6 +507,10 @@ TEST_F(WebRtcVideoEngineTest, AdvertiseGenericDescriptor00) {
   ExpectRtpCapabilitySupport(RtpExtension::kGenericFrameDescriptorUri00, false);
 }
 
+TEST_F(WebRtcVideoEngineTest, SupportCorruptionDetectionHeaderExtension) {
+  ExpectRtpCapabilitySupport(RtpExtension::kCorruptionDetectionUri, false);
+}
+
 class WebRtcVideoEngineTestWithGenericDescriptor
     : public WebRtcVideoEngineTest {
  public:
@@ -3175,6 +3179,9 @@ TEST_F(WebRtcVideoChannelTest, RecvVideoRotationHeaderExtensions) {
 
 TEST_F(WebRtcVideoChannelTest, SendCorruptionDetectionHeaderExtensions) {
   TestSetSendRtpHeaderExtensions(RtpExtension::kCorruptionDetectionUri);
+}
+TEST_F(WebRtcVideoChannelTest, RecvCorruptionDetectionHeaderExtensions) {
+  TestSetRecvRtpHeaderExtensions(RtpExtension::kCorruptionDetectionUri);
 }
 
 TEST_F(WebRtcVideoChannelTest, DisableFrameInstrumentationByDefault) {
