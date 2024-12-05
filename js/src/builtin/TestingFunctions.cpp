@@ -10398,10 +10398,6 @@ JS_FOR_WASM_FEATURES(WASM_FEATURE)
 "  element's edge is the node of the i+1'th array element; the destination of\n"
 "  the last array element is implicitly |target|.\n"),
 
-    JS_FN_HELP("wasmMetadataAnalysis", wasmMetadataAnalysis, 1, 0,
-"wasmMetadataAnalysis(wasmObject)",
-"  Prints an analysis of the size of metadata on this wasm object.\n"),
-
     JS_FN_HELP("sharedMemoryEnabled", SharedMemoryEnabled, 0, 0,
 "sharedMemoryEnabled()",
 "  Return true if SharedArrayBuffer and Atomics are enabled"),
@@ -10820,6 +10816,10 @@ JS_FN_HELP("getFuseState", GetFuseState, 0, 0,
     JS_FN_HELP("wasmFunctionTier", WasmFunctionTier, 1, 0,
 "wasmFunctionTier(wasmFunc)\n",
 "  Returns the best compiled tier for a function. Either 'baseline' or 'optimized'."),
+
+    JS_FN_HELP("wasmMetadataAnalysis", wasmMetadataAnalysis, 1, 0,
+"wasmMetadataAnalysis(wasmObject)",
+"  Prints an analysis of the size of metadata on this wasm object.\n"),
 
     JS_FS_HELP_END
 };
