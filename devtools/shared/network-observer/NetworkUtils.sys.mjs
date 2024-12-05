@@ -91,6 +91,17 @@ function isChannelFromSystemPrincipal(channel) {
   return !!principal?.isSystemPrincipal;
 }
 
+function isChromeFileChannel(channel) {
+  if (!(channel instanceof Ci.nsIFileChannel)) {
+    return false;
+  }
+
+  return (
+    channel.originalURI.spec.startsWith("chrome://") ||
+    channel.originalURI.spec.startsWith("resource://")
+  );
+}
+
 /**
  * Get the browsing context id for the channel.
  *
@@ -497,6 +508,7 @@ function matchRequest(channel, filters) {
     if (
       channel.loadInfo?.loadingDocument === null &&
       (isChannelFromSystemPrincipal(channel) ||
+        isChromeFileChannel(channel) ||
         channel.loadInfo.isInDevToolsContext)
     ) {
       return false;

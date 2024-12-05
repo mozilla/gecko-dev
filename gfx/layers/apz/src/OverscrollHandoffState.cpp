@@ -20,22 +20,6 @@ void OverscrollHandoffChain::Add(AsyncPanZoomController* aApzc) {
   mChain.push_back(aApzc);
 }
 
-struct CompareByScrollPriority {
-  bool operator()(const RefPtr<AsyncPanZoomController>& a,
-                  const RefPtr<AsyncPanZoomController>& b) const {
-    return a->HasScrollgrab() && !b->HasScrollgrab();
-  }
-};
-
-void OverscrollHandoffChain::SortByScrollPriority() {
-  // The sorting being stable ensures that the relative order between
-  // non-scrollgrabbing APZCs remains child -> parent.
-  // (The relative order between scrollgrabbing APZCs will also remain
-  // child -> parent, though that's just an artefact of the implementation
-  // and users of 'scrollgrab' should not rely on this.)
-  std::stable_sort(mChain.begin(), mChain.end(), CompareByScrollPriority());
-}
-
 const RefPtr<AsyncPanZoomController>& OverscrollHandoffChain::GetApzcAtIndex(
     uint32_t aIndex) const {
   MOZ_ASSERT(aIndex < Length());

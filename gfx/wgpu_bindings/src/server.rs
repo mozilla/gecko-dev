@@ -523,22 +523,42 @@ pub extern "C" fn wgpu_server_device_drop(global: &Global, self_id: id::DeviceId
     global.device_drop(self_id)
 }
 
+#[repr(C)]
+pub struct DeviceLostClosure {
+    pub callback: unsafe extern "C" fn(user_data: *mut u8, reason: u8, message: *const c_char),
+    pub cleanup_callback: unsafe extern "C" fn(user_data: *mut u8),
+    pub user_data: *mut u8,
+}
+unsafe impl Send for DeviceLostClosure {}
+
+impl DeviceLostClosure {
+    fn call(self, reason: wgt::DeviceLostReason, message: String) {
+        // Ensure message is structured as a null-terminated C string. It only
+        // needs to live as long as the callback invocation.
+        let message = std::ffi::CString::new(message).unwrap();
+        unsafe {
+            (self.callback)(self.user_data, reason as u8, message.as_ptr());
+        }
+        core::mem::forget(self);
+    }
+}
+
+impl Drop for DeviceLostClosure {
+    fn drop(&mut self) {
+        unsafe {
+            (self.cleanup_callback)(self.user_data);
+        }
+    }
+}
+
 #[no_mangle]
 pub unsafe extern "C" fn wgpu_server_set_device_lost_callback(
     global: &Global,
     self_id: id::DeviceId,
-    callback: wgc::device::DeviceLostClosureC,
+    closure: DeviceLostClosure,
 ) {
-    global
-        .device_set_device_lost_closure(self_id, wgc::device::DeviceLostClosure::from_c(callback));
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn wgpu_server_unregister_device_lost_callback(
-    global: &Global,
-    self_id: id::DeviceId,
-) {
-    global.device_unregister_device_lost_closure(self_id);
+    let closure = Box::new(move |reason, message| closure.call(reason, message));
+    global.device_set_device_lost_closure(self_id, closure);
 }
 
 impl ShaderModuleCompilationMessage {
@@ -696,9 +716,45 @@ pub extern "C" fn wgpu_server_device_create_buffer(
     }
 }
 
+/// The status code provided to the buffer mapping closure.
+///
+/// This is very similar to `BufferAccessResult`, except that this is FFI-friendly.
+#[repr(C)]
+pub enum BufferMapAsyncStatus {
+    /// The Buffer is successfully mapped, `get_mapped_range` can be called.
+    ///
+    /// All other variants of this enum represent failures to map the buffer.
+    Success,
+    /// The buffer is already mapped.
+    ///
+    /// While this is treated as an error, it does not prevent mapped range from being accessed.
+    AlreadyMapped,
+    /// Mapping was already requested.
+    MapAlreadyPending,
+    /// An unknown error.
+    Error,
+    /// The context is Lost.
+    ContextLost,
+    /// The buffer is in an invalid state.
+    Invalid,
+    /// The range isn't fully contained in the buffer.
+    InvalidRange,
+    /// The range isn't properly aligned.
+    InvalidAlignment,
+    /// Incompatible usage flags.
+    InvalidUsageFlags,
+}
+
+#[repr(C)]
+pub struct BufferMapClosure {
+    pub callback: unsafe extern "C" fn(user_data: *mut u8, status: BufferMapAsyncStatus),
+    pub user_data: *mut u8,
+}
+unsafe impl Send for BufferMapClosure {}
+
 /// # Safety
 ///
-/// Callers are responsible for ensuring `callback` is well-formed.
+/// Callers are responsible for ensuring `closure` is well-formed.
 #[no_mangle]
 pub unsafe extern "C" fn wgpu_server_buffer_map(
     global: &Global,
@@ -706,16 +762,40 @@ pub unsafe extern "C" fn wgpu_server_buffer_map(
     start: wgt::BufferAddress,
     size: wgt::BufferAddress,
     map_mode: wgc::device::HostMap,
-    callback: wgc::resource::BufferMapCallbackC,
+    closure: BufferMapClosure,
     mut error_buf: ErrorBuffer,
 ) {
-    let callback = wgc::resource::BufferMapCallback::from_c(callback);
+    let closure = Box::new(move |result| {
+        let status = match result {
+            Ok(_) => BufferMapAsyncStatus::Success,
+            Err(BufferAccessError::Device(_)) => BufferMapAsyncStatus::ContextLost,
+            Err(BufferAccessError::InvalidResource(_))
+            | Err(BufferAccessError::DestroyedResource(_)) => BufferMapAsyncStatus::Invalid,
+            Err(BufferAccessError::AlreadyMapped) => BufferMapAsyncStatus::AlreadyMapped,
+            Err(BufferAccessError::MapAlreadyPending) => BufferMapAsyncStatus::MapAlreadyPending,
+            Err(BufferAccessError::MissingBufferUsage(_)) => {
+                BufferMapAsyncStatus::InvalidUsageFlags
+            }
+            Err(BufferAccessError::UnalignedRange)
+            | Err(BufferAccessError::UnalignedRangeSize { .. })
+            | Err(BufferAccessError::UnalignedOffset { .. }) => {
+                BufferMapAsyncStatus::InvalidAlignment
+            }
+            Err(BufferAccessError::OutOfBoundsUnderrun { .. })
+            | Err(BufferAccessError::OutOfBoundsOverrun { .. })
+            | Err(BufferAccessError::NegativeRange { .. }) => BufferMapAsyncStatus::InvalidRange,
+            Err(BufferAccessError::Failed)
+            | Err(BufferAccessError::NotMapped)
+            | Err(BufferAccessError::MapAborted) => BufferMapAsyncStatus::Error,
+            Err(_) => BufferMapAsyncStatus::Invalid,
+        };
+
+        (closure.callback)(closure.user_data, status)
+    });
     let operation = wgc::resource::BufferMapOperation {
         host: map_mode,
-        callback: Some(callback),
+        callback: Some(closure),
     };
-    // All errors are also exposed to the mapping callback, so we handle them there and ignore
-    // the returned value of buffer_map_async.
     let result = global.buffer_map_async(buffer_id, start, Some(size), operation);
 
     if let Err(error) = result {
@@ -2206,13 +2286,13 @@ pub extern "C" fn wgpu_server_render_bundle_drop(global: &Global, self_id: id::R
 pub unsafe extern "C" fn wgpu_server_encoder_copy_texture_to_buffer(
     global: &Global,
     self_id: id::CommandEncoderId,
-    source: &wgc::command::ImageCopyTexture,
+    source: &wgc::command::TexelCopyTextureInfo,
     dst_buffer: wgc::id::BufferId,
-    dst_layout: &crate::ImageDataLayout,
+    dst_layout: &crate::TexelCopyBufferLayout,
     size: &wgt::Extent3d,
     mut error_buf: ErrorBuffer,
 ) {
-    let destination = wgc::command::ImageCopyBuffer {
+    let destination = wgc::command::TexelCopyBufferInfo {
         buffer: dst_buffer,
         layout: dst_layout.into_wgt(),
     };
@@ -2247,16 +2327,21 @@ pub unsafe extern "C" fn wgpu_server_queue_submit(
     }
 }
 
+#[repr(C)]
+pub struct SubmittedWorkDoneClosure {
+    pub callback: unsafe extern "C" fn(user_data: *mut u8),
+    pub user_data: *mut u8,
+}
+unsafe impl Send for SubmittedWorkDoneClosure {}
+
 #[no_mangle]
 pub unsafe extern "C" fn wgpu_server_on_submitted_work_done(
     global: &Global,
     self_id: id::QueueId,
-    callback: wgc::device::queue::SubmittedWorkDoneClosureC,
+    closure: SubmittedWorkDoneClosure,
 ) {
-    global.queue_on_submitted_work_done(
-        self_id,
-        wgc::device::queue::SubmittedWorkDoneClosure::from_c(callback),
-    );
+    let closure = Box::new(move || (closure.callback)(closure.user_data));
+    global.queue_on_submitted_work_done(self_id, closure);
 }
 
 /// # Safety

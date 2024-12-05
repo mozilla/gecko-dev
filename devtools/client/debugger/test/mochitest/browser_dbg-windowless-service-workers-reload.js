@@ -16,13 +16,15 @@ add_task(async function () {
 
   const dbg = await initDebugger("doc-service-workers.html");
 
-  invokeInTab("registerWorker");
+  await SpecialPowers.spawn(gBrowser.selectedBrowser, [], async function () {
+    await content.wrappedJSObject.registerWorker();
+  });
   const workerSource = await waitForSource(dbg, "service-worker.sjs");
 
   await reload(dbg, "service-worker.sjs");
 
   await addBreakpoint(dbg, "service-worker.sjs", 13);
-  invokeInTab("fetchFromWorker");
+  const onFetched = invokeInTab("fetchFromWorker");
 
   await waitForPaused(dbg);
   await assertPausedAtSourceAndLine(dbg, workerSource.id, 13);
@@ -37,6 +39,8 @@ add_task(async function () {
   ]);
 
   await resume(dbg);
+  info("Waiting for the fetch request done from the page to complete");
+  await onFetched;
 
   // Reload a second time to ensure we can still debug the SW
   await reload(dbg, "service-worker.sjs");
@@ -60,5 +64,6 @@ add_task(async function () {
   await checkAdditionalThreadCount(dbg, 0);
 
   await waitForRequestsToSettle(dbg);
-  await removeTab(gBrowser.selectedTab);
+
+  await closeTabAndToolbox();
 });

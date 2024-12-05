@@ -599,7 +599,6 @@ struct ParamTraits<mozilla::layers::ScrollMetadata>
     WriteParam(aWriter, aParam.mLineScrollAmount);
     WriteParam(aWriter, aParam.mPageScrollAmount);
     WriteParam(aWriter, aParam.mInteractiveWidget);
-    WriteParam(aWriter, aParam.mHasScrollgrab);
     WriteParam(aWriter, aParam.mIsLayersIdRoot);
     WriteParam(aWriter, aParam.mIsAutoDirRootContentRTL);
     WriteParam(aWriter, aParam.mForceDisableApz);
@@ -634,8 +633,6 @@ struct ParamTraits<mozilla::layers::ScrollMetadata>
             ReadParam(aReader, &aResult->mLineScrollAmount) &&
             ReadParam(aReader, &aResult->mPageScrollAmount) &&
             ReadParam(aReader, &aResult->mInteractiveWidget) &&
-            ReadBoolForBitfield(aReader, aResult,
-                                &paramType::SetHasScrollgrab) &&
             ReadBoolForBitfield(aReader, aResult,
                                 &paramType::SetIsLayersIdRoot) &&
             ReadBoolForBitfield(aReader, aResult,

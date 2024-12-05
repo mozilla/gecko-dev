@@ -51,7 +51,7 @@
 
     const sendEncodings = [{ rid: "0", maxBitrate: 40000, scaleResolutionDownBy: 1.9 },
                            { rid: "1", maxBitrate: 40000, scaleResolutionDownBy: 3.5 },
-                           { rid: "2", maxBitrate: 40000, scaleResolutionDownBy: 17.8 }];
+                           { rid: "2", maxBitrate: 40000, scaleResolutionDownBy: 6.8 }];
 
     async function checkSenderStats(sender) {
       const senderStats = await sender.getStats();
@@ -69,6 +69,11 @@
         // the 80Kbps+overhead needed for the two simulcast streams.
         // 100Kbps was apparently too low.
         ['media.peerconnection.video.min_bitrate_estimate', 180*1000]);
+
+    // [TODO] re-enable HW decoder after bug 1526207 is fixed.
+    if (navigator.userAgent.includes("Android")) {
+      await pushPrefs(["media.navigator.mediadatadecoder_vpx_enabled", false]);
+    }
 
 
     const offerer = new RTCPeerConnection();

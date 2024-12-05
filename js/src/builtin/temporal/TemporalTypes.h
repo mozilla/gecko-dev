@@ -15,6 +15,8 @@
 #include <type_traits>
 #include <utility>
 
+#include "jstypes.h"
+
 #include "builtin/temporal/Int128.h"
 #include "builtin/temporal/TemporalUnit.h"
 

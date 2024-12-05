@@ -267,9 +267,6 @@ std::ostream& operator<<(std::ostream& aStream,
   if (aMetadata.GetScrollParentId() != ScrollableLayerGuid::NULL_SCROLL_ID) {
     aStream << "] [scrollParent=" << aMetadata.GetScrollParentId();
   }
-  if (aMetadata.GetHasScrollgrab()) {
-    aStream << "] [scrollgrab";
-  }
   aStream << "] [overscroll=" << aMetadata.GetOverscrollBehavior() << "] ["
           << aMetadata.GetScrollUpdates().Length() << " scrollupdates"
           << "] }";

@@ -1060,6 +1060,71 @@ static bool AddDurationToZonedDateTime(JSContext* cx,
 }
 
 /**
+ * FormatUTCOffsetNanoseconds ( offsetNanoseconds )
+ */
+static JSString* FormatUTCOffsetNanoseconds(JSContext* cx,
+                                            int64_t offsetNanoseconds) {
+  MOZ_ASSERT(std::abs(offsetNanoseconds) < ToNanoseconds(TemporalUnit::Day));
+
+  // Step 1.
+  char sign = offsetNanoseconds >= 0 ? '+' : '-';
+
+  // Step 2.
+  int64_t absoluteNanoseconds = std::abs(offsetNanoseconds);
+
+  // Step 6. (Reordered)
+  int32_t subSecondNanoseconds = int32_t(absoluteNanoseconds % 1'000'000'000);
+
+  // Step 5. (Reordered)
+  int32_t quotient = int32_t(absoluteNanoseconds / 1'000'000'000);
+  int32_t second = quotient % 60;
+
+  // Step 4. (Reordered)
+  quotient /= 60;
+  int32_t minute = quotient % 60;
+
+  // Step 3.
+  int32_t hour = quotient / 60;
+  MOZ_ASSERT(hour < 24, "time zone offset mustn't exceed 24-hours");
+
+  // Format: "sign hour{2} : minute{2} : second{2} . fractional{9}"
+  constexpr size_t maxLength = 1 + 2 + 1 + 2 + 1 + 2 + 1 + 9;
+  char result[maxLength];
+
+  size_t n = 0;
+
+  // Steps 7-8. (Inlined FormatTimeString).
+  result[n++] = sign;
+  result[n++] = char('0' + (hour / 10));
+  result[n++] = char('0' + (hour % 10));
+  result[n++] = ':';
+  result[n++] = char('0' + (minute / 10));
+  result[n++] = char('0' + (minute % 10));
+
+  if (second != 0 || subSecondNanoseconds != 0) {
+    result[n++] = ':';
+    result[n++] = char('0' + (second / 10));
+    result[n++] = char('0' + (second % 10));
+
+    if (uint32_t fractional = subSecondNanoseconds) {
+      result[n++] = '.';
+
+      uint32_t k = 100'000'000;
+      do {
+        result[n++] = char('0' + (fractional / k));
+        fractional %= k;
+        k /= 10;
+      } while (fractional);
+    }
+  }
+
+  MOZ_ASSERT(n <= maxLength);
+
+  // Step 9.
+  return NewStringCopyN<CanGC>(cx, result, n);
+}
+
+/**
  * Temporal.ZonedDateTime ( epochNanoseconds, timeZone [ , calendar ] )
  */
 static bool ZonedDateTimeConstructor(JSContext* cx, unsigned argc, Value* vp) {
@@ -1780,7 +1845,7 @@ static bool ZonedDateTime_hoursInDay(JSContext* cx, const CallArgs& args) {
   static_assert(EpochDuration::fromDays(2).toNanoseconds() < Int128{INT64_MAX},
                 "two days in nanoseconds fits into int64_t");
 
-  // Step 10.
+  // Step 10. (Inlined TotalTimeDuration)
   constexpr auto nsPerHour = ToNanoseconds(TemporalUnit::Hour);
   args.rval().setNumber(
       FractionToDouble(int64_t(diff.toNanoseconds()), nsPerHour));
@@ -2526,7 +2591,7 @@ static bool ZonedDateTime_round(JSContext* cx, const CallArgs& args) {
                roundedDaysNs == dayLengthNs);
     MOZ_ASSERT(IsValidEpochDuration(roundedDaysNs));
 
-    // Step 18.j.
+    // Step 18.j. (Inlined AddTimeDurationToEpochNanoseconds)
     epochNanoseconds = startNs + roundedDaysNs;
     MOZ_ASSERT(epochNanoseconds == startNs || epochNanoseconds == endNs);
   } else {

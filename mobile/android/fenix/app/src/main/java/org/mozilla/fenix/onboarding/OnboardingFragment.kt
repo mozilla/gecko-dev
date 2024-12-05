@@ -45,10 +45,12 @@ import org.mozilla.fenix.nimbus.FxNimbus
 import org.mozilla.fenix.onboarding.store.OnboardingAddOnsAction
 import org.mozilla.fenix.onboarding.store.OnboardingAddOnsStore
 import org.mozilla.fenix.onboarding.store.OnboardingAddonStatus
+import org.mozilla.fenix.onboarding.store.OnboardingToolbarStore
 import org.mozilla.fenix.onboarding.view.Caption
 import org.mozilla.fenix.onboarding.view.OnboardingAddOn
 import org.mozilla.fenix.onboarding.view.OnboardingPageUiData
 import org.mozilla.fenix.onboarding.view.OnboardingScreen
+import org.mozilla.fenix.onboarding.view.ToolbarOptionType
 import org.mozilla.fenix.onboarding.view.sequencePosition
 import org.mozilla.fenix.onboarding.view.telemetrySequenceId
 import org.mozilla.fenix.onboarding.view.toPageUiData
@@ -80,6 +82,7 @@ class OnboardingFragment : Fragment() {
     }
     private val telemetryRecorder by lazy { OnboardingTelemetryRecorder() }
     private val onboardingAddOnsStore by lazyStore { OnboardingAddOnsStore() }
+    private val onboardingToolbarStore by lazyStore { OnboardingToolbarStore() }
     private val pinAppWidgetReceiver = WidgetPinnedReceiver()
 
     @SuppressLint("SourceLockedOrientationActivity")
@@ -225,7 +228,13 @@ class OnboardingFragment : Fragment() {
             onInstallAddOnButtonClick = { installUrl -> installAddon(installUrl) },
             termsOfServiceEventHandler = termsOfServiceEventHandler,
             onCustomizeToolbarClick = {
-                throw NotImplementedError()
+                requireContext().settings().shouldUseBottomToolbar =
+                    onboardingToolbarStore.state.selected == ToolbarOptionType.TOOLBAR_BOTTOM
+
+                telemetryRecorder.onSelectToolbarPlacementClick(
+                    pagesToDisplay.telemetrySequenceId(),
+                    pagesToDisplay.sequencePosition(OnboardingPageUiData.Type.TOOLBAR_PLACEMENT),
+                )
             },
             onSkipCustomizeToolbarClick = {
                 telemetryRecorder.onSkipToolbarPlacementClick(

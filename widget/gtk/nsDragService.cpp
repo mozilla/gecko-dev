@@ -61,8 +61,8 @@
 using namespace mozilla;
 using namespace mozilla::gfx;
 
-//  The maximum time to wait for a "drag_received" arrived in microseconds.
-#define NS_DND_TIMEOUT (1 * 1000000)
+// The maximum time to wait for a "drag_received" arrived in microseconds.
+#define NS_DND_TIMEOUT (1000000)
 
 //  The maximum time to wait before temporary files resulting
 //  from drag'n'drop events will be removed in miliseconds.
@@ -82,7 +82,8 @@ extern mozilla::LazyLogModule gWidgetDragLog;
 #  define LOGDRAGSERVICE(str, ...)                                             \
     MOZ_LOG(                                                                   \
         gWidgetDragLog, mozilla::LogLevel::Debug,                              \
-        ("[D %d] %*s" str, nsDragSession::GetLoopDepth(),                      \
+        ("[D %d]%s %*s" str, nsDragSession::GetLoopDepth(),                    \
+         GetDebugTag().get(),                                                  \
          nsDragSession::GetLoopDepth() > 1 ? nsDragSession::GetLoopDepth() * 2 \
                                            : 0,                                \
          "", ##__VA_ARGS__))
@@ -457,6 +458,10 @@ void DragData::ConvertToMozURIList() {
   mAsURIData = true;
 
   const nsDependentSubstring uris((char16_t*)mDragData.get(), mDragDataLen / 2);
+
+  LOGDRAG("DragData::ConvertToMozURIList(), data %s",
+          NS_ConvertUTF16toUTF8(uris).get());
+
   int32_t uriBegin = 0;
   do {
     nsAutoString uri;
@@ -470,6 +475,8 @@ void DragData::ConvertToMozURIList() {
         0) {
       break;
     }
+
+    LOGDRAG("  URI: %s", NS_ConvertUTF16toUTF8(uri).get());
     mUris.AppendElement(uri);
   } while (uriBegin < (int32_t)uris.Length());
 
@@ -521,6 +528,8 @@ void DragData::Print() const {
 /* static */ int nsDragSession::sEventLoopDepth = 0;
 
 nsDragSession::nsDragSession() {
+  LOGDRAGSERVICE("nsDragSession::nsDragSession()");
+
   // We have to destroy the hidden widget before the event loop stops
   // running.
   nsCOMPtr<nsIObserverService> obsServ =
@@ -541,15 +550,8 @@ nsDragSession::nsDragSession() {
                    G_CALLBACK(invisibleSourceDragDataGet), this);
   g_signal_connect(mHiddenWidget, "drag_end",
                    G_CALLBACK(invisibleSourceDragEnd), this);
-  // drag-failed is available from GTK+ version 2.12
-  guint dragFailedID =
-      g_signal_lookup("drag-failed", G_TYPE_FROM_INSTANCE(mHiddenWidget));
-  if (dragFailedID) {
-    g_signal_connect_closure_by_id(
-        mHiddenWidget, dragFailedID, 0,
-        g_cclosure_new(G_CALLBACK(invisibleSourceDragFailed), this, nullptr),
-        FALSE);
-  }
+  g_signal_connect(mHiddenWidget, "drag-failed",
+                   G_CALLBACK(invisibleSourceDragFailed), this);
 
   // set up our logging module
   mTempFileTimerID = 0;
@@ -577,8 +579,6 @@ nsDragSession::nsDragSession() {
     sFilePromiseMimeAtom = gdk_atom_intern(kFilePromiseMime, FALSE);
     sNativeImageMimeAtom = gdk_atom_intern(kNativeImageMime, FALSE);
   });
-
-  LOGDRAGSERVICE("nsDragService::nsDragService");
 }
 
 nsDragSession::~nsDragSession() {
@@ -902,7 +902,6 @@ bool nsDragSession::SetAlphaPixmap(SourceSurface* aSurface,
 }
 
 nsIDragSession* nsDragService::StartDragSession(nsISupports* aWidgetProvider) {
-  LOGDRAGSERVICE("nsDragService::StartDragSession");
   return nsBaseDragService::StartDragSession(aWidgetProvider);
 }
 
@@ -1034,8 +1033,15 @@ nsDragSession::GetNumDropItems(uint32_t* aNumItems) {
     return NS_OK;
   }
 
-  const GdkAtom fileListFlavors[] = {sURLMimeAtom, sTextUriListTypeAtom,
-                                     sPortalFileAtom, sPortalFileTransferAtom};
+  // Put text/uri-list first, text/x-moz-url tends to be poorly supported
+  // by third party apps, we got only one file instead of file list
+  // for instance (Bug 1908196).
+  //
+  // We're getting the data to only get number of items here,
+  // actual data will be received at nsDragSession::GetData().
+  const GdkAtom fileListFlavors[] = {sTextUriListTypeAtom,  // text/uri-list
+                                     sPortalFileAtom, sPortalFileTransferAtom,
+                                     sURLMimeAtom};  // text/x-moz-url
 
   for (auto fileFlavour : fileListFlavors) {
     RefPtr<DragData> data = GetDragData(fileFlavour);
@@ -1127,10 +1133,38 @@ nsDragSession::GetData(nsITransferable* aTransferable, uint32_t aItemIndex) {
     LOGDRAGSERVICE("  we're getting data %s\n", flavorStr.get());
 
     RefPtr<DragData> dragData;
+
+    // Let's do conversions first. We may be asked for some kind of MIME
+    // type data but we rather try to get something different and
+    // convert to desider MIME type.
+
+    // We're asked to get text data. Try to get UTF-8 variant first.
     if (requestedFlavor == sTextMimeAtom) {
       dragData = GetDragData(sTextPlainUTF8TypeAtom);
     }
 
+    // We are looking for text/x-moz-url. That format may be poorly supported,
+    // try first with text/uri-list, and then _NETSCAPE_URL
+    if (requestedFlavor == sURLMimeAtom) {
+      LOGDRAGSERVICE("  conversion %s => %s", gTextUriListType, kURLMime);
+      dragData = GetDragData(sTextUriListTypeAtom);
+      if (dragData) {
+        dragData = dragData->ConvertToMozURL();
+        mCachedDragData.InsertOrUpdate(dragData->GetFlavor(), dragData);
+      }
+      if (!dragData) {
+        LOGDRAGSERVICE("  conversion %s => %s", gMozUrlType, kURLMime);
+        dragData = GetDragData(sMozUrlTypeAtom);
+        if (dragData) {
+          dragData = dragData->ConvertToMozURL();
+          if (dragData) {
+            mCachedDragData.InsertOrUpdate(dragData->GetFlavor(), dragData);
+          }
+        }
+      }
+    }
+
+    // Try to get requested MIME directly
     if (!dragData) {
       dragData = GetDragData(requestedFlavor);
     }
@@ -1154,28 +1188,6 @@ nsDragSession::GetData(nsITransferable* aTransferable, uint32_t aItemIndex) {
         dragData = GetDragData(sTextUriListTypeAtom);
         if (dragData) {
           dragData = dragData->ConvertToFile();
-          if (dragData) {
-            mCachedDragData.InsertOrUpdate(dragData->GetFlavor(), dragData);
-          }
-        }
-      }
-    }
-
-    if (!dragData && requestedFlavor == sURLMimeAtom) {
-      // if we are looking for text/x-moz-url and we failed to find
-      // it on the clipboard, try again with text/uri-list, and then
-      // _NETSCAPE_URL
-      LOGDRAGSERVICE("  conversion %s => %s", gTextUriListType, kURLMime);
-      dragData = GetDragData(sTextUriListTypeAtom);
-      if (dragData) {
-        dragData = dragData->ConvertToMozURL();
-        mCachedDragData.InsertOrUpdate(dragData->GetFlavor(), dragData);
-      }
-      if (!dragData) {
-        LOGDRAGSERVICE("  conversion %s => %s", gMozUrlType, kURLMime);
-        dragData = GetDragData(sMozUrlTypeAtom);
-        if (dragData) {
-          dragData = dragData->ConvertToMozURL();
           if (dragData) {
             mCachedDragData.InsertOrUpdate(dragData->GetFlavor(), dragData);
           }
@@ -1345,7 +1357,7 @@ void nsDragSession::ReplyToDragMotion(GdkDragContext* aDragContext,
 }
 
 void nsDragSession::SetCachedDragContext(GdkDragContext* aDragContext) {
-  LOGDRAGSERVICE("nsDragService::SetCachedDragContext(): [drag %p / cached %p]",
+  LOGDRAGSERVICE("nsDragSession::SetCachedDragContext(): [drag %p / cached %p]",
                  aDragContext, (void*)mCachedDragContext);
   // Clear cache data if we're going to D&D with different drag context.
   uintptr_t recentDragContext = reinterpret_cast<uintptr_t>(aDragContext);
@@ -1376,7 +1388,7 @@ bool nsDragSession::IsDragFlavorAvailable(GdkAtom aRequestedFlavor) {
          tmp = tmp->next) {
       mCachedDragFlavors.AppendElement(GDK_POINTER_TO_ATOM(tmp->data));
       LOGDRAGSERVICE(
-          "  drag context available flavor %s",
+          "  adding drag context available flavor %s",
           GUniquePtr<gchar>(gdk_atom_name(GDK_POINTER_TO_ATOM(tmp->data)))
               .get());
     }
@@ -1388,7 +1400,7 @@ bool nsDragSession::IsDragFlavorAvailable(GdkAtom aRequestedFlavor) {
 // DispatchMotionEvents().
 // Can lead to another round of drag_motion events.
 RefPtr<DragData> nsDragSession::GetDragData(GdkAtom aRequestedFlavor) {
-  LOGDRAGSERVICE("nsDragService::GetDragData(%p) requested '%s'\n",
+  LOGDRAGSERVICE("nsDragSession::GetDragData(%p) requested '%s'\n",
                  mTargetDragContext.get(),
                  GUniquePtr<gchar>(gdk_atom_name(aRequestedFlavor)).get());
 
@@ -1404,17 +1416,19 @@ RefPtr<DragData> nsDragSession::GetDragData(GdkAtom aRequestedFlavor) {
     return nullptr;
   }
 
-  RefPtr<DragData> data =
-      mCachedDragData.Get(GDK_ATOM_TO_POINTER(aRequestedFlavor));
-  if (data) {
-    LOGDRAGSERVICE("  %s found in cache",
-                   GUniquePtr<gchar>(gdk_atom_name(aRequestedFlavor)).get());
-    return data;
+  {
+    auto data = mCachedDragData.MaybeGet(GDK_ATOM_TO_POINTER(aRequestedFlavor));
+    if (data) {
+      LOGDRAGSERVICE("  MIME %s found in cache, %s",
+                     GUniquePtr<gchar>(gdk_atom_name(aRequestedFlavor)).get(),
+                     *data ? "got correctly" : "failed to get");
+      return *data;
+    }
   }
 
   mWaitingForDragDataRequests++;
 
-  // We'll get the data by nsDragService::TargetDataReceived()
+  // We'll get the data by nsDragSession::TargetDataReceived()
   gtk_drag_get_data(mTargetWidget, mTargetDragContext, aRequestedFlavor,
                     mTargetTime);
 
@@ -1442,7 +1456,8 @@ RefPtr<DragData> nsDragSession::GetDragData(GdkAtom aRequestedFlavor) {
                    mWaitingForDragDataRequests);
   }
 
-  data = mCachedDragData.Get(GDK_ATOM_TO_POINTER(aRequestedFlavor));
+  RefPtr<DragData> data =
+      mCachedDragData.Get(GDK_ATOM_TO_POINTER(aRequestedFlavor));
   if (data) {
     LOGDRAGSERVICE("  %s received",
                    GUniquePtr<gchar>(gdk_atom_name(aRequestedFlavor)).get());
@@ -1464,18 +1479,25 @@ void nsDragSession::TargetDataReceived(GtkWidget* aWidget,
 
   GdkAtom target = gtk_selection_data_get_target(aSelectionData);
   LOGDRAGSERVICE(
-      "nsDragService::TargetDataReceived(%p) MIME %s "
+      "nsDragSession::TargetDataReceived(%p) MIME %s "
       "mWaitingForDragDataRequests %d",
       aContext, GUniquePtr<gchar>(gdk_atom_name(target)).get(),
       mWaitingForDragDataRequests);
 
+  RefPtr<DragData> dragData;
+
   auto cacheClear = MakeScopeExit([&] {
-    LOGDRAGSERVICE("  failed to get data, MIME %s",
-                   GUniquePtr<gchar>(gdk_atom_name(target)).get());
-    mCachedDragData.Remove(target);
+    if (!dragData) {
+      LOGDRAGSERVICE("  failed to get data, MIME %s",
+                     GUniquePtr<gchar>(gdk_atom_name(target)).get());
+    }
+
+    // We set cache even for empty received data.
+    // It saves time if we're asked for the same data type
+    // again.
+    mCachedDragData.InsertOrUpdate(target, dragData);
   });
 
-  RefPtr<DragData> dragData;
   if (gtk_targets_include_uri(&target, 1)) {
     if (target == sPortalFileAtom || target == sPortalFileTransferAtom) {
       const guchar* data = gtk_selection_data_get_data(aSelectionData);
@@ -1520,6 +1542,7 @@ void nsDragSession::TargetDataReceived(GtkWidget* aWidget,
       LOGDRAGSERVICE(" TargetDataReceived() failed");
       return;
     }
+
     dragData = new DragData(target, data, len);
     LOGDRAGSERVICE("  TargetDataReceived(): plain data, MIME %s len = %d",
                    GUniquePtr<gchar>(gdk_atom_name(target)).get(), len);
@@ -1528,9 +1551,6 @@ void nsDragSession::TargetDataReceived(GtkWidget* aWidget,
 #if MOZ_LOGGING
   dragData->Print();
 #endif
-
-  cacheClear.release();
-  mCachedDragData.InsertOrUpdate(target, dragData);
 }
 
 static void TargetArrayAddTarget(nsTArray<GtkTargetEntry*>& aTargetArray,
@@ -1902,7 +1922,7 @@ nsresult nsDragSession::CreateTempFile(nsITransferable* aItem,
   }
 
   // store a copy of that temporary directory so we can
-  // clean them up when nsDragService is destructed
+  // clean them up when nsDragSession is destructed
   nsCOMPtr<nsIFile> tempFile;
   tmpDir->Clone(getter_AddRefs(tempFile));
   mTemporaryFiles.AppendObject(tempFile);
@@ -2078,32 +2098,32 @@ void nsDragSession::SourceDataGetUriList(GdkDragContext* aContext,
                          uriList.Length());
 }
 
-void nsDragSession::SourceDataGetImage(nsITransferable* aItem,
+bool nsDragSession::SourceDataGetImage(nsITransferable* aItem,
                                        GtkSelectionData* aSelectionData) {
   LOGDRAGSERVICE("nsDragSession::SourceDataGetImage()");
 
   nsresult rv;
   nsCOMPtr<nsISupports> data;
   rv = aItem->GetTransferData(kNativeImageMime, getter_AddRefs(data));
-  NS_ENSURE_SUCCESS_VOID(rv);
+  NS_ENSURE_SUCCESS(rv, false);
 
   LOGDRAGSERVICE("  posting image\n");
   nsCOMPtr<imgIContainer> image = do_QueryInterface(data);
   if (!image) {
     LOGDRAGSERVICE("  do_QueryInterface failed\n");
-    return;
+    return false;
   }
   RefPtr<GdkPixbuf> pixbuf = nsImageToPixbuf::ImageToPixbuf(image);
   if (!pixbuf) {
     LOGDRAGSERVICE("  ImageToPixbuf failed\n");
-    return;
+    return false;
   }
   gtk_selection_data_set_pixbuf(aSelectionData, pixbuf);
   LOGDRAGSERVICE("  image data set\n");
-  return;
+  return true;
 }
 
-void nsDragSession::SourceDataGetXDND(nsITransferable* aItem,
+bool nsDragSession::SourceDataGetXDND(nsITransferable* aItem,
                                       GdkDragContext* aContext,
                                       GtkSelectionData* aSelectionData) {
   LOGDRAGSERVICE("nsDragSession::SourceDataGetXDND");
@@ -2115,7 +2135,7 @@ void nsDragSession::SourceDataGetXDND(nsITransferable* aItem,
   GdkWindow* srcWindow = gdk_drag_context_get_source_window(aContext);
   if (!srcWindow) {
     LOGDRAGSERVICE("  failed to get source GdkWindow!");
-    return;
+    return false;
   }
 
   // Ensure null termination.
@@ -2127,7 +2147,7 @@ void nsDragSession::SourceDataGetXDND(nsITransferable* aItem,
                           INT32_MAX, FALSE, nullptr, nullptr, &length,
                           getter_Transfers(gdata))) {
       LOGDRAGSERVICE("  failed to get gXdndDirectSaveType GdkWindow property.");
-      return;
+      return false;
     }
     data.Assign(nsDependentCSubstring((const char*)gdata.get(), length));
   }
@@ -2137,7 +2157,7 @@ void nsDragSession::SourceDataGetXDND(nsITransferable* aItem,
       g_filename_from_uri(data.get(), getter_Transfers(hostname), nullptr));
   if (!fullpath) {
     LOGDRAGSERVICE("  failed to get file from uri.");
-    return;
+    return false;
   }
 
   // If there is no hostname in the URI, NULL will be stored.
@@ -2146,7 +2166,7 @@ void nsDragSession::SourceDataGetXDND(nsITransferable* aItem,
     nsCOMPtr<nsIPropertyBag2> infoService =
         do_GetService(NS_SYSTEMINFO_CONTRACTID);
     if (!infoService) {
-      return;
+      return false;
     }
     nsAutoCString host;
     if (NS_SUCCEEDED(infoService->GetPropertyAsACString(u"host"_ns, host))) {
@@ -2154,7 +2174,7 @@ void nsDragSession::SourceDataGetXDND(nsITransferable* aItem,
         LOGDRAGSERVICE("  ignored drag because of different host.");
         // Special error code "F" for this case.
         gtk_selection_data_set(aSelectionData, target, 8, (guchar*)"F", 1);
-        return;
+        return true;
       }
     }
   }
@@ -2165,7 +2185,7 @@ void nsDragSession::SourceDataGetXDND(nsITransferable* aItem,
   if (NS_FAILED(NS_NewNativeLocalFile(nsDependentCString(fullpath.get()),
                                       getter_AddRefs(file)))) {
     LOGDRAGSERVICE("  failed to get local file");
-    return;
+    return false;
   }
 
   // We have to split the path into a directory and filename,
@@ -2178,7 +2198,7 @@ void nsDragSession::SourceDataGetXDND(nsITransferable* aItem,
   nsCOMPtr<nsISupportsString> filenamePrimitive =
       do_CreateInstance(NS_SUPPORTS_STRING_CONTRACTID);
   if (!filenamePrimitive) {
-    return;
+    return false;
   }
 
   nsAutoString leafName;
@@ -2190,11 +2210,11 @@ void nsDragSession::SourceDataGetXDND(nsITransferable* aItem,
   nsCOMPtr<nsISupports> promiseData;
   nsresult rv =
       aItem->GetTransferData(kFilePromiseMime, getter_AddRefs(promiseData));
-  NS_ENSURE_SUCCESS_VOID(rv);
+  NS_ENSURE_SUCCESS(rv, false);
 
   // Indicate success.
   gtk_selection_data_set(aSelectionData, target, 8, (guchar*)"S", 1);
-  return;
+  return true;
 }
 
 bool nsDragSession::SourceDataGetText(nsITransferable* aItem,
@@ -2284,15 +2304,20 @@ void nsDragSession::SourceDataGet(GtkWidget* aWidget, GdkDragContext* aContext,
 
   if (requestedFlavor == sTextMimeAtom ||
       requestedFlavor == sTextPlainUTF8TypeAtom) {
-    SourceDataGetText(item, nsDependentCString(kTextMime),
-                      /* aNeedToDoConversionToPlainText */ true,
-                      aSelectionData);
+    if (!SourceDataGetText(item, nsDependentCString(kTextMime),
+                           /* aNeedToDoConversionToPlainText */ true,
+                           aSelectionData)) {
+      LOGDRAGSERVICE(
+          "  Failed to send sTextMimeAtom/sTextPlainUTF8TypeAtom data!");
+    }
     // no fallback for text mime types
     return;
   }
   // Someone is asking for the special Direct Save Protocol type.
   else if (requestedFlavor == sXdndDirectSaveTypeAtom) {
-    SourceDataGetXDND(item, aContext, aSelectionData);
+    if (!SourceDataGetXDND(item, aContext, aSelectionData)) {
+      LOGDRAGSERVICE("  Failed to send sXdndDirectSaveTypeAtom data!");
+    }
     // no fallback for XDND mime types
     return;
   } else if (requestedFlavor == sPNGImageMimeAtom ||
@@ -2300,7 +2325,9 @@ void nsDragSession::SourceDataGet(GtkWidget* aWidget, GdkDragContext* aContext,
              requestedFlavor == sJPGImageMimeAtom ||
              requestedFlavor == sGIFImageMimeAtom) {
     // no fallback for image mime types
-    SourceDataGetImage(item, aSelectionData);
+    if (!SourceDataGetImage(item, aSelectionData)) {
+      LOGDRAGSERVICE("  Failed to send image data!");
+    }
     return;
   } else if (requestedFlavor == sMozUrlTypeAtom) {
     // Someone was asking for _NETSCAPE_URL. We need to get it from
@@ -2309,13 +2336,18 @@ void nsDragSession::SourceDataGet(GtkWidget* aWidget, GdkDragContext* aContext,
     if (SourceDataGetText(item, nsDependentCString(kURLMime),
                           /* aNeedToDoConversionToPlainText */ true,
                           aSelectionData)) {
+      LOGDRAGSERVICE("  Failed to send kURLMime data!");
       return;
     }
   }
   // Just try to get and set whatever we're asked for.
   GUniquePtr<gchar> flavorName(gdk_atom_name(requestedFlavor));
-  SourceDataGetText(item, nsDependentCString(flavorName.get()),
-                    /* aNeedToDoConversionToPlainText */ false, aSelectionData);
+  if (!SourceDataGetText(item, nsDependentCString(flavorName.get()),
+                         /* aNeedToDoConversionToPlainText */ false,
+                         aSelectionData)) {
+    LOGDRAGSERVICE("  Failed to send %s data!",
+                   nsDependentCString(flavorName.get()).get());
+  }
 }
 
 void nsDragSession::SourceBeginDrag(GdkDragContext* aContext) {
@@ -2323,11 +2355,17 @@ void nsDragSession::SourceBeginDrag(GdkDragContext* aContext) {
 
   nsCOMPtr<nsITransferable> transferable =
       do_QueryElementAt(mSourceDataItems, 0);
-  if (!transferable) return;
+  if (!transferable) {
+    LOGDRAGSERVICE("  missing transferable!");
+    return;
+  }
 
   nsTArray<nsCString> flavors;
   nsresult rv = transferable->FlavorsTransferableCanImport(flavors);
-  NS_ENSURE_SUCCESS(rv, );
+  if (NS_FAILED(rv)) {
+    LOGDRAGSERVICE("  FlavorsTransferableCanImport failed!");
+    return;
+  }
 
   for (uint32_t i = 0; i < flavors.Length(); ++i) {
     if (flavors[i].EqualsLiteral(kFilePromiseDestFilename)) {
@@ -2765,7 +2803,7 @@ gboolean nsDragSession::RunScheduledTask() {
     // action is move, but we don't know whether the data was successfully
     // transferred.
     if (mTargetDragContext) {
-      LOGDRAGSERVICE("  drag finished\n");
+      LOGDRAGSERVICE("  drag finished (gtk_drag_finish)");
       gtk_drag_finish(mTargetDragContext, success,
                       /* del = */ FALSE, mTargetTime);
     }
@@ -2900,6 +2938,12 @@ gboolean nsDragSession::DispatchDropEvent() {
 /* static */
 uint32_t nsDragSession::GetCurrentModifiers() {
   return mozilla::widget::KeymapWrapper::ComputeCurrentKeyModifiers();
+}
+
+nsAutoCString nsDragSession::GetDebugTag() const {
+  nsAutoCString tag;
+  tag.AppendPrintf("[%p]", this);
+  return tag;
 }
 
 #undef LOGDRAGSERVICE

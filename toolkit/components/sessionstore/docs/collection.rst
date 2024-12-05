@@ -23,21 +23,25 @@ Due to cross-process site isolation every tab is potentially split across a set 
 
 .. _Session Store Change Detection diagram:
 
+.. Mermaid is a bit broken in Firefox, see https://github.com/mermaid-js/mermaid/issues/5785. This is the reason for all flowcharts having wrappingWidth set to 400.
 .. mermaid::
 
   ---
   title: Session Store Change Detection
+  config:
+    flowchart:
+      wrappingWidth: 400
+      curve: linear
   ---
-  %%{init: { 'flowchart': {'curve': 'basis'} } }%%
   flowchart BT
     classDef crossorigin stroke-dasharray:5 5;
     subgraph Gecko
       direction TB
       subgraph P[Parent process]
         direction BT
-        SSP(SessionStoreParent) --> BSS(BrowserSessionStore)
-        SH(SessionHistory) --> SSP
-        SS(SessionStorage) --> SSP
+        SSP[SessionStoreParent] --> BSS[BrowserSessionStore]
+        SH[SessionHistory] --> SSP
+        SS[SessionStorage] --> SSP
       end
 
       subgraph C1[Content process]
@@ -48,7 +52,7 @@ Due to cross-process site isolation every tab is potentially split across a set 
             b1[b.com] --> a11[a.com] & b12[b.com]
         end
 
-        SSC1[SessionStoreChild] <-- "fa:fa-clock-o" --> SSCL1(SessionStoreChangeListener)
+        SSC1[SessionStoreChild] <-- "fa:fa-clock-o" --> SSCL1[SessionStoreChangeListener]
         SSCL1 <--> D1
       end
 
@@ -60,7 +64,7 @@ Due to cross-process site isolation every tab is potentially split across a set 
             b2[b.com] --> a22[a.com] & b22[b.com]
         end
 
-        SSC2[SessionStoreChild] <-- "fa:fa-clock-o" -->  SSCL2(SessionStoreChangeListener)
+        SSC2[SessionStoreChild] <-- "fa:fa-clock-o" -->  SSCL2[SessionStoreChangeListener]
         SSCL2 <--> D2
       end
 
@@ -72,7 +76,7 @@ Due to cross-process site isolation every tab is potentially split across a set 
             b3[b.com] --> a32[a.com] & b32[b.com]
         end
 
-        SSC3[SessionStoreChild] <-- "fa:fa-clock-o" -->  SSCL3(SessionStoreChangeListener)
+        SSC3[SessionStoreChild] <-- "fa:fa-clock-o" -->  SSCL3[SessionStoreChangeListener]
         SSCL3 <--> D3
       end
       P <-- a.com ---> C1
@@ -110,20 +114,24 @@ As noted in the previous section and from the :ref:`session store change detecti
 
 In a situation like the following:
 
+.. Mermaid is a bit broken in Firefox, see https://github.com/mermaid-js/mermaid/issues/5785. This is the reason for all flowcharts having wrappingWidth set to 400.
 .. mermaid::
 
   ---
   title: Session Store Incremental Update
+  config:
+  flowchart:
+    wrappingWidth: 400
+    curve: linear
   ---
-  %%{init: { 'flowchart': {'curve': 'basis'} } }%%
   flowchart BT
     subgraph Gecko
       direction BT
       subgraph P[Parent process]
         direction BT
-        BSS(BrowserSessionStore)
-        SH(SessionHistory) --> BSS
-        SS(SessionStorage) --> BSS
+        BSS[BrowserSessionStore]
+        SH[SessionHistory] --> BSS
+        SS[SessionStorage] --> BSS
       end
 
       subgraph C1[Content process]
@@ -166,12 +174,16 @@ In a situation like the following:
 
 if a user would scroll c.com and then after some time write some text in b.com, the sequence of the change data structure that should be created would be:
 
+.. Mermaid is a bit broken in Firefox, see https://github.com/mermaid-js/mermaid/issues/5785. This is the reason for all flowcharts having wrappingWidth set to 400.
 .. mermaid::
 
   ---
   title: Incremental Update Data
+  config:
+    flowchart:
+      wrappingWidth: 400
+      curve: linear
   ---
-  %%{init: { 'flowchart': {'curve': 'basis'} } }%%
   flowchart LR
 
     subgraph D0[No Data]
@@ -196,28 +208,32 @@ if a user would scroll c.com and then after some time write some text in b.com, 
 
 This would then be merged on top of the embedder's session store data, possibly adding or changing the current state, including removing nodes. This is achieved by the embedder implementing the ``nsISessionStoreFunctions.idl`` interface.
 
--------------------------
-Disabling site isoloation
--------------------------
+------------------------
+Disabling site isolation
+------------------------
 
 In the case where site isolation is disabled the :ref:`session store change detection diagram <Session Store Change Detection diagram>` collapses to the following:
 
 .. _Collapsed Session Store Change Detection diagram:
 
+.. Mermaid is a bit broken in Firefox, see https://github.com/mermaid-js/mermaid/issues/5785. This is the reason for all flowcharts having wrappingWidth set to 400.
 .. mermaid::
 
   ---
   title: Session Store Change Detection
+  config:
+    flowchart:
+      wrappingWidth: 400
+      curve: linear
   ---
-  %%{init: { 'flowchart': {'curve': 'basis'} } }%%
   flowchart BT
     subgraph Gecko
       direction TB
       subgraph P[Parent process]
         direction BT
-        SSP(SessionStoreParent) --> BSS(BrowserSessionStore)
-        SH(SessionHistory) --> SSP
-        SS(SessionStorage) --> SSP
+        SSP[SessionStoreParent] --> BSS[BrowserSessionStore]
+        SH[SessionHistory] --> SSP
+        SS[SessionStorage] --> SSP
       end
 
       subgraph C1[Content process]
@@ -228,11 +244,35 @@ In the case where site isolation is disabled the :ref:`session store change dete
             b1[b.com] --> a11[a.com] & b12[b.com]
         end
 
-        SSC1[SessionStoreChild] <-- "fa:fa-clock-o" --> SSCL1(SessionStoreChangeListener)
+        SSC1[SessionStoreChild] <-- "fa:fa-clock-o" --> SSCL1[SessionStoreChangeListener]
         SSCL1 <--> D1
       end
 
+      subgraph C2[Content process]
+        direction TB
+        subgraph D2[Document tree]
+          direction TB
+          a2[example.com]
+        end
+
+        SSC2[SessionStoreChild] <-- "fa:fa-clock-o" -->  SSCL2[SessionStoreChangeListener]
+        SSCL2 <--> D2
+      end
+
+      subgraph C3[Content process]
+        direction TB
+        subgraph D3[Document tree]
+          direction TB
+          a3[example.org]
+        end
+
+        SSC3[SessionStoreChild] <-- "fa:fa-clock-o" -->  SSCL3[SessionStoreChangeListener]
+        SSCL3 <--> D3
+      end
+
       P <-- a.com ---> C1
+      P <-- "<empty>" ---> C2
+      P <-- "<empty>" ---> C3
     end
     Gecko --> Embedder
 

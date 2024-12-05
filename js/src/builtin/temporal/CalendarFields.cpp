@@ -51,6 +51,7 @@
 #include "vm/SymbolType.h"
 
 #include "vm/JSAtomUtils-inl.h"
+#include "vm/JSObject-inl.h"
 #include "vm/ObjectOperations-inl.h"
 
 using namespace js;
@@ -403,14 +404,8 @@ static bool PrepareCalendarFields(
           break;
         }
         case CalendarField::EraYear: {
-          // All supported calendar systems with eras require positive era
-          // years, so we require era year to be greater than zero. If ICU4X'
-          // Ethiopian implementation get changed to allow negative era years,
-          // we need to update this code.
-          //
-          // Also see <https://unicode-org.atlassian.net/browse/ICU-21985>.
           double eraYear;
-          if (!ToPositiveIntegerWithTruncation(cx, value, cstr, &eraYear)) {
+          if (!ToIntegerWithTruncation(cx, value, cstr, &eraYear)) {
             return false;
           }
           result.setEraYear(eraYear);

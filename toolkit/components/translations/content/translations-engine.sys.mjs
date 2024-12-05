@@ -515,7 +515,7 @@ function listenForPortMessages(fromLanguage, toLanguage, innerWindowId, port) {
           fromLanguage,
           toLanguage,
           engine => {
-            engine.discardTranslationQueue(innerWindowId, translationId);
+            engine.cancelSingleTranslation(innerWindowId, translationId);
           }
         );
         break;

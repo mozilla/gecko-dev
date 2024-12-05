@@ -1278,7 +1278,7 @@ AudioStreamFlowingHelper.prototype = {
 class VideoFrameEmitter {
   constructor(color1, color2, width, height) {
     if (!width) {
-      width = 50;
+      width = 64;
     }
     if (!height) {
       height = width;

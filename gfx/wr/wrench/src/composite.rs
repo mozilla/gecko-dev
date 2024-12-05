@@ -6,7 +6,7 @@ use std::os::raw::c_void;
 use std::ptr;
 
 use glutin::platform::windows::EGLContext;
-use webrender::{Compositor2, CompositorInputConfig};
+use webrender::{LayerCompositor, CompositorInputConfig};
 use winit::platform::windows::WindowExtWindows;
 
 use crate::WindowWrapper;
@@ -14,7 +14,7 @@ use crate::WindowWrapper;
 use mozangle::egl::ffi::types::{EGLDisplay, EGLSurface, EGLint};
 use mozangle::egl;
 
-// A simplistic implementation of the `Compositor2` trait to allow wrench to
+// A simplistic implementation of the `LayerCompositor` trait to allow wrench to
 // composite via DirectComposition. In this initial version, only a single
 // swap-chain is supported. Follow up patches will add layer and external
 // surface support.
@@ -69,7 +69,7 @@ impl WrLayer {
     }
 }
 
-// A basic `Compositor2` implementation for wrench
+// A basic `LayerCompositor` implementation for wrench
 pub struct WrCompositor {
     // EGL display and content, provided by winit
     context: EGLContext,
@@ -115,7 +115,7 @@ impl Drop for WrCompositor {
     }
 }
 
-impl Compositor2 for WrCompositor {
+impl LayerCompositor for WrCompositor {
     // Begin compositing a frame with the supplied input config
     // The main job of this method is to inspect the input config, create the output
     // config, and create any native OS resources that will be needed as layers get

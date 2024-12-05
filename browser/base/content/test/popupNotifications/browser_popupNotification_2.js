@@ -204,9 +204,8 @@ var tests = [
       // This test places a normal button in the notification area, which has
       // standard GTK styling and dimensions. Due to the clip-path, this button
       // gets clipped off, which makes it necessary to synthesize the mouse click
-      // a little bit downward. To be safe, I adjusted the x-offset with the same
-      // amount.
-      EventUtils.synthesizeMouse(button, 4, 4, {});
+      // a little bit downward. To be safe, we click at center.
+      EventUtils.synthesizeMouseAtCenter(button, {});
     },
     onShown(popup) {
       checkPopup(popup, this.notifyObj);

@@ -884,8 +884,7 @@ slot {
 
 @media print {
   input, textarea, select, button, details {
-    -moz-user-input: none !important;
-    pointer-events: none !important;
+    -moz-inert: inert;
   }
 }
 

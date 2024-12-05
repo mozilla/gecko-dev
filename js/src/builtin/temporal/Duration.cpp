@@ -32,6 +32,7 @@
 #include "builtin/temporal/Int96.h"
 #include "builtin/temporal/PlainDate.h"
 #include "builtin/temporal/PlainDateTime.h"
+#include "builtin/temporal/PlainTime.h"
 #include "builtin/temporal/Temporal.h"
 #include "builtin/temporal/TemporalParser.h"
 #include "builtin/temporal/TemporalRoundingMode.h"
@@ -838,6 +839,7 @@ TimeDuration js::temporal::TimeDurationFromEpochNanosecondsDifference(
   return result.to<TimeDuration>();
 }
 
+#ifdef DEBUG
 /**
  * IsValidDuration ( years, months, weeks, days, hours, minutes, seconds,
  * milliseconds, microseconds, nanoseconds )
@@ -906,7 +908,6 @@ bool js::temporal::IsValidDuration(const Duration& duration) {
   return true;
 }
 
-#ifdef DEBUG
 /**
  * IsValidDuration ( years, months, weeks, days, hours, minutes, seconds,
  * milliseconds, microseconds, nanoseconds )
@@ -1030,79 +1031,6 @@ bool js::temporal::ThrowIfInvalidDuration(JSContext* cx,
 
   // Steps 6-8.
   if (!TimeDurationFromDuration(duration)) {
-    JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
-                              JSMSG_TEMPORAL_DURATION_INVALID_NORMALIZED_TIME);
-    return false;
-  }
-
-  MOZ_ASSERT(IsValidDuration(duration));
-
-  // Step 9.
-  return true;
-}
-
-/**
- * IsValidDuration ( years, months, weeks, days, hours, minutes, seconds,
- * milliseconds, microseconds, nanoseconds )
- */
-bool js::temporal::ThrowIfInvalidDuration(JSContext* cx,
-                                          const DateDuration& duration) {
-  const auto& [years, months, weeks, days] = duration;
-
-  // Step 1.
-  int32_t sign = DateDurationSign(duration);
-
-  auto throwIfInvalid = [&](int64_t v, const char* name) {
-    // Step 2.a. (Not applicable)
-
-    // Steps 2.b-c.
-    if ((v < 0 && sign > 0) || (v > 0 && sign < 0)) {
-      return ThrowInvalidDurationPart(cx, double(v), name,
-                                      JSMSG_TEMPORAL_DURATION_INVALID_SIGN);
-    }
-
-    return true;
-  };
-
-  auto throwIfTooLarge = [&](int64_t v, const char* name) {
-    if (std::abs(v) >= (int64_t(1) << 32)) {
-      return ThrowInvalidDurationPart(
-          cx, double(v), name, JSMSG_TEMPORAL_DURATION_INVALID_NON_FINITE);
-    }
-    return true;
-  };
-
-  // Step 2.
-  if (!throwIfInvalid(years, "years")) {
-    return false;
-  }
-  if (!throwIfInvalid(months, "months")) {
-    return false;
-  }
-  if (!throwIfInvalid(weeks, "weeks")) {
-    return false;
-  }
-  if (!throwIfInvalid(days, "days")) {
-    return false;
-  }
-
-  // Step 3.
-  if (!throwIfTooLarge(years, "years")) {
-    return false;
-  }
-
-  // Step 4.
-  if (!throwIfTooLarge(months, "months")) {
-    return false;
-  }
-
-  // Step 5.
-  if (!throwIfTooLarge(weeks, "weeks")) {
-    return false;
-  }
-
-  // Steps 6-8.
-  if (std::abs(days) > TimeDuration::max().toDays()) {
     JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
                               JSMSG_TEMPORAL_DURATION_INVALID_NORMALIZED_TIME);
     return false;
@@ -1981,10 +1909,10 @@ static TimeDuration RoundTimeDurationToIncrement(
 }
 
 /**
- * DivideTimeDuration ( d, divisor )
+ * TotalTimeDuration ( timeDuration, unit )
  */
-double js::temporal::DivideTimeDuration(const TimeDuration& duration,
-                                        TemporalUnit unit) {
+double js::temporal::TotalTimeDuration(const TimeDuration& duration,
+                                       TemporalUnit unit) {
   MOZ_ASSERT(IsValidTimeDuration(duration));
   MOZ_ASSERT(unit >= TemporalUnit::Day);
 

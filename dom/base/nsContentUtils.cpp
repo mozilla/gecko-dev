@@ -6948,13 +6948,6 @@ void* nsContentUtils::AllocClassMatchingInfo(nsINode* aRootNode,
   return info;
 }
 
-bool nsContentUtils::HasScrollgrab(nsIContent* aContent) {
-  // If we ever standardize this feature we'll want to hook this up properly
-  // again. For now we're removing all the DOM-side code related to it but
-  // leaving the layout and APZ handling for it in place.
-  return false;
-}
-
 void nsContentUtils::FlushLayoutForTree(nsPIDOMWindowOuter* aWindow) {
   if (!aWindow) {
     return;

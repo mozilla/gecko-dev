@@ -146,12 +146,6 @@
       );
       XPCOMUtils.defineLazyPreferenceGetter(
         this,
-        "_tabGroupsEnabled",
-        "browser.tabs.groups.enabled",
-        false
-      );
-      XPCOMUtils.defineLazyPreferenceGetter(
-        this,
         "showPidAndActiveness",
         "browser.tabs.tooltipsShowPidAndActiveness",
         false
@@ -365,6 +359,10 @@
     _soundPlayingAttrRemovalTimer = 0;
 
     _hoverTabTimer = null;
+
+    get _tabGroupsEnabled() {
+      return NimbusFeatures.tabGroups.getVariable("enabled");
+    }
 
     get tabs() {
       return this.tabContainer.allTabs;

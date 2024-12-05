@@ -20,7 +20,7 @@ use crate::glyph_cache::GlyphCache;
 use glyph_rasterizer::{GlyphRasterThread, GlyphRasterizer, SharedFontResources};
 use crate::gpu_types::PrimitiveInstanceData;
 use crate::internal_types::{FastHashMap, FastHashSet, FrameId};
-use crate::{picture, Compositor2};
+use crate::picture;
 use crate::profiler::{self, Profiler, TransactionProfile};
 use crate::device::query::{GpuProfiler, GpuDebugMethod};
 use crate::render_backend::RenderBackend;
@@ -202,10 +202,6 @@ pub struct WebRenderOptions {
     /// make the result look quite close to the high-quality zoom, except for glyphs.
     pub low_quality_pinch_zoom: bool,
     pub max_shared_surface_size: i32,
-    /// If supplied, composite the frame using the new experimental compositing
-    /// interface. If this is set, it overrides `compositor_config`. These will
-    /// be unified as the interface stabilises.
-    pub compositor2: Option<Box<dyn Compositor2>>,
 }
 
 impl WebRenderOptions {
@@ -278,7 +274,6 @@ impl Default for WebRenderOptions {
             reject_software_rasterizer: false,
             low_quality_pinch_zoom: false,
             max_shared_surface_size: 2048,
-            compositor2: None,
         }
     }
 }
@@ -323,8 +318,13 @@ pub fn create_webrender_instance(
     HAS_BEEN_INITIALIZED.store(true, Ordering::SeqCst);
 
     // For now, we assume that native OS compositors are top-left origin. If that doesn't
-    // turn out to be the case, we can add a query method on `Compositor2`.
-    options.surface_origin_is_top_left |= options.compositor2.is_some();
+    // turn out to be the case, we can add a query method on `LayerCompositor`.
+    match options.compositor_config {
+        CompositorConfig::Draw { .. } | CompositorConfig::Native { .. } => {}
+        CompositorConfig::Layer { .. } => {
+            options.surface_origin_is_top_left = true;
+        }
+    }
 
     let (api_tx, api_rx) = unbounded_channel();
     let (result_tx, result_rx) = unbounded_channel();
@@ -534,6 +534,10 @@ pub fn create_webrender_instance(
 
             CompositorKind::Native {
                 capabilities,
+            }
+        }
+        CompositorConfig::Layer { .. } => {
+            CompositorKind::Layer {
             }
         }
     };
@@ -810,7 +814,6 @@ pub fn create_webrender_instance(
         consecutive_oom_frames: 0,
         target_frame_publish_id: None,
         pending_result_msg: None,
-        compositor2: options.compositor2,
     };
 
     // We initially set the flags to default and then now call set_debug_flags

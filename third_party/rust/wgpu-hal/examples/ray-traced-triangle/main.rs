@@ -239,9 +239,9 @@ impl<A: hal::Api> Example<A> {
         let instance_desc = hal::InstanceDescriptor {
             name: "example",
             flags: wgt::InstanceFlags::default(),
-            dx12_shader_compiler: wgt::Dx12Compiler::Dxc {
-                dxil_path: None,
-                dxc_path: None,
+            dx12_shader_compiler: wgt::Dx12Compiler::DynamicDxc {
+                dxc_path: std::path::PathBuf::from("dxcompiler.dll"),
+                dxil_path: std::path::PathBuf::from("dxil.dll"),
             },
             gles_minor_version: wgt::Gles3MinorVersion::default(),
         };

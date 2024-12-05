@@ -30655,24 +30655,6 @@
       "last_modified": 1559866973381
     },
     {
-      "schema": 1559866970155,
-      "derHash": "zx6hXcnAWrxyrw5ixI2TQ0rgJxsapDGL41RBJtJLYYQ=",
-      "subject": "CN=Certum Extended Validation CA,OU=Certum Certification Authority,O=Unizeto Technologies S.A.,C=PL",
-      "subjectDN": "MIGCMQswCQYDVQQGEwJQTDEiMCAGA1UEChMZVW5pemV0byBUZWNobm9sb2dpZXMgUy5BLjEnMCUGA1UECxMeQ2VydHVtIENlcnRpZmljYXRpb24gQXV0aG9yaXR5MSYwJAYDVQQDEx1DZXJ0dW0gRXh0ZW5kZWQgVmFsaWRhdGlvbiBDQQ==",
-      "whitelist": false,
-      "attachment": {
-        "hash": "e34ed85d8f7cd8d8572bc535cef388fdeca726b0b1f570db12ecb2c658c3cfaf",
-        "size": 1727,
-        "filename": "M9jfvUTOEXqakcClNZh0xICWc12quCpR9R8l41FetpI=.pem",
-        "location": "security-state-staging/intermediates/aa0b4687-ec1c-483c-878f-31363ebb0565.pem",
-        "mimetype": "application/x-pem-file"
-      },
-      "pubKeyHash": "M9jfvUTOEXqakcClNZh0xICWc12quCpR9R8l41FetpI=",
-      "crlite_enrolled": false,
-      "id": "52a1bed3-2ae3-4c96-8566-936ef8a25df3",
-      "last_modified": 1559866970939
-    },
-    {
       "schema": 1559866925659,
       "derHash": "PUUR0KgKqUmm2ZslOhc0cXl8RFkYemMp5zbDfLVJPkY=",
       "subject": "CN=emSign ECC Device CA - C3,OU=emSign PKI,O=eMudhra Inc,C=US",
@@ -30727,5 +30709,5 @@
       "last_modified": 1559865884636
     }
   ],
-  "timestamp": 1733065022465
+  "timestamp": 1733237822480
 }

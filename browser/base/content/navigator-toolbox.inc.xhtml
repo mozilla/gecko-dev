@@ -177,6 +177,27 @@
             </box>
             <box id="urlbar-search-button"
                  class="chromeclass-toolbar-additional"/>
+            <toolbarbutton id="urlbar-searchmode-switcher"
+                            data-action="openpopup"
+                            align="center"
+                            role="button"
+                            aria-haspopup="menu"
+                            aria-expanded="false"
+                            tooltip="dynamic-shortcut-tooltip"
+                            class="chromeclass-toolbar-additional">
+              <image id="searchmode-switcher-icon" />
+              <image id="searchmode-switcher-dropmarker"
+                      data-l10n-id="urlbar-searchmode-dropmarker"
+                      class="toolbarbutton-icon toolbarbutton-combined-buttons-dropmarker" />
+            </toolbarbutton>
+            <box id="searchmode-switcher-chicklet">
+              <label id="searchmode-switcher-title" />
+              <toolbarbutton id="searchmode-switcher-close"
+                              data-action="exitsearchmode"
+                              role="button"
+                              data-l10n-id="urlbar-searchmode-exit-button"
+                              class="toolbarbutton-icon close-button" />
+            </box>
             <!-- Use onclick instead of normal popup= syntax since the popup
                  code fires onmousedown, and hence eats our favicon drag events. -->
             <box id="tracking-protection-icon-container" align="center"
@@ -300,27 +321,6 @@
                         aria-labelledby="urlbar-search-mode-indicator-close urlbar-search-mode-indicator-title"
                         data-l10n-id="urlbar-search-mode-indicator-close"/>
             </html:div>
-            <toolbarbutton id="urlbar-searchmode-switcher"
-                            data-action="openpopup"
-                            align="center"
-                            role="button"
-                            aria-haspopup="menu"
-                            aria-expanded="false"
-                            tooltip="dynamic-shortcut-tooltip"
-                            class="chromeclass-toolbar-additional">
-              <image id="searchmode-switcher-icon" />
-              <image id="searchmode-switcher-dropmarker"
-                      data-l10n-id="urlbar-searchmode-dropmarker"
-                      class="toolbarbutton-icon toolbarbutton-combined-buttons-dropmarker" />
-            </toolbarbutton>
-            <box id="searchmode-switcher-chicklet">
-              <label id="searchmode-switcher-title" />
-              <toolbarbutton id="searchmode-switcher-close"
-                              data-action="exitsearchmode"
-                              role="button"
-                              data-l10n-id="urlbar-searchmode-exit-button"
-                              class="toolbarbutton-icon close-button" />
-            </box>
             <moz-input-box tooltip="aHTMLTooltip"
                             class="urlbar-input-box"
                             flex="1"

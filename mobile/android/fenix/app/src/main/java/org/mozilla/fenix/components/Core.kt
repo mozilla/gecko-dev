@@ -83,6 +83,7 @@ import mozilla.components.service.digitalassetlinks.local.StatementApi
 import mozilla.components.service.digitalassetlinks.local.StatementRelationChecker
 import mozilla.components.service.location.LocationService
 import mozilla.components.service.location.MozillaLocationService
+import mozilla.components.service.pocket.ContentRecommendationsRequestConfig
 import mozilla.components.service.pocket.PocketStoriesConfig
 import mozilla.components.service.pocket.PocketStoriesRequestConfig
 import mozilla.components.service.pocket.PocketStoriesService
@@ -523,6 +524,9 @@ class Core(
             } else {
                 PocketStoriesRequestConfig()
             },
+            contentRecommendationsParams = ContentRecommendationsRequestConfig(
+                locale = LocaleManager.getSelectedLocale(context).toLanguageTag(),
+            ),
         )
     }
     val pocketStoriesService by lazyMonitored { PocketStoriesService(context, pocketStoriesConfig) }

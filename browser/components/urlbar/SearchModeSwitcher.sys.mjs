@@ -32,6 +32,7 @@ export class SearchModeSwitcher {
   #popup;
   #input;
   #toolbarbutton;
+  #navbar;
 
   constructor(input) {
     this.#input = input;
@@ -48,6 +49,8 @@ export class SearchModeSwitcher {
     this.#toolbarbutton = input.document.querySelector(
       "#urlbar-searchmode-switcher"
     );
+
+    this.#navbar = input.document.getElementById("nav-bar");
 
     if (lazy.UrlbarPrefs.get("scotchBonnet.enableOverride")) {
       this.#enableObservers();
@@ -164,6 +167,20 @@ export class SearchModeSwitcher {
   }
 
   handleEvent(event) {
+    if (event.type == "focus") {
+      this.#input.toggleAttribute("usb-available", true);
+      return;
+    }
+    if (event.type == "blur") {
+      if (
+        (this.#popup.state == "closed" || this.#popup.state == "hiding") &&
+        !isAncestor(this.#navbar, event.relatedTarget)
+      ) {
+        this.#input.toggleAttribute("usb-available", false);
+      }
+      return;
+    }
+
     if (this.#input.view.isOpen) {
       // The urlbar view is opening, which means the unified search button got
       // focus by tab key from urlbar.
@@ -238,6 +255,14 @@ export class SearchModeSwitcher {
         }
         break;
       }
+      case "usb.dynamic": {
+        if (lazy.UrlbarPrefs.get("usb.dynamic")) {
+          this.#enableObserversForDynamicUSB();
+        } else {
+          this.#disableObserversForDynamicUSB();
+        }
+        break;
+      }
     }
   }
 
@@ -252,13 +277,18 @@ export class SearchModeSwitcher {
       this.#input.searchMode
     );
 
-    const keywordEnabled = lazy.UrlbarPrefs.get("keyword.enabled");
     const inSearchMode = this.#input.searchMode;
-    if (!keywordEnabled && !inSearchMode) {
-      icon = SearchModeSwitcher.DEFAULT_ICON;
+    if (lazy.UrlbarPrefs.get("usb.dynamic")) {
+      const keywordEnabled = lazy.UrlbarPrefs.get("keyword.enabled");
+      if (!keywordEnabled && !inSearchMode) {
+        icon = SearchModeSwitcher.DEFAULT_ICON;
+      }
+    } else if (!inSearchMode) {
+      // Use default icon set in CSS.
+      icon = null;
     }
 
-    let iconUrl = icon ? `url(${icon})` : "";
+    let iconUrl = icon ? `url(${icon})` : null;
     this.#input.document.getElementById(
       "searchmode-switcher-icon"
     ).style.listStyleImage = iconUrl;
@@ -280,9 +310,9 @@ export class SearchModeSwitcher {
       "searchmode-switcher-title"
     );
 
-    if (!this.#input.searchMode) {
+    if (!inSearchMode) {
       labelEl.replaceChildren();
-    } else if (this.#input.searchMode) {
+    } else {
       labelEl.textContent = label;
     }
   }
@@ -446,6 +476,8 @@ export class SearchModeSwitcher {
     prefsbutton.addEventListener("command", this);
     prefsbutton.addEventListener("keypress", this);
 
+    this.#enableObserversForDynamicUSB();
+
     this.#input.window.addEventListener(
       "MozAfterPaint",
       () => this.#updateSearchIcon(),
@@ -470,6 +502,8 @@ export class SearchModeSwitcher {
     );
     prefsbutton.removeEventListener("command", this);
     prefsbutton.removeEventListener("keypress", this);
+
+    this.#disableObserversForDynamicUSB();
   }
 
   #createButton(label, icon) {
@@ -524,4 +558,34 @@ export class SearchModeSwitcher {
       this.#input.browsingContext
     );
   }
+
+  #enableObserversForDynamicUSB() {
+    if (
+      !lazy.UrlbarPrefs.get("scotchBonnet.enableOverride") ||
+      !lazy.UrlbarPrefs.get("usb.dynamic")
+    ) {
+      return;
+    }
+
+    this.#navbar.addEventListener("focus", this, { capture: true });
+    this.#navbar.addEventListener("blur", this, { capture: true });
+  }
+
+  #disableObserversForDynamicUSB() {
+    this.#navbar.removeEventListener("focus", this);
+    this.#navbar.removeEventListener("blur", this);
+  }
+}
+
+function isAncestor(ancestor, descendant) {
+  if (!descendant) {
+    return false;
+  }
+
+  for (let element = descendant; element; element = element.parentElement) {
+    if (ancestor == element) {
+      return true;
+    }
+  }
+  return false;
 }

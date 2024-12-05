@@ -41,10 +41,13 @@ add_task(async function test_popup_keynav() {
     );
     // Focus the button inside the webpage.
     EventUtils.synthesizeKey("KEY_Tab", {}, win);
-    // Focus the first item in the URL bar
-    let firstButton = win.document
+    // Focus the first visible item in the URL bar
+    let buttons = win.document
       .getElementById("urlbar-container")
-      .querySelector("toolbarbutton,[role=button]");
+      .querySelectorAll("toolbarbutton, [role=button]");
+    let firstButton = [...buttons].find(button =>
+      BrowserTestUtils.isVisible(button)
+    );
     await expectFocusAfterKey("Tab", firstButton, false, win);
     await BrowserTestUtils.closeWindow(win);
   });

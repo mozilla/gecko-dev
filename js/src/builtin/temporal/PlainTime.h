@@ -62,11 +62,6 @@ bool IsValidTime(double hour, double minute, double second, double millisecond,
 /**
  * IsValidTime ( hour, minute, second, millisecond, microsecond, nanosecond )
  */
-bool ThrowIfInvalidTime(JSContext* cx, const Time& time);
-
-/**
- * IsValidTime ( hour, minute, second, millisecond, microsecond, nanosecond )
- */
 bool ThrowIfInvalidTime(JSContext* cx, double hour, double minute,
                         double second, double millisecond, double microsecond,
                         double nanosecond);

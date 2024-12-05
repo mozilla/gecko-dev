@@ -151,9 +151,9 @@ static void ReportInvalidTimeValue(JSContext* cx, const char* name, int32_t min,
                             minStr, maxStr, numStr);
 }
 
-template <typename T>
 static inline bool ThrowIfInvalidTimeValue(JSContext* cx, const char* name,
-                                           int32_t min, int32_t max, T num) {
+                                           int32_t min, int32_t max,
+                                           double num) {
   if (min <= num && num <= max) {
     return true;
   }
@@ -164,11 +164,9 @@ static inline bool ThrowIfInvalidTimeValue(JSContext* cx, const char* name,
 /**
  * IsValidTime ( hour, minute, second, millisecond, microsecond, nanosecond )
  */
-template <typename T>
-static bool ThrowIfInvalidTime(JSContext* cx, T hour, T minute, T second,
-                               T millisecond, T microsecond, T nanosecond) {
-  static_assert(std::is_same_v<T, int32_t> || std::is_same_v<T, double>);
-
+bool js::temporal::ThrowIfInvalidTime(JSContext* cx, double hour, double minute,
+                                      double second, double millisecond,
+                                      double microsecond, double nanosecond) {
   // Step 1.
   MOZ_ASSERT(IsInteger(hour));
   MOZ_ASSERT(IsInteger(minute));
@@ -209,26 +207,6 @@ static bool ThrowIfInvalidTime(JSContext* cx, T hour, T minute, T second,
 
   // Step 8.
   return true;
-}
-
-/**
- * IsValidTime ( hour, minute, second, millisecond, microsecond, nanosecond )
- */
-bool js::temporal::ThrowIfInvalidTime(JSContext* cx, const Time& time) {
-  const auto& [hour, minute, second, millisecond, microsecond, nanosecond] =
-      time;
-  return ::ThrowIfInvalidTime(cx, hour, minute, second, millisecond,
-                              microsecond, nanosecond);
-}
-
-/**
- * IsValidTime ( hour, minute, second, millisecond, microsecond, nanosecond )
- */
-bool js::temporal::ThrowIfInvalidTime(JSContext* cx, double hour, double minute,
-                                      double second, double millisecond,
-                                      double microsecond, double nanosecond) {
-  return ::ThrowIfInvalidTime(cx, hour, minute, second, millisecond,
-                              microsecond, nanosecond);
 }
 
 /**
@@ -599,7 +577,9 @@ static bool ToTemporalTimeOptions(JSContext* cx, Handle<Value> options,
 static bool ToTemporalTime(JSContext* cx, Handle<JSObject*> item,
                            Handle<Value> options, Time* result) {
   // Step 2.a.
-  if (auto* time = item->maybeUnwrapIf<PlainTimeObject>()) {
+  if (auto* plainTime = item->maybeUnwrapIf<PlainTimeObject>()) {
+    auto time = plainTime->time();
+
     // Steps 2.a.i-ii.
     TimeOptions ignoredOptions;
     if (!ToTemporalTimeOptions(cx, options, &ignoredOptions)) {
@@ -607,12 +587,14 @@ static bool ToTemporalTime(JSContext* cx, Handle<JSObject*> item,
     }
 
     // Step 2.a.iii.
-    *result = time->time();
+    *result = time;
     return true;
   }
 
   // Step 2.b.
   if (auto* dateTime = item->maybeUnwrapIf<PlainDateTimeObject>()) {
+    auto time = dateTime->time();
+
     // Steps 2.b.i-ii.
     TimeOptions ignoredOptions;
     if (!ToTemporalTimeOptions(cx, options, &ignoredOptions)) {
@@ -620,7 +602,7 @@ static bool ToTemporalTime(JSContext* cx, Handle<JSObject*> item,
     }
 
     // Step 2.b.iii.
-    *result = dateTime->time();
+    *result = time;
     return true;
   }
 

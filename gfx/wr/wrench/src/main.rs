@@ -48,7 +48,7 @@ use std::rc::Rc;
 #[cfg(feature = "software")]
 use std::slice;
 use std::sync::mpsc::{channel, Sender, Receiver};
-use webrender::{DebugFlags, Compositor2};
+use webrender::{DebugFlags, LayerCompositor};
 use webrender::api::*;
 use webrender::render_api::*;
 use webrender::api::units::*;
@@ -311,12 +311,12 @@ impl WindowWrapper {
     }
 
     #[cfg(target_os = "windows")]
-    pub fn create_compositor(&self) -> Option<Box<dyn Compositor2>> {
-        Some(Box::new(WrCompositor::new(self)) as Box<dyn Compositor2>)
+    pub fn create_compositor(&self) -> Option<Box<dyn LayerCompositor>> {
+        Some(Box::new(WrCompositor::new(self)) as Box<dyn LayerCompositor>)
     }
 
     #[cfg(not(target_os = "windows"))]
-    pub fn create_compositor(&self) -> Option<Box<dyn Compositor2>> {
+    pub fn create_compositor(&self) -> Option<Box<dyn LayerCompositor>> {
         None
     }
 }
@@ -734,7 +734,7 @@ pub fn main() {
         (None, None)
     };
 
-    let compositor2 = if using_compositor {
+    let layer_compositor = if using_compositor {
         window.create_compositor()
     } else {
         None
@@ -754,7 +754,7 @@ pub fn main() {
         args.is_present("precache"),
         dump_shader_source,
         notifier,
-        compositor2,
+        layer_compositor,
     );
 
     if let Some(ui_str) = args.value_of("profiler_ui") {

@@ -491,6 +491,7 @@ open class HomeActivity : LocaleAwareAppCompatActivity(), NavHostActivity {
             if (settings().showPocketRecommendationsFeature) {
                 components.core.pocketStoriesService.startPeriodicStoriesRefresh()
             }
+
             if (settings().showPocketSponsoredStories) {
                 components.core.pocketStoriesService.startPeriodicSponsoredStoriesRefresh()
                 // If the secret setting for sponsored stories parameters is set,
@@ -498,6 +499,10 @@ open class HomeActivity : LocaleAwareAppCompatActivity(), NavHostActivity {
                 if (settings().useCustomConfigurationForSponsoredStories) {
                     components.core.pocketStoriesService.refreshSponsoredStories()
                 }
+            }
+
+            if (settings().showContentRecommendations) {
+                components.core.pocketStoriesService.startPeriodicContentRecommendationsRefresh()
             }
         }
 
@@ -699,6 +704,7 @@ open class HomeActivity : LocaleAwareAppCompatActivity(), NavHostActivity {
         components.core.contileTopSitesUpdater.stopPeriodicWork()
         components.core.pocketStoriesService.stopPeriodicStoriesRefresh()
         components.core.pocketStoriesService.stopPeriodicSponsoredStoriesRefresh()
+        components.core.pocketStoriesService.stopPeriodicContentRecommendationsRefresh()
         privateNotificationObserver?.stop()
         components.notificationsDelegate.unBindActivity(this)
 

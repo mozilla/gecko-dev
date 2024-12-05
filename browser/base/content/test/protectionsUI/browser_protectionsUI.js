@@ -31,8 +31,10 @@ add_setup(async function () {
       ["browser.contentblocking.report.lockwise.enabled", false],
       ["browser.contentblocking.report.proxy.enabled", false],
       ["privacy.trackingprotection.enabled", true],
+      ["browser.urlbar.scotchBonnet.enableOverride", true],
     ],
   });
+
   let oldCanRecord = Services.telemetry.canRecordExtended;
   Services.telemetry.canRecordExtended = true;
   Services.telemetry.clearEvents();

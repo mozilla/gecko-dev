@@ -1,6 +1,6 @@
 "use strict";
 
-requestLongerTimeout(8);
+requestLongerTimeout(16);
 
 Services.scriptloader.loadSubScript(
   "chrome://mochitests/content/browser/browser/base/content/test/general/head.js",

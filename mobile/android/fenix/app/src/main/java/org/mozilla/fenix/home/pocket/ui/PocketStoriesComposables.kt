@@ -231,6 +231,53 @@ fun PocketSponsoredStory(
 }
 
 /**
+ * Displays a single [ContentRecommendation].
+ *
+ * @param recommendation The [ContentRecommendation] to be displayed.
+ * @param backgroundColor The background [Color] of the recommendation.
+ * @param onClick Callback for when the user taps on the recommendation.
+ */
+@OptIn(ExperimentalComposeUiApi::class)
+@Composable
+fun ContentRecommendation(
+    recommendation: ContentRecommendation,
+    backgroundColor: Color,
+    onClick: (ContentRecommendation) -> Unit,
+) {
+    ListItemTabLarge(
+        imageUrl = recommendation.imageUrl,
+        backgroundColor = backgroundColor,
+        onClick = { onClick(recommendation) },
+        title = {
+            Text(
+                text = recommendation.title,
+                modifier = Modifier.semantics {
+                    testTagsAsResourceId = true
+                    testTag = "pocket.contentRecommendation.title"
+                },
+                color = FirefoxTheme.colors.textPrimary,
+                overflow = TextOverflow.Ellipsis,
+                maxLines = 2,
+                style = FirefoxTheme.typography.body2,
+            )
+        },
+        subtitle = {
+            Text(
+                text = recommendation.publisher,
+                modifier = Modifier.semantics {
+                    testTagsAsResourceId = true
+                    testTag = "pocket.contentRecommendation.publisher"
+                },
+                color = FirefoxTheme.colors.textSecondary,
+                overflow = TextOverflow.Ellipsis,
+                maxLines = 1,
+                style = FirefoxTheme.typography.caption,
+            )
+        },
+    )
+}
+
+/**
  * Displays a list of [PocketStory]es on 3 by 3 grid.
  * If there aren't enough stories to fill all columns placeholders containing an external link
  * to go to Pocket for more recommendations are added.
@@ -348,8 +395,11 @@ fun PocketStories(
                                 }
                             }
 
-                            is ContentRecommendation -> {
-                                // no-op
+                            is ContentRecommendation -> ContentRecommendation(
+                                recommendation = story,
+                                backgroundColor = backgroundColor,
+                            ) {
+                                onStoryClicked(story, rowIndex to columnIndex)
                             }
                         }
                     }
@@ -549,10 +599,25 @@ private class PocketStoryProvider : PreviewParameterProvider<PocketStory> {
 internal fun getFakePocketStories(limit: Int = 1): List<PocketStory> {
     return mutableListOf<PocketStory>().apply {
         for (index in 0 until limit) {
-            when (index % 2 == 0) {
-                true -> add(
+            when {
+                (index % 3 == 0) -> add(
+                    ContentRecommendation(
+                        scheduledCorpusItemId = "scheduledCorpusItemId$index",
+                        url = "https://story$index.com",
+                        title = "Recommendation - This is a ${"very ".repeat(index)} long title",
+                        excerpt = "Excerpt",
+                        topic = null,
+                        publisher = "Publisher",
+                        isTimeSensitive = false,
+                        imageUrl = "",
+                        tileId = index.toLong(),
+                        receivedRank = index,
+                        impressions = index.toLong(),
+                    ),
+                )
+                (index % 2 == 0) -> add(
                     PocketRecommendedStory(
-                        title = "This is a ${"very ".repeat(index)} long title",
+                        title = "Story - This is a ${"very ".repeat(index)} long title",
                         publisher = "Publisher",
                         url = "https://story$index.com",
                         imageUrl = "",
@@ -561,7 +626,7 @@ internal fun getFakePocketStories(limit: Int = 1): List<PocketStory> {
                         timesShown = index.toLong(),
                     ),
                 )
-                false -> add(
+                else -> add(
                     PocketSponsoredStory(
                         id = index,
                         title = "This is a ${"very ".repeat(index)} long title",

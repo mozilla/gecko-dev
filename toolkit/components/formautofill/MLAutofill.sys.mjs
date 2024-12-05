@@ -100,9 +100,8 @@ export class MLAutofill {
       const extra = {
         infer_field_name: fieldDetail.fieldName,
         infer_reason: fieldDetail.reason,
-        fathom_infer_label:
-          fieldDetail.reason == "fathom" ? fieldDetail.fieldName : "",
-        fathom_infer_score: fieldDetail?.confidence?.toString() ?? "",
+        fathom_infer_label: fieldDetail.fathomLabel ?? "",
+        fathom_infer_score: fieldDetail.fathomConfidence?.toString() ?? "",
         ml_revision: MLAutofill.modelRevision ?? "",
         ml_infer_label: result?.label || "FAILED",
         ml_infer_score: result?.score?.toString() || "FAILED",

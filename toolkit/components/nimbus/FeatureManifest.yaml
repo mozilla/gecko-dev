@@ -4069,3 +4069,13 @@ setToDefaultPrompt:
     message:
       description: Message to show instead of the default prompt
       type: json
+
+tabGroups:
+  description: Prefs to control Tab Groups
+  owner: dao@mozilla.com
+  hasExposure: false
+  variables:
+    enabled:
+      type: boolean
+      fallbackPref: browser.tabs.groups.enabled
+      description: Controls whether users can create new tab groups via drag and drop or the tab context menu

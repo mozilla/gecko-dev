@@ -157,6 +157,7 @@ struct FontListSizes {
 };
 
 class gfxUserFontSet;
+class LoadCmapsRunnable;
 
 class gfxPlatformFontList : public gfxFontInfoLoader {
   friend class InitOtherFamilyNamesRunnable;
@@ -382,12 +383,7 @@ class gfxPlatformFontList : public gfxFontInfoLoader {
   // [Parent] Handle request from content process to start cmap loading.
   void StartCmapLoading(uint32_t aGeneration, uint32_t aStartIndex);
 
-  void CancelLoadCmapsTask() {
-    if (mLoadCmapsRunnable) {
-      mLoadCmapsRunnable->Cancel();
-      mLoadCmapsRunnable = nullptr;
-    }
-  }
+  void CancelLoadCmapsTask();
 
   // Populate aFamily with face records, and if aLoadCmaps is true, also load
   // their character maps (rather than leaving this to be done lazily).
@@ -1080,7 +1076,7 @@ class gfxPlatformFontList : public gfxFontInfoLoader {
 
   RefPtr<gfxFontEntry> mDefaultFontEntry MOZ_GUARDED_BY(mLock);
 
-  RefPtr<mozilla::CancelableRunnable> mLoadCmapsRunnable;
+  RefPtr<LoadCmapsRunnable> mLoadCmapsRunnable;
   uint32_t mStartedLoadingCmapsFrom MOZ_GUARDED_BY(mLock) = 0xffffffffu;
 
   bool mFontFamilyWhitelistActive = false;

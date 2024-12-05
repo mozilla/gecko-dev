@@ -6,7 +6,6 @@ package org.mozilla.fenix.onboarding.view
 
 import org.mozilla.fenix.nimbus.AddOnData
 import org.mozilla.fenix.nimbus.CustomizationThemeData
-import org.mozilla.fenix.nimbus.CustomizationThemesData
 import org.mozilla.fenix.nimbus.CustomizationToolbarData
 import org.mozilla.fenix.nimbus.OnboardingCardData
 import org.mozilla.fenix.nimbus.OnboardingCardType
@@ -48,7 +47,7 @@ private fun OnboardingCardData.isCardEnabled(
     OnboardingCardType.ADD_SEARCH_WIDGET -> enabled && showAddWidgetPage
     OnboardingCardType.ADD_ONS -> extraData?.addOnsData?.isNotEmpty() == true
     OnboardingCardType.TOOLBAR_PLACEMENT -> extraData?.customizationToolbarData?.isNotEmpty() == true
-    OnboardingCardType.THEME_SELECTION -> extraData?.customizationThemeData != null
+    OnboardingCardType.THEME_SELECTION -> extraData?.customizationThemeData?.isNotEmpty() == true
     else -> enabled
 }
 
@@ -111,7 +110,9 @@ private fun OnboardingCardData.toPageUiData(privacyCaption: Caption?) = Onboardi
     toolbarOptions = extraData?.customizationToolbarData
         ?.takeIf { it.isNotEmpty() }
         ?.toOnboardingToolbarOptions(),
-    themeOptions = extraData?.customizationThemeData?.toOnboardingThemeOptions(),
+    themeOptions = extraData?.customizationThemeData
+        ?.takeIf { it.isNotEmpty() }
+        ?.toOnboardingThemeOptions(),
     termsOfService = extraData?.termOfServiceData?.toOnboardingTermsOfService(),
 )
 
@@ -169,11 +170,7 @@ private fun ToolbarType.toToolbarOptionType() = when (this) {
     ToolbarType.TOOLBAR_BOTTOM -> ToolbarOptionType.TOOLBAR_BOTTOM
 }
 
-private fun CustomizationThemesData.toOnboardingThemeOptions() = ThemeOptions(
-    system = system.toOnboardingThemeOption(),
-    light = light.toOnboardingThemeOption(),
-    dark = dark.toOnboardingThemeOption(),
-)
+private fun List<CustomizationThemeData>.toOnboardingThemeOptions() = map { it.toOnboardingThemeOption() }
 
 private fun CustomizationThemeData.toOnboardingThemeOption() = with(this) {
     ThemeOption(

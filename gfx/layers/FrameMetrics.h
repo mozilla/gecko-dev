@@ -752,7 +752,6 @@ struct ScrollMetadata {
         mPageScrollAmount(0, 0),
         mInteractiveWidget(
             dom::InteractiveWidgetUtils::DefaultInteractiveWidgetMode()),
-        mHasScrollgrab(false),
         mIsLayersIdRoot(false),
         mIsAutoDirRootContentRTL(false),
         mForceDisableApz(false),
@@ -771,7 +770,6 @@ struct ScrollMetadata {
            mLineScrollAmount == aOther.mLineScrollAmount &&
            mPageScrollAmount == aOther.mPageScrollAmount &&
            mInteractiveWidget == aOther.mInteractiveWidget &&
-           mHasScrollgrab == aOther.mHasScrollgrab &&
            mIsLayersIdRoot == aOther.mIsLayersIdRoot &&
            mIsAutoDirRootContentRTL == aOther.mIsAutoDirRootContentRTL &&
            mForceDisableApz == aOther.mForceDisableApz &&
@@ -827,10 +825,6 @@ struct ScrollMetadata {
   void SetPageScrollAmount(const LayoutDeviceIntSize& size) {
     mPageScrollAmount = size;
   }
-  void SetHasScrollgrab(bool aHasScrollgrab) {
-    mHasScrollgrab = aHasScrollgrab;
-  }
-  bool GetHasScrollgrab() const { return mHasScrollgrab; }
   void SetIsLayersIdRoot(bool aValue) { mIsLayersIdRoot = aValue; }
   bool IsLayersIdRoot() const { return mIsLayersIdRoot; }
   void SetIsAutoDirRootContentRTL(bool aValue) {
@@ -956,9 +950,6 @@ struct ScrollMetadata {
   // APZTreeManager as APZTreeManager::mInteractiveWidget so that it should not
   // be checked on AsyncPanZoomController::mScrollMetadata.
   dom::InteractiveWidget mInteractiveWidget;
-
-  // Whether or not this frame is for an element marked 'scrollgrab'.
-  bool mHasScrollgrab : 1;
 
   // Whether these framemetrics are for the root scroll frame (root element if
   // we don't have a root scroll frame) for its layers id.

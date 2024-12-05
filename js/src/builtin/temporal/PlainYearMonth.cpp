@@ -18,7 +18,9 @@
 #include "builtin/temporal/Calendar.h"
 #include "builtin/temporal/CalendarFields.h"
 #include "builtin/temporal/Duration.h"
+#include "builtin/temporal/Instant.h"
 #include "builtin/temporal/PlainDate.h"
+#include "builtin/temporal/PlainMonthDay.h"
 #include "builtin/temporal/Temporal.h"
 #include "builtin/temporal/TemporalParser.h"
 #include "builtin/temporal/TemporalRoundingMode.h"
@@ -302,9 +304,6 @@ static bool ToTemporalYearMonth(JSContext* cx, Handle<Value> item,
     return false;
   }
 
-  // TODO: spec issue - allows too large dates for ISODateToFields, which can
-  // be troublesome for implementations.
-
   // Step 8. (Reordered to throw exceptions in correct order)
   //
   // Call CreateTemporalYearMonth to reject too large dates early.
@@ -470,6 +469,7 @@ static bool DifferenceTemporalPlainYearMonth(JSContext* cx,
   MOZ_ASSERT(duration.time == TimeDuration{});
 
   // FIXME: spec issue - TemporalDurationFromInternal is infallible
+  // https://github.com/tc39/proposal-temporal/issues/3051
 
   // Step 17. (Inlined TemporalDurationFromInternal)
   auto result = duration.date.toDuration();

@@ -3076,11 +3076,6 @@ APZCTreeManager::BuildOverscrollHandoffChain(
     apzc = scrollParent.get();
   }
 
-  // Now adjust the chain to account for scroll grabbing. Sorting is a bit
-  // of an overkill here, but scroll grabbing will likely be generalized
-  // to scroll priorities, so we might as well do it this way.
-  result->SortByScrollPriority();
-
   // Print the overscroll chain for debugging.
   for (uint32_t i = 0; i < result->Length(); ++i) {
     APZCTM_LOG("OverscrollHandoffChain[%d] = %p\n", i,

@@ -88,13 +88,13 @@ int32_t DurationSign(const Duration& duration);
  */
 int32_t DateDurationSign(const DateDuration& duration);
 
+#ifdef DEBUG
 /**
  * IsValidDuration ( years, months, weeks, days, hours, minutes, seconds,
  * milliseconds, microseconds, nanoseconds )
  */
 bool IsValidDuration(const Duration& duration);
 
-#ifdef DEBUG
 /**
  * IsValidDuration ( years, months, weeks, days, hours, minutes, seconds,
  * milliseconds, microseconds, nanoseconds )
@@ -113,12 +113,6 @@ bool IsValidDuration(const InternalDuration& duration);
  * milliseconds, microseconds, nanoseconds )
  */
 bool ThrowIfInvalidDuration(JSContext* cx, const Duration& duration);
-
-/**
- * IsValidDuration ( years, months, weeks, days, hours, minutes, seconds,
- * milliseconds, microseconds, nanoseconds )
- */
-bool ThrowIfInvalidDuration(JSContext* cx, const DateDuration& duration);
 
 /**
  * IsValidDuration ( years, months, weeks, days, hours, minutes, seconds,
@@ -265,21 +259,9 @@ bool TotalRelativeDuration(JSContext* cx, const InternalDuration& duration,
                            TemporalUnit unit, double* result);
 
 /**
- * DivideTimeDuration ( d, divisor )
- */
-double DivideTimeDuration(const TimeDuration& duration, TemporalUnit unit);
-
-/**
  * TotalTimeDuration ( timeDuration, unit )
  */
-inline double TotalTimeDuration(const TimeDuration& duration,
-                                TemporalUnit unit) {
-  // FIXME: spec issue - TotalTimeDuration and DivideTimeDuration can be merged
-  // https://github.com/tc39/proposal-temporal/issues/3020
-
-  // Steps 1-2.
-  return DivideTimeDuration(duration, unit);
-}
+double TotalTimeDuration(const TimeDuration& duration, TemporalUnit unit);
 
 } /* namespace js::temporal */
 

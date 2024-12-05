@@ -179,13 +179,13 @@ list the jobs selected by the try perf query) to run all tp6 page-load webextens
 
 ::
 
-   ./mach try perf --show-all -q "'tp6 'webextensions"
+   ./mach try perf --full -q "'tp6 'webextensions"
 
 Similarly for running tp6m (equivalent to tp6 but for mobile) on Firefox for Android builds:
 
 ::
 
-   ./mach try perf --show-all -q "'tp6m 'webextensions"
+   ./mach try perf --full -q "'tp6m 'webextensions"
 
 The set of extensions installed are the ones listed in the ``"addons"`` property of the condprof customization file
 `webext.json`_ from the ``testing/condprofile/condprof/customization/`` directory.

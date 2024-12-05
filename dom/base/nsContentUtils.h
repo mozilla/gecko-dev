@@ -2533,12 +2533,6 @@ class nsContentUtils {
   static void GetModifierSeparatorText(nsAString& text);
 
   /**
-   * Returns if aContent has the 'scrollgrab' property.
-   * aContent may be null (in this case false is returned).
-   */
-  static bool HasScrollgrab(nsIContent* aContent);
-
-  /**
    * Flushes the layout tree (recursively)
    *
    * @param aWindow the window the flush should start at

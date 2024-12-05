@@ -120,7 +120,7 @@ class RedesignedNavigationToolbarSmokeTest : TestSetup() {
 
         homeScreen {
         }.openThreeDotMenuFromRedesignedToolbar(composeTestRule) {
-        }.openHelp {
+        }.openHelp(composeTestRule) {
         }.openSiteSecuritySheet {
             clickQuickActionSheetClearSiteData()
             verifyClearSiteDataPrompt(helpPageUrl)
@@ -154,7 +154,7 @@ class RedesignedNavigationToolbarSmokeTest : TestSetup() {
         }.goToHomescreenWithRedesignedToolbar {
             verifyExistingTopSitesList()
         }.openThreeDotMenuFromRedesignedToolbar(composeTestRule) {
-            verifySettingsButton()
+            verifySettingsButton(composeTestRule)
         }
     }
 
@@ -267,7 +267,7 @@ class RedesignedNavigationToolbarSmokeTest : TestSetup() {
     fun verifyToolbarWithAddressBarAtTheTopTest() {
         homeScreen {
         }.openThreeDotMenuFromRedesignedToolbar(composeTestRule) {
-        }.openSettings {
+        }.openSettings(composeTestRule) {
         }.openCustomizeSubMenu {
             verifyAddressBarPositionPreference("Top")
         }
@@ -293,7 +293,7 @@ class RedesignedNavigationToolbarSmokeTest : TestSetup() {
 
         homeScreen {
         }.openThreeDotMenuFromRedesignedToolbar(composeTestRule) {
-        }.openSettings {
+        }.openSettings(composeTestRule) {
         }.openCustomizeSubMenu {
             verifyAddressBarPositionPreference("Bottom")
         }
@@ -324,7 +324,7 @@ class RedesignedNavigationToolbarSmokeTest : TestSetup() {
         }.goToHomescreenWithRedesignedToolbar {
             verifyHomeScreen()
         }.openThreeDotMenuFromRedesignedToolbar(composeTestRule) {
-        }.openSettings {
+        }.openSettings(composeTestRule) {
         }.openCustomizeSubMenu {
             clickBottomToolbarToggle()
             verifyAddressBarPositionPreference("Bottom")

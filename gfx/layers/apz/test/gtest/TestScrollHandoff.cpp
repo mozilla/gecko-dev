@@ -142,67 +142,6 @@ class APZScrollHandoffTester : public APZCTreeManagerTester {
     rootApzc = ApzcOf(root);
   }
 
-  void CreateScrollgrabLayerTree(bool makeParentScrollable = true) {
-    const char* treeShape = "x(x)";
-    LayerIntRect layerVisibleRect[] = {
-        LayerIntRect(0, 0, 100, 100),  // scroll-grabbing parent
-        LayerIntRect(0, 20, 100, 80)   // child
-    };
-    CreateScrollData(treeShape, layerVisibleRect);
-    float parentHeight = makeParentScrollable ? 120 : 100;
-    SetScrollableFrameMetrics(root, ScrollableLayerGuid::START_SCROLL_ID,
-                              CSSRect(0, 0, 100, parentHeight));
-    SetScrollableFrameMetrics(layers[1],
-                              ScrollableLayerGuid::START_SCROLL_ID + 1,
-                              CSSRect(0, 0, 100, 800));
-    SetScrollHandoff(layers[1], root);
-    registration = MakeUnique<ScopedLayerTreeRegistration>(LayersId{0}, mcc);
-    UpdateHitTestingTree();
-    rootApzc = ApzcOf(root);
-    rootApzc->GetScrollMetadata().SetHasScrollgrab(true);
-  }
-
-  void TestFlingAcceleration() {
-    // Jack up the fling acceleration multiplier so we can easily determine
-    // whether acceleration occured.
-    const float kAcceleration = 100.0f;
-    SCOPED_GFX_PREF_FLOAT("apz.fling_accel_base_mult", kAcceleration);
-    SCOPED_GFX_PREF_FLOAT("apz.fling_accel_min_fling_velocity", 0.0);
-    SCOPED_GFX_PREF_FLOAT("apz.fling_accel_min_pan_velocity", 0.0);
-
-    RefPtr<TestAsyncPanZoomController> childApzc = ApzcOf(layers[1]);
-
-    // Pan once, enough to fully scroll the scrollgrab parent and then scroll
-    // and fling the child.
-    QueueMockHitResult(ScrollableLayerGuid::START_SCROLL_ID + 1);
-    Pan(manager, 70, 40);
-
-    // Give the fling animation a chance to start.
-    SampleAnimationsOnce();
-
-    float childVelocityAfterFling1 = childApzc->GetVelocityVector().y;
-
-    // Pan again.
-    QueueMockHitResult(ScrollableLayerGuid::START_SCROLL_ID + 1);
-    Pan(manager, 70, 40);
-
-    // Give the fling animation a chance to start.
-    // This time it should be accelerated.
-    SampleAnimationsOnce();
-
-    float childVelocityAfterFling2 = childApzc->GetVelocityVector().y;
-
-    // We should have accelerated once.
-    // The division by 2 is to account for friction.
-    EXPECT_GT(childVelocityAfterFling2,
-              childVelocityAfterFling1 * kAcceleration / 2);
-
-    // We should not have accelerated twice.
-    // The division by 4 is to account for friction.
-    EXPECT_LE(childVelocityAfterFling2,
-              childVelocityAfterFling1 * kAcceleration * kAcceleration / 4);
-  }
-
   void TestCrossApzcAxisLock() {
     SCOPED_GFX_PREF_INT("apz.axis_lock.mode", 1);
 
@@ -565,62 +504,6 @@ TEST_F(APZScrollHandoffTester, SimultaneousFlings) {
   parent1->AssertStateIsFling();
   child2->AssertStateIsReset();
   parent2->AssertStateIsFling();
-}
-
-#ifndef MOZ_WIDGET_ANDROID  // Currently fails on Android
-TEST_F(APZScrollHandoffTester, Scrollgrab) {
-  SCOPED_GFX_PREF_BOOL("apz.allow_immediate_handoff", true);
-
-  // Set up the layer tree
-  CreateScrollgrabLayerTree();
-
-  RefPtr<TestAsyncPanZoomController> childApzc = ApzcOf(layers[1]);
-
-  // Pan on the child, enough to fully scroll the scrollgrab parent (20 px)
-  // and leave some more (another 15 px) for the child.
-  Pan(childApzc, 80, 45);
-
-  // Check that the parent and child have scrolled as much as we expect.
-  EXPECT_EQ(20, rootApzc->GetFrameMetrics().GetVisualScrollOffset().y);
-  EXPECT_EQ(15, childApzc->GetFrameMetrics().GetVisualScrollOffset().y);
-}
-#endif
-
-TEST_F(APZScrollHandoffTester, ScrollgrabFling) {
-  SCOPED_GFX_PREF_BOOL("apz.allow_immediate_handoff", true);
-  SCOPED_GFX_PREF_FLOAT("apz.fling_min_velocity_threshold", 0.0f);
-
-  // Set up the layer tree
-  CreateScrollgrabLayerTree();
-
-  RefPtr<TestAsyncPanZoomController> childApzc = ApzcOf(layers[1]);
-
-  // Pan on the child, not enough to fully scroll the scrollgrab parent.
-  Pan(childApzc, 80, 70);
-
-  // Check that it is the scrollgrab parent that's in a fling, not the child.
-  rootApzc->AssertStateIsFling();
-  childApzc->AssertStateIsReset();
-}
-
-TEST_F(APZScrollHandoffTesterMock, ScrollgrabFlingAcceleration1) {
-  SCOPED_GFX_PREF_BOOL("apz.allow_immediate_handoff", true);
-  SCOPED_GFX_PREF_FLOAT("apz.fling_min_velocity_threshold", 0.0f);
-  CreateScrollgrabLayerTree(true /* make parent scrollable */);
-
-  // Note: Usually, fling acceleration does not work across handoff, because our
-  // fling acceleration code does not propagate the "fling cancel velocity"
-  // across handoff. However, this test sets apz.fling_min_velocity_threshold to
-  // zero, so the "fling cancel velocity" is allowed to be zero, and fling
-  // acceleration succeeds, almost by accident.
-  TestFlingAcceleration();
-}
-
-TEST_F(APZScrollHandoffTesterMock, ScrollgrabFlingAcceleration2) {
-  SCOPED_GFX_PREF_BOOL("apz.allow_immediate_handoff", true);
-  SCOPED_GFX_PREF_FLOAT("apz.fling_min_velocity_threshold", 0.0f);
-  CreateScrollgrabLayerTree(false /* do not make parent scrollable */);
-  TestFlingAcceleration();
 }
 
 TEST_F(APZScrollHandoffTester, ImmediateHandoffDisallowed_Pan) {

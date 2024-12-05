@@ -75,9 +75,6 @@ inline constexpr auto Ethiopian = {
     "incar"sv,
 };
 
-// Use "ethioaa" instead of "ethiopicaa".
-//
-// https://github.com/tc39/proposal-intl-era-monthcode/issues/17
 inline constexpr auto EthiopianInverse = {
     "ethioaa"sv,
     "ethiopic-amete-alem"sv,
