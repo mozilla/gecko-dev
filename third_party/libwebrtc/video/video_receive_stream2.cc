@@ -876,7 +876,14 @@ VideoReceiveStream2::HandleEncodedFrameOnDecodeQueue(
     for (const Decoder& decoder : config_.decoders) {
       if (decoder.payload_type == frame->PayloadType()) {
         CreateAndRegisterExternalDecoder(decoder);
-        break;
+      } else {
+        // Unregister any external decoder not from this payload type.
+        // If not, any previous video decoder will be released when the next
+        // frame is decoded but the decoder wrapper will not.
+        // This will cause the decoder to be reused if we switch back to that
+        // payload in the future, failing to configure it and causing to
+        // fallback to the software decoder.
+        video_receiver_.RegisterExternalDecoder(nullptr, decoder.payload_type);
       }
     }
   }
