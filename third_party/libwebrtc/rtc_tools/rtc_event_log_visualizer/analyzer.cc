@@ -449,6 +449,23 @@ float DelaySinceLastSr(const webrtc::rtcp::ReportBlock& block) {
   return static_cast<double>(block.delay_since_last_sr()) / 65536;
 }
 
+std::map<uint32_t, std::string> BuildCandidateIdLogDescriptionMap(
+    const std::vector<LoggedIceCandidatePairConfig>&
+        ice_candidate_pair_configs) {
+  std::map<uint32_t, std::string> candidate_pair_desc_by_id;
+  for (const auto& config : ice_candidate_pair_configs) {
+    // TODO(qingsi): Add the handling of the "Updated" config event after the
+    // visualization of property change for candidate pairs is introduced.
+    if (candidate_pair_desc_by_id.find(config.candidate_pair_id) ==
+        candidate_pair_desc_by_id.end()) {
+      const std::string candidate_pair_desc =
+          GetCandidatePairLogDescriptionAsString(config);
+      candidate_pair_desc_by_id[config.candidate_pair_id] = candidate_pair_desc;
+    }
+  }
+  return candidate_pair_desc_by_id;
+}
+
 }  // namespace
 
 EventLogAnalyzer::EventLogAnalyzer(const ParsedRtcEventLog& log,
@@ -697,7 +714,7 @@ void EventLogAnalyzer::InitializeMapOfNamedGraphs(bool show_detector_state,
 }
 
 void EventLogAnalyzer::CreateGraphsByName(const std::vector<std::string>& names,
-                                          PlotCollection* collection) {
+                                          PlotCollection* collection) const {
   for (absl::string_view name : names) {
     auto plot = absl::c_find_if(plots_, [name](const PlotDeclaration& plot) {
       return plot.label == name;
@@ -710,7 +727,7 @@ void EventLogAnalyzer::CreateGraphsByName(const std::vector<std::string>& names,
 }
 
 void EventLogAnalyzer::CreatePacketGraph(PacketDirection direction,
-                                         Plot* plot) {
+                                         Plot* plot) const {
   for (const auto& stream : parsed_log_.rtp_packets_by_ssrc(direction)) {
     // Filter on SSRC.
     if (!MatchingSsrc(stream.ssrc, desired_ssrc_)) {
@@ -738,7 +755,7 @@ void EventLogAnalyzer::CreatePacketGraph(PacketDirection direction,
 }
 
 void EventLogAnalyzer::CreateRtcpTypeGraph(PacketDirection direction,
-                                           Plot* plot) {
+                                           Plot* plot) const {
   plot->AppendTimeSeries(CreateRtcpTypeTimeSeries(
       parsed_log_.transport_feedbacks(direction), config_, "TWCC", 1));
   plot->AppendTimeSeries(CreateRtcpTypeTimeSeries(
@@ -776,7 +793,7 @@ template <typename IterableType>
 void EventLogAnalyzer::CreateAccumulatedPacketsTimeSeries(
     Plot* plot,
     const IterableType& packets,
-    const std::string& label) {
+    const std::string& label) const {
   TimeSeries time_series(label, LineStyle::kStep);
   for (size_t i = 0; i < packets.size(); i++) {
     float x = config_.GetCallTimeSec(packets[i].log_time());
@@ -786,7 +803,7 @@ void EventLogAnalyzer::CreateAccumulatedPacketsTimeSeries(
 }
 
 void EventLogAnalyzer::CreateAccumulatedPacketsGraph(PacketDirection direction,
-                                                     Plot* plot) {
+                                                     Plot* plot) const {
   for (const auto& stream : parsed_log_.rtp_packets_by_ssrc(direction)) {
     if (!MatchingSsrc(stream.ssrc, desired_ssrc_))
       continue;
@@ -812,7 +829,7 @@ void EventLogAnalyzer::CreateAccumulatedPacketsGraph(PacketDirection direction,
 }
 
 void EventLogAnalyzer::CreatePacketRateGraph(PacketDirection direction,
-                                             Plot* plot) {
+                                             Plot* plot) const {
   auto CountPackets = [](auto packet) { return 1.0; };
   for (const auto& stream : parsed_log_.rtp_packets_by_ssrc(direction)) {
     // Filter on SSRC.
@@ -850,7 +867,7 @@ void EventLogAnalyzer::CreatePacketRateGraph(PacketDirection direction,
 }
 
 void EventLogAnalyzer::CreateTotalPacketRateGraph(PacketDirection direction,
-                                                  Plot* plot) {
+                                                  Plot* plot) const {
   // Contains a log timestamp to enable counting logged events of different
   // types using MovingAverage().
   class LogTime {
@@ -901,7 +918,7 @@ void EventLogAnalyzer::CreateTotalPacketRateGraph(PacketDirection direction,
 }
 
 // For each SSRC, plot the time between the consecutive playouts.
-void EventLogAnalyzer::CreatePlayoutGraph(Plot* plot) {
+void EventLogAnalyzer::CreatePlayoutGraph(Plot* plot) const {
   for (const auto& playout_stream : parsed_log_.audio_playout_events()) {
     uint32_t ssrc = playout_stream.first;
     if (!MatchingSsrc(ssrc, desired_ssrc_))
@@ -926,7 +943,7 @@ void EventLogAnalyzer::CreatePlayoutGraph(Plot* plot) {
   plot->SetTitle("Audio playout");
 }
 
-void EventLogAnalyzer::CreateNetEqSetMinimumDelay(Plot* plot) {
+void EventLogAnalyzer::CreateNetEqSetMinimumDelay(Plot* plot) const {
   for (const auto& playout_stream :
        parsed_log_.neteq_set_minimum_delay_events()) {
     uint32_t ssrc = playout_stream.first;
@@ -952,7 +969,7 @@ void EventLogAnalyzer::CreateNetEqSetMinimumDelay(Plot* plot) {
 
 // For audio SSRCs, plot the audio level.
 void EventLogAnalyzer::CreateAudioLevelGraph(PacketDirection direction,
-                                             Plot* plot) {
+                                             Plot* plot) const {
   for (const auto& stream : parsed_log_.rtp_packets_by_ssrc(direction)) {
     if (!IsAudioSsrc(parsed_log_, direction, stream.ssrc))
       continue;
@@ -979,7 +996,7 @@ void EventLogAnalyzer::CreateAudioLevelGraph(PacketDirection direction,
 
 // For each SSRC, plot the sequence number difference between consecutive
 // incoming packets.
-void EventLogAnalyzer::CreateSequenceNumberGraph(Plot* plot) {
+void EventLogAnalyzer::CreateSequenceNumberGraph(Plot* plot) const {
   for (const auto& stream : parsed_log_.incoming_rtp_packets_by_ssrc()) {
     // Filter on SSRC.
     if (!MatchingSsrc(stream.ssrc, desired_ssrc_)) {
@@ -1012,7 +1029,7 @@ void EventLogAnalyzer::CreateSequenceNumberGraph(Plot* plot) {
   plot->SetTitle("Incoming sequence number delta");
 }
 
-void EventLogAnalyzer::CreateIncomingPacketLossGraph(Plot* plot) {
+void EventLogAnalyzer::CreateIncomingPacketLossGraph(Plot* plot) const {
   for (const auto& stream : parsed_log_.incoming_rtp_packets_by_ssrc()) {
     const std::vector<LoggedRtpPacketIncoming>& packets =
         stream.incoming_packets;
@@ -1072,7 +1089,7 @@ void EventLogAnalyzer::CreateIncomingPacketLossGraph(Plot* plot) {
   plot->SetTitle("Incoming packet loss (derived from incoming packets)");
 }
 
-void EventLogAnalyzer::CreateIncomingDelayGraph(Plot* plot) {
+void EventLogAnalyzer::CreateIncomingDelayGraph(Plot* plot) const {
   for (const auto& stream : parsed_log_.incoming_rtp_packets_by_ssrc()) {
     // Filter on SSRC.
     if (!MatchingSsrc(stream.ssrc, desired_ssrc_) ||
@@ -1134,7 +1151,7 @@ void EventLogAnalyzer::CreateIncomingDelayGraph(Plot* plot) {
 }
 
 // Plot the fraction of packets lost (as perceived by the loss-based BWE).
-void EventLogAnalyzer::CreateFractionLossGraph(Plot* plot) {
+void EventLogAnalyzer::CreateFractionLossGraph(Plot* plot) const {
   TimeSeries time_series("Fraction lost", LineStyle::kLine,
                          PointStyle::kHighlight);
   for (auto& bwe_update : parsed_log_.bwe_loss_updates()) {
@@ -1151,7 +1168,7 @@ void EventLogAnalyzer::CreateFractionLossGraph(Plot* plot) {
 }
 
 // Plot the total bandwidth used by all RTP streams.
-void EventLogAnalyzer::CreateTotalIncomingBitrateGraph(Plot* plot) {
+void EventLogAnalyzer::CreateTotalIncomingBitrateGraph(Plot* plot) const {
   // TODO(terelius): This could be provided by the parser.
   std::multimap<Timestamp, size_t> packets_in_order;
   for (const auto& stream : parsed_log_.incoming_rtp_packets_by_ssrc()) {
@@ -1220,7 +1237,7 @@ void EventLogAnalyzer::CreateTotalOutgoingBitrateGraph(
     Plot* plot,
     bool show_detector_state,
     bool show_alr_state,
-    bool show_link_capacity) {
+    bool show_link_capacity) const {
   // TODO(terelius): This could be provided by the parser.
   std::multimap<Timestamp, size_t> packets_in_order;
   for (const auto& stream : parsed_log_.outgoing_rtp_packets_by_ssrc()) {
@@ -1435,7 +1452,7 @@ void EventLogAnalyzer::CreateTotalOutgoingBitrateGraph(
 
 // For each SSRC, plot the bandwidth used by that stream.
 void EventLogAnalyzer::CreateStreamBitrateGraph(PacketDirection direction,
-                                                Plot* plot) {
+                                                Plot* plot) const {
   for (const auto& stream : parsed_log_.rtp_packets_by_ssrc(direction)) {
     // Filter on SSRC.
     if (!MatchingSsrc(stream.ssrc, desired_ssrc_)) {
@@ -1462,7 +1479,7 @@ void EventLogAnalyzer::CreateStreamBitrateGraph(PacketDirection direction,
 // Computed from RTCP XR target bitrate block, so the graph is only populated if
 // those are sent.
 void EventLogAnalyzer::CreateBitrateAllocationGraph(PacketDirection direction,
-                                                    Plot* plot) {
+                                                    Plot* plot) const {
   std::map<LayerDescription, TimeSeries> time_series;
   const auto& xr_list = parsed_log_.extended_reports(direction);
   for (const auto& rtcp : xr_list) {
@@ -1498,7 +1515,7 @@ void EventLogAnalyzer::CreateBitrateAllocationGraph(PacketDirection direction,
     plot->SetTitle("Target bitrate per outgoing layer");
 }
 
-void EventLogAnalyzer::CreateGoogCcSimulationGraph(Plot* plot) {
+void EventLogAnalyzer::CreateGoogCcSimulationGraph(Plot* plot) const {
   TimeSeries target_rates("Simulated target rate", LineStyle::kStep,
                           PointStyle::kHighlight);
   TimeSeries delay_based("Logged delay-based estimate", LineStyle::kStep,
@@ -1540,7 +1557,7 @@ void EventLogAnalyzer::CreateGoogCcSimulationGraph(Plot* plot) {
   plot->SetTitle("Simulated BWE behavior");
 }
 
-void EventLogAnalyzer::CreateOutgoingTWCCLossRateGraph(Plot* plot) {
+void EventLogAnalyzer::CreateOutgoingTWCCLossRateGraph(Plot* plot) const {
   TimeSeries loss_rate_series("Loss rate (from packet feedback)",
                               LineStyle::kLine, PointStyle::kHighlight);
   TimeSeries reordered_packets_between_feedback(
@@ -1662,7 +1679,7 @@ void EventLogAnalyzer::CreateOutgoingTWCCLossRateGraph(Plot* plot) {
   plot->SetTitle("Outgoing loss rate (from TWCC feedback)");
 }
 
-void EventLogAnalyzer::CreateSendSideBweSimulationGraph(Plot* plot) {
+void EventLogAnalyzer::CreateSendSideBweSimulationGraph(Plot* plot) const {
   using RtpPacketType = LoggedRtpPacketOutgoing;
   using TransportFeedbackType = LoggedRtcpPacketTransportFeedback;
 
@@ -1852,7 +1869,7 @@ void EventLogAnalyzer::CreateSendSideBweSimulationGraph(Plot* plot) {
   plot->SetTitle("Simulated send-side BWE behavior");
 }
 
-void EventLogAnalyzer::CreateReceiveSideBweSimulationGraph(Plot* plot) {
+void EventLogAnalyzer::CreateReceiveSideBweSimulationGraph(Plot* plot) const {
   using RtpPacketType = LoggedRtpPacketIncoming;
   class RembInterceptor {
    public:
@@ -1935,7 +1952,7 @@ void EventLogAnalyzer::CreateReceiveSideBweSimulationGraph(Plot* plot) {
   plot->SetTitle("Simulated receive-side BWE behavior");
 }
 
-void EventLogAnalyzer::CreateNetworkDelayFeedbackGraph(Plot* plot) {
+void EventLogAnalyzer::CreateNetworkDelayFeedbackGraph(Plot* plot) const {
   TimeSeries time_series("Network delay", LineStyle::kLine,
                          PointStyle::kHighlight);
   int64_t min_send_receive_diff_ms = std::numeric_limits<int64_t>::max();
@@ -1977,7 +1994,7 @@ void EventLogAnalyzer::CreateNetworkDelayFeedbackGraph(Plot* plot) {
   plot->SetTitle("Outgoing network delay (based on per-packet feedback)");
 }
 
-void EventLogAnalyzer::CreatePacerDelayGraph(Plot* plot) {
+void EventLogAnalyzer::CreatePacerDelayGraph(Plot* plot) const {
   for (const auto& stream : parsed_log_.outgoing_rtp_packets_by_ssrc()) {
     const std::vector<LoggedRtpPacketOutgoing>& packets =
         stream.outgoing_packets;
@@ -2036,7 +2053,7 @@ void EventLogAnalyzer::CreatePacerDelayGraph(Plot* plot) {
 }
 
 void EventLogAnalyzer::CreateTimestampGraph(PacketDirection direction,
-                                            Plot* plot) {
+                                            Plot* plot) const {
   for (const auto& stream : parsed_log_.rtp_packets_by_ssrc(direction)) {
     TimeSeries rtp_timestamps(
         GetStreamName(parsed_log_, direction, stream.ssrc) + " capture-time",
@@ -2075,7 +2092,7 @@ void EventLogAnalyzer::CreateSenderAndReceiverReportPlot(
     rtc::FunctionView<float(const rtcp::ReportBlock&)> fy,
     std::string title,
     std::string yaxis_label,
-    Plot* plot) {
+    Plot* plot) const {
   std::map<uint32_t, TimeSeries> sr_reports_by_ssrc;
   const auto& sender_reports = parsed_log_.sender_reports(direction);
   for (const auto& rtcp : sender_reports) {
@@ -2126,7 +2143,7 @@ void EventLogAnalyzer::CreateSenderAndReceiverReportPlot(
   plot->SetTitle(title);
 }
 
-void EventLogAnalyzer::CreateIceCandidatePairConfigGraph(Plot* plot) {
+void EventLogAnalyzer::CreateIceCandidatePairConfigGraph(Plot* plot) const {
   std::map<uint32_t, TimeSeries> configs_by_cp_id;
   for (const auto& config : parsed_log_.ice_candidate_pair_configs()) {
     if (configs_by_cp_id.find(config.candidate_pair_id) ==
@@ -2137,8 +2154,6 @@ void EventLogAnalyzer::CreateIceCandidatePairConfigGraph(Plot* plot) {
           TimeSeries("[" + std::to_string(config.candidate_pair_id) + "]" +
                          candidate_pair_desc,
                      LineStyle::kNone, PointStyle::kHighlight);
-      candidate_pair_desc_by_id_[config.candidate_pair_id] =
-          candidate_pair_desc;
     }
     float x = config_.GetCallTimeSec(config.log_time());
     float y = static_cast<float>(config.type);
@@ -2165,37 +2180,20 @@ void EventLogAnalyzer::CreateIceCandidatePairConfigGraph(Plot* plot) {
         "SELECTED"}});
 }
 
-std::string EventLogAnalyzer::GetCandidatePairLogDescriptionFromId(
-    uint32_t candidate_pair_id) {
-  if (candidate_pair_desc_by_id_.find(candidate_pair_id) !=
-      candidate_pair_desc_by_id_.end()) {
-    return candidate_pair_desc_by_id_[candidate_pair_id];
-  }
-  for (const auto& config : parsed_log_.ice_candidate_pair_configs()) {
-    // TODO(qingsi): Add the handling of the "Updated" config event after the
-    // visualization of property change for candidate pairs is introduced.
-    if (candidate_pair_desc_by_id_.find(config.candidate_pair_id) ==
-        candidate_pair_desc_by_id_.end()) {
-      const std::string candidate_pair_desc =
-          GetCandidatePairLogDescriptionAsString(config);
-      candidate_pair_desc_by_id_[config.candidate_pair_id] =
-          candidate_pair_desc;
-    }
-  }
-  return candidate_pair_desc_by_id_[candidate_pair_id];
-}
-
-void EventLogAnalyzer::CreateIceConnectivityCheckGraph(Plot* plot) {
+void EventLogAnalyzer::CreateIceConnectivityCheckGraph(Plot* plot) const {
   constexpr int kEventTypeOffset =
       static_cast<int>(IceCandidatePairConfigType::kNumValues);
   std::map<uint32_t, TimeSeries> checks_by_cp_id;
+  std::map<uint32_t, std::string> candidate_pair_desc_by_id =
+      BuildCandidateIdLogDescriptionMap(
+          parsed_log_.ice_candidate_pair_configs());
   for (const auto& event : parsed_log_.ice_candidate_pair_events()) {
     if (checks_by_cp_id.find(event.candidate_pair_id) ==
         checks_by_cp_id.end()) {
-      checks_by_cp_id[event.candidate_pair_id] = TimeSeries(
-          "[" + std::to_string(event.candidate_pair_id) + "]" +
-              GetCandidatePairLogDescriptionFromId(event.candidate_pair_id),
-          LineStyle::kNone, PointStyle::kHighlight);
+      checks_by_cp_id[event.candidate_pair_id] =
+          TimeSeries("[" + std::to_string(event.candidate_pair_id) + "]" +
+                         candidate_pair_desc_by_id[event.candidate_pair_id],
+                     LineStyle::kNone, PointStyle::kHighlight);
     }
     float x = config_.GetCallTimeSec(event.log_time());
     float y = static_cast<float>(event.type) + kEventTypeOffset;
@@ -2228,7 +2226,7 @@ void EventLogAnalyzer::CreateIceConnectivityCheckGraph(Plot* plot) {
         "RESPONSE RECEIVED"}});
 }
 
-void EventLogAnalyzer::CreateDtlsTransportStateGraph(Plot* plot) {
+void EventLogAnalyzer::CreateDtlsTransportStateGraph(Plot* plot) const {
   TimeSeries states("DTLS Transport State", LineStyle::kNone,
                     PointStyle::kHighlight);
   for (const auto& event : parsed_log_.dtls_transport_states()) {
@@ -2250,7 +2248,7 @@ void EventLogAnalyzer::CreateDtlsTransportStateGraph(Plot* plot) {
        {static_cast<float>(DtlsTransportState::kFailed), "FAILED"}});
 }
 
-void EventLogAnalyzer::CreateDtlsWritableStateGraph(Plot* plot) {
+void EventLogAnalyzer::CreateDtlsWritableStateGraph(Plot* plot) const {
   TimeSeries writable("DTLS Writable", LineStyle::kNone,
                       PointStyle::kHighlight);
   for (const auto& event : parsed_log_.dtls_writable_states()) {
