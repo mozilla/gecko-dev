@@ -1286,12 +1286,11 @@ JSLinearString* BigInt::toStringBasePowerOfTwo(JSContext* cx, HandleBigInt x,
   const size_t bitLength = length * DigitBits - DigitLeadingZeroes(msd);
   const size_t charsRequired = CeilDiv(bitLength, bitsPerChar) + sign;
 
-  if (charsRequired > JSString::MAX_LENGTH) {
-    if constexpr (allowGC) {
-      ReportAllocationOverflow(cx);
-    }
-    return nullptr;
-  }
+  static_assert(MaxBitLength + 1 <= JSString::MAX_LENGTH,
+                "Base 2 representation (including leading sign) of the largest "
+                "possible BigInt fits into a string");
+
+  MOZ_RELEASE_ASSERT(charsRequired <= JSString::MAX_LENGTH);
 
   StringChars<JS::Latin1Char> stringChars(cx);
   if (!stringChars.maybeAlloc(cx, charsRequired)) {
@@ -1435,6 +1434,7 @@ JSLinearString* BigInt::toStringGeneric(JSContext* cx, HandleBigInt x,
   MOZ_ASSERT(radix >= 2 && radix <= 36);
   MOZ_ASSERT(!x->isZero());
   MOZ_ASSERT(x->digitLength() > 1);
+  MOZ_ASSERT(!mozilla::IsPowerOfTwo(radix));
 
   size_t maximumCharactersRequired =
       calculateMaximumCharactersRequired(x, radix);
