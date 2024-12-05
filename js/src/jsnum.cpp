@@ -787,7 +787,7 @@ static void CacheNumber(JSContext* cx, double d, JSLinearString* str) {
 
 MOZ_ALWAYS_INLINE
 static JSLinearString* LookupInt32ToString(JSContext* cx, int32_t si) {
-  if (si >= 0 && StaticStrings::hasInt(si)) {
+  if (StaticStrings::hasInt(si)) {
     return cx->staticStrings().getInt(si);
   }
 
