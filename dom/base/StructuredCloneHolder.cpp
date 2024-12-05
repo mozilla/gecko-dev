@@ -1228,7 +1228,6 @@ StructuredCloneHolder::CustomReadTransferHandler(
         static_cast<OffscreenCanvasCloneData*>(aContent);
     RefPtr<OffscreenCanvas> canvas =
         OffscreenCanvas::CreateFromCloneData(mGlobal, data);
-    delete data;
 
     JS::Rooted<JS::Value> value(aCx);
     if (!GetOrCreateDOMReflector(aCx, canvas, &value)) {
@@ -1236,6 +1235,7 @@ StructuredCloneHolder::CustomReadTransferHandler(
       return false;
     }
 
+    delete data;
     aReturnObject.set(&value.toObject());
     return true;
   }
@@ -1246,7 +1246,6 @@ StructuredCloneHolder::CustomReadTransferHandler(
     ImageBitmapCloneData* data = static_cast<ImageBitmapCloneData*>(aContent);
     RefPtr<ImageBitmap> bitmap =
         ImageBitmap::CreateFromCloneData(mGlobal, data);
-    delete data;
 
     JS::Rooted<JS::Value> value(aCx);
     if (!GetOrCreateDOMReflector(aCx, bitmap, &value)) {
@@ -1254,6 +1253,7 @@ StructuredCloneHolder::CustomReadTransferHandler(
       return false;
     }
 
+    delete data;
     aReturnObject.set(&value.toObject());
     return true;
   }
@@ -1321,14 +1321,14 @@ StructuredCloneHolder::CustomReadTransferHandler(
     if (!frame) {
       return false;
     }
-    delete data;
-    aContent = nullptr;
 
     JS::Rooted<JS::Value> value(aCx);
     if (!GetOrCreateDOMReflector(aCx, frame, &value)) {
       JS_ClearPendingException(aCx);
       return false;
     }
+    delete data;
+    aContent = nullptr;
     aReturnObject.set(&value.toObject());
     return true;
   }
