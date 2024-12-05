@@ -1692,7 +1692,9 @@ add_task(async function test_saveAndCloseGroup() {
     "#tabGroupEditor_saveAndCloseGroup"
   );
 
-  let groupMatch = gBrowser.getTabGroupById(group.id);
+  let groupMatch = gBrowser.tabGroups.find(
+    possibleMatch => possibleMatch.id == group.id
+  );
   Assert.ok(groupMatch, "Group exists in browser");
 
   let events = [
@@ -1702,12 +1704,14 @@ add_task(async function test_saveAndCloseGroup() {
   saveAndCloseGroupButton.click();
   await Promise.all(events);
 
-  groupMatch = gBrowser.getTabGroupById(group.id);
+  groupMatch = gBrowser.tabGroups.find(
+    possibleMatch => possibleMatch.id == group.id
+  );
   Assert.ok(!groupMatch, "Group was removed from browser");
-  let savedGroupMatch = SessionStore.getSavedTabGroup(group.id);
+  let savedGroupMatch = SessionStore.savedGroups.find(
+    savedGroup => savedGroup.id == group.id
+  );
   Assert.ok(savedGroupMatch, "Group is in savedGroups");
-
-  SessionStore.forgetSavedTabGroup(group.id);
 
   BrowserTestUtils.removeTab(tab);
 });

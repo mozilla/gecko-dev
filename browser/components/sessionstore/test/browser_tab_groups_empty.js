@@ -27,5 +27,4 @@ add_task(async function test_ZeroTabGroups() {
     "none of the tabs should refer to a tab group"
   );
   await BrowserTestUtils.closeWindow(win);
-  forgetClosedWindows();
 });
