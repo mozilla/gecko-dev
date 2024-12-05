@@ -1128,20 +1128,21 @@ TEST_P(SSLStreamAdapterTestDTLSHandshake, TestGetSslCipherSuite) {
 }
 
 // Test different key sizes with SHA-256, then different signature algorithms
-// with ECDSA. Two different RSA sizes are tested on the client side.
+// with ECDSA. Two different RSA sizes are tested on the client and server.
 // TODO: bugs.webrtc.org/375552698 - these tests are slow in debug builds
-// and have caused flakyness in the past with larger keysizes.
+// and have caused flakyness in the past with a key size of 2048.
 INSTANTIATE_TEST_SUITE_P(
     SSLStreamAdapterTestDTLSHandshakeKeyParameters,
     SSLStreamAdapterTestDTLSHandshake,
-    Combine(Values(rtc::KeyParams::RSA(rtc::kRsaDefaultModSize,
-                                       rtc::kRsaDefaultExponent),
-                   rtc::KeyParams::RSA(1152, rtc::kRsaDefaultExponent),
-                   rtc::KeyParams::ECDSA(rtc::EC_NIST_P256)),
-            Values(rtc::KeyParams::RSA(rtc::kRsaDefaultModSize,
-                                       rtc::kRsaDefaultExponent),
-                   rtc::KeyParams::ECDSA(rtc::EC_NIST_P256)),
-            Values(std::make_pair(rtc::DIGEST_SHA_256, SHA256_DIGEST_LENGTH))));
+    Values(std::make_tuple(rtc::KeyParams::ECDSA(rtc::EC_NIST_P256),
+                           rtc::KeyParams::RSA(rtc::kRsaDefaultModSize,
+                                               rtc::kRsaDefaultExponent),
+                           std::make_pair(rtc::DIGEST_SHA_256,
+                                          SHA256_DIGEST_LENGTH)),
+           std::make_tuple(rtc::KeyParams::RSA(1152, rtc::kRsaDefaultExponent),
+                           rtc::KeyParams::ECDSA(rtc::EC_NIST_P256),
+                           std::make_pair(rtc::DIGEST_SHA_256,
+                                          SHA256_DIGEST_LENGTH))));
 
 INSTANTIATE_TEST_SUITE_P(
     SSLStreamAdapterTestDTLSHandshakeSignatureAlgorithms,
