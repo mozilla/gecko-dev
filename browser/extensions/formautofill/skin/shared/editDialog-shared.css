@@ -5,7 +5,7 @@
 :root {
   --in-field-label-size: .8em;
   --grid-column-row-gap: 8px;
-  /* Use the animation-easing-function that is defined in xul.css. */
+  /* Use the animation-easing-function that is defined in global-shared.css. */
   --animation-easing-function: cubic-bezier(.07,.95,0,1);
 }
 

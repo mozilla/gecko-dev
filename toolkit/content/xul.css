@@ -31,18 +31,10 @@
   visibility: collapse;
 }
 
-/* TODO: investigate unifying these two root selectors
- * https://bugzilla.mozilla.org/show_bug.cgi?id=1592344
- */
-*|*:root {
-  --animation-easing-function: cubic-bezier(.07, .95, 0, 1);
-  flex: 1;
-  -moz-box-collapse: legacy;
-}
-
 :root {
   text-rendering: optimizeLegibility;
   -moz-control-character-visibility: visible;
+  -moz-box-collapse: legacy;
   width: 100%;
   height: 100%;
   user-select: none;
@@ -64,21 +56,6 @@
 popupgroup:-moz-native-anonymous:-moz-locale-dir(rtl),
 tooltip:-moz-native-anonymous:-moz-locale-dir(rtl) {
   direction: rtl;
-}
-
-/* ::::::::::
-   :: Rules for 'hiding' portions of the chrome for special
-   :: kinds of windows (not JUST browser windows) with toolbars
-   ::::: */
-
-*|*:root[chromehidden~="menubar"] .chromeclass-menubar,
-*|*:root[chromehidden~="directories"] .chromeclass-directories,
-*|*:root[chromehidden~="status"] .chromeclass-status,
-*|*:root[chromehidden~="extrachrome"] .chromeclass-extrachrome,
-*|*:root[chromehidden~="location"] .chromeclass-location,
-*|*:root[chromehidden~="location"][chromehidden~="toolbar"] .chromeclass-toolbar,
-*|*:root[chromehidden~="toolbar"] .chromeclass-toolbar-additional {
-  display: none;
 }
 
 /* ::::::::::
