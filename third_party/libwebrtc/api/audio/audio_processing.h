@@ -86,7 +86,6 @@ class EchoDetector;
 // float interfaces use deinterleaved data.
 //
 // Usage example, omitting error checking:
-// rtc::scoped_refptr<AudioProcessing> apm = AudioProcessingBuilder().Create();
 //
 // AudioProcessing::Config config;
 // config.echo_canceller.enabled = true;
@@ -102,7 +101,8 @@ class EchoDetector;
 //
 // config.high_pass_filter.enabled = true;
 //
-// apm->ApplyConfig(config)
+// scoped_refptr<AudioProcessing> apm =
+//     BuiltinAudioProcessingBuilder(config).Build(CreateEnvironment());
 //
 // // Start a voice call...
 //
@@ -780,9 +780,8 @@ class CustomProcessing {
   virtual ~CustomProcessing() {}
 };
 
-// TODO: bugs.webrtc.org/369904700 - Deprecate and remove in favor of the
-// BuiltinAudioProcessingBuilder.
-class RTC_EXPORT AudioProcessingBuilder {
+// Use BuiltinAudioProcessingBuilder instead, see bugs.webrtc.org/369904700
+class RTC_EXPORT [[deprecated]] AudioProcessingBuilder {
  public:
   AudioProcessingBuilder();
   AudioProcessingBuilder(const AudioProcessingBuilder&) = delete;
