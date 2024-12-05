@@ -98,9 +98,13 @@ async function openProtectionsPanelWithKeyNav() {
 
   gURLBar.focus();
 
+  // Shift+Tab moves the focus to Unified Search Button from urlbar.
+  EventUtils.synthesizeKey("KEY_Tab", { shiftKey: true });
+  Assert.equal(document.activeElement.id, "urlbar-searchmode-switcher");
+
   // This will trigger the focus event for the shield icon for pre-fetching
   // the tracker count.
-  EventUtils.synthesizeKey("KEY_Tab", { shiftKey: true });
+  EventUtils.synthesizeKey("ArrowRight");
   EventUtils.synthesizeKey("KEY_Enter", {});
 
   await popupShownPromise;

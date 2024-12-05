@@ -19,6 +19,18 @@ function test() {
 function focusNotificationAnchor(anchor) {
   let urlbarContainer = anchor.closest("#urlbar-container");
   urlbarContainer.querySelector("toolbartabstop").focus();
+
+  const searchModeSwitcher = urlbarContainer.querySelector(
+    "#urlbar-searchmode-switcher"
+  );
+  is(
+    document.activeElement,
+    searchModeSwitcher,
+    "Search mode switcher container is focused."
+  );
+
+  EventUtils.synthesizeKey("ArrowRight");
+
   const trackingProtectionIconContainer = urlbarContainer.querySelector(
     "#tracking-protection-icon-container"
   );

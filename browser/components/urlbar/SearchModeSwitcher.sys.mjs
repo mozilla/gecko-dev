@@ -252,13 +252,13 @@ export class SearchModeSwitcher {
       this.#input.searchMode
     );
 
-    const keywordEnabled = lazy.UrlbarPrefs.get("keyword.enabled");
     const inSearchMode = this.#input.searchMode;
-    if (!keywordEnabled && !inSearchMode) {
-      icon = SearchModeSwitcher.DEFAULT_ICON;
+    if (!inSearchMode) {
+      // Use default icon set in CSS.
+      icon = null;
     }
 
-    let iconUrl = icon ? `url(${icon})` : "";
+    let iconUrl = icon ? `url(${icon})` : null;
     this.#input.document.getElementById(
       "searchmode-switcher-icon"
     ).style.listStyleImage = iconUrl;
@@ -280,9 +280,9 @@ export class SearchModeSwitcher {
       "searchmode-switcher-title"
     );
 
-    if (!this.#input.searchMode) {
+    if (!inSearchMode) {
       labelEl.replaceChildren();
-    } else if (this.#input.searchMode) {
+    } else {
       labelEl.textContent = label;
     }
   }
