@@ -22175,6 +22175,7 @@ void CodeGenerator::visitTakeDisposeCapability(LTakeDisposeCapability* lir) {
 
   Address capabilityAddr(
       environment, DisposableEnvironmentObject::offsetOfDisposeCapability());
+  emitPreBarrier(capabilityAddr);
   masm.loadValue(capabilityAddr, output);
   masm.storeValue(JS::UndefinedValue(), capabilityAddr);
 }
