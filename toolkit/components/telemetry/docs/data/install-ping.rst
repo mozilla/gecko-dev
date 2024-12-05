@@ -2,7 +2,7 @@
 Install Ping
 ============
 
-The install pings contain some data about the system and the installation process, sent whenever the installer exits [#earlyexit]_.
+The install pings contain some data about the system and the installation process, sent whenever the installer exits.
 
 ---------
 Stub Ping
@@ -32,8 +32,13 @@ The columns are annotated with "(stub)", "(full)", or "(both)" to indicate which
 
 See also the `JSON schema <https://github.com/mozilla-services/mozilla-pipeline-schemas/blob/master/templates/firefox-installer/install/install.1.schema.json>`_.
 
-submission_timestamp (both)
-  Time the ping was received
+The columns are categorized below based on whether they describe the installer itself, the application being installed, the system where the application is being installed, timings and measurements of the
+installation event, or the success or failure of the installation.
+
+Installer fields
+~~~~~~~~~~~~~~~~
+
+These fields describe the installer for the application.
 
 installer_type (both)
   Which type of installer generated this ping (full or stub)
@@ -47,6 +52,18 @@ build_channel (both)
 update_channel (both)
   Value of MOZ_UPDATE_CHANNEL for the installer build; should generally be the same as build_channel
 
+locale (both)
+  Locale of the installer and of the installed product, in AB_CD format
+
+ping_version (stub)
+  Version of the stub ping, currently 8
+
+stub_build_id (stub)
+  Build ID of the stub installer.
+
+Application fields
+~~~~~~~~~~~~~~~~~~
+
 version, build_id (both)
   Version number and Build ID of the installed product, from ``application.ini``. This is **not** the version of the installer itself, see stub_build_id.
 
@@ -54,18 +71,17 @@ version, build_id (both)
 
   full: ``""`` if not found [#versionfailure]_
 
-locale (both)
-  Locale of the installer and of the installed product, in AB_CD format
-
-from_msi (full)
-  True if the install was launched from an MSI wrapper.
-
 _64bit_build (both)
   True if a 64-bit build was selected for installation.
 
   stub: This means the OS is 64-bit, the RAM requirement was met, and no third-party software that blocks 64-bit installations was found
 
   full: Hardcoded based on the architecture to be installed
+
+Target system fields
+~~~~~~~~~~~~~~~~~~~~~
+
+These fields describe the specific system that the application is being installed on.
 
 _64bit_os (both)
   True if the version of Windows on the machine was 64-bit.
@@ -78,6 +94,21 @@ service_pack (stub)
 
 server_os (both)
   True if the installed OS is a server version of Windows.
+
+windows_ubr (both)
+  The Windows Update Build Revision of the installation device.
+
+
+Event fields
+~~~~~~~~~~~~
+
+These fields describe the context in which the installation event is occurring, such as the time and how the installer was launched
+
+submission_timestamp (both)
+  Time the ping was received
+
+from_msi (full)
+  True if the install was launched from an MSI wrapper.
 
 admin_user (both)
   True if the installer was run by a user with administrator privileges (and the UAC prompt was accepted). Specifically, this reports whether :abbr:`HKLM (HKEY_LOCAL_MACHINE)` was writeable.
@@ -130,9 +161,6 @@ download_latency (stub)
 download_ip (stub)
   IP address of the server the full installer was download from (can be either IPv4 or IPv6)
 
-manual_download (stub)
-  True if the user clicked on the button that opens the manual download page. The prompt to do that is shown after the installation fails or is cancelled.
-
 intro_time (both)
   Seconds the user spent on the intro screen.
 
@@ -156,38 +184,8 @@ finish_time (both)
 
   stub: Seconds spent waiting for the installed application to launch.
 
-succeeded (both)
-  True if a new installation was successfully created. False if that didn't happen for any reason, including when the user closed the installer window.
-
-disk_space_error (stub)
-  [DEPRECATED] True if the installation failed because the drive we're trying to install to does not have enough space. The streamlined stub no longer sends a ping in this case, because the installation drive can no longer be selected.
-
-no_write_access (stub)
-  [DEPRECATED] True if the installation failed because the user doesn't have permission to write to the path we're trying to install to. The streamlined stub no longer sends a ping in this case, because the installation directory can no longer be selected.
-
-user_cancelled (both)
-  True if the installation failed because the user cancelled it or closed the window.
-
-out_of_retries (stub)
-  True if the installation failed because the download had to be retried too many times (currently 10)
-
-file_error (stub)
-  True if the installation failed because the downloaded file couldn't be read from
-
-sig_not_trusted (stub)
-  True if the installation failed because the signature on the downloaded file wasn't valid or wasn't signed by a trusted authority
-
-sig_unexpected (stub)
-  True if the installation failed because the signature on the downloaded file didn't have the expected subject and issuer names
-
-install_timeout (stub)
-  True if the installation failed because running the full installer timed out. Currently that means it ran for more than 200 seconds for a new installation, or 215 seconds for a paveover installation.
-
 new_launched (both)
   True if the installation succeeded and tried to launch the newly installed application.
-
-old_running (stub)
-  [DEPRECATED] True if the installation succeeded and we weren't able to launch the newly installed application because a copy of Firefox was already running. This should always be false since the check for a running copy was `removed <https://bugzilla.mozilla.org/show_bug.cgi?id=1601806>`_ in Firefox 74.
 
 attribution (both)
   Any attribution data that was included with the installer
@@ -205,27 +203,80 @@ profile_cleanup_requested (stub)
 funnelcake (stub)
   `Funnelcake <https://wiki.mozilla.org/Funnelcake>`_ ID
 
-ping_version (stub)
-  Version of the stub ping, currently 8
-
 silent (full)
   True if the install was silent (see :ref:`Full Installer Configuration`)
 
-stub_build_id (stub)
-  Build ID of the stub installer.
 
-windows_ubr (both)
-  The Windows Update Build Revision of the installation device.
+Exit code fields
+~~~~~~~~~~~~~~~~
+
+Exactly one of these fields will be true, since they represent end states of the installation process.
+
+succeeded (both)
+  True if a new installation was successfully created. False if that didn't happen for any reason, including when the user closed the installer window.
+
+unknown_error (stub)
+   Default failure exit code. Seeing this in telemetry indicates that the stub installer has exited unsuccessfully, but no reason has been specified
+
+hardware_req_not_met (stub)
+  True if the system hardware does not meet the minimum hardware requirements. Currently, this only checks for SSE2 CPU support
+
+os_version_req_not_met (stub)
+  True if the system does not meet the minimum OS version requirements. Currently, this fails for Windows 8.1/Server 2012 R2 and older, and passes for anything newer.
+
+disk_space_req_not_met (stub)
+  True if the installation failed because the drive we're trying to install to does not have enough space.
+
+writeable_req_not_met (stub)
+  True if the installation failed because the user doesn't have permission to write to the path we're trying to install to.
+
+user_cancelled (both)
+  True if the installation failed because the user cancelled it or closed the window.
+
+out_of_retries (stub)
+  True if the installation failed because the download had to be retried too many times (currently 10)
+
+file_error (stub)
+  True if the installation failed because the downloaded file couldn't be read from
+
+sig_not_trusted (stub)
+  True if the installation failed because the signature on the downloaded file wasn't valid or wasn't signed by a trusted authority
+
+sig_unexpected (stub)
+  True if the installation failed because the signature on the downloaded file didn't have the expected subject and issuer names
+
+sig_check_timeout (stub)
+  True if there was a timeout on the the certificate checks
+
+install_timeout (stub)
+  True if the installation failed because running the full installer timed out. Currently that means it ran for more than 200 seconds for a new installation, or 215 seconds for a paveover installation.
+
+Failure fallback fields
+~~~~~~~~~~~~~~~~~~~~~~~
+
+manual_download (stub)
+  True if the stub installer was unable to complete the installation and the user clicked on the button that opens the manual download page.
+
+Deprecated fields
+~~~~~~~~~~~~~~~~~
+
+disk_space_error (stub)
+  [DEPRECATED] True if the installation failed because the drive we're trying to install to does not have enough space. The streamlined stub no longer sends a ping in this case, because the installation drive can no longer be selected.
+
+no_write_access (stub)
+  [DEPRECATED] True if the installation failed because the user doesn't have permission to write to the path we're trying to install to. The streamlined stub no longer sends a ping in this case, because the installation directory can no longer be selected.
+
+old_running (stub)
+  [DEPRECATED] True if the installation succeeded and we weren't able to launch the newly installed application because a copy of Firefox was already running. This should always be false since the check for a running copy was `removed <https://bugzilla.mozilla.org/show_bug.cgi?id=1601806>`_ in Firefox 74.
+
 
 ---------
 Footnotes
 ---------
 
-.. [#earlyexit] No ping is sent if the installer exits early because initial system requirements checks fail.
-
 .. [#redashlogin] A Mozilla LDAP login is required to access Redash.
 
-.. [#stubversion] The version of the installer would be useful for the stub, but it is not currently sent as part of the stub ping.
+.. [#stubversion] Version information for the stub installer is available in the ``stub_build_id`` field.
 
 .. [#versionfailure] If the installation failed or was cancelled, the full installer will still report the version number of whatever was in the installation directory, or ``""`` on if it couldn't be read.
 
