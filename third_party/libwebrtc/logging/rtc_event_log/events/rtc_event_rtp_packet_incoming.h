@@ -69,15 +69,15 @@ class RtcEventRtpPacketIncoming final : public RtcEvent {
   size_t header_length() const { return packet_.headers_size(); }
   size_t padding_length() const { return packet_.padding_size(); }
 
-  static std::string Encode(rtc::ArrayView<const RtcEvent*> batch) {
+  static std::string Encode(rtc::ArrayView<const RtcEvent*> /* batch */) {
     // TODO(terelius): Implement
     return "";
   }
 
   static RtcEventLogParseStatus Parse(
-      absl::string_view encoded_bytes,
-      bool batched,
-      std::map<uint32_t, std::vector<LoggedRtpPacketIncoming>>& output) {
+      absl::string_view /* encoded_bytes */,
+      bool /* batched */,
+      std::map<uint32_t, std::vector<LoggedRtpPacketIncoming>>& /* output */) {
     // TODO(terelius): Implement
     return RtcEventLogParseStatus::Error("Not Implemented", __FILE__, __LINE__);
   }

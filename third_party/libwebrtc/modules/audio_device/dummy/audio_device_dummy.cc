@@ -13,7 +13,7 @@
 namespace webrtc {
 
 int32_t AudioDeviceDummy::ActiveAudioLayer(
-    AudioDeviceModule::AudioLayer& audioLayer) const {
+    AudioDeviceModule::AudioLayer& /* audioLayer */) const {
   return -1;
 }
 
@@ -37,37 +37,39 @@ int16_t AudioDeviceDummy::RecordingDevices() {
   return -1;
 }
 
-int32_t AudioDeviceDummy::PlayoutDeviceName(uint16_t index,
-                                            char name[kAdmMaxDeviceNameSize],
-                                            char guid[kAdmMaxGuidSize]) {
+int32_t AudioDeviceDummy::PlayoutDeviceName(
+    uint16_t /* index */,
+    char /* name */[kAdmMaxDeviceNameSize],
+    char /* guid */[kAdmMaxGuidSize]) {
   return -1;
 }
 
-int32_t AudioDeviceDummy::RecordingDeviceName(uint16_t index,
-                                              char name[kAdmMaxDeviceNameSize],
-                                              char guid[kAdmMaxGuidSize]) {
+int32_t AudioDeviceDummy::RecordingDeviceName(
+    uint16_t /* index */,
+    char /* name */[kAdmMaxDeviceNameSize],
+    char /* guid */[kAdmMaxGuidSize]) {
   return -1;
 }
 
-int32_t AudioDeviceDummy::SetPlayoutDevice(uint16_t index) {
+int32_t AudioDeviceDummy::SetPlayoutDevice(uint16_t /* index */) {
   return -1;
 }
 
 int32_t AudioDeviceDummy::SetPlayoutDevice(
-    AudioDeviceModule::WindowsDeviceType device) {
+    AudioDeviceModule::WindowsDeviceType /* device */) {
   return -1;
 }
 
-int32_t AudioDeviceDummy::SetRecordingDevice(uint16_t index) {
+int32_t AudioDeviceDummy::SetRecordingDevice(uint16_t /* index */) {
   return -1;
 }
 
 int32_t AudioDeviceDummy::SetRecordingDevice(
-    AudioDeviceModule::WindowsDeviceType device) {
+    AudioDeviceModule::WindowsDeviceType /* device */) {
   return -1;
 }
 
-int32_t AudioDeviceDummy::PlayoutIsAvailable(bool& available) {
+int32_t AudioDeviceDummy::PlayoutIsAvailable(bool& /* available */) {
   return -1;
 }
 
@@ -79,7 +81,7 @@ bool AudioDeviceDummy::PlayoutIsInitialized() const {
   return false;
 }
 
-int32_t AudioDeviceDummy::RecordingIsAvailable(bool& available) {
+int32_t AudioDeviceDummy::RecordingIsAvailable(bool& /* available */) {
   return -1;
 }
 
@@ -131,27 +133,27 @@ bool AudioDeviceDummy::MicrophoneIsInitialized() const {
   return false;
 }
 
-int32_t AudioDeviceDummy::SpeakerVolumeIsAvailable(bool& available) {
+int32_t AudioDeviceDummy::SpeakerVolumeIsAvailable(bool& /* available */) {
   return -1;
 }
 
-int32_t AudioDeviceDummy::SetSpeakerVolume(uint32_t volume) {
+int32_t AudioDeviceDummy::SetSpeakerVolume(uint32_t /* volume */) {
   return -1;
 }
 
-int32_t AudioDeviceDummy::SpeakerVolume(uint32_t& volume) const {
+int32_t AudioDeviceDummy::SpeakerVolume(uint32_t& /* volume */) const {
   return -1;
 }
 
-int32_t AudioDeviceDummy::MaxSpeakerVolume(uint32_t& maxVolume) const {
+int32_t AudioDeviceDummy::MaxSpeakerVolume(uint32_t& /* maxVolume */) const {
   return -1;
 }
 
-int32_t AudioDeviceDummy::MinSpeakerVolume(uint32_t& minVolume) const {
+int32_t AudioDeviceDummy::MinSpeakerVolume(uint32_t& /* minVolume */) const {
   return -1;
 }
 
-int32_t AudioDeviceDummy::MicrophoneVolumeIsAvailable(bool& available) {
+int32_t AudioDeviceDummy::MicrophoneVolumeIsAvailable(bool& /* available */) {
   return -1;
 }
 
