@@ -1,1942 +1,1662 @@
-From: Michael Froman <mjfroman@mac.com>
-Date: Wed, 4 Dec 2024 22:02:06 -0600
-Subject: (tmp-cherry-pick) Revert "Rename `requested_resolution` to
- `scale_resolution_down_to`." (af44d8ff06)
-MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
+From: Dan Minor <dminor@mozilla.com>
+Date: Mon, 22 Jan 2018 13:31:00 -0500
+Subject: Bug 1376873 - Rollup of local modifications; r=ng
 
-This reverts commit 82617ac51e7825db53451818f4d1ad52b69761fd.
+MozReview-Commit-ID: 2euYzBEvuNb
 
-Reason for revert: Break downstream projects
+Differential Revision: https://phabricator.services.mozilla.com/D7425
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/28b57e3ba51de982a4663801a3935580114b5477
 
-Original change's description:
-> Rename `requested_resolution` to `scale_resolution_down_to`.
->
-> This is a pure refactor/rename CL without any changes in behavior.
->
-> This field is called scaleResolutionDownTo in the spec and JavaScript.
-> Let's make C++ match to avoid confusion.
->
-> In order not to break downstream during the transition a variable with
-> the old name being a pure reference to the renamed attribute is added.
-> This means we have to add custom constructors, but we can change this
-> back to "= default" when the transition is completed, which should only
-> be a couple of CLs away.
->
-> Bug: webrtc:375048799
-> Change-Id: If755102ccd79d46020ce5b33acd3dfcc29799e47
-> Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/366560
-> Reviewed-by: Ilya Nikolaevskiy <ilnik@webrtc.org>
-> Reviewed-by: Henrik Andreassson <henrika@webrtc.org>
-> Commit-Queue: Henrik Boström <hbos@webrtc.org>
-> Cr-Commit-Position: refs/heads/main@{#43300}
+Bug 1376873 - Rollup conflict fixes for audio/video code; r=pehrsons
 
-Bug: webrtc:375048799
-Change-Id: Ie41723a39420e12e7b5b681d3d00ccd14f66b4b1
-No-Presubmit: true
-No-Tree-Checks: true
-No-Try: true
-Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/366642
-Reviewed-by: Harald Alvestrand <hta@webrtc.org>
-Commit-Queue: Florent Castelli <orphis@webrtc.org>
-Bot-Commit: rubber-stamper@appspot.gserviceaccount.com <rubber-stamper@appspot.gserviceaccount.com>
-Cr-Commit-Position: refs/heads/main@{#43301}
+MozReview-Commit-ID: 1T8mgqdkzq3
+
+Differential Revision: https://phabricator.services.mozilla.com/D7427
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/93eec571640ee0810da8475ee37e417b88045574
+
+Bug 1376873 - Rollup conflict fixes for rtp_rtcp module; r=ng
+
+MozReview-Commit-ID: D09534DOVLj
+
+Differential Revision: https://phabricator.services.mozilla.com/D7428
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/50f89f4e45b0af87fd6aa45aed60f02f3e69b951
+
+Bug 1497552 - Remove support for 44100 Hz in dtmf_tone_generator; r=padenot
+
+Assertions in NetEqImpl::SetSampleRateAndChannels prevent us from requesting
+tones at 44100 Hz, so this code can be safely removed.
+
+Differential Revision: https://phabricator.services.mozilla.com/D12982
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/8ea04ec01e9905d4714aa01ade891d552c56a3a6
+
+Bug 1497577 - Remove code to detect zero size windows; r=ng
+
+This code was added by Bug 1196542 to fix a permanently failing test on our
+Windows test machines. After this landed, upstream added a check for empty
+windows in window_captuer_win.cc, so this should no longer be a problem on
+Windows. As far as I know, this was never a problem on the other platforms,
+so this code can be safely removed.
+
+Differential Revision: https://phabricator.services.mozilla.com/D13448
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/647ade4da0fba74a268aab079677cb47f20f036e
+
+Bug 1509994 - Move video_engine from webrtc to systemservices; r=pehrsons
+
+Historically this code was part of webrtc.org but has since been removed
+from upstream. Rather than maintaining it as a local diff against upstream,
+we should just move it to where it is used.
+
+Differential Revision: https://phabricator.services.mozilla.com/D13092
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/0fd399c6caabff60ac0fe53b920b7d26a9806750
+
+Bug 1497606 - Remove disable_composition_ in screen_capturer_win_gdi; r=ng
+
+This removes disable_composition_ and instead uses the value of
+composition_func_ to determine whether or not composition is
+disabled. This is what is done by upstream webrtc.org.
+
+We call options.set_disable_effects(false) in desktop_capture_impl.cc.
+
+Differential Revision: https://phabricator.services.mozilla.com/D13839
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/b3f5cca4be44c01024b1ef7b5d4951c7297a112a
+
+Bug 1497974 - Remove local changes to jitter_buffer.cc; r=pehrsons
+
+These modifications are made to code which we do not use and so
+can be removed.
+
+Differential Revision: https://phabricator.services.mozilla.com/D13989
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/2fb1dd0d8344ef24e2e0fca94725bbfaf59aa257
+
+Bug 1512459 - Remove webrtc sndio audio device; r=padenot
+
+This code is unused and can be removed.
+
+Differential Revision: https://phabricator.services.mozilla.com/D13929
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/fa0a179388e96b1a47eeef2fda9676812c244d3b
+
+Bug 1497650 - Remove 100 bytes added to CalcBufferSize in vp8_impl.cc; r=ng
+
+In Bug 919979 we added 100 bytes to the size returned by CalcBufferSize
+to work around an error with the calculated buffer size with small
+resolutions. I verified that this extra buffer is no longer required with
+a modified mochitest. Given the age of the bug this was working around,
+I don't think a permanent test is required to prevent regressions from
+upstream.
+
+Differential Revision: https://phabricator.services.mozilla.com/D14076
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/b20329b1ec0565b3b94db73e13a9c49e43c418c3
+
+Bug 1368816 - Enable VideoCaptureExternalTest Rotation gtest; r=ng
+
+This test started failing after the 57 update and started passing
+again after the 64 update, so we might as well enable it.
+
+Differential Revision: https://phabricator.services.mozilla.com/D13803
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/65a44b43b7b69c066abcb864076003252abc475e
+
+Bug 1497573 - Remove DesktopCapturer::Stop; r=ng
+
+Differential Revision: https://phabricator.services.mozilla.com/D14066
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/0d9c607f26195b7f63cca847224bcd137f73720d
+
+Bug 1497619 - Restore thread check in process_thread_impl.cc; r=ng
+
+Not not really needed.
+
+Differential Revision: https://phabricator.services.mozilla.com/D14097
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/923373fdf5e50d44c895141dc1db74709d6610fe
+
+Bug 1497992 - Remove VideoReceiver::Reset; r=pehrsons
+
+This ends up calling VCMReceiver::Reset() which resets the
+state of the VCMJitterBuffer. We no longer use VCMJitterBuffer,
+which is the old jitter buffer implementation, so this code
+no longer has any effect and can be removed.
+
+Differential Revision: https://phabricator.services.mozilla.com/D14185
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/9e526b3093ee60791cf9c436ea06b6665eb5ef74
+
+Bug 1497610 - Remove IsNewerOrSameTimestamp; r=bwc
+
+The affected functions are only used by VCMJitterBuffer, which is the older
+jitter buffer that is no longer in use. We can safely remove these
+modifications.
+
+Differential Revision: https://phabricator.services.mozilla.com/D14485
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/5ed0ed11b23d82ee026244a9a48e522fe38335e2
+
+Bug 1498253 - Remove mozAvSyncDelay and mozJitterBufferDelay; r=ng
+
+The value for mozAvSyncDelay has been broken since the branch 57 update
+(Bug 1341285). We added SetCurrentSyncOffset() but never called it from
+anywhere.
+
+In the future we should be getting stats from AudioReceiveStream rather than
+modifying the channel code, the delay_estimate_ms field provides almost the
+same information.
+
+Since we're attempting to get rid of moz prefixed stats, it makes sense to just
+remove this code rather than fix it. The associated telemetry code has been
+broken since Bug 1341285 as well so I think it is safe to remove.
+
+Differential Revision: https://phabricator.services.mozilla.com/D14462
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/80e86c169d202e724cda74bbd9535b2d5236305b
+
+Bug 1498205 - Move PlatformUIThread from rtc_base to video_engine; r=pehrsons
+
+PlatformUIThread is only used by the video_engine code, so it makes sense to
+move it there rather than maintain it as a diff against upstream webrtc.org.
+
+Differential Revision: https://phabricator.services.mozilla.com/D13531
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/65bf3e37a4409f3ca0350366d7be19368adfa21b
+
+Bug 1497602 - Enable DirectX screen capturer on Windows; r=pehrsons
+
+This enables support for the DirectX screen capturer. We use the default
+DesktopCaptureOptions which do not set the option to use the DirectX screen
+capturer so this change will have no effect with the current code.
+
+For what it's worth, I tested enabling the DirectX option and it worked fine on my
+system, but I don't see any reason to not follow the defaults provided by
+webrtc.org in this case.
+
+Differential Revision: https://phabricator.services.mozilla.com/D13303
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/eb07312cfbe868780ebed84fc83e5a5470e81fb4
+
+Bug 1439997 - Remove old mac video capture code; r=jib
+
+This code is no longer used and has been removed upstream. We can remove
+it as well.
+
+Differential Revision: https://phabricator.services.mozilla.com/D15196
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/e79251fa381cfc9f3425f6a746ac8d8c22046d6b
+
+Bug 1376873 - Updates to Android video capture; r=pehrsons
+
+Differential Revision: https://phabricator.services.mozilla.com/D7452
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/1e6d72de0587d24c20fefc142591d8b47c363f89
+
+Bug 1578073 - Move android video capture code to dom/media/systemservices; r=jib
+
+Although originally part of webrtc.org, this code has subsequently been
+removed by upstream. Moving it to under dom/media should make it clearer that
+this is code that we are maintaining and simplify future upstream merges.
+
+Differential Revision: https://phabricator.services.mozilla.com/D61850
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/46c21affcbc14da30abb03b10573076aee6341c0
+
+Bug 1652552 - Remove remaining application capture code; r=jib
+
+Differential Revision: https://phabricator.services.mozilla.com/D83491
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/26eee332d844bd3f9479d1db92d2f000255664c1
+
+Bug 1846358 - revert mozilla-specific b2g related change in generic_decoder.cc kDecoderFrameMemoryLength. r=ng,webrtc-reviewers
+
+Differential Revision: https://phabricator.services.mozilla.com/D184983
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/478632b0cc4982639276a4a817165ac49ca8fb6e
+
+Bug 1846875 - remove redundant divide by zero protection in libwebrtc's merge.cc r=ng,webrtc-reviewers
+
+Differential Revision: https://phabricator.services.mozilla.com/D185236
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/a777f43c4d9cabe80f2fc3aea6bf95c7e3e9c4c1
+
+Bug 1846590 - move SetCaptureAndroidVM declaration from libwebrtc video_capture.h to our VideoEngine.cpp r=ng,webrtc-reviewers
+
+Differential Revision: https://phabricator.services.mozilla.com/D185076
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/0b9ef0f6bf04851bcc8bbe9beb88362eb1659a50
+
+Bug 1847466 - remove work-around for missing v4l2_capability::bus_info in v412loopback driver. r=jesup,pehrsons,webrtc-reviewers
+
+Added in Bug 861280, but should no longer be necessary after fixes in upstream
+v4l2loopback commits (fc4c173, fe03e4f, c3b1eaa).
+https://github.com/umlaeute/v4l2loopback/commit/fc4c173
+https://github.com/umlaeute/v4l2loopback/commit/fe03e4f
+https://github.com/umlaeute/v4l2loopback/commit/c3b1eaa
+
+Differential Revision: https://phabricator.services.mozilla.com/D185518
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/d054dde5c370feb3ee9c9f9159b512333b3554ac
+
+Bug 1846636 - restore ScreenCapturerWinMagnifier destructor to upstream version. r=ng,webrtc-reviewers
+
+Differential Revision: https://phabricator.services.mozilla.com/D185109
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/b50be8861ca0a4f9e6777e9333a9e483bdb57bf9
+
+Bug 1376873 - Fix up logging in WebrtcLog.cpp; r=ng
+
+The webrtc::Trace code is removed by this update. We already had support for
+LOG (now RTC_LOG) in WebrtcLog.cpp. This removes the trace code from
+WebRtcLog.cpp and moves the aec logging code from webrtc::Trace to
+rtc::LogMessage.
+
+This also disables logging to stderr in rtc_base/logging.cc. We could disable
+it using the API, but that happens through peerconnection resulting in some
+logging occuring during getusermedia.
+
+The aec logs were testing with --disable-e10s. Rather than trying to
+work around sandboxing, I think it makes more sense to fix Bug 1404982 and
+store the logs in memory for retrieval from about:webrtc.
+
+Differential Revision: https://phabricator.services.mozilla.com/D7429
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/e84c60e2c9373f4d2dc24e769375a92c17c2a0ad
+
+Bug 1847818 - restore aec logging from about:webrtc. r=ng,webrtc-reviewers
+
+Differential Revision: https://phabricator.services.mozilla.com/D185709
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/a67a9e51d8b8597caa1511e2f3b7795e92b07068
+
+Bug 1535584 - Restore UpdateCodecFrameSize to vp9_impl.cc; r=bwc
+
+Differential Revision: https://phabricator.services.mozilla.com/D23713
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/0898f9cfe09273e1d86c38abdd576cdf273009f0
+
+Bug 1846850 - remove mozilla-added IsGUIThread asserts from libwebrtc. r=ng,webrtc-reviewers
+
+These were added in Bug 1060738 but no longer seem to add value based
+on crash stats.
+
+Differential Revision: https://phabricator.services.mozilla.com/D185222
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/5e6f94c1b7c4491bdab454e24dfdb93eb75f80ca
+
+Bug 1846858 - revert changes to libwebrtc's deprecated/session_info.cc since we don't build it. r=ng,webrtc-reviewers
+
+Differential Revision: https://phabricator.services.mozilla.com/D185224
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/4836114af07e38525d319b0a2f59f2fd618b7a3b
+
+Bug 1847257 - revert an unneccesary change in libwebrtc's window_capturer_x11.cc r=karlt,webrtc-reviewers
+
+This small change we've been carrying to when ProcessPendingXEvents is called
+in WindowCapturerLinux::Capture should not be necessary.
+
+Differential Revision: https://phabricator.services.mozilla.com/D185449
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/9633cb1dde33ecbab435012c4ae1456a4ae79a42
+
+Bug 1847984 - remove mozilla-specific null FILE* checks in apm_data_dumper.h r=ng,webrtc-reviewers
+
+Since upstream commit 4bc60452f7 ApmDataDumper::GetRawFile does a release
+assert if FILE* is null so our mozilla-specific mods to check for valid
+FILE pointers are no longer needed.
+
+Differential Revision: https://phabricator.services.mozilla.com/D185838
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/53ecaeda76c3613b90d3a1c3348f0d903a054821
+
+Bug 1848045 - removing mozilla output directory handling code from apm_data_dumper. r=ng,webrtc-reviewers
+
+Upstream added the capability to set the output directory in commit 4bc60452f7 so
+we can revert to using upstream's version instead of ours.
+
+Differential Revision: https://phabricator.services.mozilla.com/D185863
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/48217906ac982e129b5eedf07e90904396c31ed4
+
+Bug 1847833 - remove aec log output size limiting code from libwebrtc's apm_data_dumper. r=ng,webrtc-reviewers
+
+Differential Revision: https://phabricator.services.mozilla.com/D185930
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/7622e6dddeec583e5839b5432d436d85c356f6c3
+
+Bug 1847833 - aec_debug_size_, aec_debug_size(), set_aec_debug_size(uint32_t size) are no longer used. r=ng,webrtc-reviewers
+
+Differential Revision: https://phabricator.services.mozilla.com/D185931
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/525d71640bb7be400040131a5b1a16652c881a0f
+
+Bug 1850146 - remove unnecessary libwebrtc changes in jvm_android.cc. r?dbaker!
+
+After landing Bug 1826428 to remove jvm_android.cc from the build and
+giving time for that to simmer for a while with no known effects, we
+can remove our modifications.
+
+Differential Revision: https://phabricator.services.mozilla.com/D186855
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/fc01107426c3adebb169f19efba72a91be19f613
 ---
- api/rtp_parameters.cc                         |  24 +---
- api/rtp_parameters.h                          |  49 +++----
- api/video/video_source_interface.h            |  10 +-
- media/base/media_engine.cc                    |  14 +-
- media/base/video_adapter.cc                   |  73 +++++-----
- media/base/video_adapter.h                    |   8 +-
- media/base/video_adapter_unittest.cc          |  77 ++++++-----
- media/base/video_broadcaster.cc               |  31 +++--
- media/base/video_broadcaster_unittest.cc      |  39 +++---
- media/engine/webrtc_video_engine.cc           |  10 +-
- media/engine/webrtc_video_engine_unittest.cc  |  72 +++++-----
- ...er_connection_encodings_integrationtest.cc | 126 ++++++++----------
- video/config/encoder_stream_factory.cc        |  52 ++++----
- video/config/encoder_stream_factory.h         |   4 +-
- .../config/encoder_stream_factory_unittest.cc |  73 +++++-----
- video/config/video_encoder_config.cc          |   4 +-
- video/config/video_encoder_config.h           |  10 +-
- video/video_source_sink_controller.cc         |  12 +-
- video/video_source_sink_controller.h          |   9 +-
- .../video_source_sink_controller_unittest.cc  |  12 +-
- video/video_stream_encoder.cc                 |  38 +++---
- video/video_stream_encoder_unittest.cc        |  44 +++---
- 22 files changed, 358 insertions(+), 433 deletions(-)
+ api/rtp_headers.cc                            |   3 +-
+ api/rtp_headers.h                             |  17 +-
+ api/rtp_parameters.cc                         |   3 +-
+ call/BUILD.gn                                 |   4 +-
+ call/video_receive_stream.h                   |   2 +
+ modules/audio_coding/neteq/dtmf_buffer.cc     |   6 +-
+ modules/desktop_capture/desktop_capturer.h    |   1 +
+ .../desktop_capture/fake_desktop_capturer.cc  |   4 +-
+ .../linux/x11/mouse_cursor_monitor_x11.cc     |   4 +-
+ .../linux/x11/screen_capturer_x11.cc          |   2 +-
+ .../linux/x11/window_capturer_x11.cc          |   9 +
+ .../linux/x11/window_capturer_x11.h           |   4 +
+ .../desktop_capture/linux/x11/x_error_trap.cc |  68 ++++---
+ .../desktop_capture/linux/x11/x_error_trap.h  |  29 ++-
+ .../win/screen_capture_utils.cc               |   2 +-
+ modules/rtp_rtcp/source/rtcp_sender.cc        |   2 +-
+ .../rtp_rtcp/source/rtp_header_extensions.cc  |  39 ++++
+ .../rtp_rtcp/source/rtp_header_extensions.h   |  15 ++
+ modules/rtp_rtcp/source/rtp_packet.cc         |   4 +
+ .../rtp_rtcp/source/rtp_packet_unittest.cc    |  30 +++
+ modules/rtp_rtcp/source/rtp_rtcp_config.h     |   4 +
+ modules/rtp_rtcp/source/rtp_sender.cc         |   4 +
+ modules/video_capture/device_info_impl.cc     |   2 +-
+ modules/video_capture/device_info_impl.h      |   1 +
+ .../video_capture/linux/device_info_v4l2.cc   | 179 +++++++++++++++++-
+ .../video_capture/linux/device_info_v4l2.h    |  18 +-
+ modules/video_capture/video_capture.h         |  41 +++-
+ .../video_capture/video_capture_factory.cc    |   8 -
+ modules/video_capture/video_capture_impl.cc   |  34 +++-
+ modules/video_capture/video_capture_impl.h    |   6 +-
+ .../codecs/vp9/libvpx_vp9_encoder.cc          |  52 +++++
+ .../codecs/vp9/libvpx_vp9_encoder.h           |   4 +
+ rtc_base/BUILD.gn                             |   6 +
+ rtc_base/logging.cc                           |  21 +-
+ rtc_base/logging.h                            |   9 +
+ test/fuzzers/rtp_packet_fuzzer.cc             |   4 +
+ test/vcm_capturer.cc                          |   2 +-
+ webrtc.gni                                    |   2 +-
+ 38 files changed, 564 insertions(+), 81 deletions(-)
 
+diff --git a/api/rtp_headers.cc b/api/rtp_headers.cc
+index c272ccae06..0271714c44 100644
+--- a/api/rtp_headers.cc
++++ b/api/rtp_headers.cc
+@@ -35,7 +35,8 @@ RTPHeaderExtension::RTPHeaderExtension()
+       videoRotation(kVideoRotation_0),
+       hasVideoContentType(false),
+       videoContentType(VideoContentType::UNSPECIFIED),
+-      has_video_timing(false) {}
++      has_video_timing(false),
++      csrcAudioLevels() {}
+ 
+ RTPHeaderExtension::RTPHeaderExtension(const RTPHeaderExtension& other) =
+     default;
+diff --git a/api/rtp_headers.h b/api/rtp_headers.h
+index 6ba3292fca..5d3a731864 100644
+--- a/api/rtp_headers.h
++++ b/api/rtp_headers.h
+@@ -113,6 +113,19 @@ inline bool operator!=(const AbsoluteCaptureTime& lhs,
+   return !(lhs == rhs);
+ }
+ 
++enum { kRtpCsrcSize = 15 };  // RFC 3550 page 13
++
++// Audio level of CSRCs See:
++// https://tools.ietf.org/html/rfc6465
++struct CsrcAudioLevelList {
++  CsrcAudioLevelList() : numAudioLevels(0) { }
++  CsrcAudioLevelList(const CsrcAudioLevelList&) = default;
++  CsrcAudioLevelList& operator=(const CsrcAudioLevelList&) = default;
++  uint8_t numAudioLevels;
++  // arrOfAudioLevels has the same ordering as RTPHeader.arrOfCSRCs
++  uint8_t arrOfAudioLevels[kRtpCsrcSize];
++};
++
+ struct RTPHeaderExtension {
+   RTPHeaderExtension();
+   RTPHeaderExtension(const RTPHeaderExtension& other);
+@@ -171,12 +184,12 @@ struct RTPHeaderExtension {
+ 
+   std::optional<ColorSpace> color_space;
+ 
++  CsrcAudioLevelList csrcAudioLevels;
++
+  private:
+   std::optional<AudioLevel> audio_level_;
+ };
+ 
+-enum { kRtpCsrcSize = 15 };  // RFC 3550 page 13
+-
+ struct RTC_EXPORT RTPHeader {
+   RTPHeader();
+   RTPHeader(const RTPHeader& other);
 diff --git a/api/rtp_parameters.cc b/api/rtp_parameters.cc
-index 6b550d0fbf..178aeb8b66 100644
+index 178aeb8b66..8db74fde2d 100644
 --- a/api/rtp_parameters.cc
 +++ b/api/rtp_parameters.cc
-@@ -106,27 +106,9 @@ RtpRtxParameters::RtpRtxParameters(uint32_t ssrc) : ssrc(ssrc) {}
- RtpRtxParameters::RtpRtxParameters(const RtpRtxParameters& rhs) = default;
- RtpRtxParameters::~RtpRtxParameters() = default;
+@@ -174,7 +174,8 @@ bool RtpExtension::IsSupportedForAudio(absl::string_view uri) {
+          uri == webrtc::RtpExtension::kTransportSequenceNumberV2Uri ||
+          uri == webrtc::RtpExtension::kMidUri ||
+          uri == webrtc::RtpExtension::kRidUri ||
+-         uri == webrtc::RtpExtension::kRepairedRidUri;
++         uri == webrtc::RtpExtension::kRepairedRidUri ||
++         uri == webrtc::RtpExtension::kCsrcAudioLevelsUri;
+ }
  
--// TODO(https://crbug.com/webrtc/375048799): Use "= default" when
--// `requested_resolution` has been deleted
--RtpEncodingParameters::RtpEncodingParameters()
--    : requested_resolution(scale_resolution_down_to) {}
--RtpEncodingParameters::RtpEncodingParameters(const RtpEncodingParameters& rhs)
--    : ssrc(rhs.ssrc),
--      bitrate_priority(rhs.bitrate_priority),
--      network_priority(rhs.network_priority),
--      max_bitrate_bps(rhs.max_bitrate_bps),
--      min_bitrate_bps(rhs.min_bitrate_bps),
--      max_framerate(rhs.max_framerate),
--      num_temporal_layers(rhs.num_temporal_layers),
--      scale_resolution_down_by(rhs.scale_resolution_down_by),
--      scalability_mode(rhs.scalability_mode),
--      scale_resolution_down_to(rhs.scale_resolution_down_to),
--      requested_resolution(scale_resolution_down_to),
--      active(rhs.active),
--      rid(rhs.rid),
--      request_key_frame(rhs.request_key_frame),
--      adaptive_ptime(rhs.adaptive_ptime),
--      codec(rhs.codec) {}
-+RtpEncodingParameters::RtpEncodingParameters() = default;
-+RtpEncodingParameters::RtpEncodingParameters(const RtpEncodingParameters& rhs) =
-+    default;
- RtpEncodingParameters::~RtpEncodingParameters() = default;
- 
- RtpCodecParameters::RtpCodecParameters() = default;
-diff --git a/api/rtp_parameters.h b/api/rtp_parameters.h
-index b82e5b6745..ec2243dc85 100644
---- a/api/rtp_parameters.h
-+++ b/api/rtp_parameters.h
-@@ -497,22 +497,23 @@ struct RTC_EXPORT RtpEncodingParameters {
-   // https://w3c.github.io/webrtc-svc/#rtcrtpencodingparameters
-   std::optional<std::string> scalability_mode;
- 
--  // This is an alternative API to `scale_resolution_down_by` but expressed in
--  // absolute terms (max width and max height) as opposed to relative terms (a
--  // scaling factor that is relative to the input frame size).
-+  // Requested encode resolution.
-   //
--  // If both `scale_resolution_down_by` and `scale_resolution_down_to` are
--  // specified, the "scale by" value is ignored.
-+  // This field provides an alternative to `scale_resolution_down_by`
-+  // that is not dependent on the video source.
-   //
--  // See spec:
--  // https://w3c.github.io/webrtc-extensions/#dom-rtcrtpencodingparameters-scaleresolutiondownto
-+  // When setting requested_resolution it is not necessary to adapt the
-+  // video source using OnOutputFormatRequest, since the VideoStreamEncoder
-+  // will apply downscaling if necessary. requested_resolution will also be
-+  // propagated to the video source, this allows downscaling earlier in the
-+  // pipeline which can be beneficial if the source is consumed by multiple
-+  // encoders, but is not strictly necessary.
-   //
--  // This was previously known as "requested_resolution" in C++.
--  std::optional<Resolution> scale_resolution_down_to;
--  // Alternative name for `scale_resolution_down_to`.
--  // TODO(https://crbug.com/webrtc/375048799): Delete when downstream projects
--  // have migrated from `requested_resolution` to `scale_resolution_down_to`.
--  std::optional<Resolution>& requested_resolution;
-+  // The `requested_resolution` is subject to resource adaptation.
-+  //
-+  // It is an error to set both `requested_resolution` and
-+  // `scale_resolution_down_by`.
-+  std::optional<Resolution> requested_resolution;
- 
-   // For an RtpSender, set to true to cause this encoding to be encoded and
-   // sent, and false for it not to be encoded and sent. This allows control
-@@ -544,31 +545,11 @@ struct RTC_EXPORT RtpEncodingParameters {
-            scale_resolution_down_by == o.scale_resolution_down_by &&
-            active == o.active && rid == o.rid &&
-            adaptive_ptime == o.adaptive_ptime &&
--           scale_resolution_down_to == o.scale_resolution_down_to &&
--           codec == o.codec;
-+           requested_resolution == o.requested_resolution && codec == o.codec;
-   }
-   bool operator!=(const RtpEncodingParameters& o) const {
-     return !(*this == o);
-   }
--  // TODO(https://crbug.com/webrtc/375048799): Delete this operator overload
--  // when `requested_resolution` has been deleted in favor of auto generated op.
--  void operator=(const RtpEncodingParameters& o) {
--    ssrc = o.ssrc;
--    bitrate_priority = o.bitrate_priority;
--    network_priority = o.network_priority;
--    max_bitrate_bps = o.max_bitrate_bps;
--    min_bitrate_bps = o.min_bitrate_bps;
--    max_framerate = o.max_framerate;
--    num_temporal_layers = o.num_temporal_layers;
--    scale_resolution_down_by = o.scale_resolution_down_by;
--    scalability_mode = o.scalability_mode;
--    scale_resolution_down_to = o.scale_resolution_down_to;
--    active = o.active;
--    rid = o.rid;
--    request_key_frame = o.request_key_frame;
--    adaptive_ptime = o.adaptive_ptime;
--    codec = o.codec;
+ bool RtpExtension::IsSupportedForVideo(absl::string_view uri) {
+diff --git a/call/BUILD.gn b/call/BUILD.gn
+index ed33d2cc72..3eca59bb11 100644
+--- a/call/BUILD.gn
++++ b/call/BUILD.gn
+@@ -20,6 +20,7 @@ rtc_library("call_interfaces") {
+   sources = [
+     "audio_receive_stream.cc",
+     "audio_receive_stream.h",
++    "audio_send_stream.cc",
+     "audio_send_stream.h",
+     "audio_state.cc",
+     "audio_state.h",
+@@ -32,9 +33,6 @@ rtc_library("call_interfaces") {
+     "syncable.cc",
+     "syncable.h",
+   ]
+-  if (!build_with_mozilla) {
+-    sources += [ "audio_send_stream.cc" ]
 -  }
- };
  
- struct RTC_EXPORT RtpCodecParameters : public RtpCodec {
-diff --git a/api/video/video_source_interface.h b/api/video/video_source_interface.h
-index 1ef53a63bc..d85e56bd8c 100644
---- a/api/video/video_source_interface.h
-+++ b/api/video/video_source_interface.h
-@@ -83,11 +83,11 @@ struct RTC_EXPORT VideoSinkWants {
-   std::vector<FrameSize> resolutions;
+   deps = [
+     ":audio_sender_interface",
+diff --git a/call/video_receive_stream.h b/call/video_receive_stream.h
+index f13a006e1e..25bf070cb7 100644
+--- a/call/video_receive_stream.h
++++ b/call/video_receive_stream.h
+@@ -235,6 +235,8 @@ class VideoReceiveStreamInterface : public MediaReceiveStreamInterface {
+       // disabled.
+       KeyFrameReqMethod keyframe_method = KeyFrameReqMethod::kPliRtcp;
  
-   // This is the resolution requested by the user using RtpEncodingParameters.
--  std::optional<FrameSize> scale_resolution_down_to;
-+  std::optional<FrameSize> requested_resolution;
++      bool tmmbr = false;
++
+       // See LntfConfig for description.
+       LntfConfig lntf;
  
-   // `is_active` : Is this VideoSinkWants from an encoder that is encoding any
-   // layer. IF YES, it will affect how the VideoAdapter will choose to
--  // prioritize the OnOutputFormatRequest vs. scale_resolution_down_to. IF NO,
-+  // prioritize the OnOutputFormatRequest vs. requested_resolution. IF NO,
-   // VideoAdapter consider this VideoSinkWants as a passive listener (e.g a
-   // VideoRenderer or a VideoEncoder that is not currently actively encoding).
-   bool is_active = false;
-@@ -96,11 +96,11 @@ struct RTC_EXPORT VideoSinkWants {
-   // that aggregates several VideoSinkWants (and sends them to
-   // AdaptedVideoTrackSource).
-   struct Aggregates {
--    // `any_active_without_scale_resolution_down_to` is set by VideoBroadcaster
-+    // `active_without_requested_resolution` is set by VideoBroadcaster
-     // when aggregating sink wants if there exists any sink (encoder) that is
--    // active but has not set the `scale_resolution_down_to`, i.e is relying on
-+    // active but has not set the `requested_resolution`, i.e is relying on
-     // OnOutputFormatRequest to handle encode resolution.
--    bool any_active_without_scale_resolution_down_to = false;
-+    bool any_active_without_requested_resolution = false;
-   };
-   std::optional<Aggregates> aggregates;
- };
-diff --git a/media/base/media_engine.cc b/media/base/media_engine.cc
-index 0ce26ff9b6..0b4b9302f5 100644
---- a/media/base/media_engine.cc
-+++ b/media/base/media_engine.cc
-@@ -160,7 +160,7 @@ webrtc::RTCError CheckRtpParametersValues(
-     const webrtc::FieldTrialsView& field_trials) {
-   using webrtc::RTCErrorType;
+diff --git a/modules/audio_coding/neteq/dtmf_buffer.cc b/modules/audio_coding/neteq/dtmf_buffer.cc
+index 9f78aca6e2..115bfcf97b 100644
+--- a/modules/audio_coding/neteq/dtmf_buffer.cc
++++ b/modules/audio_coding/neteq/dtmf_buffer.cc
+@@ -193,7 +193,11 @@ bool DtmfBuffer::Empty() const {
+ }
  
--  bool has_scale_resolution_down_to = false;
-+  bool has_requested_resolution = false;
-   for (size_t i = 0; i < rtp_parameters.encodings.size(); ++i) {
-     if (rtp_parameters.encodings[i].bitrate_priority <= 0) {
-       LOG_AND_RETURN_ERROR(RTCErrorType::INVALID_RANGE,
-@@ -199,10 +199,10 @@ webrtc::RTCError CheckRtpParametersValues(
-       }
+ int DtmfBuffer::SetSampleRate(int fs_hz) {
+-  if (fs_hz != 8000 && fs_hz != 16000 && fs_hz != 32000 && fs_hz != 48000) {
++  if (fs_hz != 8000 &&
++      fs_hz != 16000 &&
++      fs_hz != 32000 &&
++      fs_hz != 44100 &&
++      fs_hz != 48000) {
+     return kInvalidSampleRate;
+   }
+   max_extrapolation_samples_ = 7 * fs_hz / 100;
+diff --git a/modules/desktop_capture/desktop_capturer.h b/modules/desktop_capture/desktop_capturer.h
+index 9c7ecc78f4..2c9c419bcd 100644
+--- a/modules/desktop_capture/desktop_capturer.h
++++ b/modules/desktop_capture/desktop_capturer.h
+@@ -82,6 +82,7 @@ class RTC_EXPORT DesktopCapturer {
+   struct Source {
+     // The unique id to represent a Source of current DesktopCapturer.
+     SourceId id;
++    pid_t pid;
+ 
+     // Title of the window or screen in UTF-8 encoding, maybe empty. This field
+     // should not be used to identify a source.
+diff --git a/modules/desktop_capture/fake_desktop_capturer.cc b/modules/desktop_capture/fake_desktop_capturer.cc
+index f9d9dbd2c4..67149bfcb9 100644
+--- a/modules/desktop_capture/fake_desktop_capturer.cc
++++ b/modules/desktop_capture/fake_desktop_capturer.cc
+@@ -72,8 +72,8 @@ void FakeDesktopCapturer::SetSharedMemoryFactory(
+ }
+ 
+ bool FakeDesktopCapturer::GetSourceList(DesktopCapturer::SourceList* sources) {
+-  sources->push_back({kWindowId, "A-Fake-DesktopCapturer-Window"});
+-  sources->push_back({kScreenId});
++  sources->push_back({kWindowId, 1, "A-Fake-DesktopCapturer-Window"});
++  sources->push_back({kScreenId, 1});
+   return true;
+ }
+ 
+diff --git a/modules/desktop_capture/linux/x11/mouse_cursor_monitor_x11.cc b/modules/desktop_capture/linux/x11/mouse_cursor_monitor_x11.cc
+index d9c7635c1d..d4b85af6bd 100644
+--- a/modules/desktop_capture/linux/x11/mouse_cursor_monitor_x11.cc
++++ b/modules/desktop_capture/linux/x11/mouse_cursor_monitor_x11.cc
+@@ -38,6 +38,7 @@ namespace {
+ // searches up the list of the windows to find the root child that corresponds
+ // to `window`.
+ Window GetTopLevelWindow(Display* display, Window window) {
++  webrtc::XErrorTrap error_trap(display);
+   while (true) {
+     // If the window is in WithdrawnState then look at all of its children.
+     ::Window root, parent;
+@@ -104,7 +105,7 @@ MouseCursorMonitorX11::~MouseCursorMonitorX11() {
+ }
+ 
+ void MouseCursorMonitorX11::Init(Callback* callback, Mode mode) {
+-  // Init can be called only once per instance of MouseCursorMonitor.
++  // Init can be called only if not started
+   RTC_DCHECK(!callback_);
+   RTC_DCHECK(callback);
+ 
+@@ -116,6 +117,7 @@ void MouseCursorMonitorX11::Init(Callback* callback, Mode mode) {
+ 
+   if (have_xfixes_) {
+     // Register for changes to the cursor shape.
++    XErrorTrap error_trap(display());
+     XFixesSelectCursorInput(display(), window_, XFixesDisplayCursorNotifyMask);
+     x_display_->AddEventHandler(xfixes_event_base_ + XFixesCursorNotify, this);
+ 
+diff --git a/modules/desktop_capture/linux/x11/screen_capturer_x11.cc b/modules/desktop_capture/linux/x11/screen_capturer_x11.cc
+index d5dcd7af86..fa6334e8ba 100644
+--- a/modules/desktop_capture/linux/x11/screen_capturer_x11.cc
++++ b/modules/desktop_capture/linux/x11/screen_capturer_x11.cc
+@@ -302,7 +302,7 @@ bool ScreenCapturerX11::GetSourceList(SourceList* sources) {
+     char* monitor_title = XGetAtomName(display(), m.name);
+ 
+     // Note name is an X11 Atom used to id the monitor.
+-    sources->push_back({static_cast<SourceId>(m.name), monitor_title});
++    sources->push_back({static_cast<SourceId>(m.name), 0, monitor_title});
+     XFree(monitor_title);
+   }
+ 
+diff --git a/modules/desktop_capture/linux/x11/window_capturer_x11.cc b/modules/desktop_capture/linux/x11/window_capturer_x11.cc
+index b55f7e8fa9..2b1392ced0 100644
+--- a/modules/desktop_capture/linux/x11/window_capturer_x11.cc
++++ b/modules/desktop_capture/linux/x11/window_capturer_x11.cc
+@@ -57,6 +57,7 @@ bool WindowCapturerX11::GetSourceList(SourceList* sources) {
+   return GetWindowList(&atom_cache_, [this, sources](::Window window) {
+     Source w;
+     w.id = window;
++    w.pid = (pid_t)GetWindowProcessID(window);
+     if (this->GetWindowTitle(window, &w.title)) {
+       sources->push_back(w);
      }
- 
--    if (rtp_parameters.encodings[i].scale_resolution_down_to.has_value()) {
--      has_scale_resolution_down_to = true;
--      if (rtp_parameters.encodings[i].scale_resolution_down_to->width <= 0 ||
--          rtp_parameters.encodings[i].scale_resolution_down_to->height <= 0) {
-+    if (rtp_parameters.encodings[i].requested_resolution.has_value()) {
-+      has_requested_resolution = true;
-+      if (rtp_parameters.encodings[i].requested_resolution->width <= 0 ||
-+          rtp_parameters.encodings[i].requested_resolution->height <= 0) {
-         LOG_AND_RETURN_ERROR(RTCErrorType::INVALID_MODIFICATION,
-                              "The resolution dimensions must be positive.");
-       }
-@@ -218,11 +218,11 @@ webrtc::RTCError CheckRtpParametersValues(
-     }
-   }
- 
--  if (has_scale_resolution_down_to &&
-+  if (has_requested_resolution &&
-       absl::c_any_of(rtp_parameters.encodings,
-                      [](const webrtc::RtpEncodingParameters& encoding) {
-                        return encoding.active &&
--                              !encoding.scale_resolution_down_to.has_value();
-+                              !encoding.requested_resolution.has_value();
-                      })) {
-     LOG_AND_RETURN_ERROR(RTCErrorType::INVALID_MODIFICATION,
-                          "If a resolution is specified on any encoding then "
-diff --git a/media/base/video_adapter.cc b/media/base/video_adapter.cc
-index 12ea800d41..22ce693cbe 100644
---- a/media/base/video_adapter.cc
-+++ b/media/base/video_adapter.cc
-@@ -244,30 +244,27 @@ bool VideoAdapter::AdaptFrameResolution(int in_width,
-   RTC_DCHECK_EQ(0, *out_height % resolution_alignment_);
- 
-   // Lastly, make the output size fit within the resolution restrictions as
--  // specified by `scale_resolution_down_to_`. This does not modify aspect ratio
--  // or cropping, only `out_width` and `out_height`.
--  if (scale_resolution_down_to_.has_value()) {
--    // Make frame and "scale to" have matching orientation.
--    webrtc::Resolution scale_resolution_down_to =
--        scale_resolution_down_to_.value();
--    if ((*out_width < *out_height) != (scale_resolution_down_to_->width <
--                                       scale_resolution_down_to_->height)) {
--      scale_resolution_down_to = {.width = scale_resolution_down_to_->height,
--                                  .height = scale_resolution_down_to_->width};
-+  // specified by `requested_resolution_`. This does not modify aspect ratio or
-+  // cropping, only `out_width` and `out_height`.
-+  if (requested_resolution_.has_value()) {
-+    // Make frame and requested resolution have matching orientation.
-+    webrtc::Resolution requested_resolution = requested_resolution_.value();
-+    if ((*out_width < *out_height) !=
-+        (requested_resolution_->width < requested_resolution_->height)) {
-+      requested_resolution = {.width = requested_resolution_->height,
-+                              .height = requested_resolution_->width};
-     }
-     // Downscale by smallest scaling factor, if necessary.
-     if (*out_width > 0 && *out_height > 0 &&
--        (scale_resolution_down_to.width < *out_width ||
--         scale_resolution_down_to.height < *out_height)) {
-+        (requested_resolution.width < *out_width ||
-+         requested_resolution.height < *out_height)) {
-       double scale_factor = std::min(
--          scale_resolution_down_to.width / static_cast<double>(*out_width),
--          scale_resolution_down_to.height / static_cast<double>(*out_height));
--      *out_width =
--          roundUp(std::round(*out_width * scale_factor), resolution_alignment_,
--                  scale_resolution_down_to.width);
--      *out_height =
--          roundUp(std::round(*out_height * scale_factor), resolution_alignment_,
--                  scale_resolution_down_to.height);
-+          requested_resolution.width / static_cast<double>(*out_width),
-+          requested_resolution.height / static_cast<double>(*out_height));
-+      *out_width = roundUp(std::round(*out_width * scale_factor),
-+                           resolution_alignment_, requested_resolution.width);
-+      *out_height = roundUp(std::round(*out_height * scale_factor),
-+                            resolution_alignment_, requested_resolution.height);
-       RTC_DCHECK_EQ(0, *out_width % resolution_alignment_);
-       RTC_DCHECK_EQ(0, *out_height % resolution_alignment_);
-     }
-@@ -349,7 +346,7 @@ void VideoAdapter::OnOutputFormatRequest(
-   if (stashed_output_format_request_) {
-     // Save the output format request for later use in case the encoder making
-     // this call would become active, because currently all active encoders use
--    // scale_resolution_down_to instead.
-+    // requested_resolution instead.
-     stashed_output_format_request_ = request;
-     RTC_LOG(LS_INFO) << "Stashing OnOutputFormatRequest: "
-                      << stashed_output_format_request_->ToString();
-@@ -373,22 +370,21 @@ void VideoAdapter::OnSinkWants(const rtc::VideoSinkWants& sink_wants) {
-       source_resolution_alignment_, sink_wants.resolution_alignment);
-   // Convert from std::optional<rtc::VideoSinkWants::FrameSize> to
-   // std::optional<webrtc::Resolution>. Both are {int,int}.
--  scale_resolution_down_to_ = std::nullopt;
--  if (sink_wants.scale_resolution_down_to.has_value()) {
--    scale_resolution_down_to_ = {
--        .width = sink_wants.scale_resolution_down_to->width,
--        .height = sink_wants.scale_resolution_down_to->height};
-+  requested_resolution_ = std::nullopt;
-+  if (sink_wants.requested_resolution.has_value()) {
-+    requested_resolution_ = {.width = sink_wants.requested_resolution->width,
-+                             .height = sink_wants.requested_resolution->height};
-   }
- 
--  // If scale_resolution_down_to is used, and there are no active encoders
--  // that are NOT using scale_resolution_down_to (aka newapi), then override
--  // calls to OnOutputFormatRequest and use values from scale_resolution_down_to
-+  // If requested_resolution is used, and there are no active encoders
-+  // that are NOT using requested_resolution (aka newapi), then override
-+  // calls to OnOutputFormatRequest and use values from requested_resolution
-   // instead (combined with qualityscaling based on pixel counts above).
--  if (!sink_wants.scale_resolution_down_to) {
-+  if (!sink_wants.requested_resolution) {
-     if (stashed_output_format_request_) {
-       // because current active_output_format_request is based on
--      // scale_resolution_down_to logic, while current encoder(s) doesn't want
--      // that, we have to restore the stashed request.
-+      // requested_resolution logic, while current encoder(s) doesn't want that,
-+      // we have to restore the stashed request.
-       RTC_LOG(LS_INFO) << "Unstashing OnOutputFormatRequest: "
-                        << stashed_output_format_request_->ToString();
-       output_format_request_ = *stashed_output_format_request_;
-@@ -397,15 +393,14 @@ void VideoAdapter::OnSinkWants(const rtc::VideoSinkWants& sink_wants) {
-     return;
-   }
- 
--  // The code below is only needed when `scale_resolution_down_to` is signalled
--  // back to the video source which only happens if
--  // `VideoStreamEncoderSettings::use_standard_scale_resolution_down_to` is
--  // false.
-+  // The code below is only needed when `requested_resolution` is signalled back
-+  // to the video source which only happens if
-+  // `VideoStreamEncoderSettings::use_standard_requested_resolution` is false.
-   // TODO(https://crbug.com/webrtc/366284861): Delete the code below as part of
-   // deleting this flag and only supporting the standard behavior.
- 
-   if (sink_wants.aggregates.has_value() &&
--      sink_wants.aggregates->any_active_without_scale_resolution_down_to) {
-+      sink_wants.aggregates->any_active_without_requested_resolution) {
-     return;
-   }
- 
-@@ -418,8 +413,8 @@ void VideoAdapter::OnSinkWants(const rtc::VideoSinkWants& sink_wants) {
-                      << stashed_output_format_request_->ToString();
-   }
- 
--  // Clear the output format request, `scale_resolution_down_to_` will be
--  // applied instead which happens inside AdaptFrameResolution().
-+  // Clear the output format request. Requested resolution will be applied
-+  // instead which happens inside AdaptFrameResolution().
-   output_format_request_ = {};
+@@ -237,6 +238,14 @@ bool WindowCapturerX11::GetWindowTitle(::Window window, std::string* title) {
+   return result;
  }
  
-diff --git a/media/base/video_adapter.h b/media/base/video_adapter.h
-index 8628cd944a..4cc4a38cfb 100644
---- a/media/base/video_adapter.h
-+++ b/media/base/video_adapter.h
-@@ -149,14 +149,14 @@ class RTC_EXPORT VideoAdapter {
-   int resolution_request_target_pixel_count_ RTC_GUARDED_BY(mutex_);
-   int resolution_request_max_pixel_count_ RTC_GUARDED_BY(mutex_);
-   int max_framerate_request_ RTC_GUARDED_BY(mutex_);
--  std::optional<webrtc::Resolution> scale_resolution_down_to_
-+  std::optional<webrtc::Resolution> requested_resolution_
-       RTC_GUARDED_BY(mutex_);
++int WindowCapturerX11::GetWindowProcessID(::Window window) {
++  // Get _NET_WM_PID property of the window.
++  Atom process_atom = XInternAtom(display(), "_NET_WM_PID", True);
++  XWindowProperty<uint32_t> process_id(display(), window, process_atom);
++
++  return process_id.is_valid() ? *process_id.data() : 0;
++}
++
+ // static
+ std::unique_ptr<DesktopCapturer> WindowCapturerX11::CreateRawWindowCapturer(
+     const DesktopCaptureOptions& options) {
+diff --git a/modules/desktop_capture/linux/x11/window_capturer_x11.h b/modules/desktop_capture/linux/x11/window_capturer_x11.h
+index ac591c272e..cfd29eca66 100644
+--- a/modules/desktop_capture/linux/x11/window_capturer_x11.h
++++ b/modules/desktop_capture/linux/x11/window_capturer_x11.h
+@@ -22,6 +22,7 @@
+ #include "modules/desktop_capture/desktop_capturer.h"
+ #include "modules/desktop_capture/desktop_geometry.h"
+ #include "modules/desktop_capture/linux/x11/shared_x_display.h"
++#include "modules/desktop_capture/linux/x11/x_window_property.h"
+ #include "modules/desktop_capture/linux/x11/window_finder_x11.h"
+ #include "modules/desktop_capture/linux/x11/x_atom_cache.h"
+ #include "modules/desktop_capture/linux/x11/x_server_pixel_buffer.h"
+@@ -57,6 +58,9 @@ class WindowCapturerX11 : public DesktopCapturer,
+   // Returns window title for the specified X `window`.
+   bool GetWindowTitle(::Window window, std::string* title);
  
-   // Stashed OutputFormatRequest that is used to save value of
-   // OnOutputFormatRequest in case all active encoders are using
--  // scale_resolution_down_to. I.e when all active encoders are using
--  // scale_resolution_down_to, the call to OnOutputFormatRequest is ignored
--  // and the value from scale_resolution_down_to is used instead (to scale/crop
-+  // requested_resolution. I.e when all active encoders are using
-+  // requested_resolution, the call to OnOutputFormatRequest is ignored
-+  // and the value from requested_resolution is used instead (to scale/crop
-   // frame). This allows for an application to only use
-   // RtpEncodingParameters::request_resolution and get the same behavior as if
-   // it had used VideoAdapter::OnOutputFormatRequest.
-diff --git a/media/base/video_adapter_unittest.cc b/media/base/video_adapter_unittest.cc
-index ec3658bc68..98dd5b9b27 100644
---- a/media/base/video_adapter_unittest.cc
-+++ b/media/base/video_adapter_unittest.cc
-@@ -47,24 +47,24 @@ rtc::VideoSinkWants BuildSinkWants(std::optional<int> target_pixel_count,
-   wants.resolution_alignment = sink_alignment;
-   wants.is_active = true;
-   wants.aggregates.emplace(rtc::VideoSinkWants::Aggregates());
--  wants.aggregates->any_active_without_scale_resolution_down_to = false;
-+  wants.aggregates->any_active_without_requested_resolution = false;
-   return wants;
++  // Returns the id of the owning process.
++  int GetWindowProcessID(::Window window);
++
+   Callback* callback_ = nullptr;
+ 
+   rtc::scoped_refptr<SharedXDisplay> x_display_;
+diff --git a/modules/desktop_capture/linux/x11/x_error_trap.cc b/modules/desktop_capture/linux/x11/x_error_trap.cc
+index 24c2065111..3314dd286c 100644
+--- a/modules/desktop_capture/linux/x11/x_error_trap.cc
++++ b/modules/desktop_capture/linux/x11/x_error_trap.cc
+@@ -12,48 +12,58 @@
+ 
+ #include <stddef.h>
+ 
+-#include <atomic>
++#include <limits>
+ 
+ #include "rtc_base/checks.h"
+ 
+-namespace webrtc {
+-
+-namespace {
+-
+-static int g_last_xserver_error_code = 0;
+-static std::atomic<Display*> g_display_for_error_handler = nullptr;
+ 
+-Mutex* AcquireMutex() {
+-  static Mutex* mutex = new Mutex();
+-  return mutex;
+-}
++namespace webrtc {
+ 
+-int XServerErrorHandler(Display* display, XErrorEvent* error_event) {
+-  RTC_DCHECK_EQ(display, g_display_for_error_handler.load());
+-  g_last_xserver_error_code = error_event->error_code;
+-  return 0;
++Bool XErrorTrap::XServerErrorHandler(Display* display, xReply* rep,
++                                     char* /* buf */, int /* len */,
++                                     XPointer data) {
++  XErrorTrap* self = reinterpret_cast<XErrorTrap*>(data);
++  if (rep->generic.type != X_Error ||
++      // Overflow-safe last_request_read <= last_ignored_request_ for skipping
++      // async replies from requests before XErrorTrap was created.
++      self->last_ignored_request_ - display->last_request_read <
++      std::numeric_limits<unsigned long>::max() >> 1)
++    return False;
++  self->last_xserver_error_code_ = rep->error.errorCode;
++  return True;
  }
  
- rtc::VideoSinkWants BuildSinkWants(
--    std::optional<webrtc::Resolution> scale_resolution_down_to,
--    bool any_active_without_scale_resolution_down_to) {
-+    std::optional<webrtc::Resolution> requested_resolution,
-+    bool any_active_without_requested_resolution) {
-   rtc::VideoSinkWants wants;
-   wants.max_framerate_fps = kDefaultFps;
-   wants.resolution_alignment = 1;
-   wants.is_active = true;
--  if (scale_resolution_down_to) {
--    wants.scale_resolution_down_to.emplace(rtc::VideoSinkWants::FrameSize(
--        scale_resolution_down_to->width, scale_resolution_down_to->height));
-+  if (requested_resolution) {
-+    wants.requested_resolution.emplace(rtc::VideoSinkWants::FrameSize(
-+        requested_resolution->width, requested_resolution->height));
-   }
-   wants.aggregates.emplace(rtc::VideoSinkWants::Aggregates());
--  wants.aggregates->any_active_without_scale_resolution_down_to =
--      any_active_without_scale_resolution_down_to;
-+  wants.aggregates->any_active_without_requested_resolution =
-+      any_active_without_requested_resolution;
-   return wants;
+-}  // namespace
+-
+-XErrorTrap::XErrorTrap(Display* display) : mutex_lock_(AcquireMutex()) {
+-  // We don't expect this class to be used in a nested fashion so therefore
+-  // g_display_for_error_handler should never be valid here.
+-  RTC_DCHECK(!g_display_for_error_handler.load());
+-  RTC_DCHECK(display);
+-  g_display_for_error_handler.store(display);
+-  g_last_xserver_error_code = 0;
+-  original_error_handler_ = XSetErrorHandler(&XServerErrorHandler);
++XErrorTrap::XErrorTrap(Display* display)
++    : display_(display),
++      last_xserver_error_code_(0),
++      enabled_(true) {
++  // Use async_handlers instead of XSetErrorHandler().  async_handlers can
++  // remain in place and then be safely removed at the right time even if a
++  // handler change happens concurrently on another thread.  async_handlers
++  // are processed first and so can prevent errors reaching the global
++  // XSetErrorHandler handler.  They also will not see errors from or affect
++  // handling of errors on other Displays, which may be processed on other
++  // threads.
++  LockDisplay(display);
++  async_handler_.next = display->async_handlers;
++  async_handler_.handler = XServerErrorHandler;
++  async_handler_.data = reinterpret_cast<XPointer>(this);
++  display->async_handlers = &async_handler_;
++  last_ignored_request_ = display->request;
++  UnlockDisplay(display);
  }
  
-@@ -1202,15 +1202,14 @@ TEST_P(VideoAdapterTest, AdaptResolutionWithSinkAlignment) {
+ int XErrorTrap::GetLastErrorAndDisable() {
+-  g_display_for_error_handler.store(nullptr);
+-  XSetErrorHandler(original_error_handler_);
+-  return g_last_xserver_error_code;
++  assert(enabled_);
++  enabled_ = false;
++  LockDisplay(display_);
++  DeqAsyncHandler(display_, &async_handler_);
++  UnlockDisplay(display_);
++  return last_xserver_error_code_;
  }
  
- // Verify the cases the OnOutputFormatRequest is ignored and
--// scale_resolution_down_to is used instead.
--TEST_P(VideoAdapterTest,
--       UseScaleResolutionDownToInsteadOfOnOutputFormatRequest) {
-+// requested_resolution is used instead.
-+TEST_P(VideoAdapterTest, UseRequestedResolutionInsteadOfOnOutputFormatRequest) {
-   {
-     // Both new and old API active => Use OnOutputFormatRequest
-     OnOutputFormatRequest(640, 360, kDefaultFps);
--    adapter_.OnSinkWants(BuildSinkWants(
--        Resolution{.width = 960, .height = 540},
--        /* any_active_without_scale_resolution_down_to= */ true));
-+    adapter_.OnSinkWants(
-+        BuildSinkWants(Resolution{.width = 960, .height = 540},
-+                       /* any_active_without_requested_resolution= */ true));
- 
-     EXPECT_THAT(
-         AdaptFrameResolution(/* input frame */ {.width = 1280, .height = 720})
-@@ -1219,11 +1218,11 @@ TEST_P(VideoAdapterTest,
-   }
-   {
-     // New API active, old API inactive, ignore OnOutputFormatRequest and use
--    // scale_resolution_down_to.
-+    // requested_resolution.
-     OnOutputFormatRequest(640, 360, kDefaultFps);
--    adapter_.OnSinkWants(BuildSinkWants(
--        Resolution{.width = 960, .height = 540},
--        /* any_active_without_scale_resolution_down_to= */ false));
-+    adapter_.OnSinkWants(
-+        BuildSinkWants(Resolution{.width = 960, .height = 540},
-+                       /* any_active_without_requested_resolution= */ false));
- 
-     EXPECT_THAT(
-         AdaptFrameResolution(/* input frame */ {.width = 1280, .height = 720})
-@@ -1234,9 +1233,9 @@ TEST_P(VideoAdapterTest,
-   {
-     // New API inactive, old API inactive, use OnOutputFormatRequest.
-     OnOutputFormatRequest(640, 360, kDefaultFps);
--    adapter_.OnSinkWants(BuildSinkWants(
--        std::nullopt,
--        /* any_active_without_scale_resolution_down_to= */ false));
-+    adapter_.OnSinkWants(
-+        BuildSinkWants(std::nullopt,
-+                       /* any_active_without_requested_resolution= */ false));
- 
-     EXPECT_THAT(
-         AdaptFrameResolution(/* input frame */ {.width = 1280, .height = 720})
-@@ -1247,9 +1246,9 @@ TEST_P(VideoAdapterTest,
-   {
-     // New API active, old API inactive, remember OnOutputFormatRequest.
-     OnOutputFormatRequest(640, 360, kDefaultFps);
--    adapter_.OnSinkWants(BuildSinkWants(
--        Resolution{.width = 960, .height = 540},
--        /* any_active_without_scale_resolution_down_to= */ false));
-+    adapter_.OnSinkWants(
-+        BuildSinkWants(Resolution{.width = 960, .height = 540},
-+                       /* any_active_without_requested_resolution= */ false));
- 
-     EXPECT_THAT(
-         AdaptFrameResolution(/* input frame */ {.width = 1280, .height = 720})
-@@ -1257,7 +1256,7 @@ TEST_P(VideoAdapterTest,
-         Eq(Resolution{.width = 960, .height = 540}));
- 
-     // This is ignored since there is not any active NOT using
--    // scale_resolution_down_to.
-+    // requested_resolution.
-     OnOutputFormatRequest(320, 180, kDefaultFps);
- 
-     EXPECT_THAT(
-@@ -1266,9 +1265,9 @@ TEST_P(VideoAdapterTest,
-         Eq(Resolution{.width = 960, .height = 540}));
- 
-     // Disable new API => fallback to last OnOutputFormatRequest.
--    adapter_.OnSinkWants(BuildSinkWants(
--        std::nullopt,
--        /* any_active_without_scale_resolution_down_to= */ false));
-+    adapter_.OnSinkWants(
-+        BuildSinkWants(std::nullopt,
-+                       /* any_active_without_requested_resolution= */ false));
- 
-     EXPECT_THAT(
-         AdaptFrameResolution(/* input frame */ {.width = 1280, .height = 720})
-@@ -1277,12 +1276,12 @@ TEST_P(VideoAdapterTest,
-   }
+ XErrorTrap::~XErrorTrap() {
+-  if (g_display_for_error_handler.load() != nullptr)
++  if (enabled_)
+     GetLastErrorAndDisable();
  }
  
--TEST_P(VideoAdapterTest, ScaleResolutionDownToIsOrientationAgnostic) {
-+TEST_P(VideoAdapterTest, RequestedResolutionIsOrientationAgnostic) {
-   // Request 1280x720 when frame is 720x1280.
-   {
--    adapter_.OnSinkWants(BuildSinkWants(
--        Resolution{.width = 1280, .height = 720},
--        /* any_active_without_scale_resolution_down_to= */ false));
-+    adapter_.OnSinkWants(
-+        BuildSinkWants(Resolution{.width = 1280, .height = 720},
-+                       /* any_active_without_requested_resolution= */ false));
- 
-     EXPECT_THAT(
-         AdaptFrameResolution(/* input frame */ {.width = 720, .height = 1280})
-@@ -1291,9 +1290,9 @@ TEST_P(VideoAdapterTest, ScaleResolutionDownToIsOrientationAgnostic) {
-   }
-   // Request 720x1280 when frame is 1280x720.
-   {
--    adapter_.OnSinkWants(BuildSinkWants(
--        Resolution{.width = 720, .height = 1280},
--        /* any_active_without_scale_resolution_down_to= */ false));
-+    adapter_.OnSinkWants(
-+        BuildSinkWants(Resolution{.width = 720, .height = 1280},
-+                       /* any_active_without_requested_resolution= */ false));
- 
-     EXPECT_THAT(
-         AdaptFrameResolution(/* input frame */ {.width = 1280, .height = 720})
-@@ -1302,11 +1301,11 @@ TEST_P(VideoAdapterTest, ScaleResolutionDownToIsOrientationAgnostic) {
-   }
- }
- 
--TEST_P(VideoAdapterTest, ScaleResolutionDownToMaintainsAspectRatio) {
-+TEST_P(VideoAdapterTest, RequestedResolutionMaintainsAspectRatio) {
-   // Request 720x720.
-   adapter_.OnSinkWants(
-       BuildSinkWants(Resolution{.width = 720, .height = 720},
--                     /* any_active_without_scale_resolution_down_to= */ false));
-+                     /* any_active_without_requested_resolution= */ false));
- 
-   // A 1280x720 frame restricted to 720x720 produces 720x405.
-   EXPECT_TRUE(adapter_.AdaptFrameResolution(1280, 720, /*in_timestamp_ns=*/0,
-@@ -1367,11 +1366,11 @@ TEST_P(VideoAdapterWithSourceAlignmentTest, AdaptResolutionWithSinkAlignment) {
- }
- 
- TEST_P(VideoAdapterWithSourceAlignmentTest,
--       ScaleResolutionDownToMaintainsAspectRatioWithAlignment) {
-+       RequestedResolutionMaintainsAspectRatioWithAlignment) {
-   // Request 720x720.
-   adapter_.OnSinkWants(
-       BuildSinkWants(Resolution{.width = 720, .height = 720},
--                     /* any_active_without_scale_resolution_down_to= */ false));
-+                     /* any_active_without_requested_resolution= */ false));
- 
-   // A 1280x720 frame restricted to 720x720 produces 720x405 but this is not a
-   // multiple of `kSourceResolutionAlignment` (= 7), the rounded up multiple of
-diff --git a/media/base/video_broadcaster.cc b/media/base/video_broadcaster.cc
-index 712957bd25..b34b8dbb6b 100644
---- a/media/base/video_broadcaster.cc
-+++ b/media/base/video_broadcaster.cc
-@@ -131,21 +131,20 @@ void VideoBroadcaster::UpdateWants() {
-   // "ignore" encoders that are not active. But that would
-   // probably require a controlled roll out with a field trials?
-   // To play it safe, only ignore inactive encoders is there is an
--  // active encoder using the new api (scale_resolution_down_to),
-+  // active encoder using the new api (requested_resolution),
-   // this means that there is only a behavioural change when using new
-   // api.
-   bool ignore_inactive_encoders_old_api = false;
-   for (auto& sink : sink_pairs()) {
--    if (sink.wants.is_active &&
--        sink.wants.scale_resolution_down_to.has_value()) {
-+    if (sink.wants.is_active && sink.wants.requested_resolution.has_value()) {
-       ignore_inactive_encoders_old_api = true;
-       break;
-     }
-   }
- 
-   for (auto& sink : sink_pairs()) {
--    if (!sink.wants.is_active && (sink.wants.scale_resolution_down_to ||
--                                  ignore_inactive_encoders_old_api)) {
-+    if (!sink.wants.is_active &&
-+        (sink.wants.requested_resolution || ignore_inactive_encoders_old_api)) {
-       continue;
-     }
-     // wants.rotation_applied == ANY(sink.wants.rotation_applied)
-@@ -172,21 +171,21 @@ void VideoBroadcaster::UpdateWants() {
-     wants.resolution_alignment = cricket::LeastCommonMultiple(
-         wants.resolution_alignment, sink.wants.resolution_alignment);
- 
--    // Pick MAX(scale_resolution_down_to) since the actual can be downscaled
-+    // Pick MAX(requested_resolution) since the actual can be downscaled
-     // in encoder instead.
--    if (sink.wants.scale_resolution_down_to) {
--      if (!wants.scale_resolution_down_to) {
--        wants.scale_resolution_down_to = sink.wants.scale_resolution_down_to;
-+    if (sink.wants.requested_resolution) {
-+      if (!wants.requested_resolution) {
-+        wants.requested_resolution = sink.wants.requested_resolution;
-       } else {
--        wants.scale_resolution_down_to->width =
--            std::max(wants.scale_resolution_down_to->width,
--                     sink.wants.scale_resolution_down_to->width);
--        wants.scale_resolution_down_to->height =
--            std::max(wants.scale_resolution_down_to->height,
--                     sink.wants.scale_resolution_down_to->height);
-+        wants.requested_resolution->width =
-+            std::max(wants.requested_resolution->width,
-+                     sink.wants.requested_resolution->width);
-+        wants.requested_resolution->height =
-+            std::max(wants.requested_resolution->height,
-+                     sink.wants.requested_resolution->height);
-       }
-     } else if (sink.wants.is_active) {
--      wants.aggregates->any_active_without_scale_resolution_down_to = true;
-+      wants.aggregates->any_active_without_requested_resolution = true;
-     }
- 
-     wants.is_active |= sink.wants.is_active;
-diff --git a/media/base/video_broadcaster_unittest.cc b/media/base/video_broadcaster_unittest.cc
-index b4e605ff7f..7ab122d64b 100644
---- a/media/base/video_broadcaster_unittest.cc
-+++ b/media/base/video_broadcaster_unittest.cc
-@@ -332,26 +332,26 @@ TEST(VideoBroadcasterTest, ForwardsConstraintsToSink) {
-   broadcaster.ProcessConstraints(webrtc::VideoTrackSourceConstraints{2, 3});
- }
- 
--TEST(VideoBroadcasterTest, AppliesMaxOfSinkWantsScaleResolutionDownTo) {
-+TEST(VideoBroadcasterTest, AppliesMaxOfSinkWantsRequestedResolution) {
-   VideoBroadcaster broadcaster;
- 
-   FakeVideoRenderer sink1;
-   VideoSinkWants wants1;
-   wants1.is_active = true;
--  wants1.scale_resolution_down_to = FrameSize(640, 360);
-+  wants1.requested_resolution = FrameSize(640, 360);
- 
-   broadcaster.AddOrUpdateSink(&sink1, wants1);
--  EXPECT_EQ(FrameSize(640, 360), *broadcaster.wants().scale_resolution_down_to);
-+  EXPECT_EQ(FrameSize(640, 360), *broadcaster.wants().requested_resolution);
- 
-   FakeVideoRenderer sink2;
-   VideoSinkWants wants2;
-   wants2.is_active = true;
--  wants2.scale_resolution_down_to = FrameSize(650, 350);
-+  wants2.requested_resolution = FrameSize(650, 350);
-   broadcaster.AddOrUpdateSink(&sink2, wants2);
--  EXPECT_EQ(FrameSize(650, 360), *broadcaster.wants().scale_resolution_down_to);
-+  EXPECT_EQ(FrameSize(650, 360), *broadcaster.wants().requested_resolution);
- 
-   broadcaster.RemoveSink(&sink2);
--  EXPECT_EQ(FrameSize(640, 360), *broadcaster.wants().scale_resolution_down_to);
-+  EXPECT_EQ(FrameSize(640, 360), *broadcaster.wants().requested_resolution);
- }
- 
- TEST(VideoBroadcasterTest, AnyActive) {
-@@ -374,42 +374,43 @@ TEST(VideoBroadcasterTest, AnyActive) {
-   EXPECT_EQ(false, broadcaster.wants().is_active);
- }
- 
--TEST(VideoBroadcasterTest, AnyActiveWithoutScaleResolutionDownTo) {
-+TEST(VideoBroadcasterTest, AnyActiveWithoutRequestedResolution) {
-   VideoBroadcaster broadcaster;
- 
-   FakeVideoRenderer sink1;
-   VideoSinkWants wants1;
-   wants1.is_active = true;
--  wants1.scale_resolution_down_to = FrameSize(640, 360);
-+  wants1.requested_resolution = FrameSize(640, 360);
- 
-   broadcaster.AddOrUpdateSink(&sink1, wants1);
--  EXPECT_EQ(false,
--            broadcaster.wants()
--                .aggregates->any_active_without_scale_resolution_down_to);
-+  EXPECT_EQ(
-+      false,
-+      broadcaster.wants().aggregates->any_active_without_requested_resolution);
- 
-   FakeVideoRenderer sink2;
-   VideoSinkWants wants2;
-   wants2.is_active = true;
-   broadcaster.AddOrUpdateSink(&sink2, wants2);
--  EXPECT_EQ(true, broadcaster.wants()
--                      .aggregates->any_active_without_scale_resolution_down_to);
-+  EXPECT_EQ(
-+      true,
-+      broadcaster.wants().aggregates->any_active_without_requested_resolution);
- 
-   broadcaster.RemoveSink(&sink2);
--  EXPECT_EQ(false,
--            broadcaster.wants()
--                .aggregates->any_active_without_scale_resolution_down_to);
-+  EXPECT_EQ(
-+      false,
-+      broadcaster.wants().aggregates->any_active_without_requested_resolution);
- }
- 
- // This verifies that the VideoSinkWants from a Sink that is_active = false
--// is ignored IF there is an active sink using new api
--// (scale_resolution_down_to). The uses resolution_alignment for verification.
-+// is ignored IF there is an active sink using new api (Requested_Resolution).
-+// The uses resolution_alignment for verification.
- TEST(VideoBroadcasterTest, IgnoreInactiveSinkIfNewApiUsed) {
-   VideoBroadcaster broadcaster;
- 
-   FakeVideoRenderer sink1;
-   VideoSinkWants wants1;
-   wants1.is_active = true;
--  wants1.scale_resolution_down_to = FrameSize(640, 360);
-+  wants1.requested_resolution = FrameSize(640, 360);
-   wants1.resolution_alignment = 2;
-   broadcaster.AddOrUpdateSink(&sink1, wants1);
-   EXPECT_EQ(broadcaster.wants().resolution_alignment, 2);
-diff --git a/media/engine/webrtc_video_engine.cc b/media/engine/webrtc_video_engine.cc
-index 996f0d7329..27512b90ea 100644
---- a/media/engine/webrtc_video_engine.cc
-+++ b/media/engine/webrtc_video_engine.cc
-@@ -2087,8 +2087,8 @@ WebRtcVideoSendChannel::WebRtcVideoSendStream::SetRtpParameters(
-          rtp_parameters_.encodings[i].scale_resolution_down_by) ||
-         (new_parameters.encodings[i].num_temporal_layers !=
-          rtp_parameters_.encodings[i].num_temporal_layers) ||
--        (new_parameters.encodings[i].scale_resolution_down_to !=
--         rtp_parameters_.encodings[i].scale_resolution_down_to) ||
-+        (new_parameters.encodings[i].requested_resolution !=
-+         rtp_parameters_.encodings[i].requested_resolution) ||
-         (new_parameters.encodings[i].scalability_mode !=
-          rtp_parameters_.encodings[i].scalability_mode) ||
-         (new_parameters.encodings[i].codec !=
-@@ -2228,7 +2228,7 @@ WebRtcVideoSendChannel::WebRtcVideoSendStream::CreateVideoEncoderConfig(
-        rtp_parameters_.encodings) {
-     if (encoding.scalability_mode.has_value() &&
-         (encoding.scale_resolution_down_by.has_value() ||
--         encoding.scale_resolution_down_to.has_value())) {
-+         encoding.requested_resolution.has_value())) {
-       legacy_scalability_mode = false;
-       break;
-     }
-@@ -2309,8 +2309,8 @@ WebRtcVideoSendChannel::WebRtcVideoSendStream::CreateVideoEncoderConfig(
-       encoder_config.simulcast_layers[i].num_temporal_layers =
-           *rtp_parameters_.encodings[i].num_temporal_layers;
-     }
--    encoder_config.simulcast_layers[i].scale_resolution_down_to =
--        rtp_parameters_.encodings[i].scale_resolution_down_to;
-+    encoder_config.simulcast_layers[i].requested_resolution =
-+        rtp_parameters_.encodings[i].requested_resolution;
-   }
- 
-   encoder_config.legacy_conference_mode = parameters_.conference_mode;
-diff --git a/media/engine/webrtc_video_engine_unittest.cc b/media/engine/webrtc_video_engine_unittest.cc
-index e2153e8026..ea9f7034ea 100644
---- a/media/engine/webrtc_video_engine_unittest.cc
-+++ b/media/engine/webrtc_video_engine_unittest.cc
-@@ -9750,7 +9750,7 @@ TEST_F(WebRtcVideoChannelBaseTest, EncoderSelectorSwitchCodec) {
-   send_channel_->SetEncoderSelector(kSsrc, nullptr);
- }
- 
--TEST_F(WebRtcVideoChannelTest, ScaleResolutionDownToSinglecast) {
-+TEST_F(WebRtcVideoChannelTest, RequestedResolutionSinglecast) {
-   cricket::VideoSenderParameters parameters;
-   parameters.codecs.push_back(GetEngineCodec("VP8"));
-   ASSERT_TRUE(send_channel_->SetSenderParameters(parameters));
-@@ -9762,12 +9762,12 @@ TEST_F(WebRtcVideoChannelTest, ScaleResolutionDownToSinglecast) {
-   EXPECT_TRUE(
-       send_channel_->SetVideoSend(last_ssrc_, nullptr, &frame_forwarder));
- 
--  {  // TEST scale_resolution_down_to < frame size
-+  {  // TEST requested_resolution < frame size
-     webrtc::RtpParameters rtp_parameters =
-         send_channel_->GetRtpSendParameters(last_ssrc_);
-     EXPECT_EQ(1UL, rtp_parameters.encodings.size());
--    rtp_parameters.encodings[0].scale_resolution_down_to = {.width = 640,
--                                                            .height = 360};
-+    rtp_parameters.encodings[0].requested_resolution = {.width = 640,
-+                                                        .height = 360};
-     send_channel_->SetRtpSendParameters(last_ssrc_, rtp_parameters);
- 
-     frame_forwarder.IncomingCapturedFrame(frame_source.GetFrame());
-@@ -9778,11 +9778,11 @@ TEST_F(WebRtcVideoChannelTest, ScaleResolutionDownToSinglecast) {
-     EXPECT_EQ(rtc::checked_cast<size_t>(360), streams[0].height);
-   }
- 
--  {  // TEST scale_resolution_down_to == frame size
-+  {  // TEST requested_resolution == frame size
-     auto rtp_parameters = send_channel_->GetRtpSendParameters(last_ssrc_);
-     EXPECT_EQ(1UL, rtp_parameters.encodings.size());
--    rtp_parameters.encodings[0].scale_resolution_down_to = {.width = 1280,
--                                                            .height = 720};
-+    rtp_parameters.encodings[0].requested_resolution = {.width = 1280,
-+                                                        .height = 720};
-     send_channel_->SetRtpSendParameters(last_ssrc_, rtp_parameters);
- 
-     frame_forwarder.IncomingCapturedFrame(frame_source.GetFrame());
-@@ -9792,11 +9792,11 @@ TEST_F(WebRtcVideoChannelTest, ScaleResolutionDownToSinglecast) {
-     EXPECT_EQ(rtc::checked_cast<size_t>(720), streams[0].height);
-   }
- 
--  {  // TEST scale_resolution_down_to > frame size
-+  {  // TEST requested_resolution > frame size
-     auto rtp_parameters = send_channel_->GetRtpSendParameters(last_ssrc_);
-     EXPECT_EQ(1UL, rtp_parameters.encodings.size());
--    rtp_parameters.encodings[0].scale_resolution_down_to = {.width = 2 * 1280,
--                                                            .height = 2 * 720};
-+    rtp_parameters.encodings[0].requested_resolution = {.width = 2 * 1280,
-+                                                        .height = 2 * 720};
-     send_channel_->SetRtpSendParameters(last_ssrc_, rtp_parameters);
- 
-     frame_forwarder.IncomingCapturedFrame(frame_source.GetFrame());
-@@ -9809,7 +9809,7 @@ TEST_F(WebRtcVideoChannelTest, ScaleResolutionDownToSinglecast) {
-   EXPECT_TRUE(send_channel_->SetVideoSend(last_ssrc_, nullptr, nullptr));
- }
- 
--TEST_F(WebRtcVideoChannelTest, ScaleResolutionDownToSinglecastScaling) {
-+TEST_F(WebRtcVideoChannelTest, RequestedResolutionSinglecastScaling) {
-   cricket::VideoSenderParameters parameters;
-   parameters.codecs.push_back(GetEngineCodec("VP8"));
-   ASSERT_TRUE(send_channel_->SetSenderParameters(parameters));
-@@ -9824,8 +9824,8 @@ TEST_F(WebRtcVideoChannelTest, ScaleResolutionDownToSinglecastScaling) {
-   {
-     auto rtp_parameters = send_channel_->GetRtpSendParameters(last_ssrc_);
-     EXPECT_EQ(1UL, rtp_parameters.encodings.size());
--    rtp_parameters.encodings[0].scale_resolution_down_to = {.width = 720,
--                                                            .height = 720};
-+    rtp_parameters.encodings[0].requested_resolution = {.width = 720,
-+                                                        .height = 720};
-     send_channel_->SetRtpSendParameters(last_ssrc_, rtp_parameters);
- 
-     frame_forwarder.IncomingCapturedFrame(frame_source.GetFrame());
-@@ -9841,8 +9841,8 @@ TEST_F(WebRtcVideoChannelTest, ScaleResolutionDownToSinglecastScaling) {
-   {
-     auto rtp_parameters = send_channel_->GetRtpSendParameters(last_ssrc_);
-     EXPECT_EQ(1UL, rtp_parameters.encodings.size());
--    rtp_parameters.encodings[0].scale_resolution_down_to = {.width = 1280,
--                                                            .height = 1280};
-+    rtp_parameters.encodings[0].requested_resolution = {.width = 1280,
-+                                                        .height = 1280};
-     send_channel_->SetRtpSendParameters(last_ssrc_, rtp_parameters);
- 
-     frame_forwarder.IncomingCapturedFrame(frame_source.GetFrame());
-@@ -9857,8 +9857,8 @@ TEST_F(WebRtcVideoChannelTest, ScaleResolutionDownToSinglecastScaling) {
-   {
-     auto rtp_parameters = send_channel_->GetRtpSendParameters(last_ssrc_);
-     EXPECT_EQ(1UL, rtp_parameters.encodings.size());
--    rtp_parameters.encodings[0].scale_resolution_down_to = {.width = 650,
--                                                            .height = 650};
-+    rtp_parameters.encodings[0].requested_resolution = {.width = 650,
-+                                                        .height = 650};
-     send_channel_->SetRtpSendParameters(last_ssrc_, rtp_parameters);
- 
-     auto streams = stream->GetVideoStreams();
-@@ -9872,8 +9872,8 @@ TEST_F(WebRtcVideoChannelTest, ScaleResolutionDownToSinglecastScaling) {
-   {
-     auto rtp_parameters = send_channel_->GetRtpSendParameters(last_ssrc_);
-     EXPECT_EQ(1UL, rtp_parameters.encodings.size());
--    rtp_parameters.encodings[0].scale_resolution_down_to = {.width = 2560,
--                                                            .height = 1440};
-+    rtp_parameters.encodings[0].requested_resolution = {.width = 2560,
-+                                                        .height = 1440};
-     send_channel_->SetRtpSendParameters(last_ssrc_, rtp_parameters);
- 
-     auto streams = stream->GetVideoStreams();
-@@ -9886,7 +9886,7 @@ TEST_F(WebRtcVideoChannelTest, ScaleResolutionDownToSinglecastScaling) {
-   EXPECT_TRUE(send_channel_->SetVideoSend(last_ssrc_, nullptr, nullptr));
- }
- 
--TEST_F(WebRtcVideoChannelTest, ScaleResolutionDownToSimulcast) {
-+TEST_F(WebRtcVideoChannelTest, RequestedResolutionSimulcast) {
-   cricket::VideoSenderParameters parameters;
-   parameters.codecs.push_back(GetEngineCodec("VP8"));
-   ASSERT_TRUE(send_channel_->SetSenderParameters(parameters));
-@@ -9902,12 +9902,12 @@ TEST_F(WebRtcVideoChannelTest, ScaleResolutionDownToSimulcast) {
-     webrtc::RtpParameters rtp_parameters =
-         send_channel_->GetRtpSendParameters(last_ssrc_);
-     EXPECT_EQ(3UL, rtp_parameters.encodings.size());
--    rtp_parameters.encodings[0].scale_resolution_down_to = {.width = 320,
--                                                            .height = 180};
--    rtp_parameters.encodings[1].scale_resolution_down_to = {.width = 640,
--                                                            .height = 360};
--    rtp_parameters.encodings[2].scale_resolution_down_to = {.width = 1280,
--                                                            .height = 720};
-+    rtp_parameters.encodings[0].requested_resolution = {.width = 320,
-+                                                        .height = 180};
-+    rtp_parameters.encodings[1].requested_resolution = {.width = 640,
-+                                                        .height = 360};
-+    rtp_parameters.encodings[2].requested_resolution = {.width = 1280,
-+                                                        .height = 720};
-     send_channel_->SetRtpSendParameters(last_ssrc_, rtp_parameters);
- 
-     frame_forwarder.IncomingCapturedFrame(frame_source.GetFrame());
-@@ -9924,12 +9924,12 @@ TEST_F(WebRtcVideoChannelTest, ScaleResolutionDownToSimulcast) {
-     webrtc::RtpParameters rtp_parameters =
-         send_channel_->GetRtpSendParameters(last_ssrc_);
-     EXPECT_EQ(3UL, rtp_parameters.encodings.size());
--    rtp_parameters.encodings[0].scale_resolution_down_to = {.width = 320,
--                                                            .height = 180};
-+    rtp_parameters.encodings[0].requested_resolution = {.width = 320,
-+                                                        .height = 180};
-     rtp_parameters.encodings[1].active = false;
- 
--    rtp_parameters.encodings[2].scale_resolution_down_to = {.width = 1280,
--                                                            .height = 720};
-+    rtp_parameters.encodings[2].requested_resolution = {.width = 1280,
-+                                                        .height = 720};
-     send_channel_->SetRtpSendParameters(last_ssrc_, rtp_parameters);
- 
-     frame_forwarder.IncomingCapturedFrame(frame_source.GetFrame());
-@@ -9945,13 +9945,13 @@ TEST_F(WebRtcVideoChannelTest, ScaleResolutionDownToSimulcast) {
-     webrtc::RtpParameters rtp_parameters =
-         send_channel_->GetRtpSendParameters(last_ssrc_);
-     EXPECT_EQ(3UL, rtp_parameters.encodings.size());
--    rtp_parameters.encodings[0].scale_resolution_down_to = {.width = 320,
--                                                            .height = 180};
-+    rtp_parameters.encodings[0].requested_resolution = {.width = 320,
-+                                                        .height = 180};
-     rtp_parameters.encodings[1].active = true;
--    rtp_parameters.encodings[1].scale_resolution_down_to = {.width = 640,
--                                                            .height = 360};
--    rtp_parameters.encodings[2].scale_resolution_down_to = {.width = 960,
--                                                            .height = 540};
-+    rtp_parameters.encodings[1].requested_resolution = {.width = 640,
-+                                                        .height = 360};
-+    rtp_parameters.encodings[2].requested_resolution = {.width = 960,
-+                                                        .height = 540};
-     send_channel_->SetRtpSendParameters(last_ssrc_, rtp_parameters);
- 
-     frame_forwarder.IncomingCapturedFrame(frame_source.GetFrame());
-diff --git a/pc/peer_connection_encodings_integrationtest.cc b/pc/peer_connection_encodings_integrationtest.cc
-index fd86173cd3..079dbbec73 100644
---- a/pc/peer_connection_encodings_integrationtest.cc
-+++ b/pc/peer_connection_encodings_integrationtest.cc
-@@ -2115,16 +2115,17 @@ TEST_F(PeerConnectionEncodingsIntegrationTest,
-   ASSERT_TRUE(transceiver_or_error.ok());
- }
- 
--TEST_F(PeerConnectionEncodingsIntegrationTest, ScaleToParameterChecking) {
-+TEST_F(PeerConnectionEncodingsIntegrationTest,
-+       RequestedResolutionParameterChecking) {
-   rtc::scoped_refptr<PeerConnectionTestWrapper> pc_wrapper = CreatePc();
- 
--  // AddTransceiver: If `scale_resolution_down_to` is specified on any encoding
--  // it must be specified on all encodings.
-+  // AddTransceiver: If `requested_resolution` is specified on any encoding it
-+  // must be specified on all encodings.
-   RtpTransceiverInit init;
-   RtpEncodingParameters encoding;
--  encoding.scale_resolution_down_to = std::nullopt;
-+  encoding.requested_resolution = std::nullopt;
-   init.send_encodings.push_back(encoding);
--  encoding.scale_resolution_down_to = {.width = 1280, .height = 720};
-+  encoding.requested_resolution = {.width = 1280, .height = 720};
-   init.send_encodings.push_back(encoding);
-   auto transceiver_or_error =
-       pc_wrapper->pc()->AddTransceiver(cricket::MEDIA_TYPE_VIDEO, init);
-@@ -2133,74 +2134,64 @@ TEST_F(PeerConnectionEncodingsIntegrationTest, ScaleToParameterChecking) {
-             RTCErrorType::UNSUPPORTED_OPERATION);
- 
-   // AddTransceiver: Width and height must not be zero.
--  init.send_encodings[0].scale_resolution_down_to = {.width = 1280,
--                                                     .height = 0};
--  init.send_encodings[1].scale_resolution_down_to = {.width = 0, .height = 720};
-+  init.send_encodings[0].requested_resolution = {.width = 1280, .height = 0};
-+  init.send_encodings[1].requested_resolution = {.width = 0, .height = 720};
-   transceiver_or_error =
-       pc_wrapper->pc()->AddTransceiver(cricket::MEDIA_TYPE_VIDEO, init);
-   EXPECT_FALSE(transceiver_or_error.ok());
-   EXPECT_EQ(transceiver_or_error.error().type(),
-             RTCErrorType::UNSUPPORTED_OPERATION);
- 
--  // AddTransceiver: Specifying both `scale_resolution_down_to` and
-+  // AddTransceiver: Specifying both `requested_resolution` and
-   // `scale_resolution_down_by` is allowed (the latter is ignored).
--  init.send_encodings[0].scale_resolution_down_to = {.width = 640,
--                                                     .height = 480};
-+  init.send_encodings[0].requested_resolution = {.width = 640, .height = 480};
-   init.send_encodings[0].scale_resolution_down_by = 1.0;
--  init.send_encodings[1].scale_resolution_down_to = {.width = 1280,
--                                                     .height = 720};
-+  init.send_encodings[1].requested_resolution = {.width = 1280, .height = 720};
-   init.send_encodings[1].scale_resolution_down_by = 2.0;
-   transceiver_or_error =
-       pc_wrapper->pc()->AddTransceiver(cricket::MEDIA_TYPE_VIDEO, init);
-   ASSERT_TRUE(transceiver_or_error.ok());
- 
--  // SetParameters: If `scale_resolution_down_to` is specified on any active
-+  // SetParameters: If `requested_resolution` is specified on any active
-   // encoding it must be specified on all active encodings.
-   auto sender = transceiver_or_error.value()->sender();
-   auto parameters = sender->GetParameters();
--  parameters.encodings[0].scale_resolution_down_to = {.width = 640,
--                                                      .height = 480};
--  parameters.encodings[1].scale_resolution_down_to = std::nullopt;
-+  parameters.encodings[0].requested_resolution = {.width = 640, .height = 480};
-+  parameters.encodings[1].requested_resolution = std::nullopt;
-   auto error = sender->SetParameters(parameters);
-   EXPECT_FALSE(error.ok());
-   EXPECT_EQ(error.type(), RTCErrorType::INVALID_MODIFICATION);
--  // But it's OK not to specify `scale_resolution_down_to` on an inactive
--  // encoding.
-+  // But it's OK not to specify `requested_resolution` on an inactive encoding.
-   parameters = sender->GetParameters();
--  parameters.encodings[0].scale_resolution_down_to = {.width = 640,
--                                                      .height = 480};
-+  parameters.encodings[0].requested_resolution = {.width = 640, .height = 480};
-   parameters.encodings[1].active = false;
--  parameters.encodings[1].scale_resolution_down_to = std::nullopt;
-+  parameters.encodings[1].requested_resolution = std::nullopt;
-   error = sender->SetParameters(parameters);
-   EXPECT_TRUE(error.ok());
- 
-   // SetParameters: Width and height must not be zero.
-   sender = transceiver_or_error.value()->sender();
-   parameters = sender->GetParameters();
--  parameters.encodings[0].scale_resolution_down_to = {.width = 1280,
--                                                      .height = 0};
-+  parameters.encodings[0].requested_resolution = {.width = 1280, .height = 0};
-   parameters.encodings[1].active = true;
--  parameters.encodings[1].scale_resolution_down_to = {.width = 0,
--                                                      .height = 720};
-+  parameters.encodings[1].requested_resolution = {.width = 0, .height = 720};
-   error = sender->SetParameters(parameters);
-   EXPECT_FALSE(error.ok());
-   EXPECT_EQ(error.type(), RTCErrorType::INVALID_MODIFICATION);
- 
--  // SetParameters: Specifying both `scale_resolution_down_to` and
-+  // SetParameters: Specifying both `requested_resolution` and
-   // `scale_resolution_down_by` is allowed (the latter is ignored).
-   parameters = sender->GetParameters();
--  parameters.encodings[0].scale_resolution_down_to = {.width = 640,
--                                                      .height = 480};
-+  parameters.encodings[0].requested_resolution = {.width = 640, .height = 480};
-   parameters.encodings[0].scale_resolution_down_by = 2.0;
--  parameters.encodings[1].scale_resolution_down_to = {.width = 1280,
--                                                      .height = 720};
-+  parameters.encodings[1].requested_resolution = {.width = 1280, .height = 720};
-   parameters.encodings[1].scale_resolution_down_by = 1.0;
-   error = sender->SetParameters(parameters);
-   EXPECT_TRUE(error.ok());
- }
- 
- TEST_F(PeerConnectionEncodingsIntegrationTest,
--       ScaleResolutionDownByIsIgnoredWhenScaleToIsSpecified) {
-+       ScaleResolutionDownByIsIgnoredWhenRequestedResolutionIsSpecified) {
-   rtc::scoped_refptr<PeerConnectionTestWrapper> local_pc_wrapper = CreatePc();
-   rtc::scoped_refptr<PeerConnectionTestWrapper> remote_pc_wrapper = CreatePc();
- 
-@@ -2213,7 +2204,7 @@ TEST_F(PeerConnectionEncodingsIntegrationTest,
-   RtpTransceiverInit init;
-   RtpEncodingParameters encoding;
-   encoding.scale_resolution_down_by = 2.0;
--  encoding.scale_resolution_down_to = {.width = 640, .height = 360};
-+  encoding.requested_resolution = {.width = 640, .height = 360};
-   init.send_encodings.push_back(encoding);
-   auto transceiver_or_error =
-       local_pc_wrapper->pc()->AddTransceiver(track, init);
-@@ -2231,7 +2222,7 @@ TEST_F(PeerConnectionEncodingsIntegrationTest,
- }
- 
- // Tests that use the standard path (specifying both `scalability_mode` and
--// `scale_resolution_down_by` or `scale_resolution_down_to`) should pass for all
-+// `scale_resolution_down_by` or `requested_resolution`) should pass for all
- // codecs.
- class PeerConnectionEncodingsIntegrationParameterizedTest
-     : public PeerConnectionEncodingsIntegrationTest,
-@@ -2367,9 +2358,9 @@ TEST_P(PeerConnectionEncodingsIntegrationParameterizedTest, Simulcast) {
-   EXPECT_THAT(*outbound_rtps[2]->scalability_mode, StrEq("L1T3"));
- }
- 
--// Configure 4:2:1 using `scale_resolution_down_to`.
-+// Configure 4:2:1 using `requested_resolution`.
- TEST_P(PeerConnectionEncodingsIntegrationParameterizedTest,
--       SimulcastWithScaleTo) {
-+       SimulcastWithRequestedResolution) {
-   rtc::scoped_refptr<PeerConnectionTestWrapper> local_pc_wrapper = CreatePc();
-   if (SkipTestDueToAv1Missing(local_pc_wrapper)) {
-     return;
-@@ -2390,14 +2381,11 @@ TEST_P(PeerConnectionEncodingsIntegrationParameterizedTest,
-   RtpParameters parameters = sender->GetParameters();
-   ASSERT_THAT(parameters.encodings, SizeIs(3));
-   parameters.encodings[0].scalability_mode = "L1T3";
--  parameters.encodings[0].scale_resolution_down_to = {.width = 320,
--                                                      .height = 180};
-+  parameters.encodings[0].requested_resolution = {.width = 320, .height = 180};
-   parameters.encodings[1].scalability_mode = "L1T3";
--  parameters.encodings[1].scale_resolution_down_to = {.width = 640,
--                                                      .height = 360};
-+  parameters.encodings[1].requested_resolution = {.width = 640, .height = 360};
-   parameters.encodings[2].scalability_mode = "L1T3";
--  parameters.encodings[2].scale_resolution_down_to = {.width = 1280,
--                                                      .height = 720};
-+  parameters.encodings[2].requested_resolution = {.width = 1280, .height = 720};
-   sender->SetParameters(parameters);
- 
-   NegotiateWithSimulcastTweaks(local_pc_wrapper, remote_pc_wrapper);
-@@ -2513,9 +2501,9 @@ TEST_P(PeerConnectionEncodingsIntegrationParameterizedTest,
- }
- 
- // Simulcast starting in 720p 4:2:1 then changing to {180p, 360p, 540p} using
--// the `scale_resolution_down_to` API.
-+// the `requested_resolution` API.
- TEST_P(PeerConnectionEncodingsIntegrationParameterizedTest,
--       SimulcastScaleToNoLongerPowerOfTwo) {
-+       SimulcastRequestedResolutionNoLongerPowerOfTwo) {
-   rtc::scoped_refptr<PeerConnectionTestWrapper> local_pc_wrapper = CreatePc();
-   if (SkipTestDueToAv1Missing(local_pc_wrapper)) {
-     return;
-@@ -2537,14 +2525,11 @@ TEST_P(PeerConnectionEncodingsIntegrationParameterizedTest,
-   RtpParameters parameters = sender->GetParameters();
-   ASSERT_THAT(parameters.encodings, SizeIs(3));
-   parameters.encodings[0].scalability_mode = "L1T1";
--  parameters.encodings[0].scale_resolution_down_to = {.width = 320,
--                                                      .height = 180};
-+  parameters.encodings[0].requested_resolution = {.width = 320, .height = 180};
-   parameters.encodings[1].scalability_mode = "L1T1";
--  parameters.encodings[1].scale_resolution_down_to = {.width = 640,
--                                                      .height = 360};
-+  parameters.encodings[1].requested_resolution = {.width = 640, .height = 360};
-   parameters.encodings[2].scalability_mode = "L1T1";
--  parameters.encodings[2].scale_resolution_down_to = {.width = 1280,
--                                                      .height = 720};
-+  parameters.encodings[2].requested_resolution = {.width = 1280, .height = 720};
-   sender->SetParameters(parameters);
- 
-   NegotiateWithSimulcastTweaks(local_pc_wrapper, remote_pc_wrapper);
-@@ -2563,12 +2548,9 @@ TEST_P(PeerConnectionEncodingsIntegrationParameterizedTest,
- 
-   // Configure {180p, 360p, 540p}.
-   parameters = sender->GetParameters();
--  parameters.encodings[0].scale_resolution_down_to = {.width = 320,
--                                                      .height = 180};
--  parameters.encodings[1].scale_resolution_down_to = {.width = 640,
--                                                      .height = 360};
--  parameters.encodings[2].scale_resolution_down_to = {.width = 960,
--                                                      .height = 540};
-+  parameters.encodings[0].requested_resolution = {.width = 320, .height = 180};
-+  parameters.encodings[1].requested_resolution = {.width = 640, .height = 360};
-+  parameters.encodings[2].requested_resolution = {.width = 960, .height = 540};
-   sender->SetParameters(parameters);
- 
-   // Wait for the new resolutions to be produced.
-@@ -2595,11 +2577,11 @@ TEST_P(PeerConnectionEncodingsIntegrationParameterizedTest,
- }
- 
- // The code path that disables layers based on resolution size should NOT run
--// when `scale_resolution_down_to` is specified. (It shouldn't run in any case
--// but that is an existing legacy code and non-compliance problem that we don't
--// have to repeat here.)
-+// when `requested_resolution` is specified. (It shouldn't run in any case but
-+// that is an existing legacy code and non-compliance problem that we don't have
-+// to repeat here.)
- TEST_P(PeerConnectionEncodingsIntegrationParameterizedTest,
--       LowResolutionSimulcastWithScaleTo) {
-+       LowResolutionSimulcastWithRequestedResolution) {
-   rtc::scoped_refptr<PeerConnectionTestWrapper> local_pc_wrapper = CreatePc();
-   if (SkipTestDueToAv1Missing(local_pc_wrapper)) {
-     return;
-@@ -2615,13 +2597,13 @@ TEST_P(PeerConnectionEncodingsIntegrationParameterizedTest,
-   RtpEncodingParameters encoding;
-   encoding.scalability_mode = "L1T3";
-   encoding.rid = "q";
--  encoding.scale_resolution_down_to = {.width = 40, .height = 20};
-+  encoding.requested_resolution = {.width = 40, .height = 20};
-   init.send_encodings.push_back(encoding);
-   encoding.rid = "h";
--  encoding.scale_resolution_down_to = {.width = 80, .height = 40};
-+  encoding.requested_resolution = {.width = 80, .height = 40};
-   init.send_encodings.push_back(encoding);
-   encoding.rid = "f";
--  encoding.scale_resolution_down_to = {.width = 160, .height = 80};
-+  encoding.requested_resolution = {.width = 160, .height = 80};
-   init.send_encodings.push_back(encoding);
-   rtc::scoped_refptr<MediaStreamInterface> stream =
-       local_pc_wrapper->GetUserMedia(
-@@ -2716,7 +2698,7 @@ TEST_P(PeerConnectionEncodingsIntegrationParameterizedTest,
- }
- 
- TEST_P(PeerConnectionEncodingsIntegrationParameterizedTest,
--       ScaleToDownscaleAndThenUpscale) {
-+       RequestedResolutionDownscaleAndThenUpscale) {
-   rtc::scoped_refptr<PeerConnectionTestWrapper> local_pc_wrapper = CreatePc();
-   if (SkipTestDueToAv1Missing(local_pc_wrapper)) {
-     return;
-@@ -2744,8 +2726,7 @@ TEST_P(PeerConnectionEncodingsIntegrationParameterizedTest,
-   RtpParameters parameters = sender->GetParameters();
-   ASSERT_THAT(parameters.encodings, SizeIs(1));
-   parameters.encodings[0].scalability_mode = "L1T3";
--  parameters.encodings[0].scale_resolution_down_to = {.width = 640,
--                                                      .height = 360};
-+  parameters.encodings[0].requested_resolution = {.width = 640, .height = 360};
-   sender->SetParameters(parameters);
-   // Confirm 640x360 is sent.
-   ASSERT_TRUE_WAIT(GetEncodingResolution(local_pc_wrapper) ==
-@@ -2763,8 +2744,7 @@ TEST_P(PeerConnectionEncodingsIntegrationParameterizedTest,
- 
-   // Request the full 1280x720 resolution.
-   parameters = sender->GetParameters();
--  parameters.encodings[0].scale_resolution_down_to = {.width = 1280,
--                                                      .height = 720};
-+  parameters.encodings[0].requested_resolution = {.width = 1280, .height = 720};
-   sender->SetParameters(parameters);
-   // Confirm 1280x720 is sent.
-   ASSERT_TRUE_WAIT(GetEncodingResolution(local_pc_wrapper) ==
-@@ -2773,7 +2753,7 @@ TEST_P(PeerConnectionEncodingsIntegrationParameterizedTest,
- }
- 
- TEST_P(PeerConnectionEncodingsIntegrationParameterizedTest,
--       ScaleToIsOrientationAgnostic) {
-+       RequestedResolutionIsOrientationAgnostic) {
-   rtc::scoped_refptr<PeerConnectionTestWrapper> local_pc_wrapper = CreatePc();
-   if (SkipTestDueToAv1Missing(local_pc_wrapper)) {
-     return;
-@@ -2801,8 +2781,7 @@ TEST_P(PeerConnectionEncodingsIntegrationParameterizedTest,
-   rtc::scoped_refptr<RtpSenderInterface> sender = transceiver->sender();
-   RtpParameters parameters = sender->GetParameters();
-   ASSERT_THAT(parameters.encodings, SizeIs(1));
--  parameters.encodings[0].scale_resolution_down_to = {.width = 360,
--                                                      .height = 640};
-+  parameters.encodings[0].requested_resolution = {.width = 360, .height = 640};
-   sender->SetParameters(parameters);
-   // Confirm 640x360 is sent.
-   ASSERT_TRUE_WAIT(GetEncodingResolution(local_pc_wrapper) ==
-@@ -2811,7 +2790,7 @@ TEST_P(PeerConnectionEncodingsIntegrationParameterizedTest,
- }
- 
- TEST_P(PeerConnectionEncodingsIntegrationParameterizedTest,
--       ScaleToMaintainsAspectRatio) {
-+       RequestedResolutionMaintainsAspectRatio) {
-   rtc::scoped_refptr<PeerConnectionTestWrapper> local_pc_wrapper = CreatePc();
-   if (SkipTestDueToAv1Missing(local_pc_wrapper)) {
-     return;
-@@ -2839,8 +2818,7 @@ TEST_P(PeerConnectionEncodingsIntegrationParameterizedTest,
-   rtc::scoped_refptr<RtpSenderInterface> sender = transceiver->sender();
-   RtpParameters parameters = sender->GetParameters();
-   ASSERT_THAT(parameters.encodings, SizeIs(1));
--  parameters.encodings[0].scale_resolution_down_to = {.width = 1280,
--                                                      .height = 360};
-+  parameters.encodings[0].requested_resolution = {.width = 1280, .height = 360};
-   sender->SetParameters(parameters);
-   // Confirm 640x360 is sent.
-   ASSERT_TRUE_WAIT(GetEncodingResolution(local_pc_wrapper) ==
-diff --git a/video/config/encoder_stream_factory.cc b/video/config/encoder_stream_factory.cc
-index 62b00ad043..ad1ee4daf1 100644
---- a/video/config/encoder_stream_factory.cc
-+++ b/video/config/encoder_stream_factory.cc
-@@ -150,7 +150,7 @@ void OverrideStreamSettings(
-     webrtc::VideoStream& layer = layers[i];
-     layer.active = overrides.active;
-     layer.scalability_mode = overrides.scalability_mode;
--    layer.scale_resolution_down_to = overrides.scale_resolution_down_to;
-+    layer.requested_resolution = overrides.requested_resolution;
-     // Update with configured num temporal layers if supported by codec.
-     if (overrides.num_temporal_layers > 0 && temporal_layers_supported) {
-       layer.num_temporal_layers = *overrides.num_temporal_layers;
-@@ -352,18 +352,18 @@ EncoderStreamFactory::CreateDefaultVideoStreams(
-   layer.width = width;
-   layer.height = height;
-   layer.max_framerate = max_framerate;
--  layer.scale_resolution_down_to =
--      encoder_config.simulcast_layers[0].scale_resolution_down_to;
-+  layer.requested_resolution =
-+      encoder_config.simulcast_layers[0].requested_resolution;
-   // Note: VP9 seems to have be sending if any layer is active,
-   // (see `UpdateSendState`) and still use parameters only from
-   // encoder_config.simulcast_layers[0].
-   layer.active = absl::c_any_of(encoder_config.simulcast_layers,
-                                 [](const auto& layer) { return layer.active; });
- 
--  if (encoder_config.simulcast_layers[0].scale_resolution_down_to) {
--    auto res = GetLayerResolutionFromScaleResolutionDownTo(
-+  if (encoder_config.simulcast_layers[0].requested_resolution) {
-+    auto res = GetLayerResolutionFromRequestedResolution(
-         width, height,
--        *encoder_config.simulcast_layers[0].scale_resolution_down_to);
-+        *encoder_config.simulcast_layers[0].requested_resolution);
-     layer.width = res.width;
-     layer.height = res.height;
-   } else if (encoder_config.simulcast_layers[0].scale_resolution_down_by > 1.) {
-@@ -468,23 +468,23 @@ EncoderStreamFactory::CreateSimulcastOrConferenceModeScreenshareStreams(
- }
- 
- webrtc::Resolution
--EncoderStreamFactory::GetLayerResolutionFromScaleResolutionDownTo(
-+EncoderStreamFactory::GetLayerResolutionFromRequestedResolution(
-     int frame_width,
-     int frame_height,
--    webrtc::Resolution scale_resolution_down_to) const {
--  // Make frame and `scale_resolution_down_to` have matching orientation.
-+    webrtc::Resolution requested_resolution) const {
-+  // Make frame and requested resolution have matching orientation.
-   if ((frame_width < frame_height) !=
--      (scale_resolution_down_to.width < scale_resolution_down_to.height)) {
--    scale_resolution_down_to = {.width = scale_resolution_down_to.height,
--                                .height = scale_resolution_down_to.width};
-+      (requested_resolution.width < requested_resolution.height)) {
-+    requested_resolution = {.width = requested_resolution.height,
-+                            .height = requested_resolution.width};
-   }
-   // Downscale by smallest scaling factor, if necessary.
-   if (frame_width > 0 && frame_height > 0 &&
--      (scale_resolution_down_to.width < frame_width ||
--       scale_resolution_down_to.height < frame_height)) {
-+      (requested_resolution.width < frame_width ||
-+       requested_resolution.height < frame_height)) {
-     double scale_factor = std::min(
--        scale_resolution_down_to.width / static_cast<double>(frame_width),
--        scale_resolution_down_to.height / static_cast<double>(frame_height));
-+        requested_resolution.width / static_cast<double>(frame_width),
-+        requested_resolution.height / static_cast<double>(frame_height));
-     frame_width = std::round(frame_width * scale_factor);
-     frame_height = std::round(frame_height * scale_factor);
-   }
-@@ -528,34 +528,33 @@ std::vector<webrtc::Resolution> EncoderStreamFactory::GetStreamResolutions(
-   } else {
-     size_t min_num_layers = FindRequiredActiveLayers(encoder_config);
-     size_t max_num_layers =
--        !encoder_config.HasScaleResolutionDownTo()
-+        !encoder_config.HasRequestedResolution()
-             ? LimitSimulcastLayerCount(
-                   min_num_layers, encoder_config.number_of_streams, width,
-                   height, trials, encoder_config.codec_type)
-             : encoder_config.number_of_streams;
-     RTC_DCHECK_LE(max_num_layers, encoder_config.number_of_streams);
- 
--    // When the `scale_resolution_down_to` API is used, disable upper layers
--    // that are bigger than what adaptation restrictions allow. For example if
-+    // When the `requested_resolution` API is used, disable upper layers that
-+    // are bigger than what adaptation restrictions allow. For example if
-     // restrictions are 540p, simulcast 180p:360p:720p becomes 180p:360p:- as
-     // opposed to 180p:360p:540p. This makes CPU adaptation consistent with BW
-     // adaptation (bitrate allocator disabling layers rather than downscaling)
-     // and means we don't have to break power of two optimization paths (i.e.
-     // S-modes based simulcast). Note that the lowest layer is never disabled.
--    if (encoder_config.HasScaleResolutionDownTo() &&
--        restrictions_.has_value() &&
-+    if (encoder_config.HasRequestedResolution() && restrictions_.has_value() &&
-         restrictions_->max_pixels_per_frame().has_value()) {
-       int max_pixels = rtc::dchecked_cast<int>(
-           restrictions_->max_pixels_per_frame().value());
-       int prev_pixel_count =
-           encoder_config.simulcast_layers[0]
--              .scale_resolution_down_to.value_or(webrtc::Resolution())
-+              .requested_resolution.value_or(webrtc::Resolution())
-               .PixelCount();
-       std::optional<size_t> restricted_num_layers;
-       for (size_t i = 1; i < max_num_layers; ++i) {
-         int pixel_count =
-             encoder_config.simulcast_layers[i]
--                .scale_resolution_down_to.value_or(webrtc::Resolution())
-+                .requested_resolution.value_or(webrtc::Resolution())
-                 .PixelCount();
-         if (!restricted_num_layers.has_value() && max_pixels < pixel_count) {
-           // Current layer is the highest layer allowed by restrictions.
-@@ -597,11 +596,10 @@ std::vector<webrtc::Resolution> EncoderStreamFactory::GetStreamResolutions(
- 
-     resolutions.resize(max_num_layers);
-     for (size_t i = 0; i < max_num_layers; i++) {
--      if (encoder_config.simulcast_layers[i]
--              .scale_resolution_down_to.has_value()) {
--        resolutions[i] = GetLayerResolutionFromScaleResolutionDownTo(
-+      if (encoder_config.simulcast_layers[i].requested_resolution.has_value()) {
-+        resolutions[i] = GetLayerResolutionFromRequestedResolution(
-             normalized_width, normalized_height,
--            *encoder_config.simulcast_layers[i].scale_resolution_down_to);
-+            *encoder_config.simulcast_layers[i].requested_resolution);
-       } else if (has_scale_resolution_down_by) {
-         const double scale_resolution_down_by = std::max(
-             encoder_config.simulcast_layers[i].scale_resolution_down_by, 1.0);
-diff --git a/video/config/encoder_stream_factory.h b/video/config/encoder_stream_factory.h
-index 8fd2013147..3d0705eaf9 100644
---- a/video/config/encoder_stream_factory.h
-+++ b/video/config/encoder_stream_factory.h
-@@ -49,10 +49,10 @@ class EncoderStreamFactory
-       const webrtc::VideoEncoderConfig& encoder_config,
-       const std::optional<webrtc::DataRate>& experimental_min_bitrate) const;
- 
--  webrtc::Resolution GetLayerResolutionFromScaleResolutionDownTo(
-+  webrtc::Resolution GetLayerResolutionFromRequestedResolution(
-       int in_frame_width,
-       int in_frame_height,
--      webrtc::Resolution scale_resolution_down_to) const;
-+      webrtc::Resolution requested_resolution) const;
- 
-   std::vector<webrtc::Resolution> GetStreamResolutions(
-       const webrtc::FieldTrialsView& trials,
-diff --git a/video/config/encoder_stream_factory_unittest.cc b/video/config/encoder_stream_factory_unittest.cc
-index 4638e48d50..1cf901dbbf 100644
---- a/video/config/encoder_stream_factory_unittest.cc
-+++ b/video/config/encoder_stream_factory_unittest.cc
-@@ -79,23 +79,23 @@ std::vector<VideoStream> CreateEncoderStreams(
- 
- }  // namespace
- 
--TEST(EncoderStreamFactory, SinglecastScaleResolutionDownTo) {
-+TEST(EncoderStreamFactory, SinglecastRequestedResolution) {
-   ExplicitKeyValueConfig field_trials("");
-   VideoEncoderConfig encoder_config;
-   encoder_config.number_of_streams = 1;
-   encoder_config.simulcast_layers.resize(1);
--  encoder_config.simulcast_layers[0].scale_resolution_down_to = {.width = 640,
--                                                                 .height = 360};
-+  encoder_config.simulcast_layers[0].requested_resolution = {.width = 640,
-+                                                             .height = 360};
-   auto streams = CreateEncoderStreams(
-       field_trials, {.width = 1280, .height = 720}, encoder_config);
--  EXPECT_EQ(streams[0].scale_resolution_down_to,
-+  EXPECT_EQ(streams[0].requested_resolution,
-             (Resolution{.width = 640, .height = 360}));
-   EXPECT_EQ(GetStreamResolutions(streams), (std::vector<Resolution>{
-                                                {.width = 640, .height = 360},
-                                            }));
- }
- 
--TEST(EncoderStreamFactory, SinglecastScaleResolutionDownToWithAdaptation) {
-+TEST(EncoderStreamFactory, SinglecastRequestedResolutionWithAdaptation) {
-   ExplicitKeyValueConfig field_trials("");
-   VideoSourceRestrictions restrictions(
-       /* max_pixels_per_frame= */ (320 * 320),
-@@ -104,29 +104,29 @@ TEST(EncoderStreamFactory, SinglecastScaleResolutionDownToWithAdaptation) {
-   VideoEncoderConfig encoder_config;
-   encoder_config.number_of_streams = 1;
-   encoder_config.simulcast_layers.resize(1);
--  encoder_config.simulcast_layers[0].scale_resolution_down_to = {.width = 640,
--                                                                 .height = 360};
-+  encoder_config.simulcast_layers[0].requested_resolution = {.width = 640,
-+                                                             .height = 360};
-   auto streams =
-       CreateEncoderStreams(field_trials, {.width = 1280, .height = 720},
-                            encoder_config, restrictions);
--  EXPECT_EQ(streams[0].scale_resolution_down_to,
-+  EXPECT_EQ(streams[0].requested_resolution,
-             (Resolution{.width = 640, .height = 360}));
-   EXPECT_EQ(GetStreamResolutions(streams), (std::vector<Resolution>{
-                                                {.width = 320, .height = 180},
-                                            }));
- }
- 
--TEST(EncoderStreamFactory, SimulcastScaleResolutionDownToUnrestricted) {
-+TEST(EncoderStreamFactory, SimulcastRequestedResolutionUnrestricted) {
-   ExplicitKeyValueConfig field_trials("");
-   VideoEncoderConfig encoder_config;
-   encoder_config.number_of_streams = 3;
-   encoder_config.simulcast_layers.resize(3);
--  encoder_config.simulcast_layers[0].scale_resolution_down_to = {.width = 320,
--                                                                 .height = 180};
--  encoder_config.simulcast_layers[1].scale_resolution_down_to = {.width = 640,
--                                                                 .height = 360};
--  encoder_config.simulcast_layers[2].scale_resolution_down_to = {.width = 1280,
--                                                                 .height = 720};
-+  encoder_config.simulcast_layers[0].requested_resolution = {.width = 320,
-+                                                             .height = 180};
-+  encoder_config.simulcast_layers[1].requested_resolution = {.width = 640,
-+                                                             .height = 360};
-+  encoder_config.simulcast_layers[2].requested_resolution = {.width = 1280,
-+                                                             .height = 720};
-   auto streams = CreateEncoderStreams(
-       field_trials, {.width = 1280, .height = 720}, encoder_config);
-   std::vector<Resolution> stream_resolutions = GetStreamResolutions(streams);
-@@ -136,7 +136,7 @@ TEST(EncoderStreamFactory, SimulcastScaleResolutionDownToUnrestricted) {
-   EXPECT_EQ(stream_resolutions[2], (Resolution{.width = 1280, .height = 720}));
- }
- 
--TEST(EncoderStreamFactory, SimulcastScaleResolutionDownToWith360pRestriction) {
-+TEST(EncoderStreamFactory, SimulcastRequestedResolutionWith360pRestriction) {
-   ExplicitKeyValueConfig field_trials("");
-   VideoSourceRestrictions restrictions(
-       /* max_pixels_per_frame= */ (640 * 360),
-@@ -145,12 +145,12 @@ TEST(EncoderStreamFactory, SimulcastScaleResolutionDownToWith360pRestriction) {
-   VideoEncoderConfig encoder_config;
-   encoder_config.number_of_streams = 3;
-   encoder_config.simulcast_layers.resize(3);
--  encoder_config.simulcast_layers[0].scale_resolution_down_to = {.width = 320,
--                                                                 .height = 180};
--  encoder_config.simulcast_layers[1].scale_resolution_down_to = {.width = 640,
--                                                                 .height = 360};
--  encoder_config.simulcast_layers[2].scale_resolution_down_to = {.width = 1280,
--                                                                 .height = 720};
-+  encoder_config.simulcast_layers[0].requested_resolution = {.width = 320,
-+                                                             .height = 180};
-+  encoder_config.simulcast_layers[1].requested_resolution = {.width = 640,
-+                                                             .height = 360};
-+  encoder_config.simulcast_layers[2].requested_resolution = {.width = 1280,
-+                                                             .height = 720};
-   auto streams =
-       CreateEncoderStreams(field_trials, {.width = 1280, .height = 720},
-                            encoder_config, restrictions);
-@@ -161,7 +161,7 @@ TEST(EncoderStreamFactory, SimulcastScaleResolutionDownToWith360pRestriction) {
-   EXPECT_EQ(stream_resolutions[1], (Resolution{.width = 640, .height = 360}));
- }
- 
--TEST(EncoderStreamFactory, SimulcastScaleResolutionDownToWith90pRestriction) {
-+TEST(EncoderStreamFactory, SimulcastRequestedResolutionWith90pRestriction) {
-   ExplicitKeyValueConfig field_trials("");
-   VideoSourceRestrictions restrictions(
-       /* max_pixels_per_frame= */ (160 * 90),
-@@ -170,12 +170,12 @@ TEST(EncoderStreamFactory, SimulcastScaleResolutionDownToWith90pRestriction) {
-   VideoEncoderConfig encoder_config;
-   encoder_config.number_of_streams = 3;
-   encoder_config.simulcast_layers.resize(3);
--  encoder_config.simulcast_layers[0].scale_resolution_down_to = {.width = 320,
--                                                                 .height = 180};
--  encoder_config.simulcast_layers[1].scale_resolution_down_to = {.width = 640,
--                                                                 .height = 360};
--  encoder_config.simulcast_layers[2].scale_resolution_down_to = {.width = 1280,
--                                                                 .height = 720};
-+  encoder_config.simulcast_layers[0].requested_resolution = {.width = 320,
-+                                                             .height = 180};
-+  encoder_config.simulcast_layers[1].requested_resolution = {.width = 640,
-+                                                             .height = 360};
-+  encoder_config.simulcast_layers[2].requested_resolution = {.width = 1280,
-+                                                             .height = 720};
-   auto streams =
-       CreateEncoderStreams(field_trials, {.width = 1280, .height = 720},
-                            encoder_config, restrictions);
-@@ -186,8 +186,7 @@ TEST(EncoderStreamFactory, SimulcastScaleResolutionDownToWith90pRestriction) {
-   EXPECT_EQ(stream_resolutions[0], (Resolution{.width = 160, .height = 90}));
- }
- 
--TEST(EncoderStreamFactory,
--     ReverseSimulcastScaleResolutionDownToWithRestriction) {
-+TEST(EncoderStreamFactory, ReverseSimulcastRequestedResolutionWithRestriction) {
-   ExplicitKeyValueConfig field_trials("");
-   VideoSourceRestrictions restrictions(
-       /* max_pixels_per_frame= */ (640 * 360),
-@@ -197,12 +196,12 @@ TEST(EncoderStreamFactory,
-   encoder_config.number_of_streams = 3;
-   encoder_config.simulcast_layers.resize(3);
-   // 720p, 360p, 180p (instead of the usual 180p, 360p, 720p).
--  encoder_config.simulcast_layers[0].scale_resolution_down_to = {.width = 1280,
--                                                                 .height = 720};
--  encoder_config.simulcast_layers[1].scale_resolution_down_to = {.width = 640,
--                                                                 .height = 360};
--  encoder_config.simulcast_layers[2].scale_resolution_down_to = {.width = 320,
--                                                                 .height = 180};
-+  encoder_config.simulcast_layers[0].requested_resolution = {.width = 1280,
-+                                                             .height = 720};
-+  encoder_config.simulcast_layers[1].requested_resolution = {.width = 640,
-+                                                             .height = 360};
-+  encoder_config.simulcast_layers[2].requested_resolution = {.width = 320,
-+                                                             .height = 180};
-   auto streams =
-       CreateEncoderStreams(field_trials, {.width = 1280, .height = 720},
-                            encoder_config, restrictions);
-diff --git a/video/config/video_encoder_config.cc b/video/config/video_encoder_config.cc
-index 9dc9a52c89..24b8f2a1f5 100644
---- a/video/config/video_encoder_config.cc
-+++ b/video/config/video_encoder_config.cc
-@@ -88,9 +88,9 @@ std::string VideoEncoderConfig::ToString() const {
-   return ss.str();
- }
- 
--bool VideoEncoderConfig::HasScaleResolutionDownTo() const {
-+bool VideoEncoderConfig::HasRequestedResolution() const {
-   for (const VideoStream& simulcast_layer : simulcast_layers) {
--    if (simulcast_layer.scale_resolution_down_to.has_value()) {
-+    if (simulcast_layer.requested_resolution.has_value()) {
-       return true;
-     }
-   }
-diff --git a/video/config/video_encoder_config.h b/video/config/video_encoder_config.h
-index 59ee866f53..bd05ab0683 100644
---- a/video/config/video_encoder_config.h
-+++ b/video/config/video_encoder_config.h
-@@ -36,7 +36,7 @@ struct VideoStream {
- 
-   // Width/Height in pixels.
-   // This is the actual width and height used to configure encoder,
--  // which might be less than `scale_resolution_down_to` due to adaptation
-+  // which might be less than `requested_resolution` due to adaptation
-   // or due to the source providing smaller frames than requested.
-   size_t width;
-   size_t height;
-@@ -75,14 +75,14 @@ struct VideoStream {
- 
-   // An optional user supplied max_frame_resolution
-   // than can be set independently of (adapted) VideoSource.
--  // This value is set from RtpEncodingParameters::scale_resolution_down_to
-+  // This value is set from RtpEncodingParameters::requested_resolution
-   // (i.e. used for signaling app-level settings).
-   //
-   // The actual encode resolution is in `width` and `height`,
--  // which can be lower than scale_resolution_down_to,
-+  // which can be lower than requested_resolution,
-   // e.g. if source only provides lower resolution or
-   // if resource adaptation is active.
--  std::optional<Resolution> scale_resolution_down_to;
-+  std::optional<Resolution> requested_resolution;
- };
- 
- class VideoEncoderConfig {
-@@ -166,7 +166,7 @@ class VideoEncoderConfig {
-   ~VideoEncoderConfig();
-   std::string ToString() const;
- 
--  bool HasScaleResolutionDownTo() const;
-+  bool HasRequestedResolution() const;
- 
-   // TODO(bugs.webrtc.org/6883): Consolidate on one of these.
-   VideoCodecType codec_type;
-diff --git a/video/video_source_sink_controller.cc b/video/video_source_sink_controller.cc
-index e2adecdf25..3a4904432c 100644
---- a/video/video_source_sink_controller.cc
-+++ b/video/video_source_sink_controller.cc
-@@ -105,9 +105,9 @@ bool VideoSourceSinkController::active() const {
- }
- 
- std::optional<rtc::VideoSinkWants::FrameSize>
--VideoSourceSinkController::scale_resolution_down_to() const {
-+VideoSourceSinkController::requested_resolution() const {
-   RTC_DCHECK_RUN_ON(&sequence_checker_);
--  return scale_resolution_down_to_;
-+  return requested_resolution_;
- }
- 
- void VideoSourceSinkController::SetRestrictions(
-@@ -150,10 +150,10 @@ void VideoSourceSinkController::SetActive(bool active) {
-   active_ = active;
- }
- 
--void VideoSourceSinkController::SetScaleResolutionDownTo(
--    std::optional<rtc::VideoSinkWants::FrameSize> scale_resolution_down_to) {
-+void VideoSourceSinkController::SetRequestedResolution(
-+    std::optional<rtc::VideoSinkWants::FrameSize> requested_resolution) {
-   RTC_DCHECK_RUN_ON(&sequence_checker_);
--  scale_resolution_down_to_ = std::move(scale_resolution_down_to);
-+  requested_resolution_ = std::move(requested_resolution);
- }
- 
- // RTC_EXCLUSIVE_LOCKS_REQUIRED(sequence_checker_)
-@@ -186,7 +186,7 @@ rtc::VideoSinkWants VideoSourceSinkController::CurrentSettingsToSinkWants()
-                    : std::numeric_limits<int>::max());
-   wants.resolutions = resolutions_;
-   wants.is_active = active_;
--  wants.scale_resolution_down_to = scale_resolution_down_to_;
-+  wants.requested_resolution = requested_resolution_;
-   return wants;
- }
- 
-diff --git a/video/video_source_sink_controller.h b/video/video_source_sink_controller.h
-index 33cb792287..9ce0fb552a 100644
---- a/video/video_source_sink_controller.h
-+++ b/video/video_source_sink_controller.h
-@@ -52,8 +52,7 @@ class VideoSourceSinkController {
-   int resolution_alignment() const;
-   const std::vector<rtc::VideoSinkWants::FrameSize>& resolutions() const;
-   bool active() const;
--  std::optional<rtc::VideoSinkWants::FrameSize> scale_resolution_down_to()
--      const;
-+  std::optional<rtc::VideoSinkWants::FrameSize> requested_resolution() const;
- 
-   // Updates the settings stored internally. In order for these settings to be
-   // applied to the sink, PushSourceSinkSettings() must subsequently be called.
-@@ -65,8 +64,8 @@ class VideoSourceSinkController {
-   void SetResolutionAlignment(int resolution_alignment);
-   void SetResolutions(std::vector<rtc::VideoSinkWants::FrameSize> resolutions);
-   void SetActive(bool active);
--  void SetScaleResolutionDownTo(
--      std::optional<rtc::VideoSinkWants::FrameSize> scale_resolution_down_to);
-+  void SetRequestedResolution(
-+      std::optional<rtc::VideoSinkWants::FrameSize> requested_resolution);
+diff --git a/modules/desktop_capture/linux/x11/x_error_trap.h b/modules/desktop_capture/linux/x11/x_error_trap.h
+index 1f21ab969c..df7e86bf03 100644
+--- a/modules/desktop_capture/linux/x11/x_error_trap.h
++++ b/modules/desktop_capture/linux/x11/x_error_trap.h
+@@ -11,30 +11,39 @@
+ #ifndef MODULES_DESKTOP_CAPTURE_LINUX_X11_X_ERROR_TRAP_H_
+ #define MODULES_DESKTOP_CAPTURE_LINUX_X11_X_ERROR_TRAP_H_
+ 
+-#include <X11/Xlib.h>
+-
+-#include "rtc_base/synchronization/mutex.h"
++#include <X11/Xlibint.h>
++#undef max // Xlibint.h defines this and it breaks std::max
++#undef min // Xlibint.h defines this and it breaks std::min
+ 
+ namespace webrtc {
+ 
+-// Helper class that registers an X Window error handler. Caller can use
++// Helper class that registers X Window error handler. Caller can use
+ // GetLastErrorAndDisable() to get the last error that was caught, if any.
++// An XErrorTrap may be constructed on any thread, but errors are collected
++// from all threads and so |display| should be used only on one thread.
++// Other Displays are unaffected.
+ class XErrorTrap {
+  public:
+   explicit XErrorTrap(Display* display);
++  ~XErrorTrap();
+ 
+   XErrorTrap(const XErrorTrap&) = delete;
+   XErrorTrap& operator=(const XErrorTrap&) = delete;
+ 
+-  ~XErrorTrap();
+-
+-  // Returns the last error if one was caught, otherwise 0. Also unregisters the
+-  // error handler and replaces it with `original_error_handler_`.
++  // Returns last error and removes unregisters the error handler.
++  // Must not be called more than once.
+   int GetLastErrorAndDisable();
  
   private:
-   rtc::VideoSinkWants CurrentSettingsToSinkWants() const
-@@ -94,7 +93,7 @@ class VideoSourceSinkController {
-   std::vector<rtc::VideoSinkWants::FrameSize> resolutions_
-       RTC_GUARDED_BY(&sequence_checker_);
-   bool active_ RTC_GUARDED_BY(&sequence_checker_) = true;
--  std::optional<rtc::VideoSinkWants::FrameSize> scale_resolution_down_to_
-+  std::optional<rtc::VideoSinkWants::FrameSize> requested_resolution_
-       RTC_GUARDED_BY(&sequence_checker_);
+-  MutexLock mutex_lock_;
+-  XErrorHandler original_error_handler_ = nullptr;
++  static Bool XServerErrorHandler(Display* display, xReply* rep,
++                                  char* /* buf */, int /* len */,
++                                  XPointer data);
++
++  _XAsyncHandler async_handler_;
++  Display* display_;
++  unsigned long last_ignored_request_;
++  int last_xserver_error_code_;
++  bool enabled_;
  };
  
-diff --git a/video/video_source_sink_controller_unittest.cc b/video/video_source_sink_controller_unittest.cc
-index 67d6451fdf..bddfc0dcc7 100644
---- a/video/video_source_sink_controller_unittest.cc
-+++ b/video/video_source_sink_controller_unittest.cc
-@@ -62,7 +62,7 @@ TEST(VideoSourceSinkControllerTest, UnconstrainedByDefault) {
-   EXPECT_FALSE(controller.pixels_per_frame_upper_limit().has_value());
-   EXPECT_FALSE(controller.frame_rate_upper_limit().has_value());
-   EXPECT_FALSE(controller.rotation_applied());
--  EXPECT_FALSE(controller.scale_resolution_down_to().has_value());
-+  EXPECT_FALSE(controller.requested_resolution().has_value());
-   EXPECT_EQ(controller.resolution_alignment(), 1);
- 
-   EXPECT_CALL(source, AddOrUpdateSink(_, _))
-@@ -73,7 +73,7 @@ TEST(VideoSourceSinkControllerTest, UnconstrainedByDefault) {
-         EXPECT_EQ(wants.target_pixel_count, std::nullopt);
-         EXPECT_EQ(wants.max_framerate_fps, kIntUnconstrained);
-         EXPECT_EQ(wants.resolution_alignment, 1);
--        EXPECT_FALSE(wants.scale_resolution_down_to.has_value());
-+        EXPECT_FALSE(wants.requested_resolution.has_value());
-       });
-   controller.PushSourceSinkSettings();
- }
-@@ -166,17 +166,17 @@ TEST(VideoSourceSinkControllerTest,
-   controller.RequestRefreshFrame();
- }
- 
--TEST(VideoSourceSinkControllerTest, ScaleResolutionDownToPropagatesToWants) {
-+TEST(VideoSourceSinkControllerTest, RequestedResolutionPropagatesToWants) {
-   MockVideoSinkWithVideoFrame sink;
-   MockVideoSourceWithVideoFrame source;
-   VideoSourceSinkController controller(&sink, &source);
--  controller.SetScaleResolutionDownTo(FrameSize(640, 360));
--  EXPECT_TRUE(controller.scale_resolution_down_to().has_value());
-+  controller.SetRequestedResolution(FrameSize(640, 360));
-+  EXPECT_TRUE(controller.requested_resolution().has_value());
- 
-   EXPECT_CALL(source, AddOrUpdateSink(_, _))
-       .WillOnce([](rtc::VideoSinkInterface<VideoFrame>* sink,
-                    const rtc::VideoSinkWants& wants) {
--        EXPECT_EQ(*wants.scale_resolution_down_to, FrameSize(640, 360));
-+        EXPECT_EQ(*wants.requested_resolution, FrameSize(640, 360));
-       });
-   controller.PushSourceSinkSettings();
- }
-diff --git a/video/video_stream_encoder.cc b/video/video_stream_encoder.cc
-index 324c9f9e8f..4fc7771f0f 100644
---- a/video/video_stream_encoder.cc
-+++ b/video/video_stream_encoder.cc
-@@ -872,40 +872,38 @@ void VideoStreamEncoder::ConfigureEncoder(VideoEncoderConfig config,
-   RTC_DCHECK_RUN_ON(worker_queue_);
- 
-   // Inform source about max configured framerate,
--  // scale_resolution_down_to and which layers are active.
-+  // requested_resolution and which layers are active.
-   int max_framerate = -1;
-   // Is any layer active.
-   bool active = false;
--  // The max scale_resolution_down_to.
--  std::optional<rtc::VideoSinkWants::FrameSize> scale_resolution_down_to;
-+  // The max requested_resolution.
-+  std::optional<rtc::VideoSinkWants::FrameSize> requested_resolution;
-   for (const auto& stream : config.simulcast_layers) {
-     active |= stream.active;
-     if (stream.active) {
-       max_framerate = std::max(stream.max_framerate, max_framerate);
+ }  // namespace webrtc
+diff --git a/modules/desktop_capture/win/screen_capture_utils.cc b/modules/desktop_capture/win/screen_capture_utils.cc
+index 3745e9cba5..f68cfb94c1 100644
+--- a/modules/desktop_capture/win/screen_capture_utils.cc
++++ b/modules/desktop_capture/win/screen_capture_utils.cc
+@@ -52,7 +52,7 @@ bool GetScreenList(DesktopCapturer::SourceList* screens,
+       continue;
      }
--    // Note: we propagate the highest scale_resolution_down_to regardless
-+    // Note: we propagate the highest requested_resolution regardless
-     // if layer is active or not.
--    if (stream.scale_resolution_down_to) {
--      if (!scale_resolution_down_to) {
--        scale_resolution_down_to.emplace(
--            stream.scale_resolution_down_to->width,
--            stream.scale_resolution_down_to->height);
-+    if (stream.requested_resolution) {
-+      if (!requested_resolution) {
-+        requested_resolution.emplace(stream.requested_resolution->width,
-+                                     stream.requested_resolution->height);
-       } else {
--        scale_resolution_down_to.emplace(
--            std::max(stream.scale_resolution_down_to->width,
--                     scale_resolution_down_to->width),
--            std::max(stream.scale_resolution_down_to->height,
--                     scale_resolution_down_to->height));
-+        requested_resolution.emplace(
-+            std::max(stream.requested_resolution->width,
-+                     requested_resolution->width),
-+            std::max(stream.requested_resolution->height,
-+                     requested_resolution->height));
+ 
+-    screens->push_back({device_index, std::string()});
++    screens->push_back({device_index, 0, std::string()});
+     if (device_names) {
+       device_names->push_back(rtc::ToUtf8(device.DeviceName));
+     }
+diff --git a/modules/rtp_rtcp/source/rtcp_sender.cc b/modules/rtp_rtcp/source/rtcp_sender.cc
+index 51ace1cf75..051d77c4f7 100644
+--- a/modules/rtp_rtcp/source/rtcp_sender.cc
++++ b/modules/rtp_rtcp/source/rtcp_sender.cc
+@@ -211,7 +211,7 @@ void RTCPSender::SetRTCPStatus(RtcpMode new_method) {
+     next_time_to_send_rtcp_ = std::nullopt;
+   } else if (method_ == RtcpMode::kOff) {
+     // When switching on, reschedule the next packet
+-    SetNextRtcpSendEvaluationDuration(report_interval_ / 2);
++    SetNextRtcpSendEvaluationDuration(RTCP_INTERVAL_RAPID_SYNC_MS / 2);
+   }
+   method_ = new_method;
+ }
+diff --git a/modules/rtp_rtcp/source/rtp_header_extensions.cc b/modules/rtp_rtcp/source/rtp_header_extensions.cc
+index 46c82180eb..bb035729f8 100644
+--- a/modules/rtp_rtcp/source/rtp_header_extensions.cc
++++ b/modules/rtp_rtcp/source/rtp_header_extensions.cc
+@@ -423,6 +423,45 @@ bool PlayoutDelayLimits::Write(rtc::ArrayView<uint8_t> data,
+   return true;
+ }
+ 
++// CSRCAudioLevel
++//  Sample Audio Level Encoding Using the One-Byte Header Format
++//  Note that the range of len is 1 to 15 which is encoded as 0 to 14
++//  0                   1                   2                   3
++//  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
++// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
++// |  ID   | len=2 |0|   level 1   |0|   level 2   |0|   level 3   |
++// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
++
++
++constexpr RTPExtensionType CsrcAudioLevel::kId;
++constexpr const char* CsrcAudioLevel::kUri;
++
++bool CsrcAudioLevel::Parse(rtc::ArrayView<const uint8_t> data,
++                           CsrcAudioLevelList* csrcAudioLevels) {
++  if (data.size() < 1 || data.size() > kRtpCsrcSize)
++    return false;
++  csrcAudioLevels->numAudioLevels = data.size();
++  for(uint8_t i = 0; i < csrcAudioLevels->numAudioLevels; i++) {
++    // Ensure range is 0 to 127 inclusive
++    csrcAudioLevels->arrOfAudioLevels[i] = 0x7f & data[i];
++  }
++  return true;
++}
++
++size_t CsrcAudioLevel::ValueSize(const CsrcAudioLevelList& csrcAudioLevels) {
++  return csrcAudioLevels.numAudioLevels;
++}
++
++bool CsrcAudioLevel::Write(rtc::ArrayView<uint8_t> data,
++                           const CsrcAudioLevelList& csrcAudioLevels) {
++  RTC_DCHECK_GE(csrcAudioLevels.numAudioLevels, 0);
++  for(uint8_t i = 0; i < csrcAudioLevels.numAudioLevels; i++) {
++    data[i] = csrcAudioLevels.arrOfAudioLevels[i] & 0x7f;
++  }
++  // This extension if used must have at least one audio level
++  return csrcAudioLevels.numAudioLevels;
++}
++
+ // Video Content Type.
+ //
+ // E.g. default video or screenshare.
+diff --git a/modules/rtp_rtcp/source/rtp_header_extensions.h b/modules/rtp_rtcp/source/rtp_header_extensions.h
+index b8495f4ba6..ed816caa10 100644
+--- a/modules/rtp_rtcp/source/rtp_header_extensions.h
++++ b/modules/rtp_rtcp/source/rtp_header_extensions.h
+@@ -308,6 +308,21 @@ class ColorSpaceExtension {
+   static size_t WriteLuminance(uint8_t* data, float f, int denominator);
+ };
+ 
++class CsrcAudioLevel {
++ public:
++  static constexpr RTPExtensionType kId = kRtpExtensionCsrcAudioLevel;
++  static constexpr absl::string_view Uri() {
++    return RtpExtension::kCsrcAudioLevelsUri;
++  }
++  static constexpr const char* kUri =
++      "urn:ietf:params:rtp-hdrext:csrc-audio-level";
++
++  static bool Parse(rtc::ArrayView<const uint8_t> data,
++                    CsrcAudioLevelList* csrcAudioLevels);
++  static size_t ValueSize(const CsrcAudioLevelList& csrcAudioLevels);
++  static bool Write(rtc::ArrayView<uint8_t> data, const CsrcAudioLevelList& csrcAudioLevels);
++};
++
+ // Base extension class for RTP header extensions which are strings.
+ // Subclasses must defined kId and kUri static constexpr members.
+ class BaseRtpStringExtension {
+diff --git a/modules/rtp_rtcp/source/rtp_packet.cc b/modules/rtp_rtcp/source/rtp_packet.cc
+index 19372880b2..3192c27a49 100644
+--- a/modules/rtp_rtcp/source/rtp_packet.cc
++++ b/modules/rtp_rtcp/source/rtp_packet.cc
+@@ -212,6 +212,10 @@ void RtpPacket::ZeroMutableExtensions() {
+         // Non-mutable extension. Don't change it.
+         break;
+       }
++      case RTPExtensionType::kRtpExtensionCsrcAudioLevel: {
++        // TODO: This is a Mozilla addition, we need to add a handler for this.
++        RTC_CHECK(false);
++      }
+     }
+   }
+ }
+diff --git a/modules/rtp_rtcp/source/rtp_packet_unittest.cc b/modules/rtp_rtcp/source/rtp_packet_unittest.cc
+index 5f9544dcab..7c2b93e219 100644
+--- a/modules/rtp_rtcp/source/rtp_packet_unittest.cc
++++ b/modules/rtp_rtcp/source/rtp_packet_unittest.cc
+@@ -123,6 +123,18 @@ constexpr uint8_t kPacketWithMid[] = {
+     0xbe, 0xde, 0x00, 0x01,
+     0xb2, 'm', 'i', 'd'};
+ 
++constexpr uint8_t kCsrcAudioLevelExtensionId = 0xc;
++constexpr uint8_t kCsrcAudioLevelsSize = 4;
++constexpr uint8_t kCsrcAudioLevels[] = {0x7f, 0x00, 0x10, 0x08};
++constexpr uint8_t kPacketWithCsrcAudioLevels[] = {
++    0x90, kPayloadType, kSeqNumFirstByte, kSeqNumSecondByte,
++    0x65, 0x43, 0x12, 0x78,
++    0x12, 0x34, 0x56, 0x78,
++    0xbe, 0xde, 0x00, 0x02,
++    (kCsrcAudioLevelExtensionId << 4) | (kCsrcAudioLevelsSize - 1),
++          0x7f, 0x00, 0x10,
++    0x08, 0x00, 0x00, 0x00};
++
+ constexpr uint32_t kCsrcs[] = {0x34567890, 0x32435465};
+ constexpr uint8_t kPayload[] = {'p', 'a', 'y', 'l', 'o', 'a', 'd'};
+ constexpr uint8_t kPacketPaddingSize = 8;
+@@ -402,6 +414,24 @@ TEST(RtpPacketTest, FailsToSetUnregisteredExtension) {
+   EXPECT_EQ(packet.GetExtension<TransportSequenceNumber>(), std::nullopt);
+ }
+ 
++TEST(RtpPacketTest, CreateWithDynamicSizedExtensionCsrcAudioLevel) {
++  RtpPacketToSend::ExtensionManager extensions;
++  extensions.Register<CsrcAudioLevel>(kCsrcAudioLevelExtensionId);
++  RtpPacketToSend packet(&extensions);
++  packet.SetPayloadType(kPayloadType);
++  packet.SetSequenceNumber(kSeqNum);
++  packet.SetTimestamp(kTimestamp);
++  packet.SetSsrc(kSsrc);
++  CsrcAudioLevelList levels;
++  levels.numAudioLevels = kCsrcAudioLevelsSize;
++  for (uint8_t i = 0; i < kCsrcAudioLevelsSize; i++) {
++    levels.arrOfAudioLevels[i] = kCsrcAudioLevels[i];
++  }
++  packet.SetExtension<CsrcAudioLevel>(levels);
++  EXPECT_THAT(kPacketWithCsrcAudioLevels,
++    ElementsAreArray(packet.data(), packet.size()));
++}
++
+ TEST(RtpPacketTest, SetReservedExtensionsAfterPayload) {
+   const size_t kPayloadSize = 4;
+   RtpPacketToSend::ExtensionManager extensions;
+diff --git a/modules/rtp_rtcp/source/rtp_rtcp_config.h b/modules/rtp_rtcp/source/rtp_rtcp_config.h
+index 0b87d6d065..d69ae9420b 100644
+--- a/modules/rtp_rtcp/source/rtp_rtcp_config.h
++++ b/modules/rtp_rtcp/source/rtp_rtcp_config.h
+@@ -11,11 +11,15 @@
+ #ifndef MODULES_RTP_RTCP_SOURCE_RTP_RTCP_CONFIG_H_
+ #define MODULES_RTP_RTCP_SOURCE_RTP_RTCP_CONFIG_H_
+ 
++#include "api/units/time_delta.h"
++
+ // Configuration file for RTP utilities (RTPSender, RTPReceiver ...)
+ namespace webrtc {
+ constexpr int kDefaultMaxReorderingThreshold = 50;  // In sequence numbers.
+ constexpr int kRtcpMaxNackFields = 253;
+ 
++constexpr TimeDelta RTCP_INTERVAL_RAPID_SYNC_MS =
++    TimeDelta::Millis(100); // RFX 6051
+ constexpr int RTCP_MAX_REPORT_BLOCKS = 31;  // RFC 3550 page 37
+ }  // namespace webrtc
+ 
+diff --git a/modules/rtp_rtcp/source/rtp_sender.cc b/modules/rtp_rtcp/source/rtp_sender.cc
+index c467cb76fd..9ff0c56253 100644
+--- a/modules/rtp_rtcp/source/rtp_sender.cc
++++ b/modules/rtp_rtcp/source/rtp_sender.cc
+@@ -140,6 +140,10 @@ bool IsNonVolatile(RTPExtensionType type) {
+     case kRtpExtensionNumberOfExtensions:
+       RTC_DCHECK_NOTREACHED();
+       return false;
++    case kRtpExtensionCsrcAudioLevel:
++      // TODO: Mozilla implement for CsrcAudioLevel
++      RTC_CHECK(false);
++      return false;
+   }
+   RTC_CHECK_NOTREACHED();
+ }
+diff --git a/modules/video_capture/device_info_impl.cc b/modules/video_capture/device_info_impl.cc
+index ff32a78580..7cccdb51a7 100644
+--- a/modules/video_capture/device_info_impl.cc
++++ b/modules/video_capture/device_info_impl.cc
+@@ -65,7 +65,7 @@ int32_t DeviceInfoImpl::GetCapability(const char* deviceUniqueIdUTF8,
+ 
+   // Make sure the number is valid
+   if (deviceCapabilityNumber >= (unsigned int)_captureCapabilities.size()) {
+-    RTC_LOG(LS_ERROR) << "Invalid deviceCapabilityNumber "
++    RTC_LOG(LS_ERROR) << deviceUniqueIdUTF8 << " Invalid deviceCapabilityNumber "
+                       << deviceCapabilityNumber << ">= number of capabilities ("
+                       << _captureCapabilities.size() << ").";
+     return -1;
+diff --git a/modules/video_capture/device_info_impl.h b/modules/video_capture/device_info_impl.h
+index 546265049c..8acbef6d69 100644
+--- a/modules/video_capture/device_info_impl.h
++++ b/modules/video_capture/device_info_impl.h
+@@ -42,6 +42,7 @@ class DeviceInfoImpl : public VideoCaptureModule::DeviceInfo {
+   /* Initialize this object*/
+ 
+   virtual int32_t Init() = 0;
++  int32_t Refresh() override { return 0; }
+   /*
+    * Fills the member variable _captureCapabilities with capabilities for the
+    * given device name.
+diff --git a/modules/video_capture/linux/device_info_v4l2.cc b/modules/video_capture/linux/device_info_v4l2.cc
+index a472e41a41..7397a10625 100644
+--- a/modules/video_capture/linux/device_info_v4l2.cc
++++ b/modules/video_capture/linux/device_info_v4l2.cc
+@@ -45,15 +45,187 @@
+ #define V4L2_PIX_FMT_RGBA32 v4l2_fourcc('A', 'B', '2', '4')
+ #endif
+ 
++#ifdef WEBRTC_LINUX
++#define EVENT_SIZE  ( sizeof (struct inotify_event) )
++#define BUF_LEN     ( 1024 * ( EVENT_SIZE + 16 ) )
++#endif
++
+ namespace webrtc {
+ namespace videocapturemodule {
+-DeviceInfoV4l2::DeviceInfoV4l2() : DeviceInfoImpl() {}
++#ifdef WEBRTC_LINUX
++void DeviceInfoV4l2::HandleEvent(inotify_event* event, int fd)
++{
++    if (event->mask & IN_CREATE) {
++        if (fd == _fd_v4l || fd == _fd_snd) {
++            DeviceChange();
++        } else if ((event->mask & IN_ISDIR) && (fd == _fd_dev)) {
++            if (_wd_v4l < 0) {
++                // Sometimes inotify_add_watch failed if we call it immediately after receiving this event
++                // Adding 5ms delay to let file system settle down
++                usleep(5*1000);
++                _wd_v4l = inotify_add_watch(_fd_v4l, "/dev/v4l/by-path/", IN_CREATE | IN_DELETE | IN_DELETE_SELF);
++                if (_wd_v4l >= 0) {
++                    DeviceChange();
++                }
++            }
++            if (_wd_snd < 0) {
++                usleep(5*1000);
++                _wd_snd = inotify_add_watch(_fd_snd, "/dev/snd/by-path/", IN_CREATE | IN_DELETE | IN_DELETE_SELF);
++                if (_wd_snd >= 0) {
++                    DeviceChange();
++                }
++            }
++        }
++    } else if (event->mask & IN_DELETE) {
++        if (fd == _fd_v4l || fd == _fd_snd) {
++            DeviceChange();
++        }
++    } else if (event->mask & IN_DELETE_SELF) {
++        if (fd == _fd_v4l) {
++            inotify_rm_watch(_fd_v4l, _wd_v4l);
++            _wd_v4l = -1;
++        } else if (fd == _fd_snd) {
++            inotify_rm_watch(_fd_snd, _wd_snd);
++            _wd_snd = -1;
++        } else {
++            assert(false);
++        }
++    }
++}
++
++int DeviceInfoV4l2::EventCheck(int fd)
++{
++    struct timeval timeout;
++    fd_set rfds;
++
++    timeout.tv_sec = 0;
++    timeout.tv_usec = 100000;
++
++    FD_ZERO(&rfds);
++    FD_SET(fd, &rfds);
++
++    return select(fd+1, &rfds, NULL, NULL, &timeout);
++}
++
++int DeviceInfoV4l2::HandleEvents(int fd)
++{
++    char buffer[BUF_LEN];
++
++    ssize_t r = read(fd, buffer, BUF_LEN);
++
++    if (r <= 0) {
++        return r;
++    }
++
++    ssize_t buffer_i = 0;
++    inotify_event* pevent;
++    size_t eventSize;
++    int count = 0;
++
++    while (buffer_i < r)
++    {
++        pevent = (inotify_event *) (&buffer[buffer_i]);
++        eventSize = sizeof(inotify_event) + pevent->len;
++        char event[sizeof(inotify_event) + FILENAME_MAX + 1] // null-terminated
++            __attribute__ ((aligned(__alignof__(struct inotify_event))));
++
++        memcpy(event, pevent, eventSize);
++
++        HandleEvent((inotify_event*)(event), fd);
++
++        buffer_i += eventSize;
++        count++;
++    }
++
++    return count;
++}
++
++int DeviceInfoV4l2::ProcessInotifyEvents()
++{
++    while (!_isShutdown) {
++        if (EventCheck(_fd_dev) > 0) {
++            if (HandleEvents(_fd_dev) < 0) {
++                break;
++            }
++        }
++        if (EventCheck(_fd_v4l) > 0) {
++            if (HandleEvents(_fd_v4l) < 0) {
++                break;
++            }
++        }
++        if (EventCheck(_fd_snd) > 0) {
++            if (HandleEvents(_fd_snd) < 0) {
++                break;
++            }
++        }
++    }
++    return 0;
++}
++
++void DeviceInfoV4l2::InotifyEventThread(void* obj)
++{
++    static_cast<DeviceInfoLinux*> (obj)->InotifyProcess();
++}
++
++void DeviceInfoV4l2::InotifyProcess()
++{
++    _fd_v4l = inotify_init();
++    _fd_snd = inotify_init();
++    _fd_dev = inotify_init();
++    if (_fd_v4l >= 0 && _fd_snd >= 0 && _fd_dev >= 0) {
++        _wd_v4l = inotify_add_watch(_fd_v4l, "/dev/v4l/by-path/", IN_CREATE | IN_DELETE | IN_DELETE_SELF);
++        _wd_snd = inotify_add_watch(_fd_snd, "/dev/snd/by-path/", IN_CREATE | IN_DELETE | IN_DELETE_SELF);
++        _wd_dev = inotify_add_watch(_fd_dev, "/dev/", IN_CREATE);
++        ProcessInotifyEvents();
++
++        if (_wd_v4l >= 0) {
++          inotify_rm_watch(_fd_v4l, _wd_v4l);
++        }
++
++        if (_wd_snd >= 0) {
++          inotify_rm_watch(_fd_snd, _wd_snd);
++        }
++
++        if (_wd_dev >= 0) {
++          inotify_rm_watch(_fd_dev, _wd_dev);
++        }
++
++        close(_fd_v4l);
++        close(_fd_snd);
++        close(_fd_dev);
++    }
++}
++#endif
++
++DeviceInfoV4l2::DeviceInfoV4l2() : DeviceInfoImpl()
++#ifdef WEBRTC_LINUX
++    , _inotifyEventThread(new rtc::PlatformThread(
++                            InotifyEventThread, this, "InotifyEventThread"))
++    , _isShutdown(false)
++#endif
++{
++#ifdef WEBRTC_LINUX
++    if (_inotifyEventThread)
++    {
++        _inotifyEventThread->Start();
++    }
++}
++#endif
+ 
+ int32_t DeviceInfoV4l2::Init() {
+   return 0;
+ }
+ 
+-DeviceInfoV4l2::~DeviceInfoV4l2() {}
++DeviceInfoV4l2::~DeviceInfoV4l2() {
++#ifdef WEBRTC_LINUX
++    _isShutdown = true;
++
++    if (_inotifyEventThread) {
++        _inotifyEventThread->Stop();
++        _inotifyEventThread = nullptr;
++    }
++#endif
++}
+ 
+ uint32_t DeviceInfoV4l2::NumberOfDevices() {
+   uint32_t count = 0;
+@@ -86,7 +258,8 @@ int32_t DeviceInfoV4l2::GetDeviceName(uint32_t deviceNumber,
+                                       char* deviceUniqueIdUTF8,
+                                       uint32_t deviceUniqueIdUTF8Length,
+                                       char* /*productUniqueIdUTF8*/,
+-                                      uint32_t /*productUniqueIdUTF8Length*/) {
++                                      uint32_t /*productUniqueIdUTF8Length*/,
++                                      pid_t* /*pid*/) {
+   // Travel through /dev/video [0-63]
+   uint32_t count = 0;
+   char device[20];
+diff --git a/modules/video_capture/linux/device_info_v4l2.h b/modules/video_capture/linux/device_info_v4l2.h
+index fb95a6020d..95432a509d 100644
+--- a/modules/video_capture/linux/device_info_v4l2.h
++++ b/modules/video_capture/linux/device_info_v4l2.h
+@@ -15,6 +15,9 @@
+ 
+ #include "modules/video_capture/device_info_impl.h"
+ 
++#include "rtc_base/platform_thread.h"
++#include <sys/inotify.h>
++
+ namespace webrtc {
+ namespace videocapturemodule {
+ class DeviceInfoV4l2 : public DeviceInfoImpl {
+@@ -28,7 +31,8 @@ class DeviceInfoV4l2 : public DeviceInfoImpl {
+                         char* deviceUniqueIdUTF8,
+                         uint32_t deviceUniqueIdUTF8Length,
+                         char* productUniqueIdUTF8 = 0,
+-                        uint32_t productUniqueIdUTF8Length = 0) override;
++                        uint32_t productUniqueIdUTF8Length = 0,
++                        pid_t* pid=0) override;
+   /*
+    * Fills the membervariable _captureCapabilities with capabilites for the
+    * given device name.
+@@ -45,6 +49,18 @@ class DeviceInfoV4l2 : public DeviceInfoImpl {
+ 
+  private:
+   bool IsDeviceNameMatches(const char* name, const char* deviceUniqueIdUTF8);
++
++#ifdef WEBRTC_LINUX
++  void HandleEvent(inotify_event* event, int fd);
++  int EventCheck(int fd);
++  int HandleEvents(int fd);
++  int ProcessInotifyEvents();
++  std::unique_ptr<rtc::PlatformThread> _inotifyEventThread;
++  static void InotifyEventThread(void*);
++  void InotifyProcess();
++  int _fd_v4l, _fd_dev, _wd_v4l, _wd_dev; /* accessed on InotifyEventThread thread */
++  std::atomic<bool> _isShutdown;
++#endif
+ };
+ }  // namespace videocapturemodule
+ }  // namespace webrtc
+diff --git a/modules/video_capture/video_capture.h b/modules/video_capture/video_capture.h
+index 48920b27c0..f31b239c71 100644
+--- a/modules/video_capture/video_capture.h
++++ b/modules/video_capture/video_capture.h
+@@ -15,15 +15,44 @@
+ #include "api/video/video_sink_interface.h"
+ #include "modules/video_capture/raw_video_sink_interface.h"
+ #include "modules/video_capture/video_capture_defines.h"
++#include <set>
++
++#if defined(ANDROID)
++#include <jni.h>
++#endif
+ 
+ namespace webrtc {
+ 
++class VideoInputFeedBack
++{
++public:
++    virtual void OnDeviceChange() = 0;
++protected:
++    virtual ~VideoInputFeedBack(){}
++};
++
+ class VideoCaptureModule : public RefCountInterface {
+  public:
+   // Interface for receiving information about available camera devices.
+   class DeviceInfo {
+    public:
+     virtual uint32_t NumberOfDevices() = 0;
++    virtual int32_t Refresh() = 0;
++    virtual void DeviceChange() {
++      for (auto inputCallBack : _inputCallBacks) {
++        inputCallBack->OnDeviceChange();
++      }
++    }
++    virtual void RegisterVideoInputFeedBack(VideoInputFeedBack* callBack) {
++      _inputCallBacks.insert(callBack);
++    }
++
++    virtual void DeRegisterVideoInputFeedBack(VideoInputFeedBack* callBack) {
++      auto it = _inputCallBacks.find(callBack);
++      if (it != _inputCallBacks.end()) {
++        _inputCallBacks.erase(it);
++      }
++    }
+ 
+     // Returns the available capture devices.
+     // deviceNumber   - Index of capture device.
+@@ -38,7 +67,8 @@ class VideoCaptureModule : public RefCountInterface {
+                                   char* deviceUniqueIdUTF8,
+                                   uint32_t deviceUniqueIdUTF8Length,
+                                   char* productUniqueIdUTF8 = 0,
+-                                  uint32_t productUniqueIdUTF8Length = 0) = 0;
++                                  uint32_t productUniqueIdUTF8Length = 0,
++                                  pid_t* pid = 0) = 0;
+ 
+     // Returns the number of capabilities this device.
+     virtual int32_t NumberOfCapabilities(const char* deviceUniqueIdUTF8) = 0;
+@@ -70,6 +100,8 @@ class VideoCaptureModule : public RefCountInterface {
+         uint32_t positionY) = 0;
+ 
+     virtual ~DeviceInfo() {}
++   private:
++    std::set<VideoInputFeedBack*> _inputCallBacks;
+   };
+ 
+   //   Register capture data callback
+@@ -79,11 +111,16 @@ class VideoCaptureModule : public RefCountInterface {
+       RawVideoSinkInterface* dataCallback) = 0;
+ 
+   //  Remove capture data callback
+-  virtual void DeRegisterCaptureDataCallback() = 0;
++  virtual void DeRegisterCaptureDataCallback(
++      rtc::VideoSinkInterface<VideoFrame> *dataCallback) = 0;
+ 
+   // Start capture device
+   virtual int32_t StartCapture(const VideoCaptureCapability& capability) = 0;
+ 
++  virtual int32_t StopCaptureIfAllClientsClose() = 0;
++
++  virtual bool FocusOnSelectedSource() { return false; }
++
+   virtual int32_t StopCapture() = 0;
+ 
+   // Returns the name of the device used by this module.
+diff --git a/modules/video_capture/video_capture_factory.cc b/modules/video_capture/video_capture_factory.cc
+index 563ef5abd2..e085ac2df8 100644
+--- a/modules/video_capture/video_capture_factory.cc
++++ b/modules/video_capture/video_capture_factory.cc
+@@ -16,11 +16,7 @@ namespace webrtc {
+ 
+ rtc::scoped_refptr<VideoCaptureModule> VideoCaptureFactory::Create(
+     const char* deviceUniqueIdUTF8) {
+-#if defined(WEBRTC_ANDROID) || defined(WEBRTC_MAC)
+-  return nullptr;
+-#else
+   return videocapturemodule::VideoCaptureImpl::Create(deviceUniqueIdUTF8);
+-#endif
+ }
+ 
+ rtc::scoped_refptr<VideoCaptureModule> VideoCaptureFactory::Create(
+@@ -37,11 +33,7 @@ rtc::scoped_refptr<VideoCaptureModule> VideoCaptureFactory::Create(
+ }
+ 
+ VideoCaptureModule::DeviceInfo* VideoCaptureFactory::CreateDeviceInfo() {
+-#if defined(WEBRTC_ANDROID) || defined(WEBRTC_MAC)
+-  return nullptr;
+-#else
+   return videocapturemodule::VideoCaptureImpl::CreateDeviceInfo();
+-#endif
+ }
+ 
+ VideoCaptureModule::DeviceInfo* VideoCaptureFactory::CreateDeviceInfo(
+diff --git a/modules/video_capture/video_capture_impl.cc b/modules/video_capture/video_capture_impl.cc
+index 5588fae161..51282183f5 100644
+--- a/modules/video_capture/video_capture_impl.cc
++++ b/modules/video_capture/video_capture_impl.cc
+@@ -77,7 +77,6 @@ VideoCaptureImpl::VideoCaptureImpl()
+       _requestedCapability(),
+       _lastProcessTimeNanos(rtc::TimeNanos()),
+       _lastFrameRateCallbackTimeNanos(rtc::TimeNanos()),
+-      _dataCallBack(NULL),
+       _rawDataCallBack(NULL),
+       _lastProcessFrameTimeNanos(rtc::TimeNanos()),
+       _rotateFrame(kVideoRotation_0),
+@@ -91,7 +90,6 @@ VideoCaptureImpl::VideoCaptureImpl()
+ 
+ VideoCaptureImpl::~VideoCaptureImpl() {
+   RTC_DCHECK_RUN_ON(&api_checker_);
+-  DeRegisterCaptureDataCallback();
+   if (_deviceUniqueId)
+     delete[] _deviceUniqueId;
+ }
+@@ -100,28 +98,41 @@ void VideoCaptureImpl::RegisterCaptureDataCallback(
+     rtc::VideoSinkInterface<VideoFrame>* dataCallBack) {
+   MutexLock lock(&api_lock_);
+   RTC_DCHECK(!_rawDataCallBack);
+-  _dataCallBack = dataCallBack;
++  _dataCallBacks.insert(dataCallBack);
+ }
+ 
+ void VideoCaptureImpl::RegisterCaptureDataCallback(
+     RawVideoSinkInterface* dataCallBack) {
+   MutexLock lock(&api_lock_);
+-  RTC_DCHECK(!_dataCallBack);
++  RTC_DCHECK(_dataCallBacks.empty());
+   _rawDataCallBack = dataCallBack;
+ }
+ 
+-void VideoCaptureImpl::DeRegisterCaptureDataCallback() {
++void VideoCaptureImpl::DeRegisterCaptureDataCallback(
++    rtc::VideoSinkInterface<VideoFrame>* dataCallBack) {
+   MutexLock lock(&api_lock_);
+-  _dataCallBack = NULL;
++  auto it = _dataCallBacks.find(dataCallBack);
++  if (it != _dataCallBacks.end()) {
++    _dataCallBacks.erase(it);
++  }
+   _rawDataCallBack = NULL;
+ }
++
++int32_t VideoCaptureImpl::StopCaptureIfAllClientsClose() {
++  if (_dataCallBacks.empty()) {
++    return StopCapture();
++  } else {
++    return 0;
++  }
++}
++
+ int32_t VideoCaptureImpl::DeliverCapturedFrame(VideoFrame& captureFrame) {
+   RTC_CHECK_RUNS_SERIALIZED(&capture_checker_);
+ 
+   UpdateFrameCount();  // frame count used for local frame rate callback.
+ 
+-  if (_dataCallBack) {
+-    _dataCallBack->OnFrame(captureFrame);
++  for (auto dataCallBack : _dataCallBacks) {
++    dataCallBack->OnFrame(captureFrame);
+   }
+ 
+   return 0;
+@@ -229,6 +240,13 @@ int32_t VideoCaptureImpl::IncomingFrame(uint8_t* videoFrame,
+           .build();
+   captureFrame.set_ntp_time_ms(captureTime);
+ 
++  // This is one ugly hack to let CamerasParent know what rotation
++  // the frame was captured at. Note that this goes against the intended
++  // meaning of rotation of the frame (how to rotate it before rendering).
++  // We do this so CamerasChild can scale to the proper dimensions
++  // later on in the pipe.
++  captureFrame.set_rotation(_rotateFrame);
++
+   DeliverCapturedFrame(captureFrame);
+ 
+   return 0;
+diff --git a/modules/video_capture/video_capture_impl.h b/modules/video_capture/video_capture_impl.h
+index 5ec1fd4a83..e46e050609 100644
+--- a/modules/video_capture/video_capture_impl.h
++++ b/modules/video_capture/video_capture_impl.h
+@@ -64,8 +64,10 @@ class RTC_EXPORT VideoCaptureImpl : public VideoCaptureModule {
+       rtc::VideoSinkInterface<VideoFrame>* dataCallback) override;
+   virtual void RegisterCaptureDataCallback(
+       RawVideoSinkInterface* dataCallback) override;
+-  void DeRegisterCaptureDataCallback() override;
++  void DeRegisterCaptureDataCallback(
++      rtc::VideoSinkInterface<VideoFrame>* dataCallback) override;
+ 
++  int32_t StopCaptureIfAllClientsClose() override;
+   int32_t SetCaptureRotation(VideoRotation rotation) override;
+   bool SetApplyRotation(bool enable) override;
+   bool GetApplyRotation() override;
+@@ -115,7 +117,7 @@ class RTC_EXPORT VideoCaptureImpl : public VideoCaptureModule {
+   // last time the frame rate callback function was called.
+   int64_t _lastFrameRateCallbackTimeNanos RTC_GUARDED_BY(capture_checker_);
+ 
+-  rtc::VideoSinkInterface<VideoFrame>* _dataCallBack RTC_GUARDED_BY(api_lock_);
++  std::set<rtc::VideoSinkInterface<VideoFrame>*> _dataCallBacks RTC_GUARDED_BY(api_lock_);
+   RawVideoSinkInterface* _rawDataCallBack RTC_GUARDED_BY(api_lock_);
+ 
+   int64_t _lastProcessFrameTimeNanos RTC_GUARDED_BY(capture_checker_);
+diff --git a/modules/video_coding/codecs/vp9/libvpx_vp9_encoder.cc b/modules/video_coding/codecs/vp9/libvpx_vp9_encoder.cc
+index 65906a324b..719082656a 100644
+--- a/modules/video_coding/codecs/vp9/libvpx_vp9_encoder.cc
++++ b/modules/video_coding/codecs/vp9/libvpx_vp9_encoder.cc
+@@ -282,6 +282,7 @@ LibvpxVp9Encoder::LibvpxVp9Encoder(const Environment& env,
+       force_all_active_layers_(false),
+       enable_svc_for_simulcast_(
+           !env.field_trials().IsDisabled("WebRTC-VP9-SvcForSimulcast")),
++      num_cores_(0),
+       is_flexible_mode_(false),
+       variable_framerate_controller_(variable_framerate_screenshare::kMinFps),
+       quality_scaler_experiment_(ParseQualityScalerConfig(env.field_trials())),
+@@ -566,6 +567,7 @@ int LibvpxVp9Encoder::InitEncode(const VideoCodec* inst,
+ 
+   force_key_frame_ = true;
+   pics_since_key_ = 0;
++  num_cores_ = settings.number_of_cores;
+ 
+   scalability_mode_ = codec_.GetScalabilityMode();
+   if (scalability_mode_.has_value()) {
+@@ -1133,6 +1135,14 @@ int LibvpxVp9Encoder::Encode(const VideoFrame& input_image,
+     config_changed_ = false;
+   }
+ 
++  if (input_image.width() != codec_.width ||
++      input_image.height() != codec_.height) {
++    int ret = UpdateCodecFrameSize(input_image);
++    if (ret < 0) {
++      return ret;
++    }
++  }
++
+   RTC_DCHECK_EQ(input_image.width(), raw_->d_w);
+   RTC_DCHECK_EQ(input_image.height(), raw_->d_h);
+ 
+@@ -1255,6 +1265,48 @@ int LibvpxVp9Encoder::Encode(const VideoFrame& input_image,
+   return WEBRTC_VIDEO_CODEC_OK;
+ }
+ 
++int LibvpxVp9Encoder::UpdateCodecFrameSize(
++    const VideoFrame& input_image) {
++  RTC_LOG(LS_INFO) << "Reconfiging VP from " <<
++          codec_.width << "x" << codec_.height << " to " <<
++          input_image.width() << "x" << input_image.height();
++  // Preserve latest bitrate/framerate setting
++  // TODO: Mozilla - see below, we need to save more state here.
++  //uint32_t old_bitrate_kbit = config_->rc_target_bitrate;
++  //uint32_t old_framerate = codec_.maxFramerate;
++
++  codec_.width = input_image.width();
++  codec_.height = input_image.height();
++
++  vpx_img_free(raw_);
++  raw_ = vpx_img_wrap(NULL, VPX_IMG_FMT_I420, codec_.width, codec_.height,
++                      1, NULL);
++  // Update encoder context for new frame size.
++  config_->g_w = codec_.width;
++  config_->g_h = codec_.height;
++
++  // Determine number of threads based on the image size and #cores.
++  config_->g_threads = NumberOfThreads(codec_.width, codec_.height,
++                                       num_cores_);
++
++  // NOTE: We would like to do this the same way vp8 does it
++  // (with vpx_codec_enc_config_set()), but that causes asserts
++  // in AQ 3 (cyclic); and in AQ 0 it works, but on a resize to smaller
++  // than 1/2 x 1/2 original it asserts in convolve().  Given these
++  // bugs in trying to do it the "right" way, we basically re-do
++  // the initialization.
++  vpx_codec_destroy(encoder_); // clean up old state
++  int result = InitAndSetControlSettings(&codec_);
++  if (result == WEBRTC_VIDEO_CODEC_OK) {
++    // TODO: Mozilla rates have become much more complicated, we need to store
++    // more state or find another way of doing this.
++    //return SetRates(old_bitrate_kbit, old_framerate);
++    RTC_CHECK(false);
++    return WEBRTC_VIDEO_CODEC_UNINITIALIZED;
++  }
++  return result;
++}
++
+ bool LibvpxVp9Encoder::PopulateCodecSpecific(CodecSpecificInfo* codec_specific,
+                                              std::optional<int>* spatial_idx,
+                                              std::optional<int>* temporal_idx,
+diff --git a/modules/video_coding/codecs/vp9/libvpx_vp9_encoder.h b/modules/video_coding/codecs/vp9/libvpx_vp9_encoder.h
+index 0073380520..c2dc03efda 100644
+--- a/modules/video_coding/codecs/vp9/libvpx_vp9_encoder.h
++++ b/modules/video_coding/codecs/vp9/libvpx_vp9_encoder.h
+@@ -82,6 +82,9 @@ class LibvpxVp9Encoder : public VideoEncoder {
+   // Call encoder initialize function and set control settings.
+   int InitAndSetControlSettings();
+ 
++  // Update frame size for codec.
++  int UpdateCodecFrameSize(const VideoFrame& input_image);
++
+   bool PopulateCodecSpecific(CodecSpecificInfo* codec_specific,
+                              std::optional<int>* spatial_idx,
+                              std::optional<int>* temporal_idx,
+@@ -165,6 +168,7 @@ class LibvpxVp9Encoder : public VideoEncoder {
+   VideoBitrateAllocation current_bitrate_allocation_;
+   bool ss_info_needed_;
+   bool force_all_active_layers_;
++  uint8_t num_cores_;
+ 
+   const bool enable_svc_for_simulcast_;
+   std::optional<SimulcastToSvcConverter> simulcast_to_svc_converter_;
+diff --git a/rtc_base/BUILD.gn b/rtc_base/BUILD.gn
+index a18e69590d..bc80ce27b5 100644
+--- a/rtc_base/BUILD.gn
++++ b/rtc_base/BUILD.gn
+@@ -446,6 +446,12 @@ rtc_library("logging") {
+     "//third_party/abseil-cpp/absl/strings:string_view",
+   ]
+ 
++  # Added to allow including apm_data_dumper.h in rtc_base/logging.cc
++  # for Mozilla controlling aec logging from about:webrtc.
++  if (build_with_mozilla) {
++    configs += [ "../modules/audio_processing:apm_debug_dump" ]
++  }
++
+   if (build_with_chromium) {
+     # Dependency on chromium's logging (in //base).
+     deps += [ "//base" ]
+diff --git a/rtc_base/logging.cc b/rtc_base/logging.cc
+index f0461f79e9..adf6deffa9 100644
+--- a/rtc_base/logging.cc
++++ b/rtc_base/logging.cc
+@@ -44,6 +44,7 @@ static const int kMaxLogLineSize = 1024 - 60;
+ #include "absl/base/attributes.h"
+ #include "absl/strings/string_view.h"
+ #include "api/units/timestamp.h"
++#include "modules/audio_processing/logging/apm_data_dumper.h"
+ #include "rtc_base/checks.h"
+ #include "rtc_base/platform_thread_types.h"
+ #include "rtc_base/string_encode.h"
+@@ -54,6 +55,24 @@ static const int kMaxLogLineSize = 1024 - 60;
+ #include "rtc_base/time_utils.h"
+ 
+ namespace rtc {
++
++bool LogMessage::aec_debug_ = false;
++std::string LogMessage::aec_filename_base_;
++
++void LogMessage::set_aec_debug(bool enable) {
++  aec_debug_ = enable;
++  webrtc::ApmDataDumper::SetActivated(aec_debug_);
++}
++
++std::string LogMessage::aec_debug_filename() {
++  return aec_filename_base_;
++}
++
++void LogMessage::set_aec_debug_filename(const char* filename) {
++  aec_filename_base_ = filename;
++  webrtc::ApmDataDumper::SetOutputDirectory(aec_filename_base_);
++}
++
+ namespace {
+ 
+ // By default, release builds don't log, debug builds at info level
+@@ -114,7 +133,7 @@ std::string LogLineRef::DefaultLogLine() const {
+ // LogMessage
+ /////////////////////////////////////////////////////////////////////////////
+ 
+-bool LogMessage::log_to_stderr_ = true;
++bool LogMessage::log_to_stderr_ = false;
+ 
+ // The list of logging streams currently configured.
+ // Note: we explicitly do not clean this up, because of the uncertain ordering
+diff --git a/rtc_base/logging.h b/rtc_base/logging.h
+index 6d5a4bebcf..4b5a99f14e 100644
+--- a/rtc_base/logging.h
++++ b/rtc_base/logging.h
+@@ -555,6 +555,12 @@ class LogMessage {
+   }
+ #endif  // RTC_LOG_ENABLED()
+ 
++  // Enable dumping of AEC inputs and outputs.  Can be changed in mid-call
++  static void set_aec_debug(bool enable);
++  static bool aec_debug() { return aec_debug_; }
++  static std::string aec_debug_filename();
++  static void set_aec_debug_filename(const char* filename);
++
+  private:
+   friend class LogMessageForTesting;
+ 
+@@ -610,6 +616,9 @@ class LogMessage {
+ 
+   // The stringbuilder that buffers the formatted message before output
+   rtc::StringBuilder print_stream_;
++
++  static bool aec_debug_;
++  static std::string aec_filename_base_;
+ };
+ 
+ //////////////////////////////////////////////////////////////////////
+diff --git a/test/fuzzers/rtp_packet_fuzzer.cc b/test/fuzzers/rtp_packet_fuzzer.cc
+index eaa423e855..6a7b233e29 100644
+--- a/test/fuzzers/rtp_packet_fuzzer.cc
++++ b/test/fuzzers/rtp_packet_fuzzer.cc
+@@ -170,6 +170,10 @@ void FuzzOneInput(const uint8_t* data, size_t size) {
+         CorruptionDetectionMessage message;
+         packet.GetExtension<CorruptionDetectionExtension>(&message);
+         break;
++      case kRtpExtensionCsrcAudioLevel: {
++        CsrcAudioLevelList levels;
++        packet.GetExtension<CsrcAudioLevel>(&levels);
++        break;
        }
      }
    }
--  if (scale_resolution_down_to !=
--          video_source_sink_controller_.scale_resolution_down_to() ||
-+  if (requested_resolution !=
-+          video_source_sink_controller_.requested_resolution() ||
-       active != video_source_sink_controller_.active() ||
-       max_framerate !=
-           video_source_sink_controller_.frame_rate_upper_limit().value_or(-1)) {
--    video_source_sink_controller_.SetScaleResolutionDownTo(
--        scale_resolution_down_to);
-+    video_source_sink_controller_.SetRequestedResolution(requested_resolution);
-     if (max_framerate >= 0) {
-       video_source_sink_controller_.SetFrameRateUpperLimit(max_framerate);
-     } else {
-@@ -2414,12 +2412,12 @@ void VideoStreamEncoder::OnVideoSourceRestrictionsUpdated(
-   // so that ownership on restrictions/wants is kept on &encoder_queue_
-   latest_restrictions_ = restrictions;
+diff --git a/test/vcm_capturer.cc b/test/vcm_capturer.cc
+index 0a9226ef6f..620c1c02f3 100644
+--- a/test/vcm_capturer.cc
++++ b/test/vcm_capturer.cc
+@@ -83,7 +83,7 @@ void VcmCapturer::Destroy() {
+     return;
  
--  // When the `scale_resolution_down_to` API is used, we need to reconfigure any
-+  // When the `requested_resolution` API is used, we need to reconfigure any
-   // time the restricted resolution is updated. When that API isn't used, the
-   // encoder settings are relative to the frame size and reconfiguration happens
-   // automatically on new frame size and we don't need to reconfigure here.
-   if (encoder_ && max_pixels_updated &&
--      encoder_config_.HasScaleResolutionDownTo()) {
-+      encoder_config_.HasRequestedResolution()) {
-     // The encoder will be reconfigured on the next frame.
-     pending_encoder_reconfiguration_ = true;
-   }
-diff --git a/video/video_stream_encoder_unittest.cc b/video/video_stream_encoder_unittest.cc
-index 9fc90298e2..b93a1255da 100644
---- a/video/video_stream_encoder_unittest.cc
-+++ b/video/video_stream_encoder_unittest.cc
-@@ -2588,7 +2588,7 @@ TEST_F(VideoStreamEncoderTest, FrameRateLimitCanBeReset) {
+   vcm_->StopCapture();
+-  vcm_->DeRegisterCaptureDataCallback();
++  vcm_->DeRegisterCaptureDataCallback(this);
+   // Release reference to VCM.
+   vcm_ = nullptr;
  }
+diff --git a/webrtc.gni b/webrtc.gni
+index c8da32a8d6..47e12e6c36 100644
+--- a/webrtc.gni
++++ b/webrtc.gni
+@@ -123,7 +123,7 @@ declare_args() {
  
- TEST_F(VideoStreamEncoderTest, RequestInSinkWantsBeforeFirstFrame) {
--  // Use a real video stream factory or else `scale_resolution_down_to` is not
-+  // Use a real video stream factory or else `requested_resolution` is not
-   // applied correctly.
-   video_encoder_config_.video_stream_factory = nullptr;
-   ConfigureEncoder(video_encoder_config_.Copy());
-@@ -2596,30 +2596,28 @@ TEST_F(VideoStreamEncoderTest, RequestInSinkWantsBeforeFirstFrame) {
-       kTargetBitrate, kTargetBitrate, kTargetBitrate, 0, 0, 0);
+   # Selects whether debug dumps for the audio processing module
+   # should be generated.
+-  apm_debug_dump = false
++  apm_debug_dump = build_with_mozilla
  
-   ASSERT_THAT(video_encoder_config_.simulcast_layers, SizeIs(1));
--  video_encoder_config_.simulcast_layers[0].scale_resolution_down_to.emplace(
-+  video_encoder_config_.simulcast_layers[0].requested_resolution.emplace(
-       Resolution({.width = 320, .height = 160}));
- 
-   video_stream_encoder_->ConfigureEncoder(video_encoder_config_.Copy(),
-                                           kMaxPayloadLength);
- 
--  EXPECT_EQ(video_source_.sink_wants().scale_resolution_down_to,
-+  EXPECT_EQ(video_source_.sink_wants().requested_resolution,
-             rtc::VideoSinkWants::FrameSize(320, 160));
- 
--  video_encoder_config_.simulcast_layers[0].scale_resolution_down_to->height =
--      320;
--  video_encoder_config_.simulcast_layers[0].scale_resolution_down_to->width =
--      640;
-+  video_encoder_config_.simulcast_layers[0].requested_resolution->height = 320;
-+  video_encoder_config_.simulcast_layers[0].requested_resolution->width = 640;
-   video_stream_encoder_->ConfigureEncoder(video_encoder_config_.Copy(),
-                                           kMaxPayloadLength);
- 
--  EXPECT_EQ(video_source_.sink_wants().scale_resolution_down_to,
-+  EXPECT_EQ(video_source_.sink_wants().requested_resolution,
-             rtc::VideoSinkWants::FrameSize(640, 320));
- 
-   video_stream_encoder_->Stop();
- }
- 
- TEST_F(VideoStreamEncoderTest, RequestInWrongAspectRatioWithAdapter) {
--  // Use a real video stream factory or else `scale_resolution_down_to` is not
-+  // Use a real video stream factory or else `requested_resolution` is not
-   // applied correctly.
-   video_encoder_config_.video_stream_factory = nullptr;
-   ConfigureEncoder(video_encoder_config_.Copy());
-@@ -2633,7 +2631,7 @@ TEST_F(VideoStreamEncoderTest, RequestInWrongAspectRatioWithAdapter) {
-       &source, webrtc::DegradationPreference::MAINTAIN_FRAMERATE);
- 
-   ASSERT_THAT(video_encoder_config_.simulcast_layers, SizeIs(1));
--  video_encoder_config_.simulcast_layers[0].scale_resolution_down_to = {
-+  video_encoder_config_.simulcast_layers[0].requested_resolution = {
-       .width = 30, .height = 30};
-   video_stream_encoder_->ConfigureEncoder(video_encoder_config_.Copy(),
-                                           kMaxPayloadLength);
-@@ -6316,8 +6314,8 @@ TEST_F(VideoStreamEncoderTest,
- 
- enum class FrameResolutionChangeMethod {
-   MODIFY_SOURCE,
--  MODIFY_SCALE_RESOLUTION_DOWN_TO,
--  MODIFY_SCALE_RESOLUTION_DOWN_BY,
-+  MODIFY_REQUESTED_RESOLUTION,
-+  MODIFY_SCALE_RESOLUTION_BY,
- };
- class VideoStreamEncoderInitialFrameDropperTest
-     : public VideoStreamEncoderTest,
-@@ -6331,12 +6329,12 @@ class VideoStreamEncoderInitialFrameDropperTest
-     switch (frame_resolution_change_method_) {
-       case FrameResolutionChangeMethod::MODIFY_SOURCE:
-         break;
--      case FrameResolutionChangeMethod::MODIFY_SCALE_RESOLUTION_DOWN_TO:
-+      case FrameResolutionChangeMethod::MODIFY_REQUESTED_RESOLUTION:
-         video_encoder_config_.video_stream_factory = nullptr;
-         captureWidth = kWidth;
-         captureHeight = kHeight;
-         break;
--      case FrameResolutionChangeMethod::MODIFY_SCALE_RESOLUTION_DOWN_BY:
-+      case FrameResolutionChangeMethod::MODIFY_SCALE_RESOLUTION_BY:
-         captureWidth = kWidth;
-         captureHeight = kHeight;
-         break;
-@@ -6349,15 +6347,14 @@ class VideoStreamEncoderInitialFrameDropperTest
-         captureWidth = width;
-         captureHeight = height;
-         break;
--      case FrameResolutionChangeMethod::MODIFY_SCALE_RESOLUTION_DOWN_TO:
-+      case FrameResolutionChangeMethod::MODIFY_REQUESTED_RESOLUTION:
-         ASSERT_THAT(video_encoder_config_.simulcast_layers, SizeIs(1));
--        video_encoder_config_.simulcast_layers[0]
--            .scale_resolution_down_to.emplace(
--                Resolution({.width = width, .height = height}));
-+        video_encoder_config_.simulcast_layers[0].requested_resolution.emplace(
-+            Resolution({.width = width, .height = height}));
-         video_stream_encoder_->ConfigureEncoder(video_encoder_config_.Copy(),
-                                                 kMaxPayloadLength);
-         break;
--      case FrameResolutionChangeMethod::MODIFY_SCALE_RESOLUTION_DOWN_BY:
-+      case FrameResolutionChangeMethod::MODIFY_SCALE_RESOLUTION_BY:
-         ASSERT_THAT(video_encoder_config_.simulcast_layers, SizeIs(1));
-         double scale_height =
-             static_cast<double>(kHeight) / static_cast<double>(height);
-@@ -6384,10 +6381,9 @@ class VideoStreamEncoderInitialFrameDropperTest
- INSTANTIATE_TEST_SUITE_P(
-     VideoStreamEncoderInitialFrameDropperTest,
-     VideoStreamEncoderInitialFrameDropperTest,
--    ::testing::Values(
--        FrameResolutionChangeMethod::MODIFY_SOURCE,
--        FrameResolutionChangeMethod::MODIFY_SCALE_RESOLUTION_DOWN_TO,
--        FrameResolutionChangeMethod::MODIFY_SCALE_RESOLUTION_DOWN_BY));
-+    ::testing::Values(FrameResolutionChangeMethod::MODIFY_SOURCE,
-+                      FrameResolutionChangeMethod::MODIFY_REQUESTED_RESOLUTION,
-+                      FrameResolutionChangeMethod::MODIFY_SCALE_RESOLUTION_BY));
- 
- TEST_P(VideoStreamEncoderInitialFrameDropperTest,
-        InitialFrameDropActivatesWhenResolutionIncreases) {
-@@ -6435,7 +6431,7 @@ TEST_P(VideoStreamEncoderInitialFrameDropperTest,
- 
-   int timestamp = 1;
- 
--  // By using the `scale_resolution_down_to` API, ReconfigureEncoder() gets
-+  // By using the `requested_resolution` API, ReconfigureEncoder() gets
-   // triggered from VideoStreamEncoder::OnVideoSourceRestrictionsUpdated().
-   SetEncoderFrameSize(kWidth, kHeight);
- 
+   # Selects whether the audio processing module should be excluded.
+   rtc_exclude_audio_processing_module = false
