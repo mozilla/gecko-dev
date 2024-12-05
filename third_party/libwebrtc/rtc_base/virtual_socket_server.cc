@@ -63,16 +63,16 @@ const int NUM_SAMPLES = 1000;
 
 // Packets are passed between sockets as messages.  We copy the data just like
 // the kernel does.
-class Packet {
+class VirtualSocketPacket {
  public:
-  Packet(const char* data, size_t size, const SocketAddress& from)
+  VirtualSocketPacket(const char* data, size_t size, const SocketAddress& from)
       : size_(size), consumed_(0), from_(from) {
     RTC_DCHECK(nullptr != data);
     data_ = new char[size_];
     memcpy(data_, data, size_);
   }
 
-  ~Packet() { delete[] data_; }
+  ~VirtualSocketPacket() { delete[] data_; }
 
   const char* data() const { return data_ + consumed_; }
   size_t size() const { return size_ - consumed_; }
@@ -296,7 +296,7 @@ int VirtualSocket::SafetyBlock::RecvFrom(void* buffer,
   }
 
   // Return the packet at the front of the queue.
-  Packet& packet = *recv_buffer_.front();
+  VirtualSocketPacket& packet = *recv_buffer_.front();
   size_t data_read = std::min(size, packet.size());
   memcpy(buffer, packet.data(), data_read);
   addr = packet.from();
@@ -403,7 +403,7 @@ int VirtualSocket::SetOption(Option opt, int value) {
 }
 
 void VirtualSocket::PostPacket(TimeDelta delay,
-                               std::unique_ptr<Packet> packet) {
+                               std::unique_ptr<VirtualSocketPacket> packet) {
   rtc::scoped_refptr<SafetyBlock> safety = safety_;
   VirtualSocket* socket = this;
   server_->msg_queue_->PostDelayedTask(
@@ -416,7 +416,8 @@ void VirtualSocket::PostPacket(TimeDelta delay,
       delay);
 }
 
-bool VirtualSocket::SafetyBlock::AddPacket(std::unique_ptr<Packet> packet) {
+bool VirtualSocket::SafetyBlock::AddPacket(
+    std::unique_ptr<VirtualSocketPacket> packet) {
   MutexLock lock(&mutex_);
   if (alive_) {
     recv_buffer_.push_back(std::move(packet));
@@ -1105,8 +1106,9 @@ void VirtualSocketServer::AddPacketToNetwork(VirtualSocket* sender,
   if (ordered) {
     ts = sender->UpdateOrderedDelivery(ts);
   }
-  recipient->PostPacket(TimeDelta::Millis(ts - cur_time),
-                        std::make_unique<Packet>(data, data_size, sender_addr));
+  recipient->PostPacket(
+      TimeDelta::Millis(ts - cur_time),
+      std::make_unique<VirtualSocketPacket>(data, data_size, sender_addr));
 }
 
 uint32_t VirtualSocketServer::SendDelay(uint32_t size) {
