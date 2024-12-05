@@ -58,6 +58,8 @@
 #include "rtc_base/checks.h"
 #include "rtc_base/experiments/rate_control_settings.h"
 #include "rtc_base/logging.h"
+#include "rtc_base/strings/str_join.h"
+#include "rtc_base/strings/string_builder.h"
 
 namespace webrtc {
 namespace {
@@ -393,6 +395,9 @@ int SimulcastEncoderAdapter::InitEncode(
                         << WebRtcVideoCodecErrorToString(ret);
       return ret;
     }
+    RTC_LOG(LS_WARNING) << "[SEA] InitEncode: failed with error code: "
+                        << WebRtcVideoCodecErrorToString(ret)
+                        << ". Falling back to multi-encoder mode.";
   }
 
   // Multi-encoder simulcast or singlecast (deactivated layers).
@@ -945,15 +950,17 @@ VideoEncoder::EncoderInfo SimulcastEncoderAdapter::GetEncoderInfo() const {
   }
 
   encoder_info.scaling_settings = VideoEncoder::ScalingSettings::kOff;
+  std::vector<std::string> encoder_names;
 
   for (size_t i = 0; i < stream_contexts_.size(); ++i) {
     VideoEncoder::EncoderInfo encoder_impl_info =
         stream_contexts_[i].encoder().GetEncoderInfo();
-    if (i == 0) {
-      // Encoder name indicates names of all sub-encoders.
-      encoder_info.implementation_name += " (";
-      encoder_info.implementation_name += encoder_impl_info.implementation_name;
 
+    // Encoder name indicates names of all active sub-encoders.
+    if (!stream_contexts_[i].is_paused()) {
+      encoder_names.push_back(encoder_impl_info.implementation_name);
+    }
+    if (i == 0) {
       encoder_info.supports_native_handle =
           encoder_impl_info.supports_native_handle;
       encoder_info.has_trusted_rate_controller =
@@ -962,9 +969,6 @@ VideoEncoder::EncoderInfo SimulcastEncoderAdapter::GetEncoderInfo() const {
           encoder_impl_info.is_hardware_accelerated;
       encoder_info.is_qp_trusted = encoder_impl_info.is_qp_trusted;
     } else {
-      encoder_info.implementation_name += ", ";
-      encoder_info.implementation_name += encoder_impl_info.implementation_name;
-
       // Native handle supported if any encoder supports it.
       encoder_info.supports_native_handle |=
           encoder_impl_info.supports_native_handle;
@@ -999,7 +1003,13 @@ VideoEncoder::EncoderInfo SimulcastEncoderAdapter::GetEncoderInfo() const {
       encoder_info.apply_alignment_to_all_simulcast_layers = true;
     }
   }
-  encoder_info.implementation_name += ")";
+
+  if (!encoder_names.empty()) {
+    rtc::StringBuilder implementation_name_builder(" (");
+    implementation_name_builder << StrJoin(encoder_names, ", ");
+    implementation_name_builder << ")";
+    encoder_info.implementation_name += implementation_name_builder.Release();
+  }
 
   OverrideFromFieldTrial(&encoder_info);
 
