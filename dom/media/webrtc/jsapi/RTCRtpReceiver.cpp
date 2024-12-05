@@ -361,14 +361,14 @@ nsTArray<RefPtr<RTCStatsPromise>> RTCRtpReceiver::GetStatsInternal(
               }
 
               // First, fill in remote stat with rtcp sender data, if present.
-              if (audioStats->last_sender_report_utc_timestamp_ms) {
+              if (audioStats->last_sender_report_utc_timestamp) {
                 RTCRemoteOutboundRtpStreamStats remote;
                 constructCommonRemoteOutboundRtpStats(
                     remote,
                     RTCStatsTimestamp::FromNtp(
                         aConduit->GetTimestampMaker(),
-                        webrtc::Timestamp::Millis(
-                            *audioStats->last_sender_report_utc_timestamp_ms) +
+                        /*webrtc::Timestamp::Millis(*/
+                            *audioStats->last_sender_report_utc_timestamp +
                             webrtc::TimeDelta::Seconds(webrtc::kNtpJan1970))
                         .ToDom());
                 remote.mPacketsSent.Construct(
@@ -376,7 +376,7 @@ nsTArray<RefPtr<RTCStatsPromise>> RTCRtpReceiver::GetStatsInternal(
                 remote.mBytesSent.Construct(
                     audioStats->sender_reports_bytes_sent);
                 remote.mRemoteTimestamp.Construct(
-                    *audioStats->last_sender_report_remote_utc_timestamp_ms);
+                    audioStats->last_sender_report_remote_utc_timestamp->ms<double>());
                 if (!report->mRemoteOutboundRtpStreamStats.AppendElement(
                         std::move(remote), fallible)) {
                   mozalloc_handle_oom(0);
