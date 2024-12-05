@@ -41,8 +41,7 @@ class Promise;
  * MIDIAccess objects are managed via MIDIAccessManager.
  */
 class MIDIAccess final : public DOMEventTargetHelper,
-                         public Observer<MIDIPortList>,
-                         public SupportsWeakPtr {
+                         public Observer<MIDIPortList> {
   // Use the Permission Request class in MIDIAccessManager for creating
   // MIDIAccess objects.
   friend class MIDIPermissionRequest;

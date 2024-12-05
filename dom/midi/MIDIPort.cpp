@@ -23,7 +23,8 @@ using namespace mozilla::ipc;
 namespace mozilla::dom {
 
 NS_IMPL_CYCLE_COLLECTION_INHERITED(MIDIPort, DOMEventTargetHelper,
-                                   mOpeningPromise, mClosingPromise)
+                                   mMIDIAccessParent, mOpeningPromise,
+                                   mClosingPromise)
 
 NS_IMPL_CYCLE_COLLECTION_TRACE_BEGIN_INHERITED(MIDIPort, DOMEventTargetHelper)
 NS_IMPL_CYCLE_COLLECTION_TRACE_END
@@ -36,9 +37,7 @@ NS_IMPL_ADDREF_INHERITED(MIDIPort, DOMEventTargetHelper)
 NS_IMPL_RELEASE_INHERITED(MIDIPort, DOMEventTargetHelper)
 
 MIDIPort::MIDIPort(nsPIDOMWindowInner* aWindow)
-    : DOMEventTargetHelper(aWindow),
-      mMIDIAccessParent(nullptr),
-      mKeepAlive(false) {
+    : DOMEventTargetHelper(aWindow), mKeepAlive(false) {
   MOZ_ASSERT(aWindow);
 
   if (Document* aDoc = aWindow->GetExtantDoc()) {
@@ -220,8 +219,8 @@ void MIDIPort::FireStateChangeEvent() {
 
   // Fire MIDIAccess events first so that the port is no longer in the port
   // maps.
-  if (RefPtr<MIDIAccess> access = mMIDIAccessParent.get()) {
-    access->FireConnectionEvent(this);
+  if (mMIDIAccessParent) {
+    mMIDIAccessParent->FireConnectionEvent(this);
   }
 
   MIDIConnectionEventInit init;

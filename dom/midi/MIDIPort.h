@@ -100,9 +100,8 @@ class MIDIPort : public DOMEventTargetHelper {
   void DontKeepAliveOnStatechange();
 
   // MIDIAccess object that created this MIDIPort object, which we need for
-  // firing port connection events. There is a chance this MIDIPort object can
-  // outlive its parent MIDIAccess object, so this is a weak pointer.
-  WeakPtr<MIDIAccess> mMIDIAccessParent;
+  // firing port connection events.
+  RefPtr<MIDIAccess> mMIDIAccessParent;
   // Promise object generated on Open() call, that needs to be resolved once the
   // platform specific Open() function has completed.
   RefPtr<Promise> mOpeningPromise;
