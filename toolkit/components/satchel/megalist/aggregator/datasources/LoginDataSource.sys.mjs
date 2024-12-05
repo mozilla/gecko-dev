@@ -148,6 +148,8 @@ export class LoginDataSource extends DataSourceBase {
         { id: "AddLogin" },
         { id: "UpdateLogin" },
         { id: "DeleteLogin" },
+        { id: "DiscardChanges" },
+        { id: "ConfirmDiscardChanges" },
         {
           id: "ImportFromBrowser",
           label: "passwords-command-import-from-browser",
@@ -183,6 +185,9 @@ export class LoginDataSource extends DataSourceBase {
       this.#header.executeAddLogin = newLogin => this.#addLogin(newLogin);
       this.#header.executeUpdateLogin = login => this.#updateLogin(login);
       this.#header.executeDeleteLogin = login => this.#deleteLogin(login);
+      this.#header.executeDiscardChanges = () => this.#cancelEdit();
+      this.#header.executeConfirmDiscardChanges = () =>
+        this.#discardChangesConfirmed();
 
       this.#exportPasswordsStrings = {
         OSReauthMessage: strings.exportPasswordsOSReauthMessage,
@@ -634,6 +639,16 @@ export class LoginDataSource extends DataSourceBase {
     } catch (error) {
       this.#handleLoginStorageErrors(modifiedLogin.origin, error);
     }
+  }
+
+  #cancelEdit() {
+    this.setNotification({
+      id: "discard-changes",
+    });
+  }
+
+  #discardChangesConfirmed() {
+    this.discardChangesConfirmed();
   }
 
   #handleLoginStorageErrors(origin, error) {

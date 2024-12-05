@@ -120,6 +120,16 @@ export class MegalistAlpha extends MozLitElement {
     this.#sendCommand(this.displayMode);
   }
 
+  #onCancelLoginForm() {
+    switch (this.viewMode) {
+      case VIEW_MODES.EDIT:
+        this.#sendCommand("DiscardChanges");
+        return;
+      default:
+        this.viewMode = VIEW_MODES.LIST;
+    }
+  }
+
   #openMenu(e) {
     const panelList = this.shadowRoot.querySelector("panel-list");
     panelList.toggle(e);
@@ -161,6 +171,12 @@ export class MegalistAlpha extends MozLitElement {
 
   receiveReauthResponse(isAuthorized) {
     this.reauthResolver?.(isAuthorized);
+  }
+
+  receiveDiscardChangesConfirmed() {
+    this.viewMode = VIEW_MODES.LIST;
+    this.editingRecord = null;
+    this.notification = null;
   }
 
   reauthCommandHandler(commandFn) {
@@ -313,7 +329,7 @@ export class MegalistAlpha extends MozLitElement {
         return this.renderList();
       case VIEW_MODES.ADD:
         return html` <login-form
-          .onClose=${() => (this.viewMode = VIEW_MODES.LIST)}
+          .onClose=${() => this.#onCancelLoginForm()}
           .onSaveClick=${loginForm => {
             this.#sendCommand("AddLogin", { value: loginForm });
           }}
@@ -331,14 +347,7 @@ export class MegalistAlpha extends MozLitElement {
               this.editingRecord.password.concealed,
               this.editingRecord.password.lineIndex
             )}
-          .onClose=${() => {
-            this.#messageToViewModel("Command", {
-              commandId: "Cancel",
-              snapshotId: this.editingRecord.password.lineIndex,
-            });
-            this.viewMode = VIEW_MODES.LIST;
-            this.editingRecord = null;
-          }}
+          .onClose=${() => this.#onCancelLoginForm()}
           .onSaveClick=${loginForm => {
             loginForm.guid = this.editingRecord.origin.guid;
             this.#sendCommand("UpdateLogin", { value: loginForm });
