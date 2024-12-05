@@ -756,7 +756,7 @@ index 1c08382969..ff69ea62dc 100644
  using webrtc::FrameDecryptorInterface;
  using webrtc::FrameEncryptorInterface;
 diff --git a/modules/audio_coding/BUILD.gn b/modules/audio_coding/BUILD.gn
-index 29eb1197d7..362ada4d2b 100644
+index c42da4142b..55da50eee9 100644
 --- a/modules/audio_coding/BUILD.gn
 +++ b/modules/audio_coding/BUILD.gn
 @@ -358,7 +358,7 @@ rtc_library("webrtc_opus_wrapper") {
