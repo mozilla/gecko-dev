@@ -1,56 +1,79 @@
-From: Shunbo Li <lishunbo@shengwang.cn>
-Date: Thu, 24 Oct 2024 17:06:48 +0800
-Subject: (cherry-pick-branch-heads/6778) Fix regression caused by default
- action changed for h264:Nalu:kFiller
+From: =?UTF-8?q?Henrik=20Bostr=C3=B6m?= <hbos@webrtc.org>
+Date: Wed, 23 Oct 2024 13:14:40 +0200
+Subject: (cherry-pick-branch-heads/6778) [Merge-131] Allow not specifying
+ `requested_resolution` on inactive encodings.
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
 
-This commit fixes the issue of discontinuous RTP sequence numbers
-caused by improper discarding of these nalu types:
-kFiller/kEndofSequence/kEndOfStream.
+This fixes the bug where scaleResolutionDownTo must be specified even
+on inactive encodings (scaleResolutionDownTo is the JavaScript name for
+what is called requested_resolution inside WebRTC).
 
-(cherry picked from commit 521b09bfb720eb9a32d53e90aaf6501249ec445b)
+(cherry picked from commit 1c262bf5a4c2f2aaf226b24f11195ba8cae772f1)
 
-Bug: webrtc:368335257
-PR: chromium:375352614
-Change-Id: Id7a2d34b22ee1c6e1523d8279d9838c57fdeb97f
-Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/366501
-Reviewed-by: Danil Chapovalov <danilchap@webrtc.org>
-Commit-Queue: Sergey Silkin <ssilkin@webrtc.org>
-Reviewed-by: Sergey Silkin <ssilkin@webrtc.org>
-Cr-Original-Commit-Position: refs/heads/main@{#43299}
-Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/366900
-Reviewed-by: Erik Språng <sprang@webrtc.org>
-Commit-Queue: Danil Chapovalov <danilchap@webrtc.org>
-Cr-Commit-Position: refs/branch-heads/6778@{#3}
+Bug: chromium:375048792
+Change-Id: I3206ef7de09eaba24a5b4305d888ec4904617e58
+Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/366522
+Auto-Submit: Henrik Boström <hbos@webrtc.org>
+Commit-Queue: Ilya Nikolaevskiy <ilnik@webrtc.org>
+Reviewed-by: Ilya Nikolaevskiy <ilnik@webrtc.org>
+Commit-Queue: Henrik Boström <hbos@webrtc.org>
+Cr-Original-Commit-Position: refs/heads/main@{#43292}
+Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/366661
+Cr-Commit-Position: refs/branch-heads/6778@{#2}
 Cr-Branched-From: 7b1b7a0f51593df7a1a802f489d6a2fb14195bcc-refs/heads/main@{#43221}
 ---
- AUTHORS                                                | 1 +
- modules/rtp_rtcp/source/video_rtp_depacketizer_h264.cc | 1 +
- 2 files changed, 2 insertions(+)
+ media/base/media_engine.cc                      |  3 ++-
+ pc/peer_connection_encodings_integrationtest.cc | 12 ++++++++++--
+ 2 files changed, 12 insertions(+), 3 deletions(-)
 
-diff --git a/AUTHORS b/AUTHORS
-index 652e3aec29..716a9c32df 100644
---- a/AUTHORS
-+++ b/AUTHORS
-@@ -125,6 +125,7 @@ Sergio Garcia Murillo <sergio.garcia.murillo@gmail.com>
- Shaofan Qi <vshaqi@gmail.com>
- Shigemasa Watanabe <shigemasa7watanabe@gmail.com>
- Shuhai Peng <shuhai.peng@intel.com>
-+Shunbo Li <lishunbo@shengwang.cn>
- Seija <doremylover123@gmail.com>
- Silviu Caragea <silviu.cpp@gmail.com>
- Stefan Gula <steweg@gmail.com>
-diff --git a/modules/rtp_rtcp/source/video_rtp_depacketizer_h264.cc b/modules/rtp_rtcp/source/video_rtp_depacketizer_h264.cc
-index 2439c6c16f..97bbe7db24 100644
---- a/modules/rtp_rtcp/source/video_rtp_depacketizer_h264.cc
-+++ b/modules/rtp_rtcp/source/video_rtp_depacketizer_h264.cc
-@@ -206,6 +206,7 @@ std::optional<VideoRtpDepacketizer::ParsedRtpPayload> ProcessStapAOrSingleNalu(
-       case H264::NaluType::kEndOfSequence:
-       case H264::NaluType::kEndOfStream:
-       case H264::NaluType::kFiller:
-+        break;
-       case H264::NaluType::kStapA:
-       case H264::NaluType::kFuA:
-         RTC_LOG(LS_WARNING) << "Unexpected STAP-A or FU-A received.";
+diff --git a/media/base/media_engine.cc b/media/base/media_engine.cc
+index c4b4f817ac..b4bce757b7 100644
+--- a/media/base/media_engine.cc
++++ b/media/base/media_engine.cc
+@@ -206,7 +206,8 @@ webrtc::RTCError CheckRtpParametersValues(
+   if (has_requested_resolution &&
+       absl::c_any_of(rtp_parameters.encodings,
+                      [](const webrtc::RtpEncodingParameters& encoding) {
+-                       return !encoding.requested_resolution.has_value();
++                       return encoding.active &&
++                              !encoding.requested_resolution.has_value();
+                      })) {
+     LOG_AND_RETURN_ERROR(RTCErrorType::INVALID_MODIFICATION,
+                          "If a resolution is specified on any encoding then "
+diff --git a/pc/peer_connection_encodings_integrationtest.cc b/pc/peer_connection_encodings_integrationtest.cc
+index d97e06b856..079dbbec73 100644
+--- a/pc/peer_connection_encodings_integrationtest.cc
++++ b/pc/peer_connection_encodings_integrationtest.cc
+@@ -2152,8 +2152,8 @@ TEST_F(PeerConnectionEncodingsIntegrationTest,
+       pc_wrapper->pc()->AddTransceiver(cricket::MEDIA_TYPE_VIDEO, init);
+   ASSERT_TRUE(transceiver_or_error.ok());
+ 
+-  // SetParameters: If `requested_resolution` is specified on any encoding it
+-  // must be specified on all encodings.
++  // SetParameters: If `requested_resolution` is specified on any active
++  // encoding it must be specified on all active encodings.
+   auto sender = transceiver_or_error.value()->sender();
+   auto parameters = sender->GetParameters();
+   parameters.encodings[0].requested_resolution = {.width = 640, .height = 480};
+@@ -2161,11 +2161,19 @@ TEST_F(PeerConnectionEncodingsIntegrationTest,
+   auto error = sender->SetParameters(parameters);
+   EXPECT_FALSE(error.ok());
+   EXPECT_EQ(error.type(), RTCErrorType::INVALID_MODIFICATION);
++  // But it's OK not to specify `requested_resolution` on an inactive encoding.
++  parameters = sender->GetParameters();
++  parameters.encodings[0].requested_resolution = {.width = 640, .height = 480};
++  parameters.encodings[1].active = false;
++  parameters.encodings[1].requested_resolution = std::nullopt;
++  error = sender->SetParameters(parameters);
++  EXPECT_TRUE(error.ok());
+ 
+   // SetParameters: Width and height must not be zero.
+   sender = transceiver_or_error.value()->sender();
+   parameters = sender->GetParameters();
+   parameters.encodings[0].requested_resolution = {.width = 1280, .height = 0};
++  parameters.encodings[1].active = true;
+   parameters.encodings[1].requested_resolution = {.width = 0, .height = 720};
+   error = sender->SetParameters(parameters);
+   EXPECT_FALSE(error.ok());
