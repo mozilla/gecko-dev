@@ -19,11 +19,6 @@ var gProfiles = {
     this.toggleProfileMenus = this.toggleProfileMenus.bind(this);
     this.updateView = this.updateView.bind(this);
 
-    this.profiles = [];
-    if (SelectableProfileService.initialized) {
-      this.profiles = await SelectableProfileService.getAllProfiles();
-    }
-
     this.bundle = Services.strings.createBundle(
       "chrome://browser/locale/browser.properties"
     );
@@ -183,31 +178,13 @@ var gProfiles = {
   /**
    * Draws the menubar panel contents.
    */
-  onPopupShowing() {
-    // TODO (bug 1926630) We cannot async fetch the current list of profiles
-    // because menubar popups do not support async popupshowing callbacks
-    // (the resulting menu is not rendered correctly on macos).
-    //
-    // Our temporary workaround is to use a stale cached copy of the profiles
-    // list to render synchronously, and update our profiles list async. If the
-    // profiles datastore has been updated since the popup was last shown, the
-    // contents of the menu will be stale on the first render, then up-to-date
-    // after that.
-    //
-    // Bug 1926630 will ensure correct menu contents by updating
-    // `this.profiles` in response to a notification from the
-    // SelectableProfileService, and we can remove this call then.
-    SelectableProfileService.getAllProfiles().then(profiles => {
-      this.profiles = profiles;
-    });
-
+  async onPopupShowing() {
     let menuPopup = document.getElementById("menu_ProfilesPopup");
-
     while (menuPopup.hasChildNodes()) {
       menuPopup.firstChild.remove();
     }
 
-    let profiles = this.profiles;
+    let profiles = await SelectableProfileService.getAllProfiles();
     let currentProfile = SelectableProfileService.currentProfile;
 
     for (let profile of profiles) {
