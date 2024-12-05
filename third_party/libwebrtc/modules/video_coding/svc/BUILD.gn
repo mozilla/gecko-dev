@@ -98,6 +98,7 @@ rtc_source_set("simulcast_to_svc_converter") {
     "../../../api/video:encoded_image",
     "../../../api/video_codecs:video_codecs_api",
     "../../../modules/video_coding:video_codec_interface",
+    "../../../modules/video_coding:video_coding_utility",
     "../../../rtc_base:checks",
     "../../../rtc_base/system:rtc_export",
   ]

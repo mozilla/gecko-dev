@@ -58,7 +58,6 @@
 #include "modules/video_coding/svc/scalable_video_controller_no_layering.h"
 #include "modules/video_coding/svc/svc_rate_allocator.h"
 #include "modules/video_coding/utility/framerate_controller_deprecated.h"
-#include "modules/video_coding/utility/simulcast_utility.h"
 #include "rtc_base/checks.h"
 #include "rtc_base/containers/flat_map.h"
 #include "rtc_base/experiments/field_trial_list.h"
@@ -554,8 +553,7 @@ int LibvpxVp9Encoder::InitEncode(const VideoCodec* inst,
   }
 
   if (enable_svc_for_simulcast_ && codec_.numberOfSimulcastStreams > 1) {
-    if (!SimulcastUtility::ValidSimulcastParameters(
-            codec_, codec_.numberOfSimulcastStreams)) {
+    if (!SimulcastToSvcConverter::IsConfigSupported(codec_)) {
       return WEBRTC_VIDEO_CODEC_ERR_SIMULCAST_PARAMETERS_NOT_SUPPORTED;
     }
     RTC_LOG(LS_INFO) << "Rewriting simulcast config to SVC.";
