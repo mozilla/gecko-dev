@@ -303,7 +303,6 @@ class NetworkEventWatcher {
       innerWindowId: resource.innerWindowId,
       resourceId: resource.resourceId,
       isBlocked,
-      isDataOrFileRequest: resource.isDataOrFileRequest,
       receivedUpdates: [],
       resourceUpdates: {
         // Requests already come with request cookies and headers, so those
@@ -383,11 +382,10 @@ class NetworkEventWatcher {
     resourceUpdates[`${updateResource.updateType}Available`] = true;
     receivedUpdates.push(updateResource.updateType);
 
-    const isComplete = networkEvent.isDataOrFileRequest
-      ? receivedUpdates.includes("responseStart")
-      : receivedUpdates.includes("eventTimings") &&
-        receivedUpdates.includes("responseContent") &&
-        receivedUpdates.includes("securityInfo");
+    const isComplete =
+      receivedUpdates.includes("eventTimings") &&
+      receivedUpdates.includes("responseContent") &&
+      receivedUpdates.includes("securityInfo");
 
     if (isComplete) {
       this._emitUpdate(networkEvent);

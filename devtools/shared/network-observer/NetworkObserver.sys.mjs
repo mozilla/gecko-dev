@@ -24,6 +24,7 @@ ChromeUtils.defineESModuleGetters(
   {
     ChannelMap:
       "resource://devtools/shared/network-observer/ChannelMap.sys.mjs",
+    NetUtil: "resource://gre/modules/NetUtil.sys.mjs",
     NetworkAuthListener:
       "resource://devtools/shared/network-observer/NetworkAuthListener.sys.mjs",
     NetworkHelper:
@@ -614,7 +615,7 @@ export class NetworkObserver {
       // For data URLs we can not set up a stream listener as for http,
       // so we have to create a response manually and complete it.
       const response = {
-        // TODO: Bug 1903807. Reevaluate if it's correct to just return
+        // TODO: Bug 1903807. Re-evaluate if it's correct to just return
         // zero for `bodySize` and `decodedBodySize`.
         bodySize: 0,
         decodedBodySize: 0,
@@ -628,7 +629,7 @@ export class NetworkObserver {
         transferredSize: 0,
       };
 
-      // For data URIs all timings can be set to
+      // For data URIs all timings can be set to zero.
       const result = NetworkTimings.getEmptyHARTimings();
       networkEvent.addEventTimings(
         result.total,
@@ -650,6 +651,10 @@ export class NetworkObserver {
         }
       }
 
+      // Security information is not relevant for data channel, but it should
+      // not be considered as insecure either. Set empty string as security
+      // state.
+      networkEvent.addSecurityInfo({ state: "" });
       networkEvent.addResponseContent(response, {});
     }
   );
@@ -680,16 +685,70 @@ export class NetworkObserver {
       }
 
       logPlatformEvent(topic, channel);
+      const owner = this.#onNetworkEvent({}, channel, true);
 
-      const fileActivity = this.#createOrGetActivityObject(channel);
-      fileActivity.owner = this.#onNetworkEvent({}, channel);
-
-      fileActivity.owner.addResponseStart({
-        channel: fileActivity.channel,
-        fromCache: fileActivity.fromCache || fileActivity.fromServiceWorker,
-        rawHeaders: fileActivity.responseRawHeaders,
-        proxyResponseRawHeaders: fileActivity.proxyResponseRawHeaders,
+      owner.addResponseStart({
+        channel,
+        fromCache: false,
+        rawHeaders: "",
       });
+
+      // For file URLs we can not set up a stream listener as for http,
+      // so we have to create a response manually and complete it.
+      const response = {
+        contentCharset: channel.contentCharset,
+        contentLength: channel.contentLength,
+        contentType: channel.contentType,
+        mimeType: lazy.NetworkHelper.addCharsetToMimeType(
+          channel.contentType,
+          channel.contentCharset
+        ),
+        // Same as for cached responses, the transferredSize for file URLs
+        // should be 0 regardless of the actual size of the response.
+        transferredSize: 0,
+      };
+
+      // For file URIs all timings can be set to zero.
+      const result = NetworkTimings.getEmptyHARTimings();
+      owner.addEventTimings(result.total, result.timings, result.offsets);
+
+      const fstream = Cc[
+        "@mozilla.org/network/file-input-stream;1"
+      ].createInstance(Ci.nsIFileInputStream);
+      fstream.init(channel.file, -1, 0, 0);
+      response.text = lazy.NetUtil.readInputStreamToString(
+        fstream,
+        fstream.available()
+      );
+      fstream.close();
+
+      // Set the bodySize to the current response.text.length
+      response.bodySize = response.text.length;
+
+      if (
+        !response.mimeType ||
+        !lazy.NetworkHelper.isTextMimeType(response.mimeType)
+      ) {
+        response.encoding = "base64";
+        try {
+          response.text = btoa(response.text);
+        } catch (err) {
+          // Ignore.
+        }
+      }
+
+      // Set the size/decodedBodySize to the updated response.text.length, after
+      // potentially decoding the data.
+      // NB: `size` is used by DevTools, while WebDriverBiDi relies on
+      // decodedBodySize, because the name is more explicit.
+      response.decodedBodySize = response.text.length;
+      response.size = response.decodedBodySize;
+
+      // Security information is not relevant for file channel, but it should
+      // not be considered as insecure either. Set empty string as security
+      // state.
+      owner.addSecurityInfo({ state: "" });
+      owner.addResponseContent(response, {});
     }
   );
 
