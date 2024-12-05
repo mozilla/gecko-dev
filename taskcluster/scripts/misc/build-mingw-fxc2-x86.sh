@@ -15,8 +15,6 @@ make -j$(nproc) x86
 
 cp fxc2.exe $INSTALL_DIR/bin/
 cp dll/d3dcompiler_47_32.dll $INSTALL_DIR/bin/d3dcompiler_47.dll
-cp dll/dxcompiler.dll $INSTALL_DIR/bin/dxcompiler.dll
-cp dll/dxil.dll $INSTALL_DIR/bin/dxil.dll
 
 # --------------
 
