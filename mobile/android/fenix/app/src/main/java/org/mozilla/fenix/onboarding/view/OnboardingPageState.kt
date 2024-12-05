@@ -31,7 +31,7 @@ data class OnboardingPageState(
     val primaryButton: Action,
     val secondaryButton: Action? = null,
     val addOns: List<OnboardingAddOn>? = null,
-    val themeOptions: ThemeOptions? = null,
+    val themeOptions: List<ThemeOption>? = null,
     val termsOfService: OnboardingTermsOfService? = null,
     val toolbarOptions: ToolbarOptions? = null,
     val onRecordImpressionEvent: () -> Unit = {},
@@ -98,15 +98,6 @@ enum class ToolbarOptionType {
      */
     TOOLBAR_BOTTOM,
 }
-
-/**
- * Model containing data for the dark, light and system theme options.
- */
-data class ThemeOptions(
-    val system: ThemeOption,
-    val light: ThemeOption,
-    val dark: ThemeOption,
-)
 
 /**
  * Model containing data for theme customizing during onboarding.
