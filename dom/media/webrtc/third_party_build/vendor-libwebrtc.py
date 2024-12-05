@@ -285,7 +285,9 @@ def safe_extract(tar, path=".", *, numeric_owner=False):
             validate_tar_member(member, path)
             yield member
 
-    tar.extractall(path, members=_files(tar, path), numeric_owner=numeric_owner)
+    tar.extractall(
+        path, members=_files(tar, path), numeric_owner=numeric_owner, filter="tar"
+    )
 
 
 def unpack(target):
