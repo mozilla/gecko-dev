@@ -114,7 +114,7 @@ class PacketizationCallbackStubOldApi : public AudioPacketizationCallback {
                    uint32_t timestamp,
                    const uint8_t* payload_data,
                    size_t payload_len_bytes,
-                   int64_t absolute_capture_timestamp_ms) override {
+                   int64_t /* absolute_capture_timestamp_ms */) override {
     MutexLock lock(&mutex_);
     ++num_calls_;
     last_frame_type_ = frame_type;
@@ -1054,14 +1054,14 @@ class AcmSetBitRateTest : public ::testing::Test {
                                  int channels,
                                  int payload_type,
                                  int frame_size_samples,
-                                 int frame_size_rtp_timestamps) {
+                                 int /* frame_size_rtp_timestamps */) {
     return send_test_->RegisterCodec(payload_name, sampling_freq_hz, channels,
                                      payload_type, frame_size_samples);
   }
 
   void RegisterExternalSendCodec(
       std::unique_ptr<AudioEncoder> external_speech_encoder,
-      int payload_type) {
+      int /* payload_type */) {
     send_test_->RegisterExternalCodec(std::move(external_speech_encoder));
   }
 

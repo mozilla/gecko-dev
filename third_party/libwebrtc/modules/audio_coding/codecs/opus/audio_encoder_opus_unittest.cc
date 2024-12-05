@@ -65,7 +65,7 @@ std::unique_ptr<AudioEncoderOpusStates> CreateCodec(
 
   MockAudioNetworkAdaptor** mock_ptr = &states->mock_audio_network_adaptor;
   AudioEncoderOpusImpl::AudioNetworkAdaptorCreator creator =
-      [mock_ptr](absl::string_view, RtcEventLog* event_log) {
+      [mock_ptr](absl::string_view, RtcEventLog* /* event_log */) {
         std::unique_ptr<MockAudioNetworkAdaptor> adaptor(
             new NiceMock<MockAudioNetworkAdaptor>());
         EXPECT_CALL(*adaptor, Die());

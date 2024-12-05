@@ -39,7 +39,7 @@ std::vector<SdpVideoFormat> FakeVideoEncoderFactory::GetSupportedFormats()
 
 std::unique_ptr<VideoEncoder> FakeVideoEncoderFactory::Create(
     const Environment& env,
-    const SdpVideoFormat& format) {
+    const SdpVideoFormat& /* format */) {
   return std::make_unique<test::FakeEncoder>(env);
 }
 
@@ -57,8 +57,8 @@ std::vector<SdpVideoFormat> FakeVideoDecoderFactory::GetSupportedFormats()
 }
 
 std::unique_ptr<VideoDecoder> FakeVideoDecoderFactory::Create(
-    const Environment& env,
-    const SdpVideoFormat& format) {
+    const Environment& /* env */,
+    const SdpVideoFormat& /* format */) {
   return std::make_unique<test::FakeDecoder>();
 }
 

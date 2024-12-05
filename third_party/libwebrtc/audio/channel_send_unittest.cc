@@ -298,7 +298,7 @@ TEST_F(ChannelSendTest, AudioLevelsAttachedToInsertedTransformedFrame) {
 
   std::optional<uint8_t> sent_audio_level;
   auto send_rtp = [&](rtc::ArrayView<const uint8_t> data,
-                      const PacketOptions& options) {
+                      const PacketOptions& /* options */) {
     RtpPacketReceived packet(&extension_manager);
     packet.Parse(data);
     RTPHeader header;

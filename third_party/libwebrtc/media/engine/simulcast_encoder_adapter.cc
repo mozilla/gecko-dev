@@ -707,7 +707,7 @@ EncodedImageCallback::Result SimulcastEncoderAdapter::OnEncodedImage(
                                                     &stream_codec_specific);
 }
 
-void SimulcastEncoderAdapter::OnDroppedFrame(size_t stream_idx) {
+void SimulcastEncoderAdapter::OnDroppedFrame(size_t /* stream_idx */) {
   // Not yet implemented.
 }
 

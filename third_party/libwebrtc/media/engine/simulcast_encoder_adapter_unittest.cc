@@ -58,13 +58,13 @@ std::unique_ptr<SimulcastTestFixture> CreateSpecificSimulcastTestFixture(
   std::unique_ptr<VideoEncoderFactory> encoder_factory =
       std::make_unique<FunctionVideoEncoderFactory>(
           [internal_encoder_factory](const Environment& env,
-                                     const SdpVideoFormat& format) {
+                                     const SdpVideoFormat& /* format */) {
             return std::make_unique<SimulcastEncoderAdapter>(
                 env, internal_encoder_factory, nullptr, SdpVideoFormat::VP8());
           });
   std::unique_ptr<VideoDecoderFactory> decoder_factory =
       std::make_unique<FunctionVideoDecoderFactory>(
-          [](const Environment& env, const SdpVideoFormat& format) {
+          [](const Environment& env, const SdpVideoFormat& /* format */) {
             return CreateVp8Decoder(env);
           });
   return CreateSimulcastTestFixture(std::move(encoder_factory),
@@ -223,7 +223,7 @@ class MockVideoEncoder : public VideoEncoder {
               (override));
 
   int32_t InitEncode(const VideoCodec* codecSettings,
-                     const VideoEncoder::Settings& settings) override {
+                     const VideoEncoder::Settings& /* settings */) override {
     codec_ = *codecSettings;
     if (codec_.numberOfSimulcastStreams > 1 && fallback_from_simulcast_) {
       return *fallback_from_simulcast_;
@@ -374,7 +374,7 @@ std::vector<SdpVideoFormat> MockVideoEncoderFactory::GetSupportedFormats()
 }
 
 std::unique_ptr<VideoEncoder> MockVideoEncoderFactory::Create(
-    const Environment& env,
+    const Environment& /* env */,
     const SdpVideoFormat& format) {
   if (create_video_encoder_return_nullptr_) {
     return nullptr;
@@ -480,8 +480,9 @@ class TestSimulcastEncoderAdapterFake : public ::testing::Test,
     SetUp();
   }
 
-  Result OnEncodedImage(const EncodedImage& encoded_image,
-                        const CodecSpecificInfo* codec_specific_info) override {
+  Result OnEncodedImage(
+      const EncodedImage& encoded_image,
+      const CodecSpecificInfo* /* codec_specific_info */) override {
     last_encoded_image_width_ = encoded_image._encodedWidth;
     last_encoded_image_height_ = encoded_image._encodedHeight;
     last_encoded_image_simulcast_index_ = encoded_image.SimulcastIndex();
@@ -1146,7 +1147,7 @@ TEST_F(TestSimulcastEncoderAdapterFake, NativeHandleForwardingOnlyIfSupported) {
   // ...the lowest one gets a software buffer.
   EXPECT_CALL(*encoders[0], Encode)
       .WillOnce([&](const VideoFrame& frame,
-                    const std::vector<VideoFrameType>* frame_types) {
+                    const std::vector<VideoFrameType>* /* frame_types */) {
         EXPECT_EQ(frame.video_frame_buffer()->type(),
                   VideoFrameBuffer::Type::kI420);
         return 0;

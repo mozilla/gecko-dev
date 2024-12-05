@@ -227,8 +227,9 @@ ConvertIceCandidatePairEventType(IceCandidatePairEventType type) {
 
 }  // namespace
 
-std::string RtcEventLogEncoderLegacy::EncodeLogStart(int64_t timestamp_us,
-                                                     int64_t utc_time_us) {
+std::string RtcEventLogEncoderLegacy::EncodeLogStart(
+    int64_t timestamp_us,
+    int64_t /* utc_time_us */) {
   rtclog::Event rtclog_event;
   rtclog_event.set_timestamp_us(timestamp_us);
   rtclog_event.set_type(rtclog::Event::LOG_START);

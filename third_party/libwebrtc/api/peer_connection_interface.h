@@ -1351,7 +1351,7 @@ class PeerConnectionObserver {
   // RTCSessionDescription" algorithm:
   // https://w3c.github.io/webrtc-pc/#set-description
   virtual void OnTrack(
-      rtc::scoped_refptr<RtpTransceiverInterface> transceiver) {}
+      rtc::scoped_refptr<RtpTransceiverInterface> /* transceiver */) {}
 
   // Called when signaling indicates that media will no longer be received on a
   // track.
@@ -1362,7 +1362,7 @@ class PeerConnectionObserver {
   // https://w3c.github.io/webrtc-pc/#process-remote-track-removal
   // TODO(hbos,deadbeef): Make pure virtual when all subclasses implement it.
   virtual void OnRemoveTrack(
-      rtc::scoped_refptr<RtpReceiverInterface> receiver) {}
+      rtc::scoped_refptr<RtpReceiverInterface> /* receiver */) {}
 
   // Called when an interesting usage is detected by WebRTC.
   // An appropriate action is to add information about the context of the
@@ -1370,7 +1370,7 @@ class PeerConnectionObserver {
   // log function.
   // The heuristics for defining what constitutes "interesting" are
   // implementation-defined.
-  virtual void OnInterestingUsage(int usage_pattern) {}
+  virtual void OnInterestingUsage(int /* usage_pattern */) {}
 };
 
 // PeerConnectionDependencies holds all of PeerConnections dependencies.
@@ -1614,7 +1614,7 @@ class RTC_EXPORT PeerConnectionFactoryInterface
   // StopAecDump function is called.
   // TODO(webrtc:6463): Delete default implementation when downstream mocks
   // classes are updated.
-  virtual bool StartAecDump(FILE* file, int64_t max_size_bytes) {
+  virtual bool StartAecDump(FILE* /* file */, int64_t /* max_size_bytes */) {
     return false;
   }
 

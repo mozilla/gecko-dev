@@ -288,7 +288,7 @@ webrtc::AudioReceiveStreamInterface::Config BuildReceiveStreamConfig(
     bool use_nack,
     bool enable_non_sender_rtt,
     const std::vector<std::string>& stream_ids,
-    const std::vector<webrtc::RtpExtension>& extensions,
+    const std::vector<webrtc::RtpExtension>& /* extensions */,
     webrtc::Transport* rtcp_send_transport,
     const rtc::scoped_refptr<webrtc::AudioDecoderFactory>& decoder_factory,
     const std::map<int, webrtc::SdpAudioFormat>& decoder_map,

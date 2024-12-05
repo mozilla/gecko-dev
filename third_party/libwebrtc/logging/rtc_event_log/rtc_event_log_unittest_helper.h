@@ -248,8 +248,8 @@ class EventVerifier {
       const LoggedGenericAckReceived& logged_event) const;
 
   template <typename EventType, typename ParsedType>
-  void VerifyLoggedRtpPacket(const EventType& original_event,
-                             const ParsedType& logged_event) {
+  void VerifyLoggedRtpPacket(const EventType& /* original_event */,
+                             const ParsedType& /* logged_event */) {
     static_assert(sizeof(ParsedType) == 0,
                   "You have to use one of the two defined template "
                   "specializations of VerifyLoggedRtpPacket");
