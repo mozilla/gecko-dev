@@ -4664,7 +4664,8 @@ uint64_t ICInterpretOps(uint64_t arg0, uint64_t arg1, ICStub* stub,
         JSString* str = reinterpret_cast<JSString*>(READ_REG(strId.id()));
         {
           PUSH_IC_FRAME();
-          auto* result = StringToLowerCase(cx, str);
+          ReservedRooted<JSString*> str0(&ctx.state.str0, str);
+          auto* result = StringToLowerCase(cx, str0);
           if (!result) {
             ctx.error = PBIResult::Error;
             return IC_ERROR_SENTINEL();
@@ -4680,7 +4681,8 @@ uint64_t ICInterpretOps(uint64_t arg0, uint64_t arg1, ICStub* stub,
         JSString* str = reinterpret_cast<JSString*>(READ_REG(strId.id()));
         {
           PUSH_IC_FRAME();
-          auto* result = StringToUpperCase(cx, str);
+          ReservedRooted<JSString*> str0(&ctx.state.str0, str);
+          auto* result = StringToUpperCase(cx, str0);
           if (!result) {
             ctx.error = PBIResult::Error;
             return IC_ERROR_SENTINEL();
@@ -5167,7 +5169,7 @@ uint64_t ICInterpretOps(uint64_t arg0, uint64_t arg1, ICStub* stub,
         }
         {
           PUSH_IC_FRAME();
-          auto* result = Int32ToStringWithBase<CanGC>(cx, input, base, true);
+          auto* result = Int32ToStringWithBase(cx, input, base, true);
           if (!result) {
             ctx.error = PBIResult::Error;
             return IC_ERROR_SENTINEL();

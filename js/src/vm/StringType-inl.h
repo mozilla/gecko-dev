@@ -110,15 +110,6 @@ static MOZ_ALWAYS_INLINE JSInlineString* NewInlineString(
   return str;
 }
 
-// Create a thin inline string if possible, and a fat inline string if not.
-template <AllowGC allowGC, size_t N>
-static MOZ_ALWAYS_INLINE JSInlineString* NewInlineString(
-    JSContext* cx, const char (&chars)[N], size_t len,
-    js::gc::Heap heap = js::gc::Heap::Default) {
-  return NewInlineString<allowGC>(
-      cx, reinterpret_cast<const Latin1Char(&)[N]>(chars), len, heap);
-}
-
 template <typename CharT>
 static MOZ_ALWAYS_INLINE JSAtom* NewInlineAtom(JSContext* cx,
                                                const CharT* chars,
@@ -192,16 +183,6 @@ JSString::OwnedChars<CharT>::OwnedChars(JSString::OwnedChars<CharT>&& other)
 }
 
 template <typename CharT>
-JSString::OwnedChars<CharT>& JSString::OwnedChars<CharT>::operator=(
-    JSString::OwnedChars<CharT>&& other) {
-  reset();
-  chars_ = other.chars_;
-  kind_ = other.kind_;
-  other.release();
-  return *this;
-}
-
-template <typename CharT>
 CharT* JSString::OwnedChars<CharT>::release() {
   CharT* chars = chars_.data();
   chars_ = {};
@@ -259,16 +240,17 @@ JSString::OwnedChars<CharT>::OwnedChars(RefPtr<mozilla::StringBuffer>&& buffer,
   buffer.forget(&buf);
 }
 
-MOZ_ALWAYS_INLINE bool JSString::validateLength(JSContext* cx, size_t length) {
-  return validateLengthInternal<js::CanGC>(cx, length);
+MOZ_ALWAYS_INLINE bool JSString::validateLength(JSContext* maybecx,
+                                                size_t length) {
+  return validateLengthInternal<js::CanGC>(maybecx, length);
 }
 
 template <js::AllowGC allowGC>
-MOZ_ALWAYS_INLINE bool JSString::validateLengthInternal(JSContext* cx,
+MOZ_ALWAYS_INLINE bool JSString::validateLengthInternal(JSContext* maybecx,
                                                         size_t length) {
   if (MOZ_UNLIKELY(length > JSString::MAX_LENGTH)) {
     if constexpr (allowGC) {
-      js::ReportOversizedAllocation(cx, JSMSG_ALLOC_OVERFLOW);
+      js::ReportOversizedAllocation(maybecx, JSMSG_ALLOC_OVERFLOW);
     }
     return false;
   }

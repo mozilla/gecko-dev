@@ -18,7 +18,6 @@
 #include "mozilla/Utf8.h"
 
 #include <algorithm>
-#include <charconv>
 #include <iterator>
 #include <limits>
 #ifdef HAVE_LOCALECONV
@@ -55,6 +54,7 @@
 
 #include "vm/Compartment-inl.h"  // For js::UnwrapAndTypeCheckThis
 #include "vm/GeckoProfiler-inl.h"
+#include "vm/JSAtomUtils-inl.h"  // BackfillIndexInCharBuffer
 #include "vm/NativeObject-inl.h"
 #include "vm/NumberObject-inl.h"
 #include "vm/StringType-inl.h"
@@ -768,11 +768,47 @@ static_assert(DTOSTR_STANDARD_BUFFER_SIZE <= JS::MaximumNumberToStringLength,
               "string produced by a conversion");
 
 MOZ_ALWAYS_INLINE
+static JSLinearString* LookupDtoaCache(JSContext* cx, double d) {
+  if (Realm* realm = cx->realm()) {
+    if (JSLinearString* str = realm->dtoaCache.lookup(10, d)) {
+      return str;
+    }
+  }
+
+  return nullptr;
+}
+
+MOZ_ALWAYS_INLINE
+static void CacheNumber(JSContext* cx, double d, JSLinearString* str) {
+  if (Realm* realm = cx->realm()) {
+    realm->dtoaCache.cache(10, d, str);
+  }
+}
+
+MOZ_ALWAYS_INLINE
 static JSLinearString* LookupInt32ToString(JSContext* cx, int32_t si) {
-  if (StaticStrings::hasInt(si)) {
+  if (si >= 0 && StaticStrings::hasInt(si)) {
     return cx->staticStrings().getInt(si);
   }
-  return cx->realm()->dtoaCache.lookup(10, si);
+
+  return LookupDtoaCache(cx, si);
+}
+
+template <typename T>
+MOZ_ALWAYS_INLINE static T* BackfillInt32InBuffer(int32_t si, T* buffer,
+                                                  size_t size, size_t* length) {
+  uint32_t ui = Abs(si);
+  MOZ_ASSERT_IF(si == INT32_MIN, ui == uint32_t(INT32_MAX) + 1);
+
+  RangedPtr<T> end(buffer + size - 1, buffer, size);
+  *end = '\0';
+  RangedPtr<T> start = BackfillIndexInCharBuffer(ui, end);
+  if (si < 0) {
+    *--start = '-';
+  }
+
+  *length = end - start;
+  return start.get();
 }
 
 template <AllowGC allowGC>
@@ -789,13 +825,13 @@ JSLinearString* js::Int32ToStringWithHeap(JSContext* cx, int32_t si,
     return str;
   }
 
-  char buffer[JSFatInlineString::MAX_LENGTH_LATIN1];
+  Latin1Char buffer[JSFatInlineString::MAX_LENGTH_LATIN1 + 1];
+  size_t length;
+  Latin1Char* start =
+      BackfillInt32InBuffer(si, buffer, std::size(buffer), &length);
 
-  auto result = std::to_chars(buffer, std::end(buffer), si, 10);
-  MOZ_ASSERT(result.ec == std::errc());
-
-  size_t length = result.ptr - buffer;
-  JSInlineString* str = NewInlineString<allowGC>(cx, buffer, length, heap);
+  mozilla::Range<const Latin1Char> chars(start, length);
+  JSInlineString* str = NewInlineString<allowGC>(cx, chars, heap);
   if (!str) {
     return nullptr;
   }
@@ -803,7 +839,7 @@ JSLinearString* js::Int32ToStringWithHeap(JSContext* cx, int32_t si,
     str->maybeInitializeIndexValue(si);
   }
 
-  cx->realm()->dtoaCache.cache(10, si, str);
+  CacheNumber(cx, si, str);
   return str;
 }
 template JSLinearString* js::Int32ToStringWithHeap<CanGC>(JSContext* cx,
@@ -823,38 +859,103 @@ JSAtom* js::Int32ToAtom(JSContext* cx, int32_t si) {
     return js::AtomizeString(cx, str);
   }
 
-  Int32ToCStringBuf cbuf;
-  auto result = std::to_chars(cbuf.sbuf, std::end(cbuf.sbuf), si, 10);
-  MOZ_ASSERT(result.ec == std::errc());
+  char buffer[JSFatInlineString::MAX_LENGTH_TWO_BYTE + 1];
+  size_t length;
+  char* start = BackfillInt32InBuffer(
+      si, buffer, JSFatInlineString::MAX_LENGTH_TWO_BYTE + 1, &length);
 
   Maybe<uint32_t> indexValue;
   if (si >= 0) {
     indexValue.emplace(si);
   }
 
-  size_t length = result.ptr - cbuf.sbuf;
-  JSAtom* atom = Atomize(cx, cbuf.sbuf, length, indexValue);
+  JSAtom* atom = Atomize(cx, start, length, indexValue);
   if (!atom) {
     return nullptr;
   }
 
-  cx->realm()->dtoaCache.cache(10, si, atom);
+  CacheNumber(cx, si, atom);
   return atom;
 }
 
 frontend::TaggedParserAtomIndex js::Int32ToParserAtom(
     FrontendContext* fc, frontend::ParserAtomsTable& parserAtoms, int32_t si) {
-  Int32ToCStringBuf cbuf;
-  auto result = std::to_chars(cbuf.sbuf, std::end(cbuf.sbuf), si, 10);
-  MOZ_ASSERT(result.ec == std::errc());
+  char buffer[JSFatInlineString::MAX_LENGTH_TWO_BYTE + 1];
+  size_t length;
+  char* start = BackfillInt32InBuffer(
+      si, buffer, JSFatInlineString::MAX_LENGTH_TWO_BYTE + 1, &length);
 
-  size_t length = result.ptr - cbuf.sbuf;
-  return parserAtoms.internAscii(fc, cbuf.sbuf, length);
+  Maybe<uint32_t> indexValue;
+  if (si >= 0) {
+    indexValue.emplace(si);
+  }
+
+  return parserAtoms.internAscii(fc, start, length);
 }
 
-/* Returns the number of digits written. */
+/* Returns a non-nullptr pointer to inside `buf`. */
+template <typename T>
+static char* Int32ToCStringWithBase(mozilla::Range<char> buf, T i, size_t* len,
+                                    int base) {
+  uint32_t u;
+  if constexpr (std::is_signed_v<T>) {
+    u = Abs(i);
+  } else {
+    u = i;
+  }
+
+  RangedPtr<char> cp = buf.end() - 1;
+
+  char* end = cp.get();
+  *cp = '\0';
+
+  /* Build the string from behind. */
+  switch (base) {
+    case 10:
+      cp = BackfillIndexInCharBuffer(u, cp);
+      break;
+    case 16:
+      do {
+        unsigned newu = u / 16;
+        *--cp = "0123456789abcdef"[u - newu * 16];
+        u = newu;
+      } while (u != 0);
+      break;
+    default:
+      MOZ_ASSERT(base >= 2 && base <= 36);
+      do {
+        unsigned newu = u / base;
+        *--cp = "0123456789abcdefghijklmnopqrstuvwxyz"[u - newu * base];
+        u = newu;
+      } while (u != 0);
+      break;
+  }
+  if constexpr (std::is_signed_v<T>) {
+    if (i < 0) {
+      *--cp = '-';
+    }
+  }
+
+  *len = end - cp.get();
+  return cp.get();
+}
+
+/* Returns a non-nullptr pointer to inside `out`. */
+template <typename T, size_t Length>
+static char* Int32ToCStringWithBase(char (&out)[Length], T i, size_t* len,
+                                    int base) {
+  // The buffer needs to be large enough to hold the largest number, including
+  // the sign and the terminating null-character.
+  static_assert(std::numeric_limits<T>::digits + (2 * std::is_signed_v<T>) <
+                Length);
+
+  mozilla::Range<char> buf(out, Length);
+  return Int32ToCStringWithBase(buf, i, len, base);
+}
+
+/* Returns a non-nullptr pointer to inside `out`. */
 template <typename T, size_t Base, size_t Length>
-static size_t Int32ToCString(char (&out)[Length], T i) {
+static char* Int32ToCString(char (&out)[Length], T i, size_t* len) {
   // The buffer needs to be large enough to hold the largest number, including
   // the sign and the terminating null-character.
   if constexpr (Base == 10) {
@@ -870,30 +971,24 @@ static size_t Int32ToCString(char (&out)[Length], T i) {
                    std::is_signed_v<T>) < Length);
   }
 
-  // -1 to leave space for the terminating null-character.
-  auto result = std::to_chars(out, std::end(out) - 1, i, Base);
-  MOZ_ASSERT(result.ec == std::errc());
-
-  // Null-terminate the result.
-  *result.ptr = '\0';
-
-  return result.ptr - out;
+  mozilla::Range<char> buf(out, Length);
+  return Int32ToCStringWithBase(buf, i, len, Base);
 }
 
-/* Returns the number of digits written. */
+/* Returns a non-nullptr pointer to inside `cbuf`. */
 template <typename T, size_t Base = 10>
-static size_t Int32ToCString(ToCStringBuf* cbuf, T i) {
-  return Int32ToCString<T, Base>(cbuf->sbuf, i);
+static char* Int32ToCString(ToCStringBuf* cbuf, T i, size_t* len) {
+  return Int32ToCString<T, Base>(cbuf->sbuf, i, len);
 }
 
-/* Returns the number of digits written. */
+/* Returns a non-nullptr pointer to inside `cbuf`. */
 template <typename T, size_t Base = 10>
-static size_t Int32ToCString(Int32ToCStringBuf* cbuf, T i) {
-  return Int32ToCString<T, Base>(cbuf->sbuf, i);
+static char* Int32ToCString(Int32ToCStringBuf* cbuf, T i, size_t* len) {
+  return Int32ToCString<T, Base>(cbuf->sbuf, i, len);
 }
 
 template <AllowGC allowGC>
-static JSString* NumberToStringWithBase(JSContext* cx, double d, int32_t base);
+static JSString* NumberToStringWithBase(JSContext* cx, double d, int base);
 
 static bool num_toString(JSContext* cx, unsigned argc, Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
@@ -1515,7 +1610,7 @@ const ClassSpec NumberObject::classSpec_ = {
     NumberClassFinish,
 };
 
-static size_t FracNumberToCString(ToCStringBuf* cbuf, double d) {
+static char* FracNumberToCString(ToCStringBuf* cbuf, double d, size_t* len) {
 #ifdef DEBUG
   {
     int32_t _;
@@ -1533,30 +1628,26 @@ static size_t FracNumberToCString(ToCStringBuf* cbuf, double d) {
   const double_conversion::DoubleToStringConverter& converter =
       double_conversion::DoubleToStringConverter::EcmaScriptConverter();
   double_conversion::StringBuilder builder(cbuf->sbuf, std::size(cbuf->sbuf));
-  MOZ_ALWAYS_TRUE(converter.ToShortest(d, &builder));
+  converter.ToShortest(d, &builder);
 
-  size_t len = builder.position();
-#ifdef DEBUG
-  char* result =
-#endif
-      builder.Finalize();
-  MOZ_ASSERT(cbuf->sbuf == result);
-  return len;
+  *len = builder.position();
+  return builder.Finalize();
 }
 
 void JS::NumberToString(double d, char (&out)[MaximumNumberToStringLength]) {
   int32_t i;
   if (NumberEqualsInt32(d, &i)) {
     Int32ToCStringBuf cbuf;
-    size_t len = ::Int32ToCString(&cbuf, i);
-    memmove(out, cbuf.sbuf, len);
+    size_t len;
+    char* loc = ::Int32ToCString(&cbuf, i, &len);
+    memmove(out, loc, len);
     out[len] = '\0';
   } else {
     const double_conversion::DoubleToStringConverter& converter =
         double_conversion::DoubleToStringConverter::EcmaScriptConverter();
 
     double_conversion::StringBuilder builder(out, sizeof(out));
-    MOZ_ALWAYS_TRUE(converter.ToShortest(d, &builder));
+    converter.ToShortest(d, &builder);
 
 #ifdef DEBUG
     char* result =
@@ -1568,127 +1659,105 @@ void JS::NumberToString(double d, char (&out)[MaximumNumberToStringLength]) {
 
 char* js::NumberToCString(ToCStringBuf* cbuf, double d, size_t* length) {
   int32_t i;
-  size_t len = NumberEqualsInt32(d, &i) ? ::Int32ToCString(cbuf, i)
-                                        : FracNumberToCString(cbuf, d);
+  size_t len;
+  char* s = NumberEqualsInt32(d, &i) ? ::Int32ToCString(cbuf, i, &len)
+                                     : FracNumberToCString(cbuf, d, &len);
+  MOZ_ASSERT(s);
   if (length) {
     *length = len;
   }
-  return cbuf->sbuf;
+  return s;
 }
 
 char* js::Int32ToCString(Int32ToCStringBuf* cbuf, int32_t value,
                          size_t* length) {
-  size_t len = ::Int32ToCString(cbuf, value);
+  size_t len;
+  char* s = ::Int32ToCString(cbuf, value, &len);
+  MOZ_ASSERT(s);
   if (length) {
     *length = len;
   }
-  return cbuf->sbuf;
+  return s;
 }
 
 char* js::Uint32ToCString(Int32ToCStringBuf* cbuf, uint32_t value,
                           size_t* length) {
-  size_t len = ::Int32ToCString(cbuf, value);
+  size_t len;
+  char* s = ::Int32ToCString(cbuf, value, &len);
+  MOZ_ASSERT(s);
   if (length) {
     *length = len;
   }
-  return cbuf->sbuf;
+  return s;
 }
 
 char* js::Uint32ToHexCString(Int32ToCStringBuf* cbuf, uint32_t value,
                              size_t* length) {
-  size_t len = ::Int32ToCString<uint32_t, 16>(cbuf, value);
+  size_t len;
+  char* s = ::Int32ToCString<uint32_t, 16>(cbuf, value, &len);
+  MOZ_ASSERT(s);
   if (length) {
     *length = len;
   }
-  return cbuf->sbuf;
-}
-
-template <AllowGC allowGC>
-static JSLinearString* Int32ToStringWithBase(JSContext* cx, int32_t i,
-                                             int32_t base) {
-  MOZ_ASSERT(2 <= base && base <= 36);
-
-  bool isBase10Int = (base == 10);
-  if (isBase10Int) {
-    static_assert(StaticStrings::INT_STATIC_LIMIT > 10 * 10);
-    if (StaticStrings::hasInt(i)) {
-      return cx->staticStrings().getInt(i);
-    }
-  } else if (unsigned(i) < unsigned(base)) {
-    if (i < 10) {
-      return cx->staticStrings().getInt(i);
-    }
-    char16_t c = 'a' + i - 10;
-    MOZ_ASSERT(StaticStrings::hasUnit(c));
-    return cx->staticStrings().getUnit(c);
-  } else if (unsigned(i) < unsigned(base * base)) {
-    static constexpr char digits[] = "0123456789abcdefghijklmnopqrstuvwxyz";
-    char chars[] = {digits[i / base], digits[i % base]};
-    JSLinearString* str = cx->staticStrings().lookup(chars, 2);
-    MOZ_ASSERT(str);
-    return str;
-  }
-
-  auto& dtoaCache = cx->realm()->dtoaCache;
-  double d = i;
-  if (JSLinearString* str = dtoaCache.lookup(base, d)) {
-    return str;
-  }
-
-  // Plus two to include the largest number and the sign.
-  constexpr size_t MaximumLength = std::numeric_limits<int32_t>::digits + 2;
-
-  char buf[MaximumLength] = {};
-
-  // Use explicit cases for base 10 and base 16 to make it more likely the
-  // compiler will generate optimized code for these two common bases.
-  std::to_chars_result result;
-  switch (base) {
-    case 10: {
-      result = std::to_chars(buf, std::end(buf), i, 10);
-      break;
-    }
-    case 16: {
-      result = std::to_chars(buf, std::end(buf), i, 16);
-      break;
-    }
-    default: {
-      MOZ_ASSERT(base >= 2 && base <= 36);
-      result = std::to_chars(buf, std::end(buf), i, base);
-      break;
-    }
-  }
-  MOZ_ASSERT(result.ec == std::errc());
-
-  size_t length = result.ptr - buf;
-  MOZ_ASSERT(i < 0 || length > 2, "small static strings are handled above");
-
-  auto* latin1Chars = reinterpret_cast<JS::Latin1Char*>(buf);
-  JSLinearString* s = NewStringCopyNDontDeflateNonStaticValidLength<allowGC>(
-      cx, latin1Chars, length);
-  if (!s) {
-    return nullptr;
-  }
-
-  if (isBase10Int && i >= 0) {
-    s->maybeInitializeIndexValue(i);
-  }
-
-  dtoaCache.cache(base, d, s);
   return s;
 }
 
 template <AllowGC allowGC>
-static JSString* NumberToStringWithBase(JSContext* cx, double d, int32_t base) {
+static JSString* NumberToStringWithBase(JSContext* cx, double d, int base) {
   MOZ_ASSERT(2 <= base && base <= 36);
+
+  Realm* realm = cx->realm();
 
   int32_t i;
   if (NumberEqualsInt32(d, &i)) {
-    return ::Int32ToStringWithBase<allowGC>(cx, i, base);
+    bool isBase10Int = (base == 10);
+    if (isBase10Int) {
+      static_assert(StaticStrings::INT_STATIC_LIMIT > 10 * 10);
+      if (StaticStrings::hasInt(i)) {
+        return cx->staticStrings().getInt(i);
+      }
+    } else if (unsigned(i) < unsigned(base)) {
+      if (i < 10) {
+        return cx->staticStrings().getInt(i);
+      }
+      char16_t c = 'a' + i - 10;
+      MOZ_ASSERT(StaticStrings::hasUnit(c));
+      return cx->staticStrings().getUnit(c);
+    } else if (unsigned(i) < unsigned(base * base)) {
+      static constexpr char digits[] = "0123456789abcdefghijklmnopqrstuvwxyz";
+      char chars[] = {digits[i / base], digits[i % base]};
+      JSString* str = cx->staticStrings().lookup(chars, 2);
+      MOZ_ASSERT(str);
+      return str;
+    }
+
+    if (JSLinearString* str = realm->dtoaCache.lookup(base, d)) {
+      return str;
+    }
+
+    // Plus three to include the largest number, the sign, and the terminating
+    // null character.
+    constexpr size_t MaximumLength = std::numeric_limits<int32_t>::digits + 3;
+
+    char buf[MaximumLength] = {};
+    size_t numStrLen;
+    char* numStr = Int32ToCStringWithBase(buf, i, &numStrLen, base);
+    MOZ_ASSERT(numStrLen == strlen(numStr));
+
+    JSLinearString* s = NewStringCopyN<allowGC>(cx, numStr, numStrLen);
+    if (!s) {
+      return nullptr;
+    }
+
+    if (isBase10Int && i >= 0) {
+      s->maybeInitializeIndexValue(i);
+    }
+
+    realm->dtoaCache.cache(base, d, s);
+    return s;
   }
 
-  auto& dtoaCache = cx->realm()->dtoaCache;
-  if (JSLinearString* str = dtoaCache.lookup(base, d)) {
+  if (JSLinearString* str = realm->dtoaCache.lookup(base, d)) {
     return str;
   }
 
@@ -1696,10 +1765,12 @@ static JSString* NumberToStringWithBase(JSContext* cx, double d, int32_t base) {
   if (base == 10) {
     // We use a faster algorithm for base 10.
     ToCStringBuf cbuf;
-    size_t numStrLen = FracNumberToCString(&cbuf, d);
-    MOZ_ASSERT(numStrLen == strlen(cbuf.sbuf));
+    size_t numStrLen;
+    char* numStr = FracNumberToCString(&cbuf, d, &numStrLen);
+    MOZ_ASSERT(numStr);
+    MOZ_ASSERT(numStrLen == strlen(numStr));
 
-    s = NewStringCopyN<allowGC>(cx, cbuf.sbuf, numStrLen);
+    s = NewStringCopyN<allowGC>(cx, numStr, numStrLen);
     if (!s) {
       return nullptr;
     }
@@ -1725,7 +1796,7 @@ static JSString* NumberToStringWithBase(JSContext* cx, double d, int32_t base) {
     }
   }
 
-  dtoaCache.cache(base, d, s);
+  realm->dtoaCache.cache(base, d, s);
   return s;
 }
 
@@ -1749,21 +1820,24 @@ JSAtom* js::NumberToAtom(JSContext* cx, double d) {
     return Int32ToAtom(cx, si);
   }
 
-  auto& dtoaCache = cx->realm()->dtoaCache;
-  if (JSLinearString* str = dtoaCache.lookup(10, d)) {
+  if (JSLinearString* str = LookupDtoaCache(cx, d)) {
     return AtomizeString(cx, str);
   }
 
   ToCStringBuf cbuf;
-  size_t length = FracNumberToCString(&cbuf, d);
-  MOZ_ASSERT(length == strlen(cbuf.sbuf));
+  size_t length;
+  char* numStr = FracNumberToCString(&cbuf, d, &length);
+  MOZ_ASSERT(numStr);
+  MOZ_ASSERT(std::begin(cbuf.sbuf) <= numStr && numStr < std::end(cbuf.sbuf));
+  MOZ_ASSERT(length == strlen(numStr));
 
-  JSAtom* atom = Atomize(cx, cbuf.sbuf, length);
+  JSAtom* atom = Atomize(cx, numStr, length);
   if (!atom) {
     return nullptr;
   }
 
-  dtoaCache.cache(10, d, atom);
+  CacheNumber(cx, d, atom);
+
   return atom;
 }
 
@@ -1775,10 +1849,13 @@ frontend::TaggedParserAtomIndex js::NumberToParserAtom(
   }
 
   ToCStringBuf cbuf;
-  size_t length = FracNumberToCString(&cbuf, d);
-  MOZ_ASSERT(length == strlen(cbuf.sbuf));
+  size_t length;
+  char* numStr = FracNumberToCString(&cbuf, d, &length);
+  MOZ_ASSERT(numStr);
+  MOZ_ASSERT(std::begin(cbuf.sbuf) <= numStr && numStr < std::end(cbuf.sbuf));
+  MOZ_ASSERT(length == strlen(numStr));
 
-  return parserAtoms.internAscii(fc, cbuf.sbuf, length);
+  return parserAtoms.internAscii(fc, numStr, length);
 }
 
 JSLinearString* js::IndexToString(JSContext* cx, uint32_t index) {
@@ -1786,41 +1863,39 @@ JSLinearString* js::IndexToString(JSContext* cx, uint32_t index) {
     return cx->staticStrings().getUint(index);
   }
 
-  char buffer[JSFatInlineString::MAX_LENGTH_LATIN1];
+  Realm* realm = cx->realm();
+  if (JSLinearString* str = realm->dtoaCache.lookup(10, index)) {
+    return str;
+  }
 
-  auto result = std::to_chars(buffer, std::end(buffer), index, 10);
-  MOZ_ASSERT(result.ec == std::errc());
+  Latin1Char buffer[JSFatInlineString::MAX_LENGTH_LATIN1 + 1];
+  RangedPtr<Latin1Char> end(buffer + JSFatInlineString::MAX_LENGTH_LATIN1,
+                            buffer, JSFatInlineString::MAX_LENGTH_LATIN1 + 1);
+  *end = '\0';
+  RangedPtr<Latin1Char> start = BackfillIndexInCharBuffer(index, end);
 
-  size_t length = result.ptr - buffer;
-  return NewInlineString<CanGC>(cx, buffer, length);
-}
-
-template <AllowGC allowGC>
-JSLinearString* js::Int32ToStringWithBase(JSContext* cx, int32_t i,
-                                          int32_t base, bool lowerCase) {
-  JSLinearString* str = ::Int32ToStringWithBase<allowGC>(cx, i, base);
+  mozilla::Range<const Latin1Char> chars(start.get(), end - start);
+  JSInlineString* str =
+      NewInlineString<CanGC>(cx, chars, js::gc::Heap::Default);
   if (!str) {
     return nullptr;
   }
 
-  if constexpr (allowGC == NoGC) {
-    MOZ_ASSERT(lowerCase, "upper case conversion not allowed for NoGC");
-    return str;
-  } else {
-    if (lowerCase) {
-      return str;
-    }
-    return StringToUpperCase(cx, str);
-  }
+  realm->dtoaCache.cache(10, index, str);
+  return str;
 }
-template JSLinearString* js::Int32ToStringWithBase<CanGC>(JSContext* cx,
-                                                          int32_t i,
-                                                          int32_t base,
-                                                          bool lowerCase);
-template JSLinearString* js::Int32ToStringWithBase<NoGC>(JSContext* cx,
-                                                         int32_t i,
-                                                         int32_t base,
-                                                         bool lowerCase);
+
+JSString* js::Int32ToStringWithBase(JSContext* cx, int32_t i, int32_t base,
+                                    bool lowerCase) {
+  Rooted<JSString*> str(cx, NumberToStringWithBase<CanGC>(cx, double(i), base));
+  if (!str) {
+    return nullptr;
+  }
+  if (lowerCase) {
+    return str;
+  }
+  return StringToUpperCase(cx, str);
+}
 
 bool js::NumberValueToStringBuilder(const Value& v, StringBuilder& sb) {
   /* Convert to C-string. */
@@ -1828,8 +1903,7 @@ bool js::NumberValueToStringBuilder(const Value& v, StringBuilder& sb) {
   const char* cstr;
   size_t cstrlen;
   if (v.isInt32()) {
-    cstrlen = ::Int32ToCString(&cbuf, v.toInt32());
-    cstr = cbuf.sbuf;
+    cstr = ::Int32ToCString(&cbuf, v.toInt32(), &cstrlen);
   } else {
     cstr = NumberToCString(&cbuf, v.toDouble(), &cstrlen);
   }

@@ -131,9 +131,7 @@ class StringBuffer {
    *
    * @see IsReadonly
    */
-  static StringBuffer* Realloc(
-      StringBuffer* aHdr, size_t aSize,
-      mozilla::Maybe<arena_id_t> aArena = mozilla::Nothing()) {
+  static StringBuffer* Realloc(StringBuffer* aHdr, size_t aSize) {
     MOZ_ASSERT(aSize != 0, "zero capacity allocation not allowed");
     MOZ_ASSERT(sizeof(StringBuffer) + aSize <= size_t(uint32_t(-1)) &&
                    sizeof(StringBuffer) + aSize > aSize,
@@ -150,9 +148,7 @@ class StringBuffer {
       logger.logRelease(0);
     }
 
-    size_t bytes = sizeof(StringBuffer) + aSize;
-    aHdr = aArena ? (StringBuffer*)moz_arena_realloc(*aArena, aHdr, bytes)
-                  : (StringBuffer*)realloc(aHdr, bytes);
+    aHdr = (StringBuffer*)realloc(aHdr, sizeof(StringBuffer) + aSize);
     if (aHdr) {
       detail::RefCountLogger::logAddRef(aHdr, 1);
       aHdr->mStorageSize = aSize;
