@@ -762,6 +762,7 @@ if (rtc_include_tests) {
       "end_to_end_tests/call_operation_tests.cc",
       "end_to_end_tests/codec_tests.cc",
       "end_to_end_tests/config_tests.cc",
+      "end_to_end_tests/corruption_detection_tests.cc",
       "end_to_end_tests/extended_reports_tests.cc",
       "end_to_end_tests/fec_tests.cc",
       "end_to_end_tests/frame_encryption_tests.cc",
