@@ -96,7 +96,6 @@ class WebAuthnRegisterResult final : public nsIWebAuthnRegisterResult {
                 (BOOL*)pExtension->pvExtension;
             if (*pCredentialCreatedWithHmacSecret) {
               mHmacCreateSecret = Some(true);
-              mPrf = Some(true);
             }
           }
         }
@@ -133,12 +132,6 @@ class WebAuthnRegisterResult final : public nsIWebAuthnRegisterResult {
         mAuthenticatorAttachment = Some(u"cross-platform"_ns);
       }
     }
-
-    if (aResponse->dwVersion >= WEBAUTHN_CREDENTIAL_ATTESTATION_VERSION_5) {
-      if (aResponse->bPrfEnabled) {
-        mPrf = Some(true);
-      }
-    }
   }
 #endif
 
@@ -151,7 +144,6 @@ class WebAuthnRegisterResult final : public nsIWebAuthnRegisterResult {
   Maybe<nsCString> mClientDataJSON;
   Maybe<bool> mCredPropsRk;
   Maybe<bool> mHmacCreateSecret;
-  Maybe<bool> mPrf;
   Maybe<nsString> mAuthenticatorAttachment;
 };
 
@@ -218,18 +210,6 @@ class WebAuthnSignResult final : public nsIWebAuthnSignResult {
                                       aResponse->cbAuthenticatorData);
 
     mAuthenticatorAttachment = Nothing();  // not available
-    if (aResponse->pHmacSecret) {
-      if (aResponse->pHmacSecret->cbFirst > 0) {
-        mPrfFirst.emplace();
-        mPrfFirst->AppendElements(aResponse->pHmacSecret->pbFirst,
-                                  aResponse->pHmacSecret->cbFirst);
-      }
-      if (aResponse->pHmacSecret->cbSecond > 0) {
-        mPrfSecond.emplace();
-        mPrfSecond->AppendElements(aResponse->pHmacSecret->pbSecond,
-                                   aResponse->pHmacSecret->cbSecond);
-      }
-    }
   }
 #endif
 
@@ -243,8 +223,6 @@ class WebAuthnSignResult final : public nsIWebAuthnSignResult {
   nsTArray<uint8_t> mUserHandle;
   Maybe<nsString> mAuthenticatorAttachment;
   Maybe<bool> mUsedAppId;
-  Maybe<nsTArray<uint8_t>> mPrfFirst;
-  Maybe<nsTArray<uint8_t>> mPrfSecond;
 };
 
 }  // namespace mozilla::dom
