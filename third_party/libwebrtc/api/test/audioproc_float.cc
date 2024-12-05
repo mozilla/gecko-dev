@@ -29,9 +29,7 @@ int AudioprocFloat(rtc::scoped_refptr<AudioProcessing> audio_processing,
 int AudioprocFloat(std::unique_ptr<AudioProcessingBuilder> ap_builder,
                    int argc,
                    char* argv[]) {
-  return AudioprocFloatImpl(std::move(ap_builder), argc, argv,
-                            /*input_aecdump=*/"",
-                            /*processed_capture_samples=*/nullptr);
+  return AudioprocFloatImpl(std::move(ap_builder), argc, argv);
 }
 
 }  // namespace test

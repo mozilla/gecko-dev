@@ -11,21 +11,27 @@
 #ifndef MODULES_AUDIO_PROCESSING_TEST_AUDIO_PROCESSING_SIMULATOR_H_
 #define MODULES_AUDIO_PROCESSING_TEST_AUDIO_PROCESSING_SIMULATOR_H_
 
-#include <algorithm>
+#include <array>
+#include <cstddef>
+#include <cstdint>
 #include <fstream>
-#include <limits>
 #include <memory>
 #include <optional>
 #include <string>
+#include <vector>
 
+#include "absl/base/nullability.h"
+#include "absl/strings/string_view.h"
 #include "api/audio/audio_processing.h"
+#include "api/scoped_refptr.h"
 #include "common_audio/channel_buffer.h"
 #include "common_audio/include/audio_util.h"
+#include "common_audio/wav_file.h"
 #include "modules/audio_processing/test/api_call_statistics.h"
 #include "modules/audio_processing/test/fake_recording_device.h"
 #include "modules/audio_processing/test/test_utils.h"
+#include "rtc_base/checks.h"
 #include "rtc_base/task_queue_for_test.h"
-#include "rtc_base/time_utils.h"
 
 namespace webrtc {
 namespace test {
@@ -158,9 +164,9 @@ struct SimulationSettings {
 // Provides common functionality for performing audioprocessing simulations.
 class AudioProcessingSimulator {
  public:
-  AudioProcessingSimulator(const SimulationSettings& settings,
-                           rtc::scoped_refptr<AudioProcessing> audio_processing,
-                           std::unique_ptr<AudioProcessingBuilder> ap_builder);
+  AudioProcessingSimulator(
+      const SimulationSettings& settings,
+      absl::Nonnull<scoped_refptr<AudioProcessing>> audio_processing);
 
   AudioProcessingSimulator() = delete;
   AudioProcessingSimulator(const AudioProcessingSimulator&) = delete;
