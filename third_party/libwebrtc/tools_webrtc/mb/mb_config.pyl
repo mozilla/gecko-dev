@@ -484,7 +484,8 @@
       'gn_args': 'ios_code_signing_identity_description="Apple Development"',
     },
     'libfuzzer': {
-      'gn_args': 'use_libfuzzer=true',
+      # use_fuzztest_wrapper adds a dependency to //base.
+      'gn_args': 'use_libfuzzer=true use_fuzztest_wrapper=true',
     },
     'lsan': {
       'gn_args': 'is_lsan=true',
