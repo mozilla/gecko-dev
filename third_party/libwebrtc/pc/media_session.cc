@@ -2169,6 +2169,15 @@ RTCError MediaSessionDescriptionFactory::AddRtpContentForAnswer(
     LOG_AND_RETURN_ERROR(RTCErrorType::INTERNAL_ERROR,
                          "Failed to set codecs in answer");
   }
+  // RFC 8888 support. Only answer with "ack ccfb" if offer has it and
+  // experiment is enabled.
+  // TODO: https://issues.webrtc.org/42225697 - disable transport-cc
+  // when ccfb is negotiated.
+  if (offer_content_description->rtcp_fb_ack_ccfb()) {
+    answer_content->set_rtcp_fb_ack_ccfb(
+        transport_desc_factory_->trials().IsEnabled(
+            "WebRTC-RFC8888CongestionControlFeedback"));
+  }
   if (!CreateMediaContentAnswer(
           offer_content_description, media_description_options, session_options,
           filtered_rtp_header_extensions(header_extensions), ssrc_generator(),

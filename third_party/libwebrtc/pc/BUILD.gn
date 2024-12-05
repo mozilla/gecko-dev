@@ -1326,6 +1326,7 @@ rtc_source_set("webrtc_sdp") {
     "../rtc_base:logging",
     "../rtc_base:macromagic",
     "../rtc_base:net_helper",
+    "../rtc_base:net_helpers",
     "../rtc_base:network_constants",
     "../rtc_base:socket_address",
     "../rtc_base:ssl",

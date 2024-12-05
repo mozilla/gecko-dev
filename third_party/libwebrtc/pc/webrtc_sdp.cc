@@ -21,7 +21,6 @@
 #include <optional>
 #include <set>
 #include <string>
-#include <type_traits>
 #include <unordered_map>
 #include <utility>
 #include <vector>
@@ -31,6 +30,7 @@
 #include "absl/strings/match.h"
 #include "absl/strings/string_view.h"
 #include "api/candidate.h"
+#include "api/jsep.h"
 #include "api/jsep_ice_candidate.h"
 #include "api/jsep_session_description.h"
 #include "api/media_types.h"
@@ -61,11 +61,11 @@
 #include "rtc_base/ip_address.h"
 #include "rtc_base/logging.h"
 #include "rtc_base/net_helper.h"
+#include "rtc_base/net_helpers.h"
 #include "rtc_base/network_constants.h"
 #include "rtc_base/socket_address.h"
 #include "rtc_base/ssl_fingerprint.h"
 #include "rtc_base/string_encode.h"
-#include "rtc_base/string_utils.h"
 #include "rtc_base/strings/string_builder.h"
 
 using cricket::AudioContentDescription;
@@ -3012,6 +3012,10 @@ void UpdateFromWildcardCodecs(cricket::MediaContentDescription* desc) {
   }
   for (auto& codec : codecs) {
     AddFeedbackParameters(wildcard_codec->feedback_params, &codec);
+  }
+  // Special treatment for transport-wide feedback params.
+  if (wildcard_codec->feedback_params.Has({"ack", "ccfb"})) {
+    desc->set_rtcp_fb_ack_ccfb(true);
   }
   desc->set_codecs(codecs);
 }
