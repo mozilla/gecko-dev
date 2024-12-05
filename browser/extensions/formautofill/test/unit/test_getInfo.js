@@ -19,7 +19,7 @@ const TESTCASES = [
                  </label>
                </form>`,
     elementId: "targetElement",
-    expectedReturnValue: ["email", null, null],
+    expectedReturnValue: ["email", {}],
   },
   {
     description:
@@ -29,7 +29,7 @@ const TESTCASES = [
                  <input id="targetElement" type="text">
                </form>`,
     elementId: "targetElement",
-    expectedReturnValue: ["email", null, null],
+    expectedReturnValue: ["email", {}],
   },
   {
     description: "A label element contains span element",
@@ -38,19 +38,19 @@ const TESTCASES = [
                  <input id="targetElement" type="text">
                </form>`,
     elementId: "targetElement",
-    expectedReturnValue: ["email", null, null],
+    expectedReturnValue: ["email", {}],
   },
   {
     description: "The signature in 'name' attr of an input",
     document: `<input id="targetElement" name="email" type="text">`,
     elementId: "targetElement",
-    expectedReturnValue: ["email", null, null],
+    expectedReturnValue: ["email", {}],
   },
   {
     description: "The signature in 'id' attr of an input",
     document: `<input id="targetElement_email" name="tel" type="text">`,
     elementId: "targetElement_email",
-    expectedReturnValue: ["email", null, null],
+    expectedReturnValue: ["email", {}],
   },
   {
     description: "Select element in a label element",
@@ -60,21 +60,21 @@ const TESTCASES = [
                  </label>
                </form>`,
     elementId: "targetElement",
-    expectedReturnValue: ["address-level1", null, null],
+    expectedReturnValue: ["address-level1", {}],
   },
   {
     description: "A select element without a form wrapped",
     document: `<label for="targetElement">State</label>
                <select id="targetElement"></select>`,
     elementId: "targetElement",
-    expectedReturnValue: ["address-level1", null, null],
+    expectedReturnValue: ["address-level1", {}],
   },
   {
     description: "address line input",
     document: `<label for="targetElement">street</label>
                <input id="targetElement" type="text">`,
     elementId: "targetElement",
-    expectedReturnValue: ["street-address", null, null],
+    expectedReturnValue: ["street-address", {}],
   },
   {
     description: "CJK character - Traditional Chinese",
@@ -82,7 +82,7 @@ const TESTCASES = [
                  <input id="targetElement" />
                </label>`,
     elementId: "targetElement",
-    expectedReturnValue: ["postal-code", null, null],
+    expectedReturnValue: ["postal-code", {}],
   },
   {
     description: "CJK character - Japanese",
@@ -90,7 +90,7 @@ const TESTCASES = [
                  <input id="targetElement" />
                </label>`,
     elementId: "targetElement",
-    expectedReturnValue: ["postal-code", null, null],
+    expectedReturnValue: ["postal-code", {}],
   },
   {
     description: "CJK character - Korean",
@@ -98,31 +98,31 @@ const TESTCASES = [
                  <input id="targetElement" />
                </label>`,
     elementId: "targetElement",
-    expectedReturnValue: ["postal-code", null, null],
+    expectedReturnValue: ["postal-code", {}],
   },
   {
     description: "",
     document: `<input id="targetElement" name="fullname">`,
     elementId: "targetElement",
-    expectedReturnValue: ["name", null, null],
+    expectedReturnValue: ["name", {}],
   },
   {
     description: 'input element with "submit" type',
     document: `<input id="targetElement" type="submit" />`,
     elementId: "targetElement",
-    expectedReturnValue: [[], null, null],
+    expectedReturnValue: [[], {}],
   },
   {
     description: "The signature in 'name' attr of an email input",
     document: `<input id="targetElement" name="email" type="number">`,
     elementId: "targetElement",
-    expectedReturnValue: ["email", null, null],
+    expectedReturnValue: ["email", {}],
   },
   {
     description: 'input element with "email" type',
     document: `<input id="targetElement" type="email" />`,
     elementId: "targetElement",
-    expectedReturnValue: ["email", null, null],
+    expectedReturnValue: ["email", {}],
   },
   {
     description: "Exclude United State string",
@@ -130,7 +130,7 @@ const TESTCASES = [
                  <input id="targetElement" />
                </label>`,
     elementId: "targetElement",
-    expectedReturnValue: [[], null, null],
+    expectedReturnValue: [[], {}],
   },
   {
     description: '"County" field with "United State" string',
@@ -138,7 +138,7 @@ const TESTCASES = [
                  <input id="targetElement" />
                </label>`,
     elementId: "targetElement",
-    expectedReturnValue: ["address-level1", null, null],
+    expectedReturnValue: ["address-level1", {}],
   },
   {
     description: '"city" field with double "United State" string',
@@ -146,7 +146,7 @@ const TESTCASES = [
                  <input id="targetElement" />
                </label>`,
     elementId: "targetElement",
-    expectedReturnValue: ["address-level2", null, null],
+    expectedReturnValue: ["address-level2", {}],
   },
   {
     description: "Verify credit card number",
@@ -155,7 +155,10 @@ const TESTCASES = [
                  <input id="targetElement" type="text">
                </form>`,
     elementId: "targetElement",
-    expectedReturnValue: ["cc-number", null, 1],
+    expectedReturnValue: [
+      "cc-number",
+      { fathomLabel: "cc-number", fathomConfidence: 1 },
+    ],
   },
   {
     description: "Identify credit card type field",
@@ -164,7 +167,7 @@ const TESTCASES = [
                  <input id="targetElement" type="text">
                </form>`,
     elementId: "targetElement",
-    expectedReturnValue: ["cc-type", null, null],
+    expectedReturnValue: ["cc-type", {}],
   },
   {
     description: `Identify address field when contained in a form with autocomplete="off"`,
@@ -172,7 +175,7 @@ const TESTCASES = [
                 <input id="given-name">
                </form>`,
     elementId: "given-name",
-    expectedReturnValue: ["given-name", null, null],
+    expectedReturnValue: ["given-name", {}],
   },
   {
     description: `Identify address field that has a placeholder but no label associated with it`,
@@ -180,7 +183,7 @@ const TESTCASES = [
                 <input id="targetElement" placeholder="Name">
                </form>`,
     elementId: "targetElement",
-    expectedReturnValue: ["name", null, null],
+    expectedReturnValue: ["name", {}],
   },
   {
     description: `Identify address field that has a placeholder, no associated label, and its autocomplete attribute is "off"`,
@@ -188,7 +191,7 @@ const TESTCASES = [
                 <input id="targetElement" placeholder="Address" autocomplete="off">
                </form>`,
     elementId: "targetElement",
-    expectedReturnValue: ["street-address", null, null],
+    expectedReturnValue: ["street-address", {}],
   },
   {
     description: `Identify address field that has a placeholder, no associated label, and the form's autocomplete attribute is "off"`,
@@ -196,7 +199,7 @@ const TESTCASES = [
                 <input id="targetElement" placeholder="Country">
                </form>`,
     elementId: "targetElement",
-    expectedReturnValue: ["country", null, null],
+    expectedReturnValue: ["country", {}],
   },
 ];
 
@@ -260,8 +263,8 @@ add_task(async function test_regexp_list() {
       document: `<select id="${label}"></select>`,
       elementId: label,
       expectedReturnValue: SUPPORT_LIST[label]
-        ? [SUPPORT_LIST[label], null, null]
-        : [[], null, null],
+        ? [SUPPORT_LIST[label], {}]
+        : [[], {}],
     };
     info(testcase.description);
     info(testcase.document);
@@ -283,7 +286,7 @@ add_task(async function test_autofill_creditCards_autocomplete_off_pref() {
                     <label for="targetElement"> Card Number</label>
                     <input id="targetElement" type="text">
                   </form>`;
-  let expected = [[], null, null];
+  let expected = [[], {}];
   info(`Set pref so that credit card autofill respects autocomplete="off"`);
   Services.prefs.setBoolPref(
     FormAutofill.AUTOFILL_CREDITCARDS_AUTOCOMPLETE_OFF_PREF,
@@ -301,7 +304,7 @@ add_task(async function test_autofill_creditCards_autocomplete_off_pref() {
                 <label for="targetElement"> Card Number</label>
                 <input id="targetElement" type="text">
               </form>`;
-  expected = ["cc-number", null, 1];
+  expected = ["cc-number", { fathomLabel: "cc-number", fathomConfidence: 1 }];
   info(
     `Set pref so that credit card autofill does not respect autocomplete="off"`
   );
@@ -326,7 +329,7 @@ add_task(async function test_autofill_addresses_autocomplete_off_pref() {
   let document = `<form autocomplete="off">
                     <input id="given-name">
                   </form>`;
-  let expected = [[], null, null];
+  let expected = [[], {}];
   info(`Set pref so that address autofill respects autocomplete="off"`);
   Services.prefs.setBoolPref(
     FormAutofill.AUTOFILL_ADDRESSES_AUTOCOMPLETE_OFF_PREF,
@@ -343,7 +346,7 @@ add_task(async function test_autofill_addresses_autocomplete_off_pref() {
   document = `<form>
                 <input id="given-name">
               </form>`;
-  expected = ["given-name", null, null];
+  expected = ["given-name", {}];
   info(`Set pref so that address autofill does not respect autocomplete="off"`);
   Services.prefs.setBoolPref(
     FormAutofill.AUTOFILL_ADDRESSES_AUTOCOMPLETE_OFF_PREF,
