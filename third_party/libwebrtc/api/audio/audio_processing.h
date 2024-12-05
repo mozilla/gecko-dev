@@ -742,6 +742,14 @@ class AudioProcessingFactory {
       const Environment& env) = 0;
 };
 
+// Returns factory that always returns the same `audio_processing` ignoring the
+// extra construction parameter `env`.
+// nullptr `audio_processing` is not supported as in some scenarios that imply
+// no audio processing, while in others - default builtin audio processing.
+// Callers should be explicit which of these two behaviors they want.
+absl::Nonnull<std::unique_ptr<AudioProcessingFactory>> CustomAudioProcessing(
+    absl::Nonnull<scoped_refptr<AudioProcessing>> audio_processing);
+
 // Experimental interface for a custom analysis submodule.
 class CustomAudioAnalyzer {
  public:

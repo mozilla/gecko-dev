@@ -58,8 +58,9 @@ rtc::scoped_refptr<PeerConnectionFactoryInterface> CreatePeerConnectionFactory(
   dependencies.audio_encoder_factory = std::move(audio_encoder_factory);
   dependencies.audio_decoder_factory = std::move(audio_decoder_factory);
   dependencies.audio_frame_processor = std::move(audio_frame_processor);
-  if (audio_processing) {
-    dependencies.audio_processing = std::move(audio_processing);
+  if (audio_processing != nullptr) {
+    dependencies.audio_processing_factory =
+        CustomAudioProcessing(std::move(audio_processing));
   } else {
 #ifndef WEBRTC_EXCLUDE_AUDIO_PROCESSING_MODULE
     dependencies.audio_processing_factory =

@@ -167,11 +167,16 @@ rtc_source_set("echo_detector_creator") {
 if (rtc_include_tests) {
   rtc_library("audio_api_unittests") {
     testonly = true
-    sources = [ "builtin_audio_processing_factory_unittest.cc" ]
+    sources = [
+      "audio_processing_unittest.cc",
+      "builtin_audio_processing_factory_unittest.cc",
+    ]
     deps = [
       ":audio_processing",
       ":builtin_audio_processing_factory",
+      "..:make_ref_counted",
       "..:scoped_refptr",
+      "../../modules/audio_processing:mocks",
       "../../test:test_support",
       "../environment",
       "../environment:environment_factory",
