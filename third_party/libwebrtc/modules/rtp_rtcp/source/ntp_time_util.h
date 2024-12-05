@@ -48,6 +48,11 @@ inline constexpr int64_t ToNtpUnits(TimeDelta delta) {
 
 // Converts interval from compact ntp (1/2^16 seconds) resolution to TimeDelta.
 // This interval can be up to ~9.1 hours (2^15 seconds).
+// Values close to 2^16 seconds are considered negative.
+TimeDelta CompactNtpIntervalToTimeDelta(uint32_t compact_ntp_interval);
+
+// Converts interval from compact ntp (1/2^16 seconds) resolution to TimeDelta.
+// This interval can be up to ~9.1 hours (2^15 seconds).
 // Values close to 2^16 seconds are considered negative and are converted to
 // minimum value of 1ms.
 TimeDelta CompactNtpRttToTimeDelta(uint32_t compact_ntp_interval);

@@ -7,11 +7,13 @@
  *  in the file PATENTS.  All contributing project authors may
  *  be found in the AUTHORS file in the root of the source tree.
  */
+#include "modules/rtp_rtcp/source/ntp_time_util.h"
+
 #include <cstdint>
 #include <limits>
 
 #include "api/units/time_delta.h"
-#include "modules/rtp_rtcp/source/ntp_time_util.h"
+#include "system_wrappers/include/ntp_time.h"
 #include "test/gtest.h"
 
 namespace webrtc {
@@ -24,16 +26,16 @@ TEST(NtpTimeUtilTest, CompactNtp) {
   EXPECT_EQ(kNtpMid, CompactNtp(kNtp));
 }
 
-TEST(NtpTimeUtilTest, CompactNtpRttToTimeDelta) {
+TEST(NtpTimeUtilTest, CompactNtpIntervalToTimeDelta) {
   const NtpTime ntp1(0x12345, 0x23456);
   const NtpTime ntp2(0x12654, 0x64335);
   int64_t ms_diff = ntp2.ToMs() - ntp1.ToMs();
   uint32_t ntp_diff = CompactNtp(ntp2) - CompactNtp(ntp1);
 
-  EXPECT_NEAR(CompactNtpRttToTimeDelta(ntp_diff).ms(), ms_diff, 1);
+  EXPECT_NEAR(CompactNtpIntervalToTimeDelta(ntp_diff).ms(), ms_diff, 1);
 }
 
-TEST(NtpTimeUtilTest, CompactNtpRttToTimeDeltaWithWrap) {
+TEST(NtpTimeUtilTest, CompactNtpIntervalToTimeDeltaWithWrap) {
   const NtpTime ntp1(0x1ffff, 0x23456);
   const NtpTime ntp2(0x20000, 0x64335);
   int64_t ms_diff = ntp2.ToMs() - ntp1.ToMs();
@@ -44,10 +46,10 @@ TEST(NtpTimeUtilTest, CompactNtpRttToTimeDeltaWithWrap) {
   ASSERT_LT(CompactNtp(ntp2), CompactNtp(ntp1));
 
   uint32_t ntp_diff = CompactNtp(ntp2) - CompactNtp(ntp1);
-  EXPECT_NEAR(CompactNtpRttToTimeDelta(ntp_diff).ms(), ms_diff, 1);
+  EXPECT_NEAR(CompactNtpIntervalToTimeDelta(ntp_diff).ms(), ms_diff, 1);
 }
 
-TEST(NtpTimeUtilTest, CompactNtpRttToTimeDeltaLarge) {
+TEST(NtpTimeUtilTest, CompactNtpIntervalToTimeDeltaLarge) {
   const NtpTime ntp1(0x10000, 0x00006);
   const NtpTime ntp2(0x17fff, 0xffff5);
   int64_t ms_diff = ntp2.ToMs() - ntp1.ToMs();
@@ -57,11 +59,28 @@ TEST(NtpTimeUtilTest, CompactNtpRttToTimeDeltaLarge) {
   EXPECT_NEAR(CompactNtpRttToTimeDelta(ntp_diff).ms(), ms_diff, 1);
 }
 
+TEST(NtpTimeUtilTest, CompactNtpIntervalToTimeDeltaNegative) {
+  const NtpTime ntp1(0x20000, 0x23456);
+  const NtpTime ntp2(0x1ffff, 0x64335);
+  int64_t ms_diff = ntp2.ToMs() - ntp1.ToMs();
+  ASSERT_LT(ms_diff, 0);
+  // Ntp difference close to 2^16 seconds should be treated as negative.
+  uint32_t ntp_diff = CompactNtp(ntp2) - CompactNtp(ntp1);
+  EXPECT_NEAR(CompactNtpIntervalToTimeDelta(ntp_diff).ms(), ms_diff, 1);
+}
+
+TEST(NtpTimeUtilTest, CompactNtpIntervalToTimeDeltaBorderToNegative) {
+  // Both +0x8000 and -x0x8000 seconds can be valid result when converting value
+  // exactly in the middle.
+  EXPECT_EQ(CompactNtpIntervalToTimeDelta(0x8000'0000).Abs(),
+            TimeDelta::Seconds(0x8000));
+}
+
 TEST(NtpTimeUtilTest, CompactNtpRttToTimeDeltaNegative) {
   const NtpTime ntp1(0x20000, 0x23456);
   const NtpTime ntp2(0x1ffff, 0x64335);
   int64_t ms_diff = ntp2.ToMs() - ntp1.ToMs();
-  ASSERT_GT(0, ms_diff);
+  ASSERT_LT(ms_diff, 0);
   // Ntp difference close to 2^16 seconds should be treated as negative.
   uint32_t ntp_diff = CompactNtp(ntp2) - CompactNtp(ntp1);
   EXPECT_EQ(CompactNtpRttToTimeDelta(ntp_diff), TimeDelta::Millis(1));
