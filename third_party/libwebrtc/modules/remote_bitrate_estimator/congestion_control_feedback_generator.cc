@@ -124,7 +124,9 @@ void CongestionControlFeedbackGenerator::CalculateNextPossibleSendTime(
   send_rate_debt_ += feedback_size + packet_overhead_;
   last_feedback_sent_time_ = now;
   next_possible_feedback_send_time_ =
-      now + std::clamp(send_rate_debt_ / max_feedback_rate_,
+      now + std::clamp(max_feedback_rate_.IsZero()
+                           ? TimeDelta::PlusInfinity()
+                           : send_rate_debt_ / max_feedback_rate_,
                        min_time_between_feedback_.Get(),
                        max_time_between_feedback_.Get());
 }

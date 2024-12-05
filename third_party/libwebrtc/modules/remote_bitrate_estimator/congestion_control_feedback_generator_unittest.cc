@@ -218,6 +218,42 @@ TEST(CongestionControlFeedbackGeneratorTest,
 }
 
 TEST(CongestionControlFeedbackGeneratorTest,
+     SendsFeedbackAfterMax250MsIfBweZero) {
+  test::ExplicitKeyValueConfig field_trials(
+      "WebRTC-RFC8888CongestionControlFeedback/max_send_delta:250ms/");
+  MockFunction<void(std::vector<std::unique_ptr<rtcp::RtcpPacket>>)>
+      rtcp_sender;
+  SimulatedClock clock(123456);
+  constexpr TimeDelta kSmallTimeInterval = TimeDelta::Millis(2);
+  CongestionControlFeedbackGenerator generator(
+      CreateEnvironment(&clock, &field_trials), rtcp_sender.AsStdFunction());
+  // Regardless of BWE, feedback is sent at least every 250ms.
+  generator.OnSendBandwidthEstimateChanged(DataRate::Zero());
+  TimeDelta time_to_next_process = generator.Process(clock.CurrentTime());
+  clock.AdvanceTime(kSmallTimeInterval);
+  time_to_next_process -= kSmallTimeInterval;
+
+  Timestamp expected_feedback_time = clock.CurrentTime();
+  EXPECT_CALL(rtcp_sender, Call).Times(2).WillRepeatedly(WithoutArgs([&] {
+    EXPECT_EQ(clock.CurrentTime(), expected_feedback_time);
+    // Next feedback is not expected to be sent until 250ms after the
+    // previouse due to low send bandwidth.
+    expected_feedback_time += TimeDelta::Millis(250);
+  }));
+  generator.OnReceivedPacket(
+      CreatePacket(clock.CurrentTime(), /*marker=*/true));
+  clock.AdvanceTime(kSmallTimeInterval);
+  time_to_next_process -= kSmallTimeInterval;
+  generator.OnReceivedPacket(
+      CreatePacket(clock.CurrentTime(), /*marker=*/true));
+
+  clock.AdvanceTime(time_to_next_process);
+  time_to_next_process = generator.Process(clock.CurrentTime());
+  clock.AdvanceTime(time_to_next_process);
+  time_to_next_process = generator.Process(clock.CurrentTime());
+}
+
+TEST(CongestionControlFeedbackGeneratorTest,
      CanGenerateRtcpPacketFromTwoSsrcWithMissingPacketsAndWrap) {
   MockFunction<void(std::vector<std::unique_ptr<rtcp::RtcpPacket>>)>
       rtcp_sender;
