@@ -169,12 +169,12 @@ class LossBasedBweV2 {
   bool IsConfigValid() const;
 
   // Returns `0.0` if not enough loss statistics have been received.
-  double GetAverageReportedLossRatio() const;
-  double GetAverageReportedPacketLossRatio() const;
+  void UpdateAverageReportedLossRatio();
+  double CalculateAverageReportedPacketLossRatio() const;
   // Calculates the average loss ratio over the last `observation_window_size`
   // observations but skips the observation with min and max loss ratio in order
   // to filter out loss spikes.
-  double GetAverageReportedByteLossRatio() const;
+  double CalculateAverageReportedByteLossRatio() const;
   std::vector<ChannelParameters> GetCandidates(bool in_alr) const;
   DataRate GetCandidateBandwidthUpperBound() const;
   Derivatives GetDerivatives(const ChannelParameters& channel_parameters) const;
@@ -220,6 +220,7 @@ class LossBasedBweV2 {
   LossBasedBweV2::Result loss_based_result_ = LossBasedBweV2::Result();
   HoldInfo last_hold_info_ = HoldInfo();
   PaddingInfo last_padding_info_ = PaddingInfo();
+  double average_reported_loss_ratio_ = 0.0;
 };
 
 }  // namespace webrtc

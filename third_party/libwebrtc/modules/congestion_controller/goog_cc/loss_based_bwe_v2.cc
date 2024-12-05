@@ -234,7 +234,7 @@ void LossBasedBweV2::UpdateBandwidthEstimate(
 
   // Do not increase the estimate if the average loss is greater than current
   // inherent loss.
-  if (GetAverageReportedLossRatio() > best_candidate.inherent_loss &&
+  if (average_reported_loss_ratio_ > best_candidate.inherent_loss &&
       config_->not_increase_if_inherent_loss_less_than_average_loss &&
       current_best_estimate_.loss_limited_bandwidth <
           best_candidate.loss_limited_bandwidth) {
@@ -300,7 +300,7 @@ void LossBasedBweV2::UpdateBandwidthEstimate(
     RTC_LOG(LS_INFO) << "Resetting loss based BWE to "
                      << bounded_bandwidth_estimate.kbps()
                      << "due to loss. Avg loss rate: "
-                     << GetAverageReportedLossRatio();
+                     << average_reported_loss_ratio_;
     current_best_estimate_.loss_limited_bandwidth = bounded_bandwidth_estimate;
     current_best_estimate_.inherent_loss = 0;
   } else {
@@ -775,12 +775,13 @@ bool LossBasedBweV2::IsConfigValid() const {
   return valid;
 }
 
-double LossBasedBweV2::GetAverageReportedLossRatio() const {
-  return config_->use_byte_loss_rate ? GetAverageReportedByteLossRatio()
-                                     : GetAverageReportedPacketLossRatio();
+void LossBasedBweV2::UpdateAverageReportedLossRatio() {
+  average_reported_loss_ratio_ =
+      (config_->use_byte_loss_rate ? CalculateAverageReportedByteLossRatio()
+                                   : CalculateAverageReportedPacketLossRatio());
 }
 
-double LossBasedBweV2::GetAverageReportedPacketLossRatio() const {
+double LossBasedBweV2::CalculateAverageReportedPacketLossRatio() const {
   if (num_observations_ <= 0) {
     return 0.0;
   }
@@ -802,7 +803,7 @@ double LossBasedBweV2::GetAverageReportedPacketLossRatio() const {
   return num_lost_packets / num_packets;
 }
 
-double LossBasedBweV2::GetAverageReportedByteLossRatio() const {
+double LossBasedBweV2::CalculateAverageReportedByteLossRatio() const {
   if (num_observations_ <= 0) {
     return 0.0;
   }
@@ -999,11 +1000,10 @@ double LossBasedBweV2::AdjustBiasFactor(double loss_rate,
 
 double LossBasedBweV2::GetHighBandwidthBias(DataRate bandwidth) const {
   if (IsValid(bandwidth)) {
-    const double average_reported_loss_ratio = GetAverageReportedLossRatio();
-    return AdjustBiasFactor(average_reported_loss_ratio,
+    return AdjustBiasFactor(average_reported_loss_ratio_,
                             config_->higher_bandwidth_bias_factor) *
                bandwidth.kbps() +
-           AdjustBiasFactor(average_reported_loss_ratio,
+           AdjustBiasFactor(average_reported_loss_ratio_,
                             config_->higher_log_bandwidth_bias_factor) *
                std::log(1.0 + bandwidth.kbps());
   }
@@ -1075,10 +1075,9 @@ DataRate LossBasedBweV2::GetInstantUpperBound() const {
 
 void LossBasedBweV2::CalculateInstantUpperBound() {
   DataRate instant_limit = max_bitrate_;
-  const double average_reported_loss_ratio = GetAverageReportedLossRatio();
-  if (average_reported_loss_ratio > config_->instant_upper_bound_loss_offset) {
+  if (average_reported_loss_ratio_ > config_->instant_upper_bound_loss_offset) {
     instant_limit = config_->instant_upper_bound_bandwidth_balance /
-                    (average_reported_loss_ratio -
+                    (average_reported_loss_ratio_ -
                      config_->instant_upper_bound_loss_offset);
   }
 
@@ -1179,7 +1178,7 @@ bool LossBasedBweV2::PushBackObservation(
       observation;
 
   partial_observation_ = PartialObservation();
-
+  UpdateAverageReportedLossRatio();
   CalculateInstantUpperBound();
   return true;
 }
