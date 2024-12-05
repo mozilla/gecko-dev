@@ -427,6 +427,21 @@ static void AppendTextToAttributedString(
   [aAttributedString appendAttributedString:substr];
 }
 
+static RefPtr<AccAttributes> GetTextAttributes(TextLeafPoint aPoint) {
+  RefPtr<AccAttributes> attrs = aPoint.GetTextAttributes();
+  // Mac expects some object properties to be exposed as text attributes. We
+  // add these here rather than in utils::StringAttributesFromAccAttributes so
+  // we can use AccAttributes::Equal to determine whether we need to start a new
+  // run, rather than needing additional special case comparisons.
+  for (Accessible* ancestor = aPoint.mAcc->Parent();
+       ancestor && !ancestor->IsDoc(); ancestor = ancestor->Parent()) {
+    if (ancestor->Role() == roles::MARK) {
+      attrs->SetAttribute(nsGkAtoms::mark, true);
+    }
+  }
+  return attrs;
+}
+
 NSAttributedString* GeckoTextMarkerRange::AttributedText() const {
   NSMutableAttributedString* str =
       [[[NSMutableAttributedString alloc] init] autorelease];
@@ -449,7 +464,7 @@ NSAttributedString* GeckoTextMarkerRange::AttributedText() const {
           : mRange;
 
   nsAutoString text;
-  RefPtr<AccAttributes> currentRun = range.Start().GetTextAttributes();
+  RefPtr<AccAttributes> currentRun = GetTextAttributes(range.Start());
   Accessible* runAcc = range.Start().mAcc;
   for (TextLeafRange segment : range) {
     TextLeafPoint start = segment.Start();
@@ -472,7 +487,7 @@ NSAttributedString* GeckoTextMarkerRange::AttributedText() const {
         // XXX: FindTextAttrsStart should not return the same point.
         break;
       }
-      RefPtr<AccAttributes> attributes = start.GetTextAttributes();
+      RefPtr<AccAttributes> attributes = GetTextAttributes(start);
       if (!currentRun || !attributes || !attributes->Equal(currentRun)) {
         // If currentRun is null this is a non-text control and we will
         // append a run with no text or attributes, just an AXAttachment
