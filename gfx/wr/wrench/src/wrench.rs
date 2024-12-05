@@ -15,10 +15,10 @@ use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 use std::sync::mpsc::Receiver;
 use std::time::Instant;
-use webrender::api::*;
+use webrender::{api::*, CompositorConfig};
 use webrender::render_api::*;
 use webrender::api::units::*;
-use webrender::{DebugFlags, RenderResults, ShaderPrecacheFlags, Compositor2};
+use webrender::{DebugFlags, RenderResults, ShaderPrecacheFlags, LayerCompositor};
 use crate::{WindowWrapper, NotifierEvent};
 
 // TODO(gw): This descriptor matches what we currently support for fonts
@@ -229,7 +229,7 @@ impl Wrench {
         precache_shaders: bool,
         dump_shader_source: Option<String>,
         notifier: Option<Box<dyn RenderNotifier>>,
-        compositor2: Option<Box<dyn Compositor2>>,
+        layer_compositor: Option<Box<dyn LayerCompositor>>,
     ) -> Self {
         println!("Shader override path: {:?}", shader_override_path);
 
@@ -241,6 +241,11 @@ impl Wrench {
             ShaderPrecacheFlags::FULL_COMPILE
         } else {
             ShaderPrecacheFlags::empty()
+        };
+
+        let compositor_config = match layer_compositor {
+            Some(compositor) => CompositorConfig::Layer { compositor },
+            None => CompositorConfig::default(),
         };
 
         let opts = webrender::WebRenderOptions {
@@ -259,7 +264,7 @@ impl Wrench {
             // SWGL doesn't support the GL_ALWAYS depth comparison function used by
             // `clear_caches_with_quads`, but scissored clears work well.
             clear_caches_with_quads: !window.is_software(),
-            compositor2,
+            compositor_config,
             ..Default::default()
         };
 
