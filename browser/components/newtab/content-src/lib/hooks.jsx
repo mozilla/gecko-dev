@@ -18,24 +18,27 @@ import { useEffect, useRef } from "react";
  *
  *
  */
-function useIntersectionObserver(callback, options = { threshold: 0.3 }) {
+function useIntersectionObserver(callback, threshold = 0.3) {
   const elementsRef = useRef([]);
   useEffect(() => {
-    const observer = new IntersectionObserver(entries => {
-      entries.forEach(entry => {
-        if (entry.isIntersecting) {
-          callback(entry.target);
-          observer.unobserve(entry.target);
-        }
-      });
-    }, options);
+    const observer = new IntersectionObserver(
+      entries => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            callback(entry.target);
+            observer.unobserve(entry.target);
+          }
+        });
+      },
+      { threshold }
+    );
 
     elementsRef.current.forEach(el => {
       if (el) {
         observer.observe(el);
       }
     });
-  }, [callback, options]);
+  }, [callback, threshold]);
 
   return elementsRef;
 }
