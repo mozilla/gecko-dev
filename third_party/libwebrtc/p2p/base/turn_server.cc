@@ -30,6 +30,7 @@
 #include "rtc_base/message_digest.h"
 #include "rtc_base/socket_adapters.h"
 #include "rtc_base/strings/string_builder.h"
+#include "rtc_base/time_utils.h"
 
 namespace cricket {
 namespace {

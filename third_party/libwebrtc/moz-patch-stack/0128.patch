@@ -79,7 +79,7 @@ index e6aa410434..dfc532dad9 100644
  # The python interpreter to use by default. On Windows, this will look
  # for vpython3.exe and vpython3.bat.
 diff --git a/BUILD.gn b/BUILD.gn
-index 37d44bd85e..9ebf5bd2d6 100644
+index 7f6cf2193f..97227f0e03 100644
 --- a/BUILD.gn
 +++ b/BUILD.gn
 @@ -21,15 +21,15 @@
@@ -111,7 +111,7 @@ index 37d44bd85e..9ebf5bd2d6 100644
      defines = []
  
      deps = [
-@@ -888,7 +888,7 @@ rtc_static_library("dcsctp") {
+@@ -889,7 +889,7 @@ rtc_static_library("dcsctp") {
    visibility = [ "//:default" ]
    sources = []
    complete_static_lib = true
@@ -659,7 +659,7 @@ index ac2ae54e44..ba4a4961ed 100644
  
  if (rtc_build_libsrtp) {
 diff --git a/rtc_base/BUILD.gn b/rtc_base/BUILD.gn
-index 92d0a49532..add251fc19 100644
+index 28bd1320c3..be88e2c586 100644
 --- a/rtc_base/BUILD.gn
 +++ b/rtc_base/BUILD.gn
 @@ -9,8 +9,8 @@

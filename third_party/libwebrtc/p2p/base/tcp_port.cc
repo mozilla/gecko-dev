@@ -84,6 +84,7 @@
 #include "rtc_base/network/received_packet.h"
 #include "rtc_base/rate_tracker.h"
 #include "rtc_base/thread.h"
+#include "rtc_base/time_utils.h"
 
 namespace cricket {
 using ::webrtc::IceCandidateType;
