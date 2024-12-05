@@ -205,9 +205,7 @@ def perftest_test_finder(task_cmd, task_label, test):
     that mozperftest names don't include things like:
     aarch64, shippable, or opt among other identifiers
     """
-    raise NotImplementedError(
-        "Mozperftest tests cannot currently be found for --alert or --tests"
-    )
+    return None
 
 
 def awsy_test_finder(task_cmd, task_label, test):
