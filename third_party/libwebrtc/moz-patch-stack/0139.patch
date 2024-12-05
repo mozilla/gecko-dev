@@ -1,36 +1,30 @@
-From: Nico Grunbaum <na-g@nostrum.com>
-Date: Wed, 27 Nov 2024 03:41:00 +0000
-Subject: Bug 1921154 - workaround older AV1;r=mjf,webrtc-reviewers
+From: Michael Froman <mfroman@mozilla.com>
+Date: Thu, 5 Dec 2024 13:45:00 -0600
+Subject: Bug 1934695 - (fix-3fa21c89c0) fix upstream compile issue in
+ apm_data_dumper.h
 
-Differential Revision: https://phabricator.services.mozilla.com/D228740
-Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/275786a9d6482996002fe1be24e8c6708430d892
+It is unclear why upstream modified a single DumpRaw call differently than
+all the others, but it doesn't build for us.  We'll fix it the same they
+fixed all the other calls using [[maybe_unused]] annotations.
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/8f64d5713228e3112f3014d9a269dce10795febf
 ---
- modules/video_coding/codecs/av1/libaom_av1_encoder.cc | 5 ++++-
- 1 file changed, 4 insertions(+), 1 deletion(-)
+ modules/audio_processing/logging/apm_data_dumper.h | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
 
-diff --git a/modules/video_coding/codecs/av1/libaom_av1_encoder.cc b/modules/video_coding/codecs/av1/libaom_av1_encoder.cc
-index a183704caa..9a8bd1d7b4 100644
---- a/modules/video_coding/codecs/av1/libaom_av1_encoder.cc
-+++ b/modules/video_coding/codecs/av1/libaom_av1_encoder.cc
-@@ -298,8 +298,9 @@ int LibaomAv1Encoder::InitEncode(const VideoCodec* codec_settings,
-   } else {
-     SET_ENCODER_PARAM_OR_RETURN_ERROR(AV1E_SET_ENABLE_PALETTE, 0);
-   }
--
-+#if !defined(WEBRTC_MOZILLA_BUILD) // Mozilla: Need to update AV1 to enable this
-   SET_ENCODER_PARAM_OR_RETURN_ERROR(AV1E_SET_AUTO_TILES, 1);
-+#endif
-   SET_ENCODER_PARAM_OR_RETURN_ERROR(AV1E_SET_ROW_MT, 1);
-   SET_ENCODER_PARAM_OR_RETURN_ERROR(AV1E_SET_ENABLE_OBMC, 0);
-   SET_ENCODER_PARAM_OR_RETURN_ERROR(AV1E_SET_NOISE_SENSITIVITY, 0);
-@@ -332,8 +333,10 @@ int LibaomAv1Encoder::InitEncode(const VideoCodec* codec_settings,
-   SET_ENCODER_PARAM_OR_RETURN_ERROR(AV1E_SET_MAX_REFERENCE_FRAMES, 3);
- 
-   if (adaptive_max_consec_drops_) {
-+#if !defined(WEBRTC_MOZILLA_BUILD) // Mozilla: Need to update AV1 to enable this
-     SET_ENCODER_PARAM_OR_RETURN_ERROR(AV1E_SET_MAX_CONSEC_FRAME_DROP_MS_CBR,
-                                       250);
-+#endif
+diff --git a/modules/audio_processing/logging/apm_data_dumper.h b/modules/audio_processing/logging/apm_data_dumper.h
+index 09d24bd034..d05b580b09 100644
+--- a/modules/audio_processing/logging/apm_data_dumper.h
++++ b/modules/audio_processing/logging/apm_data_dumper.h
+@@ -348,9 +348,9 @@ class ApmDataDumper {
+ #endif
    }
  
-   return WEBRTC_VIDEO_CODEC_OK;
+-  void DumpRaw(absl::string_view /* name */,
+-               rtc::ArrayView<const size_t> /* v */,
+-               int /* dump_set */ = kDefaultDumpSet) {
++  void DumpRaw([[maybe_unused]] absl::string_view name,
++               [[maybe_unused]] rtc::ArrayView<const size_t> v,
++               [[maybe_unused]] int dump_set = kDefaultDumpSet) {
+ #if WEBRTC_APM_DEBUG_DUMP == 1
+     if (dump_set_to_use_ && *dump_set_to_use_ != dump_set)
+       return;

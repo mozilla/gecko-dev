@@ -42,7 +42,7 @@ index db2a3c7099..a0607b4aba 100644
  uint32_t DeviceInfoPipeWire::NumberOfDevices() {
    RTC_CHECK(pipewire_session_);
 diff --git a/modules/video_capture/linux/pipewire_session.cc b/modules/video_capture/linux/pipewire_session.cc
-index 85ccb289d8..dc270b7b3a 100644
+index 98eb656096..0b1504170b 100644
 --- a/modules/video_capture/linux/pipewire_session.cc
 +++ b/modules/video_capture/linux/pipewire_session.cc
 @@ -9,6 +9,7 @@
