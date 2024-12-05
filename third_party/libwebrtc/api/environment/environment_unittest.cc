@@ -54,7 +54,9 @@ class FakeFieldTrials : public FieldTrialsView {
     }
   }
 
-  std::string Lookup(absl::string_view key) const override { return "fake"; }
+  std::string Lookup(absl::string_view /* key */) const override {
+    return "fake";
+  }
 
  private:
   absl::AnyInvocable<void() &&> on_destroyed_;

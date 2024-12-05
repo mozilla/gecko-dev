@@ -93,7 +93,8 @@ struct BaseAudioDecoderApi {
 
   static SdpAudioFormat AudioFormat() { return {"fake", 16'000, 2, {}}; }
 
-  static std::optional<Config> SdpToConfig(const SdpAudioFormat& audio_format) {
+  static std::optional<Config> SdpToConfig(
+      const SdpAudioFormat& /* audio_format */) {
     return Config();
   }
 
@@ -110,17 +111,17 @@ struct TraitWithTwoMakeAudioDecoders : BaseAudioDecoderApi {
   static constexpr int kRateWithEnv = 20'000;
 
   static std::unique_ptr<AudioDecoder> MakeAudioDecoder(
-      const Config& config,
-      std::optional<AudioCodecPairId> codec_pair_id) {
+      const Config& /* config */,
+      std::optional<AudioCodecPairId> /* codec_pair_id */) {
     auto decoder = std::make_unique<NiceMock<MockAudioDecoder>>();
     ON_CALL(*decoder, SampleRateHz).WillByDefault(Return(kRateWithoutEnv));
     return decoder;
   }
 
   static std::unique_ptr<AudioDecoder> MakeAudioDecoder(
-      const Environment& env,
-      const Config& config,
-      std::optional<AudioCodecPairId> codec_pair_id) {
+      const Environment& /* env */,
+      const Config& /* config */,
+      std::optional<AudioCodecPairId> /* codec_pair_id */) {
     auto decoder = std::make_unique<NiceMock<MockAudioDecoder>>();
     ON_CALL(*decoder, SampleRateHz).WillByDefault(Return(kRateWithEnv));
     return decoder;
@@ -139,8 +140,8 @@ TEST(AudioDecoderFactoryTemplateTest,
 
 struct AudioDecoderApiWithV1Make : BaseAudioDecoderApi {
   static std::unique_ptr<AudioDecoder> MakeAudioDecoder(
-      const Config& config,
-      std::optional<AudioCodecPairId> codec_pair_id) {
+      const Config& /* config */,
+      std::optional<AudioCodecPairId> /* codec_pair_id */) {
     return std::make_unique<NiceMock<MockAudioDecoder>>();
   }
 };

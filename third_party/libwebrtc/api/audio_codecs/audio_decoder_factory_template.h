@@ -34,13 +34,16 @@ struct Helper;
 // Base case: 0 template parameters.
 template <>
 struct Helper<> {
-  static void AppendSupportedDecoders(std::vector<AudioCodecSpec>* specs) {}
-  static bool IsSupportedDecoder(const SdpAudioFormat& format) { return false; }
+  static void AppendSupportedDecoders(
+      std::vector<AudioCodecSpec>* /* specs */) {}
+  static bool IsSupportedDecoder(const SdpAudioFormat& /* format */) {
+    return false;
+  }
 
   static absl::Nullable<std::unique_ptr<AudioDecoder>> MakeAudioDecoder(
-      const Environment& env,
-      const SdpAudioFormat& format,
-      std::optional<AudioCodecPairId> codec_pair_id) {
+      const Environment& /* env */,
+      const SdpAudioFormat& /* format */,
+      std::optional<AudioCodecPairId> /* codec_pair_id */) {
     return nullptr;
   }
 };
@@ -72,7 +75,7 @@ template <typename Trait,
               std::unique_ptr<AudioDecoder>>>>
 absl::Nullable<std::unique_ptr<AudioDecoder>> CreateDecoder(
     Rank0,
-    const Environment& env,
+    const Environment& /* env */,
     const typename Trait::Config& config,
     std::optional<AudioCodecPairId> codec_pair_id) {
   return Trait::MakeAudioDecoder(config, codec_pair_id);

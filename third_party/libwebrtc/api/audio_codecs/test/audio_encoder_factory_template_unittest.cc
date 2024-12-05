@@ -77,7 +77,7 @@ struct AudioEncoderFakeApi {
 
   static std::unique_ptr<AudioEncoder> MakeAudioEncoder(
       const Config&,
-      int payload_type,
+      int /* payload_type */,
       std::optional<AudioCodecPairId> /*codec_pair_id*/ = std::nullopt) {
     auto enc = std::make_unique<testing::StrictMock<MockAudioEncoder>>();
     EXPECT_CALL(*enc, SampleRateHz())
@@ -99,7 +99,8 @@ struct BaseAudioEncoderApi {
   static SdpAudioFormat AudioFormat() { return {"fake", 16'000, 2, {}}; }
   static AudioCodecInfo CodecInfo() { return {16'000, 2, 23456}; }
 
-  static std::optional<Config> SdpToConfig(const SdpAudioFormat& audio_format) {
+  static std::optional<Config> SdpToConfig(
+      const SdpAudioFormat& /* audio_format */) {
     return Config();
   }
 
@@ -113,8 +114,8 @@ struct BaseAudioEncoderApi {
 struct AudioEncoderApiWithV1Make : BaseAudioEncoderApi {
   static std::unique_ptr<AudioEncoder> MakeAudioEncoder(
       const Config&,
-      int payload_type,
-      std::optional<AudioCodecPairId> codec_pair_id) {
+      int /* payload_type */,
+      std::optional<AudioCodecPairId> /* codec_pair_id */) {
     auto encoder = std::make_unique<NiceMock<MockAudioEncoder>>();
     ON_CALL(*encoder, SampleRateHz).WillByDefault(Return(kV1SameRate));
     return encoder;
@@ -123,9 +124,9 @@ struct AudioEncoderApiWithV1Make : BaseAudioEncoderApi {
 
 struct AudioEncoderApiWithV2Make : BaseAudioEncoderApi {
   static std::unique_ptr<AudioEncoder> MakeAudioEncoder(
-      const Environment& env,
-      const Config& config,
-      const AudioEncoderFactory::Options& options) {
+      const Environment& /* env */,
+      const Config& /* config */,
+      const AudioEncoderFactory::Options& /* options */) {
     auto encoder = std::make_unique<NiceMock<MockAudioEncoder>>();
     ON_CALL(*encoder, SampleRateHz).WillByDefault(Return(kV2SameRate));
     return encoder;
@@ -135,17 +136,17 @@ struct AudioEncoderApiWithV2Make : BaseAudioEncoderApi {
 struct AudioEncoderApiWithBothV1AndV2Make : BaseAudioEncoderApi {
   static std::unique_ptr<AudioEncoder> MakeAudioEncoder(
       const Config&,
-      int payload_type,
-      std::optional<AudioCodecPairId> codec_pair_id) {
+      int /* payload_type */,
+      std::optional<AudioCodecPairId> /* codec_pair_id */) {
     auto encoder = std::make_unique<NiceMock<MockAudioEncoder>>();
     ON_CALL(*encoder, SampleRateHz).WillByDefault(Return(kV1SameRate));
     return encoder;
   }
 
   static std::unique_ptr<AudioEncoder> MakeAudioEncoder(
-      const Environment& env,
-      const Config& config,
-      const AudioEncoderFactory::Options& options) {
+      const Environment& /* env */,
+      const Config& /* config */,
+      const AudioEncoderFactory::Options& /* options */) {
     auto encoder = std::make_unique<NiceMock<MockAudioEncoder>>();
     ON_CALL(*encoder, SampleRateHz).WillByDefault(Return(kV2SameRate));
     return encoder;
