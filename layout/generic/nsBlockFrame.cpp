@@ -2500,6 +2500,12 @@ void nsBlockFrame::ComputeOverflowAreas(OverflowAreas& aOverflowAreas,
       continue;
     }
 
+    if (line.IsInline()) {
+      // This is the maximum contribution for inline line-participating frames -
+      // See `GetLineFrameInFlowBounds`.
+      inFlowChildBounds =
+          inFlowChildBounds.UnionEdges(line.GetPhysicalBounds());
+    }
     auto lineInFlowChildBounds = line.GetInFlowChildBounds();
     if (lineInFlowChildBounds) {
       inFlowChildBounds = inFlowChildBounds.UnionEdges(*lineInFlowChildBounds);
@@ -2613,7 +2619,10 @@ Maybe<nsRect> nsBlockFrame::GetLineFrameInFlowBounds(
     const nsLineBox& aLine, const nsIFrame& aLineChildFrame) const {
   MOZ_ASSERT(aLineChildFrame.GetParent() == this,
              "Line's frame doesn't belong to this block frame?");
-  if (aLineChildFrame.IsPlaceholderFrame()) {
+  // Line participants are considered in-flow for content within the line bounds, which
+  // should be accounted for from the line bounds. This is consistent with e.g. inline
+  // element's `margin-bottom` not affecting the placement of the next line.
+  if (aLineChildFrame.IsPlaceholderFrame() || aLineChildFrame.IsLineParticipant()) {
     return Nothing{};
   }
   if (aLine.IsInline()) {
