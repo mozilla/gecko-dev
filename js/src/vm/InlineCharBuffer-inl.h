@@ -125,8 +125,7 @@ class MOZ_NON_PARAM InlineCharBuffer {
         return str;
       }
 
-      mozilla::Range<const CharT> range(inlineStorage, length);
-      return NewInlineString<CanGC>(cx, range, heap);
+      return NewInlineString<CanGC>(cx, inlineStorage, length, heap);
     }
 
     MOZ_ASSERT(heapStorage,
