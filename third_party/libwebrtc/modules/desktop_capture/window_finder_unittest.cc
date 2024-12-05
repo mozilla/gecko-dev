@@ -40,7 +40,8 @@ namespace {
 // ScreenDrawerWin does not have a message loop, so it's unresponsive to user
 // inputs. WindowFinderWin cannot detect this kind of unresponsive windows.
 // Instead, console window is used to test WindowFinderWin.
-TEST(WindowFinderTest, FindConsoleWindow) {
+// TODO(b/373792116): Reenable once flakiness is fixed.
+TEST(WindowFinderTest, DISABLED_FindConsoleWindow) {
   // Creates a ScreenDrawer to avoid this test from conflicting with
   // ScreenCapturerIntegrationTest: both tests require its window to be in
   // foreground.
