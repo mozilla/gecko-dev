@@ -20,7 +20,7 @@ script_name = os.path.basename(__file__)
 
 @atexit.register
 def early_exit_handler():
-    print("*** ERROR *** {} did not complete successfully".format(script_name))
+    print(f"*** ERROR *** {script_name} did not complete successfully")
     if error_help is not None:
         print(error_help)
 
@@ -39,14 +39,12 @@ def save_patch_stack(
         os.remove(os.path.join(patch_directory, file))
 
     # find the base of the patch stack
-    cmd = "git merge-base {} {}".format(github_branch, target_branch_head)
+    cmd = f"git merge-base {github_branch} {target_branch_head}"
     stdout_lines = run_git(cmd, github_path)
     merge_base = stdout_lines[0]
 
     # grab patch stack
-    cmd = "git format-patch --keep-subject --no-signature --output-directory {} {}..{}".format(
-        patch_directory, merge_base, github_branch
-    )
+    cmd = f"git format-patch --keep-subject --no-signature --output-directory {patch_directory} {merge_base}..{github_branch}"
     run_git(cmd, github_path)
 
     # remove the commit summary from the file name
@@ -62,8 +60,8 @@ def save_patch_stack(
     # causes diff churn.  For reasons why we can't skip creating backup
     # files during the in-place editing, see:
     # https://stackoverflow.com/questions/5694228/sed-in-place-flag-that-works-both-on-mac-bsd-and-linux
-    run_shell("sed -i'.bak' -e '1d' {}/*.patch".format(patch_directory))
-    run_shell("rm {}/*.patch.bak".format(patch_directory))
+    run_shell(f"sed -i'.bak' -e '1d' {patch_directory}/*.patch")
+    run_shell(f"rm {patch_directory}/*.patch.bak")
 
     # it is also helpful to save the no-op-cherry-pick-msg files from
     # the state directory so that if we're restoring a patch-stack we
@@ -77,31 +75,29 @@ def save_patch_stack(
         shutil.copy(os.path.join(state_directory, file), patch_directory)
 
     # get missing files (that should be marked removed)
-    cmd = "hg status --no-status --deleted {}".format(patch_directory)
+    cmd = f"hg status --no-status --deleted {patch_directory}"
     stdout_lines = run_hg(cmd)
     if len(stdout_lines) != 0:
-        cmd = "hg rm {}".format(" ".join(stdout_lines))
+        cmd = f"hg rm {' '.join(stdout_lines)}"
         run_hg(cmd)
 
     # get unknown files (that should be marked added)
-    cmd = "hg status --no-status --unknown {}".format(patch_directory)
+    cmd = f"hg status --no-status --unknown {patch_directory}"
     stdout_lines = run_hg(cmd)
     if len(stdout_lines) != 0:
-        cmd = "hg add {}".format(" ".join(stdout_lines))
+        cmd = f"hg add {' '.join(stdout_lines)}"
         run_hg(cmd)
 
     # if any files are marked for add/remove/modify, commit them
-    cmd = "hg status --added --removed --modified {}".format(patch_directory)
+    cmd = f"hg status --added --removed --modified {patch_directory}"
     stdout_lines = run_hg(cmd)
     if (len(stdout_lines)) != 0:
-        print("Updating {} files in {}".format(len(stdout_lines), patch_directory))
+        print(f"Updating {len(stdout_lines)} files in {patch_directory}")
         if bug_number is None:
             run_hg("hg amend")
         else:
             run_shell(
-                "hg commit --message 'Bug {} - updated libwebrtc patch stack'".format(
-                    bug_number
-                )
+                f"hg commit --message 'Bug {bug_number} - updated libwebrtc patch stack'"
             )
 
 
@@ -126,12 +122,12 @@ if __name__ == "__main__":
     parser.add_argument(
         "--patch-path",
         default=default_patch_dir,
-        help="path to save patches (defaults to {})".format(default_patch_dir),
+        help=f"path to save patches (defaults to {default_patch_dir})",
     )
     parser.add_argument(
         "--state-path",
         default=default_state_dir,
-        help="path to state directory (defaults to {})".format(default_state_dir),
+        help=f"path to state directory (defaults to {default_state_dir})",
     )
     parser.add_argument(
         "--target-branch-head",
@@ -141,7 +137,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--script-path",
         default=default_script_dir,
-        help="path to script directory (defaults to {})".format(default_script_dir),
+        help=f"path to script directory (defaults to {default_script_dir})",
     )
     parser.add_argument(
         "--separate-commit-bug-number",
@@ -160,23 +156,23 @@ if __name__ == "__main__":
         # make sure the mercurial repo is clean before beginning
         error_help = (
             "There are modified or untracked files in the mercurial repo.\n"
-            "Please start with a clean repo before running {}"
-        ).format(script_name)
+            f"Please start with a clean repo before running {script_name}"
+        )
         stdout_lines = run_hg("hg status")
         if len(stdout_lines) != 0:
             sys.exit(1)
 
         # make sure the github repo exists
         error_help = (
-            "No moz-libwebrtc github repo found at {}\n"
-            "Please run restore_patch_stack.py before running {}"
-        ).format(args.repo_path, script_name)
+            f"No moz-libwebrtc github repo found at {args.repo_path}\n"
+            f"Please run restore_patch_stack.py before running {script_name}"
+        )
         if not os.path.exists(args.repo_path):
             sys.exit(1)
         error_help = None
 
         print("Verifying vendoring before saving patch-stack...")
-        run_shell("bash {}/verify_vendoring.sh".format(args.script_path), False)
+        run_shell(f"bash {args.script_path}/verify_vendoring.sh", False)
 
     save_patch_stack(
         args.repo_path,

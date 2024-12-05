@@ -86,13 +86,9 @@ if __name__ == "__main__":
 
     branch_head = get_branch_head(args.milestone, local_cache_path)
     if branch_head is None:
-        sys.exit("error: chromium milestone '{}' is not found.".format(args.milestone))
+        sys.exit(f"error: chromium milestone '{args.milestone}' is not found.")
 
     if args.verbose:
-        print(
-            "chromium milestone {} uses branch-heads/{}".format(
-                args.milestone, branch_head
-            )
-        )
+        print(f"chromium milestone {args.milestone} uses branch-heads/{branch_head}")
     else:
         print(branch_head)

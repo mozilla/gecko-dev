@@ -19,7 +19,7 @@ def filter_git_changes(github_path, commit_sha, diff_filter):
         "--oneline",
         "--name-status",
         "--pretty=format:",
-        None if not diff_filter else "--diff-filter={}".format(diff_filter),
+        None if not diff_filter else f"--diff-filter={diff_filter}",
         commit_sha,
     ]
     # strip possible empty elements from command list
@@ -39,7 +39,7 @@ def filter_git_changes(github_path, commit_sha, diff_filter):
     # First, search for changes in files that are specifically included.
     # Do this first, because some of these files might be filtered out
     # by the exclude list.
-    regex_includes = "|".join(["^.\t{}$".format(i) for i in include_list])
+    regex_includes = "|".join([f"^.\t{incl}$" for incl in include_list])
     included_files = [
         path for path in changed_files if re.findall(regex_includes, path)
     ]
@@ -48,7 +48,7 @@ def filter_git_changes(github_path, commit_sha, diff_filter):
     # out the excluded directory paths (note the lack of trailing '$'
     # in the regex).
     regex_excludes = "|".join(
-        ["^(M|A|D|R\\d\\d\\d)\t{}".format(i) for i in exclude_dir_list]
+        [f"^(M|A|D|R\\d\\d\\d)\t{incl}" for incl in exclude_dir_list]
     )
     files_not_excluded = [
         path for path in changed_files if not re.findall(regex_excludes, path)
@@ -57,7 +57,7 @@ def filter_git_changes(github_path, commit_sha, diff_filter):
     # Convert the file exclude list to a regex string and filter out the
     # excluded file paths.  The trailing '$' in the regex ensures that
     # we can exclude, for example, '.vpython' and not '.vpython3'.
-    regex_excludes = "|".join(["^.\t{}$".format(i) for i in exclude_file_list])
+    regex_excludes = "|".join([f"^.\t{incl}$" for incl in exclude_file_list])
     files_not_excluded = [
         path for path in files_not_excluded if not re.findall(regex_excludes, path)
     ]

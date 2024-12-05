@@ -25,18 +25,14 @@ class ErrorHelp:
     def show_help(self):
         if self.help_string is not None:
             print(self.help_string)
-            print(
-                "Please resolve the error and then continue running {}".format(
-                    script_name
-                )
-            )
+            print(f"Please resolve the error and then continue running {script_name}")
 
 
 error_help = ErrorHelp(None)
 
 
 def early_exit_handler():
-    print("*** ERROR *** {} did not complete successfully".format(script_name))
+    print(f"*** ERROR *** {script_name} did not complete successfully")
     error_help.show_help()
 
 
@@ -52,12 +48,12 @@ def log_output_lines(lines, log_dir, filename):
 
 def vendor_current_stack(github_branch, github_path, script_dir):
     print("-------")
-    print("------- Vendor {} from {}".format(github_branch, github_path))
+    print(f"------- Vendor {github_branch} from {github_path}")
     print("-------")
     cmd = [
         "./mach",
         "python",
-        "{}/vendor-libwebrtc.py".format(script_dir),
+        f"{script_dir}/vendor-libwebrtc.py",
         "--from-local",
         github_path,
         "--commit",
@@ -72,7 +68,7 @@ def restore_mozbuild_files(target_dir, log_dir):
     print("-------")
     print("------- Restore moz.build files from repo")
     print("-------")
-    cmd = 'hg revert --include "{}/**moz.build" {}'.format(target_dir, target_dir)
+    cmd = f'hg revert --include "{target_dir}/**moz.build" {target_dir}'
     stdout_lines = run_shell(cmd)  # run_shell to allow file wildcard
     log_output_lines(stdout_lines, log_dir, "log-regen-mozbuild-files.txt")
 
@@ -89,7 +85,7 @@ def remove_deleted_upstream_files(
         print("-------")
         print("------- Remove deleted upstream files")
         print("-------")
-        cmd = "hg rm {}".format(" ".join(deleted_paths))
+        cmd = f"hg rm {' '.join(deleted_paths)}"
         stdout_lines = run_hg(cmd)
         log_output_lines(stdout_lines, log_dir, "log-deleted-upstream-files.txt")
 
@@ -106,7 +102,7 @@ def add_new_upstream_files(
         print("-------")
         print("------- Add new upstream files")
         print("-------")
-        cmd = "hg add {}".format(" ".join(added_paths))
+        cmd = f"hg add {' '.join(added_paths)}"
         stdout_lines = run_hg(cmd)
         log_output_lines(stdout_lines, log_dir, "log-new-upstream-files.txt")
 
@@ -128,16 +124,16 @@ def handle_renamed_upstream_files(
         print("------- Handle renamed upstream files")
         print("-------")
         for x in renamed_paths:
-            cmd = "hg rename --after {}".format(x)
+            cmd = f"hg rename --after {x}"
             stdout_lines = run_hg(cmd)
             log_output_lines(stdout_lines, log_dir, "log-renamed-upstream-files.txt")
 
 
 def commit_all_changes(github_sha, commit_msg_filename, target_dir):
     print("-------")
-    print("------- Commit vendored changes from {}".format(github_sha))
+    print(f"------- Commit vendored changes from {github_sha}")
     print("-------")
-    cmd = "hg commit -l {} {}".format(commit_msg_filename, target_dir)
+    cmd = f"hg commit -l {commit_msg_filename} {target_dir}"
     run_hg(cmd)
 
 
@@ -155,23 +151,21 @@ def vendor_and_commit(
     # an error.
     atexit.register(early_exit_handler)
 
-    print("script_dir: {}".format(script_dir))
-    print("github_path: {}".format(github_path))
-    print("github_branch: {}".format(github_branch))
-    print("github_sha: {}".format(github_sha))
-    print("target_dir: {}".format(target_dir))
-    print("state_dir: {}".format(state_dir))
-    print("log_dir: {}".format(log_dir))
-    print("commit_msg_filename: {}".format(commit_msg_filename))
+    print(f"script_dir: {script_dir}")
+    print(f"github_path: {github_path}")
+    print(f"github_branch: {github_branch}")
+    print(f"github_sha: {github_sha}")
+    print(f"target_dir: {target_dir}")
+    print(f"state_dir: {state_dir}")
+    print(f"log_dir: {log_dir}")
+    print(f"commit_msg_filename: {commit_msg_filename}")
 
     resume_state_filename = os.path.join(state_dir, "vendor_and_commit.resume")
 
-    noop_commit_path = os.path.join(state_dir, "{}.no-op-cherry-pick-msg").format(
-        github_sha
-    )
+    noop_commit_path = os.path.join(state_dir, f"{github_sha}.no-op-cherry-pick-msg")
     handle_noop_commit = os.path.exists(noop_commit_path)
-    print("noop_commit_path: {}".format(noop_commit_path))
-    print("handle_noop_commit: {}".format(handle_noop_commit))
+    print(f"noop_commit_path: {noop_commit_path}")
+    print(f"handle_noop_commit: {handle_noop_commit}")
     if handle_noop_commit:
         print("***")
         print("*** Detected special commit msg, setting handle_noop_commit.")
@@ -185,16 +179,16 @@ def vendor_and_commit(
     resume_state = ""
     if os.path.exists(resume_state_filename):
         resume_state = get_last_line(resume_state_filename).strip()
-    print("resume_state: '{}'".format(resume_state))
+    print(f"resume_state: '{resume_state}'")
 
     if len(resume_state) == 0:
         update_resume_state("resume2", resume_state_filename)
         error_help.set_help(
             (
-                "Running script '{}/vendor-libwebrtc.py' failed.\n"
-                "Please manually confirm that all changes from git ({})\n"
+                f"Running script '{script_dir}/vendor-libwebrtc.py' failed.\n"
+                f"Please manually confirm that all changes from git ({github_path})\n"
                 "are reflected in the output of 'hg diff'"
-            ).format(script_dir, github_path)
+            )
         )
         vendor_current_stack(github_branch, github_path, script_dir)
         error_help.set_help(None)
@@ -293,17 +287,17 @@ if __name__ == "__main__":
     parser.add_argument(
         "--target-path",
         default=default_target_dir,
-        help="target path for vendoring (defaults to {})".format(default_target_dir),
+        help=f"target path for vendoring (defaults to {default_target_dir})",
     )
     parser.add_argument(
         "--state-path",
         default=default_state_dir,
-        help="path to state directory (defaults to {})".format(default_state_dir),
+        help=f"path to state directory (defaults to {default_state_dir})",
     )
     parser.add_argument(
         "--log-path",
         default=default_log_dir,
-        help="path to log directory (defaults to {})".format(default_log_dir),
+        help=f"path to log directory (defaults to {default_log_dir})",
     )
     parser.add_argument(
         "--commit-msg-path",

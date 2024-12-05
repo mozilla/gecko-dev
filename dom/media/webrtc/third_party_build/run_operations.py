@@ -29,7 +29,7 @@ def run_hg(cmd):
     )
     if res.returncode != 0:
         print(
-            "Hit return code {} running '{}'. Aborting.".format(res.returncode, cmd),
+            f"Hit return code {res.returncode} running '{cmd}'. Aborting.",
             file=sys.stderr,
         )
         print(res.stderr)
@@ -49,7 +49,7 @@ def run_git(cmd, working_dir):
     )
     if res.returncode != 0:
         print(
-            "Hit return code {} running '{}'. Aborting.".format(res.returncode, cmd),
+            f"Hit return code {res.returncode} running '{cmd}'. Aborting.",
             file=sys.stderr,
         )
         print(res.stderr)
@@ -68,7 +68,7 @@ def run_shell(cmd, capture_output=True):
     )
     if res.returncode != 0:
         print(
-            "Hit return code {} running '{}'. Aborting.".format(res.returncode, cmd),
+            f"Hit return code {res.returncode} running '{cmd}'. Aborting.",
             file=sys.stderr,
         )
         if capture_output:
