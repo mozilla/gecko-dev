@@ -435,6 +435,46 @@ mozperftest:
             - 'testing/performance/**'
             - 'python/mozperftest/**'
 
+nimbus:
+    description: >
+        Ensure the targeting context metric is up-to-date with the targeting context definition.
+    platform:
+        - linux1804-64/opt
+    treeherder:
+        symbol: py3(nimbus)
+    require-build:
+        by-project:
+            try:
+                linux1804-64/opt: build-linux64/opt
+            default:
+                linux1804-64/opt: build-linux64/opt
+    fetches:
+        build:
+            - artifact: target.tar.xz
+            - artifact: target.common.tests.tar.gz
+    worker:
+        by-platform:
+            linux1804-64.*:
+                docker-image: {in-tree: "ubuntu1804-test"}
+                max-run-time: 3600
+    run:
+        using: run-task
+        cwd: '{checkout}'
+        command: >
+            export DUMP_TARGETING_CONTEXT_PATH=$(mktemp) &&
+            env LD_LIBRARY_PATH=${MOZ_FETCHES_DIR}/firefox \
+                ${MOZ_FETCHES_DIR}/bin/xpcshell \
+                    -g ${MOZ_FETCHES_DIR}/firefox \
+                    -a ${MOZ_FETCHES_DIR}/firefox/browser \
+                    toolkit/components/nimbus/test/python/dump-targeting-context.js &&
+            export GECKO_BINARY_PATH=${MOZ_FETCHES_DIR}/firefox/firefox &&
+            ./mach python-test --subsuite nimbus
+    when:
+        files-changed:
+            - 'toolkit/components/nimbus/metrics.yaml'
+            - 'toolkit/components/nimbus/lib/TargetingContextRecorder.sys.mjs'
+            - 'toolkit/components/nimbus/test/python/**/*'
+
 fxms-schemas:
     description: >
         Ensure messaging-system schemas are up-to-date and run Experimenter

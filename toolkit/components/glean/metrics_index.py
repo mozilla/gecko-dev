@@ -184,6 +184,7 @@ firefox_desktop_pings = [
     "browser/modules/pings.yaml",
     "services/fxaccounts/pings.yaml",
     "toolkit/components/crashes/pings.yaml",
+    "toolkit/components/nimbus/pings.yaml",
     "toolkit/components/telemetry/pings.yaml",
     "toolkit/modules/pings.yaml",
 ]
@@ -200,6 +201,7 @@ background_update_pings = [
 background_tasks_pings = [
     "toolkit/components/backgroundtasks/pings.yaml",
     "toolkit/components/crashes/pings.yaml",
+    "toolkit/components/nimbus/pings.yaml",
     "toolkit/mozapps/defaultagent/pings.yaml",
 ]
 
