@@ -877,11 +877,9 @@ CallReceiveStatistics ChannelReceive::GetRTCPStatistics() const {
   if (rtcp_sr_stats.has_value()) {
     stats.last_sender_report_timestamp = rtcp_sr_stats->last_arrival_timestamp;
     stats.last_sender_report_utc_timestamp =
-        Timestamp::Millis(rtcp_sr_stats->last_arrival_ntp_timestamp.ToMs() -
-                          rtc::kNtpJan1970Millisecs);
+        Clock::NtpToUtc(rtcp_sr_stats->last_arrival_ntp_timestamp);
     stats.last_sender_report_remote_utc_timestamp =
-        Timestamp::Millis(rtcp_sr_stats->last_remote_ntp_timestamp.ToMs() -
-                          rtc::kNtpJan1970Millisecs);
+        Clock::NtpToUtc(rtcp_sr_stats->last_remote_ntp_timestamp);
     stats.sender_reports_packets_sent = rtcp_sr_stats->packets_sent;
     stats.sender_reports_bytes_sent = rtcp_sr_stats->bytes_sent;
     stats.sender_reports_reports_count = rtcp_sr_stats->reports_count;

@@ -362,8 +362,7 @@ void RtcpTransceiverImpl::HandleReportBlocks(
   }
   NtpTime now_ntp = config_.clock->ConvertTimestampToNtpTime(now);
   uint32_t receive_time_ntp = CompactNtp(now_ntp);
-  Timestamp now_utc =
-      Timestamp::Millis(now_ntp.ToMs() - rtc::kNtpJan1970Millisecs);
+  Timestamp now_utc = Clock::NtpToUtc(now_ntp);
 
   for (const rtcp::ReportBlock& block : rtcp_report_blocks) {
     std::optional<TimeDelta> rtt;

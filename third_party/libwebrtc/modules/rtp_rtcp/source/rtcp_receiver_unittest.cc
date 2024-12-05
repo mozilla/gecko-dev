@@ -1544,8 +1544,7 @@ TEST(RtcpReceiverTest,
   const uint32_t kCumulativeLoss = 7;
   const uint32_t kJitter = 9;
   const uint16_t kSequenceNumber = 1234;
-  const int64_t kNtpNowMs =
-      mocks.clock.CurrentNtpInMilliseconds() - rtc::kNtpJan1970Millisecs;
+  const Timestamp kUtcNow = Clock::NtpToUtc(mocks.clock.CurrentNtpTime());
 
   rtcp::ReportBlock rtcp_block;
   rtcp_block.SetMediaSsrc(kReceiverMainSsrc);
@@ -1566,8 +1565,7 @@ TEST(RtcpReceiverTest,
         EXPECT_EQ(rtcp_block.extended_high_seq_num(),
                   report_block.extended_highest_sequence_number());
         EXPECT_EQ(rtcp_block.jitter(), report_block.jitter());
-        EXPECT_EQ(report_block.report_block_timestamp_utc(),
-                  Timestamp::Millis(kNtpNowMs));
+        EXPECT_EQ(report_block.report_block_timestamp_utc(), kUtcNow);
         // No RTT is calculated in this test.
         EXPECT_EQ(0u, report_block.num_rtts());
       });

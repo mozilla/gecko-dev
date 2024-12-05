@@ -273,7 +273,7 @@ index e5266ed337..85606fd405 100644
        RTC_GUARDED_BY(packet_sequence_checker_);
    // h26x_packet_buffer_ is nullptr if codec list doens't contain H.264 or
 diff --git a/video/video_receive_stream2.cc b/video/video_receive_stream2.cc
-index 8338f5eda0..8a6a1c09ac 100644
+index 34f7c8a9e0..f027e84dc5 100644
 --- a/video/video_receive_stream2.cc
 +++ b/video/video_receive_stream2.cc
 @@ -212,6 +212,7 @@ VideoReceiveStream2::VideoReceiveStream2(
