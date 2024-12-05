@@ -33,7 +33,7 @@ RTC_EXPORT std::optional<ScalabilityMode> MakeScalabilityMode(
     std::optional<ScalabilityModeResolutionRatio> ratio,
     bool shift);
 
-std::optional<ScalabilityMode> ScalabilityModeFromString(
+RTC_EXPORT std::optional<ScalabilityMode> ScalabilityModeFromString(
     absl::string_view scalability_mode_string);
 
 InterLayerPredMode ScalabilityModeToInterLayerPredMode(
