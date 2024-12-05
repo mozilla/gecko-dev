@@ -1610,13 +1610,14 @@ TEST_F(StunTest, EqualAttributes) {
   auto copy = msg.Clone();
   ASSERT_NE(nullptr, copy.get());
 
-  EXPECT_TRUE(copy->EqualAttributes(&msg, [](int type) { return true; }));
+  EXPECT_TRUE(copy->EqualAttributes(&msg, [](int /* type */) { return true; }));
 
   {
     auto attr = StunAttribute::CreateByteString(STUN_ATTR_NONCE);
     attr->CopyBytes("keso");
     msg.AddAttribute(std::move(attr));
-    EXPECT_FALSE(copy->EqualAttributes(&msg, [](int type) { return true; }));
+    EXPECT_FALSE(
+        copy->EqualAttributes(&msg, [](int /* type */) { return true; }));
     EXPECT_TRUE(copy->EqualAttributes(
         &msg, [](int type) { return type != STUN_ATTR_NONCE; }));
   }
@@ -1625,21 +1626,24 @@ TEST_F(StunTest, EqualAttributes) {
     auto attr = StunAttribute::CreateByteString(STUN_ATTR_NONCE);
     attr->CopyBytes("keso");
     copy->AddAttribute(std::move(attr));
-    EXPECT_TRUE(copy->EqualAttributes(&msg, [](int type) { return true; }));
+    EXPECT_TRUE(
+        copy->EqualAttributes(&msg, [](int /* type */) { return true; }));
   }
   {
     copy->RemoveAttribute(STUN_ATTR_NONCE);
     auto attr = StunAttribute::CreateByteString(STUN_ATTR_NONCE);
     attr->CopyBytes("kent");
     copy->AddAttribute(std::move(attr));
-    EXPECT_FALSE(copy->EqualAttributes(&msg, [](int type) { return true; }));
+    EXPECT_FALSE(
+        copy->EqualAttributes(&msg, [](int /* type */) { return true; }));
     EXPECT_TRUE(copy->EqualAttributes(
         &msg, [](int type) { return type != STUN_ATTR_NONCE; }));
   }
 
   {
     msg.RemoveAttribute(STUN_ATTR_NONCE);
-    EXPECT_FALSE(copy->EqualAttributes(&msg, [](int type) { return true; }));
+    EXPECT_FALSE(
+        copy->EqualAttributes(&msg, [](int /* type */) { return true; }));
     EXPECT_TRUE(copy->EqualAttributes(
         &msg, [](int type) { return type != STUN_ATTR_NONCE; }));
   }

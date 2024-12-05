@@ -131,7 +131,7 @@ class FrameEncoderSettingsBuilder {
         unread_.resize(size.bytes());
         return unread_;
       }
-      void EncodeComplete(const EncodeResult& encode_result) override {}
+      void EncodeComplete(const EncodeResult& /* encode_result */) override {}
 
      private:
       std::vector<uint8_t> unread_;

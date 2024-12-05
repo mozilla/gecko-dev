@@ -43,7 +43,7 @@ class TestVideoTrackSource : public Notifier<VideoTrackSourceInterface> {
   bool is_screencast() const override { return false; }
   std::optional<bool> needs_denoising() const override { return std::nullopt; }
 
-  bool GetStats(Stats* stats) override { return false; }
+  bool GetStats(Stats* /* stats */) override { return false; }
 
   void AddOrUpdateSink(rtc::VideoSinkInterface<VideoFrame>* sink,
                        const rtc::VideoSinkWants& wants) override;
@@ -52,9 +52,9 @@ class TestVideoTrackSource : public Notifier<VideoTrackSourceInterface> {
   bool SupportsEncodedOutput() const override { return false; }
   void GenerateKeyFrame() override {}
   void AddEncodedSink(
-      rtc::VideoSinkInterface<RecordableEncodedFrame>* sink) override {}
+      rtc::VideoSinkInterface<RecordableEncodedFrame>* /* sink */) override {}
   void RemoveEncodedSink(
-      rtc::VideoSinkInterface<RecordableEncodedFrame>* sink) override {}
+      rtc::VideoSinkInterface<RecordableEncodedFrame>* /* sink */) override {}
 
   // Starts producing video.
   virtual void Start() = 0;
@@ -65,14 +65,14 @@ class TestVideoTrackSource : public Notifier<VideoTrackSourceInterface> {
   virtual void SetScreencast(bool is_screencast) = 0;
 
   // TODO(titovartem): make next 4 methods pure virtual.
-  virtual void SetEnableAdaptation(bool enable_adaptation) {}
+  virtual void SetEnableAdaptation(bool /* enable_adaptation */) {}
 
   virtual int GetFrameWidth() const { return 0; }
   virtual int GetFrameHeight() const { return 0; }
 
-  virtual void OnOutputFormatRequest(int width,
-                                     int height,
-                                     const std::optional<int>& max_fps) {}
+  virtual void OnOutputFormatRequest(int /* width */,
+                                     int /* height */,
+                                     const std::optional<int>& /* max_fps */) {}
 
   // Returns stream label for this video source if present. Implementations
   // may override this method to increase debugability and testability.

@@ -102,7 +102,7 @@ class RTC_EXPORT RtpSenderInterface : public webrtc::RefCountInterface,
   // for this sender.
   // Does not take ownership of observer.
   // Must call SetObserver(nullptr) before the observer is destroyed.
-  virtual void SetObserver(RtpSenderObserverInterface* observer) {}
+  virtual void SetObserver(RtpSenderObserverInterface* /* observer */) {}
 
   // Returns null for a video sender.
   virtual rtc::scoped_refptr<DtmfSenderInterface> GetDtmfSender() const = 0;

@@ -269,8 +269,8 @@ ThreadTilesAndSuperblockSizeInfo GetThreadingTilesAndSuperblockSize(
 }
 
 bool ValidateEncodeParams(
-    const webrtc::VideoFrameBuffer& frame_buffer,
-    const VideoEncoderInterface::TemporalUnitSettings& tu_settings,
+    const webrtc::VideoFrameBuffer& /* frame_buffer */,
+    const VideoEncoderInterface::TemporalUnitSettings& /* tu_settings */,
     const std::vector<VideoEncoderInterface::FrameEncodeSettings>&
         frame_settings,
     const std::array<std::optional<Resolution>, 8>& last_resolution_in_buffer,

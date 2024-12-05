@@ -87,9 +87,9 @@ class VideoQualityAnalyzerInterface
   // calculations. Analyzer can perform simple calculations on the calling
   // thread in each method, but should remember, that it is the same thread,
   // that is used in video pipeline.
-  virtual void Start(std::string test_case_name,
-                     rtc::ArrayView<const std::string> peer_names,
-                     int max_threads_count) {}
+  virtual void Start(std::string /* test_case_name */,
+                     rtc::ArrayView<const std::string> /* peer_names */,
+                     int /* max_threads_count */) {}
 
   // Will be called when frame was generated from the input stream.
   // `peer_name` is name of the peer on which side frame was captured.
@@ -99,34 +99,34 @@ class VideoQualityAnalyzerInterface
                                    const VideoFrame& frame) = 0;
   // Will be called before calling the encoder.
   // `peer_name` is name of the peer on which side frame came to encoder.
-  virtual void OnFramePreEncode(absl::string_view peer_name,
-                                const VideoFrame& frame) {}
+  virtual void OnFramePreEncode(absl::string_view /* peer_name */,
+                                const VideoFrame& /* frame */) {}
   // Will be called for each EncodedImage received from encoder. Single
   // VideoFrame can produce multiple EncodedImages. Each encoded image will
   // have id from VideoFrame.
   // `peer_name` is name of the peer on which side frame was encoded.
-  virtual void OnFrameEncoded(absl::string_view peer_name,
-                              uint16_t frame_id,
-                              const EncodedImage& encoded_image,
-                              const EncoderStats& stats,
-                              bool discarded) {}
+  virtual void OnFrameEncoded(absl::string_view /* peer_name */,
+                              uint16_t /* frame_id */,
+                              const EncodedImage& /* encoded_image */,
+                              const EncoderStats& /* stats */,
+                              bool /* discarded */) {}
   // Will be called for each frame dropped by encoder.
   // `peer_name` is name of the peer on which side frame drop was detected.
-  virtual void OnFrameDropped(absl::string_view peer_name,
-                              EncodedImageCallback::DropReason reason) {}
+  virtual void OnFrameDropped(absl::string_view /* peer_name */,
+                              EncodedImageCallback::DropReason /* reason */) {}
   // Will be called before calling the decoder.
   // `peer_name` is name of the peer on which side frame was received.
-  virtual void OnFramePreDecode(absl::string_view peer_name,
-                                uint16_t frame_id,
-                                const EncodedImage& encoded_image) {}
+  virtual void OnFramePreDecode(absl::string_view /* peer_name */,
+                                uint16_t /* frame_id */,
+                                const EncodedImage& /* encoded_image */) {}
   // Will be called after decoding the frame.
   // `peer_name` is name of the peer on which side frame was decoded.
-  virtual void OnFrameDecoded(absl::string_view peer_name,
-                              const VideoFrame& frame,
-                              const DecoderStats& stats) {}
+  virtual void OnFrameDecoded(absl::string_view /* peer_name */,
+                              const VideoFrame& /* frame */,
+                              const DecoderStats& /* stats */) {}
   // Will be called when frame will be obtained from PeerConnection stack.
   // `peer_name` is name of the peer on which side frame was rendered.
-  virtual void OnFrameRendered(absl::string_view peer_name,
+  virtual void OnFrameRendered(absl::string_view /* peer_name */,
                                const VideoFrame& frame) {}
   // Will be called if encoder return not WEBRTC_VIDEO_CODEC_OK.
   // All available codes are listed in

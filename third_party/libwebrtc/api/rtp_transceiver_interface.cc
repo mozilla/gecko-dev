@@ -56,7 +56,7 @@ void RtpTransceiverInterface::SetDirection(
 }
 
 RTCError RtpTransceiverInterface::SetDirectionWithError(
-    RtpTransceiverDirection new_direction) {
+    RtpTransceiverDirection /* new_direction */) {
   RTC_DCHECK_NOTREACHED() << "Default implementation called";
   return RTCError::OK();
 }

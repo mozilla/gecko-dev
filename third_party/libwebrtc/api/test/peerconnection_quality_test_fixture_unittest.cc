@@ -85,7 +85,7 @@ struct TestVideoFrameWriter : public test::VideoFrameWriter {
                        const VideoResolution& resolution)
       : file_name_prefix(file_name_prefix), resolution(resolution) {}
 
-  bool WriteFrame(const VideoFrame& frame) override { return true; }
+  bool WriteFrame(const VideoFrame& /* frame */) override { return true; }
 
   void Close() override {}
 

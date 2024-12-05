@@ -830,7 +830,7 @@ class RTC_EXPORT PeerConnectionInterface : public webrtc::RefCountInterface {
   // TODO(bugs.webrtc.org/9534): Rename to RemoveTrack once the other signature
   // is removed; remove default implementation once upstream is updated.
   virtual RTCError RemoveTrackOrError(
-      rtc::scoped_refptr<RtpSenderInterface> sender) {
+      rtc::scoped_refptr<RtpSenderInterface> /* sender */) {
     RTC_CHECK_NOTREACHED();
     return RTCError();
   }
@@ -971,8 +971,8 @@ class RTC_EXPORT PeerConnectionInterface : public webrtc::RefCountInterface {
   // in SDP, so it should be done before CreateOffer is called, if the
   // application plans to use data channels.
   virtual RTCErrorOr<rtc::scoped_refptr<DataChannelInterface>>
-  CreateDataChannelOrError(const std::string& label,
-                           const DataChannelInit* config) {
+  CreateDataChannelOrError(const std::string& /* label */,
+                           const DataChannelInit* /* config */) {
     return RTCError(RTCErrorType::INTERNAL_ERROR, "dummy function called");
   }
   // TODO(crbug.com/788659): Remove "virtual" below and default implementation

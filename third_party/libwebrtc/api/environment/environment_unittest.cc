@@ -74,8 +74,8 @@ class FakeTaskQueueFactory : public TaskQueueFactory {
   }
 
   std::unique_ptr<TaskQueueBase, TaskQueueDeleter> CreateTaskQueue(
-      absl::string_view name,
-      Priority priority) const override {
+      absl::string_view /* name */,
+      Priority /* priority */) const override {
     return nullptr;
   }
 

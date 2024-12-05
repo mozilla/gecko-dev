@@ -36,7 +36,8 @@ class RTC_EXPORT Metronome {
   // executed on the same sequence as they were requested on. There are no
   // features for cancellation. When that's needed, use e.g. ScopedTaskSafety
   // from the client.
-  virtual void RequestCallOnNextTick(absl::AnyInvocable<void() &&> callback) {}
+  virtual void RequestCallOnNextTick(
+      absl::AnyInvocable<void() &&> /* callback */) {}
 
   // Returns the current tick period of the metronome.
   virtual TimeDelta TickPeriod() const = 0;

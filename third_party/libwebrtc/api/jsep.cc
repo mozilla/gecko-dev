@@ -22,7 +22,7 @@ std::string IceCandidateInterface::server_url() const {
 }
 
 size_t SessionDescriptionInterface::RemoveCandidates(
-    const std::vector<cricket::Candidate>& candidates) {
+    const std::vector<cricket::Candidate>& /* candidates */) {
   return 0;
 }
 
