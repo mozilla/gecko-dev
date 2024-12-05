@@ -259,10 +259,6 @@ html|input.tree-input {
 .scrollbar-topmost {
   position: relative;
   z-index: 2147483647;
-
-  &[collapsed="true"] {
-    display: none;
-  }
 }
 
 /* ::::: sort direction indicator :::::  */
