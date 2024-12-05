@@ -290,9 +290,6 @@ static bool ToTemporalMonthDay(JSContext* cx, Handle<Value> item,
                                   calendar, result);
   }
 
-  // TODO: spec issue - allows too large dates for ISODateToFields, which can
-  // be troublesome for implementations.
-
   // Steps 11.
   //
   // Call CreateTemporalMonthDay to reject too large dates early.

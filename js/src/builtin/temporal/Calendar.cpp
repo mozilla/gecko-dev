@@ -2322,6 +2322,15 @@ static bool CalendarMonthDayToISOReferenceDate(JSContext* cx,
       return false;
     }
 
+    // This operation throws a RangeError if the ISO 8601 year corresponding to
+    // `fields.[[Year]]` is outside the valid limits.
+    auto isoDate = ToISODate(date.get());
+    if (!ISODateWithinLimits(isoDate)) {
+      JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
+                                JSMSG_TEMPORAL_PLAIN_DATE_INVALID);
+      return false;
+    }
+
     if (!fields.has(CalendarField::MonthCode)) {
       if (!CalendarDateMonthCode(cx, calendar, date.get(), &monthCode)) {
         return false;
