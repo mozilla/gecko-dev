@@ -107,7 +107,7 @@ class RTC_EXPORT VideoDecoder {
   // TODO(bugs.webrtc.org/15444): Migrate all subclasses to Decode() without
   // missing_frame and delete this.
   virtual int32_t Decode(const EncodedImage& input_image,
-                         bool missing_frames,
+                         bool /* missing_frames */,
                          int64_t render_time_ms) {
     return Decode(input_image, render_time_ms);
   }

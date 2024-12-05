@@ -119,7 +119,7 @@ class RTC_EXPORT RtpSenderInterface : public webrtc::RefCountInterface,
   // Default implementation of SetFrameTransformer.
   // TODO: bugs.webrtc.org/15929 - remove when all implementations are good
   void SetFrameTransformer(rtc::scoped_refptr<FrameTransformerInterface>
-                               frame_transformer) override {}
+                           /* frame_transformer */) override {}
 
  protected:
   ~RtpSenderInterface() override = default;

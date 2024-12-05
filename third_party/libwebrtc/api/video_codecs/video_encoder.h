@@ -82,7 +82,7 @@ class RTC_EXPORT EncodedImageCallback {
       const EncodedImage& encoded_image,
       const CodecSpecificInfo* codec_specific_info) = 0;
 
-  virtual void OnDroppedFrame(DropReason reason) {}
+  virtual void OnDroppedFrame(DropReason /* reason */) {}
 };
 
 class RTC_EXPORT VideoEncoder {

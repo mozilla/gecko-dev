@@ -113,10 +113,10 @@ class RTC_EXPORT Socket {
   // `timestamp` is in units of microseconds.
   virtual int Recv(void* pv, size_t cb, int64_t* timestamp) = 0;
   // TODO(webrtc:15368): Deprecate and remove.
-  virtual int RecvFrom(void* pv,
-                       size_t cb,
-                       SocketAddress* paddr,
-                       int64_t* timestamp) {
+  virtual int RecvFrom(void* /* pv */,
+                       size_t /* cb */,
+                       SocketAddress* /* paddr */,
+                       int64_t* /* timestamp */) {
     // Not implemented. Use RecvFrom(ReceiveBuffer& buffer).
     RTC_CHECK_NOTREACHED();
   }

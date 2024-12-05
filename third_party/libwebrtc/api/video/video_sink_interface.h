@@ -29,7 +29,7 @@ class VideoSinkInterface {
   // Called on the network thread when video constraints change.
   // TODO(crbug/1255737): make pure virtual once downstream project adapts.
   virtual void OnConstraintsChanged(
-      const webrtc::VideoTrackSourceConstraints& constraints) {}
+      const webrtc::VideoTrackSourceConstraints& /* constraints */) {}
 };
 
 }  // namespace rtc

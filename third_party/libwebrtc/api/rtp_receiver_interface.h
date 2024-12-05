@@ -80,7 +80,9 @@ class RTC_EXPORT RtpReceiverInterface : public webrtc::RefCountInterface,
   virtual RtpParameters GetParameters() const = 0;
   // TODO(dinosaurav): Delete SetParameters entirely after rolling to Chromium.
   // Currently, doesn't support changing any parameters.
-  virtual bool SetParameters(const RtpParameters& parameters) { return false; }
+  virtual bool SetParameters(const RtpParameters& /* parameters */) {
+    return false;
+  }
 
   // Does not take ownership of observer.
   // Must call SetObserver(nullptr) before the observer is destroyed.

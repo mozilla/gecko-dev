@@ -242,9 +242,9 @@ class MediaSendChannelInterface {
   // note: The encoder_selector object must remain valid for the lifetime of the
   // MediaChannel, unless replaced.
   virtual void SetEncoderSelector(
-      uint32_t ssrc,
-      webrtc::VideoEncoderFactory::EncoderSelectorInterface* encoder_selector) {
-  }
+      uint32_t /* ssrc */,
+      webrtc::VideoEncoderFactory::
+          EncoderSelectorInterface* /* encoder_selector */) {}
   virtual webrtc::RtpParameters GetRtpSendParameters(uint32_t ssrc) const = 0;
   virtual bool SendCodecHasNack() const = 0;
   // Called whenever the list of sending SSRCs changes.

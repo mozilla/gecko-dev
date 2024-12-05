@@ -347,7 +347,7 @@ index 6c3b397f65..316e6fcb0b 100644
  rtc_library("neteq_simulator_api") {
    visibility = [ "*" ]
 diff --git a/api/rtp_sender_interface.h b/api/rtp_sender_interface.h
-index aa2eb6fc31..1c5d3fc45e 100644
+index 9afe3e318d..010db64706 100644
 --- a/api/rtp_sender_interface.h
 +++ b/api/rtp_sender_interface.h
 @@ -34,9 +34,9 @@
@@ -717,7 +717,7 @@ index 5126519d81..f211074146 100644
  
  rtc_library("rtc_audio_video") {
 diff --git a/media/base/media_channel.h b/media/base/media_channel.h
-index efd3693052..ea7525469d 100644
+index ac7eaab207..3723346a75 100644
 --- a/media/base/media_channel.h
 +++ b/media/base/media_channel.h
 @@ -67,10 +67,6 @@ class Timing;

@@ -239,7 +239,7 @@ LogMessage::~LogMessage() {
   }
 }
 
-void LogMessage::AddTag(const char* tag) {
+void LogMessage::AddTag([[maybe_unused]] const char* tag) {
 #ifdef WEBRTC_ANDROID
   log_line_.set_tag(tag);
 #endif

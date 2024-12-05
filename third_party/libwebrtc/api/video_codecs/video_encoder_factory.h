@@ -54,7 +54,7 @@ class VideoEncoderFactory {
     // Called every time the encoder input resolution change. Should return a
     // non-empty if an encoder switch should be performed.
     virtual std::optional<SdpVideoFormat> OnResolutionChange(
-        const RenderResolution& resolution) {
+        const RenderResolution& /* resolution */) {
       return std::nullopt;
     }
 

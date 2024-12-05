@@ -1547,7 +1547,7 @@ index a18e69590d..bc80ce27b5 100644
      # Dependency on chromium's logging (in //base).
      deps += [ "//base" ]
 diff --git a/rtc_base/logging.cc b/rtc_base/logging.cc
-index 61a3c667ba..ad2303735e 100644
+index f0461f79e9..adf6deffa9 100644
 --- a/rtc_base/logging.cc
 +++ b/rtc_base/logging.cc
 @@ -44,6 +44,7 @@ static const int kMaxLogLineSize = 1024 - 60;
@@ -1593,7 +1593,7 @@ index 61a3c667ba..ad2303735e 100644
  // The list of logging streams currently configured.
  // Note: we explicitly do not clean this up, because of the uncertain ordering
 diff --git a/rtc_base/logging.h b/rtc_base/logging.h
-index 2a8f9ba5d6..650f73180d 100644
+index 6d5a4bebcf..4b5a99f14e 100644
 --- a/rtc_base/logging.h
 +++ b/rtc_base/logging.h
 @@ -555,6 +555,12 @@ class LogMessage {
