@@ -99,10 +99,6 @@ public class FileVideoCapturer implements VideoCapturer {
       final ByteBuffer dataY = buffer.getDataY();
       final ByteBuffer dataU = buffer.getDataU();
       final ByteBuffer dataV = buffer.getDataV();
-      final int chromaHeight = (frameHeight + 1) / 2;
-      final int sizeY = frameHeight * buffer.getStrideY();
-      final int sizeU = chromaHeight * buffer.getStrideU();
-      final int sizeV = chromaHeight * buffer.getStrideV();
 
       try {
         ByteBuffer frameDelim = ByteBuffer.allocate(FRAME_DELIMETER_LENGTH);
