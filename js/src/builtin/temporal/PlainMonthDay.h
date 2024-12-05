@@ -10,6 +10,7 @@
 #include <stdint.h>
 
 #include "builtin/temporal/Calendar.h"
+#include "builtin/temporal/PlainDate.h"
 #include "builtin/temporal/PlainDateTime.h"
 #include "builtin/temporal/TemporalTypes.h"
 #include "js/RootingAPI.h"

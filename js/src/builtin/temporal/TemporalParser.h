@@ -13,6 +13,7 @@
 #include <cstdlib>
 #include <stdint.h>
 
+#include "builtin/temporal/TemporalTypes.h"
 #include "builtin/temporal/TemporalUnit.h"
 #include "js/RootingAPI.h"
 #include "js/TypeDecls.h"

@@ -51,6 +51,7 @@
 #include "vm/SymbolType.h"
 
 #include "vm/JSAtomUtils-inl.h"
+#include "vm/JSObject-inl.h"
 #include "vm/ObjectOperations-inl.h"
 
 using namespace js;

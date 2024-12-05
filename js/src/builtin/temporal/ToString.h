@@ -22,6 +22,7 @@ class PlainYearMonthObject;
 class TimeZoneValue;
 class ZonedDateTime;
 
+struct EpochNanoseconds;
 struct ISODateTime;
 struct Time;
 
