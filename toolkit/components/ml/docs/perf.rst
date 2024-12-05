@@ -140,7 +140,7 @@ Once this is done, try it out with:
 
 .. code-block:: bash
 
-   ./mach try perf --single-run --show-all --artifact
+   ./mach try perf --single-run --full --artifact
 
 
 You should then see the results in treeherder.
