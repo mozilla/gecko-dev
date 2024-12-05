@@ -671,6 +671,7 @@ if (rtc_include_tests) {
         "../api:simulated_network_api",
         "../api/audio:audio_device",
         "../api/audio:audio_processing",
+        "../api/audio:builtin_audio_processing_builder",
         "../api/audio_codecs:builtin_audio_encoder_factory",
         "../api/environment",
         "../api/numerics",

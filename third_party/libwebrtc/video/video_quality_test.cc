@@ -23,6 +23,7 @@
 #include <vector>
 
 #include "api/audio/audio_device.h"
+#include "api/audio/builtin_audio_processing_builder.h"
 #include "api/fec_controller_override.h"
 #include "api/rtc_event_log_output_file.h"
 #include "api/task_queue/default_task_queue_factory.h"
@@ -1371,7 +1372,8 @@ void VideoQualityTest::InitializeAudioDevice(CallConfig* send_call_config,
 
   AudioState::Config audio_state_config;
   audio_state_config.audio_mixer = AudioMixerImpl::Create();
-  audio_state_config.audio_processing = AudioProcessingBuilder().Create();
+  audio_state_config.audio_processing =
+      BuiltinAudioProcessingBuilder().Build(send_call_config->env);
   audio_state_config.audio_device_module = audio_device;
   send_call_config->audio_state = AudioState::Create(audio_state_config);
   recv_call_config->audio_state = AudioState::Create(audio_state_config);

@@ -349,6 +349,7 @@ if (rtc_include_tests) {
         "../../api/audio:audio_processing",
         "../../api/audio:builtin_audio_processing_builder",
         "../../api/audio:echo_detector_creator",
+        "../../api/environment",
         "../../api/environment:environment_factory",
         "../../common_audio",
         "../../common_audio:common_audio_c",

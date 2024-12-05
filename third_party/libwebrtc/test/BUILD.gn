@@ -1262,6 +1262,7 @@ if (!build_with_chromium) {
       "../api:simulated_network_api",
       "../api:transport_api",
       "../api/audio:audio_device",
+      "../api/audio:builtin_audio_processing_builder",
       "../api/audio_codecs:builtin_audio_decoder_factory",
       "../api/audio_codecs:builtin_audio_encoder_factory",
       "../api/environment",
