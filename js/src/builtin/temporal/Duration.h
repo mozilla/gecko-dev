@@ -88,13 +88,13 @@ int32_t DurationSign(const Duration& duration);
  */
 int32_t DateDurationSign(const DateDuration& duration);
 
+#ifdef DEBUG
 /**
  * IsValidDuration ( years, months, weeks, days, hours, minutes, seconds,
  * milliseconds, microseconds, nanoseconds )
  */
 bool IsValidDuration(const Duration& duration);
 
-#ifdef DEBUG
 /**
  * IsValidDuration ( years, months, weeks, days, hours, minutes, seconds,
  * milliseconds, microseconds, nanoseconds )
@@ -113,12 +113,6 @@ bool IsValidDuration(const InternalDuration& duration);
  * milliseconds, microseconds, nanoseconds )
  */
 bool ThrowIfInvalidDuration(JSContext* cx, const Duration& duration);
-
-/**
- * IsValidDuration ( years, months, weeks, days, hours, minutes, seconds,
- * milliseconds, microseconds, nanoseconds )
- */
-bool ThrowIfInvalidDuration(JSContext* cx, const DateDuration& duration);
 
 /**
  * IsValidDuration ( years, months, weeks, days, hours, minutes, seconds,
