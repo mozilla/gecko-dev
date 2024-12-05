@@ -160,6 +160,7 @@ if (rtc_include_tests && !build_with_chromium) {
     "../resources/near22_stereo.pcm",
     "../resources/near32_stereo.pcm",
     "../resources/near44_stereo.pcm",
+    "../resources/near48_mono.pcm",
     "../resources/near48_stereo.pcm",
     "../resources/near88_stereo.pcm",
     "../resources/near8_stereo.pcm",
