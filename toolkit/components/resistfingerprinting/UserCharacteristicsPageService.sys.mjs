@@ -28,6 +28,14 @@ ChromeUtils.defineLazyGetter(lazy, "contentPrefs", () => {
   );
 });
 
+ChromeUtils.defineLazyGetter(lazy, "isAndroid", () => {
+  return Services.appinfo.OS === "Android";
+});
+
+ChromeUtils.defineLazyGetter(lazy, "windowType", () => {
+  return lazy.isAndroid ? "navigator:geckoview" : "navigator:browser";
+});
+
 export class UserCharacteristicsPageService {
   classId = Components.ID("{ce3e9659-e311-49fb-b18b-7f27c6659b23}");
   QueryInterface = ChromeUtils.generateQI([
@@ -201,6 +209,51 @@ export class UserCharacteristicsPageService {
     }
   }
 
+  *getActorFromTabsOrWindows(windows, name, diagnostics = {}) {
+    for (const win of windows) {
+      diagnostics.winCount++;
+      if (win.closed) {
+        diagnostics.closed++;
+        continue;
+      }
+
+      if (lazy.isAndroid) {
+        diagnostics.tabCount++;
+        try {
+          const actor = win.moduleManager.getActor(name);
+          diagnostics.noActor += !actor;
+          yield { success: !!actor, actor };
+        } catch (e) {
+          diagnostics.noActor++;
+          yield { success: false, error: e };
+        }
+
+        continue;
+      }
+
+      for (const tab of win.gBrowser.tabs) {
+        diagnostics.tabCount++;
+        diagnostics.remoteTypes?.push(
+          sanitizeRemoteType(tab.linkedBrowser.remoteType)
+        );
+        try {
+          const actor =
+            tab.linkedBrowser.browsingContext?.currentWindowGlobal.getActor(
+              name
+            );
+          diagnostics.noActor += !actor;
+          yield {
+            success: !!actor,
+            actor,
+          };
+        } catch (e) {
+          diagnostics.noActor++;
+          yield { success: false, error: e };
+        }
+      }
+    }
+  }
+
   async populateWindowInfo() {
     // We use two different methods to get any loaded document.
     // First one is, DOMContentLoaded event. If the user loads
@@ -230,12 +283,13 @@ export class UserCharacteristicsPageService {
       pointerInfoResolve(JSON.parse(data));
     }, "user-characteristics-pointer-info-done");
 
+    const actorName = "UserCharacteristicsWindowInfo";
     Services.obs.addObserver(function observe(_subject, topic, _data) {
       Services.obs.removeObserver(observe, topic);
-      ChromeUtils.unregisterWindowActor("UserCharacteristicsWindowInfo");
+      ChromeUtils.unregisterWindowActor(actorName);
     }, "user-characteristics-window-info-done");
 
-    ChromeUtils.registerWindowActor("UserCharacteristicsWindowInfo", {
+    ChromeUtils.registerWindowActor(actorName, {
       parent: {
         esModuleURI: "resource://gre/actors/UserCharacteristicsParent.sys.mjs",
       },
@@ -248,24 +302,15 @@ export class UserCharacteristicsPageService {
       },
     });
 
-    for (const win of Services.wm.getEnumerator("navigator:browser")) {
-      if (!win.closed) {
-        for (const tab of win.gBrowser.tabs) {
-          const actor = await promiseTry(() =>
-            tab.linkedBrowser.browsingContext?.currentWindowGlobal.getActor(
-              "UserCharacteristicsWindowInfo"
-            )
-          ).catch(async e => {
-            lazy.console.error("Error getting actor", e);
-            this.handledErrors.push(await stringifyError(e));
-          });
-
-          if (!actor) {
-            continue;
-          }
-
-          actor.sendAsyncMessage("WindowInfo:PopulateFromDocument");
-        }
+    for (const { success, actor, error } of this.getActorFromTabsOrWindows(
+      Services.wm.getEnumerator(lazy.windowType),
+      actorName
+    )) {
+      if (success) {
+        actor.sendAsyncMessage("WindowInfo:PopulateFromDocument");
+      } else if (error) {
+        lazy.console.error("Error getting actor", error);
+        this.handledErrors.push(await stringifyError(error));
       }
     }
 
@@ -302,55 +347,40 @@ export class UserCharacteristicsPageService {
       // Try to find a window that supports hardware rendering
       let acceleratedActor = null;
       let fallbackActor = null;
-      for (const win of Services.wm.getEnumerator("navigator:browser")) {
-        diagnostics.winCount++;
-        if (win.closed) {
-          diagnostics.closed++;
+      for (const { success, actor, error } of this.getActorFromTabsOrWindows(
+        Services.wm.getEnumerator(lazy.windowType),
+        actorName,
+        diagnostics
+      )) {
+        if (!success) {
+          if (error) {
+            lazy.console.error("Error getting actor", error);
+            this.handledErrors.push(await stringifyError(error));
+          }
           continue;
         }
 
-        for (const tab of win.gBrowser.tabs) {
-          diagnostics.tabCount++;
-          diagnostics.remoteTypes.push(
-            sanitizeRemoteType(tab.linkedBrowser.remoteType)
-          );
-
-          const actor = await promiseTry(() =>
-            tab.linkedBrowser.browsingContext?.currentWindowGlobal.getActor(
-              actorName
-            )
-          ).catch(async e => {
-            lazy.console.error("Error getting actor", e);
-            this.handledErrors.push(await stringifyError(e));
-          });
-
-          if (!actor) {
-            diagnostics.noActor++;
-            continue;
-          }
-
-          // Example data: {"backendType":3,"drawTargetType":0,"isAccelerated":false,"isShared":true}
-          const debugInfo = await timeoutPromise(
-            actor.sendQuery("CanvasRendering:GetDebugInfo"),
-            5000
-          ).catch(async e => {
-            lazy.console.error("Canvas rendering debug info failed", e);
-            this.handledErrors.push(await stringifyError(e));
-          });
-          if (!debugInfo) {
-            diagnostics.noDebugInfo++;
-            continue;
-          }
-
-          lazy.console.debug("Canvas rendering debug info", debugInfo);
-
-          fallbackActor = actor;
-          if (debugInfo.isAccelerated) {
-            acceleratedActor = actor;
-            break;
-          }
-          diagnostics.notHW++;
+        // Example data: {"backendType":3,"drawTargetType":0,"isAccelerated":false,"isShared":true}
+        const debugInfo = await timeoutPromise(
+          actor.sendQuery("CanvasRendering:GetDebugInfo"),
+          5000
+        ).catch(async e => {
+          lazy.console.error("Canvas rendering debug info failed", e);
+          this.handledErrors.push(await stringifyError(e));
+        });
+        if (!debugInfo) {
+          diagnostics.noDebugInfo++;
+          continue;
         }
+
+        lazy.console.debug("Canvas rendering debug info", debugInfo);
+
+        fallbackActor = actor;
+        if (debugInfo.isAccelerated) {
+          acceleratedActor = actor;
+          break;
+        }
+        diagnostics.notHW++;
       }
 
       // If we didn't find a hardware accelerated window, we use the last one
@@ -426,7 +456,7 @@ export class UserCharacteristicsPageService {
     }
 
     // We may have HW + SW, or only SW rendered canvases - populate the metrics with what we have
-    this.collectGleanMetricsFromMap(data.get("renderings"));
+    this.collectGleanMetricsFromMap(data.get("renderings") ?? {});
 
     ChromeUtils.unregisterWindowActor(actorName);
 
@@ -936,16 +966,6 @@ function timeoutPromise(promise, ms) {
         reject(error);
       }
     );
-  });
-}
-
-function promiseTry(func) {
-  return new Promise((resolve, reject) => {
-    try {
-      resolve(func());
-    } catch (error) {
-      reject(error);
-    }
   });
 }
 
