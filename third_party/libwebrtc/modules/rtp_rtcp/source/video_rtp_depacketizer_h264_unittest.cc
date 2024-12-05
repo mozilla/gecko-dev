@@ -542,5 +542,15 @@ TEST(VideoRtpDepacketizerH264Test, SeiSetsFirstPacketInFrame) {
   EXPECT_TRUE(parsed->video_header.is_first_packet_in_frame);
 }
 
+TEST(VideoRtpDepacketizerH264Test, EmptyNaluPayload) {
+  const uint8_t kPayload[] = {
+      0x10,  // End of sequence.
+  };
+  VideoRtpDepacketizerH264 depacketizer;
+  std::optional<VideoRtpDepacketizer::ParsedRtpPayload> parsed =
+      depacketizer.Parse(rtc::CopyOnWriteBuffer(kPayload));
+  ASSERT_TRUE(parsed);
+}
+
 }  // namespace
 }  // namespace webrtc
