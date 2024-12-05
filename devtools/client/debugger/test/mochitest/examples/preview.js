@@ -102,11 +102,3 @@ function thisProperties() {
   });
 }
 
-function explicitResourceManagement() {
-  using erm = {
-    [Symbol.dispose]() {},
-    foo: 42
-  };
-  console.log(erm.foo);
-  debugger;
-}
