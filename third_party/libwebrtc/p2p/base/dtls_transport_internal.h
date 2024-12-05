@@ -92,14 +92,6 @@ class DtlsTransportInternal : public rtc::PacketTransportInternal {
   virtual bool ExportSrtpKeyingMaterial(
       rtc::ZeroOnFreeBuffer<uint8_t>& keying_material) = 0;
 
-  [[deprecated("Use ExportSrtpKeyingMaterial instead")]] virtual bool
-  ExportKeyingMaterial(absl::string_view label,
-                       const uint8_t* context,
-                       size_t context_len,
-                       bool use_context,
-                       uint8_t* result,
-                       size_t result_len) = 0;
-
   // Set DTLS remote fingerprint. Must be after local identity set.
   ABSL_DEPRECATED("Use SetRemoteParameters instead.")
   virtual bool SetRemoteFingerprint(absl::string_view digest_alg,

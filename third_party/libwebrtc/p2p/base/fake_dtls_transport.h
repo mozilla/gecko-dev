@@ -235,18 +235,6 @@ class FakeDtlsTransport : public DtlsTransportInternal {
     }
     return do_dtls_;
   }
-  bool ExportKeyingMaterial(absl::string_view label,
-                            const uint8_t* context,
-                            size_t context_len,
-                            bool use_context,
-                            uint8_t* result,
-                            size_t result_len) override {
-    if (!do_dtls_) {
-      return false;
-    }
-    memset(result, 0xff, result_len);
-    return true;
-  }
   void set_ssl_max_protocol_version(rtc::SSLProtocolVersion version) {
     ssl_max_version_ = version;
   }

@@ -182,14 +182,6 @@ class DtlsTransport : public DtlsTransportInternal {
   bool ExportSrtpKeyingMaterial(
       rtc::ZeroOnFreeBuffer<uint8_t>& keying_material) override;
 
-  [[deprecated("Use ExportSrtpKeyingMaterial instead")]] bool
-  ExportKeyingMaterial(absl::string_view label,
-                       const uint8_t* context,
-                       size_t context_len,
-                       bool use_context,
-                       uint8_t* result,
-                       size_t result_len) override;
-
   IceTransportInternal* ice_transport() override;
 
   // For informational purposes. Tells if the DTLS handshake has finished.
