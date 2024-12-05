@@ -63,12 +63,14 @@
 #include "gc/GCLock.h"
 #include "gc/Zone.h"
 #include "jit/BaselineJIT.h"
+#include "jit/CacheIRSpewer.h"
 #include "jit/Disassemble.h"
 #include "jit/InlinableNatives.h"
 #include "jit/Invalidation.h"
 #include "jit/Ion.h"
 #include "jit/JitOptions.h"
 #include "jit/JitRuntime.h"
+#include "jit/JitScript.h"
 #include "jit/TrialInlining.h"
 #include "js/Array.h"        // JS::NewArrayObject
 #include "js/ArrayBuffer.h"  // JS::{DetachArrayBuffer,GetArrayBufferLengthAndData,NewArrayBufferWithContents}
@@ -1869,6 +1871,95 @@ static bool DisassembleNative(JSContext* cx, unsigned argc, Value* vp) {
     return false;
   }
   sprinter.putString(cx, sresult);
+
+  JSString* str = sprinter.release(cx);
+  if (!str) {
+    return false;
+  }
+
+  args.rval().setString(str);
+  return true;
+}
+
+static bool DisassembleBaselineICs(JSContext* cx, unsigned argc, Value* vp) {
+  CallArgs args = CallArgsFromVp(argc, vp);
+  args.rval().setUndefined();
+
+  if (!args.requireAtLeast(cx, "disblic", 1)) {
+    return false;
+  }
+
+  if (!args[0].isObject() || !args[0].toObject().is<JSFunction>()) {
+    JS_ReportErrorASCII(cx, "The first argument must be a function.");
+    return false;
+  }
+
+  JSSprinter sprinter(cx);
+  if (!sprinter.init()) {
+    return false;
+  }
+
+  RootedFunction fun(cx, &args[0].toObject().as<JSFunction>());
+
+  if (!fun->hasJitScript()) {
+    args.rval().setUndefined();
+    return true;
+  }
+
+#ifdef JS_CODEGEN_ARM
+  // The ARM32 disassembler is currently not fuzzing-safe because it doesn't
+  // handle constant pools correctly (bug 1875363).
+  if (fuzzingSafe) {
+    JS_ReportErrorASCII(cx, "disblic is not fuzzing-safe on ARM32");
+    return false;
+  }
+#endif
+
+  RootedScript script(cx, fun->nonLazyScript());
+  jit::ICScript* icScript = script->jitScript()->icScript();
+  for (uint32_t i = 0; i < icScript->numICEntries(); i++) {
+    jit::ICEntry& entry = icScript->icEntry(i);
+    jit::ICStub* stub = entry.firstStub();
+
+    jit::ICStub* fallbackStub = stub;
+    while (!fallbackStub->isFallback()) {
+      fallbackStub = fallbackStub->toCacheIRStub()->next();
+    }
+    uint32_t pcOffset = fallbackStub->toFallbackStub()->pcOffset();
+    sprinter.printf("; %s (pcOffset %05u)\n",
+                    CodeName(JSOp(*script->offsetToPC(pcOffset))), pcOffset);
+
+    uint32_t stubNum = 1;
+    while (!stub->isFallback()) {
+      sprinter.printf(";   Stub #%d (entry count: %d)\n", stubNum,
+                      stub->enteredCount());
+      jit::ICCacheIRStub* cacheIRStub = stub->toCacheIRStub();
+      uint8_t* jit_begin = stub->jitCode()->raw();
+      uint8_t* jit_end = stub->jitCode()->rawEnd();
+#ifdef JS_CACHEIR_SPEW
+      sprinter.printf(";   IR:\n");
+      SpewCacheIROps(sprinter, ";        ", cacheIRStub->stubInfo());
+#endif
+      DisasmBuffer buf(cx);
+      disasmBuf.set(&buf);
+      auto onFinish = mozilla::MakeScopeExit([&] { disasmBuf.set(nullptr); });
+
+      jit::Disassemble(jit_begin, jit_end - jit_begin, &captureDisasmText);
+
+      if (buf.oom) {
+        ReportOutOfMemory(cx);
+        return false;
+      }
+      JSString* sresult = buf.builder.finishString();
+      if (!sresult) {
+        ReportOutOfMemory(cx);
+        return false;
+      }
+      sprinter.putString(cx, sresult);
+      stub = cacheIRStub->next();
+      stubNum++;
+    }
+  }
 
   JSString* str = sprinter.release(cx);
   if (!str) {
@@ -9564,6 +9655,10 @@ static const JSFunctionSpecWithHelp TestingFunctions[] = {
     JS_FN_HELP("disnative", DisassembleNative, 2, 0,
 "disnative(fun,[path])",
 "  Disassemble a function into its native code. Optionally write the native code bytes to a file on disk.\n"),
+
+    JS_FN_HELP("disblic", DisassembleBaselineICs, 1, 0,
+"disblic(fun)",
+"  Disassemble the baseline ICs for a function into native code.\n"),
 
     JS_FN_HELP("relazifyFunctions", RelazifyFunctions, 0, 0,
 "relazifyFunctions(...)",
