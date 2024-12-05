@@ -19,7 +19,8 @@ ret = run(
         "-m",
         "Bug 1729988 - FLOAT - REPO-elm - update .arcconfig repo callsign r=bgrins",
         "dom/media/webrtc/third_party_build/elm_arcconfig.patch",
-    ]
+    ],
+    check=False,
 ).returncode
 if ret != 0:
     raise Exception(f"Failed to add FLOATing arcconfig patch for ELM: { ret }")

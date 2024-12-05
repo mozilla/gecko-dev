@@ -243,7 +243,9 @@ def fetch(target, url):
 
 def fetch_local(target, path, commit):
     target_archive = target + ".tar.gz"
-    cp = subprocess.run(["git", "archive", "-o", target_archive, commit], cwd=path)
+    cp = subprocess.run(
+        ["git", "archive", "-o", target_archive, commit], cwd=path, check=False
+    )
     if cp.returncode != 0:
         print(
             "Hit return code {} fetching commit. Aborting.".format(cp.returncode),

@@ -25,6 +25,7 @@ def run_hg(cmd):
         capture_output=True,
         text=True,
         env=env,
+        check=False,
     )
     if res.returncode != 0:
         print(
@@ -44,6 +45,7 @@ def run_git(cmd, working_dir):
         capture_output=True,
         text=True,
         cwd=working_dir,
+        check=False,
     )
     if res.returncode != 0:
         print(
@@ -62,6 +64,7 @@ def run_shell(cmd, capture_output=True):
         shell=True,
         capture_output=capture_output,
         text=True,
+        check=False,
     )
     if res.returncode != 0:
         print(

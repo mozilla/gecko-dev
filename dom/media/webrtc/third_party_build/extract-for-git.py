@@ -26,6 +26,7 @@ def build_commit_list(revset, env):
         capture_output=True,
         text=True,
         env=env,
+        check=False,
     )
     # return empty list instead of a list with one empty element if no
     # libwebrtc changing commits are found in the given range
@@ -40,6 +41,7 @@ def extract_author_date(sha1, env):
         capture_output=True,
         text=True,
         env=env,
+        check=False,
     )
     return res.stdout.split("|")
 
@@ -50,6 +52,7 @@ def extract_description(sha1, env):
         capture_output=True,
         text=True,
         env=env,
+        check=False,
     )
     return res.stdout
 
@@ -60,6 +63,7 @@ def extract_commit(sha1, env):
         capture_output=True,
         text=True,
         env=env,
+        check=False,
     )
     return res.stdout
 
