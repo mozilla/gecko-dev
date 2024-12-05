@@ -888,7 +888,7 @@ class Skipfails(object):
             if task_id is None:
                 skip_if = "true"
             else:
-                skip_if = self.task_to_skip_if(manifest, task_id, kind)
+                skip_if = self.task_to_skip_if(manifest, task_id, kind, p)
             if skip_if is None:
                 self.warning(
                     f"Unable to calculate skip-if condition from manifest={manifest} from failure label={label}"
@@ -1184,7 +1184,6 @@ class Skipfails(object):
             os = None
             os_version = None
             runtimes = []
-            test_suite = task.get("extra", {}).get("suite", None)
             test_setting = task.get("extra", {}).get("test-setting", {})
             platform = test_setting.get("platform", {})
             platform_os = platform.get("os", {})
@@ -1231,7 +1230,6 @@ class Skipfails(object):
                 "os": os or unknown,
                 "os_version": os_version or unknown,
                 "runtimes": runtimes,
-                "test_suite": test_suite,
             }
         self.extras[task_id] = extra
         return extra
@@ -1340,7 +1338,7 @@ class Skipfails(object):
                     skip_if += aa + "useDrawSnapshot"
         return skip_if
 
-    def task_to_skip_if(self, manifest: str, task_id: str, kind: str):
+    def task_to_skip_if(self, manifest: str, task_id: str, kind: str, file_path: str):
         """Calculate the skip-if condition for failing task task_id"""
 
         if kind == Kind.WPT:
@@ -1375,8 +1373,7 @@ class Skipfails(object):
             if processor is not None:
                 skip_if += aa + "processor" + eq + qq + processor + qq
 
-            test_suite = extra["test_suite"]
-            failure_key = os + os_version + processor + manifest + test_suite
+            failure_key = os + os_version + processor + manifest + file_path
             if self.failed_platforms.get(failure_key) is None:
                 if not self.platform_permutations:
                     self._fetch_platform_permutations()

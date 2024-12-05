@@ -251,7 +251,7 @@ def test_task_to_skip_if():
         }
     }
     # function under test
-    skip_if = sf.task_to_skip_if("test-manifest", task_id, Kind.TOML)
+    skip_if = sf.task_to_skip_if("test-manifest", task_id, Kind.TOML, "test-path")
     assert skip_if == "win11_2009 && processor == 'x86' && debug"
 
     # Failed task on specific runtime on x86_64
@@ -282,7 +282,7 @@ def test_task_to_skip_if():
         }
     }
     # function under test
-    skip_if = sf.task_to_skip_if("test-manifest", task_id, Kind.TOML)
+    skip_if = sf.task_to_skip_if("test-manifest", task_id, Kind.TOML, "test-path")
     assert (
         skip_if
         == "os == 'mac' && os_version == '10.15' && processor == 'x86_64' && debug && swgl"
@@ -316,7 +316,7 @@ def test_task_to_skip_if():
         }
     }
     # function under test
-    skip_if = sf.task_to_skip_if("test-manifest", task_id, Kind.TOML)
+    skip_if = sf.task_to_skip_if("test-manifest", task_id, Kind.TOML, "test-path")
     assert (
         skip_if
         == "os == 'mac' && os_version == '11.00' && processor == 'aarch64' && debug && swgl"
@@ -346,7 +346,7 @@ def test_task_to_skip_if():
         "test-manifest": {"linux": {"18.04": {"x86": {"opt": ["no_variant"]}}}}
     }
     # function under test
-    skip_if = sf.task_to_skip_if("test-manifest", task_id, Kind.TOML)
+    skip_if = sf.task_to_skip_if("test-manifest", task_id, Kind.TOML, "test-path")
     assert skip_if == "os == 'linux' && os_version == '18.04' && processor == 'x86'"
 
     sf = Skipfails()
@@ -372,7 +372,7 @@ def test_task_to_skip_if():
         "test-manifest": {"linux": {"18.04": {"x86": {"opt": ["xorigin"]}}}}
     }
     # function under test
-    skip_if = sf.task_to_skip_if("test-manifest", task_id, Kind.TOML)
+    skip_if = sf.task_to_skip_if("test-manifest", task_id, Kind.TOML, "test-path")
     assert skip_if == "os == 'linux' && os_version == '18.04' && processor == 'x86'"
 
     # Only the test without variant failed
@@ -401,7 +401,7 @@ def test_task_to_skip_if():
         }
     }
     # function under test
-    skip_if = sf.task_to_skip_if("test-manifest", task_id, Kind.TOML)
+    skip_if = sf.task_to_skip_if("test-manifest", task_id, Kind.TOML, "test-path")
     assert (
         skip_if
         == "os == 'linux' && os_version == '18.04' && processor == 'x86' && opt && !xorigin"
@@ -429,7 +429,7 @@ def test_task_to_skip_if():
     sf.tasks[task_id] = task_details
     sf.platform_permutations = {}
     # function under test
-    skip_if = sf.task_to_skip_if("test-manifest", task_id, Kind.TOML)
+    skip_if = sf.task_to_skip_if("test-manifest", task_id, Kind.TOML, "test-path")
     assert skip_if == "os == 'linux' && os_version == '18.04' && processor == 'x86'"
 
     # Full fail with everal tasks
@@ -462,7 +462,7 @@ def test_task_to_skip_if():
     }
     sf.tasks[task_id] = task_details
     # function under test
-    skip_if = sf.task_to_skip_if("test-manifest", task_id, Kind.TOML)
+    skip_if = sf.task_to_skip_if("test-manifest", task_id, Kind.TOML, "test-path")
     assert (
         skip_if
         == "os == 'linux' && os_version == '18.04' && processor == 'x86' && opt && xorigin"
@@ -487,7 +487,7 @@ def test_task_to_skip_if():
     }
     sf.tasks[task_id] = task_details
     # function under test
-    skip_if = sf.task_to_skip_if("test-manifest", task_id, Kind.TOML)
+    skip_if = sf.task_to_skip_if("test-manifest", task_id, Kind.TOML, "test-path")
     assert (
         skip_if == "os == 'linux' && os_version == '18.04' && processor == 'x86' && opt"
     )
@@ -511,7 +511,7 @@ def test_task_to_skip_if():
     }
     sf.tasks[task_id] = task_details
     # function under test
-    skip_if = sf.task_to_skip_if("test-manifest", task_id, Kind.TOML)
+    skip_if = sf.task_to_skip_if("test-manifest", task_id, Kind.TOML, "test-path")
     assert skip_if == "os == 'linux' && os_version == '18.04' && processor == 'x86'"
 
     # Multiple failed tasks allowing for optimized skip if
@@ -544,7 +544,7 @@ def test_task_to_skip_if():
     }
     sf.tasks[task_id] = task_details
     # function under test
-    skip_if = sf.task_to_skip_if("test-manifest", task_id, Kind.TOML)
+    skip_if = sf.task_to_skip_if("test-manifest", task_id, Kind.TOML, "test-path")
     assert (
         skip_if
         == "os == 'linux' && os_version == '18.04' && processor == 'x86' && debug && xorigin"
@@ -569,7 +569,7 @@ def test_task_to_skip_if():
     }
     sf.tasks[task_id] = task_details
     # function under test
-    skip_if = sf.task_to_skip_if("test-manifest", task_id, Kind.TOML)
+    skip_if = sf.task_to_skip_if("test-manifest", task_id, Kind.TOML, "test-path")
     assert (
         skip_if
         == "os == 'linux' && os_version == '18.04' && processor == 'x86' && debug"
@@ -594,7 +594,7 @@ def test_task_to_skip_if():
     }
     sf.tasks[task_id] = task_details
     # function under test
-    skip_if = sf.task_to_skip_if("test-manifest", task_id, Kind.TOML)
+    skip_if = sf.task_to_skip_if("test-manifest", task_id, Kind.TOML, "test-path")
     assert skip_if == "os == 'linux' && os_version == '18.04' && processor == 'x86'"
 
 
@@ -630,7 +630,7 @@ def test_task_to_skip_if_wpt():
         }
     }
     # function under test
-    skip_if = sf.task_to_skip_if("test-manifest", task_id, Kind.WPT)
+    skip_if = sf.task_to_skip_if("test-manifest", task_id, Kind.WPT, "test-path")
     assert (
         skip_if
         == 'os == "linux" and os_version == "18.04" and processor == "x86" and opt'
@@ -662,7 +662,7 @@ def test_task_to_skip_if_reftest():
     sf = Skipfails(implicit_vars=True)
     sf.tasks[task_id] = task_details
     # function under test
-    skip_if = sf.task_to_skip_if("", task_id, Kind.LIST)
+    skip_if = sf.task_to_skip_if("", task_id, Kind.LIST, "test-path")
     assert skip_if == "gtkWidget&&optimized&&!is64Bit"
 
 
@@ -685,7 +685,7 @@ def test_task_to_skip_if_reftest2():
     sf = Skipfails(implicit_vars=True)
     sf.tasks[task_id] = task_details
     # function under test
-    skip_if = sf.task_to_skip_if("", task_id, Kind.LIST)
+    skip_if = sf.task_to_skip_if("", task_id, Kind.LIST, "test-path")
     assert skip_if == "gtkWidget&&ThreadSanitizer&&swgl"
 
 
@@ -711,7 +711,7 @@ def test_task_to_skip_if_reftest3():
     sf = Skipfails(implicit_vars=False)
     sf.tasks[task_id] = task_details
     # function under test
-    skip_if = sf.task_to_skip_if("", task_id, Kind.LIST)
+    skip_if = sf.task_to_skip_if("", task_id, Kind.LIST, "test-path")
     assert skip_if == "winWidget&&isDebugBuild&&fission&&!is64Bit&&!swgl"
 
 
@@ -734,7 +734,7 @@ def test_task_to_skip_if_reftest4():
     sf = Skipfails(implicit_vars=False)
     sf.tasks[task_id] = task_details
     # function under test
-    skip_if = sf.task_to_skip_if("", task_id, Kind.LIST)
+    skip_if = sf.task_to_skip_if("", task_id, Kind.LIST, "test-path")
     assert skip_if == "gtkWidget&&ThreadSanitizer&&fission&&!swgl"
 
 
