@@ -33,3 +33,24 @@ function testJoin() {
     assertEq(repr.bufferRefCount, 1);
 }
 testJoin();
+
+// Strings created by StringChars.
+function testLowerCase() {
+    var str = "A".repeat(2000).toLowerCase();
+    var repr = JSON.parse(stringRepresentation(str));
+    assertEq(repr.flags.includes("HAS_STRING_BUFFER_BIT"), true);
+    assertEq(repr.bufferRefCount, 1);
+}
+testLowerCase();
+
+function testUpperCase(N) {
+    // Use ß to cover reallocation. The initial buffer has the same size as the
+    // input string, but because Upper(ß) = SS, the final buffer has twice the
+    // size.
+    var str = "ß".repeat(N).toUpperCase();
+    var repr = JSON.parse(stringRepresentation(str));
+    assertEq(repr.flags.includes("HAS_STRING_BUFFER_BIT"), true);
+    assertEq(repr.bufferRefCount, 1);
+}
+testUpperCase(1000);  // Initial allocation not a string buffer.
+testUpperCase(2000);  // Reallocate string buffer.

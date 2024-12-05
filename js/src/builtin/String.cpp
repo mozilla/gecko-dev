@@ -827,7 +827,7 @@ static JSLinearString* ToLowerCase(JSContext* cx, JSLinearString* str) {
   // Unlike toUpperCase, toLowerCase has the nice invariant that if the
   // input is a Latin-1 string, the output is also a Latin-1 string.
 
-  InlineCharBuffer<CharT> newChars;
+  StringChars<CharT> newChars(cx);
 
   const size_t length = str->length();
   size_t resultLength;
@@ -888,10 +888,10 @@ static JSLinearString* ToLowerCase(JSContext* cx, JSLinearString* str) {
       return nullptr;
     }
 
-    PodCopy(newChars.get(), chars, i);
+    PodCopy(newChars.data(nogc), chars, i);
 
     size_t readChars =
-        ToLowerCaseImpl(newChars.get(), chars, i, length, resultLength);
+        ToLowerCaseImpl(newChars.data(nogc), chars, i, length, resultLength);
     if constexpr (!std::is_same_v<CharT, Latin1Char>) {
       if (readChars < length) {
         resultLength = ToLowerCaseLength(chars, readChars, length);
@@ -900,7 +900,7 @@ static JSLinearString* ToLowerCase(JSContext* cx, JSLinearString* str) {
           return nullptr;
         }
 
-        MOZ_ALWAYS_TRUE(length == ToLowerCaseImpl(newChars.get(), chars,
+        MOZ_ALWAYS_TRUE(length == ToLowerCaseImpl(newChars.data(nogc), chars,
                                                   readChars, length,
                                                   resultLength));
       }
@@ -910,7 +910,7 @@ static JSLinearString* ToLowerCase(JSContext* cx, JSLinearString* str) {
     }
   }
 
-  return newChars.toStringDontDeflate(cx, resultLength);
+  return newChars.template toStringDontDeflate<CanGC>(cx, resultLength);
 }
 
 JSLinearString* js::StringToLowerCase(JSContext* cx, JSString* string) {
@@ -1184,21 +1184,22 @@ static size_t ToUpperCaseLength(const CharT* chars, size_t startIndex,
 }
 
 template <typename DestChar, typename SrcChar>
-static inline bool ToUpperCase(JSContext* cx,
-                               InlineCharBuffer<DestChar>& newChars,
+static inline bool ToUpperCase(JSContext* cx, StringChars<DestChar>& newChars,
                                const SrcChar* chars, size_t startIndex,
                                size_t length, size_t* resultLength) {
   MOZ_ASSERT(startIndex < length);
+
+  AutoCheckCannotGC nogc;
 
   *resultLength = length;
   if (!newChars.maybeAlloc(cx, length)) {
     return false;
   }
 
-  CopyChars(newChars.get(), chars, startIndex);
+  CopyChars(newChars.data(nogc), chars, startIndex);
 
   size_t readChars =
-      ToUpperCaseImpl(newChars.get(), chars, startIndex, length, length);
+      ToUpperCaseImpl(newChars.data(nogc), chars, startIndex, length, length);
   if (readChars < length) {
     size_t actualLength = ToUpperCaseLength(chars, readChars, length);
 
@@ -1207,8 +1208,8 @@ static inline bool ToUpperCase(JSContext* cx,
       return false;
     }
 
-    MOZ_ALWAYS_TRUE(length == ToUpperCaseImpl(newChars.get(), chars, readChars,
-                                              length, actualLength));
+    MOZ_ALWAYS_TRUE(length == ToUpperCaseImpl(newChars.data(nogc), chars,
+                                              readChars, length, actualLength));
   }
 
   return true;
@@ -1216,10 +1217,10 @@ static inline bool ToUpperCase(JSContext* cx,
 
 template <typename CharT>
 static JSLinearString* ToUpperCase(JSContext* cx, JSLinearString* str) {
-  using Latin1Buffer = InlineCharBuffer<Latin1Char>;
-  using TwoByteBuffer = InlineCharBuffer<char16_t>;
+  using Latin1StringChars = StringChars<Latin1Char>;
+  using TwoByteStringChars = StringChars<char16_t>;
 
-  mozilla::MaybeOneOf<Latin1Buffer, TwoByteBuffer> newChars;
+  mozilla::MaybeOneOf<Latin1StringChars, TwoByteStringChars> newChars;
   const size_t length = str->length();
   size_t resultLength;
   {
@@ -1298,24 +1299,24 @@ static JSLinearString* ToUpperCase(JSContext* cx, JSLinearString* str) {
       });
 
       if (resultIsLatin1) {
-        newChars.construct<Latin1Buffer>();
+        newChars.construct<Latin1StringChars>(cx);
 
-        if (!ToUpperCase(cx, newChars.ref<Latin1Buffer>(), chars, i, length,
-                         &resultLength)) {
+        if (!ToUpperCase(cx, newChars.ref<Latin1StringChars>(), chars, i,
+                         length, &resultLength)) {
           return nullptr;
         }
       } else {
-        newChars.construct<TwoByteBuffer>();
+        newChars.construct<TwoByteStringChars>(cx);
 
-        if (!ToUpperCase(cx, newChars.ref<TwoByteBuffer>(), chars, i, length,
-                         &resultLength)) {
+        if (!ToUpperCase(cx, newChars.ref<TwoByteStringChars>(), chars, i,
+                         length, &resultLength)) {
           return nullptr;
         }
       }
     } else {
-      newChars.construct<TwoByteBuffer>();
+      newChars.construct<TwoByteStringChars>(cx);
 
-      if (!ToUpperCase(cx, newChars.ref<TwoByteBuffer>(), chars, i, length,
+      if (!ToUpperCase(cx, newChars.ref<TwoByteStringChars>(), chars, i, length,
                        &resultLength)) {
         return nullptr;
       }
@@ -1323,7 +1324,7 @@ static JSLinearString* ToUpperCase(JSContext* cx, JSLinearString* str) {
   }
 
   auto toString = [&](auto& chars) {
-    return chars.toStringDontDeflate(cx, resultLength);
+    return chars.template toStringDontDeflate<CanGC>(cx, resultLength);
   };
 
   return newChars.mapNonEmpty(toString);
