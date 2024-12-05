@@ -590,7 +590,8 @@ int32_t H264EncoderImpl::Encode(
       if (svc_controllers_[i]) {
         codec_specific.generic_frame_info =
             svc_controllers_[i]->OnEncodeDone(layer_frames[0]);
-        if (send_key_frame && codec_specific.generic_frame_info.has_value()) {
+        if (encoded_images_[i]._frameType == VideoFrameType::kVideoFrameKey &&
+            codec_specific.generic_frame_info.has_value()) {
           codec_specific.template_structure =
               svc_controllers_[i]->DependencyStructure();
         }

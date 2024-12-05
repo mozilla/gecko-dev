@@ -31,7 +31,7 @@ Cr-Branched-From: 7b1b7a0f51593df7a1a802f489d6a2fb14195bcc-refs/heads/main@{#432
  2 files changed, 2 insertions(+)
 
 diff --git a/AUTHORS b/AUTHORS
-index d46a592950..6b1ba8e041 100644
+index 652e3aec29..716a9c32df 100644
 --- a/AUTHORS
 +++ b/AUTHORS
 @@ -125,6 +125,7 @@ Sergio Garcia Murillo <sergio.garcia.murillo@gmail.com>
