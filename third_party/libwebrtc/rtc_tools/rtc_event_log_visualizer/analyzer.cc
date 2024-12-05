@@ -697,10 +697,13 @@ void EventLogAnalyzer::InitializeMapOfNamedGraphs(bool show_detector_state,
 
 void EventLogAnalyzer::CreateGraphsByName(const std::vector<std::string>& names,
                                           PlotCollection* collection) {
-  for (const auto& plot : plots_) {
-    if (absl::c_find(names, plot.label) != names.end()) {
-      Plot* output = collection->AppendNewPlot(plot.label);
-      plot.plot_func(output);
+  for (absl::string_view name : names) {
+    auto plot = absl::c_find_if(plots_, [name](const PlotDeclaration& plot) {
+      return plot.label == name;
+    });
+    if (plot != plots_.end()) {
+      Plot* output = collection->AppendNewPlot(plot->label);
+      plot->plot_func(output);
     }
   }
 }
