@@ -43,15 +43,8 @@ ABSL_FLAG(bool, gen_ref, false, "Generate reference files.");
 
 namespace webrtc {
 
-#if defined(WEBRTC_LINUX) && defined(WEBRTC_ARCH_X86_64) &&         \
-    defined(WEBRTC_NETEQ_UNITTEST_BITEXACT) &&                      \
-    (defined(WEBRTC_CODEC_ISAC) || defined(WEBRTC_CODEC_ISACFX)) && \
-    defined(WEBRTC_CODEC_ILBC)
-#define MAYBE_TestBitExactness TestBitExactness
-#else
-#define MAYBE_TestBitExactness DISABLED_TestBitExactness
-#endif
-TEST_F(NetEqDecodingTest, MAYBE_TestBitExactness) {
+// TODO(bugs.webrtc.org/345525069): Either fix/enable or remove.
+TEST_F(NetEqDecodingTest, DISABLED_TestBitExactness) {
   const std::string input_rtp_file =
       webrtc::test::ResourcePath("audio_coding/neteq_universal_new", "rtp");
 

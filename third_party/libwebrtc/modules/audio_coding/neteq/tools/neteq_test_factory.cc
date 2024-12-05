@@ -51,8 +51,8 @@ std::optional<int> CodecSampleRate(
     uint8_t payload_type,
     webrtc::test::NetEqTestFactory::Config config) {
   if (payload_type == config.pcmu || payload_type == config.pcma ||
-      payload_type == config.ilbc || payload_type == config.pcm16b ||
-      payload_type == config.cn_nb || payload_type == config.avt)
+      payload_type == config.pcm16b || payload_type == config.cn_nb ||
+      payload_type == config.avt)
     return 8000;
   if (payload_type == config.isac || payload_type == config.pcm16b_wb ||
       payload_type == config.g722 || payload_type == config.cn_wb ||

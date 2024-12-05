@@ -8,17 +8,6 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 
-
-/*
- * This file contains implementations of the iLBC specific functions
- * WebRtcSpl_ReverseOrderMultArrayElements()
- * WebRtcSpl_ElementwiseVectorMult()
- * WebRtcSpl_AddVectorsAndShift()
- * WebRtcSpl_AddAffineVectorToVector()
- * WebRtcSpl_AffineTransformVector()
- *
- */
-
 #include "common_audio/signal_processing/include/signal_processing_library.h"
 
 void WebRtcSpl_ReverseOrderMultArrayElements(int16_t *out, const int16_t *in,

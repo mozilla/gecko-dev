@@ -54,21 +54,6 @@ TEST(AudioDecoderFactoryTest, CreatePcma) {
       adf->Create(env, SdpAudioFormat("pcma", 16000, 1), std::nullopt));
 }
 
-TEST(AudioDecoderFactoryTest, CreateIlbc) {
-  const Environment env = CreateEnvironment();
-  rtc::scoped_refptr<AudioDecoderFactory> adf =
-      CreateBuiltinAudioDecoderFactory();
-  ASSERT_TRUE(adf);
-  // iLBC supports 8 kHz, 1 channel.
-  EXPECT_FALSE(adf->Create(env, SdpAudioFormat("ilbc", 8000, 0), std::nullopt));
-#ifdef WEBRTC_CODEC_ILBC
-  EXPECT_TRUE(adf->Create(env, SdpAudioFormat("ilbc", 8000, 1), std::nullopt));
-#endif
-  EXPECT_FALSE(adf->Create(env, SdpAudioFormat("ilbc", 8000, 2), std::nullopt));
-  EXPECT_FALSE(
-      adf->Create(env, SdpAudioFormat("ilbc", 16000, 1), std::nullopt));
-}
-
 TEST(AudioDecoderFactoryTest, CreateL16) {
   const Environment env = CreateEnvironment();
   rtc::scoped_refptr<AudioDecoderFactory> adf =
@@ -95,9 +80,6 @@ TEST(AudioDecoderFactoryTest, MaxNrOfChannels) {
   std::vector<std::string> codecs = {
 #ifdef WEBRTC_CODEC_OPUS
       "opus",
-#endif
-#ifdef WEBRTC_CODEC_ILBC
-      "ilbc",
 #endif
       "pcmu", "pcma", "l16", "G722", "G711",
   };

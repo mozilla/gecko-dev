@@ -898,23 +898,6 @@ TEST_F(AcmSenderBitExactnessOldApi, Pcma_stereo_20ms) {
       /*expected_channels=*/test::AcmReceiveTestOldApi::kStereoOutput);
 }
 
-#if defined(WEBRTC_CODEC_ILBC) && defined(WEBRTC_LINUX) && \
-    defined(WEBRTC_ARCH_X86_64)
-
-// TODO(bugs.webrtc.org/345525069): Either fix/enable or remove iLBC.
-#if defined(__has_feature) && __has_feature(undefined_behavior_sanitizer)
-TEST_F(AcmSenderBitExactnessOldApi, DISABLED_Ilbc_30ms) {
-#else
-TEST_F(AcmSenderBitExactnessOldApi, Ilbc_30ms) {
-#endif
-  ASSERT_NO_FATAL_FAILURE(SetUpTest("ILBC", 8000, 1, 102, 240, 240));
-  Run(/*audio_checksum_ref=*/"a739434bec8a754e9356ce2115603ce5",
-      /*payload_checksum_ref=*/"cfae2e9f6aba96e145f2bcdd5050ce78",
-      /*expected_packets=*/33,
-      /*expected_channels=*/test::AcmReceiveTestOldApi::kMonoOutput);
-}
-#endif
-
 #if defined(WEBRTC_LINUX) && defined(WEBRTC_ARCH_X86_64)
 
 // TODO(bugs.webrtc.org/345525069): Either fix/enable or remove G722.
