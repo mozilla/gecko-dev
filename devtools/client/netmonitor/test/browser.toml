@@ -25,6 +25,7 @@ support-files = [
   "html_fonts-test-page.html",
   "html_frame-test-page.html",
   "html_frame-subdocument.html",
+  "html_file_channel.html",
   "html_filter-test-page.html",
   "html_infinite-get-page.html",
   "html_internal-stylesheet.html",
@@ -263,6 +264,8 @@ fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and
 ["browser_net_edit_resend_xhr.js"]
 
 ["browser_net_error-boundary-01.js"]
+
+["browser_net_file_uri.js"]
 
 ["browser_net_filter-01.js"]
 
