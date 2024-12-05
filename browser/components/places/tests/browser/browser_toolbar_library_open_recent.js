@@ -8,7 +8,7 @@
  */
 
 const BASE_URL =
-  "http://example.org/browser/browser/components/places/tests/browser/";
+  "https://example.org/browser/browser/components/places/tests/browser/";
 const bookmarkItems = [
   {
     url: `${BASE_URL}bookmark_dummy_1.html`,

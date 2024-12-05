@@ -22,7 +22,7 @@ add_task(async function () {
 
   for (let i = 0; i < 2; ++i) {
     let bm = await PlacesUtils.bookmarks.insert({
-      url: `http://www.test${i}.me/`,
+      url: `https://www.test${i}.me/`,
       parentGuid: PlacesUtils.bookmarks.unfiledGuid,
     });
 
@@ -53,12 +53,12 @@ add_task(async function () {
 
   for (let i = 0; i < 2; ++i) {
     let entry = await PlacesUtils.keywords.fetch({
-      url: `http://www.test${i}.me/`,
+      url: `https://www.test${i}.me/`,
     });
     is(
       entry.keyword,
       `kw${i}`,
-      `The keyword for http://www.test${i}.me/ is correct`
+      `The keyword for https://www.test${i}.me/ is correct`
     );
   }
 });

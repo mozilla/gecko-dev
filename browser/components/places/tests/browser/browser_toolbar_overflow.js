@@ -20,7 +20,7 @@ add_setup(async function () {
     guid: PlacesUtils.bookmarks.toolbarGuid,
     children: Array(BOOKMARKS_COUNT)
       .fill("")
-      .map((_, i) => ({ url: `http://test.places.y${i}/` })),
+      .map((_, i) => ({ url: `https://test.places.y${i}/` })),
   });
 
   // Toggle the bookmarks toolbar so that we start from a stable situation and
@@ -107,7 +107,7 @@ add_task(async function test_separator_first() {
   Assert.greater(children.length, 2, "Multiple elements are visible");
   Assert.equal(
     children[1]._placesNode.uri,
-    "http://test.places.y0/",
+    "https://test.places.y0/",
     "Found the first bookmark"
   );
   Assert.equal(
@@ -128,7 +128,7 @@ add_task(async function test_newWindow_noOverflow() {
   // Add a single bookmark.
   await PlacesUtils.bookmarks.insert({
     parentGuid: PlacesUtils.bookmarks.toolbarGuid,
-    url: "http://toolbar.overflow/",
+    url: "https://toolbar.overflow/",
     title: "Example",
   });
   // Add a favicon for the bookmark.
@@ -136,7 +136,7 @@ add_task(async function test_newWindow_noOverflow() {
     "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAA" +
     "AAAA6fptVAAAACklEQVQI12NgAAAAAgAB4iG8MwAAAABJRU5ErkJggg==";
   await PlacesTestUtils.addFavicons(
-    new Map([["http://toolbar.overflow/", favicon]])
+    new Map([["https://toolbar.overflow/", favicon]])
   );
 
   let win = await BrowserTestUtils.openNewBrowserWindow();
@@ -171,7 +171,7 @@ async function test_index(desc, index, expected) {
 
   let bm = await PlacesUtils.bookmarks.insert({
     parentGuid: PlacesUtils.bookmarks.toolbarGuid,
-    url: "http://test.places.added/",
+    url: "https://test.places.added/",
     index,
   });
   Assert.equal(bm.index, index, "Sanity check the bookmark index");
@@ -211,7 +211,7 @@ async function test_index(desc, index, expected) {
   if (expected && nodeExisted) {
     Assert.equal(
       children[index]._placesNode.uri,
-      `http://test.places.y${index}/`,
+      `https://test.places.y${index}/`,
       "Found the previous bookmark at the expected position"
     );
     Assert.equal(

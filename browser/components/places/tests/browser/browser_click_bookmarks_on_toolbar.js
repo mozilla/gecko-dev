@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 const PREF_LOAD_BOOKMARKS_IN_TABS = "browser.tabs.loadBookmarksInTabs";
-const EXAMPLE_PAGE = "http://example.com/";
+const EXAMPLE_PAGE = "https://example.com/";
 const TEST_PAGES = [
   "about:mozilla",
   "about:robots",

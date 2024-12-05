@@ -69,7 +69,7 @@ add_task(async function checkPanelviewSpeculativeConnection() {
 
   await PlacesUtils.bookmarks.insert({
     parentGuid: PlacesUtils.bookmarks.menuGuid,
-    url: "http://example.com/",
+    url: "https://example.com/",
     title: "Bookmark 3",
   });
 
@@ -121,7 +121,7 @@ add_task(async function checkMenuSpeculativeConnection() {
 
   await PlacesUtils.bookmarks.insert({
     parentGuid: PlacesUtils.bookmarks.menuGuid,
-    url: "http://example.com/",
+    url: "https://example.com/",
     title: "Bookmark 2",
   });
 

@@ -18,7 +18,7 @@ add_task(async function () {
             children: [
               {
                 title: "Bookmark",
-                url: "http://example.com",
+                url: "https://example.com",
               },
             ],
           },

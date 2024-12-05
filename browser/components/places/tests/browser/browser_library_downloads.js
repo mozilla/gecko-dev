@@ -14,19 +14,19 @@ add_task(async function test() {
   // Add visits.
   await PlacesTestUtils.addVisits([
     {
-      uri: "http://mozilla.org",
+      uri: "https://mozilla.org",
       transition: PlacesUtils.history.TRANSITION_TYPED,
     },
     {
-      uri: "http://google.com",
+      uri: "https://google.com",
       transition: PlacesUtils.history.TRANSITION_DOWNLOAD,
     },
     {
-      uri: "http://en.wikipedia.org",
+      uri: "https://en.wikipedia.org",
       transition: PlacesUtils.history.TRANSITION_TYPED,
     },
     {
-      uri: "http://ubuntu.org",
+      uri: "https://ubuntu.org",
       transition: PlacesUtils.history.TRANSITION_DOWNLOAD,
     },
   ]);
@@ -46,7 +46,7 @@ add_task(async function test() {
   );
 
   // Check results.
-  let testURIs = ["http://ubuntu.org/", "http://google.com/"];
+  let testURIs = ["https://ubuntu.org/", "https://google.com/"];
 
   await TestUtils.waitForCondition(
     () =>

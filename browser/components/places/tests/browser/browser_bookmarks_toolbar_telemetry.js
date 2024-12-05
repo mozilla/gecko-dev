@@ -12,15 +12,15 @@ const SCALAR_NAME = "browser.ui.customized_widgets";
 const bookmarksInfo = [
   {
     title: "firefox",
-    url: "http://example.com",
+    url: "https://example.com",
   },
   {
     title: "rules",
-    url: "http://example.com/2",
+    url: "https://example.com/2",
   },
   {
     title: "yo",
-    url: "http://example.com/2",
+    url: "https://example.com/2",
   },
 ];
 

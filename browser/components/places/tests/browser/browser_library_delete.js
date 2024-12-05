@@ -9,7 +9,7 @@ const { sinon } = ChromeUtils.importESModule(
   "resource://testing-common/Sinon.sys.mjs"
 );
 
-const TEST_URL = "http://www.batch.delete.me/";
+const TEST_URL = "https://www.batch.delete.me/";
 
 var gLibrary;
 

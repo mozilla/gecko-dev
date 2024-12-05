@@ -4,8 +4,8 @@
 
 "use strict";
 
-const TEST_URL = Services.io.newURI("http://example.com/");
-const MOZURISPEC = Services.io.newURI("http://mozilla.com/");
+const TEST_URL = Services.io.newURI("https://example.com/");
+const MOZURISPEC = Services.io.newURI("https://mozilla.com/");
 
 add_task(async function () {
   let organizer = await promiseLibrary();

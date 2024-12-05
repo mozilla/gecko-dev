@@ -20,11 +20,11 @@ add_setup(async function () {
     children: [
       {
         title: "bm1",
-        url: "http://example.com",
+        url: "https://example.com",
       },
       {
         title: "bm2",
-        url: "http://example.com/2",
+        url: "https://example.com/2",
       },
     ],
   });

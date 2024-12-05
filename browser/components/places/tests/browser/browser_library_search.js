@@ -25,10 +25,10 @@
  *      remains selected.
  */
 
-const TEST_URL = "http://dummy.mozilla.org/";
-const TEST_DOWNLOAD_URL = "http://dummy.mozilla.org/dummy.pdf";
+const TEST_URL = "https://dummy.mozilla.org/";
+const TEST_DOWNLOAD_URL = "https://dummy.mozilla.org/dummy.pdf";
 const TEST_PARENT_FOLDER = "testParentFolder";
-const TEST_SIF_URL = "http://testsif.example.com/";
+const TEST_SIF_URL = "https://testsif.example.com/";
 const TEST_SIF_TITLE = "TestSIF";
 
 var gLibrary;

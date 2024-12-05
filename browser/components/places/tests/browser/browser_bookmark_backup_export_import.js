@@ -7,7 +7,7 @@
  * Tests bookmarks backup export/import as JSON file.
  */
 
-const BASE_URL = "http://example.com/";
+const BASE_URL = "https://example.com/";
 
 const PLACES = [
   {

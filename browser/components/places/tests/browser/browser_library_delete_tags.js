@@ -14,7 +14,7 @@ registerCleanupFunction(async function () {
 });
 
 add_task(async function test_tags() {
-  const TEST_URI = Services.io.newURI("http://example.com/");
+  const TEST_URI = Services.io.newURI("https://example.com/");
 
   await PlacesUtils.bookmarks.insert({
     type: PlacesUtils.bookmarks.TYPE_BOOKMARK,

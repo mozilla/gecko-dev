@@ -36,7 +36,7 @@ add_task(async function test_warnOnOpenFolder() {
   for (let i = 0; i < MAX_LINKS; i++) {
     children.push({
       title: `Folder Target ${i}`,
-      url: `http://example${i}.com`,
+      url: `https://example${i}.com`,
     });
   }
 
@@ -91,7 +91,7 @@ add_task(async function test_warnOnOpenLinks() {
   for (let i = 0; i < MAX_LINKS; i++) {
     children.push({
       title: `Highlighted Target ${i}`,
-      url: `http://example${i}.com`,
+      url: `https://example${i}.com`,
     });
   }
 

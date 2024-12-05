@@ -41,15 +41,15 @@ add_setup(async function () {
             children: [
               {
                 title: "firstBM",
-                url: "http://example.com/1",
+                url: "https://example.com/1",
               },
               {
                 title: "secondBM",
-                url: "http://example.com/2",
+                url: "https://example.com/2",
               },
               {
                 title: "thirdBM",
-                url: "http://example.com/3",
+                url: "https://example.com/3",
               },
             ],
           },
@@ -244,12 +244,12 @@ add_task(async function test_library_text() {
     {
       flavor: PlacesUtils.TYPE_PLAINTEXT,
       expectedData:
-        "toolbar\nmainFolder\nFolderA\nsubFolderA\nhttp://example.com/1\nhttp://example.com/2\nhttp://example.com/3\nFolderA\nsubFolderA\nhttp://example.com/1\nhttp://example.com/2\nhttp://example.com/3\nToolbar shortcut\n",
+        "toolbar\nmainFolder\nFolderA\nsubFolderA\nhttps://example.com/1\nhttps://example.com/2\nhttps://example.com/3\nFolderA\nsubFolderA\nhttps://example.com/1\nhttps://example.com/2\nhttps://example.com/3\nToolbar shortcut\n",
     },
     {
       flavor: PlacesUtils.TYPE_HTML,
       expectedData:
-        '<DL><DT>toolbar</DT>\n<DD>\n<DL><DT>mainFolder</DT>\n<DD>\n<DL><DT>FolderA</DT>\n<DD>\n<DL><DT>subFolderA</DT>\n<DD>\n<A HREF="http://example.com/1">firstBM</A>\n</DD>\n<DD>\n<A HREF="http://example.com/2">secondBM</A>\n</DD>\n<DD>\n<A HREF="http://example.com/3">thirdBM</A>\n</DD>\n</DL>\n</DD>\n</DL>\n</DD>\n<DD>\n<DL><DT>FolderA</DT>\n<DD>\n<DL><DT>subFolderA</DT>\n<DD>\n<A HREF="http://example.com/1">firstBM</A>\n</DD>\n<DD>\n<A HREF="http://example.com/2">secondBM</A>\n</DD>\n<DD>\n<A HREF="http://example.com/3">thirdBM</A>\n</DD>\n</DL>\n</DD>\n</DL>\n</DD>\n<DD>\n<DL><DT>Toolbar shortcut</DT>\n</DL>\n</DD>\n</DL>\n</DD>\n</DL>\n',
+        '<DL><DT>toolbar</DT>\n<DD>\n<DL><DT>mainFolder</DT>\n<DD>\n<DL><DT>FolderA</DT>\n<DD>\n<DL><DT>subFolderA</DT>\n<DD>\n<A HREF="https://example.com/1">firstBM</A>\n</DD>\n<DD>\n<A HREF="https://example.com/2">secondBM</A>\n</DD>\n<DD>\n<A HREF="https://example.com/3">thirdBM</A>\n</DD>\n</DL>\n</DD>\n</DL>\n</DD>\n<DD>\n<DL><DT>FolderA</DT>\n<DD>\n<DL><DT>subFolderA</DT>\n<DD>\n<A HREF="https://example.com/1">firstBM</A>\n</DD>\n<DD>\n<A HREF="https://example.com/2">secondBM</A>\n</DD>\n<DD>\n<A HREF="https://example.com/3">thirdBM</A>\n</DD>\n</DL>\n</DD>\n</DL>\n</DD>\n<DD>\n<DL><DT>Toolbar shortcut</DT>\n</DL>\n</DD>\n</DL>\n</DD>\n</DL>\n',
     },
   ]) {
     await promiseClipboard(function () {

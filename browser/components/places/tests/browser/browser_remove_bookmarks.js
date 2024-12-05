@@ -73,9 +73,9 @@ add_task(async function test_remove_bookmark_from_toolbar() {
 
 add_task(async function test_remove_bookmark_from_library() {
   const uris = [
-    "http://example.com/1",
-    "http://example.com/2",
-    "http://example.com/3",
+    "https://example.com/1",
+    "https://example.com/2",
+    "https://example.com/3",
   ];
 
   let children = uris.map((uri, index) => {

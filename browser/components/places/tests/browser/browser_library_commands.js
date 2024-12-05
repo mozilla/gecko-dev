@@ -8,7 +8,7 @@
  *  Test enabled commands in the left pane folder of the Library.
  */
 
-const TEST_URI = NetUtil.newURI("http://www.mozilla.org/");
+const TEST_URI = NetUtil.newURI("https://www.mozilla.org/");
 
 registerCleanupFunction(async function () {
   await PlacesUtils.bookmarks.eraseEverything();
@@ -200,7 +200,7 @@ add_task(async function test_query_on_toolbar() {
 add_task(async function test_search_contents() {
   await PlacesUtils.bookmarks.insert({
     type: PlacesUtils.bookmarks.TYPE_BOOKMARK,
-    url: "http://example.com/",
+    url: "https://example.com/",
     title: "example page",
     parentGuid: PlacesUtils.bookmarks.unfiledGuid,
     index: 0,
@@ -227,7 +227,7 @@ add_task(async function test_search_contents() {
   let bookmarkNode = library.ContentTree.view.selectedNode;
   Assert.equal(
     bookmarkNode.uri,
-    "http://example.com/",
+    "https://example.com/",
     "Found the expected bookmark"
   );
 
@@ -251,12 +251,12 @@ add_task(async function test_search_contents() {
 add_task(async function test_tags() {
   await PlacesUtils.bookmarks.insert({
     type: PlacesUtils.bookmarks.TYPE_BOOKMARK,
-    url: "http://example.com/",
+    url: "https://example.com/",
     title: "example page",
     parentGuid: PlacesUtils.bookmarks.unfiledGuid,
     index: 0,
   });
-  PlacesUtils.tagging.tagURI(NetUtil.newURI("http://example.com/"), ["test"]);
+  PlacesUtils.tagging.tagURI(NetUtil.newURI("https://example.com/"), ["test"]);
 
   let library = await promiseLibrary();
   info("Ensure query contents can be cut or deleted");
@@ -311,7 +311,7 @@ add_task(async function test_tags() {
   let bookmarkNode = library.ContentTree.view.selectedNode;
   Assert.equal(
     bookmarkNode.uri,
-    "http://example.com/",
+    "https://example.com/",
     "Found the expected bookmark"
   );
 

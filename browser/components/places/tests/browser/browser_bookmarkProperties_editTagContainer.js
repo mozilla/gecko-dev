@@ -2,7 +2,7 @@
 
 add_task(async function editTagContainer() {
   info("Bug 479348 - Properties on a root should be read-only.");
-  let uri = Services.io.newURI("http://example.com/");
+  let uri = Services.io.newURI("https://example.com/");
   let bm = await PlacesUtils.bookmarks.insert({
     url: uri.spec,
     parentGuid: PlacesUtils.bookmarks.unfiledGuid,

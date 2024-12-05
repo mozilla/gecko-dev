@@ -3,10 +3,10 @@ add_task(async function test() {
 
   // Visited pages listed by descending visit date.
   let pages = [
-    "http://sidebar.mozilla.org/a",
-    "http://sidebar.mozilla.org/b",
-    "http://sidebar.mozilla.org/c",
-    "http://www.mozilla.org/d",
+    "https://sidebar.mozilla.org/a",
+    "https://sidebar.mozilla.org/b",
+    "https://sidebar.mozilla.org/c",
+    "https://www.mozilla.org/d",
   ];
 
   // Number of pages that will be filtered out by the search.

@@ -25,7 +25,7 @@ async function testInFolder(folderGuid, prefix) {
     {
       parentGuid: folderGuid,
       title: `${prefix}1`,
-      url: `http://${prefix}1.mozilla.org/`,
+      url: `https://${prefix}1.mozilla.org/`,
     },
     0
   );
@@ -77,7 +77,7 @@ async function testInFolder(folderGuid, prefix) {
     {
       parentGuid: folderGuid1,
       title: `${prefix}f1`,
-      url: `http://${prefix}f1.mozilla.org/`,
+      url: `https://${prefix}f1.mozilla.org/`,
     },
     0
   );
@@ -87,7 +87,7 @@ async function testInFolder(folderGuid, prefix) {
     {
       parentGuid: folderGuid,
       title: `${prefix}f12`,
-      url: `http://${prefix}f12.mozilla.org/`,
+      url: `https://${prefix}f12.mozilla.org/`,
     },
     4
   );

@@ -220,15 +220,15 @@ add_task(async function test_move_within_itself() {
     children: [
       {
         title: "bm1",
-        url: "http://www.example.com/bookmark1.html",
+        url: "https://www.example.com/bookmark1.html",
       },
       {
         title: "bm2",
-        url: "http://www.example.com/bookmark2.html",
+        url: "https://www.example.com/bookmark2.html",
       },
       {
         title: "bm3",
-        url: "http://www.example.com/bookmark3.html",
+        url: "https://www.example.com/bookmark3.html",
       },
     ],
   });

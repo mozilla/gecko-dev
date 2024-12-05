@@ -11,15 +11,15 @@ const SECOND_BOOKMARK_TITLE = "Second Bookmark Title";
 const bookmarksInfo = [
   {
     title: "firefox",
-    url: "http://example.com",
+    url: "https://example.com",
   },
   {
     title: "rules",
-    url: "http://example.com/2",
+    url: "https://example.com/2",
   },
   {
     title: "yo",
-    url: "http://example.com/2",
+    url: "https://example.com/2",
   },
 ];
 const TEST_URL = "about:mozilla";
@@ -684,7 +684,7 @@ add_task(async function test_sidebar_multiple_bookmarks_contextmenu_contents() {
     await checkContextMenu(
       async bookmark => {
         let bookmark2 = await PlacesUtils.bookmarks.insert({
-          url: "http://example.com/",
+          url: "https://example.com/",
           parentGuid: PlacesUtils.bookmarks.toolbarGuid,
         });
         tree.selectItems([bookmark.guid, bookmark2.guid]);
@@ -720,8 +720,8 @@ add_task(async function test_sidebar_multiple_links_contextmenu_contents() {
       await checkContextMenu(
         async () => {
           await PlacesTestUtils.addVisits([
-            "http://example-1.com/",
-            "http://example-2.com/",
+            "https://example-1.com/",
+            "https://example-2.com/",
           ]);
           // Sort by last visited.
           tree.ownerDocument.getElementById("bylastvisited").doCommand();

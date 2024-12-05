@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-const TEST_URL = "http://www.mozilla.org";
+const TEST_URL = "https://www.mozilla.org";
 const TEST_TITLE = "example_title";
 
 var gBookmarksToolbar = window.document.getElementById("PersonalToolbar");

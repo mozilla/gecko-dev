@@ -62,7 +62,7 @@ add_task(async function () {
     let bookmark = await PlacesUtils.bookmarks.insert({
       parentGuid: root.guid,
       title: "",
-      url: "http://foo.com",
+      url: "https://foo.com",
     });
     tree.selectItems([bookmark.guid]);
     Assert.equal(

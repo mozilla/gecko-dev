@@ -43,7 +43,7 @@ async function testInFolder(folderGuid, prefix) {
   let item = await PlacesUtils.bookmarks.insert({
     parentGuid: folderGuid,
     title: `${prefix}1`,
-    url: `http://${prefix}1.mozilla.org/`,
+    url: `https://${prefix}1.mozilla.org/`,
   });
   await bookmarksObserver.assertViewsUpdatedCorrectly();
 
@@ -87,7 +87,7 @@ async function testInFolder(folderGuid, prefix) {
   item = await PlacesUtils.bookmarks.insert({
     parentGuid: item.guid,
     title: `${prefix}f1`,
-    url: `http://${prefix}f1.mozilla.org/`,
+    url: `https://${prefix}f1.mozilla.org/`,
   });
   await bookmarksObserver.assertViewsUpdatedCorrectly();
   addedBookmarks.push(item);

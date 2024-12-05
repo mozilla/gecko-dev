@@ -13,7 +13,7 @@ add_task(async function add_folder_default_button() {
     index: insertionIndex,
     type: PlacesUtils.bookmarks.TYPE_BOOKMARK,
     parentGuid: PlacesUtils.bookmarks.unfiledGuid,
-    url: "http://example.com/",
+    url: "https://example.com/",
   });
 
   await withSidebarTree("bookmarks", async function (tree) {

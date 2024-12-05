@@ -5,10 +5,10 @@
 
 let sidebar = document.getElementById("sidebar");
 
-const TEST_URI = "http://example.com/";
+const TEST_URI = "https://example.com/";
 const BOOKMARKS_COUNT = 4;
 const TEST_PARENT_FOLDER = "testParentFolder";
-const TEST_SIF_URL = "http://testsif.example.com/";
+const TEST_SIF_URL = "https://testsif.example.com/";
 const TEST_SIF_TITLE = "TestSIF";
 const TEST_NEW_TITLE = "NewTestSIF";
 

@@ -51,7 +51,7 @@
         await PlacesUtils.history.clear();
 
         await PlacesTestUtils.addVisits({
-          uri: Services.io.newURI("http://example.tld/"),
+          uri: Services.io.newURI("https://example.tld/"),
           transition: PlacesUtils.history.TRANSITION_TYPED
         });
 

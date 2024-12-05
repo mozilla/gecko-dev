@@ -16,9 +16,9 @@ const { ForgetAboutSite } = ChromeUtils.importESModule(
 );
 
 const TEST_URIs = [
-  { title: "0", uri: "http://example.com" },
-  { title: "1", uri: "http://www.mozilla.org/test1" },
-  { title: "2", uri: "http://www.mozilla.org/test2" },
+  { title: "0", uri: "https://example.com" },
+  { title: "1", uri: "https://www.mozilla.org/test1" },
+  { title: "2", uri: "https://www.mozilla.org/test2" },
   { title: "3", uri: "https://192.168.200.1/login.html" },
 ];
 
@@ -238,7 +238,7 @@ add_task(async function selectMultiple() {
   await testForgetAboutThisSite([0, 1]);
 });
 
-// This test makes sure that forgetting "http://www.mozilla.org/test2" also removes "http://www.mozilla.org/test1"
+// This test makes sure that forgetting "https://www.mozilla.org/test2" also removes "https://www.mozilla.org/test1"
 add_task(async function forgettingBasedomain() {
   await testForgetAboutThisSite([1], true, TEST_URIs.slice(1, 3));
 });

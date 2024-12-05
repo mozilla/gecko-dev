@@ -57,11 +57,11 @@
 
         const transition = PlacesUtils.history.TRANSITIONS.TYPED;
         let places =
-          [{ uri: Services.io.newURI("http://example.tld/"),
+          [{ uri: Services.io.newURI("https://example.tld/"),
              visitDate: newTimeInMicroseconds(), transition },
-           { uri: Services.io.newURI("http://example2.tld/"),
+           { uri: Services.io.newURI("https://example2.tld/"),
              visitDate: newTimeInMicroseconds(), transition },
-           { uri: Services.io.newURI("http://example3.tld/"),
+           { uri: Services.io.newURI("https://example3.tld/"),
              visitDate: newTimeInMicroseconds(), transition }];
 
         await PlacesTestUtils.addVisits(places);

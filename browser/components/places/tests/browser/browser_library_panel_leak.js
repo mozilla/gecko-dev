@@ -16,7 +16,7 @@
  *        never removed.
  */
 
-const TEST_URI = "http://www.mozilla.org/";
+const TEST_URI = "https://www.mozilla.org/";
 
 add_task(async function test_no_leak_closing_library_with_history_selected() {
   // Add an history entry.

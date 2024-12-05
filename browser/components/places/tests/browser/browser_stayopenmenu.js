@@ -67,7 +67,7 @@ add_setup(async function () {
   // Create our test bookmarks.
   await PlacesUtils.bookmarks.insert({
     parentGuid: PlacesUtils.bookmarks.menuGuid,
-    url: "http://example.com/",
+    url: "https://example.com/",
     title: "Test1",
   });
   let folder = await PlacesUtils.bookmarks.insert({
@@ -78,7 +78,7 @@ add_setup(async function () {
   });
   await PlacesUtils.bookmarks.insert({
     parentGuid: folder.guid,
-    url: "http://example.com/",
+    url: "https://example.com/",
     title: "Test1",
   });
 

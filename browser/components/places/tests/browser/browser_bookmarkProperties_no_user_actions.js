@@ -40,7 +40,7 @@ add_task(async function test_change_title_from_BookmarkStar() {
   // canDrop should always return false.
   let bookmarkWithId = JSON.stringify(
     Object.assign({
-      url: "http://example.com",
+      url: "https://example.com",
       title: "Fake BM",
     })
   );

@@ -3,7 +3,7 @@
 
 "use strict";
 
-const TEST_URL = "http://example.com/";
+const TEST_URL = "https://example.com/";
 const TEST_URL1 = "https://example.com/otherbrowser/";
 
 var PlacesOrganizer;
