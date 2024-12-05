@@ -33,7 +33,7 @@ add_task(async function () {
   // Leave the breakpoint and worker in place for the next subtest.
   await resume(dbg);
   await waitForRequestsToSettle(dbg);
-  await removeTab(gBrowser.selectedTab);
+  await closeTabAndToolbox();
 });
 
 // Test that breakpoints can be immediately hit in service workers when reloading.
@@ -67,7 +67,8 @@ add_task(async function () {
 
   await checkAdditionalThreadCount(dbg, 0);
   await waitForRequestsToSettle(dbg);
-  await removeTab(gBrowser.selectedTab);
+
+  await closeTabAndToolbox();
 });
 
 // Test having a waiting and active service worker for the same registration.
@@ -162,7 +163,8 @@ add_task(async function () {
 
   await checkAdditionalThreadCount(dbg, 0);
   await waitForRequestsToSettle(dbg);
-  await removeTab(gBrowser.selectedTab);
+
+  await closeTabAndToolbox();
 });
 
 async function checkWorkerStatus(_dbg, _status) {
