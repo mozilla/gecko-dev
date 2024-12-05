@@ -563,10 +563,11 @@ class RTCStatsReportVerifier {
     // As long as the corruption detection RTP header extension is not activated
     // it should not aggregate any corruption score. The tests where this header
     // extension is enabled are located in pc/peer_connection_integrationtest.cc
-    verifier.TestAttributeIsUndefined(inbound_stream.corruption_score_sum);
     verifier.TestAttributeIsUndefined(
-        inbound_stream.corruption_score_squared_sum);
-    verifier.TestAttributeIsUndefined(inbound_stream.corruption_score_count);
+        inbound_stream.total_corruption_probability);
+    verifier.TestAttributeIsUndefined(
+        inbound_stream.total_squared_corruption_probability);
+    verifier.TestAttributeIsUndefined(inbound_stream.corruption_measurements);
     verifier.TestAttributeIsNonNegative<uint32_t>(
         inbound_stream.packets_received);
     if (inbound_stream.kind.has_value() && *inbound_stream.kind == "audio") {

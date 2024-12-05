@@ -4142,20 +4142,20 @@ TEST_F(PeerConnectionIntegrationTestUnifiedPlan,
     for (const auto& stat : inbound_stream_stats) {
       if (*stat->kind == "video") {
         if (pair == caller()) {
-          EXPECT_TRUE(stat->corruption_score_sum.has_value());
-          EXPECT_TRUE(stat->corruption_score_squared_sum.has_value());
+          EXPECT_TRUE(stat->total_corruption_probability.has_value());
+          EXPECT_TRUE(stat->total_squared_corruption_probability.has_value());
 
           double average_corruption_score =
-              (*stat->corruption_score_sum) /
-              static_cast<int32_t>(*stat->corruption_score_count);
+              (*stat->total_corruption_probability) /
+              static_cast<int32_t>(*stat->corruption_measurements);
           EXPECT_GE(average_corruption_score, 0.0);
           EXPECT_LE(average_corruption_score, 1.0);
         }
         if (pair == callee()) {
           // Since only `caller` requests corruption score calculation the
           // callee should not aggregate it.
-          EXPECT_FALSE(stat->corruption_score_sum.has_value());
-          EXPECT_FALSE(stat->corruption_score_squared_sum.has_value());
+          EXPECT_FALSE(stat->total_corruption_probability.has_value());
+          EXPECT_FALSE(stat->total_squared_corruption_probability.has_value());
         }
       }
     }
@@ -4196,12 +4196,12 @@ TEST_F(PeerConnectionIntegrationTestUnifiedPlan,
         report->GetStatsOfType<RTCInboundRtpStreamStats>();
     for (const auto& stat : inbound_stream_stats) {
       if (*stat->kind == "video") {
-        EXPECT_TRUE(stat->corruption_score_sum.has_value());
-        EXPECT_TRUE(stat->corruption_score_squared_sum.has_value());
+        EXPECT_TRUE(stat->total_corruption_probability.has_value());
+        EXPECT_TRUE(stat->total_squared_corruption_probability.has_value());
 
         double average_corruption_score =
-            (*stat->corruption_score_sum) /
-            static_cast<int32_t>(*stat->corruption_score_count);
+            (*stat->total_corruption_probability) /
+            static_cast<int32_t>(*stat->corruption_measurements);
         EXPECT_GE(average_corruption_score, 0.0);
         EXPECT_LE(average_corruption_score, 1.0);
       }
@@ -4245,8 +4245,8 @@ TEST_F(PeerConnectionIntegrationTestUnifiedPlan,
         report->GetStatsOfType<RTCInboundRtpStreamStats>();
     for (const auto& stat : inbound_stream_stats) {
       if (*stat->kind == "video") {
-        EXPECT_FALSE(stat->corruption_score_sum.has_value());
-        EXPECT_FALSE(stat->corruption_score_squared_sum.has_value());
+        EXPECT_FALSE(stat->total_corruption_probability.has_value());
+        EXPECT_FALSE(stat->total_squared_corruption_probability.has_value());
       }
     }
   }

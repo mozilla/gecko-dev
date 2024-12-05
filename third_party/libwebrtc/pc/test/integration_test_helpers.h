@@ -750,7 +750,7 @@ class PeerConnectionIntegrationWrapper : public PeerConnectionObserver,
         report->GetStatsOfType<RTCInboundRtpStreamStats>();
     for (const auto& stat : inbound_stream_stats) {
       if (*stat->kind == "video") {
-        return stat->corruption_score_count.value_or(0);
+        return stat->corruption_measurements.value_or(0);
       }
     }
     return 0;

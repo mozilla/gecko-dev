@@ -2459,9 +2459,9 @@ TEST_F(RTCStatsCollectorTest, CollectRTCInboundRtpStreamStats_Video) {
   video_media_info.receivers[0].corruption_score_sum = 0.5;
   video_media_info.receivers[0].corruption_score_squared_sum = 0.25;
   video_media_info.receivers[0].corruption_score_count = 5;
-  expected_video.corruption_score_sum = 0.5;
-  expected_video.corruption_score_squared_sum = 0.25;
-  expected_video.corruption_score_count = 5;
+  expected_video.total_corruption_probability = 0.5;
+  expected_video.total_squared_corruption_probability = 0.25;
+  expected_video.corruption_measurements = 5;
   video_media_info.receivers[0].last_packet_received = Timestamp::Seconds(1);
   expected_video.last_packet_received_timestamp = 1000.0;
   video_media_info.receivers[0].content_type = VideoContentType::SCREENSHARE;

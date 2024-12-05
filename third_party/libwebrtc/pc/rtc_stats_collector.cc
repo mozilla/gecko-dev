@@ -627,11 +627,11 @@ CreateInboundRTPStreamStatsFromVideoReceiverInfo(
   if (video_receiver_info.corruption_score_sum.has_value()) {
     RTC_CHECK(video_receiver_info.corruption_score_squared_sum.has_value());
     RTC_CHECK_GT(video_receiver_info.corruption_score_count, 0);
-    inbound_video->corruption_score_sum =
+    inbound_video->total_corruption_probability =
         *video_receiver_info.corruption_score_sum;
-    inbound_video->corruption_score_squared_sum =
+    inbound_video->total_squared_corruption_probability =
         *video_receiver_info.corruption_score_squared_sum;
-    inbound_video->corruption_score_count =
+    inbound_video->corruption_measurements =
         video_receiver_info.corruption_score_count;
   }
   if (video_receiver_info.timing_frame_info.has_value()) {
