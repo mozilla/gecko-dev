@@ -1354,6 +1354,9 @@
       var topadj = parseInt(style.borderTopWidth) + parseInt(style.paddingTop);
       input.style.top = `${textRect.y - topadj}px`;
 
+      // The leftside of the textbox is aligned to the left side of the text
+      // in LTR mode, and left side of the cell in RTL mode.
+      let left = style.direction == "rtl" ? cellRect.x : textRect.x;
       let scrollbarWidth = window.windowUtils.getBoundsWithoutFlushing(
         this.#verticalScrollbar
       ).width;
@@ -1361,51 +1364,16 @@
       // or indentation. bug 1708159 tracks fixing the implementation
       // of getCoordsForCellItem which we called above so it provides
       // better numbers in those cases.
+      let widthdiff = Math.abs(textRect.x - cellRect.x) - scrollbarWidth;
 
-      let textPadding = Math.max(0, textRect.x - cellRect.x);
-
-      // Since we are absolutely positioning the text input relative to the
-      // tree stack element, we need to ignore any negative values that are
-      // returned from getCoordsForCellItem. This will prevent the text
-      // input overlapping on the vertical scrollbar or overflowing past
-      // the tree's boundaries.
-      let left = Math.max(0, cellRect.x) + textPadding;
-      let width = cellRect.width;
-
-      // According to nsTreeBodyFrame::GetCoordsForCellItem,
-      // https://searchfox.org/mozilla-central/rev/3265b390bd5d08a5be520253ef71835bcb715f27/layout/xul/tree/nsTreeBodyFrame.cpp#991-1006
-      // consumers need to deal with overflow and scrollbars. In LTR,
-      // if the cell we are trying to edit is in the last column,
-      // where a scrollbar could appear, we need to subtract that
-      // width to prevent overflow.
-      const isFinalColumn = column.index == column.columns.count - 1;
-      const isRTL = style.direction == "rtl";
-      if (isFinalColumn && !isRTL) {
-        // TODO: probably the '&& isRTL' check can be removed when we
-        // fix bug 1924843.
-        width -= scrollbarWidth;
-      }
-      if (isRTL) {
-        // In RTL, the position is offset by the scrollbar, so we add the
-        // scrollbarWidth.
-        left += scrollbarWidth;
-        if (!isFinalColumn) {
-          // [Hackaround for bug 1924843]: Columns beyond the first
-          // need an additional offset by scrollbarWidth, to account
-          // for the fact that the leftmost column fails to shrink by
-          // that amount when it should.
-          left += scrollbarWidth;
-        }
-      }
       input.style.left = `${left}px`;
-      input.style.width = `${width}px`;
-
       input.style.height = `${
         textRect.height +
         topadj +
         parseInt(style.borderBottomWidth) +
         parseInt(style.paddingBottom)
       }px`;
+      input.style.width = `${cellRect.width - widthdiff}px`;
       input.hidden = false;
 
       input.value = this.view.getCellText(row, column);
