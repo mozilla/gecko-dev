@@ -2840,6 +2840,70 @@ bool JSString::tryReplaceWithAtomRef(JSAtom* atom) {
   return true;
 }
 
+template <typename CharT>
+bool js::StringChars<CharT>::maybeAlloc(JSContext* cx, size_t length,
+                                        gc::Heap heap) {
+  assertValidRequest(0, length);
+
+  if (JSInlineString::lengthFits<CharT>(length)) {
+    return true;
+  }
+
+  if (MOZ_UNLIKELY(!JSString::validateLength(cx, length))) {
+    return false;
+  }
+
+  auto chars = AllocChars<CharT>(cx, length, heap);
+  if (!chars) {
+    return false;
+  }
+
+  ownedChars_.set(std::move(chars));
+  return true;
+}
+
+template bool js::StringChars<JS::Latin1Char>::maybeAlloc(JSContext*, size_t,
+                                                          gc::Heap);
+template bool js::StringChars<char16_t>::maybeAlloc(JSContext*, size_t,
+                                                    gc::Heap);
+
+template <typename CharT>
+template <AllowGC allowGC>
+JSLinearString* js::StringChars<CharT>::toStringDontDeflateNonStatic(
+    JSContext* cx, size_t length, gc::Heap heap) {
+  MOZ_ASSERT(length == lastRequestedLength_);
+
+  if (JSInlineString::lengthFits<CharT>(length)) {
+    MOZ_ASSERT(!ownedChars_,
+               "unexpected OwnedChars allocation for inline strings");
+    MOZ_ASSERT(!TryEmptyOrStaticString(cx, inlineChars_, length),
+               "unexpected static string found");
+    return NewInlineString<allowGC>(cx, inlineChars_, length, heap);
+  }
+
+  MOZ_ASSERT(ownedChars_,
+             "missing OwnedChars allocation for non-inline strings");
+  MOZ_ASSERT(length == ownedChars_.length(),
+             "requested length doesn't match allocation");
+  return JSLinearString::newValidLength<allowGC, CharT>(cx, &ownedChars_, heap);
+}
+
+template JSLinearString*
+js::StringChars<JS::Latin1Char>::toStringDontDeflateNonStatic<CanGC>(JSContext*,
+                                                                     size_t,
+                                                                     gc::Heap);
+template JSLinearString*
+js::StringChars<char16_t>::toStringDontDeflateNonStatic<CanGC>(JSContext*,
+                                                               size_t,
+                                                               gc::Heap);
+template JSLinearString*
+js::StringChars<JS::Latin1Char>::toStringDontDeflateNonStatic<NoGC>(JSContext*,
+                                                                    size_t,
+                                                                    gc::Heap);
+template JSLinearString*
+js::StringChars<char16_t>::toStringDontDeflateNonStatic<NoGC>(JSContext*,
+                                                              size_t, gc::Heap);
+
 /*** Conversions ************************************************************/
 
 UniqueChars js::EncodeLatin1(JSContext* cx, JSString* str) {

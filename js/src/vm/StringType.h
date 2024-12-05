@@ -2045,6 +2045,69 @@ inline js::HashNumber HashStringChars(const JSLinearString* str) {
              : mozilla::HashString(str->twoByteChars(nogc), len);
 }
 
+/**
+ * Allocate string characters when the final string length is known in advance.
+ */
+template <typename CharT>
+class MOZ_NON_PARAM StringChars {
+  static constexpr size_t InlineLength =
+      std::is_same_v<CharT, JS::Latin1Char>
+          ? JSFatInlineString::MAX_LENGTH_LATIN1
+          : JSFatInlineString::MAX_LENGTH_TWO_BYTE;
+
+  CharT inlineChars_[InlineLength];
+  Rooted<JSString::OwnedChars<CharT>> ownedChars_;
+
+#ifdef DEBUG
+  // In debug mode, we keep track of the requested string lengths to ensure all
+  // methods are called in the correct order and with the expected argument
+  // values.
+  size_t lastRequestedLength_ = 0;
+
+  void assertValidRequest(size_t expectedLastLength, size_t length) {
+    MOZ_ASSERT(length >= expectedLastLength, "cannot shrink requested length");
+    MOZ_ASSERT(lastRequestedLength_ == expectedLastLength);
+    lastRequestedLength_ = length;
+  }
+#else
+  void assertValidRequest(size_t expectedLastLength, size_t length) {}
+#endif
+
+ public:
+  explicit StringChars(JSContext* cx) : ownedChars_(cx) {}
+
+  /**
+   * Return a raw pointer to the string characters. The pointer can point to
+   * nursery allocated memory, so the caller should ensure no GC can happen
+   * while using this pointer.
+   */
+  CharT* data(const JS::AutoRequireNoGC&) {
+    return ownedChars_ ? ownedChars_.data() : inlineChars_;
+  }
+
+  /**
+   * Escape hatch when it's not possible to call `data(nogc)`. Use with caution!
+   */
+  CharT* unsafeData() {
+    return ownedChars_ ? ownedChars_.data() : inlineChars_;
+  }
+
+  /**
+   * Prepare for writing |length| characters. Allocates iff `length` exceeds the
+   * inline storage of this class.
+   */
+  bool maybeAlloc(JSContext* cx, size_t length,
+                  gc::Heap heap = gc::Heap::Default);
+
+  /**
+   * Build the result string. Does not deflate two-byte characters if all
+   * characters fit into Latin-1. And does not check static strings.
+   */
+  template <AllowGC allowGC>
+  JSLinearString* toStringDontDeflateNonStatic(
+      JSContext* cx, size_t length, gc::Heap heap = gc::Heap::Default);
+};
+
 /*** Conversions ************************************************************/
 
 /*
