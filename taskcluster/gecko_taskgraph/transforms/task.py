@@ -37,6 +37,7 @@ from gecko_taskgraph.optimize.schema import OptimizationSchema
 from gecko_taskgraph.transforms.job.common import get_expiration
 from gecko_taskgraph.util import docker as dockerutil
 from gecko_taskgraph.util.attributes import TRUNK_PROJECTS, is_try, release_level
+from gecko_taskgraph.util.chunking import TEST_VARIANTS
 from gecko_taskgraph.util.hash import hash_path
 from gecko_taskgraph.util.partners import get_partners_to_be_published
 from gecko_taskgraph.util.scriptworker import BALROG_ACTIONS, get_release_config
@@ -1987,6 +1988,43 @@ def set_task_and_artifact_expiry(config, jobs):
         yield job
 
 
+def group_name_variant(group_names, groupSymbol):
+    # iterate through variants, allow for Base-[variant_list]
+    # sorting longest->shortest allows for finding variants when
+    # other variants have a suffix that is a subset
+    variant_symbols = sorted(
+        [
+            (
+                v,
+                TEST_VARIANTS[v]["suffix"],
+                TEST_VARIANTS[v].get("description", "{description}"),
+            )
+            for v in TEST_VARIANTS
+            if TEST_VARIANTS[v].get("suffix", "")
+        ],
+        key=lambda tup: len(tup[1]),
+        reverse=True,
+    )
+
+    # strip known variants
+    # build a list of known variants
+    base_symbol = groupSymbol
+    found_variants = []
+    for variant, suffix, description in variant_symbols:
+        if f"-{suffix}" in base_symbol:
+            base_symbol = base_symbol.replace(f"-{suffix}", "")
+            found_variants.append((variant, description))
+
+    if base_symbol not in group_names:
+        return ""
+
+    description = group_names[base_symbol]
+    for variant, desc in found_variants:
+        description = desc.format(description=description)
+
+    return description
+
+
 @transforms.add
 def build_task(config, tasks):
     for task in tasks:
@@ -2027,10 +2065,13 @@ def build_task(config, tasks):
             groupSymbol, symbol = split_symbol(task_th["symbol"])
             if groupSymbol != "?":
                 treeherder["groupSymbol"] = groupSymbol
-                if groupSymbol not in group_names:
+                description = group_names.get(
+                    groupSymbol, group_name_variant(group_names, groupSymbol)
+                )
+                if not description:
                     path = os.path.join(config.path, task.get("task-from", ""))
                     raise Exception(UNKNOWN_GROUP_NAME.format(groupSymbol, path))
-                treeherder["groupName"] = group_names[groupSymbol]
+                treeherder["groupName"] = description
             treeherder["symbol"] = symbol
             if len(symbol) > 25 or len(groupSymbol) > 25:
                 raise RuntimeError(

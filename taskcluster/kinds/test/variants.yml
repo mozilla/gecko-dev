@@ -11,6 +11,12 @@
                 - "--disable-e10s"
                 - "--disable-fission"
 
+confirm-failure:
+    description: "{description} with confirm failures enabled"
+    component: "Testing::General"
+    expiration: "never"
+    suffix: "cf"
+
 headless:
     description: "{description} without a window"
     component: "Firefox::Headless"
