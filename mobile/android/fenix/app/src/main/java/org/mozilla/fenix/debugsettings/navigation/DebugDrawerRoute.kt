@@ -10,6 +10,8 @@ import mozilla.components.browser.state.state.BrowserState
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.concept.storage.LoginsStorage
 import org.mozilla.fenix.R
+import org.mozilla.fenix.debugsettings.addresses.AddressesDebugLocalesRepository
+import org.mozilla.fenix.debugsettings.addresses.AddressesTools
 import org.mozilla.fenix.debugsettings.cfrs.CfrToolsState
 import org.mozilla.fenix.debugsettings.cfrs.CfrToolsStore
 import org.mozilla.fenix.debugsettings.gleandebugtools.GleanDebugToolsStore
@@ -39,6 +41,10 @@ enum class DebugDrawerRoute(val route: String, @StringRes val title: Int) {
         route = "logins",
         title = R.string.debug_drawer_logins_title,
     ),
+    Addresses(
+        route = "addresses",
+        title = R.string.debug_drawer_addresses_title,
+    ),
     CfrTools(
         route = "cfr_tools",
         title = R.string.debug_drawer_cfr_tools_title,
@@ -58,6 +64,7 @@ enum class DebugDrawerRoute(val route: String, @StringRes val title: Int) {
          * @param cfrToolsStore [CfrToolsStore] used to access [CfrToolsState].
          * @param gleanDebugToolsStore [GleanDebugToolsStore] used to dispatch glean debug tools actions.
          * @param loginsStorage [LoginsStorage] used to access logins for [LoginsScreen].
+         * @param addressesDebugLocalesRepository used to control storage for [AddressesTools].
          * @param inactiveTabsEnabled Whether the inactive tabs feature is enabled.
          */
         fun generateDebugDrawerDestinations(
@@ -66,6 +73,7 @@ enum class DebugDrawerRoute(val route: String, @StringRes val title: Int) {
             cfrToolsStore: CfrToolsStore,
             gleanDebugToolsStore: GleanDebugToolsStore,
             loginsStorage: LoginsStorage,
+            addressesDebugLocalesRepository: AddressesDebugLocalesRepository,
             inactiveTabsEnabled: Boolean,
         ): List<DebugDrawerDestination> =
             entries.map { debugDrawerRoute ->
@@ -93,6 +101,15 @@ enum class DebugDrawerRoute(val route: String, @StringRes val title: Int) {
                                 browserStore = browserStore,
                                 loginsStorage = loginsStorage,
                             )
+                        }
+                    }
+
+                    Addresses -> {
+                        onClick = {
+                            debugDrawerStore.dispatch(DebugDrawerAction.NavigateTo.Addresses)
+                        }
+                        content = {
+                            AddressesTools(addressesDebugLocalesRepository)
                         }
                     }
 
