@@ -377,40 +377,66 @@ ParsedRtcEventLog::ParseStatus StoreRtpPackets(
   // Base event
   {
     RTPHeader header;
-    header.markerBit = rtc::checked_cast<bool>(proto.marker());
-    header.payloadType = rtc::checked_cast<uint8_t>(proto.payload_type());
-    header.sequenceNumber =
-        rtc::checked_cast<uint16_t>(proto.sequence_number());
-    header.timestamp = rtc::checked_cast<uint32_t>(proto.rtp_timestamp());
-    header.ssrc = rtc::checked_cast<uint32_t>(proto.ssrc());
+    RTC_PARSE_CHECK_OR_RETURN(
+        rtc::IsValueInRangeForNumericType<bool>(proto.marker()));
+    header.markerBit = static_cast<bool>(proto.marker());
+    RTC_PARSE_CHECK_OR_RETURN(
+        rtc::IsValueInRangeForNumericType<uint8_t>(proto.payload_type()));
+    header.payloadType = static_cast<uint8_t>(proto.payload_type());
+
+    RTC_PARSE_CHECK_OR_RETURN(
+        rtc::IsValueInRangeForNumericType<uint16_t>(proto.sequence_number()));
+    header.sequenceNumber = static_cast<uint16_t>(proto.sequence_number());
+    RTC_PARSE_CHECK_OR_RETURN(
+        rtc::IsValueInRangeForNumericType<uint32_t>(proto.rtp_timestamp()));
+    header.timestamp = static_cast<uint32_t>(proto.rtp_timestamp());
+    RTC_PARSE_CHECK_OR_RETURN(
+        rtc::IsValueInRangeForNumericType<uint32_t>(proto.ssrc()));
+    header.ssrc = static_cast<uint32_t>(proto.ssrc());
     header.numCSRCs = 0;  // TODO(terelius): Implement CSRC.
-    header.paddingLength = rtc::checked_cast<size_t>(proto.padding_size());
-    header.headerLength = rtc::checked_cast<size_t>(proto.header_size());
+    RTC_PARSE_CHECK_OR_RETURN(
+        rtc::IsValueInRangeForNumericType<size_t>(proto.padding_size()));
+    header.paddingLength = static_cast<size_t>(proto.padding_size());
+    RTC_PARSE_CHECK_OR_RETURN(
+        rtc::IsValueInRangeForNumericType<size_t>(proto.header_size()));
+    header.headerLength = static_cast<size_t>(proto.header_size());
     // TODO(terelius): Should we implement payload_type_frequency?
     if (proto.has_transport_sequence_number()) {
       header.extension.hasTransportSequenceNumber = true;
+      RTC_PARSE_CHECK_OR_RETURN(rtc::IsValueInRangeForNumericType<uint16_t>(
+          proto.transport_sequence_number()));
       header.extension.transportSequenceNumber =
-          rtc::checked_cast<uint16_t>(proto.transport_sequence_number());
+          static_cast<uint16_t>(proto.transport_sequence_number());
     }
     if (proto.has_transmission_time_offset()) {
       header.extension.hasTransmissionTimeOffset = true;
+      RTC_PARSE_CHECK_OR_RETURN(rtc::IsValueInRangeForNumericType<int32_t>(
+          proto.transmission_time_offset()));
       header.extension.transmissionTimeOffset =
-          rtc::checked_cast<int32_t>(proto.transmission_time_offset());
+          static_cast<int32_t>(proto.transmission_time_offset());
     }
     if (proto.has_absolute_send_time()) {
       header.extension.hasAbsoluteSendTime = true;
+      RTC_PARSE_CHECK_OR_RETURN(rtc::IsValueInRangeForNumericType<uint32_t>(
+          proto.absolute_send_time()));
       header.extension.absoluteSendTime =
-          rtc::checked_cast<uint32_t>(proto.absolute_send_time());
+          static_cast<uint32_t>(proto.absolute_send_time());
     }
     if (proto.has_video_rotation()) {
       header.extension.hasVideoRotation = true;
+      RTC_PARSE_CHECK_OR_RETURN(
+          rtc::IsValueInRangeForNumericType<uint8_t>(proto.video_rotation()));
       header.extension.videoRotation = ConvertCVOByteToVideoRotation(
-          rtc::checked_cast<uint8_t>(proto.video_rotation()));
+          static_cast<uint8_t>(proto.video_rotation()));
     }
     if (proto.has_audio_level()) {
       RTC_PARSE_CHECK_OR_RETURN(proto.has_voice_activity());
-      bool voice_activity = rtc::checked_cast<bool>(proto.voice_activity());
-      int audio_level = rtc::checked_cast<int>(proto.audio_level());
+      RTC_PARSE_CHECK_OR_RETURN(
+          rtc::IsValueInRangeForNumericType<bool>(proto.voice_activity()));
+      bool voice_activity = static_cast<bool>(proto.voice_activity());
+      RTC_PARSE_CHECK_OR_RETURN(
+          rtc::IsValueInRangeForNumericType<int>(proto.audio_level()));
+      int audio_level = static_cast<int>(proto.audio_level());
       RTC_PARSE_CHECK_OR_RETURN_LE(audio_level, 0x7F);
       header.extension.set_audio_level(AudioLevel(voice_activity, audio_level));
     } else {
@@ -570,21 +596,36 @@ ParsedRtcEventLog::ParseStatus StoreRtpPackets(
         ToSigned(timestamp_ms_values[i].value(), &timestamp_ms));
 
     RTPHeader header;
-    header.markerBit = rtc::checked_cast<bool>(*marker_values[i]);
-    header.payloadType = rtc::checked_cast<uint8_t>(*payload_type_values[i]);
-    header.sequenceNumber =
-        rtc::checked_cast<uint16_t>(*sequence_number_values[i]);
-    header.timestamp = rtc::checked_cast<uint32_t>(*rtp_timestamp_values[i]);
-    header.ssrc = rtc::checked_cast<uint32_t>(*ssrc_values[i]);
+    RTC_PARSE_CHECK_OR_RETURN(
+        rtc::IsValueInRangeForNumericType<bool>(*marker_values[i]));
+    header.markerBit = static_cast<bool>(*marker_values[i]);
+    RTC_PARSE_CHECK_OR_RETURN(
+        rtc::IsValueInRangeForNumericType<uint8_t>(*payload_type_values[i]));
+    header.payloadType = static_cast<uint8_t>(*payload_type_values[i]);
+    RTC_PARSE_CHECK_OR_RETURN(rtc::IsValueInRangeForNumericType<uint16_t>(
+        *sequence_number_values[i]));
+    header.sequenceNumber = static_cast<uint16_t>(*sequence_number_values[i]);
+    RTC_PARSE_CHECK_OR_RETURN(
+        rtc::IsValueInRangeForNumericType<uint32_t>(*rtp_timestamp_values[i]));
+    header.timestamp = static_cast<uint32_t>(*rtp_timestamp_values[i]);
+    RTC_PARSE_CHECK_OR_RETURN(
+        rtc::IsValueInRangeForNumericType<uint32_t>(*ssrc_values[i]));
+    header.ssrc = static_cast<uint32_t>(*ssrc_values[i]);
     header.numCSRCs = 0;  // TODO(terelius): Implement CSRC.
-    header.paddingLength = rtc::checked_cast<size_t>(*padding_size_values[i]);
-    header.headerLength = rtc::checked_cast<size_t>(*header_size_values[i]);
+    RTC_PARSE_CHECK_OR_RETURN(
+        rtc::IsValueInRangeForNumericType<size_t>(*padding_size_values[i]));
+    header.paddingLength = static_cast<size_t>(*padding_size_values[i]);
+    RTC_PARSE_CHECK_OR_RETURN(
+        rtc::IsValueInRangeForNumericType<size_t>(*header_size_values[i]));
+    header.headerLength = static_cast<size_t>(*header_size_values[i]);
     // TODO(terelius): Should we implement payload_type_frequency?
     if (transport_sequence_number_values.size() > i &&
         transport_sequence_number_values[i].has_value()) {
       header.extension.hasTransportSequenceNumber = true;
-      header.extension.transportSequenceNumber = rtc::checked_cast<uint16_t>(
-          transport_sequence_number_values[i].value());
+      RTC_PARSE_CHECK_OR_RETURN(rtc::IsValueInRangeForNumericType<uint16_t>(
+          transport_sequence_number_values[i].value()));
+      header.extension.transportSequenceNumber =
+          static_cast<uint16_t>(transport_sequence_number_values[i].value());
     }
     if (transmission_time_offset_values.size() > i &&
         transmission_time_offset_values[i].has_value()) {
@@ -598,21 +639,28 @@ ParsedRtcEventLog::ParseStatus StoreRtpPackets(
     if (absolute_send_time_values.size() > i &&
         absolute_send_time_values[i].has_value()) {
       header.extension.hasAbsoluteSendTime = true;
+      RTC_PARSE_CHECK_OR_RETURN(rtc::IsValueInRangeForNumericType<uint32_t>(
+          absolute_send_time_values[i].value()));
       header.extension.absoluteSendTime =
-          rtc::checked_cast<uint32_t>(absolute_send_time_values[i].value());
+          static_cast<uint32_t>(absolute_send_time_values[i].value());
     }
     if (video_rotation_values.size() > i &&
         video_rotation_values[i].has_value()) {
       header.extension.hasVideoRotation = true;
+      RTC_PARSE_CHECK_OR_RETURN(rtc::IsValueInRangeForNumericType<uint8_t>(
+          video_rotation_values[i].value()));
       header.extension.videoRotation = ConvertCVOByteToVideoRotation(
-          rtc::checked_cast<uint8_t>(video_rotation_values[i].value()));
+          static_cast<uint8_t>(video_rotation_values[i].value()));
     }
     if (audio_level_values.size() > i && audio_level_values[i].has_value()) {
       RTC_PARSE_CHECK_OR_RETURN(voice_activity_values.size() > i &&
                                 voice_activity_values[i].has_value());
-      bool voice_activity =
-          rtc::checked_cast<bool>(voice_activity_values[i].value());
-      int audio_level = rtc::checked_cast<int>(audio_level_values[i].value());
+      RTC_PARSE_CHECK_OR_RETURN(rtc::IsValueInRangeForNumericType<bool>(
+          voice_activity_values[i].value()));
+      bool voice_activity = static_cast<bool>(voice_activity_values[i].value());
+      RTC_PARSE_CHECK_OR_RETURN(rtc::IsValueInRangeForNumericType<int>(
+          audio_level_values[i].value()));
+      int audio_level = static_cast<int>(audio_level_values[i].value());
       RTC_PARSE_CHECK_OR_RETURN_LE(audio_level, 0x7F);
       header.extension.set_audio_level(AudioLevel(voice_activity, audio_level));
     } else {
@@ -3510,23 +3558,30 @@ ParsedRtcEventLog::StoreAudioNetworkAdaptationEvent(
     }
     if (uplink_packet_loss_fraction_values[i].has_value()) {
       float uplink_packet_loss_fraction2;
+      RTC_PARSE_CHECK_OR_RETURN(rtc::IsValueInRangeForNumericType<uint32_t>(
+          uplink_packet_loss_fraction_values[i].value()));
       RTC_PARSE_CHECK_OR_RETURN(ParsePacketLossFractionFromProtoFormat(
-          rtc::checked_cast<uint32_t>(
-              uplink_packet_loss_fraction_values[i].value()),
+          static_cast<uint32_t>(uplink_packet_loss_fraction_values[i].value()),
           &uplink_packet_loss_fraction2));
       runtime_config.uplink_packet_loss_fraction = uplink_packet_loss_fraction2;
     }
     if (enable_fec_values[i].has_value()) {
+      RTC_PARSE_CHECK_OR_RETURN(rtc::IsValueInRangeForNumericType<bool>(
+          enable_fec_values[i].value()));
       runtime_config.enable_fec =
-          rtc::checked_cast<bool>(enable_fec_values[i].value());
+          static_cast<bool>(enable_fec_values[i].value());
     }
     if (enable_dtx_values[i].has_value()) {
+      RTC_PARSE_CHECK_OR_RETURN(rtc::IsValueInRangeForNumericType<bool>(
+          enable_dtx_values[i].value()));
       runtime_config.enable_dtx =
-          rtc::checked_cast<bool>(enable_dtx_values[i].value());
+          static_cast<bool>(enable_dtx_values[i].value());
     }
     if (num_channels_values[i].has_value()) {
+      RTC_PARSE_CHECK_OR_RETURN(rtc::IsValueInRangeForNumericType<size_t>(
+          num_channels_values[i].value()));
       runtime_config.num_channels =
-          rtc::checked_cast<size_t>(num_channels_values[i].value());
+          static_cast<size_t>(num_channels_values[i].value());
     }
     audio_network_adaptation_events_.emplace_back(
         Timestamp::Millis(timestamp_ms), runtime_config);
