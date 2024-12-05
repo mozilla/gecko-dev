@@ -77,7 +77,7 @@ class MockAudioDecoder final : public AudioDecoder {
     const size_t num_channels_;
   };
 
-  std::vector<ParseResult> ParsePayload(rtc::Buffer&& payload,
+  std::vector<ParseResult> ParsePayload(rtc::Buffer&& /* payload */,
                                         uint32_t timestamp) override {
     std::vector<ParseResult> results;
     if (fec_enabled_) {
@@ -91,14 +91,15 @@ class MockAudioDecoder final : public AudioDecoder {
     return results;
   }
 
-  int PacketDuration(const uint8_t* encoded,
-                     size_t encoded_len) const override {
+  int PacketDuration(const uint8_t* /* encoded */,
+                     size_t /* encoded_len */) const override {
     ADD_FAILURE() << "Since going through ParsePayload, PacketDuration should "
                      "never get called.";
     return kPacketDuration;
   }
 
-  bool PacketHasFec(const uint8_t* encoded, size_t encoded_len) const override {
+  bool PacketHasFec(const uint8_t* /* encoded */,
+                    size_t /* encoded_len */) const override {
     ADD_FAILURE() << "Since going through ParsePayload, PacketHasFec should "
                      "never get called.";
     return fec_enabled_;
@@ -113,11 +114,11 @@ class MockAudioDecoder final : public AudioDecoder {
   bool fec_enabled() const { return fec_enabled_; }
 
  protected:
-  int DecodeInternal(const uint8_t* encoded,
-                     size_t encoded_len,
-                     int sample_rate_hz,
-                     int16_t* decoded,
-                     SpeechType* speech_type) override {
+  int DecodeInternal(const uint8_t* /* encoded */,
+                     size_t /* encoded_len */,
+                     int /* sample_rate_hz */,
+                     int16_t* /* decoded */,
+                     SpeechType* /* speech_type */) override {
     ADD_FAILURE() << "Since going through ParsePayload, DecodeInternal should "
                      "never get called.";
     return -1;

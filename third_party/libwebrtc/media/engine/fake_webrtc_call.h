@@ -465,7 +465,7 @@ class FakeCall final : public webrtc::Call, public webrtc::PacketReceiver {
   void SetStats(const webrtc::Call::Stats& stats);
 
   void SetClientBitratePreferences(
-      const webrtc::BitrateSettings& preferences) override {}
+      const webrtc::BitrateSettings& /* preferences */) override {}
   const webrtc::FieldTrialsView& trials() const override {
     return env_.field_trials();
   }
@@ -500,7 +500,7 @@ class FakeCall final : public webrtc::Call, public webrtc::PacketReceiver {
 
   webrtc::PacketReceiver* Receiver() override;
 
-  void DeliverRtcpPacket(rtc::CopyOnWriteBuffer packet) override {}
+  void DeliverRtcpPacket(rtc::CopyOnWriteBuffer /* packet */) override {}
 
   void DeliverRtpPacket(
       webrtc::MediaType media_type,

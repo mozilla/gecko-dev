@@ -137,7 +137,7 @@ void FakeAudioReceiveStream::SetFrameDecryptor(
 }
 
 webrtc::AudioReceiveStreamInterface::Stats FakeAudioReceiveStream::GetStats(
-    bool get_and_clear_legacy_stats) const {
+    bool /* get_and_clear_legacy_stats */) const {
   return stats_;
 }
 
@@ -349,7 +349,7 @@ void FakeVideoSendStream::Stop() {
 }
 
 void FakeVideoSendStream::AddAdaptationResource(
-    rtc::scoped_refptr<webrtc::Resource> resource) {}
+    rtc::scoped_refptr<webrtc::Resource> /* resource */) {}
 
 std::vector<rtc::scoped_refptr<webrtc::Resource>>
 FakeVideoSendStream::GetAdaptationResources() {
@@ -637,7 +637,7 @@ void FakeCall::DestroyFlexfecReceiveStream(
 }
 
 void FakeCall::AddAdaptationResource(
-    rtc::scoped_refptr<webrtc::Resource> resource) {}
+    rtc::scoped_refptr<webrtc::Resource> /* resource */) {}
 
 webrtc::PacketReceiver* FakeCall::Receiver() {
   return this;
@@ -728,7 +728,7 @@ void FakeCall::SignalChannelNetworkState(webrtc::MediaType media,
 }
 
 void FakeCall::OnAudioTransportOverheadChanged(
-    int transport_overhead_per_packet) {}
+    int /* transport_overhead_per_packet */) {}
 
 void FakeCall::OnLocalSsrcUpdated(webrtc::AudioReceiveStreamInterface& stream,
                                   uint32_t local_ssrc) {

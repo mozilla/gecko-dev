@@ -259,13 +259,13 @@ NetEqQualityTest::~NetEqQualityTest() {
   log_file_.close();
 }
 
-bool NoLoss::Lost(int now_ms) {
+bool NoLoss::Lost(int /* now_ms */) {
   return false;
 }
 
 UniformLoss::UniformLoss(double loss_rate) : loss_rate_(loss_rate) {}
 
-bool UniformLoss::Lost(int now_ms) {
+bool UniformLoss::Lost(int /* now_ms */) {
   int drop_this = rand();
   return (drop_this < loss_rate_ * RAND_MAX);
 }

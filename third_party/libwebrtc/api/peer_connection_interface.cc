@@ -115,7 +115,7 @@ RtpCapabilities PeerConnectionFactoryInterface::GetRtpSenderCapabilities(
 }
 
 RtpCapabilities PeerConnectionFactoryInterface::GetRtpReceiverCapabilities(
-    cricket::MediaType kind) const {
+    cricket::MediaType /* kind */) const {
   return {};
 }
 

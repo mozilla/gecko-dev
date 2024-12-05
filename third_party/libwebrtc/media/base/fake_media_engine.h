@@ -581,7 +581,7 @@ class FakeVoiceMediaSendChannel
   void SetReceiveNonSenderRttEnabled(bool /* enabled */) {}
   bool SendCodecHasNack() const override { return false; }
   void SetSendCodecChangedCallback(
-      absl::AnyInvocable<void()> callback) override {}
+      absl::AnyInvocable<void()> /* callback */) override {}
   std::optional<Codec> GetSendCodec() const override;
 
   bool GetStats(VoiceMediaSendInfo* stats) override;
@@ -658,7 +658,7 @@ class FakeVideoMediaReceiveChannel
       rtc::VideoSinkInterface<webrtc::VideoFrame>* sink) override;
   bool HasSink(uint32_t ssrc) const;
 
-  void SetReceive(bool receive) override {}
+  void SetReceive(bool /* receive */) override {}
 
   bool HasSource(uint32_t ssrc) const;
   bool AddRecvStream(const StreamParams& sp) override;
@@ -675,13 +675,14 @@ class FakeVideoMediaReceiveChannel
       override;
   void ClearRecordableEncodedFrameCallback(uint32_t ssrc) override;
   void RequestRecvKeyFrame(uint32_t ssrc) override;
-  void SetReceiverFeedbackParameters(bool lntf_enabled,
-                                     bool nack_enabled,
-                                     webrtc::RtcpMode rtcp_mode,
-                                     std::optional<int> rtx_time) override {}
+  void SetReceiverFeedbackParameters(
+      bool /* lntf_enabled */,
+      bool /* nack_enabled */,
+      webrtc::RtcpMode /* rtcp_mode */,
+      std::optional<int> /* rtx_time */) override {}
   bool GetStats(VideoMediaReceiveInfo* info) override;
 
-  bool AddDefaultRecvStreamForTesting(const StreamParams& sp) override {
+  bool AddDefaultRecvStreamForTesting(const StreamParams& /* sp */) override {
     RTC_CHECK_NOTREACHED();
     return false;
   }
@@ -742,9 +743,10 @@ class FakeVideoMediaSendChannel
     return webrtc::RtcpMode::kCompound;
   }
   void SetSendCodecChangedCallback(
-      absl::AnyInvocable<void()> callback) override {}
+      absl::AnyInvocable<void()> /* callback */) override {}
   void SetSsrcListChangedCallback(
-      absl::AnyInvocable<void(const std::set<uint32_t>&)> callback) override {}
+      absl::AnyInvocable<void(const std::set<uint32_t>&)> /* callback */)
+      override {}
 
   bool SendCodecHasLntf() const override { return false; }
   bool SendCodecHasNack() const override { return false; }

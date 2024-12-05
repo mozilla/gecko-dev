@@ -64,7 +64,7 @@ class DecisionLogic : public NetEqController {
   NetEq::Operation GetDecision(const NetEqController::NetEqStatus& status,
                                bool* reset_decoder) override;
 
-  void ExpandDecision(NetEq::Operation operation) override {}
+  void ExpandDecision(NetEq::Operation /* operation */) override {}
 
   // Adds `value` to `sample_memory_`.
   void AddSampleMemory(int32_t value) override { sample_memory_ += value; }

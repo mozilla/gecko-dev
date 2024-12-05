@@ -38,12 +38,12 @@ FakeVoiceMediaReceiveChannel::VoiceChannelAudioSink::~VoiceChannelAudioSink() {
   }
 }
 void FakeVoiceMediaReceiveChannel::VoiceChannelAudioSink::OnData(
-    const void* audio_data,
-    int bits_per_sample,
-    int sample_rate,
-    size_t number_of_channels,
-    size_t number_of_frames,
-    std::optional<int64_t> absolute_capture_timestamp_ms) {}
+    const void* /* audio_data */,
+    int /* bits_per_sample */,
+    int /* sample_rate */,
+    size_t /* number_of_channels */,
+    size_t /* number_of_frames */,
+    std::optional<int64_t> /* absolute_capture_timestamp_ms */) {}
 void FakeVoiceMediaReceiveChannel::VoiceChannelAudioSink::OnClose() {
   source_ = nullptr;
 }
@@ -141,12 +141,13 @@ std::optional<int> FakeVoiceMediaReceiveChannel::GetBaseMinimumPlayoutDelayMs(
   }
   return std::nullopt;
 }
-bool FakeVoiceMediaReceiveChannel::GetStats(VoiceMediaReceiveInfo* info,
-                                            bool get_and_clear_legacy_stats) {
+bool FakeVoiceMediaReceiveChannel::GetStats(
+    VoiceMediaReceiveInfo* /* info */,
+    bool /* get_and_clear_legacy_stats */) {
   return false;
 }
 void FakeVoiceMediaReceiveChannel::SetRawAudioSink(
-    uint32_t ssrc,
+    uint32_t /* ssrc */,
     std::unique_ptr<webrtc::AudioSinkInterface> sink) {
   sink_ = std::move(sink);
 }
@@ -155,7 +156,7 @@ void FakeVoiceMediaReceiveChannel::SetDefaultRawAudioSink(
   sink_ = std::move(sink);
 }
 std::vector<webrtc::RtpSource> FakeVoiceMediaReceiveChannel::GetSources(
-    uint32_t ssrc) const {
+    uint32_t /* ssrc */) const {
   return std::vector<webrtc::RtpSource>();
 }
 bool FakeVoiceMediaReceiveChannel::SetRecvCodecs(
