@@ -22,6 +22,7 @@ use std::mem;
 #[cfg(not(any(target_os = "windows", target_os = "macos", target_os = "ios")))]
 use std::os::fd::{FromRawFd, IntoRawFd, OwnedFd, RawFd};
 use std::os::raw::{c_char, c_void};
+use std::path::PathBuf;
 use std::ptr;
 use std::slice;
 use std::sync::atomic::{AtomicU32, Ordering};
@@ -108,7 +109,7 @@ impl std::ops::Deref for Global {
 }
 
 #[no_mangle]
-pub extern "C" fn wgpu_server_new(owner: *mut c_void) -> *mut Global {
+pub extern "C" fn wgpu_server_new(owner: *mut c_void, use_dxc: bool) -> *mut Global {
     log::info!("Initializing WGPU server");
     let backends_pref = static_prefs::pref!("dom.webgpu.wgpu-backend").to_string();
     let backends = if backends_pref.is_empty() {
@@ -133,12 +134,23 @@ pub extern "C" fn wgpu_server_new(owner: *mut c_void) -> *mut Global {
         instance_flags.insert(wgt::InstanceFlags::DISCARD_HAL_LABELS);
     }
 
+    let dx12_shader_compiler = if use_dxc {
+        wgt::Dx12Compiler::Dxc {
+            // wgpu-hal will append "dxcompiler.dll" and "dxil.dll" to the paths
+            // before loading. Both dlls are in the same folder as firefox's binary.
+            dxc_path: Some(PathBuf::new()),
+            dxil_path: Some(PathBuf::new()),
+        }
+    } else {
+        wgt::Dx12Compiler::Fxc
+    };
+
     let global = wgc::global::Global::new(
         "wgpu",
         wgt::InstanceDescriptor {
             backends,
             flags: instance_flags,
-            dx12_shader_compiler: wgt::Dx12Compiler::Fxc,
+            dx12_shader_compiler,
             gles_minor_version: wgt::Gles3MinorVersion::Automatic,
         },
     );
