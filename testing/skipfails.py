@@ -1266,7 +1266,7 @@ class Skipfails(object):
                 artifact_list: list[Dict[Literal["name"], str]] = result["artifacts"]
                 for artifact in artifact_list:
                     artifact_name = artifact["name"]
-                    if artifact_name.endswith("test-run-info.json"):
+                    if artifact_name.endswith("test-info-testrun-matrix.json"):
                         url = queue.buildUrl(
                             "getLatestArtifact", task_id, artifact_name
                         )
