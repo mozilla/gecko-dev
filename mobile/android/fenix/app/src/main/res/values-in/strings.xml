@@ -334,9 +334,9 @@
     <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar custom tab menu. -->
     <string name="browser_custom_tab_menu_handlebar_content_description">Tutup lembar menu tab ubahan</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-    <string name="browser_menu_tools_description_with_translate">Tampilan Pembaca, Terjemahkan, Cetak, Bagikan, Buka aplikasi</string>
+    <string name="browser_menu_tools_description_with_translate" moz:removedIn="134" tools:ignore="UnusedResources">Tampilan Pembaca, Terjemahkan, Cetak, Bagikan, Buka aplikasi</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-    <string name="browser_menu_tools_description">Tampilan Pembaca, Cetak, Bagikan, Buka aplikasi</string>
+    <string name="browser_menu_tools_description" moz:removedIn="134" tools:ignore="UnusedResources">Tampilan Pembaca, Cetak, Bagikan, Buka aplikasi</string>
     <!-- Browser menu label that navigates to the save sub-menu, which contains various save related menu items such as
          bookmarking a page, saving to collection, shortcut or as a PDF, and adding to home screen -->
     <string name="browser_menu_save">Simpan</string>
@@ -939,7 +939,7 @@
     <string name="exceptions_empty_message_learn_more_link">Pelajari lebih lanjut</string>
 
     <!-- Preference switch for usage and technical data collection -->
-    <string name="preference_usage_data">Data penggunaan dan teknis</string>
+    <string name="preference_usage_data" moz:removedIn="134" tools:ignore="UnusedResources">Data penggunaan dan teknis</string>
     <!-- Preference description for usage and technical data collection -->
     <string name="preferences_usage_data_description">Bagikan data kinerja, penggunaan, perangkat keras dan pengubahsuaian peramban Anda dengan Mozilla untuk membantu kami membuat %1$s semakin baik</string>
     <!-- Preference switch for marketing data collection -->
@@ -1233,6 +1233,7 @@
 
 
     <!-- WebCompat Reporter -->
+
 
     <!-- These reason strings are dropdown options on a WebCompat reporter form, indicating what is broken on the site. -->
     <!-- Broken site reason text for site slow or not working -->
@@ -2269,7 +2270,7 @@
     <!-- Text for the menu button to open the homepage settings. -->
     <string name="top_sites_menu_settings">Pengaturan</string>
     <!-- Text for the menu button to navigate to sponsors and privacy support articles. '&amp;' is replaced with the ampersand symbol: & -->
-    <string name="top_sites_menu_sponsor_privacy">Sponsor kami &amp; privasi anda</string>
+    <string name="top_sites_menu_sponsor_privacy">Sponsor kami &amp; privasi Anda</string>
     <!-- Label text displayed for a sponsored top site. -->
     <string name="top_sites_sponsored_label">Bersponsor</string>
 
