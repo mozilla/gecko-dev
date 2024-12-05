@@ -874,7 +874,7 @@ index fb107ef1a3..b718fa583d 100644
  
  declare_args() {
 diff --git a/webrtc.gni b/webrtc.gni
-index d43a87fc3c..ebe8bf71a0 100644
+index c6ccfb2deb..ccff1b4365 100644
 --- a/webrtc.gni
 +++ b/webrtc.gni
 @@ -5,12 +5,12 @@
@@ -922,7 +922,7 @@ index d43a87fc3c..ebe8bf71a0 100644
  }
  
  if (build_with_chromium) {
-@@ -383,8 +383,8 @@ rtc_common_configs = [ webrtc_root + ":common_config" ]
+@@ -378,8 +378,8 @@ rtc_common_configs = [ webrtc_root + ":common_config" ]
  
  if (is_mac || is_ios) {
    if (filter_include(default_compiler_configs,
@@ -933,7 +933,7 @@ index d43a87fc3c..ebe8bf71a0 100644
    }
  }
  
-@@ -402,7 +402,7 @@ rtc_common_inherited_config = webrtc_root + ":common_inherited_config"
+@@ -397,7 +397,7 @@ rtc_common_inherited_config = webrtc_root + ":common_inherited_config"
  # Common configs to remove or add in all rtc targets.
  rtc_remove_configs = []
  if (!build_with_chromium && is_clang) {

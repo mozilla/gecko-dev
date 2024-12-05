@@ -1310,7 +1310,7 @@ index 83780db703..b19b753b44 100644
      "../api/adaptation:resource_adaptation_api",
      "../api/environment",
 diff --git a/webrtc.gni b/webrtc.gni
-index 47e12e6c36..22248034f7 100644
+index b4f0cad7ab..72f7d29fef 100644
 --- a/webrtc.gni
 +++ b/webrtc.gni
 @@ -35,6 +35,11 @@ if (is_mac) {
@@ -1391,7 +1391,7 @@ index 47e12e6c36..22248034f7 100644
    rtc_build_opus = !build_with_mozilla
    rtc_build_ssl = !build_with_mozilla
  
-@@ -303,7 +310,7 @@ declare_args() {
+@@ -298,7 +305,7 @@ declare_args() {
  
    # Chromium uses its own IO handling, so the internal ADM is only built for
    # standalone WebRTC.
@@ -1400,7 +1400,7 @@ index 47e12e6c36..22248034f7 100644
  
    # Set this to true to enable the avx2 support in webrtc.
    # TODO: Make sure that AVX2 works also for non-clang compilers.
-@@ -343,6 +350,9 @@ declare_args() {
+@@ -338,6 +345,9 @@ declare_args() {
    rtc_enable_grpc = rtc_enable_protobuf && (is_linux || is_mac)
  }
  
@@ -1410,7 +1410,7 @@ index 47e12e6c36..22248034f7 100644
  # Make it possible to provide custom locations for some libraries (move these
  # up into declare_args should we need to actually use them for the GN build).
  rtc_libvpx_dir = "//third_party/libvpx"
-@@ -1204,7 +1214,7 @@ if (is_mac || is_ios) {
+@@ -1199,7 +1209,7 @@ if (is_mac || is_ios) {
    }
  }
  
