@@ -746,8 +746,8 @@ class HomeScreenRobot {
             composeTestRule.onNodeWithTag(NavBarTestTags.menuButton).performClick()
             Log.i(TAG, "openThreeDotMenuFromRedesignedToolbar: Clicked main menu button")
 
-            RedesignedMainMenuRobot(composeTestRule).interact()
-            return RedesignedMainMenuRobot.Transition(composeTestRule)
+            RedesignedMainMenuRobot().interact()
+            return RedesignedMainMenuRobot.Transition()
         }
 
         fun openSearch(interact: SearchRobot.() -> Unit): SearchRobot.Transition {

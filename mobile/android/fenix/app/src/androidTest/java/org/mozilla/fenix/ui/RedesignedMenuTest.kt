@@ -15,9 +15,13 @@ import org.mozilla.fenix.customannotations.SmokeTest
 import org.mozilla.fenix.helpers.DataGenerationHelper.createCustomTabIntent
 import org.mozilla.fenix.helpers.HomeActivityIntentTestRule
 import org.mozilla.fenix.helpers.TestAssetHelper
+import org.mozilla.fenix.helpers.TestHelper
+import org.mozilla.fenix.helpers.TestHelper.mDevice
 import org.mozilla.fenix.helpers.TestSetup
+import org.mozilla.fenix.ui.robots.browserScreen
 import org.mozilla.fenix.ui.robots.customTabScreen
 import org.mozilla.fenix.ui.robots.homeScreen
+import org.mozilla.fenix.ui.robots.navigationToolbar
 
 class RedesignedMenuTest : TestSetup() {
     @get:Rule
@@ -40,13 +44,183 @@ class RedesignedMenuTest : TestSetup() {
         false,
     )
 
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2763136
     @SmokeTest
     @Test
     fun homepageRedesignedMenuItemsTest() {
         homeScreen {
         }.openThreeDotMenuFromRedesignedToolbar(composeTestRule) {
-            expandRedesignedMenu()
-            verifyHomeRedesignedMainMenuItems()
+            expandRedesignedMenu(composeTestRule)
+            verifyHomeRedesignedMainMenuItems(composeTestRule)
+        }
+    }
+
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2769372
+    @SmokeTest
+    @Test
+    fun webpageRedesignedMenuItemsTest() {
+        val testPage = TestAssetHelper.getGenericAsset(mockWebServer, 1)
+
+        navigationToolbar {
+        }.enterURLAndEnterToBrowser(testPage.url) {
+        }.openThreeDotMenuFromRedesignedToolbar {
+            expandRedesignedMenu(composeTestRule)
+            verifyPageMainMenuItems(composeTestRule)
+        }
+    }
+
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2769377
+    @SmokeTest
+    @Test
+    fun verifyTheNewTabButtonTest() {
+        val testPage = TestAssetHelper.getGenericAsset(mockWebServer, 1)
+
+        navigationToolbar {
+        }.enterURLAndEnterToBrowser(testPage.url) {
+        }.openThreeDotMenuFromRedesignedToolbar {
+        }.clickNewTabButton(composeTestRule) {
+            verifySearchToolbar(isDisplayed = true)
+        }.dismissSearchBar {
+            verifyIfInPrivateOrNormalMode(privateBrowsingEnabled = false)
+        }
+    }
+
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2769378
+    @SmokeTest
+    @Test
+    fun verifyTheNewPrivateTabButtonTest() {
+        val testPage = TestAssetHelper.getGenericAsset(mockWebServer, 1)
+
+        navigationToolbar {
+        }.enterURLAndEnterToBrowser(testPage.url) {
+        }.openThreeDotMenuFromRedesignedToolbar {
+        }.clickNewPrivateTabButton(composeTestRule) {
+            verifySearchToolbar(isDisplayed = true)
+        }.dismissSearchBar {
+            verifyIfInPrivateOrNormalMode(privateBrowsingEnabled = true)
+        }
+    }
+
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2766734
+    @SmokeTest
+    @Test
+    fun verifySwitchToDesktopSiteIsDisabledOnPDFsTest() {
+        val pdfPage = TestAssetHelper.getPdfFormAsset(mockWebServer)
+
+        navigationToolbar {
+        }.enterURLAndEnterToBrowser(pdfPage.url) {
+            verifyPageContent(pdfPage.content)
+        }.openThreeDotMenuFromRedesignedToolbar {
+            verifySwitchToDesktopSiteButtonIsEnabled(composeTestRule, isEnabled = false)
+        }
+    }
+
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2698232
+    @SmokeTest
+    @Test
+    fun findInPageTest() {
+        val testPage = TestAssetHelper.getGenericAsset(mockWebServer, 3)
+
+        navigationToolbar {
+        }.enterURLAndEnterToBrowser(testPage.url) {
+            mDevice.waitForIdle()
+        }.openThreeDotMenuFromRedesignedToolbar {
+        }.clickFindInPageButton(composeTestRule) {
+            verifyFindInPageNextButton()
+            verifyFindInPagePrevButton()
+            verifyFindInPageCloseButton()
+            enterFindInPageQuery("a")
+            verifyFindInPageResult("1/3")
+            clickFindInPageNextButton()
+            verifyFindInPageResult("2/3")
+            clickFindInPageNextButton()
+            verifyFindInPageResult("3/3")
+            clickFindInPagePrevButton()
+            verifyFindInPageResult("2/3")
+            clickFindInPagePrevButton()
+            verifyFindInPageResult("1/3")
+        }.closeFindInPageWithCloseButton {
+            verifyFindInPageBar(false)
+        }.openThreeDotMenuFromRedesignedToolbar {
+        }.clickFindInPageButton(composeTestRule) {
+            enterFindInPageQuery("3")
+            verifyFindInPageResult("1/1")
+        }.closeFindInPageWithBackButton {
+            verifyFindInPageBar(false)
+        }
+    }
+
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2769380
+    @SmokeTest
+    @Test
+    fun verifyBookmarksMenuButtonTest() {
+        val testPage = TestAssetHelper.getGenericAsset(mockWebServer, 1)
+
+        navigationToolbar {
+        }.enterURLAndEnterToBrowser(testPage.url) {
+        }.openThreeDotMenuFromRedesignedToolbar {
+            expandRedesignedMenu(composeTestRule)
+        }.openBookmarks(composeTestRule) {
+            verifyBookmarksMenuView()
+        }.goBackToBrowserScreen {
+            verifyPageContent(testPage.content)
+        }
+    }
+
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2769381
+    @SmokeTest
+    @Test
+    fun verifyHistoryMenuButtonTest() {
+        val testPage = TestAssetHelper.getGenericAsset(mockWebServer, 1)
+
+        navigationToolbar {
+        }.enterURLAndEnterToBrowser(testPage.url) {
+        }.openThreeDotMenuFromRedesignedToolbar {
+            expandRedesignedMenu(composeTestRule)
+        }.openHistory(composeTestRule) {
+            verifyHistoryMenuView()
+        }.goBack {
+            verifyPageContent(testPage.content)
+        }
+    }
+
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2769382
+    @SmokeTest
+    @Test
+    fun verifyDownloadsMenuButtonTest() {
+        val testPage = TestAssetHelper.getGenericAsset(mockWebServer, 1)
+
+        navigationToolbar {
+        }.enterURLAndEnterToBrowser(testPage.url) {
+        }.openThreeDotMenuFromRedesignedToolbar {
+            expandRedesignedMenu(composeTestRule)
+        }.openDownloads(composeTestRule) {
+            verifyEmptyDownloadsList(composeTestRule)
+            TestHelper.exitMenu()
+        }
+        browserScreen {
+            verifyPageContent(testPage.content)
+        }
+    }
+
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2769383
+    @SmokeTest
+    @Test
+    fun verifyPasswordsMenuButtonTest() {
+        val testPage = TestAssetHelper.getGenericAsset(mockWebServer, 1)
+
+        navigationToolbar {
+        }.enterURLAndEnterToBrowser(testPage.url) {
+        }.openThreeDotMenuFromRedesignedToolbar {
+            expandRedesignedMenu(composeTestRule)
+        }.openPasswords(composeTestRule) {
+            verifySecurityPromptForLogins()
+            tapSetupLater()
+            verifyEmptySavedLoginsListView()
+            TestHelper.exitMenu()
+        }
+        browserScreen {
+            verifyPageContent(testPage.content)
         }
     }
 

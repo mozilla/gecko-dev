@@ -1114,6 +1114,15 @@ class BrowserRobot {
             return ThreeDotMenuMainRobot.Transition()
         }
 
+        fun openThreeDotMenuFromRedesignedToolbar(interact: RedesignedMainMenuRobot.() -> Unit): RedesignedMainMenuRobot.Transition {
+            Log.i(TAG, "openThreeDotMenuFromRedesignedToolbar: Trying to click main menu button")
+            itemWithDescription(getStringResource(R.string.content_description_menu)).click()
+            Log.i(TAG, "openThreeDotMenuFromRedesignedToolbar: Clicked main menu button")
+
+            RedesignedMainMenuRobot().interact()
+            return RedesignedMainMenuRobot.Transition()
+        }
+
         fun openNavigationToolbar(interact: NavigationToolbarRobot.() -> Unit): NavigationToolbarRobot.Transition {
             clickPageObject(navURLBar())
             Log.i(TAG, "openNavigationToolbar: Waiting for $waitingTime ms for for search bar to exist")
