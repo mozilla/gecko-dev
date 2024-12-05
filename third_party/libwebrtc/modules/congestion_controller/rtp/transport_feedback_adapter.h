@@ -11,9 +11,7 @@
 #ifndef MODULES_CONGESTION_CONTROLLER_RTP_TRANSPORT_FEEDBACK_ADAPTER_H_
 #define MODULES_CONGESTION_CONTROLLER_RTP_TRANSPORT_FEEDBACK_ADAPTER_H_
 
-#include <deque>
 #include <map>
-#include <utility>
 #include <vector>
 
 #include "api/sequence_checker.h"
@@ -23,7 +21,6 @@
 #include "rtc_base/network/sent_packet.h"
 #include "rtc_base/network_route.h"
 #include "rtc_base/numerics/sequence_number_unwrapper.h"
-#include "rtc_base/thread_annotations.h"
 
 namespace webrtc {
 
@@ -39,6 +36,9 @@ struct PacketFeedback {
 
   // The network route that this packet is associated with.
   rtc::NetworkRoute network_route;
+
+  uint32_t ssrc = 0;
+  uint16_t rtp_sequence_number = 0;
 };
 
 class InFlightBytesTracker {
@@ -59,7 +59,8 @@ class TransportFeedbackAdapter {
  public:
   TransportFeedbackAdapter();
 
-  void AddPacket(const RtpPacketSendInfo& packet_info,
+  void AddPacket(const RtpPacketToSend& packet,
+                 const PacedPacketInfo& pacing_info,
                  size_t overhead_bytes,
                  Timestamp creation_time);
   std::optional<SentPacket> ProcessSentPacket(
@@ -80,10 +81,17 @@ class TransportFeedbackAdapter {
       const rtcp::TransportFeedback& feedback,
       Timestamp feedback_receive_time);
 
+  std::optional<PacketFeedback> RetrievePacketFeedback(int64_t seq_num,
+                                                       bool received);
+  std::optional<TransportPacketsFeedback> ToTransportFeedback(
+      std::vector<PacketResult> packet_results,
+      Timestamp feedback_receive_time);
+
   DataSize pending_untracked_size_ = DataSize::Zero();
   Timestamp last_send_time_ = Timestamp::MinusInfinity();
   Timestamp last_untracked_send_time_ = Timestamp::MinusInfinity();
   RtpSequenceNumberUnwrapper seq_num_unwrapper_;
+
   std::map<int64_t, PacketFeedback> history_;
 
   // Sequence numbers are never negative, using -1 as it always < a real

@@ -618,13 +618,19 @@ void RtpTransportControllerSend::NotifyBweOfPacedSentPacket(
     RTC_DCHECK_NOTREACHED() << "Unknown packet type";
     return;
   }
-
-  RtpPacketSendInfo packet_info = RtpPacketSendInfo::From(packet, pacing_info);
+  if (packet.HasExtension<TransportSequenceNumber>()) {
+    // TODO: bugs.webrtc.org/42225697 - Refactor TransportFeedbackDemuxer to use
+    // TransportPacketsFeedback instead of directly using
+    // rtcp::TransportFeedback. For now, only use it if TransportSeqeunce number
+    // header extension is used.
+    RtpPacketSendInfo packet_info =
+        RtpPacketSendInfo::From(packet, pacing_info);
+    feedback_demuxer_.AddPacket(packet_info);
+  }
   Timestamp creation_time =
       Timestamp::Millis(env_.clock().TimeInMilliseconds());
-  feedback_demuxer_.AddPacket(packet_info);
   transport_feedback_adapter_.AddPacket(
-      packet_info, transport_overhead_bytes_per_packet_, creation_time);
+      packet, pacing_info, transport_overhead_bytes_per_packet_, creation_time);
 }
 
 void RtpTransportControllerSend::OnTransportFeedback(

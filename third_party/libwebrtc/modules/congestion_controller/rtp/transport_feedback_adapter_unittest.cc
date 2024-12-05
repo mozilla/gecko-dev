@@ -10,14 +10,17 @@
 
 #include "modules/congestion_controller/rtp/transport_feedback_adapter.h"
 
+#include <cstdint>
 #include <limits>
 #include <memory>
+#include <optional>
 #include <vector>
 
+#include "api/transport/network_types.h"
 #include "modules/rtp_rtcp/include/rtp_rtcp_defines.h"
 #include "modules/rtp_rtcp/source/rtcp_packet/transport_feedback.h"
+#include "modules/rtp_rtcp/source/rtp_packet_to_send.h"
 #include "rtc_base/checks.h"
-#include "rtc_base/numerics/safe_conversions.h"
 #include "system_wrappers/include/clock.h"
 #include "test/field_trial.h"
 #include "test/gmock.h"
@@ -26,6 +29,9 @@
 namespace webrtc {
 
 namespace {
+
+using ::testing::SizeIs;
+
 constexpr uint32_t kSsrc = 8492;
 const PacedPacketInfo kPacingInfo0(0, 5, 2000);
 const PacedPacketInfo kPacingInfo1(1, 8, 4000);
@@ -57,6 +63,7 @@ void ComparePacketFeedbackVectors(const std::vector<PacketResult>& truth,
     EXPECT_EQ(truth[i].sent_packet.size, input[i].sent_packet.size);
     EXPECT_EQ(truth[i].sent_packet.pacing_info,
               input[i].sent_packet.pacing_info);
+    EXPECT_EQ(truth[i].sent_packet.audio, input[i].sent_packet.audio);
   }
 }
 
@@ -72,6 +79,22 @@ PacketResult CreatePacket(int64_t receive_time_ms,
   res.sent_packet.size = DataSize::Bytes(payload_size);
   res.sent_packet.pacing_info = pacing_info;
   return res;
+}
+
+RtpPacketToSend CreatePacketToSend(const PacketResult& packet,
+                                   uint32_t ssrc,
+                                   uint16_t rtp_sequence_number) {
+  RtpPacketToSend send_packet(nullptr);
+  send_packet.SetSsrc(ssrc);
+  send_packet.SetPayloadSize(packet.sent_packet.size.bytes() -
+                             send_packet.headers_size());
+  send_packet.SetSequenceNumber(rtp_sequence_number);
+  send_packet.set_transport_sequence_number(packet.sent_packet.sequence_number);
+  send_packet.set_packet_type(packet.sent_packet.audio
+                                  ? RtpPacketMediaType::kAudio
+                                  : RtpPacketMediaType::kVideo);
+
+  return send_packet;
 }
 
 class MockStreamFeedbackObserver : public webrtc::StreamFeedbackObserver {
@@ -96,16 +119,10 @@ class TransportFeedbackAdapterTest : public ::testing::Test {
 
  protected:
   void OnSentPacket(const PacketResult& packet_feedback) {
-    RtpPacketSendInfo packet_info;
-    packet_info.media_ssrc = kSsrc;
-    packet_info.transport_sequence_number =
-        packet_feedback.sent_packet.sequence_number;
-    packet_info.rtp_sequence_number = 0;
-    packet_info.length = packet_feedback.sent_packet.size.bytes();
-    packet_info.pacing_info = packet_feedback.sent_packet.pacing_info;
-    packet_info.packet_type = RtpPacketMediaType::kVideo;
-    adapter_->AddPacket(RtpPacketSendInfo(packet_info), 0u,
-                        clock_.CurrentTime());
+    RtpPacketToSend packet_to_send =
+        CreatePacketToSend(packet_feedback, kSsrc, /*rtp_sequence_number=*/0);
+    adapter_->AddPacket(packet_to_send, packet_feedback.sent_packet.pacing_info,
+                        0u, clock_.CurrentTime());
     adapter_->ProcessSentPacket(rtc::SentPacket(
         packet_feedback.sent_packet.sequence_number,
         packet_feedback.sent_packet.send_time.ms(), rtc::PacketInfo()));
@@ -213,6 +230,22 @@ TEST_F(TransportFeedbackAdapterTest, HandlesDroppedPackets) {
 
   auto res = adapter_->ProcessTransportFeedback(feedback, clock_.CurrentTime());
   ComparePacketFeedbackVectors(expected_packets, res->packet_feedbacks);
+}
+
+TEST_F(TransportFeedbackAdapterTest, FeedbackReportsIfPacketIsAudio) {
+  PacketResult packet = CreatePacket(100, 200, 0, 1500, kPacingInfo0);
+  packet.sent_packet.audio = true;
+  OnSentPacket(packet);
+
+  rtcp::TransportFeedback feedback;
+  feedback.SetBase(packet.sent_packet.sequence_number, packet.receive_time);
+  feedback.AddReceivedPacket(packet.sent_packet.sequence_number,
+                             packet.receive_time);
+  feedback.Build();
+
+  auto res = adapter_->ProcessTransportFeedback(feedback, clock_.CurrentTime());
+  ASSERT_THAT(res->packet_feedbacks, SizeIs(1));
+  EXPECT_TRUE(res->packet_feedbacks[0].sent_packet.audio);
 }
 
 TEST_F(TransportFeedbackAdapterTest, SendTimeWrapsBothWays) {
@@ -374,15 +407,11 @@ TEST_F(TransportFeedbackAdapterTest, TimestampDeltas) {
 
 TEST_F(TransportFeedbackAdapterTest, IgnoreDuplicatePacketSentCalls) {
   auto packet = CreatePacket(100, 200, 0, 1500, kPacingInfo0);
-
+  RtpPacketToSend packet_to_send =
+      CreatePacketToSend(packet, kSsrc, /*rtp_sequence_number=*/0);
   // Add a packet and then mark it as sent.
-  RtpPacketSendInfo packet_info;
-  packet_info.media_ssrc = kSsrc;
-  packet_info.transport_sequence_number = packet.sent_packet.sequence_number;
-  packet_info.length = packet.sent_packet.size.bytes();
-  packet_info.pacing_info = packet.sent_packet.pacing_info;
-  packet_info.packet_type = RtpPacketMediaType::kVideo;
-  adapter_->AddPacket(packet_info, 0u, clock_.CurrentTime());
+  adapter_->AddPacket(packet_to_send, packet.sent_packet.pacing_info, 0u,
+                      clock_.CurrentTime());
   std::optional<SentPacket> sent_packet = adapter_->ProcessSentPacket(
       rtc::SentPacket(packet.sent_packet.sequence_number,
                       packet.sent_packet.send_time.ms(), rtc::PacketInfo()));

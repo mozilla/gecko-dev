@@ -63,6 +63,7 @@
 #include "modules/rtp_rtcp/source/rtcp_packet/transport_feedback.h"
 #include "modules/rtp_rtcp/source/rtp_header_extensions.h"
 #include "modules/rtp_rtcp/source/rtp_packet_received.h"
+#include "modules/rtp_rtcp/source/rtp_packet_to_send.h"
 #include "rtc_base/checks.h"
 #include "rtc_base/logging.h"
 #include "rtc_base/network/sent_packet.h"
@@ -1744,26 +1745,28 @@ void EventLogAnalyzer::CreateSendSideBweSimulationGraph(Plot* plot) {
       RTC_DCHECK_EQ(clock.TimeInMicroseconds(), NextRtpTime());
       const RtpPacketType& rtp_packet = *rtp_iterator->second;
       if (rtp_packet.rtp.header.extension.hasTransportSequenceNumber) {
-        RtpPacketSendInfo packet_info;
-        packet_info.media_ssrc = rtp_packet.rtp.header.ssrc;
-        packet_info.transport_sequence_number =
-            rtp_packet.rtp.header.extension.transportSequenceNumber;
-        packet_info.rtp_sequence_number = rtp_packet.rtp.header.sequenceNumber;
-        packet_info.length = rtp_packet.rtp.total_length;
+        RtpPacketToSend send_packet(/*extensions=*/nullptr);
+        send_packet.set_transport_sequence_number(
+            rtp_packet.rtp.header.extension.transportSequenceNumber);
+        send_packet.SetSsrc(rtp_packet.rtp.header.ssrc);
+        send_packet.SetSequenceNumber(rtp_packet.rtp.header.sequenceNumber);
+        send_packet.SetPayloadSize(rtp_packet.rtp.total_length -
+                                   send_packet.headers_size());
+        RTC_DCHECK_EQ(send_packet.size(), rtp_packet.rtp.total_length);
         if (IsRtxSsrc(parsed_log_, PacketDirection::kOutgoingPacket,
                       rtp_packet.rtp.header.ssrc)) {
           // Don't set the optional media type as we don't know if it is
           // a retransmission, FEC or padding.
         } else if (IsVideoSsrc(parsed_log_, PacketDirection::kOutgoingPacket,
                                rtp_packet.rtp.header.ssrc)) {
-          packet_info.packet_type = RtpPacketMediaType::kVideo;
+          send_packet.set_packet_type(RtpPacketMediaType::kVideo);
         } else if (IsAudioSsrc(parsed_log_, PacketDirection::kOutgoingPacket,
                                rtp_packet.rtp.header.ssrc)) {
-          packet_info.packet_type = RtpPacketMediaType::kAudio;
+          send_packet.set_packet_type(RtpPacketMediaType::kAudio);
         }
         transport_feedback.AddPacket(
-            packet_info,
-            0u,  // Per packet overhead bytes.
+            send_packet, PacedPacketInfo(),
+            0u,  // Per packet overhead bytes.,
             Timestamp::Micros(rtp_packet.rtp.log_time_us()));
       }
       rtc::SentPacket sent_packet;

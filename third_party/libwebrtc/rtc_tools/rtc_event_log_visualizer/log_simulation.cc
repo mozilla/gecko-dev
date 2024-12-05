@@ -10,6 +10,7 @@
 #include "rtc_tools/rtc_event_log_visualizer/log_simulation.h"
 
 #include <algorithm>
+#include <cstddef>
 #include <cstdint>
 #include <functional>
 #include <memory>
@@ -28,6 +29,7 @@
 #include "logging/rtc_event_log/rtc_event_processor.h"
 #include "modules/rtp_rtcp/include/rtp_rtcp_defines.h"
 #include "modules/rtp_rtcp/source/ntp_time_util.h"
+#include "modules/rtp_rtcp/source/rtp_packet_to_send.h"
 #include "rtc_base/network/sent_packet.h"
 #include "system_wrappers/include/clock.h"
 
@@ -97,13 +99,13 @@ void LogBasedNetworkControllerSimulation::OnPacketSent(
       }
     }
 
-    RtpPacketSendInfo packet_info;
-    packet_info.media_ssrc = packet.ssrc;
-    packet_info.transport_sequence_number = packet.transport_seq_no;
-    packet_info.rtp_sequence_number = packet.stream_seq_no;
-    packet_info.length = packet.size;
-    packet_info.pacing_info = probe_info;
-    transport_feedback_.AddPacket(packet_info, packet.overhead,
+    RtpPacketToSend send_packet(/*extensions=*/nullptr);
+    send_packet.set_transport_sequence_number(packet.transport_seq_no);
+    send_packet.SetSsrc(packet.ssrc);
+    send_packet.SetSequenceNumber(packet.transport_seq_no);
+    send_packet.SetPayloadSize(packet.size - send_packet.headers_size());
+    RTC_DCHECK_EQ(send_packet.size(), packet.size);
+    transport_feedback_.AddPacket(send_packet, probe_info, packet.overhead,
                                   packet.log_packet_time);
   }
   rtc::SentPacket sent_packet;
