@@ -276,6 +276,10 @@ features:
         description: The maximum amount of time in milliseconds the splashscreen will be visible while waiting for initialization calls to complete.
         type: Int
         default: 0
+      off-train-onboarding:
+        description: "If true, the fetched data will be applied and used during the session."
+        type: Boolean
+        default: false
 
   alternative-app-launcher-icon:
     description: A feature that changes the app launcher icon background color.
