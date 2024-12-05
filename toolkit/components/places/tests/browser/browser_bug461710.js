@@ -2,7 +2,7 @@ const kRed = "rgb(255, 0, 0)";
 const kBlue = "rgb(0, 0, 255)";
 
 const prefix =
-  "http://example.com/tests/toolkit/components/places/tests/browser/461710_";
+  "https://example.com/tests/toolkit/components/places/tests/browser/461710_";
 
 add_task(async function () {
   registerCleanupFunction(PlacesUtils.history.clear);

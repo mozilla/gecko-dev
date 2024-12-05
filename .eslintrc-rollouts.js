@@ -1846,7 +1846,6 @@ const rollouts = [
       "toolkit/components/pdfjs/test/browser_pdfjs_views.js",
       "toolkit/components/pdfjs/test/browser_pdfjs_zoom.js",
       "toolkit/components/pictureinpicture/tests/head.js",
-      "toolkit/components/places/tests/browser/redirect_once.sjs",
       "toolkit/components/printing/tests/head.js",
       "toolkit/components/processtools/tests/browser/browser_test_procinfo.js",
       "toolkit/components/prompts/test/test_modal_prompts.html",

@@ -1,5 +1,5 @@
 const PREFIX =
-  "http://example.com/tests/toolkit/components/places/tests/browser/1601563";
+  "https://example.com/tests/toolkit/components/places/tests/browser/1601563";
 
 function titleUpdate(pageUrl) {
   let lastTitle = null;

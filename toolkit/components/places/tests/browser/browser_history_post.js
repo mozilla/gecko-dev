@@ -1,7 +1,7 @@
 const PAGE_URI =
-  "http://example.com/tests/toolkit/components/places/tests/browser/history_post.html";
+  "https://example.com/tests/toolkit/components/places/tests/browser/history_post.html";
 const SJS_URI = NetUtil.newURI(
-  "http://example.com/tests/toolkit/components/places/tests/browser/history_post.sjs"
+  "https://example.com/tests/toolkit/components/places/tests/browser/history_post.sjs"
 );
 
 add_task(async function () {

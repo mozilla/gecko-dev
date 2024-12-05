@@ -7,7 +7,7 @@ function handleRequest(request, response) {
   response.setStatusLine("1.1", 301, "Found");
   response.setHeader(
     "Location",
-    "http://test1.example.com/tests/toolkit/components/places/tests/browser/final.html",
+    "https://test1.example.com/tests/toolkit/components/places/tests/browser/final.html",
     false
   );
 }

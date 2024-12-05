@@ -10,7 +10,7 @@
 add_task(async function () {
   let tab = await BrowserTestUtils.openNewForegroundTab(
     gBrowser,
-    "http://example.com"
+    "https://example.com"
   );
 
   const newTitlePromise = PlacesTestUtils.waitForNotification(

@@ -16,10 +16,10 @@ add_task(async function test_basic() {
   // Part 1: observe history events that fire when a visit occurs.
   // Make sure visits appear in order, and that the visit chain is correct.
   const expectedUrls = [
-    "http://example.com/tests/toolkit/components/places/tests/browser/begin.html",
-    "http://example.com/tests/toolkit/components/places/tests/browser/redirect_twice.sjs",
-    "http://example.com/tests/toolkit/components/places/tests/browser/redirect_once.sjs",
-    "http://test1.example.com/tests/toolkit/components/places/tests/browser/final.html",
+    "https://example.com/tests/toolkit/components/places/tests/browser/begin.html",
+    "https://example.com/tests/toolkit/components/places/tests/browser/redirect_twice.sjs",
+    "https://example.com/tests/toolkit/components/places/tests/browser/redirect_once.sjs",
+    "https://test1.example.com/tests/toolkit/components/places/tests/browser/final.html",
   ];
 
   let currentIndex = 0;
@@ -75,7 +75,7 @@ add_task(async function test_basic() {
   );
 
   const testUrl =
-    "http://example.com/tests/toolkit/components/places/tests/browser/begin.html";
+    "https://example.com/tests/toolkit/components/places/tests/browser/begin.html";
   await BrowserTestUtils.openNewForegroundTab(gBrowser, testUrl);
 
   // Load begin page, click link on page to record visits.

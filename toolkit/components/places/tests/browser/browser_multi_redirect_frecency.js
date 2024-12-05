@@ -2,14 +2,14 @@
  * http://creativecommons.org/publicdomain/zero/1.0/ */
 
 const ROOT_URI =
-  "http://mochi.test:8888/tests/toolkit/components/places/tests/browser/";
+  "https://example.org/tests/toolkit/components/places/tests/browser/";
 const REDIRECT_URI = Services.io.newURI(ROOT_URI + "redirect_thrice.sjs");
 const INTERMEDIATE_URI_1 = Services.io.newURI(
   ROOT_URI + "redirect_twice_perma.sjs"
 );
 const INTERMEDIATE_URI_2 = Services.io.newURI(ROOT_URI + "redirect_once.sjs");
 const TARGET_URI = Services.io.newURI(
-  "http://test1.example.com/tests/toolkit/components/places/tests/browser/final.html"
+  "https://test1.example.com/tests/toolkit/components/places/tests/browser/final.html"
 );
 
 const REDIRECT_SOURCE_VISIT_BONUS = Services.prefs.getIntPref(

@@ -23,11 +23,11 @@ add_task(async function () {
     PlacesTestUtils.waitForNotification("page-title-changed");
 
   const url1 =
-    "http://example.com/tests/toolkit/components/places/tests/browser/title1.html";
+    "https://example.com/tests/toolkit/components/places/tests/browser/title1.html";
   await BrowserTestUtils.openNewForegroundTab(gBrowser, url1);
 
   const url2 =
-    "http://example.com/tests/toolkit/components/places/tests/browser/title2.html";
+    "https://example.com/tests/toolkit/components/places/tests/browser/title2.html";
   let loadPromise = BrowserTestUtils.browserLoaded(gBrowser.selectedBrowser);
   BrowserTestUtils.startLoadingURIString(gBrowser.selectedBrowser, url2);
   await loadPromise;
@@ -35,7 +35,7 @@ add_task(async function () {
   const events = await titleChangedPromise;
   is(
     events[0].url,
-    "http://example.com/tests/toolkit/components/places/tests/browser/title2.html"
+    "https://example.com/tests/toolkit/components/places/tests/browser/title2.html"
   );
   is(events[0].title, "Some title");
   is(events[0].pageGuid, getColumn("moz_places", "guid", events[0].url));

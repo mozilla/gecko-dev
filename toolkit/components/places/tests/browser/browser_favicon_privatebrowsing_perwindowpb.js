@@ -6,7 +6,7 @@ function test() {
   waitForExplicitFinish();
 
   const pageURI =
-    "http://example.org/tests/toolkit/components/places/tests/browser/favicon.html";
+    "https://example.org/tests/toolkit/components/places/tests/browser/favicon.html";
   let windowsToClose = [];
 
   registerCleanupFunction(function () {
