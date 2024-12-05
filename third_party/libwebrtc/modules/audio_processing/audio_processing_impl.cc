@@ -1579,8 +1579,8 @@ int AudioProcessingImpl::ProcessReverseStream(const float* const* src,
 
 int AudioProcessingImpl::AnalyzeReverseStreamLocked(
     const float* const* src,
-    const StreamConfig& input_config,
-    const StreamConfig& output_config) {
+    const StreamConfig& /* input_config */,
+    const StreamConfig& /* output_config */) {
   if (aec_dump_) {
     const size_t channel_size =
         formats_.api_format.reverse_input_stream().num_frames();

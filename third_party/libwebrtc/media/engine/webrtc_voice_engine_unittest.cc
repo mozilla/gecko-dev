@@ -239,11 +239,11 @@ TEST(WebRtcVoiceEngineTestStubLibrary, StartupShutdown) {
 
 class FakeAudioSink : public webrtc::AudioSinkInterface {
  public:
-  void OnData(const Data& audio) override {}
+  void OnData(const Data& /* audio */) override {}
 };
 
 class FakeAudioSource : public cricket::AudioSource {
-  void SetSink(Sink* sink) override {}
+  void SetSink(Sink* /* sink */) override {}
 };
 
 class WebRtcVoiceEngineTestFake : public ::testing::TestWithParam<bool> {
@@ -714,7 +714,7 @@ class WebRtcVoiceEngineTestFake : public ::testing::TestWithParam<bool> {
     }
   }
   void VerifyVoiceSenderInfo(const cricket::VoiceSenderInfo& info,
-                             bool is_sending) {
+                             bool /* is_sending */) {
     const auto stats = GetAudioSendStreamStats();
     EXPECT_EQ(info.ssrc(), stats.local_ssrc);
     EXPECT_EQ(info.payload_bytes_sent, stats.payload_bytes_sent);

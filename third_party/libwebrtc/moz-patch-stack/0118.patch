@@ -72,7 +72,7 @@ index c44ec6a9e8..51785a4085 100644
  
    rtc::scoped_refptr<FullScreenWindowDetector> full_screen_window_detector_;
 diff --git a/modules/desktop_capture/desktop_capturer.cc b/modules/desktop_capture/desktop_capturer.cc
-index a52a76c262..02f11b3867 100644
+index 7fd0fc31d8..45c13751aa 100644
 --- a/modules/desktop_capture/desktop_capturer.cc
 +++ b/modules/desktop_capture/desktop_capturer.cc
 @@ -30,6 +30,10 @@
@@ -254,7 +254,7 @@ index 105cbf0783..eb3a370eed 100644
  
  #endif  // MODULES_DESKTOP_CAPTURE_MAC_SCREEN_CAPTURER_SCK_H_
 diff --git a/modules/desktop_capture/mac/screen_capturer_sck.mm b/modules/desktop_capture/mac/screen_capturer_sck.mm
-index af1a4e360b..b92399e6b6 100644
+index 70284cb7e7..28831d5cc5 100644
 --- a/modules/desktop_capture/mac/screen_capturer_sck.mm
 +++ b/modules/desktop_capture/mac/screen_capturer_sck.mm
 @@ -20,11 +20,13 @@

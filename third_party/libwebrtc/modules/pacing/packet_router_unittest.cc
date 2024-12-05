@@ -118,7 +118,7 @@ TEST_F(PacketRouterTest, GeneratePaddingPrioritizesRtx) {
   const size_t kExpectedPaddingPackets = 1;
   EXPECT_CALL(rtp_1, GeneratePadding(_)).Times(0);
   EXPECT_CALL(rtp_2, GeneratePadding(kPaddingSize))
-      .WillOnce([&](size_t padding_size) {
+      .WillOnce([&](size_t /* padding_size */) {
         return std::vector<std::unique_ptr<RtpPacketToSend>>(
             kExpectedPaddingPackets);
       });
@@ -163,7 +163,7 @@ TEST_F(PacketRouterTest, GeneratePaddingPrioritizesVideo) {
   const size_t kPaddingSize = 123;
   const size_t kExpectedPaddingPackets = 1;
 
-  auto generate_padding = [&](size_t padding_size) {
+  auto generate_padding = [&](size_t /* padding_size */) {
     return std::vector<std::unique_ptr<RtpPacketToSend>>(
         kExpectedPaddingPackets);
   };
@@ -267,7 +267,7 @@ TEST_F(PacketRouterTest, PadsOnLastActiveMediaStream) {
   // and supports rtx.
   EXPECT_CALL(rtp_2, GeneratePadding(kPaddingBytes))
       .Times(1)
-      .WillOnce([&](size_t target_size_bytes) {
+      .WillOnce([&](size_t /* target_size_bytes */) {
         std::vector<std::unique_ptr<RtpPacketToSend>> packets;
         packets.push_back(BuildRtpPacket(kSsrc2));
         return packets;
@@ -279,7 +279,7 @@ TEST_F(PacketRouterTest, PadsOnLastActiveMediaStream) {
 
   EXPECT_CALL(rtp_1, GeneratePadding(kPaddingBytes))
       .Times(1)
-      .WillOnce([&](size_t target_size_bytes) {
+      .WillOnce([&](size_t /* target_size_bytes */) {
         std::vector<std::unique_ptr<RtpPacketToSend>> packets;
         packets.push_back(BuildRtpPacket(kSsrc1));
         return packets;

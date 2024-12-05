@@ -369,11 +369,11 @@ class MockAudioTransport : public test::MockAudioTransport {
                                       const size_t bytes_per_frame,
                                       const size_t channels,
                                       const uint32_t sample_rate,
-                                      const uint32_t total_delay_ms,
-                                      const int32_t clock_drift,
-                                      const uint32_t current_mic_level,
-                                      const bool typing_status,
-                                      uint32_t& new_mic_level) {
+                                      const uint32_t /* total_delay_ms */,
+                                      const int32_t /* clock_drift */,
+                                      const uint32_t /* current_mic_level */,
+                                      const bool /* typing_status */,
+                                      uint32_t& /* new_mic_level */) {
     EXPECT_TRUE(rec_mode()) << "No test is expecting these callbacks.";
     // Store audio parameters once in the first callback. For all other
     // callbacks, verify that the provided audio parameters are maintained and
@@ -412,8 +412,8 @@ class MockAudioTransport : public test::MockAudioTransport {
                                const uint32_t sample_rate,
                                void* audio_buffer,
                                size_t& samples_out,
-                               int64_t* elapsed_time_ms,
-                               int64_t* ntp_time_ms) {
+                               int64_t* /* elapsed_time_ms */,
+                               int64_t* /* ntp_time_ms */) {
     EXPECT_TRUE(play_mode()) << "No test is expecting these callbacks.";
     // Store audio parameters once in the first callback. For all other
     // callbacks, verify that the provided audio parameters are maintained and

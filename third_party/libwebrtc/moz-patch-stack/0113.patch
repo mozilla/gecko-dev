@@ -13,7 +13,7 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/fdf5b0a81b0c0e87d
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/modules/desktop_capture/desktop_capturer.h b/modules/desktop_capture/desktop_capturer.h
-index 2c9c419bcd..29e05938dc 100644
+index 60c04723d6..fb3cc94f74 100644
 --- a/modules/desktop_capture/desktop_capturer.h
 +++ b/modules/desktop_capture/desktop_capturer.h
 @@ -82,7 +82,7 @@ class RTC_EXPORT DesktopCapturer {

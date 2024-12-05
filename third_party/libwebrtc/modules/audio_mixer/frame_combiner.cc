@@ -39,7 +39,7 @@ namespace {
 void SetAudioFrameFields(rtc::ArrayView<const AudioFrame* const> mix_list,
                          size_t number_of_channels,
                          int sample_rate,
-                         size_t number_of_streams,
+                         size_t /* number_of_streams */,
                          AudioFrame* audio_frame_for_mixing) {
   const size_t samples_per_channel =
       SampleRateToDefaultChannelSize(sample_rate);

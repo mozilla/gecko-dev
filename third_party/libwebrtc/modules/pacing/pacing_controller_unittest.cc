@@ -106,7 +106,7 @@ class MediaStream {
 class MockPacingControllerCallback : public PacingController::PacketSender {
  public:
   void SendPacket(std::unique_ptr<RtpPacketToSend> packet,
-                  const PacedPacketInfo& cluster_info) override {
+                  const PacedPacketInfo& /* cluster_info */) override {
     SendPacket(packet->Ssrc(), packet->SequenceNumber(),
                packet->capture_time().ms(),
                packet->packet_type() == RtpPacketMediaType::kRetransmission,
@@ -184,7 +184,7 @@ class PacingControllerPadding : public PacingController::PacketSender {
   PacingControllerPadding() : padding_sent_(0), total_bytes_sent_(0) {}
 
   void SendPacket(std::unique_ptr<RtpPacketToSend> packet,
-                  const PacedPacketInfo& pacing_info) override {
+                  const PacedPacketInfo& /* pacing_info */) override {
     total_bytes_sent_ += packet->payload_size();
   }
 
@@ -1565,7 +1565,7 @@ TEST_F(PacingControllerTest, ProbeClusterId) {
   });
   bool non_probe_packet_seen = false;
   EXPECT_CALL(callback, SendPacket)
-      .WillOnce([&](std::unique_ptr<RtpPacketToSend> packet,
+      .WillOnce([&](std::unique_ptr<RtpPacketToSend> /* packet */,
                     const PacedPacketInfo& cluster_info) {
         EXPECT_EQ(cluster_info.probe_cluster_id, kNotAProbe);
         non_probe_packet_seen = true;
@@ -1647,7 +1647,7 @@ TEST_F(PacingControllerTest, SmallFirstProbePacket) {
 
   // Expect small padding packet to be requested.
   EXPECT_CALL(callback, GeneratePadding(DataSize::Bytes(1)))
-      .WillOnce([&](DataSize padding_size) {
+      .WillOnce([&](DataSize /* padding_size */) {
         std::vector<std::unique_ptr<RtpPacketToSend>> padding_packets;
         padding_packets.emplace_back(
             BuildPacket(RtpPacketMediaType::kPadding, kAudioSsrc, 1,
@@ -1660,7 +1660,7 @@ TEST_F(PacingControllerTest, SmallFirstProbePacket) {
   EXPECT_CALL(callback, SendPacket)
       .Times(AnyNumber())
       .WillRepeatedly([&](std::unique_ptr<RtpPacketToSend> packet,
-                          const PacedPacketInfo& cluster_info) {
+                          const PacedPacketInfo& /* cluster_info */) {
         if (packets_sent == 0) {
           EXPECT_EQ(packet->packet_type(), RtpPacketMediaType::kPadding);
         } else {
@@ -2205,7 +2205,7 @@ TEST_F(PacingControllerTest,
   size_t sent_size_in_burst = 0;
   EXPECT_CALL(callback, SendPacket)
       .WillRepeatedly([&](std::unique_ptr<RtpPacketToSend> packet,
-                          const PacedPacketInfo& cluster_info) {
+                          const PacedPacketInfo& /* cluster_info */) {
         sent_size_in_burst += packet->size();
       });
 

@@ -136,7 +136,7 @@ void BitrateProber::CreateProbeCluster(
                    << ")";
 }
 
-Timestamp BitrateProber::NextProbeTime(Timestamp now) const {
+Timestamp BitrateProber::NextProbeTime(Timestamp /* now */) const {
   // Probing is not active or probing is already complete.
   if (probing_state_ != ProbingState::kActive || clusters_.empty()) {
     return Timestamp::PlusInfinity();

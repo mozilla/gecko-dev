@@ -195,7 +195,7 @@ TEST_F(AudioEgressTest, SkipAudioEncodingAfterStopSend) {
   constexpr int kExpected = 10;
   rtc::Event event;
   int rtp_count = 0;
-  auto rtp_sent = [&](rtc::ArrayView<const uint8_t> packet, Unused) {
+  auto rtp_sent = [&](rtc::ArrayView<const uint8_t> /* packet */, Unused) {
     if (++rtp_count == kExpected) {
       event.Set();
     }
@@ -296,7 +296,7 @@ TEST_F(AudioEgressTest, TestAudioInputLevelAndEnergyDuration) {
   constexpr int kExpected = 6;
   rtc::Event event;
   int rtp_count = 0;
-  auto rtp_sent = [&](rtc::ArrayView<const uint8_t> packet, Unused) {
+  auto rtp_sent = [&](rtc::ArrayView<const uint8_t> /* packet */, Unused) {
     if (++rtp_count == kExpected) {
       event.Set();
     }

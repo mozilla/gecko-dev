@@ -4128,7 +4128,7 @@ class Vp9SettingsTestWithFieldTrial
 
   void VerifySettings(int num_spatial_layers,
                       int num_temporal_layers,
-                      webrtc::InterLayerPredMode interLayerPred) {
+                      webrtc::InterLayerPredMode /* interLayerPred */) {
     cricket::VideoSenderParameters parameters;
     parameters.codecs.push_back(GetEngineCodec("VP9"));
     ASSERT_TRUE(send_channel_->SetSenderParameters(parameters));

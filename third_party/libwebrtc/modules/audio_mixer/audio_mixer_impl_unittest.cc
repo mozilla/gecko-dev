@@ -121,7 +121,7 @@ class CustomRateCalculator : public OutputRateCalculator {
  public:
   explicit CustomRateCalculator(int rate) : rate_(rate) {}
   int CalculateOutputRateFromRange(
-      rtc::ArrayView<const int> preferred_rates) override {
+      rtc::ArrayView<const int> /* preferred_rates */) override {
     return rate_;
   }
 
@@ -483,7 +483,7 @@ class HighOutputRateCalculator : public OutputRateCalculator {
  public:
   static const int kDefaultFrequency = 76000;
   int CalculateOutputRateFromRange(
-      rtc::ArrayView<const int> preferred_sample_rates) override {
+      rtc::ArrayView<const int> /* preferred_sample_rates */) override {
     return kDefaultFrequency;
   }
   ~HighOutputRateCalculator() override {}

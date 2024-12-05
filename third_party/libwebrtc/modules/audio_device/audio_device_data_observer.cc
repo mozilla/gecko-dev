@@ -124,11 +124,11 @@ class ADMWrapper : public AudioDeviceModule, public AudioTransport {
 
   void PullRenderData(int /* bits_per_sample */,
                       int /* sample_rate */,
-                      size_t number_of_channels,
-                      size_t number_of_frames,
-                      void* audio_data,
-                      int64_t* elapsed_time_ms,
-                      int64_t* ntp_time_ms) override {
+                      size_t /* number_of_channels */,
+                      size_t /* number_of_frames */,
+                      void* /* audio_data */,
+                      int64_t* /* elapsed_time_ms */,
+                      int64_t* /* ntp_time_ms */) override {
     RTC_DCHECK_NOTREACHED();
   }
 

@@ -113,7 +113,7 @@ void RenderDelayControllerImpl::LogRenderCall() {}
 
 std::optional<DelayEstimate> RenderDelayControllerImpl::GetDelay(
     const DownsampledRenderBuffer& render_buffer,
-    size_t render_delay_buffer_delay,
+    size_t /* render_delay_buffer_delay */,
     const Block& capture) {
   ++capture_call_counter_;
 

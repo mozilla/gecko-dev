@@ -212,9 +212,9 @@ DataRate DelayBasedBwe::TriggerOveruse(Timestamp at_time,
 DelayBasedBwe::Result DelayBasedBwe::MaybeUpdateEstimate(
     std::optional<DataRate> acked_bitrate,
     std::optional<DataRate> probe_bitrate,
-    std::optional<NetworkStateEstimate> state_estimate,
+    std::optional<NetworkStateEstimate> /* state_estimate */,
     bool recovered_from_overuse,
-    bool in_alr,
+    bool /* in_alr */,
     Timestamp at_time) {
   Result result;
 

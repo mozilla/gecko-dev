@@ -592,8 +592,8 @@ bool ApmTest::ReadFrame(FILE* file, Int16FrameData* frame) {
 
 // If the end of the file has been reached, rewind it and attempt to read the
 // frame again.
-void ApmTest::ReadFrameWithRewind(FILE* file,
-                                  Int16FrameData* frame,
+void ApmTest::ReadFrameWithRewind(FILE* /* file */,
+                                  Int16FrameData* /* frame */,
                                   ChannelBuffer<float>* cb) {
   if (!ReadFrame(near_file_, &frame_, cb)) {
     rewind(near_file_);
@@ -2619,7 +2619,7 @@ TEST(ApmConfiguration, PreProcessingReceivesRuntimeSettings) {
 
 class MyEchoControlFactory : public EchoControlFactory {
  public:
-  std::unique_ptr<EchoControl> Create(int sample_rate_hz) {
+  std::unique_ptr<EchoControl> Create(int /* sample_rate_hz */) {
     auto ec = new test::MockEchoControl();
     EXPECT_CALL(*ec, AnalyzeRender(::testing::_)).Times(1);
     EXPECT_CALL(*ec, AnalyzeCapture(::testing::_)).Times(2);
@@ -2629,8 +2629,8 @@ class MyEchoControlFactory : public EchoControlFactory {
   }
 
   std::unique_ptr<EchoControl> Create(int sample_rate_hz,
-                                      int num_render_channels,
-                                      int num_capture_channels) {
+                                      int /* num_render_channels */,
+                                      int /* num_capture_channels */) {
     return Create(sample_rate_hz);
   }
 };

@@ -33,7 +33,7 @@ index 2c5241d33e..105cbf0783 100644
  std::unique_ptr<DesktopCapturer> CreateScreenCapturerSck(
      const DesktopCaptureOptions& options);
 diff --git a/modules/desktop_capture/mac/screen_capturer_sck.mm b/modules/desktop_capture/mac/screen_capturer_sck.mm
-index fe44694d3a..ab4d9137a0 100644
+index 9e2d9047e6..6bd08e52ce 100644
 --- a/modules/desktop_capture/mac/screen_capturer_sck.mm
 +++ b/modules/desktop_capture/mac/screen_capturer_sck.mm
 @@ -24,6 +24,8 @@

@@ -35,7 +35,7 @@ AcknowledgedBitrateEstimator::AcknowledgedBitrateEstimator(
 AcknowledgedBitrateEstimator::~AcknowledgedBitrateEstimator() {}
 
 AcknowledgedBitrateEstimator::AcknowledgedBitrateEstimator(
-    const FieldTrialsView* key_value_config,
+    const FieldTrialsView* /* key_value_config */,
     std::unique_ptr<BitrateEstimator> bitrate_estimator)
     : in_alr_(false), bitrate_estimator_(std::move(bitrate_estimator)) {}
 

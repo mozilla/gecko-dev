@@ -63,9 +63,9 @@ class MockEchoControlFactory : public EchoControlFactory {
   MockEchoControlFactory() : next_mock_(std::make_unique<MockEchoControl>()) {}
   // Returns a pointer to the next MockEchoControl that this factory creates.
   MockEchoControl* GetNext() const { return next_mock_.get(); }
-  std::unique_ptr<EchoControl> Create(int sample_rate_hz,
-                                      int num_render_channels,
-                                      int num_capture_channels) override {
+  std::unique_ptr<EchoControl> Create(int /* sample_rate_hz */,
+                                      int /* num_render_channels */,
+                                      int /* num_capture_channels */) override {
     std::unique_ptr<EchoControl> mock = std::move(next_mock_);
     next_mock_ = std::make_unique<MockEchoControl>();
     return mock;
@@ -88,12 +88,12 @@ class TestEchoDetector : public EchoDetector {
     last_render_audio_first_sample_ = render_audio[0];
     analyze_render_audio_called_ = true;
   }
-  void AnalyzeCaptureAudio(rtc::ArrayView<const float> capture_audio) override {
-  }
-  void Initialize(int capture_sample_rate_hz,
-                  int num_capture_channels,
-                  int render_sample_rate_hz,
-                  int num_render_channels) override {}
+  void AnalyzeCaptureAudio(
+      rtc::ArrayView<const float> /* capture_audio */) override {}
+  void Initialize(int /* capture_sample_rate_hz */,
+                  int /* num_capture_channels */,
+                  int /* render_sample_rate_hz */,
+                  int /* num_render_channels */) override {}
   EchoDetector::Metrics GetMetrics() const override { return {}; }
   // Returns true if AnalyzeRenderAudio() has been called at least once.
   bool analyze_render_audio_called() const {
@@ -116,7 +116,7 @@ class TestRenderPreProcessor : public CustomProcessing {
  public:
   TestRenderPreProcessor() = default;
   ~TestRenderPreProcessor() = default;
-  void Initialize(int sample_rate_hz, int num_channels) override {}
+  void Initialize(int /* sample_rate_hz */, int /* num_channels */) override {}
   void Process(AudioBuffer* audio) override {
     for (size_t k = 0; k < audio->num_channels(); ++k) {
       rtc::ArrayView<float> channel_view(audio->channels()[k],
@@ -126,7 +126,8 @@ class TestRenderPreProcessor : public CustomProcessing {
     }
   }
   std::string ToString() const override { return "TestRenderPreProcessor"; }
-  void SetRuntimeSetting(AudioProcessing::RuntimeSetting setting) override {}
+  void SetRuntimeSetting(
+      AudioProcessing::RuntimeSetting /* setting */) override {}
   // Modifies a sample. This member is used in Process() to modify a frame and
   // it is publicly visible to enable tests.
   static constexpr float ProcessSample(float x) { return 2.f * x; }

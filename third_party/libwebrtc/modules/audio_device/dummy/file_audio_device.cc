@@ -400,7 +400,7 @@ int32_t FileAudioDevice::StereoPlayoutIsAvailable(bool& available) {
   available = true;
   return 0;
 }
-int32_t FileAudioDevice::SetStereoPlayout(bool enable) {
+int32_t FileAudioDevice::SetStereoPlayout(bool /* enable */) {
   return 0;
 }
 
@@ -414,7 +414,7 @@ int32_t FileAudioDevice::StereoRecordingIsAvailable(bool& available) {
   return 0;
 }
 
-int32_t FileAudioDevice::SetStereoRecording(bool enable) {
+int32_t FileAudioDevice::SetStereoRecording(bool /* enable */) {
   return 0;
 }
 
@@ -423,7 +423,7 @@ int32_t FileAudioDevice::StereoRecording(bool& enabled) const {
   return 0;
 }
 
-int32_t FileAudioDevice::PlayoutDelay(uint16_t& delayMS) const {
+int32_t FileAudioDevice::PlayoutDelay(uint16_t& /* delayMS */) const {
   return 0;
 }
 
