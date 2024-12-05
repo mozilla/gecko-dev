@@ -64,7 +64,8 @@ bool IsScaleFactorsPowerOfTwo(const webrtc::VideoEncoderConfig& config) {
 bool IsTemporalLayersSupported(webrtc::VideoCodecType codec_type) {
   return codec_type == webrtc::VideoCodecType::kVideoCodecVP8 ||
          codec_type == webrtc::VideoCodecType::kVideoCodecVP9 ||
-         codec_type == webrtc::VideoCodecType::kVideoCodecAV1;
+         codec_type == webrtc::VideoCodecType::kVideoCodecAV1 ||
+         codec_type == webrtc::VideoCodecType::kVideoCodecH265;
 }
 
 size_t FindRequiredActiveLayers(

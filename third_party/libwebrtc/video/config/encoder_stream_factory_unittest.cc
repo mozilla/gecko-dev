@@ -433,4 +433,59 @@ INSTANTIATE_TEST_SUITE_P(
                           .scalability_mode = ScalabilityMode::kL1T2})}}),
             Values(VideoCodecType::kVideoCodecVP8,
                    VideoCodecType::kVideoCodecAV1)));
+
+TEST(EncoderStreamFactory, VP9TemporalLayerCountTransferToStreamSettings) {
+  VideoEncoderConfig encoder_config;
+  VideoCodecVP9 vp9_settings = VideoEncoder::GetDefaultVp9Settings();
+  encoder_config.encoder_specific_settings =
+      rtc::make_ref_counted<VideoEncoderConfig::Vp9EncoderSpecificSettings>(
+          vp9_settings);
+  encoder_config.codec_type = VideoCodecType::kVideoCodecVP9;
+  encoder_config.number_of_streams = 1;
+  encoder_config.simulcast_layers.resize(1);
+  encoder_config.simulcast_layers[0].num_temporal_layers = 3;
+  auto streams = CreateEncoderStreams(ExplicitKeyValueConfig(""), {1280, 720},
+                                      encoder_config);
+  ASSERT_THAT(streams, SizeIs(1));
+  EXPECT_EQ(streams[0].num_temporal_layers, 3);
+}
+
+TEST(EncoderStreamFactory, AV1TemporalLayerCountTransferToStreamSettings) {
+  VideoEncoderConfig encoder_config;
+  encoder_config.codec_type = VideoCodecType::kVideoCodecAV1;
+  encoder_config.number_of_streams = 1;
+  encoder_config.simulcast_layers.resize(1);
+  encoder_config.simulcast_layers[0].num_temporal_layers = 3;
+  auto streams = CreateEncoderStreams(ExplicitKeyValueConfig(""), {1280, 720},
+                                      encoder_config);
+  ASSERT_THAT(streams, SizeIs(1));
+  EXPECT_EQ(streams[0].num_temporal_layers, 3);
+}
+
+TEST(EncoderStreamFactory, H264TemporalLayerCountTransferToStreamSettings) {
+  VideoEncoderConfig encoder_config;
+  encoder_config.codec_type = VideoCodecType::kVideoCodecH264;
+  encoder_config.number_of_streams = 1;
+  encoder_config.simulcast_layers.resize(1);
+  encoder_config.simulcast_layers[0].num_temporal_layers = 3;
+  auto streams = CreateEncoderStreams(ExplicitKeyValueConfig(""), {1280, 720},
+                                      encoder_config);
+  ASSERT_THAT(streams, SizeIs(1));
+  EXPECT_EQ(streams[0].num_temporal_layers, std::nullopt);
+}
+
+#ifdef RTC_ENABLE_H265
+TEST(EncoderStreamFactory, H265TemporalLayerCountTransferToStreamSettings) {
+  VideoEncoderConfig encoder_config;
+  encoder_config.codec_type = VideoCodecType::kVideoCodecH265;
+  encoder_config.number_of_streams = 1;
+  encoder_config.simulcast_layers.resize(1);
+  encoder_config.simulcast_layers[0].num_temporal_layers = 3;
+  auto streams = CreateEncoderStreams(ExplicitKeyValueConfig(""), {1280, 720},
+                                      encoder_config);
+  ASSERT_THAT(streams, SizeIs(1));
+  EXPECT_EQ(streams[0].num_temporal_layers, 3);
+}
+#endif
+
 }  // namespace webrtc
