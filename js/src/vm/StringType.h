@@ -2123,6 +2123,52 @@ class MOZ_NON_PARAM StringChars {
       JSContext* cx, size_t length, gc::Heap heap = gc::Heap::Default);
 };
 
+/**
+ * Allocate atom characters when the final string length is known in advance.
+ */
+template <typename CharT>
+class MOZ_NON_PARAM AtomStringChars {
+  static constexpr size_t InlineLength =
+      std::is_same_v<CharT, JS::Latin1Char>
+          ? JSFatInlineString::MAX_LENGTH_LATIN1
+          : JSFatInlineString::MAX_LENGTH_TWO_BYTE;
+
+  CharT inlineChars_[InlineLength];
+  UniquePtr<CharT[], JS::FreePolicy> mallocChars_;
+
+#ifdef DEBUG
+  // In debug mode, we keep track of the requested string lengths to ensure all
+  // methods are called in the correct order and with the expected argument
+  // values.
+  size_t lastRequestedLength_ = 0;
+
+  void assertValidRequest(size_t expectedLastLength, size_t length) {
+    MOZ_ASSERT(length >= expectedLastLength, "cannot shrink requested length");
+    MOZ_ASSERT(lastRequestedLength_ == expectedLastLength);
+    lastRequestedLength_ = length;
+  }
+#else
+  void assertValidRequest(size_t expectedLastLength, size_t length) {}
+#endif
+
+ public:
+  /**
+   * Return a raw pointer to the string characters.
+   */
+  CharT* data() { return mallocChars_ ? mallocChars_.get() : inlineChars_; }
+
+  /**
+   * Prepare for writing |length| characters. Allocates iff `length` exceeds the
+   * inline storage of this class.
+   */
+  bool maybeAlloc(JSContext* cx, size_t length);
+
+  /**
+   * Build the result atom string.
+   */
+  JSAtom* toAtom(JSContext* cx, size_t length);
+};
+
 /*** Conversions ************************************************************/
 
 /*
