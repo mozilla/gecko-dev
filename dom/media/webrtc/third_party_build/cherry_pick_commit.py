@@ -233,7 +233,7 @@ if __name__ == "__main__":
         # have committed something to mercurial.  First we need to check
         # for our cherry-pick commit message, and if found, remove
         # that commit.
-        if not (resume_state == "resume2" or resume_state == "resume3"):
+        if resume_state not in ("resume2", "resume3"):
             # check for committed mercurial patch and backout
             stdout_lines = run_hg("hg log --template {desc|firstline}\n -r .")
             # check for "Cherry-pick upstream libwebrtc commit"
