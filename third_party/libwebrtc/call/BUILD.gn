@@ -432,42 +432,6 @@ rtc_source_set("receive_stream_interface") {
   ]
 }
 
-# A temporary target to allow including the files from downstream users
-# that have not changed the target name.
-# TODO: https://issues.webrtc.org/373151158 - Remove this when downstream users have updated.
-rtc_library("video_stream_api") {
-  sources = [
-    "video_receive_stream.h",
-    "video_send_stream.h",
-  ]
-  deps = [
-    ":receive_stream_interface",
-    ":rtp_interfaces",
-    ":video_receive_stream_api",
-    ":video_send_stream_api",
-    "../api:frame_transformer_interface",
-    "../api:rtp_headers",
-    "../api:rtp_parameters",
-    "../api:rtp_sender_setparameters_callback",
-    "../api:scoped_refptr",
-    "../api:transport_api",
-    "../api/adaptation:resource_adaptation_api",
-    "../api/crypto:frame_decryptor_interface",
-    "../api/crypto:options",
-    "../api/units:time_delta",
-    "../api/video:recordable_encoded_frame",
-    "../api/video:video_frame",
-    "../api/video:video_rtp_headers",
-    "../api/video:video_stream_encoder",
-    "../api/video_codecs:scalability_mode",
-    "../api/video_codecs:video_codecs_api",
-    "../common_video",
-    "../common_video:frame_counts",
-    "../modules/rtp_rtcp:rtp_rtcp_format",
-    "../video/config:encoder_config",
-  ]
-}
-
 rtc_library("video_send_stream_api") {
   sources = [
     "video_send_stream.cc",

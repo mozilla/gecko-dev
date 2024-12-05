@@ -76,7 +76,7 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/b86cb7278bc4e5571
  api/rtp_sender_setparameters_callback.h       | 28 +++++++++++
  api/task_queue/BUILD.gn                       |  2 +
  api/transport/BUILD.gn                        |  2 +
- call/BUILD.gn                                 | 10 +++-
+ call/BUILD.gn                                 |  8 +++-
  call/audio_send_stream.h                      |  2 +-
  call/video_send_stream.h                      |  2 +-
  common_audio/BUILD.gn                         |  4 --
@@ -99,7 +99,7 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/b86cb7278bc4e5571
  test/BUILD.gn                                 | 10 ++++
  video/BUILD.gn                                |  4 +-
  webrtc.gni                                    | 32 ++++++++-----
- 31 files changed, 312 insertions(+), 98 deletions(-)
+ 31 files changed, 311 insertions(+), 97 deletions(-)
  create mode 100644 api/rtp_sender_setparameters_callback.cc
  create mode 100644 api/rtp_sender_setparameters_callback.h
  create mode 100644 common_audio/intrin.h
@@ -470,7 +470,7 @@ index 5d340655c2..ac6c843e8f 100644
  if (rtc_include_tests) {
    rtc_source_set("test_feedback_generator_interface") {
 diff --git a/call/BUILD.gn b/call/BUILD.gn
-index a17e89c490..6022cb312e 100644
+index 3eca59bb11..f792728479 100644
 --- a/call/BUILD.gn
 +++ b/call/BUILD.gn
 @@ -48,7 +48,7 @@ rtc_library("call_interfaces") {
@@ -495,15 +495,6 @@ index a17e89c490..6022cb312e 100644
  }
  
  rtc_library("payload_type_picker") {
-@@ -436,7 +442,7 @@ rtc_library("video_stream_api") {
-     "../api:frame_transformer_interface",
-     "../api:rtp_headers",
-     "../api:rtp_parameters",
--    "../api:rtp_sender_interface",
-+    "../api:rtp_sender_setparameters_callback",
-     "../api:scoped_refptr",
-     "../api:transport_api",
-     "../api/adaptation:resource_adaptation_api",
 diff --git a/call/audio_send_stream.h b/call/audio_send_stream.h
 index 540956c1fd..c60526771e 100644
 --- a/call/audio_send_stream.h
