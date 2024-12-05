@@ -10,6 +10,7 @@
 #ifndef MODULES_RTP_RTCP_SOURCE_RTCP_PACKET_CONGESTION_CONTROL_FEEDBACK_H_
 #define MODULES_RTP_RTCP_SOURCE_RTCP_PACKET_CONGESTION_CONTROL_FEEDBACK_H_
 
+#include <cstddef>
 #include <cstdint>
 #include <vector>
 
@@ -29,15 +30,17 @@ class CongestionControlFeedback : public Rtpfb {
   struct PacketInfo {
     uint32_t ssrc = 0;
     uint16_t sequence_number = 0;
-    //  Time offset from report timestamp.
-    TimeDelta arrival_time_offset = TimeDelta::Zero();
+    //  Time offset from report timestamp. Minus infinity if the packet has not
+    //  been received.
+    TimeDelta arrival_time_offset = TimeDelta::MinusInfinity();
     rtc::EcnMarking ecn = rtc::EcnMarking::kNotEct;
   };
 
   static constexpr uint8_t kFeedbackMessageType = 11;
 
-  // `Packets` MUST be sorted in sequence_number order per SSRC.
-  // `Packets` MUST not include duplicate sequence numbers.
+  // `Packets` MUST be sorted in sequence_number order per SSRC. There MUST not
+  // be missing sequence numbers between `Packets`. `Packets` MUST not include
+  // duplicate sequence numbers.
   CongestionControlFeedback(std::vector<PacketInfo> packets,
                             uint32_t report_timestamp_compact_ntp);
   CongestionControlFeedback() = default;

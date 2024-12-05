@@ -95,6 +95,8 @@ rtc_library("congestion_control_feedback_generator") {
   sources = [
     "congestion_control_feedback_generator.cc",
     "congestion_control_feedback_generator.h",
+    "congestion_control_feedback_tracker.cc",
+    "congestion_control_feedback_tracker.h",
   ]
   deps = [
     ":rtp_transport_feedback_generator",
@@ -105,12 +107,15 @@ rtc_library("congestion_control_feedback_generator") {
     "../../api/units:data_size",
     "../../api/units:time_delta",
     "../../api/units:timestamp",
+    "../../rtc_base:checks",
     "../../rtc_base:logging",
     "../../rtc_base:rtc_numerics",
     "../../rtc_base/experiments:field_trial_parser",
     "../../rtc_base/network:ecn_marking",
     "../rtp_rtcp:ntp_time_util",
     "../rtp_rtcp:rtp_rtcp_format",
+    "//third_party/abseil-cpp/absl/algorithm:container",
+    "//third_party/abseil-cpp/absl/types:span",
   ]
 }
 
@@ -149,6 +154,7 @@ if (rtc_include_tests) {
     sources = [
       "aimd_rate_control_unittest.cc",
       "congestion_control_feedback_generator_unittest.cc",
+      "congestion_control_feedback_tracker_unittest.cc",
       "inter_arrival_unittest.cc",
       "overuse_detector_unittest.cc",
       "packet_arrival_map_test.cc",
@@ -170,6 +176,7 @@ if (rtc_include_tests) {
       "../../api/units:data_size",
       "../../api/units:time_delta",
       "../../api/units:timestamp",
+      "../../rtc_base:buffer",
       "../../rtc_base:checks",
       "../../rtc_base:logging",
       "../../rtc_base:random",

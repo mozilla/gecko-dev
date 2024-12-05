@@ -674,6 +674,7 @@ if (rtc_include_tests) {
       "../../api:create_time_controller",
       "../../api:field_trials_registry",
       "../../api:frame_transformer_factory",
+      "../../api:function_view",
       "../../api:make_ref_counted",
       "../../api:mock_frame_encryptor",
       "../../api:mock_frame_transformer",
