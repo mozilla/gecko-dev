@@ -384,7 +384,7 @@ bool OpenSSLStreamAdapter::GetSslVersionBytes(int* version) const {
 }
 
 bool OpenSSLStreamAdapter::ExportSrtpKeyingMaterial(
-    rtc::ZeroOnFreeBuffer<unsigned char>& keying_material) {
+    rtc::ZeroOnFreeBuffer<uint8_t>& keying_material) {
   // Arguments are:
   // keying material/len -- a buffer to hold the keying material.
   // label               -- the exporter label.

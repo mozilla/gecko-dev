@@ -229,7 +229,7 @@ class FakeDtlsTransport : public DtlsTransportInternal {
     return std::make_unique<rtc::SSLCertChain>(remote_cert_->Clone());
   }
   bool ExportSrtpKeyingMaterial(
-      rtc::ZeroOnFreeBuffer<unsigned char>& keying_material) override {
+      rtc::ZeroOnFreeBuffer<uint8_t>& keying_material) override {
     if (do_dtls_) {
       std::memset(keying_material.data(), 0xff, keying_material.size());
     }

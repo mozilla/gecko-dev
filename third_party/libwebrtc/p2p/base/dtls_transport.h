@@ -180,7 +180,7 @@ class DtlsTransport : public DtlsTransportInternal {
   // method extracts the keys negotiated during the DTLS handshake, for use in
   // external encryption. DTLS-SRTP uses this to extract the needed SRTP keys.
   bool ExportSrtpKeyingMaterial(
-      rtc::ZeroOnFreeBuffer<unsigned char>& keying_material) override;
+      rtc::ZeroOnFreeBuffer<uint8_t>& keying_material) override;
 
   [[deprecated("Use ExportSrtpKeyingMaterial instead")]] bool
   ExportKeyingMaterial(absl::string_view label,

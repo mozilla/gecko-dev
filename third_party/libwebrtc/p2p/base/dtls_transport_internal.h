@@ -90,7 +90,7 @@ class DtlsTransportInternal : public rtc::PacketTransportInternal {
 
   // Allows key material to be extracted for external encryption.
   virtual bool ExportSrtpKeyingMaterial(
-      rtc::ZeroOnFreeBuffer<unsigned char>& keying_material) = 0;
+      rtc::ZeroOnFreeBuffer<uint8_t>& keying_material) = 0;
 
   [[deprecated("Use ExportSrtpKeyingMaterial instead")]] virtual bool
   ExportKeyingMaterial(absl::string_view label,

@@ -9,7 +9,6 @@
  */
 
 #include <cstdint>
-#include <memory>
 
 #include "call/rtp_demuxer.h"
 #include "media/base/fake_rtp.h"
@@ -128,24 +127,20 @@ class DtlsSrtpTransportIntegrationTest : public ::testing::Test {
                                               &salt_len));
 
     // Extract the keys. The order depends on the role!
-    rtc::ZeroOnFreeBuffer<unsigned char> dtls_buffer(key_len * 2 +
-                                                     salt_len * 2);
+    rtc::ZeroOnFreeBuffer<uint8_t> dtls_buffer(key_len * 2 + salt_len * 2);
     ASSERT_TRUE(server_dtls_transport_->ExportSrtpKeyingMaterial(dtls_buffer));
 
-    rtc::ZeroOnFreeBuffer<unsigned char> send_key(key_len + salt_len);
-    rtc::ZeroOnFreeBuffer<unsigned char> recv_key(key_len + salt_len);
-    size_t offset = 0;
-    std::memcpy(&recv_key[0], &dtls_buffer[offset], key_len);
-    offset += key_len;
-    std::memcpy(&send_key[0], &dtls_buffer[offset], key_len);
-    offset += key_len;
-    std::memcpy(&recv_key[key_len], &dtls_buffer[offset], salt_len);
-    offset += salt_len;
-    std::memcpy(&send_key[key_len], &dtls_buffer[offset], salt_len);
+    rtc::ZeroOnFreeBuffer<unsigned char> client_write_key(
+        &dtls_buffer[0], key_len, key_len + salt_len);
+    rtc::ZeroOnFreeBuffer<unsigned char> server_write_key(
+        &dtls_buffer[key_len], key_len, key_len + salt_len);
+    client_write_key.AppendData(&dtls_buffer[key_len + key_len], salt_len);
+    server_write_key.AppendData(&dtls_buffer[key_len + key_len + salt_len],
+                                salt_len);
 
-    EXPECT_TRUE(srtp_transport_.SetRtpParams(selected_crypto_suite, send_key,
-                                             {}, selected_crypto_suite,
-                                             recv_key, {}));
+    EXPECT_TRUE(srtp_transport_.SetRtpParams(
+        selected_crypto_suite, server_write_key, {}, selected_crypto_suite,
+        client_write_key, {}));
   }
 
   rtc::CopyOnWriteBuffer CreateRtpPacket() {

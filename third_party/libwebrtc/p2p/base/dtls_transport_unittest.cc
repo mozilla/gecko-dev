@@ -469,15 +469,14 @@ TEST_F(DtlsTransportTest, KeyingMaterialExporter) {
   int key_len;
   int salt_len;
   EXPECT_TRUE(rtc::GetSrtpKeyAndSaltLengths(crypto_suite, &key_len, &salt_len));
-  rtc::ZeroOnFreeBuffer<unsigned char> client1_out(2 * (key_len + salt_len));
-  rtc::ZeroOnFreeBuffer<unsigned char> client2_out(2 * (key_len + salt_len));
+  rtc::ZeroOnFreeBuffer<uint8_t> client1_out(2 * (key_len + salt_len));
+  rtc::ZeroOnFreeBuffer<uint8_t> client2_out(2 * (key_len + salt_len));
   EXPECT_TRUE(client1_.dtls_transport()->ExportSrtpKeyingMaterial(client1_out));
   EXPECT_TRUE(client2_.dtls_transport()->ExportSrtpKeyingMaterial(client2_out));
   EXPECT_EQ(client1_out, client2_out);
 
   // Legacy variant using the deprecated API.
-  rtc::ZeroOnFreeBuffer<unsigned char> client1_out_legacy(2 *
-                                                          (key_len + salt_len));
+  rtc::ZeroOnFreeBuffer<uint8_t> client1_out_legacy(2 * (key_len + salt_len));
   EXPECT_TRUE(client1_.dtls_transport()->ExportKeyingMaterial(
       "EXTRACTOR-dtls_srtp", nullptr, 0, false, client1_out_legacy.data(),
       client1_out_legacy.size()));

@@ -1392,15 +1392,15 @@ TEST_F(SSLStreamAdapterTestDTLS, TestDTLSExporter) {
   int salt_len;
   ASSERT_TRUE(rtc::GetSrtpKeyAndSaltLengths(selected_crypto_suite, &key_len,
                                             &salt_len));
-  rtc::ZeroOnFreeBuffer<unsigned char> client_out(2 * (key_len + salt_len));
-  rtc::ZeroOnFreeBuffer<unsigned char> server_out(2 * (key_len + salt_len));
+  rtc::ZeroOnFreeBuffer<uint8_t> client_out(2 * (key_len + salt_len));
+  rtc::ZeroOnFreeBuffer<uint8_t> server_out(2 * (key_len + salt_len));
 
   EXPECT_TRUE(client_ssl_->ExportSrtpKeyingMaterial(client_out));
   EXPECT_TRUE(server_ssl_->ExportSrtpKeyingMaterial(server_out));
   EXPECT_EQ(client_out, server_out);
 
   // Legacy variant.
-  rtc::ZeroOnFreeBuffer<unsigned char> legacy_out(2 * (key_len + salt_len));
+  rtc::ZeroOnFreeBuffer<uint8_t> legacy_out(2 * (key_len + salt_len));
   EXPECT_TRUE(client_ssl_->ExportKeyingMaterial("EXTRACTOR-dtls_srtp", nullptr,
                                                 0, false, legacy_out.data(),
                                                 legacy_out.size()));
