@@ -123,3 +123,4 @@ Detailed Docs
   targeting-attributes
   targeting-guide
   telemetry
+  skylight
