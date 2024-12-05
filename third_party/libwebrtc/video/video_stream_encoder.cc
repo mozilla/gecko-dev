@@ -151,7 +151,7 @@ bool RequiresEncoderReset(const VideoCodec& prev_send_codec,
       }
       break;
     case kVideoCodecH265:
-      // TODO(bugs.webrtc.org/13485): Implement new send codec H265
+      // No H.265 specific handling needed.
       [[fallthrough]];
     default:
       break;
@@ -1178,7 +1178,11 @@ void VideoStreamEncoder::ReconfigureEncoder() {
       env_.field_trials(), encoder_config_, streams);
 
   if (encoder_config_.codec_type == kVideoCodecVP9 ||
-      encoder_config_.codec_type == kVideoCodecAV1) {
+      encoder_config_.codec_type == kVideoCodecAV1
+#ifdef RTC_ENABLE_H265
+      || encoder_config_.codec_type == kVideoCodecH265
+#endif
+  ) {
     // Spatial layers configuration might impose some parity restrictions,
     // thus some cropping might be needed.
     RTC_CHECK_GE(last_frame_info_->width, codec.width);
@@ -1214,7 +1218,11 @@ void VideoStreamEncoder::ReconfigureEncoder() {
     }
   }
   if (encoder_config_.codec_type == kVideoCodecVP9 ||
-      encoder_config_.codec_type == kVideoCodecAV1) {
+      encoder_config_.codec_type == kVideoCodecAV1
+#ifdef RTC_ENABLE_H265
+      || encoder_config_.codec_type == kVideoCodecH265
+#endif
+  ) {
     log_stream << ", spatial layers: ";
     for (int i = 0; i < GetNumSpatialLayers(codec); ++i) {
       log_stream << "{" << i << ": " << codec.spatialLayers[i].width << "x"
@@ -1345,7 +1353,8 @@ void VideoStreamEncoder::ReconfigureEncoder() {
     num_layers = codec.VP8()->numberOfTemporalLayers;
   } else if (codec.codecType == kVideoCodecVP9) {
     num_layers = codec.VP9()->numberOfTemporalLayers;
-  } else if (codec.codecType == kVideoCodecAV1 &&
+  } else if ((codec.codecType == kVideoCodecAV1 ||
+              codec.codecType == kVideoCodecH265) &&
              codec.GetScalabilityMode().has_value()) {
     num_layers =
         ScalabilityModeToNumTemporalLayers(*(codec.GetScalabilityMode()));
@@ -1357,7 +1366,6 @@ void VideoStreamEncoder::ReconfigureEncoder() {
     // TODO(sprang): Add a better way to disable frame dropping.
     num_layers = codec.simulcastStream[0].numberOfTemporalLayers;
   } else {
-    // TODO(bugs.webrtc.org/13485): Implement H265 temporal layer
     num_layers = 1;
   }
 
@@ -1401,10 +1409,15 @@ void VideoStreamEncoder::ReconfigureEncoder() {
       break;
     }
   }
-  // Set min_bitrate_bps, max_bitrate_bps, and max padding bit rate for VP9
-  // and AV1 and leave only one stream containing all necessary information.
-  if ((encoder_config_.codec_type == kVideoCodecVP9 ||
-       encoder_config_.codec_type == kVideoCodecAV1) &&
+  // Set min_bitrate_bps, max_bitrate_bps, and max padding bit rate for VP9,
+  // AV1 and H.265, and leave only one stream containing all necessary
+  // information.
+  if ((
+#ifdef RTC_ENABLE_H265
+          encoder_config_.codec_type == kVideoCodecH265 ||
+#endif
+          encoder_config_.codec_type == kVideoCodecVP9 ||
+          encoder_config_.codec_type == kVideoCodecAV1) &&
       single_stream_or_non_first_inactive) {
     // Lower max bitrate to the level codec actually can produce.
     streams[0].max_bitrate_bps =

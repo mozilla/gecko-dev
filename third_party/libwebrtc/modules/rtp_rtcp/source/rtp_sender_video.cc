@@ -102,6 +102,12 @@ bool MinimizeDescriptor(RTPVideoHeader* video_header) {
 }
 
 bool IsBaseLayer(const RTPVideoHeader& video_header) {
+  // For AV1 & H.265 we fetch temporal index from the generic descriptor.
+  if (video_header.generic) {
+    const auto& generic = video_header.generic.value();
+    return (generic.temporal_index == 0 ||
+            generic.temporal_index == kNoTemporalIdx);
+  }
   switch (video_header.codec) {
     case kVideoCodecVP8: {
       const auto& vp8 =
@@ -117,11 +123,11 @@ bool IsBaseLayer(const RTPVideoHeader& video_header) {
       // TODO(kron): Implement logic for H264 once WebRTC supports temporal
       // layers for H264.
       break;
+    // These codecs do not have codec-specifics, from which we can fetch
+    // temporal index.
     case kVideoCodecH265:
-      // TODO(bugs.webrtc.org/13485): Implement logic for H265 once WebRTC
-      // supports temporal layers for H265.
-      break;
-    default:
+    case kVideoCodecAV1:
+    case kVideoCodecGeneric:
       break;
   }
   return true;
