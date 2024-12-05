@@ -259,21 +259,9 @@ bool TotalRelativeDuration(JSContext* cx, const InternalDuration& duration,
                            TemporalUnit unit, double* result);
 
 /**
- * DivideTimeDuration ( d, divisor )
- */
-double DivideTimeDuration(const TimeDuration& duration, TemporalUnit unit);
-
-/**
  * TotalTimeDuration ( timeDuration, unit )
  */
-inline double TotalTimeDuration(const TimeDuration& duration,
-                                TemporalUnit unit) {
-  // FIXME: spec issue - TotalTimeDuration and DivideTimeDuration can be merged
-  // https://github.com/tc39/proposal-temporal/issues/3020
-
-  // Steps 1-2.
-  return DivideTimeDuration(duration, unit);
-}
+double TotalTimeDuration(const TimeDuration& duration, TemporalUnit unit);
 
 } /* namespace js::temporal */
 

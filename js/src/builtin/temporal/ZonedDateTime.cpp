@@ -1845,7 +1845,7 @@ static bool ZonedDateTime_hoursInDay(JSContext* cx, const CallArgs& args) {
   static_assert(EpochDuration::fromDays(2).toNanoseconds() < Int128{INT64_MAX},
                 "two days in nanoseconds fits into int64_t");
 
-  // Step 10.
+  // Step 10. (Inlined TotalTimeDuration)
   constexpr auto nsPerHour = ToNanoseconds(TemporalUnit::Hour);
   args.rval().setNumber(
       FractionToDouble(int64_t(diff.toNanoseconds()), nsPerHour));
@@ -2591,7 +2591,7 @@ static bool ZonedDateTime_round(JSContext* cx, const CallArgs& args) {
                roundedDaysNs == dayLengthNs);
     MOZ_ASSERT(IsValidEpochDuration(roundedDaysNs));
 
-    // Step 18.j.
+    // Step 18.j. (Inlined AddTimeDurationToEpochNanoseconds)
     epochNanoseconds = startNs + roundedDaysNs;
     MOZ_ASSERT(epochNanoseconds == startNs || epochNanoseconds == endNs);
   } else {
