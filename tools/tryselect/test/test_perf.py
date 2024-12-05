@@ -178,6 +178,27 @@ TEST_CATEGORIES = {
         "tasks": [],
         "description": "",
     },
+    "Machine Learning": {
+        "query": {
+            Suites.PERFTEST.value: ["'perftest '-ml-"],
+        },
+        "suites": [Suites.PERFTEST.value],
+        "platform-restrictions": [
+            Platforms.DESKTOP.value,
+            Platforms.LINUX.value,
+            Platforms.MACOSX.value,
+            Platforms.WINDOWS.value,
+        ],
+        "app-restrictions": {
+            Suites.PERFTEST.value: [
+                Apps.FIREFOX.value,
+            ],
+        },
+        "tasks": [],
+        "description": (
+            "A set of tests used to test machine learning performance in Firefox."
+        ),
+    },
 }
 
 
@@ -204,7 +225,7 @@ def setup_perfparser():
         # except for when there are requested apps/variants/platforms
         (
             {},
-            58,
+            66,
             {
                 "Benchmarks desktop": {
                     "raptor": [
@@ -252,6 +273,13 @@ def setup_perfparser():
                         "!swr",
                     ],
                 },
+                "Machine Learning desktop firefox": {
+                    "perftest": [
+                        "'perftest '-ml-",
+                        "!android",
+                        "!chrom !geckoview !fenix !safari !m-car !safari-tp",
+                    ],
+                },
             },
             [
                 "Responsiveness android-p2 geckoview",
@@ -259,7 +287,7 @@ def setup_perfparser():
         ),  # Default settings
         (
             {"live_sites": True},
-            66,
+            74,
             {
                 "Benchmarks desktop": {
                     "raptor": [
@@ -310,7 +338,7 @@ def setup_perfparser():
         ),
         (
             {"live_sites": True, "safari": True},
-            72,
+            80,
             {
                 "Benchmarks desktop": {
                     "raptor": [
@@ -350,7 +378,7 @@ def setup_perfparser():
         ),
         (
             {"safari-tp": True},
-            58,
+            66,
             {
                 "Benchmarks desktop": {
                     "raptor": [
@@ -387,7 +415,7 @@ def setup_perfparser():
         ),
         (
             {"live_sites": True, "chrome": True},
-            90,
+            98,
             {
                 "Benchmarks desktop": {
                     "raptor": [
@@ -421,7 +449,7 @@ def setup_perfparser():
         ),
         (
             {"android": True},
-            88,
+            96,
             {
                 "Benchmarks desktop": {
                     "raptor": [
@@ -454,7 +482,7 @@ def setup_perfparser():
         ),
         (
             {"android": True, "chrome": True},
-            118,
+            126,
             {
                 "Benchmarks desktop": {
                     "raptor": [
@@ -483,7 +511,7 @@ def setup_perfparser():
         ),
         (
             {"android": True, "chrome": True, "profile": True},
-            156,
+            164,
             {
                 "Benchmarks desktop": {
                     "raptor": [
@@ -513,7 +541,7 @@ def setup_perfparser():
         ),
         (
             {"android": True, "fenix": True},
-            88,
+            96,
             {
                 "Pageload android-a55": {
                     "raptor": [
@@ -549,7 +577,7 @@ def setup_perfparser():
         # including the desktop catgeory
         (
             {"requested_platforms": ["windows"]},
-            14,
+            16,
             {
                 "Benchmarks windows firefox": {
                     "raptor": [
@@ -759,7 +787,7 @@ def setup_perfparser():
                 "requested_variants": ["no-fission"],
                 "requested_platforms": ["windows"],
             },
-            14,
+            16,
             {
                 "Responsiveness windows firefox": {
                     "raptor": [
@@ -781,7 +809,7 @@ def setup_perfparser():
                 "requested_platforms": ["windows"],
                 "android": True,
             },
-            16,
+            18,
             {
                 "Responsiveness windows firefox": {
                     "raptor": [
@@ -821,6 +849,16 @@ def setup_perfparser():
                         "!-32 !10-64 'windows 'shippable",
                         "!profil",
                         "!swr",
+                    ],
+                },
+                "Machine Learning windows": {
+                    "perftest": [
+                        "'perftest '-ml-",
+                        "'windows",
+                        "!chrom",
+                        "!safari",
+                        "!m-car",
+                        "!safari-tp",
                     ],
                 },
             },

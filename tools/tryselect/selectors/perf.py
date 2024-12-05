@@ -760,7 +760,14 @@ class PerfParser(CompareParser):
                 platform_queries = {
                     suite: (
                         category_info["query"][suite]
-                        + [PerfParser.platforms[platform.value]["query"]]
+                        + [
+                            PerfParser.platforms[platform.value]["query"].get(
+                                suite,
+                                PerfParser.platforms[platform.value]["query"][
+                                    "default"
+                                ],
+                            )
+                        ]
                     )
                     for suite in category_info["suites"]
                 }
