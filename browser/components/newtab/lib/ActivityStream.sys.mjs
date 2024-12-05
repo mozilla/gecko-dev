@@ -312,6 +312,13 @@ export const PREFS_CONFIG = new Map([
     },
   ],
   [
+    "logowordmark.alwaysVisible",
+    {
+      title: "Show the logo and wordmark",
+      value: true,
+    },
+  ],
+  [
     "topSitesRows",
     {
       title: "Number of rows of Top Sites to display",

@@ -116,6 +116,7 @@
 
       // Bug 1934636 - Logo is positioned absolutely and
       // does not need a bottom margin applied
+      .layout-variant-a &,
       .layout-variant-b & {
         margin-block-end: 0;
       }
@@ -131,8 +132,14 @@
     }
   }
 
-  &.fixed-search .search-wrapper {
-    margin-block-start: 0;
+  &.fixed-search {
+    .search-wrapper {
+      margin-block-start: 0;
+
+      .logo-and-wordmark-wrapper {
+        margin-block-end: 0;
+      }
+    }
   }
 
   // _TopSites.scss

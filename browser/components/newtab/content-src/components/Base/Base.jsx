@@ -22,6 +22,9 @@ const VISIBLE = "visible";
 const VISIBILITY_CHANGE_EVENT = "visibilitychange";
 const WALLPAPER_HIGHLIGHT_DISMISSED_PREF =
   "newtabWallpapers.highlightDismissed";
+const PREF_THUMBS_UP_DOWN_ENABLED = "discoverystream.thumbsUpDown.enabled";
+const PREF_THUMBS_UP_DOWN_LAYOUT_ENABLED =
+  "discoverystream.thumbsUpDown.searchTopsitesCompact";
 
 export const PrefsButton = ({ onClick, icon }) => (
   <div className="prefs-button">
@@ -128,6 +131,7 @@ export class BaseContent extends React.PureComponent {
       fixedSearch: false,
       firstVisibleTimestamp: null,
       colorMode: "",
+      fixedNavStyle: {},
     };
   }
 
@@ -196,11 +200,102 @@ export class BaseContent extends React.PureComponent {
 
   onWindowScroll() {
     const prefs = this.props.Prefs.values;
-    const SCROLL_THRESHOLD = prefs["logowordmark.alwaysVisible"] ? 179 : 34;
+    const logoAlwaysVisible = prefs["logowordmark.alwaysVisible"];
+    const layoutsVariantAEnabled = prefs["newtabLayouts.variant-a"];
+    const layoutsVariantBEnabled = prefs["newtabLayouts.variant-b"];
+    const layoutsVariantAorB = layoutsVariantAEnabled || layoutsVariantBEnabled;
+    const thumbsUpDownEnabled = prefs[PREF_THUMBS_UP_DOWN_ENABLED];
+    // For the compact layout to be active,
+    // thumbs also has to be enabled until Bug 1932242 is fixed
+    const thumbsUpDownLayoutEnabled =
+      prefs[PREF_THUMBS_UP_DOWN_LAYOUT_ENABLED] && thumbsUpDownEnabled;
+
+    /* Bug 1917937: The logic presented below is fragile but accurate to the pixel. As new tab experiments with layouts, we have a tech debt of competing styles and classes the slightly modify where the search bar sits on the page. The larger solution for this is to replace everything with an intersection observer, but would require a larger refactor of this file. In the interim, we can programmatically calculate when to fire the fixed-scroll event and account for the moved elements so that topsites/etc stays in the same place. The CSS this references has been flagged to reference this logic so (hopefully) keep them in sync. */
+
+    let SCROLL_THRESHOLD = 0; // When the fixed-scroll event fires
+    let MAIN_OFFSET_PADDING = 0; // The padding to compensate for the moved elements
+
+    let layout = {
+      outerWrapperPaddingTop: 30,
+      searchWrapperPaddingTop: 34,
+      searchWrapperPaddingBottom: 38,
+      searchWrapperFixedScrollPaddingTop: 27,
+      searchWrapperFixedScrollPaddingBottom: 27,
+      searchInnerWrapperMinHeight: 52,
+      logoAndWordmarkWrapperHeight: 64,
+      logoAndWordmarkWrapperMarginBottom: 48,
+    };
+
+    const CSS_VAR_SPACE_XXLARGE = 34.2; // Custom Acorn themed variable (8 * 0.267rem);
+
+    // Experimental layouts
+    // (Note these if statements are ordered to match the CSS cascade)
+    if (thumbsUpDownLayoutEnabled || layoutsVariantAorB) {
+      // Thumbs Compact View Layout
+      if (thumbsUpDownLayoutEnabled) {
+        layout.logoAndWordmarkWrapperMarginBottom = CSS_VAR_SPACE_XXLARGE;
+        if (!logoAlwaysVisible) {
+          layout.searchWrapperPaddingTop = CSS_VAR_SPACE_XXLARGE;
+          layout.searchWrapperPaddingBottom = CSS_VAR_SPACE_XXLARGE;
+        }
+      }
+
+      // Variant B Layout
+      if (layoutsVariantAEnabled) {
+        layout.outerWrapperPaddingTop = 24;
+        if (!thumbsUpDownLayoutEnabled) {
+          layout.searchWrapperPaddingTop = 0;
+          layout.searchWrapperPaddingBottom = 32;
+          layout.logoAndWordmarkWrapperMarginBottom = 32;
+        }
+      }
+
+      // Variant B Layout
+      if (layoutsVariantBEnabled) {
+        layout.outerWrapperPaddingTop = 24;
+        // Logo is positioned absolute, so remove it
+        layout.logoAndWordmarkWrapperHeight = 0;
+        layout.logoAndWordmarkWrapperMarginBottom = 0;
+        layout.searchWrapperPaddingTop = 16;
+        layout.searchWrapperPaddingBottom = CSS_VAR_SPACE_XXLARGE;
+        if (!thumbsUpDownLayoutEnabled) {
+          layout.searchWrapperPaddingBottom = 32;
+        }
+      }
+    }
+
+    // Logo visibility applies to all layouts
+    if (!logoAlwaysVisible) {
+      layout.logoAndWordmarkWrapperHeight = 0;
+      layout.logoAndWordmarkWrapperMarginBottom = 0;
+    }
+
+    SCROLL_THRESHOLD =
+      layout.outerWrapperPaddingTop +
+      layout.searchWrapperPaddingTop +
+      layout.logoAndWordmarkWrapperHeight +
+      layout.logoAndWordmarkWrapperMarginBottom -
+      layout.searchWrapperFixedScrollPaddingTop;
+
+    MAIN_OFFSET_PADDING =
+      layout.searchWrapperPaddingTop +
+      layout.searchWrapperPaddingBottom +
+      layout.searchInnerWrapperMinHeight +
+      layout.logoAndWordmarkWrapperHeight +
+      layout.logoAndWordmarkWrapperMarginBottom;
+
+    // Edge case if logo and thums are turned off, but Var A is enabled
+    if (SCROLL_THRESHOLD < 1) {
+      SCROLL_THRESHOLD = 1;
+    }
+
     if (global.scrollY > SCROLL_THRESHOLD && !this.state.fixedSearch) {
-      this.setState({ fixedSearch: true });
+      this.setState({
+        fixedSearch: true,
+        fixedNavStyle: { paddingBlockStart: `${MAIN_OFFSET_PADDING}px` },
+      });
     } else if (global.scrollY <= SCROLL_THRESHOLD && this.state.fixedSearch) {
-      this.setState({ fixedSearch: false });
+      this.setState({ fixedSearch: false, fixedNavStyle: {} });
     }
   }
 
@@ -564,7 +659,7 @@ export class BaseContent extends React.PureComponent {
         </div>
         {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions*/}
         <div className={outerClassName} onClick={this.closeCustomizationMenu}>
-          <main>
+          <main style={this.state.fixedNavStyle}>
             {prefs.showSearch && (
               <div className="non-collapsible-section">
                 <ErrorBoundary>

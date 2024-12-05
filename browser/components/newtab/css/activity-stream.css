@@ -1584,7 +1584,7 @@ main section {
   fill: var(--newtab-wordmark-color);
 }
 
-.layout-variant-b.has-recommended-stories .search-wrapper {
+.layout-variant-b.has-recommended-stories .outer-wrapper:not(.fixed-search) .search-wrapper {
   margin-block-start: 16px;
 }
 .layout-variant-b.has-recommended-stories .logo-and-wordmark {
@@ -1750,12 +1750,6 @@ main section {
 }
 
 @media (height > 700px) {
-  body:not(.inline-onboarding) .fixed-search main {
-    padding-top: 124px;
-  }
-  body:not(.inline-onboarding) .fixed-search.visible-logo main {
-    padding-top: 254px;
-  }
   body:not(.inline-onboarding) .fixed-search .search-wrapper {
     border-bottom: solid 1px var(--newtab-border-color);
     padding: 27px 0;
@@ -1768,7 +1762,7 @@ main section {
     z-index: 3;
   }
   body:not(.inline-onboarding) .fixed-search .search-wrapper .search-inner-wrapper {
-    min-height: 45px;
+    min-height: 52px;
   }
   body:not(.inline-onboarding) .fixed-search .search-wrapper input {
     background-position-x: 16px;
@@ -6660,7 +6654,7 @@ main section {
 .thumbs-ui-compact .search-wrapper .logo-and-wordmark-wrapper {
   margin-block-end: var(--space-xxlarge);
 }
-.layout-variant-b .thumbs-ui-compact .search-wrapper .logo-and-wordmark-wrapper {
+.layout-variant-a .thumbs-ui-compact .search-wrapper .logo-and-wordmark-wrapper, .layout-variant-b .thumbs-ui-compact .search-wrapper .logo-and-wordmark-wrapper {
   margin-block-end: 0;
 }
 @media (height <= 700px) {
@@ -6676,6 +6670,9 @@ main section {
 }
 .thumbs-ui-compact.fixed-search .search-wrapper {
   margin-block-start: 0;
+}
+.thumbs-ui-compact.fixed-search .search-wrapper .logo-and-wordmark-wrapper {
+  margin-block-end: 0;
 }
 .thumbs-ui-compact .top-site-outer {
   margin-block-end: 0;
