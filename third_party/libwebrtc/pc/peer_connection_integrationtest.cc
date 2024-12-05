@@ -201,6 +201,48 @@ TEST_P(PeerConnectionIntegrationTest,
                      }));
 }
 
+TEST_P(PeerConnectionIntegrationTest, RtpSenderObserverOnFirstPacketSent) {
+  ASSERT_TRUE(CreatePeerConnectionWrappers());
+  ConnectFakeSignaling();
+  caller()->AddAudioVideoTracks();
+  callee()->AddAudioVideoTracks();
+  // Start offer/answer exchange and wait for it to complete.
+  caller()->CreateAndSetAndSignalOffer();
+  ASSERT_TRUE_WAIT(SignalingStateStable(), kDefaultTimeout);
+  // Should be one sender each for audio/video.
+  EXPECT_EQ(2U, caller()->rtp_sender_observers().size());
+  EXPECT_EQ(2U, callee()->rtp_sender_observers().size());
+  // Wait for all "first packet sent" callbacks to be fired.
+  EXPECT_TRUE_WAIT(
+      absl::c_all_of(caller()->rtp_sender_observers(),
+                     [](const std::unique_ptr<MockRtpSenderObserver>& o) {
+                       return o->first_packet_sent();
+                     }),
+      kMaxWaitForFramesMs);
+  EXPECT_TRUE_WAIT(
+      absl::c_all_of(callee()->rtp_sender_observers(),
+                     [](const std::unique_ptr<MockRtpSenderObserver>& o) {
+                       return o->first_packet_sent();
+                     }),
+      kMaxWaitForFramesMs);
+  // If new observers are set after the first packet was already sent, the
+  // callback should still be invoked.
+  caller()->ResetRtpSenderObservers();
+  callee()->ResetRtpSenderObservers();
+  EXPECT_EQ(2U, caller()->rtp_sender_observers().size());
+  EXPECT_EQ(2U, callee()->rtp_sender_observers().size());
+  EXPECT_TRUE(
+      absl::c_all_of(caller()->rtp_sender_observers(),
+                     [](const std::unique_ptr<MockRtpSenderObserver>& o) {
+                       return o->first_packet_sent();
+                     }));
+  EXPECT_TRUE(
+      absl::c_all_of(callee()->rtp_sender_observers(),
+                     [](const std::unique_ptr<MockRtpSenderObserver>& o) {
+                       return o->first_packet_sent();
+                     }));
+}
+
 class DummyDtmfObserver : public DtmfSenderObserverInterface {
  public:
   DummyDtmfObserver() : completed_(false) {}

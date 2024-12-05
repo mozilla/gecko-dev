@@ -149,6 +149,7 @@ class BaseChannel : public ChannelInterface,
 
   // Used for latency measurements.
   void SetFirstPacketReceivedCallback(std::function<void()> callback) override;
+  void SetFirstPacketSentCallback(std::function<void()> callback) override;
 
   // From RtpTransport - public for testing only
   void OnTransportReadyToSend(bool ready);
@@ -316,8 +317,10 @@ class BaseChannel : public ChannelInterface,
   webrtc::TaskQueueBase* const signaling_thread_;
   rtc::scoped_refptr<webrtc::PendingTaskSafetyFlag> alive_;
 
+  // The functions are deleted after they have been called.
   std::function<void()> on_first_packet_received_
       RTC_GUARDED_BY(network_thread());
+  std::function<void()> on_first_packet_sent_ RTC_GUARDED_BY(network_thread());
 
   webrtc::RtpTransportInternal* rtp_transport_
       RTC_GUARDED_BY(network_thread()) = nullptr;

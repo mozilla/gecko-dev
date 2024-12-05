@@ -356,6 +356,7 @@ void RtpTransceiver::SetChannel(
   context()->network_thread()->BlockingCall([&]() {
     if (channel_) {
       channel_->SetFirstPacketReceivedCallback(nullptr);
+      channel_->SetFirstPacketSentCallback(nullptr);
       channel_->SetRtpTransport(nullptr);
       channel_to_delete = std::move(channel_);
     }
@@ -367,6 +368,11 @@ void RtpTransceiver::SetChannel(
         [thread = thread_, flag = signaling_thread_safety_, this]() mutable {
           thread->PostTask(
               SafeTask(std::move(flag), [this]() { OnFirstPacketReceived(); }));
+        });
+    channel_->SetFirstPacketSentCallback(
+        [thread = thread_, flag = signaling_thread_safety_, this]() mutable {
+          thread->PostTask(
+              SafeTask(std::move(flag), [this]() { OnFirstPacketSent(); }));
         });
   });
   PushNewMediaChannelAndDeleteChannel(nullptr);
@@ -392,6 +398,7 @@ void RtpTransceiver::ClearChannel() {
   context()->network_thread()->BlockingCall([&]() {
     if (channel_) {
       channel_->SetFirstPacketReceivedCallback(nullptr);
+      channel_->SetFirstPacketSentCallback(nullptr);
       channel_->SetRtpTransport(nullptr);
       channel_to_delete = std::move(channel_);
     }
@@ -520,6 +527,12 @@ std::optional<std::string> RtpTransceiver::mid() const {
 void RtpTransceiver::OnFirstPacketReceived() {
   for (const auto& receiver : receivers_) {
     receiver->internal()->NotifyFirstPacketReceived();
+  }
+}
+
+void RtpTransceiver::OnFirstPacketSent() {
+  for (const auto& sender : senders_) {
+    sender->internal()->NotifyFirstPacketSent();
   }
 }
 

@@ -407,6 +407,23 @@ void RtpSenderBase::SetParametersAsync(const RtpParameters& parameters,
       false);
 }
 
+void RtpSenderBase::SetObserver(RtpSenderObserverInterface* observer) {
+  RTC_DCHECK_RUN_ON(signaling_thread_);
+  observer_ = observer;
+  // Deliver any notifications the observer may have missed by being set late.
+  if (sent_first_packet_ && observer_) {
+    observer_->OnFirstPacketSent(media_type());
+  }
+}
+
+void RtpSenderBase::NotifyFirstPacketSent() {
+  RTC_DCHECK_RUN_ON(signaling_thread_);
+  if (observer_) {
+    observer_->OnFirstPacketSent(media_type());
+  }
+  sent_first_packet_ = true;
+}
+
 void RtpSenderBase::set_stream_ids(const std::vector<std::string>& stream_ids) {
   stream_ids_.clear();
   absl::c_copy_if(stream_ids, std::back_inserter(stream_ids_),

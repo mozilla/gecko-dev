@@ -302,6 +302,7 @@ class RtpTransceiver : public RtpTransceiverInterface {
   }
   ConnectionContext* context() const { return context_; }
   void OnFirstPacketReceived();
+  void OnFirstPacketSent();
   void StopSendingAndReceiving();
   // Delete a channel, and ensure that references to its media channel
   // are updated before deleting it.

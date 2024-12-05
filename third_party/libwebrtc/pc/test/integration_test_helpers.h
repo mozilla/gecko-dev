@@ -230,6 +230,25 @@ class MockRtpReceiverObserver : public RtpReceiverObserverInterface {
   cricket::MediaType expected_media_type_;
 };
 
+class MockRtpSenderObserver : public RtpSenderObserverInterface {
+ public:
+  explicit MockRtpSenderObserver(cricket::MediaType media_type)
+      : expected_media_type_(media_type) {}
+
+  void OnFirstPacketSent(cricket::MediaType media_type) override {
+    ASSERT_EQ(expected_media_type_, media_type);
+    first_packet_sent_ = true;
+  }
+
+  bool first_packet_sent() const { return first_packet_sent_; }
+
+  virtual ~MockRtpSenderObserver() {}
+
+ private:
+  bool first_packet_sent_ = false;
+  cricket::MediaType expected_media_type_;
+};
+
 // Helper class that wraps a peer connection, observes it, and can accept
 // signaling messages from another wrapper.
 //
@@ -335,6 +354,7 @@ class PeerConnectionIntegrationWrapper : public PeerConnectionObserver,
   void AddAudioVideoTracks() {
     AddAudioTrack();
     AddVideoTrack();
+    ResetRtpSenderObservers();
   }
 
   rtc::scoped_refptr<RtpSenderInterface> AddAudioTrack() {
@@ -615,6 +635,22 @@ class PeerConnectionIntegrationWrapper : public PeerConnectionObserver,
           new MockRtpReceiverObserver(receiver->media_type()));
       receiver->SetObserver(observer.get());
       rtp_receiver_observers_.push_back(std::move(observer));
+    }
+  }
+
+  const std::vector<std::unique_ptr<MockRtpSenderObserver>>&
+  rtp_sender_observers() {
+    return rtp_sender_observers_;
+  }
+
+  void ResetRtpSenderObservers() {
+    rtp_sender_observers_.clear();
+    for (const rtc::scoped_refptr<RtpSenderInterface>& sender :
+         pc()->GetSenders()) {
+      std::unique_ptr<MockRtpSenderObserver> observer(
+          new MockRtpSenderObserver(sender->media_type()));
+      sender->SetObserver(observer.get());
+      rtp_sender_observers_.push_back(std::move(observer));
     }
   }
 
@@ -1126,6 +1162,7 @@ class PeerConnectionIntegrationWrapper : public PeerConnectionObserver,
   std::vector<std::unique_ptr<MockDataChannelObserver>> data_observers_;
 
   std::vector<std::unique_ptr<MockRtpReceiverObserver>> rtp_receiver_observers_;
+  std::vector<std::unique_ptr<MockRtpSenderObserver>> rtp_sender_observers_;
 
   std::vector<PeerConnectionInterface::IceConnectionState>
       ice_connection_state_history_;
