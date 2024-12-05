@@ -84,7 +84,9 @@ import mozilla.components.support.utils.SafeIntent
 import mozilla.components.support.utils.toSafeIntent
 import mozilla.components.support.webextensions.WebExtensionPopupObserver
 import mozilla.telemetry.glean.private.NoExtras
+import org.mozilla.experiments.nimbus.NimbusInterface
 import org.mozilla.experiments.nimbus.initializeTooling
+import org.mozilla.experiments.nimbus.internal.EnrolledExperiment
 import org.mozilla.fenix.GleanMetrics.AppIcon
 import org.mozilla.fenix.GleanMetrics.Events
 import org.mozilla.fenix.GleanMetrics.Metrics
@@ -277,7 +279,7 @@ open class HomeActivity : LocaleAwareAppCompatActivity(), NavHostActivity {
         components.strictMode.attachListenerToDisablePenaltyDeath(supportFragmentManager)
         MarkersFragmentLifecycleCallbacks.register(supportFragmentManager, components.core.engine)
 
-        maybeShowSplashScreen()
+        val splashScreenInstalled = maybeShowSplashScreen()
 
         // There is disk read violations on some devices such as samsung and pixel for android 9/10
         components.strictMode.resetAfter(StrictMode.allowThreadDiskReads()) {
@@ -361,8 +363,11 @@ open class HomeActivity : LocaleAwareAppCompatActivity(), NavHostActivity {
                 isLauncherIntent = intent.toSafeIntent().isLauncherIntent,
             )
         ) {
-            // Unless activity is recreated due to config change, navigate to onboarding
-            if (savedInstanceState == null) {
+            val offTrainExperimentRunning =
+                splashScreenInstalled && FxNimbus.features.splashScreen.value().offTrainOnboarding
+            // If it is not a config change and there is no off-train onboarding experiment running (that would delay
+            // navigation until the experiment data is updated), navigate to onboarding
+            if (savedInstanceState == null && !offTrainExperimentRunning) {
                 navHost.navController.navigate(NavGraphDirections.actionGlobalOnboarding())
             }
         } else {
@@ -507,36 +512,81 @@ open class HomeActivity : LocaleAwareAppCompatActivity(), NavHostActivity {
         StartupTimeline.onActivityCreateEndHome(this) // DO NOT MOVE ANYTHING BELOW HERE.
     }
 
-    private fun maybeShowSplashScreen() {
+    private fun maybeShowSplashScreen(): Boolean {
         if (components.settings.isFirstSplashScreenShown) {
-            return
+            return false
         } else {
             components.settings.isFirstSplashScreenShown = true
             // Splash screen compat fails to draw icons on earlier versions.
-            if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.M) {
-                return
+            val isCompatible = Build.VERSION.SDK_INT <= Build.VERSION_CODES.M
+            if (!FxNimbus.features.splashScreen.value().enabled || isCompatible) {
+                return false
             }
         }
 
-        if (FxNimbus.features.splashScreen.value().enabled) {
-            val splashScreen = installSplashScreen()
-            var maxDurationReached = false
-            val delay = FxNimbus.features.splashScreen.value().maximumDurationMs.toLong()
-            splashScreen.setKeepOnScreenCondition {
-                val dataFetched = components.settings.nimbusExperimentsFetched
+        if (FxNimbus.features.splashScreen.value().offTrainOnboarding) {
+            delaySplashScreenToApplyExperimentData()
+        } else {
+            delaySplashScreenToFetchExperimentData()
+        }
+        return true
+    }
 
-                val keepOnScreen = !maxDurationReached && !dataFetched
-                if (!keepOnScreen) {
-                    SplashScreen.firstLaunchExtended.record(
-                        SplashScreen.FirstLaunchExtendedExtra(dataFetched = dataFetched),
-                    )
-                }
-                keepOnScreen
+    private fun delaySplashScreenToFetchExperimentData() {
+        val splashScreen = installSplashScreen()
+        var maxDurationReached = false
+        val delay = FxNimbus.features.splashScreen.value().maximumDurationMs.toLong()
+        splashScreen.setKeepOnScreenCondition {
+            val dataFetched = components.settings.nimbusExperimentsFetched
+
+            val keepOnScreen = !maxDurationReached && !dataFetched
+            if (!keepOnScreen) {
+                SplashScreen.firstLaunchExtended.record(
+                    SplashScreen.FirstLaunchExtendedExtra(dataFetched = dataFetched),
+                )
             }
-            MainScope().launch {
-                delay(timeMillis = delay)
-                maxDurationReached = true
+            keepOnScreen
+        }
+        MainScope().launch {
+            delay(timeMillis = delay)
+            maxDurationReached = true
+        }
+    }
+
+    private fun delaySplashScreenToApplyExperimentData() {
+        val maxDuration = FxNimbus.features.splashScreen.value().maximumDurationMs.toLong()
+        var maxDurationReached = false
+        var dataApplying = false
+        var dataApplied = false
+
+        installSplashScreen().setKeepOnScreenCondition {
+            val dataFetched = components.settings.nimbusExperimentsFetched
+            val shouldApplyFetchedData = dataFetched && !dataApplying
+            if (shouldApplyFetchedData) {
+                dataApplying = true
+                components.nimbus.sdk.applyPendingExperiments()
+                components.nimbus.sdk.register(
+                    object : NimbusInterface.Observer {
+                        override fun onUpdatesApplied(updated: List<EnrolledExperiment>) {
+                            dataApplied = true
+                        }
+                    },
+                )
             }
+
+            val hideSplashScreen = maxDurationReached || dataApplied
+            if (hideSplashScreen) {
+                SplashScreen.firstLaunchExtended.record(
+                    SplashScreen.FirstLaunchExtendedExtra(dataFetched = dataFetched),
+                )
+                navHost.navController.navigate(NavGraphDirections.actionGlobalOnboarding())
+            }
+
+            !hideSplashScreen
+        }
+        MainScope().launch {
+            delay(timeMillis = maxDuration)
+            maxDurationReached = true
         }
     }
 
