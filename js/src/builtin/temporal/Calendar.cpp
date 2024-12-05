@@ -179,23 +179,19 @@ static int32_t WeekDay(int32_t day) {
 }
 
 /**
- * ToISODayOfWeek ( year, month, day )
+ * ISODayOfWeek ( isoDate )
  */
-static int32_t ToISODayOfWeek(const ISODate& date) {
-  MOZ_ASSERT(ISODateWithinLimits(date));
+static int32_t ISODayOfWeek(const ISODate& isoDate) {
+  MOZ_ASSERT(ISODateWithinLimits(isoDate));
 
-  // Steps 1-3. (Not applicable in our implementation.)
+  // Step 1.
+  int32_t day = MakeDay(isoDate);
 
-  // TODO: Check if ES MakeDate + WeekDay is efficient enough.
-  //
-  // https://en.wikipedia.org/wiki/Determination_of_the_day_of_the_week#Methods_in_computer_code
+  // Step 2.
+  int32_t dayOfWeek = WeekDay(day);
 
-  // Step 4.
-  int32_t day = MakeDay(date);
-
-  // Step 5.
-  int32_t weekday = WeekDay(day);
-  return weekday != 0 ? weekday : 7;
+  // Steps 3-4.
+  return dayOfWeek != 0 ? dayOfWeek : 7;
 }
 
 static constexpr auto FirstDayOfMonth(int32_t year) {
@@ -209,34 +205,23 @@ static constexpr auto FirstDayOfMonth(int32_t year) {
 }
 
 /**
- * ToISODayOfYear ( year, month, day )
+ * ISODayOfYear ( isoDate )
  */
-static int32_t ToISODayOfYear(int32_t year, int32_t month, int32_t day) {
-  MOZ_ASSERT(1 <= month && month <= 12);
+static int32_t ISODayOfYear(const ISODate& isoDate) {
+  MOZ_ASSERT(ISODateWithinLimits(isoDate));
+
+  const auto& [year, month, day] = isoDate;
 
   // First day of month arrays for non-leap and leap years.
   constexpr decltype(FirstDayOfMonth(0)) firstDayOfMonth[2] = {
       FirstDayOfMonth(1), FirstDayOfMonth(0)};
 
-  // Steps 1-3. (Not applicable in our implementation.)
-
-  // Steps 4-5.
+  // Steps 1-2.
   //
   // Instead of first computing the date and then using DayWithinYear to map the
   // date to the day within the year, directly lookup the first day of the month
   // and then add the additional days.
   return firstDayOfMonth[IsISOLeapYear(year)][month - 1] + day;
-}
-
-/**
- * ToISODayOfYear ( year, month, day )
- */
-static int32_t ToISODayOfYear(const ISODate& date) {
-  MOZ_ASSERT(ISODateWithinLimits(date));
-
-  // Steps 1-5.
-  const auto& [year, month, day] = date;
-  return ::ToISODayOfYear(year, month, day);
 }
 
 static int32_t FloorDiv(int32_t dividend, int32_t divisor) {
@@ -290,7 +275,7 @@ static int64_t MakeTime(const Time& time) {
 int32_t js::temporal::MakeDay(const ISODate& date) {
   MOZ_ASSERT(ISODateWithinLimits(date));
 
-  return DayFromYear(date.year) + ToISODayOfYear(date) - 1;
+  return DayFromYear(date.year) + ISODayOfYear(date) - 1;
 }
 
 /**
@@ -315,43 +300,47 @@ struct YearWeek final {
 };
 
 /**
- * ToISOWeekOfYear ( year, month, day )
+ * ISOWeekOfYear ( isoDate )
  */
-static YearWeek ToISOWeekOfYear(const ISODate& date) {
-  MOZ_ASSERT(ISODateWithinLimits(date));
+static YearWeek ISOWeekOfYear(const ISODate& isoDate) {
+  MOZ_ASSERT(ISODateWithinLimits(isoDate));
 
-  const auto& [year, month, day] = date;
+  // Step 1.
+  int32_t year = isoDate.year;
 
-  // TODO: https://en.wikipedia.org/wiki/Week#The_ISO_week_date_system
-  // TODO: https://en.wikipedia.org/wiki/ISO_week_date#Algorithms
+  // Step 2-7. (Not applicable in our implementation.)
 
-  // Steps 1-3. (Not applicable in our implementation.)
+  // Steps 8-9.
+  int32_t dayOfYear = ISODayOfYear(isoDate);
+  int32_t dayOfWeek = ISODayOfWeek(isoDate);
 
-  // Steps 4-5.
-  int32_t doy = ToISODayOfYear(date);
-  int32_t dow = ToISODayOfWeek(date);
-
-  int32_t woy = (10 + doy - dow) / 7;
-  MOZ_ASSERT(0 <= woy && woy <= 53);
+  // Step 10.
+  int32_t week = (10 + dayOfYear - dayOfWeek) / 7;
+  MOZ_ASSERT(0 <= week && week <= 53);
 
   // An ISO year has 53 weeks if the year starts on a Thursday or if it's a
   // leap year which starts on a Wednesday.
   auto isLongYear = [](int32_t year) {
-    int32_t startOfYear = ToISODayOfWeek({year, 1, 1});
+    int32_t startOfYear = ISODayOfWeek({year, 1, 1});
     return startOfYear == 4 || (startOfYear == 3 && IsISOLeapYear(year));
   };
 
+  // Step 11.
+  //
   // Part of last year's last week, which is either week 52 or week 53.
-  if (woy == 0) {
+  if (week == 0) {
     return {year - 1, 52 + int32_t(isLongYear(year - 1))};
   }
 
+  // Step 12.
+  //
   // Part of next year's first week if the current year isn't a long year.
-  if (woy == 53 && !isLongYear(year)) {
+  if (week == 53 && !isLongYear(year)) {
     return {year + 1, 1};
   }
 
-  return {year, woy};
+  // Step 13.
+  return {year, week};
 }
 
 /**
@@ -2790,7 +2779,7 @@ bool js::temporal::CalendarDayOfWeek(JSContext* cx,
 
   // Step 1.
   if (calendarId == CalendarId::ISO8601) {
-    result.setInt32(ToISODayOfWeek(date));
+    result.setInt32(ISODayOfWeek(date));
     return true;
   }
 
@@ -2832,7 +2821,7 @@ bool js::temporal::CalendarDayOfYear(JSContext* cx,
 
   // Step 1.
   if (calendarId == CalendarId::ISO8601) {
-    result.setInt32(ToISODayOfYear(date));
+    result.setInt32(ISODayOfYear(date));
     return true;
   }
 
@@ -2897,7 +2886,7 @@ bool js::temporal::CalendarWeekOfYear(JSContext* cx,
 
   // Step 1.
   if (calendarId == CalendarId::ISO8601) {
-    result.setInt32(ToISOWeekOfYear(date).week);
+    result.setInt32(ISOWeekOfYear(date).week);
     return true;
   }
 
@@ -2950,7 +2939,7 @@ bool js::temporal::CalendarYearOfWeek(JSContext* cx,
 
   // Step 1.
   if (calendarId == CalendarId::ISO8601) {
-    result.setInt32(ToISOWeekOfYear(date).year);
+    result.setInt32(ISOWeekOfYear(date).year);
     return true;
   }
 
