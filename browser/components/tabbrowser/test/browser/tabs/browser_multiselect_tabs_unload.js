@@ -15,39 +15,26 @@ async function openTabMenuFor(tab) {
   return tabMenu;
 }
 
-async function addBrowserTab(url = "http://mochi.test:8888/") {
-  const tab = BrowserTestUtils.addTab(gBrowser, url, {});
-  const browser = gBrowser.getBrowserForTab(tab);
-  await BrowserTestUtils.browserLoaded(browser);
-  return tab;
-}
-
 async function addBrowserTabs(numberOfTabs) {
-  let uris = [];
+  let tabs = [];
   for (let i = 0; i < numberOfTabs; i++) {
-    uris.push(`http://mochi.test:8888/#${i}`);
+    tabs.push(await addTab(`http://mochi.test:8888/#${i}`));
   }
-  gBrowser.loadTabs(uris, {
-    inBackground: true,
-    triggeringPrincipal: Services.scriptSecurityManager.getSystemPrincipal(),
-  });
-
-  let tabs = Array.from(gBrowser.tabs).slice(-1 * numberOfTabs);
-  await TestUtils.waitForCondition(() => {
-    return tabs.every(tab => tab._fullyOpen);
-  });
-
-  let browsers = tabs.map(tab => gBrowser.getBrowserForTab(tab));
-  let browserLoadedPromises = browsers.map(browser =>
-    BrowserTestUtils.browserLoaded(browser)
-  );
-  await Promise.all(browserLoadedPromises);
   return tabs;
 }
 
 add_setup(async function () {
+  // This is helpful to avoid some weird race conditions in the test, specifically
+  // the assertion that !this.blankTab in AsyncTabSwitcher when adding a new tab.
+  await promiseTabLoadEvent(
+    gBrowser.selectedTab,
+    "http://mochi.test:8888/#originalTab"
+  );
+  let originalTab = gBrowser.selectedTab;
   // switch to Firefox View tab to initialize it
   FirefoxViewHandler.openTab();
+  // switch back to the original tab since tests expect this
+  await BrowserTestUtils.switchTab(gBrowser, originalTab);
 });
 
 add_task(async function test_unload_selected_and_one_other_tab() {
@@ -187,7 +174,6 @@ add_task(async function test_unload_all_tabs() {
 
   let menuItemUnload = document.getElementById("context_unloadTab");
 
-  await BrowserTestUtils.switchTab(gBrowser, originalTab);
   await triggerClickOn(tab1, { ctrlKey: true });
   await triggerClickOn(tab2, { ctrlKey: true });
   await triggerClickOn(tab3, { ctrlKey: true });
@@ -240,7 +226,7 @@ add_task(
       set: [["browser.tabs.unloadTabInContextMenu", true]],
     });
 
-    let tab1 = await addBrowserTab("about:config");
+    let tab1 = await addTab("about:config");
     let menuItemUnload = document.getElementById("context_unloadTab");
     updateTabContextMenu(tab1);
     ok(menuItemUnload.hidden, "Unload Tab is hidden");
