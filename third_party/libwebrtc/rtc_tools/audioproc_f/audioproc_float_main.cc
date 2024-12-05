@@ -8,12 +8,8 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 
-#include <memory>
-
-#include "api/audio/audio_processing.h"
 #include "api/test/audioproc_float.h"
 
 int main(int argc, char* argv[]) {
-  return webrtc::test::AudioprocFloat(
-      std::make_unique<webrtc::AudioProcessingBuilder>(), argc, argv);
+  return webrtc::test::AudioprocFloat(argc, argv);
 }

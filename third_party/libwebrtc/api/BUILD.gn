@@ -1056,6 +1056,8 @@ if (rtc_include_tests) {
         "../modules/audio_processing",
         "../modules/audio_processing:audioproc_f_impl",
         "audio:audio_processing",
+        "audio:builtin_audio_processing_builder",
+        "//third_party/abseil-cpp/absl/base:nullability",
       ]
     }
 

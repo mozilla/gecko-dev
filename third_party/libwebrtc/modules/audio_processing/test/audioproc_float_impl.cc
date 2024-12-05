@@ -29,6 +29,8 @@
 #include "api/audio/echo_canceller3_config.h"
 #include "api/audio/echo_canceller3_factory.h"
 #include "api/audio/echo_detector_creator.h"
+#include "api/environment/environment.h"
+#include "api/environment/environment_factory.h"
 #include "api/field_trials.h"
 #include "api/scoped_refptr.h"
 #include "common_audio/wav_file.h"
@@ -773,8 +775,12 @@ EchoCanceller3Config ReadAec3ConfigFromJsonFile(absl::string_view filename) {
   return cfg;
 }
 
-void SetDependencies(const SimulationSettings& settings,
-                     AudioProcessingBuilder& builder) {
+// `Builder` is either AudioProcessingBuilder or BuiltinAudioProcessingBuilder
+// TODO: bugs.webrtc.org/369904700 - inline this function when usages of
+// the AudioProcessingBuilder are removed, and thus two version of this function
+// are no longer needed.
+template <typename Builder>
+void SetDependencies(const SimulationSettings& settings, Builder& builder) {
   // Create and set an EchoCanceller3Factory if needed.
   if (settings.use_aec && *settings.use_aec) {
     EchoCanceller3Config cfg;
@@ -805,6 +811,31 @@ void SetDependencies(const SimulationSettings& settings,
 }
 
 absl::Nonnull<scoped_refptr<AudioProcessing>> Provide(
+    const Environment& env,
+    const SimulationSettings& settings,
+    absl::Nonnull<std::unique_ptr<BuiltinAudioProcessingBuilder>> ap_builder) {
+  PerformBasicParameterSanityChecks(settings,
+                                    /*pre_constructed_ap_provided=*/false);
+  SetDependencies(settings, *ap_builder);
+  scoped_refptr<AudioProcessing> ap = ap_builder->Build(env);
+  RTC_CHECK(ap);
+  return ap;
+}
+
+absl::Nonnull<scoped_refptr<AudioProcessing>> Provide(
+    const Environment& env,
+    const SimulationSettings& settings,
+    absl::Nonnull<std::unique_ptr<AudioProcessingBuilderInterface>>
+        ap_builder) {
+  PerformBasicParameterSanityChecks(settings,
+                                    /*pre_constructed_ap_provided=*/true);
+  scoped_refptr<AudioProcessing> ap = ap_builder->Build(env);
+  RTC_CHECK(ap);
+  return ap;
+}
+
+absl::Nonnull<scoped_refptr<AudioProcessing>> Provide(
+    const Environment& /*env*/,
     const SimulationSettings& settings,
     absl::Nullable<std::unique_ptr<AudioProcessingBuilder>> ap_builder) {
   PerformBasicParameterSanityChecks(settings,
@@ -819,10 +850,11 @@ absl::Nonnull<scoped_refptr<AudioProcessing>> Provide(
 }
 
 absl::Nonnull<scoped_refptr<AudioProcessing>> Provide(
+    const Environment& env,
     const SimulationSettings& settings,
     absl::Nullable<scoped_refptr<AudioProcessing>> ap_provider) {
   if (ap_provider == nullptr) {
-    return Provide(settings, std::make_unique<AudioProcessingBuilder>());
+    return Provide(env, settings, std::make_unique<AudioProcessingBuilder>());
   }
 
   PerformBasicParameterSanityChecks(settings,
@@ -837,14 +869,12 @@ int RunSimulation(AudioProcessingProvider ap_provider, int argc, char* argv[]) {
     printf("%s", kUsageDescription);
     return 1;
   }
-  // TODO: bugs.webrtc.org/369904700 - Propagate these field trials to construct
-  // audio_processing when AudioProcessingImpl will be able to accept propagated
-  // field trials through Environment.
   FieldTrials field_trials(absl::GetFlag(FLAGS_force_fieldtrials));
+  const Environment env = CreateEnvironment(&field_trials);
 
   SimulationSettings settings = CreateSettings();
   absl::Nonnull<scoped_refptr<AudioProcessing>> audio_processing =
-      Provide(settings, std::move(ap_provider));
+      Provide(env, settings, std::move(ap_provider));
 
   std::unique_ptr<AudioProcessingSimulator> processor;
   if (settings.aec_dump_input_filename || settings.aec_dump_input_string) {
@@ -890,6 +920,20 @@ int AudioprocFloatImpl(
 
 int AudioprocFloatImpl(
     absl::Nullable<std::unique_ptr<AudioProcessingBuilder>> ap_builder,
+    int argc,
+    char* argv[]) {
+  return RunSimulation(std::move(ap_builder), argc, argv);
+}
+
+int AudioprocFloatImpl(
+    absl::Nonnull<std::unique_ptr<BuiltinAudioProcessingBuilder>> ap_builder,
+    int argc,
+    char* argv[]) {
+  return RunSimulation(std::move(ap_builder), argc, argv);
+}
+
+int AudioprocFloatImpl(
+    absl::Nonnull<std::unique_ptr<AudioProcessingBuilderInterface>> ap_builder,
     int argc,
     char* argv[]) {
   return RunSimulation(std::move(ap_builder), argc, argv);

@@ -15,6 +15,7 @@
 
 #include "absl/base/nullability.h"
 #include "api/audio/audio_processing.h"
+#include "api/audio/builtin_audio_processing_builder.h"
 #include "api/scoped_refptr.h"
 
 namespace webrtc {
@@ -27,6 +28,16 @@ int AudioprocFloatImpl(
 
 int AudioprocFloatImpl(
     absl::Nullable<std::unique_ptr<AudioProcessingBuilder>> ap_builder,
+    int argc,
+    char* argv[]);
+
+int AudioprocFloatImpl(
+    absl::Nonnull<std::unique_ptr<BuiltinAudioProcessingBuilder>> ap_builder,
+    int argc,
+    char* argv[]);
+
+int AudioprocFloatImpl(
+    absl::Nonnull<std::unique_ptr<AudioProcessingBuilderInterface>> ap_builder,
     int argc,
     char* argv[]);
 
