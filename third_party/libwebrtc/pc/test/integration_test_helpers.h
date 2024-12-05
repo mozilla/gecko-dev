@@ -680,6 +680,46 @@ class PeerConnectionIntegrationWrapper : public PeerConnectionObserver,
     return observer->error().ok();
   }
 
+  void AddCorruptionDetectionHeader() {
+    SetGeneratedSdpMunger(
+        [&](std::unique_ptr<SessionDescriptionInterface>& sdp) {
+          for (ContentInfo& content : sdp->description()->contents()) {
+            cricket::MediaContentDescription* media =
+                content.media_description();
+            // Corruption detection is only a valid RTP header extension for
+            // video stream.
+            if (media->type() != cricket::MediaType::MEDIA_TYPE_VIDEO) {
+              continue;
+            }
+            cricket::RtpHeaderExtensions extensions =
+                media->rtp_header_extensions();
+
+            // Find a valid id.
+            int id = extensions.size();
+            while (IdExists(extensions, id)) {
+              ++id;
+            }
+
+            extensions.push_back(RtpExtension(
+                RtpExtension::kCorruptionDetectionUri, id, /*encrypt=*/true));
+            media->set_rtp_header_extensions(extensions);
+            break;
+          }
+        });
+  }
+
+  uint32_t GetCorruptionScoreCount() {
+    rtc::scoped_refptr<const RTCStatsReport> report = NewGetStats();
+    auto inbound_stream_stats =
+        report->GetStatsOfType<RTCInboundRtpStreamStats>();
+    for (const auto& stat : inbound_stream_stats) {
+      if (*stat->kind == "video") {
+        return stat->corruption_score_count.value_or(0);
+      }
+    }
+    return 0;
+  }
+
  private:
   // Constructor used by friend class PeerConnectionIntegrationBaseTest.
   explicit PeerConnectionIntegrationWrapper(const std::string& debug_name)
@@ -1026,6 +1066,14 @@ class PeerConnectionIntegrationWrapper : public PeerConnectionObserver,
     data_channels_.push_back(data_channel);
     data_observers_.push_back(
         std::make_unique<MockDataChannelObserver>(data_channel.get()));
+  }
+  bool IdExists(const cricket::RtpHeaderExtensions& extensions, int id) {
+    for (const auto& extension : extensions) {
+      if (extension.id == id) {
+        return true;
+      }
+    }
+    return false;
   }
 
   std::string debug_name_;

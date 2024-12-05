@@ -297,6 +297,10 @@ class RTC_EXPORT RTCInboundRtpStreamStats final
   std::optional<uint32_t> pli_count;
   std::optional<uint32_t> nack_count;
   std::optional<uint64_t> qp_sum;
+  // https://webrtc.googlesource.com/src/+/refs/heads/main/docs/native-code/rtp-hdrext/corruption-detection
+  std::optional<double> corruption_score_sum;
+  std::optional<double> corruption_score_squared_sum;
+  std::optional<uint32_t> corruption_score_count;
   // This is a remnant of the legacy getStats() API. When the "video-timing"
   // header extension is used,
   // https://webrtc.github.io/webrtc-org/experiments/rtp-hdrext/video-timing/,

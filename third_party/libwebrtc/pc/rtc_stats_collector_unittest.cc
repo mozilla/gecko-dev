@@ -2346,6 +2346,8 @@ TEST_F(RTCStatsCollectorTest, CollectRTCInboundRtpStreamStats_Video) {
   video_media_info.receivers[0].key_frames_decoded = 3;
   video_media_info.receivers[0].frames_dropped = 13;
   video_media_info.receivers[0].qp_sum = std::nullopt;
+  video_media_info.receivers[0].corruption_score_sum = std::nullopt;
+  video_media_info.receivers[0].corruption_score_squared_sum = std::nullopt;
   video_media_info.receivers[0].total_decode_time = TimeDelta::Seconds(9);
   video_media_info.receivers[0].total_processing_delay = TimeDelta::Millis(600);
   video_media_info.receivers[0].total_assembly_time = TimeDelta::Millis(500);
@@ -2417,6 +2419,7 @@ TEST_F(RTCStatsCollectorTest, CollectRTCInboundRtpStreamStats_Video) {
   expected_video.key_frames_decoded = 3;
   expected_video.frames_dropped = 13;
   // `expected_video.qp_sum` should be undefined.
+  // `corruption_score` related metrics should be undefined.
   expected_video.total_decode_time = 9.0;
   expected_video.total_processing_delay = 0.6;
   expected_video.total_assembly_time = 0.5;
@@ -2453,6 +2456,12 @@ TEST_F(RTCStatsCollectorTest, CollectRTCInboundRtpStreamStats_Video) {
   // Set previously undefined values and "GetStats" again.
   video_media_info.receivers[0].qp_sum = 9;
   expected_video.qp_sum = 9;
+  video_media_info.receivers[0].corruption_score_sum = 0.5;
+  video_media_info.receivers[0].corruption_score_squared_sum = 0.25;
+  video_media_info.receivers[0].corruption_score_count = 5;
+  expected_video.corruption_score_sum = 0.5;
+  expected_video.corruption_score_squared_sum = 0.25;
+  expected_video.corruption_score_count = 5;
   video_media_info.receivers[0].last_packet_received = Timestamp::Seconds(1);
   expected_video.last_packet_received_timestamp = 1000.0;
   video_media_info.receivers[0].content_type = VideoContentType::SCREENSHARE;

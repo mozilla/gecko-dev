@@ -624,6 +624,16 @@ CreateInboundRTPStreamStatsFromVideoReceiverInfo(
   if (video_receiver_info.qp_sum.has_value()) {
     inbound_video->qp_sum = *video_receiver_info.qp_sum;
   }
+  if (video_receiver_info.corruption_score_sum.has_value()) {
+    RTC_CHECK(video_receiver_info.corruption_score_squared_sum.has_value());
+    RTC_CHECK_GT(video_receiver_info.corruption_score_count, 0);
+    inbound_video->corruption_score_sum =
+        *video_receiver_info.corruption_score_sum;
+    inbound_video->corruption_score_squared_sum =
+        *video_receiver_info.corruption_score_squared_sum;
+    inbound_video->corruption_score_count =
+        video_receiver_info.corruption_score_count;
+  }
   if (video_receiver_info.timing_frame_info.has_value()) {
     inbound_video->goog_timing_frame_info =
         video_receiver_info.timing_frame_info->ToString();
