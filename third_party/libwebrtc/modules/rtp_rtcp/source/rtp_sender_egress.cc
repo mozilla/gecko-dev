@@ -274,15 +274,11 @@ void RtpSenderEgress::CompleteSendPacket(const Packet& compound_packet,
   RTC_DCHECK_RUN_ON(worker_queue_);
   auto& [packet, pacing_info, now] = compound_packet;
   RTC_CHECK(packet);
-  const bool is_media = packet->packet_type() == RtpPacketMediaType::kAudio ||
-                        packet->packet_type() == RtpPacketMediaType::kVideo;
 
   PacketOptions options;
   options.included_in_allocation = force_part_of_allocation_;
-
-  // Downstream code actually uses this flag to distinguish between media and
-  // everything else.
-  options.is_retransmit = !is_media;
+  options.is_media = packet->packet_type() == RtpPacketMediaType::kAudio ||
+                     packet->packet_type() == RtpPacketMediaType::kVideo;
 
   // Set Packet id from transport sequence number header extension if it is
   // used. The source of the header extension is
@@ -312,7 +308,7 @@ void RtpSenderEgress::CompleteSendPacket(const Packet& compound_packet,
 
   // Put packet in retransmission history or update pending status even if
   // actual sending fails.
-  if (is_media && packet->allow_retransmission()) {
+  if (options.is_media && packet->allow_retransmission()) {
     packet_history_->PutRtpPacket(std::make_unique<RtpPacketToSend>(*packet),
                                   now);
   } else if (packet->retransmitted_sequence_number()) {

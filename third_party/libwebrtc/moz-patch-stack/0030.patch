@@ -729,7 +729,7 @@ index ac7eaab207..3723346a75 100644
  
  namespace cricket {
 diff --git a/media/base/media_channel_impl.cc b/media/base/media_channel_impl.cc
-index e3ae4a2878..e3357b2d2e 100644
+index e354db54a0..d2855cbfb0 100644
 --- a/media/base/media_channel_impl.cc
 +++ b/media/base/media_channel_impl.cc
 @@ -31,19 +31,6 @@
