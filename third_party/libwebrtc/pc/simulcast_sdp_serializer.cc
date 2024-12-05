@@ -196,7 +196,7 @@ std::string SimulcastSdpSerializer::SerializeSimulcastDescription(
        << simulcast.receive_layers();
   }
 
-  return sb.str();
+  return sb.Release();
 }
 
 // https://tools.ietf.org/html/draft-ietf-mmusic-sdp-simulcast-13#section-5.1
@@ -305,7 +305,7 @@ std::string SimulcastSdpSerializer::SerializeRidDescription(
     propertyDelimiter = kDelimiterSemicolon;
   }
 
-  return builder.str();
+  return builder.Release();
 }
 
 // https://tools.ietf.org/html/draft-ietf-mmusic-rid-15#section-10

@@ -804,7 +804,7 @@ static void GetDefaultDestination(const std::vector<Candidate>& candidates,
 
 // Gets "a=rtcp" line if found default RTCP candidate from `candidates`.
 static std::string GetRtcpLine(const std::vector<Candidate>& candidates) {
-  std::string rtcp_line, rtcp_port, rtcp_ip, addr_type;
+  std::string rtcp_port, rtcp_ip, addr_type;
   GetDefaultDestination(candidates, ICE_CANDIDATE_COMPONENT_RTCP, &rtcp_port,
                         &rtcp_ip, &addr_type);
   // Found default RTCP candidate.
@@ -819,8 +819,7 @@ static std::string GetRtcpLine(const std::vector<Candidate>& candidates) {
   InitAttrLine(kAttributeRtcp, &os);
   os << kSdpDelimiterColon << rtcp_port << " " << kConnectionNettype << " "
      << addr_type << " " << rtcp_ip;
-  rtcp_line = os.str();
-  return rtcp_line;
+  return os.Release();
 }
 
 // Get candidates according to the mline index from SessionDescriptionInterface.
