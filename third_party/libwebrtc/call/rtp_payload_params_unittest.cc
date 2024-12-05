@@ -44,6 +44,7 @@ namespace {
 using ::testing::AllOf;
 using ::testing::Each;
 using ::testing::ElementsAre;
+using ::testing::ElementsAreArray;
 using ::testing::Eq;
 using ::testing::Field;
 using ::testing::IsEmpty;
@@ -1344,7 +1345,13 @@ class RtpPayloadParamsH264ToGenericTest : public ::testing::Test {
                        LayerSync layer_sync,
                        const std::set<int64_t>& expected_deps,
                        uint16_t width = 0,
-                       uint16_t height = 0) {
+                       uint16_t height = 0,
+                       const std::vector<DecodeTargetIndication>&
+                           expected_decode_target_indication = {
+                               DecodeTargetIndication::kSwitch,
+                               DecodeTargetIndication::kSwitch,
+                               DecodeTargetIndication::kSwitch,
+                               DecodeTargetIndication::kSwitch}) {
     EncodedImage encoded_image;
     encoded_image._frameType = frame_type;
     encoded_image._encodedWidth = width;
@@ -1369,6 +1376,9 @@ class RtpPayloadParamsH264ToGenericTest : public ::testing::Test {
 
     EXPECT_EQ(header.width, width);
     EXPECT_EQ(header.height, height);
+
+    EXPECT_THAT(header.generic->decode_target_indications,
+                ElementsAreArray(expected_decode_target_indication));
   }
 
  protected:
@@ -1400,29 +1410,42 @@ TEST_F(RtpPayloadParamsH264ToGenericTest, TooHighTemporalIndex) {
 }
 
 TEST_F(RtpPayloadParamsH264ToGenericTest, LayerSync) {
+  constexpr auto kSwitch = DecodeTargetIndication::kSwitch;
+  constexpr auto kNotPresent = DecodeTargetIndication::kNotPresent;
+
   // 02120212 pattern
   ConvertAndCheck(0, 0, VideoFrameType::kVideoFrameKey, kNoSync, {}, 480, 360);
-  ConvertAndCheck(2, 1, VideoFrameType::kVideoFrameDelta, kNoSync, {0});
-  ConvertAndCheck(1, 2, VideoFrameType::kVideoFrameDelta, kNoSync, {0});
-  ConvertAndCheck(2, 3, VideoFrameType::kVideoFrameDelta, kNoSync, {0, 1, 2});
-
-  ConvertAndCheck(0, 4, VideoFrameType::kVideoFrameDelta, kNoSync, {0});
-  ConvertAndCheck(2, 5, VideoFrameType::kVideoFrameDelta, kNoSync, {2, 3, 4});
-  ConvertAndCheck(1, 6, VideoFrameType::kVideoFrameDelta, kSync,
-                  {4});  // layer sync
-  ConvertAndCheck(2, 7, VideoFrameType::kVideoFrameDelta, kNoSync, {4, 5, 6});
+  ConvertAndCheck(2, 1, VideoFrameType::kVideoFrameDelta, kNoSync, {0}, 0, 0,
+                  {kNotPresent, kNotPresent, kSwitch, kSwitch});
+  ConvertAndCheck(1, 2, VideoFrameType::kVideoFrameDelta, kNoSync, {0}, 0, 0,
+                  {kNotPresent, kSwitch, kSwitch, kSwitch});
+  ConvertAndCheck(2, 3, VideoFrameType::kVideoFrameDelta, kNoSync, {0, 1, 2}, 0,
+                  0, {kNotPresent, kNotPresent, kSwitch, kSwitch});
+  ConvertAndCheck(0, 4, VideoFrameType::kVideoFrameDelta, kNoSync, {0}, 0, 0);
+  ConvertAndCheck(2, 5, VideoFrameType::kVideoFrameDelta, kNoSync, {2, 3, 4}, 0,
+                  0, {kNotPresent, kNotPresent, kSwitch, kSwitch});
+  ConvertAndCheck(1, 6, VideoFrameType::kVideoFrameDelta, kSync, {4}, 0, 0,
+                  {kNotPresent, kSwitch, kSwitch, kSwitch});  // layer sync
+  ConvertAndCheck(2, 7, VideoFrameType::kVideoFrameDelta, kNoSync, {4, 5, 6}, 0,
+                  0, {kNotPresent, kNotPresent, kSwitch, kSwitch});
 }
 
 TEST_F(RtpPayloadParamsH264ToGenericTest, FrameIdGaps) {
+  constexpr auto kSwitch = DecodeTargetIndication::kSwitch;
+  constexpr auto kNotPresent = DecodeTargetIndication::kNotPresent;
+
   // 0101 pattern
   ConvertAndCheck(0, 0, VideoFrameType::kVideoFrameKey, kNoSync, {}, 480, 360);
-  ConvertAndCheck(1, 1, VideoFrameType::kVideoFrameDelta, kNoSync, {0});
+  ConvertAndCheck(1, 1, VideoFrameType::kVideoFrameDelta, kNoSync, {0}, 0, 0,
+                  {kNotPresent, kSwitch, kSwitch, kSwitch});
 
   ConvertAndCheck(0, 5, VideoFrameType::kVideoFrameDelta, kNoSync, {0});
-  ConvertAndCheck(1, 10, VideoFrameType::kVideoFrameDelta, kNoSync, {1, 5});
+  ConvertAndCheck(1, 10, VideoFrameType::kVideoFrameDelta, kNoSync, {1, 5}, 0,
+                  0, {kNotPresent, kSwitch, kSwitch, kSwitch});
 
   ConvertAndCheck(0, 15, VideoFrameType::kVideoFrameDelta, kNoSync, {5});
-  ConvertAndCheck(1, 20, VideoFrameType::kVideoFrameDelta, kNoSync, {10, 15});
+  ConvertAndCheck(1, 20, VideoFrameType::kVideoFrameDelta, kNoSync, {10, 15}, 0,
+                  0, {kNotPresent, kSwitch, kSwitch, kSwitch});
 }
 
 }  // namespace
