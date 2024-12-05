@@ -86,6 +86,7 @@ default_args = {
   # let's temporarily disable it.
   enable_jni_multiplexing = false
 
-  # This adds a dependency to //base.
+  # TODO(b/42223878): use_fuzztest_wrapper adds a dependency to //base so
+  # let's temporarly disable it.
   use_fuzztest_wrapper = false
 }
