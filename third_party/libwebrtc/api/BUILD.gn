@@ -1641,6 +1641,10 @@ if (rtc_include_tests) {
       "//third_party/abseil-cpp/absl/strings",
       "//third_party/abseil-cpp/absl/strings:string_view",
     ]
+
+    if (rtc_use_h265) {
+      deps += [ "video:rtp_video_frame_h265_assembler_unittests" ]
+    }
   }
 
   rtc_library("compile_all_headers") {
