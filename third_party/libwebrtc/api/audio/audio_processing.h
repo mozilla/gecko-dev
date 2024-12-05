@@ -734,20 +734,21 @@ class RTC_EXPORT AudioProcessing : public RefCountInterface {
   static int GetFrameSize(int sample_rate_hz) { return sample_rate_hz / 100; }
 };
 
-class AudioProcessingFactory {
+class AudioProcessingBuilderInterface {
  public:
-  virtual ~AudioProcessingFactory() = default;
+  virtual ~AudioProcessingBuilderInterface() = default;
 
-  virtual absl::Nullable<scoped_refptr<AudioProcessing>> Create(
+  virtual absl::Nullable<scoped_refptr<AudioProcessing>> Build(
       const Environment& env) = 0;
 };
 
-// Returns factory that always returns the same `audio_processing` ignoring the
-// extra construction parameter `env`.
+// Returns builder that returns the `audio_processing` ignoring the extra
+// construction parameter `env`.
 // nullptr `audio_processing` is not supported as in some scenarios that imply
 // no audio processing, while in others - default builtin audio processing.
 // Callers should be explicit which of these two behaviors they want.
-absl::Nonnull<std::unique_ptr<AudioProcessingFactory>> CustomAudioProcessing(
+absl::Nonnull<std::unique_ptr<AudioProcessingBuilderInterface>>
+CustomAudioProcessing(
     absl::Nonnull<scoped_refptr<AudioProcessing>> audio_processing);
 
 // Experimental interface for a custom analysis submodule.
@@ -780,7 +781,7 @@ class CustomProcessing {
 };
 
 // TODO: bugs.webrtc.org/369904700 - Deprecate and remove in favor of the
-// BuiltinAudioProcessingFactory.
+// BuiltinAudioProcessingBuilder.
 class RTC_EXPORT AudioProcessingBuilder {
  public:
   AudioProcessingBuilder();

@@ -75,7 +75,7 @@ using ::testing::NiceMock;
 using ::testing::Return;
 using ::testing::UnorderedElementsAre;
 using ::webrtc::test::MockAudioProcessing;
-using ::webrtc::test::MockAudioProcessingFactory;
+using ::webrtc::test::MockAudioProcessingBuilder;
 
 static const char kStunIceServer[] = "stun:stun.l.google.com:19302";
 static const char kTurnIceServer[] = "turn:test.com:1234";
@@ -726,17 +726,17 @@ TEST(PeerConnectionFactoryDependenciesTest, UsesPacketSocketFactory) {
 
 TEST(PeerConnectionFactoryDependenciesTest,
      CreatesAudioProcessingWithProvidedFactory) {
-  auto ap_factory = std::make_unique<MockAudioProcessingFactory>();
+  auto ap_factory = std::make_unique<MockAudioProcessingBuilder>();
   auto audio_processing = make_ref_counted<NiceMock<MockAudioProcessing>>();
   // Validate that provided audio_processing is used by expecting that a request
   // to start AEC Dump with unnatural size limit is propagated to the
   // `audio_processing`.
   EXPECT_CALL(*audio_processing, CreateAndAttachAecDump(A<FILE*>(), 24'242, _));
-  EXPECT_CALL(*ap_factory, Create).WillOnce(Return(audio_processing));
+  EXPECT_CALL(*ap_factory, Build).WillOnce(Return(audio_processing));
 
   PeerConnectionFactoryDependencies pcf_dependencies;
   pcf_dependencies.adm = FakeAudioCaptureModule::Create();
-  pcf_dependencies.audio_processing_factory = std::move(ap_factory);
+  pcf_dependencies.audio_processing_builder = std::move(ap_factory);
   EnableMediaWithDefaults(pcf_dependencies);
 
   scoped_refptr<PeerConnectionFactoryInterface> pcf =

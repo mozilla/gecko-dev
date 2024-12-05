@@ -13,7 +13,7 @@
 #include <string>
 
 #include "absl/strings/string_view.h"
-#include "api/audio/builtin_audio_processing_factory.h"
+#include "api/audio/builtin_audio_processing_builder.h"
 #include "api/environment/environment_factory.h"
 #include "modules/audio_processing/test/protobuf_utils.h"
 #include "modules/audio_processing/test/runtime_setting_util.h"
@@ -190,7 +190,7 @@ void DebugDumpReplayer::MaybeRecreateApm(const audioproc::Config& msg) {
   // We only create APM once, since changes on these fields should not
   // happen in current implementation.
   if (apm_ == nullptr) {
-    apm_ = BuiltinAudioProcessingFactory().Create(CreateEnvironment());
+    apm_ = BuiltinAudioProcessingBuilder().Build(CreateEnvironment());
   }
 }
 

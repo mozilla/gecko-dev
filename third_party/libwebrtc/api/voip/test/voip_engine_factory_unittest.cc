@@ -33,8 +33,8 @@ TEST(VoipEngineFactoryTest, CreateEngineWithMockModules) {
   config.encoder_factory = rtc::make_ref_counted<MockAudioEncoderFactory>();
   config.decoder_factory = rtc::make_ref_counted<MockAudioDecoderFactory>();
   config.task_queue_factory = CreateDefaultTaskQueueFactory();
-  config.audio_processing_factory =
-      std::make_unique<NiceMock<test::MockAudioProcessingFactory>>();
+  config.audio_processing_builder =
+      std::make_unique<NiceMock<test::MockAudioProcessingBuilder>>();
   config.audio_device_module = test::MockAudioDeviceModule::CreateNice();
 
   auto voip_engine = CreateVoipEngine(std::move(config));

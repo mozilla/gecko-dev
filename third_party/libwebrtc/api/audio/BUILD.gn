@@ -85,12 +85,12 @@ rtc_source_set("audio_processing") {
   ]
 }
 
-rtc_library("builtin_audio_processing_factory") {
+rtc_library("builtin_audio_processing_builder") {
   visibility = [ "*" ]
   configs += [ "../../modules/audio_processing:apm_debug_dump" ]
   sources = [
-    "builtin_audio_processing_factory.cc",
-    "builtin_audio_processing_factory.h",
+    "builtin_audio_processing_builder.cc",
+    "builtin_audio_processing_builder.h",
   ]
   deps = [
     ":audio_processing",
@@ -169,11 +169,11 @@ if (rtc_include_tests) {
     testonly = true
     sources = [
       "audio_processing_unittest.cc",
-      "builtin_audio_processing_factory_unittest.cc",
+      "builtin_audio_processing_builder_unittest.cc",
     ]
     deps = [
       ":audio_processing",
-      ":builtin_audio_processing_factory",
+      ":builtin_audio_processing_builder",
       "..:make_ref_counted",
       "..:scoped_refptr",
       "../../modules/audio_processing:mocks",

@@ -47,8 +47,8 @@ class MediaFactoryImpl : public MediaFactory {
       const Environment& env,
       PeerConnectionFactoryDependencies& deps) override {
     absl::Nullable<scoped_refptr<AudioProcessing>> audio_processing =
-        deps.audio_processing_factory != nullptr
-            ? deps.audio_processing_factory->Create(env)
+        deps.audio_processing_builder != nullptr
+            ? std::move(deps.audio_processing_builder)->Build(env)
             : std::move(deps.audio_processing);
 
     auto audio_engine = std::make_unique<WebRtcVoiceEngine>(

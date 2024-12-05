@@ -13,7 +13,7 @@
 #include <vector>
 
 #include "api/array_view.h"
-#include "api/audio/builtin_audio_processing_factory.h"
+#include "api/audio/builtin_audio_processing_builder.h"
 #include "api/environment/environment_factory.h"
 #include "modules/audio_processing/audio_processing_impl.h"
 #include "modules/audio_processing/test/test_utils.h"
@@ -489,9 +489,9 @@ AudioProcessing::Config GetApmTestConfig(AecType aec_type) {
 
 AudioProcessingImplLockTest::AudioProcessingImplLockTest()
     : test_config_(GetParam()),
-      apm_(BuiltinAudioProcessingFactory()
+      apm_(BuiltinAudioProcessingBuilder()
                .SetConfig(GetApmTestConfig(test_config_.aec_type))
-               .Create(CreateEnvironment())),
+               .Build(CreateEnvironment())),
       render_thread_state_(kMaxFrameSize,
                            &rand_gen_,
                            &render_call_event_,

@@ -13,7 +13,7 @@
 #include <utility>
 
 #include "api/audio/audio_processing.h"
-#include "api/audio/builtin_audio_processing_factory.h"
+#include "api/audio/builtin_audio_processing_builder.h"
 #include "api/environment/environment_factory.h"
 #include "modules/audio_processing/aec_dump/mock_aec_dump.h"
 #include "modules/audio_processing/audio_processing_impl.h"
@@ -26,7 +26,7 @@ using ::testing::StrictMock;
 namespace {
 webrtc::scoped_refptr<webrtc::AudioProcessing> CreateAudioProcessing() {
   webrtc::scoped_refptr<webrtc::AudioProcessing> apm =
-      webrtc::BuiltinAudioProcessingFactory().Create(
+      webrtc::BuiltinAudioProcessingBuilder().Build(
           webrtc::CreateEnvironment());
   RTC_DCHECK(apm);
   return apm;

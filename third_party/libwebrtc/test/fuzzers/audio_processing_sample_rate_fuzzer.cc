@@ -14,7 +14,7 @@
 #include <limits>
 
 #include "api/audio/audio_processing.h"
-#include "api/audio/builtin_audio_processing_factory.h"
+#include "api/audio/builtin_audio_processing_builder.h"
 #include "api/environment/environment_factory.h"
 #include "rtc_base/checks.h"
 #include "test/fuzzers/fuzz_data_helper.h"
@@ -91,12 +91,12 @@ void FuzzOneInput(const uint8_t* data, size_t size) {
           ? std::make_unique<NoopCustomProcessing>()
           : nullptr;
   scoped_refptr<AudioProcessing> apm =
-      BuiltinAudioProcessingFactory()
+      BuiltinAudioProcessingBuilder()
           .SetConfig({.pipeline = {.multi_channel_render = true,
                                    .multi_channel_capture = true}})
           .SetCapturePostProcessing(std::move(capture_processor))
           .SetRenderPreProcessing(std::move(render_processor))
-          .Create(CreateEnvironment());
+          .Build(CreateEnvironment());
   RTC_DCHECK(apm);
 
   std::array<int16_t, kMaxSamplesPerChannel * kMaxNumChannels> fixed_frame;

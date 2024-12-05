@@ -228,7 +228,7 @@ PeerConnectionFactoryDependencies CreatePCFDependencies(
   // Media dependencies
   pcf_deps.adm = std::move(audio_device_module);
   if (pcf_dependencies->audio_processing != nullptr) {
-    pcf_deps.audio_processing_factory =
+    pcf_deps.audio_processing_builder =
         CustomAudioProcessing(pcf_dependencies->audio_processing);
   }
   pcf_deps.audio_mixer = pcf_dependencies->audio_mixer;

@@ -7,7 +7,7 @@
  *  in the file PATENTS.  All contributing project authors may
  *  be found in the AUTHORS file in the root of the source tree.
  */
-#include "api/audio/builtin_audio_processing_factory.h"
+#include "api/audio/builtin_audio_processing_builder.h"
 
 #include <utility>
 
@@ -22,14 +22,7 @@
 namespace webrtc {
 
 absl::Nullable<scoped_refptr<AudioProcessing>>
-BuiltinAudioProcessingFactory::Create(const Environment& /*env*/) {
-  if (called_create_) {
-    RTC_DLOG(LS_ERROR)
-        << "Calling BuiltinAudioProcessingFactory::Create more than once "
-           "is currently unsupported.";
-  }
-  called_create_ = true;
-
+BuiltinAudioProcessingBuilder::Build(const Environment& /*env*/) {
   // TODO: bugs.webrtc.org/369904700 - Pass `env` when AudioProcessingImpl gets
   // constructor that accepts it.
   return make_ref_counted<AudioProcessingImpl>(

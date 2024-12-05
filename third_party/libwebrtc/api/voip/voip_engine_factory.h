@@ -61,16 +61,16 @@ struct VoipEngineConfig {
   // play through its output device (e.g. speaker).
   scoped_refptr<AudioDeviceModule> audio_device_module;
 
-  // Optional (e.g. api/audio/builtin_audio_processing_factory).
+  // Optional (e.g. api/audio/builtin_audio_processing_builder).
   // AudioProcessing provides audio procesing functionalities (e.g. acoustic
   // echo cancellation, noise suppression, gain control, etc) on audio input
   // samples for VoipEngine. When optionally not set, VoipEngine will not have
   // such functionalities to perform on audio input samples received from
   // AudioDeviceModule.
-  std::unique_ptr<AudioProcessingFactory> audio_processing_factory;
+  std::unique_ptr<AudioProcessingBuilderInterface> audio_processing_builder;
 
   // TODO: bugs.webrtc.org/369904700 - Remove when users are migrated to set
-  // `audio_processing_factory` instead.
+  // `audio_processing_builder` instead.
   [[deprecated]] scoped_refptr<AudioProcessing> audio_processing;
 };
 

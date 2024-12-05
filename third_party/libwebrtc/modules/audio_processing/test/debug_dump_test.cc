@@ -15,7 +15,7 @@
 #include <vector>
 
 #include "absl/strings/string_view.h"
-#include "api/audio/builtin_audio_processing_factory.h"
+#include "api/audio/builtin_audio_processing_builder.h"
 #include "api/audio/echo_canceller3_factory.h"
 #include "api/environment/environment_factory.h"
 #include "modules/audio_coding/neteq/tools/resample_input_audio_file.h"
@@ -141,7 +141,7 @@ DebugDumpGenerator::DebugDumpGenerator(absl::string_view input_file_name,
       enable_pre_amplifier_(enable_pre_amplifier),
       worker_queue_("debug_dump_generator_worker_queue"),
       dump_file_name_(dump_file_name) {
-  apm_ = BuiltinAudioProcessingFactory().Create(CreateEnvironment());
+  apm_ = BuiltinAudioProcessingBuilder().Build(CreateEnvironment());
 }
 
 DebugDumpGenerator::DebugDumpGenerator(

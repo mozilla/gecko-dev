@@ -16,7 +16,7 @@
 
 #include "absl/strings/string_view.h"
 #include "api/array_view.h"
-#include "api/audio/builtin_audio_processing_factory.h"
+#include "api/audio/builtin_audio_processing_builder.h"
 #include "api/environment/environment_factory.h"
 #include "api/numerics/samples_stats_counter.h"
 #include "api/test/metrics/global_metrics_logger_and_exporter.h"
@@ -449,31 +449,31 @@ class CallSimulator : public ::testing::TestWithParam<SimulationConfig> {
     int num_capture_channels = 1;
     switch (simulation_config_.simulation_settings) {
       case SettingsType::kDefaultApmMobile: {
-        apm_ = BuiltinAudioProcessingFactory().Create(CreateEnvironment());
+        apm_ = BuiltinAudioProcessingBuilder().Build(CreateEnvironment());
         ASSERT_TRUE(!!apm_);
         set_default_mobile_apm_runtime_settings(apm_.get());
         break;
       }
       case SettingsType::kDefaultApmDesktop: {
-        apm_ = BuiltinAudioProcessingFactory().Create(CreateEnvironment());
+        apm_ = BuiltinAudioProcessingBuilder().Build(CreateEnvironment());
         ASSERT_TRUE(!!apm_);
         set_default_desktop_apm_runtime_settings(apm_.get());
         break;
       }
       case SettingsType::kAllSubmodulesTurnedOff: {
-        apm_ = BuiltinAudioProcessingFactory().Create(CreateEnvironment());
+        apm_ = BuiltinAudioProcessingBuilder().Build(CreateEnvironment());
         ASSERT_TRUE(!!apm_);
         turn_off_default_apm_runtime_settings(apm_.get());
         break;
       }
       case SettingsType::kDefaultApmDesktopWithoutDelayAgnostic: {
-        apm_ = BuiltinAudioProcessingFactory().Create(CreateEnvironment());
+        apm_ = BuiltinAudioProcessingBuilder().Build(CreateEnvironment());
         ASSERT_TRUE(!!apm_);
         set_default_desktop_apm_runtime_settings(apm_.get());
         break;
       }
       case SettingsType::kDefaultApmDesktopWithoutExtendedFilter: {
-        apm_ = BuiltinAudioProcessingFactory().Create(CreateEnvironment());
+        apm_ = BuiltinAudioProcessingBuilder().Build(CreateEnvironment());
         ASSERT_TRUE(!!apm_);
         set_default_desktop_apm_runtime_settings(apm_.get());
         break;

@@ -2578,7 +2578,7 @@ if (rtc_include_tests && !build_with_chromium) {
       "../api/audio:audio_device",
       "../api/audio:audio_mixer_api",
       "../api/audio:audio_processing",
-      "../api/audio:builtin_audio_processing_factory",
+      "../api/audio:builtin_audio_processing_builder",
       "../api/crypto:frame_decryptor_interface",
       "../api/crypto:frame_encryptor_interface",
       "../api/crypto:options",

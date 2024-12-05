@@ -121,7 +121,7 @@ index 37d44bd85e..9ebf5bd2d6 100644
    deps = [
      "net/dcsctp/public:factory",
 diff --git a/api/BUILD.gn b/api/BUILD.gn
-index 316e6fcb0b..d8197861a1 100644
+index b5398a0b3e..31a564299f 100644
 --- a/api/BUILD.gn
 +++ b/api/BUILD.gn
 @@ -8,8 +8,8 @@
@@ -369,7 +369,7 @@ index a0ddf777db..cf15513e18 100644
      }
    }
 diff --git a/examples/BUILD.gn b/examples/BUILD.gn
-index c6bb616df4..45418ebf9b 100644
+index b793c8bff8..3be59b5e07 100644
 --- a/examples/BUILD.gn
 +++ b/examples/BUILD.gn
 @@ -9,15 +9,15 @@
@@ -440,7 +440,7 @@ index 65ab875893..0e4594ee9d 100644
      deps = [
        ":generated_jni",
 diff --git a/examples/androidvoip/BUILD.gn b/examples/androidvoip/BUILD.gn
-index d47069323a..0af615a968 100644
+index 05bccd7f77..4292004919 100644
 --- a/examples/androidvoip/BUILD.gn
 +++ b/examples/androidvoip/BUILD.gn
 @@ -51,8 +51,8 @@ if (is_android) {
@@ -644,7 +644,7 @@ index f3f6624de1..ca6869db44 100644
  import("../../webrtc.gni")
  
 diff --git a/pc/BUILD.gn b/pc/BUILD.gn
-index d1435115d5..28d16ae860 100644
+index add80997e8..55056b4b68 100644
 --- a/pc/BUILD.gn
 +++ b/pc/BUILD.gn
 @@ -30,8 +30,8 @@
@@ -812,7 +812,7 @@ index e53d4832d7..5b9bfcea1f 100644
      deps = [ ":google_test_runner_delegate" ]
    }
 diff --git a/test/fuzzers/BUILD.gn b/test/fuzzers/BUILD.gn
-index a3ed319103..fd304c87d5 100644
+index e8957f1083..f253c3466c 100644
 --- a/test/fuzzers/BUILD.gn
 +++ b/test/fuzzers/BUILD.gn
 @@ -6,7 +6,7 @@

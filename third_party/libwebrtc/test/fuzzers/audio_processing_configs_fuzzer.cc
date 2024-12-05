@@ -14,7 +14,7 @@
 #include "absl/base/nullability.h"
 #include "absl/memory/memory.h"
 #include "api/audio/audio_processing.h"
-#include "api/audio/builtin_audio_processing_factory.h"
+#include "api/audio/builtin_audio_processing_builder.h"
 #include "api/audio/echo_canceller3_factory.h"
 #include "api/audio/echo_detector_creator.h"
 #include "api/environment/environment.h"
@@ -113,11 +113,11 @@ rtc::scoped_refptr<AudioProcessing> CreateApm(
   apm_config.transient_suppression.enabled = use_ts;
 
   scoped_refptr<AudioProcessing> apm =
-      BuiltinAudioProcessingFactory()
+      BuiltinAudioProcessingBuilder()
           .SetEchoControlFactory(std::move(echo_control_factory))
           .SetEchoDetector(use_red ? CreateEchoDetector() : nullptr)
           .SetConfig(apm_config)
-          .Create(GetEnvironment());
+          .Build(GetEnvironment());
 
 #ifdef WEBRTC_LINUX
   apm->AttachAecDump(AecDumpFactory::Create("/dev/null", -1, worker_queue));

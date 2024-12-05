@@ -24,15 +24,15 @@ namespace webrtc {
 using ::testing::_;
 using ::testing::NotNull;
 
-TEST(CustomAudioProcessingTest, ReturnsTheSameAudioProcessing) {
+TEST(CustomAudioProcessingTest, ReturnsPassedAudioProcessing) {
   scoped_refptr<AudioProcessing> ap =
       make_ref_counted<test::MockAudioProcessing>();
 
-  std::unique_ptr<AudioProcessingFactory> factory = CustomAudioProcessing(ap);
+  std::unique_ptr<AudioProcessingBuilderInterface> builder =
+      CustomAudioProcessing(ap);
 
-  ASSERT_THAT(factory, NotNull());
-  EXPECT_EQ(factory->Create(CreateEnvironment()), ap);
-  EXPECT_EQ(factory->Create(CreateEnvironment()), ap);
+  ASSERT_THAT(builder, NotNull());
+  EXPECT_EQ(builder->Build(CreateEnvironment()), ap);
 }
 
 #if GTEST_HAS_DEATH_TEST
