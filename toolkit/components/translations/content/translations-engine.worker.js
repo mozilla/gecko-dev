@@ -291,7 +291,7 @@ function handleMessages(engine) {
         case "cancel-single-translation": {
           engine.discardSingleTranslation(
             data.innerWindowId,
-            data.translationsId
+            data.translationId
           );
           break;
         }
@@ -407,13 +407,13 @@ class Engine {
    * Cancels any in-progress translations by removing the work queue.
    *
    * @param {number} innerWindowId
-   * @param {number} translationsId
+   * @param {number} translationId
    */
-  discardSingleTranslation(innerWindowId, translationsId) {
+  discardSingleTranslation(innerWindowId, translationId) {
     const workQueue = this.#workQueues.get(innerWindowId);
     if (workQueue) {
-      trace("Discarding translation with translationsId", translationsId);
-      workQueue.cancelTask(translationsId);
+      trace("Discarding translation with translationId", translationId);
+      workQueue.cancelTask(translationId);
     }
   }
 
