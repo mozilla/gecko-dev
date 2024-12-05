@@ -42,6 +42,7 @@ import org.mozilla.fenix.components.settings.featureFlagPreference
 import org.mozilla.fenix.components.settings.lazyFeatureFlagPreference
 import org.mozilla.fenix.components.toolbar.ToolbarPosition
 import org.mozilla.fenix.components.toolbar.navbar.shouldAddNavigationBar
+import org.mozilla.fenix.debugsettings.addresses.SharedPrefsAddressesDebugLocalesRepository
 import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.ext.getPreferenceKey
 import org.mozilla.fenix.nimbus.CookieBannersSection
@@ -1527,13 +1528,21 @@ class Settings(private val appContext: Context) : PreferencesHolder {
      * Show the Addresses autofill feature.
      */
     private fun isAddressFeatureEnabled(context: Context): Boolean {
-        val langTag = LocaleManager.getCurrentLocale(context)
-            ?.toLanguageTag() ?: LocaleManager.getSystemDefault().toLanguageTag()
-        return listOf(
+        val releaseEnabledLanguages = listOf(
             "en-US",
             "en-CA",
             "fr-CA",
-        ).contains(langTag)
+        )
+        val currentlyEnabledLanguages = if (Config.channel.isNightlyOrDebug) {
+            releaseEnabledLanguages + SharedPrefsAddressesDebugLocalesRepository(context)
+                .getAllEnabledLocales().map { it.langTag }
+        } else {
+            releaseEnabledLanguages
+        }
+
+        val userLangTag = LocaleManager.getCurrentLocale(context)
+            ?.toLanguageTag() ?: LocaleManager.getSystemDefault().toLanguageTag()
+        return currentlyEnabledLanguages.contains(userLangTag)
     }
 
     private val mr2022Sections: Map<Mr2022Section, Boolean>
