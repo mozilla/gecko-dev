@@ -421,9 +421,7 @@ void WebRtcOpus_DecoderInit(OpusDecInst* inst);
  *
  * Output:
  *      - decoded            : The decoded vector
- *      - audio_type         : 1 normal, 2 CNG (for Opus it should
- *                             always return 1 since we're not using Opus's
- *                             built-in DTX/CNG scheme)
+ *      - audio_type         : 1 normal, 2 CNG
  *
  * Return value              : >0 - Samples per channel in decoded vector
  *                             -1 - Error
