@@ -8,7 +8,12 @@ ChromeUtils.defineESModuleGetters(lazy, {
   NetworkResponse: "chrome://remote/content/shared/NetworkResponse.sys.mjs",
   NetworkUtils:
     "resource://devtools/shared/network-observer/NetworkUtils.sys.mjs",
+
+  Log: "chrome://remote/content/shared/Log.sys.mjs",
+  truncate: "chrome://remote/content/shared/Format.sys.mjs",
 });
+
+ChromeUtils.defineLazyGetter(lazy, "logger", () => lazy.Log.get());
 
 /**
  * The NetworkEventRecord implements the interface expected from network event
@@ -325,8 +330,15 @@ export class NetworkEventRecord {
       if (this.#request.alreadyCompleted) {
         return;
       }
-      this.#response.setResponseSizes(sizes);
-      this.#emitResponseCompleted();
+
+      if (!this.#response) {
+        lazy.logger.warn(
+          lazy.truncate`Missing response info, network.responseCompleted will be skipped for URL: ${this.#request.serializedURL}`
+        );
+      } else {
+        this.#response.setResponseSizes(sizes);
+        this.#emitResponseCompleted();
+      }
     }
 
     this.#markRequestComplete();
