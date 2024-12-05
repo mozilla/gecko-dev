@@ -14,6 +14,7 @@
 #include <optional>
 #include <vector>
 
+#include "api/rtp_parameters.h"
 #include "media/base/codec.h"
 
 namespace webrtc {
@@ -37,6 +38,10 @@ std::optional<cricket::Codec> FindMatchingCodec(
     const std::vector<cricket::Codec>& codecs1,
     const std::vector<cricket::Codec>& codecs2,
     const cricket::Codec& codec_to_match);
+
+// Similar to `Codec::MatchesRtpCodec` but not an exact match of parameters.
+// Unspecified parameters are treated as default.
+bool IsSameRtpCodec(const cricket::Codec& codec, const RtpCodec& rtp_codec);
 
 }  // namespace webrtc
 

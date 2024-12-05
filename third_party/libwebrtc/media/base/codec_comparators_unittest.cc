@@ -9,9 +9,14 @@
  */
 #include "media/base/codec_comparators.h"
 
+#include <string>
+
 #include "api/audio_codecs/audio_format.h"
+#include "api/video_codecs/sdp_video_format.h"
+#include "api/video_codecs/vp9_profile.h"
 #include "media/base/codec.h"
 #include "media/base/media_constants.h"
+#include "test/gmock.h"
 #include "test/gtest.h"
 
 namespace webrtc {
@@ -21,6 +26,8 @@ using cricket::CreateAudioCodec;
 using cricket::CreateVideoCodec;
 using cricket::kH264CodecName;
 using cricket::kH264FmtpPacketizationMode;
+using ::testing::TestWithParam;
+using ::testing::ValuesIn;
 
 TEST(CodecComparatorsTest, CodecMatchesItself) {
   Codec codec = cricket::CreateVideoCodec("custom");
@@ -71,5 +78,130 @@ TEST(CodecComparatorsTest, StaticPayloadTypesIgnoreName) {
   Codec codec_2 = CreateAudioCodec(8, "nonsense", 8000, 1);
   EXPECT_TRUE(MatchesWithCodecRules(codec_1, codec_2));
 }
+
+struct TestParams {
+  std::string name;
+  SdpVideoFormat codec1;
+  SdpVideoFormat codec2;
+  bool expected_result;
+};
+
+using IsSameRtpCodecTest = TestWithParam<TestParams>;
+
+TEST_P(IsSameRtpCodecTest, IsSameRtpCodec) {
+  TestParams param = GetParam();
+  Codec codec1 = cricket::CreateVideoCodec(param.codec1);
+  Codec codec2 = cricket::CreateVideoCodec(param.codec2);
+
+  EXPECT_EQ(IsSameRtpCodec(codec1, codec2.ToCodecParameters()),
+            param.expected_result);
+}
+
+INSTANTIATE_TEST_SUITE_P(
+    CodecTest,
+    IsSameRtpCodecTest,
+    ValuesIn<TestParams>({
+        {.name = "CodecWithDifferentName",
+         .codec1 = {"VP9", {}},
+         .codec2 = {"VP8", {}},
+         .expected_result = false},
+        {.name = "Vp8WithoutParameters",
+         .codec1 = {"vp8", {}},
+         .codec2 = {"VP8", {}},
+         .expected_result = true},
+        {.name = "Vp8WithSameParameters",
+         .codec1 = {"VP8", {{"x", "1"}}},
+         .codec2 = {"VP8", {{"x", "1"}}},
+         .expected_result = true},
+        {.name = "Vp8WithDifferentParameters",
+         .codec1 = {"VP8", {}},
+         .codec2 = {"VP8", {{"x", "1"}}},
+         .expected_result = false},
+        {.name = "Av1WithoutParameters",
+         .codec1 = {"AV1", {}},
+         .codec2 = {"AV1", {}},
+         .expected_result = true},
+        {.name = "Av1WithSameProfile",
+         .codec1 = {"AV1", SdpVideoFormat::AV1Profile0().parameters},
+         .codec2 = {"AV1", SdpVideoFormat::AV1Profile0().parameters},
+         .expected_result = true},
+        {.name = "Av1WithoutParametersTreatedAsProfile0",
+         .codec1 = {"AV1", SdpVideoFormat::AV1Profile0().parameters},
+         .codec2 = {"AV1", {}},
+         .expected_result = true},
+        {.name = "Av1WithoutProfileTreatedAsProfile0",
+         .codec1 = {"AV1", {{cricket::kAv1FmtpProfile, "0"}, {"x", "1"}}},
+         .codec2 = {"AV1", {{"x", "1"}}},
+         .expected_result = true},
+        {.name = "Av1WithDifferentProfile",
+         .codec1 = {"AV1", SdpVideoFormat::AV1Profile0().parameters},
+         .codec2 = {"AV1", SdpVideoFormat::AV1Profile1().parameters},
+         .expected_result = false},
+        {.name = "Av1WithDifferentParameters",
+         .codec1 = {"AV1", {{cricket::kAv1FmtpProfile, "0"}, {"x", "1"}}},
+         .codec2 = {"AV1", {{cricket::kAv1FmtpProfile, "0"}, {"x", "2"}}},
+         .expected_result = false},
+        {.name = "Vp9WithSameProfile",
+         .codec1 = {"VP9", SdpVideoFormat::VP9Profile0().parameters},
+         .codec2 = {"VP9", SdpVideoFormat::VP9Profile0().parameters},
+         .expected_result = true},
+        {.name = "Vp9WithoutProfileTreatedAsProfile0",
+         .codec1 = {"VP9", {{kVP9FmtpProfileId, "0"}, {"x", "1"}}},
+         .codec2 = {"VP9", {{"x", "1"}}},
+         .expected_result = true},
+        {.name = "Vp9WithDifferentProfile",
+         .codec1 = {"VP9", SdpVideoFormat::VP9Profile0().parameters},
+         .codec2 = {"VP9", SdpVideoFormat::VP9Profile1().parameters},
+         .expected_result = false},
+        {.name = "H264WithSamePacketizationMode",
+         .codec1 = {"H264", {{kH264FmtpPacketizationMode, "0"}}},
+         .codec2 = {"H264", {{kH264FmtpPacketizationMode, "0"}}},
+         .expected_result = true},
+        {.name = "H264WithoutPacketizationModeTreatedAsMode0",
+         .codec1 = {"H264", {{kH264FmtpPacketizationMode, "0"}, {"x", "1"}}},
+         .codec2 = {"H264", {{"x", "1"}}},
+         .expected_result = true},
+        {.name = "H264WithDifferentPacketizationMode",
+         .codec1 = {"H264", {{kH264FmtpPacketizationMode, "0"}}},
+         .codec2 = {"H264", {{kH264FmtpPacketizationMode, "1"}}},
+         .expected_result = false},
+#ifdef RTC_ENABLE_H265
+        {.name = "H265WithSameProfile",
+         .codec1 = {"H265",
+                    {{cricket::kH265FmtpProfileId, "1"},
+                     {cricket::kH265FmtpTierFlag, "0"},
+                     {cricket::kH265FmtpLevelId, "93"},
+                     {cricket::kH265FmtpTxMode, "SRST"}}},
+         .codec2 = {"H265",
+                    {{cricket::kH265FmtpProfileId, "1"},
+                     {cricket::kH265FmtpTierFlag, "0"},
+                     {cricket::kH265FmtpLevelId, "93"},
+                     {cricket::kH265FmtpTxMode, "SRST"}}},
+         .expected_result = true},
+        {.name = "H265WithoutParametersTreatedAsDefault",
+         .codec1 = {"H265",
+                    {{cricket::kH265FmtpProfileId, "1"},
+                     {cricket::kH265FmtpTierFlag, "0"},
+                     {cricket::kH265FmtpLevelId, "93"},
+                     {cricket::kH265FmtpTxMode, "SRST"}}},
+         .codec2 = {"H265", {}},
+         .expected_result = true},
+        {.name = "H265WithDifferentProfile",
+         .codec1 = {"H265",
+                    {{cricket::kH265FmtpProfileId, "1"},
+                     {cricket::kH265FmtpTierFlag, "0"},
+                     {cricket::kH265FmtpLevelId, "93"},
+                     {cricket::kH265FmtpTxMode, "SRST"}}},
+         .codec2 = {"H265",
+                    {{cricket::kH265FmtpProfileId, "1"},
+                     {cricket::kH265FmtpTierFlag, "1"},
+                     {cricket::kH265FmtpLevelId, "93"},
+                     {cricket::kH265FmtpTxMode, "SRST"}}},
+         .expected_result = false},
+#endif
+    }),
+    [](const testing::TestParamInfo<IsSameRtpCodecTest::ParamType>& info) {
+      return info.param.name;
+    });
 
 }  // namespace webrtc

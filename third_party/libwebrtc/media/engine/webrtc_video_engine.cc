@@ -51,6 +51,7 @@
 #include "common_video/frame_counts.h"
 #include "common_video/include/quality_limitation_reason.h"
 #include "media/base/codec.h"
+#include "media/base/codec_comparators.h"
 #include "media/base/media_channel.h"
 #include "media/base/media_constants.h"
 #include "media/base/rid_description.h"
@@ -1090,8 +1091,8 @@ bool WebRtcVideoSendChannel::GetChangedSenderParameters(
     if (rtp_parameters.encodings[0].codec) {
       auto matched_codec =
           absl::c_find_if(negotiated_codecs, [&](auto negotiated_codec) {
-            return negotiated_codec.codec.MatchesRtpCodec(
-                *rtp_parameters.encodings[0].codec);
+            return IsSameRtpCodec(negotiated_codec.codec,
+                                  *rtp_parameters.encodings[0].codec);
           });
       if (matched_codec != negotiated_codecs.end()) {
         force_codec = *matched_codec;
@@ -1127,7 +1128,7 @@ bool WebRtcVideoSendChannel::GetChangedSenderParameters(
       if (encoding.codec) {
         auto matched_codec =
             absl::c_find_if(negotiated_codecs, [&](auto negotiated_codec) {
-              return negotiated_codec.codec.MatchesRtpCodec(*encoding.codec);
+              return IsSameRtpCodec(negotiated_codec.codec, *encoding.codec);
             });
         if (matched_codec != negotiated_codecs.end()) {
           send_codecs.push_back(*matched_codec);
@@ -1421,13 +1422,13 @@ webrtc::RTCError WebRtcVideoSendChannel::SetRtpSendParameters(
     // the first layer.
     // TODO(orphis): Support mixed-codec simulcast
     if (parameters.encodings[0].codec && send_codec_ &&
-        !send_codec_->codec.MatchesRtpCodec(*parameters.encodings[0].codec)) {
+        !IsSameRtpCodec(send_codec_->codec, *parameters.encodings[0].codec)) {
       RTC_LOG(LS_VERBOSE) << "Trying to change codec to "
                           << parameters.encodings[0].codec->name;
       auto matched_codec =
           absl::c_find_if(negotiated_codecs_, [&](auto negotiated_codec) {
-            return negotiated_codec.codec.MatchesRtpCodec(
-                *parameters.encodings[0].codec);
+            return IsSameRtpCodec(negotiated_codec.codec,
+                                  *parameters.encodings[0].codec);
           });
       if (matched_codec == negotiated_codecs_.end()) {
         return webrtc::InvokeSetParametersCallback(

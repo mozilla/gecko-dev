@@ -29,10 +29,10 @@ Cr-Branched-From: 7b1b7a0f51593df7a1a802f489d6a2fb14195bcc-refs/heads/main@{#432
  2 files changed, 12 insertions(+), 3 deletions(-)
 
 diff --git a/media/base/media_engine.cc b/media/base/media_engine.cc
-index c4b4f817ac..b4bce757b7 100644
+index 9aeac42b64..0b4b9302f5 100644
 --- a/media/base/media_engine.cc
 +++ b/media/base/media_engine.cc
-@@ -206,7 +206,8 @@ webrtc::RTCError CheckRtpParametersValues(
+@@ -221,7 +221,8 @@ webrtc::RTCError CheckRtpParametersValues(
    if (has_requested_resolution &&
        absl::c_any_of(rtp_parameters.encodings,
                       [](const webrtc::RtpEncodingParameters& encoding) {

@@ -1786,6 +1786,36 @@ TEST_F(PeerConnectionRtpTestUnifiedPlan, CheckForInvalidEncodingParameters) {
                 .error()
                 .type());
   init.send_encodings = default_send_encodings;
+
+  init.send_encodings[0].scalability_mode = std::nullopt;
+  init.send_encodings[0].codec =
+      cricket::CreateVideoCodec(SdpVideoFormat("VP8", {})).ToCodecParameters();
+  EXPECT_EQ(RTCErrorType::NONE,
+            caller->pc()
+                ->AddTransceiver(cricket::MEDIA_TYPE_VIDEO, init)
+                .error()
+                .type());
+  init.send_encodings = default_send_encodings;
+
+  init.send_encodings[0].scalability_mode = "L1T2";
+  init.send_encodings[0].codec =
+      cricket::CreateVideoCodec(SdpVideoFormat("VP8", {})).ToCodecParameters();
+  EXPECT_EQ(RTCErrorType::NONE,
+            caller->pc()
+                ->AddTransceiver(cricket::MEDIA_TYPE_VIDEO, init)
+                .error()
+                .type());
+  init.send_encodings = default_send_encodings;
+
+  init.send_encodings[0].scalability_mode = "L2T2";
+  init.send_encodings[0].codec =
+      cricket::CreateVideoCodec(SdpVideoFormat("VP8", {})).ToCodecParameters();
+  EXPECT_EQ(RTCErrorType::UNSUPPORTED_OPERATION,
+            caller->pc()
+                ->AddTransceiver(cricket::MEDIA_TYPE_VIDEO, init)
+                .error()
+                .type());
+  init.send_encodings = default_send_encodings;
 }
 
 // Test that AddTransceiver transfers the send_encodings to the sender and they

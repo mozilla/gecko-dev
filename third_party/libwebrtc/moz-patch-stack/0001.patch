@@ -244,10 +244,10 @@ index 85b9c7ef3e..414e08f206 100644
      "+video/config",
    ],
 diff --git a/media/base/codec_comparators.cc b/media/base/codec_comparators.cc
-index 52dd23221e..207f093a76 100644
+index 4ed48b96b3..38f133ac1c 100644
 --- a/media/base/codec_comparators.cc
 +++ b/media/base/codec_comparators.cc
-@@ -278,11 +278,6 @@ bool MatchesWithCodecRules(const Codec& left_codec, const Codec& right_codec) {
+@@ -342,11 +342,6 @@ bool MatchesWithCodecRules(const Codec& left_codec, const Codec& right_codec) {
    return matches_id && matches_type_specific();
  }
  
@@ -260,10 +260,10 @@ index 52dd23221e..207f093a76 100644
  // a member of `codecs1`. If `codec_to_match` is an RED or RTX codec, both
  // the codecs themselves and their associated codecs must match.
 diff --git a/media/base/codec_comparators.h b/media/base/codec_comparators.h
-index a8b425566b..2c96d6a3d6 100644
+index d832d151ef..75ba006ab1 100644
 --- a/media/base/codec_comparators.h
 +++ b/media/base/codec_comparators.h
-@@ -18,15 +18,14 @@
+@@ -19,15 +19,14 @@
  
  namespace webrtc {
  
@@ -349,7 +349,7 @@ index 8f0b773902..c4e5f615a2 100644
  
  }  // namespace cricket
 diff --git a/media/engine/webrtc_video_engine.cc b/media/engine/webrtc_video_engine.cc
-index 4fee59c6df..bbcaf1b52d 100644
+index bfb2e22b46..27512b90ea 100644
 --- a/media/engine/webrtc_video_engine.cc
 +++ b/media/engine/webrtc_video_engine.cc
 @@ -14,46 +14,28 @@
@@ -402,7 +402,7 @@ index 4fee59c6df..bbcaf1b52d 100644
  #include "api/video_codecs/scalability_mode.h"
  #include "api/video_codecs/sdp_video_format.h"
  #include "api/video_codecs/video_codec.h"
-@@ -61,29 +43,23 @@
+@@ -61,30 +43,24 @@
  #include "api/video_codecs/video_encoder.h"
  #include "api/video_codecs/video_encoder_factory.h"
  #include "call/call.h"
@@ -416,6 +416,7 @@ index 4fee59c6df..bbcaf1b52d 100644
  #include "common_video/frame_counts.h"
 +#include "common_video/include/quality_limitation_reason.h"
  #include "media/base/codec.h"
+ #include "media/base/codec_comparators.h"
  #include "media/base/media_channel.h"
 -#include "media/base/media_channel_impl.h"
 -#include "media/base/media_config.h"
@@ -434,7 +435,7 @@ index 4fee59c6df..bbcaf1b52d 100644
  #include "modules/rtp_rtcp/source/rtp_util.h"
  #include "modules/video_coding/svc/scalability_mode_util.h"
  #include "rtc_base/checks.h"
-@@ -92,10 +68,8 @@
+@@ -93,10 +69,8 @@
  #include "rtc_base/logging.h"
  #include "rtc_base/socket.h"
  #include "rtc_base/strings/string_builder.h"
@@ -445,7 +446,7 @@ index 4fee59c6df..bbcaf1b52d 100644
  
  namespace cricket {
  
-@@ -609,7 +583,8 @@ std::vector<VideoCodecSettings> MapCodecs(const std::vector<Codec>& codecs) {
+@@ -610,7 +584,8 @@ std::vector<VideoCodecSettings> MapCodecs(const std::vector<Codec>& codecs) {
      const int payload_type = in_codec.id;
  
      if (payload_codec_type.find(payload_type) != payload_codec_type.end()) {
