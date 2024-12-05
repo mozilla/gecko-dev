@@ -506,13 +506,7 @@ struct RTC_EXPORT RtpEncodingParameters {
   //
   // See spec:
   // https://w3c.github.io/webrtc-extensions/#dom-rtcrtpencodingparameters-scaleresolutiondownto
-  //
-  // This was previously known as "requested_resolution" in C++.
   std::optional<Resolution> scale_resolution_down_to;
-  // Alternative name for `scale_resolution_down_to`.
-  // TODO(https://crbug.com/webrtc/375048799): Delete when downstream projects
-  // have migrated from `requested_resolution` to `scale_resolution_down_to`.
-  std::optional<Resolution>& requested_resolution;
 
   // For an RtpSender, set to true to cause this encoding to be encoded and
   // sent, and false for it not to be encoded and sent. This allows control
@@ -549,25 +543,6 @@ struct RTC_EXPORT RtpEncodingParameters {
   }
   bool operator!=(const RtpEncodingParameters& o) const {
     return !(*this == o);
-  }
-  // TODO(https://crbug.com/webrtc/375048799): Delete this operator overload
-  // when `requested_resolution` has been deleted in favor of auto generated op.
-  void operator=(const RtpEncodingParameters& o) {
-    ssrc = o.ssrc;
-    bitrate_priority = o.bitrate_priority;
-    network_priority = o.network_priority;
-    max_bitrate_bps = o.max_bitrate_bps;
-    min_bitrate_bps = o.min_bitrate_bps;
-    max_framerate = o.max_framerate;
-    num_temporal_layers = o.num_temporal_layers;
-    scale_resolution_down_by = o.scale_resolution_down_by;
-    scalability_mode = o.scalability_mode;
-    scale_resolution_down_to = o.scale_resolution_down_to;
-    active = o.active;
-    rid = o.rid;
-    request_key_frame = o.request_key_frame;
-    adaptive_ptime = o.adaptive_ptime;
-    codec = o.codec;
   }
 };
 
