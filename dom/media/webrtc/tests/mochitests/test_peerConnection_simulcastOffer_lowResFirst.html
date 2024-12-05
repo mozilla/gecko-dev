@@ -24,6 +24,11 @@
         // 100Kbps was apparently too low.
         ['media.peerconnection.video.min_bitrate_estimate', 180*1000]);
 
+    // [TODO] re-enable HW decoder after bug 1526207 is fixed.
+    if (navigator.userAgent.includes("Android")) {
+      await pushPrefs(["media.navigator.mediadatadecoder_vpx_enabled", false]);
+    }
+
 
     const offerer = new RTCPeerConnection();
     const answerer = new RTCPeerConnection();
@@ -83,13 +88,13 @@
     info('Waiting for second video element to start playing');
     await helper.checkVideoPlaying(videoElems[1]);
 
-    is(videoElems[1].videoWidth, 50,
+    is(videoElems[1].videoWidth, 64,
        "sink is same width as source, modulo our cropping algorithm");
-    is(videoElems[1].videoHeight, 50,
+    is(videoElems[1].videoHeight, 64,
        "sink is same height as source, modulo our cropping algorithm");
-    is(videoElems[0].videoWidth, 25,
+    is(videoElems[0].videoWidth, 32,
        "sink is 1/2 width of source, modulo our cropping algorithm");
-    is(videoElems[0].videoHeight, 25,
+    is(videoElems[0].videoHeight, 32,
        "sink is 1/2 height of source, modulo our cropping algorithm");
 
     await statsReady;
