@@ -320,7 +320,12 @@ add_task(async function () {
         );
       },
     },
-    {
+  ];
+
+  // javascript.options.experimental.explicit_resource_management is set to true, but it's
+  // only supported on Nightly at the moment
+  if (AppConstants.ENABLE_EXPLICIT_RESOURCE_MANAGEMENT) {
+    TEST_DATA.push({
       desc: `SuppressedError`,
       expression: `throw new SuppressedError(
           new Error("foo"),
@@ -328,8 +333,8 @@ add_task(async function () {
           "the suppressed error message"
         )`,
       expected: `Uncaught SuppressedError: the suppressed error message`,
-    },
-  ];
+    });
+  }
 
   for (const { desc, expression, expected, assert } of TEST_DATA) {
     info(`Check error: ${desc}`);
