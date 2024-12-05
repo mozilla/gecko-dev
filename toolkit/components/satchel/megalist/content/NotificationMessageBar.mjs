@@ -211,7 +211,10 @@ class NotificationMessageBar extends MozLitElement {
         primaryAction: {
           type: "destructive",
           dataL10nId: "passwords-discard-changes-confirm-button",
-          onClick: () => this.messageHandler("ConfirmDiscardChanges"),
+          onClick: () =>
+            this.messageHandler("ConfirmDiscardChanges", {
+              value: { fromSidebar: this.notification.fromSidebar },
+            }),
         },
         secondaryAction: {
           dataL10nId: "passwords-discard-changes-go-back-button",

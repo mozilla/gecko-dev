@@ -114,7 +114,7 @@ add_task(async function test_update_login_discard_changes() {
 
   const megalist = await openPasswordsSidebar();
   await checkAllLoginsRendered(megalist);
-  await openLoginForm(megalist, getMegalistParent());
+  await openEditLoginForm(megalist, getMegalistParent(), 0);
 
   info("Cancelling form.");
   const loginForm = megalist.querySelector("login-form");
@@ -146,13 +146,29 @@ add_task(async function test_update_login_discard_changes() {
 
   info("Pressing Confirm action on notification");
   notificationMsgBar = megalist.querySelector("notification-message-bar");
-  const confirmButton = notificationMsgBar.shadowRoot.querySelector(
+  let confirmButton = notificationMsgBar.shadowRoot.querySelector(
     "moz-button[type=destructive]"
   );
   confirmButton.click();
   await checkAllLoginsRendered(megalist);
   ok(true, "List view of logins is shown again");
 
-  LoginTestUtils.clearData();
+  info("Try closing sidebar while editing a login");
+  await openEditLoginForm(megalist, getMegalistParent(), 0);
   SidebarController.hide();
+  await waitForNotification(megalist, "discard-changes");
+  ok(true, "Got discard changes notification when closing sidebar");
+
+  info("Sidebar should close if discard changes is confirmed");
+  notificationMsgBar = megalist.querySelector("notification-message-bar");
+  confirmButton = notificationMsgBar.shadowRoot.querySelector(
+    "moz-button[type=destructive]"
+  );
+  confirmButton.click();
+  await BrowserTestUtils.waitForCondition(() => {
+    return !SidebarController.isOpen;
+  }, "Sidebar did not close.");
+  ok(!SidebarController.isOpen, "Sidebar closed");
+
+  LoginTestUtils.clearData();
 });

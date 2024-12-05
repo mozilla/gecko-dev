@@ -1707,6 +1707,14 @@ var SidebarController = {
       return;
     }
 
+    const willHideEvent = new CustomEvent("SidebarWillHide", {
+      cancelable: true,
+    });
+    this.browser.contentWindow?.dispatchEvent(willHideEvent);
+    if (willHideEvent.defaultPrevented) {
+      return;
+    }
+
     this.hideSwitcherPanel();
     this._recordPanelToggle(this.currentID, false);
     if (this.sidebarRevampEnabled) {
