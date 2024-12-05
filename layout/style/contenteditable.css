@@ -35,46 +35,11 @@ a:read-write:active img, a:read-write:-moz-only-whitespace[name] {
   cursor: text;
 }
 
-/* Prevent clicking on links from going to link */
-a:link:read-write img, a:visited:read-write img,
-a:active:read-write img {
-  -moz-user-input: none;
-}
-
 /* We suppress user/author's prefs for link underline,
    so we must set explicitly. This isn't good!
 */
 a:link:read-write {
   color: -moz-hyperlinktext;
-}
-
-/* Allow double-clicks on these widgets to open properties dialogs
-   XXX except when the widget has disabled attribute */
-*|*:read-write > input:read-only,
-*|*:read-write > button:read-only,
-*|*:read-write > textarea:read-only {
-  user-select: all;
-  -moz-user-input: auto !important;
-}
-
-/* XXX Still need a better way of blocking other events to these widgets */
-select:read-write,
-*|*:read-write > input:disabled,
-*|*:read-write > input[type="checkbox"],
-*|*:read-write > input[type="radio"],
-*|*:read-write > input[type="file"],
-input[contenteditable="true"]:disabled,
-input[contenteditable="true"][type="checkbox"],
-input[contenteditable="true"][type="radio"],
-input[contenteditable="true"][type="file"] {
-  user-select: all;
-  -moz-user-input: none !important;
-}
-
-*|*:read-write > input[type="hidden"],
-input[contenteditable="true"][type="hidden"] {
-  border: 1px solid black !important;
-  visibility: visible !important;
 }
 
 option:read-write {

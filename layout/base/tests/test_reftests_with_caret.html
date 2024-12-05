@@ -95,8 +95,8 @@ function createIframe(url,next) {
   iframe.focus();
 };
 
-function refTest(test,ref) {
-  createIframe(test,ref);
+function refTest(test, ref) {
+  createIframe(test, ref);
 };
 
 var caretBlinkTime = null;
@@ -457,6 +457,9 @@ function isTestSkipped(test) {
 }
 
 function nextTest() {
+  // Move the mouse out of the way so that :hover doesn't interact with tests.
+  synthesizeMouse(document.body, 1, 1, { type: "mousemove" });
+
   if (testIndex < tests.length) {
     let test = tests[testIndex];
     if (typeof(test) == 'function') {

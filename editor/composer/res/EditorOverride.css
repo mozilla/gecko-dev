@@ -32,11 +32,6 @@ a:visited, a:active {
   cursor: text;
 }
 
-/* Prevent clicking on links from going to link */
-a:link img, a:visited img {
-  -moz-user-input: none;
-}
-
 /* We suppress user/author's prefs for link underline,
    so we must set explicitly. This isn't good!
 */
@@ -44,35 +39,12 @@ a:link {
   color: -moz-hyperlinktext;
 }
 
-/* Allow double-clicks on these widgets to open properties dialogs
-   XXX except when the widget has disabled attribute */
-input, button, textarea {
-  user-select: all !important;
-  -moz-user-input: auto !important;
-}
-
-/* XXX Still need a better way of blocking other events to these widgets */
-select, input[disabled], input[type="checkbox"], input[type="radio"], input[type="file"] {
-  user-select: all !important;
-  -moz-user-input: none !important;
-}
-
-input[type="hidden"] {
-  border: 1px solid black !important;
-  visibility: visible !important;
-}
-
 label {
-    user-select: all !important;
+  user-select: all !important;
 }
 
 option {
   user-select: text !important;
-}
-
-#mozToc.readonly {
-  user-select: all !important;
-  -moz-user-input: none !important;
 }
 
 /* the following rules are for Image Resizing */
