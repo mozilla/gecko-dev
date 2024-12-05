@@ -469,6 +469,8 @@ std::optional<LossBasedBweV2::Config> LossBasedBweV2::CreateConfig(
   FieldTrialParameter<bool> bound_best_candidate("BoundBestCandidate", false);
   FieldTrialParameter<bool> pace_at_loss_based_estimate(
       "PaceAtLossBasedEstimate", false);
+  FieldTrialParameter<double> median_sending_rate_factor(
+      "MedianSendingRateFactor", 2.0);
   if (key_value_config) {
     ParseFieldTrial({&enabled,
                      &bandwidth_rampup_upper_bound_factor,
@@ -509,7 +511,8 @@ std::optional<LossBasedBweV2::Config> LossBasedBweV2::CreateConfig(
                      &use_byte_loss_rate,
                      &padding_duration,
                      &bound_best_candidate,
-                     &pace_at_loss_based_estimate},
+                     &pace_at_loss_based_estimate,
+                     &median_sending_rate_factor},
                     key_value_config->Lookup("WebRTC-Bwe-LossBasedBweV2"));
   }
 
@@ -575,6 +578,7 @@ std::optional<LossBasedBweV2::Config> LossBasedBweV2::CreateConfig(
   config.padding_duration = padding_duration.Get();
   config.bound_best_candidate = bound_best_candidate.Get();
   config.pace_at_loss_based_estimate = pace_at_loss_based_estimate.Get();
+  config.median_sending_rate_factor = median_sending_rate_factor.Get();
   return config;
 }
 
@@ -816,7 +820,7 @@ double LossBasedBweV2::CalculateAverageReportedByteLossRatio() const {
   DataSize max_lost_bytes = DataSize::Zero();
   DataSize min_bytes_received = DataSize::Zero();
   DataSize max_bytes_received = DataSize::Zero();
-
+  DataRate send_rate_of_max_loss_observation = DataRate::Zero();
   for (const Observation& observation : observations_) {
     if (!observation.IsInitialized()) {
       continue;
@@ -836,6 +840,7 @@ double LossBasedBweV2::CalculateAverageReportedByteLossRatio() const {
         max_loss_rate = loss_rate;
         max_lost_bytes = instant_temporal_weight * observation.lost_size;
         max_bytes_received = instant_temporal_weight * observation.size;
+        send_rate_of_max_loss_observation = observation.sending_rate;
       }
       if (loss_rate < min_loss_rate) {
         min_loss_rate = loss_rate;
@@ -843,6 +848,13 @@ double LossBasedBweV2::CalculateAverageReportedByteLossRatio() const {
         min_bytes_received = instant_temporal_weight * observation.size;
       }
     }
+  }
+  if (GetMedianSendingRate() * config_->median_sending_rate_factor <=
+      send_rate_of_max_loss_observation) {
+    // If the median sending rate is less than half of the sending rate of the
+    // observation with max loss rate, i.e. we suddenly send a lot of data, then
+    // the loss rate might not be due to a spike.
+    return lost_bytes / total_bytes;
   }
   return (lost_bytes - min_lost_bytes - max_lost_bytes) /
          (total_bytes - max_bytes_received - min_bytes_received);
@@ -1155,6 +1167,8 @@ bool LossBasedBweV2::PushBackObservation(
   const TimeDelta observation_duration =
       last_send_time - last_send_time_most_recent_observation_;
   // Too small to be meaningful.
+  // To consider: what if it is too long?, i.e. we did not receive any packets
+  // for a long time, then all the packets we received are too old.
   if (observation_duration <= TimeDelta::Zero() ||
       observation_duration < config_->observation_duration_lower_bound) {
     return false;
@@ -1203,6 +1217,27 @@ bool LossBasedBweV2::CanKeepIncreasingState(DataRate estimate) const {
 bool LossBasedBweV2::PaceAtLossBasedEstimate() const {
   return config_->pace_at_loss_based_estimate &&
          loss_based_result_.state != LossBasedState::kDelayBasedEstimate;
+}
+
+DataRate LossBasedBweV2::GetMedianSendingRate() const {
+  std::vector<DataRate> sending_rates;
+  for (const Observation& observation : observations_) {
+    if (!observation.IsInitialized() || !IsValid(observation.sending_rate) ||
+        observation.sending_rate.IsZero()) {
+      continue;
+    }
+    sending_rates.push_back(observation.sending_rate);
+  }
+  if (sending_rates.empty()) {
+    return DataRate::Zero();
+  }
+  absl::c_sort(sending_rates);
+  if (sending_rates.size() % 2 == 0) {
+    return (sending_rates[sending_rates.size() / 2 - 1] +
+            sending_rates[sending_rates.size() / 2]) /
+           2;
+  }
+  return sending_rates[sending_rates.size() / 2];
 }
 
 }  // namespace webrtc

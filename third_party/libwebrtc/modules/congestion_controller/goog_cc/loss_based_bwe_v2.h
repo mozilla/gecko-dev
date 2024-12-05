@@ -128,6 +128,7 @@ class LossBasedBweV2 {
     TimeDelta padding_duration = TimeDelta::Zero();
     bool bound_best_candidate = false;
     bool pace_at_loss_based_estimate = false;
+    double median_sending_rate_factor = 0.0;
   };
 
   struct Derivatives {
@@ -199,6 +200,7 @@ class LossBasedBweV2 {
                                            DataRate new_estimate);
   bool IsInLossLimitedState() const;
   bool CanKeepIncreasingState(DataRate estimate) const;
+  DataRate GetMedianSendingRate() const;
 
   std::optional<DataRate> acknowledged_bitrate_;
   std::optional<Config> config_;
