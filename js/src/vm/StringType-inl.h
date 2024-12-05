@@ -110,6 +110,15 @@ static MOZ_ALWAYS_INLINE JSInlineString* NewInlineString(
   return str;
 }
 
+// Create a thin inline string if possible, and a fat inline string if not.
+template <AllowGC allowGC, size_t N>
+static MOZ_ALWAYS_INLINE JSInlineString* NewInlineString(
+    JSContext* cx, const char (&chars)[N], size_t len,
+    js::gc::Heap heap = js::gc::Heap::Default) {
+  return NewInlineString<allowGC>(
+      cx, reinterpret_cast<const Latin1Char(&)[N]>(chars), len, heap);
+}
+
 template <typename CharT>
 static MOZ_ALWAYS_INLINE JSAtom* NewInlineAtom(JSContext* cx,
                                                const CharT* chars,
