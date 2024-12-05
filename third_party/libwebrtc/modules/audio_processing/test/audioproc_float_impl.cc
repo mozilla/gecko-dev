@@ -26,6 +26,7 @@
 #include "absl/flags/parse.h"
 #include "absl/strings/string_view.h"
 #include "api/audio/audio_processing.h"
+#include "api/audio/builtin_audio_processing_builder.h"
 #include "api/audio/echo_canceller3_config.h"
 #include "api/audio/echo_canceller3_factory.h"
 #include "api/audio/echo_detector_creator.h"
@@ -544,8 +545,7 @@ void ReportConditionalErrorAndExit(bool condition, absl::string_view message) {
   }
 }
 
-void PerformBasicParameterSanityChecks(const SimulationSettings& settings,
-                                       bool pre_constructed_ap_provided) {
+void PerformBasicParameterSanityChecks(const SimulationSettings& settings) {
   if (settings.input_filename || settings.reverse_input_filename) {
     ReportConditionalErrorAndExit(
         !!settings.aec_dump_input_filename,
@@ -730,18 +730,21 @@ void PerformBasicParameterSanityChecks(const SimulationSettings& settings,
           settings.pre_amplifier_gain_factor.has_value(),
       "Error: --pre_amplifier_gain_factor needs --pre_amplifier to be "
       "specified and set.\n");
+}
 
+void CheckSettingsForBuiltinBuilderAreUnused(
+    const SimulationSettings& settings) {
   ReportConditionalErrorAndExit(
-      settings.aec_settings_filename && pre_constructed_ap_provided,
+      settings.aec_settings_filename.has_value(),
       "Error: The aec_settings_filename cannot be specified when a "
       "pre-constructed audio processing object is provided.\n");
 
   ReportConditionalErrorAndExit(
-      settings.print_aec_parameter_values && pre_constructed_ap_provided,
+      settings.print_aec_parameter_values,
       "Error: The print_aec_parameter_values cannot be set when a "
       "pre-constructed audio processing object is provided.\n");
 
-  if (settings.linear_aec_output_filename && pre_constructed_ap_provided) {
+  if (settings.linear_aec_output_filename) {
     std::cout << "Warning: For the linear AEC output to be stored, this must "
                  "be configured in the AEC that is part of the provided "
                  "AudioProcessing object."
@@ -775,12 +778,8 @@ EchoCanceller3Config ReadAec3ConfigFromJsonFile(absl::string_view filename) {
   return cfg;
 }
 
-// `Builder` is either AudioProcessingBuilder or BuiltinAudioProcessingBuilder
-// TODO: bugs.webrtc.org/369904700 - inline this function when usages of
-// the AudioProcessingBuilder are removed, and thus two version of this function
-// are no longer needed.
-template <typename Builder>
-void SetDependencies(const SimulationSettings& settings, Builder& builder) {
+void SetDependencies(const SimulationSettings& settings,
+                     BuiltinAudioProcessingBuilder& builder) {
   // Create and set an EchoCanceller3Factory if needed.
   if (settings.use_aec && *settings.use_aec) {
     EchoCanceller3Config cfg;
@@ -810,60 +809,11 @@ void SetDependencies(const SimulationSettings& settings, Builder& builder) {
   }
 }
 
-absl::Nonnull<scoped_refptr<AudioProcessing>> Provide(
-    const Environment& env,
-    const SimulationSettings& settings,
-    absl::Nonnull<std::unique_ptr<BuiltinAudioProcessingBuilder>> ap_builder) {
-  PerformBasicParameterSanityChecks(settings,
-                                    /*pre_constructed_ap_provided=*/false);
-  SetDependencies(settings, *ap_builder);
-  scoped_refptr<AudioProcessing> ap = ap_builder->Build(env);
-  RTC_CHECK(ap);
-  return ap;
-}
-
-absl::Nonnull<scoped_refptr<AudioProcessing>> Provide(
-    const Environment& env,
-    const SimulationSettings& settings,
-    absl::Nonnull<std::unique_ptr<AudioProcessingBuilderInterface>>
-        ap_builder) {
-  PerformBasicParameterSanityChecks(settings,
-                                    /*pre_constructed_ap_provided=*/true);
-  scoped_refptr<AudioProcessing> ap = ap_builder->Build(env);
-  RTC_CHECK(ap);
-  return ap;
-}
-
-absl::Nonnull<scoped_refptr<AudioProcessing>> Provide(
-    const Environment& /*env*/,
-    const SimulationSettings& settings,
-    absl::Nullable<std::unique_ptr<AudioProcessingBuilder>> ap_builder) {
-  PerformBasicParameterSanityChecks(settings,
-                                    /*pre_constructed_ap_provided=*/false);
-  if (ap_builder == nullptr) {
-    ap_builder = std::make_unique<AudioProcessingBuilder>();
-  }
-  SetDependencies(settings, *ap_builder);
-  scoped_refptr<AudioProcessing> ap = ap_builder->Create();
-  RTC_CHECK(ap);
-  return ap;
-}
-
-absl::Nonnull<scoped_refptr<AudioProcessing>> Provide(
-    const Environment& env,
-    const SimulationSettings& settings,
-    absl::Nullable<scoped_refptr<AudioProcessing>> ap_provider) {
-  if (ap_provider == nullptr) {
-    return Provide(env, settings, std::make_unique<AudioProcessingBuilder>());
-  }
-
-  PerformBasicParameterSanityChecks(settings,
-                                    /*pre_constructed_ap_provided=*/true);
-  return ap_provider;
-}
-
-template <typename AudioProcessingProvider>
-int RunSimulation(AudioProcessingProvider ap_provider, int argc, char* argv[]) {
+int RunSimulation(
+    absl::Nonnull<std::unique_ptr<AudioProcessingBuilderInterface>> ap_builder,
+    bool builtin_builder_provided,
+    int argc,
+    char* argv[]) {
   std::vector<char*> args = absl::ParseCommandLine(argc, argv);
   if (args.size() != 1) {
     printf("%s", kUsageDescription);
@@ -873,8 +823,15 @@ int RunSimulation(AudioProcessingProvider ap_provider, int argc, char* argv[]) {
   const Environment env = CreateEnvironment(&field_trials);
 
   SimulationSettings settings = CreateSettings();
-  absl::Nonnull<scoped_refptr<AudioProcessing>> audio_processing =
-      Provide(env, settings, std::move(ap_provider));
+  PerformBasicParameterSanityChecks(settings);
+  if (builtin_builder_provided) {
+    SetDependencies(settings,
+                    static_cast<BuiltinAudioProcessingBuilder&>(*ap_builder));
+  } else {
+    CheckSettingsForBuiltinBuilderAreUnused(settings);
+  }
+  scoped_refptr<AudioProcessing> audio_processing = ap_builder->Build(env);
+  RTC_CHECK(audio_processing);
 
   std::unique_ptr<AudioProcessingSimulator> processor;
   if (settings.aec_dump_input_filename || settings.aec_dump_input_string) {
@@ -912,31 +869,19 @@ int RunSimulation(AudioProcessingProvider ap_provider, int argc, char* argv[]) {
 }  // namespace
 
 int AudioprocFloatImpl(
-    absl::Nullable<scoped_refptr<AudioProcessing>> audio_processing,
-    int argc,
-    char* argv[]) {
-  return RunSimulation(std::move(audio_processing), argc, argv);
-}
-
-int AudioprocFloatImpl(
-    absl::Nullable<std::unique_ptr<AudioProcessingBuilder>> ap_builder,
-    int argc,
-    char* argv[]) {
-  return RunSimulation(std::move(ap_builder), argc, argv);
-}
-
-int AudioprocFloatImpl(
     absl::Nonnull<std::unique_ptr<BuiltinAudioProcessingBuilder>> ap_builder,
     int argc,
     char* argv[]) {
-  return RunSimulation(std::move(ap_builder), argc, argv);
+  return RunSimulation(std::move(ap_builder), /*builtin_builder_provided=*/true,
+                       argc, argv);
 }
 
 int AudioprocFloatImpl(
     absl::Nonnull<std::unique_ptr<AudioProcessingBuilderInterface>> ap_builder,
     int argc,
     char* argv[]) {
-  return RunSimulation(std::move(ap_builder), argc, argv);
+  return RunSimulation(std::move(ap_builder),
+                       /*builtin_builder_provided=*/false, argc, argv);
 }
 
 }  // namespace test

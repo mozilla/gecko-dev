@@ -13,24 +13,13 @@
 #include <memory>
 #include <utility>
 
+#include "absl/base/nullability.h"
 #include "api/audio/audio_processing.h"
-#include "api/scoped_refptr.h"
+#include "api/audio/builtin_audio_processing_builder.h"
 #include "modules/audio_processing/test/audioproc_float_impl.h"
 
 namespace webrtc {
 namespace test {
-
-int AudioprocFloat(rtc::scoped_refptr<AudioProcessing> audio_processing,
-                   int argc,
-                   char* argv[]) {
-  return AudioprocFloatImpl(std::move(audio_processing), argc, argv);
-}
-
-int AudioprocFloat(std::unique_ptr<AudioProcessingBuilder> ap_builder,
-                   int argc,
-                   char* argv[]) {
-  return AudioprocFloatImpl(std::move(ap_builder), argc, argv);
-}
 
 int AudioprocFloat(int argc, char* argv[]) {
   return AudioprocFloatImpl(std::make_unique<BuiltinAudioProcessingBuilder>(),
