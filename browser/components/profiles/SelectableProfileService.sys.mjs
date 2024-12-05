@@ -8,6 +8,9 @@ import { DeferredTask } from "resource://gre/modules/DeferredTask.sys.mjs";
 
 const lazy = {};
 
+// This is used to keep the icon controllers alive for as long as their windows are alive.
+const TASKBAR_ICON_CONTROLLERS = new WeakMap();
+
 ChromeUtils.defineESModuleGetters(lazy, {
   CryptoUtils: "resource://services-crypto/utils.sys.mjs",
   EveryWindow: "resource:///modules/EveryWindow.sys.mjs",
@@ -411,6 +414,8 @@ class SelectableProfileServiceClass {
           let iconController = Cc["@mozilla.org/windows-taskbar;1"]
             .getService(Ci.nsIWinTaskbar)
             .getOverlayIconController(window.docShell);
+          TASKBAR_ICON_CONTROLLERS.set(window, iconController);
+
           iconController.setOverlayIcon(
             this.#badge.image,
             this.#badge.description,
@@ -684,6 +689,8 @@ class SelectableProfileServiceClass {
             let iconController = Cc["@mozilla.org/windows-taskbar;1"]
               .getService(Ci.nsIWinTaskbar)
               .getOverlayIconController(win.docShell);
+            TASKBAR_ICON_CONTROLLERS.set(win, iconController);
+
             iconController.setOverlayIcon(
               this.#badge.image,
               this.#badge.description,
@@ -700,10 +707,8 @@ class SelectableProfileServiceClass {
             .setBadgeImage(null);
         } else if ("nsIWinTaskbar" in Ci) {
           for (let win of lazy.EveryWindow.readyWindows) {
-            let iconController = Cc["@mozilla.org/windows-taskbar;1"]
-              .getService(Ci.nsIWinTaskbar)
-              .getOverlayIconController(win.docShell);
-            iconController.setOverlayIcon(null, null);
+            let iconController = TASKBAR_ICON_CONTROLLERS.get(win);
+            iconController?.setOverlayIcon(null, null);
           }
         }
       }
