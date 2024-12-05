@@ -482,7 +482,7 @@ void PeerConnectionCtx::AddPeerConnection(const std::string& aKey,
                        .release());
 
     UniquePtr<webrtc::FieldTrialsView> trials =
-        WrapUnique(new NoTrialsConfig());
+        WrapUnique(new MozTrialsConfig());
 
     mSharedWebrtcState = MakeAndAddRef<SharedWebrtcState>(
         new CallWorkerThread(std::move(callWorkerThread)),
