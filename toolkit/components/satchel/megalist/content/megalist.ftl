@@ -310,6 +310,15 @@ passwords-no-passwords-get-started-message = Add them here to get started.
 # This string is displayed in a button. If the user clicks it, they will be taken to a form to create a new password.
 passwords-add-manually = Add manually
 
+## When the user cancels a login that's currently being edited, we display a message to confirm whether
+## or not the user wants to discard their current edits to the login.
+
+passwords-discard-changes-heading-and-message =
+  .heading = Close without saving?
+  .message = Your changes won’t be saved.
+passwords-discard-changes-confirm-button = Confirm
+passwords-discard-changes-go-back-button = Go back
+
 ## Payments
 
 payments-command-create = Add Payment Method

@@ -1,3 +1,6 @@
+/* Any copyright is dedicated to the Public Domain.
+   https://creativecommons.org/publicdomain/zero/1.0/ */
+
 "use strict";
 
 add_setup(async function () {
@@ -63,6 +66,7 @@ add_task(async function test_update_login_success() {
     "Password not updated."
   );
   LoginTestUtils.clearData();
+  SidebarController.hide();
 });
 
 add_task(async function test_update_login_duplicate() {
@@ -96,4 +100,59 @@ add_task(async function test_update_login_duplicate() {
 
   await waitForNotification(megalist, "login-already-exists-warning");
   LoginTestUtils.clearData();
+  SidebarController.hide();
+});
+
+add_task(async function test_update_login_discard_changes() {
+  if (!OSKeyStoreTestUtils.canTestOSKeyStoreLogin()) {
+    ok(true, "Cannot test OSAuth.");
+    return;
+  }
+
+  const login = TEST_LOGIN_1;
+  await LoginTestUtils.addLogin(login);
+
+  const megalist = await openPasswordsSidebar();
+  await checkAllLoginsRendered(megalist);
+  await openLoginForm(megalist, getMegalistParent());
+
+  info("Cancelling form.");
+  const loginForm = megalist.querySelector("login-form");
+  const cancelButton = loginForm.shadowRoot.querySelector(
+    "moz-button[data-l10n-id=login-item-cancel-button]"
+  );
+  cancelButton.buttonEl.click();
+  await waitForNotification(megalist, "discard-changes");
+  ok(true, "Got discard changes notification");
+
+  info("Pressing Go Back action on notification");
+  let notificationMsgBar = megalist.querySelector("notification-message-bar");
+  const goBackActionButton = notificationMsgBar.shadowRoot.querySelector(
+    "moz-button[type=default]"
+  );
+  goBackActionButton.click();
+  await BrowserTestUtils.waitForCondition(() => {
+    const notificationMsgBar = megalist.querySelector(
+      "notification-message-bar"
+    );
+    return !notificationMsgBar;
+  }, "Notification was not dismissed.");
+  ok(true, "Discard changes notification dismissed.");
+
+  info("Cancelling form again.");
+  cancelButton.buttonEl.click();
+  await waitForNotification(megalist, "discard-changes");
+  ok(true, "Got discard changes notification");
+
+  info("Pressing Confirm action on notification");
+  notificationMsgBar = megalist.querySelector("notification-message-bar");
+  const confirmButton = notificationMsgBar.shadowRoot.querySelector(
+    "moz-button[type=destructive]"
+  );
+  confirmButton.click();
+  await checkAllLoginsRendered(megalist);
+  ok(true, "List view of logins is shown again");
+
+  LoginTestUtils.clearData();
+  SidebarController.hide();
 });

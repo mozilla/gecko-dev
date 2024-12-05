@@ -72,6 +72,10 @@ export class DataSourceBase {
     this.#aggregatorApi.setNotification(notification);
   }
 
+  discardChangesConfirmed() {
+    this.#aggregatorApi.discardChangesConfirmed();
+  }
+
   formatMessages = createFormatMessages("preview/megalist.ftl");
   static ftl = new Localization(["branding/brand.ftl", "preview/megalist.ftl"]);
 

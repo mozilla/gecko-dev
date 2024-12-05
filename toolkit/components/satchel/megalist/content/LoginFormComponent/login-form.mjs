@@ -49,10 +49,6 @@ export class LoginForm extends MozLitElement {
     };
   }
 
-  disconnectedCallback() {
-    this.onClose();
-  }
-
   #removeWarning(warning) {
     if (warning.classList.contains("invalid-input")) {
       warning.classList.remove("invalid-input");
@@ -209,7 +205,7 @@ export class LoginForm extends MozLitElement {
             <moz-button-group>
               <moz-button
                 data-l10n-id="login-item-cancel-button"
-                @click=${this.remove}
+                @click=${this.onClose}
               ></moz-button>
               <moz-button
                 data-l10n-id="login-item-save-new-button"
