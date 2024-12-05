@@ -2548,8 +2548,7 @@ void nsBlockFrame::ComputeOverflowAreas(OverflowAreas& aOverflowAreas,
 // Depending on our ancestor, determine if we need to restrict padding inflation
 // in inline direction. This assumes that the passed-in frame is a scrolled
 // frame. HACK(dshin): Reaching out and querying the type like this isn't ideal.
-static bool RestrictPaddingInflationInInline(
-    const nsIFrame* aFrame) {
+static bool RestrictPaddingInflationInInline(const nsIFrame* aFrame) {
   MOZ_ASSERT(aFrame);
   if (aFrame->Style()->GetPseudoType() != PseudoStyleType::scrolledContent) {
     // This can only happen when computing scrollable overflow for overflow:
@@ -2595,10 +2594,12 @@ Maybe<nsRect> nsBlockFrame::GetLineFrameInFlowBounds(
     const nsLineBox& aLine, const nsIFrame& aLineChildFrame) const {
   MOZ_ASSERT(aLineChildFrame.GetParent() == this,
              "Line's frame doesn't belong to this block frame?");
-  // Line participants are considered in-flow for content within the line bounds, which
-  // should be accounted for from the line bounds. This is consistent with e.g. inline
-  // element's `margin-bottom` not affecting the placement of the next line.
-  if (aLineChildFrame.IsPlaceholderFrame() || aLineChildFrame.IsLineParticipant()) {
+  // Line participants are considered in-flow for content within the line
+  // bounds, which should be accounted for from the line bounds. This is
+  // consistent with e.g. inline element's `margin-bottom` not affecting the
+  // placement of the next line.
+  if (aLineChildFrame.IsPlaceholderFrame() ||
+      aLineChildFrame.IsLineParticipant()) {
     return Nothing{};
   }
   if (aLine.IsInline()) {
