@@ -915,7 +915,7 @@ export class SearchService {
       let soughtUrl = Services.io.newURI(url);
 
       // Exclude any URL that is not HTTP or HTTPS from the beginning.
-      if (soughtUrl.schemeIs("http") && soughtUrl.schemeIs("https")) {
+      if (!soughtUrl.schemeIs("http") && !soughtUrl.schemeIs("https")) {
         return gEmptyParseSubmissionResult;
       }
 
