@@ -111,7 +111,7 @@ class Call {
     RTC_CHECK_NOTREACHED();
     return nullptr;
   }
-  virtual void SetPayloadTypeSuggester(PayloadTypeSuggester* suggester) {
+  virtual void SetPayloadTypeSuggester(PayloadTypeSuggester* /* suggester */) {
     // TODO: https://issues.webrtc.org/360058654 - make pure virtual
     RTC_CHECK_NOTREACHED();
   }

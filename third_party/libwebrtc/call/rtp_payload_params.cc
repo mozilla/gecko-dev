@@ -568,7 +568,7 @@ void RtpPayloadParams::Vp8ToGeneric(const CodecSpecificInfoVP8& vp8_info,
   }
 }
 
-void RtpPayloadParams::Vp9ToGeneric(const CodecSpecificInfoVP9& vp9_info,
+void RtpPayloadParams::Vp9ToGeneric(const CodecSpecificInfoVP9& /* vp9_info */,
                                     int64_t frame_id,
                                     RTPVideoHeader& rtp_video_header) {
   const auto& vp9_header =
@@ -769,7 +769,7 @@ void RtpPayloadParams::SetDependenciesVp8New(
     const CodecSpecificInfoVP8& vp8_info,
     int64_t frame_id,
     bool is_keyframe,
-    bool layer_sync,
+    bool /* layer_sync */,
     RTPVideoHeader::GenericDescriptorInfo* generic) {
   RTC_DCHECK(vp8_info.useExplicitDependencies);
   RTC_DCHECK(!new_version_used_.has_value() || new_version_used_.value());

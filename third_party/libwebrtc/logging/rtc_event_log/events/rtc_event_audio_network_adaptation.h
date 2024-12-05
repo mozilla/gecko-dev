@@ -56,15 +56,15 @@ class RtcEventAudioNetworkAdaptation final : public RtcEvent {
 
   const AudioEncoderRuntimeConfig& config() const { return *config_; }
 
-  static std::string Encode(rtc::ArrayView<const RtcEvent*> batch) {
+  static std::string Encode(rtc::ArrayView<const RtcEvent*> /* batch */) {
     // TODO(terelius): Implement
     return "";
   }
 
   static RtcEventLogParseStatus Parse(
-      absl::string_view encoded_bytes,
-      bool batched,
-      std::vector<LoggedAudioNetworkAdaptationEvent>& output) {
+      absl::string_view /* encoded_bytes */,
+      bool /* batched */,
+      std::vector<LoggedAudioNetworkAdaptationEvent>& /* output */) {
     // TODO(terelius): Implement
     return RtcEventLogParseStatus::Error("Not Implemented", __FILE__, __LINE__);
   }

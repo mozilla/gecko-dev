@@ -150,7 +150,7 @@ class VideoRtcpAndSyncObserver : public test::RtpRtcpObserver,
         creation_time_ms_(clock_->TimeInMilliseconds()),
         task_queue_(task_queue) {}
 
-  void OnFrame(const VideoFrame& video_frame) override {
+  void OnFrame(const VideoFrame& /* video_frame */) override {
     task_queue_->PostTask([this]() { CheckStats(); });
   }
 
@@ -452,7 +452,7 @@ TEST_F(CallPerfTest, ReceivesCpuOveruseAndUnderuse) {
     // OnSinkWantsChanged is called when FrameGeneratorCapturer::AddOrUpdateSink
     // is called.
     // TODO(sprang): Add integration test for maintain-framerate mode?
-    void OnSinkWantsChanged(rtc::VideoSinkInterface<VideoFrame>* sink,
+    void OnSinkWantsChanged(rtc::VideoSinkInterface<VideoFrame>* /* sink */,
                             const rtc::VideoSinkWants& wants) override {
       RTC_LOG(LS_INFO) << "OnSinkWantsChanged fps:" << wants.max_framerate_fps
                        << " max_pixel_count " << wants.max_pixel_count
@@ -518,9 +518,9 @@ TEST_F(CallPerfTest, ReceivesCpuOveruseAndUnderuse) {
     }
 
     void ModifyVideoConfigs(
-        VideoSendStream::Config* send_config,
-        std::vector<VideoReceiveStreamInterface::Config>* receive_configs,
-        VideoEncoderConfig* encoder_config) override {}
+        VideoSendStream::Config* /* send_config */,
+        std::vector<VideoReceiveStreamInterface::Config>* /* receive_configs */,
+        VideoEncoderConfig* /* encoder_config */) override {}
 
     void PerformTest() override {
       EXPECT_TRUE(Wait()) << "Timed out before receiving an overuse callback.";
@@ -569,7 +569,7 @@ void CallPerfTest::TestMinTransmitBitrate(bool pad_to_min_bitrate) {
 
    private:
     // TODO(holmer): Run this with a timer instead of once per packet.
-    Action OnSendRtp(rtc::ArrayView<const uint8_t> packet) override {
+    Action OnSendRtp(rtc::ArrayView<const uint8_t> /* packet */) override {
       task_queue_->PostTask(SafeTask(task_safety_flag_, [this]() {
         VideoSendStream::Stats stats = send_stream_->GetStats();
 
@@ -594,15 +594,15 @@ void CallPerfTest::TestMinTransmitBitrate(bool pad_to_min_bitrate) {
 
     void OnVideoStreamsCreated(VideoSendStream* send_stream,
                                const std::vector<VideoReceiveStreamInterface*>&
-                                   receive_streams) override {
+                               /* receive_streams */) override {
       send_stream_ = send_stream;
     }
 
     void OnStreamsStopped() override { task_safety_flag_->SetNotAlive(); }
 
     void ModifyVideoConfigs(
-        VideoSendStream::Config* send_config,
-        std::vector<VideoReceiveStreamInterface::Config>* receive_configs,
+        VideoSendStream::Config* /* send_config */,
+        std::vector<VideoReceiveStreamInterface::Config>* /* receive_configs */,
         VideoEncoderConfig* encoder_config) override {
       if (pad_to_min_bitrate_) {
         encoder_config->min_transmit_bitrate_bps = kMinTransmitBitrateBps;
@@ -732,7 +732,7 @@ TEST_F(CallPerfTest, MAYBE_KeepsHighBitrateWhenReconfiguringSender) {
 
     void ModifyVideoConfigs(
         VideoSendStream::Config* send_config,
-        std::vector<VideoReceiveStreamInterface::Config>* receive_configs,
+        std::vector<VideoReceiveStreamInterface::Config>* /* receive_configs */,
         VideoEncoderConfig* encoder_config) override {
       send_config->encoder_settings.encoder_factory = &encoder_factory_;
       send_config->encoder_settings.bitrate_allocator_factory =

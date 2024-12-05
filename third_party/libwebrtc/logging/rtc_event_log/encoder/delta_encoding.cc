@@ -115,7 +115,7 @@ constexpr uint64_t kDefaultValueWidthBits = 64;
 class FixedLengthEncodingParameters final {
  public:
   static bool ValidParameters(uint64_t delta_width_bits,
-                              bool signed_deltas,
+                              bool /* signed_deltas */,
                               uint64_t value_width_bits) {
     return (1 <= delta_width_bits && delta_width_bits <= 64 &&
             1 <= value_width_bits && value_width_bits <= 64 &&

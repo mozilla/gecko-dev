@@ -188,7 +188,7 @@ TEST_F(ChannelSendTest, FrameTransformerGetsCorrectTimestamp) {
 
   std::optional<uint32_t> sent_timestamp;
   auto send_rtp = [&](rtc::ArrayView<const uint8_t> data,
-                      const PacketOptions& options) {
+                      const PacketOptions& /* options */) {
     RtpPacketReceived packet;
     packet.Parse(data);
     if (!sent_timestamp) {

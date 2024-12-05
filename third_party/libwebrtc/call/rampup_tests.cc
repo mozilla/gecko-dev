@@ -129,7 +129,7 @@ void RampUpTester::ModifySenderBitrateConfig(
 
 void RampUpTester::OnVideoStreamsCreated(
     VideoSendStream* send_stream,
-    const std::vector<VideoReceiveStreamInterface*>& receive_streams) {
+    const std::vector<VideoReceiveStreamInterface*>& /* receive_streams */) {
   send_stream_ = send_stream;
 }
 
@@ -284,7 +284,8 @@ void RampUpTester::ModifyFlexfecConfigs(
   (*receive_configs)[0].rtp.local_ssrc = video_ssrcs_[0];
 }
 
-void RampUpTester::OnCallsCreated(Call* sender_call, Call* receiver_call) {
+void RampUpTester::OnCallsCreated(Call* sender_call,
+                                  Call* /* receiver_call */) {
   RTC_DCHECK(sender_call);
   sender_call_ = sender_call;
   pending_task_ = RepeatingTaskHandle::Start(task_queue_, [this] {
@@ -296,8 +297,8 @@ void RampUpTester::OnCallsCreated(Call* sender_call, Call* receiver_call) {
 void RampUpTester::OnTransportCreated(
     test::PacketTransport* to_receiver,
     SimulatedNetworkInterface* sender_network,
-    test::PacketTransport* to_sender,
-    SimulatedNetworkInterface* receiver_network) {
+    test::PacketTransport* /* to_sender */,
+    SimulatedNetworkInterface* /* receiver_network */) {
   RTC_DCHECK_RUN_ON(task_queue_);
 
   send_transport_ = to_receiver;

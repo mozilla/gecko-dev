@@ -401,7 +401,7 @@ TEST(CallTest, AddAdaptationResourceAfterCreatingVideoSendStream) {
   CallHelper call(true);
   // Create a VideoSendStream.
   FunctionVideoEncoderFactory fake_encoder_factory(
-      [](const Environment& env, const SdpVideoFormat& format) {
+      [](const Environment& env, const SdpVideoFormat& /* format */) {
         return std::make_unique<FakeEncoder>(env);
       });
   auto bitrate_allocator_factory = CreateBuiltinVideoBitrateAllocatorFactory();
@@ -467,7 +467,7 @@ TEST(CallTest, AddAdaptationResourceBeforeCreatingVideoSendStream) {
   call->AddAdaptationResource(fake_resource);
   // Create a VideoSendStream.
   FunctionVideoEncoderFactory fake_encoder_factory(
-      [](const Environment& env, const SdpVideoFormat& format) {
+      [](const Environment& env, const SdpVideoFormat& /* format */) {
         return std::make_unique<FakeEncoder>(env);
       });
   auto bitrate_allocator_factory = CreateBuiltinVideoBitrateAllocatorFactory();

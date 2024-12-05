@@ -1260,11 +1260,12 @@ class PeerConnectionObserver {
       PeerConnectionInterface::SignalingState new_state) = 0;
 
   // Triggered when media is received on a new stream from remote peer.
-  virtual void OnAddStream(rtc::scoped_refptr<MediaStreamInterface> stream) {}
+  virtual void OnAddStream(
+      rtc::scoped_refptr<MediaStreamInterface> /* stream */) {}
 
   // Triggered when a remote peer closes a stream.
-  virtual void OnRemoveStream(rtc::scoped_refptr<MediaStreamInterface> stream) {
-  }
+  virtual void OnRemoveStream(
+      rtc::scoped_refptr<MediaStreamInterface> /* stream */) {}
 
   // Triggered when a remote peer opens a data channel.
   virtual void OnDataChannel(
@@ -1282,7 +1283,7 @@ class PeerConnectionObserver {
   // PeerConnection::ShouldFireNegotiationNeededEvent() returns true since it is
   // possible for the event to become invalidated by operations subsequently
   // chained.
-  virtual void OnNegotiationNeededEvent(uint32_t event_id) {}
+  virtual void OnNegotiationNeededEvent(uint32_t /* event_id */) {}
 
   // Called any time the legacy IceConnectionState changes.
   //
@@ -1293,15 +1294,15 @@ class PeerConnectionObserver {
   //
   // TODO(jonasolsson): deprecate and remove this.
   virtual void OnIceConnectionChange(
-      PeerConnectionInterface::IceConnectionState new_state) {}
+      PeerConnectionInterface::IceConnectionState /* new_state */) {}
 
   // Called any time the standards-compliant IceConnectionState changes.
   virtual void OnStandardizedIceConnectionChange(
-      PeerConnectionInterface::IceConnectionState new_state) {}
+      PeerConnectionInterface::IceConnectionState /* new_state */) {}
 
   // Called any time the PeerConnectionState changes.
   virtual void OnConnectionChange(
-      PeerConnectionInterface::PeerConnectionState new_state) {}
+      PeerConnectionInterface::PeerConnectionState /* new_state */) {}
 
   // Called any time the IceGatheringState changes.
   virtual void OnIceGatheringChange(
@@ -1312,8 +1313,8 @@ class PeerConnectionObserver {
 
   // Gathering of an ICE candidate failed.
   // See https://w3c.github.io/webrtc-pc/#event-icecandidateerror
-  virtual void OnIceCandidateError(const std::string& address,
-                                   int port,
+  virtual void OnIceCandidateError(const std::string& /* address */,
+                                   int /* port */,
                                    const std::string& url,
                                    int error_code,
                                    const std::string& error_text) {}

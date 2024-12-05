@@ -54,9 +54,9 @@ class MockReceiver : public PacketReceiver {
 class ReorderTestReceiver : public MockReceiver {
  public:
   void DeliverRtpPacket(
-      MediaType media_type,
+      MediaType /* media_type */,
       RtpPacketReceived packet,
-      OnUndemuxablePacketHandler undemuxable_packet_handler) override {
+      OnUndemuxablePacketHandler /* undemuxable_packet_handler */) override {
     RTC_DCHECK_GE(packet.size(), sizeof(int));
     delivered_sequence_numbers_.push_back(packet.SequenceNumber());
   }

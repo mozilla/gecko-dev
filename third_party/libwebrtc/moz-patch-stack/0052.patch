@@ -55,7 +55,7 @@ index 2b7751742f..11dbef3212 100644
    std::unique_ptr<RtpTransportControllerSendInterface> transport_send;
    if (config.rtp_transport_controller_send_factory != nullptr) {
 diff --git a/call/call.h b/call/call.h
-index 313e8a85d1..ef782c2bb8 100644
+index 341d55d52b..9a3afb46f7 100644
 --- a/call/call.h
 +++ b/call/call.h
 @@ -25,6 +25,7 @@
