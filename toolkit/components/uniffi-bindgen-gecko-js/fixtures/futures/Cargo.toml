@@ -7,7 +7,6 @@ publish = false
 
 [lib]
 name = "uniffi_fixture_futures"
-crate-type = ["lib", "cdylib"]
 
 [dependencies]
 log = "0.4"
