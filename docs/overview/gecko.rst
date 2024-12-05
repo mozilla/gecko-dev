@@ -26,6 +26,14 @@ Firefox and Thunderbird.
 
 :ref:`Read more <SpiderMonkey>`
 
+System Modules
+--------------
+
+Gecko uses a variant of the standard ECMAScript module to implement the browser
+internal.
+
+:ref:`Read more <System Modules>`
+
 XPCOM
 -----
 

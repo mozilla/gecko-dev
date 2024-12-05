@@ -24,6 +24,7 @@ categories:
         - devtools
         - toolkit
         - js
+        - jsloader
         - mobile/android/geckoview
         - mobile/android/fenix
         - mobile/android/focus-android

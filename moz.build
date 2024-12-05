@@ -223,4 +223,6 @@ SPHINX_TREES["update-infrastructure"] = "docs/update-infrastructure"
 
 SPHINX_TREES["content-security"] = "docs/content-security"
 
+SPHINX_TREES["jsloader"] = "docs/jsloader"
+
 include("build/templates.mozbuild")
