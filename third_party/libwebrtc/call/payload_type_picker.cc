@@ -22,6 +22,7 @@
 #include "media/base/codec.h"
 #include "media/base/codec_comparators.h"
 #include "media/base/media_constants.h"
+#include "rtc_base/checks.h"
 #include "rtc_base/logging.h"
 
 namespace webrtc {
@@ -178,6 +179,17 @@ RTCError PayloadTypeRecorder::AddMapping(PayloadType payload_type,
   auto existing_codec_it = payload_type_to_codec_.find(payload_type);
   if (existing_codec_it != payload_type_to_codec_.end() &&
       !MatchesWithCodecRules(codec, existing_codec_it->second)) {
+    // Redefinition attempted.
+    if (disallow_redefinition_level_ > 0) {
+      if (accepted_definitions_.count(payload_type) > 0) {
+        // We have already defined this PT in this scope.
+        RTC_LOG(LS_WARNING)
+            << "Rejected attempt to redefine mapping for PT " << payload_type
+            << " from " << existing_codec_it->second << " to " << codec;
+        return RTCError(RTCErrorType::INVALID_MODIFICATION,
+                        "Attempt to redefine a codec mapping");
+      }
+    }
     if (absl::EqualsIgnoreCase(codec.name, existing_codec_it->second.name)) {
       // The difference is in clock rate, channels or FMTP parameters.
       RTC_LOG(LS_INFO) << "Warning: Attempt to change a codec's parameters";
@@ -185,15 +197,17 @@ RTCError PayloadTypeRecorder::AddMapping(PayloadType payload_type,
       // This is done in production today, so we can't return an error.
     } else {
       RTC_LOG(LS_WARNING) << "Warning: You attempted to redefine a codec from "
-                          << existing_codec_it->second.ToString() << " to "
-                          << " new codec " << codec.ToString();
+                          << existing_codec_it->second << " to "
+                          << " new codec " << codec;
       // This is a spec violation.
       // TODO: https://issues.webrtc.org/41480892 - return an error.
     }
     // Accept redefinition.
+    accepted_definitions_.emplace(payload_type);
     payload_type_to_codec_.insert_or_assign(payload_type, codec);
     return RTCError::OK();
   }
+  accepted_definitions_.emplace(payload_type);
   payload_type_to_codec_.emplace(payload_type, codec);
   suggester_.AddMapping(payload_type, codec);
   return RTCError::OK();
@@ -227,6 +241,18 @@ RTCErrorOr<cricket::Codec> PayloadTypeRecorder::LookupCodec(
     return RTCError(RTCErrorType::INVALID_PARAMETER, "No such payload type");
   }
   return result->second;
+}
+
+void PayloadTypeRecorder::DisallowRedefinition() {
+  if (disallow_redefinition_level_ == 0) {
+    accepted_definitions_.clear();
+  }
+  ++disallow_redefinition_level_;
+}
+
+void PayloadTypeRecorder::ReallowRedefinition() {
+  RTC_CHECK(disallow_redefinition_level_ > 0);
+  --disallow_redefinition_level_;
 }
 
 void PayloadTypeRecorder::Commit() {

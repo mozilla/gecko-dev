@@ -404,6 +404,7 @@ rtc_library("payload_type_picker") {
     "../api/audio_codecs:audio_codecs_api",
     "../media:codec",
     "../media:media_constants",
+    "../rtc_base:checks",
     "../rtc_base:logging",
     "../rtc_base:strong_alias",
     "//third_party/abseil-cpp/absl/strings",
