@@ -1947,6 +1947,14 @@ void BuildRtpmap(const MediaContentDescription* media_desc,
       AddAttributeLine(kCodecParamPTime, ptime, message);
     }
   }
+  if (media_desc->rtcp_fb_ack_ccfb()) {
+    // RFC 8888 section 6
+    rtc::StringBuilder os;
+    InitAttrLine(kAttributeRtcpFb, &os);
+    os << kSdpDelimiterColon;
+    os << "* ack ccfb";
+    AddLine(os.str(), message);
+  }
 }
 
 void BuildCandidate(const std::vector<Candidate>& candidates,

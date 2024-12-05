@@ -114,6 +114,13 @@ class MediaContentDescription {
     remote_estimate_ = remote_estimate;
   }
 
+  // Support of RFC 8888 feedback messages.
+  // This is a transport-wide property, but is signalled in SDP
+  // at the m-line level; its mux category is IDENTICAL-PER-PT,
+  // and only wildcard is allowed. RFC 8888 section 6.
+  bool rtcp_fb_ack_ccfb() const { return rtcp_fb_ack_ccfb_; }
+  void set_rtcp_fb_ack_ccfb(bool enable) { rtcp_fb_ack_ccfb_ = enable; }
+
   int bandwidth() const { return bandwidth_; }
   void set_bandwidth(int bandwidth) { bandwidth_ = bandwidth; }
   std::string bandwidth_type() const { return bandwidth_type_; }
@@ -257,6 +264,7 @@ class MediaContentDescription {
   bool rtcp_mux_ = false;
   bool rtcp_reduced_size_ = false;
   bool remote_estimate_ = false;
+  bool rtcp_fb_ack_ccfb_ = false;
   int bandwidth_ = kAutoBandwidth;
   std::string bandwidth_type_ = kApplicationSpecificBandwidth;
 

@@ -2213,6 +2213,7 @@ if (rtc_include_tests && !build_with_chromium) {
   rtc_test("peerconnection_unittests") {
     testonly = true
     sources = [
+      "congestion_control_integrationtest.cc",
       "data_channel_integrationtest.cc",
       "data_channel_unittest.cc",
       "dtmf_sender_unittest.cc",

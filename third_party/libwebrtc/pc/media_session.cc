@@ -1974,7 +1974,10 @@ RTCError MediaSessionDescriptionFactory::AddRtpContentForOffer(
   } else {
     content_description = std::make_unique<VideoContentDescription>();
   }
-
+  // RFC 8888 support.
+  content_description->set_rtcp_fb_ack_ccfb(
+      transport_desc_factory_->trials().IsEnabled(
+          "WebRTC-RFC8888CongestionControlFeedback"));
   auto error = CreateMediaContentOffer(
       media_description_options, session_options, codecs_to_include,
       header_extensions, ssrc_generator(), current_streams,
