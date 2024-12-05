@@ -102,6 +102,8 @@ assertThrowsInstanceOf(() => Reflect.parse("if(1) using x = {}"), SyntaxError);
 assertThrowsInstanceOf(() => Reflect.parse("for (;;) using x = 10;"), SyntaxError);
 assertThrowsInstanceOf(() => Reflect.parse("foo: using x = 10;"), SyntaxError);
 assertThrowsInstanceOf(() => Reflect.parse("export using x = 10", { target: "module" }), SyntaxError);
+assertThrowsInstanceOf(() => Reflect.parse("{ using a }"), SyntaxError);
+assertThrowsInstanceOf(() => Reflect.parse("{ using a, b }"), SyntaxError);
 
 // Invalid `await using` syntaxes
 assertThrowsInstanceOf(() => Reflect.parse("{ await using }"), SyntaxError);
@@ -122,6 +124,8 @@ assertThrowsInstanceOf(() => Reflect.parse("foo: await using x = 10;", { target:
 assertThrowsInstanceOf(() => Reflect.parse("export await using x = 10", { target: "module" }), SyntaxError);
 assertThrowsInstanceOf(() => Reflect.parse("for (await using [x,y] of z) {}", { target: "module" }), SyntaxError);
 assertThrowsInstanceOf(() => Reflect.parse("for (await using {x,y} of z) {}", { target: "module" }), SyntaxError);
+assertThrowsInstanceOf(() => Reflect.parse("{ await using a }", { target: "module" }), SyntaxError);
+assertThrowsInstanceOf(() => Reflect.parse("{ await using a, b }", { target: "module" }), SyntaxError);
 
 // Valid usage of `using` syntax with contextual keywords
 Reflect.parse("{ using await = {}; }");
