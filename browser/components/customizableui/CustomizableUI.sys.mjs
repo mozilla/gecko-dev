@@ -34,6 +34,8 @@ const kPrefCustomizationHorizontalTabstrip =
   "browser.uiCustomization.horizontalTabstrip";
 const kPrefCustomizationHorizontalTabsBackup =
   "browser.uiCustomization.horizontalTabsBackup";
+const kPrefCustomizationNavBarWhenVerticalTabs =
+  "browser.uiCustomization.navBarWhenVerticalTabs";
 const kPrefCustomizationAutoAdd = "browser.uiCustomization.autoAdd";
 const kPrefCustomizationDebug = "browser.uiCustomization.debug";
 const kPrefDrawInTitlebar = "browser.tabs.inTitlebar";
@@ -243,6 +245,13 @@ XPCOMUtils.defineLazyPreferenceGetter(
   lazy,
   "horizontalPlacementsPref",
   kPrefCustomizationHorizontalTabstrip,
+  ""
+);
+
+XPCOMUtils.defineLazyPreferenceGetter(
+  lazy,
+  "verticalPlacementsPref",
+  kPrefCustomizationNavBarWhenVerticalTabs,
   ""
 );
 
@@ -2669,9 +2678,11 @@ var CustomizableUIInternal = {
     if (
       !gInBatchStack &&
       CustomizableUI.verticalTabsEnabled &&
-      oldPlacement.area == CustomizableUI.AREA_TABSTRIP
+      oldPlacement.area == CustomizableUI.AREA_NAVBAR &&
+      this.getSavedHorizontalSnapshotState().includes(aWidgetId)
     ) {
       this.deleteWidgetInSavedHorizontalTabStripState(aWidgetId);
+      this.deleteWidgetInSavedNavBarWhenVerticalTabsState(aWidgetId);
     }
 
     this.notifyListeners("onWidgetRemoved", aWidgetId, oldPlacement.area);
@@ -2725,7 +2736,7 @@ var CustomizableUIInternal = {
   },
 
   getSavedHorizontalSnapshotState() {
-    let state = null;
+    let state = [];
     let prefValue = lazy.horizontalPlacementsPref;
     if (prefValue) {
       try {
@@ -2733,6 +2744,22 @@ var CustomizableUIInternal = {
       } catch (e) {
         lazy.log.warn(
           `Failed to parse value of ${kPrefCustomizationHorizontalTabstrip}`,
+          e
+        );
+      }
+    }
+    return state;
+  },
+
+  getSavedVerticalSnapshotState() {
+    let state = [];
+    let prefValue = lazy.verticalPlacementsPref;
+    if (prefValue) {
+      try {
+        state = JSON.parse(prefValue);
+      } catch (e) {
+        lazy.log.warn(
+          `Failed to parse value of ${kPrefCustomizationNavBarWhenVerticalTabs}`,
           e
         );
       }
@@ -2908,6 +2935,15 @@ var CustomizableUIInternal = {
     }
   },
 
+  deleteWidgetInSavedNavBarWhenVerticalTabsState(aWidgetId) {
+    const savedPlacements = this.getSavedVerticalSnapshotState();
+    let position = savedPlacements.indexOf(aWidgetId);
+    if (position != -1) {
+      savedPlacements.splice(position, 1);
+      this.saveNavBarWhenVerticalTabsState(savedPlacements);
+    }
+  },
+
   saveHorizontalTabStripState(placements = []) {
     if (!placements.length) {
       placements = this.getAreaPlacementsForSaving(
@@ -2918,6 +2954,18 @@ var CustomizableUIInternal = {
     lazy.log.debug("Saving horizontal tabstrip state.", serialized);
     Services.prefs.setCharPref(
       kPrefCustomizationHorizontalTabstrip,
+      serialized
+    );
+  },
+
+  saveNavBarWhenVerticalTabsState(placements = []) {
+    if (!placements.length) {
+      placements = this.getAreaPlacementsForSaving(CustomizableUI.AREA_NAVBAR);
+    }
+    let serialized = JSON.stringify(placements, this.serializerHelper);
+    lazy.log.debug("Saving vertical navbar state.", serialized);
+    Services.prefs.setCharPref(
+      kPrefCustomizationNavBarWhenVerticalTabs,
       serialized
     );
   },
@@ -4249,6 +4297,8 @@ var CustomizableUIInternal = {
       }
 
       CustomizableUI.beginBatchUpdate();
+      let customVerticalNavbarPlacements = this.getSavedVerticalSnapshotState();
+      let tabstripPlacements = this.getSavedHorizontalSnapshotState();
       // Remove non-default widgets to the nav-bar
       for (let id of CustomizableUI.getWidgetIdsInArea("TabsToolbar")) {
         if (id == "tabbrowser-tabs") {
@@ -4256,6 +4306,13 @@ var CustomizableUIInternal = {
             id,
             CustomizableUI.AREA_VERTICAL_TABSTRIP
           );
+          continue;
+        }
+        // We add the tab strip placements later in the case they have a custom position
+        if (
+          tabstripPlacements.includes(id) &&
+          customVerticalNavbarPlacements.includes(id)
+        ) {
           continue;
         }
         if (!CustomizableUI.isWidgetRemovable(id)) {
@@ -4268,10 +4325,16 @@ var CustomizableUIInternal = {
         // Everything else gets moved to the nav-bar area while tabs are vertical
         CustomizableUI.addWidgetToArea(id, CustomizableUI.AREA_NAVBAR);
       }
-      // Remove new tab from AREA_NAVBAR when vertical tabs enabled.
+      // Remove new tab from nav-bar when vertical tabs enabled
       this.removeWidgetFromArea("new-tab-button");
+      customVerticalNavbarPlacements.forEach((id, index) => {
+        if (tabstripPlacements.includes(id)) {
+          CustomizableUI.addWidgetToArea(id, CustomizableUI.AREA_NAVBAR, index);
+        }
+      });
       CustomizableUI.endBatchUpdate();
     } else {
+      this.saveNavBarWhenVerticalTabsState();
       // We're switching to vertical in this session; pull saved state from pref and update placements
       this.restoreSavedHorizontalTabStripState();
     }
