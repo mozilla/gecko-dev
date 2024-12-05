@@ -12054,9 +12054,9 @@ void CodeGenerator::visitInt32ToStringWithBase(LInt32ToStringWithBase* lir) {
 
   bool lowerCase = lir->mir()->lowerCase();
 
-  using Fn = JSString* (*)(JSContext*, int32_t, int32_t, bool);
+  using Fn = JSLinearString* (*)(JSContext*, int32_t, int32_t, bool);
   if (base.is<Register>()) {
-    auto* ool = oolCallVM<Fn, js::Int32ToStringWithBase>(
+    auto* ool = oolCallVM<Fn, js::Int32ToStringWithBase<CanGC>>(
         lir, ArgList(input, base.as<Register>(), Imm32(lowerCase)),
         StoreRegisterTo(output));
 
@@ -12066,7 +12066,7 @@ void CodeGenerator::visitInt32ToStringWithBase(LInt32ToStringWithBase* lir) {
                                    liveRegs, lowerCase, ool->entry());
     masm.bind(ool->rejoin());
   } else {
-    auto* ool = oolCallVM<Fn, js::Int32ToStringWithBase>(
+    auto* ool = oolCallVM<Fn, js::Int32ToStringWithBase<CanGC>>(
         lir, ArgList(input, Imm32(base.as<int32_t>()), Imm32(lowerCase)),
         StoreRegisterTo(output));
 
@@ -14525,7 +14525,7 @@ void CodeGenerator::visitStringToLowerCase(LStringToLowerCase* lir) {
       lir->temp3()->isBogusTemp() ? string : ToRegister(lir->temp3());
   Register temp4 = ToRegister(lir->temp4());
 
-  using Fn = JSString* (*)(JSContext*, HandleString);
+  using Fn = JSLinearString* (*)(JSContext*, HandleString);
   OutOfLineCode* ool = oolCallVM<Fn, js::StringToLowerCase>(
       lir, ArgList(string), StoreRegisterTo(output));
 
@@ -14653,7 +14653,7 @@ void CodeGenerator::visitStringToLowerCase(LStringToLowerCase* lir) {
 void CodeGenerator::visitStringToUpperCase(LStringToUpperCase* lir) {
   pushArg(ToRegister(lir->string()));
 
-  using Fn = JSString* (*)(JSContext*, HandleString);
+  using Fn = JSLinearString* (*)(JSContext*, HandleString);
   callVM<Fn, js::StringToUpperCase>(lir);
 }
 
