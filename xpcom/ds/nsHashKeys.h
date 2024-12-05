@@ -99,6 +99,10 @@ class nsStringHashKey : public PLDHashEntryHdr {
   nsString mStr;
 };
 
+inline void ImplCycleCollectionTraverse(
+    nsCycleCollectionTraversalCallback& aCallback,
+    const nsStringHashKey& aField, const char* aName, uint32_t aFlags = 0) {}
+
 #ifdef MOZILLA_INTERNAL_API
 
 namespace mozilla::detail {
@@ -181,6 +185,12 @@ class nsTStringCaseInsensitiveHashKey : public PLDHashEntryHdr {
   const nsTString<T> mStr;
 };
 
+template <class T, bool Unicode>
+inline void ImplCycleCollectionTraverse(
+    nsCycleCollectionTraversalCallback& aCallback,
+    const nsTStringCaseInsensitiveHashKey<T, Unicode>& aField,
+    const char* aName, uint32_t aFlags = 0) {}
+
 using nsStringCaseInsensitiveHashKey =
     nsTStringCaseInsensitiveHashKey<char16_t, true>;
 using nsCStringASCIICaseInsensitiveHashKey =
@@ -226,6 +236,10 @@ class nsCStringHashKey : public PLDHashEntryHdr {
   const nsCString mStr;
 };
 
+inline void ImplCycleCollectionTraverse(
+    nsCycleCollectionTraversalCallback& aCallback,
+    const nsCStringHashKey& aField, const char* aName, uint32_t aFlags = 0) {}
+
 /**
  * hashkey wrapper using integral or enum KeyTypes
  *
@@ -255,6 +269,12 @@ class nsIntegralHashKey : public PLDHashEntryHdr {
  private:
   const T mValue;
 };
+
+template <typename T>
+inline void ImplCycleCollectionTraverse(
+    nsCycleCollectionTraversalCallback& aCallback,
+    const nsIntegralHashKey<T>& aField, const char* aName,
+    uint32_t aFlags = 0) {}
 
 /**
  * hashkey wrapper using uint32_t KeyType
@@ -298,6 +318,10 @@ class nsFloatHashKey : public PLDHashEntryHdr {
   const float mValue;
 };
 
+inline void ImplCycleCollectionTraverse(
+    nsCycleCollectionTraversalCallback& aCallback, const nsFloatHashKey& aField,
+    const char* aName, uint32_t aFlags = 0) {}
+
 /**
  * hashkey wrapper using intptr_t KeyType
  *
@@ -332,6 +356,13 @@ class nsISupportsHashKey : public PLDHashEntryHdr {
  private:
   nsCOMPtr<nsISupports> mSupports;
 };
+
+template <class T>
+inline void ImplCycleCollectionTraverse(
+    nsCycleCollectionTraversalCallback& aCallback,
+    const nsISupportsHashKey& aField, const char* aName, uint32_t aFlags = 0) {
+  CycleCollectionNoteChild(aCallback, aField.GetKey(), aName, aFlags);
+}
 
 /**
  * hashkey wrapper using refcounted * KeyType
@@ -396,6 +427,12 @@ class nsFuncPtrHashKey : public PLDHashEntryHdr {
   T mKey;
 };
 
+template <class T>
+inline void ImplCycleCollectionTraverse(
+    nsCycleCollectionTraversalCallback& aCallback,
+    const nsFuncPtrHashKey<T>& aField, const char* aName, uint32_t aFlags = 0) {
+}
+
 /**
  * hashkey wrapper using nsID KeyType
  *
@@ -426,6 +463,10 @@ class nsIDHashKey : public PLDHashEntryHdr {
   nsID mID;
 };
 
+inline void ImplCycleCollectionTraverse(
+    nsCycleCollectionTraversalCallback& aCallback, const nsIDHashKey& aField,
+    const char* aName, uint32_t aFlags = 0) {}
+
 /**
  * hashkey wrapper using nsID* KeyType
  *
@@ -455,6 +496,10 @@ class nsIDPointerHashKey : public PLDHashEntryHdr {
  private:
   const nsID* mID;
 };
+
+inline void ImplCycleCollectionTraverse(
+    nsCycleCollectionTraversalCallback& aCallback,
+    const nsIDPointerHashKey& aField, const char* aName, uint32_t aFlags = 0) {}
 
 /**
  * hashkey wrapper for "dependent" const char*; this class does not "own"
@@ -488,6 +533,10 @@ class nsDepCharHashKey : public PLDHashEntryHdr {
  private:
   const char* mKey;
 };
+
+inline void ImplCycleCollectionTraverse(
+    nsCycleCollectionTraversalCallback& aCallback,
+    const nsDepCharHashKey& aField, const char* aName, uint32_t aFlags = 0) {}
 
 /**
  * hashkey wrapper for const char*; at construction, this class duplicates
@@ -531,6 +580,10 @@ class nsCharPtrHashKey : public PLDHashEntryHdr {
   const char* mKey;
 };
 
+inline void ImplCycleCollectionTraverse(
+    nsCycleCollectionTraversalCallback& aCallback,
+    const nsCharPtrHashKey& aField, const char* aName, uint32_t aFlags = 0) {}
+
 /**
  * hashkey wrapper for const char16_t*; at construction, this class duplicates
  * a string pointed to by the pointer so that it doesn't matter whether or not
@@ -571,6 +624,11 @@ class nsUnicharPtrHashKey : public PLDHashEntryHdr {
  private:
   const char16_t* mKey;
 };
+
+inline void ImplCycleCollectionTraverse(
+    nsCycleCollectionTraversalCallback& aCallback,
+    const nsUnicharPtrHashKey& aField, const char* aName, uint32_t aFlags = 0) {
+}
 
 namespace mozilla {
 
