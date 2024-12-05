@@ -10,6 +10,7 @@ import subprocess
 import sys
 import tarfile
 
+import dateutil
 import requests
 
 THIRDPARTY_USED_IN_FIREFOX = [
@@ -235,7 +236,7 @@ def fetch(target, url):
         f.write("# ./mach python {}\n".format(" ".join(sys.argv[0:])))
         f.write(
             "{} updated from commit {} on {}.\n".format(
-                target, url, datetime.datetime.utcnow().isoformat()
+                target, url, datetime.datetime.now(dateutil.tz.tzutc()).isoformat()
             )
         )
 
@@ -255,7 +256,10 @@ def fetch_local(target, path, commit):
         f.write("# ./mach python {}\n".format(" ".join(sys.argv[0:])))
         f.write(
             "{} updated from {} commit {} on {}.\n".format(
-                target, path, commit, datetime.datetime.utcnow().isoformat()
+                target,
+                path,
+                commit,
+                datetime.datetime.now(dateutil.tz.tzutc()).isoformat(),
             )
         )
     shutil.move(os.path.join(path, target_archive), target_archive)
