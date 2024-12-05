@@ -34,6 +34,8 @@ struct WebRtcOpusDecInst {
   size_t channels;
   int in_dtx_mode;
   int sample_rate_hz;
+  // TODO: https://issues.webrtc.org/376493209 - Remove when libopus gets fixed.
+  int last_packet_num_channels;
 };
 
 #endif  // MODULES_AUDIO_CODING_CODECS_OPUS_OPUS_INST_H_
