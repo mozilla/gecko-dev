@@ -1808,24 +1808,13 @@ JSLinearString* js::IndexToString(JSContext* cx, uint32_t index) {
     return cx->staticStrings().getUint(index);
   }
 
-  Realm* realm = cx->realm();
-  if (JSLinearString* str = realm->dtoaCache.lookup(10, index)) {
-    return str;
-  }
-
   char buffer[JSFatInlineString::MAX_LENGTH_LATIN1];
 
   auto result = std::to_chars(buffer, std::end(buffer), index, 10);
   MOZ_ASSERT(result.ec == std::errc());
 
   size_t length = result.ptr - buffer;
-  JSInlineString* str = NewInlineString<CanGC>(cx, buffer, length);
-  if (!str) {
-    return nullptr;
-  }
-
-  realm->dtoaCache.cache(10, index, str);
-  return str;
+  return NewInlineString<CanGC>(cx, buffer, length);
 }
 
 JSString* js::Int32ToStringWithBase(JSContext* cx, int32_t i, int32_t base,
