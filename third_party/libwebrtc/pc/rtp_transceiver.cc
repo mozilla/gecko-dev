@@ -97,26 +97,11 @@ RTCError VerifyCodecPreferences(
           return codec.MatchesRtpCodec(codec_preference);
         });
     if (!is_recv_codec) {
-      if (!field_trials.IsDisabled(
-              "WebRTC-SetCodecPreferences-ReceiveOnlyFilterInsteadOfThrow")) {
         LOG_AND_RETURN_ERROR(
             RTCErrorType::INVALID_MODIFICATION,
             std::string(
                 "Invalid codec preferences: invalid codec with name \"") +
                 codec_preference.name + "\".");
-      } else {
-        // Killswitch behavior: filter out any codec not in receive codecs.
-        codecs.erase(std::remove_if(
-            codecs.begin(), codecs.end(),
-            [&recv_codecs](const RtpCodecCapability& codec) {
-              return codec.IsMediaCodec() &&
-                     !absl::c_any_of(
-                         recv_codecs,
-                         [&codec](const cricket::Codec& recv_codec) {
-                           return recv_codec.MatchesRtpCodec(codec);
-                         });
-            }));
-      }
     }
   }
 
