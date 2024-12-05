@@ -36,6 +36,10 @@
 namespace webrtc {
 namespace {
 
+// Avoid holding on to frames that might have been dropped by encoder, as that
+// can lead to frame buffer pools draining.
+constexpr size_t kMaxPendingFrames = 3;
+
 std::optional<FilterSettings> GetCorruptionFilterSettings(
     const EncodedImage& encoded_image,
     VideoCodecType video_codec_type,
@@ -75,6 +79,9 @@ FrameInstrumentationGenerator::FrameInstrumentationGenerator(
     : video_codec_type_(video_codec_type) {}
 
 void FrameInstrumentationGenerator::OnCapturedFrame(VideoFrame frame) {
+  while (captured_frames_.size() >= kMaxPendingFrames) {
+    captured_frames_.pop();
+  }
   captured_frames_.push(frame);
 }
 

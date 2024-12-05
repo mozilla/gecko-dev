@@ -1703,6 +1703,61 @@ TEST_F(VideoStreamEncoderTest, PopulatesFrameInstrumentationDataWhenSetTo) {
 }
 
 TEST_F(VideoStreamEncoderTest,
+       FrameInstrumentationGeneratorDoesNotStashDroppedFrames) {
+  // Set low rate but high resolution. Make sure input frame is dropped and
+  // instance is released, even with corruption detection enabled.
+  const DataRate kLowRate = DataRate::KilobitsPerSec(300);
+  codec_width_ = 1280;
+  codec_height_ = 720;
+
+  video_send_config_.encoder_settings.enable_frame_instrumentation_generator =
+      true;
+  ConfigureEncoder(video_encoder_config_.Copy());
+  video_stream_encoder_->OnBitrateUpdatedAndWaitForManagedResources(
+      kLowRate, kLowRate, kLowRate, 0, 0, 0);
+
+  rtc::Event frame_destroyed_event;
+  // Insert two frames, so that the first one isn't stored in the encoder queue.
+  video_source_.IncomingCapturedFrame(CreateFrame(1, &frame_destroyed_event));
+  video_source_.IncomingCapturedFrame(CreateFrame(34, /*event=*/nullptr));
+  EXPECT_TRUE(frame_destroyed_event.Wait(kDefaultTimeout));
+
+  EXPECT_FALSE(sink_.GetLastFrameInstrumentationData().has_value());
+  video_stream_encoder_->Stop();
+}
+
+TEST_F(VideoStreamEncoderTest,
+       FrameInstrumentationGeneratorHandlesQueuedFrames) {
+  video_send_config_.encoder_settings.enable_frame_instrumentation_generator =
+      true;
+  ConfigureEncoder(video_encoder_config_.Copy());
+
+  // Mark stream as suspended.
+  video_stream_encoder_->OnBitrateUpdatedAndWaitForManagedResources(
+      DataRate::Zero(), DataRate::Zero(), DataRate::Zero(), 0, 0, 0);
+  video_stream_encoder_->WaitUntilTaskQueueIsIdle();
+
+  // We need a QP for the encoded frame.
+  fake_encoder_.SetEncodedImageData(EncodedImageBuffer::Create(
+      kCodedFrameVp8Qp25, sizeof(kCodedFrameVp8Qp25)));
+
+  // Insert a frame, that should be treated as dropped due to suspended state.
+  video_source_.IncomingCapturedFrame(
+      CreateFrame(1, codec_width_, codec_height_));
+
+  ExpectDroppedFrame();
+
+  // Resume and increase bitrate budget, process stashed frames.
+  video_stream_encoder_->OnBitrateUpdatedAndWaitForManagedResources(
+      kTargetBitrate, kTargetBitrate, kTargetBitrate, 0, 0, 0);
+
+  WaitForEncodedFrame(1);
+  EXPECT_TRUE(sink_.GetLastFrameInstrumentationData().has_value());
+
+  video_stream_encoder_->Stop();
+}
+
+TEST_F(VideoStreamEncoderTest,
        DoesNotPopulateFrameInstrumentationDataWhenSetNotTo) {
   video_send_config_.encoder_settings.enable_frame_instrumentation_generator =
       false;

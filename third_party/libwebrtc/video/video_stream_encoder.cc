@@ -1569,9 +1569,6 @@ void VideoStreamEncoder::OnFrame(Timestamp post_time,
 
   encoder_stats_observer_->OnIncomingFrame(incoming_frame.width(),
                                            incoming_frame.height());
-  if (frame_instrumentation_generator_) {
-    frame_instrumentation_generator_->OnCapturedFrame(incoming_frame);
-  }
   ++captured_frame_count_;
   bool cwnd_frame_drop =
       cwnd_frame_drop_interval_ &&
@@ -2040,6 +2037,10 @@ void VideoStreamEncoder::EncodeVideoFrame(const VideoFrame& video_frame,
                out_frame.video_frame_buffer()->storage_representation());
 
   frame_encode_metadata_writer_.OnEncodeStarted(out_frame);
+
+  if (frame_instrumentation_generator_) {
+    frame_instrumentation_generator_->OnCapturedFrame(out_frame);
+  }
 
   const int32_t encode_status = encoder_->Encode(out_frame, &next_frame_types_);
   was_encode_called_since_last_initialization_ = true;
