@@ -53,15 +53,15 @@ class RtcEventRouteChange final : public RtcEvent {
   bool connected() const { return connected_; }
   uint32_t overhead() const { return overhead_; }
 
-  static std::string Encode(rtc::ArrayView<const RtcEvent*> batch) {
+  static std::string Encode(rtc::ArrayView<const RtcEvent*> /* batch */) {
     // TODO(terelius): Implement
     return "";
   }
 
   static RtcEventLogParseStatus Parse(
-      absl::string_view encoded_bytes,
-      bool batched,
-      std::vector<LoggedRouteChangeEvent>& output) {
+      absl::string_view /* encoded_bytes */,
+      bool /* batched */,
+      std::vector<LoggedRouteChangeEvent>& /* output */) {
     // TODO(terelius): Implement
     return RtcEventLogParseStatus::Error("Not Implemented", __FILE__, __LINE__);
   }

@@ -238,7 +238,7 @@ bool ValidateRtpHeader(const uint8_t* rtp,
 // ValidateRtpHeader() must be called before this method to make sure, we have
 // a sane rtp packet.
 bool UpdateRtpAbsSendTimeExtension(uint8_t* rtp,
-                                   size_t length,
+                                   size_t /* length */,
                                    int extension_id,
                                    uint64_t time_us) {
   //  0                   1                   2                   3

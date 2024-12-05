@@ -86,9 +86,11 @@ class RTC_EXPORT AdaptedVideoTrackSource
   bool SupportsEncodedOutput() const override { return false; }
   void GenerateKeyFrame() override {}
   void AddEncodedSink(
-      rtc::VideoSinkInterface<webrtc::RecordableEncodedFrame>* sink) override {}
+      rtc::VideoSinkInterface<webrtc::RecordableEncodedFrame>* /* sink */)
+      override {}
   void RemoveEncodedSink(
-      rtc::VideoSinkInterface<webrtc::RecordableEncodedFrame>* sink) override {}
+      rtc::VideoSinkInterface<webrtc::RecordableEncodedFrame>* /* sink */)
+      override {}
   void ProcessConstraints(
       const webrtc::VideoTrackSourceConstraints& constraints) override;
 

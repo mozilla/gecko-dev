@@ -94,7 +94,7 @@ class RtcEventGenericPacketSent final : public RtcEvent {
   static RtcEventLogParseStatus Parse(
       absl::string_view /* encoded_bytes */,
       bool /* batched */,
-      std::vector<LoggedGenericPacketSent>& output) {
+      std::vector<LoggedGenericPacketSent>& /* output */) {
     // TODO(terelius): Implement
     return RtcEventLogParseStatus::Error("Not Implemented", __FILE__, __LINE__);
   }

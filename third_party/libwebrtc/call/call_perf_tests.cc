@@ -746,7 +746,7 @@ TEST_F(CallPerfTest, MAYBE_KeepsHighBitrateWhenReconfiguringSender) {
 
     void OnVideoStreamsCreated(VideoSendStream* send_stream,
                                const std::vector<VideoReceiveStreamInterface*>&
-                                   receive_streams) override {
+                               /* receive_streams */) override {
       send_stream_ = send_stream;
     }
 
@@ -839,9 +839,9 @@ void CallPerfTest::TestMinAudioVideoBitrate(int test_bitrate_from,
     }
 
     void OnTransportCreated(
-        test::PacketTransport* to_receiver,
+        test::PacketTransport* /* to_receiver */,
         SimulatedNetworkInterface* sender_network,
-        test::PacketTransport* to_sender,
+        test::PacketTransport* /* to_sender */,
         SimulatedNetworkInterface* receiver_network) override {
       send_simulated_network_ = sender_network;
       receive_simulated_network_ = receiver_network;
@@ -894,7 +894,7 @@ void CallPerfTest::TestMinAudioVideoBitrate(int test_bitrate_from,
           Unit::kUnitless, ImprovementDirection::kNeitherIsBetter);
     }
 
-    void OnCallsCreated(Call* sender_call, Call* receiver_call) override {
+    void OnCallsCreated(Call* sender_call, Call* /* receiver_call */) override {
       sender_call_ = sender_call;
       BitrateConstraints bitrate_config;
       bitrate_config.min_bitrate_bps = min_bwe_;
@@ -960,8 +960,8 @@ void CallPerfTest::TestEncodeFramerate(VideoEncoderFactory* encoder_factory,
       frame_generator_capturer->ChangeResolution(640, 360);
     }
 
-    void OnSinkWantsChanged(rtc::VideoSinkInterface<VideoFrame>* sink,
-                            const rtc::VideoSinkWants& wants) override {}
+    void OnSinkWantsChanged(rtc::VideoSinkInterface<VideoFrame>* /* sink */,
+                            const rtc::VideoSinkWants& /* wants */) override {}
 
     void ModifySenderBitrateConfig(
         BitrateConstraints* bitrate_config) override {
@@ -970,7 +970,7 @@ void CallPerfTest::TestEncodeFramerate(VideoEncoderFactory* encoder_factory,
 
     void OnVideoStreamsCreated(VideoSendStream* send_stream,
                                const std::vector<VideoReceiveStreamInterface*>&
-                                   receive_streams) override {
+                               /* receive_streams */) override {
       send_stream_ = send_stream;
     }
 
@@ -980,7 +980,7 @@ void CallPerfTest::TestEncodeFramerate(VideoEncoderFactory* encoder_factory,
 
     void ModifyVideoConfigs(
         VideoSendStream::Config* send_config,
-        std::vector<VideoReceiveStreamInterface::Config>* receive_configs,
+        std::vector<VideoReceiveStreamInterface::Config>* /* receive_configs */,
         VideoEncoderConfig* encoder_config) override {
       send_config->encoder_settings.encoder_factory = encoder_factory_;
       send_config->rtp.payload_name = payload_name_;
@@ -1021,7 +1021,7 @@ void CallPerfTest::TestEncodeFramerate(VideoEncoderFactory* encoder_factory,
       }
     }
 
-    Action OnSendRtp(rtc::ArrayView<const uint8_t> packet) override {
+    Action OnSendRtp(rtc::ArrayView<const uint8_t> /* packet */) override {
       const Timestamp now = clock_->CurrentTime();
       if (now - last_getstats_time_ > kMinGetStatsInterval) {
         last_getstats_time_ = now;
@@ -1059,7 +1059,7 @@ TEST_F(CallPerfTest, TestEncodeFramerateVp8Simulcast) {
   InternalEncoderFactory internal_encoder_factory;
   test::FunctionVideoEncoderFactory encoder_factory(
       [&internal_encoder_factory](const Environment& env,
-                                  const SdpVideoFormat& format) {
+                                  const SdpVideoFormat& /* format */) {
         return std::make_unique<SimulcastEncoderAdapter>(
             env, &internal_encoder_factory, nullptr, SdpVideoFormat::VP8());
       });
@@ -1072,7 +1072,7 @@ TEST_F(CallPerfTest, TestEncodeFramerateVp8SimulcastLowerInputFps) {
   InternalEncoderFactory internal_encoder_factory;
   test::FunctionVideoEncoderFactory encoder_factory(
       [&internal_encoder_factory](const Environment& env,
-                                  const SdpVideoFormat& format) {
+                                  const SdpVideoFormat& /* format */) {
         return std::make_unique<SimulcastEncoderAdapter>(
             env, &internal_encoder_factory, nullptr, SdpVideoFormat::VP8());
       });

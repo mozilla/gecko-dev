@@ -1315,22 +1315,22 @@ class PeerConnectionObserver {
   // See https://w3c.github.io/webrtc-pc/#event-icecandidateerror
   virtual void OnIceCandidateError(const std::string& /* address */,
                                    int /* port */,
-                                   const std::string& url,
-                                   int error_code,
-                                   const std::string& error_text) {}
+                                   const std::string& /* url */,
+                                   int /* error_code */,
+                                   const std::string& /* error_text */) {}
 
   // Ice candidates have been removed.
   // TODO(honghaiz): Make this a pure virtual method when all its subclasses
   // implement it.
   virtual void OnIceCandidatesRemoved(
-      const std::vector<cricket::Candidate>& candidates) {}
+      const std::vector<cricket::Candidate>& /* candidates */) {}
 
   // Called when the ICE connection receiving status changes.
-  virtual void OnIceConnectionReceivingChange(bool receiving) {}
+  virtual void OnIceConnectionReceivingChange(bool /* receiving */) {}
 
   // Called when the selected candidate pair for the ICE connection changes.
   virtual void OnIceSelectedCandidatePairChanged(
-      const cricket::CandidatePairChangeEvent& event) {}
+      const cricket::CandidatePairChangeEvent& /* event */) {}
 
   // This is called when a receiver and its track are created.
   // TODO(zhihuang): Make this pure virtual when all subclasses implement it.
@@ -1338,8 +1338,9 @@ class PeerConnectionObserver {
   // Plan users should prefer OnTrack, OnAddTrack is only called as backwards
   // compatibility (and is called in the exact same situations as OnTrack).
   virtual void OnAddTrack(
-      rtc::scoped_refptr<RtpReceiverInterface> receiver,
-      const std::vector<rtc::scoped_refptr<MediaStreamInterface>>& streams) {}
+      rtc::scoped_refptr<RtpReceiverInterface> /* receiver */,
+      const std::vector<
+          rtc::scoped_refptr<MediaStreamInterface>>& /* streams */) {}
 
   // This is called when signaling indicates a transceiver will be receiving
   // media from the remote endpoint. This is fired during a call to
