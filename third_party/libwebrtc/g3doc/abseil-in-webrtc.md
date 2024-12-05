@@ -44,6 +44,7 @@ on a monolithic Abseil build target that will generate a shared library.
 * The macros in `absl/base/attributes.h`, `absl/base/config.h` and
   `absl/base/macros.h`.
 * `absl/numeric/bits.h`
+* Single argument absl::StrCat
 
 * ABSL_FLAG is allowed in tests and tools, but disallowed in in non-test code.
 
@@ -78,3 +79,7 @@ we will consider replacing `rtc::ArrayView` with `std::span`.
 These are optimized for speed, not binary size. Even `StrCat` calls
 with a modest number of arguments can easily add several hundred bytes
 to the binary.
+
+Exception: Single-argument absl::StrCat is allowed in order to make it
+easy to use AbslStringify. See [TOTW #2015](https://abseil.io/tips/215) for
+details on AbslStringify.

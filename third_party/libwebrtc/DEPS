@@ -2125,6 +2125,7 @@ include_rules = [
   "+absl/strings/ascii.h",
   "+absl/strings/escaping.h",
   "+absl/strings/match.h",
+  "+absl/strings/str_cat.h",  # note - allowed for single argument version only
   "+absl/strings/str_replace.h",
   "+absl/strings/string_view.h",
   "+absl/types/variant.h",

@@ -40,7 +40,4 @@ specific_include_rules = {
   ".*codec\.h": [
     "+absl/strings/str_format.h",
   ],
-  ".*codec_unittest\.cc": [
-    "+absl/strings/str_cat.h",
-  ],
 }
