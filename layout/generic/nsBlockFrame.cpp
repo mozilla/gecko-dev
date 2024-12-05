@@ -2545,44 +2545,38 @@ void nsBlockFrame::ComputeOverflowAreas(OverflowAreas& aOverflowAreas,
 #endif
 }
 
-enum class RestrictPaddingInflation {
-  No,
-  Block,
-  Inline,
-};
-
-// Depending on our ancestor, determine if we need to restrict padding
-// inflation. This assumes that the passed-in frame is a scrolled frame.
-// HACK(dshin): Reaching out and querying the type like this isn't ideal.
-static RestrictPaddingInflation RestrictPaddingInflation(
+// Depending on our ancestor, determine if we need to restrict padding inflation
+// in inline direction. This assumes that the passed-in frame is a scrolled
+// frame. HACK(dshin): Reaching out and querying the type like this isn't ideal.
+static bool RestrictPaddingInflationInInline(
     const nsIFrame* aFrame) {
   MOZ_ASSERT(aFrame);
   if (aFrame->Style()->GetPseudoType() != PseudoStyleType::scrolledContent) {
     // This can only happen when computing scrollable overflow for overflow:
     // visible frames (for scroll{Width,Height}).
-    return RestrictPaddingInflation::No;
+    return false;
   }
   // If we're `input` or `textarea`, our grandparent element must be the text
   // control element that we can query.
   const auto* parent = aFrame->GetParent();
   if (!parent) {
-    return RestrictPaddingInflation::No;
+    return false;
   }
   MOZ_ASSERT(parent->IsScrollContainerOrSubclass(), "Not a scrolled frame?");
 
   nsTextControlFrame* textControl = do_QueryFrame(parent->GetParent());
   if (MOZ_LIKELY(!textControl)) {
-    return RestrictPaddingInflation::No;
+    return false;
   }
 
-  // We use `textarea` as a special case of a div, but based on
+  // We implement `textarea` as a special case of a div, but based on
   // web-platform-tests, different rules apply for it - namely, no inline
   // padding inflation. See
   // `textarea-padding-iend-overlaps-content-001.tentative.html`.
-  // Single-line text types do not padding-inflate in block direction -
-  // see bug 1932840.
-  return textControl->IsTextArea() ? RestrictPaddingInflation::Inline
-                                   : RestrictPaddingInflation::Block;
+  if (!textControl->IsTextArea()) {
+    return false;
+  }
+  return true;
 }
 
 nsRect nsBlockFrame::ComputePaddingInflatedScrollableOverflow(
@@ -2590,16 +2584,8 @@ nsRect nsBlockFrame::ComputePaddingInflatedScrollableOverflow(
   auto result = aInFlowChildBounds;
   const auto wm = GetWritingMode();
   auto padding = GetLogicalUsedPadding(wm);
-  const auto restriction = RestrictPaddingInflation(this);
-  switch (restriction) {
-    case RestrictPaddingInflation::Block:
-      padding.BStart(wm) = padding.BEnd(wm) = 0;
-      break;
-    case RestrictPaddingInflation::Inline:
-      padding.IStart(wm) = padding.IEnd(wm) = 0;
-      break;
-    case RestrictPaddingInflation::No:
-      break;
+  if (RestrictPaddingInflationInInline(this)) {
+    padding.IStart(wm) = padding.IEnd(wm) = 0;
   }
   result.Inflate(padding.GetPhysicalMargin(wm));
   return result;
