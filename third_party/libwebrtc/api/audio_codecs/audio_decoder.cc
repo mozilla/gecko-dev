@@ -130,7 +130,8 @@ bool AudioDecoder::HasDecodePlc() const {
   return false;
 }
 
-size_t AudioDecoder::DecodePlc(size_t num_frames, int16_t* decoded) {
+size_t AudioDecoder::DecodePlc(size_t /* num_frames */,
+                               int16_t* /* decoded */) {
   return 0;
 }
 
@@ -142,18 +143,18 @@ int AudioDecoder::ErrorCode() {
   return 0;
 }
 
-int AudioDecoder::PacketDuration(const uint8_t* encoded,
-                                 size_t encoded_len) const {
+int AudioDecoder::PacketDuration(const uint8_t* /* encoded */,
+                                 size_t /* encoded_len */) const {
   return kNotImplemented;
 }
 
-int AudioDecoder::PacketDurationRedundant(const uint8_t* encoded,
-                                          size_t encoded_len) const {
+int AudioDecoder::PacketDurationRedundant(const uint8_t* /* encoded */,
+                                          size_t /* encoded_len */) const {
   return kNotImplemented;
 }
 
-bool AudioDecoder::PacketHasFec(const uint8_t* encoded,
-                                size_t encoded_len) const {
+bool AudioDecoder::PacketHasFec(const uint8_t* /* encoded */,
+                                size_t /* encoded_len */) const {
   return false;
 }
 

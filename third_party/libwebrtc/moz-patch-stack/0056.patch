@@ -8,7 +8,7 @@ Subject: Bug 1766646 - (fix-b556b08668) avoid InlinedVector method that can
  1 file changed, 8 insertions(+)
 
 diff --git a/api/video_codecs/video_encoder.cc b/api/video_codecs/video_encoder.cc
-index c3b5f3a4e9..22a532d328 100644
+index c5b851ae11..88d24b92a9 100644
 --- a/api/video_codecs/video_encoder.cc
 +++ b/api/video_codecs/video_encoder.cc
 @@ -192,7 +192,15 @@ std::string VideoEncoder::EncoderInfo::ToString() const {
