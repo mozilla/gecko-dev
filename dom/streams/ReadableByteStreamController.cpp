@@ -2093,6 +2093,14 @@ void SetUpReadableByteStreamControllerFromUnderlyingSource(
       aRv.ThrowTypeError("autoAllocateChunkSize can not be zero.");
       return;
     }
+
+    if constexpr (sizeof(size_t) == sizeof(uint32_t)) {
+      if (value > uint64_t(UINT32_MAX)) {
+        aRv.ThrowRangeError("autoAllocateChunkSize too large");
+        return;
+      }
+    }
+
     autoAllocateChunkSize = mozilla::Some(value);
   }
 
