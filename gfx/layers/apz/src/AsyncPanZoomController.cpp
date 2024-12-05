@@ -5671,7 +5671,6 @@ void AsyncPanZoomController::NotifyLayersUpdated(
     Metrics().SetCumulativeResolution(aLayerMetrics.GetCumulativeResolution());
     Metrics().SetTransformToAncestorScale(
         aLayerMetrics.GetTransformToAncestorScale());
-    mScrollMetadata.SetHasScrollgrab(aScrollMetadata.GetHasScrollgrab());
     mScrollMetadata.SetLineScrollAmount(aScrollMetadata.GetLineScrollAmount());
     mScrollMetadata.SetPageScrollAmount(aScrollMetadata.GetPageScrollAmount());
     mScrollMetadata.SetSnapInfo(ScrollSnapInfo(aScrollMetadata.GetSnapInfo()));

@@ -448,12 +448,6 @@ class AsyncPanZoomController {
   void ClearPhysicalOverscroll();
 
   /**
-   * Returns whether this APZC is for an element marked with the 'scrollgrab'
-   * attribute.
-   */
-  bool HasScrollgrab() const { return mScrollMetadata.GetHasScrollgrab(); }
-
-  /**
    * Returns whether this APZC has scroll snap points.
    */
   bool HasScrollSnapping() const {

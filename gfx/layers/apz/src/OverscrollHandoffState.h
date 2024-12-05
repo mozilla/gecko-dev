@@ -26,8 +26,7 @@ class AsyncPanZoomController;
  * This class represents the chain of APZCs along which overscroll is handed
  * off. It is created by APZCTreeManager by starting from an initial APZC which
  * is the target for input events, and following the scroll parent ID links
- * (often but not always corresponding to parent pointers in the APZC tree),
- * then adjusting for scrollgrab.
+ * (often but not always corresponding to parent pointers in the APZC tree).
  */
 class OverscrollHandoffChain {
  protected:
