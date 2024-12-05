@@ -505,9 +505,9 @@ export var SiteDataManager = {
   },
 
   /**
-   * Removes all site data for the specified list of domains and hosts.
-   * This includes site data of subdomains belonging to the domains or hosts and
-   * partitioned storage. Data is cleared per storage jar, which means if we
+   * Removes all site data and caches for the specified list of domains and
+   * hosts. This includes data of subdomains belonging to the domains or hosts
+   * and partitioned storage. Data is cleared per storage jar, which means if we
    * clear "example.com", we will also clear third parties embedded on
    * "example.com". Additionally we will clear all data of "example.com" (as a
    * third party) from other jars.
@@ -538,13 +538,15 @@ export var SiteDataManager = {
               schemelessSite,
               {},
               true,
-              Ci.nsIClearDataService.CLEAR_COOKIES_AND_SITE_DATA,
+              Ci.nsIClearDataService.CLEAR_COOKIES_AND_SITE_DATA |
+                Ci.nsIClearDataService.CLEAR_ALL_CACHES,
               resolve
             );
           } else {
             clearData.deleteDataFromLocalFiles(
               true,
-              Ci.nsIClearDataService.CLEAR_COOKIES_AND_SITE_DATA,
+              Ci.nsIClearDataService.CLEAR_COOKIES_AND_SITE_DATA |
+                Ci.nsIClearDataService.CLEAR_ALL_CACHES,
               resolve
             );
           }
