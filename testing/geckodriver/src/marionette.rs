@@ -831,22 +831,22 @@ fn try_convert_to_marionette_message(
         )),
         FindElementElement(ref e, ref x) => {
             let locator = x.to_marionette()?;
-            Some(Command::WebDriver(
-                MarionetteWebDriverCommand::FindElementElement {
-                    element: e.clone().to_string(),
-                    using: locator.using.clone(),
+            Some(Command::WebDriver(MarionetteWebDriverCommand::FindElement(
+                MarionetteLocator {
+                    element: Some(e.clone().to_string()),
+                    using: locator.using,
                     value: locator.value,
                 },
-            ))
+            )))
         }
         FindElementElements(ref e, ref x) => {
             let locator = x.to_marionette()?;
             Some(Command::WebDriver(
-                MarionetteWebDriverCommand::FindElementElements {
-                    element: e.clone().to_string(),
-                    using: locator.using.clone(),
+                MarionetteWebDriverCommand::FindElements(MarionetteLocator {
+                    element: Some(e.clone().to_string()),
+                    using: locator.using,
                     value: locator.value,
-                },
+                }),
             ))
         }
         FindShadowRootElement(ref s, ref x) => {
@@ -854,7 +854,7 @@ fn try_convert_to_marionette_message(
             Some(Command::WebDriver(
                 MarionetteWebDriverCommand::FindShadowRootElement {
                     shadow_root: s.clone().to_string(),
-                    using: locator.using.clone(),
+                    using: locator.using,
                     value: locator.value,
                 },
             ))
@@ -1025,7 +1025,7 @@ fn try_convert_to_marionette_message(
                 full: false,
             };
             Some(Command::WebDriver(
-                MarionetteWebDriverCommand::TakeElementScreenshot(screenshot),
+                MarionetteWebDriverCommand::TakeScreenshot(screenshot),
             ))
         }
         TakeScreenshot => {
@@ -1045,7 +1045,7 @@ fn try_convert_to_marionette_message(
                 full: true,
             };
             Some(Command::WebDriver(
-                MarionetteWebDriverCommand::TakeFullScreenshot(screenshot),
+                MarionetteWebDriverCommand::TakeScreenshot(screenshot),
             ))
         }
         _ => None,
@@ -1695,6 +1695,7 @@ impl ToMarionette<MarionetteScript> for JavascriptCommandParameters {
 impl ToMarionette<MarionetteLocator> for LocatorParameters {
     fn to_marionette(&self) -> WebDriverResult<MarionetteLocator> {
         Ok(MarionetteLocator {
+            element: None,
             using: self.using.to_marionette()?,
             value: self.value.clone(),
         })
