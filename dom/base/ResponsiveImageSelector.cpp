@@ -351,6 +351,9 @@ bool ResponsiveImageSelector::SelectImage(bool aReselect) {
   if (overrideDPPX > 0) {
     displayDensity = overrideDPPX;
   }
+  if (doc->ShouldResistFingerprinting(RFPTarget::WindowDevicePixelRatio)) {
+    displayDensity = nsRFPService::GetDevicePixelRatioAtZoom(1);
+  }
 
   // Per spec, "In a UA-specific manner, choose one image source"
   // - For now, select the lowest density greater than displayDensity, otherwise
