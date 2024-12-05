@@ -547,22 +547,9 @@ int WebRtcOpus_Decode(OpusDecInst* inst,
                       int16_t* decoded,
                       int16_t* audio_type) {
   int decoded_samples_per_channel;
-
   if (encoded_bytes == 0) {
     *audio_type = DetermineAudioType(inst, encoded_bytes);
     decoded_samples_per_channel = DecodePlc(inst, decoded);
-
-    // TODO: https://issues.webrtc.org/376493209 - When fixed, remove block
-    // below.
-    if (inst->channels == 2 && inst->last_packet_num_channels == 1) {
-      // Stereo decoding is enabled and the last observed packet to decode
-      // encoded mono audio. In this case, Opus generates non-trivial stereo
-      // audio. Since this is unwanted, copy the left channel into the right
-      // one.
-      for (int i = 0; i < decoded_samples_per_channel << 1; i += 2) {
-        decoded[i + 1] = decoded[i];
-      }
-    }
   } else {
     decoded_samples_per_channel = DecodeNative(
         inst, encoded, encoded_bytes,
@@ -570,12 +557,23 @@ int WebRtcOpus_Decode(OpusDecInst* inst,
 
     // TODO: https://issues.webrtc.org/376493209 - When fixed, remove block
     // below.
-    const int num_channels = opus_packet_get_nb_channels(encoded);
-    RTC_DCHECK(num_channels == 1 || num_channels == 2);
-    inst->last_packet_num_channels = num_channels;
+    inst->last_packet_num_channels = opus_packet_get_nb_channels(encoded);
+    RTC_DCHECK(inst->last_packet_num_channels == 1 ||
+               inst->last_packet_num_channels == 2);
   }
   if (decoded_samples_per_channel < 0) {
     return -1;
+  }
+
+  // TODO: https://issues.webrtc.org/376493209 - When fixed, remove block below.
+  // When stereo decoding is enabled and the last observed non-empty packet
+  // encoded mono audio, the Opus decoder may generate non-trivial stereo audio.
+  // As that is undesired, in that case make sure that `decoded` contains
+  // trivial stereo audio by copying the left channel into the right one.
+  if (inst->channels == 2 && inst->last_packet_num_channels == 1) {
+    for (int i = 0; i < decoded_samples_per_channel << 1; i += 2) {
+      decoded[i + 1] = decoded[i];
+    }
   }
 
   return decoded_samples_per_channel;

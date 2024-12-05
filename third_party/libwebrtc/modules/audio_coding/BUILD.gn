@@ -1505,6 +1505,7 @@ if (rtc_include_tests) {
         "../../test:test_support",
         "codecs/opus/test",
         "codecs/opus/test:test_unittest",
+        "//testing/gmock",
         "//testing/gtest",
         "//third_party/abseil-cpp/absl/flags:flag",
         "//third_party/abseil-cpp/absl/memory",

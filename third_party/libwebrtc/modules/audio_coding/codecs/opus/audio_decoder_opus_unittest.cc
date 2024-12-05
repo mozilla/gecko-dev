@@ -28,6 +28,7 @@
 #include "rtc_base/checks.h"
 #include "rtc_base/random.h"
 #include "test/explicit_key_value_config.h"
+#include "test/gmock.h"
 #include "test/gtest.h"
 #include "test/testsupport/file_utils.h"
 
@@ -35,6 +36,7 @@ namespace webrtc {
 namespace {
 
 using test::ExplicitKeyValueConfig;
+using testing::SizeIs;
 
 using DecodeResult = ::webrtc::AudioDecoder::EncodedAudioFrame::DecodeResult;
 using ParseResult = ::webrtc::AudioDecoder::ParseResult;
@@ -158,7 +160,6 @@ void EncodeDecodeNoiseUntilDecoderInDtxMode(AudioEncoderOpusImpl& encoder,
   std::vector<int16_t> decoded_frame(kEncoderFrameLength *
                                      decoder_num_channels);
 
-  bool dtx_packet_found = false;
   for (int i = 0; i < 50; ++i) {
     generator.GenerateNextFrame(input_frame);
     rtc::Buffer payload;
@@ -170,8 +171,9 @@ void EncodeDecodeNoiseUntilDecoderInDtxMode(AudioEncoderOpusImpl& encoder,
       continue;
     }
 
-    // Decode `payload`. If not a DTX packet, decoding it may update the
-    // internal decoder parameters for comfort noise generation.
+    // Decode `payload`. If it encodes a DTX packet (i.e., 1 byte payload), the
+    // decoder will switch to DTX mode. Otherwise, it may update the internal
+    // decoder parameters for comfort noise generation.
     std::vector<ParseResult> parse_results =
         decoder.ParsePayload(std::move(payload), timestamp++);
     RTC_CHECK_EQ(parse_results.size(), 1);
@@ -179,14 +181,62 @@ void EncodeDecodeNoiseUntilDecoderInDtxMode(AudioEncoderOpusImpl& encoder,
         parse_results[0].frame->Decode(decoded_frame);
     RTC_CHECK(decode_results);
     RTC_CHECK_EQ(decode_results->num_decoded_samples, decoded_frame.size());
-
     if (parse_results[0].frame->IsDtxPacket()) {
-      // The decoder is now in DTX mode.
-      dtx_packet_found = true;
-      break;
+      return;
     }
   }
-  RTC_CHECK(dtx_packet_found);
+  RTC_CHECK_NOTREACHED();
+}
+
+// Generates packets by encoding speech frames and decodes them until a non-DTX
+// packet is generated and, when that condition is met, returns the decoded
+// audio samples.
+std::vector<int16_t> EncodeDecodeSpeechUntilOneFrameIsDecoded(
+    AudioEncoderOpusImpl& encoder,
+    AudioDecoderOpusImpl& decoder,
+    uint32_t& rtp_timestamp,
+    uint32_t& timestamp) {
+  RTC_CHECK(encoder.NumChannels() == 1 || encoder.NumChannels() == 2);
+  const bool stereo_encoding = encoder.NumChannels() == 2;
+  const size_t decoder_num_channels = decoder.Channels();
+  std::vector<int16_t> decoded_frame(kEncoderFrameLength *
+                                     decoder_num_channels);
+
+  PCMFile pcm_file;
+  pcm_file.Open(test::ResourcePath(
+                    stereo_encoding ? "near48_stereo" : "near48_mono", "pcm"),
+                kSampleRateHz, "rb");
+  pcm_file.ReadStereo(stereo_encoding);
+
+  AudioFrame audio_frame;
+  while (true) {
+    if (pcm_file.EndOfFile()) {
+      break;
+    }
+    pcm_file.Read10MsData(audio_frame);
+    rtc::Buffer payload;
+    encoder.Encode(rtp_timestamp++, audio_frame.data_view().data(), &payload);
+
+    // Ignore empty payloads: the encoder needs more audio to produce a packet.
+    if (payload.size() == 0) {
+      continue;
+    }
+
+    // Decode `payload`.
+    std::vector<ParseResult> parse_results =
+        decoder.ParsePayload(std::move(payload), timestamp++);
+    RTC_CHECK_EQ(parse_results.size(), 1);
+    std::optional<DecodeResult> decode_results =
+        parse_results[0].frame->Decode(decoded_frame);
+    RTC_CHECK(decode_results);
+
+    if (parse_results[0].frame->IsDtxPacket()) {
+      continue;
+    }
+    RTC_CHECK_EQ(decode_results->num_decoded_samples, decoded_frame.size());
+    return decoded_frame;
+  }
+  RTC_CHECK_NOTREACHED();
 }
 
 }  // namespace
@@ -239,6 +289,7 @@ TEST(AudioDecoderOpusTest,
   constexpr size_t kDecoderNumChannels = 2;
   AudioDecoderOpusImpl decoder(env.field_trials(), kDecoderNumChannels,
                                kSampleRateHz);
+  std::vector<int16_t> decoded_frame;
 
   uint32_t rtp_timestamp = 0xFFFu;
   uint32_t timestamp = 0;
@@ -250,7 +301,7 @@ TEST(AudioDecoderOpusTest,
                                          timestamp);
 
   // Decode an empty packet so that Opus generates comfort noise.
-  std::array<int16_t, kEncoderFrameLength * kDecoderNumChannels> decoded_frame;
+  decoded_frame.resize(kEncoderFrameLength * kDecoderNumChannels);
   AudioDecoder::SpeechType speech_type;
   const int num_decoded_samples =
       decoder.Decode(/*encoded=*/nullptr, /*encoded_len=*/0, kSampleRateHz,
@@ -262,8 +313,14 @@ TEST(AudioDecoderOpusTest,
                                              num_decoded_samples);
   // Make sure that comfort noise is not a muted frame.
   ASSERT_FALSE(IsZeroedFrame(decoded_view));
-
   EXPECT_TRUE(IsTrivialStereo(decoded_view));
+
+  // Also check the first decoded audio frame after comfort noise.
+  decoded_frame = EncodeDecodeSpeechUntilOneFrameIsDecoded(
+      encoder, decoder, rtp_timestamp, timestamp);
+  ASSERT_THAT(decoded_frame, SizeIs(kDecoderNumChannels * kEncoderFrameLength));
+  ASSERT_FALSE(IsZeroedFrame(decoded_frame));
+  EXPECT_TRUE(IsTrivialStereo(decoded_frame));
 }
 
 TEST(AudioDecoderOpusTest, MonoEncoderStereoDecoderOutputsTrivialStereoPlc) {
@@ -296,8 +353,14 @@ TEST(AudioDecoderOpusTest, MonoEncoderStereoDecoderOutputsTrivialStereoPlc) {
                                              concealment_audio.size());
   // Make sure that packet loss concealment is not a muted frame.
   ASSERT_FALSE(IsZeroedFrame(decoded_view));
-
   EXPECT_TRUE(IsTrivialStereo(decoded_view));
+
+  // Also check the first decoded audio frame after packet loss concealment.
+  std::vector<int16_t> decoded_frame = EncodeDecodeSpeechUntilOneFrameIsDecoded(
+      encoder, decoder, rtp_timestamp, timestamp);
+  ASSERT_THAT(decoded_frame, SizeIs(kDecoderNumChannels * kEncoderFrameLength));
+  ASSERT_FALSE(IsZeroedFrame(decoded_frame));
+  EXPECT_TRUE(IsTrivialStereo(decoded_frame));
 }
 
 TEST(AudioDecoderOpusTest,
