@@ -160,7 +160,7 @@ webrtc::RTCError CheckRtpParametersValues(
     const webrtc::FieldTrialsView& field_trials) {
   using webrtc::RTCErrorType;
 
-  bool has_requested_resolution = false;
+  bool has_scale_resolution_down_to = false;
   for (size_t i = 0; i < rtp_parameters.encodings.size(); ++i) {
     if (rtp_parameters.encodings[i].bitrate_priority <= 0) {
       LOG_AND_RETURN_ERROR(RTCErrorType::INVALID_RANGE,
@@ -199,10 +199,10 @@ webrtc::RTCError CheckRtpParametersValues(
       }
     }
 
-    if (rtp_parameters.encodings[i].requested_resolution.has_value()) {
-      has_requested_resolution = true;
-      if (rtp_parameters.encodings[i].requested_resolution->width <= 0 ||
-          rtp_parameters.encodings[i].requested_resolution->height <= 0) {
+    if (rtp_parameters.encodings[i].scale_resolution_down_to.has_value()) {
+      has_scale_resolution_down_to = true;
+      if (rtp_parameters.encodings[i].scale_resolution_down_to->width <= 0 ||
+          rtp_parameters.encodings[i].scale_resolution_down_to->height <= 0) {
         LOG_AND_RETURN_ERROR(RTCErrorType::INVALID_MODIFICATION,
                              "The resolution dimensions must be positive.");
       }
@@ -218,11 +218,11 @@ webrtc::RTCError CheckRtpParametersValues(
     }
   }
 
-  if (has_requested_resolution &&
+  if (has_scale_resolution_down_to &&
       absl::c_any_of(rtp_parameters.encodings,
                      [](const webrtc::RtpEncodingParameters& encoding) {
                        return encoding.active &&
-                              !encoding.requested_resolution.has_value();
+                              !encoding.scale_resolution_down_to.has_value();
                      })) {
     LOG_AND_RETURN_ERROR(RTCErrorType::INVALID_MODIFICATION,
                          "If a resolution is specified on any encoding then "

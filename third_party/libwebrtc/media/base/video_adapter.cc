@@ -244,27 +244,30 @@ bool VideoAdapter::AdaptFrameResolution(int in_width,
   RTC_DCHECK_EQ(0, *out_height % resolution_alignment_);
 
   // Lastly, make the output size fit within the resolution restrictions as
-  // specified by `requested_resolution_`. This does not modify aspect ratio or
-  // cropping, only `out_width` and `out_height`.
-  if (requested_resolution_.has_value()) {
-    // Make frame and requested resolution have matching orientation.
-    webrtc::Resolution requested_resolution = requested_resolution_.value();
-    if ((*out_width < *out_height) !=
-        (requested_resolution_->width < requested_resolution_->height)) {
-      requested_resolution = {.width = requested_resolution_->height,
-                              .height = requested_resolution_->width};
+  // specified by `scale_resolution_down_to_`. This does not modify aspect ratio
+  // or cropping, only `out_width` and `out_height`.
+  if (scale_resolution_down_to_.has_value()) {
+    // Make frame and "scale to" have matching orientation.
+    webrtc::Resolution scale_resolution_down_to =
+        scale_resolution_down_to_.value();
+    if ((*out_width < *out_height) != (scale_resolution_down_to_->width <
+                                       scale_resolution_down_to_->height)) {
+      scale_resolution_down_to = {.width = scale_resolution_down_to_->height,
+                                  .height = scale_resolution_down_to_->width};
     }
     // Downscale by smallest scaling factor, if necessary.
     if (*out_width > 0 && *out_height > 0 &&
-        (requested_resolution.width < *out_width ||
-         requested_resolution.height < *out_height)) {
+        (scale_resolution_down_to.width < *out_width ||
+         scale_resolution_down_to.height < *out_height)) {
       double scale_factor = std::min(
-          requested_resolution.width / static_cast<double>(*out_width),
-          requested_resolution.height / static_cast<double>(*out_height));
-      *out_width = roundUp(std::round(*out_width * scale_factor),
-                           resolution_alignment_, requested_resolution.width);
-      *out_height = roundUp(std::round(*out_height * scale_factor),
-                            resolution_alignment_, requested_resolution.height);
+          scale_resolution_down_to.width / static_cast<double>(*out_width),
+          scale_resolution_down_to.height / static_cast<double>(*out_height));
+      *out_width =
+          roundUp(std::round(*out_width * scale_factor), resolution_alignment_,
+                  scale_resolution_down_to.width);
+      *out_height =
+          roundUp(std::round(*out_height * scale_factor), resolution_alignment_,
+                  scale_resolution_down_to.height);
       RTC_DCHECK_EQ(0, *out_width % resolution_alignment_);
       RTC_DCHECK_EQ(0, *out_height % resolution_alignment_);
     }
@@ -346,7 +349,7 @@ void VideoAdapter::OnOutputFormatRequest(
   if (stashed_output_format_request_) {
     // Save the output format request for later use in case the encoder making
     // this call would become active, because currently all active encoders use
-    // requested_resolution instead.
+    // scale_resolution_down_to instead.
     stashed_output_format_request_ = request;
     RTC_LOG(LS_INFO) << "Stashing OnOutputFormatRequest: "
                      << stashed_output_format_request_->ToString();
@@ -370,21 +373,22 @@ void VideoAdapter::OnSinkWants(const rtc::VideoSinkWants& sink_wants) {
       source_resolution_alignment_, sink_wants.resolution_alignment);
   // Convert from std::optional<rtc::VideoSinkWants::FrameSize> to
   // std::optional<webrtc::Resolution>. Both are {int,int}.
-  requested_resolution_ = std::nullopt;
+  scale_resolution_down_to_ = std::nullopt;
   if (sink_wants.requested_resolution.has_value()) {
-    requested_resolution_ = {.width = sink_wants.requested_resolution->width,
-                             .height = sink_wants.requested_resolution->height};
+    scale_resolution_down_to_ = {
+        .width = sink_wants.requested_resolution->width,
+        .height = sink_wants.requested_resolution->height};
   }
 
-  // If requested_resolution is used, and there are no active encoders
-  // that are NOT using requested_resolution (aka newapi), then override
-  // calls to OnOutputFormatRequest and use values from requested_resolution
+  // If scale_resolution_down_to is used, and there are no active encoders
+  // that are NOT using scale_resolution_down_to (aka newapi), then override
+  // calls to OnOutputFormatRequest and use values from scale_resolution_down_to
   // instead (combined with qualityscaling based on pixel counts above).
   if (!sink_wants.requested_resolution) {
     if (stashed_output_format_request_) {
       // because current active_output_format_request is based on
-      // requested_resolution logic, while current encoder(s) doesn't want that,
-      // we have to restore the stashed request.
+      // scale_resolution_down_to logic, while current encoder(s) doesn't want
+      // that, we have to restore the stashed request.
       RTC_LOG(LS_INFO) << "Unstashing OnOutputFormatRequest: "
                        << stashed_output_format_request_->ToString();
       output_format_request_ = *stashed_output_format_request_;
@@ -393,9 +397,10 @@ void VideoAdapter::OnSinkWants(const rtc::VideoSinkWants& sink_wants) {
     return;
   }
 
-  // The code below is only needed when `requested_resolution` is signalled back
-  // to the video source which only happens if
-  // `VideoStreamEncoderSettings::use_standard_requested_resolution` is false.
+  // The code below is only needed when `scale_resolution_down_to` is signalled
+  // back to the video source which only happens if
+  // `VideoStreamEncoderSettings::use_standard_scale_resolution_down_to` is
+  // false.
   // TODO(https://crbug.com/webrtc/366284861): Delete the code below as part of
   // deleting this flag and only supporting the standard behavior.
 
@@ -413,8 +418,8 @@ void VideoAdapter::OnSinkWants(const rtc::VideoSinkWants& sink_wants) {
                      << stashed_output_format_request_->ToString();
   }
 
-  // Clear the output format request. Requested resolution will be applied
-  // instead which happens inside AdaptFrameResolution().
+  // Clear the output format request, `scale_resolution_down_to_` will be
+  // applied instead which happens inside AdaptFrameResolution().
   output_format_request_ = {};
 }
 

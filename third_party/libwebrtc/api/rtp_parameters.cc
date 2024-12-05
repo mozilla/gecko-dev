@@ -106,9 +106,27 @@ RtpRtxParameters::RtpRtxParameters(uint32_t ssrc) : ssrc(ssrc) {}
 RtpRtxParameters::RtpRtxParameters(const RtpRtxParameters& rhs) = default;
 RtpRtxParameters::~RtpRtxParameters() = default;
 
-RtpEncodingParameters::RtpEncodingParameters() = default;
-RtpEncodingParameters::RtpEncodingParameters(const RtpEncodingParameters& rhs) =
-    default;
+// TODO(https://crbug.com/webrtc/375048799): Use "= default" when
+// `requested_resolution` has been deleted
+RtpEncodingParameters::RtpEncodingParameters()
+    : requested_resolution(scale_resolution_down_to) {}
+RtpEncodingParameters::RtpEncodingParameters(const RtpEncodingParameters& rhs)
+    : ssrc(rhs.ssrc),
+      bitrate_priority(rhs.bitrate_priority),
+      network_priority(rhs.network_priority),
+      max_bitrate_bps(rhs.max_bitrate_bps),
+      min_bitrate_bps(rhs.min_bitrate_bps),
+      max_framerate(rhs.max_framerate),
+      num_temporal_layers(rhs.num_temporal_layers),
+      scale_resolution_down_by(rhs.scale_resolution_down_by),
+      scalability_mode(rhs.scalability_mode),
+      scale_resolution_down_to(rhs.scale_resolution_down_to),
+      requested_resolution(scale_resolution_down_to),
+      active(rhs.active),
+      rid(rhs.rid),
+      request_key_frame(rhs.request_key_frame),
+      adaptive_ptime(rhs.adaptive_ptime),
+      codec(rhs.codec) {}
 RtpEncodingParameters::~RtpEncodingParameters() = default;
 
 RtpCodecParameters::RtpCodecParameters() = default;

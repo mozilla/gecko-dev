@@ -2115,17 +2115,16 @@ TEST_F(PeerConnectionEncodingsIntegrationTest,
   ASSERT_TRUE(transceiver_or_error.ok());
 }
 
-TEST_F(PeerConnectionEncodingsIntegrationTest,
-       RequestedResolutionParameterChecking) {
+TEST_F(PeerConnectionEncodingsIntegrationTest, ScaleToParameterChecking) {
   rtc::scoped_refptr<PeerConnectionTestWrapper> pc_wrapper = CreatePc();
 
-  // AddTransceiver: If `requested_resolution` is specified on any encoding it
-  // must be specified on all encodings.
+  // AddTransceiver: If `scale_resolution_down_to` is specified on any encoding
+  // it must be specified on all encodings.
   RtpTransceiverInit init;
   RtpEncodingParameters encoding;
-  encoding.requested_resolution = std::nullopt;
+  encoding.scale_resolution_down_to = std::nullopt;
   init.send_encodings.push_back(encoding);
-  encoding.requested_resolution = {.width = 1280, .height = 720};
+  encoding.scale_resolution_down_to = {.width = 1280, .height = 720};
   init.send_encodings.push_back(encoding);
   auto transceiver_or_error =
       pc_wrapper->pc()->AddTransceiver(cricket::MEDIA_TYPE_VIDEO, init);
@@ -2134,64 +2133,74 @@ TEST_F(PeerConnectionEncodingsIntegrationTest,
             RTCErrorType::UNSUPPORTED_OPERATION);
 
   // AddTransceiver: Width and height must not be zero.
-  init.send_encodings[0].requested_resolution = {.width = 1280, .height = 0};
-  init.send_encodings[1].requested_resolution = {.width = 0, .height = 720};
+  init.send_encodings[0].scale_resolution_down_to = {.width = 1280,
+                                                     .height = 0};
+  init.send_encodings[1].scale_resolution_down_to = {.width = 0, .height = 720};
   transceiver_or_error =
       pc_wrapper->pc()->AddTransceiver(cricket::MEDIA_TYPE_VIDEO, init);
   EXPECT_FALSE(transceiver_or_error.ok());
   EXPECT_EQ(transceiver_or_error.error().type(),
             RTCErrorType::UNSUPPORTED_OPERATION);
 
-  // AddTransceiver: Specifying both `requested_resolution` and
+  // AddTransceiver: Specifying both `scale_resolution_down_to` and
   // `scale_resolution_down_by` is allowed (the latter is ignored).
-  init.send_encodings[0].requested_resolution = {.width = 640, .height = 480};
+  init.send_encodings[0].scale_resolution_down_to = {.width = 640,
+                                                     .height = 480};
   init.send_encodings[0].scale_resolution_down_by = 1.0;
-  init.send_encodings[1].requested_resolution = {.width = 1280, .height = 720};
+  init.send_encodings[1].scale_resolution_down_to = {.width = 1280,
+                                                     .height = 720};
   init.send_encodings[1].scale_resolution_down_by = 2.0;
   transceiver_or_error =
       pc_wrapper->pc()->AddTransceiver(cricket::MEDIA_TYPE_VIDEO, init);
   ASSERT_TRUE(transceiver_or_error.ok());
 
-  // SetParameters: If `requested_resolution` is specified on any active
+  // SetParameters: If `scale_resolution_down_to` is specified on any active
   // encoding it must be specified on all active encodings.
   auto sender = transceiver_or_error.value()->sender();
   auto parameters = sender->GetParameters();
-  parameters.encodings[0].requested_resolution = {.width = 640, .height = 480};
-  parameters.encodings[1].requested_resolution = std::nullopt;
+  parameters.encodings[0].scale_resolution_down_to = {.width = 640,
+                                                      .height = 480};
+  parameters.encodings[1].scale_resolution_down_to = std::nullopt;
   auto error = sender->SetParameters(parameters);
   EXPECT_FALSE(error.ok());
   EXPECT_EQ(error.type(), RTCErrorType::INVALID_MODIFICATION);
-  // But it's OK not to specify `requested_resolution` on an inactive encoding.
+  // But it's OK not to specify `scale_resolution_down_to` on an inactive
+  // encoding.
   parameters = sender->GetParameters();
-  parameters.encodings[0].requested_resolution = {.width = 640, .height = 480};
+  parameters.encodings[0].scale_resolution_down_to = {.width = 640,
+                                                      .height = 480};
   parameters.encodings[1].active = false;
-  parameters.encodings[1].requested_resolution = std::nullopt;
+  parameters.encodings[1].scale_resolution_down_to = std::nullopt;
   error = sender->SetParameters(parameters);
   EXPECT_TRUE(error.ok());
 
   // SetParameters: Width and height must not be zero.
   sender = transceiver_or_error.value()->sender();
   parameters = sender->GetParameters();
-  parameters.encodings[0].requested_resolution = {.width = 1280, .height = 0};
+  parameters.encodings[0].scale_resolution_down_to = {.width = 1280,
+                                                      .height = 0};
   parameters.encodings[1].active = true;
-  parameters.encodings[1].requested_resolution = {.width = 0, .height = 720};
+  parameters.encodings[1].scale_resolution_down_to = {.width = 0,
+                                                      .height = 720};
   error = sender->SetParameters(parameters);
   EXPECT_FALSE(error.ok());
   EXPECT_EQ(error.type(), RTCErrorType::INVALID_MODIFICATION);
 
-  // SetParameters: Specifying both `requested_resolution` and
+  // SetParameters: Specifying both `scale_resolution_down_to` and
   // `scale_resolution_down_by` is allowed (the latter is ignored).
   parameters = sender->GetParameters();
-  parameters.encodings[0].requested_resolution = {.width = 640, .height = 480};
+  parameters.encodings[0].scale_resolution_down_to = {.width = 640,
+                                                      .height = 480};
   parameters.encodings[0].scale_resolution_down_by = 2.0;
-  parameters.encodings[1].requested_resolution = {.width = 1280, .height = 720};
+  parameters.encodings[1].scale_resolution_down_to = {.width = 1280,
+                                                      .height = 720};
   parameters.encodings[1].scale_resolution_down_by = 1.0;
   error = sender->SetParameters(parameters);
   EXPECT_TRUE(error.ok());
 }
 
 TEST_F(PeerConnectionEncodingsIntegrationTest,
-       ScaleResolutionDownByIsIgnoredWhenRequestedResolutionIsSpecified) {
+       ScaleResolutionDownByIsIgnoredWhenScaleToIsSpecified) {
   rtc::scoped_refptr<PeerConnectionTestWrapper> local_pc_wrapper = CreatePc();
   rtc::scoped_refptr<PeerConnectionTestWrapper> remote_pc_wrapper = CreatePc();
 
@@ -2204,7 +2213,7 @@ TEST_F(PeerConnectionEncodingsIntegrationTest,
   RtpTransceiverInit init;
   RtpEncodingParameters encoding;
   encoding.scale_resolution_down_by = 2.0;
-  encoding.requested_resolution = {.width = 640, .height = 360};
+  encoding.scale_resolution_down_to = {.width = 640, .height = 360};
   init.send_encodings.push_back(encoding);
   auto transceiver_or_error =
       local_pc_wrapper->pc()->AddTransceiver(track, init);
@@ -2222,7 +2231,7 @@ TEST_F(PeerConnectionEncodingsIntegrationTest,
 }
 
 // Tests that use the standard path (specifying both `scalability_mode` and
-// `scale_resolution_down_by` or `requested_resolution`) should pass for all
+// `scale_resolution_down_by` or `scale_resolution_down_to`) should pass for all
 // codecs.
 class PeerConnectionEncodingsIntegrationParameterizedTest
     : public PeerConnectionEncodingsIntegrationTest,
@@ -2358,9 +2367,9 @@ TEST_P(PeerConnectionEncodingsIntegrationParameterizedTest, Simulcast) {
   EXPECT_THAT(*outbound_rtps[2]->scalability_mode, StrEq("L1T3"));
 }
 
-// Configure 4:2:1 using `requested_resolution`.
+// Configure 4:2:1 using `scale_resolution_down_to`.
 TEST_P(PeerConnectionEncodingsIntegrationParameterizedTest,
-       SimulcastWithRequestedResolution) {
+       SimulcastWithScaleTo) {
   rtc::scoped_refptr<PeerConnectionTestWrapper> local_pc_wrapper = CreatePc();
   if (SkipTestDueToAv1Missing(local_pc_wrapper)) {
     return;
@@ -2381,11 +2390,14 @@ TEST_P(PeerConnectionEncodingsIntegrationParameterizedTest,
   RtpParameters parameters = sender->GetParameters();
   ASSERT_THAT(parameters.encodings, SizeIs(3));
   parameters.encodings[0].scalability_mode = "L1T3";
-  parameters.encodings[0].requested_resolution = {.width = 320, .height = 180};
+  parameters.encodings[0].scale_resolution_down_to = {.width = 320,
+                                                      .height = 180};
   parameters.encodings[1].scalability_mode = "L1T3";
-  parameters.encodings[1].requested_resolution = {.width = 640, .height = 360};
+  parameters.encodings[1].scale_resolution_down_to = {.width = 640,
+                                                      .height = 360};
   parameters.encodings[2].scalability_mode = "L1T3";
-  parameters.encodings[2].requested_resolution = {.width = 1280, .height = 720};
+  parameters.encodings[2].scale_resolution_down_to = {.width = 1280,
+                                                      .height = 720};
   sender->SetParameters(parameters);
 
   NegotiateWithSimulcastTweaks(local_pc_wrapper, remote_pc_wrapper);
@@ -2501,9 +2513,9 @@ TEST_P(PeerConnectionEncodingsIntegrationParameterizedTest,
 }
 
 // Simulcast starting in 720p 4:2:1 then changing to {180p, 360p, 540p} using
-// the `requested_resolution` API.
+// the `scale_resolution_down_to` API.
 TEST_P(PeerConnectionEncodingsIntegrationParameterizedTest,
-       SimulcastRequestedResolutionNoLongerPowerOfTwo) {
+       SimulcastScaleToNoLongerPowerOfTwo) {
   rtc::scoped_refptr<PeerConnectionTestWrapper> local_pc_wrapper = CreatePc();
   if (SkipTestDueToAv1Missing(local_pc_wrapper)) {
     return;
@@ -2525,11 +2537,14 @@ TEST_P(PeerConnectionEncodingsIntegrationParameterizedTest,
   RtpParameters parameters = sender->GetParameters();
   ASSERT_THAT(parameters.encodings, SizeIs(3));
   parameters.encodings[0].scalability_mode = "L1T1";
-  parameters.encodings[0].requested_resolution = {.width = 320, .height = 180};
+  parameters.encodings[0].scale_resolution_down_to = {.width = 320,
+                                                      .height = 180};
   parameters.encodings[1].scalability_mode = "L1T1";
-  parameters.encodings[1].requested_resolution = {.width = 640, .height = 360};
+  parameters.encodings[1].scale_resolution_down_to = {.width = 640,
+                                                      .height = 360};
   parameters.encodings[2].scalability_mode = "L1T1";
-  parameters.encodings[2].requested_resolution = {.width = 1280, .height = 720};
+  parameters.encodings[2].scale_resolution_down_to = {.width = 1280,
+                                                      .height = 720};
   sender->SetParameters(parameters);
 
   NegotiateWithSimulcastTweaks(local_pc_wrapper, remote_pc_wrapper);
@@ -2548,9 +2563,12 @@ TEST_P(PeerConnectionEncodingsIntegrationParameterizedTest,
 
   // Configure {180p, 360p, 540p}.
   parameters = sender->GetParameters();
-  parameters.encodings[0].requested_resolution = {.width = 320, .height = 180};
-  parameters.encodings[1].requested_resolution = {.width = 640, .height = 360};
-  parameters.encodings[2].requested_resolution = {.width = 960, .height = 540};
+  parameters.encodings[0].scale_resolution_down_to = {.width = 320,
+                                                      .height = 180};
+  parameters.encodings[1].scale_resolution_down_to = {.width = 640,
+                                                      .height = 360};
+  parameters.encodings[2].scale_resolution_down_to = {.width = 960,
+                                                      .height = 540};
   sender->SetParameters(parameters);
 
   // Wait for the new resolutions to be produced.
@@ -2577,11 +2595,11 @@ TEST_P(PeerConnectionEncodingsIntegrationParameterizedTest,
 }
 
 // The code path that disables layers based on resolution size should NOT run
-// when `requested_resolution` is specified. (It shouldn't run in any case but
-// that is an existing legacy code and non-compliance problem that we don't have
-// to repeat here.)
+// when `scale_resolution_down_to` is specified. (It shouldn't run in any case
+// but that is an existing legacy code and non-compliance problem that we don't
+// have to repeat here.)
 TEST_P(PeerConnectionEncodingsIntegrationParameterizedTest,
-       LowResolutionSimulcastWithRequestedResolution) {
+       LowResolutionSimulcastWithScaleTo) {
   rtc::scoped_refptr<PeerConnectionTestWrapper> local_pc_wrapper = CreatePc();
   if (SkipTestDueToAv1Missing(local_pc_wrapper)) {
     return;
@@ -2597,13 +2615,13 @@ TEST_P(PeerConnectionEncodingsIntegrationParameterizedTest,
   RtpEncodingParameters encoding;
   encoding.scalability_mode = "L1T3";
   encoding.rid = "q";
-  encoding.requested_resolution = {.width = 40, .height = 20};
+  encoding.scale_resolution_down_to = {.width = 40, .height = 20};
   init.send_encodings.push_back(encoding);
   encoding.rid = "h";
-  encoding.requested_resolution = {.width = 80, .height = 40};
+  encoding.scale_resolution_down_to = {.width = 80, .height = 40};
   init.send_encodings.push_back(encoding);
   encoding.rid = "f";
-  encoding.requested_resolution = {.width = 160, .height = 80};
+  encoding.scale_resolution_down_to = {.width = 160, .height = 80};
   init.send_encodings.push_back(encoding);
   rtc::scoped_refptr<MediaStreamInterface> stream =
       local_pc_wrapper->GetUserMedia(
@@ -2698,7 +2716,7 @@ TEST_P(PeerConnectionEncodingsIntegrationParameterizedTest,
 }
 
 TEST_P(PeerConnectionEncodingsIntegrationParameterizedTest,
-       RequestedResolutionDownscaleAndThenUpscale) {
+       ScaleToDownscaleAndThenUpscale) {
   rtc::scoped_refptr<PeerConnectionTestWrapper> local_pc_wrapper = CreatePc();
   if (SkipTestDueToAv1Missing(local_pc_wrapper)) {
     return;
@@ -2726,7 +2744,8 @@ TEST_P(PeerConnectionEncodingsIntegrationParameterizedTest,
   RtpParameters parameters = sender->GetParameters();
   ASSERT_THAT(parameters.encodings, SizeIs(1));
   parameters.encodings[0].scalability_mode = "L1T3";
-  parameters.encodings[0].requested_resolution = {.width = 640, .height = 360};
+  parameters.encodings[0].scale_resolution_down_to = {.width = 640,
+                                                      .height = 360};
   sender->SetParameters(parameters);
   // Confirm 640x360 is sent.
   ASSERT_TRUE_WAIT(GetEncodingResolution(local_pc_wrapper) ==
@@ -2744,7 +2763,8 @@ TEST_P(PeerConnectionEncodingsIntegrationParameterizedTest,
 
   // Request the full 1280x720 resolution.
   parameters = sender->GetParameters();
-  parameters.encodings[0].requested_resolution = {.width = 1280, .height = 720};
+  parameters.encodings[0].scale_resolution_down_to = {.width = 1280,
+                                                      .height = 720};
   sender->SetParameters(parameters);
   // Confirm 1280x720 is sent.
   ASSERT_TRUE_WAIT(GetEncodingResolution(local_pc_wrapper) ==
@@ -2753,7 +2773,7 @@ TEST_P(PeerConnectionEncodingsIntegrationParameterizedTest,
 }
 
 TEST_P(PeerConnectionEncodingsIntegrationParameterizedTest,
-       RequestedResolutionIsOrientationAgnostic) {
+       ScaleToIsOrientationAgnostic) {
   rtc::scoped_refptr<PeerConnectionTestWrapper> local_pc_wrapper = CreatePc();
   if (SkipTestDueToAv1Missing(local_pc_wrapper)) {
     return;
@@ -2781,7 +2801,8 @@ TEST_P(PeerConnectionEncodingsIntegrationParameterizedTest,
   rtc::scoped_refptr<RtpSenderInterface> sender = transceiver->sender();
   RtpParameters parameters = sender->GetParameters();
   ASSERT_THAT(parameters.encodings, SizeIs(1));
-  parameters.encodings[0].requested_resolution = {.width = 360, .height = 640};
+  parameters.encodings[0].scale_resolution_down_to = {.width = 360,
+                                                      .height = 640};
   sender->SetParameters(parameters);
   // Confirm 640x360 is sent.
   ASSERT_TRUE_WAIT(GetEncodingResolution(local_pc_wrapper) ==
@@ -2790,7 +2811,7 @@ TEST_P(PeerConnectionEncodingsIntegrationParameterizedTest,
 }
 
 TEST_P(PeerConnectionEncodingsIntegrationParameterizedTest,
-       RequestedResolutionMaintainsAspectRatio) {
+       ScaleToMaintainsAspectRatio) {
   rtc::scoped_refptr<PeerConnectionTestWrapper> local_pc_wrapper = CreatePc();
   if (SkipTestDueToAv1Missing(local_pc_wrapper)) {
     return;
@@ -2818,7 +2839,8 @@ TEST_P(PeerConnectionEncodingsIntegrationParameterizedTest,
   rtc::scoped_refptr<RtpSenderInterface> sender = transceiver->sender();
   RtpParameters parameters = sender->GetParameters();
   ASSERT_THAT(parameters.encodings, SizeIs(1));
-  parameters.encodings[0].requested_resolution = {.width = 1280, .height = 360};
+  parameters.encodings[0].scale_resolution_down_to = {.width = 1280,
+                                                      .height = 360};
   sender->SetParameters(parameters);
   // Confirm 640x360 is sent.
   ASSERT_TRUE_WAIT(GetEncodingResolution(local_pc_wrapper) ==

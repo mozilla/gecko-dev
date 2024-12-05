@@ -88,9 +88,9 @@ std::string VideoEncoderConfig::ToString() const {
   return ss.str();
 }
 
-bool VideoEncoderConfig::HasRequestedResolution() const {
+bool VideoEncoderConfig::HasScaleResolutionDownTo() const {
   for (const VideoStream& simulcast_layer : simulcast_layers) {
-    if (simulcast_layer.requested_resolution.has_value()) {
+    if (simulcast_layer.scale_resolution_down_to.has_value()) {
       return true;
     }
   }

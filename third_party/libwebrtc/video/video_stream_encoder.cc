@@ -881,38 +881,40 @@ void VideoStreamEncoder::ConfigureEncoder(VideoEncoderConfig config,
   RTC_DCHECK_RUN_ON(worker_queue_);
 
   // Inform source about max configured framerate,
-  // requested_resolution and which layers are active.
+  // scale_resolution_down_to and which layers are active.
   int max_framerate = -1;
   // Is any layer active.
   bool active = false;
-  // The max requested_resolution.
-  std::optional<rtc::VideoSinkWants::FrameSize> requested_resolution;
+  // The max scale_resolution_down_to.
+  std::optional<rtc::VideoSinkWants::FrameSize> scale_resolution_down_to;
   for (const auto& stream : config.simulcast_layers) {
     active |= stream.active;
     if (stream.active) {
       max_framerate = std::max(stream.max_framerate, max_framerate);
     }
-    // Note: we propagate the highest requested_resolution regardless
+    // Note: we propagate the highest scale_resolution_down_to regardless
     // if layer is active or not.
-    if (stream.requested_resolution) {
-      if (!requested_resolution) {
-        requested_resolution.emplace(stream.requested_resolution->width,
-                                     stream.requested_resolution->height);
+    if (stream.scale_resolution_down_to) {
+      if (!scale_resolution_down_to) {
+        scale_resolution_down_to.emplace(
+            stream.scale_resolution_down_to->width,
+            stream.scale_resolution_down_to->height);
       } else {
-        requested_resolution.emplace(
-            std::max(stream.requested_resolution->width,
-                     requested_resolution->width),
-            std::max(stream.requested_resolution->height,
-                     requested_resolution->height));
+        scale_resolution_down_to.emplace(
+            std::max(stream.scale_resolution_down_to->width,
+                     scale_resolution_down_to->width),
+            std::max(stream.scale_resolution_down_to->height,
+                     scale_resolution_down_to->height));
       }
     }
   }
-  if (requested_resolution !=
-          video_source_sink_controller_.requested_resolution() ||
+  if (scale_resolution_down_to !=
+          video_source_sink_controller_.scale_resolution_down_to() ||
       active != video_source_sink_controller_.active() ||
       max_framerate !=
           video_source_sink_controller_.frame_rate_upper_limit().value_or(-1)) {
-    video_source_sink_controller_.SetRequestedResolution(requested_resolution);
+    video_source_sink_controller_.SetScaleResolutionDownTo(
+        scale_resolution_down_to);
     if (max_framerate >= 0) {
       video_source_sink_controller_.SetFrameRateUpperLimit(max_framerate);
     } else {
@@ -2421,12 +2423,12 @@ void VideoStreamEncoder::OnVideoSourceRestrictionsUpdated(
   // so that ownership on restrictions/wants is kept on &encoder_queue_
   latest_restrictions_ = restrictions;
 
-  // When the `requested_resolution` API is used, we need to reconfigure any
+  // When the `scale_resolution_down_to` API is used, we need to reconfigure any
   // time the restricted resolution is updated. When that API isn't used, the
   // encoder settings are relative to the frame size and reconfiguration happens
   // automatically on new frame size and we don't need to reconfigure here.
   if (encoder_ && max_pixels_updated &&
-      encoder_config_.HasRequestedResolution()) {
+      encoder_config_.HasScaleResolutionDownTo()) {
     // The encoder will be reconfigured on the next frame.
     pending_encoder_reconfiguration_ = true;
   }

@@ -2087,8 +2087,8 @@ WebRtcVideoSendChannel::WebRtcVideoSendStream::SetRtpParameters(
          rtp_parameters_.encodings[i].scale_resolution_down_by) ||
         (new_parameters.encodings[i].num_temporal_layers !=
          rtp_parameters_.encodings[i].num_temporal_layers) ||
-        (new_parameters.encodings[i].requested_resolution !=
-         rtp_parameters_.encodings[i].requested_resolution) ||
+        (new_parameters.encodings[i].scale_resolution_down_to !=
+         rtp_parameters_.encodings[i].scale_resolution_down_to) ||
         (new_parameters.encodings[i].scalability_mode !=
          rtp_parameters_.encodings[i].scalability_mode) ||
         (new_parameters.encodings[i].codec !=
@@ -2228,7 +2228,7 @@ WebRtcVideoSendChannel::WebRtcVideoSendStream::CreateVideoEncoderConfig(
        rtp_parameters_.encodings) {
     if (encoding.scalability_mode.has_value() &&
         (encoding.scale_resolution_down_by.has_value() ||
-         encoding.requested_resolution.has_value())) {
+         encoding.scale_resolution_down_to.has_value())) {
       legacy_scalability_mode = false;
       break;
     }
@@ -2309,8 +2309,8 @@ WebRtcVideoSendChannel::WebRtcVideoSendStream::CreateVideoEncoderConfig(
       encoder_config.simulcast_layers[i].num_temporal_layers =
           *rtp_parameters_.encodings[i].num_temporal_layers;
     }
-    encoder_config.simulcast_layers[i].requested_resolution =
-        rtp_parameters_.encodings[i].requested_resolution;
+    encoder_config.simulcast_layers[i].scale_resolution_down_to =
+        rtp_parameters_.encodings[i].scale_resolution_down_to;
   }
 
   encoder_config.legacy_conference_mode = parameters_.conference_mode;

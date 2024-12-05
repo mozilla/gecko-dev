@@ -131,7 +131,7 @@ void VideoBroadcaster::UpdateWants() {
   // "ignore" encoders that are not active. But that would
   // probably require a controlled roll out with a field trials?
   // To play it safe, only ignore inactive encoders is there is an
-  // active encoder using the new api (requested_resolution),
+  // active encoder using the new api (scale_resolution_down_to),
   // this means that there is only a behavioural change when using new
   // api.
   bool ignore_inactive_encoders_old_api = false;
@@ -171,8 +171,8 @@ void VideoBroadcaster::UpdateWants() {
     wants.resolution_alignment = cricket::LeastCommonMultiple(
         wants.resolution_alignment, sink.wants.resolution_alignment);
 
-    // Pick MAX(requested_resolution) since the actual can be downscaled
-    // in encoder instead.
+    // Pick MAX(requested_resolution) since the actual can be downscaled in
+    // encoder instead.
     if (sink.wants.requested_resolution) {
       if (!wants.requested_resolution) {
         wants.requested_resolution = sink.wants.requested_resolution;

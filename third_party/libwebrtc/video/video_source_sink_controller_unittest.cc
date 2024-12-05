@@ -62,7 +62,7 @@ TEST(VideoSourceSinkControllerTest, UnconstrainedByDefault) {
   EXPECT_FALSE(controller.pixels_per_frame_upper_limit().has_value());
   EXPECT_FALSE(controller.frame_rate_upper_limit().has_value());
   EXPECT_FALSE(controller.rotation_applied());
-  EXPECT_FALSE(controller.requested_resolution().has_value());
+  EXPECT_FALSE(controller.scale_resolution_down_to().has_value());
   EXPECT_EQ(controller.resolution_alignment(), 1);
 
   EXPECT_CALL(source, AddOrUpdateSink(_, _))
@@ -166,12 +166,12 @@ TEST(VideoSourceSinkControllerTest,
   controller.RequestRefreshFrame();
 }
 
-TEST(VideoSourceSinkControllerTest, RequestedResolutionPropagatesToWants) {
+TEST(VideoSourceSinkControllerTest, ScaleResolutionDownToPropagatesToWants) {
   MockVideoSinkWithVideoFrame sink;
   MockVideoSourceWithVideoFrame source;
   VideoSourceSinkController controller(&sink, &source);
-  controller.SetRequestedResolution(FrameSize(640, 360));
-  EXPECT_TRUE(controller.requested_resolution().has_value());
+  controller.SetScaleResolutionDownTo(FrameSize(640, 360));
+  EXPECT_TRUE(controller.scale_resolution_down_to().has_value());
 
   EXPECT_CALL(source, AddOrUpdateSink(_, _))
       .WillOnce([](rtc::VideoSinkInterface<VideoFrame>* sink,
