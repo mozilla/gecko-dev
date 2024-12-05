@@ -29,10 +29,10 @@
 #include "rtc_base/checks.h"
 #include "sdk/objc/native/api/network_monitor_factory.h"
 #include "sdk/objc/native/api/ssl_certificate_verifier.h"
-#include "system_wrappers/include/field_trial.h"
 
 #include "api/audio/audio_device.h"
 #include "api/audio/audio_processing.h"
+#include "api/audio/builtin_audio_processing_builder.h"
 #include "api/audio_codecs/builtin_audio_decoder_factory.h"
 #include "api/audio_codecs/builtin_audio_encoder_factory.h"
 #include "api/enable_media.h"
@@ -71,15 +71,15 @@
 }
 
 - (instancetype)init {
-  return [self
-      initWithNativeAudioEncoderFactory:webrtc::CreateBuiltinAudioEncoderFactory()
-              nativeAudioDecoderFactory:webrtc::CreateBuiltinAudioDecoderFactory()
-              nativeVideoEncoderFactory:webrtc::ObjCToNativeVideoEncoderFactory([[RTC_OBJC_TYPE(
-                                            RTCVideoEncoderFactoryH264) alloc] init])
-              nativeVideoDecoderFactory:webrtc::ObjCToNativeVideoDecoderFactory([[RTC_OBJC_TYPE(
-                                            RTCVideoDecoderFactoryH264) alloc] init])
-                      audioDeviceModule:[self audioDeviceModule].get()
-                  audioProcessingModule:nullptr];
+  webrtc::PeerConnectionFactoryDependencies dependencies;
+  dependencies.audio_encoder_factory = webrtc::CreateBuiltinAudioEncoderFactory();
+  dependencies.audio_decoder_factory = webrtc::CreateBuiltinAudioDecoderFactory();
+  dependencies.video_encoder_factory = webrtc::ObjCToNativeVideoEncoderFactory(
+      [[RTC_OBJC_TYPE(RTCVideoEncoderFactoryH264) alloc] init]);
+  dependencies.video_decoder_factory = webrtc::ObjCToNativeVideoDecoderFactory(
+      [[RTC_OBJC_TYPE(RTCVideoDecoderFactoryH264) alloc] init]);
+  dependencies.adm = [self audioDeviceModule];
+  return [self initWithMediaAndDependencies:std::move(dependencies)];
 }
 
 - (instancetype)
@@ -95,30 +95,25 @@
 #ifdef HAVE_NO_MEDIA
   return [self initWithNoMedia];
 #else
-  std::unique_ptr<webrtc::VideoEncoderFactory> native_encoder_factory;
-  std::unique_ptr<webrtc::VideoDecoderFactory> native_decoder_factory;
+  webrtc::PeerConnectionFactoryDependencies dependencies;
+  dependencies.audio_encoder_factory = webrtc::CreateBuiltinAudioEncoderFactory();
+  dependencies.audio_decoder_factory = webrtc::CreateBuiltinAudioDecoderFactory();
   if (encoderFactory) {
-    native_encoder_factory = webrtc::ObjCToNativeVideoEncoderFactory(encoderFactory);
+    dependencies.video_encoder_factory = webrtc::ObjCToNativeVideoEncoderFactory(encoderFactory);
   }
   if (decoderFactory) {
-    native_decoder_factory = webrtc::ObjCToNativeVideoDecoderFactory(decoderFactory);
+    dependencies.video_decoder_factory = webrtc::ObjCToNativeVideoDecoderFactory(decoderFactory);
   }
-  rtc::scoped_refptr<webrtc::AudioDeviceModule> audio_device_module;
   if (audioDevice) {
-    audio_device_module = webrtc::CreateAudioDeviceModule(audioDevice);
+    dependencies.adm = webrtc::CreateAudioDeviceModule(audioDevice);
   } else {
-    audio_device_module = [self audioDeviceModule];
+    dependencies.adm = [self audioDeviceModule];
   }
-  return [self initWithNativeAudioEncoderFactory:webrtc::CreateBuiltinAudioEncoderFactory()
-                       nativeAudioDecoderFactory:webrtc::CreateBuiltinAudioDecoderFactory()
-                       nativeVideoEncoderFactory:std::move(native_encoder_factory)
-                       nativeVideoDecoderFactory:std::move(native_decoder_factory)
-                               audioDeviceModule:audio_device_module.get()
-                           audioProcessingModule:nullptr];
+  return [self initWithMediaAndDependencies:std::move(dependencies)];
 #endif
 }
 
-- (instancetype)initNative {
+- (instancetype)initWithNativeDependencies:(webrtc::PeerConnectionFactoryDependencies)dependencies {
   self = [super init];
   if (self) {
     _networkThread = rtc::Thread::CreateWithSocketServer();
@@ -135,24 +130,27 @@
     _signalingThread->SetName("signaling_thread", _signalingThread.get());
     result = _signalingThread->Start();
     RTC_DCHECK(result) << "Failed to start signaling thread.";
+
+    // Set fields that are relevant both to 'no media' and 'with media' scenarios.
+    dependencies.network_thread = _networkThread.get();
+    dependencies.worker_thread = _workerThread.get();
+    dependencies.signaling_thread = _signalingThread.get();
+    if (dependencies.trials == nullptr) {
+      dependencies.trials = std::make_unique<webrtc::FieldTrialBasedConfig>();
+    }
+    if (dependencies.network_monitor_factory == nullptr &&
+        dependencies.trials->IsEnabled("WebRTC-Network-UseNWPathMonitor")) {
+      dependencies.network_monitor_factory = webrtc::CreateNetworkMonitorFactory();
+    }
+
+    _nativeFactory = webrtc::CreateModularPeerConnectionFactory(std::move(dependencies));
+    NSAssert(_nativeFactory, @"Failed to initialize PeerConnectionFactory!");
   }
   return self;
 }
 
 - (instancetype)initWithNoMedia {
-  self = [self initNative];
-  if (self) {
-    webrtc::PeerConnectionFactoryDependencies dependencies;
-    dependencies.network_thread = _networkThread.get();
-    dependencies.worker_thread = _workerThread.get();
-    dependencies.signaling_thread = _signalingThread.get();
-    if (webrtc::field_trial::IsEnabled("WebRTC-Network-UseNWPathMonitor")) {
-      dependencies.network_monitor_factory = webrtc::CreateNetworkMonitorFactory();
-    }
-    _nativeFactory = webrtc::CreateModularPeerConnectionFactory(std::move(dependencies));
-    NSAssert(_nativeFactory, @"Failed to initialize PeerConnectionFactory!");
-  }
-  return self;
+  return [self initWithNativeDependencies:webrtc::PeerConnectionFactoryDependencies()];
 }
 
 - (instancetype)initWithNativeAudioEncoderFactory:
@@ -166,14 +164,18 @@
                                 audioDeviceModule:(webrtc::AudioDeviceModule *)audioDeviceModule
                             audioProcessingModule:
                                 (rtc::scoped_refptr<webrtc::AudioProcessing>)audioProcessingModule {
-  return [self initWithNativeAudioEncoderFactory:audioEncoderFactory
-                       nativeAudioDecoderFactory:audioDecoderFactory
-                       nativeVideoEncoderFactory:std::move(videoEncoderFactory)
-                       nativeVideoDecoderFactory:std::move(videoDecoderFactory)
-                               audioDeviceModule:audioDeviceModule
-                           audioProcessingModule:audioProcessingModule
-                        networkControllerFactory:nullptr];
+  webrtc::PeerConnectionFactoryDependencies dependencies;
+  dependencies.audio_encoder_factory = std::move(audioEncoderFactory);
+  dependencies.audio_decoder_factory = std::move(audioDecoderFactory);
+  dependencies.video_encoder_factory = std::move(videoEncoderFactory);
+  dependencies.video_decoder_factory = std::move(videoDecoderFactory);
+  dependencies.adm = std::move(audioDeviceModule);
+  if (audioProcessingModule != nullptr) {
+    dependencies.audio_processing_builder = CustomAudioProcessing(std::move(audioProcessingModule));
+  }
+  return [self initWithMediaAndDependencies:std::move(dependencies)];
 }
+
 - (instancetype)initWithNativeAudioEncoderFactory:
                     (rtc::scoped_refptr<webrtc::AudioEncoderFactory>)audioEncoderFactory
                         nativeAudioDecoderFactory:
@@ -188,35 +190,34 @@
                          networkControllerFactory:
                              (std::unique_ptr<webrtc::NetworkControllerFactoryInterface>)
                                  networkControllerFactory {
-  self = [self initNative];
-  if (self) {
-    webrtc::PeerConnectionFactoryDependencies dependencies;
-    dependencies.network_thread = _networkThread.get();
-    dependencies.worker_thread = _workerThread.get();
-    dependencies.signaling_thread = _signalingThread.get();
-    if (webrtc::field_trial::IsEnabled("WebRTC-Network-UseNWPathMonitor")) {
-      dependencies.network_monitor_factory = webrtc::CreateNetworkMonitorFactory();
-    }
-    dependencies.trials = std::make_unique<webrtc::FieldTrialBasedConfig>();
-    dependencies.task_queue_factory =
-        webrtc::CreateDefaultTaskQueueFactory(dependencies.trials.get());
-    dependencies.adm = std::move(audioDeviceModule);
-    dependencies.audio_encoder_factory = std::move(audioEncoderFactory);
-    dependencies.audio_decoder_factory = std::move(audioDecoderFactory);
-    dependencies.video_encoder_factory = std::move(videoEncoderFactory);
-    dependencies.video_decoder_factory = std::move(videoDecoderFactory);
-    if (audioProcessingModule) {
-      dependencies.audio_processing = std::move(audioProcessingModule);
-    } else {
-      dependencies.audio_processing = webrtc::AudioProcessingBuilder().Create();
-    }
-    webrtc::EnableMedia(dependencies);
-    dependencies.event_log_factory = std::make_unique<webrtc::RtcEventLogFactory>();
-    dependencies.network_controller_factory = std::move(networkControllerFactory);
-    _nativeFactory = webrtc::CreateModularPeerConnectionFactory(std::move(dependencies));
-    NSAssert(_nativeFactory, @"Failed to initialize PeerConnectionFactory!");
+  webrtc::PeerConnectionFactoryDependencies dependencies;
+  dependencies.adm = std::move(audioDeviceModule);
+  dependencies.audio_encoder_factory = std::move(audioEncoderFactory);
+  dependencies.audio_decoder_factory = std::move(audioDecoderFactory);
+  dependencies.video_encoder_factory = std::move(videoEncoderFactory);
+  dependencies.video_decoder_factory = std::move(videoDecoderFactory);
+  if (audioProcessingModule != nullptr) {
+    dependencies.audio_processing_builder = CustomAudioProcessing(std::move(audioProcessingModule));
   }
-  return self;
+  dependencies.network_controller_factory = std::move(networkControllerFactory);
+  return [self initWithMediaAndDependencies:std::move(dependencies)];
+}
+
+- (instancetype)initWithMediaAndDependencies:
+    (webrtc::PeerConnectionFactoryDependencies)dependencies {
+  // audio_processing_builder should be used instead in new code.
+  RTC_CHECK(dependencies.audio_processing == nullptr);
+#ifndef WEBRTC_EXCLUDE_AUDIO_PROCESSING_MODULE
+  if (dependencies.audio_processing_builder == nullptr) {
+    dependencies.audio_processing_builder =
+        std::make_unique<webrtc::BuiltinAudioProcessingBuilder>();
+  }
+#endif
+  if (dependencies.event_log_factory == nullptr) {
+    dependencies.event_log_factory = std::make_unique<webrtc::RtcEventLogFactory>();
+  }
+  webrtc::EnableMedia(dependencies);
+  return [self initWithNativeDependencies:std::move(dependencies)];
 }
 
 - (RTC_OBJC_TYPE(RTCRtpCapabilities) *)rtpSenderCapabilitiesForKind:(NSString *)kind {
