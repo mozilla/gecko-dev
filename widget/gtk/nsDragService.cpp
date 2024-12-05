@@ -1397,12 +1397,14 @@ RefPtr<DragData> nsDragSession::GetDragData(GdkAtom aRequestedFlavor) {
     return nullptr;
   }
 
-  RefPtr<DragData> data =
-      mCachedDragData.Get(GDK_ATOM_TO_POINTER(aRequestedFlavor));
-  if (data) {
-    LOGDRAGSERVICE("  %s found in cache",
-                   GUniquePtr<gchar>(gdk_atom_name(aRequestedFlavor)).get());
-    return data;
+  {
+    auto data = mCachedDragData.MaybeGet(GDK_ATOM_TO_POINTER(aRequestedFlavor));
+    if (data) {
+      LOGDRAGSERVICE("  MIME %s found in cache, %s",
+                     GUniquePtr<gchar>(gdk_atom_name(aRequestedFlavor)).get(),
+                     *data ? "got correctly" : "failed to get");
+      return *data;
+    }
   }
 
   mWaitingForDragDataRequests++;
@@ -1435,7 +1437,8 @@ RefPtr<DragData> nsDragSession::GetDragData(GdkAtom aRequestedFlavor) {
                    mWaitingForDragDataRequests);
   }
 
-  data = mCachedDragData.Get(GDK_ATOM_TO_POINTER(aRequestedFlavor));
+  RefPtr<DragData> data =
+      mCachedDragData.Get(GDK_ATOM_TO_POINTER(aRequestedFlavor));
   if (data) {
     LOGDRAGSERVICE("  %s received",
                    GUniquePtr<gchar>(gdk_atom_name(aRequestedFlavor)).get());
@@ -1462,13 +1465,20 @@ void nsDragSession::TargetDataReceived(GtkWidget* aWidget,
       aContext, GUniquePtr<gchar>(gdk_atom_name(target)).get(),
       mWaitingForDragDataRequests);
 
+  RefPtr<DragData> dragData;
+
   auto cacheClear = MakeScopeExit([&] {
-    LOGDRAGSERVICE("  failed to get data, MIME %s",
-                   GUniquePtr<gchar>(gdk_atom_name(target)).get());
-    mCachedDragData.Remove(target);
+    if (!dragData) {
+      LOGDRAGSERVICE("  failed to get data, MIME %s",
+                     GUniquePtr<gchar>(gdk_atom_name(target)).get());
+    }
+
+    // We set cache even for empty received data.
+    // It saves time if we're asked for the same data type
+    // again.
+    mCachedDragData.InsertOrUpdate(target, dragData);
   });
 
-  RefPtr<DragData> dragData;
   if (gtk_targets_include_uri(&target, 1)) {
     if (target == sPortalFileAtom || target == sPortalFileTransferAtom) {
       const guchar* data = gtk_selection_data_get_data(aSelectionData);
@@ -1521,9 +1531,6 @@ void nsDragSession::TargetDataReceived(GtkWidget* aWidget,
 #if MOZ_LOGGING
   dragData->Print();
 #endif
-
-  cacheClear.release();
-  mCachedDragData.InsertOrUpdate(target, dragData);
 }
 
 static void TargetArrayAddTarget(nsTArray<GtkTargetEntry*>& aTargetArray,
