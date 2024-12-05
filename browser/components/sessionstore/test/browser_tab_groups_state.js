@@ -97,4 +97,5 @@ add_task(async function test_TabGroupsInState() {
     "updated tab group collapsed state should be recorded in state"
   );
   await BrowserTestUtils.closeWindow(win);
+  forgetClosedWindows();
 });

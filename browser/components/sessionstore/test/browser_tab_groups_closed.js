@@ -40,6 +40,7 @@ add_task(async function test_closingTabGroupAddsClosedGroup() {
   );
 
   await BrowserTestUtils.closeWindow(win);
+  forgetClosedWindows();
   await SessionStoreTestUtils.promiseBrowserState(ORIG_STATE);
 });
 
@@ -80,6 +81,7 @@ add_task(async function test_closedTabGroupSkipsNotWorthSavingTabs() {
   );
 
   await BrowserTestUtils.closeWindow(win);
+  forgetClosedWindows();
   await SessionStoreTestUtils.promiseBrowserState(ORIG_STATE);
 });
 
@@ -155,6 +157,7 @@ add_task(async function test_closedTabCountsRespectTabGroups() {
     "Session store correctly reports closed tab count for closed windows"
   );
 
+  forgetClosedWindows();
   await SessionStoreTestUtils.promiseBrowserState(ORIG_STATE);
 });
 
@@ -185,5 +188,6 @@ add_task(async function test_purgingSessionHistoryClearsClosedTabGroups() {
   );
 
   await BrowserTestUtils.closeWindow(win);
+  forgetClosedWindows();
   await SessionStoreTestUtils.promiseBrowserState(ORIG_STATE);
 });

@@ -132,4 +132,5 @@ add_task(async function test_RestoreMultipleGroups() {
   );
 
   await BrowserTestUtils.closeWindow(win);
+  forgetClosedWindows();
 });
