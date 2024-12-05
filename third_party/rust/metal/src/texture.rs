@@ -42,6 +42,7 @@ bitflags::bitflags! {
         const ShaderWrite     = 0x0002;
         const RenderTarget    = 0x0004;
         const PixelFormatView = 0x0010;
+        const ShaderAtomic    = 0x0020;
     }
 }
 

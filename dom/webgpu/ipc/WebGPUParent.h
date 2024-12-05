@@ -179,8 +179,8 @@ class WebGPUParent final : public PWebGPUParent, public SupportsWeakPtr {
   }
 
  private:
-  static void MapCallback(ffi::WGPUBufferMapAsyncStatus aStatus,
-                          uint8_t* aUserData);
+  static void MapCallback(uint8_t* aUserData,
+                          ffi::WGPUBufferMapAsyncStatus aStatus);
   static void DeviceLostCallback(uint8_t* aUserData, uint8_t aReason,
                                  const char* aMessage);
   void DeallocBufferShmem(RawId aBufferId);
@@ -226,16 +226,6 @@ class WebGPUParent final : public PWebGPUParent, public SupportsWeakPtr {
 
   // Shared handle of wgpu device's fence.
   std::unordered_map<RawId, RefPtr<gfx::FileHandleWrapper>> mDeviceFenceHandles;
-
-  // Store DeviceLostRequest structs for each device as unique_ptrs mapped
-  // to their device ids. We keep these unique_ptrs alive as long as the
-  // device is alive.
-  struct DeviceLostRequest {
-    WeakPtr<WebGPUParent> mParent;
-    RawId mDeviceId;
-  };
-  std::unordered_map<RawId, std::unique_ptr<DeviceLostRequest>>
-      mDeviceLostRequests;
 };
 
 }  // namespace webgpu

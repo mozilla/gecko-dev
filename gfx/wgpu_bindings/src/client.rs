@@ -4,8 +4,8 @@
 
 use crate::{
     cow_label, error::HasErrorBufferType, wgpu_string, AdapterInformation, ByteBuf,
-    CommandEncoderAction, DeviceAction, DropAction, ImageDataLayout, ImplicitLayout,
-    QueueWriteAction, RawString, TextureAction,
+    CommandEncoderAction, DeviceAction, DropAction, ImplicitLayout, QueueWriteAction, RawString,
+    TexelCopyBufferLayout, TextureAction,
 };
 
 use crate::SwapChainId;
@@ -1208,15 +1208,15 @@ pub unsafe extern "C" fn wgpu_command_encoder_copy_buffer_to_buffer(
 
 #[no_mangle]
 pub unsafe extern "C" fn wgpu_command_encoder_copy_texture_to_buffer(
-    src: wgc::command::ImageCopyTexture,
+    src: wgc::command::TexelCopyTextureInfo,
     dst_buffer: wgc::id::BufferId,
-    dst_layout: &ImageDataLayout,
+    dst_layout: &TexelCopyBufferLayout,
     size: wgt::Extent3d,
     bb: &mut ByteBuf,
 ) {
     let action = CommandEncoderAction::CopyTextureToBuffer {
         src,
-        dst: wgc::command::ImageCopyBuffer {
+        dst: wgc::command::TexelCopyBufferInfo {
             buffer: dst_buffer,
             layout: dst_layout.into_wgt(),
         },
@@ -1228,13 +1228,13 @@ pub unsafe extern "C" fn wgpu_command_encoder_copy_texture_to_buffer(
 #[no_mangle]
 pub unsafe extern "C" fn wgpu_command_encoder_copy_buffer_to_texture(
     src_buffer: wgc::id::BufferId,
-    src_layout: &ImageDataLayout,
-    dst: wgc::command::ImageCopyTexture,
+    src_layout: &TexelCopyBufferLayout,
+    dst: wgc::command::TexelCopyTextureInfo,
     size: wgt::Extent3d,
     bb: &mut ByteBuf,
 ) {
     let action = CommandEncoderAction::CopyBufferToTexture {
-        src: wgc::command::ImageCopyBuffer {
+        src: wgc::command::TexelCopyBufferInfo {
             buffer: src_buffer,
             layout: src_layout.into_wgt(),
         },
@@ -1246,8 +1246,8 @@ pub unsafe extern "C" fn wgpu_command_encoder_copy_buffer_to_texture(
 
 #[no_mangle]
 pub unsafe extern "C" fn wgpu_command_encoder_copy_texture_to_texture(
-    src: wgc::command::ImageCopyTexture,
-    dst: wgc::command::ImageCopyTexture,
+    src: wgc::command::TexelCopyTextureInfo,
+    dst: wgc::command::TexelCopyTextureInfo,
     size: wgt::Extent3d,
     bb: &mut ByteBuf,
 ) {
@@ -1324,8 +1324,8 @@ pub unsafe extern "C" fn wgpu_queue_write_buffer(
 
 #[no_mangle]
 pub unsafe extern "C" fn wgpu_queue_write_texture(
-    dst: wgt::ImageCopyTexture<id::TextureId>,
-    layout: ImageDataLayout,
+    dst: wgt::TexelCopyTextureInfo<id::TextureId>,
+    layout: TexelCopyBufferLayout,
     size: wgt::Extent3d,
     bb: &mut ByteBuf,
 ) {

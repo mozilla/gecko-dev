@@ -3295,9 +3295,10 @@ delta = "22.0.0 -> 23.0.0"
 who = [
     "Jim Blandy <jimb@red-bean.com>",
     "Erich Gubler <erichdongubler@gmail.com>",
+    "Teodor Tanasoaia <ttanasoaia@mozilla.com>",
 ]
 criteria = "safe-to-deploy"
-delta = "23.0.0 -> 23.0.0@git:47bfede63f82e09f5e50e9735c6d98dd19403d3c"
+delta = "23.0.0 -> 23.0.0@git:66d51b6059127b81c7385ec3f2d49c3e81f76f0e"
 importable = false
 
 [[audits.net2]]
@@ -5414,18 +5415,19 @@ criteria = "safe-to-deploy"
 delta = "22.0.0 -> 23.0.0"
 
 [[audits.wgpu-core]]
-who = [
-    "Jim Blandy <jimb@red-bean.com>",
-    "Erich Gubler <erichdongubler@gmail.com>",
-]
-criteria = "safe-to-deploy"
-delta = "23.0.0 -> 23.0.0@git:47bfede63f82e09f5e50e9735c6d98dd19403d3c"
-importable = false
-
-[[audits.wgpu-core]]
 who = "Erich Gubler <erichdongubler@gmail.com>"
 criteria = "safe-to-deploy"
 delta = "23.0.0 -> 23.0.1"
+
+[[audits.wgpu-core]]
+who = [
+    "Jim Blandy <jimb@red-bean.com>",
+    "Erich Gubler <erichdongubler@gmail.com>",
+    "Teodor Tanasoaia <ttanasoaia@mozilla.com>",
+]
+criteria = "safe-to-deploy"
+delta = "23.0.1 -> 23.0.1@git:66d51b6059127b81c7385ec3f2d49c3e81f76f0e"
+importable = false
 
 [[audits.wgpu-hal]]
 who = "Dzmitry Malyshau <kvark@fastmail.com>"
@@ -5496,18 +5498,19 @@ criteria = "safe-to-deploy"
 delta = "22.0.0 -> 23.0.0"
 
 [[audits.wgpu-hal]]
-who = [
-    "Jim Blandy <jimb@red-bean.com>",
-    "Erich Gubler <erichdongubler@gmail.com>",
-]
-criteria = "safe-to-deploy"
-delta = "23.0.0 -> 23.0.0@git:47bfede63f82e09f5e50e9735c6d98dd19403d3c"
-importable = false
-
-[[audits.wgpu-hal]]
 who = "Erich Gubler <erichdongubler@gmail.com>"
 criteria = "safe-to-deploy"
 delta = "23.0.0 -> 23.0.1"
+
+[[audits.wgpu-hal]]
+who = [
+    "Jim Blandy <jimb@red-bean.com>",
+    "Erich Gubler <erichdongubler@gmail.com>",
+    "Teodor Tanasoaia <ttanasoaia@mozilla.com>",
+]
+criteria = "safe-to-deploy"
+delta = "23.0.1 -> 23.0.1@git:66d51b6059127b81c7385ec3f2d49c3e81f76f0e"
+importable = false
 
 [[audits.wgpu-types]]
 who = "Dzmitry Malyshau <kvark@fastmail.com>"
@@ -5581,9 +5584,10 @@ delta = "22.0.0 -> 23.0.0"
 who = [
     "Jim Blandy <jimb@red-bean.com>",
     "Erich Gubler <erichdongubler@gmail.com>",
+    "Teodor Tanasoaia <ttanasoaia@mozilla.com>",
 ]
 criteria = "safe-to-deploy"
-delta = "23.0.0 -> 23.0.0@git:47bfede63f82e09f5e50e9735c6d98dd19403d3c"
+delta = "23.0.0 -> 23.0.0@git:66d51b6059127b81c7385ec3f2d49c3e81f76f0e"
 importable = false
 
 [[audits.whatsys]]

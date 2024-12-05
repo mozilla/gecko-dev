@@ -24,7 +24,7 @@ GPU_IMPL_JS_WRAP(CommandEncoder)
 
 void CommandEncoder::ConvertTextureDataLayoutToFFI(
     const dom::GPUTexelCopyBufferLayout& aLayout,
-    ffi::WGPUImageDataLayout* aLayoutFFI) {
+    ffi::WGPUTexelCopyBufferLayout* aLayoutFFI) {
   *aLayoutFFI = {};
   aLayoutFFI->offset = aLayout.mOffset;
 
@@ -43,7 +43,7 @@ void CommandEncoder::ConvertTextureDataLayoutToFFI(
 
 void CommandEncoder::ConvertTextureCopyViewToFFI(
     const dom::GPUTexelCopyTextureInfo& aCopy,
-    ffi::WGPUImageCopyTexture* aViewFFI) {
+    ffi::WGPUTexelCopyTextureInfo* aViewFFI) {
   *aViewFFI = {};
   aViewFFI->texture = aCopy.mTexture->mId;
   aViewFFI->mip_level = aCopy.mMipLevel;
@@ -63,9 +63,9 @@ void CommandEncoder::ConvertTextureCopyViewToFFI(
   }
 }
 
-static ffi::WGPUImageCopyTexture ConvertTextureCopyView(
+static ffi::WGPUTexelCopyTextureInfo ConvertTextureCopyView(
     const dom::GPUTexelCopyTextureInfo& aCopy) {
-  ffi::WGPUImageCopyTexture view = {};
+  ffi::WGPUTexelCopyTextureInfo view = {};
   CommandEncoder::ConvertTextureCopyViewToFFI(aCopy, &view);
   return view;
 }
@@ -128,7 +128,7 @@ void CommandEncoder::CopyBufferToTexture(
   }
 
   ipc::ByteBuf bb;
-  ffi::WGPUImageDataLayout src_layout = {};
+  ffi::WGPUTexelCopyBufferLayout src_layout = {};
   CommandEncoder::ConvertTextureDataLayoutToFFI(aSource, &src_layout);
   ffi::wgpu_command_encoder_copy_buffer_to_texture(
       aSource.mBuffer->mId, &src_layout, ConvertTextureCopyView(aDestination),
@@ -146,7 +146,7 @@ void CommandEncoder::CopyTextureToBuffer(
   }
 
   ipc::ByteBuf bb;
-  ffi::WGPUImageDataLayout dstLayout = {};
+  ffi::WGPUTexelCopyBufferLayout dstLayout = {};
   CommandEncoder::ConvertTextureDataLayoutToFFI(aDestination, &dstLayout);
   ffi::wgpu_command_encoder_copy_texture_to_buffer(
       ConvertTextureCopyView(aSource), aDestination.mBuffer->mId, &dstLayout,

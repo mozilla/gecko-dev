@@ -1206,7 +1206,7 @@ pub trait CommandEncoder: WasmNotSendSync + fmt::Debug {
     #[cfg(webgl)]
     unsafe fn copy_external_image_to_texture<T>(
         &mut self,
-        src: &wgt::ImageCopyExternalImage,
+        src: &wgt::CopyExternalImageSourceInfo,
         dst: &<Self::A as Api>::Texture,
         dst_premultiplication: bool,
         regions: T,
@@ -1544,7 +1544,7 @@ bitflags!(
         const SAMPLED_MINMAX = 1 << 2;
 
         /// Format can be used as storage with write-only access.
-        const STORAGE = 1 << 3;
+        const STORAGE_WRITE = 1 << 3;
         /// Format can be used as storage with read and read/write access.
         const STORAGE_READ_WRITE = 1 << 4;
         /// Format can be used as storage with atomics.
@@ -1606,7 +1606,7 @@ impl FormatAspects {
 
     /// Returns `true` if only one flag is set
     pub fn is_one(&self) -> bool {
-        self.bits().count_ones() == 1
+        self.bits().is_power_of_two()
     }
 
     pub fn map(&self) -> wgt::TextureAspect {
@@ -2296,7 +2296,7 @@ pub struct TextureCopy {
 
 #[derive(Clone, Debug)]
 pub struct BufferTextureCopy {
-    pub buffer_layout: wgt::ImageDataLayout,
+    pub buffer_layout: wgt::TexelCopyBufferLayout,
     pub texture_base: TextureCopyBase,
     pub size: CopyExtent,
 }
