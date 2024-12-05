@@ -413,6 +413,9 @@ interface nsIXPCComponents_Results {
   /** The connection was established, but no data was ever received */
   NS_ERROR_NET_RESET: 0x804b0014;
 
+  /** The connection was established, but the browser received an error response from the server */
+  NS_ERROR_NET_ERROR_RESPONSE: 0x804b0023;
+
   /** The connection was established, but the data transfer was interrupted */
   NS_ERROR_NET_INTERRUPT: 0x804b0047;
 
@@ -665,3 +668,5 @@ interface nsIXPCComponents_Results {
   /** The existing UserChoice Hash was verified, but we're on an older, unsupported Windows build, so do not attempt to update the UserChoice hash. */
   NS_ERROR_WDBA_BUILD: 0x80720004;
 }
+
+type nsIXPCComponents_Values = nsIXPCComponents_Results[keyof nsIXPCComponents_Results];
