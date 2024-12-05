@@ -55,6 +55,8 @@ class nsMemoryReporterManager final : public nsIMemoryReporterManager,
     return imgr.forget().downcast<nsMemoryReporterManager>();
   }
 
+  typedef AutoTArray<nsCOMPtr<nsIMemoryReporter>, 32> StrongReportersArray;
+
   typedef nsTHashMap<nsRefPtrHashKey<nsIMemoryReporter>, bool>
       StrongReportersTable;
   typedef nsTHashMap<nsPtrHashKey<nsIMemoryReporter>, bool> WeakReportersTable;
@@ -236,12 +238,25 @@ class nsMemoryReporterManager final : public nsIMemoryReporterManager,
   mozilla::Mutex mMutex;
   bool mIsRegistrationBlocked MOZ_GUARDED_BY(mMutex);
 
-  StrongReportersTable* mStrongReporters MOZ_GUARDED_BY(mMutex);
-  WeakReportersTable* mWeakReporters MOZ_GUARDED_BY(mMutex);
+  // This array is used for strong reporters that are not supposed to ever be
+  // unregistered before the manager goes away. Currently this is only used
+  // for reporters the manager defines itself. These reporters must be sync!
+  mozilla::UniquePtr<StrongReportersArray> mStrongEternalReporters
+      MOZ_GUARDED_BY(mMutex);
 
-  // These two are only used for testing purposes.
-  StrongReportersTable* mSavedStrongReporters MOZ_GUARDED_BY(mMutex);
-  WeakReportersTable* mSavedWeakReporters MOZ_GUARDED_BY(mMutex);
+  // These hash tables are used for all additional reporters registered via
+  // our nsIMemoryReporterManager interface.
+  mozilla::UniquePtr<StrongReportersTable> mStrongReporters
+      MOZ_GUARDED_BY(mMutex);
+  mozilla::UniquePtr<WeakReportersTable> mWeakReporters MOZ_GUARDED_BY(mMutex);
+
+  // These three are only used for testing purposes.
+  mozilla::UniquePtr<StrongReportersArray> mSavedStrongEternalReporters
+      MOZ_GUARDED_BY(mMutex);
+  mozilla::UniquePtr<StrongReportersTable> mSavedStrongReporters
+      MOZ_GUARDED_BY(mMutex);
+  mozilla::UniquePtr<WeakReportersTable> mSavedWeakReporters
+      MOZ_GUARDED_BY(mMutex);
 
   uint32_t mNextGeneration;  // MainThread only
 
