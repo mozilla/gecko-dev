@@ -294,6 +294,8 @@ class _QuickSuggestTestUtils {
       lazy.UrlbarPrefs.clear("quicksuggest.dataCollection.enabled");
     }
 
+    await lazy.QuickSuggest.rustBackend._test_setRemoteSettingsConfig(null);
+
     this.#log("#uninitQuickSuggest", "Done");
   }
 
