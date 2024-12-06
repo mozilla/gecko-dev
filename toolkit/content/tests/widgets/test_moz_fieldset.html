@@ -58,6 +58,73 @@
         "aria-describedby removed when no description"
       );
     });
+
+    add_task(async function testMozFieldsetSupportLink() {
+      render(html`
+        <moz-fieldset label="Test label" description="Test description" support-page="test">
+          <label><input type="checkbox"> First setting</label>
+          <label><input type="checkbox"> Second setting</label>
+          <label><input type="checkbox"> Third setting</label>
+        </moz-fieldset>
+      `, renderTarget);
+      let fieldset = renderTarget.querySelector("moz-fieldset");
+      await fieldset.updateComplete;
+
+      let legendEl = fieldset.shadowRoot.querySelector("legend");
+      let fieldsetEl = fieldset.shadowRoot.querySelector("fieldset");
+      let supportLinkEl = fieldsetEl.querySelector("a[is='moz-support-link']");
+      ok(supportLinkEl, "support-link element should be rendered");
+      is(supportLinkEl.getAttribute("support-page"), "test", "'support-page' attribute is set");
+      is(supportLinkEl.getAttribute("part"), "support-link", "'part' attribute is set");
+
+      // Update the support-page attribute
+      fieldset.supportPage = "foo";
+      await fieldset.updateComplete;
+      is(supportLinkEl.getAttribute("support-page"), "foo", "'support-page' attribute should update");
+
+      // Remove the support-page attribute
+      fieldset.supportPage = null;
+      await fieldset.updateComplete;
+      ok(!fieldsetEl.querySelector("a[is='moz-support-link']"), "support link element should be removed");
+
+      // Verify placement of support link
+      fieldset.supportPage = "foo";
+      fieldset.description = "";
+      await fieldset.updateComplete;
+      // The support link is re-rendered, so we need an updated reference
+      supportLinkEl = fieldsetEl.querySelector("a[is='moz-support-link']");
+      ok(supportLinkEl.previousElementSibling == legendEl, "support link element should be inline after the legend element if there's no description");
+
+      fieldset.description = "a test description";
+      await fieldset.updateComplete;
+      let descriptionEl = fieldset.shadowRoot.querySelector("#description");
+      // The support link is re-rendered, so we need an updated reference
+      supportLinkEl = fieldsetEl.querySelector("a[is='moz-support-link']");
+      ok(supportLinkEl.previousElementSibling == descriptionEl, "support link element should be placed after the description if there's one");
+
+      // Verify that slotted support link's placement renders as expected
+      fieldset.removeAttribute("support-page");
+      let slottedSupportLink = document.createElement("div");
+      slottedSupportLink.slot = "support-link";
+      slottedSupportLink.innerText = "slotted element";
+      fieldset.appendChild(slottedSupportLink);
+      await fieldset.updateComplete;
+
+      ok(!fieldset.getAttribute("support-page"), "There should not be a support-page attribute");
+      let slottedEl = fieldset.shadowRoot.querySelector("slot[name='support-link']");
+      ok(slottedEl, "Slotted support link should exist");
+      ok(slottedEl.previousElementSibling == descriptionEl, "Slotted support link element should be placed after the description if there's one");
+
+      fieldset.description = "";
+      await fieldset.updateComplete;
+      fieldset.appendChild(slottedSupportLink);
+      await fieldset.updateComplete;
+      slottedEl = fieldset.shadowRoot.querySelector("slot[name='support-link']");
+      ok(slottedEl, "Slotted support link should exist");
+      ok(slottedEl.previousElementSibling == legendEl, "Slotted support link element should be placed inline with the legend when there is no description");
+
+    });
+
   </script>
 </head>
 <body>

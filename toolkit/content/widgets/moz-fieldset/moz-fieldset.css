@@ -9,19 +9,26 @@
 }
 
 fieldset {
-  border: none;
-  padding: 0;
-  margin: 0;
+  display: contents;
 }
 
 legend {
   padding: 0;
   font-weight: var(--font-weight-bold);
+  display: inline-block;
+
+  &:has(+ #description) {
+    display: block;
+  }
 }
 
 #description {
   margin: 0;
   margin-block-start: var(--space-xxsmall);
+  & + a,
+  & + ::slotted([slot="support-link"]) {
+    font-size: var(--font-size-small);
+  }
 }
 
 #inputs {
@@ -29,4 +36,9 @@ legend {
   flex-direction: column;
   gap: var(--space-large);
   margin-top: var(--space-small);
+}
+
+a[is="moz-support-link"],
+::slotted([slot="support-link"]) {
+  white-space: nowrap;
 }
