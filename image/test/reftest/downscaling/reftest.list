@@ -180,7 +180,7 @@ fuzzy(0-20,0-999) != downscale-2f.html?205,53,bottom about:blank
 
 # Skip on Android because it runs reftests via http, and moz-icon isn't
 # accessible from http/https origins anymore.
-fuzzy(0-53,0-6391) fuzzy-if(appleSilicon,0-20,0-11605) fuzzy-if(gtkWidget,18-19,5502-5568) skip-if(Android) == downscale-moz-icon-1.html downscale-moz-icon-1-ref.html # gtkWidget Bug 1592059
+fuzzy(0-53,0-6391) skip-if(Android) fuzzy-if(cocoaWidget&&/^14\.70$/.test(os_version)&&isDebugBuild,20-21,11511-12086) fuzzy-if(cocoaWidget&&/^14\.70$/.test(os_version)&&optimized&&!swgl,20-21,11511-12086) fuzzy-if(appleSilicon,0-20,0-11605) fuzzy-if(gtkWidget,18-19,5502-5568) == downscale-moz-icon-1.html downscale-moz-icon-1-ref.html # gtkWidget Bug 1592059, Bug 1934897
 
 == downscale-png.html?16,16,interlaced downscale-png.html?16,16,normal
 == downscale-png.html?24,24,interlaced downscale-png.html?24,24,normal
