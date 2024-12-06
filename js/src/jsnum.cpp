@@ -948,7 +948,7 @@ static size_t Int32ToCString(Int32ToCStringBuf* cbuf, T i) {
 }
 
 template <AllowGC allowGC>
-static JSString* NumberToStringWithBase(JSContext* cx, double d, int base);
+static JSString* NumberToStringWithBase(JSContext* cx, double d, int32_t base);
 
 static bool num_toString(JSContext* cx, unsigned argc, Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
@@ -1659,60 +1659,68 @@ char* js::Uint32ToHexCString(Int32ToCStringBuf* cbuf, uint32_t value,
 }
 
 template <AllowGC allowGC>
-static JSString* NumberToStringWithBase(JSContext* cx, double d, int base) {
+static JSString* Int32ToStringWithBase(JSContext* cx, int32_t i, int32_t base) {
   MOZ_ASSERT(2 <= base && base <= 36);
 
-  Realm* realm = cx->realm();
+  bool isBase10Int = (base == 10);
+  if (isBase10Int) {
+    static_assert(StaticStrings::INT_STATIC_LIMIT > 10 * 10);
+    if (StaticStrings::hasInt(i)) {
+      return cx->staticStrings().getInt(i);
+    }
+  } else if (unsigned(i) < unsigned(base)) {
+    if (i < 10) {
+      return cx->staticStrings().getInt(i);
+    }
+    char16_t c = 'a' + i - 10;
+    MOZ_ASSERT(StaticStrings::hasUnit(c));
+    return cx->staticStrings().getUnit(c);
+  } else if (unsigned(i) < unsigned(base * base)) {
+    static constexpr char digits[] = "0123456789abcdefghijklmnopqrstuvwxyz";
+    char chars[] = {digits[i / base], digits[i % base]};
+    JSString* str = cx->staticStrings().lookup(chars, 2);
+    MOZ_ASSERT(str);
+    return str;
+  }
+
+  auto& dtoaCache = cx->realm()->dtoaCache;
+  double d = i;
+  if (JSLinearString* str = dtoaCache.lookup(base, d)) {
+    return str;
+  }
+
+  // Plus three to include the largest number, the sign, and the terminating
+  // null character.
+  constexpr size_t MaximumLength = std::numeric_limits<int32_t>::digits + 3;
+
+  char buf[MaximumLength] = {};
+  size_t numStrLen = Int32ToCStringWithBase(buf, i, base);
+  MOZ_ASSERT(numStrLen == strlen(buf));
+
+  JSLinearString* s = NewStringCopyN<allowGC>(cx, buf, numStrLen);
+  if (!s) {
+    return nullptr;
+  }
+
+  if (isBase10Int && i >= 0) {
+    s->maybeInitializeIndexValue(i);
+  }
+
+  dtoaCache.cache(base, d, s);
+  return s;
+}
+
+template <AllowGC allowGC>
+static JSString* NumberToStringWithBase(JSContext* cx, double d, int32_t base) {
+  MOZ_ASSERT(2 <= base && base <= 36);
 
   int32_t i;
   if (NumberEqualsInt32(d, &i)) {
-    bool isBase10Int = (base == 10);
-    if (isBase10Int) {
-      static_assert(StaticStrings::INT_STATIC_LIMIT > 10 * 10);
-      if (StaticStrings::hasInt(i)) {
-        return cx->staticStrings().getInt(i);
-      }
-    } else if (unsigned(i) < unsigned(base)) {
-      if (i < 10) {
-        return cx->staticStrings().getInt(i);
-      }
-      char16_t c = 'a' + i - 10;
-      MOZ_ASSERT(StaticStrings::hasUnit(c));
-      return cx->staticStrings().getUnit(c);
-    } else if (unsigned(i) < unsigned(base * base)) {
-      static constexpr char digits[] = "0123456789abcdefghijklmnopqrstuvwxyz";
-      char chars[] = {digits[i / base], digits[i % base]};
-      JSString* str = cx->staticStrings().lookup(chars, 2);
-      MOZ_ASSERT(str);
-      return str;
-    }
-
-    if (JSLinearString* str = realm->dtoaCache.lookup(base, d)) {
-      return str;
-    }
-
-    // Plus three to include the largest number, the sign, and the terminating
-    // null character.
-    constexpr size_t MaximumLength = std::numeric_limits<int32_t>::digits + 3;
-
-    char buf[MaximumLength] = {};
-    size_t numStrLen = Int32ToCStringWithBase(buf, i, base);
-    MOZ_ASSERT(numStrLen == strlen(buf));
-
-    JSLinearString* s = NewStringCopyN<allowGC>(cx, buf, numStrLen);
-    if (!s) {
-      return nullptr;
-    }
-
-    if (isBase10Int && i >= 0) {
-      s->maybeInitializeIndexValue(i);
-    }
-
-    realm->dtoaCache.cache(base, d, s);
-    return s;
+    return ::Int32ToStringWithBase<allowGC>(cx, i, base);
   }
 
-  if (JSLinearString* str = realm->dtoaCache.lookup(base, d)) {
+  auto& dtoaCache = cx->realm()->dtoaCache;
+  if (JSLinearString* str = dtoaCache.lookup(base, d)) {
     return str;
   }
 
@@ -1749,7 +1757,7 @@ static JSString* NumberToStringWithBase(JSContext* cx, double d, int base) {
     }
   }
 
-  realm->dtoaCache.cache(base, d, s);
+  dtoaCache.cache(base, d, s);
   return s;
 }
 
@@ -1823,7 +1831,7 @@ JSLinearString* js::IndexToString(JSContext* cx, uint32_t index) {
 
 JSString* js::Int32ToStringWithBase(JSContext* cx, int32_t i, int32_t base,
                                     bool lowerCase) {
-  Rooted<JSString*> str(cx, NumberToStringWithBase<CanGC>(cx, double(i), base));
+  Rooted<JSString*> str(cx, ::Int32ToStringWithBase<CanGC>(cx, i, base));
   if (!str) {
     return nullptr;
   }
