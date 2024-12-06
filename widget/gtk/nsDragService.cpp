@@ -487,6 +487,22 @@ void DragData::ConvertToMozURIList() {
 DragData::DragData(GdkAtom aDataFlavor, gchar** aDragUris)
     : mDataFlavor(aDataFlavor), mAsURIData(true), mDragUris(aDragUris) {}
 
+bool DragData::IsDataValid() const {
+  if (mDragData) {
+    if (IsTextFlavor() || IsURIFlavor()) {
+      return mDragData.get() && mDragDataLen;
+    }
+    MOZ_DIAGNOSTIC_ASSERT(false, "DragData::IsDataValid(): Unknow MIME type.");
+    return false;
+  } else if (mDragUris) {
+    return !!(mDragUris.get()[0]);
+  } else if (mUris.Length()) {
+    return mUris.Length();
+  } else {
+    return false;
+  }
+}
+
 #ifdef MOZ_LOGGING
 void DragData::Print() const {
   if (mDragData) {
@@ -1486,7 +1502,11 @@ void nsDragSession::TargetDataReceived(GtkWidget* aWidget,
 
   RefPtr<DragData> dragData;
 
-  auto cacheClear = MakeScopeExit([&] {
+  auto saveData = MakeScopeExit([&] {
+    if (dragData && !dragData->IsDataValid()) {
+      dragData = nullptr;
+    }
+
     if (!dragData) {
       LOGDRAGSERVICE("  failed to get data, MIME %s",
                      GUniquePtr<gchar>(gdk_atom_name(target)).get());
@@ -1501,7 +1521,10 @@ void nsDragSession::TargetDataReceived(GtkWidget* aWidget,
   if (target == sPortalFileAtom || target == sPortalFileTransferAtom) {
     const guchar* data = gtk_selection_data_get_data(aSelectionData);
     if (!data || data[0] == '\0') {
-      LOGDRAGSERVICE(" TargetDataReceived() failed");
+      LOGDRAGSERVICE(
+          "nsDragSession::TargetDataReceived() failed to get file portal data "
+          "(%s)",
+          GUniquePtr<gchar>(gdk_atom_name(target)).get());
       return;
     }
 
