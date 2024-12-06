@@ -361,7 +361,7 @@
 <groupbox id="nonTechnicalPrivacyGroup" data-category="panePrivacy" hidden="true">
   <label id="nonTechnicalPrivacyHeader"><html:h2 data-l10n-id="non-technical-privacy-header"/></label>
   <vbox id="nonTechnicalPrivacyBox">
-    <hbox id="globalPrivacyControlBox" flex="1" align="center" hidden="true">
+    <hbox id="globalPrivacyControlBox" flex="1" align="center">
       <checkbox id="globalPrivacyControlCheckbox"
               class="tail-with-learn-more"
               preference="privacy.globalprivacycontrol.enabled"
@@ -371,20 +371,7 @@
           id="globalPrivacyControlLearnMoreLink"
           support-page="global-privacy-control" />
     </hbox>
-    <vbox id="legacyDoNotTrackBox">
-      <label>
-        <label class="tail-with-learn-more" data-l10n-id="do-not-track-description" id="doNotTrackDesc"></label>
-      <html:a is="moz-support-link"
-              class="learnMore"
-              support-page="how-do-i-turn-do-not-track-feature"
-      />
-      </label>
-      <radiogroup id="doNotTrackRadioGroup" aria-labelledby="doNotTrackDesc" preference="privacy.donottrackheader.enabled">
-        <radio value="true" data-l10n-id="do-not-track-option-always"/>
-        <radio value="false" data-l10n-id="do-not-track-option-default-content-blocking-known"/>
-      </radiogroup>
-    </vbox>
-    <hbox id="doNotTrackBox" flex="1" align="center">
+    <hbox id="doNotTrackBox" flex="1" align="center" hidden="true">
       <html:a is="moz-support-link"
           id="doNotTrackRemoval"
           support-page="how-do-i-turn-do-not-track-feature"

@@ -9,10 +9,9 @@ const FEATURE_PREF = "privacy.globalprivacycontrol.functionality.enabled";
 const MODE_PREF = "privacy.globalprivacycontrol.enabled";
 const DNT_PREF = "privacy.donottrackheader.enabled";
 
-const SECTION_ID = "nonTechnicalPrivacyBox";
+const SECTION_ID = "nonTechnicalPrivacyGroup";
 const GPC_ID = "globalPrivacyControlBox";
 const GPC_CHECKBOX_ID = "globalPrivacyControlCheckbox";
-const OLD_DNT_ID = "legacyDoNotTrackBox";
 const NEW_DNT_ID = "doNotTrackBox";
 
 // Test the section is hidden on page load if the feature pref is disabled.
@@ -28,12 +27,8 @@ add_task(async function test_section_hidden_when_feature_flag_disabled() {
   await BrowserTestUtils.withNewTab(
     { gBrowser, url: "about:preferences#privacy" },
     async function (browser) {
-      let gpc = browser.contentDocument.getElementById(GPC_ID);
-      is_element_hidden(gpc, "#globalPrivacyControlBox is hidden");
-      let new_dnt = browser.contentDocument.getElementById(NEW_DNT_ID);
-      is_element_hidden(new_dnt, "#doNotTrackBox is hidden");
-      let old_dnt = browser.contentDocument.getElementById(OLD_DNT_ID);
-      is_element_visible(old_dnt, "#doNotTrackBox is shown");
+      let section = browser.contentDocument.getElementById(SECTION_ID);
+      is_element_hidden(section, "#nonTechnicalPrivacyGroup is hidden");
     }
   );
 
@@ -58,8 +53,8 @@ add_task(async function test_section_shown_when_feature_flag_enabled() {
       is_element_visible(gpc, "#globalPrivacyControlBox is shown");
       let new_dnt = browser.contentDocument.getElementById(NEW_DNT_ID);
       is_element_visible(new_dnt, "#doNotTrackBox is shown");
-      let old_dnt = browser.contentDocument.getElementById(OLD_DNT_ID);
-      is_element_hidden(old_dnt, "#doNotTrackBox is hidden");
+      let section = browser.contentDocument.getElementById(SECTION_ID);
+      is_element_visible(section, "#nonTechnicalPrivacyGroup is shown");
     }
   );
 
@@ -83,8 +78,6 @@ add_task(async function test_section_hide_dnt_link_when_disabled() {
       is_element_visible(gpc, "#globalPrivacyControlBox is shown");
       let new_dnt = browser.contentDocument.getElementById(NEW_DNT_ID);
       is_element_hidden(new_dnt, "#doNotTrackBox is hidden");
-      let old_dnt = browser.contentDocument.getElementById(OLD_DNT_ID);
-      is_element_hidden(old_dnt, "#doNotTrackBox is hidden");
     }
   );
 
