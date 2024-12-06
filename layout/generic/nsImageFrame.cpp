@@ -112,7 +112,8 @@ class nsDisplayGradient final : public nsPaintedDisplayItem {
       : nsPaintedDisplayItem(aBuilder, aFrame) {
     MOZ_COUNT_CTOR(nsDisplayGradient);
   }
-  ~nsDisplayGradient() final { MOZ_COUNT_DTOR(nsDisplayGradient); }
+
+  MOZ_COUNTED_DTOR_FINAL(nsDisplayGradient)
 
   nsRect GetBounds(bool* aSnap) const {
     *aSnap = true;

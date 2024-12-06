@@ -266,7 +266,8 @@ class nsDisplayMathMLBar final : public nsPaintedDisplayItem {
       : nsPaintedDisplayItem(aBuilder, aFrame), mRect(aRect) {
     MOZ_COUNT_CTOR(nsDisplayMathMLBar);
   }
-  MOZ_COUNTED_DTOR_OVERRIDE(nsDisplayMathMLBar)
+
+  MOZ_COUNTED_DTOR_FINAL(nsDisplayMathMLBar)
 
   void Paint(nsDisplayListBuilder* aBuilder, gfxContext* aCtx) override;
   NS_DISPLAY_DECL_NAME("MathMLBar", TYPE_MATHML_BAR)

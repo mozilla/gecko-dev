@@ -2449,7 +2449,8 @@ class nsDisplayTreeBody final : public nsPaintedDisplayItem {
       : nsPaintedDisplayItem(aBuilder, aFrame) {
     MOZ_COUNT_CTOR(nsDisplayTreeBody);
   }
-  MOZ_COUNTED_DTOR_OVERRIDE(nsDisplayTreeBody)
+
+  MOZ_COUNTED_DTOR_FINAL(nsDisplayTreeBody)
 
   nsDisplayItemGeometry* AllocateGeometry(
       nsDisplayListBuilder* aBuilder) override {

@@ -59,7 +59,8 @@ class nsDisplayCanvas final : public nsPaintedDisplayItem {
       : nsPaintedDisplayItem(aBuilder, aFrame) {
     MOZ_COUNT_CTOR(nsDisplayCanvas);
   }
-  MOZ_COUNTED_DTOR_OVERRIDE(nsDisplayCanvas)
+
+  MOZ_COUNTED_DTOR_FINAL(nsDisplayCanvas)
 
   NS_DISPLAY_DECL_NAME("nsDisplayCanvas", TYPE_CANVAS)
 

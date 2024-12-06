@@ -433,7 +433,8 @@ class nsDisplayImage final : public nsPaintedDisplayItem {
         mPrevImage(aPrevImage) {
     MOZ_COUNT_CTOR(nsDisplayImage);
   }
-  ~nsDisplayImage() final { MOZ_COUNT_DTOR(nsDisplayImage); }
+
+  MOZ_COUNTED_DTOR_FINAL(nsDisplayImage)
 
   void Paint(nsDisplayListBuilder*, gfxContext* aCtx) final;
 

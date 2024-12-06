@@ -85,7 +85,8 @@ class nsDisplayButtonForeground final : public nsPaintedDisplayItem {
       : nsPaintedDisplayItem(aBuilder, aFrame) {
     MOZ_COUNT_CTOR(nsDisplayButtonForeground);
   }
-  MOZ_COUNTED_DTOR_OVERRIDE(nsDisplayButtonForeground)
+
+  MOZ_COUNTED_DTOR_FINAL(nsDisplayButtonForeground)
 
   void Paint(nsDisplayListBuilder* aBuilder, gfxContext* aCtx) override;
   bool CreateWebRenderCommands(

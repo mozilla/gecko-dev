@@ -132,7 +132,7 @@ class DisplaySVGGeometry final : public DisplaySVGItem {
     MOZ_COUNT_CTOR(DisplaySVGGeometry);
   }
 
-  MOZ_COUNTED_DTOR_OVERRIDE(DisplaySVGGeometry)
+  MOZ_COUNTED_DTOR_FINAL(DisplaySVGGeometry)
 
   NS_DISPLAY_DECL_NAME("DisplaySVGGeometry", TYPE_SVG_GEOMETRY)
 

@@ -470,7 +470,8 @@ class nsDisplayHeaderFooter final : public nsPaintedDisplayItem {
       : nsPaintedDisplayItem(aBuilder, aFrame) {
     MOZ_COUNT_CTOR(nsDisplayHeaderFooter);
   }
-  MOZ_COUNTED_DTOR_OVERRIDE(nsDisplayHeaderFooter)
+
+  MOZ_COUNTED_DTOR_FINAL(nsDisplayHeaderFooter)
 
   virtual void Paint(nsDisplayListBuilder* aBuilder,
                      gfxContext* aCtx) override {

@@ -1317,14 +1317,15 @@ void nsHTMLFramesetBorderFrame::Reflow(nsPresContext* aPresContext,
   FinishAndStoreOverflow(&aDesiredSize, aReflowInput.mStyleDisplay);
 }
 
-class nsDisplayFramesetBorder : public nsPaintedDisplayItem {
+class nsDisplayFramesetBorder final : public nsPaintedDisplayItem {
  public:
   nsDisplayFramesetBorder(nsDisplayListBuilder* aBuilder,
                           nsHTMLFramesetBorderFrame* aFrame)
       : nsPaintedDisplayItem(aBuilder, aFrame) {
     MOZ_COUNT_CTOR(nsDisplayFramesetBorder);
   }
-  MOZ_COUNTED_DTOR_OVERRIDE(nsDisplayFramesetBorder)
+
+  MOZ_COUNTED_DTOR_FINAL(nsDisplayFramesetBorder)
 
   // REVIEW: see old GetFrameForPoint
   // Receives events in its bounds
@@ -1496,13 +1497,14 @@ void nsHTMLFramesetBlankFrame::Reflow(nsPresContext* aPresContext,
   FinishAndStoreOverflow(&aDesiredSize, aReflowInput.mStyleDisplay);
 }
 
-class nsDisplayFramesetBlank : public nsPaintedDisplayItem {
+class nsDisplayFramesetBlank final : public nsPaintedDisplayItem {
  public:
   nsDisplayFramesetBlank(nsDisplayListBuilder* aBuilder, nsIFrame* aFrame)
       : nsPaintedDisplayItem(aBuilder, aFrame) {
     MOZ_COUNT_CTOR(nsDisplayFramesetBlank);
   }
-  MOZ_COUNTED_DTOR_OVERRIDE(nsDisplayFramesetBlank)
+
+  MOZ_COUNTED_DTOR_FINAL(nsDisplayFramesetBlank)
 
   virtual void Paint(nsDisplayListBuilder* aBuilder, gfxContext* aCtx) override;
   NS_DISPLAY_DECL_NAME("FramesetBlank", TYPE_FRAMESET_BLANK)

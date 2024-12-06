@@ -384,7 +384,7 @@ void nsContainerFrame::BuildDisplayListForNonBlockChildren(
   }
 }
 
-class nsDisplaySelectionOverlay : public nsPaintedDisplayItem {
+class nsDisplaySelectionOverlay final : public nsPaintedDisplayItem {
  public:
   /**
    * @param aSelectionValue nsISelectionController::getDisplaySelection.
@@ -395,7 +395,8 @@ class nsDisplaySelectionOverlay : public nsPaintedDisplayItem {
         mSelectionValue(aSelectionValue) {
     MOZ_COUNT_CTOR(nsDisplaySelectionOverlay);
   }
-  MOZ_COUNTED_DTOR_OVERRIDE(nsDisplaySelectionOverlay)
+
+  MOZ_COUNTED_DTOR_FINAL(nsDisplaySelectionOverlay)
 
   virtual void Paint(nsDisplayListBuilder* aBuilder, gfxContext* aCtx) override;
   bool CreateWebRenderCommands(

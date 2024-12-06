@@ -137,7 +137,7 @@ class DisplaySVGImage final : public DisplaySVGItem {
     MOZ_COUNT_CTOR(DisplaySVGImage);
   }
 
-  MOZ_COUNTED_DTOR_OVERRIDE(DisplaySVGImage)
+  MOZ_COUNTED_DTOR_FINAL(DisplaySVGImage)
 
   NS_DISPLAY_DECL_NAME("DisplaySVGImage", TYPE_SVG_IMAGE)
 

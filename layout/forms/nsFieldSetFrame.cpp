@@ -107,7 +107,8 @@ class nsDisplayFieldSetBorder final : public nsPaintedDisplayItem {
       : nsPaintedDisplayItem(aBuilder, aFrame) {
     MOZ_COUNT_CTOR(nsDisplayFieldSetBorder);
   }
-  MOZ_COUNTED_DTOR_OVERRIDE(nsDisplayFieldSetBorder)
+
+  MOZ_COUNTED_DTOR_FINAL(nsDisplayFieldSetBorder)
 
   void Paint(nsDisplayListBuilder* aBuilder, gfxContext* aCtx) override;
   bool CreateWebRenderCommands(

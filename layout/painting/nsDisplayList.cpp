@@ -2927,10 +2927,6 @@ nsDisplayBackgroundImage::nsDisplayBackgroundImage(
   }
 }
 
-nsDisplayBackgroundImage::~nsDisplayBackgroundImage() {
-  MOZ_COUNT_DTOR(nsDisplayBackgroundImage);
-}
-
 void nsDisplayBackgroundImage::Destroy(nsDisplayListBuilder* aBuilder) {
   RemoveDisplayItemFromFrame(aBuilder, mDependentFrame);
   nsPaintedDisplayItem::Destroy(aBuilder);
@@ -4117,10 +4113,6 @@ nsDisplayCaret::nsDisplayCaret(nsDisplayListBuilder* aBuilder,
   SetBuildingRect(mBounds);
 }
 
-#ifdef NS_BUILD_REFCNT_LOGGING
-nsDisplayCaret::~nsDisplayCaret() { MOZ_COUNT_DTOR(nsDisplayCaret); }
-#endif
-
 nsRect nsDisplayCaret::GetBounds(nsDisplayListBuilder* aBuilder,
                                  bool* aSnap) const {
   *aSnap = true;
@@ -4573,8 +4565,6 @@ nsDisplayWrapList::nsDisplayWrapList(nsDisplayListBuilder* aBuilder,
 
   SetBuildingRect(visible);
 }
-
-nsDisplayWrapList::~nsDisplayWrapList() { MOZ_COUNT_DTOR(nsDisplayWrapList); }
 
 void nsDisplayWrapList::HitTest(nsDisplayListBuilder* aBuilder,
                                 const nsRect& aRect, HitTestState* aState,
@@ -5334,10 +5324,6 @@ nsDisplaySubDocument::nsDisplaySubDocument(nsDisplayListBuilder* aBuilder,
   }
 }
 
-nsDisplaySubDocument::~nsDisplaySubDocument() {
-  MOZ_COUNT_DTOR(nsDisplaySubDocument);
-}
-
 void nsDisplaySubDocument::Destroy(nsDisplayListBuilder* aBuilder) {
   RemoveDisplayItemFromFrame(aBuilder, mSubDocFrame);
   nsDisplayOwnLayer::Destroy(aBuilder);
@@ -5964,12 +5950,6 @@ nsDisplayAsyncZoom::nsDisplayAsyncZoom(
       mViewID(aViewID) {
   MOZ_COUNT_CTOR(nsDisplayAsyncZoom);
 }
-
-#ifdef NS_BUILD_REFCNT_LOGGING
-nsDisplayAsyncZoom::~nsDisplayAsyncZoom() {
-  MOZ_COUNT_DTOR(nsDisplayAsyncZoom);
-}
-#endif
 
 void nsDisplayAsyncZoom::HitTest(nsDisplayListBuilder* aBuilder,
                                  const nsRect& aRect, HitTestState* aState,
@@ -8583,12 +8563,6 @@ nsDisplayForeignObject::nsDisplayForeignObject(nsDisplayListBuilder* aBuilder,
     : nsDisplayWrapList(aBuilder, aFrame, aList) {
   MOZ_COUNT_CTOR(nsDisplayForeignObject);
 }
-
-#ifdef NS_BUILD_REFCNT_LOGGING
-nsDisplayForeignObject::~nsDisplayForeignObject() {
-  MOZ_COUNT_DTOR(nsDisplayForeignObject);
-}
-#endif
 
 bool nsDisplayForeignObject::ShouldFlattenAway(nsDisplayListBuilder* aBuilder) {
   return !aBuilder->GetWidgetLayerManager();

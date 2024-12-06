@@ -539,14 +539,14 @@ void nsVideoFrame::UpdateTextTrack() {
 
 namespace mozilla {
 
-class nsDisplayVideo : public nsPaintedDisplayItem {
+class nsDisplayVideo final : public nsPaintedDisplayItem {
  public:
   nsDisplayVideo(nsDisplayListBuilder* aBuilder, nsVideoFrame* aFrame)
       : nsPaintedDisplayItem(aBuilder, aFrame) {
     MOZ_COUNT_CTOR(nsDisplayVideo);
   }
 
-  MOZ_COUNTED_DTOR_OVERRIDE(nsDisplayVideo)
+  MOZ_COUNTED_DTOR_FINAL(nsDisplayVideo)
 
   NS_DISPLAY_DECL_NAME("Video", TYPE_VIDEO)
 

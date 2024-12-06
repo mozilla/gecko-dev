@@ -158,7 +158,7 @@ class nsDisplayTextOverflowMarker final : public nsPaintedDisplayItem {
     MOZ_COUNT_CTOR(nsDisplayTextOverflowMarker);
   }
 
-  MOZ_COUNTED_DTOR_OVERRIDE(nsDisplayTextOverflowMarker)
+  MOZ_COUNTED_DTOR_FINAL(nsDisplayTextOverflowMarker)
 
   virtual nsRect GetBounds(nsDisplayListBuilder* aBuilder,
                            bool* aSnap) const override {

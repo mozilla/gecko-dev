@@ -2714,7 +2714,7 @@ class DisplaySVGText final : public DisplaySVGItem {
     MOZ_COUNT_CTOR(DisplaySVGText);
   }
 
-  MOZ_COUNTED_DTOR_OVERRIDE(DisplaySVGText)
+  MOZ_COUNTED_DTOR_FINAL(DisplaySVGText)
 
   NS_DISPLAY_DECL_NAME("DisplaySVGText", TYPE_SVG_TEXT)
 

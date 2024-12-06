@@ -1732,7 +1732,8 @@ class nsDisplayMathMLSelectionRect final : public nsPaintedDisplayItem {
       : nsPaintedDisplayItem(aBuilder, aFrame), mRect(aRect) {
     MOZ_COUNT_CTOR(nsDisplayMathMLSelectionRect);
   }
-  MOZ_COUNTED_DTOR_OVERRIDE(nsDisplayMathMLSelectionRect)
+
+  MOZ_COUNTED_DTOR_FINAL(nsDisplayMathMLSelectionRect)
 
   virtual void Paint(nsDisplayListBuilder* aBuilder, gfxContext* aCtx) override;
   NS_DISPLAY_DECL_NAME("MathMLSelectionRect", TYPE_MATHML_SELECTION_RECT)
@@ -1761,7 +1762,8 @@ class nsDisplayMathMLCharForeground final : public nsPaintedDisplayItem {
         mIsSelected(aIsSelected) {
     MOZ_COUNT_CTOR(nsDisplayMathMLCharForeground);
   }
-  MOZ_COUNTED_DTOR_OVERRIDE(nsDisplayMathMLCharForeground)
+
+  MOZ_COUNTED_DTOR_FINAL(nsDisplayMathMLCharForeground)
 
   virtual nsRect GetBounds(nsDisplayListBuilder* aBuilder,
                            bool* aSnap) const override {
@@ -1804,7 +1806,8 @@ class nsDisplayMathMLCharDebug final : public nsPaintedDisplayItem {
       : nsPaintedDisplayItem(aBuilder, aFrame), mRect(aRect) {
     MOZ_COUNT_CTOR(nsDisplayMathMLCharDebug);
   }
-  MOZ_COUNTED_DTOR_OVERRIDE(nsDisplayMathMLCharDebug)
+
+  MOZ_COUNTED_DTOR_FINAL(nsDisplayMathMLCharDebug)
 
   virtual void Paint(nsDisplayListBuilder* aBuilder, gfxContext* aCtx) override;
   NS_DISPLAY_DECL_NAME("MathMLCharDebug", TYPE_MATHML_CHAR_DEBUG)

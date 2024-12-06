@@ -26,13 +26,14 @@ static LazyLogModule sColumnSetLog("ColumnSet");
 #define COLUMN_SET_LOG(msg, ...) \
   MOZ_LOG(sColumnSetLog, LogLevel::Debug, (msg, ##__VA_ARGS__))
 
-class nsDisplayColumnRule : public nsPaintedDisplayItem {
+class nsDisplayColumnRule final : public nsPaintedDisplayItem {
  public:
   nsDisplayColumnRule(nsDisplayListBuilder* aBuilder, nsIFrame* aFrame)
       : nsPaintedDisplayItem(aBuilder, aFrame) {
     MOZ_COUNT_CTOR(nsDisplayColumnRule);
   }
-  MOZ_COUNTED_DTOR_OVERRIDE(nsDisplayColumnRule)
+
+  MOZ_COUNTED_DTOR_FINAL(nsDisplayColumnRule)
 
   nsRect GetBounds(nsDisplayListBuilder* aBuilder, bool* aSnap) const override {
     *aSnap = false;

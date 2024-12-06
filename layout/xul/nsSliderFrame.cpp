@@ -236,7 +236,8 @@ class nsDisplaySliderMarks final : public nsPaintedDisplayItem {
       : nsPaintedDisplayItem(aBuilder, aFrame) {
     MOZ_COUNT_CTOR(nsDisplaySliderMarks);
   }
-  MOZ_COUNTED_DTOR_OVERRIDE(nsDisplaySliderMarks)
+
+  MOZ_COUNTED_DTOR_FINAL(nsDisplaySliderMarks)
 
   NS_DISPLAY_DECL_NAME("SliderMarks", TYPE_SLIDER_MARKS)
 

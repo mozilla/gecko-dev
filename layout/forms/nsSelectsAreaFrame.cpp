@@ -72,7 +72,7 @@ namespace mozilla {
  * an option element to the element's own frame.
  * REVIEW: This is what nsSelectsAreaFrame::GetFrameForPoint used to do
  */
-class nsDisplayOptionEventGrabber : public nsDisplayWrapList {
+class nsDisplayOptionEventGrabber final : public nsDisplayWrapList {
  public:
   nsDisplayOptionEventGrabber(nsDisplayListBuilder* aBuilder, nsIFrame* aFrame,
                               nsDisplayItem* aItem)
@@ -132,13 +132,14 @@ class nsOptionEventGrabberWrapper : public nsDisplayItemWrapper {
   }
 };
 
-class nsDisplayListFocus : public nsPaintedDisplayItem {
+class nsDisplayListFocus final : public nsPaintedDisplayItem {
  public:
   nsDisplayListFocus(nsDisplayListBuilder* aBuilder, nsSelectsAreaFrame* aFrame)
       : nsPaintedDisplayItem(aBuilder, aFrame) {
     MOZ_COUNT_CTOR(nsDisplayListFocus);
   }
-  MOZ_COUNTED_DTOR_OVERRIDE(nsDisplayListFocus)
+
+  MOZ_COUNTED_DTOR_FINAL(nsDisplayListFocus)
 
   virtual nsRect GetBounds(nsDisplayListBuilder* aBuilder,
                            bool* aSnap) const override {

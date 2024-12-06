@@ -153,7 +153,7 @@ class nsDisplayCanvasBackgroundColor final : public nsDisplaySolidColorBase {
   void WriteDebugInfo(std::stringstream& aStream) override;
 };
 
-class nsDisplayCanvasBackgroundImage : public nsDisplayBackgroundImage {
+class nsDisplayCanvasBackgroundImage final : public nsDisplayBackgroundImage {
  public:
   explicit nsDisplayCanvasBackgroundImage(nsDisplayListBuilder* aBuilder,
                                           nsIFrame* aFrame,
@@ -172,7 +172,7 @@ class nsDisplayCanvasBackgroundImage : public nsDisplayBackgroundImage {
   NS_DISPLAY_DECL_NAME("CanvasBackgroundImage", TYPE_CANVAS_BACKGROUND_IMAGE)
 };
 
-class nsDisplayCanvasThemedBackground : public nsDisplayThemedBackground {
+class nsDisplayCanvasThemedBackground final : public nsDisplayThemedBackground {
  public:
   nsDisplayCanvasThemedBackground(nsDisplayListBuilder* aBuilder,
                                   nsIFrame* aFrame)
