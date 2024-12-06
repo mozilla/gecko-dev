@@ -130,6 +130,9 @@ else:
 
     html_theme = "sphinx_rtd_theme"
 
+# As we parse the error messages and they can be translated, force
+# the english locale
+os.environ["LANG"] = "C"
 
 html_static_path = ["_static"]
 htmlhelp_basename = "FirefoxTreeDocs"
