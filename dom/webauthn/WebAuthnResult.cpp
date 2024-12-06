@@ -92,19 +92,23 @@ WebAuthnRegisterResult::SetCredPropsRk(bool aCredPropsRk) {
 
 NS_IMETHODIMP
 WebAuthnRegisterResult::GetPrfEnabled(bool* aPrfEnabled) {
-  return NS_ERROR_NOT_IMPLEMENTED;
+  if (mPrf.isSome()) {
+    *aPrfEnabled = mPrf.ref();
+    return NS_OK;
+  }
+  return NS_ERROR_NOT_AVAILABLE;
 }
 
 NS_IMETHODIMP
 WebAuthnRegisterResult::GetPrfResultsFirst(
     nsTArray<uint8_t>& aPrfResultsFirst) {
-  return NS_ERROR_NOT_IMPLEMENTED;
+  return NS_ERROR_NOT_AVAILABLE;
 }
 
 NS_IMETHODIMP
 WebAuthnRegisterResult::GetPrfResultsSecond(
     nsTArray<uint8_t>& aPrfResultsSecond) {
-  return NS_ERROR_NOT_IMPLEMENTED;
+  return NS_ERROR_NOT_AVAILABLE;
 }
 
 NS_IMETHODIMP
@@ -216,17 +220,26 @@ WebAuthnSignResult::SetUsedAppId(bool aUsedAppId) {
 
 NS_IMETHODIMP
 WebAuthnSignResult::GetPrfMaybe(bool* aPrfMaybe) {
-  return NS_ERROR_NOT_IMPLEMENTED;
+  *aPrfMaybe = mPrfFirst.isSome();
+  return NS_OK;
 }
 
 NS_IMETHODIMP
 WebAuthnSignResult::GetPrfResultsFirst(nsTArray<uint8_t>& aPrfResultsFirst) {
-  return NS_ERROR_NOT_IMPLEMENTED;
+  if (mPrfFirst.isNothing()) {
+    return NS_ERROR_NOT_AVAILABLE;
+  }
+  aPrfResultsFirst.Assign(*mPrfFirst);
+  return NS_OK;
 }
 
 NS_IMETHODIMP
 WebAuthnSignResult::GetPrfResultsSecond(nsTArray<uint8_t>& aPrfResultsSecond) {
-  return NS_ERROR_NOT_IMPLEMENTED;
+  if (mPrfSecond.isNothing()) {
+    return NS_ERROR_NOT_AVAILABLE;
+  }
+  aPrfResultsSecond.Assign(*mPrfSecond);
+  return NS_OK;
 }
 
 NS_IMETHODIMP
