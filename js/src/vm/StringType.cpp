@@ -3027,6 +3027,36 @@ template JSLinearString*
 js::StringChars<char16_t>::toStringDontDeflateNonStatic<NoGC>(JSContext*,
                                                               size_t, gc::Heap);
 
+template <typename CharT>
+bool js::AtomStringChars<CharT>::maybeAlloc(JSContext* cx, size_t length) {
+  assertValidRequest(0, length);
+
+  if (JSInlineString::lengthFits<CharT>(length)) {
+    return true;
+  }
+
+  if (MOZ_UNLIKELY(!JSString::validateLength(cx, length))) {
+    return false;
+  }
+
+  mallocChars_ = cx->make_pod_arena_array<CharT>(js::StringBufferArena, length);
+  return !!mallocChars_;
+}
+
+template bool js::AtomStringChars<JS::Latin1Char>::maybeAlloc(JSContext*,
+                                                              size_t);
+template bool js::AtomStringChars<char16_t>::maybeAlloc(JSContext*, size_t);
+
+template <typename CharT>
+JSAtom* js::AtomStringChars<CharT>::toAtom(JSContext* cx, size_t length) {
+  MOZ_ASSERT(length == lastRequestedLength_);
+  return AtomizeChars(cx, data(), length);
+}
+
+template JSAtom* js::AtomStringChars<JS::Latin1Char>::toAtom(JSContext*,
+                                                             size_t);
+template JSAtom* js::AtomStringChars<char16_t>::toAtom(JSContext*, size_t);
+
 /*** Conversions ************************************************************/
 
 UniqueChars js::EncodeLatin1(JSContext* cx, JSString* str) {
