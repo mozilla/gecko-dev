@@ -371,8 +371,8 @@ void JitZone::performStubReadBarriers(uint32_t stubsToBarrier) const {
 }
 
 static bool LinkCodeGen(JSContext* cx, CodeGenerator* codegen,
-                        HandleScript script, const WarpSnapshot* snapshot) {
-  if (!codegen->link(cx, snapshot)) {
+                        HandleScript script) {
+  if (!codegen->link(cx)) {
     return false;
   }
 
@@ -392,7 +392,7 @@ static bool LinkBackgroundCodeGen(JSContext* cx, IonCompileTask* task) {
 
   JitContext jctx(cx);
   RootedScript script(cx, task->script());
-  return LinkCodeGen(cx, codegen, script, task->snapshot());
+  return LinkCodeGen(cx, codegen, script);
 }
 
 void jit::LinkIonScript(JSContext* cx, HandleScript calleeScript) {
@@ -1596,13 +1596,14 @@ LIRGraph* GenerateLIR(MIRGenerator* mir) {
   return lir;
 }
 
-CodeGenerator* GenerateCode(MIRGenerator* mir, LIRGraph* lir) {
+static CodeGenerator* GenerateCode(MIRGenerator* mir, LIRGraph* lir,
+                                   const WarpSnapshot* snapshot) {
   auto codegen = MakeUnique<CodeGenerator>(mir, lir);
   if (!codegen) {
     return nullptr;
   }
 
-  if (!codegen->generate()) {
+  if (!codegen->generate(snapshot)) {
     return nullptr;
   }
 
@@ -1632,7 +1633,7 @@ CodeGenerator* CompileBackEnd(MIRGenerator* mir, WarpSnapshot* snapshot) {
     return nullptr;
   }
 
-  CodeGenerator* codegen = GenerateCode(mir, lir);
+  CodeGenerator* codegen = GenerateCode(mir, lir, snapshot);
   if (codegen) {
     codegen->setCompilationTime(mozilla::TimeStamp::Now() - compileStartTime);
   }
@@ -1808,7 +1809,7 @@ static AbortReason IonCompile(JSContext* cx, HandleScript script,
       return AbortReason::Disable;
     }
 
-    succeeded = LinkCodeGen(cx, codegen.get(), script, snapshot);
+    succeeded = LinkCodeGen(cx, codegen.get(), script);
   }
 
   if (succeeded) {

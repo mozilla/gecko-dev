@@ -88,6 +88,9 @@ class OutOfLineWasmNewStruct;
 class OutOfLineWasmNewArray;
 
 class CodeGenerator final : public CodeGeneratorSpecific {
+  // Warp snapshot. This is nullptr for Wasm compilations.
+  const WarpSnapshot* snapshot_ = nullptr;
+
   [[nodiscard]] bool generateBody();
 
   ConstantOrRegister toConstantOrRegister(LInstruction* lir, size_t n,
@@ -121,14 +124,14 @@ class CodeGenerator final : public CodeGeneratorSpecific {
                 MacroAssembler* masm = nullptr);
   ~CodeGenerator();
 
-  [[nodiscard]] bool generate();
+  [[nodiscard]] bool generate(const WarpSnapshot* snapshot);
   [[nodiscard]] bool generateWasm(
       wasm::CallIndirectId callIndirectId, wasm::BytecodeOffset trapOffset,
       const wasm::ArgTypeVector& argTys, const RegisterOffsets& trapExitLayout,
       size_t trapExitLayoutNumWords, wasm::FuncOffsets* offsets,
       wasm::StackMaps* stackMaps, wasm::Decoder* decoder);
 
-  [[nodiscard]] bool link(JSContext* cx, const WarpSnapshot* snapshot);
+  [[nodiscard]] bool link(JSContext* cx);
 
   void emitOOLTestObject(Register objreg, Label* ifTruthy, Label* ifFalsy,
                          Register scratch);

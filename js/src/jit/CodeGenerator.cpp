@@ -16591,8 +16591,11 @@ bool CodeGenerator::generateWasm(
   return true;
 }
 
-bool CodeGenerator::generate() {
+bool CodeGenerator::generate(const WarpSnapshot* snapshot) {
   AutoCreatedBy acb(masm, "CodeGenerator::generate");
+
+  MOZ_ASSERT(snapshot);
+  snapshot_ = snapshot;
 
   JitSpew(JitSpew_Codegen, "# Emitting code for script %s:%u:%u",
           gen->outerInfo().script()->filename(),
@@ -16770,7 +16773,7 @@ bool CodeGenerator::addHasSeenObjectEmulateUndefinedFuseDependency() {
   return mirGen().tracker.addDependency(dep);
 }
 
-bool CodeGenerator::link(JSContext* cx, const WarpSnapshot* snapshot) {
+bool CodeGenerator::link(JSContext* cx) {
   AutoCreatedBy acb(masm, "CodeGenerator::link");
 
   // We cancel off-thread Ion compilations in a few places during GC, but if
@@ -16804,7 +16807,7 @@ bool CodeGenerator::link(JSContext* cx, const WarpSnapshot* snapshot) {
 
   // If an inlined script is invalidated (for example, by attaching
   // a debugger), we must also invalidate the parent IonScript.
-  if (!AddInlinedCompilations(cx, script, compilationId, snapshot, &isValid)) {
+  if (!AddInlinedCompilations(cx, script, compilationId, snapshot_, &isValid)) {
     return false;
   }
 
@@ -16830,7 +16833,7 @@ bool CodeGenerator::link(JSContext* cx, const WarpSnapshot* snapshot) {
 
   uint32_t argumentSlots = (gen->outerInfo().nargs() + 1) * sizeof(Value);
 
-  size_t numNurseryObjects = snapshot->nurseryObjects().length();
+  size_t numNurseryObjects = snapshot_->nurseryObjects().length();
 
   IonScript* ionScript = IonScript::New(
       cx, compilationId, graph.localSlotsSize(), argumentSlots, frameDepth_,
@@ -16842,7 +16845,7 @@ bool CodeGenerator::link(JSContext* cx, const WarpSnapshot* snapshot) {
     return false;
   }
 #ifdef DEBUG
-  ionScript->setICHash(snapshot->icHash());
+  ionScript->setICHash(snapshot_->icHash());
 #endif
 
   auto freeIonScript = mozilla::MakeScopeExit([&ionScript] {
@@ -17011,7 +17014,7 @@ bool CodeGenerator::link(JSContext* cx, const WarpSnapshot* snapshot) {
   // Copy the list of nursery objects. Note that the store buffer can add
   // HeapPtr edges that must be cleared in IonScript::Destroy. See the
   // infallibility warning above.
-  const auto& nurseryObjects = snapshot->nurseryObjects();
+  const auto& nurseryObjects = snapshot_->nurseryObjects();
   for (size_t i = 0; i < nurseryObjects.length(); i++) {
     ionScript->nurseryObjects()[i].init(nurseryObjects[i]);
   }
