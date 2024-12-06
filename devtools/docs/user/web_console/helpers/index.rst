@@ -12,7 +12,12 @@ $(selector, element)
 .. _web_console_helpers_$$:
 
 $$(selector, element)
-  Looks up a CSS selector string ``selector``, returning an array of DOMnodesdescended from ``element`` that match. If unspecified, ``element`` defaults to ``document``. This is like for `document.querySelectorAll() <https://developer.mozilla.org/en-US/docs/Web/API/Document/querySelectorAll>`_, but returns an array instead of a `NodeList <https://developer.mozilla.org/en-US/docs/Web/API/NodeList>`_.
+  Looks up a CSS selector string ``selector``, returning an array of DOM nodes descended from ``element`` that match. If unspecified, ``element`` defaults to ``document``. This is similar to `document.querySelectorAll() <https://developer.mozilla.org/en-US/docs/Web/API/Document/querySelectorAll>`_, but returns an array instead of a `NodeList <https://developer.mozilla.org/en-US/docs/Web/API/NodeList>`_.
+
+.. _web_console_helpers_$$$:
+
+$$$(selector, element)
+  Looks up a CSS selector string ``selector``, returning an array of DOM nodes descended from ``element`` that match, including elements in the shadow DOM. If unspecified, ``element`` defaults to ``document``.
 
 .. _web_console_helpers_$0:
 

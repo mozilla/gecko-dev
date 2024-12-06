@@ -221,6 +221,8 @@ skip-if = [
 
 ["browser_jsterm_helper_dollar_dollar.js"]
 
+["browser_jsterm_helper_dollar_dollar_dollar.js"]
+
 ["browser_jsterm_helper_dollar_x.js"]
 
 ["browser_jsterm_helper_help.js"]

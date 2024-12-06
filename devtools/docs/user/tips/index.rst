@@ -74,7 +74,8 @@ In the :doc:`command line <../web_console/the_command_line_interpreter/index>`:
 
 - :ref:`$0 <web_console_helpers_$0>` references the currently selected node.
 - :ref:`$() <web_console_helpers_$>` is a shortcut to `document.querySelector() <https://developer.mozilla.org/en-US/docs/Web/API/Document/querySelector>`_
-- :ref:`$$() <web_console_helpers_$$>` returns an array with the results from `document.querySelector() <https://developer.mozilla.org/en-US/docs/Web/API/Document/querySelector>`_.
+- :ref:`$$() <web_console_helpers_$$>` returns an array with the results from `document.querySelectorAll() <https://developer.mozilla.org/en-US/docs/Web/API/Document/querySelectorAll>`_.
+- :ref:`$$$() <web_console_helpers_$$$>` returns an array of all the elements matching the selector, even when they are in the shadow DOM.
 - :ref:`copy <web_console_helpers_copy>` copies anything as a string.
 - Right-click a node in the Inspector and click :ref:`Use in Console <page_inspector_how_to_examine_and_edit_html_use_in_console>` to create a :ref:`temp*N* <web_console_helpers_tempn>` variable for it.
 - `console.table() <https://developer.mozilla.org/en-US/docs/Web/API/console/table>`_ displays tabular data as table.

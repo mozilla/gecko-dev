@@ -444,7 +444,7 @@ exports.WebConsoleCommandsManager = WebConsoleCommandsManager;
  * @param [optional] Node element
  *        An optional Node to replace window.document
  * @return Node or null
- *         The result of calling document.querySelector(selector).
+ *         The result of calling document.querySelectorAll(selector).
  */
 WebConsoleCommandsManager.register({
   name: "$",
@@ -474,7 +474,7 @@ WebConsoleCommandsManager.register({
  * @param string selector
  *        A string that is passed to window.document.querySelectorAll.
  * @param [optional] Node element
- *        An optional Node to replace window.document
+ *        An optional root Node, defaults to window.document
  * @return array of Node
  *         The result of calling document.querySelector(selector) in an array.
  */
@@ -500,6 +500,67 @@ WebConsoleCommandsManager.register({
       for (let i = 0; i < nodes.length; i++) {
         result.push(nodes[i]);
       }
+      return result;
+    } catch (err) {
+      // Throw an error like `err` but that belongs to `owner.window`.
+      throw new owner.window.DOMException(err.message, err.name);
+    }
+  },
+});
+
+/**
+ * Find the nodes matching a CSS selector, including those inside shadow DOM
+ *
+ * @param string selector
+ *        A string that is passed to all `querySelectorAll` calls performed by this command.
+ * @param [optional] Node element
+ *        An optional root Node, defaults to window.document
+ * @return array of Node
+ *         An array containing the nodes returned by calling `querySelectorAll(selector)`
+ *         on `element` and on all shadow hosts under element (recursively).
+ */
+WebConsoleCommandsManager.register({
+  name: "$$$",
+  isSideEffectFree: true,
+  command(owner, selector, element) {
+    let scope = owner.window.document;
+    try {
+      if (
+        element?.querySelectorAll &&
+        (element.nodeType == Node.ELEMENT_NODE ||
+          element.nodeType == Node.DOCUMENT_NODE ||
+          element.nodeType == Node.DOCUMENT_FRAGMENT_NODE)
+      ) {
+        scope = element;
+      }
+
+      const result = new owner.window.Array();
+
+      const collectElements = root => {
+        const nodes = root.querySelectorAll(selector);
+        // Calling owner.window.Array.from() doesn't work without accessing the
+        // wrappedJSObject, so just loop through the results instead.
+        for (let i = 0, len = nodes.length; i < len; i++) {
+          result.push(nodes[i]);
+        }
+
+        // If the scope is a host, run the query inside its shadow DOM
+        if (root.openOrClosedShadowRoot) {
+          collectElements(root.openOrClosedShadowRoot);
+        }
+
+        // Finally, run the query for all hosts in scope
+        const all = root.querySelectorAll("*");
+        for (let i = 0, len = all.length; i < len; i++) {
+          const el = all[i];
+          if (el.openOrClosedShadowRoot) {
+            collectElements(el.openOrClosedShadowRoot);
+          }
+        }
+      };
+
+      collectElements(scope);
+
       return result;
     } catch (err) {
       // Throw an error like `err` but that belongs to `owner.window`.
