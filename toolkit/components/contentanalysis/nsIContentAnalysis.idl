@@ -59,7 +59,8 @@ interface nsIContentAnalysisResponse : nsISupports
     eNoAgent = 1,
     eInvalidAgentSignature = 2,
     eErrorOther = 3,
-    eOtherRequestInGroupCancelled = 4
+    eOtherRequestInGroupCancelled = 4,
+    eShutdown = 5
   };
 
   readonly attribute nsIContentAnalysisResponse_Action action;
@@ -279,8 +280,11 @@ interface nsIContentAnalysis : nsISupports
    *
    * @param aRequestToken
    *        The token for the request to cancel.
+   * @param aNotifyObservers
+   *        Whether to notify observers with a dlp-response event. Generally this should be
+   *        false if the observer is the one doing the cancelling, and true if not.
    */
-  void cancelContentAnalysisRequest(in ACString aRequestToken);
+  void cancelContentAnalysisRequest(in ACString aRequestToken, in boolean aNotifyObservers);
 
   /**
    * Indicates that the user has responded to a WARN dialog. aAllowContent represents

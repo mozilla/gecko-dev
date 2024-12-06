@@ -158,7 +158,6 @@ class ContentAnalysis final : public nsIContentAnalysis {
   NS_DECL_NSICONTENTANALYSIS
 
   ContentAnalysis();
-  nsCString GetUserActionId();
   void SetLastResult(nsresult aLastResult) { mLastResult = aLastResult; }
 
 #if defined(XP_WIN)
@@ -261,7 +260,6 @@ class ContentAnalysis final : public nsIContentAnalysis {
   nsresult RunAcknowledgeTask(
       nsIContentAnalysisAcknowledgement* aAcknowledgement,
       const nsACString& aRequestToken);
-  void GenerateUserActionId();
   static void DoAnalyzeRequest(
       nsCString aRequestToken,
       content_analysis::sdk::ContentAnalysisRequest&& aRequest,
@@ -287,7 +285,6 @@ class ContentAnalysis final : public nsIContentAnalysis {
   using ClientPromise =
       MozPromise<std::shared_ptr<content_analysis::sdk::Client>, nsresult,
                  false>;
-  nsCString mUserActionId;
   int64_t mRequestCount = 0;
   RefPtr<ClientPromise::Private> mCaClientPromise;
   // Only accessed from the main thread
@@ -301,15 +298,14 @@ class ContentAnalysis final : public nsIContentAnalysis {
     CallbackData(
         nsMainThreadPtrHandle<nsIContentAnalysisCallback>&& aCallbackHolder,
         bool aAutoAcknowledge)
-        : mCallbackHolder(aCallbackHolder),
-          mAutoAcknowledge(aAutoAcknowledge) {}
+        : mCallbackHolder(aCallbackHolder), mAutoAcknowledge(aAutoAcknowledge) {
+      MOZ_ASSERT(mCallbackHolder);
+    }
 
     nsMainThreadPtrHandle<nsIContentAnalysisCallback> TakeCallbackHolder() {
       return std::move(mCallbackHolder);
     }
     bool AutoAcknowledge() const { return mAutoAcknowledge; }
-    void SetCanceled() { mCallbackHolder = nullptr; }
-    bool Canceled() const { return !mCallbackHolder; }
 
    private:
     nsMainThreadPtrHandle<nsIContentAnalysisCallback> mCallbackHolder;

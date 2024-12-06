@@ -364,12 +364,6 @@ TEST_F(ContentAnalysisTest, CheckRawRequestWithText) {
   const auto& request_url = requests[0].request_data().url();
   EXPECT_EQ(uri->GetSpecOrDefault(),
             nsCString(request_url.data(), request_url.size()));
-  nsCString request_user_action_id(requests[0].user_action_id().data(),
-                                   requests[0].user_action_id().size());
-  // The user_action_id has a GUID appended to the end, just make sure the
-  // beginning is right.
-  request_user_action_id.Truncate(8);
-  EXPECT_EQ(nsCString("Firefox "), request_user_action_id);
   const auto& request_text = requests[0].text_content();
   EXPECT_EQ(nsCString("allow"),
             nsCString(request_text.data(), request_text.size()));
@@ -406,12 +400,6 @@ TEST_F(ContentAnalysisTest, CheckRawRequestWithFile) {
   const auto& request_url = requests[0].request_data().url();
   EXPECT_EQ(uri->GetSpecOrDefault(),
             nsCString(request_url.data(), request_url.size()));
-  nsCString request_user_action_id(requests[0].user_action_id().data(),
-                                   requests[0].user_action_id().size());
-  // The user_action_id has a GUID appended to the end, just make sure the
-  // beginning is right.
-  request_user_action_id.Truncate(8);
-  EXPECT_EQ(nsCString("Firefox "), request_user_action_id);
   const auto& request_file_path = requests[0].file_path();
   EXPECT_EQ(NS_ConvertUTF16toUTF8(allowPath),
             nsCString(request_file_path.data(), request_file_path.size()));
@@ -420,7 +408,7 @@ TEST_F(ContentAnalysisTest, CheckRawRequestWithFile) {
       obsServ->RemoveObserver(rawRequestObserver, "dlp-request-sent-raw"));
 }
 
-TEST_F(ContentAnalysisTest, CheckTwoRequestsHaveSameUserActionId) {
+TEST_F(ContentAnalysisTest, CheckTwoRequestsHaveDifferentUserActionId) {
   nsCOMPtr<nsIURI> uri = GetExampleDotComURI();
   nsString allow1(L"allowMe");
   nsCOMPtr<nsIContentAnalysisRequest> request1 = new ContentAnalysisRequest(
@@ -446,7 +434,7 @@ TEST_F(ContentAnalysisTest, CheckTwoRequestsHaveSameUserActionId) {
                                Some(false));
   auto requests = rawRequestObserver->GetRequests();
   EXPECT_EQ(static_cast<size_t>(2), requests.size());
-  EXPECT_EQ(requests[0].user_action_id(), requests[1].user_action_id());
+  EXPECT_NE(requests[0].user_action_id(), requests[1].user_action_id());
 
   MOZ_ALWAYS_SUCCEEDS(
       obsServ->RemoveObserver(rawRequestObserver, "dlp-request-sent-raw"));

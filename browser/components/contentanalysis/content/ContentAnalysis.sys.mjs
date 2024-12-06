@@ -650,7 +650,10 @@ export const ContentAnalysis = {
         // This is also be called if the tab/window is closed while a request is in progress,
         // in which case we need to cancel the request.
         if (this.requestTokenToRequestInfo.delete(aRequestToken)) {
-          lazy.gContentAnalysis.cancelContentAnalysisRequest(aRequestToken);
+          lazy.gContentAnalysis.cancelContentAnalysisRequest(
+            aRequestToken,
+            false
+          );
           let dlpBusyView =
             this.dlpBusyViewsByTopBrowsingContext.getAndRemoveEntry(
               aBrowsingContext,
@@ -846,6 +849,9 @@ export const ContentAnalysis = {
             case Ci.nsIContentAnalysisResponse.eErrorOther:
               messageId = "contentanalysis-unspecified-error-message-content";
               break;
+            case Ci.nsIContentAnalysisResponse.eShutdown:
+              // we're shutting down, no need to show a dialog
+              return null;
             default:
               console.error(
                 "Unexpected CA cancelError value: " + aRequestCancelError

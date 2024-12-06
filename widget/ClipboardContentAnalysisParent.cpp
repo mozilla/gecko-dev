@@ -200,11 +200,14 @@ ipc::IPCResult ClipboardContentAnalysisParent::GetSomeClipboardData(
 
   if (aTransferableDataOrError->type() ==
       IPCTransferableDataOrError::Tnsresult) {
-    NS_WARNING(nsPrintfCString(
-                   "ClipboardContentAnalysisParent::"
-                   "GetSomeClipboardData got error %x",
-                   static_cast<int>(aTransferableDataOrError->get_nsresult()))
-                   .get());
+    nsresult rv = aTransferableDataOrError->get_nsresult();
+    // don't show a warning if the content was just blocked
+    if (rv != NS_ERROR_CONTENT_BLOCKED) {
+      NS_WARNING(nsPrintfCString("ClipboardContentAnalysisParent::"
+                                 "GetSomeClipboardData got error %x",
+                                 static_cast<int>(rv))
+                     .get());
+    }
   }
 
   return IPC_OK();

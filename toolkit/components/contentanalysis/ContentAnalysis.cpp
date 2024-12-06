@@ -369,15 +369,6 @@ nsresult ContentAnalysisRequest::GetFileDigest(const nsAString& aFilePath,
   return NS_OK;
 }
 
-// Generate an ID that will be shared by all DLP requests.
-// Used to cancel all requests on Firefox shutdown.
-void ContentAnalysis::GenerateUserActionId() {
-  nsID id = nsID::GenerateUUID();
-  mUserActionId = nsPrintfCString("Firefox %s", id.ToString().get());
-}
-
-nsCString ContentAnalysis::GetUserActionId() { return mUserActionId; }
-
 static nsresult ConvertToProtobuf(
     nsIClientDownloadResource* aIn,
     content_analysis::sdk::ClientDownloadRequest_Resource* aOut) {
@@ -397,8 +388,7 @@ static nsresult ConvertToProtobuf(
 }
 
 static nsresult ConvertToProtobuf(
-    nsIContentAnalysisRequest* aIn, nsCString&& aUserActionId,
-    int64_t aRequestCount,
+    nsIContentAnalysisRequest* aIn, int64_t aRequestCount,
     content_analysis::sdk::ContentAnalysisRequest* aOut) {
   uint32_t timeout = StaticPrefs::browser_contentanalysis_agent_timeout();
   aOut->set_expires_at(time(nullptr) + timeout);
@@ -414,8 +404,9 @@ static nsresult ConvertToProtobuf(
   rv = aIn->GetRequestToken(requestToken);
   NS_ENSURE_SUCCESS(rv, rv);
   aOut->set_request_token(requestToken.get(), requestToken.Length());
-
-  aOut->set_user_action_id(aUserActionId.get());
+  // Use the request_token as the user_action_id so we can cancel
+  // it by request_token if needed.
+  aOut->set_user_action_id(requestToken.get(), requestToken.Length());
   aOut->set_user_action_requests_count(aRequestCount);
 
   const std::string tag = "dlp";  // TODO:
@@ -992,9 +983,7 @@ ContentAnalysis::ContentAnalysis()
       mClientCreationAttempted(false),
       mSetByEnterprise(false),
       mCallbackMap("ContentAnalysis::mCallbackMap"),
-      mWarnResponseDataMap("ContentAnalysis::mWarnResponseDataMap") {
-  GenerateUserActionId();
-}
+      mWarnResponseDataMap("ContentAnalysis::mWarnResponseDataMap") {}
 
 ContentAnalysis::~ContentAnalysis() {
   // Accessing mClientCreationAttempted so need to be on the main thread
@@ -1168,6 +1157,9 @@ nsresult ContentAnalysis::CancelWithError(nsCString aRequestToken,
             cancelError = nsIContentAnalysisResponse::CancelError::
                 eOtherRequestInGroupCancelled;
             break;
+          case NS_ERROR_ILLEGAL_DURING_SHUTDOWN:
+            cancelError = nsIContentAnalysisResponse::CancelError::eShutdown;
+            break;
           default:
             cancelError = nsIContentAnalysisResponse::CancelError::eErrorOther;
             break;
@@ -1177,20 +1169,21 @@ nsresult ContentAnalysis::CancelWithError(nsCString aRequestToken,
         {
           auto lock = owner->mCallbackMap.Lock();
           maybeCallbackData = lock->Extract(aRequestToken);
-          if (maybeCallbackData.isNothing()) {
-            LOGD("Content analysis did not find callback for token %s",
-                 aRequestToken.get());
-            return;
-          }
         }
-        if (action == nsIContentAnalysisResponse::Action::eWarn) {
+        if (maybeCallbackData.isSome() &&
+            action == nsIContentAnalysisResponse::Action::eWarn) {
           owner->SendWarnResponse(std::move(aRequestToken),
                                   std::move(*maybeCallbackData), response);
           return;
         }
+        obsServ->NotifyObservers(response, "dlp-response", nullptr);
+        if (maybeCallbackData.isNothing()) {
+          LOGD("Content analysis did not find callback for token %s",
+               aRequestToken.get());
+          return;
+        }
         nsMainThreadPtrHandle<nsIContentAnalysisCallback> callbackHolder =
             maybeCallbackData->TakeCallbackHolder();
-        obsServ->NotifyObservers(response, "dlp-response", nullptr);
         if (callbackHolder) {
           if (action == nsIContentAnalysisResponse::Action::eCanceled) {
             callbackHolder->Error(aResult);
@@ -1270,8 +1263,7 @@ nsresult ContentAnalysis::RunAnalyzeRequestTask(
   }
 
   content_analysis::sdk::ContentAnalysisRequest pbRequest;
-  rv =
-      ConvertToProtobuf(aRequest, GetUserActionId(), aRequestCount, &pbRequest);
+  rv = ConvertToProtobuf(aRequest, aRequestCount, &pbRequest);
   NS_ENSURE_SUCCESS(rv, rv);
 
   LOGD("Issuing ContentAnalysisRequest for token %s", requestToken.get());
@@ -1433,23 +1425,6 @@ void ContentAnalysis::IssueResponse(RefPtr<ContentAnalysisResponse>& response) {
     return;
   }
   response->SetOwner(this);
-  if (maybeCallbackData->Canceled()) {
-    // request has already been cancelled, so there's
-    // nothing to do
-    LOGD(
-        "Content analysis got response but ignoring "
-        "because it was already cancelled for token %s",
-        responseRequestToken.get());
-    // Note that we always acknowledge here, even if
-    // autoAcknowledge isn't set, since we raise an exception
-    // at the caller on cancellation.
-    auto acknowledgement = MakeRefPtr<ContentAnalysisAcknowledgement>(
-        nsIContentAnalysisAcknowledgement::Result::eTooLate,
-        nsIContentAnalysisAcknowledgement::FinalAction::eBlock);
-    response->Acknowledge(acknowledgement);
-    return;
-  }
-
   LOGD("Content analysis resolving response promise for token %s",
        responseRequestToken.get());
   nsIContentAnalysisResponse::Action action;
@@ -1627,7 +1602,9 @@ ContentAnalysis::MaybeExpandAndAnalyzeFolderContentRequest(
   nsAutoString filename;
   nsresult rv = aRequest->GetFilePath(filename);
   NS_ENSURE_SUCCESS(rv, Err(rv));
-  NS_ENSURE_TRUE(!filename.IsEmpty(), false);
+  if (filename.IsEmpty()) {
+    return false;
+  }
 
 #ifdef DEBUG
   // Confirm that there is no text content to analyze.  See comment on
@@ -1740,33 +1717,71 @@ nsresult ContentAnalysis::AnalyzeContentRequestCallbackPrivate(
 }
 
 NS_IMETHODIMP
-ContentAnalysis::CancelContentAnalysisRequest(const nsACString& aRequestToken) {
+ContentAnalysis::CancelContentAnalysisRequest(const nsACString& aRequestToken,
+                                              bool aNotifyObservers) {
   MOZ_ASSERT(NS_IsMainThread());
   nsCString requestToken(aRequestToken);
 
-  auto callbackMap = mCallbackMap.Lock();
-  auto entry = callbackMap->Lookup(requestToken);
+  Maybe<CallbackData> maybeEntry;
+  {
+    auto callbackMap = mCallbackMap.Lock();
+    maybeEntry = callbackMap->Extract(requestToken);
+  }
   LOGD("Content analysis cancelling request %s", requestToken.get());
   // Make sure the entry hasn't been cancelled already
-  if (entry && !entry->Canceled()) {
+  if (maybeEntry.isNothing()) {
+    LOGD("Content analysis request not found when trying to cancel %s",
+         requestToken.get());
+    return NS_OK;
+  }
+  if (aNotifyObservers) {
+    // CancelWithError will call the callbackHolder.
+    CancelWithError(nsCString(aRequestToken), NS_ERROR_ABORT);
+  } else {
     nsMainThreadPtrHandle<nsIContentAnalysisCallback> callbackHolder =
-        entry->TakeCallbackHolder();
-    entry->SetCanceled();
+        maybeEntry->TakeCallbackHolder();
     // Should only be called once
     MOZ_ASSERT(callbackHolder);
     if (callbackHolder) {
       callbackHolder->Error(NS_ERROR_ABORT);
     }
-  } else {
-    LOGD("Content analysis request not found when trying to cancel %s",
-         requestToken.get());
   }
+  mCaClientPromise->Then(
+      GetCurrentSerialEventTarget(), __func__,
+      [requestToken](std::shared_ptr<content_analysis::sdk::Client> client) {
+        auto owner = GetContentAnalysisFromService();
+        if (!owner) {
+          // May be shutting down
+          return;
+        }
+        if (!client) {
+          LOGE("CancelContentAnalysisRequest got a null client");
+          return;
+        }
+
+        content_analysis::sdk::ContentAnalysisCancelRequests requests;
+        requests.set_user_action_id(requestToken.get(), requestToken.Length());
+        int err = client->CancelRequests(requests);
+        if (err != 0) {
+          LOGE("CancelContentAnalysisRequest got error %d for request %s", err,
+               requestToken.get());
+        } else {
+          LOGD(
+              "CancelContentAnalysisRequest successfully cancelled request "
+              "%s",
+              requestToken.get());
+        }
+      },
+      [](nsresult rv) {
+        LOGE("CancelContentAnalysisRequest failed to get the client");
+      });
   return NS_OK;
 }
 
 NS_IMETHODIMP
 ContentAnalysis::CancelAllRequests() {
   LOGD("CancelAllRequests running");
+  MOZ_ASSERT(NS_IsMainThread());
   mCaClientPromise->Then(
       GetCurrentSerialEventTarget(), __func__,
       [&](std::shared_ptr<content_analysis::sdk::Client> client) {
@@ -1775,45 +1790,57 @@ ContentAnalysis::CancelAllRequests() {
           // May be shutting down
           return;
         }
-        NS_DispatchToMainThread(NS_NewCancelableRunnableFunction(
-            "ContentAnalysis::CancelAllRequests", []() {
-              auto owner = GetContentAnalysisFromService();
-              if (!owner) {
-                // May be shutting down
-                return;
-              }
-              {
-                auto callbackMap = owner->mCallbackMap.Lock();
-                auto keys = callbackMap->Keys();
-                for (const auto& key : keys) {
-                  owner->CancelWithError(nsCString(key),
-                                         NS_ERROR_ILLEGAL_DURING_SHUTDOWN);
-                }
-              }
-            }));
+        nsTArray<nsCString> requestsToCancel;
+        // Calling CancelWithError() with mCallbackMap held can lead
+        // to deadlocks, so gather the keys and then call CancelWithError().
+        {
+          auto callbackMap = owner->mCallbackMap.Lock();
+          auto keys = callbackMap->Keys();
+          requestsToCancel.SetCapacity(keys.Count());
+          for (const auto& key : keys) {
+            requestsToCancel.AppendElement(key);
+          }
+        }
+        for (const auto& requestToken : requestsToCancel) {
+          owner->CancelWithError(nsCString(requestToken),
+                                 NS_ERROR_ILLEGAL_DURING_SHUTDOWN);
+        }
+        nsTArray<nsCString> warnRequestsToCancel;
         {
           auto warnResponseDataMap = owner->mWarnResponseDataMap.Lock();
           auto keys = warnResponseDataMap->Keys();
+          warnRequestsToCancel.SetCapacity(keys.Count());
           for (const auto& key : keys) {
-            LOGD(
-                "Responding to warn dialog (from CancelAllRequests) for "
-                "request %s",
-                nsCString(key).get());
-            owner->RespondToWarnDialog(key, false);
+            warnRequestsToCancel.AppendElement(key);
           }
         }
+        for (const auto& requestToken : warnRequestsToCancel) {
+          LOGD(
+              "Responding to warn dialog (from CancelAllRequests) for "
+              "request %s",
+              nsCString(requestToken).get());
+          owner->RespondToWarnDialog(requestToken, false);
+        }
+        // This is surprisingly low in the method because we want to make sure
+        // that we run CancelWithError() and RespondToWarnDialog() for our
+        // requests even if we don't have a client.
         if (!client) {
           LOGE("CancelAllRequests got a null client");
           return;
         }
-        content_analysis::sdk::ContentAnalysisCancelRequests requests;
-        requests.set_user_action_id(owner->GetUserActionId().get());
-        int err = client->CancelRequests(requests);
-        if (err != 0) {
-          LOGE("CancelAllRequests got error %d", err);
-        } else {
-          LOGD("CancelAllRequests did cancelling of requests");
+        requestsToCancel.AppendElements(std::move(warnRequestsToCancel));
+        size_t numRequests = requestsToCancel.Length();
+        for (const auto& requestToken : requestsToCancel) {
+          content_analysis::sdk::ContentAnalysisCancelRequests requests;
+          requests.set_user_action_id(requestToken.get(),
+                                      requestToken.Length());
+          int err = client->CancelRequests(requests);
+          if (err != 0) {
+            LOGE("CancelAllRequests got error %d cancelling request %s", err,
+                 requestToken.get());
+          }
         }
+        LOGD("CancelAllRequests done cancelling %zu requests", numRequests);
       },
       [&](nsresult rv) { LOGE("CancelAllRequests failed to get the client"); });
   return NS_OK;
@@ -2193,11 +2220,16 @@ class AggregatedClipboardCACallback final : public nsIContentAnalysisCallback {
       // may be shutting down
       return;
     }
-    for (const auto& remainingCallbackToken : mRemainingCallbackRequestTokens) {
-      contentAnalysis->CancelWithError(nsCString(remainingCallbackToken),
-                                       NS_ERROR_ABORT);
-    }
+    // The call to CancelContentAnalysisRequest will call back into Error()
+    // here, which will call CancelActiveRequests() again. So empty out
+    // mRemainingCallbackRequestTokens before calling it.
+    auto tokens =
+        ToTArray<nsTArray<nsCString>>(mRemainingCallbackRequestTokens);
     mRemainingCallbackRequestTokens.Clear();
+    for (const auto& remainingCallbackToken : tokens) {
+      contentAnalysis->CancelContentAnalysisRequest(remainingCallbackToken,
+                                                    true);
+    }
   }
   void SendFinalResult(nsIContentAnalysisResponse::Action aAction) {
     // We can end up here twice if multiple requests get blocked very
@@ -2205,6 +2237,7 @@ class AggregatedClipboardCACallback final : public nsIContentAnalysisCallback {
     if (mResponseSent) {
       return;
     }
+    mResponseSent = true;
     if (aAction == nsIContentAnalysisResponse::Action::eBlock) {
       CancelActiveRequests();
     } else {
@@ -2212,7 +2245,6 @@ class AggregatedClipboardCACallback final : public nsIContentAnalysisCallback {
                  "Should have responded to all requests!");
     }
     mFinalCallback->Callback(ContentAnalysisResult::FromAction(aAction));
-    mResponseSent = true;
     if (mStoreInCache && mClipboardSequenceNumber.isSome()) {
       // Note that we're calling a method on nsIContentAnalysis that might
       // be mocked out, so be sure not to call it through a
