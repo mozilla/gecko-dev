@@ -127,7 +127,7 @@ export class IdentityCredentialPromptService {
 
     // Map each identity manifest to a promise that would resolve to its icon
     let promises = identityManifests.map(async providerManifest => {
-      // we don't need to set default icon because default icon is already set on popup-notifications.inc
+      // we don't need to set default icon because default icon is already set on popup-notifications.inc.xhtml
       const iconResult = await this.loadIconFromManifest(providerManifest);
       // If we didn't have a manifest with an icon, push a rejection.
       // This will be replaced with the default icon.

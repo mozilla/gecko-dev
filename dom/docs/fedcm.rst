@@ -17,7 +17,7 @@ Core spec algorithm logic and the implementation of the ``IdentityCredential`` l
 
 The service for managing state associated with IdentityCredentials is ``IdentityCredentialStorageService`` and the service for managing the UI prompts associated with IdentityCredentials is ``IdentityCredentialPromptService``. Both definitions and implementations are in ``toolkit/components/credentialmanagement``.
 
-The UI panel is spread around a little. The actual DOM elements are in the HTML subtree with root at ``#identity-credential-notification`` in ``browser/base/content/popup-notifications.inc``. But the CSS describing it is spread through ``browser/themes/shared/customizableui/panelUI-shared.css``, ``browser/themes/shared/identity-credential-notification.css``, and ``browser/themes/shared/notification-icons.css``. Generally speaking, search for ``identity-credential`` in those files to find the relevant ids and classes.
+The UI panel is spread around a little. The actual DOM elements are in the HTML subtree with root at ``#identity-credential-notification`` in ``browser/base/content/popup-notifications.inc.xhtml``. But the CSS describing it is spread through ``browser/themes/shared/customizableui/panelUI-shared.css``, ``browser/themes/shared/identity-credential-notification.css``, and ``browser/themes/shared/notification-icons.css``. Generally speaking, search for ``identity-credential`` in those files to find the relevant ids and classes.
 
 Content strings: ``browser/locales/en-US/browser/identityCredentialNotification.ftl``.
 
