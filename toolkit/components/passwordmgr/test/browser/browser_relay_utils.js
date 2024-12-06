@@ -6,6 +6,9 @@ const { HttpServer } = ChromeUtils.importESModule(
 const { sinon } = ChromeUtils.importESModule(
   "resource://testing-common/Sinon.sys.mjs"
 );
+const { autocompleteUXTreatments } = ChromeUtils.importESModule(
+  "resource://gre/modules/FirefoxRelay.sys.mjs"
+);
 const { getFxAccountsSingleton } = ChromeUtils.importESModule(
   "resource://gre/modules/FxAccounts.sys.mjs"
 );
@@ -111,13 +114,15 @@ async function stubRemoteSettingsAllowList(
 }
 
 add_setup(async function () {
+  const allMessageIds = [];
+  for (const key in autocompleteUXTreatments) {
+    const treatment = autocompleteUXTreatments[key];
+    allMessageIds.push(...treatment.messageIds);
+  }
   gRelayACOptionsTitles = await new Localization([
     "browser/firefoxRelay.ftl",
     "toolkit/branding/brandings.ftl",
-  ]).formatMessages([
-    "firefox-relay-opt-in-title-1",
-    "firefox-relay-use-mask-title",
-  ]);
+  ]).formatMessages(allMessageIds);
 });
 
 function stubFxAccountsToSimulateSignedIn() {
@@ -161,6 +166,7 @@ async function clickRelayItemAndWaitForPopup(acPopup) {
   );
   relayItem.click();
   await notificationShownEvent;
+  return relayItem;
 }
 
 async function clickButtonAndWaitForPopupToClose(buttonToClick) {

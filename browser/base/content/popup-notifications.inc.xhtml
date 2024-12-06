@@ -266,11 +266,47 @@
       <popupnotificationcontent orient="vertical">
         <html:div>
           <html:p data-l10n-id="firefox-relay-offer-why-to-use-relay"></html:p>
-          <html:p id="firefox-relay-offer-what-fxa-and-relay-provides" data-l10n-id="firefox-relay-offer-what-fxa-and-relay-provides"></html:p>
+          <html:p class="firefox-relay-offer-what-fxa-and-relay-provides" data-l10n-id="firefox-relay-offer-what-fxa-and-relay-provides"></html:p>
           <html:p id="firefox-fxa-and-relay-offer-legal-notice" data-l10n-id="firefox-relay-offer-legal-notice">
             <label id="firefox-fxa-and-relay-offer-tos-url" is="text-link" data-l10n-name="tos-url"/>
             <label id="firefox-fxa-and-relay-offer-privacy-url" is="text-link" data-l10n-name="privacy-url"/>
           </html:p>
+        </html:div>
+      </popupnotificationcontent>
+    </popupnotification>
+
+    <popupnotification id="fxa-and-relay-integration-offer-basic-info-notification" hidden="true">
+      <popupnotificationcontent orient="vertical">
+        <html:div>
+          <html:p data-l10n-id="firefox-relay-and-fxa-popup-notification-first-sentence-basic-info">
+            <label class="firefox-relay-learn-more-url" is="text-link" data-l10n-name="firefox-relay-learn-more-url"/>
+            <label class="firefox-fxa-and-relay-offer-domain" data-l10n-name="firefox-fxa-and-relay-offer-domain"/>
+          </html:p>
+          <html:p class="firefox-relay-offer-what-fxa-and-relay-provides" data-l10n-id="firefox-relay-and-fxa-popup-notification-second-sentence-basic-info"></html:p>
+        </html:div>
+      </popupnotificationcontent>
+    </popupnotification>
+
+    <popupnotification id="fxa-and-relay-integration-offer-with-domain-notification" hidden="true">
+      <popupnotificationcontent orient="vertical">
+        <html:div>
+          <html:p data-l10n-id="firefox-relay-and-fxa-popup-notification-first-sentence-with-domain">
+            <label class="firefox-relay-learn-more-url" is="text-link" data-l10n-name="firefox-relay-learn-more-url"/>
+            <label class="firefox-fxa-and-relay-offer-domain" data-l10n-name="firefox-fxa-and-relay-offer-domain"/>
+          </html:p>
+          <html:p class="firefox-relay-offer-what-fxa-and-relay-provides" data-l10n-id="firefox-relay-and-fxa-popup-notification-second-sentence-with-domain"></html:p>
+        </html:div>
+      </popupnotificationcontent>
+    </popupnotification>
+
+    <popupnotification id="fxa-and-relay-integration-offer-with-domain-and-value-prop-notification" hidden="true">
+      <popupnotificationcontent orient="vertical">
+        <html:div>
+          <html:p data-l10n-id="firefox-relay-and-fxa-popup-notification-first-sentence-with-domain">
+            <label class="firefox-relay-learn-more-url" is="text-link" data-l10n-name="firefox-relay-learn-more-url"/>
+            <label class="firefox-fxa-and-relay-offer-domain" data-l10n-name="firefox-fxa-and-relay-offer-domain"/>
+          </html:p>
+          <html:p class="firefox-relay-offer-what-fxa-and-relay-provides" data-l10n-id="firefox-relay-and-fxa-popup-notification-second-sentence-with-domain"></html:p>
         </html:div>
       </popupnotificationcontent>
     </popupnotification>
@@ -289,6 +325,24 @@
         <html:div />
         <html:span>Firefox</html:span>
         <html:span> Relay</html:span>
+      </html:div>
+    </template>
+
+    <template id="firefox-relay-header-basic-info">
+      <html:div class="relay-integration-header-variation">
+        <html:p data-l10n-id="firefox-relay-and-fxa-popup-notification-header-basic-info"></html:p>
+      </html:div>
+    </template>
+
+    <template id="firefox-relay-header-with-domain">
+      <html:div class="relay-integration-header-variation">
+        <html:p data-l10n-id="firefox-relay-and-fxa-popup-notification-header-with-domain"></html:p>
+      </html:div>
+    </template>
+
+    <template id="firefox-relay-header-with-domain-and-value-prop">
+      <html:div class="relay-integration-header-variation">
+        <html:p data-l10n-id="firefox-relay-and-fxa-popup-notification-header-with-domain-and-value-prop"></html:p>
       </html:div>
     </template>
 
