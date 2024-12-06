@@ -1074,6 +1074,13 @@ newTabSectionsExperiment:
         pref: browser.newtabpage.activity-stream.discoverystream.sections.region-content-config
       description: >-
         A comma-separated list of regions that get contextual content by default.
+    sectionsPersonalization:
+      type: boolean
+      setPref:
+        branch: user
+        pref: browser.newtabpage.activity-stream.discoverystream.sections.personalization.enabled
+      description: >-
+        Enable personalized sections layout. Allow users to follow/unfollow topic sections.
 
 pocketNewtab:
   description: The Pocket section in newtab

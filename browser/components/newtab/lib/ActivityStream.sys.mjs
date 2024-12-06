@@ -465,6 +465,14 @@ export const PREFS_CONFIG = new Map([
     },
   ],
   [
+    "discoverystream.sections.personalization.enabled",
+    {
+      title:
+        "Boolean flag to enable personalized sections layout. Allows users to follow/unfollow topic sections.",
+      value: false,
+    },
+  ],
+  [
     "discoverystream.sections.cards.enabled",
     {
       title:
