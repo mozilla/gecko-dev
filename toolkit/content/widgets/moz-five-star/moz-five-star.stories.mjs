@@ -16,16 +16,27 @@ moz-five-star-title =
 moz-five-star-aria-label =
   .aria-label = This is the aria-label
     `,
+    actions: {
+      handles: ["select"],
+    },
   },
 };
 
-const Template = ({ rating, ariaLabel, l10nId }) => html`
+const Template = ({
+  rating,
+  ariaLabel,
+  l10nId,
+  selectable,
+  selectedHandler,
+}) => html`
   <div style="max-width: 400px">
     <moz-five-star
       rating=${rating}
       aria-label=${ifDefined(ariaLabel)}
       data-l10n-id=${ifDefined(l10nId)}
       data-l10n-attrs="aria-label, title"
+      ?selectable=${selectable}
+      @select=${selectedHandler}
     >
     </moz-five-star>
   </div>
@@ -42,6 +53,12 @@ WithTitle.args = {
   ...FiveStar.args,
   rating: 0,
   l10nId: "moz-five-star-title",
+};
+
+export const Selectable = Template.bind({});
+Selectable.args = {
+  selectable: true,
+  selectedHandler: e => alert(`Selected rating: ${e.detail.rating}`),
 };
 
 export const Default = Template.bind({});
