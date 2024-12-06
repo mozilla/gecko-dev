@@ -4960,11 +4960,8 @@ var SessionStoreInternal = {
     }
 
     if (aWindow.SidebarController.revampComponentsLoaded) {
-      winData.sidebar = Object.assign(winData.sidebar || {}, {
-        expanded: aWindow.SidebarController.sidebarMain.expanded,
-        hidden: aWindow.SidebarController.sidebarContainer.hidden,
-        launcherWidth: aWindow.SidebarController.launcherWidth,
-      });
+      const sidebarUIState = aWindow.SidebarController.getUIState();
+      winData.sidebar = structuredClone(sidebarUIState);
     }
 
     let workspaceID = aWindow.getWorkspaceID();

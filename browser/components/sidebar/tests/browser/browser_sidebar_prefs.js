@@ -195,7 +195,8 @@ add_task(async function test_flip_revamp_pref() {
   await SpecialPowers.pushPrefEnv({ set: [["sidebar.revamp", false]] });
 
   await TestUtils.waitForCondition(() => {
-    let isSidebarMainShown = !win.document.querySelector("sidebar-main").hidden;
+    let isSidebarMainShown =
+      !win.document.getElementById("sidebar-main").hidden;
     let isSwitcherPanelShown =
       !win.document.getElementById("sidebar-header").hidden;
     // Vertical tabs pref should be turned off when revamp pref is turned off
@@ -210,7 +211,7 @@ add_task(async function test_flip_revamp_pref() {
   });
   await sidebar.updateComplete;
   await TestUtils.waitForCondition(() => {
-    let isSidebarMainShown = !document.querySelector("sidebar-main").hidden;
+    let isSidebarMainShown = !document.getElementById("sidebar-main").hidden;
     let isSwitcherPanelShown =
       !win.document.getElementById("sidebar-header").hidden;
     return isSidebarMainShown && !isSwitcherPanelShown;

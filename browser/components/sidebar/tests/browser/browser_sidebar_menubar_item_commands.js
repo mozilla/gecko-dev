@@ -9,9 +9,9 @@ add_setup(async () => {
   await SpecialPowers.pushPrefEnv({
     set: [[SIDEBAR_VISIBILITY_PREF, "hide-sidebar"]],
   });
+  await SidebarController.setUIState({ expanded: false, hidden: true });
   // make sure the sidebar is reset after we're done
   registerCleanupFunction(async () => {
-    await SidebarController.toggleExpanded(false);
     await SidebarController.sidebarMain.updateComplete;
     SidebarController.sidebarContainer.hidden = false;
   });
@@ -21,15 +21,11 @@ add_task(async function test_sidebar_view_commands() {
   const sidebar = document.querySelector("sidebar-main");
   const sidebarBox = document.querySelector("#sidebar-box");
 
-  await sidebar.updateComplete;
-  ok(sidebar && BrowserTestUtils.isVisible(sidebar), "Sidebar is shown.");
-
   // turn off animations for this bit
   await SpecialPowers.pushPrefEnv({
     set: [["sidebar.animation.enabled", false]],
   });
 
-  document.getElementById("sidebar-button").doCommand();
   await sidebar.updateComplete;
   ok(BrowserTestUtils.isHidden(sidebar), "Sidebar is hidden.");
 

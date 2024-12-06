@@ -32,7 +32,7 @@ async function dragLauncher(deltaX, shouldExpand) {
   };
   SidebarController._handleLauncherResize(resizeEntry);
   await TestUtils.waitForCondition(
-    () => SidebarController.getUIState().expanded == shouldExpand,
+    () => SidebarController.sidebarMain.expanded == shouldExpand,
     `The sidebar is ${shouldExpand ? "expanded" : "collapsed"}.`
   );
   EventUtils.synthesizeMouse(splitter, 0, 0, { type: "mouseup" });
@@ -59,7 +59,7 @@ add_task(async function test_drag_show_and_hide() {
   await SidebarController.setUIState({ expanded: true, hidden: false });
 
   await dragLauncher(-200, false);
-  ok(SidebarController.getUIState().hidden, "Sidebar is hidden.");
+  ok(SidebarController.sidebarContainer.hidden, "Sidebar is hidden.");
 
   await SpecialPowers.popPrefEnv();
 });
