@@ -768,30 +768,11 @@ static_assert(DTOSTR_STANDARD_BUFFER_SIZE <= JS::MaximumNumberToStringLength,
               "string produced by a conversion");
 
 MOZ_ALWAYS_INLINE
-static JSLinearString* LookupDtoaCache(JSContext* cx, double d) {
-  if (Realm* realm = cx->realm()) {
-    if (JSLinearString* str = realm->dtoaCache.lookup(10, d)) {
-      return str;
-    }
-  }
-
-  return nullptr;
-}
-
-MOZ_ALWAYS_INLINE
-static void CacheNumber(JSContext* cx, double d, JSLinearString* str) {
-  if (Realm* realm = cx->realm()) {
-    realm->dtoaCache.cache(10, d, str);
-  }
-}
-
-MOZ_ALWAYS_INLINE
 static JSLinearString* LookupInt32ToString(JSContext* cx, int32_t si) {
   if (StaticStrings::hasInt(si)) {
     return cx->staticStrings().getInt(si);
   }
-
-  return LookupDtoaCache(cx, si);
+  return cx->realm()->dtoaCache.lookup(10, si);
 }
 
 template <AllowGC allowGC>
@@ -824,7 +805,7 @@ JSLinearString* js::Int32ToStringWithHeap(JSContext* cx, int32_t si,
     str->maybeInitializeIndexValue(si);
   }
 
-  CacheNumber(cx, si, str);
+  cx->realm()->dtoaCache.cache(10, si, str);
   return str;
 }
 template JSLinearString* js::Int32ToStringWithHeap<CanGC>(JSContext* cx,
@@ -859,7 +840,7 @@ JSAtom* js::Int32ToAtom(JSContext* cx, int32_t si) {
     return nullptr;
   }
 
-  CacheNumber(cx, si, atom);
+  cx->realm()->dtoaCache.cache(10, si, atom);
   return atom;
 }
 
@@ -1781,7 +1762,8 @@ JSAtom* js::NumberToAtom(JSContext* cx, double d) {
     return Int32ToAtom(cx, si);
   }
 
-  if (JSLinearString* str = LookupDtoaCache(cx, d)) {
+  auto& dtoaCache = cx->realm()->dtoaCache;
+  if (JSLinearString* str = dtoaCache.lookup(10, d)) {
     return AtomizeString(cx, str);
   }
 
@@ -1794,8 +1776,7 @@ JSAtom* js::NumberToAtom(JSContext* cx, double d) {
     return nullptr;
   }
 
-  CacheNumber(cx, d, atom);
-
+  dtoaCache.cache(10, d, atom);
   return atom;
 }
 
