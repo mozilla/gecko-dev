@@ -72,6 +72,20 @@ void wr_compositor_create_external_surface(void* aCompositor,
   compositor->CreateExternalSurface(aId, aIsOpaque);
 }
 
+void wr_compositor_create_swapchain_surface(void* aCompositor,
+                                            wr::NativeSurfaceId aId,
+                                            wr::DeviceIntSize aSize,
+                                            bool aIsOpaque) {
+  RenderCompositor* compositor = static_cast<RenderCompositor*>(aCompositor);
+  compositor->CreateSwapChainSurface(aId, aSize, aIsOpaque);
+}
+
+void wr_compositor_resize_swapchain(void* aCompositor, wr::NativeSurfaceId aId,
+                                    wr::DeviceIntSize aSize) {
+  RenderCompositor* compositor = static_cast<RenderCompositor*>(aCompositor);
+  compositor->ResizeSwapChainSurface(aId, aSize);
+}
+
 void wr_compositor_create_backdrop_surface(void* aCompositor,
                                            wr::NativeSurfaceId aId,
                                            wr::ColorF aColor) {
@@ -89,6 +103,17 @@ void wr_compositor_destroy_tile(void* aCompositor, wr::NativeSurfaceId aId,
                                 int32_t aX, int32_t aY) {
   RenderCompositor* compositor = static_cast<RenderCompositor*>(aCompositor);
   compositor->DestroyTile(aId, aX, aY);
+}
+
+void wr_compositor_bind_swapchain(void* aCompositor, wr::NativeSurfaceId aId) {
+  RenderCompositor* compositor = static_cast<RenderCompositor*>(aCompositor);
+  compositor->BindSwapChain(aId);
+}
+
+void wr_compositor_present_swapchain(void* aCompositor,
+                                     wr::NativeSurfaceId aId) {
+  RenderCompositor* compositor = static_cast<RenderCompositor*>(aCompositor);
+  compositor->PresentSwapChain(aId);
 }
 
 void wr_compositor_destroy_surface(void* aCompositor, NativeSurfaceId aId) {
