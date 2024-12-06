@@ -706,25 +706,22 @@ void GCRuntime::updateCellPointers(Zone* zone, AllocKinds kinds) {
 }
 
 // After cells have been relocated any pointers to a cell's old locations must
-// be updated to point to the new location.  This happens by iterating through
+// be updated to point to the new location. This happens by iterating through
 // all cells in heap and tracing their children (non-recursively) to update
 // them.
 //
 // This is complicated by the fact that updating a GC thing sometimes depends on
-// making use of other GC things.  After a moving GC these things may not be in
-// a valid state since they may contain pointers which have not been updated
-// yet.
+// making use of other GC things. After a moving GC these things may not be in a
+// valid state since they may contain pointers which have not been updated yet.
 //
-// The main dependencies are:
+// The main remaining dependency is:
 //
 //   - Updating a JSObject makes use of its shape
-//   - Updating a typed object makes use of its type descriptor object
 //
-// This means we require at least three phases for update:
+// This means we require at least two phases for update:
 //
-//  1) shapes
-//  2) typed object type descriptor objects
-//  3) all other objects
+//  1) a phase including shapes
+//  2) a phase including all JS objects
 //
 // Also, there can be data races calling IsForwarded() on the new location of a
 // cell whose first word is being updated in parallel on another thread. This
@@ -732,7 +729,7 @@ void GCRuntime::updateCellPointers(Zone* zone, AllocKinds kinds) {
 // cell. Otherwise this can be avoided by updating different kinds of cell in
 // different phases.
 //
-// Since we want to minimize the number of phases, arrange kinds into three
+// Since we want to minimize the number of phases, arrange kinds into two
 // arbitrary phases.
 
 static constexpr AllocKinds UpdatePhaseOne{AllocKind::SCRIPT,
@@ -747,31 +744,28 @@ static constexpr AllocKinds UpdatePhaseOne{AllocKind::SCRIPT,
                                            AllocKind::NORMAL_PROP_MAP,
                                            AllocKind::DICT_PROP_MAP};
 
-// UpdatePhaseTwo is typed object descriptor objects.
-
-static constexpr AllocKinds UpdatePhaseThree{AllocKind::FUNCTION,
-                                             AllocKind::FUNCTION_EXTENDED,
-                                             AllocKind::OBJECT0,
-                                             AllocKind::OBJECT0_BACKGROUND,
-                                             AllocKind::OBJECT2,
-                                             AllocKind::OBJECT2_BACKGROUND,
-                                             AllocKind::ARRAYBUFFER4,
-                                             AllocKind::OBJECT4,
-                                             AllocKind::OBJECT4_BACKGROUND,
-                                             AllocKind::ARRAYBUFFER8,
-                                             AllocKind::OBJECT8,
-                                             AllocKind::OBJECT8_BACKGROUND,
-                                             AllocKind::ARRAYBUFFER12,
-                                             AllocKind::OBJECT12,
-                                             AllocKind::OBJECT12_BACKGROUND,
-                                             AllocKind::ARRAYBUFFER16,
-                                             AllocKind::OBJECT16,
-                                             AllocKind::OBJECT16_BACKGROUND};
+static constexpr AllocKinds UpdatePhaseTwo{AllocKind::FUNCTION,
+                                           AllocKind::FUNCTION_EXTENDED,
+                                           AllocKind::OBJECT0,
+                                           AllocKind::OBJECT0_BACKGROUND,
+                                           AllocKind::OBJECT2,
+                                           AllocKind::OBJECT2_BACKGROUND,
+                                           AllocKind::ARRAYBUFFER4,
+                                           AllocKind::OBJECT4,
+                                           AllocKind::OBJECT4_BACKGROUND,
+                                           AllocKind::ARRAYBUFFER8,
+                                           AllocKind::OBJECT8,
+                                           AllocKind::OBJECT8_BACKGROUND,
+                                           AllocKind::ARRAYBUFFER12,
+                                           AllocKind::OBJECT12,
+                                           AllocKind::OBJECT12_BACKGROUND,
+                                           AllocKind::ARRAYBUFFER16,
+                                           AllocKind::OBJECT16,
+                                           AllocKind::OBJECT16_BACKGROUND};
 
 void GCRuntime::updateAllCellPointers(MovingTracer* trc, Zone* zone) {
   updateCellPointers(zone, UpdatePhaseOne);
-
-  updateCellPointers(zone, UpdatePhaseThree);
+  updateCellPointers(zone, UpdatePhaseTwo);
 }
 
 /*
