@@ -1225,7 +1225,7 @@ void ContentParent::LogAndAssertFailedPrincipalValidationInfo(
   } else {
     principalType.AssignLiteral("Unknown");
   }
-  extra.principalType = Some(principalType);
+  extra.principaltype = Some(principalType);
   extra.value = Some(aMethod);
 
   // Do not send telemetry when chrome-debugging is enabled
