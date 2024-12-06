@@ -855,40 +855,6 @@ frontend::TaggedParserAtomIndex js::Int32ToParserAtom(
 }
 
 /* Returns the number of digits written. */
-template <typename T, size_t Length>
-static size_t Int32ToCStringWithBase(char (&out)[Length], T i, int base) {
-  // The buffer needs to be large enough to hold the largest number, including
-  // the sign and the terminating null-character.
-  static_assert(std::numeric_limits<T>::digits + (2 * std::is_signed_v<T>) <
-                Length);
-
-  // Use explicit cases for base 10 and base 16 to make it more likely the
-  // compiler will generate optimized code for these two common bases.
-  std::to_chars_result result;
-  switch (base) {
-    case 10: {
-      result = std::to_chars(out, out + Length, i, 10);
-      break;
-    }
-    case 16: {
-      result = std::to_chars(out, out + Length, i, 16);
-      break;
-    }
-    default: {
-      MOZ_ASSERT(base >= 2 && base <= 36);
-      result = std::to_chars(out, out + Length, i, base);
-      break;
-    }
-  }
-  MOZ_ASSERT(result.ec == std::errc());
-
-  // Null-terminate the result.
-  *result.ptr = '\0';
-
-  return result.ptr - out;
-}
-
-/* Returns the number of digits written. */
 template <typename T, size_t Base, size_t Length>
 static size_t Int32ToCString(char (&out)[Length], T i) {
   // The buffer needs to be large enough to hold the largest number, including
@@ -1670,15 +1636,35 @@ static JSString* Int32ToStringWithBase(JSContext* cx, int32_t i, int32_t base) {
     return str;
   }
 
-  // Plus three to include the largest number, the sign, and the terminating
-  // null character.
-  constexpr size_t MaximumLength = std::numeric_limits<int32_t>::digits + 3;
+  // Plus two to include the largest number and the sign.
+  constexpr size_t MaximumLength = std::numeric_limits<int32_t>::digits + 2;
 
   char buf[MaximumLength] = {};
-  size_t numStrLen = Int32ToCStringWithBase(buf, i, base);
-  MOZ_ASSERT(numStrLen == strlen(buf));
 
-  JSLinearString* s = NewStringCopyN<allowGC>(cx, buf, numStrLen);
+  // Use explicit cases for base 10 and base 16 to make it more likely the
+  // compiler will generate optimized code for these two common bases.
+  std::to_chars_result result;
+  switch (base) {
+    case 10: {
+      result = std::to_chars(buf, std::end(buf), i, 10);
+      break;
+    }
+    case 16: {
+      result = std::to_chars(buf, std::end(buf), i, 16);
+      break;
+    }
+    default: {
+      MOZ_ASSERT(base >= 2 && base <= 36);
+      result = std::to_chars(buf, std::end(buf), i, base);
+      break;
+    }
+  }
+  MOZ_ASSERT(result.ec == std::errc());
+
+  size_t length = result.ptr - buf;
+  MOZ_ASSERT(i < 0 || length > 2, "small static strings are handled above");
+
+  JSLinearString* s = NewStringCopyN<allowGC>(cx, buf, length);
   if (!s) {
     return nullptr;
   }
