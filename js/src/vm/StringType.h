@@ -2100,6 +2100,21 @@ class MOZ_NON_PARAM StringChars {
                   gc::Heap heap = gc::Heap::Default);
 
   /**
+   * Increase the string characters storage. Allocates iff `newLength` exceeds
+   * the inline storage of this class.
+   */
+  bool maybeRealloc(JSContext* cx, size_t oldLength, size_t newLength,
+                    gc::Heap heap = gc::Heap::Default);
+
+  /**
+   * Build the result string. Does not deflate two-byte characters if all
+   * characters fit into Latin-1.
+   */
+  template <AllowGC allowGC>
+  JSLinearString* toStringDontDeflate(JSContext* cx, size_t length,
+                                      gc::Heap heap = gc::Heap::Default);
+
+  /**
    * Build the result string. Does not deflate two-byte characters if all
    * characters fit into Latin-1. And does not check static strings.
    */

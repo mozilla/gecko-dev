@@ -2868,6 +2868,129 @@ template bool js::StringChars<char16_t>::maybeAlloc(JSContext*, size_t,
                                                     gc::Heap);
 
 template <typename CharT>
+bool js::StringChars<CharT>::maybeRealloc(JSContext* cx, size_t oldLength,
+                                          size_t newLength, gc::Heap heap) {
+  assertValidRequest(oldLength, newLength);
+
+  // Nothing to do if new length still fits into inline storage.
+  if (JSInlineString::lengthFits<CharT>(newLength)) {
+    return true;
+  }
+
+  if (MOZ_UNLIKELY(!JSString::validateLength(cx, newLength))) {
+    return false;
+  }
+
+  // Unused |ownedChars_| means we were previously using inlining storage.
+  if (!ownedChars_) {
+    auto chars = AllocChars<CharT>(cx, newLength, heap);
+    if (!chars) {
+      return false;
+    }
+    std::memcpy(chars.data(), inlineChars_, InlineLength);
+
+    ownedChars_.set(std::move(chars));
+    return true;
+  }
+
+  // Use |realloc| for malloc'ed characters.
+  if (ownedChars_.isMalloced()) {
+    CharT* oldChars = ownedChars_.release();
+    CharT* newChars = cx->pod_arena_realloc(js::StringBufferArena, oldChars,
+                                            oldLength, newLength);
+    if (!newChars) {
+      js_free(oldChars);
+      return false;
+    }
+
+    using Kind = typename JSString::OwnedChars<CharT>::Kind;
+    ownedChars_.set({newChars, newLength, Kind::Malloc});
+    return true;
+  }
+
+  // Use |StringBuffer::Realloc| for string buffers.
+  if (ownedChars_.hasStringBuffer()) {
+    static_assert(
+        mozilla::StringBuffer::IsValidLength<CharT>(JSString::MAX_LENGTH),
+        "JSString length must be valid for StringBuffer");
+
+    auto* oldBuffer = mozilla::StringBuffer::FromData(ownedChars_.release());
+
+    // Note: StringBuffers must be null-terminated.
+    auto* newBuffer = mozilla::StringBuffer::Realloc(
+        oldBuffer, (newLength + 1) * sizeof(CharT),
+        mozilla::Some(js::StringBufferArena));
+    if (!newBuffer) {
+      oldBuffer->Release();
+      ReportOutOfMemory(cx);
+      return false;
+    }
+    auto* newChars = static_cast<CharT*>(newBuffer->Data());
+    newChars[newLength] = '\0';
+
+    using Kind = typename JSString::OwnedChars<CharT>::Kind;
+    ownedChars_.set({newChars, newLength, Kind::StringBuffer});
+
+    MOZ_ASSERT(newBuffer->RefCount() == 1);
+    return true;
+  }
+
+  // Keep the previous nursery allocated chars alive.
+  Rooted<JSString::OwnedChars<CharT>> oldOwnedChars(
+      cx, std::move(ownedChars_.get()));
+
+  // Nursery allocated characters can't be reallocated, so perform a new
+  // allocation instead.
+  auto chars = AllocChars<CharT>(cx, newLength, heap);
+  if (!chars) {
+    return false;
+  }
+  mozilla::PodCopy(chars.data(), oldOwnedChars.data(), oldLength);
+
+  ownedChars_.set(std::move(chars));
+  return true;
+}
+
+template bool js::StringChars<JS::Latin1Char>::maybeRealloc(JSContext*, size_t,
+                                                            size_t, gc::Heap);
+template bool js::StringChars<char16_t>::maybeRealloc(JSContext*, size_t,
+                                                      size_t, gc::Heap);
+
+template <typename CharT>
+template <AllowGC allowGC>
+JSLinearString* js::StringChars<CharT>::toStringDontDeflate(JSContext* cx,
+                                                            size_t length,
+                                                            gc::Heap heap) {
+  MOZ_ASSERT(length == lastRequestedLength_);
+
+  if (JSInlineString::lengthFits<CharT>(length)) {
+    MOZ_ASSERT(!ownedChars_,
+               "unexpected OwnedChars allocation for inline strings");
+    if (auto* str = TryEmptyOrStaticString(cx, inlineChars_, length)) {
+      return str;
+    }
+    return NewInlineString<CanGC>(cx, inlineChars_, length, heap);
+  }
+
+  MOZ_ASSERT(ownedChars_,
+             "missing OwnedChars allocation for non-inline strings");
+  MOZ_ASSERT(length == ownedChars_.length(),
+             "requested length doesn't match allocation");
+  return JSLinearString::newValidLength<allowGC, CharT>(cx, &ownedChars_, heap);
+}
+
+template JSLinearString*
+js::StringChars<JS::Latin1Char>::toStringDontDeflate<CanGC>(JSContext*, size_t,
+                                                            gc::Heap);
+template JSLinearString* js::StringChars<char16_t>::toStringDontDeflate<CanGC>(
+    JSContext*, size_t, gc::Heap);
+template JSLinearString*
+js::StringChars<JS::Latin1Char>::toStringDontDeflate<NoGC>(JSContext*, size_t,
+                                                           gc::Heap);
+template JSLinearString* js::StringChars<char16_t>::toStringDontDeflate<NoGC>(
+    JSContext*, size_t, gc::Heap);
+
+template <typename CharT>
 template <AllowGC allowGC>
 JSLinearString* js::StringChars<CharT>::toStringDontDeflateNonStatic(
     JSContext* cx, size_t length, gc::Heap heap) {
