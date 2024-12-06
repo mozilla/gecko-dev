@@ -431,8 +431,8 @@ class BigInt final : public js::gc::CellWithLengthAndFlags {
   static JSLinearString* toStringBasePowerOfTwo(JSContext* cx, Handle<BigInt*>,
                                                 unsigned radix);
   template <js::AllowGC allowGC>
-  static JSLinearString* toStringSingleDigitBaseTen(JSContext* cx, Digit digit,
-                                                    bool isNegative);
+  static JSLinearString* toStringSingleDigit(JSContext* cx, Digit digit,
+                                             bool isNegative, unsigned radix);
   static JSLinearString* toStringGeneric(JSContext* cx, Handle<BigInt*>,
                                          unsigned radix);
 
