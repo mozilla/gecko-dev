@@ -72,6 +72,8 @@
     <string name="mozac_feature_addons_permissions_top_sites_description">Kcem ɣer uzray n yiminig</string>
     <!-- Description for trialML permission. -->
     <string name="mozac_feature_addons_permissions_trial_ml_description">Sader syen selkem timudamin AI ɣef yibenk-ik</string>
+    <!-- Description for userScripts permission. -->
+    <string name="mozac_feature_addons_permissions_user_scripts_description">Sireg iskripten n wis kraḍ ur nettwasneqden ara akken ad tkecmeḍ ɣer yisefka-k</string>
     <!-- Description for devtools permission. -->
     <string name="mozac_feature_addons_permissions_devtools_description">Siγzef anekcum i yifecka n uneflay ɣer isefka-inek/inem deg waccaren yeldin</string>
     <!-- The version on of add-on. -->

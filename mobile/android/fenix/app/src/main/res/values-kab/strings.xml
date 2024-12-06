@@ -122,6 +122,13 @@ Tiktiwin tigejdanin yuzzlen ur nṣeḥḥi ara
     <!-- Text for the message displayed for the popup promoting the long press of navigation in the navigation bar. -->
     <string name="navbar_navigation_buttons_cfr_message">Sit, teṭṭfeḍ tineccabin akken ad tneggzed gar yisebtar deg uzray n yiccer-a.</string>
 
+    <!-- Address bar swipe "contextual feature recommendation" (CFR) -->
+    <!-- Text for the title displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
+    <string name="address_bar_swipe_cfr_title">Sfeḍ afeggag n yifecka akken ad tbeddleḍ accaren</string>
+
+    <!-- Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
+    <string name="address_bar_swipe_cfr_message">Zuɣer s azelmaḍ neɣ s ayeffus akken ad tbeddleḍ. Zuɣer iccer aneggaru ɣer uzelmaḍ i wakken ad teldiḍ iccer amaynut.</string>
+
     <!-- Tablet navigation bar "contextual feature recommendation" (CFR) -->
     <!-- Text for the title displayed in the contextual feature recommendation popup promoting the tablet navigation bar. -->
     <string name="tablet_nav_bar_cfr_title" moz:removedIn="132" tools:ignore="UnusedResources">Tigejdit: tineccabin n tunigin s usiti</string>
@@ -553,6 +560,8 @@ Tiktiwin tigejdanin yuzzlen ur nṣeḥḥi ara
     <string name="onboarding_add_on_ublock_description" tools:ignore="UnusedResources">Sewḥel adellel s wudem amellil.</string>
     <!-- Privacy Badger name for the onboarding add-ons card, used by Nimbus experiments. Note: The word "Privacy Badger" is a brand name should NOT be translated -->
     <string name="onboarding_add_on_privacy_badger_name" tools:ignore="UnusedResources">Privacy Badger</string>
+    <!-- Privacy Badger description for the onboarding add-ons card, used by Nimbus experiments. -->
+    <string name="onboarding_add_on_privacy_badger_description" tools:ignore="UnusedResources">Ageṭṭum mgal aḍfar. Seḥbes ineḍfaṛen udrigen d udellel i k-yettεassan.</string>
     <!-- Search by Image name for the onboarding add-ons card, used by Nimbus experiments. Note: The word "Search by Image" is a brand name should NOT be translated -->
     <string name="onboarding_add_on_search_by_image_name" tools:ignore="UnusedResources">Nadi s tugna</string>
     <!-- Search by Image description for the onboarding add-ons card, used by Nimbus experiments. -->
@@ -576,12 +585,18 @@ Tiktiwin tigejdanin yuzzlen ur nṣeḥḥi ara
     <!-- Content description for the star rating group. -->
     <string name="onboarding_add_on_star_rating_content_description">Yettwaezmel %1$s ɣef 5</string>
 
+    <!-- Title for the privacy preferences dialog shown during onboarding. Note: The word "Firefox" should NOT be translated. -->
+    <string name="onboarding_preferences_dialog_title" tools:ignore="BrandUsage,UnusedResources">All-aneɣ ad nerr Firefox igerrez ugar</string>
     <!-- Title for the crash reporting option in the privacy preferences dialog shown during onboarding. -->
     <string name="onboarding_preferences_dialog_crash_reporting_title" tools:ignore="UnusedResources">Azen s wudem awurman ineqqisen n truẓi</string>
+    <!-- Description for the crash reporting option in the privacy preferences dialog shown during onboarding. -->
+    <string name="onboarding_preferences_dialog_crash_reporting_description" tools:ignore="UnusedResources">Ineqqisen n uɣelluy ttaǧǧan-aɣ ad nesnined syen ad nṣeggem uguren akked yiminig. Ineqqisen zemren ad d-skecmen isefka udmawanen neɣ imḥulfa.</string>
     <!-- Learn more link for the crash reporting option in the privacy preferences dialog shown during onboarding. -->
     <string name="onboarding_preferences_dialog_crash_reporting_learn_more" tools:ignore="UnusedResources">Issin ugar ɣef yineqqisen yerrẓen</string>
     <!-- Title for the usage data option in the privacy preferences dialog shown during onboarding. Note: The word "Mozilla" should NOT be translated. -->
     <string name="onboarding_preferences_dialog_usage_data_title" tools:ignore="UnusedResources">Azen isefka itiknikanen d yimyigawen ɣer Mozilla</string>
+    <!-- Description for the usage data option in the privacy preferences dialog shown during onboarding. Note: The word "Firefox" should NOT be translated. -->
+    <string name="onboarding_preferences_dialog_usage_data_description" tools:ignore="BrandUsage,UnusedResources">Isefka yerzan ibenk-ik, tawila n warrum akked wamek i tesseqdaceḍ Firefox yettal-aneɣ ad nesnerni timahilin, tamlellit akked urkad n yiseqdacen anda ma llan.</string>
     <!-- Learn more link for the usage data option in the privacy preferences dialog shown during onboarding. -->
     <string name="onboarding_preferences_dialog_usage_data_learn_more" tools:ignore="UnusedResources">Issin ugar ɣef yisefka n useqdec</string>
     <!-- Positive button label for the privacy preferences dialog shown during onboarding. -->
