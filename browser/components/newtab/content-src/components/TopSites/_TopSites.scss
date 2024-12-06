@@ -12,11 +12,18 @@ $default-icon-offset: 6px;
 $half-base-gutter: math.div($base-gutter, 2);
 $hover-transition-duration: 150ms;
 $letter-fallback-color: $white;
+$calculated-max-width-medium: $break-point-medium + $card-width;
+$calculated-max-width-large: $break-point-large + $card-width;
+$calculated-max-width-twice-large: $break-point-large + 2 * $card-width;
+$calculated-max-width-widest: $break-point-widest + $card-width;
+$calculated-max-width-twice-widest: $break-point-widest + 2 * $card-width;
 
 .top-sites-list {
   list-style: none;
   margin: 0 (-$half-base-gutter);
   padding: 0;
+  display: flex;
+  flex-wrap: wrap;
 
   .layout-variant-a &,
   .layout-variant-b & {
@@ -72,33 +79,33 @@ $letter-fallback-color: $white;
     }
   }
 
-  @media (min-width: $break-point-medium) and (max-width: $break-point-medium + $card-width) {
+  @media (min-width: $break-point-medium) and (max-width: $calculated-max-width-medium) {
     :nth-child(4n+3) {
       @include context-menu-open-left;
     }
   }
 
   // Six columns
-  @media (min-width: $break-point-large) and (max-width: $break-point-large + 2 * $card-width) {
+  @media (min-width: $break-point-large) and (max-width: $calculated-max-width-twice-large) {
     :nth-child(6n) {
       @include context-menu-open-left;
     }
   }
 
-  @media (min-width: $break-point-large) and (max-width: $break-point-large + $card-width) {
+  @media (min-width: $break-point-large) and (max-width: $calculated-max-width-large) {
     :nth-child(6n+5) {
       @include context-menu-open-left;
     }
   }
 
   // Eight columns
-  @media (min-width: $break-point-widest) and (max-width: $break-point-widest + 2 * $card-width) {
+  @media (min-width: $break-point-widest) and (max-width: $calculated-max-width-twice-widest) {
     :nth-child(8n) {
       @include context-menu-open-left;
     }
   }
 
-  @media (min-width: $break-point-widest) and (max-width: $break-point-widest + $card-width) {
+  @media (min-width: $break-point-widest) and (max-width: $calculated-max-width-widest) {
     :nth-child(8n+7) {
       @include context-menu-open-left;
     }
@@ -354,13 +361,6 @@ $letter-fallback-color: $white;
     .icon {
       margin-inline-end: 2px;
       fill: currentColor;
-    }
-
-    span {
-      display: block;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
     }
 
     .sponsored-label {
@@ -699,6 +699,35 @@ $letter-fallback-color: $white;
   [type='checkbox']:checked:focus + label::before,
   [type='checkbox']:not(:checked):focus + label::before {
     border: 1px dotted var(--newtab-primary-action-background);
+  }
+}
+
+.top-sites-list {
+  .top-site-outer {
+    .top-site-button {
+      display: flex;
+      flex-direction: column;
+    }
+
+    span[dir='auto'] {
+      display: block;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      min-height: 20px;
+    }
+
+    &:hover,
+    &:focus-within {
+      span[dir='auto'] {
+        overflow: unset;
+        text-overflow: clip;
+        white-space: normal;
+        text-wrap: wrap;
+        contain: size;
+        word-break: break-all;
+      }
+    }
   }
 }
 
