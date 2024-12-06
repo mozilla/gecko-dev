@@ -1576,6 +1576,53 @@ class nsLayoutUtils {
   }
 
   /**
+   * Returns the content-box size that an element should take on, in order for
+   * its margin-box to exactly reach a particular larger size (e.g. to fill its
+   * containing block in a particular axis). This can be used to resolve the
+   * "stretch" size for the child box, for example:
+   * https://drafts.csswg.org/css-sizing-4/#stretch-fit-sizing
+   *
+   * The returned value is floored at 0.
+   *
+   * There's a version for ISizes and BSizes; the only difference is that the
+   * BSize version has an assertion to be sure that we're not inadvertently
+   * doing arithmetic with the NS_UNCONSTRAINEDSIZE sentinel value in that
+   * axis. (This sentinel has special meaning as a block-axis size but not as
+   * an inline-axis size; hence, the assertion only makes sense for block-axis
+   * sizes.)
+   *
+   * TODO(dholbert): Maybe do minor refactors to use this where we resolve
+   * 'stretch' alignment in various places, if that feels useful?
+   *
+   * @param aSizeToFill
+   *   The size that the child's margin-box should fill, in the axis in
+   *   question -- e.g. the containing block size.  Assumed to be a constrained
+   *   size; this function doesn't have any special treatment to handle the
+   *   case where this is unconstrained.
+   *
+   * @param aMargin
+   *   The sum of the child box's margins in the axis in question (using zero
+   *   for any margins that should be ignored in computing the 'stretch' size;
+   *   see bug 1932993 for one special case where this should happen).
+   *
+   * @param aBorderPadding
+   *   The sum of the child box's border and padding in the axis in question.
+   */
+  static inline nscoord ComputeStretchContentBoxISize(nscoord aSizeToFill,
+                                                      nscoord aMargin,
+                                                      nscoord aBorderPadding) {
+    return std::max(0, aSizeToFill - aMargin - aBorderPadding);
+  }
+  static inline nscoord ComputeStretchContentBoxBSize(nscoord aSizeToFill,
+                                                      nscoord aMargin,
+                                                      nscoord aBorderPadding) {
+    NS_ASSERTION(aSizeToFill != NS_UNCONSTRAINEDSIZE,
+                 "We don't handle situations with unconstrained "
+                 "aSizeToFill; caller should handle that!");
+    return ComputeStretchContentBoxISize(aSizeToFill, aMargin, aBorderPadding);
+  }
+
+  /**
    * The "extremum length" values (see ExtremumLength) were originally aimed at
    * inline-size (or width, as it was before logicalization). For now, we return
    * true for those here, so that we don't call ComputeBSizeValue with value
@@ -1623,7 +1670,7 @@ class nsLayoutUtils {
   // a complete type in the header. Type-safety is not harmed given that
   // DarkenColorIfNeeded requires an nsIFrame pointer.
   template <typename Frame, typename T, typename S>
-  static nscolor GetTextColor(Frame* aFrame, T S::*aField) {
+  static nscolor GetTextColor(Frame* aFrame, T S::* aField) {
     nscolor color = aFrame->GetVisitedDependentColor(aField);
     return DarkenColorIfNeeded(aFrame, color);
   }

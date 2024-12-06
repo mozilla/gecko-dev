@@ -6689,9 +6689,8 @@ nsIFrame::SizeComputationResult nsIFrame::ComputeSize(
 
       if (isStretchAligned ||
           aFlags.contains(ComputeSizeFlag::BClampMarginBoxMinSize)) {
-        auto bSizeToFillCB =
-            std::max(nscoord(0),
-                     cbSize - aBorderPadding.BSize(aWM) - aMargin.BSize(aWM));
+        auto bSizeToFillCB = nsLayoutUtils::ComputeStretchContentBoxBSize(
+            cbSize, aMargin.BSize(aWM), aBorderPadding.BSize(aWM));
         if (isStretchAligned || (result.BSize(aWM) != NS_UNCONSTRAINEDSIZE &&
                                  result.BSize(aWM) > bSizeToFillCB)) {
           result.BSize(aWM) = bSizeToFillCB;
@@ -6818,8 +6817,8 @@ LogicalSize nsIFrame::ComputeAutoSize(
                                ? *aSizeOverrides.mStyleISize
                                : StylePosition()->ISize(aWM);
   if (styleISize.IsAuto()) {
-    nscoord availBased =
-        aAvailableISize - aMargin.ISize(aWM) - aBorderPadding.ISize(aWM);
+    nscoord availBased = nsLayoutUtils::ComputeStretchContentBoxISize(
+        aAvailableISize, aMargin.ISize(aWM), aBorderPadding.ISize(aWM));
     const auto* stylePos = StylePosition();
     const auto& styleBSize = aSizeOverrides.mStyleBSize
                                  ? *aSizeOverrides.mStyleBSize
@@ -6927,16 +6926,18 @@ LogicalSize nsIFrame::ComputeAbsolutePosAutoSize(
   const auto iSizeIsAuto = styleISize.IsAuto();
   const auto bSizeIsAuto = styleBSize.IsAuto();
   if (bSizeIsAuto && bShouldStretch) {
-    result.BSize(aWM) =
-        aCBSize.BSize(aWM) - aBorderPadding.BSize(aWM) - aMargin.BSize(aWM);
+    result.BSize(aWM) = nsLayoutUtils::ComputeStretchContentBoxBSize(
+        aCBSize.BSize(aWM), aMargin.BSize(aWM), aBorderPadding.BSize(aWM));
   }
   if (iSizeIsAuto) {
     if (iShouldStretch) {
-      result.ISize(aWM) =
-          aCBSize.ISize(aWM) - aBorderPadding.ISize(aWM) - aMargin.ISize(aWM);
+      // inline-size to make our margin-box fill the containing block:
+      result.ISize(aWM) = nsLayoutUtils::ComputeStretchContentBoxISize(
+          aCBSize.ISize(aWM), aMargin.ISize(aWM), aBorderPadding.ISize(aWM));
     } else {
-      nscoord availBased =
-          aAvailableISize - aMargin.ISize(aWM) - aBorderPadding.ISize(aWM);
+      // inline-size to make our margin-box fill aAvailableISize:
+      nscoord availBased = nsLayoutUtils::ComputeStretchContentBoxISize(
+          aAvailableISize, aMargin.ISize(aWM), aBorderPadding.ISize(aWM));
       const nscoord bSize = ComputeBSizeValueAsPercentageBasis(
           styleBSize.IsAuto() && result.BSize(aWM) != NS_UNCONSTRAINEDSIZE
               ? StyleSize::LengthPercentage(
