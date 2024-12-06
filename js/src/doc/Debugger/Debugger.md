@@ -593,4 +593,3 @@ The functions described below are not called with a `this` value.
 [vf]: Debugger.Frame.md#visible-frames
 [tracking-allocs]: Debugger.Memory.md#trackingallocationsites
 [frame]: Debugger.Frame.md
-[object]: Debugger.Object.md
