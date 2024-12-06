@@ -365,10 +365,7 @@ class ReftestArgumentsParser(argparse.ArgumentParser):
     def get_ip(self):
         import moznetwork
 
-        if os.name != "nt":
-            return moznetwork.get_ip()
-        else:
-            self.error("ERROR: you must specify a --remote-webserver=<ip address>\n")
+        return moznetwork.get_ip()
 
     def set_default_suite(self, options):
         manifests = OrderedDict(
