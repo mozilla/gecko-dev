@@ -330,7 +330,7 @@ export class UrlbarController {
           ) {
             this.browserWindow.gBrowser.selectedBrowser.focus();
           } else {
-            this.input.handleRevert({ escapeSearchMode: true });
+            this.input.handleRevert();
           }
         }
         event.preventDefault();

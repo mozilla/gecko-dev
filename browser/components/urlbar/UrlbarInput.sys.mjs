@@ -937,15 +937,10 @@ export class UrlbarInput {
     // Don't add further handling here, the catch above is our last resort.
   }
 
-  handleRevert({ escapeSearchMode = false } = {}) {
+  handleRevert() {
     this.window.gBrowser.userTypedValue = null;
     // Nullify search mode before setURI so it won't try to restore it.
-    if (
-      !lazy.UrlbarPrefs.getScotchBonnetPref("scotchBonnet.persistSearchMode") ||
-      escapeSearchMode
-    ) {
-      this.searchMode = null;
-    }
+    this.searchMode = null;
     this.setURI(null, true, false, true);
     if (this.value && this.focused) {
       this.select();

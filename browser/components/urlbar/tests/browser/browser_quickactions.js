@@ -267,3 +267,44 @@ async function clickQuickActionOneoffButton() {
     entry: "oneoff",
   });
 }
+
+add_task(async function test_searchMode() {
+  const tab = await BrowserTestUtils.openNewForegroundTab({
+    gBrowser,
+    opening: "about:home",
+    waitForLoad: true,
+  });
+
+  await UrlbarTestUtils.promiseAutocompleteResultPopup({
+    window,
+    value: "@act",
+  });
+
+  EventUtils.synthesizeKey("KEY_Tab");
+
+  await UrlbarTestUtils.assertSearchMode(window, {
+    source: UrlbarUtils.RESULT_SOURCE.ACTIONS,
+    entry: "keywordoffer",
+    restrictType: "keyword",
+  });
+
+  await UrlbarTestUtils.promiseAutocompleteResultPopup({
+    window,
+    value: "sour",
+  });
+
+  const onLoad = BrowserTestUtils.waitForNewTab(
+    gBrowser,
+    "view-source:about:home"
+  );
+  EventUtils.synthesizeKey("KEY_Tab");
+  EventUtils.synthesizeKey("KEY_Enter");
+  const viewSourceTab = await onLoad;
+
+  await BrowserTestUtils.switchTab(gBrowser, tab);
+
+  Assert.equal(window.gURLBar.searchMode, null);
+
+  BrowserTestUtils.removeTab(tab);
+  BrowserTestUtils.removeTab(viewSourceTab);
+});
