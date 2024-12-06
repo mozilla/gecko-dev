@@ -897,22 +897,7 @@ browsertime-network-bench:
                 default: []
     description: Raptor (browsertime) networking download/upload performance test
     max-run-time: 15000
-    run-on-projects:
-        by-app:
-            firefox:
-                by-test-platform:
-                    linux.*shippable-qr.*: [mozilla-central]
-                    default: []
-            chrome:
-                by-test-platform:
-                    linux.*shippable-qr.*: [mozilla-central]
-                    default: []
-            custom-car:
-                by-test-platform:
-                    linux.*shippable-qr.*: [mozilla-central]
-                    default: []
-            default: []
-    tier: 2
+    run-on-projects: []
     treeherder-symbol: Btime(network-bench)
     fetches:
         fetch:
