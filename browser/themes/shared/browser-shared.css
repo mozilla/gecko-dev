@@ -269,8 +269,6 @@ body {
 }
 
 .titlebar-spacer {
-  width: 40px;
-
   :root[inFullscreen] &,
   :root:not([customtitlebar]) & {
     display: none;
@@ -292,19 +290,6 @@ body {
   @media (-moz-gtk-csd-reversed-placement) {
     :root:not([sizemode=normal]) &[type="post-tabs"],
     :root[gtktiledwindow=true] &[type="post-tabs"] {
-      display: none;
-    }
-  }
-
-  @media (max-width: 500px) {
-    &[type="post-tabs"] {
-      display: none;
-    }
-  }
-
-  /* stylelint-disable-next-line media-query-no-invalid */
-  @media (-moz-bool-pref: "sidebar.verticalTabs") {
-    &[type="pre-tabs"], &[type="post-tabs"] {
       display: none;
     }
   }
@@ -409,13 +394,6 @@ body {
   > :is(toolbarbutton, toolbaritem):first-child,
   > toolbarpaletteitem:first-child > :is(toolbarbutton, toolbaritem) {
     padding-inline-start: var(--toolbar-start-end-padding);
-  }
-}
-
-/* stylelint-disable-next-line media-query-no-invalid */
-@media not (-moz-bool-pref: "sidebar.verticalTabs") {
-  #vertical-spacer {
-    display: none;
   }
 }
 
