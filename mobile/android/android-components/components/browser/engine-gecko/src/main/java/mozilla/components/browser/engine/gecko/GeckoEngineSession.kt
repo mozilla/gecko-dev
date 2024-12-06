@@ -1265,8 +1265,10 @@ class GeckoEngineSession(
 
             val interceptor = settings.requestInterceptor
             val interceptionResponse = if (
-                interceptor != null && (!request.isDirectNavigation || interceptor.interceptsAppInitiatedRequests())
+                interceptor == null || (request.isDirectNavigation && !interceptor.interceptsAppInitiatedRequests())
             ) {
+                null
+            } else {
                 val engineSession = this@GeckoEngineSession
                 val isSameDomain =
                     engineSession.currentUrl?.tryGetHostFromUrl() == request.uri.tryGetHostFromUrl()
@@ -1279,27 +1281,28 @@ class GeckoEngineSession(
                     request.isRedirect,
                     request.isDirectNavigation,
                     isSubframeRequest,
-                )?.apply {
+                )?.takeUnless {
+                    it is InterceptionResponse.AppIntent && request.isDirectNavigation
+                }?.apply {
                     when (this) {
-                        is InterceptionResponse.Content -> loadData(data, mimeType, encoding)
-                        is InterceptionResponse.Url -> loadUrl(
-                            url = url,
-                            flags = flags,
-                            additionalHeaders = additionalHeaders,
-                        )
                         is InterceptionResponse.AppIntent -> {
                             appRedirectUrl = lastLoadRequestUri
                             notifyObservers {
                                 onLaunchIntentRequest(url = url, appIntent = appIntent)
                             }
                         }
+
+                        is InterceptionResponse.Content -> loadData(data, mimeType, encoding)
+                        is InterceptionResponse.Url -> loadUrl(
+                            url = url,
+                            flags = flags,
+                            additionalHeaders = additionalHeaders,
+                        )
                         else -> {
                             // no-op
                         }
                     }
                 }
-            } else {
-                null
             }
 
             if (interceptionResponse !is InterceptionResponse.AppIntent) {

@@ -478,6 +478,22 @@ class AppLinksInterceptorTest {
         )
 
         val response = appLinksInterceptor.onLoadRequest(mockEngineSession, webUrlWithAppLink, null, true, false, false, false, false)
+        assert(response is RequestInterceptor.InterceptionResponse.AppIntent)
+        verify(mockOpenRedirect).invoke(any(), anyBoolean(), any())
+    }
+
+    @Test
+    fun `external app is launched when launchInApp settings is set to AlwaysAsk and it is user triggered`() {
+        appLinksInterceptor = AppLinksInterceptor(
+            context = mockContext,
+            interceptLinkClicks = true,
+            launchInApp = { true },
+            useCases = mockUseCases,
+            launchFromInterceptor = true,
+            shouldPrompt = { true },
+        )
+
+        val response = appLinksInterceptor.onLoadRequest(mockEngineSession, webUrlWithAppLink, null, true, false, false, false, false)
         assertNull(response)
         verify(mockOpenRedirect).invoke(any(), anyBoolean(), any())
     }

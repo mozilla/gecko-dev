@@ -156,7 +156,8 @@ class AppLinksInterceptor(
                 result is RequestInterceptor.InterceptionResponse.AppIntent
             ) {
                 handleIntent(tabSessionState, uri, redirect.appIntent, redirect.marketplaceIntent)
-                return null
+                // We can avoid loading the page only if openInApp settings is set to Always
+                return if (shouldPrompt()) null else result
             }
 
             return result
