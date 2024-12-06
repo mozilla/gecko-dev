@@ -215,6 +215,7 @@ class NrIceCtx {
     nsCString mFilteringType = "ENDPOINT_INDEPENDENT"_ns;
     nsCString mRedirectAddress;
     CopyableTArray<nsCString> mRedirectTargets;
+    unsigned int mNetworkDelayMs = 0;
   };
 
   struct Config {

@@ -318,6 +318,7 @@ nsresult NrIceCtx::SetIceConfig(const Config& aConfig) {
           ->stun_redirect_map_[config_.mNatSimulatorConfig->mRedirectAddress] =
           config_.mNatSimulatorConfig->mRedirectTargets;
     }
+    test_nat->network_delay_ms_ = config_.mNatSimulatorConfig->mNetworkDelayMs;
     test_nat->enabled_ = true;
     SetNat(test_nat);
   }

@@ -253,6 +253,10 @@ void TestNrSocket::close() {
     NR_async_timer_cancel(timer_handle_);
     timer_handle_ = nullptr;
   }
+  for (auto& timer : mTimers) {
+    timer->Cancel();
+  }
+  mTimers.Clear();
   internal_socket_->close();
   for (RefPtr<PortMapping>& port_mapping : port_mappings_) {
     port_mapping->external_socket_->close();
@@ -358,6 +362,30 @@ int TestNrSocket::sendto(const void* msg, size_t len, int flags,
       port_mapping->async_wait(NR_ASYNC_WAIT_READ, socket_readable_callback,
                                this, (char*)__FUNCTION__, __LINE__);
     }
+  }
+
+  if (nat_->enabled_ && nat_->network_delay_ms_) {
+    // nsITimer uses std::function to handle lambdas, but std::function must
+    // be copyable. That means we cannot use non-copyable captures, even if we
+    // never actually copy the lambda. Until nsITimer supports bare lambdas,
+    // we need to use a shared_ptr, instead of using a UniquePtr. Sadface. :(
+    r_log(LOG_GENERIC, LOG_DEBUG, "TestNrSocket %s delaying packet",
+          internal_socket_->my_addr().as_string);
+    std::shared_ptr<UdpPacket> packet(new UdpPacket(msg, len, *to));
+    auto callback = [this, self = RefPtr<TestNrSocket>(this), packet,
+                     port_mapping =
+                         RefPtr<PortMapping>(port_mapping)](nsITimer* timer) {
+      mTimers.RemoveElement(timer);
+      port_mapping->sendto(packet->buffer_->data(), packet->buffer_->len(),
+                           packet->remote_address_);
+    };
+    auto result = NS_NewTimerWithCallback(
+        std::move(callback), nat_->network_delay_ms_, nsITimer::TYPE_ONE_SHOT,
+        "TestNrSocket::sendto");
+    if (result.isOk()) {
+      mTimers.AppendElement(result.unwrap());
+    }
+    return 0;
   }
 
   // We probably don't want to propagate the flags, since this is a simulated

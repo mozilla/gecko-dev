@@ -504,11 +504,14 @@ static Maybe<NrIceCtx::NatSimulatorConfig> GetNatConfig() {
   nsAutoCString redirect_targets;
   (void)Preferences::GetCString(
       "media.peerconnection.nat_simulator.redirect_targets", redirect_targets);
+  int network_delay_ms = Preferences::GetInt(
+      "media.peerconnection.nat_simulator.network_delay_ms", 0);
 
   if (block_udp || block_tcp || block_tls || !mapping_type.IsEmpty() ||
       !filtering_type.IsEmpty() || !redirect_address.IsEmpty()) {
     CSFLogDebug(LOGTAG, "NAT filtering type: %s", filtering_type.get());
     CSFLogDebug(LOGTAG, "NAT mapping type: %s", mapping_type.get());
+    CSFLogDebug(LOGTAG, "NAT network delay: %d", network_delay_ms);
     NrIceCtx::NatSimulatorConfig natConfig;
     natConfig.mBlockUdp = block_udp;
     natConfig.mBlockTcp = block_tcp;
@@ -516,6 +519,7 @@ static Maybe<NrIceCtx::NatSimulatorConfig> GetNatConfig() {
     natConfig.mErrorCodeForDrop = error_code_for_drop;
     natConfig.mFilteringType = filtering_type;
     natConfig.mMappingType = mapping_type;
+    natConfig.mNetworkDelayMs = network_delay_ms;
     if (redirect_address.Length()) {
       CSFLogDebug(LOGTAG, "Redirect address: %s", redirect_address.get());
       CSFLogDebug(LOGTAG, "Redirect targets: %s", redirect_targets.get());

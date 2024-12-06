@@ -6177,6 +6177,7 @@ static const PrefListEntry sDynamicPrefOverrideList[]{
     PREF_LIST_ENTRY("media.peerconnection.nat_simulator.mapping_type"),
     PREF_LIST_ENTRY("media.peerconnection.nat_simulator.redirect_address"),
     PREF_LIST_ENTRY("media.peerconnection.nat_simulator.redirect_targets"),
+    PREF_LIST_ENTRY("media.peerconnection.nat_simulator.network_delay_ms"),
     PREF_LIST_ENTRY("media.video_loopback_dev"),
     PREF_LIST_ENTRY("media.webspeech.service.endpoint"),
     PREF_LIST_ENTRY("network.gio.supported-protocols"),
