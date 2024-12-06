@@ -1991,10 +1991,10 @@ const CTAParagraph = props => {
     onClick: handleAction,
     onKeyUp: event => ["Enter", " "].includes(event.key) ? handleAction(event) : null,
     value: "cta_paragraph",
-    role: "button",
-    tabIndex: "0"
+    tabIndex: "0",
+    role: "link"
   }, " ", /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("a", {
-    role: "button",
+    href: "",
     tabIndex: "0",
     "data-l10n-name": content.text.string_name
   }, " ")) : null));

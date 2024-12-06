@@ -23,18 +23,14 @@ export const CTAParagraph = props => {
               ["Enter", " "].includes(event.key) ? handleAction(event) : null
             }
             value="cta_paragraph"
-            role="button"
             tabIndex="0"
+            role="link"
           >
             {" "}
             {/* <a> is valid here because of click and keyup handling. */}
             {/* <button> cannot be used due to fluent integration. <a> content is provided by fluent */}
             {/* eslint-disable jsx-a11y/anchor-is-valid */}
-            <a
-              role="button"
-              tabIndex="0"
-              data-l10n-name={content.text.string_name}
-            >
+            <a href="" tabIndex="0" data-l10n-name={content.text.string_name}>
               {" "}
             </a>
           </span>
