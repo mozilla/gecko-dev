@@ -65,7 +65,7 @@ const kSubviewEvents = ["ViewShowing", "ViewHiding"];
  * The current version. We can use this to auto-add new default widgets as necessary.
  * (would be const but isn't because of testing purposes)
  */
-var kVersion = 20;
+var kVersion = 21;
 
 /**
  * Buttons removed from built-ins by version they were removed. kVersion must be
@@ -314,6 +314,7 @@ var CustomizableUIInternal = {
         ? null
         : "home-button",
       "spring",
+      "vertical-spacer",
       "urlbar-container",
       "spring",
       "save-to-pocket-button",
@@ -775,6 +776,20 @@ var CustomizableUIInternal = {
         !navbarPlacements.includes("reset-pbm-toolbar-button")
       ) {
         navbarPlacements.push("reset-pbm-toolbar-button");
+      }
+    }
+
+    if (currentVersion < 21) {
+      // If the vertical-spacer has not yet been added, ensure its to the left of the urlbar initially
+      let navbarPlacements = gSavedState.placements[CustomizableUI.AREA_NAVBAR];
+      if (!navbarPlacements.includes("vertical-spacer")) {
+        let urlbarContainerPosition =
+          navbarPlacements.indexOf("urlbar-container");
+        gSavedState.placements[CustomizableUI.AREA_NAVBAR].splice(
+          urlbarContainerPosition - 1,
+          0,
+          "vertical-spacer"
+        );
       }
     }
   },
