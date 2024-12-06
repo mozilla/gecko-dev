@@ -288,8 +288,17 @@ export var PictureInPicture = {
       template.replaceWith(clone);
 
       panel = this.getPanelForBrowser(browser);
+      this._attachEventListeners(panel);
     }
     return panel;
+  },
+
+  _attachEventListeners(panel) {
+    panel.addEventListener("popupshown", this);
+    panel.addEventListener("popuphidden", this);
+    panel
+      .querySelector("#respect-pipDisabled-switch")
+      .addEventListener("click", this);
   },
 
   handleEvent(event) {
@@ -302,6 +311,15 @@ export var PictureInPicture = {
         this.updatePlayingDurationHistograms();
         break;
       }
+      case "popupshown":
+        this.onPipPanelShown(event);
+        break;
+      case "popuphidden":
+        this.onPipPanelHidden(event);
+        break;
+      case "click":
+        this.toggleRespectDisablePip(event);
+        break;
     }
   },
 
