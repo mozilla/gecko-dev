@@ -17,15 +17,18 @@ class DefaultOnboardingTermsOfServiceEventHandlerTest {
     private lateinit var eventHandler: DefaultOnboardingTermsOfServiceEventHandler
     private lateinit var telemetryRecorder: OnboardingTelemetryRecorder
     private lateinit var openLink: (String) -> Unit
+    private lateinit var showManagePrivacyPreferencesDialog: () -> Unit
 
     @Before
     fun setup() {
         telemetryRecorder = mockk(relaxed = true)
         openLink = mockk(relaxed = true)
+        showManagePrivacyPreferencesDialog = mockk(relaxed = true)
 
         eventHandler = DefaultOnboardingTermsOfServiceEventHandler(
             telemetryRecorder = telemetryRecorder,
             openLink = openLink,
+            showManagePrivacyPreferencesDialog = showManagePrivacyPreferencesDialog,
         )
     }
 
@@ -63,6 +66,9 @@ class DefaultOnboardingTermsOfServiceEventHandlerTest {
 
         verify {
             telemetryRecorder.onTermsOfServiceManagePrivacyPreferencesLinkClick()
+        }
+        verify {
+            showManagePrivacyPreferencesDialog()
         }
     }
 

@@ -14,6 +14,7 @@ import org.mozilla.fenix.settings.SupportUtils
 class DefaultOnboardingTermsOfServiceEventHandler(
     private val telemetryRecorder: OnboardingTelemetryRecorder,
     private val openLink: (String) -> Unit,
+    private val showManagePrivacyPreferencesDialog: () -> Unit,
 ) : OnboardingTermsOfServiceEventHandler {
 
     override fun onTermsOfServiceLinkClicked(url: String) {
@@ -36,6 +37,7 @@ class DefaultOnboardingTermsOfServiceEventHandler(
 
     override fun onManagePrivacyPreferencesLinkClicked() {
         telemetryRecorder.onTermsOfServiceManagePrivacyPreferencesLinkClick()
+        showManagePrivacyPreferencesDialog()
     }
 
     override fun onAcceptTermsButtonClicked() {

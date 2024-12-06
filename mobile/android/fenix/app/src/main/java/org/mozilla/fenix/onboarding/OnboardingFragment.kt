@@ -47,6 +47,7 @@ import org.mozilla.fenix.onboarding.store.OnboardingAddOnsStore
 import org.mozilla.fenix.onboarding.store.OnboardingAddonStatus
 import org.mozilla.fenix.onboarding.store.OnboardingToolbarStore
 import org.mozilla.fenix.onboarding.view.Caption
+import org.mozilla.fenix.onboarding.view.ManagePrivacyPreferencesDialogFragment
 import org.mozilla.fenix.onboarding.view.OnboardingAddOn
 import org.mozilla.fenix.onboarding.view.OnboardingPageUiData
 import org.mozilla.fenix.onboarding.view.OnboardingScreen
@@ -69,6 +70,7 @@ class OnboardingFragment : Fragment() {
         DefaultOnboardingTermsOfServiceEventHandler(
             telemetryRecorder = telemetryRecorder,
             this::launchSandboxCustomTab,
+            this::showPrivacyPreferencesDialog,
         )
     }
 
@@ -378,5 +380,12 @@ class OnboardingFragment : Fragment() {
             url = url,
         )
         requireContext().startActivity(intent)
+    }
+
+    private fun showPrivacyPreferencesDialog() {
+        ManagePrivacyPreferencesDialogFragment(
+            onCrashReportingLinkClick = {},
+            onUsageDataLinkClick = {},
+        ).show(parentFragmentManager, ManagePrivacyPreferencesDialogFragment.TAG)
     }
 }
