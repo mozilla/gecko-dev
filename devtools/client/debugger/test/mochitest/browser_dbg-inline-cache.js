@@ -127,7 +127,8 @@ add_task(async function () {
     "Debugger loads from cache, gets value 5 like page"
   );
 
-  await closeTabAndToolbox();
+  await toolbox.destroy();
+  await removeTab(tab);
 });
 
 /**

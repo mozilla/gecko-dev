@@ -40,7 +40,9 @@ add_task(async function openDebuggerFirst() {
   const source = findSource(dbg, "doc-slow-script.html");
   await assertPausedAtSourceAndLine(dbg, source.id, 14);
 
-  await closeTabAndToolbox();
+  info("Close toolbox and tab");
+  await dbg.toolbox.closeToolbox();
+  await removeTab(gBrowser.selectedTab);
 });
 
 add_task(async function openDebuggerFromDialog() {
@@ -93,5 +95,7 @@ add_task(async function openDebuggerFromDialog() {
   const source = findSource(dbg, "doc-slow-script.html");
   await assertPausedAtSourceAndLine(dbg, source.id, 14);
 
-  await closeTabAndToolbox();
+  info("Close toolbox and tab");
+  await dbg.toolbox.closeToolbox();
+  await removeTab(gBrowser.selectedTab);
 });

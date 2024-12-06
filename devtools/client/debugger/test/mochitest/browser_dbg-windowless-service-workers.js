@@ -21,23 +21,19 @@ add_task(async function () {
     EXAMPLE_URL_WITH_PORT + "doc-service-workers.html"
   );
 
-  await SpecialPowers.spawn(gBrowser.selectedBrowser, [], async function () {
-    await content.wrappedJSObject.registerWorker();
-  });
+  invokeInTab("registerWorker");
   const workerSource = await waitForSource(dbg, "service-worker.sjs");
 
   await addBreakpoint(dbg, "service-worker.sjs", 13);
 
-  const onFetched = invokeInTab("fetchFromWorker");
+  invokeInTab("fetchFromWorker");
 
   await waitForPaused(dbg);
   await assertPausedAtSourceAndLine(dbg, workerSource.id, 13);
   // Leave the breakpoint and worker in place for the next subtest.
   await resume(dbg);
-  info("Waiting for the fetch request done from the page to complete");
-  await onFetched;
   await waitForRequestsToSettle(dbg);
-  await closeTabAndToolbox();
+  await removeTab(gBrowser.selectedTab);
 });
 
 // Test that breakpoints can be immediately hit in service workers when reloading.
@@ -71,8 +67,7 @@ add_task(async function () {
 
   await checkAdditionalThreadCount(dbg, 0);
   await waitForRequestsToSettle(dbg);
-
-  await closeTabAndToolbox();
+  await removeTab(gBrowser.selectedTab);
 });
 
 // Test having a waiting and active service worker for the same registration.
@@ -85,9 +80,7 @@ add_task(async function () {
   );
   const dbg = createDebuggerContext(toolbox);
 
-  await SpecialPowers.spawn(gBrowser.selectedBrowser, [], async function () {
-    await content.wrappedJSObject.registerWorker();
-  });
+  invokeInTab("registerWorker");
   await checkAdditionalThreadCount(dbg, 1);
   await checkWorkerStatus(dbg, "activated");
 
@@ -142,9 +135,7 @@ add_task(async function () {
   );
   const dbg = createDebuggerContext(toolbox);
 
-  await SpecialPowers.spawn(gBrowser.selectedBrowser, [], async function () {
-    await content.wrappedJSObject.registerWorker();
-  });
+  invokeInTab("registerWorker");
   await checkAdditionalThreadCount(dbg, 1);
 
   const workerSource = await waitForSource(dbg, "service-worker.sjs");
@@ -171,8 +162,7 @@ add_task(async function () {
 
   await checkAdditionalThreadCount(dbg, 0);
   await waitForRequestsToSettle(dbg);
-
-  await closeTabAndToolbox();
+  await removeTab(gBrowser.selectedTab);
 });
 
 async function checkWorkerStatus(_dbg, _status) {
