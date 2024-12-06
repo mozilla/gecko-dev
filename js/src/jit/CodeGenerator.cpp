@@ -19880,7 +19880,11 @@ void CodeGenerator::visitIsTypedArray(LIsTypedArray* lir) {
   masm.jump(&done);
   masm.bind(&notTypedArray);
   if (ool) {
-    masm.branchTestClassIsProxy(true, output, ool->entry());
+    Label notProxy;
+    masm.branchTestClassIsProxy(false, output, &notProxy);
+    masm.branchTestProxyHandlerFamily(Assembler::Equal, object, output,
+                                      &Wrapper::family, ool->entry());
+    masm.bind(&notProxy);
   }
   masm.move32(Imm32(0), output);
   masm.bind(&done);

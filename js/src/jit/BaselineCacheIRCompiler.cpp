@@ -1177,7 +1177,7 @@ bool BaselineCacheIRCompiler::emitIsTypedArrayResult(ObjOperandId objId,
 
   allocator.discardStack(masm);
 
-  Label notTypedArray, isProxy, done;
+  Label notTypedArray, isWrapper, done;
   masm.loadObjClassUnsafe(obj, scratch);
   masm.branchIfClassIsNotTypedArray(scratch, &notTypedArray);
   masm.moveValue(BooleanValue(true), output.valueReg());
@@ -1185,14 +1185,18 @@ bool BaselineCacheIRCompiler::emitIsTypedArrayResult(ObjOperandId objId,
 
   masm.bind(&notTypedArray);
   if (isPossiblyWrapped) {
-    masm.branchTestClassIsProxy(true, scratch, &isProxy);
+    Label notProxy;
+    masm.branchTestClassIsProxy(false, scratch, &notProxy);
+    masm.branchTestProxyHandlerFamily(Assembler::Equal, obj, scratch,
+                                      &Wrapper::family, &isWrapper);
+    masm.bind(&notProxy);
   }
   masm.moveValue(BooleanValue(false), output.valueReg());
 
   if (isPossiblyWrapped) {
     masm.jump(&done);
 
-    masm.bind(&isProxy);
+    masm.bind(&isWrapper);
 
     AutoStubFrame stubFrame(*this);
     stubFrame.enter(masm, scratch);
