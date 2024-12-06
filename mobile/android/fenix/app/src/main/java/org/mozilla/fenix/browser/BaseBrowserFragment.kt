@@ -599,8 +599,14 @@ abstract class BaseBrowserFragment :
             loginsBar = binding.loginSelectBar,
             passwordBar = binding.suggestStrongPasswordBar,
             settings = requireContext().settings(),
-            onLoginsBarShown = { removeBottomToolbarDivider(browserToolbarView.view) },
-            onLoginsBarHidden = { restoreBottomToolbarDivider(browserToolbarView.view) },
+            onLoginsBarShown = {
+                removeBottomToolbarDivider(browserToolbarView.view)
+                updateNavbarDivider()
+            },
+            onLoginsBarHidden = {
+                restoreBottomToolbarDivider(browserToolbarView.view)
+                updateNavbarDivider()
+            },
         )
 
         val shouldAddNavigationBar = context.shouldAddNavigationBar() && webAppToolbarShouldBeVisible
@@ -1840,8 +1846,6 @@ abstract class BaseBrowserFragment :
             )
             browserToolbar.background = drawable
             browserToolbar.elevation = 0.0f
-        } else {
-            resetNavbar()
         }
     }
 
@@ -1854,7 +1858,15 @@ abstract class BaseBrowserFragment :
                 context?.theme,
             )
             browserToolbar.background = defaultBackground
-        } else {
+        }
+    }
+
+    private fun updateNavbarDivider() {
+        val safeContext = context ?: return
+
+        // Evaluate showing the navbar divider only if addressbar is shown at the top
+        // and the toolbar chrome should be is visible.
+        if (!safeContext.isToolbarAtBottom() && webAppToolbarShouldBeVisible) {
             resetNavbar()
         }
     }
