@@ -234,7 +234,7 @@ the diversity of hardware:
     and movements must be identified and labelled to allow for clear
     software-user interaction.
 
-    .. image:: apple_vision_user.webp
+    .. image:: apple_vision_user.jpg
         :width: 25%
 
     .. image:: apple_vision.jpg
