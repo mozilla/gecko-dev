@@ -1588,7 +1588,7 @@ static size_t FracNumberToCString(ToCStringBuf* cbuf, double d) {
   const double_conversion::DoubleToStringConverter& converter =
       double_conversion::DoubleToStringConverter::EcmaScriptConverter();
   double_conversion::StringBuilder builder(cbuf->sbuf, std::size(cbuf->sbuf));
-  converter.ToShortest(d, &builder);
+  MOZ_ALWAYS_TRUE(converter.ToShortest(d, &builder));
 
   size_t len = builder.position();
 #ifdef DEBUG
@@ -1611,7 +1611,7 @@ void JS::NumberToString(double d, char (&out)[MaximumNumberToStringLength]) {
         double_conversion::DoubleToStringConverter::EcmaScriptConverter();
 
     double_conversion::StringBuilder builder(out, sizeof(out));
-    converter.ToShortest(d, &builder);
+    MOZ_ALWAYS_TRUE(converter.ToShortest(d, &builder));
 
 #ifdef DEBUG
     char* result =
