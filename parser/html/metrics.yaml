@@ -21,4 +21,4 @@ parsing:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1913382
     data_reviews:
       - https://phabricator.services.mozilla.com/D219290#7592177
-    expires: 136
+    expires: 150
