@@ -268,14 +268,16 @@ class OnboardingTelemetryRecorder {
      * Records select toolbar placement click event.
      * @param sequenceId The identifier of the onboarding sequence shown to the user.
      * @param sequencePosition The sequence position of the page for which the impression occurred.
+     * @param toolbarPlacement The toolbar placement option chosen by the user.
      */
-    fun onSelectToolbarPlacementClick(sequenceId: String, sequencePosition: String) {
+    fun onSelectToolbarPlacementClick(sequenceId: String, sequencePosition: String, toolbarPlacement: String) {
         Onboarding.selectToolbarPlacement.record(
             Onboarding.SelectToolbarPlacementExtra(
                 action = ACTION_CLICK,
                 elementType = ET_PRIMARY_BUTTON,
                 sequenceId = sequenceId,
                 sequencePosition = sequencePosition,
+                toolbarPlacement = toolbarPlacement,
             ),
         )
     }

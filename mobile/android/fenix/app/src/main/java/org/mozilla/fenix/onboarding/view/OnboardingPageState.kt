@@ -86,17 +86,19 @@ data class ToolbarOption(
 
 /**
  * Types of toolbar placement options available.
+ *
+ * @property id Identifier for the toolbar option type, used in telemetry.
  */
-enum class ToolbarOptionType {
+enum class ToolbarOptionType(val id: String) {
     /**
      * Sets the toolbar placement to the top.
      */
-    TOOLBAR_TOP,
+    TOOLBAR_TOP("toolbar_top"),
 
     /**
      * Sets the toolbar placement to the bottom.
      */
-    TOOLBAR_BOTTOM,
+    TOOLBAR_BOTTOM("toolbar_bottom"),
 }
 
 /**

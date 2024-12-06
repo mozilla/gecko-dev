@@ -1959,6 +1959,10 @@ onboarding:
     description: |
       User selected a toolbar placement option and tapped on save button for picking toolbar placement in onboarding.
     extra_keys:
+      toolbar_placement:
+        type: string
+        description: |
+          The type of toolbar placement selected (ie. top or bottom).
       element_type:
         type: string
         description: |

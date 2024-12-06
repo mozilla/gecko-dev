@@ -236,6 +236,7 @@ class OnboardingFragment : Fragment() {
                 telemetryRecorder.onSelectToolbarPlacementClick(
                     pagesToDisplay.telemetrySequenceId(),
                     pagesToDisplay.sequencePosition(OnboardingPageUiData.Type.TOOLBAR_PLACEMENT),
+                    onboardingToolbarStore.state.selected.id,
                 )
             },
             onSkipCustomizeToolbarClick = {
