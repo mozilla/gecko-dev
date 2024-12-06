@@ -12,6 +12,7 @@
 
 #include "nsSound.h"
 
+#include "CubebUtils.h"
 #include "HeadlessSound.h"
 #include "nsIURL.h"
 #include "nsNetUtil.h"
@@ -43,6 +44,7 @@ typedef void (*ca_finish_callback_t)(ca_context* c, uint32_t id, int error_code,
 
 typedef int (*ca_context_create_fn)(ca_context**);
 typedef int (*ca_context_destroy_fn)(ca_context*);
+typedef int (*ca_context_set_driver_fn)(ca_context*, const char*);
 typedef int (*ca_context_play_fn)(ca_context* c, uint32_t id, ...);
 typedef int (*ca_context_change_props_fn)(ca_context* c, ...);
 typedef int (*ca_proplist_create_fn)(ca_proplist**);
@@ -55,6 +57,7 @@ typedef int (*ca_context_play_full_fn)(ca_context* c, uint32_t id,
 
 static ca_context_create_fn ca_context_create;
 static ca_context_destroy_fn ca_context_destroy;
+static ca_context_set_driver_fn ca_context_set_driver;
 static ca_context_play_fn ca_context_play;
 static ca_context_change_props_fn ca_context_change_props;
 static ca_proplist_create_fn ca_proplist_create;
@@ -95,6 +98,33 @@ static ca_context* ca_context_get_default() {
     return nullptr;
   }
 
+#if !defined(XP_OPENBSD) && ((defined MOZ_ALSA) || (defined MOZ_SNDIO))
+  {
+    // On most platforms, libcanberra is configured to prefer pulse.
+    // If the pulse daemon is not running then every time a sound is played
+    // libcanberra will dlopen libpulse.so and try to create a new context,
+    // which will fail.
+    // We don't really want this to happen every time a sound is played (this
+    // will stall the main thread, for instance, when opening a context menu),
+    // so try to use ALSA or sndio if cubeb is already using that.
+    // There is no point in doing this on OpenBSD, as system libcanberra
+    // already prefers sndio there, which should always work.
+    nsAutoString backend;
+    mozilla::CubebUtils::GetCurrentBackend(backend);
+
+    // Only check for each backend if we have support compiled in.
+#  ifdef MOZ_ALSA
+    if (backend == u"alsa"_ns) {
+      ca_context_set_driver(ctx, "alsa");
+    }
+#  endif
+#  ifdef MOZ_SNDIO
+    if (backend == u"sndio"_ns) {
+      ca_context_set_driver(ctx, "sndio");
+    }
+#  endif
+  }
+#endif
   g_private_set(&ctx_private, ctx);
 
   GtkSettings* settings = gtk_settings_get_default();
@@ -173,6 +203,8 @@ nsSound::Init() {
         // at this point we know we have a good libcanberra library
         ca_context_destroy = (ca_context_destroy_fn)PR_FindFunctionSymbol(
             libcanberra, "ca_context_destroy");
+        ca_context_set_driver = (ca_context_set_driver_fn)PR_FindFunctionSymbol(
+            libcanberra, "ca_context_set_driver");
         ca_context_play = (ca_context_play_fn)PR_FindFunctionSymbol(
             libcanberra, "ca_context_play");
         ca_context_change_props =
