@@ -152,7 +152,9 @@ mozilla::ipc::IPCResult NotificationParent::RecvShow(ShowResolver&& aResolver) {
   // nsIAlertNotification::LoadImage)
   // Step 4.3: Run the show steps for notification.
   nsresult rv = Show();
-  if (NS_FAILED(rv)) {
+  // It's possible that we synchronously received a notification while in Show,
+  // so mResolver may now be empty.
+  if (NS_FAILED(rv) && mResolver) {
     mResolver.take().value()(CopyableErrorResult(rv));
   }
   // If not failed, the resolver will be called asynchronously by
