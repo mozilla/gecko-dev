@@ -1,0 +1,129 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <script type="application/javascript" src="pc.js"></script>
+  <script type="application/javascript" src="iceTestUtils.js"></script>
+  <script type="application/javascript" src="helpers_from_wpt/sdp.js"></script></head>
+<body>
+<pre id="test">
+<script type="application/javascript">
+  createHTML({
+    bug: "1898696",
+    title: "Corner cases for ICE candidate pair selection"
+  });
+
+  const tests = [
+    async function checkRelayPriorityWithLateTrickle() {
+      // Test that relay-based candidate pairs don't get prflx priority when
+      // trickle is late.
+
+      // Block host candidates; if we mess up and interpret relay as
+      // prflx, we won't have host candidates with a higher priority
+      // masking the problem.
+      await pushPrefs(
+          ['media.peerconnection.ice.obfuscate_host_addresses', false],
+          ['media.peerconnection.nat_simulator.filtering_type', 'ENDPOINT_INDEPENDENT'],
+          ['media.peerconnection.nat_simulator.mapping_type', 'ENDPOINT_INDEPENDENT'],
+          ['media.peerconnection.nat_simulator.network_delay_ms', 50],
+          ['media.peerconnection.ice.loopback', true],
+          // The above triggers warning about 5 ICE servers
+          ['media.peerconnection.treat_warnings_as_errors', false],
+          ['media.getusermedia.insecure.enabled', true]);
+
+      let turnServer = iceServersArray.find(server => "username" in server);
+      // Disable TCP-based TURN; this goes through the NAT simulator much more
+      // quickly than UDP, and can result in TURN TCP establishment happening
+      // before srflx is even attempted.
+      turnServer.urls = turnServer.urls.filter(u => u.indexOf("turns:") == -1 && u.indexOf("transport=t") == -1);
+      let stunServer = iceServersArray.find(server => !("username" in server));
+
+      // This is a somewhat contrived situation. What we're trying to do is
+      // cause the non-controlling side to learn about the controller's relay
+      // candidate from a STUN check, instead of trickle. At the same time,
+      // we're trying to ensure that the non-controlling side learns about the
+      // controller's srflx through trickle.
+      const pc1 = new RTCPeerConnection({iceServers: [turnServer]});
+      const pc2 = new RTCPeerConnection({iceServers: [stunServer]});
+      pc1.onicecandidate = e => {
+        if (e.candidate && e.candidate.type == "srflx") {
+          pc2.addIceCandidate(e.candidate);
+        }
+      };
+      pc2.onicecandidate = e => {
+        pc1.addIceCandidate(e.candidate);
+      };
+      const transceiver = pc1.addTransceiver('audio');
+      await pc1.setLocalDescription();
+      // Remove any candidates in the offer.
+      let mungedOffer = {
+        type: "offer",
+        sdp: pc1.localDescription.sdp.replaceAll("a=candidate:", "a=candid8:")
+      };
+      await pc2.setRemoteDescription(mungedOffer);
+      // Wait for gathering to complete.
+      await new Promise(r => pc1.onicegatheringstatechange = () => {
+        if (pc1.iceGatheringState == "complete") {
+          r();
+        }
+      });
+
+      await pc2.setLocalDescription();
+      await pc1.setRemoteDescription(pc2.localDescription);
+
+      await Promise.all([iceConnected(pc1), iceConnected(pc2)]);
+      info("ICE connected");
+      const stats = await pc2.getStats();
+      info("Have all stats");
+      stats.forEach((value, key) => {
+        info(`${key} => ${JSON.stringify(value)}`);
+      });
+
+      function getRemoteCandidate(pair, stats) {
+        info(`Getting ${pair.remoteCandidateId} => ${JSON.stringify(stats.get(pair.remoteCandidateId))}`);
+        return stats.get(pair.remoteCandidateId);
+      }
+
+      // Convert the iterable to an array so we can use it more than once
+      const pairs = [...stats.values().filter(s => s.type == "candidate-pair")];
+
+      const srflxPriorities = pairs.filter(p => getRemoteCandidate(p, stats).candidateType == "srflx").map(p => p.priority);
+      // We obfuscate remote prflx candidates, so cannot match on port. The
+      // above code is intended to only allow prflx for the relay candidates.
+      const prflxPriorities = pairs.filter(p => getRemoteCandidate(p, stats).candidateType == "prflx").map(p => p.priority);
+
+      const minSrflxPriority = Math.min(...srflxPriorities);
+      const maxRelayPriority = Math.max(...prflxPriorities);
+      ok(maxRelayPriority < minSrflxPriority, `relay priorities should be less than srflx priorities (${maxRelayPriority} vs ${minSrflxPriority})`);
+      await SpecialPowers.popPrefEnv();
+    },
+  ];
+
+  runNetworkTest(async () => {
+    const turnServer = iceServersArray.find(server => "username" in server);
+    username = turnServer.username;
+    credential = turnServer.credential;
+    // Just use the first url. It might make sense to look for TURNS first,
+    // since that will always use a hostname, but on CI we don't have TURNS
+    // support anyway (see bug 1323439).
+    const turnHostname = getTurnHostname(turnServer.urls[0]);
+    turnAddressV4 = await dnsLookupV4(turnHostname);
+
+    for (const test of tests) {
+      info(`Running test: ${test.name}`);
+      try {
+        await test();
+      } catch (e) {
+        ok(false, `Caught ${e.name}: ${e.message} ${e.stack}`);
+      }
+      info(`Done running test: ${test.name}`);
+      // Make sure we don't build up a pile of GC work, and also get PCImpl to
+      // print their timecards.
+      await new Promise(r => SpecialPowers.exactGC(r));
+    }
+
+    await SpecialPowers.popPrefEnv();
+  }, { useIceServer: true });
+</script>
+</pre>
+</body>
+</html>
