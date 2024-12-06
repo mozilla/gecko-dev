@@ -30,7 +30,8 @@ const TESTS = [
 add_task(async function() {
   for (let test of TESTS) {
     for (let crossorigin of [false, true]) {
-      let host = crossorigin ? "http://example.org" : "http://mochi.test:8888";
+      // eslint-disable-next-line @microsoft/sdl/no-insecure-url
+      let host = crossorigin ? "https://example.org" : "http://mochi.test:8888";
       let e = document.createElement("embed");
 
       switch (test.outer) {

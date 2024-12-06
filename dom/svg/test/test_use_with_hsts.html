@@ -44,6 +44,7 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=1247733
   const iframeWin = iframe.contentWindow;
 
   // URI for our testcase with 'use' element, via HTTP and HTTPS:
+  // eslint-disable-next-line @microsoft/sdl/no-insecure-url
   const insecureURI = "http://example.com/tests/dom/svg/test/use-with-hsts-helper.html";
   const secureURI   = "https://example.com/tests/dom/svg/test/use-with-hsts-helper.html";
 
@@ -119,6 +120,7 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=1247733
       "didn't receive as many messages from child iframe as expected");
 
     // We're done! Clear the STS headers that we set, and finish.
+    // eslint-disable-next-line @microsoft/sdl/no-insecure-url
     SpecialPowers.cleanUpSTSData("http://example.com");
     SimpleTest.finish();
   }
