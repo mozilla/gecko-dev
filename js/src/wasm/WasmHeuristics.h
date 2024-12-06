@@ -140,7 +140,7 @@ class InliningHeuristics {
   static bool isSmallEnoughToInline(CallKind callKind, uint32_t inliningDepth,
                                     uint32_t bodyLength) {
     // If this fails, something's seriously wrong; bail out.
-    MOZ_RELEASE_ASSERT(inliningDepth <= 10);  // because 10 > (400 / 50)
+    MOZ_RELEASE_ASSERT(inliningDepth <= 10);  // because 10 > (320 / 40)
     // Check whether calls of this kind are currently allowed
     if ((callKind == CallKind::Direct && !rawDirectAllowed()) ||
         (callKind == CallKind::CallRef && !rawCallRefAllowed())) {
@@ -149,20 +149,20 @@ class InliningHeuristics {
     // Check the size is allowable.  This depends on how deep we are in the
     // stack and on the setting of level_.  We allow inlining of functions of
     // size up to the `baseSize[]` value at depth zero, but reduce the
-    // allowable size by 50 for each further level of inlining, so that only
+    // allowable size by 40 for each further level of inlining, so that only
     // smaller and smaller functions are allowed as we inline deeper.
     //
     // At some point `allowedSize` goes negative and thereby disallows all
     // further inlining.  Note that the `baseSize` entry for
     // `level_ == MIN_LEVEL (== 1)` is set so as to disallow inlining even at
     // depth zero.  Hence `level_ == MIN_LEVEL` disallows all inlining.
-    static constexpr int32_t baseSize[9] = {0,   50,  100, 150,
-                                            200,  // default
-                                            250, 300, 350, 400};
+    static constexpr int32_t baseSize[9] = {0,   40,  80,  120,
+                                            160,  // default
+                                            200, 240, 280, 320};
     uint32_t level = rawLevel();
     MOZ_RELEASE_ASSERT(level >= MIN_LEVEL && level <= MAX_LEVEL);
     int32_t allowedSize = baseSize[level - MIN_LEVEL];
-    allowedSize -= int32_t(50 * inliningDepth);
+    allowedSize -= int32_t(40 * inliningDepth);
     return allowedSize > 0 && bodyLength <= uint32_t(allowedSize);
   }
 };
@@ -178,14 +178,14 @@ class InliningHeuristics {
 // The following scheme is therefore implemented:
 //
 // * no function can have an inlining-based expansion of more than a constant
-//   factor (eg, 9 x).
+//   factor (here, 99 x).
 //
 // * for a module as a whole there is also a max expansion factor, and this is
 //   much lower, perhaps 1 x.
 //
 // This means that
 //
-// * no individual function can cause too much trouble (due to the 9 x limit),
+// * no individual function can cause too much trouble (due to the 99 x limit),
 //   yet any function that needs a lot of inlining can still get it. In
 //   practice most functions have an inlining expansion, at default settings,
 //   of much less than 5 x.
@@ -248,7 +248,7 @@ class InliningHeuristics {
 //             by InliningHeuristics::isSmallEnoughToInline>
 //   * MaxPartialTier2CompileTasks
 //
-// which with current settings is 400 * 1 == 400.
+// which with current settings is 320 * 1 == 320.
 //
 // We never expect to hit either limit in normal operation -- they exist only
 // to protect against the worst case.  So the imprecision doesn't matter.
@@ -259,7 +259,7 @@ class InliningHeuristics {
 static constexpr int64_t PerModuleMaxInliningRatio = 1;
 
 // Same meaning as above, except at a per-function level.
-static constexpr int64_t PerFunctionMaxInliningRatio = 9;
+static constexpr int64_t PerFunctionMaxInliningRatio = 99;
 
 }  // namespace wasm
 }  // namespace js
