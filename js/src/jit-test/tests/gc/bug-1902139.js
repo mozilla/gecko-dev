@@ -1,3 +1,4 @@
+gczeal(0);
 gc();
 gczeal(11);
 schedulezone({});
