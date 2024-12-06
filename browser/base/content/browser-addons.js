@@ -1969,6 +1969,12 @@ var gUnifiedExtensions = {
       );
       CustomizableUI.addPanelCloseListeners(this._panel);
 
+      this._panel
+        .querySelector("#unified-extensions-manage-extensions")
+        .addEventListener("command", () => {
+          BrowserAddonUI.openAddonsMgr("addons://list/extension");
+        });
+
       // Lazy-load the l10n strings. Those strings are used for the CUI and
       // non-CUI extensions in the unified extensions panel.
       document
