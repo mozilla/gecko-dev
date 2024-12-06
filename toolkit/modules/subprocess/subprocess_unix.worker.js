@@ -5,7 +5,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 "use strict";
 
-/* exported Process */
+/* exported Process, ManagedProcess */
 
 /* import-globals-from subprocess_shared.js */
 /* import-globals-from subprocess_shared_unix.js */
@@ -461,6 +461,96 @@ class Process extends BaseProcess {
     io.updatePollFds();
     this.resolveExit(this.exitCode);
     return this.exitCode;
+  }
+}
+
+/*
+ * Wrapping file descriptors of already-running process to allow interacting
+ * with the process via the Subprocess module.
+ *
+ * This is used e.g. by NativeMessaging code when interfacing with XDG
+ * WebExtensions portal (required when running under Flatpak or Snap). The
+ * actual portal binary is executed outside and file descriptors will be shared
+ * over DBus so interaction can happen with the portal.
+ *
+ * The file descriptors are wrapped in a unix.Fd() to ensure proper cleanup as
+ * long as the ManagedProcess instance is properly disposed off: kill() should
+ * ensure this is the case.
+ *
+ * All the file descriptors will be monitored by poll() to try and detect
+ * process termination.
+ * */
+class ManagedProcess extends BaseProcess {
+  /*
+   * Connect to an already running process that was spawned externally,
+   * through numeric stdin/stdout/stderr file descriptors.
+   *
+   * @param {number[]} receivedFDs
+   *        An array of file descriptors (stdin, stdout and stderr).
+   */
+  connectRunning(receivedFDs) {
+    const fdCheck = fds => {
+      for (let value of io.pipes.values()) {
+        const fd = parseInt(value.fd.toString(), 10);
+        return fd === fds[0] || fd === fds[1] || fd === fds[2];
+      }
+    };
+
+    const alreadyUsed = fdCheck(receivedFDs);
+    if (alreadyUsed) {
+      throw new Error("Attempt to connect FDs already handled by Subprocess");
+    }
+
+    this.pipes.push(new OutputPipe(this, unix.Fd(receivedFDs[0])));
+    this.pipes.push(new InputPipe(this, unix.Fd(receivedFDs[1])));
+    this.pipes.push(new InputPipe(this, unix.Fd(receivedFDs[2])));
+  }
+
+  get pollEvents() {
+    // No poll fd here: we don't have a handle to the process, only its fd.
+    // Each fd of this.pipes is already polled by updatePollFds, and their
+    // Pipe's onError() method calls our wait() method when the fd is closed.
+    // We assume that the process has exited when all pipes have closed.
+
+    // ManagedProcess does not have onReady() or onError() definitions because
+    // updatePollFds() does not call these when pollEvents is 0.
+    return 0;
+  }
+
+  /*
+   * Termination of the ManagedProcess: such a process is started/stopped
+   * outside of the browser, the termination here ensures that all its pipes are
+   * properly closed and that any code waiting for the process to terminate is
+   * unblocked by resolving the Promise.
+   * */
+  kill() {
+    this.pipes.forEach(p => p.close());
+    this.resolveExit(this.exitCode);
+  }
+
+  /* A ManagedProcess being ran outside of our PID namespace (Snap/Flatpak)
+   * there is no realistic way to waitpid() here.
+   * As noted in pollEvents, we consider the process closed if all of its fd
+   * have closed.
+   * */
+  wait() {
+    if (this.pipes.every(pipe => pipe.closed)) {
+      // Actual exitCode is unknown, just return null.
+      this.resolveExit(null);
+    } else {
+      io.updatePollFds();
+    }
+  }
+
+  /*
+   * A ManagedProcess is already running, so here the spawn just performs the
+   * connection of the file descriptors received.
+   *
+   * @param {array} options
+   *        An array of file descriptors from an existing process.
+   * */
+  spawn(options) {
+    return this.connectRunning(options);
   }
 }
 

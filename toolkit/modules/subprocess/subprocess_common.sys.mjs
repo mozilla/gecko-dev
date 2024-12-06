@@ -635,6 +635,16 @@ export class BaseProcess {
     });
   }
 
+  static fromRunning(options) {
+    let worker = this.getWorker();
+
+    return worker
+      .call("connectRunning", [options])
+      .then(({ processId, fds }) => {
+        return new this(worker, processId, fds, null);
+      });
+  }
+
   static get WORKER_URL() {
     throw new Error("Not implemented");
   }

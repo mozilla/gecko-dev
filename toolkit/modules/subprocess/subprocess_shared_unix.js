@@ -54,6 +54,8 @@ var libc = new Library("libc", LIBC_CHOICES, {
 
   close: [ctypes.default_abi, ctypes.int, ctypes.int /* fildes */],
 
+  dup: [ctypes.default_abi, ctypes.int, ctypes.int],
+
   fcntl: [
     ctypes.default_abi,
     ctypes.int,
