@@ -557,7 +557,7 @@ web-platform-tests-wdspec:
             async-event-dispatching:
                 by-test-platform:
                     .*-32.*/.*: []
-                    .*/debug: []
+                    .*/debug: built-projects
                     default: []
             default: built-projects
     tier:

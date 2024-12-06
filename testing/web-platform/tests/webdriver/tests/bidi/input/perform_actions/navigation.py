@@ -1,6 +1,8 @@
 import pytest
+import webdriver.bidi.error as error
 from webdriver.bidi.modules.input import Actions, get_element_origin
 
+from . import get_element_rect
 from .. import get_events
 
 pytestmark = pytest.mark.asyncio
@@ -26,7 +28,7 @@ PAGE_CONTENT = """
 """
 
 
-async def test_key(bidi_session, inline, top_context):
+async def test_key(bidi_session, inline, top_context, get_element):
     await bidi_session.browsing_context.navigate(
         context=top_context["context"],
         url=inline(f"""
@@ -38,6 +40,7 @@ async def test_key(bidi_session, inline, top_context):
             """),
         wait="complete"
     )
+    input = await get_element("input")
 
     actions = Actions()
     (
@@ -53,9 +56,8 @@ async def test_key(bidi_session, inline, top_context):
         actions=actions, context=top_context["context"]
     )
 
-    # Check that the page was navigated
-    info = await bidi_session.browsing_context.get_tree(max_depth=1)
-    assert info[0]["url"] == inline(PAGE_CONTENT)
+    with pytest.raises(error.NoSuchNodeException):
+        await get_element_rect(bidi_session, context=top_context, element=input)
 
     events = await get_events(bidi_session, top_context["context"])
     assert len(events) == 1
@@ -85,9 +87,8 @@ async def test_pointer(bidi_session, inline, top_context, get_element):
         actions=actions, context=top_context["context"]
     )
 
-    # Check that the page was navigated
-    info = await bidi_session.browsing_context.get_tree(max_depth=1)
-    assert info[0]["url"] == inline(PAGE_CONTENT)
+    with pytest.raises(error.NoSuchNodeException):
+        await get_element_rect(bidi_session, context=top_context, element=input)
 
     events = await get_events(bidi_session, top_context["context"])
     assert len(events) == 1
