@@ -250,17 +250,16 @@ JSString::OwnedChars<CharT>::OwnedChars(RefPtr<mozilla::StringBuffer>&& buffer,
   buffer.forget(&buf);
 }
 
-MOZ_ALWAYS_INLINE bool JSString::validateLength(JSContext* maybecx,
-                                                size_t length) {
-  return validateLengthInternal<js::CanGC>(maybecx, length);
+MOZ_ALWAYS_INLINE bool JSString::validateLength(JSContext* cx, size_t length) {
+  return validateLengthInternal<js::CanGC>(cx, length);
 }
 
 template <js::AllowGC allowGC>
-MOZ_ALWAYS_INLINE bool JSString::validateLengthInternal(JSContext* maybecx,
+MOZ_ALWAYS_INLINE bool JSString::validateLengthInternal(JSContext* cx,
                                                         size_t length) {
   if (MOZ_UNLIKELY(length > JSString::MAX_LENGTH)) {
     if constexpr (allowGC) {
-      js::ReportOversizedAllocation(maybecx, JSMSG_ALLOC_OVERFLOW);
+      js::ReportOversizedAllocation(cx, JSMSG_ALLOC_OVERFLOW);
     }
     return false;
   }
