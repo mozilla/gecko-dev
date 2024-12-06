@@ -1670,7 +1670,7 @@ class nsLayoutUtils {
   // a complete type in the header. Type-safety is not harmed given that
   // DarkenColorIfNeeded requires an nsIFrame pointer.
   template <typename Frame, typename T, typename S>
-  static nscolor GetTextColor(Frame* aFrame, T S::* aField) {
+  static nscolor GetTextColor(Frame* aFrame, T S::*aField) {
     nscolor color = aFrame->GetVisitedDependentColor(aField);
     return DarkenColorIfNeeded(aFrame, color);
   }
