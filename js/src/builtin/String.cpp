@@ -58,7 +58,6 @@
 #include "vm/ToSource.h"  // js::ValueToSource
 
 #include "vm/GeckoProfiler-inl.h"
-#include "vm/InlineCharBuffer-inl.h"
 #include "vm/NativeObject-inl.h"
 #include "vm/StringObject-inl.h"
 #include "vm/StringType-inl.h"
@@ -4012,6 +4011,20 @@ JSLinearString* js::StringFromCodePoint(JSContext* cx, char32_t codePoint) {
   return NewInlineString<CanGC>(cx, chars, 2);
 }
 
+// Inspect arguments to guess the output string type.
+static bool GuessFromCharCodeIsLatin1(const CallArgs& args) {
+  // Arbitrarily chosen number of samples to inspect.
+  constexpr unsigned SampleSize = 8;
+
+  for (unsigned i = 0; i < std::min(args.length(), SampleSize); i++) {
+    auto v = args[i];
+    if (v.isInt32() && uint16_t(v.toInt32()) > JSString::MAX_LATIN1_CHAR) {
+      return false;
+    }
+  }
+  return true;
+}
+
 /**
  * 22.1.2.1 String.fromCharCode ( ...codeUnits )
  *
@@ -4038,27 +4051,72 @@ bool js::str_fromCharCode(JSContext* cx, unsigned argc, Value* vp) {
     return true;
   }
 
-  // Optimize the case where the result will definitely fit in an inline
-  // string (thin or fat) and so we don't need to malloc the chars. (We could
-  // cover some cases where args.length() goes up to
-  // JSFatInlineString::MAX_LENGTH_LATIN1 if we also checked if the chars are
-  // all Latin-1, but it doesn't seem worth the effort.)
-  InlineCharBuffer<char16_t> chars;
-  if (!chars.maybeAlloc(cx, args.length())) {
+  // Optimize the case where the result will be a Latin-1 string.
+  StringChars<Latin1Char> latin1Chars(cx);
+
+  unsigned i = 0;
+  uint16_t firstTwoByteChar = 0;
+  if (GuessFromCharCodeIsLatin1(args)) {
+    if (!latin1Chars.maybeAlloc(cx, args.length())) {
+      return false;
+    }
+
+    for (; i < args.length(); i++) {
+      uint16_t code;
+      if (!ToUint16(cx, args[i], &code)) {
+        return false;
+      }
+
+      if (code > JSString::MAX_LATIN1_CHAR) {
+        firstTwoByteChar = code;
+        break;
+      }
+
+      AutoCheckCannotGC nogc;
+      latin1Chars.data(nogc)[i] = code;
+    }
+
+    if (i == args.length()) {
+      JSString* str = latin1Chars.toStringDontDeflate<CanGC>(cx, args.length());
+      if (!str) {
+        return false;
+      }
+
+      args.rval().setString(str);
+      return true;
+    }
+  }
+
+  StringChars<char16_t> twoByteChars(cx);
+  if (!twoByteChars.maybeAlloc(cx, args.length())) {
     return false;
   }
 
-  char16_t* rawChars = chars.get();
-  for (unsigned i = 0; i < args.length(); i++) {
+  // Copy the already processed characters.
+  if (i > 0) {
+    AutoCheckCannotGC nogc;
+    std::copy_n(latin1Chars.data(nogc), i, twoByteChars.data(nogc));
+  }
+
+  // Copy the first two-byte character, if present.
+  if (firstTwoByteChar > 0) {
+    MOZ_ASSERT(firstTwoByteChar > JSString::MAX_LATIN1_CHAR);
+
+    AutoCheckCannotGC nogc;
+    twoByteChars.data(nogc)[i++] = char16_t(firstTwoByteChar);
+  }
+
+  for (; i < args.length(); i++) {
     uint16_t code;
     if (!ToUint16(cx, args[i], &code)) {
       return false;
     }
 
-    rawChars[i] = char16_t(code);
+    AutoCheckCannotGC nogc;
+    twoByteChars.data(nogc)[i] = code;
   }
 
-  JSString* str = chars.toString(cx, args.length());
+  JSString* str = twoByteChars.toStringDontDeflate<CanGC>(cx, args.length());
   if (!str) {
     return false;
   }
