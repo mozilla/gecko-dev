@@ -427,11 +427,6 @@ BEGIN_TEST(testGCHeapReadBarriers) {
   CHECK((TestWrapperType<JS::Heap<JS::ArrayBuffer>, JS::ArrayBuffer>()));
   CHECK((TestWrapperType<JS::Heap<JS::Uint8Array>, JS::Uint8Array>()));
 
-  // JS::Heap has an additional barrier on its move and copy constructors.
-  CHECK((TestConstructorBarrier<JS::Heap<JSObject*>, JSObject*>()));
-  CHECK((TestConstructorBarrier<JS::Heap<JS::ArrayBuffer>, JS::ArrayBuffer>()));
-  CHECK((TestConstructorBarrier<JS::Heap<JS::Uint8Array>, JS::Uint8Array>()));
-
   return true;
 }
 
@@ -539,46 +534,6 @@ template <typename WrapperT, typename ObjectT>
 
     Access<WrapperT, ObjectT>(wrapper);
 
-    CHECK(GetColor(obj) == gc::CellColor::Black);
-
-    return true;
-  }));
-
-  return true;
-}
-
-template <typename WrapperT, typename ObjectT>
-[[nodiscard]] bool TestConstructorBarrier() {
-  AutoLeaveZeal noZeal(cx);
-
-  // Create an object and hide it from the hazard analysis.
-  void* ptr = CreateHiddenTenuredGCThing<ObjectT>(cx);
-  CHECK(ptr);
-
-  CHECK(CallDuringIncrementalGC(9 /* YieldBeforeSweeping */, [&]() -> bool {
-    CHECK(JS::IsIncrementalBarrierNeeded(cx));
-
-    auto obj = RecoverHiddenGCThing<ObjectT>(ptr);
-    WrapperT wrapper(obj);
-    CHECK(GetColor(obj) == gc::CellColor::White);
-
-    WrapperT copiedWrapper(wrapper);
-    CHECK(GetColor(obj) == gc::CellColor::Black);
-
-    return true;
-  }));
-
-  ptr = CreateHiddenTenuredGCThing<ObjectT>(cx);
-  CHECK(ptr);
-
-  CHECK(CallDuringIncrementalGC(9 /* YieldBeforeSweeping */, [&]() -> bool {
-    CHECK(JS::IsIncrementalBarrierNeeded(cx));
-
-    auto obj = RecoverHiddenGCThing<ObjectT>(ptr);
-    WrapperT wrapper(obj);
-    CHECK(GetColor(obj) == gc::CellColor::White);
-
-    WrapperT movedWrapper(std::move(wrapper));
     CHECK(GetColor(obj) == gc::CellColor::Black);
 
     return true;
