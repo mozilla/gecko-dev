@@ -9301,10 +9301,10 @@ INSTANTIATE_TEST_SUITE_P(
     TestParametersVideoCodecAndAllowI420ConversionToString);
 #endif
 
-class ReconfigureEncoderTest : public VideoStreamEncoderTest {
+class ReconfigureSimulcastEncoderTest : public VideoStreamEncoderTest {
  protected:
-  void RunTest(const std::vector<VideoStream>& configs,
-               const int expected_num_init_encode) {
+  void RunSimulcastTest(const std::vector<std::vector<VideoStream>>& configs,
+                        const int expected_num_init_encode) {
     ConfigureEncoder(configs[0]);
     OnBitrateUpdated(kTargetBitrate);
     InsertFrameAndWaitForEncoded();
@@ -9325,11 +9325,17 @@ class ReconfigureEncoderTest : public VideoStreamEncoderTest {
     video_stream_encoder_->Stop();
   }
 
-  void ConfigureEncoder(const VideoStream& stream) {
+  void ConfigureEncoder(const std::vector<VideoStream>& streams) {
     VideoEncoderConfig config;
-    test::FillEncoderConfiguration(kVideoCodecVP8, /*num_streams=*/1, &config);
-    config.max_bitrate_bps = stream.max_bitrate_bps;
-    config.simulcast_layers[0] = stream;
+    test::FillEncoderConfiguration(kVideoCodecVP8,
+                                   /*num_streams=*/streams.size(), &config);
+    auto highest_bitrate_stream =
+        absl::c_max_element(streams, [](const auto& a, const auto& b) {
+          return a.max_bitrate_bps < b.max_bitrate_bps;
+        });
+    config.max_bitrate_bps = highest_bitrate_stream->max_bitrate_bps;
+    config.simulcast_layers = streams;
+    config.number_of_streams = streams.size();
     config.video_stream_factory = nullptr;
     video_stream_encoder_->ConfigureEncoder(std::move(config),
                                             kMaxPayloadLength);
@@ -9348,20 +9354,23 @@ class ReconfigureEncoderTest : public VideoStreamEncoderTest {
   }
 
   void ExpectEqual(const VideoCodec& actual,
-                   const VideoStream& expected) const {
-    EXPECT_EQ(actual.numberOfSimulcastStreams, 1);
-    EXPECT_EQ(actual.simulcastStream[0].maxFramerate, expected.max_framerate);
-    EXPECT_EQ(actual.simulcastStream[0].minBitrate * 1000,
-              static_cast<unsigned int>(expected.min_bitrate_bps));
-    EXPECT_EQ(actual.simulcastStream[0].maxBitrate * 1000,
-              static_cast<unsigned int>(expected.max_bitrate_bps));
-    EXPECT_EQ(actual.simulcastStream[0].width,
-              kWidth / expected.scale_resolution_down_by);
-    EXPECT_EQ(actual.simulcastStream[0].height,
-              kHeight / expected.scale_resolution_down_by);
-    EXPECT_EQ(actual.simulcastStream[0].numberOfTemporalLayers,
-              expected.num_temporal_layers);
-    EXPECT_EQ(actual.GetScalabilityMode(), expected.scalability_mode);
+                   const std::vector<VideoStream>& expected) const {
+    EXPECT_EQ(actual.numberOfSimulcastStreams, expected.size());
+    for (size_t i = 0; i < actual.numberOfSimulcastStreams; ++i) {
+      EXPECT_EQ(actual.simulcastStream[i].maxFramerate,
+                expected[i].max_framerate);
+      EXPECT_EQ(actual.simulcastStream[i].minBitrate * 1000,
+                static_cast<unsigned int>(expected[i].min_bitrate_bps));
+      EXPECT_EQ(actual.simulcastStream[i].maxBitrate * 1000,
+                static_cast<unsigned int>(expected[i].max_bitrate_bps));
+      EXPECT_EQ(actual.simulcastStream[i].width,
+                kWidth / expected[i].scale_resolution_down_by);
+      EXPECT_EQ(actual.simulcastStream[i].height,
+                kHeight / expected[i].scale_resolution_down_by);
+      EXPECT_EQ(actual.simulcastStream[i].numberOfTemporalLayers,
+                expected[i].num_temporal_layers);
+      EXPECT_EQ(actual.GetScalabilityMode(), expected[i].scalability_mode);
+    }
   }
 
   VideoStream DefaultConfig() const {
@@ -9379,6 +9388,33 @@ class ReconfigureEncoderTest : public VideoStreamEncoderTest {
   const int kWidth = 640;
   const int kHeight = 360;
   int64_t timestamp_ms_ = 0;
+};
+
+TEST_F(ReconfigureSimulcastEncoderTest, ReconfiguredIfMaxFramerateChanges) {
+  VideoStream config_before_high = DefaultConfig();
+  config_before_high.scale_resolution_down_by = 1;
+  config_before_high.max_framerate = 30;
+  VideoStream config_before_low = config_before_high;
+  config_before_low.scale_resolution_down_by = 2;
+  config_before_low.max_framerate = 20;
+
+  // Keep the highest layer's max_framerate so as to not cause a change in
+  // VideoCodec::maxFramerate that may influence this test.
+  VideoStream config_after_high = config_before_high;
+  VideoStream config_after_low = config_before_low;
+  config_after_low.max_framerate = 10;
+
+  RunSimulcastTest({{config_before_high, config_before_low},
+                    {config_after_high, config_after_low}},
+                   /*expected_num_init_encode=*/2);
+}
+
+class ReconfigureEncoderTest : public ReconfigureSimulcastEncoderTest {
+ public:
+  void RunTest(const std::vector<VideoStream>& configs,
+               const int expected_num_init_encode) {
+    RunSimulcastTest({{configs[0]}, {configs[1]}}, expected_num_init_encode);
+  }
 };
 
 TEST_F(ReconfigureEncoderTest, NotReconfiguredIfMaxFramerateChanges) {

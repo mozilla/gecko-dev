@@ -174,6 +174,15 @@ bool RequiresEncoderReset(const VideoCodec& prev_send_codec,
             prev_send_codec.simulcastStream[i].qpMax) {
       return true;
     }
+
+    if (new_send_codec.simulcastStream[i].maxFramerate !=
+            prev_send_codec.simulcastStream[i].maxFramerate &&
+        new_send_codec.simulcastStream[i].maxFramerate !=
+            new_send_codec.maxFramerate) {
+      // SetRates can only represent maxFramerate for one layer. Reset the
+      // encoder if there are multiple layers that differ in maxFramerate.
+      return true;
+    }
   }
 
   if (new_send_codec.codecType == kVideoCodecVP9) {
