@@ -5169,7 +5169,7 @@ uint64_t ICInterpretOps(uint64_t arg0, uint64_t arg1, ICStub* stub,
         }
         {
           PUSH_IC_FRAME();
-          auto* result = Int32ToStringWithBase(cx, input, base, true);
+          auto* result = Int32ToStringWithBase<CanGC>(cx, input, base, true);
           if (!result) {
             ctx.error = PBIResult::Error;
             return IC_ERROR_SENTINEL();

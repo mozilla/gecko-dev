@@ -823,7 +823,7 @@ static size_t ToLowerCaseLength(const char16_t* chars, size_t startIndex,
 }
 
 template <typename CharT>
-static JSString* ToLowerCase(JSContext* cx, JSLinearString* str) {
+static JSLinearString* ToLowerCase(JSContext* cx, JSLinearString* str) {
   // Unlike toUpperCase, toLowerCase has the nice invariant that if the
   // input is a Latin-1 string, the output is also a Latin-1 string.
 
@@ -913,7 +913,7 @@ static JSString* ToLowerCase(JSContext* cx, JSLinearString* str) {
   return newChars.toStringDontDeflate(cx, resultLength);
 }
 
-JSString* js::StringToLowerCase(JSContext* cx, HandleString string) {
+JSLinearString* js::StringToLowerCase(JSContext* cx, HandleString string) {
   JSLinearString* linear = string->ensureLinear(cx);
   if (!linear) {
     return nullptr;
@@ -1216,7 +1216,7 @@ static inline bool ToUpperCase(JSContext* cx,
 }
 
 template <typename CharT>
-static JSString* ToUpperCase(JSContext* cx, JSLinearString* str) {
+static JSLinearString* ToUpperCase(JSContext* cx, JSLinearString* str) {
   using Latin1Buffer = InlineCharBuffer<Latin1Char>;
   using TwoByteBuffer = InlineCharBuffer<char16_t>;
 
@@ -1330,7 +1330,7 @@ static JSString* ToUpperCase(JSContext* cx, JSLinearString* str) {
   return newChars.mapNonEmpty(toString);
 }
 
-JSString* js::StringToUpperCase(JSContext* cx, HandleString string) {
+JSLinearString* js::StringToUpperCase(JSContext* cx, HandleString string) {
   JSLinearString* linear = string->ensureLinear(cx);
   if (!linear) {
     return nullptr;

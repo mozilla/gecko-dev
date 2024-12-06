@@ -4845,7 +4845,7 @@ bool CacheIRCompiler::emitStringToLowerCaseResult(StringOperandId strId) {
   callvm.prepare();
   masm.Push(str);
 
-  using Fn = JSString* (*)(JSContext*, HandleString);
+  using Fn = JSLinearString* (*)(JSContext*, HandleString);
   callvm.call<Fn, js::StringToLowerCase>();
   return true;
 }
@@ -4860,7 +4860,7 @@ bool CacheIRCompiler::emitStringToUpperCaseResult(StringOperandId strId) {
   callvm.prepare();
   masm.Push(str);
 
-  using Fn = JSString* (*)(JSContext*, HandleString);
+  using Fn = JSLinearString* (*)(JSContext*, HandleString);
   callvm.call<Fn, js::StringToUpperCase>();
   return true;
 }
@@ -9591,8 +9591,8 @@ bool CacheIRCompiler::emitInt32ToStringWithBaseResult(Int32OperandId inputId,
   masm.Push(base);
   masm.Push(input);
 
-  using Fn = JSString* (*)(JSContext*, int32_t, int32_t, bool);
-  callvm.call<Fn, js::Int32ToStringWithBase>();
+  using Fn = JSLinearString* (*)(JSContext*, int32_t, int32_t, bool);
+  callvm.call<Fn, js::Int32ToStringWithBase<CanGC>>();
   return true;
 }
 
@@ -11391,6 +11391,10 @@ struct ReturnTypeToJSValueType<int32_t*> {
 };
 template <>
 struct ReturnTypeToJSValueType<JSString*> {
+  static constexpr JSValueType result = JSVAL_TYPE_STRING;
+};
+template <>
+struct ReturnTypeToJSValueType<JSLinearString*> {
   static constexpr JSValueType result = JSVAL_TYPE_STRING;
 };
 template <>

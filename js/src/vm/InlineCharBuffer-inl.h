@@ -112,8 +112,8 @@ class MOZ_NON_PARAM InlineCharBuffer {
     return true;
   }
 
-  JSString* toStringDontDeflate(JSContext* cx, size_t length,
-                                js::gc::Heap heap = js::gc::Heap::Default) {
+  JSLinearString* toStringDontDeflate(
+      JSContext* cx, size_t length, js::gc::Heap heap = js::gc::Heap::Default) {
     MOZ_ASSERT(length == lastRequestedLength);
 
     if (JSInlineString::lengthFits<CharT>(length)) {
@@ -121,7 +121,7 @@ class MOZ_NON_PARAM InlineCharBuffer {
           !heapStorage,
           "expected only inline storage when length fits in inline string");
 
-      if (JSString* str = TryEmptyOrStaticString(cx, inlineStorage, length)) {
+      if (auto* str = TryEmptyOrStaticString(cx, inlineStorage, length)) {
         return str;
       }
 
@@ -135,8 +135,8 @@ class MOZ_NON_PARAM InlineCharBuffer {
                                        heap);
   }
 
-  JSString* toString(JSContext* cx, size_t length,
-                     js::gc::Heap heap = js::gc::Heap::Default) {
+  JSLinearString* toString(JSContext* cx, size_t length,
+                           js::gc::Heap heap = js::gc::Heap::Default) {
     MOZ_ASSERT(length == lastRequestedLength);
 
     if (JSInlineString::lengthFits<CharT>(length)) {

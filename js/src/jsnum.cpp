@@ -1606,7 +1606,8 @@ char* js::Uint32ToHexCString(Int32ToCStringBuf* cbuf, uint32_t value,
 }
 
 template <AllowGC allowGC>
-static JSString* Int32ToStringWithBase(JSContext* cx, int32_t i, int32_t base) {
+static JSLinearString* Int32ToStringWithBase(JSContext* cx, int32_t i,
+                                             int32_t base) {
   MOZ_ASSERT(2 <= base && base <= 36);
 
   bool isBase10Int = (base == 10);
@@ -1625,7 +1626,7 @@ static JSString* Int32ToStringWithBase(JSContext* cx, int32_t i, int32_t base) {
   } else if (unsigned(i) < unsigned(base * base)) {
     static constexpr char digits[] = "0123456789abcdefghijklmnopqrstuvwxyz";
     char chars[] = {digits[i / base], digits[i % base]};
-    JSString* str = cx->staticStrings().lookup(chars, 2);
+    JSLinearString* str = cx->staticStrings().lookup(chars, 2);
     MOZ_ASSERT(str);
     return str;
   }
@@ -1798,17 +1799,33 @@ JSLinearString* js::IndexToString(JSContext* cx, uint32_t index) {
   return NewInlineString<CanGC>(cx, latin1Chars, length);
 }
 
-JSString* js::Int32ToStringWithBase(JSContext* cx, int32_t i, int32_t base,
-                                    bool lowerCase) {
-  Rooted<JSString*> str(cx, ::Int32ToStringWithBase<CanGC>(cx, i, base));
+template <AllowGC allowGC>
+JSLinearString* js::Int32ToStringWithBase(JSContext* cx, int32_t i,
+                                          int32_t base, bool lowerCase) {
+  Rooted<JSLinearString*> str(cx,
+                              ::Int32ToStringWithBase<allowGC>(cx, i, base));
   if (!str) {
     return nullptr;
   }
-  if (lowerCase) {
+
+  if constexpr (allowGC == NoGC) {
+    MOZ_ASSERT(lowerCase, "upper case conversion not allowed for NoGC");
     return str;
+  } else {
+    if (lowerCase) {
+      return str;
+    }
+    return StringToUpperCase(cx, str);
   }
-  return StringToUpperCase(cx, str);
 }
+template JSLinearString* js::Int32ToStringWithBase<CanGC>(JSContext* cx,
+                                                          int32_t i,
+                                                          int32_t base,
+                                                          bool lowerCase);
+template JSLinearString* js::Int32ToStringWithBase<NoGC>(JSContext* cx,
+                                                         int32_t i,
+                                                         int32_t base,
+                                                         bool lowerCase);
 
 bool js::NumberValueToStringBuilder(const Value& v, StringBuilder& sb) {
   /* Convert to C-string. */
