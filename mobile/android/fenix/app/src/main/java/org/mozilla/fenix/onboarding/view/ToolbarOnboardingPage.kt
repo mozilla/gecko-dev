@@ -6,6 +6,7 @@ package org.mozilla.fenix.onboarding.view
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -20,6 +21,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.Icon
 import androidx.compose.material.Text
@@ -166,18 +168,27 @@ private fun SelectableImageItem(
     selectedOption: ToolbarOptionType,
     onClick: (ToolbarOptionType) -> Unit,
 ) {
+    val isSelectedOption = toolbarOption.toolbarType == selectedOption
+
     Column(
-        modifier = Modifier.clickable(onClick = {
-            // Only call action if option selected is different.
-            if (toolbarOption.toolbarType != selectedOption) {
-                onClick(toolbarOption.toolbarType)
-            }
-        }),
+        modifier = Modifier.clickable(
+            onClick = {
+                // Only call action if option selected is different.
+                if (!isSelectedOption) {
+                    onClick(toolbarOption.toolbarType)
+                }
+            },
+        ),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Image(
             painter = painterResource(id = toolbarOption.imageRes),
             contentDescription = "",
+            modifier = if (isSelectedOption) {
+                Modifier.border(2.dp, FirefoxTheme.colors.actionPrimary, RoundedCornerShape(10.dp))
+            } else {
+                Modifier
+            },
         )
 
         Text(
@@ -187,7 +198,7 @@ private fun SelectableImageItem(
             style = FirefoxTheme.typography.caption,
         )
 
-        if (toolbarOption.toolbarType == selectedOption) {
+        if (isSelectedOption) {
             Box(
                 modifier = Modifier
                     .background(
