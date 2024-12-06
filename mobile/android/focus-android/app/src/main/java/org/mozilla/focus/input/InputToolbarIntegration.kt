@@ -11,10 +11,12 @@ import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.core.content.res.ResourcesCompat
+import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.mapNotNull
+import kotlinx.coroutines.launch
 import mozilla.components.browser.domains.autocomplete.CustomDomainsProvider
 import mozilla.components.browser.domains.autocomplete.ShippedDomainsProvider
 import mozilla.components.browser.toolbar.BrowserToolbar
@@ -77,7 +79,9 @@ class InputToolbarIntegration(
                 }
 
                 override fun onTextChanged(text: String) {
-                    fragment.onTextChange(text)
+                    fragment.viewLifecycleOwner.lifecycleScope.launch {
+                        fragment.onTextChange(text)
+                    }
                 }
             },
         )
