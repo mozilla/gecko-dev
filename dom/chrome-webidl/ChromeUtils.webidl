@@ -244,6 +244,25 @@ namespace ChromeUtils {
   undefined clearStyleSheetCache();
 
   /**
+   * Clears the Messaging Layer Security state by schemeless site.
+   * This includes associated state-partitioned cache.
+   */
+  [Throws]
+  undefined clearMessagingLayerSecurityStateBySite(UTF8String schemelessSite, optional OriginAttributesPatternDictionary pattern = {});
+
+  /**
+   * Clears the Messaging Layer Security state by principal.
+   */
+  [Throws]
+  undefined clearMessagingLayerSecurityStateByPrincipal(Principal principal);
+
+  /**
+   * Clears all Messaging Layer Security related state across domains
+   */
+  [Throws]
+  undefined clearMessagingLayerSecurityState();
+
+  /**
    * Clears the JavaScript cache by schemeless site. This includes associated
    * state-partitioned cache.
    */
