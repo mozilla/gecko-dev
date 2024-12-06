@@ -1760,6 +1760,51 @@ CustomizeMode.prototype = {
     this.$("customization-lwtheme-link").addEventListener("click", () => {
       this.openAddonsManagerThemes();
     });
+
+    this.$(kPaletteItemContextMenu).addEventListener("popupshowing", event => {
+      this.onPaletteContextMenuShowing(event);
+    });
+
+    this.$(kPaletteItemContextMenu).addEventListener("command", event => {
+      switch (event.target.id) {
+        case "customizationPaletteItemContextMenuAddToToolbar":
+          this.addToToolbar(
+            event.target.parentNode.triggerNode,
+            "palette-context"
+          );
+          break;
+        case "customizationPaletteItemContextMenuAddToPanel":
+          this.addToPanel(
+            event.target.parentNode.triggerNode,
+            "palette-context"
+          );
+          break;
+      }
+    });
+
+    let autohidePanel = this.$(kDownloadAutohidePanelId);
+    autohidePanel.addEventListener("popupshown", event => {
+      this._downloadPanelAutoHideTimeout = this.window.setTimeout(
+        () => event.target.hidePopup(),
+        4000
+      );
+    });
+    autohidePanel.addEventListener("mouseover", () => {
+      this.window.clearTimeout(this._downloadPanelAutoHideTimeout);
+    });
+    autohidePanel.addEventListener("mouseout", event => {
+      this._downloadPanelAutoHideTimeout = this.window.setTimeout(
+        () => event.target.hidePopup(),
+        2000
+      );
+    });
+    autohidePanel.addEventListener("popuphidden", () => {
+      this.window.clearTimeout(this._downloadPanelAutoHideTimeout);
+    });
+
+    this.$(kDownloadAutohideCheckboxId).addEventListener("command", event => {
+      this.onDownloadsAutoHideChange(event);
+    });
   },
 
   _updateTitlebarCheckbox() {

@@ -236,27 +236,20 @@
 </html:template>
 
 <html:template id="customModeWrapper">
-  <menupopup id="customizationPaletteItemContextMenu"
-             onpopupshowing="gCustomizeMode.onPaletteContextMenuShowing(event)">
-    <menuitem oncommand="gCustomizeMode.addToToolbar(this.parentNode.triggerNode, 'palette-context')"
+  <menupopup id="customizationPaletteItemContextMenu">
+    <menuitem id="customizationPaletteItemContextMenuAddToToolbar"
               class="customize-context-addToToolbar"
               data-l10n-id="customize-menu-add-to-toolbar"/>
-    <menuitem oncommand="gCustomizeMode.addToPanel(this.parentNode.triggerNode, 'palette-context')"
+    <menuitem id="customizationPaletteItemContextMenuAddToPanel"
               class="customize-context-addToPanel"
               data-l10n-id="customize-menu-add-to-overflowmenu"/>
   </menupopup>
 
   <panel id="downloads-button-autohide-panel"
          role="group"
-         type="arrow"
-         onpopupshown="gCustomizeMode._downloadPanelAutoHideTimeout = setTimeout(() => event.target.hidePopup(), 4000);"
-         onmouseover="clearTimeout(gCustomizeMode._downloadPanelAutoHideTimeout);"
-         onmouseout="gCustomizeMode._downloadPanelAutoHideTimeout = setTimeout(() => event.target.hidePopup(), 2000);"
-         onpopuphidden="clearTimeout(gCustomizeMode._downloadPanelAutoHideTimeout);"
-         >
+         type="arrow">
     <checkbox id="downloads-button-autohide-checkbox"
-              data-l10n-id="customize-mode-downloads-button-autohide" checked="true"
-              oncommand="gCustomizeMode.onDownloadsAutoHideChange(event)"/>
+              data-l10n-id="customize-mode-downloads-button-autohide" checked="true"/>
   </panel>
 </html:template>
 
