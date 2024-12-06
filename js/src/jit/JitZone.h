@@ -89,6 +89,20 @@ struct BaselineCacheIRStubCodeMapGCPolicy {
 enum JitScriptFilter : bool { SkipDyingScripts, IncludeDyingScripts };
 
 class JitZone {
+ public:
+  enum class StubKind : uint32_t {
+    StringConcat = 0,
+    RegExpMatcher,
+    RegExpSearcher,
+    RegExpExecMatch,
+    RegExpExecTest,
+    Count
+  };
+  template <typename Code>
+  using Stubs =
+      mozilla::EnumeratedArray<StubKind, Code, size_t(StubKind::Count)>;
+
+ private:
   // Allocated space for CacheIR stubs.
   ICStubSpace stubSpace_;
 
@@ -132,18 +146,7 @@ class JitZone {
   // record which stubs have been read and perform the appropriate barriers in
   // CodeGenerator::link().
 
-  enum StubIndex : uint32_t {
-    StringConcat = 0,
-    RegExpMatcher,
-    RegExpSearcher,
-    RegExpExecMatch,
-    RegExpExecTest,
-    Count
-  };
-
-  mozilla::EnumeratedArray<StubIndex, WeakHeapPtr<JitCode*>,
-                           size_t(StubIndex::Count)>
-      stubs_;
+  Stubs<WeakHeapPtr<JitCode*>> stubs_;
 
   mozilla::Maybe<IonCompilationId> currentCompilationId_;
   bool keepJitScripts_ = false;
@@ -156,7 +159,7 @@ class JitZone {
   JitCode* generateRegExpExecMatchStub(JSContext* cx);
   JitCode* generateRegExpExecTestStub(JSContext* cx);
 
-  JitCode* getStubNoBarrier(StubIndex stub,
+  JitCode* getStubNoBarrier(StubKind stub,
                             uint32_t* requiredBarriersOut) const {
     MOZ_ASSERT(CurrentThreadIsIonCompiling());
     *requiredBarriersOut |= 1 << uint32_t(stub);
@@ -292,11 +295,11 @@ class JitZone {
 
   // Initialize code stubs only used by Ion, not Baseline.
   [[nodiscard]] bool ensureIonStubsExist(JSContext* cx) {
-    if (stubs_[StringConcat]) {
+    if (stubs_[StubKind::StringConcat]) {
       return true;
     }
-    stubs_[StringConcat] = generateStringConcatStub(cx);
-    return stubs_[StringConcat];
+    stubs_[StubKind::StringConcat] = generateStringConcatStub(cx);
+    return stubs_[StubKind::StringConcat];
   }
 
   void traceWeak(JSTracer* trc, JS::Realm* realm);
@@ -322,55 +325,55 @@ class JitZone {
   }
 
   JitCode* stringConcatStubNoBarrier(uint32_t* requiredBarriersOut) const {
-    return getStubNoBarrier(StringConcat, requiredBarriersOut);
+    return getStubNoBarrier(StubKind::StringConcat, requiredBarriersOut);
   }
 
   JitCode* regExpMatcherStubNoBarrier(uint32_t* requiredBarriersOut) const {
-    return getStubNoBarrier(RegExpMatcher, requiredBarriersOut);
+    return getStubNoBarrier(StubKind::RegExpMatcher, requiredBarriersOut);
   }
 
   [[nodiscard]] JitCode* ensureRegExpMatcherStubExists(JSContext* cx) {
-    if (JitCode* code = stubs_[RegExpMatcher]) {
+    if (JitCode* code = stubs_[StubKind::RegExpMatcher]) {
       return code;
     }
-    stubs_[RegExpMatcher] = generateRegExpMatcherStub(cx);
-    return stubs_[RegExpMatcher];
+    stubs_[StubKind::RegExpMatcher] = generateRegExpMatcherStub(cx);
+    return stubs_[StubKind::RegExpMatcher];
   }
 
   JitCode* regExpSearcherStubNoBarrier(uint32_t* requiredBarriersOut) const {
-    return getStubNoBarrier(RegExpSearcher, requiredBarriersOut);
+    return getStubNoBarrier(StubKind::RegExpSearcher, requiredBarriersOut);
   }
 
   [[nodiscard]] JitCode* ensureRegExpSearcherStubExists(JSContext* cx) {
-    if (JitCode* code = stubs_[RegExpSearcher]) {
+    if (JitCode* code = stubs_[StubKind::RegExpSearcher]) {
       return code;
     }
-    stubs_[RegExpSearcher] = generateRegExpSearcherStub(cx);
-    return stubs_[RegExpSearcher];
+    stubs_[StubKind::RegExpSearcher] = generateRegExpSearcherStub(cx);
+    return stubs_[StubKind::RegExpSearcher];
   }
 
   JitCode* regExpExecMatchStubNoBarrier(uint32_t* requiredBarriersOut) const {
-    return getStubNoBarrier(RegExpExecMatch, requiredBarriersOut);
+    return getStubNoBarrier(StubKind::RegExpExecMatch, requiredBarriersOut);
   }
 
   [[nodiscard]] JitCode* ensureRegExpExecMatchStubExists(JSContext* cx) {
-    if (JitCode* code = stubs_[RegExpExecMatch]) {
+    if (JitCode* code = stubs_[StubKind::RegExpExecMatch]) {
       return code;
     }
-    stubs_[RegExpExecMatch] = generateRegExpExecMatchStub(cx);
-    return stubs_[RegExpExecMatch];
+    stubs_[StubKind::RegExpExecMatch] = generateRegExpExecMatchStub(cx);
+    return stubs_[StubKind::RegExpExecMatch];
   }
 
   JitCode* regExpExecTestStubNoBarrier(uint32_t* requiredBarriersOut) const {
-    return getStubNoBarrier(RegExpExecTest, requiredBarriersOut);
+    return getStubNoBarrier(StubKind::RegExpExecTest, requiredBarriersOut);
   }
 
   [[nodiscard]] JitCode* ensureRegExpExecTestStubExists(JSContext* cx) {
-    if (JitCode* code = stubs_[RegExpExecTest]) {
+    if (JitCode* code = stubs_[StubKind::RegExpExecTest]) {
       return code;
     }
-    stubs_[RegExpExecTest] = generateRegExpExecTestStub(cx);
-    return stubs_[RegExpExecTest];
+    stubs_[StubKind::RegExpExecTest] = generateRegExpExecTestStub(cx);
+    return stubs_[StubKind::RegExpExecTest];
   }
 
   // Perform the necessary read barriers on stubs described by the bitmasks
@@ -382,16 +385,20 @@ class JitZone {
   void performStubReadBarriers(uint32_t stubsToBarrier) const;
 
   static constexpr size_t offsetOfRegExpMatcherStub() {
-    return offsetof(JitZone, stubs_) + RegExpMatcher * sizeof(uintptr_t);
+    return offsetof(JitZone, stubs_) +
+           size_t(StubKind::RegExpMatcher) * sizeof(uintptr_t);
   }
   static constexpr size_t offsetOfRegExpSearcherStub() {
-    return offsetof(JitZone, stubs_) + RegExpSearcher * sizeof(uintptr_t);
+    return offsetof(JitZone, stubs_) +
+           size_t(StubKind::RegExpSearcher) * sizeof(uintptr_t);
   }
   static constexpr size_t offsetOfRegExpExecMatchStub() {
-    return offsetof(JitZone, stubs_) + RegExpExecMatch * sizeof(uintptr_t);
+    return offsetof(JitZone, stubs_) +
+           size_t(StubKind::RegExpExecMatch) * sizeof(uintptr_t);
   }
   static constexpr size_t offsetOfRegExpExecTestStub() {
-    return offsetof(JitZone, stubs_) + RegExpExecTest * sizeof(uintptr_t);
+    return offsetof(JitZone, stubs_) +
+           size_t(StubKind::RegExpExecTest) * sizeof(uintptr_t);
   }
 };
 

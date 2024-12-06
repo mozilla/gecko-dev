@@ -363,7 +363,7 @@ static T PopNextBitmaskValue(uint32_t* bitmask) {
 
 void JitZone::performStubReadBarriers(uint32_t stubsToBarrier) const {
   while (stubsToBarrier) {
-    auto stub = PopNextBitmaskValue<StubIndex>(&stubsToBarrier);
+    auto stub = PopNextBitmaskValue<StubKind>(&stubsToBarrier);
     const WeakHeapPtr<JitCode*>& jitCode = stubs_[stub];
     MOZ_ASSERT(jitCode);
     jitCode.get();
