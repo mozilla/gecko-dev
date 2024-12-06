@@ -122,7 +122,7 @@
           "type": "null"
         }
       ],
-      "description": "The title shown in Firefox Labs (Fluent ID)"
+      "description": "An optional string containing the Fluent ID for the title of the opt-in"
     },
     "firefoxLabsDescription": {
       "anyOf": [
@@ -133,18 +133,7 @@
           "type": "null"
         }
       ],
-      "description": "The title shown in Firefox Labs (Fluent ID)"
-    },
-    "firefoxLabsGroup": {
-      "anyOf": [
-        {
-          "type": "string"
-        },
-        {
-          "type": "null"
-        }
-      ],
-      "description": "The group this should appear under in Firefox Labs"
+      "description": "An optional string containing the Fluent ID for the description of the opt-in"
     }
   },
   "required": [

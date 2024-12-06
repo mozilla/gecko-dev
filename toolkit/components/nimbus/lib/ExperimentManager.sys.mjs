@@ -617,7 +617,6 @@ export class _ExperimentManager {
       isFirefoxLabsOptIn,
       firefoxLabsTitle,
       firefoxLabsDescription,
-      firefoxLabsGroup,
     },
     branch,
     source,
@@ -674,7 +673,6 @@ export class _ExperimentManager {
         isFirefoxLabsOptIn,
         firefoxLabsTitle,
         firefoxLabsDescription,
-        firefoxLabsGroup,
       });
     }
 

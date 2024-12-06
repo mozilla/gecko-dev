@@ -165,17 +165,6 @@
       "description": "When this property is set to true, treat this experiment as aFirefox Labs experiment",
       "type": "boolean"
     },
-    "firefoxLabsGroup": {
-      "anyOf": [
-        {
-          "type": "string"
-        },
-        {
-          "type": "null"
-        }
-      ],
-      "description": "The group this should appear under in Firefox Labs"
-    },
     "firefoxLabsTitle": {
       "anyOf": [
         {
@@ -185,7 +174,7 @@
           "type": "null"
         }
       ],
-      "description": "The title shown in Firefox Labs (Fluent ID)"
+      "description": "An optional string containing the Fluent ID for the title of the opt-in"
     },
     "firefoxLabsDescription": {
       "anyOf": [
@@ -196,7 +185,7 @@
           "type": "null"
         }
       ],
-      "description": "The description shown in Firefox Labs (Fluent ID)"
+      "description": "An optional string containing the Fluent ID for the description of the opt-in"
     },
     "featureValidationOptOut": {
       "description": "Opt out of feature schema validation.",
@@ -250,10 +239,17 @@
             "isRollout"
           ]
         },
+        "properties": {
+          "firefoxLabsTitle": {
+            "type": "string"
+          },
+          "firefoxLabsDescription": {
+            "type": "string"
+          }
+        },
         "required": [
-          "firefoxLabsDescription",
-          "firefoxLabsGroup",
-          "firefoxLabsTitle"
+          "firefoxLabsTitle",
+          "firefoxLabsDescription"
         ],
         "then": {
           "properties": {
@@ -297,7 +293,7 @@
               "type": "null"
             }
           ],
-          "description": "The branch title shown in Firefox Labs (Fluent ID)"
+          "description": "An optional string containing the title of the branch"
         }
       },
       "required": [
