@@ -346,7 +346,7 @@ nsresult MediaEngineFakeVideoSource::Start() {
             static_cast<MediaEngineFakeVideoSource*>(aClosure);
         source->GenerateFrame();
       },
-      this, interval, nsITimer::TYPE_REPEATING_SLACK,
+      this, interval, nsITimer::TYPE_REPEATING_PRECISE_CAN_SKIP,
       "MediaEngineFakeVideoSource::GenerateFrame");
 
   mState = kStarted;
