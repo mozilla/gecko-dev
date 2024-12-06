@@ -169,7 +169,7 @@ export class FieldDetail {
       lazy.FormAutofill.isMLExperimentEnabled &&
       ["input", "select"].includes(element.localName)
     ) {
-      fieldDetail.htmlMarkup = element.outerHTML.substring(0, 512);
+      fieldDetail.htmlMarkup = element.outerHTML.substring(0, 1024);
       fieldDetail.fathomLabel = fathomLabel;
       fieldDetail.fathomConfidence = fathomConfidence;
     }
