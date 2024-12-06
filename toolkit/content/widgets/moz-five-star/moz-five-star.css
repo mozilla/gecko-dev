@@ -12,11 +12,13 @@
 }
 
 .stars {
-  --rating-star-size: var(--icon-size-default);
+  --rating-star-size: 1em;
   --rating-star-spacing: 0.3ch;
-  display: inline-flex;
+
+  display: inline-grid;
+  grid-template-columns: repeat(5, var(--rating-star-size));
+  grid-column-gap: var(--rating-star-spacing);
   align-content: center;
-  justify-content: center;
 }
 
 .rating-star {
@@ -26,35 +28,19 @@
   background-image: url("chrome://global/skin/icons/rating-star.svg#empty");
   background-position: center;
   background-repeat: no-repeat;
-  background-size: var(--rating-star-size) var(--rating-star-size);
-  padding-inline: calc(var(--rating-star-spacing) / 2);
+  background-size: 100%;
 
   fill: var(--icon-color);
   -moz-context-properties: fill;
-
-  &:first-of-type {
-    padding-inline-start: unset;
-  }
-
-  &:last-of-type {
-    padding-inline-end: unset;
-  }
 }
-
 
 .rating-star[fill="half"] {
   background-image: url("chrome://global/skin/icons/rating-star.svg#half");
 }
-.rating-star[fill="full"],
-.rating-star.selectable:has(~ .rating-star.selectable:hover),
-.rating-star.selectable:hover {
+.rating-star[fill="full"] {
   background-image: url("chrome://global/skin/icons/rating-star.svg#full");
 }
 
 .rating-star[fill="half"]:dir(rtl) {
   transform: scaleX(-1);
-}
-
-.rating-star.selectable {
-  cursor: pointer;
 }

@@ -69,3 +69,38 @@
 .heartbeat > hbox > .text-link:hover {
   text-decoration: none !important;
 }
+
+/* Heartbeat UI Rating Star Classes */
+#star-rating-container {
+  display: flex;
+  margin-block: 4px;
+}
+
+#star-rating-container > #star5 {
+  order: 5;
+}
+
+#star-rating-container > #star4 {
+  order: 4;
+}
+
+#star-rating-container > #star3 {
+  order: 3;
+}
+
+#star-rating-container > #star2 {
+  order: 2;
+}
+
+#star-rating-container > .star-x {
+  background: url("resource://normandy/skin/shared/heartbeat-star-off.svg");
+  cursor: pointer;
+  height: 16px;
+  margin-inline-end: 4px !important; /* Overrides the margin-inline-end for all platforms defined in the .plain class */
+  width: 16px;
+}
+
+#star-rating-container > .star-x:hover,
+#star-rating-container > .star-x:hover ~ .star-x {
+  background: url("resource://normandy/skin/shared/heartbeat-star-lit.svg");
+}

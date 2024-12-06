@@ -4,7 +4,6 @@
   <meta charset="utf-8">
   <title>MozFiveStar Tests</title>
   <script src="chrome://mochikit/content/tests/SimpleTest/SimpleTest.js"></script>
-  <script src="chrome://mochikit/content/tests/SimpleTest/EventUtils.js"></script>
   <link rel="stylesheet" href="chrome://mochikit/content/tests/SimpleTest/test.css"/>
   <script type="module" src="chrome://global/content/elements/moz-five-star.mjs"></script>
 </head>
@@ -12,32 +11,10 @@
 <p id="display"></p>
 <div id="content" style="max-width: fit-content">
   <moz-five-star label="Label" rating="2.5"></moz-five-star>
-  <moz-five-star rating="2" selectable></moz-five-star>
 </div>
 <pre id="test">
   <script class="testbody" type="application/javascript">
     const { BrowserTestUtils } = ChromeUtils.importESModule("resource://testing-common/BrowserTestUtils.sys.mjs");
-
-    async function testRatingValue(mozFiveStar, value, ratingRounded, expectation) {
-      is(mozFiveStar.rating, value, "Rating property is set to value")
-
-      if (mozFiveStar.ownerDocument.hasPendingL10nMutations) {
-        await BrowserTestUtils.waitForEvent(
-          mozFiveStar.ownerDocument,
-          "L10nMutationsFinished"
-        );
-      }
-      let starsString = Array.from(mozFiveStar.starEls)
-        .map(star => star.getAttribute("fill"))
-        .join(",");
-      is(starsString, expectation, `Rendering of rating ${value}`);
-
-      let ratingsString = Array.from(mozFiveStar.starEls)
-        .map(star => star.getAttribute("rating"))
-        .join(",");
-      is("1,2,3,4,5", ratingsString, `Rendering of rating attributes`);
-    }
-
     add_task(async function testMozFiveStar() {
       const mozFiveStar = document.querySelector("moz-five-star");
       ok(mozFiveStar, "moz-five-star is rendered");
@@ -58,7 +35,16 @@
       async function testRating(rating, ratingRounded, expectation) {
         mozFiveStar.rating = rating;
         await mozFiveStar.updateComplete;
-        await testRatingValue(mozFiveStar, rating, ratingRounded, expectation)
+        if (mozFiveStar.ownerDocument.hasPendingL10nMutations) {
+          await BrowserTestUtils.waitForEvent(
+            mozFiveStar.ownerDocument,
+            "L10nMutationsFinished"
+          );
+        }
+        let starsString = Array.from(mozFiveStar.starEls)
+          .map(star => star.getAttribute("fill"))
+          .join(",");
+        is(starsString, expectation, `Rendering of rating ${rating}`);
 
         is(
           mozFiveStar.starsWrapperEl.title,
@@ -90,65 +76,7 @@
       await testRating(4.89, "4.9", "full,full,full,full,full");
       await testRating(5.0, "5", "full,full,full,full,full");
     });
-
-    add_task(async function testMozFiveStarsSelectable() {
-      const selectableMozFiveStar = document.querySelector("moz-five-star[selectable]");
-
-      const selectedEvents = [];
-
-      selectableMozFiveStar.addEventListener("select", (e) => selectedEvents.push(e))
-
-      await selectableMozFiveStar.updateComplete;
-
-      await testRatingValue(selectableMozFiveStar, 2, "2", "full,full,empty,empty,empty")
-
-      const fifthStar = Array.from(selectableMozFiveStar.starEls).at(4)
-      fifthStar.click();
-
-      is(selectedEvents.length, 1, "dispatched one event")
-      const selectedEvent = selectedEvents.at(0);
-      is(selectedEvent.type, "select", "dispatched select event")
-      is(selectedEvent.detail.rating, 5, "dispatched selected rating number")
-
-      await selectableMozFiveStar.updateComplete;
-      await testRatingValue(selectableMozFiveStar, 5, "5", "full,full,full,full,full")
-
-    });
-
-        add_task(async function testMozFiveStarsSelectableHover() {
-
-          function assertFilledBg(star) {
-            ok(getComputedStyle(star).backgroundImage.includes("#full"), "bg is filled");
-          }
-
-          function assertNotFilledBg(star) {
-            ok(getComputedStyle(star).backgroundImage.includes("#empty"), "bg is not filled");
-          }
-
-          const selectableMozFiveStar = document.querySelector("moz-five-star[selectable]");
-
-          selectableMozFiveStar.rating = 1;
-          await selectableMozFiveStar.updateComplete;
-
-          const [
-            firstStar,
-            secondStar,
-            thirdStar,
-            fourthStar,
-            fifthStar
-          ] = selectableMozFiveStar.starEls
-
-          assertFilledBg(firstStar);
-          assertNotFilledBg(secondStar, thirdStar, fourthStar, fifthStar);
-
-          synthesizeMouseAtCenter(fourthStar, { type: "mouseover" });
-
-
-          assertFilledBg(firstStar, secondStar, thirdStar, fourthStar);
-          assertNotFilledBg(fifthStar);
-
-    });
- </script>
+  </script>
 </pre>
 </body>
 </html>

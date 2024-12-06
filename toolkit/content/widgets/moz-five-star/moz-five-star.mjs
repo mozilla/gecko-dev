@@ -2,21 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-import { ifDefined, html, classMap } from "../vendor/lit.all.mjs";
+import { ifDefined, html } from "../vendor/lit.all.mjs";
 import { MozLitElement } from "../lit-utils.mjs";
 
 window.MozXULElement?.insertFTLIfNeeded("toolkit/global/mozFiveStar.ftl");
-
-/**
- * @typedef {HTMLSpanElement} MozFiveStarRatingStarElement
- */
-
-/**
- * @typedef {{
- *   rating: number
- *   fill: 'full' | 'half' | 'empty'
- * }} MozFiveStarRenderedStarState
- */
 
 /**
  * The visual representation is five stars, each of them either empty,
@@ -31,27 +20,7 @@ export default class MozFiveStar extends MozLitElement {
   static properties = {
     rating: { type: Number, reflect: true },
     title: { type: String },
-    selectable: { type: Boolean },
   };
-
-  constructor() {
-    super();
-
-    /**
-     * The initial rating that is also dynamically updated to the selected
-     * rating if {@link selectable} is set to true.
-     *
-     * @type {number}
-     */
-    this.rating = 0;
-
-    /**
-     * Whether the stars in the component are selectable.
-     *
-     * @type {boolean}
-     */
-    this.selectable = false;
-  }
 
   static get queries() {
     return {
@@ -60,65 +29,23 @@ export default class MozFiveStar extends MozLitElement {
     };
   }
 
-  /**
-   * @returns {Array<MozFiveStarRenderedStarState>}
-   */
-  getStars() {
-    /**
-     * @type {Array<MozFiveStarRenderedStarState>}
-     */
-    let stars = [];
-
+  getStarsFill() {
+    let starFill = [];
     let roundedRating = Math.round(this.rating * 2) / 2;
-
     for (let i = 1; i <= 5; i++) {
       if (i <= roundedRating) {
-        stars.push({ rating: i, fill: "full" });
+        starFill.push("full");
       } else if (i - roundedRating === 0.5) {
-        stars.push({ rating: i, fill: "half" });
+        starFill.push("half");
       } else {
-        stars.push({ rating: i, fill: "empty" });
+        starFill.push("empty");
       }
     }
-    return stars;
-  }
-
-  /**
-   * @param {MozFiveStarRatingStarElement} ratingStarElement
-   * @returns
-   */
-  getStarElementRating(ratingStarElement) {
-    const stringRating = ratingStarElement.getAttribute("rating") || "";
-    return parseInt(stringRating, 10);
-  }
-
-  /**
-   * @param {MouseEvent} e
-   */
-  onClick(e) {
-    if (!this.selectable) {
-      return;
-    }
-    /**
-     * @type {MozFiveStarRatingStarElement}
-     */
-    const ratingStarElement = /**@type {object} */ (e.target);
-
-    this.rating = this.getStarElementRating(ratingStarElement);
-
-    this.dispatchEvent(
-      new CustomEvent("select", {
-        detail: {
-          rating: this.rating,
-        },
-      })
-    );
+    return starFill;
   }
 
   render() {
-    const { rating, selectable, title } = this;
-
-    const starsTitle = title || selectable;
+    let starFill = this.getStarsFill();
     return html`
       <link
         rel="stylesheet"
@@ -128,33 +55,15 @@ export default class MozFiveStar extends MozLitElement {
         class="stars"
         role="img"
         data-l10n-id=${ifDefined(
-          starsTitle ? undefined : "moz-five-star-rating"
+          this.title ? undefined : "moz-five-star-rating"
         )}
         data-l10n-args=${ifDefined(
-          starsTitle ? undefined : JSON.stringify({ rating })
+          this.title ? undefined : JSON.stringify({ rating: this.rating ?? 0 })
         )}
       >
-        ${this.getStars().map(({ rating: ratingValue, fill }) => {
-          return html`<span
-            class=${classMap({
-              "rating-star": true,
-              selectable,
-            })}
-            fill=${fill}
-            rating=${ratingValue}
-            @click=${this.onClick}
-            data-l10n-id=${selectable
-              ? "moz-five-star-rating-rate-text"
-              : undefined}
-            data-l10n-args=${ifDefined(
-              selectable
-                ? JSON.stringify({
-                    rating: ratingValue,
-                  })
-                : undefined
-            )}
-          ></span>`;
-        })}
+        ${starFill.map(
+          fill => html`<span class="rating-star" fill="${fill}"></span>`
+        )}
       </div>
     `;
   }

@@ -78,6 +78,10 @@ function assertTelemetrySent(hb, eventNames) {
   });
 }
 
+function getStars(notice) {
+  return notice.buttonContainer.querySelectorAll(".star-x");
+}
+
 async function getUpdatedNotice(heartbeat) {
   let notice = await heartbeat.noticePromise;
   // ensure notice is updated and the DOM is ready to be queried
@@ -120,15 +124,7 @@ add_task(async function () {
     preCount + 1,
     "Correct number of notifications open"
   );
-
-  const fiveStarComponent =
-    notice.buttonContainer.querySelector("moz-five-star");
-  Assert.ok(fiveStarComponent, "moz-five-star component exists");
-  Assert.equal(
-    fiveStarComponent.selectable,
-    true,
-    "moz-five-star component is set to selectable"
-  );
+  Assert.equal(getStars(notice).length, 5, "Correct number of stars");
   Assert.equal(
     notice.buttonContainer.querySelectorAll(".notification-button").length,
     0,
@@ -203,10 +199,7 @@ add_task(async function () {
     ".notification-button"
   );
 
-  Assert.ok(
-    !notice.buttonContainer.querySelector("moz-five-star"),
-    "moz-five-star does not exist"
-  );
+  Assert.equal(getStars(notice).length, 0, "Stars not shown");
   Assert.ok(engagementButton, "Engagement button added");
   Assert.equal(
     engagementButton.label,

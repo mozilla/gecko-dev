@@ -150,25 +150,34 @@ export var Heartbeat = class {
 
     // Build the heartbeat stars
     if (!this.options.engagementButtonLabel) {
+      const numStars = this.options.engagementButtonLabel ? 0 : 5;
       this.ratingContainer = this.chromeWindow.document.createElement("span");
+      this.ratingContainer.id = "star-rating-container";
 
-      const fiveStarElement =
-        this.chromeWindow.document.createElement("moz-five-star");
+      for (let i = 0; i < numStars; i++) {
+        // create a star rating element
+        const ratingElement =
+          this.chromeWindow.document.createXULElement("toolbarbutton");
 
-      fiveStarElement.selectable = true;
+        // style it
+        const starIndex = numStars - i;
+        ratingElement.className = "plain star-x";
+        ratingElement.id = "star" + starIndex;
+        ratingElement.setAttribute("data-score", starIndex);
 
-      // Add the click handler
-      fiveStarElement.addEventListener("select", ev => {
-        const rating = ev.detail.rating;
-        this.maybeNotifyHeartbeat("Voted", { score: rating });
-        this.userEngaged({
-          type: "stars",
-          score: rating,
-          flowId: this.options.flowId,
+        // Add the click handler
+        ratingElement.addEventListener("click", ev => {
+          const rating = parseInt(ev.target.getAttribute("data-score"));
+          this.maybeNotifyHeartbeat("Voted", { score: rating });
+          this.userEngaged({
+            type: "stars",
+            score: rating,
+            flowId: this.options.flowId,
+          });
         });
-      });
 
-      this.ratingContainer.appendChild(fiveStarElement);
+        this.ratingContainer.appendChild(ratingElement);
+      }
     }
 
     this.notificationBox = this.chromeWindow.gNotificationBox;
