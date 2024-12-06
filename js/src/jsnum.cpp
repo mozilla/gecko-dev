@@ -1664,7 +1664,9 @@ static JSString* Int32ToStringWithBase(JSContext* cx, int32_t i, int32_t base) {
   size_t length = result.ptr - buf;
   MOZ_ASSERT(i < 0 || length > 2, "small static strings are handled above");
 
-  JSLinearString* s = NewStringCopyN<allowGC>(cx, buf, length);
+  auto* latin1Chars = reinterpret_cast<JS::Latin1Char*>(buf);
+  JSLinearString* s = NewStringCopyNDontDeflateNonStaticValidLength<allowGC>(
+      cx, latin1Chars, length);
   if (!s) {
     return nullptr;
   }
