@@ -298,8 +298,8 @@ partial dictionary AuthenticationExtensionsClientOutputsJSON {
 
 // hmac-secret
 // <https://fidoalliance.org/specs/fido-v2.1-ps-20210615/fido-client-to-authenticator-protocol-v2.1-ps-errata-20220621.html#sctn-hmac-secret-extension>
-// note: we don't support hmac-secret in get(), so we only define the create()
-// inputs and outputs here.
+// note: we don't support hmac-secret in get() (see instead the prf extension)
+// so we only define the create() inputs and outputs here.
 
 partial dictionary AuthenticationExtensionsClientInputs {
     boolean hmacCreateSecret;
@@ -317,7 +317,8 @@ partial dictionary AuthenticationExtensionsClientOutputsJSON {
     boolean hmacCreateSecret;
 };
 
-// hmac-secret
+
+// minPinLength
 // <https://fidoalliance.org/specs/fido-v2.1-ps-20210615/fido-client-to-authenticator-protocol-v2.1-ps-errata-20220621.html#sctn-minpinlength-extension>
 partial dictionary AuthenticationExtensionsClientInputs {
   boolean minPinLength;
@@ -325,4 +326,52 @@ partial dictionary AuthenticationExtensionsClientInputs {
 
 partial dictionary AuthenticationExtensionsClientInputsJSON {
   boolean minPinLength;
+};
+
+
+// prf
+// <https://w3c.github.io/webauthn/#prf-extension>
+dictionary AuthenticationExtensionsPRFValues {
+  required BufferSource first;
+  BufferSource second;
+};
+
+dictionary AuthenticationExtensionsPRFValuesJSON {
+  required Base64URLString first;
+  Base64URLString second;
+};
+
+dictionary AuthenticationExtensionsPRFInputs {
+  AuthenticationExtensionsPRFValues eval;
+  record<USVString, AuthenticationExtensionsPRFValues> evalByCredential;
+};
+
+dictionary AuthenticationExtensionsPRFInputsJSON {
+  AuthenticationExtensionsPRFValuesJSON eval;
+  record<USVString, AuthenticationExtensionsPRFValuesJSON> evalByCredential;
+};
+
+partial dictionary AuthenticationExtensionsClientInputs {
+  AuthenticationExtensionsPRFInputs prf;
+};
+
+partial dictionary AuthenticationExtensionsClientInputsJSON {
+  AuthenticationExtensionsPRFInputsJSON prf;
+};
+
+dictionary AuthenticationExtensionsPRFOutputs {
+  boolean enabled;
+  AuthenticationExtensionsPRFValues results;
+};
+
+dictionary AuthenticationExtensionsPRFOutputsJSON {
+  boolean enabled;
+};
+
+partial dictionary AuthenticationExtensionsClientOutputs {
+  AuthenticationExtensionsPRFOutputs prf;
+};
+
+partial dictionary AuthenticationExtensionsClientOutputsJSON {
+  AuthenticationExtensionsPRFOutputsJSON prf;
 };

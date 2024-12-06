@@ -8,14 +8,18 @@ use authenticator::ctap2::{
     attestation::{
         AAGuid, AttestationObject, AttestationStatement, AttestationStatementPacked,
         AttestedCredentialData, AuthenticatorData, AuthenticatorDataFlags, Extension,
+        HmacSecretResponse,
     },
     client_data::ClientDataHash,
     commands::{
         client_pin::{ClientPIN, ClientPinResponse, PINSubcommand},
-        get_assertion::{GetAssertion, GetAssertionResponse, GetAssertionResult},
+        get_assertion::{
+            GetAssertion, GetAssertionResponse, GetAssertionResult, HmacGetSecretOrPrf,
+            HmacSecretExtension,
+        },
         get_info::{AuthenticatorInfo, AuthenticatorOptions, AuthenticatorVersion},
         get_version::{GetVersion, U2FInfo},
-        make_credentials::{MakeCredentials, MakeCredentialsResult},
+        make_credentials::{HmacCreateSecretOrPrf, MakeCredentials, MakeCredentialsResult},
         reset::Reset,
         selection::Selection,
         RequestCtap1, RequestCtap2, StatusCode,
@@ -388,7 +392,33 @@ impl VirtualFidoDevice for TestToken {
         }
 
         // 10. Extensions
-        // (not implemented)
+        let hmac_secret_response = match &req.extensions.hmac_secret {
+            Some(HmacGetSecretOrPrf::Prf(HmacSecretExtension {
+                salt1, salt2: None, ..
+            })) => {
+                // Not much point in using an actual PRF here, the identity function
+                // will work since salt1 is guaranteed to be 32 bytes.
+                let mut eval = vec![0u8; 32];
+                eval[..].copy_from_slice(salt1);
+                self.get_shared_secret()
+                    .map(|secret| secret.encrypt(&eval).ok())
+                    .flatten()
+            }
+            Some(HmacGetSecretOrPrf::Prf(HmacSecretExtension {
+                salt1,
+                salt2: Some(salt2),
+                ..
+            })) => {
+                // Likewise, the identity function is fine for tests.
+                let mut eval = vec![0u8; 64];
+                eval[0..32].copy_from_slice(salt1);
+                eval[32..64].copy_from_slice(salt2);
+                self.get_shared_secret()
+                    .map(|secret| secret.encrypt(&eval).ok())
+                    .flatten()
+            }
+            _ => None,
+        };
 
         let mut assertions: Vec<GetAssertionResult> = vec![];
         if !req.allow_list.is_empty() {
@@ -406,6 +436,11 @@ impl VirtualFidoDevice for TestToken {
                         // a common source of bugs, e.g. Bug 1864504, so we'll exercise it here.
                         assertion.credentials = None;
                     }
+                    assertion.auth_data.extensions = Extension::default();
+                    assertion.auth_data.extensions.hmac_secret = match &hmac_secret_response {
+                        Some(resp) => Some(HmacSecretResponse::Secret(resp.clone())),
+                        None => None,
+                    };
                     assertions.push(GetAssertionResult {
                         assertion: assertion.into(),
                         attachment: AuthenticatorAttachment::Unknown,
@@ -418,9 +453,15 @@ impl VirtualFidoDevice for TestToken {
             // 12. Discoverable credential case
             // return any number of assertions from credentials bound to this RP ID
             for credential in eligible_cred_iter.filter(|x| x.is_discoverable_credential) {
-                let assertion = credential.assert(&req.client_data_hash, flags)?.into();
+                let mut assertion: GetAssertionResponse =
+                    credential.assert(&req.client_data_hash, flags)?.into();
+                assertion.auth_data.extensions = Extension::default();
+                assertion.auth_data.extensions.hmac_secret = match &hmac_secret_response {
+                    Some(resp) => Some(HmacSecretResponse::Secret(resp.clone())),
+                    None => None,
+                };
                 assertions.push(GetAssertionResult {
-                    assertion,
+                    assertion: assertion.into(),
                     attachment: AuthenticatorAttachment::Unknown,
                     extensions: Default::default(),
                 });
@@ -550,6 +591,15 @@ impl VirtualFidoDevice for TestToken {
             //  1) return an actual minimum pin length, and
             //  2) check the RP ID against an allowlist before providing any data
             extensions.min_pin_length = Some(4);
+        }
+
+        if let Some(req_hmac_or_prf) = &req.extensions.hmac_secret {
+            match req_hmac_or_prf {
+                HmacCreateSecretOrPrf::HmacCreateSecret(true) | HmacCreateSecretOrPrf::Prf => {
+                    extensions.hmac_secret = Some(HmacSecretResponse::Confirmed(true));
+                }
+                _ => (),
+            }
         }
 
         if extensions.has_some() {
