@@ -141,11 +141,8 @@ class JitZone {
   // JitRuntime. They also are dependent on the value of 'initialStringHeap' and
   // must be flushed when its value changes.
   //
-  // These are weak pointers, but they can by accessed during off-thread Ion
-  // compilation and therefore can't use the usual read barrier. Instead, we
-  // record which stubs have been read and perform the appropriate barriers in
-  // CodeGenerator::link().
-
+  // These are weak pointers. Ion compilations store strong references to stubs
+  // they depend on in WarpSnapshot.
   Stubs<WeakHeapPtr<JitCode*>> stubs_;
 
   mozilla::Maybe<IonCompilationId> currentCompilationId_;
@@ -158,13 +155,6 @@ class JitZone {
   JitCode* generateRegExpSearcherStub(JSContext* cx);
   JitCode* generateRegExpExecMatchStub(JSContext* cx);
   JitCode* generateRegExpExecTestStub(JSContext* cx);
-
-  JitCode* getStubNoBarrier(StubKind stub,
-                            uint32_t* requiredBarriersOut) const {
-    MOZ_ASSERT(CurrentThreadIsIonCompiling());
-    *requiredBarriersOut |= 1 << uint32_t(stub);
-    return stubs_[stub].unbarrieredGet();
-  }
 
  public:
   explicit JitZone(bool zoneHasNurseryStrings) {
@@ -293,15 +283,6 @@ class JitZone {
     return currentCompilationId_;
   }
 
-  // Initialize code stubs only used by Ion, not Baseline.
-  [[nodiscard]] bool ensureIonStubsExist(JSContext* cx) {
-    if (stubs_[StubKind::StringConcat]) {
-      return true;
-    }
-    stubs_[StubKind::StringConcat] = generateStringConcatStub(cx);
-    return stubs_[StubKind::StringConcat];
-  }
-
   void traceWeak(JSTracer* trc, JS::Realm* realm);
 
   void discardStubs() {
@@ -324,65 +305,31 @@ class JitZone {
     initialStringHeap = allow ? gc::Heap::Default : gc::Heap::Tenured;
   }
 
-  JitCode* stringConcatStubNoBarrier(uint32_t* requiredBarriersOut) const {
-    return getStubNoBarrier(StubKind::StringConcat, requiredBarriersOut);
-  }
-
-  JitCode* regExpMatcherStubNoBarrier(uint32_t* requiredBarriersOut) const {
-    return getStubNoBarrier(StubKind::RegExpMatcher, requiredBarriersOut);
-  }
-
-  [[nodiscard]] JitCode* ensureRegExpMatcherStubExists(JSContext* cx) {
-    if (JitCode* code = stubs_[StubKind::RegExpMatcher]) {
+  [[nodiscard]] JitCode* ensureStubExists(JSContext* cx, StubKind kind) {
+    if (JitCode* code = stubs_[kind]) {
       return code;
     }
-    stubs_[StubKind::RegExpMatcher] = generateRegExpMatcherStub(cx);
-    return stubs_[StubKind::RegExpMatcher];
-  }
-
-  JitCode* regExpSearcherStubNoBarrier(uint32_t* requiredBarriersOut) const {
-    return getStubNoBarrier(StubKind::RegExpSearcher, requiredBarriersOut);
-  }
-
-  [[nodiscard]] JitCode* ensureRegExpSearcherStubExists(JSContext* cx) {
-    if (JitCode* code = stubs_[StubKind::RegExpSearcher]) {
-      return code;
+    switch (kind) {
+      case StubKind::StringConcat:
+        stubs_[kind] = generateStringConcatStub(cx);
+        break;
+      case StubKind::RegExpMatcher:
+        stubs_[kind] = generateRegExpMatcherStub(cx);
+        break;
+      case StubKind::RegExpSearcher:
+        stubs_[kind] = generateRegExpSearcherStub(cx);
+        break;
+      case StubKind::RegExpExecMatch:
+        stubs_[kind] = generateRegExpExecMatchStub(cx);
+        break;
+      case StubKind::RegExpExecTest:
+        stubs_[kind] = generateRegExpExecTestStub(cx);
+        break;
+      case StubKind::Count:
+        MOZ_CRASH("Invalid kind");
     }
-    stubs_[StubKind::RegExpSearcher] = generateRegExpSearcherStub(cx);
-    return stubs_[StubKind::RegExpSearcher];
+    return stubs_[kind];
   }
-
-  JitCode* regExpExecMatchStubNoBarrier(uint32_t* requiredBarriersOut) const {
-    return getStubNoBarrier(StubKind::RegExpExecMatch, requiredBarriersOut);
-  }
-
-  [[nodiscard]] JitCode* ensureRegExpExecMatchStubExists(JSContext* cx) {
-    if (JitCode* code = stubs_[StubKind::RegExpExecMatch]) {
-      return code;
-    }
-    stubs_[StubKind::RegExpExecMatch] = generateRegExpExecMatchStub(cx);
-    return stubs_[StubKind::RegExpExecMatch];
-  }
-
-  JitCode* regExpExecTestStubNoBarrier(uint32_t* requiredBarriersOut) const {
-    return getStubNoBarrier(StubKind::RegExpExecTest, requiredBarriersOut);
-  }
-
-  [[nodiscard]] JitCode* ensureRegExpExecTestStubExists(JSContext* cx) {
-    if (JitCode* code = stubs_[StubKind::RegExpExecTest]) {
-      return code;
-    }
-    stubs_[StubKind::RegExpExecTest] = generateRegExpExecTestStub(cx);
-    return stubs_[StubKind::RegExpExecTest];
-  }
-
-  // Perform the necessary read barriers on stubs described by the bitmasks
-  // passed in. This function can only be called from the main thread.
-  //
-  // The stub pointers must still be valid by the time these methods are
-  // called. This is arranged by cancelling off-thread Ion compilation at the
-  // start of GC and at the start of sweeping.
-  void performStubReadBarriers(uint32_t stubsToBarrier) const;
 
   static constexpr size_t offsetOfRegExpMatcherStub() {
     return offsetof(JitZone, stubs_) +

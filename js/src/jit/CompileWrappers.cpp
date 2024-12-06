@@ -219,8 +219,6 @@ CompileRealm::addressOfRandomNumberGenerator() {
   return realm()->addressOfRandomNumberGenerator();
 }
 
-const JitZone* CompileZone::jitZone() { return zone()->jitZone(); }
-
 const GlobalObject* CompileRealm::maybeGlobal() {
   // This uses unsafeUnbarrieredMaybeGlobal() so as not to trigger the read
   // barrier on the global from off thread.  This is safe because we

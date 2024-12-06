@@ -462,9 +462,6 @@ class CodeGenerator final : public CodeGeneratorSpecific {
 
   IonPerfSpewer perfSpewer_;
 
-  // Bit mask of JitZone stubs that are to be read-barriered.
-  uint32_t zoneStubsToReadBarrier_;
-
   // Total Ion compilation time.
   mozilla::TimeDuration compileTime_;
 

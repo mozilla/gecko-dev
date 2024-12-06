@@ -7372,25 +7372,26 @@ static JitCode* GetOrCreateRegExpStub(JSContext* cx, InlinableNative native) {
     cx->clearPendingException();
     return nullptr;
   }
-  JitCode* code;
+  JitZone::StubKind kind;
   switch (native) {
     case InlinableNative::IntrinsicRegExpBuiltinExecForTest:
     case InlinableNative::IntrinsicRegExpExecForTest:
-      code = cx->zone()->jitZone()->ensureRegExpExecTestStubExists(cx);
+      kind = JitZone::StubKind::RegExpExecTest;
       break;
     case InlinableNative::IntrinsicRegExpBuiltinExec:
     case InlinableNative::IntrinsicRegExpExec:
-      code = cx->zone()->jitZone()->ensureRegExpExecMatchStubExists(cx);
+      kind = JitZone::StubKind::RegExpExecMatch;
       break;
     case InlinableNative::RegExpMatcher:
-      code = cx->zone()->jitZone()->ensureRegExpMatcherStubExists(cx);
+      kind = JitZone::StubKind::RegExpMatcher;
       break;
     case InlinableNative::RegExpSearcher:
-      code = cx->zone()->jitZone()->ensureRegExpSearcherStubExists(cx);
+      kind = JitZone::StubKind::RegExpSearcher;
       break;
     default:
       MOZ_CRASH("Unexpected native");
   }
+  JitCode* code = cx->zone()->jitZone()->ensureStubExists(cx, kind);
   if (!code) {
     MOZ_ASSERT(cx->isThrowingOutOfMemory() || cx->isThrowingOverRecursed());
     cx->clearPendingException();

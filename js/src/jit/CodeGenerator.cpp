@@ -990,8 +990,7 @@ CodeGenerator::CodeGenerator(MIRGenerator* gen, LIRGraph* graph,
     : CodeGeneratorSpecific(gen, graph, masm),
       ionScriptLabels_(gen->alloc()),
       ionNurseryObjectLabels_(gen->alloc()),
-      scriptCounts_(nullptr),
-      zoneStubsToReadBarrier_(0) {}
+      scriptCounts_(nullptr) {}
 
 CodeGenerator::~CodeGenerator() { js_delete(scriptCounts_); }
 
@@ -3118,9 +3117,8 @@ void CodeGenerator::visitRegExpMatcher(LRegExpMatcher* lir) {
   OutOfLineRegExpMatcher* ool = new (alloc()) OutOfLineRegExpMatcher(lir);
   addOutOfLineCode(ool, lir->mir());
 
-  const JitZone* jitZone = gen->realm->zone()->jitZone();
   JitCode* regExpMatcherStub =
-      jitZone->regExpMatcherStubNoBarrier(&zoneStubsToReadBarrier_);
+      snapshot_->getZoneStub(JitZone::StubKind::RegExpMatcher);
   masm.call(regExpMatcherStub);
   masm.branchTestUndefined(Assembler::Equal, JSReturnOperand, ool->entry());
   masm.bind(ool->rejoin());
@@ -3188,9 +3186,8 @@ void CodeGenerator::visitRegExpExecMatch(LRegExpExecMatch* lir) {
   auto* ool = new (alloc()) OutOfLineRegExpExecMatch(lir);
   addOutOfLineCode(ool, lir->mir());
 
-  const JitZone* jitZone = gen->realm->zone()->jitZone();
   JitCode* regExpExecMatchStub =
-      jitZone->regExpExecMatchStubNoBarrier(&zoneStubsToReadBarrier_);
+      snapshot_->getZoneStub(JitZone::StubKind::RegExpExecMatch);
   masm.call(regExpExecMatchStub);
   masm.branchTestUndefined(Assembler::Equal, JSReturnOperand, ool->entry());
 
@@ -3378,9 +3375,8 @@ void CodeGenerator::visitRegExpSearcher(LRegExpSearcher* lir) {
   OutOfLineRegExpSearcher* ool = new (alloc()) OutOfLineRegExpSearcher(lir);
   addOutOfLineCode(ool, lir->mir());
 
-  const JitZone* jitZone = gen->realm->zone()->jitZone();
   JitCode* regExpSearcherStub =
-      jitZone->regExpSearcherStubNoBarrier(&zoneStubsToReadBarrier_);
+      snapshot_->getZoneStub(JitZone::StubKind::RegExpSearcher);
   masm.call(regExpSearcherStub);
   masm.branch32(Assembler::Equal, ReturnReg, Imm32(RegExpSearcherResultFailed),
                 ool->entry());
@@ -3551,9 +3547,8 @@ void CodeGenerator::visitRegExpExecTest(LRegExpExecTest* lir) {
   auto* ool = new (alloc()) OutOfLineRegExpExecTest(lir);
   addOutOfLineCode(ool, lir->mir());
 
-  const JitZone* jitZone = gen->realm->zone()->jitZone();
   JitCode* regExpExecTestStub =
-      jitZone->regExpExecTestStubNoBarrier(&zoneStubsToReadBarrier_);
+      snapshot_->getZoneStub(JitZone::StubKind::RegExpExecTest);
   masm.call(regExpExecTestStub);
 
   masm.branch32(Assembler::Equal, ReturnReg, Imm32(RegExpExecTestResultFailed),
@@ -13030,9 +13025,8 @@ void CodeGenerator::emitConcat(LInstruction* lir, Register lhs, Register rhs,
       lir, ArgList(lhs, rhs, static_cast<Imm32>(int32_t(gc::Heap::Default))),
       StoreRegisterTo(output));
 
-  const JitZone* jitZone = gen->realm->zone()->jitZone();
   JitCode* stringConcatStub =
-      jitZone->stringConcatStubNoBarrier(&zoneStubsToReadBarrier_);
+      snapshot_->getZoneStub(JitZone::StubKind::StringConcat);
   masm.call(stringConcatStub);
   masm.branchTestPtr(Assembler::Zero, output, output, ool->entry());
 
@@ -16784,15 +16778,12 @@ bool CodeGenerator::link(JSContext* cx) {
   RootedScript script(cx, gen->outerInfo().script());
   MOZ_ASSERT(!script->hasIonScript());
 
-  // Perform any read barriers which were skipped while compiling the
-  // script, which may have happened off-thread.
-  JitZone* jitZone = cx->zone()->jitZone();
-  jitZone->performStubReadBarriers(zoneStubsToReadBarrier_);
-
   if (scriptCounts_ && !script->hasScriptCounts() &&
       !script->initScriptCounts(cx)) {
     return false;
   }
+
+  JitZone* jitZone = cx->zone()->jitZone();
 
   IonCompilationId compilationId =
       cx->runtime()->jitRuntime()->nextCompilationId();

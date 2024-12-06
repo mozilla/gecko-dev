@@ -110,8 +110,6 @@ class CompileZone {
  public:
   static CompileZone* get(JS::Zone* zone);
 
-  const JitZone* jitZone();
-
   CompileRuntime* runtime();
   bool isAtomsZone();
 

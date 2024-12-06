@@ -351,25 +351,6 @@ void JitRuntime::freeIonOsrTempData() {
   ionOsrTempDataSize_ = 0;
 }
 
-template <typename T>
-static T PopNextBitmaskValue(uint32_t* bitmask) {
-  MOZ_ASSERT(*bitmask);
-  uint32_t index = mozilla::CountTrailingZeroes32(*bitmask);
-  *bitmask ^= 1 << index;
-
-  MOZ_ASSERT(index < uint32_t(T::Count));
-  return T(index);
-}
-
-void JitZone::performStubReadBarriers(uint32_t stubsToBarrier) const {
-  while (stubsToBarrier) {
-    auto stub = PopNextBitmaskValue<StubKind>(&stubsToBarrier);
-    const WeakHeapPtr<JitCode*>& jitCode = stubs_[stub];
-    MOZ_ASSERT(jitCode);
-    jitCode.get();
-  }
-}
-
 static bool LinkCodeGen(JSContext* cx, CodeGenerator* codegen,
                         HandleScript script) {
   if (!codegen->link(cx)) {
@@ -1699,9 +1680,6 @@ static AbortReason IonCompile(JSContext* cx, HandleScript script,
   cx->check(script);
 
   if (!cx->zone()->ensureJitZoneExists(cx)) {
-    return AbortReason::Error;
-  }
-  if (!cx->zone()->jitZone()->ensureIonStubsExist(cx)) {
     return AbortReason::Error;
   }
 

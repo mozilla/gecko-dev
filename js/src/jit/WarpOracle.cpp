@@ -169,8 +169,8 @@ AbortReasonOr<WarpSnapshot*> WarpOracle::createSnapshot() {
 #endif
 
   auto* snapshot = new (alloc_.fallible())
-      WarpSnapshot(cx_, alloc_, std::move(scriptSnapshots_), bailoutInfo_,
-                   recordFinalWarmUpCount);
+      WarpSnapshot(cx_, alloc_, std::move(scriptSnapshots_), zoneStubs_,
+                   bailoutInfo_, recordFinalWarmUpCount);
   if (!snapshot) {
     return abort(outerScript_, AbortReason::Alloc);
   }
@@ -925,22 +925,27 @@ AbortReasonOr<Ok> WarpScriptOracle::maybeInlineIC(WarpOpSnapshotList& snapshots,
     // them.
     switch (op) {
       case CacheOp::CallRegExpMatcherResult:
-        if (!cx_->zone()->jitZone()->ensureRegExpMatcherStubExists(cx_)) {
+        if (!oracle_->snapshotJitZoneStub(JitZone::StubKind::RegExpMatcher)) {
           return abort(AbortReason::Error);
         }
         break;
       case CacheOp::CallRegExpSearcherResult:
-        if (!cx_->zone()->jitZone()->ensureRegExpSearcherStubExists(cx_)) {
+        if (!oracle_->snapshotJitZoneStub(JitZone::StubKind::RegExpSearcher)) {
           return abort(AbortReason::Error);
         }
         break;
       case CacheOp::RegExpBuiltinExecMatchResult:
-        if (!cx_->zone()->jitZone()->ensureRegExpExecMatchStubExists(cx_)) {
+        if (!oracle_->snapshotJitZoneStub(JitZone::StubKind::RegExpExecMatch)) {
           return abort(AbortReason::Error);
         }
         break;
       case CacheOp::RegExpBuiltinExecTestResult:
-        if (!cx_->zone()->jitZone()->ensureRegExpExecTestStubExists(cx_)) {
+        if (!oracle_->snapshotJitZoneStub(JitZone::StubKind::RegExpExecTest)) {
+          return abort(AbortReason::Error);
+        }
+        break;
+      case CacheOp::CallStringConcatResult:
+        if (!oracle_->snapshotJitZoneStub(JitZone::StubKind::StringConcat)) {
           return abort(AbortReason::Error);
         }
         break;
@@ -1141,6 +1146,18 @@ AbortReasonOr<bool> WarpScriptOracle::maybeInlineCall(
     }
   }
 
+  return true;
+}
+
+bool WarpOracle::snapshotJitZoneStub(JitZone::StubKind kind) {
+  if (zoneStubs_[kind]) {
+    return true;
+  }
+  JitCode* stub = cx_->zone()->jitZone()->ensureStubExists(cx_, kind);
+  if (!stub) {
+    return false;
+  }
+  zoneStubs_[kind] = stub;
   return true;
 }
 
