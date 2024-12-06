@@ -1,0 +1,24 @@
+[DEFAULT]
+support-files = [
+  "head_mls.js",
+]
+scheme = "https"
+prefs = [
+ "security.mls.enabled=true",
+]
+
+["test_derive_exporter.html"]
+
+["test_group_add.html"]
+
+["test_group_close.html"]
+
+["test_group_create.html"]
+
+["test_group_join.html"]
+
+["test_group_remove.html"]
+
+["test_scenario.html"]
+
+["test_send_receive.html"]
