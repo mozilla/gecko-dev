@@ -54,6 +54,7 @@
 #include "vm/PlainObject.h"
 #include "vm/Shape.h"
 #include "vm/TypeofEqOperand.h"  // TypeofEqOperand
+#include "vm/WrapperObject.h"
 
 #include "debugger/DebugAPI-inl.h"
 #include "jit/BaselineFrame-inl.h"
@@ -4927,7 +4928,7 @@ uint64_t ICInterpretOps(uint64_t arg0, uint64_t arg1, ICStub* stub,
         JSObject* obj = reinterpret_cast<JSObject*>(READ_REG(objId.id()));
         if (IsTypedArrayClass(obj->getClass())) {
           retValue = BooleanValue(true).asRawBits();
-        } else if (isPossiblyWrapped) {
+        } else if (isPossiblyWrapped && obj->is<WrapperObject>()) {
           PUSH_IC_FRAME();
           bool result;
           if (!IsPossiblyWrappedTypedArray(cx, obj, &result)) {
