@@ -370,11 +370,6 @@ function forgetClosedTabs(win) {
   }
 }
 
-function forgetSavedTabGroups() {
-  const tabGroups = ss.getSavedTabGroups();
-  tabGroups.forEach(tabGroup => ss.forgetSavedTabGroup(tabGroup.id));
-}
-
 function forgetClosedTabGroups(win) {
   const tabGroups = ss.getClosedTabGroups(win);
   tabGroups.forEach(tabGroup => ss.forgetClosedTabGroup(win, tabGroup.id));
