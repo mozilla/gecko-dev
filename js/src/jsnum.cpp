@@ -18,6 +18,7 @@
 #include "mozilla/Utf8.h"
 
 #include <algorithm>
+#include <charconv>
 #include <iterator>
 #include <limits>
 #ifdef HAVE_LOCALECONV
@@ -54,7 +55,6 @@
 
 #include "vm/Compartment-inl.h"  // For js::UnwrapAndTypeCheckThis
 #include "vm/GeckoProfiler-inl.h"
-#include "vm/JSAtomUtils-inl.h"  // BackfillIndexInCharBuffer
 #include "vm/NativeObject-inl.h"
 #include "vm/NumberObject-inl.h"
 #include "vm/StringType-inl.h"
@@ -794,23 +794,6 @@ static JSLinearString* LookupInt32ToString(JSContext* cx, int32_t si) {
   return LookupDtoaCache(cx, si);
 }
 
-template <typename T>
-MOZ_ALWAYS_INLINE static T* BackfillInt32InBuffer(int32_t si, T* buffer,
-                                                  size_t size, size_t* length) {
-  uint32_t ui = Abs(si);
-  MOZ_ASSERT_IF(si == INT32_MIN, ui == uint32_t(INT32_MAX) + 1);
-
-  RangedPtr<T> end(buffer + size - 1, buffer, size);
-  *end = '\0';
-  RangedPtr<T> start = BackfillIndexInCharBuffer(ui, end);
-  if (si < 0) {
-    *--start = '-';
-  }
-
-  *length = end - start;
-  return start.get();
-}
-
 template <AllowGC allowGC>
 JSLinearString* js::Int32ToString(JSContext* cx, int32_t si) {
   return js::Int32ToStringWithHeap<allowGC>(cx, si, gc::Heap::Default);
@@ -825,13 +808,15 @@ JSLinearString* js::Int32ToStringWithHeap(JSContext* cx, int32_t si,
     return str;
   }
 
-  Latin1Char buffer[JSFatInlineString::MAX_LENGTH_LATIN1 + 1];
-  size_t length;
-  Latin1Char* start =
-      BackfillInt32InBuffer(si, buffer, std::size(buffer), &length);
+  char buffer[JSFatInlineString::MAX_LENGTH_LATIN1];
 
-  mozilla::Range<const Latin1Char> chars(start, length);
-  JSInlineString* str = NewInlineString<allowGC>(cx, chars, heap);
+  auto result = std::to_chars(buffer, std::end(buffer), si, 10);
+  MOZ_ASSERT(result.ec == std::errc());
+
+  size_t length = result.ptr - buffer;
+  const auto& latin1Chars =
+      reinterpret_cast<const JS::Latin1Char(&)[std::size(buffer)]>(buffer);
+  JSInlineString* str = NewInlineString<allowGC>(cx, latin1Chars, length, heap);
   if (!str) {
     return nullptr;
   }
@@ -859,17 +844,17 @@ JSAtom* js::Int32ToAtom(JSContext* cx, int32_t si) {
     return js::AtomizeString(cx, str);
   }
 
-  char buffer[JSFatInlineString::MAX_LENGTH_TWO_BYTE + 1];
-  size_t length;
-  char* start = BackfillInt32InBuffer(
-      si, buffer, JSFatInlineString::MAX_LENGTH_TWO_BYTE + 1, &length);
+  Int32ToCStringBuf cbuf;
+  auto result = std::to_chars(cbuf.sbuf, std::end(cbuf.sbuf), si, 10);
+  MOZ_ASSERT(result.ec == std::errc());
 
   Maybe<uint32_t> indexValue;
   if (si >= 0) {
     indexValue.emplace(si);
   }
 
-  JSAtom* atom = Atomize(cx, start, length, indexValue);
+  size_t length = result.ptr - cbuf.sbuf;
+  JSAtom* atom = Atomize(cx, cbuf.sbuf, length, indexValue);
   if (!atom) {
     return nullptr;
   }
@@ -880,64 +865,12 @@ JSAtom* js::Int32ToAtom(JSContext* cx, int32_t si) {
 
 frontend::TaggedParserAtomIndex js::Int32ToParserAtom(
     FrontendContext* fc, frontend::ParserAtomsTable& parserAtoms, int32_t si) {
-  char buffer[JSFatInlineString::MAX_LENGTH_TWO_BYTE + 1];
-  size_t length;
-  char* start = BackfillInt32InBuffer(
-      si, buffer, JSFatInlineString::MAX_LENGTH_TWO_BYTE + 1, &length);
+  Int32ToCStringBuf cbuf;
+  auto result = std::to_chars(cbuf.sbuf, std::end(cbuf.sbuf), si, 10);
+  MOZ_ASSERT(result.ec == std::errc());
 
-  Maybe<uint32_t> indexValue;
-  if (si >= 0) {
-    indexValue.emplace(si);
-  }
-
-  return parserAtoms.internAscii(fc, start, length);
-}
-
-/* Returns a non-nullptr pointer to inside `buf`. */
-template <typename T>
-static char* Int32ToCStringWithBase(mozilla::Range<char> buf, T i, size_t* len,
-                                    int base) {
-  uint32_t u;
-  if constexpr (std::is_signed_v<T>) {
-    u = Abs(i);
-  } else {
-    u = i;
-  }
-
-  RangedPtr<char> cp = buf.end() - 1;
-
-  char* end = cp.get();
-  *cp = '\0';
-
-  /* Build the string from behind. */
-  switch (base) {
-    case 10:
-      cp = BackfillIndexInCharBuffer(u, cp);
-      break;
-    case 16:
-      do {
-        unsigned newu = u / 16;
-        *--cp = "0123456789abcdef"[u - newu * 16];
-        u = newu;
-      } while (u != 0);
-      break;
-    default:
-      MOZ_ASSERT(base >= 2 && base <= 36);
-      do {
-        unsigned newu = u / base;
-        *--cp = "0123456789abcdefghijklmnopqrstuvwxyz"[u - newu * base];
-        u = newu;
-      } while (u != 0);
-      break;
-  }
-  if constexpr (std::is_signed_v<T>) {
-    if (i < 0) {
-      *--cp = '-';
-    }
-  }
-
-  *len = end - cp.get();
-  return cp.get();
+  size_t length = result.ptr - cbuf.sbuf;
+  return parserAtoms.internAscii(fc, cbuf.sbuf, length);
 }
 
 /* Returns a non-nullptr pointer to inside `out`. */
@@ -949,8 +882,31 @@ static char* Int32ToCStringWithBase(char (&out)[Length], T i, size_t* len,
   static_assert(std::numeric_limits<T>::digits + (2 * std::is_signed_v<T>) <
                 Length);
 
-  mozilla::Range<char> buf(out, Length);
-  return Int32ToCStringWithBase(buf, i, len, base);
+  // Use explicit cases for base 10 and base 16 to make it more likely the
+  // compiler will generate optimized code for these two common bases.
+  std::to_chars_result result;
+  switch (base) {
+    case 10: {
+      result = std::to_chars(out, out + Length, i, 10);
+      break;
+    }
+    case 16: {
+      result = std::to_chars(out, out + Length, i, 16);
+      break;
+    }
+    default: {
+      MOZ_ASSERT(base >= 2 && base <= 36);
+      result = std::to_chars(out, out + Length, i, base);
+      break;
+    }
+  }
+  MOZ_ASSERT(result.ec == std::errc());
+
+  // Null-terminate the result.
+  *result.ptr = '\0';
+
+  *len = result.ptr - out;
+  return out;
 }
 
 /* Returns a non-nullptr pointer to inside `out`. */
@@ -971,8 +927,15 @@ static char* Int32ToCString(char (&out)[Length], T i, size_t* len) {
                    std::is_signed_v<T>) < Length);
   }
 
-  mozilla::Range<char> buf(out, Length);
-  return Int32ToCStringWithBase(buf, i, len, Base);
+  // -1 to leave space for the terminating null-character.
+  auto result = std::to_chars(out, std::end(out) - 1, i, Base);
+  MOZ_ASSERT(result.ec == std::errc());
+
+  // Null-terminate the result.
+  *result.ptr = '\0';
+
+  *len = result.ptr - out;
+  return out;
 }
 
 /* Returns a non-nullptr pointer to inside `cbuf`. */
@@ -1868,15 +1831,15 @@ JSLinearString* js::IndexToString(JSContext* cx, uint32_t index) {
     return str;
   }
 
-  Latin1Char buffer[JSFatInlineString::MAX_LENGTH_LATIN1 + 1];
-  RangedPtr<Latin1Char> end(buffer + JSFatInlineString::MAX_LENGTH_LATIN1,
-                            buffer, JSFatInlineString::MAX_LENGTH_LATIN1 + 1);
-  *end = '\0';
-  RangedPtr<Latin1Char> start = BackfillIndexInCharBuffer(index, end);
+  char buffer[JSFatInlineString::MAX_LENGTH_LATIN1];
 
-  mozilla::Range<const Latin1Char> chars(start.get(), end - start);
-  JSInlineString* str =
-      NewInlineString<CanGC>(cx, chars, js::gc::Heap::Default);
+  auto result = std::to_chars(buffer, std::end(buffer), index, 10);
+  MOZ_ASSERT(result.ec == std::errc());
+
+  size_t length = result.ptr - buffer;
+  const auto& latin1Chars =
+      reinterpret_cast<const JS::Latin1Char(&)[std::size(buffer)]>(buffer);
+  JSInlineString* str = NewInlineString<CanGC>(cx, latin1Chars, length);
   if (!str) {
     return nullptr;
   }
