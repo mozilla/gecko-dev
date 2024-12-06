@@ -17,6 +17,14 @@ export default class MozFieldset extends MozLitElement {
     label: { type: String, fluent: true },
     description: { type: String, fluent: true },
   };
+  descriptionTemplate() {
+    if (this.description) {
+      return html` <p id="description" class="text-deemphasized">
+        ${this.description}
+      </p>`;
+    }
+    return "";
+  }
 
   render() {
     return html`
@@ -28,11 +36,7 @@ export default class MozFieldset extends MozLitElement {
         aria-describedby=${ifDefined(this.description ? "description" : null)}
       >
         <legend part="label">${this.label}</legend>
-        ${this.description
-          ? html`<p id="description" class="text-deemphasized">
-              ${this.description}
-            </p>`
-          : ""}
+        ${this.descriptionTemplate()}
         <div id="inputs" part="inputs">
           <slot></slot>
         </div>
