@@ -110,8 +110,7 @@ static bool str_encodeURI_Component(JSContext* cx, unsigned argc, Value* vp);
 /* ES5 B.2.1 */
 template <typename CharT>
 static bool Escape(JSContext* cx, const CharT* chars, uint32_t length,
-                   InlineCharBuffer<Latin1Char>& newChars,
-                   uint32_t* newLengthOut) {
+                   StringChars<Latin1Char>& newChars, uint32_t* newLengthOut) {
   // clang-format off
     static const uint8_t shouldPassThrough[128] = {
          0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
@@ -162,7 +161,8 @@ static bool Escape(JSContext* cx, const CharT* chars, uint32_t length,
 
   static const char digits[] = "0123456789ABCDEF";
 
-  Latin1Char* rawNewChars = newChars.get();
+  JS::AutoCheckCannotGC nogc;
+  Latin1Char* rawNewChars = newChars.data(nogc);
   size_t i, ni;
   for (i = 0, ni = 0; i < length; i++) {
     char16_t ch = chars[i];
@@ -196,7 +196,7 @@ static bool str_escape(JSContext* cx, unsigned argc, Value* vp) {
     return false;
   }
 
-  InlineCharBuffer<Latin1Char> newChars;
+  StringChars<Latin1Char> newChars(cx);
   uint32_t newLength = 0;  // initialize to silence GCC warning
   if (str->hasLatin1Chars()) {
     AutoCheckCannotGC nogc;
@@ -218,7 +218,7 @@ static bool str_escape(JSContext* cx, unsigned argc, Value* vp) {
     return true;
   }
 
-  JSString* res = newChars.toString(cx, newLength);
+  JSString* res = newChars.toStringDontDeflateNonStatic<CanGC>(cx, newLength);
   if (!res) {
     return false;
   }
@@ -1697,8 +1697,8 @@ static bool str_toWellFormed(JSContext* cx, unsigned argc, Value* vp) {
   MOZ_ASSERT(isWellFormedUpTo < len);
 
   // Step 4-6
-  InlineCharBuffer<char16_t> buffer;
-  if (!buffer.maybeAlloc(cx, len)) {
+  StringChars<char16_t> newChars(cx);
+  if (!newChars.maybeAlloc(cx, len)) {
     return false;
   }
 
@@ -1708,9 +1708,9 @@ static bool str_toWellFormed(JSContext* cx, unsigned argc, Value* vp) {
     JSLinearString* linear = str->ensureLinear(cx);
     MOZ_ASSERT(linear, "IsStringWellFormedUnicode linearized the string");
 
-    PodCopy(buffer.get(), linear->twoByteChars(nogc), len);
+    PodCopy(newChars.data(nogc), linear->twoByteChars(nogc), len);
 
-    auto span = mozilla::Span{buffer.get(), len};
+    auto span = mozilla::Span{newChars.data(nogc), len};
 
     // Replace the character.
     span[isWellFormedUpTo] = unicode::REPLACEMENT_CHARACTER;
@@ -1722,7 +1722,7 @@ static bool str_toWellFormed(JSContext* cx, unsigned argc, Value* vp) {
     }
   }
 
-  JSString* result = buffer.toStringDontDeflate(cx, len);
+  JSString* result = newChars.toStringDontDeflateNonStatic<CanGC>(cx, len);
   if (!result) {
     return false;
   }
