@@ -818,7 +818,7 @@ int32_t StringTrimEndIndex(const JSString* str, int32_t start) {
 }
 
 JSString* CharCodeToLowerCase(JSContext* cx, int32_t code) {
-  RootedString str(cx, StringFromCharCode(cx, code));
+  JSString* str = StringFromCharCode(cx, code);
   if (!str) {
     return nullptr;
   }
@@ -826,7 +826,7 @@ JSString* CharCodeToLowerCase(JSContext* cx, int32_t code) {
 }
 
 JSString* CharCodeToUpperCase(JSContext* cx, int32_t code) {
-  RootedString str(cx, StringFromCharCode(cx, code));
+  JSString* str = StringFromCharCode(cx, code);
   if (!str) {
     return nullptr;
   }

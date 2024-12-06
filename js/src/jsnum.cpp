@@ -1802,8 +1802,7 @@ JSLinearString* js::IndexToString(JSContext* cx, uint32_t index) {
 template <AllowGC allowGC>
 JSLinearString* js::Int32ToStringWithBase(JSContext* cx, int32_t i,
                                           int32_t base, bool lowerCase) {
-  Rooted<JSLinearString*> str(cx,
-                              ::Int32ToStringWithBase<allowGC>(cx, i, base));
+  JSLinearString* str = ::Int32ToStringWithBase<allowGC>(cx, i, base);
   if (!str) {
     return nullptr;
   }

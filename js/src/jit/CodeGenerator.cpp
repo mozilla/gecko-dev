@@ -14519,7 +14519,7 @@ void CodeGenerator::visitStringToLowerCase(LStringToLowerCase* lir) {
       lir->temp3()->isBogusTemp() ? string : ToRegister(lir->temp3());
   Register temp4 = ToRegister(lir->temp4());
 
-  using Fn = JSLinearString* (*)(JSContext*, HandleString);
+  using Fn = JSLinearString* (*)(JSContext*, JSString*);
   OutOfLineCode* ool = oolCallVM<Fn, js::StringToLowerCase>(
       lir, ArgList(string), StoreRegisterTo(output));
 
@@ -14647,7 +14647,7 @@ void CodeGenerator::visitStringToLowerCase(LStringToLowerCase* lir) {
 void CodeGenerator::visitStringToUpperCase(LStringToUpperCase* lir) {
   pushArg(ToRegister(lir->string()));
 
-  using Fn = JSLinearString* (*)(JSContext*, HandleString);
+  using Fn = JSLinearString* (*)(JSContext*, JSString*);
   callVM<Fn, js::StringToUpperCase>(lir);
 }
 
