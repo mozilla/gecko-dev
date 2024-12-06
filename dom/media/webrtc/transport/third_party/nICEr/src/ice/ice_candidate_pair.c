@@ -106,7 +106,25 @@ int nr_ice_candidate_pair_create(nr_ice_peer_ctx *pctx, nr_ice_candidate *lcand,
     /* Make a bogus candidate to compute a theoretical peer reflexive
      * priority per S 7.1.1.1 */
     memcpy(&tmpcand, lcand, sizeof(tmpcand));
-    tmpcand.type = PEER_REFLEXIVE;
+    /* Non-standard behavior, but that's because the standard is wrong!  If
+     * this is a relay candidate, it is never appropriate to assign it the
+     * priority of a prflx. One could attempt to compensate for this on the
+     * other side by overriding prflx candidates (and their priority) when
+     * identical trickle candidates arrive, but it is prudent to avoid creating
+     * this situation in the first place.
+     * TODO: It may be appropriate to assign it a higher priority than _other_
+     * relay candidates. However, there are probably very few cases where it
+     * would matter.
+     * TODO: Note that we still have to contend with mismatched priorities for
+     * srflx here; if we have two srflx, and one of them is learned by the
+     * other side as a prflx, the other side is going to have a higher priority
+     * for that pair unless the priority is updated. For ICE-bis nomination,
+     * this won't matter a whole lot, but we do aggressive nomination, and
+     * there it is crucial. The controlled side has to pick the highest
+     * priority nominated pair, and all of them will get nominated. */
+    if (tmpcand.type != RELAYED) {
+      tmpcand.type = PEER_REFLEXIVE;
+    }
     if (r=nr_ice_candidate_compute_priority(&tmpcand))
       ABORT(r);
     t_priority = tmpcand.priority;
