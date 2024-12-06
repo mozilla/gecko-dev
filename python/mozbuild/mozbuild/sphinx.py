@@ -290,4 +290,4 @@ def setup(app):
         export_mots(config_path)
 
     manager.generate_docs(app)
-    app.srcdir = manager.staging_dir
+    app.srcdir = Path(manager.staging_dir)
