@@ -51,10 +51,6 @@ BEGIN_TEST(testIndexToString) {
     JSString* str = js::IndexToString(cx, u);
     CHECK(str);
 
-    if (!js::StaticStrings::hasUint(u)) {
-      CHECK(cx->realm()->dtoaCache.lookup(10, u) == str);
-    }
-
     bool match = false;
     CHECK(JS_StringEqualsAscii(cx, str, test.expected, &match));
     CHECK(match);
