@@ -810,7 +810,7 @@
           this.verticalPinnedTabsContainer.appendChild(aTab)
         );
       } else {
-        this.moveTabTo(aTab, this.pinnedTabCount);
+        this.moveTabTo(aTab, this.pinnedTabCount, { forceStandaloneTab: true });
       }
       aTab.setAttribute("pinned", "true");
       this._updateTabBarForPinnedTabs();
@@ -831,7 +831,9 @@
           this.tabContainer.arrowScrollbox.prepend(aTab);
         });
       } else {
-        this.moveTabTo(aTab, this.pinnedTabCount - 1);
+        this.moveTabTo(aTab, this.pinnedTabCount - 1, {
+          forceStandaloneTab: true,
+        });
         aTab.removeAttribute("pinned");
       }
       aTab.style.marginInlineStart = "";
@@ -5626,10 +5628,17 @@
     /**
      * @param {MozTabbrowserTab} aTab
      * @param {number} aIndex
-     * @param {boolean} [aKeepRelatedTabs]
+     * @param {object} [options]
+     * @param {boolean} [options.forceStandaloneTab=false]
+     *   Force `aTab` to move into position as a standalone tab, overriding
+     *   any possibility of entering a tab group. For example, setting `true`
+     *   ensures that a pinned tab will not accidentally be placed inside of
+     *   a tab group, since pinned tabs are presently not allowed in tab groups.
      * @returns {void}
      */
-    moveTabTo(aTab, aIndex, aKeepRelatedTabs) {
+    moveTabTo(aTab, aIndex, options = { forceStandaloneTab: false }) {
+      const { forceStandaloneTab } = options;
+
       // Don't allow mixing pinned and unpinned tabs.
       if (aTab.pinned) {
         aIndex = Math.min(aIndex, this.pinnedTabCount - 1);
@@ -5640,12 +5649,13 @@
         return;
       }
 
-      if (!aKeepRelatedTabs) {
-        this._lastRelatedTabMap = new WeakMap();
-      }
+      this._lastRelatedTabMap = new WeakMap();
 
       this._handleTabMove(aTab, () => {
         let neighbor = this.tabs[aIndex];
+        if (forceStandaloneTab && neighbor.group) {
+          neighbor = neighbor.group;
+        }
         if (neighbor && aIndex >= aTab._tPos) {
           neighbor.after(aTab);
         } else {
