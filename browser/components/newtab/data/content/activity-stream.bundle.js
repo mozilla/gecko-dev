@@ -10668,7 +10668,7 @@ function LocationSearch({
     ref: inputRef,
     list: "merino-location-list",
     type: "text",
-    placeholder: "Search location",
+    "data-l10n-id": "newtab-weather-change-location-search-input-placeholder",
     onChange: handleChange,
     value: userInput,
     onKeyDown: handleKeyDown

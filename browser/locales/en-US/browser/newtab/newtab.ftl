@@ -379,7 +379,9 @@ newtab-weather-see-forecast =
 #   $provider (string) - Service provider for weather data
 newtab-weather-sponsored = { $provider } ∙ Sponsored
 newtab-weather-menu-change-location = Change location
-newtab-weather-change-location-search-input = Search location
+newtab-weather-change-location-search-input-placeholder =
+    .placeholder = Search location
+    .aria-label = Search location
 newtab-weather-menu-weather-display = Weather display
 # Display options are:
 # - Simple: Displays a current weather condition icon and the current temperature
