@@ -22,14 +22,6 @@ firefox-relay-opt-in-title-1 = Protect your email address:
 # ends with a colon. You might need to adapt the capitalization of this string.
 firefox-relay-opt-in-subtitle-1 = Use { -relay-brand-name } email mask
 firefox-relay-use-mask-title = Use { -relay-brand-name } email mask
-# This is followed, on a new line, by firefox-relay-opt-in-subtitle-a
-firefox-relay-opt-in-title-a = Prevent spam with a free email mask
-# This is preceded by firefox-relay-opt-in-title-a (on a different line)
-firefox-relay-opt-in-subtitle-a = Hide your real email address
-# This is followed, on a new line, by firefox-relay-opt-in-subtitle-b
-firefox-relay-opt-in-title-b = Get a free email mask
-# This is preceded by firefox-relay-opt-in-title-b (on a different line)
-firefox-relay-opt-in-subtitle-b = Protect your inbox from spam
 firefox-relay-opt-in-confirmation-enable-button =
     .label = Use email mask
     .accesskey = U
@@ -38,54 +30,4 @@ firefox-relay-opt-in-confirmation-disable =
     .accesskey = D
 firefox-relay-opt-in-confirmation-postpone =
     .label = Not now
-    .accesskey = N
-
-firefox-relay-offer-what-fxa-and-relay-provides = An account unlocks access to more privacy-protecting products. All emails sent to your email masks will be forwarded to your real email address (unless you decide to block them).
-
-firefox-relay-and-fxa-opt-in-confirmation-enable-button =
-    .label = Sign in to { -brand-product-name } and use mask
-    .accesskey = S
-firefox-relay-and-fxa-opt-in-confirmation-disable =
-    .label = Don’t show me this again
-    .accesskey = D
-firefox-relay-and-fxa-opt-in-confirmation-postpone =
-    .label = Not now
-    .accesskey = N
-
-## The "basic-info" variation of the Relay offer popup
-
-firefox-relay-and-fxa-popup-notification-header-basic-info = Prevent spam with a free email mask
-
-firefox-relay-and-fxa-popup-notification-first-sentence-basic-info = Prevent spam by hiding your real email address with a free <label data-l10n-name="firefox-relay-learn-more-url">email mask</label>. Emails from <label data-l10n-name="firefox-fxa-and-relay-offer-domain">this site</label> will still come to your inbox, but with your email hidden.
-
-firefox-relay-and-fxa-popup-notification-second-sentence-basic-info = First, sign up or sign in to your account to use an email mask
-
-firefox-relay-and-fxa-opt-in-confirmation-enable-button-basic-info =
-    .label = Sign up
-    .accesskey = S
-
-## The "with-domain" variation of the Relay offer popup
-
-firefox-relay-and-fxa-popup-notification-header-with-domain = Get a free email mask
-
-firefox-relay-and-fxa-popup-notification-first-sentence-with-domain  = Protect your inbox from spam by using a free <label data-l10n-name="firefox-relay-learn-more-url">email mask</label> to hide your real address. Emails from <label data-l10n-name="firefox-fxa-and-relay-offer-domain">this site</label> will still come to your inbox, but with your email hidden.
-
-firefox-relay-and-fxa-popup-notification-second-sentence-with-domain = First, sign up or sign in to your account to use an email mask
-
-firefox-relay-and-fxa-opt-in-confirmation-enable-button-with-domain =
-    .label = Sign up
-    .accesskey = S
-
-## The "with-domain-and-value-prop" variation of the Relay offer popup
-
-firefox-relay-and-fxa-popup-notification-header-with-domain-and-value-prop = Protect against spam with an email mask
-
-firefox-relay-and-fxa-popup-notification-first-sentence-with-domain-and-value-prop  = Protect against spam by hiding your real address with an <label data-l10n-name="firefox-relay-learn-more-url">email mask</label>. You’ll still receive mails from <label data-l10n-name="firefox-fxa-and-relay-offer-domain">this site</label> in your regular inbox, with your address masked.
-
-firefox-relay-and-fxa-popup-notification-second-sentence-with-domain-and-value-prop = First, sign up or sign in to your account to use an email mask
-
-firefox-relay-offer-legal-notice-with-domain-and-value-prop = By creating an email mask, you agree to the <label data-l10n-name="tos-url">Terms of Service</label> and <label data-l10n-name="privacy-url">Privacy Notice</label>.
-
-firefox-relay-and-fxa-opt-in-confirmation-enable-button-with-domain-and-value-prop =
-    .label = Next
     .accesskey = N

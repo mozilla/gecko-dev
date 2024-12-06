@@ -1,7 +1,3 @@
-const { ExperimentFakes } = ChromeUtils.importESModule(
-  "resource://testing-common/NimbusTestUtils.sys.mjs"
-);
-
 const TEST_URL_PATH = `https://example.org${DIRECTORY_PATH}form_basic_signup.html`;
 
 Services.scriptloader.loadSubScript(
@@ -161,54 +157,6 @@ add_task(
     rsSandbox.restore();
   }
 );
-
-add_task(async function test_experimenter_feature_value_changes_UI() {
-  const rsSandbox = await stubRemoteSettingsAllowList();
-  for (const firstOfferVersion of Object.keys(autocompleteUXTreatments)) {
-    const doExperimentCleanup = await ExperimentFakes.enrollWithFeatureConfig({
-      featureId: "email-autocomplete-relay",
-      value: { firstOfferVersion },
-    });
-    const treatmentTitleMessageId =
-      autocompleteUXTreatments[firstOfferVersion].messageIds[0];
-    const expectedACTitle = await new Localization([
-      "browser/firefoxRelay.ftl",
-      "toolkit/branding/brandings.ftl",
-    ]).formatMessages([treatmentTitleMessageId]);
-    await BrowserTestUtils.withNewTab(
-      {
-        gBrowser,
-        url: TEST_URL_PATH,
-      },
-      async function (browser) {
-        const acPopup = document.getElementById("PopupAutoComplete");
-        await openACPopup(acPopup, browser, "#form-basic-username");
-        const relayItem = await clickRelayItemAndWaitForPopup(
-          acPopup,
-          firstOfferVersion
-        );
-        Assert.equal(
-          relayItem.getAttribute("ac-value"),
-          expectedACTitle[0].value
-        );
-
-        const offerPopupNotificationId =
-          firstOfferVersion === "control"
-            ? "fxa-and-relay-integration-offer-notification"
-            : `fxa-and-relay-integration-offer-${firstOfferVersion}-notification`;
-        const fxaRelayOptInPrompt = document.getElementById(
-          offerPopupNotificationId
-        );
-        Assert.ok(
-          fxaRelayOptInPrompt,
-          "Clicking on Relay auto-complete item should open the FXA + Relay opt-in prompt that matches the offer version of the experiment."
-        );
-      }
-    );
-    await doExperimentCleanup();
-  }
-  rsSandbox.restore();
-});
 
 add_task(async function test_dismiss_Relay_optin_shows_Relay_again_later() {
   const rsSandbox = await stubRemoteSettingsAllowList();

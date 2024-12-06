@@ -43,40 +43,6 @@ const gConfig = (function () {
   };
 })();
 
-export const autocompleteUXTreatments = {
-  control: {
-    image: "chrome://browser/content/logos/relay.svg",
-    messageIds: [
-      "firefox-relay-opt-in-title-1",
-      "firefox-relay-opt-in-subtitle-1",
-    ],
-  },
-  "basic-info": {
-    image:
-      "chrome://activity-stream/content/data/content/assets/glyph-mail-16.svg",
-    messageIds: [
-      "firefox-relay-opt-in-title-a",
-      "firefox-relay-opt-in-subtitle-a",
-    ],
-  },
-  "with-domain": {
-    image:
-      "chrome://activity-stream/content/data/content/assets/glyph-mail-16.svg",
-    messageIds: [
-      "firefox-relay-opt-in-title-b",
-      "firefox-relay-opt-in-subtitle-b",
-    ],
-  },
-  "with-domain-and-value-prop": {
-    image:
-      "chrome://activity-stream/content/data/content/assets/glyph-mail-16.svg",
-    messageIds: [
-      "firefox-relay-opt-in-title-b",
-      "firefox-relay-opt-in-subtitle-b",
-    ],
-  },
-};
-
 ChromeUtils.defineLazyGetter(lazy, "log", () =>
   LoginHelper.createLogger("FirefoxRelay")
 );
@@ -92,11 +58,11 @@ ChromeUtils.defineLazyGetter(lazy, "strings", function () {
   return new Localization([
     "branding/brand.ftl",
     "browser/firefoxRelay.ftl",
+    "preview/firefoxRelayToAllBrowsers.ftl",
     "toolkit/branding/brandings.ftl",
   ]);
 });
 ChromeUtils.defineESModuleGetters(lazy, {
-  NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
   RemoteSettings: "resource://services-settings/remote-settings.sys.mjs",
   RemoteSettingsClient:
     "resource://services-settings/RemoteSettingsClient.sys.mjs",
@@ -216,7 +182,7 @@ async function showErrorAsync(browser, messageId, messageArgs) {
   );
 }
 
-function customizeNotificationHeader(notification, treatment = "control") {
+function customizeNotificationHeader(notification) {
   if (!notification) {
     return;
   }
@@ -224,11 +190,7 @@ function customizeNotificationHeader(notification, treatment = "control") {
   const description = document.querySelector(
     `description[popupid=${notification.id}]`
   );
-  const notificationHeaderId =
-    treatment === "control"
-      ? `firefox-relay-header`
-      : `firefox-relay-header-${treatment}`;
-  const headerTemplate = document.getElementById(notificationHeaderId);
+  const headerTemplate = document.getElementById("firefox-relay-header");
   description.replaceChildren(headerTemplate.firstChild.cloneNode(true));
 }
 
@@ -475,9 +437,6 @@ async function onAllowList(origin) {
   if (!allowListForFirstOffer) {
     return true;
   }
-  if (!origin) {
-    return false;
-  }
   if (!gAllowListCollection) {
     const allowListRemoteSettingsCollection = Services.prefs.getStringPref(
       gConfig.allowListRemoteSettingsCollectionPref,
@@ -509,29 +468,20 @@ async function onAllowList(origin) {
 
 class RelayOffered {
   async *autocompleteItemsAsync(origin, scenarioName, hasInput) {
-    const hasFxA = await hasFirefoxAccountAsync();
-    const showRelayOnAllowlistSiteToAllUsers =
-      Services.prefs.getBoolPref(gConfig.showToAllBrowsersPref, false) &&
-      (await onAllowList(origin));
     if (
       !hasInput &&
       isSignup(scenarioName) &&
       !Services.prefs.prefIsLocked(gConfig.relayFeaturePref) &&
-      (hasFxA || showRelayOnAllowlistSiteToAllUsers)
+      ((await hasFirefoxAccountAsync()) ||
+        (Services.prefs.getBoolPref(gConfig.showToAllBrowsersPref, false) &&
+          (await onAllowList(origin))))
     ) {
-      const nimbusRelayAutocompleteFeature =
-        lazy.NimbusFeatures["email-autocomplete-relay"];
-      const treatment =
-        nimbusRelayAutocompleteFeature.getVariable("firstOfferVersion");
-      if (!hasFxA && treatment == "disabled") {
-        return;
-      }
-      nimbusRelayAutocompleteFeature.recordExposureEvent({ once: true });
       const [title, subtitle] = await formatMessages(
-        ...autocompleteUXTreatments[treatment].messageIds
+        "firefox-relay-opt-in-title-1",
+        "firefox-relay-opt-in-subtitle-1"
       );
       yield new ParentAutocompleteOption(
-        autocompleteUXTreatments[treatment].image,
+        "chrome://browser/content/logos/relay.svg",
         title,
         subtitle,
         "PasswordManager:offerRelayIntegration",
@@ -600,17 +550,9 @@ class RelayOffered {
     const fillUsernamePromise = new Promise(
       resolve => (fillUsername = resolve)
     );
-    const nimbusRelayAutocompleteFeature =
-      lazy.NimbusFeatures["email-autocomplete-relay"];
-    const treatment =
-      nimbusRelayAutocompleteFeature.getVariable("firstOfferVersion");
-    const enableButtonId =
-      treatment === "control"
-        ? "firefox-relay-and-fxa-opt-in-confirmation-enable-button"
-        : `firefox-relay-and-fxa-opt-in-confirmation-enable-button-${treatment}`;
     const [enableStrings, disableStrings, postponeStrings] =
       await formatMessages(
-        enableButtonId,
+        "firefox-relay-and-fxa-opt-in-confirmation-enable-button",
         "firefox-relay-and-fxa-opt-in-confirmation-disable",
         "firefox-relay-and-fxa-opt-in-confirmation-postpone"
       );
@@ -706,17 +648,9 @@ class RelayOffered {
     const disableIntegration = getDisableIntegration(disableStrings, feature);
     let notification;
     feature.markAsOffered();
-    const popupNotificationId =
-      treatment === "control"
-        ? "fxa-and-relay-integration-offer"
-        : `fxa-and-relay-integration-offer-${treatment}`;
-
-    const learnMoreURL =
-      treatment === "control" ? gConfig.learnMoreURL : undefined;
-
     notification = PopupNotifications.show(
       browser,
-      popupNotificationId,
+      "fxa-and-relay-integration-offer",
       "", // content is provided after popup shown
       "password-notification-icon",
       enableIntegration,
@@ -724,27 +658,16 @@ class RelayOffered {
       {
         autofocus: true,
         removeOnDismissal: true,
-        learnMoreURL,
+        learnMoreURL: gConfig.learnMoreURL,
         eventCallback: event => {
           switch (event) {
             case "shown": {
               const document = notification.owner.panel.ownerDocument;
-              customizeNotificationHeader(notification, treatment);
-              document.querySelector(
-                '[data-l10n-name="firefox-relay-learn-more-url"]'
-              ).href = gConfig.learnMoreURL;
-              const baseDomain = Services.eTLD.getBaseDomain(
-                Services.io.newURI(origin)
-              );
-              document.querySelector(
-                '[data-l10n-name="firefox-fxa-and-relay-offer-domain"]'
-              ).textContent = baseDomain;
-              document.getElementById(
-                "firefox-fxa-and-relay-offer-tos-url"
-              ).href = gConfig.termsOfServiceUrl;
-              document.getElementById(
-                "firefox-fxa-and-relay-offer-privacy-url"
-              ).href = gConfig.privacyPolicyUrl;
+              customizeNotificationHeader(notification);
+              document.getElementById("firefox-relay-offer-tos-url").href =
+                gConfig.termsOfServiceUrl;
+              document.getElementById("firefox-relay-offer-privacy-url").href =
+                gConfig.privacyPolicyUrl;
               Glean.relayIntegration.shownOptInPanel.record({ value: gFlowId });
               break;
             }

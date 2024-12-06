@@ -68,25 +68,16 @@
   }
 
   &[originaltype="loginsFooter"] {
-    color: currentColor;
+    justify-content: center;
+    color: FieldText;
     min-height: 2.6666em;
-    position: relative;
-    padding-inline-start: 28px;
+    border-top: 1px solid rgba(38,38,38,.15);
+    background-color: hsla(0,0%,80%,.35); /* match arrowpanel-dimmed */
 
     &:hover,
     &[selected] {
       background-color: hsla(0,0%,80%,.5); /* match arrowpanel-dimmed-further */
     }
-  }
-
-  &[originaltype="loginsFooter"]::before {
-    content: "";
-    position: absolute;
-    top: 0;
-    inset-inline-start: 50%;
-    transform: translateX(-50%);
-    width: 95%;
-    border-top: 1px solid currentColor;
   }
 
   &[originaltype="insecureWarning"] {
@@ -124,19 +115,10 @@
   > .two-line-wrapper {
     box-sizing: border-box;
     display: flex;
-    align-items: center;
     flex-direction: row;
     gap: 8px;
     margin: 0;
     min-width: 0;
-
-    > .ac-site-icon {
-      margin-left: 6px;
-    }
-
-    > .ac-site-icon[src=""] {
-      display: none;
-    }
 
     > .labels-wrapper {
       /* The text should flex while the icon should not */

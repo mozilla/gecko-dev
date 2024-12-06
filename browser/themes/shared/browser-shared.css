@@ -1114,14 +1114,6 @@ popupnotificationcontent {
   }
 }
 
-.relay-integration-header-variation {
-  display: flex;
-  align-items: center;
-  font-weight: var(--font-weight-bold);
-  font-size: 1.5em;
-  margin: auto;
-}
-
 .popup-notification-description[popupid="relay-integration-offer-notification"] > div:first-of-type {
   font-weight: normal;
   display: grid;

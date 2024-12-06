@@ -906,7 +906,7 @@ export class FormAutofillParent extends JSWindowActorParent {
     }
 
     const relayPromise = lazy.FirefoxRelay.autocompleteItemsAsync({
-      origin: this.formOrigin,
+      formOrigin: this.formOrigin,
       scenarioName,
       hasInput: !!searchString?.length,
     });
