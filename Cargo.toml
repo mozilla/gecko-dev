@@ -14,6 +14,7 @@ members = [
   "security/manager/ssl/tests/unit/test_builtins",
   "security/manager/ssl/ipcclientcerts",
   "security/manager/ssl/osclientcerts",
+  "security/mls/mls_gk",
   "testing/geckodriver",
   "toolkit/components/uniffi-bindgen-gecko-js",
   "toolkit/crashreporter/client/app",
@@ -199,6 +200,7 @@ plist = { path = "third_party/rust/plist" }
 
 # To-be-published changes.
 unicode-bidi = { git = "https://github.com/servo/unicode-bidi", rev = "ca612daf1c08c53abe07327cb3e6ef6e0a760f0c" }
+nss-gk-api = { git = "https://github.com/beurdouche/nss-gk-api", rev = "82e780f47026b84a0e0a06bff17fa95661d129a3"}
 
 # Other overrides
 any_all_workaround = { git = "https://github.com/hsivonen/any_all_workaround", rev = "7fb1b7034c9f172aade21ee1c8554e8d8a48af80" }
