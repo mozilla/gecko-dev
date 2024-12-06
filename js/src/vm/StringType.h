@@ -249,6 +249,9 @@ class JSString : public js::gc::CellWithLengthAndFlags {
     OwnedChars(const OwnedChars&) = delete;
     ~OwnedChars() { reset(); }
 
+    OwnedChars& operator=(OwnedChars&&);
+    OwnedChars& operator=(const OwnedChars&) = delete;
+
     explicit operator bool() const {
       MOZ_ASSERT_IF(kind_ != Kind::Uninitialized, !chars_.empty());
       return kind_ != Kind::Uninitialized;

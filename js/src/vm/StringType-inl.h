@@ -183,6 +183,16 @@ JSString::OwnedChars<CharT>::OwnedChars(JSString::OwnedChars<CharT>&& other)
 }
 
 template <typename CharT>
+JSString::OwnedChars<CharT>& JSString::OwnedChars<CharT>::operator=(
+    JSString::OwnedChars<CharT>&& other) {
+  reset();
+  chars_ = other.chars_;
+  kind_ = other.kind_;
+  other.release();
+  return *this;
+}
+
+template <typename CharT>
 CharT* JSString::OwnedChars<CharT>::release() {
   CharT* chars = chars_.data();
   chars_ = {};
