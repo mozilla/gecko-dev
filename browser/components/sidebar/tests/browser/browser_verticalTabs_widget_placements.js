@@ -7,7 +7,7 @@ registerCleanupFunction(async function resetToolbar() {
   await CustomizableUI.reset();
   Services.prefs.clearUserPref(kPrefCustomizationState);
   Services.prefs.clearUserPref(kPrefCustomizationHorizontalTabstrip);
-  Services.prefs.clearUserPref(kPrefCustomizationNavBarWhenVerticalTabs);
+  Services.prefs.clearUserPref(kPrefCustomizationVerticalNavBar);
 });
 
 /**
