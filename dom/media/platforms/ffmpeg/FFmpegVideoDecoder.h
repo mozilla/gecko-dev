@@ -133,10 +133,10 @@ class FFmpegVideoDecoder<LIBAV_VER>
   // This will be called inside the ctor.
   void InitHWDecoderIfAllowed();
 
-  enum class ContextType {
-    D3D11VA,
-    VAAPI,
-    V4L2,
+  enum class ContextType{
+      D3D11VA,
+      VAAPI,
+      V4L2,
   };
   void InitHWCodecContext(ContextType aType);
 
