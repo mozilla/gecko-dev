@@ -247,7 +247,7 @@ template <>
 class VAAPIDisplayHolder<LIBAV_VER> {
  public:
   VAAPIDisplayHolder(FFmpegLibWrapper* aLib, VADisplay aDisplay, int aDRMFd)
-      : mLib(aLib), mDisplay(aDisplay), mDRMFd(aDRMFd) {};
+      : mLib(aLib), mDisplay(aDisplay), mDRMFd(aDRMFd){};
   ~VAAPIDisplayHolder() {
     mLib->vaTerminate(mDisplay);
     close(mDRMFd);
@@ -1791,7 +1791,8 @@ static const struct {
   VAProfile va_profile;
   char name[100];
 } vaapi_profile_map[] = {
-#  define MAP(c, v, n) {AV_CODEC_ID_##c, VAProfile##v, n}
+#  define MAP(c, v, n) \
+    { AV_CODEC_ID_##c, VAProfile##v, n }
     MAP(H264, H264ConstrainedBaseline, "H264ConstrainedBaseline"),
     MAP(H264, H264Main, "H264Main"),
     MAP(H264, H264High, "H264High"),
@@ -1962,6 +1963,12 @@ MediaResult FFmpegVideoDecoder<LIBAV_VER>::InitD3D11VADecoder() {
   if (mInfo.mColorDepth > gfx::ColorDepth::COLOR_10) {
     return MediaResult(NS_ERROR_DOM_MEDIA_FATAL_ERR,
                        RESULT_DETAIL("not supported color depth"));
+  }
+
+  // Enable ffmpeg internal logging as well if we need more logging information.
+  if (!getenv("MOZ_AV_LOG_LEVEL") &&
+      MOZ_LOG_TEST(sFFmpegVideoLog, LogLevel::Verbose)) {
+    mLib->av_log_set_level(AV_LOG_DEBUG);
   }
 
   AVCodec* codec = FindHardwareAVCodec(mLib, mCodecID);
