@@ -1417,15 +1417,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "debug_tree"
-version = "0.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2d1ec383f2d844902d3c34e4253ba11ae48513cdaddc565cf1a6518db09a8e57"
-dependencies = [
- "once_cell",
-]
-
-[[package]]
 name = "debugid"
 version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2343,10 +2334,8 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "94b22e06ecb0110981051723910cbf0b5f5e09a2062dd7663334ee79a9d1286c"
 dependencies = [
  "cfg-if",
- "js-sys",
  "libc",
  "wasi 0.11.0+wasi-snapshot-preview1",
- "wasm-bindgen",
 ]
 
 [[package]]
@@ -2451,7 +2440,6 @@ dependencies = [
  "mdns_service",
  "midir_impl",
  "mime-guess-ffi",
- "mls_gk",
  "moz_asserts",
  "mozannotation_client",
  "mozannotation_server",
@@ -3791,17 +3779,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2532096657941c2fea9c289d370a250971c689d4f143798ff67113ec042024a5"
 
 [[package]]
-name = "maybe-async"
-version = "0.2.10"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5cf92c10c7e361d6b99666ec1c6f9805b0bea2c3bd8c78dc6fe98ac5bd78db11"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn",
-]
-
-[[package]]
 name = "md-5"
 version = "0.10.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4052,169 +4029,6 @@ dependencies = [
  "log",
  "wasi 0.11.0+wasi-snapshot-preview1",
  "windows-sys",
-]
-
-[[package]]
-name = "mls-platform-api"
-version = "0.1.0"
-source = "git+https://github.com/beurdouche/mls-platform-api?rev=7fb935bb93fdcc80f7f5e76d516c85a540024b53#7fb935bb93fdcc80f7f5e76d516c85a540024b53"
-dependencies = [
- "bincode",
- "hex",
- "mls-rs",
- "mls-rs-crypto-nss",
- "mls-rs-provider-sqlite",
- "serde",
- "serde_json",
- "sha2",
- "thiserror",
-]
-
-[[package]]
-name = "mls-rs"
-version = "0.39.1"
-source = "git+https://github.com/beurdouche/mls-rs?rev=96eb66e158c86171c70ff8147c0e5f020e54f3d1#96eb66e158c86171c70ff8147c0e5f020e54f3d1"
-dependencies = [
- "async-trait",
- "cfg-if",
- "debug_tree",
- "futures",
- "getrandom",
- "hex",
- "itertools",
- "maybe-async",
- "mls-rs-codec",
- "mls-rs-core",
- "mls-rs-identity-x509",
- "mls-rs-provider-sqlite",
- "rand_core",
- "rayon",
- "serde",
- "thiserror",
- "wasm-bindgen",
- "zeroize",
-]
-
-[[package]]
-name = "mls-rs-codec"
-version = "0.5.3"
-source = "git+https://github.com/beurdouche/mls-rs?rev=96eb66e158c86171c70ff8147c0e5f020e54f3d1#96eb66e158c86171c70ff8147c0e5f020e54f3d1"
-dependencies = [
- "mls-rs-codec-derive",
- "thiserror",
- "wasm-bindgen",
-]
-
-[[package]]
-name = "mls-rs-codec-derive"
-version = "0.1.1"
-source = "git+https://github.com/beurdouche/mls-rs?rev=96eb66e158c86171c70ff8147c0e5f020e54f3d1#96eb66e158c86171c70ff8147c0e5f020e54f3d1"
-dependencies = [
- "darling",
- "proc-macro2",
- "quote",
- "syn",
-]
-
-[[package]]
-name = "mls-rs-core"
-version = "0.18.0"
-source = "git+https://github.com/beurdouche/mls-rs?rev=96eb66e158c86171c70ff8147c0e5f020e54f3d1#96eb66e158c86171c70ff8147c0e5f020e54f3d1"
-dependencies = [
- "async-trait",
- "hex",
- "maybe-async",
- "mls-rs-codec",
- "serde",
- "serde_bytes",
- "thiserror",
- "wasm-bindgen",
- "zeroize",
-]
-
-[[package]]
-name = "mls-rs-crypto-hpke"
-version = "0.9.0"
-source = "git+https://github.com/beurdouche/mls-rs?rev=96eb66e158c86171c70ff8147c0e5f020e54f3d1#96eb66e158c86171c70ff8147c0e5f020e54f3d1"
-dependencies = [
- "async-trait",
- "cfg-if",
- "maybe-async",
- "mls-rs-core",
- "mls-rs-crypto-traits",
- "thiserror",
- "zeroize",
-]
-
-[[package]]
-name = "mls-rs-crypto-nss"
-version = "0.1.0"
-source = "git+https://github.com/beurdouche/mls-rs?rev=96eb66e158c86171c70ff8147c0e5f020e54f3d1#96eb66e158c86171c70ff8147c0e5f020e54f3d1"
-dependencies = [
- "getrandom",
- "hex",
- "maybe-async",
- "mls-rs-core",
- "mls-rs-crypto-hpke",
- "mls-rs-crypto-traits",
- "nss-gk-api",
- "rand_core",
- "serde",
- "thiserror",
- "zeroize",
-]
-
-[[package]]
-name = "mls-rs-crypto-traits"
-version = "0.10.0"
-source = "git+https://github.com/beurdouche/mls-rs?rev=96eb66e158c86171c70ff8147c0e5f020e54f3d1#96eb66e158c86171c70ff8147c0e5f020e54f3d1"
-dependencies = [
- "async-trait",
- "maybe-async",
- "mls-rs-core",
-]
-
-[[package]]
-name = "mls-rs-identity-x509"
-version = "0.11.0"
-source = "git+https://github.com/beurdouche/mls-rs?rev=96eb66e158c86171c70ff8147c0e5f020e54f3d1#96eb66e158c86171c70ff8147c0e5f020e54f3d1"
-dependencies = [
- "async-trait",
- "maybe-async",
- "mls-rs-core",
- "thiserror",
- "wasm-bindgen",
-]
-
-[[package]]
-name = "mls-rs-provider-sqlite"
-version = "0.11.0"
-source = "git+https://github.com/beurdouche/mls-rs?rev=96eb66e158c86171c70ff8147c0e5f020e54f3d1#96eb66e158c86171c70ff8147c0e5f020e54f3d1"
-dependencies = [
- "async-trait",
- "hex",
- "maybe-async",
- "mls-rs-core",
- "rand",
- "rusqlite",
- "thiserror",
- "zeroize",
-]
-
-[[package]]
-name = "mls_gk"
-version = "0.1.0"
-dependencies = [
- "hex",
- "log",
- "mls-platform-api",
- "nserror",
- "nss-gk-api",
- "nsstring",
- "rusqlite",
- "static_prefs",
- "thin-vec",
- "xpcom",
 ]
 
 [[package]]
@@ -4678,10 +4492,10 @@ dependencies = [
 [[package]]
 name = "nss-gk-api"
 version = "0.3.0"
-source = "git+https://github.com/beurdouche/nss-gk-api?rev=82e780f47026b84a0e0a06bff17fa95661d129a3#82e780f47026b84a0e0a06bff17fa95661d129a3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4c17aec6d4e1822c023689899f09311592a36cbf6de8f85dfaf5f01976790d8d"
 dependencies = [
  "bindgen 0.69.4",
- "log",
  "mozbuild",
  "once_cell",
  "pkcs11-bindings",
@@ -7729,27 +7543,6 @@ dependencies = [
  "quote",
  "syn",
  "synstructure",
-]
-
-[[package]]
-name = "zeroize"
-version = "1.8.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ced3678a2879b30306d323f4542626697a464a97c0a07c9aebf7ebca65cd4dde"
-dependencies = [
- "serde",
- "zeroize_derive",
-]
-
-[[package]]
-name = "zeroize_derive"
-version = "1.4.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ce36e65b0d2999d2aafac989fb249189a141aee1f53c612c1f37d72631959f69"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn",
 ]
 
 [[package]]

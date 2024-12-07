@@ -1,7 +1,0 @@
-B TREE
-├──> B TREE
-│   ╰──> B TREE
-├──> B TREE
-│   ╰──> B TREE
-╰──> B TREE
-    ╰──> B TREE
