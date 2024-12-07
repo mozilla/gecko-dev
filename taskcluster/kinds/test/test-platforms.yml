@@ -340,22 +340,27 @@ macosx1470-64-shippable/opt:
         - macosx64-talos
         - talos-profiling
         - macosx1470-64-tests
+        - webgpu
+        - web-platform-tests-backlog
 
 macosx1470-64-devedition/opt:
     build-platform: macosx64-devedition/opt
     test-sets:
         - macosx1470-64-tests
+        - webgpu
 
 macosx1470-64/opt:
     build-platform: macosx64/opt
     test-sets:
         - macosx1470-64-tests
         - web-platform-tests-backlog
+        - webgpu
 
 macosx1470-64/debug:
     build-platform: macosx64/debug
     test-sets:
         - macosx1470-64-tests
+        - webgpu
 
 macosx1015-64-shippable-qr/opt:
     build-platform: macosx64-shippable/opt
@@ -368,7 +373,6 @@ macosx1015-64-shippable-qr/opt:
         - macosx64-talos
         - talos-profiling
         - web-platform-tests-1015
-        - webgpu
 
 macosx1015-64-nightlyasrelease-qr/opt:
     build-platform: macosx64-nightlyasrelease/opt
@@ -380,7 +384,6 @@ macosx1015-64-devedition-qr/opt:
     test-sets:
         - macosx1015-64-qr-tests
         - web-platform-tests-1015
-        - webgpu
 
 macosx1015-64-qr/opt:
     build-platform: macosx64/opt
@@ -388,7 +391,6 @@ macosx1015-64-qr/opt:
         - desktop-screenshot-capture
         - macosx1015-64-qr-tests
         - web-platform-tests-1015
-        - webgpu
         - browsertime
 
 macosx1015-64-qr/debug:
@@ -396,7 +398,6 @@ macosx1015-64-qr/debug:
     test-sets:
         - macosx1015-64-qr-tests
         - web-platform-tests-1015
-        - webgpu
 
 macosx1400-64-shippable-qr/opt:
     build-platform: macosx64-shippable/opt

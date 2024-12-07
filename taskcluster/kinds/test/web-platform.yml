@@ -623,7 +623,7 @@ web-platform-tests-crashtest:
                     .*-32.*/.*: []
                     linux.*64-qr/debug: built-projects
                     macosx1015.*64-qr/debug: built-projects
-                    macosx1470.*64-qr/debug: built-projects
+                    macosx1470.*64/debug: built-projects
                     windows.*-qr/debug: built-projects
                     default: []
             webrender-sw+no-fission:

@@ -77,7 +77,7 @@ mochitest-plain:
                 by-test-platform:
                     .*(asan|wayland).*: []
                     windows.*ccov.*: []
-                    (linux.*64|macosx.*64|windows11.*)(-shippable)?-qr/(opt|debug): ['trunk']
+                    (linux.*64|macosx.*64|windows11.*)(-shippable)?(-qr)?/(opt|debug): ['trunk']
                     windows.*64-ccov-qr/opt: ['mozilla-central']
                     linux.*64-ccov-qr/opt: ['mozilla-central']
                     android-em-7.0-x86_64-qr/debug-isolated-process: []
@@ -253,7 +253,7 @@ mochitest-browser-chrome:
                 by-test-platform:
                     .*asan.*: []
                     .*ccov.*: []
-                    (linux.*64|macosx.*64|windows1.*-64.*)(-shippable)?-qr/(opt|debug): ['autoland', 'mozilla-central']
+                    (linux.*64|macosx.*64|windows1.*-64.*)(-shippable)?(-qr)?/(opt|debug): ['autoland', 'mozilla-central']
                     default: []
             msix:
                 by-test-platform:
@@ -302,7 +302,6 @@ mochitest-browser-chrome:
                     linux.*64-ccov.*/.*: 9000
                     linux.*64-tsan-qr/opt: 10800
                     linux.*-qr/opt: 5400
-                    macosx.*64-ccov.*/.*: 10800
                     windows.*-ccov.*/.*: 10800
                     windows.*-asan-qr/opt: 5400
                     .*/debug: 5400
@@ -553,7 +552,6 @@ mochitest-devtools-chrome:
     max-run-time:
         by-test-platform:
             windows.*-ccov.*/.*: 10800
-            macosx.*64-ccov.*/.*: 9000
             linux.*64-ccov.*/.*: 7200
             linux.*64-tsan-qr/opt: 7200
             default: 5400
@@ -562,7 +560,7 @@ mochitest-devtools-chrome:
             .*-ccov.*/.*: 12
             linux.*wayland.*/debug: 14
             linux.*64-qr/debug: 14
-            macosx.*64-qr/debug: 8
+            macosx.*64(-qr)?/debug: 8
             .*-asan(-qr)?/opt: 8
             .*-tsan-qr/opt: 16
             default: 5
@@ -745,7 +743,6 @@ mochitest-media:
     max-run-time:
         by-test-platform:
             windows.*-ccov.*/.*: 7200
-            macosx.*64-ccov.*/.*: 7200
             linux.*64-tsan-qr/opt: 7200
             default: 5400
     variants:
@@ -777,7 +774,7 @@ mochitest-media:
                     .*hw-ref.*: []
                     linux.*64(-asan|-devedition|-shippable)?-qr/(opt|debug): built-projects
                     linux.*64-tsan-qr/opt: ['autoland', 'mozilla-central']
-                    macosx.*-64(-devedition|-shippable)?-qr/(opt|debug): built-projects
+                    macosx.*-64(-devedition|-shippable)?(-qr)?/(opt|debug): built-projects
                     windows1.*(-devedition|-shippable)?-qr/(opt|debug): built-projects
                     windows.*-asan-qr/opt: ['autoland', 'mozilla-central']
                     default: []
@@ -820,7 +817,7 @@ mochitest-media:
             media-gpu:
                 by-test-platform:
                     windows11.*hw-ref.*: ['autoland', 'mozilla-central', 'mozilla-beta']
-                    (macosx.*64)(-shippable)?-qr/(opt|debug): ['autoland', 'mozilla-central', 'mozilla-beta']
+                    (macosx.*64)(-shippable)?(-qr)?/(opt|debug): ['autoland', 'mozilla-central', 'mozilla-beta']
                     default: []
                     # TODO : add Android, it hasn't supported 'tags'
                     # TODO : add Linux, it would crash on gfxFeature.cpp:180
@@ -907,10 +904,7 @@ mochitest-webgl1-core:
     virtualization: virtual-with-gpu
     test-manifest-loader: null  # don't load tests in the taskgraph
     loopback-video: true
-    max-run-time:
-        by-test-platform:
-            macosx.*64-ccov.*/.*: 7200
-            default: 1800
+    max-run-time: 1800
     variants:
         - no-fission
         - webrender-sw+no-fission
@@ -1112,10 +1106,7 @@ mochitest-webgpu:
                     # via UNCOMMON_TRY_TASK_LABELS
                     # in taskcluster/gecko_taskgraph/target_tasks.py.
                     default: ['trunk']
-    max-run-time:
-        by-test-platform:
-            macosx.*64-ccov.*/.*: 7200
-            default: 1800
+    max-run-time: 1800
     mozharness:
         mochitest-flavor: plain
 
