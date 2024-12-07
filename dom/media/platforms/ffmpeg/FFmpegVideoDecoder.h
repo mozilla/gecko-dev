@@ -86,6 +86,10 @@ class FFmpegVideoDecoder<LIBAV_VER>
     mAllocatedImages.Remove(aImage);
   }
 #endif
+  bool IsHardwareAccelerated() const {
+    nsAutoCString dummy;
+    return IsHardwareAccelerated(dummy);
+  }
 
  private:
   RefPtr<FlushPromise> ProcessFlush() override;
@@ -113,10 +117,6 @@ class FFmpegVideoDecoder<LIBAV_VER>
                           MediaDataDecoder::DecodedData& aResults) const;
 
   bool IsHardwareAccelerated(nsACString& aFailureReason) const override;
-  bool IsHardwareAccelerated() const {
-    nsAutoCString dummy;
-    return IsHardwareAccelerated(dummy);
-  }
 
 #if LIBAVCODEC_VERSION_MAJOR >= 57 && LIBAVUTIL_VERSION_MAJOR >= 56
   layers::TextureClient* AllocateTextureClientForImage(
@@ -127,15 +127,21 @@ class FFmpegVideoDecoder<LIBAV_VER>
                                           int32_t aHeight) const;
 #endif
 
+  RefPtr<KnowsCompositor> mImageAllocator;
+
 #ifdef MOZ_USE_HWDECODE
-  enum class ContextType{
-      D3D11VA,
-      VAAPI,
-      V4L2,
+  // This will be called inside the ctor.
+  void InitHWDecoderIfAllowed();
+
+  enum class ContextType {
+    D3D11VA,
+    VAAPI,
+    V4L2,
   };
   void InitHWCodecContext(ContextType aType);
 
-  bool mEnableHardwareDecoding;
+  // True if hardware decoding is disabled explicitly.
+  const bool mHardwareDecodingDisabled;
 #endif
 
 #ifdef MOZ_ENABLE_D3D11VA
@@ -153,7 +159,7 @@ class FFmpegVideoDecoder<LIBAV_VER>
 #endif
 
 #if defined(MOZ_USE_HWDECODE) && defined(MOZ_WIDGET_GTK)
-  void InitHWDecodingPrefs();
+  bool ShouldEnableLinuxHWDecoding() const;
   MediaResult InitVAAPIDecoder();
   MediaResult InitV4L2Decoder();
   bool CreateVAAPIDeviceContext();
@@ -170,14 +176,13 @@ class FFmpegVideoDecoder<LIBAV_VER>
                               MediaDataDecoder::DecodedData& aResults);
   void AdjustHWDecodeLogging();
 
-  AVBufferRef* mVAAPIDeviceContext;
-  bool mUsingV4L2;
-  VADisplay mDisplay;
+  AVBufferRef* mVAAPIDeviceContext = nullptr;
+  bool mUsingV4L2 = false;
+  VADisplay mDisplay = nullptr;
   UniquePtr<VideoFramePool<LIBAV_VER>> mVideoFramePool;
   static nsTArray<AVCodecID> mAcceleratedFormats;
 #endif
 
-  RefPtr<KnowsCompositor> mImageAllocator;
   RefPtr<ImageContainer> mImageContainer;
   VideoInfo mInfo;
 
