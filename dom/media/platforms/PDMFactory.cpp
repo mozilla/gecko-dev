@@ -87,6 +87,9 @@ class PDMInitializer final {
   static void InitGpuPDMs() {
 #ifdef XP_WIN
     WMFDecoderModule::Init();
+    if (StaticPrefs::media_ffvpx_hw_enabled()) {
+      FFVPXRuntimeLinker::Init();
+    }
 #endif
   }
 
@@ -509,6 +512,9 @@ void PDMFactory::CreatePDMs() {
 
 void PDMFactory::CreateGpuPDMs() {
 #ifdef XP_WIN
+  if (StaticPrefs::media_ffvpx_hw_enabled()) {
+    StartupPDM(FFVPXRuntimeLinker::CreateDecoder());
+  }
   if (StaticPrefs::media_wmf_enabled()) {
     StartupPDM(WMFDecoderModule::Create());
   }
