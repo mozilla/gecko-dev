@@ -12,7 +12,7 @@
       android:pathData="M10.178,1.5L49.822,1.5A8.678,8.678 0,0 1,58.5 10.178L58.5,86.822A8.678,8.678 0,0 1,49.822 95.5L10.178,95.5A8.678,8.678 0,0 1,1.5 86.822L1.5,10.178A8.678,8.678 0,0 1,10.178 1.5z"
       android:strokeLineJoin="round"
       android:strokeWidth="3"
-      android:strokeColor="#312A64">
+      android:strokeColor="#AEAEAE">
     <aapt:attr name="android:fillColor">
       <gradient 
           android:startX="2.813"
