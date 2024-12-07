@@ -16271,6 +16271,12 @@
   value: true
   mirror: always
 
+# MLS
+- name: security.mls.enabled
+  type: RelaxedAtomicBool
+  value: false
+  mirror: always
+
 #---------------------------------------------------------------------------
 # Prefs starting with "signon."
 #---------------------------------------------------------------------------
