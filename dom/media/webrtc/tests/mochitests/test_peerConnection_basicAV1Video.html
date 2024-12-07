@@ -7,12 +7,15 @@
 <pre id="test">
 <script type="application/javascript">
   createHTML({
-    bug: "TODO",
-    title: "Basic AV1 GMP video-only peer connection"
+    bug: "1921154",
+    title: "Basic AV1 video-only peer connection"
   });
 
   var test;
   runNetworkTest(async function (options) {
+    await SpecialPowers.pushPrefEnv({
+      set: [["media.webrtc.codec.video.av1.enabled", true]]
+    });
     options = options || { };
     options.av1 = true;
     test = new PeerConnectionTest(options);
