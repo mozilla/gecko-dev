@@ -1,0 +1,18 @@
+[
+  {
+    "ciphersuite": 1,
+    "alice_pub" : "8520f0098930a754748b7ddcb43ef75a0dbf3a0d26381af4eba4a98eaa9b4e6a",
+    "alice_pri" : "70076d0a7318a57d3c16c17251b26645df4c2f87ebc0992ab177fba51db92c6a",
+    "bob_pub": "de9edb7d7b7dc1b4d35b61c2ece435373f8343c85b78674dadfc7e146f882b4f",
+    "bob_pri": "5dab087e624a8a4b79e17f8b83800ee66f3bb1292618b6fd1c2f8b27ff88e0eb",
+    "shared_secret": "4a5d9d5ba4ce2de1728e3bf480350f25e07e21c947d19e3376f09b3c1e161742"
+  },
+  {
+    "ciphersuite": 2,
+    "alice_pub" : "042af502f3be8952f2c9b5a8d4160d09e97165be50bc42ae4a5e8d3b4ba83aeb15eb0faf4ca986c4d38681a0f9872d79d56795bd4bff6e6de3c0f5015ece5efd85",
+    "alice_pri" : "814264145f2f56f2e96a8e337a1284993faf432a5abce59e867b7291d507a3af",
+    "bob_pub": "04b120de4aa36492795346e8de6c2c8646ae06aaea279fa775b3ab0715f6ce51b09f1b7eece20d7b5ed8ec685fa3f071d83727027092a8411385c34dde5708b2b6",
+    "bob_pri": "2ce1788ec197e096db95a200cc0ab26a19ce6bccad562b8eee1b593761cf7f41",
+    "shared_secret": "dd0f5396219d1ea393310412d19a08f1f5811e9dc8ec8eea7f80d21c820c2788"
+  }
+]
