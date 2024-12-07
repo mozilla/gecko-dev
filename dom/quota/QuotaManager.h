@@ -426,7 +426,7 @@ class QuotaManager final : public BackgroundThreadObject {
       RefPtr<UniversalDirectoryLock> aDirectoryLock);
 
   RefPtr<BoolPromise> PersistentOriginInitialized(
-      const PrincipalInfo& aPrincipalInfo);
+      const PrincipalMetadata& aPrincipalMetadata);
 
   bool IsPersistentOriginInitialized(
       const PrincipalMetadata& aPrincipalMetadata);
@@ -453,7 +453,8 @@ class QuotaManager final : public BackgroundThreadObject {
       RefPtr<UniversalDirectoryLock> aDirectoryLock);
 
   RefPtr<BoolPromise> TemporaryOriginInitialized(
-      PersistenceType aPersistenceType, const PrincipalInfo& aPrincipalInfo);
+      PersistenceType aPersistenceType,
+      const PrincipalMetadata& aPrincipalMetadata);
 
   bool IsTemporaryOriginInitialized(
       PersistenceType aPersistenceType,

@@ -237,18 +237,12 @@ void QuotaManagerDependencyFixture::TemporaryOriginInitialized(
     const OriginMetadata& aOriginMetadata, bool* aResult) {
   ASSERT_TRUE(aResult);
 
-  mozilla::ipc::PrincipalInfo principalInfo;
-  ASSERT_NO_FATAL_FAILURE(
-      CreateContentPrincipalInfo(aOriginMetadata.mOrigin, principalInfo));
-
-  PerformOnBackgroundThread([persistenceType = aOriginMetadata.mPersistenceType,
-                             principalInfo = std::move(principalInfo),
-                             aResult]() {
+  PerformOnBackgroundThread([aOriginMetadata, aResult]() {
     QuotaManager* quotaManager = QuotaManager::Get();
     ASSERT_TRUE(quotaManager);
 
-    auto value = Await(quotaManager->TemporaryOriginInitialized(persistenceType,
-                                                                principalInfo));
+    auto value = Await(quotaManager->TemporaryOriginInitialized(
+        aOriginMetadata.mPersistenceType, aOriginMetadata));
     if (value.IsResolve()) {
       *aResult = value.ResolveValue();
     } else {

@@ -5889,11 +5889,11 @@ RefPtr<BoolPromise> QuotaManager::InitializePersistentOrigin(
 }
 
 RefPtr<BoolPromise> QuotaManager::PersistentOriginInitialized(
-    const PrincipalInfo& aPrincipalInfo) {
+    const PrincipalMetadata& aPrincipalMetadata) {
   AssertIsOnOwningThread();
 
   auto persistentOriginInitializedOp = CreatePersistentOriginInitializedOp(
-      WrapMovingNotNullUnchecked(this), aPrincipalInfo);
+      WrapMovingNotNullUnchecked(this), aPrincipalMetadata);
 
   RegisterNormalOriginOp(*persistentOriginInitializedOp);
 
@@ -6061,11 +6061,12 @@ RefPtr<BoolPromise> QuotaManager::InitializeTemporaryOrigin(
 }
 
 RefPtr<BoolPromise> QuotaManager::TemporaryOriginInitialized(
-    PersistenceType aPersistenceType, const PrincipalInfo& aPrincipalInfo) {
+    PersistenceType aPersistenceType,
+    const PrincipalMetadata& aPrincipalMetadata) {
   AssertIsOnOwningThread();
 
   auto temporaryOriginInitializedOp = CreateTemporaryOriginInitializedOp(
-      WrapMovingNotNullUnchecked(this), aPersistenceType, aPrincipalInfo);
+      WrapMovingNotNullUnchecked(this), aPersistenceType, aPrincipalMetadata);
 
   RegisterNormalOriginOp(*temporaryOriginInitializedOp);
 

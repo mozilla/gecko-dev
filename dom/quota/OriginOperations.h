@@ -81,12 +81,12 @@ RefPtr<ResolvableNormalOriginOp<bool>> CreateTemporaryGroupInitializedOp(
 
 RefPtr<ResolvableNormalOriginOp<bool>> CreatePersistentOriginInitializedOp(
     MovingNotNull<RefPtr<QuotaManager>> aQuotaManager,
-    const mozilla::ipc::PrincipalInfo& aPrincipalInfo);
+    const PrincipalMetadata& aPrincipalMetadata);
 
 RefPtr<ResolvableNormalOriginOp<bool>> CreateTemporaryOriginInitializedOp(
     MovingNotNull<RefPtr<QuotaManager>> aQuotaManager,
     const PersistenceType aPersistenceType,
-    const mozilla::ipc::PrincipalInfo& aPrincipalInfo);
+    const PrincipalMetadata& aPrincipalMetadata);
 
 RefPtr<ResolvableNormalOriginOp<bool>> CreateInitOp(
     MovingNotNull<RefPtr<QuotaManager>> aQuotaManager,
