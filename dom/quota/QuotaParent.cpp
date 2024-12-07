@@ -379,7 +379,12 @@ mozilla::ipc::IPCResult Quota::RecvTemporaryGroupInitialized(
                 QuotaManager::GetOrCreate(),
                 ResolveBoolResponseAndReturn(aResolve));
 
-  quotaManager->TemporaryGroupInitialized(aPrincipalInfo)
+  QM_TRY_UNWRAP(
+      PrincipalMetadata principalMetadata,
+      GetInfoFromValidatedPrincipalInfo(*quotaManager, aPrincipalInfo),
+      ResolveBoolResponseAndReturn(aResolve));
+
+  quotaManager->TemporaryGroupInitialized(principalMetadata)
       ->Then(GetCurrentSerialEventTarget(), __func__,
              BoolPromiseResolveOrRejectCallback(this, std::move(aResolve)));
 

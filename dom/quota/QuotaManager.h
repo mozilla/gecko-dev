@@ -405,7 +405,7 @@ class QuotaManager final : public BackgroundThreadObject {
       RefPtr<UniversalDirectoryLock> aDirectoryLock);
 
   RefPtr<BoolPromise> TemporaryGroupInitialized(
-      const PrincipalInfo& aPrincipalInfo);
+      const PrincipalMetadata& aPrincipalMetadata);
 
   bool IsTemporaryGroupInitialized(const PrincipalMetadata& aPrincipalMetadata);
 

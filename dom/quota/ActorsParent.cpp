@@ -5723,11 +5723,11 @@ RefPtr<BoolPromise> QuotaManager::InitializeTemporaryGroup(
 }
 
 RefPtr<BoolPromise> QuotaManager::TemporaryGroupInitialized(
-    const PrincipalInfo& aPrincipalInfo) {
+    const PrincipalMetadata& aPrincipalMetadata) {
   AssertIsOnOwningThread();
 
   auto temporaryGroupInitializedOp = CreateTemporaryGroupInitializedOp(
-      WrapMovingNotNullUnchecked(this), aPrincipalInfo);
+      WrapMovingNotNullUnchecked(this), aPrincipalMetadata);
 
   RegisterNormalOriginOp(*temporaryGroupInitializedOp);
 

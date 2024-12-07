@@ -372,19 +372,16 @@ class TemporaryStorageInitializedOp final : public InitializedRequestBase {
 
 class TemporaryGroupInitializedOp final
     : public ResolvableNormalOriginOp<bool> {
-  const PrincipalInfo mPrincipalInfo;
-  PrincipalMetadata mPrincipalMetadata;
+  const PrincipalMetadata mPrincipalMetadata;
   bool mInitialized;
 
  public:
   explicit TemporaryGroupInitializedOp(
       MovingNotNull<RefPtr<QuotaManager>> aQuotaManager,
-      const PrincipalInfo& aPrincipalInfo);
+      const PrincipalMetadata& aPrincipalMetadata);
 
  private:
   ~TemporaryGroupInitializedOp() = default;
-
-  nsresult DoInit(QuotaManager& aQuotaManager) override;
 
   RefPtr<BoolPromise> OpenDirectory() override;
 
@@ -1057,9 +1054,9 @@ RefPtr<ResolvableNormalOriginOp<bool>> CreateTemporaryStorageInitializedOp(
 
 RefPtr<ResolvableNormalOriginOp<bool>> CreateTemporaryGroupInitializedOp(
     MovingNotNull<RefPtr<QuotaManager>> aQuotaManager,
-    const mozilla::ipc::PrincipalInfo& aPrincipalInfo) {
+    const PrincipalMetadata& aPrincipalMetadata) {
   return MakeRefPtr<TemporaryGroupInitializedOp>(std::move(aQuotaManager),
-                                                 aPrincipalInfo);
+                                                 aPrincipalMetadata);
 }
 
 RefPtr<ResolvableNormalOriginOp<bool>> CreatePersistentOriginInitializedOp(
@@ -1904,23 +1901,12 @@ bool TemporaryStorageInitializedOp::UnwrapResolveValue() {
 
 TemporaryGroupInitializedOp::TemporaryGroupInitializedOp(
     MovingNotNull<RefPtr<QuotaManager>> aQuotaManager,
-    const PrincipalInfo& aPrincipalInfo)
+    const PrincipalMetadata& aPrincipalMetadata)
     : ResolvableNormalOriginOp(std::move(aQuotaManager),
                                "dom::quota::TemporaryGroupInitializedOp"),
-      mPrincipalInfo(aPrincipalInfo),
+      mPrincipalMetadata(aPrincipalMetadata),
       mInitialized(false) {
   AssertIsOnOwningThread();
-}
-
-nsresult TemporaryGroupInitializedOp::DoInit(QuotaManager& aQuotaManager) {
-  AssertIsOnOwningThread();
-
-  QM_TRY_UNWRAP(mPrincipalMetadata, GetInfoFromValidatedPrincipalInfo(
-                                        aQuotaManager, mPrincipalInfo));
-
-  mPrincipalMetadata.AssertInvariants();
-
-  return NS_OK;
 }
 
 RefPtr<BoolPromise> TemporaryGroupInitializedOp::OpenDirectory() {
