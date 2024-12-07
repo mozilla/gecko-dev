@@ -75,6 +75,8 @@ class DXVA2Manager {
   static bool IsNV12Supported(uint32_t aVendorID, uint32_t aDeviceID,
                               const nsAString& aDriverVersionString);
 
+  virtual ID3D11Device* GetD3D11Device() { return nullptr; }
+
  protected:
   Mutex mLock MOZ_UNANNOTATED;
   DXVA2Manager();
