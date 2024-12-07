@@ -1,4 +1,4 @@
-/* -*- Mode: indent-tabs-mode: nil; js-indent-level: 2 -*- */
+/* -*- mode: js; indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* vim: set sts=2 sw=2 et tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -18,6 +18,13 @@ ChromeUtils.defineESModuleGetters(lazy, {
 });
 
 const { ExtensionError, promiseTimeout } = ExtensionUtils;
+
+XPCOMUtils.defineLazyServiceGetter(
+  lazy,
+  "portal",
+  "@mozilla.org/extensions/native-messaging-portal;1",
+  "nsINativeMessagingPortal"
+);
 
 // For a graceful shutdown (i.e., when the extension is unloaded or when it
 // explicitly calls disconnect() on a native port), how long we give the native
@@ -49,6 +56,12 @@ XPCOMUtils.defineLazyPreferenceGetter(
 );
 
 export class NativeApp extends EventEmitter {
+  _throwGenericError(application) {
+    // Report a generic error to not leak information about whether a native
+    // application is installed to addons that do not have the right permission.
+    throw new ExtensionError(`No such native application ${application}`);
+  }
+
   /**
    * @param {BaseContext} context The context that initiated the native app.
    * @param {string} application The identifier of the native app.
@@ -67,6 +80,18 @@ export class NativeApp extends EventEmitter {
     this.sendQueue = [];
     this.writePromise = null;
     this.cleanupStarted = false;
+    this.portalSessionHandle = null;
+
+    if ("@mozilla.org/extensions/native-messaging-portal;1" in Cc) {
+      if (lazy.portal.shouldUse()) {
+        this.startupPromise = this._doInitPortal().catch(err => {
+          this.startupPromise = null;
+          Cu.reportError(err instanceof Error ? err : err.message);
+          this._cleanup(err);
+        });
+        return;
+      }
+    }
 
     this.startupPromise = lazy.NativeManifests.lookupManifest(
       "stdio",
@@ -74,10 +99,8 @@ export class NativeApp extends EventEmitter {
       context
     )
       .then(hostInfo => {
-        // Report a generic error to not leak information about whether a native
-        // application is installed to addons that do not have the right permission.
         if (!hostInfo) {
-          throw new ExtensionError(`No such native application ${application}`);
+          this._throwGenericError(application);
         }
 
         let command = hostInfo.manifest.path;
@@ -121,6 +144,67 @@ export class NativeApp extends EventEmitter {
         Cu.reportError(err instanceof Error ? err : err.message);
         this._cleanup(err);
       });
+  }
+
+  async _doInitPortal() {
+    let available = await lazy.portal.available;
+    if (!available) {
+      Cu.reportError("Native messaging portal is not available");
+      this._throwGenericError(this.name);
+    }
+
+    let handle = await lazy.portal.createSession(this.name);
+    this.portalSessionHandle = handle;
+
+    let hostInfo = null;
+    let path;
+    try {
+      let manifest = await lazy.portal.getManifest(
+        handle,
+        this.name,
+        this.context.extension.id
+      );
+      path = manifest.substring(0, 30) + "...";
+      hostInfo = await lazy.NativeManifests.parseManifest(
+        "stdio",
+        path,
+        this.name,
+        this.context,
+        JSON.parse(manifest)
+      );
+    } catch (ex) {
+      if (ex instanceof SyntaxError && ex.message.startsWith("JSON.parse:")) {
+        Cu.reportError(`Error parsing native manifest ${path}: ${ex.message}`);
+        this._throwGenericError(this.name);
+      }
+    }
+    if (!hostInfo) {
+      this._throwGenericError(this.name);
+    }
+
+    let pipes;
+    try {
+      pipes = await lazy.portal.start(
+        handle,
+        this.name,
+        this.context.extension.id
+      );
+    } catch (err) {
+      if (err.name == "NotFoundError") {
+        this._throwGenericError(this.name);
+      } else {
+        throw err;
+      }
+    }
+    this.proc = await lazy.Subprocess.connectRunning([
+      pipes.stdin,
+      pipes.stdout,
+      pipes.stderr,
+    ]);
+    this.startupPromise = null;
+    this._startRead();
+    this._startWrite();
+    this._startStderrRead();
   }
 
   /**
@@ -298,6 +382,22 @@ export class NativeApp extends EventEmitter {
     }
 
     await this.startupPromise;
+
+    if (this.portalSessionHandle) {
+      if (this.writePromise) {
+        await this.writePromise.catch(Cu.reportError);
+      }
+      // When using the WebExtensions portal, we don't control the external
+      // process, the portal does. So let the portal handle waiting/killing the
+      // external process as it sees fit.
+      await lazy.portal
+        .closeSession(this.portalSessionHandle)
+        .catch(Cu.reportError);
+      this.portalSessionHandle = null;
+      this.proc?.kill();
+      this.proc = null;
+      return;
+    }
 
     if (!this.proc) {
       // Failed to initialize proc in the constructor.

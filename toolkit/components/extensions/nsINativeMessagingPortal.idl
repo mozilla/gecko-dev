@@ -1,0 +1,86 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+#include "nsISupports.idl"
+
+/**
+ * An interface to talk to the WebExtensions XDG desktop portal,
+ * for sandboxed browsers (e.g. packaged as a snap or a flatpak).
+ * See https://github.com/flatpak/xdg-desktop-portal/issues/655.
+ */
+[scriptable, builtinclass, uuid(7c3003e8-6d10-46cc-b754-70cd889871e7)]
+interface nsINativeMessagingPortal : nsISupports
+{
+  /**
+   * Whether client code should use the portal, or fall back to the "legacy"
+   * implementation that spawns and communicates directly with native
+   * applications.
+   */
+  boolean shouldUse();
+
+  /**
+   * Whether the portal is available and can be talked to. It is an error to
+   * call other methods in this interface if the portal isn't available.
+   *
+   * @returns Promise that resolves with a boolean that reflects
+              the availability of the portal.
+   */
+  [implicit_jscontext]
+  readonly attribute Promise available;
+
+  /**
+   * Create a native messaging session.
+   *
+   * @param aApplication The name of the native application which the portal is
+   *                     being requested to talk to. See
+   *                     https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/Native_manifests#native_messaging_manifests.
+   *
+   * @returns Promise that resolves with a string that represents the
+              session handle (a D-Bus object path of the form
+              /org/freedesktop/portal/desktop/session/SENDER/TOKEN).
+   */
+  [implicit_jscontext]
+  Promise createSession(in ACString aApplication);
+
+  /**
+   * Close a previously open session.
+   *
+   * @param aHandle The handle of a valid session.
+   *
+   * @returns Promise that resolves when the session is successfully closed.
+   */
+  [implicit_jscontext]
+  Promise closeSession(in ACString aHandle);
+
+  /**
+   * Find and return the JSON manifest for the named native messaging server
+   * as a string. This allows the browser to validate the manifest before
+   * deciding to start the server.
+   *
+   * @param aHandle    The handle of a valid session.
+   * @param aName      The name of the native messaging server to start.
+   * @param aExtension The ID of the extension that issues the request.
+   *
+   * @returns Promise that resolves with an UTF8-encoded string containing
+              the raw JSON manifest.
+   */
+  [implicit_jscontext]
+  Promise getManifest(in ACString aHandle, in ACString aName, in ACString aExtension);
+
+  /**
+   * Start the named native messaging server, in a previously open session.
+   * The caller must indicate the requesting web extension (by extension ID).
+   *
+   * @param aHandle    The handle of a valid session.
+   * @param aName      The name of the native messaging server to start.
+   * @param aExtension The ID of the extension that issues the request.
+   *
+   * @returns Promise that resolves with an object that has 'stdin', 'stdout'
+              and 'stderr' attributes for the open file descriptors that the
+              caller can use to communicate with the native application once
+              successfully started.
+   */
+  [implicit_jscontext]
+  Promise start(in ACString aHandle, in ACString aName, in ACString aExtension);
+};

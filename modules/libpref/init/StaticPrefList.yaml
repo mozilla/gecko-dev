@@ -17709,6 +17709,16 @@
   value: 2
   mirror: always
 
+# Whether to use XDG portal for native messaging.
+# https://github.com/flatpak/xdg-desktop-portal/issues/655
+#  - 0: never
+#  - 1: always
+#  - 2: auto (true for snap and flatpak or GTK_USE_PORTAL=1, false otherwise)
+- name: widget.use-xdg-desktop-portal.native-messaging
+  type: int32_t
+  value: 0
+  mirror: always
+
 # Whether to try to use XDG portal for settings / look-and-feel information.
 # https://flatpak.github.io/xdg-desktop-portal/#gdbus-org.freedesktop.portal.Settings
 #  - 0: never

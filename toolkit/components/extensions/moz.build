@@ -80,6 +80,7 @@ XPIDL_SOURCES += [
     "extIWebNavigation.idl",
     "mozIExtensionAPIRequestHandling.idl",
     "mozIExtensionProcessScript.idl",
+    "nsINativeMessagingPortal.idl",
 ]
 
 XPIDL_MODULE = "webextensions"
@@ -105,6 +106,13 @@ UNIFIED_SOURCES += [
     "MatchPattern.cpp",
     "WebExtensionPolicy.cpp",
 ]
+
+if CONFIG["MOZ_WIDGET_TOOLKIT"] == "gtk" and CONFIG["MOZ_ENABLE_DBUS"]:
+    EXPORTS.mozilla.extensions += ["NativeMessagingPortal.h"]
+    UNIFIED_SOURCES += ["NativeMessagingPortal.cpp"]
+    CXXFLAGS += CONFIG["MOZ_DBUS_GLIB_CFLAGS"]
+    CXXFLAGS += CONFIG["MOZ_GTK3_CFLAGS"]
+    DEFINES["MOZ_APP_NAME"] = '"%s"' % CONFIG["MOZ_APP_NAME"]
 
 XPCOM_MANIFESTS += [
     "components.conf",
