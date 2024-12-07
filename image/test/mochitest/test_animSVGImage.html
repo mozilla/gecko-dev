@@ -28,7 +28,22 @@ SimpleTest.waitForExplicitFinish();
 
 const FAILURE_TIMEOUT = 120000; // Fail early after 120 seconds (2 minutes)
 
+var gListen = false;
 const gImg = document.getElementsByTagName("img")[0];
+gImg.onload = function() {
+  if (!gListen) {
+    return;
+  }
+  gListen = false;
+  setTimeout(myPoll, 20);
+}
+gImg.onerror = function() {
+  if (!gListen) {
+    return;
+  }
+  gListen = false;
+  setTimeout(myPoll, 20);
+}
 
 var gMyDecoderObserver; // value will be set in main()
 var gReferenceSnapshot; // value will be set in takeReferenceSnapshot()
@@ -60,8 +75,9 @@ function takeReferenceSnapshot() {
 
 function loadNextImageAndPoll()
 {
-  setTimeout(myPoll, 1);
-  // kick off image-loading! myPoll handles the rest.
+  // kick off image-loading! onload/onerror handlers call myPoll to handles
+  // the rest.
+  gListen = true;
   gImg.setAttribute("src", gSVGImages[gSVGCurrentImage]);
 }
 
