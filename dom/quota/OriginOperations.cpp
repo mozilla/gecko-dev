@@ -503,19 +503,16 @@ class InitTemporaryStorageOp final
 };
 
 class InitializeTemporaryGroupOp final : public ResolvableNormalOriginOp<bool> {
-  const PrincipalInfo mPrincipalInfo;
-  PrincipalMetadata mPrincipalMetadata;
+  const PrincipalMetadata mPrincipalMetadata;
   RefPtr<UniversalDirectoryLock> mDirectoryLock;
 
  public:
   InitializeTemporaryGroupOp(MovingNotNull<RefPtr<QuotaManager>> aQuotaManager,
-                             const PrincipalInfo& aPrincipalInfo,
+                             const PrincipalMetadata& aPrincipalMetadata,
                              RefPtr<UniversalDirectoryLock> aDirectoryLock);
 
  private:
   ~InitializeTemporaryGroupOp() = default;
-
-  nsresult DoInit(QuotaManager& aQuotaManager) override;
 
   RefPtr<BoolPromise> OpenDirectory() override;
 
@@ -1102,10 +1099,10 @@ CreateInitTemporaryStorageOp(MovingNotNull<RefPtr<QuotaManager>> aQuotaManager,
 
 RefPtr<ResolvableNormalOriginOp<bool>> CreateInitializeTemporaryGroupOp(
     MovingNotNull<RefPtr<QuotaManager>> aQuotaManager,
-    const PrincipalInfo& aPrincipalInfo,
+    const PrincipalMetadata& aPrincipalMetadata,
     RefPtr<UniversalDirectoryLock> aDirectoryLock) {
   return MakeRefPtr<InitializeTemporaryGroupOp>(
-      std::move(aQuotaManager), aPrincipalInfo, std::move(aDirectoryLock));
+      std::move(aQuotaManager), aPrincipalMetadata, std::move(aDirectoryLock));
 }
 
 RefPtr<ResolvableNormalOriginOp<bool>> CreateInitializePersistentOriginOp(
@@ -2155,24 +2152,13 @@ void InitTemporaryStorageOp::CloseDirectory() {
 
 InitializeTemporaryGroupOp::InitializeTemporaryGroupOp(
     MovingNotNull<RefPtr<QuotaManager>> aQuotaManager,
-    const PrincipalInfo& aPrincipalInfo,
+    const PrincipalMetadata& aPrincipalMetadata,
     RefPtr<UniversalDirectoryLock> aDirectoryLock)
     : ResolvableNormalOriginOp(std::move(aQuotaManager),
                                "dom::quota::InitializeTemporaryGroupOp"),
-      mPrincipalInfo(aPrincipalInfo),
+      mPrincipalMetadata(aPrincipalMetadata),
       mDirectoryLock(std::move(aDirectoryLock)) {
   AssertIsOnOwningThread();
-}
-
-nsresult InitializeTemporaryGroupOp::DoInit(QuotaManager& aQuotaManager) {
-  AssertIsOnOwningThread();
-
-  QM_TRY_UNWRAP(mPrincipalMetadata, GetInfoFromValidatedPrincipalInfo(
-                                        aQuotaManager, mPrincipalInfo));
-
-  mPrincipalMetadata.AssertInvariants();
-
-  return NS_OK;
 }
 
 RefPtr<BoolPromise> InitializeTemporaryGroupOp::OpenDirectory() {

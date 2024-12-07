@@ -398,16 +398,16 @@ class QuotaManager final : public BackgroundThreadObject {
 
  public:
   RefPtr<BoolPromise> InitializeTemporaryGroup(
-      const PrincipalInfo& aPrincipalInfo);
+      const PrincipalMetadata& aPrincipalMetadata);
 
   RefPtr<BoolPromise> InitializeTemporaryGroup(
-      const PrincipalInfo& aPrincipalInfo,
+      const PrincipalMetadata& aPrincipalMetadata,
       RefPtr<UniversalDirectoryLock> aDirectoryLock);
 
   RefPtr<BoolPromise> TemporaryGroupInitialized(
       const PrincipalInfo& aPrincipalInfo);
 
-  bool IsTemporaryGroupInitialized(const PrincipalInfo& aPrincipalInfo);
+  bool IsTemporaryGroupInitialized(const PrincipalMetadata& aPrincipalMetadata);
 
   bool IsTemporaryGroupInitializedInternal(
       const PrincipalMetadata& aPrincipalMetadata) const;

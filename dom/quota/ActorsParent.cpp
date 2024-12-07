@@ -5379,12 +5379,6 @@ RefPtr<ClientDirectoryLockPromise> QuotaManager::OpenClientDirectory(
 
   const auto persistenceType = aClientMetadata.mPersistenceType;
 
-  QM_TRY_UNWRAP(
-      auto principalInfo, PrincipalMetadataToPrincipalInfo(aClientMetadata),
-      [](StaticString aFunc, const nsresult aRv) {
-        return ClientDirectoryLockPromise::CreateAndReject(aRv, aFunc);
-      });
-
   nsTArray<RefPtr<BoolPromise>> promises;
 
   // Directory locks for specific initializations can be null, indicating that
@@ -5410,7 +5404,7 @@ RefPtr<ClientDirectoryLockPromise> QuotaManager::OpenClientDirectory(
         IsDirectoryLockBlockedByUninitStorageOperation,
         MakeBackInserter(promises));
 
-    const bool groupInitialized = IsTemporaryGroupInitialized(principalInfo);
+    const bool groupInitialized = IsTemporaryGroupInitialized(aClientMetadata);
 
     groupDirectoryLock = CreateDirectoryLockForInitialization(
         *this,
@@ -5463,11 +5457,11 @@ RefPtr<ClientDirectoryLockPromise> QuotaManager::OpenClientDirectory(
                                  &QuotaManager::InitializeTemporaryStorage))
           ->Then(GetCurrentSerialEventTarget(), __func__,
                  MaybeInitialize(std::move(groupDirectoryLock),
-                                 [self = RefPtr(this), principalInfo](
+                                 [self = RefPtr(this), aClientMetadata](
                                      RefPtr<UniversalDirectoryLock>
                                          groupDirectoryLock) mutable {
                                    return self->InitializeTemporaryGroup(
-                                       principalInfo,
+                                       aClientMetadata,
                                        std::move(groupDirectoryLock));
                                  }))
           ->Then(GetCurrentSerialEventTarget(), __func__,
@@ -5656,17 +5650,13 @@ nsresult QuotaManager::EnsurePersistentStorageIsInitializedInternal() {
 }
 
 RefPtr<BoolPromise> QuotaManager::InitializeTemporaryGroup(
-    const PrincipalInfo& aPrincipalInfo) {
+    const PrincipalMetadata& aPrincipalMetadata) {
   AssertIsOnOwningThread();
-
-  QM_TRY_UNWRAP(PrincipalMetadata principalMetadata,
-                GetInfoFromValidatedPrincipalInfo(*this, aPrincipalInfo),
-                CreateAndRejectBoolPromise);
 
   RefPtr<UniversalDirectoryLock> directoryLock = CreateDirectoryLockInternal(
       PersistenceScope::CreateFromSet(PERSISTENCE_TYPE_TEMPORARY,
                                       PERSISTENCE_TYPE_DEFAULT),
-      OriginScope::FromGroup(principalMetadata.mGroup),
+      OriginScope::FromGroup(aPrincipalMetadata.mGroup),
       Nullable<Client::Type>(),
       /* aExclusive */ false);
 
@@ -5676,27 +5666,27 @@ RefPtr<BoolPromise> QuotaManager::InitializeTemporaryGroup(
   // storage operation already scheduled, we can't immediately resolve the
   // promise and return from the function because the clear and shutdown
   // storage operation uninitializes storage.
-  if (IsTemporaryGroupInitialized(aPrincipalInfo) &&
+  if (IsTemporaryGroupInitialized(aPrincipalMetadata) &&
       !IsDirectoryLockBlockedByUninitStorageOperation(prepareInfo)) {
     return BoolPromise::CreateAndResolve(true, __func__);
   }
 
   return directoryLock->Acquire(std::move(prepareInfo))
       ->Then(GetCurrentSerialEventTarget(), __func__,
-             [self = RefPtr(this), aPrincipalInfo, directoryLock](
+             [self = RefPtr(this), aPrincipalMetadata, directoryLock](
                  const BoolPromise::ResolveOrRejectValue& aValue) mutable {
                if (aValue.IsReject()) {
                  return BoolPromise::CreateAndReject(aValue.RejectValue(),
                                                      __func__);
                }
 
-               return self->InitializeTemporaryGroup(aPrincipalInfo,
+               return self->InitializeTemporaryGroup(aPrincipalMetadata,
                                                      std::move(directoryLock));
              });
 }
 
 RefPtr<BoolPromise> QuotaManager::InitializeTemporaryGroup(
-    const PrincipalInfo& aPrincipalInfo,
+    const PrincipalMetadata& aPrincipalMetadata,
     RefPtr<UniversalDirectoryLock> aDirectoryLock) {
   AssertIsOnOwningThread();
   MOZ_ASSERT(aDirectoryLock);
@@ -5707,14 +5697,14 @@ RefPtr<BoolPromise> QuotaManager::InitializeTemporaryGroup(
   // resolve the promise and return from the function because there can't be a
   // clear storage or shutdown storage operation which would uninitialize
   // temporary storage.
-  if (IsTemporaryGroupInitialized(aPrincipalInfo)) {
+  if (IsTemporaryGroupInitialized(aPrincipalMetadata)) {
     DropDirectoryLock(aDirectoryLock);
 
     return BoolPromise::CreateAndResolve(true, __func__);
   }
 
   auto initializeTemporaryGroupOp = CreateInitializeTemporaryGroupOp(
-      WrapMovingNotNullUnchecked(this), aPrincipalInfo,
+      WrapMovingNotNullUnchecked(this), aPrincipalMetadata,
       std::move(aDirectoryLock));
 
   RegisterNormalOriginOp(*initializeTemporaryGroupOp);
@@ -5723,8 +5713,7 @@ RefPtr<BoolPromise> QuotaManager::InitializeTemporaryGroup(
 
   return Map<BoolPromise>(
       initializeTemporaryGroupOp->OnResults(),
-      [self = RefPtr(this),
-       group = GetGroupFromValidatedPrincipalInfo(aPrincipalInfo)](
+      [self = RefPtr(this), group = aPrincipalMetadata.mGroup](
           const BoolPromise::ResolveOrRejectValue& aValue) {
         self->mBackgroundThreadAccessible.Access()->mInitializedGroups.Insert(
             group);
@@ -5748,13 +5737,11 @@ RefPtr<BoolPromise> QuotaManager::TemporaryGroupInitialized(
 }
 
 bool QuotaManager::IsTemporaryGroupInitialized(
-    const PrincipalInfo& aPrincipalInfo) {
+    const PrincipalMetadata& aPrincipalMetadata) {
   AssertIsOnOwningThread();
 
-  auto group = GetGroupFromValidatedPrincipalInfo(aPrincipalInfo);
-
   return mBackgroundThreadAccessible.Access()->mInitializedGroups.Contains(
-      group);
+      aPrincipalMetadata.mGroup);
 }
 
 bool QuotaManager::IsTemporaryGroupInitializedInternal(
@@ -6417,28 +6404,7 @@ RefPtr<BoolPromise> QuotaManager::InitializeAllTemporaryOrigins() {
       auto principalMetadata =
           backgroundThreadData->mUninitializedGroups.PopLastElement();
 
-      // XXX Set a context to see QM_TRY failures in telemetry ?
-
-      QM_WARNONLY_TRY_UNWRAP(
-          auto maybePrincipalInfo,
-          PrincipalMetadataToPrincipalInfo(principalMetadata));
-
-      if (!maybePrincipalInfo) {
-        // In the error case, processing of next group needs to be invoked
-        // asynchronously as well to not spam the event queue with group
-        // initialization too much.
-
-        InvokeAsync(GetCurrentSerialEventTarget(), __func__,
-                    [processNextGroupCallback]() {
-                      processNextGroupCallback(processNextGroupCallback);
-
-                      return BoolPromise::CreateAndResolve(true, __func__);
-                    });
-
-        return;
-      }
-
-      self->InitializeTemporaryGroup(*maybePrincipalInfo)
+      self->InitializeTemporaryGroup(principalMetadata)
           ->Then(GetCurrentSerialEventTarget(), __func__,
                  [processNextGroupCallback](
                      const BoolPromise::ResolveOrRejectValue& aValue) {
