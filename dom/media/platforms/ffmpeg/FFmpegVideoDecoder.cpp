@@ -247,7 +247,7 @@ template <>
 class VAAPIDisplayHolder<LIBAV_VER> {
  public:
   VAAPIDisplayHolder(FFmpegLibWrapper* aLib, VADisplay aDisplay, int aDRMFd)
-      : mLib(aLib), mDisplay(aDisplay), mDRMFd(aDRMFd) {};
+      : mLib(aLib), mDisplay(aDisplay), mDRMFd(aDRMFd){};
   ~VAAPIDisplayHolder() {
     mLib->vaTerminate(mDisplay);
     close(mDRMFd);
@@ -1796,7 +1796,8 @@ static const struct {
   VAProfile va_profile;
   char name[100];
 } vaapi_profile_map[] = {
-#  define MAP(c, v, n) {AV_CODEC_ID_##c, VAProfile##v, n}
+#  define MAP(c, v, n) \
+    { AV_CODEC_ID_##c, VAProfile##v, n }
     MAP(H264, H264ConstrainedBaseline, "H264ConstrainedBaseline"),
     MAP(H264, H264Main, "H264Main"),
     MAP(H264, H264High, "H264High"),
@@ -2063,10 +2064,9 @@ MediaResult FFmpegVideoDecoder<LIBAV_VER>::InitD3D11VADecoder() {
   AVD3D11VAFramesContext* d3d11vaFramesContext =
       (AVD3D11VAFramesContext*)framesContext->hwctx;
   d3d11vaFramesContext->BindFlags |= D3D11_BIND_DECODER;
-  // TODO : finish this part later when implementing zero-copy support.
-  // if (ZERO_COPY_ENABLED) {
-  //   d3d11vaFramesContext->BindFlags |=  D3D11_BIND_SHADER_RESOURCE;
-  // }
+  if (CanUseZeroCopyVideoFrame()) {
+    d3d11vaFramesContext->BindFlags |= D3D11_BIND_SHADER_RESOURCE;
+  }
 
   int err = mLib->av_hwframe_ctx_init(mD3D11VAHwframeContext);
   if (err < 0) {
@@ -2093,9 +2093,8 @@ MediaResult FFmpegVideoDecoder<LIBAV_VER>::InitD3D11VADecoder() {
 MediaResult FFmpegVideoDecoder<LIBAV_VER>::CreateImageD3D11(
     int64_t aOffset, int64_t aPts, int64_t aDuration,
     MediaDataDecoder::DecodedData& aResults) {
-  FFMPEGV_LOG("CreateImageD3D11");
-  // TODO : check zero copy support later
   MOZ_DIAGNOSTIC_ASSERT(mFrame);
+  MOZ_DIAGNOSTIC_ASSERT(mDXVA2Manager);
 
   HRESULT hr = mDXVA2Manager->ConfigureForSize(
       GetSurfaceFormat(), GetFrameColorSpace(), GetFrameColorRange(),
@@ -2125,13 +2124,22 @@ MediaResult FFmpegVideoDecoder<LIBAV_VER>::CreateImageD3D11(
   gfx::IntRect pictureRegion =
       mInfo.ScaledImageRect(mFrame->width, mFrame->height);
   UINT index = (uintptr_t)mFrame->data[1];
-  mDXVA2Manager->CopyToImage(texture, index, pictureRegion,
-                             getter_AddRefs(image));
-  if (!image) {
-    nsPrintfCString msg("Failed to copy data to D3D image");
+
+  if (CanUseZeroCopyVideoFrame()) {
+    FFMPEGV_LOG("CreateImageD3D11, zero copy");
+    hr = mDXVA2Manager->WrapTextureWithImage(texture, index, pictureRegion,
+                                             getter_AddRefs(image));
+  } else {
+    FFMPEGV_LOG("CreateImageD3D11, copy output to a shared texture");
+    hr = mDXVA2Manager->CopyToImage(texture, index, pictureRegion,
+                                    getter_AddRefs(image));
+  }
+  if (FAILED(hr)) {
+    nsPrintfCString msg("Failed to create a D3D image");
     FFMPEG_LOG("%s", msg.get());
     return MediaResult(NS_ERROR_DOM_MEDIA_DECODE_ERR, msg);
   }
+  MOZ_ASSERT(image);
 
   RefPtr<VideoData> v = VideoData::CreateFromImage(
       mInfo.mDisplay, aOffset, TimeUnit::FromMicroseconds(aPts),
@@ -2144,6 +2152,12 @@ MediaResult FFmpegVideoDecoder<LIBAV_VER>::CreateImageD3D11(
   }
   aResults.AppendElement(std::move(v));
   return NS_OK;
+}
+
+bool FFmpegVideoDecoder<LIBAV_VER>::CanUseZeroCopyVideoFrame() const {
+  return gfx::gfxVars::HwDecodedVideoZeroCopy() && mImageAllocator &&
+         mImageAllocator->UsingHardwareWebRender() && mDXVA2Manager &&
+         mDXVA2Manager->SupportsZeroCopyNV12Texture();
 }
 
 #endif

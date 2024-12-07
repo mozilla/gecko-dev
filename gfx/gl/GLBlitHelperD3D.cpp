@@ -15,7 +15,7 @@
 #include "ScopedGLHelpers.h"
 
 #include "mozilla/layers/D3D11ShareHandleImage.h"
-#include "mozilla/layers/D3D11TextureIMFSampleImage.h"
+#include "mozilla/layers/D3D11ZeroCopyTextureImage.h"
 #include "mozilla/layers/D3D11YCbCrImage.h"
 #include "mozilla/layers/GpuProcessD3D11TextureMap.h"
 #include "mozilla/layers/TextureD3D11.h"
@@ -200,7 +200,7 @@ bool GLBlitHelper::BlitImage(layers::D3D11ShareHandleImage* const srcImage,
 
 // -------------------------------------
 
-bool GLBlitHelper::BlitImage(layers::D3D11TextureIMFSampleImage* const srcImage,
+bool GLBlitHelper::BlitImage(layers::D3D11ZeroCopyTextureImage* const srcImage,
                              const gfx::IntSize& destSize,
                              const OriginPos destOrigin) const {
   const auto& data = srcImage->GetData();

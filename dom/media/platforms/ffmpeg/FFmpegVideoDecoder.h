@@ -143,6 +143,7 @@ class FFmpegVideoDecoder<LIBAV_VER>
 
   MediaResult CreateImageD3D11(int64_t aOffset, int64_t aPts, int64_t aDuration,
                                MediaDataDecoder::DecodedData& aResults);
+  bool CanUseZeroCopyVideoFrame() const;
 
   int32_t mTextureAlignment;
   AVBufferRef* mD3D11VADeviceContext = nullptr;
