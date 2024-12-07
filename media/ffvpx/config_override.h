@@ -12,6 +12,9 @@
 #define EXTERN_ASM
 #endif
 
+/**
+ * Linux Hardware Video Decoding
+ **/
 #undef CONFIG_VAAPI
 #undef CONFIG_VAAPI_1
 #undef CONFIG_VP8_VAAPI_HWACCEL
@@ -30,4 +33,21 @@
 #define CONFIG_VP8_VAAPI_HWACCEL 0
 #define CONFIG_VP9_VAAPI_HWACCEL 0
 #define CONFIG_AV1_VAAPI_HWACCEL 0
+#endif
+
+/**
+ * Windows Hardware Video Decoding
+ **/
+#undef CONFIG_D3D11VA
+#undef CONFIG_VP9_D3D11VA_HWACCEL
+#undef CONFIG_VP9_D3D11VA2_HWACCEL
+
+#if defined (XP_WIN) && !defined(MOZ_FFVPX_AUDIOONLY)
+  #define CONFIG_D3D11VA 1
+  #define CONFIG_VP9_D3D11VA_HWACCEL 1
+  #define CONFIG_VP9_D3D11VA2_HWACCEL 1
+#else
+  #define CONFIG_D3D11VA 0
+  #define CONFIG_VP9_D3D11VA_HWACCEL 0
+  #define CONFIG_VP9_D3D11VA2_HWACCEL 0
 #endif
