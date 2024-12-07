@@ -39,9 +39,6 @@ Result<PrincipalMetadata, nsresult> GetInfoFromValidatedPrincipalInfo(
     QuotaManager& aQuotaManager,
     const mozilla::ipc::PrincipalInfo& aPrincipalInfo);
 
-Result<mozilla::ipc::PrincipalInfo, nsresult> PrincipalMetadataToPrincipalInfo(
-    const PrincipalMetadata& aPrincipalMetadata);
-
 nsAutoCString GetGroupFromValidatedPrincipalInfo(
     const mozilla::ipc::PrincipalInfo& aPrincipalInfo);
 

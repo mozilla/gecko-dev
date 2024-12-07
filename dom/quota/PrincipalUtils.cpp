@@ -154,26 +154,6 @@ Result<PrincipalMetadata, nsresult> GetInfoFromValidatedPrincipalInfo(
   }
 }
 
-Result<PrincipalInfo, nsresult> PrincipalMetadataToPrincipalInfo(
-    const PrincipalMetadata& aPrincipalMetadata) {
-  QM_TRY_INSPECT(
-      const auto& principal,
-      ([&aPrincipalMetadata]() -> Result<nsCOMPtr<nsIPrincipal>, nsresult> {
-        if (aPrincipalMetadata.mOrigin.EqualsLiteral(kChromeOrigin)) {
-          return nsCOMPtr<nsIPrincipal>(SystemPrincipal::Get());
-        }
-
-        return nsCOMPtr<nsIPrincipal>(
-            BasePrincipal::CreateContentPrincipal(aPrincipalMetadata.mOrigin));
-      }()));
-  QM_TRY(MOZ_TO_RESULT(principal));
-
-  PrincipalInfo principalInfo;
-  QM_TRY(MOZ_TO_RESULT(PrincipalToPrincipalInfo(principal, &principalInfo)));
-
-  return std::move(principalInfo);
-}
-
 nsAutoCString GetGroupFromValidatedPrincipalInfo(
     const PrincipalInfo& aPrincipalInfo) {
   MOZ_ASSERT(IsPrincipalInfoValid(aPrincipalInfo));
