@@ -56,6 +56,10 @@
       {
         file: "helper_fission_unresolved_clip.html",
         "prefs": hit_test_prefs
+      },
+      {
+        "file": "helper_fission_inactivescroller_under_oopif.html",
+        "prefs": hit_test_prefs
       }
     ];
 
@@ -66,16 +70,6 @@
           "prefs": prefs
         }
       );
-
-      if (getPlatform() != "linux") {
-        subtests.push(
-          { // Fails on try runs for Android and Linux
-            // https://bugzilla.mozilla.org/show_bug.cgi?id=1915378
-            "file": "helper_fission_inactivescroller_under_oopif.html",
-            "prefs": hit_test_prefs
-          }
-        );
-      }
     }
 
 

@@ -15,6 +15,17 @@
       const iframe = document.querySelector("iframe");
       await setupCrossOriginIFrame(iframe, "helper_fission_plain.html");
 
+      const remoteType = await SpecialPowers.spawn(iframe, [], async () => {
+        return await SpecialPowers.spawnChrome([], () => {
+          return windowGlobalParent.domProcess.remoteType;
+        });
+      });
+      if (remoteType === "web") {
+        is(SpecialPowers.effectiveIsolationStrategy(), SpecialPowers.ISOLATION_STRATEGY.IsolateHighValue);
+        ok(true, "Skipping this test since the document on example.com got loaded in the same content process");
+        return;
+      }
+
       let readyPromise = new Promise(resolve => {
         window.addEventListener("message", event => {
           let data = JSON.parse(event.data);
@@ -57,9 +68,14 @@
         "Part of OOPIF sitting on top of the inactive scrollframe should hit OOPIF");
     }
 
-    waitUntilApzStable()
-      .then(test)
-      .then(subtestDone, subtestFailed);
+    if (!SpecialPowers.Services.appinfo.fissionAutostart) {
+      ok(true, "This test doesn't need to run with disabling Fission");
+      subtestDone();
+    } else {
+      waitUntilApzStable()
+        .then(test)
+        .then(subtestDone, subtestFailed);
+    }
 
   </script>
 </head>
