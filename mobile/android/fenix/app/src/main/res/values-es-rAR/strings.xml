@@ -96,13 +96,6 @@
     <!-- Text for the negative action button -->
     <string name="open_in_app_cfr_negative_button_text">Descartar</string>
 
-    <!-- Total cookie protection "contextual feature recommendation" (CFR) -->
-    <!-- Text for the message displayed in the contextual feature recommendation popup promoting the total cookie protection feature. -->
-    <string name="tcp_cfr_message" moz:removedIn="132" tools:ignore="UnusedResources">Nuestra función de privacidad más poderosa hasta ahora aísla a los rastreadores entre sitios.</string>
-
-    <!-- Text displayed that links to website containing documentation about the "Total cookie protection" feature. -->
-    <string name="tcp_cfr_learn_more" moz:removedIn="132" tools:ignore="UnusedResources">Conocé sobre la protección total de cookies</string>
-
 
     <!-- Private browsing erase action "contextual feature recommendation" (CFR) -->
     <!-- Text for the message displayed in the contextual feature recommendation popup promoting the erase private browsing feature. -->
@@ -124,12 +117,6 @@
     <string name="address_bar_swipe_cfr_title">Deslizar la barra de herramientas para cambiar de pestaña</string>
     <!-- Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
     <string name="address_bar_swipe_cfr_message">Deslizar hacia la izquierda o derecha para cambiar. Deslizar hacia la izquierda en la última pestaña para abrir una nueva.</string>
-
-    <!-- Tablet navigation bar "contextual feature recommendation" (CFR) -->
-    <!-- Text for the title displayed in the contextual feature recommendation popup promoting the tablet navigation bar. -->
-    <string name="tablet_nav_bar_cfr_title" moz:removedIn="132" tools:ignore="UnusedResources">Nuevo: flechas hacia atrás y adelante con un toque</string>
-    <!-- Text for the message displayed in the contextual feature recommendation popup promoting the tablet navigation bar. -->
-    <string name="tablet_nav_bar_cfr_message" moz:removedIn="132" tools:ignore="UnusedResources">Disfrutá de una navegación más rápida que siempre está al alcance de tus dedos.</string>
 
     <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
     <string name="camera_permissions_needed_message">Se necesita acceso a la cámara. Andá a la configuración de Android, pulsá permisos y permitir.</string>
@@ -354,12 +341,16 @@
     <string name="browser_menu_tools_description" moz:removedIn="134" tools:ignore="UnusedResources">Vista de lectura, imprimir, compartir, abrir aplicación</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu
          The first parameter is the label of the report site issue (for example: Report Site issue) -->
-    <string name="browser_menu_tools_description_with_translate_with_report_site">Vista de lectura, traducir, %s, imprimir, compartir, abrir aplicación</string>
+    <string name="browser_menu_tools_description_with_translate_with_report_site" moz:removedIn="135" tools:ignore="UnusedResources">Vista de lectura, traducir, %s, imprimir, compartir, abrir aplicación</string>
+    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu when the "Report broken site" feature is available-->
+    <string name="browser_menu_tools_description_with_translate_with_report_site_2">Vista de lectura, traducción, informar sobre sitio roto, imprimir, compartir, abrir aplicación</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
     <string name="browser_menu_tools_description_with_translate_without_report_site">Vista de lectura, traducir, imprimir, compartir, abrir aplicación</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu
          The first parameter is the label of the report site issue (for example: Report Site issue) -->
-    <string name="browser_menu_tools_description_with_report_site">Vista de lectura, %s, imprimir, compartir, abrir aplicación</string>
+    <string name="browser_menu_tools_description_with_report_site" moz:removedIn="135" tools:ignore="UnusedResources">Vista de lectura, %s, imprimir, compartir, abrir aplicación</string>
+    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu when the "Report broken site" feature is available-->
+    <string name="browser_menu_tools_description_with_report_site_2">Vista de lectura, informar sobre sitio roto, imprimir, compartir, abrir aplicación</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
     <string name="browser_menu_tools_description_without_report_site">Vista de lectura, imprimir, compartir, abrir aplicación</string>
     <!-- Browser menu label that navigates to the save sub-menu, which contains various save related menu items such as
@@ -380,6 +371,8 @@
     <string name="browser_menu_turn_off_reader_view">Desactivar vista de lectura</string>
     <!-- Browser menu label for navigating to the translation feature, which provides language translation options the current visited page -->
     <string name="browser_menu_translate_page">Traducir página…</string>
+    <!-- Browser menu label for navigating to the Web Compat Reporter feature, which provides users the ability to send bug reports for broken sites. -->
+    <string name="browser_menu_webcompat_reporter">Informar sitio roto…</string>
     <!-- Browser menu label that is displayed when the current page has been translated by the translation feature.
          The first parameter is the name of the language that page was translated to (e.g. English). -->
     <string name="browser_menu_translated_to">Traducido al %1$s</string>
@@ -462,8 +455,6 @@
     <string name="search_engine_icon_content_description_1">Buscador: %s</string>
 
     <!-- Home onboarding -->
-    <!-- Onboarding home screen popup dialog, shown on top of the Jump back in section. -->
-    <string name="onboarding_home_screen_jump_back_contextual_hint_2" moz:removedIn="132">Conocé tu página de inicio personalizada. Las pestañas recientes, los marcadores y los resultados de búsqueda aparecerán aquí.</string>
     <!-- Home onboarding dialog welcome screen title text. -->
     <string name="onboarding_home_welcome_title_2">Bienvenido a una Internet más personal</string>
     <!-- Home onboarding dialog welcome screen description text. -->
@@ -600,6 +591,29 @@
     <string name="onboarding_preferences_dialog_positive_button" tools:ignore="UnusedResources">Listo</string>
     <!-- Negative button label for the privacy preferences dialog shown during onboarding. -->
     <string name="onboarding_preferences_dialog_negative_button" tools:ignore="UnusedResources">Cancelar</string>
+
+    <!-- Terms of service onboarding title card label. 'Firefox' intentionally hardcoded here-->
+    <string name="onboarding_welcome_to_firefox" tools:ignore="UnusedResources,BrandUsage">Bienvenido a Firefox</string>
+    <!-- Terms of service onboarding page continue button label. -->
+    <string name="onboarding_term_of_service_agree_and_continue_button_label" tools:ignore="UnusedResources">De acuerdo y continuar</string>
+    <!-- Used as text for the link in onboarding_term_of_service_line_one. -->
+    <string name="onboarding_term_of_service_line_one_link_text" tools:ignore="UnusedResources,BrandUsage">Términos del servicio</string>
+    <!-- Used as text for the link in onboarding_term_of_service_line_two. -->
+    <string name="onboarding_term_of_service_line_two_link_text" tools:ignore="UnusedResources,BrandUsage">Nota de privacidad</string>
+    <!-- Used as text for the link in onboarding_term_of_service_line_three. -->
+    <string name="onboarding_term_of_service_line_three_link_text" tools:ignore="UnusedResources,BrandUsage">Administrar</string>
+    <!-- Onboarding header for the toolbar selection card, used by Nimbus experiments. -->
+    <string name="onboarding_customize_toolbar_title" tools:ignore="UnusedResources">Elegí la ubicación de la barra de herramientas</string>
+    <!-- Onboarding sub header for toolbar selection card, used by Nimbus experiments. -->
+    <string name="onboarding_customize_toolbar_description" tools:ignore="UnusedResources">Mantené las búsquedas a tu alcance.</string>
+    <!-- Onboarding toolbar selection card label for 'save and continue' button, used by Nimbus experiments. -->
+    <string name="onboarding_customize_toolbar_save_and_continue_button">Guardar y continuar</string>
+    <!-- Onboarding toolbar selection card label for 'skip' button, used by Nimbus experiments. -->
+    <string name="onboarding_customize_toolbar_skip_button">Omitir</string>
+    <!-- Onboarding toolbar selection card label for 'top' option, used by Nimbus experiments. -->
+    <string name="onboarding_customize_toolbar_top_option">Parte superior</string>
+    <!-- Onboarding toolbar selection card label for 'bottom' option, used by Nimbus experiments. -->
+    <string name="onboarding_customize_toolbar_bottom_option">Parte inferior</string>
 
     <!-- Search Widget -->
     <!-- Content description for searching with a widget. The first parameter is the name of the application.-->
@@ -1008,7 +1022,11 @@
     <!-- Preference switch for marketing data collection -->
     <string name="preferences_marketing_data">Datos de marketing</string>
     <!-- Preference description for marketing data collection -->
-    <string name="preferences_marketing_data_description2">Compartí datos de uso básicos con Adjust, nuestro proveedor de marketing móvil</string>
+    <string name="preferences_marketing_data_description2" moz:removedIn="134" tools:ignore="UnusedResources">Compartí datos de uso básicos con Adjust, nuestro proveedor de marketing móvil</string>
+    <!-- Preference description for marketing data collection. Note: The words "Firefox" and "Mozilla" should NOT be translated -->
+    <string name="preferences_marketing_data_description_3" tools:ignore="BrandUsage">Comparte información sobre cómo descubriste Firefox con los socios de marketing de Mozilla. Esto nos ayuda a hacer crecer Firefox y a construir una mejor Internet</string>
+    <!-- Learn more link for marketing data preference -->
+    <string name="preferences_marketing_data_learn_more">Conocer más sobre datos de marketing</string>
     <!-- Preference switch title for automatically submitting crash reports -->
     <string name="preferences_automatically_submit_crashes_title">Enviar informes de fallos automáticamente</string>
     <!-- Preference switch description for automatically submitting crash reports -->
@@ -1374,8 +1392,6 @@
     <string name="bookmark_delete_negative">Cancelar</string>
     <!-- Screen title for adding a bookmarks folder -->
     <string name="bookmark_add_folder">Agregar carpeta</string>
-    <!-- Snackbar title shown after a bookmark has been created. -->
-    <string name="bookmark_saved_snackbar" moz:removedIn="132" tools:ignore="UnusedResources">¡Marcador guardado!</string>
 
     <!-- Snackbar title that confirms a bookmark was saved into a folder. Parameter will be replaced by the name of the folder the bookmark was saved into. -->
     <string name="bookmark_saved_in_folder_snackbar">Guardado en “%s”</string>
@@ -1727,8 +1743,6 @@
     <string name="snackbar_tabs_closed">Pestañas cerradas</string>
     <!-- Text shown in snackbar when user closes multiple inactive tabs. %1$s will be replaced with the number of tabs closed. -->
     <string name="snackbar_num_tabs_closed">Pestañas cerradas: %1$s</string>
-    <!-- Text shown in snackbar when user bookmarks a list of tabs -->
-    <string name="snackbar_message_bookmarks_saved" moz:removedIn="132" tools:ignore="UnusedResources">¡Marcadores guardados!</string>
     <!-- Text shown in snackbar when user bookmarks a list of tabs. Parameter will be replaced by the name of the folder the bookmark was saved into.-->
     <string name="snackbar_message_bookmarks_saved_in">¡Marcadores guardados en “%s”!</string>
     <!-- Text shown in snackbar when user adds a site to shortcuts -->
@@ -2637,14 +2651,6 @@
     <string name="review_quality_check_contextual_onboarding_primary_button_text">Sí, probarlo</string>
     <!-- Text for opt-out button from the review quality check contextual onboarding card. -->
     <string name="review_quality_check_contextual_onboarding_secondary_button_text">No ahora</string>
-    <!-- Text for the first CFR presenting the review quality check feature. -->
-    <string name="review_quality_check_first_cfr_message" moz:removedIn="132" tools:ignore="UnusedResources">Descubrí si podés confiar en las revisiones de este producto — antes de comprarlo.</string>
-    <!-- Text displayed in the first CFR presenting the review quality check feature that opens the review checker when clicked. -->
-    <string name="review_quality_check_first_cfr_action" moz:removedIn="132" tools:ignore="UnusedResources">Probá el verificador de revisiones</string>
-    <!-- Text for the second CFR presenting the review quality check feature. -->
-    <string name="review_quality_check_second_cfr_message" moz:removedIn="132" tools:ignore="UnusedResources">¿Son confiables estas revisiones? Verificá ahora para ver una calificación ajustada.</string>
-    <!-- Text displayed in the second CFR presenting the review quality check feature that opens the review checker when clicked. -->
-    <string name="review_quality_check_second_cfr_action" moz:removedIn="132" tools:ignore="UnusedResources">Abrir el verificador de revisiones</string>
     <!-- Content description (not visible, for screen readers etc.) for opening browser menu button to open review quality check bottom sheet. -->
     <string name="review_quality_check_open_handle_content_description">Abrir el verificador de revisiones</string>
     <!-- Content description (not visible, for screen readers etc.) for closing browser menu button to open review quality check bottom sheet. -->
@@ -2909,6 +2915,28 @@
     <!-- Button text on the data saving mode warning dialog used by the translations feature to allow users to cancel the action and not perform a download of the language file. -->
     <string name="download_language_file_dialog_negative_button_text">Cancelar</string>
 
+    <!-- Unified Trust Panel -->
+    <!-- Title text for the protection panel banner when the site is not secure. -->
+    <string name="protection_panel_banner_not_secure_title">Tené cuidado en este sitio</string>
+    <!-- Description text for the protection panel banner when the site is not secure. -->
+    <string name="protection_panel_banner_not_secure_description">La conexión no es segura.</string>
+    <!-- Title text for the protection panel banner when tracking protection is disabled. -->
+    <string name="protection_panel_banner_not_protected_title">Desactivaste las protecciones</string>
+    <!-- Description text for the protection panel banner when tracking protection is disabled.
+        The first parameter is the name of the app defined in app_name (for example: Fenix) -->
+    <string name="protection_panel_banner_not_protected_description">%s está fuera de servicio. Te sugerimos que vuelvas a activar las protecciones.</string>
+    <!-- Title text for the protection panel banner when tracking protection is enabled.
+        The first parameter is the name of the app defined in app_name (for example: Fenix) -->
+    <string name="protection_panel_banner_protected_title">%s está en guardia</string>
+    <!-- Description text for the protection panel banner when tracking protection is enabled. -->
+    <string name="protection_panel_banner_protected_description">Estás protegido. Si detectamos algo, te lo haremos saber.</string>
+    <!-- Label text for the Enhanced Tracking Protection toggle. -->
+    <string name="protection_panel_etp_toggle_label">Protección de rastreo aumentada</string>
+    <!-- Description text for the Enhanced Tracking Protection toggle when tracking protection is enabled. -->
+    <string name="protection_panel_etp_toggle_enabled_description">Si algo parece roto en este sitio, intente desactivar las protecciones.</string>
+    <!-- Description text for the Enhanced Tracking Protection toggle when tracking protection is disabled. -->
+    <string name="protection_panel_etp_toggle_disabled_description">Las protecciones están desactivadas. Te sugerimos que las volvás a activar.</string>
+
     <!-- Debug drawer -->
     <!-- The user-facing title of the Debug Drawer feature. -->
     <string name="debug_drawer_title">Herramientas de depuración</string>
@@ -3033,11 +3061,6 @@
     <string name="glean_debug_tools_title">Herramientas de depuración de Glean</string>
 
     <!-- Messages explaining how to exit fullscreen mode -->
-    <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled -->
-    <string name="exit_fullscreen_with_gesture" moz:removedIn="132" tools:ignore="UnusedResources">Para salir de pantalla completa, arrastrá desde arriba y usá el gesto hacia atrás</string>
-    <!-- Message shown to explain how to exit fullscreen mode when using back button navigation -->
-    <string name="exit_fullscreen_with_back_button" moz:removedIn="132" tools:ignore="UnusedResources">Para salir de pantalla completa, arrastrá desde arriba y presioná atrás</string>
-
     <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled. -->
     <!-- Localisation note: this text should be as short as possible, max 68 chars -->
     <string name="exit_fullscreen_with_gesture_short">Arrastrar desde arriba y usar el gesto hacia atrás para salir</string>
@@ -3048,4 +3071,35 @@
     <!-- Beta Label Component !-->
     <!-- Text shown as a label or tag to indicate a feature or area is still undergoing active development. Note that here "Beta" should not be translated, as it is used as an icon styled element. -->
     <string name="beta_feature">BETA</string>
+
+    <!-- Root certificate expiration warnings -->
+    <!-- These strings for homepage cards and push notifications to be pushed to users running outdated versions of Firefox. We want to encourage these users to update to the latest version so their extensions and other features don't stop working when Firefox's old root certificate expires on 2025-03-14. For more information, see this SUMO article: https://support.mozilla.org/kb/root-certificate-expiration !-->
+    <!-- Homepage card button to open Google Play Store. "Update" is a verb. -->
+    <string name="certificate_warning_homepage_card_update_now_button" tools:ignore="UnusedResources">Actualizar ahora</string>
+    <!-- Homepage card title about old Firefox version. "Update" is a verb. Note: The word "Firefox" should NOT be translated. -->
+    <string name="certificate_warning_homepage_card_hca1_title" tools:ignore="BrandUsage,UnusedResources">Actualizá tu navegador Firefox</string>
+    <!-- Homepage card message about old Firefox version -->
+    <string name="certificate_warning_homepage_card_hca1_message" tools:ignore="UnusedResources">Un certificado raíz expirará y algunas características dejarán de funcionar el 14 de marzo.</string>
+    <!-- Homepage card title about old Firefox version. "Update" is a verb. -->
+    <string name="certificate_warning_homepage_card_hcr1_title" tools:ignore="UnusedResources">Actualización antes del 14 de marzo</string>
+    <!-- Homepage card message about old Firefox version. Note: The word "Firefox" should NOT be translated. -->
+    <string name="certificate_warning_homepage_card_hcr1_message" tools:ignore="BrandUsage,UnusedResources">Un certificado raíz caducará y tu versión de Firefox dejará de funcionar correctamente.</string>
+    <!-- Homepage card title about old Firefox version -->
+    <string name="certificate_warning_homepage_card_hcw2_title" tools:ignore="UnusedResources">Quedan menos de 7 días para actualizar</string>
+    <!-- Homepage card message about old Firefox version. Note: The word "Firefox" should NOT be translated. -->
+    <string name="certificate_warning_homepage_card_hcw2_message" tools:ignore="BrandUsage,UnusedResources">El 14 de marzo, los complementos y otras características de Firefox dejarán de funcionar porque un certificado raíz está por expirar.</string>
+    <!-- Homepage card title about old Firefox version. Note: The word "Firefox" should NOT be translated. -->
+    <string name="certificate_warning_homepage_card_hcw3_title" tools:ignore="BrandUsage,UnusedResources">Última oportunidad de mantener tu Firefox</string>
+    <!-- Homepage card message about old Firefox version. Note: The word "Firefox" should NOT be translated. -->
+    <string name="certificate_warning_homepage_card_hcw3_message" tools:ignore="BrandUsage,UnusedResources">Tu versión de Firefox dejará de funcionar correctamente el 14 de marzo porque un certificado raíz está por expirar.</string>
+    <!-- Push notification title about old Firefox version. "Update" is a noun. -->
+    <string name="certificate_warning_push_notification_update_recommended_title" tools:ignore="UnusedResources">Actualización recomendada</string>
+    <!-- Push notification message about old Firefox version -->
+    <string name="certificate_warning_push_notification_pnr1_message" tools:ignore="UnusedResources">Los complementos y algunas funciones dejarán de funcionar el 14 de marzo.</string>
+    <!-- Push notification title about old Firefox version. Note: The word "Firefox" should NOT be translated. -->
+    <string name="certificate_warning_push_notification_pnw2_title" tools:ignore="BrandUsage,UnusedResources">Estás en una versión antigua de Firefox</string>
+    <!-- Push notification message about old Firefox version. "Update" is a verb. -->
+    <string name="certificate_warning_push_notification_pnw2_message" tools:ignore="UnusedResources">Actualiza antes del 14 de marzo para seguir usando complementos y otras funciones.</string>
+    <!-- Push notification message about old Firefox version -->
+    <string name="certificate_warning_push_notification_pnw3_message" tools:ignore="UnusedResources">Algunas características dejarán de funcionar mañana.</string>
 </resources>

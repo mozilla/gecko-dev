@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools" xmlns:moz="http://mozac.org/tools">
+    <!-- Name of the "notification channel" used for displaying media notification. See https://developer.android.com/training/notify-user/channels -->
+    <string name="mozac_feature_media_notification_channel">Media</string>
+
+    <!-- Title of notification shown when the device's camera is shared with a website (WebRTC) -->
+    <string name="mozac_feature_media_sharing_camera">A fotucàmmira è aḍḍumata</string>
+    <!-- Title of notification shown when the device's microphone is shared with a website (WebRTC) -->
+    <string name="mozac_feature_media_sharing_microphone">U micròfunu è aḍḍumatu</string>
+    <!-- Title of notification shown when the device's camera and microphone is shared with a website (WebRTC) -->
+    <string name="mozac_feature_media_sharing_camera_and_microphone">A fotucàmmira e u micròfunu sunnu aḍḍumati</string>
+
+    <!-- Text of notification shown when the device's camera is shared with a website (WebRTC) -->
+    <string name="mozac_feature_media_sharing_camera_text">Ammacca pi gràpiri a scheda chi sta usannu a fotucàmmira.</string>
+    <!-- Text of notification shown when the device's microphone is shared with a website (WebRTC) -->
+    <string name="mozac_feature_media_sharing_microphone_text">Ammacca pi gràpiri a scheda chi sta usannu u micròfunu.</string>
+    <!-- Text of notification shown when the device's camera and microphone is shared with a website (WebRTC) -->
+    <string name="mozac_feature_media_sharing_camera_and_microphone_text">Ammacca pi gràpiri a scheda chi sta usannu u micròfunu e a fotucàmmira.</string>
+
+
+    <!-- Text of reminder notification shown when the device's camera is shared with a website (WebRTC). %1$s is a placeholder that will be replaced by the app name-->
+    <string name="mozac_feature_media_sharing_camera_reminder_text">Ricòrdati: %1$s sta usannu ancora a to fotucàmmira. Ammacca pi gràpiri a scheda.</string>
+    <!-- Text of reminder notification shown when the device's microphone is shared with a website (WebRTC) %1$s is a placeholder that will be replaced by the app name-->
+    <string name="mozac_feature_media_sharing_microphone_reminder_text_2">Ricòrdati: %1$s sta usannu ancora u to micròfunu. Ammacca pi gràpiri a scheda.</string>
+    <!-- Text of reminder notification shown when the device's camera and microphone is shared with a website (WebRTC) %1$s is a placeholder that will be replaced by the app name-->
+    <string name="mozac_feature_media_sharing_camera_and_microphone_reminder_text_2">Ricòrdati: %1$s sta usannu ancora u to micròfunu e a to fotucàmmira. Ammacca pi gràpiri a scheda.</string>
+
+    <!--This is the title of the "play" action media shown in the media notification while web content is playing media. Clicking it will resume playing paused media. On most modern Android system only an icon is visible. But screen readers may read this title. -->
+    <string name="mozac_feature_media_notification_action_play">Abbìa</string>
+
+    <!--This is the title of the "pause" action shown in the media notification while web content is playing media. Clicking it will pause currently playing media. On most modern Android system only an icon is visible. But screen readers may read this title. -->
+    <string name="mozac_feature_media_notification_action_pause">Pausa</string>
+
+    <!-- Neutral title of the media notification for when a website that is open in private mode. -->
+    <string name="mozac_feature_media_notification_private_mode">Un situ sta ripruducennu cuntinuti</string>
+</resources>

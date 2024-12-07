@@ -268,6 +268,10 @@
     <string name="mozac_feature_addons_status_blocklisted_1">Aquesta extension es blocada, per enfranh las politicas de Mozilla e foguèt desactivada.</string>
     <!-- Status message below an add-on in the add-ons manager when this add-on has been soft-blocked. -->
     <string name="mozac_feature_addons_status_softblocked" moz:removedIn="133" tools:ignore="UnusedResources">Aquesta extension enfranh las politicas de Mozilla e foguèt desactivada. La podètz activar, mas pòt èsser perilhós.</string>
+    <!-- Status message below an add-on in the add-ons manager when this add-on has been soft-blocked. -->
+    <string name="mozac_feature_addons_status_softblocked_1">Aquesta extension es restrencha a causa de violacion de las politicas de Mozilla e foguèt desactivada. La podètz activar, mas pòt èsser perilhós.</string>
+    <!-- Status message below an add-on in the add-ons manager when this add-on has been soft-blocked but the user re-enabled it. -->
+    <string name="mozac_feature_addons_status_softblocked_re_enabled">Aquesta extension viola las politicas de Mozilla. Son usatge es perilhós.</string>
     <!-- Status message below an add-on in the add-ons manager when this add-on hasn't been signed correctly. %1$s is the add-on name. -->
     <string name="mozac_feature_addons_status_unsigned">Se podiá pas verificar que %1$s foguèsse segur e foguèt desactivat.</string>
     <!-- Status message below an add-on in the add-ons manager when this add-on isn't compatible with the application version. %1$s is the add-on name, %2$s is the app name and %3$s is the app version. -->

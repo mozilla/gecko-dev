@@ -1,0 +1,454 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools" xmlns:moz="http://mozac.org/tools">
+    <!-- App name for private browsing mode. The first parameter is the name of the app defined in app_name (for example: Fenix)-->
+    <string name="app_name_private_5">%s privati</string>
+    <!-- App name for private browsing mode. The first parameter is the name of the app defined in app_name (for example: Fenix)-->
+    <string name="app_name_private_4">%s (nav. privata)</string>
+
+    <!-- Home Fragment -->
+    <!-- Content description (not visible, for screen readers etc.): "Three dot" menu button. -->
+    <string name="content_description_menu">Cchiù upzioni</string>
+    <!-- Content description (not visible, for screen readers etc.): "Private Browsing" menu button. -->
+    <string name="content_description_private_browsing_button">Abbìlita navigazzioni privata</string>
+    <!-- Content description (not visible, for screen readers etc.): "Private Browsing" menu button. -->
+    <string name="content_description_disable_private_browsing_button">Sdisabbìlita navigazzioni privata</string>
+
+
+    <!-- Content description (not visible, for screen readers etc.): "Private Browsing" menu button. -->
+    <string name="content_description_private_browsing">Navigazzioni privata</string>
+    <!-- Placeholder text shown in the search bar before a user enters text for the default engine -->
+    <string name="search_hint">Riscedi o metti nu nnirizzu</string>
+    <!-- Placeholder text shown in the search bar before a user enters text for a general engine -->
+    <string name="search_hint_general_engine">Riscedi nnâ riti</string>
+    <!-- Placeholder text shown in search bar when using history search -->
+    <string name="history_search_hint">Riscedi nnâ crunuluggìa</string>
+    <!-- Placeholder text shown in search bar when using bookmarks search -->
+    <string name="bookmark_search_hint">Riscedi nnî nzingalibbri</string>
+    <!-- Placeholder text shown in search bar when using tabs search -->
+    <string name="tab_search_hint">Riscdi nnê schedi</string>
+    <!-- Placeholder text shown in the search bar when using application search engines -->
+    <string name="application_search_hint">Scrivi i tèrmini dâ risciduta</string>
+    <!-- No Open Tabs Message Description -->
+    <string name="no_open_tabs_description">I to schedi graputi vennu mustrati cca.</string>
+    <!-- No Private Tabs Message Description -->
+    <string name="no_private_tabs_description">I to schedi privati vennu mustrati cca.</string>
+    <!-- Tab tray multi select title in app bar. The first parameter is the number of tabs selected -->
+    <string name="tab_tray_multi_select_title">%1$d scartati</string>
+    <!-- Label of button in create collection dialog for creating a new collection  -->
+    <string name="tab_tray_add_new_collection">Agghiunci na ricota nova</string>
+    <!-- Label of editable text in create collection dialog for naming a new collection  -->
+    <string name="tab_tray_add_new_collection_name">Nomu</string>
+    <!-- Label of button in save to collection dialog for selecting a current collection  -->
+    <string name="tab_tray_select_collection">Scarta ricota</string>
+    <!-- Content description for close button while in multiselect mode in tab tray -->
+    <string name="tab_tray_close_multiselect_content_description">Nesci dâ mudalità di scartata mùrtipla</string>
+    <!-- Content description for save to collection button while in multiselect mode in tab tray -->
+    <string name="tab_tray_collection_button_multiselect_content_description">Sarba i schedi scartati nnâ ricota</string>
+    <!-- Content description on checkmark while tab is selected in multiselect mode in tab tray -->
+    <string name="tab_tray_multiselect_selected_content_description">Scartata</string>
+
+    <!-- Home - Bookmarks -->
+    <!-- Title for the home screen section with bookmarks. -->
+    <string name="home_bookmarks_title">Nzingalibbri</string>
+    <!-- Content description for the button which navigates the user to show all of their bookmarks. -->
+    <string name="home_bookmarks_show_all_content_description">Mustra tutti i nzingalibbri</string>
+    <!-- Text for the menu button to remove a recently saved bookmark from the user's home screen -->
+    <string name="home_bookmarks_menu_item_remove">Leva</string>
+
+    <!-- About content. The first parameter is the name of the application. (For example: Fenix) -->
+    <string name="about_content">%1$s è criatu di Mozilla.</string>
+
+    <string name="private_browsing_common_myths">
+       Liggenni ncapu â navigazziuni privata
+       </string>
+
+    <!-- True Private Browsing Mode -->
+    <!-- Title for info card on private homescreen in True Private Browsing Mode. -->
+    <string name="felt_privacy_desc_card_title">Nun lassari trazzi nta stu dispusitivu</string>
+    <!-- Explanation for private browsing displayed to users on home view when they first enable
+        private mode in our new Total Private Browsing mode.
+        The first parameter is the name of the app defined in app_name (for example: Firefox Nightly)
+        The second parameter is the clickable link text in felt_privacy_info_card_subtitle_link_text -->
+    <string name="felt_privacy_info_card_subtitle_2">%1$s cancella i to viscotta, a crunuluggìa e i dati dî siti quannu chiuji tutti i finestri privati. %2$s</string>
+    <!-- Clickable portion of the explanation for private browsing that links the user to our
+        about privacy page.
+        This string is used in felt_privacy_info_card_subtitle as the second parameter.-->
+    <string name="felt_privacy_info_card_subtitle_link_text">Cu\' putissi vìdiri a me attività?</string>
+
+    <!-- Private mode shortcut "contextual feature recommendation" (CFR) -->
+    <!-- Text for the Private mode shortcut CFR message for adding a private mode shortcut to open private tabs from the Home screen -->
+    <string name="private_mode_cfr_message_2">Abbìa a to pròssima scheda privata c\'un toccu.</string>
+    <!-- Text for the positive button to accept adding a Private Browsing shortcut to the Home screen -->
+    <string name="private_mode_cfr_pos_button_text">Agghiunci â schirmata mastra</string>
+    <!-- Text for the negative button to decline adding a Private Browsing shortcut to the Home screen -->
+    <string name="cfr_neg_button_text">No, grazzi</string>
+
+    <!-- Open in App "contextual feature recommendation" (CFR) -->
+    <!-- Text for the info message. The first parameter is the name of the application.-->
+    <string name="open_in_app_cfr_info_message_2">Po\' mpustari %1$s pi fàrici gràpiri \'n autumàticu i lijami di l\'applicazzioni.</string>
+    <!-- Text for the positive action button -->
+    <string name="open_in_app_cfr_positive_button_text">Vai nnê mpustazzioni</string>
+    <!-- Text for the negative action button -->
+    <string name="open_in_app_cfr_negative_button_text">Leva</string>
+
+    <!-- Total cookie protection "contextual feature recommendation" (CFR) -->
+    <!-- Text for the message displayed in the contextual feature recommendation popup promoting the total cookie protection feature. -->
+    <string name="tcp_cfr_message" moz:removedIn="132" tools:ignore="UnusedResources">A nostra funzioni di privatizza cchiù putenti ìsula i trazzatura chi t\'assicùtanu ntra un situ e n\'autru.</string>
+    <!-- Text displayed that links to website containing documentation about the "Total cookie protection" feature. -->
+    <string name="tcp_cfr_learn_more" moz:removedIn="132" tools:ignore="UnusedResources">Cchiù nfurmazzioni supra â prutizzioni tutali dî viscotta</string>
+
+    <!-- Private browsing erase action "contextual feature recommendation" (CFR) -->
+    <!-- Text for the message displayed in the contextual feature recommendation popup promoting the erase private browsing feature. -->
+    <string name="erase_action_cfr_message">Tocca cca p\'abbiari na nova sissiuni privata. Cancella a crunuluggìa, i viscotta — tutti cosi.</string>
+
+    <!-- Toolbar "contextual feature recommendation" (CFR) -->
+    <!-- Text for the title displayed in the contextual feature recommendation popup promoting the navigation bar. -->
+    <string name="navbar_cfr_title">Nàviga cchiù lestu câ nova navigazzioni</string>
+
+    <!-- Text for the message displayed for the popup promoting the long press of navigation in the navigation bar. -->
+    <string name="navbar_navigation_buttons_cfr_message">Tocca e teni ammaccati i filecci pi sautari ntra i pàggini nnâ crunuluggìa di sta scheda.</string>
+
+    <!-- Tablet navigation bar "contextual feature recommendation" (CFR) -->
+    <!-- Text for the title displayed in the contextual feature recommendation popup promoting the tablet navigation bar. -->
+    <string name="tablet_nav_bar_cfr_title" moz:removedIn="132" tools:ignore="UnusedResources">Nuvità: filecci pi jiri nn\'arrè e nn\'avanti c\'un toccu sulu</string>
+    <!-- Text for the message displayed in the contextual feature recommendation popup promoting the tablet navigation bar. -->
+    <string name="tablet_nav_bar_cfr_message" moz:removedIn="132" tools:ignore="UnusedResources">Gòditi na navigazzioni cchiù lesta sempri a purtata di manu.</string>
+
+    <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
+    <string name="camera_permissions_needed_message">Abbisognu d\'accèdiri â fotucàmmira. Vai nnê mpustazzioni di Android, ammacca pirmisi e auturizza.</string>
+    <!-- Text for the positive action button to go to Android Settings to grant permissions. -->
+    <string name="camera_permissions_needed_positive_button_text">Vai nnê mpustazzioni</string>
+    <!-- Text for the negative action button to dismiss the dialog. -->
+    <string name="camera_permissions_needed_negative_button_text">Leva</string>
+
+    <!-- Text for the positive action button to go to Settings for auto close tabs. -->
+    <string name="tab_tray_close_tabs_banner_positive_button_text">Vidi upzioni</string>
+    <!-- Text for the negative action button to dismiss the Close Tabs Banner. -->
+    <string name="tab_tray_close_tabs_banner_negative_button_text">Leva</string>
+    <!-- Text for the banner message to tell users about our inactive tabs feature. -->
+    <string name="tab_tray_inactive_onboarding_message">I schedi chi nun vidisti pi du\' simani vennu spustati cca.</string>
+    <!-- Text for the action link to go to Settings for inactive tabs. -->
+    <string name="tab_tray_inactive_onboarding_button_text">Astuta nnê mpustazzioni</string>
+    <!-- Text for title for the auto-close dialog of the inactive tabs. -->
+    <string name="tab_tray_inactive_auto_close_title">Autu-chiuji doppu un misi?</string>
+    <!-- Text for the body for the auto-close dialog of the inactive tabs.
+        The first parameter is the name of the application.-->
+    <string name="tab_tray_inactive_auto_close_body_2">%1$s po chiùjiri i schedi chi nun vidisti nna l\'ùrtimu misi.</string>
+    <!-- Content description for close button in the auto-close dialog of the inactive tabs. -->
+    <string name="tab_tray_inactive_auto_close_button_content_description">Chiuji</string>
+
+    <!-- Text for turn on auto close tabs button in the auto-close dialog of the inactive tabs. -->
+    <string name="tab_tray_inactive_turn_on_auto_close_button_2">Aḍḍuma autu-chiujuta</string>
+
+
+    <!-- Home screen icons - Long press shortcuts -->
+    <!-- Shortcut action to open new tab -->
+    <string name="home_screen_shortcut_open_new_tab_2">Nova scheda</string>
+    <!-- Shortcut action to open new private tab -->
+    <string name="home_screen_shortcut_open_new_private_tab_2">Nova scheda privata</string>
+    <!-- Shortcut action to open Passwords screen -->
+    <string name="home_screen_shortcut_passwords">Chiavi</string>
+
+    <!-- Recent Tabs -->
+    <!-- Header text for jumping back into the recent tab in the home screen -->
+    <string name="recent_tabs_header">Torna â scheda</string>
+
+
+    <!-- Button text for showing all the tabs in the tabs tray -->
+    <string name="recent_tabs_show_all">Mustra tutti</string>
+    <!-- Content description for the button which navigates the user to show all recent tabs in the tabs tray. -->
+    <string name="recent_tabs_show_all_content_description_2">Buttuni pi mustrari tutti i schedi ricenti</string>
+    <!-- Text for button in synced tab card that opens synced tabs tray -->
+    <string name="recent_tabs_see_all_synced_tabs_button_text">Vidi tutti i schedi sincrunizzati</string>
+    <!-- Accessibility description for device icon used for recent synced tab -->
+    <string name="recent_tabs_synced_device_icon_content_description">Dispusitivu sincrunizzatu</string>
+    <!-- Text for the dropdown menu to remove a recent synced tab from the homescreen -->
+    <string name="recent_synced_tab_menu_item_remove">Leva</string>
+    <!-- Text for the menu button to remove a grouped highlight from the user's browsing history
+         in the Recently visited section -->
+    <string name="recent_tab_menu_item_remove">Leva</string>
+
+    <!-- History Metadata -->
+    <!-- Header text for a section on the home screen that displays grouped highlights from the
+         user's browsing history, such as topics they have researched or explored on the web -->
+    <string name="history_metadata_header_2">Visitati di picca</string>
+    <!-- Text for the menu button to remove a grouped highlight from the user's browsing history
+         in the Recently visited section -->
+    <string name="recently_visited_menu_item_remove">Leva</string>
+    <!-- Content description for the button which navigates the user to show all of their history. -->
+    <string name="past_explorations_show_all_content_description_2">Mustra tutti i vìsiri passati</string>
+
+    <!-- Browser Fragment -->
+    <!-- Content description (not visible, for screen readers etc.): Navigate backward (browsing history) -->
+    <string name="browser_menu_back">Nn\'arrè</string>
+    <!-- Content description (not visible, for screen readers etc.): Navigate forward (browsing history) -->
+    <string name="browser_menu_forward">Avanti</string>
+    <!-- Content description (not visible, for screen readers etc.): Refresh current website -->
+    <string name="browser_menu_refresh">Attualizza</string>
+    <!-- Content description (not visible, for screen readers etc.): Stop loading current website -->
+    <string name="browser_menu_stop">Ferma</string>
+    <!-- Browser menu button that opens the extensions manager -->
+    <string name="browser_menu_extensions">Stinneri</string>
+    <!-- Browser menu banner header text for extensions onboarding.
+        The first parameter is the name of the app defined in app_name (for example: Fenix). -->
+    <string name="browser_menu_extensions_banner_onboarding_header">Pirsunalizza a %s</string>
+    <!-- Browser menu banner header text for extensions onboarding when all installed extensions have been disabled. -->
+    <string name="browser_menu_disabled_extensions_banner_onboarding_header">Ài stinneri nzitati ma nun abbilitati</string>
+    <!-- Browser menu banner link text for learning more about extensions -->
+    <string name="browser_menu_extensions_banner_learn_more">Cchiù nfurmazzioni</string>
+    <!-- Browser menu button that opens the extensions manager -->
+    <string name="browser_menu_manage_extensions">Manija stinneri</string>
+    <!-- Content description (not visible, for screen readers etc.): Section heading for recommended extensions.-->
+    <string name="browser_menu_recommended_section_content_description">Stinneri raccumannati</string>
+    <!-- Content description (not visible, for screen readers etc.): Label for plus icon used to add extension.
+      The first parameter is the name of the extension (for example: ClearURLs). -->
+    <string name="browser_menu_extension_plus_icon_content_description_2">Agghiunci %1$s</string>
+    <!-- Browser menu button that opens AMO in a tab -->
+    <string name="browser_menu_discover_more_extensions">Mustra cchiù assai stinneri</string>
+    <!-- Browser menu description that is shown when one or more extensions are disabled due to extension errors -->
+    <string name="browser_menu_extensions_disabled_description">Sdisabbilitatu di manera timpurania</string>
+    <!-- The description of the browser menu appears when the user hasn't installed any extensions. -->
+    <string name="browser_menu_no_extensions_installed_description">Nuḍḍu stinneriu abbilitatu</string>
+    <!-- Browser menu button that opens account settings -->
+    <string name="browser_menu_account_settings">Nfurmazzioni dû cuntu</string>
+    <!-- Browser menu button that sends a user to help articles -->
+    <string name="browser_menu_help">Ajutu</string>
+    <!-- Browser menu button that sends a to a the what's new article -->
+    <string name="browser_menu_whats_new">Nuvità</string>
+    <!-- Browser menu button that opens the settings menu -->
+    <string name="browser_menu_settings">Mpustazzioni</string>
+    <!-- Browser menu button that opens a user's library -->
+    <string name="browser_menu_library">Libbrarìa</string>
+    <!-- Browser menu toggle that requests a desktop site -->
+    <string name="browser_menu_desktop_site">Situ dû scagnu</string>
+    <!-- Browser menu button that reopens a private tab as a regular tab -->
+    <string name="browser_menu_open_in_regular_tab">Grapi nta na scheda nurmali</string>
+    <!-- Browser menu toggle that adds a shortcut to the site on the device home screen. -->
+    <string name="browser_menu_add_to_homescreen">Agghiunci â schirmata mastra</string>
+    <!-- Browser menu toggle that adds a PWA of the site on the device home screen. -->
+    <string name="browser_menu_add_app_to_homescreen">Agghiunci l\'applicazzioni â schirmata mastra</string>
+    <!-- Browser menu toggle that adds a shortcut to the site on the device home screen. -->
+    <string name="browser_menu_add_to_homescreen_2">Agghiunci â schirmata mastra…</string>
+    <!-- Browser menu toggle that adds a PWA of the site on the device home screen. -->
+    <string name="browser_menu_add_app_to_homescreen_2">Agghiunci app â schirmata mastra…</string>
+    <!-- Content description (not visible, for screen readers etc.) for the Resync tabs button -->
+    <string name="resync_button_content_description">Sincrunizza arrè</string>
+    <!-- Browser menu button that opens the find in page menu -->
+    <string name="browser_menu_find_in_page">Attrova nnâ pàggina</string>
+    <!-- Browser menu button that opens the find in page menu -->
+    <string name="browser_menu_find_in_page_2">Attrova nnâ pàggina…</string>
+    <!-- Browser menu button that opens the translations dialog, which has options to translate the current browser page. -->
+    <string name="browser_menu_translations">Traduci pàggina</string>
+    <!-- Browser menu button that saves the current tab to a collection -->
+    <string name="browser_menu_save_to_collection">Sarba nnâ ricota…</string>
+    <!-- Browser menu button that saves the current tab to a collection -->
+    <string name="browser_menu_save_to_collection_2">Sarba nnâ ricota</string>
+    <!-- Browser menu button that open a share menu to share the current site -->
+    <string name="browser_menu_share">Sparti</string>
+    <!-- Browser menu button that open a share menu to share the current site -->
+    <string name="browser_menu_share_2">Sparti…</string>
+    <!-- Browser menu button shown in custom tabs that opens the current tab in Fenix
+        The first parameter is the name of the app defined in app_name (for example: Fenix) -->
+    <string name="browser_menu_open_in_fenix">Grapi nne %1$s</string>
+    <!-- Browser menu text shown in custom tabs to indicate this is a Fenix tab
+        The first parameter is the name of the app defined in app_name (for example: Fenix) -->
+    <string name="browser_menu_powered_by">FATTU CU %1$s</string>
+    <!-- Browser menu text shown in custom tabs to indicate this is a Fenix tab
+        The first parameter is the name of the app defined in app_name (for example: Fenix) -->
+    <string name="browser_menu_powered_by2">Fattu cu %1$s</string>
+    <!-- Browser menu button to put the current page in reader mode -->
+    <string name="browser_menu_read">Mudalità littura</string>
+    <!-- Browser menu button content description to close reader mode and return the user to the regular browser -->
+    <string name="browser_menu_read_close">Chiuji mudalità littura</string>
+    <!-- Browser menu button to open the current page in an external app -->
+    <string name="browser_menu_open_app_link">Grapi nta n\'app</string>
+    <!-- Browser menu button to show reader view appearance controls e.g. the used font type and size -->
+    <string name="browser_menu_customize_reader_view">Pirsunalizza a mudalità di littura</string>
+    <!-- Browser menu button to show reader view appearance controls e.g. the used font type and size -->
+    <string name="browser_menu_customize_reader_view_2">Pirsunalizza a mudalità di littura</string>
+    <!-- Browser menu label for adding a bookmark -->
+    <string name="browser_menu_add">Agghiunci</string>
+    <!-- Browser menu label for editing a bookmark -->
+    <string name="browser_menu_edit">Cancia</string>
+    <!-- Button shown on the home page that opens the Customize home settings -->
+    <string name="browser_menu_customize_home_1">Pirsunalizza a pàggina mastra</string>
+    <!-- Browser menu label to sign in to sync on the device using Mozilla accounts -->
+    <string name="browser_menu_sign_in">Trasi</string>
+    <!-- Browser menu caption label for the "Sign in" browser menu item described in `browser_menu_sign_in` -->
+    <string name="browser_menu_sign_in_caption">Sincrunizza chiavi, schedi e autru</string>
+    <!-- Browser menu label to sign back in to sync on the device when the user's account needs to be reauthenticated -->
+    <string name="browser_menu_sign_back_in_to_sync">Trasi pi sincrunizzari</string>
+    <!-- Browser menu caption label for the "Sign back in to sync" browser menu item described in `browser_menu_sign_back_in_to_sync` when there is an error in syncing -->
+    <string name="browser_menu_syncing_paused_caption">Sincrunizzazzioni \'n pausa</string>
+    <!-- Browser menu label that creates a private tab -->
+    <string name="browser_menu_new_private_tab">Nova scheda privata</string>
+    <!-- Browser menu label that navigates to the Password screen -->
+    <string name="browser_menu_passwords">Chiavi</string>
+    <!-- Browser menu label that navigates to the SUMO page for the Firefox for Android release notes.
+         The first parameter is the name of the app defined in app_name (for example: Fenix)-->
+    <string name="browser_menu_new_in_firefox">Nuvità di %1$s</string>
+    <!-- Browser menu label that toggles the request for the desktop site of the currently visited page -->
+    <string name="browser_menu_switch_to_desktop_site">Cancia ô situ dû scagnu</string>
+    <!-- Browser menu label that toggles the request for the mobile site of the currently visited page -->
+    <string name="browser_menu_switch_to_mobile_site">Cancia ô situ mòbbili</string>
+    <!-- Browser menu label that navigates to the page tools sub-menu -->
+    <string name="browser_menu_tools">Stigghi</string>
+    <!-- Content description (not visible, for screen readers etc.): Back button for all menu redesign sub-menu -->
+    <string name="browser_menu_back_button_content_description">Torna ô minù principali</string>
+    <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar main menu. -->
+    <string name="browser_main_menu_handlebar_content_description">Chiuji u minù principali</string>
+    <!-- Content description (not visible, for screen readers etc.) for main menu help button. -->
+    <string name="browser_main_menu_content_description_help_button">Ajutu</string>
+    <!-- Content description (not visible, for screen readers etc.) for main menu settings button. -->
+    <string name="browser_main_menu_content_description_settings_button">Mpustazzioni</string>
+    <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar extensions menu. -->
+    <string name="browser_extensions_menu_handlebar_content_description">Chiuji u minù dî stinneri</string>
+    <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar save menu. -->
+    <string name="browser_save_menu_handlebar_content_description">Chiuji u minù dî sarbataggi</string>
+    <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar tools menu. -->
+    <string name="browser_tools_menu_handlebar_content_description">Chiuji u minù dî stigghi</string>
+    <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar custom tab menu. -->
+    <string name="browser_custom_tab_menu_handlebar_content_description">Chiuji u minù dâ pirsunalizzazzioni dî schedi</string>
+    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
+    <string name="browser_menu_tools_description_with_translate" moz:removedIn="134" tools:ignore="UnusedResources">Mudalità di littura, Traduci, Stampa, Sparti, Grapi app</string>
+    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
+    <string name="browser_menu_tools_description" moz:removedIn="134" tools:ignore="UnusedResources">Mudalità di littura, Stampa, Sparti, Grapi app</string>
+    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu
+         The first parameter is the label of the report site issue (for example: Report Site issue) -->
+    <string name="browser_menu_tools_description_with_translate_with_report_site">Mudalità di littura, Traduci, %s, Stampa, Sparti, Grapi app</string>
+    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
+    <string name="browser_menu_tools_description_with_translate_without_report_site">Mudalità di littura, Traduci, Stampa, Sparti, Grapi app</string>
+    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu
+         The first parameter is the label of the report site issue (for example: Report Site issue) -->
+    <string name="browser_menu_tools_description_with_report_site">Mudalità di littura, %s, Stampa, Sparti, Grapi app</string>
+    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
+    <string name="browser_menu_tools_description_without_report_site">Mudalità di littura, Stampa, Sparti, Grapi app</string>
+    <!-- Browser menu label that navigates to the save sub-menu, which contains various save related menu items such as
+         bookmarking a page, saving to collection, shortcut or as a PDF, and adding to home screen -->
+    <string name="browser_menu_save">Sarba</string>
+    <!-- Browser menu description that describes the various save related menu items inside of the save sub-menu -->
+    <string name="browser_menu_save_description">Agghiunci nzingalibbru, Accurzu, Pàggina mastra, Ricoti, PDF</string>
+    <!-- Browser menu label that bookmarks the currently visited page -->
+    <string name="browser_menu_bookmark_this_page">Agghiunci sta pàggina ê nzingalibbri</string>
+    <!-- Browser menu label that navigates to the edit bookmark screen for the current bookmarked page -->
+    <string name="browser_menu_edit_bookmark">Cancia nzingalibbru</string>
+
+    <!-- Browser menu label that the saves the currently visited page as a PDF -->
+    <string name="browser_menu_save_as_pdf">Sarba comu PDF…</string>
+    <!-- Browser menu label for turning ON reader view of the current visited page -->
+    <string name="browser_menu_turn_on_reader_view">Attiva a mudalità di littura</string>
+    <!-- Browser menu label for turning OFF reader view of the current visited page -->
+    <string name="browser_menu_turn_off_reader_view">Sdisattiva a mudalità di littura</string>
+    <!-- Browser menu label for navigating to the translation feature, which provides language translation options the current visited page -->
+    <string name="browser_menu_translate_page">Traduci a pàggina…</string>
+    <!-- Browser menu label that is displayed when the current page has been translated by the translation feature.
+         The first parameter is the name of the language that page was translated to (e.g. English). -->
+    <string name="browser_menu_translated_to">Traduciuta nni %1$s</string>
+    <!-- Browser menu label for the print feature -->
+    <string name="browser_menu_print">Stampa…</string>
+    <!-- Browser menu label for the Delete browsing data on quit feature.
+        The first parameter is the name of the app defined in app_name (for example: Fenix). -->
+    <string name="browser_menu_delete_browsing_data_on_quit">Nesci di %1$s</string>
+
+    <!-- Menu "contextual feature recommendation" (CFR) -->
+    <!-- Text for the title in the contextual feature recommendation popup promoting the menu feature. -->
+    <string name="menu_cfr_title">Novu: minù cchiù fàcili</string>
+    <!-- Text for the message in the contextual feature recommendation popup promoting the menu feature. -->
+    <string name="menu_cfr_body">Attrova chiḍḍu chi ti serbi cchiù lestu, dâ navigazzioni privata nzinu a l\'azzioni di sarbataggiu.</string>
+
+    <!-- Extensions management fragment -->
+    <!-- Text displayed when there are no extensions to be shown -->
+    <string name="extensions_management_no_extensions">Nun cc\'è nuḍḍu stinneriu cca</string>
+
+    <!-- Browser Toolbar -->
+    <!-- Content description for the Home screen button on the browser toolbar -->
+    <string name="browser_toolbar_home">Pàggina mastra</string>
+    <!-- Content description (not visible, for screen readers etc.): Erase button: Erase the browsing
+         history and go back to the home screen. -->
+    <string name="browser_toolbar_erase">Cancella crunuluggìa di navigazzioni </string>
+    <!-- Content description for the translate page toolbar button that opens the translations dialog when no translation has occurred. -->
+    <string name="browser_toolbar_translate">Traduci pàggina</string>
+    <!-- Content description (not visible, for screen readers etc.) for the translate page toolbar button that opens the translations dialog when the page is translated successfully.
+         The first parameter is the name of the language that is displayed in the original page. (For example: English)
+         The second parameter is the name of the language which the page was translated to. (For example: French) -->
+    <string name="browser_toolbar_translated_successfully">Pàggina traduciuta di %1$s a %2$s.</string>
+
+    <!-- Locale Settings Fragment -->
+    <!-- Content description for tick mark on selected language -->
+    <string name="a11y_selected_locale_content_description">Lingua scartata</string>
+    <!-- Text for default locale item -->
+    <string name="default_locale_text">Sicuta a lingua dû dispusitivu </string>
+    <!-- Placeholder text shown in the search bar before a user enters text -->
+    <string name="locale_search_hint">Riscedi lingua</string>
+
+    <!-- Text for the button to navigate to the sync sign in screen on the home onboarding dialog. -->
+    <string name="onboarding_home_sign_in_button">Trasi</string>
+
+    <!-- Onboarding home screen sync popup dialog message, shown on top of Recent Synced Tabs in the Jump back in section. -->
+    <string name="sync_cfr_message">I to schedi si stannu sincrunizzanu! Cuntinua di unni i lassasti ncapu a l\'autru to dispusitivu.</string>
+    <!-- Content description (not visible, for screen readers etc.): Close button for the home onboarding dialog -->
+    <string name="onboarding_home_content_description_close_button">Chiuji</string>
+
+    <!-- Juno first user onboarding flow experiment, strings are marked unused as they are only referenced by Nimbus experiments. -->
+    <!-- Description for learning more about our privacy notice. -->
+    <string name="juno_onboarding_privacy_notice_text" tools:ignore="BrandUsage">Abbisu di privatizza di Firefox</string>
+    <!-- Title for set firefox as default browser screen used by Nimbus experiments. -->
+    <string name="juno_onboarding_default_browser_title_nimbus_2">Ni piaci tinìriti ô sicuru</string>
+    <!-- Title for set firefox as default browser screen used by Nimbus experiments.
+        Note: The word "Firefox" should NOT be translated -->
+    <string name="juno_onboarding_default_browser_title_nimbus_3" tools:ignore="BrandUsage,UnusedResources">Scopri picchì a miliuna di cristiani ci piaci Firefox</string>
+    <!-- Title for set firefox as default browser screen used by Nimbus experiments. -->
+    <string name="juno_onboarding_default_browser_title_nimbus_4" tools:ignore="UnusedResources">Navigazzioni privata cu cchiù assai scartati</string>
+    <!-- Text for the button to set firefox as default browser on the device -->
+    <string name="juno_onboarding_default_browser_positive_button" tools:ignore="UnusedResources">Mposta comu navigaturi pridifinutu</string>
+    <!-- Text for the button dismiss the screen and move on with the flow -->
+    <string name="juno_onboarding_default_browser_negative_button" tools:ignore="UnusedResources">Ora no</string>
+    <!-- Text for the button to sign in to sync on the device -->
+    <string name="juno_onboarding_sign_in_positive_button" tools:ignore="UnusedResources">Trasi</string>
+    <!-- Text for the button dismiss the screen and move on with the flow -->
+    <string name="juno_onboarding_sign_in_negative_button" tools:ignore="UnusedResources">Ora no</string>
+    <!-- Text for the button to request notification permission on the device -->
+    <string name="juno_onboarding_enable_notifications_positive_button" tools:ignore="UnusedResources">Aḍḍuma nutìfichi</string>
+    <!-- Text for the button dismiss the screen and move on with the flow -->
+    <string name="juno_onboarding_enable_notifications_negative_button" tools:ignore="UnusedResources">Ora no</string>
+    <!-- Text for the button to dismiss the screen and move on with the flow -->
+    <string name="juno_onboarding_add_search_widget_negative_button" tools:ignore="UnusedResources">Ora no</string>
+
+    <!-- Preference description for banner about signing in -->
+    <string name="preferences_sign_in_description_2">Trasi pi sincrunizzari schedi, nzingalibbri, chiavi e autru.</string>
+
+    <!-- Preference for signing out -->
+    <string name="preferences_sign_out">Nesci</string>
+
+    <!-- Preference for reconnecting to FxA sync -->
+    <string name="preferences_sync_sign_in_to_reconnect">Trasi pi cullijàriti arrè</string>
+
+
+    <!-- Broken site reason text for sign in or sign out -->
+    <string name="webcompat_reporter_reason_account">Trasi o nesci</string>
+
+    <!-- Bookmark sign in button message -->
+    <string name="bookmark_sign_in_button">Trasi pi vìdiri i nzingalibbri sincrunizzati</string>
+    <!-- Text for the button to navigate to sync authentication -->
+    <string name="bookmark_empty_list_guest_cta">Trasi pi sincrunizzari</string>
+
+    <!-- An option from the share dialog to sign into sync -->
+    <string name="sync_sign_in">Trasi nne Sync</string>
+
+    <!-- Text shown for settings option for sign with pairing -->
+    <string name="sign_in_with_camera">Trasi câ to fotucàmmira</string>
+
+    <!-- Text displayed on a button in the synced tabs screen to link users to sign in when a user is not signed in to Firefox Sync -->
+    <string name="synced_tabs_sign_in_button">Trasi pi sincrunizzari</string>
+
+    <!-- Text for opt-out button from the review quality check contextual onboarding card. -->
+    <string name="review_quality_check_contextual_onboarding_secondary_button_text">Ora no</string>
+
+    <!-- Translations feature-->
+
+
+    <!-- Button text on the translations dialog to dismiss the dialog and return to the browser. -->
+    <string name="translations_bottom_sheet_negative_button">Ora no</string>
+
+
+    </resources>

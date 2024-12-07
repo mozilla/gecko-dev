@@ -17,8 +17,6 @@
     <!-- Text for password field in an authentication dialog. -->
     <string name="mozac_feature_prompt_password_hint">Senhal</string>
     <!-- Negative confirmation that we should not save the new or updated login -->
-    <string name="mozac_feature_prompt_dont_save" moz:removedIn="125" tools:ignore="UnusedResources">Enregistrar pas</string>
-    <!-- Negative confirmation that we should not save the new or updated login -->
     <string name="mozac_feature_prompt_dont_save_2">Pas ara</string>
     <!-- Negative confirmation that we should never save a login for this site -->
     <string name="mozac_feature_prompt_never_save">Enregistrar pas jamai</string>
@@ -27,29 +25,17 @@
     <!-- Positive confirmation that we should save the new or updated login -->
     <string name="mozac_feature_prompt_save_confirmation">Enregistrar</string>
     <!-- Negative confirmation that we should not save the updated login -->
-    <string name="mozac_feature_prompt_dont_update" moz:removedIn="125" tools:ignore="UnusedResources">Metre pas a jorn</string>
-    <!-- Negative confirmation that we should not save the updated login -->
     <string name="mozac_feature_prompt_dont_update_2">Pas ara</string>
     <!-- Positive confirmation that we should save the updated login -->
     <string name="mozac_feature_prompt_update_confirmation">Metre a jorn</string>
     <!-- Error text displayed underneath the password field when it is in an error case -->
-    <string name="mozac_feature_prompt_error_empty_password" moz:removedIn="125" tools:ignore="UnusedResources">Lo camp senhal pòt pas èsser void</string>
-    <!-- Error text displayed underneath the password field when it is in an error case -->
     <string name="mozac_feature_prompt_error_empty_password_2">Picatz un senhal</string>
-    <!-- Error text displayed underneath the login field when it is in an error case -->
-    <string name="mozac_feature_prompt_error_unknown_cause" moz:removedIn="125" tools:ignore="UnusedResources">Impossible d’enregistrar l’identificant</string>
     <!-- Error text displayed underneath the password field when it is in an error case -->
     <string name="mozac_feature_prompt_error_unknown_cause_2">Enregistrament de senhal impossible</string>
-    <!-- Prompt message displayed when app detects a user has entered a new username and password and user decides if app should save the new login. -->
-    <string name="mozac_feature_prompt_login_save_headline" moz:removedIn="125" tools:ignore="UnusedResources">Salvar aqueste identificant ?</string>
     <!-- Prompt message displayed when app detects a user has entered a new username and password and user decides if app should save the new password. -->
     <string name="mozac_feature_prompt_login_save_headline_2">Salvar lo senhal ?</string>
-    <!-- Prompt message displayed when app detects a user has entered a new password for an existing login and user decides if app should update the login. -->
-    <string name="mozac_feature_prompt_login_update_headline" moz:removedIn="125" tools:ignore="UnusedResources">Metre a jorn aqueste identificant ?</string>
     <!-- Prompt message displayed when app detects a user has entered a new password for an existing login and user decides if app should update the password. -->
     <string name="mozac_feature_prompt_login_update_headline_2">Actualizar lo senhal ?</string>
-    <!-- Prompt message displayed when app detects a user has entered a username for an existing login without a username and user decides if app should update the login. -->
-    <string name="mozac_feature_prompt_login_add_username_headline" moz:removedIn="130" tools:ignore="UnusedResources">Apondre un nom d’utilizaire al senhal salvat ?</string>
     <!-- Prompt message displayed when app detects a user has entered a username for an existing login without a username and user decides if app should update the login. -->
     <string name="mozac_feature_prompt_login_add_username_headline_2">Actualizar lo nom d’utilizaire ?</string>
     <!-- Text for a label for the field when prompt requesting a text is shown. -->
@@ -97,20 +83,12 @@
     <string name="mozac_feature_prompts_dec">Dec</string>
     <!-- Title of the time picker dialog. -->
     <string name="mozac_feature_prompts_set_time">Causida del temps</string>
-    <!-- Option in expanded select login prompt that links to login settings -->
-    <string name="mozac_feature_prompts_manage_logins" moz:removedIn="125" tools:ignore="UnusedResources">Gerir los identificants</string>
     <!-- Option in expanded select password prompt that links to password settings -->
     <string name="mozac_feature_prompts_manage_logins_2">Gerir los senhals</string>
-    <!-- Content description for expanding the saved logins options in the select login prompt -->
-    <string name="mozac_feature_prompts_expand_logins_content_description" moz:removedIn="125" tools:ignore="UnusedResources">Espandir los identificants suggerits</string>
     <!-- Content description for expanding the saved passwords options in the select password prompt -->
     <string name="mozac_feature_prompts_expand_logins_content_description_2">Desplegar los senhals salvats</string>
-    <!-- Content description for collapsing the saved logins options in the select login prompt -->
-    <string name="mozac_feature_prompts_collapse_logins_content_description" moz:removedIn="125" tools:ignore="UnusedResources">Plegar los identificants suggerits</string>
     <!-- Content description for collapsing the saved passwords options in the select password prompt -->
     <string name="mozac_feature_prompts_collapse_logins_content_description_2">Plegar los senhals salvats</string>
-    <!-- Header for the select login prompt to allow users to fill a form with a saved login -->
-    <string name="mozac_feature_prompts_saved_logins" moz:removedIn="125" tools:ignore="UnusedResources">Identificants recomandats</string>
 
     <!-- Header for the select password prompt to allow users to fill a form with a saved password -->
     <string name="mozac_feature_prompts_saved_logins_2">Senhals salvats</string>
@@ -125,9 +103,10 @@
     <!-- Title for using the suggest strong password confirmation dialog -->
     <string name="mozac_feature_prompts_suggest_strong_password_title">Utilizar un senhal segur ?</string>
     <!-- Content description for the suggest strong password confirmation dialog -->
-    <string name="mozac_feature_prompts_suggest_strong_password_description" moz:removedIn="130" tools:ignore="UnusedResources">Protegissètz vòstres comptes en utilizant un senhal complicat, generat a l\'azard. Accedissètz rapidament a vòstres senhals en los salvant dins vòstre compte.</string>
+    <string name="mozac_feature_prompts_suggest_strong_password_description_2" moz:removedIn="133" tools:ignore="UnusedResources">Protegissètz vòstres comptes en utilizant un senhal fòrt e generat a l\'azard. Serà salvat dins vòstre compte per d\'usatges futurs.</string>
+
     <!-- Content description for the suggest strong password confirmation dialog -->
-    <string name="mozac_feature_prompts_suggest_strong_password_description_2">Protegissètz vòstres comptes en utilizant un senhal fòrt e generat a l\'azard. Serà salvat dins vòstre compte per d\'usatges futurs.</string>
+    <string name="mozac_feature_prompts_suggest_strong_password_description_3">Protegissètz vòstre compte en utilizant un senhal fòrt e generat a l\'azard. Serà salvat dins vòstre compte per d\'usatges futurs.</string>
 
     <!-- Pressing this will use the suggested strong password -->
     <string name="mozac_feature_prompts_suggest_strong_password_use_password">Utilizar aqueste senhal</string>
@@ -151,28 +130,18 @@
     <string name="mozac_feature_prompt_repost_negative_button_text">Anullar</string>
 
     <!-- Credit Card Autofill -->
-    <!-- Header for the select credit card prompt to allow users to fill a form with a saved credit card. -->
-    <string name="mozac_feature_prompts_select_credit_card" moz:removedIn="125" tools:ignore="UnusedResources">Seleccionar carta de crèdit</string>
     <!-- Header for the select card prompt to allow users to fill a form with a saved card. -->
     <string name="mozac_feature_prompts_select_credit_card_2">Utilizar una carta enregistrada</string>
-    <!-- Content description for expanding the select credit card options in the select credit card prompt. -->
-    <string name="mozac_feature_prompts_expand_credit_cards_content_description" moz:removedIn="125" tools:ignore="UnusedResources">Espandir las cartas de crèdit suggeridas</string>
     <!-- Content description for expanding the saved card options in the select card prompt. -->
     <string name="mozac_feature_prompts_expand_credit_cards_content_description_2">Desplegar las cartas enregistradas</string>
-    <!-- Content description for collapsing the select credit card options in the select credit prompt. -->
-    <string name="mozac_feature_prompts_collapse_credit_cards_content_description" moz:removedIn="125" tools:ignore="UnusedResources">Plegar las cartas de crèdit suggeridas</string>
     <!-- Content description for collapsing the saved card options in the select prompt. -->
     <string name="mozac_feature_prompts_collapse_credit_cards_content_description_2">Plegar las cartas enregistradas</string>
-    <!-- Option in the expanded select credit card prompt that links to credit cards settings. -->
-    <string name="mozac_feature_prompts_manage_credit_cards" moz:removedIn="125" tools:ignore="UnusedResources">Gerir las cartas de crèdit</string>
     <!-- Option in the expanded select card prompt that links to cards settings. -->
     <string name="mozac_feature_prompts_manage_credit_cards_2">Gerir las cartas</string>
     <!-- Text for the title of a save credit card dialog. -->
     <string name="mozac_feature_prompts_save_credit_card_prompt_title">Salvar d’un biais segur aquesta carta ?</string>
     <!-- Text for the title of an update credit card dialog. -->
     <string name="mozac_feature_prompts_update_credit_card_prompt_title">Actualizar la data d’expiracion de la carta ?</string>
-    <!-- Subtitle text displayed under the title of the save credit card dialog. -->
-    <string name="mozac_feature_prompts_save_credit_card_prompt_body" moz:removedIn="125" tools:ignore="UnusedResources">Los numèros de carta son chifrats. Se gardarà pas lo còdi de seguretat.</string>
 
     <!-- Subtitle text displayed under the title of the saved card dialog. Parameter will be replaced by app name-->
     <string name="mozac_feature_prompts_save_credit_card_prompt_body_2">%s chifra lo numèro de carta. Lo còdi de seguretat s’enregistrarà pas.</string>
@@ -180,12 +149,8 @@
     <!-- Address Autofill -->
     <!-- Header for the select address prompt to allow users to fill a form with a saved address. -->
     <string name="mozac_feature_prompts_select_address_2">Seleccion d’adreça</string>
-    <!-- Content description for expanding the select addresses options in the select address prompt. -->
-    <string name="mozac_feature_prompts_expand_address_content_description" moz:removedIn="125" tools:ignore="UnusedResources">Espandir las adreças suggeridas</string>
     <!-- Content description for expanding the saved addresses options in the select address prompt. -->
     <string name="mozac_feature_prompts_expand_address_content_description_2">Desplegar las adreças enregistradas</string>
-    <!-- Content description for collapsing the select address options in the select address prompt. -->
-    <string name="mozac_feature_prompts_collapse_address_content_description" moz:removedIn="125" tools:ignore="UnusedResources">Plegar las adreças suggeridas</string>
     <!-- Content description for collapsing the saved address options in the select address prompt. -->
     <string name="mozac_feature_prompts_collapse_address_content_description_2">Plegar las adreças enregistradas</string>
     <!-- Text for the manage addresses button. -->
@@ -201,7 +166,7 @@
     <!-- Title of the Identity Credential privacy policy dialog title. The %1$s will be replaced with the name of the provider. -->
     <string name="mozac_feature_prompts_identity_credentials_privacy_policy_title">Causir %1$s coma provesidor d’identificants</string>
     <!-- Title of the Identity Credential privacy policy dialog description. The %1$s will be replaced with the name of the provider, %2$s will be replaced with the account, %3$s will be replaced with the privacy policy url and  %4$s will be replaced with the terms of service. -->
-    <string name="mozac_feature_prompts_identity_credentials_privacy_policy_description"><![CDATA[La connexion a %1$s amb un compte %2$s es somesa a la <a href="%3$s">politica de confidencialitat</a> e a las <a href="%4$s">condicions d’utilizacion</a> d’aqueste.]]></string>
+    <string name="mozac_feature_prompts_identity_credentials_privacy_policy_description" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[La connexion a %1$s amb un compte %2$s es somesa a la <a href="%3$s">politica de confidencialitat</a> e a las <a href="%4$s">condicions d’utilizacion</a> d’aqueste.]]></string>
     <!-- Text for the positive button of the Identity Credential dialogs. -->
     <string name="mozac_feature_prompts_identity_credentials_continue">Contunhar</string>
     <!-- Text for the cancel button of the Identity Credential dialogs. -->
