@@ -100,6 +100,7 @@ async function createAndPlayVideo(fileUrl) {
   const video = document.createElement("video");
   document.body.appendChild(video);
   video.src = fileUrl;
+  video.playbackRate = 8;
   ok(
     await video.play().then(
       () => true,
