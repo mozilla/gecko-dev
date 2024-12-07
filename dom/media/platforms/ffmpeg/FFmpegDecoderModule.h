@@ -9,6 +9,7 @@
 
 #include "FFmpegAudioDecoder.h"
 #include "FFmpegLibWrapper.h"
+#include "FFmpegUtils.h"
 #include "FFmpegVideoDecoder.h"
 #include "PlatformDecoderModule.h"
 #include "VideoUtils.h"
@@ -20,6 +21,38 @@ namespace mozilla {
 template <int V>
 class FFmpegDecoderModule : public PlatformDecoderModule {
  public:
+  static void Init(FFmpegLibWrapper* aLib) {
+#if defined(XP_WIN) && !defined(MOZ_FFVPX_AUDIOONLY)
+    if (!XRE_IsGPUProcess()) {
+      return;
+    }
+    static nsTArray<AVCodecID> kCodecIDs({
+        AV_CODEC_ID_AV1,
+        AV_CODEC_ID_VP9,
+    });
+    for (const auto& codecId : kCodecIDs) {
+      const auto* codec =
+          FFmpegDataDecoder<V>::FindHardwareAVCodec(aLib, codecId);
+      if (!codec) {
+        MOZ_LOG(sPDMLog, LogLevel::Debug,
+                ("No codec or decoder for %s on d3d11va",
+                 AVCodecToString(codecId)));
+        continue;
+      }
+      for (int i = 0; const AVCodecHWConfig* config =
+                          aLib->avcodec_get_hw_config(codec, i);
+           ++i) {
+        if (config->methods & AV_CODEC_HW_CONFIG_METHOD_HW_DEVICE_CTX) {
+          sSupportedHWCodecs.AppendElement(codecId);
+          MOZ_LOG(sPDMLog, LogLevel::Debug,
+                  ("Support %s on d3d11va", AVCodecToString(codecId)));
+          break;
+        }
+      }
+    }
+#endif
+  }
+
   static already_AddRefed<PlatformDecoderModule> Create(
       FFmpegLibWrapper* aLib) {
     RefPtr<PlatformDecoderModule> pdm = new FFmpegDecoderModule(aLib);
@@ -139,6 +172,7 @@ class FFmpegDecoderModule : public PlatformDecoderModule {
 
  private:
   FFmpegLibWrapper* mLib;
+  MOZ_RUNINIT static inline nsTArray<AVCodecID> sSupportedHWCodecs;
 };
 
 }  // namespace mozilla
