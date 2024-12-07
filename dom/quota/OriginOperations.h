@@ -107,14 +107,14 @@ RefPtr<ResolvableNormalOriginOp<bool>> CreateInitializeTemporaryGroupOp(
 
 RefPtr<ResolvableNormalOriginOp<bool>> CreateInitializePersistentOriginOp(
     MovingNotNull<RefPtr<QuotaManager>> aQuotaManager,
-    const mozilla::ipc::PrincipalInfo& aPrincipalInfo,
+    const PrincipalMetadata& aPrincipalMetadata,
     RefPtr<UniversalDirectoryLock> aDirectoryLock);
 
 RefPtr<ResolvableNormalOriginOp<bool>> CreateInitializeTemporaryOriginOp(
     MovingNotNull<RefPtr<QuotaManager>> aQuotaManager,
     const PersistenceType aPersistenceType,
-    const mozilla::ipc::PrincipalInfo& aPrincipalInfo,
-    bool aCreateIfNonExistent, RefPtr<UniversalDirectoryLock> aDirectoryLock);
+    const PrincipalMetadata& aPrincipalMetadata, bool aCreateIfNonExistent,
+    RefPtr<UniversalDirectoryLock> aDirectoryLock);
 
 RefPtr<ResolvableNormalOriginOp<bool>> CreateInitializePersistentClientOp(
     MovingNotNull<RefPtr<QuotaManager>> aQuotaManager,

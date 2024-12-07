@@ -1881,14 +1881,6 @@ TEST_F(TestQuotaManager,
   PerformOnBackgroundThread([]() {
     auto testOriginMetadata = GetTestPersistentOriginMetadata();
 
-    nsCOMPtr<nsIPrincipal> principal =
-        BasePrincipal::CreateContentPrincipal(testOriginMetadata.mOrigin);
-    QM_TRY(MOZ_TO_RESULT(principal), QM_TEST_FAIL);
-
-    mozilla::ipc::PrincipalInfo principalInfo;
-    QM_TRY(MOZ_TO_RESULT(PrincipalToPrincipalInfo(principal, &principalInfo)),
-           QM_TEST_FAIL);
-
     nsTArray<RefPtr<BoolPromise>> promises;
 
     QuotaManager* quotaManager = QuotaManager::Get();
@@ -1896,7 +1888,7 @@ TEST_F(TestQuotaManager,
 
     promises.AppendElement(quotaManager->InitializeStorage());
     promises.AppendElement(
-        quotaManager->InitializePersistentOrigin(principalInfo));
+        quotaManager->InitializePersistentOrigin(testOriginMetadata));
 
     {
       auto value =
@@ -1904,7 +1896,8 @@ TEST_F(TestQuotaManager,
       ASSERT_TRUE(value.IsResolve());
 
       ASSERT_TRUE(quotaManager->IsStorageInitialized());
-      ASSERT_TRUE(quotaManager->IsPersistentOriginInitialized(principalInfo));
+      ASSERT_TRUE(
+          quotaManager->IsPersistentOriginInitialized(testOriginMetadata));
     }
 
     promises.Clear();
@@ -1912,7 +1905,7 @@ TEST_F(TestQuotaManager,
     promises.AppendElement(quotaManager->ShutdownStorage());
     promises.AppendElement(quotaManager->InitializeStorage());
     promises.AppendElement(
-        quotaManager->InitializePersistentOrigin(principalInfo));
+        quotaManager->InitializePersistentOrigin(testOriginMetadata));
 
     {
       auto value =
@@ -1920,7 +1913,8 @@ TEST_F(TestQuotaManager,
       ASSERT_TRUE(value.IsResolve());
 
       ASSERT_TRUE(quotaManager->IsStorageInitialized());
-      ASSERT_TRUE(quotaManager->IsPersistentOriginInitialized(principalInfo));
+      ASSERT_TRUE(
+          quotaManager->IsPersistentOriginInitialized(testOriginMetadata));
     }
   });
 
@@ -1938,14 +1932,6 @@ TEST_F(TestQuotaManager,
   PerformOnBackgroundThread([]() {
     auto testOriginMetadata = GetTestOriginMetadata();
 
-    nsCOMPtr<nsIPrincipal> principal =
-        BasePrincipal::CreateContentPrincipal(testOriginMetadata.mOrigin);
-    QM_TRY(MOZ_TO_RESULT(principal), QM_TEST_FAIL);
-
-    mozilla::ipc::PrincipalInfo principalInfo;
-    QM_TRY(MOZ_TO_RESULT(PrincipalToPrincipalInfo(principal, &principalInfo)),
-           QM_TEST_FAIL);
-
     nsTArray<RefPtr<BoolPromise>> promises;
 
     QuotaManager* quotaManager = QuotaManager::Get();
@@ -1954,7 +1940,7 @@ TEST_F(TestQuotaManager,
     promises.AppendElement(quotaManager->InitializeStorage());
     promises.AppendElement(quotaManager->InitializeTemporaryStorage());
     promises.AppendElement(quotaManager->InitializeTemporaryOrigin(
-        testOriginMetadata.mPersistenceType, principalInfo,
+        testOriginMetadata.mPersistenceType, testOriginMetadata,
         /* aCreateIfNonExistent */ false));
 
     {
@@ -1965,7 +1951,7 @@ TEST_F(TestQuotaManager,
       ASSERT_TRUE(quotaManager->IsStorageInitialized());
       ASSERT_TRUE(quotaManager->IsTemporaryStorageInitialized());
       ASSERT_TRUE(quotaManager->IsTemporaryOriginInitialized(
-          testOriginMetadata.mPersistenceType, principalInfo));
+          testOriginMetadata.mPersistenceType, testOriginMetadata));
     }
 
     promises.Clear();
@@ -1974,7 +1960,7 @@ TEST_F(TestQuotaManager,
     promises.AppendElement(quotaManager->InitializeStorage());
     promises.AppendElement(quotaManager->InitializeTemporaryStorage());
     promises.AppendElement(quotaManager->InitializeTemporaryOrigin(
-        testOriginMetadata.mPersistenceType, principalInfo,
+        testOriginMetadata.mPersistenceType, testOriginMetadata,
         /* aCreateIfNonExistent */ true));
 
     {
@@ -1985,7 +1971,7 @@ TEST_F(TestQuotaManager,
       ASSERT_TRUE(quotaManager->IsStorageInitialized());
       ASSERT_TRUE(quotaManager->IsTemporaryStorageInitialized());
       ASSERT_TRUE(quotaManager->IsTemporaryOriginInitialized(
-          testOriginMetadata.mPersistenceType, principalInfo));
+          testOriginMetadata.mPersistenceType, testOriginMetadata));
     }
   });
 
@@ -2036,7 +2022,7 @@ TEST_F(TestQuotaManager, ClearStoragesForOrigin_Simple) {
       ASSERT_TRUE(quotaManager->IsStorageInitialized());
       ASSERT_TRUE(quotaManager->IsTemporaryStorageInitialized());
       ASSERT_FALSE(quotaManager->IsTemporaryOriginInitialized(
-          testOriginMetadata.mPersistenceType, principalInfo));
+          testOriginMetadata.mPersistenceType, testOriginMetadata));
     }
   });
 
@@ -2085,7 +2071,7 @@ TEST_F(TestQuotaManager, ClearStoragesForOrigin_NonExistentOriginDirectory) {
       ASSERT_TRUE(quotaManager->IsStorageInitialized());
       ASSERT_TRUE(quotaManager->IsTemporaryStorageInitialized());
       ASSERT_FALSE(quotaManager->IsTemporaryOriginInitialized(
-          testOriginMetadata.mPersistenceType, principalInfo));
+          testOriginMetadata.mPersistenceType, testOriginMetadata));
     }
   });
 
@@ -2135,7 +2121,7 @@ TEST_F(TestQuotaManager, ClearStoragesForOriginPrefix_Simple) {
       ASSERT_TRUE(quotaManager->IsStorageInitialized());
       ASSERT_TRUE(quotaManager->IsTemporaryStorageInitialized());
       ASSERT_FALSE(quotaManager->IsTemporaryOriginInitialized(
-          testOriginMetadata.mPersistenceType, principalInfo));
+          testOriginMetadata.mPersistenceType, testOriginMetadata));
     }
   });
 
@@ -2185,7 +2171,7 @@ TEST_F(TestQuotaManager,
       ASSERT_TRUE(quotaManager->IsStorageInitialized());
       ASSERT_TRUE(quotaManager->IsTemporaryStorageInitialized());
       ASSERT_FALSE(quotaManager->IsTemporaryOriginInitialized(
-          testOriginMetadata.mPersistenceType, principalInfo));
+          testOriginMetadata.mPersistenceType, testOriginMetadata));
     }
   });
 
@@ -2235,7 +2221,7 @@ TEST_F(TestQuotaManager, ClearStoragesForOriginAttributesPattern_Simple) {
       ASSERT_TRUE(quotaManager->IsStorageInitialized());
       ASSERT_TRUE(quotaManager->IsTemporaryStorageInitialized());
       ASSERT_FALSE(quotaManager->IsTemporaryOriginInitialized(
-          testOriginMetadata.mPersistenceType, principalInfo));
+          testOriginMetadata.mPersistenceType, testOriginMetadata));
     }
   });
 
@@ -2266,14 +2252,6 @@ TEST_F(TestQuotaManager,
   PerformOnBackgroundThread([]() {
     auto testOriginMetadata = GetTestOriginMetadata();
 
-    nsCOMPtr<nsIPrincipal> principal =
-        BasePrincipal::CreateContentPrincipal(testOriginMetadata.mOrigin);
-    QM_TRY(MOZ_TO_RESULT(principal), QM_TEST_FAIL);
-
-    mozilla::ipc::PrincipalInfo principalInfo;
-    QM_TRY(MOZ_TO_RESULT(PrincipalToPrincipalInfo(principal, &principalInfo)),
-           QM_TEST_FAIL);
-
     QuotaManager* quotaManager = QuotaManager::Get();
     ASSERT_TRUE(quotaManager);
 
@@ -2285,7 +2263,7 @@ TEST_F(TestQuotaManager,
       ASSERT_TRUE(quotaManager->IsStorageInitialized());
       ASSERT_TRUE(quotaManager->IsTemporaryStorageInitialized());
       ASSERT_FALSE(quotaManager->IsTemporaryOriginInitialized(
-          testOriginMetadata.mPersistenceType, principalInfo));
+          testOriginMetadata.mPersistenceType, testOriginMetadata));
     }
   });
 
@@ -2335,7 +2313,7 @@ TEST_F(TestQuotaManager, ShutdownStoragesForOrigin_Simple) {
       ASSERT_TRUE(quotaManager->IsStorageInitialized());
       ASSERT_TRUE(quotaManager->IsTemporaryStorageInitialized());
       ASSERT_FALSE(quotaManager->IsTemporaryOriginInitialized(
-          testOriginMetadata.mPersistenceType, principalInfo));
+          testOriginMetadata.mPersistenceType, testOriginMetadata));
     }
   });
 
@@ -2384,7 +2362,7 @@ TEST_F(TestQuotaManager, ShutdownStoragesForOrigin_NonExistentOriginDirectory) {
       ASSERT_TRUE(quotaManager->IsStorageInitialized());
       ASSERT_TRUE(quotaManager->IsTemporaryStorageInitialized());
       ASSERT_FALSE(quotaManager->IsTemporaryOriginInitialized(
-          testOriginMetadata.mPersistenceType, principalInfo));
+          testOriginMetadata.mPersistenceType, testOriginMetadata));
     }
   });
 

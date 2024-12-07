@@ -515,7 +515,12 @@ mozilla::ipc::IPCResult Quota::RecvInitializePersistentOrigin(
                 QuotaManager::GetOrCreate(),
                 ResolveBoolResponseAndReturn(aResolve));
 
-  quotaManager->InitializePersistentOrigin(aPrincipalInfo)
+  QM_TRY_UNWRAP(
+      PrincipalMetadata principalMetadata,
+      GetInfoFromValidatedPrincipalInfo(*quotaManager, aPrincipalInfo),
+      ResolveBoolResponseAndReturn(aResolve));
+
+  quotaManager->InitializePersistentOrigin(principalMetadata)
       ->Then(GetCurrentSerialEventTarget(), __func__,
              BoolPromiseResolveOrRejectCallback(this, std::move(aResolve)));
 
@@ -543,8 +548,13 @@ mozilla::ipc::IPCResult Quota::RecvInitializeTemporaryOrigin(
                 QuotaManager::GetOrCreate(),
                 ResolveBoolResponseAndReturn(aResolve));
 
+  QM_TRY_UNWRAP(
+      PrincipalMetadata principalMetadata,
+      GetInfoFromValidatedPrincipalInfo(*quotaManager, aPrincipalInfo),
+      ResolveBoolResponseAndReturn(aResolve));
+
   quotaManager
-      ->InitializeTemporaryOrigin(aPersistenceType, aPrincipalInfo,
+      ->InitializeTemporaryOrigin(aPersistenceType, principalMetadata,
                                   aCreateIfNonExistent)
       ->Then(GetCurrentSerialEventTarget(), __func__,
              BoolPromiseResolveOrRejectCallback(this, std::move(aResolve)));
