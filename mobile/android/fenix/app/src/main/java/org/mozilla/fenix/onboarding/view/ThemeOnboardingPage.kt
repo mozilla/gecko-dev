@@ -76,7 +76,6 @@ fun ThemeOnboardingPage(
 
                 Spacer(Modifier.height(68.dp))
 
-
                 Text(
                     text = title,
                     color = FirefoxTheme.colors.textPrimary,
