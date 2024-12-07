@@ -17,7 +17,7 @@
 #if LIBAVCODEC_VERSION_MAJOR >= 57 && LIBAVUTIL_VERSION_MAJOR >= 56
 #  include "mozilla/layers/TextureClient.h"
 #endif
-#ifdef MOZ_USE_HWDECODE
+#if defined(MOZ_USE_HWDECODE) && defined(MOZ_WIDGET_GTK)
 #  include "FFmpegVideoFramePool.h"
 #endif
 
@@ -123,11 +123,16 @@ class FFmpegVideoDecoder<LIBAV_VER>
 #endif
 
 #ifdef MOZ_USE_HWDECODE
+  void InitHWCodecContext(bool aUsingV4L2);
+
+  bool mEnableHardwareDecoding;
+#endif
+
+#if defined(MOZ_USE_HWDECODE) && defined(MOZ_WIDGET_GTK)
   void InitHWDecodingPrefs();
   MediaResult InitVAAPIDecoder();
   MediaResult InitV4L2Decoder();
   bool CreateVAAPIDeviceContext();
-  void InitHWCodecContext(bool aUsingV4L2);
   AVCodec* FindVAAPICodec();
   bool GetVAAPISurfaceDescriptor(VADRMPRIMESurfaceDescriptor* aVaDesc);
   void AddAcceleratedFormats(nsTArray<AVCodecID>& aCodecList,
@@ -140,16 +145,14 @@ class FFmpegVideoDecoder<LIBAV_VER>
   MediaResult CreateImageV4L2(int64_t aOffset, int64_t aPts, int64_t aDuration,
                               MediaDataDecoder::DecodedData& aResults);
   void AdjustHWDecodeLogging();
-#endif
 
-#ifdef MOZ_USE_HWDECODE
   AVBufferRef* mVAAPIDeviceContext;
   bool mUsingV4L2;
-  bool mEnableHardwareDecoding;
   VADisplay mDisplay;
   UniquePtr<VideoFramePool<LIBAV_VER>> mVideoFramePool;
   static nsTArray<AVCodecID> mAcceleratedFormats;
 #endif
+
   RefPtr<KnowsCompositor> mImageAllocator;
   RefPtr<ImageContainer> mImageContainer;
   VideoInfo mInfo;

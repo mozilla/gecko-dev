@@ -20,7 +20,7 @@
 #if LIBAVCODEC_VERSION_MAJOR >= 58
 #  include "mozilla/ProfilerMarkers.h"
 #endif
-#ifdef MOZ_USE_HWDECODE
+#if defined(MOZ_USE_HWDECODE) && defined(MOZ_WIDGET_GTK)
 #  include "H264.h"
 #  include "mozilla/gfx/gfxVars.h"
 #  include "mozilla/layers/DMABUFSurfaceImage.h"
@@ -67,7 +67,7 @@
 #endif
 
 // Forward declare from va.h
-#ifdef MOZ_USE_HWDECODE
+#if defined(MOZ_USE_HWDECODE) && defined(MOZ_WIDGET_GTK)
 typedef int VAStatus;
 #  define VA_EXPORT_SURFACE_READ_ONLY 0x0001
 #  define VA_EXPORT_SURFACE_SEPARATE_LAYERS 0x0004
@@ -87,7 +87,7 @@ typedef mozilla::layers::PlanarYCbCrImage PlanarYCbCrImage;
 
 namespace mozilla {
 
-#ifdef MOZ_USE_HWDECODE
+#if defined(MOZ_USE_HWDECODE) && defined(MOZ_WIDGET_GTK)
 MOZ_RUNINIT nsTArray<AVCodecID>
     FFmpegVideoDecoder<LIBAV_VER>::mAcceleratedFormats;
 #endif
@@ -188,7 +188,9 @@ static AVPixelFormat ChooseV4L2PixelFormat(AVCodecContext* aCodecContext,
   NS_WARNING("FFmpeg does not share any supported V4L2 pixel formats.");
   return AV_PIX_FMT_NONE;
 }
+#endif
 
+#if defined(MOZ_USE_HWDECODE) && defined(MOZ_WIDGET_GTK)
 AVCodec* FFmpegVideoDecoder<LIBAV_VER>::FindVAAPICodec() {
   AVCodec* decoder = FindHardwareAVCodec(mLib, mCodecID);
   if (!decoder) {
@@ -506,7 +508,7 @@ void FFmpegVideoDecoder<LIBAV_VER>::PtsCorrectionContext::Reset() {
 }
 #endif
 
-#ifdef MOZ_USE_HWDECODE
+#if defined(MOZ_USE_HWDECODE) && defined(MOZ_WIDGET_GTK)
 void FFmpegVideoDecoder<LIBAV_VER>::InitHWDecodingPrefs() {
   if (!mEnableHardwareDecoding) {
     FFMPEG_LOG("VAAPI is disabled by parent decoder module.");
@@ -559,9 +561,11 @@ FFmpegVideoDecoder<LIBAV_VER>::FFmpegVideoDecoder(
     Maybe<TrackingId> aTrackingId)
     : FFmpegDataDecoder(aLib, GetCodecId(aConfig.mMimeType)),
 #ifdef MOZ_USE_HWDECODE
+      mEnableHardwareDecoding(!aDisableHardwareDecoding),
+#endif
+#if defined(MOZ_USE_HWDECODE) && defined(MOZ_WIDGET_GTK)
       mVAAPIDeviceContext(nullptr),
       mUsingV4L2(false),
-      mEnableHardwareDecoding(!aDisableHardwareDecoding),
       mDisplay(nullptr),
 #endif
       mImageAllocator(aAllocator),
@@ -575,7 +579,7 @@ FFmpegVideoDecoder<LIBAV_VER>::FFmpegVideoDecoder(
   // initialization.
   mExtraData = new MediaByteBuffer;
   mExtraData->AppendElements(*aConfig.mExtraData);
-#ifdef MOZ_USE_HWDECODE
+#if defined(MOZ_USE_HWDECODE) && defined(MOZ_WIDGET_GTK)
   InitHWDecodingPrefs();
 #endif
 }
@@ -1151,7 +1155,7 @@ MediaResult FFmpegVideoDecoder<LIBAV_VER>::DoDecode(
       return MediaResult(NS_ERROR_OUT_OF_MEMORY, __func__);
     }
 
-#  ifdef MOZ_USE_HWDECODE
+#  if defined(MOZ_USE_HWDECODE) && defined(MOZ_WIDGET_GTK)
     // Release unused VA-API surfaces before avcodec_receive_frame() as
     // ffmpeg recycles VASurface for HW decoding.
     if (mVideoFramePool) {
@@ -1179,7 +1183,7 @@ MediaResult FFmpegVideoDecoder<LIBAV_VER>::DoDecode(
     mDecodeStats.UpdateDecodeTimes(mFrame);
 
     MediaResult rv;
-#  ifdef MOZ_USE_HWDECODE
+#  if defined(MOZ_USE_HWDECODE) && defined(MOZ_WIDGET_GTK)
     if (IsHardwareAccelerated()) {
       if (mDecodeStats.IsDecodingSlow() &&
           !StaticPrefs::media_ffmpeg_disable_software_fallback()) {
@@ -1528,7 +1532,7 @@ MediaResult FFmpegVideoDecoder<LIBAV_VER>::CreateImage(
   return NS_OK;
 }
 
-#ifdef MOZ_USE_HWDECODE
+#if defined(MOZ_USE_HWDECODE) && defined(MOZ_WIDGET_GTK)
 bool FFmpegVideoDecoder<LIBAV_VER>::GetVAAPISurfaceDescriptor(
     VADRMPRIMESurfaceDescriptor* aVaDesc) {
   VASurfaceID surface_id = (VASurfaceID)(uintptr_t)mFrame->data[3];
@@ -1693,7 +1697,7 @@ AVCodecID FFmpegVideoDecoder<LIBAV_VER>::GetCodecId(
 
 void FFmpegVideoDecoder<LIBAV_VER>::ProcessShutdown() {
   MOZ_ASSERT(mTaskQueue->IsOnCurrentThread());
-#ifdef MOZ_USE_HWDECODE
+#if defined(MOZ_USE_HWDECODE) && defined(MOZ_WIDGET_GTK)
   mVideoFramePool = nullptr;
   if (IsHardwareAccelerated()) {
     mLib->av_buffer_unref(&mVAAPIDeviceContext);
@@ -1704,14 +1708,14 @@ void FFmpegVideoDecoder<LIBAV_VER>::ProcessShutdown() {
 
 bool FFmpegVideoDecoder<LIBAV_VER>::IsHardwareAccelerated(
     nsACString& aFailureReason) const {
-#ifdef MOZ_USE_HWDECODE
+#if defined(MOZ_USE_HWDECODE) && defined(MOZ_WIDGET_GTK)
   return mUsingV4L2 || !!mVAAPIDeviceContext;
 #else
   return false;
 #endif
 }
 
-#ifdef MOZ_USE_HWDECODE
+#if defined(MOZ_USE_HWDECODE) && defined(MOZ_WIDGET_GTK)
 bool FFmpegVideoDecoder<LIBAV_VER>::IsFormatAccelerated(
     AVCodecID aCodecID) const {
   for (const auto& format : mAcceleratedFormats) {

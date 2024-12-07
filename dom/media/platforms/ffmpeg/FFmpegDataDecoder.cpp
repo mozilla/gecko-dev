@@ -314,7 +314,6 @@ AVFrame* FFmpegDataDecoder<LIBAV_VER>::PrepareFrame() {
   return aLib->avcodec_find_decoder(aCodec);
 }
 
-#ifdef MOZ_WIDGET_GTK
 /* static */ AVCodec* FFmpegDataDecoder<LIBAV_VER>::FindHardwareAVCodec(
     FFmpegLibWrapper* aLib, AVCodecID aCodec) {
   void* opaque = nullptr;
@@ -326,6 +325,5 @@ AVFrame* FFmpegDataDecoder<LIBAV_VER>::PrepareFrame() {
   }
   return nullptr;
 }
-#endif
 
 }  // namespace mozilla
