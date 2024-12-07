@@ -18,7 +18,6 @@ namespace mozilla {
 template <int V>
 class FFmpegDecoderModule {
  public:
-  static void Init(FFmpegLibWrapper*);
   static already_AddRefed<PlatformDecoderModule> Create(FFmpegLibWrapper*);
 };
 
@@ -129,7 +128,6 @@ bool FFVPXRuntimeLinker::Init() {
   FFMPEGP_LOG("Link result: %s", ToString(res).c_str());
   if (res == FFmpegLibWrapper::LinkResult::Success) {
     sLinkStatus = LinkStatus_SUCCEEDED;
-    FFmpegDecoderModule<FFVPX_VERSION>::Init(&sFFVPXLib);
     return true;
   }
   return false;

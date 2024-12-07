@@ -20,7 +20,7 @@
 namespace mozilla {
 namespace layers {
 
-class ZeroCopyUsageInfo;
+class IMFSampleUsageInfo;
 class TextureWrapperD3D11Allocator;
 
 /**
@@ -42,12 +42,12 @@ class GpuProcessD3D11TextureMap {
 
   void Register(GpuProcessTextureId aTextureId, ID3D11Texture2D* aTexture,
                 uint32_t aArrayIndex, const gfx::IntSize& aSize,
-                RefPtr<ZeroCopyUsageInfo> aUsageInfo,
+                RefPtr<IMFSampleUsageInfo> aUsageInfo,
                 RefPtr<gfx::FileHandleWrapper> aSharedHandle = nullptr);
   void Register(const MonitorAutoLock& aProofOfLock,
                 GpuProcessTextureId aTextureId, ID3D11Texture2D* aTexture,
                 uint32_t aArrayIndex, const gfx::IntSize& aSize,
-                RefPtr<ZeroCopyUsageInfo> aUsageInfo,
+                RefPtr<IMFSampleUsageInfo> aUsageInfo,
                 RefPtr<gfx::FileHandleWrapper> aSharedHandle);
   void Unregister(GpuProcessTextureId aTextureId);
 
@@ -69,14 +69,14 @@ class GpuProcessD3D11TextureMap {
   struct TextureHolder {
     TextureHolder(ID3D11Texture2D* aTexture, uint32_t aArrayIndex,
                   const gfx::IntSize& aSize,
-                  RefPtr<ZeroCopyUsageInfo> aUsageInfo,
+                  RefPtr<IMFSampleUsageInfo> aUsageInfo,
                   RefPtr<gfx::FileHandleWrapper> aSharedHandle);
     TextureHolder() = default;
 
     RefPtr<ID3D11Texture2D> mTexture;
     uint32_t mArrayIndex = 0;
     gfx::IntSize mSize;
-    RefPtr<ZeroCopyUsageInfo> mZeroCopyUsageInfo;
+    RefPtr<IMFSampleUsageInfo> mIMFSampleUsageInfo;
     RefPtr<gfx::FileHandleWrapper> mSharedHandle;
     RefPtr<ID3D11Texture2D> mCopiedTexture;
     RefPtr<gfx::FileHandleWrapper> mCopiedTextureSharedHandle;

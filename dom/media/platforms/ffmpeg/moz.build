@@ -28,10 +28,4 @@ LOCAL_INCLUDES += [
     "/media/libyuv/libyuv/include",
 ]
 
-if CONFIG["MOZ_WIDGET_TOOLKIT"] == "windows":
-    LOCAL_INCLUDES += [
-        "/gfx/thebes",
-        "/media/ffvpx/",
-    ]
-
 FINAL_LIBRARY = "xul"

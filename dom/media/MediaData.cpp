@@ -484,7 +484,7 @@ nsCString VideoData::ToString() const {
       "D3D9_RGB32_TEXTURE",
       "OVERLAY_IMAGE",
       "D3D11_SHARE_HANDLE_TEXTURE",
-      "D3D11_TEXTURE_ZERO_COPY",
+      "D3D11_TEXTURE_IMF_SAMPLE",
       "TEXTURE_WRAPPER",
       "GPU_VIDEO",
       "DMABUF",

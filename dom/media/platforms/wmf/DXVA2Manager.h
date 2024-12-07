@@ -32,24 +32,12 @@ class DXVA2Manager {
   // is an IMFDXGIDeviceManager. It is safe to call this on any thread.
   virtual IUnknown* GetDXVADeviceManager() = 0;
 
-  // Copy the video frame into a share handle image.
+  // Creates an Image for the video frame stored in aVideoSample.
   virtual HRESULT CopyToImage(IMFSample* aVideoSample,
                               const gfx::IntRect& aRegion,
                               layers::Image** aOutImage) = 0;
-  virtual HRESULT CopyToImage(ID3D11Texture2D* aInputTexture,
-                              UINT aSurfaceIndex, const gfx::IntRect& aRegion,
-                              layers::Image** aOutImage) = 0;
 
   virtual HRESULT WrapTextureWithImage(IMFSample* aVideoSample,
-                                       const gfx::IntRect& aRegion,
-                                       layers::Image** aOutImage) {
-    // Not implemented!
-    MOZ_CRASH("WrapTextureWithImage not implemented on this manager.");
-    return E_FAIL;
-  }
-
-  virtual HRESULT WrapTextureWithImage(ID3D11Texture2D* aTexture,
-                                       UINT aSurfaceIndex,
                                        const gfx::IntRect& aRegion,
                                        layers::Image** aOutImage) {
     // Not implemented!
@@ -71,14 +59,6 @@ class DXVA2Manager {
                                    uint32_t aHeight) {
     return S_OK;
   }
-  virtual HRESULT ConfigureForSize(gfx::SurfaceFormat aSurfaceFormat,
-                                   gfx::YUVColorSpace aColorSpace,
-                                   gfx::ColorRange aColorRange, uint32_t aWidth,
-                                   uint32_t aHeight) {
-    // Not implemented!
-    MOZ_CRASH("ConfigureForSize not implemented on this manager.");
-    return E_FAIL;
-  }
 
   virtual bool IsD3D11() { return false; }
 
@@ -94,8 +74,6 @@ class DXVA2Manager {
 
   static bool IsNV12Supported(uint32_t aVendorID, uint32_t aDeviceID,
                               const nsAString& aDriverVersionString);
-
-  virtual ID3D11Device* GetD3D11Device() { return nullptr; }
 
  protected:
   Mutex mLock MOZ_UNANNOTATED;

@@ -110,7 +110,7 @@ RefPtr<MediaDataDecoder::InitPromise> FFmpegAudioDecoder<LIBAV_VER>::Init() {
     }
   }
 
-  MediaResult rv = InitSWDecoder(&options);
+  MediaResult rv = InitDecoder(&options);
 
   mLib->av_dict_free(&options);
 

@@ -62,14 +62,6 @@ if CONFIG['CC_TYPE'] == 'clang-cl':
     LOCAL_INCLUDES += ['/media/ffvpx/compat/atomics/win32']
 DEFINES['HAVE_AV_CONFIG_H'] = True
 
-if CONFIG['CC_TYPE'] == 'clang':
-  CXXFLAGS += [
-      '-Wsometimes-uninitialized',
-      '-Wunreachable-code-return',
-      '-Wunreachable-code',
-      '-Wunused-const-variable',
-  ]
-
 if CONFIG['MOZ_DEBUG']:
     # Enable all assertions in debug builds.
     DEFINES['ASSERT_LEVEL'] = 2

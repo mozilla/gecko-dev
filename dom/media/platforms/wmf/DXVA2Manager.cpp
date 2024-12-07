@@ -29,7 +29,7 @@
 #include "mozilla/Telemetry.h"
 #include "mozilla/gfx/DeviceManagerDx.h"
 #include "mozilla/layers/D3D11ShareHandleImage.h"
-#include "mozilla/layers/D3D11ZeroCopyTextureImage.h"
+#include "mozilla/layers/D3D11TextureIMFSampleImage.h"
 #include "mozilla/layers/HelpersD3D11.h"
 #include "mozilla/layers/ImageBridgeChild.h"
 #include "mozilla/layers/TextureD3D11.h"
@@ -340,15 +340,8 @@ class D3D11DXVA2Manager : public DXVA2Manager {
   // into an image which is returned by aOutImage.
   HRESULT CopyToImage(IMFSample* aVideoSample, const gfx::IntRect& aRegion,
                       Image** aOutImage) override;
-  HRESULT CopyToImage(ID3D11Texture2D* aVideoSample, UINT aSurfaceIndex,
-                      const gfx::IntRect& aRegion,
-                      layers::Image** aOutImage) override;
 
   HRESULT WrapTextureWithImage(IMFSample* aVideoSample,
-                               const gfx::IntRect& aRegion,
-                               layers::Image** aOutImage) override;
-
-  HRESULT WrapTextureWithImage(ID3D11Texture2D* aTexture, UINT aSurfaceIndex,
                                const gfx::IntRect& aRegion,
                                layers::Image** aOutImage) override;
 
@@ -356,10 +349,6 @@ class D3D11DXVA2Manager : public DXVA2Manager {
                             ID3D11Texture2D** aOutTexture) override;
 
   HRESULT ConfigureForSize(IMFMediaType* aInputType,
-                           gfx::YUVColorSpace aColorSpace,
-                           gfx::ColorRange aColorRange, uint32_t aWidth,
-                           uint32_t aHeight) override;
-  HRESULT ConfigureForSize(gfx::SurfaceFormat aSurfaceFormat,
                            gfx::YUVColorSpace aColorSpace,
                            gfx::ColorRange aColorRange, uint32_t aWidth,
                            uint32_t aHeight) override;
@@ -372,14 +361,12 @@ class D3D11DXVA2Manager : public DXVA2Manager {
   void BeforeShutdownVideoMFTDecoder() override;
 
   bool SupportsZeroCopyNV12Texture() override {
-    if (mZeroCopyUsageInfo->SupportsZeroCopyNV12Texture() &&
+    if (mIMFSampleUsageInfo->SupportsZeroCopyNV12Texture() &&
         (mDevice != DeviceManagerDx::Get()->GetCompositorDevice())) {
-      mZeroCopyUsageInfo->DisableZeroCopyNV12Texture();
+      mIMFSampleUsageInfo->DisableZeroCopyNV12Texture();
     }
-    return mZeroCopyUsageInfo->SupportsZeroCopyNV12Texture();
+    return mIMFSampleUsageInfo->SupportsZeroCopyNV12Texture();
   }
-
-  ID3D11Device* GetD3D11Device() override { return mDevice; }
 
  private:
   HRESULT CreateOutputSample(RefPtr<IMFSample>& aSample,
@@ -421,9 +408,8 @@ class D3D11DXVA2Manager : public DXVA2Manager {
   GUID mInputSubType;
   gfx::YUVColorSpace mYUVColorSpace;
   gfx::ColorRange mColorRange = gfx::ColorRange::LIMITED;
-  gfx::SurfaceFormat mSurfaceFormat;
   std::list<ThreadSafeWeakPtr<layers::IMFSampleWrapper>> mIMFSampleWrappers;
-  RefPtr<layers::ZeroCopyUsageInfo> mZeroCopyUsageInfo;
+  RefPtr<layers::IMFSampleUsageInfo> mIMFSampleUsageInfo;
   uint32_t mVendorID = 0;
 };
 
@@ -583,7 +569,7 @@ bool D3D11DXVA2Manager::SupportsConfig(const VideoInfo& aInfo,
 }
 
 D3D11DXVA2Manager::D3D11DXVA2Manager()
-    : mZeroCopyUsageInfo(new layers::ZeroCopyUsageInfo) {}
+    : mIMFSampleUsageInfo(new layers::IMFSampleUsageInfo) {}
 
 D3D11DXVA2Manager::~D3D11DXVA2Manager() {}
 
@@ -762,7 +748,7 @@ D3D11DXVA2Manager::InitInternal(layers::KnowsCompositor* aKnowsCompositor,
 
   if (!IsD3D11() || !XRE_IsGPUProcess() ||
       (mDevice != DeviceManagerDx::Get()->GetCompositorDevice())) {
-    mZeroCopyUsageInfo->DisableZeroCopyNV12Texture();
+    mIMFSampleUsageInfo->DisableZeroCopyNV12Texture();
   }
 
   return S_OK;
@@ -815,14 +801,6 @@ D3D11DXVA2Manager::CopyToImage(IMFSample* aVideoSample,
   return CopyTextureToImage(info, aOutImage);
 }
 
-HRESULT D3D11DXVA2Manager::CopyToImage(ID3D11Texture2D* aInputTexture,
-                                       UINT aSurfaceIndex,
-                                       const gfx::IntRect& aRegion,
-                                       layers::Image** aOutImage) {
-  InputTextureInfo info(aInputTexture, aSurfaceIndex, aRegion);
-  return CopyTextureToImage(info, aOutImage);
-}
-
 HRESULT D3D11DXVA2Manager::WrapTextureWithImage(IMFSample* aVideoSample,
                                                 const gfx::IntRect& aRegion,
                                                 layers::Image** aOutImage) {
@@ -852,7 +830,7 @@ HRESULT D3D11DXVA2Manager::WrapTextureWithImage(IMFSample* aVideoSample,
   RefPtr<D3D11TextureIMFSampleImage> image = new D3D11TextureIMFSampleImage(
       aVideoSample, texture, arrayIndex, gfx::IntSize(mWidth, mHeight), aRegion,
       ToColorSpace2(mYUVColorSpace), mColorRange);
-  image->AllocateTextureClient(mKnowsCompositor, mZeroCopyUsageInfo);
+  image->AllocateTextureClient(mKnowsCompositor, mIMFSampleUsageInfo);
 
   RefPtr<IMFSampleWrapper> wrapper = image->GetIMFSampleWrapper();
   ThreadSafeWeakPtr<IMFSampleWrapper> weak(wrapper);
@@ -860,19 +838,6 @@ HRESULT D3D11DXVA2Manager::WrapTextureWithImage(IMFSample* aVideoSample,
 
   image.forget(aOutImage);
 
-  return S_OK;
-}
-
-HRESULT D3D11DXVA2Manager::WrapTextureWithImage(ID3D11Texture2D* aTexture,
-                                                UINT aSurfaceIndex,
-                                                const gfx::IntRect& aRegion,
-                                                layers::Image** aOutImage) {
-  NS_ENSURE_TRUE(aOutImage, E_POINTER);
-  RefPtr<D3D11ZeroCopyTextureImage> image = new D3D11ZeroCopyTextureImage(
-      aTexture, aSurfaceIndex, gfx::IntSize(mWidth, mHeight), aRegion,
-      ToColorSpace2(mYUVColorSpace), mColorRange);
-  image->AllocateTextureClient(mKnowsCompositor, mZeroCopyUsageInfo);
-  image.forget(aOutImage);
   return S_OK;
 }
 
@@ -1090,7 +1055,7 @@ D3D11DXVA2Manager::ConfigureForSize(IMFMediaType* aInputType,
   mYUVColorSpace = aColorSpace;
   mColorRange = aColorRange;
   if (mTextureClientAllocator) {
-    mSurfaceFormat = [&]() {
+    gfx::SurfaceFormat format = [&]() {
       if (subType == MFVideoFormat_NV12) {
         return gfx::SurfaceFormat::NV12;
       } else if (subType == MFVideoFormat_P010) {
@@ -1102,44 +1067,13 @@ D3D11DXVA2Manager::ConfigureForSize(IMFMediaType* aInputType,
         return gfx::SurfaceFormat::NV12;
       }
     }();
-    mTextureClientAllocator->SetPreferredSurfaceFormat(mSurfaceFormat);
+    mTextureClientAllocator->SetPreferredSurfaceFormat(format);
   }
   // Reconfig video processor as well
   if (isSizeChanged && mProcessor) {
     hr = mProcessor->Init(gfx::IntSize(mWidth, mHeight));
     NS_ENSURE_TRUE(SUCCEEDED(hr), hr);
   }
-  return S_OK;
-}
-
-HRESULT
-D3D11DXVA2Manager::ConfigureForSize(gfx::SurfaceFormat aSurfaceFormat,
-                                    gfx::YUVColorSpace aColorSpace,
-                                    gfx::ColorRange aColorRange,
-                                    uint32_t aWidth, uint32_t aHeight) {
-  if (aWidth == mWidth && aHeight == mHeight && mYUVColorSpace == aColorSpace &&
-      mColorRange == aColorRange && aSurfaceFormat == mSurfaceFormat) {
-    // No need to reconfigure if nothing changes.
-    return S_OK;
-  }
-
-  const bool isSizeChanged = (mWidth != aWidth) || (mHeight != aHeight);
-  mWidth = aWidth;
-  mHeight = aHeight;
-  mYUVColorSpace = aColorSpace;
-  mColorRange = aColorRange;
-  mSurfaceFormat = aSurfaceFormat;
-  if (mTextureClientAllocator) {
-    mTextureClientAllocator->SetPreferredSurfaceFormat(mSurfaceFormat);
-  }
-  // Reconfig video processor as well
-  if (isSizeChanged && mProcessor) {
-    mProcessor->Init(gfx::IntSize(mWidth, mHeight));
-  }
-  LOG("Configured D3D11DXVA2Manager, size=[%u,%u], colorSpace=%hhu, "
-      "colorRange=%hhu, surfaceFormat=%hhd",
-      mWidth, mHeight, static_cast<uint8_t>(mYUVColorSpace),
-      static_cast<uint8_t>(mColorRange), static_cast<uint8_t>(mSurfaceFormat));
   return S_OK;
 }
 

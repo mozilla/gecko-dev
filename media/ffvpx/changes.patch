@@ -8,11 +8,11 @@
  #if HAVE_WINDOWS_H
  #include <windows.h>
  #endif
-
+ 
 -#include "time.h"
 +#include "fftime.h"
  #include "error.h"
-
+ 
  int64_t av_gettime(void)
  {
  #if HAVE_GETTIMEOFDAY
@@ -22,9 +22,9 @@
 --- a/libavutil/parseutils.c	2024-03-26 14:03:12.080640731 +0100
 +++ b/libavutil/parseutils.c	2024-04-05 14:44:56.508766832 +0200
 @@ -23,20 +23,20 @@
-
+ 
  #include <time.h>
-
+ 
  #include "avstring.h"
  #include "avutil.h"
  #include "common.h"
@@ -36,14 +36,14 @@
  #include "parseutils.h"
 -#include "time.h"
 +#include "fftime.h"
-
+ 
  #ifdef TEST
-
+ 
  #define av_get_random_seed av_get_random_seed_deterministic
  static uint32_t av_get_random_seed_deterministic(void);
-
+ 
  #define av_gettime() 1331972053200000
-
+ 
 @@ -370,17 +370,17 @@
      av_strlcpy(color_string2, color_string + hex_offset,
                 FFMIN(slen-hex_offset+1, sizeof(color_string2)));
@@ -51,7 +51,7 @@
          *tail++ = 0;
      len = strlen(color_string2);
      rgba_color[3] = 255;
-
+ 
      if (!av_strcasecmp(color_string2, "random") || !av_strcasecmp(color_string2, "bikeshed")) {
 -        int rgba = av_get_random_seed();
 +        int rgba = 0xffffffff; /* av_get_random_seed(); */
@@ -78,30 +78,9 @@
 +#include "fftime.h"
  #include "avstring.h"
  #include "reverse.h"
-
+ 
  typedef struct Parser {
      const AVClass *class;
      int stack_index;
      char *s;
      const double *const_values;
---- a/media/ffvpx/libavcodec/dxva2.c
-+++ b/media/ffvpx/libavcodec/dxva2.c
-@@ -27,7 +27,7 @@
- #include "libavutil/common.h"
- #include "libavutil/log.h"
- #include "libavutil/mem.h"
--#include "libavutil/time.h"
-+#include "libavutil/fftime.h"
-
- #include "avcodec.h"
- #include "decode.h"
---- a/media/ffvpx/libavcodec/dxva2_internal.h
-+++ b/media/ffvpx/libavcodec/dxva2_internal.h
-@@ -65,6 +65,7 @@
- #endif
-
- #include "libavutil/hwcontext.h"
-+#include "libavutil/mem.h"
-
- #include "avcodec.h"
- #include "internal.h"

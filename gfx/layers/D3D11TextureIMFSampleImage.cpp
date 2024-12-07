@@ -8,7 +8,7 @@
 #include <memory>
 #include <mfobjects.h>
 
-#include "D3D11ZeroCopyTextureImage.h"
+#include "D3D11TextureIMFSampleImage.h"
 #include "WMF.h"
 #include "mozilla/gfx/SourceSurfaceRawData.h"
 #include "mozilla/layers/KnowsCompositor.h"
@@ -32,11 +32,12 @@ IMFSampleWrapper::~IMFSampleWrapper() {}
 
 void IMFSampleWrapper::ClearVideoSample() { mVideoSample = nullptr; }
 
-D3D11ZeroCopyTextureImage::D3D11ZeroCopyTextureImage(
-    ID3D11Texture2D* aTexture, uint32_t aArrayIndex, const gfx::IntSize& aSize,
-    const gfx::IntRect& aRect, gfx::ColorSpace2 aColorSpace,
-    gfx::ColorRange aColorRange)
-    : Image(nullptr, ImageFormat::D3D11_TEXTURE_ZERO_COPY),
+D3D11TextureIMFSampleImage::D3D11TextureIMFSampleImage(
+    IMFSample* aVideoSample, ID3D11Texture2D* aTexture, uint32_t aArrayIndex,
+    const gfx::IntSize& aSize, const gfx::IntRect& aRect,
+    gfx::ColorSpace2 aColorSpace, gfx::ColorRange aColorRange)
+    : Image(nullptr, ImageFormat::D3D11_TEXTURE_IMF_SAMPLE),
+      mVideoSample(IMFSampleWrapper::Create(aVideoSample)),
       mTexture(aTexture),
       mArrayIndex(aArrayIndex),
       mSize(aSize),
@@ -46,23 +47,23 @@ D3D11ZeroCopyTextureImage::D3D11ZeroCopyTextureImage(
   MOZ_ASSERT(XRE_IsGPUProcess());
 }
 
-void D3D11ZeroCopyTextureImage::AllocateTextureClient(
-    KnowsCompositor* aKnowsCompositor, RefPtr<ZeroCopyUsageInfo> aUsageInfo) {
+void D3D11TextureIMFSampleImage::AllocateTextureClient(
+    KnowsCompositor* aKnowsCompositor, RefPtr<IMFSampleUsageInfo> aUsageInfo) {
   mTextureClient = D3D11TextureData::CreateTextureClient(
       mTexture, mArrayIndex, mSize, gfx::SurfaceFormat::NV12, mColorSpace,
       mColorRange, aKnowsCompositor, aUsageInfo);
   MOZ_ASSERT(mTextureClient);
 }
 
-gfx::IntSize D3D11ZeroCopyTextureImage::GetSize() const { return mSize; }
+gfx::IntSize D3D11TextureIMFSampleImage::GetSize() const { return mSize; }
 
-TextureClient* D3D11ZeroCopyTextureImage::GetTextureClient(
+TextureClient* D3D11TextureIMFSampleImage::GetTextureClient(
     KnowsCompositor* aKnowsCompositor) {
   return mTextureClient;
 }
 
 already_AddRefed<gfx::SourceSurface>
-D3D11ZeroCopyTextureImage::GetAsSourceSurface() {
+D3D11TextureIMFSampleImage::GetAsSourceSurface() {
   RefPtr<ID3D11Texture2D> src = GetTexture();
   if (!src) {
     gfxWarning() << "Cannot readback from shared texture because no texture is "
@@ -95,7 +96,7 @@ D3D11ZeroCopyTextureImage::GetAsSourceSurface() {
   return sourceSurface.forget();
 }
 
-nsresult D3D11ZeroCopyTextureImage::BuildSurfaceDescriptorBuffer(
+nsresult D3D11TextureIMFSampleImage::BuildSurfaceDescriptorBuffer(
     SurfaceDescriptorBuffer& aSdBuffer, BuildSdbFlags aFlags,
     const std::function<MemoryOrShmem(uint32_t)>& aAllocate) {
   RefPtr<ID3D11Texture2D> src = GetTexture();
@@ -109,18 +110,8 @@ nsresult D3D11ZeroCopyTextureImage::BuildSurfaceDescriptorBuffer(
                                                 aAllocate);
 }
 
-ID3D11Texture2D* D3D11ZeroCopyTextureImage::GetTexture() const {
+ID3D11Texture2D* D3D11TextureIMFSampleImage::GetTexture() const {
   return mTexture;
-}
-
-D3D11TextureIMFSampleImage::D3D11TextureIMFSampleImage(
-    IMFSample* aVideoSample, ID3D11Texture2D* aTexture, uint32_t aArrayIndex,
-    const gfx::IntSize& aSize, const gfx::IntRect& aRect,
-    gfx::ColorSpace2 aColorSpace, gfx::ColorRange aColorRange)
-    : D3D11ZeroCopyTextureImage(aTexture, aArrayIndex, aSize, aRect,
-                                aColorSpace, aColorRange),
-      mVideoSample(IMFSampleWrapper::Create(aVideoSample)) {
-  MOZ_ASSERT(XRE_IsGPUProcess());
 }
 
 RefPtr<IMFSampleWrapper> D3D11TextureIMFSampleImage::GetIMFSampleWrapper() {

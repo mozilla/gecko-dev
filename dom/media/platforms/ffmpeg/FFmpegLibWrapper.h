@@ -19,8 +19,8 @@ struct AVDictionary;
 struct AVCodecParserContext;
 struct PRLibrary;
 struct AVChannelLayout;
-struct AVCodecHWConfig;
 #ifdef MOZ_WIDGET_GTK
+struct AVCodecHWConfig;
 struct AVVAAPIHWConfig;
 struct AVHWFramesConstraints;
 #endif
@@ -157,26 +157,23 @@ struct MOZ_ONLY_USED_TO_AVOID_STATIC_CONSTRUCTORS FFmpegLibWrapper {
   int (*av_frame_get_colorspace)(const AVFrame* frame);
   int (*av_frame_get_color_range)(const AVFrame* frame);
 
-  // libavcodec > 58
+#ifdef MOZ_WIDGET_GTK
   const AVCodecHWConfig* (*avcodec_get_hw_config)(const AVCodec* codec,
                                                   int index);
-  // libavutil >= 58
   AVBufferRef* (*av_hwdevice_ctx_alloc)(int);
   int (*av_hwdevice_ctx_init)(AVBufferRef* ref);
-  AVBufferRef* (*av_hwframe_ctx_alloc)(AVBufferRef* device_ctx);
-  int (*av_hwframe_ctx_init)(AVBufferRef* ref);
-  AVBufferRef* (*av_buffer_ref)(AVBufferRef* buf);
-  void (*av_buffer_unref)(AVBufferRef** buf);
-
-#ifdef MOZ_WIDGET_GTK
   AVVAAPIHWConfig* (*av_hwdevice_hwconfig_alloc)(AVBufferRef* device_ctx);
   AVHWFramesConstraints* (*av_hwdevice_get_hwframe_constraints)(
       AVBufferRef* ref, const void* hwconfig);
   void (*av_hwframe_constraints_free)(AVHWFramesConstraints** constraints);
+
+  AVBufferRef* (*av_buffer_ref)(AVBufferRef* buf);
+  void (*av_buffer_unref)(AVBufferRef** buf);
   int (*av_hwframe_transfer_get_formats)(AVBufferRef* hwframe_ctx, int dir,
                                          int** formats, int flags);
   int (*av_hwdevice_ctx_create_derived)(AVBufferRef** dst_ctx, int type,
                                         AVBufferRef* src_ctx, int flags);
+  AVBufferRef* (*av_hwframe_ctx_alloc)(AVBufferRef* device_ctx);
   const char* (*avcodec_get_name)(int id);
   char* (*av_get_pix_fmt_string)(char* buf, int buf_size, int pix_fmt);
 

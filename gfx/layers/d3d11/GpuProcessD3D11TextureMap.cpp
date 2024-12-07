@@ -8,7 +8,7 @@
 
 #include "libyuv.h"
 #include "mozilla/layers/CompositorThread.h"
-#include "mozilla/layers/D3D11ZeroCopyTextureImage.h"
+#include "mozilla/layers/D3D11TextureIMFSampleImage.h"
 #include "mozilla/layers/HelpersD3D11.h"
 #include "mozilla/layers/TextureHostWrapperD3D11.h"
 #include "mozilla/ProfilerMarkers.h"
@@ -47,7 +47,7 @@ GpuProcessD3D11TextureMap::~GpuProcessD3D11TextureMap() {}
 void GpuProcessD3D11TextureMap::Register(
     GpuProcessTextureId aTextureId, ID3D11Texture2D* aTexture,
     uint32_t aArrayIndex, const gfx::IntSize& aSize,
-    RefPtr<ZeroCopyUsageInfo> aUsageInfo,
+    RefPtr<IMFSampleUsageInfo> aUsageInfo,
     RefPtr<gfx::FileHandleWrapper> aSharedHandle) {
   MonitorAutoLock lock(mMonitor);
   Register(lock, aTextureId, aTexture, aArrayIndex, aSize, aUsageInfo,
@@ -56,7 +56,7 @@ void GpuProcessD3D11TextureMap::Register(
 void GpuProcessD3D11TextureMap::Register(
     const MonitorAutoLock& aProofOfLock, GpuProcessTextureId aTextureId,
     ID3D11Texture2D* aTexture, uint32_t aArrayIndex, const gfx::IntSize& aSize,
-    RefPtr<ZeroCopyUsageInfo> aUsageInfo,
+    RefPtr<IMFSampleUsageInfo> aUsageInfo,
     RefPtr<gfx::FileHandleWrapper> aSharedHandle) {
   MOZ_RELEASE_ASSERT(aTexture);
 
@@ -196,8 +196,8 @@ Maybe<HANDLE> GpuProcessD3D11TextureMap::GetSharedHandle(
 
     // Disable no video copy for future decoded video frames. Since
     // Get SharedHandle of copied Texture() is slow.
-    if (it->second.mZeroCopyUsageInfo) {
-      it->second.mZeroCopyUsageInfo->DisableZeroCopyNV12Texture();
+    if (it->second.mIMFSampleUsageInfo) {
+      it->second.mIMFSampleUsageInfo->DisableZeroCopyNV12Texture();
     }
 
     it->second.mCopiedTexture = copiedTexture;
@@ -393,12 +393,12 @@ RefPtr<ID3D11Texture2D> GpuProcessD3D11TextureMap::UpdateTextureData(
 
 GpuProcessD3D11TextureMap::TextureHolder::TextureHolder(
     ID3D11Texture2D* aTexture, uint32_t aArrayIndex, const gfx::IntSize& aSize,
-    RefPtr<ZeroCopyUsageInfo> aUsageInfo,
+    RefPtr<IMFSampleUsageInfo> aUsageInfo,
     RefPtr<gfx::FileHandleWrapper> aSharedHandle)
     : mTexture(aTexture),
       mArrayIndex(aArrayIndex),
       mSize(aSize),
-      mZeroCopyUsageInfo(aUsageInfo),
+      mIMFSampleUsageInfo(aUsageInfo),
       mSharedHandle(aSharedHandle) {}
 
 GpuProcessD3D11TextureMap::UpdatingTextureHolder::UpdatingTextureHolder(

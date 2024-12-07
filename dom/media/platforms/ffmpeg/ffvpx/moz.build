@@ -49,9 +49,6 @@ if CONFIG["MOZ_ENABLE_VAAPI"] or CONFIG["MOZ_ENABLE_V4L2"]:
     LOCAL_INCLUDES += ["/third_party/drm/drm/include/libdrm/"]
     USE_LIBS += ["mozva"]
     DEFINES["MOZ_USE_HWDECODE"] = 1
-if CONFIG["MOZ_WIDGET_TOOLKIT"] == "windows":
-    DEFINES["MOZ_ENABLE_D3D11VA"] = 1
-    DEFINES["MOZ_USE_HWDECODE"] = 1
 
 include("/ipc/chromium/chromium-config.mozbuild")
 

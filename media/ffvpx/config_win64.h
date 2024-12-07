@@ -647,7 +647,7 @@
 #define CONFIG_BSWAPDSP 0
 #define CONFIG_CABAC 0
 #define CONFIG_CBS 0
-#define CONFIG_CBS_AV1 1
+#define CONFIG_CBS_AV1 0
 #define CONFIG_CBS_H264 0
 #define CONFIG_CBS_H265 0
 #define CONFIG_CBS_JPEG 0

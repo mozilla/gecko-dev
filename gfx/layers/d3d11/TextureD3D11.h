@@ -53,7 +53,7 @@ class MOZ_RAII AutoTextureLock final {
 };
 
 class CompositorD3D11;
-class ZeroCopyUsageInfo;
+class IMFSampleUsageInfo;
 class VideoProcessorD3D11;
 
 class D3D11TextureData final : public TextureData {
@@ -71,7 +71,7 @@ class D3D11TextureData final : public TextureData {
       ID3D11Texture2D* aTexture, uint32_t aIndex, gfx::IntSize aSize,
       gfx::SurfaceFormat aFormat, gfx::ColorSpace2 aColorSpace,
       gfx::ColorRange aColorRange, KnowsCompositor* aKnowsCompositor,
-      RefPtr<ZeroCopyUsageInfo> aUsageInfo);
+      RefPtr<IMFSampleUsageInfo> aUsageInfo);
 
   virtual ~D3D11TextureData();
 

@@ -38,7 +38,7 @@
 
 #ifdef XP_WIN
 #  include "mozilla/layers/D3D11ShareHandleImage.h"
-#  include "mozilla/layers/D3D11ZeroCopyTextureImage.h"
+#  include "mozilla/layers/D3D11TextureIMFSampleImage.h"
 #  include "mozilla/layers/D3D11YCbCrImage.h"
 #endif
 
@@ -966,9 +966,9 @@ bool GLBlitHelper::BlitImageToFramebuffer(layers::Image* const srcImage,
     case ImageFormat::D3D11_SHARE_HANDLE_TEXTURE:
       return BlitImage(static_cast<layers::D3D11ShareHandleImage*>(srcImage),
                        destSize, destOrigin);
-    case ImageFormat::D3D11_TEXTURE_ZERO_COPY:
+    case ImageFormat::D3D11_TEXTURE_IMF_SAMPLE:
       return BlitImage(
-          static_cast<layers::D3D11ZeroCopyTextureImage*>(srcImage), destSize,
+          static_cast<layers::D3D11TextureIMFSampleImage*>(srcImage), destSize,
           destOrigin);
     case ImageFormat::D3D9_RGB32_TEXTURE:
       return false;  // todo
@@ -976,7 +976,7 @@ bool GLBlitHelper::BlitImageToFramebuffer(layers::Image* const srcImage,
       return false;
 #else
     case ImageFormat::D3D11_SHARE_HANDLE_TEXTURE:
-    case ImageFormat::D3D11_TEXTURE_ZERO_COPY:
+    case ImageFormat::D3D11_TEXTURE_IMF_SAMPLE:
     case ImageFormat::D3D9_RGB32_TEXTURE:
     case ImageFormat::DCOMP_SURFACE:
       MOZ_ASSERT(false);
