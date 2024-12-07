@@ -81,7 +81,7 @@ RefPtr<ResolvableNormalOriginOp<bool>> CreateTemporaryGroupInitializedOp(
 
 RefPtr<ResolvableNormalOriginOp<bool>> CreatePersistentOriginInitializedOp(
     MovingNotNull<RefPtr<QuotaManager>> aQuotaManager,
-    const PrincipalMetadata& aPrincipalMetadata);
+    const OriginMetadata& aOriginMetadata);
 
 RefPtr<ResolvableNormalOriginOp<bool>> CreateTemporaryOriginInitializedOp(
     MovingNotNull<RefPtr<QuotaManager>> aQuotaManager,
@@ -107,7 +107,7 @@ RefPtr<ResolvableNormalOriginOp<bool>> CreateInitializeTemporaryGroupOp(
 
 RefPtr<ResolvableNormalOriginOp<bool>> CreateInitializePersistentOriginOp(
     MovingNotNull<RefPtr<QuotaManager>> aQuotaManager,
-    const PrincipalMetadata& aPrincipalMetadata,
+    const OriginMetadata& aOriginMetadata,
     RefPtr<UniversalDirectoryLock> aDirectoryLock);
 
 RefPtr<ResolvableNormalOriginOp<bool>> CreateInitializeTemporaryOriginOp(

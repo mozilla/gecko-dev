@@ -417,19 +417,17 @@ class QuotaManager final : public BackgroundThreadObject {
       const PrincipalMetadata& aPrincipalMetadata);
 
  public:
-  // XXX Change all these to take OriginMetadata (instead of PrincipalMetadata).
   RefPtr<BoolPromise> InitializePersistentOrigin(
-      const PrincipalMetadata& aPrincipalMetadata);
+      const OriginMetadata& aOriginMetadata);
 
   RefPtr<BoolPromise> InitializePersistentOrigin(
-      const PrincipalMetadata& aPrincipalMetadata,
+      const OriginMetadata& aOriginMetadata,
       RefPtr<UniversalDirectoryLock> aDirectoryLock);
 
   RefPtr<BoolPromise> PersistentOriginInitialized(
-      const PrincipalMetadata& aPrincipalMetadata);
+      const OriginMetadata& aOriginMetadata);
 
-  bool IsPersistentOriginInitialized(
-      const PrincipalMetadata& aPrincipalMetadata);
+  bool IsPersistentOriginInitialized(const OriginMetadata& aOriginMetadata);
 
   bool IsPersistentOriginInitializedInternal(
       const OriginMetadata& aOriginMetadata) const;

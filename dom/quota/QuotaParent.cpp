@@ -408,7 +408,9 @@ mozilla::ipc::IPCResult Quota::RecvPersistentOriginInitialized(
       GetInfoFromValidatedPrincipalInfo(*quotaManager, aPrincipalInfo),
       ResolveBoolResponseAndReturn(aResolve));
 
-  quotaManager->PersistentOriginInitialized(principalMetadata)
+  quotaManager
+      ->PersistentOriginInitialized(OriginMetadata{std::move(principalMetadata),
+                                                   PERSISTENCE_TYPE_PERSISTENT})
       ->Then(GetCurrentSerialEventTarget(), __func__,
              BoolPromiseResolveOrRejectCallback(this, std::move(aResolve)));
 
@@ -530,7 +532,9 @@ mozilla::ipc::IPCResult Quota::RecvInitializePersistentOrigin(
       GetInfoFromValidatedPrincipalInfo(*quotaManager, aPrincipalInfo),
       ResolveBoolResponseAndReturn(aResolve));
 
-  quotaManager->InitializePersistentOrigin(principalMetadata)
+  quotaManager
+      ->InitializePersistentOrigin(OriginMetadata{std::move(principalMetadata),
+                                                  PERSISTENCE_TYPE_PERSISTENT})
       ->Then(GetCurrentSerialEventTarget(), __func__,
              BoolPromiseResolveOrRejectCallback(this, std::move(aResolve)));
 
