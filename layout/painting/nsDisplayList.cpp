@@ -2904,8 +2904,7 @@ nsDisplayBackgroundImage::nsDisplayBackgroundImage(
       mFillRect(aInitData.fillArea),
       mDestRect(aInitData.destArea),
       mLayer(aInitData.layer),
-      mIsRasterImage(aInitData.isRasterImage),
-      mShouldFixToViewport(aInitData.shouldFixToViewport) {
+      mIsRasterImage(aInitData.isRasterImage) {
   MOZ_COUNT_CTOR(nsDisplayBackgroundImage);
 #ifdef DEBUG
   if (mBackgroundStyle && mBackgroundStyle != mFrame->Style()) {
@@ -2916,7 +2915,7 @@ nsDisplayBackgroundImage::nsDisplayBackgroundImage(
 #endif
 
   mBounds = GetBoundsInternal(aInitData.builder, aFrameForBounds);
-  if (mShouldFixToViewport) {
+  if (aInitData.shouldFixToViewport) {
     // Expand the item's visible rect to cover the entire bounds, limited to the
     // viewport rect. This is necessary because the background's clip can move
     // asynchronously.

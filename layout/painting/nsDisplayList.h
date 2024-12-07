@@ -2535,14 +2535,6 @@ class nsDisplayItem {
   }
 
   /**
-   * @return true if the contents of this item are rendered fixed relative
-   * to the nearest viewport.
-   */
-  virtual bool ShouldFixToViewport(nsDisplayListBuilder* aBuilder) const {
-    return false;
-  }
-
-  /**
    * Returns true if all layers that can be active should be forced to be
    * active. Requires setting the pref layers.force-active=true.
    */
@@ -4195,9 +4187,6 @@ class nsDisplayBackgroundImage : public nsPaintedDisplayItem {
   void ComputeInvalidationRegion(nsDisplayListBuilder* aBuilder,
                                  const nsDisplayItemGeometry* aGeometry,
                                  nsRegion* aInvalidRegion) const override;
-  bool ShouldFixToViewport(nsDisplayListBuilder* aBuilder) const override {
-    return mShouldFixToViewport;
-  }
 
   nsRect GetDestRect() const { return mDestRect; }
 
@@ -4249,8 +4238,6 @@ class nsDisplayBackgroundImage : public nsPaintedDisplayItem {
   nsRect mBounds;
   uint16_t mLayer;
   bool mIsRasterImage;
-  /* Whether the image should be treated as fixed to the viewport. */
-  bool mShouldFixToViewport;
 };
 
 /**
@@ -5658,10 +5645,6 @@ class nsDisplayFixedPosition : public nsDisplayOwnLayer {
   void Paint(nsDisplayListBuilder* aBuilder, gfxContext* aCtx) override {
     GetChildren()->Paint(aBuilder, aCtx,
                          mFrame->PresContext()->AppUnitsPerDevPixel());
-  }
-
-  bool ShouldFixToViewport(nsDisplayListBuilder* aBuilder) const override {
-    return mIsFixedBackground;
   }
 
   bool CreateWebRenderCommands(
