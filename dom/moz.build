@@ -55,7 +55,6 @@ DIRS += [
     "mathml",
     "media",
     "midi",
-    "mls",
     "notification",
     "power",
     "push",

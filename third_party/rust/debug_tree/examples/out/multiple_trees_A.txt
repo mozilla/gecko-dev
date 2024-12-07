@@ -1,5 +1,0 @@
-A TREE
-├╼ A TREE
-│ └╼ A TREE
-└╼ A TREE
-  └╼ A TREE

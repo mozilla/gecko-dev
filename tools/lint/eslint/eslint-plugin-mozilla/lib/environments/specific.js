@@ -21,8 +21,6 @@ module.exports = {
     InstallTrigger: false,
     // https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/InternalError
     InternalError: true,
-    // https://github.com/mozilla/explainers/MessagingLayerSecurity.md
-    MLS: false,
     Services: false,
     // https://developer.mozilla.org/docs/Web/API/Window/dump
     dump: true,

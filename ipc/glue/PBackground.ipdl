@@ -37,7 +37,6 @@ include protocol PCameras;
 include protocol PLockManager;
 include protocol PMIDIManager;
 include protocol PMIDIPort;
-include protocol PMLSTransaction;
 include protocol PQuota;
 include protocol PServiceWorker;
 include protocol PServiceWorkerContainer;
@@ -264,8 +263,6 @@ parent:
   async CreateMIDIPort(Endpoint<PMIDIPortParent> aEndpoint,
                        MIDIPortInfo portInfo, bool sysexEnabled);
   async HasMIDIDevice() returns (bool hasDevice);
-
-  async CreateMLSTransaction(Endpoint<PMLSTransactionParent> aEndpoint, nsIPrincipal aPrincipal);
 
   // This method is used to propagate storage activities from the child actor
   // to the parent actor. See StorageActivityService.
