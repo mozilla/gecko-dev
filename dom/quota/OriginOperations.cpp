@@ -431,8 +431,7 @@ class TemporaryOriginInitializedOp final : public InitializedOriginRequestBase {
  public:
   explicit TemporaryOriginInitializedOp(
       MovingNotNull<RefPtr<QuotaManager>> aQuotaManager,
-      PersistenceType aPersistenceType,
-      const PrincipalMetadata& aPrincipalMetadata);
+      const OriginMetadata& aOriginMetadata);
 
  private:
   ~TemporaryOriginInitializedOp() = default;
@@ -565,8 +564,7 @@ class InitializeTemporaryOriginOp final : public InitializeOriginRequestBase {
 
  public:
   InitializeTemporaryOriginOp(MovingNotNull<RefPtr<QuotaManager>> aQuotaManager,
-                              PersistenceType aPersistenceType,
-                              const PrincipalMetadata& aPrincipalMetadata,
+                              const OriginMetadata& aOriginMetadata,
                               bool aCreateIfNonExistent,
                               RefPtr<UniversalDirectoryLock> aDirectoryLock);
 
@@ -1076,10 +1074,9 @@ RefPtr<ResolvableNormalOriginOp<bool>> CreatePersistentOriginInitializedOp(
 
 RefPtr<ResolvableNormalOriginOp<bool>> CreateTemporaryOriginInitializedOp(
     MovingNotNull<RefPtr<QuotaManager>> aQuotaManager,
-    const PersistenceType aPersistenceType,
-    const PrincipalMetadata& aPrincipalMetadata) {
-  return MakeRefPtr<TemporaryOriginInitializedOp>(
-      std::move(aQuotaManager), aPersistenceType, aPrincipalMetadata);
+    const OriginMetadata& aOriginMetadata) {
+  return MakeRefPtr<TemporaryOriginInitializedOp>(std::move(aQuotaManager),
+                                                  aOriginMetadata);
 }
 
 RefPtr<ResolvableNormalOriginOp<bool>> CreateInitOp(
@@ -1121,12 +1118,11 @@ RefPtr<ResolvableNormalOriginOp<bool>> CreateInitializePersistentOriginOp(
 
 RefPtr<ResolvableNormalOriginOp<bool>> CreateInitializeTemporaryOriginOp(
     MovingNotNull<RefPtr<QuotaManager>> aQuotaManager,
-    const PersistenceType aPersistenceType,
-    const PrincipalMetadata& aPrincipalMetadata, bool aCreateIfNonExistent,
+    const OriginMetadata& aOriginMetadata, bool aCreateIfNonExistent,
     RefPtr<UniversalDirectoryLock> aDirectoryLock) {
   return MakeRefPtr<InitializeTemporaryOriginOp>(
-      std::move(aQuotaManager), aPersistenceType, aPrincipalMetadata,
-      aCreateIfNonExistent, std::move(aDirectoryLock));
+      std::move(aQuotaManager), aOriginMetadata, aCreateIfNonExistent,
+      std::move(aDirectoryLock));
 }
 
 RefPtr<ResolvableNormalOriginOp<bool>> CreateInitializePersistentClientOp(
@@ -2005,13 +2001,13 @@ bool PersistentOriginInitializedOp::UnwrapResolveValue() {
 
 TemporaryOriginInitializedOp::TemporaryOriginInitializedOp(
     MovingNotNull<RefPtr<QuotaManager>> aQuotaManager,
-    PersistenceType aPersistenceType,
-    const PrincipalMetadata& aPrincipalMetadata)
+    const OriginMetadata& aOriginMetadata)
     : InitializedOriginRequestBase(std::move(aQuotaManager),
                                    "dom::quota::TemporaryOriginInitializedOp",
-                                   aPrincipalMetadata),
-      mPersistenceType(aPersistenceType) {
+                                   aOriginMetadata),
+      mPersistenceType(aOriginMetadata.mPersistenceType) {
   AssertIsOnOwningThread();
+  MOZ_ASSERT(aOriginMetadata.mPersistenceType != PERSISTENCE_TYPE_PERSISTENT);
 }
 
 nsresult TemporaryOriginInitializedOp::DoDirectoryWork(
@@ -2278,15 +2274,15 @@ bool InitializePersistentOriginOp::UnwrapResolveValue() {
 
 InitializeTemporaryOriginOp::InitializeTemporaryOriginOp(
     MovingNotNull<RefPtr<QuotaManager>> aQuotaManager,
-    PersistenceType aPersistenceType,
-    const PrincipalMetadata& aPrincipalMetadata, bool aCreateIfNonExistent,
+    const OriginMetadata& aOriginMetadata, bool aCreateIfNonExistent,
     RefPtr<UniversalDirectoryLock> aDirectoryLock)
-    : InitializeOriginRequestBase(
-          std::move(aQuotaManager), "dom::quota::InitializeTemporaryOriginOp",
-          aPrincipalMetadata, std::move(aDirectoryLock)),
-      mPersistenceType(aPersistenceType),
+    : InitializeOriginRequestBase(std::move(aQuotaManager),
+                                  "dom::quota::InitializeTemporaryOriginOp",
+                                  aOriginMetadata, std::move(aDirectoryLock)),
+      mPersistenceType(aOriginMetadata.mPersistenceType),
       mCreateIfNonExistent(aCreateIfNonExistent) {
   AssertIsOnOwningThread();
+  MOZ_ASSERT(aOriginMetadata.mPersistenceType != PERSISTENCE_TYPE_PERSISTENT);
 }
 
 nsresult InitializeTemporaryOriginOp::DoDirectoryWork(

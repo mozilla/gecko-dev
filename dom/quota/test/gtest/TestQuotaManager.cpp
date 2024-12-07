@@ -1940,7 +1940,7 @@ TEST_F(TestQuotaManager,
     promises.AppendElement(quotaManager->InitializeStorage());
     promises.AppendElement(quotaManager->InitializeTemporaryStorage());
     promises.AppendElement(quotaManager->InitializeTemporaryOrigin(
-        testOriginMetadata.mPersistenceType, testOriginMetadata,
+        testOriginMetadata,
         /* aCreateIfNonExistent */ false));
 
     {
@@ -1950,8 +1950,8 @@ TEST_F(TestQuotaManager,
 
       ASSERT_TRUE(quotaManager->IsStorageInitialized());
       ASSERT_TRUE(quotaManager->IsTemporaryStorageInitialized());
-      ASSERT_TRUE(quotaManager->IsTemporaryOriginInitialized(
-          testOriginMetadata.mPersistenceType, testOriginMetadata));
+      ASSERT_TRUE(
+          quotaManager->IsTemporaryOriginInitialized(testOriginMetadata));
     }
 
     promises.Clear();
@@ -1960,7 +1960,7 @@ TEST_F(TestQuotaManager,
     promises.AppendElement(quotaManager->InitializeStorage());
     promises.AppendElement(quotaManager->InitializeTemporaryStorage());
     promises.AppendElement(quotaManager->InitializeTemporaryOrigin(
-        testOriginMetadata.mPersistenceType, testOriginMetadata,
+        testOriginMetadata,
         /* aCreateIfNonExistent */ true));
 
     {
@@ -1970,8 +1970,8 @@ TEST_F(TestQuotaManager,
 
       ASSERT_TRUE(quotaManager->IsStorageInitialized());
       ASSERT_TRUE(quotaManager->IsTemporaryStorageInitialized());
-      ASSERT_TRUE(quotaManager->IsTemporaryOriginInitialized(
-          testOriginMetadata.mPersistenceType, testOriginMetadata));
+      ASSERT_TRUE(
+          quotaManager->IsTemporaryOriginInitialized(testOriginMetadata));
     }
   });
 
@@ -2021,8 +2021,8 @@ TEST_F(TestQuotaManager, ClearStoragesForOrigin_Simple) {
 
       ASSERT_TRUE(quotaManager->IsStorageInitialized());
       ASSERT_TRUE(quotaManager->IsTemporaryStorageInitialized());
-      ASSERT_FALSE(quotaManager->IsTemporaryOriginInitialized(
-          testOriginMetadata.mPersistenceType, testOriginMetadata));
+      ASSERT_FALSE(
+          quotaManager->IsTemporaryOriginInitialized(testOriginMetadata));
     }
   });
 
@@ -2070,8 +2070,8 @@ TEST_F(TestQuotaManager, ClearStoragesForOrigin_NonExistentOriginDirectory) {
 
       ASSERT_TRUE(quotaManager->IsStorageInitialized());
       ASSERT_TRUE(quotaManager->IsTemporaryStorageInitialized());
-      ASSERT_FALSE(quotaManager->IsTemporaryOriginInitialized(
-          testOriginMetadata.mPersistenceType, testOriginMetadata));
+      ASSERT_FALSE(
+          quotaManager->IsTemporaryOriginInitialized(testOriginMetadata));
     }
   });
 
@@ -2120,8 +2120,8 @@ TEST_F(TestQuotaManager, ClearStoragesForOriginPrefix_Simple) {
 
       ASSERT_TRUE(quotaManager->IsStorageInitialized());
       ASSERT_TRUE(quotaManager->IsTemporaryStorageInitialized());
-      ASSERT_FALSE(quotaManager->IsTemporaryOriginInitialized(
-          testOriginMetadata.mPersistenceType, testOriginMetadata));
+      ASSERT_FALSE(
+          quotaManager->IsTemporaryOriginInitialized(testOriginMetadata));
     }
   });
 
@@ -2170,8 +2170,8 @@ TEST_F(TestQuotaManager,
 
       ASSERT_TRUE(quotaManager->IsStorageInitialized());
       ASSERT_TRUE(quotaManager->IsTemporaryStorageInitialized());
-      ASSERT_FALSE(quotaManager->IsTemporaryOriginInitialized(
-          testOriginMetadata.mPersistenceType, testOriginMetadata));
+      ASSERT_FALSE(
+          quotaManager->IsTemporaryOriginInitialized(testOriginMetadata));
     }
   });
 
@@ -2220,8 +2220,8 @@ TEST_F(TestQuotaManager, ClearStoragesForOriginAttributesPattern_Simple) {
 
       ASSERT_TRUE(quotaManager->IsStorageInitialized());
       ASSERT_TRUE(quotaManager->IsTemporaryStorageInitialized());
-      ASSERT_FALSE(quotaManager->IsTemporaryOriginInitialized(
-          testOriginMetadata.mPersistenceType, testOriginMetadata));
+      ASSERT_FALSE(
+          quotaManager->IsTemporaryOriginInitialized(testOriginMetadata));
     }
   });
 
@@ -2262,8 +2262,8 @@ TEST_F(TestQuotaManager,
 
       ASSERT_TRUE(quotaManager->IsStorageInitialized());
       ASSERT_TRUE(quotaManager->IsTemporaryStorageInitialized());
-      ASSERT_FALSE(quotaManager->IsTemporaryOriginInitialized(
-          testOriginMetadata.mPersistenceType, testOriginMetadata));
+      ASSERT_FALSE(
+          quotaManager->IsTemporaryOriginInitialized(testOriginMetadata));
     }
   });
 
@@ -2312,8 +2312,8 @@ TEST_F(TestQuotaManager, ShutdownStoragesForOrigin_Simple) {
 
       ASSERT_TRUE(quotaManager->IsStorageInitialized());
       ASSERT_TRUE(quotaManager->IsTemporaryStorageInitialized());
-      ASSERT_FALSE(quotaManager->IsTemporaryOriginInitialized(
-          testOriginMetadata.mPersistenceType, testOriginMetadata));
+      ASSERT_FALSE(
+          quotaManager->IsTemporaryOriginInitialized(testOriginMetadata));
     }
   });
 
@@ -2361,8 +2361,8 @@ TEST_F(TestQuotaManager, ShutdownStoragesForOrigin_NonExistentOriginDirectory) {
 
       ASSERT_TRUE(quotaManager->IsStorageInitialized());
       ASSERT_TRUE(quotaManager->IsTemporaryStorageInitialized());
-      ASSERT_FALSE(quotaManager->IsTemporaryOriginInitialized(
-          testOriginMetadata.mPersistenceType, testOriginMetadata));
+      ASSERT_FALSE(
+          quotaManager->IsTemporaryOriginInitialized(testOriginMetadata));
     }
   });
 

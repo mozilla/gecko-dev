@@ -5427,7 +5427,7 @@ RefPtr<ClientDirectoryLockPromise> QuotaManager::OpenClientDirectory(
     const bool originInitialized =
         persistenceType == PERSISTENCE_TYPE_PERSISTENT
             ? IsPersistentOriginInitialized(aClientMetadata)
-            : IsTemporaryOriginInitialized(persistenceType, aClientMetadata);
+            : IsTemporaryOriginInitialized(aClientMetadata);
 
     originDirectoryLock = CreateDirectoryLockForInitialization(
         *this, PersistenceScope::CreateFromValue(persistenceType),
@@ -5473,17 +5473,17 @@ RefPtr<ClientDirectoryLockPromise> QuotaManager::OpenClientDirectory(
           ->Then(GetCurrentSerialEventTarget(), __func__,
                  MaybeInitialize(
                      std::move(originDirectoryLock),
-                     [self = RefPtr(this), persistenceType, aClientMetadata,
+                     [self = RefPtr(this), aClientMetadata,
                       aCreateIfNonExistent](RefPtr<UniversalDirectoryLock>
                                                 originDirectoryLock) mutable {
-                       if (persistenceType == PERSISTENCE_TYPE_PERSISTENT) {
+                       if (aClientMetadata.mPersistenceType ==
+                           PERSISTENCE_TYPE_PERSISTENT) {
                          return self->InitializePersistentOrigin(
                              aClientMetadata, std::move(originDirectoryLock));
                        }
 
                        return self->InitializeTemporaryOrigin(
-                           persistenceType, aClientMetadata,
-                           aCreateIfNonExistent,
+                           aClientMetadata, aCreateIfNonExistent,
                            std::move(originDirectoryLock));
                      }))
           ->Then(GetCurrentSerialEventTarget(), __func__,
@@ -5985,13 +5985,13 @@ QuotaManager::EnsurePersistentOriginIsInitializedInternal(
 }
 
 RefPtr<BoolPromise> QuotaManager::InitializeTemporaryOrigin(
-    PersistenceType aPersistenceType,
-    const PrincipalMetadata& aPrincipalMetadata, bool aCreateIfNonExistent) {
+    const OriginMetadata& aOriginMetadata, bool aCreateIfNonExistent) {
   AssertIsOnOwningThread();
+  MOZ_ASSERT(aOriginMetadata.mPersistenceType != PERSISTENCE_TYPE_PERSISTENT);
 
   RefPtr<UniversalDirectoryLock> directoryLock = CreateDirectoryLockInternal(
-      PersistenceScope::CreateFromValue(aPersistenceType),
-      OriginScope::FromOrigin(aPrincipalMetadata), Nullable<Client::Type>(),
+      PersistenceScope::CreateFromValue(aOriginMetadata.mPersistenceType),
+      OriginScope::FromOrigin(aOriginMetadata), Nullable<Client::Type>(),
       /* aExclusive */ false);
 
   auto prepareInfo = directoryLock->Prepare();
@@ -6002,7 +6002,7 @@ RefPtr<BoolPromise> QuotaManager::InitializeTemporaryOrigin(
   // the clear and shutdown storage operations uninitialize storage (which also
   // includes uninitialization of origins) and because clear and shutdown origin
   // operations uninitialize origins directly.
-  if (IsTemporaryOriginInitialized(aPersistenceType, aPrincipalMetadata) &&
+  if (IsTemporaryOriginInitialized(aOriginMetadata) &&
       !IsDirectoryLockBlockedByUninitStorageOrUninitOriginsOperation(
           prepareInfo)) {
     return BoolPromise::CreateAndResolve(true, __func__);
@@ -6010,25 +6010,25 @@ RefPtr<BoolPromise> QuotaManager::InitializeTemporaryOrigin(
 
   return directoryLock->Acquire(std::move(prepareInfo))
       ->Then(GetCurrentSerialEventTarget(), __func__,
-             [self = RefPtr(this), aPersistenceType, aPrincipalMetadata,
-              aCreateIfNonExistent, directoryLock](
+             [self = RefPtr(this), aOriginMetadata, aCreateIfNonExistent,
+              directoryLock](
                  const BoolPromise::ResolveOrRejectValue& aValue) mutable {
                if (aValue.IsReject()) {
                  return BoolPromise::CreateAndReject(aValue.RejectValue(),
                                                      __func__);
                }
 
-               return self->InitializeTemporaryOrigin(
-                   aPersistenceType, aPrincipalMetadata, aCreateIfNonExistent,
-                   std::move(directoryLock));
+               return self->InitializeTemporaryOrigin(aOriginMetadata,
+                                                      aCreateIfNonExistent,
+                                                      std::move(directoryLock));
              });
 }
 
 RefPtr<BoolPromise> QuotaManager::InitializeTemporaryOrigin(
-    PersistenceType aPersistenceType,
-    const PrincipalMetadata& aPrincipalMetadata, bool aCreateIfNonExistent,
+    const OriginMetadata& aOriginMetadata, bool aCreateIfNonExistent,
     RefPtr<UniversalDirectoryLock> aDirectoryLock) {
   AssertIsOnOwningThread();
+  MOZ_ASSERT(aOriginMetadata.mPersistenceType != PERSISTENCE_TYPE_PERSISTENT);
   MOZ_ASSERT(aDirectoryLock);
   MOZ_ASSERT(aDirectoryLock->Acquired());
 
@@ -6039,38 +6039,38 @@ RefPtr<BoolPromise> QuotaManager::InitializeTemporaryOrigin(
   // operation which would uninitialize storage (which also includes
   // uninitialization of origins), or which would uninitialize origins
   // directly.
-  if (IsTemporaryOriginInitialized(aPersistenceType, aPrincipalMetadata)) {
+  if (IsTemporaryOriginInitialized(aOriginMetadata)) {
     DropDirectoryLock(aDirectoryLock);
 
     return BoolPromise::CreateAndResolve(true, __func__);
   }
 
   auto initializeTemporaryOriginOp = CreateInitializeTemporaryOriginOp(
-      WrapMovingNotNullUnchecked(this), aPersistenceType, aPrincipalMetadata,
-      aCreateIfNonExistent, std::move(aDirectoryLock));
+      WrapMovingNotNullUnchecked(this), aOriginMetadata, aCreateIfNonExistent,
+      std::move(aDirectoryLock));
 
   RegisterNormalOriginOp(*initializeTemporaryOriginOp);
 
   initializeTemporaryOriginOp->RunImmediately();
 
-  return Map<BoolPromise>(initializeTemporaryOriginOp->OnResults(),
-                          [self = RefPtr(this), aPersistenceType,
-                           origin = aPrincipalMetadata.mOrigin](
-                              const BoolPromise::ResolveOrRejectValue& aValue) {
-                            self->NoteInitializedOrigin(aPersistenceType,
-                                                        origin);
+  return Map<BoolPromise>(
+      initializeTemporaryOriginOp->OnResults(),
+      [self = RefPtr(this), persistenceType = aOriginMetadata.mPersistenceType,
+       origin = aOriginMetadata.mOrigin](
+          const BoolPromise::ResolveOrRejectValue& aValue) {
+        self->NoteInitializedOrigin(persistenceType, origin);
 
-                            return aValue.ResolveValue();
-                          });
+        return aValue.ResolveValue();
+      });
 }
 
 RefPtr<BoolPromise> QuotaManager::TemporaryOriginInitialized(
-    PersistenceType aPersistenceType,
-    const PrincipalMetadata& aPrincipalMetadata) {
+    const OriginMetadata& aOriginMetadata) {
   AssertIsOnOwningThread();
+  MOZ_ASSERT(aOriginMetadata.mPersistenceType != PERSISTENCE_TYPE_PERSISTENT);
 
   auto temporaryOriginInitializedOp = CreateTemporaryOriginInitializedOp(
-      WrapMovingNotNullUnchecked(this), aPersistenceType, aPrincipalMetadata);
+      WrapMovingNotNullUnchecked(this), aOriginMetadata);
 
   RegisterNormalOriginOp(*temporaryOriginInitializedOp);
 
@@ -6080,11 +6080,12 @@ RefPtr<BoolPromise> QuotaManager::TemporaryOriginInitialized(
 }
 
 bool QuotaManager::IsTemporaryOriginInitialized(
-    PersistenceType aPersistenceType,
-    const PrincipalMetadata& aPrincipalMetadata) {
+    const OriginMetadata& aOriginMetadata) {
   AssertIsOnOwningThread();
+  MOZ_ASSERT(aOriginMetadata.mPersistenceType != PERSISTENCE_TYPE_PERSISTENT);
 
-  return IsOriginInitialized(aPersistenceType, aPrincipalMetadata.mOrigin);
+  return IsOriginInitialized(aOriginMetadata.mPersistenceType,
+                             aOriginMetadata.mOrigin);
 }
 
 bool QuotaManager::IsTemporaryOriginInitializedInternal(

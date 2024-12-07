@@ -226,9 +226,8 @@ void QuotaManagerDependencyFixture::InitializeTemporaryOrigin(
     QuotaManager* quotaManager = QuotaManager::Get();
     ASSERT_TRUE(quotaManager);
 
-    Await(quotaManager->InitializeTemporaryOrigin(
-        aOriginMetadata.mPersistenceType, aOriginMetadata,
-        aCreateIfNonExistent));
+    Await(quotaManager->InitializeTemporaryOrigin(aOriginMetadata,
+                                                  aCreateIfNonExistent));
   });
 }
 
@@ -241,8 +240,8 @@ void QuotaManagerDependencyFixture::TemporaryOriginInitialized(
     QuotaManager* quotaManager = QuotaManager::Get();
     ASSERT_TRUE(quotaManager);
 
-    auto value = Await(quotaManager->TemporaryOriginInitialized(
-        aOriginMetadata.mPersistenceType, aOriginMetadata));
+    auto value =
+        Await(quotaManager->TemporaryOriginInitialized(aOriginMetadata));
     if (value.IsResolve()) {
       *aResult = value.ResolveValue();
     } else {

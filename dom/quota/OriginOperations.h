@@ -85,8 +85,7 @@ RefPtr<ResolvableNormalOriginOp<bool>> CreatePersistentOriginInitializedOp(
 
 RefPtr<ResolvableNormalOriginOp<bool>> CreateTemporaryOriginInitializedOp(
     MovingNotNull<RefPtr<QuotaManager>> aQuotaManager,
-    const PersistenceType aPersistenceType,
-    const PrincipalMetadata& aPrincipalMetadata);
+    const OriginMetadata& aOriginMetadata);
 
 RefPtr<ResolvableNormalOriginOp<bool>> CreateInitOp(
     MovingNotNull<RefPtr<QuotaManager>> aQuotaManager,
@@ -112,8 +111,7 @@ RefPtr<ResolvableNormalOriginOp<bool>> CreateInitializePersistentOriginOp(
 
 RefPtr<ResolvableNormalOriginOp<bool>> CreateInitializeTemporaryOriginOp(
     MovingNotNull<RefPtr<QuotaManager>> aQuotaManager,
-    const PersistenceType aPersistenceType,
-    const PrincipalMetadata& aPrincipalMetadata, bool aCreateIfNonExistent,
+    const OriginMetadata& aOriginMetadata, bool aCreateIfNonExistent,
     RefPtr<UniversalDirectoryLock> aDirectoryLock);
 
 RefPtr<ResolvableNormalOriginOp<bool>> CreateInitializePersistentClientOp(
