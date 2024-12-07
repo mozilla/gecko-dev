@@ -74,7 +74,7 @@ function myPoll() {
     ok(true, "Animated image looks correct, " +
              "at call #" + gPollCounter + " to myPoll");
 
-    if (++gSVGCurrentImage > gSVGImages.length) {
+    if (++gSVGCurrentImage >= gSVGImages.length) {
       cleanUpAndFinish();
     } else {
       loadNextImageAndPoll();
