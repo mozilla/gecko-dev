@@ -19,12 +19,19 @@ mod exp;
 #[macro_use]
 mod util;
 
+pub mod aead;
+pub mod der;
+pub mod ec;
+pub mod hash;
+pub mod hkdf;
+pub mod hmac;
+// pub mod hpke;
 pub mod p11;
 mod prio;
 mod ssl;
 pub mod time;
 
-pub use err::{Error, IntoResult, secstatus_to_res};
+pub use err::{secstatus_to_res, Error, IntoResult};
 pub use p11::{PrivateKey, PublicKey, SymKey};
 pub use util::*;
 
@@ -63,6 +70,7 @@ pub const PR_TRUE: PRBool = prtypes::PR_TRUE as PRBool;
 enum NssLoaded {
     External,
     NoDb,
+    #[allow(dead_code)]
     Db(Box<Path>),
 }
 
@@ -96,18 +104,16 @@ fn version_check() {
 pub fn init() {
     // Set time zero.
     time::init();
-    INITIALIZED.get_or_init(|| {
-        unsafe {
-            version_check();
-            if already_initialized() {
-                return NssLoaded::External;
-            }
-
-            secstatus_to_res(nss::NSS_NoDB_Init(null())).expect("NSS_NoDB_Init failed");
-            secstatus_to_res(nss::NSS_SetDomesticPolicy()).expect("NSS_SetDomesticPolicy failed");
-
-            NssLoaded::NoDb
+    INITIALIZED.get_or_init(|| unsafe {
+        version_check();
+        if already_initialized() {
+            return NssLoaded::External;
         }
+
+        secstatus_to_res(nss::NSS_NoDB_Init(null())).expect("NSS_NoDB_Init failed");
+        secstatus_to_res(nss::NSS_SetDomesticPolicy()).expect("NSS_SetDomesticPolicy failed");
+
+        NssLoaded::NoDb
     });
 }
 
@@ -128,46 +134,46 @@ fn enable_ssl_trace() {
 /// If NSS cannot be initialized.
 pub fn init_db<P: Into<PathBuf>>(dir: P) {
     time::init();
-    INITIALIZED.get_or_init(|| {
-        unsafe {
-            version_check();
-            if already_initialized() {
-                return NssLoaded::External;
-            }
-
-            let path = dir.into();
-            assert!(path.is_dir());
-            let pathstr = path.to_str().expect("path converts to string").to_string();
-            let dircstr = CString::new(pathstr).unwrap();
-            let empty = CString::new("").unwrap();
-            secstatus_to_res(nss::NSS_Initialize(
-                dircstr.as_ptr(),
-                empty.as_ptr(),
-                empty.as_ptr(),
-                nss::SECMOD_DB.as_ptr().cast(),
-                nss::NSS_INIT_READONLY,
-            ))
-            .expect("NSS_Initialize failed");
-
-            secstatus_to_res(nss::NSS_SetDomesticPolicy()).expect("NSS_SetDomesticPolicy failed");
-            secstatus_to_res(ssl::SSL_ConfigServerSessionIDCache(
-                1024,
-                0,
-                0,
-                dircstr.as_ptr(),
-            ))
-            .expect("SSL_ConfigServerSessionIDCache failed");
-
-            #[cfg(debug_assertions)]
-            enable_ssl_trace();
-
-            NssLoaded::Db(path.into_boxed_path())
+    INITIALIZED.get_or_init(|| unsafe {
+        version_check();
+        if already_initialized() {
+            return NssLoaded::External;
         }
+
+        let path = dir.into();
+        assert!(path.is_dir());
+        let pathstr = path.to_str().expect("path converts to string").to_string();
+        let dircstr = CString::new(pathstr).unwrap();
+        let empty = CString::new("").unwrap();
+        secstatus_to_res(nss::NSS_Initialize(
+            dircstr.as_ptr(),
+            empty.as_ptr(),
+            empty.as_ptr(),
+            nss::SECMOD_DB.as_ptr().cast(),
+            nss::NSS_INIT_READONLY,
+        ))
+        .expect("NSS_Initialize failed");
+
+        secstatus_to_res(nss::NSS_SetDomesticPolicy()).expect("NSS_SetDomesticPolicy failed");
+        secstatus_to_res(ssl::SSL_ConfigServerSessionIDCache(
+            1024,
+            0,
+            0,
+            dircstr.as_ptr(),
+        ))
+        .expect("SSL_ConfigServerSessionIDCache failed");
+
+        #[cfg(debug_assertions)]
+        enable_ssl_trace();
+
+        NssLoaded::Db(path.into_boxed_path())
     });
 }
 
 /// # Panics
 /// If NSS isn't initialized.
 pub fn assert_initialized() {
-    INITIALIZED.get().expect("NSS not initialized with init or init_db");
+    INITIALIZED
+        .get()
+        .expect("NSS not initialized with init or init_db");
 }

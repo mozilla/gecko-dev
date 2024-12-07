@@ -1,0 +1,6 @@
+By using the 'defer_' functions
+└╼ Output will still be generated
+  └╼ Otherwise you might lose your valuable tree!
+Now for something crazy...
+└╼ Here are my last words
+  └╼ Stay calm, and try not to panic
