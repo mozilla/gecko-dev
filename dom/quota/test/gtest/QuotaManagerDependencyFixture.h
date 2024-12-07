@@ -202,6 +202,7 @@ class QuotaManagerDependencyFixture : public testing::Test {
   }
 
   static PrincipalMetadata GetTestPrincipalMetadata();
+  static OriginMetadata GetTestPersistentOriginMetadata();
   static OriginMetadata GetTestOriginMetadata();
   static ClientMetadata GetTestClientMetadata();
 

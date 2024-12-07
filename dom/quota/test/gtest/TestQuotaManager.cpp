@@ -1879,7 +1879,7 @@ TEST_F(TestQuotaManager,
   ASSERT_NO_FATAL_FAILURE(AssertStorageNotInitialized());
 
   PerformOnBackgroundThread([]() {
-    auto testOriginMetadata = GetTestOriginMetadata();
+    auto testOriginMetadata = GetTestPersistentOriginMetadata();
 
     nsCOMPtr<nsIPrincipal> principal =
         BasePrincipal::CreateContentPrincipal(testOriginMetadata.mOrigin);
