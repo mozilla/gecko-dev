@@ -48,17 +48,47 @@
     <!-- The document title and heading of the error page shown when a website uses HSTS. -->
     <string name="mozac_browser_errorpages_security_bad_hsts_cert_title">Stu situ abbisogna di na cunnissiuni sicura.</string>
 
+    <!-- The error message shown when a website uses HSTS. -->
+    <string name="mozac_browser_errorpages_security_bad_hsts_cert_message"><![CDATA[<ul>
+    <li>A pàggina chi stai pruvannu a vìdiri nun po èssiri mustrata picchì stu situ addumanna na cunnissiuni sicura.</li>
+    <li>È pussìbbili chi l\'erruri venu dû situ, e nun po\' fari nenti p\'arrisurbìrilu.</li>
+    <li>Po\' signalijari u prubblema ô prupitariu dû situ.</li>
+</ul>
+]]></string>
+
     <!-- The text shown inside the advanced button used to expand the advanced options. It's only shown when a website uses HSTS. -->
     <string name="mozac_browser_errorpages_security_bad_hsts_cert_advanced">Avanzati…</string>
 
+    <!-- The advanced certificate information shown when a website uses HSTS. The %1$s will be replaced by the website URL and %2$s will be replaced by the app name. It's only shown when a website uses HSTS. -->
+    <string name="mozac_browser_errorpages_security_bad_hsts_cert_techInfo2"><![CDATA[<label><b>%1$s</b> usa na pulìtica di sicurizza chiamata HTTP Strict Transport Security (HSTS). Chistu veni a diri chi <b>%2$s</b> si po cullijari sulu di manera sicura, e nun è pussìbbili agghiùnciri n\'eccizzioni pi visitari stu situ.</label>]]></string>
     <!-- The text shown inside the advanced options button used to go back. It's only shown if the user has expanded the advanced options. -->
     <string name="mozac_browser_errorpages_security_bad_hsts_cert_back">Torna nn\'arrè</string>
 
     <!-- The document title and heading of the error page shown when the user's network connection is interrupted while connecting to a website. -->
     <string name="mozac_browser_errorpages_net_interrupt_title">A cunnissiuni fu bluccata</string>
 
+    <!-- The error message shown when the user's network connection is interrupted while connecting to a website. -->
+    <string name="mozac_browser_errorpages_net_interrupt_message"><![CDATA[
+	<p>U navigaturi si cullijau giustu, ma a cunnissiuni fu bluccata mentri chi vinìanu trasfiruti i dati. Pi favuri torna a prova.</p>
+	<ul>
+		<li>U situ accamora putissi èssiri nun dispunìbbili o troppu chinu. Torna a prova nta n\'anticchia. </li>
+		<li>Si nun arrinesci a carricari nuḍḍa pàggina, cuntrolla a cunnissiuni dati o Wi-Fi dû dispusitivu.</li>
+	</ul>
+	]]></string>
+
     <!-- The document title and heading of the error page shown when a website takes too long to load. -->
     <string name="mozac_browser_errorpages_net_timeout_title">A cunnissiuni scadìu</string>
+
+    <!-- The error message shown when a website took long to load. -->
+    <string name="mozac_browser_errorpages_net_timeout_message"><![CDATA[
+      <p>U situ chi addumannasti nun arrispunnìu â dumanna di cunnissiuni, e u navigaturi accabbau d\'aspittari na risposta.</p>
+      <ul>
+        <li>Putissi èssiri chi u sirburi àvi assai dumanni o àvi un prubblema timpuraniu? Torna a prova cchiù tardu.</li>
+        <li>Nun arrinesci a visitari autri siti? Cuntrolla a cunnissiuni dû to dispusitivu â riti.</li>
+        <li>U dispusitivu è prutettu d\'un tagghiafocu o un proxy? Cuntrolla si cci sunnu paràmitri sbagghiati chi ponnu fari a navigazzioni trùbbula.</li>
+        <li>Ài ancora prubblemi? Parra cû to amministraturi di riti o u furnituri dâ to cunnissiuni â riti p\'aviri assistenza.</li>
+      </ul>
+    ]]></string>
 
     <!-- The document title and heading of the error page shown when a website could not be reached. -->
     <string name="mozac_browser_errorpages_connection_failure_title">Mpussìbbili cunnittìrisi</string>

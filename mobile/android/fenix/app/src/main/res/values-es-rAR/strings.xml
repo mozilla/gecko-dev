@@ -595,11 +595,17 @@
     <!-- Terms of service onboarding title card label. 'Firefox' intentionally hardcoded here-->
     <string name="onboarding_welcome_to_firefox" tools:ignore="UnusedResources,BrandUsage">Bienvenido a Firefox</string>
     <!-- Terms of service onboarding page continue button label. -->
-    <string name="onboarding_term_of_service_agree_and_continue_button_label" tools:ignore="UnusedResources">De acuerdo y continuar</string>
+    <string name="onboarding_term_of_service_agree_and_continue_button_label" tools:ignore="UnusedResources">Aceptar y continuar</string>
+    <!-- Line one of the terms of service onboarding page. 'Firefox' is intentionally hardcoded. %1$s is replaced by an active link, using onboarding_term_of_service_line_one_link_text as text (“Terms of Service”). -->
+    <string name="onboarding_term_of_service_line_one" tools:ignore="UnusedResources,BrandUsage">Al continuar, aceptás los %1$s de Firefox.</string>
     <!-- Used as text for the link in onboarding_term_of_service_line_one. -->
     <string name="onboarding_term_of_service_line_one_link_text" tools:ignore="UnusedResources,BrandUsage">Términos del servicio</string>
+    <!-- Line two of the terms of service onboarding page. 'Firefox' is intentionally hardcoded. %1$s is replaced by an active link, using onboarding_term_of_service_line_two_link_text as text (Privacy Notice”). -->
+    <string name="onboarding_term_of_service_line_two" tools:ignore="UnusedResources,BrandUsage">Firefox se preocupa por tu privacidad. Lee más en nuestra %1$s.</string>
     <!-- Used as text for the link in onboarding_term_of_service_line_two. -->
     <string name="onboarding_term_of_service_line_two_link_text" tools:ignore="UnusedResources,BrandUsage">Nota de privacidad</string>
+    <!-- Line three of the terms of service onboarding page. 'Firefox' and 'Mozilla' are intentionally hardcoded. %1$S is replaced by an active link, using onboarding_term_of_service_line_three_link_text as text (Manage”). -->
+    <string name="onboarding_term_of_service_line_three" tools:ignore="UnusedResources,BrandUsage">Para ayudar a mejorar el navegador, Firefox envía datos de diagnóstico e interacción a Mozilla. %1$s</string>
     <!-- Used as text for the link in onboarding_term_of_service_line_three. -->
     <string name="onboarding_term_of_service_line_three_link_text" tools:ignore="UnusedResources,BrandUsage">Administrar</string>
     <!-- Onboarding header for the toolbar selection card, used by Nimbus experiments. -->
@@ -1024,7 +1030,7 @@
     <!-- Preference description for marketing data collection -->
     <string name="preferences_marketing_data_description2" moz:removedIn="134" tools:ignore="UnusedResources">Compartí datos de uso básicos con Adjust, nuestro proveedor de marketing móvil</string>
     <!-- Preference description for marketing data collection. Note: The words "Firefox" and "Mozilla" should NOT be translated -->
-    <string name="preferences_marketing_data_description_3" tools:ignore="BrandUsage">Comparte información sobre cómo descubriste Firefox con los socios de marketing de Mozilla. Esto nos ayuda a hacer crecer Firefox y a construir una mejor Internet</string>
+    <string name="preferences_marketing_data_description_3" tools:ignore="BrandUsage">Compart información sobre cómo descubriste Firefox con los socios de marketing de Mozilla. Esto nos ayuda a hacer crecer Firefox y a construir una mejor Internet</string>
     <!-- Learn more link for marketing data preference -->
     <string name="preferences_marketing_data_learn_more">Conocer más sobre datos de marketing</string>
     <!-- Preference switch title for automatically submitting crash reports -->
@@ -2924,7 +2930,7 @@
     <string name="protection_panel_banner_not_protected_title">Desactivaste las protecciones</string>
     <!-- Description text for the protection panel banner when tracking protection is disabled.
         The first parameter is the name of the app defined in app_name (for example: Fenix) -->
-    <string name="protection_panel_banner_not_protected_description">%s está fuera de servicio. Te sugerimos que vuelvas a activar las protecciones.</string>
+    <string name="protection_panel_banner_not_protected_description">%s está fuera de servicio. Te sugerimos que volvás a activar las protecciones.</string>
     <!-- Title text for the protection panel banner when tracking protection is enabled.
         The first parameter is the name of the app defined in app_name (for example: Fenix) -->
     <string name="protection_panel_banner_protected_title">%s está en guardia</string>
@@ -2933,7 +2939,7 @@
     <!-- Label text for the Enhanced Tracking Protection toggle. -->
     <string name="protection_panel_etp_toggle_label">Protección de rastreo aumentada</string>
     <!-- Description text for the Enhanced Tracking Protection toggle when tracking protection is enabled. -->
-    <string name="protection_panel_etp_toggle_enabled_description">Si algo parece roto en este sitio, intente desactivar las protecciones.</string>
+    <string name="protection_panel_etp_toggle_enabled_description">Si algo parece roto en este sitio, probá desactivar las protecciones.</string>
     <!-- Description text for the Enhanced Tracking Protection toggle when tracking protection is disabled. -->
     <string name="protection_panel_etp_toggle_disabled_description">Las protecciones están desactivadas. Te sugerimos que las volvás a activar.</string>
 
@@ -3050,6 +3056,12 @@
     <!-- Content description for delete button where parameter will be the username of the login -->
     <string name="debug_drawer_logins_delete_login_button_content_description">Eliminar el inicio de sesión con nombre de usuario %s</string>
 
+    <!-- Debug drawer addresses -->
+    <!-- The title of the Addresses feature in the Debug Drawer. -->
+    <string name="debug_drawer_addresses_title">Direcciones</string>
+    <!-- The title of the section header for the list of debug locales that can be enabled and disabled. -->
+    <string name="debug_drawer_addresses_debug_locales_header">Depurar idiomas para habilitar</string>
+
     <!-- Debug drawer "contextual feature recommendation" (CFR) tools -->
     <!-- The title of the CFR Tools feature in the Debug Drawer -->
     <string name="debug_drawer_cfr_tools_title">Herramientas de CFR</string>
@@ -3081,25 +3093,25 @@
     <!-- Homepage card message about old Firefox version -->
     <string name="certificate_warning_homepage_card_hca1_message" tools:ignore="UnusedResources">Un certificado raíz expirará y algunas características dejarán de funcionar el 14 de marzo.</string>
     <!-- Homepage card title about old Firefox version. "Update" is a verb. -->
-    <string name="certificate_warning_homepage_card_hcr1_title" tools:ignore="UnusedResources">Actualización antes del 14 de marzo</string>
+    <string name="certificate_warning_homepage_card_hcr1_title" tools:ignore="UnusedResources">Actualizá antes del 14 de marzo</string>
     <!-- Homepage card message about old Firefox version. Note: The word "Firefox" should NOT be translated. -->
     <string name="certificate_warning_homepage_card_hcr1_message" tools:ignore="BrandUsage,UnusedResources">Un certificado raíz caducará y tu versión de Firefox dejará de funcionar correctamente.</string>
     <!-- Homepage card title about old Firefox version -->
     <string name="certificate_warning_homepage_card_hcw2_title" tools:ignore="UnusedResources">Quedan menos de 7 días para actualizar</string>
     <!-- Homepage card message about old Firefox version. Note: The word "Firefox" should NOT be translated. -->
-    <string name="certificate_warning_homepage_card_hcw2_message" tools:ignore="BrandUsage,UnusedResources">El 14 de marzo, los complementos y otras características de Firefox dejarán de funcionar porque un certificado raíz está por expirar.</string>
+    <string name="certificate_warning_homepage_card_hcw2_message" tools:ignore="BrandUsage,UnusedResources">El 14 de marzo, los complementos y otras características de Firefox dejarán de funcionar porque un certificado raíz va a expirar.</string>
     <!-- Homepage card title about old Firefox version. Note: The word "Firefox" should NOT be translated. -->
     <string name="certificate_warning_homepage_card_hcw3_title" tools:ignore="BrandUsage,UnusedResources">Última oportunidad de mantener tu Firefox</string>
     <!-- Homepage card message about old Firefox version. Note: The word "Firefox" should NOT be translated. -->
-    <string name="certificate_warning_homepage_card_hcw3_message" tools:ignore="BrandUsage,UnusedResources">Tu versión de Firefox dejará de funcionar correctamente el 14 de marzo porque un certificado raíz está por expirar.</string>
+    <string name="certificate_warning_homepage_card_hcw3_message" tools:ignore="BrandUsage,UnusedResources">Tu versión de Firefox dejará de funcionar correctamente el 14 de marzo porque un certificado raíz va a expirar.</string>
     <!-- Push notification title about old Firefox version. "Update" is a noun. -->
     <string name="certificate_warning_push_notification_update_recommended_title" tools:ignore="UnusedResources">Actualización recomendada</string>
     <!-- Push notification message about old Firefox version -->
     <string name="certificate_warning_push_notification_pnr1_message" tools:ignore="UnusedResources">Los complementos y algunas funciones dejarán de funcionar el 14 de marzo.</string>
     <!-- Push notification title about old Firefox version. Note: The word "Firefox" should NOT be translated. -->
-    <string name="certificate_warning_push_notification_pnw2_title" tools:ignore="BrandUsage,UnusedResources">Estás en una versión antigua de Firefox</string>
+    <string name="certificate_warning_push_notification_pnw2_title" tools:ignore="BrandUsage,UnusedResources">Estás en una versión vieja de Firefox</string>
     <!-- Push notification message about old Firefox version. "Update" is a verb. -->
-    <string name="certificate_warning_push_notification_pnw2_message" tools:ignore="UnusedResources">Actualiza antes del 14 de marzo para seguir usando complementos y otras funciones.</string>
+    <string name="certificate_warning_push_notification_pnw2_message" tools:ignore="UnusedResources">Actualizá antes del 14 de marzo para seguir usando complementos y otras funciones.</string>
     <!-- Push notification message about old Firefox version -->
     <string name="certificate_warning_push_notification_pnw3_message" tools:ignore="UnusedResources">Algunas características dejarán de funcionar mañana.</string>
 </resources>

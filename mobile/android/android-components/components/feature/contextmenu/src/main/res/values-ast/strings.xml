@@ -27,7 +27,7 @@
     <!-- Text for confirmation "snackbar" shown after opening a link in a new private tab.  -->
     <string name="mozac_feature_contextmenu_snackbar_new_private_tab_opened">Abrióse una llingüeta privada nueva</string>
     <!-- Text for confirmation "snackbar" shown after copying a link or image URL to the clipboard. -->
-    <string name="mozac_feature_contextmenu_snackbar_link_copied">L\'enllaz copióse al cartafueyu</string>
+    <string name="mozac_feature_contextmenu_snackbar_link_copied">L\'enllaz copióse nel cartafueyu</string>
     <!-- Action shown in a "snacbkar" after opening a new/private tab. Clicking this action will switch to the newly opened tab. -->
     <string name="mozac_feature_contextmenu_snackbar_action_switch">Cambiar</string>
     <!-- Text for context menu item to open the link in an external app. -->
@@ -37,7 +37,7 @@
     <!-- Text for context menu item to copy the email address to the clipboard. -->
     <string name="mozac_feature_contextmenu_copy_email_address">Copiar la direición de corréu electrónicu</string>
     <!-- Text for confirmation "snackbar" shown after copying a email address to the clipboard. -->
-    <string name="mozac_feature_contextmenu_snackbar_email_address_copied">La direición de corréu electrónicu copióse al cartafueyu</string>
+    <string name="mozac_feature_contextmenu_snackbar_email_address_copied">La direición de corréu electrónicu copióse nel cartafueyu</string>
     <!-- Text for context menu item to add to a contact. -->
     <string name="mozac_feature_contextmenu_add_to_contact">Amestar a un contautu</string>
     <!-- Action shown in a text selection context menu. This will prompt a search using the selected text.-->

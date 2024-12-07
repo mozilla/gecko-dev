@@ -612,7 +612,7 @@
     <!-- Onboarding header for the toolbar selection card, used by Nimbus experiments. -->
     <string name="onboarding_customize_toolbar_title" tools:ignore="UnusedResources">Välj en placering för verktygsfältet</string>
     <!-- Onboarding sub header for toolbar selection card, used by Nimbus experiments. -->
-    <string name="onboarding_customize_toolbar_description" tools:ignore="UnusedResources">Håll sökningar inom räckhåll.</string>
+    <string name="onboarding_customize_toolbar_description" tools:ignore="UnusedResources">Ha sökningar nära till hands.</string>
     <!-- Onboarding toolbar selection card label for 'save and continue' button, used by Nimbus experiments. -->
     <string name="onboarding_customize_toolbar_save_and_continue_button">Spara och fortsätt</string>
     <!-- Onboarding toolbar selection card label for 'skip' button, used by Nimbus experiments. -->
@@ -2917,7 +2917,7 @@
     <string name="protection_panel_banner_not_protected_title">Du stängde av skydden</string>
     <!-- Description text for the protection panel banner when tracking protection is disabled.
         The first parameter is the name of the app defined in app_name (for example: Fenix) -->
-    <string name="protection_panel_banner_not_protected_description">%s är ledig. Vi föreslår att du aktiverar skyddet igen.</string>
+    <string name="protection_panel_banner_not_protected_description">%s är avstängd. Vi föreslår att du aktiverar skydden igen.</string>
     <!-- Title text for the protection panel banner when tracking protection is enabled.
         The first parameter is the name of the app defined in app_name (for example: Fenix) -->
     <string name="protection_panel_banner_protected_title">%s är på vakt</string>
@@ -3042,6 +3042,12 @@
     <string name="debug_drawer_logins_add_login_button">Lägg till en falsk inloggning för den här domänen</string>
     <!-- Content description for delete button where parameter will be the username of the login -->
     <string name="debug_drawer_logins_delete_login_button_content_description">Ta bort inloggning med användarnamnet %s</string>
+
+    <!-- Debug drawer addresses -->
+    <!-- The title of the Addresses feature in the Debug Drawer. -->
+    <string name="debug_drawer_addresses_title">Adresser</string>
+    <!-- The title of the section header for the list of debug locales that can be enabled and disabled. -->
+    <string name="debug_drawer_addresses_debug_locales_header">Felsök språkversioner för att aktivera</string>
 
     <!-- Debug drawer "contextual feature recommendation" (CFR) tools -->
     <!-- The title of the CFR Tools feature in the Debug Drawer -->
