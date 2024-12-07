@@ -102,6 +102,7 @@ def build_dict(config, env=os.environ):
     )
     d["automation"] = substs.get("MOZ_AUTOMATION") == "1"
     d["gecko_profiler"] = bool(substs.get("MOZ_GECKO_PROFILER"))
+    d["dbus_enabled"] = bool(substs.get("MOZ_ENABLE_DBUS"))
 
     d["opt"] = not d["debug"] and not d["asan"] and not d["tsan"] and not d["ccov"]
 

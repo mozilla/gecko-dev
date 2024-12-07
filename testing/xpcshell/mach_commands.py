@@ -279,6 +279,25 @@ def run_xpcshell_test(command_context, test_objects=None, **params):
         xpcshell = command_context._spawn(XPCShellRunner)
     xpcshell.cwd = command_context._mach_context.cwd
 
+    tags = None
+    try:
+        tags = " ".join(params["manifest"].get("tags")).split(" ")
+    except KeyError:
+        pass
+
+    if tags:
+        if "webextensions" in tags and "portal" in tags and sys.platform == "linux":
+            dir_relpath = params["manifest"].get("dir_relpath")[0]
+            # Only Linux Native Messaging Portal xpcshell tests need this.
+            req = os.path.join(
+                dir_relpath,
+                "linux_native-messaging-portal_requirements.txt",
+            )
+            command_context.virtualenv_manager.activate()
+            command_context.virtualenv_manager.install_pip_requirements(
+                req, require_hashes=False
+            )
+
     try:
         return xpcshell.run_test(**params)
     except InvalidTestPathError as e:

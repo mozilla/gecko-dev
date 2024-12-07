@@ -26,6 +26,7 @@ task-defaults:
                     - android/android-x86_64.py
                 linux.*:
                     - unittests/linux_unittest.py
+                    - unittests/linux_dbus-python.py
                     - remove_executables.py
                 macosx.*:
                     - unittests/mac_unittest.py
@@ -138,10 +139,18 @@ xpcshell:
     fetches:
         toolchain:
             by-test-platform:
-                linux.*:
+                linux1804.*:
                     - linux64-node
                     - linux64-minidump-stackwalk
                     - linux64-fix-stacks
+                    - linux-python-dbusmock
+                    - linux64-1804-dbus-python
+                linux2204.*:
+                    - linux64-node
+                    - linux64-minidump-stackwalk
+                    - linux64-fix-stacks
+                    - linux-python-dbusmock
+                    - linux64-2204-dbus-python
                 macosx.*:
                     - macosx64-node
                     - macosx64-minidump-stackwalk

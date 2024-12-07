@@ -1,0 +1,4 @@
+# dbus and dbusmock are needed for some xpcshell tests on linux
+# e.g. toolkit/components/extensions/test/xpcshell/test_ext_native_messaging_portal.js
+dbus-python==1.3.2
+python-dbusmock==0.32.2
