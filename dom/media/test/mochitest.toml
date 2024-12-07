@@ -26,7 +26,8 @@ subsuite = "media"
 tags = "media-gpu"
 prefs = [
   "gfx.core-animation.low-power-telemetry-frames=60", # only for test_video_low_power_telemetry.html
- "media.setsinkid.enabled=true", # for test_setSinkId_after_loop.html
+  "media.setsinkid.enabled=true", # for test_setSinkId_after_loop.html
+  "media.ffvpx-hw.enabled=true", # test_hw_video_decoding.html
 ]
 support-files = [
   "16bit_wave_extrametadata.wav",
