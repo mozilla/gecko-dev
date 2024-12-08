@@ -502,6 +502,9 @@ const PREF_URLBAR_DEFAULTS = new Map([
   // or only from the current container.
   ["switchTabs.searchAllContainers", true],
 
+  // The minimum number of characters needed to match a tab group name.
+  ["tabGroups.minSearchLength", 1],
+
   // The number of remaining times the user can interact with tab-to-search
   // onboarding results before we stop showing them.
   ["tabToSearch.onboard.interactionsLeft", 3],

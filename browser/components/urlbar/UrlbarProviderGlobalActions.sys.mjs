@@ -32,10 +32,12 @@ ChromeUtils.defineESModuleGetters(lazy, {
 
 import { ActionsProviderQuickActions } from "resource:///modules/ActionsProviderQuickActions.sys.mjs";
 import { ActionsProviderContextualSearch } from "resource:///modules/ActionsProviderContextualSearch.sys.mjs";
+import { ActionsProviderTabGroups } from "resource:///modules/ActionsProviderTabGroups.sys.mjs";
 
 let globalActionsProviders = [
   ActionsProviderContextualSearch,
   ActionsProviderQuickActions,
+  ActionsProviderTabGroups,
 ];
 
 /**
@@ -91,7 +93,7 @@ class ProviderGlobalActions extends UrlbarProvider {
 
   onSelection(result, element) {
     let key = element.dataset.action;
-    this.#actions.get(key).onSelection(result, element);
+    this.#actions.get(key).onSelection?.(result, element);
   }
 
   onEngagement(queryContext, controller, details) {
@@ -117,11 +119,15 @@ class ProviderGlobalActions extends UrlbarProvider {
           tag: "div",
           children: result.payload.results.map((key, i) => {
             let action = this.#actions.get(key);
+            let style = action.dataset?.color
+              ? `background-color: ${action.dataset.color}`
+              : "";
             return {
               name: `button-${i}`,
               tag: "span",
               classList: ["urlbarView-action-btn"],
               attributes: {
+                style,
                 inputLength: result.payload.inputLength,
                 "data-action": key,
                 role: "button",

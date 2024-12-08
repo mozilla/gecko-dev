@@ -108,6 +108,8 @@ skip-if = [
 
 ["browser_action_searchengine_alias.js"]
 
+["browser_action_tabgroups.js"]
+
 ["browser_add_search_engine.js"]
 support-files = [
   "add_search_engine_0.xml",

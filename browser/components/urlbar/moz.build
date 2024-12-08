@@ -15,6 +15,7 @@ EXTRA_JS_MODULES += [
     "ActionsProvider.sys.mjs",
     "ActionsProviderContextualSearch.sys.mjs",
     "ActionsProviderQuickActions.sys.mjs",
+    "ActionsProviderTabGroups.sys.mjs",
     "MerinoClient.sys.mjs",
     "QuickActionsLoaderDefault.sys.mjs",
     "QuickSuggest.sys.mjs",
