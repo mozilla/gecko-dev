@@ -20,4 +20,17 @@ nsCString MakeErrorString(const FFmpegLibWrapper* aLib, int aErrNum) {
   return nsCString(errStr);
 }
 
+#define ENUM_TO_STR(enumVal) \
+  if (aCodec == (enumVal)) { \
+    return #enumVal;         \
+  }
+
+const char* AVCodecToString(const AVCodecID& aCodec) {
+  ENUM_TO_STR(AV_CODEC_ID_AV1);
+  ENUM_TO_STR(AV_CODEC_ID_VP9);
+  return "unknown";
+}
+
+#undef ENUM_TO_STR
+
 }  // namespace mozilla

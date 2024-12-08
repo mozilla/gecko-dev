@@ -81,6 +81,8 @@ inline const int64_t& Duration(const T* aObject) {
 #endif
 }
 
+const char* AVCodecToString(const AVCodecID& aCodec);
+
 }  // namespace mozilla
 
 #endif  // DOM_MEDIA_PLATFORMS_FFMPEG_FFMPEGUTILS_H_
