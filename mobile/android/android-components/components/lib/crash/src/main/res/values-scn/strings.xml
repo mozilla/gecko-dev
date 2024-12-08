@@ -4,7 +4,7 @@
     <string name="mozac_lib_crash_dialog_title">Mi dispiaci. %1$s appi un prubblema e sfallìu.</string>
 
     <!-- Label of the checkbox for sending crash reports in the crash reporter dialog. %1$s will be replaced with the name of the organization (e.g. Mozilla). -->
-    <string name="mozac_lib_crash_dialog_checkbox">Signala scrasciu a %1$s</string>
+    <string name="mozac_lib_crash_dialog_checkbox">Signalija scasciu a %1$s</string>
 
     <!-- Label of the button closing the crash reporter dialog. -->
     <string name="mozac_lib_crash_dialog_button_close">Chiuji</string>
@@ -13,7 +13,7 @@
     <string name="mozac_lib_crash_dialog_button_restart">Riabbìa %1$s</string>
 
     <!-- Name of the "notification channel" used for displaying a notification when the app crashed and we can't show a prompt. See https://developer.android.com/training/notify-user/channels -->
-    <string name="mozac_lib_crash_channel">Scrasci</string>
+    <string name="mozac_lib_crash_channel">Scasci</string>
 
     <!-- Title of the crash reporter notification for background process crashes. %1$s will be replaced with the name of the app (e.g. Firefox Focus). -->
     <string name="mozac_lib_crash_background_process_notification_title">Mi dispiaci. Cci fu un prubblema nni %1$s.</string>
@@ -22,19 +22,19 @@
     <string name="mozac_lib_crash_notification_action_report">Signalija</string>
 
     <!-- Label of notification showing that the crash report service is running. %1$s will be replaced with the name of the organization (e.g. Mozilla). -->
-    <string name="mozac_lib_send_crash_report_in_progress">Staju mannannu a signalazzioni a %1$s</string>
+    <string name="mozac_lib_send_crash_report_in_progress">Staju mannannu a signalijazzioni a %1$s</string>
 
     <!-- Label of notification showing that the crash handling service is gathering the crash data. -->
-    <string name="mozac_lib_gathering_crash_data_in_progress">Staju ricugghiennu i dati dû scrasciu</string>
+    <string name="mozac_lib_gathering_crash_data_in_progress">Staju ricugghiennu i dati dû scasciu</string>
 
     <!-- Label of notification showing that the telemetry service is gathering the crash data. -->
-    <string name="mozac_lib_gathering_crash_telemetry_in_progress">Staju ricugghiennu i dati dâ tilimitrìa dû scrasciu</string>
+    <string name="mozac_lib_gathering_crash_telemetry_in_progress">Staju ricugghiennu i dati dâ tilimitrìa dû scasciu</string>
 
     <!-- Title of the activity that shows the list of past crashes (similar to about:crashes)-->
-    <string name="mozac_lib_crash_activity_title">Signalijazzioni di scrasciu</string>
+    <string name="mozac_lib_crash_activity_title">Signalijazzioni di scasciu</string>
 
     <!-- Text shown instead of crash list if no crashes have been submitted yet -->
-    <string name="mozac_lib_crash_no_crashes">Nun fu mannata nuḍḍa signalijazzioni di scrasciu.</string>
+    <string name="mozac_lib_crash_no_crashes">Nun fu mannata nuḍḍa signalijazzioni di scasciu.</string>
 
     <!-- Text link that will show an app chooser to share a crash report with a third-party app (e.g. gmail) -->
     <string name="mozac_lib_crash_share">Sparti</string>

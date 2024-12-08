@@ -70,6 +70,10 @@
     <string name="mozac_feature_addons_permissions_tab_hide_description">Приховування і показ вкладок браузера</string>
     <!-- Description for top_sites permission. -->
     <string name="mozac_feature_addons_permissions_top_sites_description">Доступ до історії перегляду</string>
+    <!-- Description for trialML permission. -->
+    <string name="mozac_feature_addons_permissions_trial_ml_description">Завантажуйте та запускайте моделі ШІ на своєму пристрої</string>
+    <!-- Description for userScripts permission. -->
+    <string name="mozac_feature_addons_permissions_user_scripts_description">Дозволити неперевіреним стороннім скриптам отримувати доступ до ваших даних</string>
     <!-- Description for devtools permission. -->
     <string name="mozac_feature_addons_permissions_devtools_description">Розширте інструменти розробника для доступу до своїх даних у відкритих вкладках</string>
     <!-- The version on of add-on. -->

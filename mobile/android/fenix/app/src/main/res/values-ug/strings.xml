@@ -98,13 +98,6 @@
     <string name="open_in_app_cfr_negative_button_text">بولدىلا</string>
 
 
-    <!-- Total cookie protection "contextual feature recommendation" (CFR) -->
-    <!-- Text for the message displayed in the contextual feature recommendation popup promoting the total cookie protection feature. -->
-    <string name="tcp_cfr_message" moz:removedIn="132" tools:ignore="UnusedResources">ئەڭ كۈچلۈك شەخسىيەت ئىقتىدارى: بېكەت ھالقىپ ئىزلىغۇچنى ئايرىۋېتىدۇ.</string>
-    <!-- Text displayed that links to website containing documentation about the "Total cookie protection" feature. -->
-    <string name="tcp_cfr_learn_more" moz:removedIn="132" tools:ignore="UnusedResources">ئومۇميۈزلۈك Cookie دىن قوغداش ھەققىدىكى بىلدۈرگۈ</string>
-
-
     <!-- Private browsing erase action "contextual feature recommendation" (CFR) -->
     <!-- Text for the message displayed in the contextual feature recommendation popup promoting the erase private browsing feature. -->
     <string name="erase_action_cfr_message">بۇ جاي چېكىلسە يېڭى شەخسىي سۆزلەشكۈنى باشلايدۇ. تارىخ، cookies-دەك ھەممە ئۇچۇرلىرىڭىزنى ئۆچۈرىدۇ.</string>
@@ -126,12 +119,6 @@
 
     <!-- Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
     <string name="address_bar_swipe_cfr_message">ئوڭ ياكى سولغا سۈرۈلسە ئالماشتۇرىدۇ. ئاخىرقى بەتكۈچىڭىز سولغا سۈرۈلسە يېڭى بەتكۈچ ئېچىلىدۇ.</string>
-
-    <!-- Tablet navigation bar "contextual feature recommendation" (CFR) -->
-    <!-- Text for the title displayed in the contextual feature recommendation popup promoting the tablet navigation bar. -->
-    <string name="tablet_nav_bar_cfr_title" moz:removedIn="132" tools:ignore="UnusedResources">يېڭى: ئالدىغا كەينىگە يا ئوقنى چېكىپ بەت ئالماشتۇرغىلى بولىدۇ</string>
-    <!-- Text for the message displayed in the contextual feature recommendation popup promoting the tablet navigation bar. -->
-    <string name="tablet_nav_bar_cfr_message" moz:removedIn="132" tools:ignore="UnusedResources">بەت ئالماشتۇرۇش تېخىمۇ تېز بارمىقىڭىزدا چېكىپلا ئالماشتۇرالايسىز.</string>
 
     <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
     <string name="camera_permissions_needed_message">كامېرا ئىجازىتى زۆرۈر. ئاندىرويىد تەڭشىكىگە يۆتكىلىپ، ئىجازەتنى چېكىپ، ئاندىن يول قوينى چېكىڭ.</string>
@@ -349,12 +336,16 @@
     <string name="browser_menu_tools_description" moz:removedIn="134" tools:ignore="UnusedResources">ئوقۇرمەن كۆرۈنۈشى، بېسىش، ھەمبەھىر، ئەپ ئېچىش</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu
          The first parameter is the label of the report site issue (for example: Report Site issue) -->
-    <string name="browser_menu_tools_description_with_translate_with_report_site">ئوقۇرمەن كۆرۈنۈشى، تەرجىمە، %s، بېسىش، ھەمبەھىر، ئەپ ئېچىش</string>
+    <string name="browser_menu_tools_description_with_translate_with_report_site" moz:removedIn="135" tools:ignore="UnusedResources">ئوقۇرمەن كۆرۈنۈشى، تەرجىمە، %s، بېسىش، ھەمبەھىر، ئەپ ئېچىش</string>
+    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu when the "Report broken site" feature is available-->
+    <string name="browser_menu_tools_description_with_translate_with_report_site_2">ئوقۇرمەن كۆرۈنۈشى، تەرجىمە، بۇزۇلغان بېكەتنى دوكلات قىلىش، بېسىش، ھەمبەھىر، ئەپ ئېچىش</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
     <string name="browser_menu_tools_description_with_translate_without_report_site">ئوقۇرمەن كۆرۈنۈشى، تەرجىمە، بېسىش، ھەمبەھىر، ئەپ ئېچىش</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu
          The first parameter is the label of the report site issue (for example: Report Site issue) -->
-    <string name="browser_menu_tools_description_with_report_site">ئوقۇرمەن كۆرۈنۈشى، %s، بېسىش، ھەمبەھىر، ئەپ ئېچىش</string>
+    <string name="browser_menu_tools_description_with_report_site" moz:removedIn="135" tools:ignore="UnusedResources">ئوقۇرمەن كۆرۈنۈشى، %s، بېسىش، ھەمبەھىر، ئەپ ئېچىش</string>
+    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu when the "Report broken site" feature is available-->
+    <string name="browser_menu_tools_description_with_report_site_2">ئوقۇرمەن كۆرۈنۈشى، بۇزۇلغان بېكەتنى دوكلات قىلىش، بېسىش، ھەمبەھىر، ئەپ ئېچىش</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
     <string name="browser_menu_tools_description_without_report_site">ئوقۇرمەن كۆرۈنۈشى، بېسىش، ھەمبەھىر، ئەپ ئېچىش</string>
     <!-- Browser menu label that navigates to the save sub-menu, which contains various save related menu items such as
@@ -375,6 +366,8 @@
     <string name="browser_menu_turn_off_reader_view">ئوقۇرمەن كۆرۈنۈشىنى تاقا</string>
     <!-- Browser menu label for navigating to the translation feature, which provides language translation options the current visited page -->
     <string name="browser_menu_translate_page">بەت تەرجىمىسى…</string>
+    <!-- Browser menu label for navigating to the Web Compat Reporter feature, which provides users the ability to send bug reports for broken sites. -->
+    <string name="browser_menu_webcompat_reporter">بۇزۇلغان بېكەتنى دوكلات قىلىدۇ…</string>
     <!-- Browser menu label that is displayed when the current page has been translated by the translation feature.
          The first parameter is the name of the language that page was translated to (e.g. English). -->
     <string name="browser_menu_translated_to">%1$s غا تەرجىمە قىلىندى</string>
@@ -453,8 +446,6 @@
     <string name="search_engine_icon_content_description_1">ئىزدەش موتورى: %s</string>
 
     <!-- Home onboarding -->
-    <!-- Onboarding home screen popup dialog, shown on top of the Jump back in section. -->
-    <string name="onboarding_home_screen_jump_back_contextual_hint_2" moz:removedIn="132">خاسلاشتۇرۇلغان باش بېتىڭىز بىلەن تونۇشۇڭ. يېقىنقى بەتكۈچ، خەتكۈچ ۋە ئىزدەش نەتىجىسى بۇ يەردە كۆرۈنىدۇ.</string>
     <!-- Home onboarding dialog welcome screen title text. -->
     <string name="onboarding_home_welcome_title_2">تېخىمۇ خاسلاشتۇرۇلغان ئىنتېرنېتقا خۇش كەلدىڭىز</string>
 
@@ -589,6 +580,36 @@
     <string name="onboarding_preferences_dialog_positive_button" tools:ignore="UnusedResources">تامام</string>
     <!-- Negative button label for the privacy preferences dialog shown during onboarding. -->
     <string name="onboarding_preferences_dialog_negative_button" tools:ignore="UnusedResources">ۋاز كەچ</string>
+
+    <!-- Terms of service onboarding title card label. 'Firefox' intentionally hardcoded here-->
+    <string name="onboarding_welcome_to_firefox" tools:ignore="UnusedResources,BrandUsage">Firefox قا خۇش كەپسىز</string>
+    <!-- Terms of service onboarding page continue button label. -->
+    <string name="onboarding_term_of_service_agree_and_continue_button_label" tools:ignore="UnusedResources">قوشۇلۇپ داۋاملاشتۇر</string>
+    <!-- Line one of the terms of service onboarding page. 'Firefox' is intentionally hardcoded. %1$s is replaced by an active link, using onboarding_term_of_service_line_one_link_text as text (“Terms of Service”). -->
+    <string name="onboarding_term_of_service_line_one" tools:ignore="UnusedResources,BrandUsage">سىز Firefox %1$s غا قوشۇلۇپ، ئىشلىتىشنى داۋاملاشتۇرىسىز.</string>
+    <!-- Used as text for the link in onboarding_term_of_service_line_one. -->
+    <string name="onboarding_term_of_service_line_one_link_text" tools:ignore="UnusedResources,BrandUsage">مۇلازىمەت ماددىلىرى</string>
+
+    <!-- Line two of the terms of service onboarding page. 'Firefox' is intentionally hardcoded. %1$s is replaced by an active link, using onboarding_term_of_service_line_two_link_text as text (Privacy Notice”). -->
+    <string name="onboarding_term_of_service_line_two" tools:ignore="UnusedResources,BrandUsage">Firefox شەخسىيىتىڭىزگە كۆڭۈل بۆلىدۇ. %1$s دىن تەپسىلاتىنى ئوقۇغىلى بولىدۇ.</string>
+    <!-- Used as text for the link in onboarding_term_of_service_line_two. -->
+    <string name="onboarding_term_of_service_line_two_link_text" tools:ignore="UnusedResources,BrandUsage">شەخسىيەت ئۇقتۇرۇشى</string>
+    <!-- Line three of the terms of service onboarding page. 'Firefox' and 'Mozilla' are intentionally hardcoded. %1$S is replaced by an active link, using onboarding_term_of_service_line_three_link_text as text (Manage”). -->
+    <string name="onboarding_term_of_service_line_three" tools:ignore="UnusedResources,BrandUsage">توركۆرگۈنى ياخشىلاشقا ياردەملىشىپ، Firefox دىياگنوز ۋە تەسىرلىشىش سانلىق مەلۇماتىنى Mozilla غا يوللايدۇ. %1$s</string>
+    <!-- Used as text for the link in onboarding_term_of_service_line_three. -->
+    <string name="onboarding_term_of_service_line_three_link_text" tools:ignore="UnusedResources,BrandUsage">باشقۇرۇش</string>
+    <!-- Onboarding header for the toolbar selection card, used by Nimbus experiments. -->
+    <string name="onboarding_customize_toolbar_title" tools:ignore="UnusedResources">قورال بالداق ئورنى تاللىنىدۇ</string>
+    <!-- Onboarding sub header for toolbar selection card, used by Nimbus experiments. -->
+    <string name="onboarding_customize_toolbar_description" tools:ignore="UnusedResources">ئىزدەشنى ئوڭايلا داۋاملاشتۇرىدۇ.</string>
+    <!-- Onboarding toolbar selection card label for 'save and continue' button, used by Nimbus experiments. -->
+    <string name="onboarding_customize_toolbar_save_and_continue_button">ساقلاپ داۋاملاشتۇر</string>
+    <!-- Onboarding toolbar selection card label for 'skip' button, used by Nimbus experiments. -->
+    <string name="onboarding_customize_toolbar_skip_button">ئاتلا</string>
+    <!-- Onboarding toolbar selection card label for 'top' option, used by Nimbus experiments. -->
+    <string name="onboarding_customize_toolbar_top_option">چوققا</string>
+    <!-- Onboarding toolbar selection card label for 'bottom' option, used by Nimbus experiments. -->
+    <string name="onboarding_customize_toolbar_bottom_option">ئاستى</string>
 
     <!-- Search Widget -->
     <!-- Content description for searching with a widget. The first parameter is the name of the application.-->
@@ -994,7 +1015,11 @@
     <!-- Preference switch for marketing data collection -->
     <string name="preferences_marketing_data">بازارچىلىق سانلىق مەلۇماتلىرى</string>
     <!-- Preference description for marketing data collection -->
-    <string name="preferences_marketing_data_description2">كۆچمە بازارچىلىق سودىگىرىمىز Adjust بىلەن ئاساسىي ئىشلىتىش سانلىق مەلۇماتلىرىنى ئورتاقلىشىدۇ</string>
+    <string name="preferences_marketing_data_description2" moz:removedIn="134" tools:ignore="UnusedResources">كۆچمە بازارچىلىق سودىگىرىمىز Adjust بىلەن ئاساسىي ئىشلىتىش سانلىق مەلۇماتلىرىنى ئورتاقلىشىدۇ</string>
+    <!-- Preference description for marketing data collection. Note: The words "Firefox" and "Mozilla" should NOT be translated -->
+    <string name="preferences_marketing_data_description_3" tools:ignore="BrandUsage">Mozilla نىڭ بازارچىلىق ھەمكارلاشقۇچىلىرى بىلەن Firefox نى قانداق بايقىغانلىقىڭىز توغرىسىدىكى ئۇچۇرلارنى ھەمبەھىرلەيدۇ. بۇ بىزنىڭ Firefox نى راۋاجلاندۇرۇشىمىزغا ۋە تېخىمۇ ياخشى ئىنتېرنېت قۇرۇشىمىزغا ياردەم بېرىدۇ</string>
+    <!-- Learn more link for marketing data preference -->
+    <string name="preferences_marketing_data_learn_more">بازارچىلىق سانلىق مەلۇماتى ھەققىدىكى تەپسىلات</string>
     <!-- Preference switch title for automatically submitting crash reports -->
     <string name="preferences_automatically_submit_crashes_title">يىمىرىلىش دوكلاتىنى ئۆزلۈكىدىن يوللايدۇ</string>
     <!-- Preference switch description for automatically submitting crash reports -->
@@ -1358,8 +1383,6 @@
     <string name="bookmark_delete_negative">ۋاز كەچ</string>
     <!-- Screen title for adding a bookmarks folder -->
     <string name="bookmark_add_folder">قىسقۇچ قوش</string>
-    <!-- Snackbar title shown after a bookmark has been created. -->
-    <string name="bookmark_saved_snackbar" moz:removedIn="132" tools:ignore="UnusedResources">خەتكۈچ ساقلاندى!</string>
     <!-- Snackbar title that confirms a bookmark was saved into a folder. Parameter will be replaced by the name of the folder the bookmark was saved into. -->
     <string name="bookmark_saved_in_folder_snackbar">«%s» غا ساقلاندى</string>
     <!-- Snackbar edit button shown after a bookmark has been created. -->
@@ -1703,8 +1726,6 @@
     <string name="snackbar_tabs_closed">بەتكۈچ تاقالدى</string>
     <!-- Text shown in snackbar when user closes multiple inactive tabs. %1$s will be replaced with the number of tabs closed. -->
     <string name="snackbar_num_tabs_closed">بەتكۈچ تاقالدى: %1$s</string>
-    <!-- Text shown in snackbar when user bookmarks a list of tabs -->
-    <string name="snackbar_message_bookmarks_saved" moz:removedIn="132" tools:ignore="UnusedResources">خەتكۈچ ساقلاندى!</string>
     <!-- Text shown in snackbar when user bookmarks a list of tabs. Parameter will be replaced by the name of the folder the bookmark was saved into.-->
     <string name="snackbar_message_bookmarks_saved_in">خەتكۈچ «%s» غا ساقلاندى!</string>
     <!-- Text shown in snackbar when user adds a site to shortcuts -->
@@ -2605,15 +2626,7 @@
     <string name="review_quality_check_contextual_onboarding_primary_button_text">ھەئە، سىناپ باقاي</string>
     <!-- Text for opt-out button from the review quality check contextual onboarding card. -->
     <string name="review_quality_check_contextual_onboarding_secondary_button_text">ھازىر ئەمەس</string>
-    <!-- Text for the first CFR presenting the review quality check feature. -->
-    <string name="review_quality_check_first_cfr_message" moz:removedIn="132" tools:ignore="UnusedResources">سېتىۋېلىشتىن بۇرۇن بۇ مەھسۇلاتنىڭ باھالىنىشىنىڭ ئىشەنچلىك ياكى ئەمەسلىكىنى بىلىپ بېقىڭ.</string>
-    <!-- Text displayed in the first CFR presenting the review quality check feature that opens the review checker when clicked. -->
-    <string name="review_quality_check_first_cfr_action" moz:removedIn="132" tools:ignore="UnusedResources">باھالاش تەكشۈرگۈچنى سىناي</string>
 
-    <!-- Text for the second CFR presenting the review quality check feature. -->
-    <string name="review_quality_check_second_cfr_message" moz:removedIn="132" tools:ignore="UnusedResources">بۇ باھالىنىش ئىشەنچلىكمۇ؟ تەڭشەلگەن باھانى كۆرۈپ بېقىڭ.</string>
-    <!-- Text displayed in the second CFR presenting the review quality check feature that opens the review checker when clicked. -->
-    <string name="review_quality_check_second_cfr_action" moz:removedIn="132" tools:ignore="UnusedResources">باھالاش تەكشۈرگۈچنى ئاچ</string>
     <!-- Content description (not visible, for screen readers etc.) for opening browser menu button to open review quality check bottom sheet. -->
     <string name="review_quality_check_open_handle_content_description">باھالاش تەكشۈرگۈچنى ئاچ</string>
     <!-- Content description (not visible, for screen readers etc.) for closing browser menu button to open review quality check bottom sheet. -->
@@ -2880,6 +2893,28 @@
     <!-- Button text on the data saving mode warning dialog used by the translations feature to allow users to cancel the action and not perform a download of the language file. -->
     <string name="download_language_file_dialog_negative_button_text">ۋاز كەچ</string>
 
+    <!-- Unified Trust Panel -->
+    <!-- Title text for the protection panel banner when the site is not secure. -->
+    <string name="protection_panel_banner_not_secure_title">بۇ تور بېكەتتىن ئېھتىيات قىلىڭ</string>
+    <!-- Description text for the protection panel banner when the site is not secure. -->
+    <string name="protection_panel_banner_not_secure_description">باغلىنىشىڭىز بىخەتەر ئەمەس.</string>
+    <!-- Title text for the protection panel banner when tracking protection is disabled. -->
+    <string name="protection_panel_banner_not_protected_title">قوغداشنى تاقىۋەتتىڭىز</string>
+    <!-- Description text for the protection panel banner when tracking protection is disabled.
+        The first parameter is the name of the app defined in app_name (for example: Fenix) -->
+    <string name="protection_panel_banner_not_protected_description">%s ۋەزىپىسىدىن توختىدى. قوغداشنى قايتا ئېچىشىڭىزنى تەۋسىيە قىلىمىز.</string>
+    <!-- Title text for the protection panel banner when tracking protection is enabled.
+        The first parameter is the name of the app defined in app_name (for example: Fenix) -->
+    <string name="protection_panel_banner_protected_title">%s قوغداۋاتىدۇ</string>
+    <!-- Description text for the protection panel banner when tracking protection is enabled. -->
+    <string name="protection_panel_banner_protected_description">قوغدالدىڭىز. ئەگەر بىرەر نەرسە بايقىساق، سىزگە بىلدۈرىمىز.</string>
+    <!-- Label text for the Enhanced Tracking Protection toggle. -->
+    <string name="protection_panel_etp_toggle_label">كۈچەيتىلگەن ئىزلاشتىن قوغداش</string>
+    <!-- Description text for the Enhanced Tracking Protection toggle when tracking protection is enabled. -->
+    <string name="protection_panel_etp_toggle_enabled_description">ئەگەر بۇ تور بېكەتتە بىرەر نەرسە بۇزۇلغاندەك كۆرۈنسە، قوغداشنى تاقاپ سىناپ بېقىڭ.</string>
+    <!-- Description text for the Enhanced Tracking Protection toggle when tracking protection is disabled. -->
+    <string name="protection_panel_etp_toggle_disabled_description">قوغداش تاقاق. ئۇنى قايتا قوزغىتىشنى تەۋسىيە قىلىمىز.</string>
+
     <!-- Debug drawer -->
     <!-- The user-facing title of the Debug Drawer feature. -->
     <string name="debug_drawer_title">سازلاش قورالى</string>
@@ -2994,6 +3029,12 @@
     <!-- Content description for delete button where parameter will be the username of the login -->
     <string name="debug_drawer_logins_delete_login_button_content_description">ئىشلەتكۈچى ئاتى %s بولغان تىزىمغا كىرىش ئۇچۇرىنى ئۆچۈرىدۇ</string>
 
+    <!-- Debug drawer addresses -->
+    <!-- The title of the Addresses feature in the Debug Drawer. -->
+    <string name="debug_drawer_addresses_title">ئادرېس</string>
+    <!-- The title of the section header for the list of debug locales that can be enabled and disabled. -->
+    <string name="debug_drawer_addresses_debug_locales_header">يەرلىك تىل سازلاشنى قوزغىتىدۇ</string>
+
     <!-- Debug drawer "contextual feature recommendation" (CFR) tools -->
     <!-- The title of the CFR Tools feature in the Debug Drawer -->
     <string name="debug_drawer_cfr_tools_title">CFR قورالى</string>
@@ -3005,11 +3046,6 @@
     <string name="glean_debug_tools_title">Glean سازلاش قورالى</string>
 
     <!-- Messages explaining how to exit fullscreen mode -->
-    <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled -->
-    <string name="exit_fullscreen_with_gesture" moz:removedIn="132" tools:ignore="UnusedResources">پۈتۈن ئېكران ھالىتىدىن چېكىنىشتە، چوققىسىدىن سۆرەپ، قايت قول ئىشارىتى ئىشلىتىلىدۇ</string>
-    <!-- Message shown to explain how to exit fullscreen mode when using back button navigation -->
-    <string name="exit_fullscreen_with_back_button" moz:removedIn="132" tools:ignore="UnusedResources">پۈتۈن ئېكران ھالىتىدىن چېكىنىشتە، چوققىسىدىن سۆرەپ، قايت چېكىلىدۇ</string>
-
     <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled. -->
     <!-- Localisation note: this text should be as short as possible, max 68 chars -->
     <string name="exit_fullscreen_with_gesture_short">يۇقىرىدىن سۆرەپ ئاندىن قايتۇرۇش قول ئىشارىتى ئىشلىتىلسە چېكىنىدۇ</string>
@@ -3020,4 +3056,35 @@
     <!-- Beta Label Component !-->
     <!-- Text shown as a label or tag to indicate a feature or area is still undergoing active development. Note that here "Beta" should not be translated, as it is used as an icon styled element. -->
     <string name="beta_feature">سىناق نەشرى</string>
+
+    <!-- Root certificate expiration warnings -->
+    <!-- These strings for homepage cards and push notifications to be pushed to users running outdated versions of Firefox. We want to encourage these users to update to the latest version so their extensions and other features don't stop working when Firefox's old root certificate expires on 2025-03-14. For more information, see this SUMO article: https://support.mozilla.org/kb/root-certificate-expiration !-->
+    <!-- Homepage card button to open Google Play Store. "Update" is a verb. -->
+    <string name="certificate_warning_homepage_card_update_now_button" tools:ignore="UnusedResources">ھازىر يېڭىلا</string>
+    <!-- Homepage card title about old Firefox version. "Update" is a verb. Note: The word "Firefox" should NOT be translated. -->
+    <string name="certificate_warning_homepage_card_hca1_title" tools:ignore="BrandUsage,UnusedResources">Firefox تور كۆرگۈچىڭىزنى يېڭىلاڭ</string>
+    <!-- Homepage card message about old Firefox version -->
+    <string name="certificate_warning_homepage_card_hca1_message" tools:ignore="UnusedResources">غول گۇۋاھنامىدىن بىرىنىڭ ۋاقتى ئۆتىدۇ، قىسمەن ئىقتىدارى 14-مارتتىن كېيىن ئىشلەشتىن توختايدۇ.</string>
+    <!-- Homepage card title about old Firefox version. "Update" is a verb. -->
+    <string name="certificate_warning_homepage_card_hcr1_title" tools:ignore="UnusedResources">14-ماتتىن ئىلگىرى يېڭىلا</string>
+    <!-- Homepage card message about old Firefox version. Note: The word "Firefox" should NOT be translated. -->
+    <string name="certificate_warning_homepage_card_hcr1_message" tools:ignore="BrandUsage,UnusedResources">غول گۇۋاھنامىدىن بىرىنىڭ ۋاقتى ئۆتىدۇ، سىزنىڭ Firefox نەشرىڭىز ئادەتتىكىدەك ئىشلەشتىن توختايدۇ.</string>
+    <!-- Homepage card title about old Firefox version -->
+    <string name="certificate_warning_homepage_card_hcw2_title" tools:ignore="UnusedResources">يېڭىلاشقا  پەقەت 7 كۈن قالدى</string>
+    <!-- Homepage card message about old Firefox version. Note: The word "Firefox" should NOT be translated. -->
+    <string name="certificate_warning_homepage_card_hcw2_message" tools:ignore="BrandUsage,UnusedResources">3-ئاينىڭ 14-كۈنى، قوشۇلما ۋە باشقا Firefox ئىقتىدارلىرى بىر يىلتىز گۇۋاھنامىسىنىڭ ۋاقتى توشقانلىقتىن ئىشلەشتىن توختايدۇ.</string>
+    <!-- Homepage card title about old Firefox version. Note: The word "Firefox" should NOT be translated. -->
+    <string name="certificate_warning_homepage_card_hcw3_title" tools:ignore="BrandUsage,UnusedResources">Firefox نى داۋاملىق ئىشلىتىشنىڭ ئاخىرقى پۇرسىتى</string>
+    <!-- Homepage card message about old Firefox version. Note: The word "Firefox" should NOT be translated. -->
+    <string name="certificate_warning_homepage_card_hcw3_message" tools:ignore="BrandUsage,UnusedResources">Firefox نەشرىڭىز 3-ئاينىڭ 14-كۈنى نورمال ئىشتىن توختايدۇ، چۈنكى بىر يىلتىز گۇۋاھنامىسىنىڭ ۋاقتى توشىدۇ.</string>
+    <!-- Push notification title about old Firefox version. "Update" is a noun. -->
+    <string name="certificate_warning_push_notification_update_recommended_title" tools:ignore="UnusedResources">يېڭىلاش تەۋسىيە قىلىندى</string>
+    <!-- Push notification message about old Firefox version -->
+    <string name="certificate_warning_push_notification_pnr1_message" tools:ignore="UnusedResources">قوشۇلما ۋە بەزى ئىقتىدارلار 14-مارت ئىشلەشتىن توختايدۇ.</string>
+    <!-- Push notification title about old Firefox version. Note: The word "Firefox" should NOT be translated. -->
+    <string name="certificate_warning_push_notification_pnw2_title" tools:ignore="BrandUsage,UnusedResources">كونا نەشرىدىكى Firefox نى ئىشلىتىۋاتىسىز</string>
+    <!-- Push notification message about old Firefox version. "Update" is a verb. -->
+    <string name="certificate_warning_push_notification_pnw2_message" tools:ignore="UnusedResources">قوشۇلما ۋە باشقا ئىقتىدارلارنى ئىشلىتىش ئۈچۈن 14-مارتتىن ئىلگىرى يېڭىلاش كېرەك.</string>
+    <!-- Push notification message about old Firefox version -->
+    <string name="certificate_warning_push_notification_pnw3_message" tools:ignore="UnusedResources">بەزى ئىقتىدارلار ئەتە ئىشلىمەيدۇ.</string>
 </resources>

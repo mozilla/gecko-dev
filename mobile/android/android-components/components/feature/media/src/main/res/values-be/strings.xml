@@ -12,6 +12,21 @@
     <string name="mozac_feature_media_sharing_camera_and_microphone">Камера і мікрафон уключаны</string>
 
 
+    <!-- Text of notification shown when the device's camera is shared with a website (WebRTC) -->
+    <string name="mozac_feature_media_sharing_camera_text">Націсніце, каб адкрыць картку, якая выкарыстоўвае вашу камеру.</string>
+    <!-- Text of notification shown when the device's microphone is shared with a website (WebRTC) -->
+    <string name="mozac_feature_media_sharing_microphone_text">Націсніце, каб адкрыць картку, якая выкарыстоўвае ваш мікрафон.</string>
+    <!-- Text of notification shown when the device's camera and microphone is shared with a website (WebRTC) -->
+    <string name="mozac_feature_media_sharing_camera_and_microphone_text">Націсніце, каб адкрыць картку, якая выкарыстоўвае ваш мікрафон і камеру.</string>
+
+
+    <!-- Text of reminder notification shown when the device's camera is shared with a website (WebRTC). %1$s is a placeholder that will be replaced by the app name-->
+    <string name="mozac_feature_media_sharing_camera_reminder_text">Напамін: %1$s усё яшчэ выкарыстоўвае вашу камеру. Націсніце, каб адкрыць картку.</string>
+    <!-- Text of reminder notification shown when the device's microphone is shared with a website (WebRTC) %1$s is a placeholder that will be replaced by the app name-->
+    <string name="mozac_feature_media_sharing_microphone_reminder_text_2">Напамін: %1$s усё яшчэ выкарыстоўвае ваш мікрафон. Націсніце, каб адкрыць картку.</string>
+    <!-- Text of reminder notification shown when the device's camera and microphone is shared with a website (WebRTC) %1$s is a placeholder that will be replaced by the app name-->
+    <string name="mozac_feature_media_sharing_camera_and_microphone_reminder_text_2">Напамін: %1$s усё яшчэ выкарыстоўвае ваш мікрафон і камеру. Націсніце, каб адкрыць картку.</string>
+
     <!--This is the title of the "play" action media shown in the media notification while web content is playing media. Clicking it will resume playing paused media. On most modern Android system only an icon is visible. But screen readers may read this title. -->
     <string name="mozac_feature_media_notification_action_play">Прайграць</string>
 

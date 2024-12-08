@@ -182,14 +182,19 @@
     <!-- The main body text of this error page. It will be shown beneath the title -->
     <string name="mozac_browser_errorpages_no_internet_message" moz:removedIn="133" tools:ignore="UnusedResources">Comprueba la conexón a la rede o tenta de recargar la páxina nun momentu.</string>
 
+    <!-- The main body text of this error page. It will be shown beneath the title -->
+    <string name="mozac_browser_errorpages_no_internet_message_2">Tenta de conectate a otru preséu. Comprueba\'l módem o router. Desconéctate de la Wi-Fi y volvi conectate a ella.</string>
+    <!-- The document title and heading of an error page. -->
+    <string name="mozac_browser_errorpages_no_internet_error_code">Códigu d\'error: NS_ERROR_OFFLINE</string>
+
     <!-- Text that will show up on the button at the bottom of the error page -->
     <string name="mozac_browser_errorpages_no_internet_refresh_button">Recargar</string>
 
     <!-- The document title and heading of an error page. -->
-    <string name="mozac_browser_errorpages_malformed_uri_title">La direición nun ye válida</string>
-    <string name="mozac_browser_errorpages_malformed_uri_message"><![CDATA[<p>La direición apurrida nun ta nun formatu reconocíu. Comprueba si hai fallos na barra de direiciones y volvi a tentalo.</p>]]></string>
+    <string name="mozac_browser_errorpages_malformed_uri_title">La direición ye inválida</string>
+    <string name="mozac_browser_errorpages_malformed_uri_message"><![CDATA[<p>La direición apurrida ta nun formatu que nun se reconoz. Comprueba si hai errores na barra de direiciones y volvi a tentalo.</p>]]></string>
     <!-- The document title and heading of an error page. -->
-    <string name="mozac_browser_errorpages_malformed_uri_title_alternative">La direición nun ye válida</string>
+    <string name="mozac_browser_errorpages_malformed_uri_title_alternative">La direición ye inválida</string>
 
     <!-- This string contains markup. The URL should not be localized. -->
     <string name="mozac_browser_errorpages_malformed_uri_message_alternative"><![CDATA[<ul>
@@ -211,7 +216,7 @@
 
     <string name="mozac_browser_errorpages_file_not_found_message"><![CDATA[<ul>
         <li>¿Pue ser que l\'elementu se renomare, quitare o moviere?</li>
-        <li>¿La direición tien dalguna falta u otru error tipográficu?</li>
+        <li>¿La direición tien dalguna falta o otru error tipográficu?</li>
         <li>¿Tienes abondos permisos p\'acceder al elementu solicitáu?</li>
       </ul>]]></string>
 
@@ -227,9 +232,9 @@
 
     <string name="mozac_browser_errorpages_proxy_connection_refused_message"><![CDATA[<p>El restolador ta configuráu pa usar un sirvidor proxy mas esti últimu refugó la conexón.</p>
       <ul>
-        <li>¿La configuración del proxy del restolador ye correuta? Comprueba los axustes y volvi tentalo.</li>
+        <li>¿La configuración del proxy del restolador ye correuta? Comprueba la configuración y volvi tentalo.</li>
         <li>¿El serviciu del proxy permite les conexones dende esta rede?</li>
-        <li>¿Sigues teniendo problemes? Consulta al to alministrador de redes o fornidor d\'internet pa más asistencia.</li>
+        <li>¿Sigues teniendo problemes? Consulta al to alministrador de redes o fornidor d\'internet pa consiguir más asistencia.</li>
       </ul>]]></string>
 
     <!-- The document title and heading of an error page. -->
@@ -237,9 +242,9 @@
 
     <string name="mozac_browser_errorpages_unknown_proxy_host_message"><![CDATA[<p>El restolador ta configuráu pa usar un sirvidor proxy mas nun se pudo atopar.</p>
       <ul>
-        <li>¿La configuración del proxy del restolador ye correuta? Comprueba los axustes y volvi tentalo.</li>
+        <li>¿La configuración del proxy del restolador ye correuta? Comprueba la configuración y volvi tentalo.</li>
         <li>¿El preséu ta conectáu a una rede activa?</li>
-        <li>¿Sigues teniendo problemes? Consulta al to alministrador de redes o fornidor d\'internet pa más asistencia.</li>
+        <li>¿Sigues teniendo problemes? Consulta al to alministrador de redes o fornidor d\'internet pa consiguir más asistencia.</li>
       </ul>]]></string>
 
     <!-- The document title and heading of an error page. -->

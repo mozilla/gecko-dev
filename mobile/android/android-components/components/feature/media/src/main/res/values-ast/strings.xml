@@ -9,8 +9,23 @@
     <!-- Title of notification shown when the device's microphone is shared with a website (WebRTC) -->
     <string name="mozac_feature_media_sharing_microphone">El micrófonu ta activáu</string>
     <!-- Title of notification shown when the device's camera and microphone is shared with a website (WebRTC) -->
-    <string name="mozac_feature_media_sharing_camera_and_microphone">La cámara ya\'l micrófonu tán activaos</string>
+    <string name="mozac_feature_media_sharing_camera_and_microphone">La cámara y micrófonu tán prendíos</string>
 
+
+    <!-- Text of notification shown when the device's camera is shared with a website (WebRTC) -->
+    <string name="mozac_feature_media_sharing_camera_text">Toca p\'abrir la llingüeta que ta usando la cámara.</string>
+    <!-- Text of notification shown when the device's microphone is shared with a website (WebRTC) -->
+    <string name="mozac_feature_media_sharing_microphone_text">Toca p\'abrir la llingüeta que ta usando\'l micrófonu.</string>
+    <!-- Text of notification shown when the device's camera and microphone is shared with a website (WebRTC) -->
+    <string name="mozac_feature_media_sharing_camera_and_microphone_text">Toca p\'abrir la llingüeta que ta usando\'l micrófonu y la cámara.</string>
+
+
+    <!-- Text of reminder notification shown when the device's camera is shared with a website (WebRTC). %1$s is a placeholder that will be replaced by the app name-->
+    <string name="mozac_feature_media_sharing_camera_reminder_text">Recordatoriu: %1$s sigue usando la cámara. Toca p\'abrir la llingüeta.</string>
+    <!-- Text of reminder notification shown when the device's microphone is shared with a website (WebRTC) %1$s is a placeholder that will be replaced by the app name-->
+    <string name="mozac_feature_media_sharing_microphone_reminder_text_2">Recordatoriu: %1$s sigue usando\'l micrófonu. Toca p\'abrir la llingüeta.</string>
+    <!-- Text of reminder notification shown when the device's camera and microphone is shared with a website (WebRTC) %1$s is a placeholder that will be replaced by the app name-->
+    <string name="mozac_feature_media_sharing_camera_and_microphone_reminder_text_2">Recordatoriu: %1$s sigue usando\'l micrófonu y la cámara. Toca p\'abrir la llingüeta.</string>
 
     <!--This is the title of the "play" action media shown in the media notification while web content is playing media. Clicking it will resume playing paused media. On most modern Android system only an icon is visible. But screen readers may read this title. -->
     <string name="mozac_feature_media_notification_action_play">Reproducir</string>
