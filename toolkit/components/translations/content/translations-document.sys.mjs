@@ -2141,7 +2141,7 @@ function updateElement(translationsDocument, element) {
             if (
               // Only consider other element nodes.
               sibling.nodeType === Node.ELEMENT_NODE &&
-              // If the sibling's translationsId matches, then use the sibling's
+              // If the sibling's mozTranslationsId matches, then use the sibling's
               // node instead.
               liveElementId === sibling.dataset.mozTranslationsId
             ) {
