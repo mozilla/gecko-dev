@@ -12,6 +12,7 @@
 #include "call/audio_state.h"
 #include "MediaTransportHandler.h"  // Mostly for IceLogPromise
 #include "mozIGeckoMediaPluginService.h"
+#include "mozilla/StaticPrefs_media.h"
 #include "mozilla/StaticPtr.h"
 #include "nsIRunnable.h"
 #include "PeerConnectionImpl.h"
@@ -38,6 +39,11 @@ class MozTrialsConfig : public FieldTrialsView {
     // See Bug 1780620.
     if ("WebRTC-CongestionWindow" == key) {
       return std::string("MinBitrate:30000,DropFrame:true");
+    }
+    if ("WebRTC-VP9-SvcForSimulcast" == key) {
+      return mozilla::StaticPrefs::media_webrtc_simulcast_vp9_enabled()
+                 ? "Enabled"
+                 : "Disabled";
     }
     return std::string();
   }

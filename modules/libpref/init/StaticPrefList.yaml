@@ -11996,6 +11996,11 @@
 #endif
   mirror: always
 
+- name: media.webrtc.simulcast.vp9.enabled
+  type: RelaxedAtomicBool
+  value: false
+  mirror: always
+
 - name: media.webrtc.tls_tunnel_for_all_proxy
   type: bool
   value: true
