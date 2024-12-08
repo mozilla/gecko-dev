@@ -21,10 +21,9 @@ class WebrtcLogSinkHandle;
 namespace webrtc {
 class AudioDecoderFactory;
 
-// Used for testing in mediapipeline_unittest.cpp, MockCall.h
-class NoTrialsConfig : public FieldTrialsView {
+class MozTrialsConfig : public FieldTrialsView {
  public:
-  NoTrialsConfig() = default;
+  MozTrialsConfig() = default;
   std::string Lookup(absl::string_view key) const override {
     // Upstream added a new default field trial string for
     // CongestionWindow, that we don't want.  In

@@ -329,7 +329,7 @@ class MockCall : public webrtc::Call {
   mozilla::Maybe<webrtc::VideoSendStream::Config> mVideoSendConfig;
   mozilla::Maybe<webrtc::VideoEncoderConfig> mVideoSendEncoderConfig;
   webrtc::Call::Stats mStats;
-  webrtc::NoTrialsConfig mUnusedConfig;
+  webrtc::MozTrialsConfig mUnusedConfig;
 };
 
 class MockCallWrapper : public mozilla::WebrtcCallWrapper {

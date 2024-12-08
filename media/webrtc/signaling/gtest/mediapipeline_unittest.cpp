@@ -450,7 +450,7 @@ class MediaPipelineTest : public ::testing::Test {
             AbstractThread::MainThread(), CreateAudioStateConfig(),
             already_AddRefed(
                 webrtc::CreateBuiltinAudioDecoderFactory().release()),
-            WrapUnique(new webrtc::NoTrialsConfig()))),
+            WrapUnique(new webrtc::MozTrialsConfig()))),
         p1_(shared_state_),
         p2_(shared_state_) {}
 
