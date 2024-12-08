@@ -394,8 +394,7 @@ void nsDisplayListBuilder::InvalidateCaretFramesIfNeeded() {
   while (i--) {
     nsCaret* caret = mPaintedCarets[i];
     nsIFrame* oldCaret = caret->GetLastPaintedFrame();
-    nsRect caretRect;
-    nsIFrame* currentCaret = caret->GetPaintGeometry(&caretRect);
+    nsIFrame* currentCaret = caret->GetPaintGeometry();
     if (oldCaret == currentCaret) {
       // Keep tracking this caret, it hasn't changed.
       continue;

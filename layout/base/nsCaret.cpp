@@ -463,15 +463,21 @@ void nsCaret::CheckSelectionLanguageChange() {
     return aFrame;
   }
 
-  *aCaretRect = nsLayoutUtils::TransformFrameRectToAncestor(aFrame, *aCaretRect,
-                                                            containingBlock);
-  *aHookRect = nsLayoutUtils::TransformFrameRectToAncestor(aFrame, *aHookRect,
-                                                           containingBlock);
+  if (aCaretRect) {
+    *aCaretRect = nsLayoutUtils::TransformFrameRectToAncestor(
+        aFrame, *aCaretRect, containingBlock);
+  }
+  if (aHookRect) {
+    *aHookRect = nsLayoutUtils::TransformFrameRectToAncestor(aFrame, *aHookRect,
+                                                             containingBlock);
+  }
   return containingBlock;
 }
 
 nsIFrame* nsCaret::GetPaintGeometry(nsRect* aCaretRect, nsRect* aHookRect,
                                     nscolor* aCaretColor) {
+  MOZ_ASSERT(!!aCaretRect == !!aHookRect);
+
   // Return null if we should not be visible.
   if (!IsVisible() || !mIsBlinkOn) {
     return nullptr;
@@ -515,8 +521,14 @@ nsIFrame* nsCaret::GetPaintGeometry(nsRect* aCaretRect, nsRect* aHookRect,
     *aCaretColor = frame->GetCaretColorAt(frameOffset);
   }
 
-  ComputeCaretRects(frame, frameOffset, aCaretRect, aHookRect);
+  if (aCaretRect || aHookRect) {
+    ComputeCaretRects(frame, frameOffset, aCaretRect, aHookRect);
+  }
   return MapToContainingBlock(frame, aCaretRect, aHookRect);
+}
+
+nsIFrame* nsCaret::GetPaintGeometry() {
+  return GetPaintGeometry(nullptr, nullptr);
 }
 
 nsIFrame* nsCaret::GetPaintGeometry(nsRect* aRect) {
@@ -658,6 +670,7 @@ size_t nsCaret::SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const {
 
 void nsCaret::ComputeCaretRects(nsIFrame* aFrame, int32_t aFrameOffset,
                                 nsRect* aCaretRect, nsRect* aHookRect) {
+  MOZ_ASSERT(aCaretRect && aHookRect);
   NS_ASSERTION(aFrame, "Should have a frame here");
 
   WritingMode wm = aFrame->GetWritingMode();

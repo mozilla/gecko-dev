@@ -3135,8 +3135,7 @@ void SVGTextFrame::PaintSVG(gfxContext& aContext, const gfxMatrix& aTransform,
   gfxMatrix currentMatrix = aContext.CurrentMatrixDouble();
 
   RefPtr<nsCaret> caret = presContext->PresShell()->GetCaret();
-  nsRect caretRect;
-  nsIFrame* caretFrame = caret->GetPaintGeometry(&caretRect);
+  nsIFrame* caretFrame = caret->GetPaintGeometry();
 
   gfxContextAutoSaveRestore ctxSR;
   TextRenderedRunIterator it(this, TextRenderedRunIterator::eVisibleFrames);

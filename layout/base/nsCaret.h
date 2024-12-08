@@ -107,12 +107,12 @@ class nsCaret final : public nsISelectionListener {
   void SetLastPaintedFrame(nsIFrame* aFrame) { mLastPaintedFrame = aFrame; }
 
   /**
-   * Returns a frame to paint in, and the bounds of the painted caret
-   * relative to that frame.
-   * The rectangle includes bidi decorations.
+   * Returns a frame to paint in, and optionally the bounds of the painted caret
+   * relative to that frame. The rectangle includes bidi decorations.
    * Returns null if the caret should not be drawn (including if it's blinked
    * off).
    */
+  nsIFrame* GetPaintGeometry();
   nsIFrame* GetPaintGeometry(nsRect* aRect);
 
   /**
