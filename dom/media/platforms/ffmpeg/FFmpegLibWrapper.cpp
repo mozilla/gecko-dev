@@ -252,9 +252,11 @@ FFmpegLibWrapper::LinkResult FFmpegLibWrapper::Link() {
   AV_FUNC_OPTION_SILENT(av_codec_iterate,
                         AV_FUNC_58 | AV_FUNC_59 | AV_FUNC_60 | AV_FUNC_61)
   AV_FUNC_OPTION_SILENT(av_hwdevice_ctx_init,
-                        AV_FUNC_58 | AV_FUNC_59 | AV_FUNC_60 | AV_FUNC_61)
+                        AV_FUNC_AVUTIL_58 | AV_FUNC_AVUTIL_59 |
+                            AV_FUNC_AVUTIL_60 | AV_FUNC_AVUTIL_61)
   AV_FUNC_OPTION_SILENT(av_hwdevice_ctx_alloc,
-                        AV_FUNC_58 | AV_FUNC_59 | AV_FUNC_60 | AV_FUNC_61)
+                        AV_FUNC_AVUTIL_58 | AV_FUNC_AVUTIL_59 |
+                            AV_FUNC_AVUTIL_60 | AV_FUNC_AVUTIL_61)
   AV_FUNC_OPTION_SILENT(av_buffer_ref, AV_FUNC_AVUTIL_58 | AV_FUNC_AVUTIL_59 |
                                            AV_FUNC_AVUTIL_60 |
                                            AV_FUNC_AVUTIL_61)
