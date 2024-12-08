@@ -73,6 +73,10 @@ if not CONFIG['MOZ_FFVPX_AUDIOONLY']:
             'hwcontext_vaapi.c',
         ]
         USE_LIBS += ['mozva']
+    elif CONFIG["MOZ_WIDGET_TOOLKIT"] == "windows":
+        SOURCES += [
+            'hwcontext_d3d11va.c',
+        ]
 
 EXPORTS.ffvpx = [
     "tx.h"
