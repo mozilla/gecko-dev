@@ -9,6 +9,8 @@
 /**
  * This test is used to check hardware video decoding on different platforms.
  */
+const FFVPX_HW = "media.ffvpx-hw.enabled";
+
 const PLATFORMS = {
   // TODO : add Linux and Android, media-gpu doesn't run on them yet
   WINNT: {
@@ -20,6 +22,11 @@ const PLATFORMS = {
       },
       {
         files: ["gizmo.webm"],
+        decoder: "ffvpx video decoder",
+      },
+      {
+        files: ["gizmo.webm"],
+        disableFFVPXHW : true,
         decoder: "wmf VP9 codec hardware video decoder",
       },
       {
@@ -28,6 +35,15 @@ const PLATFORMS = {
           "gizmo_av1_8bit_420.webm",
           "gizmo_av1_10bit_420.webm"
         ],
+        decoder: "ffvpx video decoder",
+      },
+      {
+        files: [
+          "av1.mp4",
+          "gizmo_av1_8bit_420.webm",
+          "gizmo_av1_10bit_420.webm"
+        ],
+        disableFFVPXHW : true,
         decoder: "wmf AV1 codec hardware video decoder",
       },
     ],
@@ -57,12 +73,24 @@ add_task(async function testHardwareVideoDecoding() {
       info(
         `Testing ${file} on ${platformName} : expect ${test.decoder} in ${platformTest.process}`
       );
+      // Disable ffvpx hw if needed
+      if (test.disableFFVPXHW !== undefined) {
+        await SpecialPowers.pushPrefEnv({
+          set: [[FFVPX_HW, false]],
+        });
+      }
       await createAndPlayVideo(file);
       await assertRunningProcessAndDecoderName({
         expectedProcess: platformTest.process,
         expectedDecoder: test.decoder,
       });
       await waitVideoPlayToEnd();
+      // Reset ffvpx hw pref in order not to interfere next test case
+      if (test.disableFFVPXHW !== undefined) {
+        await SpecialPowers.pushPrefEnv({
+          set: [[FFVPX_HW, true]],
+        });
+      }
     }
   }
 });
