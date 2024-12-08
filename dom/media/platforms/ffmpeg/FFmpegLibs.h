@@ -14,7 +14,7 @@ extern "C" {
 #include "libavcodec/avcodec.h"
 #include "libavutil/avutil.h"
 #include "libavutil/mem.h"
-#ifdef MOZ_USE_HWDECODE
+#if defined(MOZ_USE_HWDECODE) && defined(MOZ_WIDGET_GTK)
 #  include "libavutil/hwcontext_vaapi.h"
 #  include "libavutil/hwcontext_drm.h"
 #endif
