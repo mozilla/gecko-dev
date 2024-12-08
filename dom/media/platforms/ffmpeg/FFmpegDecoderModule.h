@@ -69,13 +69,27 @@ class FFmpegDecoderModule : public PlatformDecoderModule {
     if (Supports(SupportDecoderParams(aParams), nullptr).isEmpty()) {
       return nullptr;
     }
-    RefPtr<MediaDataDecoder> decoder = new FFmpegVideoDecoder<V>(
+    auto decoder = MakeRefPtr<FFmpegVideoDecoder<V>>(
         mLib, aParams.VideoConfig(), aParams.mKnowsCompositor,
         aParams.mImageContainer,
         aParams.mOptions.contains(CreateDecoderParams::Option::LowLatency),
         aParams.mOptions.contains(
             CreateDecoderParams::Option::HardwareDecoderNotAllowed),
         aParams.mTrackingId);
+
+    // Ensure that decoding is exclusively performed using HW decoding in
+    // the GPU process. If FFmpeg does not support HW decoding, reset the
+    // decoder to allow PDMFactory to select an alternative HW-capable decoder
+    // module if available. In contrast, in the RDD process, it is acceptable
+    // to fallback to SW decoding when HW decoding is not available.
+    if (XRE_IsGPUProcess() &&
+        IsHWDecodingSupported(aParams.mConfig.mMimeType) &&
+        !decoder->IsHardwareAccelerated()) {
+      MOZ_LOG(sPDMLog, LogLevel::Debug,
+              ("FFmpeg video decoder can't perform hw decoding, abort!"));
+      Unused << decoder->Shutdown();
+      decoder = nullptr;
+    }
     return decoder.forget();
   }
 

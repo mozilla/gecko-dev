@@ -247,7 +247,7 @@ template <>
 class VAAPIDisplayHolder<LIBAV_VER> {
  public:
   VAAPIDisplayHolder(FFmpegLibWrapper* aLib, VADisplay aDisplay, int aDRMFd)
-      : mLib(aLib), mDisplay(aDisplay), mDRMFd(aDRMFd){};
+      : mLib(aLib), mDisplay(aDisplay), mDRMFd(aDRMFd) {};
   ~VAAPIDisplayHolder() {
     mLib->vaTerminate(mDisplay);
     close(mDRMFd);
@@ -534,12 +534,7 @@ void FFmpegVideoDecoder<LIBAV_VER>::PtsCorrectionContext::Reset() {
 #endif
 
 #if defined(MOZ_USE_HWDECODE) && defined(MOZ_WIDGET_GTK)
-void FFmpegVideoDecoder<LIBAV_VER>::InitHWDecodingPrefs() {
-  if (!mEnableHardwareDecoding) {
-    FFMPEG_LOG("VAAPI is disabled by parent decoder module.");
-    return;
-  }
-
+bool FFmpegVideoDecoder<LIBAV_VER>::ShouldEnableLinuxHWDecoding() const {
   bool supported = false;
   switch (mCodecID) {
     case AV_CODEC_ID_H264:
@@ -558,9 +553,8 @@ void FFmpegVideoDecoder<LIBAV_VER>::InitHWDecodingPrefs() {
       break;
   }
   if (!supported) {
-    mEnableHardwareDecoding = false;
     FFMPEG_LOG("Codec %s is not accelerated", mLib->avcodec_get_name(mCodecID));
-    return;
+    return false;
   }
 
   bool isHardwareWebRenderUsed = mImageAllocator &&
@@ -568,14 +562,14 @@ void FFmpegVideoDecoder<LIBAV_VER>::InitHWDecodingPrefs() {
                                   layers::LayersBackend::LAYERS_WR) &&
                                  !mImageAllocator->UsingSoftwareWebRender();
   if (!isHardwareWebRenderUsed) {
-    mEnableHardwareDecoding = false;
     FFMPEG_LOG("Hardware WebRender is off, VAAPI is disabled");
-    return;
+    return false;
   }
   if (!XRE_IsRDDProcess()) {
-    mEnableHardwareDecoding = false;
     FFMPEG_LOG("VA-API works in RDD process only");
+    return false;
   }
+  return true;
 }
 #endif
 
@@ -585,15 +579,15 @@ FFmpegVideoDecoder<LIBAV_VER>::FFmpegVideoDecoder(
     bool aLowLatency, bool aDisableHardwareDecoding,
     Maybe<TrackingId> aTrackingId)
     : FFmpegDataDecoder(aLib, GetCodecId(aConfig.mMimeType)),
-#ifdef MOZ_USE_HWDECODE
-      mEnableHardwareDecoding(!aDisableHardwareDecoding),
-#endif
-#if defined(MOZ_USE_HWDECODE) && defined(MOZ_WIDGET_GTK)
-      mVAAPIDeviceContext(nullptr),
-      mUsingV4L2(false),
-      mDisplay(nullptr),
-#endif
       mImageAllocator(aAllocator),
+#ifdef MOZ_USE_HWDECODE
+#  ifdef MOZ_WIDGET_GTK
+      mHardwareDecodingDisabled(aDisableHardwareDecoding ||
+                                !ShouldEnableLinuxHWDecoding()),
+#  else
+      mHardwareDecodingDisabled(aDisableHardwareDecoding),
+#  endif  // MOZ_WIDGET_GTK
+#endif    // MOZ_USE_HWDECODE
       mImageContainer(aImageContainer),
       mInfo(aConfig),
       mLowLatency(aLowLatency),
@@ -604,9 +598,9 @@ FFmpegVideoDecoder<LIBAV_VER>::FFmpegVideoDecoder(
   // initialization.
   mExtraData = new MediaByteBuffer;
   mExtraData->AppendElements(*aConfig.mExtraData);
-#if defined(MOZ_USE_HWDECODE) && defined(MOZ_WIDGET_GTK)
-  InitHWDecodingPrefs();
-#endif
+#ifdef MOZ_USE_HWDECODE
+  InitHWDecoderIfAllowed();
+#endif  // MOZ_USE_HWDECODE
 }
 
 FFmpegVideoDecoder<LIBAV_VER>::~FFmpegVideoDecoder() {
@@ -616,43 +610,44 @@ FFmpegVideoDecoder<LIBAV_VER>::~FFmpegVideoDecoder() {
 #endif
 }
 
-RefPtr<MediaDataDecoder::InitPromise> FFmpegVideoDecoder<LIBAV_VER>::Init() {
-  MediaResult rv;
-
 #ifdef MOZ_USE_HWDECODE
-  if (mEnableHardwareDecoding) {
+void FFmpegVideoDecoder<LIBAV_VER>::InitHWDecoderIfAllowed() {
+  if (mHardwareDecodingDisabled) {
+    return;
+  }
+
 #  ifdef MOZ_ENABLE_VAAPI
-    rv = InitVAAPIDecoder();
-    if (NS_SUCCEEDED(rv)) {
-      return InitPromise::CreateAndResolve(TrackInfo::kVideoTrack, __func__);
-    }
+  if (NS_SUCCEEDED(InitVAAPIDecoder())) {
+    return;
+  }
 #  endif  // MOZ_ENABLE_VAAPI
 
 #  ifdef MOZ_ENABLE_V4L2
-    // VAAPI didn't work or is disabled, so try V4L2 with DRM
-    rv = InitV4L2Decoder();
-    if (NS_SUCCEEDED(rv)) {
-      return InitPromise::CreateAndResolve(TrackInfo::kVideoTrack, __func__);
-    }
+  // VAAPI didn't work or is disabled, so try V4L2 with DRM
+  if (NS_SUCCEEDED(InitV4L2Decoder())) {
+    return;
+  }
 #  endif  // MOZ_ENABLE_V4L2
 
 #  ifdef MOZ_ENABLE_D3D11VA
-    rv = InitD3D11VADecoder();
-    if (NS_SUCCEEDED(rv)) {
-      return InitPromise::CreateAndResolve(TrackInfo::kVideoTrack, __func__);
-    }
-#  endif  // MOZ_ENABLE_D3D11VA
-
-    mEnableHardwareDecoding = false;
+  if (XRE_IsGPUProcess() && NS_SUCCEEDED(InitD3D11VADecoder())) {
+    return;
   }
+#  endif  // MOZ_ENABLE_D3D11VA
+}
 #endif  // MOZ_USE_HWDECODE
 
-  rv = InitDecoder(nullptr);
-  if (NS_SUCCEEDED(rv)) {
+RefPtr<MediaDataDecoder::InitPromise> FFmpegVideoDecoder<LIBAV_VER>::Init() {
+  FFMPEG_LOG("FFmpegVideoDecoder, init, IsHardwareAccelerated=%d\n",
+             IsHardwareAccelerated());
+  // We've finished the HW decoder initialization in the ctor.
+  if (IsHardwareAccelerated()) {
     return InitPromise::CreateAndResolve(TrackInfo::kVideoTrack, __func__);
   }
-
-  return InitPromise::CreateAndReject(rv, __func__);
+  MediaResult rv = InitSWDecoder(nullptr);
+  return NS_SUCCEEDED(rv)
+             ? InitPromise::CreateAndResolve(TrackInfo::kVideoTrack, __func__)
+             : InitPromise::CreateAndReject(rv, __func__);
 }
 
 static gfx::ColorRange GetColorRange(enum AVColorRange& aColorRange) {
@@ -1796,8 +1791,7 @@ static const struct {
   VAProfile va_profile;
   char name[100];
 } vaapi_profile_map[] = {
-#  define MAP(c, v, n) \
-    { AV_CODEC_ID_##c, VAProfile##v, n }
+#  define MAP(c, v, n) {AV_CODEC_ID_##c, VAProfile##v, n}
     MAP(H264, H264ConstrainedBaseline, "H264ConstrainedBaseline"),
     MAP(H264, H264Main, "H264Main"),
     MAP(H264, H264High, "H264High"),

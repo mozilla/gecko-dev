@@ -78,7 +78,8 @@ MediaResult FFmpegDataDecoder<LIBAV_VER>::AllocateExtraData() {
 
 // Note: This doesn't run on the ffmpeg TaskQueue, it runs on some other media
 // taskqueue
-MediaResult FFmpegDataDecoder<LIBAV_VER>::InitDecoder(AVDictionary** aOptions) {
+MediaResult FFmpegDataDecoder<LIBAV_VER>::InitSWDecoder(
+    AVDictionary** aOptions) {
   FFMPEG_LOG("Initialising FFmpeg decoder");
 
   AVCodec* codec = FindAVCodec(mLib, mCodecID);
