@@ -288,7 +288,8 @@ APZCTreeManager::APZCTreeManager(LayersId aRootLayersId,
       mScrollGenerationLock("APZScrollGenerationLock"),
       mInteractiveWidget(
           dom::InteractiveWidgetUtils::DefaultInteractiveWidgetMode()),
-      mIsSoftwareKeyboardVisible(false) {
+      mIsSoftwareKeyboardVisible(false),
+      mHaveOOPIframes(false) {
   AsyncPanZoomController::InitializeGlobalState();
   mApzcTreeLog.ConditionOnPrefFunction(StaticPrefs::apz_printtree);
 
@@ -466,7 +467,9 @@ std::vector<LayersId> APZCTreeManager::UpdateHitTestingTree(
                                  state.mNodesToDestroy.AppendElement(aNode);
                                });
   mRootNode = nullptr;
+  mHaveOOPIframes = false;
   Maybe<LayersId> asyncZoomContainerSubtree = Nothing();
+  LayersId currentRootContentLayersId{0};
   int asyncZoomContainerNestingDepth = 0;
   bool haveNestedAsyncZoomContainers = false;
   nsTArray<LayersId> subtreesWithRootContentOutsideAsyncZoomContainer;
@@ -518,10 +521,16 @@ std::vector<LayersId> APZCTreeManager::UpdateHitTestingTree(
                 aLayerMetrics.Metadata().GetInteractiveWidget();
             mIsSoftwareKeyboardVisible =
                 aLayerMetrics.Metadata().IsSoftwareKeyboardVisible();
+            currentRootContentLayersId = layersId;
           } else {
             MOZ_ASSERT(aLayerMetrics.Metrics().GetFixedLayerMargins() ==
                            ScreenMargin(),
                        "fixed-layer-margins should be 0 on non-root layer");
+            if (currentRootContentLayersId.IsValid() &&
+                currentRootContentLayersId != layersId &&
+                mRootLayersId != layersId) {
+              mHaveOOPIframes = true;
+            }
           }
 
           // Note that this check happens after the potential increment of
@@ -1553,10 +1562,18 @@ APZEventResult APZCTreeManager::ReceiveInputEvent(
         // a no-op.
         FlushRepaintsToClearScreenToGeckoTransform();
       }
+      const bool endsDrag = DragTracker::EndsDrag(mouseInput);
+      if (endsDrag) {
+        mDragBlockHitResult = HitTestResult();
+      }
 
-      // TODO(botond): Is it necessary to do a hit test on every mouse-move?
-      state.mHit = GetTargetAPZC(mouseInput.mOrigin);
+      state.mHit = GetTargetAPZCForMouseInput(mouseInput);
+
       bool hitScrollbar = (bool)state.mHit.mScrollbarNode;
+      if (startsDrag && hitScrollbar) {
+        RecursiveMutexAutoLock lock(mTreeLock);
+        mDragBlockHitResult = mHitTester->CloneHitTestResult(lock, state.mHit);
+      }
 
       // When the mouse is outside the window we still want to handle dragging
       // but we won't find an APZC. Fallback to root APZC then.
@@ -3005,6 +3022,31 @@ APZCTreeManager::HitTestResult APZCTreeManager::GetTargetAPZC(
   RecursiveMutexAutoLock lock(mTreeLock);
   MOZ_ASSERT(mHitTester);
   return mHitTester->GetAPZCAtPoint(aPoint, lock);
+}
+
+APZCTreeManager::HitTestResult APZCTreeManager::GetTargetAPZCForMouseInput(
+    const MouseInput& aMouseInput) {
+  // If the mouse input isn't move or we are in a wheel transaction,
+  // we need to do hit testing anyway.
+  if (aMouseInput.mType != MouseInput::MOUSE_MOVE ||
+      mInputQueue->GetActiveWheelTransaction()) {
+    return GetTargetAPZC(aMouseInput.mOrigin);
+  }
+
+  // If we are in dragging state, reuse the original target without
+  // hit-testing again.
+  if (mDragBlockHitResult.mTargetApzc) {
+    RecursiveMutexAutoLock lock(mTreeLock);
+    return mHitTester->CloneHitTestResult(lock, mDragBlockHitResult);
+  }
+
+  // If we have no OOP iframes, we don't need to do hit-testing again since
+  // the layersId will never be changed.
+  RecursiveMutexAutoLock lock(mTreeLock);
+  if (!mHaveOOPIframes) {
+    return HitTestResult{};
+  }
+  return GetTargetAPZC(aMouseInput.mOrigin);
 }
 
 APZCTreeManager::TargetApzcForNodeResult APZCTreeManager::FindHandoffParent(

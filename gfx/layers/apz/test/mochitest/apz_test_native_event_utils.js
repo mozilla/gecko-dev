@@ -1984,3 +1984,19 @@ function buildRelativeScrollSmoothnessVariants(aInputType, aScrollMethods) {
   }
   return subtests;
 }
+
+// Right now this is only meaningful on Linux.
+async function getWindowProtocol() {
+  if (getPlatform() != "linux") {
+    return "";
+  }
+
+  return await SpecialPowers.spawnChrome([], () => {
+    try {
+      return Cc["@mozilla.org/gfx/info;1"].getService(Ci.nsIGfxInfo)
+        .windowProtocol;
+    } catch {
+      return "";
+    }
+  });
+}

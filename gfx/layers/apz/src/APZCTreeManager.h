@@ -655,6 +655,10 @@ class APZCTreeManager : public IAPZCTreeManager, public APZInputBridge {
   TargetApzcForNodeResult GetTargetApzcForNode(const HitTestingTreeNode* aNode);
   TargetApzcForNodeResult FindHandoffParent(
       const AsyncPanZoomController* aApzc);
+
+  // An optimized version of GetTargetAPZC for mouse input.
+  HitTestResult GetTargetAPZCForMouseInput(const MouseInput& aMouseInput);
+
   /**
    * Find the root __content__ APZC for |aLayersId|.
    * If |aLayersId| is NOT for the LayersId for the root content, this function
@@ -1051,6 +1055,12 @@ class APZCTreeManager : public IAPZCTreeManager, public APZInputBridge {
    * result of hit testing for that tap gesture event.
    */
   HitTestResult mTapGestureHitResult;
+  /* This tracks the hit test result info for the current drag input block of a
+   * scrollbar initiated by a mousedown.
+   * This result is used for an optimization to skip hit testing on subsequent
+   * mousemove events.
+   */
+  HitTestResult mDragBlockHitResult;
   /* Stores the current mouse position in screen coordinates.
    */
   mutable DataMutex<ScreenPoint> mCurrentMousePosition;
@@ -1098,6 +1108,10 @@ class APZCTreeManager : public IAPZCTreeManager, public APZInputBridge {
 
   // Whether the software keyboard is visible or not.
   bool mIsSoftwareKeyboardVisible;
+
+  // Whether there's any OOP iframe in this tree.
+  // NOTE: This variable needs to be guarded by mTreeLock.
+  bool mHaveOOPIframes;
 
 #if defined(MOZ_WIDGET_ANDROID)
  private:

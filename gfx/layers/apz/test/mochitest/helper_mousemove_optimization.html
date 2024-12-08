@@ -1,0 +1,107 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Test to make sure mousemove events across document/process boundaries work</title>
+  <script src="/tests/SimpleTest/paint_listener.js"></script>
+  <script src="apz_test_utils.js"></script>
+  <script src="apz_test_native_event_utils.js"></script>
+</head>
+<style>
+body {
+  margin: 0;
+}
+iframe {
+  width: 100vw;
+  height: 100px;
+  border: none;
+}
+</style>
+<body>
+<div style="height: 100px;"></div>
+<iframe></iframe>
+<script>
+
+// This test runs twice, with a same origin iframe first then with a cross
+// origin iframe second.
+async function test(targetOrigin) {
+  const iframe = document.querySelector("iframe");
+  const targetURL =
+    SimpleTest.getTestFileURL("helper_empty.html")
+    .replace(window.location.origin, targetOrigin);
+  const iframeLoadPromise = promiseOneEvent(iframe, "load");
+  iframe.src = targetURL;
+  await iframeLoadPromise;
+
+  await SpecialPowers.spawn(iframe, [], async () => {
+    await SpecialPowers.contentTransformsReceived(content);
+  });
+  await promiseApzFlushedRepaints();
+
+  const mousemoveEventPromise = new Promise(resolve => {
+    window.addEventListener("mousemove", event => {
+      resolve({
+        type: event.type,
+        clientX: event.clientX,
+        clientY: event.clientY
+      });
+    }, { once: true });
+  });
+
+  // Send a mousemove event on this document.
+  await synthesizeNativeMouseEventWithAPZ({
+    type: "mousemove",
+    target: document.documentElement,
+    offsetX: 100,
+    offsetY: 50,
+  });
+  let result = await mousemoveEventPromise;
+  SimpleTest.isDeeply(result, { type: "mousemove", clientX: 100, clientY: 50 });
+
+  const mousemoveEventPromiseOnIframe = SpecialPowers.spawn(iframe, [], () => {
+    return new Promise(resolve => {
+      content.window.addEventListener("mousemove", event => {
+        resolve({
+          type: event.type,
+          clientX: event.clientX,
+          clientY: event.clientY
+        });
+      }, { once: true });
+    });
+  });
+
+  // Await a new SpecialPowers.spawn to flush the above queued task to the content process.
+  await SpecialPowers.spawn(iframe, [], async () => {
+    await new Promise(resolve => resolve());
+  });
+
+  // Send a mousemove event on the iframe document.
+  await synthesizeNativeMouseEventWithAPZ({
+    type: "mousemove",
+    target: iframe,
+    offsetX: 100,
+    offsetY: 50,
+  });
+  result = await mousemoveEventPromiseOnIframe;
+  SimpleTest.isDeeply(result, { type: "mousemove", clientX: 100, clientY: 50 });
+}
+
+window.onload = async () => {
+  const windowProtocol = await getWindowProtocol();
+  if (getPlatform() == "linux" && windowProtocol == "wayland") {
+    // Even on wayland this test works with --headless, but unfortunately
+    // SpecialPowers.isHeadless is broken on Linux (bug 1889039).
+    ok(true, "Skipping test because this test isn't supposed to work on wayland because of bug 1857059");
+    subtestDone();
+  } else {
+    waitUntilApzStable()
+    .then(async () => test(window.location.origin))
+    .then(async () => test(`${location.protocol}://example.com/`))
+    .then(subtestDone, subtestFailed);
+  }
+};
+
+</script>
+</body>
+</html>
