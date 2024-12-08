@@ -22,4 +22,3 @@ newtab-weather-change-location-search-input-placeholder =
             from_path=source,
         ),
     )
-
