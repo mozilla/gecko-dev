@@ -2039,7 +2039,7 @@ class Document : public nsINode,
 
   // Observation hooks for style data to propagate notifications
   // to document observers
-  void RuleChanged(StyleSheet&, css::Rule*, StyleRuleChangeKind);
+  void RuleChanged(StyleSheet&, css::Rule*, const StyleRuleChange&);
   void RuleAdded(StyleSheet&, css::Rule&);
   void RuleRemoved(StyleSheet&, css::Rule&);
   void SheetCloned(StyleSheet&) {}

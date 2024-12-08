@@ -31,6 +31,7 @@ namespace mozilla {
 enum class MediaFeatureChangeReason : uint8_t;
 enum class StylePageSizeOrientation : uint8_t;
 enum class StyleRuleChangeKind : uint32_t;
+struct StyleRuleChange;
 
 class ErrorResult;
 
@@ -134,7 +135,7 @@ class ServoStyleSet {
   // are mutated from CSSOM.
   void RuleAdded(StyleSheet&, css::Rule&);
   void RuleRemoved(StyleSheet&, css::Rule&);
-  void RuleChanged(StyleSheet&, css::Rule*, StyleRuleChangeKind);
+  void RuleChanged(StyleSheet&, css::Rule*, const StyleRuleChange&);
   void SheetCloned(StyleSheet&);
   void ImportRuleLoaded(StyleSheet&);
 
@@ -603,7 +604,7 @@ class ServoStyleSet {
 
   bool ShouldTraverseInParallel() const;
 
-  void RuleChangedInternal(StyleSheet&, css::Rule&, StyleRuleChangeKind);
+  void RuleChangedInternal(StyleSheet&, css::Rule&, const StyleRuleChange&);
 
   /**
    * Forces all the ShadowRoot styles to be dirty.

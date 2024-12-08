@@ -117,6 +117,20 @@ size_t ServoStyleRuleMap::SizeOfIncludingThis(
   return n;
 }
 
+void ServoStyleRuleMap::RuleDeclarationsChanged(
+    css::Rule& aRule, const StyleLockedDeclarationBlock* aOld,
+    const StyleLockedDeclarationBlock* aNew) {
+  MOZ_ASSERT(aOld);
+  MOZ_ASSERT(aNew);
+  if (IsEmpty()) {
+    return;
+  }
+  auto old = mTable.Extract(aOld);
+  MOZ_ASSERT(old.valueOr(nullptr) == &aRule,
+             "We were tracking the wrong rule?");
+  mTable.InsertOrUpdate(aNew, &aRule);
+}
+
 void ServoStyleRuleMap::FillTableFromRule(css::Rule& aRule) {
   switch (aRule.Type()) {
     case StyleCssRuleType::NestedDeclarations: {

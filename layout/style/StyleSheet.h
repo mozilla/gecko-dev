@@ -34,12 +34,27 @@ namespace mozilla {
 
 class ServoCSSRuleList;
 class ServoStyleSet;
+class DeclarationBlock;
 
 using StyleSheetParsePromise = MozPromise</* Dummy */ bool,
                                           /* Dummy */ bool,
                                           /* IsExclusive = */ true>;
 
 enum class StyleRuleChangeKind : uint32_t;
+
+struct StyleRuleChange {
+  StyleRuleChange() = delete;
+  MOZ_IMPLICIT StyleRuleChange(StyleRuleChangeKind aKind) : mKind(aKind) {}
+  // Only relevant for Kind::StyleRuleDeclarations.
+  StyleRuleChange(StyleRuleChangeKind aKind, const DeclarationBlock* aOldBlock,
+                  const DeclarationBlock* aNewBlock)
+      : mKind(aKind), mOldBlock(aOldBlock), mNewBlock(aNewBlock) {}
+
+  const StyleRuleChangeKind mKind;
+  // mOldBlock and mNewBlock can be the same object.
+  const DeclarationBlock* const mOldBlock = nullptr;
+  const DeclarationBlock* const mNewBlock = nullptr;
+};
 
 namespace css {
 class GroupRule;
@@ -431,7 +446,7 @@ class StyleSheet final : public nsICSSLoaderObserver, public nsWrapperCache {
   //
   // FIXME(emilio): This shouldn't allow null, but MediaList doesn't know about
   // its owning media rule, plus it's used for the stylesheet media itself.
-  void RuleChanged(css::Rule*, StyleRuleChangeKind);
+  void RuleChanged(css::Rule*, const StyleRuleChange&);
 
   void AddStyleSet(ServoStyleSet* aStyleSet);
   void DropStyleSet(ServoStyleSet* aStyleSet);

@@ -10,6 +10,7 @@
 #include "mozilla/DocumentStyleRootIterator.h"
 #include "mozilla/AttributeStyles.h"
 #include "mozilla/EffectCompositor.h"
+#include "mozilla/DeclarationBlock.h"
 #include "mozilla/IntegerRange.h"
 #include "mozilla/Keyframe.h"
 #include "mozilla/LookAndFeel.h"
@@ -993,7 +994,7 @@ void ServoStyleSet::RuleRemoved(StyleSheet& aSheet, css::Rule& aRule) {
 }
 
 void ServoStyleSet::RuleChangedInternal(StyleSheet& aSheet, css::Rule& aRule,
-                                        StyleRuleChangeKind aKind) {
+                                        const StyleRuleChange& aChange) {
   MOZ_ASSERT(aSheet.IsApplicable());
   SetStylistStyleSheetsDirty();
 
@@ -1001,7 +1002,7 @@ void ServoStyleSet::RuleChangedInternal(StyleSheet& aSheet, css::Rule& aRule,
   case StyleCssRuleType::constant_:                                       \
     return Servo_StyleSet_##constant_##RuleChanged(                       \
         mRawData.get(), static_cast<dom::CSS##type_##Rule&>(aRule).Raw(), \
-        &aSheet, aKind);
+        &aSheet, aChange.mKind);
   switch (aRule.Type()) {
     CASE_FOR(CounterStyle, CounterStyle)
     CASE_FOR(Style, Style)
@@ -1037,16 +1038,22 @@ void ServoStyleSet::RuleChangedInternal(StyleSheet& aSheet, css::Rule& aRule,
 }
 
 void ServoStyleSet::RuleChanged(StyleSheet& aSheet, css::Rule* aRule,
-                                StyleRuleChangeKind aKind) {
+                                const StyleRuleChange& aChange) {
   if (!aSheet.IsApplicable()) {
     return;
   }
 
   if (!aRule) {
+    MOZ_ASSERT(!aChange.mOldBlock);
+    MOZ_ASSERT(!aChange.mNewBlock);
     // FIXME: This is done for StyleSheet.media attribute changes and such
     MarkOriginsDirty(ToOriginFlags(aSheet.GetOrigin()));
   } else {
-    RuleChangedInternal(aSheet, *aRule, aKind);
+    if (mStyleRuleMap && aChange.mOldBlock != aChange.mNewBlock) {
+      mStyleRuleMap->RuleDeclarationsChanged(*aRule, aChange.mOldBlock->Raw(),
+                                             aChange.mNewBlock->Raw());
+    }
+    RuleChangedInternal(aSheet, *aRule, aChange);
   }
 }
 

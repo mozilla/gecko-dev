@@ -25,13 +25,13 @@ use selectors::parser::{Component, LocalName, Selector};
 #[repr(u32)]
 #[derive(Clone, Copy, Debug, Eq, Hash, MallocSizeOf, PartialEq)]
 pub enum RuleChangeKind {
+    /// Some change in the rule which we don't know about, and could have made
+    /// the rule change in any way.
+    Generic = 0,
     /// The rule was inserted.
     Insertion,
     /// The rule was removed.
     Removal,
-    /// Some change in the rule which we don't know about, and could have made
-    /// the rule change in any way.
-    Generic,
     /// A change in the declarations of a style rule.
     StyleRuleDeclarations,
 }

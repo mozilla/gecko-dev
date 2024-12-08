@@ -87,16 +87,17 @@ already_AddRefed<StyleLockedCssRules> CSSStyleRule::GetOrCreateRawRules() {
 nsresult CSSStyleRuleDeclaration::SetCSSDeclaration(
     DeclarationBlock* aDecl, MutationClosureData* aClosureData) {
   CSSStyleRule* rule = Rule();
-
+  RefPtr<DeclarationBlock> oldDecls;
   if (StyleSheet* sheet = rule->GetStyleSheet()) {
     if (aDecl != mDecls) {
-      mDecls->SetOwningRule(nullptr);
-      RefPtr<DeclarationBlock> decls = aDecl;
-      Servo_StyleRule_SetStyle(rule->Raw(), decls->Raw());
-      mDecls = std::move(decls);
+      oldDecls = std::move(mDecls);
+      oldDecls->SetOwningRule(nullptr);
+      Servo_StyleRule_SetStyle(rule->Raw(), aDecl->Raw());
+      mDecls = aDecl;
       mDecls->SetOwningRule(rule);
     }
-    sheet->RuleChanged(rule, StyleRuleChangeKind::StyleRuleDeclarations);
+    sheet->RuleChanged(rule, {StyleRuleChangeKind::StyleRuleDeclarations,
+                              oldDecls ? oldDecls.get() : aDecl, aDecl});
   }
   return NS_OK;
 }
