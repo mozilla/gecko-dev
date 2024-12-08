@@ -28,6 +28,10 @@ namespace mozilla {
 
 class ImageBufferWrapper;
 
+#ifdef MOZ_ENABLE_D3D11VA
+class DXVA2Manager;
+#endif
+
 template <int V>
 class FFmpegVideoDecoder : public FFmpegDataDecoder<V> {};
 
@@ -123,9 +127,23 @@ class FFmpegVideoDecoder<LIBAV_VER>
 #endif
 
 #ifdef MOZ_USE_HWDECODE
-  void InitHWCodecContext(bool aUsingV4L2);
+  enum class ContextType{
+      D3D11VA,
+      VAAPI,
+      V4L2,
+  };
+  void InitHWCodecContext(ContextType aType);
 
   bool mEnableHardwareDecoding;
+#endif
+
+#ifdef MOZ_ENABLE_D3D11VA
+  MediaResult InitD3D11VADecoder();
+
+  int32_t mTextureAlignment;
+  AVBufferRef* mD3D11VADeviceContext = nullptr;
+  RefPtr<ID3D11Device> mDevice;
+  UniquePtr<DXVA2Manager> mDXVA2Manager;
 #endif
 
 #if defined(MOZ_USE_HWDECODE) && defined(MOZ_WIDGET_GTK)

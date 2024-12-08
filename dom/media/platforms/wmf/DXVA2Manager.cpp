@@ -368,6 +368,8 @@ class D3D11DXVA2Manager : public DXVA2Manager {
     return mIMFSampleUsageInfo->SupportsZeroCopyNV12Texture();
   }
 
+  ID3D11Device* GetD3D11Device() override { return mDevice; }
+
  private:
   HRESULT CreateOutputSample(RefPtr<IMFSample>& aSample,
                              ID3D11Texture2D* aTexture);

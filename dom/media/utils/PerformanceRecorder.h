@@ -206,7 +206,7 @@ class DecodeStage : public StageBase {
   MOZ_DEFINE_ENUM_WITH_BASE_AND_TOSTRING_AT_CLASS_SCOPE(
       ImageFormat, uint8_t,
       (YUV420P, YUV422P, YUV444P, NV12, YV12, NV21, P010, P016, RGBA32, RGB24,
-       GBRP, ANDROID_SURFACE, VAAPI_SURFACE));
+       GBRP, ANDROID_SURFACE, VAAPI_SURFACE, D3D11_SURFACE));
 
   DecodeStage(nsCString aSource, TrackingId aTrackingId, MediaInfoFlag aFlag)
       : mSource(std::move(aSource)),
