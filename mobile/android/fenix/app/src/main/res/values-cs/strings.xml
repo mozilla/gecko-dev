@@ -99,12 +99,6 @@
     <!-- Text for the negative action button -->
     <string name="open_in_app_cfr_negative_button_text">Zavřít</string>
 
-    <!-- Total cookie protection "contextual feature recommendation" (CFR) -->
-    <!-- Text for the message displayed in the contextual feature recommendation popup promoting the total cookie protection feature. -->
-    <string name="tcp_cfr_message" moz:removedIn="132" tools:ignore="UnusedResources">Naše doposud nejmocnější funkce ochrany osobních údajů izoluje sledovací prvky třetích stran.</string>
-    <!-- Text displayed that links to website containing documentation about the "Total cookie protection" feature. -->
-    <string name="tcp_cfr_learn_more" moz:removedIn="132" tools:ignore="UnusedResources">Zjistit více o úplné ochraně před cookies</string>
-
 
     <!-- Private browsing erase action "contextual feature recommendation" (CFR) -->
     <!-- Text for the message displayed in the contextual feature recommendation popup promoting the erase private browsing feature. -->
@@ -126,12 +120,6 @@
     <string name="address_bar_swipe_cfr_title">Přepínání panelů přejetím po panelu nástrojů</string>
     <!-- Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
     <string name="address_bar_swipe_cfr_message">Přejetím doleva nebo doprava přepínáte. Přejetím doleva na posledním panelu otevřete nový panel.</string>
-
-    <!-- Tablet navigation bar "contextual feature recommendation" (CFR) -->
-    <!-- Text for the title displayed in the contextual feature recommendation popup promoting the tablet navigation bar. -->
-    <string name="tablet_nav_bar_cfr_title" moz:removedIn="132" tools:ignore="UnusedResources">Novinka: jedním klepnutím šipky zpět a vpřed</string>
-    <!-- Text for the message displayed in the contextual feature recommendation popup promoting the tablet navigation bar. -->
-    <string name="tablet_nav_bar_cfr_message" moz:removedIn="132" tools:ignore="UnusedResources">Dopřejte si rychlejší navigaci, kterou máte vždy po ruce.</string>
 
     <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
     <string name="camera_permissions_needed_message">Pro tuto funkci je potřeba povolit přístup k fotoaparátu. Ten můžete povolit v nastavení oprávnění aplikací v systému Android.</string>
@@ -357,12 +345,12 @@
     <string name="browser_menu_tools_description" moz:removedIn="134" tools:ignore="UnusedResources">Zobrazení čtečky, Tisk, Sdílet, Otevřít aplikaci</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu
          The first parameter is the label of the report site issue (for example: Report Site issue) -->
-    <string name="browser_menu_tools_description_with_translate_with_report_site">Zobrazení čtečky, Překlad, %s, Tisk, Sdílet, Otevřít aplikaci</string>
+    <string name="browser_menu_tools_description_with_translate_with_report_site" moz:removedIn="135" tools:ignore="UnusedResources">Zobrazení čtečky, Překlad, %s, Tisk, Sdílet, Otevřít aplikaci</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
     <string name="browser_menu_tools_description_with_translate_without_report_site">Zobrazení čtečky, Překlad, Tisk, Sdílet, Otevřít aplikaci</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu
          The first parameter is the label of the report site issue (for example: Report Site issue) -->
-    <string name="browser_menu_tools_description_with_report_site">Zobrazení čtečky, %s, Tisk, Sdílet, Otevřít aplikaci</string>
+    <string name="browser_menu_tools_description_with_report_site" moz:removedIn="135" tools:ignore="UnusedResources">Zobrazení čtečky, %s, Tisk, Sdílet, Otevřít aplikaci</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
     <string name="browser_menu_tools_description_without_report_site">Zobrazení čtečky, Tisk, Sdílet, Otevřít aplikaci</string>
     <!-- Browser menu label that navigates to the save sub-menu, which contains various save related menu items such as
@@ -467,8 +455,6 @@
     <string name="search_engine_icon_content_description_1">Vyhledávač: %s</string>
 
     <!-- Home onboarding -->
-    <!-- Onboarding home screen popup dialog, shown on top of the Jump back in section. -->
-    <string name="onboarding_home_screen_jump_back_contextual_hint_2" moz:removedIn="132">Seznamte se se svou přizpůsobenou domovskou stránkou. Zobrazí se vám na ní nedávné panely, záložky a výsledky vyhledávání.</string>
     <!-- Home onboarding dialog welcome screen title text. -->
     <string name="onboarding_home_welcome_title_2">Vítejte na osobnějším internetu</string>
     <!-- Home onboarding dialog welcome screen description text. -->
@@ -603,6 +589,13 @@
     <string name="onboarding_preferences_dialog_positive_button" tools:ignore="UnusedResources">Hotovo</string>
     <!-- Negative button label for the privacy preferences dialog shown during onboarding. -->
     <string name="onboarding_preferences_dialog_negative_button" tools:ignore="UnusedResources">Zrušit</string>
+
+    <!-- Onboarding toolbar selection card label for 'skip' button, used by Nimbus experiments. -->
+    <string name="onboarding_customize_toolbar_skip_button">Přeskočit</string>
+    <!-- Onboarding toolbar selection card label for 'top' option, used by Nimbus experiments. -->
+    <string name="onboarding_customize_toolbar_top_option">Nahoru</string>
+    <!-- Onboarding toolbar selection card label for 'bottom' option, used by Nimbus experiments. -->
+    <string name="onboarding_customize_toolbar_bottom_option">Dolu</string>
 
     <!-- Search Widget -->
     <!-- Content description for searching with a widget. The first parameter is the name of the application.-->
@@ -1008,7 +1001,7 @@
     <!-- Preference switch for marketing data collection -->
     <string name="preferences_marketing_data">Marketingová data</string>
     <!-- Preference description for marketing data collection -->
-    <string name="preferences_marketing_data_description2">Sdílí základní údaje a používání a technické údaje se společností Adjust, naším partnerem pro marketing</string>
+    <string name="preferences_marketing_data_description2" moz:removedIn="134" tools:ignore="UnusedResources">Sdílí základní údaje a používání a technické údaje se společností Adjust, naším partnerem pro marketing</string>
     <!-- Preference switch title for automatically submitting crash reports -->
     <string name="preferences_automatically_submit_crashes_title">Automaticky odesílat hlášení o pádech</string>
     <!-- Preference switch description for automatically submitting crash reports -->
@@ -1370,8 +1363,6 @@
     <string name="bookmark_delete_negative">Zrušit</string>
     <!-- Screen title for adding a bookmarks folder -->
     <string name="bookmark_add_folder">Přidat složku</string>
-    <!-- Snackbar title shown after a bookmark has been created. -->
-    <string name="bookmark_saved_snackbar" moz:removedIn="132" tools:ignore="UnusedResources">Záložka uložena</string>
     <!-- Snackbar title that confirms a bookmark was saved into a folder. Parameter will be replaced by the name of the folder the bookmark was saved into. -->
     <string name="bookmark_saved_in_folder_snackbar">Uloženo do “%s”</string>
     <!-- Snackbar edit button shown after a bookmark has been created. -->
@@ -1725,8 +1716,6 @@
     <string name="snackbar_tabs_closed">Panely byly zavřeny</string>
     <!-- Text shown in snackbar when user closes multiple inactive tabs. %1$s will be replaced with the number of tabs closed. -->
     <string name="snackbar_num_tabs_closed">Zavřené panely: %1$s</string>
-    <!-- Text shown in snackbar when user bookmarks a list of tabs -->
-    <string name="snackbar_message_bookmarks_saved" moz:removedIn="132" tools:ignore="UnusedResources">Záložky uloženy</string>
     <!-- Text shown in snackbar when user bookmarks a list of tabs. Parameter will be replaced by the name of the folder the bookmark was saved into.-->
     <string name="snackbar_message_bookmarks_saved_in">Záložky uloženy do “%s”!</string>
     <!-- Text shown in snackbar when user adds a site to shortcuts -->
@@ -2635,14 +2624,6 @@
     <string name="review_quality_check_contextual_onboarding_primary_button_text">Ano, vyzkoušet</string>
     <!-- Text for opt-out button from the review quality check contextual onboarding card. -->
     <string name="review_quality_check_contextual_onboarding_secondary_button_text">Teď ne</string>
-    <!-- Text for the first CFR presenting the review quality check feature. -->
-    <string name="review_quality_check_first_cfr_message" moz:removedIn="132" tools:ignore="UnusedResources">Zjistěte, zda můžete důvěřovat recenzím tohoto produktu - ještě před nákupem.</string>
-    <!-- Text displayed in the first CFR presenting the review quality check feature that opens the review checker when clicked. -->
-    <string name="review_quality_check_first_cfr_action" moz:removedIn="132" tools:ignore="UnusedResources">Vyzkoušet kontrolu recenzí</string>
-    <!-- Text for the second CFR presenting the review quality check feature. -->
-    <string name="review_quality_check_second_cfr_message" moz:removedIn="132" tools:ignore="UnusedResources">Jsou tyto recenze spolehlivé? Zkontrolujte si nyní upravené hodnocení.</string>
-    <!-- Text displayed in the second CFR presenting the review quality check feature that opens the review checker when clicked. -->
-    <string name="review_quality_check_second_cfr_action" moz:removedIn="132" tools:ignore="UnusedResources">Otevřít kontrolu recenzí</string>
     <!-- Content description (not visible, for screen readers etc.) for opening browser menu button to open review quality check bottom sheet. -->
     <string name="review_quality_check_open_handle_content_description">Otevřít kontrolu recenzí</string>
     <!-- Content description (not visible, for screen readers etc.) for closing browser menu button to open review quality check bottom sheet. -->
@@ -2907,6 +2888,20 @@
     <!-- Button text on the data saving mode warning dialog used by the translations feature to allow users to cancel the action and not perform a download of the language file. -->
     <string name="download_language_file_dialog_negative_button_text">Zrušit</string>
 
+    <!-- Unified Trust Panel -->
+    <!-- Title text for the protection panel banner when the site is not secure. -->
+    <string name="protection_panel_banner_not_secure_title">Buďte na této stránce opatrní</string>
+    <!-- Description text for the protection panel banner when the site is not secure. -->
+    <string name="protection_panel_banner_not_secure_description">Vaše připojení není zabezpečené.</string>
+    <!-- Title text for the protection panel banner when tracking protection is disabled. -->
+    <string name="protection_panel_banner_not_protected_title">Vypnuli jste ochranu</string>
+    <!-- Description text for the protection panel banner when tracking protection is enabled. -->
+    <string name="protection_panel_banner_protected_description">Jste chráněni. Pokud něco zjistíme, dáme vám vědět.</string>
+    <!-- Label text for the Enhanced Tracking Protection toggle. -->
+    <string name="protection_panel_etp_toggle_label">Rozšířená ochrana proti sledování</string>
+    <!-- Description text for the Enhanced Tracking Protection toggle when tracking protection is disabled. -->
+    <string name="protection_panel_etp_toggle_disabled_description">Ochrana je VYPNUTÁ. Doporučujeme ji znovu zapnout.</string>
+
     <!-- Debug drawer -->
     <!-- The user-facing title of the Debug Drawer feature. -->
     <string name="debug_drawer_title">Nástroje pro ladění</string>
@@ -3020,6 +3015,10 @@
     <!-- Content description for delete button where parameter will be the username of the login -->
     <string name="debug_drawer_logins_delete_login_button_content_description">Odstranit přihlášení s uživatelským jménem %s</string>
 
+    <!-- Debug drawer addresses -->
+    <!-- The title of the Addresses feature in the Debug Drawer. -->
+    <string name="debug_drawer_addresses_title">Adresy</string>
+
     <!-- Debug drawer "contextual feature recommendation" (CFR) tools -->
     <!-- The title of the CFR Tools feature in the Debug Drawer -->
     <string name="debug_drawer_cfr_tools_title">Nástroje CFR</string>
@@ -3031,11 +3030,6 @@
     <string name="glean_debug_tools_title">Nástroje ladění Glean</string>
 
     <!-- Messages explaining how to exit fullscreen mode -->
-    <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled -->
-    <string name="exit_fullscreen_with_gesture" moz:removedIn="132" tools:ignore="UnusedResources">Pro ukončení režimu celé obrazovky přetáhněte prst shora a použijte gesto Zpět</string>
-    <!-- Message shown to explain how to exit fullscreen mode when using back button navigation -->
-    <string name="exit_fullscreen_with_back_button" moz:removedIn="132" tools:ignore="UnusedResources">Pro ukončení režimu celé obrazovky přetáhněte prst seshora a stiskněte zpět</string>
-
     <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled. -->
     <!-- Localisation note: this text should be as short as possible, max 68 chars -->
     <string name="exit_fullscreen_with_gesture_short">Pro ukončení táhnutím shora a gestem Zpět</string>
@@ -3046,4 +3040,13 @@
     <!-- Beta Label Component !-->
     <!-- Text shown as a label or tag to indicate a feature or area is still undergoing active development. Note that here "Beta" should not be translated, as it is used as an icon styled element. -->
     <string name="beta_feature">BETA</string>
-</resources>
+
+    <!-- Root certificate expiration warnings -->
+    <!-- These strings for homepage cards and push notifications to be pushed to users running outdated versions of Firefox. We want to encourage these users to update to the latest version so their extensions and other features don't stop working when Firefox's old root certificate expires on 2025-03-14. For more information, see this SUMO article: https://support.mozilla.org/kb/root-certificate-expiration !-->
+    <!-- Homepage card button to open Google Play Store. "Update" is a verb. -->
+    <string name="certificate_warning_homepage_card_update_now_button" tools:ignore="UnusedResources">Aktualizovat</string>
+    <!-- Homepage card title about old Firefox version. "Update" is a verb. Note: The word "Firefox" should NOT be translated. -->
+    <string name="certificate_warning_homepage_card_hca1_title" tools:ignore="BrandUsage,UnusedResources">Aktualizujte svůj Firefox</string>
+    <!-- Push notification title about old Firefox version. "Update" is a noun. -->
+    <string name="certificate_warning_push_notification_update_recommended_title" tools:ignore="UnusedResources">Aktualizace doporučena</string>
+    </resources>

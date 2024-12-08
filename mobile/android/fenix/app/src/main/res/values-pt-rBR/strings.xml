@@ -97,12 +97,6 @@
     <!-- Text for the negative action button -->
     <string name="open_in_app_cfr_negative_button_text">Descartar</string>
 
-    <!-- Total cookie protection "contextual feature recommendation" (CFR) -->
-    <!-- Text for the message displayed in the contextual feature recommendation popup promoting the total cookie protection feature. -->
-    <string name="tcp_cfr_message" moz:removedIn="132" tools:ignore="UnusedResources">Nosso recurso de privacidade mais poderoso isola melhor ainda rastreadores entre sites.</string>
-    <!-- Text displayed that links to website containing documentation about the "Total cookie protection" feature. -->
-    <string name="tcp_cfr_learn_more" moz:removedIn="132" tools:ignore="UnusedResources">Conheça a proteção total contra cookies</string>
-
 
     <!-- Private browsing erase action "contextual feature recommendation" (CFR) -->
     <!-- Text for the message displayed in the contextual feature recommendation popup promoting the erase private browsing feature. -->
@@ -124,12 +118,6 @@
     <string name="address_bar_swipe_cfr_title">Deslize a barra de ferramentas para mudar de aba</string>
     <!-- Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
     <string name="address_bar_swipe_cfr_message">Deslize para esquerda ou direita para mudar. Na última aba, deslize para esquerda para abrir uma nova.</string>
-
-    <!-- Tablet navigation bar "contextual feature recommendation" (CFR) -->
-    <!-- Text for the title displayed in the contextual feature recommendation popup promoting the tablet navigation bar. -->
-    <string name="tablet_nav_bar_cfr_title" moz:removedIn="132" tools:ignore="UnusedResources">Novidade: setas de voltar e avançar com apenas um toque.</string>
-    <!-- Text for the message displayed in the contextual feature recommendation popup promoting the tablet navigation bar. -->
-    <string name="tablet_nav_bar_cfr_message" moz:removedIn="132" tools:ignore="UnusedResources">Desfrute de uma navegação mais rápida, sempre ao alcance de seus dedos.</string>
 
     <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
     <string name="camera_permissions_needed_message">É necessário acesso à câmera. Use as configurações do Android para mudar as permissões para permitir acesso.</string>
@@ -354,12 +342,12 @@
     <string name="browser_menu_tools_description" moz:removedIn="134" tools:ignore="UnusedResources">Modo de leitura, imprimir, compartilhar, abrir aplicativo</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu
          The first parameter is the label of the report site issue (for example: Report Site issue) -->
-    <string name="browser_menu_tools_description_with_translate_with_report_site">Modo de leitura, tradução, %s, impressão, compartilhamento, abertura de aplicativos</string>
+    <string name="browser_menu_tools_description_with_translate_with_report_site" moz:removedIn="135" tools:ignore="UnusedResources">Modo de leitura, tradução, %s, impressão, compartilhamento, abertura de aplicativos</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-    <string name="browser_menu_tools_description_with_translate_without_report_site">Modo de leitura, tradução, impressão, compartilhamento e abertura de aplicativos</string>
+    <string name="browser_menu_tools_description_with_translate_without_report_site">Modo de leitura, tradução, impressão, compartilhamento, abertura de aplicativos</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu
          The first parameter is the label of the report site issue (for example: Report Site issue) -->
-    <string name="browser_menu_tools_description_with_report_site">Modo de leitura, %s, impressão, compartilhamento, abertura de aplicativos</string>
+    <string name="browser_menu_tools_description_with_report_site" moz:removedIn="135" tools:ignore="UnusedResources">Modo de leitura, %s, impressão, compartilhamento, abertura de aplicativos</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
     <string name="browser_menu_tools_description_without_report_site">Modo de leitura, impressão, compartilhamento, abertura de aplicativos</string>
     <!-- Browser menu label that navigates to the save sub-menu, which contains various save related menu items such as
@@ -461,8 +449,6 @@
     <string name="search_engine_icon_content_description_1">Mecanismo de pesquisa: %s</string>
 
     <!-- Home onboarding -->
-    <!-- Onboarding home screen popup dialog, shown on top of the Jump back in section. -->
-    <string name="onboarding_home_screen_jump_back_contextual_hint_2" moz:removedIn="132">Conheça sua tela inicial personalizada. Abas recentes, favoritos e resultados de pesquisa aparecem aqui.</string>
     <!-- Home onboarding dialog welcome screen title text. -->
     <string name="onboarding_home_welcome_title_2">Boas-vindas a uma internet mais pessoal</string>
     <!-- Home onboarding dialog welcome screen description text. -->
@@ -600,6 +586,27 @@
     <string name="onboarding_preferences_dialog_positive_button" tools:ignore="UnusedResources">Concluído</string>
     <!-- Negative button label for the privacy preferences dialog shown during onboarding. -->
     <string name="onboarding_preferences_dialog_negative_button" tools:ignore="UnusedResources">Cancelar</string>
+
+    <!-- Terms of service onboarding page continue button label. -->
+    <string name="onboarding_term_of_service_agree_and_continue_button_label" tools:ignore="UnusedResources">Concordar e continuar</string>
+    <!-- Line one of the terms of service onboarding page. 'Firefox' is intentionally hardcoded. %1$s is replaced by an active link, using onboarding_term_of_service_line_one_link_text as text (“Terms of Service”). -->
+    <string name="onboarding_term_of_service_line_one" tools:ignore="UnusedResources,BrandUsage">Ao continuar, você declara que concorda com os %1$s do Firefox.</string>
+    <!-- Used as text for the link in onboarding_term_of_service_line_one. -->
+    <string name="onboarding_term_of_service_line_one_link_text" tools:ignore="UnusedResources,BrandUsage">termos de uso do serviço</string>
+    <!-- Line two of the terms of service onboarding page. 'Firefox' is intentionally hardcoded. %1$s is replaced by an active link, using onboarding_term_of_service_line_two_link_text as text (Privacy Notice”). -->
+    <string name="onboarding_term_of_service_line_two" tools:ignore="UnusedResources,BrandUsage">O Firefox se importa com sua privacidade. Mais informações em nosso %1$s.</string>
+    <!-- Used as text for the link in onboarding_term_of_service_line_two. -->
+    <string name="onboarding_term_of_service_line_two_link_text" tools:ignore="UnusedResources,BrandUsage">aviso de privacidade</string>
+    <!-- Line three of the terms of service onboarding page. 'Firefox' and 'Mozilla' are intentionally hardcoded. %1$S is replaced by an active link, using onboarding_term_of_service_line_three_link_text as text (Manage”). -->
+    <string name="onboarding_term_of_service_line_three" tools:ignore="UnusedResources,BrandUsage">Para ajudar a melhorar o navegador, o Firefox envia dados de diagnóstico e interação para a Mozilla. %1$s</string>
+    <!-- Used as text for the link in onboarding_term_of_service_line_three. -->
+    <string name="onboarding_term_of_service_line_three_link_text" tools:ignore="UnusedResources,BrandUsage">Gerenciar</string>
+    <!-- Onboarding header for the toolbar selection card, used by Nimbus experiments. -->
+    <string name="onboarding_customize_toolbar_title" tools:ignore="UnusedResources">Escolha a posição da barra de ferramentas</string>
+    <!-- Onboarding sub header for toolbar selection card, used by Nimbus experiments. -->
+    <string name="onboarding_customize_toolbar_description" tools:ignore="UnusedResources">Mantenha as pesquisas ao seu alcance.</string>
+    <!-- Onboarding toolbar selection card label for 'skip' button, used by Nimbus experiments. -->
+    <string name="onboarding_customize_toolbar_skip_button">Pular</string>
 
     <!-- Search Widget -->
     <!-- Content description for searching with a widget. The first parameter is the name of the application.-->
@@ -1006,7 +1013,7 @@
     <!-- Preference switch for marketing data collection -->
     <string name="preferences_marketing_data">Dados de marketing</string>
     <!-- Preference description for marketing data collection -->
-    <string name="preferences_marketing_data_description2">Compartilhar dados básicos de uso com a Adjust, nossa fornecedora de marketing em dispositivos móveis</string>
+    <string name="preferences_marketing_data_description2" moz:removedIn="134" tools:ignore="UnusedResources">Compartilhar dados básicos de uso com a Adjust, nossa fornecedora de marketing em dispositivos móveis</string>
     <!-- Preference switch title for automatically submitting crash reports -->
     <string name="preferences_automatically_submit_crashes_title">Enviar relatórios de falhas automaticamente</string>
     <!-- Preference switch description for automatically submitting crash reports -->
@@ -1362,8 +1369,6 @@
     <string name="bookmark_delete_negative">Cancelar</string>
     <!-- Screen title for adding a bookmarks folder -->
     <string name="bookmark_add_folder">Adicionar pasta</string>
-    <!-- Snackbar title shown after a bookmark has been created. -->
-    <string name="bookmark_saved_snackbar" moz:removedIn="132" tools:ignore="UnusedResources">Favorito salvo!</string>
     <!-- Snackbar title that confirms a bookmark was saved into a folder. Parameter will be replaced by the name of the folder the bookmark was saved into. -->
     <string name="bookmark_saved_in_folder_snackbar">Salvo em “%s”</string>
     <!-- Snackbar edit button shown after a bookmark has been created. -->
@@ -1711,8 +1716,6 @@
     <string name="snackbar_tabs_closed">Abas fechadas</string>
     <!-- Text shown in snackbar when user closes multiple inactive tabs. %1$s will be replaced with the number of tabs closed. -->
     <string name="snackbar_num_tabs_closed">Abas fechadas: %1$s</string>
-    <!-- Text shown in snackbar when user bookmarks a list of tabs -->
-    <string name="snackbar_message_bookmarks_saved" moz:removedIn="132" tools:ignore="UnusedResources">Favoritos salvos!</string>
     <!-- Text shown in snackbar when user bookmarks a list of tabs. Parameter will be replaced by the name of the folder the bookmark was saved into.-->
     <string name="snackbar_message_bookmarks_saved_in">Favoritos salvos em “%s”!</string>
     <!-- Text shown in snackbar when user adds a site to shortcuts -->
@@ -2625,14 +2628,6 @@
     <string name="review_quality_check_contextual_onboarding_primary_button_text">Sim, experimentar</string>
     <!-- Text for opt-out button from the review quality check contextual onboarding card. -->
     <string name="review_quality_check_contextual_onboarding_secondary_button_text">Agora não</string>
-    <!-- Text for the first CFR presenting the review quality check feature. -->
-    <string name="review_quality_check_first_cfr_message" moz:removedIn="132" tools:ignore="UnusedResources">Descubra se você pode confiar nas avaliações deste produto, antes de comprar.</string>
-    <!-- Text displayed in the first CFR presenting the review quality check feature that opens the review checker when clicked. -->
-    <string name="review_quality_check_first_cfr_action" moz:removedIn="132" tools:ignore="UnusedResources">Experimentar o verificador de avaliações</string>
-    <!-- Text for the second CFR presenting the review quality check feature. -->
-    <string name="review_quality_check_second_cfr_message" moz:removedIn="132" tools:ignore="UnusedResources">Essas avaliações são confiáveis? Verifique agora para ver uma classificação ajustada.</string>
-    <!-- Text displayed in the second CFR presenting the review quality check feature that opens the review checker when clicked. -->
-    <string name="review_quality_check_second_cfr_action" moz:removedIn="132" tools:ignore="UnusedResources">Abrir o verificador de avaliações</string>
 
     <!-- Content description (not visible, for screen readers etc.) for opening browser menu button to open review quality check bottom sheet. -->
     <string name="review_quality_check_open_handle_content_description">Abrir o verificador de avaliações</string>
@@ -3021,11 +3016,6 @@
     <string name="glean_debug_tools_title">Ferramentas de depuração Glean</string>
 
     <!-- Messages explaining how to exit fullscreen mode -->
-    <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled -->
-    <string name="exit_fullscreen_with_gesture" moz:removedIn="132" tools:ignore="UnusedResources">Para sair de tela inteira, deslize do topo para baixo e use o gesto de voltar</string>
-    <!-- Message shown to explain how to exit fullscreen mode when using back button navigation -->
-    <string name="exit_fullscreen_with_back_button" moz:removedIn="132" tools:ignore="UnusedResources">Para sair de tela inteira, deslize do topo para baixo e toque em Voltar</string>
-
     <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled. -->
     <!-- Localisation note: this text should be as short as possible, max 68 chars -->
     <string name="exit_fullscreen_with_gesture_short">Deslize do topo para baixo e use o gesto de voltar para sair</string>
@@ -3037,4 +3027,5 @@
     <!-- Beta Label Component !-->
     <!-- Text shown as a label or tag to indicate a feature or area is still undergoing active development. Note that here "Beta" should not be translated, as it is used as an icon styled element. -->
     <string name="beta_feature">BETA</string>
-</resources>
+
+    </resources>

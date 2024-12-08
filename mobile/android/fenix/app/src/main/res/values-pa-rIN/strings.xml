@@ -101,12 +101,6 @@
     <!-- Text for the negative action button -->
     <string name="open_in_app_cfr_negative_button_text">ਖ਼ਾਰਜ ਕਰੋ</string>
 
-    <!-- Total cookie protection "contextual feature recommendation" (CFR) -->
-    <!-- Text for the message displayed in the contextual feature recommendation popup promoting the total cookie protection feature. -->
-    <string name="tcp_cfr_message" moz:removedIn="132" tools:ignore="UnusedResources">ਸਾਡਾ ਹਾਲੇ ਤੱਕ ਦਾ ਸਭ ਤੋਂ ਜ਼ਿਆਦਾ ਮਜ਼ਬੂਤ ਪਰਦੇਦਾਰੀ ਫ਼ੀਚਰ ਅੰਤਰ-ਸਾਈਟ ਟਰੈਕਰਾਂ ਨੂੰ ਨਿਖੇੜਦਾ ਹੈ।</string>
-    <!-- Text displayed that links to website containing documentation about the "Total cookie protection" feature. -->
-    <string name="tcp_cfr_learn_more" moz:removedIn="132" tools:ignore="UnusedResources">ਪੂਰੀ ਕੂਕੀ ਸੁਰੱਖਿਆ ਬਾਰੇ ਜਾਣੋ</string>
-
     <!-- Private browsing erase action "contextual feature recommendation" (CFR) -->
     <!-- Text for the message displayed in the contextual feature recommendation popup promoting the erase private browsing feature. -->
     <string name="erase_action_cfr_message">ਤਾਜ਼ਾ ਪ੍ਰਾਈਵੇਟ ਸ਼ੈਸ਼ਨ ਸ਼ੁਰੂ ਕਰਨ ਲਈ ਇੱਥੇ ਕਲਿੱਕ ਕਰੋ। ਆਪਣੇ ਅਤੀਤ, ਕੂਕੀਜ਼ — ਹਰ ਚੀਜ਼ ਹਟਾ ਦਿਓ।</string>
@@ -127,12 +121,6 @@
     <string name="address_bar_swipe_cfr_title">ਟੈਬਾਂ ਵਿਚਾਲੇ ਬਦਲਣ ਵਾਸਤੇ ਟੂਲਬਾਰ ਨੂੰ ਸਰਕਾਓ</string>
     <!-- Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
     <string name="address_bar_swipe_cfr_message">ਬਦਲਣ ਵਾਸਤੇ ਖੱਬੇ ਜਾਂ ਸੱਜੇ ਵੱਲ ਸਰਕਾਓ। ਆਪਣੀ ਆਖਰੀ ਟੈਬ ਉੱਤੇ ਖੱਬੇ ਵੱਲ ਸਰਕਾਉਣ ਨਾਲ ਨਵੀਂ ਟੈਬ ਨੂੰ ਖੋਲ੍ਹੋ।</string>
-
-    <!-- Tablet navigation bar "contextual feature recommendation" (CFR) -->
-    <!-- Text for the title displayed in the contextual feature recommendation popup promoting the tablet navigation bar. -->
-    <string name="tablet_nav_bar_cfr_title" moz:removedIn="132" tools:ignore="UnusedResources">ਨਵਾਂ: ਇੱਕ ਛੋਹ ਨਾਲ ਅੱਗੇ ਅਤੇ ਪਿੱਛੇ ਲੈ ਜਾਣ ਵਾਲੇ ਤੀਰ</string>
-    <!-- Text for the message displayed in the contextual feature recommendation popup promoting the tablet navigation bar. -->
-    <string name="tablet_nav_bar_cfr_message" moz:removedIn="132" tools:ignore="UnusedResources">ਫ਼ੌਰੀ ਨੇਵੀਗੇਸ਼ਨ, ਜੋ ਹਮੇਸ਼ਾਂ ਤੁਹਾਡੀ ਪਹੁੰਚ ਵੱਚ ਹੁੰਦੀ ਹੈ, ਦਾ ਆਨੰਦ ਮਾਣੋ।</string>
 
     <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
     <string name="camera_permissions_needed_message">ਕੈਮਰੇ ਲਈ ਪਹੁੰਚ ਚਾਹੀਦੀ ਹੈ। Android ਸੈਟਿੰਗਾਂ ਉੱਤੇ ਜਾਓ, ਇਜਾਜ਼ਤਾਂ ਨੂੰ
@@ -358,12 +346,16 @@
     <string name="browser_menu_tools_description" moz:removedIn="134" tools:ignore="UnusedResources">ਰੀਡਰ ਝਲਕ, ਛਾਪਣਾ, ਸ਼ੇਅਰ ਕਰਨਾ ,ਐਪ ਖੋਲ੍ਹਣਾ</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu
          The first parameter is the label of the report site issue (for example: Report Site issue) -->
-    <string name="browser_menu_tools_description_with_translate_with_report_site">ਰੀਡਰ ਝਲਕ, ਉਲੱਥਾ, %s, ਪਰਿੰਟ, ਸਾਂਝਾ ਕਰਨਾ, ਐਪ ਨੂੰ ਖੋਲ੍ਹਣਾ</string>
+    <string name="browser_menu_tools_description_with_translate_with_report_site" moz:removedIn="135" tools:ignore="UnusedResources">ਰੀਡਰ ਝਲਕ, ਉਲੱਥਾ, %s, ਪਰਿੰਟ, ਸਾਂਝਾ ਕਰਨਾ, ਐਪ ਨੂੰ ਖੋਲ੍ਹਣਾ</string>
+    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu when the "Report broken site" feature is available-->
+    <string name="browser_menu_tools_description_with_translate_with_report_site_2">ਰੀਡਰ ਝਲਕ, ਉਲੱਥਾ,ਖ਼ਰਾਬ ਸਾਟਈ ਬਾਰੇ ਰਿਪੋਰਟ, ਪਰਿੰਟ, ਸਾਂਝਾ ਕਰਨਾ, ਐਪ ਨੂੰ ਖੋਲ੍ਹਣਾ</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
     <string name="browser_menu_tools_description_with_translate_without_report_site">ਰੀਡਰ ਝਲਕ, ਉਲੱਥਾ, ਪਰਿੰਟ, ਸਾਂਝਾ ਕਰਨਾ ,ਐਪ ਨੂੰ ਖੋਲ੍ਹਣਾ</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu
          The first parameter is the label of the report site issue (for example: Report Site issue) -->
-    <string name="browser_menu_tools_description_with_report_site">ਰੀਡਰ ਝਲਕ, %s, ਪਰਿੰਟ, ਸਾਂਝਾ ਕਰਨਾ, ਐਪ ਨੂੰ ਖੋਲ੍ਹਣਾ</string>
+    <string name="browser_menu_tools_description_with_report_site" moz:removedIn="135" tools:ignore="UnusedResources">ਰੀਡਰ ਝਲਕ, %s, ਪਰਿੰਟ, ਸਾਂਝਾ ਕਰਨਾ, ਐਪ ਨੂੰ ਖੋਲ੍ਹਣਾ</string>
+    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu when the "Report broken site" feature is available-->
+    <string name="browser_menu_tools_description_with_report_site_2">ਰੀਡਰ ਝਲਕ, ਖ਼ਰਾਬ ਸਾਈਟ ਬਾਰੇ ਰਿਪੋਰਟ, ਪਰਿੰਟ, ਸਾਂਝਾ ਕਰਨਾ, ਐਪ ਖੋਲ੍ਹਣਾ</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
     <string name="browser_menu_tools_description_without_report_site">ਰੀਡਰ ਝਲਕ, ਪਰਿੰਟ, ਸਾਂਝਾ ਕਰਨਾ, ਐਪ ਨੂੰ ਖੋਲ੍ਹਣਾ</string>
     <!-- Browser menu label that navigates to the save sub-menu, which contains various save related menu items such as
@@ -385,6 +377,8 @@
     <!-- Browser menu label for navigating to the translation feature, which provides language translation options the current visited page -->
     <string name="browser_menu_translate_page">…ਸਫ਼ੇ ਦਾ ਉਲੱਥਾ ਕਰੋ</string>
 
+    <!-- Browser menu label for navigating to the Web Compat Reporter feature, which provides users the ability to send bug reports for broken sites. -->
+    <string name="browser_menu_webcompat_reporter">…ਖ਼ਰਾਬ ਸਾਈਟ ਬਾਰੇ ਰਿਪੋਰਟ ਕਰੋ</string>
     <!-- Browser menu label that is displayed when the current page has been translated by the translation feature.
          The first parameter is the name of the language that page was translated to (e.g. English). -->
     <string name="browser_menu_translated_to">%1$s ਵਿੱਚ ਉਲੱਥਾ ਕੀਤਾ</string>
@@ -467,8 +461,6 @@
     <string name="search_engine_icon_content_description_1">ਖੋਜ ਇੰਜਣ: %s</string>
 
     <!-- Home onboarding -->
-    <!-- Onboarding home screen popup dialog, shown on top of the Jump back in section. -->
-    <string name="onboarding_home_screen_jump_back_contextual_hint_2" moz:removedIn="132">ਤੁਹਾਡੇ ਆਪਣੇ ਬਣਾਏ ਮੁੱਖ-ਸਫ਼ੇ ਨੂੰ ਸਮਝੋ। ਸੱਜਰੀਆਂ ਟੈਬਾਂ, ਬੁੱਕਮਾਰਕ ਅਤੇ ਖੋਜ ਨਤੀਜੇ ਇੱਥੇ ਦਿਖਾਈ ਦੇਣਗੇ।</string>
     <!-- Home onboarding dialog welcome screen title text. -->
     <string name="onboarding_home_welcome_title_2">ਬੇਹਤਰ ਨਿੱਜੀ ਇੰਟਰਨੈੱਟ ਲਈ ਜੀ ਆਇਆਂ ਨੂੰ</string>
     <!-- Home onboarding dialog welcome screen description text. -->
@@ -606,6 +598,36 @@
     <string name="onboarding_preferences_dialog_positive_button" tools:ignore="UnusedResources">ਮੁਕੰਮਲ</string>
     <!-- Negative button label for the privacy preferences dialog shown during onboarding. -->
     <string name="onboarding_preferences_dialog_negative_button" tools:ignore="UnusedResources">ਰੱਦ ਕਰੋ</string>
+
+    <!-- Terms of service onboarding title card label. 'Firefox' intentionally hardcoded here-->
+    <string name="onboarding_welcome_to_firefox" tools:ignore="UnusedResources,BrandUsage">Firefox ਵਲੋਂ ਜੀ ਆਇਆਂ ਨੂੰ</string>
+    <!-- Terms of service onboarding page continue button label. -->
+    <string name="onboarding_term_of_service_agree_and_continue_button_label" tools:ignore="UnusedResources">ਸਹਿਮਤ ਅਤੇ ਜਾਰੀ ਰੱਖੋ</string>
+    <!-- Line one of the terms of service onboarding page. 'Firefox' is intentionally hardcoded. %1$s is replaced by an active link, using onboarding_term_of_service_line_one_link_text as text (“Terms of Service”). -->
+    <string name="onboarding_term_of_service_line_one" tools:ignore="UnusedResources,BrandUsage">ਜਾਰੀ ਰੱਖ ਕੇ ਤੁਸੀਂ Firefox %1$s ਨਾਲ ਸਹਿਮਤ ਹੁੰਦੇ ਹੋ।</string>
+    <!-- Used as text for the link in onboarding_term_of_service_line_one. -->
+    <string name="onboarding_term_of_service_line_one_link_text" tools:ignore="UnusedResources,BrandUsage">ਸੇਵਾ ਦੀਆਂ ਸ਼ਰਤਾਂ</string>
+
+    <!-- Line two of the terms of service onboarding page. 'Firefox' is intentionally hardcoded. %1$s is replaced by an active link, using onboarding_term_of_service_line_two_link_text as text (Privacy Notice”). -->
+    <string name="onboarding_term_of_service_line_two" tools:ignore="UnusedResources,BrandUsage">Firefox ਤੁਹਾਡੀ ਪਰਦੇਦਾਰੀ ਦੀ ਪਰਵਾਹ ਕਰਦਾ ਹੈ। ਸਾਡੀ %1$s ਵਿੱਚ ਹੋਰ ਪੜ੍ਹੋ।</string>
+    <!-- Used as text for the link in onboarding_term_of_service_line_two. -->
+    <string name="onboarding_term_of_service_line_two_link_text" tools:ignore="UnusedResources,BrandUsage">ਪਰਦੇਦਾਰੀ ਸੂਚਨਾ</string>
+    <!-- Line three of the terms of service onboarding page. 'Firefox' and 'Mozilla' are intentionally hardcoded. %1$S is replaced by an active link, using onboarding_term_of_service_line_three_link_text as text (Manage”). -->
+    <string name="onboarding_term_of_service_line_three" tools:ignore="UnusedResources,BrandUsage">ਬਰਾਊਜ਼ਰ ਵਿੱਚ ਸੁਧਾਰ ਕਰਨ ਲਈ ਮਦਦ ਵਾਸਤੇ Firefox Mozilla ਨੂੰ ਪੜਤਾਲ ਅਤੇ ਤਾਲਮੇਲ ਡਾਟਾ ਭੇਜਦਾ ਹੈ। %1$s</string>
+    <!-- Used as text for the link in onboarding_term_of_service_line_three. -->
+    <string name="onboarding_term_of_service_line_three_link_text" tools:ignore="UnusedResources,BrandUsage">ਬੰਦੋਬਸਤ</string>
+    <!-- Onboarding header for the toolbar selection card, used by Nimbus experiments. -->
+    <string name="onboarding_customize_toolbar_title" tools:ignore="UnusedResources">ਟੂਲਬਾਰ ਦੀ ਥਾਂ ਚੁਣੋ</string>
+    <!-- Onboarding sub header for toolbar selection card, used by Nimbus experiments. -->
+    <string name="onboarding_customize_toolbar_description" tools:ignore="UnusedResources">ਖੋਜਾਂ ਨੂੰ ਪਹੁੰਚ ਵਿੱਚ ਰੱਖੋ</string>
+    <!-- Onboarding toolbar selection card label for 'save and continue' button, used by Nimbus experiments. -->
+    <string name="onboarding_customize_toolbar_save_and_continue_button">ਸੰਭਾਲੋ ਅਤੇ ਜਾਰੀ ਰੱਖੋ</string>
+    <!-- Onboarding toolbar selection card label for 'skip' button, used by Nimbus experiments. -->
+    <string name="onboarding_customize_toolbar_skip_button">ਛੱਡੋ</string>
+    <!-- Onboarding toolbar selection card label for 'top' option, used by Nimbus experiments. -->
+    <string name="onboarding_customize_toolbar_top_option">ਉੱਤੇ</string>
+    <!-- Onboarding toolbar selection card label for 'bottom' option, used by Nimbus experiments. -->
+    <string name="onboarding_customize_toolbar_bottom_option">ਹੇਠਾਂ</string>
 
     <!-- Search Widget -->
     <!-- Content description for searching with a widget. The first parameter is the name of the application.-->
@@ -1016,7 +1038,11 @@
     <!-- Preference switch for marketing data collection -->
     <string name="preferences_marketing_data">ਮਾਰਕੀਟਿੰਗ ਡਾਟਾ</string>
     <!-- Preference description for marketing data collection -->
-    <string name="preferences_marketing_data_description2">ਕੁਝ ਅਨੁਕੂਲ ਬਣਾ ਕੇ ਮੁੱਢਲਾ ਵਰਤੋਂ ਡਾਟਾ ਸਾਡੇ ਮੋਬਾਈਲ ਮਾਰਕੀਟਿੰਗ ਵੇਂਡਰ ਨਾਲ ਸਾਂਝਾ ਕਰਦਾ ਹੈ</string>
+    <string name="preferences_marketing_data_description2" moz:removedIn="134" tools:ignore="UnusedResources">ਕੁਝ ਅਨੁਕੂਲ ਬਣਾ ਕੇ ਮੁੱਢਲਾ ਵਰਤੋਂ ਡਾਟਾ ਸਾਡੇ ਮੋਬਾਈਲ ਮਾਰਕੀਟਿੰਗ ਵੇਂਡਰ ਨਾਲ ਸਾਂਝਾ ਕਰਦਾ ਹੈ</string>
+    <!-- Preference description for marketing data collection. Note: The words "Firefox" and "Mozilla" should NOT be translated -->
+    <string name="preferences_marketing_data_description_3" tools:ignore="BrandUsage">Firefox ਨੂੰ ਤੁਸੀਂ ਕਿਵੇਂ ਲੱਭਿਆ, ਇਸ ਬਾਰੇ ਜਾਣਕਾਰੀ Mozilla ਦੇ ਮਾਰਕੀਟਿੰਗ ਹਿੱਸੇਦਾਰਾਂ ਨਾਲ ਸਾਂਝੀ ਕਰੋ। ਇਸ ਨਾਲ Firefox ਨੂੰ ਤਰੱਕੀ ਕਰਨ ਅਤੇ ਬੇਹਤਰ ਇੰਟਰਨੈੱਟ ਬਣਾਉਣ ਲਈ ਮਦਦ ਮਿਲਦੀ ਹੈ।</string>
+    <!-- Learn more link for marketing data preference -->
+    <string name="preferences_marketing_data_learn_more">ਮਾਰਕੀਟਿੰਗ ਡਾਟੇ ਬਾਰੇ ਹੋਰ ਸਿੱਖੋ</string>
     <!-- Preference switch title for automatically submitting crash reports -->
     <string name="preferences_automatically_submit_crashes_title">ਕਰੈਸ਼ ਰਿਪੋਰਟeਂ ਆਪਣੇ-ਆਪ ਭੇਜੋ</string>
     <!-- Preference switch description for automatically submitting crash reports -->
@@ -1376,8 +1402,6 @@
     <string name="bookmark_delete_negative">ਰੱਦ ਕਰੋ</string>
     <!-- Screen title for adding a bookmarks folder -->
     <string name="bookmark_add_folder">ਫੋਲਡਰ ਜੋੜੋ</string>
-    <!-- Snackbar title shown after a bookmark has been created. -->
-    <string name="bookmark_saved_snackbar" moz:removedIn="132" tools:ignore="UnusedResources">ਬੁੱਕਮਾਰਕ ਸੰਭਾਲਿਆ!</string>
     <!-- Snackbar title that confirms a bookmark was saved into a folder. Parameter will be replaced by the name of the folder the bookmark was saved into. -->
     <string name="bookmark_saved_in_folder_snackbar">“%s” ਵਿੱਚ ਸੰਭਾਲਿਆ</string>
     <!-- Snackbar edit button shown after a bookmark has been created. -->
@@ -1724,8 +1748,6 @@
     <string name="snackbar_tabs_closed">ਟੈਬਾਂ ਬੰਦ ਕੀਤੀਆਂ</string>
     <!-- Text shown in snackbar when user closes multiple inactive tabs. %1$s will be replaced with the number of tabs closed. -->
     <string name="snackbar_num_tabs_closed">ਟੈਬ ਬੰਦ ਕੀਤਾ: %1$s</string>
-    <!-- Text shown in snackbar when user bookmarks a list of tabs -->
-    <string name="snackbar_message_bookmarks_saved" moz:removedIn="132" tools:ignore="UnusedResources">ਬੁੱਕਮਾਰਕ ਸੰਭਾਲੇ ਗਏ!</string>
     <!-- Text shown in snackbar when user bookmarks a list of tabs. Parameter will be replaced by the name of the folder the bookmark was saved into.-->
     <string name="snackbar_message_bookmarks_saved_in">“%s” ਵਿੱਚ ਸੰਭਾਲੇ ਬੁੱਕਮਾਰਕ!</string>
     <!-- Text shown in snackbar when user adds a site to shortcuts -->
@@ -2634,15 +2656,7 @@
     <string name="review_quality_check_contextual_onboarding_primary_button_text">ਹਾਂ, ਇਸ ਨੂੰ ਅਜ਼ਮਾਓ</string>
     <!-- Text for opt-out button from the review quality check contextual onboarding card. -->
     <string name="review_quality_check_contextual_onboarding_secondary_button_text">ਹੁਣੇ ਨਹੀਂ</string>
-    <!-- Text for the first CFR presenting the review quality check feature. -->
-    <string name="review_quality_check_first_cfr_message" moz:removedIn="132" tools:ignore="UnusedResources">ਪਤਾ ਕਰੋ ਕਿ ਜੇ ਤੁਸੀਂ ਇਸ ਉਤਪਾਦ ਦੇ ਰੀਵਿਊ ਉੱਤੇ ਭਰੋਸਾ ਕਰ ਸਕਦੇ ਹੋ — ਖਰੀਦਣ ਤੋਂ ਪਹਿਲਾਂ।</string>
-    <!-- Text displayed in the first CFR presenting the review quality check feature that opens the review checker when clicked. -->
-    <string name="review_quality_check_first_cfr_action" moz:removedIn="132" tools:ignore="UnusedResources">ਰੀਵਿਊ ਚੈਕਰ ਅਜ਼ਮਾਓ</string>
 
-    <!-- Text for the second CFR presenting the review quality check feature. -->
-    <string name="review_quality_check_second_cfr_message" moz:removedIn="132" tools:ignore="UnusedResources">ਕੀ ਇਹ ਰੀਵਿਊ ਭਰੋਸੇਯੋਗ ਹਨ? ਅਡਜੱਸਟ ਕੀਤੀ ਰੇਟਿੰਗ ਵੇਖਣ ਲਈ ਹੁਣੇ ਜਾਂਚ ਕਰੋ।</string>
-    <!-- Text displayed in the second CFR presenting the review quality check feature that opens the review checker when clicked. -->
-    <string name="review_quality_check_second_cfr_action" moz:removedIn="132" tools:ignore="UnusedResources">ਰੀਵਿਊ ਚੈਕਰ ਖੋਲ੍ਹੋ</string>
     <!-- Content description (not visible, for screen readers etc.) for opening browser menu button to open review quality check bottom sheet. -->
     <string name="review_quality_check_open_handle_content_description">ਰੀਵਿਊ ਚੈਕਰ ਖੋਲ੍ਹੋ</string>
     <!-- Content description (not visible, for screen readers etc.) for closing browser menu button to open review quality check bottom sheet. -->
@@ -2907,6 +2921,29 @@
     <!-- Button text on the data saving mode warning dialog used by the translations feature to allow users to cancel the action and not perform a download of the language file. -->
     <string name="download_language_file_dialog_negative_button_text">ਰੱਦ ਕਰੋ</string>
 
+    <!-- Unified Trust Panel -->
+    <!-- Title text for the protection panel banner when the site is not secure. -->
+    <string name="protection_panel_banner_not_secure_title">ਇਸ ਸਾਈਟ ਤੋਂ ਸਾਵਧਾਨ ਰਹੋ</string>
+
+    <!-- Description text for the protection panel banner when the site is not secure. -->
+    <string name="protection_panel_banner_not_secure_description">ਤੁਹਾਡਾ ਕਨੈਕਸ਼ਨ ਸੁਰੱਖਿਅਤ ਨਹੀਂ ਹੈ।</string>
+    <!-- Title text for the protection panel banner when tracking protection is disabled. -->
+    <string name="protection_panel_banner_not_protected_title">ਤੁਸੀਂ ਸੁਰੱਖਿਆਵਾਂ ਨੂੰ ਬੰਦ ਕੀਤਾ ਹੈ</string>
+    <!-- Description text for the protection panel banner when tracking protection is disabled.
+        The first parameter is the name of the app defined in app_name (for example: Fenix) -->
+    <string name="protection_panel_banner_not_protected_description">%s ਬੰਦ ਹੈ। ਅਸੀਂ ਸੁਰੱਖਿਆ ਨੂੰ ਵਾਪਸ ਚਾਲੂ ਕਰਨ ਦਾ ਸੁਝਾਅ ਦਿੰਦੇ ਹਾਂ।</string>
+    <!-- Title text for the protection panel banner when tracking protection is enabled.
+        The first parameter is the name of the app defined in app_name (for example: Fenix) -->
+    <string name="protection_panel_banner_protected_title">%s ਚੌਕਸੀ ਚਾਲੂ ਹੈ</string>
+    <!-- Description text for the protection panel banner when tracking protection is enabled. -->
+    <string name="protection_panel_banner_protected_description">ਤੁਸੀਂ ਸੁਰੱਖਿਅਤ ਹੋ। ਜੇ ਸਾਨੂੰ ਕੁਝ ਲੱਭਿਆ ਤਾਂ ਅਸੀਂ ਤੁਹਾਨੂੰ ਦੱਸਾਂਗੇ।</string>
+    <!-- Label text for the Enhanced Tracking Protection toggle. -->
+    <string name="protection_panel_etp_toggle_label">ਵਾਧਾ ਕੀਤੀ ਟਰੈਕਿੰਗ ਸੁਰੱਖਿਆ</string>
+    <!-- Description text for the Enhanced Tracking Protection toggle when tracking protection is enabled. -->
+    <string name="protection_panel_etp_toggle_enabled_description">ਜੇ ਇਸ ਸਾਈਟ ਉੱਤੇ ਕੁਝ ਕੰਮ ਨਹੀਂ ਕਰਦਾ ਹੈ ਤਾਂ ਕੁਝ ਸੁਰੱਖਿਆਵਾਂ ਨੂੰ ਬੰਦ ਕਰਕੇ ਕੋਸ਼ਿਸ਼ ਕਰੋ।</string>
+    <!-- Description text for the Enhanced Tracking Protection toggle when tracking protection is disabled. -->
+    <string name="protection_panel_etp_toggle_disabled_description">ਸੁਰੱਖਿਆਵਾਂ ਬੰਦ ਹਨ। ਅਸੀਂ ਉਹਨਾਂ ਨੂੰ ਚਾਲੂ ਕਰਨ ਦਾ ਸੁਝਾਅ ਦਿੰਦੇ ਹਾਂ।</string>
+
     <!-- Debug drawer -->
     <!-- The user-facing title of the Debug Drawer feature. -->
     <string name="debug_drawer_title">ਡੀਬੱਗ ਟੂਲ</string>
@@ -3031,11 +3068,6 @@
     <string name="glean_debug_tools_title">ਗਲੇਨ ਡੀਬੱਗ ਟੂਲ</string>
 
     <!-- Messages explaining how to exit fullscreen mode -->
-    <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled -->
-    <string name="exit_fullscreen_with_gesture" moz:removedIn="132" tools:ignore="UnusedResources">ਪੂਰੀ ਸਕਰੀਨ ਤੋਂ ਬਾਹਰ ਆਉਣ ਲਈ, ਉੱਤੇ ਤੋਂ ਖਿੱਚੋ ਅਤੇ ਪਿੱਛੇ ਜਾਣ ਵਾਲੇ ਸੰਕੇਤ ਨੂੰ ਵਰਤੋਂ</string>
-    <!-- Message shown to explain how to exit fullscreen mode when using back button navigation -->
-    <string name="exit_fullscreen_with_back_button" moz:removedIn="132" tools:ignore="UnusedResources">ਪੂਰੀ ਸਕਰੀਨ ਤੋਂ ਬਾਹਰ ਆਉਣ ਲਈ, ਉੱਤੇ ਤੋਂ ਖਿੱਚੋ ਅਤੇ ਪਿੱਛੇ ਨੂੰ ਦਬਾਓ</string>
-
     <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled. -->
     <!-- Localisation note: this text should be as short as possible, max 68 chars -->
     <string name="exit_fullscreen_with_gesture_short">ਬਾਹਰ ਜਾਣ ਲਈ ਸਿਖਰ ਤੋਂ ਖਿੱਚ ਕੇ ਪਿੱਛੇ ਜਾਣ ਵਾਲੇ ਸੰਕੇਤ ਨੂੰ ਵਰਤੋਂ</string>
@@ -3046,4 +3078,35 @@
     <!-- Beta Label Component !-->
     <!-- Text shown as a label or tag to indicate a feature or area is still undergoing active development. Note that here "Beta" should not be translated, as it is used as an icon styled element. -->
     <string name="beta_feature">ਬੀਟਾ</string>
+
+    <!-- Root certificate expiration warnings -->
+    <!-- These strings for homepage cards and push notifications to be pushed to users running outdated versions of Firefox. We want to encourage these users to update to the latest version so their extensions and other features don't stop working when Firefox's old root certificate expires on 2025-03-14. For more information, see this SUMO article: https://support.mozilla.org/kb/root-certificate-expiration !-->
+    <!-- Homepage card button to open Google Play Store. "Update" is a verb. -->
+    <string name="certificate_warning_homepage_card_update_now_button" tools:ignore="UnusedResources">ਹੁਣੇ ਅੱਪਡੇਟ ਕਰੋ</string>
+    <!-- Homepage card title about old Firefox version. "Update" is a verb. Note: The word "Firefox" should NOT be translated. -->
+    <string name="certificate_warning_homepage_card_hca1_title" tools:ignore="BrandUsage,UnusedResources">ਆਪਣੇ Firefox ਬਰਾਊਜ਼ਰ ਨੂੰ ਅੱਪਡੇਟ ਕਰੋ</string>
+    <!-- Homepage card message about old Firefox version -->
+    <string name="certificate_warning_homepage_card_hca1_message" tools:ignore="UnusedResources">ਰੂਟ ਸਰਟੀਫਿਕੇਟ ਦੀ ਮਿਆਦ ਪੁੱਗ ਜਾਵੇਗੀ, ਜਿਸ ਨਾਲ 14 ਮਾਰਚ ਤੋਂ ਬਾਅਦ ਕੁਝ ਫ਼ੀਚਰ ਕੰਮ ਨਹੀਂ ਕਰਨਗੇ।</string>
+    <!-- Homepage card title about old Firefox version. "Update" is a verb. -->
+    <string name="certificate_warning_homepage_card_hcr1_title" tools:ignore="UnusedResources">14 ਮਾਚਰ ਤੋਂ ਪਹਿਲਾਂ ਅੱਪਡੇਟ</string>
+    <!-- Homepage card message about old Firefox version. Note: The word "Firefox" should NOT be translated. -->
+    <string name="certificate_warning_homepage_card_hcr1_message" tools:ignore="BrandUsage,UnusedResources">ਰੂਟ ਸਰਟੀਫਿਕੇਟ ਦੀ ਮਿਆਦ ਪੁੱਗ ਜਾਵੇਗੀ, ਜਿਸ ਨਾਲ Firefox ਦਾ ਤੁਹਾਡਾ ਵਰਜ਼ਨ ਠੀਕ ਤਰ੍ਹਾਂ ਕੰਮ ਨਹੀਂ ਕਰੇਗਾ।</string>
+    <!-- Homepage card title about old Firefox version -->
+    <string name="certificate_warning_homepage_card_hcw2_title" tools:ignore="UnusedResources">ਅੱਪਡੇਟ ਕਰਨ ਵਾਸਤੇ 7 ਤੋਂ ਘੱਟ ਦਿਨ ਬਚੇ ਹਨ</string>
+    <!-- Homepage card message about old Firefox version. Note: The word "Firefox" should NOT be translated. -->
+    <string name="certificate_warning_homepage_card_hcw2_message" tools:ignore="BrandUsage,UnusedResources">14 ਮਾਰਚ ਨੂੰ ਰੂਟ ਸਰਟੀਫਿਕੇਟ ਦੀ ਮਿਆਦ ਪੁੱਗਣ ਕਰਕੇ ਐਡ-ਆਨ ਅਤੇ ਹੋਰ Firefox ਫ਼ੀਚਰ ਕੰਮ ਕਰਨਾ ਬੰਦ ਕਰ ਦੇਣਗੇ।</string>
+    <!-- Homepage card title about old Firefox version. Note: The word "Firefox" should NOT be translated. -->
+    <string name="certificate_warning_homepage_card_hcw3_title" tools:ignore="BrandUsage,UnusedResources">ਆਪਣੇ Firefox ਨੂੰ ਰੱਖਣ ਦਾ ਆਖਰੀ ਮੌਕਾ</string>
+    <!-- Homepage card message about old Firefox version. Note: The word "Firefox" should NOT be translated. -->
+    <string name="certificate_warning_homepage_card_hcw3_message" tools:ignore="BrandUsage,UnusedResources">ਰੂਟ ਸਰਟੀਫਿਕੇਟ ਦੀ ਮਿਆਦ ਪੁੱਗਣ ਕਰਕੇ 14 ਮਾਰਚ ਨੂੰ Firefox ਦਾ ਤੁਹਾਡਾ ਵਰਜ਼ਨ ਕੰਮ ਕਰਨਾ ਬੰਦ ਕਰ ਦੇਵੇਗਾ।</string>
+    <!-- Push notification title about old Firefox version. "Update" is a noun. -->
+    <string name="certificate_warning_push_notification_update_recommended_title" tools:ignore="UnusedResources">ਅੱਪਡੇਟ ਕਰਨ ਦੀ ਸਿਫ਼ਾਰਸ਼ ਕੀਤੀ ਜਾਂਦੀ ਹੈ</string>
+    <!-- Push notification message about old Firefox version -->
+    <string name="certificate_warning_push_notification_pnr1_message" tools:ignore="UnusedResources">14 ਮਾਰਚ ਨੂੰ ਐਡ-ਆਨ ਅਤੇ ਹੋਰ ਫ਼ੀਚਰ ਕੰਮ ਕਰਨਾ ਬੰਦ ਕਰ ਦੇਣਗੇ।</string>
+    <!-- Push notification title about old Firefox version. Note: The word "Firefox" should NOT be translated. -->
+    <string name="certificate_warning_push_notification_pnw2_title" tools:ignore="BrandUsage,UnusedResources">ਤੁਸੀਂ Firefox ਦਾ ਪੁਰਾਣਾ ਵਰਜ਼ਨ ਵਰਤ ਰਹੇ ਹੋ</string>
+    <!-- Push notification message about old Firefox version. "Update" is a verb. -->
+    <string name="certificate_warning_push_notification_pnw2_message" tools:ignore="UnusedResources">ਐਡ-ਆਨ ਅਤੇ ਹੋਰ ਫ਼ੀਚਰਾਂ ਨੂੰ ਵਰਤਣਾ ਜਾਰੀ ਰੱਖਣ ਲਈ 14 ਮਾਰਚ ਤੋਂ ਪਹਿਲਾਂ ਅੱਪਡੇਟ ਕਰ ਲਵੋ</string>
+    <!-- Push notification message about old Firefox version -->
+    <string name="certificate_warning_push_notification_pnw3_message" tools:ignore="UnusedResources">ਭਲਕੇ ਕੁਝ ਫ਼ੀਚਰ ਕੰਮ ਕਰਨਾ ਬੰਦ ਕਰ ਦੇਣਗੇ।</string>
 </resources>

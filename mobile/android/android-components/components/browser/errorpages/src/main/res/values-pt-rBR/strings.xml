@@ -292,7 +292,7 @@
       <p>O navegador está configurado para usar um servidor proxy, mas o proxy não foi encontrado.</p>
       <ul>
         <li>A configuração de proxy do navegador está correta? Verifique a configuração e tente novamente.</li>
-        <li>O computador está conectado a uma rede ativa?</li>
+        <li>O dispositivo está conectado a uma rede ativa?</li>
         <li>O problema persiste? Peça ajuda ao administrador de rede ou ao suporte do provedor de internet.</li>
       </ul>
     ]]></string>

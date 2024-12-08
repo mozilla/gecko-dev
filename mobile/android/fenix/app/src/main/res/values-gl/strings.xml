@@ -365,7 +365,7 @@
     <!-- Browser menu label for navigating to the translation feature, which provides language translation options the current visited page -->
     <string name="browser_menu_translate_page">Traducir a páxina…</string>
     <!-- Browser menu label for navigating to the Web Compat Reporter feature, which provides users the ability to send bug reports for broken sites. -->
-    <string name="browser_menu_webcompat_reporter">Informar dun sitio roto...</string>
+    <string name="browser_menu_webcompat_reporter">Informar dun sitio roto…</string>
     <!-- Browser menu label that is displayed when the current page has been translated by the translation feature.
          The first parameter is the name of the language that page was translated to (e.g. English). -->
     <string name="browser_menu_translated_to">Traducida a %1$s</string>
@@ -3005,6 +3005,12 @@
     <string name="debug_drawer_logins_add_login_button">Engade un inicio de sesión falso para este dominio</string>
     <!-- Content description for delete button where parameter will be the username of the login -->
     <string name="debug_drawer_logins_delete_login_button_content_description">Eliminar o inicio de sesión co nome de usuario %s</string>
+
+    <!-- Debug drawer addresses -->
+    <!-- The title of the Addresses feature in the Debug Drawer. -->
+    <string name="debug_drawer_addresses_title">Enderezos</string>
+    <!-- The title of the section header for the list of debug locales that can be enabled and disabled. -->
+    <string name="debug_drawer_addresses_debug_locales_header">Depurar locais para activar</string>
 
     <!-- Debug drawer "contextual feature recommendation" (CFR) tools -->
     <!-- The title of the CFR Tools feature in the Debug Drawer -->

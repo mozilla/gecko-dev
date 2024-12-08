@@ -345,14 +345,14 @@
          The first parameter is the label of the report site issue (for example: Report Site issue) -->
     <string name="browser_menu_tools_description_with_translate_with_report_site" moz:removedIn="135" tools:ignore="UnusedResources">Leseansicht, Übersetzen, %s, Drucken, Teilen, App öffnen</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu when the "Report broken site" feature is available-->
-    <string name="browser_menu_tools_description_with_translate_with_report_site_2">Leseansicht, Übersetzen, Defekte Website melden, Drucken, Teilen, App öffnen</string>
+    <string name="browser_menu_tools_description_with_translate_with_report_site_2">Leseansicht, Übersetzen, Problem mit Website melden, Drucken, Teilen, App öffnen</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
     <string name="browser_menu_tools_description_with_translate_without_report_site">Leseansicht, Übersetzen, Drucken, Teilen, App öffnen</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu
          The first parameter is the label of the report site issue (for example: Report Site issue) -->
     <string name="browser_menu_tools_description_with_report_site" moz:removedIn="135" tools:ignore="UnusedResources">Leseansicht, %s, Drucken, Teilen, App öffnen</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu when the "Report broken site" feature is available-->
-    <string name="browser_menu_tools_description_with_report_site_2">Leseansicht, Fehlerhafte Website melden, Drucken, Teilen, App öffnen</string>
+    <string name="browser_menu_tools_description_with_report_site_2">Leseansicht, Problem mit Website melden, Drucken, Teilen, App öffnen</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
     <string name="browser_menu_tools_description_without_report_site">Leseansicht, Drucken, Teilen, App öffnen</string>
     <!-- Browser menu label that navigates to the save sub-menu, which contains various save related menu items such as
@@ -374,7 +374,7 @@
     <!-- Browser menu label for navigating to the translation feature, which provides language translation options the current visited page -->
     <string name="browser_menu_translate_page">Seite übersetzen…</string>
     <!-- Browser menu label for navigating to the Web Compat Reporter feature, which provides users the ability to send bug reports for broken sites. -->
-    <string name="browser_menu_webcompat_reporter">Defekte Website melden…</string>
+    <string name="browser_menu_webcompat_reporter">Problem mit Website melden…</string>
     <!-- Browser menu label that is displayed when the current page has been translated by the translation feature.
          The first parameter is the name of the language that page was translated to (e.g. English). -->
     <string name="browser_menu_translated_to">Übersetzt in %1$s</string>
@@ -596,7 +596,7 @@
     <!-- Terms of service onboarding page continue button label. -->
     <string name="onboarding_term_of_service_agree_and_continue_button_label" tools:ignore="UnusedResources">Zustimmen und fortfahren</string>
     <!-- Line one of the terms of service onboarding page. 'Firefox' is intentionally hardcoded. %1$s is replaced by an active link, using onboarding_term_of_service_line_one_link_text as text (“Terms of Service”). -->
-    <string name="onboarding_term_of_service_line_one" tools:ignore="UnusedResources,BrandUsage">Indem Sie fortfahren, stimmen Sie den Firefox %1$s zu.</string>
+    <string name="onboarding_term_of_service_line_one" tools:ignore="UnusedResources,BrandUsage">Indem Sie fortfahren, stimmen Sie den %1$s von Firefox zu.</string>
     <!-- Used as text for the link in onboarding_term_of_service_line_one. -->
     <string name="onboarding_term_of_service_line_one_link_text" tools:ignore="UnusedResources,BrandUsage">Nutzungsbedingungen</string>
     <!-- Line two of the terms of service onboarding page. 'Firefox' is intentionally hardcoded. %1$s is replaced by an active link, using onboarding_term_of_service_line_two_link_text as text (Privacy Notice”). -->
@@ -1030,7 +1030,7 @@
     <!-- Preference description for marketing data collection -->
     <string name="preferences_marketing_data_description2" moz:removedIn="134" tools:ignore="UnusedResources">Teilt grundlegende Nutzungsdaten mit Adjust, unserem mobilen Marketing-Anbieter</string>
     <!-- Preference description for marketing data collection. Note: The words "Firefox" and "Mozilla" should NOT be translated -->
-    <string name="preferences_marketing_data_description_3" tools:ignore="BrandUsage">Teilen Sie Mozillas Marketingpartnern Informationen darüber, wie Sie Firefox entdeckt haben. Dies hilft uns, Firefox auszubauen und ein besseres Internet zu schaffen</string>
+    <string name="preferences_marketing_data_description_3" tools:ignore="BrandUsage">Teilen Sie Mozillas Marketingpartnern Informationen darüber mit, wie Sie Firefox entdeckt haben. Dies hilft uns, Firefox auszubauen und ein besseres Internet zu schaffen</string>
     <!-- Learn more link for marketing data preference -->
     <string name="preferences_marketing_data_learn_more">Weitere Informationen über Marketingdaten</string>
     <!-- Preference switch title for automatically submitting crash reports -->
@@ -2931,12 +2931,12 @@
     <string name="protection_panel_banner_not_protected_title">Sie haben die Schutzmaßnahmen deaktiviert</string>
     <!-- Description text for the protection panel banner when tracking protection is disabled.
         The first parameter is the name of the app defined in app_name (for example: Fenix) -->
-    <string name="protection_panel_banner_not_protected_description">%s ist nicht im Dienst. Wir empfehlen Ihnen, den Schutz wieder zu aktivieren.</string>
+    <string name="protection_panel_banner_not_protected_description">%s ist deaktiviert. Wir empfehlen Ihnen, den Schutz wieder zu aktivieren.</string>
     <!-- Title text for the protection panel banner when tracking protection is enabled.
         The first parameter is the name of the app defined in app_name (for example: Fenix) -->
     <string name="protection_panel_banner_protected_title">%s ist auf der Hut</string>
     <!-- Description text for the protection panel banner when tracking protection is enabled. -->
-    <string name="protection_panel_banner_protected_description">Sie sind geschützt. Wenn wir etwas entdecken, sagen wir Ihnen es.</string>
+    <string name="protection_panel_banner_protected_description">Sie sind geschützt. Wenn wir etwas entdecken, sagen wir es Ihnen.</string>
     <!-- Label text for the Enhanced Tracking Protection toggle. -->
     <string name="protection_panel_etp_toggle_label">Verbesserter Tracking-Schutz</string>
     <!-- Description text for the Enhanced Tracking Protection toggle when tracking protection is enabled. -->
@@ -3057,6 +3057,12 @@
     <!-- Content description for delete button where parameter will be the username of the login -->
     <string name="debug_drawer_logins_delete_login_button_content_description">Zugangsdaten mit Benutzernamen %s löschen</string>
 
+    <!-- Debug drawer addresses -->
+    <!-- The title of the Addresses feature in the Debug Drawer. -->
+    <string name="debug_drawer_addresses_title">Adressen</string>
+    <!-- The title of the section header for the list of debug locales that can be enabled and disabled. -->
+    <string name="debug_drawer_addresses_debug_locales_header">Debug-Sprachen, die aktiviert werden sollen</string>
+
     <!-- Debug drawer "contextual feature recommendation" (CFR) tools -->
     <!-- The title of the CFR Tools feature in the Debug Drawer -->
     <string name="debug_drawer_cfr_tools_title">CFR-Werkzeuge</string>
@@ -3084,29 +3090,29 @@
     <!-- Homepage card button to open Google Play Store. "Update" is a verb. -->
     <string name="certificate_warning_homepage_card_update_now_button" tools:ignore="UnusedResources">Jetzt aktualisieren</string>
     <!-- Homepage card title about old Firefox version. "Update" is a verb. Note: The word "Firefox" should NOT be translated. -->
-    <string name="certificate_warning_homepage_card_hca1_title" tools:ignore="BrandUsage,UnusedResources">Firefox Browser updaten</string>
+    <string name="certificate_warning_homepage_card_hca1_title" tools:ignore="BrandUsage,UnusedResources">Aktualisieren Sie Ihren Firefox-Browser</string>
     <!-- Homepage card message about old Firefox version -->
-    <string name="certificate_warning_homepage_card_hca1_message" tools:ignore="UnusedResources">Ein Stammzertifikat läuft ab, weshalb einige Funktionen am 14. März nicht mehr funktionieren.</string>
+    <string name="certificate_warning_homepage_card_hca1_message" tools:ignore="UnusedResources">Ein Stammzertifikat läuft ab, weshalb einige Funktionen ab 14. März nicht mehr funktionieren.</string>
     <!-- Homepage card title about old Firefox version. "Update" is a verb. -->
-    <string name="certificate_warning_homepage_card_hcr1_title" tools:ignore="UnusedResources">Aktualisierung vor dem 14. März</string>
+    <string name="certificate_warning_homepage_card_hcr1_title" tools:ignore="UnusedResources">Aktualisieren Sie vor dem 14. März</string>
     <!-- Homepage card message about old Firefox version. Note: The word "Firefox" should NOT be translated. -->
     <string name="certificate_warning_homepage_card_hcr1_message" tools:ignore="BrandUsage,UnusedResources">Ein Stammzertifikat läuft ab, und Ihre Firefox-Version funktioniert nicht mehr richtig.</string>
     <!-- Homepage card title about old Firefox version -->
-    <string name="certificate_warning_homepage_card_hcw2_title" tools:ignore="UnusedResources">In weniger als 7 Tage bleiben die Aktualisierungen</string>
+    <string name="certificate_warning_homepage_card_hcw2_title" tools:ignore="UnusedResources">Es verbleiben weniger als 7 Tage für die Aktualisierung</string>
     <!-- Homepage card message about old Firefox version. Note: The word "Firefox" should NOT be translated. -->
     <string name="certificate_warning_homepage_card_hcw2_message" tools:ignore="BrandUsage,UnusedResources">Ab 14. März funktionieren Add-ons und andere Firefox-Funktionen nicht mehr, weil ein Stammzertifikat abläuft.</string>
     <!-- Homepage card title about old Firefox version. Note: The word "Firefox" should NOT be translated. -->
     <string name="certificate_warning_homepage_card_hcw3_title" tools:ignore="BrandUsage,UnusedResources">Letzte Chance, um Ihren Firefox zu behalten</string>
     <!-- Homepage card message about old Firefox version. Note: The word "Firefox" should NOT be translated. -->
-    <string name="certificate_warning_homepage_card_hcw3_message" tools:ignore="BrandUsage,UnusedResources">Ihre Firefox-Version funktioniert am 14. März nicht mehr, da ein Stammzertifikat abläuft.</string>
+    <string name="certificate_warning_homepage_card_hcw3_message" tools:ignore="BrandUsage,UnusedResources">Ihre Firefox-Version funktioniert ab 14. März nicht mehr, da ein Stammzertifikat abläuft.</string>
     <!-- Push notification title about old Firefox version. "Update" is a noun. -->
     <string name="certificate_warning_push_notification_update_recommended_title" tools:ignore="UnusedResources">Aktualisierung empfohlen</string>
     <!-- Push notification message about old Firefox version -->
-    <string name="certificate_warning_push_notification_pnr1_message" tools:ignore="UnusedResources">Add-ons und einige Funktionen funktionieren am 14. März nicht mehr.</string>
+    <string name="certificate_warning_push_notification_pnr1_message" tools:ignore="UnusedResources">Add-ons und einige Funktionen funktionieren ab 14. März nicht mehr.</string>
     <!-- Push notification title about old Firefox version. Note: The word "Firefox" should NOT be translated. -->
-    <string name="certificate_warning_push_notification_pnw2_title" tools:ignore="BrandUsage,UnusedResources">Du hast eine ältere Version von Firefox</string>
+    <string name="certificate_warning_push_notification_pnw2_title" tools:ignore="BrandUsage,UnusedResources">Sie verwenden eine veraltete Firefox-Version.</string>
     <!-- Push notification message about old Firefox version. "Update" is a verb. -->
-    <string name="certificate_warning_push_notification_pnw2_message" tools:ignore="UnusedResources">Vor dem 14. März aktualisieren, um Add-ons und andere Funktionen weiterhin verwenden zu können.</string>
+    <string name="certificate_warning_push_notification_pnw2_message" tools:ignore="UnusedResources">Installieren Sie vor dem 14. März das Update, um Add-ons und andere Funktionen weiterhin verwenden zu können.</string>
     <!-- Push notification message about old Firefox version -->
     <string name="certificate_warning_push_notification_pnw3_message" tools:ignore="UnusedResources">Einige Funktionen funktionieren ab morgen nicht mehr.</string>
 </resources>
