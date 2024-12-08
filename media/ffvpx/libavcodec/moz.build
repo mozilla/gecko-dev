@@ -138,6 +138,7 @@ if not CONFIG['MOZ_FFVPX_AUDIOONLY']:
         SOURCES += [
             'd3d11va.c',
             'dxva2.c',
+            'dxva2_av1.c',
             'dxva2_vp9.c',
         ]
 
