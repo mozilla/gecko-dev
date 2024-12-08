@@ -113,6 +113,12 @@
 
     .logo-and-wordmark-wrapper {
       margin-block-end: var(--space-xxlarge);
+
+      // Bug 1934636 - Logo is positioned absolutely and
+      // does not need a bottom margin applied
+      .layout-variant-b & {
+        margin-block-end: 0;
+      }
     }
 
     @media (height <=700px) {

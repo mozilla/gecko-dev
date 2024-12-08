@@ -88,6 +88,14 @@
     inset-block-start: 40px;
     margin-block-start: 0;
 
+    @media (min-width: $break-point-layout-variant) {
+      inset-inline-end: 20px;
+    }
+
+    @media (min-width: $break-point-large) {
+      inset-inline-end: 40px;
+    }
+
     .weatherSponsorText {
       float: inline-end;
 
@@ -104,6 +112,23 @@
   }
 }
 
+.no-search.layout-variant-b {
+  .weather {
+    inset-inline-end: 20px;
+
+    @media (min-width: $break-point-small) {
+      inset-inline-end: 40px;
+    }
+
+    @media (min-width: $break-point-layout-variant) {
+      inset-inline-end: 20px;
+    }
+
+    @media (min-width: $break-point-large) {
+      inset-inline-end: 40px;
+    }
+  }
+}
 
 // Edge case: users with weather enabled/search enabled
 .has-weather.has-search {
