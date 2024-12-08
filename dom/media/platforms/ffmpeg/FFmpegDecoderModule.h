@@ -15,6 +15,7 @@
 #include "VideoUtils.h"
 #include "VPXDecoder.h"
 #include "mozilla/StaticPrefs_media.h"
+#include "mozilla/gfx/gfxVars.h"
 
 namespace mozilla {
 
@@ -107,6 +108,13 @@ class FFmpegDecoderModule : public PlatformDecoderModule {
 
     const auto& trackInfo = aParams.mConfig;
     const nsACString& mimeType = trackInfo.mMimeType;
+    if (XRE_IsGPUProcess() && !IsHWDecodingSupported(mimeType)) {
+      MOZ_LOG(
+          sPDMLog, LogLevel::Debug,
+          ("FFmpeg decoder rejects requested type '%s' for hardware decoding",
+           mimeType.BeginReading()));
+      return media::DecodeSupportSet{};
+    }
 
     // Temporary - forces use of VPXDecoder when alpha is present.
     // Bug 1263836 will handle alpha scenario once implemented. It will shift
@@ -155,9 +163,11 @@ class FFmpegDecoderModule : public PlatformDecoderModule {
               ("FFmpeg decoder rejects as openh264 disabled by pref"));
       return media::DecodeSupportSet{};
     }
-    // TODO: Note that we do not yet distinguish between SW/HW decode support.
-    //       Will be done in bug 1754239.
-    return media::DecodeSupport::SoftwareDecode;
+    // TODO : note, currently on Linux, hardware decoding is reported in its own
+    // path (in widget/gtk/GfxInfo.cpp) Make it correct on Linux as well in bug
+    // 1935572.
+    return XRE_IsGPUProcess() ? media::DecodeSupport::HardwareDecode
+                              : media::DecodeSupport::SoftwareDecode;
   }
 
  protected:
@@ -168,6 +178,16 @@ class FFmpegDecoderModule : public PlatformDecoderModule {
     return aColorDepth == gfx::ColorDepth::COLOR_8;
 #endif
     return true;
+  }
+
+  bool IsHWDecodingSupported(const nsACString& aMimeType) const {
+    if (!gfx::gfxVars::IsInitialized() ||
+        !gfx::gfxVars::CanUseHardwareVideoDecoding() ||
+        !StaticPrefs::media_ffvpx_hw_enabled()) {
+      return false;
+    }
+    AVCodecID videoCodec = FFmpegVideoDecoder<V>::GetCodecId(aMimeType);
+    return sSupportedHWCodecs.Contains(videoCodec);
   }
 
  private:

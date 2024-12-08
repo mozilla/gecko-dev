@@ -26,6 +26,8 @@ if CONFIG['CC_TYPE'] == 'clang':
     '-Wno-unknown-attributes',
   ]
 
+include("/ipc/chromium/chromium-config.mozbuild")
+
 LOCAL_INCLUDES += [
   "/media/libyuv/libyuv/include",
 ]
