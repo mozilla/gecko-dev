@@ -28,8 +28,8 @@ EXPORTS += [
 if CONFIG["MOZ_WIDGET_TOOLKIT"] == "windows":
     SOURCES += [
         "D3D11ShareHandleImage.cpp",
-        "D3D11TextureIMFSampleImage.cpp",
         "D3D11YCbCrImage.cpp",
+        "D3D11ZeroCopyTextureImage.cpp",
     ]
     UNIFIED_SOURCES += [
         "IMFYCbCrImage.cpp",
@@ -141,8 +141,8 @@ EXPORTS.mozilla.layers += [
     "CompositorAnimationStorage.h",
     "CompositorTypes.h",
     "D3D11ShareHandleImage.h",
-    "D3D11TextureIMFSampleImage.h",
     "D3D11YCbCrImage.h",
+    "D3D11ZeroCopyTextureImage.h",
     "DirectionUtils.h",
     "Effects.h",
     "ImageDataSerializer.h",

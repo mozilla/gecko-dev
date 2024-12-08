@@ -29,7 +29,7 @@
 #include "mozilla/Telemetry.h"
 #include "mozilla/gfx/DeviceManagerDx.h"
 #include "mozilla/layers/D3D11ShareHandleImage.h"
-#include "mozilla/layers/D3D11TextureIMFSampleImage.h"
+#include "mozilla/layers/D3D11ZeroCopyTextureImage.h"
 #include "mozilla/layers/HelpersD3D11.h"
 #include "mozilla/layers/ImageBridgeChild.h"
 #include "mozilla/layers/TextureD3D11.h"
@@ -348,6 +348,10 @@ class D3D11DXVA2Manager : public DXVA2Manager {
                                const gfx::IntRect& aRegion,
                                layers::Image** aOutImage) override;
 
+  HRESULT WrapTextureWithImage(ID3D11Texture2D* aTexture, UINT aSurfaceIndex,
+                               const gfx::IntRect& aRegion,
+                               layers::Image** aOutImage) override;
+
   HRESULT CopyToBGRATexture(ID3D11Texture2D* aInTexture, uint32_t aArrayIndex,
                             ID3D11Texture2D** aOutTexture) override;
 
@@ -368,11 +372,11 @@ class D3D11DXVA2Manager : public DXVA2Manager {
   void BeforeShutdownVideoMFTDecoder() override;
 
   bool SupportsZeroCopyNV12Texture() override {
-    if (mIMFSampleUsageInfo->SupportsZeroCopyNV12Texture() &&
+    if (mZeroCopyUsageInfo->SupportsZeroCopyNV12Texture() &&
         (mDevice != DeviceManagerDx::Get()->GetCompositorDevice())) {
-      mIMFSampleUsageInfo->DisableZeroCopyNV12Texture();
+      mZeroCopyUsageInfo->DisableZeroCopyNV12Texture();
     }
-    return mIMFSampleUsageInfo->SupportsZeroCopyNV12Texture();
+    return mZeroCopyUsageInfo->SupportsZeroCopyNV12Texture();
   }
 
   ID3D11Device* GetD3D11Device() override { return mDevice; }
@@ -419,7 +423,7 @@ class D3D11DXVA2Manager : public DXVA2Manager {
   gfx::ColorRange mColorRange = gfx::ColorRange::LIMITED;
   gfx::SurfaceFormat mSurfaceFormat;
   std::list<ThreadSafeWeakPtr<layers::IMFSampleWrapper>> mIMFSampleWrappers;
-  RefPtr<layers::IMFSampleUsageInfo> mIMFSampleUsageInfo;
+  RefPtr<layers::ZeroCopyUsageInfo> mZeroCopyUsageInfo;
   uint32_t mVendorID = 0;
 };
 
@@ -579,7 +583,7 @@ bool D3D11DXVA2Manager::SupportsConfig(const VideoInfo& aInfo,
 }
 
 D3D11DXVA2Manager::D3D11DXVA2Manager()
-    : mIMFSampleUsageInfo(new layers::IMFSampleUsageInfo) {}
+    : mZeroCopyUsageInfo(new layers::ZeroCopyUsageInfo) {}
 
 D3D11DXVA2Manager::~D3D11DXVA2Manager() {}
 
@@ -758,7 +762,7 @@ D3D11DXVA2Manager::InitInternal(layers::KnowsCompositor* aKnowsCompositor,
 
   if (!IsD3D11() || !XRE_IsGPUProcess() ||
       (mDevice != DeviceManagerDx::Get()->GetCompositorDevice())) {
-    mIMFSampleUsageInfo->DisableZeroCopyNV12Texture();
+    mZeroCopyUsageInfo->DisableZeroCopyNV12Texture();
   }
 
   return S_OK;
@@ -848,7 +852,7 @@ HRESULT D3D11DXVA2Manager::WrapTextureWithImage(IMFSample* aVideoSample,
   RefPtr<D3D11TextureIMFSampleImage> image = new D3D11TextureIMFSampleImage(
       aVideoSample, texture, arrayIndex, gfx::IntSize(mWidth, mHeight), aRegion,
       ToColorSpace2(mYUVColorSpace), mColorRange);
-  image->AllocateTextureClient(mKnowsCompositor, mIMFSampleUsageInfo);
+  image->AllocateTextureClient(mKnowsCompositor, mZeroCopyUsageInfo);
 
   RefPtr<IMFSampleWrapper> wrapper = image->GetIMFSampleWrapper();
   ThreadSafeWeakPtr<IMFSampleWrapper> weak(wrapper);
@@ -856,6 +860,19 @@ HRESULT D3D11DXVA2Manager::WrapTextureWithImage(IMFSample* aVideoSample,
 
   image.forget(aOutImage);
 
+  return S_OK;
+}
+
+HRESULT D3D11DXVA2Manager::WrapTextureWithImage(ID3D11Texture2D* aTexture,
+                                                UINT aSurfaceIndex,
+                                                const gfx::IntRect& aRegion,
+                                                layers::Image** aOutImage) {
+  NS_ENSURE_TRUE(aOutImage, E_POINTER);
+  RefPtr<D3D11ZeroCopyTextureImage> image = new D3D11ZeroCopyTextureImage(
+      aTexture, aSurfaceIndex, gfx::IntSize(mWidth, mHeight), aRegion,
+      ToColorSpace2(mYUVColorSpace), mColorRange);
+  image->AllocateTextureClient(mKnowsCompositor, mZeroCopyUsageInfo);
+  image.forget(aOutImage);
   return S_OK;
 }
 

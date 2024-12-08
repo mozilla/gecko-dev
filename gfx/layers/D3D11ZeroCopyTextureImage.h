@@ -23,6 +23,67 @@ class GLBlitHelper;
 }
 namespace layers {
 
+class ZeroCopyUsageInfo final {
+ public:
+  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(ZeroCopyUsageInfo)
+
+  ZeroCopyUsageInfo() = default;
+
+  bool SupportsZeroCopyNV12Texture() { return mSupportsZeroCopyNV12Texture; }
+  void DisableZeroCopyNV12Texture() { mSupportsZeroCopyNV12Texture = false; }
+
+ protected:
+  ~ZeroCopyUsageInfo() = default;
+
+  Atomic<bool> mSupportsZeroCopyNV12Texture{true};
+};
+
+// A shared ID3D11Texture2D created by the compositor device.
+// Expected to be used in GPU process.
+class D3D11ZeroCopyTextureImage : public Image {
+ public:
+  D3D11ZeroCopyTextureImage(ID3D11Texture2D* aTexture, uint32_t aArrayIndex,
+                            const gfx::IntSize& aSize,
+                            const gfx::IntRect& aRect,
+                            gfx::ColorSpace2 aColorSpace,
+                            gfx::ColorRange aColorRange);
+  virtual ~D3D11ZeroCopyTextureImage() = default;
+
+  void AllocateTextureClient(KnowsCompositor* aKnowsCompositor,
+                             RefPtr<ZeroCopyUsageInfo> aUsageInfo);
+
+  gfx::IntSize GetSize() const override;
+  already_AddRefed<gfx::SourceSurface> GetAsSourceSurface() override;
+  nsresult BuildSurfaceDescriptorBuffer(
+      SurfaceDescriptorBuffer& aSdBuffer, BuildSdbFlags aFlags,
+      const std::function<MemoryOrShmem(uint32_t)>& aAllocate) override;
+  TextureClient* GetTextureClient(KnowsCompositor* aKnowsCompositor) override;
+  gfx::IntRect GetPictureRect() const override { return mPictureRect; }
+
+  ID3D11Texture2D* GetTexture() const;
+
+  gfx::ColorRange GetColorRange() const { return mColorRange; }
+
+ protected:
+  friend class gl::GLBlitHelper;
+  D3D11TextureData* GetData() const {
+    if (!mTextureClient) {
+      return nullptr;
+    }
+    return mTextureClient->GetInternalData()->AsD3D11TextureData();
+  }
+
+  RefPtr<ID3D11Texture2D> mTexture;
+  RefPtr<TextureClient> mTextureClient;
+
+ public:
+  const uint32_t mArrayIndex;
+  const gfx::IntSize mSize;
+  const gfx::IntRect mPictureRect;
+  const gfx::ColorSpace2 mColorSpace;
+  const gfx::ColorRange mColorRange;
+};
+
 class IMFSampleWrapper : public SupportsThreadSafeWeakPtr<IMFSampleWrapper> {
  public:
   MOZ_DECLARE_REFCOUNTED_TYPENAME(IMFSampleWrapper)
@@ -37,24 +98,9 @@ class IMFSampleWrapper : public SupportsThreadSafeWeakPtr<IMFSampleWrapper> {
   RefPtr<IMFSample> mVideoSample;
 };
 
-class IMFSampleUsageInfo final {
- public:
-  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(IMFSampleUsageInfo)
-
-  IMFSampleUsageInfo() = default;
-
-  bool SupportsZeroCopyNV12Texture() { return mSupportsZeroCopyNV12Texture; }
-  void DisableZeroCopyNV12Texture() { mSupportsZeroCopyNV12Texture = false; }
-
- protected:
-  ~IMFSampleUsageInfo() = default;
-
-  Atomic<bool> mSupportsZeroCopyNV12Texture{true};
-};
-
 // Image class that wraps ID3D11Texture2D of IMFSample
 // Expected to be used in GPU process.
-class D3D11TextureIMFSampleImage final : public Image {
+class D3D11TextureIMFSampleImage final : public D3D11ZeroCopyTextureImage {
  public:
   D3D11TextureIMFSampleImage(IMFSample* aVideoSample, ID3D11Texture2D* aTexture,
                              uint32_t aArrayIndex, const gfx::IntSize& aSize,
@@ -63,45 +109,10 @@ class D3D11TextureIMFSampleImage final : public Image {
                              gfx::ColorRange aColorRange);
   virtual ~D3D11TextureIMFSampleImage() = default;
 
-  void AllocateTextureClient(KnowsCompositor* aKnowsCompositor,
-                             RefPtr<IMFSampleUsageInfo> aUsageInfo);
-
-  gfx::IntSize GetSize() const override;
-  already_AddRefed<gfx::SourceSurface> GetAsSourceSurface() override;
-  nsresult BuildSurfaceDescriptorBuffer(
-      SurfaceDescriptorBuffer& aSdBuffer, BuildSdbFlags aFlags,
-      const std::function<MemoryOrShmem(uint32_t)>& aAllocate) override;
-  TextureClient* GetTextureClient(KnowsCompositor* aKnowsCompositor) override;
-  gfx::IntRect GetPictureRect() const override { return mPictureRect; }
-
-  ID3D11Texture2D* GetTexture() const;
   RefPtr<IMFSampleWrapper> GetIMFSampleWrapper();
 
-  gfx::ColorRange GetColorRange() const { return mColorRange; }
-
  private:
-  friend class gl::GLBlitHelper;
-  D3D11TextureData* GetData() const {
-    if (!mTextureClient) {
-      return nullptr;
-    }
-    return mTextureClient->GetInternalData()->AsD3D11TextureData();
-  }
-
-  // When ref of IMFSample is held, its ID3D11Texture2D is not reused by
-  // IMFTransform.
   RefPtr<IMFSampleWrapper> mVideoSample;
-  RefPtr<ID3D11Texture2D> mTexture;
-
- public:
-  const uint32_t mArrayIndex;
-  const gfx::IntSize mSize;
-  const gfx::IntRect mPictureRect;
-  const gfx::ColorSpace2 mColorSpace;
-  const gfx::ColorRange mColorRange;
-
- private:
-  RefPtr<TextureClient> mTextureClient;
 };
 
 }  // namespace layers

@@ -62,7 +62,7 @@ class SurfaceDescriptorBuffer;
 
 #ifdef XP_WIN
 class D3D11ShareHandleImage;
-class D3D11TextureIMFSampleImage;
+class D3D11ZeroCopyTextureImage;
 class SurfaceDescriptorD3D10;
 class SurfaceDescriptorDXGIYCbCr;
 #endif
@@ -298,7 +298,7 @@ class GLBlitHelper final {
   // GLBlitHelperD3D.cpp:
   bool BlitImage(layers::D3D11ShareHandleImage* srcImage,
                  const gfx::IntSize& destSize, OriginPos destOrigin) const;
-  bool BlitImage(layers::D3D11TextureIMFSampleImage* srcImage,
+  bool BlitImage(layers::D3D11ZeroCopyTextureImage* srcImage,
                  const gfx::IntSize& destSize, OriginPos destOrigin) const;
 
   bool BlitDescriptor(const layers::SurfaceDescriptorD3D10& desc,

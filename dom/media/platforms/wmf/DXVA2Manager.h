@@ -48,6 +48,15 @@ class DXVA2Manager {
     return E_FAIL;
   }
 
+  virtual HRESULT WrapTextureWithImage(ID3D11Texture2D* aTexture,
+                                       UINT aSurfaceIndex,
+                                       const gfx::IntRect& aRegion,
+                                       layers::Image** aOutImage) {
+    // Not implemented!
+    MOZ_CRASH("WrapTextureWithImage not implemented on this manager.");
+    return E_FAIL;
+  }
+
   virtual HRESULT CopyToBGRATexture(ID3D11Texture2D* aInTexture,
                                     uint32_t aArrayIndex,
                                     ID3D11Texture2D** aOutTexture) {
