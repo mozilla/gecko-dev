@@ -32,9 +32,12 @@ class DXVA2Manager {
   // is an IMFDXGIDeviceManager. It is safe to call this on any thread.
   virtual IUnknown* GetDXVADeviceManager() = 0;
 
-  // Creates an Image for the video frame stored in aVideoSample.
+  // Copy the video frame into a share handle image.
   virtual HRESULT CopyToImage(IMFSample* aVideoSample,
                               const gfx::IntRect& aRegion,
+                              layers::Image** aOutImage) = 0;
+  virtual HRESULT CopyToImage(ID3D11Texture2D* aInputTexture,
+                              UINT aSurfaceIndex, const gfx::IntRect& aRegion,
                               layers::Image** aOutImage) = 0;
 
   virtual HRESULT WrapTextureWithImage(IMFSample* aVideoSample,
@@ -58,6 +61,14 @@ class DXVA2Manager {
                                    gfx::ColorRange aColorRange, uint32_t aWidth,
                                    uint32_t aHeight) {
     return S_OK;
+  }
+  virtual HRESULT ConfigureForSize(gfx::SurfaceFormat aSurfaceFormat,
+                                   gfx::YUVColorSpace aColorSpace,
+                                   gfx::ColorRange aColorRange, uint32_t aWidth,
+                                   uint32_t aHeight) {
+    // Not implemented!
+    MOZ_CRASH("ConfigureForSize not implemented on this manager.");
+    return E_FAIL;
   }
 
   virtual bool IsD3D11() { return false; }

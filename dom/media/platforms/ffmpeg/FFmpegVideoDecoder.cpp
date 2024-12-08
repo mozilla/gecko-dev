@@ -14,6 +14,7 @@
 #include "VideoUtils.h"
 #include "VPXDecoder.h"
 #include "mozilla/layers/KnowsCompositor.h"
+#include "nsPrintfCString.h"
 #if LIBAVCODEC_VERSION_MAJOR >= 57
 #  include "mozilla/layers/TextureClient.h"
 #endif
@@ -1217,8 +1218,9 @@ MediaResult FFmpegVideoDecoder<LIBAV_VER>::DoDecode(
     mDecodeStats.UpdateDecodeTimes(mFrame);
 
     MediaResult rv;
-#  if defined(MOZ_USE_HWDECODE) && defined(MOZ_WIDGET_GTK)
+#  ifdef MOZ_USE_HWDECODE
     if (IsHardwareAccelerated()) {
+#    ifdef MOZ_WIDGET_GTK
       if (mDecodeStats.IsDecodingSlow() &&
           !StaticPrefs::media_ffmpeg_disable_software_fallback()) {
         PROFILER_MARKER_TEXT("FFmpegVideoDecoder::DoDecode", MEDIA_PLAYBACK, {},
@@ -1244,6 +1246,13 @@ MediaResult FFmpegVideoDecoder<LIBAV_VER>::DoDecode(
         mVideoFramePool = nullptr;
         return rv;
       }
+#    elif defined(MOZ_ENABLE_D3D11VA)
+      rv = CreateImageD3D11(mFrame->pkt_pos, GetFramePts(mFrame),
+                            Duration(mFrame), aResults);
+#    else
+      return MediaResult(NS_ERROR_DOM_MEDIA_DECODE_ERR,
+                         RESULT_DETAIL("No HW decoding implementation!"));
+#    endif
     } else
 #  endif
     {
@@ -1452,6 +1461,18 @@ gfx::ColorRange FFmpegVideoDecoder<LIBAV_VER>::GetFrameColorRange() const {
   }
 #endif
   return GetColorRange(range);
+}
+
+gfx::SurfaceFormat FFmpegVideoDecoder<LIBAV_VER>::GetSurfaceFormat() const {
+  switch (mInfo.mColorDepth) {
+    case gfx::ColorDepth::COLOR_8:
+      return gfx::SurfaceFormat::NV12;
+    case gfx::ColorDepth::COLOR_10:
+      return gfx::SurfaceFormat::P010;
+    default:
+      MOZ_ASSERT_UNREACHABLE("Unexpected surface type");
+      return gfx::SurfaceFormat::NV12;
+  }
 }
 
 MediaResult FFmpegVideoDecoder<LIBAV_VER>::CreateImage(
@@ -2066,6 +2087,63 @@ MediaResult FFmpegVideoDecoder<LIBAV_VER>::InitD3D11VADecoder() {
   releaseResources.release();
   return NS_OK;
 }
+
+MediaResult FFmpegVideoDecoder<LIBAV_VER>::CreateImageD3D11(
+    int64_t aOffset, int64_t aPts, int64_t aDuration,
+    MediaDataDecoder::DecodedData& aResults) {
+  FFMPEGV_LOG("CreateImageD3D11");
+  // TODO : check zero copy support later
+  MOZ_DIAGNOSTIC_ASSERT(mFrame);
+
+  HRESULT hr = mDXVA2Manager->ConfigureForSize(
+      GetSurfaceFormat(), GetFrameColorSpace(), GetFrameColorRange(),
+      mFrame->width, mFrame->height);
+  if (FAILED(hr)) {
+    nsPrintfCString msg("Failed to configure DXVA2Manager, hr=%lx", hr);
+    FFMPEG_LOG("%s", msg.get());
+    return MediaResult(NS_ERROR_DOM_MEDIA_DECODE_ERR, msg);
+  }
+
+  if (!mFrame->data[0] || !mFrame->data[1]) {
+    nsPrintfCString msg("Frame data and index shouldn't be null!");
+    FFMPEG_LOG("%s", msg.get());
+    return MediaResult(NS_ERROR_DOM_MEDIA_DECODE_ERR, msg);
+  }
+
+  ID3D11Resource* resource = reinterpret_cast<ID3D11Resource*>(mFrame->data[0]);
+  ID3D11Texture2D* texture = nullptr;
+  hr = resource->QueryInterface(IID_PPV_ARGS(&texture));
+  if (FAILED(hr)) {
+    nsPrintfCString msg("Failed to get ID3D11Texture2D, hr=%lx", hr);
+    FFMPEG_LOG("%s", msg.get());
+    return MediaResult(NS_ERROR_DOM_MEDIA_DECODE_ERR, msg);
+  }
+
+  RefPtr<Image> image;
+  gfx::IntRect pictureRegion =
+      mInfo.ScaledImageRect(mFrame->width, mFrame->height);
+  UINT index = (uintptr_t)mFrame->data[1];
+  mDXVA2Manager->CopyToImage(texture, index, pictureRegion,
+                             getter_AddRefs(image));
+  if (!image) {
+    nsPrintfCString msg("Failed to copy data to D3D image");
+    FFMPEG_LOG("%s", msg.get());
+    return MediaResult(NS_ERROR_DOM_MEDIA_DECODE_ERR, msg);
+  }
+
+  RefPtr<VideoData> v = VideoData::CreateFromImage(
+      mInfo.mDisplay, aOffset, TimeUnit::FromMicroseconds(aPts),
+      TimeUnit::FromMicroseconds(aDuration), image, !!mFrame->key_frame,
+      TimeUnit::FromMicroseconds(-1));
+  if (!v) {
+    nsPrintfCString msg("D3D image allocation error");
+    FFMPEG_LOG("%s", msg.get());
+    return MediaResult(NS_ERROR_DOM_MEDIA_DECODE_ERR, msg);
+  }
+  aResults.AppendElement(std::move(v));
+  return NS_OK;
+}
+
 #endif
 
 }  // namespace mozilla

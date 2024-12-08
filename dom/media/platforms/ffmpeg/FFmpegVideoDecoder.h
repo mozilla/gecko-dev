@@ -107,6 +107,7 @@ class FFmpegVideoDecoder<LIBAV_VER>
   gfx::YUVColorSpace GetFrameColorSpace() const;
   gfx::ColorSpace2 GetFrameColorPrimaries() const;
   gfx::ColorRange GetFrameColorRange() const;
+  gfx::SurfaceFormat GetSurfaceFormat() const;
 
   MediaResult CreateImage(int64_t aOffset, int64_t aPts, int64_t aDuration,
                           MediaDataDecoder::DecodedData& aResults) const;
@@ -139,6 +140,9 @@ class FFmpegVideoDecoder<LIBAV_VER>
 
 #ifdef MOZ_ENABLE_D3D11VA
   MediaResult InitD3D11VADecoder();
+
+  MediaResult CreateImageD3D11(int64_t aOffset, int64_t aPts, int64_t aDuration,
+                               MediaDataDecoder::DecodedData& aResults);
 
   int32_t mTextureAlignment;
   AVBufferRef* mD3D11VADeviceContext = nullptr;
