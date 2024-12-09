@@ -159,7 +159,7 @@ def _cargo_config_yaml_schema():
 @CommandArgument(
     "cargo_command",
     default=None,
-    help="Target to cargo, must be one of the commands in config/cargo/",
+    help="Target to cargo, must be one of the commands in build/cargo/",
 )
 @CommandArgument(
     "--all-crates",
