@@ -104,6 +104,7 @@ class WMFVideoMFTManager : public MFTManager {
   uint32_t mVideoStride;
   Maybe<gfx::YUVColorSpace> mColorSpace;
   gfx::ColorRange mColorRange;
+  gfx::ColorDepth mColorDepth;
 
   RefPtr<layers::ImageContainer> mImageContainer;
   RefPtr<layers::KnowsCompositor> mKnowsCompositor;

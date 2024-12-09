@@ -67,6 +67,7 @@ WMFVideoMFTManager::WMFVideoMFTManager(
       mVideoStride(0),
       mColorSpace(aConfig.mColorSpace),
       mColorRange(aConfig.mColorRange),
+      mColorDepth(aConfig.mColorDepth),
       mImageContainer(aImageContainer),
       mKnowsCompositor(aKnowsCompositor),
       mDXVAEnabled(aDXVAEnabled &&
@@ -353,7 +354,7 @@ MediaResult WMFVideoMFTManager::InitInternal() {
             outputType,
             mColorSpace.refOr(
                 DefaultColorSpace({mImageSize.width, mImageSize.height})),
-            mColorRange, mVideoInfo.ImageRect().width,
+            mColorRange, mColorDepth, mVideoInfo.ImageRect().width,
             mVideoInfo.ImageRect().height),
         MediaResult(NS_ERROR_DOM_MEDIA_FATAL_ERR,
                     RESULT_DETAIL("Fail to configure image size for "
@@ -810,7 +811,7 @@ WMFVideoMFTManager::Output(int64_t aStreamOffset, RefPtr<MediaData>& aOutData) {
             outputType,
             mColorSpace.refOr(
                 DefaultColorSpace({mImageSize.width, mImageSize.height})),
-            mColorRange, mVideoInfo.ImageRect().width,
+            mColorRange, mColorDepth, mVideoInfo.ImageRect().width,
             mVideoInfo.ImageRect().height);
         NS_ENSURE_TRUE(SUCCEEDED(hr), hr);
       } else {

@@ -2096,7 +2096,7 @@ MediaResult FFmpegVideoDecoder<LIBAV_VER>::CreateImageD3D11(
 
   HRESULT hr = mDXVA2Manager->ConfigureForSize(
       GetSurfaceFormat(), GetFrameColorSpace(), GetFrameColorRange(),
-      mFrame->width, mFrame->height);
+      mInfo.mColorDepth, mFrame->width, mFrame->height);
   if (FAILED(hr)) {
     nsPrintfCString msg("Failed to configure DXVA2Manager, hr=%lx", hr);
     FFMPEG_LOG("%s", msg.get());

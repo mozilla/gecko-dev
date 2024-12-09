@@ -74,7 +74,8 @@ class D3D11ShareHandleImage final : public Image {
 
   D3D11ShareHandleImage(const gfx::IntSize& aSize, const gfx::IntRect& aRect,
                         gfx::ColorSpace2 aColorSpace,
-                        gfx::ColorRange aColorRange);
+                        gfx::ColorRange aColorRange,
+                        gfx::ColorDepth aColorDepth);
   virtual ~D3D11ShareHandleImage() = default;
 
   bool AllocateTexture(D3D11RecycleAllocator* aAllocator,
@@ -91,6 +92,8 @@ class D3D11ShareHandleImage final : public Image {
   ID3D11Texture2D* GetTexture() const;
 
   gfx::ColorRange GetColorRange() const { return mColorRange; }
+
+  gfx::ColorDepth GetColorDepth() const override { return mColorDepth; }
 
  private:
   friend class gl::GLBlitHelper;
@@ -109,6 +112,7 @@ class D3D11ShareHandleImage final : public Image {
 
  private:
   gfx::ColorRange mColorRange;
+  gfx::ColorDepth mColorDepth;
   RefPtr<TextureClient> mTextureClient;
   RefPtr<ID3D11Texture2D> mTexture;
 };

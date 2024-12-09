@@ -46,7 +46,8 @@ class D3D11ZeroCopyTextureImage : public Image {
                             const gfx::IntSize& aSize,
                             const gfx::IntRect& aRect,
                             gfx::ColorSpace2 aColorSpace,
-                            gfx::ColorRange aColorRange);
+                            gfx::ColorRange aColorRange,
+                            gfx::ColorDepth aColorDepth);
   virtual ~D3D11ZeroCopyTextureImage() = default;
 
   void AllocateTextureClient(KnowsCompositor* aKnowsCompositor,
@@ -63,6 +64,8 @@ class D3D11ZeroCopyTextureImage : public Image {
   ID3D11Texture2D* GetTexture() const;
 
   gfx::ColorRange GetColorRange() const { return mColorRange; }
+
+  gfx::ColorDepth GetColorDepth() const override { return mColorDepth; }
 
  protected:
   friend class gl::GLBlitHelper;
@@ -82,6 +85,7 @@ class D3D11ZeroCopyTextureImage : public Image {
   const gfx::IntRect mPictureRect;
   const gfx::ColorSpace2 mColorSpace;
   const gfx::ColorRange mColorRange;
+  const gfx::ColorDepth mColorDepth;
 };
 
 class IMFSampleWrapper : public SupportsThreadSafeWeakPtr<IMFSampleWrapper> {
@@ -106,7 +110,8 @@ class D3D11TextureIMFSampleImage final : public D3D11ZeroCopyTextureImage {
                              uint32_t aArrayIndex, const gfx::IntSize& aSize,
                              const gfx::IntRect& aRect,
                              gfx::ColorSpace2 aColorSpace,
-                             gfx::ColorRange aColorRange);
+                             gfx::ColorRange aColorRange,
+                             gfx::ColorDepth aColorDepth);
   virtual ~D3D11TextureIMFSampleImage() = default;
 
   RefPtr<IMFSampleWrapper> GetIMFSampleWrapper();

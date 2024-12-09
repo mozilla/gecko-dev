@@ -47,9 +47,10 @@ D3D11ShareHandleImage::MaybeCreateNV12ImageAndSetData(
     return nullptr;
   }
 
-  RefPtr<D3D11ShareHandleImage> image = new D3D11ShareHandleImage(
-      aData.YPictureSize(), aData.mPictureRect,
-      ToColorSpace2(aData.mYUVColorSpace), aData.mColorRange);
+  RefPtr<D3D11ShareHandleImage> image =
+      new D3D11ShareHandleImage(aData.YPictureSize(), aData.mPictureRect,
+                                ToColorSpace2(aData.mYUVColorSpace),
+                                aData.mColorRange, aData.mColorDepth);
 
   RefPtr<D3D11RecycleAllocator> allocator =
       aContainer->GetD3D11RecycleAllocator(aKnowsCompositor,
@@ -156,12 +157,14 @@ D3D11ShareHandleImage::MaybeCreateNV12ImageAndSetData(
 D3D11ShareHandleImage::D3D11ShareHandleImage(const gfx::IntSize& aSize,
                                              const gfx::IntRect& aRect,
                                              gfx::ColorSpace2 aColorSpace,
-                                             gfx::ColorRange aColorRange)
+                                             gfx::ColorRange aColorRange,
+                                             gfx::ColorDepth aColorDepth)
     : Image(nullptr, ImageFormat::D3D11_SHARE_HANDLE_TEXTURE),
       mSize(aSize),
       mPictureRect(aRect),
       mColorSpace(aColorSpace),
-      mColorRange(aColorRange) {}
+      mColorRange(aColorRange),
+      mColorDepth(aColorDepth) {}
 
 bool D3D11ShareHandleImage::AllocateTexture(D3D11RecycleAllocator* aAllocator,
                                             ID3D11Device* aDevice) {
