@@ -69,61 +69,6 @@ define(function (require, exports) {
       };
     }
 
-    static getDerivedStateFromProps(props, state) {
-      if (
-        props.children.length !== state.prevChildren ||
-        state.prevChildren.some(
-          (previousChild, i) => props.children[i] !== previousChild
-        ) ||
-        props.activeTab !== state.prevActiveTab
-      ) {
-        let { children, activeTab } = props;
-        const panels = children.filter(panel => panel);
-        let created = [...state.created];
-
-        // If the children props has changed due to an addition or removal of a tab,
-        // update the state's created array with the latest tab ids and whether or not
-        // the tab is already created.
-        if (state.created.length != panels.length) {
-          created = panels.map(panel => {
-            // Get whether or not the tab has already been created from the previous state.
-            const createdEntry = state.created.find(entry => {
-              return entry && entry.tabId === panel.props.id;
-            });
-            const isCreated = !!createdEntry && createdEntry.isCreated;
-            const tabId = panel.props.id;
-
-            return {
-              isCreated,
-              tabId,
-            };
-          });
-        }
-
-        const newState = {
-          created,
-          prevChildren: children,
-          prevActiveTab: activeTab,
-        };
-
-        // Check type of 'activeTab' props to see if it's valid (it's 0-based index).
-        if (typeof activeTab === "number") {
-          // Reset to index 0 if index overflows the range of panel array
-          activeTab =
-            activeTab < panels.length && activeTab >= 0 ? activeTab : 0;
-
-          created[activeTab] = Object.assign({}, created[activeTab], {
-            isCreated: true,
-          });
-
-          newState.activeTab = activeTab;
-        }
-
-        return newState;
-      }
-      return null;
-    }
-
     constructor(props) {
       super(props);
 
@@ -143,11 +88,6 @@ define(function (require, exports) {
 
         // True if tabs can't fit into available horizontal space.
         overflow: false,
-
-        // The created and activeTab state are derived from the Props and we need to recalculate
-        // them when the props change. So we track the prevous values passed
-        prevChildren: [],
-        prevActiveTab: 0,
       };
 
       this.tabsEl = createRef();
@@ -178,6 +118,50 @@ define(function (require, exports) {
       if (this.props.onMount) {
         this.props.onMount(index);
       }
+    }
+
+    // FIXME: https://bugzilla.mozilla.org/show_bug.cgi?id=1774507
+    UNSAFE_componentWillReceiveProps(nextProps) {
+      let { children, activeTab } = nextProps;
+      const panels = children.filter(panel => panel);
+      let created = [...this.state.created];
+
+      // If the children props has changed due to an addition or removal of a tab,
+      // update the state's created array with the latest tab ids and whether or not
+      // the tab is already created.
+      if (this.state.created.length != panels.length) {
+        created = panels.map(panel => {
+          // Get whether or not the tab has already been created from the previous state.
+          const createdEntry = this.state.created.find(entry => {
+            return entry && entry.tabId === panel.props.id;
+          });
+          const isCreated = !!createdEntry && createdEntry.isCreated;
+          const tabId = panel.props.id;
+
+          return {
+            isCreated,
+            tabId,
+          };
+        });
+      }
+
+      // Check type of 'activeTab' props to see if it's valid (it's 0-based index).
+      if (typeof activeTab === "number") {
+        // Reset to index 0 if index overflows the range of panel array
+        activeTab = activeTab < panels.length && activeTab >= 0 ? activeTab : 0;
+
+        created[activeTab] = Object.assign({}, created[activeTab], {
+          isCreated: true,
+        });
+
+        this.setState({
+          activeTab,
+        });
+      }
+
+      this.setState({
+        created,
+      });
     }
 
     componentWillUnmount() {
