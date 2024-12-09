@@ -64,13 +64,16 @@ class AllocSite {
     Missing = 3,
     Tenuring = 4,
   };
-  enum class State : uint32_t { ShortLived = 0, Unknown = 1, LongLived = 2 };
+  enum class State : uint32_t { Unknown = 0, LongLived = 1, ShortLived = 2 };
 
-  // The JIT depends on being able to tell the states apart by checking a single
-  // bit.
-  static constexpr int32_t LONG_LIVED_BIT = int32_t(State::LongLived);
-  static_assert((LONG_LIVED_BIT & int32_t(State::Unknown)) == 0);
-  static_assert((AllocSite::LONG_LIVED_BIT & int32_t(State::ShortLived)) == 0);
+  // We can convert between state and heap by extracting a single bit.
+  static constexpr int32_t LONG_LIVED_BIT = 1;
+  static_assert((uint32_t(State::Unknown) & LONG_LIVED_BIT) ==
+                uint32_t(Heap::Default));
+  static_assert((uint32_t(State::LongLived) & LONG_LIVED_BIT) ==
+                uint32_t(Heap::Tenured));
+  static_assert((uint32_t(State::ShortLived) & LONG_LIVED_BIT) ==
+                uint32_t(Heap::Default));
 
  private:
   JS::Zone* zone_ = nullptr;
@@ -169,6 +172,7 @@ class AllocSite {
   void initTenuringSite(JS::Zone* zone) {
     assertUninitialized();
     zone_ = zone;
+    scriptAndState = uintptr_t(State::LongLived);
     kind_ = uint32_t(Kind::Tenuring);
   }
 
@@ -232,13 +236,10 @@ class AllocSite {
   // Whether allocations at this site should be allocated in the nursery or the
   // tenured heap.
   Heap initialHeap() const {
-    if (isNormal()) {
-      return state() == State::LongLived ? Heap::Tenured : Heap::Default;
-    }
-    if (isTenuring()) {
-      return Heap::Tenured;
-    }
-    return Heap::Default;
+    Heap heap = Heap(uint32_t(state()) & LONG_LIVED_BIT);
+    MOZ_ASSERT_IF(isTenuring(), heap == Heap::Tenured);
+    MOZ_ASSERT_IF(!isTenuring() && !isNormal(), heap == Heap::Default);
+    return heap;
   }
 
   bool hasNurseryAllocations() const {
