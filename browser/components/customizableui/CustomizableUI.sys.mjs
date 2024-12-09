@@ -2489,7 +2489,14 @@ var CustomizableUIInternal = {
       ) {
         return;
       }
+
       target = target.parentNode;
+
+      // If we reached the shadow boundry, let's cross it while we head up
+      // the tree.
+      if (ShadowRoot.isInstance(target)) {
+        target = target.host;
+      }
     }
 
     // If we get here, we can actually hide the popup:
