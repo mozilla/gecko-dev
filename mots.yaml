@@ -8,7 +8,7 @@
 # documentation and how to modify this file.
 repo: mozilla-central
 created_at: '2021-10-14T12:50:40.073465'
-updated_at: '2024-11-19T09:32:55.817961+00:00'
+updated_at: '2024-11-27T20:12:45.410423+00:00'
 export:
   path: ./docs/mots/index.rst
   format: rst
@@ -18,6 +18,9 @@ description: |
 
   The system is overseen by the owner and peers of the Module Ownership module. For the modules that make up Firefox, oversight is provided by the Firefox Technical Leadership module. Owners may add and remove peers from their modules as they wish, without reference to anyone else.
 
+aliases:
+  - &TLMC
+    nick: TLMC
 people:
   - &adw
     bmo_id: 334927
@@ -1147,6 +1150,23 @@ modules:
       - *nika
     peers: []
     machine_name: _firefoxtoplevel
+    submodules:
+
+      - name: Code Review Policy
+        description: Submodule governing the code review process, ensuring adherence
+          to coding standards and quality requirements.
+        owners:
+          - *TLMC
+        peers: []
+        machine_name: code_review_policy
+
+      - name: Performance Regression Policy
+        description: Submodule focused on preventing and addressing performance regressions,
+          ensuring stable and optimized performance.
+        owners:
+          - *TLMC
+        peers: []
+        machine_name: performance_regression_policy
 
   - machine_name: android_components
     name: Android Components
@@ -1178,6 +1198,7 @@ modules:
     meta:
       components:
         - 'Testing :: Code Coverage'
+
   - name: 'Core: Accessibility'
     description: Support for platform accessibility APIs. Accessibility APIs are used
       by 3rd party software like screen readers, screen magnifiers, and voice dictation
@@ -3981,6 +4002,7 @@ modules:
         - Tom Prince
       components:
         - 'Release Engineering :: Applications: MozharnessCore'
+
   - machine_name: python_usage
     name: Python usage, tools, and style
     description: Aspects of Python use such as tooling, formatting and naming style
@@ -4504,5 +4526,5 @@ modules:
         - Ryan Tilder
       group: dev-platform
 hashes:
-  config: 2a5c4cb48b406e93e31e8ba99194ea05115a1b6c
-  export: 885173c4a20da1be754b43cc3868528db3529862
+  config: a5d1281d126f408849634168889426c5d3ce022d
+  export: dc21ddd81a6b2585f65723029ea684853b6f32fa
