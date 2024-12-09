@@ -76,6 +76,7 @@ add_setup(async function () {
   );
 
   // Initialize remote permission service
+  Services.prefs.setBoolPref("permissions.manager.remote.enabled", true);
   let permObserver = Services.perms.QueryInterface(Ci.nsIObserver);
   permObserver.observe(null, "profile-after-change", "");
   await rps.isInitialized;
