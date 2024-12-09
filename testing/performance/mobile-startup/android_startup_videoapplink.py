@@ -23,7 +23,7 @@ BACKGROUND_TABS = [
     "https://www.amazon.ca/gp/aw/gb?ref_=navm_cs_gb&discounts-widget",
     "https://www.espn.com/nfl/game/_/gameId/401671793/chiefs-falcons",
 ]
-ITERATIONS = 1
+ITERATIONS = 5
 
 
 class ImageAnalzer:
