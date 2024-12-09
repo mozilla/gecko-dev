@@ -33,11 +33,11 @@
     <!-- Error text displayed underneath the password field when it is in an error case -->
     <string name="mozac_feature_prompt_error_unknown_cause_2">Nun pozzu sarbari a chiavi</string>
     <!-- Prompt message displayed when app detects a user has entered a new username and password and user decides if app should save the new password. -->
-    <string name="mozac_feature_prompt_login_save_headline_2">Voi sarbari a chiavi?</string>
+    <string name="mozac_feature_prompt_login_save_headline_2">Sarbari a chiavi?</string>
     <!-- Prompt message displayed when app detects a user has entered a new password for an existing login and user decides if app should update the password. -->
-    <string name="mozac_feature_prompt_login_update_headline_2">Voi attualizzari a chiavi?</string>
+    <string name="mozac_feature_prompt_login_update_headline_2">Attualizzari a chiavi?</string>
     <!-- Prompt message displayed when app detects a user has entered a username for an existing login without a username and user decides if app should update the login. -->
-    <string name="mozac_feature_prompt_login_add_username_headline_2">Voi attualizzari u nomu utenti?</string>
+    <string name="mozac_feature_prompt_login_add_username_headline_2">Attualizzari u nomu utenti?</string>
     <!-- Title of a color picker dialog, this text is shown above a color picker. -->
     <string name="mozac_feature_prompts_choose_a_color">Scarta un culuri</string>
     <!-- Text of a confirm button in dialog requesting to open a new window. -->
@@ -47,7 +47,7 @@
     <!-- Title of the dialog shown when a user is leaving a website and there is still data not saved yet. -->
     <string name="mozac_feature_prompt_before_unload_dialog_title">Sì sicuru?</string>
     <!-- Body text of the dialog shown when a user is leaving a website and there is still data not saved yet. -->
-    <string name="mozac_feature_prompt_before_unload_dialog_body">Voi nèsciri di stu situ? È pussìbbili chi i dati chi mittisti nun foru sarbati</string>
+    <string name="mozac_feature_prompt_before_unload_dialog_body">Vo\' nèsciri di stu situ? È pussìbbili chi i dati chi mittisti nun foru sarbati</string>
     <!-- Stay button of the dialog shown when a user is leaving a website and there is still data not saved yet, this indicates that the user wants to stay in the website. -->
     <string name="mozac_feature_prompts_before_unload_stay">Arresta</string>
     <!-- Leave button of the dialog shown when a user is leaving a website and there is still data not saved yet, this indicates that the user wants to leave in the website. -->
@@ -85,7 +85,7 @@
     <!-- Content description for expanding the saved passwords options in the select password prompt -->
     <string name="mozac_feature_prompts_expand_logins_content_description_2">Grapi i chiavi sarbati</string>
     <!-- Content description for collapsing the saved passwords options in the select password prompt -->
-    <string name="mozac_feature_prompts_collapse_logins_content_description_2">Chiuji i chiavi sarbati</string>
+    <string name="mozac_feature_prompts_collapse_logins_content_description_2">Cumprimi i chiavi sarbati</string>
     <!-- Header for the select password prompt to allow users to fill a form with a saved password -->
     <string name="mozac_feature_prompts_saved_logins_2">Chiavi sarbati</string>
 
@@ -97,7 +97,7 @@
     <string name="mozac_feature_prompts_suggest_strong_password_message">Usa na chiavi forti: %1$s</string>
 
     <!-- Title for using the suggest strong password confirmation dialog -->
-    <string name="mozac_feature_prompts_suggest_strong_password_title">Voi usari na chiavi forti?</string>
+    <string name="mozac_feature_prompts_suggest_strong_password_title">Vo\' usari na chiavi forti?</string>
     <!-- Content description for the suggest strong password confirmation dialog -->
     <string name="mozac_feature_prompts_suggest_strong_password_description_2" moz:removedIn="133" tools:ignore="UnusedResources">Pruteggi i to cunti usannu na chiavi forti, ginirata a muzzu. Veni sarbata nnô to cuntu p\'usalla \'n futuru.</string>
 
@@ -113,7 +113,7 @@
     <string name="mozac_feature_prompt_login_snackbar_username_updated">Nomu utenti attualizzatu</string>
 
     <!-- Strings shown in a dialog that appear when users try to refresh a certain kind of webpages -->
-    <string name="mozac_feature_prompt_repost_title">Voi mannari arrè i dati a stu situ?</string>
+    <string name="mozac_feature_prompt_repost_title">Vo\' mannari arrè i dati a stu situ?</string>
     <!-- Pressing this will dismiss the dialog and reload the page sending again the previous data -->
     <string name="mozac_feature_prompt_repost_positive_button_text">Manna arrè i dati</string>
     <!-- Pressing this will dismiss the dialog and not refresh the webpage -->
@@ -121,15 +121,15 @@
 
     <!-- Credit Card Autofill -->
     <!-- Header for the select card prompt to allow users to fill a form with a saved card. -->
-    <string name="mozac_feature_prompts_select_credit_card_2">Usa a carta sarbata</string>
+    <string name="mozac_feature_prompts_select_credit_card_2">Usa na carta sarbata</string>
     <!-- Content description for expanding the saved card options in the select card prompt. -->
     <string name="mozac_feature_prompts_expand_credit_cards_content_description_2">Grapi i carti sarbati</string>
     <!-- Content description for collapsing the saved card options in the select prompt. -->
-    <string name="mozac_feature_prompts_collapse_credit_cards_content_description_2">Chiuji i carti sarbati</string>
+    <string name="mozac_feature_prompts_collapse_credit_cards_content_description_2">Cumprimi i carti sarbati</string>
     <!-- Option in the expanded select card prompt that links to cards settings. -->
     <string name="mozac_feature_prompts_manage_credit_cards_2">Manija i carti</string>
     <!-- Text for the title of a save credit card dialog. -->
-    <string name="mozac_feature_prompts_save_credit_card_prompt_title">Vo\' sarbati sta carta di manera sicura?</string>
+    <string name="mozac_feature_prompts_save_credit_card_prompt_title">Vo\' sarbari sta carta di manera sicura?</string>
     <!-- Text for the title of an update credit card dialog. -->
     <string name="mozac_feature_prompts_update_credit_card_prompt_title">Vo\' attualizzari a data di scadenza di sta carta?</string>
     <!-- Subtitle text displayed under the title of the saved card dialog. Parameter will be replaced by app name-->
@@ -141,7 +141,7 @@
     <!-- Content description for expanding the saved addresses options in the select address prompt. -->
     <string name="mozac_feature_prompts_expand_address_content_description_2">Grapi i nnirizzi sarbati</string>
     <!-- Content description for collapsing the saved address options in the select address prompt. -->
-    <string name="mozac_feature_prompts_collapse_address_content_description_2">Chiuji i nnirizzi sarbati</string>
+    <string name="mozac_feature_prompts_collapse_address_content_description_2">Cumprimi i nnirizzi sarbati</string>
     <!-- Text for the manage addresses button. -->
     <string name="mozac_feature_prompts_manage_address">Manija i nnirizzi</string>
 

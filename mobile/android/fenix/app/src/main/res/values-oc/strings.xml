@@ -3060,6 +3060,12 @@ Exemple :\nhttps://suggestqueries.google.com/complete/search?client=firefox&amp
     <!-- Content description for delete button where parameter will be the username of the login -->
     <string name="debug_drawer_logins_delete_login_button_content_description">Suprimir l’identificant amb lo nom d’utilizaire %s</string>
 
+    <!-- Debug drawer addresses -->
+    <!-- The title of the Addresses feature in the Debug Drawer. -->
+    <string name="debug_drawer_addresses_title">Adreças</string>
+    <!-- The title of the section header for the list of debug locales that can be enabled and disabled. -->
+    <string name="debug_drawer_addresses_debug_locales_header">Lengas de desbugatge d’activar</string>
+
     <!-- Debug drawer "contextual feature recommendation" (CFR) tools -->
     <!-- The title of the CFR Tools feature in the Debug Drawer -->
     <string name="debug_drawer_cfr_tools_title">Aisinas CFR</string>
@@ -3089,6 +3095,20 @@ Exemple :\nhttps://suggestqueries.google.com/complete/search?client=firefox&amp
     <string name="certificate_warning_homepage_card_hcr1_message" tools:ignore="BrandUsage,UnusedResources">Un certificat raiç expirarà, provocant l\'arrèst de cèrtas foncionalitats de vòstra version de Firefox.</string>
     <!-- Homepage card title about old Firefox version -->
     <string name="certificate_warning_homepage_card_hcw2_title" tools:ignore="UnusedResources">Mens de 7 jorns per realizar la mesa a jorn</string>
+    <!-- Homepage card message about old Firefox version. Note: The word "Firefox" should NOT be translated. -->
+    <string name="certificate_warning_homepage_card_hcw2_message" tools:ignore="BrandUsage,UnusedResources">A partir del 14 de març, los moduls complementaris e d’unas foncionalitats de Firefox quitaràn de foncionar perque un certificat raiç es a mand d\'expirar.</string>
+    <!-- Homepage card title about old Firefox version. Note: The word "Firefox" should NOT be translated. -->
+    <string name="certificate_warning_homepage_card_hcw3_title" tools:ignore="BrandUsage,UnusedResources">Darrièra oportunitat de gardar vòstre Firefox</string>
+    <!-- Homepage card message about old Firefox version. Note: The word "Firefox" should NOT be translated. -->
+    <string name="certificate_warning_homepage_card_hcw3_message" tools:ignore="BrandUsage,UnusedResources">Vòstre version de Firefox quitarà de foncionar corrèctament lo 14 de mars, perque un certificat raiç es a mand d’expirar.</string>
     <!-- Push notification title about old Firefox version. "Update" is a noun. -->
     <string name="certificate_warning_push_notification_update_recommended_title" tools:ignore="UnusedResources">Mesa a jorn recomandada</string>
-    </resources>
+    <!-- Push notification message about old Firefox version -->
+    <string name="certificate_warning_push_notification_pnr1_message" tools:ignore="UnusedResources">Los moduls complementaris e d’autres foncionalitats quitaràn de foncionar lo 14 de març.</string>
+    <!-- Push notification title about old Firefox version. Note: The word "Firefox" should NOT be translated. -->
+    <string name="certificate_warning_push_notification_pnw2_title" tools:ignore="BrandUsage,UnusedResources">Utilizatz una version anciana de Firefox</string>
+    <!-- Push notification message about old Firefox version. "Update" is a verb. -->
+    <string name="certificate_warning_push_notification_pnw2_message" tools:ignore="UnusedResources">Realizatz la mesa a jorn abans loe 14 de març per téner d’utilizar vòstres moduls complementaris e d’autras foncionalitats.</string>
+    <!-- Push notification message about old Firefox version -->
+    <string name="certificate_warning_push_notification_pnw3_message" tools:ignore="UnusedResources">D’unas foncionalitats quitaràn de foncionar deman.</string>
+</resources>

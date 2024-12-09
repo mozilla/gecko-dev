@@ -343,11 +343,15 @@
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu
          The first parameter is the label of the report site issue (for example: Report Site issue) -->
     <string name="browser_menu_tools_description_with_translate_with_report_site" moz:removedIn="135" tools:ignore="UnusedResources">Lukunäkymä, käännä, %s, tulosta, jaa, avaa sovellus</string>
+    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu when the "Report broken site" feature is available-->
+    <string name="browser_menu_tools_description_with_translate_with_report_site_2">Lukunäkymä, käännä, ilmoita rikkinäisestä sivustosta, tulosta, jaa, avaa sovellus</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
     <string name="browser_menu_tools_description_with_translate_without_report_site">Lukunäkymä, käännä, tulosta, jaa, avaa sovellus</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu
          The first parameter is the label of the report site issue (for example: Report Site issue) -->
     <string name="browser_menu_tools_description_with_report_site" moz:removedIn="135" tools:ignore="UnusedResources">Lukunäkymä, %s, tulosta, jaa, avaa sovellus</string>
+    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu when the "Report broken site" feature is available-->
+    <string name="browser_menu_tools_description_with_report_site_2">Lukunäkymä, ilmoita rikkinäisestä sivustosta, tulosta, jaa, avaa sovellus</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
     <string name="browser_menu_tools_description_without_report_site">Lukunäkymä, tulosta, jaa, avaa sovellus</string>
     <!-- Browser menu label that navigates to the save sub-menu, which contains various save related menu items such as
@@ -1019,6 +1023,10 @@
     <string name="preferences_marketing_data">Markkinointitiedot</string>
     <!-- Preference description for marketing data collection -->
     <string name="preferences_marketing_data_description2" moz:removedIn="134" tools:ignore="UnusedResources">Jakaa perustiedot käytöstä mobiilimarkkinointitoimittajamme Adjustin kanssa</string>
+    <!-- Preference description for marketing data collection. Note: The words "Firefox" and "Mozilla" should NOT be translated -->
+    <string name="preferences_marketing_data_description_3" tools:ignore="BrandUsage">Jaa Mozillan markkinointikumppaneiden kanssa tietoja siitä, kuinka löysit Firefoxin. Tämä auttaa meitä kasvattamaan Firefoxia ja rakentamaan parempaa Internetiä</string>
+    <!-- Learn more link for marketing data preference -->
+    <string name="preferences_marketing_data_learn_more">Lue lisää markkinointitiedoista</string>
     <!-- Preference switch title for automatically submitting crash reports -->
     <string name="preferences_automatically_submit_crashes_title">Lähetä kaatumisilmoitukset automaattisesti</string>
     <!-- Preference switch description for automatically submitting crash reports -->
@@ -2909,6 +2917,12 @@
     <string name="protection_panel_banner_not_secure_description">Yhteys ei ole suojattu.</string>
     <!-- Title text for the protection panel banner when tracking protection is disabled. -->
     <string name="protection_panel_banner_not_protected_title">Poistit suojaukset käytöstä</string>
+    <!-- Description text for the protection panel banner when tracking protection is disabled.
+        The first parameter is the name of the app defined in app_name (for example: Fenix) -->
+    <string name="protection_panel_banner_not_protected_description">%s on vapaalla. Suosittelemme kytkemään suojaukset takaisin päälle.</string>
+    <!-- Title text for the protection panel banner when tracking protection is enabled.
+        The first parameter is the name of the app defined in app_name (for example: Fenix) -->
+    <string name="protection_panel_banner_protected_title">%s on valppaana</string>
     <!-- Description text for the protection panel banner when tracking protection is enabled. -->
     <string name="protection_panel_banner_protected_description">Olet suojattu. Jos havaitsemme jotain, ilmoitamme sinulle.</string>
     <!-- Label text for the Enhanced Tracking Protection toggle. -->
@@ -3030,6 +3044,10 @@
     <string name="debug_drawer_logins_add_login_button">Lisää kuvitteellinen kirjautumistunnus tälle verkkotunnukselle</string>
     <!-- Content description for delete button where parameter will be the username of the login -->
     <string name="debug_drawer_logins_delete_login_button_content_description">Poista kirjautumistieto käyttäjätunnuksella %s</string>
+
+    <!-- Debug drawer addresses -->
+    <!-- The title of the Addresses feature in the Debug Drawer. -->
+    <string name="debug_drawer_addresses_title">Osoitteet</string>
 
     <!-- Debug drawer "contextual feature recommendation" (CFR) tools -->
     <!-- The title of the CFR Tools feature in the Debug Drawer -->

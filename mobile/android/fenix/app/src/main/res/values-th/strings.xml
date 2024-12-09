@@ -93,12 +93,6 @@
     <!-- Text for the negative action button -->
     <string name="open_in_app_cfr_negative_button_text">ยกเลิก</string>
 
-    <!-- Total cookie protection "contextual feature recommendation" (CFR) -->
-    <!-- Text for the message displayed in the contextual feature recommendation popup promoting the total cookie protection feature. -->
-    <string name="tcp_cfr_message" moz:removedIn="132" tools:ignore="UnusedResources">คุณลักษณะความเป็นส่วนตัวที่ทรงพลังที่สุดของเราแยกตัวติดตามข้ามไซต์</string>
-    <!-- Text displayed that links to website containing documentation about the "Total cookie protection" feature. -->
-    <string name="tcp_cfr_learn_more" moz:removedIn="132" tools:ignore="UnusedResources">เรียนรู้เกี่ยวกับการป้องกันคุกกี้ทั้งหมด</string>
-
 
     <!-- Private browsing erase action "contextual feature recommendation" (CFR) -->
     <!-- Text for the message displayed in the contextual feature recommendation popup promoting the erase private browsing feature. -->
@@ -114,12 +108,6 @@
 
     <!-- Text for the message displayed for the popup promoting the long press of navigation in the navigation bar. -->
     <string name="navbar_navigation_buttons_cfr_message">แตะค้างที่ลูกศรเพื่อข้ามไปมาระหว่างหน้าต่างๆ ในประวัติของแท็บนี้​​​​​​​​​​​​​​​​</string>
-
-    <!-- Tablet navigation bar "contextual feature recommendation" (CFR) -->
-    <!-- Text for the title displayed in the contextual feature recommendation popup promoting the tablet navigation bar. -->
-    <string name="tablet_nav_bar_cfr_title" moz:removedIn="132" tools:ignore="UnusedResources">ใหม่: ปุ่มกลับและไปข้างหน้าแบบแตะครั้งเดียว</string>
-    <!-- Text for the message displayed in the contextual feature recommendation popup promoting the tablet navigation bar. -->
-    <string name="tablet_nav_bar_cfr_message" moz:removedIn="132" tools:ignore="UnusedResources">เพลิดเพลินกับการนำทางที่รวดเร็วยิ่งขึ้นที่อยู่แค่ปลายนิ้วของคุณเสมอ</string>
 
     <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
     <string name="camera_permissions_needed_message">จำเป็นต้องมีการเข้าถึงกล้อง ไปที่การตั้งค่า Android แตะสิทธิอนุญาต แล้วแตะอนุญาต</string>
@@ -245,8 +233,12 @@
     <string name="browser_menu_open_in_regular_tab">เปิดในแท็บปกติ</string>
     <!-- Browser menu toggle that adds a shortcut to the site on the device home screen. -->
     <string name="browser_menu_add_to_homescreen">เพิ่มไปยังหน้าจอหลัก</string>
+    <!-- Browser menu toggle that adds a PWA of the site on the device home screen. -->
+    <string name="browser_menu_add_app_to_homescreen">เพิ่มแอปไปยังหน้าจอหลัก</string>
     <!-- Browser menu toggle that adds a shortcut to the site on the device home screen. -->
     <string name="browser_menu_add_to_homescreen_2">เพิ่มไปยังหน้าจอหลัก…</string>
+    <!-- Browser menu toggle that adds a PWA of the site on the device home screen. -->
+    <string name="browser_menu_add_app_to_homescreen_2">เพิ่มแอปไปยังหน้าจอหลัก…</string>
     <!-- Text for notifying users that Xiaomi devices require additional permissions to add to home screen -->
     <string name="browser_menu_add_to_homescreen_xiaomi">อุปกรณ์ Xiaomi อาจต้องขออนุญาตเพิ่มเติมเพื่อเพิ่มทางลัดในหน้าจอหลัก โปรดตรวจสอบการตั้งค่าของคุณ</string>
     <!-- Content description (not visible, for screen readers etc.) for the Resync tabs button -->
@@ -332,9 +324,12 @@
     <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar custom tab menu. -->
     <string name="browser_custom_tab_menu_handlebar_content_description">ปิดแผ่นเมนูแท็บกำหนดเอง</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-    <string name="browser_menu_tools_description_with_translate" moz:removedIn="133" tools:ignore="UnusedResources">มุมมองผู้อ่าน, แปล, พิมพ์, แบ่งปัน, เปิดแอป</string>
+    <string name="browser_menu_tools_description_with_translate" moz:removedIn="134" tools:ignore="UnusedResources">มุมมองผู้อ่าน, แปล, พิมพ์, แบ่งปัน, เปิดแอป</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-    <string name="browser_menu_tools_description" moz:removedIn="133" tools:ignore="UnusedResources">มุมมองผู้อ่าน, พิมพ์, แบ่งปัน, เปิดแอป</string>
+    <string name="browser_menu_tools_description" moz:removedIn="134" tools:ignore="UnusedResources">มุมมองผู้อ่าน, พิมพ์, แบ่งปัน, เปิดแอป</string>
+    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu
+         The first parameter is the label of the report site issue (for example: Report Site issue) -->
+    <string name="browser_menu_tools_description_with_translate_with_report_site" moz:removedIn="135" tools:ignore="UnusedResources">มุมมองผู้อ่าน แปล %s พิมพ์ แบ่งปัน เปิดแอป</string>
     <!-- Browser menu label that navigates to the save sub-menu, which contains various save related menu items such as
          bookmarking a page, saving to collection, shortcut or as a PDF, and adding to home screen -->
     <string name="browser_menu_save">บันทึก</string>
@@ -352,6 +347,8 @@
     <string name="browser_menu_turn_off_reader_view">ปิดมุมมองผู้อ่าน</string>
     <!-- Browser menu label for navigating to the translation feature, which provides language translation options the current visited page -->
     <string name="browser_menu_translate_page">แปลหน้า…</string>
+    <!-- Browser menu label for navigating to the Web Compat Reporter feature, which provides users the ability to send bug reports for broken sites. -->
+    <string name="browser_menu_webcompat_reporter">รายงานไซต์ที่ใช้งานไม่ได้…</string>
     <!-- Browser menu label that is displayed when the current page has been translated by the translation feature.
          The first parameter is the name of the language that page was translated to (e.g. English). -->
     <string name="browser_menu_translated_to">แปลเป็นภาษา%1$sแล้ว</string>
@@ -435,8 +432,6 @@
     <string name="search_engine_icon_content_description_1">เครื่องมือค้นหา:  %s</string>
 
     <!-- Home onboarding -->
-    <!-- Onboarding home screen popup dialog, shown on top of the Jump back in section. -->
-    <string name="onboarding_home_screen_jump_back_contextual_hint_2" moz:removedIn="132">พบกับโฮมเพจส่วนบุคคลของคุณ แท็บล่าสุด ที่คั่นหน้า และผลการค้นหาจะปรากฏที่นี่</string>
     <!-- Home onboarding dialog welcome screen title text. -->
     <string name="onboarding_home_welcome_title_2">ยินดีต้อนรับสู่อินเทอร์เน็ตที่เป็นส่วนตัวมากขึ้น</string>
     <!-- Home onboarding dialog welcome screen description text. -->
@@ -554,6 +549,33 @@
     <string name="onboarding_add_on_add_button_content_description">เพิ่มปุ่มส่วนเสริม</string>
     <!-- Content description for the star rating group. -->
     <string name="onboarding_add_on_star_rating_content_description">ได้รับคะแนน %1$s จาก 5</string>
+
+    <!-- Positive button label for the privacy preferences dialog shown during onboarding. -->
+    <string name="onboarding_preferences_dialog_positive_button" tools:ignore="UnusedResources">เสร็จสิ้น</string>
+    <!-- Negative button label for the privacy preferences dialog shown during onboarding. -->
+    <string name="onboarding_preferences_dialog_negative_button" tools:ignore="UnusedResources">ยกเลิก</string>
+    <!-- Terms of service onboarding title card label. 'Firefox' intentionally hardcoded here-->
+    <string name="onboarding_welcome_to_firefox" tools:ignore="UnusedResources,BrandUsage">ยินดีต้อนรับสู่ Firefox</string>
+    <!-- Terms of service onboarding page continue button label. -->
+    <string name="onboarding_term_of_service_agree_and_continue_button_label" tools:ignore="UnusedResources">ยินยอมและดำเนินต่อ</string>
+    <!-- Used as text for the link in onboarding_term_of_service_line_one. -->
+    <string name="onboarding_term_of_service_line_one_link_text" tools:ignore="UnusedResources,BrandUsage">เงื่อนไขการให้บริการ</string>
+    <!-- Used as text for the link in onboarding_term_of_service_line_two. -->
+    <string name="onboarding_term_of_service_line_two_link_text" tools:ignore="UnusedResources,BrandUsage">ประกาศความเป็นส่วนตัว</string>
+    <!-- Used as text for the link in onboarding_term_of_service_line_three. -->
+    <string name="onboarding_term_of_service_line_three_link_text" tools:ignore="UnusedResources,BrandUsage">จัดการ</string>
+    <!-- Onboarding header for the toolbar selection card, used by Nimbus experiments. -->
+    <string name="onboarding_customize_toolbar_title" tools:ignore="UnusedResources">เลือกตำแหน่งแถบเครื่องมือ</string>
+    <!-- Onboarding sub header for toolbar selection card, used by Nimbus experiments. -->
+    <string name="onboarding_customize_toolbar_description" tools:ignore="UnusedResources">ให้การค้นหาอยู่ใกล้แค่เอื้อม</string>
+    <!-- Onboarding toolbar selection card label for 'save and continue' button, used by Nimbus experiments. -->
+    <string name="onboarding_customize_toolbar_save_and_continue_button">บันทึกและดำเนินการต่อ</string>
+    <!-- Onboarding toolbar selection card label for 'skip' button, used by Nimbus experiments. -->
+    <string name="onboarding_customize_toolbar_skip_button">ข้าม</string>
+    <!-- Onboarding toolbar selection card label for 'top' option, used by Nimbus experiments. -->
+    <string name="onboarding_customize_toolbar_top_option">ด้านบน</string>
+    <!-- Onboarding toolbar selection card label for 'bottom' option, used by Nimbus experiments. -->
+    <string name="onboarding_customize_toolbar_bottom_option">ด้านล่าง</string>
 
     <!-- Search Widget -->
     <!-- Content description for searching with a widget. The first parameter is the name of the application.-->
@@ -952,6 +974,8 @@
 
     <!-- Preference switch for usage and technical data collection -->
     <string name="preference_usage_data" moz:removedIn="134" tools:ignore="UnusedResources">การใช้งานและข้อมูลทางเทคนิค</string>
+    <!-- Preference switch for usage and technical data collection -->
+    <string name="preference_usage_data_1">ข้อมูลทางเทคนิคและการโต้ตอบ</string>
     <!-- Preference switch for usage and technical learn more link -->
     <string name="preference_usage_data_learn_more" tools:ignore="UnusedResources">เรียนรู้เพิ่มเติม</string>
     <!-- Preference description for usage and technical data collection -->
@@ -959,7 +983,7 @@
     <!-- Preference switch for marketing data collection -->
     <string name="preferences_marketing_data">ข้อมูลการตลาด</string>
     <!-- Preference description for marketing data collection -->
-    <string name="preferences_marketing_data_description2">แบ่งปันข้อมูลการใช้งานพื้นฐานกับ Adjust ผู้จำหน่ายการตลาดมือถือของเรา</string>
+    <string name="preferences_marketing_data_description2" moz:removedIn="134" tools:ignore="UnusedResources">แบ่งปันข้อมูลการใช้งานพื้นฐานกับ Adjust ผู้จำหน่ายการตลาดมือถือของเรา</string>
     <!-- Preference switch title for automatically submitting crash reports -->
     <string name="preferences_automatically_submit_crashes_title">ส่งรายงานความผิดพลาดโดยอัตโนมัติ</string>
     <!-- Preference switch description for automatically submitting crash reports -->
@@ -1313,8 +1337,6 @@
     <string name="bookmark_delete_negative">ยกเลิก</string>
     <!-- Screen title for adding a bookmarks folder -->
     <string name="bookmark_add_folder">เพิ่มโฟลเดอร์</string>
-    <!-- Snackbar title shown after a bookmark has been created. -->
-    <string name="bookmark_saved_snackbar" moz:removedIn="132" tools:ignore="UnusedResources">บันทึกที่คั่นหน้าแล้ว!</string>
     <!-- Snackbar title that confirms a bookmark was saved into a folder. Parameter will be replaced by the name of the folder the bookmark was saved into. -->
     <string name="bookmark_saved_in_folder_snackbar">บันทึกไว้ใน “%s”</string>
     <!-- Snackbar edit button shown after a bookmark has been created. -->
@@ -1661,8 +1683,6 @@
     <string name="snackbar_tabs_closed">ปิดแท็บแล้ว</string>
     <!-- Text shown in snackbar when user closes multiple inactive tabs. %1$s will be replaced with the number of tabs closed. -->
     <string name="snackbar_num_tabs_closed">จำนวนแท็บที่ปิด: %1$s</string>
-    <!-- Text shown in snackbar when user bookmarks a list of tabs -->
-    <string name="snackbar_message_bookmarks_saved" moz:removedIn="132" tools:ignore="UnusedResources">บันทึกที่คั่นหน้าแล้ว!</string>
     <!-- Text shown in snackbar when user bookmarks a list of tabs. Parameter will be replaced by the name of the folder the bookmark was saved into.-->
     <string name="snackbar_message_bookmarks_saved_in">บันทึกที่คั่นหน้าใน “%s” แล้ว!</string>
     <!-- Text shown in snackbar when user adds a site to shortcuts -->
@@ -2572,14 +2592,6 @@
     <string name="review_quality_check_contextual_onboarding_primary_button_text">ใช่ลองดู</string>
     <!-- Text for opt-out button from the review quality check contextual onboarding card. -->
     <string name="review_quality_check_contextual_onboarding_secondary_button_text">ไม่ใช่ตอนนี้</string>
-    <!-- Text for the first CFR presenting the review quality check feature. -->
-    <string name="review_quality_check_first_cfr_message" moz:removedIn="132" tools:ignore="UnusedResources">ค้นพบว่าคุณสามารถเชื่อถือบทวิจารณ์ของผลิตภัณฑ์นี้ได้หรือไม่ ก่อนที่คุณจะตัดสินใจซื้อ</string>
-    <!-- Text displayed in the first CFR presenting the review quality check feature that opens the review checker when clicked. -->
-    <string name="review_quality_check_first_cfr_action" moz:removedIn="132" tools:ignore="UnusedResources">ลองใช้เครื่องมือตรวจสอบบทวิจารณ์</string>
-    <!-- Text for the second CFR presenting the review quality check feature. -->
-    <string name="review_quality_check_second_cfr_message" moz:removedIn="132" tools:ignore="UnusedResources">บทวิจารณ์เหล่านี้เชื่อถือได้หรือไม่? ตรวจสอบตอนนี้เพื่อดูคะแนนที่ปรับแล้ว</string>
-    <!-- Text displayed in the second CFR presenting the review quality check feature that opens the review checker when clicked. -->
-    <string name="review_quality_check_second_cfr_action" moz:removedIn="132" tools:ignore="UnusedResources">เปิดเครื่องมือตรวจสอบบทวิจารณ์</string>
     <!-- Content description (not visible, for screen readers etc.) for opening browser menu button to open review quality check bottom sheet. -->
     <string name="review_quality_check_open_handle_content_description">เปิดเครื่องมือตรวจสอบบทวิจารณ์</string>
     <!-- Content description (not visible, for screen readers etc.) for closing browser menu button to open review quality check bottom sheet. -->
@@ -2843,6 +2855,16 @@
     <!-- Button text on the data saving mode warning dialog used by the translations feature to allow users to cancel the action and not perform a download of the language file. -->
     <string name="download_language_file_dialog_negative_button_text">ยกเลิก</string>
 
+    <!-- Unified Trust Panel -->
+    <!-- Title text for the protection panel banner when the site is not secure. -->
+    <string name="protection_panel_banner_not_secure_title">โปรดระวังในไซต์นี้</string>
+    <!-- Description text for the protection panel banner when the site is not secure. -->
+    <string name="protection_panel_banner_not_secure_description">การเชื่อมต่อของคุณไม่ปลอดภัย</string>
+    <!-- Title text for the protection panel banner when tracking protection is disabled. -->
+    <string name="protection_panel_banner_not_protected_title">คุณปิดการป้องกัน</string>
+    <!-- Label text for the Enhanced Tracking Protection toggle. -->
+    <string name="protection_panel_etp_toggle_label">การป้องกันการติดตามแบบพิเศษ</string>
+
     <!-- Debug drawer -->
     <!-- The user-facing title of the Debug Drawer feature. -->
     <string name="debug_drawer_title">เครื่องมือดีบัก</string>
@@ -2956,6 +2978,10 @@
     <!-- Content description for delete button where parameter will be the username of the login -->
     <string name="debug_drawer_logins_delete_login_button_content_description">ลบข้อมูลเข้าสู่ระบบที่มีชื่อผู้ใช้ %s</string>
 
+    <!-- Debug drawer addresses -->
+    <!-- The title of the Addresses feature in the Debug Drawer. -->
+    <string name="debug_drawer_addresses_title">ที่อยู่</string>
+
     <!-- Debug drawer "contextual feature recommendation" (CFR) tools -->
     <!-- The title of the CFR Tools feature in the Debug Drawer -->
     <string name="debug_drawer_cfr_tools_title">เครื่องมือ CFR</string>
@@ -2967,11 +2993,6 @@
     <string name="glean_debug_tools_title">เครื่องมือดีบั๊ก Glean</string>
 
     <!-- Messages explaining how to exit fullscreen mode -->
-    <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled -->
-    <string name="exit_fullscreen_with_gesture" moz:removedIn="132" tools:ignore="UnusedResources">หากต้องการออกจากการแสดงเต็มจอ ให้ลากจากด้านบนแล้วใช้ท่าทางย้อนกลับ</string>
-    <!-- Message shown to explain how to exit fullscreen mode when using back button navigation -->
-    <string name="exit_fullscreen_with_back_button" moz:removedIn="132" tools:ignore="UnusedResources">หากต้องการออกจากการแสดงเต็มจอ ให้ลากจากด้านบนแล้วกดย้อนกลับ</string>
-
     <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled. -->
     <!-- Localisation note: this text should be as short as possible, max 68 chars -->
     <string name="exit_fullscreen_with_gesture_short">ลากจากด้านบนและใช้ท่าทางย้อนกลับเพื่อออก</string>
@@ -2982,4 +3003,9 @@
     <!-- Beta Label Component !-->
     <!-- Text shown as a label or tag to indicate a feature or area is still undergoing active development. Note that here "Beta" should not be translated, as it is used as an icon styled element. -->
     <string name="beta_feature">BETA</string>
-</resources>
+
+    <!-- Root certificate expiration warnings -->
+    <!-- These strings for homepage cards and push notifications to be pushed to users running outdated versions of Firefox. We want to encourage these users to update to the latest version so their extensions and other features don't stop working when Firefox's old root certificate expires on 2025-03-14. For more information, see this SUMO article: https://support.mozilla.org/kb/root-certificate-expiration !-->
+    <!-- Homepage card button to open Google Play Store. "Update" is a verb. -->
+    <string name="certificate_warning_homepage_card_update_now_button" tools:ignore="UnusedResources">อัปเดตตอนนี้</string>
+    </resources>

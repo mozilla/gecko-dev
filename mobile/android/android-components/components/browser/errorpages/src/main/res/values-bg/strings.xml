@@ -136,7 +136,7 @@
     <!-- The document title and heading of an error page. -->
     <string name="mozac_browser_errorpages_no_internet_title" moz:removedIn="133" tools:ignore="UnusedResources">Няма връзка с интернет</string>
     <!-- The document title and heading of an error page. -->
-    <string name="mozac_browser_errorpages_no_internet_title_2">Изглежда, че има проблем с връзката ви</string>
+    <string name="mozac_browser_errorpages_no_internet_title_2">Изглежда, има проблем с връзката</string>
     <!-- The main body text of this error page. It will be shown beneath the title -->
     <string name="mozac_browser_errorpages_no_internet_message" moz:removedIn="133" tools:ignore="UnusedResources">Проверете мрежовата си свързаност или опитайте да презаредите страницата след малко.</string>
     <!-- The main body text of this error page. It will be shown beneath the title -->
