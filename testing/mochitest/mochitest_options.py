@@ -10,13 +10,12 @@ from abc import ABCMeta, abstractmethod, abstractproperty
 from argparse import SUPPRESS, ArgumentParser
 from itertools import chain
 from shutil import which
+from urllib.parse import urlparse
 
 import mozinfo
 import mozlog
 import moznetwork
-import six
 from mozprofile import DEFAULT_PORTS
-from six.moves.urllib.parse import urlparse
 
 here = os.path.abspath(os.path.dirname(__file__))
 
@@ -121,8 +120,7 @@ def get_default_valgrind_suppression_files():
     return rv
 
 
-@six.add_metaclass(ABCMeta)
-class ArgumentContainer:
+class ArgumentContainer(metaclass=ABCMeta):
     @abstractproperty
     def args(self):
         pass

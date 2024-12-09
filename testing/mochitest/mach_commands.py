@@ -10,7 +10,6 @@ import warnings
 from argparse import Namespace
 from collections import defaultdict
 
-import six
 from mach.decorators import Command, CommandArgument
 from mozbuild.base import MachCommandConditions as conditions
 from mozbuild.base import MozbuildObject
@@ -293,16 +292,14 @@ def run_mochitest_general(
 
     flavors = None
     if flavor:
-        for fname, fobj in six.iteritems(ALL_FLAVORS):
+        for fname, fobj in ALL_FLAVORS.items():
             if flavor in fobj["aliases"]:
                 if buildapp not in fobj["enabled_apps"]:
                     continue
                 flavors = [fname]
                 break
     else:
-        flavors = [
-            f for f, v in six.iteritems(ALL_FLAVORS) if buildapp in v["enabled_apps"]
-        ]
+        flavors = [f for f, v in ALL_FLAVORS.items() if buildapp in v["enabled_apps"]]
 
     from mozbuild.controller.building import BuildDriver
 

@@ -8,7 +8,6 @@ import sys
 from argparse import Namespace
 from functools import partial
 
-import six
 from mach.decorators import Command
 
 here = os.path.abspath(os.path.dirname(__file__))
@@ -27,7 +26,7 @@ def run_test(context, is_junit, **kwargs):
 
     flavor = kwargs.get("flavor") or "mochitest"
     if flavor not in ALL_FLAVORS:
-        for fname, fobj in six.iteritems(ALL_FLAVORS):
+        for fname, fobj in ALL_FLAVORS.items():
             if flavor in fobj["aliases"]:
                 flavor = fname
                 break

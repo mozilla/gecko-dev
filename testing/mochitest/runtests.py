@@ -35,6 +35,8 @@ from contextlib import closing
 from ctypes.util import find_library
 from datetime import datetime, timedelta
 from shutil import which
+from urllib.parse import quote_plus as encodeURIComponent
+from urllib.request import urlopen
 
 import bisection
 import mozcrash
@@ -92,10 +94,6 @@ try:
     HAVE_PSUTIL = True
 except ImportError:
     pass
-
-import six
-from six.moves.urllib.parse import quote_plus as encodeURIComponent
-from six.moves.urllib_request import urlopen
 
 try:
     from mozbuild.base import MozbuildObject
@@ -209,9 +207,7 @@ class MessageLogger(object):
 
     def _fix_subtest_name(self, message):
         """Make sure subtest name is a string"""
-        if "subtest" in message and not isinstance(
-            message["subtest"], six.string_types
-        ):
+        if "subtest" in message and not isinstance(message["subtest"], str):
             message["subtest"] = str(message["subtest"])
 
     def _fix_test_name(self, message):
@@ -228,13 +224,13 @@ class MessageLogger(object):
         if "message" in message:
             if isinstance(message["message"], bytes):
                 message["message"] = message["message"].decode("utf-8", "replace")
-            elif not isinstance(message["message"], six.text_type):
-                message["message"] = six.text_type(message["message"])
+            elif not isinstance(message["message"], str):
+                message["message"] = str(message["message"])
 
     def parse_line(self, line):
         """Takes a given line of input (structured or not) and
         returns a list of structured messages"""
-        if isinstance(line, six.binary_type):
+        if isinstance(line, bytes):
             # if line is a sequence of bytes, let's decode it
             line = line.rstrip().decode("UTF-8", "replace")
         else:
@@ -602,7 +598,7 @@ class MochitestServer(object):
             while i < 5:
                 try:
                     with closing(urlopen(self.debugURL)) as c:
-                        self._log.info(six.ensure_text(c.read()))
+                        self._log.info(c.read().decode("utf-8"))
                     break
                 except Exception as e:
                     self._log.info("exception when enabling debugging: %s" % str(e))
@@ -629,7 +625,7 @@ class MochitestServer(object):
     def stop(self):
         try:
             with closing(urlopen(self.shutdownURL)) as c:
-                self._log.info(six.ensure_text(c.read()))
+                self._log.info(c.read().decode("utf-8"))
         except Exception:
             self._log.info("Failed to stop web server on %s" % self.shutdownURL)
             traceback.print_exc()
@@ -833,7 +829,7 @@ def checkAndConfigureV4l2loopback(device):
 
     VIDIOC_QUERYCAP = 0x80685600
 
-    fd = libc.open(six.ensure_binary(device), O_RDWR)
+    fd = libc.open(device.encode("ascii"), O_RDWR)
     if fd < 0:
         return False, ""
 
@@ -841,7 +837,7 @@ def checkAndConfigureV4l2loopback(device):
     if libc.ioctl(fd, VIDIOC_QUERYCAP, ctypes.byref(vcap)) != 0:
         return False, ""
 
-    if six.ensure_text(vcap.driver) != "v4l2 loopback":
+    if vcap.driver.decode("utf-8") != "v4l2 loopback":
         return False, ""
 
     class v4l2_control(ctypes.Structure):
@@ -863,7 +859,7 @@ def checkAndConfigureV4l2loopback(device):
     libc.ioctl(fd, VIDIOC_S_CTRL, ctypes.byref(control))
     libc.close(fd)
 
-    return True, six.ensure_text(vcap.card)
+    return True, vcap.card.decode("utf-8")
 
 
 def findTestMediaDevices(log):
@@ -1867,9 +1863,7 @@ toolbar#nav-bar {
         # we can't tell what comes from DEFAULT or not. So to validate this, we
         # stash all args from tests in the same manifest into a set. If the
         # length of the set > 1, then we know 'args' didn't come from DEFAULT.
-        args_not_default = [
-            m for m, p in six.iteritems(self.args_by_manifest) if len(p) > 1
-        ]
+        args_not_default = [m for m, p in self.args_by_manifest.items() if len(p) > 1]
         if args_not_default:
             self.log.error(
                 "The 'args' key must be set in the DEFAULT section of a "
@@ -1880,9 +1874,7 @@ toolbar#nav-bar {
             sys.exit(1)
 
         # The 'prefs' key needs to be set in the DEFAULT section too.
-        pref_not_default = [
-            m for m, p in six.iteritems(self.prefs_by_manifest) if len(p) > 1
-        ]
+        pref_not_default = [m for m, p in self.prefs_by_manifest.items() if len(p) > 1]
         if pref_not_default:
             self.log.error(
                 "The 'prefs' key must be set in the DEFAULT section of a "
@@ -1893,7 +1885,7 @@ toolbar#nav-bar {
             sys.exit(1)
         # The 'environment' key needs to be set in the DEFAULT section too.
         env_not_default = [
-            m for m, p in six.iteritems(self.env_vars_by_manifest) if len(p) > 1
+            m for m, p in self.env_vars_by_manifest.items() if len(p) > 1
         ]
         if env_not_default:
             self.log.error(
@@ -1970,7 +1962,7 @@ toolbar#nav-bar {
         d = dict(
             (k, v)
             for k, v in options.__dict__.items()
-            if (v is None) or isinstance(v, (six.string_types, numbers.Number))
+            if (v is None) or isinstance(v, (str, numbers.Number))
         )
         d["testRoot"] = self.testRoot
         if options.jscov_dir_prefix:
@@ -2929,13 +2921,13 @@ toolbar#nav-bar {
                 self.marionette.delete_session()
                 del self.marionette
 
-            except IOError:
+            except IOError as e:
                 # Any IOError as thrown by Marionette means that something is
                 # wrong with the process, like a crash or the socket is no
                 # longer open. We defer raising this specific error so that
                 # post-test checks for leaks and crashes are performed and
                 # reported first.
-                marionette_exception = sys.exc_info()
+                marionette_exception = e
 
             # wait until app is finished
             # XXX copy functionality from
@@ -3045,8 +3037,7 @@ toolbar#nav-bar {
                 os.remove(p)
 
         if marionette_exception is not None:
-            exc, value, tb = marionette_exception
-            six.reraise(exc, value, tb)
+            raise marionette_exception
 
         return status, self.lastTestSeen
 
@@ -4331,7 +4322,7 @@ def run_test_harness(parser, options):
 
     logger_options = {
         key: value
-        for key, value in six.iteritems(vars(options))
+        for key, value in vars(options).items()
         if key.startswith("log") or key == "valgrind"
     }
 
