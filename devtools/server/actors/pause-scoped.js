@@ -28,10 +28,13 @@ class PauseScopedObjectActor extends ObjectActor {
     for (const methodName of guardWithPaused) {
       this[methodName] = this.withPaused(this[methodName]);
     }
+
+    // Cache this thread actor attribute as we may query it after the actor destruction.
+    this.threadLifetimePool = this.threadActor.threadLifetimePool;
   }
 
   isThreadLifetimePool() {
-    return this.getParent() === this.threadActor.threadLifetimePool;
+    return this.getParent() === this.threadLifetimePool;
   }
 
   isPaused() {
@@ -51,6 +54,19 @@ class PauseScopedObjectActor extends ObjectActor {
           " actors can only be accessed while the thread is paused.",
       };
     };
+  }
+
+  /**
+   * Handle a protocol request to promote a pause-lifetime grip to a
+   * thread-lifetime grip.
+   *
+   * This method isn't used by DevTools frontend, but by VS Code Firefox adapter
+   * in order to keep the object actor alive after resume and be able to remove
+   * watchpoints.
+   */
+  threadGrip() {
+    this.threadActor.promoteObjectToThreadLifetime(this);
+    return {};
   }
 
   /**
