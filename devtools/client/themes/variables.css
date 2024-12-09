@@ -305,6 +305,8 @@
     --theme-highlight-pink: light-dark(#FF9AA2, #FFDFE7);
     --theme-highlight-gray: light-dark(#5B5B66, #F0F0F4);
 
+    --theme-body-background: Canvas;
+
     /* Toolbar */
     --theme-toolbar-background: ButtonFace;
     --theme-toolbar-selected-color: SelectedItemText;
