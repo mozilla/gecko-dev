@@ -74,7 +74,8 @@ class BinaryReaderLogging : public BinaryReaderDelegate {
                         std::string_view module_name,
                         std::string_view field_name,
                         Index memory_index,
-                        const Limits* page_limits) override;
+                        const Limits* page_limits,
+                        uint32_t page_size) override;
   Result OnImportGlobal(Index import_index,
                         std::string_view module_name,
                         std::string_view field_name,
@@ -102,7 +103,9 @@ class BinaryReaderLogging : public BinaryReaderDelegate {
 
   Result BeginMemorySection(Offset size) override;
   Result OnMemoryCount(Index count) override;
-  Result OnMemory(Index index, const Limits* limits) override;
+  Result OnMemory(Index index,
+                  const Limits* limits,
+                  uint32_t page_size) override;
   Result EndMemorySection() override;
 
   Result BeginGlobalSection(Offset size) override;
@@ -130,6 +133,7 @@ class BinaryReaderLogging : public BinaryReaderDelegate {
   Result BeginFunctionBody(Index index, Offset size) override;
   Result OnLocalDeclCount(Index count) override;
   Result OnLocalDecl(Index decl_index, Index count, Type type) override;
+  Result EndLocalDecls() override;
 
   Result OnOpcode(Opcode opcode) override;
   Result OnOpcodeBare() override;
@@ -200,7 +204,7 @@ class BinaryReaderLogging : public BinaryReaderDelegate {
   Result OnLocalSetExpr(Index local_index) override;
   Result OnLocalTeeExpr(Index local_index) override;
   Result OnLoopExpr(Type sig_type) override;
-  Result OnMemoryCopyExpr(Index srcmemidx, Index destmemidx) override;
+  Result OnMemoryCopyExpr(Index destmemidx, Index srcmemidx) override;
   Result OnDataDropExpr(Index segment_index) override;
   Result OnMemoryFillExpr(Index memidx) override;
   Result OnMemoryGrowExpr(Index memidx) override;
@@ -273,9 +277,8 @@ class BinaryReaderLogging : public BinaryReaderDelegate {
   Result EndElemSegmentInitExpr(Index index) override;
   Result OnElemSegmentElemType(Index index, Type elem_type) override;
   Result OnElemSegmentElemExprCount(Index index, Index count) override;
-  Result OnElemSegmentElemExpr_RefNull(Index segment_index, Type type) override;
-  Result OnElemSegmentElemExpr_RefFunc(Index segment_index,
-                                       Index func_index) override;
+  Result BeginElemExpr(Index elem_index, Index expr_index) override;
+  Result EndElemExpr(Index elem_index, Index expr_index) override;
   Result EndElemSegment(Index index) override;
   Result EndElemSection() override;
 
@@ -346,6 +349,12 @@ class BinaryReaderLogging : public BinaryReaderDelegate {
                         uint32_t flags) override;
   Result OnDylinkExport(std::string_view name, uint32_t flags) override;
   Result EndDylinkSection() override;
+
+  Result BeginGenericCustomSection(Offset size) override;
+  Result OnGenericCustomSection(std::string_view name,
+                                const void* data,
+                                Offset size) override;
+  Result EndGenericCustomSection() override;
 
   Result BeginTargetFeaturesSection(Offset size) override;
   Result OnFeatureCount(Index count) override;

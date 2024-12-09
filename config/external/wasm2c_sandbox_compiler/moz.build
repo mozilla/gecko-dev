@@ -25,7 +25,7 @@ HOST_SOURCES += [
     "/third_party/wasm2c/src/binary-reader-ir.cc",
     "/third_party/wasm2c/src/binary-reader-logging.cc",
     "/third_party/wasm2c/src/binary-reader-objdump.cc",
-    "/third_party/wasm2c/src/binary-reader-opcnt.cc",
+    "/third_party/wasm2c/src/binary-reader-stats.cc",
     "/third_party/wasm2c/src/binary-reader.cc",
     "/third_party/wasm2c/src/binary-writer-spec.cc",
     "/third_party/wasm2c/src/binary-writer.cc",
@@ -67,6 +67,7 @@ HOST_SOURCES += [
 # wasm2c sources
 HOST_SOURCES += [
     "/third_party/wasm2c/src/c-writer.cc",
+    "/third_party/wasm2c/src/prebuilt/wasm2c_atomicops_source_declarations.cc",
     "/third_party/wasm2c/src/prebuilt/wasm2c_header_bottom.cc",
     "/third_party/wasm2c/src/prebuilt/wasm2c_header_top.cc",
     "/third_party/wasm2c/src/prebuilt/wasm2c_simd_source_declarations.cc",
