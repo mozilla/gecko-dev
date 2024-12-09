@@ -8788,13 +8788,6 @@
     "bug_numbers": [1907945],
     "description": "a testing histogram; not meant to be touched"
   },
-  "STARTUP_CRASH_DETECTED": {
-    "record_in_processes": ["main", "content"],
-    "products": ["firefox", "fennec", "thunderbird"],
-    "expires_in_version": "never",
-    "kind": "flag",
-    "description": "Whether there was a crash during the last startup"
-  },
   "SAFE_MODE_USAGE": {
     "record_in_processes": ["main", "content"],
     "products": ["firefox", "fennec"],

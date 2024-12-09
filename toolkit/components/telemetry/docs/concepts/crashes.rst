@@ -13,8 +13,6 @@ If we have a crash dump for that crash, we should also submit a :doc:`crash ping
 The ``aborted-session`` information is first written to disk 60 seconds after startup, any earlier crashes will not trigger an ``aborted-session`` ping.
 Also, the ``aborted-session`` is updated at least every 5 minutes, so it may lag behind the last session state.
 
-Crashes during startup should be recorded in the next sessions main ping in the ``STARTUP_CRASH_DETECTED`` histogram.
-
 Child process crashes
 =====================
 

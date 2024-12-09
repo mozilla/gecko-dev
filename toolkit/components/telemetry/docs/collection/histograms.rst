@@ -345,12 +345,6 @@ Probes in native code can also use the `nsITelemetry <https://searchfox.org/mozi
    */
   void AccumulateTimeDelta(HistogramID id, const nsCString& key, TimeStamp start, TimeStamp end = TimeStamp::Now());
 
-The histogram names declared in ``Histograms.json`` are translated into constants in the ``mozilla::Telemetry`` namespace:
-
-.. code-block:: cpp
-
-  mozilla::Telemetry::Accumulate(mozilla::Telemetry::STARTUP_CRASH_DETECTED, true);
-
 .. warning::
 
   Telemetry accumulations are designed to be cheap, not free. If you wish to accumulate values in a performance-sensitive piece of code, store the accumualtions locally and accumulate after the performance-sensitive piece ("hot path") has completed.
