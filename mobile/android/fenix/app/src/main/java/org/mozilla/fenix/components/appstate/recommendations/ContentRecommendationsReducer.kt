@@ -118,7 +118,11 @@ internal object ContentRecommendationsReducer {
 
                 updatedStoriesState.copyWithRecommendationsState {
                     it.copy(
-                        pocketStories = updatedStoriesState.getFilteredStories(),
+                        pocketStories = if (action.showContentRecommendations) {
+                            updatedStoriesState.getStories()
+                        } else {
+                            updatedStoriesState.getFilteredStories()
+                        },
                     )
                 }
             }

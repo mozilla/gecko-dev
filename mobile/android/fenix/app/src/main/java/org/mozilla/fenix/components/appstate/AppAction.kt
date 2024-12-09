@@ -547,9 +547,15 @@ sealed class AppAction : Action {
 
         /**
          * Replaces the current list of Pocket sponsored stories.
+         *
+         * @property sponsoredStories The new list of [PocketSponsoredStory] that was fetched.
+         * @property showContentRecommendations Whether or not to show Merino content
+         * recommendations.
          */
-        data class PocketSponsoredStoriesChange(val sponsoredStories: List<PocketSponsoredStory>) :
-            ContentRecommendationsAction()
+        data class PocketSponsoredStoriesChange(
+            val sponsoredStories: List<PocketSponsoredStory>,
+            val showContentRecommendations: Boolean,
+        ) : ContentRecommendationsAction()
 
         /**
          * Replaces the list of available Pocket recommended stories categories.

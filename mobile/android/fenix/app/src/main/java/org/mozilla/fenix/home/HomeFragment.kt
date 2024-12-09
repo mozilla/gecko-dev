@@ -323,9 +323,14 @@ class HomeFragment : Fragment() {
         components.appStore.dispatch(AppAction.ModeChange(browsingModeManager.mode))
 
         lifecycleScope.launch(IO) {
+            // Show Merino content recommendations.
             val showContentRecommendations = requireContext().settings().showContentRecommendations
+            // Show Pocket recommended stories.
             val showPocketRecommendationsFeature =
                 requireContext().settings().showPocketRecommendationsFeature
+            // Show sponsored stories if recommended stories are enabled.
+            val showSponsoredStories = requireContext().settings().showPocketSponsoredStories &&
+                (showContentRecommendations || showPocketRecommendationsFeature)
 
             if (showContentRecommendations) {
                 components.appStore.dispatch(
@@ -339,16 +344,17 @@ class HomeFragment : Fragment() {
                     .map { (category, stories) -> PocketRecommendedStoriesCategory(category, stories) }
 
                 components.appStore.dispatch(ContentRecommendationsAction.PocketStoriesCategoriesChange(categories))
-
-                if (requireContext().settings().showPocketSponsoredStories) {
-                    components.appStore.dispatch(
-                        ContentRecommendationsAction.PocketSponsoredStoriesChange(
-                            components.core.pocketStoriesService.getSponsoredStories(),
-                        ),
-                    )
-                }
             } else {
                 components.appStore.dispatch(ContentRecommendationsAction.PocketStoriesClean)
+            }
+
+            if (showSponsoredStories) {
+                components.appStore.dispatch(
+                    ContentRecommendationsAction.PocketSponsoredStoriesChange(
+                        sponsoredStories = components.core.pocketStoriesService.getSponsoredStories(),
+                        showContentRecommendations = showContentRecommendations,
+                    ),
+                )
             }
         }
 

@@ -422,16 +422,72 @@ class AppStoreTest {
         mockkStatic("org.mozilla.fenix.ext.AppStateKt") {
             val firstFilteredStories = listOf(mockk<PocketSponsoredStory>())
             every { any<AppState>().getFilteredStories() } returns firstFilteredStories
-            appStore.dispatch(ContentRecommendationsAction.PocketSponsoredStoriesChange(listOf(story1, story2))).join()
+            appStore.dispatch(
+                ContentRecommendationsAction.PocketSponsoredStoriesChange(
+                    sponsoredStories = listOf(story1, story2),
+                    showContentRecommendations = false,
+                ),
+            ).join()
             assertTrue(appStore.state.recommendationState.pocketSponsoredStories.containsAll(listOf(story1, story2)))
             assertEquals(firstFilteredStories, appStore.state.recommendationState.pocketStories)
 
             val secondFilteredStories = firstFilteredStories + mockk<PocketRecommendedStory>()
             every { any<AppState>().getFilteredStories() } returns secondFilteredStories
             val updatedStories = listOf(story2.copy(title = "title3"))
-            appStore.dispatch(ContentRecommendationsAction.PocketSponsoredStoriesChange(updatedStories)).join()
+            appStore.dispatch(
+                ContentRecommendationsAction.PocketSponsoredStoriesChange(
+                    sponsoredStories = updatedStories,
+                    showContentRecommendations = false,
+                ),
+            ).join()
             assertTrue(updatedStories.containsAll(appStore.state.recommendationState.pocketSponsoredStories))
             assertEquals(secondFilteredStories, appStore.state.recommendationState.pocketStories)
+        }
+    }
+
+    @Test
+    fun `GIVEN content recommendations are enabled WHEN updating the list of Pocket sponsored stories THEN the list of stories to show is updated`() = runTest {
+        val story1 = PocketSponsoredStory(
+            id = 3,
+            title = "title",
+            url = "url",
+            imageUrl = "imageUrl",
+            sponsor = "sponsor",
+            shim = mockk(),
+            priority = 33,
+            caps = mockk(),
+        )
+        val story2 = story1.copy(imageUrl = "imageUrl2")
+
+        appStore = AppStore(AppState())
+
+        mockkStatic("org.mozilla.fenix.ext.AppStateKt") {
+            val recommendations = listOf(mockk<ContentRecommendation>())
+            every { any<AppState>().getStories() } returns recommendations
+
+            appStore.dispatch(
+                ContentRecommendationsAction.PocketSponsoredStoriesChange(
+                    sponsoredStories = listOf(story1, story2),
+                    showContentRecommendations = true,
+                ),
+            ).join()
+
+            assertTrue(appStore.state.recommendationState.pocketSponsoredStories.containsAll(listOf(story1, story2)))
+            assertEquals(recommendations, appStore.state.recommendationState.pocketStories)
+
+            val stories = recommendations + mockk<ContentRecommendation>()
+            every { any<AppState>().getStories() } returns stories
+            val updatedStories = listOf(story2.copy(title = "title3"))
+
+            appStore.dispatch(
+                ContentRecommendationsAction.PocketSponsoredStoriesChange(
+                    sponsoredStories = updatedStories,
+                    showContentRecommendations = true,
+                ),
+            ).join()
+
+            assertTrue(updatedStories.containsAll(appStore.state.recommendationState.pocketSponsoredStories))
+            assertEquals(stories, appStore.state.recommendationState.pocketStories)
         }
     }
 

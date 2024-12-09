@@ -123,6 +123,8 @@ internal class HomeSettingsFragmentTest {
 
     @Test
     fun `GIVEN the setting for Pocket sponsored stories is checked WHEN tapping it THEN toggle it, delete Pocket profile and remove sponsored stories from showing`() {
+        every { appSettings.showContentRecommendations } returns false
+
         activateFragment()
 
         val result = getSponsoredStoriesPreference().callChangeListener(false)
@@ -130,7 +132,14 @@ internal class HomeSettingsFragmentTest {
         assertTrue(result)
         verify { appPrefsEditor.putBoolean(testContext.getString(R.string.pref_key_pocket_sponsored_stories), false) }
         verify { pocketService.deleteProfile() }
-        verify { appStore.dispatch(ContentRecommendationsAction.PocketSponsoredStoriesChange(emptyList())) }
+        verify {
+            appStore.dispatch(
+                ContentRecommendationsAction.PocketSponsoredStoriesChange(
+                    sponsoredStories = emptyList(),
+                    showContentRecommendations = false,
+                ),
+            )
+        }
     }
 
     private fun activateFragment() {

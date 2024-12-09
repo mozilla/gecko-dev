@@ -133,7 +133,10 @@ class HomeSettingsFragment : PreferenceFragmentCompat() {
                         false -> {
                             context.components.core.pocketStoriesService.deleteProfile()
                             context.components.appStore.dispatch(
-                                ContentRecommendationsAction.PocketSponsoredStoriesChange(emptyList()),
+                                ContentRecommendationsAction.PocketSponsoredStoriesChange(
+                                    sponsoredStories = emptyList(),
+                                    showContentRecommendations = context.settings().showContentRecommendations,
+                                ),
                             )
                         }
                     }
