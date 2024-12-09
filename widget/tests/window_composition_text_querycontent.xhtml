@@ -6473,12 +6473,12 @@ function runBug1530649Test()
     {composition: {string: "d", clauses: [{length: 1, attr: COMPOSITION_ATTR_RAW_CLAUSE}]},
      caret: {start: 1, length: 0}});
 
-  is(contenteditable.innerHTML, "abc d<br>",
+  is(contenteditable.innerHTML, "abc d",
      "runBug1530649Test: The new composition string shouldn't remove the last space");
 
   synthesizeComposition({type: "compositioncommitasis", key: "KEY_Enter"});
 
-  is(contenteditable.innerHTML, "abc d<br>",
+  is(contenteditable.innerHTML, "abc d",
      "runBug1530649Test: Committing the new composition string shouldn't remove the last space");
 }
 
@@ -10154,13 +10154,13 @@ async function runIMEContentObserverTest()
     synthesizeKey("KEY_ArrowLeft", {shiftKey: true}, win, callback);
     await flushNotifications();
 
-    // "[]"
+    // "[]<br>"
     description = aDescription + "deleting 'ab' with pressing Backspace";
     waitNotifications = promiseReceiveNotifications();
     synthesizeKey("KEY_Backspace", {}, win, callback);
     await waitNotifications;
     ensureToRemovePrecedingPositionChangeNotification();
-    checkTextChangeNotification(notifications[0], description, { offset: 0 + offsetAtContainer, removedLength: 2, addedLength: 0 });
+    checkTextChangeNotification(notifications[0], description, { offset: 0 + offsetAtContainer, removedLength: 2, addedLength: kLFLen });
     checkSelectionChangeNotification(notifications[1], description, { offset: 0 + offsetAtContainer, text: "" });
     checkPositionChangeNotification(notifications[2], description);
     dumpUnexpectedNotifications(description, 3);
@@ -10223,8 +10223,8 @@ async function runIMEContentObserverTest()
       //   <block>aB</block><block>[]d</block> (removed \n)
       checkTextChangeNotification(notifications[0], description, {
         offset: offsetAtContainer + "aB".length,
-        removedLength: getNativeText("\nd").length,
-        addedLength: getNativeText("\n\nd").length,
+        removedLength: getNativeText("d").length,
+        addedLength: getNativeText("\nd").length,
       });
     } else {
       // Inserting <br> causes removing "d" and inserting "<br>d"
@@ -10248,8 +10248,8 @@ async function runIMEContentObserverTest()
       // Joining two blocks causes removing "aB</block><block>d</block>" and inserting "aBd</block>"
       checkTextChangeNotification(notifications[0], description, {
         offset: offsetAtContainer,
-        removedLength: getNativeText("aB\nd\n").length,
-        addedLength: getNativeText("aBd\n").length,
+        removedLength: getNativeText("aB\nd").length,
+        addedLength: "aBd".length,
       });
       checkSelectionChangeNotification(notifications[1], description, { offset: 2 + offsetAtContainer, text: "" });
       checkPositionChangeNotification(notifications[2], description);
@@ -10284,8 +10284,8 @@ async function runIMEContentObserverTest()
       //    <block>a</block><block>d</block> (removed `\n)
       checkTextChangeNotification(notifications[0], description, {
         offset: offsetAtContainer + "a".length,
-        removedLength: getNativeText("B\nd").length,
-        addedLength: getNativeText("\n\nd").length,
+        removedLength: getNativeText("Bd").length,
+        addedLength: getNativeText("\nd").length,
       });
     } else {
       checkTextChangeNotification(notifications[0], description, {
@@ -10317,8 +10317,8 @@ async function runIMEContentObserverTest()
       // Joining the blocks causes removing "a</block><block>d</block>" and inserting "<block>ad</block>".
       checkTextChangeNotification(notifications[0], description, {
         offset: offsetAtContainer,
-        removedLength: getNativeText("a\nd\n").length,
-        addedLength: getNativeText("ad\n").length,
+        removedLength: getNativeText("a\nd").length,
+        addedLength: getNativeText("ad").length,
       });
     } else {
       checkTextChangeNotification(notifications[0], description, {
@@ -10339,9 +10339,9 @@ async function runIMEContentObserverTest()
     ensureToRemovePrecedingPositionChangeNotification();
     // There is <br> after the end of the line.  Therefore, removed length includes a line breaker length.
     if (isDefaultParagraphSeparatorBlock) {
-      checkTextChangeNotification(notifications[0], description, { offset: 0 + offsetAtContainer - kLFLen, removedLength: getNativeText("\nad\n").length, addedLength: getNativeText("\n1\n2\n345").length });
+      checkTextChangeNotification(notifications[0], description, { offset: 0 + offsetAtContainer - kLFLen, removedLength: getNativeText("\nad").length, addedLength: getNativeText("\n1\n2\n345").length });
     } else {
-      checkTextChangeNotification(notifications[0], description, { offset: 0 + offsetAtContainer, removedLength: 2 + kLFLen, addedLength: getNativeText("\n1\n2\n345").length });
+      checkTextChangeNotification(notifications[0], description, { offset: 0 + offsetAtContainer, removedLength: getNativeText("ad").length, addedLength: getNativeText("\n1\n2\n345").length });
     }
     checkSelectionChangeNotification(notifications[1], description, { offset: 0, text: "" });
     checkPositionChangeNotification(notifications[2], description);
@@ -10967,6 +10967,57 @@ async function runInputModeTest()
   textarea.removeEventListener("compositionend", handler, true);
 }
 
+function runPaddingLineBreakTest() {
+  const selection = windowOfContenteditable.getSelection();
+  contenteditable.focus();
+  contenteditable.innerHTML = "<p><br></p>";
+  selection.collapse(contenteditable.querySelector("p"), 0);
+  synthesizeCompositionChange({
+    composition: {string: "a", clauses: [{length: 1, attr: COMPOSITION_ATTR_RAW_CLAUSE}]},
+  });
+  is(
+    contenteditable.innerHTML,
+    "<p>a</p>",
+    "Padding <br> for empty paragraph should be removed when composition string does not end with collapsible white-space"
+  );
+  synthesizeComposition({ type: "compositioncommitasis" });
+  synthesizeKey("z", {accelKey: true});
+  is(
+    contenteditable.innerHTML,
+    "<p><br></p>",
+    "Undo should restore the padding <br> for the empty paragraph too"
+  );
+
+  contenteditable.innerHTML = "<p><br></p>";
+  selection.collapse(contenteditable.querySelector("p"), 0);
+  synthesizeCompositionChange({
+    composition: {string: "a", clauses: [{length: 1, attr: COMPOSITION_ATTR_RAW_CLAUSE}]},
+  });
+  synthesizeCompositionChange({
+    composition: {string: "a ", clauses: [{length: 2, attr: COMPOSITION_ATTR_RAW_CLAUSE}]},
+  });
+  is(
+    contenteditable.innerHTML,
+    "<p>a <br></p>",
+    "Padding <br> should be inserted after composition string when it ends with a collapsible white-space"
+  );
+  synthesizeCompositionChange({
+    composition: {string: "a b", clauses: [{length: 3, attr: COMPOSITION_ATTR_RAW_CLAUSE}]},
+  });
+  is(
+    contenteditable.innerHTML,
+    "<p>a b</p>",
+    "Padding <br> should be removed again when the last character becomes visible character"
+  );
+  synthesizeComposition({ type: "compositioncommitasis" });
+  synthesizeKey("z", {accelKey: true});
+  is(
+    contenteditable.innerHTML,
+    "<p><br></p>",
+    "Undo should restore the padding <br> for the empty paragraph with canceling the composition"
+  );
+  contenteditable.innerHTML = "";
+}
 
 async function runTest()
 {
@@ -11012,6 +11063,7 @@ async function runTest()
   runQueryContentEventRelativeToInsertionPoint();
   runQueryPasswordTest();
   runCSSTransformTest();
+  runPaddingLineBreakTest();
   runBug722639Test();
   runBug1375825Test();
   runBug1530649Test();

@@ -1980,16 +1980,25 @@ class HTMLEditUtils final {
     return nullptr;
   }
 
+  enum class ScanLineBreak {
+    AtEndOfBlock,
+    BeforeBlock,
+  };
   /**
    * Return last <br> element or last text node ending with a preserved line
    * break of/before aBlockElement.
    */
-  enum ScanLineBreak {
-    AtEndOfBlock,
-    BeforeBlock,
-  };
   static nsIContent* GetUnnecessaryLineBreakContent(
       const Element& aBlockElement, ScanLineBreak aScanLineBreak);
+
+  /**
+   * Return following <br> element from aPoint if and only if it's immediately
+   * before a block boundary but it's not necessary to make the preceding
+   * empty line of the block boundary visible anymore.
+   */
+  template <typename EditorDOMPointType>
+  [[nodiscard]] static nsIContent* GetFollowingUnnecessaryLineBreakContent(
+      const EditorDOMPointType& aPoint, const Element& aEditingHost);
 
   /**
    * IsInTableCellSelectionMode() returns true when Gecko's editor thinks that

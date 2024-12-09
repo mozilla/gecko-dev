@@ -18,7 +18,7 @@ SimpleTest.waitForFocus(() => {
   document.execCommand("insertText", false, "d");
   is(
     document.querySelector("p+p").innerHTML,
-    "d<br>",
+    "d",
     "The typed text should not be wrapped in <font face=\"monospace\">"
   );
   document.designMode = "off";
