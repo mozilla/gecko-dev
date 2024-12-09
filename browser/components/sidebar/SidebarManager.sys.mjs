@@ -62,7 +62,7 @@ export const SidebarManager = {
         }
       };
       setPref("nimbus", slug);
-      ["main.tools", "revamp", "verticalTabs"].forEach(pref =>
+      ["main.tools", "revamp", "verticalTabs", "visibility"].forEach(pref =>
         setPref(pref, lazy.NimbusFeatures[featureId].getVariable(pref))
       );
     });

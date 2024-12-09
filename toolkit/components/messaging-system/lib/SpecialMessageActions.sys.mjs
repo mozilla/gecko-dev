@@ -224,6 +224,7 @@ export const SpecialMessageActions = {
       "browser.toolbars.bookmarks.visibility",
       "sidebar.verticalTabs",
       "sidebar.revamp",
+      "sidebar.visibility",
     ];
 
     if (

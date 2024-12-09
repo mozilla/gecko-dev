@@ -1581,7 +1581,7 @@ const SingleSelect = ({
   const autoTriggerAllowed = itemAction => {
     // Currently only enabled for sidebar experiment prefs
     const allowedActions = ["SET_PREF"];
-    const allowedPrefs = ["sidebar.revamp", "sidebar.verticalTabs"];
+    const allowedPrefs = ["sidebar.revamp", "sidebar.verticalTabs", "sidebar.visibility"];
     const checkAction = action => {
       if (!allowedActions.includes(action.type)) {
         return false;
