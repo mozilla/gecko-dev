@@ -2814,9 +2814,9 @@ HashNumber PathCacheEntry::HashPath(const QuantizedPath& aPath,
 static inline bool HasMatchingScale(const Matrix& aTransform1,
                                     const Matrix& aTransform2) {
   return FuzzyEqual(aTransform1._11, aTransform2._11) &&
+         FuzzyEqual(aTransform1._22, aTransform2._22) &&
          FuzzyEqual(aTransform1._12, aTransform2._12) &&
-         FuzzyEqual(aTransform1._21, aTransform2._21) &&
-         FuzzyEqual(aTransform1._22, aTransform2._22);
+         FuzzyEqual(aTransform1._21, aTransform2._21);
 }
 
 // Determines if an existing path cache entry matches an incoming path and
@@ -4296,6 +4296,25 @@ static void ReleaseGlyphCache(void* aPtr) {
   delete static_cast<GlyphCache*>(aPtr);
 }
 
+// Whether all glyphs in the buffer match the last whitespace glyph queried.
+bool GlyphCache::IsWhitespace(const GlyphBuffer& aBuffer) const {
+  if (!mLastWhitespace) {
+    return false;
+  }
+  uint32_t whitespace = *mLastWhitespace;
+  for (size_t i = 0; i < aBuffer.mNumGlyphs; ++i) {
+    if (aBuffer.mGlyphs[i].mIndex != whitespace) {
+      return false;
+    }
+  }
+  return true;
+}
+
+// Remember the last whitespace glyph seen.
+void GlyphCache::SetLastWhitespace(const GlyphBuffer& aBuffer) {
+  mLastWhitespace = Some(aBuffer.mGlyphs[0].mIndex);
+}
+
 void DrawTargetWebgl::SetPermitSubpixelAA(bool aPermitSubpixelAA) {
   DrawTarget::SetPermitSubpixelAA(aPermitSubpixelAA);
   mSkia->SetPermitSubpixelAA(aPermitSubpixelAA);
@@ -4369,6 +4388,21 @@ bool SharedContextWebgl::DrawGlyphsAccel(ScaledFont* aFont,
                                          const DrawOptions& aOptions,
                                          const StrokeOptions* aStrokeOptions,
                                          bool aUseSubpixelAA) {
+  // Look for an existing glyph cache on the font. If not there, create it.
+  GlyphCache* cache =
+      static_cast<GlyphCache*>(aFont->GetUserData(&mGlyphCacheKey));
+  if (!cache) {
+    cache = new GlyphCache(aFont);
+    aFont->AddUserData(&mGlyphCacheKey, cache, ReleaseGlyphCache);
+    mGlyphCaches.insertFront(cache);
+  }
+
+  // Check if the buffer contains non-renderable whitespace characters before
+  // any other expensive checks.
+  if (cache->IsWhitespace(aBuffer)) {
+    return true;
+  }
+
   // Whether the font may use bitmaps. If so, we need to render the glyphs with
   // color as grayscale bitmaps will use the color while color emoji will not,
   // with no easy way to know ahead of time. We currently have to check the
@@ -4378,15 +4412,6 @@ bool SharedContextWebgl::DrawGlyphsAccel(ScaledFont* aFont,
   // as for color emoji.
   bool useBitmaps = !aStrokeOptions && aFont->MayUseBitmaps() &&
                     aOptions.mCompositionOp != CompositionOp::OP_CLEAR;
-
-  // Look for an existing glyph cache on the font. If not there, create it.
-  GlyphCache* cache =
-      static_cast<GlyphCache*>(aFont->GetUserData(&mGlyphCacheKey));
-  if (!cache) {
-    cache = new GlyphCache(aFont);
-    aFont->AddUserData(&mGlyphCacheKey, cache, ReleaseGlyphCache);
-    mGlyphCaches.insertFront(cache);
-  }
   // Hash the incoming text run and looking for a matching entry.
   DeviceColor color = aOptions.mCompositionOp == CompositionOp::OP_CLEAR
                           ? DeviceColor(1, 1, 1, 1)
@@ -4432,6 +4457,9 @@ bool SharedContextWebgl::DrawGlyphsAccel(ScaledFont* aFont,
     Maybe<Rect> bounds = mCurrentTarget->mSkia->GetGlyphLocalBounds(
         aFont, aBuffer, aPattern, aStrokeOptions, aOptions);
     if (!bounds) {
+      // Assume the buffer is full of whitespace characters that should be
+      // remembered for subsequent lookups.
+      cache->SetLastWhitespace(aBuffer);
       return true;
     }
     // Transform the local bounds into device space so that we know how big

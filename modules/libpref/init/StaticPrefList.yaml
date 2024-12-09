@@ -6055,7 +6055,7 @@
 
 - name: gfx.canvas.accelerated.cache-items
   type: RelaxedAtomicUint32
-  value: 2048
+  value: 8192
   mirror: always
 
 - name: gfx.canvas.accelerated.cache-size
