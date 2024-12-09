@@ -79,6 +79,15 @@ def ensure_compatible_histogram(metric, probe):
             probe.kind() == "count"
         ), f"Metric {metric.identifier()} is a `counter` mapping to a histogram, but {probe.name()} isn't a 'count' Histogram (is '{probe.kind()}')."
         return
+    elif metric.type == "labeled_counter":
+        assert (
+            probe.kind() == "boolean"
+        ), f"Metric {metric.identifier()} is a `labeled_counter` mapping to a histogram, but {probe.name()} isn't a 'boolean' Histogram (is '{probe.kind()}')."
+        assert metric.ordered_labels == [
+            "false",
+            "true",
+        ], f"Metric {metric.identifier()} is a `labeled_counter` mapping to a boolean histogram, but it doesn't have labels ['false', 'true'] (has {metric.ordered_labels} instead)."
+        return
 
     assert probe.kind() in [
         "linear",

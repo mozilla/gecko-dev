@@ -45,6 +45,7 @@ GIFFT_TYPES = {
         "timing_distribution",
         "labeled_timing_distribution",
         "counter",
+        "labeled_counter",
     ],
     "Scalar": [
         "boolean",

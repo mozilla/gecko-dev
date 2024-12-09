@@ -314,6 +314,41 @@ add_task(function test_gifft_labeled_counter() {
     },
     value
   );
+
+  // What about a labeled_counter that maps to a boolean hgram?
+  Assert.equal(
+    undefined,
+    Glean.testOnlyIpc.aLabeledCounterForHgram.true.testGetValue()
+  );
+  Assert.equal(
+    undefined,
+    Glean.testOnlyIpc.aLabeledCounterForHgram.false.testGetValue()
+  );
+
+  Glean.testOnlyIpc.aLabeledCounterForHgram.true.add(1);
+  Glean.testOnlyIpc.aLabeledCounterForHgram.true.add(1);
+  Glean.testOnlyIpc.aLabeledCounterForHgram.false.add(1);
+
+  Assert.equal(
+    2,
+    Glean.testOnlyIpc.aLabeledCounterForHgram.true.testGetValue()
+  );
+  Assert.equal(
+    1,
+    Glean.testOnlyIpc.aLabeledCounterForHgram.false.testGetValue()
+  );
+
+  value = Telemetry.getHistogramById("TELEMETRY_TEST_BOOLEAN");
+  Assert.deepEqual(
+    {
+      bucket_count: 3,
+      histogram_type: 2,
+      sum: 2,
+      range: [1, 2],
+      values: { 0: 1, 1: 2, 2: 0 },
+    },
+    value.snapshot()
+  );
 });
 
 add_task(async function test_gifft_timespan() {

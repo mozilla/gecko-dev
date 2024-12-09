@@ -796,6 +796,30 @@ test_only.ipc:
       - COMMON_PREFIX
     telemetry_mirror: h#TELEMETRY_TEST_COUNT
 
+  a_labeled_counter_for_hgram:
+    type: labeled_counter
+    description: |
+      This is a test-only metric.
+      Just counting things.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1646165
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1685406
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1646165#c1
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - glean-team@mozilla.com
+    expires: never
+    send_in_pings:
+      - store1
+    no_lint:
+      - COMMON_PREFIX
+    labels:
+      - "false"
+      - "true"
+    telemetry_mirror: h#TELEMETRY_TEST_BOOLEAN
+
   an_unordered_bool:
     type: boolean
     description: |

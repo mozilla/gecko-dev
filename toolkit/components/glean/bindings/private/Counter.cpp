@@ -24,13 +24,35 @@ void CounterMetric::Add(int32_t aAmount) const {
     if (scalarId) {
       TelemetryScalar::Add(scalarId.extract(), aAmount);
     } else if (IsSubmetricId(mId)) {
+      bool mirrorsToKeyedScalar = false;
       GetLabeledMirrorLock().apply([&](const auto& lock) {
         auto tuple = lock.ref()->MaybeGet(mId);
+        mirrorsToKeyedScalar = !!tuple;
         if (tuple && aAmount > 0) {
           TelemetryScalar::Add(std::get<0>(tuple.ref()),
                                std::get<1>(tuple.ref()), (uint32_t)aAmount);
         }
       });
+      if (!mirrorsToKeyedScalar) {
+        GetLabeledDistributionMirrorLock().apply([&](const auto& lock) {
+          auto tuple = lock.ref()->MaybeGet(mId);
+          if (tuple) {
+            MOZ_ASSERT(aAmount == 1,
+                       "When mirroring to boolean histograms, we only support "
+                       "accumulating one sample at a time.");
+            auto& label = std::get<1>(tuple.ref());
+            if (label.EqualsASCII("true")) {
+              Telemetry::Accumulate(std::get<0>(tuple.ref()), true);
+            } else if (label.EqualsASCII("false")) {
+              Telemetry::Accumulate(std::get<0>(tuple.ref()), false);
+            } else {
+              MOZ_ASSERT_UNREACHABLE(
+                  "When mirroring to boolean histograms, we only support "
+                  "labels 'true' and 'false'");
+            }
+          }
+        });
+      }
     } else {
       auto hgramId = HistogramIdForMetric(mId);
       if (hgramId) {
