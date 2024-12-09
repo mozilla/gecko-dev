@@ -27,7 +27,6 @@ import androidx.compose.material.Icon
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
@@ -67,14 +66,14 @@ fun ThemeOnboardingPage(
         with(pageState) {
             // Main content group
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Spacer(Modifier.height(28.dp))
+                Spacer(Modifier.height(18.dp))
                 Image(
                     painter = painterResource(id = imageRes),
                     contentDescription = null,
-                    modifier = Modifier.width(323.dp),
+                    modifier = Modifier.width(263.dp),
                 )
 
-                Spacer(Modifier.height(68.dp))
+                Spacer(Modifier.height(52.dp))
 
                 Text(
                     text = title,
@@ -92,7 +91,7 @@ fun ThemeOnboardingPage(
                     style = FirefoxTheme.typography.body2,
                 )
 
-                Spacer(Modifier.height(34.dp))
+                Spacer(Modifier.height(32.dp))
 
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
                     ThemeOptions(
@@ -104,7 +103,7 @@ fun ThemeOnboardingPage(
                 }
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
             Column {
                 PrimaryButton(
