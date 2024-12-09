@@ -194,6 +194,9 @@ class CancelableBlockState : public InputBlockState {
 
   bool ShouldDropEvents() const override;
 
+  bool HasStateBeenReset() const { return mHasStateBeenReset; };
+  void ResetState() { mHasStateBeenReset = true; }
+
   void ResetContentResponseTimerExpired() {
     mContentResponseTimerExpired = false;
     mContentResponded = false;
@@ -203,6 +206,7 @@ class CancelableBlockState : public InputBlockState {
   bool mPreventDefault;
   bool mContentResponded;
   bool mContentResponseTimerExpired;
+  bool mHasStateBeenReset;
 };
 
 /**

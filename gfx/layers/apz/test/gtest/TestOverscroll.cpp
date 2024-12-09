@@ -2293,3 +2293,59 @@ TEST_F(APZCOverscrollTester, HoldGestureDuringOverscroll) {
   SampleAnimationUntilRecoveredFromOverscroll(ParentLayerPoint(0, 0));
 }
 #endif
+
+#ifdef MOZ_WIDGET_ANDROID  // Only testable with WidgetOverscrollEffect
+TEST_F(APZCOverscrollTester, ResetTouchInputStateJustOnce) {
+  SCOPED_GFX_PREF_BOOL("apz.overscroll.enabled", true);
+
+  MakeApzcWaitForMainThread();
+
+  InSequence s;
+  // The UpdateOverscrollVelocity should be called just once for the initial
+  // touchdown event which will be preventDefault-ed.
+  EXPECT_CALL(*mcc, UpdateOverscrollVelocity(_, _, _, _)).Times(1);
+
+  ScreenIntPoint touchPoint(5, 5);
+  APZEventResult result = TouchDown(apzc, touchPoint, mcc->Time());
+  SetDefaultAllowedTouchBehavior(apzc, result.mInputBlockId);
+  apzc->ContentReceivedInputBlock(result.mInputBlockId,
+                                  /*aPreventDefault=*/true);
+
+  for (int i = 0; i < 5; ++i) {
+    touchPoint.y -= 1;
+    mcc->AdvanceByMillis(10);
+    TouchMove(apzc, touchPoint, mcc->Time());
+  }
+
+  mcc->AdvanceByMillis(10);
+  TouchUp(apzc, touchPoint, mcc->Time());
+}
+#endif
+
+#ifdef MOZ_WIDGET_ANDROID  // Only testable with WidgetOverscrollEffect
+TEST_F(APZCOverscrollTester, ResetPanGestureInputStateJustOnce) {
+  SCOPED_GFX_PREF_BOOL("apz.overscroll.enabled", true);
+
+  MakeApzcWaitForMainThread();
+
+  InSequence s;
+  // The UpdateOverscrollVelocity should be called just once for the initial
+  // pan-start event (wheel event) which will be preventDefault-ed.
+  EXPECT_CALL(*mcc, UpdateOverscrollVelocity(_, _, _, _)).Times(1);
+
+  ScreenIntPoint panPoint(5, 5);
+  APZEventResult result = PanGesture(PanGestureInput::PANGESTURE_START, apzc,
+                                     panPoint, ScreenPoint(0, 1), mcc->Time());
+  apzc->ContentReceivedInputBlock(result.mInputBlockId,
+                                  /*aPreventDefault=*/true);
+  for (int i = 0; i < 5; ++i) {
+    mcc->AdvanceByMillis(10);
+    PanGesture(PanGestureInput::PANGESTURE_PAN, apzc, panPoint,
+               ScreenPoint(0, 1), mcc->Time());
+  }
+
+  mcc->AdvanceByMillis(10);
+  PanGesture(PanGestureInput::PANGESTURE_END, apzc, panPoint,
+             ScreenPoint(0, 0), mcc->Time());
+}
+#endif

@@ -196,7 +196,8 @@ CancelableBlockState::CancelableBlockState(
     : InputBlockState(aTargetApzc, aFlags),
       mPreventDefault(false),
       mContentResponded(false),
-      mContentResponseTimerExpired(false) {}
+      mContentResponseTimerExpired(false),
+      mHasStateBeenReset(false) {}
 
 bool CancelableBlockState::SetContentResponse(bool aPreventDefault) {
   if (mContentResponded) {
