@@ -1422,7 +1422,7 @@ nsCSSFrameConstructor::nsCSSFrameConstructor(Document* aDocument,
       mQuotesDirty(false),
       mCountersDirty(false),
       mAlwaysCreateFramesForIgnorableWhitespace(false),
-      mReframingForViewportStyles(false) {
+      mRemovingContent(false) {
 #ifdef DEBUG
   static bool gFirstTime = true;
   if (gFirstTime) {
@@ -7312,6 +7312,10 @@ bool nsCSSFrameConstructor::ContentWillBeRemoved(nsIContent* aChild,
   nsPresContext* presContext = mPresShell->GetPresContext();
   MOZ_ASSERT(presContext, "Our presShell should have a valid presContext");
 
+  const bool wasRemovingContent = mRemovingContent;
+  auto _ = MakeScopeExit([&] { mRemovingContent = wasRemovingContent; });
+  mRemovingContent = true;
+
   // We want to detect when the viewport override element stored in the
   // prescontext is in the subtree being removed.  Except in fullscreen cases
   // (which are handled in Element::UnbindFromTree and do not get stored on the
@@ -7319,9 +7323,14 @@ bool nsCSSFrameConstructor::ContentWillBeRemoved(nsIContent* aChild,
   // <body> child of the root element.  So we can only be removing the stored
   // override element if the thing being removed is either the override element
   // itself or the root element (which can be a parent of the override element).
+  //
+  // The !wasRemovingContent check makes sure that we don't re-enter here from
+  // other ContentWillBeRemoved calls, as that'd be useless work, and we don't
+  // want to incorrectly pick aChild again as our viewport scroll style element
+  // if it's getting removed from the DOM.
   if ((aChild == presContext->GetViewportScrollStylesOverrideElement() ||
        aChild->IsRootElement()) &&
-      !mReframingForViewportStyles) {
+      !wasRemovingContent) {
     // We might be removing the element that we propagated viewport scrollbar
     // styles from.  Recompute those. (This clause covers two of the three
     // possible scrollbar-propagation sources: the <body> [as aChild or a
@@ -7348,16 +7357,10 @@ bool nsCSSFrameConstructor::ContentWillBeRemoved(nsIContent* aChild,
     // used to have a scrollframe (because its overflow was not "visible"), but
     // now it will propagate its overflow to the viewport, so it should not need
     // a scrollframe anymore.
-    //
-    // Make sure to not reenter here in that case, as we don't want to
-    // incorrectly pick aChild again as our viewport scroll style element (if
-    // it's getting removed from the DOM).
     if (aChild->GetParent() && newOverrideElement &&
         newOverrideElement->GetParent() && newOverrideElement != aChild) {
       LAYOUT_PHASE_TEMP_EXIT();
-      mReframingForViewportStyles = true;
       RecreateFramesForContent(newOverrideElement, InsertionKind::Async);
-      mReframingForViewportStyles = false;
       LAYOUT_PHASE_TEMP_REENTER();
     }
   }
