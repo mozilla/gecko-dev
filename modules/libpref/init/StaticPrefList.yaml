@@ -10752,11 +10752,7 @@
 
 - name: media.ffvpx-hw.enabled
   type: RelaxedAtomicBool
-#if defined(XP_WIN)
-  value: @IS_NIGHTLY_BUILD@
-#else
   value: false
-#endif
   mirror: always
 
 # The codecs in the vendored ffmpeg copy are usually prefered to the other
