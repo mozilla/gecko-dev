@@ -150,6 +150,46 @@ class GithubEvents(BaseClient):
         }
         return self._makeTopicExchange(ref, *args, **kwargs)
 
+    def rerun(self, *args, **kwargs):
+        """
+        GitHub re-run task Event
+
+        When a GitHub check_run event with action="rerequested" is posted
+        it will be broadcast on this exchange with the designated
+        `organization` and `repository`
+        in the routing-key along with event specific metadata in the payload.
+
+        This exchange takes the following keys:
+
+         * routingKeyKind: Identifier for the routing-key kind. This is always `"primary"` for the formalized routing key. (required)
+
+         * organization: The GitHub `organization` which had an event. All periods have been replaced by % - such that foo.bar becomes foo%bar - and all other special characters aside from - and _ have been stripped. (required)
+
+         * repository: The GitHub `repository` which had an event.All periods have been replaced by % - such that foo.bar becomes foo%bar - and all other special characters aside from - and _ have been stripped. (required)
+        """
+
+        ref = {
+            'exchange': 'rerun',
+            'name': 'rerun',
+            'routingKey': [
+                {
+                    'constant': 'primary',
+                    'multipleWords': False,
+                    'name': 'routingKeyKind',
+                },
+                {
+                    'multipleWords': False,
+                    'name': 'organization',
+                },
+                {
+                    'multipleWords': False,
+                    'name': 'repository',
+                },
+            ],
+            'schema': 'v1/github-rerun-message.json#',
+        }
+        return self._makeTopicExchange(ref, *args, **kwargs)
+
     def taskGroupCreationRequested(self, *args, **kwargs):
         """
         tc-gh requested the Queue service to create all the tasks in a group

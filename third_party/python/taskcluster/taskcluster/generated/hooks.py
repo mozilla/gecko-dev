@@ -34,6 +34,30 @@ class Hooks(BaseClient):
 
         return self._makeApiCall(self.funcinfo["ping"], *args, **kwargs)
 
+    def lbheartbeat(self, *args, **kwargs):
+        """
+        Load Balancer Heartbeat
+
+        Respond without doing anything.
+        This endpoint is used to check that the service is up.
+
+        This method is ``stable``
+        """
+
+        return self._makeApiCall(self.funcinfo["lbheartbeat"], *args, **kwargs)
+
+    def version(self, *args, **kwargs):
+        """
+        Taskcluster Version
+
+        Respond with the JSON version object.
+        https://github.com/mozilla-services/Dockerflow/blob/main/docs/version_object.md
+
+        This method is ``stable``
+        """
+
+        return self._makeApiCall(self.funcinfo["version"], *args, **kwargs)
+
     def listHookGroups(self, *args, **kwargs):
         """
         List hook groups
@@ -182,10 +206,26 @@ class Hooks(BaseClient):
         This endpoint will return information about the the last few times this hook has been
         fired, including whether the hook was fired successfully or not
 
+        By default this endpoint will return up to 1000 most recent fires in one request.
+
         This method is ``stable``
         """
 
         return self._makeApiCall(self.funcinfo["listLastFires"], *args, **kwargs)
+
+    def heartbeat(self, *args, **kwargs):
+        """
+        Heartbeat
+
+        Respond with a service heartbeat.
+
+        This endpoint is used to check on backing services this service
+        depends on.
+
+        This method is ``stable``
+        """
+
+        return self._makeApiCall(self.funcinfo["heartbeat"], *args, **kwargs)
 
     funcinfo = {
         "createHook": {
@@ -213,12 +253,26 @@ class Hooks(BaseClient):
             'route': '/hooks/<hookGroupId>/<hookId>/token',
             'stability': 'stable',
         },
+        "heartbeat": {
+            'args': [],
+            'method': 'get',
+            'name': 'heartbeat',
+            'route': '/__heartbeat__',
+            'stability': 'stable',
+        },
         "hook": {
             'args': ['hookGroupId', 'hookId'],
             'method': 'get',
             'name': 'hook',
             'output': 'v1/hook-definition.json#',
             'route': '/hooks/<hookGroupId>/<hookId>',
+            'stability': 'stable',
+        },
+        "lbheartbeat": {
+            'args': [],
+            'method': 'get',
+            'name': 'lbheartbeat',
+            'route': '/__lbheartbeat__',
             'stability': 'stable',
         },
         "listHookGroups": {
@@ -242,6 +296,7 @@ class Hooks(BaseClient):
             'method': 'get',
             'name': 'listLastFires',
             'output': 'v1/list-lastFires-response.json#',
+            'query': ['continuationToken', 'limit'],
             'route': '/hooks/<hookGroupId>/<hookId>/last-fires',
             'stability': 'stable',
         },
@@ -292,6 +347,13 @@ class Hooks(BaseClient):
             'name': 'updateHook',
             'output': 'v1/hook-definition.json#',
             'route': '/hooks/<hookGroupId>/<hookId>',
+            'stability': 'stable',
+        },
+        "version": {
+            'args': [],
+            'method': 'get',
+            'name': 'version',
+            'route': '/__version__',
             'stability': 'stable',
         },
     }

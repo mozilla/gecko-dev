@@ -26,11 +26,23 @@ class WorkerManagerEvents(AsyncBaseClient):
         """
         Worker Pool Created Messages
 
-        Whenever the api receives a request to create aworker pool, a message is posted to this exchange anda provider can act upon it.
+        Whenever the api receives a request to create a
+        worker pool, a message is posted to this exchange and
+        a provider can act upon it.
 
         This exchange takes the following keys:
 
          * routingKeyKind: Identifier for the routing-key kind. This is always `'primary'` for the formalized routing key. (required)
+
+         * providerId: Provider.
+
+         * provisionerId: First part of the workerPoolId.
+
+         * workerType: Second part of the workerPoolId.
+
+         * workerGroup: Worker group of the worker (region or location)
+
+         * workerId: Worker ID
 
          * reserved: Space reserved for future routing-key entries, you should always match this entry with `#`. As automatically done by our tooling, if not specified.
         """
@@ -45,6 +57,26 @@ class WorkerManagerEvents(AsyncBaseClient):
                     'name': 'routingKeyKind',
                 },
                 {
+                    'multipleWords': False,
+                    'name': 'providerId',
+                },
+                {
+                    'multipleWords': False,
+                    'name': 'provisionerId',
+                },
+                {
+                    'multipleWords': False,
+                    'name': 'workerType',
+                },
+                {
+                    'multipleWords': False,
+                    'name': 'workerGroup',
+                },
+                {
+                    'multipleWords': False,
+                    'name': 'workerId',
+                },
+                {
                     'multipleWords': True,
                     'name': 'reserved',
                 },
@@ -57,11 +89,23 @@ class WorkerManagerEvents(AsyncBaseClient):
         """
         Worker Pool Updated Messages
 
-        Whenever the api receives a request to update aworker pool, a message is posted to this exchange anda provider can act upon it.
+        Whenever the api receives a request to update a
+        worker pool, a message is posted to this exchange and
+        a provider can act upon it.
 
         This exchange takes the following keys:
 
          * routingKeyKind: Identifier for the routing-key kind. This is always `'primary'` for the formalized routing key. (required)
+
+         * providerId: Provider.
+
+         * provisionerId: First part of the workerPoolId.
+
+         * workerType: Second part of the workerPoolId.
+
+         * workerGroup: Worker group of the worker (region or location)
+
+         * workerId: Worker ID
 
          * reserved: Space reserved for future routing-key entries, you should always match this entry with `#`. As automatically done by our tooling, if not specified.
         """
@@ -76,11 +120,347 @@ class WorkerManagerEvents(AsyncBaseClient):
                     'name': 'routingKeyKind',
                 },
                 {
+                    'multipleWords': False,
+                    'name': 'providerId',
+                },
+                {
+                    'multipleWords': False,
+                    'name': 'provisionerId',
+                },
+                {
+                    'multipleWords': False,
+                    'name': 'workerType',
+                },
+                {
+                    'multipleWords': False,
+                    'name': 'workerGroup',
+                },
+                {
+                    'multipleWords': False,
+                    'name': 'workerId',
+                },
+                {
                     'multipleWords': True,
                     'name': 'reserved',
                 },
             ],
             'schema': 'v1/pulse-worker-pool-message.json#',
+        }
+        return self._makeTopicExchange(ref, *args, **kwargs)
+
+    def workerPoolError(self, *args, **kwargs):
+        """
+        Worker Pool Provisioning Error Messages
+
+        Whenever a worker reports an error
+        or provisioner encounters an error while
+        provisioning a worker pool, a message is posted to this
+        exchange.
+
+        This exchange takes the following keys:
+
+         * routingKeyKind: Identifier for the routing-key kind. This is always `'primary'` for the formalized routing key. (required)
+
+         * providerId: Provider.
+
+         * provisionerId: First part of the workerPoolId.
+
+         * workerType: Second part of the workerPoolId.
+
+         * workerGroup: Worker group of the worker (region or location)
+
+         * workerId: Worker ID
+
+         * reserved: Space reserved for future routing-key entries, you should always match this entry with `#`. As automatically done by our tooling, if not specified.
+        """
+
+        ref = {
+            'exchange': 'worker-pool-error',
+            'name': 'workerPoolError',
+            'routingKey': [
+                {
+                    'constant': 'primary',
+                    'multipleWords': False,
+                    'name': 'routingKeyKind',
+                },
+                {
+                    'multipleWords': False,
+                    'name': 'providerId',
+                },
+                {
+                    'multipleWords': False,
+                    'name': 'provisionerId',
+                },
+                {
+                    'multipleWords': False,
+                    'name': 'workerType',
+                },
+                {
+                    'multipleWords': False,
+                    'name': 'workerGroup',
+                },
+                {
+                    'multipleWords': False,
+                    'name': 'workerId',
+                },
+                {
+                    'multipleWords': True,
+                    'name': 'reserved',
+                },
+            ],
+            'schema': 'v1/pulse-worker-pool-error-message.json#',
+        }
+        return self._makeTopicExchange(ref, *args, **kwargs)
+
+    def workerRequested(self, *args, **kwargs):
+        """
+        Worker Requested Messages
+
+        Whenever a worker is requested, a message is posted
+        to this exchange.
+
+        This exchange takes the following keys:
+
+         * routingKeyKind: Identifier for the routing-key kind. This is always `'primary'` for the formalized routing key. (required)
+
+         * providerId: Provider. (required)
+
+         * provisionerId: First part of the workerPoolId. (required)
+
+         * workerType: Second part of the workerPoolId. (required)
+
+         * workerGroup: Worker group of the worker (region or location) (required)
+
+         * workerId: Worker ID (required)
+
+         * reserved: Space reserved for future routing-key entries, you should always match this entry with `#`. As automatically done by our tooling, if not specified.
+        """
+
+        ref = {
+            'exchange': 'worker-requested',
+            'name': 'workerRequested',
+            'routingKey': [
+                {
+                    'constant': 'primary',
+                    'multipleWords': False,
+                    'name': 'routingKeyKind',
+                },
+                {
+                    'multipleWords': False,
+                    'name': 'providerId',
+                },
+                {
+                    'multipleWords': False,
+                    'name': 'provisionerId',
+                },
+                {
+                    'multipleWords': False,
+                    'name': 'workerType',
+                },
+                {
+                    'multipleWords': False,
+                    'name': 'workerGroup',
+                },
+                {
+                    'multipleWords': False,
+                    'name': 'workerId',
+                },
+                {
+                    'multipleWords': True,
+                    'name': 'reserved',
+                },
+            ],
+            'schema': 'v1/pulse-worker-message.json#',
+        }
+        return self._makeTopicExchange(ref, *args, **kwargs)
+
+    def workerRunning(self, *args, **kwargs):
+        """
+        Worker Running Messages
+
+        Whenever a worker has registered, a message is posted
+        to this exchange. This means that worker started
+        successfully and is ready to claim work.
+
+        This exchange takes the following keys:
+
+         * routingKeyKind: Identifier for the routing-key kind. This is always `'primary'` for the formalized routing key. (required)
+
+         * providerId: Provider. (required)
+
+         * provisionerId: First part of the workerPoolId. (required)
+
+         * workerType: Second part of the workerPoolId. (required)
+
+         * workerGroup: Worker group of the worker (region or location) (required)
+
+         * workerId: Worker ID (required)
+
+         * reserved: Space reserved for future routing-key entries, you should always match this entry with `#`. As automatically done by our tooling, if not specified.
+        """
+
+        ref = {
+            'exchange': 'worker-running',
+            'name': 'workerRunning',
+            'routingKey': [
+                {
+                    'constant': 'primary',
+                    'multipleWords': False,
+                    'name': 'routingKeyKind',
+                },
+                {
+                    'multipleWords': False,
+                    'name': 'providerId',
+                },
+                {
+                    'multipleWords': False,
+                    'name': 'provisionerId',
+                },
+                {
+                    'multipleWords': False,
+                    'name': 'workerType',
+                },
+                {
+                    'multipleWords': False,
+                    'name': 'workerGroup',
+                },
+                {
+                    'multipleWords': False,
+                    'name': 'workerId',
+                },
+                {
+                    'multipleWords': True,
+                    'name': 'reserved',
+                },
+            ],
+            'schema': 'v1/pulse-worker-message.json#',
+        }
+        return self._makeTopicExchange(ref, *args, **kwargs)
+
+    def workerStopped(self, *args, **kwargs):
+        """
+        Worker Stopped Messages
+
+        Whenever a worker has stopped, a message is posted
+        to this exchange. This means that instance was
+        either terminated or stopped gracefully.
+
+        This exchange takes the following keys:
+
+         * routingKeyKind: Identifier for the routing-key kind. This is always `'primary'` for the formalized routing key. (required)
+
+         * providerId: Provider. (required)
+
+         * provisionerId: First part of the workerPoolId. (required)
+
+         * workerType: Second part of the workerPoolId. (required)
+
+         * workerGroup: Worker group of the worker (region or location) (required)
+
+         * workerId: Worker ID (required)
+
+         * reserved: Space reserved for future routing-key entries, you should always match this entry with `#`. As automatically done by our tooling, if not specified.
+        """
+
+        ref = {
+            'exchange': 'worker-stopped',
+            'name': 'workerStopped',
+            'routingKey': [
+                {
+                    'constant': 'primary',
+                    'multipleWords': False,
+                    'name': 'routingKeyKind',
+                },
+                {
+                    'multipleWords': False,
+                    'name': 'providerId',
+                },
+                {
+                    'multipleWords': False,
+                    'name': 'provisionerId',
+                },
+                {
+                    'multipleWords': False,
+                    'name': 'workerType',
+                },
+                {
+                    'multipleWords': False,
+                    'name': 'workerGroup',
+                },
+                {
+                    'multipleWords': False,
+                    'name': 'workerId',
+                },
+                {
+                    'multipleWords': True,
+                    'name': 'reserved',
+                },
+            ],
+            'schema': 'v1/pulse-worker-message.json#',
+        }
+        return self._makeTopicExchange(ref, *args, **kwargs)
+
+    def workerRemoved(self, *args, **kwargs):
+        """
+        Worker Removed Messages
+
+        Whenever a worker is removed, a message is posted to this exchange.
+        This occurs when a worker is requested to be removed via an API call
+        or when a worker is terminated by the worker manager.
+        The reason for the removal is included in the message.
+
+        This exchange takes the following keys:
+
+         * routingKeyKind: Identifier for the routing-key kind. This is always `'primary'` for the formalized routing key. (required)
+
+         * providerId: Provider. (required)
+
+         * provisionerId: First part of the workerPoolId. (required)
+
+         * workerType: Second part of the workerPoolId. (required)
+
+         * workerGroup: Worker group of the worker (region or location) (required)
+
+         * workerId: Worker ID (required)
+
+         * reserved: Space reserved for future routing-key entries, you should always match this entry with `#`. As automatically done by our tooling, if not specified.
+        """
+
+        ref = {
+            'exchange': 'worker-removed',
+            'name': 'workerRemoved',
+            'routingKey': [
+                {
+                    'constant': 'primary',
+                    'multipleWords': False,
+                    'name': 'routingKeyKind',
+                },
+                {
+                    'multipleWords': False,
+                    'name': 'providerId',
+                },
+                {
+                    'multipleWords': False,
+                    'name': 'provisionerId',
+                },
+                {
+                    'multipleWords': False,
+                    'name': 'workerType',
+                },
+                {
+                    'multipleWords': False,
+                    'name': 'workerGroup',
+                },
+                {
+                    'multipleWords': False,
+                    'name': 'workerId',
+                },
+                {
+                    'multipleWords': True,
+                    'name': 'reserved',
+                },
+            ],
+            'schema': 'v1/pulse-worker-removed-message.json#',
         }
         return self._makeTopicExchange(ref, *args, **kwargs)
 

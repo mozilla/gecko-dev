@@ -13,10 +13,6 @@ This module provides several pre-defined readers and reader factories for
 common cases.
 """
 import functools
-import six
-
-if six.PY2:
-    raise ImportError("upload is only supported in Python 3")
 
 from .aio import upload as aio_upload
 from .aio.asyncutils import ensureCoro, runAsync

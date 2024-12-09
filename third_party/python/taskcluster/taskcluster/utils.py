@@ -10,7 +10,6 @@ import requests
 import requests.exceptions
 import slugid
 import time
-import six
 import random
 
 import taskcluster_urls as liburls
@@ -55,7 +54,7 @@ def calculateSleepTime(attempt):
 
 
 def toStr(obj, encoding='utf-8'):
-    if six.PY3 and isinstance(obj, six.binary_type):
+    if isinstance(obj, bytes):
         obj = obj.decode(encoding)
     else:
         obj = str(obj)
@@ -127,7 +126,7 @@ def dumpJson(obj, **kwargs):
     base64 encoding JSON results in \n sequences in the output.  Hawk
     barfs in your face if you have that in the text"""
     def handleDateAndBinaryForJs(x):
-        if six.PY3 and isinstance(x, six.binary_type):
+        if isinstance(x, bytes):
             x = x.decode()
         if isinstance(x, datetime.datetime) or isinstance(x, datetime.date):
             return stringDate(x)
@@ -154,7 +153,7 @@ def stringDate(date):
 
 def makeB64UrlSafe(b64str):
     """ Make a base64 string URL Safe """
-    if isinstance(b64str, six.text_type):
+    if isinstance(b64str, str):
         b64str = b64str.encode()
     # see RFC 4648, sec. 5
     return b64str.replace(b'+', b'-').replace(b'/', b'_')
@@ -162,7 +161,7 @@ def makeB64UrlSafe(b64str):
 
 def makeB64UrlUnsafe(b64str):
     """ Make a base64 string URL Unsafe """
-    if isinstance(b64str, six.text_type):
+    if isinstance(b64str, str):
         b64str = b64str.encode()
     # see RFC 4648, sec. 5
     return b64str.replace(b'-', b'+').replace(b'_', b'/')
@@ -170,12 +169,9 @@ def makeB64UrlUnsafe(b64str):
 
 def encodeStringForB64Header(s):
     """ HTTP Headers can't have new lines in them, let's """
-    if isinstance(s, six.text_type):
+    if isinstance(s, str):
         s = s.encode()
-    if six.PY3:
-        b64str = base64.encodebytes(s)
-    else:
-        b64str = base64.encodestring(s)
+    b64str = base64.encodebytes(s)
     return b64str.strip().replace(b'\n', b'')
 
 
@@ -265,7 +261,7 @@ def makeHttpRequest(method, url, payload, headers, retries=MAX_RETRIES, session=
             response = makeSingleHttpRequest(method, url, payload, headers, session)
         except requests.exceptions.RequestException as rerr:
             if retry < retries:
-                log.warn('Retrying because of: %s' % rerr)
+                log.warning('Retrying because of: %s' % rerr)
                 continue
             # raise a connection exception
             raise rerr
@@ -319,7 +315,7 @@ def decryptMessage(message, privateKey):
 
 def isExpired(certificate):
     """ Check if certificate is expired """
-    if isinstance(certificate, six.string_types):
+    if isinstance(certificate, str):
         certificate = json.loads(certificate)
     expiry = certificate.get('expiry', 0)
     return expiry < int(time.time() * 1000) + 20 * 60

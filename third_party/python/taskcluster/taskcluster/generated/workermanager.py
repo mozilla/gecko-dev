@@ -37,6 +37,30 @@ class WorkerManager(BaseClient):
 
         return self._makeApiCall(self.funcinfo["ping"], *args, **kwargs)
 
+    def lbheartbeat(self, *args, **kwargs):
+        """
+        Load Balancer Heartbeat
+
+        Respond without doing anything.
+        This endpoint is used to check that the service is up.
+
+        This method is ``stable``
+        """
+
+        return self._makeApiCall(self.funcinfo["lbheartbeat"], *args, **kwargs)
+
+    def version(self, *args, **kwargs):
+        """
+        Taskcluster Version
+
+        Respond with the JSON version object.
+        https://github.com/mozilla-services/Dockerflow/blob/main/docs/version_object.md
+
+        This method is ``stable``
+        """
+
+        return self._makeApiCall(self.funcinfo["version"], *args, **kwargs)
+
     def listProviders(self, *args, **kwargs):
         """
         List Providers
@@ -129,6 +153,21 @@ class WorkerManager(BaseClient):
         """
 
         return self._makeApiCall(self.funcinfo["reportWorkerError"], *args, **kwargs)
+
+    def workerPoolErrorStats(self, *args, **kwargs):
+        """
+        List Worker Pool Errors Count
+
+        Get the list of worker pool errors count.
+        Contains total count of errors for the past 7 days and 24 hours
+        Also includes total counts grouped by titles of error and error code.
+
+        If `workerPoolId` is not specified, it will return the count of all errors
+
+        This method is ``experimental``
+        """
+
+        return self._makeApiCall(self.funcinfo["workerPoolErrorStats"], *args, **kwargs)
 
     def listWorkerPoolErrors(self, *args, **kwargs):
         """
@@ -253,6 +292,52 @@ class WorkerManager(BaseClient):
 
         return self._makeApiCall(self.funcinfo["reregisterWorker"], *args, **kwargs)
 
+    def listWorkers(self, *args, **kwargs):
+        """
+        Get a list of all active workers of a workerType
+
+        Get a list of all active workers of a workerType.
+
+        `listWorkers` allows a response to be filtered by quarantined and non quarantined workers,
+        as well as the current state of the worker.
+        To filter the query, you should call the end-point with one of [`quarantined`, `workerState`]
+        as a query-string option with a true or false value.
+
+        The response is paged. If this end-point returns a `continuationToken`, you
+        should call the end-point again with the `continuationToken` as a query-string
+        option. By default this end-point will list up to 1000 workers in a single
+        page. You may limit this with the query-string parameter `limit`.
+
+        This method is ``experimental``
+        """
+
+        return self._makeApiCall(self.funcinfo["listWorkers"], *args, **kwargs)
+
+    def getWorker(self, *args, **kwargs):
+        """
+        Get a worker
+
+        Get a worker from a worker-type.
+
+        This method is ``experimental``
+        """
+
+        return self._makeApiCall(self.funcinfo["getWorker"], *args, **kwargs)
+
+    def heartbeat(self, *args, **kwargs):
+        """
+        Heartbeat
+
+        Respond with a service heartbeat.
+
+        This endpoint is used to check on backing services this service
+        depends on.
+
+        This method is ``stable``
+        """
+
+        return self._makeApiCall(self.funcinfo["heartbeat"], *args, **kwargs)
+
     funcinfo = {
         "createWorker": {
             'args': ['workerPoolId', 'workerGroup', 'workerId'],
@@ -260,7 +345,7 @@ class WorkerManager(BaseClient):
             'method': 'put',
             'name': 'createWorker',
             'output': 'v1/worker-full.json#',
-            'route': '/workers/<workerPoolId>:/<workerGroup>/<workerId>',
+            'route': '/workers/<workerPoolId>/<workerGroup>/<workerId>',
             'stability': 'stable',
         },
         "createWorkerPool": {
@@ -278,6 +363,28 @@ class WorkerManager(BaseClient):
             'name': 'deleteWorkerPool',
             'output': 'v1/worker-pool-full.json#',
             'route': '/worker-pool/<workerPoolId>',
+            'stability': 'stable',
+        },
+        "getWorker": {
+            'args': ['provisionerId', 'workerType', 'workerGroup', 'workerId'],
+            'method': 'get',
+            'name': 'getWorker',
+            'output': 'v1/worker-response.json#',
+            'route': '/provisioners/<provisionerId>/worker-types/<workerType>/workers/<workerGroup>/<workerId>',
+            'stability': 'experimental',
+        },
+        "heartbeat": {
+            'args': [],
+            'method': 'get',
+            'name': 'heartbeat',
+            'route': '/__heartbeat__',
+            'stability': 'stable',
+        },
+        "lbheartbeat": {
+            'args': [],
+            'method': 'get',
+            'name': 'lbheartbeat',
+            'route': '/__lbheartbeat__',
             'stability': 'stable',
         },
         "listProviders": {
@@ -307,13 +414,22 @@ class WorkerManager(BaseClient):
             'route': '/worker-pools',
             'stability': 'stable',
         },
+        "listWorkers": {
+            'args': ['provisionerId', 'workerType'],
+            'method': 'get',
+            'name': 'listWorkers',
+            'output': 'v1/list-workers-response.json#',
+            'query': ['continuationToken', 'limit', 'quarantined', 'workerState'],
+            'route': '/provisioners/<provisionerId>/worker-types/<workerType>/workers',
+            'stability': 'experimental',
+        },
         "listWorkersForWorkerGroup": {
             'args': ['workerPoolId', 'workerGroup'],
             'method': 'get',
             'name': 'listWorkersForWorkerGroup',
             'output': 'v1/worker-list.json#',
             'query': ['continuationToken', 'limit'],
-            'route': '/workers/<workerPoolId>:/<workerGroup>',
+            'route': '/workers/<workerPoolId>/<workerGroup>',
             'stability': 'stable',
         },
         "listWorkersForWorkerPool": {
@@ -321,7 +437,7 @@ class WorkerManager(BaseClient):
             'method': 'get',
             'name': 'listWorkersForWorkerPool',
             'output': 'v1/worker-list.json#',
-            'query': ['continuationToken', 'limit'],
+            'query': ['continuationToken', 'limit', 'state'],
             'route': '/workers/<workerPoolId>',
             'stability': 'stable',
         },
@@ -372,7 +488,7 @@ class WorkerManager(BaseClient):
             'method': 'post',
             'name': 'updateWorker',
             'output': 'v1/worker-full.json#',
-            'route': '/workers/<workerPoolId>:/<workerGroup>/<workerId>',
+            'route': '/workers/<workerPoolId>/<workerGroup>/<workerId>',
             'stability': 'stable',
         },
         "updateWorkerPool": {
@@ -384,12 +500,19 @@ class WorkerManager(BaseClient):
             'route': '/worker-pool/<workerPoolId>',
             'stability': 'experimental',
         },
+        "version": {
+            'args': [],
+            'method': 'get',
+            'name': 'version',
+            'route': '/__version__',
+            'stability': 'stable',
+        },
         "worker": {
             'args': ['workerPoolId', 'workerGroup', 'workerId'],
             'method': 'get',
             'name': 'worker',
             'output': 'v1/worker-full.json#',
-            'route': '/workers/<workerPoolId>:/<workerGroup>/<workerId>',
+            'route': '/workers/<workerPoolId>/<workerGroup>/<workerId>',
             'stability': 'stable',
         },
         "workerPool": {
@@ -399,6 +522,15 @@ class WorkerManager(BaseClient):
             'output': 'v1/worker-pool-full.json#',
             'route': '/worker-pool/<workerPoolId>',
             'stability': 'stable',
+        },
+        "workerPoolErrorStats": {
+            'args': [],
+            'method': 'get',
+            'name': 'workerPoolErrorStats',
+            'output': 'v1/worker-pool-error-stats.json#',
+            'query': ['workerPoolId'],
+            'route': '/worker-pool-errors/stats',
+            'stability': 'experimental',
         },
     }
 

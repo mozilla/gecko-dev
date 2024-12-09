@@ -14,19 +14,22 @@ file IO is important to the application.
 This module provides several pre-defined writers and writer factories for
 common cases.
 """
-import six
-
-if six.PY2:
-    raise ImportError("download is only supported in Python 3")
-
 import aiohttp
 import contextlib
+import datetime
+import hashlib
+
+from dateutil.parser import parse as dateparse
 
 from .asyncutils import ensureCoro
 from .reader_writer import streamingCopy, BufferWriter, FileWriter
 from .retry import retry
 from . import Object
-from ..exceptions import TaskclusterArtifactError, TaskclusterFailure
+from ..exceptions import TaskclusterArtifactError, TaskclusterFailure, ObjectHashVerificationError
+
+# The subset of hashes supported by HashingWriter which are "accepted" as per
+# the object service's schemas.
+ACCEPTABLE_HASHES = set(['sha256', 'sha512'])
 
 
 async def downloadToBuf(**kwargs):
@@ -72,22 +75,58 @@ async def download(*, name, maxRetries=5, objectService, writerFactory):
     async with aiohttp.ClientSession() as session:
         downloadResp = await ensureCoro(objectService.startDownload)(name, {
             "acceptDownloadMethods": {
-                "simple": True,
+                "getUrl": True,
             },
         })
 
         method = downloadResp["method"]
 
-        if method == "simple":
-            async def tryDownload(retryFor):
-                with _maybeRetryHttpRequest(retryFor):
-                    writer = await writerFactory()
-                    url = downloadResp['url']
-                    return await _doSimpleDownload(url, writer, session)
-
-            return await retry(maxRetries, tryDownload)
+        if method == "getUrl":
+            return await _getUrlDownload(name, downloadResp, objectService, writerFactory, session, maxRetries)
         else:
             raise RuntimeError(f'Unknown download method {method}')
+
+
+async def _getUrlDownload(name, downloadResp, objectService, writerFactory, session, maxRetries):
+    """
+    Implementation of the getUrl download method.
+    """
+    downloadRespUsed = False
+
+    async def tryDownload(retryFor):
+        nonlocal downloadResp
+        nonlocal downloadRespUsed
+
+        with _maybeRetryHttpRequest(retryFor):
+            writer = HashingWriter(await writerFactory())
+
+            # if the downloadResp has been used at least once and has now expired,
+            # get a new one before proceeding
+            if downloadRespUsed and dateparse(downloadResp["expires"]) < datetime.datetime.utcnow():
+                downloadResp = await ensureCoro(objectService.startDownload)(name, {
+                    "acceptDownloadMethods": {
+                        "getUrl": True,
+                    },
+                })
+                downloadRespUsed = False
+
+            downloadRespUsed = True
+            async with session.get(downloadResp["url"]) as resp:
+                contentType = resp.content_type
+                resp.raise_for_status()
+                # note that `resp.content` is a StreamReader and satisfies the
+                # requirements of a reader in this case
+                await streamingCopy(resp.content, writer)
+
+            # having completed the download, verify the hashes.  Note that a
+            # hash verification failure is not retried.
+            observedHashes = writer.hashes()
+            expectedHashes = downloadResp["hashes"]
+            verifyHashes(observedHashes, expectedHashes)
+
+            return contentType
+
+    return await retry(maxRetries, tryDownload)
 
 
 async def downloadArtifactToBuf(**kwargs):
@@ -137,13 +176,7 @@ async def downloadArtifact(*, taskId, name, runId=None, maxRetries=5, queueServi
 
     if artifact["storageType"] == 's3' or artifact["storageType"] == 'reference':
         async with aiohttp.ClientSession() as session:
-
-            async def tryDownload(retryFor):
-                with _maybeRetryHttpRequest(retryFor):
-                    writer = await writerFactory()
-                    return await _doSimpleDownload(artifact["url"], writer, session)
-
-            return await retry(maxRetries, tryDownload)
+            return await _s3Download(artifact["url"], writerFactory, session, maxRetries)
 
     elif artifact["storageType"] == 'object':
         objectService = Object({
@@ -164,6 +197,26 @@ async def downloadArtifact(*, taskId, name, runId=None, maxRetries=5, queueServi
         raise TaskclusterFailure(f"Unknown storageType f{artifact['storageType']}")
 
 
+async def _s3Download(url, writerFactory, session, maxRetries):
+    """
+    Perform a download from the given S3 URL, including retrying.
+    """
+    async def tryDownload(retryFor):
+        with _maybeRetryHttpRequest(retryFor):
+            writer = await writerFactory()
+
+            async with session.get(url) as resp:
+                contentType = resp.content_type
+                resp.raise_for_status()
+                # note that `resp.content` is a StreamReader and satisfies the
+                # requirements of a reader in this case
+                await streamingCopy(resp.content, writer)
+
+            return contentType
+
+    return await retry(maxRetries, tryDownload)
+
+
 @contextlib.contextmanager
 def _maybeRetryHttpRequest(retryFor):
     "Catch errors from an aiohttp request and retry the retriable responses."
@@ -180,12 +233,43 @@ def _maybeRetryHttpRequest(retryFor):
     # .. anything else is considered fatal
 
 
-async def _doSimpleDownload(url, writer, session):
-    async with session.get(url) as resp:
-        contentType = resp.content_type
-        resp.raise_for_status()
-        # note that `resp.content` is a StreamReader and satisfies the
-        # requirements of a reader in this case
-        await streamingCopy(resp.content, writer)
+def verifyHashes(observed, expected):
+    """Verify that the hashes observed on the data stream match those provided
+    by the object API, where present, and that at least one acceptable
+    algorithm is present."""
+    someValidAcceptableHash = False
 
-    return contentType
+    for algo, oh in observed.items():
+        if algo in expected:
+            eh = expected[algo]
+            if oh != eh:
+                raise ObjectHashVerificationError(f"Validation of object data's {algo} hash failed")
+            if algo in ACCEPTABLE_HASHES:
+                someValidAcceptableHash = True
+
+    if not someValidAcceptableHash:
+        raise ObjectHashVerificationError("No acceptable hashes found in object metadata")
+
+
+class HashingWriter:
+    """A Writer implementation that hashes contents as they are written."""
+
+    def __init__(self, inner):
+        self.inner = inner
+        self.sha256 = hashlib.sha256()
+        self.sha512 = hashlib.sha512()
+
+    async def write(self, chunk):
+        await self.inner.write(chunk)
+        self.update(chunk)
+
+    def update(self, chunk):
+        self.sha256.update(chunk)
+        self.sha512.update(chunk)
+
+    def hashes(self):
+        """Return the hashes in a format like that used in he object API."""
+        return {
+            "sha256": self.sha256.hexdigest(),
+            "sha512": self.sha512.hexdigest(),
+        }

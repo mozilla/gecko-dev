@@ -15,11 +15,6 @@ file IO is important to the application.
 This module provides several pre-defined readers and reader factories for
 common cases.
 """
-import six
-
-if six.PY2:
-    raise ImportError("upload is only supported in Python 3")
-
 import base64
 import hashlib
 

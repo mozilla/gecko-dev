@@ -876,7 +876,7 @@ requires-dist = [
     { name = "setuptools", specifier = "==74.0.0" },
     { name = "six", specifier = "==1.16.0" },
     { name = "slugid", specifier = "==2.0.0" },
-    { name = "taskcluster", specifier = "==44.2.2" },
+    { name = "taskcluster", specifier = "==75.0.1" },
     { name = "taskcluster-taskgraph", specifier = "~=12.1" },
     { name = "taskcluster-urls", specifier = "==13.0.1" },
     { name = "toml", specifier = "==0.10.2" },
@@ -1359,20 +1359,20 @@ wheels = [
 
 [[package]]
 name = "taskcluster"
-version = "44.2.2"
+version = "75.0.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "aiohttp" },
     { name = "async-timeout" },
     { name = "mohawk" },
+    { name = "python-dateutil" },
     { name = "requests" },
-    { name = "six" },
     { name = "slugid" },
     { name = "taskcluster-urls" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/79/9c/467e192a6aa3843a0d13226d21be411647fc9baf1b1cf138ab8cec431086/taskcluster-44.2.2.tar.gz", hash = "sha256:0266a6a901e1a2ec838984a7f24e7adb6d58f9f2e221a7f613388f8f23f786fc", size = 107058 }
+sdist = { url = "https://files.pythonhosted.org/packages/b1/94/fe8f18947e0ff41d8c69359068140ad82aa5246a6f269c961cd07339ba57/taskcluster-75.0.1.tar.gz", hash = "sha256:3100ce68e7a655701cd78290067f0df1b05e0a85c69df29f60ceaad6baf0fc53", size = 127448 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/d9/3e/fb9c368290d391a33d6aacf5856319d314ede007814f596959807f65fc75/taskcluster-44.2.2-py3-none-any.whl", hash = "sha256:846d73c597f0f47dd8525c85c8d9bc41111d5200b090690d3f16b2f57c56a2e1", size = 135598 },
+    { url = "https://files.pythonhosted.org/packages/1a/98/0e0dc90ebc9b6531d6c657df4752ae26afe09074b78f2b968a13e8efd755/taskcluster-75.0.1-py3-none-any.whl", hash = "sha256:6b16a0d8ffa3431a66a2ffe428f8e5c7874b9cbeddba7d5ce0e8d8783d4c95a3", size = 145907 },
 ]
 
 [[package]]

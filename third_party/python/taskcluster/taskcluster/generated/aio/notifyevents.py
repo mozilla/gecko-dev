@@ -40,7 +40,7 @@ class NotifyEvents(AsyncBaseClient):
 
          * routingKeyKind: Identifier for the routing-key kind. This is always `'primary'` for the formalized routing key. (required)
 
-         * reserved: Space reserved for future routing-key entries, you should always match this entry with `#`. As automatically done by our tooling, if not specified.
+         * topic: Custom topic. This is the <topic> portion of the `notify.pulse.<topic>.on-<event>` routes. (required)
         """
 
         ref = {
@@ -54,7 +54,7 @@ class NotifyEvents(AsyncBaseClient):
                 },
                 {
                     'multipleWords': True,
-                    'name': 'reserved',
+                    'name': 'topic',
                 },
             ],
             'schema': 'v1/notification-message.json#',

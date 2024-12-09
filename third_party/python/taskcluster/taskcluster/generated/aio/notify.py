@@ -34,6 +34,30 @@ class Notify(AsyncBaseClient):
 
         return await self._makeApiCall(self.funcinfo["ping"], *args, **kwargs)
 
+    async def lbheartbeat(self, *args, **kwargs):
+        """
+        Load Balancer Heartbeat
+
+        Respond without doing anything.
+        This endpoint is used to check that the service is up.
+
+        This method is ``stable``
+        """
+
+        return await self._makeApiCall(self.funcinfo["lbheartbeat"], *args, **kwargs)
+
+    async def version(self, *args, **kwargs):
+        """
+        Taskcluster Version
+
+        Respond with the JSON version object.
+        https://github.com/mozilla-services/Dockerflow/blob/main/docs/version_object.md
+
+        This method is ``stable``
+        """
+
+        return await self._makeApiCall(self.funcinfo["version"], *args, **kwargs)
+
     async def email(self, *args, **kwargs):
         """
         Send an Email
@@ -42,6 +66,9 @@ class Notify(AsyncBaseClient):
         to HTML, but both the HTML and raw markdown text will be sent in the
         email. If a link is included, it will be rendered to a nice button in the
         HTML version of the email
+
+        In case when duplicate message has been detected and no email was sent,
+        this endpoint will return 204 status code.
 
         This method is ``experimental``
         """
@@ -53,6 +80,8 @@ class Notify(AsyncBaseClient):
         Publish a Pulse Message
 
         Publish a message on pulse with the given `routingKey`.
+
+        Endpoint will return 204 when duplicate message has been detected
 
         This method is ``experimental``
         """
@@ -71,6 +100,9 @@ class Notify(AsyncBaseClient):
         Note that the matrix client used by taskcluster must be invited to a room before
         it can post there!
 
+        In case when duplicate message has been detected and no message was sent,
+        this endpoint will return 204 status code.
+
         This method is ``experimental``
         """
 
@@ -86,6 +118,9 @@ class Notify(AsyncBaseClient):
 
         The Slack app can post into public channels by default but will need to be added
         to private channels before it can post messages there.
+
+        In case when duplicate message has been detected and no message was sent,
+        this endpoint will return 204 status code.
 
         This method is ``experimental``
         """
@@ -136,6 +171,20 @@ class Notify(AsyncBaseClient):
 
         return await self._makeApiCall(self.funcinfo["listDenylist"], *args, **kwargs)
 
+    async def heartbeat(self, *args, **kwargs):
+        """
+        Heartbeat
+
+        Respond with a service heartbeat.
+
+        This endpoint is used to check on backing services this service
+        depends on.
+
+        This method is ``stable``
+        """
+
+        return await self._makeApiCall(self.funcinfo["heartbeat"], *args, **kwargs)
+
     funcinfo = {
         "addDenylistAddress": {
             'args': [],
@@ -160,6 +209,20 @@ class Notify(AsyncBaseClient):
             'name': 'email',
             'route': '/email',
             'stability': 'experimental',
+        },
+        "heartbeat": {
+            'args': [],
+            'method': 'get',
+            'name': 'heartbeat',
+            'route': '/__heartbeat__',
+            'stability': 'stable',
+        },
+        "lbheartbeat": {
+            'args': [],
+            'method': 'get',
+            'name': 'lbheartbeat',
+            'route': '/__lbheartbeat__',
+            'stability': 'stable',
         },
         "listDenylist": {
             'args': [],
@@ -200,6 +263,13 @@ class Notify(AsyncBaseClient):
             'name': 'slack',
             'route': '/slack',
             'stability': 'experimental',
+        },
+        "version": {
+            'args': [],
+            'method': 'get',
+            'name': 'version',
+            'route': '/__version__',
+            'stability': 'stable',
         },
     }
 

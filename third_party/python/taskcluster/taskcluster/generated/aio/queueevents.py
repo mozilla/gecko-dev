@@ -708,7 +708,51 @@ class QueueEvents(AsyncBaseClient):
                     'name': 'reserved',
                 },
             ],
-            'schema': 'v1/task-group-resolved.json#',
+            'schema': 'v1/task-group-changed-message.json#',
+        }
+        return self._makeTopicExchange(ref, *args, **kwargs)
+
+    def taskGroupSealed(self, *args, **kwargs):
+        """
+        Task Group Sealed Messages
+
+        A message is published on task-group-sealed whenever task group is sealed.
+        This task group will no longer allow creation of new tasks.
+
+        This exchange takes the following keys:
+
+         * routingKeyKind: Identifier for the routing-key kind. This is always `'primary'` for the formalized routing key. (required)
+
+         * taskGroupId: `taskGroupId` for the task-group this message concerns (required)
+
+         * schedulerId: `schedulerId` for the task-group this message concerns (required)
+
+         * reserved: Space reserved for future routing-key entries, you should always match this entry with `#`. As automatically done by our tooling, if not specified.
+        """
+
+        ref = {
+            'exchange': 'task-group-sealed',
+            'name': 'taskGroupSealed',
+            'routingKey': [
+                {
+                    'constant': 'primary',
+                    'multipleWords': False,
+                    'name': 'routingKeyKind',
+                },
+                {
+                    'multipleWords': False,
+                    'name': 'taskGroupId',
+                },
+                {
+                    'multipleWords': False,
+                    'name': 'schedulerId',
+                },
+                {
+                    'multipleWords': True,
+                    'name': 'reserved',
+                },
+            ],
+            'schema': 'v1/task-group-changed-message.json#',
         }
         return self._makeTopicExchange(ref, *args, **kwargs)
 

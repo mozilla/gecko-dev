@@ -12,10 +12,6 @@ This module provides several pre-defined writers and writer factories for
 common cases.
 """
 import functools
-import six
-
-if six.PY2:
-    raise ImportError("download is only supported in Python 3")
 
 from .aio import download as aio_download
 from .aio.asyncutils import ensureCoro, runAsync

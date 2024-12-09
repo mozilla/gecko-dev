@@ -1,42 +1,38 @@
 Metadata-Version: 2.1
 Name: taskcluster
-Version: 44.2.2
+Version: 75.0.1
 Summary: Python client for Taskcluster
 Home-page: https://github.com/taskcluster/taskcluster
 Author: Mozilla Taskcluster and Release Engineering
 Author-email: release+python@mozilla.com
-License: UNKNOWN
-Platform: UNKNOWN
-Classifier: Programming Language :: Python :: 2.7
-Classifier: Programming Language :: Python :: 3.5
-Classifier: Programming Language :: Python :: 3.6
-Classifier: Programming Language :: Python :: 3.7
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
 Description-Content-Type: text/markdown
 License-File: LICENSE
-Requires-Dist: requests (>=2.4.3)
-Requires-Dist: mohawk (>=0.3.4)
-Requires-Dist: slugid (>=2)
-Requires-Dist: taskcluster-urls (>=12.1.0)
-Requires-Dist: six (>=1.10.0)
-Requires-Dist: aiohttp (>=3.7.4) ; python_version >= "3.6"
-Requires-Dist: async-timeout (>=2.0.0) ; python_version >= "3.6"
+Requires-Dist: requests>=2.4.3
+Requires-Dist: mohawk>=0.3.4
+Requires-Dist: python-dateutil>=2.8.2
+Requires-Dist: slugid>=2
+Requires-Dist: taskcluster-urls>=12.1.0
+Requires-Dist: aiohttp>=3.7.4
+Requires-Dist: async_timeout>=2.0.0
 Provides-Extra: test
-Requires-Dist: pytest ; extra == 'test'
-Requires-Dist: pytest-cov ; extra == 'test'
-Requires-Dist: pytest-mock ; extra == 'test'
-Requires-Dist: httmock ; extra == 'test'
-Requires-Dist: mock ; extra == 'test'
-Requires-Dist: setuptools-lint ; extra == 'test'
-Requires-Dist: flake8 ; extra == 'test'
-Requires-Dist: psutil ; extra == 'test'
-Requires-Dist: hypothesis ; extra == 'test'
-Requires-Dist: tox ; extra == 'test'
-Requires-Dist: coverage ; extra == 'test'
-Requires-Dist: python-dateutil ; extra == 'test'
-Requires-Dist: subprocess32 ; (python_version == "2.7") and extra == 'test'
-Requires-Dist: pytest-asyncio ; (python_version >= "3.6") and extra == 'test'
-Requires-Dist: aiofiles ; (python_version >= "3.6") and extra == 'test'
-Requires-Dist: httptest ; (python_version >= "3.6") and extra == 'test'
+Requires-Dist: pytest; extra == "test"
+Requires-Dist: pytest-cov; extra == "test"
+Requires-Dist: pytest-mock; extra == "test"
+Requires-Dist: pytest-asyncio; extra == "test"
+Requires-Dist: httmock; extra == "test"
+Requires-Dist: mock; extra == "test"
+Requires-Dist: setuptools-lint; extra == "test"
+Requires-Dist: flake8; extra == "test"
+Requires-Dist: psutil; extra == "test"
+Requires-Dist: hypothesis; extra == "test"
+Requires-Dist: tox; extra == "test"
+Requires-Dist: coverage; extra == "test"
+Requires-Dist: aiofiles; extra == "test"
+Requires-Dist: httptest; extra == "test"
 
 # Taskcluster Client for Python
 
@@ -46,8 +42,7 @@ Requires-Dist: httptest ; (python_version >= "3.6") and extra == 'test'
 **A Taskcluster client library for Python.**
 
 This library is a complete interface to Taskcluster in Python.  It provides
-both synchronous and asynchronous interfaces for all Taskcluster API methods,
-in both Python-2 and Python-3 variants.
+both synchronous and asynchronous interfaces for all Taskcluster API methods.
 
 ## Usage
 
@@ -62,9 +57,8 @@ required, and it's unusual to configure any other options aside from
 `credentials`.
 
 For each service, there are sync and async variants.  The classes under
-`taskcluster` (e.g., `taskcluster.Queue`) are Python-2 compatible and operate
-synchronously.  The classes under `taskcluster.aio` (e.g.,
-`taskcluster.aio.Queue`) require Python >= 3.6.
+`taskcluster` (e.g., `taskcluster.Queue`) operate synchronously.  The classes
+under `taskcluster.aio` (e.g., `taskcluster.aio.Queue`) are asynchronous.
 
 #### Authentication Options
 
@@ -375,7 +369,6 @@ This library provides convenience methods to implement the client portion of tho
 These methods will negotiate the appropriate method with the object service and perform the required steps to transfer the data.
 
 All methods are available in both sync and async versions, with identical APIs except for the `async`/`await` keywords.
-These methods are not available for Python-2.7.
 
 In either case, you will need to provide a configured `Object` instance with appropriate credentials for the operation.
 
@@ -486,7 +479,7 @@ For more details on Taskcluster environment variables, [here is the documentatio
 
 ### Loading secrets across multiple authentications
 
-Another available utility is `taskcluster.helper.load_secrets` which allows you to retrieve a secret using an authenticated `taskcluster.Secrets` instance (using `TaskclusterConfig.get_service` or the synchronous class directly). 
+Another available utility is `taskcluster.helper.load_secrets` which allows you to retrieve a secret using an authenticated `taskcluster.Secrets` instance (using `TaskclusterConfig.get_service` or the synchronous class directly).
 
 This utility loads a secret, but allows you to:
 1. share a secret across multiple projects, by using key prefixes inside the secret,
@@ -587,9 +580,3 @@ That is, a client with version x.y.z contains API methods corresponding to Taskc
 Taskcluster is careful to maintain API compatibility, and guarantees it within a major version.
 That means that any client with version x.* will work against any Taskcluster services at version x.*, and is very likely to work for many other major versions of the Taskcluster services.
 Any incompatibilities are noted in the [Changelog](https://github.com/taskcluster/taskcluster/blob/main/CHANGELOG.md).
-
-
-
-
-
-

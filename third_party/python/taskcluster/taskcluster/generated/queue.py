@@ -77,6 +77,30 @@ class Queue(BaseClient):
 
         return self._makeApiCall(self.funcinfo["ping"], *args, **kwargs)
 
+    def lbheartbeat(self, *args, **kwargs):
+        """
+        Load Balancer Heartbeat
+
+        Respond without doing anything.
+        This endpoint is used to check that the service is up.
+
+        This method is ``stable``
+        """
+
+        return self._makeApiCall(self.funcinfo["lbheartbeat"], *args, **kwargs)
+
+    def version(self, *args, **kwargs):
+        """
+        Taskcluster Version
+
+        Respond with the JSON version object.
+        https://github.com/mozilla-services/Dockerflow/blob/main/docs/version_object.md
+
+        This method is ``stable``
+        """
+
+        return self._makeApiCall(self.funcinfo["version"], *args, **kwargs)
+
     def task(self, *args, **kwargs):
         """
         Get Task Definition
@@ -89,6 +113,31 @@ class Queue(BaseClient):
         """
 
         return self._makeApiCall(self.funcinfo["task"], *args, **kwargs)
+
+    def tasks(self, *args, **kwargs):
+        """
+        Get multiple task definitions
+
+        This end-point will return the task definition for each input task id.
+        Notice that the task definitions may have been modified by queue.
+
+        This method is ``experimental``
+        """
+
+        return self._makeApiCall(self.funcinfo["tasks"], *args, **kwargs)
+
+    def statuses(self, *args, **kwargs):
+        """
+        Get multiple task definitions
+
+        This end-point will return the task statuses for each input task id.
+        If a given taskId does not match a task, it will be ignored,
+        and callers will need to handle the difference.
+
+        This method is ``experimental``
+        """
+
+        return self._makeApiCall(self.funcinfo["statuses"], *args, **kwargs)
 
     def status(self, *args, **kwargs):
         """
@@ -122,10 +171,63 @@ class Queue(BaseClient):
         If you are not interested in listing all the members at once, you may
         use the query-string option `limit` to return fewer.
 
+        If you only want to to fetch task group metadata without the tasks,
+        you can call the `getTaskGroup` method.
+
         This method is ``stable``
         """
 
         return self._makeApiCall(self.funcinfo["listTaskGroup"], *args, **kwargs)
+
+    def cancelTaskGroup(self, *args, **kwargs):
+        """
+        Cancel Task Group
+
+        This method will cancel all unresolved tasks (`unscheduled`, `pending` or `running` states)
+        with the given `taskGroupId`. Behaviour is similar to the `cancelTask` method.
+
+        It is only possible to cancel a task group if it has been sealed using `sealTaskGroup`.
+        If the task group is not sealed, this method will return a 409 response.
+
+        It is possible to rerun a canceled task which will result in a new run.
+        Calling `cancelTaskGroup` again in this case will only cancel the new run.
+        Other tasks that were already canceled would not be canceled again.
+
+        This method is ``experimental``
+        """
+
+        return self._makeApiCall(self.funcinfo["cancelTaskGroup"], *args, **kwargs)
+
+    def getTaskGroup(self, *args, **kwargs):
+        """
+        Get Task Group
+
+        Get task group information by `taskGroupId`.
+
+        This will return meta-information associated with the task group.
+        It contains information about task group expiry date or if it is sealed.
+
+        If you also want to see which tasks belong to this task group, you can call
+        `listTaskGroup` method.
+
+        This method is ``stable``
+        """
+
+        return self._makeApiCall(self.funcinfo["getTaskGroup"], *args, **kwargs)
+
+    def sealTaskGroup(self, *args, **kwargs):
+        """
+        Seal Task Group
+
+        Seal task group to prevent creation of new tasks.
+
+        Task group can be sealed once and is irreversible. Calling it multiple times
+        will return same result and will not update it again.
+
+        This method is ``experimental``
+        """
+
+        return self._makeApiCall(self.funcinfo["sealTaskGroup"], *args, **kwargs)
 
     def listDependentTasks(self, *args, **kwargs):
         """
@@ -184,6 +286,10 @@ class Queue(BaseClient):
         on the content of the `scopes`, `routes`, `schedulerId`, `priority`,
         `provisionerId`, and `workerType` properties of the task definition.
 
+        If the task group was sealed, this end-point will return `409` reporting
+        `RequestConflict` to indicate that it is no longer possible to add new tasks
+        for this `taskGroupId`.
+
         This method is ``stable``
         """
 
@@ -222,9 +328,6 @@ class Queue(BaseClient):
         you just want to run it from scratch again. This will also reset the
         number of `retries` allowed. It will schedule a task that is _unscheduled_
         regardless of the state of its dependencies.
-
-        This method is deprecated in favour of creating a new task with the same
-        task definition (but with a new taskId).
 
         Remember that `retries` in the task status counts the number of runs that
         the queue have started because the worker stopped responding, for example
@@ -657,15 +760,57 @@ class Queue(BaseClient):
 
         Get an approximate number of pending tasks for the given `taskQueueId`.
 
-        The underlying Azure Storage Queues only promises to give us an estimate.
-        Furthermore, we cache the result in memory for 20 seconds. So consumers
-        should be no means expect this to be an accurate number.
-        It is, however, a solid estimate of the number of pending tasks.
+        As task states may change rapidly, this number may not represent the exact
+        number of pending tasks, but a very good approximation.
+
+        This method is **deprecated**, use queue.taskQueueCounts instead.
+
+        This method is ``deprecated``
+        """
+
+        return self._makeApiCall(self.funcinfo["pendingTasks"], *args, **kwargs)
+
+    def taskQueueCounts(self, *args, **kwargs):
+        """
+        Get Number of Pending and Claimed Tasks
+
+        Get an approximate number of pending and claimed tasks for the given `taskQueueId`.
+
+        As task states may change rapidly, this number may not represent the exact
+        number of pending and claimed tasks, but a very good approximation.
 
         This method is ``stable``
         """
 
-        return self._makeApiCall(self.funcinfo["pendingTasks"], *args, **kwargs)
+        return self._makeApiCall(self.funcinfo["taskQueueCounts"], *args, **kwargs)
+
+    def listPendingTasks(self, *args, **kwargs):
+        """
+        List Pending Tasks
+
+        List pending tasks for the given `taskQueueId`.
+
+        As task states may change rapidly, this information might not represent the exact
+        state of such tasks, but a very good approximation.
+
+        This method is ``experimental``
+        """
+
+        return self._makeApiCall(self.funcinfo["listPendingTasks"], *args, **kwargs)
+
+    def listClaimedTasks(self, *args, **kwargs):
+        """
+        List claimed Tasks
+
+        List claimed tasks for the given `taskQueueId`.
+
+        As task states may change rapidly, this information might not represent the exact
+        state of such tasks, but a very good approximation.
+
+        This method is ``experimental``
+        """
+
+        return self._makeApiCall(self.funcinfo["listClaimedTasks"], *args, **kwargs)
 
     def listWorkerTypes(self, *args, **kwargs):
         """
@@ -752,18 +897,18 @@ class Queue(BaseClient):
         option. By default this end-point will list up to 1000 workers in a single
         page. You may limit this with the query-string parameter `limit`.
 
-        This method is ``experimental``
+        This method is ``deprecated``
         """
 
         return self._makeApiCall(self.funcinfo["listWorkers"], *args, **kwargs)
 
     def getWorker(self, *args, **kwargs):
         """
-        Get a worker-type
+        Get a worker from worker-type
 
         Get a worker from a worker-type.
 
-        This method is ``experimental``
+        This method is ``deprecated``
         """
 
         return self._makeApiCall(self.funcinfo["getWorker"], *args, **kwargs)
@@ -793,6 +938,20 @@ class Queue(BaseClient):
 
         return self._makeApiCall(self.funcinfo["declareWorker"], *args, **kwargs)
 
+    def heartbeat(self, *args, **kwargs):
+        """
+        Heartbeat
+
+        Respond with a service heartbeat.
+
+        This endpoint is used to check on backing services this service
+        depends on.
+
+        This method is ``stable``
+        """
+
+        return self._makeApiCall(self.funcinfo["heartbeat"], *args, **kwargs)
+
     funcinfo = {
         "artifact": {
             'args': ['taskId', 'runId', 'name'],
@@ -817,6 +976,14 @@ class Queue(BaseClient):
             'output': 'v1/task-status-response.json#',
             'route': '/task/<taskId>/cancel',
             'stability': 'stable',
+        },
+        "cancelTaskGroup": {
+            'args': ['taskGroupId'],
+            'method': 'post',
+            'name': 'cancelTaskGroup',
+            'output': 'v1/cancel-task-group-response.json#',
+            'route': '/task-group/<taskGroupId>/cancel',
+            'stability': 'experimental',
         },
         "claimTask": {
             'args': ['taskId', 'runId'],
@@ -913,6 +1080,14 @@ class Queue(BaseClient):
             'route': '/provisioners/<provisionerId>',
             'stability': 'deprecated',
         },
+        "getTaskGroup": {
+            'args': ['taskGroupId'],
+            'method': 'get',
+            'name': 'getTaskGroup',
+            'output': 'v1/task-group-response.json#',
+            'route': '/task-group/<taskGroupId>',
+            'stability': 'stable',
+        },
         "getTaskQueue": {
             'args': ['taskQueueId'],
             'method': 'get',
@@ -927,7 +1102,7 @@ class Queue(BaseClient):
             'name': 'getWorker',
             'output': 'v1/worker-response.json#',
             'route': '/provisioners/<provisionerId>/worker-types/<workerType>/workers/<workerGroup>/<workerId>',
-            'stability': 'experimental',
+            'stability': 'deprecated',
         },
         "getWorkerType": {
             'args': ['provisionerId', 'workerType'],
@@ -936,6 +1111,13 @@ class Queue(BaseClient):
             'output': 'v1/workertype-response.json#',
             'route': '/provisioners/<provisionerId>/worker-types/<workerType>',
             'stability': 'deprecated',
+        },
+        "heartbeat": {
+            'args': [],
+            'method': 'get',
+            'name': 'heartbeat',
+            'route': '/__heartbeat__',
+            'stability': 'stable',
         },
         "latestArtifact": {
             'args': ['taskId', 'name'],
@@ -953,6 +1135,13 @@ class Queue(BaseClient):
             'route': '/task/<taskId>/artifact-info/<name>',
             'stability': 'stable',
         },
+        "lbheartbeat": {
+            'args': [],
+            'method': 'get',
+            'name': 'lbheartbeat',
+            'route': '/__lbheartbeat__',
+            'stability': 'stable',
+        },
         "listArtifacts": {
             'args': ['taskId', 'runId'],
             'method': 'get',
@@ -961,6 +1150,15 @@ class Queue(BaseClient):
             'query': ['continuationToken', 'limit'],
             'route': '/task/<taskId>/runs/<runId>/artifacts',
             'stability': 'stable',
+        },
+        "listClaimedTasks": {
+            'args': ['taskQueueId'],
+            'method': 'get',
+            'name': 'listClaimedTasks',
+            'output': 'v1/list-claimed-tasks-response.json#',
+            'query': ['continuationToken', 'limit'],
+            'route': '/task-queues/<taskQueueId>/claimed',
+            'stability': 'experimental',
         },
         "listDependentTasks": {
             'args': ['taskId'],
@@ -979,6 +1177,15 @@ class Queue(BaseClient):
             'query': ['continuationToken', 'limit'],
             'route': '/task/<taskId>/artifacts',
             'stability': 'stable',
+        },
+        "listPendingTasks": {
+            'args': ['taskQueueId'],
+            'method': 'get',
+            'name': 'listPendingTasks',
+            'output': 'v1/list-pending-tasks-response.json#',
+            'query': ['continuationToken', 'limit'],
+            'route': '/task-queues/<taskQueueId>/pending',
+            'stability': 'experimental',
         },
         "listProvisioners": {
             'args': [],
@@ -1023,7 +1230,7 @@ class Queue(BaseClient):
             'output': 'v1/list-workers-response.json#',
             'query': ['continuationToken', 'limit', 'quarantined'],
             'route': '/provisioners/<provisionerId>/worker-types/<workerType>/workers',
-            'stability': 'experimental',
+            'stability': 'deprecated',
         },
         "pendingTasks": {
             'args': ['taskQueueId'],
@@ -1031,7 +1238,7 @@ class Queue(BaseClient):
             'name': 'pendingTasks',
             'output': 'v1/pending-tasks-response.json#',
             'route': '/pending/<taskQueueId>',
-            'stability': 'stable',
+            'stability': 'deprecated',
         },
         "ping": {
             'args': [],
@@ -1098,6 +1305,14 @@ class Queue(BaseClient):
             'route': '/task/<taskId>/schedule',
             'stability': 'stable',
         },
+        "sealTaskGroup": {
+            'args': ['taskGroupId'],
+            'method': 'post',
+            'name': 'sealTaskGroup',
+            'output': 'v1/task-group-response.json#',
+            'route': '/task-group/<taskGroupId>/seal',
+            'stability': 'experimental',
+        },
         "status": {
             'args': ['taskId'],
             'method': 'get',
@@ -1106,12 +1321,47 @@ class Queue(BaseClient):
             'route': '/task/<taskId>/status',
             'stability': 'stable',
         },
+        "statuses": {
+            'args': [],
+            'input': 'v1/tasks-request.json#',
+            'method': 'post',
+            'name': 'statuses',
+            'output': 'v1/tasks-statuses-response.json#',
+            'query': ['continuationToken', 'limit'],
+            'route': '/tasks/status',
+            'stability': 'experimental',
+        },
         "task": {
             'args': ['taskId'],
             'method': 'get',
             'name': 'task',
             'output': 'v1/task.json#',
             'route': '/task/<taskId>',
+            'stability': 'stable',
+        },
+        "taskQueueCounts": {
+            'args': ['taskQueueId'],
+            'method': 'get',
+            'name': 'taskQueueCounts',
+            'output': 'v1/task-queue-counts-response.json#',
+            'route': '/task-queues/<taskQueueId>/counts',
+            'stability': 'stable',
+        },
+        "tasks": {
+            'args': [],
+            'input': 'v1/tasks-request.json#',
+            'method': 'post',
+            'name': 'tasks',
+            'output': 'v1/tasks-response.json#',
+            'query': ['continuationToken', 'limit'],
+            'route': '/tasks',
+            'stability': 'experimental',
+        },
+        "version": {
+            'args': [],
+            'method': 'get',
+            'name': 'version',
+            'route': '/__version__',
             'stability': 'stable',
         },
     }

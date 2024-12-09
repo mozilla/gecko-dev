@@ -41,3 +41,8 @@ class TaskclusterArtifactError(TaskclusterFailure):
     def __init__(self, message, reason):
         TaskclusterFailure.__init__(self, message)
         self.reason = reason
+
+
+class ObjectHashVerificationError(TaskclusterFailure):
+    """Raised when the downloading an object that does not match its hashes."""
+    pass
