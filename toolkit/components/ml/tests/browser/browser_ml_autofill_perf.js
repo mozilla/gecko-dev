@@ -42,7 +42,8 @@ add_task(async function test_ml_generic_pipeline() {
     modelId: "Mozilla/tinybert-uncased-autofill",
     modelHubUrlTemplate: "{model}/{revision}",
     modelRevision: "main",
-    dtype: "q8",
+    dtype: "int8",
+    numThreads: 2,
   });
 
   const args = [

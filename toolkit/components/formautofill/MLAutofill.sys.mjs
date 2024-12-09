@@ -64,6 +64,7 @@ export class MLAutofill {
       engineId: "autofill-ml",
       dtype: "int8",
       timeoutMS: -1,
+      numThreads: 2,
     };
   }
 
