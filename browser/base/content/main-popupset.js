@@ -307,6 +307,11 @@ document.addEventListener(
             "panelitem-context"
           );
           break;
+
+        // == sharing-tabs-warning-panel ==
+        case "sharing-warning-proceed-to-tab":
+          gSharedTabWarning.allowSharedTabSwitch();
+          break;
       }
     });
 
