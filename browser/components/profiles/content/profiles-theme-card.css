@@ -58,6 +58,8 @@ moz-card {
   border-inline-width: var(--theme-card-border-width);
   border-block-end-width: var(--theme-card-border-width);
   border-block-start: var(--card-border);
+
+  font-size: var(--font-size-small);
 }
 
 :host([selected]) .theme-card {

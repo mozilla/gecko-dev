@@ -71,7 +71,7 @@ export class NewProfileCard extends EditProfileCard {
 
   headerTemplate() {
     return html`<div>
-      <h1 data-l10n-id="new-profile-page-header"></h1>
+      <h2 data-l10n-id="new-profile-page-header"></h2>
       <p>
         <span data-l10n-id="new-profile-page-header-description"></span>
         <a
