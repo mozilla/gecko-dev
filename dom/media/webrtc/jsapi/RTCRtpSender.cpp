@@ -220,6 +220,15 @@ nsTArray<RefPtr<dom::RTCStatsPromise>> RTCRtpSender::GetStatsInternal(
   }
 
   std::string mid = mTransceiver->GetMidAscii();
+  std::map<uint32_t, std::string> videoSsrcToRidMap;
+  const auto encodings = mVideoCodec.Ref().andThen(
+      [](const auto& aCodec) { return SomeRef(aCodec.mEncodings); });
+  if (encodings && !encodings->empty() && encodings->front().rid != "") {
+    for (size_t i = 0; i < std::min(mSsrcs.Ref().size(), encodings->size());
+         ++i) {
+      videoSsrcToRidMap.insert({mSsrcs.Ref()[i], (*encodings)[i].rid});
+    }
+  }
 
   {
     // Add bandwidth estimation stats
@@ -249,7 +258,8 @@ nsTArray<RefPtr<dom::RTCStatsPromise>> RTCRtpSender::GetStatsInternal(
 
   promises.AppendElement(InvokeAsync(
       mPipeline->mCallThread, __func__,
-      [pipeline = mPipeline, trackName, mid = std::move(mid)] {
+      [pipeline = mPipeline, trackName, mid = std::move(mid),
+       videoSsrcToRidMap = std::move(videoSsrcToRidMap)] {
         auto report = MakeUnique<dom::RTCStatsCollection>();
         auto asAudio = pipeline->mConduit->AsAudioSessionConduit();
         auto asVideo = pipeline->mConduit->AsVideoSessionConduit();
@@ -481,6 +491,10 @@ nsTArray<RefPtr<dom::RTCStatsPromise>> RTCRtpSender::GetStatsInternal(
             // present)
             RTCOutboundRtpStreamStats local;
             constructCommonOutboundRtpStats(local);
+            if (auto it = videoSsrcToRidMap.find(ssrc);
+                it != videoSsrcToRidMap.end() && it->second != "") {
+              local.mRid.Construct(NS_ConvertUTF8toUTF16(it->second).get());
+            }
             local.mPacketsSent.Construct(
                 streamStats->rtp_stats.transmitted.packets);
             local.mBytesSent.Construct(

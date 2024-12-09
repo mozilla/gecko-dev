@@ -90,7 +90,7 @@ const statsExpectedByType = {
       "retransmittedPacketsSent",
       "retransmittedBytesSent",
     ],
-    optional: ["nackCount", "qpSum"],
+    optional: ["nackCount", "qpSum", "rid"],
     localAudioOnly: [],
     localVideoOnly: [
       "framesEncoded",
@@ -926,6 +926,38 @@ function pedanticChecks(report) {
       // Optional fields
       //
 
+      // rid
+      if (stat.kind == "audio") {
+        ok(
+          stat.rid === undefined,
+          `${stat.type}.rid" MUST NOT exist for audio. value=${stat.rid}`
+        );
+      } else {
+        let numSendVideoStreamsForMid = 0;
+        report.forEach(r => {
+          if (
+            r.type == "outbound-rtp" &&
+            r.kind == "video" &&
+            r.mid == stat.mid
+          ) {
+            numSendVideoStreamsForMid += 1;
+          }
+        });
+        if (numSendVideoStreamsForMid == 1) {
+          is(
+            stat.rid,
+            undefined,
+            `${stat.type}.rid" does not exist for singlecast video. value=${stat.rid}`
+          );
+        } else {
+          isnot(
+            stat.rid,
+            undefined,
+            `${stat.type}.rid" does exist for simulcast video. value=${stat.rid}`
+          );
+        }
+      }
+
       // qpSum
       // This is supported for all of our vpx codecs and AV1 (on the encode
       // side, see bug 1519590)
@@ -1650,6 +1682,13 @@ function checkSenderStats(senderStats, streamCount) {
       streamCount,
       "Simulcast send track MIDs are identical"
     );
+    if (outboundRtpReport.kind == "video" && streamCount > 1) {
+      is(
+        outboundRtpReports.filter(r => r.rid == outboundRtpReport.rid).length,
+        1,
+        "Simulcast send track RIDs are distinct"
+      );
+    }
     const remoteReports = remoteInboundRtpReports.filter(
       r => r.id == outboundRtpReport.remoteId
     );

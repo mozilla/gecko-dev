@@ -118,6 +118,7 @@ dictionary RTCSentRtpStreamStats : RTCRtpStreamStats {
 dictionary RTCOutboundRtpStreamStats : RTCSentRtpStreamStats {
   DOMString mid;
   DOMString remoteId;
+  DOMString rid;
   unsigned long framesEncoded;
   unsigned long long qpSum;
   unsigned long nackCount;
