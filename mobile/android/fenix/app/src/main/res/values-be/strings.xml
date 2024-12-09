@@ -13,6 +13,8 @@
     <string name="content_description_private_browsing_button">Уключыць прыватнае агляданне</string>
     <!-- Content description (not visible, for screen readers etc.): "Private Browsing" menu button. -->
     <string name="content_description_disable_private_browsing_button">Адключыць прыватнае агляданне</string>
+    <!-- Content description (not visible, for screen readers etc.): "Private Browsing" menu button. -->
+    <string name="content_description_private_browsing">Прыватнае агляданне</string>
     <!-- Placeholder text shown in the search bar before a user enters text for the default engine -->
     <string name="search_hint">Увядзіце запыт або адрас</string>
 
@@ -91,12 +93,6 @@
     <string name="open_in_app_cfr_positive_button_text">Перайсці ў налады</string>
     <!-- Text for the negative action button -->
     <string name="open_in_app_cfr_negative_button_text">Адхіліць</string>
-
-    <!-- Total cookie protection "contextual feature recommendation" (CFR) -->
-    <!-- Text for the message displayed in the contextual feature recommendation popup promoting the total cookie protection feature. -->
-    <string name="tcp_cfr_message">Наша самая магутная функцыя аховы прыватнасці ізалюе міжсайтавыя трэкеры.</string>
-    <!-- Text displayed that links to website containing documentation about the "Total cookie protection" feature. -->
-    <string name="tcp_cfr_learn_more">Даведайцеся аб поўнай ахове кукаў</string>
 
 
     <!-- Private browsing erase action "contextual feature recommendation" (CFR) -->
@@ -329,7 +325,7 @@
 
     <!-- Search Fragment -->
     <!-- Button in the search view that lets a user search by scanning a QR code -->
-    <string name="search_scan_button">Сканаваць</string>
+    <string name="search_scan_button" moz:removedIn="133" tools:ignore="UnusedResources">Сканаваць</string>
     <!-- Button in the search view when shortcuts are displayed that takes a user to the search engine settings -->
     <string name="search_shortcuts_engine_settings">Налады пошукавых сістэм</string>
     <!-- Button in the search view that lets a user navigate to the site in their clipboard -->
@@ -355,11 +351,9 @@
     <string name="search_header_menu_item_2">Гэтым разам шукаць у:</string>
 
     <!-- Content description (not visible, for screen readers etc.): Search engine icon. The first parameter is the search engine name (for example: DuckDuckGo). -->
-    <string name="search_engine_icon_content_description" tools:ignore="UnusedResources">Пашукавік %s</string>
+    <string name="search_engine_icon_content_description" tools:ignore="UnusedResources" moz:removedIn="133">Пашукавік %s</string>
 
     <!-- Home onboarding -->
-    <!-- Onboarding home screen popup dialog, shown on top of the Jump back in section. -->
-    <string name="onboarding_home_screen_jump_back_contextual_hint_2">Сустракайце сваю персаналізаваную хатнюю старонку. Тут будуць паказаны апошнія карткі, закладкі і вынікі пошуку.</string>
     <!-- Home onboarding dialog welcome screen title text. -->
     <string name="onboarding_home_welcome_title_2">Сардэчна запрашаем у больш асабісты Інтэрнэт</string>
     <!-- Home onboarding dialog welcome screen description text. -->
@@ -381,18 +375,6 @@
     <!-- Content description (not visible, for screen readers etc.): Close button for the home onboarding dialog -->
     <string name="onboarding_home_content_description_close_button">Закрыць</string>
 
-    <!-- Notification pre-permission dialog -->
-    <!-- Enable notification pre permission dialog title
-        The first parameter is the name of the app defined in app_name (for example: Fenix) -->
-    <string name="onboarding_home_enable_notifications_title" moz:removedIn="124" tools:ignore="UnusedResources">Апавяшчэнні дапамогуць вам зрабіць больш з %s</string>
-    <!-- Enable notification pre permission dialog description with rationale
-        The first parameter is the name of the app defined in app_name (for example: Fenix) -->
-    <string name="onboarding_home_enable_notifications_description" moz:removedIn="124" tools:ignore="UnusedResources">Сінхранізуйце свае карткі паміж прыладамі, кіруйце сцягваннямі, атрымлівайце парады, як максімальна выкарыстоўваць ахову прыватнасці %s, і многае іншае.</string>
-    <!-- Text for the button to request notification permission on the device -->
-    <string name="onboarding_home_enable_notifications_positive_button" moz:removedIn="124" tools:ignore="UnusedResources">Працягнуць</string>
-    <!-- Text for the button to not request notification permission on the device and dismiss the dialog -->
-    <string name="onboarding_home_enable_notifications_negative_button" moz:removedIn="124" tools:ignore="UnusedResources">Не зараз</string>
-
     <!-- Juno first user onboarding flow experiment, strings are marked unused as they are only referenced by Nimbus experiments. -->
     <!-- Description for learning more about our privacy notice. -->
     <string name="juno_onboarding_privacy_notice_text" tools:ignore="BrandUsage">Паведамленне аб прыватнасці Firefox</string>
@@ -409,20 +391,12 @@
     <string name="juno_onboarding_default_browser_description_nimbus_4" tools:ignore="UnusedResources">Больш за 100 мільёнаў чалавек абараняюць сваю прыватнасць, выбіраючы браўзер, які падтрымліваецца некамерцыйнай арганізацыяй.</string>
     <!-- Description for set firefox as default browser screen used by Nimbus experiments. -->
     <string name="juno_onboarding_default_browser_description_nimbus_5" tools:ignore="UnusedResources">Вядомыя трэкеры? Блакуюцца аўтаматычна. Пашырэнні? Паспрабуйце ўсе 700. PDF? Наш убудаваны чытальнік дазваляе лёгка імі кіраваць.</string>
-    <!-- Description for set firefox as default browser screen used by Nimbus experiments. -->
-    <string name="juno_onboarding_default_browser_description_nimbus_2" moz:RemovedIn="124" tools:ignore="UnusedResources">Наш браўзер, падтрыманы некамерцыйнай арганізацыяй, дапамагае абмяжоўваць кампаніі ад сачэння за вамі ў Інтэрнэце.\n\nДаведайцеся больш у нашым паведамленні аб прыватнасці.</string>
-    <!-- Text for the link to the privacy notice webpage for set as firefox default browser screen.
-    This is part of the string with the key "juno_onboarding_default_browser_description". -->
-    <string name="juno_onboarding_default_browser_description_link_text" moz:RemovedIn="124" tools:ignore="UnusedResources">паведамленні аб прыватнасці</string>
     <!-- Text for the button to set firefox as default browser on the device -->
     <string name="juno_onboarding_default_browser_positive_button" tools:ignore="UnusedResources">Зрабіць прадвызначаным браўзерам</string>
     <!-- Text for the button dismiss the screen and move on with the flow -->
     <string name="juno_onboarding_default_browser_negative_button" tools:ignore="UnusedResources">Не зараз</string>
     <!-- Title for sign in to sync screen. -->
     <string name="juno_onboarding_sign_in_title_2">Заставайцеся зашыфраванымі падчас пераходу паміж прыладамі</string>
-    <!-- Description for sign in to sync screen. Nimbus experiments do not support string placeholders.
-     Note: The word "Firefox" should NOT be translated -->
-    <string name="juno_onboarding_sign_in_description_2" moz:RemovedIn="130" tools:ignore="BrandUsage,UnusedResources">Калі вы ўвайшлі ў сістэму і правялі сінхранізацыю, вы ў большай бяспецы. Firefox шыфруе вашыя паролі, закладкі і многае іншае.</string>
     <!-- Text for the button to sign in to sync on the device -->
     <string name="juno_onboarding_sign_in_positive_button" tools:ignore="UnusedResources">Увайсці</string>
     <!-- Text for the button dismiss the screen and move on with the flow -->
@@ -502,7 +476,7 @@
     <!-- Preference category for privacy and security settings -->
     <string name="preferences_category_privacy_security">Прыватнасць і бяспека</string>
     <!-- Preference for advanced site permissions -->
-    <string name="preferences_site_permissions">Дазволы для сайтаў</string>
+    <string name="preferences_site_permissions" moz:removedIn="133" tools:ignore="UnusedResources">Дазволы для сайтаў</string>
     <!-- Preference for private browsing options -->
     <string name="preferences_private_browsing_options">Прыватнае агляданне</string>
     <!-- Preference for opening links in a private tab-->
@@ -829,13 +803,13 @@
     <string name="exceptions_empty_message_learn_more_link">Даведацца больш</string>
 
     <!-- Preference switch for usage and technical data collection -->
-    <string name="preference_usage_data">Выкарыстанне і тэхнічныя дадзеныя</string>
+    <string name="preference_usage_data" moz:removedIn="134" tools:ignore="UnusedResources">Выкарыстанне і тэхнічныя дадзеныя</string>
     <!-- Preference description for usage and technical data collection -->
     <string name="preferences_usage_data_description">Дзяліцца звесткамі пра прадукцыйнасць, выкарыстанне, апаратнае забеспячэнне і налады вашага браўзера з Mozilla, каб дапамагчы ўдасканаліць %1$s</string>
     <!-- Preference switch for marketing data collection -->
     <string name="preferences_marketing_data">Маркетынгавыя дадзеныя</string>
     <!-- Preference description for marketing data collection -->
-    <string name="preferences_marketing_data_description2">Дзеліцца асноўнымі звесткамі аб выкарыстанні з Adjust, нашым пастаўшчыком мабільнага маркетынгу</string>
+    <string name="preferences_marketing_data_description2" moz:removedIn="134" tools:ignore="UnusedResources">Дзеліцца асноўнымі звесткамі аб выкарыстанні з Adjust, нашым пастаўшчыком мабільнага маркетынгу</string>
     <!-- Title for studies preferences -->
     <string name="preference_experiments_2">Даследаванні</string>
     <!-- Summary for studies preferences -->
@@ -1063,8 +1037,6 @@
     <string name="collection_open_tabs">Адкрыць карткі</string>
     <!-- Hint for adding name of a collection -->
     <string name="collection_name_hint">Назва калекцыі</string>
-    <!-- Text for the menu button to rename a top site -->
-    <string name="rename_top_site" moz:removedIn="130" tools:ignore="UnusedResources">Перайменаваць</string>
     <!-- Text for the menu button to remove a top site -->
     <string name="remove_top_site">Выдаліць</string>
 
@@ -1137,8 +1109,6 @@
     <string name="bookmark_delete_negative">Адмяніць</string>
     <!-- Screen title for adding a bookmarks folder -->
     <string name="bookmark_add_folder">Дадаць папку</string>
-    <!-- Snackbar title shown after a bookmark has been created. -->
-    <string name="bookmark_saved_snackbar">Закладка захавана!</string>
     <!-- Snackbar title that confirms a bookmark was saved into a folder. Parameter will be replaced by the name of the folder the bookmark was saved into. -->
     <string name="bookmark_saved_in_folder_snackbar">Захавана ў “%s”</string>
     <!-- Snackbar edit button shown after a bookmark has been created. -->
@@ -1201,8 +1171,6 @@
     <!-- Text for the button to search all bookmarks -->
     <string name="bookmark_search">Увядзіце пошукавыя запыты</string>
 
-    <!-- Content description for the bookmark navigation bar close button -->
-    <string name="bookmark_close_button_content_description">Закрыць закладкі</string>
     <!-- Content description for bookmark search floating action button -->
     <string name="bookmark_search_button_content_description">Шукаць у закладках</string>
 
@@ -1399,17 +1367,6 @@
     <!-- Text shown in the notification that pops up to remind the user that a private browsing session is active. -->
     <string name="notification_pbm_delete_text_2">Закрыць прыватныя карткі</string>
 
-    <!-- Text for option one, shown in microsurvey.-->
-    <string name="microsurvey_survey_5_point_option_0" tools:ignore="UnusedResources" moz:removedIn="130">Нейтральны</string>
-    <!-- Text for option two, shown in microsurvey.-->
-    <string name="microsurvey_survey_5_point_option_1" tools:ignore="UnusedResources" moz:removedIn="130">Вельмі незадаволены</string>
-    <!-- Text for option three, shown in microsurvey.-->
-    <string name="microsurvey_survey_5_point_option_2" tools:ignore="UnusedResources" moz:removedIn="130">Незадаволены</string>
-    <!-- Text for option four, shown in microsurvey.-->
-    <string name="microsurvey_survey_5_point_option_3" tools:ignore="UnusedResources" moz:removedIn="130">Задаволены</string>
-    <!-- Text for option five, shown in microsurvey.-->
-    <string name="microsurvey_survey_5_point_option_4" tools:ignore="UnusedResources" moz:removedIn="130">Вельмі задаволены</string>
-
     <!-- Text shown in the notification that pops up to remind the user that a private browsing session is active for Android 14+ -->
     <string name="notification_erase_title_android_14">Закрыць прыватныя карткі?</string>
 
@@ -1461,8 +1418,6 @@
 
     <!-- Text shown in snackbar when user closes multiple inactive tabs. %1$s will be replaced with the number of tabs closed. -->
     <string name="snackbar_num_tabs_closed">Карткі закрыты: %1$s</string>
-    <!-- Text shown in snackbar when user bookmarks a list of tabs -->
-    <string name="snackbar_message_bookmarks_saved">Закладкі захаваны!</string>
     <!-- Text shown in snackbar when user adds a site to shortcuts -->
     <string name="snackbar_added_to_shortcuts">Дададзены ў цэтлікі!</string>
     <!-- Text shown in snackbar when user closes a private tab -->
@@ -1490,8 +1445,6 @@
     <string name="tab_collection_dialog_message">Вы ўпэўнены, што хочаце выдаліць %1$s?</string>
     <!-- Tab collection deletion prompt dialog option to delete the collection -->
     <string name="tab_collection_dialog_positive">Выдаліць</string>
-    <!-- Text displayed in a notification when the user enters full screen mode -->
-    <string name="full_screen_notification" moz:removedIn="130" tools:ignore="UnusedResources">Уваход у поўнаэкранны рэжым</string>
     <!-- Message for copying the URL via long press on the toolbar -->
     <string name="url_copied">URL скапіраваны</string>
 
@@ -1543,8 +1496,6 @@
 
     <!-- Title text of a delete browsing data dialog. -->
     <string name="delete_history_prompt_title">Дыяпазон часу для выдалення</string>
-    <!-- Body text of a delete browsing data dialog. -->
-    <string name="delete_history_prompt_body" moz:RemovedIn="130" tools:ignore="UnusedResources">Выдаляе гісторыю (у тым ліку гісторыю, сінхранізаваную з іншых прылад), кукі і іншыя даныя аглядання.</string>
     <!-- Body text of a delete browsing data dialog. -->
     <string name="delete_history_prompt_body_2">Выдаляе гісторыю (уключаючы гісторыю, сінхранізаваную з іншых прылад)</string>
     <!-- Radio button in the delete browsing data dialog to delete history items for the last hour. -->
@@ -1661,8 +1612,6 @@
     <string name="preference_enhanced_tracking_protection_custom_tracking_content_2">Толькі ў прыватных картках</string>
     <!-- Preference for enhanced tracking protection for the custom protection settings -->
     <string name="preference_enhanced_tracking_protection_custom_cryptominers">Майнеры крыптавалют</string>
-    <!-- Preference for enhanced tracking protection for the custom protection settings -->
-    <string name="preference_enhanced_tracking_protection_custom_fingerprinters" moz:RemovedIn="130" tools:ignore="UnusedResources">Збіральнікі лічбавых адбіткаў</string>
     <!-- Button label for navigating to the Enhanced Tracking Protection details -->
     <string name="enhanced_tracking_protection_details">Падрабязнасці</string>
     <!-- Header for categories that are being being blocked by current Enhanced Tracking Protection settings -->
@@ -1685,10 +1634,6 @@
     <string name="etp_cryptominers_title">Майнеры крыптавалют</string>
     <!-- Description of cryptominers that can be blocked by Enhanced Tracking Protection -->
     <string name="etp_cryptominers_description">Не дазваляе шкодным скрыптам атрымаць доступ да Вашай прылады для здабычы крыптавалюты.</string>
-    <!-- Category of trackers (fingerprinters) that can be blocked by Enhanced Tracking Protection -->
-    <string name="etp_fingerprinters_title" moz:RemovedIn="130" tools:ignore="UnusedResources">Збіральнікі лічбавых адбіткаў</string>
-    <!-- Description of fingerprinters that can be blocked by Enhanced Tracking Protection -->
-    <string name="etp_fingerprinters_description" moz:RemovedIn="130" tools:ignore="UnusedResources">Спыняе збор унікальнай ідэнтыфікацыйнай інфармацыі пра вашу прыладу, якая можа быць выкарыстана для сачэння.</string>
     <!-- Description of fingerprinters that can be blocked by Enhanced Tracking Protection -->
     <string name="etp_known_fingerprinters_description">Спыняе збор унікальнай ідэнтыфікацыйнай інфармацыі пра вашу прыладу, якая можа быць выкарыстана для сачэння.</string>
     <!-- Category of trackers (tracking content) that can be blocked by Enhanced Tracking Protection -->
@@ -2158,8 +2103,6 @@
     <string name="top_sites_rename_dialog_title">Назва</string>
     <!-- Hint for renaming title of a shortcut -->
     <string name="shortcut_name_hint">Назва цэтліка</string>
-    <!-- Button caption to confirm the renaming of the top site. -->
-    <string name="top_sites_rename_dialog_ok" moz:removedIn="130" tools:ignore="UnusedResources">OK</string>
     <!-- Dialog button text for canceling the rename top site prompt. -->
     <string name="top_sites_rename_dialog_cancel">Адмена</string>
 
@@ -2217,7 +2160,7 @@
     <string name="radio_preference_info_content_description">Пстрыкніце, каб атрымаць падрабязнасці</string>
 
     <!-- Content description for the action bar "up" button -->
-    <string name="action_bar_up_description" moz:removedIn="124" tools:ignore="UnusedResources">Перайсці ўверх</string>
+    <string name="action_bar_up_description">Перайсці ўверх</string>
 
     <!-- Content description for privacy content close button -->
     <string name="privacy_content_close_button_content_description">Закрыць</string>
@@ -2358,8 +2301,6 @@
     <!-- Clickable text from the contextual onboarding card that links to review quality check support article. -->
     <string name="review_quality_check_contextual_onboarding_learn_more_link">Даведацца больш</string>
     <!-- Caption text to be displayed in review quality check contextual onboarding card above the opt-in button. First parameter is Firefox app name, third parameter is the Fakespot product name. Second & fourth are for clickable texts defined in review_quality_check_contextual_onboarding_privacy_policy_3 and review_quality_check_contextual_onboarding_terms_use. -->
-    <string name="review_quality_check_contextual_onboarding_caption_3" moz:RemovedIn="124" tools:ignore="UnusedResources">Выбіраючы «Так, паспрабаваць», вы пагаджаецеся з %2$s ад %1$s і %4$s ад %3$s.</string>
-    <!-- Caption text to be displayed in review quality check contextual onboarding card above the opt-in button. First parameter is Firefox app name, third parameter is the Fakespot product name. Second & fourth are for clickable texts defined in review_quality_check_contextual_onboarding_privacy_policy_3 and review_quality_check_contextual_onboarding_terms_use. -->
     <string name="review_quality_check_contextual_onboarding_caption_4">Выбіраючы «Так, паспрабаваць», вы пагаджаецеся з %2$s ад %1$s і %4$s ад %3$s.</string>
     <!-- Clickable text from the review quality check contextual onboarding card that links to Fakespot privacy notice. -->
     <string name="review_quality_check_contextual_onboarding_privacy_policy_3">паведамленні аб прыватнасці</string>
@@ -2369,16 +2310,6 @@
     <string name="review_quality_check_contextual_onboarding_primary_button_text">Так, паспрабаваць</string>
     <!-- Text for opt-out button from the review quality check contextual onboarding card. -->
     <string name="review_quality_check_contextual_onboarding_secondary_button_text">Не зараз</string>
-    <!-- Text for the first CFR presenting the review quality check feature. -->
-    <string name="review_quality_check_first_cfr_message">Даведайцеся, ці можна давяраць водгукам пра гэты прадукт — перш чым купляць.</string>
-    <!-- Text displayed in the first CFR presenting the review quality check feature that opens the review checker when clicked. -->
-    <string name="review_quality_check_first_cfr_action" tools:ignore="UnusedResources">Паспрабаваць праверку водгукаў</string>
-    <!-- Text for the second CFR presenting the review quality check feature. -->
-    <string name="review_quality_check_second_cfr_message">Ці надзейныя гэтыя водгукі? Праверце зараз, каб убачыць скарэктаваны рэйтынг.</string>
-    <!-- Text displayed in the second CFR presenting the review quality check feature that opens the review checker when clicked. -->
-    <string name="review_quality_check_second_cfr_action" tools:ignore="UnusedResources">Адкрыць сродак праверкі водгукаў</string>
-    <!-- Flag showing that the review quality check feature is work in progress. -->
-    <string name="review_quality_check_beta_flag" moz:removedIn="130" tools:ignore="UnusedResources">Beta</string>
     <!-- Content description (not visible, for screen readers etc.) for opening browser menu button to open review quality check bottom sheet. -->
     <string name="review_quality_check_open_handle_content_description">Адкрыць сродак праверкі водгукаў</string>
     <!-- Content description (not visible, for screen readers etc.) for closing browser menu button to open review quality check bottom sheet. -->
@@ -2548,8 +2479,6 @@
     <string name="never_translate_site_dialog_cancel_preference">Скасаваць</string>
 
     <!-- Download languages preference screen -->
-    <!-- Title of the download languages preference screen toolbar.-->
-    <string name="download_languages_toolbar_title_preference" moz:removedIn="130" tools:ignore="UnusedResources">Сцягнуць мовы</string>
     <!-- Title of the toolbar for the translation feature screen where users may download different languages for translation. -->
     <string name="download_languages_translations_toolbar_title_preference">Сцягнуць мовы</string>
     <!-- Clickable text from the screen header that links to a website. -->
@@ -2591,14 +2520,6 @@
     <string name="delete_language_file_dialog_positive_button_text">Выдаліць</string>
     <!-- Button text on the dialog used by the translations feature to cancel deleting a language. -->
     <string name="delete_language_file_dialog_negative_button_text">Скасаваць</string>
-
-    <!-- Title for the dialog used by the translations feature to confirm canceling a download in progress for a language file.
-    The first parameter is the name of the language, for example, "Spanish". -->
-    <string name="cancel_download_language_file_dialog_title" moz:removedIn="130" tools:ignore="UnusedResources">Скасаваць сцягванне %1$s?</string>
-    <!-- Button text on the dialog used by the translations feature confirms canceling a download in progress for a language file. -->
-    <string name="cancel_download_language_file_dialog_positive_button_text" moz:removedIn="130" tools:ignore="UnusedResources">Так</string>
-    <!-- Button text on the dialog used by the translations feature to dismiss the dialog. -->
-    <string name="cancel_download_language_file_negative_button_text" moz:removedIn="130" tools:ignore="UnusedResources">Не</string>
 
     <!-- Title for the data saving mode warning dialog used by the translations feature.
     This dialog will be presented when the user attempts to download a language or perform
@@ -2677,8 +2598,6 @@
     <!-- Accessibility -->
     <!-- Content description for the survey application icon. Note: The word "Firefox" should NOT be translated.  -->
     <string name="microsurvey_app_icon_content_description" tools:ignore="BrandUsage">Лагатып Firefox</string>
-    <!-- Content description (not visible, for screen readers etc.) for opening microsurvey bottom sheet. -->
-    <string name="microsurvey_open_handle_content_description" tools:ignore="UnusedResources" moz:removedIn="130">Адкрыць апытанне</string>
     <!-- Content description (not visible, for screen readers etc.) for closing microsurvey bottom sheet. -->
     <string name="microsurvey_close_handle_content_description">Закрыць апытанне</string>
     <!-- Content description for "X" button that is closing microsurvey. -->
@@ -2692,13 +2611,8 @@
     <!-- The label for a button to add a new fake login for the current domain in the Logins feature. -->
     <string name="debug_drawer_logins_add_login_button">Дадаць несапраўдны лагін для гэтага дамена</string>
 
-    <!-- Messages explaining how to exit fullscreen mode -->
-    <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled -->
-    <string name="exit_fullscreen_with_gesture" moz:removedIn="132" tools:ignore="UnusedResources">Каб выйсці з поўнаэкраннага рэжыму, пацягніце зверху і выкарыстайце жэст &quot;Назад&quot;.</string>
-    <!-- Message shown to explain how to exit fullscreen mode when using back button navigation -->
-    <string name="exit_fullscreen_with_back_button" moz:removedIn="132" tools:ignore="UnusedResources">Каб выйсці з поўнаэкраннага рэжыму, пацягніце зверху і націсніце назад</string>
-
     <!-- Beta Label Component !-->
     <!-- Text shown as a label or tag to indicate a feature or area is still undergoing active development. Note that here "Beta" should not be translated, as it is used as an icon styled element. -->
     <string name="beta_feature">BETA</string>
-</resources>
+
+    </resources>
