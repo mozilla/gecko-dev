@@ -1599,6 +1599,26 @@ class HTMLEditor final : public EditorBase,
   InsertPaddingBRElementForEmptyLastLineIfNeeded(Element& aElement);
 
   /**
+   * Insert a padding <br> element for making preceding collapsible white-spaces
+   * visible or the point is empty between block boundaries.
+   *
+   * @param aPoint              Where you want to check.  A padding <br> may be
+   *                            inserted different from this point.
+   * @param aDeleteEmptyInlines If nsIEditor::eStrip, this deletes empty inlines
+   *                            before inserting <br> from the inserting point.
+   * @param aEditingHost        The editing host.
+   */
+  [[nodiscard]] MOZ_CAN_RUN_SCRIPT Result<CreateElementResult, nsresult>
+  InsertPaddingBRElementIfNeeded(const EditorDOMPoint& aPoint,
+                                 nsIEditor::EStripWrappers aDeleteEmptyInlines,
+                                 const Element& aEditingHost);
+
+  [[nodiscard]] MOZ_CAN_RUN_SCRIPT Result<CaretPoint, nsresult>
+  DeleteRangesWithTransaction(nsIEditor::EDirection aDirectionAndAmount,
+                              nsIEditor::EStripWrappers aStripWrappers,
+                              const AutoRangeArray& aRangesToDelete) override;
+
+  /**
    * This method inserts a padding `<br>` element for empty last line if
    * selection is collapsed and container of the range needs it.
    */
@@ -2071,13 +2091,15 @@ class HTMLEditor final : public EditorBase,
                                SplitAtEdges aSplitAtEdges);
 
   /**
-   * RemoveEmptyInclusiveAncestorInlineElements() removes empty inclusive
+   * DeleteEmptyInclusiveAncestorInlineElements() removes empty inclusive
    * ancestor inline elements in inclusive ancestor block element of aContent.
    *
-   * @param aContent    Must be an empty content.
+   * @param aContent       Must be an empty content.
+   * @param aEditingHost   The editing host.
    */
-  [[nodiscard]] MOZ_CAN_RUN_SCRIPT nsresult
-  RemoveEmptyInclusiveAncestorInlineElements(nsIContent& aContent);
+  [[nodiscard]] MOZ_CAN_RUN_SCRIPT Result<CaretPoint, nsresult>
+  DeleteEmptyInclusiveAncestorInlineElements(nsIContent& aContent,
+                                             const Element& aEditingHost);
 
   /**
    * DeleteTextAndNormalizeSurroundingWhiteSpaces() deletes text between
@@ -4547,7 +4569,6 @@ class HTMLEditor final : public EditorBase,
                             // PrepareToInsertBRElement,
                             // ReflectPaddingBRElementForEmptyEditor,
                             // RefreshEditingUI,
-                            // RemoveEmptyInclusiveAncestorInlineElements,
                             // mComposerUpdater, mHasBeforeInputBeenCanceled
   friend class JoinNodesTransaction;  // DidJoinNodesTransaction, DoJoinNodes,
                                       // DoSplitNode, // RangeUpdaterRef

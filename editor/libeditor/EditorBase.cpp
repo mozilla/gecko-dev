@@ -5252,29 +5252,7 @@ Result<CaretPoint, nsresult> EditorBase::DeleteRangesWithTransaction(
     return Err(rv);
   }
 
-  EditorDOMPoint pointToPutCaret =
-      deleteSelectionTransaction->SuggestPointToPutCaret();
-  if (IsHTMLEditor() && aStripWrappers == nsIEditor::eStrip) {
-    const nsCOMPtr<nsIContent> anchorContent =
-        pointToPutCaret.GetContainerAs<nsIContent>();
-    if (MOZ_LIKELY(anchorContent) &&
-        MOZ_LIKELY(HTMLEditUtils::IsSimplyEditableNode(*anchorContent)) &&
-        // FIXME: Perhaps, this should use `HTMLEditor::IsEmptyNode` instead.
-        !anchorContent->Length()) {
-      AutoTrackDOMPoint trackPoint(RangeUpdaterRef(), &pointToPutCaret);
-      nsresult rv =
-          MOZ_KnownLive(AsHTMLEditor())
-              ->RemoveEmptyInclusiveAncestorInlineElements(*anchorContent);
-      if (NS_FAILED(rv)) {
-        NS_WARNING(
-            "HTMLEditor::RemoveEmptyInclusiveAncestorInlineElements() "
-            "failed");
-        return Err(rv);
-      }
-    }
-  }
-
-  return CaretPoint(std::move(pointToPutCaret));
+  return CaretPoint(deleteSelectionTransaction->SuggestPointToPutCaret());
 }
 
 already_AddRefed<Element> EditorBase::CreateHTMLContent(

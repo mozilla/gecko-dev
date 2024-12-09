@@ -866,7 +866,7 @@ function runTests() {
           SpecialPowers.doCommand(aWindow, "cmd_deleteWordBackward");
         },
         {
-          innerHTML: "abc ",
+          innerHTML: "abc <br>",
           beforeInputEvent: {
             cancelable: true,
             inputType: "deleteWordBackward",
