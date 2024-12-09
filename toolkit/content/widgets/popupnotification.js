@@ -98,7 +98,7 @@
           <menupopup position="after_end" data-l10n-id="popup-notification-more-actions-button">
           </menupopup>
         </button>
-        <button class="popup-notification-primary-button primary footer-button" data-l10n-id="popup-notification-default-button"/>
+        <button class="popup-notification-primary-button primary footer-button" data-l10n-id="popup-notification-default-button2"/>
       </html:moz-button-group>
       `;
     }
