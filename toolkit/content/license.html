@@ -156,6 +156,10 @@
       <li><a href="about:license#webrtc">WebRTC License</a></li>
       <li><a href="about:license#x264">x264 License</a></li>
       <li><a href="about:license#xiph">Xiph.org Foundation License</a></li>
+#ifdef MOZ_DXCOMPILER
+      <li><a href="about:license#llvm">LLVM release license</a></li>
+      <li><a href="about:license#dxcompiler-deps">DirectXShaderCompiler dependencies</a></li>
+#endif
     </ul>
 
 <br>
@@ -6112,6 +6116,195 @@ Copyright (c) &lt;year&gt;, Xiph.org Foundation
             </pre>
           </td>
         </tr>
+
+#ifdef MOZ_DXCOMPILER
+        <tr>
+          <td>
+            <h1><a id="llvm"></a>LLVM Release License</h1>
+          </td>
+          <td>
+            <p>This license applies to the following dynamic libraries:</p>
+            <ul>
+                <li>dxcompiler.dll</li>
+                <li>dxil.dll</li>
+            </ul>
+            These libraries are only bundled with Firefox on Windows.
+          </td>
+          <td>
+            <pre>
+            Copyright (c) 2003-2015 University of Illinois at Urbana-Champaign.
+            All rights reserved.
+
+            Permission is hereby granted, free of charge, to any person obtaining a copy of
+            this software and associated documentation files (the "Software"), to deal with
+            the Software without restriction, including without limitation the rights to
+            use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
+            of the Software, and to permit persons to whom the Software is furnished to do
+            so, subject to the following conditions:
+
+                * Redistributions of source code must retain the above copyright notice,
+                  this list of conditions and the following disclaimers.
+
+                * Redistributions in binary form must reproduce the above copyright notice,
+                  this list of conditions and the following disclaimers in the
+                  documentation and/or other materials provided with the distribution.
+
+                * Neither the names of the LLVM Team, University of Illinois at
+                  Urbana-Champaign, nor the names of its contributors may be used to
+                  endorse or promote products derived from this Software without specific
+                  prior written permission.
+
+            THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+            IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+            FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL THE
+            CONTRIBUTORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+            LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+            OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS WITH THE
+            SOFTWARE.
+            </pre>
+          </td>
+        </tr>
+
+        <tr>
+          <td>
+            <h1><a id="dxcompiler-deps"></a>DirectXShaderCompiler dependencies</h1>
+          </td>
+          <td>
+            <p>These licenses apply to various subsets of the code within the following dynamic libraries:</p>
+            <ul>
+                <li>dxcompiler.dll</li>
+                <li>dxil.dll</li>
+            </ul>
+            <p>These libraries are only bundled with Firefox on Windows.</p>
+
+            <p>For more details, refer to <a hrfe="https://github.com/microsoft/DirectXShaderCompiler/blob/main/LICENSE.TXT">
+            DirectXShaderCompiler's upstream repository</a>.</p>
+          </td>
+          <td>
+            <pre>
+            Copyright 2013-2014 RAD Game Tools and Valve Software
+            Copyright 2010-2014 Rich Geldreich and Tenacious Software LLC
+
+            All Rights Reserved.
+
+            Permission is hereby granted, free of charge, to any person obtaining a copy
+            of this software and associated documentation files (the "Software"), to deal
+            in the Software without restriction, including without limitation the rights
+            to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+            copies of the Software, and to permit persons to whom the Software is
+            furnished to do so, subject to the following conditions:
+
+            The above copyright notice and this permission notice shall be included in
+            all copies or substantial portions of the Software.
+
+            THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+            IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+            FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+            AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+            LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+            OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+            THE SOFTWARE.
+            </pre>
+            <hr>
+            <pre>
+            This is free and unencumbered software released into the public domain.
+
+            Anyone is free to copy, modify, publish, use, compile, sell, or
+            distribute this software, either in source code form or as a compiled
+            binary, for any purpose, commercial or non-commercial, and by any
+            means.
+
+            In jurisdictions that recognize copyright laws, the author or authors
+            of this software dedicate any and all copyright interest in the
+            software to the public domain. We make this dedication for the benefit
+            of the public at large and to the detriment of our heirs and
+            successors. We intend this dedication to be an overt act of
+            relinquishment in perpetuity of all present and future rights to this
+            software under copyright law.
+
+            THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+            EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+            MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+            IN NO EVENT SHALL THE AUTHORS BE LIABLE FOR ANY CLAIM, DAMAGES OR
+            OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+            ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+            OTHER DEALINGS IN THE SOFTWARE.
+
+            For more information, please refer to <http://unlicense.org/>
+            </pre>
+            <hr>
+            <pre>
+            Written by Henry Spencer.  Not derived from licensed software.
+
+            Permission is granted to anyone to use this software for any
+            purpose on any computer system, and to redistribute it freely,
+            subject to the following restrictions:
+
+            1. The author is not responsible for the consequences of use of
+                    this software, no matter how awful, even if they arise
+                    from defects in it.
+
+            2. The origin of this software must not be misrepresented, either
+                    by explicit claim or by omission.
+
+            3. Altered versions must be plainly marked as such, and must not
+                    be misrepresented as being the original software.
+            </pre>
+            <hr>
+            <pre>
+            Copyright 2001-2004 Unicode, Inc.
+
+            Disclaimer
+
+            This source code is provided as is by Unicode, Inc. No claims are
+            made as to fitness for any particular purpose. No warranties of any
+            kind are expressed or implied. The recipient agrees to determine
+            applicability of information provided. If this file has been
+            purchased on magnetic or optical media from Unicode, Inc., the
+            sole remedy for any claim will be exchange of defective media
+            within 90 days of receipt.
+
+            Limitations on Rights to Redistribute This Code
+
+            Unicode, Inc. hereby grants the right to freely use the information
+            supplied in this file in the creation of products supporting the
+            Unicode Standard, and to make copies of this file in any form
+            for internal or external distribution as long as this notice
+            remains attached.
+            </pre>
+            <hr>
+            <pre>
+            This software was written by Alexander Peslyak in 2001.  No copyright is
+            claimed, and the software is hereby placed in the public domain.
+            In case this attempt to disclaim copyright and place the software in the
+            public domain is deemed null and void, then the software is
+            Copyright (c) 2001 Alexander Peslyak and it is hereby released to the
+            general public under the following terms:
+
+            Redistribution and use in source and binary forms, with or without
+            modification, are permitted.
+
+            There's ABSOLUTELY NO WARRANTY, express or implied.
+            </pre>
+            <hr>
+            <pre>
+            Copyright (c) 1998 Todd C. Miller <Todd.Miller@courtesan.com>
+
+            Permission to use, copy, modify, and distribute this software for any
+            purpose with or without fee is hereby granted, provided that the above
+            copyright notice and this permission notice appear in all copies.
+
+            THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+            WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+            MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+            ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+            WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+            ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+            OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+            </pre>
+          </td>
+        </tr>
+#endif
 
       </tbody>
     </table>

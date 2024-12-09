@@ -2676,8 +2676,49 @@ set_config("NASM_ASFLAGS", nasm_asflags)
 # ANGLE OpenGL->D3D translator for WebGL
 # ==============================================================
 
+
 with only_when(compile_environment & target_is_windows):
     set_config("MOZ_ANGLE_RENDERER", True)
+
+    option("--enable-dxcompiler", help="{Enable|Disable} DXC for WebGPU on Windows")
+
+    @depends("--enable-dxcompiler", target, valid_windows_sdk_dir)
+    @checking("for dxcompiler.dll and dxil.dll")
+    @imports("os.path")
+    def dxcompiler(enable_dxc, target, windows_sdk_dir):
+        if not windows_sdk_dir:
+            return namespace(enabled=False)
+        if not enable_dxc:
+            return namespace(enabled=False)
+        arch = {
+            "x86_64": "x64",
+            "aarch64": "arm64",
+        }.get(target.cpu, target.cpu)
+        sdk_d3d_path = os.path.join(windows_sdk_dir.path, "Redist", "D3D", arch)
+        dxc_name = "dxcompiler.dll"
+        dxc_path = os.path.join(sdk_d3d_path, dxc_name)
+        if not os.path.exists(dxc_path):
+            die("Could not find dxcompiler.dll at {}", dxc_path)
+        dxil_name = "dxil.dll"
+        dxil_path = os.path.join(sdk_d3d_path, dxil_name)
+        if not os.path.exists(dxil_path):
+            die("Could not find dxil.dll at {}", dxil_path)
+        return namespace(
+            enabled=True,
+            dxc_name=dxc_name,
+            dxc_path=dxc_path,
+            dxil_name=dxil_name,
+            dxil_path=dxil_path,
+        )
+
+    with only_when(dxcompiler.enabled):
+        set_define("MOZ_DXCOMPILER", 1)
+        set_define("MOZ_DXC_DLL_NAME", dxcompiler.dxc_name)
+        set_define("MOZ_DXIL_DLL_NAME", dxcompiler.dxil_name)
+        set_config("MOZ_DXCOMPILER", True)
+        set_config("MOZ_DXC_DLL_PATH", dxcompiler.dxc_path)
+        set_config("MOZ_DXIL_DLL_PATH", dxcompiler.dxil_path)
+
 
 # Remoting protocol support
 # ==============================================================

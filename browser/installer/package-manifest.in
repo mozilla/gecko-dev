@@ -212,6 +212,11 @@
 @BINPATH@/libGLESv2.dll
 #endif # MOZ_ANGLE_RENDERER
 
+#ifdef MOZ_DXCOMPILER
+@BINPATH@/@MOZ_DXC_DLL_NAME@
+@BINPATH@/@MOZ_DXIL_DLL_NAME@
+#endif
+
 ; [Browser Chrome Files]
 @RESPATH@/browser/chrome.manifest
 @RESPATH@/browser/chrome/browser@JAREXT@

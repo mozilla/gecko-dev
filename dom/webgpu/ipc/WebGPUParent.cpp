@@ -296,10 +296,19 @@ class PresentationData {
   ~PresentationData() { MOZ_COUNT_DTOR(PresentationData); }
 };
 
-WebGPUParent::WebGPUParent() : mContext(ffi::wgpu_server_new(this)) {
+#ifdef MOZ_DXCOMPILER
+#  define MOZ_USE_DXC true
+#else
+#  define MOZ_USE_DXC false
+#endif
+
+WebGPUParent::WebGPUParent()
+    : mContext(ffi::wgpu_server_new(this, MOZ_USE_DXC)) {
   mTimer.Start(base::TimeDelta::FromMilliseconds(POLL_TIME_MS), this,
                &WebGPUParent::MaintainDevices);
 }
+
+#undef MOZ_USE_DXC
 
 WebGPUParent::~WebGPUParent() {}
 

@@ -86,12 +86,19 @@ if CONFIG["MOZ_WIDGET_TOOLKIT"] == "gtk":
         "ExternalTextureDMABuf.cpp",
     ]
 
+
 if CONFIG["MOZ_WIDGET_TOOLKIT"] in ("cocoa", "uikit"):
     EXPORTS.mozilla.webgpu += [
         "ExternalTextureMacIOSurface.h",
     ]
     UNIFIED_SOURCES += [
         "ExternalTextureMacIOSurface.cpp",
+    ]
+
+if CONFIG["MOZ_DXCOMPILER"]:
+    FINAL_TARGET_FILES += [
+        "%" + CONFIG["MOZ_DXC_DLL_PATH"],
+        "%" + CONFIG["MOZ_DXIL_DLL_PATH"],
     ]
 
 if CONFIG["CC_TYPE"] in ("clang", "clang-cl"):

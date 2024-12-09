@@ -101,6 +101,9 @@ def is_skiplisted(dep):
     # size (around 10MB).
     if dep.startswith("icu"):
         return True
+    # dxcompiler.dll is also large and we dynamically load it.
+    if dep.startswith(("dxcompiler", " dxil")):
+        return True
     # Skip the MSVC Runtimes. See bug #1921713.
     if substs.get("WIN32_REDIST_DIR"):
         for runtime in [
