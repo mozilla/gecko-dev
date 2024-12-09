@@ -257,11 +257,13 @@
   /* Insecure field warning */
   &[originaltype="insecureWarning"] {
     background-color: var(--arrowpanel-dimmed);
+    color: inherit;
     border-bottom: 1px solid var(--panel-separator-color);
     padding-block: 4px;
 
     &[selected] {
       background-color: var(--arrowpanel-dimmed-further);
+      color: inherit;
     }
 
     > .ac-title {
@@ -270,10 +272,6 @@
 
     > .ac-title .ac-emphasize-text-title {
       font-weight: 600;
-    }
-
-    &[selected] > .ac-title {
-      color: inherit;
     }
 
     > .ac-site-icon {
