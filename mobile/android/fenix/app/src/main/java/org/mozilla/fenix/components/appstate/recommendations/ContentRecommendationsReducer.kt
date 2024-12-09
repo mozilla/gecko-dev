@@ -105,6 +105,7 @@ internal object ContentRecommendationsReducer {
                     pocketStoriesCategoriesSelections = emptyList(),
                     pocketStories = emptyList(),
                     pocketSponsoredStories = emptyList(),
+                    contentRecommendations = emptyList(),
                 )
             }
 

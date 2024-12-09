@@ -388,6 +388,7 @@ class AppStoreTest {
                     pocketStoriesCategoriesSelections = listOf(mockk()),
                     pocketStories = listOf(mockk()),
                     pocketSponsoredStories = listOf(mockk()),
+                    contentRecommendations = listOf(mockk()),
                 ),
             ),
         )
@@ -399,6 +400,7 @@ class AppStoreTest {
         assertTrue(appStore.state.recommendationState.pocketStoriesCategoriesSelections.isEmpty())
         assertTrue(appStore.state.recommendationState.pocketStories.isEmpty())
         assertTrue(appStore.state.recommendationState.pocketSponsoredStories.isEmpty())
+        assertTrue(appStore.state.recommendationState.contentRecommendations.isEmpty())
     }
 
     @Test
