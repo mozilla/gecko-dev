@@ -244,8 +244,13 @@ fun ContentRecommendation(
     backgroundColor: Color,
     onClick: (ContentRecommendation) -> Unit,
 ) {
+    val imageUrl = recommendation.imageUrl.replace(
+        "{wh}",
+        with(LocalDensity.current) { "${116.dp.toPx().roundToInt()}x${84.dp.toPx().roundToInt()}" },
+    )
+
     ListItemTabLarge(
-        imageUrl = recommendation.imageUrl,
+        imageUrl = imageUrl,
         backgroundColor = backgroundColor,
         onClick = { onClick(recommendation) },
         title = {

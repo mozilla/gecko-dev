@@ -217,7 +217,7 @@ internal object PocketTestResources {
         topic = "food",
         publisher = "Pocket1",
         isTimeSensitive = false,
-        imageUrl = "https://img-getpocket.cdn.mozilla.net/1",
+        imageUrl = "https://img-getpocket.cdn.mozilla.net/{wh}/filters:format(jpeg):quality(60):no_upscale():strip_exif()/https%3A%2F%2Fimg-getpocket.cdn.mozilla.net%2F1",
         tileId = 1,
         receivedRank = 1,
     )
@@ -229,7 +229,7 @@ internal object PocketTestResources {
         topic = "business",
         publisher = "Pocket2",
         isTimeSensitive = true,
-        imageUrl = "https://img-getpocket.cdn.mozilla.net/2",
+        imageUrl = "https://img-getpocket.cdn.mozilla.net/{wh}/filters:format(jpeg):quality(60):no_upscale():strip_exif()/https%3A%2F%2Fimg-getpocket.cdn.mozilla.net%2F2",
         tileId = 2,
         receivedRank = 2,
     )
@@ -241,7 +241,7 @@ internal object PocketTestResources {
         topic = null,
         publisher = "Pocket3",
         isTimeSensitive = true,
-        imageUrl = "https://img-getpocket.cdn.mozilla.net/3",
+        imageUrl = "https://img-getpocket.cdn.mozilla.net/{wh}/filters:format(jpeg):quality(60):no_upscale():strip_exif()/https%3A%2F%2Fimg-getpocket.cdn.mozilla.net%2F3",
         tileId = 3,
         receivedRank = 3,
     )
@@ -253,7 +253,7 @@ internal object PocketTestResources {
         topic = "career",
         publisher = "Pocket4",
         isTimeSensitive = true,
-        imageUrl = "https://img-getpocket.cdn.mozilla.net/4",
+        imageUrl = "https://img-getpocket.cdn.mozilla.net/{wh}/filters:format(jpeg):quality(60):no_upscale():strip_exif()/https%3A%2F%2Fimg-getpocket.cdn.mozilla.net%2F4",
         tileId = 4,
         receivedRank = 4,
     )

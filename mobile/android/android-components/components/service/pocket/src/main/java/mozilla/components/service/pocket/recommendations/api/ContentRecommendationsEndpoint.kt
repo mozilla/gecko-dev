@@ -4,6 +4,7 @@
 
 package mozilla.components.service.pocket.recommendations.api
 
+import android.net.Uri
 import androidx.annotation.VisibleForTesting
 import androidx.annotation.WorkerThread
 import kotlinx.serialization.SerializationException
@@ -33,7 +34,14 @@ internal class ContentRecommendationsEndpoint internal constructor(
         val response = rawEndpoint.getContentRecommendations()?.let {
             try {
                 val json = Json { ignoreUnknownKeys = true }
-                json.decodeFromString<ContentRecommendationsResponse>(it)
+                val response = json.decodeFromString<ContentRecommendationsResponse>(it)
+                response.copy(
+                    data = response.data.map { item ->
+                        item.copy(
+                            imageUrl = reformatImageUrl(item.imageUrl),
+                        )
+                    },
+                )
             } catch (e: SerializationException) {
                 null
             }
@@ -41,7 +49,25 @@ internal class ContentRecommendationsEndpoint internal constructor(
         return PocketResponse.wrap(response)
     }
 
+    /**
+     * Reformat the image URL to be able to request a size tailored for the parent container
+     * width and height.
+     *
+     * See https://searchfox.org/mozilla-central/rev/7fb746f0be47ce0135af7bca9fffdb5cd1c4b1d5/browser/components/newtab/content-src/components/DiscoveryStreamComponents/DSImage/DSImage.jsx#120
+     */
+    private fun reformatImageUrl(url: String): String {
+        return IMAGE_URL + Uri.encode(url)
+    }
+
     companion object {
+        /**
+         * Image URL to request a size tailored for the parent container width and height.
+         * Also: force JPEG, quality 60, no upscaling, no EXIF data.
+         * Uses Thumbor: https://thumbor.readthedocs.io/en/latest/usage.html
+         */
+        private const val IMAGE_URL =
+            "https://img-getpocket.cdn.mozilla.net/{wh}/filters:format(jpeg):quality(60):no_upscale():strip_exif()/"
+
         /**
          * Returns a new instance of [ContentRecommendationsEndpoint].
          *

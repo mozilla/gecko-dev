@@ -4,6 +4,7 @@
 
 package mozilla.components.service.pocket.recommendations.api
 
+import androidx.test.ext.junit.runners.AndroidJUnit4
 import mozilla.components.concept.fetch.Client
 import mozilla.components.service.pocket.helpers.PocketTestResources
 import mozilla.components.service.pocket.helpers.assertResponseIsFailure
@@ -13,7 +14,9 @@ import mozilla.components.support.test.whenever
 import org.junit.Assert.assertEquals
 import org.junit.Before
 import org.junit.Test
+import org.junit.runner.RunWith
 
+@RunWith(AndroidJUnit4::class)
 class ContentRecommendationsEndpointTest {
 
     private lateinit var client: Client
