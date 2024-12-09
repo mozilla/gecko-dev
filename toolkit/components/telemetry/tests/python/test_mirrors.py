@@ -25,7 +25,11 @@ sys.path.append(path.join(FOG_ROOT_PATH, "build_scripts", "glean_parser_ext"))
 from run_glean_parser import GIFFT_TYPES
 
 MIRROR_TYPES = {
-    metric_type: probe_type
+    metric_type: [
+        probe_type
+        for probe_type in GIFFT_TYPES.keys()
+        if metric_type in GIFFT_TYPES[probe_type]
+    ]
     for (probe_type, metric_types) in GIFFT_TYPES.items()
     for metric_type in metric_types
 }
@@ -70,6 +74,12 @@ def ensure_compatible_event(metric, probe):
 #  * keyed if the metric is labeled_*
 #  * of a suitable `kind` (e.g. "linear" or "exponential")
 def ensure_compatible_histogram(metric, probe):
+    if metric.type == "counter":
+        assert (
+            probe.kind() == "count"
+        ), f"Metric {metric.identifier()} is a `counter` mapping to a histogram, but {probe.name()} isn't a 'count' Histogram (is '{probe.kind()}')."
+        return
+
     assert probe.kind() in [
         "linear",
         "exponential",
@@ -145,33 +155,41 @@ class TestTelemetryMirrors(unittest.TestCase):
         # Step 2: For every mirroring Glean metric, assert its mirror Telemetry
         # probe is compatible.
         for metric in mirroring_metrics(objs):
+            mirror = metric.telemetry_mirror.split("#")[-1]
             found = False
-            if MIRROR_TYPES[metric.type] == "Event":
-                for event in events:
-                    for enum in event.enum_labels:
-                        event_id = event.category_cpp + "_" + enum
-                        if event_id == metric.telemetry_mirror:
-                            found = True
-                            ensure_compatible_event(metric, event)
+            for probe_type in MIRROR_TYPES[metric.type]:
+                if probe_type == "Event":
+                    for event in events:
+                        for enum in event.enum_labels:
+                            event_id = event.category_cpp + "_" + enum
+                            if event_id == mirror:
+                                found = True
+                                ensure_compatible_event(metric, event)
+                                break
+                        if found:
                             break
-                    if found:
-                        break
-            elif MIRROR_TYPES[metric.type] == "Histogram":
-                for hgram in hgrams:
-                    if hgram.name() == metric.telemetry_mirror:
-                        found = True
-                        ensure_compatible_histogram(metric, hgram)
-                        break
-            elif MIRROR_TYPES[metric.type] == "Scalar":
-                for scalar in scalars:
-                    if scalar.enum_label == metric.telemetry_mirror:
-                        found = True
-                        ensure_compatible_scalar(metric, scalar)
-                        break
-            else:
-                assert (
-                    False
-                ), f"mirror probe type {MIRROR_TYPES[metric.type]} isn't recognized."
+                elif probe_type == "Histogram":
+                    # To mirror to a Histogram if you also mirror to another type,
+                    # you must prefix your mirror with "h#"
+                    if len(
+                        MIRROR_TYPES[metric.type]
+                    ) > 1 and not metric.telemetry_mirror.startswith("h#"):
+                        continue
+                    for hgram in hgrams:
+                        if hgram.name() == mirror:
+                            found = True
+                            ensure_compatible_histogram(metric, hgram)
+                            break
+                elif probe_type == "Scalar":
+                    for scalar in scalars:
+                        if scalar.enum_label == mirror:
+                            found = True
+                            ensure_compatible_scalar(metric, scalar)
+                            break
+                else:
+                    assert (
+                        False
+                    ), f"mirror probe type {MIRROR_TYPES[metric.type]} isn't recognized."
             assert (
                 found
             ), f"Mirror {metric.telemetry_mirror} not found for metric {metric.identifier()}"

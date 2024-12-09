@@ -44,6 +44,7 @@ GIFFT_TYPES = {
         "labeled_memory_distribution",
         "timing_distribution",
         "labeled_timing_distribution",
+        "counter",
     ],
     "Scalar": [
         "boolean",
@@ -186,7 +187,20 @@ def output_gifft_map(output_fd, probe_type, all_objs, cpp_fd):
                 hasattr(metric, "telemetry_mirror")
                 and metric.telemetry_mirror is not None
             ):
-                info = (metric.telemetry_mirror, f"{category_name}.{metric.name}")
+                if metric.type in ["counter", "labeled_counter"]:
+                    # These types map to Scalars... unless prefixed with `h#`,
+                    # then they map to Histograms.
+                    if (
+                        probe_type == "Histogram"
+                        and not metric.telemetry_mirror.startswith("h#")
+                        or probe_type != "Histogram"
+                        and metric.telemetry_mirror.startswith("h#")
+                    ):
+                        continue
+                info = (
+                    metric.telemetry_mirror.split("#")[-1],
+                    f"{category_name}.{metric.name}",
+                )
                 if metric.type in GIFFT_TYPES[probe_type]:
                     if any(
                         metric.telemetry_mirror == value[0]

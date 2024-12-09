@@ -52,6 +52,18 @@ add_task(function test_gifft_counter() {
   let telemetryValue = scalarValue("telemetry.test.mirror_for_counter");
   Assert.equal(20, telemetryValue);
   Assert.equal("number", typeof telemetryValue);
+
+  Glean.testOnlyIpc.aCounterForHgram.add(20);
+  Assert.equal(20, Glean.testOnlyIpc.aCounterForHgram.testGetValue());
+  const data = Telemetry.getHistogramById("TELEMETRY_TEST_COUNT").snapshot();
+  const expected = {
+    bucket_count: 3,
+    histogram_type: 4,
+    sum: 20,
+    range: [1, 2],
+    values: { 0: 1, 1: 0 },
+  };
+  Assert.deepEqual(data, expected, "histogram successfully mirrored-to.");
 });
 
 add_task(function test_gifft_boolean() {

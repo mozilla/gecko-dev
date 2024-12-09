@@ -9,6 +9,7 @@
 #include "nsString.h"
 #include "mozilla/ResultVariant.h"
 #include "mozilla/dom/GleanMetricsBinding.h"
+#include "mozilla/glean/bindings/HistogramGIFFTMap.h"
 #include "mozilla/glean/bindings/ScalarGIFFTMap.h"
 #include "mozilla/glean/fog_ffi_generated.h"
 #include "GIFFTFwd.h"
@@ -30,6 +31,11 @@ void CounterMetric::Add(int32_t aAmount) const {
                                std::get<1>(tuple.ref()), (uint32_t)aAmount);
         }
       });
+    } else {
+      auto hgramId = HistogramIdForMetric(mId);
+      if (hgramId) {
+        Telemetry::Accumulate(hgramId.extract(), aAmount);
+      }
     }
   }
   fog_counter_add(mId, aAmount);
