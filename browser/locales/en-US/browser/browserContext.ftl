@@ -186,7 +186,7 @@ main-context-menu-copy-link-simple =
 # sites add into URLs to help them deliver a certain browsing experience.
 main-context-menu-copy-clean-link =
     .label = Copy Clean Link
-    .accesskey = u
+    .accesskey = C
 
 ## Media (video/audio) controls
 ##
