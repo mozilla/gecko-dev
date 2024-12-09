@@ -912,7 +912,10 @@ class MuxerUnifiedComplete extends UrlbarMuxer {
     // previously added suggestions.
     if (
       result.source == UrlbarUtils.RESULT_SOURCE.HISTORY &&
-      result.type == UrlbarUtils.RESULT_TYPE.URL
+      result.type == UrlbarUtils.RESULT_TYPE.URL &&
+      // If there's no suggestions, we're not going to have anything to match
+      // against, so avoid processing the url.
+      state.suggestions.size
     ) {
       let submission = Services.search.parseSubmissionURL(result.payload.url);
       if (submission) {
