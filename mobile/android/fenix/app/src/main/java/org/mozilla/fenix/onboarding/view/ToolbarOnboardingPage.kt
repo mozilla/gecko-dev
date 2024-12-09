@@ -42,19 +42,19 @@ import org.mozilla.fenix.R
 import org.mozilla.fenix.compose.annotation.FlexibleWindowLightDarkPreview
 import org.mozilla.fenix.compose.button.PrimaryButton
 import org.mozilla.fenix.compose.button.SecondaryButton
-import org.mozilla.fenix.onboarding.store.OnboardingToolbarStore
+import org.mozilla.fenix.onboarding.store.OnboardingStore
 import org.mozilla.fenix.theme.FirefoxTheme
 
 /**
  * A Composable for displaying toolbar placement onboarding page content.
  *
- * @param store The [OnboardingToolbarStore] that holds the toolbar selection state.
+ * @param onboardingStore The [OnboardingStore] that holds the toolbar selection state.
  * @param pageState The page content that's displayed.
  * @param onToolbarSelectionClicked Callback for when a toolbar selection is clicked.
  */
 @Composable
 fun ToolbarOnboardingPage(
-    store: OnboardingToolbarStore,
+    onboardingStore: OnboardingStore,
     pageState: OnboardingPageState,
     onToolbarSelectionClicked: (ToolbarOptionType) -> Unit,
 ) {
@@ -99,12 +99,12 @@ fun ToolbarOnboardingPage(
 
                 Spacer(Modifier.height(34.dp))
 
-                val state by store.observeAsState(initialValue = store.state) { state -> state }
+                val state by onboardingStore.observeAsState(initialValue = onboardingStore.state) { state -> state }
 
                 Row(Modifier.width(176.dp), horizontalArrangement = Arrangement.Center) {
                     ToolbarOptions(
                         options = toolbarOptions!!,
-                        selectedOption = state.selected,
+                        selectedOption = state.toolbarOptionSelected,
                         onClick = onToolbarSelectionClicked,
                     )
                 }
@@ -226,7 +226,7 @@ private fun SelectableImageItem(
 private fun OnboardingPagePreview() {
     FirefoxTheme {
         ToolbarOnboardingPage(
-            store = OnboardingToolbarStore(),
+            onboardingStore = OnboardingStore(),
             pageState = OnboardingPageState(
                 imageRes = R.drawable.ic_onboarding_customize_toolbar,
                 title = stringResource(id = R.string.onboarding_customize_toolbar_title),

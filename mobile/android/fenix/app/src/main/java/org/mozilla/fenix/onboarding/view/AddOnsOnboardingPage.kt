@@ -53,9 +53,9 @@ import org.mozilla.fenix.compose.LinkText
 import org.mozilla.fenix.compose.LinkTextState
 import org.mozilla.fenix.compose.annotation.FlexibleWindowLightDarkPreview
 import org.mozilla.fenix.compose.button.PrimaryButton
-import org.mozilla.fenix.onboarding.store.OnboardingAddOnsState
-import org.mozilla.fenix.onboarding.store.OnboardingAddOnsStore
 import org.mozilla.fenix.onboarding.store.OnboardingAddonStatus
+import org.mozilla.fenix.onboarding.store.OnboardingState
+import org.mozilla.fenix.onboarding.store.OnboardingStore
 import org.mozilla.fenix.settings.SupportUtils
 import org.mozilla.fenix.theme.FirefoxTheme
 import org.mozilla.fenix.translations.DownloadIconIndicator
@@ -67,13 +67,13 @@ typealias AddOn = OnboardingAddOn
 /**
  * A Composable for displaying Add-on onboarding page content.
  *
- * @param onboardingAddOnsStore The store which contains all the state related to the add-ons onboarding screen.
+ * @param onboardingStore The store which contains all the state related to the onboarding screen.
  * @param pageState The page content that's displayed.
  * @param onInstallAddOnClicked Invoked when the button for installing an add-ons was clicked.
  */
 @Composable
 fun AddOnsOnboardingPage(
-    onboardingAddOnsStore: OnboardingAddOnsStore,
+    onboardingStore: OnboardingStore,
     pageState: OnboardingPageState,
     onInstallAddOnClicked: (AddOn) -> Unit,
 ) {
@@ -94,13 +94,13 @@ fun AddOnsOnboardingPage(
 
                 Spacer(Modifier.height(16.dp))
 
-                val state by onboardingAddOnsStore.observeAsState(
-                    initialValue = OnboardingAddOnsState(),
-                ) { onboardingAddOnsStore.state }
+                val state by onboardingStore.observeAsState(
+                    initialValue = OnboardingState(),
+                ) { onboardingStore.state }
 
                 AddOns(
                     addOnUiData = state.addOns,
-                    installing = state.installationInProcess,
+                    installing = state.addOnInstallationInProcess,
                     onInstallAddonClicked = onInstallAddOnClicked,
                 )
 
@@ -412,7 +412,7 @@ private fun OnboardingPagePreview() {
                 },
                 onRecordImpressionEvent = {},
             ),
-            onboardingAddOnsStore = OnboardingAddOnsStore(),
+            onboardingStore = OnboardingStore(),
             onInstallAddOnClicked = {},
         )
     }
