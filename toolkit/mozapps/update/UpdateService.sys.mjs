@@ -4148,6 +4148,7 @@ export class UpdateService {
       "Other instance of the application currently running: " +
         this.isOtherInstanceHandlingUpdates
     );
+    LOG("Current update state: " + lazy.AUS.getStateName(gUpdateState));
     LOG("Downloading: " + !!this.isDownloading);
     if (this._downloader && this._downloader.isBusy) {
       LOG("Downloading complete update: " + this._downloader.isCompleteUpdate);
