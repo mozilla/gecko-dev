@@ -327,7 +327,10 @@ export let HomePage = {
       let navbarPlacements = lazy.CustomizableUI.getWidgetIdsInArea("nav-bar");
       let position = navbarPlacements.indexOf("urlbar-container");
       for (let i = position - 1; i >= 0; i--) {
-        if (!navbarPlacements[i].startsWith("customizableui-special-spring")) {
+        if (
+          !navbarPlacements[i].startsWith("customizableui-special-spring") &&
+          !navbarPlacements[i].includes("spacer")
+        ) {
           position = i + 1;
           break;
         }
