@@ -772,6 +772,7 @@ let JSWINDOWACTORS = {
       },
     },
     matches: ["about:editprofile", "about:deleteprofile", "about:newprofile"],
+    remoteTypes: ["privilegedabout"],
     enablePreference: "browser.profiles.enabled",
   },
 
