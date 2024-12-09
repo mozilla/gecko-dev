@@ -812,6 +812,7 @@ class HomeFragment : Fragment() {
                                         NavigationBar.homeTabTrayLongTapped.record(NoExtras())
                                     },
                                     onMenuButtonClick = {
+                                        NavigationBar.homeMenuTapped.record(NoExtras())
                                         findNavController().nav(
                                             findNavController().currentDestination?.id,
                                             HomeFragmentDirections.actionGlobalMenuDialogFragment(

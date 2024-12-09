@@ -1707,6 +1707,7 @@ abstract class BaseBrowserFragment :
                     NavigationBar.browserTabTrayLongTapped.record(NoExtras())
                 },
                 onMenuButtonClick = {
+                    NavigationBar.browserMenuTapped.record(NoExtras())
                     findNavController().nav(
                         R.id.browserFragment,
                         BrowserFragmentDirections.actionGlobalMenuDialogFragment(
