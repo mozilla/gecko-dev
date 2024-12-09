@@ -48,7 +48,6 @@ support-files = ["../../../browser/base/content/test/general/dummy_page.html"]
 fail-if = ["a11y_checks"] # Bug 1854502 clicked tabbrowser-tabpanels may not be accessible
 
 ["browser_mouseout_notification_panel.js"]
-skip-if = ["os == 'win'"] # Bug 1923378 Fails with ScotchBonnet enabled by default.
 
 ["browser_shortcutkey_modifier_conflicts_with_content_accesskey_modifier.js"]
 skip-if = ["os == 'mac'"] # Alt + D is defined only on Linux and Windows
