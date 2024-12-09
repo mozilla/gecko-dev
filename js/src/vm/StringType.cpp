@@ -2083,7 +2083,13 @@ JSLinearString* NewStringCopyNDontDeflateNonStaticValidLength(JSContext* cx,
 template JSLinearString* NewStringCopyNDontDeflateNonStaticValidLength<CanGC>(
     JSContext* cx, const char16_t* s, size_t n, gc::Heap heap);
 
+template JSLinearString* NewStringCopyNDontDeflateNonStaticValidLength<NoGC>(
+    JSContext* cx, const char16_t* s, size_t n, gc::Heap heap);
+
 template JSLinearString* NewStringCopyNDontDeflateNonStaticValidLength<CanGC>(
+    JSContext* cx, const Latin1Char* s, size_t n, gc::Heap heap);
+
+template JSLinearString* NewStringCopyNDontDeflateNonStaticValidLength<NoGC>(
     JSContext* cx, const Latin1Char* s, size_t n, gc::Heap heap);
 
 template <AllowGC allowGC, typename CharT>
