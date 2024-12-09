@@ -161,15 +161,26 @@ synced-tabs-context-close-tab-title =
 
 ## Tooltips for the sidebar toolbar widget.
 
-sidebar-widget-expand-sidebar =
-  .tooltiptext = Expand sidebar
+# Variables:
+#   $shortcut (String) - The OS specific keyboard shortcut.
+sidebar-widget-expand-sidebar2 =
+  .tooltiptext = Expand sidebar ({ $shortcut })
   .label = Sidebars
-sidebar-widget-collapse-sidebar =
-  .tooltiptext = Collapse sidebar
+
+# Variables:
+#   $shortcut (String) - The OS specific keyboard shortcut.
+sidebar-widget-collapse-sidebar2 =
+  .tooltiptext = Collapse sidebar ({ $shortcut })
   .label = Sidebars
-sidebar-widget-show-sidebar =
-  .tooltiptext = Show sidebar
+
+# Variables:
+#   $shortcut (String) - The OS specific keyboard shortcut.
+sidebar-widget-show-sidebar2 =
+  .tooltiptext = Show sidebar ({ $shortcut })
   .label = Sidebars
-sidebar-widget-hide-sidebar =
-  .tooltiptext = Hide sidebar
+
+# Variables:
+#   $shortcut (String) - The OS specific keyboard shortcut.
+sidebar-widget-hide-sidebar2 =
+  .tooltiptext = Hide sidebar ({ $shortcut })
   .label = Sidebars

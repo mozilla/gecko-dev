@@ -280,7 +280,14 @@
 #ifdef XP_MACOSX
     <key id="key_stop_mac" modifiers="accel" data-l10n-id="nav-stop-shortcut" command="Browser:Stop"/>
 #endif
-
+    <key id="toggleSidebarKb"
+         data-l10n-id="toggle-sidebar-shortcut"
+#ifdef XP_MACOSX
+         modifiers="control"
+#else
+         modifiers="control,alt"
+#endif
+        />
     <key id="key_gotoHistory"
          data-l10n-id="history-sidebar-shortcut"
 #ifdef XP_MACOSX
