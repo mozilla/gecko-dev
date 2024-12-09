@@ -76,6 +76,7 @@ def lint(paths, config, fix=None, **lintargs):
     log = lintargs["log"]
     results = []
     mach_path = lintargs["root"] + "/mach"
+    # can be extended in build/cargo/cargo-clippy.yaml
     clippy_args = [
         sys.executable,
         mach_path,
