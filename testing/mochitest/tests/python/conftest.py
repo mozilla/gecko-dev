@@ -2,13 +2,13 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+import io
 import json
 import os
 from argparse import Namespace
 
 import mozinfo
 import pytest
-import six
 from manifestparser import TestManifest, expression
 from moztest.selftest.fixtures import binary_fixture, setup_test_harness  # noqa
 
@@ -21,8 +21,7 @@ def create_manifest(tmpdir, build_obj):
     def inner(string, name="manifest.ini"):
         manifest = tmpdir.join(name)
         manifest.write(string, ensure=True)
-        # pylint --py3k: W1612
-        path = six.text_type(manifest)
+        path = str(manifest)
         return TestManifest(manifests=(path,), strict=False, rootdir=tmpdir.strpath)
 
     return inner
@@ -70,8 +69,7 @@ def runtests(setup_test_harness, binary, parser, request):
     else:
         raise Exception(f"Invalid flavor {flavor}!")
 
-    # pylint --py3k: W1648
-    buf = six.StringIO()
+    buf = io.StringIO()
     options = vars(parser.parse_args([]))
     options.update(
         {

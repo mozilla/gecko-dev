@@ -9,7 +9,6 @@ from textwrap import dedent
 
 import mozunit
 import pytest
-import six
 from conftest import setup_args
 from manifestparser import TestManifest
 
@@ -27,7 +26,7 @@ def get_active_tests(setup_test_harness, parser):
         opts.update(kwargs)
 
         manifest = opts.get("manifestFile")
-        if isinstance(manifest, six.string_types):
+        if isinstance(manifest, str):
             md.testRootAbs = os.path.dirname(manifest)
         elif isinstance(manifest, TestManifest):
             md.testRootAbs = manifest.rootdir
@@ -44,8 +43,7 @@ def create_manifest(tmpdir, build_obj):
     def inner(string, name="manifest.ini"):
         manifest = tmpdir.join(name)
         manifest.write(string, ensure=True)
-        # pylint --py3k: W1612
-        path = six.text_type(manifest)
+        path = str(manifest)
         return TestManifest(manifests=(path,), strict=False, rootdir=tmpdir.strpath)
 
     return inner

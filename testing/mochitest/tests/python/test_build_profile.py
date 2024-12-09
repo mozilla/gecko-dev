@@ -12,7 +12,6 @@ from conftest import setup_args
 from mozbuild.base import MozbuildObject
 from mozprofile import Profile
 from mozprofile.prefs import Preferences
-from six import string_types
 
 here = os.path.abspath(os.path.dirname(__file__))
 
@@ -68,7 +67,7 @@ def test_common_prefs_are_all_set(build_profile, profile_data_dir):
         "server": "127.0.0.1:8888",
     }
     for k, v in expected_prefs.items():
-        if isinstance(v, string_types):
+        if isinstance(v, str):
             v = v.format(**interpolation)
 
         assert k in actual_prefs
