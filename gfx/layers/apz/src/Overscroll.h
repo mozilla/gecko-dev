@@ -219,6 +219,9 @@ class WidgetOverscrollEffect : public OverscrollEffectBase {
 
   void RelieveOverscroll(const ParentLayerPoint& aVelocity,
                          SideBits aOverscrollSideBits) override {
+    if (!mIsOverscrolled) {
+      return;
+    }
     RefPtr<GeckoContentController> controller =
         mApzc.GetGeckoContentController();
     // From APZC's point of view, consider it to no longer be overscrolled
