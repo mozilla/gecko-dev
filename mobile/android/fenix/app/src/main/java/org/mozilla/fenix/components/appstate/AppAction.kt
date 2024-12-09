@@ -15,6 +15,7 @@ import mozilla.components.lib.state.Action
 import mozilla.components.service.nimbus.messaging.Message
 import mozilla.components.service.nimbus.messaging.MessageSurfaceId
 import mozilla.components.service.pocket.PocketStory
+import mozilla.components.service.pocket.PocketStory.ContentRecommendation
 import mozilla.components.service.pocket.PocketStory.PocketSponsoredStory
 import org.mozilla.fenix.browser.StandardSnackbarError
 import org.mozilla.fenix.browser.browsingmode.BrowsingMode
@@ -512,6 +513,15 @@ sealed class AppAction : Action {
      * [AppAction]s related to the content recommendations feature.
      */
     sealed class ContentRecommendationsAction : AppAction() {
+        /**
+         * [ContentRecommendationsAction] dispatched when content recommendations were fetched.
+         *
+         * @property recommendations The new list of [ContentRecommendation] that was fetched.
+         */
+        data class ContentRecommendationsFetched(
+            val recommendations: List<ContentRecommendation>,
+        ) : ContentRecommendationsAction()
+
         /**
          * Indicates the given [categoryName] was selected by the user.
          */

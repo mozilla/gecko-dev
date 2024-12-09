@@ -5,12 +5,14 @@
 package org.mozilla.fenix.components.appstate.recommendations
 
 import androidx.annotation.VisibleForTesting
+import mozilla.components.service.pocket.PocketStory.ContentRecommendation
 import mozilla.components.service.pocket.PocketStory.PocketRecommendedStory
 import mozilla.components.service.pocket.PocketStory.PocketSponsoredStory
 import mozilla.components.service.pocket.ext.recordNewImpression
 import org.mozilla.fenix.components.appstate.AppAction.ContentRecommendationsAction
 import org.mozilla.fenix.components.appstate.AppState
 import org.mozilla.fenix.ext.getFilteredStories
+import org.mozilla.fenix.ext.getStories
 import org.mozilla.fenix.home.pocket.PocketRecommendedStoriesSelectedCategory
 
 /**
@@ -25,6 +27,20 @@ internal object ContentRecommendationsReducer {
     @Suppress("LongMethod")
     fun reduce(state: AppState, action: ContentRecommendationsAction): AppState {
         return when (action) {
+            is ContentRecommendationsAction.ContentRecommendationsFetched -> {
+                val updatedRecommendationsState = state.copyWithRecommendationsState {
+                    it.copy(
+                        contentRecommendations = action.recommendations,
+                    )
+                }
+
+                updatedRecommendationsState.copyWithRecommendationsState {
+                    it.copy(
+                        pocketStories = updatedRecommendationsState.getStories(),
+                    )
+                }
+            }
+
             is ContentRecommendationsAction.SelectPocketStoriesCategory -> {
                 val updatedCategoriesState =
                     state.copyWithRecommendationsState {

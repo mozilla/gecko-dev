@@ -323,7 +323,17 @@ class HomeFragment : Fragment() {
         components.appStore.dispatch(AppAction.ModeChange(browsingModeManager.mode))
 
         lifecycleScope.launch(IO) {
-            if (requireContext().settings().showPocketRecommendationsFeature) {
+            val showContentRecommendations = requireContext().settings().showContentRecommendations
+            val showPocketRecommendationsFeature =
+                requireContext().settings().showPocketRecommendationsFeature
+
+            if (showContentRecommendations) {
+                components.appStore.dispatch(
+                    ContentRecommendationsAction.ContentRecommendationsFetched(
+                        recommendations = components.core.pocketStoriesService.getContentRecommendations(),
+                    ),
+                )
+            } else if (showPocketRecommendationsFeature) {
                 val categories = components.core.pocketStoriesService.getStories()
                     .groupBy { story -> story.category }
                     .map { (category, stories) -> PocketRecommendedStoriesCategory(category, stories) }

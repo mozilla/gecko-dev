@@ -17,6 +17,7 @@ import mozilla.components.service.fxa.manager.FxaAccountManager
 import mozilla.components.service.nimbus.messaging.Message
 import mozilla.components.service.nimbus.messaging.MessageData
 import mozilla.components.service.pocket.PocketStory
+import mozilla.components.service.pocket.PocketStory.ContentRecommendation
 import mozilla.components.service.pocket.PocketStory.PocketRecommendedStory
 import mozilla.components.service.pocket.PocketStory.PocketSponsoredStory
 import mozilla.components.service.pocket.PocketStory.PocketSponsoredStoryCaps
@@ -36,6 +37,7 @@ import org.mozilla.fenix.components.appstate.filterOut
 import org.mozilla.fenix.components.appstate.recommendations.ContentRecommendationsState
 import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.ext.getFilteredStories
+import org.mozilla.fenix.ext.getStories
 import org.mozilla.fenix.home.bookmarks.Bookmark
 import org.mozilla.fenix.home.pocket.PocketRecommendedStoriesCategory
 import org.mozilla.fenix.home.pocket.PocketRecommendedStoriesSelectedCategory
@@ -548,5 +550,27 @@ class AppStoreTest {
         assertEquals(recentHistory, recentHistory.filterOut(" "))
         assertEquals(recentHistory - group2, recentHistory.filterOut("Title2"))
         assertEquals(recentHistory - group3, recentHistory.filterOut("title3"))
+    }
+
+    @Test
+    fun `WHEN content recommendations are fetched THEN update the list of content recommendations and pocket stories`() = runTest {
+        val recommendations = listOf(mockk<ContentRecommendation>())
+
+        appStore = AppStore(AppState())
+
+        mockkStatic("org.mozilla.fenix.ext.AppStateKt") {
+            every { any<AppState>().getStories() } returns recommendations
+
+            appStore.dispatch(
+                ContentRecommendationsAction.ContentRecommendationsFetched(
+                    recommendations = recommendations,
+                ),
+            ).join()
+
+            verify { any<AppState>().getStories() }
+        }
+
+        assertEquals(recommendations, appStore.state.recommendationState.contentRecommendations)
+        assertEquals(recommendations, appStore.state.recommendationState.pocketStories)
     }
 }
