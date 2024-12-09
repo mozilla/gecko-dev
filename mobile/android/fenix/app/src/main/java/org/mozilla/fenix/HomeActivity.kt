@@ -159,7 +159,7 @@ import org.mozilla.fenix.theme.DefaultThemeManager
 import org.mozilla.fenix.theme.StatusBarColorManager
 import org.mozilla.fenix.theme.ThemeManager
 import org.mozilla.fenix.utils.Settings
-import org.mozilla.fenix.utils.changeAppLauncherIconBackgroundColor
+import org.mozilla.fenix.utils.changeAppLauncherIcon
 import java.lang.ref.WeakReference
 import java.util.Locale
 
@@ -635,7 +635,7 @@ open class HomeActivity : LocaleAwareAppCompatActivity(), NavHostActivity {
         if (FxNimbus.features.alternativeAppLauncherIcon.value().enabled) {
             // User has been enrolled in alternative app icon experiment.
             with(applicationContext) {
-                changeAppLauncherIconBackgroundColor(
+                changeAppLauncherIcon(
                     context = this,
                     appAlias = ComponentName(this, "$packageName.App"),
                     alternativeAppAlias = ComponentName(this, "$packageName.AlternativeApp"),
