@@ -2011,7 +2011,7 @@ fuzzy(0-255,0-6025) == 1415987-1.html 1415987-1-ref.html
 == 1419820-1.html 1419820-1-ref.html
 == 1420946-1.html 1420946-1-ref.html
 == 1422393.html 1422393-ref.html
-skip-if(nogpu||(winWidget&&isCoverageBuild)) == 1424177.html 1424177-ref.html
+fuzzy-if(nogpu,0-1,0-4) skip-if(winWidget&&isCoverageBuild) == 1424177.html 1424177-ref.html
 == 1424680.html 1424680-ref.html
 == 1424798-1.html 1424798-ref.html
 fuzzy-if(swgl,0-1,0-31430) == 1425243-1.html 1425243-1-ref.html

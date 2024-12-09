@@ -41,8 +41,8 @@ skip-if(useDrawSnapshot) == frame-reconstruction-scroll-clamping.html frame-reco
 
 # Test that position:fixed and position:sticky elements are attached to the
 # layout viewport.
-skip-if(nogpu||(winWidget&&isCoverageBuild)) pref(apz.allow_zooming,true) == pinch-zoom-position-fixed.html pinch-zoom-position-fixed-ref.html
-skip-if(nogpu||(winWidget&&isCoverageBuild)) pref(apz.allow_zooming,true) == pinch-zoom-position-sticky.html pinch-zoom-position-sticky-ref.html
+fuzzy-if(nogpu,0-1,0-24) skip-if(winWidget&&isCoverageBuild) pref(apz.allow_zooming,true) == pinch-zoom-position-fixed.html pinch-zoom-position-fixed-ref.html
+fuzzy-if(nogpu,0-1,0-24) skip-if(winWidget&&isCoverageBuild) pref(apz.allow_zooming,true) == pinch-zoom-position-sticky.html pinch-zoom-position-sticky-ref.html
 
 pref(apz.allow_zooming,true) == iframe-zoomed.html iframe-zoomed-ref.html
 pref(apz.allow_zooming,true) == scaled-iframe-zoomed.html scaled-iframe-zoomed-ref.html
