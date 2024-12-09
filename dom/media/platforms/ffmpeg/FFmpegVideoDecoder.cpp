@@ -896,6 +896,7 @@ int FFmpegVideoDecoder<LIBAV_VER>::GetVideoBuffer(
     FFMPEG_LOG("Failed to create YCbCr image");
     return AVERROR(EINVAL);
   }
+  image->SetColorDepth(mInfo.mColorDepth);
 
   RefPtr<layers::TextureClient> texture =
       AllocateTextureClientForImage(aCodecContext, image);

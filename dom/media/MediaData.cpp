@@ -378,6 +378,7 @@ Result<already_AddRefed<VideoData>, MediaResult> VideoData::CreateAndCopyData(
                "Wrong format?");
   PlanarYCbCrImage* videoImage = v->mImage->AsPlanarYCbCrImage();
   MOZ_ASSERT(videoImage);
+  videoImage->SetColorDepth(aBuffer.mColorDepth);
 
   if (MediaResult r = VideoData::SetVideoDataToImage(
           videoImage, aInfo, aBuffer, aPicture, true /* aCopyData */);

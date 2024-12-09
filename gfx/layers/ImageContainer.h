@@ -879,6 +879,10 @@ class PlanarYCbCrImage : public Image {
       SurfaceDescriptorBuffer& aSdBuffer, BuildSdbFlags aFlags,
       const std::function<MemoryOrShmem(uint32_t)>& aAllocate) override;
 
+  void SetColorDepth(gfx::ColorDepth aColorDepth) { mColorDepth = aColorDepth; }
+
+  gfx::ColorDepth GetColorDepth() const override { return mColorDepth; }
+
  protected:
   already_AddRefed<gfx::SourceSurface> GetAsSourceSurface() override;
 
@@ -890,6 +894,7 @@ class PlanarYCbCrImage : public Image {
   Data mData;
   gfx::IntPoint mOrigin;
   gfx::IntSize mSize;
+  gfx::ColorDepth mColorDepth = gfx::ColorDepth::COLOR_8;
   gfxImageFormat mOffscreenFormat;
   RefPtr<gfx::DataSourceSurface> mSourceSurface;
   uint32_t mBufferSize;
