@@ -217,7 +217,10 @@ export var ToolbarContextMenu = {
 
     if (
       !CustomizationHandler.isCustomizing() &&
-      lazy.CustomizableUI.isSpecialWidget(toolbarItem?.id || "")
+      (toolbarItem?.localName.includes("separator") ||
+        toolbarItem?.localName.includes("spring") ||
+        toolbarItem?.localName.includes("spacer") ||
+        toolbarItem?.id.startsWith("customizableui-special"))
     ) {
       moveToPanel.hidden = true;
       removeFromToolbar.hidden = true;

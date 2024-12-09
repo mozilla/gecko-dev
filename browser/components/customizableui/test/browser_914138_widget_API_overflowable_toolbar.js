@@ -359,9 +359,9 @@ add_task(async function insertBeforeFirstItemInOverflow() {
   await TestUtils.waitForCondition(() => {
     return (
       libraryButton.getAttribute("overflowedItem") == "true" &&
-      !libraryButton.previousElementSibling
+      libraryButton.previousElementSibling?.id == "vertical-spacer"
     );
-  });
+  }, "Library button is overflowed");
 
   let testBtnSpec = { id: kTestBtn4, label: "Overflowable widget test" };
   let placementOfLibraryButton = CustomizableUI.getWidgetIdsInArea(
