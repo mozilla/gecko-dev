@@ -26,7 +26,7 @@ interface nsIAboutThirdParty extends nsISupports {
   readonly isDynamicBlocklistDisabled: boolean;
   updateBlocklist(aLeafName: string, aNewBlockStatus: boolean): Promise<any>;
   collectSystemInfo(): Promise<any>;
-  openAndCloseFileDialogForTesting(aModuleName: string, aInitialDir: string, aFilter: string): void;
+  loadModuleForTesting(aModuleName: string): void;
 }
 
 // https://searchfox.org/mozilla-central/source/toolkit/components/aboutwindowsmessages/nsIAboutWindowsMessages.idl

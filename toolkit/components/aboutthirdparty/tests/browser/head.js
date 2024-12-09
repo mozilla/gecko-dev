@@ -15,14 +15,9 @@ const kATP = Cc["@mozilla.org/about-thirdparty;1"].getService(
 );
 
 function loadShellExtension() {
-  // This method call opens the file dialog and shows the support file
-  // "hello.zzz" in it, which loads TestShellEx.dll to show an icon
-  // for files with the .zzz extension.
-  kATP.openAndCloseFileDialogForTesting(
-    kExtensionModuleName,
-    getTestFilePath(""),
-    kFileFilterInDialog
-  );
+  // This method call attempts to load TestShellEx.dll directly. (We no longer
+  // attempt to load it indirectly via the Windows file dialog.)
+  kATP.loadModuleForTesting(getTestFilePath(kExtensionModuleName));
 }
 
 async function registerObject() {

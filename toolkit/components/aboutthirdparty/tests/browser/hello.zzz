@@ -1,1 +1,5 @@
-Showing this file on Windows Shell loads TestShellEx.dll.
+Showing this file in the Windows Shell (specifically, via the file picker) used
+to load TestShellEx.dll as a shell extension.
+
+While the old shell-extension functionality remains in TestShellEx.dll (for
+now), it is no longer registered as a file handler.
