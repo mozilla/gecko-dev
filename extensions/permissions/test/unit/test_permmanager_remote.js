@@ -67,6 +67,7 @@ function expectPermissions(perms) {
 }
 
 add_setup(async function () {
+  Services.prefs.setCharPref("permissions.manager.defaultsUrl", "");
   do_get_profile();
 
   // This needs to be restored on cleanup
