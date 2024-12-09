@@ -62,7 +62,6 @@ XPCOMUtils.defineLazyServiceGetter(
 ChromeUtils.defineESModuleGetters(lazy, {
   PlacesUtils: "resource://gre/modules/PlacesUtils.sys.mjs",
   PrivateBrowsingUtils: "resource://gre/modules/PrivateBrowsingUtils.sys.mjs",
-  AsyncShutdown: "resource://gre/modules/AsyncShutdown.sys.mjs",
 });
 
 /**
@@ -141,10 +140,6 @@ var Builder = class {
     this._builder = builder;
     this._tasks = null;
     this._shuttingDown = false;
-    // Keep a cache of the most recently retrieved frequent history entries so
-    // we don't have to do an extra places request when building the final list
-    // during shutdown.
-    this._cachedFrequents = null;
     // These are ultimately controlled by prefs, so we disable
     // everything until is read from there
     this._showTasks = false;
@@ -173,14 +168,13 @@ var Builder = class {
    * Constructs the tasks and recent history items to display in the JumpList,
    * and then sends those lists to the nsIJumpListBuilder to be written.
    *
-   * @param {boolean} isFinalUpdate true if this update is the final update before shutdown.
    * @returns {Promise<undefined>}
    *   The Promise resolves once the JumpList has been written, and any
    *   items that the user remove from the recent history list have been
    *   removed from Places. The Promise may reject if any part of constructing
    *   the tasks or sending them to the builder thread failed.
    */
-  async buildList(isFinalUpdate = false) {
+  async buildList() {
     if (!(this._builder instanceof Ci.nsIJumpListBuilder)) {
       console.error(
         "Expected nsIJumpListBuilder. The builder is of the wrong type."
@@ -196,9 +190,8 @@ var Builder = class {
     }
 
     // Are we in the midst of building an earlier iteration of this list? If
-    // so, bail out. Same if we're shutting down. Unless this is the final
-    // shutdown update
-    if (!isFinalUpdate && (this._isBuilding || this._shuttingDown)) {
+    // so, bail out. Same if we're shutting down.
+    if (this._isBuilding || this._shuttingDown) {
       return;
     }
 
@@ -211,34 +204,73 @@ var Builder = class {
       }
 
       let selfPath = Services.dirsvc.get("XREExeF", Ci.nsIFile).path;
-      let profilePath = Services.dirsvc.get("ProfD", Ci.nsIFile).path;
 
       let taskDescriptions = [];
 
       if (this._showTasks) {
         taskDescriptions = this._tasks.map(task => {
-          let args = task.args;
-          if (!isFinalUpdate) {
-            // We want to make sure to target the current profile.
-            args = `-profile "${profilePath}" ${args}`;
-          }
-
           return {
             title: task.title,
             description: task.description,
             path: selfPath,
-            arguments: args,
+            arguments: task.args,
             fallbackIconIndex: task.iconIndex,
           };
         });
       }
 
-      let { customTitle, customDescriptions } = await this._fetchFrequent(
-        isFinalUpdate,
-        removedURLs
-      );
+      let customTitle = "";
+      let customDescriptions = [];
 
-      if (isFinalUpdate || !this._shuttingDown) {
+      if (this._showFrequent) {
+        let conn = await lazy.PlacesUtils.promiseDBConnection();
+        let rows = await conn.executeCached(
+          "SELECT p.url, IFNULL(p.title, p.url) as title " +
+            "FROM moz_places p WHERE p.hidden = 0 " +
+            "AND EXISTS (" +
+            "SELECT id FROM moz_historyvisits WHERE " +
+            "place_id = p.id AND " +
+            "visit_type NOT IN (" +
+            "0, " +
+            `${Ci.nsINavHistoryService.TRANSITION_EMBED}, ` +
+            `${Ci.nsINavHistoryService.TRANSITION_FRAMED_LINK}` +
+            ")" +
+            "LIMIT 1" +
+            ") " +
+            "ORDER BY p.visit_count DESC LIMIT :limit",
+          {
+            limit: this._maxItemCount,
+          }
+        );
+
+        for (let row of rows) {
+          let uri = Services.io.newURI(row.getResultByName("url"));
+          let iconPath = "";
+          try {
+            iconPath = await this._builder.obtainAndCacheFaviconAsync(uri);
+          } catch (e) {
+            // obtainAndCacheFaviconAsync may throw NS_ERROR_NOT_AVAILABLE if
+            // the icon doesn't yet exist on the disk, but has been requested.
+            // It might also throw an exception if there was a problem fetching
+            // the favicon from the database and writing it to the disk. Either
+            // case is non-fatal, so we ignore them here.
+            lazy.logConsole.warn("Failed to fetch favicon for ", uri.spec, e);
+          }
+
+          customDescriptions.push({
+            title: row.getResultByName("title"),
+            description: row.getResultByName("title"),
+            path: selfPath,
+            arguments: row.getResultByName("url"),
+            fallbackIconIndex: 1,
+            iconPath,
+          });
+        }
+
+        customTitle = _getString("taskbar.frequent.label");
+      }
+
+      if (!this._shuttingDown) {
         await this._builder.populateJumpList(
           taskDescriptions,
           customTitle,
@@ -250,95 +282,6 @@ var Builder = class {
     } finally {
       this._isBuilding = false;
     }
-  }
-
-  async _fetchFrequent(isFinalUpdate, removedURLs) {
-    if (!this._showFrequent) {
-      return { customTitle: "", customDescription: [] };
-    }
-
-    let customTitle = _getString("taskbar.frequent.label");
-    let customDescriptions = [];
-
-    if (isFinalUpdate) {
-      // We cannot include entries that have since been removed by the user so filter
-      // those out.
-      if (this._cachedFrequents) {
-        customDescriptions = this._cachedFrequents
-          .filter(desc => !removedURLs.includes(desc.url))
-          .map(desc => {
-            desc.arguments = desc.url;
-            return desc;
-          });
-      }
-
-      return { customTitle, customDescriptions };
-    }
-
-    let selfPath = Services.dirsvc.get("XREExeF", Ci.nsIFile).path;
-    let profilePath = Services.dirsvc.get("ProfD", Ci.nsIFile).path;
-
-    let conn = await lazy.PlacesUtils.promiseDBConnection();
-    let rows = await conn.executeCached(
-      "SELECT p.url, IFNULL(p.title, p.url) as title " +
-        "FROM moz_places p WHERE p.hidden = 0 " +
-        "AND EXISTS (" +
-        "SELECT id FROM moz_historyvisits WHERE " +
-        "place_id = p.id AND " +
-        "visit_type NOT IN (" +
-        "0, " +
-        `${Ci.nsINavHistoryService.TRANSITION_EMBED}, ` +
-        `${Ci.nsINavHistoryService.TRANSITION_FRAMED_LINK}` +
-        ")" +
-        "LIMIT 1" +
-        ") " +
-        "ORDER BY p.visit_count DESC LIMIT :limit",
-      {
-        limit: this._maxItemCount,
-      }
-    );
-
-    for (let row of rows) {
-      let uri = Services.io.newURI(row.getResultByName("url"));
-      let iconPath = "";
-      try {
-        iconPath = await this._builder.obtainAndCacheFaviconAsync(uri);
-      } catch (e) {
-        // obtainAndCacheFaviconAsync may throw NS_ERROR_NOT_AVAILABLE if
-        // the icon doesn't yet exist on the disk, but has been requested.
-        // It might also throw an exception if there was a problem fetching
-        // the favicon from the database and writing it to the disk. Either
-        // case is non-fatal, so we ignore them here.
-        lazy.logConsole.warn("Failed to fetch favicon for ", uri.spec, e);
-      }
-
-      // When updating the list nsIJumpListBuilder.checkForRemovals returns
-      // items that have been manually removed by the user. It does so by
-      // returning the first argument of each entry. So in order for us to be
-      // able to see which history entries were removed the url must be the
-      // first argument.
-      let args = `${uri.spec} -profile ${profilePath}`;
-
-      customDescriptions.push({
-        title: row.getResultByName("title"),
-        description: row.getResultByName("title"),
-        path: selfPath,
-        // Not used by nsIJumpListBuilder but used to recover the url during the
-        // shutdown update.
-        url: uri.spec,
-        arguments: args,
-        fallbackIconIndex: 1,
-        iconPath,
-      });
-    }
-
-    // Cache the most recent result for the shutdown update.
-    this._cachedFrequents = customDescriptions;
-
-    return {
-      customTitle,
-      customDescriptions,
-    };
   }
 
   _deleteActiveJumpList() {
@@ -413,10 +356,6 @@ export var WinTaskbarJumpList = {
 
     // jump list refresh timer
     this._updateTimer();
-
-    // Do an initial update to make sure the jumplist displays the right entries for the current
-    // profile.
-    this.update();
   },
 
   update: function WTBJL_update() {
@@ -440,24 +379,10 @@ export var WinTaskbarJumpList = {
     }
   },
 
-  _startShutdownUpdate() {
+  _shutdown: function WTBJL__shutdown() {
     this._builder.updateShutdownState(true);
     this._pbBuilder.updateShutdownState(true);
     this._shuttingDown = true;
-
-    if (this._enabled) {
-      // Spin up an update as soon as we know we are shutting down and block a later
-      // stage of shutdown on it completing.
-      let shutdownPromise = this._builder.buildList(true);
-
-      lazy.AsyncShutdown.profileBeforeChange.addBlocker(
-        "WindowsJumpList: shutdown update",
-        shutdownPromise
-      );
-    }
-  },
-
-  _shutdown: function WTBJL__shutdown() {
     this._free();
   },
 
@@ -511,7 +436,6 @@ export var WinTaskbarJumpList = {
     // If the browser is closed while in private browsing mode, the "exit"
     // notification is fired on quit-application-granted.
     // History cleanup can happen at profile-change-teardown.
-    Services.obs.addObserver(this, "quit-application-granted");
     Services.obs.addObserver(this, "profile-before-change");
     Services.obs.addObserver(this, "browser:purge-session-history");
     lazy._prefs.addObserver("", this);
@@ -525,7 +449,6 @@ export var WinTaskbarJumpList = {
   },
 
   _freeObs: function WTBJL__freeObs() {
-    Services.obs.removeObserver(this, "quit-application-granted");
     Services.obs.removeObserver(this, "profile-before-change");
     Services.obs.removeObserver(this, "browser:purge-session-history");
     lazy._prefs.removeObserver("", this);
@@ -601,10 +524,6 @@ export var WinTaskbarJumpList = {
         Services.tm.idleDispatchToMainThread(() => {
           this.update();
         });
-        break;
-
-      case "quit-application-granted":
-        this._startShutdownUpdate();
         break;
 
       case "profile-before-change":
