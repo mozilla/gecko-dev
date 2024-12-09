@@ -38,6 +38,19 @@ bool ForOfLoopControl::emitBeginCodeNeedingIteratorClose(BytecodeEmitter* bce) {
   return true;
 }
 
+#ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
+bool ForOfLoopControl::prepareForForOfLoopIteration(
+    BytecodeEmitter* bce, const EmitterScope* headLexicalEmitterScope,
+    bool hasAwaitUsing) {
+  MOZ_ASSERT(headLexicalEmitterScope);
+  if (headLexicalEmitterScope->hasDisposables()) {
+    forOfDisposalEmitter_.emplace(bce, hasAwaitUsing);
+    return forOfDisposalEmitter_->prepareForForOfLoopIteration();
+  }
+  return true;
+}
+#endif
+
 bool ForOfLoopControl::emitEndCodeNeedingIteratorClose(BytecodeEmitter* bce) {
   if (!tryCatch_->emitCatch(TryEmitter::ExceptionStack::Yes)) {
     //              [stack] ITER ... EXCEPTION STACK
@@ -49,9 +62,11 @@ bool ForOfLoopControl::emitEndCodeNeedingIteratorClose(BytecodeEmitter* bce) {
   // https://arai-a.github.io/ecma262-compare/?pr=3000&id=sec-runtime-semantics-forin-div-ofbodyevaluation-lhs-stmt-iterator-lhskind-labelset
   // Step 9.i.i.1 Set result to
   // Completion(DisposeResources(iterationEnv.[[DisposeCapability]], result)).
-  if (!bce->innermostEmitterScope()->prepareForForOfIteratorCloseOnThrow()) {
-    //              [stack] ITER ... EXCEPTION STACK
-    return false;
+  if (forOfDisposalEmitter_.isSome()) {
+    if (!forOfDisposalEmitter_->emitEnd()) {
+      //              [stack] ITER ... EXCEPTION STACK
+      return false;
+    }
   }
 #endif
 

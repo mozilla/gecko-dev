@@ -123,8 +123,8 @@ bool ForOfEmitter::emitInitialize(uint32_t forPos) {
       // There also wouldn't be a dispose operation for the environment
       // object recreated for the last iteration, where it leaves the loop
       // before evaluating the body statement.
-      if (!bce_->innermostEmitterScope()->prepareForForOfLoopIteration(
-              bce_,
+      if (!loopInfo_->prepareForForOfLoopIteration(
+              bce_, headLexicalEmitterScope_,
               usingDeclarationInHead_ == HeadUsingDeclarationKind::Async)) {
         return false;
       }

@@ -366,23 +366,6 @@ bool EmitterScope::prepareForDisposableAssignment(UsingHint hint) {
   return usingEmitter_->prepareForAssignment(hint);
 }
 
-bool EmitterScope::prepareForForOfLoopIteration(BytecodeEmitter* bce,
-                                                bool hasAwaitUsing) {
-  if (hasDisposables()) {
-    forOfDisposalEmitter_.emplace(bce, hasAwaitUsing);
-    return forOfDisposalEmitter_->prepareForForOfLoopIteration();
-  }
-  return true;
-}
-
-bool EmitterScope::prepareForForOfIteratorCloseOnThrow() {
-  if (hasDisposables()) {
-    MOZ_ASSERT(forOfDisposalEmitter_.isSome());
-    return forOfDisposalEmitter_->emitEnd();
-  }
-  return true;
-}
-
 bool EmitterScope::emitSwitchBlockEndForDisposableScopeBodyEnd(
     BytecodeEmitter* bce) {
   MOZ_ASSERT(hasDisposables());
