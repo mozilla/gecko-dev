@@ -142,7 +142,7 @@ add_task(async function testHomeButtonPlacement() {
       CustomizableUI.getPlacementOfWidget(kUrlbarWidgetId);
     is(
       addressBarPlacement.position,
-      !sidebarRevampEnabled ? 6 : 7,
+      !sidebarRevampEnabled ? 5 : 6,
       "There's a space between home and urlbar"
     );
     CustomizableUI.removeWidgetFromArea(kHomeButtonId);
