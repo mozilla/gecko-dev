@@ -136,5 +136,9 @@
   "spotify": {
     "queryParams": ["si"],
     "topLevelSites": ["open.spotify.com"]
+  },
+  "meetup": {
+    "queryParams": ["eventOrigin", "recId", "recSource", "searchId"],
+    "topLevelSites": ["www.meetup.com"]
   }
 }
