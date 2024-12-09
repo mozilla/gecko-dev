@@ -12,7 +12,7 @@
 }
 
 .stars {
-  --rating-star-size: 1em;
+  --rating-star-size: var(--icon-size-default);
   --rating-star-spacing: 0.3ch;
   display: inline-flex;
   align-content: center;
