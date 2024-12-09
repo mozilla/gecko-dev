@@ -60,15 +60,15 @@ fun ManagePrivacyPreferencesDialog(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
+                UsageDataPreference(store, state.usageDataChecked, onUsageDataLinkClick)
+
+                Spacer(modifier = Modifier.height(24.dp))
+
                 CrashReportingPreference(
                     store,
                     state.crashReportingChecked,
                     onCrashReportingLinkClick,
                 )
-
-                Spacer(modifier = Modifier.height(24.dp))
-
-                UsageDataPreference(store, state.usageDataChecked, onUsageDataLinkClick)
 
                 Spacer(modifier = Modifier.height(16.dp))
 
