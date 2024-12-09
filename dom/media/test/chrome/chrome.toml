@@ -2,6 +2,7 @@
 subsuite = "media"
 support-files = [
   "../gizmo.mp4",
+  "../gizmo_av1_10bit_420.webm",
   "../gizmo-noaudio.mp4",
   "../TestPatternHDR.mp4",
   "../tone2s-silence4s-tone2s.opus",
