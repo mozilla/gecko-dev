@@ -1,0 +1,63 @@
+.ad-banner-wrapper {
+  grid-column: 1/-1;
+  margin: 24px 0;
+  overflow: hidden;
+
+  .ad-banner-dismiss {
+    margin: 10px auto;
+    text-align: end;
+    margin-inline-end: 10px;
+
+    .icon-dismiss {
+      background-size: 20px;
+      border: 0;
+      cursor: pointer;
+    }
+  }
+
+  .ad-banner-sponsored {
+    margin: 13px auto;
+
+    span {
+      text-transform: uppercase;
+      font-size: var(--font-size-small);
+      color: var(--newtab-contextual-text-secondary-color);
+    }
+  }
+
+  &.leaderboard {
+    .ad-banner-dismiss {
+      width: 728px;
+    }
+
+    .ad-banner-content {
+      height: 90px;
+      width: 728px;
+      margin: 0 auto;
+    }
+
+    .ad-banner-sponsored {
+      width: 728px;
+    }
+
+    @media (max-width: $break-point-large) {
+      display: none;
+    }
+  }
+
+  &.billboard {
+    .ad-banner-content {
+      height: 250px;
+      width: 970px;
+      margin: 0 auto;
+    }
+
+    .ad-banner-sponsored {
+      width: 970px;
+    }
+
+    @media (max-width: $break-point-widest) {
+      display: none;
+    }
+  }
+}

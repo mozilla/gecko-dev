@@ -2272,7 +2272,7 @@ const INTERSECTION_RATIO = 0.5;
 /**
  * Impression wrapper for Discovery Stream related React components.
  *
- * It makses use of the Intersection Observer API to detect the visibility,
+ * It makes use of the Intersection Observer API to detect the visibility,
  * and relies on page visibility to ensure the impression is reported
  * only when the component is visible on the page.
  *
@@ -4088,10 +4088,109 @@ function ListFeed({
   }, ctaCopy)))));
 }
 
+;// CONCATENATED MODULE: ./content-src/components/DiscoveryStreamComponents/AdBanner/AdBanner.jsx
+/* eslint-disable no-console */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+ * You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
+
+const AdBanner = ({
+  spoc,
+  dispatch,
+  firstVisibleTimestamp
+}) => {
+  const getDimensions = format => {
+    switch (format) {
+      case "leaderboard":
+        return {
+          width: "728",
+          height: "90"
+        };
+      case "billboard":
+        return {
+          width: "970",
+          height: "250"
+        };
+    }
+    return {
+      // image will still render with default values
+      width: undefined,
+      height: undefined
+    };
+  };
+  const {
+    width: imgWidth,
+    height: imgHeight
+  } = getDimensions(spoc.format);
+  const handleDismissClick = () => {
+    dispatch(actionCreators.AlsoToMain({
+      type: actionTypes.BLOCK_URL,
+      data: [{
+        block_key: spoc.block_key,
+        fetchTimestamp: spoc.fetchTimestamp,
+        flight_id: spoc.flight_id,
+        format: spoc.format,
+        id: spoc.id,
+        is_pocket_card: spoc.is_pocket_card,
+        position: spoc.pos,
+        sponsor: spoc.sponsor,
+        title: spoc.title,
+        url: spoc.url || spoc.shim.url,
+        personalization_models: spoc.personalization_models,
+        priority: spoc.priority,
+        score: spoc.score,
+        alt_text: spoc.alt_text
+      }]
+    }));
+  };
+  return /*#__PURE__*/external_React_default().createElement("aside", {
+    className: `ad-banner-wrapper ${spoc.format}`
+  }, /*#__PURE__*/external_React_default().createElement("div", {
+    className: "ad-banner-dismiss"
+  }, /*#__PURE__*/external_React_default().createElement("button", {
+    className: "icon icon-dismiss",
+    onClick: handleDismissClick,
+    "data-l10n-id": "newtab-toast-dismiss-button"
+  })), /*#__PURE__*/external_React_default().createElement(SafeAnchor, {
+    className: "ad-banner-link",
+    url: spoc.url,
+    title: spoc.title
+  }, /*#__PURE__*/external_React_default().createElement(ImpressionStats_ImpressionStats, {
+    flightId: spoc.flight_id,
+    rows: [{
+      id: spoc.id,
+      pos: spoc.pos,
+      corpus_item_id: spoc.corpus_item_id,
+      scheduled_corpus_item_id: spoc.scheduled_corpus_item_id,
+      recommended_at: spoc.recommended_at,
+      received_rank: spoc.received_rank
+    }],
+    dispatch: dispatch,
+    firstVisibleTimestamp: firstVisibleTimestamp
+  }), /*#__PURE__*/external_React_default().createElement("div", {
+    className: "ad-banner-content"
+  }, /*#__PURE__*/external_React_default().createElement("img", {
+    src: spoc.raw_image_src,
+    alt: spoc.alt_text,
+    loading: "lazy",
+    width: imgWidth,
+    height: imgHeight
+  }))), /*#__PURE__*/external_React_default().createElement("div", {
+    className: "ad-banner-sponsored"
+  }, /*#__PURE__*/external_React_default().createElement("span", {
+    className: "ad-banner-sponsored-label",
+    "data-l10n-id": "newtab-topsite-sponsored"
+  })));
+};
 ;// CONCATENATED MODULE: ./content-src/components/DiscoveryStreamComponents/CardGrid/CardGrid.jsx
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
+
 
 
 
@@ -4396,56 +4495,68 @@ class _CardGrid extends (external_React_default()).PureComponent {
     // filter out recs that should be in ListFeed
     const recs = this.props.data.recommendations.filter(item => !item.feedName).slice(0, items);
     const cards = [];
+    // const leaderboard = true;
+
     let essentialReadsCards = [];
     let editorsPicksCards = [];
     for (let index = 0; index < items; index++) {
       const rec = recs[index];
-      cards.push(topicsLoading || !rec || rec.placeholder || rec.flight_id && !spocsStartupCacheEnabled && this.props.App.isForStartupCache ? /*#__PURE__*/external_React_default().createElement(PlaceholderDSCard, {
-        key: `dscard-${index}`
-      }) : /*#__PURE__*/external_React_default().createElement(DSCard, {
-        key: `dscard-${rec.id}`,
-        pos: rec.pos,
-        flightId: rec.flight_id,
-        image_src: rec.image_src,
-        raw_image_src: rec.raw_image_src,
-        word_count: rec.word_count,
-        time_to_read: rec.time_to_read,
-        title: rec.title,
-        topic: rec.topic,
-        showTopics: showTopics,
-        selectedTopics: selectedTopics,
-        availableTopics: availableTopics,
-        excerpt: rec.excerpt,
-        url: rec.url,
-        id: rec.id,
-        shim: rec.shim,
-        fetchTimestamp: rec.fetchTimestamp,
-        type: this.props.type,
-        context: rec.context,
-        sponsor: rec.sponsor,
-        sponsored_by_override: rec.sponsored_by_override,
-        dispatch: this.props.dispatch,
-        source: rec.domain,
-        publisher: rec.publisher,
-        pocket_id: rec.pocket_id,
-        context_type: rec.context_type,
-        bookmarkGuid: rec.bookmarkGuid,
-        is_collection: this.props.is_collection,
-        saveToPocketCard: saveToPocketCard,
-        ctaButtonSponsors: ctaButtonSponsors,
-        ctaButtonVariant: ctaButtonVariant,
-        spocMessageVariant: spocMessageVariant,
-        recommendation_id: rec.recommendation_id,
-        firstVisibleTimestamp: this.props.firstVisibleTimestamp,
-        mayHaveThumbsUpDown: mayHaveThumbsUpDown,
-        mayHaveSectionsCards: mayHaveSectionsCards,
-        corpus_item_id: rec.corpus_item_id,
-        scheduled_corpus_item_id: rec.scheduled_corpus_item_id,
-        recommended_at: rec.recommended_at,
-        received_rank: rec.received_rank,
-        format: rec.format,
-        alt_text: rec.alt_text
-      }));
+      if (rec.format === "billboard" || rec.format === "leaderboard") {
+        cards.push( /*#__PURE__*/external_React_default().createElement(AdBanner, {
+          spoc: rec,
+          key: `dscard-${rec.id}`,
+          dispatch: this.props.dispatch,
+          type: this.props.type,
+          firstVisibleTimestamp: this.props.firstVisibleTimestamp
+        }));
+      } else {
+        cards.push(topicsLoading || !rec || rec.placeholder || rec.flight_id && !spocsStartupCacheEnabled && this.props.App.isForStartupCache ? /*#__PURE__*/external_React_default().createElement(PlaceholderDSCard, {
+          key: `dscard-${index}`
+        }) : /*#__PURE__*/external_React_default().createElement(DSCard, {
+          key: `dscard-${rec.id}`,
+          pos: rec.pos,
+          flightId: rec.flight_id,
+          image_src: rec.image_src,
+          raw_image_src: rec.raw_image_src,
+          word_count: rec.word_count,
+          time_to_read: rec.time_to_read,
+          title: rec.title,
+          topic: rec.topic,
+          showTopics: showTopics,
+          selectedTopics: selectedTopics,
+          availableTopics: availableTopics,
+          excerpt: rec.excerpt,
+          url: rec.url,
+          id: rec.id,
+          shim: rec.shim,
+          fetchTimestamp: rec.fetchTimestamp,
+          type: this.props.type,
+          context: rec.context,
+          sponsor: rec.sponsor,
+          sponsored_by_override: rec.sponsored_by_override,
+          dispatch: this.props.dispatch,
+          source: rec.domain,
+          publisher: rec.publisher,
+          pocket_id: rec.pocket_id,
+          context_type: rec.context_type,
+          bookmarkGuid: rec.bookmarkGuid,
+          is_collection: this.props.is_collection,
+          saveToPocketCard: saveToPocketCard,
+          ctaButtonSponsors: ctaButtonSponsors,
+          ctaButtonVariant: ctaButtonVariant,
+          spocMessageVariant: spocMessageVariant,
+          recommendation_id: rec.recommendation_id,
+          firstVisibleTimestamp: this.props.firstVisibleTimestamp,
+          mayHaveThumbsUpDown: mayHaveThumbsUpDown,
+          mayHaveSectionsCards: mayHaveSectionsCards,
+          corpus_item_id: rec.corpus_item_id,
+          scheduled_corpus_item_id: rec.scheduled_corpus_item_id,
+          recommended_at: rec.recommended_at,
+          received_rank: rec.received_rank,
+          format: rec.format,
+          alt_text: rec.alt_text
+        }));
+      }
     }
     if (widgets?.positions?.length && widgets?.data?.length) {
       let positionIndex = 0;
