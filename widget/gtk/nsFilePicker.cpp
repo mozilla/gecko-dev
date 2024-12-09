@@ -47,8 +47,8 @@ using namespace mozilla;
 using mozilla::dom::Promise;
 
 #define MAX_PREVIEW_SIZE 180
-// bug 1184009
-#define MAX_PREVIEW_SOURCE_SIZE 4096
+// bug 1935858
+#define MAX_PREVIEW_SOURCE_SIZE 8192
 
 nsIFile* nsFilePicker::mPrevDisplayDirectory = nullptr;
 
