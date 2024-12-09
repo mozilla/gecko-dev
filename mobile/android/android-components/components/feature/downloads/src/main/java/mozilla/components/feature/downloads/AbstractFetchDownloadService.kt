@@ -5,7 +5,6 @@
 package mozilla.components.feature.downloads
 
 import android.annotation.SuppressLint
-import android.annotation.TargetApi
 import android.app.DownloadManager.ACTION_DOWNLOAD_COMPLETE
 import android.app.DownloadManager.EXTRA_DOWNLOAD_ID
 import android.app.Notification
@@ -33,6 +32,7 @@ import android.webkit.MimeTypeMap
 import android.widget.Toast
 import androidx.annotation.ColorRes
 import androidx.annotation.GuardedBy
+import androidx.annotation.RequiresApi
 import androidx.annotation.VisibleForTesting
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
@@ -960,7 +960,7 @@ abstract class AbstractFetchDownloadService : Service() {
                 )
         }
 
-    @TargetApi(Build.VERSION_CODES.Q)
+    @RequiresApi(Build.VERSION_CODES.Q)
     @VisibleForTesting
     internal fun useFileStreamScopedStorage(download: DownloadState, append: Boolean, block: (OutputStream) -> Unit) {
         val values = ContentValues().apply {
@@ -992,7 +992,7 @@ abstract class AbstractFetchDownloadService : Service() {
         } ?: throw IOException("Failed to register download with content resolver")
     }
 
-    @TargetApi(Build.VERSION_CODES.P)
+    @RequiresApi(Build.VERSION_CODES.P)
     @Suppress("Deprecation")
     @VisibleForTesting
     internal fun useFileStreamLegacy(download: DownloadState, append: Boolean, block: (OutputStream) -> Unit) {
@@ -1074,7 +1074,7 @@ abstract class AbstractFetchDownloadService : Service() {
             return newIntent
         }
 
-        @TargetApi(Build.VERSION_CODES.Q)
+        @RequiresApi(Build.VERSION_CODES.Q)
         @VisibleForTesting
         internal fun queryDownloadMediaStore(applicationContext: Context, download: DownloadState): Uri? {
             val resolver = applicationContext.contentResolver

@@ -4,13 +4,13 @@
 
 package mozilla.components.lib.dataprotect
 
-import android.annotation.TargetApi
 import android.content.Context
 import android.content.Context.MODE_PRIVATE
 import android.content.SharedPreferences
 import android.os.Build
 import android.os.Build.VERSION_CODES.M
 import android.util.Base64
+import androidx.annotation.RequiresApi
 import mozilla.components.support.base.log.logger.Logger
 import java.nio.charset.StandardCharsets
 import java.security.GeneralSecurityException
@@ -142,7 +142,7 @@ private class InsecurePreferencesImpl21(
 /**
  * A [KeyValuePreferences] which is backed by [SharedPreferences] and performs encryption/decryption of values.
  */
-@TargetApi(M)
+@RequiresApi(M)
 private class SecurePreferencesImpl23(
     context: Context,
     name: String,

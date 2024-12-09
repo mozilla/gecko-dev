@@ -4,16 +4,16 @@
 
 package mozilla.components.feature.media.focus
 
-import android.annotation.TargetApi
 import android.media.AudioAttributes
 import android.media.AudioFocusRequest
 import android.media.AudioManager
 import android.os.Build
+import androidx.annotation.RequiresApi
 
 /**
  * [AudioFocusController] implementation for Android API 26+.
  */
-@TargetApi(Build.VERSION_CODES.O)
+@RequiresApi(Build.VERSION_CODES.O)
 internal class AudioFocusControllerV26(
     private val audioManager: AudioManager,
     listener: AudioManager.OnAudioFocusChangeListener,

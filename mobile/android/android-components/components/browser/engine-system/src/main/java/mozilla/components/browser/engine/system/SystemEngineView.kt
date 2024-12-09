@@ -4,7 +4,6 @@
 
 package mozilla.components.browser.engine.system
 
-import android.annotation.TargetApi
 import android.app.Activity
 import android.content.Context
 import android.content.res.Resources
@@ -41,6 +40,7 @@ import android.webkit.WebView.HitTestResult.SRC_ANCHOR_TYPE
 import android.webkit.WebView.HitTestResult.SRC_IMAGE_ANCHOR_TYPE
 import android.webkit.WebViewClient
 import android.widget.FrameLayout
+import androidx.annotation.RequiresApi
 import androidx.annotation.VisibleForTesting
 import androidx.annotation.VisibleForTesting.Companion.PRIVATE
 import androidx.core.net.toUri
@@ -316,7 +316,7 @@ class SystemEngineView @JvmOverloads constructor(
             }
         }
 
-        @TargetApi(Build.VERSION_CODES.M)
+        @RequiresApi(Build.VERSION_CODES.M)
         override fun onReceivedError(view: WebView, request: WebResourceRequest, error: WebResourceError) {
             session?.let { session ->
                 if (!request.isForMainFrame) {
@@ -756,7 +756,7 @@ class SystemEngineView @JvmOverloads constructor(
         onFinish(outBitmap)
     }
 
-    @TargetApi(Build.VERSION_CODES.O)
+    @RequiresApi(Build.VERSION_CODES.O)
     private fun createThumbnailUsingPixelCopy(view: View, onFinish: (Bitmap?) -> Unit) {
         val out = Bitmap.createBitmap(view.width, view.height, Bitmap.Config.ARGB_8888)
         val viewRect = view.getRectWithViewLocation()
