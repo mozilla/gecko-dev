@@ -9,6 +9,7 @@ const statsExpectedByType = {
     expected: [
       "trackIdentifier",
       "id",
+      "mid",
       "timestamp",
       "type",
       "ssrc",
@@ -75,6 +76,7 @@ const statsExpectedByType = {
   "outbound-rtp": {
     expected: [
       "id",
+      "mid",
       "timestamp",
       "type",
       "ssrc",
@@ -517,6 +519,25 @@ function pedanticChecks(report) {
       is(typeof stat.trackIdentifier, "string");
       isnot(stat.trackIdentifier, "");
 
+      // mid
+      ok(
+        parseInt(stat.mid) >= 0,
+        `${stat.type}.mid is a positive integer. value=${stat.mid}`
+      );
+      let inboundRtpMids = [];
+      report.forEach(r => {
+        if (r.type == "inbound-rtp") {
+          inboundRtpMids.push(r.mid);
+        }
+      });
+      is(
+        inboundRtpMids.filter(mid => mid == stat.mid).length,
+        1,
+        `${stat.type}.mid is distinct. value=${
+          stat.mid
+        }, others=${JSON.stringify(inboundRtpMids)}`
+      );
+
       // packetsReceived
       ok(
         stat.packetsReceived >= 0 && stat.packetsReceived < 10 ** 5,
@@ -851,6 +872,12 @@ function pedanticChecks(report) {
       //
       // Required fields
       //
+
+      // mid
+      ok(
+        parseInt(stat.mid) >= 0,
+        `${stat.type}.mid a positive integer. value=${stat.mid}`
+      );
 
       // packetsSent
       ok(
@@ -1617,6 +1644,11 @@ function checkSenderStats(senderStats, streamCount) {
       outboundRtpReports.filter(r => r.ssrc == outboundRtpReport.ssrc).length,
       1,
       "Simulcast send track SSRCs are distinct"
+    );
+    is(
+      outboundRtpReports.filter(r => r.mid == outboundRtpReport.mid).length,
+      streamCount,
+      "Simulcast send track MIDs are identical"
     );
     const remoteReports = remoteInboundRtpReports.filter(
       r => r.id == outboundRtpReport.remoteId

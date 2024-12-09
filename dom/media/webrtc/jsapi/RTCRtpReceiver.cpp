@@ -256,6 +256,8 @@ nsTArray<RefPtr<RTCStatsPromise>> RTCRtpReceiver::GetStatsInternal(
     mTrack->GetId(recvTrackId);
   }
 
+  std::string mid = mTransceiver->GetMidAscii();
+
   {
     // Add bandwidth estimation stats
     promises.AppendElement(InvokeAsync(
@@ -285,7 +287,7 @@ nsTArray<RefPtr<RTCStatsPromise>> RTCRtpReceiver::GetStatsInternal(
   promises.AppendElement(
       InvokeAsync(
           mCallThread, __func__,
-          [pipeline = mPipeline, recvTrackId] {
+          [pipeline = mPipeline, recvTrackId, mid = std::move(mid)] {
             auto report = MakeUnique<dom::RTCStatsCollection>();
             auto asAudio = pipeline->mConduit->AsAudioSessionConduit();
             auto asVideo = pipeline->mConduit->AsVideoSessionConduit();
@@ -328,6 +330,9 @@ nsTArray<RefPtr<RTCStatsPromise>> RTCRtpReceiver::GetStatsInternal(
             auto constructCommonInboundRtpStats =
                 [&](RTCInboundRtpStreamStats& aLocal) {
                   aLocal.mTrackIdentifier = recvTrackId;
+                  if (mid != "") {
+                    aLocal.mMid.Construct(NS_ConvertUTF8toUTF16(mid).get());
+                  }
                   aLocal.mTimestamp.Construct(
                       pipeline->GetTimestampMaker().GetNow().ToDom());
                   aLocal.mId.Construct(localId);

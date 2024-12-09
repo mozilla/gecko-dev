@@ -219,6 +219,8 @@ nsTArray<RefPtr<dom::RTCStatsPromise>> RTCRtpSender::GetStatsInternal(
     track->GetId(trackName);
   }
 
+  std::string mid = mTransceiver->GetMidAscii();
+
   {
     // Add bandwidth estimation stats
     promises.AppendElement(InvokeAsync(
@@ -246,7 +248,8 @@ nsTArray<RefPtr<dom::RTCStatsPromise>> RTCRtpSender::GetStatsInternal(
   }
 
   promises.AppendElement(InvokeAsync(
-      mPipeline->mCallThread, __func__, [pipeline = mPipeline, trackName] {
+      mPipeline->mCallThread, __func__,
+      [pipeline = mPipeline, trackName, mid = std::move(mid)] {
         auto report = MakeUnique<dom::RTCStatsCollection>();
         auto asAudio = pipeline->mConduit->AsAudioSessionConduit();
         auto asVideo = pipeline->mConduit->AsVideoSessionConduit();
@@ -305,6 +308,9 @@ nsTArray<RefPtr<dom::RTCStatsPromise>> RTCRtpSender::GetStatsInternal(
                     kind);  // mediaType is the old name for kind.
                 if (remoteId.Length()) {
                   aLocal.mRemoteId.Construct(remoteId);
+                }
+                if (!mid.empty()) {
+                  aLocal.mMid.Construct(NS_ConvertUTF8toUTF16(mid).get());
                 }
               };
 
