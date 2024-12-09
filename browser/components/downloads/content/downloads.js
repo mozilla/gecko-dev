@@ -96,9 +96,13 @@ var DownloadsPanel = {
     this._initialized = true;
 
     window.addEventListener("unload", this.onWindowUnload);
-    document
-      .getElementById("downloadPanelCommands")
-      .addEventListener("command", this);
+    const downloadPanelCommands = document.getElementById(
+      "downloadPanelCommands"
+    );
+    downloadPanelCommands.addEventListener("command", this);
+    downloadPanelCommands.addEventListener("commandupdate", () => {
+      goUpdateCommand("cmd_delete");
+    });
 
     // Load and resume active downloads if required.  If there are downloads to
     // be shown in the panel, they will be loaded asynchronously.
