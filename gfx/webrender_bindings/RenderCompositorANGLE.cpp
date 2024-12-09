@@ -837,11 +837,29 @@ void RenderCompositorANGLE::Bind(wr::NativeTileId aId,
 
 void RenderCompositorANGLE::Unbind() { mDCLayerTree->Unbind(); }
 
+void RenderCompositorANGLE::BindSwapChain(wr::NativeSurfaceId aId) {
+  mDCLayerTree->BindSwapChain(aId);
+}
+void RenderCompositorANGLE::PresentSwapChain(wr::NativeSurfaceId aId) {
+  mDCLayerTree->PresentSwapChain(aId);
+}
+
 void RenderCompositorANGLE::CreateSurface(wr::NativeSurfaceId aId,
                                           wr::DeviceIntPoint aVirtualOffset,
                                           wr::DeviceIntSize aTileSize,
                                           bool aIsOpaque) {
   mDCLayerTree->CreateSurface(aId, aVirtualOffset, aTileSize, aIsOpaque);
+}
+
+void RenderCompositorANGLE::CreateSwapChainSurface(wr::NativeSurfaceId aId,
+                                                   wr::DeviceIntSize aSize,
+                                                   bool aIsOpaque) {
+  mDCLayerTree->CreateSwapChainSurface(aId, aSize, aIsOpaque);
+}
+
+void RenderCompositorANGLE::ResizeSwapChainSurface(wr::NativeSurfaceId aId,
+                                                   wr::DeviceIntSize aSize) {
+  mDCLayerTree->ResizeSwapChainSurface(aId, aSize);
 }
 
 void RenderCompositorANGLE::CreateExternalSurface(wr::NativeSurfaceId aId,
