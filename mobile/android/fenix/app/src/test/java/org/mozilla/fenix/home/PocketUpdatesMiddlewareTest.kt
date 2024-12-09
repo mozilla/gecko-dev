@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import mozilla.components.service.pocket.PocketStoriesService
+import mozilla.components.service.pocket.PocketStory.ContentRecommendation
 import mozilla.components.service.pocket.PocketStory.PocketRecommendedStory
 import mozilla.components.support.test.ext.joinBlocking
 import mozilla.components.support.test.rule.MainCoroutineRule
@@ -73,8 +74,23 @@ class PocketUpdatesMiddlewareTest {
             0,
             timesShown = 3,
         )
-        val stories = listOf(story)
+        val recommendation = ContentRecommendation(
+            scheduledCorpusItemId = "1",
+            url = "testUrl",
+            title = "",
+            excerpt = "",
+            topic = "",
+            publisher = "",
+            isTimeSensitive = false,
+            imageUrl = "",
+            tileId = 1,
+            receivedRank = 33,
+            impressions = 0,
+        )
+        val stories = listOf(story, recommendation)
         val expectedStoryUpdate = story.copy(timesShown = story.timesShown.inc())
+        val expectedRecommendationUpdate = recommendation.copy(impressions = recommendation.impressions.inc())
+
         val pocketService: PocketStoriesService = mockk(relaxed = true)
 
         persistStoriesImpressions(
@@ -83,7 +99,10 @@ class PocketUpdatesMiddlewareTest {
             updatedStories = stories,
         )
 
-        coVerify { pocketService.updateStoriesTimesShown(listOf(expectedStoryUpdate)) }
+        coVerify {
+            pocketService.updateStoriesTimesShown(listOf(expectedStoryUpdate))
+            pocketService.updateRecommendationsImpressions(listOf(expectedRecommendationUpdate))
+        }
     }
 
     @Test

@@ -5,6 +5,7 @@
 package org.mozilla.fenix.home.pocket.controller
 
 import mozilla.components.service.pocket.PocketStory
+import mozilla.components.service.pocket.PocketStory.ContentRecommendation
 import mozilla.components.service.pocket.PocketStory.PocketRecommendedStory
 import mozilla.components.service.pocket.PocketStory.PocketSponsoredStory
 import mozilla.components.service.pocket.ext.getCurrentFlightImpressions
@@ -107,7 +108,14 @@ internal class DefaultPocketStoriesController(
     }
 
     override fun handleStoriesShown(storiesShown: List<PocketStory>) {
-        appStore.dispatch(ContentRecommendationsAction.PocketStoriesShown(storiesShown))
+        // Only report here the impressions for recommended stories.
+        // Sponsored stories use a different API for more accurate tracking.
+        appStore.dispatch(
+            ContentRecommendationsAction.PocketStoriesShown(
+                storiesShown = storiesShown.filter { it is ContentRecommendation || it is PocketRecommendedStory },
+            ),
+        )
+
         Pocket.homeRecsShown.record(NoExtras())
     }
 

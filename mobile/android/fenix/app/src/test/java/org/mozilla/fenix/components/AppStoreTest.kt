@@ -529,6 +529,54 @@ class AppStoreTest {
     }
 
     @Test
+    fun `WHEN content recommendations are shown THEN update the impressions of recommendations`() = runTest {
+        val recommendation1 = ContentRecommendation(
+            scheduledCorpusItemId = "1",
+            url = "testUrl",
+            title = "",
+            excerpt = "",
+            topic = "",
+            publisher = "",
+            isTimeSensitive = false,
+            imageUrl = "",
+            tileId = 1,
+            receivedRank = 33,
+            impressions = 0,
+        )
+        val recommendation2 = recommendation1.copy(scheduledCorpusItemId = "2")
+        val recommendation3 = recommendation1.copy(scheduledCorpusItemId = "3")
+        val recommendation4 = recommendation1.copy(scheduledCorpusItemId = "4")
+
+        appStore = AppStore(
+            AppState(
+                recommendationState = ContentRecommendationsState(
+                    contentRecommendations = listOf(
+                        recommendation1,
+                        recommendation2,
+                        recommendation3,
+                        recommendation4,
+                    ),
+                ),
+            ),
+        )
+
+        appStore.dispatch(
+            ContentRecommendationsAction.PocketStoriesShown(
+                listOf(
+                    recommendation1,
+                    recommendation3,
+                ),
+            ),
+        ).join()
+
+        assertEquals(4, appStore.state.recommendationState.contentRecommendations.size)
+        assertEquals(1, appStore.state.recommendationState.contentRecommendations[0].impressions)
+        assertEquals(0, appStore.state.recommendationState.contentRecommendations[1].impressions)
+        assertEquals(1, appStore.state.recommendationState.contentRecommendations[2].impressions)
+        assertEquals(0, appStore.state.recommendationState.contentRecommendations[3].impressions)
+    }
+
+    @Test
     fun `Test updating the list of Pocket recommendations categories`() = runTest {
         val otherStoriesCategory = PocketRecommendedStoriesCategory("other")
         val anotherStoriesCategory = PocketRecommendedStoriesCategory("another")

@@ -150,6 +150,17 @@ internal object ContentRecommendationsReducer {
                         }
                     }
 
+                val recommendationsShown = action.storiesShown.filterIsInstance<ContentRecommendation>()
+                val updatedRecommendations = state.recommendationState.contentRecommendations.map { recommendation ->
+                    if (recommendationsShown.contains(recommendation)) {
+                        recommendation.copy(
+                            impressions = recommendation.impressions.inc(),
+                        )
+                    } else {
+                        recommendation
+                    }
+                }
+
                 var updatedSponsoredStories = state.recommendationState.pocketSponsoredStories
                 action.storiesShown.filterIsInstance<PocketSponsoredStory>().forEach { shownStory ->
                     updatedSponsoredStories = updatedSponsoredStories.map { story ->
@@ -164,6 +175,7 @@ internal object ContentRecommendationsReducer {
                     it.copy(
                         pocketStoriesCategories = updatedCategories,
                         pocketSponsoredStories = updatedSponsoredStories,
+                        contentRecommendations = updatedRecommendations,
                     )
                 }
             }
