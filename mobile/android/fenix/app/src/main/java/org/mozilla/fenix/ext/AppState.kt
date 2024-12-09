@@ -27,6 +27,13 @@ import org.mozilla.fenix.utils.Settings
 internal const val POCKET_STORIES_TO_SHOW_COUNT = 8
 
 /**
+ * Total count of content recommendations to show.
+ * This is an optimistic value taking into account that fewer than this stories may actually be available.
+ */
+@VisibleForTesting
+internal const val CONTENT_RECOMMENDATIONS_TO_SHOW_COUNT = 9
+
+/**
  * Total count of all sponsored Pocket stories to show.
  * This is an optimistic value taking into account that fewer than this stories may actually be available.
  */
@@ -91,7 +98,7 @@ fun AppState.getFilteredStories(): List<PocketStory> {
 fun AppState.getStories(): List<PocketStory> {
     val recommendations = recommendationState.contentRecommendations
         .sortedBy { it.impressions }
-        .take(POCKET_STORIES_TO_SHOW_COUNT)
+        .take(CONTENT_RECOMMENDATIONS_TO_SHOW_COUNT)
     val sponsoredStories = getFilteredSponsoredStories(
         stories = recommendationState.pocketSponsoredStories,
         limit = POCKET_SPONSORED_STORIES_TO_SHOW_COUNT,
@@ -126,7 +133,7 @@ internal fun combineRecommendedAndSponsoredStories(
 
 /**
  * Combine all available content recommendations and sponsored stories to show at max
- * [POCKET_STORIES_TO_SHOW_COUNT] stories of both types but based on a specific split.
+ * [CONTENT_RECOMMENDATIONS_TO_SHOW_COUNT] stories of both types but based on a specific split.
  */
 @VisibleForTesting
 internal fun combineRecommendationsAndSponsoredStories(
@@ -134,11 +141,11 @@ internal fun combineRecommendationsAndSponsoredStories(
     sponsoredStories: List<PocketSponsoredStory>,
 ): List<PocketStory> {
     val recommendedStoriesToShow =
-        POCKET_STORIES_TO_SHOW_COUNT - sponsoredStories.size.coerceAtMost(
+        CONTENT_RECOMMENDATIONS_TO_SHOW_COUNT - sponsoredStories.size.coerceAtMost(
             POCKET_SPONSORED_STORIES_TO_SHOW_COUNT,
         )
 
-    // Sponsored stories should be shown at position 2 and 8. If possible.
+    // Sponsored stories should be shown at position 2 and 9 if possible.
     return recommendations.take(1) +
         sponsoredStories.take(1) +
         recommendations.take(recommendedStoriesToShow).drop(1) +

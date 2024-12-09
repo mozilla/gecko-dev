@@ -286,6 +286,7 @@ fun ContentRecommendation(
  * @param contentPadding Dimension for padding the content after it has been clipped.
  * This space will be used for shadows and also content rendering when the list is scrolled.
  * @param backgroundColor The background [Color] of each story.
+ * @param showPlaceholderStory Whether or not to show a "Discover more" placeholder story.
  * @param onStoryShown Callback for when a certain story is visible to the user.
  * @param onStoryClicked Callback for when the user taps on a recommended story.
  * @param onDiscoverMoreClicked Callback for when the user taps an element which contains an
@@ -297,13 +298,17 @@ fun PocketStories(
     @PreviewParameter(PocketStoryProvider::class) stories: List<PocketStory>,
     contentPadding: Dp,
     backgroundColor: Color = FirefoxTheme.colors.layer2,
+    showPlaceholderStory: Boolean = true,
     onStoryShown: (PocketStory, Pair<Int, Int>) -> Unit,
     onStoryClicked: (PocketStory, Pair<Int, Int>) -> Unit,
     onDiscoverMoreClicked: (String) -> Unit,
 ) {
     // Show stories in at most 3 rows but on any number of columns depending on the data received.
     val maxRowsNo = 3
-    val storiesToShow = (stories + placeholderStory).chunked(maxRowsNo)
+    val storiesToShow =
+        (stories + if (showPlaceholderStory) placeholderStory else null)
+            .filterNotNull()
+            .chunked(maxRowsNo)
 
     val listState = rememberLazyListState()
     val flingBehavior = EagerFlingBehavior(lazyRowState = listState)

@@ -230,13 +230,13 @@ class AppStateTest {
     }
 
     @Test
-    fun `GIVEN content recommendations and sponsored stories WHEN combining them THEN show sponsored stories at position 2 and 8`() {
-        val recommendations = getFakeContentRecommendations(POCKET_STORIES_TO_SHOW_COUNT)
+    fun `GIVEN content recommendations and sponsored stories WHEN combining them THEN show sponsored stories at position 2 and 9`() {
+        val recommendations = getFakeContentRecommendations(CONTENT_RECOMMENDATIONS_TO_SHOW_COUNT)
         val sponsoredStories = getFakeSponsoredStories(4)
 
         val result = combineRecommendationsAndSponsoredStories(recommendations, sponsoredStories)
 
-        assertEquals(POCKET_STORIES_TO_SHOW_COUNT, result.size)
+        assertEquals(CONTENT_RECOMMENDATIONS_TO_SHOW_COUNT, result.size)
         assertEquals(recommendations[0], result[0])
         assertEquals(sponsoredStories[0], result[1])
         assertEquals(recommendations[1], result[2])
@@ -244,7 +244,8 @@ class AppStateTest {
         assertEquals(recommendations[3], result[4])
         assertEquals(recommendations[4], result[5])
         assertEquals(recommendations[5], result[6])
-        assertEquals(sponsoredStories[1], result[POCKET_STORIES_TO_SHOW_COUNT - 1])
+        assertEquals(recommendations[6], result[7])
+        assertEquals(sponsoredStories[1], result[CONTENT_RECOMMENDATIONS_TO_SHOW_COUNT - 1])
     }
 
     @Test
@@ -610,7 +611,7 @@ class AppStateTest {
 
         val result = state.getStories()
 
-        assertEquals(POCKET_STORIES_TO_SHOW_COUNT, result.size)
+        assertEquals(CONTENT_RECOMMENDATIONS_TO_SHOW_COUNT, result.size)
         assertEquals(recommendations[0], result[0])
         assertEquals(recommendations[1], result[1])
         assertEquals(recommendations[2], result[2])
@@ -622,7 +623,7 @@ class AppStateTest {
     }
 
     @Test
-    fun `GIVEN content recommendations and sponsored stories WHEN getStories is called THEN return a list of 8 stories with sponsored stories at position 2 and 8`() {
+    fun `GIVEN content recommendations and sponsored stories WHEN getStories is called THEN return a list of 9 stories with sponsored stories at position 2 and 9`() {
         val recommendations = getFakeContentRecommendations(10)
         val sponsoredStories = getFakeSponsoredStories(4)
         val state = AppState(
@@ -634,7 +635,7 @@ class AppStateTest {
 
         val result = state.getStories()
 
-        assertEquals(POCKET_STORIES_TO_SHOW_COUNT, result.size)
+        assertEquals(CONTENT_RECOMMENDATIONS_TO_SHOW_COUNT, result.size)
         assertEquals(recommendations[0], result[0])
         assertEquals(sponsoredStories[1], result[1])
         assertEquals(recommendations[1], result[2])
@@ -642,7 +643,8 @@ class AppStateTest {
         assertEquals(recommendations[3], result[4])
         assertEquals(recommendations[4], result[5])
         assertEquals(recommendations[5], result[6])
-        assertEquals(sponsoredStories[3], result[7])
+        assertEquals(recommendations[6], result[7])
+        assertEquals(sponsoredStories[3], result[8])
     }
 
     @Test
