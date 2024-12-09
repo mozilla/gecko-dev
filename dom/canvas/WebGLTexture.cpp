@@ -25,7 +25,7 @@
 namespace mozilla {
 namespace webgl {
 
-MOZ_RUNINIT /*static*/ const ImageInfo ImageInfo::kUndefined;
+MOZ_CONSTINIT /*static*/ const ImageInfo ImageInfo::kUndefined;
 
 size_t ImageInfo::MemoryUsage() const {
   if (!IsDefined()) return 0;
@@ -58,7 +58,7 @@ Maybe<ImageInfo> ImageInfo::NextMip(const GLenum target) const {
     }
   }
   if (next.mUninitializedSlices) {
-    next.mUninitializedSlices = Some(std::vector<bool>(next.mDepth, true));
+    next.mUninitializedSlices.emplace(next.mDepth, true);
   }
 
   next.mWidth = std::max(uint32_t(1), next.mWidth / 2);
@@ -167,7 +167,7 @@ bool WebGLTexture::IsMipAndCubeComplete(const uint32_t maxLevel,
           *out_initFailed = true;
           return false;
         }
-        cur.mUninitializedSlices = Nothing();
+        cur.mUninitializedSlices.reset();
       }
     }
 
@@ -471,7 +471,7 @@ bool WebGLTexture::EnsureImageDataInitialized(const TexImageTarget target,
   if (!ZeroTextureData(mContext, mGLName, target, level, imageInfo)) {
     return false;
   }
-  imageInfo.mUninitializedSlices = Nothing();
+  imageInfo.mUninitializedSlices.reset();
   return true;
 }
 

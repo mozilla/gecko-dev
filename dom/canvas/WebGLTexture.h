@@ -72,7 +72,7 @@ struct ImageInfo final {
   uint32_t mWidth = 0;
   uint32_t mHeight = 0;
   uint32_t mDepth = 0;
-  mutable Maybe<std::vector<bool>> mUninitializedSlices;
+  mutable std::optional<std::vector<bool>> mUninitializedSlices;
   uint8_t mSamples = 0;
 
   // -
