@@ -143,12 +143,12 @@ fun ToolbarOnboardingPage(
 
 @Composable
 private fun ToolbarOptions(
-    options: ToolbarOptions,
+    options: List<ToolbarOption>,
     selectedOption: ToolbarOptionType,
     onClick: (ToolbarOptionType) -> Unit,
 ) {
     SelectableImageItem(
-        toolbarOption = options.top,
+        toolbarOption = options[0],
         selectedOption = selectedOption,
         onClick = onClick,
     )
@@ -156,7 +156,7 @@ private fun ToolbarOptions(
     Spacer(Modifier.width(40.dp))
 
     SelectableImageItem(
-        toolbarOption = options.bottom,
+        toolbarOption = options[1],
         selectedOption = selectedOption,
         onClick = onClick,
     )
@@ -243,13 +243,13 @@ private fun OnboardingPagePreview() {
                     ),
                     onClick = {},
                 ),
-                toolbarOptions = ToolbarOptions(
-                    top = ToolbarOption(
+                toolbarOptions = listOf(
+                    ToolbarOption(
                         toolbarType = ToolbarOptionType.TOOLBAR_TOP,
                         imageRes = R.drawable.ic_onboarding_top_toolbar,
                         label = stringResource(R.string.onboarding_customize_toolbar_top_option),
                     ),
-                    bottom = ToolbarOption(
+                    ToolbarOption(
                         toolbarType = ToolbarOptionType.TOOLBAR_BOTTOM,
                         imageRes = R.drawable.ic_onboarding_bottom_toolbar,
                         label = stringResource(R.string.onboarding_customize_toolbar_bottom_option),
