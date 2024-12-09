@@ -1986,8 +1986,6 @@
       evt.initEvent("BeforeTabRemotenessChange", true, false);
       tab.dispatchEvent(evt);
 
-      let wasActive = document.activeElement == aBrowser;
-
       // Unhook our progress listener.
       let filter = this._tabFilters.get(tab);
       let listener = this._tabListeners.get(tab);
@@ -2082,10 +2080,6 @@
         // we call updatetabIndicatorAttr here, rather than _tabAttrModified, so as
         // to be consistent with how "crashed" attribute changes are handled elsewhere
         this.tabContainer.updateTabIndicatorAttr(tab);
-      }
-
-      if (wasActive) {
-        aBrowser.focus();
       }
 
       // If the findbar has been initialised, reset its browser reference.
@@ -6977,8 +6971,6 @@
         evt.initEvent("BeforeTabRemotenessChange", true, false);
         tab.dispatchEvent(evt);
 
-        let wasActive = document.activeElement == browser;
-
         // Unhook our progress listener.
         let filter = this._tabFilters.get(tab);
         let oldListener = this._tabListeners.get(tab);
@@ -7046,10 +7038,6 @@
             // crashed.
             tab.removeAttribute("crashed");
             gBrowser.tabContainer.updateTabIndicatorAttr(tab);
-          }
-
-          if (wasActive) {
-            browser.focus();
           }
 
           if (this.isFindBarInitialized(tab)) {
