@@ -211,8 +211,7 @@ class EditorDOMPointBase final {
   template <typename ContentNodeType>
   ContentNodeType* ContainerAs() const {
     MOZ_ASSERT(mParent);
-    MOZ_DIAGNOSTIC_ASSERT(
-        ContentNodeType::FromNode(static_cast<const nsINode*>(mParent)));
+    MOZ_DIAGNOSTIC_ASSERT(ContentNodeType::FromNode(mParent));
     return static_cast<ContentNodeType*>(GetContainer());
   }
 
@@ -643,10 +642,6 @@ class EditorDOMPointBase final {
     }
     SetToEndOf(parentNode);
   }
-  void SetAfterContainer() {
-    MOZ_ASSERT(mParent);
-    SetAfter(mParent);
-  }
   template <typename ContainerType>
   static SelfType After(
       const ContainerType& aContainer,
@@ -708,11 +703,6 @@ class EditorDOMPointBase final {
     if (!IsEndOfContainer()) {
       return NextPoint<EditorDOMPointType>();
     }
-    return AfterContainer<EditorDOMPointType>();
-  }
-  template <typename EditorDOMPointType = SelfType>
-  EditorDOMPointType AfterContainer() const {
-    MOZ_ASSERT(IsInContentNode());
     return EditorDOMPointType::After(*ContainerAs<nsIContent>());
   }
   template <typename EditorDOMPointType = SelfType>

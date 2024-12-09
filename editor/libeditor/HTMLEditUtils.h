@@ -519,43 +519,6 @@ class HTMLEditUtils final {
     return !HTMLEditUtils::IsVisibleBRElement(aBRElement);
   }
 
-  enum class IgnoreInvisibleLineBreak { No, Yes };
-
-  /**
-   * Return true if aPoint is immediately before current block boundary.  If
-   * aIgnoreInvisibleLineBreak is "Yes", this returns true if aPoint is before
-   * invisible line break before a block boundary.
-   */
-  template <typename PT, typename CT>
-  [[nodiscard]] static bool PointIsImmediatelyBeforeCurrentBlockBoundary(
-      const EditorDOMPointBase<PT, CT>& aPoint,
-      IgnoreInvisibleLineBreak aIgnoreInvisibleLineBreak,
-      const Element& aEditingHost);
-
-  /**
-   * Return true if aRange crosses the inclusive ancestor block element at
-   * start boundary, in other words, if aRange ends outside of the inclusive
-   * ancestor block of the start boundary.
-   */
-  template <typename EditorDOMPointType>
-  [[nodiscard]] static bool RangeIsAcrossStartBlockBoundary(
-      const EditorDOMRangeBase<EditorDOMPointType>& aRange) {
-    MOZ_ASSERT(aRange.IsPositionedAndValid());
-    if (MOZ_UNLIKELY(!aRange.StartRef().IsInContentNode())) {
-      return false;
-    }
-    const Element* const startBlockElement =
-        HTMLEditUtils::GetInclusiveAncestorElement(
-            *aRange.StartRef().template ContainerAs<nsIContent>(),
-            ClosestBlockElement,
-            BlockInlineCheck::UseComputedDisplayOutsideStyle);
-    if (MOZ_UNLIKELY(!startBlockElement)) {
-      return false;
-    }
-    return EditorRawDOMPoint::After(*startBlockElement)
-        .EqualsOrIsBefore(aRange.EndRef());
-  }
-
   /**
    * Return true if `display` of inclusive ancestor of aContent is `none`.
    */
@@ -624,15 +587,6 @@ class HTMLEditUtils final {
   }
 
   /**
-   * Return a point to insert a padding line break if aPoint is following a
-   * collapsible ASCII white-space or a block boundary and the line containing
-   * aPoint requires a following padding line break which there is not.
-   */
-  template <typename PT, typename CT>
-  static EditorDOMPoint LineRequiresPaddingLineBreakToBeVisible(
-      const EditorDOMPointBase<PT, CT>& aPoint, const Element& aEditingHost);
-
-  /**
    * ShouldInsertLinefeedCharacter() returns true if the caller should insert
    * a linefeed character instead of <br> element.
    */
@@ -653,7 +607,6 @@ class HTMLEditUtils final {
    */
   enum class EmptyCheckOption {
     TreatSingleBRElementAsVisible,
-    TreatBlockAsVisible,
     TreatListItemAsVisible,
     TreatTableCellAsVisible,
     TreatNonEditableContentAsInvisible,
@@ -2027,25 +1980,16 @@ class HTMLEditUtils final {
     return nullptr;
   }
 
-  enum class ScanLineBreak {
-    AtEndOfBlock,
-    BeforeBlock,
-  };
   /**
    * Return last <br> element or last text node ending with a preserved line
    * break of/before aBlockElement.
    */
+  enum ScanLineBreak {
+    AtEndOfBlock,
+    BeforeBlock,
+  };
   static nsIContent* GetUnnecessaryLineBreakContent(
       const Element& aBlockElement, ScanLineBreak aScanLineBreak);
-
-  /**
-   * Return following <br> element from aPoint if and only if it's immediately
-   * before a block boundary but it's not necessary to make the preceding
-   * empty line of the block boundary visible anymore.
-   */
-  template <typename EditorDOMPointType>
-  [[nodiscard]] static nsIContent* GetFollowingUnnecessaryLineBreakContent(
-      const EditorDOMPointType& aPoint, const Element& aEditingHost);
 
   /**
    * IsInTableCellSelectionMode() returns true when Gecko's editor thinks that

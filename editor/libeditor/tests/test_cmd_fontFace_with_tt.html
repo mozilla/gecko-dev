@@ -35,7 +35,7 @@ SimpleTest.waitForFocus(() => {
   SpecialPowers.doCommand(window, "cmd_fontFace", "tt");
   synthesizeKey("t");
   synthesizeKey("t");
-  is(editor.innerHTML, "<tt>tt</tt>",
+  is(editor.innerHTML, "<tt>tt</tt><br>",
      "Typed text after \"cmd_fontFace\" with \"tt\" should be wrapped by <tt> element");
 
   // But it shouldn't work with `Document.execCommand()`.
@@ -50,7 +50,7 @@ SimpleTest.waitForFocus(() => {
   document.execCommand("fontname", false, "tt");
   synthesizeKey("t");
   synthesizeKey("t");
-  is(editor.innerHTML, "<font face=\"tt\">tt</font>",
+  is(editor.innerHTML, "<font face=\"tt\">tt</font><br>",
      "Typed text after execCommand(\"fontname\") with \"tt\" should be wrapped by <font> element");
 
   // "cmd_fontFace" with "tt" should remove `<font>` element.

@@ -278,15 +278,15 @@ class MOZ_STACK_CLASS InsertTextResult final : public CaretPoint {
   explicit InsertTextResult(const EditorDOMPointType& aEndOfInsertedText)
       : CaretPoint(EditorDOMPoint()),
         mEndOfInsertedText(aEndOfInsertedText.template To<EditorDOMPoint>()) {}
-  explicit InsertTextResult(EditorDOMPoint&& aEndOfInsertedText)
+  explicit InsertTextResult(EditorDOMPointInText&& aEndOfInsertedText)
       : CaretPoint(EditorDOMPoint()),
         mEndOfInsertedText(std::move(aEndOfInsertedText)) {}
   template <typename PT, typename CT>
-  InsertTextResult(EditorDOMPoint&& aEndOfInsertedText,
+  InsertTextResult(EditorDOMPointInText&& aEndOfInsertedText,
                    const EditorDOMPointBase<PT, CT>& aCaretPoint)
       : CaretPoint(aCaretPoint.template To<EditorDOMPoint>()),
         mEndOfInsertedText(std::move(aEndOfInsertedText)) {}
-  InsertTextResult(EditorDOMPoint&& aEndOfInsertedText,
+  InsertTextResult(EditorDOMPointInText&& aEndOfInsertedText,
                    CaretPoint&& aCaretPoint)
       : CaretPoint(std::move(aCaretPoint)),
         mEndOfInsertedText(std::move(aEndOfInsertedText)) {
@@ -297,12 +297,12 @@ class MOZ_STACK_CLASS InsertTextResult final : public CaretPoint {
         mEndOfInsertedText(std::move(aOther.mEndOfInsertedText)) {}
 
   [[nodiscard]] bool Handled() const { return mEndOfInsertedText.IsSet(); }
-  const EditorDOMPoint& EndOfInsertedTextRef() const {
+  const EditorDOMPointInText& EndOfInsertedTextRef() const {
     return mEndOfInsertedText;
   }
 
  private:
-  EditorDOMPoint mEndOfInsertedText;
+  EditorDOMPointInText mEndOfInsertedText;
 };
 
 /***************************************************************************

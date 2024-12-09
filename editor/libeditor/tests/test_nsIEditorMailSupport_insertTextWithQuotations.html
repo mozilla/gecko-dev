@@ -34,7 +34,7 @@ SimpleTest.waitForFocus(async () => {
     );
     is(
       editor.innerHTML,
-      'This is Text<br><br><span style="white-space: pre-wrap;">&gt; This is a quote.</span>',
+      'This is Text<br><br><span style="white-space: pre-wrap;">&gt; This is a quote.</span><br>',
       `The <div contenteditable> should have the expected innerHTML ${editorDescription}`
     );
     is(

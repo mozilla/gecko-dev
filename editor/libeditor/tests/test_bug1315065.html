@@ -67,7 +67,7 @@ SimpleTest.waitForFocus(() => {
     // When Backspace key is pressed even in empty text nodes, Gecko should not remove empty text nodes for now
     // because we should keep our traditional behavior (same as Edge) for backward compatibility as far as possible.
     // In this case, Chromium removes all empty text nodes, but Edge doesn't remove any empty text nodes.
-    is(p.childNodes.length, 4, kDescription + ": <p> should have 4 children after pressing Backspace key");
+    is(p.childNodes.length, 5, kDescription + ": <p> should have 5 children after pressing Backspace key");
     is(p.childNodes.item(0).textContent, "ab", kDescription + ": 'c' should be removed by pressing Backspace key");
     is(p.childNodes.item(1).textContent, "", kDescription + ": 1st empty text node should not be removed by pressing Backspace key");
     is(p.childNodes.item(2).textContent, "", kDescription + ": 2nd empty text node should not be removed by pressing Backspace key");
