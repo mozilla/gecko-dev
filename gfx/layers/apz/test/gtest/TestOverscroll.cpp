@@ -2382,8 +2382,8 @@ TEST_F(APZCOverscrollTester, NoResetPanGestureInputStateCalled) {
   }
 
   mcc->AdvanceByMillis(10);
-  PanGesture(PanGestureInput::PANGESTURE_END, apzc, panPoint,
-             ScreenPoint(0, 0), mcc->Time());
+  PanGesture(PanGestureInput::PANGESTURE_END, apzc, panPoint, ScreenPoint(0, 0),
+             mcc->Time());
 }
 #endif
 
@@ -2409,8 +2409,8 @@ TEST_F(APZCOverscrollTester, ResetPanGestureInputStateJustOnce) {
   EXPECT_TRUE(apzc->IsOverscrolled());
   // Finish the pan gesture.
   mcc->AdvanceByMillis(10);
-  PanGesture(PanGestureInput::PANGESTURE_END, apzc, panPoint,
-             ScreenPoint(0, 0), mcc->Time());
+  PanGesture(PanGestureInput::PANGESTURE_END, apzc, panPoint, ScreenPoint(0, 0),
+             mcc->Time());
 
   // Now the next pan gesture event will be preventDefault-ed.
   MakeApzcWaitForMainThread();
@@ -2426,7 +2426,7 @@ TEST_F(APZCOverscrollTester, ResetPanGestureInputStateJustOnce) {
   }
 
   mcc->AdvanceByMillis(10);
-  PanGesture(PanGestureInput::PANGESTURE_END, apzc, panPoint,
-             ScreenPoint(0, 0), mcc->Time());
+  PanGesture(PanGestureInput::PANGESTURE_END, apzc, panPoint, ScreenPoint(0, 0),
+             mcc->Time());
 }
 #endif
