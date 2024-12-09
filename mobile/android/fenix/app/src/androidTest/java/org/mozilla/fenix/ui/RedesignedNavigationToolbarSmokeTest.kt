@@ -119,7 +119,7 @@ class RedesignedNavigationToolbarSmokeTest : TestSetup() {
         val helpPageUrl = "mozilla.org"
 
         homeScreen {
-        }.openThreeDotMenuFromRedesignedToolbar(composeTestRule) {
+        }.openThreeDotMenuFromRedesignedToolbar() {
         }.openHelp(composeTestRule) {
         }.openSiteSecuritySheet {
             clickQuickActionSheetClearSiteData()
@@ -153,7 +153,7 @@ class RedesignedNavigationToolbarSmokeTest : TestSetup() {
         }.closeTabDrawer {
         }.goToHomescreenWithRedesignedToolbar {
             verifyExistingTopSitesList()
-        }.openThreeDotMenuFromRedesignedToolbar(composeTestRule) {
+        }.openThreeDotMenuFromRedesignedToolbar() {
             verifySettingsButton(composeTestRule)
         }
     }
@@ -266,7 +266,7 @@ class RedesignedNavigationToolbarSmokeTest : TestSetup() {
     @Test
     fun verifyToolbarWithAddressBarAtTheTopTest() {
         homeScreen {
-        }.openThreeDotMenuFromRedesignedToolbar(composeTestRule) {
+        }.openThreeDotMenuFromRedesignedToolbar() {
         }.openSettings(composeTestRule) {
         }.openCustomizeSubMenu {
             verifyAddressBarPositionPreference("Top")
@@ -292,7 +292,7 @@ class RedesignedNavigationToolbarSmokeTest : TestSetup() {
         }
 
         homeScreen {
-        }.openThreeDotMenuFromRedesignedToolbar(composeTestRule) {
+        }.openThreeDotMenuFromRedesignedToolbar() {
         }.openSettings(composeTestRule) {
         }.openCustomizeSubMenu {
             verifyAddressBarPositionPreference("Bottom")
@@ -323,7 +323,7 @@ class RedesignedNavigationToolbarSmokeTest : TestSetup() {
         }.enterURLAndEnterToBrowser(genericURL.url) {
         }.goToHomescreenWithRedesignedToolbar {
             verifyHomeScreen()
-        }.openThreeDotMenuFromRedesignedToolbar(composeTestRule) {
+        }.openThreeDotMenuFromRedesignedToolbar() {
         }.openSettings(composeTestRule) {
         }.openCustomizeSubMenu {
             clickBottomToolbarToggle()

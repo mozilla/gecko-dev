@@ -31,7 +31,7 @@ class RedesignedMainMenuRobot {
         Log.i(TAG, "expandRedesignedMenu: Performed swipe up action on the main menu.")
     }
 
-    fun verifyHomeRedesignedMainMenuItems(composeTestRule: ComposeTestRule) {
+    fun verifyHomeRedesignedMainMenuItems(composeTestRule: ComposeTestRule, areAddonsInstalled: Boolean, addonName: String = "") {
         Log.i(TAG, "verifyHomeRedesignedMainMenuItems: Trying to verify the main menu items on the home page.")
         composeTestRule.signInButton().assertIsDisplayed()
         composeTestRule.signInButtonDescription().assertIsDisplayed()
@@ -39,7 +39,11 @@ class RedesignedMainMenuRobot {
         composeTestRule.settingsButton().assertIsDisplayed()
         composeTestRule.newTabButton().assertIsNotEnabled()
         composeTestRule.newPrivateTabButton().assertIsDisplayed()
-        composeTestRule.extensionsButton().assertIsDisplayed()
+        if (areAddonsInstalled) {
+            composeTestRule.pageViewExtensionsButton(addonName).assertIsDisplayed()
+        } else {
+            composeTestRule.noExtensionsButton().assertIsDisplayed()
+        }
         composeTestRule.bookmarksButton().assertIsDisplayed()
         composeTestRule.historyButton().assertIsDisplayed()
         composeTestRule.downloadsButton().assertIsDisplayed()
@@ -49,7 +53,7 @@ class RedesignedMainMenuRobot {
         Log.i(TAG, "verifyHomeRedesignedMainMenuItems: Verified the main menu items on the home page.")
     }
 
-    fun verifyPageMainMenuItems(composeTestRule: ComposeTestRule) {
+    fun verifyPageMainMenuItems(composeTestRule: ComposeTestRule, areAddonsInstalled: Boolean, addonName: String = "") {
         Log.i(TAG, "verifyPageMainMenuItems: Trying to verify the main menu items on the web page.")
         composeTestRule.signInButton().assertIsDisplayed()
         composeTestRule.signInButtonDescription().assertIsDisplayed()
@@ -57,7 +61,11 @@ class RedesignedMainMenuRobot {
         composeTestRule.settingsButton().assertIsDisplayed()
         composeTestRule.newTabButton().assertIsEnabled()
         composeTestRule.newPrivateTabButton().assertIsDisplayed()
-        composeTestRule.extensionsButton().assertIsDisplayed()
+        if (areAddonsInstalled) {
+            composeTestRule.pageViewExtensionsButton(addonName).assertIsDisplayed()
+        } else {
+            composeTestRule.noExtensionsButton().assertIsDisplayed()
+        }
         composeTestRule.bookmarksButton().assertIsDisplayed()
         composeTestRule.historyButton().assertIsDisplayed()
         composeTestRule.downloadsButton().assertIsDisplayed()
@@ -84,6 +92,12 @@ class RedesignedMainMenuRobot {
             composeTestRule.desktopSiteButton().assertIsNotEnabled()
             Log.i(TAG, "verifySwitchToDesktopSiteButtonIsEnabled: Verified the Switch to Desktop Site button from the new main menu design is disabled.")
         }
+    }
+
+    fun verifyNoExtensionsButton(composeTestRule: ComposeTestRule) {
+        Log.i(TAG, "verifyNoExtensionsButton: Trying to verify that the \"Extensions\" button exists.")
+        composeTestRule.noExtensionsButton().assertExists()
+        Log.i(TAG, "verifyNoExtensionsButton: Verified that the \"Extensions\" button exists.")
     }
 
     class Transition {
@@ -167,6 +181,36 @@ class RedesignedMainMenuRobot {
             SettingsSubMenuLoginsAndPasswordsSavedLoginsRobot().interact()
             return SettingsSubMenuLoginsAndPasswordsSavedLoginsRobot.Transition()
         }
+
+        fun openNoExtensionsMenuFromRedesignedMainMenu(composeTestRule: ComposeTestRule, interact: SettingsSubMenuAddonsManagerRobot.() -> Unit): SettingsSubMenuAddonsManagerRobot.Transition {
+            Log.i(TAG, "openExtensionsMenu: Trying to click the \"Extensions\" button")
+            composeTestRule.noExtensionsButton().performClick()
+            Log.i(TAG, "openExtensionsMenu: Clicked the \"Extensions\" button")
+            composeTestRule.waitForIdle()
+
+            SettingsSubMenuAddonsManagerRobot().interact()
+            return SettingsSubMenuAddonsManagerRobot.Transition()
+        }
+
+        fun openPageViewExtensionsMenuFromRedesignedMainMenu(composeTestRule: ComposeTestRule, addonName: String, interact: SettingsSubMenuAddonsManagerRobot.() -> Unit): SettingsSubMenuAddonsManagerRobot.Transition {
+            Log.i(TAG, "openExtensionsMenu: Trying to click the \"Extensions\" button")
+            composeTestRule.pageViewExtensionsButton(addonName).performClick()
+            Log.i(TAG, "openExtensionsMenu: Clicked the \"Extensions\" button")
+            composeTestRule.waitForIdle()
+
+            SettingsSubMenuAddonsManagerRobot().interact()
+            return SettingsSubMenuAddonsManagerRobot.Transition()
+        }
+
+        fun openHomeScreenExtensionsMenuFromRedesignedMainMenu(composeTestRule: ComposeTestRule, addonName: String, interact: SettingsSubMenuAddonsManagerRobot.() -> Unit): SettingsSubMenuAddonsManagerRobot.Transition {
+            Log.i(TAG, "openExtensionsMenu: Trying to click the \"Extensions\" button")
+            composeTestRule.homeScreenExtensionsButton(addonName).performClick()
+            Log.i(TAG, "openExtensionsMenu: Clicked the \"Extensions\" button")
+            composeTestRule.waitForIdle()
+
+            SettingsSubMenuAddonsManagerRobot().interact()
+            return SettingsSubMenuAddonsManagerRobot.Transition()
+        }
     }
 }
 private fun ComposeTestRule.signInButton() = onNodeWithText(getStringResource(R.string.browser_menu_sign_in))
@@ -183,7 +227,11 @@ private fun ComposeTestRule.helpButton() = onNodeWithContentDescription("Help")
 
 private fun ComposeTestRule.settingsButton() = onNodeWithContentDescription("Settings")
 
-private fun ComposeTestRule.extensionsButton() = onNodeWithTag("mainMenu.extensions")
+private fun ComposeTestRule.noExtensionsButton() = onNodeWithContentDescription("ExtensionsNo extensions enabled")
+
+private fun ComposeTestRule.homeScreenExtensionsButton(addonName: String) = onNodeWithContentDescription(addonName)
+
+private fun ComposeTestRule.pageViewExtensionsButton(addonName: String) = onNodeWithContentDescription("Extensions$addonName")
 
 private fun ComposeTestRule.bookmarksButton() = onNodeWithContentDescription(getStringResource(R.string.library_bookmarks))
 

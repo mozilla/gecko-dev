@@ -50,4 +50,26 @@ object Constants {
             "Wikipedia" to "Wikipedia",
         )
     }
+
+    val recommendedAddons = listOf(
+        "uBlock Origin",
+        "Privacy Badger",
+        "AdGuard AdBlocker",
+        "Dark Reader",
+        "Bitwarden Password Manager",
+        "Tampermonkey",
+        "Ghostery ",
+        "FoxyProxy Standard",
+        "NoScript Security Suite",
+        "Search by Image",
+        "ClearURLs",
+        "Firefox Relay",
+        "Read Aloud: A Text to Speech Voice Reader",
+        "Decentraleyes",
+        "YouTube High Definition",
+        "Web Archives",
+        "Video Background Play Fix",
+        "Tomato Clock",
+        "Google Search Fixer",
+    )
 }

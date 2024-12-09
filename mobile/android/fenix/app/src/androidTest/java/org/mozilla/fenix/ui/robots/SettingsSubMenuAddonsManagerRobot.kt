@@ -8,6 +8,12 @@ package org.mozilla.fenix.ui.robots
 
 import android.util.Log
 import android.widget.RelativeLayout
+import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.hasContentDescription
+import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.junit4.ComposeTestRule
+import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.performClick
 import androidx.test.espresso.Espresso.onView
 import androidx.test.espresso.NoMatchingViewException
 import androidx.test.espresso.action.ViewActions.click
@@ -35,6 +41,8 @@ import org.hamcrest.CoreMatchers.instanceOf
 import org.mozilla.fenix.R
 import org.mozilla.fenix.helpers.Constants.RETRY_COUNT
 import org.mozilla.fenix.helpers.Constants.TAG
+import org.mozilla.fenix.helpers.Constants.recommendedAddons
+import org.mozilla.fenix.helpers.DataGenerationHelper.getStringResource
 import org.mozilla.fenix.helpers.HomeActivityIntentTestRule
 import org.mozilla.fenix.helpers.MatcherHelper.assertUIObjectExists
 import org.mozilla.fenix.helpers.MatcherHelper.assertUIObjectIsGone
@@ -47,6 +55,7 @@ import org.mozilla.fenix.helpers.TestHelper.appName
 import org.mozilla.fenix.helpers.TestHelper.mDevice
 import org.mozilla.fenix.helpers.TestHelper.packageName
 import org.mozilla.fenix.helpers.TestHelper.restartApp
+import org.mozilla.fenix.helpers.TestHelper.waitForAppWindowToBeUpdated
 import org.mozilla.fenix.helpers.click
 import org.mozilla.fenix.helpers.ext.waitNotNull
 
@@ -271,6 +280,62 @@ class SettingsSubMenuAddonsManagerRobot {
             verifyAddonInstallCompleted(addonName, activityTestRule)
         }
     }
+
+    fun verifyRecommendedAddonsViewFromRedesignedMainMenu(composeTestRule: ComposeTestRule) {
+        Log.i(TAG, "verifyRecommendedAddonsViewFromRedesignedMainMenu: Trying to verify that that the \"Recommended\" heading is displayed")
+        composeTestRule.onNode(
+            hasText(getStringResource(R.string.mozac_feature_addons_recommended_section)),
+        ).assertIsDisplayed()
+        Log.i(TAG, "verifyRecommendedAddonsViewFromRedesignedMainMenu: Verified that that the \"Recommended\" heading is displayed")
+        verifyTheRecommendedAddons(composeTestRule)
+        Log.i(TAG, "verifyRecommendedAddonsViewFromRedesignedMainMenu: Trying to verify that that the \"Discover more extensions\" button is displayed")
+        composeTestRule.onNode(
+            hasText(getStringResource(R.string.browser_menu_discover_more_extensions)),
+        ).assertIsDisplayed()
+        Log.i(TAG, "verifyRecommendedAddonsViewFromRedesignedMainMenu: Verified that that the \"Discover more extensions\" button is displayed")
+    }
+
+    fun verifyTheRecommendedAddons(composeTestRule: ComposeTestRule) {
+        var verifiedCount = 0
+
+        for (i in 1..RETRY_COUNT) {
+            Log.i(TAG, "verifyTheRecommendedAddons: Started try #$i")
+            try {
+                recommendedAddons.forEach { addon ->
+                    if (verifiedCount == 4) return
+                    try {
+                        waitForAppWindowToBeUpdated()
+                        Log.i(TAG, "verifyTheRecommendedAddons: Trying to verify that addon: $addon is recommended and displayed")
+                        composeTestRule.onNode(hasText(addon))
+                            .assertIsDisplayed()
+                        Log.i(TAG, "verifyTheRecommendedAddons: Verified that addon: $addon is recommended and displayed")
+
+                        Log.i(TAG, "verifyTheRecommendedAddons: Trying to verify that addon: $addon install button is displayed")
+                        composeTestRule.onNode(hasContentDescription("Add $addon"))
+                            .assertIsDisplayed()
+                        Log.i(TAG, "verifyTheRecommendedAddons: Verify that addon: $addon install button is displayed")
+
+                        verifiedCount++
+                    } catch (e: AssertionError) {
+                        Log.i(TAG, "verifyTheRecommendedAddons: Addon: $addon is not displayed, moving to the next one")
+                    }
+                }
+                if (verifiedCount < 4) {
+                    throw AssertionError("$TAG, verifyTheRecommendedAddons: Less than 4 addons were verified. Only $verifiedCount addons were verified.")
+                }
+
+                break
+            } catch (e: AssertionError) {
+                Log.i(TAG, "verifyTheRecommendedAddons: AssertionError caught, executing fallback methods")
+                if (i == RETRY_COUNT) {
+                    throw e
+                }
+            }
+        }
+    }
+
+    fun clickManageExtensionsButtonFromRedesignedMainMenu(composeTestRule: ComposeTestRule) =
+        composeTestRule.onNodeWithContentDescription(getStringResource(R.string.browser_menu_manage_extensions)).performClick()
 
     class Transition {
         fun goBack(interact: HomeScreenRobot.() -> Unit): HomeScreenRobot.Transition {
