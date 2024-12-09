@@ -875,6 +875,17 @@ def main(args):
     if args.gecko_checkout or args.comm_checkout:
         prepare_hg_store_path()
 
+    # Bug 1930944: work around docker-worker not running the image's entry point for interactive tasks.
+    # Tests need a system bus, which needs to be started before dropping privileges, so do this here until we're off
+    # docker-worker; see
+    # https://searchfox.org/mozilla-central/rev/8c9c85c74e366c11ffacbb5a2e457b33b0acc9cd/taskcluster/docker/ubuntu1804-test/Dockerfile#79-83
+    if (
+        running_as_root
+        and "TASKCLUSTER_INTERACTIVE" in os.environ
+        and os.access("/etc/init.d/dbus", os.X_OK)
+    ):
+        subprocess.run(["/etc/init.d/dbus", "start"])
+
     if IS_POSIX and running_as_root:
         # Drop permissions to requested user.
         # This code is modeled after what `sudo` was observed to do in a Docker
