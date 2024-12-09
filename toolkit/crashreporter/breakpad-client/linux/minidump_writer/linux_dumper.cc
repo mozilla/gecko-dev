@@ -583,6 +583,8 @@ bool LinuxDumper::EnumerateMappings() {
 
   const char* line;
   unsigned line_len;
+  uintptr_t unused_mapping_end_addr = 0;
+
   while (line_reader->GetNextLine(&line, &line_len)) {
     uintptr_t start_addr, end_addr, offset;
 
@@ -615,33 +617,41 @@ bool LinuxDumper::EnumerateMappings() {
             continue;
           }
           // Merge adjacent mappings into one module, assuming they're a single
-          // library mapped by the dynamic linker.
+          // library mapped by the dynamic linker. If we had detected an unused
+          // mapping in between two mappings of the same library merge it too.
           if (name && !mappings_.empty()) {
             MappingInfo* module = mappings_.back();
-            if ((start_addr == module->start_addr + module->size) &&
-                (my_strlen(name) == my_strlen(module->name)) &&
+            if ((my_strlen(name) == my_strlen(module->name)) &&
                 (my_strncmp(name, module->name, my_strlen(name)) == 0)) {
-              module->system_mapping_info.end_addr = end_addr;
-              module->size = end_addr - module->start_addr;
-              module->exec |= exec;
-              line_reader->PopLine(line_len);
-              continue;
+              bool executable = module->exec || exec;
+              uintptr_t prev_end_addr =
+                (executable && unused_mapping_end_addr) ?
+                  unused_mapping_end_addr : (module->start_addr + module->size);
+
+              if (start_addr == prev_end_addr) {
+                module->system_mapping_info.end_addr = end_addr;
+                module->size = end_addr - module->start_addr;
+                module->exec = executable;
+                line_reader->PopLine(line_len);
+                unused_mapping_end_addr = 0;
+                continue;
+              }
             }
           }
-          // Also merge mappings that result from address ranges that the
-          // linker reserved but which a loaded library did not use. These
-          // appear as an anonymous private mapping with no access flags set
-          // and which directly follow an executable mapping.
+          // Mappings that result from address ranges that the linker reserved
+          // but which a loaded library did not use appear as an anonymous
+          // private mapping with no access flags set and which are
+          // interspersed between the mappings of an executable. Record them so
+          // we can merge them later.
           if (!name && !mappings_.empty()) {
             MappingInfo* module = mappings_.back();
             uintptr_t module_end_addr = module->start_addr + module->size;
             if ((start_addr == module_end_addr) &&
-                module->exec &&
                 module->name[0] == '/' &&
                 ((offset == 0) || (offset == module_end_addr)) &&
-                my_strncmp(i2, kReservedFlags,
-                           sizeof(kReservedFlags) - 1) == 0) {
-              module->size = end_addr - module->start_addr;
+                my_strncmp(i2, kReservedFlags, sizeof(kReservedFlags) - 1) ==
+                    0) {
+              unused_mapping_end_addr = end_addr;
               line_reader->PopLine(line_len);
               continue;
             }
@@ -660,6 +670,9 @@ bool LinuxDumper::EnumerateMappings() {
             if (l < sizeof(module->name))
               my_memcpy(module->name, name, l);
           }
+
+          // This was not an unused mapping, reset the address.
+          unused_mapping_end_addr = 0;
         }
       }
     }
