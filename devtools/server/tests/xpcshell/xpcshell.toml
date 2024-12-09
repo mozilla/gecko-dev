@@ -399,6 +399,12 @@ skip-if = ["true"] # breakpoint sliding is not supported bug 1525685
 
 ["test_symbols-02.js"]
 
+["test_threadlifetime-01.js"]
+
+["test_threadlifetime-02.js"]
+
+["test_threadlifetime-04.js"]
+
 ["test_unsafeDereference.js"]
 
 ["test_wasm_source-01.js"]

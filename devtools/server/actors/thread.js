@@ -283,6 +283,11 @@ class ThreadActor extends Actor {
     return this.threadLifetimePool.objectActors.get(raw);
   }
 
+  promoteObjectToThreadLifetime(objectActor) {
+    this.threadLifetimePool.manage(objectActor);
+    this.threadLifetimePool.objectActors.set(objectActor.obj, objectActor);
+  }
+
   get sourcesManager() {
     return this.targetActor.sourcesManager;
   }
