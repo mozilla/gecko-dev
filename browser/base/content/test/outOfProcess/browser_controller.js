@@ -66,9 +66,7 @@ add_task(async function test_controllers_subframes() {
 
     // Force the UI to update on platforms that don't
     // normally do so until menus are opened.
-    if (AppConstants.platform != "macosx") {
-      goUpdateGlobalEditMenuItems(true);
-    }
+    goUpdateGlobalEditMenuItems(true);
 
     await SpecialPowers.spawn(
       browsingContexts[stepNum],
@@ -100,9 +98,7 @@ add_task(async function test_controllers_subframes() {
       await keyAndUpdate("VK_TAB", {}, 1);
     }
 
-    if (AppConstants.platform != "macosx") {
-      goUpdateGlobalEditMenuItems(true);
-    }
+    goUpdateGlobalEditMenuItems(true);
 
     await SpecialPowers.spawn(browsingContexts[stepNum], [], () => {
       Assert.equal(
@@ -132,9 +128,7 @@ add_task(async function test_controllers_subframes() {
 
     // Select all text; this causes the Copy and Delete commands to be enabled.
     await keyAndUpdate("a", { accelKey: true }, 1);
-    if (AppConstants.platform != "macosx") {
-      goUpdateGlobalEditMenuItems(true);
-    }
+    goUpdateGlobalEditMenuItems(true);
 
     checkCommandState("step " + stepNum + " selected", true, true, true);
 

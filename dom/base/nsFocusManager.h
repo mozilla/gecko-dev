@@ -302,6 +302,13 @@ class nsFocusManager final : public nsIFocusManager,
   void EnsureCurrentWidgetFocused(mozilla::dom::CallerType aCallerType);
 
   /**
+   * Focus the last focused element in aWindow, after aWindow was raised (or if
+   * aWindow was already raised).
+   */
+  MOZ_CAN_RUN_SCRIPT void MoveFocusToWindowAfterRaise(nsPIDOMWindowOuter*,
+                                                      uint64_t aActionId);
+
+  /**
    * Activate or deactivate the window and send the activate/deactivate events.
    */
   void ActivateOrDeactivate(nsPIDOMWindowOuter* aWindow, bool aActive);

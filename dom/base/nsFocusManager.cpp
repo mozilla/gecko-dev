@@ -750,8 +750,7 @@ void nsFocusManager::WindowRaised(mozIDOMWindowProxy* aWindow,
   // ensure that the window is enabled and visible
   nsCOMPtr<nsIDocShellTreeOwner> treeOwner;
   docShellAsItem->GetTreeOwner(getter_AddRefs(treeOwner));
-  nsCOMPtr<nsIBaseWindow> baseWindow = do_QueryInterface(treeOwner);
-  if (baseWindow) {
+  if (nsCOMPtr<nsIBaseWindow> baseWindow = do_QueryInterface(treeOwner)) {
     bool isEnabled = true;
     if (NS_SUCCEEDED(baseWindow->GetEnabled(&isEnabled)) && !isEnabled) {
       return;
@@ -767,25 +766,31 @@ void nsFocusManager::WindowRaised(mozIDOMWindowProxy* aWindow,
     ActivateOrDeactivate(window, true);
   }
 
-  // retrieve the last focused element within the window that was raised
+  // Retrieve the last focused element within the window that was raised.
+  MoveFocusToWindowAfterRaise(window, aActionId);
+}
+
+void nsFocusManager::MoveFocusToWindowAfterRaise(nsPIDOMWindowOuter* aWindow,
+                                                 uint64_t aActionId) {
   nsCOMPtr<nsPIDOMWindowOuter> currentWindow;
   RefPtr<Element> currentFocus = GetFocusedDescendant(
-      window, eIncludeAllDescendants, getter_AddRefs(currentWindow));
+      aWindow, eIncludeAllDescendants, getter_AddRefs(currentWindow));
 
   NS_ASSERTION(currentWindow, "window raised with no window current");
   if (!currentWindow) {
     return;
   }
 
-  nsCOMPtr<nsIAppWindow> appWin(do_GetInterface(baseWindow));
   // We use mFocusedWindow here is basically for the case that iframe navigate
   // from a.com to b.com for example, so it ends up being loaded in a different
   // process after Fission, but
   // currentWindow->GetBrowsingContext() == GetFocusedBrowsingContext() would
   // still be true because focused browsing context is synced, and we won't
   // fire a focus event while focusing if we use it as condition.
-  Focus(currentWindow, currentFocus, 0, currentWindow != mFocusedWindow, false,
-        appWin != nullptr, true, aActionId);
+  Focus(currentWindow, currentFocus, /* aFlags = */ 0,
+        /* aIsNewDocument = */ currentWindow != mFocusedWindow,
+        /* aFocusChanged = */ false,
+        /* aWindowRaised = */ true, /* aAdjustWidget = */ true, aActionId);
 }
 
 void nsFocusManager::WindowLowered(mozIDOMWindowProxy* aWindow,
@@ -3020,6 +3025,11 @@ void nsFocusManager::RaiseWindow(nsPIDOMWindowOuter* aWindow,
 
   if (XRE_IsParentProcess()) {
     if (aWindow == mActiveWindow) {
+      if (!mFocusedWindow ||
+          !IsSameOrAncestor(aWindow->GetBrowsingContext(),
+                            mFocusedWindow->GetBrowsingContext())) {
+        MoveFocusToWindowAfterRaise(aWindow, aActionId);
+      }
       return;
     }
   } else {
