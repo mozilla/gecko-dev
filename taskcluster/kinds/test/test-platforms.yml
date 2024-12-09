@@ -370,8 +370,6 @@ macosx1015-64-shippable-qr/opt:
         - browsertime-profiling
         - desktop-screenshot-capture
         - macosx1015-64-qr-tests
-        - macosx64-talos
-        - talos-profiling
         - web-platform-tests-1015
 
 macosx1015-64-nightlyasrelease-qr/opt:
