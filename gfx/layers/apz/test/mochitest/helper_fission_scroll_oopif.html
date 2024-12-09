@@ -2,6 +2,7 @@
 <html>
 <head>
   <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Test for async-scrolling an OOPIF and ensuring hit-testing still works</title>
   <script src="/tests/SimpleTest/SimpleTest.js"></script>
   <script src="/tests/SimpleTest/paint_listener.js"></script>
@@ -9,150 +10,192 @@
   <script src="apz_test_utils.js"></script>
   <script src="apz_test_native_event_utils.js"></script>
   <script>
+    const { AppConstants } = SpecialPowers.ChromeUtils.importESModule(
+      "resource://gre/modules/AppConstants.sys.mjs"
+    );
 
-fission_subtest_init();
+    async function getWindowProtocol() {
+      return await SpecialPowers.spawnChrome([], () => {
+        try {
+          return Cc["@mozilla.org/gfx/info;1"].getService(Ci.nsIGfxInfo)
+            .windowProtocol;
+        } catch {
+          return "";
+        }
+      });
+    }
 
-FissionTestHelper.startTestPromise
-  .then(waitUntilApzStable)
-  .then(loadOOPIFrame("testframe", "helper_fission_empty.html"))
-  .then(waitUntilApzStable)
-  .then(test)
-  .then(FissionTestHelper.subtestDone, FissionTestHelper.subtestFailed);
+    function getEventPromise(eventName) {
+      let eventPromise = new Promise(resolve => {
+        const listener = event => {
+          if (event.data === eventName) {
+            window.removeEventListener("message", listener);
+            resolve();
+          }
+        }
+        window.addEventListener("message", listener);
+      });
+      return eventPromise;
+    }
 
+    function getClickPromise() {
+      let clickPromise = new Promise(resolve => {
+        window.addEventListener("message", event => {
+          let data = JSON.parse(event.data);
+          if ("type" in data && data.type == "clicked") {
+            let coordinates = {
+              offsetX: data.coords.offsetX,
+              offsetY: data.coords.offsetY
+            };
+            resolve(coordinates);
+          }
+        }, { once: true });
+      });
+      return clickPromise;
+    }
 
-let code_for_oopif_to_run = function() {
-  document.addEventListener("click", function(e) {
-    dump(`OOPIF got click at ${e.clientX},${e.clientY}\n`);
-    let result = { x: e.clientX, y: e.clientY };
-    FissionTestHelper.fireEventInEmbedder("OOPIF:ClickData", result);
-  });
-  dump("OOPIF registered click listener\n");
-  return true;
-};
+    function getScrollYPromise() {
+      let scrollPromise = new Promise(resolve => {
+        window.addEventListener("message", event => {
+          let eventData = JSON.parse(event.data);
+          if ("type" in eventData && eventData.type == "scrolled") {
+            resolve(eventData.scrollY);
+          }
+        }, { once: true });
+      });
+      return scrollPromise;
+    }
 
-async function clickOnIframe(x, y) {
-  let iframePromise = promiseOneEvent(window, "OOPIF:ClickData", null);
-  await synthesizeNativeMouseEventWithAPZ(
-    { type: "click", target: document.body, offsetX: x, offsetY: y },
-    () => dump("Finished synthesizing click, waiting for OOPIF message...\n")
-  );
-  let iframeResponse = await iframePromise;
-  dump("OOPIF response: " + JSON.stringify(iframeResponse.data) + "\n");
-  return iframeResponse.data;
-}
+    async function clickOnIframe(x, y) {
+      let clickPromise = getClickPromise();
+      await synthesizeNativeMouseEventWithAPZ(
+        { type: "click", target: document.body, offsetX: x, offsetY: y },
+        () => dump("Finished synthesizing click, waiting for OOPIF message...\n")
+      );
+      return clickPromise;
+    }
 
-let oopif_scroll_pos = function() {
-  dump(`OOPIF scroll position is y=${window.scrollY}\n`);
-  let result = { y: window.scrollY };
-  FissionTestHelper.fireEventInEmbedder("OOPIF:ScrollPos", result);
-  return true;
-};
+    async function makeIframeScrollable(iframe) {
+      let parentScrollListenerReady = getEventPromise("scrollableReady");
+      let iframeScrollMaxY = await SpecialPowers.spawn(iframe, [], async () => {
+        // Ensure the oopif is scrollable, and wait for the paint so that the
+        // compositor also knows it's scrollable.
+        content.document.body.style.height = "200vh";
+        await content.wrappedJSObject.promiseApzFlushedRepaints();
+        let scrollMaxY = content.window.scrollMaxY;
 
-async function getIframeScrollY() {
-  let iframeElement = document.getElementById("testframe");
-  let iframePromise = promiseOneEvent(window, "OOPIF:ScrollPos", null);
-  ok(await FissionTestHelper.sendToOopif(iframeElement, `(${oopif_scroll_pos})()`), "Sent scrollY request");
-  let iframeResponse = await iframePromise;
-  dump("OOPIF response for scrollPos: " + JSON.stringify(iframeResponse.data) + "\n");
-  return iframeResponse.data.y;
-}
+        // Also register a scroll listener for when it actually gets scrolled.
+        content.window.addEventListener("scroll", function () {
+          dump(`OOPIF got scroll event, now at ${content.window.scrollY}\n`);
+          let data = JSON.stringify({
+            type: "scrolled",
+            scrollY: content.window.scrollY
+          });
+          content.window.parent.postMessage(data, "*");
+        }, { once: true });
+        content.window.parent.postMessage("scrollableReady", "*");
+        return scrollMaxY;
+      });
+      await parentScrollListenerReady;
+      return iframeScrollMaxY;
+    }
 
-let make_oopif_scrollable = function() {
-  // ensure the oopif is scrollable, and wait for the paint so that the
-  // compositor also knows it's scrollable.
-  document.body.style.height = "200vh";
-  promiseApzFlushedRepaints().then(() => {
-    let result = { y: window.scrollMaxY };
-    FissionTestHelper.fireEventInEmbedder("OOPIF:Scrollable", result);
-  });
-  // Also register a scroll listener for when it actually gets scrolled.
-  window.addEventListener("scroll", function() {
-    dump(`OOPIF got scroll event, now at ${window.scrollY}\n`);
-    let result = { y: window.scrollY };
-    FissionTestHelper.fireEventInEmbedder("OOPIF:Scrolled", result);
-  }, {once: true});
-  return true;
-};
+    async function registerIframeClickListener(iframe) {
+      let readyPromise = getEventPromise("listenerReady");
+      let iframeClickReady = await SpecialPowers.spawn(iframe, [], async () => {
+        content.document.addEventListener("click", (e) => {
+          let data = JSON.stringify({
+            type: "clicked",
+            coords: {
+              offsetX: e.clientX,
+              offsetY: e.clientY
+            }
+          });
+          content.window.parent.postMessage(data, "*");
+        });
+        content.window.parent.postMessage("listenerReady", "*");
+        return true;
+      });
+      await readyPromise;
+      return iframeClickReady;
+    }
 
-function failsafe(eventType) {
-  // Catch and fail faster on the case where the event ends up not going to
-  // the iframe like it should. Otherwise the test hangs until timeout which
-  // is more painful.
-  document.addEventListener(eventType, function(e) {
-    dump(`${location.href} got ${e.type} at ${e.clientX},${e.clientY}\n`);
-    ok(false, `The OOPIF hosting page should not have gotten the ${eventType}`);
-    setTimeout(FissionTestHelper.subtestFailed, 0);
-  }, {once: true});
-}
+    /*------------------------------------------------------------------------*/
 
-// The actual test
+    async function test() {
+      // Skip on Wayland
+      const protocol = await getWindowProtocol();
+      if (AppConstants.platform === "linux" && protocol === "wayland") {
+        ok(true, "Skipping this test on Linux with Wayland");
+        return;
+      }
 
-async function test() {
-  ok(SpecialPowers.getBoolPref("apz.paint_skipping.enabled"),
-     "paint-skipping is expected to be enabled for this test to be meaningful");
+      ok(SpecialPowers.getBoolPref("apz.paint_skipping.enabled"),
+        "Paint-skipping is expected to be enabled for this test to be meaningful");
 
-  let iframeElement = document.getElementById("testframe");
+      // Set up iframe
+      let iframe = document.getElementById("testframe");
+      await setupCrossOriginIFrame(iframe, "helper_fission_plain.html");
 
-  let iframeResponse = await FissionTestHelper.sendToOopif(iframeElement, `(${code_for_oopif_to_run})()`);
-  dump("OOPIF response: " + JSON.stringify(iframeResponse) + "\n");
-  ok(iframeResponse, "code_for_oopif_to_run successfully installed");
+      // Register click listener in iframe
+      let iframeClickReady = await registerIframeClickListener(iframe);
+      ok(iframeClickReady, "Successfully installed click listener in OOP iframe");
 
-  is(window.scrollY, 0, "window is at 0 scroll position");
+      // hit-test into the iframe before scrolling
+      let oldClickPoint = await clickOnIframe(50, 250);
 
-  // hit-test into the iframe before scrolling
-  let oldClickPoint = await clickOnIframe(50, 250);
+      // Ensure parent window is at 0 scroll position before scrolling
+      is(window.scrollY, 0, "window is at 0 scroll position");
+      // do an APZ scroll and wait for the main-thread to get the repaint request,
+      // and queue up a paint-skip scroll notification back to APZ.
+      let scrollend = promiseScrollend(window);
+      await promiseMoveMouseAndScrollWheelOver(document.body, 10, 10);
+      await scrollend;
+      await promiseOnlyApzControllerFlushed();
+      await promiseAllPaintsDone();
+      ok(window.scrollY > 5, "window has scrolled by " + window.scrollY + " pixels");
 
-  // do an APZ scroll and wait for the main-thread to get the repaint request,
-  // and queue up a paint-skip scroll notification back to APZ.
-  await promiseMoveMouseAndScrollWheelOver(document.body, 10, 10);
+      // hit-test into the iframe after scrolling. The coordinates here are the
+      // same relative to the body as before, but get computed to be different
+      // relative to the window/screen.
+      let newClickPoint = await clickOnIframe(50, 250);
+      is(newClickPoint.x, oldClickPoint.x, "x-coord of old and new match");
+      is(newClickPoint.y, oldClickPoint.y, "y-coord of old and new match");
 
-  // The wheel scroll might have started an APZ animation, so run that to the end
-  var utils = SpecialPowers.getDOMWindowUtils(window);
-  for (var i = 0; i < 60; i++) {
-    utils.advanceTimeAndRefresh(16);
-  }
-  utils.restoreNormalRefresh();
-  // Let the repaint requests get processed
-  await promiseOnlyApzControllerFlushed();
-  await promiseAllPaintsDone();
+      // Also check that we can send scroll events to the OOPIF. Any wheel events
+      // delivered to this page after this point should result in a failure.
+      addEventListener("wheel", function () {
+        ok(false, "Got unwanted wheel event in parent document");
+      });
 
-  ok(window.scrollY > 5, "window has scrolled by " + window.scrollY + " pixels");
+      // Ensure iframe is at 0 scroll position
+      const iframeY = await SpecialPowers.spawn(iframe, [], () => {
+        return content.window.scrollY;
+      });
+      is(iframeY, 0, "scrollY of iframe should be 0 initially");
 
-  // hit-test into the iframe after scrolling. The coordinates here are the
-  // same relative to the body as before, but get computed to be different
-  // relative to the window/screen.
-  let newClickPoint = await clickOnIframe(50, 250);
+      // Ensure the OOPIF is scrollable.
+      let iframeScrollMaxY = await makeIframeScrollable(iframe);
+      ok(iframeScrollMaxY > 0, "iframe successfully made scrollable");
 
-  is(newClickPoint.x, oldClickPoint.x, "x-coord of old and new match");
-  is(newClickPoint.y, oldClickPoint.y, "y-coord of old and new match");
+      // Now scroll over the OOP-iframe (we know it must be under the 50,250 point
+      // because we just checked that above). Note that listening for wheel/scroll
+      // events is trickier because they will fire in the OOPIF, so we can't just
+      // use promiseMoveMouseAndScrollWheelOver directly.
+      let scrolledPromise = getScrollYPromise();
+      await synthesizeNativeWheel(document.body, 50, 250, 0, -10);
+      let iframeScrollY = await scrolledPromise;
+      ok(iframeScrollY > 0, "Confirmed that oopif is scrollable");
+    }
 
-  // Also check that we can send scroll events to the OOPIF. Any wheel events
-  // delivered to this page after this point should result in a failure.
-  failsafe("wheel");
-
-  let iframeY = await getIframeScrollY();
-  is(iframeY, 0, "scrollY of iframe should be 0 initially");
-
-  // Ensure the OOPIF is scrollable.
-  let scrollablePromise = promiseOneEvent(window, "OOPIF:Scrollable", null);
-  ok(await FissionTestHelper.sendToOopif(iframeElement, `(${make_oopif_scrollable})()`), "Made OOPIF scrollable");
-  let oopifScrollMaxY = (await scrollablePromise).data.y;
-  ok(oopifScrollMaxY > 0, "Confirmed that oopif is scrollable");
-
-  // Now scroll over the OOP-iframe (we know it must be under the 50,250 point
-  // because we just checked that above). Note that listening for wheel/scroll
-  // events is trickier because they will fire in the OOPIF, so we can't just
-  // use promiseMoveMouseAndScrollWheelOver directly.
-  let scrolledPromise = promiseOneEvent(window, "OOPIF:Scrolled", null);
-  await synthesizeNativeWheel(document.body, 50, 250, 0, -10);
-  iframeY = (await scrolledPromise).data.y;
-  ok(iframeY > 0, "scrollY of iframe should be >0 after scrolling");
-}
+    waitUntilApzStable()
+      .then(test)
+      .then(subtestDone, subtestFailed);
 
   </script>
 </head>
-<body onload="failsafe('click')">
-<iframe style="margin-top: 200px" id="testframe"></iframe>
-<div style="height: 5000px">tall div to make the page scrollable</div>
+<body>
+  <iframe style="margin-top: 200px" id="testframe"></iframe>
+  <div style="height: 5000px">tall div to make the page scrollable</div>
 </body>
 </html>

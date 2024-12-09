@@ -72,10 +72,13 @@
         { // Skip on Android because of missing native wheel event support
           "file": "helper_fission_scroll_handoff.html",
           "prefs": prefs
-        }
+        },
+        {
+          "file": "helper_fission_scroll_oopif.html",
+          "prefs": [["apz.test.mac.synth_wheel_input", true]]
+        },
       );
     }
-
 
     if (isApzEnabled()) {
       // This has a lot of subtests, and Android emulators are slow.
