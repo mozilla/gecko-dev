@@ -50,6 +50,7 @@ import org.mozilla.fenix.onboarding.view.ManagePrivacyPreferencesDialogFragment
 import org.mozilla.fenix.onboarding.view.OnboardingAddOn
 import org.mozilla.fenix.onboarding.view.OnboardingPageUiData
 import org.mozilla.fenix.onboarding.view.OnboardingScreen
+import org.mozilla.fenix.onboarding.view.ThemeOptionType
 import org.mozilla.fenix.onboarding.view.ToolbarOptionType
 import org.mozilla.fenix.onboarding.view.sequencePosition
 import org.mozilla.fenix.onboarding.view.telemetrySequenceId
@@ -205,14 +206,6 @@ class OnboardingFragment : Fragment() {
                     pagesToDisplay.sequencePosition(OnboardingPageUiData.Type.ADD_ONS),
                 )
             },
-            onThemeSelectionButtonClick = {
-                // Todo as part of https://bugzilla.mozilla.org/show_bug.cgi?id=1918350
-                throw NotImplementedError()
-            },
-            onThemeSelectionSkipClick = {
-                // Todo as part of https://bugzilla.mozilla.org/show_bug.cgi?id=1918350
-                throw NotImplementedError()
-            },
             onFinish = {
                 onFinish(it)
                 disableNavBarCFRForNewUser()
@@ -241,6 +234,27 @@ class OnboardingFragment : Fragment() {
                 telemetryRecorder.onSkipToolbarPlacementClick(
                     pagesToDisplay.telemetrySequenceId(),
                     pagesToDisplay.sequencePosition(OnboardingPageUiData.Type.TOOLBAR_PLACEMENT),
+                )
+            },
+
+            onCustomizeThemeClick = {
+                val selectedTheme = when {
+                    requireContext().settings().shouldFollowDeviceTheme -> ThemeOptionType.THEME_SYSTEM
+                    requireContext().settings().shouldUseDarkTheme -> ThemeOptionType.THEME_DARK
+                    else -> ThemeOptionType.THEME_LIGHT
+                }
+
+                telemetryRecorder.onSelectThemeClick(
+                    selectedTheme.id,
+                    pagesToDisplay.telemetrySequenceId(),
+                    pagesToDisplay.sequencePosition(OnboardingPageUiData.Type.THEME_SELECTION),
+                )
+            },
+
+            onCustomizeThemeSkip = {
+                telemetryRecorder.onSkipThemeClick(
+                    pagesToDisplay.telemetrySequenceId(),
+                    pagesToDisplay.sequencePosition(OnboardingPageUiData.Type.THEME_SELECTION),
                 )
             },
         )

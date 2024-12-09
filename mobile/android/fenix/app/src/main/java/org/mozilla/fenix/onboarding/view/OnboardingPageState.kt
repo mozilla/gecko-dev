@@ -105,21 +105,21 @@ data class ThemeOption(
 /**
  * Types of theming options available.
  */
-enum class ThemeOptionType {
+enum class ThemeOptionType(val id: String) {
     /**
      * Sets the theme to dark mode.
      */
-    THEME_DARK,
+    THEME_DARK("theme_dark"),
 
     /**
      * Sets the theme to light mode.
      */
-    THEME_LIGHT,
+    THEME_LIGHT("theme_light"),
 
     /**
      * Adapts the theme to match the device's system setting.
      */
-    THEME_SYSTEM,
+    THEME_SYSTEM("theme_system"),
 }
 
 /**

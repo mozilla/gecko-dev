@@ -204,8 +204,8 @@ internal fun mapToOnboardingPageState(
     onAddOnsButtonClick: () -> Unit,
     onCustomizeToolbarButtonClick: () -> Unit,
     onCustomizeToolbarSkipClick: () -> Unit,
-    onThemeSelectionButtonClick: () -> Unit,
-    onThemeSelectionSkipClick: () -> Unit,
+    onCustomizeThemeClick: () -> Unit,
+    onCustomizeThemeSkip: () -> Unit,
     onTermsOfServiceButtonClick: () -> Unit,
 ): OnboardingPageState = when (onboardingPageUiData.type) {
     OnboardingPageUiData.Type.DEFAULT_BROWSER -> createOnboardingPageState(
@@ -246,8 +246,8 @@ internal fun mapToOnboardingPageState(
 
     OnboardingPageUiData.Type.THEME_SELECTION -> createOnboardingPageState(
         onboardingPageUiData = onboardingPageUiData,
-        onPositiveButtonClick = onThemeSelectionButtonClick,
-        onNegativeButtonClick = onThemeSelectionSkipClick,
+        onPositiveButtonClick = onCustomizeThemeClick,
+        onNegativeButtonClick = onCustomizeThemeSkip,
     )
 
     OnboardingPageUiData.Type.TERMS_OF_SERVICE -> createOnboardingPageState(
