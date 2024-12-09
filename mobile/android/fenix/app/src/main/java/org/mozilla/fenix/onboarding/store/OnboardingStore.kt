@@ -8,6 +8,7 @@ import mozilla.components.lib.state.Action
 import mozilla.components.lib.state.State
 import mozilla.components.lib.state.Store
 import org.mozilla.fenix.onboarding.view.OnboardingAddOn
+import org.mozilla.fenix.onboarding.view.ThemeOptionType
 import org.mozilla.fenix.onboarding.view.ToolbarOptionType
 
 /**
@@ -16,11 +17,13 @@ import org.mozilla.fenix.onboarding.view.ToolbarOptionType
  * @property addOns optional list of of add-ons.
  * @property addOnInstallationInProcess whether an add-on is in the process of being installed.
  * @property toolbarOptionSelected the selected toolbar option.
+ * @property themeOptionSelected the selected theme option.
  */
 data class OnboardingState(
     val addOns: List<OnboardingAddOn> = emptyList(),
     val addOnInstallationInProcess: Boolean = false,
     val toolbarOptionSelected: ToolbarOptionType = ToolbarOptionType.TOOLBAR_TOP,
+    val themeOptionSelected: ThemeOptionType = ThemeOptionType.THEME_SYSTEM,
 ) : State
 
 /**
@@ -52,6 +55,16 @@ sealed interface OnboardingAction : Action {
          * Updates the selected toolbar option to the given [selected] value.
          */
         data class UpdateSelected(val selected: ToolbarOptionType) : OnboardingToolbarAction
+    }
+
+    /**
+     * [Action] implementation related to theme selection.
+     */
+    sealed interface OnboardingThemeAction : OnboardingAction {
+        /**
+         * Updates the selected theme option to the given [selected] value.
+         */
+        data class UpdateSelected(val selected: ThemeOptionType) : OnboardingThemeAction
     }
 }
 
@@ -104,5 +117,9 @@ private fun reducer(
 
         is OnboardingAction.OnboardingToolbarAction.UpdateSelected -> state.copy(
             toolbarOptionSelected = action.selected,
+        )
+
+        is OnboardingAction.OnboardingThemeAction.UpdateSelected -> state.copy(
+            themeOptionSelected = action.selected,
         )
     }
