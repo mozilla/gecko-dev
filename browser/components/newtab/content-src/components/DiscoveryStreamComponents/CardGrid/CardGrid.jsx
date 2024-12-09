@@ -8,7 +8,6 @@ import { DSDismiss } from "content-src/components/DiscoveryStreamComponents/DSDi
 import { TopicsWidget } from "../TopicsWidget/TopicsWidget.jsx";
 import { ListFeed } from "../ListFeed/ListFeed.jsx";
 import { SafeAnchor } from "../SafeAnchor/SafeAnchor";
-import { AdBanner } from "../AdBanner/AdBanner.jsx";
 import { FluentOrText } from "../../FluentOrText/FluentOrText.jsx";
 import { actionCreators as ac, actionTypes as at } from "common/Actions.mjs";
 import React, { useEffect, useState, useRef, useCallback } from "react";
@@ -365,74 +364,61 @@ export class _CardGrid extends React.PureComponent {
 
     for (let index = 0; index < items; index++) {
       const rec = recs[index];
-
-      if (rec.format === "billboard" || rec.format === "leaderboard") {
-        cards.push(
-          <AdBanner
-            spoc={rec}
+      cards.push(
+        topicsLoading ||
+          !rec ||
+          rec.placeholder ||
+          (rec.flight_id &&
+            !spocsStartupCacheEnabled &&
+            this.props.App.isForStartupCache) ? (
+          <PlaceholderDSCard key={`dscard-${index}`} />
+        ) : (
+          <DSCard
             key={`dscard-${rec.id}`}
-            dispatch={this.props.dispatch}
+            pos={rec.pos}
+            flightId={rec.flight_id}
+            image_src={rec.image_src}
+            raw_image_src={rec.raw_image_src}
+            word_count={rec.word_count}
+            time_to_read={rec.time_to_read}
+            title={rec.title}
+            topic={rec.topic}
+            showTopics={showTopics}
+            selectedTopics={selectedTopics}
+            availableTopics={availableTopics}
+            excerpt={rec.excerpt}
+            url={rec.url}
+            id={rec.id}
+            shim={rec.shim}
+            fetchTimestamp={rec.fetchTimestamp}
             type={this.props.type}
+            context={rec.context}
+            sponsor={rec.sponsor}
+            sponsored_by_override={rec.sponsored_by_override}
+            dispatch={this.props.dispatch}
+            source={rec.domain}
+            publisher={rec.publisher}
+            pocket_id={rec.pocket_id}
+            context_type={rec.context_type}
+            bookmarkGuid={rec.bookmarkGuid}
+            is_collection={this.props.is_collection}
+            saveToPocketCard={saveToPocketCard}
+            ctaButtonSponsors={ctaButtonSponsors}
+            ctaButtonVariant={ctaButtonVariant}
+            spocMessageVariant={spocMessageVariant}
+            recommendation_id={rec.recommendation_id}
             firstVisibleTimestamp={this.props.firstVisibleTimestamp}
+            mayHaveThumbsUpDown={mayHaveThumbsUpDown}
+            mayHaveSectionsCards={mayHaveSectionsCards}
+            corpus_item_id={rec.corpus_item_id}
+            scheduled_corpus_item_id={rec.scheduled_corpus_item_id}
+            recommended_at={rec.recommended_at}
+            received_rank={rec.received_rank}
+            format={rec.format}
+            alt_text={rec.alt_text}
           />
-        );
-      } else {
-        cards.push(
-          topicsLoading ||
-            !rec ||
-            rec.placeholder ||
-            (rec.flight_id &&
-              !spocsStartupCacheEnabled &&
-              this.props.App.isForStartupCache) ? (
-            <PlaceholderDSCard key={`dscard-${index}`} />
-          ) : (
-            <DSCard
-              key={`dscard-${rec.id}`}
-              pos={rec.pos}
-              flightId={rec.flight_id}
-              image_src={rec.image_src}
-              raw_image_src={rec.raw_image_src}
-              word_count={rec.word_count}
-              time_to_read={rec.time_to_read}
-              title={rec.title}
-              topic={rec.topic}
-              showTopics={showTopics}
-              selectedTopics={selectedTopics}
-              availableTopics={availableTopics}
-              excerpt={rec.excerpt}
-              url={rec.url}
-              id={rec.id}
-              shim={rec.shim}
-              fetchTimestamp={rec.fetchTimestamp}
-              type={this.props.type}
-              context={rec.context}
-              sponsor={rec.sponsor}
-              sponsored_by_override={rec.sponsored_by_override}
-              dispatch={this.props.dispatch}
-              source={rec.domain}
-              publisher={rec.publisher}
-              pocket_id={rec.pocket_id}
-              context_type={rec.context_type}
-              bookmarkGuid={rec.bookmarkGuid}
-              is_collection={this.props.is_collection}
-              saveToPocketCard={saveToPocketCard}
-              ctaButtonSponsors={ctaButtonSponsors}
-              ctaButtonVariant={ctaButtonVariant}
-              spocMessageVariant={spocMessageVariant}
-              recommendation_id={rec.recommendation_id}
-              firstVisibleTimestamp={this.props.firstVisibleTimestamp}
-              mayHaveThumbsUpDown={mayHaveThumbsUpDown}
-              mayHaveSectionsCards={mayHaveSectionsCards}
-              corpus_item_id={rec.corpus_item_id}
-              scheduled_corpus_item_id={rec.scheduled_corpus_item_id}
-              recommended_at={rec.recommended_at}
-              received_rank={rec.received_rank}
-              format={rec.format}
-              alt_text={rec.alt_text}
-            />
-          )
-        );
-      }
+        )
+      );
     }
 
     if (widgets?.positions?.length && widgets?.data?.length) {

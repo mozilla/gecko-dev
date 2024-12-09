@@ -1147,6 +1147,7 @@ export class DiscoveryStreamFeed {
         if (unifiedAdsEnabled) {
           const endpointBaseUrl = state.Prefs.values[PREF_UNIFIED_ADS_ENDPOINT];
           endpoint = `${endpointBaseUrl}v1/ads`;
+
           const placementsArray = state.Prefs.values[
             PREF_SPOC_PLACEMENTS
           ]?.split(`,`)
