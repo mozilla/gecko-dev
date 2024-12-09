@@ -10,10 +10,8 @@
   xmlns:html="http://www.w3.org/1999/xhtml"
   data-l10n-id="permissions-window2"
   data-l10n-attrs="title, style"
-  onload="gPermissionManager.onLoad();"
-  onunload="gPermissionManager.uninit();"
   persist="width height"
-  onkeypress="gPermissionManager.onWindowKeyPress(event);"
+  csp="default-src chrome: resource:; img-src chrome: resource: data:; object-src 'none'; script-src-attr 'none'; style-src 'unsafe-inline';"
 >
   <dialog
     buttons="accept,cancel"
@@ -42,9 +40,9 @@
 
     <keyset>
       <key
+        id="permissionsDialogCloseKey"
         data-l10n-id="permissions-close-key"
         modifiers="accel"
-        oncommand="window.close();"
       />
     </keyset>
 
@@ -53,50 +51,38 @@
       <separator class="thin" />
       <label id="urlLabel" control="url" data-l10n-id="permissions-address" />
       <hbox align="start">
-        <html:input
-          id="url"
-          type="text"
-          style="flex: 1"
-          oninput="gPermissionManager.onHostInput(event.target);"
-          onkeypress="gPermissionManager.onHostKeyPress(event);"
-        />
+        <html:input id="url" type="text" style="flex: 1" />
       </hbox>
       <hbox pack="end">
         <button
           id="btnDisableETP"
           disabled="true"
           data-l10n-id="permissions-disable-etp"
-          oncommand="gPermissionManager.addPermission(Ci.nsIPermissionManager.ALLOW_ACTION);"
         />
         <button
           id="btnBlock"
           disabled="true"
           data-l10n-id="permissions-block"
-          oncommand="gPermissionManager.addPermission(Ci.nsIPermissionManager.DENY_ACTION);"
         />
         <button
           id="btnCookieSession"
           disabled="true"
           data-l10n-id="permissions-session"
-          oncommand="gPermissionManager.addPermission(Ci.nsICookiePermission.ACCESS_SESSION);"
         />
         <button
           id="btnAllow"
           disabled="true"
           data-l10n-id="permissions-allow"
-          oncommand="gPermissionManager.addPermission(Ci.nsIPermissionManager.ALLOW_ACTION);"
         />
         <button
           id="btnHttpsOnlyOff"
           disabled="true"
           data-l10n-id="permissions-button-off"
-          oncommand="gPermissionManager.addPermission(Ci.nsIPermissionManager.ALLOW_ACTION);"
         />
         <button
           id="btnHttpsOnlyOffTmp"
           disabled="true"
           data-l10n-id="permissions-button-off-temporarily"
-          oncommand="gPermissionManager.addPermission(Ci.nsIHttpsOnlyModePermission.LOAD_INSECURE_ALLOW_SESSION);"
         />
       </hbox>
       <separator class="thin" />
@@ -105,22 +91,15 @@
           id="siteCol"
           data-l10n-id="permissions-site-name"
           style="flex: 3 3 auto; width: 0"
-          onclick="gPermissionManager.buildPermissionsList(event.target)"
         />
         <treecol
           id="statusCol"
           data-l10n-id="permissions-status"
           style="flex: 1 1 auto; width: 0"
           data-isCurrentSortCol="true"
-          onclick="gPermissionManager.buildPermissionsList(event.target);"
         />
       </listheader>
-      <richlistbox
-        id="permissionsBox"
-        selected="false"
-        onkeypress="gPermissionManager.onPermissionKeyPress(event);"
-        onselect="gPermissionManager.onPermissionSelect();"
-      />
+      <richlistbox id="permissionsBox" selected="false" />
     </vbox>
 
     <hbox class="actionButtons">
@@ -128,13 +107,8 @@
         id="removePermission"
         disabled="true"
         data-l10n-id="permissions-remove"
-        oncommand="gPermissionManager.onPermissionDelete();"
       />
-      <button
-        id="removeAllPermissions"
-        data-l10n-id="permissions-remove-all"
-        oncommand="gPermissionManager.onAllPermissionsDelete();"
-      />
+      <button id="removeAllPermissions" data-l10n-id="permissions-remove-all" />
     </hbox>
   </dialog>
 </window>

@@ -145,12 +145,42 @@ var gPermissionManager = {
     this._hideStatusColumn = params.hideStatusColumn;
     let statusCol = document.getElementById("statusCol");
     statusCol.hidden = this._hideStatusColumn;
+    const siteCol = document.getElementById("siteCol");
     if (this._hideStatusColumn) {
       statusCol.removeAttribute("data-isCurrentSortCol");
-      document
-        .getElementById("siteCol")
-        .setAttribute("data-isCurrentSortCol", "true");
+      siteCol.setAttribute("data-isCurrentSortCol", "true");
     }
+
+    window.addEventListener("unload", () => {
+      gPermissionManager.uninit();
+    });
+    window.addEventListener("keypress", event => {
+      gPermissionManager.onWindowKeyPress(event);
+    });
+    document
+      .getElementById("permissionsDialogCloseKey")
+      .addEventListener("command", () => {
+        window.close();
+      });
+    this._list.addEventListener("keypress", event => {
+      gPermissionManager.onPermissionKeyPress(event);
+    });
+    this._list.addEventListener("select", () => {
+      gPermissionManager.onPermissionSelect();
+    });
+    this.addCommandListeners();
+    this._urlField.addEventListener("input", event => {
+      gPermissionManager.onHostInput(event.target);
+    });
+    this._urlField.addEventListener("keypress", event => {
+      gPermissionManager.onHostKeyPress(event);
+    });
+    statusCol.addEventListener("click", event => {
+      gPermissionManager.buildPermissionsList(event.target);
+    });
+    siteCol.addEventListener("click", event => {
+      gPermissionManager.buildPermissionsList(event.target);
+    });
 
     Services.obs.notifyObservers(null, "flush-pending-permissions", this._type);
 
@@ -158,6 +188,47 @@ var gPermissionManager = {
     this.buildPermissionsList();
 
     this._urlField.focus();
+  },
+
+  addCommandListeners() {
+    window.addEventListener("command", event => {
+      switch (event.target.id) {
+        case "removePermission":
+          gPermissionManager.onPermissionDelete();
+          break;
+        case "removeAllPermissions":
+          gPermissionManager.onAllPermissionsDelete();
+          break;
+        case "btnCookieSession":
+          gPermissionManager.addPermission(
+            Ci.nsICookiePermission.ACCESS_SESSION
+          );
+          break;
+        case "btnBlock":
+          gPermissionManager.addPermission(Ci.nsIPermissionManager.DENY_ACTION);
+          break;
+        case "btnDisableETP":
+          gPermissionManager.addPermission(
+            Ci.nsIPermissionManager.ALLOW_ACTION
+          );
+          break;
+        case "btnAllow":
+          gPermissionManager.addPermission(
+            Ci.nsIPermissionManager.ALLOW_ACTION
+          );
+          break;
+        case "btnHttpsOnlyOff":
+          gPermissionManager.addPermission(
+            Ci.nsIPermissionManager.ALLOW_ACTION
+          );
+          break;
+        case "btnHttpsOnlyOffTmp":
+          gPermissionManager.addPermission(
+            Ci.nsIHttpsOnlyModePermission.LOAD_INSECURE_ALLOW_SESSION
+          );
+          break;
+      }
+    });
   },
 
   uninit() {
@@ -671,3 +742,7 @@ var gPermissionManager = {
     column.setAttribute("data-last-sortDirection", sortDirection);
   },
 };
+
+window.addEventListener("load", () => {
+  gPermissionManager.onLoad();
+});
