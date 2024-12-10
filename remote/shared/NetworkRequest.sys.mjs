@@ -102,6 +102,10 @@ export class NetworkRequest {
   }
 
   get destination() {
+    if (this.#isTopLevelDocumentLoad()) {
+      return "";
+    }
+
     return this.#channel.loadInfo?.fetchDestination;
   }
 
@@ -124,6 +128,10 @@ export class NetworkRequest {
   get initiatorType() {
     const initiatorType = this.#timedChannel.initiatorType;
     if (initiatorType === "") {
+      return null;
+    }
+
+    if (this.#isTopLevelDocumentLoad()) {
       return null;
     }
 
@@ -500,5 +508,16 @@ export class NetworkRequest {
     }
 
     return navigation ? navigation.navigationId : null;
+  }
+
+  #isTopLevelDocumentLoad() {
+    if (!this.#channel.isDocument) {
+      return false;
+    }
+
+    const browsingContext = lazy.TabManager.getBrowsingContextById(
+      this.#contextId
+    );
+    return !browsingContext.parent;
   }
 }
