@@ -115,6 +115,9 @@ class WebExtensionDescriptorActor extends Actor {
         supportsReloadDescriptor: true,
         // Supports the Watcher actor. Can be removed as part of Bug 1680280.
         watcher: true,
+        // @backward-compat { version 133 } Firefox 133 started supporting server targets by default.
+        // Once this is the only supported version, we can remove the traits and consider it always true in the frontend.
+        isServerTargetSwitchingEnabled: true,
       },
       url: this.addon.sourceURI ? this.addon.sourceURI.spec : undefined,
       warnings: lazy.ExtensionParent.DebugUtils.getExtensionManifestWarnings(

@@ -82,8 +82,10 @@ class WindowGlobalTargetFront extends TargetMixin(
     event.isFrameSwitching = packet.isFrameSwitching;
 
     // Keep the title unmodified when a developer toolbox switches frame
-    // for a tab (Bug 1261687).
-    if (!packet.isFrameSwitching) {
+    // for a tab (Bug 1261687), but always update the title when the target
+    // is a WebExtension (where the addon name is always included in the title
+    // and the url is supposed to be updated every time the selected frame changes).
+    if (!packet.isFrameSwitching || this.isWebExtension) {
       this.setTitle(packet.title);
       this.setUrl(packet.url);
     }

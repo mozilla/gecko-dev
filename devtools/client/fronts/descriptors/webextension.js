@@ -98,8 +98,11 @@ class WebExtensionDescriptorFront extends DescriptorMixin(
   }
 
   isServerTargetSwitchingEnabled() {
-    // Since Firefox 133, this is always true for webextension toolboxes.
-    return true;
+    // @backward-compat { version 133 } Firefox 133 started supporting server targets by default.
+    // Once this is the only supported version, we can remove the traits and consider this true,
+    // but keep this method as some other descriptor still return false.
+    // At least the browser toolbox doesn't support server target switching.
+    return this.traits.isServerTargetSwitchingEnabled;
   }
 
   getWatcher() {
