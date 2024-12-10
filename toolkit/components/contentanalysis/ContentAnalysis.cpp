@@ -149,6 +149,12 @@ ContentAnalysisRequest::GetAnalysisType(AnalysisType* aAnalysisType) {
 }
 
 NS_IMETHODIMP
+ContentAnalysisRequest::GetReason(Reason* aReason) {
+  *aReason = mReason;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
 ContentAnalysisRequest::GetTextContent(nsAString& aTextContent) {
   aTextContent = mTextContent;
   return NS_OK;
@@ -399,6 +405,14 @@ static nsresult ConvertToProtobuf(
   auto connector =
       static_cast<content_analysis::sdk::AnalysisConnector>(analysisType);
   aOut->set_analysis_connector(connector);
+
+  nsIContentAnalysisRequest::Reason reason;
+  rv = aIn->GetReason(&reason);
+  NS_ENSURE_SUCCESS(rv, rv);
+  auto sdkReason =
+      static_cast<content_analysis::sdk::ContentAnalysisRequest::Reason>(
+          reason);
+  aOut->set_reason(sdkReason);
 
   nsCString requestToken;
   rv = aIn->GetRequestToken(requestToken);

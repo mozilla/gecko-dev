@@ -135,6 +135,28 @@ interface nsIContentAnalysisRequest : nsISupports
   };
   readonly attribute nsIContentAnalysisRequest_AnalysisType analysisType;
 
+  // These values must stay synchronized with ContentAnalysisRequest.Reason
+  // in analysis.proto!
+  // Indicates the exact reason the request was created
+  cenum Reason : 32 {
+    eUnknown = 0,
+    // Only possible for the eFileAttached and eBulkDataEntry AnalysisType's
+    eClipboardPaste = 1,
+    eDragAndDrop = 2,
+
+    // Only possible for the eFileAttached AnalysisType
+    eFilePickerDialog = 3,
+
+    // Only possible for the ePrint AnalysisType
+    ePrintPreviewPrint = 4,
+    eSystemDialogPrint = 5,
+
+    // Only possible for the eFileDownloaded AnalysisType
+    eNormalDownload = 6,
+    eSaveAsDownload = 7,
+  };
+  readonly attribute nsIContentAnalysisRequest_Reason reason;
+
   // Enumeration of what operation is happening, to be displayed to the user
   cenum OperationType : 32 {
     eCustomDisplayString = 0,

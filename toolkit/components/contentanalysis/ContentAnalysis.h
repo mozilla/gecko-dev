@@ -100,6 +100,9 @@ class ContentAnalysisRequest final : public nsIContentAnalysisRequest {
   // See nsIContentAnalysisRequest for values
   AnalysisType mAnalysisType;
 
+  // See nsIContentAnalysisRequest for values
+  Reason mReason;
+
   // Text content to analyze.  Only one of textContent or filePath is defined.
   nsString mTextContent;
 
