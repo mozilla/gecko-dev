@@ -11,10 +11,11 @@
 
 [package]
 edition = "2021"
-rust-version = "1.70.0"
+rust-version = "1.71"
 name = "quinn-udp"
-version = "0.5.6"
+version = "0.5.8"
 build = "build.rs"
+autolib = false
 autobins = false
 autoexamples = false
 autotests = false
@@ -97,4 +98,6 @@ features = [
     "Win32_Foundation",
     "Win32_System_IO",
     "Win32_Networking_WinSock",
+    "Win32_System_SystemInformation",
+    "Win32_System_Threading",
 ]

@@ -3846,6 +3846,11 @@ who = "Max Inden <mail@max-inden.de>"
 criteria = "safe-to-deploy"
 delta = "0.5.4 -> 0.5.6"
 
+[[audits.quinn-udp]]
+who = "Max Inden <mail@max-inden.de>"
+criteria = "safe-to-deploy"
+delta = "0.5.6 -> 0.5.8"
+
 [[audits.quote]]
 who = "Nika Layzell <nika@thelayzells.com>"
 criteria = "safe-to-deploy"
