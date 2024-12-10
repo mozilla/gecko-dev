@@ -75,7 +75,9 @@ fun ThemeOnboardingPage(
                 Spacer(Modifier.height(18.dp))
                 Image(
                     painter = painterResource(id = imageRes),
-                    contentDescription = null,
+                    contentDescription = stringResource(
+                        R.string.onboarding_customize_theme_main_image_content_description,
+                    ),
                     modifier = Modifier.width(263.dp),
                 )
 
@@ -212,7 +214,10 @@ private fun SelectableImageItem(
     ) {
         Image(
             painter = painterResource(id = themeOption.imageRes),
-            contentDescription = "",
+            contentDescription = stringResource(
+                R.string.onboarding_customize_theme_content_description,
+                themeOption.label,
+            ),
             modifier = if (isSelectedOption) {
                 Modifier.border(2.dp, FirefoxTheme.colors.actionPrimary, RoundedCornerShape(10.dp))
             } else {
@@ -239,7 +244,7 @@ private fun SelectableImageItem(
             ) {
                 Icon(
                     painter = painterResource(id = R.drawable.mozac_ic_checkmark_24),
-                    contentDescription = null,
+                    contentDescription = null, // decorative only.
                     modifier = Modifier.size(12.dp),
                     tint = PhotonColors.White,
                 )
