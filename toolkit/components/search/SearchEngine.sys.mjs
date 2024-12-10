@@ -342,7 +342,29 @@ export class EngineURL {
    *   The submission data containing the URL and post data for the URL.
    */
   getSubmission(searchTerms, queryCharset) {
-    var url = ParamSubstitution(this.template, searchTerms, queryCharset);
+    let escapedSearchTerms = "";
+    try {
+      escapedSearchTerms = Services.textToSubURI.ConvertAndEscape(
+        queryCharset,
+        searchTerms
+      );
+    } catch (ex) {
+      lazy.logConsole.warn(
+        "getSubmission: Falling back to default queryCharset!"
+      );
+      escapedSearchTerms = Services.textToSubURI.ConvertAndEscape(
+        lazy.SearchUtils.DEFAULT_QUERY_CHARSET,
+        searchTerms
+      );
+    }
+
+    // textToSubURI encodes spaces with '+' but we want to use %20 if the search
+    // terms are part of the URL. We only use '+' if they are a query parameter.
+    let url = ParamSubstitution(
+      this.template,
+      escapedSearchTerms.replace("+", "%20"),
+      queryCharset
+    );
 
     // Create an application/x-www-form-urlencoded representation of our params
     // (name=value&name=value&name=value)
@@ -350,7 +372,11 @@ export class EngineURL {
     for (let param of this.params) {
       // QueryPreferenceParameters might not have a preferenced saved, or a valid value.
       if (param.value != null) {
-        let value = ParamSubstitution(param.value, searchTerms, queryCharset);
+        let value = ParamSubstitution(
+          param.value,
+          escapedSearchTerms,
+          queryCharset
+        );
         dataArray.push(param.name + "=" + value);
       }
     }
@@ -1195,22 +1221,7 @@ export class SearchEngine {
       lazy.logConsole.warn("getSubmission: searchTerms is empty!");
     }
 
-    var submissionData = "";
-    try {
-      submissionData = Services.textToSubURI.ConvertAndEscape(
-        this.queryCharset,
-        searchTerms
-      );
-    } catch (ex) {
-      lazy.logConsole.warn(
-        "getSubmission: Falling back to default queryCharset!"
-      );
-      submissionData = Services.textToSubURI.ConvertAndEscape(
-        lazy.SearchUtils.DEFAULT_QUERY_CHARSET,
-        searchTerms
-      );
-    }
-    return url.getSubmission(submissionData, this.queryCharset);
+    return url.getSubmission(searchTerms, this.queryCharset);
   }
 
   /**
