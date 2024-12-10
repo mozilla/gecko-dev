@@ -8,7 +8,7 @@
  * Target actor for all resources in a content process of Firefox (chrome sandboxes, frame
  * scripts, documents, etc.)
  *
- * See devtools/docs/backend/actor-hierarchy.md for more details.
+ * See devtools/docs/contributor/backend/actor-hierarchy.md for more details about all the targets.
  */
 
 const { ThreadActor } = require("resource://devtools/server/actors/thread.js");

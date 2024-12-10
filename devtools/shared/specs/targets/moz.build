@@ -6,6 +6,7 @@
 
 DevToolsModules(
     "content-process.js",
+    "content-script.js",
     "parent-process.js",
     "window-global.js",
     "worker.js",

@@ -11,6 +11,7 @@ DIRS += [
 DevToolsModules(
     "base-target-actor.js",
     "content-process.js",
+    "content-script.js",
     "index.js",
     "parent-process.js",
     "target-actor-registry.sys.mjs",

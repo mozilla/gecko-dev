@@ -470,7 +470,8 @@ add_task(async function testSourceTreeWithWebExtensionContentScript() {
     "Source is focused"
   );
 
-  const contentScriptGroupItem = findSourceNodeWithText(
+  // Note that the thread item also contains the extension name
+  const contentScriptGroupItem = findSourceTreeGroupByName(
     dbg,
     "Test content script extension"
   );

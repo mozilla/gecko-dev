@@ -173,6 +173,29 @@ const WorkerTargetResources = augmentResourceDictionary({
   },
 });
 
+// Web Extension Content Script resources are spawn for each content script,
+// from the web page's main thread it relates to.
+//
+// Similarly to workers, it doesn't relate to any DOM Document,
+// but only a JavaScript context. So it only expose a subset of resources.
+const WebExtensionContentScriptTargetResources = augmentResourceDictionary({
+  [TYPES.CONSOLE_MESSAGE]: {
+    path: "devtools/server/actors/resources/console-messages",
+  },
+  [TYPES.JSTRACER_TRACE]: {
+    path: "devtools/server/actors/resources/jstracer-trace",
+  },
+  [TYPES.JSTRACER_STATE]: {
+    path: "devtools/server/actors/resources/jstracer-state",
+  },
+  [TYPES.SOURCE]: {
+    path: "devtools/server/actors/resources/sources",
+  },
+  [TYPES.THREAD_STATE]: {
+    path: "devtools/server/actors/resources/thread-states",
+  },
+});
+
 // Parent process resources are spawned via the Watcher Actor.
 // Their watcher class receives the watcher actor as first argument.
 // They are instantiated once per watcher from the parent process.
@@ -258,6 +281,8 @@ function getResourceTypeDictionaryForTargetType(targetType) {
       return WorkerTargetResources;
     case Targets.TYPES.SHARED_WORKER:
       return WorkerTargetResources;
+    case Targets.TYPES.CONTENT_SCRIPT:
+      return WebExtensionContentScriptTargetResources;
     default:
       throw new Error(`Unsupported target actor typeName '${targetType}'`);
   }

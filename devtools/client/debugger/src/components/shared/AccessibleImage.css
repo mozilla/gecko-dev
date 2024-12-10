@@ -202,3 +202,7 @@ html[dir="rtl"] .img.more-tabs {
 .img.worker {
   mask-image: url(chrome://devtools/content/debugger/images/worker.svg);
 }
+
+.img.extension {
+  mask-image: url(chrome://devtools/content/debugger/images/sources/extension.svg);
+}

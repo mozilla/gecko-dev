@@ -490,6 +490,7 @@ export class BaseContext {
     this.messageManager = null;
     this.contentWindow = null;
     this.innerWindowID = 0;
+    this.browserId = 0;
 
     // These two properties are assigned in ContentScriptContextChild subclass
     // to keep a copy of the content script sandbox Error and Promise globals
@@ -578,6 +579,7 @@ export class BaseContext {
       );
     }
 
+    this.browserId = contentWindow.browsingContext?.browserId;
     this.innerWindowID = getInnerWindowID(contentWindow);
     this.messageManager = contentWindow.docShell.messageManager;
 

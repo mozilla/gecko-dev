@@ -11,8 +11,8 @@ add_task(async function () {
 
   let dbg = await initDebugger("doc-content-script-sources.html");
   ok(
-    sourceExists(dbg, "content_script.js"),
-    "The extension content script exists in the reducer"
+    !sourceExists(dbg, "content_script.js"),
+    "The extension content script isn't reported to the frontend and isn't in the reducer"
   );
 
   info("But the content script isn't visible by default");
@@ -60,7 +60,20 @@ add_task(async function () {
     await resume(dbg);
   }
 
+  await resume(dbg);
+  assertNotPaused(dbg);
+
   await closeTab(dbg, "content_script.js");
 
+  is(
+    dbg.selectors.getAllThreads().length,
+    2,
+    "Ensure that we only get the main thread and the content script thread"
+  );
+
   await extension.unload();
+  await waitFor(
+    () => dbg.selectors.getAllThreads().length == 1,
+    "After unloading the add-on, the content script thread is removed"
+  );
 });

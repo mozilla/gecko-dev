@@ -14,7 +14,7 @@
  *
  * This class is extended by ParentProcessTargetActor.
  *
- * See devtools/docs/backend/actor-hierarchy.md for more details.
+ * See devtools/docs/contributor/backend/actor-hierarchy.md for more details about all the targets.
  *
  * For performance matters, this file should only be loaded in the targeted context's
  * process. For example, it shouldn't be evaluated in the parent process until we try to
@@ -31,9 +31,6 @@ var {
 } = require("resource://devtools/server/actors/utils/sources-manager.js");
 var makeDebugger = require("resource://devtools/server/actors/utils/make-debugger.js");
 const Targets = require("resource://devtools/server/actors/targets/index.js");
-
-const EXTENSION_CONTENT_SYS_MJS =
-  "resource://gre/modules/ExtensionContent.sys.mjs";
 
 const lazy = {};
 // Modules loaded in the same module loader as this module.
@@ -55,11 +52,6 @@ ChromeUtils.defineESModuleGetters(
   {
     TargetActorRegistry:
       "resource://devtools/server/actors/targets/target-actor-registry.sys.mjs",
-    // ExtensionContent.sys.mjs is a singleton and must be loaded through the
-    // main loader. Note that the user of lazy.ExtensionContent elsewhere in
-    // this file (at webextensionsContentScriptGlobals) looks up the module
-    // via Cu.isESModuleLoaded, which also uses the main loader as desired.
-    ExtensionContent: EXTENSION_CONTENT_SYS_MJS,
   },
   { global: "shared" }
 );
@@ -79,7 +71,7 @@ const {
 
 loader.lazyRequireGetter(
   this,
-  ["ThreadActor", "unwrapDebuggerObjectGlobal"],
+  ["ThreadActor"],
   "resource://devtools/server/actors/thread.js",
   true
 );
@@ -95,7 +87,6 @@ loader.lazyRequireGetter(
   "resource://devtools/server/actors/utils/stylesheets-manager.js",
   true
 );
-
 loader.lazyRequireGetter(
   this,
   "TouchSimulator",
@@ -324,7 +315,7 @@ class WindowGlobalTargetActor extends BaseTargetActor {
             }
           }
         }
-        return result.concat(this.webextensionsContentScriptGlobals);
+        return result;
       },
       shouldAddNewGlobalAsDebuggee: this._shouldAddNewGlobalAsDebuggee,
     });
@@ -526,21 +517,6 @@ class WindowGlobalTargetActor extends BaseTargetActor {
 
   get openerBrowserId() {
     return this.browsingContext?.opener?.browserId;
-  }
-
-  /**
-   * Getter for the WebExtensions ContentScript globals related to the
-   * window global's current DOM window.
-   */
-  get webextensionsContentScriptGlobals() {
-    // Only retrieve the content scripts globals if the ExtensionContent JSM module
-    // has been already loaded (which is true if the WebExtensions internals have already
-    // been loaded in the same content process).
-    if (Cu.isESModuleLoaded(EXTENSION_CONTENT_SYS_MJS)) {
-      return lazy.ExtensionContent.getContentScriptGlobals(this.window);
-    }
-
-    return [];
   }
 
   /**
@@ -866,29 +842,9 @@ class WindowGlobalTargetActor extends BaseTargetActor {
   }
 
   /**
-   * Return true if the given global is associated with this window global and should
-   * be added as a debuggee, false otherwise.
+   * This is only used by WebExtensionTargetActor, which overrides this method.
    */
-  _shouldAddNewGlobalAsDebuggee(wrappedGlobal) {
-    // Otherwise, check if it is a WebExtension content script sandbox
-    const global = unwrapDebuggerObjectGlobal(wrappedGlobal);
-    if (!global) {
-      return false;
-    }
-
-    // Check if the global is a sdk page-mod sandbox.
-    let metadata = {};
-    let id = "";
-    try {
-      id = getInnerId(this.window);
-      metadata = Cu.getSandboxMetadata(global);
-    } catch (e) {
-      // ignore
-    }
-    if (metadata?.["inner-window-id"] && metadata["inner-window-id"] == id) {
-      return true;
-    }
-
+  _shouldAddNewGlobalAsDebuggee() {
     return false;
   }
 

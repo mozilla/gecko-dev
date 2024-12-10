@@ -64,7 +64,8 @@ The overall hierarchy of actors looks like this:
        |  one for each popup, ...
        |
        |  The other targets actors are:
-       |    * worker targets
+       |    * worker targets (for regular workers, as well as shared and service workers)
+       |    * web extension content script targets
        |    * process targets (only used in the Browser Toolbox to debug the browser itself made of many processes)
        |
        \ -- Target-scoped actors:

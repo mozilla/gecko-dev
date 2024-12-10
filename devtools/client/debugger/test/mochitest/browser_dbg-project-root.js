@@ -99,11 +99,9 @@ add_task(async function testProjectRoot() {
 });
 
 async function setProjectRoot(dbg, treeNode) {
-  return triggerSourceTreeContextMenu(
-    dbg,
-    treeNode,
-    "#node-set-directory-root"
-  );
+  const dispatched = waitForDispatch(dbg.store, "SET_PROJECT_DIRECTORY_ROOT");
+  await triggerSourceTreeContextMenu(dbg, treeNode, "#node-set-directory-root");
+  await dispatched;
 }
 
 function assertRootLabel(dbg, label) {

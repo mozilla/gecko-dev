@@ -9,7 +9,7 @@
  *
  * This actor extends WindowGlobalTargetActor.
  *
- * See devtools/docs/backend/actor-hierarchy.md for more details.
+ * See devtools/docs/contributor/backend/actor-hierarchy.md for more details about all the targets.
  */
 
 const {

@@ -77,25 +77,10 @@ export function initialSourcesTreeState({ isWebExtension } = {}) {
 export default function update(state = initialSourcesTreeState(), action) {
   switch (action.type) {
     case "SHOW_CONTENT_SCRIPTS": {
-      prefs.showContentScripts = action.shouldShow;
-      if (action.shouldShow) {
-        const threadItems = [...state.threadItems];
-        let changed = false;
-        for (const { source, sourceActor } of state.mutableExtensionSources) {
-          changed |= addSource(threadItems, source, sourceActor);
-        }
-        if (changed) {
-          return {
-            ...state,
-            showContentScripts: true,
-            threadItems,
-          };
-        }
-      } else {
-        return removeSources(
-          { ...state, showContentScripts: false },
-          state.mutableExtensionSources.map(({ source }) => source)
-        );
+      const { shouldShow } = action;
+      if (shouldShow !== state.showExtensionSources) {
+        prefs.showContentScripts = shouldShow;
+        return { ...state, showContentScripts: shouldShow };
       }
       return state;
     }
@@ -266,35 +251,6 @@ function addThread(state, thread) {
     state.threadItems.splice(state.threadItems.indexOf(threadItem), 1);
     addSortedItem(state.threadItems, threadItem, sortThreadItems);
   }
-}
-
-function removeSources(state, sources) {
-  let changed = false;
-  const threadItems = [...state.threadItems];
-
-  for (const source of sources) {
-    for (const threadItem of threadItems) {
-      const sourceTreeItem = findSourceInThreadItem(source, threadItem);
-      if (sourceTreeItem) {
-        changed = true;
-        // Remove this tree item from its parent
-        const { children } = sourceTreeItem.parent;
-        children.splice(children.indexOf(sourceTreeItem), 1);
-
-        // Now, recursively check all the parent tree to remove possibly empty parent folders
-        let item = sourceTreeItem.parent;
-        while (!item.children.length) {
-          item.parent.children.splice(item.parent.children.indexOf(item), 1);
-          item = item.parent;
-        }
-      }
-    }
-  }
-
-  if (changed) {
-    return { ...state, threadItems };
-  }
-  return state;
 }
 
 function updateBlackbox(state, sources, shouldBlackBox) {

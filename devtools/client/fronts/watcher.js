@@ -27,6 +27,12 @@ loader.lazyRequireGetter(
   "resource://devtools/client/fronts/targets/worker.js",
   true
 );
+loader.lazyRequireGetter(
+  this,
+  "ContentScriptTargetFront",
+  "resource://devtools/client/fronts/targets/content-script.js",
+  true
+);
 
 class WatcherFront extends FrontClassWithSpec(watcherSpec) {
   constructor(client, targetFront, parentFront) {
@@ -51,6 +57,8 @@ class WatcherFront extends FrontClassWithSpec(watcherSpec) {
       front = new ContentProcessTargetFront(this.conn, null, this);
     } else if (form.actor.includes("/workerTarget")) {
       front = new WorkerTargetFront(this.conn, null, this);
+    } else if (form.actor.includes("/contentScriptTarget")) {
+      front = new ContentScriptTargetFront(this.conn, null, this);
     } else {
       front = new WindowGlobalTargetFront(this.conn, null, this);
     }

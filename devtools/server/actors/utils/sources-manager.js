@@ -453,7 +453,7 @@ class SourcesManager extends EventEmitter {
     const win = this._thread.targetActor.window;
     let principal, cacheKey;
     // On xpcshell, we don't have a window but a Sandbox
-    if (!isWorker && win instanceof Ci.nsIDOMWindow) {
+    if (!isWorker && win instanceof Ci.nsIDOMWindow && win.docShell) {
       const docShell = win.docShell;
       const channel = docShell.currentDocumentChannel;
       principal = channel.loadInfo.loadingPrincipal;

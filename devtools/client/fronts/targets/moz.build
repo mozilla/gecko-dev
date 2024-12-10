@@ -6,6 +6,7 @@
 
 DevToolsModules(
     "content-process.js",
+    "content-script.js",
     "target-mixin.js",
     "window-global.js",
     "worker.js",

@@ -10,5 +10,6 @@ const TYPES = {
   WORKER: "worker",
   SERVICE_WORKER: "service_worker",
   SHARED_WORKER: "shared_worker",
+  CONTENT_SCRIPT: "content_script",
 };
 exports.TYPES = TYPES;

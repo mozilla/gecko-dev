@@ -1259,6 +1259,12 @@ function findSourceTreeThreadByName(dbg, name) {
   });
 }
 
+function findSourceTreeGroupByName(dbg, name) {
+  return [...findAllElements(dbg, "sourceTreeGroups")].find(el => {
+    return el.textContent.includes(name);
+  });
+}
+
 function findSourceNodeWithText(dbg, text) {
   return [...findAllElements(dbg, "sourceNodes")].find(el => {
     return el.textContent.includes(text);
@@ -1879,6 +1885,7 @@ const selectors = {
   sourceNode: i => `.sources-list .tree-node:nth-child(${i}) .node`,
   sourceNodes: ".sources-list .tree-node",
   sourceTreeThreads: '.sources-list .tree-node[aria-level="1"]',
+  sourceTreeGroups: '.sources-list .tree-node[aria-level="2"]',
   sourceTreeFiles: ".sources-list .tree-node[data-expandable=false]",
   threadSourceTree: i => `.threads-list .sources-pane:nth-child(${i})`,
   sourceDirectoryLabel: i => `.sources-list .tree-node:nth-child(${i}) .label`,

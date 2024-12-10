@@ -143,6 +143,7 @@ class EvaluationContextSelector extends Component {
       [TARGET_TYPES.WORKER]: [],
       [TARGET_TYPES.SHARED_WORKER]: [],
       [TARGET_TYPES.SERVICE_WORKER]: [],
+      [TARGET_TYPES.CONTENT_SCRIPT]: [],
     };
     // When in Browser Toolbox, we want to display the process targets with the frames
     // in the same process as a group

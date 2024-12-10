@@ -903,6 +903,7 @@ class UserScript extends Script {
       wantGlobalProperties: ["XMLHttpRequest", "fetch", "WebSocket"],
       originAttributes: contentPrincipal.originAttributes,
       metadata: {
+        "browser-id": context.browserId,
         "inner-window-id": context.innerWindowID,
         addonId: this.extension.policy.id,
       },
@@ -982,6 +983,7 @@ class ContentScriptContextChild extends BaseContext {
       // the content script to be associated with both the extension and
       // the tab holding the content page.
       let metadata = {
+        "browser-id": this.browserId,
         "inner-window-id": this.innerWindowID,
         addonId: extensionPrincipal.addonId,
       };
@@ -1131,6 +1133,7 @@ class ContentScriptContextChild extends BaseContext {
         Cu.createObjectIn(this.contentWindow, { defineAs: "chrome" });
       }
     }
+    Services.obs.notifyObservers(this.sandbox, "content-script-destroyed");
     Cu.nukeSandbox(this.sandbox);
 
     this.sandbox = null;
@@ -1246,14 +1249,14 @@ DocumentManager = {
     }
   },
 
-  getContentScriptGlobals(window) {
-    let extensions = this.contexts.get(getInnerWindowID(window));
-
-    if (extensions) {
-      return Array.from(extensions.values(), ctx => ctx.sandbox);
+  getAllContentScriptGlobals() {
+    const sandboxes = [];
+    for (let extensions of this.contexts.values()) {
+      for (let ctx of extensions.values()) {
+        sandboxes.push(ctx.sandbox);
+      }
     }
-
-    return [];
+    return sandboxes;
   },
 
   initExtensionContext(extension, window) {
@@ -1269,11 +1272,11 @@ export var ExtensionContent = {
   },
 
   // This helper is exported to be integrated in the devtools RDP actors,
-  // that can use it to retrieve the existent WebExtensions ContentScripts
-  // of a target window and be able to show the ContentScripts source in the
-  // DevTools Debugger panel.
-  getContentScriptGlobals(window) {
-    return DocumentManager.getContentScriptGlobals(window);
+  // that can use it to retrieve all the existent WebExtensions ContentScripts
+  // running in the current content process and be able to show the
+  // ContentScripts source in the DevTools Debugger panel.
+  getAllContentScriptGlobals() {
+    return DocumentManager.getAllContentScriptGlobals();
   },
 
   initExtensionContext(extension, window) {

@@ -11,6 +11,8 @@ const BROWSERTOOLBOX_SCOPE_PREF = "devtools.browsertoolbox.scope";
 const BROWSERTOOLBOX_SCOPE_EVERYTHING = "everything";
 const BROWSERTOOLBOX_SCOPE_PARENTPROCESS = "parent-process";
 
+const SHOW_CONTENT_SCRIPTS_PREF = "devtools.debugger.show-content-scripts";
+
 // eslint-disable-next-line mozilla/reject-some-requires
 const createStore = require("resource://devtools/client/shared/redux/create-store.js");
 const reducer = require("resource://devtools/shared/commands/target/reducers/targets.js");
@@ -60,10 +62,16 @@ class TargetCommand extends EventEmitter {
 
     this._updateBrowserToolboxScope =
       this._updateBrowserToolboxScope.bind(this);
+    this._updateContentScriptListening =
+      this._updateContentScriptListening.bind(this);
 
     Services.prefs.addObserver(
       BROWSERTOOLBOX_SCOPE_PREF,
       this._updateBrowserToolboxScope
+    );
+    Services.prefs.addObserver(
+      SHOW_CONTENT_SCRIPTS_PREF,
+      this._updateContentScriptListening
     );
     // Until Watcher actor notify about new top level target when navigating to another process
     // we have to manually switch to a new target from the client side
@@ -159,6 +167,26 @@ class TargetCommand extends EventEmitter {
           isModeSwitching: true,
         });
       }
+    }
+  }
+
+  /**
+   * Toggle listening to CONTENT_SCRIPT target type based on SHOW_CONTENT_SCRIPTS_PREF pref changes.
+   */
+  _updateContentScriptListening() {
+    const showContentScripts = Services.prefs.getBoolPref(
+      SHOW_CONTENT_SCRIPTS_PREF,
+      false
+    );
+    if (showContentScripts) {
+      // `_computeTargetTypes`, which is used by `startListening` to compute the types to listen to,
+      // will read the pref and force listening to CONTENT_SCRIPT type
+      this.startListening();
+    } else {
+      this.stopListeningForType(TargetCommand.TYPES.CONTENT_SCRIPT, {
+        isTargetSwitching: false,
+        isModeSwitching: false,
+      });
     }
   }
 
@@ -566,6 +594,13 @@ class TargetCommand extends EventEmitter {
       this.hasTargetWatcherSupport(TargetCommand.TYPES.FRAME)
     ) {
       types = [TargetCommand.TYPES.FRAME];
+      const showContentScripts = Services.prefs.getBoolPref(
+        SHOW_CONTENT_SCRIPTS_PREF,
+        false
+      );
+      if (showContentScripts && this.hasTargetWatcherSupport(TargetCommand.TYPES.CONTENT_SCRIPT)) {
+        types.push(TargetCommand.TYPES.CONTENT_SCRIPT);
+      }
     } else if (
       this.descriptorFront.isWebExtensionDescriptor &&
       this.descriptorFront.isServerTargetSwitchingEnabled()
@@ -576,7 +611,8 @@ class TargetCommand extends EventEmitter {
         BROWSERTOOLBOX_SCOPE_PREF
       );
       if (browserToolboxScope == BROWSERTOOLBOX_SCOPE_EVERYTHING) {
-        types = TargetCommand.ALL_TYPES;
+        // We don't try to show content scripts in the browser toolbox
+        types = TargetCommand.ALL_TYPES.filter(t => t != TargetCommand.TYPES.CONTENT_SCRIPT);
       }
     }
     if (this.listenForWorkers && !types.includes(TargetCommand.TYPES.WORKER)) {
@@ -677,6 +713,10 @@ class TargetCommand extends EventEmitter {
       typeName == "parentProcessTarget"
     ) {
       return TargetCommand.TYPES.PROCESS;
+    }
+
+    if (typeName == "contentScriptTarget") {
+      return TargetCommand.TYPES.CONTENT_SCRIPT;
     }
 
     if (typeName == "workerDescriptor" || typeName == "workerTarget") {
@@ -1175,6 +1215,10 @@ class TargetCommand extends EventEmitter {
       BROWSERTOOLBOX_SCOPE_PREF,
       this._updateBrowserToolboxScope
     );
+    Services.prefs.removeObserver(
+      SHOW_CONTENT_SCRIPTS_PREF,
+      this._updateContentScriptListening
+    );
   }
 }
 
@@ -1187,6 +1231,7 @@ TargetCommand.TYPES = TargetCommand.prototype.TYPES = {
   WORKER: "worker",
   SHARED_WORKER: "shared_worker",
   SERVICE_WORKER: "service_worker",
+  CONTENT_SCRIPT: "content_script",
 };
 TargetCommand.ALL_TYPES = TargetCommand.prototype.ALL_TYPES = Object.values(
   TargetCommand.TYPES

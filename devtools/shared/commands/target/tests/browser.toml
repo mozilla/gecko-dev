@@ -20,6 +20,8 @@ support-files = [
 
 ["browser_target_command_browser_workers.js"]
 
+["browser_target_command_content_scripts.js"]
+
 ["browser_target_command_detach.js"]
 
 ["browser_target_command_frames.js"]

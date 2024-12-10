@@ -4,7 +4,7 @@
 
 import { setupCommands, clientCommands } from "./firefox/commands";
 import { setupCreate, createPause } from "./firefox/create";
-import { features } from "../utils/prefs";
+import { prefs, features } from "../utils/prefs";
 
 import { recordEvent } from "../utils/telemetry";
 import sourceQueue from "../utils/source-queue";
@@ -14,11 +14,13 @@ const {
 const { AppConstants } = ChromeUtils.importESModule(
   "resource://gre/modules/AppConstants.sys.mjs"
 );
+const { PrefObserver } = require("resource://devtools/client/shared/prefs.js");
 
 let actions;
 let commands;
 let targetCommand;
 let resourceCommand;
+let prefObserver;
 
 export async function onConnect(_commands, _resourceCommand, _actions, store) {
   actions = _actions;
@@ -64,8 +66,15 @@ export async function onConnect(_commands, _resourceCommand, _actions, store) {
   };
   await commands.threadConfigurationCommand.updateConfiguration(options);
 
+  // Depending on the content script preference we should or should not observe
+  // CONTENT_SCRIPT targets.
+  const targetTypes = prefs.showContentScripts
+    ? targetCommand.ALL_TYPES
+    : targetCommand.ALL_TYPES.filter(
+        type => type != targetCommand.TYPES.CONTENT_SCRIPT
+      );
   await targetCommand.watchTargets({
-    types: targetCommand.ALL_TYPES,
+    types: targetTypes,
     onAvailable: onTargetAvailable,
     onDestroyed: onTargetDestroyed,
   });
@@ -106,6 +115,36 @@ export async function onConnect(_commands, _resourceCommand, _actions, store) {
       remotePlatformVersion
     );
   }
+
+  prefObserver = new PrefObserver("devtools.debugger.show-content-scripts");
+  prefObserver.on(
+    "devtools.debugger.show-content-scripts",
+    onToggleContentScripts
+  );
+}
+
+async function onToggleContentScripts() {
+  if (!prefs.showContentScripts) {
+    await targetCommand.watchTargets({
+      types: [targetCommand.TYPES.CONTENT_SCRIPT],
+      onAvailable: onTargetAvailable,
+      onDestroyed: onTargetDestroyed,
+    });
+  } else {
+    // unwatchTarget won't call onTargetDestroyed for the previously registered targets
+    // so, manually destroy all existing content script targets
+    const existingTargets = targetCommand.getAllTargets([
+      targetCommand.TYPES.CONTENT_SCRIPT,
+    ]);
+    for (const targetFront of existingTargets) {
+      actions.removeTarget(targetFront);
+    }
+    targetCommand.unwatchTargets({
+      types: [targetCommand.TYPES.CONTENT_SCRIPT],
+      onAvailable: onTargetAvailable,
+      onDestroyed: onTargetDestroyed,
+    });
+  }
 }
 
 export function onDisconnect() {
@@ -137,6 +176,7 @@ export function onDisconnect() {
   });
   commands.tracerCommand.off("toggle", onTracingToggled);
   sourceQueue.clear();
+  prefObserver.destroy();
 }
 
 async function onTargetAvailable({ targetFront }) {

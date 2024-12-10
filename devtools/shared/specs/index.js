@@ -279,6 +279,11 @@ const Types = (exports.__TypesForTests = [
     front: null,
   },
   {
+    types: ["contentScriptTarget"],
+    spec: "devtools/shared/specs/targets/content-script",
+    front: null,
+  },
+  {
     types: ["parentProcessTarget"],
     spec: "devtools/shared/specs/targets/parent-process",
     front: null,
