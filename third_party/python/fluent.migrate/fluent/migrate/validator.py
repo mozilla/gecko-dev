@@ -5,7 +5,6 @@ from itertools import zip_longest
 from fluent.migrate import transforms
 from fluent.migrate.errors import MigrationError
 from fluent.migrate.helpers import transforms_from
-from fluent.syntax import ast as FTL
 from fluent.syntax.visitor import Visitor
 from compare_locales import mozpath
 

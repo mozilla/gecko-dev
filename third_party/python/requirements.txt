@@ -202,9 +202,9 @@ ecdsa==0.15 \
     --hash=sha256:867ec9cf6df0b03addc8ef66b56359643cb5d0c1dc329df76ba7ecfe256c8061
 esprima==4.0.1 \
     --hash=sha256:08db1a876d3c2910db9cfaeb83108193af5411fc3a3a66ebefacd390d21323ee
-fluent-migrate==0.13.0 \
-    --hash=sha256:15d48d51c838167a2ace3788f34b130d40e4946f08f9f48d9495a34ac565bb1c \
-    --hash=sha256:18a5c9d0c00cd50f45754a8e568d1fa57500679bdd00a98604de963cafef5a70
+fluent-migrate==0.13.2 \
+    --hash=sha256:e69bb4fde0a071e9edfecf371680ed719b451cff3ba2ecf6c32ccf9b29fffbaa \
+    --hash=sha256:77a361b4ff874af5c8134f2f73631c946e40527d9108ebadaeb823b97debf650
 fluent-syntax==0.19.0 \
     --hash=sha256:920326d7f46864b9758f0044e9968e3112198bc826acee16ddd8f11d359004fd \
     --hash=sha256:b352b3475fac6c6ed5f06527921f432aac073d764445508ee5218aeccc7cc5c4

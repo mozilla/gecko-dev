@@ -28,13 +28,14 @@ class RepoClient:
         self.root = root
         if isdir(join(root, ".hg")):
             self.hgclient = hglib.open(root, "utf-8")
-        elif isdir(join(root, ".git")):
-            self.hgclient = None
-            stdout = git(self.root, "rev-parse", "--is-inside-work-tree")
-            if stdout != "true\n":
-                raise Exception("git rev-parse failed")
         else:
-            raise Exception(f"Unsupported repository: {root}")
+            self.hgclient = None
+            try:
+                stdout = git(self.root, "rev-parse", "--is-inside-work-tree")
+            except Exception:
+                stdout = ""
+            if stdout != "true\n":
+                raise Exception(f"Unsupported repository: {root}")
 
     def close(self):
         if self.hgclient:
@@ -98,6 +99,7 @@ class RepoClient:
                 git(
                     self.root,
                     "log",
+                    "--reverse",
                     "--pretty=format:%s",
                     f"{from_commit}..{to_commit}",
                 )

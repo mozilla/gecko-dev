@@ -393,15 +393,15 @@ sdist = { url = "https://files.pythonhosted.org/packages/cc/a1/50fccd68a12bcfc27
 
 [[package]]
 name = "fluent-migrate"
-version = "0.13.0"
+version = "0.13.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "compare-locales" },
     { name = "fluent-syntax" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/ae/81/14a35a7a03527524d9d85465c84390f9d5807d4a82c3a4ac9e4e38218f32/fluent.migrate-0.13.0.tar.gz", hash = "sha256:15d48d51c838167a2ace3788f34b130d40e4946f08f9f48d9495a34ac565bb1c", size = 24926 }
+sdist = { url = "https://files.pythonhosted.org/packages/7a/f6/7a29278222a9ae897aff40bff79ae05cf3b966766664da1b48d89533ba7b/fluent_migrate-0.13.2.tar.gz", hash = "sha256:e69bb4fde0a071e9edfecf371680ed719b451cff3ba2ecf6c32ccf9b29fffbaa", size = 24978 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/fe/03/507fb6406bfe3be909575cf122d21772ccd04f5c75af2d47a82dae20a955/fluent.migrate-0.13.0-py2.py3-none-any.whl", hash = "sha256:18a5c9d0c00cd50f45754a8e568d1fa57500679bdd00a98604de963cafef5a70", size = 29351 },
+    { url = "https://files.pythonhosted.org/packages/1b/7e/b3be10829760e6050eb3aa10a4e51734541086efb7bf6f16851451640dfd/fluent.migrate-0.13.2-py2.py3-none-any.whl", hash = "sha256:77a361b4ff874af5c8134f2f73631c946e40527d9108ebadaeb823b97debf650", size = 29347 },
 ]
 
 [[package]]
@@ -843,7 +843,7 @@ requires-dist = [
     { name = "distro", specifier = "==1.8.0" },
     { name = "ecdsa", specifier = "==0.15" },
     { name = "esprima", specifier = "==4.0.1" },
-    { name = "fluent-migrate", specifier = "==0.13.0" },
+    { name = "fluent-migrate", specifier = "~=0.13.2" },
     { name = "fluent-syntax", specifier = "==0.19.0" },
     { name = "glean-parser", specifier = "==15.2.1" },
     { name = "importlib-metadata", specifier = "==6.0.0" },

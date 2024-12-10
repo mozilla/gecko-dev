@@ -18,7 +18,7 @@ dependencies = [
     "distro==1.8.0",
     "ecdsa==0.15",
     "esprima==4.0.1",
-    "fluent-migrate==0.13.0",
+    "fluent-migrate~=0.13.2",
     "fluent-syntax==0.19.0",
     "glean-parser==15.2.1",
     "importlib-metadata==6.0.0",
