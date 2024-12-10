@@ -2899,12 +2899,7 @@ var CustomizableUIInternal = {
     );
     // If there's no saved state, or it doesn't pass the sniff test, use
     // default placements instead
-    if (
-      !(
-        Array.isArray(savedPlacements) &&
-        savedPlacements.includes("tabbrowser-tabs")
-      )
-    ) {
+    if (!savedPlacements.includes("tabbrowser-tabs")) {
       savedPlacements = gAreas.get(tabstripAreaId).get("defaultPlacements");
       lazy.log.debug(`Using defaultPlacements for ${tabstripAreaId}`);
     }
@@ -4113,7 +4108,7 @@ var CustomizableUIInternal = {
         "initializeForTabsOrientation, savedPlacements",
         savedPlacements
       );
-      if (savedPlacements) {
+      if (savedPlacements.length) {
         // We're startup up with horizontal tabs, but there are saved placements for the
         // horizontal tab strip, so its possible the verticalTabs pref was updated outside
         // of normal use. Make sure to restore those tabstrip widget placements
