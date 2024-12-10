@@ -340,14 +340,14 @@
          The first parameter is the label of the report site issue (for example: Report Site issue) -->
     <string name="browser_menu_tools_description_with_translate_with_report_site" moz:removedIn="135" tools:ignore="UnusedResources">Golwg Darllenydd, Cyfieithu, %s, Argraffu, Rhannu, Agor ap</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu when the "Report broken site" feature is available-->
-    <string name="browser_menu_tools_description_with_translate_with_report_site_2">Darllenydd Gweld, Cyfieithu, Adrodd am wefan sydd wedi torri, Argraffu, Rhannu, Agor ap</string>
+    <string name="browser_menu_tools_description_with_translate_with_report_site_2">Golwg Darllenydd, Cyfieithu, Adrodd am wefan sydd wedi torri, Argraffu, Rhannu, Agor ap</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
     <string name="browser_menu_tools_description_with_translate_without_report_site">Golwg Darllenydd, Cyfieithu, Argraffu, Rhannu, Agor ap</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu
          The first parameter is the label of the report site issue (for example: Report Site issue) -->
     <string name="browser_menu_tools_description_with_report_site" moz:removedIn="135" tools:ignore="UnusedResources">Golwg Darllenydd, %s, Argraffu, Rhannu, Agor ap</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu when the "Report broken site" feature is available-->
-    <string name="browser_menu_tools_description_with_report_site_2">Gweld Darllenydd, Adrodd am wefan sydd wedi torri, Argraffu, Rhannu, Ap agor</string>
+    <string name="browser_menu_tools_description_with_report_site_2">Golwg Darllenydd, Adrodd am wefan sydd wedi torri, Argraffu, Rhannu, Ap agor</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
     <string name="browser_menu_tools_description_without_report_site">Golwg Darllenydd, Argraffu, Rhannu, Agor ap</string>
     <!-- Browser menu label that navigates to the save sub-menu, which contains various save related menu items such as
@@ -369,7 +369,7 @@
     <!-- Browser menu label for navigating to the translation feature, which provides language translation options the current visited page -->
     <string name="browser_menu_translate_page">Cyfieithu tudalen…</string>
     <!-- Browser menu label for navigating to the Web Compat Reporter feature, which provides users the ability to send bug reports for broken sites. -->
-    <string name="browser_menu_webcompat_reporter">Rhoi gwybod am wefan sydd wedi torri…</string>
+    <string name="browser_menu_webcompat_reporter">Adrodd ar wefan wedi torri…</string>
     <!-- Browser menu label that is displayed when the current page has been translated by the translation feature.
          The first parameter is the name of the language that page was translated to (e.g. English). -->
     <string name="browser_menu_translated_to">Wedi\'i gyfieithu i %1$s</string>
@@ -589,11 +589,11 @@
     <!-- Terms of service onboarding page continue button label. -->
     <string name="onboarding_term_of_service_agree_and_continue_button_label" tools:ignore="UnusedResources">Cytuno a pharhau</string>
     <!-- Line one of the terms of service onboarding page. 'Firefox' is intentionally hardcoded. %1$s is replaced by an active link, using onboarding_term_of_service_line_one_link_text as text (“Terms of Service”). -->
-    <string name="onboarding_term_of_service_line_one" tools:ignore="UnusedResources,BrandUsage">Trwy barhau, rydych yn cytuno i Firefox %1$s.</string>
+    <string name="onboarding_term_of_service_line_one" tools:ignore="UnusedResources,BrandUsage">Trwy barhau, rydych yn cytuno i %1$s Firefox.</string>
     <!-- Used as text for the link in onboarding_term_of_service_line_one. -->
     <string name="onboarding_term_of_service_line_one_link_text" tools:ignore="UnusedResources,BrandUsage">Amodau Gwasanaeth</string>
     <!-- Line two of the terms of service onboarding page. 'Firefox' is intentionally hardcoded. %1$s is replaced by an active link, using onboarding_term_of_service_line_two_link_text as text (Privacy Notice”). -->
-    <string name="onboarding_term_of_service_line_two" tools:ignore="UnusedResources,BrandUsage">Mae Firefox yn poeni am eich preifatrwydd. Darllenwch fwy yn ein %1$s.</string>
+    <string name="onboarding_term_of_service_line_two" tools:ignore="UnusedResources,BrandUsage">Mae Firefox yn ofalus o\'ch preifatrwydd. Darllenwch fwy yn ein %1$s.</string>
     <!-- Used as text for the link in onboarding_term_of_service_line_two. -->
     <string name="onboarding_term_of_service_line_two_link_text" tools:ignore="UnusedResources,BrandUsage">Hysbysiad Preifatrwydd</string>
     <!-- Line three of the terms of service onboarding page. 'Firefox' and 'Mozilla' are intentionally hardcoded. %1$S is replaced by an active link, using onboarding_term_of_service_line_three_link_text as text (Manage”). -->
@@ -2898,16 +2898,16 @@
     <string name="protection_panel_banner_not_protected_title">Rydych wedi diffodd y mesurau diogelwch</string>
     <!-- Description text for the protection panel banner when tracking protection is disabled.
         The first parameter is the name of the app defined in app_name (for example: Fenix) -->
-    <string name="protection_panel_banner_not_protected_description">Nid yw %s ar ddyletswydd. Rydym yn awgrymu troi amddiffyniadau yn ôl ymlaen.</string>
+    <string name="protection_panel_banner_not_protected_description">Nid yw %s ar waith. Rydym yn awgrymu troi eich diogelwch yn ôl ymlaen.</string>
     <!-- Title text for the protection panel banner when tracking protection is enabled.
         The first parameter is the name of the app defined in app_name (for example: Fenix) -->
-    <string name="protection_panel_banner_protected_title">Mae %s ar wyliadwrus</string>
+    <string name="protection_panel_banner_protected_title">Mae %s yn gwylio</string>
     <!-- Description text for the protection panel banner when tracking protection is enabled. -->
     <string name="protection_panel_banner_protected_description">Rydych wedi\'ch diogelu. Os byddwn yn sylwi ar rywbeth, byddwn yn rhoi gwybod ichi.</string>
     <!-- Label text for the Enhanced Tracking Protection toggle. -->
     <string name="protection_panel_etp_toggle_label">Diogelwch Uwch Rhag Tracio</string>
     <!-- Description text for the Enhanced Tracking Protection toggle when tracking protection is enabled. -->
-    <string name="protection_panel_etp_toggle_enabled_description">Os yw rhywbeth yn edrych wedi torri ar y wefan hon, ceisiwch ddiffodd amddiffyniadau.</string>
+    <string name="protection_panel_etp_toggle_enabled_description">Os yw rhywbeth yn edrych wedi torri ar y wefan hon, ceisiwch ddiffodd eich diogelwch.</string>
     <!-- Description text for the Enhanced Tracking Protection toggle when tracking protection is disabled. -->
     <string name="protection_panel_etp_toggle_disabled_description">Mae\'r mesurau diogelwch wedi\'u DIFFODD. Rydym yn awgrymu eu troi yn ôl ymlaen.</string>
 
@@ -3028,7 +3028,7 @@
     <!-- The title of the Addresses feature in the Debug Drawer. -->
     <string name="debug_drawer_addresses_title">Cyfeiriadau</string>
     <!-- The title of the section header for the list of debug locales that can be enabled and disabled. -->
-    <string name="debug_drawer_addresses_debug_locales_header">Lleoliadau dadfygio i alluogi</string>
+    <string name="debug_drawer_addresses_debug_locales_header">Dadfygio localau i alluogi</string>
 
     <!-- Debug drawer "contextual feature recommendation" (CFR) tools -->
     <!-- The title of the CFR Tools feature in the Debug Drawer -->
@@ -3061,25 +3061,25 @@
     <!-- Homepage card message about old Firefox version -->
     <string name="certificate_warning_homepage_card_hca1_message" tools:ignore="UnusedResources">Bydd tystysgrif gwraidd yn dod i ben, gan achosi i rai nodweddion roi\'r gorau i weithio ar Fawrth 14.</string>
     <!-- Homepage card title about old Firefox version. "Update" is a verb. -->
-    <string name="certificate_warning_homepage_card_hcr1_title" tools:ignore="UnusedResources">Diweddariad cyn Mawrth 14</string>
+    <string name="certificate_warning_homepage_card_hcr1_title" tools:ignore="UnusedResources">Diweddarwch cyn Mawrth 14</string>
     <!-- Homepage card message about old Firefox version. Note: The word "Firefox" should NOT be translated. -->
-    <string name="certificate_warning_homepage_card_hcr1_message" tools:ignore="BrandUsage,UnusedResources">Bydd tystysgrif gwraidd yn dod i ben, gan achosi i\'ch fersiwn chi o Firefox roi\'r gorau i weithio\'n iawn.</string>
+    <string name="certificate_warning_homepage_card_hcr1_message" tools:ignore="BrandUsage,UnusedResources">Bydd tystysgrif gwraidd yn dod i ben, gan achosi i\'ch fersiwn chi o Firefox beidio â gweithio\'n iawn.</string>
     <!-- Homepage card title about old Firefox version -->
     <string name="certificate_warning_homepage_card_hcw2_title" tools:ignore="UnusedResources">Llai na 7 diwrnod ar ôl i ddiweddaru</string>
     <!-- Homepage card message about old Firefox version. Note: The word "Firefox" should NOT be translated. -->
-    <string name="certificate_warning_homepage_card_hcw2_message" tools:ignore="BrandUsage,UnusedResources">Ar Fawrth 14, bydd ychwanegion a nodweddion Firefox eraill yn rhoi\'r gorau i weithio oherwydd bod tystysgrif gwraidd yn dod i ben.</string>
+    <string name="certificate_warning_homepage_card_hcw2_message" tools:ignore="BrandUsage,UnusedResources">Ar Fawrth 14, bydd ychwanegion a nodweddion Firefox eraill yn peidio â gweithio oherwydd bod tystysgrif gwraidd yn dod i ben.</string>
     <!-- Homepage card title about old Firefox version. Note: The word "Firefox" should NOT be translated. -->
     <string name="certificate_warning_homepage_card_hcw3_title" tools:ignore="BrandUsage,UnusedResources">Cyfle olaf i gadw eich Firefox</string>
     <!-- Homepage card message about old Firefox version. Note: The word "Firefox" should NOT be translated. -->
-    <string name="certificate_warning_homepage_card_hcw3_message" tools:ignore="BrandUsage,UnusedResources">Bydd eich fersiwn chi o Firefox yn rhoi\'r gorau i weithio\'n iawn ar Fawrth 14 oherwydd bod tystysgrif gwraidd yn dod i ben.</string>
+    <string name="certificate_warning_homepage_card_hcw3_message" tools:ignore="BrandUsage,UnusedResources">Bydd eich fersiwn chi o Firefox yn peidio â gweithio\'n iawn ar Fawrth 14 oherwydd bod tystysgrif gwraidd yn dod i ben.</string>
     <!-- Push notification title about old Firefox version. "Update" is a noun. -->
-    <string name="certificate_warning_push_notification_update_recommended_title" tools:ignore="UnusedResources">Diweddariad yn cael ei argymell</string>
+    <string name="certificate_warning_push_notification_update_recommended_title" tools:ignore="UnusedResources">Rydym yn argymell eich bod yn diweddaru</string>
     <!-- Push notification message about old Firefox version -->
-    <string name="certificate_warning_push_notification_pnr1_message" tools:ignore="UnusedResources">Bydd ychwanegion a rhai nodweddion yn rhoi\'r gorau i weithio ar Fawrth 14.</string>
+    <string name="certificate_warning_push_notification_pnr1_message" tools:ignore="UnusedResources">Bydd ychwanegion a rhai nodweddion yn peidio â gweithio ar Fawrth 14.</string>
     <!-- Push notification title about old Firefox version. Note: The word "Firefox" should NOT be translated. -->
     <string name="certificate_warning_push_notification_pnw2_title" tools:ignore="BrandUsage,UnusedResources">Rydych chi ar fersiwn hŷn o Firefox</string>
     <!-- Push notification message about old Firefox version. "Update" is a verb. -->
     <string name="certificate_warning_push_notification_pnw2_message" tools:ignore="UnusedResources">Diweddarwch cyn Mawrth 14 i barhau i ddefnyddio ychwanegion a nodweddion eraill.</string>
     <!-- Push notification message about old Firefox version -->
-    <string name="certificate_warning_push_notification_pnw3_message" tools:ignore="UnusedResources">Bydd rhai nodweddion yn rhoi\'r gorau i weithio yfory.</string>
+    <string name="certificate_warning_push_notification_pnw3_message" tools:ignore="UnusedResources">Bydd rhai nodweddion yn peidio â gweithio yfory.</string>
 </resources>

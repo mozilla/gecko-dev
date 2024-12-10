@@ -3060,12 +3060,24 @@
     <string name="certificate_warning_homepage_card_update_now_button" tools:ignore="UnusedResources">Şimdi güncelle</string>
     <!-- Homepage card title about old Firefox version. "Update" is a verb. Note: The word "Firefox" should NOT be translated. -->
     <string name="certificate_warning_homepage_card_hca1_title" tools:ignore="BrandUsage,UnusedResources">Firefox tarayıcınızı güncelleyin</string>
+    <!-- Homepage card message about old Firefox version -->
+    <string name="certificate_warning_homepage_card_hca1_message" tools:ignore="UnusedResources">14 Mart’ta bir kök sertifikasının süresi dolacağı için bu tarihten sonra bazı özellikler çalışmayacaktır.</string>
     <!-- Homepage card title about old Firefox version. "Update" is a verb. -->
     <string name="certificate_warning_homepage_card_hcr1_title" tools:ignore="UnusedResources">14 Mart’tan önce güncelleyin</string>
+    <!-- Homepage card title about old Firefox version -->
+    <string name="certificate_warning_homepage_card_hcw2_title" tools:ignore="UnusedResources">Güncelleme yapmak için 7 günden az süreniz kaldı</string>
+    <!-- Homepage card message about old Firefox version. Note: The word "Firefox" should NOT be translated. -->
+    <string name="certificate_warning_homepage_card_hcw2_message" tools:ignore="BrandUsage,UnusedResources">14 Mart’ta bir kök sertifikasının süresi dolacağı için bu tarihten sonra eklentiler ve bazı Firefox özellikleri çalışmayacaktır.</string>
+    <!-- Homepage card message about old Firefox version. Note: The word "Firefox" should NOT be translated. -->
+    <string name="certificate_warning_homepage_card_hcw3_message" tools:ignore="BrandUsage,UnusedResources">14 Mart’ta bir kök sertifikasının süresi dolacağı için bu tarihten sonra Firefox sürümünüz düzgün çalışmayacak.</string>
+    <!-- Push notification title about old Firefox version. "Update" is a noun. -->
+    <string name="certificate_warning_push_notification_update_recommended_title" tools:ignore="UnusedResources">Önerilen güncelleme</string>
     <!-- Push notification message about old Firefox version -->
     <string name="certificate_warning_push_notification_pnr1_message" tools:ignore="UnusedResources">Eklentiler ve bazı özellikler 14 Mart’tan sonra çalışmayacak.</string>
     <!-- Push notification title about old Firefox version. Note: The word "Firefox" should NOT be translated. -->
     <string name="certificate_warning_push_notification_pnw2_title" tools:ignore="BrandUsage,UnusedResources">Firefox’un eski bir sürümünü kullanıyorsunuz</string>
     <!-- Push notification message about old Firefox version. "Update" is a verb. -->
     <string name="certificate_warning_push_notification_pnw2_message" tools:ignore="UnusedResources">Eklentileri ve diğer özellikleri kullanmaya devam edebilmek için 14 Mart’tan önce tarayıcınızı güncelleyin.</string>
-    </resources>
+    <!-- Push notification message about old Firefox version -->
+    <string name="certificate_warning_push_notification_pnw3_message" tools:ignore="UnusedResources">Bazı özellikler yarından itibaren çalışmayacak.</string>
+</resources>

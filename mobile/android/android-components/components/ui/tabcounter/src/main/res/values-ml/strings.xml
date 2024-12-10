@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools" xmlns:moz="http://mozac.org/tools">
+    <!-- Message announced to the user when tab tray is selected with 1 tab -->
+    <string name="mozac_tab_counter_open_tab_tray_single" moz:removedIn="133" tools:ignore="UnusedResources">1 തുറന്നിരിക്കുന്ന ടാബ്. ടാബുകൾ മാറ്റാൻ അമർത്തുക.</string>
+    <!-- Message announced to the user when tab tray is selected with multiple tabs -->
+    <string name="mozac_tab_counter_open_tab_tray_plural" moz:removedIn="133" tools:ignore="UnusedResources">%1$s തുറന്നിരിക്കുന്ന ടാബുകൾ. ടാബുകൾ മാറ്റാൻ ഇത് അമർത്തുക.</string>
+    <!-- Message announced to the user when tab tray is selected
+    The %1$s will be replaced by the number of opened tabs -->
+    <string name="mozac_tab_counter_open_tab_tray">തുറന്നിരിക്കുന്ന ടാബുകൾ: %1$s. ടാബുകൾ മാറ്റാൻ അമർത്തുക.</string>
+    <!-- Browser menu button that creates a new tab -->
+    <string name="mozac_browser_menu_new_tab">പുതിയ ടാബ്</string>
+    <!-- Browser menu button that creates a private tab -->
+    <string name="mozac_browser_menu_new_private_tab">പുതിയ സ്വകാര്യ ടാബ്</string>
+    <!-- Browser menu button to close tab. Closes the current session when pressed. -->
+    <string name="mozac_close_tab">ടാബ് അടയ്ക്കുക</string>
+    <!-- Menu option to duplicate the current tab -->
+    <string name="mozac_ui_tabcounter_duplicate_tab">ടാബ് ഇരട്ടിക്കുക</string>
+    <!-- Content description of the tab counter toolbar button -->
+    <string name="mozac_tab_counter_content_description">ടാബ് എണ്ണം ഉപകരണപട്ട ബട്ടൺ.</string>
+</resources>

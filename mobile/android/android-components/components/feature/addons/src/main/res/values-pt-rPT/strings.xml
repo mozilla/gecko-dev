@@ -73,7 +73,7 @@
     <!-- Description for trialML permission. -->
     <string name="mozac_feature_addons_permissions_trial_ml_description">Transferir e executar modelos de IA no seu dispositivo</string>
     <!-- Description for userScripts permission. -->
-    <string name="mozac_feature_addons_permissions_user_scripts_description">Permitir scripts de terceiros não verificados aceder aos seus dados</string>
+    <string name="mozac_feature_addons_permissions_user_scripts_description">Permitir que scripts não verificados de terceiros acedam aos seus dados</string>
     <!-- Description for devtools permission. -->
     <string name="mozac_feature_addons_permissions_devtools_description">Estender as ferramentas de programador para aceder aos seus dados em separadores abertos</string>
     <!-- The version on of add-on. -->
