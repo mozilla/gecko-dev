@@ -25,12 +25,20 @@ already_AddRefed<GamepadTestChannelParent> GamepadTestChannelParent::Create() {
 
 GamepadTestChannelParent::GamepadTestChannelParent() {
   ::mozilla::ipc::AssertIsOnBackgroundThread();
-  GamepadMonitoringState::GetSingleton().AddObserver(this);
+  RefPtr<GamepadPlatformService> service =
+      GamepadPlatformService::GetParentService();
+  MOZ_ASSERT(service);
+
+  service->GetMonitoringState().AddObserver(this);
 }
 
 GamepadTestChannelParent::~GamepadTestChannelParent() {
   ::mozilla::ipc::AssertIsOnBackgroundThread();
-  GamepadMonitoringState::GetSingleton().RemoveObserver(this);
+  RefPtr<GamepadPlatformService> service =
+      GamepadPlatformService::GetParentService();
+  MOZ_ASSERT(service);
+
+  service->GetMonitoringState().RemoveObserver(this);
 }
 
 void GamepadTestChannelParent::AddGamepadToPlatformService(
@@ -78,7 +86,7 @@ mozilla::ipc::IPCResult GamepadTestChannelParent::RecvGamepadTestEvent(
   // started. Everything else won't be deferred and will fail if monitoring
   // isn't running
   if (body.type() == GamepadChangeEventBody::TGamepadAdded) {
-    if (GamepadMonitoringState::GetSingleton().IsMonitoring()) {
+    if (service->GetMonitoringState().IsMonitoring()) {
       AddGamepadToPlatformService(aID, body.get_GamepadAdded());
     } else {
       mDeferredGamepadAdded.AppendElement(
@@ -87,7 +95,7 @@ mozilla::ipc::IPCResult GamepadTestChannelParent::RecvGamepadTestEvent(
     return IPC_OK();
   }
 
-  if (!GamepadMonitoringState::GetSingleton().IsMonitoring()) {
+  if (!service->GetMonitoringState().IsMonitoring()) {
     return IPC_FAIL(this, "Simulated message received while not monitoring");
   }
 
