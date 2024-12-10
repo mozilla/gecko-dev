@@ -102,20 +102,17 @@ And used as follows:
 
 Generally the `heading` property of
 `moz-page-nav` will be provided via [Fluent attributes](https://mozilla-l10n.github.io/localizer-documentation/tools/fluent/basic_syntax.html#attributes).
-To get this working you will need to specify a `data-l10n-id` as well as
-`data-l10n-attrs` if you're providing a heading:
-
-```html
-<moz-page-nav data-l10n-id="with-heading"
-            data-l10n-attrs="heading"></moz-page-nav>
-```
-
-In which case your Fluent messages will look something like this:
+To get this working you will need to format your Fluent message like this:
 
 ```
 with-heading =
   .heading = Heading text goes here
 ```
+The `data-l10n-attrs` will be set up automatically via `MozLitElement`, so you can just specify `data-l10n-id` on your moz-page-nav as you would with any other markup:
+
+ ```html
+ <moz-page-nav data-l10n-id="with-heading"></moz-page-nav>
+ ```
 
 You also need to specify a `data-l10n-id` for each `moz-page-nav-button`:
 

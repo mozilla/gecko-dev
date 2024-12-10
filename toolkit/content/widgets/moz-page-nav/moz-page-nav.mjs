@@ -20,7 +20,7 @@ import "chrome://global/content/elements/moz-support-link.mjs";
 export default class MozPageNav extends MozLitElement {
   static properties = {
     currentView: { type: String },
-    heading: { type: String },
+    heading: { type: String, fluent: true },
   };
 
   static queries = {
