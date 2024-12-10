@@ -152,6 +152,10 @@ class IOUtils final {
                                            ErrorResult& aError);
 
  public:
+  static already_AddRefed<Promise> HasChildren(
+      GlobalObject& aGlobal, const nsAString& aPath,
+      const HasChildrenOptions& aOptions, ErrorResult& aError);
+
   static already_AddRefed<Promise> GetChildren(
       GlobalObject& aGlobal, const nsAString& aPath,
       const GetChildrenOptions& aOptions, ErrorResult& aError);
@@ -462,6 +466,20 @@ class IOUtils final {
   static Result<int64_t, IOError> SetTimeSync(nsIFile* aFile,
                                               SetTimeFn aSetTimeFn,
                                               int64_t aNewTime);
+
+  /**
+   * Checks whether the directory at |aFile| has any immediate children.
+   *
+   * @param aFile The location of the directory.
+   *
+   * @param aIgnoreAbsent If true, absence of the directory (e.g., if it does
+   * not exist) will not be treated as an error and will instead return false.
+   *
+   * @return A boolean indicating whether the directory at |aFile| has any
+   *         immediate children. Otherwise, an error.
+   */
+  static Result<bool, IOError> HasChildrenSync(nsIFile* aFile,
+                                               bool aIgnoreAbsent);
 
   /**
    * Returns the immediate children of the directory at |aFile|, if any.

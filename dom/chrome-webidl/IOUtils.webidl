@@ -207,6 +207,16 @@ namespace IOUtils {
   [NewObject]
   Promise<long long> setModificationTime(DOMString path, optional long long modification);
   /**
+   * Checks whether the directory at |path| has any immediate children.
+   *
+   * @param path An absolute file path.
+   *
+   * @return Resolves with a boolean indicating whether the directory at |path|
+   *         has any immediate children, otherwise rejects with a DOMException.
+   */
+  [NewObject]
+  Promise<boolean> hasChildren(DOMString path, optional HasChildrenOptions options = {});
+  /**
    * Retrieves a (possibly empty) list of immediate children of the directory at
    * |path|.
    *
@@ -623,6 +633,16 @@ dictionary CopyOptions {
    * If true, copy the source recursively.
    */
   boolean recursive = false;
+};
+
+/**
+ * Options to be passed to the |IOUtils.hasChildren| method.
+ */
+dictionary HasChildrenOptions {
+  /**
+   * If true, no error will be reported if the target file is missing.
+   */
+  boolean ignoreAbsent = false;
 };
 
 /**

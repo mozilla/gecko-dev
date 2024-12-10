@@ -20,6 +20,11 @@
       let notExists = PathUtils.join(PathUtils.tempDir, 'does_not_exist_dir.tmp.d');
 
       await Assert.rejects(
+        IOUtils.hasChildren(notExists),
+        /NotFoundError: Could not check children of `.*': directory does not exist/,
+        "IOUtils::getChildren rejects if the file does not exist"
+      );
+      await Assert.rejects(
         IOUtils.getChildren(notExists),
         /NotFoundError: Could not get children of `.*': directory does not exist/,
         "IOUtils::getChildren rejects if the file does not exist"
@@ -30,6 +35,10 @@
 
       let tmpFileName = PathUtils.join(PathUtils.tempDir, 'iterator_file.tmp');
       await createFile(tmpFileName)
+      await Assert.rejects(IOUtils.hasChildren(tmpFileName),
+        /InvalidAccessError: Could not check children of `.*': file is not a directory/,
+        "IOUtils::getChildren rejects if the file is not a dir"
+      );
       await Assert.rejects(IOUtils.getChildren(tmpFileName),
         /InvalidAccessError: Could not get children of `.*': file is not a directory/,
         "IOUtils::getChildren rejects if the file is not a dir"
@@ -49,6 +58,9 @@
       await createDir(grandchild); // Ancestors will be created.
       await createDir(child2);
 
+      let hasChildren = await IOUtils.hasChildren(root);
+      is(hasChildren, true, `Expected some entries below the path at ${root}`);
+
       let entries = await IOUtils.getChildren(root);
 
       is(entries.length, 2, `Expected 2 entries below the path at ${root}`);
@@ -64,6 +76,12 @@
       await createDir(emptyDir);
 
       is(
+        (await IOUtils.hasChildren(emptyDir)),
+        false,
+        "IOUtils::hasChildren returns false when called on an empty dir"
+      );
+
+      is(
         (await IOUtils.getChildren(emptyDir)).length,
         0,
         "IOUtils::getChildren return an empty array when called on an empty dir"
@@ -77,6 +95,11 @@
 
       const notExists = PathUtils.join(PathUtils.tempDir, "does_not_exist_dir.tmp.d");
 
+      is(
+        (await IOUtils.hasChildren(notExists, { ignoreAbsent: true })),
+        false,
+        "IOUtils::hasChildren returns false when called with ignoreAbsent on a missing file"
+      );
       is(
         (await IOUtils.getChildren(notExists, { ignoreAbsent: true })).length,
         0,
