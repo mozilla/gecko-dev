@@ -215,126 +215,159 @@ void ProcessValueWithADefaultPolicy(nsIGlobalObject& aGlobalObject,
   MakeRefPtr<ExpectedType>(policyValue).forget(aResult);
 }
 
+// GetTrustedTypesCompliantString() and GetTrustedTypesCompliantAttributeValue()
+// deal with "trusted type or string" union types. These union types provide
+// inline methods Is*() and GetAs*() to test and access the actual value. The
+// following inline functions provide similar logic to conveniently deal with
+// the different union types.
+template <typename TrustedTypeOrStringArg>
+static inline bool IsString(const TrustedTypeOrStringArg& aInput) {
+  if constexpr (std::is_same_v<TrustedTypeOrStringArg, TrustedHTMLOrString> ||
+                std::is_same_v<TrustedTypeOrStringArg, TrustedScriptOrString> ||
+                std::is_same_v<TrustedTypeOrStringArg,
+                               FunctionOrTrustedScriptOrString> ||
+                std::is_same_v<TrustedTypeOrStringArg,
+                               TrustedScriptURLOrString> ||
+                std::is_same_v<
+                    TrustedTypeOrStringArg,
+                    TrustedHTMLOrTrustedScriptOrTrustedScriptURLOrString>) {
+    return aInput.IsString();
+  }
+  if constexpr (std::is_same_v<TrustedTypeOrStringArg,
+                               TrustedHTMLOrNullIsEmptyString> ||
+                std::is_same_v<TrustedTypeOrStringArg,
+                               TrustedScriptOrNullIsEmptyString>) {
+    return aInput.IsNullIsEmptyString();
+  }
+  if constexpr (std::is_same_v<TrustedTypeOrStringArg,
+                               TrustedScriptURLOrUSVString>) {
+    return aInput.IsUSVString();
+  }
+  if constexpr (std::is_same_v<TrustedTypeOrStringArg, const nsAString*>) {
+    Unused << aInput;
+    return true;
+  }
+  MOZ_ASSERT_UNREACHABLE();
+  return false;
+}
+
+template <typename TrustedTypeOrStringArg>
+static inline const nsAString* GetAsString(
+    const TrustedTypeOrStringArg& aInput) {
+  if constexpr (std::is_same_v<TrustedTypeOrStringArg, TrustedHTMLOrString> ||
+                std::is_same_v<TrustedTypeOrStringArg, TrustedScriptOrString> ||
+                std::is_same_v<TrustedTypeOrStringArg,
+                               FunctionOrTrustedScriptOrString> ||
+                std::is_same_v<TrustedTypeOrStringArg,
+                               TrustedScriptURLOrString> ||
+                std::is_same_v<
+                    TrustedTypeOrStringArg,
+                    TrustedHTMLOrTrustedScriptOrTrustedScriptURLOrString>) {
+    return &aInput.GetAsString();
+  }
+  if constexpr (std::is_same_v<TrustedTypeOrStringArg,
+                               TrustedHTMLOrNullIsEmptyString> ||
+                std::is_same_v<TrustedTypeOrStringArg,
+                               TrustedScriptOrNullIsEmptyString>) {
+    return &aInput.GetAsNullIsEmptyString();
+  }
+  if constexpr (std::is_same_v<TrustedTypeOrStringArg,
+                               TrustedScriptURLOrUSVString>) {
+    return &aInput.GetAsUSVString();
+  }
+  if constexpr (std::is_same_v<TrustedTypeOrStringArg, const nsAString*>) {
+    return aInput;
+  }
+  MOZ_ASSERT_UNREACHABLE();
+  return &EmptyString();
+}
+
+template <typename TrustedTypeOrStringArg>
+static inline bool IsTrustedType(const TrustedTypeOrStringArg& aInput) {
+  if constexpr (std::is_same_v<TrustedTypeOrStringArg, TrustedHTMLOrString> ||
+                std::is_same_v<TrustedTypeOrStringArg,
+                               TrustedHTMLOrNullIsEmptyString>) {
+    return aInput.IsTrustedHTML();
+  }
+  if constexpr (std::is_same_v<TrustedTypeOrStringArg, TrustedScriptOrString> ||
+                std::is_same_v<TrustedTypeOrStringArg,
+                               FunctionOrTrustedScriptOrString> ||
+                std::is_same_v<TrustedTypeOrStringArg,
+                               TrustedScriptOrNullIsEmptyString>) {
+    return aInput.IsTrustedScript();
+  }
+  if constexpr (std::is_same_v<TrustedTypeOrStringArg,
+                               TrustedScriptURLOrString> ||
+                std::is_same_v<TrustedTypeOrStringArg,
+                               TrustedScriptURLOrUSVString>) {
+    return aInput.IsTrustedScriptURL();
+  }
+  if constexpr (std::is_same_v<TrustedTypeOrStringArg, const nsAString*>) {
+    Unused << aInput;
+    return false;
+  }
+  MOZ_ASSERT_UNREACHABLE();
+  return false;
+};
+
+template <typename TrustedTypeOrStringArg>
+static inline const nsAString* GetAsTrustedType(
+    const TrustedTypeOrStringArg& aInput) {
+  if constexpr (std::is_same_v<TrustedTypeOrStringArg, TrustedHTMLOrString> ||
+                std::is_same_v<TrustedTypeOrStringArg,
+                               TrustedHTMLOrNullIsEmptyString>) {
+    return &aInput.GetAsTrustedHTML().mData;
+  }
+  if constexpr (std::is_same_v<TrustedTypeOrStringArg, TrustedScriptOrString> ||
+                std::is_same_v<TrustedTypeOrStringArg,
+                               FunctionOrTrustedScriptOrString> ||
+                std::is_same_v<TrustedTypeOrStringArg,
+                               TrustedScriptOrNullIsEmptyString>) {
+    return &aInput.GetAsTrustedScript().mData;
+  }
+  if constexpr (std::is_same_v<TrustedTypeOrStringArg,
+                               TrustedScriptURLOrString> ||
+                std::is_same_v<TrustedTypeOrStringArg,
+                               TrustedScriptURLOrUSVString>) {
+    return &aInput.GetAsTrustedScriptURL().mData;
+  }
+  if constexpr (std::is_same_v<
+                    TrustedTypeOrStringArg,
+                    TrustedHTMLOrTrustedScriptOrTrustedScriptURLOrString>) {
+    if (aInput.IsTrustedHTML()) {
+      return &aInput.GetAsTrustedHTML().mData;
+    }
+    if (aInput.IsTrustedScript()) {
+      return &aInput.GetAsTrustedScript().mData;
+    }
+    MOZ_ASSERT(aInput.IsTrustedScriptURL());
+    return &aInput.GetAsTrustedScriptURL().mData;
+  }
+  Unused << aInput;
+  MOZ_ASSERT_UNREACHABLE();
+  return &EmptyString();
+};
+
+template <typename TrustedTypeOrStringArg>
+static inline const nsAString* GetContent(
+    const TrustedTypeOrStringArg& aInput) {
+  return IsString(aInput) ? GetAsString(aInput) : GetAsTrustedType(aInput);
+}
+
 template <typename ExpectedType, typename TrustedTypeOrString,
           typename NodeOrGlobalObject>
 MOZ_CAN_RUN_SCRIPT inline const nsAString* GetTrustedTypesCompliantString(
     const TrustedTypeOrString& aInput, const nsAString& aSink,
     const nsAString& aSinkGroup, NodeOrGlobalObject& aNodeOrGlobalObject,
     Maybe<nsAutoString>& aResultHolder, ErrorResult& aError) {
-  using TrustedTypeOrStringArg =
-      std::remove_const_t<std::remove_reference_t<decltype(aInput)>>;
-  auto isString = [&aInput] {
-    if constexpr (std::is_same_v<TrustedTypeOrStringArg, TrustedHTMLOrString> ||
-                  std::is_same_v<TrustedTypeOrStringArg,
-                                 TrustedScriptOrString> ||
-                  std::is_same_v<TrustedTypeOrStringArg,
-                                 FunctionOrTrustedScriptOrString> ||
-                  std::is_same_v<TrustedTypeOrStringArg,
-                                 TrustedScriptURLOrString>) {
-      return aInput.IsString();
-    }
-    if constexpr (std::is_same_v<TrustedTypeOrStringArg,
-                                 TrustedHTMLOrNullIsEmptyString> ||
-                  std::is_same_v<TrustedTypeOrStringArg,
-                                 TrustedScriptOrNullIsEmptyString>) {
-      return aInput.IsNullIsEmptyString();
-    }
-    if constexpr (std::is_same_v<TrustedTypeOrStringArg,
-                                 TrustedScriptURLOrUSVString>) {
-      return aInput.IsUSVString();
-    }
-    if constexpr (std::is_same_v<TrustedTypeOrStringArg, const nsAString*>) {
-      Unused << aInput;
-      return true;
-    }
-    MOZ_ASSERT_UNREACHABLE();
-    return false;
-  };
-  auto getAsString = [&aInput] {
-    if constexpr (std::is_same_v<TrustedTypeOrStringArg, TrustedHTMLOrString> ||
-                  std::is_same_v<TrustedTypeOrStringArg,
-                                 TrustedScriptOrString> ||
-                  std::is_same_v<TrustedTypeOrStringArg,
-                                 FunctionOrTrustedScriptOrString> ||
-                  std::is_same_v<TrustedTypeOrStringArg,
-                                 TrustedScriptURLOrString>) {
-      return &aInput.GetAsString();
-    }
-    if constexpr (std::is_same_v<TrustedTypeOrStringArg,
-                                 TrustedHTMLOrNullIsEmptyString> ||
-                  std::is_same_v<TrustedTypeOrStringArg,
-                                 TrustedScriptOrNullIsEmptyString>) {
-      return &aInput.GetAsNullIsEmptyString();
-    }
-    if constexpr (std::is_same_v<TrustedTypeOrStringArg,
-                                 TrustedScriptURLOrUSVString>) {
-      return &aInput.GetAsUSVString();
-    }
-    if constexpr (std::is_same_v<TrustedTypeOrStringArg, const nsAString*>) {
-      return aInput;
-    }
-    MOZ_ASSERT_UNREACHABLE();
-    return static_cast<const nsAString*>(&EmptyString());
-  };
-  auto isTrustedType = [&aInput] {
-    if constexpr (std::is_same_v<TrustedTypeOrStringArg, TrustedHTMLOrString> ||
-                  std::is_same_v<TrustedTypeOrStringArg,
-                                 TrustedHTMLOrNullIsEmptyString>) {
-      return aInput.IsTrustedHTML();
-    }
-    if constexpr (std::is_same_v<TrustedTypeOrStringArg,
-                                 TrustedScriptOrString> ||
-                  std::is_same_v<TrustedTypeOrStringArg,
-                                 FunctionOrTrustedScriptOrString> ||
-                  std::is_same_v<TrustedTypeOrStringArg,
-                                 TrustedScriptOrNullIsEmptyString>) {
-      return aInput.IsTrustedScript();
-    }
-    if constexpr (std::is_same_v<TrustedTypeOrStringArg,
-                                 TrustedScriptURLOrString> ||
-                  std::is_same_v<TrustedTypeOrStringArg,
-                                 TrustedScriptURLOrUSVString>) {
-      return aInput.IsTrustedScriptURL();
-    }
-    if constexpr (std::is_same_v<TrustedTypeOrStringArg, const nsAString*>) {
-      Unused << aInput;
-      return false;
-    }
-    MOZ_ASSERT_UNREACHABLE();
-    return false;
-  };
-  auto getAsTrustedType = [&aInput] {
-    if constexpr (std::is_same_v<TrustedTypeOrStringArg, TrustedHTMLOrString> ||
-                  std::is_same_v<TrustedTypeOrStringArg,
-                                 TrustedHTMLOrNullIsEmptyString>) {
-      return &aInput.GetAsTrustedHTML().mData;
-    }
-    if constexpr (std::is_same_v<TrustedTypeOrStringArg,
-                                 TrustedScriptOrString> ||
-                  std::is_same_v<TrustedTypeOrStringArg,
-                                 FunctionOrTrustedScriptOrString> ||
-                  std::is_same_v<TrustedTypeOrStringArg,
-                                 TrustedScriptOrNullIsEmptyString>) {
-      return &aInput.GetAsTrustedScript().mData;
-    }
-    if constexpr (std::is_same_v<TrustedTypeOrStringArg,
-                                 TrustedScriptURLOrString> ||
-                  std::is_same_v<TrustedTypeOrStringArg,
-                                 TrustedScriptURLOrUSVString>) {
-      return &aInput.GetAsTrustedScriptURL().mData;
-    }
-    Unused << aInput;
-    MOZ_ASSERT_UNREACHABLE();
-    return &EmptyString();
-  };
-
   if (!StaticPrefs::dom_security_trusted_types_enabled()) {
-    // A trusted type might've been created before the pref was set to `false`.
-    return isString() ? getAsString() : getAsTrustedType();
+    // A trusted type might've been created before the pref was set to `false`,
+    // so we cannot assume aInput.IsString().
+    return GetContent(aInput);
   }
 
-  if (isTrustedType()) {
-    return getAsTrustedType();
+  if (IsTrustedType(aInput)) {
+    return GetAsTrustedType(aInput);
   }
 
   // Below, we use fast paths when there are no require-trusted-types-for
@@ -351,7 +384,7 @@ MOZ_CAN_RUN_SCRIPT inline const nsAString* GetTrustedTypesCompliantString(
     const bool ownerDocLoadedAsData = ownerDoc->IsLoadedAsData();
     if (!ownerDoc->HasPolicyWithRequireTrustedTypesForDirective() &&
         !ownerDocLoadedAsData) {
-      return getAsString();
+      return GetAsString(aInput);
     }
     globalObject = ownerDoc->GetScopeObject();
     if (!globalObject) {
@@ -366,7 +399,7 @@ MOZ_CAN_RUN_SCRIPT inline const nsAString* GetTrustedTypesCompliantString(
     if (ownerDocLoadedAsData && piDOMWindowInner->GetExtantDoc() &&
         !piDOMWindowInner->GetExtantDoc()
              ->HasPolicyWithRequireTrustedTypesForDirective()) {
-      return getAsString();
+      return GetAsString(aInput);
     }
   } else if constexpr (std::is_same_v<NodeOrGlobalObjectArg, nsIGlobalObject>) {
     piDOMWindowInner = aNodeOrGlobalObject.GetAsInnerWindow();
@@ -374,7 +407,7 @@ MOZ_CAN_RUN_SCRIPT inline const nsAString* GetTrustedTypesCompliantString(
       const Document* extantDoc = piDOMWindowInner->GetExtantDoc();
       if (extantDoc &&
           !extantDoc->HasPolicyWithRequireTrustedTypesForDirective()) {
-        return getAsString();
+        return GetAsString(aInput);
       }
     }
     globalObject = &aNodeOrGlobalObject;
@@ -389,17 +422,17 @@ MOZ_CAN_RUN_SCRIPT inline const nsAString* GetTrustedTypesCompliantString(
     MOZ_ASSERT(IsWorkerGlobal(globalObject->GetGlobalJSObject()));
     // TODO(1901492): For now we do the same as when dom.security.trusted_types
     // is disabled and return the string without policy check.
-    return getAsString();
+    return GetAsString(aInput);
   }
 
   if (!DoesSinkTypeRequireTrustedTypes(csp, aSinkGroup)) {
-    return getAsString();
+    return GetAsString(aInput);
   }
 
   RefPtr<ExpectedType> convertedInput;
   nsCOMPtr<nsIGlobalObject> pinnedGlobalObject = globalObject;
   ProcessValueWithADefaultPolicy<ExpectedType>(
-      *pinnedGlobalObject, *getAsString(), aSink,
+      *pinnedGlobalObject, *GetAsString(aInput), aSink,
       getter_AddRefs(convertedInput), aError);
 
   if (aError.Failed()) {
@@ -408,9 +441,9 @@ MOZ_CAN_RUN_SCRIPT inline const nsAString* GetTrustedTypesCompliantString(
 
   if (!convertedInput) {
     if (ShouldSinkTypeMismatchViolationBeBlockedByCSP(csp, aSink, aSinkGroup,
-                                                      *getAsString()) ==
+                                                      *GetAsString(aInput)) ==
         SinkTypeMismatch::Value::Allowed) {
-      return getAsString();
+      return GetAsString(aInput);
     }
 
     aError.ThrowTypeError("Sink type mismatch violation blocked by CSP"_ns);
@@ -513,24 +546,10 @@ MOZ_CAN_RUN_SCRIPT const nsAString* GetTrustedTypesCompliantAttributeValue(
     int32_t aAttributeNamespaceID,
     const TrustedHTMLOrTrustedScriptOrTrustedScriptURLOrString& aNewValue,
     Maybe<nsAutoString>& aResultHolder, ErrorResult& aError) {
-  auto getAsTrustedType = [&aNewValue] {
-    if (aNewValue.IsTrustedHTML()) {
-      return &aNewValue.GetAsTrustedHTML().mData;
-    }
-    if (aNewValue.IsTrustedScript()) {
-      return &aNewValue.GetAsTrustedScript().mData;
-    }
-    MOZ_ASSERT(aNewValue.IsTrustedScriptURL());
-    return &aNewValue.GetAsTrustedScriptURL().mData;
-  };
-  auto getContent = [&aNewValue, &getAsTrustedType] {
-    return aNewValue.IsString() ? &aNewValue.GetAsString() : getAsTrustedType();
-  };
-
   if (!StaticPrefs::dom_security_trusted_types_enabled()) {
     // A trusted type might've been created before the pref was set to `false`,
     // so we cannot assume aNewValue.IsString().
-    return getContent();
+    return GetContent(aNewValue);
   }
 
   // In the common situation of non-data document without any
@@ -540,7 +559,7 @@ MOZ_CAN_RUN_SCRIPT const nsAString* GetTrustedTypesCompliantAttributeValue(
   const bool ownerDocLoadedAsData = ownerDoc->IsLoadedAsData();
   if (!ownerDoc->HasPolicyWithRequireTrustedTypesForDirective() &&
       !ownerDocLoadedAsData) {
-    return getContent();
+    return GetContent(aNewValue);
   }
 
   TrustedType expectedType;
@@ -548,7 +567,7 @@ MOZ_CAN_RUN_SCRIPT const nsAString* GetTrustedTypesCompliantAttributeValue(
   if (!GetTrustedTypeDataForAttribute(
           nodeInfo->NameAtom(), nodeInfo->NamespaceID(), aAttributeName,
           aAttributeNamespaceID, expectedType, sink)) {
-    return getContent();
+    return GetContent(aNewValue);
   }
 
   if ((expectedType == TrustedType::TrustedHTML && aNewValue.IsTrustedHTML()) ||
@@ -556,11 +575,10 @@ MOZ_CAN_RUN_SCRIPT const nsAString* GetTrustedTypesCompliantAttributeValue(
        aNewValue.IsTrustedScript()) ||
       (expectedType == TrustedType::TrustedScriptURL &&
        aNewValue.IsTrustedScriptURL())) {
-    return getAsTrustedType();
+    return GetAsTrustedType(aNewValue);
   }
 
-  const nsAString* input =
-      aNewValue.IsString() ? &aNewValue.GetAsString() : getAsTrustedType();
+  const nsAString* input = GetContent(aNewValue);
   switch (expectedType) {
     case TrustedType::TrustedHTML:
       return GetTrustedTypesCompliantString<TrustedHTML>(
