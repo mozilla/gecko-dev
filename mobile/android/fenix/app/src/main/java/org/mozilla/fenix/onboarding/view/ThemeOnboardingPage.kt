@@ -4,6 +4,7 @@
 
 package org.mozilla.fenix.onboarding.view
 
+import androidx.appcompat.app.AppCompatDelegate
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -27,6 +28,7 @@ import androidx.compose.material.Icon
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
@@ -35,21 +37,25 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTag
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import mozilla.components.lib.state.ext.observeAsState
 import mozilla.components.ui.colors.PhotonColors
 import org.mozilla.fenix.R
 import org.mozilla.fenix.compose.annotation.FlexibleWindowLightDarkPreview
 import org.mozilla.fenix.compose.button.PrimaryButton
 import org.mozilla.fenix.compose.button.SecondaryButton
+import org.mozilla.fenix.onboarding.store.OnboardingStore
 import org.mozilla.fenix.theme.FirefoxTheme
 
 /**
  * A Composable for displaying theme selection onboarding page content.
  *
+ * @param onboardingStore The [OnboardingStore] that holds the theme selection state.
  * @param pageState The page content that's displayed.
  * @param onThemeSelectionClicked Callback for when a theme selection is clicked.
  */
 @Composable
 fun ThemeOnboardingPage(
+    onboardingStore: OnboardingStore,
     pageState: OnboardingPageState,
     onThemeSelectionClicked: (ThemeOptionType) -> Unit,
 ) {
@@ -93,11 +99,12 @@ fun ThemeOnboardingPage(
 
                 Spacer(Modifier.height(32.dp))
 
+                val state by onboardingStore.observeAsState(initialValue = onboardingStore.state) { state -> state }
+
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
                     ThemeOptions(
                         options = themeOptions!!,
-                        // Temporary theme until the store implementation is done
-                        selectedOption = ThemeOptionType.THEME_SYSTEM,
+                        selectedOption = state.themeOptionSelected,
                         onClick = onThemeSelectionClicked,
                     )
                 }
@@ -111,7 +118,11 @@ fun ThemeOnboardingPage(
                     modifier = Modifier
                         .fillMaxWidth()
                         .semantics { testTag = title + "onboarding_card.positive_button" },
-                    onClick = primaryButton.onClick,
+                    onClick = {
+                        val selectedTheme = onboardingStore.state.themeOptionSelected
+                        applyTheme(selectedTheme)
+                        primaryButton.onClick()
+                    },
                 )
 
                 Spacer(modifier = Modifier.height(8.dp))
@@ -134,6 +145,29 @@ fun ThemeOnboardingPage(
     LaunchedEffect(pageState) {
         pageState.onRecordImpressionEvent()
     }
+}
+
+/**
+ * Applies the selected theme to the application.
+ *
+ * This function uses [AppCompatDelegate] to change the application's theme
+ * based on the user's selection. It supports the following themes:
+ *
+ * - Dark Theme: Forces the application into dark mode.
+ * - Light Theme: Forces the application into light mode.
+ * - System Theme: Adapts to the device's current system theme.
+ *
+ * @param selectedTheme The [ThemeOptionType] selected by the user.
+ * This determines which theme to apply.
+ */
+fun applyTheme(selectedTheme: ThemeOptionType) {
+    AppCompatDelegate.setDefaultNightMode(
+        when (selectedTheme) {
+            ThemeOptionType.THEME_DARK -> AppCompatDelegate.MODE_NIGHT_YES
+            ThemeOptionType.THEME_LIGHT -> AppCompatDelegate.MODE_NIGHT_NO
+            ThemeOptionType.THEME_SYSTEM -> AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM
+        },
+    )
 }
 
 @Composable
@@ -229,6 +263,7 @@ private fun SelectableImageItem(
 private fun OnboardingPagePreview() {
     FirefoxTheme {
         ThemeOnboardingPage(
+            onboardingStore = OnboardingStore(),
             pageState = OnboardingPageState(
                 imageRes = R.drawable.ic_pick_a_theme,
                 title = stringResource(id = R.string.onboarding_customize_theme_title),

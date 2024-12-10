@@ -43,6 +43,7 @@ import org.mozilla.fenix.compose.PagerIndicator
 import org.mozilla.fenix.compose.annotation.LightDarkPreview
 import org.mozilla.fenix.onboarding.WidgetPinnedReceiver.WidgetPinnedState
 import org.mozilla.fenix.onboarding.store.OnboardingAction
+import org.mozilla.fenix.onboarding.store.OnboardingAction.OnboardingThemeAction
 import org.mozilla.fenix.onboarding.store.OnboardingAction.OnboardingToolbarAction
 import org.mozilla.fenix.onboarding.store.OnboardingStore
 import org.mozilla.fenix.theme.FirefoxTheme
@@ -183,8 +184,14 @@ fun OnboardingScreen(
             scrollToNextPageOrDismiss()
             onSkipCustomizeToolbarClick()
         },
-        onCustomizeThemeClick = onCustomizeThemeClick,
-        onCustomizeThemeSkip = onCustomizeThemeSkip,
+        onCustomizeThemeButtonClick = {
+            scrollToNextPageOrDismiss()
+            onCustomizeThemeClick()
+        },
+        onCustomizeThemeButtonSkip = {
+            scrollToNextPageOrDismiss()
+            onCustomizeThemeSkip()
+        },
         termsOfServiceEventHandler = termsOfServiceEventHandler,
         onAgreeAndConfirmTermsOfService = {
             scrollToNextPageOrDismiss()
@@ -212,8 +219,8 @@ private fun OnboardingContent(
     onInstallAddOnButtonClick: (AddOn) -> Unit,
     onCustomizeToolbarButtonClick: () -> Unit,
     onCustomizeToolbarSkipClick: () -> Unit,
-    onCustomizeThemeClick: () -> Unit,
-    onCustomizeThemeSkip: () -> Unit,
+    onCustomizeThemeButtonClick: () -> Unit,
+    onCustomizeThemeButtonSkip: () -> Unit,
     termsOfServiceEventHandler: OnboardingTermsOfServiceEventHandler,
     onAgreeAndConfirmTermsOfService: () -> Unit,
 ) {
@@ -246,8 +253,8 @@ private fun OnboardingContent(
                 onAddOnsButtonClick = onAddOnsButtonClick,
                 onCustomizeToolbarButtonClick = onCustomizeToolbarButtonClick,
                 onCustomizeToolbarSkipClick = onCustomizeToolbarSkipClick,
-                onCustomizeThemeClick = onCustomizeThemeClick,
-                onCustomizeThemeSkip = onCustomizeThemeSkip,
+                onCustomizeThemeClick = onCustomizeThemeButtonClick,
+                onCustomizeThemeSkip = onCustomizeThemeButtonSkip,
                 onTermsOfServiceButtonClick = onAgreeAndConfirmTermsOfService,
             )
             OnboardingPageForType(
@@ -284,7 +291,6 @@ private fun OnboardingPageForType(
         OnboardingPageUiData.Type.SYNC_SIGN_IN,
         OnboardingPageUiData.Type.ADD_SEARCH_WIDGET,
         OnboardingPageUiData.Type.NOTIFICATION_PERMISSION,
-        OnboardingPageUiData.Type.THEME_SELECTION,
         -> OnboardingPage(state)
 
         OnboardingPageUiData.Type.TOOLBAR_PLACEMENT,
@@ -294,6 +300,17 @@ private fun OnboardingPageForType(
                 pageState = state,
                 onToolbarSelectionClicked = {
                     store.dispatch(OnboardingToolbarAction.UpdateSelected(it))
+                },
+            )
+        }
+
+        OnboardingPageUiData.Type.THEME_SELECTION,
+        -> onboardingStore?.let { store ->
+            ThemeOnboardingPage(
+                onboardingStore = store,
+                pageState = state,
+                onThemeSelectionClicked = {
+                    store.dispatch(OnboardingThemeAction.UpdateSelected(it))
                 },
             )
         }
@@ -356,8 +373,8 @@ private fun OnboardingScreenPreview() {
             onInstallAddOnButtonClick = {},
             onCustomizeToolbarButtonClick = {},
             onCustomizeToolbarSkipClick = {},
-            onCustomizeThemeClick = {},
-            onCustomizeThemeSkip = {},
+            onCustomizeThemeButtonClick = {},
+            onCustomizeThemeButtonSkip = {},
             onAgreeAndConfirmTermsOfService = {},
             termsOfServiceEventHandler = object : OnboardingTermsOfServiceEventHandler {},
         )
