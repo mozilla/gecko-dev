@@ -489,17 +489,11 @@ DragData::DragData(GdkAtom aDataFlavor, gchar** aDragUris)
 
 bool DragData::IsDataValid() const {
   if (mDragData) {
-    if (IsTextFlavor() || IsURIFlavor()) {
-      return mDragData.get() && mDragDataLen;
-    }
-    MOZ_DIAGNOSTIC_ASSERT(false, "DragData::IsDataValid(): Unknow MIME type.");
-    return false;
+    return mDragData.get() && mDragDataLen;
   } else if (mDragUris) {
     return !!(mDragUris.get()[0]);
-  } else if (mUris.Length()) {
-    return mUris.Length();
   } else {
-    return false;
+    return mUris.Length();
   }
 }
 
