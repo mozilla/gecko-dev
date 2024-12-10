@@ -103,6 +103,7 @@ for (const type of [
   "ADDONS_INFO_REQUEST",
   "ADDONS_INFO_RESPONSE",
   "ARCHIVE_FROM_POCKET",
+  "BLOCK_SECTION",
   "BLOCK_URL",
   "BOOKMARK_URL",
   "CARD_SECTION_IMPRESSION",
@@ -1967,6 +1968,14 @@ const LinkMenuOptions = {
     }),
     impression: actionCreators.OnlyToMain({
       type: actionTypes.OPEN_ABOUT_FAKESPOT,
+    }),
+  }),
+  SectionBlock: () => ({
+    id: "newtab-menu-section-block",
+    // Note: action TBA. It will send a list of blocked sections back to the API.
+    action: null,
+    impression: actionCreators.OnlyToMain({
+      type: actionTypes.BLOCK_SECTION,
     }),
   }),
 };
@@ -9716,6 +9725,52 @@ function useIntersectionObserver(callback, threshold = 0.3) {
   return elementsRef;
 }
 
+;// CONCATENATED MODULE: ./content-src/components/DiscoveryStreamComponents/SectionContextMenu/SectionContextMenu.jsx
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+
+
+
+
+/**
+ * A context menu for blocking, following and unfollowing sections.
+ *
+ * @param props
+ * @returns {React.FunctionComponent}
+ */
+function SectionContextMenu(props) {
+  const type = props.type || "DISCOVERY_STREAM";
+  const title = props.title || props.source;
+  const {
+    index,
+    dispatch
+  } = props;
+
+  // Initial context menu options: block this section only.
+  const SECTIONS_CONTEXT_MENU_OPTIONS = ["SectionBlock"];
+  const [showContextMenu, setShowContextMenu] = (0,external_React_namespaceObject.useState)(false);
+  const onClick = e => {
+    e.preventDefault();
+    setShowContextMenu(!showContextMenu);
+  };
+  return /*#__PURE__*/external_React_default().createElement("div", {
+    className: "section-context-menu"
+  }, /*#__PURE__*/external_React_default().createElement("moz-button", {
+    type: "icon ghost",
+    size: "default",
+    iconsrc: "chrome://global/skin/icons/more.svg",
+    title: title,
+    onClick: onClick
+  }), showContextMenu && /*#__PURE__*/external_React_default().createElement(LinkMenu, {
+    dispatch: dispatch,
+    index: index,
+    source: type.toUpperCase(),
+    options: SECTIONS_CONTEXT_MENU_OPTIONS,
+    shouldSendImpressionStats: false,
+    site: {}
+  }));
+}
 ;// CONCATENATED MODULE: ./content-src/components/DiscoveryStreamComponents/CardSections/CardSections.jsx
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -9728,9 +9783,11 @@ function useIntersectionObserver(callback, threshold = 0.3) {
 
 
 
+
 // Prefs
 const CardSections_PREF_SECTIONS_CARDS_ENABLED = "discoverystream.sections.cards.enabled";
 const PREF_SECTIONS_CARDS_THUMBS_UP_DOWN_ENABLED = "discoverystream.sections.cards.thumbsUpDown.enabled";
+const PREF_SECTIONS_PERSONALIZATION_ENABLED = "discoverystream.sections.personalization.enabled";
 const CardSections_PREF_TOPICS_ENABLED = "discoverystream.topicLabels.enabled";
 const CardSections_PREF_TOPICS_SELECTED = "discoverystream.topicSelection.selectedTopics";
 const CardSections_PREF_TOPICS_AVAILABLE = "discoverystream.topicSelection.topics";
@@ -9753,6 +9810,7 @@ function CardSections({
   const mayHaveThumbsUpDown = prefs[CardSections_PREF_THUMBS_UP_DOWN_ENABLED];
   const selectedTopics = prefs[CardSections_PREF_TOPICS_SELECTED];
   const availableTopics = prefs[CardSections_PREF_TOPICS_AVAILABLE];
+  const mayHaveSectionsContextMenu = prefs[PREF_SECTIONS_PERSONALIZATION_ENABLED];
   const {
     saveToPocketCard
   } = (0,external_ReactRedux_namespaceObject.useSelector)(state => state.DiscoveryStream);
@@ -9847,7 +9905,12 @@ function CardSections({
       className: "section-title"
     }, title), subtitle && /*#__PURE__*/external_React_default().createElement("p", {
       className: "section-subtitle"
-    }, subtitle)), /*#__PURE__*/external_React_default().createElement("div", {
+    }, subtitle), mayHaveSectionsContextMenu && /*#__PURE__*/external_React_default().createElement(SectionContextMenu, {
+      dispatch: dispatch,
+      index: sectionIndex,
+      title: title,
+      type: type
+    })), /*#__PURE__*/external_React_default().createElement("div", {
       className: "ds-section-grid ds-card-grid"
     }, section.data.slice(0, maxTile).map((rec, index) => {
       const {

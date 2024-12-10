@@ -8,11 +8,14 @@ import { DSCard, PlaceholderDSCard } from "../DSCard/DSCard";
 import { useSelector } from "react-redux";
 import { actionCreators as ac, actionTypes as at } from "common/Actions.mjs";
 import { useIntersectionObserver } from "../../../lib/hooks";
+import { SectionContextMenu } from "../SectionContextMenu/SectionContextMenu";
 
 // Prefs
 const PREF_SECTIONS_CARDS_ENABLED = "discoverystream.sections.cards.enabled";
 const PREF_SECTIONS_CARDS_THUMBS_UP_DOWN_ENABLED =
   "discoverystream.sections.cards.thumbsUpDown.enabled";
+const PREF_SECTIONS_PERSONALIZATION_ENABLED =
+  "discoverystream.sections.personalization.enabled";
 const PREF_TOPICS_ENABLED = "discoverystream.topicLabels.enabled";
 const PREF_TOPICS_SELECTED = "discoverystream.topicSelection.selectedTopics";
 const PREF_TOPICS_AVAILABLE = "discoverystream.topicSelection.topics";
@@ -37,6 +40,8 @@ function CardSections({
   const mayHaveThumbsUpDown = prefs[PREF_THUMBS_UP_DOWN_ENABLED];
   const selectedTopics = prefs[PREF_TOPICS_SELECTED];
   const availableTopics = prefs[PREF_TOPICS_AVAILABLE];
+  const mayHaveSectionsContextMenu =
+    prefs[PREF_SECTIONS_PERSONALIZATION_ENABLED];
   const { saveToPocketCard } = useSelector(state => state.DiscoveryStream);
 
   const handleIntersection = useCallback(
@@ -134,6 +139,14 @@ function CardSections({
             <div className="section-heading">
               <h2 className="section-title">{title}</h2>
               {subtitle && <p className="section-subtitle">{subtitle}</p>}
+              {mayHaveSectionsContextMenu && (
+                <SectionContextMenu
+                  dispatch={dispatch}
+                  index={sectionIndex}
+                  title={title}
+                  type={type}
+                />
+              )}
             </div>
             <div className="ds-section-grid ds-card-grid">
               {section.data.slice(0, maxTile).map((rec, index) => {

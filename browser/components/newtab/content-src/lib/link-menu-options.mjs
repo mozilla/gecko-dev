@@ -413,4 +413,12 @@ export const LinkMenuOptions = {
       type: at.OPEN_ABOUT_FAKESPOT,
     }),
   }),
+  SectionBlock: () => ({
+    id: "newtab-menu-section-block",
+    // Note: action TBA. It will send a list of blocked sections back to the API.
+    action: null,
+    impression: ac.OnlyToMain({
+      type: at.BLOCK_SECTION,
+    }),
+  }),
 };

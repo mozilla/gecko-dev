@@ -7641,3 +7641,12 @@ main section {
     display: none;
   }
 }
+
+.section-context-menu {
+  display: flex;
+  align-items: center;
+  justify-content: end;
+  position: absolute;
+  top: 0;
+  inset-inline-end: 5px;
+}
