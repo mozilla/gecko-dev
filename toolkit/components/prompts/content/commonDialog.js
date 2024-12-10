@@ -168,6 +168,7 @@ function commonDialogOnLoad() {
               requestToken: Services.uuid.generateUUID().toString(),
               resources: [],
               analysisType: Ci.nsIContentAnalysisRequest.eBulkDataEntry,
+              reason: Ci.nsIContentAnalysisRequest.eClipboardPaste,
               operationTypeForDisplay: Ci.nsIContentAnalysisRequest.eClipboard,
               url: lazy.gContentAnalysis.getURIForBrowsingContext(
                 args.owningBrowsingContext

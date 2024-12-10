@@ -93,6 +93,7 @@ class ContentAnalysisTest : public testing::Test {
     // (behavior differs for download vs other types).
     return RefPtr(new ContentAnalysisRequest(
                       nsIContentAnalysisRequest::AnalysisType::eFileTransfer,
+                      nsIContentAnalysisRequest::Reason::eFilePickerDialog,
                       EmptyString(), false, EmptyCString(), uri,
                       nsIContentAnalysisRequest::OperationType::eDroppedText,
                       nullptr))
@@ -282,7 +283,8 @@ TEST_F(ContentAnalysisTest, SendAllowedTextToAgent_GetAllowedResponse) {
   nsCOMPtr<nsIURI> uri = GetExampleDotComURI();
   nsString allow(L"allow");
   nsCOMPtr<nsIContentAnalysisRequest> request = new ContentAnalysisRequest(
-      nsIContentAnalysisRequest::AnalysisType::eBulkDataEntry, std::move(allow),
+      nsIContentAnalysisRequest::AnalysisType::eBulkDataEntry,
+      nsIContentAnalysisRequest::Reason::eClipboardPaste, std::move(allow),
       false, EmptyCString(), uri,
       nsIContentAnalysisRequest::OperationType::eClipboard, nullptr);
 
@@ -295,7 +297,8 @@ TEST_F(ContentAnalysisTest, SendBlockedTextToAgent_GetBlockResponse) {
   nsCOMPtr<nsIURI> uri = GetExampleDotComURI();
   nsString block(L"block");
   nsCOMPtr<nsIContentAnalysisRequest> request = new ContentAnalysisRequest(
-      nsIContentAnalysisRequest::AnalysisType::eBulkDataEntry, std::move(block),
+      nsIContentAnalysisRequest::AnalysisType::eBulkDataEntry,
+      nsIContentAnalysisRequest::Reason::eClipboardPaste, std::move(block),
       false, EmptyCString(), uri,
       nsIContentAnalysisRequest::OperationType::eClipboard, nullptr);
 
@@ -343,7 +346,8 @@ TEST_F(ContentAnalysisTest, CheckRawRequestWithText) {
   nsCOMPtr<nsIURI> uri = GetExampleDotComURI();
   nsString allow(L"allow");
   nsCOMPtr<nsIContentAnalysisRequest> request = new ContentAnalysisRequest(
-      nsIContentAnalysisRequest::AnalysisType::eBulkDataEntry, std::move(allow),
+      nsIContentAnalysisRequest::AnalysisType::eBulkDataEntry,
+      nsIContentAnalysisRequest::Reason::eClipboardPaste, std::move(allow),
       false, EmptyCString(), uri,
       nsIContentAnalysisRequest::OperationType::eClipboard, nullptr);
   nsCOMPtr<nsIObserverService> obsServ =
@@ -384,7 +388,8 @@ TEST_F(ContentAnalysisTest, CheckRawRequestWithFile) {
   MOZ_ALWAYS_SUCCEEDS(file->GetPath(allowPath));
 
   nsCOMPtr<nsIContentAnalysisRequest> request = new ContentAnalysisRequest(
-      nsIContentAnalysisRequest::AnalysisType::eBulkDataEntry, allowPath, true,
+      nsIContentAnalysisRequest::AnalysisType::eBulkDataEntry,
+      nsIContentAnalysisRequest::Reason::eClipboardPaste, allowPath, true,
       EmptyCString(), uri, nsIContentAnalysisRequest::OperationType::eClipboard,
       nullptr);
   nsCOMPtr<nsIObserverService> obsServ =
@@ -413,14 +418,16 @@ TEST_F(ContentAnalysisTest, CheckTwoRequestsHaveDifferentUserActionId) {
   nsString allow1(L"allowMe");
   nsCOMPtr<nsIContentAnalysisRequest> request1 = new ContentAnalysisRequest(
       nsIContentAnalysisRequest::AnalysisType::eBulkDataEntry,
-      std::move(allow1), false, EmptyCString(), uri,
+      nsIContentAnalysisRequest::Reason::eClipboardPaste, std::move(allow1),
+      false, EmptyCString(), uri,
       nsIContentAnalysisRequest::OperationType::eClipboard, nullptr);
 
   // Use different text so the request doesn't match the cache
   nsString allow2(L"allowMeAgain");
   nsCOMPtr<nsIContentAnalysisRequest> request2 = new ContentAnalysisRequest(
       nsIContentAnalysisRequest::AnalysisType::eBulkDataEntry,
-      std::move(allow2), false, EmptyCString(), uri,
+      nsIContentAnalysisRequest::Reason::eClipboardPaste, std::move(allow2),
+      false, EmptyCString(), uri,
       nsIContentAnalysisRequest::OperationType::eClipboard, nullptr);
   nsCOMPtr<nsIObserverService> obsServ =
       mozilla::services::GetObserverService();

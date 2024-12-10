@@ -48,6 +48,11 @@ function assertContentAnalysisRequest(
     "request has correct analysisType"
   );
   is(
+    request.reason,
+    Ci.nsIContentAnalysisRequest.eClipboardPaste,
+    "request has correct reason"
+  );
+  is(
     request.operationTypeForDisplay,
     expectedDisplayType,
     "request has correct operationTypeForDisplay"

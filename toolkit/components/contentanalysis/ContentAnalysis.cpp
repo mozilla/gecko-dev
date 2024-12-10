@@ -288,21 +288,24 @@ nsresult ContentAnalysis::CreateContentAnalysisClient(
 }
 
 ContentAnalysisRequest::ContentAnalysisRequest(
-    AnalysisType aAnalysisType, nsString aString, bool aStringIsFilePath,
-    nsCString aSha256Digest, nsCOMPtr<nsIURI> aUrl,
+    AnalysisType aAnalysisType, Reason aReason, nsString aString,
+    bool aStringIsFilePath, nsCString aSha256Digest, nsCOMPtr<nsIURI> aUrl,
     OperationType aOperationType, dom::WindowGlobalParent* aWindowGlobalParent)
     : mAnalysisType(aAnalysisType),
+      mReason(aReason),
       mUrl(std::move(aUrl)),
       mSha256Digest(std::move(aSha256Digest)),
+      mOperationTypeForDisplay(aOperationType),
       mWindowGlobalParent(aWindowGlobalParent) {
   MOZ_ASSERT(aAnalysisType != AnalysisType::ePrint,
              "Print should use other ContentAnalysisRequest constructor!");
+  MOZ_ASSERT(aReason != nsIContentAnalysisRequest::Reason::ePrintPreviewPrint &&
+             aReason != nsIContentAnalysisRequest::Reason::eSystemDialogPrint);
   if (aStringIsFilePath) {
     mFilePath = std::move(aString);
   } else {
     mTextContent = std::move(aString);
   }
-  mOperationTypeForDisplay = aOperationType;
   if (mOperationTypeForDisplay == OperationType::eCustomDisplayString) {
     MOZ_ASSERT(aStringIsFilePath);
     nsresult rv = GetFileDisplayName(mFilePath, mOperationDisplayString);
@@ -1516,6 +1519,9 @@ class AnalyzeFilesInDirectoryCallback final
     nsIContentAnalysisRequest::AnalysisType analysisType;
     rv = mRequest->GetAnalysisType(&analysisType);
     NS_ENSURE_SUCCESS_VOID(rv);
+    nsIContentAnalysisRequest::Reason reason;
+    rv = mRequest->GetReason(&reason);
+    NS_ENSURE_SUCCESS_VOID(rv);
     nsIContentAnalysisRequest::OperationType operationType;
     rv = mRequest->GetOperationTypeForDisplay(&operationType);
     NS_ENSURE_SUCCESS_VOID(rv);
@@ -1534,8 +1540,8 @@ class AnalyzeFilesInDirectoryCallback final
         // Create and submit a new CA request for pathString.
         nsCString emptyDigestString;
         RefPtr<ContentAnalysisRequest> request = new ContentAnalysisRequest(
-            analysisType, pathString, true, std::move(emptyDigestString), url,
-            operationType, windowGlobal);
+            analysisType, reason, pathString, true,
+            std::move(emptyDigestString), url, operationType, windowGlobal);
         rv = contentAnalysis->AnalyzeContentRequestCallback(
             request, mAutoAcknowledge, this);
         NS_ENSURE_SUCCESS_VOID(rv);
@@ -2310,6 +2316,7 @@ class AggregatedClipboardCACallback final : public nsIContentAnalysisCallback {
     nsCOMPtr<nsIContentAnalysisRequest> contentAnalysisRequest =
         new ContentAnalysisRequest(
             nsIContentAnalysisRequest::AnalysisType::eBulkDataEntry,
+            nsIContentAnalysisRequest::Reason::eClipboardPaste,
             std::move(aText), false, EmptyCString(), mURI,
             nsIContentAnalysisRequest::OperationType::eClipboard, window);
     nsresult rv = aContentAnalysis->AnalyzeContentRequestCallback(
@@ -2421,6 +2428,7 @@ class AggregatedClipboardCACallback final : public nsIContentAnalysisCallback {
     nsCOMPtr<nsIContentAnalysisRequest> contentAnalysisRequest =
         new ContentAnalysisRequest(
             nsIContentAnalysisRequest::AnalysisType::eBulkDataEntry,
+            nsIContentAnalysisRequest::Reason::eClipboardPaste,
             std::move(filePath), true, EmptyCString(), mURI,
             nsIContentAnalysisRequest::OperationType::eCustomDisplayString,
             window);
@@ -2554,8 +2562,9 @@ void ContentAnalysis::CheckClipboardContentAnalysis(
           // Create a fake request that just has enough info for the JS code
           // to keep track of it.
           auto fakeRequest = MakeRefPtr<ContentAnalysisRequest>(
-              ContentAnalysisRequest::AnalysisType::eBulkDataEntry, u""_ns,
-              false, ""_ns, currentURI,
+              ContentAnalysisRequest::AnalysisType::eBulkDataEntry,
+              ContentAnalysisRequest::Reason::eClipboardPaste, u""_ns, false,
+              ""_ns, currentURI,
               ContentAnalysisRequest::OperationType::eClipboard, aWindow);
           obsServ->NotifyObservers(fakeRequest, "dlp-request-made", nullptr);
           nsCString requestToken;

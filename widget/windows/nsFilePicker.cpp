@@ -749,7 +749,8 @@ nsFilePicker::CheckContentAnalysisService() {
         self->mBrowsingContext->Canonical()->GetCurrentWindowGlobal();
     nsCOMPtr<nsIContentAnalysisRequest> contentAnalysisRequest(
         new mozilla::contentanalysis::ContentAnalysisRequest(
-            nsIContentAnalysisRequest::AnalysisType::eFileAttached, aItem, true,
+            nsIContentAnalysisRequest::AnalysisType::eFileAttached,
+            nsIContentAnalysisRequest::Reason::eFilePickerDialog, aItem, true,
             std::move(emptyDigestString), uri,
             nsIContentAnalysisRequest::OperationType::eCustomDisplayString,
             windowGlobal));

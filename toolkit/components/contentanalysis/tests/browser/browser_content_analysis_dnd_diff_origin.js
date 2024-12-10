@@ -32,9 +32,24 @@ let mockCA = {
     return this.realCAService.getURIForDropEvent(event);
   },
 
-  async analyzeContentRequest(_aRequest, _aAutoAcknowledge) {
+  async analyzeContentRequest(aRequest, _aAutoAcknowledge) {
     info(`[${testName}]| Called analyzeContentRequest`);
     this.numAnalyzeContentRequestCalls += 1;
+    is(
+      aRequest.analysisType,
+      Ci.nsIContentAnalysisRequest.eBulkDataEntry,
+      "request has correct analysisType"
+    );
+    is(
+      aRequest.reason,
+      Ci.nsIContentAnalysisRequest.eDragAndDrop,
+      "request has correct reason"
+    );
+    is(
+      aRequest.operationTypeForDisplay,
+      Ci.nsIContentAnalysisRequest.eDroppedText,
+      "request has correct operation type"
+    );
 
     // We want analyzeContentRequest to return before dropPromise is resolved
     // because dropPromise tells the test harness that it is time to check that

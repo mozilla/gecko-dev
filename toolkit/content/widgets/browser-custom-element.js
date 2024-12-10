@@ -251,6 +251,7 @@
                 caPromises.push(
                   lazy.contentAnalysis.analyzeContentRequest(
                     {
+                      reason: Ci.nsIContentAnalysisRequest.eDragAndDrop,
                       requestToken: Services.uuid.generateUUID().toString(),
                       resources: [],
                       url: lazy.contentAnalysis.getURIForDropEvent(event),
