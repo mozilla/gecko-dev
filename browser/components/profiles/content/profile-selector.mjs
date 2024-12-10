@@ -170,7 +170,7 @@ export class ProfileSelector extends MozLitElement {
       </div>
       <moz-checkbox
         @click=${this.handleCheckboxToggle}
-        data-l10n-id="profile-window-checkbox-label"
+        data-l10n-id="profile-window-checkbox-label-2"
         ?checked=${this.selectableProfileService.groupToolkitProfile
           .showProfileSelector}
       ></moz-checkbox>`;
