@@ -325,7 +325,7 @@ Function .onInit
   System::Call "kernel32::IsProcessorFeaturePresent(i 10)i .R7"
 
   ; Windows 8.1/Server 2012 R2 and lower are not supported.
-  ${If} ${AtLeastWin10}
+  ${Unless} ${AtLeastWin10}
     StrCpy $ExitCode "${ERR_PREINSTALL_SYS_OS_REQ}"
     ${If} "$R7" == "0"
       strCpy $R7 "$(WARN_MIN_SUPPORTED_OSVER_CPU_MSG)"
