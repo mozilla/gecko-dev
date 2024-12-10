@@ -186,7 +186,7 @@
     /* Login form autocompletion */
     > .two-line-wrapper {
       padding: 4px;
-      padding-inline-start: 0;
+      padding-inline-start: 6px;
     }
 
   &[originaltype="action"] > .two-line-wrapper {
