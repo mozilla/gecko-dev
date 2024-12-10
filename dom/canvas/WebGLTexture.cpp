@@ -662,13 +662,6 @@ static bool ZeroTextureData(const WebGLContext* webgl, GLuint tex,
   return !error;
 }
 
-template <typename T, typename R>
-static constexpr R Clamp(const T val, const R min, const R max) {
-  if (val < min) return min;
-  if (val > max) return max;
-  return static_cast<R>(val);
-}
-
 void WebGLTexture::ClampLevelBaseAndMax() {
   if (!mImmutable) return;
 
@@ -680,9 +673,10 @@ void WebGLTexture::ClampLevelBaseAndMax() {
   MOZ_ASSERT(mImmutableLevelCount > 0);
   const auto oldBase = mBaseMipmapLevel;
   const auto oldMax = mMaxMipmapLevel;
-  mBaseMipmapLevel = Clamp(mBaseMipmapLevel, 0u, mImmutableLevelCount - 1u);
+  mBaseMipmapLevel =
+      std::clamp(mBaseMipmapLevel, 0u, mImmutableLevelCount - 1u);
   mMaxMipmapLevel =
-      Clamp(mMaxMipmapLevel, mBaseMipmapLevel, mImmutableLevelCount - 1u);
+      std::clamp(mMaxMipmapLevel, mBaseMipmapLevel, mImmutableLevelCount - 1u);
   if (oldBase != mBaseMipmapLevel &&
       mBaseMipmapLevelState != MIPMAP_LEVEL_DEFAULT) {
     mBaseMipmapLevelState = MIPMAP_LEVEL_DIRTY;
@@ -732,7 +726,8 @@ bool WebGLTexture::BindTexture(TexTarget texTarget) {
 }
 
 static constexpr GLint ClampMipmapLevelForDriver(uint32_t level) {
-  return Clamp(level, uint8_t{0}, WebGLTexture::kMaxLevelCount);
+  return static_cast<GLint>(
+      std::clamp(level, 0u, (uint32_t)WebGLTexture::kMaxLevelCount));
 }
 
 void WebGLTexture::GenerateMipmap() {

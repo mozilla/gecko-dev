@@ -175,7 +175,7 @@ class WebGLTexture final : public WebGLContextBoundObject,
     const auto level_immut = mImmutableLevelCount;
 
     if (!mImmutable) return level_prime_max;
-    return std::min(std::max(level_base, level_prime_max), level_immut - 1u);
+    return std::clamp(level_base, level_prime_max, level_immut - 1u);
   }
 
   // GLES 3.0.5 p158: `q`

@@ -239,7 +239,7 @@ bool WebGLContext::ValidateStencilParamsForDrawCall() const {
 
   const auto fnMask = [&](const uint32_t x) { return x & stencilMax; };
   const auto fnClamp = [&](const int32_t x) {
-    return std::max(0, std::min(x, (int32_t)stencilMax));
+    return std::clamp(x, 0, (int32_t)stencilMax);
   };
 
   bool ok = true;
