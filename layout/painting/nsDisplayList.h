@@ -6420,7 +6420,7 @@ class nsDisplayTransform final : public nsPaintedDisplayItem {
   void SetContainsASRs(bool aContainsASRs) { mContainsASRs = aContainsASRs; }
   bool GetContainsASRs() const { return mContainsASRs; }
   bool ShouldDeferTransform() const {
-    return !mFrame->ChildrenHavePerspective() && !mContainsASRs;
+    return !mContainsASRs && !mFrame->ChildrenHavePerspective();
   }
 
  private:
