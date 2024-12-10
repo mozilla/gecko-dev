@@ -44,6 +44,7 @@
 #include "mozilla/BasePrincipal.h"
 #include "mozilla/CycleCollectedJSContext.h"
 #include "mozilla/ErrorResult.h"
+#include "mozilla/SourceLocation.h"
 #include "mozilla/dom/AutoEntryScript.h"
 #include "mozilla/dom/DOMSecurityMonitor.h"
 #include "mozilla/dom/JSExecutionUtils.h"  // mozilla::dom::Compile, mozilla::dom::EvaluationExceptionToNSResult
@@ -73,7 +74,8 @@ class nsJSThunk : public nsIInputStream {
   nsresult EvaluateScript(
       nsIChannel* aChannel,
       mozilla::dom::PopupBlocker::PopupControlState aPopupState,
-      uint32_t aExecutionPolicy, nsPIDOMWindowInner* aOriginalInnerWindow);
+      uint32_t aExecutionPolicy, nsPIDOMWindowInner* aOriginalInnerWindow,
+      const mozilla::JSCallingLocation& aJSCallingLocation);
 
  protected:
   virtual ~nsJSThunk();
@@ -134,7 +136,8 @@ static nsIScriptGlobalObject* GetGlobalObject(nsIChannel* aChannel) {
 }
 
 static bool AllowedByCSP(nsIContentSecurityPolicy* aCSP,
-                         const nsACString& aJavaScriptURL) {
+                         const nsACString& aJavaScriptURL,
+                         const mozilla::JSCallingLocation& aJSCallingLocation) {
   if (!aCSP) {
     return true;
   }
@@ -154,6 +157,7 @@ static bool AllowedByCSP(nsIContentSecurityPolicy* aCSP,
   // https://w3c.github.io/webappsec-csp/#effective-directive-for-inline-check
   // type "navigation" maps to the effective directive script-src-elem.
   bool allowsInlineScript = true;
+
   nsresult rv =
       aCSP->GetAllowsInline(nsIContentSecurityPolicy::SCRIPT_SRC_ELEM_DIRECTIVE,
                             true,     // aHasUnsafeHash
@@ -162,8 +166,8 @@ static bool AllowedByCSP(nsIContentSecurityPolicy* aCSP,
                             nullptr,  // aElement,
                             nullptr,  // nsICSPEventListener
                             NS_ConvertASCIItoUTF16(aJavaScriptURL),  // aContent
-                            0,  // aLineNumber
-                            1,  // aColumnNumber
+                            aJSCallingLocation.mLine,    // aLineNumber
+                            aJSCallingLocation.mColumn,  // aColumnNumber
                             &allowsInlineScript);
 
   return (NS_SUCCEEDED(rv) && allowsInlineScript);
@@ -229,7 +233,8 @@ static void ExecScriptAndCoerceToString(JSContext* aCx,
 nsresult nsJSThunk::EvaluateScript(
     nsIChannel* aChannel,
     mozilla::dom::PopupBlocker::PopupControlState aPopupState,
-    uint32_t aExecutionPolicy, nsPIDOMWindowInner* aOriginalInnerWindow) {
+    uint32_t aExecutionPolicy, nsPIDOMWindowInner* aOriginalInnerWindow,
+    const mozilla::JSCallingLocation& aJSCallingLocation) {
   if (aExecutionPolicy == nsIScriptChannel::NO_EXECUTION) {
     // Nothing to do here.
     return NS_ERROR_DOM_RETVAL_UNDEFINED;
@@ -282,7 +287,7 @@ nsresult nsJSThunk::EvaluateScript(
   // once we have determined the target document.
   nsCOMPtr<nsIContentSecurityPolicy> csp = loadInfo->GetCspToInherit();
 
-  if (!AllowedByCSP(csp, mURL)) {
+  if (!AllowedByCSP(csp, mURL, aJSCallingLocation)) {
     return NS_ERROR_DOM_RETVAL_UNDEFINED;
   }
 
@@ -332,7 +337,7 @@ nsresult nsJSThunk::EvaluateScript(
     // against if the triggering principal is system.
     if (targetDoc->NodePrincipal()->Subsumes(loadInfo->TriggeringPrincipal())) {
       nsCOMPtr<nsIContentSecurityPolicy> targetCSP = targetDoc->GetCsp();
-      if (!AllowedByCSP(targetCSP, mURL)) {
+      if (!AllowedByCSP(targetCSP, mURL, aJSCallingLocation)) {
         return NS_ERROR_DOM_RETVAL_UNDEFINED;
       }
     }
@@ -502,6 +507,7 @@ class nsJSChannel : public nsIChannel,
 
   RefPtr<nsJSThunk> mIOThunk;
   mozilla::dom::PopupBlocker::PopupControlState mPopupState;
+  mozilla::JSCallingLocation mJSCallingLocation;
   uint32_t mExecutionPolicy;
   bool mIsAsync;
   bool mIsActive;
@@ -665,8 +671,9 @@ nsJSChannel::Open(nsIInputStream** aStream) {
       nsContentSecurityManager::doContentSecurityCheck(this, listener);
   NS_ENSURE_SUCCESS(rv, rv);
 
+  mJSCallingLocation = mozilla::JSCallingLocation::Get();
   rv = mIOThunk->EvaluateScript(mStreamChannel, mPopupState, mExecutionPolicy,
-                                mOriginalInnerWindow);
+                                mOriginalInnerWindow, mJSCallingLocation);
   NS_ENSURE_SUCCESS(rv, rv);
 
   return mStreamChannel->Open(aStream);
@@ -754,6 +761,10 @@ nsJSChannel::AsyncOpen(nsIStreamListener* aListener) {
 
   void (nsJSChannel::*method)();
   const char* name;
+
+  // The calling location is unavailable in the runnable, hence getting it here.
+  mJSCallingLocation = mozilla::JSCallingLocation::Get();
+
   if (mIsAsync) {
     // post an event to do the rest
     method = &nsJSChannel::EvaluateScript;
@@ -811,8 +822,9 @@ void nsJSChannel::EvaluateScript() {
   // script returns it).
 
   if (NS_SUCCEEDED(mStatus)) {
-    nsresult rv = mIOThunk->EvaluateScript(
-        mStreamChannel, mPopupState, mExecutionPolicy, mOriginalInnerWindow);
+    nsresult rv =
+        mIOThunk->EvaluateScript(mStreamChannel, mPopupState, mExecutionPolicy,
+                                 mOriginalInnerWindow, mJSCallingLocation);
 
     // Note that evaluation may have canceled us, so recheck mStatus again
     if (NS_FAILED(rv) && NS_SUCCEEDED(mStatus)) {
