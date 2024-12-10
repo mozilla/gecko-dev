@@ -2602,6 +2602,12 @@ JS::CompileOptions::CompileOptions(JSContext* cx) {
   }
 }
 
+JS::InstantiateOptions::InstantiateOptions() {
+  if (coverage::IsLCovEnabled()) {
+    eagerDelazificationStrategy_ = DelazificationOption::ParseEverythingEagerly;
+  }
+}
+
 CompileOptions& CompileOptions::setIntroductionInfoToCaller(
     JSContext* cx, const char* introductionType,
     MutableHandle<JSScript*> introductionScript) {

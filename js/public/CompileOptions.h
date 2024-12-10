@@ -771,7 +771,7 @@ class JS_PUBLIC_API InstantiateOptions {
   DelazificationOption eagerDelazificationStrategy_ =
       DelazificationOption::OnDemandOnly;
 
-  InstantiateOptions() = default;
+  InstantiateOptions();
 
   explicit InstantiateOptions(const ReadOnlyCompileOptions& options)
       : skipFilenameValidation(options.skipFilenameValidation_),
