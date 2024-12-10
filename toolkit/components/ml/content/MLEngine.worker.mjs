@@ -90,14 +90,24 @@ class MLEngineWorker {
    * Run the worker.
    *
    * @param {string} request
+   * @param {string} requestId - The identifier used to internally track this request.
+   * @param {object} engineRunOptions - Additional run options for the engine.
+   * @param {boolean} engineRunOptions.enableInferenceProgress - Whether to enable inference progress.
    */
-  async run(request) {
+  async run(request, requestId, engineRunOptions = {}) {
     if (request === "throw") {
       throw new Error(
         'Received the message "throw", so intentionally throwing an error.'
       );
     }
-    return await this.#pipeline.run(request);
+
+    return await this.#pipeline.run(
+      request,
+      requestId,
+      engineRunOptions.enableInferenceProgress
+        ? data => self.callMainThread("onInferenceProgress", [data])
+        : null
+    );
   }
 
   /**

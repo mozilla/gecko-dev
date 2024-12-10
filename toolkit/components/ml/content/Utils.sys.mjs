@@ -24,6 +24,8 @@ export const ProgressType = Object.freeze({
   DOWNLOAD: "downloading",
   // The value of the operation type when loading from cache
   LOAD_FROM_CACHE: "loading_from_cache",
+  // The value of the operation type when running the model
+  INFERENCE: "running_inference",
 });
 
 /**

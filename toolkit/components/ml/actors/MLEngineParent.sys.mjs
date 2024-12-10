@@ -30,6 +30,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   clearTimeout: "resource://gre/modules/Timer.sys.mjs",
   ModelHub: "chrome://global/content/ml/ModelHub.sys.mjs",
   getInferenceProcessInfo: "chrome://global/content/ml/Utils.sys.mjs",
+  Progress: "chrome://global/content/ml/Utils.sys.mjs",
 });
 
 const RS_RUNTIME_COLLECTION = "ml-onnx-runtime";
@@ -535,6 +536,109 @@ export class MLEngineParent extends JSWindowActorParent {
 }
 
 /**
+ * A utility class that manages a main promise for the full response
+ * and a sequence of chunk promises for incremental parts of the response.
+ *
+ */
+class ResponseOrChunkResolvers {
+  /**
+   * Resolver for the main promise (full response).
+   *
+   * @type {object}
+   */
+  mainResolvers;
+
+  /**
+   * The main promise for the full response.
+   *
+   * @type {Promise}
+   */
+  promise;
+
+  /**
+   * Index tracking the next chunk resolver to be returned.
+   *
+   * @type {number}
+   */
+  nextchunkResolverIdx = 0;
+
+  /**
+   * Array of resolvers for incremental chunk promises.
+   *
+   * @type {Array<object>}
+   */
+  chunkResolvers = [];
+
+  /**
+   * Initializes the class with a main promise resolver
+   * and the first chunk resolver for incremental data.
+   */
+  constructor() {
+    lazy.console.debug("Initializing ResponseOrChunkResolvers ...");
+    this.mainResolvers = Promise.withResolvers();
+    this.promise = this.mainResolvers.promise;
+
+    // Initialize the first chunk resolver
+    this.chunkResolvers.push(Promise.withResolvers());
+  }
+
+  /**
+   * Resolves the main promise with the provided value, indicating the full response is ready.
+   *
+   * @param {*} value - The value to resolve the main promise with (e.g., the complete response data).
+   */
+  resolve(value) {
+    this.mainResolvers.resolve(value);
+  }
+
+  /**
+   * Rejects the main promise with the provided reason, indicating that the full response failed.
+   *
+   * @param {*} reason - The reason for rejecting the main promise (e.g., an error).
+   */
+  reject(reason) {
+    this.mainResolvers.reject(reason);
+  }
+
+  /**
+   * Returns the promise for the next chunk of the response and advances the internal index.
+   * Each call retrieves the promise for the next incremental part of the response.
+   *
+   * @returns {Promise} The promise for the next chunk of data.
+   */
+  getAndAdvanceChunkPromise() {
+    this.nextchunkResolverIdx += 1;
+    return this.chunkResolvers[this.nextchunkResolverIdx - 1].promise;
+  }
+
+  /**
+   * Resolves the current chunk promise with the provided value
+   * and prepares a new chunk resolver for the next incremental part of the response.
+   *
+   * @param {*} value - The value to resolve the current chunk promise with (e.g., a part of the response data).
+   */
+  resolveChunk(value) {
+    // Create a new chunk resolver for future chunks
+    this.chunkResolvers.push(Promise.withResolvers());
+    // Resolve the current chunk
+    this.chunkResolvers[this.chunkResolvers.length - 2].resolve(value);
+  }
+
+  /**
+   * Rejects the current chunk promise with the provided reason
+   * and prepares a new chunk resolver for the next incremental part of the response.
+   *
+   * @param {*} reason - The reason for rejecting the current chunk promise (e.g., an error with this chunk).
+   */
+  rejectChunk(reason) {
+    // Create a new chunk resolver for future chunks
+    this.chunkResolvers.push(Promise.withResolvers());
+    // Reject the current chunk
+    this.chunkResolvers[this.chunkResolvers.length - 2].reject(reason);
+  }
+}
+
+/**
  * The interface to communicate to an MLEngine in the parent process. The engine manages
  * its own lifetime, and is kept alive with a timeout. A reference to this engine can
  * be retained, but once idle, the engine will be destroyed. If a new request to run
@@ -542,7 +646,12 @@ export class MLEngineParent extends JSWindowActorParent {
  * potentially large amounts of memory to run models, with the speed and ease of running
  * the engine.
  *
- * @template Request
+ * @typedef {object} Request
+ * @property {?string} id - The identifier for tracking this request. If not provided, an id will be auto-generated. Each inference callback will reference this id.
+ * @property {any[]} args - The arguments to pass to the pipeline. The required arguments depend on your model. See [Hugging Face Transformers documentation](https://huggingface.co/docs/transformers.js/en/api/models) for more details.
+ * @property {?object} options - The generation options to pass to the model. Refer to the [GenerationConfigType documentation](https://huggingface.co/docs/transformers.js/en/api/utils/generation#module_utils/generation..GenerationConfigType) for available options.
+ * @property {?Uint8Array} data - For the imagetoText model, this is the array containing the image data.
+ *
  * @template Response
  */
 class MLEngine {
@@ -809,6 +918,25 @@ class MLEngine {
         break;
       }
       case "EnginePort:InitProgress": {
+        if (data.statusResponse.type === lazy.Progress.ProgressType.INFERENCE) {
+          const requestId = data.statusResponse.metadata.requestId;
+          const request = this.#requests.get(requestId);
+
+          if (request) {
+            if (data.statusResponse.ok) {
+              request.resolveChunk?.(data.statusResponse);
+            } else {
+              request.rejectChunk?.(data.statusResponse);
+            }
+          } else {
+            lazy.console.error(
+              "Could not resolve response in the MLEngineParent",
+              data.statusResponse
+            );
+          }
+        }
+
+        // TODO(aristide) Don't send the chunk data back to the callback
         this.notificationsCallback?.(data.statusResponse);
         break;
       }
@@ -904,9 +1032,88 @@ class MLEngine {
         type: "EnginePort:Run",
         requestId,
         request,
+        engineRunOptions: { enableInferenceProgress: false },
       },
       transferables
     );
     return resolvers.promise;
   }
+
+  /**
+   * Run the inference request using an async generator function.
+   *
+   * @param {Request} request - The inference request containing the input data.
+   * @returns {AsyncGenerator<Response, Response, unknown>} An async generator yielding chunks of generated responses.
+   */
+  runWithGenerator = async function* (request) {
+    // Create a promise to track when the engine has fully completed all runs
+    const responseChunkResolvers = new ResponseOrChunkResolvers();
+
+    const requestId = this.#nextRequestId++;
+    this.#requests.set(requestId, responseChunkResolvers);
+
+    let completed = false;
+
+    // Track when the engine is fully completed
+    const completionPromise = responseChunkResolvers.promise.finally(
+      results => {
+        completed = true;
+        return results;
+      }
+    );
+
+    // Handle transferables for performance optimization
+    const transferables = [];
+    if (request.data instanceof ArrayBuffer) {
+      transferables.push(request.data);
+    }
+
+    // Send the request to the engine via postMessage with optional transferables
+    this.#port.postMessage(
+      {
+        type: "EnginePort:Run",
+        requestId,
+        request,
+        engineRunOptions: { enableInferenceProgress: true },
+      },
+      transferables
+    );
+
+    const timeoutPromise = delay =>
+      new Promise(resolve =>
+        lazy.setTimeout(() => resolve({ timeout: true, ok: true }), delay)
+      );
+
+    let chunkPromise = responseChunkResolvers.getAndAdvanceChunkPromise();
+    // Loop to yield chunks as they arrive
+    while (true) {
+      // Wait for the chunk with a timeout
+      const chunk = await Promise.race([chunkPromise, timeoutPromise(10)]);
+
+      // If there was no timeout we can yield the chunk and move to the next
+      if (!chunk.timeout) {
+        yield { text: chunk.metadata.text };
+        chunkPromise = responseChunkResolvers.getAndAdvanceChunkPromise();
+      }
+
+      // Warn if the engine completed before receiving all chunks
+      if (completed) {
+        lazy.console.warn(
+          "Warning: The run completed before the last chunk was received. The full output may not have been received."
+        );
+        break;
+      }
+
+      // Check if this is the last chunk or if an error occurred
+      if (
+        chunk.statusText === lazy.Progress.ProgressStatusText.DONE ||
+        !chunk.ok
+      ) {
+        break;
+      }
+    }
+
+    // Wait for the engine to fully complete before exiting
+    return completionPromise;
+  };
 }

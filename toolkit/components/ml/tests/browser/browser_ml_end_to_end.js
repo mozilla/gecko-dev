@@ -172,6 +172,58 @@ add_task(async function test_ml_moz_image_to_text_pipeline() {
 });
 
 /**
+ * Tests moz-image-to-text pipeline API with streaming
+ */
+add_task(async function test_streaming_ml_moz_image_to_text_pipeline() {
+  const { cleanup } = await setup();
+
+  info("Get the engine process");
+  const mlEngineParent = await EngineProcess.getMLEngineParent();
+
+  info("Get engineInstance");
+
+  const options = new PipelineOptions({
+    taskName: "moz-image-to-text",
+    modelId: "acme/test-vit-gpt2-image-captioning",
+    processorId: "acme/test-vit-gpt2-image-captioning",
+    tokenizerId: "acme/test-vit-gpt2-image-captioning",
+    modelRevision: "main",
+    processorRevision: "main",
+    tokenizerRevision: "main",
+    modelHubUrlTemplate: "{model}/resolve/{revision}",
+    dtype: "q8",
+  });
+
+  const engineInstance = await mlEngineParent.getEngine(options);
+
+  info("Run the inference");
+
+  const request = {
+    data: createRandomImageData(224 * 224 * 3),
+    channels: 3,
+    height: 224,
+    width: 224,
+  };
+
+  const res = await engineInstance.run(request);
+
+  for await (const val of engineInstance.runWithGenerator(request)) {
+    Assert.ok(
+      typeof val.text === "string" || res.text instanceof String,
+      "The correct type is not returned for the output"
+    );
+  }
+
+  ok(
+    !EngineProcess.areAllEnginesTerminated(),
+    "The engine process is still active."
+  );
+
+  await EngineProcess.destroyMLEngine();
+  await cleanup();
+});
+
+/**
  * Tests generic pipeline API
  */
 add_task(async function test_ml_generic_pipeline() {
@@ -237,6 +289,88 @@ add_task(async function test_ml_generic_pipeline() {
   // "acme/test-vit-gpt2-image-captioning" tokenizer assigns each char to a token except 1.
   Assert.ok(
     res[0].generated_text.length <= max_new_tokens + 1,
+    "Number of generated tokens is lower than expected"
+  );
+
+  ok(
+    !EngineProcess.areAllEnginesTerminated(),
+    "The engine process is still active."
+  );
+
+  await EngineProcess.destroyMLEngine();
+  await cleanup();
+});
+
+/**
+ * Tests generic pipeline API with streaming
+ */
+add_task(async function test_ml_streaming_generic_pipeline() {
+  const { cleanup } = await setup();
+
+  info("Get the engine process");
+  const mlEngineParent = await EngineProcess.getMLEngineParent();
+
+  info("Get engineInstance");
+
+  const options = new PipelineOptions({
+    taskName: "image-to-text",
+    modelId: "acme/test-vit-gpt2-image-captioning",
+    processorId: "acme/test-vit-gpt2-image-captioning",
+    tokenizerId: "acme/test-vit-gpt2-image-captioning",
+    modelRevision: "main",
+    processorRevision: "main",
+    tokenizerRevision: "main",
+    modelHubUrlTemplate: "{model}/resolve/{revision}",
+    dtype: "q8",
+  });
+
+  const engineInstance = await mlEngineParent.getEngine(options);
+
+  info("Run the inference");
+  const imageUri =
+    "chrome://mochitests/content/browser/toolkit/components/ml/tests/browser/data/images/1.png";
+
+  const min_new_tokens = 10;
+  const max_new_tokens = 20;
+
+  const imageResponse = await fetch(imageUri);
+  const imageArrayBuffer = await imageResponse.arrayBuffer();
+  const blobUrl = URL.createObjectURL(
+    new Blob([imageArrayBuffer], { type: "image/png" })
+  );
+
+  // Ensure url is released regardless of uncaught exceptions.
+  registerCleanupFunction(() => {
+    URL.revokeObjectURL(blobUrl);
+  });
+
+  const request = {
+    args: [blobUrl],
+    options: { min_new_tokens, max_new_tokens },
+  };
+
+  const res = await engineInstance.run(request);
+
+  let totalOut = "";
+
+  for await (const val of engineInstance.runWithGenerator(request)) {
+    Assert.ok(
+      typeof val.text === "string" || res.text instanceof String,
+      "The correct type is not returned for the output"
+    );
+
+    totalOut += val.text;
+  }
+
+  // "acme/test-vit-gpt2-image-captioning" tokenizer assigns each char to a token except 1.
+  Assert.ok(
+    totalOut.length >= min_new_tokens - 1,
+    "Number of generated tokens is larger than expected"
+  );
+
+  // "acme/test-vit-gpt2-image-captioning" tokenizer assigns each char to a token except 1.
+  Assert.ok(
+    totalOut.length <= max_new_tokens + 1,
     "Number of generated tokens is lower than expected"
   );
 

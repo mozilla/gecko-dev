@@ -2,6 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+/**
+ * @typedef {import("../content/Utils.sys.mjs").ProgressAndStatusCallbackParams} ProgressAndStatusCallbackParams
+ */
+
 /* eslint-disable-next-line mozilla/reject-import-system-module-from-non-system */
 import { AppConstants } from "resource://gre/modules/AppConstants.sys.mjs";
 
@@ -25,6 +29,14 @@ ChromeUtils.defineLazyGetter(lazy, "console", () => {
     prefix: "ML:ONNXPipeline",
   });
 });
+
+ChromeUtils.defineESModuleGetters(
+  lazy,
+  {
+    Progress: "chrome://global/content/ml/Utils.sys.mjs",
+  },
+  { global: "current" }
+);
 
 /**
  * Conditional import for Transformer.js
@@ -117,10 +129,11 @@ async function imageToText(request, model, tokenizer, processor, _config) {
   const { pixel_values } = await processor(rawImage);
   result.metrics.tokenizingTime += Date.now() - start;
   const toReturn = [];
+  const streamer = request.options?.streamer;
   for (const batch of pixel_values) {
     batch.dims = [1, ...batch.dims];
     start = Date.now();
-    const output = await model.generate({ inputs: batch });
+    const output = await model.generate({ inputs: batch, streamer });
     result.metrics.inferenceTime += Date.now() - start;
     start = Date.now();
     const decoded = tokenizer
@@ -524,25 +537,64 @@ export class Pipeline {
    * When the pipeline is initialized with the generic pipeline function, the request contains
    * `args` and `options` fields. The `args` field is an array of values that are passed
    * to the generic pipeline function. The `options` field is an object that contains the options for the pipeline.
+   * @param {string} requestId - The identifier used to internally track this request.
+   * @param {?function(ProgressAndStatusCallbackParams):void} inferenceProgressCallback A function to call to indicate inference progress.
    * @returns {Promise<object>} The result object from the pipeline execution.
    */
-  async run(request) {
+  async run(request, requestId, inferenceProgressCallback = null) {
     lazy.console.debug("Running task: ", this.#config.taskName);
 
     let result;
     await this.#metricsSnapShot({ name: "runStart" });
 
+    const tokenizer =
+      this.#genericPipelineFunction?.tokenizer ?? this.#tokenizer;
+
+    const progressInfo = {
+      ok: true,
+      id: request.id ?? requestId,
+    };
+
+    let streamer = undefined;
+
+    if (tokenizer && inferenceProgressCallback) {
+      streamer = new transformers.TextStreamer(tokenizer, {
+        skip_prompt: true,
+        decode_kwargs: {
+          skip_special_tokens: true,
+        },
+        callback_function: text =>
+          inferenceProgressCallback?.({
+            ...progressInfo,
+            metadata: {
+              text,
+              requestId,
+            },
+            type: lazy.Progress.ProgressType.INFERENCE,
+            statusText: lazy.Progress.ProgressStatusText.IN_PROGRESS,
+          }),
+      });
+    }
+
+    // Override streamer in options
+    const requestWithCallback = inferenceProgressCallback
+      ? {
+          ...request,
+          options: { ...request.options, streamer },
+        }
+      : request;
+
     if (this.#genericPipelineFunction) {
       if (this.#config.modelId === "test-echo") {
         result = {
-          output: request.args,
+          output: requestWithCallback.args,
           config: this.#config,
           multiThreadSupported: isMultiThreadSupported(),
         };
       } else {
         result = await this.#genericPipelineFunction(
-          ...request.args,
-          request.options || {}
+          ...requestWithCallback.args,
+          requestWithCallback.options || {}
         );
 
         // When the pipeline returns Tensors they are Proxy objects that cannot be cloned.
@@ -551,7 +603,7 @@ export class Pipeline {
       }
     } else {
       result = await this.#pipelineFunction(
-        request,
+        requestWithCallback,
         this.#model,
         this.#tokenizer,
         this.#processor,
@@ -560,6 +612,19 @@ export class Pipeline {
     }
     await this.#metricsSnapShot({ name: "runEnd" });
     result.metrics = this.#metrics;
+
+    if (streamer) {
+      inferenceProgressCallback?.({
+        ...progressInfo,
+        metadata: {
+          text: "",
+          requestId,
+        },
+        type: lazy.Progress.ProgressType.INFERENCE,
+        statusText: lazy.Progress.ProgressStatusText.DONE,
+      });
+    }
+
     return result;
   }
 }
