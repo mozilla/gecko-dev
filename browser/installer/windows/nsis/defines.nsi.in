@@ -155,3 +155,5 @@ VIAddVersionKey "ProductVersion"  "${AppVersion}"
 
 !define TELEMETRY_UNINSTALL_PING_NAMESPACE telemetry
 !define TELEMETRY_UNINSTALL_PING_DOCTYPE uninstall
+
+!define URLWinPre10NeedsEsr115 https://support.mozilla.org/kb/firefox-users-windows-7-8-and-81-moving-extended-support
