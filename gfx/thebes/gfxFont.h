@@ -98,12 +98,9 @@ struct gfxFontStyle {
   gfxFontStyle();
   gfxFontStyle(FontSlantStyle aStyle, FontWeight aWeight, FontStretch aStretch,
                gfxFloat aSize, const FontSizeAdjust& aSizeAdjust,
-               bool aSystemFont, bool aPrinterFont,
-#ifdef XP_WIN
-               bool aAllowForceGDIClassic,
-#endif
-               bool aWeightSynthesis, bool aStyleSynthesis,
-               bool aSmallCapsSynthesis, bool aPositionSynthesis,
+               bool aSystemFont, bool aPrinterFont, bool aWeightSynthesis,
+               bool aStyleSynthesis, bool aSmallCapsSynthesis,
+               bool aPositionSynthesis,
                mozilla::StyleFontLanguageOverride aLanguageOverride);
   // Features are composed of (1) features from style rules (2) features
   // from feature settings rules and (3) family-specific features.  (1) and
@@ -189,10 +186,6 @@ struct gfxFontStyle {
   // Say that this font is used for print or print preview.
   bool printerFont : 1;
 
-#ifdef XP_WIN
-  bool allowForceGDIClassic : 1;
-#endif
-
   // Used to imitate -webkit-font-smoothing: antialiased
   bool useGrayscaleAntialiasing : 1;
 
@@ -248,9 +241,6 @@ struct gfxFontStyle {
            (useSyntheticPosition == other.useSyntheticPosition) &&
            (systemFont == other.systemFont) &&
            (printerFont == other.printerFont) &&
-#ifdef XP_WIN
-           (allowForceGDIClassic == other.allowForceGDIClassic) &&
-#endif
            (useGrayscaleAntialiasing == other.useGrayscaleAntialiasing) &&
            (baselineOffset == other.baselineOffset) &&
            mozilla::NumbersAreBitwiseIdentical(sizeAdjust, other.sizeAdjust) &&

@@ -327,14 +327,13 @@ async function doTest(url) {
 }
 
 function getTextWidth(inputText) {
-  let span = document.createElement("span");
-  document.documentElement.appendChild(span);
-  span.style.all = "initial";
-  span.style.font = window
+  const canvas =
+    getTextWidth.canvas ||
+    (getTextWidth.canvas = document.createElement("canvas"));
+  let context = canvas.getContext("2d");
+  context.font = window
     .getComputedStyle(gURLBar.inputField)
     .getPropertyValue("font");
-  span.textContent = inputText;
-  let result = span.offsetWidth;
-  span.remove();
-  return result;
+  let measure = context.measureText(inputText);
+  return measure.actualBoundingBoxLeft + measure.actualBoundingBoxRight;
 }

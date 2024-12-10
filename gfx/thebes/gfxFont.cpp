@@ -4752,25 +4752,17 @@ gfxFontStyle::gfxFontStyle()
       sizeAdjustBasis(uint8_t(FontSizeAdjust::Tag::None)),
       systemFont(true),
       printerFont(false),
-#ifdef XP_WIN
-      allowForceGDIClassic(true),
-#endif
       useGrayscaleAntialiasing(false),
       allowSyntheticWeight(true),
       allowSyntheticStyle(true),
       allowSyntheticSmallCaps(true),
       useSyntheticPosition(true),
-      noFallbackVariantFeatures(true) {
-}
+      noFallbackVariantFeatures(true) {}
 
 gfxFontStyle::gfxFontStyle(FontSlantStyle aStyle, FontWeight aWeight,
                            FontStretch aStretch, gfxFloat aSize,
                            const FontSizeAdjust& aSizeAdjust, bool aSystemFont,
-                           bool aPrinterFont,
-#ifdef XP_WIN
-                           bool aAllowForceGDIClassic,
-#endif
-                           bool aAllowWeightSynthesis,
+                           bool aPrinterFont, bool aAllowWeightSynthesis,
                            bool aAllowStyleSynthesis,
                            bool aAllowSmallCapsSynthesis,
                            bool aUsePositionSynthesis,
@@ -4785,9 +4777,6 @@ gfxFontStyle::gfxFontStyle(FontSlantStyle aStyle, FontWeight aWeight,
       variantSubSuper(NS_FONT_VARIANT_POSITION_NORMAL),
       systemFont(aSystemFont),
       printerFont(aPrinterFont),
-#ifdef XP_WIN
-      allowForceGDIClassic(aAllowForceGDIClassic),
-#endif
       useGrayscaleAntialiasing(false),
       allowSyntheticWeight(aAllowWeightSynthesis),
       allowSyntheticStyle(aAllowStyleSynthesis),

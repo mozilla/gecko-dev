@@ -73,9 +73,6 @@ already_AddRefed<nsFontMetrics> nsFontCache::GetMetricsFor(
         fm->GetUserFontSet() == aParams.userFontSet &&
         fm->Language() == language &&
         fm->Orientation() == aParams.orientation &&
-#ifdef XP_WIN
-        fm->AllowForceGDIClassic() == aParams.allowForceGDIClassic &&
-#endif
         fm->ExplicitLanguage() == aParams.explicitLanguage) {
       if (i != n) {
         // promote it to the end of the cache
