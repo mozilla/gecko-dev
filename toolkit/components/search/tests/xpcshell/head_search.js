@@ -4,6 +4,8 @@
 ChromeUtils.defineESModuleGetters(this, {
   AddonTestUtils: "resource://testing-common/AddonTestUtils.sys.mjs",
   clearTimeout: "resource://gre/modules/Timer.sys.mjs",
+  EnterprisePolicyTesting:
+    "resource://testing-common/EnterprisePolicyTesting.sys.mjs",
   ExtensionTestUtils:
     "resource://testing-common/ExtensionXPCShellUtils.sys.mjs",
   FileUtils: "resource://gre/modules/FileUtils.sys.mjs",
@@ -469,6 +471,41 @@ async function assertGleanDefaultEngine(expected) {
       );
     }
   }
+}
+
+/**
+ * Loads a new enterprise policy, and re-initialise the search service
+ * with the new policy. Also waits for the search service to write the settings
+ * file to disk.
+ *
+ * @param {object} policy
+ *   The enterprise policy to use.
+ */
+async function setupPolicyEngineWithJson(policy) {
+  Services.search.wrappedJSObject.reset();
+
+  await this.EnterprisePolicyTesting.setupPolicyEngineWithJson(policy);
+
+  let settingsWritten = SearchTestUtils.promiseSearchNotification(
+    "write-settings-to-disk-complete"
+  );
+  await Services.search.init();
+  await settingsWritten;
+}
+
+/**
+ * Makes Services.policies.isEnterprise return true by loading an enterprise
+ * policy and re-initialise the search service with the new policy. Also waits
+ * for the search service to write the settings file to disk.
+ */
+async function enableEnterprise() {
+  await setupPolicyEngineWithJson({
+    // Use any policy.
+    policies: {
+      BlockAboutSupport: true,
+    },
+  });
+  Assert.ok(Services.policies.isEnterprise, "isEnterprise");
 }
 
 /**

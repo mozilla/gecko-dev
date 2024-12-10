@@ -25,6 +25,10 @@ const CONFIG = [
           params: [
             {
               name: "code",
+              enterpriseValue: "enterprise",
+            },
+            {
+              name: "code",
               experimentConfig: "code",
             },
             {
@@ -95,5 +99,18 @@ add_task(async function test_pref_cleared() {
     engine.getSubmission("foo").uri.spec,
     baseURL + "q=foo",
     "Should have just the base URL after the pref was cleared"
+  );
+});
+
+add_task(async function test_pref_updated_enterprise() {
+  // Set the pref to some value and enable enterprise mode at the same time.
+  defaultBranch.setCharPref("param.code", "supergood&id=unique123456");
+  await enableEnterprise();
+
+  const engine = Services.search.getEngineById("preferenceEngine");
+  Assert.equal(
+    engine.getSubmission("foo").uri.spec,
+    baseURL + "code=enterprise&q=foo",
+    "Enterprise parameter should override experiment config."
   );
 });
