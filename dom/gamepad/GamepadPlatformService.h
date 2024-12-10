@@ -14,6 +14,7 @@
 #include <map>
 #include "mozilla/Mutex.h"
 #include "mozilla/StaticPtr.h"
+#include "mozilla/Vector.h"
 #include "mozilla/WeakPtr.h"
 
 namespace mozilla::dom {
@@ -23,6 +24,33 @@ enum class GamepadLightIndicatorType : uint8_t;
 struct GamepadPoseState;
 class GamepadTestChannelParent;
 struct GamepadTouchState;
+class GamepadPlatformService;
+
+class GamepadMonitoringState {
+ public:
+  static GamepadMonitoringState& GetSingleton();
+
+  void AddObserver(GamepadTestChannelParent* aParent);
+  void RemoveObserver(GamepadTestChannelParent* aParent);
+
+  bool IsMonitoring() const;
+
+  GamepadMonitoringState(const GamepadMonitoringState&) = delete;
+  GamepadMonitoringState(GamepadMonitoringState&&) = delete;
+  GamepadMonitoringState& operator=(const GamepadMonitoringState) = delete;
+  GamepadMonitoringState& operator=(GamepadMonitoringState&&) = delete;
+
+ private:
+  GamepadMonitoringState() = default;
+  ~GamepadMonitoringState() = default;
+
+  void Set(bool aIsMonitoring);
+
+  bool mIsMonitoring{false};
+  Vector<WeakPtr<GamepadTestChannelParent>> mObservers;
+
+  friend class mozilla::dom::GamepadPlatformService;
+};
 
 // Platform Service for building and transmitting IPDL messages
 // through the HAL sandbox. Used by platform specific
@@ -39,30 +67,6 @@ struct GamepadTouchState;
 class GamepadPlatformService final {
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(GamepadPlatformService)
  public:
-  class MonitoringState {
-   public:
-    MonitoringState() = default;
-    ~MonitoringState();
-
-    void AddObserver(WeakPtr<GamepadTestChannelParent> aParent);
-    void RemoveObserver(GamepadTestChannelParent* aParent);
-
-    bool IsMonitoring() const;
-
-    MonitoringState(const MonitoringState&) = delete;
-    MonitoringState(MonitoringState&&) = delete;
-    MonitoringState& operator=(const MonitoringState) = delete;
-    MonitoringState& operator=(MonitoringState&&) = delete;
-
-   private:
-    void Set(bool aIsMonitoring);
-
-    bool mIsMonitoring{false};
-    nsTArray<WeakPtr<GamepadTestChannelParent>> mObservers;
-
-    friend class GamepadPlatformService;
-  };
-
   // Get the singleton service
   static already_AddRefed<GamepadPlatformService> GetParentService();
 
@@ -118,8 +122,6 @@ class GamepadPlatformService final {
 
   void MaybeShutdown();
 
-  MonitoringState& GetMonitoringState() { return mMonitoringState; }
-
   nsTArray<GamepadAdded> GetAllGamePads() {
     nsTArray<GamepadAdded> gamepads;
 
@@ -150,8 +152,6 @@ class GamepadPlatformService final {
   Mutex mMutex MOZ_UNANNOTATED;
 
   std::map<GamepadHandle, GamepadAdded> mGamepadAdded;
-
-  MonitoringState mMonitoringState;
 };
 
 }  // namespace mozilla::dom
