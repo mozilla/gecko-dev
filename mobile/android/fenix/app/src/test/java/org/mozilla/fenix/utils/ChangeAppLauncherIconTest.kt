@@ -8,6 +8,7 @@ import android.content.ComponentName
 import android.content.Intent
 import android.content.pm.PackageManager
 import androidx.core.content.pm.ShortcutInfoCompat
+import mozilla.components.support.test.any
 import mozilla.components.support.test.capture
 import mozilla.components.support.test.mock
 import mozilla.components.support.test.robolectric.testContext
@@ -18,6 +19,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.ArgumentCaptor
 import org.mockito.Mock
+import org.mockito.Mockito.never
 import org.mockito.Mockito.verify
 import org.mockito.Mockito.verifyNoInteractions
 import org.mockito.Mockito.`when`
@@ -36,7 +38,7 @@ class ChangeAppLauncherIconTest {
     }
 
     @Test
-    fun `reset to default and user has default icon set changeAppLauncherIconBackgroundColor makes no changes`() {
+    fun `WHEN reset to default and user has default icon set THEN changeAppLauncherIcon makes no changes`() {
         val packageManager = testContext.packageManager
         val appAlias = ComponentName("test", "App")
         packageManager.setComponentEnabledSetting(
@@ -51,7 +53,7 @@ class ChangeAppLauncherIconTest {
             PackageManager.DONT_KILL_APP,
         )
 
-        changeAppLauncherIconBackgroundColor(
+        changeAppLauncherIcon(
             testContext,
             shortcutWrapper,
             appAlias,
@@ -70,7 +72,7 @@ class ChangeAppLauncherIconTest {
     }
 
     @Test
-    fun `reset to default and user has alternative icon set changeAppLauncherIconBackgroundColor resets states to default config`() {
+    fun `WHEN reset to default and user has alternative icon set THEN changeAppLauncherIcon resets states to default config`() {
         val packageManager = testContext.packageManager
         val appAlias = ComponentName("test", "App")
         packageManager.setComponentEnabledSetting(
@@ -88,7 +90,7 @@ class ChangeAppLauncherIconTest {
         val shortcut = createShortcut(alternativeAppAlias)
         `when`(shortcutWrapper.getPinnedShortcuts()).thenReturn(listOf(shortcut))
 
-        changeAppLauncherIconBackgroundColor(
+        changeAppLauncherIcon(
             testContext,
             shortcutWrapper,
             appAlias,
@@ -119,7 +121,81 @@ class ChangeAppLauncherIconTest {
     }
 
     @Test
-    fun `don't reset to default and user has default icon set changeAppLauncherIconBackgroundColor updates states to alternative config`() {
+    fun `WHEN should reset to default icon and getPinnedShortcuts throws THEN changeAppLauncherIcon makes no changes to shortcuts and components are the original state`() {
+        val packageManager = testContext.packageManager
+        val appAlias = ComponentName("test", "App")
+        packageManager.setComponentEnabledSetting(
+            appAlias,
+            PackageManager.COMPONENT_ENABLED_STATE_DISABLED,
+            PackageManager.DONT_KILL_APP,
+        )
+        val alternativeAppAlias = ComponentName("test", "AppAlternative")
+        packageManager.setComponentEnabledSetting(
+            alternativeAppAlias,
+            PackageManager.COMPONENT_ENABLED_STATE_ENABLED,
+            PackageManager.DONT_KILL_APP,
+        )
+
+        `when`(shortcutWrapper.getPinnedShortcuts()).thenThrow(IllegalStateException())
+
+        changeAppLauncherIcon(
+            testContext,
+            shortcutWrapper,
+            appAlias,
+            alternativeAppAlias,
+            true,
+        )
+
+        val appAliasState = packageManager.getComponentEnabledSetting(appAlias)
+        assertTrue(appAliasState == PackageManager.COMPONENT_ENABLED_STATE_DISABLED)
+
+        val alternativeAppAliasState =
+            packageManager.getComponentEnabledSetting(alternativeAppAlias)
+        assertTrue(alternativeAppAliasState == PackageManager.COMPONENT_ENABLED_STATE_ENABLED)
+
+        verify(shortcutWrapper).getPinnedShortcuts()
+        verify(shortcutWrapper, never()).updateShortcuts(any())
+    }
+
+    @Test
+    fun `WHEN should reset to default icon and updateShortcuts throws THEN changeAppLauncherIcon makes no changes to shortcuts and components are the original state`() {
+        val packageManager = testContext.packageManager
+        val appAlias = ComponentName("test", "App")
+        packageManager.setComponentEnabledSetting(
+            appAlias,
+            PackageManager.COMPONENT_ENABLED_STATE_DISABLED,
+            PackageManager.DONT_KILL_APP,
+        )
+        val alternativeAppAlias = ComponentName("test", "AppAlternative")
+        packageManager.setComponentEnabledSetting(
+            alternativeAppAlias,
+            PackageManager.COMPONENT_ENABLED_STATE_ENABLED,
+            PackageManager.DONT_KILL_APP,
+        )
+
+        `when`(shortcutWrapper.updateShortcuts(any())).thenThrow(IllegalArgumentException())
+
+        changeAppLauncherIcon(
+            testContext,
+            shortcutWrapper,
+            appAlias,
+            alternativeAppAlias,
+            true,
+        )
+
+        val appAliasState = packageManager.getComponentEnabledSetting(appAlias)
+        assertTrue(appAliasState == PackageManager.COMPONENT_ENABLED_STATE_DISABLED)
+
+        val alternativeAppAliasState =
+            packageManager.getComponentEnabledSetting(alternativeAppAlias)
+        assertTrue(alternativeAppAliasState == PackageManager.COMPONENT_ENABLED_STATE_ENABLED)
+
+        verify(shortcutWrapper).getPinnedShortcuts()
+        verify(shortcutWrapper).updateShortcuts(any())
+    }
+
+    @Test
+    fun `WHEN use alternative icon and user has default icon set THEN changeAppLauncherIcon updates states to alternative config`() {
         val packageManager = testContext.packageManager
         val appAlias = ComponentName("test", "App")
         packageManager.setComponentEnabledSetting(
@@ -137,7 +213,7 @@ class ChangeAppLauncherIconTest {
         val shortcut = createShortcut(appAlias)
         `when`(shortcutWrapper.getPinnedShortcuts()).thenReturn(listOf(shortcut))
 
-        changeAppLauncherIconBackgroundColor(
+        changeAppLauncherIcon(
             testContext,
             shortcutWrapper,
             appAlias,
@@ -168,7 +244,7 @@ class ChangeAppLauncherIconTest {
     }
 
     @Test
-    fun `don't reset to default and user has alternative icon set changeAppLauncherIconBackgroundColor makes no changes`() {
+    fun `WHEN use alternative and user has alternative icon already set THEN changeAppLauncherIcon makes no changes`() {
         val packageManager = testContext.packageManager
         val appAlias = ComponentName("test", "App")
         packageManager.setComponentEnabledSetting(
@@ -185,7 +261,7 @@ class ChangeAppLauncherIconTest {
 
         `when`(shortcutWrapper.getPinnedShortcuts()).thenReturn(mock())
 
-        changeAppLauncherIconBackgroundColor(
+        changeAppLauncherIcon(
             testContext,
             shortcutWrapper,
             appAlias,
@@ -201,6 +277,80 @@ class ChangeAppLauncherIconTest {
         assertTrue(alternativeAppAliasState == PackageManager.COMPONENT_ENABLED_STATE_ENABLED)
 
         verifyNoInteractions(shortcutWrapper)
+    }
+
+    @Test
+    fun `WHEN should use alternative icon and getPinnedShortcuts throws THEN changeAppLauncherIcon makes no changes to shortcuts and components are the original state`() {
+        val packageManager = testContext.packageManager
+        val appAlias = ComponentName("test", "App")
+        packageManager.setComponentEnabledSetting(
+            appAlias,
+            PackageManager.COMPONENT_ENABLED_STATE_ENABLED,
+            PackageManager.DONT_KILL_APP,
+        )
+        val alternativeAppAlias = ComponentName("test", "AppAlternative")
+        packageManager.setComponentEnabledSetting(
+            alternativeAppAlias,
+            PackageManager.COMPONENT_ENABLED_STATE_DISABLED,
+            PackageManager.DONT_KILL_APP,
+        )
+
+        `when`(shortcutWrapper.getPinnedShortcuts()).thenThrow(IllegalStateException())
+
+        changeAppLauncherIcon(
+            testContext,
+            shortcutWrapper,
+            appAlias,
+            alternativeAppAlias,
+            false,
+        )
+
+        val appAliasState = packageManager.getComponentEnabledSetting(appAlias)
+        assertTrue(appAliasState == PackageManager.COMPONENT_ENABLED_STATE_ENABLED)
+
+        val alternativeAppAliasState =
+            packageManager.getComponentEnabledSetting(alternativeAppAlias)
+        assertTrue(alternativeAppAliasState == PackageManager.COMPONENT_ENABLED_STATE_DISABLED)
+
+        verify(shortcutWrapper).getPinnedShortcuts()
+        verify(shortcutWrapper, never()).updateShortcuts(any())
+    }
+
+    @Test
+    fun `WHEN should use alternative icon and updateShortcuts throws THEN changeAppLauncherIcon makes no changes to shortcuts and components are the original state`() {
+        val packageManager = testContext.packageManager
+        val appAlias = ComponentName("test", "App")
+        packageManager.setComponentEnabledSetting(
+            appAlias,
+            PackageManager.COMPONENT_ENABLED_STATE_ENABLED,
+            PackageManager.DONT_KILL_APP,
+        )
+        val alternativeAppAlias = ComponentName("test", "AppAlternative")
+        packageManager.setComponentEnabledSetting(
+            alternativeAppAlias,
+            PackageManager.COMPONENT_ENABLED_STATE_DISABLED,
+            PackageManager.DONT_KILL_APP,
+        )
+
+        `when`(shortcutWrapper.updateShortcuts(any())).thenThrow(IllegalArgumentException())
+
+        changeAppLauncherIcon(
+            testContext,
+            shortcutWrapper,
+            appAlias,
+            alternativeAppAlias,
+            false,
+        )
+
+        val appAliasState = packageManager.getComponentEnabledSetting(appAlias)
+        assertTrue(appAliasState == PackageManager.COMPONENT_ENABLED_STATE_ENABLED)
+
+        val alternativeAppAliasState =
+            packageManager.getComponentEnabledSetting(alternativeAppAlias)
+        assertTrue(alternativeAppAliasState == PackageManager.COMPONENT_ENABLED_STATE_DISABLED)
+
+        verify(shortcutWrapper).getPinnedShortcuts()
+        verify(shortcutWrapper).updateShortcuts(any())
     }
 }
 
