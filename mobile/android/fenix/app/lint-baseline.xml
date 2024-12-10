@@ -1932,21 +1932,6 @@
             column="1"/>
     </issue>
 
-    <issue id="UnusedResources"
-        message="The resource R.drawable.ic_onboarding_customize_toolbar appears to be unused">
-        <location file="src/main/res/drawable/ic_onboarding_customize_toolbar.xml" />
-    </issue>
-
-    <issue id="UnusedResources"
-        message="The resource R.drawable.ic_onboarding_bottom_toolbar appears to be unused">
-        <location file="src/main/res/drawable/ic_onboarding_bottom_toolbar.xml" />
-    </issue>
-
-    <issue id="UnusedResources"
-        message="The resource R.drawable.ic_onboarding_top_toolbar appears to be unused">
-        <location file="src/main/res/drawable/ic_onboarding_top_toolbar.xml" />
-    </issue>
-
     <issue
         id="UseOfNonLambdaOffsetOverload"
         message="State backed values should use the lambda overload of Modifier.offset"
@@ -2248,26 +2233,6 @@
             file="src/main/res/layout/activity_privacy_content_display.xml"
             line="25"
             column="21"/>
-    </issue>
-
-    <issue id="UnusedResources"
-        message="The resource R.drawable.ic_pick_a_theme appears to be unused">
-        <location file="src/main/res/drawable/ic_pick_a_theme.xml" />
-    </issue>
-
-    <issue id="UnusedResources"
-        message="The resource R.drawable.ic_pick_a_theme_dark appears to be unused">
-        <location file="src/main/res/drawable/ic_pick_a_theme_dark.xml" />
-    </issue>
-
-    <issue id="UnusedResources"
-        message="The resource R.drawable.ic_pick_a_theme_light appears to be unused">
-        <location file="src/main/res/drawable/ic_pick_a_theme_light.xml" />
-    </issue>
-
-    <issue id="UnusedResources"
-        message="The resource R.drawable.ic_pick_a_theme_system_auto appears to be unused">
-        <location file="src/main/res/drawable/ic_pick_a_theme_system_auto.xml" />
     </issue>
 
 </issues>
