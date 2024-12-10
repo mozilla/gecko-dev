@@ -92,7 +92,7 @@ object Versions {
         const val firebase_messaging = "24.1.0"
         const val material = "1.12.0"
         const val osslicenses_plugin = "0.10.6"
-        const val play_review = "2.0.1"
+        const val play_review = "2.0.2"
         const val play_services_ads_id = "18.1.0"
         const val play_services_base = "18.5.0"
         const val play_services_fido = "21.1.0"
