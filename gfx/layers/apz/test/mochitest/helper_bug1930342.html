@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<script src="/tests/SimpleTest/EventUtils.js"></script>
+<script src="/tests/SimpleTest/NativeKeyCodes.js"></script>
+<script src="/tests/SimpleTest/paint_listener.js"></script>
+<script src="apz_test_utils.js"></script>
+<script src="apz_test_native_event_utils.js"></script>
+<title>What happens if main thread scrolls?</title>
+<style>
+body {
+  margin: 0;
+}
+
+.container {
+  width: 100vw;
+  height: 10vh;
+  min-height: 300px;
+  display: flex;
+}
+
+#stream {
+  width: 300px;
+  overflow-y: scroll;
+}
+</style>
+<div class="container">
+  <div id="stream"></div>
+  </div>
+</div>
+<script>
+async function setup() {
+  // Setup a scroll container having 50 child elements, and scroll to
+  // the bottom.
+  for (let i = 0 ; i < 50; i++) {
+    const msg = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam suscipit diam non turpis facilisis, in suscipit nunc fringilla. Nullam congue, felis a mollis pharetra, sapien.";
+    const el = document.createElement("div");
+    el.textContent = msg.slice(
+      0,
+      Math.floor(Math.random() * msg.length) + 1,
+    );
+
+    stream.append(el);
+  }
+
+  const scrollPromise = promiseOneEvent(stream, "scroll");
+  stream.scrollTo(0, stream.scrollHeight);
+  await scrollPromise;
+  await promiseApzFlushedRepaints();
+}
+
+async function test() {
+  await setup();
+
+  // Remove the first element so that a scroll anchor adjustment happens,
+  // at the same time the scrollable range shrinks.
+  stream.firstElementChild.remove();
+
+  await promiseApzFlushedRepaints();
+
+  // The scroll offset on the main-thread is the expected value.
+  const expectedScrollOffset = stream.scrollTop;
+
+  // Collect sampled offsets on the compositor.
+  const records = collectSampledScrollOffsets(stream);
+
+  ok(records.some(record => SpecialPowers.wrap(record).scrollOffsetY == expectedScrollOffset),
+    `There should be ${expectedScrollOffset} in [${records.map(record => SpecialPowers.wrap(record).scrollOffsetY)}]`);
+}
+
+waitUntilApzStable()
+.then(test)
+.then(subtestDone, subtestFailed);
+</script>
+</html>
