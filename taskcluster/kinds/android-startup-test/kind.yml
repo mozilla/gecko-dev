@@ -82,13 +82,6 @@ task-defaults:
                             }
                           },
                           {
-                            "type": "section",
-                            "text": {
-                              "type": "mrkdwn",
-                              "text": "*Test Summary*: <https://firefoxci.taskcluster-artifacts.net/tasks/${status.taskId}/${task.runId}/public/results/HtmlErrorReport.html|Results> :debug:"
-                            }
-                          },
-                          {
                             "type": "divider"
                           },
                           {
