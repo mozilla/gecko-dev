@@ -3521,8 +3521,29 @@ impl Renderer {
                 CompositeTileSurface::Clear => {
                     CompositorSurfaceUsage::Content
                 }
-                CompositeTileSurface::ExternalSurface { .. } => {
-                    CompositorSurfaceUsage::Content
+                CompositeTileSurface::ExternalSurface { external_surface_index } => {
+                    let surface = &composite_state.external_surfaces[external_surface_index.0];
+
+                    // TODO(gwc): For now, we only select a hardware overlay swapchain if we
+                    // have an external image, but it may make sense to do for compositor
+                    // surfaces without in future.
+                    match surface.external_image_id {
+                        Some(external_image_id) => {
+                            let image_key = match surface.color_data {
+                                ResolvedExternalSurfaceColorData::Rgb { image_dependency, .. } => image_dependency.key,
+                                ResolvedExternalSurfaceColorData::Yuv { image_dependencies, .. } => image_dependencies[0].key,
+                            };
+
+                            CompositorSurfaceUsage::External {
+                                image_key,
+                                external_image_id,
+                                transform_index: tile.transform_index,
+                            }
+                        }
+                        None => {
+                            CompositorSurfaceUsage::Content
+                        }
+                    }
                 }
             };
 
@@ -3532,15 +3553,17 @@ impl Renderer {
                     match (curr_layer.usage, usage) {
                         // Content -> content, composite in to same layer
                         (CompositorSurfaceUsage::Content, CompositorSurfaceUsage::Content) => None,
+                        (CompositorSurfaceUsage::External { .. }, CompositorSurfaceUsage::Content) => Some(usage),
 
                         // Switch of layer type, or video -> video, need new swapchain
-                        (CompositorSurfaceUsage::Content, CompositorSurfaceUsage::External) |
-                        (CompositorSurfaceUsage::External, CompositorSurfaceUsage::Content) |
-                        (CompositorSurfaceUsage::External, CompositorSurfaceUsage::External) => {
+                        (CompositorSurfaceUsage::Content, CompositorSurfaceUsage::External { .. }) |
+                        (CompositorSurfaceUsage::External { .. }, CompositorSurfaceUsage::External { .. }) => {
                             // Only create a new layer if we're using LayerCompositor
                             match self.compositor_config {
                                 CompositorConfig::Draw { .. } | CompositorConfig::Native { .. } => None,
-                                CompositorConfig::Layer { .. } => Some(usage),
+                                CompositorConfig::Layer { .. } => {
+                                    Some(usage)
+                                }
                             }
                         }
                     }
@@ -3556,7 +3579,7 @@ impl Renderer {
                     CompositorSurfaceUsage::Content => {
                         (device_size.into(), input_layers.is_empty())
                     }
-                    CompositorSurfaceUsage::External => {
+                    CompositorSurfaceUsage::External { .. } => {
                         let rect = composite_state.get_device_rect(
                             &tile.local_rect,
                             tile.transform_index
@@ -3620,6 +3643,14 @@ impl Renderer {
         for (layer_index, (layer, swapchain_layer)) in input_layers.iter().zip(swapchain_layers.iter()).enumerate() {
             self.device.reset_state();
 
+            // Skip compositing external images
+            match layer.usage {
+                CompositorSurfaceUsage::Content => {}
+                CompositorSurfaceUsage::External { .. } => {
+                    continue;
+                }
+            }
+
             let clear_color = if layer_index == 0 {
                 self.clear_color
             } else {
@@ -3664,8 +3695,16 @@ impl Renderer {
         // End frame notify for experimental compositor
         if let Some(ref mut compositor) = self.compositor_config.layer_compositor() {
             for (layer_index, layer) in input_layers.iter().enumerate() {
+                // External surfaces need transform applied, but content
+                // surfaces are always at identity
+                let transform = match layer.usage {
+                    CompositorSurfaceUsage::Content => CompositorSurfaceTransform::identity(),
+                    CompositorSurfaceUsage::External { transform_index, .. } => composite_state.get_compositor_transform(transform_index),
+                };
+
                 compositor.add_surface(
                     layer_index,
+                    transform,
                     layer.rect,
                     ImageRendering::Auto,
                 );

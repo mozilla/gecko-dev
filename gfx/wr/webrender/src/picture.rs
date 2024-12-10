@@ -2926,6 +2926,7 @@ impl TileCacheInstance {
             z_id: ZBufferId::invalid(),
             native_surface_id,
             update_params,
+            external_image_id,
         };
 
         // If the surface is opaque, we can draw it an an underlay (which avoids
