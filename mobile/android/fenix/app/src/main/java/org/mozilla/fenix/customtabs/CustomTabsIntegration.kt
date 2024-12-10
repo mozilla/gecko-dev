@@ -32,6 +32,8 @@ import mozilla.components.lib.state.ext.flow
 import mozilla.components.support.base.feature.LifecycleAwareFeature
 import mozilla.components.support.base.feature.UserInteractionHandler
 import mozilla.components.support.utils.ColorUtils.calculateAlphaFromPercentage
+import mozilla.telemetry.glean.private.NoExtras
+import org.mozilla.fenix.GleanMetrics.NavigationBar
 import org.mozilla.fenix.R
 import org.mozilla.fenix.browser.BrowserFragment.Companion.OPEN_IN_ACTION_WEIGHT
 import org.mozilla.fenix.components.AppStore
@@ -113,6 +115,9 @@ class CustomTabsIntegration(
         window = activity.window,
         customTabsToolbarListeners = CustomTabsToolbarListeners(
             menuListener = {
+                if (context.settings().navigationToolbarEnabled) {
+                    NavigationBar.customMenuTapped.record(NoExtras())
+                }
                 interactor.onMenuButtonClicked(
                     accessPoint = MenuAccessPoint.External,
                     customTabSessionId = sessionId,
@@ -302,11 +307,13 @@ class CustomTabsIntegration(
                 },
                 disableInSecondaryState = true,
                 longClickListener = {
+                    NavigationBar.customForwardLongTapped.record(NoExtras())
                     interactor.onBrowserToolbarMenuItemTapped(
                         ToolbarMenu.Item.Forward(viewHistory = true),
                     )
                 },
                 listener = {
+                    NavigationBar.customForwardTapped.record(NoExtras())
                     interactor.onBrowserToolbarMenuItemTapped(
                         ToolbarMenu.Item.Forward(viewHistory = false),
                     )
@@ -349,11 +356,13 @@ class CustomTabsIntegration(
                 },
                 disableInSecondaryState = true,
                 longClickListener = {
+                    NavigationBar.customBackLongTapped.record(NoExtras())
                     interactor.onBrowserToolbarMenuItemTapped(
                         ToolbarMenu.Item.Back(viewHistory = true),
                     )
                 },
                 listener = {
+                    NavigationBar.customBackTapped.record(NoExtras())
                     interactor.onBrowserToolbarMenuItemTapped(
                         ToolbarMenu.Item.Back(viewHistory = false),
                     )
@@ -413,6 +422,7 @@ class CustomTabsIntegration(
                 disableInSecondaryState = true,
                 weight = { OPEN_IN_ACTION_WEIGHT },
                 listener = {
+                    NavigationBar.customOpenInFenixTapped.record(NoExtras())
                     interactor.onBrowserToolbarMenuItemTapped(
                         ToolbarMenu.Item.OpenInFenix,
                     )

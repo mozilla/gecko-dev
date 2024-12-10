@@ -55,6 +55,7 @@ import org.mozilla.fenix.GleanMetrics.LoginDialog
 import org.mozilla.fenix.GleanMetrics.Logins
 import org.mozilla.fenix.GleanMetrics.MediaNotification
 import org.mozilla.fenix.GleanMetrics.MediaState
+import org.mozilla.fenix.GleanMetrics.NavigationBar
 import org.mozilla.fenix.GleanMetrics.PerfAwesomebar
 import org.mozilla.fenix.GleanMetrics.Pings
 import org.mozilla.fenix.GleanMetrics.ProgressiveWebApp
@@ -167,7 +168,25 @@ internal class ReleaseMetricController(
             }
         }
         Component.BROWSER_TOOLBAR to ToolbarFacts.Items.MENU -> {
-            Events.toolbarMenuVisible.record(NoExtras())
+            if (settings.navigationToolbarEnabled) {
+                NavigationBar.browserMenuTapped.record(NoExtras())
+            } else {
+                Events.toolbarMenuVisible.record(NoExtras())
+            }
+        }
+        Component.UI_TABCOUNTER to ToolbarFacts.Items.TOOLBAR -> {
+            if (settings.navigationToolbarEnabled) {
+                NavigationBar.browserTabTrayTapped.record(NoExtras())
+            } else {
+                Unit
+            }
+        }
+        Component.UI_TABCOUNTER to ToolbarFacts.Items.MENU -> {
+            if (settings.navigationToolbarEnabled) {
+                NavigationBar.browserTabTrayLongTapped.record(NoExtras())
+            } else {
+                Unit
+            }
         }
         Component.FEATURE_CONTEXTMENU to ContextMenuFacts.Items.ITEM -> {
             metadata?.get("item")?.let { item ->
