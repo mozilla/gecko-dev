@@ -8,11 +8,9 @@ import android.util.Log
 import androidx.test.espresso.Espresso.onView
 import androidx.test.espresso.assertion.ViewAssertions.matches
 import androidx.test.espresso.matcher.RootMatchers
-import androidx.test.espresso.matcher.ViewMatchers
 import androidx.test.espresso.matcher.ViewMatchers.isChecked
 import androidx.test.espresso.matcher.ViewMatchers.isNotChecked
 import androidx.test.espresso.matcher.ViewMatchers.withClassName
-import androidx.test.espresso.matcher.ViewMatchers.withEffectiveVisibility
 import androidx.test.espresso.matcher.ViewMatchers.withId
 import androidx.test.espresso.matcher.ViewMatchers.withText
 import org.hamcrest.CoreMatchers.allOf
@@ -101,25 +99,6 @@ class SettingsSubMenuDataCollectionRobot {
         Log.i(TAG, "clickStudiesToggle: Trying to click the \"Studies\" toggle")
         itemWithResId("$packageName:id/studies_switch").click()
         Log.i(TAG, "clickStudiesToggle: Clicked the \"Studies\" toggle")
-    }
-
-    fun verifyStudiesDialog() {
-        assertUIObjectExists(
-            itemWithResId("$packageName:id/alertTitle"),
-            itemContainingText(getStringResource(R.string.studies_restart_app)),
-        )
-        Log.i(TAG, "verifyStudiesDialog: Trying to verify that the \"Studies\" dialog \"Ok\" button is visible")
-        studiesDialogOkButton().check(matches(withEffectiveVisibility(ViewMatchers.Visibility.VISIBLE)))
-        Log.i(TAG, "verifyStudiesDialog: Verified that the \"Studies\" dialog \"Ok\" button is visible")
-        Log.i(TAG, "verifyStudiesDialog: Trying to verify that the \"Studies\" dialog \"Cancel\" button is visible")
-        studiesDialogCancelButton().check(matches(withEffectiveVisibility(ViewMatchers.Visibility.VISIBLE)))
-        Log.i(TAG, "verifyStudiesDialog: Verified that the \"Studies\" dialog \"Cancel\" button is visible")
-    }
-
-    fun clickStudiesDialogCancelButton() {
-        Log.i(TAG, "clickStudiesDialogCancelButton: Trying to click the \"Studies\" dialog \"Cancel\" button")
-        studiesDialogCancelButton().click()
-        Log.i(TAG, "clickStudiesDialogCancelButton: Clicked the \"Studies\" dialog \"Cancel\" button")
     }
 
     fun clickStudiesDialogOkButton() {

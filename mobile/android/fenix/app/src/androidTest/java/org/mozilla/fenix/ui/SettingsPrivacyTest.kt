@@ -73,9 +73,7 @@ class SettingsPrivacyTest : TestSetup() {
             verifyStudiesToggle(false)
             // Turning to true
             clickStudiesToggle()
-            verifyStudiesDialog()
-            clickStudiesDialogCancelButton()
-            verifyStudiesToggle(false)
+            verifyStudiesToggle(true)
         }
     }
 
