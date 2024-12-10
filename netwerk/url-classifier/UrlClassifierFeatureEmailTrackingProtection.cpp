@@ -99,8 +99,7 @@ UrlClassifierFeatureEmailTrackingProtection::MaybeCreate(nsIChannel* aChannel) {
     return nullptr;
   }
 
-  RefPtr<nsILoadInfo> loadInfo = aChannel->LoadInfo();
-  bool isThirdParty = loadInfo->GetIsThirdPartyContextToTopWindow();
+  bool isThirdParty = AntiTrackingUtils::IsThirdPartyChannel(aChannel);
   if (!isThirdParty) {
     UC_LOG(
         ("UrlClassifierFeatureEmailTrackingProtection::MaybeCreate - "
