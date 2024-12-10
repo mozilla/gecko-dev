@@ -104,9 +104,6 @@ nav-reload-shortcut =
 nav-stop-shortcut =
     .key = .
 
-toggle-sidebar-shortcut =
-    .key = Z
-
 history-show-all-shortcut =
     .key = H
 

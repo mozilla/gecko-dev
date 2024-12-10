@@ -381,9 +381,6 @@ var SidebarController = {
       this.recordVisibilitySetting();
       this.recordPositionSetting();
       this.recordTabsLayoutSetting();
-      let sidebarToggleKey = document.getElementById("toggleSidebarKb");
-      const shortcut = ShortcutUtils.prettifyShortcut(sidebarToggleKey);
-      this.toolbarButton.dataset.l10nArgs = JSON.stringify({ shortcut });
     } else {
       this._switcherCloseButton = document.getElementById("sidebar-close");
       if (!this._switcherListenersAdded) {
@@ -1100,15 +1097,15 @@ var SidebarController = {
         // Toolbar button controls expanded state.
         toolbarButton.checked = this.sidebarMain.expanded;
         toolbarButton.dataset.l10nId = toolbarButton.checked
-          ? "sidebar-widget-collapse-sidebar2"
-          : "sidebar-widget-expand-sidebar2";
+          ? "sidebar-widget-collapse-sidebar"
+          : "sidebar-widget-expand-sidebar";
         break;
       case "hide-sidebar":
         // Toolbar button controls hidden state.
         toolbarButton.checked = !this.sidebarContainer.hidden;
         toolbarButton.dataset.l10nId = toolbarButton.checked
-          ? "sidebar-widget-hide-sidebar2"
-          : "sidebar-widget-show-sidebar2";
+          ? "sidebar-widget-hide-sidebar"
+          : "sidebar-widget-show-sidebar";
         break;
     }
   },

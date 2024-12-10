@@ -108,8 +108,8 @@ add_task(async function test_expanded_state_for_always_show() {
       document.l10n.getAttributes(button),
       {
         id: expanded
-          ? "sidebar-widget-collapse-sidebar2"
-          : "sidebar-widget-expand-sidebar2",
+          ? "sidebar-widget-collapse-sidebar"
+          : "sidebar-widget-expand-sidebar",
         args: null,
       },
       "Toolbar button has the correct tooltip."
@@ -203,8 +203,8 @@ add_task(async function test_states_for_hide_sidebar() {
       document.l10n.getAttributes(button),
       {
         id: hidden
-          ? "sidebar-widget-show-sidebar2"
-          : "sidebar-widget-hide-sidebar2",
+          ? "sidebar-widget-show-sidebar"
+          : "sidebar-widget-hide-sidebar",
         args: null,
       },
       "Toolbar button has the correct tooltip."

@@ -251,11 +251,6 @@ document.addEventListener(
       });
 
     document.getElementById("mainKeyset").addEventListener("command", event => {
-      const SIDEBAR_REVAMP_PREF = "sidebar.revamp";
-      const SIDEBAR_REVAMP_ENABLED = Services.prefs.getBoolPref(
-        SIDEBAR_REVAMP_PREF,
-        false
-      );
       switch (event.target.id) {
         case "goHome":
           BrowserCommands.home();
@@ -268,11 +263,6 @@ document.addEventListener(
           break;
         case "viewBookmarksToolbarKb":
           BookmarkingUI.toggleBookmarksToolbar("shortcut");
-          break;
-        case "toggleSidebarKb":
-          if (SIDEBAR_REVAMP_ENABLED) {
-            SidebarController.handleToolbarButtonClick();
-          }
           break;
         case "key_gotoHistory":
           SidebarController.toggle("viewHistorySidebar");
