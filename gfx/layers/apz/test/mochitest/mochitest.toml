@@ -127,8 +127,6 @@ skip-if = [
 
 ["test_group_programmatic_scroll_behavior.html"]
 
-["test_group_scroll_anchor.html"]
-
 ["test_group_scroll_linked_effect.html"]
 skip-if = [
   "os == 'android'", # wheel events not supported on mobile
