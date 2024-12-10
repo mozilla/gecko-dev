@@ -54,7 +54,7 @@
     line-height: inherit;
     vertical-align: top;
     margin-block: var(--input-margin-block-adjust);
-    margin-inline-start: var(--input-margin-inline-start-adjust);
+    margin-inline: var(--input-margin-inline-start-adjust) var(--space-small);
   }
 
   /* Icon */
