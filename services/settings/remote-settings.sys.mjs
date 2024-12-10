@@ -38,6 +38,14 @@ const BROADCAST_ID = "remote-settings/monitor_changes";
 
 // Signer to be used when not specified (see Ci.nsIContentSignatureVerifier).
 const DEFAULT_SIGNER = "remote-settings.content-signature.mozilla.org";
+const SIGNERS_BY_BUCKET = {
+  "security-state": "onecrl.content-signature.mozilla.org",
+  "security-state-preview": "onecrl.content-signature.mozilla.org",
+  // All the other buckets use the default signer.
+  // This mapping would have to be modified if a consumer relies on
+  // changesets bundles and leverages a specific bucket and signer.
+  // This is very (very) unlikely though.
+};
 
 ChromeUtils.defineLazyGetter(lazy, "gPrefs", () => {
   return Services.prefs.getBranch(PREF_SETTINGS_BRANCH);
@@ -236,12 +244,10 @@ function remoteSettingsFunction() {
 
         const { metadata, timestamp, changes: records } = changeset;
 
-        const {
-          signature: { signer_id: signerName },
-        } = metadata;
+        const signerName = SIGNERS_BY_BUCKET[bucket] || DEFAULT_SIGNER;
         const client = RemoteSettings(collection, {
           bucketName: bucket,
-          signerName: `${signerName}.content-signature.mozilla.org`,
+          signerName,
         });
         if (client.verifySignature) {
           lazy.console.debug(

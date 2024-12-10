@@ -157,11 +157,11 @@ class StorageError extends Error {
 }
 
 class InvalidSignatureError extends Error {
-  constructor(cid, x5u) {
+  constructor(cid, x5u, signerName) {
     let message = `Invalid content signature (${cid})`;
     if (x5u) {
       const chain = x5u.split("/").pop();
-      message += ` using '${chain}'`;
+      message += ` using '${chain}' and signer ${signerName}`;
     }
     super(message);
     this.name = "InvalidSignatureError";
@@ -1037,7 +1037,7 @@ export class RemoteSettingsClient extends EventEmitter {
         lazy.Utils.CERT_CHAIN_ROOT_IDENTIFIER
       ))
     ) {
-      throw new InvalidSignatureError(this.identifier, x5u);
+      throw new InvalidSignatureError(this.identifier, x5u, this.signerName);
     }
   }
 

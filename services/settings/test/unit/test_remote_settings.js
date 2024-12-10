@@ -511,7 +511,7 @@ add_task(async function test_get_can_verify_signature() {
   }
   equal(
     error.message,
-    "Invalid content signature (main/password-fields) using 'fake-x5u'"
+    "Invalid content signature (main/password-fields) using 'fake-x5u' and signer remote-settings.content-signature.mozilla.org"
   );
 });
 add_task(clear_state);
