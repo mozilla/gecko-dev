@@ -130,7 +130,6 @@ import mozilla.components.support.base.feature.ActivityResultHandler
 import mozilla.components.support.base.feature.PermissionsFeature
 import mozilla.components.support.base.feature.UserInteractionHandler
 import mozilla.components.support.base.feature.ViewBoundFeatureWrapper
-import mozilla.components.support.ktx.android.view.ImeInsetsSynchronizer
 import mozilla.components.support.ktx.android.view.enterImmersiveMode
 import mozilla.components.support.ktx.android.view.exitImmersiveMode
 import mozilla.components.support.ktx.android.view.hideKeyboard
@@ -465,7 +464,6 @@ abstract class BaseBrowserFragment :
         val tab = getCurrentTab()
         browserInitialized = if (tab != null) {
             initializeUI(view, tab)
-            setupIMEInsetsHandling(view)
             true
         } else {
             false
@@ -2492,8 +2490,6 @@ abstract class BaseBrowserFragment :
                 reinitializeMicrosurveyPrompt = ::initializeMicrosurveyPrompt,
             )
         }
-
-        view?.let { setupIMEInsetsHandling(it) }
     }
 
     private fun reinitializeNavBar() {
@@ -2695,63 +2691,6 @@ abstract class BaseBrowserFragment :
             Logins.openLogins.record(NoExtras())
             val directions = BrowserFragmentDirections.actionLoginsListFragment()
             navController.navigate(directions)
-        }
-    }
-
-    private fun setupIMEInsetsHandling(view: View) {
-        when (context?.settings()?.toolbarPosition) {
-            ToolbarPosition.BOTTOM -> {
-                val toolbar = listOf(
-                    _bottomToolbarContainerView?.toolbarContainerView,
-                    _browserToolbarView?.layout,
-                ).firstOrNull { it != null } ?: return
-
-                ImeInsetsSynchronizer.setup(
-                    targetView = toolbar,
-                    onIMEAnimationStarted = { isKeyboardShowingUp, keyboardHeight ->
-                        // If the keyboard is hiding have the engine view immediately expand to the entire height of the
-                        // screen and ensure the toolbar is shown above keyboard before both would be animated down.
-                        if (!isKeyboardShowingUp) {
-                            (view.layoutParams as? ViewGroup.MarginLayoutParams)?.bottomMargin = 0
-                            (toolbar.layoutParams as? ViewGroup.MarginLayoutParams)?.bottomMargin = keyboardHeight
-                            view.requestLayout()
-                        }
-                    },
-                    onIMEAnimationFinished = { isKeyboardShowingUp, keyboardHeight ->
-                        // If the keyboard is showing up keep the engine view covering the entire height
-                        // of the screen until the animation is finished to avoid reflowing the web content
-                        // together with the keyboard animation in a short burst of updates.
-                        if (isKeyboardShowingUp || keyboardHeight == 0) {
-                            (view.layoutParams as? ViewGroup.MarginLayoutParams)?.bottomMargin = keyboardHeight
-                            (toolbar.layoutParams as? ViewGroup.MarginLayoutParams)?.bottomMargin = 0
-                            view.requestLayout()
-                        }
-                    },
-                )
-            }
-
-            ToolbarPosition.TOP -> {
-                ImeInsetsSynchronizer.setup(
-                    targetView = view,
-                    synchronizeViewWithIME = false,
-                    onIMEAnimationStarted = { isKeyboardShowingUp, _ ->
-                        if (!isKeyboardShowingUp) {
-                            (view.layoutParams as? ViewGroup.MarginLayoutParams)?.bottomMargin = 0
-                            view.requestLayout()
-                        }
-                    },
-                    onIMEAnimationFinished = { isKeyboardShowingUp, keyboardHeight ->
-                        if (isKeyboardShowingUp || keyboardHeight == 0) {
-                            (view.layoutParams as? ViewGroup.MarginLayoutParams)?.bottomMargin = keyboardHeight
-                            view.requestLayout()
-                        }
-                    },
-                )
-            }
-
-            else -> {
-                // no-op
-            }
         }
     }
 }
