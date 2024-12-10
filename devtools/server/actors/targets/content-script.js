@@ -46,6 +46,7 @@ class WebExtensionContentScriptTargetActor extends BaseTargetActor {
     this.contentScriptSandbox = contentScriptSandbox;
     const metadata = Cu.getSandboxMetadata(contentScriptSandbox);
     this.addonId = metadata.addonId;
+    this.innerWindowId = metadata["inner-window-id"];
 
     // Use a debugger against a unique global
     this.makeDebugger = makeDebugger.bind(null, {
@@ -108,6 +109,9 @@ class WebExtensionContentScriptTargetActor extends BaseTargetActor {
       // as content scripts have no name, they are just a group of JS files
       // running against a web page.
       title: policy.name,
+
+      // The ID of the document against which this content script executes
+      innerWindowId: this.innerWindowId,
 
       consoleActor: this._consoleActor.actorID,
       threadActor: this.threadActor.actorID,

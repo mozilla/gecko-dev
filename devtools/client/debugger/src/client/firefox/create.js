@@ -407,6 +407,7 @@ export function createThread(targetFront) {
     name,
     serviceWorkerStatus: targetFront.debuggerServiceWorkerStatus,
     processID: targetFront.processID,
+    innerWindowId: targetFront.innerWindowId,
   };
 }
 

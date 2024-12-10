@@ -451,7 +451,11 @@ add_task(async function testSourceTreeWithWebExtensionContentScript() {
   let dbg = await initDebugger("doc-content-script-sources.html");
   // Let some time for unexpected source to appear
   await wait(1000);
-  await waitForSourcesInSourceTree(dbg, []);
+  // There is no content script, but still html pages inline sources
+  await waitForSourcesInSourceTree(dbg, [
+    "doc-content-script-sources.html",
+    "doc-strict.html",
+  ]);
   await dbg.toolbox.closeToolbox();
 
   const toolbox = await openToolboxForTab(gBrowser.selectedTab, "jsdebugger");
@@ -463,7 +467,11 @@ add_task(async function testSourceTreeWithWebExtensionContentScript() {
     isChecked: false,
   });
 
-  await waitForSourcesInSourceTree(dbg, ["content_script.js"]);
+  await waitForSourcesInSourceTree(dbg, [
+    "doc-content-script-sources.html",
+    "doc-strict.html",
+    "content_script.js",
+  ]);
   await selectSource(dbg, "content_script.js");
   ok(
     findElementWithSelector(dbg, ".sources-list .focused"),

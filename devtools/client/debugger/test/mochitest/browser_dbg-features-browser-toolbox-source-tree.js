@@ -32,7 +32,7 @@ add_task(async function testSourceTreeNamesForWebExtensions() {
   });
 
   is(
-    getSourceTreeLabel(dbg, 2),
+    getSourceTreeLabel(dbg, 4),
     "Test content script extension",
     "Test content script extension is labeled properly"
   );

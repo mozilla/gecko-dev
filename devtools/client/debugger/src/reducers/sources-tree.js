@@ -25,6 +25,8 @@ const IGNORED_EXTENSIONS = ["css", "svg", "png"];
 import { isPretty, getRawSourceURL } from "../utils/source";
 import { prefs } from "../utils/prefs";
 
+import TargetCommand from "resource://devtools/shared/commands/target/target-command.js";
+
 const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
   BinarySearch: "resource://gre/modules/BinarySearch.sys.mjs",
@@ -437,6 +439,15 @@ function sortItems(a, b) {
   return 0;
 }
 
+const { TYPES } = TargetCommand;
+const TARGET_TYPE_ORDER = [
+  TYPES.PROCESS,
+  TYPES.FRAME,
+  TYPES.CONTENT_SCRIPT,
+  TYPES.SERVICE_WORKER,
+  TYPES.SHARED_WORKER,
+  TYPES.WORKER,
+];
 function sortThreadItems(a, b) {
   // Jest tests aren't emitting the necessary actions to populate the thread attributes.
   // Ignore sorting for them.
@@ -451,34 +462,28 @@ function sortThreadItems(a, b) {
     return 1;
   }
 
-  // Process targets should come next and after that frame targets
-  if (a.thread.targetType == "process" && b.thread.targetType == "frame") {
-    return -1;
-  } else if (
-    a.thread.targetType == "frame" &&
-    b.thread.targetType == "process"
-  ) {
+  // Order frame and content script per Window Global ID.
+  // It should order them by creation date.
+  if (a.thread.innerWindowId > b.thread.innerWindowId) {
     return 1;
+  } else if (a.thread.innerWindowId < b.thread.innerWindowId) {
+    return -1;
   }
 
-  // And we display the worker targets last.
-  if (
-    a.thread.targetType.endsWith("worker") &&
-    !b.thread.targetType.endsWith("worker")
-  ) {
-    return 1;
-  } else if (
-    !a.thread.targetType.endsWith("worker") &&
-    b.thread.targetType.endsWith("worker")
-  ) {
-    return -1;
+  // If the two target have a different type, order by type
+  if (a.thread.targetType !== b.thread.targetType) {
+    const idxA = TARGET_TYPE_ORDER.indexOf(a.thread.targetType);
+    const idxB = TARGET_TYPE_ORDER.indexOf(b.thread.targetType);
+    return idxA < idxB ? -1 : 1;
   }
 
   // Order the process targets by their process ids
-  if (a.thread.processID > b.thread.processID) {
-    return 1;
-  } else if (a.thread.processID < b.thread.processID) {
-    return -1;
+  if (a.thread.processID && b.thread.processID) {
+    if (a.thread.processID > b.thread.processID) {
+      return 1;
+    } else if (a.thread.processID < b.thread.processID) {
+      return -1;
+    }
   }
 
   // Order the frame targets and the worker targets by their target name

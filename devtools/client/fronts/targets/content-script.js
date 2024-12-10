@@ -25,6 +25,7 @@ class ContentScriptTargetFront extends TargetMixin(
     this.targetForm = json;
 
     this._title = json.title;
+    this.innerWindowId = json.innerWindowId;
   }
 }
 

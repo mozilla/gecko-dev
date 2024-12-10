@@ -16,7 +16,10 @@ add_task(async function () {
   );
 
   info("But the content script isn't visible by default");
-  await waitForSourcesInSourceTree(dbg, []);
+  await waitForSourcesInSourceTree(dbg, [
+    "doc-content-script-sources.html",
+    "doc-strict.html",
+  ]);
 
   info("Enable the content script setting");
   await toggleSourcesTreeSettingsMenuItem(dbg, {
@@ -25,11 +28,27 @@ add_task(async function () {
   });
 
   info("The extension content script should now be visible in the source tree");
-  await waitForSourcesInSourceTree(dbg, ["content_script.js"]);
+  await waitForSourcesInSourceTree(dbg, [
+    "doc-content-script-sources.html",
+    "doc-strict.html",
+    "content_script.js",
+  ]);
 
   await waitForSources(dbg, "content_script.js");
   await selectSource(dbg, "content_script.js");
   await closeTab(dbg, "content_script.js");
+
+  const sourceTreeThreadLabels = [
+    ...findAllElements(dbg, "sourceTreeThreads"),
+  ].map(el => {
+    return el.textContent;
+  });
+  // Verify that the content script is below the target of the frame it was executed against
+  Assert.deepEqual(
+    sourceTreeThreadLabels,
+    ["Main Thread", "Test content script extension", "Debugger test page"],
+    "The threads are correctly ordered"
+  );
 
   // Destroy the toolbox and repeat the test in a new toolbox
   // and ensures that the content script is still listed.
