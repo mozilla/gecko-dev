@@ -242,7 +242,6 @@ add_task(async function test_local_install_incompatible() {
     set: [
       ["extensions.update.url", `${BASE_URL}/updates.json`],
       ["xpinstall.signatures.required", false],
-      ["extensions.ui.ignoreUnsigned", true],
     ],
   });
   AddonManager.checkUpdateSecurity = false;

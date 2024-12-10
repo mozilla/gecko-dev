@@ -252,7 +252,10 @@ export var ExtensionsUI = {
       if (
         info.unsigned &&
         Cu.isInAutomation &&
-        Services.prefs.getBoolPref("extensions.ui.ignoreUnsigned", false)
+        Services.prefs.getBoolPref(
+          "extensions.ui.showAddonIconForUnsigned",
+          false
+        )
       ) {
         info.unsigned = false;
       }

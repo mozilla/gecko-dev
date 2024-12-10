@@ -72,7 +72,7 @@ add_task(async function test_sideloading() {
     set: [
       ["xpinstall.signatures.required", false],
       ["extensions.autoDisableScopes", 15],
-      ["extensions.ui.ignoreUnsigned", true],
+      ["extensions.ui.showAddonIconForUnsigned", true],
     ],
   });
 

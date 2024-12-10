@@ -55,7 +55,6 @@ add_task(async function test_theme_enable() {
     set: [
       ["xpinstall.signatures.required", false],
       ["extensions.autoDisableScopes", 15],
-      ["extensions.ui.ignoreUnsigned", true],
     ],
   });
 
@@ -101,7 +100,6 @@ add_task(async function test_sideloaded_extension_permissions_prompt() {
     set: [
       ["xpinstall.signatures.required", false],
       ["extensions.autoDisableScopes", 15],
-      ["extensions.ui.ignoreUnsigned", true],
     ],
   });
 
