@@ -46,6 +46,9 @@ class WorkerTargetFront extends TargetMixin(
     this._type = json.type;
     // Expose the WorkerDebugger's `id` so that we can match the target with the descriptor
     this.id = json.id;
+
+    // Expose the inner Window ID of the document which may have spawned this worker
+    this.relatedDocumentInnerWindowId = json.relatedDocumentInnerWindowId;
   }
 }
 

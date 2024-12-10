@@ -1826,6 +1826,7 @@ function checkContextSelectorMenu(hud, expected) {
  * @param {String} expected.tooltip: The tooltip of the target element in the menu
  * @param {Boolean} expected.checked: if the target should be selected or not
  * @param {Boolean} expected.separator: if the element is a simple separator
+ * @param {Boolean} expected.indented: if the element is indented
  */
 function checkContextSelectorMenuItemAt(hud, index, expected) {
   const el = getContextSelectorItems(hud).at(index);
@@ -1838,6 +1839,7 @@ function checkContextSelectorMenuItemAt(hud, index, expected) {
   const elChecked = el.getAttribute("aria-checked") === "true";
   const elTooltip = el.getAttribute("title");
   const elLabel = el.querySelector(".label").innerText;
+  const indented = el.classList.contains("indented");
 
   is(elLabel, expected.label, `The item has the expected label`);
   is(elTooltip, expected.tooltip, `Item "${elLabel}" has the expected tooltip`);
@@ -1845,6 +1847,11 @@ function checkContextSelectorMenuItemAt(hud, index, expected) {
     elChecked,
     expected.checked,
     `Item "${elLabel}" is ${expected.checked ? "checked" : "unchecked"}`
+  );
+  is(
+    indented,
+    expected.indented ?? false,
+    `Item "${elLabel}" is ${!indented ? " not" : ""} indented`
   );
 }
 

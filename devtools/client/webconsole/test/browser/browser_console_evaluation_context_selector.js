@@ -137,10 +137,16 @@ add_task(async function () {
     );
     return i == -1 ? null : i;
   });
+  is(
+    workerIndex,
+    documentIndex + 1,
+    "The worker is displayed right after its related document target"
+  );
   checkContextSelectorMenuItemAt(hud, workerIndex, {
     label: workerFile,
     tooltip: workerUrl,
     checked: true,
+    indented: true,
   });
 
   await executeAndWaitForResultMessage(
