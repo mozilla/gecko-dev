@@ -92,70 +92,75 @@ NS_IMETHODIMP HTTPSRecordResolver::OnLookupComplete(nsICancelable* aRequest,
   }
 
   if (aRequest == mHTTPSRecordRequest) {
-    mHTTPSRecordRequest = nullptr;
     nsCOMPtr<nsIDNSHTTPSSVCRecord> record = do_QueryInterface(aRecord);
-
+    mHTTPSRecordRequest = nullptr;
     if (!record || NS_FAILED(aStatus)) {
       // When failed, we don't want to wait for the CNAME.
       mCnameRequest = nullptr;
       MutexAutoUnlock unlock(mMutex);
-      return InvokeCallback(nullptr, nullptr, ""_ns);
+      return InvokeCallback();
     }
 
     mHTTPSRecord = record;
+
     // Waiting for the address record.
     if (mCnameRequest) {
       return NS_OK;
     }
 
-    nsCOMPtr<nsISVCBRecord> svcbRecord;
-    if (NS_FAILED(mHTTPSRecord->GetServiceModeRecordWithCname(
-            mCaps & NS_HTTP_DISALLOW_SPDY, mCaps & NS_HTTP_DISALLOW_HTTP3,
-            ""_ns, getter_AddRefs(svcbRecord)))) {
-      MutexAutoUnlock unlock(mMutex);
-      return InvokeCallback(mHTTPSRecord, nullptr, ""_ns);
-    }
-
     MutexAutoUnlock unlock(mMutex);
-    return InvokeCallback(mHTTPSRecord, svcbRecord, ""_ns);
+    return InvokeCallback();
   }
 
   // Having mCnameRequest indicates that we are interested in the address
   // record.
   if (mCnameRequest && aRequest == mCnameRequest) {
-    mCnameRequest = nullptr;
     nsCOMPtr<nsIDNSAddrRecord> addrRecord = do_QueryInterface(aRecord);
+    mCnameRequest = nullptr;
+    if (!addrRecord || NS_FAILED(aStatus)) {
+      // If we are still waiting for HTTPS RR, don't invoke the callback.
+      if (mHTTPSRecordRequest) {
+        return NS_OK;
+      }
 
-    if (!addrRecord || !mHTTPSRecord || NS_FAILED(aStatus)) {
       MutexAutoUnlock unlock(mMutex);
-      return InvokeCallback(nullptr, nullptr, ""_ns);
+      return InvokeCallback();
     }
 
-    nsCString cname;
-    Unused << addrRecord->GetCanonicalName(cname);
-    nsCOMPtr<nsISVCBRecord> svcbRecord;
-    if (NS_FAILED(mHTTPSRecord->GetServiceModeRecordWithCname(
-            mCaps & NS_HTTP_DISALLOW_SPDY, mCaps & NS_HTTP_DISALLOW_HTTP3,
-            cname, getter_AddRefs(svcbRecord)))) {
-      MutexAutoUnlock unlock(mMutex);
-      return InvokeCallback(mHTTPSRecord, nullptr, cname);
+    mAddrRecord = addrRecord;
+    // Waiting for the HTTPS record.
+    if (mHTTPSRecordRequest) {
+      return NS_OK;
     }
 
     MutexAutoUnlock unlock(mMutex);
-    return InvokeCallback(mHTTPSRecord, svcbRecord, cname);
+    return InvokeCallback();
   }
 
   return NS_OK;
 }
 
-nsresult HTTPSRecordResolver::InvokeCallback(
-    nsIDNSHTTPSSVCRecord* aHTTPSSVCRecord,
-    nsISVCBRecord* aHighestPriorityRecord, const nsACString& aCname) {
+nsresult HTTPSRecordResolver::InvokeCallback() {
   MOZ_ASSERT(!mDone);
 
   mDone = true;
-  return mTransaction->OnHTTPSRRAvailable(aHTTPSSVCRecord,
-                                          aHighestPriorityRecord, aCname);
+  if (!mHTTPSRecord) {
+    return mTransaction->OnHTTPSRRAvailable(nullptr, nullptr, ""_ns);
+  }
+
+  nsCString cname;
+  if (mAddrRecord) {
+    Unused << mAddrRecord->GetCanonicalName(cname);
+  }
+
+  nsCOMPtr<nsISVCBRecord> svcbRecord;
+  if (NS_FAILED(mHTTPSRecord->GetServiceModeRecordWithCname(
+          mCaps & NS_HTTP_DISALLOW_SPDY, mCaps & NS_HTTP_DISALLOW_HTTP3, cname,
+          getter_AddRefs(svcbRecord)))) {
+    return mTransaction->OnHTTPSRRAvailable(mHTTPSRecord, nullptr, cname);
+  }
+
+  return mTransaction->OnHTTPSRRAvailable(mHTTPSRecord, svcbRecord, cname);
 }
 
 void HTTPSRecordResolver::PrefetchAddrRecord(const nsACString& aTargetName,
