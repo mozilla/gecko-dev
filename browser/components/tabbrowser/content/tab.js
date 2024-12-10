@@ -24,8 +24,6 @@
             <image class="tab-icon-overlay" role="presentation"/>
           </stack>
           <vbox class="tab-label-container"
-                onoverflow="this.setAttribute('textoverflow', 'true');"
-                onunderflow="this.removeAttribute('textoverflow');"
                 align="start"
                 pack="center"
                 flex="1">
@@ -125,6 +123,10 @@
       if (!("_lastAccessed" in this)) {
         this.updateLastAccessed();
       }
+
+      let labelContainer = this.querySelector(".tab-label-container");
+      labelContainer.addEventListener("overflow", this);
+      labelContainer.addEventListener("underflow", this);
     }
 
     get owner() {
@@ -693,6 +695,14 @@
 
     on_AriaFocus() {
       this.updateA11yDescription();
+    }
+
+    on_overflow(event) {
+      event.currentTarget.setAttribute("textoverflow", "true");
+    }
+
+    on_underflow(event) {
+      event.currentTarget.removeAttribute("textoverflow");
     }
   }
 
